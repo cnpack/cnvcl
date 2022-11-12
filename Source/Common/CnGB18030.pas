@@ -153,7 +153,8 @@ function GetCodePointFromUtf164Char(PtrTo4Char: Pointer): TCnCodePoint;
 {* 计算一个四字节 Utf16 字符的编码值（也叫代码位置）}
 
 function GetUtf16CharFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): Integer;
-{* 计算一个 Unicode 编码值的二字节或四字节表示，结果放在 PtrTo4Char 所指的二字节或四字节区域
+{* 计算一个 Unicode 编码值的二字节或四字节表示，如果 PtrToChars 指向的位置不为空，
+  则将结果放在 PtrToChars 所指的二字节或四字节区域
   调用者在 CP 超过 $FFFF 时须保证 PtrToChars 所指的区域至少四字节，反之二字节即可
   返回 1 或 2，分别表示处理的是二字节或四字节}
 
@@ -439,34 +440,40 @@ var
 begin
   if CP >= CN_UTF16_EXT_BASE then
   begin
-    CP := CP - CN_UTF16_EXT_BASE;
-    // 拆出高 10 位放前两字节，拆出低 10 位放后两字节
+    if PtrToChars <> nil then
+    begin
+      CP := CP - CN_UTF16_EXT_BASE;
+      // 拆出高 10 位放前两字节，拆出低 10 位放后两字节
 
-    LW := CP and CN_UTF16_4CHAR_SPLIT_MASK;          // 低 10 位，放三、四字节
-    HW := (CP shr 10) and CN_UTF16_4CHAR_SPLIT_MASK; // 高 10 位，放一、二字节
+      LW := CP and CN_UTF16_4CHAR_SPLIT_MASK;          // 低 10 位，放三、四字节
+      HW := (CP shr 10) and CN_UTF16_4CHAR_SPLIT_MASK; // 高 10 位，放一、二字节
 
-    L := HW and $FF;
-    H := (HW shr 8) and CN_UTF16_4CHAR_HIGH_MASK;
-    H := H or CN_UTF16_4CHAR_PREFIX1_LOW;              // 1101 1000
-    C2 := PCn2CharRec(PtrToChars);
+      L := HW and $FF;
+      H := (HW shr 8) and CN_UTF16_4CHAR_HIGH_MASK;
+      H := H or CN_UTF16_4CHAR_PREFIX1_LOW;              // 1101 1000
+      C2 := PCn2CharRec(PtrToChars);
 
-    SetUtf16LowByte(L, C2);
-    SetUtf16HighByte(H, C2);
+      SetUtf16LowByte(L, C2);
+      SetUtf16HighByte(H, C2);
 
-    L := LW and $FF;
-    H := (LW shr 8) and CN_UTF16_4CHAR_HIGH_MASK;
-    H := H or CN_UTF16_4CHAR_PREFIX1_HIGH;              // 1101 1100
-    Inc(C2);
+      L := LW and $FF;
+      H := (LW shr 8) and CN_UTF16_4CHAR_HIGH_MASK;
+      H := H or CN_UTF16_4CHAR_PREFIX1_HIGH;              // 1101 1100
+      Inc(C2);
 
-    SetUtf16LowByte(L, C2);
-    SetUtf16HighByte(H, C2);
+      SetUtf16LowByte(L, C2);
+      SetUtf16HighByte(H, C2);
+    end;
     Result := 2;
   end
   else
   begin
-    C2 := PCn2CharRec(PtrToChars);
-    SetUtf16LowByte(Byte(CP and $00FF), C2);
-    SetUtf16HighByte(Byte(CP shr 8), C2);
+    if PtrToChars <> nil then
+    begin
+      C2 := PCn2CharRec(PtrToChars);
+      SetUtf16LowByte(Byte(CP and $00FF), C2);
+      SetUtf16HighByte(Byte(CP shr 8), C2);
+    end;
     Result := 1;
   end;
 end;

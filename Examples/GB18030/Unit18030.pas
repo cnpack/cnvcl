@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnWideStrings, CnGB18030;
+  StdCtrls, CnStrings, CnWideStrings, CnGB18030;
 
 type
   TFormGB18030 = class(TForm)
@@ -28,6 +28,8 @@ type
     btnCodePoint180303: TButton;
     btnMultiUtf16ToGB18130: TButton;
     btnMultiGB18131ToUtf16: TButton;
+    btnGenGB18030Page: TButton;
+    btnGenUtf16Page: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -47,10 +49,14 @@ type
     procedure btnCodePoint180303Click(Sender: TObject);
     procedure btnMultiUtf16ToGB18130Click(Sender: TObject);
     procedure btnMultiGB18131ToUtf16Click(Sender: TObject);
+    procedure btnGenGB18030PageClick(Sender: TObject);
+    procedure btnGenUtf16PageClick(Sender: TObject);
   private
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
     function CodePointUtf16ToGB18130(UCP: TCnCodePoint): TCnCodePoint;
     function CodePointGB18130ToUtf16(GBCP: TCnCodePoint): TCnCodePoint;
+    procedure Gen2GB18030ToUtf16Page(FromH, FromL, ToH, ToL: Byte; Content: TCnWideStringList; H2: Word = 0);
+    procedure Gen2Utf16ToGB18030Page(FromH, FromL, ToH, ToL: Byte; Content: TCnAnsiStringList; H2: Word = 0);
   public
 
   end;
@@ -187,6 +193,7 @@ begin
       GenUtf16Page(I, WS);
     end;
 
+    dlgSave1.FileName := 'UTF16.txt';
     if dlgSave1.Execute then
       WS.SaveToFile(dlgSave1.FileName);
   finally
@@ -429,6 +436,112 @@ begin
     S := S + T;
   end;
   ShowMessage(S);
+end;
+
+procedure TFormGB18030.Gen2GB18030ToUtf16Page(FromH, FromL, ToH, ToL: Byte;
+  Content: TCnWideStringList; H2: Word);
+var
+  H, L, T: Integer;
+  GBCP, UCP: TCnCodePoint;
+  S, C: WideString;
+begin
+  for H := FromH to ToH do
+  begin
+    for L := FromL to ToL do
+    begin
+      GBCP := ((H shl 8) or L) + (H2 shl 16);
+      UCP := CodePointGB18130ToUtf16(GBCP);
+      T := GetUtf16CharFromCodePoint(UCP, nil);
+      SetLength(C, T);
+      GetUtf16CharFromCodePoint(UCP, @C[1]);
+
+      S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2) + '  ' + C;
+      Content.Add(S);
+    end;
+  end;
+end;
+
+procedure TFormGB18030.btnGenGB18030PageClick(Sender: TObject);
+var
+  WS: TCnWideStringList;
+begin
+  WS := TCnWideStringList.Create;
+// 双字节：A1A9~A1FE                     1 区
+//         A840~A97E, A880~A9A0          5 区
+//         B0A1~F7FE                     2 区汉字
+//         8140~A07E, 8180~A0FE          3 区汉字
+//         AA40~FE7E, AA80~FEA0          4 区汉字
+//         AAA1~AFFE                     用户 1 区
+//         F8A1~FEFE                     用户 2 区
+//         A140~A77E, A180~A7A0          用户 3 区
+
+  Gen2GB18030ToUtf16Page($A1, $A9, $A1, $FE, WS);
+  WS.Add('');
+  Gen2GB18030ToUtf16Page($A8, $40, $A9, $7E, WS);
+  Gen2GB18030ToUtf16Page($A8, $80, $A9, $A0, WS);
+  WS.Add('');
+  Gen2GB18030ToUtf16Page($B0, $A1, $F7, $FE, WS);
+  WS.Add('');
+  Gen2GB18030ToUtf16Page($81, $40, $A0, $7E, WS);
+  Gen2GB18030ToUtf16Page($81, $80, $A0, $FE, WS);
+  WS.Add('');
+  Gen2GB18030ToUtf16Page($AA, $40, $FE, $7E, WS);
+  Gen2GB18030ToUtf16Page($AA, $80, $FE, $A0, WS);
+  WS.Add(''); // 双字节用户区
+  Gen2GB18030ToUtf16Page($AA, $A1, $AF, $FE, WS);
+  WS.Add('');
+  Gen2GB18030ToUtf16Page($F8, $A1, $FE, $FE, WS);
+  WS.Add('');
+  Gen2GB18030ToUtf16Page($A1, $40, $A7, $7E, WS);
+  Gen2GB18030ToUtf16Page($A1, $80, $A7, $A0, WS);
+
+  dlgSave1.FileName := 'GB18030_UTF16.txt';
+  if dlgSave1.Execute then
+    WS.SaveToFile(dlgSave1.FileName);
+  WS.Free;
+end;
+
+procedure TFormGB18030.btnGenUtf16PageClick(Sender: TObject);
+var
+  SL: TCnAnsiStringList;
+begin
+  SL := TCnAnsiStringList.Create;
+
+  Gen2Utf16ToGB18030Page(0, 0, $FF, $FF, SL);
+  // Gen2Utf16ToGB18030Page($54, $03, $54, $03, SL);
+  dlgSave1.FileName := 'UTF16_GB18030.txt';
+  if dlgSave1.Execute then
+    SL.SaveToFile(dlgSave1.FileName);
+  SL.Free;
+end;
+
+procedure TFormGB18030.Gen2Utf16ToGB18030Page(FromH, FromL, ToH, ToL: Byte;
+  Content: TCnAnsiStringList; H2: Word);
+var
+  H, L, T: Integer;
+  GBCP, UCP: TCnCodePoint;
+  S, C: AnsiString;
+begin
+  for H := FromH to ToH do
+  begin
+    for L := FromL to ToL do
+    begin
+      UCP := ((H shl 8) or L) + (H2 shl 16);
+      GBCP := CodePointUtf16ToGB18130(UCP);
+      if GBCP <> CN_INVALID_CODEPOINT then
+      begin
+        T := GetGB18030CharsFromCodePoint(GBCP, nil);
+        SetLength(C, T);
+        GetGB18030CharsFromCodePoint(GBCP, @C[1]);
+
+        S := IntToHex(UCP, 2) + ' = ' + IntToHex(GBCP, 2) + '  ' + C;
+      end
+      else
+        S := IntToHex(UCP, 2) + ' = ';
+
+      Content.Add(S);
+    end;
+  end;
 end;
 
 end.
