@@ -186,16 +186,16 @@ object FormGB18030: TFormGB18030
   end
   object btnGenGB18030Page: TButton
     Left = 792
-    Top = 56
+    Top = 96
     Width = 169
-    Height = 25
+    Height = 113
     Caption = 'Generate GB18030 Utf16 Page'
     TabOrder = 19
     OnClick = btnGenGB18030PageClick
   end
   object btnGenUtf16Page: TButton
     Left = 792
-    Top = 96
+    Top = 56
     Width = 169
     Height = 25
     Caption = 'Generate Utf16 GB18030 Page'
