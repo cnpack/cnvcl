@@ -30,6 +30,7 @@ type
     btnMultiGB18131ToUtf16: TButton;
     btnGenGB18030Page: TButton;
     btnGenUtf16Page: TButton;
+    chkIncludeCharValue: TCheckBox;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -461,9 +462,12 @@ begin
       SetLength(C, T);
       GetUtf16CharFromCodePoint(UCP, @C[1]);
 
-      S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2) + '  ' + C;
-      Content.Add(S);
+      if chkIncludeCharValue.Checked then
+        S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2) + '  ' + C
+      else
+        S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2);
 
+      Content.Add(S);
       Inc(Result);
     end;
   end;
@@ -642,7 +646,11 @@ begin
     SetLength(C, T);
     GetUtf16CharFromCodePoint(UCP, @C[1]);
 
-    S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2) + '  ' + C;
+    if chkIncludeCharValue.Checked then
+      S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2) + '  ' + C
+    else
+      S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2);
+
     Content.Add(S);
     Inc(Result);
 

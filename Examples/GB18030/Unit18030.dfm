@@ -202,6 +202,16 @@ object FormGB18030: TFormGB18030
     TabOrder = 20
     OnClick = btnGenUtf16PageClick
   end
+  object chkIncludeCharValue: TCheckBox
+    Left = 792
+    Top = 224
+    Width = 145
+    Height = 17
+    Caption = 'Include Char Value'
+    Checked = True
+    State = cbChecked
+    TabOrder = 21
+  end
   object dlgSave1: TSaveDialog
     FileName = 'CHARS.txt'
     Left = 928
