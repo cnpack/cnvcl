@@ -41,81 +41,113 @@ unit CnGB18030;
 *           GB18030 的编码取值范围（十六进制）
 *           注意：双字节的 AABB~CCDD 的范围不是通常意义上的增到 FF 再进位，
 *             而是代表前一个字节 AA 到 CC，且后一个字节 CC 到 DD，并不包括 AAFF 这种。
-*           但四字节却又不同，第四字节总是 30~39，没有 40，即将到 40 时便第三字节进位，
-*             第三字节顺序增加，但总是 81~FE，没有 FF，即将 FF 时便第二字节进位，
-*             第二字节也顺序增加，但总是 30~39，没有 40，即将到 40 时便第一字节进位，
-*             第一字节也顺序增加，但总是 81~FE，没有 FF，即将 FF 时便准备超界。
+*           但四字节却又不同，
+*             第四字节顺序增加，但总是 30~39，没有 40，即将到 40 时便第三字节进位。一次 10 个
+*             第三字节顺序增加，但总是 81~FE，没有 FF，即将到 FF 时便第二字节进位。一次 10 * 126 = 1260 个
+*             第二字节顺序增加，但总是 30~39，没有 40，即将到 40 时便第一字节进位。一次 1260 * 10 = 12600 个
+*             第一字节顺序增加，但总是 81~FE，没有 FF，即将到 FF 时便准备超界。    一共 12600 * 126 = 1587600 个，符合规范
 *
 *           单字节：00~7F
-*           双字节：（不包括和中国无关的其他语言字符）
-*                   A1A9~A1FE                     1 区
-*                   A840~A97E, A880~A9A0          5 区
-*                   B0A1~F7FE                     2 区汉字
-*                   8140~A07E, 8180~A0FE          3 区汉字
-*                   AA40~FE7E, AA80~FEA0          4 区汉字
-*                   AAA1~AFFE                     用户 1 区
-*                   F8A1~FEFE                     用户 2 区
-*                   A140~A77E, A180~A7A0          用户 3 区
-*           四字节：（不包括和中国无关的其他语言字符。后面的俩数字是编码位置数（容量）与有效字符数）
-*                            81308130~81318131            分隔区一
-*                   81318132~81319934             维吾尔、哈萨克、柯尔克孜文                     243    42
-*                            81319935~8132E833            分隔区二
-*                   8132E834~8132FD31             藏文                                           208    193
-*                            8132FD32~81339D35            分隔区三
-*                   81339D36~8133B635             朝鲜文字母                                     250    69
-*                            8133B636~8134D237            分隔区四
-*                   8134D238~8134E337             蒙古文（包括满文、托忒文、锡伯文和阿礼嘎礼字） 170    149
-*                            8134E337~8134F433            分隔区五
-*                   8134F434~8134F830             德宏傣文                                       37     35
-*                            8134F831~8134F931            分隔区六                               8+2
-*                   8134F932~81358437             西双版纳新傣文                                 96     83
-*                            81358438~81358B31            分隔区七
-*                   81358B32~81359935             西双版纳老傣文                                 144    127
-*                            81359936~81398B31            分隔区八
-*                   81398B32~8139A035             康熙部首（规范中误将结尾写成 8139A135）        224    214
-*                            8139A036~8139A932            分隔区九
-*                   8139A933~8139B734             朝鲜文兼容字母                                 142    51
-*                            8139B735~8139EE38            分隔区十
-*                   8139EE39~82358738             CJK 统一汉字扩充 A                             6530   6530
-*                            82358739~82358F32            分隔区十一
-*                   82358F33~82359636             CJK 统一汉字                                   74     66
-*                            82359637~82359832            分隔区十二
-*                   82359833~82369435             彝文                                           1223   1215
-*                            82369436~82369534            分隔区十三
-*                   82369535~82369A32             傈僳文                                         48     48
-*                            82369A33~8237CF34            分隔区十四
-*                   8237CF35~8336BE36             朝鲜文音节                                     11172  3431
-*                            8336BE37~8430BA31            分隔区十五
-*                   8430BA32~8430FE35             维吾尔、哈萨克、柯尔克孜文                     684    59
-*                            8430FE36~84318639            分隔区十六
-*                   84318730~84319530             维吾尔、哈萨克、柯尔克孜文                     141    84
-*                            84319531~8431A439            分隔区十六，连续性至此终止于 FFFF
-*                                                 （新开区域规范中有两处不连续，实际应连续只是省略了）
-*                   9034C538~9034C730             蒙古文 BIRGA                                   13     13
-*                            9034C731~9034C739            分隔区十七开头一块，实际上到 9232C635
-*                   9232C636~9232D635             滇东北苗文                                     160    133
-*                            9232D636~9232D639            分隔区十八开头一块，实际上到 95328235
-*                   95328236~9835F336             CJK 统一汉字扩充 B                             42711  42711
-*                            9835F337~9835F737            分隔区十九
-*                   9835F738~98399E36             CJK 统一汉字扩充 C                             4149   4149
-*                            98399E37~98399F37            分隔区二十
-*                   98399F38~9839B539             CJK 统一汉字扩充 D                             222    222
-*                            9839B630~9839B631            分隔区二十一                           2
-*                   9839B632~9933FE33             CJK 统一汉字扩充 E                             5762   5762
-*                            9933FE34~99348137            分隔区二十二
-*                   99348138~9939F730             CJK 统一汉字扩充 F                             7473   7473
-*                            9939F731~9A348431            分隔区二十三，连续性至此终止于 2FFFF
 *
-*                   FD308130~FE39FE39             用户自定义区，目前无 Unicode 映射
+*           双字节：（不包括和中国无关的其他语言字符，和 Unicode 部分二字节码位杂乱对应，只能查表）
+*                   A1A9~A1FE                     1 区         不连续
+*                   A840~A97E, A880~A9A0          5 区         不连续
+*                   B0A1~F7FE                     2 区汉字     不连续
+*                   8140~A07E, 8180~A0FE          3 区汉字     不连续
+*                   AA40~FE7E, AA80~FEA0          4 区汉字     不连续
+*                   AAA1~AFFE                     用户 1 区    564 个字符  E000 到 E233 连续
+*                   F8A1~FEFE                     用户 2 区    658 个字符  E234 到 E4C5 连续
+*                   A140~A77E, A180~A7A0          用户 3 区    不连续
+*
+*           四字节：（不包括和中国无关的其他语言字符）
+*
+*  编码范围                      码区名称                           编码位置数（容量） 有效字符数   Unicode 编码
+*
+*           81308130~81318131            分隔区一                               1262                0080 到 060B，不连续，内有多处跳跃
+*  81318132~81319934             维吾尔、哈萨克、柯尔克孜文                     243    42           060C 到 06FE，开始连续
+*           81319935~8132E833            分隔区二                               2049                06FF 到 0EFF  |
+*  8132E834~8132FD31             藏文                                           208    193          0F00 到 0FCF  |
+*           8132FD32~81339D35            分隔区三                               304                 0FD0 到 10FF  |
+*  81339D36~8133B635             朝鲜文字母                                     250    69           1100 到 11F9  |
+*           8133B636~8134D237            分隔区四                               1542                11FA 到 17FF  |
+*  8134D238~8134E337             蒙古文（满、托忒、锡伯和阿礼嘎礼字）           170    149          1800 到 18A9  |
+*           8134E338~8134F433            分隔区五                               166                 18AA 到 194F  |
+*  8134F434~8134F830             德宏傣文                                       37     35           1950 到 1974  |
+*           8134F831~8134F931            分隔区六                               11                  1975 到 197F  |
+*  8134F932~81358437             西双版纳新傣文                                 96     83           1980 到 19DF  |
+*           81358438~81358B31            分隔区七                               64                  19E0 到 1A1F  |
+*  81358B32~81359935             西双版纳老傣文                                 144    127          1A20 到 1AAF，连续终止
+*           81359936~81398B31            分隔区八                               4896                1AB0 到 2EFF，不连续，比如 81379735 = 24FF 和 81379736 = 254C 有跳跃
+*  81398B32~8139A135             康熙部首（规范表格中结尾是 8139A135）          224    214          2F00 到 2FDF，单独连续
+*           8139A136~8139A932            分隔区九                               77                  2FE0 到 3130，不连续
+*  8139A933~8139B734             朝鲜文兼容字母                                 142    51           3131 到 31BE，单独连续
+*           8139B735~8139EE38            分隔区十                               554                 31BF 到 33FF，不连续，比如 8139C131 = 321F 和 8139C132 = 322A 有跳跃
+*  8139EE39~82358738             CJK 统一汉字扩充 A                             6530   6530         3400 到 4DB5，不连续，比如82358731 = 4DAD 和 82358732 = 4DAF 以及其他地方有五十多处跳跃
+*           82358739~82358F32            分隔区十一                             74                  4DB6 到 4DFF，单独连续
+*
+*  82358F33~82359636             CJK 统一汉字                                   74     66           9FA6 到 9FEF，开始连续
+*           82359637~82359832            分隔区十二                             16                  9FF0 到 9FFF  |
+*  82359833~82369435             彝文                                           1223   1215         A000 到 A4C6  |
+*           82369436~82369534            分隔区十三                             9                   A4C7 到 A4CF  |
+*  82369535~82369A32             傈僳文                                         48     48           A4D0 到 A4FF  |
+*           82369A33~8237CF34            分隔区十四                             1792                A500 到 ABFF  |
+*  8237CF35~8336BE36             朝鲜文音节                                     11172  3431         AC00 到 D7A3，连续终止
+*           8336BE37~8430BA31            分隔区十五                             4995                D7A4 到 FB4F，不连续，比如 8336C738 = D7FF 和 8336C739 = E76C
+*  8430BA32~8430FE35             维吾尔、哈萨克、柯尔克孜文                     684    59           FB50 到 FDFB，单独连续
+*           8430FE36~84318639            分隔区十六                             64                  FDFC 到 FE6F，不连续，比如 84318537 = FE2F 和 84318538 = FE32
+*  84318730~84319530             维吾尔、哈萨克、柯尔克孜文                     141    84           FE70 到 FEFC，单独连续
+*           84319531~8431A439            分隔区十七，GB18030 连续终止           159                 FEFD 到 FFFF，不连续，84319534 = FF00 比如 84319535 = FF5F
+*
+*                                （以下俩区域规范中有两处不连续，实际应连续只是省略了）
+*  9034C538~9034C730             蒙古文 BIRGA，Unicode 11660 开始               13     13           11660 到 1166C，开始连续
+*           9034C731~9232C635            分隔区十八，规范省略只到 9034C739      22675               1166D 到 16EFF  |
+*  9232C636~9232D635             滇东北苗文                                     160    133          16F00 到 16F9F  |
+*           9232D636~95328235            分隔区十九，规范省略只到 9232D639      36960               16FA0 到 1FFFF  |
+*  95328236~9835F336             CJK 统一汉字扩充 B                             42711  42711        20000 到 2A6D6  |
+*           9835F337~9835F737            分隔区二十                             41                  2A6D7 到 2A6FF  |
+*  9835F738~98399E36             CJK 统一汉字扩充 C                             4149   4149         2A700 到 2B734  |
+*           98399E37~98399F37            分隔区二十一                           11                  2B735 到 2B73F  |
+*  98399F38~9839B539             CJK 统一汉字扩充 D                             222    222          2B740 到 2B81D  |
+*           9839B630~9839B631            分隔区二十二                           2                   2B81E 到 2B81F  |
+*  9839B632~9933FE33             CJK 统一汉字扩充 E                             5762   5762         2B820 到 2CEA1  |
+*           9933FE34~99348137            分隔区二十三                           14                  2CEA2 到 2CEAF  |
+*  99348138~9939F730             CJK 统一汉字扩充 F                             7473   7473         2CEB0 到 2EBE0  |
+*           9939F731~9A348431            分隔区二十四                           5151                2EBE1 到 2FFFF，连续终止
+*
+*  FD308130~FE39FE39             用户自定义区，目前无 Unicode 映射
 *
 *           注意：每个四字节区的容量，均大于或等于其区内规定的有效字符数，
 *              但剩余的无效字符与有效字符一样，同样有 Unicode 字符值映射。
-*              并且区与区之间的分隔区域，甚至同样有 Unicode 字符值映射，只是没有有效字符。
+*              并且区与区之间的分隔区域，也同样有 Unicode 字符值映射，只是没有有效字符。
+*
+*           所以：二、四字节 GB18010 编码与 Unicode 对应的连续区块的映射规则如下（其余八个部分还有大部分双字节只能查表）：
+*
+*                 AAA1~AFFE         线性对应 E000~E233
+*                 F8A1~FEFE         线性对应 E234~E4C5
+*                 81318132~81359935 线性对应 060C~1AAF
+*                 81398B32~8139A035 线性对应 2F00~2FD5
+*                 8139A933~8139B734 线性对应 3131~31BE
+*                 82358739~82358F32 线性对应 4DB6~4DFF
+*                 82358F33~8336BE36 线性对应 9FA6~D7A3
+*                 8430BA32~8430FE35 线性对应 FB50~FDFB
+*                 84318730~84319530 线性对应 FE70~FEFC
+*                 9034C538~9A348431 线性对应 11660~2FFFF
+*
+*             将 GB18030 双字节编码转换为 Unicode 时，先根据双字节值确定属于上面俩区间哪个
+*                然后拆成从高到低二字节，各减去 GB18010 区间开始的字节值（可能有负值）
+*                两个差值分别乘以 94、1 并相加，再加上 Unicode 区间起始值即可
+*
+*             将 GB18030 四字节编码转换为 Unicode 时，先根据四字节值确定属于上面八区间哪个
+*                然后拆成从高到低四字节，各减去 GB18010 区间开始的字节值（可能有负值），
+*                四个差值分别乘以 12600、1260、10、1 并相加，再加上 Unicode 区间起始值即可
+*             如果不在区间内，则只能查那两张加起来四万多项的表
 *
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.11.11
+* 修改记录：2022.11.14
+*               实现不依赖于 Windows API 的 GB18030-2022 全部字符到 Unicode 的转换
+*           2022.11.11
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -143,19 +175,23 @@ type
   {* GB18130 编码的字符串，内部用 RawByteString 也就是 AnsiString($FFFF) 表示}
 
   PCnGB18130String = ^TCnGB18130String;
+  {* 指向 GB18130 编码的字符串的指针}
 
   PCnGB18130StringPtr = PAnsiChar;
   {* GB18130 编码的字符指针，内部用 PAnsiChar 表示}
 
   TCnCodePoint = type Cardinal;
+  {* 字符码值，或者叫码点，不等于表达的编码方式}
 
   TCn2CharRec = packed record
+  {* 双字节字符结构}
     P1: AnsiChar;
     P2: AnsiChar;
   end;
   PCn2CharRec = ^TCn2CharRec;
 
   TCn4CharRec = packed record
+  {* 四字节字符结构}
     P1: AnsiChar;
     P2: AnsiChar;
     P3: AnsiChar;
@@ -193,6 +229,12 @@ function GB18130ToUtf16(GB18130Str: PCnGB18130StringPtr; Utf16Str: PWideChar): I
 
 function GetGB18130FromUtf16(Utf16Str: PWideChar): TCnGB18130String;
 {* 返回一 Unicode 字符串对应的 GB18130 字符串}
+
+function GetUnicodeFromGB18030CodePoint(GBCP: TCnCodePoint): TCnCodePoint;
+{* 从 GB18030 字符编码值获取其对应的 Unicode 编码值}
+
+function GetGB18030FromUnicodeCodePoint(UCP: TCnCodePoint): TCnCodePoint;
+{* 从 Unicode 字符编码值获取其对应的 GB18030 编码值}
 
 {$IFDEF UNICODE}
 
@@ -239,6 +281,18 @@ procedure SetUtf16LowByte(B: Byte; Rec: PCn2CharRec); {$IFDEF SUPPORT_INLINE} in
 
 implementation
 
+uses
+  CnHashMap;
+
+type
+  TCnGB18130MappingPage = packed record
+  {* 记录一个连续字符的映射区间}
+    GBHead: TCnCodePoint;
+    GBTail: TCnCodePoint;
+    UHead:  TCnCodePoint;
+    UTail:  TCnCodePoint;
+  end;
+
 const
   CN_UTF16_4CHAR_PREFIX1_LOW  = $D8;
   CN_UTF16_4CHAR_PREFIX1_HIGH = $DC;
@@ -251,6 +305,77 @@ const
   CN_UTF16_EXT_BASE           = $10000;
 
   CN_GB18030_BOM: array[0..3] of Byte = ($84, $31, $95, $33);
+
+  // 双字节码转换相关
+  CN_GB18130_2CHAR_PAGES: array[0..1] of TCnGB18130MappingPage = (
+    (GBHead: $AAA1; GBTail: $AFFE; UHead: $E000; UTail: $E233),
+    (GBHead: $F8A1; GBTail: $FEFE; UHead: $E234; UTail: $E4C5)
+  );
+  CN_GB18130_2CHAR_PAGE_COUNT = 94;
+
+  // 四字节码转换相关
+  CN_GB18130_4CHAR_PAGES: array[0..7] of TCnGB18130MappingPage = (
+    (GBHead: $81318132; GBTail: $81359935; UHead: $060C; UTail: $1AAF),
+    (GBHead: $81398B32; GBTail: $8139A135; UHead: $2F00; UTail: $2FD5),
+    (GBHead: $8139A933; GBTail: $8139B734; UHead: $3131; UTail: $31BE),
+    (GBHead: $82358739; GBTail: $82358F32; UHead: $4DB6; UTail: $4DFF),
+    (GBHead: $82358F33; GBTail: $8336BE36; UHead: $9FA6; UTail: $D7A3),
+    (GBHead: $8430BA32; GBTail: $8430FE35; UHead: $FB50; UTail: $FDFB),
+    (GBHead: $84318730; GBTail: $84319530; UHead: $FE70; UTail: $FEFC),
+    (GBHead: $9034C538; GBTail: $9A348431; UHead: $11660; UTail: $2FFFF)
+  );
+
+  CN_GB18130_4CHAR_PAGE_COUNT1 = 12600;
+  CN_GB18130_4CHAR_PAGE_COUNT2 = 1260;
+  CN_GB18130_4CHAR_PAGE_COUNT3 = 10;
+
+  CN_GB18130_MAP_DEF_CAPACITY = 65536;
+
+{$I GB18030_Unicode.inc}
+
+var
+  F2GB18130ToUnicodeMap: TCnHashMap = nil;
+  F2UnicodeToGB18130Map: TCnHashMap = nil;
+  F4GB18130ToUnicodeMap: TCnHashMap = nil;
+  F4UnicodeToGB18130Map: TCnHashMap = nil;
+
+procedure CheckGB18130ToUnicodeMap;
+var
+  I: Integer;
+begin
+  if F2GB18130ToUnicodeMap = nil then
+  begin
+    F2GB18130ToUnicodeMap := TCnHashMap.Create(CN_GB18130_MAP_DEF_CAPACITY);
+    for I := Low(CN_GB18030_2MAPPING) to High(CN_GB18030_2MAPPING) do
+      F2GB18130ToUnicodeMap.Add(Integer(CN_GB18030_2MAPPING[I]), Integer(CN_UNICODE_2MAPPING[I]));
+  end;
+
+  if F4GB18130ToUnicodeMap = nil then
+  begin
+    F4GB18130ToUnicodeMap := TCnHashMap.Create(CN_GB18130_MAP_DEF_CAPACITY);
+    for I := Low(CN_GB18030_4MAPPING) to High(CN_GB18030_4MAPPING) do
+      F4GB18130ToUnicodeMap.Add(Integer(CN_GB18030_4MAPPING[I]), Integer(CN_UNICODE_4MAPPING[I]));
+  end;
+end;
+
+procedure CheckUnicodeToGB18130Map;
+var
+  I: Integer;
+begin
+  if F2UnicodeToGB18130Map = nil then
+  begin
+    F2UnicodeToGB18130Map := TCnHashMap.Create(CN_GB18130_MAP_DEF_CAPACITY);
+    for I := Low(CN_UNICODE_2MAPPING) to High(CN_UNICODE_2MAPPING) do
+      F2UnicodeToGB18130Map.Add(Integer(CN_UNICODE_2MAPPING[I]), Integer(CN_GB18030_2MAPPING[I]));
+  end;
+
+  if F4UnicodeToGB18130Map = nil then
+  begin
+    F4UnicodeToGB18130Map := TCnHashMap.Create(CN_GB18130_MAP_DEF_CAPACITY);
+    for I := Low(CN_UNICODE_4MAPPING) to High(CN_UNICODE_4MAPPING) do
+      F4UnicodeToGB18130Map.Add(Integer(CN_UNICODE_4MAPPING[I]), Integer(CN_GB18030_4MAPPING[I]));
+  end;
+end;
 
 function GetUtf16HighByte(Rec: PCn2CharRec): Byte;
 begin
@@ -411,6 +536,111 @@ begin
 
 end;
 
+function GetUnicodeFromGB18030CodePoint(GBCP: TCnCodePoint): TCnCodePoint;
+var
+  I, GBBase, UBase: TCnCodePoint;
+  A1, A2, A3, A4, B1, B2, B3, B4, C1, C2, C3, C4: Byte;
+  D1, D2, D3, D4: Integer;
+begin
+  Result := CN_INVALID_CODEPOINT;
+
+  if GBCP < $80 then
+    Result := GBCP
+  else if GBCP < $FFFF then
+  begin
+    // 查双字节表
+    GBBase := 0;
+    UBase := 0;
+
+    B1 := (GBCP and $0000FF00) shr 8;
+    B2 := GBCP and $000000FF;
+
+    for I := Low(CN_GB18130_2CHAR_PAGES) to High(CN_GB18130_2CHAR_PAGES) do
+    begin
+      A1 := (CN_GB18130_2CHAR_PAGES[I].GBHead and $0000FF00) shr 8;
+      A2 := CN_GB18130_2CHAR_PAGES[I].GBHead and $000000FF;
+      C1 := (CN_GB18130_2CHAR_PAGES[I].GBTail and $0000FF00) shr 8;
+      C2 := CN_GB18130_2CHAR_PAGES[I].GBTail and $000000FF;
+
+      if (B1 >= A1) and (B1 <= C1) and (B2 >= A2) and (B2 <= C2) then
+      begin
+        GBBase := CN_GB18130_2CHAR_PAGES[I].GBHead;
+        UBase := CN_GB18130_2CHAR_PAGES[I].UHead;
+        Break;
+      end;
+    end;
+
+    if GBBase > 0 then
+    begin
+      B1 := (GBBase and $0000FF00) shr 8;
+      B2 := GBBase and $000000FF;
+
+      C1 := (GBCP and $0000FF00) shr 8;
+      C2 := GBCP and $000000FF;
+
+      D1 := C1 - B1;   // 需要用 Integer，因为可能有负值
+      D2 := C2 - B2;
+
+      Result := D1 * CN_GB18130_2CHAR_PAGE_COUNT + D2 + UBase;
+    end
+    else
+    begin
+      // 查六个二字节组合成的表
+      UBase := F2GB18130ToUnicodeMap.Find(Integer(GBCP));
+      if UBase > 0 then
+        Result := UBase;
+    end;
+  end
+  else
+  begin
+    // 四字节
+    GBBase := 0;
+    UBase := 0;
+    for I := Low(CN_GB18130_4CHAR_PAGES) to High(CN_GB18130_4CHAR_PAGES) do
+    begin
+      if (GBCP >= CN_GB18130_4CHAR_PAGES[I].GBHead) and (GBCP <= CN_GB18130_4CHAR_PAGES[I].GBTail) then
+      begin
+        GBBase := CN_GB18130_4CHAR_PAGES[I].GBHead;
+        UBase := CN_GB18130_4CHAR_PAGES[I].UHead;
+        Break;
+      end;
+    end;
+
+    if GBBase > 0 then
+    begin
+      B1 := (GBBase and $FF000000) shr 24;
+      B2 := (GBBase and $00FF0000) shr 16;
+      B3 := (GBBase and $0000FF00) shr 8;
+      B4 := GBBase and $000000FF;
+
+      C1 := (GBCP and $FF000000) shr 24;
+      C2 := (GBCP and $00FF0000) shr 16;
+      C3 := (GBCP and $0000FF00) shr 8;
+      C4 := GBCP and $000000FF;
+
+      D1 := C1 - B1;   // 需要用 Integer，因为可能有负值
+      D2 := C2 - B2;
+      D3 := C3 - B3;
+      D4 := C4 - B4;
+
+      Result := D1 * CN_GB18130_4CHAR_PAGE_COUNT1 + D2 * CN_GB18130_4CHAR_PAGE_COUNT2
+        + D3 * CN_GB18130_4CHAR_PAGE_COUNT3 + D4 + UBase;
+    end
+    else
+    begin
+      // 查八个四字节表
+      UBase := F4GB18130ToUnicodeMap.Find(Integer(GBCP));
+      if UBase > 0 then
+        Result := UBase;
+    end;
+  end;
+end;
+
+function GetGB18030FromUnicodeCodePoint(UCP: TCnCodePoint): TCnCodePoint;
+begin
+
+end;
+
 function GetGB18130FromUtf16(Utf16Str: PWideChar): TCnGB18130String;
 var
   L: Integer;
@@ -542,7 +772,8 @@ function GetCodePointFromGB18030Char(PtrToGB18030Chars: PCnGB18130StringPtr): TC
 var
   C1, C2, C3, C4: Byte;
 begin
-  Result := 0;
+  Result := CN_INVALID_CODEPOINT;
+
   C1 := Byte(PtrToGB18030Chars^);
   if C1 < $80 then
     Result := C1                                // 单字节
@@ -556,10 +787,12 @@ begin
     begin
       Inc(PtrToGB18030Chars);
       C3 := Byte(PtrToGB18030Chars^);
-      Inc(PtrToGB18030Chars);                   // 不判断三字节的 81 到 F3 以及四字节的 30 到 39 了
+      Inc(PtrToGB18030Chars);
       C4 := Byte(PtrToGB18030Chars^);
 
-      Result := C1 shl 24 + C2 shl 16 + C3 shl 8 + C4;
+      // 再判断三字节的 81 到 FE 以及四字节的 30 到 39
+      if (C3 >= $81) and (C3 <= $FE) and (C4 >= $30) and (C4 <= $39) then
+        Result := C1 shl 24 + C2 shl 16 + C3 shl 8 + C4;
     end;
   end;
 end;
@@ -596,9 +829,10 @@ begin
       end;
       Result := 2;
     end
-    else if ((C1 >= $81) and (C1 <= $FE)) and ((C2 >= $30) and (C2 <= $39)) then
+    else if ((C1 >= $81) and (C1 <= $FE)) and ((C2 >= $30) and (C2 <= $39))
+      and ((C3 >= $81) and (C3 <= $FE)) and ((C4 >= $30) and (C4 <= $39)) then
     begin
-      // 是四字节字符，暂不判断 C3 和 C4
+      // 是四字节字符
       if P <> nil then
       begin
         P^ := C1;
@@ -613,6 +847,17 @@ begin
     end;
   end;
 end;
+
+initialization
+  CheckGB18130ToUnicodeMap;
+  CheckUnicodeToGB18130Map;
+
+finalization
+  F2UnicodeToGB18130Map.Free;
+  F2GB18130ToUnicodeMap.Free;
+  F4GB18130ToUnicodeMap.Free;
+  F4UnicodeToGB18130Map.Free;
+
 
 end.
 

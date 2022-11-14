@@ -189,7 +189,7 @@ object FormGB18030: TFormGB18030
     Top = 96
     Width = 169
     Height = 113
-    Caption = 'Generate GB18030 Utf16 Page'
+    Caption = 'Generate GB18030 Utf16  Table'
     TabOrder = 19
     OnClick = btnGenGB18030PageClick
   end
@@ -211,6 +211,33 @@ object FormGB18030: TFormGB18030
     Checked = True
     State = cbChecked
     TabOrder = 21
+  end
+  object btnGB18303CodePointToUtf16: TButton
+    Left = 792
+    Top = 320
+    Width = 169
+    Height = 25
+    Caption = 'GB18303 CodePoint To Unicode'
+    TabOrder = 22
+    OnClick = btnGB18303CodePointToUtf16Click
+  end
+  object btnGenGB18030PagePartly: TButton
+    Left = 792
+    Top = 248
+    Width = 169
+    Height = 41
+    Caption = 'Generate GB18030 Utf16 Inc'
+    TabOrder = 23
+    OnClick = btnGenGB18030PagePartlyClick
+  end
+  object btnGenGB18030UnicodeCompare: TButton
+    Left = 792
+    Top = 360
+    Width = 169
+    Height = 25
+    Caption = 'Generate GB18030 Unicode'
+    TabOrder = 24
+    OnClick = btnGenGB18030UnicodeCompareClick
   end
   object dlgSave1: TSaveDialog
     FileName = 'CHARS.txt'

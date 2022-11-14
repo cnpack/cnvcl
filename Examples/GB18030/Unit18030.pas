@@ -31,6 +31,9 @@ type
     btnGenGB18030Page: TButton;
     btnGenUtf16Page: TButton;
     chkIncludeCharValue: TCheckBox;
+    btnGB18303CodePointToUtf16: TButton;
+    btnGenGB18030PagePartly: TButton;
+    btnGenGB18030UnicodeCompare: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -52,14 +55,25 @@ type
     procedure btnMultiGB18131ToUtf16Click(Sender: TObject);
     procedure btnGenGB18030PageClick(Sender: TObject);
     procedure btnGenUtf16PageClick(Sender: TObject);
+    procedure btnGB18303CodePointToUtf16Click(Sender: TObject);
+    procedure btnGenGB18030PagePartlyClick(Sender: TObject);
+    procedure btnGenGB18030UnicodeCompareClick(Sender: TObject);
   private
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
     function CodePointUtf16ToGB18130(UCP: TCnCodePoint): TCnCodePoint;
     function CodePointGB18130ToUtf16(GBCP: TCnCodePoint): TCnCodePoint;
-    function Gen2GB18030ToUtf16Page(FromH, ToH, FromL, ToL: Byte; Content: TCnWideStringList): Integer;
     procedure Gen2Utf16ToGB18030Page(FromH, FromL, ToH, ToL: Byte; Content: TCnAnsiStringList; H2: Word = 0);
 
+    procedure Step4GB18030CodePoint(var CP: TCnCodePoint);
+
+    function Gen2GB18030ToUtf16Page(FromH, FromL, ToH, ToL: Byte; Content: TCnWideStringList): Integer;
     function Gen4GB18030ToUtf16Page(From4, To4: TCnCodePoint; Content: TCnWideStringList): Integer;
+
+    function Gen2GB18030ToUtf16Array(FromH, FromL, ToH, ToL: Byte; CGB, CU: TCnWideStringList): Integer;
+    function Gen4GB18030ToUtf16Array(From4, To4: TCnCodePoint; CGB, CU: TCnWideStringList): Integer;
+
+    function GenCn2GB18030ToUtf16Page(FromH, FromL, ToH, ToL: Byte; Content: TCnAnsiStringList): Integer;
+    function GenCn4GB18030ToUtf16Page(From4, To4: TCnCodePoint; Content: TCnAnsiStringList): Integer;
   public
 
   end;
@@ -444,7 +458,7 @@ begin
   ShowMessage(S);
 end;
 
-function TFormGB18030.Gen2GB18030ToUtf16Page(FromH, ToH, FromL, ToL: Byte;
+function TFormGB18030.Gen2GB18030ToUtf16Page(FromH, FromL, ToH, ToL: Byte;
   Content: TCnWideStringList): Integer;
 var
   H, L, T: Integer;
@@ -475,8 +489,9 @@ end;
 
 procedure TFormGB18030.btnGenGB18030PageClick(Sender: TObject);
 var
-  R: Integer;
+  R, I: Integer;
   WS: TCnWideStringList;
+  ASS: TCnAnsiStringList;
 begin
   WS := TCnWideStringList.Create;
 // 双字节：A1A9~A1FE                     1 区
@@ -492,80 +507,184 @@ begin
   WS.Add('区：双字节一; 上一区字符数：' + IntToStr(R));
   R := Gen2GB18030ToUtf16Page($A1, $A9, $A1, $FE, WS);
   WS.Add('区：双字节五; 上一区字符数：' + IntToStr(R));
-  R := Gen2GB18030ToUtf16Page($A8, $A9, $40, $7E, WS);
-  R := R + Gen2GB18030ToUtf16Page($A8, $A9, $80, $A0, WS);
+  R := Gen2GB18030ToUtf16Page($A8, $40, $A9, $7E, WS);
+  R := R + Gen2GB18030ToUtf16Page($A8, $80, $A9, $A0, WS);
   WS.Add('区：双字节汉字二; 上一区字符数：' + IntToStr(R));
-  R := Gen2GB18030ToUtf16Page($B0, $F7, $A1, $FE, WS);
+  R := Gen2GB18030ToUtf16Page($B0, $A1, $F7, $FE, WS);
   WS.Add('区：双字节汉字三; 上一区字符数：' + IntToStr(R));
-  R := Gen2GB18030ToUtf16Page($81, $A0, $40, $7E, WS);
-  R := R + Gen2GB18030ToUtf16Page($81, $A0, $80, $FE, WS);
+  R := Gen2GB18030ToUtf16Page($81, $40, $A0, $7E, WS);
+  R := R + Gen2GB18030ToUtf16Page($81, $80, $A0, $FE, WS);
   WS.Add('区：双字节汉字四; 上一区字符数：' + IntToStr(R));
-  R := Gen2GB18030ToUtf16Page($AA, $FE, $40, $7E, WS);
-  R := R + Gen2GB18030ToUtf16Page($AA, $FE, $80, $A0, WS);
+  R := Gen2GB18030ToUtf16Page($AA, $40, $FE, $7E, WS);
+  R := R + Gen2GB18030ToUtf16Page($AA, $80, $FE, $A0, WS);
 
   WS.Add('区：双字节用户一; 上一区字符数：' + IntToStr(R)); // 三个双字节用户区
-  R := Gen2GB18030ToUtf16Page($AA, $AF, $A1, $FE, WS);
+  R := Gen2GB18030ToUtf16Page($AA, $A1, $AF, $FE, WS);
   WS.Add('区：双字节用户二; 上一区字符数：' + IntToStr(R));
-  R := Gen2GB18030ToUtf16Page($F8, $FE, $A1, $FE, WS);
+  R := Gen2GB18030ToUtf16Page($F8, $A1, $FE, $FE, WS);
   WS.Add('区：双字节用户三; 上一区字符数：' + IntToStr(R));
-  R := Gen2GB18030ToUtf16Page($A1, $A7, $40, $7E, WS);
-  R := R + Gen2GB18030ToUtf16Page($A1, $A7, $80, $A0, WS);
+  R := Gen2GB18030ToUtf16Page($A1, $40, $A7, $7E, WS);
+  R := R + Gen2GB18030ToUtf16Page($A1, $80, $A7, $A0, WS);
 
   // 四字节
+  WS.Add('区：分隔一; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($81308130, $81318131, WS);
+
   WS.Add('区：四字节维吾尔、哈萨克、柯尔克孜文一; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($81318132, $81319934, WS);
+
+  WS.Add('区：分隔二; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($81319935, $8132E833, WS);
+
   WS.Add('区：四字节藏文; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($8132E834, $8132FD31, WS);
+
+  WS.Add('区：分隔三; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($8132FD32, $81339D35, WS);
+
   WS.Add('区：四字节朝鲜文字母; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($81339D36, $8133B635, WS);
+
+  WS.Add('区：分隔四; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($8133B636, $8134D237, WS);
+
   WS.Add('区：四字节蒙古文（包括满文、托忒文、锡伯文和阿礼嘎礼字）; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($8134D238, $8134E337, WS);
+
+  WS.Add('区：分隔五; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($8134E338, $8134F433, WS);
+
   WS.Add('区：四字节德宏傣文; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($8134F434, $8134F830, WS);
+
+  WS.Add('区：分隔六; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($8134F831, $8134F931, WS);
+
   WS.Add('区：四字节西双版纳新傣文; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($8134F932, $81358437, WS);
+
+  WS.Add('区：分隔七; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($81358438, $81358B31, WS);
+
   WS.Add('区：四字节西双版纳老傣文; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($81358B32, $81359935, WS);
+
+  WS.Add('区：分隔八; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($81359936, $81398B31, WS);
+
   WS.Add('区：四字节康熙部首; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($81398B32, $8139A135, WS);
+
+  WS.Add('区：分隔九; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($8139A136, $8139A932, WS);
+
   WS.Add('区：四字节朝鲜文兼容字母; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($8139A933, $8139B734, WS);
+
+  WS.Add('区：分隔十; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($8139B735, $8139EE38, WS);
+
   WS.Add('区：四字节 CJK 统一汉字扩充 A; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($8139EE39, $82358738, WS);
+
+  WS.Add('区：分隔十一; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($82358739, $82358F32, WS);
+
   WS.Add('区：四字节 CJK 统一汉字; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($82358F33, $82359636, WS);
+
+  WS.Add('区：分隔十二; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($82359637, $82359832, WS);
+
   WS.Add('区：四字节彝文; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($82359833, $82369435, WS);
+
+  WS.Add('区：分隔十三; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($82369436, $82369534, WS);
+
   WS.Add('区：四字节傈僳文; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($82369535, $82369A32, WS);
+
+  WS.Add('区：分隔十四; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($82369A33, $8237CF34, WS);
+
   WS.Add('区：四字节朝鲜文音节; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($8237CF35, $8336BE36, WS);
+
+  WS.Add('区：分隔十五; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($8336BE37, $8430BA31, WS);
+
   WS.Add('区：四字节维吾尔、哈萨克、柯尔克孜文二; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($8430BA32, $8430FE35, WS);
+
+  WS.Add('区：分隔十六; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($8430FE36, $84318639, WS);
+
   WS.Add('区：四字节维吾尔、哈萨克、柯尔克孜文三; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($84318730, $84319530, WS);
+
+  WS.Add('区：分隔十七; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($84319531, $8431A439, WS);
+
   WS.Add('区：四字节蒙古文 BIRGA; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($9034C538, $9034C730, WS);
+
+  WS.Add('区：分隔十八; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($9034C731, $9232C635, WS);
+
   WS.Add('区：四字节滇东北苗文; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($9232C636, $9232D635, WS);
+
+  WS.Add('区：分隔十九; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($9232D636, $95328235, WS);
+
   WS.Add('区：四字节 CJK 统一汉字扩充 B; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($95328236, $9835F336, WS);
+
+  WS.Add('区：分隔二十; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($9835F337, $9835F737, WS);
+
   WS.Add('区：四字节 CJK 统一汉字扩充 C; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($9835F738, $98399E36, WS);
+
+  WS.Add('区：分隔二十一; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($98399E37, $98399F37, WS);
+
   WS.Add('区：四字节 CJK 统一汉字扩充 D; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($98399F38, $9839B539, WS);
+
+  WS.Add('区：分隔二十二; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($9839B630, $9839B631, WS);
+
   WS.Add('区：四字节 CJK 统一汉字扩充 E; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($9839B632, $9933FE33, WS);
+
+  WS.Add('区：分隔二十三; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($9933FE34, $99348137, WS);
+
   WS.Add('区：四字节 CJK 统一汉字扩充 F; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($99348138, $9939F730, WS);
+
+  WS.Add('区：分隔二十四; 上一区字符数：' + IntToStr(R));
+  R := Gen4GB18030ToUtf16Page($9939F731, $9A348431, WS);
+
   WS.Add('区：四字节用户扩展; 上一区字符数：' + IntToStr(R));
   R := Gen4GB18030ToUtf16Page($FD308130, $FE39FE39, WS);
-  WS.Add('区尾; 上一区字符数：' + IntToStr(R));
+  WS.Add('区：尾; 上一区字符数：' + IntToStr(R));
 
   dlgSave1.FileName := 'GB18030_UTF16.txt';
   if dlgSave1.Execute then
   begin
-    WS.SaveToFile(dlgSave1.FileName);
+    if chkIncludeCharValue.Checked then
+      WS.SaveToFile(dlgSave1.FileName)
+    else
+    begin
+      ASS := TCnAnsiStringList.Create;
+      for I := 0 to WS.Count - 1 do
+        ASS.Add(WS[I]);
+      ASS.SaveToFile(dlgSave1.FileName);
+      ASS.Free;
+    end;
     ShowMessage('Save to ' + dlgSave1.FileName);
   end;
   WS.Free;
@@ -623,19 +742,6 @@ var
   GBCP, UCP: TCnCodePoint;
   T: Integer;
   S, C: WideString;
-
-  procedure Step4GB18030CodePoint(var CP: TCnCodePoint);
-  var
-    B2, B3, B4: Byte;
-  begin
-    repeat
-      Inc(CP);
-      B4 := Byte(CP);
-      B3 := Byte(CP shr 8);
-      B2 := Byte(CP shr 16);
-    until (B4 in [$30..$39]) and (B3 in [$81..$FE]) and (B2 in [$30..$39]);
-  end;
-
 begin
   Result := 0;
   GBCP := From4;
@@ -655,6 +761,427 @@ begin
     Inc(Result);
 
     Step4GB18030CodePoint(GBCP);
+  end;
+end;
+
+procedure TFormGB18030.btnGB18303CodePointToUtf16Click(Sender: TObject);
+var
+  GBCP, UCP: TCnCodePoint;
+begin
+  GBCP := $81308130;
+  UCP := GetUnicodeFromGB18030CodePoint(GBCP);
+  ShowMessage(IntToHex(UCP, 2));
+end;
+
+procedure TFormGB18030.btnGenGB18030PagePartlyClick(Sender: TObject);
+var
+  WSGB, WSU: TCnWideStringList;
+  ASS: TCnAnsiStringList;
+  SB: TCnStringBuilder;
+
+  procedure AddSep;
+  begin
+    WSGB.Add('');
+    WSU.Add('');
+  end;
+
+  procedure Combine(OutAss: TCnAnsiStringList; AWS: TCnWideStringList);
+  var
+    I: Integer;
+  begin
+    for I := 0 to AWS.Count - 1 do
+    begin
+      if AWS[I] <> '' then
+      begin
+        SB.Append(AWS[I]);
+        if I < AWS.Count - 1 then
+          SB.Append(',');
+        if (SB.CharLength >= 80) or (I = AWS.Count - 1) then
+        begin
+          OutAss.Add('    ' + SB.ToString);
+          SB.Clear;
+        end
+        else
+          SB.Append(' ');
+      end;
+    end;
+    OutAss.Add('  );');
+  end;
+
+begin
+  WSGB := TCnWideStringList.Create;
+  WSU := TCnWideStringList.Create;
+  ASS := TCnAnsiStringList.Create;
+  SB := TCnStringBuilder.Create;
+
+  // 双字节一
+  Gen2GB18030ToUtf16Array($A1, $A9, $A1, $FE, WSGB, WSU);
+  // 双字节五
+  Gen2GB18030ToUtf16Array($A8, $40, $A9, $7E, WSGB, WSU);
+  Gen2GB18030ToUtf16Array($A8, $80, $A9, $A0, WSGB, WSU);
+  // 双字节汉字二
+  Gen2GB18030ToUtf16Array($B0, $A1, $F7, $FE, WSGB, WSU);
+  // 双字节汉字三
+  Gen2GB18030ToUtf16Array($81, $40, $A0, $7E, WSGB, WSU);
+  Gen2GB18030ToUtf16Array($81, $80, $A0, $FE, WSGB, WSU);
+  // 双字节汉字四
+  Gen2GB18030ToUtf16Array($AA, $40, $FE, $7E, WSGB, WSU);
+  Gen2GB18030ToUtf16Array($AA, $80, $FE, $A0, WSGB, WSU);
+
+  // 双字节用户三
+  Gen2GB18030ToUtf16Array($A1, $40, $A7, $7E, WSGB, WSU);
+  Gen2GB18030ToUtf16Array($A1, $80, $A7, $A0, WSGB, WSU);
+
+  ASS.Add('');
+  ASS.Add('  CN_GB18030_2MAPPING: array[0..' + IntToStr(WSGB.Count - 1) + '] of TCnCodePoint = (');
+  Combine(ASS, WSGB);
+  ASS.Add('');
+  ASS.Add('  CN_UNICODE_2MAPPING: array[0..' + IntToStr(WSU.Count - 1) + '] of TCnCodePoint = (');
+  Combine(ASS, WSU);
+  ASS.Add('');
+
+  WSGB.Clear;
+  WSU.Clear;
+
+  // 四字节
+  // 分隔一
+  Gen4GB18030ToUtf16Array($81308130, $81318131, WSGB, WSU);
+
+  // 分隔八
+  Gen4GB18030ToUtf16Array($81359936, $81398B31, WSGB, WSU);
+
+  // 分隔九
+  Gen4GB18030ToUtf16Array($8139A136, $8139A932, WSGB, WSU);
+
+  // 分隔十
+  Gen4GB18030ToUtf16Array($8139B735, $8139EE38, WSGB, WSU);
+
+  // CJK 统一汉字扩充 A
+  Gen4GB18030ToUtf16Array($8139EE39, $82358738, WSGB, WSU);
+
+  // 分隔十五
+  Gen4GB18030ToUtf16Array($8336BE37, $8430BA31, WSGB, WSU);
+
+  // 分隔十六
+  Gen4GB18030ToUtf16Array($8430FE36, $84318639, WSGB, WSU);
+
+  // 分隔十七
+  Gen4GB18030ToUtf16Array($84319531, $8431A439, WSGB, WSU);
+
+  ASS.Add('  CN_GB18030_4MAPPING: array[0..' + IntToStr(WSGB.Count - 1) + '] of TCnCodePoint = (');
+  Combine(ASS, WSGB);
+  ASS.Add('');
+  ASS.Add('  CN_UNICODE_4MAPPING: array[0..' + IntToStr(WSU.Count - 1) + '] of TCnCodePoint = (');
+  Combine(ASS, WSU);
+  ASS.Add('');
+
+  dlgSave1.FileName := 'GB18030_Unicode.inc';
+  if dlgSave1.Execute then
+  begin
+    ASS.SaveToFile(dlgSave1.FileName);
+    ShowMessage('Save to ' + dlgSave1.FileName);
+  end;
+
+  SB.Free;
+  ASS.Free;
+  WSGB.Free;
+  WSU.Free;
+end;
+
+function TFormGB18030.Gen2GB18030ToUtf16Array(FromH, FromL, ToH, ToL: Byte;
+  CGB, CU: TCnWideStringList): Integer;
+var
+  H, L, T: Integer;
+  GBCP, UCP: TCnCodePoint;
+  C: WideString;
+begin
+  Result := 0;
+  for H := FromH to ToH do
+  begin
+    for L := FromL to ToL do
+    begin
+      GBCP := (H shl 8) or L;
+      UCP := CodePointGB18130ToUtf16(GBCP);
+      T := GetUtf16CharFromCodePoint(UCP, nil);
+      SetLength(C, T);
+      GetUtf16CharFromCodePoint(UCP, @C[1]);
+
+      CGB.Add('$' + Format('%4.4x', [GBCP]));
+      CU.Add('$' + Format('%4.4x', [UCP]));
+
+      Inc(Result);
+    end;
+  end;
+end;
+
+function TFormGB18030.Gen4GB18030ToUtf16Array(From4, To4: TCnCodePoint;
+  CGB, CU: TCnWideStringList): Integer;
+var
+  GBCP, UCP: TCnCodePoint;
+  T: Integer;
+  C: WideString;
+begin
+  Result := 0;
+  GBCP := From4;
+  while GBCP <= To4 do
+  begin
+    UCP := CodePointGB18130ToUtf16(GBCP);
+    T := GetUtf16CharFromCodePoint(UCP, nil);
+    SetLength(C, T);
+    GetUtf16CharFromCodePoint(UCP, @C[1]);
+
+    CGB.Add('$' + IntToHex(GBCP, 2));
+    CU.Add('$' + IntToHex(UCP, 2));
+
+    Inc(Result);
+    Step4GB18030CodePoint(GBCP);
+  end;
+end;
+
+procedure TFormGB18030.Step4GB18030CodePoint(var CP: TCnCodePoint);
+var
+  B2, B3, B4: Byte;
+begin
+  repeat
+    Inc(CP);
+    B4 := Byte(CP);
+    B3 := Byte(CP shr 8);
+    B2 := Byte(CP shr 16);
+  until (B4 in [$30..$39]) and (B3 in [$81..$FE]) and (B2 in [$30..$39]);
+end;
+
+procedure TFormGB18030.btnGenGB18030UnicodeCompareClick(Sender: TObject);
+var
+  R: Integer;
+  WS: TCnAnsiStringList;
+begin
+  WS := TCnAnsiStringList.Create;
+// 双字节：A1A9~A1FE                     1 区
+//         A840~A97E, A880~A9A0          5 区
+//         B0A1~F7FE                     2 区汉字
+//         8140~A07E, 8180~A0FE          3 区汉字
+//         AA40~FE7E, AA80~FEA0          4 区汉字
+//         AAA1~AFFE                     用户 1 区
+//         F8A1~FEFE                     用户 2 区
+//         A140~A77E, A180~A7A0          用户 3 区
+
+  R := 0;
+  WS.Add('区：双字节一; 上一区字符数：' + IntToStr(R));
+  R := GenCn2GB18030ToUtf16Page($A1, $A9, $A1, $FE, WS);
+  WS.Add('区：双字节五; 上一区字符数：' + IntToStr(R));
+  R := GenCn2GB18030ToUtf16Page($A8, $40, $A9, $7E, WS);
+  R := R + GenCn2GB18030ToUtf16Page($A8, $80, $A9, $A0, WS);
+  WS.Add('区：双字节汉字二; 上一区字符数：' + IntToStr(R));
+  R := GenCn2GB18030ToUtf16Page($B0, $A1, $F7, $FE, WS);
+  WS.Add('区：双字节汉字三; 上一区字符数：' + IntToStr(R));
+  R := GenCn2GB18030ToUtf16Page($81, $40, $A0, $7E, WS);
+  R := R + GenCn2GB18030ToUtf16Page($81, $80, $A0, $FE, WS);
+  WS.Add('区：双字节汉字四; 上一区字符数：' + IntToStr(R));
+  R := GenCn2GB18030ToUtf16Page($AA, $40, $FE, $7E, WS);
+  R := R + GenCn2GB18030ToUtf16Page($AA, $80, $FE, $A0, WS);
+
+  WS.Add('区：双字节用户一; 上一区字符数：' + IntToStr(R)); // 三个双字节用户区
+  R := GenCn2GB18030ToUtf16Page($AA, $A1, $AF, $FE, WS);
+  WS.Add('区：双字节用户二; 上一区字符数：' + IntToStr(R));
+  R := GenCn2GB18030ToUtf16Page($F8, $A1, $FE, $FE, WS);
+  WS.Add('区：双字节用户三; 上一区字符数：' + IntToStr(R));
+  R := GenCn2GB18030ToUtf16Page($A1, $40, $A7, $7E, WS);
+  R := R + GenCn2GB18030ToUtf16Page($A1, $80, $A7, $A0, WS);
+
+  // 四字节
+  WS.Add('区：分隔一; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($81308130, $81318131, WS);
+
+  WS.Add('区：四字节维吾尔、哈萨克、柯尔克孜文一; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($81318132, $81319934, WS);
+
+  WS.Add('区：分隔二; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($81319935, $8132E833, WS);
+
+  WS.Add('区：四字节藏文; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8132E834, $8132FD31, WS);
+
+  WS.Add('区：分隔三; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8132FD32, $81339D35, WS);
+
+  WS.Add('区：四字节朝鲜文字母; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($81339D36, $8133B635, WS);
+
+  WS.Add('区：分隔四; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8133B636, $8134D237, WS);
+
+  WS.Add('区：四字节蒙古文（包括满文、托忒文、锡伯文和阿礼嘎礼字）; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8134D238, $8134E337, WS);
+
+  WS.Add('区：分隔五; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8134E338, $8134F433, WS);
+
+  WS.Add('区：四字节德宏傣文; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8134F434, $8134F830, WS);
+
+  WS.Add('区：分隔六; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8134F831, $8134F931, WS);
+
+  WS.Add('区：四字节西双版纳新傣文; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8134F932, $81358437, WS);
+
+  WS.Add('区：分隔七; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($81358438, $81358B31, WS);
+
+  WS.Add('区：四字节西双版纳老傣文; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($81358B32, $81359935, WS);
+
+  WS.Add('区：分隔八; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($81359936, $81398B31, WS);
+
+  WS.Add('区：四字节康熙部首; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($81398B32, $8139A135, WS);
+
+  WS.Add('区：分隔九; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8139A136, $8139A932, WS);
+
+  WS.Add('区：四字节朝鲜文兼容字母; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8139A933, $8139B734, WS);
+
+  WS.Add('区：分隔十; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8139B735, $8139EE38, WS);
+
+  WS.Add('区：四字节 CJK 统一汉字扩充 A; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8139EE39, $82358738, WS);
+
+  WS.Add('区：分隔十一; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($82358739, $82358F32, WS);
+
+  WS.Add('区：四字节 CJK 统一汉字; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($82358F33, $82359636, WS);
+
+  WS.Add('区：分隔十二; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($82359637, $82359832, WS);
+
+  WS.Add('区：四字节彝文; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($82359833, $82369435, WS);
+
+  WS.Add('区：分隔十三; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($82369436, $82369534, WS);
+
+  WS.Add('区：四字节傈僳文; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($82369535, $82369A32, WS);
+
+  WS.Add('区：分隔十四; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($82369A33, $8237CF34, WS);
+
+  WS.Add('区：四字节朝鲜文音节; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8237CF35, $8336BE36, WS);
+
+  WS.Add('区：分隔十五; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8336BE37, $8430BA31, WS);
+
+  WS.Add('区：四字节维吾尔、哈萨克、柯尔克孜文二; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8430BA32, $8430FE35, WS);
+
+  WS.Add('区：分隔十六; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($8430FE36, $84318639, WS);
+
+  WS.Add('区：四字节维吾尔、哈萨克、柯尔克孜文三; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($84318730, $84319530, WS);
+
+  WS.Add('区：分隔十七; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($84319531, $8431A439, WS);
+
+  WS.Add('区：四字节蒙古文 BIRGA; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($9034C538, $9034C730, WS);
+
+  WS.Add('区：分隔十八; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($9034C731, $9232C635, WS);
+
+  WS.Add('区：四字节滇东北苗文; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($9232C636, $9232D635, WS);
+
+  WS.Add('区：分隔十九; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($9232D636, $95328235, WS);
+
+  WS.Add('区：四字节 CJK 统一汉字扩充 B; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($95328236, $9835F336, WS);
+
+  WS.Add('区：分隔二十; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($9835F337, $9835F737, WS);
+
+  WS.Add('区：四字节 CJK 统一汉字扩充 C; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($9835F738, $98399E36, WS);
+
+  WS.Add('区：分隔二十一; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($98399E37, $98399F37, WS);
+
+  WS.Add('区：四字节 CJK 统一汉字扩充 D; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($98399F38, $9839B539, WS);
+
+  WS.Add('区：分隔二十二; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($9839B630, $9839B631, WS);
+
+  WS.Add('区：四字节 CJK 统一汉字扩充 E; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($9839B632, $9933FE33, WS);
+
+  WS.Add('区：分隔二十三; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($9933FE34, $99348137, WS);
+
+  WS.Add('区：四字节 CJK 统一汉字扩充 F; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($99348138, $9939F730, WS);
+
+  WS.Add('区：分隔二十四; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($9939F731, $9A348431, WS);
+
+  WS.Add('区：四字节用户扩展; 上一区字符数：' + IntToStr(R));
+  R := GenCn4GB18030ToUtf16Page($FD308130, $FE39FE39, WS);
+  WS.Add('区：尾; 上一区字符数：' + IntToStr(R));
+
+  dlgSave1.FileName := 'GB18030_UTF16_CN.txt';
+  if dlgSave1.Execute then
+  begin
+    WS.SaveToFile(dlgSave1.FileName);
+    ShowMessage('Save to ' + dlgSave1.FileName);
+  end;
+  WS.Free;
+end;
+
+function TFormGB18030.GenCn4GB18030ToUtf16Page(From4, To4: TCnCodePoint;
+  Content: TCnAnsiStringList): Integer;
+var
+  GBCP, UCP: TCnCodePoint;
+  S: AnsiString;
+begin
+  Result := 0;
+  GBCP := From4;
+  while GBCP <= To4 do
+  begin
+    UCP := GetUnicodeFromGB18030CodePoint(GBCP);
+    S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2);
+
+    Content.Add(S);
+    Inc(Result);
+
+    Step4GB18030CodePoint(GBCP);
+  end;
+end;
+
+function TFormGB18030.GenCn2GB18030ToUtf16Page(FromH, FromL, ToH,
+  ToL: Byte; Content: TCnAnsiStringList): Integer;
+var
+  H, L: Integer;
+  GBCP, UCP: TCnCodePoint;
+  S: AnsiString;
+begin
+  Result := 0;
+  for H := FromH to ToH do
+  begin
+    for L := FromL to ToL do
+    begin
+      GBCP := (H shl 8) or L;
+      UCP := GetUnicodeFromGB18030CodePoint(GBCP);
+      S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2);
+
+      Content.Add(S);
+      Inc(Result);
+    end;
   end;
 end;
 
