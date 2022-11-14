@@ -165,20 +165,21 @@ uses
 
 const
   CN_INVALID_CODEPOINT = $FFFFFFFF;
+  CN_ALTERNATIVE_CHAR  = '?';
 
 type
 {$IFDEF SUPPORT_ANSISTRING_CODEPAGE}
-  TCnGB18130String = RawByteString;
+  TCnGB18030String = RawByteString;
 {$ELSE}
-  TCnGB18130String = AnsiString;
+  TCnGB18030String = AnsiString;
 {$ENDIF}
-  {* GB18130 编码的字符串，内部用 RawByteString 也就是 AnsiString($FFFF) 表示}
+  {* GB18030 编码的字符串，内部用 RawByteString 也就是 AnsiString($FFFF) 表示}
 
-  PCnGB18130String = ^TCnGB18130String;
-  {* 指向 GB18130 编码的字符串的指针}
+  PCnGB18130String = ^TCnGB18030String;
+  {* 指向 GB18030 编码的字符串的指针}
 
-  PCnGB18130StringPtr = PAnsiChar;
-  {* GB18130 编码的字符指针，内部用 PAnsiChar 表示}
+  PCnGB18030StringPtr = PAnsiChar;
+  {* GB18030 编码的字符指针，内部用 PAnsiChar 表示}
 
   TCnCodePoint = type Cardinal;
   {* 字符码值，或者叫码点，不等于表达的编码方式}
@@ -205,8 +206,8 @@ function GetCharLengthFromUtf8(Utf8Str: PAnsiChar): Integer;
 function GetCharLengthFromUtf16(Utf16Str: PWideChar): Integer;
 {* 计算一 UTF16（可能混合 Unicode 扩展平面里的四字节字符）字符串的字符数}
 
-function GetCharLengthFromGB18130(GB18130Str: PCnGB18130StringPtr): Integer;
-{* 计算一 GB18130 字符串的字符数}
+function GetCharLengthFromGB18030(GB18030Str: PCnGB18030StringPtr): Integer;
+{* 计算一 GB18030 字符串的字符数}
 
 function GetByteWidthFromUtf8(Utf8Str: PAnsiChar): Integer;
 {* 计算一 UTF8（可能是 UTF8MB4）字符串的当前字符占多少字节}
@@ -214,21 +215,21 @@ function GetByteWidthFromUtf8(Utf8Str: PAnsiChar): Integer;
 function GetByteWidthFromUtf16(Utf16Str: PWideChar): Integer;
 {* 计算一 UTF16（可能混合 Unicode 扩展平面里的四字节字符）字符串的当前字符占多少字节}
 
-function GetByteWidthFromGB18130(GB18130Str: PCnGB18130StringPtr): Integer;
-{* 计算一 GB18130 字符串的当前字符占多少字节}
+function GetByteWidthFromGB18030(GB18030Str: PCnGB18030StringPtr): Integer;
+{* 计算一 GB18030 字符串的当前字符占多少字节}
 
-function Utf16ToGB18130(Utf16Str: PWideChar; GB18130Str: PCnGB18130StringPtr): Integer;
-{* 将一 UTF16（可能混合 Unicode 扩展平面里的四字节字符）字符串转换为 GB18130 字符串
-  GB18130Str 所指区域用来容纳转换的结果，如传 nil，则不进行转换
-  返回值返回 GB18130Str 所需的比特长度或转换后的比特长度，不包括末尾的 #0}
+function Utf16ToGB18030(Utf16Str: PWideChar; GB18030Str: PCnGB18030StringPtr): Integer;
+{* 将一 UTF16（可能混合 Unicode 扩展平面里的四字节字符）字符串转换为 GB18030 字符串
+  GB18030Str 所指区域用来容纳转换的结果，如传 nil，则不进行转换
+  返回值返回 GB18030Str 所需的比特长度或转换后的比特长度，不包括末尾的 #0}
 
-function GB18130ToUtf16(GB18130Str: PCnGB18130StringPtr; Utf16Str: PWideChar): Integer;
-{* 将一 GB18130 字符串转换为 UTF16（可能混合 Unicode 扩展平面里的四字节字符）字符串
+function GB18030ToUtf16(GB18030Str: PCnGB18030StringPtr; Utf16Str: PWideChar): Integer;
+{* 将一 GB18030 字符串转换为 UTF16（可能混合 Unicode 扩展平面里的四字节字符）字符串
   UniStr 所指区域用来容纳转换的结果，如传 nil，则不进行转换
   返回值返回 UniStr 所需的双字节字符长度或转换后的双字节字符长度，不包括末尾的宽字符 #0}
 
-function GetGB18130FromUtf16(Utf16Str: PWideChar): TCnGB18130String;
-{* 返回一 Unicode 字符串对应的 GB18130 字符串}
+function GetGB18030FromUtf16(Utf16Str: PWideChar): TCnGB18030String;
+{* 返回一 Unicode 字符串对应的 GB18030 字符串}
 
 function GetUnicodeFromGB18030CodePoint(GBCP: TCnCodePoint): TCnCodePoint;
 {* 从 GB18030 字符编码值获取其对应的 Unicode 编码值}
@@ -238,13 +239,13 @@ function GetGB18030FromUnicodeCodePoint(UCP: TCnCodePoint): TCnCodePoint;
 
 {$IFDEF UNICODE}
 
-function GetUtf16FromGB18130(GB18130Str: TCnGB18130String): string;
-{* 返回一 GB18130 字符串对应的 Utf16 字符串}
+function GetUtf16FromGB18030(GB18030Str: TCnGB18030String): string;
+{* 返回一 GB18030 字符串对应的 Utf16 字符串}
 
 {$ELSE}
 
-function GetUtf16FromGB18130(GB18130Str: TCnGB18130String): WideString;
-{* 返回一 GB18130 字符串对应的 Utf16 字符串}
+function GetUtf16FromGB18030(GB18030Str: TCnGB18030String): WideString;
+{* 返回一 GB18030 字符串对应的 Utf16 字符串}
 
 {$ENDIF}
 
@@ -260,7 +261,7 @@ function GetUtf16CharFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): Integ
   调用者在 CP 超过 $FFFF 时须保证 PtrToChars 所指的区域至少四字节，反之二字节即可
   返回 1 或 2，分别表示处理的是二字节或四字节}
 
-function GetCodePointFromGB18030Char(PtrToGB18030Chars: PCnGB18130StringPtr): TCnCodePoint;
+function GetCodePointFromGB18030Char(PtrToGB18030Chars: PCnGB18030StringPtr): TCnCodePoint;
 {* 计算一个 GB18030 字符的编码值（也叫代码位置），注意 PtrToGB18030Chars 可能指向一个单、双、四字节字符}
 
 function GetGB18030CharsFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): Integer;
@@ -285,7 +286,7 @@ uses
   CnHashMap;
 
 type
-  TCnGB18130MappingPage = packed record
+  TCnGB18030MappingPage = packed record
   {* 记录一个连续字符的映射区间}
     GBHead: TCnCodePoint;
     GBTail: TCnCodePoint;
@@ -307,14 +308,14 @@ const
   CN_GB18030_BOM: array[0..3] of Byte = ($84, $31, $95, $33);
 
   // 双字节码转换相关
-  CN_GB18130_2CHAR_PAGES: array[0..1] of TCnGB18130MappingPage = (
+  CN_GB18030_2CHAR_PAGES: array[0..1] of TCnGB18030MappingPage = (
     (GBHead: $AAA1; GBTail: $AFFE; UHead: $E000; UTail: $E233),
     (GBHead: $F8A1; GBTail: $FEFE; UHead: $E234; UTail: $E4C5)
   );
-  CN_GB18130_2CHAR_PAGE_COUNT = 94;
+  CN_GB18030_2CHAR_PAGE_COUNT = 94;
 
   // 四字节码转换相关
-  CN_GB18130_4CHAR_PAGES: array[0..7] of TCnGB18130MappingPage = (
+  CN_GB18030_4CHAR_PAGES: array[0..7] of TCnGB18030MappingPage = (
     (GBHead: $81318132; GBTail: $81359935; UHead: $060C; UTail: $1AAF),
     (GBHead: $81398B32; GBTail: $8139A135; UHead: $2F00; UTail: $2FD5),
     (GBHead: $8139A933; GBTail: $8139B734; UHead: $3131; UTail: $31BE),
@@ -325,55 +326,55 @@ const
     (GBHead: $9034C538; GBTail: $9A348431; UHead: $11660; UTail: $2FFFF)
   );
 
-  CN_GB18130_4CHAR_PAGE_COUNT1 = 12600;
-  CN_GB18130_4CHAR_PAGE_COUNT2 = 1260;
-  CN_GB18130_4CHAR_PAGE_COUNT3 = 10;
+  CN_GB18030_4CHAR_PAGE_COUNT1 = 12600;
+  CN_GB18030_4CHAR_PAGE_COUNT2 = 1260;
+  CN_GB18030_4CHAR_PAGE_COUNT3 = 10;
 
-  CN_GB18130_MAP_DEF_CAPACITY = 65536;
+  CN_GB18030_MAP_DEF_CAPACITY = 65536;
 
 {$I GB18030_Unicode.inc}
 
 var
-  F2GB18130ToUnicodeMap: TCnHashMap = nil;
-  F2UnicodeToGB18130Map: TCnHashMap = nil;
-  F4GB18130ToUnicodeMap: TCnHashMap = nil;
-  F4UnicodeToGB18130Map: TCnHashMap = nil;
+  F2GB18030ToUnicodeMap: TCnHashMap = nil;
+  F2UnicodeToGB18030Map: TCnHashMap = nil;
+  F4GB18030ToUnicodeMap: TCnHashMap = nil;
+  F4UnicodeToGB18030Map: TCnHashMap = nil;
 
-procedure CheckGB18130ToUnicodeMap;
+procedure CheckGB18030ToUnicodeMap;
 var
   I: Integer;
 begin
-  if F2GB18130ToUnicodeMap = nil then
+  if F2GB18030ToUnicodeMap = nil then
   begin
-    F2GB18130ToUnicodeMap := TCnHashMap.Create(CN_GB18130_MAP_DEF_CAPACITY);
+    F2GB18030ToUnicodeMap := TCnHashMap.Create(CN_GB18030_MAP_DEF_CAPACITY);
     for I := Low(CN_GB18030_2MAPPING) to High(CN_GB18030_2MAPPING) do
-      F2GB18130ToUnicodeMap.Add(Integer(CN_GB18030_2MAPPING[I]), Integer(CN_UNICODE_2MAPPING[I]));
+      F2GB18030ToUnicodeMap.Add(Integer(CN_GB18030_2MAPPING[I]), Integer(CN_UNICODE_2MAPPING[I]));
   end;
 
-  if F4GB18130ToUnicodeMap = nil then
+  if F4GB18030ToUnicodeMap = nil then
   begin
-    F4GB18130ToUnicodeMap := TCnHashMap.Create(CN_GB18130_MAP_DEF_CAPACITY);
+    F4GB18030ToUnicodeMap := TCnHashMap.Create(CN_GB18030_MAP_DEF_CAPACITY);
     for I := Low(CN_GB18030_4MAPPING) to High(CN_GB18030_4MAPPING) do
-      F4GB18130ToUnicodeMap.Add(Integer(CN_GB18030_4MAPPING[I]), Integer(CN_UNICODE_4MAPPING[I]));
+      F4GB18030ToUnicodeMap.Add(Integer(CN_GB18030_4MAPPING[I]), Integer(CN_UNICODE_4MAPPING[I]));
   end;
 end;
 
-procedure CheckUnicodeToGB18130Map;
+procedure CheckUnicodeToGB18030Map;
 var
   I: Integer;
 begin
-  if F2UnicodeToGB18130Map = nil then
+  if F2UnicodeToGB18030Map = nil then
   begin
-    F2UnicodeToGB18130Map := TCnHashMap.Create(CN_GB18130_MAP_DEF_CAPACITY);
+    F2UnicodeToGB18030Map := TCnHashMap.Create(CN_GB18030_MAP_DEF_CAPACITY);
     for I := Low(CN_UNICODE_2MAPPING) to High(CN_UNICODE_2MAPPING) do
-      F2UnicodeToGB18130Map.Add(Integer(CN_UNICODE_2MAPPING[I]), Integer(CN_GB18030_2MAPPING[I]));
+      F2UnicodeToGB18030Map.Add(Integer(CN_UNICODE_2MAPPING[I]), Integer(CN_GB18030_2MAPPING[I]));
   end;
 
-  if F4UnicodeToGB18130Map = nil then
+  if F4UnicodeToGB18030Map = nil then
   begin
-    F4UnicodeToGB18130Map := TCnHashMap.Create(CN_GB18130_MAP_DEF_CAPACITY);
+    F4UnicodeToGB18030Map := TCnHashMap.Create(CN_GB18030_MAP_DEF_CAPACITY);
     for I := Low(CN_UNICODE_4MAPPING) to High(CN_UNICODE_4MAPPING) do
-      F4UnicodeToGB18130Map.Add(Integer(CN_UNICODE_4MAPPING[I]), Integer(CN_GB18030_4MAPPING[I]));
+      F4UnicodeToGB18030Map.Add(Integer(CN_UNICODE_4MAPPING[I]), Integer(CN_GB18030_4MAPPING[I]));
   end;
 end;
 
@@ -439,15 +440,15 @@ begin
   end;
 end;
 
-function GetCharLengthFromGB18130(GB18130Str: PCnGB18130StringPtr): Integer;
+function GetCharLengthFromGB18030(GB18030Str: PCnGB18030StringPtr): Integer;
 var
   L: Integer;
 begin
   Result := 0;
-  while GB18130Str^ <> #0 do
+  while GB18030Str^ <> #0 do
   begin
-    L := GetByteWidthFromGB18130(GB18130Str);
-    Inc(GB18130Str, L);
+    L := GetByteWidthFromGB18030(GB18030Str);
+    Inc(GB18030Str, L);
     Inc(Result);
   end;
 end;
@@ -495,17 +496,17 @@ begin
   end;
 end;
 
-function GetByteWidthFromGB18130(GB18130Str: PCnGB18130StringPtr): Integer;
+function GetByteWidthFromGB18030(GB18030Str: PCnGB18030StringPtr): Integer;
 var
   B1, B2, B3, B4: Byte;
 begin
   Result := 1;
-  B1 := Byte(GB18130Str^);
+  B1 := Byte(GB18030Str^);
   if B1 <= $7F then
     Exit;
 
-  Inc(GB18130Str);
-  B2 := Byte(GB18130Str^);
+  Inc(GB18030Str);
+  B2 := Byte(GB18030Str^);
 
   if (B1 >= $81) and (B1 <= $FE) then
   begin
@@ -514,10 +515,10 @@ begin
       Result := 2
     else if (B2 >= $30) and (B2 <= $39) then
     begin
-      Inc(GB18130Str);
-      B3 := Byte(GB18130Str^);
-      Inc(GB18130Str);
-      B4 := Byte(GB18130Str^);
+      Inc(GB18030Str);
+      B3 := Byte(GB18030Str^);
+      Inc(GB18030Str);
+      B4 := Byte(GB18030Str^);
 
       if ((B3 >= $81) and (B3 <= $FE)) or
       ((B4 >= $30) and (B4 <= $39)) then
@@ -526,20 +527,84 @@ begin
   end;
 end;
 
-function Utf16ToGB18130(Utf16Str: PWideChar; GB18130Str: PCnGB18130StringPtr): Integer;
+function Utf16ToGB18030(Utf16Str: PWideChar; GB18030Str: PCnGB18030StringPtr): Integer;
+var
+  W: Integer;
+  GBCP, UCP: TCnCodePoint;
 begin
+  Result := 0;
+  if Utf16Str = nil then
+    Exit;
 
+  while Utf16Str^ <> #0 do
+  begin
+    W := GetByteWidthFromUtf16(Utf16Str);
+    UCP := GetCodePointFromUtf16Char(Utf16Str);
+    GBCP := GetGB18030FromUnicodeCodePoint(UCP);
+    Inc(Utf16Str, W);
+
+    if GBCP = CN_INVALID_CODEPOINT then // 非法 GB18030 字符，用一个问号代替
+    begin
+      if GB18030Str <> nil then
+      begin
+        GB18030Str^ := CN_ALTERNATIVE_CHAR;
+        Inc(GB18030Str);
+      end;
+
+      Inc(Result);
+    end
+    else // 合法的 GB18030 字符
+    begin
+      W := GetGB18030CharsFromCodePoint(GBCP, GB18030Str);
+      if GB18030Str <> nil then
+        Inc(GB18030Str, W);
+
+      Inc(Result);
+    end;
+  end;
 end;
 
-function GB18130ToUtf16(GB18130Str: PCnGB18130StringPtr; Utf16Str: PWideChar): Integer;
+function GB18030ToUtf16(GB18030Str: PCnGB18030StringPtr; Utf16Str: PWideChar): Integer;
+var
+  W: Integer;
+  GBCP, UCP: TCnCodePoint;
 begin
+  Result := 0;
+  if GB18030Str = nil then
+    Exit;
 
+  while GB18030Str^ <> #0 do
+  begin
+    W := GetByteWidthFromGB18030(GB18030Str);
+    GBCP := GetCodePointFromGB18030Char(GB18030Str);
+    UCP := GetUnicodeFromGB18030CodePoint(GBCP);
+    Inc(GB18030Str, W);
+
+    if UCP = CN_INVALID_CODEPOINT then // 非法 Unicode 字符，用一个问号代替
+    begin
+      if Utf16Str <> nil then
+      begin
+        Utf16Str^ := CN_ALTERNATIVE_CHAR;
+        Inc(Utf16Str);
+      end;
+
+      Inc(Result);
+    end
+    else // 合法的 Unicode 字符
+    begin
+      W := GetUtf16CharFromCodePoint(UCP, Utf16Str);
+      if Utf16Str <> nil then
+        Inc(Utf16Str, W);
+
+      Inc(Result);
+    end;
+  end;
 end;
 
 function GetUnicodeFromGB18030CodePoint(GBCP: TCnCodePoint): TCnCodePoint;
 var
   I, GBBase, UBase: TCnCodePoint;
-  A1, A2, A3, A4, B1, B2, B3, B4, C1, C2, C3, C4: Byte;
+  A1, A2, B1, B2, B3, B4, C1, C2, C3, C4: Byte;
   D1, D2, D3, D4: Integer;
 begin
   Result := CN_INVALID_CODEPOINT;
@@ -555,17 +620,18 @@ begin
     B1 := (GBCP and $0000FF00) shr 8;
     B2 := GBCP and $000000FF;
 
-    for I := Low(CN_GB18130_2CHAR_PAGES) to High(CN_GB18130_2CHAR_PAGES) do
+    for I := Low(CN_GB18030_2CHAR_PAGES) to High(CN_GB18030_2CHAR_PAGES) do
     begin
-      A1 := (CN_GB18130_2CHAR_PAGES[I].GBHead and $0000FF00) shr 8;
-      A2 := CN_GB18130_2CHAR_PAGES[I].GBHead and $000000FF;
-      C1 := (CN_GB18130_2CHAR_PAGES[I].GBTail and $0000FF00) shr 8;
-      C2 := CN_GB18130_2CHAR_PAGES[I].GBTail and $000000FF;
+      A1 := (CN_GB18030_2CHAR_PAGES[I].GBHead and $0000FF00) shr 8;
+      A2 := CN_GB18030_2CHAR_PAGES[I].GBHead and $000000FF;
+      C1 := (CN_GB18030_2CHAR_PAGES[I].GBTail and $0000FF00) shr 8;
+      C2 := CN_GB18030_2CHAR_PAGES[I].GBTail and $000000FF;
 
+      // 双字节区间有交叉，不能直接比较大小以判断位置，得拆分比较
       if (B1 >= A1) and (B1 <= C1) and (B2 >= A2) and (B2 <= C2) then
       begin
-        GBBase := CN_GB18130_2CHAR_PAGES[I].GBHead;
-        UBase := CN_GB18130_2CHAR_PAGES[I].UHead;
+        GBBase := CN_GB18030_2CHAR_PAGES[I].GBHead;
+        UBase := CN_GB18030_2CHAR_PAGES[I].UHead;
         Break;
       end;
     end;
@@ -581,12 +647,12 @@ begin
       D1 := C1 - B1;   // 需要用 Integer，因为可能有负值
       D2 := C2 - B2;
 
-      Result := D1 * CN_GB18130_2CHAR_PAGE_COUNT + D2 + UBase;
+      Result := D1 * CN_GB18030_2CHAR_PAGE_COUNT + D2 + UBase;
     end
     else
     begin
       // 查六个二字节组合成的表
-      UBase := F2GB18130ToUnicodeMap.Find(Integer(GBCP));
+      UBase := F2GB18030ToUnicodeMap.Find(Integer(GBCP));
       if UBase > 0 then
         Result := UBase;
     end;
@@ -596,12 +662,12 @@ begin
     // 四字节
     GBBase := 0;
     UBase := 0;
-    for I := Low(CN_GB18130_4CHAR_PAGES) to High(CN_GB18130_4CHAR_PAGES) do
+    for I := Low(CN_GB18030_4CHAR_PAGES) to High(CN_GB18030_4CHAR_PAGES) do
     begin
-      if (GBCP >= CN_GB18130_4CHAR_PAGES[I].GBHead) and (GBCP <= CN_GB18130_4CHAR_PAGES[I].GBTail) then
+      if (GBCP >= CN_GB18030_4CHAR_PAGES[I].GBHead) and (GBCP <= CN_GB18030_4CHAR_PAGES[I].GBTail) then
       begin
-        GBBase := CN_GB18130_4CHAR_PAGES[I].GBHead;
-        UBase := CN_GB18130_4CHAR_PAGES[I].UHead;
+        GBBase := CN_GB18030_4CHAR_PAGES[I].GBHead;
+        UBase := CN_GB18030_4CHAR_PAGES[I].UHead;
         Break;
       end;
     end;
@@ -623,13 +689,13 @@ begin
       D3 := C3 - B3;
       D4 := C4 - B4;
 
-      Result := D1 * CN_GB18130_4CHAR_PAGE_COUNT1 + D2 * CN_GB18130_4CHAR_PAGE_COUNT2
-        + D3 * CN_GB18130_4CHAR_PAGE_COUNT3 + D4 + UBase;
+      Result := D1 * CN_GB18030_4CHAR_PAGE_COUNT1 + D2 * CN_GB18030_4CHAR_PAGE_COUNT2
+        + D3 * CN_GB18030_4CHAR_PAGE_COUNT3 + D4 + UBase;
     end
     else
     begin
       // 查八个四字节表
-      UBase := F4GB18130ToUnicodeMap.Find(Integer(GBCP));
+      UBase := F4GB18030ToUnicodeMap.Find(Integer(GBCP));
       if UBase > 0 then
         Result := UBase;
     end;
@@ -641,43 +707,43 @@ begin
 
 end;
 
-function GetGB18130FromUtf16(Utf16Str: PWideChar): TCnGB18130String;
+function GetGB18030FromUtf16(Utf16Str: PWideChar): TCnGB18030String;
 var
   L: Integer;
 begin
-  L := Utf16ToGB18130(Utf16Str, nil);
+  L := Utf16ToGB18030(Utf16Str, nil);
   if L > 0 then
   begin
     SetLength(Result, L);
-    Utf16ToGB18130(Utf16Str, @Result[1]);
+    Utf16ToGB18030(Utf16Str, @Result[1]);
   end;
 end;
 
 {$IFDEF UNICODE}
 
-function GetUtf16FromGB18130(GB18130Str: TCnGB18130String): string;
+function GetUtf16FromGB18030(GB18030Str: TCnGB18030String): string;
 var
   L: Integer;
 begin
-  L := GB18130ToUtf16(PCnGB18130StringPtr(GB18130Str), nil);
+  L := GB18030ToUtf16(PCnGB18030StringPtr(GB18030Str), nil);
   if L > 0 then
   begin
     SetLength(Result, L);
-    GB18130ToUtf16(PCnGB18130StringPtr(GB18130Str), @Result[1]);
+    GB18030ToUtf16(PCnGB18030StringPtr(GB18030Str), @Result[1]);
   end;
 end;
 
 {$ELSE}
 
-function GetUtf16FromGB18130(GB18130Str: TCnGB18130String): WideString;
+function GetUtf16FromGB18030(GB18030Str: TCnGB18030String): WideString;
 var
   L: Integer;
 begin
-  L := GB18130ToUtf16(PCnGB18130StringPtr(GB18130Str), nil);
+  L := GB18030ToUtf16(PCnGB18030StringPtr(GB18030Str), nil);
   if L > 0 then
   begin
     SetLength(Result, L);
-    GB18130ToUtf16(PCnGB18130StringPtr(GB18130Str), @Result[1]);
+    GB18030ToUtf16(PCnGB18030StringPtr(GB18030Str), @Result[1]);
   end;
 end;
 
@@ -768,7 +834,7 @@ begin
   end;
 end;
 
-function GetCodePointFromGB18030Char(PtrToGB18030Chars: PCnGB18130StringPtr): TCnCodePoint;
+function GetCodePointFromGB18030Char(PtrToGB18030Chars: PCnGB18030StringPtr): TCnCodePoint;
 var
   C1, C2, C3, C4: Byte;
 begin
@@ -849,14 +915,14 @@ begin
 end;
 
 initialization
-  CheckGB18130ToUnicodeMap;
-  CheckUnicodeToGB18130Map;
+  CheckGB18030ToUnicodeMap;
+  CheckUnicodeToGB18030Map;
 
 finalization
-  F2UnicodeToGB18130Map.Free;
-  F2GB18130ToUnicodeMap.Free;
-  F4GB18130ToUnicodeMap.Free;
-  F4UnicodeToGB18130Map.Free;
+  F2UnicodeToGB18030Map.Free;
+  F2GB18030ToUnicodeMap.Free;
+  F4GB18030ToUnicodeMap.Free;
+  F4UnicodeToGB18030Map.Free;
 
 
 end.
