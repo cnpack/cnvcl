@@ -505,7 +505,7 @@ begin
 
   R := 0;
   WS.Add('区：双字节一; 上一区字符数：' + IntToStr(R));
-  R := Gen2GB18030ToUtf16Page($A1, $A9, $A1, $FE, WS);
+  R := Gen2GB18030ToUtf16Page($A1, $A1, $A9, $FE, WS);
   WS.Add('区：双字节五; 上一区字符数：' + IntToStr(R));
   R := Gen2GB18030ToUtf16Page($A8, $40, $A9, $7E, WS);
   R := R + Gen2GB18030ToUtf16Page($A8, $80, $A9, $A0, WS);
@@ -815,7 +815,7 @@ begin
   SB := TCnStringBuilder.Create;
 
   // 双字节一
-  Gen2GB18030ToUtf16Array($A1, $A9, $A1, $FE, WSGB, WSU);
+  Gen2GB18030ToUtf16Array($A1, $A1, $A9, $FE, WSGB, WSU);
   // 双字节五
   Gen2GB18030ToUtf16Array($A8, $40, $A9, $7E, WSGB, WSU);
   Gen2GB18030ToUtf16Array($A8, $80, $A9, $A0, WSGB, WSU);
@@ -967,7 +967,7 @@ begin
 
   R := 0;
   WS.Add('区：双字节一; 上一区字符数：' + IntToStr(R));
-  R := GenCn2GB18030ToUtf16Page($A1, $A9, $A1, $FE, WS);
+  R := GenCn2GB18030ToUtf16Page($A1, $A1, $A9, $FE, WS);
   WS.Add('区：双字节五; 上一区字符数：' + IntToStr(R));
   R := GenCn2GB18030ToUtf16Page($A8, $40, $A9, $7E, WS);
   R := R + GenCn2GB18030ToUtf16Page($A8, $80, $A9, $A0, WS);
