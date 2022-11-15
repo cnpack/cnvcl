@@ -64,7 +64,7 @@ unit CnGB18030;
 *  编码范围                      码区名称                           编码位置数（容量） 有效字符数   Unicode 编码
 *
 *           81308130~81318131            分隔区一                               1262                0080 到 060B，不连续，内有多处跳跃
-*  81318132~81319934             维吾尔、哈萨克、柯尔克孜文                     243    42           060C 到 06FE，开始连续
+*  81318132~81319934             维吾尔、哈萨克、柯尔克孜文一                   243    42           060C 到 06FE，开始连续
 *           81319935~8132E833            分隔区二                               2049                06FF 到 0EFF  |
 *  8132E834~8132FD31             藏文                                           208    193          0F00 到 0FCF  |
 *           8132FD32~81339D35            分隔区三                               304                 0FD0 到 10FF  |
@@ -78,7 +78,7 @@ unit CnGB18030;
 *           81358438~81358B31            分隔区七                               64                  19E0 到 1A1F  |
 *  81358B32~81359935             西双版纳老傣文                                 144    127          1A20 到 1AAF，连续终止
 *           81359936~81398B31            分隔区八                               4896                1AB0 到 2EFF，不连续，比如 81379735 = 24FF 和 81379736 = 254C 有跳跃
-*  81398B32~8139A135             康熙部首（规范表格中结尾是 8139A135）          224    214          2F00 到 2FDF，单独连续
+*  81398B32~8139A135             康熙部首（规范表格中结尾是 8139A035）          224    214          2F00 到 2FDF，单独连续
 *           8139A136~8139A932            分隔区九                               77                  2FE0 到 3130，不连续
 *  8139A933~8139B734             朝鲜文兼容字母                                 142    51           3131 到 31BE，单独连续
 *           8139B735~8139EE38            分隔区十                               554                 31BF 到 33FF，不连续，比如 8139C131 = 321F 和 8139C132 = 322A 有跳跃
@@ -93,9 +93,9 @@ unit CnGB18030;
 *           82369A33~8237CF34            分隔区十四                             1792                A500 到 ABFF  |
 *  8237CF35~8336BE36             朝鲜文音节                                     11172  3431         AC00 到 D7A3，连续终止
 *           8336BE37~8430BA31            分隔区十五                             4995                D7A4 到 FB4F，不连续，比如 8336C738 = D7FF 和 8336C739 = E76C
-*  8430BA32~8430FE35             维吾尔、哈萨克、柯尔克孜文                     684    59           FB50 到 FDFB，单独连续
+*  8430BA32~8430FE35             维吾尔、哈萨克、柯尔克孜文二                   684    59           FB50 到 FDFB，单独连续
 *           8430FE36~84318639            分隔区十六                             64                  FDFC 到 FE6F，不连续，比如 84318537 = FE2F 和 84318538 = FE32
-*  84318730~84319530             维吾尔、哈萨克、柯尔克孜文                     141    84           FE70 到 FEFC，单独连续
+*  84318730~84319530             维吾尔、哈萨克、柯尔克孜文三                   141    84           FE70 到 FEFC，单独连续
 *           84319531~8431A439            分隔区十七，GB18030 连续终止           159                 FEFD 到 FFFF，不连续，84319534 = FF00 比如 84319535 = FF5F
 *
 *                                （以下俩区域规范中有两处不连续，实际应连续只是省略了）
@@ -662,6 +662,7 @@ begin
     // 四字节
     GBBase := 0;
     UBase := 0;
+
     for I := Low(CN_GB18030_4CHAR_PAGES) to High(CN_GB18030_4CHAR_PAGES) do
     begin
       if (GBCP >= CN_GB18030_4CHAR_PAGES[I].GBHead) and (GBCP <= CN_GB18030_4CHAR_PAGES[I].GBTail) then
@@ -703,8 +704,107 @@ begin
 end;
 
 function GetGB18030FromUnicodeCodePoint(UCP: TCnCodePoint): TCnCodePoint;
+var
+  I, GBBase, UBase: TCnCodePoint;
+  A1, A2, B1, B2, B3, B4, C1, C2, C3, C4: Byte;
+  D1, D2, D3, D4: Cardinal;
 begin
+  Result := CN_INVALID_CODEPOINT;
 
+  if UCP < $80 then
+    Result := UCP
+  else if UCP < $FFFF then
+  begin
+    // 查双字节表
+    UBase := 0;
+    GBBase := 0;
+
+    for I := Low(CN_GB18030_2CHAR_PAGES) to High(CN_GB18030_2CHAR_PAGES) do
+    begin
+      if (UCP >= CN_GB18030_2CHAR_PAGES[I].UHead) and (UCP <= CN_GB18030_2CHAR_PAGES[I].UTail) then
+      begin
+        UBase := CN_GB18030_2CHAR_PAGES[I].UHead;
+        GBBase := CN_GB18030_2CHAR_PAGES[I].GBHead;
+        Break;
+      end;
+    end;
+
+    if UBase > 0 then
+    begin
+      // 如何双字节逆计算？
+      UCP := UCP - UBase;
+
+      A1 := UCP div 94;
+      A2 := UCP mod 94;
+
+      B1 := (GBBase and $0000FF00) shr 8;
+      B2 := GBBase and $000000FF;
+
+      C1 := A1 + B1;
+      C2 := A2 + B2;
+      if C2 > 94 then
+      begin
+        Dec(C2, 94);
+        Inc(C1);
+      end;
+
+      Result := (C1 shl 8) + C2;
+    end
+    else
+    begin
+      // 查六个二字节组合成的表
+      GBBase := F2UnicodeToGB18030Map.Find(Integer(UCP));
+      if GBBase > 0 then
+        Result := GBBase;
+    end;
+  end
+  else
+  begin
+    // 四字节
+    GBBase := 0;
+    UBase := 0;
+
+    for I := Low(CN_GB18030_4CHAR_PAGES) to High(CN_GB18030_4CHAR_PAGES) do
+    begin
+      if (UCP >= CN_GB18030_4CHAR_PAGES[I].UHead) and (UCP <= CN_GB18030_4CHAR_PAGES[I].UTail) then
+      begin
+        UBase := CN_GB18030_4CHAR_PAGES[I].UHead;
+        GBBase := CN_GB18030_4CHAR_PAGES[I].GBHead;
+        Break;
+      end;
+    end;
+
+    if GBBase > 0 then
+    begin
+      // 四字节逆计算
+      UCP := UCP - UBase;
+      C1 := UCP div 12600;
+      C2 := (UCP - 12600 * C1) div 1260;
+      C3 := (UCP - 12600 * C1- 1260 * C2) div 10;
+      C4 := UCP - 12600 * C1- 1260 * C2 - 10 * C3;
+
+      B1 := (GBBase and $FF000000) shr 24;
+      B2 := (GBBase and $00FF0000) shr 16;
+      B3 := (GBBase and $0000FF00) shr 8;
+      B4 := GBBase and $000000FF;
+
+      A1 := UnsignedAddWithLimitRadix(C4, B4, $0, D4, $30, $39);  // 最低位相加，进位供后面使用
+      A1 := UnsignedAddWithLimitRadix(C3, B3, A1, D3, $81, $FE);  // 次低位相加，进位供后面使用
+      A1 := UnsignedAddWithLimitRadix(C2, B2, A1, D2, $30, $39);
+      A1 := UnsignedAddWithLimitRadix(C1, B1, A1, D1, $81, $FE);  // 最高位相加，不应有进位
+
+      if A1 = 0 then
+        Result := ((D1 and $FF) shl 24) + ((D2 and $FF) shl 16)     // 拼出结果
+          + ((D3 and $FF) shl 8) + (D4 and $FF);
+    end
+    else
+    begin
+      // 查八个四字节表
+      GBBase := F4UnicodeToGB18030Map.Find(Integer(UCP));
+      if GBBase > 0 then
+        Result := GBBase;
+    end;
+  end;
 end;
 
 function GetGB18030FromUtf16(Utf16Str: PWideChar): TCnGB18030String;
