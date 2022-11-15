@@ -4,10 +4,20 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnStrings, CnWideStrings, CnGB18030;
+  StdCtrls, CnStrings, CnWideStrings, CnGB18030, ExtCtrls;
 
 type
   TFormGB18030 = class(TForm)
+    grpTestGB2U: TGroupBox;
+    btnGB18030CodePointToUtf16: TButton;
+    btnGenGB18030UnicodeCompare: TButton;
+    grpGenerate: TGroupBox;
+    btnGenUtf16: TButton;
+    btnGenGB18030Page: TButton;
+    btnGenUtf16Page: TButton;
+    chkIncludeCharValue: TCheckBox;
+    btnGenGB18030PagePartly: TButton;
+    grpMisc: TGroupBox;
     btnCodePointFromUtf161: TButton;
     btnCodePointFromUtf162: TButton;
     btnUtf16CharLength: TButton;
@@ -16,8 +26,6 @@ type
     btnCodePointUtf16: TButton;
     btnCodePointUtf162: TButton;
     btnUtf8Decode: TButton;
-    btnGenUtf16: TButton;
-    dlgSave1: TSaveDialog;
     btnCodePointUtf163: TButton;
     btnGB18030ToUtf16: TButton;
     btn18030CodePoint1: TButton;
@@ -26,14 +34,15 @@ type
     btnCodePoint180301: TButton;
     btnCodePoint180302: TButton;
     btnCodePoint180303: TButton;
-    btnMultiUtf16ToGB18130: TButton;
-    btnMultiGB18131ToUtf16: TButton;
-    btnGenGB18030Page: TButton;
-    btnGenUtf16Page: TButton;
-    chkIncludeCharValue: TCheckBox;
-    btnGB18303CodePointToUtf16: TButton;
-    btnGenGB18030PagePartly: TButton;
-    btnGenGB18030UnicodeCompare: TButton;
+    btnMultiUtf16ToGB18030: TButton;
+    btnMultiGB18030ToUtf16: TButton;
+    dlgSave1: TSaveDialog;
+    btnGenUtf16Page1: TButton;
+    bvl1: TBevel;
+    bvl2: TBevel;
+    grpTestU2GB: TGroupBox;
+    btnUtf16CodePointToGB180301: TButton;
+    btnGenUnicodeGB18030Compare2: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -51,29 +60,43 @@ type
     procedure btnCodePoint180301Click(Sender: TObject);
     procedure btnCodePoint180302Click(Sender: TObject);
     procedure btnCodePoint180303Click(Sender: TObject);
-    procedure btnMultiUtf16ToGB18130Click(Sender: TObject);
-    procedure btnMultiGB18131ToUtf16Click(Sender: TObject);
+    procedure btnMultiUtf16ToGB18030Click(Sender: TObject);
+    procedure btnMultiGB18030ToUtf16Click(Sender: TObject);
     procedure btnGenGB18030PageClick(Sender: TObject);
     procedure btnGenUtf16PageClick(Sender: TObject);
-    procedure btnGB18303CodePointToUtf16Click(Sender: TObject);
+    procedure btnGB18030CodePointToUtf16Click(Sender: TObject);
     procedure btnGenGB18030PagePartlyClick(Sender: TObject);
     procedure btnGenGB18030UnicodeCompareClick(Sender: TObject);
+    procedure btnGenUtf16Page1Click(Sender: TObject);
+    procedure btnUtf16CodePointToGB180301Click(Sender: TObject);
   private
+    // 以 Windows API 的方式批量生成 256 个 Unicode 字符
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
-    function CodePointUtf16ToGB18130(UCP: TCnCodePoint): TCnCodePoint;
-    function CodePointGB18130ToUtf16(GBCP: TCnCodePoint): TCnCodePoint;
+
+    // 以 Windows API 的方式实现单个 Utf16 字符编码和 GB18030 字符编码的互转
+    function APICodePointUtf16ToGB18030(UCP: TCnCodePoint): TCnCodePoint;
+    function APICodePointGB18030ToUtf16(GBCP: TCnCodePoint): TCnCodePoint;
+
+    // 生成指定范围内的 Utf16 字符到 GB18030 字符的映射
     procedure Gen2Utf16ToGB18030Page(FromH, FromL, ToH, ToL: Byte; Content: TCnAnsiStringList; H2: Word = 0);
 
+    // 取到下一个四字节值的 GB18030 字符编码值
     procedure Step4GB18030CodePoint(var CP: TCnCodePoint);
 
+    // 以 Windows API 的方式代码生成 GB1830 到 Unicode 的批量映射区间，供比对结果
     function Gen2GB18030ToUtf16Page(FromH, FromL, ToH, ToL: Byte; Content: TCnWideStringList): Integer;
     function Gen4GB18030ToUtf16Page(From4, To4: TCnCodePoint; Content: TCnWideStringList): Integer;
 
+    // 以 Windows API 的方式代码生成 GB1830 到 Unicode 的映射数组内容，供 CnPack 编程使用
     function Gen2GB18030ToUtf16Array(FromH, FromL, ToH, ToL: Byte; CGB, CU: TCnWideStringList): Integer;
     function Gen4GB18030ToUtf16Array(From4, To4: TCnCodePoint; CGB, CU: TCnWideStringList): Integer;
 
+    // 以 CnPack 的代码生成 GB1830 到 Unicode 的批量映射区间，供和上面 Windows API 的方式比对结果
     function GenCn2GB18030ToUtf16Page(FromH, FromL, ToH, ToL: Byte; Content: TCnAnsiStringList): Integer;
     function GenCn4GB18030ToUtf16Page(From4, To4: TCnCodePoint; Content: TCnAnsiStringList): Integer;
+
+    // 以 Windows API 的方式代码生成 Unicode 到 GB1830 的批量映射区间
+    function GenUnicodeToGB18030Page(FromU, ToU: TCnCodePoint; Content: TCnWideStringList): Integer;
   public
 
   end;
@@ -355,7 +378,7 @@ begin
   ShowMessage(S);
 end;
 
-function TFormGB18030.CodePointGB18130ToUtf16(GBCP: TCnCodePoint): TCnCodePoint;
+function TFormGB18030.APICodePointGB18030ToUtf16(GBCP: TCnCodePoint): TCnCodePoint;
 var
   S: AnsiString;
   W: WideString;
@@ -376,7 +399,7 @@ begin
   end;
 end;
 
-function TFormGB18030.CodePointUtf16ToGB18130(UCP: TCnCodePoint): TCnCodePoint;
+function TFormGB18030.APICodePointUtf16ToGB18030(UCP: TCnCodePoint): TCnCodePoint;
 var
   S: AnsiString;
   W: WideString;
@@ -398,7 +421,7 @@ begin
   end;
 end;
 
-procedure TFormGB18030.btnMultiUtf16ToGB18130Click(Sender: TObject);
+procedure TFormGB18030.btnMultiUtf16ToGB18030Click(Sender: TObject);
 var
   S: WideString;
   A, T: AnsiString;
@@ -413,7 +436,7 @@ begin
     if C = CN_INVALID_CODEPOINT then
       Exit;
 
-    C := CodePointUtf16ToGB18130(C);         // 转成 GB18030
+    C := APICodePointUtf16ToGB18030(C);         // 转成 GB18030
     if C = CN_INVALID_CODEPOINT then
       Exit;
 
@@ -427,7 +450,7 @@ begin
   ShowMessage(A);
 end;
 
-procedure TFormGB18030.btnMultiGB18131ToUtf16Click(Sender: TObject);
+procedure TFormGB18030.btnMultiGB18030ToUtf16Click(Sender: TObject);
 var
   S, T: WideString;
   A: AnsiString;
@@ -446,7 +469,7 @@ begin
     if C = CN_INVALID_CODEPOINT then
       Exit;
 
-    C := CodePointGB18130ToUtf16(C);           // 转成 Utf16
+    C := APICodePointGB18030ToUtf16(C);           // 转成 Utf16
     if C = CN_INVALID_CODEPOINT then
       Exit;
 
@@ -471,7 +494,7 @@ begin
     for L := FromL to ToL do
     begin
       GBCP := (H shl 8) or L;
-      UCP := CodePointGB18130ToUtf16(GBCP);
+      UCP := APICodePointGB18030ToUtf16(GBCP);
       T := GetUtf16CharFromCodePoint(UCP, nil);
       SetLength(C, T);
       GetUtf16CharFromCodePoint(UCP, @C[1]);
@@ -697,7 +720,9 @@ begin
   SL := TCnAnsiStringList.Create;
 
   Gen2Utf16ToGB18030Page(0, 0, $FF, $FF, SL);
-  // Gen2Utf16ToGB18030Page($54, $03, $54, $03, SL);
+  Gen2Utf16ToGB18030Page(0, 0, $FF, $FF, SL, 1);
+  Gen2Utf16ToGB18030Page(0, 0, $FF, $FF, SL, 2);
+
   dlgSave1.FileName := 'UTF16_GB18030.txt';
   if dlgSave1.Execute then
   begin
@@ -719,7 +744,7 @@ begin
     for L := FromL to ToL do
     begin
       UCP := ((H shl 8) or L) + (H2 shl 16);
-      GBCP := CodePointUtf16ToGB18130(UCP);
+      GBCP := APICodePointUtf16ToGB18030(UCP);
       if GBCP <> CN_INVALID_CODEPOINT then
       begin
         T := GetGB18030CharsFromCodePoint(GBCP, nil);
@@ -747,7 +772,7 @@ begin
   GBCP := From4;
   while GBCP <= To4 do
   begin
-    UCP := CodePointGB18130ToUtf16(GBCP);
+    UCP := APICodePointGB18030ToUtf16(GBCP);
     T := GetUtf16CharFromCodePoint(UCP, nil);
     SetLength(C, T);
     GetUtf16CharFromCodePoint(UCP, @C[1]);
@@ -764,7 +789,7 @@ begin
   end;
 end;
 
-procedure TFormGB18030.btnGB18303CodePointToUtf16Click(Sender: TObject);
+procedure TFormGB18030.btnGB18030CodePointToUtf16Click(Sender: TObject);
 var
   GBCP, UCP: TCnCodePoint;
 begin
@@ -901,7 +926,7 @@ begin
     for L := FromL to ToL do
     begin
       GBCP := (H shl 8) or L;
-      UCP := CodePointGB18130ToUtf16(GBCP);
+      UCP := APICodePointGB18030ToUtf16(GBCP);
       T := GetUtf16CharFromCodePoint(UCP, nil);
       SetLength(C, T);
       GetUtf16CharFromCodePoint(UCP, @C[1]);
@@ -925,7 +950,7 @@ begin
   GBCP := From4;
   while GBCP <= To4 do
   begin
-    UCP := CodePointGB18130ToUtf16(GBCP);
+    UCP := APICodePointGB18030ToUtf16(GBCP);
     T := GetUtf16CharFromCodePoint(UCP, nil);
     SetLength(C, T);
     GetUtf16CharFromCodePoint(UCP, @C[1]);
@@ -1183,6 +1208,111 @@ begin
       Inc(Result);
     end;
   end;
+end;
+
+procedure TFormGB18030.btnGenUtf16Page1Click(Sender: TObject);
+var
+  R, I: Integer;
+  WS: TCnWideStringList;
+  ASS: TCnAnsiStringList;
+begin
+  WS := TCnWideStringList.Create;
+// 双字节：A1A9~A1FE                     1 区
+//         A840~A97E, A880~A9A0          5 区
+//         B0A1~F7FE                     2 区汉字
+//         8140~A07E, 8180~A0FE          3 区汉字
+//         AA40~FE7E, AA80~FEA0          4 区汉字
+//         AAA1~AFFE                     用户 1 区
+//         F8A1~FEFE                     用户 2 区
+//         A140~A77E, A180~A7A0          用户 3 区
+
+  R := 0;
+
+  WS.Add('区：双字节用户一; 上一区字符数：' + IntToStr(R)); // 三个双字节用户区
+  R := GenUnicodeToGB18030Page($E000, $E233, WS);
+  WS.Add('区：双字节用户二; 上一区字符数：' + IntToStr(R));
+  R := GenUnicodeToGB18030Page($E234, $E4C5, WS);
+
+
+  WS.Add('区：四字节维吾尔、哈萨克、柯尔克孜文一; 上一区字符数：' + IntToStr(R));
+  R := GenUnicodeToGB18030Page($060C, $1AAF, WS);
+
+  WS.Add('区：四字节康熙部首; 上一区字符数：' + IntToStr(R));
+  R := GenUnicodeToGB18030Page($2F00, $2FDF, WS);
+
+  WS.Add('区：四字节朝鲜文兼容字母; 上一区字符数：' + IntToStr(R));
+  R := GenUnicodeToGB18030Page($3131, $31BE, WS);
+
+  WS.Add('区：分隔十一; 上一区字符数：' + IntToStr(R));
+  R := GenUnicodeToGB18030Page($4DB6, $4DFF, WS);
+
+  WS.Add('区：四字节 CJK 统一汉字; 上一区字符数：' + IntToStr(R));
+  R := GenUnicodeToGB18030Page($9FA6, $D7A3, WS);
+
+  WS.Add('区：四字节维吾尔、哈萨克、柯尔克孜文二; 上一区字符数：' + IntToStr(R));
+  R := GenUnicodeToGB18030Page($FB50, $FDFE, WS);
+
+  WS.Add('区：四字节维吾尔、哈萨克、柯尔克孜文三; 上一区字符数：' + IntToStr(R));
+  R := GenUnicodeToGB18030Page($FE70, $FEFC, WS);
+
+  WS.Add('区：四字节蒙古文 BIRGA; 上一区字符数：' + IntToStr(R));
+  R := GenUnicodeToGB18030Page($11660, $2FFFF, WS);
+
+  WS.Add('区：尾; 上一区字符数：' + IntToStr(R));
+
+  dlgSave1.FileName := 'UTF16_GB18030_API.txt';
+  if dlgSave1.Execute then
+  begin
+    if chkIncludeCharValue.Checked then
+      WS.SaveToFile(dlgSave1.FileName)
+    else
+    begin
+      ASS := TCnAnsiStringList.Create;
+      for I := 0 to WS.Count - 1 do
+        ASS.Add(WS[I]);
+      ASS.SaveToFile(dlgSave1.FileName);
+      ASS.Free;
+    end;
+    ShowMessage('Save to ' + dlgSave1.FileName);
+  end;
+  WS.Free;
+end;
+
+function TFormGB18030.GenUnicodeToGB18030Page(FromU, ToU: TCnCodePoint;
+  Content: TCnWideStringList): Integer;
+var
+  T: Integer;
+  UCP, GBCP: TCnCodePoint;
+  S: AnsiString;
+begin
+  Result := 0;
+  UCP := FromU;
+  while UCP <= ToU do
+  begin
+    GBCP := APICodePointUtf16ToGB18030(UCP);
+    if GBCP <> CN_INVALID_CODEPOINT then
+    begin
+      T := GetGB18030CharsFromCodePoint(GBCP, nil);
+      if T > 0 then
+      begin
+        SetLength(S, T);
+        GetGB18030CharsFromCodePoint(GBCP, @S[1]);
+
+        Content.Add(IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2));
+        Inc(Result);
+      end;
+    end;
+    Inc(UCP);
+  end;
+end;
+
+procedure TFormGB18030.btnUtf16CodePointToGB180301Click(Sender: TObject);
+var
+  GBCP, UCP: TCnCodePoint;
+begin
+  UCP := $13FA9;
+  GBCP := GetGB18030FromUnicodeCodePoint(UCP);
+  ShowMessage(IntToHex(GBCP, 2));
 end;
 
 end.

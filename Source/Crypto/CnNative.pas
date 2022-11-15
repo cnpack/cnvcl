@@ -2866,11 +2866,11 @@ begin
   R := A + B + C;
   if R > H then         // 有进位
   begin
-    A := H - L;         // 得到进制
+    A := H - L + 1;     // 得到进制
     B := R - L;         // 得到超出 L 的值
 
     Result := B div A;  // 超过进制的第几倍就进几
-    R := L + (R mod A); // 去掉进制后的余数，加上下限
+    R := L + (B mod A); // 去掉进制后的余数，加上下限
   end
   else
     Result := 0;
