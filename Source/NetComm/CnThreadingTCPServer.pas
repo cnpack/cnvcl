@@ -490,7 +490,6 @@ begin
       if (FServer.MaxConnections > 0) and (FServer.ClientCount >= FServer.MaxConnections) then
       begin
         closesocket(Sock);
-        Sock := INVALID_SOCKET;
         Continue;
       end;
 

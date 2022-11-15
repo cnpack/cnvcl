@@ -28,7 +28,9 @@ unit CnTCPForwarder;
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.02.25 V1.0
+* 修改记录：2022.11.15 V1.1
+*                加入自定义数据的功能
+*           2020.02.25 V1.0
 *                创建单元
 ================================================================================
 |</PRE>}
@@ -42,12 +44,19 @@ uses
   CnThreadingTCPServer, CnTCPClient;
 
 type
+  TCnForwarderEvent = procedure (Sender: TObject; Buf: Pointer; var DataSize: Integer) of object;
+  {* 转发时触发的数据事件。原始数据存在 Buf 所指的区域，长度为 DataSize
+    事件处理者可以针对这片区域重新填充并调整数据长度，注意不可超过原有的 DataSize
+    如将 DataSize 置 0，表示抛弃本次数据}
+
   TCnTCPForwarder = class(TCnThreadingTCPServer)
   {* TCP 端口转发组件，对每个客户端连接起两个线程}
   private
     FRemoteHost: string;
     FRemotePort: Word;
     FOnRemoteConnected: TNotifyEvent;
+    FOnServerData: TCnForwarderEvent;
+    FOnClientData: TCnForwarderEvent;
     procedure SetRemoteHost(const Value: string);
     procedure SetRemotePort(const Value: Word);
   protected
@@ -57,6 +66,8 @@ type
     {* 子类重载使用 TCnTCPForwardThread}
 
     procedure DoRemoteConnected; virtual;
+    procedure DoServerData(Buf: Pointer; var DataSize: Integer); virtual;
+    procedure DoClientData(Buf: Pointer; var DataSize: Integer); virtual;
   published
     property RemoteHost: string read FRemoteHost write SetRemoteHost;
     {* 转发的远程主机}
@@ -65,6 +76,11 @@ type
 
     property OnRemoteConnected: TNotifyEvent read FOnRemoteConnected write FOnRemoteConnected;
     {* 连接上远程服务器时触发}
+
+    property OnServerData: TCnForwarderEvent read FOnServerData write FOnServerData;
+    {* 远程主机来数据时处理}
+    property OnClientData: TCnForwarderEvent read FOnClientData write FOnClientData;
+    {* 客户端来数据时处理}
   end;
 
 implementation
@@ -101,6 +117,13 @@ type
 
 { TCnTCPForwarder }
 
+procedure TCnTCPForwarder.DoClientData(Buf: Pointer;
+  var DataSize: Integer);
+begin
+  if Assigned(FOnClientData) then
+    FOnClientData(Self, Buf, DataSize);
+end;
+
 function TCnTCPForwarder.DoGetClientThread: TCnTCPClientThread;
 begin
   Result := TCnTCPForwardThread.Create(True);
@@ -110,6 +133,13 @@ procedure TCnTCPForwarder.DoRemoteConnected;
 begin
   if Assigned(FOnRemoteConnected) then
     FOnRemoteConnected(Self);
+end;
+
+procedure TCnTCPForwarder.DoServerData(Buf: Pointer;
+  var DataSize: Integer);
+begin
+  if Assigned(FOnServerData) then
+    FOnServerData(Self, Buf, DataSize);
 end;
 
 procedure TCnTCPForwarder.GetComponentInfo(var AName, Author, Email,
@@ -193,11 +223,17 @@ begin
         Client.Shutdown;
         Exit;
       end;
-      Ret := Client.RemoteSend(Buf, Ret); // 发到服务端
-      if Ret <= 0 then
+
+      // 给外界一个处理数据的机会
+      TCnTCPForwarder(Client.Server).DoClientData(@Buf[0], Ret);
+      if Ret > 0 then // 如果处理后还有数据就发
       begin
-        Client.Shutdown;
-        Exit;
+        Ret := Client.RemoteSend(Buf, Ret); // 发到服务端
+        if Ret <= 0 then
+        begin
+          Client.Shutdown;
+          Exit;
+        end;
       end;
     end;
 
@@ -209,11 +245,17 @@ begin
         Client.Shutdown;
         Exit;
       end;
-      Ret := Client.Send(Buf, Ret); // 发到客户端
-      if Ret <= 0 then
+
+      // 给外界一个处理数据的机会
+      TCnTCPForwarder(Client.Server).DoServerData(@Buf[0], Ret);
+      if Ret > 0 then // 如果处理后还有数据就发
       begin
-        Client.Shutdown;
-        Exit;
+        Ret := Client.Send(Buf, Ret); // 发到客户端
+        if Ret <= 0 then
+        begin
+          Client.Shutdown;
+          Exit;
+        end;
       end;
     end;
     Sleep(0);
