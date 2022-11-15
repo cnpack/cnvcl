@@ -543,6 +543,12 @@ procedure SetUInt128Bit(var Lo, Hi: TUInt64; N: Integer);
 procedure ClearUInt128Bit(var Lo, Hi: TUInt64; N: Integer);
 {* 针对两个 Int64 拼成的 128 位数字，清掉第 N 位，N 从 0 到 127}
 
+function UnsignedAddWithLimitRadix(A, B, C: Cardinal; var R: Cardinal;
+  L, H: Cardinal): Cardinal;
+{* 计算非正常进制的无符号加法，A + B + C，结果放 R 中，返回进位值
+  结果确保在 L 和 H 的闭区间内，用户须确保 H 大于 L，不考虑溢出的情形
+  该函数多用于字符分区间计算与映射，其中 C 一般是进位}
+
 implementation
 
 uses
@@ -2852,6 +2858,22 @@ begin
     Dec(N, 64);
     Hi := Hi and not (TUInt64(1) shl N);
   end;
+end;
+
+function UnsignedAddWithLimitRadix(A, B, C: Cardinal; var R: Cardinal;
+  L, H: Cardinal): Cardinal;
+begin
+  R := A + B + C;
+  if R > H then         // 有进位
+  begin
+    A := H - L;         // 得到进制
+    B := R - L;         // 得到超出 L 的值
+
+    Result := B div A;  // 超过进制的第几倍就进几
+    R := L + (R mod A); // 去掉进制后的余数，加上下限
+  end
+  else
+    Result := 0;
 end;
 
 procedure InternalQuickSort(Mem: Pointer; L, R: Integer; ElementByteSize: Integer;
