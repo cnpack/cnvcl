@@ -69,6 +69,7 @@ type
     procedure btnGenGB18030UnicodeCompareClick(Sender: TObject);
     procedure btnGenUtf16Page1Click(Sender: TObject);
     procedure btnUtf16CodePointToGB180301Click(Sender: TObject);
+    procedure btnGenUnicodeGB18030Compare2Click(Sender: TObject);
   private
     // 以 Windows API 的方式批量生成 256 个 Unicode 字符
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
@@ -97,6 +98,10 @@ type
 
     // 以 Windows API 的方式代码生成 Unicode 到 GB1830 的批量映射区间
     function GenUnicodeToGB18030Page(FromU, ToU: TCnCodePoint; Content: TCnWideStringList): Integer;
+
+    // 以 CnPack 的代码生成指定范围内的 Utf16 字符到 GB18030 字符的映射
+    procedure GenCn2Utf16ToGB18030Page(FromH, FromL, ToH, ToL: Byte; Content: TCnAnsiStringList; H2: Word = 0);
+
   public
 
   end;
@@ -751,7 +756,10 @@ begin
         SetLength(C, T);
         GetGB18030CharsFromCodePoint(GBCP, @C[1]);
 
-        S := IntToHex(UCP, 2) + ' = ' + IntToHex(GBCP, 2) + '  ' + C;
+        if chkIncludeCharValue.Checked then
+          S := IntToHex(UCP, 2) + ' = ' + IntToHex(GBCP, 2) + '  ' + C
+        else
+          S := IntToHex(UCP, 2) + ' = ' + IntToHex(GBCP, 2);
       end
       else
         S := IntToHex(UCP, 2) + ' = ';
@@ -1310,9 +1318,53 @@ procedure TFormGB18030.btnUtf16CodePointToGB180301Click(Sender: TObject);
 var
   GBCP, UCP: TCnCodePoint;
 begin
-  UCP := $13FA9;
+  UCP := $2ECA;
   GBCP := GetGB18030FromUnicodeCodePoint(UCP);
   ShowMessage(IntToHex(GBCP, 2));
+end;
+
+procedure TFormGB18030.btnGenUnicodeGB18030Compare2Click(Sender: TObject);
+var
+  SL: TCnAnsiStringList;
+begin
+  SL := TCnAnsiStringList.Create;
+
+  GenCn2Utf16ToGB18030Page(0, 0, $FF, $FF, SL);
+  GenCn2Utf16ToGB18030Page(0, 0, $FF, $FF, SL, 1);
+  GenCn2Utf16ToGB18030Page(0, 0, $FF, $FF, SL, 2);
+
+  dlgSave1.FileName := 'UTF16_GB18030_gen.txt';
+  if dlgSave1.Execute then
+  begin
+    SL.SaveToFile(dlgSave1.FileName);
+    ShowMessage('Save to ' + dlgSave1.FileName);
+  end;
+  SL.Free;
+end;
+
+procedure TFormGB18030.GenCn2Utf16ToGB18030Page(FromH, FromL, ToH,
+  ToL: Byte; Content: TCnAnsiStringList; H2: Word);
+var
+  H, L: Integer;
+  GBCP, UCP: TCnCodePoint;
+  S: AnsiString;
+begin
+  for H := FromH to ToH do
+  begin
+    for L := FromL to ToL do
+    begin
+      UCP := ((H shl 8) or L) + (H2 shl 16);
+      GBCP := GetGB18030FromUnicodeCodePoint(UCP);
+      if GBCP <> CN_INVALID_CODEPOINT then
+      begin
+        S := IntToHex(UCP, 2) + ' = ' + IntToHex(GBCP, 2);
+      end
+      else
+        S := IntToHex(UCP, 2) + ' = ';
+
+      Content.Add(S);
+    end;
+  end;
 end;
 
 end.

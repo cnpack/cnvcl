@@ -50,19 +50,21 @@ unit CnGB18030;
 *           单字节：00~7F
 *
 *           双字节：（不包括和中国无关的其他语言字符，和 Unicode 部分二字节码位杂乱对应，只能查表）
-*                   A1A9~A1FE                     1 区         不连续
-*                   A840~A97E, A880~A9A0          5 区         不连续
-*                   B0A1~F7FE                     2 区汉字     不连续
-*                   8140~A07E, 8180~A0FE          3 区汉字     不连续
-*                   AA40~FE7E, AA80~FEA0          4 区汉字     不连续
-*                   AAA1~AFFE                     用户 1 区    564 个字符  E000 到 E233 连续
-*                   F8A1~FEFE                     用户 2 区    658 个字符  E234 到 E4C5 连续
-*                   A140~A77E, A180~A7A0          用户 3 区    不连续
+*
+*                                                                      码位数 字符数
+*                   A1A9~A1FE                     1 区符号     不连续  846    171
+*                   A840~A97E, A880~A9A0          5 区符号     不连续  192    166
+*                   B0A1~F7FE                     2 区汉字     不连续  6768   6763   GB2312
+*                   8140~A07E, 8180~A0FE          3 区汉字     不连续  6080   6080   GBK 及以下
+*                   AA40~FE7E, AA80~FEA0          4 区汉字     不连续  8160   8160
+*                   AAA1~AFFE                     用户 1 区    连续    564           E000 到 E233
+*                   F8A1~FEFE                     用户 2 区    连续    658           E234 到 E4C5
+*                   A140~A77E, A180~A7A0          用户 3 区    不连续  672
 *
 *           四字节：（不包括和中国无关的其他语言字符）
 *
 *  编码范围                      码区名称                           编码位置数（容量） 有效字符数   Unicode 编码
-*
+*  四字节到 Unicode 基本平面映射
 *           81308130~81318131            分隔区一                               1262                0080 到 060B，不连续，内有多处跳跃
 *  81318132~81319934             维吾尔、哈萨克、柯尔克孜文一                   243    42           060C 到 06FE，开始连续
 *           81319935~8132E833            分隔区二                               2049                06FF 到 0EFF  |
@@ -84,7 +86,6 @@ unit CnGB18030;
 *           8139B735~8139EE38            分隔区十                               554                 31BF 到 33FF，不连续，比如 8139C131 = 321F 和 8139C132 = 322A 有跳跃
 *  8139EE39~82358738             CJK 统一汉字扩充 A                             6530   6530         3400 到 4DB5，不连续，比如82358731 = 4DAD 和 82358732 = 4DAF 以及其他地方有五十多处跳跃
 *           82358739~82358F32            分隔区十一                             74                  4DB6 到 4DFF，单独连续
-*
 *  82358F33~82359636             CJK 统一汉字                                   74     66           9FA6 到 9FEF，开始连续
 *           82359637~82359832            分隔区十二                             16                  9FF0 到 9FFF  |
 *  82359833~82369435             彝文                                           1223   1215         A000 到 A4C6  |
@@ -98,8 +99,8 @@ unit CnGB18030;
 *  84318730~84319530             维吾尔、哈萨克、柯尔克孜文三                   141    84           FE70 到 FEFC，单独连续
 *           84319531~8431A439            分隔区十七，GB18030 连续终止           159                 FEFD 到 FFFF，不连续，84319534 = FF00 比如 84319535 = FF5F
 *
-*                                （以下俩区域规范中有两处不连续，实际应连续只是省略了）
-*  9034C538~9034C730             蒙古文 BIRGA，Unicode 11660 开始               13     13           11660 到 1166C，开始连续
+*  四字节到 Unicode 扩展平面映射。大范围是 90308130~E339FE39，线性映射到十六个平面
+*  9034C538~9034C730             蒙古文 BIRGA，GB18030 又开始连续               13     13           11660 到 1166C，开始连续
 *           9034C731~9232C635            分隔区十八，规范省略只到 9034C739      22675               1166D 到 16EFF  |
 *  9232C636~9232D635             滇东北苗文                                     160    133          16F00 到 16F9F  |
 *           9232D636~95328235            分隔区十九，规范省略只到 9232D639      36960               16FA0 到 1FFFF  |
@@ -145,7 +146,9 @@ unit CnGB18030;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.11.14
+* 修改记录：2022.11.16
+*               实现不依赖于 Windows API 的 Unicode 字符到 GB18030-2022 的转换
+*           2022.11.14
 *               实现不依赖于 Windows API 的 GB18030-2022 全部字符到 Unicode 的转换
 *           2022.11.11
 *               创建单元
@@ -315,14 +318,15 @@ const
   CN_GB18030_2CHAR_PAGE_COUNT = 94;
 
   // 四字节码转换相关
-  CN_GB18030_4CHAR_PAGES: array[0..7] of TCnGB18030MappingPage = (
+  CN_GB18030_4CHAR_PAGES: array[0..8] of TCnGB18030MappingPage = (
     (GBHead: $81318132; GBTail: $81359935; UHead: $060C; UTail: $1AAF),
-    (GBHead: $81398B32; GBTail: $8139A135; UHead: $2F00; UTail: $2FD5),
+    (GBHead: $81398B32; GBTail: $8139A135; UHead: $2F00; UTail: $2FDF),
     (GBHead: $8139A933; GBTail: $8139B734; UHead: $3131; UTail: $31BE),
     (GBHead: $82358739; GBTail: $82358F32; UHead: $4DB6; UTail: $4DFF),
     (GBHead: $82358F33; GBTail: $8336BE36; UHead: $9FA6; UTail: $D7A3),
     (GBHead: $8430BA32; GBTail: $8430FE35; UHead: $FB50; UTail: $FDFB),
     (GBHead: $84318730; GBTail: $84319530; UHead: $FE70; UTail: $FEFC),
+    (GBHead: $90308130; GBTail: $9034C537; UHead: $10000; UTail: $1165F), // 扩展平面起始区
     (GBHead: $9034C538; GBTail: $9A348431; UHead: $11660; UTail: $2FFFF)
   );
 
@@ -336,11 +340,10 @@ const
 
 var
   F2GB18030ToUnicodeMap: TCnHashMap = nil;
-  F2UnicodeToGB18030Map: TCnHashMap = nil;
   F4GB18030ToUnicodeMap: TCnHashMap = nil;
-  F4UnicodeToGB18030Map: TCnHashMap = nil;
+  FUnicodeToGB18030Map: TCnHashMap = nil;
 
-procedure CheckGB18030ToUnicodeMap;
+procedure CreateGB18030ToUnicodeMap;
 var
   I: Integer;
 begin
@@ -359,22 +362,18 @@ begin
   end;
 end;
 
-procedure CheckUnicodeToGB18030Map;
+procedure CreateUnicodeToGB18030Map;
 var
   I: Integer;
 begin
-  if F2UnicodeToGB18030Map = nil then
+  if FUnicodeToGB18030Map = nil then
   begin
-    F2UnicodeToGB18030Map := TCnHashMap.Create(CN_GB18030_MAP_DEF_CAPACITY);
-    for I := Low(CN_UNICODE_2MAPPING) to High(CN_UNICODE_2MAPPING) do
-      F2UnicodeToGB18030Map.Add(Integer(CN_UNICODE_2MAPPING[I]), Integer(CN_GB18030_2MAPPING[I]));
-  end;
+    FUnicodeToGB18030Map := TCnHashMap.Create(CN_GB18030_MAP_DEF_CAPACITY * 2);
 
-  if F4UnicodeToGB18030Map = nil then
-  begin
-    F4UnicodeToGB18030Map := TCnHashMap.Create(CN_GB18030_MAP_DEF_CAPACITY);
+    for I := Low(CN_UNICODE_2MAPPING) to High(CN_UNICODE_2MAPPING) do
+      FUnicodeToGB18030Map.Add(Integer(CN_UNICODE_2MAPPING[I]), Integer(CN_GB18030_2MAPPING[I]));
     for I := Low(CN_UNICODE_4MAPPING) to High(CN_UNICODE_4MAPPING) do
-      F4UnicodeToGB18030Map.Add(Integer(CN_UNICODE_4MAPPING[I]), Integer(CN_GB18030_4MAPPING[I]));
+      FUnicodeToGB18030Map.Add(Integer(CN_UNICODE_4MAPPING[I]), Integer(CN_GB18030_4MAPPING[I]));
   end;
 end;
 
@@ -713,9 +712,9 @@ begin
 
   if UCP < $80 then
     Result := UCP
-  else if UCP < $FFFF then
+  else // 不分 Unicode 范围，先查两个区间，再查 Map
   begin
-    // 查双字节表
+    // 查双字节区间表
     UBase := 0;
     GBBase := 0;
 
@@ -740,67 +739,60 @@ begin
       B1 := (GBBase and $0000FF00) shr 8;
       B2 := GBBase and $000000FF;
 
-      C1 := A1 + B1;
-      C2 := A2 + B2;
-      if C2 > 94 then
+      D1 := A1 + B1;
+      D2 := A2 + B2;
+      if D2 > $FE then
       begin
-        Dec(C2, 94);
-        Inc(C1);
+        Dec(D2, 94);
+        Inc(D1);
       end;
 
-      Result := (C1 shl 8) + C2;
+      Result := (D1 shl 8) + D2;
     end
-    else
+    else // 查四字节区间表
     begin
-      // 查六个二字节组合成的表
-      GBBase := F2UnicodeToGB18030Map.Find(Integer(UCP));
+      GBBase := 0;
+      UBase := 0;
+
+      for I := Low(CN_GB18030_4CHAR_PAGES) to High(CN_GB18030_4CHAR_PAGES) do
+      begin
+        if (UCP >= CN_GB18030_4CHAR_PAGES[I].UHead) and (UCP <= CN_GB18030_4CHAR_PAGES[I].UTail) then
+        begin
+          UBase := CN_GB18030_4CHAR_PAGES[I].UHead;
+          GBBase := CN_GB18030_4CHAR_PAGES[I].GBHead;
+          Break;
+        end;
+      end;
+
       if GBBase > 0 then
-        Result := GBBase;
-    end;
-  end
-  else
-  begin
-    // 四字节
-    GBBase := 0;
-    UBase := 0;
-
-    for I := Low(CN_GB18030_4CHAR_PAGES) to High(CN_GB18030_4CHAR_PAGES) do
-    begin
-      if (UCP >= CN_GB18030_4CHAR_PAGES[I].UHead) and (UCP <= CN_GB18030_4CHAR_PAGES[I].UTail) then
       begin
-        UBase := CN_GB18030_4CHAR_PAGES[I].UHead;
-        GBBase := CN_GB18030_4CHAR_PAGES[I].GBHead;
-        Break;
+        // 四字节逆计算
+        UCP := UCP - UBase;
+        C1 := UCP div 12600;
+        C2 := (UCP - 12600 * C1) div 1260;
+        C3 := (UCP - 12600 * C1- 1260 * C2) div 10;
+        C4 := UCP - 12600 * C1- 1260 * C2 - 10 * C3;
+
+        B1 := (GBBase and $FF000000) shr 24;
+        B2 := (GBBase and $00FF0000) shr 16;
+        B3 := (GBBase and $0000FF00) shr 8;
+        B4 := GBBase and $000000FF;
+
+        A1 := UnsignedAddWithLimitRadix(C4, B4, $0, D4, $30, $39);  // 最低位相加，进位供后面使用
+        A1 := UnsignedAddWithLimitRadix(C3, B3, A1, D3, $81, $FE);  // 次低位相加，进位供后面使用
+        A1 := UnsignedAddWithLimitRadix(C2, B2, A1, D2, $30, $39);
+        A1 := UnsignedAddWithLimitRadix(C1, B1, A1, D1, $81, $FE);  // 最高位相加，不应有进位
+
+        if A1 = 0 then
+          Result := ((D1 and $FF) shl 24) + ((D2 and $FF) shl 16)     // 拼出结果
+            + ((D3 and $FF) shl 8) + (D4 and $FF);
       end;
     end;
 
-    if GBBase > 0 then
+    if Result = CN_INVALID_CODEPOINT then
     begin
-      // 四字节逆计算
-      UCP := UCP - UBase;
-      C1 := UCP div 12600;
-      C2 := (UCP - 12600 * C1) div 1260;
-      C3 := (UCP - 12600 * C1- 1260 * C2) div 10;
-      C4 := UCP - 12600 * C1- 1260 * C2 - 10 * C3;
-
-      B1 := (GBBase and $FF000000) shr 24;
-      B2 := (GBBase and $00FF0000) shr 16;
-      B3 := (GBBase and $0000FF00) shr 8;
-      B4 := GBBase and $000000FF;
-
-      A1 := UnsignedAddWithLimitRadix(C4, B4, $0, D4, $30, $39);  // 最低位相加，进位供后面使用
-      A1 := UnsignedAddWithLimitRadix(C3, B3, A1, D3, $81, $FE);  // 次低位相加，进位供后面使用
-      A1 := UnsignedAddWithLimitRadix(C2, B2, A1, D2, $30, $39);
-      A1 := UnsignedAddWithLimitRadix(C1, B1, A1, D1, $81, $FE);  // 最高位相加，不应有进位
-
-      if A1 = 0 then
-        Result := ((D1 and $FF) shl 24) + ((D2 and $FF) shl 16)     // 拼出结果
-          + ((D3 and $FF) shl 8) + (D4 and $FF);
-    end
-    else
-    begin
-      // 查八个四字节表
-      GBBase := F4UnicodeToGB18030Map.Find(Integer(UCP));
+      // 查组合成的大表
+      GBBase := FUnicodeToGB18030Map.Find(Integer(UCP));
       if GBBase > 0 then
         Result := GBBase;
     end;
@@ -1015,14 +1007,13 @@ begin
 end;
 
 initialization
-  CheckGB18030ToUnicodeMap;
-  CheckUnicodeToGB18030Map;
+  CreateGB18030ToUnicodeMap;
+  CreateUnicodeToGB18030Map;
 
 finalization
-  F2UnicodeToGB18030Map.Free;
   F2GB18030ToUnicodeMap.Free;
   F4GB18030ToUnicodeMap.Free;
-  F4UnicodeToGB18030Map.Free;
+  FUnicodeToGB18030Map.Free;
 
 
 end.

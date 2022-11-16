@@ -1,7 +1,7 @@
 object FormGB18030: TFormGB18030
   Left = 90
   Top = 58
-  Width = 1005
+  Width = 1021
   Height = 633
   Caption = 'Unicode and GB18030'
   Color = clBtnFace
@@ -309,7 +309,7 @@ object FormGB18030: TFormGB18030
       Height = 25
       Caption = 'Generate Unicode To GB18030 To Compare to Table'
       TabOrder = 1
-      OnClick = btnGenGB18030UnicodeCompareClick
+      OnClick = btnGenUnicodeGB18030Compare2Click
     end
   end
   object dlgSave1: TSaveDialog
