@@ -73,6 +73,7 @@ type
     procedure btnUtf16CodePointToGB180301Click(Sender: TObject);
     procedure btnGenUnicodeGB18030Compare2Click(Sender: TObject);
     procedure btnStringGB18030ToUnicodeClick(Sender: TObject);
+    procedure btnStringUnicodeToGB18030Click(Sender: TObject);
   private
     // 以 Windows API 的方式批量生成 256 个 Unicode 字符
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
@@ -1404,12 +1405,57 @@ begin
   S[19] := #$B1;
   S[20] := #$35;     // Unicode $D720
 
-  L := GB18030ToUtf16(PCnGB18030StringPtr(S), nil);
+  L := GB18030ToUtf16(PCnGB18030StringPtr(S), nil); // 应该返回 10 个宽字符
   if L > 0 then
   begin
     SetLength(W, L);
     GB18030ToUtf16(PCnGB18030StringPtr(S), PWideChar(W));
     MessageBoxW(Handle, PWideChar(W), nil, MB_OK);
+  end;
+end;
+
+procedure TFormGB18030.btnStringUnicodeToGB18030Click(Sender: TObject);
+var
+  S: WideString;
+  P: PAnsiChar;
+  O: TCnGB18030String;
+  L: Integer;
+begin
+  SetLength(S, 10);
+
+  P := PAnsiChar(S);
+  P[0] := #$41;
+  P[1] := #$00;
+  P[2] := #$33;
+  P[3] := #$00;
+  P[4] := #$2E;
+  P[5] := #$00;      // GB18030 $41 $33 $2E
+
+  P[6] := #$24;
+  P[7] := #$56;
+  P[8] := #$05;
+  P[9] := #$34;      // GB18030 $E0D3
+
+  P[10] := #$6C;
+  P[11] := #$4F;     // GB18030 $8139EF34
+
+  P[12] := #$65;
+  P[13] := #$D8;
+  P[14] := #$13;
+  P[15] := #$DC;     // GB18030 $98328D33
+
+  P[16] := #$5F;
+  P[17] := #$00;     // GB18030 $5F
+
+  P[18] := #$20;
+  P[19] := #$D7;     // GB18030 $8336B135
+
+  L := Utf16ToGB18030(PWideChar(S), nil); // 应该返回 20 个字符
+  if L > 0 then
+  begin
+    SetLength(O, L);
+    Utf16ToGB18030(PWideChar(S), PCnGB18030StringPtr(O));
+    ShowMessage(O);
   end;
 end;
 

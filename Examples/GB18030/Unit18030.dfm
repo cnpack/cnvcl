@@ -327,6 +327,7 @@ object FormGB18030: TFormGB18030
       Height = 25
       Caption = 'String Unicode To GB18030 '
       TabOrder = 2
+      OnClick = btnStringUnicodeToGB18030Click
     end
   end
   object dlgSave1: TSaveDialog

@@ -552,7 +552,7 @@ begin
     W := GetByteWidthFromUtf16(Utf16Str);
     UCP := GetCodePointFromUtf16Char(Utf16Str);
     GBCP := GetGB18030FromUnicodeCodePoint(UCP);
-    Inc(Utf16Str, W);
+    Inc(Utf16Str, W shr 1);
 
     if GBCP = CN_INVALID_CODEPOINT then // 非法 GB18030 字符，用一个问号代替
     begin
