@@ -271,6 +271,9 @@ function GetGB18030CharsFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): In
 {* 计算一个 GB18030 编码值的一字节或二字节或四字节表示，如果 PtrToChars 指向的位置不为空则将转换后的内容放里头
    返回值是转换的字节数，1 或 2 或 4}
 
+function IsGB18030CharEqual(CP1, CP2: TCnCodePoint): Boolean;
+{* 判断两个 GB18030 编码是否相等，包括重码字的处理}
+
 function GetUtf16HighByte(Rec: PCn2CharRec): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 得到一个 UTF 16 双字节字符的高位字节值}
 
@@ -374,6 +377,15 @@ begin
       FUnicodeToGB18030Map.Add(Integer(CN_UNICODE_2MAPPING[I]), Integer(CN_GB18030_2MAPPING[I]));
     for I := Low(CN_UNICODE_4MAPPING) to High(CN_UNICODE_4MAPPING) do
       FUnicodeToGB18030Map.Add(Integer(CN_UNICODE_4MAPPING[I]), Integer(CN_GB18030_4MAPPING[I]));
+  end;
+end;
+
+function IsGB18030CharEqual(CP1, CP2: TCnCodePoint): Boolean;
+begin
+  Result := CP1 = CP2;
+  if not Result then
+  begin
+    // TODO: 判断重码字
   end;
 end;
 
@@ -558,7 +570,7 @@ begin
       if GB18030Str <> nil then
         Inc(GB18030Str, W);
 
-      Inc(Result);
+      Inc(Result, W);
     end;
   end;
 end;
@@ -595,7 +607,7 @@ begin
       if Utf16Str <> nil then
         Inc(Utf16Str, W);
 
-      Inc(Result);
+      Inc(Result, W);
     end;
   end;
 end;

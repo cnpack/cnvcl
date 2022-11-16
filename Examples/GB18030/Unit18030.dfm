@@ -1,6 +1,6 @@
 object FormGB18030: TFormGB18030
-  Left = 90
-  Top = 58
+  Left = 147
+  Top = 89
   Width = 1021
   Height = 633
   Caption = 'Unicode and GB18030'
@@ -37,6 +37,15 @@ object FormGB18030: TFormGB18030
       Caption = 'Generate GB18030 To Unicode to Compare to Table'
       TabOrder = 1
       OnClick = btnGenGB18030UnicodeCompareClick
+    end
+    object btnStringGB18030ToUnicode: TButton
+      Left = 16
+      Top = 104
+      Width = 297
+      Height = 25
+      Caption = 'String GB18030 To Unicode'
+      TabOrder = 2
+      OnClick = btnStringGB18030ToUnicodeClick
     end
   end
   object grpGenerate: TGroupBox
@@ -310,6 +319,14 @@ object FormGB18030: TFormGB18030
       Caption = 'Generate Unicode To GB18030 To Compare to Table'
       TabOrder = 1
       OnClick = btnGenUnicodeGB18030Compare2Click
+    end
+    object btnStringUnicodeToGB18030: TButton
+      Left = 16
+      Top = 104
+      Width = 297
+      Height = 25
+      Caption = 'String Unicode To GB18030 '
+      TabOrder = 2
     end
   end
   object dlgSave1: TSaveDialog

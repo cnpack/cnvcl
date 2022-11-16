@@ -43,6 +43,8 @@ type
     grpTestU2GB: TGroupBox;
     btnUtf16CodePointToGB180301: TButton;
     btnGenUnicodeGB18030Compare2: TButton;
+    btnStringGB18030ToUnicode: TButton;
+    btnStringUnicodeToGB18030: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -70,6 +72,7 @@ type
     procedure btnGenUtf16Page1Click(Sender: TObject);
     procedure btnUtf16CodePointToGB180301Click(Sender: TObject);
     procedure btnGenUnicodeGB18030Compare2Click(Sender: TObject);
+    procedure btnStringGB18030ToUnicodeClick(Sender: TObject);
   private
     // 以 Windows API 的方式批量生成 256 个 Unicode 字符
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
@@ -1364,6 +1367,49 @@ begin
 
       Content.Add(S);
     end;
+  end;
+end;
+
+procedure TFormGB18030.btnStringGB18030ToUnicodeClick(Sender: TObject);
+var
+  S: TCnGB18030String;
+  W: WideString;
+  L: Integer;
+begin
+  SetLength(S, 20);  // 1 1 1 2 4 2 4 1 4
+  S[1] := 'A';
+  S[2] := '3';
+  S[3] := '.';
+
+  S[4] := #$E0;
+  S[5] := #$D3;      // Unicode $5624
+
+  S[6] := #$81;
+  S[7] := #$39;
+  S[8] := #$EF;
+  S[9] := #$34;      // Unicode $3405
+
+  S[10] := #$C0;
+  S[11] := #$D0;     // Unicode $4F6C
+
+  S[12] := #$98;
+  S[13] := #$32;
+  S[14] := #$8D;
+  S[15] := #$33;     // Unicode $29413 四字节编码为 $65D813DC
+
+  S[16] := '_';
+
+  S[17] := #$83;
+  S[18] := #$36;
+  S[19] := #$B1;
+  S[20] := #$35;     // Unicode $D720
+
+  L := GB18030ToUtf16(PCnGB18030StringPtr(S), nil);
+  if L > 0 then
+  begin
+    SetLength(W, L);
+    GB18030ToUtf16(PCnGB18030StringPtr(S), PWideChar(W));
+    MessageBoxW(Handle, PWideChar(W), nil, MB_OK);
   end;
 end;
 
