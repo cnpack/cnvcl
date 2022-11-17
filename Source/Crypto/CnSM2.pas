@@ -24,7 +24,7 @@ unit CnSM2;
 * 软件名称：开发包基础库
 * 单元名称：SM2 椭圆曲线算法单元
 * 单元作者：刘啸
-* 备    注：实现了 GM/T0003.x-2012《SM2椭圆曲线公钥密码算法》
+* 备    注：实现了 GM/T 0003.x-2012《SM2椭圆曲线公钥密码算法》
 *           规范中的基于 SM2 的数据加解密、签名验签、密钥交换，以及协同密钥生成、协同签名、协同解密
 *           注意其签名规范完全不同于 Openssl 中的 Ecc 签名，并且杂凑函数只能使用 SM3
 *           另外，注意 SM2 椭圆曲线签名无法从签名与原始值中恢复公钥
@@ -33,9 +33,8 @@ unit CnSM2;
 *           所以 x1 <= (r - e) mod n，因而 y1 也能算出来，但 e 使用了公钥的杂凑值
 *           导致出现了先有蛋还是先有鸡的问题
 *
-*           注意：Java 的高版本 BC 库里的 SM2 签名，当 UserId 传空时内部默认会使用字符串
-*           1234567812345678
-*           我们不会做此处理，因而如果出现签名和外界对不上号时，可以查查是否是 UserId 的问题
+*           注意：当 UserId 传空时内部默认会使用字符串 1234567812345678 以符合
+*           《GM/T 0009-2012 SM2密码算法使用规范》第 10 节的要求
 *
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
@@ -409,6 +408,10 @@ implementation
 
 uses
   CnKDF;
+
+const
+  CN_SM2_DEF_UID: array[0..15] of Byte =
+    ($31, $32, $33, $34, $35, $36, $37, $38, $31, $32, $33, $34, $35, $36, $37, $38);
 
 var
   FLocalSM2Generator: TCnEccPoint = nil;     // SM2 的 G 点供比较用
@@ -923,12 +926,24 @@ var
 begin
   Stream := TMemoryStream.Create;
   try
-    Len := Length(UserID) * 8;
-    ULen := ((Len and $FF) shl 8) or ((Len and $FF00) shr 8);
+    if UserID <> '' then
+    begin
+      Len := Length(UserID) * 8;
+      ULen := ((Len and $FF) shl 8) or ((Len and $FF00) shr 8);
 
-    Stream.Write(ULen, SizeOf(ULen));
-    if ULen > 0 then
-      Stream.Write(UserID[1], Length(UserID));
+      Stream.Write(ULen, SizeOf(ULen));
+      if ULen > 0 then
+        Stream.Write(UserID[1], Length(UserID));
+    end
+    else // UserID 为空时按规范使用 1234567812345678
+    begin
+      Len := SizeOf(CN_SM2_DEF_UID) * 8;
+      ULen := ((Len and $FF) shl 8) or ((Len and $FF00) shr 8);
+
+      Stream.Write(ULen, SizeOf(ULen));
+      if ULen > 0 then
+        Stream.Write(CN_SM2_DEF_UID[0], SizeOf(CN_SM2_DEF_UID));
+    end;
 
     BigNumberWriteBinaryToStream(SM2.CoefficientA, Stream);
     BigNumberWriteBinaryToStream(SM2.CoefficientB, Stream);
