@@ -536,37 +536,37 @@ var
   ASS: TCnAnsiStringList;
 begin
   WS := TCnWideStringList.Create;
-// 双字节：A1A9~A1FE                     1 区
-//         A840~A97E, A880~A9A0          5 区
-//         B0A1~F7FE                     2 区汉字
-//         8140~A07E, 8180~A0FE          3 区汉字
-//         AA40~FE7E, AA80~FEA0          4 区汉字
-//         AAA1~AFFE                     用户 1 区
-//         F8A1~FEFE                     用户 2 区
-//         A140~A77E, A180~A7A0          用户 3 区
+// 双字节：
+//   8140~A07E, 8180~A0FE          3 区汉字     不连续  6080   6080   GBK 及以下
+//   A140~A77E, A180~A7A0          用户 3 区    不连续  672
+//   A1A1~A9FE                     1 区符号     不连续  846    171
+//   A840~A97E, A880~A9A0          5 区符号     不连续  192    166
+//   AA40~FE7E, AA80~FEA0          4 区汉字     不连续  8160   8160
+//   AAA1~AFFE                     用户 1 区    连续    564           E000 到 E233
+//   B0A1~F7FE                     2 区汉字     不连续  6768   6763   GB2312
+//   F8A1~FEFE                     用户 2 区    连续    658           E234 到 E4C5
 
   R := 0;
+  WS.Add('区：双字节汉字三; 上一区字符数：' + IntToStr(R));
+  R := Gen2GB18030ToUtf16Page($81, $40, $A0, $7E, WS);
+  R := R + Gen2GB18030ToUtf16Page($81, $80, $A0, $FE, WS);
+  WS.Add('区：双字节用户三; 上一区字符数：' + IntToStr(R));
+  R := Gen2GB18030ToUtf16Page($A1, $40, $A7, $7E, WS);
+  R := R + Gen2GB18030ToUtf16Page($A1, $80, $A7, $A0, WS);
   WS.Add('区：双字节一; 上一区字符数：' + IntToStr(R));
   R := Gen2GB18030ToUtf16Page($A1, $A1, $A9, $FE, WS);
   WS.Add('区：双字节五; 上一区字符数：' + IntToStr(R));
   R := Gen2GB18030ToUtf16Page($A8, $40, $A9, $7E, WS);
   R := R + Gen2GB18030ToUtf16Page($A8, $80, $A9, $A0, WS);
-  WS.Add('区：双字节汉字二; 上一区字符数：' + IntToStr(R));
-  R := Gen2GB18030ToUtf16Page($B0, $A1, $F7, $FE, WS);
-  WS.Add('区：双字节汉字三; 上一区字符数：' + IntToStr(R));
-  R := Gen2GB18030ToUtf16Page($81, $40, $A0, $7E, WS);
-  R := R + Gen2GB18030ToUtf16Page($81, $80, $A0, $FE, WS);
   WS.Add('区：双字节汉字四; 上一区字符数：' + IntToStr(R));
   R := Gen2GB18030ToUtf16Page($AA, $40, $FE, $7E, WS);
   R := R + Gen2GB18030ToUtf16Page($AA, $80, $FE, $A0, WS);
-
-  WS.Add('区：双字节用户一; 上一区字符数：' + IntToStr(R)); // 三个双字节用户区
+  WS.Add('区：双字节用户一; 上一区字符数：' + IntToStr(R));
   R := Gen2GB18030ToUtf16Page($AA, $A1, $AF, $FE, WS);
+  WS.Add('区：双字节汉字二; 上一区字符数：' + IntToStr(R));
+  R := Gen2GB18030ToUtf16Page($B0, $A1, $F7, $FE, WS);
   WS.Add('区：双字节用户二; 上一区字符数：' + IntToStr(R));
   R := Gen2GB18030ToUtf16Page($F8, $A1, $FE, $FE, WS);
-  WS.Add('区：双字节用户三; 上一区字符数：' + IntToStr(R));
-  R := Gen2GB18030ToUtf16Page($A1, $40, $A7, $7E, WS);
-  R := R + Gen2GB18030ToUtf16Page($A1, $80, $A7, $A0, WS);
 
   // 四字节
   WS.Add('区：分隔一; 上一区字符数：' + IntToStr(R));
@@ -714,7 +714,7 @@ begin
   R := Gen4GB18030ToUtf16Page($FD308130, $FE39FE39, WS);
   WS.Add('区：尾; 上一区字符数：' + IntToStr(R));
 
-  dlgSave1.FileName := 'GB18030_UTF16.txt';
+  dlgSave1.FileName := 'GB18030_UTF16_API.txt';
   if dlgSave1.Execute then
   begin
     if chkIncludeCharValue.Checked then
@@ -742,7 +742,7 @@ begin
   Gen2Utf16ToGB18030Page(0, 0, $FF, $FF, SL, 1);
   Gen2Utf16ToGB18030Page(0, 0, $FF, $FF, SL, 2);
 
-  dlgSave1.FileName := 'UTF16_GB18030.txt';
+  dlgSave1.FileName := 'UTF16_GB18030_API.txt';
   if dlgSave1.Execute then
   begin
     SL.SaveToFile(dlgSave1.FileName);
@@ -865,23 +865,30 @@ begin
   ASS := TCnAnsiStringList.Create;
   SB := TCnStringBuilder.Create;
 
+// 双字节：
+//   8140~A07E, 8180~A0FE          3 区汉字     不连续  6080   6080   GBK 及以下
+//   A140~A77E, A180~A7A0          用户 3 区    不连续  672
+//   A1A1~A9FE                     1 区符号     不连续  846    171
+//   A840~A97E, A880~A9A0          5 区符号     不连续  192    166
+//   AA40~FE7E, AA80~FEA0          4 区汉字     不连续  8160   8160
+//   B0A1~F7FE                     2 区汉字     不连续  6768   6763   GB2312
+
+  // 双字节汉字三
+  Gen2GB18030ToUtf16Array($81, $40, $A0, $7E, WSGB, WSU);
+  Gen2GB18030ToUtf16Array($81, $80, $A0, $FE, WSGB, WSU);
+  // 双字节用户三
+  Gen2GB18030ToUtf16Array($A1, $40, $A7, $7E, WSGB, WSU);
+  Gen2GB18030ToUtf16Array($A1, $80, $A7, $A0, WSGB, WSU);
   // 双字节一
   Gen2GB18030ToUtf16Array($A1, $A1, $A9, $FE, WSGB, WSU);
   // 双字节五
   Gen2GB18030ToUtf16Array($A8, $40, $A9, $7E, WSGB, WSU);
   Gen2GB18030ToUtf16Array($A8, $80, $A9, $A0, WSGB, WSU);
-  // 双字节汉字二
-  Gen2GB18030ToUtf16Array($B0, $A1, $F7, $FE, WSGB, WSU);
-  // 双字节汉字三
-  Gen2GB18030ToUtf16Array($81, $40, $A0, $7E, WSGB, WSU);
-  Gen2GB18030ToUtf16Array($81, $80, $A0, $FE, WSGB, WSU);
   // 双字节汉字四
   Gen2GB18030ToUtf16Array($AA, $40, $FE, $7E, WSGB, WSU);
   Gen2GB18030ToUtf16Array($AA, $80, $FE, $A0, WSGB, WSU);
-
-  // 双字节用户三
-  Gen2GB18030ToUtf16Array($A1, $40, $A7, $7E, WSGB, WSU);
-  Gen2GB18030ToUtf16Array($A1, $80, $A7, $A0, WSGB, WSU);
+  // 双字节汉字二
+  Gen2GB18030ToUtf16Array($B0, $A1, $F7, $FE, WSGB, WSU);
 
   ASS.Add('');
   ASS.Add('  CN_GB18030_2MAPPING: array[0..' + IntToStr(WSGB.Count - 1) + '] of TCnCodePoint = (');
@@ -1007,37 +1014,37 @@ var
   WS: TCnAnsiStringList;
 begin
   WS := TCnAnsiStringList.Create;
-// 双字节：A1A9~A1FE                     1 区
-//         A840~A97E, A880~A9A0          5 区
-//         B0A1~F7FE                     2 区汉字
-//         8140~A07E, 8180~A0FE          3 区汉字
-//         AA40~FE7E, AA80~FEA0          4 区汉字
-//         AAA1~AFFE                     用户 1 区
-//         F8A1~FEFE                     用户 2 区
-//         A140~A77E, A180~A7A0          用户 3 区
+// 双字节：
+//   8140~A07E, 8180~A0FE          3 区汉字     不连续  6080   6080   GBK 及以下
+//   A140~A77E, A180~A7A0          用户 3 区    不连续  672
+//   A1A1~A9FE                     1 区符号     不连续  846    171
+//   A840~A97E, A880~A9A0          5 区符号     不连续  192    166
+//   AA40~FE7E, AA80~FEA0          4 区汉字     不连续  8160   8160
+//   AAA1~AFFE                     用户 1 区    连续    564           E000 到 E233
+//   B0A1~F7FE                     2 区汉字     不连续  6768   6763   GB2312
+//   F8A1~FEFE                     用户 2 区    连续    658           E234 到 E4C5
 
   R := 0;
+  WS.Add('区：双字节汉字三; 上一区字符数：' + IntToStr(R));
+  R := GenCn2GB18030ToUtf16Page($81, $40, $A0, $7E, WS);
+  R := R + GenCn2GB18030ToUtf16Page($81, $80, $A0, $FE, WS);
+  WS.Add('区：双字节用户三; 上一区字符数：' + IntToStr(R));
+  R := GenCn2GB18030ToUtf16Page($A1, $40, $A7, $7E, WS);
+  R := R + GenCn2GB18030ToUtf16Page($A1, $80, $A7, $A0, WS);
   WS.Add('区：双字节一; 上一区字符数：' + IntToStr(R));
   R := GenCn2GB18030ToUtf16Page($A1, $A1, $A9, $FE, WS);
   WS.Add('区：双字节五; 上一区字符数：' + IntToStr(R));
   R := GenCn2GB18030ToUtf16Page($A8, $40, $A9, $7E, WS);
   R := R + GenCn2GB18030ToUtf16Page($A8, $80, $A9, $A0, WS);
-  WS.Add('区：双字节汉字二; 上一区字符数：' + IntToStr(R));
-  R := GenCn2GB18030ToUtf16Page($B0, $A1, $F7, $FE, WS);
-  WS.Add('区：双字节汉字三; 上一区字符数：' + IntToStr(R));
-  R := GenCn2GB18030ToUtf16Page($81, $40, $A0, $7E, WS);
-  R := R + GenCn2GB18030ToUtf16Page($81, $80, $A0, $FE, WS);
   WS.Add('区：双字节汉字四; 上一区字符数：' + IntToStr(R));
   R := GenCn2GB18030ToUtf16Page($AA, $40, $FE, $7E, WS);
   R := R + GenCn2GB18030ToUtf16Page($AA, $80, $FE, $A0, WS);
-
-  WS.Add('区：双字节用户一; 上一区字符数：' + IntToStr(R)); // 三个双字节用户区
+  WS.Add('区：双字节用户一; 上一区字符数：' + IntToStr(R));
   R := GenCn2GB18030ToUtf16Page($AA, $A1, $AF, $FE, WS);
+  WS.Add('区：双字节汉字二; 上一区字符数：' + IntToStr(R));
+  R := GenCn2GB18030ToUtf16Page($B0, $A1, $F7, $FE, WS);
   WS.Add('区：双字节用户二; 上一区字符数：' + IntToStr(R));
   R := GenCn2GB18030ToUtf16Page($F8, $A1, $FE, $FE, WS);
-  WS.Add('区：双字节用户三; 上一区字符数：' + IntToStr(R));
-  R := GenCn2GB18030ToUtf16Page($A1, $40, $A7, $7E, WS);
-  R := R + GenCn2GB18030ToUtf16Page($A1, $80, $A7, $A0, WS);
 
   // 四字节
   WS.Add('区：分隔一; 上一区字符数：' + IntToStr(R));
@@ -1243,14 +1250,9 @@ var
   ASS: TCnAnsiStringList;
 begin
   WS := TCnWideStringList.Create;
-// 双字节：A1A9~A1FE                     1 区
-//         A840~A97E, A880~A9A0          5 区
-//         B0A1~F7FE                     2 区汉字
-//         8140~A07E, 8180~A0FE          3 区汉字
-//         AA40~FE7E, AA80~FEA0          4 区汉字
-//         AAA1~AFFE                     用户 1 区
-//         F8A1~FEFE                     用户 2 区
-//         A140~A77E, A180~A7A0          用户 3 区
+// 双字节：
+//   AAA1~AFFE                     用户 1 区    连续    564           E000 到 E233
+//   F8A1~FEFE                     用户 2 区    连续    658           E234 到 E4C5
 
   R := 0;
 
@@ -1258,7 +1260,6 @@ begin
   R := GenUnicodeToGB18030Page($E000, $E233, WS);
   WS.Add('区：双字节用户二; 上一区字符数：' + IntToStr(R));
   R := GenUnicodeToGB18030Page($E234, $E4C5, WS);
-
 
   WS.Add('区：四字节维吾尔、哈萨克、柯尔克孜文一; 上一区字符数：' + IntToStr(R));
   R := GenUnicodeToGB18030Page($060C, $1AAF, WS);
@@ -1286,7 +1287,7 @@ begin
 
   WS.Add('区：尾; 上一区字符数：' + IntToStr(R));
 
-  dlgSave1.FileName := 'UTF16_GB18030_API.txt';
+  dlgSave1.FileName := 'UTF16_GB18030_continue.txt';
   if dlgSave1.Execute then
   begin
     if chkIncludeCharValue.Checked then
@@ -1351,7 +1352,7 @@ begin
   GenCn2Utf16ToGB18030Page(0, 0, $FF, $FF, SL, 1);
   GenCn2Utf16ToGB18030Page(0, 0, $FF, $FF, SL, 2);
 
-  dlgSave1.FileName := 'UTF16_GB18030_gen.txt';
+  dlgSave1.FileName := 'UTF16_GB18030_CN.txt';
   if dlgSave1.Execute then
   begin
     SL.SaveToFile(dlgSave1.FileName);
