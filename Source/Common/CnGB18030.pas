@@ -51,15 +51,15 @@ unit CnGB18030;
 *
 *           双字节：（不包括和中国无关的其他语言字符，和 Unicode 部分二字节码位杂乱对应，只能查表）
 *
-*                                                                      码位数 字符数
-*                   A1A9~A1FE                     1 区符号     不连续  846    171
-*                   A840~A97E, A880~A9A0          5 区符号     不连续  192    166
-*                   B0A1~F7FE                     2 区汉字     不连续  6768   6763   GB2312
+*                   总范围：头字节 81~FE，次字节 40~7E、80~FE          码位数 字符数
 *                   8140~A07E, 8180~A0FE          3 区汉字     不连续  6080   6080   GBK 及以下
+*                   A140~A77E, A180~A7A0          用户 3 区    不连续  672
+*                   A1A1~A9FE                     1 区符号     不连续  846    171
+*                   A840~A97E, A880~A9A0          5 区符号     不连续  192    166
 *                   AA40~FE7E, AA80~FEA0          4 区汉字     不连续  8160   8160
 *                   AAA1~AFFE                     用户 1 区    连续    564           E000 到 E233
+*                   B0A1~F7FE                     2 区汉字     不连续  6768   6763   GB2312
 *                   F8A1~FEFE                     用户 2 区    连续    658           E234 到 E4C5
-*                   A140~A77E, A180~A7A0          用户 3 区    不连续  672
 *
 *           四字节：（不包括和中国无关的其他语言字符）
 *
@@ -99,7 +99,7 @@ unit CnGB18030;
 *  84318730~84319530             维吾尔、哈萨克、柯尔克孜文三                   141    84           FE70 到 FEFC，单独连续
 *           84319531~8431A439            分隔区十七，GB18030 连续终止           159                 FEFD 到 FFFF，不连续，84319534 = FF00 比如 84319535 = FF5F
 *
-*  四字节到 Unicode 扩展平面映射。大范围是 90308130~E339FE39，线性映射到十六个平面
+*  四字节到 Unicode 扩展平面映射。大范围是 90308130~E339FE39，连续线性映射到十六个平面，共 1058400 个码位
 *  9034C538~9034C730             蒙古文 BIRGA，GB18030 又开始连续               13     13           11660 到 1166C，开始连续
 *           9034C731~9232C635            分隔区十八，规范省略只到 9034C739      22675               1166D 到 16EFF  |
 *  9232C636~9232D635             滇东北苗文                                     160    133          16F00 到 16F9F  |
@@ -143,6 +143,12 @@ unit CnGB18030;
 *                四个差值分别乘以 12600、1260、10、1 并相加，再加上 Unicode 区间起始值即可
 *             如果不在区间内，则只能查那两张加起来四万多项的表
 *
+*             单扩展位面的映射：90308130 对应 10000，到 95328235 对应 1FFFF
+*                由于 90308130 的后三字节刚好是各字节的起始值，因而到 95308130 前一个，共 5 * 12600 = 63000 个码位
+*                再因 95308130 的后二字节也刚好是各字节起始值，因而到 95328130 前一个，共 2 * 1260 = 2520 个码位
+*                再因 95328130 的后一字节也刚好是各字节起始值，因而到 95328230 前一个，共 1 * 10 = 10 个码位
+*                95328230 到 95328235，6 个码位。加起来一共 65536 个码位，正好等于一个 Unicode 扩展位面里的码位数
+*
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -167,6 +173,7 @@ uses
   SysUtils, Classes, CnNative;
 
 const
+  CN_GB18030_CODEPAGE  = 54936;
   CN_INVALID_CODEPOINT = $FFFFFFFF;
   CN_ALTERNATIVE_CHAR  = '?';
 
@@ -204,7 +211,7 @@ type
   PCn4CharRec = ^TCn4CharRec;
 
 function GetCharLengthFromUtf8(Utf8Str: PAnsiChar): Integer;
-{* 计算一 UTF8（可能是 UTF8MB4）字符串的字符数}
+{* 计算一 UTF8（可能是 UTF8-MB4）字符串的字符数}
 
 function GetCharLengthFromUtf16(Utf16Str: PWideChar): Integer;
 {* 计算一 UTF16（可能混合 Unicode 扩展平面里的四字节字符）字符串的字符数}
@@ -213,7 +220,7 @@ function GetCharLengthFromGB18030(GB18030Str: PCnGB18030StringPtr): Integer;
 {* 计算一 GB18030 字符串的字符数}
 
 function GetByteWidthFromUtf8(Utf8Str: PAnsiChar): Integer;
-{* 计算一 UTF8（可能是 UTF8MB4）字符串的当前字符占多少字节}
+{* 计算一 UTF8（可能是 UTF8-MB4）字符串的当前字符占多少字节}
 
 function GetByteWidthFromUtf16(Utf16Str: PWideChar): Integer;
 {* 计算一 UTF16（可能混合 Unicode 扩展平面里的四字节字符）字符串的当前字符占多少字节}
@@ -273,6 +280,25 @@ function GetGB18030CharsFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): In
 
 function IsGB18030CharEqual(CP1, CP2: TCnCodePoint): Boolean;
 {* 判断两个 GB18030 编码是否相等，包括重码字的处理}
+
+function IsGB18030Char1(CP: TCnCodePoint): Boolean;
+{* 判断指定 GB18030 编码值是否合法的单字节字符}
+
+function IsGB18030Char2(CP: TCnCodePoint): Boolean;
+{* 判断指定 GB18030 编码值是否合法的双字节字符}
+
+function IsGB18030Char4(CP: TCnCodePoint): Boolean;
+{* 判断指定 GB18030 编码值是否合法的四字节字符}
+
+function GetPrevGB18030CodePoint(CP: TCnCodePoint; CheckRange: Boolean = False): TCnCodePoint;
+{* 获取指定 GB18030 编码值的前一个编码值，如是 0，则返回 CN_INVALID_CODEPOINT
+  CheckRange 为 True 时表示会严格检查 CP 是否合法的 GB18030 编码值，是才返回前一个
+  为 False 时无论该字符是否合法，均返回其前一个合法字符编码值}
+
+function GetNextGB18030CodePoint(CP: TCnCodePoint; CheckRange: Boolean = False): TCnCodePoint;
+{* 获取指定 GB18030 编码值的后一个编码值，如是最后一个，则返回 CN_INVALID_CODEPOINT
+  CheckRange 为 True 时表示会严格检查 CP 是否合法的 GB18030 编码值，是才返回后一个
+  为 False 时无论该字符是否合法，均返回其后一个合法字符编码值}
 
 function GetUtf16HighByte(Rec: PCn2CharRec): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 得到一个 UTF 16 双字节字符的高位字节值}
@@ -380,12 +406,175 @@ begin
   end;
 end;
 
+procedure ExtractGB18030CodePoint(CP: TCnCodePoint; out B1, B2, B3, B4: Byte);
+begin
+  B1 := (CP and $FF000000) shr 24;
+  B2 := (CP and $00FF0000) shr 16;
+  B3 := (CP and $0000FF00) shr 8;
+  B4 := CP and $000000FF;
+end;
+
+function CombineGB18030CodePoint(B1, B2, B3, B4: Byte): TCnCodePoint;
+begin
+  Result := (B1 shl 24) + (B2 shl 16) + (B3 shl 8) + B4;
+end;
+
 function IsGB18030CharEqual(CP1, CP2: TCnCodePoint): Boolean;
 begin
   Result := CP1 = CP2;
   if not Result then
   begin
     // TODO: 判断重码字
+  end;
+end;
+
+function IsGB18030Char1(CP: TCnCodePoint): Boolean;
+begin
+  Result := CP in [$00..$7F];
+end;
+
+function IsGB18030Char2(CP: TCnCodePoint): Boolean;
+var
+  B1, B2, B3, B4: Byte;
+begin
+  ExtractGB18030CodePoint(CP, B1, B2, B3, B4);
+  Result := (B1 = 0) and (B2 = 0) and ((B3 >= $81) and (B3 <= $FE)) and
+    (((B4 >= $40) and (B4 <= $7E)) or ((B4 >= $80) and (B4 <= $FE)));
+end;
+
+function IsGB18030Char4(CP: TCnCodePoint): Boolean;
+var
+  B1, B2, B3, B4: Byte;
+begin
+  ExtractGB18030CodePoint(CP, B1, B2, B3, B4);
+  Result := ((B1 >= $81) and (B1 <= $FE)) and ((B2 >= $30) and (B2 <= $39))
+    and ((B3 >= $81) and (B3 <= $FE)) and ((B4 >= $30) and (B4 <= $39));
+end;
+
+function GetPrevGB18030CodePoint(CP: TCnCodePoint; CheckRange: Boolean): TCnCodePoint;
+var
+  B1, B2, B3, B4: Byte;
+begin
+  Result := CN_INVALID_CODEPOINT;
+  if CP = 0 then
+    Exit;
+
+  if CheckRange and (CP in [$80..$FF]) and not IsGB18030Char2(CP) and not IsGB18030Char4(CP) then
+    Exit;
+
+  if CP <= $7F then
+    Result := CP - 1
+  else if CP <= $8140 then    // 单字节和双字节间的空白，前一个取单字节字符最大值
+    Result := $7F
+  else if CP <= $FEFE then    // 8141~FEFE 头缺一个
+  begin
+    // 二字节区域
+    ExtractGB18030CodePoint(CP, B1, B2, B3, B4);
+    if B4 <= $40 then
+    begin
+      B4 := $FE;
+      Dec(B3);
+    end
+    else
+      Dec(B4);
+
+    if B4 = $7F then
+      Dec(B4);
+
+    Result := CombineGB18030CodePoint(0, 0, B3, B4);
+  end
+  else if CP <= $81308130 then // 二字节和四字节间的空白，前一个取双字节字符最大值
+    Result := $FEFE
+  else if CP <= $FE39FE39 then // 四字节头缺一个
+  begin
+    // 四字节区域
+    ExtractGB18030CodePoint(CP, B1, B2, B3, B4);
+    if B4 <= $30 then
+    begin
+      B4 := $39;
+      Dec(B3);
+      if B3 < $81 then
+      begin
+        B3 := $FE;
+        Dec(B2);
+        if B2 < $30 then
+        begin
+          B2 := $39;
+          Dec(B1);
+        end;
+        if B1 < $81 then // 出错退出
+          Exit;
+      end;
+    end
+    else
+      Dec(B4);
+
+    Result := CombineGB18030CodePoint(B1, B2, B3, B4);
+  end
+  else
+    Result := $FE39FE39;
+end;
+
+function GetNextGB18030CodePoint(CP: TCnCodePoint; CheckRange: Boolean): TCnCodePoint;
+var
+  B1, B2, B3, B4: Byte;
+begin
+  Result := CN_INVALID_CODEPOINT;
+  if CP >= $FE39FE39 then
+    Exit;
+
+  if CheckRange and (CP in [$80..$FF]) and not IsGB18030Char2(CP) and not IsGB18030Char4(CP) then
+    Exit;
+
+  if CP < $7F then
+    Result := CP + 1
+  else if CP < $8140 then    // 单字节和双字节间的空白，后一个取双字节字符最小值
+    Result := $8140
+  else if CP < $FEFE then    // 8140~FEFD 尾缺一个
+  begin
+    // 二字节区域
+    ExtractGB18030CodePoint(CP, B1, B2, B3, B4);
+    if B4 = $FE then
+    begin
+      B4 := $40;
+      Inc(B3);
+    end
+    else
+    begin
+      Inc(B4);
+      if B4 = $7F then
+        Inc(B4);
+    end;
+    Result := CombineGB18030CodePoint(0, 0, B3, B4);
+  end
+  else if CP < $81308130 then // 二字节和四字节间的空白，后一个取四字节字符最小值
+    Result := $81308130
+  else if CP < $FE39FE39 then // 四字节尾缺一个
+  begin
+    // 四字节区域
+    ExtractGB18030CodePoint(CP, B1, B2, B3, B4);
+
+    if B4 >= $39 then
+    begin
+      B4 := $30;
+      Inc(B3);
+      if B3 > $FE then
+      begin
+        B3 := $81;
+        Inc(B2);
+        if B2 > $39 then
+        begin
+          B2 := $30;
+          Inc(B1);
+        end;
+        if B1 > $FE then // 出错退出
+          Exit;
+      end;
+    end
+    else
+      Inc(B4);
+
+    Result := CombineGB18030CodePoint(B1, B2, B3, B4);
   end;
 end;
 
@@ -686,15 +875,8 @@ begin
 
     if GBBase > 0 then
     begin
-      B1 := (GBBase and $FF000000) shr 24;
-      B2 := (GBBase and $00FF0000) shr 16;
-      B3 := (GBBase and $0000FF00) shr 8;
-      B4 := GBBase and $000000FF;
-
-      C1 := (GBCP and $FF000000) shr 24;
-      C2 := (GBCP and $00FF0000) shr 16;
-      C3 := (GBCP and $0000FF00) shr 8;
-      C4 := GBCP and $000000FF;
+      ExtractGB18030CodePoint(GBBase, B1, B2, B3, B4);
+      ExtractGB18030CodePoint(GBCP, C1, C2, C3, C4);
 
       D1 := C1 - B1;   // 需要用 Integer，因为可能有负值
       D2 := C2 - B2;
@@ -785,10 +967,7 @@ begin
         C3 := (UCP - 12600 * C1- 1260 * C2) div 10;
         C4 := UCP - 12600 * C1- 1260 * C2 - 10 * C3;
 
-        B1 := (GBBase and $FF000000) shr 24;
-        B2 := (GBBase and $00FF0000) shr 16;
-        B3 := (GBBase and $0000FF00) shr 8;
-        B4 := GBBase and $000000FF;
+        ExtractGB18030CodePoint(GBBase, B1, B2, B3, B4);
 
         A1 := UnsignedAddWithLimitRadix(C4, B4, $0, D4, $30, $39);  // 最低位相加，进位供后面使用
         A1 := UnsignedAddWithLimitRadix(C3, B3, A1, D3, $81, $FE);  // 次低位相加，进位供后面使用
@@ -796,8 +975,7 @@ begin
         A1 := UnsignedAddWithLimitRadix(C1, B1, A1, D1, $81, $FE);  // 最高位相加，不应有进位
 
         if A1 = 0 then
-          Result := ((D1 and $FF) shl 24) + ((D2 and $FF) shl 16)     // 拼出结果
-            + ((D3 and $FF) shl 8) + (D4 and $FF);
+          Result := CombineGB18030CodePoint(D1, D2, D3, D4);     // 拼出结果
       end;
     end;
 
@@ -951,7 +1129,7 @@ begin
   begin
     Inc(PtrToGB18030Chars);
     C2 := Byte(PtrToGB18030Chars^);
-    if ((C2 >= $40) and (C2 <= $7E)) or ((C2 >= $90) and (C2 <= $FE)) then 
+    if ((C2 >= $40) and (C2 <= $7E)) or ((C2 >= $90) and (C2 <= $FE)) then
       Result := C1 shl 8 + C2                   // 双字节
     else if (C2 >= $30) and (C2 <= $39) then    // 四字节
     begin
@@ -962,7 +1140,7 @@ begin
 
       // 再判断三字节的 81 到 FE 以及四字节的 30 到 39
       if (C3 >= $81) and (C3 <= $FE) and (C4 >= $30) and (C4 <= $39) then
-        Result := C1 shl 24 + C2 shl 16 + C3 shl 8 + C4;
+        Result := CombineGB18030CodePoint(C1, C2, C3, C4);
     end;
   end;
 end;
@@ -982,10 +1160,7 @@ begin
   end
   else
   begin
-    C1 := CP and $FF000000 shr 24;
-    C2 := CP and $00FF0000 shr 16;
-    C3 := CP and $0000FF00 shr 8;
-    C4 := CP and $000000FF;
+    ExtractGB18030CodePoint(CP, C1, C2, C3, C4);
 
     if (C1 = 0) and (C2 = 0) and ((C3 >= $81) and (C3 <= $FE)) and
       (((C4 >= $40) and (C4 <= $7E)) or ((C4 >= $80) and (C4 <= $FE))) then

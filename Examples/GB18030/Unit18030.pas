@@ -45,6 +45,10 @@ type
     btnGenUnicodeGB18030Compare2: TButton;
     btnStringGB18030ToUnicode: TButton;
     btnStringUnicodeToGB18030: TButton;
+    chkIncludeValue: TCheckBox;
+    grpSequence: TGroupBox;
+    btnGenGB18030From0: TButton;
+    btnGenGB18030DownTo0: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -74,6 +78,8 @@ type
     procedure btnGenUnicodeGB18030Compare2Click(Sender: TObject);
     procedure btnStringGB18030ToUnicodeClick(Sender: TObject);
     procedure btnStringUnicodeToGB18030Click(Sender: TObject);
+    procedure btnGenGB18030From0Click(Sender: TObject);
+    procedure btnGenGB18030DownTo0Click(Sender: TObject);
   private
     // 以 Windows API 的方式批量生成 256 个 Unicode 字符
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
@@ -106,6 +112,8 @@ type
     // 以 CnPack 的代码生成指定范围内的 Utf16 字符到 GB18030 字符的映射
     procedure GenCn2Utf16ToGB18030Page(FromH, FromL, ToH, ToL: Byte; Content: TCnAnsiStringList; H2: Word = 0);
 
+    // 检查一个 GB18030 连续区间里 Unicode 的连续范围
+    procedure CheckRange(FromG, ToG: TCnCodePoint; Ranges: TCnAnsiStringList);
   public
 
   end;
@@ -510,8 +518,10 @@ begin
 
       if chkIncludeCharValue.Checked then
         S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2) + '  ' + C
+      else if chkIncludeValue.Checked then
+        S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2)
       else
-        S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2);
+        S := IntToHex(GBCP, 2);
 
       Content.Add(S);
       Inc(Result);
@@ -762,8 +772,10 @@ begin
 
         if chkIncludeCharValue.Checked then
           S := IntToHex(UCP, 2) + ' = ' + IntToHex(GBCP, 2) + '  ' + C
+        else if chkIncludeValue.Checked then
+          S := IntToHex(UCP, 2) + ' = ' + IntToHex(GBCP, 2)
         else
-          S := IntToHex(UCP, 2) + ' = ' + IntToHex(GBCP, 2);
+          S := IntToHex(UCP, 2);
       end
       else
         S := IntToHex(UCP, 2) + ' = ';
@@ -791,8 +803,10 @@ begin
 
     if chkIncludeCharValue.Checked then
       S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2) + '  ' + C
+    else if chkIncludeValue.Checked then
+      S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2)
     else
-      S := IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2);
+      S := IntToHex(GBCP, 2);
 
     Content.Add(S);
     Inc(Result);
@@ -1457,6 +1471,72 @@ begin
     Utf16ToGB18030(PWideChar(S), PCnGB18030StringPtr(O));
     ShowMessage(O);
   end;
+end;
+
+procedure TFormGB18030.CheckRange(FromG, ToG: TCnCodePoint;
+  Ranges: TCnAnsiStringList);
+begin
+
+end;
+
+procedure TFormGB18030.btnGenGB18030From0Click(Sender: TObject);
+var
+  I: Integer;
+  CP: TCnCodePoint;
+  SL: TCnAnsiStringList;
+begin
+  CP := 0;
+  SL := TCnAnsiStringList.Create;
+  while CP <> CN_INVALID_CODEPOINT do
+  begin
+    CP := GetNextGB18030CodePoint(CP);
+    SL.Add(IntToHex(CP, 2));
+  end;
+
+  for I := 0 to SL.Count - 2 do
+  begin
+    CP := StrToInt('$' + SL[I]);
+    if not IsGB18030Char1(CP) and not IsGB18030Char2(CP) and not IsGB18030Char4(CP) then
+    begin
+      ShowMessage('NOT ' + SL[I]);
+      Exit;
+    end;
+  end;
+
+  dlgSave1.FileName := 'GB18030_0.txt';
+  if dlgSave1.Execute then
+    SL.SaveToFile(dlgSave1.FileName);
+  SL.Free;
+end;
+
+procedure TFormGB18030.btnGenGB18030DownTo0Click(Sender: TObject);
+var
+  I: Integer;
+  CP: TCnCodePoint;
+  SL: TCnAnsiStringList;
+begin
+  CP := CN_INVALID_CODEPOINT - 1;
+  SL := TCnAnsiStringList.Create;
+  while CP <> CN_INVALID_CODEPOINT do
+  begin
+    CP := GetPrevGB18030CodePoint(CP);
+    SL.Add(IntToHex(CP, 2));
+  end;
+
+  for I := 0 to SL.Count - 2 do
+  begin
+    CP := StrToInt('$' + SL[I]);
+    if not IsGB18030Char1(CP) and not IsGB18030Char2(CP) and not IsGB18030Char4(CP) then
+    begin
+      ShowMessage('NOT ' + SL[I]);
+      Exit;
+    end;
+  end;
+
+  dlgSave1.FileName := 'GB18030_FFFFFFFF.txt';
+  if dlgSave1.Execute then
+    SL.SaveToFile(dlgSave1.FileName);
+  SL.Free;
 end;
 
 end.

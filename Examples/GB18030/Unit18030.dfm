@@ -64,9 +64,9 @@ object FormGB18030: TFormGB18030
     end
     object bvl2: TBevel
       Left = 16
-      Top = 400
+      Top = 432
       Width = 169
-      Height = 9
+      Height = 17
       Shape = bsTopLine
     end
     object btnGenUtf16: TButton
@@ -97,8 +97,8 @@ object FormGB18030: TFormGB18030
       OnClick = btnGenUtf16PageClick
     end
     object chkIncludeCharValue: TCheckBox
-      Left = 40
-      Top = 240
+      Left = 32
+      Top = 264
       Width = 145
       Height = 17
       Caption = 'Include Char Value'
@@ -117,12 +117,22 @@ object FormGB18030: TFormGB18030
     end
     object btnGenUtf16Page1: TButton
       Left = 16
-      Top = 272
+      Top = 296
       Width = 169
       Height = 113
       Caption = 'Generate Utf16 GB18030 Table'
       TabOrder = 4
       OnClick = btnGenUtf16Page1Click
+    end
+    object chkIncludeValue: TCheckBox
+      Left = 32
+      Top = 240
+      Width = 145
+      Height = 17
+      Caption = 'Include Value'
+      Checked = True
+      State = cbChecked
+      TabOrder = 6
     end
   end
   object grpMisc: TGroupBox
@@ -130,7 +140,7 @@ object FormGB18030: TFormGB18030
     Top = 16
     Width = 737
     Height = 265
-    Caption = 'grpMisc'
+    Caption = 'Misc'
     TabOrder = 1
     object btnCodePointFromUtf161: TButton
       Left = 16
@@ -328,6 +338,32 @@ object FormGB18030: TFormGB18030
       Caption = 'String Unicode To GB18030 '
       TabOrder = 2
       OnClick = btnStringUnicodeToGB18030Click
+    end
+  end
+  object grpSequence: TGroupBox
+    Left = 240
+    Top = 472
+    Width = 337
+    Height = 113
+    Caption = 'Sequence'
+    TabOrder = 4
+    object btnGenGB18030From0: TButton
+      Left = 16
+      Top = 24
+      Width = 305
+      Height = 25
+      Caption = 'Generate GB18030 Chars From 0'
+      TabOrder = 0
+      OnClick = btnGenGB18030From0Click
+    end
+    object btnGenGB18030DownTo0: TButton
+      Left = 16
+      Top = 64
+      Width = 305
+      Height = 25
+      Caption = 'Generate GB18030 Chars Downto 0'
+      TabOrder = 1
+      OnClick = btnGenGB18030DownTo0Click
     end
   end
   object dlgSave1: TSaveDialog

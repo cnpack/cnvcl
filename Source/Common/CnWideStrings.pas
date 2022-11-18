@@ -106,11 +106,11 @@ type
 
 function CnUtf8EncodeWideString(const S: WideString): AnsiString;
 {* 对 WideString 进行 Utf8 编码得到 AnsiString，不做 Ansi 转换避免丢字符
-  TODO: 支持四字节 UTF16 字符与 UTF8-MB4}
+  支持四字节 UTF16 字符与 UTF8-MB4}
 
 function CnUtf8DecodeToWideString(const S: AnsiString): WideString;
 {* 对 AnsiString 的 Utf8 解码得到 WideString，不做 Ansi 转换避免丢字符
-  TODO: 支持四字节 UTF16 字符与 UTF8-MB4}
+  支持四字节 UTF16 字符与 UTF8-MB4}
 
 implementation
 
@@ -505,7 +505,7 @@ begin
   end;   
 end;
 
-// D5 下没有内置 UTF8/Ansi 转换函数，且低版本即使有也不支持 UTF8-MB4
+// D5 下没有内置 UTF8/Ansi 转换函数，且低版本即使有也不支持 UTF8-MB4，因此写个替代品
 // 为调用者简明起见，SourceChars 传宽字符个数即可
 function InternalUnicodeToUtf8(Dest: PAnsiChar; MaxDestBytes: Cardinal;
   Source: PWideChar; SourceChars: Cardinal): Cardinal;
