@@ -51,6 +51,8 @@ type
     btnGenGB18030DownTo0: TButton;
     grp1: TGroupBox;
     btnCheckOneRange: TButton;
+    btnCheckAllRange: TButton;
+    btnGenGB18030PagePartly2: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -83,6 +85,8 @@ type
     procedure btnGenGB18030From0Click(Sender: TObject);
     procedure btnGenGB18030DownTo0Click(Sender: TObject);
     procedure btnCheckOneRangeClick(Sender: TObject);
+    procedure btnCheckAllRangeClick(Sender: TObject);
+    procedure btnGenGB18030PagePartly2Click(Sender: TObject);
   private
     // 以 Windows API 的方式批量生成 256 个 Unicode 字符
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
@@ -116,7 +120,8 @@ type
     procedure GenCn2Utf16ToGB18030Page(FromH, FromL, ToH, ToL: Byte; Content: TCnAnsiStringList; H2: Word = 0);
 
     // 检查一个 GB18030 连续区间里 Unicode 的连续范围，Ranges 输出连续区的各自的起始编码和结束编码，以及个数
-    procedure CheckRange(FromG, ToG: TCnCodePoint; Ranges: TCnAnsiStringList);
+    procedure CheckRange(FromG, ToG: TCnCodePoint; Ranges, Others: TCnAnsiStringList; Threshold: Integer = 0);
+    procedure CheckRangeThreshold(FromG, ToG: TCnCodePoint; Ranges, Others: TCnAnsiStringList);
   public
 
   end;
@@ -904,39 +909,39 @@ begin
   WSGB.Clear;
   WSU.Clear;
 
-  // 四字节
-  // 分隔一
-  Gen4GB18030ToUtf16Array($81308130, $81318131, WSGB, WSU);
+//  // 四字节
+//  // 分隔一
+//  Gen4GB18030ToUtf16Array($81308130, $81318131, WSGB, WSU);
+//
+//  // 分隔八
+//  Gen4GB18030ToUtf16Array($81359936, $81398B31, WSGB, WSU);
+//
+//  // 分隔九
+//  Gen4GB18030ToUtf16Array($8139A136, $8139A932, WSGB, WSU);
+//
+//  // 分隔十
+//  Gen4GB18030ToUtf16Array($8139B735, $8139EE38, WSGB, WSU);
+//
+//  // CJK 统一汉字扩充 A
+//  Gen4GB18030ToUtf16Array($8139EE39, $82358738, WSGB, WSU);
+//
+//  // 分隔十五
+//  Gen4GB18030ToUtf16Array($8336BE37, $8430BA31, WSGB, WSU);
+//
+//  // 分隔十六
+//  Gen4GB18030ToUtf16Array($8430FE36, $84318639, WSGB, WSU);
+//
+//  // 分隔十七
+//  Gen4GB18030ToUtf16Array($84319531, $8431A439, WSGB, WSU);
+//
+//  ASS.Add('  CN_GB18030_4MAPPING: array[0..' + IntToStr(WSGB.Count - 1) + '] of TCnCodePoint = (');
+//  Combine(ASS, WSGB);
+//  ASS.Add('');
+//  ASS.Add('  CN_UNICODE_4MAPPING: array[0..' + IntToStr(WSU.Count - 1) + '] of TCnCodePoint = (');
+//  Combine(ASS, WSU);
+//  ASS.Add('');
 
-  // 分隔八
-  Gen4GB18030ToUtf16Array($81359936, $81398B31, WSGB, WSU);
-
-  // 分隔九
-  Gen4GB18030ToUtf16Array($8139A136, $8139A932, WSGB, WSU);
-
-  // 分隔十
-  Gen4GB18030ToUtf16Array($8139B735, $8139EE38, WSGB, WSU);
-
-  // CJK 统一汉字扩充 A
-  Gen4GB18030ToUtf16Array($8139EE39, $82358738, WSGB, WSU);
-
-  // 分隔十五
-  Gen4GB18030ToUtf16Array($8336BE37, $8430BA31, WSGB, WSU);
-
-  // 分隔十六
-  Gen4GB18030ToUtf16Array($8430FE36, $84318639, WSGB, WSU);
-
-  // 分隔十七
-  Gen4GB18030ToUtf16Array($84319531, $8431A439, WSGB, WSU);
-
-  ASS.Add('  CN_GB18030_4MAPPING: array[0..' + IntToStr(WSGB.Count - 1) + '] of TCnCodePoint = (');
-  Combine(ASS, WSGB);
-  ASS.Add('');
-  ASS.Add('  CN_UNICODE_4MAPPING: array[0..' + IntToStr(WSU.Count - 1) + '] of TCnCodePoint = (');
-  Combine(ASS, WSU);
-  ASS.Add('');
-
-  dlgSave1.FileName := 'GB18030_Unicode.inc';
+  dlgSave1.FileName := 'GB18030_Unicode_2.inc';
   if dlgSave1.Execute then
   begin
     ASS.SaveToFile(dlgSave1.FileName);
@@ -1478,12 +1483,37 @@ begin
 end;
 
 procedure TFormGB18030.CheckRange(FromG, ToG: TCnCodePoint;
-  Ranges: TCnAnsiStringList);
+  Ranges, Others: TCnAnsiStringList; Threshold: Integer);
 var
+  Cnt: Integer;
   GC, UC: TCnCodePoint;
   StartUC, EndUC, PrevUC: TCnCodePoint;
   StartGC, EndGC, PrevGC: TCnCodePoint;
   Cont: Boolean;
+
+  procedure SaveRes;
+  var
+    S: AnsiString;
+    GBCP, UCP: TCnCodePoint;
+  begin
+    if Cnt >= Threshold then
+    begin
+      S := Format('(GBHead: $%8.8x; GBTail: $%8.8x; UHead: $%4.4x; UTail: $%4.4x),  // %d',
+        [StartGC, EndGC, StartUC, EndUC, Cnt]);
+      Ranges.Add(S);
+    end
+    else
+    begin
+      GBCP := StartGC;
+      while GBCP <= EndGC do
+      begin
+        UCP := GetUnicodeFromGB18030CodePoint(GBCP);
+        Others.Add(IntToHex(GBCP, 2) + ' = ' + IntToHex(UCP, 2));
+        GBCP := GetNextGB18030CodePoint(GBCP);
+      end;
+    end;
+  end;
+
 begin
   GC := FromG;
   UC := GetUnicodeFromGB18030CodePoint(GC);
@@ -1495,20 +1525,30 @@ begin
   PrevUC := CN_INVALID_CODEPOINT;
 
   Cont := False;
+  Cnt := 1;
 
   while GC <= ToG do
   begin
     UC := GetUnicodeFromGB18030CodePoint(GC);
-    if StartGC = CN_INVALID_CODEPOINT then
-      StartGC := GC;
-    if StartUC = CN_INVALID_CODEPOINT then
-      StartUC := UC;
-
-    if UC = PrevUC + 1 then
+    if (StartGC = CN_INVALID_CODEPOINT) or (StartUC = CN_INVALID_CODEPOINT) then // 从头开始的第一个
     begin
-      // 是连续，记录前一个
+      StartGC := GC;
+      PrevGC := GC;
+
+      StartUC := UC;
+      PrevUC := UC;
+
+      GC := GetNextGB18030CodePoint(GC);
+      Continue;
+    end;
+
+    if UC = PrevUC + 1 then // 如果是从头开始的第一个，不会进这里
+    begin
+      // 和上一个连续，记录前一个
       PrevGC := GC;
       PrevUC := UC;
+      Inc(Cnt);
+
       Cont := True;
     end
     else
@@ -1517,17 +1557,20 @@ begin
       EndGC := PrevGC;
       EndUC := PrevUC;
 
-      Ranges.Add(IntToHex(StartGC, 2) + '~' + IntToHex(EndGC, 2)
-        + ' -> ' + IntToHex(StartUC, 2) + '~' + IntToHex(EndUC, 2));
+      SaveRes;
 
       // 并以这个号作为连续起始
       StartGC := GC;
       StartUC := UC;
+      Cnt := 1;
+
+      PrevGC := GC;
+      PrevUC := UC;
 
       Cont := False;
     end;
 
-    Inc(GC);
+    GC := GetNextGB18030CodePoint(GC);
   end;
 
   if Cont then // 结尾时是否仍在连续？是则要手工结尾
@@ -1535,8 +1578,7 @@ begin
     EndGC := GC;
     EndUC := UC;
 
-    Ranges.Add(IntToHex(StartGC, 2) + '~' + IntToHex(EndGC, 2)
-      + ' -> ' + IntToHex(StartUC, 2) + '~' + IntToHex(EndUC, 2));
+    SaveRes;
   end;
 end;
 
@@ -1566,7 +1608,10 @@ begin
 
   dlgSave1.FileName := 'GB18030_0.txt';
   if dlgSave1.Execute then
+  begin
     SL.SaveToFile(dlgSave1.FileName);
+    ShowMessage('Save to ' + dlgSave1.FileName);
+  end;
   SL.Free;
 end;
 
@@ -1596,21 +1641,209 @@ begin
 
   dlgSave1.FileName := 'GB18030_FFFFFFFF.txt';
   if dlgSave1.Execute then
+  begin
     SL.SaveToFile(dlgSave1.FileName);
+    ShowMessage('Save to ' + dlgSave1.FileName);
+  end;
   SL.Free;
 end;
 
 procedure TFormGB18030.btnCheckOneRangeClick(Sender: TObject);
 var
-  SL: TCnAnsiStringList;
+  SL, OT: TCnAnsiStringList;
 begin
   SL := TCnAnsiStringList.Create;
-  CheckRange($8139A136, $8139A932, SL);
+  OT := TCnAnsiStringList.Create;
+
+  // CheckRange($8139A136, $8139A932, SL);
+  // CheckRange($8139EE39, $82358738, SL); // CJK 统一汉字扩充 A
+  CheckRange($A1A1, $A1A9, SL, OT);
 
   dlgSave1.FileName := 'Range.txt';
   if dlgSave1.Execute then
+  begin
     SL.SaveToFile(dlgSave1.FileName);
+    ShowMessage('Save to ' + dlgSave1.FileName);
+  end;
+  dlgSave1.FileName := 'Other.txt';
+  if dlgSave1.Execute then
+  begin
+    OT.SaveToFile(dlgSave1.FileName);
+    ShowMessage('Save to ' + dlgSave1.FileName);
+  end;
   SL.Free;
+  OT.Free;
+end;
+
+procedure TFormGB18030.btnCheckAllRangeClick(Sender: TObject);
+var
+  SL, OT: TCnAnsiStringList;
+begin
+  SL := TCnAnsiStringList.Create;
+  OT := TCnAnsiStringList.Create;
+
+  // 检查所有不连续大区中的连续状况
+//  SL.Add('双字节三区汉字：');
+//  CheckRangeThreshold($8140, $A07E, SL, OT);
+//  CheckRangeThreshold($8180, $A0FE, SL, OT);
+//
+//  SL.Add('双字节用户三区：');
+//  CheckRangeThreshold($A140, $A77E, SL, OT);
+//  CheckRangeThreshold($A180, $A7A0, SL, OT);
+//
+//  SL.Add('双字节符号一区：');
+//  CheckRangeThreshold($A1A1, $A9FE, SL, OT);
+//
+//  SL.Add('双字节符号五区：');
+//  CheckRangeThreshold($A840, $A97E, SL, OT);
+//  CheckRangeThreshold($A880, $A9A0, SL, OT);
+//
+//  SL.Add('双字节汉字四区：');
+//  CheckRangeThreshold($AA40, $FE7E, SL, OT);
+//  CheckRangeThreshold($AA80, $FEA0, SL, OT);
+//
+//  SL.Add('双字节汉字二区：');
+//  CheckRangeThreshold($B0A1, $F7FE, SL, OT);
+
+  SL.Add('四字节分隔区一：');
+  CheckRangeThreshold($81308130, $81318131, SL, OT);
+
+  SL.Add('四字节分隔区八：');
+  CheckRangeThreshold($81359936, $81398B31, SL, OT);
+
+  SL.Add('四字节分隔区九：');
+  CheckRangeThreshold($8139A136, $8139A932, SL, OT);
+
+  SL.Add('四字节分隔区十：');
+  CheckRangeThreshold($8139B735, $8139EE38, SL, OT);
+
+  SL.Add('CJK 统一汉字扩充 A：');
+  CheckRangeThreshold($8139EE39, $82358738, SL, OT);
+
+  SL.Add('四字节分隔区十五：');
+  CheckRangeThreshold($8336BE37, $8430BA31, SL, OT);
+
+  SL.Add('四字节分隔区十六：');
+  CheckRangeThreshold($8430FE36, $84318639, SL, OT);
+
+  SL.Add('四字节分隔区十七：');
+  CheckRangeThreshold($84319531, $8431A439, SL, OT);
+
+  dlgSave1.FileName := 'Ranges.txt';
+  if dlgSave1.Execute then
+  begin
+    SL.SaveToFile(dlgSave1.FileName);
+    ShowMessage('Save to ' + dlgSave1.FileName);
+  end;
+
+  dlgSave1.FileName := 'Others.txt';
+  if dlgSave1.Execute then
+  begin
+    OT.SaveToFile(dlgSave1.FileName);
+    ShowMessage('Save to ' + dlgSave1.FileName);
+  end;
+
+  SL.Free;
+  OT.Free;
+end;
+
+procedure TFormGB18030.CheckRangeThreshold(FromG, ToG: TCnCodePoint;
+  Ranges, Others: TCnAnsiStringList);
+begin
+  CheckRange(FromG, ToG, Ranges, Others, 32);
+end;
+
+procedure TFormGB18030.btnGenGB18030PagePartly2Click(Sender: TObject);
+const
+  EQUAL = ' = ';
+var
+  SL, OT: TCnAnsiStringList;
+  I, T: Integer;
+  SB: TCnStringBuilder;
+begin
+  SL := TCnAnsiStringList.Create;
+  OT := TCnAnsiStringList.Create;
+
+  // 抽取四字节 GB18030 字符区的不连续部分生成 inc
+  SL.Add('四字节分隔区一：');
+  CheckRangeThreshold($81308130, $81318131, SL, OT);
+
+  SL.Add('四字节分隔区八：');
+  CheckRangeThreshold($81359936, $81398B31, SL, OT);
+
+  SL.Add('四字节分隔区九：');
+  CheckRangeThreshold($8139A136, $8139A932, SL, OT);
+
+  SL.Add('四字节分隔区十：');
+  CheckRangeThreshold($8139B735, $8139EE38, SL, OT);
+
+  SL.Add('CJK 统一汉字扩充 A：');
+  CheckRangeThreshold($8139EE39, $82358738, SL, OT);
+
+  SL.Add('四字节分隔区十五：');
+  CheckRangeThreshold($8336BE37, $8430BA31, SL, OT);
+
+  SL.Add('四字节分隔区十六：');
+  CheckRangeThreshold($8430FE36, $84318639, SL, OT);
+
+  SL.Add('四字节分隔区十七：');
+  CheckRangeThreshold($84319531, $8431A439, SL, OT);
+
+  dlgSave1.FileName := 'GB18030_Unicode_4.inc';
+  if dlgSave1.Execute then
+  begin
+    SB := TCnStringBuilder.Create;
+
+    SL.Clear;
+    SL.Add('');
+    SL.Add('  CN_GB18030_4MAPPING: array[0..' + IntToStr(OT.Count - 1) + '] of TCnCodePoint = (');
+    for I := 0 to OT.Count - 1 do
+    begin
+      T := Pos(EQUAL, OT[I]);
+      if T <= 1 then
+        Continue;
+
+      SB.Append('$' + Copy(OT[I], 1, T - 1));
+      if I < OT.Count - 1 then
+        SB.Append(',');
+      if (SB.CharLength >= 80) or (I = OT.Count - 1) then
+      begin
+        SL.Add('    ' + SB.ToString);
+        SB.Clear;
+      end
+      else
+        SB.Append(' ');
+    end;
+    SL.Add('  );');
+
+    SL.Add('');
+    SL.Add('  CN_UNICODE_4MAPPING: array[0..' + IntToStr(OT.Count - 1) + '] of TCnCodePoint = (');
+    for I := 0 to OT.Count - 1 do
+    begin
+      T := Pos(' = ', OT[I]);
+      if T <= 1 then
+        Continue;
+
+      SB.Append('$' + Copy(OT[I], T + Length(EQUAL), MaxInt));
+      if I < OT.Count - 1 then
+        SB.Append(',');
+      if (SB.CharLength >= 80) or (I = OT.Count - 1) then
+      begin
+        SL.Add('    ' + SB.ToString);
+        SB.Clear;
+      end
+      else
+        SB.Append(' ');
+    end;
+    SL.Add('  );');
+
+    SL.SaveToFile(dlgSave1.FileName);
+    ShowMessage('Save to ' + dlgSave1.FileName);
+    SB.Free;
+  end;
+
+  SL.Free;
+  OT.Free;
 end;
 
 end.

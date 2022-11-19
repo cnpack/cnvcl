@@ -1,7 +1,7 @@
 object FormGB18030: TFormGB18030
   Left = 147
   Top = 89
-  Width = 1021
+  Width = 1053
   Height = 633
   Caption = 'Unicode and GB18030'
   Color = clBtnFace
@@ -111,7 +111,7 @@ object FormGB18030: TFormGB18030
       Top = 504
       Width = 169
       Height = 41
-      Caption = 'Generate GB18030 Utf16 Inc'
+      Caption = 'Generate GB18030 Utf16 2 Inc'
       TabOrder = 5
       OnClick = btnGenGB18030PagePartlyClick
     end
@@ -376,11 +376,29 @@ object FormGB18030: TFormGB18030
     object btnCheckOneRange: TButton
       Left = 16
       Top = 24
-      Width = 201
+      Width = 145
       Height = 25
       Caption = 'Check 1 GB18030 Range'
       TabOrder = 0
       OnClick = btnCheckOneRangeClick
+    end
+    object btnCheckAllRange: TButton
+      Left = 176
+      Top = 24
+      Width = 145
+      Height = 25
+      Caption = 'Check All GB18030 Range'
+      TabOrder = 1
+      OnClick = btnCheckAllRangeClick
+    end
+    object btnGenGB18030PagePartly2: TButton
+      Left = 16
+      Top = 64
+      Width = 305
+      Height = 25
+      Caption = 'Generate GB18030 Utf16 4 Inc'
+      TabOrder = 2
+      OnClick = btnGenGB18030PagePartly2Click
     end
   end
   object dlgSave1: TSaveDialog
