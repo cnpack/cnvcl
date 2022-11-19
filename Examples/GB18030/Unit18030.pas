@@ -49,6 +49,8 @@ type
     grpSequence: TGroupBox;
     btnGenGB18030From0: TButton;
     btnGenGB18030DownTo0: TButton;
+    grp1: TGroupBox;
+    btnCheckOneRange: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -80,6 +82,7 @@ type
     procedure btnStringUnicodeToGB18030Click(Sender: TObject);
     procedure btnGenGB18030From0Click(Sender: TObject);
     procedure btnGenGB18030DownTo0Click(Sender: TObject);
+    procedure btnCheckOneRangeClick(Sender: TObject);
   private
     // 以 Windows API 的方式批量生成 256 个 Unicode 字符
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
@@ -112,7 +115,7 @@ type
     // 以 CnPack 的代码生成指定范围内的 Utf16 字符到 GB18030 字符的映射
     procedure GenCn2Utf16ToGB18030Page(FromH, FromL, ToH, ToL: Byte; Content: TCnAnsiStringList; H2: Word = 0);
 
-    // 检查一个 GB18030 连续区间里 Unicode 的连续范围
+    // 检查一个 GB18030 连续区间里 Unicode 的连续范围，Ranges 输出连续区的各自的起始编码和结束编码，以及个数
     procedure CheckRange(FromG, ToG: TCnCodePoint; Ranges: TCnAnsiStringList);
   public
 
@@ -1476,8 +1479,65 @@ end;
 
 procedure TFormGB18030.CheckRange(FromG, ToG: TCnCodePoint;
   Ranges: TCnAnsiStringList);
+var
+  GC, UC: TCnCodePoint;
+  StartUC, EndUC, PrevUC: TCnCodePoint;
+  StartGC, EndGC, PrevGC: TCnCodePoint;
+  Cont: Boolean;
 begin
+  GC := FromG;
+  UC := GetUnicodeFromGB18030CodePoint(GC);
 
+  StartGC := CN_INVALID_CODEPOINT;
+  StartUC := CN_INVALID_CODEPOINT;
+
+  PrevGC := CN_INVALID_CODEPOINT;
+  PrevUC := CN_INVALID_CODEPOINT;
+
+  Cont := False;
+
+  while GC <= ToG do
+  begin
+    UC := GetUnicodeFromGB18030CodePoint(GC);
+    if StartGC = CN_INVALID_CODEPOINT then
+      StartGC := GC;
+    if StartUC = CN_INVALID_CODEPOINT then
+      StartUC := UC;
+
+    if UC = PrevUC + 1 then
+    begin
+      // 是连续，记录前一个
+      PrevGC := GC;
+      PrevUC := UC;
+      Cont := True;
+    end
+    else
+    begin
+      // 不连续，以上个号作为连续结束
+      EndGC := PrevGC;
+      EndUC := PrevUC;
+
+      Ranges.Add(IntToHex(StartGC, 2) + '~' + IntToHex(EndGC, 2)
+        + ' -> ' + IntToHex(StartUC, 2) + '~' + IntToHex(EndUC, 2));
+
+      // 并以这个号作为连续起始
+      StartGC := GC;
+      StartUC := UC;
+
+      Cont := False;
+    end;
+
+    Inc(GC);
+  end;
+
+  if Cont then // 结尾时是否仍在连续？是则要手工结尾
+  begin
+    EndGC := GC;
+    EndUC := UC;
+
+    Ranges.Add(IntToHex(StartGC, 2) + '~' + IntToHex(EndGC, 2)
+      + ' -> ' + IntToHex(StartUC, 2) + '~' + IntToHex(EndUC, 2));
+  end;
 end;
 
 procedure TFormGB18030.btnGenGB18030From0Click(Sender: TObject);
@@ -1535,6 +1595,19 @@ begin
   end;
 
   dlgSave1.FileName := 'GB18030_FFFFFFFF.txt';
+  if dlgSave1.Execute then
+    SL.SaveToFile(dlgSave1.FileName);
+  SL.Free;
+end;
+
+procedure TFormGB18030.btnCheckOneRangeClick(Sender: TObject);
+var
+  SL: TCnAnsiStringList;
+begin
+  SL := TCnAnsiStringList.Create;
+  CheckRange($8139A136, $8139A932, SL);
+
+  dlgSave1.FileName := 'Range.txt';
   if dlgSave1.Execute then
     SL.SaveToFile(dlgSave1.FileName);
   SL.Free;

@@ -366,6 +366,23 @@ object FormGB18030: TFormGB18030
       OnClick = btnGenGB18030DownTo0Click
     end
   end
+  object grp1: TGroupBox
+    Left = 592
+    Top = 472
+    Width = 337
+    Height = 113
+    Caption = 'Range'
+    TabOrder = 5
+    object btnCheckOneRange: TButton
+      Left = 16
+      Top = 24
+      Width = 201
+      Height = 25
+      Caption = 'Check 1 GB18030 Range'
+      TabOrder = 0
+      OnClick = btnCheckOneRangeClick
+    end
+  end
   object dlgSave1: TSaveDialog
     FileName = 'CHARS.txt'
     Left = 928

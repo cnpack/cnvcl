@@ -290,6 +290,15 @@ function IsGB18030Char2(CP: TCnCodePoint): Boolean;
 function IsGB18030Char4(CP: TCnCodePoint): Boolean;
 {* 判断指定 GB18030 编码值是否合法的四字节字符}
 
+function IsGB18030InPrivateUserArea(CP: TCnCodePoint): Boolean;
+{* 判断指定 GB18030 编码值是否属于 PUA 区}
+
+function IsGB18030In2PrivateUserArea(CP: TCnCodePoint): Boolean;
+{* 判断指定 GB18030 编码值是否属于双字节 PUA 区}
+
+function IsGB18030In4PrivateUserArea(CP: TCnCodePoint): Boolean;
+{* 判断指定 GB18030 编码值是否属于四字节 PUA 区}
+
 function GetPrevGB18030CodePoint(CP: TCnCodePoint; CheckRange: Boolean = False): TCnCodePoint;
 {* 获取指定 GB18030 编码值的前一个编码值，如是 0，则返回 CN_INVALID_CODEPOINT
   CheckRange 为 True 时表示会严格检查 CP 是否合法的 GB18030 编码值，是才返回前一个
@@ -449,6 +458,37 @@ begin
   ExtractGB18030CodePoint(CP, B1, B2, B3, B4);
   Result := ((B1 >= $81) and (B1 <= $FE)) and ((B2 >= $30) and (B2 <= $39))
     and ((B3 >= $81) and (B3 <= $FE)) and ((B4 >= $30) and (B4 <= $39));
+end;
+
+function IsGB18030InPrivateUserArea(CP: TCnCodePoint): Boolean;
+begin
+  Result := IsGB18030In2PrivateUserArea(CP) or IsGB18030In4PrivateUserArea(CP);
+end;
+
+function IsGB18030In2PrivateUserArea(CP: TCnCodePoint): Boolean;
+var
+  B1, B2, B3, B4: Byte;
+begin
+  Result := IsGB18030Char2(CP);
+  if Result then
+  begin
+    ExtractGB18030CodePoint(CP, B1, B2, B3, B4);
+    Result := ((B3 >= $AA) and (B3 <= $AF) and (B4 >= $A1) and (B4 <= $FE))  // 双字节用户一区
+      or ((B3 >= $F8) and (B3 <= $FE) and (B4 >= $A1) and (B4 <= $FE))       // 双字节用户二区
+      or (((B3 >= $A1) and (B3 <= $A7)) and ((B4 >= $40) and (B4 <= $7E) or (B4 >= $80) and (B4 <= $A0))); // 双字节用户三区
+  end;
+end;
+
+function IsGB18030In4PrivateUserArea(CP: TCnCodePoint): Boolean;
+var
+  B1, B2, B3, B4: Byte;
+begin
+  Result := IsGB18030Char4(CP);
+  if Result then
+  begin
+    ExtractGB18030CodePoint(CP, B1, B2, B3, B4);
+    Result := (B1 >= $FD) and (B1 <= $FE); // 其余判断均在 IsGB18030Char4 中
+  end;
 end;
 
 function GetPrevGB18030CodePoint(CP: TCnCodePoint; CheckRange: Boolean): TCnCodePoint;
