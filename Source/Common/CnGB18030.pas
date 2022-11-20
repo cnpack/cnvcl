@@ -366,7 +366,7 @@ const
     (GBHead: $8130AD33; GBTail: $8130B733; UHead: $0262; UTail: $02C6),   // 101
     (GBHead: $8130B838; GBTail: $8130CB30; UHead: $02DA; UTail: $0390),   // 183
     (GBHead: $8130CC30; GBTail: $8130D134; UHead: $03CA; UTail: $0400),   // 55
-    (GBHead: $8130D330; GBTail: $81318132; UHead: $0452; UTail: $060B),   // 442
+    (GBHead: $8130D330; GBTail: $81318131; UHead: $0452; UTail: $060B),   // 442
 
     (GBHead: $81318132; GBTail: $81359935; UHead: $060C; UTail: $1AAF),   // *** 维吾尔、哈萨克、柯尔克孜文一头到西双版纳老傣文尾
 
@@ -382,7 +382,7 @@ const
     (GBHead: $81378D36; GBTail: $81379735; UHead: $249C; UTail: $24FF),   // 100
     (GBHead: $8137A334; GBTail: $8137A837; UHead: $260A; UTail: $263F),   // 54
     (GBHead: $8137A839; GBTail: $8138FD38; UHead: $2643; UTail: $2E80),   // 2110
-    (GBHead: $81398539; GBTail: $81398B32; UHead: $2ECB; UTail: $2EFF),   // 53
+    (GBHead: $81398539; GBTail: $81398B31; UHead: $2ECB; UTail: $2EFF),   // 53
 
     (GBHead: $81398B32; GBTail: $8139A135; UHead: $2F00; UTail: $2FDF),   // *** 康熙部首
     (GBHead: $8139A933; GBTail: $8139B734; UHead: $3131; UTail: $31BE),   // *** 朝鲜文兼容字母
@@ -392,7 +392,7 @@ const
     (GBHead: $8139C139; GBTail: $8139CD31; UHead: $3232; UTail: $32A2),   // 113
     (GBHead: $8139CD32; GBTail: $8139E435; UHead: $32A4; UTail: $338D),   // 234
     (GBHead: $8139E630; GBTail: $8139E933; UHead: $33A2; UTail: $33C3),   // 34
-    (GBHead: $8139EA37; GBTail: $8139EE39; UHead: $33D6; UTail: $33FF),   // 42
+    (GBHead: $8139EA37; GBTail: $8139EE38; UHead: $33D6; UTail: $33FF),   // 42
 
     // CJK 统一汉字扩充 A：
     (GBHead: $8139EE39; GBTail: $8139F539; UHead: $3400; UTail: $3446),   // 71
@@ -430,7 +430,7 @@ const
     (GBHead: $8336D030; GBTail: $84308534; UHead: $E865; UTail: $F92B),   // 4295
     (GBHead: $84308535; GBTail: $84308D30; UHead: $F92D; UTail: $F978),   // 76
     (GBHead: $84308F38; GBTail: $84309738; UHead: $F996; UTail: $F9E6),   // 81
-    (GBHead: $84309C38; GBTail: $8430BA32; UHead: $FA2A; UTail: $FB4F),   // 294
+    (GBHead: $84309C38; GBTail: $8430BA31; UHead: $FA2A; UTail: $FB4F),   // 294
 
     (GBHead: $8430BA32; GBTail: $8430FE35; UHead: $FB50; UTail: $FDFB),   // *** 维吾尔、哈萨克、柯尔克孜文二
 

@@ -1575,7 +1575,7 @@ begin
 
   if Cont then // 结尾时是否仍在连续？是则要手工结尾
   begin
-    EndGC := GC;
+    EndGC := GetPrevGB18030CodePoint(GC); // 上一个才是结尾
     EndUC := UC;
 
     SaveRes;
@@ -1655,9 +1655,10 @@ begin
   SL := TCnAnsiStringList.Create;
   OT := TCnAnsiStringList.Create;
 
-  // CheckRange($8139A136, $8139A932, SL);
+  // CheckRange($8139A136, $8139A932, SL, OT);
   // CheckRange($8139EE39, $82358738, SL); // CJK 统一汉字扩充 A
-  CheckRange($A1A1, $A1A9, SL, OT);
+  // CheckRange($A1A1, $A1A9, SL, OT);
+  CheckRange($84319531, $8431A439, SL, OT, 0);
 
   dlgSave1.FileName := 'Range.txt';
   if dlgSave1.Execute then
@@ -1665,11 +1666,15 @@ begin
     SL.SaveToFile(dlgSave1.FileName);
     ShowMessage('Save to ' + dlgSave1.FileName);
   end;
-  dlgSave1.FileName := 'Other.txt';
-  if dlgSave1.Execute then
+
+  if OT.Count > 0 then
   begin
-    OT.SaveToFile(dlgSave1.FileName);
-    ShowMessage('Save to ' + dlgSave1.FileName);
+    dlgSave1.FileName := 'Other.txt';
+    if dlgSave1.Execute then
+    begin
+      OT.SaveToFile(dlgSave1.FileName);
+      ShowMessage('Save to ' + dlgSave1.FileName);
+    end;
   end;
   SL.Free;
   OT.Free;
@@ -1706,27 +1711,35 @@ begin
 //  CheckRangeThreshold($B0A1, $F7FE, SL, OT);
 
   SL.Add('四字节分隔区一：');
+  OT.Add('四字节分隔区一：');
   CheckRangeThreshold($81308130, $81318131, SL, OT);
 
   SL.Add('四字节分隔区八：');
+  OT.Add('四字节分隔区八：');
   CheckRangeThreshold($81359936, $81398B31, SL, OT);
 
   SL.Add('四字节分隔区九：');
+  OT.Add('四字节分隔区九：');
   CheckRangeThreshold($8139A136, $8139A932, SL, OT);
 
   SL.Add('四字节分隔区十：');
+  OT.Add('四字节分隔区十：');
   CheckRangeThreshold($8139B735, $8139EE38, SL, OT);
 
   SL.Add('CJK 统一汉字扩充 A：');
+  OT.Add('CJK 统一汉字扩充 A：');
   CheckRangeThreshold($8139EE39, $82358738, SL, OT);
 
   SL.Add('四字节分隔区十五：');
+  OT.Add('四字节分隔区十五：');
   CheckRangeThreshold($8336BE37, $8430BA31, SL, OT);
 
   SL.Add('四字节分隔区十六：');
+  OT.Add('四字节分隔区十六：');
   CheckRangeThreshold($8430FE36, $84318639, SL, OT);
 
   SL.Add('四字节分隔区十七：');
+  OT.Add('四字节分隔区十七：');
   CheckRangeThreshold($84319531, $8431A439, SL, OT);
 
   dlgSave1.FileName := 'Ranges.txt';
