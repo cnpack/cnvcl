@@ -317,6 +317,10 @@ type
     function Find(Key: Integer): Integer; overload;
     function Find(Key: Int64): Int64; overload;
 
+    function Find(Key: TObject; out OutObj: TObject): Boolean; overload;
+    function Find(Key: Integer; out OutInt: Integer): Boolean; overload;
+    function Find(Key: Int64; out OutInt64: Int64): Boolean; overload;
+
     function CreateIterator: ICnHashMapIterator;
     {*  返回一个迭代器接口实例}
     procedure Clear;
@@ -1334,6 +1338,46 @@ function TCnHashMap.KeyEqual(Key1, Key2: TObject
   {$IFNDEF CPUX64}; Key132, Key232: TObject {$ENDIF}): Boolean;
 begin
   Result := (Key1 = Key2) {$IFNDEF CPUX64} and (Key132 = Key232) {$ENDIF};
+end;
+
+function TCnHashMap.Find(Key: TObject; out OutObj: TObject): Boolean;
+begin
+  Result := Get(HashCodeFromObject(Key), Key, OutObj);
+end;
+
+function TCnHashMap.Find(Key: Integer; out OutInt: Integer): Boolean;
+var
+  Obj: TObject;
+begin
+  Result := Get(HashCodeFromInteger(Key), TObject(Key), Obj);
+  if Result then
+    OutInt := Integer(Obj);
+end;
+
+function TCnHashMap.Find(Key: Int64; out OutInt64: Int64): Boolean;
+var
+{$IFNDEF CPUX64}
+  VLo, VHi: TObject;
+{$ELSE}
+  Obj: TObject;
+{$ENDIF}
+begin
+{$IFDEF CPUX64}
+  Obj := nil;
+  Result := Get(HashCodeFromInteger(Key), TObject(Key), Obj);
+  if Result then
+    OutInt64 := Int64(Obj);
+{$ELSE}
+  VLo := nil;
+  VHi := nil;
+  Result := Get(HashCodeFromInteger(Key), TObject(Int64Rec(Key).Lo), VLo,
+    TObject(Int64Rec(Key).Hi), @VHi);
+  if Result then
+  begin
+    Int64Rec(OutInt64).Hi := Cardinal(VHi);
+    Int64Rec(OutInt64).Lo := Cardinal(VLo);
+  end;
+{$ENDIF}
 end;
 
 { TCnHashNode }
