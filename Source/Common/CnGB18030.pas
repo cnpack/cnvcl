@@ -152,7 +152,9 @@ unit CnGB18030;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.11.16
+* 修改记录：2022.11.20
+*               实现 52 个重码字的判断
+*           2022.11.16
 *               实现不依赖于 Windows API 的 Unicode 字符到 GB18030-2022 的转换
 *           2022.11.14
 *               实现不依赖于 Windows API 的 GB18030-2022 全部字符到 Unicode 的转换
@@ -278,8 +280,20 @@ function GetGB18030CharsFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): In
 {* 计算一个 GB18030 编码值的一字节或二字节或四字节表示，如果 PtrToChars 指向的位置不为空则将转换后的内容放里头
    返回值是转换的字节数，1 或 2 或 4}
 
-function IsGB18030CharEqual(CP1, CP2: TCnCodePoint): Boolean;
-{* 判断两个 GB18030 编码是否相等，包括重码字的处理}
+function IsUnicodeDuplicated(CP: TCnCodePoint): Boolean; overload;
+{* 判断一 Unicode 编码是否是 52 个重码字之一，正式和 PUA 都算}
+
+function IsUnicodeDuplicated(CP: TCnCodePoint; out Dup: TCnCodePoint): Boolean; overload;
+{* 判断一 Unicode 编码是否是 52 个重码字之一，顺便返回重码字，正式和 PUA 都算}
+
+function IsUnicodeEqual(CP1, CP2: TCnCodePoint): Boolean;
+{* 判断两个 Unicode 编码是否相等，有部分 GB18030 重码字的处理}
+
+function IsGB18030Duplicated(CP: TCnCodePoint): Boolean;
+{* 判断一个 GB18030 编码是否属于 52 个重码字之一}
+
+function IsGB18030CodePointEqual(CP1, CP2: TCnCodePoint): Boolean;
+{* 判断两个 GB18030 编码是否相等，暂无重码字的处理}
 
 function IsGB18030Char1(CP: TCnCodePoint): Boolean;
 {* 判断指定 GB18030 编码值是否合法的单字节字符}
@@ -289,6 +303,9 @@ function IsGB18030Char2(CP: TCnCodePoint): Boolean;
 
 function IsGB18030Char4(CP: TCnCodePoint): Boolean;
 {* 判断指定 GB18030 编码值是否合法的四字节字符}
+
+function IsUnicodeInPrivateUserArea(CP: TCnCodePoint): Boolean;
+{* 判断指定的 Unicode 编码值是否属于 PUA 区}
 
 function IsGB18030InPrivateUserArea(CP: TCnCodePoint): Boolean;
 {* 判断指定 GB18030 编码值是否属于 PUA 区}
@@ -347,6 +364,33 @@ const
   CN_UTF16_EXT_BASE           = $10000;
 
   CN_GB18030_BOM: array[0..3] of Byte = ($84, $31, $95, $33);
+
+  // GB18030 中的 52 个重码字的编码值，值源于 GBK，在双字节四区
+  CN_DUPLICATES_GB18030: array[0..51] of TCnCodePoint = (
+    $FE55, $FE56, $FE5A, $FE5B, $FE5C, $FE5F, $FE60, $FE62, $FE63, $FE64, $FE65,
+    $FE68, $FE69, $FE6A, $FE6F, $FE70, $FE72, $FE77, $FE78, $FE7A, $FE7B, $FE7C,
+    $FE7D, $FE80, $FE81, $FE82, $FE83, $FE85, $FE86, $FE87, $FE88, $FE89, $FE8A,
+    $FE8B, $FE8C, $FE8D, $FE8E, $FE8F, $FE92, $FE93, $FE94, $FE95, $FE96, $FE97,
+    $FE98, $FE99, $FE9A, $FE9B, $FE9C, $FE9D, $FE9E, $FE9F
+  );
+
+  // GBK 中的 52 个重码字的 Unicode 区的正式值，都在 3400 到 4DB5 这个 CJK 扩展 A 区里
+  CN_DUPLICATES_UNICODE: array[0..51] of TCnCodePoint = (
+    $3473, $3447, $359E, $361A, $360E, $396E, $3918, $39CF, $39DF, $3A73, $39D0,
+    $3B4E, $3C6E, $3CE0, $4056, $415F, $4337, $43B1, $43AC, $43DD, $44D6, $4661,
+    $464C, $4723, $4729, $477C, $478D, $4947, $497A, $497D, $4982, $4983, $4985,
+    $4986, $499F, $499B, $49B7, $49B6, $4CA3, $4C9F, $4CA0, $4CA1, $4C77, $4CA2,
+    $4D13, $4D14, $4D15, $4D16, $4D17, $4D18, $4D19, $4DAE
+  );
+
+  // GBK 中的 52 个重码字在 Unicode 区原先的 PUA 值
+  CN_DUPLICATES_UNICODE_PUA: array[0..51] of TCnCodePoint = (
+    $E81A, $E81B, $E81F, $E820, $E821, $E824, $E825, $E827, $E828, $E829, $E82A,
+    $E82D, $E82E, $E82F, $E834, $E835, $E837, $E83C, $E83D, $E83F, $E840, $E841,
+    $E842, $E844, $E845, $E846, $E847, $E849, $E84A, $E84B, $E84C, $E84D, $E84E,
+    $E84F, $E850, $E851, $E852, $E853, $E856, $E857, $E858, $E859, $E85A, $E85B,
+    $E85C, $E85D, $E85E, $E85F, $E860, $E861, $E862, $E863
+  );
 
   // 双字节码转换相关
   CN_GB18030_2CHAR_PAGES: array[0..1] of TCnGB18030MappingPage = (
@@ -460,6 +504,7 @@ var
   F2GB18030ToUnicodeMap: TCnHashMap = nil;
   F4GB18030ToUnicodeMap: TCnHashMap = nil;
   FUnicodeToGB18030Map: TCnHashMap = nil;
+  FUnicodeDuplicateMap: TCnHashMap = nil;
 
 procedure CreateGB18030ToUnicodeMap;
 var
@@ -495,6 +540,20 @@ begin
   end;
 end;
 
+procedure CreateUnicodeDuplicateMap;
+var
+  I: Integer;
+begin
+  if FUnicodeDuplicateMap = nil then
+  begin
+    FUnicodeDuplicateMap := TCnHashMap.Create(256);
+    for I := Low(CN_DUPLICATES_UNICODE) to High(CN_DUPLICATES_UNICODE) do
+      FUnicodeDuplicateMap.Add(Integer(CN_DUPLICATES_UNICODE[I]), CN_DUPLICATES_UNICODE_PUA[I]);
+    for I := Low(CN_DUPLICATES_UNICODE_PUA) to High(CN_DUPLICATES_UNICODE_PUA) do
+      FUnicodeDuplicateMap.Add(Integer(CN_DUPLICATES_UNICODE_PUA[I]), CN_DUPLICATES_UNICODE[I]);
+  end;
+end;
+
 procedure ExtractGB18030CodePoint(CP: TCnCodePoint; out B1, B2, B3, B4: Byte);
 begin
   B1 := (CP and $FF000000) shr 24;
@@ -508,13 +567,54 @@ begin
   Result := (B1 shl 24) + (B2 shl 16) + (B3 shl 8) + B4;
 end;
 
-function IsGB18030CharEqual(CP1, CP2: TCnCodePoint): Boolean;
+function IsGB18030CodePointEqual(CP1, CP2: TCnCodePoint): Boolean;
 begin
   Result := CP1 = CP2;
+end;
+
+function IsGB18030Duplicated(CP: TCnCodePoint): Boolean;
+var
+  I: Integer;
+begin
+  Result := (CP < CN_DUPLICATES_GB18030[0]) or (CP > $FFFF);
   if not Result then
   begin
-    // TODO: 判断重码字
+    for I := Low(CN_DUPLICATES_GB18030) to High(CN_DUPLICATES_GB18030) do
+    begin
+      if CP = CN_DUPLICATES_GB18030[I] then
+      begin
+        Result := True;
+        Exit;
+      end;
+    end;
   end;
+end;
+
+function IsUnicodeEqual(CP1, CP2: TCnCodePoint): Boolean;
+begin
+  Result := CP1 = CP2;
+  if not Result and (CP1 <> 0) then // 有 0 肯定不重码
+  begin
+    // 判断重码字
+    CP1 := TCnCodePoint(FUnicodeDuplicateMap.Find(CP1));
+    Result := CP1 = CP2;
+  end;
+end;
+
+function IsUnicodeDuplicated(CP: TCnCodePoint): Boolean;
+var
+  C: TCnCodePoint;
+begin
+  Result := IsUnicodeDuplicated(CP, C);
+end;
+
+function IsUnicodeDuplicated(CP: TCnCodePoint; out Dup: TCnCodePoint): Boolean;
+var
+  C: Integer;
+begin
+  Result := FUnicodeDuplicateMap.Find(CP, C);
+  if Result then
+    Dup := TCnCodePoint(C);
 end;
 
 function IsGB18030Char1(CP: TCnCodePoint): Boolean;
@@ -538,6 +638,13 @@ begin
   ExtractGB18030CodePoint(CP, B1, B2, B3, B4);
   Result := ((B1 >= $81) and (B1 <= $FE)) and ((B2 >= $30) and (B2 <= $39))
     and ((B3 >= $81) and (B3 <= $FE)) and ((B4 >= $30) and (B4 <= $39));
+end;
+
+function IsUnicodeInPrivateUserArea(CP: TCnCodePoint): Boolean;
+begin
+  Result := ((CP >= $E000) and (CP <= $F8FF)) or
+    ((CP >= $F0000) and (CP <= $FFFFD)) or
+    ((CP >= $100000) and (CP <= $10FFFD));
 end;
 
 function IsGB18030InPrivateUserArea(CP: TCnCodePoint): Boolean;
@@ -1316,12 +1423,13 @@ end;
 initialization
   CreateGB18030ToUnicodeMap;
   CreateUnicodeToGB18030Map;
+  CreateUnicodeDuplicateMap;
 
 finalization
   F2GB18030ToUnicodeMap.Free;
   F4GB18030ToUnicodeMap.Free;
   FUnicodeToGB18030Map.Free;
-
+  FUnicodeDuplicateMap.Free;
 
 end.
 

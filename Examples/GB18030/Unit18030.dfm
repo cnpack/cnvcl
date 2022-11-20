@@ -1,6 +1,6 @@
 object FormGB18030: TFormGB18030
   Left = 147
-  Top = 89
+  Top = 91
   Width = 1053
   Height = 633
   Caption = 'Unicode and GB18030'
@@ -303,6 +303,15 @@ object FormGB18030: TFormGB18030
       Caption = 'GB18030s to Utf16s'
       TabOrder = 11
       OnClick = btnMultiGB18030ToUtf16Click
+    end
+    object btnUnicodeIsDup: TButton
+      Left = 16
+      Top = 224
+      Width = 121
+      Height = 25
+      Caption = 'Unicode Is Duplicate'
+      TabOrder = 18
+      OnClick = btnUnicodeIsDupClick
     end
   end
   object grpTestU2GB: TGroupBox

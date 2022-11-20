@@ -53,6 +53,7 @@ type
     btnCheckOneRange: TButton;
     btnCheckAllRange: TButton;
     btnGenGB18030PagePartly2: TButton;
+    btnUnicodeIsDup: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -87,6 +88,7 @@ type
     procedure btnCheckOneRangeClick(Sender: TObject);
     procedure btnCheckAllRangeClick(Sender: TObject);
     procedure btnGenGB18030PagePartly2Click(Sender: TObject);
+    procedure btnUnicodeIsDupClick(Sender: TObject);
   private
     // 以 Windows API 的方式批量生成 256 个 Unicode 字符
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
@@ -1857,6 +1859,25 @@ begin
 
   SL.Free;
   OT.Free;
+end;
+
+procedure TFormGB18030.btnUnicodeIsDupClick(Sender: TObject);
+var
+  C, D: TCnCodePoint;
+begin
+  C := $E85B;
+  if IsUnicodeDuplicated(C, D) then
+    ShowMessage(IntToHex(C, 2) + ' Duplicate to ' + IntToHex(D, 2));
+
+  C := $4DAE;
+  if IsUnicodeDuplicated(C, D) then
+    ShowMessage(IntToHex(C, 2) + ' Duplicate to ' + IntToHex(D, 2));
+
+  C := $A530;
+  if IsUnicodeDuplicated(C, D) then
+    ShowMessage(IntToHex(C, 2) + ' Duplicate to ' + IntToHex(D, 2))
+  else
+    ShowMessage('NO Duplicate for ' + IntToHex(C, 2));
 end;
 
 end.
