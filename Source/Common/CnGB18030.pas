@@ -289,6 +289,9 @@ function IsUnicodeDuplicated(CP: TCnCodePoint; out Dup: TCnCodePoint): Boolean; 
 function IsUnicodeEqual(CP1, CP2: TCnCodePoint): Boolean;
 {* 判断两个 Unicode 编码是否相等，有部分 GB18030 重码字的处理}
 
+function CnCompareUnicodeString(US1, US2: PWideChar): Boolean;
+{* 比较两个 Utf16 编码的 UnicodeString 是否相等，有 52 个重码字的处理}
+
 function IsGB18030Duplicated(CP: TCnCodePoint): Boolean;
 {* 判断一个 GB18030 编码是否属于 52 个重码字之一}
 
@@ -599,6 +602,42 @@ begin
     CP1 := TCnCodePoint(FUnicodeDuplicateMap.Find(CP1));
     Result := CP1 = CP2;
   end;
+end;
+
+function CnCompareUnicodeString(US1, US2: PWideChar): Boolean;
+var
+  L1, L2: Integer;
+  C1, C2: TCnCodePoint;
+begin
+  Result := False;
+  if (US1 = nil) and (US2 = nil) then
+  begin
+    Result := True;
+    Exit;
+  end
+  else if (US1 = nil) or (US2 = nil) then
+    Exit;
+
+  // 都有值，各自步进
+  while (US1^ <> #0) and (US2^ <> #0) do
+  begin
+    L1 := GetByteWidthFromUtf16(US1);
+    L2 := GetByteWidthFromUtf16(US2);
+
+    if L1 <> L2 then
+      Exit;
+
+    C1 := GetCodePointFromUtf16Char(US1);
+    C2 := GetCodePointFromUtf16Char(US2);
+
+    if not IsUnicodeEqual(C1, C2) then
+      Exit;
+
+    Inc(US1, L1 shr 1);
+    Inc(US2, L2 shr 1);
+  end;
+
+  Result := US1^ = US2^; // 有一个 #0 才会结束循环到这，如果都是 #0 表示后面没了，相等
 end;
 
 function IsUnicodeDuplicated(CP: TCnCodePoint): Boolean;
