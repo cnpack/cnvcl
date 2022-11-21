@@ -286,11 +286,20 @@ function IsUnicodeDuplicated(CP: TCnCodePoint): Boolean; overload;
 function IsUnicodeDuplicated(CP: TCnCodePoint; out Dup: TCnCodePoint): Boolean; overload;
 {* 判断一 Unicode 编码是否是 52 个重码字之一，顺便返回重码字，正式和 PUA 都算}
 
+function IsUnicodeDuplicated3(CP: TCnCodePoint): Boolean; overload;
+{* 判断一 Unicode 编码是否是 3 个三重码字之一，俩 PUA 和一个正式}
+
+function IsUnicodeDuplicated3(CP: TCnCodePoint; out Dup1, Dup2: TCnCodePoint): Boolean; overload;
+{* 判断一 Unicode 编码是否是 3 个三重码字之一，顺便返回俩重码字，俩 PUA 和一个正式}
+
 function IsUnicodeEqual(CP1, CP2: TCnCodePoint): Boolean;
 {* 判断两个 Unicode 编码是否相等，有部分 GB18030 重码字的处理}
 
 function CnCompareUnicodeString(US1, US2: PWideChar): Boolean;
 {* 比较两个 Utf16 编码的 UnicodeString 是否相等，有 52 个重码字的处理}
+
+function IsGBKDuplicated(CP: TCnCodePoint): Boolean;
+{* 判断一个 GBK 编码是否属于 52 个重码字之一}
 
 function IsGB18030Duplicated(CP: TCnCodePoint): Boolean;
 {* 判断一个 GB18030 编码是否属于 52 个重码字之一}
@@ -368,8 +377,20 @@ const
 
   CN_GB18030_BOM: array[0..3] of Byte = ($84, $31, $95, $33);
 
-  // GB18030 中的 52 个重码字的编码值，值源于 GBK，在双字节四区
+  // GB18030 中的 52 个重码字的编码值，源于 GBK，原始数据在双字节四区，现在扩展区
   CN_DUPLICATES_GB18030: array[0..51] of TCnCodePoint = (
+    $8336C936, $8336C937, $8336CA30, $8336CA31, $8336CA32, $8336CA35, $8336CA36,
+    $8336CA37, $8336CA38, $8336CA39, $8336CB30, $8336CB31, $8336CB32, $8336CB33,
+    $8336CB36, $8336CB37, $8336CB39, $8336CC33, $8336CC34, $8336CC36, $8336CC37,
+    $8336CC38, $8336CC39, $8336CD30, $8336CD31, $8336CD32, $8336CD33, $8336CD35,
+    $8336CD36, $8336CD37, $8336CD38, $8336CD39, $8336CE30, $8336CE31, $8336CE32,
+    $8336CE33, $8336CE34, $8336CE35, $8336CE36, $8336CE37, $8336CE38, $8336CE39,
+    $8336CF30, $8336CF31, $8336CF32, $8336CF33, $8336CF34, $8336CF35, $8336CF36,
+    $8336CF37, $8336CF38, $8336CF39
+  );
+
+  // GB18030 中的 52 个重码字的编码值，值源于 GBK，在双字节四区
+  CN_DUPLICATES_GBK: array[0..51] of TCnCodePoint = (
     $FE55, $FE56, $FE5A, $FE5B, $FE5C, $FE5F, $FE60, $FE62, $FE63, $FE64, $FE65,
     $FE68, $FE69, $FE6A, $FE6F, $FE70, $FE72, $FE77, $FE78, $FE7A, $FE7B, $FE7C,
     $FE7D, $FE80, $FE81, $FE82, $FE83, $FE85, $FE86, $FE87, $FE88, $FE89, $FE8A,
@@ -393,6 +414,13 @@ const
     $E842, $E844, $E845, $E846, $E847, $E849, $E84A, $E84B, $E84C, $E84D, $E84E,
     $E84F, $E850, $E851, $E852, $E853, $E856, $E857, $E858, $E859, $E85A, $E85B,
     $E85C, $E85D, $E85E, $E85F, $E860, $E861, $E862, $E863
+  );
+
+  // 三个三重码字，也就是一个字有仨码！来源于 JRT0253-2022 规范
+  CN_DUPLICATES_3_UNICODE: array[0..2] of array[0..2] of TCnCodePoint = (
+    ($E3FE, $E579, $2B4E9),
+    ($E05D, $F429, $39D1),
+    ($E56B, $EAF0, $2285F)
   );
 
   // 双字节码转换相关
@@ -575,6 +603,24 @@ begin
   Result := CP1 = CP2;
 end;
 
+function IsGBKDuplicated(CP: TCnCodePoint): Boolean;
+var
+  I: Integer;
+begin
+  Result := (CP < CN_DUPLICATES_GBK[0]) or (CP > $FFFF);
+  if not Result then
+  begin
+    for I := Low(CN_DUPLICATES_GBK) to High(CN_DUPLICATES_GBK) do
+    begin
+      if CP = CN_DUPLICATES_GBK[I] then
+      begin
+        Result := True;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
 function IsGB18030Duplicated(CP: TCnCodePoint): Boolean;
 var
   I: Integer;
@@ -594,13 +640,23 @@ begin
 end;
 
 function IsUnicodeEqual(CP1, CP2: TCnCodePoint): Boolean;
+var
+  D1, D2: TCnCodePoint;
+  Is2, Is3: Boolean;
 begin
   Result := CP1 = CP2;
   if not Result and (CP1 <> 0) then // 有 0 肯定不重码
   begin
-    // 判断重码字
-    CP1 := TCnCodePoint(FUnicodeDuplicateMap.Find(CP1));
-    Result := CP1 = CP2;
+    // 判断其中一个是否是二重码字
+    Is2 := IsUnicodeDuplicated(CP1, D1);
+    if Is2 then
+      Result := D1 = CP2  // 如果 CP1 是重码字，则判断 CP2 和另一重码是否相等
+    else  // 如果其中一个不是二重码字，说明还有三重码字的判断
+    begin
+      Is3 := IsUnicodeDuplicated3(CP1, D1, D2);
+      if Is3 then // C1 是三重码字，判断 CP2 和另俩重码是否相等
+        Result := (CP2 = D1) or (CP2 = D2);
+    end;
   end;
 end;
 
@@ -654,6 +710,53 @@ begin
   Result := FUnicodeDuplicateMap.Find(CP, C);
   if Result then
     Dup := TCnCodePoint(C);
+end;
+
+function IsUnicodeDuplicated3(CP: TCnCodePoint): Boolean;
+var
+  I, J: Integer;
+begin
+  Result := True;
+  for I := Low(CN_DUPLICATES_3_UNICODE) to High(CN_DUPLICATES_3_UNICODE) do
+  begin
+    // 遍历每个仨值组
+    for J := Low(CN_DUPLICATES_3_UNICODE[I]) to High(CN_DUPLICATES_3_UNICODE[I]) do
+    begin
+      if CP = CN_DUPLICATES_3_UNICODE[I][J] then
+        Exit;
+    end;
+  end;
+  Result := False;
+end;
+
+function IsUnicodeDuplicated3(CP: TCnCodePoint; out Dup1, Dup2: TCnCodePoint): Boolean;
+var
+  I: Integer;
+begin
+  Result := True;
+  for I := Low(CN_DUPLICATES_3_UNICODE) to High(CN_DUPLICATES_3_UNICODE) do
+  begin
+    // 遍历每个仨值组
+    if CP = CN_DUPLICATES_3_UNICODE[I][0] then
+    begin
+      Dup1 := CN_DUPLICATES_3_UNICODE[I][1];
+      Dup2 := CN_DUPLICATES_3_UNICODE[I][2];
+      Exit;
+    end
+    else if CP = CN_DUPLICATES_3_UNICODE[I][1] then
+    begin
+      Dup1 := CN_DUPLICATES_3_UNICODE[I][0];
+      Dup2 := CN_DUPLICATES_3_UNICODE[I][2];
+      Exit;
+    end
+    else if CP = CN_DUPLICATES_3_UNICODE[I][2] then
+    begin
+      Dup1 := CN_DUPLICATES_3_UNICODE[I][0];
+      Dup2 := CN_DUPLICATES_3_UNICODE[I][1];
+      Exit;
+    end;
+  end;
+  Result := False;
 end;
 
 function IsGB18030Char1(CP: TCnCodePoint): Boolean;

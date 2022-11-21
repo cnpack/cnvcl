@@ -55,6 +55,7 @@ type
     btnGenGB18030PagePartly2: TButton;
     btnUnicodeIsDup: TButton;
     btnCompareUnicodeString: TButton;
+    btnCompareUnicodeString2: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -91,6 +92,7 @@ type
     procedure btnGenGB18030PagePartly2Click(Sender: TObject);
     procedure btnUnicodeIsDupClick(Sender: TObject);
     procedure btnCompareUnicodeStringClick(Sender: TObject);
+    procedure btnCompareUnicodeString2Click(Sender: TObject);
   private
     // 以 Windows API 的方式批量生成 256 个 Unicode 字符
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
@@ -1898,6 +1900,33 @@ begin
   S2[1] := #$6211;
   S2[2] := #$662F;
   S2[3] := #$4DAE; // 飞龙在天的正式 Unicode 码
+  S2[4] := #$5B57;
+
+  ShowMessage(S1);
+  ShowMessage(S2);
+
+  if CnCompareUnicodeString(PWideChar(S1), PWideChar(S2)) then
+    ShowMessage('Equal')
+  else
+    ShowMessage('NOT Equal');
+end;
+
+procedure TFormGB18030.btnCompareUnicodeString2Click(Sender: TObject);
+var
+  S1, S2: WideString;
+begin
+  SetLength(S1, 4);
+  SetLength(S2, 4);
+
+  // 我是*字
+  S1[1] := #$6211;
+  S1[2] := #$662F;
+  S1[3] := #$F429; // 提手旁为的 PUA2 码
+  S1[4] := #$5B57;
+
+  S2[1] := #$6211;
+  S2[2] := #$662F;
+  S2[3] := #$39D1; // 提手旁为的正式 Unicode 码
   S2[4] := #$5B57;
 
   ShowMessage(S1);

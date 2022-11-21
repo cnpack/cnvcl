@@ -315,12 +315,21 @@ object FormGB18030: TFormGB18030
     end
     object btnCompareUnicodeString: TButton
       Left = 320
+      Top = 192
+      Width = 121
+      Height = 25
+      Caption = 'Compare Unicode 2'
+      TabOrder = 19
+      OnClick = btnCompareUnicodeStringClick
+    end
+    object btnCompareUnicodeString2: TButton
+      Left = 320
       Top = 224
       Width = 121
       Height = 25
-      Caption = 'Compare Unicode'
-      TabOrder = 19
-      OnClick = btnCompareUnicodeStringClick
+      Caption = 'Compare Unicode 3'
+      TabOrder = 20
+      OnClick = btnCompareUnicodeString2Click
     end
   end
   object grpTestU2GB: TGroupBox
