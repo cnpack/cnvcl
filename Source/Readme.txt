@@ -62,6 +62,9 @@ cnpack\Source 目录内容说明：
   CnFmxUtils.pas
     FMX 辅助库单元
 
+  CnGB18030.pas
+    支持 GB18030 中文大字符集处理以及与 Unicode 互相转换的工具单元
+
   CnGraph.pas
     有向图与无向图实现单元
 
