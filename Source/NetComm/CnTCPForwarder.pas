@@ -28,7 +28,9 @@ unit CnTCPForwarder;
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.11.15 V1.1
+* 修改记录：2022.11.24 V1.1
+*                自定义数据允许在原始区域缩减，也允许使用新区域，新区域由调用者释放
+*           2022.11.15 V1.1
 *                加入自定义数据的功能
 *           2020.02.25 V1.0
 *                创建单元
@@ -44,10 +46,12 @@ uses
   CnThreadingTCPServer, CnTCPClient;
 
 type
-  TCnForwarderEvent = procedure (Sender: TObject; Buf: Pointer; var DataSize: Integer) of object;
+  TCnForwarderEvent = procedure (Sender: TObject; Buf: Pointer; var DataSize: Integer;
+    var NewBuf: Pointer; var NewDataSize: Integer) of object;
   {* 转发时触发的数据事件。原始数据存在 Buf 所指的区域，长度为 DataSize
-    事件处理者可以针对这片区域重新填充并调整数据长度，注意不可超过原有的 DataSize
-    如将 DataSize 置 0，表示抛弃本次数据}
+    事件处理者可以针对这片区域重新填充并调整数据长度（此时无需处理 NewBuf 与 NewDataSize），
+    注意不可超过原有的 DataSize。如将 DataSize 置 0，表示抛弃本次数据
+    如果事件处理者设置了 NewBuf 和 NewDataSize，表示使用新起的一片数据，原始数据抛弃}
 
   TCnTCPForwarder = class(TCnThreadingTCPServer)
   {* TCP 端口转发组件，对每个客户端连接起两个线程}
@@ -66,8 +70,10 @@ type
     {* 子类重载使用 TCnTCPForwardThread}
 
     procedure DoRemoteConnected; virtual;
-    procedure DoServerData(Buf: Pointer; var DataSize: Integer); virtual;
-    procedure DoClientData(Buf: Pointer; var DataSize: Integer); virtual;
+    procedure DoServerData(Buf: Pointer; var DataSize: Integer;
+      var NewBuf: Pointer; var NewDataSize: Integer); virtual;
+    procedure DoClientData(Buf: Pointer; var DataSize: Integer;
+      var NewBuf: Pointer; var NewDataSize: Integer); virtual;
   published
     property RemoteHost: string read FRemoteHost write SetRemoteHost;
     {* 转发的远程主机}
@@ -78,9 +84,9 @@ type
     {* 连接上远程服务器时触发}
 
     property OnServerData: TCnForwarderEvent read FOnServerData write FOnServerData;
-    {* 远程主机来数据时处理}
+    {* 远程主机来数据时处理。允许处理原始数据，也允许传入新的数据块，后者由调用者负责释放}
     property OnClientData: TCnForwarderEvent read FOnClientData write FOnClientData;
-    {* 客户端来数据时处理}
+    {* 客户端来数据时处理。允许处理原始数据，也允许传入新的数据块，后者由调用者负责释放}
   end;
 
 implementation
@@ -117,11 +123,11 @@ type
 
 { TCnTCPForwarder }
 
-procedure TCnTCPForwarder.DoClientData(Buf: Pointer;
-  var DataSize: Integer);
+procedure TCnTCPForwarder.DoClientData(Buf: Pointer; var DataSize: Integer;
+  var NewBuf: Pointer; var NewDataSize: Integer);
 begin
   if Assigned(FOnClientData) then
-    FOnClientData(Self, Buf, DataSize);
+    FOnClientData(Self, Buf, DataSize, NewBuf, NewDataSize);
 end;
 
 function TCnTCPForwarder.DoGetClientThread: TCnTCPClientThread;
@@ -135,11 +141,11 @@ begin
     FOnRemoteConnected(Self);
 end;
 
-procedure TCnTCPForwarder.DoServerData(Buf: Pointer;
-  var DataSize: Integer);
+procedure TCnTCPForwarder.DoServerData(Buf: Pointer; var DataSize: Integer;
+  var NewBuf: Pointer; var NewDataSize: Integer);
 begin
   if Assigned(FOnServerData) then
-    FOnServerData(Self, Buf, DataSize);
+    FOnServerData(Self, Buf, DataSize, NewBuf, NewDataSize);
 end;
 
 procedure TCnTCPForwarder.GetComponentInfo(var AName, Author, Email,
@@ -173,7 +179,8 @@ var
   Client: TCnForwarderClientSocket;
   Forwarder: TCnTCPForwarder;
   Buf: array[0..FORWARDER_BUF_SIZE - 1] of Byte;
-  Ret: Integer;
+  NewBuf: Pointer;
+  Ret, NewSize: Integer;
   SockAddr: TSockAddr;
   ReadFds: TFDSet;
 begin
@@ -225,8 +232,19 @@ begin
       end;
 
       // 给外界一个处理数据的机会
-      TCnTCPForwarder(Client.Server).DoClientData(@Buf[0], Ret);
-      if Ret > 0 then // 如果处理后还有数据就发
+      NewBuf := nil;
+      NewSize := 0;
+      TCnTCPForwarder(Client.Server).DoClientData(@Buf[0], Ret, NewBuf, NewSize);
+      if (NewBuf <> nil) and (NewSize > 0) then // 如果有新数据就发
+      begin
+        Ret := Client.RemoteSend(NewBuf^, NewSize); // 发到服务端
+        if Ret <= 0 then
+        begin
+          Client.Shutdown;
+          Exit;
+        end;
+      end
+      else if Ret > 0 then // 如果处理后还有原始数据就发
       begin
         Ret := Client.RemoteSend(Buf, Ret); // 发到服务端
         if Ret <= 0 then
@@ -247,8 +265,19 @@ begin
       end;
 
       // 给外界一个处理数据的机会
-      TCnTCPForwarder(Client.Server).DoServerData(@Buf[0], Ret);
-      if Ret > 0 then // 如果处理后还有数据就发
+      NewBuf := nil;
+      NewSize := 0;
+      TCnTCPForwarder(Client.Server).DoServerData(@Buf[0], Ret, NewBuf, NewSize);
+      if (NewBuf <> nil) and (NewSize > 0) then // 如果有新数据就发
+      begin
+        Ret := Client.Send(NewBuf^, NewSize); // 发到客户端
+        if Ret <= 0 then
+        begin
+          Client.Shutdown;
+          Exit;
+        end;
+      end
+      else if Ret > 0 then // 如果处理后还有数据就发
       begin
         Ret := Client.Send(Buf, Ret); // 发到客户端
         if Ret <= 0 then
