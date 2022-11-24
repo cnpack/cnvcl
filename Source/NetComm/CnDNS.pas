@@ -28,7 +28,9 @@ unit CnDNS;
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：PWinXP/7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.03.04 V1.0
+* 修改记录：2022.11.24 V1.1
+*                修正解析数据时如果末块下一个指向自己时导致无限递归堆栈溢出的问题
+*           2019.03.04 V1.0
 *                创建单元
 ================================================================================
 |</PRE>}
@@ -440,6 +442,9 @@ begin
           Exit;
 
         Idx := (Word(B and $3F) shl 8) or Word(PB^);
+        if Base + Idx = StrData then  // 避免下一个指向本块，导致无限递归
+          Exit;
+
         ParseIndexedString(StrResult, Base, Base + Idx);
         Inc(PB);
         Inc(Result);         // 指向下一个 2 字节
@@ -457,7 +462,7 @@ begin
         if Result >= MaxLen then
           raise ECnDNSException.Create(SCnDNSTooLong);
 
-        CopyMemory(@Str[2], PB, Len); // Str 内容塞为 .xxxxx 这种
+        Move(PB^, Str[2], Len);       // Str 内容塞为 .xxxxx 这种
 
         Inc(PB, Len);            // PB 指向下一个长度或索引位置
         Inc(Result, Len);
@@ -492,6 +497,9 @@ begin
         Inc(Result);
 
         Idx := (Word(B and $3F) shl 8) or Word(PB^);
+        if Base + Idx = StrData then  // 避免下一个指向本块，导致无限递归
+          Exit;
+
         ParseIndexedString(StrResult, Base, Base + Idx);
         Inc(PB);
         Inc(Result);         // 指向下一个 2 字节
@@ -509,7 +517,7 @@ begin
 
         Inc(PB);                 // PB 指向本轮字符串，Len 为长度
         Inc(Result);
-        CopyMemory(@Str[2], PB, Len); // Str 内容塞为 .xxxxx 这种
+        Move(PB^, Str[2], Len);  // Str 内容塞为 .xxxxx 这种
 
         Inc(PB, Len);            // PB 指向下一个长度或索引位置
         Inc(Result, Len);
