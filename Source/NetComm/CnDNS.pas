@@ -24,7 +24,7 @@ unit CnDNS;
 * 软件名称：网络通讯组件包
 * 单元名称：DNS 解析处理单元
 * 单元作者：CnPack开发组 Liu Xiao
-* 备    注：
+* 备    注：基于 RFC 1035
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：PWinXP/7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -58,9 +58,13 @@ type
     FQType: Word;
   public
     procedure DumpToStrings(List: TStrings);
+
     property QName: string read FQName write FQName;
+    {* 域名，查询用}
     property QType: Word read FQType write FQType;
+    {* 资源类型}
     property QClass: Word read FQClass write FQClass;
+    {* 网络类别}
   end;
 
   TCnDNSResourceRecord = class
@@ -77,13 +81,20 @@ type
     procedure DumpToStrings(List: TStrings);
 
     property RName: string read FRName write FRName;
+    {* 域名，应答用}
     property RType: Word read FRType write FRType;
+    {* 资源类型，对应 QTYPE}
     property RClass: Word read FRClass write FRClass;
+    {* 网络类别，对应 QCLASS}
     property TTL: LongWord read FTTL write FTTL;
+    {* Time to Live}
     property RDLength: Word read FRDLength write FRDLength;
+    {* 资源数据长度}
 
     property IP: LongWord read FIP write FIP;
+    {* IP 地址}
     property RDString: string read FRDString write FRDString;
+    {* 资源数据，可以是域名等}
   end;
 
   TCnDNSPacketObject = class
@@ -123,25 +134,44 @@ type
     procedure DumpToStrings(List: TStrings);
 
     property Id: Word read FId write FId;
+    {* 查询应答的 16 位 ID}
     property QR: Integer read FQR write FQR;
+    {* 报文类型，0 查询、1 应答}
     property OpCode: Integer read FOpCode write FOpCode;
+    {* 查询类型，0 标准、1 反向、2 服务器状态}
     property AA: Boolean read FAA write FAA;
+    {* 授权应答标志，应答用，1 表示服务器有授权}
     property TC: Boolean read FTC write FTC;
+    {* 截断标志，1 表示本包被截断}
     property RD: Boolean read FRD write FRD;
+    {* 期望递归，查询用，1 表示客户端需要递归}
     property RA: Boolean read FRA write FRA;
+    {* 递归可用，应答用，1 表示可得到递归应答}
     property RCode: Integer read FRCode write FRCode;
+    {* 返回码，0 ~ 5，0 表示没错}
 
     property QD[Index: Integer]: TCnDNSQuestion read GetQD;
+    {* 查询对象列表}
     property AN[Index: Integer]: TCnDNSResourceRecord read GetAN;
+    {* 应答对象列表}
     property NS[Index: Integer]: TCnDNSResourceRecord read GetNS;
+    {* 域名服务器列表}
     property AR[Index: Integer]: TCnDNSResourceRecord read GetAR;
+    {* 附加信息对象列表}
 
     property IsQuery: Boolean read FIsQuery write FIsQuery;
+    {* 是否是查询包}
     property IsResponse: Boolean read FIsResponse write FIsResponse;
+    {* 是否是应答包}
+
     property QDCount: Integer read FQDCount write FQDCount;
+    {* 查询的数量}
     property ANCount: Integer read FANCount write FANCount;
+    {* 应答的数量}
     property NSCount: Integer read FNSCount write FNSCount;
+    {* 域名服务器的数量}
     property ARCount: Integer read FARCount write FARCount;
+    {* 附加信息的数量}
   end;
 
   TCnDNSResponseEvent = procedure(Sender: TObject; Response: TCnDNSPacketObject) of object;

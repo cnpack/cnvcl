@@ -84,9 +84,9 @@ type
     {* 连接上远程服务器时触发}
 
     property OnServerData: TCnForwarderEvent read FOnServerData write FOnServerData;
-    {* 远程主机来数据时处理。允许处理原始数据，也允许传入新的数据块，后者由调用者负责释放}
+    {* 远程主机来数据时处理。允许处理原始数据，也允许传入新的数据块，后者由调用者负责分配与释放}
     property OnClientData: TCnForwarderEvent read FOnClientData write FOnClientData;
-    {* 客户端来数据时处理。允许处理原始数据，也允许传入新的数据块，后者由调用者负责释放}
+    {* 客户端来数据时处理。允许处理原始数据，也允许传入新的数据块，后者由调用者负责分配与释放}
   end;
 
 implementation

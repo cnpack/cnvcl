@@ -358,6 +358,7 @@ const
   CN_DNS_TYPE_MINFO                         = 14;  // mailbox or mail list information
   CN_DNS_TYPE_MX                            = 15;  // mail exchange
   CN_DNS_TYPE_TXT                           = 16;  // text strings
+  CN_DNS_TYPE_SRV                           = 33;  // Service 类型，RFC 2052 中新增，用于 mDNS 服务发现等场合
 
   CN_DNS_QTYPE_AXFR                         = 252; // A request for a transfer of an entire zone
   CN_DNS_QTYPE_MAILB                        = 253; // A request for mailbox-related records (MB, MG or MR)
@@ -753,7 +754,7 @@ type
 
   TCnDNSHeader = packed record
     Id:                    Word;     // 请求时客户端设置的 16 位标识符，服务器给出应答的时候会带相同的标识字段
-    QrOpcodeAATCRD:        Byte;     // 请求应答、查询种类、授权应答、截断、期望递归、
+    QrOpcodeAATCRD:        Byte;     // 请求应答、查询种类、授权应答、截断、期望递归
     RAZRCode:              Byte;     // 支持递归、保留、应答码
     QDCount:               Word;     // 报文请求段中的问题记录数
     ANCount:               Word;     // 报文回答段中的问题记录数
@@ -876,7 +877,7 @@ type
   TCnSocksUsernamePasswordSubNegotiationRequest = packed record
     Version:               Byte;
     UsernameLen:           Byte;
-    Username:              array[0..255] of AnsiChar; // 255 是最大长度，并非真实长度
+    Username:              array[1..255] of AnsiChar; // 255 是最大长度，并非真实长度
     PasswordLen:           Byte;
     Password:              array[1..255] of AnsiChar; // 255 是最大长度，并非真实长度
   end;

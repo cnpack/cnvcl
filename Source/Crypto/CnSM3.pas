@@ -50,9 +50,9 @@ type
   TSM3Context = packed record
     Total: array[0..1] of Cardinal;     {!< number of bytes processed  }
     State: array[0..8] of Cardinal;     {!< intermediate digest state  }
-    Buffer: array[0..63] of Byte;            {!< data block being processed }
-    Ipad: array[0..63] of Byte;              {!< HMAC: inner padding        }
-    Opad: array[0..63] of Byte;              {!< HMAC: outer padding        }
+    Buffer: array[0..63] of Byte;       {!< data block being processed }
+    Ipad: array[0..63] of Byte;         {!< HMAC: inner padding        }
+    Opad: array[0..63] of Byte;         {!< HMAC: outer padding        }
   end;
   PSM3Context = ^TSM3Context;
 

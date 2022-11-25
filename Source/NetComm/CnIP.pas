@@ -23,9 +23,9 @@ unit CnIP;
 ================================================================================
 * 软件名称：网络通讯组件包
 * 单元名称：IP 基础函数实现单元
-* 单元作者：胡昌洪Sesame (sesamehch@163.com)
+* 单元作者：胡昌洪 Sesame (sesamehch@163.com)
 * 备    注：
-*           收集整理了网络使用IP时常见的实现函数,增加IP地址计算功能
+*           收集整理了网络使用 IP 时常见的实现函数,增加 IP 地址计算功能
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -115,7 +115,7 @@ type
     procedure SetSubnetMask(const Value: string);
     function GetHosts: Cardinal;
     class function GetIPNotes(const aIP: string; var aResult: TIPNotes): Boolean;
-    {* 分解IP地址各结点,IP错误时将抛出错误信息}
+    {* 分解 IP 地址各结点，IP 错误时将抛出错误信息}
     function GetLocalIPCount: Integer;
     function GetComputerName: string;
     function GetMacAddress: string;
@@ -123,41 +123,41 @@ type
     procedure GetComponentInfo(var AName, Author, Email, Comment: string);
       override;
     function EnumLocalIP(var aLocalIP: TIPGroup): Integer;
-    {* 枚举本机所有IP及其子网掩码等,返回值为IP地址数}
+    {* 枚举本机所有 IP 及其子网掩码等，返回值为 IP 地址数}
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     property LocalIPGroup: TIPGroup read FLocalIPs;
-    {* 本机IP地址相关信息, 包含本机实际IP及127.0.0.1}
+    {* 本机 IP 地址相关信息，包含本机实际 IP 及 127.0.0.1}
     property LocalIPCount: Integer read GetLocalIPCount;
-    {* 本机IP地址数,已经排除127.0.0.1}
+    {* 本机 IP 地址数，已经排除 127.0.0.1}
     class function IPTypeCheck(const aIP: string): TIP_NetType;
-    {* 检查IP地址类型以及是否合法}
+    {* 检查 IP 地址类型以及是否合法}
     class function IPToInt(const aIP: string): Cardinal;
-    {* 转换IP地址为整数}
+    {* 转换 IP 地址为整数}
     class function IntToIP(const aIP: Cardinal): string;
-    {* 转换整数为IP地址}
+    {* 转换整数为 IP 地址}
     function NextIP(const aIP: string): string;
-    {* 取下一个IP地址}
+    {* 取下一个 IP 地址}
     function PrevIP(const aIP: string): string;
-    {* 取前一个IP地址}
+    {* 取前一个 IP 地址}
     function GetIpNum(const aStartIP, aEndIP: string): Integer;
-    {* 计算两个IP地址之间的IP数}
+    {* 计算两个 IP 地址之间的 IP 数}
     property Hosts: Cardinal read GetHosts;
-    {* 返回指定的IP地址和子网掩码时主机数}
+    {* 返回指定的 IP 地址和子网掩码时主机数}
     function GetIPByName(var aIp: string; const aName: string = ''): Boolean;
-    {* 通过主机名称得到IP, aName=''表示取本机名称}
+    {* 通过主机名称得到 IP，aName='' 表示取本机名称}
     function GetNameByIP(var aName: string; const aIP: string = ''): Boolean;
-    {* 通过IP得到主机名称, aIpAddr=''表示取本机IP}
+    {* 通过 IP 得到主机名称，aIpAddr='' 表示取本机 IP}
   published
     property IPAddress: string read GetIPAddress write SetIPAddress;
-    {* IP地址字符串形式,默认为本机 IP 地址}
+    {* IP 地址字符串形式,默认为本机 IP 地址}
     property SubnetMask: string read GetSubnetMask write SetSubnetMask;
-    {* IP地址的子网掩码}
+    {* IP 地址的子网掩码}
     property ComputerName: string read GetComputerName;
     {* 本机名称}
     property MacAddress: string read GetMacAddress;
-    {* 本机Mac地址}
+    {* 本机 Mac 地址}
     property BroadCastIP: string read GetBroadCastIP;
     {* 广播地址}
   end;
