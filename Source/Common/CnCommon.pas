@@ -912,6 +912,9 @@ procedure EndWait;
 function CheckWindows9598: Boolean;
 {* 检测是否 Windows 95/98 平台}
 
+function CheckWindowsNT: Boolean;
+{* 检测是否 WinNT 平台}
+
 function CheckWinXP: Boolean;
 {* 检测是否 Windows XP 或以上平台}
 
@@ -6770,6 +6773,18 @@ begin
   Result := False;
   if not GetVersionEx(V) then Exit;
   if V.dwPlatformId = VER_PLATFORM_WIN32_WINDOWS then
+    Result := True;
+end;
+
+// 检测是否 WinNT 平台
+function CheckWindowsNT: Boolean;
+var
+  V: TOSVersionInfo;
+begin
+  V.dwOSVersionInfoSize := SizeOf(V);
+  Result := False;
+  if not GetVersionEx(V) then Exit;
+  if (V.dwPlatformId = VER_PLATFORM_WIN32_NT) and ((V.dwMajorVersion = 3) or (V.dwMajorVersion = 4)) then
     Result := True;
 end;
 
