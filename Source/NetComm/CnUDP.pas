@@ -107,11 +107,13 @@ type
     procedure SetUDPSendBufSize(const Value: Cardinal);
   protected
     procedure Wait;
-    procedure UpdateBinding;
     procedure Loaded; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
+    procedure UpdateBinding;
+    {* 实施具体绑定端口并监听}
 
     function SendStream(DataStream: TStream; BroadCast: Boolean = False): Boolean;
     {* 发送一个数据流。如果 BroadCase 为真，执行 UDP 广播，否则发送数据到

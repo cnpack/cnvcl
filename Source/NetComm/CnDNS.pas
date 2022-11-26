@@ -71,11 +71,11 @@ type
   {* 代表一个 DNS 包中的 Resource Record 类型的记录}
   private
     FRDLength: Word;
-    FTTL: LongWord;
+    FTTL: Cardinal;
     FRName: string;
     FRType: Word;
     FRClass: Word;
-    FIP: LongWord;
+    FIP: Cardinal;
     FRDString: string;
   public
     procedure DumpToStrings(List: TStrings);
@@ -86,12 +86,12 @@ type
     {* 资源类型，对应 QTYPE}
     property RClass: Word read FRClass write FRClass;
     {* 网络类别，对应 QCLASS}
-    property TTL: LongWord read FTTL write FTTL;
+    property TTL: Cardinal read FTTL write FTTL;
     {* Time to Live}
     property RDLength: Word read FRDLength write FRDLength;
     {* 资源数据长度}
 
-    property IP: LongWord read FIP write FIP;
+    property IP: Cardinal read FIP write FIP;
     {* IP 地址}
     property RDString: string read FRDString write FRDString;
     {* 资源数据，可以是域名等}
@@ -230,10 +230,7 @@ implementation
 uses
   CnNative;
 
-type
-  TCnUDPHack = class(TCnUDP);
-
-{ TCnDNSPacket }
+{ TCnDNSPacketObject }
 
 function TCnDNSPacketObject.AddAdditionalRecord: TCnDNSResourceRecord;
 begin
@@ -611,7 +608,7 @@ var
       Resource.RClass := UInt16NetworkToHost(H^.RClass);
       Resource.TTL := UInt32NetworkToHost(H^.TTL);
       Resource.RDLength := UInt16NetworkToHost(H^.RDLength);
-      if Resource.RDLength = SizeOf(LongWord) then
+      if Resource.RDLength = SizeOf(Cardinal) then
       begin
         // 4 字节的应答数据是 IP 地址
         Resource.IP := UInt32NetworkToHost((PDWORD(@H^.RData[0]))^);
