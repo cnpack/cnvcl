@@ -55,7 +55,7 @@ type
 
 { TCnUDP }
 
-  TOnReceive = procedure(Sender: TComponent; Buffer: Pointer; Len: Integer;
+  TCnOnDataReceived = procedure(Sender: TComponent; Buffer: Pointer; Len: Integer;
     FromIP: string; Port: Integer) of object;
   {* 接收到数据事件
    |<PRE>
@@ -73,7 +73,7 @@ type
     FRemotePort: Integer;
     FLocalPort: Integer;
     FSocketWindow: HWND;
-    FOnDataReceived: TOnReceive;
+    FOnDataReceived: TCnOnDataReceived;
     FListening: Boolean;
     Wait_Flag: Boolean;
     RemoteAddress: TSockAddr;
@@ -153,7 +153,7 @@ type
     {* UDP 发送的数据缓冲区大小}
     property UDPRecvBufSize: Cardinal read FUDPRecvBufSize write SetUDPRecvBufSize default csDefUDPRecvBuffSize;
     {* UDP 接收的数据缓冲区大小}
-    property OnDataReceived: TOnReceive read FOnDataReceived write
+    property OnDataReceived: TCnOnDataReceived read FOnDataReceived write
       FOnDataReceived;
     {* 接收到 UDP 数据包事件}
   end;
