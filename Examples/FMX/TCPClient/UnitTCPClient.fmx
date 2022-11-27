@@ -1,0 +1,101 @@
+object FormTCPClient: TFormTCPClient
+  Left = 277
+  Top = 183
+  BorderStyle = Single
+  Caption = 'TCP Client'
+  ClientHeight = 630
+  ClientWidth = 726
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  Left = 277
+  Top = 183
+  DesignerMasterStyle = 0
+  object lblIP: TLabel
+    Position.X = 24.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 25.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Host:'
+  end
+  object lblPort: TLabel
+    Position.X = 24.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Width = 19.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Port'
+  end
+  object edtHost: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 0
+    Text = '127.0.0.1'
+    Position.X = 56.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object edtPort: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 1
+    Text = '30841'
+    Position.X = 56.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnOpen: TButton
+    Position.X = 208.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 57.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = 'Connect'
+    OnClick = btnOpenClick
+  end
+  object mmoResult: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    ReadOnly = True
+    TextSettings.WordWrap = True
+    Position.X = 24.000000000000000000
+    Position.Y = 96.000000000000000000
+    Size.Width = 673.000000000000000000
+    Size.Height = 505.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Viewport.Width = 669.000000000000000000
+    Viewport.Height = 501.000000000000000000
+  end
+  object mmoContent: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    Lines.Strings = (
+      'Test!')
+    TextSettings.WordWrap = True
+    Position.X = 376.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 185.000000000000000000
+    Size.Height = 57.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Viewport.Width = 181.000000000000000000
+    Viewport.Height = 53.000000000000000000
+  end
+  object btnSend: TButton
+    Position.X = 584.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 113.000000000000000000
+    Size.Height = 57.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Text = 'Send'
+    OnClick = btnSendClick
+  end
+end

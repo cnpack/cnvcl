@@ -29,7 +29,9 @@ unit CnTCPClient;
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.02.22 V1.0
+* 修改记录：2022.02.22 V1.1
+*                加入跨平台的支持，待测试
+*           2020.02.22 V1.0
 *                创建单元
 ================================================================================
 |</PRE>}
@@ -39,9 +41,26 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, Contnrs, WinSock, CnConsts, CnNetConsts, CnClasses;
+  SysUtils, Classes, Contnrs,
+{$IFDEF MSWINDOWS}
+  Windows,  WinSock,
+{$ELSE}
+  System.Net.Socket, Posix.NetinetIn, Posix.SysSocket, Posix.Unistd, Posix.ArpaInet,
+{$ENDIF}
+  CnConsts, CnNetConsts, CnClasses;
+
+{$IFNDEF MSWINDOWS}
+const
+  SOCKET_ERROR = -1;
+  INVALID_SOCKET = -1;
+{$ENDIF}
 
 type
+{$IFNDEF MSWINDOWS}
+  TSocket = Integer;
+  TSockAddr = sockaddr_in;
+{$ENDIF}
+
   ECnClientSocketError = class(Exception);
 
   TCnClientSocketErrorEvent = procedure (Sender: TObject; SocketError: Integer) of object;
@@ -107,8 +126,17 @@ type
 
 implementation
 
+{$IFDEF MSWINDOWS}
 var
   WSAData: TWSAData;
+{$ELSE}
+
+function closesocket(Socket: TSocketHandle): Integer; inline;
+begin
+  Result := Posix.Unistd.__close(Socket);
+end;
+
+{$ENDIF}
 
 { TCnTCPClient }
 
@@ -118,7 +146,13 @@ begin
   if ResultCode = SOCKET_ERROR then
   begin
     if Assigned(FOnError) then
+    begin
+{$IFDEF MSWINDOWS}
       FOnError(Self, WSAGetLastError);
+{$ELSE}
+      FOnError(Self, GetLastError);
+{$ENDIF};
+    end;
   end;
 end;
 
@@ -128,12 +162,21 @@ begin
   begin
     if FConnected then
     begin
+{$IFDEF MSWINDOWS}
       CheckSocketError(WinSock.shutdown(FSocket, 2)); // SD_BOTH
+{$ELSE}
+      CheckSocketError(shutdown(FSocket, 2)); // SD_BOTH
+{$ENDIF}
       FConnected := False;
       DoDisconnect;
     end;
 
+{$IFDEF MSWINDOWS}
     CheckSocketError(WinSock.closesocket(FSocket));
+{$ELSE}
+    CheckSocketError(closesocket(FSocket));
+{$ENDIF}
+
     FSocket := INVALID_SOCKET;
     FActive := False;
   end;
@@ -173,9 +216,12 @@ begin
 end;
 
 class function TCnTCPClient.LookupHostAddr(const HostName: string): string;
+{$IFDEF MSWINDOWS}
 var
   H: PHostEnt;
+{$ENDIF}
 begin
+{$IFDEF MSWINDOWS}
   Result := '';
   if HostName <> '' then
   begin
@@ -195,15 +241,23 @@ begin
   end
   else
     Result := '0.0.0.0';
+{$ELSE}
+  Result := TIPAddress.LookupName(HostName).Address;
+{$ENDIF}
 end;
 
 procedure TCnTCPClient.Open;
 var
-  SockAddr: TSockAddr;
+  SockAddress: TSockAddr;
 begin
   if not FActive then
   begin
+{$IFDEF MSWINDOWS}
     FSocket := CheckSocketError(WinSock.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
+{$ELSE}
+    FSocket := CheckSocketError(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
+{$ENDIF}
+
     FActive := FSocket <> INVALID_SOCKET;
 
     if FActive and not FConnected then
@@ -211,10 +265,16 @@ begin
       FBytesReceived := 0;
       FBytesSent := 0;
 
-      SockAddr.sin_family := AF_INET;
-      SockAddr.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(LookupHostAddr(FRemoteHost))));
-      SockAddr.sin_port := ntohs(FRemotePort);
-      FConnected := CheckSocketError(WinSock.connect(FSocket, SockAddr, SizeOf(SockAddr))) = 0;
+      SockAddress.sin_family := AF_INET;
+      SockAddress.sin_port := ntohs(FRemotePort);
+
+{$IFDEF MSWINDOWS}
+      SockAddress.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(LookupHostAddr(FRemoteHost))));
+      FConnected := CheckSocketError(WinSock.connect(FSocket, SockAddress, SizeOf(SockAddress))) = 0;
+{$ELSE}
+      SockAddress.sin_addr := TIPAddress.LookupName(FRemoteHost);
+      FConnected := CheckSocketError(connect(FSocket, sockaddr(SockAddress), SizeOf(SockAddress))) = 0;
+{$ENDIF}
 
       if FConnected then
         DoConnect;
@@ -224,7 +284,12 @@ end;
 
 function TCnTCPClient.Recv(var Buf; Len, Flags: Integer): Integer;
 begin
+{$IFDEF MSWINDOWS}
   Result := CheckSocketError(WinSock.recv(FSocket, Buf, Len, Flags));
+{$ELSE}
+  Result := CheckSocketError(Posix.SysSocket.recv(FSocket, Buf, Len, Flags));
+{$ENDIF}
+
   if Result <> SOCKET_ERROR then
   begin
     if Result = 0 then
@@ -236,7 +301,12 @@ end;
 
 function TCnTCPClient.Send(var Buf; Len, Flags: Integer): Integer;
 begin
+{$IFDEF MSWINDOWS}
   Result := CheckSocketError(WinSock.send(FSocket, Buf, Len, Flags));
+{$ELSE}
+  Result := CheckSocketError(Posix.SysSocket.send(FSocket, Buf, Len, Flags));
+{$ENDIF}
+
   if Result <> SOCKET_ERROR then
     Inc(FBytesSent, Result);
 end;
@@ -265,6 +335,8 @@ begin
   FRemotePort := Value;
 end;
 
+{$IFDEF MSWINDOWS}
+
 procedure Startup;
 var
   ErrorCode: Integer;
@@ -288,5 +360,7 @@ initialization
 
 finalization
   Cleanup;
+
+{$ENDIF}
 
 end.
