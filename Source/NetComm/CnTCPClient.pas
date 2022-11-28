@@ -151,15 +151,16 @@ begin
   begin
     if FConnected then
     begin
+      FConnected := False;
 {$IFDEF MSWINDOWS}
       CheckSocketError(WinSock.shutdown(FSocket, 2)); // SD_BOTH
 {$ELSE}
       CheckSocketError(shutdown(FSocket, 2)); // SD_BOTH
 {$ENDIF}
-      FConnected := False;
       DoDisconnect;
     end;
 
+    FActive := False;
 {$IFDEF MSWINDOWS}
     CheckSocketError(WinSock.closesocket(FSocket));
 {$ELSE}
@@ -167,7 +168,6 @@ begin
 {$ENDIF}
 
     FSocket := INVALID_SOCKET;
-    FActive := False;
   end;
 end;
 
