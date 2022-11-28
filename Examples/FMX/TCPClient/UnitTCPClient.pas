@@ -53,6 +53,9 @@ implementation
 
 {$R *.fmx}
 
+uses
+  CnNetwork;
+
 { TFormTCPClient }
 
 procedure TFormTCPClient.Log(const Msg: string);

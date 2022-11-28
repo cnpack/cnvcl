@@ -47,20 +47,9 @@ uses
 {$ELSE}
   System.Net.Socket, Posix.NetinetIn, Posix.SysSocket, Posix.Unistd, Posix.ArpaInet,
 {$ENDIF}
-  CnConsts, CnNetConsts, CnClasses;
-
-{$IFNDEF MSWINDOWS}
-const
-  SOCKET_ERROR = -1;
-  INVALID_SOCKET = -1;
-{$ENDIF}
+  CnConsts, CnNetConsts, CnNetwork, CnClasses;
 
 type
-{$IFNDEF MSWINDOWS}
-  TSocket = Integer;
-  TSockAddr = sockaddr_in;
-{$ENDIF}
-
   ECnClientSocketError = class(Exception);
 
   TCnClientSocketErrorEvent = procedure (Sender: TObject; SocketError: Integer) of object;
@@ -248,7 +237,7 @@ end;
 
 procedure TCnTCPClient.Open;
 var
-  SockAddress: TSockAddr;
+  SockAddress: TCnSockAddr;
 begin
   if not FActive then
   begin

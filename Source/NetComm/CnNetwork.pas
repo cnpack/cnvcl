@@ -40,9 +40,20 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows;
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ELSE}, Posix.NetinetIn {$ENDIF};
+
+{$IFNDEF MSWINDOWS}
+type
+  TSocket = Integer;
+  TCnSockAddr = sockaddr_in;
+{$ENDIF}
 
 const
+{$IFNDEF MSWINDOWS}
+  SOCKET_ERROR   = -1;
+  INVALID_SOCKET = -1;
+{$ENDIF}
+
   {* IP 包头中的版本字段的定义}
   CN_IP_VERSION_V4                          = 4;
   CN_IP_VERSION_V6                          = 6;
@@ -1742,7 +1753,7 @@ end;
 
 function CnConvertNTPTimestampToDateTime(Stamp: Int64): TDateTime;
 var
-  Sec, Frac: DWORD;
+  Sec, Frac: Cardinal;
 begin
   Stamp := Int64NetworkToHost(Stamp);
   Sec := Int64Rec(Stamp).Hi;
@@ -1756,7 +1767,7 @@ end;
 function CnConvertDateTimeToNTPTimestamp(ADateTime: TDateTime): Int64;
 var
   H, M, S, Ms: Word;
-  Sec, Frac: DWORD;
+  Sec, Frac: Cardinal;
 begin
   // Sec 的秒数从 1900年1月1日0点开始，但 TDateTime 的日数从1899年12月30日0点开始，差两天
   ADateTime := ADateTime - 2;
