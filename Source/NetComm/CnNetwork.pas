@@ -45,7 +45,7 @@ uses
 {$IFNDEF MSWINDOWS}
 type
   TSocket = Integer;
-  TCnSockAddr = sockaddr_in;
+  TSockAddr = sockaddr_in;
 {$ENDIF}
 
 const

@@ -237,7 +237,7 @@ end;
 
 procedure TCnTCPClient.Open;
 var
-  SockAddress: TCnSockAddr;
+  SockAddress: TSockAddr;
 begin
   if not FActive then
   begin
