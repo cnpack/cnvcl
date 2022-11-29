@@ -1,0 +1,110 @@
+object FormForwarder: TFormForwarder
+  Left = 192
+  Top = 107
+  Caption = 'TCP Forwarder'
+  ClientHeight = 636
+  ClientWidth = 608
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  Left = 192
+  Top = 107
+  DesignerMasterStyle = 0
+  object lblIP: TLabel
+    Position.X = 24.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 42.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Local IP:'
+  end
+  object lblPort: TLabel
+    Position.X = 24.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Width = 48.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Local Port'
+  end
+  object lblRemoteHost: TLabel
+    Position.X = 368.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 65.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Remote Host:'
+  end
+  object lblRemotePort: TLabel
+    Position.X = 368.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Width = 62.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Remote Port:'
+  end
+  object edtLocalIP: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 0
+    Text = '127.0.0.1'
+    Position.X = 88.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object edtLocalPort: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 1
+    Text = '30840'
+    Position.X = 88.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnOpen: TButton
+    Position.X = 240.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 105.000000000000000000
+    Size.Height = 57.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = 'Forward to:'
+    OnClick = btnOpenClick
+  end
+  object edtRemoteHost: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 3
+    Text = 'www.baidu.com'
+    Position.X = 448.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object edtRemotePort: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 4
+    Text = '80'
+    Position.X = 448.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object mmoResult: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    TextSettings.WordWrap = True
+    Position.X = 24.000000000000000000
+    Position.Y = 104.000000000000000000
+    Size.Width = 545.000000000000000000
+    Size.Height = 473.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Viewport.Width = 541.000000000000000000
+    Viewport.Height = 469.000000000000000000
+  end
+end

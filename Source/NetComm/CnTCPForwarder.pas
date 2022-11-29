@@ -42,7 +42,14 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, Contnrs, WinSock, CnConsts, CnNetConsts, CnClasses,
+  SysUtils, Classes, Contnrs,
+{$IFDEF MSWINDOWS}
+  Windows,  WinSock,
+{$ELSE}
+  System.Net.Socket, Posix.NetinetIn, Posix.SysSocket, Posix.Unistd,
+  Posix.ArpaInet, Posix.SysSelect,
+{$ENDIF}
+  CnConsts, CnNetConsts, CnClasses, CnNetwork,
   CnThreadingTCPServer, CnTCPClient;
 
 type
@@ -181,8 +188,12 @@ var
   Buf: array[0..FORWARDER_BUF_SIZE - 1] of Byte;
   NewBuf: Pointer;
   Ret, NewSize: Integer;
-  SockAddr: TSockAddr;
+  SockAddress: TSockAddr;
+{$IFDEF MSWINDOWS}
   ReadFds: TFDSet;
+{$ELSE}
+  ReadFds: fd_set;
+{$ENDIF}
 begin
   // 客户端已连接上，事件里有参数可被用
   DoAccept;
@@ -193,14 +204,25 @@ begin
   if Client.RemoteSocket = INVALID_SOCKET then
     Exit;
 
-  SockAddr.sin_family := AF_INET;
-  SockAddr.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(TCnTCPClient.LookupHostAddr(Forwarder.RemoteHost))));
-  SockAddr.sin_port := ntohs(Forwarder.RemotePort);
+  SockAddress.sin_family := AF_INET;
+  SockAddress.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(TCnTCPClient.LookupHostAddr(Forwarder.RemoteHost))));
+  SockAddress.sin_port := ntohs(Forwarder.RemotePort);
 
-  if Forwarder.CheckSocketError(WinSock.connect(Client.RemoteSocket, SockAddr, SizeOf(SockAddr))) <> 0 then
+{$IFDEF MSWINDOWS}
+  Ret := Forwarder.CheckSocketError(WinSock.connect(Client.RemoteSocket, SockAddress, SizeOf(SockAddress)));
+{$ELSE}
+  Ret := Forwarder.CheckSocketError(Posix.SysSocket.connect(Client.RemoteSocket, sockaddr(SockAddress), SizeOf(SockAddress)));
+{$ENDIF}
+
+  if Ret <> 0 then
   begin
     // 连接远程服务器失败，出错退出
+{$IFDEF MSWINDOWS}
     Forwarder.CheckSocketError(closesocket(Client.RemoteSocket));
+{$ELSE}
+    Forwarder.CheckSocketError(Posix.Unistd.__close(Client.RemoteSocket));
+{$ENDIF}
+
     Client.RemoteSocket := INVALID_SOCKET;
     Exit;
   end;
@@ -212,10 +234,20 @@ begin
   begin
     // SELECT 等俩 Socket 上的消息，准备读来写去
     FD_ZERO(ReadFds);
+{$IFDEF MSWINDOWS}
     FD_SET(Client.Socket, ReadFds);
     FD_SET(Client.RemoteSocket, ReadFds);
+{$ELSE}
+    _FD_SET(Client.Socket, ReadFds);
+    _FD_SET(Client.RemoteSocket, ReadFds);
+{$ENDIF}
 
+{$IFDEF MSWINDOWS}
     Ret := Forwarder.CheckSocketError(WinSock.select(0, @ReadFds, nil, nil, nil));
+{$ELSE}
+    Ret := Forwarder.CheckSocketError(Posix.SysSelect.select(0, @ReadFds, nil, nil, nil));
+{$ENDIF}
+
     if Ret <= 0 then
     begin
       Client.Shutdown;
@@ -298,8 +330,14 @@ begin
   inherited;
   if FRemoteSocket <> INVALID_SOCKET then
   begin
+{$IFDEF MSWINDOWS}
     (Server as TCnTCPForwarder).CheckSocketError(WinSock.shutdown(FRemoteSocket, 2)); // SD_BOTH
     (Server as TCnTCPForwarder).CheckSocketError(closesocket(FRemoteSocket));
+{$ELSE}
+    (Server as TCnTCPForwarder).CheckSocketError(Posix.SysSocket.shutdown(FRemoteSocket, 2)); // SD_BOTH
+    (Server as TCnTCPForwarder).CheckSocketError(Posix.Unistd.__close(FRemoteSocket));
+{$ENDIF}
+
     FRemoteSocket := INVALID_SOCKET;
   end;
 end;
@@ -319,15 +357,25 @@ end;
 function TCnForwarderClientSocket.RemoteRecv(var Buf; Len,
   Flags: Integer): Integer;
 begin
+{$IFDEF MSWINDOWS}
   Result := (Server as TCnTCPForwarder).CheckSocketError(
     WinSock.recv(FRemoteSocket, Buf, Len, Flags));
+{$ELSE}
+  Result := (Server as TCnTCPForwarder).CheckSocketError(
+    Posix.SysSocket.recv(FRemoteSocket, Buf, Len, Flags));
+{$ENDIF}
 end;
 
 function TCnForwarderClientSocket.RemoteSend(var Buf; Len,
   Flags: Integer): Integer;
 begin
+{$IFDEF MSWINDOWS}
   Result := (Server as TCnTCPForwarder).CheckSocketError(
     WinSock.send(FRemoteSocket, Buf, Len, Flags));
+{$ELSE}
+  Result := (Server as TCnTCPForwarder).CheckSocketError(
+    Posix.SysSocket.send(FRemoteSocket, Buf, Len, Flags));
+{$ENDIF}
 end;
 
 end.
