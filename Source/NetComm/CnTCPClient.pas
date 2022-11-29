@@ -118,13 +118,6 @@ implementation
 {$IFDEF MSWINDOWS}
 var
   WSAData: TWSAData;
-{$ELSE}
-
-function closesocket(Socket: TSocketHandle): Integer; inline;
-begin
-  Result := Posix.Unistd.__close(Socket);
-end;
-
 {$ENDIF}
 
 { TCnTCPClient }
@@ -164,7 +157,7 @@ begin
 {$IFDEF MSWINDOWS}
     CheckSocketError(WinSock.closesocket(FSocket));
 {$ELSE}
-    CheckSocketError(closesocket(FSocket));
+    CheckSocketError(Posix.Unistd.__close(FSocket));
 {$ENDIF}
 
     FSocket := INVALID_SOCKET;
