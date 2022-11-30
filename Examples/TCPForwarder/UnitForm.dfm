@@ -3,7 +3,7 @@ object FormForwarder: TFormForwarder
   Top = 107
   Width = 608
   Height = 636
-  Caption = 'TCP Forwarder'
+  Caption = 'TCP Forwarder - 端口转发，注意不能做代理因为缺乏 Host 等的处理'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

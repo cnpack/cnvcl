@@ -27,6 +27,10 @@ type
   public
     procedure TCPAccept(Sender: TObject; ClientSocket: TCnClientSocket);
     procedure TCPError(Sender: TObject; SocketError: Integer);
+    procedure ServerData(Sender: TObject; Buf: Pointer; var DataSize: Integer;
+      var NewBuf: Pointer; var NewDataSize: Integer);
+    procedure ClientData(Sender: TObject; Buf: Pointer; var DataSize: Integer;
+      var NewBuf: Pointer; var NewDataSize: Integer);
     procedure RemoteConnectd(Sender: TObject);
   end;
 
@@ -37,12 +41,20 @@ implementation
 
 {$R *.fmx}
 
+procedure TFormForwarder.ClientData(Sender: TObject; Buf: Pointer;
+  var DataSize: Integer; var NewBuf: Pointer; var NewDataSize: Integer);
+begin
+  Log('Get Client Bytes: ' + IntToStr(DataSize));
+end;
+
 procedure TFormForwarder.FormCreate(Sender: TObject);
 begin
   FForwarder := TCnTCPForwarder.Create(Self);
   FForwarder.OnAccept := TCPAccept;
   FForwarder.OnError := TCPError;
   FForwarder.OnRemoteConnected := RemoteConnectd;
+  FForwarder.OnServerData := ServerData;
+  FForwarder.OnClientData := ClientData;
 end;
 
 procedure TFormForwarder.Log(const Msg: string);
@@ -84,6 +96,12 @@ end;
 procedure TFormForwarder.RemoteConnectd(Sender: TObject);
 begin
   Log('Remote Connected.');
+end;
+
+procedure TFormForwarder.ServerData(Sender: TObject; Buf: Pointer;
+  var DataSize: Integer; var NewBuf: Pointer; var NewDataSize: Integer);
+begin
+  Log('Get Server Bytes: ' + IntToStr(DataSize));
 end;
 
 end.
