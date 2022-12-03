@@ -27,6 +27,7 @@ unit CnDebug;
 * 备    注：该单元定义并实现了 CnDebugger 输出信息的接口内容，
 *           支持 Win32 和 Win64 以及 Unicode 与非 Unicode
 *           部分接口内容引用了 overseer 的 udbg 单元内容
+*           注：MAC 下只支持到文件，且不支持时钟周期的计时模式
 * 开发平台：PWin2000Pro + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -120,16 +121,29 @@ interface
   {$DEFINE SUPPORT_EVALUATE}
 {$ENDIF}
 
+// 如果 FMX 框架下，请手工定义 ENABLE_FMX
+{$DEFINE ENABLE_FMX}
+
 {$IFDEF MACOS}
-  {$UNDEF CAPTURE_STACK} // CnRTL Does NOT Support MACOS.
+  {$UNDEF CAPTURE_STACK}   // CnRTL Does NOT Support MACOS.
+  {$UNDEF SUPPORT_EVALUATE}
+  {$DEFINE ENABLE_FMX}     // MAC 下只能支持 FMX
+  {$IFNDEF DUMP_TO_FILE}
+    {$DEFINE DUMP_TO_FILE} // MAC 下只能支持到文件，干脆直接支持
+  {$ENDIF}
+{$ENDIF}
+
+{$IFDEF ENABLE_FMX}
   {$UNDEF SUPPORT_EVALUATE}
 {$ENDIF}
 
 uses
   SysUtils, Classes, TypInfo
-  {$IFDEF MSWINDOWS}, Windows, Controls, Graphics, Registry, Messages, Forms
-  {$ELSE}, System.Types, System.UITypes, System.SyncObjs, System.UIConsts,
-  Posix.Unistd, Posix.Pthread, FMX.Controls, FMX.Forms {$ENDIF}
+  {$IFDEF ENABLE_FMX}, System.Types, System.UITypes, System.SyncObjs, System.UIConsts
+  {$IFDEF MSWINDOWS}, Winapi.Windows, Winapi.Messages, Vcl.Controls, System.Win.Registry
+  {$ELSE}, Posix.Unistd, Posix.Pthread {$ENDIF},
+  FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Types
+  {$ELSE}, Windows, Registry, Messages, Controls, Graphics, Forms {$ENDIF}
   {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF}
   {$IFDEF CAPTURE_STACK}, CnPE, CnRTL {$ENDIF};
 
@@ -290,10 +304,8 @@ type
     FFindAbort: Boolean;
     FComponentFindList: TList;
     FOnFindComponent: TCnFindComponentEvent;
-{$IFDEF MSWINDOWS}
     FControlFindList: TList;
     FOnFindControl: TCnFindControlEvent;
-{$ENDIF}
 {$IFDEF CAPTURE_STACK}
     FIsInExcption: Boolean;
 {$ENDIF}
@@ -328,9 +340,7 @@ type
     function GetEnumTypeStr<T>: string;
 {$ENDIF}
     procedure InternalFindComponent(AComponent: TComponent);
-{$IFDEF MSWINDOWS}
     procedure InternalFindControl(AControl: TControl);
-{$ENDIF}
 {$IFDEF CAPTURE_STACK}
      procedure ExceptionRecorder(ExceptObj: Exception; ExceptAddr: Pointer;
       IsOSException: Boolean; StackList: TCnStackInfoList);
@@ -571,10 +581,9 @@ type
 
     procedure FindComponent;
     {* 全局范围内发起 Component 遍历，每个组件触发 OnFindComponent 事件，用于查找}
-{$IFDEF MSWINDOWS}
+
     procedure FindControl;
     {* 全局范围内发起 Control 遍历，每个组件触发 OnFindComponent 事件，用于查找}
-{$ENDIF}
 
     procedure Enable;
     procedure Disable;
@@ -607,10 +616,8 @@ type
 
     property OnFindComponent: TCnFindComponentEvent read FOnFindComponent write FOnFindComponent;
     {* 全局遍历 Component 时的回调}
-{$IFDEF MSWINDOWS}
     property OnFindControl: TCnFindControlEvent read FOnFindControl write FOnFindControl;
     {* 全局遍历 Control 时的回调}
-{$ENDIF}
   end;
 
   TCnDebugChannel = class(TObject)
@@ -753,14 +760,14 @@ const
   CnDebugStartingEventTime = 5000; // 启动 Viewer 的 Event 的等待时间顶多 5 秒
   CnDebugFlushEventTime = 100;     // 写队列后等待读取完成的时间顶多 0.1 秒
 
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
   CN_HEX_DIGITS = 16;
 {$ELSE}
   CN_HEX_DIGITS = 8;
 {$ENDIF}
 
 type
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
   TCnNativeInt = NativeInt;
 {$ELSE}
   TCnNativeInt = Integer;
@@ -809,6 +816,8 @@ begin
 {$ENDIF}
 end;
 
+{$IFNDEF MACOS}
+
 function GetEBP: Pointer;
 asm
         MOV     EAX, EBP
@@ -819,6 +828,8 @@ asm
   DB 0FH;
   DB 031H;
 end;
+
+{$ENDIF}
 
 procedure FixCallingCPUPeriod;
 var
@@ -1255,6 +1266,7 @@ end;
 
 function GetBitmapPixelBytesCount(APixelFormat: TPixelFormat): Integer;
 begin
+{$IFNDEF ENABLE_FMX}
   case APixelFormat of
     pf8bit: Result := 1;
     pf15bit, pf16bit: Result := 2;
@@ -1263,7 +1275,12 @@ begin
   else
     raise Exception.Create('NOT Suppport');
   end;
+{$ELSE}
+  Result := PixelFormatBytes[APixelFormat];
+{$ENDIF}
 end;
+
+{$IFDEF MSWINDOWS}
 
 function IsWin64: Boolean;
 const
@@ -1271,8 +1288,8 @@ const
   PROCESSOR_ARCHITECTURE_IA64 = 6;
 var
   Kernel32Handle: THandle;
-  IsWow64Process: function(Handle: Windows.THandle; var Res: Windows.BOOL): Windows.BOOL; stdcall;
-  GetNativeSystemInfo : procedure(var lpSystemInfo: TSystemInfo); stdcall; isWoW64 :BOOL;SystemInfo :  TSystemInfo;
+  IsWow64Process: function(Handle: THandle; var Res: BOOL): BOOL; stdcall;
+  GetNativeSystemInfo : procedure(var lpSystemInfo: TSystemInfo); stdcall; isWoW64:BOOL; SystemInfo :  TSystemInfo;
 begin
   Result := False;
   Kernel32Handle := GetModuleHandle(kernel32);
@@ -1298,6 +1315,15 @@ begin
     end;
   end;
 end;
+
+{$ELSE}
+
+function IsWin64: Boolean;
+begin
+  Result := False;
+end;
+
+{$ENDIF}
 
 function CnDebugger: TCnDebugger;
 begin
@@ -1615,7 +1641,11 @@ var
     case TimeStampType of
       ttDateTime: MsgDesc.Annex.MsgDateTime := Date + Time;
       ttTickCount: MsgDesc.Annex.MsgTickCount := {$IFNDEF MSWINDOWS}TThread.{$ENDIF}GetTickCount;
+{$IFDEF MSWINDOWS}
       ttCPUPeriod: MsgDesc.Annex.MsgCPUPeriod := GetCPUPeriod;
+{$ELSE}
+      ttCPUPeriod: MsgDesc.Annex.MsgCPUPeriod := 0;
+{$ENDIF}
     else
       MsgDesc.Annex.MsgCPUPeriod := 0; // 设为全 0
     end;
@@ -1703,11 +1733,21 @@ begin
       if not FAfterFirstWrite then // 第一回写时需要判断是否重写
       begin
         if FUseAppend then
-          FDumpFile.Seek(0, soFromEnd)
+        begin
+{$IFDEF MSWINDOWS}
+          FDumpFile.Seek(0, soFromEnd);
+{$ELSE}
+          FDumpFile.Seek(0, soEnd);
+{$ENDIF}
+        end
         else
         begin
           FDumpFile.Size := 0;
+{$IFDEF MSWINDOWS}
           FDumpFile.Seek(0, soFromBeginning);
+{$ELSE}
+          FDumpFile.Seek(0, soBeginning);
+{$ENDIF}
         end;
         FAfterFirstWrite := True; // 后续写就无需判断了
       end;
@@ -1821,7 +1861,11 @@ begin
     if Assigned(AComponent) then
     begin
       InStream.WriteComponent(AComponent);
+{$IFDEF MSWINDOWS}
       InStream.Seek(0, soFromBeginning);
+{$ELSE}
+      InStream.Seek(0, soBeginning);
+{$ENDIF}
       ObjectBinaryToText(InStream, OutStream);
       ThrdID := GetCurrentThreadId;
       InternalOutputMsg(PAnsiChar(OutStream.Memory), OutStream.Size, AnsiString(ATag), CurrentLevel,
@@ -2108,16 +2152,32 @@ procedure TCnDebugger.LogBitmapMemory(ABmp: TBitmap);
 {$IFDEF DEBUG}
 var
   H, B: Integer;
+  E: Boolean;
+{$IFDEF ENABLE_FMX}
+  D: TBitmapData;
+{$ENDIF}
 {$ENDIF}
 begin
 {$IFDEF DEBUG}
-  if (ABmp <> nil) and not (ABmp.Empty) then
+  {$IFDEF ENABLE_FMX}
+  E := (ABmp <> nil) and ABmp.IsEmpty;
+  {$ELSE}
+  E := (ABmp <> nil) and ABmp.Empty;
+  {$ENDIF}
+
+  if (ABmp <> nil) and not E then
   begin
     LogFmt('Bmp Width %d, Height %d.', [ABmp.Width, ABmp.Height]);
 
     B := GetBitmapPixelBytesCount(ABmp.PixelFormat);
+{$IFDEF ENABLE_FMX}
+    if ABmp.Map(TMapAccess.Read, D) then
+      for H := 0 to ABmp.Height - 1 do
+        LogMemDump(D.GetScanline(H), ABmp.Width * B);
+{$ELSE}
     for H := 0 to ABmp.Height - 1 do
       LogMemDump(ABmp.ScanLine[H], ABmp.Width * B);
+{$ENDIF}
   end;
 {$ENDIF}
 end;
@@ -2496,7 +2556,11 @@ begin
 
     // 最后记录当时的 CPU 周期
     Inc(ADesc^.PassCount);
+{$IFDEF MSWINDOWS}
     ADesc^.StartTime := GetCPUPeriod;
+{$ELSE}
+    ADesc^.StartTime := 0;
+{$ENDIF}
   end;
 {$ENDIF}
 end;
@@ -2516,7 +2580,12 @@ var
 begin
 {$IFNDEF NDEBUG}
   // 马上记录当时的 CPU 周期
+{$IFDEF MSWINDOWS}
   Period := GetCPUPeriod;
+{$ELSE}
+  Period := 0;
+{$ENDIF}
+
   ADesc := IndexOfTime(ATag);
   if ADesc <> nil then
   begin
@@ -2632,7 +2701,11 @@ begin
     if Assigned(AComponent) then
     begin
       InStream.WriteComponent(AComponent);
+{$IFDEF MSWINDOWS}
       InStream.Seek(0, soFromBeginning);
+{$ELSE}
+      InStream.Seek(0, soBeginning);
+{$ENDIF}
       ObjectBinaryToText(InStream, OutStream);
       ThrdID := GetCurrentThreadId;
       InternalOutputMsg(PAnsiChar(OutStream.Memory), OutStream.Size, AnsiString(ATag), CurrentLevel,
@@ -2864,16 +2937,32 @@ procedure TCnDebugger.TraceBitmapMemory(ABmp: TBitmap);
 {$IFNDEF NDEBUG}
 var
   H, B: Integer;
+  E: Boolean;
+{$IFDEF ENABLE_FMX}
+  D: TBitmapData;
+{$ENDIF}
 {$ENDIF}
 begin
 {$IFNDEF NDEBUG}
-  if (ABmp <> nil) and not (ABmp.Empty) then
+  {$IFDEF ENABLE_FMX}
+  E := (ABmp <> nil) and ABmp.IsEmpty;
+  {$ELSE}
+  E := (ABmp <> nil) and ABmp.Empty;
+  {$ENDIF}
+
+  if (ABmp <> nil) and not E then
   begin
     TraceFmt('Bmp Width %d, Height %d.', [ABmp.Width, ABmp.Height]);
 
     B := GetBitmapPixelBytesCount(ABmp.PixelFormat);
+{$IFDEF ENABLE_FMX}
+    if ABmp.Map(TMapAccess.Read, D) then
+      for H := 0 to ABmp.Height - 1 do
+        TraceMemDump(D.GetScanline(H), ABmp.Width * B);
+{$ELSE}
     for H := 0 to ABmp.Height - 1 do
       TraceMemDump(ABmp.ScanLine[H], ABmp.Width * B);
+{$ENDIF}
   end;
 {$ENDIF}
 end;
@@ -3698,9 +3787,22 @@ begin
       FAfterFirstWrite := False; // 重新开另一文件，需要重新判断
 
       if FUseAppend then   // 追加则定位到结尾
-        FDumpFile.Seek(0, soFromEnd)
+      begin
+{$IFDEF MSWINDOWS}
+        FDumpFile.Seek(0, soFromEnd);
+{$ELSE}
+        FDumpFile.Seek(0, soEnd);
+{$ENDIF}
+      end
       else
+      begin
+{$IFDEF MSWINDOWS}
         FDumpFile.Seek(0, soFromBeginning); // 移动到开头
+{$ELSE}
+        FDumpFile.Seek(0, soBeginning);
+{$ENDIF}
+      end;
+
     end;
   end;
 {$ENDIF}
@@ -3735,9 +3837,21 @@ begin
         FAfterFirstWrite := False; // 重新开文件，需要重新判断
 
         if FUseAppend then // 追加则定位到结尾
-          FDumpFile.Seek(0, soFromEnd)
+        begin
+{$IFDEF MSWINDOWS}
+          FDumpFile.Seek(0, soFromEnd);
+{$ELSE}
+          FDumpFile.Seek(0, soEnd);
+{$ENDIF}
+        end
         else
+        begin
+{$IFDEF MSWINDOWS}
           FDumpFile.Seek(0, soFromBeginning); // 移动到开头
+{$ELSE}
+          FDumpFile.Seek(0, soBeginning);
+{$ENDIF}
+        end;
       except
         ;
       end;
@@ -4317,28 +4431,30 @@ begin
   if FFindAbort then
     Exit;
 
-{$IFDEF MSWINDOWS}
-  for I := 0 to Screen.CustomFormCount - 1 do
-  begin
-    InternalFindComponent(Screen.CustomForms[I]);
-    if FFindAbort then
-      Exit;
-  end;
-{$ELSE}
+{$IFDEF ENABLE_FMX}
   for I := 0 to Screen.FormCount - 1 do
   begin
     InternalFindComponent(Screen.Forms[I]);
     if FFindAbort then
       Exit;
   end;
+{$ELSE}
+  for I := 0 to Screen.CustomFormCount - 1 do
+  begin
+    InternalFindComponent(Screen.CustomForms[I]);
+    if FFindAbort then
+      Exit;
+  end;
 {$ENDIF}
 end;
-
-{$IFDEF MSWINDOWS}
 
 procedure TCnDebugger.FindControl;
 var
   I: Integer;
+{$IFDEF ENABLE_FMX}
+  J: Integer;
+  F: TCustomForm;
+{$ENDIF}
 begin
   if FControlFindList = nil then
     FControlFindList := TList.Create
@@ -4346,15 +4462,32 @@ begin
     FControlFindList.Clear;
 
   FFindAbort := False;
+{$IFDEF ENABLE_FMX}
+  for I := 0 to Screen.FormCount - 1 do
+  begin
+    if Screen.Forms[I] is TCustomForm then
+    begin
+      F := Screen.Forms[I] as TCustomForm;
+      for J := 0 to F.ChildrenCount - 1 do
+      begin
+        if F.Children[J] is TControl then
+        begin
+          InternalFindControl(F.Children[J] as TControl);
+          if FFindAbort then
+            Exit;
+        end;
+      end;
+    end;
+  end;
+{$ELSE}
   for I := 0 to Screen.CustomFormCount - 1 do
   begin
     InternalFindControl(Screen.CustomForms[I]);
     if FFindAbort then
       Exit;
   end;
-end;
-
 {$ENDIF}
+end;
 
 procedure TCnDebugger.InternalFindComponent(AComponent: TComponent);
 var
@@ -4375,8 +4508,6 @@ begin
     InternalFindComponent(AComponent.Components[I]);
 end;
 
-{$IFDEF MSWINDOWS}
-
 procedure TCnDebugger.InternalFindControl(AControl: TControl);
 var
   I: Integer;
@@ -4392,12 +4523,15 @@ begin
       Exit;
   end;
 
+{$IFDEF ENABLE_FMX}
+    for I := 0 to AControl.ControlsCount - 1 do
+      InternalFindControl(AControl.Controls[I]);
+{$ELSE}
   if AControl is TWinControl then
     for I := 0 to TWinControl(AControl).ControlCount - 1 do
       InternalFindControl(TWinControl(AControl).Controls[I]);
-end;
-
 {$ENDIF}
+end;
 
 {$IFDEF CAPTURE_STACK}
 
@@ -4851,7 +4985,9 @@ initialization
   {$ELSE}
   FStartCriticalSection := TCnCriticalSection.Create;
   FCnDebuggerCriticalSection := TCnCriticalSection.Create;
+  {$IFDEF CAPTURE_STACK}
   FInProcessCriticalSection := TCnCriticalSection.Create;
+  {$ENDIF}
   {$ENDIF}
   FCnDebugger := TCnDebugger.Create;
   FixCallingCPUPeriod;
@@ -4872,7 +5008,9 @@ finalization
   DeleteCriticalSection(FCnDebuggerCriticalSection);
   DeleteCriticalSection(FStartCriticalSection);
   {$ELSE}
+  {$IFDEF CAPTURE_STACK}
   FInProcessCriticalSection.Free;
+  {$ENDIF}
   FCnDebuggerCriticalSection.Free;
   FStartCriticalSection.Free;
   {$ENDIF}
