@@ -123,8 +123,8 @@ interface
   {$DEFINE SUPPORT_EVALUATE}
 {$ENDIF}
 
-// 如果 FMX 框架下，请手工定义 ENABLE_FMX
-{$DEFINE ENABLE_FMX}
+// 如果 FMX 框架下，请手工定义 ENABLE_FMX。如果是 MACOS，下文会自动定义 ENABLE_FMX
+// {$DEFINE ENABLE_FMX}
 
 {$IFDEF MACOS}
   {$UNDEF CAPTURE_STACK}   // CnRTL Does NOT Support MACOS.
