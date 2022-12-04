@@ -4722,7 +4722,11 @@ begin
   if (FMap <> 0) and (FMapHeader <> nil) then
   begin
     Header := FMapHeader;
+{$IFDEF CPUX64}
+    FMsgBase := Pointer(Header^.DataOffset + NativeInt(FMapHeader));
+{$ELSE}
     FMsgBase := Pointer(Header^.DataOffset + Integer(FMapHeader));
+{$ENDIF}
     FMapSize := Header^.MapSize;
     FQueueSize := FMapSize - Header^.DataOffset;
     Result := (Header^.MapEnabled = CnDebugMapEnabled) and
@@ -4827,7 +4831,11 @@ begin
       // 锁定并删队列头元素，直到有足够的空间来容纳本 Size 为止
       IsFull := True;
       repeat
+{$IFDEF CPUX64}
+        MsgLen := PInteger(NativeInt(FMsgBase) + FFront)^;
+{$ELSE}
         MsgLen := PInteger(Integer(FMsgBase) + FFront)^;
+{$ENDIF}
         FFront := (FFront + MsgLen) mod FQueueSize;
       until not BufferFull;
       // 删完毕，进入写步骤 -- 以上可以考虑改成直接清空队列
@@ -4835,18 +4843,40 @@ begin
 
     // 先写数据再改指针
     if FTail + Size < FQueueSize then
-      CopyMemory(Pointer(Integer(FMsgBase) + FTail), @MsgDesc, Size)
+    begin
+{$IFDEF CPUX64}
+      CopyMemory(Pointer(NativeInt(FMsgBase) + FTail), @MsgDesc, Size);
+{$ELSE}
+      CopyMemory(Pointer(Integer(FMsgBase) + FTail), @MsgDesc, Size);
+{$ENDIF}
+    end
     else
     begin
       RestLen := FQueueSize - FTail;
       if RestLen < SizeOf(Integer) then // 剩余空间不足以容纳信息头的 Length 字段
-        CopyMemory(Pointer(Integer(FMsgBase) + FTail), @MsgDesc, SizeOf(Integer))
-        // 强行复制，要求队列超出QueueSize外的尾部至少有 SizeOf(Integer)的空余缓冲
+      begin
+{$IFDEF CPUX64}
+        CopyMemory(Pointer(NativeInt(FMsgBase) + FTail), @MsgDesc, SizeOf(Integer));
+{$ELSE}
+        CopyMemory(Pointer(Integer(FMsgBase) + FTail), @MsgDesc, SizeOf(Integer));
+{$ENDIF}
+        // 强行复制，要求队列超出 QueueSize 外的尾部至少有 SizeOf(Integer) 的空余缓冲
         // 可不如此做，但会增加 Viewer 读取长度时的回溯困难
+      end
       else
+      begin
+{$IFDEF CPUX64}
+        CopyMemory(Pointer(NativeInt(FMsgBase) + FTail), @MsgDesc, RestLen);
+{$ELSE}
         CopyMemory(Pointer(Integer(FMsgBase) + FTail), @MsgDesc, RestLen);
+{$ENDIF}
+      end;
 
+{$IFDEF CPUX64}
+      CopyMemory(FMsgBase, Pointer(NativeInt(@MsgDesc) + RestLen), Size - RestLen);
+{$ELSE}
       CopyMemory(FMsgBase, Pointer(Integer(@MsgDesc) + RestLen), Size - RestLen);
+{$ENDIF}
     end;
 
     Inc(FTail, Size);

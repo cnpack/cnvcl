@@ -675,13 +675,13 @@ end;
 procedure TFormSend.DebuggerFindComponent(Sender: TObject;
   AComponent: TComponent; var Cancel: Boolean);
 begin
-  (Sender as TCnDebugger).LogMsg('On Find Component: ' + AComponent.Name);
+  (Sender as TCnDebugger).LogMsg('On Find Component: ' + AComponent.ClassName + ' - ' + AComponent.Name);
 end;
 
 procedure TFormSend.DebuggerFindControl(Sender: TObject;
   AControl: TControl; var Cancel: Boolean);
 begin
-  (Sender as TCnDebugger).LogMsg('On Find Control: ' + AControl.Name);
+  (Sender as TCnDebugger).LogMsg('On Find Control: ' + AControl.ClassName + ' - ' + AControl.Name);
 end;
 
 procedure TFormSend.FormClick(Sender: TObject);
