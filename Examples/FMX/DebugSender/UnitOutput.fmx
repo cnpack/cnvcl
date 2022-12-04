@@ -1,0 +1,893 @@
+object FormSend: TFormSend
+  Left = 329
+  Top = 164
+  BorderStyle = Single
+  Caption = 'Send Debug'
+  ClientHeight = 434
+  ClientWidth = 477
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
+  Left = 329
+  Top = 164
+  DesignerMasterStyle = 0
+  object lblMsg: TLabel
+    Position.X = 8.000000000000000000
+    Position.Y = 152.000000000000000000
+    Size.Width = 60.000000000000000000
+    Size.Height = 12.000000000000000000
+    Size.PlatformDefault = False
+    Text = #21457#36865#20869#23481#65306
+  end
+  object lblCount: TLabel
+    Position.X = 8.000000000000000000
+    Position.Y = 176.000000000000000000
+    Size.Width = 60.000000000000000000
+    Size.Height = 12.000000000000000000
+    Size.PlatformDefault = False
+    Text = #21457#36865#27425#25968#65306
+  end
+  object img1: TImageControl
+    Bitmap.PNG = {
+      89504E470D0A1A0A0000000D4948445200000018000000180806000000E0773D
+      F8000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+      05B949444154484BA555E96F146518FFCDECCE7667668FEEF6A274B707052B0B
+      2915E4082D1E25C0078FE015E33FA062683C122524286820C4F04154043E1314
+      3982415088F241B194A0545A5AA945E8F6A42CDD6DE9EE76AFEECCEBF3CE6CDD
+      12A37EF0D7FCFAECBC33F3DCCF33C2CDDE834C567E0363124C08FF21FF1D8290
+      C5547C0192891510C50C84E1C157D95C9F4C066AE9760151A187649232490749
+      4FEE5C275A88DC119168CBC9696296388351745DDB8781E04B282B9521325600
+      4D7311DDD0754F8E45A46E0EB43111DAC1D3C87C7612D1FE34525A1929A820FA
+      70E2AB1076EFE9444F2F37E89FC505181808A3A3B313E31313DC05467F31BA11
+      A528A274190313E260DA3DB0D73F8065D356D8366F41EAE516F4FDD1054D8F62
+      CFDE73787FD7297477F5E39596C3B83D3A89BE601817DB82989A8A21168B6278
+      680489440256D24C4A13A47C8A52A29331CAA368813E1987F4DD25E33687FD42
+      1BAE5D6C85E25071FADB2EECD8B601CF6D5C8E897B49B4B6DDC4F69DDF40B5D9
+      F1D85A190D017A5F275D8C991100640053D0C90848323D86AC42274D01E32EE7
+      D5122F82E131A4939328B009E81F8C602C3C8E439F5FC6DDB138562EAFC6E696
+      66DC09C528DD3A396B36452E45A4582792011E09B4382CD614EEEE7A116364E4
+      7279318EAF5F899232178A0AAD68D9B40C9F1E6845F3BA4F70AB3F8422AF1D1E
+      8F0AB74B86D7AB9283866E039422F2CF92822EA5A911A94B7401425680480F39
+      1795400E94239DD250D1F420EA033ED8650B9E7EA2160F3D524B391650575642
+      1E336C581780D522E1D1350E1C3F76C8480F8708AB003D340E71DF15681FB721
+      76EB36922C0EDD928493DA4F9618DCAA84EA2A0FE6F85D54031BF4F020FCC70E
+      E381AFBF406CB0071AD290EDD4C0924892B7741E56A6D1BF2D1DB01E491ADD1E
+      3BD38FD0F63528AF2C831CEC87E54C076A6219442E7723E37522C344486FED07
+      8E7E6F8C5E72FD590CEDDD8DAAEA7950E5623A993D13DCC0E434ACE793B94BA0
+      E4FC10EC574E402A902045D3A4210B379D37EDF812998F4E8359288D116AE71C
+      EC3FB4A1A3F527284E154A85938ACB072F0F5177888835F2093571A15CC6CE67
+      AB70F89D069C7B7B0562453242B2840FD70770F0B5669C7AEF790497CECF3D0D
+      B4979ADD95884F506BA6E8244334F3CF6115A906E16D1EF4140BE8EBCBE2972A
+      15654B1454065448E54598BC3E86DF7BA208AFAEC0EA0525F0D7F8315AB111A1
+      93ED181999C0AF745DE7F3527AA839048A98EA311B56910642A96508BD590416
+      041AB35450BF033E9F1D96523BD4622BDC851216070AD150E7819F0A9D9C5F8A
+      609D0FE2C0241A3509F3FC95D49E7632C023B8DF00DF56D42969D4954FA37999
+      80C655F442AD0087370BC791EBB09D1D425D6F180B7FBC85AC98A4F948C2AD4C
+      23400E343FEC43D3AA1AD4CCF34256F8E4F25A72233C457F0D1A5FB169D86C69
+      389D1983367B1A2C1A85F5DD2EF2320E573885C0A12EF4770D22722F620CA3AD
+      200D978B1169D7164C933AAE7CC6401EB955314D2FD1B031524C92AF0E4D4B18
+      FB640629EAA6DE1B218C47C669E1D132E4B3425227C90DB2DC3E338DE48B6C44
+      605EF2EA9B0698467464107AA314E3E5360C382C38DAE04646CA4220457CA518
+      2447A073C524F90E3324671E64C0CC15633C0AB30B18B59B454B427B41C5CFFB
+      AB71626B2552CF94604980764EA14629CDED2CEE3DCC68CC28FE21026A30E3C2
+      FC3A9111C3508A8A99C6C2E516AC7DCA81273738515F6F83CBCD279522E429E1
+      5BD828ECECFCCF14D984C80B2CD1BE91651DAA9A81A224A0A871FA1DA5ED1845
+      E5DC28EA1725B07871925A3706A72302BBFD2E3144C5BD431CA50619251DB789
+      C3A472846496B2603A2DDCE839C052E9F3181CBA637CE27861F311919CF969FC
+      201ACEE5CE59EECC003F132059357477BB108B2EC5E38FAD80D0D9DECE868622
+      B8DA790DC3C323D0B254C8DCC7E2EFC8879EC7FD673AAD6985567A754D190DE7
+      4208DD572FB144326578CFBFA1337BFCFF803BA82A0A0A3D1EFC093BD99B44E8
+      63305C0000000049454E44AE426082}
+    Position.X = 222.000000000000000000
+    Position.Y = 384.000000000000000000
+    Size.Width = 24.000000000000000000
+    Size.Height = 24.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object Button1: TButton
+    Position.X = 168.000000000000000000
+    Position.Y = 176.000000000000000000
+    Size.Width = 49.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 26
+    Text = #21457#36865
+    OnClick = Button1Click
+  end
+  object cbbLevel: TComboEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 10
+    ItemHeight = 12.000000000000000000
+    Items.Strings = (
+      '0'
+      '1'
+      '2'
+      '3')
+    ItemIndex = -1
+    Position.X = 120.000000000000000000
+    Position.Y = 80.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 20.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object chkLevel: TCheckBox
+    IsChecked = True
+    Position.X = 8.000000000000000000
+    Position.Y = 80.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 9
+    Text = #20351#29992'Level'#21442#25968
+  end
+  object chkType: TCheckBox
+    IsChecked = True
+    Position.X = 8.000000000000000000
+    Position.Y = 104.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 13
+    Text = #20351#29992' Type'#21442#25968
+  end
+  object cbbType: TComboEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 15
+    ItemHeight = 12.000000000000000000
+    Items.Strings = (
+      '0'
+      '1'
+      '2'
+      '3'
+      '4'
+      '5'
+      '6'
+      '7'
+      '8'
+      '9'
+      '10'
+      '11'
+      '12'
+      '13'
+      '14')
+    ItemIndex = -1
+    Position.X = 120.000000000000000000
+    Position.Y = 104.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 20.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object chkTag: TCheckBox
+    Position.X = 8.000000000000000000
+    Position.Y = 128.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 18
+    Text = #20351#29992' Tag '#21442#25968
+  end
+  object edtMsg: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 21
+    Text = 'Test Message'
+    Position.X = 72.000000000000000000
+    Position.Y = 152.000000000000000000
+    Size.Width = 145.000000000000000000
+    Size.Height = 20.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object edtCount: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 24
+    Text = '1'
+    Position.X = 72.000000000000000000
+    Position.Y = 176.000000000000000000
+    Size.Width = 73.000000000000000000
+    Size.Height = 20.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object Button2: TButton
+    Position.X = 8.000000000000000000
+    Position.Y = 208.000000000000000000
+    Size.Width = 65.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 31
+    Text = #35745#26102#24320#22987
+    OnClick = Button2Click
+  end
+  object btnEnter: TButton
+    Position.X = 80.000000000000000000
+    Position.Y = 208.000000000000000000
+    Size.Width = 41.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 32
+    Text = #36827#20837
+    OnClick = btnEnterClick
+  end
+  object btnLeave: TButton
+    Position.X = 128.000000000000000000
+    Position.Y = 208.000000000000000000
+    Size.Width = 41.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 33
+    Text = #36864#20986
+    OnClick = btnLeaveClick
+  end
+  object Button3: TButton
+    Position.X = 176.000000000000000000
+    Position.Y = 208.000000000000000000
+    Size.Width = 41.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 34
+    Text = #20998#38548
+    OnClick = Button3Click
+  end
+  object edtInt: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 1
+    Text = '1'
+    Position.X = 248.000000000000000000
+    Position.Y = 12.000000000000000000
+    Size.Width = 73.000000000000000000
+    Size.Height = 20.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnSendInt: TButton
+    Position.X = 344.000000000000000000
+    Position.Y = 12.000000000000000000
+    Size.Width = 113.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Text = #21457#36865#25972#25968
+    OnClick = btnSendIntClick
+  end
+  object edtFloat: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 4
+    Text = '3.14159'
+    Position.X = 248.000000000000000000
+    Position.Y = 36.000000000000000000
+    Size.Width = 73.000000000000000000
+    Size.Height = 20.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnSendFloat: TButton
+    Position.X = 344.000000000000000000
+    Position.Y = 36.000000000000000000
+    Size.Width = 113.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Text = #21457#36865#28014#28857
+    OnClick = btnSendFloatClick
+  end
+  object btnSendColor: TButton
+    Position.X = 280.000000000000000000
+    Position.Y = 60.000000000000000000
+    Size.Width = 65.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 7
+    Text = #21457#36865#39068#33394
+    OnClick = btnSendColorClick
+  end
+  object btnSendBool: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 60.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 8
+    Text = #21457#36865#24067#23572
+    OnClick = btnSendBoolClick
+  end
+  object btnSendPoint: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 84.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 11
+    Text = #21457#36865#28857#28857
+    OnClick = btnSendPointClick
+  end
+  object btnSendRect: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 84.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 12
+    Text = #21457#36865#26694#26694
+    OnClick = btnSendRectClick
+  end
+  object pnlColor: TPanel
+    Position.X = 248.000000000000000000
+    Position.Y = 60.000000000000000000
+    Size.Width = 17.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 6
+    OnClick = pnlColorClick
+  end
+  object btnDump: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 108.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 16
+    Text = #20498#20869#23384
+    OnClick = btnDumpClick
+  end
+  object btnExcept: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 108.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 17
+    Text = #25243#24322#24120
+    OnClick = btnExceptClick
+  end
+  object btnWriteComp: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 132.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 19
+    Text = #20889#32452#20214
+    OnClick = btnWriteCompClick
+  end
+  object btnWriteObj: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 132.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 20
+    Text = #20889#23545#35937
+    OnClick = btnWriteObjClick
+  end
+  object btnWriteCol: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 156.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 22
+    Text = #20889'Collection'
+    OnClick = btnWriteColClick
+  end
+  object StatusBar1: TStatusBar
+    Position.Y = 415.000000000000000000
+    ShowSizeGrip = True
+    Size.Width = 477.000000000000000000
+    Size.Height = 19.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnThread: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 156.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 23
+    Text = #32447#31243#20869#21457#36865
+    OnClick = btnThreadClick
+  end
+  object Button4: TButton
+    Hint = 'OutputDebugString'
+    Position.X = 248.000000000000000000
+    Position.Y = 180.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 27
+    Text = 'Debug API'
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = Button4Click
+  end
+  object btnEvaluate: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 204.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 29
+    Text = #26597#30475#31383#20307'Object'
+    OnClick = btnEvaluateClick
+  end
+  object btnEvaColl: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 204.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 30
+    Text = #26597#30475' Collection'
+    OnClick = btnEvaCollClick
+  end
+  object btnDatetime: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 180.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 28
+    Text = #21457#36865#26102#38388
+    OnClick = btnDatetimeClick
+  end
+  object btnFmtError: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 228.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 35
+    Text = #21457#38169#35823' Format'
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnFmtErrorClick
+  end
+  object btnEval: TButton
+    Position.X = 8.000000000000000000
+    Position.Y = 236.000000000000000000
+    Size.Width = 209.000000000000000000
+    Size.Height = 61.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 37
+    Text = #30475#36825#25353#38062#33258#24049
+    OnClick = btnEvalClick
+  end
+  object btnImageList: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 254.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 38
+    Text = #30475'ImageList'
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnImageListClick
+  end
+  object btnStack: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 254.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 39
+    Text = #36755#20986#22534#26632
+    OnClick = btnStackClick
+  end
+  object btnConstArray: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 228.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 36
+    Text = 'array of const'
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnConstArrayClick
+  end
+  object btnClass: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 280.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 41
+    Text = #30475'Class'
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnClassClick
+  end
+  object btnInterface: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 280.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 42
+    Text = #30475'Interface'
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnInterfaceClick
+  end
+  object btnAddr: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 306.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 43
+    Text = #30475#24322#24120#22320#22336
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnAddrClick
+  end
+  object btnEBPAddr: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 306.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 44
+    Text = #30475#35843#29992#22320#22336
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnEBPAddrClick
+  end
+  object btnEvaluateMenu: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 332.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 45
+    Text = #30475#33756#21333
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnEvaluateMenuClick
+  end
+  object btnEvaluateBmp: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 332.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 46
+    Text = #30475#20301#22270
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnEvaluateBmpClick
+  end
+  object btnSet: TButton
+    Position.X = 8.000000000000000000
+    Position.Y = 332.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 47
+    Text = #21457#36865#38598#21512
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnSetClick
+  end
+  object btnSize: TButton
+    Position.X = 120.000000000000000000
+    Position.Y = 332.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 48
+    Text = #21457#36865#23610#23544
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnSizeClick
+  end
+  object btnAnsiCharSet: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 359.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 49
+    Text = #21457'Ansi'#23383#31526#38598
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnAnsiCharSetClick
+  end
+  object btnWideCharSet: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 359.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 50
+    Text = #21457'Wide'#23383#31526#38598
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnWideCharSetClick
+  end
+  object btnWatchClear: TButton
+    Position.X = 8.000000000000000000
+    Position.Y = 359.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 51
+    Text = #28165#31354'Watch'
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnWatchClearClick
+  end
+  object btnEvaluateScreen: TButton
+    Position.X = 120.000000000000000000
+    Position.Y = 359.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 52
+    Text = #30475'Screen'
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnEvaluateScreenClick
+  end
+  object btnFindComponent: TButton
+    Position.X = 8.000000000000000000
+    Position.Y = 306.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 53
+    Text = #36941#21382#32452#20214
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnFindComponentClick
+  end
+  object btnFindControl: TButton
+    Position.X = 120.000000000000000000
+    Position.Y = 306.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 54
+    Text = #36941#21382#25511#20214
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnFindControlClick
+  end
+  object btnEvaluateTransBmp: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 388.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 55
+    Text = #30475#65288#21322#65289#36879#26126'PNG'
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnEvaluateTransBmpClick
+  end
+  object btnEvaluateImage: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 388.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 56
+    Text = #30475'TImage'
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnEvaluateImageClick
+  end
+  object btnDrawTransparent: TButton
+    Position.X = 120.000000000000000000
+    Position.Y = 388.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 57
+    Text = #30475#25163#32472#36879#26126
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnDrawTransparentClick
+  end
+  object btnEvaluateSample: TButton
+    Position.X = 8.000000000000000000
+    Position.Y = 388.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 58
+    Text = #30475'Sample'#25511#20214
+    ParentShowHint = False
+    ShowHint = True
+    OnClick = btnEvaluateSampleClick
+  end
+  object tmr1: TTimer
+    OnTimer = tmr1Timer
+    Left = 96
+    Top = 24
+  end
+  object pm1: TPopupMenu
+    Left = 72
+    Top = 88
+    object Test11: TMenuItem
+      Text = 'Test1'
+    end
+    object N1: TMenuItem
+      Text = '-'
+    end
+    object Test21: TMenuItem
+      Text = 'Test2'
+      object Test211: TMenuItem
+        Locked = True
+        Text = 'Test 21'
+      end
+      object Test221: TMenuItem
+        Locked = True
+        Text = 'Test 22'
+      end
+    end
+  end
+  object dlgOpen1: TOpenDialog
+    Left = 216
+    Top = 352
+  end
+  object rbTrace: TRadioButton
+    IsChecked = True
+    Position.X = 24.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 73.000000000000000000
+    Size.Height = 19.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 64
+    Text = 'Trace'
+  end
+  object rbLog: TRadioButton
+    Position.X = 88.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 73.000000000000000000
+    Size.Height = 19.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 63
+    Text = 'Log'
+  end
+  object cbbTag: TComboEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 14
+    ItemHeight = 12.000000000000000000
+    Items.Strings = (
+      '0'
+      '1'
+      '2'
+      '3'
+      '4'
+      '5'
+      '6'
+      '7'
+      '8'
+      '9'
+      '10'
+      '11'
+      '12'
+      '13'
+      '14')
+    ItemIndex = -1
+    Position.X = 120.000000000000000000
+    Position.Y = 128.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 20.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object ilTest: TImageList
+    Source = <
+      item
+        MultiResBitmap.LoadSize = 0
+        MultiResBitmap = <
+          item
+            Width = 16
+            Height = 16
+            PNG = {
+              89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
+              61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              017949444154384F9D913F4FC24018C69F1E049A8A0C0C942AA00D8271773171
+              D2E8E0AE317E081317173F828E0E7E005757FF4C0E46E2C86A08C185900E26B5
+              90A636B527EF91C386A2117EC9E5AEBDE77DEE79EF9442A1C0B3D92C822040AB
+              D50251A954904C26D1EFF7D1E974601806481386219ACDA6D098A689542A05D6
+              ED76E1388E28A856AB62938CC83093C9A0542A416A1863238DE7796266E3023A
+              9D90269AA6C54C484333C1C605E3497CDF8F999086D2116C92209AA4DD6E4F4C
+              226124F8ED94BF92B8AE2BF64423934C6CDB8E25D93E50717AB98095D5A24845
+              3012E8BA1E33B12C6B94446AC230402E9FC0DE511EAAAA0A03A556AB715AD01B
+              13F276E99B061948B479E0F83C87C4E0D7D59983772B18B64050A12C26681D2D
+              26DC1E50BFF306060AB6F687097E2AFEC9CBBD879EFD85B5F5348CE5190CFCCF
+              108F37C317D8399C83522E97B98C1E6D4122EF46DE89183CC0C945118B661AE0
+              33B2B9BBC4AFEB1B7CEA16244F0F6F786DB8D3DF4194E7DB0F7C03310F14CC32
+              FC9D500000000049454E44AE426082}
+          end>
+        Name = 'Item 0'
+      end
+      item
+        MultiResBitmap.LoadSize = 0
+        MultiResBitmap = <
+          item
+            Width = 16
+            Height = 16
+            PNG = {
+              89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
+              61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              00D249444154384F63949292FAFFFBF76F0672011394261B0C0203FEFDFB0765
+              9206181919C1980908A042C40190266E6E6E060101013026D90B5C5C5C0C6C6C
+              6C501E896100B21D593308501E887FFEFC8132C9034CFFFFFF8732C9034C406F
+              5104185D0314FF5F38FA05CA450502222C0CE2B26C0C92F26C0C2212AC0C2292
+              AC0CBCFCAC0C6CEC4C0C4C2C0C0CBF7FFE67609CB0CEE47F47F62386BF7FFE33
+              30B33032A8E87232E89A7333A81B7231E4079E861A851B3002C3E07F72A92698
+              63E6CCC790EE7112CC2616800D80B2C9000C0C00505B2B7A658552DD00000000
+              49454E44AE426082}
+          end>
+        Name = 'Item 1'
+      end
+      item
+        MultiResBitmap.LoadSize = 0
+        MultiResBitmap = <
+          item
+            Width = 16
+            Height = 16
+            PNG = {
+              89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
+              61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              010D49444154384F63FC0F040C2402492971069710410697604106920DB07557
+              6008CB126510126305F38936405C5C8CC1274E98C12140908189092A08044419
+              202B2FC1905821C1A06EC0051541008206282A4B32A4D54B31C8A9B243455001
+              5E034036E7B64B33482B62D70C0248BE4105A0904EAE92C4AB1904701A109822
+              C2A0AAC709E561077FFFFCC76E805BA01283B5273F94871DFCFEF59F616ACD53
+              4C0394542519423245A13CDCE0ECC1CF0C270F3EC234C02F4184819B9719CAC3
+              0D7E7CFD07A6510C303093653076E085F2F0033D2B6E702CA14463799F1E839E
+              250F944718BC7CFC0BE1024D3D69061D73E2358380B82C1BC2000B573E94344E
+              2C006B016514233BD26C87000606001E3D4434304F6FE60000000049454E44AE
+              426082}
+          end>
+        Name = 'Item 2'
+      end
+      item
+        MultiResBitmap.LoadSize = 0
+        MultiResBitmap = <
+          item
+            Width = 16
+            Height = 16
+            PNG = {
+              89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
+              61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+              007649444154384F63FC0F040C140026284D361835800A063036CC32F8CFC6CE
+              C420A3CCCE106B7D0C2A4C02101515FD0FC2168E72FF171EB200250B9200DC0B
+              77AF7C67B878EC0B94473C4009839F3F484F94700338B99919B44CB8A03CE201
+              A35F8C3238106DBCF919F2034F43858907433E3331300000135D4F291125BCCB
+              0000000049454E44AE426082}
+          end>
+        Name = 'Item 3'
+      end>
+    Destination = <
+      item
+        Layers = <
+          item
+            Name = 'Item 0'
+          end>
+      end
+      item
+        Layers = <
+          item
+            Name = 'Item 1'
+          end>
+      end
+      item
+        Layers = <
+          item
+            Name = 'Item 2'
+          end>
+      end
+      item
+        Layers = <
+          item
+            Name = 'Item 3'
+          end>
+      end>
+    Left = 264
+    Top = 248
+  end
+end
