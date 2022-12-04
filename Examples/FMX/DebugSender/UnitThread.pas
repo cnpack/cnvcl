@@ -3,7 +3,7 @@ unit UnitThread;
 interface
 
 uses
-  Classes, Windows, SysUtils;
+  Classes, SysUtils;
 
 type
   TSendThread = class(TThread)

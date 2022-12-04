@@ -39,10 +39,11 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms,
+  {$IFDEF MSWINDOWS} Winapi.Windows, WinApi.Messages, VCL.Imaging.pngimage, {$ENDIF}
+  SysUtils, Classes, System.Types, FMX.Graphics, FMX.Controls, FMX.Forms,
   FMX.Dialogs, FMX.StdCtrls, FMX.ExtCtrls, UnitThread, FMX.Menus, FMX.Types,
   System.ImageList, FMX.ImgList, FMX.ComboEdit, FMX.Edit, System.UITypes,
-  FMX.Controls.Presentation, Vcl.Imaging.pngimage;
+  FMX.Controls.Presentation;
 
 type
   ITest = interface
@@ -177,8 +178,10 @@ type
     FComponenet: TComponent;
     FTimeStamp: Boolean;
     FThread: TSendThread;
+{$IFDEF MSWINDOWS}
     FOldWndProc: TWndMethod;
     procedure NewWindowProc(var AMsg: TMessage);
+{$ENDIF}
     procedure DebuggerFindComponent(Sender: TObject; AComponent: TComponent;
       var Cancel: Boolean);
     procedure DebuggerFindControl(Sender: TObject; AControl: TControl;
@@ -401,7 +404,11 @@ end;
 
 procedure TFormSend.Button4Click(Sender: TObject);
 begin
+{$IFDEF MSWINDOWS}
   OutputDebugString('Test OutputDebugString.');
+{$ELSE}
+  ShowMessage('NOT Support');
+{$ENDIF}
 end;
 
 procedure TFormSend.btnEvaluateClick(Sender: TObject);
@@ -417,10 +424,12 @@ end;
 procedure TFormSend.FormKeyDown(Sender: TObject; var Key: Word;
   var KeyChar: Char; Shift: TShiftState);
 begin
+{$IFDEF MSWINDOWS}
   if rbTrace.IsChecked then
     CnDebugger.TraceVirtualKey(Key)
   else
     CnDebugger.LogVirtualKey(Key);
+{$ENDIF}
 end;
 
 //procedure TFormSend.edtMsgKeyPress(Sender: TObject; var Key: Char);
@@ -551,18 +560,25 @@ begin
   end;
 end;
 
+{$IFDEF MSWINDOWS}
+
 function GetEBP: Pointer;
 asm
         MOV     EAX, EBP
 end;
 
+{$ENDIF}
+
 procedure TFormSend.btnEBPAddrClick(Sender: TObject);
 begin
+{$IFDEF MSWINDOWS}
   if rbTrace.IsChecked then
     CnDebugger.TraceStackFromAddress(GetEBP)
   else
     CnDebugger.LogStackFromAddress(GetEBP);
+{$ENDIF}
 end;
+
 
 procedure TFormSend.btnEvaluateMenuClick(Sender: TObject);
 begin
@@ -656,11 +672,15 @@ begin
 
 end;
 
+{$IFDEF MSWINDOWS}
+
 procedure TFormSend.NewWindowProc(var AMsg: TMessage);
 begin
   CnDebugger.LogWindowMessage(AMsg.Msg);
   FOldWndProc(AMsg);
 end;
+
+{$ENDIF}
 
 procedure TFormSend.btnFindComponentClick(Sender: TObject);
 begin
@@ -697,12 +717,15 @@ begin
 end;
 
 procedure TFormSend.btnEvaluateTransBmpClick(Sender: TObject);
+{$IFDEF MSWINDOWS}
 {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
 var
   Bmp: TBitmap;
   Png: TPngImage;
 {$ENDIF}
+{$ENDIF}
 begin
+{$IFDEF MSWINDOWS}
 {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}
   ShowMessage('Please Open a Transparent PNG File.');
   if dlgOpen1.Execute then
@@ -719,6 +742,7 @@ begin
   end;
 {$ELSE}
   ShowMessage('Please RUN under Delphi 2009 or Above.');
+{$ENDIF}
 {$ENDIF}
 end;
 

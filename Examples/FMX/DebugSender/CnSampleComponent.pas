@@ -38,8 +38,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  System.Classes, FMX.Controls, FMX.Forms, FMX.Dialogs,
-  System.UITypes, FMX.Graphics, Winapi.Windows;
+  System.Types, System.Classes, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  System.UITypes, FMX.Graphics {$IFDEF MSWINDOWS}, Winapi.Windows {$ENDIF};
 
 type
   TCnDynIntArray = array of Integer;
@@ -57,7 +57,9 @@ type
     FAnchorKind: TAnchorKind;
     FAnchors: TAnchors;
     FParent: TControl;
+{$IFDEF MSWINDOWS}
     FArrayValue: TKeyboardState;
+{$ENDIF}
     FOnClick: TNotifyEvent;
     FVarValue: Variant;
     FWideAccChar: WideChar;
@@ -77,7 +79,9 @@ type
     FReadOnlyAnchorKind: TAnchorKind;
     FReadOnlyAnchors: TAnchors;
     FReadOnlyParent: TControl;
+{$IFDEF MSWINDOWS}
     FReadOnlyArrayValue: TKeyboardState;
+{$ENDIF}
     FReadOnlyOnClick: TNotifyEvent;
     FReadOnlyVarValue: Variant;
     FReadOnlyWideAccChar: WideChar;
@@ -92,10 +96,13 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-
+{$IFDEF MSWINDOWS}
     property ArrayValue: TKeyboardState read FArrayValue write FArrayValue;
+{$ENDIF}
     property DynArray: TCnDynIntArray read FDynArray write FDynArray;
+{$IFDEF MSWINDOWS}
     property ReadOnlyArrayValue: TKeyboardState read FReadOnlyArrayValue;
+{$ENDIF}
     property ReadOnlyDynArray: TCnDynIntArray read FReadOnlyDynArray;
 
   published
@@ -173,7 +180,9 @@ begin
   FAnchors := [TAnchorKind.akLeft, TAnchorKind.akBottom];
   FParent := nil;
 
+{$IFDEF MSWINDOWS}
   FArrayValue[0] := 10;
+{$ENDIF}
 
   FOnClick := nil;
   FVarValue := 0;
