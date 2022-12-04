@@ -245,7 +245,7 @@ begin
 {$IFDEF MSWINDOWS}
     Ret := Forwarder.CheckSocketError(WinSock.select(0, @ReadFds, nil, nil, nil));
 {$ELSE}
-    Ret := Forwarder.CheckSocketError(Posix.SysSelect.select(0, @ReadFds, nil, nil, nil));
+    Ret := Forwarder.CheckSocketError(Posix.SysSelect.select(2, @ReadFds, nil, nil, nil));
 {$ENDIF}
 
     if Ret <= 0 then

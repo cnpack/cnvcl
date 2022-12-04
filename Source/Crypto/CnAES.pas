@@ -3473,12 +3473,15 @@ var
   AESKey256: TAESKey256;
 begin
   Result := '';
-  SS := TMemoryStream.Create;
-  SS.Write(PAnsiChar(@Value[1])^, Length(Value));
-  SS.Position := 0;
+  SS := nil;
+  DS := nil;
 
-  DS := TMemoryStream.Create;
   try
+    SS := TMemoryStream.Create;
+    SS.Write(PAnsiChar(@Value[1])^, Length(Value));
+    SS.Position := 0;
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -3517,13 +3520,16 @@ var
   Tmp: AnsiString;
 begin
   Result := '';
-  SS := TMemoryStream.Create;
-  Tmp := HexToStr(Value);
-  SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
-  SS.Position := 0;
+  SS := nil;
+  DS := nil;
 
-  DS := TMemoryStream.Create;
   try
+    SS := TMemoryStream.Create;
+    Tmp := HexToStr(Value);
+    SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
+    SS.Position := 0;
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -3562,11 +3568,15 @@ var
   AESKey256: TAESKey256;
 begin
   Result := '';
-  SS := TMemoryStream.Create;
-  SS.Write(PAnsiChar(@Value[1])^, Length(Value));
-  SS.Position := 0;
-  DS := TMemoryStream.Create;
+  SS := nil;
+  DS := nil;
+
   try
+    SS := TMemoryStream.Create;
+    SS.Write(PAnsiChar(@Value[1])^, Length(Value));
+    SS.Position := 0;
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -3605,13 +3615,16 @@ var
   Tmp: AnsiString;
 begin
   Result := '';
-  SS := TMemoryStream.Create;
-  Tmp := HexToStr(Value);
-  SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
-  SS.Position := 0;
-  
-  DS := TMemoryStream.Create;
+  SS := nil;
+  DS := nil;
+
   try
+    SS := TMemoryStream.Create;
+    Tmp := HexToStr(Value);
+    SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
+    SS.Position := 0;
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -3650,11 +3663,15 @@ var
   AESKey256: TAESKey256;
 begin
   Result := '';
-  SS := TMemoryStream.Create;
-  SS.Write(PAnsiChar(@Value[1])^, Length(Value));
-  SS.Position := 0;
-  DS := TMemoryStream.Create;
+  SS := nil;
+  DS := nil;
+
   try
+    SS := TMemoryStream.Create;
+    SS.Write(PAnsiChar(@Value[1])^, Length(Value));
+    SS.Position := 0;
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -3693,13 +3710,16 @@ var
   Tmp: AnsiString;
 begin
   Result := '';
-  SS := TMemoryStream.Create;
-  Tmp := HexToStr(Value);
-  SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
-  SS.Position := 0;
+  SS := nil;
+  DS := nil;
 
-  DS := TMemoryStream.Create;
   try
+    SS := TMemoryStream.Create;
+    Tmp := HexToStr(Value);
+    SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
+    SS.Position := 0;
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -3738,11 +3758,15 @@ var
   AESKey256: TAESKey256;
 begin
   Result := '';
-  SS := TMemoryStream.Create;
-  SS.Write(PAnsiChar(@Value[1])^, Length(Value));
-  SS.Position := 0;
-  DS := TMemoryStream.Create;
+  SS := nil;
+  DS := nil;
+
   try
+    SS := TMemoryStream.Create;
+    SS.Write(PAnsiChar(@Value[1])^, Length(Value));
+    SS.Position := 0;
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -3781,13 +3805,16 @@ var
   Tmp: AnsiString;
 begin
   Result := '';
-  SS := TMemoryStream.Create;
-  Tmp := HexToStr(Value);
-  SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
-  SS.Position := 0;
+  SS := nil;
+  DS := nil;
 
-  DS := TMemoryStream.Create;
   try
+    SS := TMemoryStream.Create;
+    Tmp := HexToStr(Value);
+    SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
+    SS.Position := 0;
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -3830,12 +3857,15 @@ begin
     Exit;
   end;
 
-  SS := TMemoryStream.Create;
-  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
-  SS.Position := 0;
+  SS := nil;
+  DS := nil;
 
-  DS := TMemoryStream.Create;
   try
+    SS := TMemoryStream.Create;
+    SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+    SS.Position := 0;
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -3879,12 +3909,15 @@ begin
     Exit;
   end;
 
-  SS := TMemoryStream.Create;
-  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
-  SS.Position := 0;
+  SS := nil;
+  DS := nil;
 
-  DS := TMemoryStream.Create;
   try
+    SS := TMemoryStream.Create;
+    SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+    SS.Position := 0;
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -3905,7 +3938,6 @@ begin
         DecryptAESStreamECB(SS, SS.Size - SS.Position, AESKey256, DS);
       end;
     end;
-
     SetLength(Result, DS.Size);
     DS.Position := 0;
     DS.Read(Result[0], DS.Size);
@@ -3930,15 +3962,18 @@ begin
     Exit;
   end;
 
-  SS := TMemoryStream.Create;
-  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
-  SS.Position := 0;
+  SS := nil;
+  DS := nil;
 
-  FillChar(AESIv, SizeOF(AESIv), 0);
-  Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
-
-  DS := TMemoryStream.Create;
   try
+    SS := TMemoryStream.Create;
+    SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+    SS.Position := 0;
+
+    FillChar(AESIv, SizeOF(AESIv), 0);
+    Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -3959,7 +3994,6 @@ begin
         EncryptAESStreamCBC(SS, 0, AESKey256, AESIv, DS);
       end;
     end;
-
     SetLength(Result, DS.Size);
     DS.Position := 0;
     DS.Read(Result[0], DS.Size);
@@ -3984,15 +4018,18 @@ begin
     Exit;
   end;
 
-  SS := TMemoryStream.Create;
-  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
-  SS.Position := 0;
+  SS := nil;
+  DS := nil;
 
-  FillChar(AESIv, SizeOF(AESIv), 0);
-  Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
-
-  DS := TMemoryStream.Create;
   try
+    SS := TMemoryStream.Create;
+    SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+    SS.Position := 0;
+
+    FillChar(AESIv, SizeOF(AESIv), 0);
+    Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -4037,15 +4074,18 @@ begin
     Exit;
   end;
 
-  SS := TMemoryStream.Create;
-  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
-  SS.Position := 0;
+  SS := nil;
+  DS := nil;
 
-  FillChar(AESIv, SizeOF(AESIv), 0);
-  Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
-
-  DS := TMemoryStream.Create;
   try
+    SS := TMemoryStream.Create;
+    SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+    SS.Position := 0;
+
+    FillChar(AESIv, SizeOF(AESIv), 0);
+    Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -4066,7 +4106,6 @@ begin
         EncryptAESStreamCFB(SS, 0, AESKey256, AESIv, DS);
       end;
     end;
-
     SetLength(Result, DS.Size);
     DS.Position := 0;
     DS.Read(Result[0], DS.Size);
@@ -4091,15 +4130,18 @@ begin
     Exit;
   end;
 
-  SS := TMemoryStream.Create;
-  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
-  SS.Position := 0;
+  SS := nil;
+  DS := nil;
 
-  FillChar(AESIv, SizeOF(AESIv), 0);
-  Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
-
-  DS := TMemoryStream.Create;
   try
+    SS := TMemoryStream.Create;
+    SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+    SS.Position := 0;
+
+    FillChar(AESIv, SizeOF(AESIv), 0);
+    Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -4144,15 +4186,18 @@ begin
     Exit;
   end;
 
-  SS := TMemoryStream.Create;
-  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
-  SS.Position := 0;
+  SS := nil;
+  DS := nil;
 
-  FillChar(AESIv, SizeOF(AESIv), 0);
-  Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
-
-  DS := TMemoryStream.Create;
   try
+    SS := TMemoryStream.Create;
+    SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+    SS.Position := 0;
+
+    FillChar(AESIv, SizeOF(AESIv), 0);
+    Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
@@ -4173,7 +4218,6 @@ begin
         EncryptAESStreamOFB(SS, 0, AESKey256, AESIv, DS);
       end;
     end;
-
     SetLength(Result, DS.Size);
     DS.Position := 0;
     DS.Read(Result[0], DS.Size);
@@ -4198,15 +4242,18 @@ begin
     Exit;
   end;
 
-  SS := TMemoryStream.Create;
-  SS.Write(PAnsiChar(@Value[0])^, Length(Value));
-  SS.Position := 0;
+  SS := nil;
+  DS := nil;
 
-  FillChar(AESIv, SizeOF(AESIv), 0);
-  Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
-
-  DS := TMemoryStream.Create;
   try
+    SS := TMemoryStream.Create;
+    SS.Write(PAnsiChar(@Value[0])^, Length(Value));
+    SS.Position := 0;
+
+    FillChar(AESIv, SizeOF(AESIv), 0);
+    Move(PAnsiChar(Iv)^, AESIv, Min(SizeOf(AESIv), Length(Iv)));
+    DS := TMemoryStream.Create;
+
     case KeyBit of
     kbt128:
       begin
