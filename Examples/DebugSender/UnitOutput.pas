@@ -40,7 +40,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ComCtrls, ExtCtrls, ActnList, UnitThread, Buttons,
+  Dialogs, StdCtrls, ComCtrls, ExtCtrls, UnitThread, Buttons,
   ImgList, Menus {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}, PNGImage {$ENDIF};
 
 type
