@@ -98,6 +98,10 @@ resourcestring
   SCnTCPForwarderName = 'CnTCPForwarder Component';
   SCnTCPForwarderComment = 'A Simple TCP Port Mapping Component';
 
+  // CnUDP
+  SCnUDPName = 'CnUDP Component';
+  SCnUDPComment = 'A Simple UDP Component';
+
 implementation
 
 end.

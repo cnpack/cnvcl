@@ -98,6 +98,10 @@ resourcestring
   SCnTCPForwarderName = 'TCP端口转发组件';
   SCnTCPForwarderComment = 'TCP端口转发组件';
 
+  // CnUDP
+  SCnUDPName = 'UDP组件';
+  SCnUDPComment = 'UDP组件';
+
 implementation
 
 end.
