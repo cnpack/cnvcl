@@ -40,8 +40,12 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, Classes, SysUtils, WinSock, Forms, Contnrs, CnClasses,
-  CnConsts, CnNetConsts;
+  {$IFDEF MSWINDOWS}
+  Windows, Messages, Classes, WinSock, Forms,
+  {$ELSE}
+  Posix.Base, Posix.NetIf, Posix.SysSocket, Posix.ArpaInet, Posix.NetinetIn,
+  {$ENDIF}
+  SysUtils, Contnrs, CnClasses, CnConsts, CnNetConsts;
 
 const
   csDefRecvBuffSize = 4096;
@@ -203,23 +207,37 @@ type
     iiNetmask: sockaddr_gen;            // Network mask
   end;
 
-// 取广播地址
+{$IFNDEF MSWINDOWS}
+
+function getifaddrs(var ifap: pifaddrs): Integer; cdecl; external libc name _PU + 'getifaddrs';
+
+procedure freeifaddrs(ifap: pifaddrs); cdecl; external libc name _PU + 'freeifaddrs';
+
+{$ENDIF}
+
+// 取本机所有地址或广播地址
 procedure DoGetIPAddress(sInt: TStrings; IsBroadCast: Boolean);
 var
+  pAddrStr: string;
+{$IFDEF MSWINDOWS}
   S: TSocket;
   wsaD: WSADATA;
   NumInterfaces: Integer;
   BytesReturned, SetFlags: u_long;
   pAddr, pMask, pCast: TInAddr;
-  pAddrStr: string;
   PtrA: pointer;
   Buffer: array[0..20] of INTERFACE_INFO;
   I: Integer;
+{$ELSE}
+  Pif: Pifaddrs;
+  InAddr: in_addr;
+{$ENDIF}
 begin
+{$IFDEF MSWINDOWS}
   WSAStartup($0101, wsaD);              // Start WinSock
   S := Socket(AF_INET, SOCK_STREAM, 0); // Open a socket
   if (S = INVALID_SOCKET) then
-    exit;
+    Exit;
 
   try                                   // Call WSAIoCtl
     PtrA := @bytesReturned;
@@ -257,6 +275,27 @@ begin
   end;
   CloseSocket(S);
   WSACleanUp;
+{$ELSE}
+  getifaddrs(Pif);
+  while Pif <> nil do
+  begin
+    // 先不处理 BROADCAST 标记
+    if (Pif^.ifa_addr.sa_family = AF_INET) and ((Pif^.ifa_flags and IFF_LOOPBACK) = 0) then
+    begin
+      InAddr := Psockaddr_in(Pif^.ifa_addr)^.sin_addr;
+      if IsBroadCast then
+        InAddr.s_addr := InAddr.s_addr or not
+          Psockaddr_in(Pif^.ifa_netmask)^.sin_addr.s_addr;
+
+      pAddrStr := string(inet_ntoa(InAddr));
+
+      if sInt.IndexOf(pAddrStr) < 0 then
+        sInt.Add(pAddrStr);
+    end;
+    Pif := Pif^.ifa_next;
+  end;
+  freeifaddrs(Pif);
+{$ENDIF}
 end;
 
 // 取本机 IP 地址
