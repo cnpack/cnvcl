@@ -46,7 +46,7 @@ uses
 {$ELSE}
   System.Net.Socket, Posix.NetinetIn, Posix.SysSocket, Posix.Unistd, Posix.ArpaInet,
 {$ENDIF}
-  CnConsts, CnNetConsts, CnClasses, CnNetwork;
+  CnConsts, CnNetConsts, CnClasses, CnSocket;
 
 type
   ECnServerSocketError = class(Exception);
@@ -242,21 +242,14 @@ begin
       SockAddress.sin_addr.S_addr := INADDR_ANY;
 
     SockAddress.sin_port := ntohs(FLocalPort);
-{$IFDEF MSWINDOWS}
-    Result := CheckSocketError(WinSock.bind(FSocket, SockAddress, SizeOf(SockAddress))) = 0;
-{$ELSE}
-    Result := CheckSocketError(Posix.SysSocket.bind(FSocket, sockaddr(SockAddress), SizeOf(SockAddress))) = 0;
-{$ENDIF}
+    Result := CheckSocketError(CnBind(FSocket, SockAddress, SizeOf(SockAddress))) = 0;
 
     FActualLocalPort := FLocalPort;
     if FActualLocalPort = 0 then
     begin
       Len := SizeOf(ConnAddr);
-{$IFDEF MSWINDOWS}
-      Ret := CheckSocketError(WinSock.getsockname(FSocket, ConnAddr, Len));
-{$ELSE}
-      Ret := CheckSocketError(getsockname(FSocket, sockaddr(ConnAddr), Cardinal(Len)));
-{$ENDIF}
+      Ret := CheckSocketError(CnGetSockname(FSocket, ConnAddr, Len));
+
       if Ret = 0 then
         FActualLocalPort := ntohs(ConnAddr.sin_port);
     end;
@@ -298,13 +291,8 @@ begin
   if FActive then
   begin
     // 通知停止 Accept 线程，防止还有新 Client 进来
-{$IFDEF MSWINDOWS}
-    WinSock.shutdown(FSocket, 2); // SD_BOTH，忽略未连接时的出错
-    CheckSocketError(WinSock.closesocket(FSocket)); // intterupt accept call
-{$ELSE}
-    shutdown(FSocket, 2); // SD_BOTH，忽略未连接时的出错
-    CheckSocketError(Posix.Unistd.__close(FSocket)); // intterupt accept call
-{$ENDIF}
+    CnShutdown(FSocket, SD_BOTH); // 忽略未连接时的出错
+    CheckSocketError(CnCloseSocket(FSocket));
 
     FSocket := INVALID_SOCKET;
     FAcceptThread.Terminate;
@@ -430,13 +418,7 @@ end;
 function TCnThreadingTCPServer.Listen: Boolean;
 begin
   if FActive and not FListening then
-  begin
-{$IFDEF MSWINDOWS}
-    FListening := CheckSocketError(WinSock.listen(FSocket, SOMAXCONN)) = 0;
-{$ELSE}
-    FListening := CheckSocketError(Posix.SysSocket.listen(FSocket, SOMAXCONN)) = 0;
-{$ENDIF}
-  end;
+    FListening := CheckSocketError(CnListen(FSocket, SOMAXCONN)) = 0;
 
   Result := FListening;
 end;
@@ -446,7 +428,7 @@ begin
   if FActive then
     Exit;
 
-  FSocket := socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  FSocket := CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   FActive := FSocket <> INVALID_SOCKET;
   if FActive then
   begin
@@ -512,11 +494,7 @@ begin
     Len := SizeOf(SockAddress);
     FillChar(SockAddress, SizeOf(SockAddress), 0);
     try
-{$IFDEF MSWINDOWS}
-      Sock := WinSock.accept(FServerSocket, @SockAddress, @Len);
-{$ELSE}
-      Sock := accept(FServerSocket, sockaddr(SockAddress), Cardinal(Len));
-{$ENDIF}
+      Sock := CnAccept(FServerSocket, @SockAddress, @Len);
     except
       Sock := INVALID_SOCKET;
     end;
@@ -527,11 +505,7 @@ begin
       // 超出最大连接数，直接断掉
       if (FServer.MaxConnections > 0) and (FServer.ClientCount >= FServer.MaxConnections) then
       begin
-{$IFDEF MSWINDOWS}
-        WinSock.closesocket(Sock);
-{$ELSE}
-        Posix.Unistd.__close(Sock);
-{$ENDIF}
+        CnCloseSocket(Sock);
         Continue;
       end;
 
@@ -544,11 +518,7 @@ begin
       ClientThread.ClientSocket.Server := FServer;
 
       Len := SizeOf(ConnAddr);
-{$IFDEF MSWINDOWS}
-      Ret := FServer.CheckSocketError(WinSock.getsockname(Sock, ConnAddr, Len));
-{$ELSE}
-      Ret := FServer.CheckSocketError(getsockname(Sock, sockaddr(ConnAddr), Cardinal(Len)));
-{$ENDIF}
+      Ret := FServer.CheckSocketError(CnGetSockName(Sock, ConnAddr, Len));
 
       if Ret = 0 then
       begin
@@ -631,11 +601,7 @@ end;
 
 function TCnClientSocket.Recv(var Buf; Len: Integer; Flags: Integer): Integer;
 begin
-{$IFDEF MSWINDOWS}
-  Result := FServer.CheckSocketError(WinSock.recv(FSocket, Buf, Len, Flags));
-{$ELSE}
-  Result := FServer.CheckSocketError(Posix.SysSocket.recv(FSocket, Buf, Len, Flags));
-{$ENDIF}
+  Result := FServer.CheckSocketError(CnRecv(FSocket, Buf, Len, Flags));
 
   if Result <> SOCKET_ERROR then
   begin
@@ -646,11 +612,7 @@ end;
 
 function TCnClientSocket.Send(var Buf; Len: Integer; Flags: Integer): Integer;
 begin
-{$IFDEF MSWINDOWS}
-  Result := FServer.CheckSocketError(WinSock.send(FSocket, Buf, Len, Flags));
-{$ELSE}
-  Result := FServer.CheckSocketError(Posix.SysSocket.send(FSocket, Buf, Len, Flags));
-{$ENDIF}
+  Result := FServer.CheckSocketError(CnSend(FSocket, Buf, Len, Flags));
 
   if Result <> SOCKET_ERROR then
   begin
@@ -685,13 +647,8 @@ procedure TCnClientSocket.Shutdown;
 begin
   if FSocket <> INVALID_SOCKET then
   begin
-{$IFDEF MSWINDOWS}
-    FServer.CheckSocketError(WinSock.shutdown(FSocket, 2)); // SD_BOTH
-    FServer.CheckSocketError(WinSock.closesocket(FSocket));
-{$ELSE}
-    FServer.CheckSocketError(Posix.SysSocket.shutdown(FSocket, 2)); // SD_BOTH
-    FServer.CheckSocketError(Posix.Unistd.__close(FSocket));
-{$ENDIF}
+    FServer.CheckSocketError(CnShutdown(FSocket, SD_BOTH));
+    FServer.CheckSocketError(CnCloseSocket(FSocket));
 
     FSocket := INVALID_SOCKET;
 

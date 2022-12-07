@@ -47,7 +47,7 @@ uses
 {$ELSE}
   System.Net.Socket, Posix.NetinetIn, Posix.SysSocket, Posix.Unistd, Posix.ArpaInet,
 {$ENDIF}
-  CnConsts, CnNetConsts, CnNetwork, CnClasses;
+  CnConsts, CnNetConsts, CnSocket, CnClasses;
 
 type
   ECnClientSocketError = class(Exception);
@@ -145,20 +145,13 @@ begin
     if FConnected then
     begin
       FConnected := False;
-{$IFDEF MSWINDOWS}
-      CheckSocketError(WinSock.shutdown(FSocket, 2)); // SD_BOTH
-{$ELSE}
-      CheckSocketError(shutdown(FSocket, 2)); // SD_BOTH
-{$ENDIF}
+      CnShutdown(FSocket, SD_BOTH);
+
       DoDisconnect;
     end;
 
     FActive := False;
-{$IFDEF MSWINDOWS}
-    CheckSocketError(WinSock.closesocket(FSocket));
-{$ELSE}
-    CheckSocketError(Posix.Unistd.__close(FSocket));
-{$ENDIF}
+    CheckSocketError(CnCloseSocket(FSocket));
 
     FSocket := INVALID_SOCKET;
   end;
@@ -234,12 +227,7 @@ var
 begin
   if not FActive then
   begin
-{$IFDEF MSWINDOWS}
-    FSocket := CheckSocketError(WinSock.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
-{$ELSE}
-    FSocket := CheckSocketError(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
-{$ENDIF}
-
+    FSocket := CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     FActive := FSocket <> INVALID_SOCKET;
 
     if FActive and not FConnected then
@@ -252,12 +240,11 @@ begin
 
 {$IFDEF MSWINDOWS}
       SockAddress.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(LookupHostAddr(FRemoteHost))));
-      FConnected := CheckSocketError(WinSock.connect(FSocket, SockAddress, SizeOf(SockAddress))) = 0;
 {$ELSE}
       SockAddress.sin_addr := TIPAddress.LookupName(FRemoteHost);
-      FConnected := CheckSocketError(connect(FSocket, sockaddr(SockAddress), SizeOf(SockAddress))) = 0;
 {$ENDIF}
 
+      FConnected := CheckSocketError(CnConnect(FSocket, SockAddress, SizeOf(SockAddress))) = 0;
       if FConnected then
         DoConnect;
     end;
@@ -266,11 +253,7 @@ end;
 
 function TCnTCPClient.Recv(var Buf; Len, Flags: Integer): Integer;
 begin
-{$IFDEF MSWINDOWS}
-  Result := CheckSocketError(WinSock.recv(FSocket, Buf, Len, Flags));
-{$ELSE}
-  Result := CheckSocketError(Posix.SysSocket.recv(FSocket, Buf, Len, Flags));
-{$ENDIF}
+  Result := CheckSocketError(CnRecv(FSocket, Buf, Len, Flags));
 
   if Result <> SOCKET_ERROR then
   begin
@@ -283,11 +266,7 @@ end;
 
 function TCnTCPClient.Send(var Buf; Len, Flags: Integer): Integer;
 begin
-{$IFDEF MSWINDOWS}
-  Result := CheckSocketError(WinSock.send(FSocket, Buf, Len, Flags));
-{$ELSE}
-  Result := CheckSocketError(Posix.SysSocket.send(FSocket, Buf, Len, Flags));
-{$ENDIF}
+  Result := CheckSocketError(CnSend(FSocket, Buf, Len, Flags));
 
   if Result <> SOCKET_ERROR then
     Inc(FBytesSent, Result);

@@ -42,18 +42,7 @@ interface
 uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ELSE}, Posix.NetinetIn {$ENDIF};
 
-{$IFNDEF MSWINDOWS}
-type
-  TSocket = Integer;
-  TSockAddr = sockaddr_in;
-{$ENDIF}
-
 const
-{$IFNDEF MSWINDOWS}
-  SOCKET_ERROR   = -1;
-  INVALID_SOCKET = -1;
-{$ENDIF}
-
   {* IP 包头中的版本字段的定义}
   CN_IP_VERSION_V4                          = 4;
   CN_IP_VERSION_V6                          = 6;

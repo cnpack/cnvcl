@@ -207,14 +207,6 @@ type
     iiNetmask: sockaddr_gen;            // Network mask
   end;
 
-{$IFNDEF MSWINDOWS}
-
-function getifaddrs(var ifap: pifaddrs): Integer; cdecl; external libc name _PU + 'getifaddrs';
-
-procedure freeifaddrs(ifap: pifaddrs); cdecl; external libc name _PU + 'freeifaddrs';
-
-{$ENDIF}
-
 // 取本机所有地址或广播地址
 procedure DoGetIPAddress(sInt: TStrings; IsBroadCast: Boolean);
 var

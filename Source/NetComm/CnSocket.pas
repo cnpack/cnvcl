@@ -39,19 +39,24 @@ interface
 
 uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, WinSock {$ELSE}, System.Net.Socket,
-  Posix.Base, Posix.NetIf, Posix.SysSocket, Posix.ArpaInet, Posix.NetinetIn
-  {$ENDIF};
+  Posix.Base, Posix.NetIf, Posix.SysSocket, Posix.ArpaInet, Posix.NetinetIn,
+  Posix.Unistd, Posix.SysSelect, Posix.SysTime {$ENDIF};
+
+type
+{$IFDEF MSWINDOWS}
+  TCnFDSet = TFDSet;
+  PCnFDSet = PFDSet;
+{$ELSE}
+  TCnFDSet = fd_set;
+  PCNFDSet = Pfd_set;
+
+  TSocket = Integer;
+  TSockAddr = sockaddr_in;
+{$ENDIF}
 
 const
   SD_BOTH = 2;
-
 {$IFNDEF MSWINDOWS}
-
-type
-  TSocket = Integer;
-  TSockAddr = sockaddr_in;
-
-const
   SOCKET_ERROR   = -1;
   INVALID_SOCKET = -1;
 
@@ -85,11 +90,27 @@ function CnSend(S: TSocket; const Buf; Len, Flags: Integer): Integer;
 function CnRecv(S: TSocket; var Buf; Len, Flags: Integer): Integer;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 recv 函数的封装}
 
+function CnSelect(Nfds: Integer; Readfds, Writefds, Exceptfds: PCnFDSet;
+  Timeout: PTimeVal): Longint;
+{* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 select 函数的封装}
+
 function CnShutdown(S: TSocket; How: Integer): Integer;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 shutdown 函数的封装}
 
 function CnCloseSocket(S: TSocket): Integer;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 closesocket 函数的封装}
+
+procedure CnFDZero(var FD: TCnFDSet);
+{* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 FD_ZERO 函数的封装}
+
+procedure CnFDSet(F: Integer; var FD: TCnFDSet);
+{* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 FD_SET 函数的封装}
+
+procedure CnFDClear(F: Integer; var FD: TCnFDSet);
+{* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 FD_CLR 函数的封装}
+
+function CnFDIsSet(F: Integer; var FD: TCnFDSet): Boolean;
+{* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 FD_ISSET 函数的封装}
 
 implementation
 
@@ -125,7 +146,7 @@ begin
 {$IFDEF MSWINDOWS}
   Result := WinSock.getsockname(S, Name, NameLen);
 {$ELSE}
-  Result := Posix.SysSocket.getsockname(S, sockaddr(Name), NameLen);
+  Result := Posix.SysSocket.getsockname(S, sockaddr(Name), Cardinal(NameLen));
 {$ENDIF}
 end;
 
@@ -143,7 +164,7 @@ begin
 {$IFDEF MSWINDOWS}
   Result := WinSock.accept(S, Addr, AddrLen);
 {$ELSE}
-  Result := Posix.SysSocket.accept(S, Addr^, AddrLen);
+  Result := Posix.SysSocket.accept(S, Addr^, Cardinal(AddrLen^));
 {$ENDIF}
 end;
 
@@ -165,6 +186,16 @@ begin
 {$ENDIF}
 end;
 
+function CnSelect(Nfds: Integer; Readfds, Writefds, Exceptfds: PCnFDSet;
+  Timeout: PTimeVal): Longint;
+begin
+{$IFDEF MSWINDOWS}
+  Result := WinSock.select(Nfds, Readfds, Writefds, Exceptfds, Timeout);
+{$ELSE}
+  Result := Posix.SysSelect.select(Nfds, Readfds, Writefds, Exceptfds, Timeout);
+{$ENDIF}
+end;
+
 function CnShutdown(S: TSocket; How: Integer): Integer;
 begin
 {$IFDEF MSWINDOWS}
@@ -181,6 +212,30 @@ begin
 {$ELSE}
   Result := Posix.Unistd.__close(S);
 {$ENDIF}
+end;
+
+procedure CnFDZero(var FD: TCnFDSet);
+begin
+  FD_ZERO(FD);
+end;
+
+procedure CnFDSet(F: Integer; var FD: TCnFDSet);
+begin
+{$IFDEF MSWINDOWS}
+  FD_SET(F, FD);
+{$ELSE}
+  _FD_SET(F, FD);
+{$ENDIF}
+end;
+
+procedure CnFDClear(F: Integer; var FD: TCnFDSet);
+begin
+  FD_CLR(F, FD);
+end;
+
+function CnFDIsSet(F: Integer; var FD: TCnFDSet): Boolean;
+begin
+  Result := FD_ISSET(F, FD);
 end;
 
 end.
