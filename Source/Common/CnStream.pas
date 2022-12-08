@@ -42,7 +42,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes;
+  {$IFDEF MSWINDOWS} Windows, {$ELSE} System.Types, {$ENDIF} SysUtils, Classes;
 
 type
 
@@ -254,20 +254,20 @@ begin
     Count := Source.Size;
   end;
   Result := Count;
-  //注意此方法能工作的首要条件是Dest, Source两者之一是TCustomMemoryStream,否则调用原函数
+  //注意此方法能工作的首要条件是 Dest、Source 两者之一是 TCustomMemoryStream，否则调用原函数
   
-  //判断Dest或Source是不是TCustomMemoryStream,如果是的话，直接从Memory的地址上进行操作 ,
-  //因为CustomMemoryStream 的read或writer都用到System.move
-  //这样省去了原TStream不停地创建和写buffer 及设置Capacity ,原copyfrom这里最浪费时间
-  //用此方法可直接将Source的内存块追加到Dest的Memory地址的后面
+  //判断 Dest 或 Source 是不是 TCustomMemoryStream，如果是的话，直接从 Memory 的地址上进行操作 ,
+  //因为 CustomMemoryStream 的 Read 或 Write 都用到 System.Move
+  //这样省去了原 TStream 不停地创建和写 Buffer 及设置 Capacity，原 Copyfrom 这里最浪费时间
+  //用此方法可直接将 Source 的内存块追加到 Dest 的 Memory 地址的后面
 
-  if Source is TCustomMemoryStream then     //直接写入到Dest的地址内
+  if Source is TCustomMemoryStream then     // 直接写入到 Dest 的地址内
     Dest.WriteBuffer(Pointer(Longint(TCustomMemoryStream(Source).Memory) + Source.Position)^,Count)
   else if Dest is TCustomMemoryStream then
   begin
     aNewSize := Dest.Position + Count;
     TCustomMemoryStream(Dest).Size := aNewSize; //先设置内存的大小，将Dest.Memory扩大,不然下面找不到地址
-    //source直接从Dest.memory后面写
+    // Source 直接从 Dest.Memory 后面写
     Source.ReadBuffer(Pointer(Longint(TCustomMemoryStream(Dest).Memory) + Dest.Position)^, Count);
   end
   else
@@ -278,7 +278,7 @@ end;
 
 function CnGenerateCodeMap(ASeedStr: AnsiString; var EnMap, DeMap: TCnCodeMap): Boolean;
 var
-  i: Integer;
+  I: Integer;
   C: Byte;
   List: TList;
 begin
@@ -288,14 +288,14 @@ begin
 
   List := TList.Create;
   try
-    for i := 0 to 255 do
-      List.Add(Pointer(i));
-    for i := 0 to 255 do
+    for I := 0 to 255 do
+      List.Add(Pointer(I));
+    for I := 0 to 255 do
     begin
-      C := Byte(ASeedStr[i mod Length(ASeedStr) + 1]) xor $3E;
+      C := Byte(ASeedStr[I mod Length(ASeedStr) + 1]) xor $3E;
       C := (C * 3 + 7) mod List.Count;
-      EnMap[i] := Byte(List[C]);
-      DeMap[Byte(List[C])] := i;
+      EnMap[I] := Byte(List[C]);
+      DeMap[Byte(List[C])] := I;
       List.Delete(C);
     end;
     Result := True;
@@ -356,22 +356,22 @@ begin
 end;
 {$ENDIF}
 
-function TCnStream.Read(var Buffer; Count: Integer): Longint;
+function TCnStream.Read(var Buffer; Count: LongInt): Longint;
 begin
   Result := FStream.Read(Buffer, Count);
 end;
 
-function TCnStream.Seek(Offset: Integer; Origin: Word): Longint;
+function TCnStream.Seek(Offset: LongInt; Origin: Word): Longint;
 begin
   Result := FStream.Seek(Offset, Origin);
 end;
 
-function TCnStream.Write(const Buffer; Count: Integer): Longint;
+function TCnStream.Write(const Buffer; Count: LongInt): Longint;
 begin
   Result := FStream.Write(Buffer, Count);
 end;
 
-procedure TCnStream.SetSize(NewSize: Integer);
+procedure TCnStream.SetSize(NewSize: LongInt);
 begin
   FStream.Size := NewSize;
 end;
@@ -386,26 +386,26 @@ end;
 //------------------------------------------------------------------------------
 // 数据块标志操作方法
 //------------------------------------------------------------------------------
-   
-procedure TCnStream.BeginRead(Flag: Integer);
+
+procedure TCnStream.BeginRead(Flag: LongInt);
 begin
   if Flag = -1 then Flag := csBeginFlagInt;
   if ReadInteger <> Flag then ReadError;
 end;
 
-procedure TCnStream.EndRead(Flag: Integer);
+procedure TCnStream.EndRead(Flag: LongInt);
 begin
   if Flag = -1 then Flag := csEndFlagInt;
   if ReadInteger <> Flag then ReadError;
 end;
 
-procedure TCnStream.BeginWrite(Flag: Integer);
+procedure TCnStream.BeginWrite(Flag: LongInt);
 begin
   if Flag = -1 then Flag := csBeginFlagInt;
   WriteInteger(Flag);
 end;
 
-procedure TCnStream.EndWrite(Flag: Integer);
+procedure TCnStream.EndWrite(Flag: LongInt);
 begin
   if Flag = -1 then Flag := csEndFlagInt;
   WriteInteger(Flag);
@@ -415,13 +415,13 @@ end;
 // 辅助方法
 //------------------------------------------------------------------------------
 
-procedure TCnStream.DoRead(var Buffer; Count: Integer);
+procedure TCnStream.DoRead(var Buffer; Count: LongInt);
 begin
   if Read(Buffer, Count) <> Count then
     ReadError;
 end;
 
-procedure TCnStream.DoWrite(const Buffer; Count: Integer);
+procedure TCnStream.DoWrite(const Buffer; Count: LongInt);
 begin
   if Write(Buffer, Count) <> Count then WriteError;
 end;
@@ -446,7 +446,7 @@ begin
   DoRead(Result, SizeOf(Result));
 end;
 
-procedure TCnStream.ReadData(var Buffer; Count: Integer);
+procedure TCnStream.ReadData(var Buffer; Count: LongInt);
 var
   ACount: Integer;
 begin
@@ -498,7 +498,7 @@ begin
   DoWrite(Value, SizeOf(Value));
 end;
 
-procedure TCnStream.WriteData(const Buffer; Count: Integer);
+procedure TCnStream.WriteData(const Buffer; Count: LongInt);
 var
   DataType: TCnStreamDataType;
 begin
@@ -526,7 +526,7 @@ begin
   DoWrite(Value, SizeOf(Value));
 end;
 
-procedure TCnStream.WriteInteger(Value: Integer);
+procedure TCnStream.WriteInteger(Value: LongInt);
 var
   DataType: TCnStreamDataType;
 begin
@@ -589,22 +589,22 @@ begin
   inherited;
 end;
 
-procedure TCnEncryptStream.DoAfterDeEncrypt(const Buffer; Count: Integer);
+procedure TCnEncryptStream.DoAfterDeEncrypt(const Buffer; Count: LongInt);
 begin
 
 end;
 
-procedure TCnEncryptStream.DoAfterEncrypt(const Buffer; Count: Integer);
+procedure TCnEncryptStream.DoAfterEncrypt(const Buffer; Count: LongInt);
 begin
 
 end;
 
-procedure TCnEncryptStream.DoBeforeDeEncrypt(const Buffer; Count: Integer);
+procedure TCnEncryptStream.DoBeforeDeEncrypt(const Buffer; Count: LongInt);
 begin
 
 end;
 
-procedure TCnEncryptStream.DoBeforeEncrypt(const Buffer; Count: Integer);
+procedure TCnEncryptStream.DoBeforeEncrypt(const Buffer; Count: LongInt);
 begin
 
 end;
@@ -633,7 +633,7 @@ begin
   Result := FStream.Seek(Offset, Origin);
 end;
 
-procedure TCnEncryptStream.SetSize(NewSize: Integer);
+procedure TCnEncryptStream.SetSize(NewSize: LongInt);
 begin
   FStream.Size := NewSize;
 end;
@@ -652,7 +652,8 @@ begin
   GetMem(MemBuff, Count);
   try
     DoBeforeEncrypt(Buffer, Count);
-    CopyMemory(MemBuff, @Buffer, Count);
+    Move(Buffer, MemBuff^, Count);
+    // CopyMemory(MemBuff, @Buffer, Count);
     Encrypt(MemBuff^, Count);
     DoAfterEncrypt(Buffer, Count);
     Result := FStream.Write(MemBuff^, Count);
@@ -664,7 +665,7 @@ end;
 //==============================================================================
 // Xor 方式加密的 TStream 类
 //==============================================================================
-   
+
 { TCnXorStream }
 
 constructor TCnXorStream.Create(AStream: TStream; const AXorStr: AnsiString;
@@ -676,15 +677,15 @@ end;
 
 procedure TCnXorStream.Encrypt(var Buffer; Count: Longint);
 var
-  i, p, l: Integer;
+  I, p, l: Integer;
 begin
   l := Length(FXorStr);
   if l > 0 then
   begin
     p := FSeedPos;
-    for i := 0 to Count - 1 do
-      PByteArray(@Buffer)^[i] := PByteArray(@Buffer)^[i] xor
-        Byte(FXorStr[(p + i) mod l + 1]);
+    for I := 0 to Count - 1 do
+      PByteArray(@Buffer)^[I] := PByteArray(@Buffer)^[I] xor
+        Byte(FXorStr[(p + I) mod l + 1]);
   end;
 end;
 
@@ -693,25 +694,25 @@ begin
   Encrypt(Buffer, Count);
 end;
 
-procedure TCnXorStream.DoAfterEncrypt(const Buffer; Count: Integer);
+procedure TCnXorStream.DoAfterEncrypt(const Buffer; Count: LongInt);
 begin
 
 end;
 
-procedure TCnXorStream.DoBeforeEncrypt(const Buffer; Count: Integer);
+procedure TCnXorStream.DoBeforeEncrypt(const Buffer; Count: LongInt);
 begin
-  // 读写前后需要记录位置，和流中的xor加密的种子字符位置对的上号
+  // 读写前后需要记录位置，和流中的 xor 加密的种子字符位置对的上号
   FSeedPos := Position;
 end;
 
-procedure TCnXorStream.DoAfterDeEncrypt(const Buffer; Count: Integer);
+procedure TCnXorStream.DoAfterDeEncrypt(const Buffer; Count: LongInt);
 begin
 
 end;
 
-procedure TCnXorStream.DoBeforeDeEncrypt(const Buffer; Count: Integer);
+procedure TCnXorStream.DoBeforeDeEncrypt(const Buffer; Count: LongInt);
 begin
-  // 读写前后需要记录位置，和流中的xor加密的种子字符位置对的上号
+  // 读写前后需要记录位置，和流中的 xor 加密的种子字符位置对的上号
   FSeedPos := Position - Count;
 end;
 
@@ -728,26 +729,26 @@ begin
   SeedStr := ASeedStr;
 end;
 
-procedure TCnCodeMapStream.DeEncrypt(var Buffer; Count: Integer);
+procedure TCnCodeMapStream.DeEncrypt(var Buffer; Count: LongInt);
 var
-  i: Integer;
+  I: Integer;
   P: PByte;
 begin
   P := PByte(@Buffer);
-  for i := 0 to Count - 1 do
+  for I := 0 to Count - 1 do
   begin
     P^ := FDeMap[P^];
     Inc(P);
   end;
 end;
 
-procedure TCnCodeMapStream.Encrypt(var Buffer; Count: Integer);
+procedure TCnCodeMapStream.Encrypt(var Buffer; Count: LongInt);
 var
-  i: Integer;
+  I: Integer;
   P: PByte;
 begin
   P := PByte(@Buffer);
-  for i := 0 to Count - 1 do
+  for I := 0 to Count - 1 do
   begin
     P^ := FEnMap[P^];
     Inc(P);

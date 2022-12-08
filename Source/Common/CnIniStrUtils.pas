@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, Graphics, Windows, SysUtils;
+  Classes, Graphics, {$IFDEF MSWINDOWS} Windows, {$ELSE} System.Types, System.UITypes, {$ENDIF} SysUtils;
 
 //==============================================================================
 // 用于扩展 INI 类的字符串操作函数

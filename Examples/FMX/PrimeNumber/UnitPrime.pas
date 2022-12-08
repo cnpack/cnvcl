@@ -5,7 +5,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
   FMX.StdCtrls, FMX.ExtCtrls, CnNative, CnBigNumber, FMX.Edit, FMX.Memo, FMX.TabControl, FMX.Types,
   FMX.ScrollBox, FMX.Controls.Presentation;
 
@@ -173,14 +173,19 @@ var
   M, I: Cardinal;
   F: TFileStream;
   L: TStrings;
-  T, C: DWORD;
+  T, C: Cardinal;
   S: AnsiString;
 begin
   M := StrToInt64(edtMax.Text);
   mmoResult.Lines.Clear;
   if chkQuickGen.IsChecked then
   begin
+{$IFDEF MSWINDOWS}
     T := GetTickCount;
+{$ELSE}
+    T := 0;
+{$ENDIF}
+
     C := 0;
     F := TFileStream.Create('C:\primes.txt', fmCreate);
     L := TStringList.Create;
@@ -193,7 +198,11 @@ begin
       end;
       if I mod 10000000 = 0 then
       begin
+{$IFDEF MSWINDOWS}
         mmoResult.Lines[0] := FloatToStr(I / M) + ' - ' + IntToStr(GetTickCount - T) + ' - ' + IntToStr(C);
+{$ELSE}
+        mmoResult.Lines[0] := FloatToStr(I / M) + ' - ' + IntToStr(C);
+{$ENDIF}
         S := L.Text;
         F.Write(S[1], Length(S));
         L.Clear;
@@ -202,7 +211,11 @@ begin
     end;
     S := L.Text;
     F.Write(S[1], Length(S));
+{$IFDEF MSWINDOWS}
     mmoResult.Lines.Add('C:\primes.txt Done. ' + ' - ' + IntToStr(GetTickCount - T) + 'ms. - Count: ' + IntToStr(C));
+{$ELSE}
+    mmoResult.Lines.Add('C:\primes.txt Done. ' + 'ms. - Count: ' + IntToStr(C));
+{$ENDIF}
     F.Free;
     L.Free;
   end
@@ -408,7 +421,7 @@ var
 begin
   //Rs := TCnUInt64List.Create;
   //CnGenerateInt64DiffieHellmanPrimeRoots(P, Rs);
-  CnGenerateInt64DiffieHellmanPrimeRoot(P, R);
+  CnGenerateInt64DiffieHellmanPrimeMaxRoot(P, R);
   edtDHPrime.Text := UInt64ToStr(P);
   //ShowMessage('Found ' + IntToStr(Rs.Count) + 'Primetive Roots for ' + edtDHPrime.Text);
   edtDHRoot.Text := UInt64ToStr(R);
@@ -430,7 +443,7 @@ var
 begin
   //Rs := TCnUInt32List.Create;
   //CnGenerateUInt32DiffieHellmanPrimeRoots(P, Rs);
-  CnGenerateUInt32DiffieHellmanPrimeRoot(P, R);
+  CnGenerateUInt32DiffieHellmanPrimeMaxRoot(P, R);
   edtDHPrime.Text := UInt64ToStr(P);
   //ShowMessage('Found ' + IntToStr(Rs.Count) + 'Primetive Roots for ' + edtDHPrime.Text);
   edtDHRoot.Text := UInt64ToStr(R);

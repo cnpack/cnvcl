@@ -3,7 +3,7 @@ unit UnitDecimal;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
   CnBigDecimal, FMX.StdCtrls, FMX.Edit, FMX.Memo, FMX.TabControl, FMX.Types,
   FMX.ScrollBox, FMX.Controls.Presentation;
 
