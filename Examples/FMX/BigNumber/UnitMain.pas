@@ -5,7 +5,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
   FMX.StdCtrls, CnBigNumber, FMX.SpinBox, FMX.ExtCtrls, CnFmxUtils, FMX.ComboEdit, FMX.Edit, FMX.Memo, FMX.TabControl, FMX.Types,
   FMX.EditBox, FMX.ScrollBox, FMX.Controls.Presentation;
 
@@ -182,7 +182,7 @@ var
   SpareList1: TCnSparseBigNumberList = nil;
   SpareList2: TCnSparseBigNumberList = nil;
   SpareList3: TCnSparseBigNumberList = nil;
-  AWord: DWORD;
+  AWord: Cardinal;
   RandomLength: Integer = 4096;
 
 procedure TFormBigNumber.FormCreate(Sender: TObject);
@@ -455,7 +455,7 @@ var
   Res: TCnBigNumber;
 begin
   Res := BigNumberNew;
-  if BigNumberRandBytes(Res, SizeOf(DWORD)) then
+  if BigNumberRandBytes(Res, SizeOf(Cardinal)) then
   begin
     AWord := Res.D^;
     ShowNumbers;
@@ -483,7 +483,7 @@ end;
 
 procedure TFormBigNumber.btnDivWordClick(Sender: TObject);
 var
-  Rem: DWORD;
+  Rem: Cardinal;
 begin
   Rem := BigNumberDivWord(Num1, AWord);
   ShowNumbers;
@@ -495,10 +495,10 @@ end;
 
 procedure TFormBigNumber.btnModWordClick(Sender: TObject);
 var
-  Rem: DWORD;
+  Rem: Cardinal;
 begin
   Rem := BigNumberModWord(Num1, AWord);
-  ShowNumbers;  
+  ShowNumbers;
   if rbHex.IsChecked then
     ShowMessage(IntToHex(Rem, 8))
   else
@@ -521,7 +521,7 @@ end;
 
 procedure TFormBigNumber.btnVerifyDivClick(Sender: TObject);
 var
-  Rem: DWORD;
+  Rem: Cardinal;
 begin
   Rem := BigNumberDivWord(Num1, AWord);
   if BigNumberMulWord(Num1, AWord) then

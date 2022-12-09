@@ -3,7 +3,7 @@ unit UnitSM2;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
   CnSM2, CnECC, FMX.StdCtrls, CnSM3, CnBigNumber, FMX.ExtCtrls, FMX.Edit, FMX.Memo, FMX.TabControl, FMX.Types,
   FMX.ScrollBox, FMX.Controls.Presentation;
 
@@ -205,7 +205,7 @@ begin
   // 里头的随机数 K 要 6CB28D99385C175C94F94E934817663FC176D925DD72B727260DBAAE1FB2F96F
   if CnSM2SignData(USER_A, @MSG2[1], Length(MSG2), Sig, PrivateKey, PublicKey, SM2) then
   begin
-    ShowMessage('Sig OK: ' + Sig.X.ToHex + ', ' + Sig.Y.ToHex);
+    ShowMessage('Sig OK: ' + Sig.R.ToHex + ', ' + Sig.S.ToHex);
     if CnSM2VerifyData(USER_A, @MSG2[1], Length(MSG2), Sig, PublicKey, SM2) then
       ShowMessage('Verify OK.');
   end;

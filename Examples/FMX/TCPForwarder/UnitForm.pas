@@ -59,7 +59,11 @@ end;
 
 procedure TFormForwarder.Log(const Msg: string);
 begin
-  mmoResult.Lines.Add(Msg);
+  TThread.Synchronize(nil,
+    procedure
+    begin
+      mmoResult.Lines.Add(Msg);
+    end);
 end;
 
 procedure TFormForwarder.TCPAccept(Sender: TObject;

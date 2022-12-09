@@ -22,7 +22,7 @@ unit CnWideStrings;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：WideStrings 单元
+* 单元名称：WideStrings 单元，支持 Win32/64 和 Posix
 * 单元作者：CnPack 开发组
 * 备    注：该单元实现了简化的 TCnWideStringList 类与部分 Unicode 字符处理函数，
 *           以及扩展的 UTF8 到 UTF16 的编解码函数，支持 UTF16 中的四字节字符与 UTF8-MB4
@@ -47,7 +47,7 @@ interface
 // Delphi 默认 UTF16-LE，如果要处理 UTF16-BE 字符串，需要定义 UTF16_BE
 
 uses
-  Windows, SysUtils, Classes, IniFiles, CnNative;
+  {$IFDEF MSWINDOWS} Windows, {$ENDIF} SysUtils, Classes, IniFiles, CnNative;
 
 const
   CN_INVALID_CODEPOINT = $FFFFFFFF;
@@ -196,8 +196,12 @@ const
 
 function WideCompareText(const S1, S2: WideString): Integer;
 begin
+{$IFDEF MSWINDOWS}
   Result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE, PWideChar(S1),
     Length(S1), PWideChar(S2), Length(S2)) - 2;
+{$ELSE}
+  Result := WideCompareStr(S1, S2);
+{$ENDIF}
 end;
 
 function TCnWideStringList.Add(const S: WideString): Integer;
@@ -389,9 +393,13 @@ begin
     begin
       SetLength(SA, Size - 3);
       Stream.Read(Pointer(SA)^, Size - 3);
+{$IFDEF MSWINDOWS}
       Len := MultiByteToWideChar(CP_UTF8, 0, PAnsiChar(SA), -1, nil, 0);
       SetLength(S, Len);
       MultiByteToWideChar(CP_UTF8, 0, PAnsiChar(SA), -1, PWideChar(S), Len);
+{$ELSE}
+      S := UTF8ToWideString(SA);
+{$ENDIF}
       SetTextStr(S);
       Exit;
     end;
@@ -481,9 +489,13 @@ begin
   begin
     HeaderStr := #$EF#$BB#$BF;
     Stream.WriteBuffer(Pointer(HeaderStr)^, Length(HeaderStr) * SizeOf(AnsiChar));
+{$IFDEF MSWINDOWS}
     Len := WideCharToMultiByte(CP_UTF8, 0, PWideChar(S), -1, nil, 0, nil, nil);
     SetLength(SA, Len);
     WideCharToMultiByte(CP_UTF8, 0, PWideChar(S), -1, PAnsiChar(SA), Len, nil, nil);
+{$ELSE}
+    SA := UTF8Encode(S);
+{$ENDIF}
     Stream.WriteBuffer(Pointer(SA)^, Length(SA) * SizeOf(AnsiChar) - 1);
   end
   else if AFormat = wlfUnicode then

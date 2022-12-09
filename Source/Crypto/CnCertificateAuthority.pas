@@ -2474,7 +2474,6 @@ begin
     Writer.SaveToStream(Stream);
     Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
       PEM_CERTIFICATE_TAIL, Stream);
-    Result := True;
   finally
     Writer.Free;
     Stream.Free;
@@ -2568,7 +2567,6 @@ begin
     Writer.SaveToStream(Stream);
     Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
       PEM_CERTIFICATE_TAIL, Stream);
-    Result := True;
   finally
     Writer.Free;
     Stream.Free;
@@ -2693,7 +2691,6 @@ begin
     Writer.SaveToStream(Stream);
     Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
       PEM_CERTIFICATE_TAIL, Stream);
-    Result := True;
   finally
     Writer.Free;
     Stream.Free;
@@ -2820,7 +2817,6 @@ begin
     Writer.SaveToStream(Stream);
     Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
       PEM_CERTIFICATE_TAIL, Stream);
-    Result := True;
   finally
     Writer.Free;
     Stream.Free;

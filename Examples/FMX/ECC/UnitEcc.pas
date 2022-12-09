@@ -3,7 +3,7 @@ unit UnitEcc;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
   FMX.StdCtrls, CnECC, FMX.ExtCtrls, {TeEngine, Series, TeeProcs,
   Chart,} TypInfo, CnPrimeNumber, CnBigNumber, CnNative, CnCommon, CnPemUtils, CnPolynomial, FMX.ComboEdit, FMX.Edit, FMX.Memo, FMX.TabControl, FMX.Types,
   FMX.ScrollBox, FMX.Controls.Presentation;
