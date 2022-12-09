@@ -67,7 +67,7 @@ interface
 {$ENDIF}
 
 uses
-  SysUtils, Classes, Contnrs {$IFDEF MSWINDOWS}, ComCtrls {$ENDIF}
+  SysUtils, Classes, Contnrs {$IFDEF MSWINDOWS}, ComCtrls {$ENDIF} // 如果 Windows 下编译错误找不到该单元，请在编译选项里加 Vcl 前缀
   {$IFDEF SUPPORT_FMX}, FMX.TreeView {$ENDIF};
   // If ComCtrls not found, please add 'Vcl' to 'Unit Scope Names' in Project Options.
 

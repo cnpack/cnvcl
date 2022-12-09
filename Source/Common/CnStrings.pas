@@ -23,6 +23,7 @@ unit CnStrings;
 ================================================================================
 * 软件名称：CnPack 组件包
 * 单元名称：CnStrings 实现单元，包括 AnsiStringList 以及一个快速子串搜索算法
+*           基本支持 Win32/64 和 Posix
 * 单元作者：CnPack 开发组 刘啸 (liuxiao@cnpack.org)
 * 开发平台：PWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
@@ -46,7 +47,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Windows, CnNative;
+  Classes, SysUtils, {$IFDEF MSWINDOWS} Windows, {$ENDIF} CnNative;
 
 type
   // 匹配模式，开头匹配，中间匹配，全范围模糊匹配
@@ -764,13 +765,18 @@ end;
 
 procedure TCnAnsiStrings.Error(const Msg: AnsiString; Data: Integer);
 
+{$IFDEF MSWINDOWS}
   function ReturnAddr: Pointer;
   asm
           MOV     EAX,[EBP+4]
   end;
-
+{$ENDIF}
 begin
+{$IFDEF MSWINDOWS}
   raise EStringListError.CreateFmt(string(Msg), [Data]) at ReturnAddr;
+{$ELSE}
+  raise EStringListError.CreateFmt(string(Msg), [Data]);
+{$ENDIF}
 end;
 
 procedure TCnAnsiStrings.Error(Msg: PResStringRec; Data: Integer);

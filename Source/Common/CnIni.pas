@@ -42,7 +42,7 @@ interface
 {$ENDIF}
 
 uses
-  {$IFDEF MSWINDOWS} Windows, {$ELSE} System.Types, System.UITypes, {$ENDIF}
+  {$IFDEF MSWINDOWS} Windows, {$ELSE} System.Types, System.UITypes, System.UIConsts, {$ENDIF}
   Classes, SysUtils, TypInfo, IniFiles, Graphics,
   CnIniStrUtils, CnStream{$IFDEF SUPPORT_ZLIB}, ZLib{$ENDIF};
 

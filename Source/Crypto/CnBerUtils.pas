@@ -55,9 +55,10 @@ interface
 uses
   SysUtils, Classes, TypInfo, CnNative, CnBigNumber, CnTree
   {$IFDEF DEBUG}
-    {$IFDEF MSWINDOWS}, ComCtrls  {$ENDIF}
+    {$IFDEF MSWINDOWS}, ComCtrls  {$ENDIF} // 如果 Windows 下编译错误找不到该单元，请在编译选项里加 Vcl 前缀
     {$IFDEF SUPPORT_FMX}, FMX.TreeView {$ENDIF}
   {$ENDIF};
+  // If ComCtrls not found, please add 'Vcl' to 'Unit Scope Names' in Project Options.
 
 const
   CN_BER_TAG_TYPE_MASK                      = $C0;

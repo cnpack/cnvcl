@@ -71,54 +71,75 @@ const
 function FontStylesToString(Styles: TFontStyles): string;
 begin
   Result := '';
+{$IFDEF MSWINDOWS}
   if fsBold in Styles then Result := Result + 'B';
   if fsItalic in Styles then Result := Result + 'I';
   if fsUnderline in Styles then Result := Result + 'U';
   if fsStrikeOut in Styles then Result := Result + 'S';
+{$ELSE}
+  if TFontStyle.fsBold in Styles then Result := Result + 'B';
+  if TFontStyle.fsItalic in Styles then Result := Result + 'I';
+  if TFontStyle.fsUnderline in Styles then Result := Result + 'U';
+  if TFontStyle.fsStrikeOut in Styles then Result := Result + 'S';
+{$ENDIF}
 end;
 
 function StringToFontStyles(const Styles: string): TFontStyles;
 begin
   Result := [];
+{$IFDEF MSWINDOWS}
   if Pos('B', UpperCase(Styles)) > 0 then Include(Result, fsBold);
   if Pos('I', UpperCase(Styles)) > 0 then Include(Result, fsItalic);
   if Pos('U', UpperCase(Styles)) > 0 then Include(Result, fsUnderline);
   if Pos('S', UpperCase(Styles)) > 0 then Include(Result, fsStrikeOut);
+{$ELSE}
+  if Pos('B', UpperCase(Styles)) > 0 then Include(Result, TFontStyle.fsBold);
+  if Pos('I', UpperCase(Styles)) > 0 then Include(Result, TFontStyle.fsItalic);
+  if Pos('U', UpperCase(Styles)) > 0 then Include(Result, TFontStyle.fsUnderline);
+  if Pos('S', UpperCase(Styles)) > 0 then Include(Result, TFontStyle.fsStrikeOut);
+{$ENDIF}
 end;
 
 function FontToString(Font: TFont): string;
+{$IFDEF MSWINDOWS}
 var
   S: string;
+{$ENDIF}
 begin
   with Font do
   begin
+{$IFDEF MSWINDOWS}
     if not CharsetToIdent(Charset, S) then
       S := IntToStr(Charset);
     Result := Format('%s,%d,%s,%d,%s,%s', [Name, Size,
       FontStylesToString(Style), Ord(Pitch), ColorToString(Color), S]);
+{$ELSE}
+    Result := Format('%s,%f,%s', [Family, Size, FontStylesToString(Style)]);
+{$ENDIF}
   end;
 end;
 
 function FontToStringEx(Font: TFont; BaseFont: TFont): string;
 var
-  AName, ASize, AStyle, APitch, AColor, ACharSet: string;
+  AName, ASize, AStyle {$IFDEF MSWINDOWS}, APitch, AColor, ACharSet {$ENDIF}: string;
 begin
   if BaseFont = nil then
     Result := FontToString(Font)
   else
   begin
-    if not SameText(Font.Name, BaseFont.Name) then
-      AName := Font.Name
-    else
-      AName := '';
-    if Font.Size <> BaseFont.Size then
-      ASize := IntToStr(Font.Size)
-    else
-      ASize := '';
+    AName := '';
+    ASize := '';
+    AStyle := '';
+
     if Font.Style <> BaseFont.Style then
-      AStyle := FontStylesToString(Font.Style)
-    else
-      AStyle := '';
+      AStyle := FontStylesToString(Font.Style);
+
+{$IFDEF MSWINDOWS}
+    if not SameText(Font.Name, BaseFont.Name) then
+      AName := Font.Name;
+    if Font.Size <> BaseFont.Size then
+      ASize := IntToStr(Font.Size);
+
     if Font.Pitch <> BaseFont.Pitch then
       APitch := IntToStr(Ord(Font.Pitch))
     else
@@ -137,6 +158,15 @@ begin
 
     Result := Format('%s,%s,%s,%s,%s,%s', [AName, ASize, AStyle, APitch, AColor,
       ACharSet]);
+
+{$ELSE}
+    if not SameText(Font.Family, BaseFont.Family) then
+      AName := Font.Family;
+    if Font.Size <> BaseFont.Size then
+      ASize := FloatToStr(Font.Size);
+
+    Result := Format('%s,%s,%s', [AName, ASize, AStyle]);
+{$ENDIF}
   end;
 end;
 
@@ -152,17 +182,22 @@ procedure StringToFontEx(const Str: string; Font: TFont; BaseFont: TFont);
 const
   Delims = [',', ';'];
 var
+{$IFDEF MSWINDOWS}
   FontChange: TNotifyEvent;
+  Charset: Longint;
+{$ENDIF}
   Pos: Integer;
   I: Byte;
   S: string;
-  Charset: Longint;
 begin
   if Font = nil then
     Exit;
   try
+{$IFDEF MSWINDOWS}
     FontChange := Font.OnChange;
     Font.OnChange := nil;
+{$ENDIF}
+
     try
       if BaseFont <> nil then
         Font.Assign(BaseFont);
@@ -172,9 +207,24 @@ begin
         Inc(I);
         S := Trim(ExtractSubstr(Str, Pos, Delims));
         case I of
-          1: if S <> '' then Font.Name := S;
-          2: if S <> '' then Font.Size := StrToIntDef(S, Font.Size);
+          1: if S <> '' then
+             begin
+{$IFDEF MSWINDOWS}
+               Font.Name := S;
+{$ELSE}
+               Font.Family := S;
+{$ENDIF}
+             end;
+          2: if S <> '' then
+             begin
+{$IFDEF MSWINDOWS}
+               Font.Size := StrToIntDef(S, Font.Size);
+{$ELSE}
+               Font.Size := StrToFloatDef(S, Font.Size);
+{$ENDIF}
+             end;
           3: if S <> '' then Font.Style := StringToFontStyles(S) else Font.Style := [];
+{$IFDEF MSWINDOWS}
           4: if S <> '' then Font.Pitch := TFontPitch(StrToIntDef(S, Ord(Font.Pitch)));
           5: if S <> '' then Font.Color := StringToColor(S);
           6: if S <> '' then
@@ -184,11 +234,14 @@ begin
               else
                 Font.Charset := TFontCharset(StrToIntDef(S, Font.Charset));
             end;
+{$ENDIF}
         end;
       end;
     finally
+{$IFDEF MSWINDOWS}
       Font.OnChange := FontChange;
       THackFont(Font).Changed;
+{$ENDIF}
     end;
   except
     ;
