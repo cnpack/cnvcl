@@ -1,0 +1,448 @@
+object CnTreeTestForm: TCnTreeTestForm
+  Left = 27
+  Top = 129
+  Caption = 'CnTree Test'
+  ClientHeight = 563
+  ClientWidth = 928
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 27
+  Top = 129
+  DesignerMasterStyle = 0
+  object tvData: TTreeView
+    Position.X = 16.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 273.000000000000000000
+    Size.Height = 497.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    Viewport.Width = 269.000000000000000000
+    Viewport.Height = 493.000000000000000000
+    object TTreeViewItem1: TTreeViewItem
+      IsChecked = False
+      IsExpanded = False
+      IsSelected = False
+      ImageIndex = 0
+      TabOrder = 0
+      Text = '111'
+      object TTreeViewItem2: TTreeViewItem
+        IsChecked = False
+        IsExpanded = False
+        IsSelected = False
+        ImageIndex = 0
+        TabOrder = 0
+        Text = '122'
+        object TTreeViewItem3: TTreeViewItem
+          IsChecked = False
+          IsExpanded = False
+          IsSelected = False
+          ImageIndex = 0
+          TabOrder = 0
+          Text = '112'
+        end
+        object TTreeViewItem4: TTreeViewItem
+          IsChecked = False
+          IsExpanded = False
+          IsSelected = False
+          ImageIndex = 0
+          TabOrder = 1
+          Text = '113'
+        end
+      end
+    end
+    object TTreeViewItem5: TTreeViewItem
+      IsChecked = False
+      IsExpanded = False
+      IsSelected = False
+      ImageIndex = 0
+      TabOrder = 1
+      Text = '222'
+      object TTreeViewItem6: TTreeViewItem
+        IsChecked = False
+        IsExpanded = False
+        IsSelected = False
+        ImageIndex = 0
+        TabOrder = 0
+        Text = '211'
+        object TTreeViewItem7: TTreeViewItem
+          IsChecked = False
+          IsExpanded = False
+          IsSelected = False
+          ImageIndex = 0
+          TabOrder = 0
+          Text = '212'
+          object TTreeViewItem8: TTreeViewItem
+            IsChecked = False
+            IsExpanded = False
+            IsSelected = False
+            ImageIndex = 0
+            TabOrder = 0
+            Text = '2111'
+          end
+          object TTreeViewItem9: TTreeViewItem
+            IsChecked = False
+            IsExpanded = False
+            IsSelected = False
+            ImageIndex = 0
+            TabOrder = 1
+            Text = '2112'
+          end
+        end
+      end
+    end
+    object TTreeViewItem10: TTreeViewItem
+      IsChecked = False
+      IsExpanded = False
+      IsSelected = False
+      ImageIndex = 0
+      TabOrder = 2
+      Text = '333'
+      object TTreeViewItem11: TTreeViewItem
+        IsChecked = False
+        IsExpanded = False
+        IsSelected = False
+        ImageIndex = 0
+        TabOrder = 0
+        Text = '311'
+      end
+    end
+  end
+  object grpTree: TGroupBox
+    Position.X = 312.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 345.000000000000000000
+    Size.Height = 145.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Common Tree'
+    TabOrder = 1
+    object btnLoadFromTreeView: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'Load From TreeView'
+      OnClick = btnLoadFromTreeViewClick
+    end
+    object btnSaveToTreeView: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 64.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 2
+      Text = 'Save To TreeView'
+      OnClick = btnSaveToTreeViewClick
+    end
+    object btnDepthFirstTravel: TButton
+      Position.X = 176.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Text = 'Depth First Travel'
+      OnClick = btnDepthFirstTravelClick
+    end
+    object btnWidthFirstTravel: TButton
+      Position.X = 176.000000000000000000
+      Position.Y = 64.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 3
+      Text = 'Width First Travel'
+      OnClick = btnWidthFirstTravelClick
+    end
+    object btnTreeHeight: TButton
+      Position.X = 176.000000000000000000
+      Position.Y = 104.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+      Text = 'Show Tree Height'
+      OnClick = btnTreeHeightClick
+    end
+  end
+  object grpBTree: TGroupBox
+    Position.X = 312.000000000000000000
+    Position.Y = 184.000000000000000000
+    Size.Width = 345.000000000000000000
+    Size.Height = 225.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Binary Tree'
+    TabOrder = 3
+    object btnBLoad: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'Load From TreeView'
+      OnClick = btnBLoadClick
+    end
+    object btnBSave: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 64.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 2
+      Text = 'Save To TreeView'
+      OnClick = btnBSaveClick
+    end
+    object btnPreOrderTravel: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 104.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+      Text = 'PreOrder Travel'
+      OnClick = btnPreOrderTravelClick
+    end
+    object btnInOrderTravel: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 144.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 6
+      Text = 'InOrder Travel'
+      OnClick = btnInOrderTravelClick
+    end
+    object btnPostOrderTravel: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 184.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 8
+      Text = 'PostOrder Travel'
+      OnClick = btnPostOrderTravelClick
+    end
+    object btnIsFull: TButton
+      Position.X = 176.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Text = 'Is Full?'
+      OnClick = btnIsFullClick
+    end
+    object btnIsComplete: TButton
+      Position.X = 176.000000000000000000
+      Position.Y = 64.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 3
+      Text = 'Is Complete?'
+      OnClick = btnIsCompleteClick
+    end
+    object btnIsBalance: TButton
+      Position.X = 176.000000000000000000
+      Position.Y = 104.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      Text = 'Is Balance?'
+      OnClick = btnIsBalanceClick
+    end
+    object btnBTreeHeight: TButton
+      Position.X = 176.000000000000000000
+      Position.Y = 144.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 7
+      Text = 'Show Tree Height'
+      OnClick = btnBTreeHeightClick
+    end
+  end
+  object grpTrieTree: TGroupBox
+    Position.X = 680.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 185.000000000000000000
+    Size.Height = 241.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Trie Tree'
+    TabOrder = 2
+    object btnSaveTrie: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 64.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Text = 'Save To TreeView'
+      OnClick = btnSaveTrieClick
+    end
+    object btnGenerateTrie: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'Generate Tree'
+      OnClick = btnGenerateTrieClick
+    end
+    object btnShowTrieHeight: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 144.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+      Text = 'Show Tree Height'
+      OnClick = btnShowTrieHeightClick
+    end
+    object btnSearch: TButton
+      Position.X = 96.000000000000000000
+      Position.Y = 104.000000000000000000
+      Size.Width = 65.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 2
+      Text = 'Search'
+      OnClick = btnSearchClick
+    end
+    object edtSearch: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 3
+      Text = 'pie'
+      Position.X = 16.000000000000000000
+      Position.Y = 106.000000000000000000
+      Size.Width = 73.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object chkAnsi: TCheckBox
+      Position.X = 16.000000000000000000
+      Position.Y = 184.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 17.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      Text = 'Ansi Fast Mode'
+    end
+    object chkCase: TCheckBox
+      Position.X = 16.000000000000000000
+      Position.Y = 208.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 17.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 6
+      Text = 'Case Sensitive'
+    end
+  end
+  object grpBSort: TGroupBox
+    Position.X = 680.000000000000000000
+    Position.Y = 288.000000000000000000
+    Size.Width = 185.000000000000000000
+    Size.Height = 233.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Binary Sort Tree'
+    TabOrder = 4
+    object btnInit: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'Init Binary Sort Tree'
+      OnClick = btnInitClick
+    end
+    object btnBSSearchSelected: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 64.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Text = 'Search Selected'
+      OnClick = btnBSSearchSelectedClick
+    end
+    object btnBSDelete: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 104.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 2
+      Text = 'Delete Selected'
+      OnClick = btnBSDeleteClick
+    end
+    object btnBSInOrderTravel: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 144.000000000000000000
+      Size.Width = 145.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 3
+      Text = 'InOrder Travel'
+      OnClick = btnBSInOrderTravelClick
+    end
+    object btnBSPrev: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 184.000000000000000000
+      Size.Width = 73.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+      Text = 'Prev Select'
+      OnClick = btnBSPrevClick
+    end
+    object btnBSNext: TButton
+      Position.X = 96.000000000000000000
+      Position.Y = 184.000000000000000000
+      Size.Width = 67.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      Text = 'Next Select'
+      OnClick = btnBSNextClick
+    end
+  end
+  object btnShowTreeGraph: TButton
+    Position.X = 536.000000000000000000
+    Position.Y = 424.000000000000000000
+    Size.Width = 123.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Text = 'Show BS Tree Graph'
+    OnClick = btnShowTreeGraphClick
+  end
+  object btnShowBTree: TButton
+    Position.X = 328.000000000000000000
+    Position.Y = 424.000000000000000000
+    Size.Width = 123.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 6
+    Text = 'Show 1 Tree Graph'
+    OnClick = btnShowBTreeClick
+  end
+  object btnShowRBTree: TButton
+    Position.X = 328.000000000000000000
+    Position.Y = 472.000000000000000000
+    Size.Width = 123.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 7
+    Text = 'Show RB Tree Graph'
+    OnClick = btnShowRBTreeClick
+  end
+end

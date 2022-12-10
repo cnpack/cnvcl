@@ -45,7 +45,7 @@ interface
 
 uses
   {$IFDEF MSWINDOWS} Windows, {$ELSE} System.Types, System.UITypes, System.UIConsts, {$ENDIF}
-  Classes, SysUtils, TypInfo, IniFiles, Graphics,
+  Classes, SysUtils, TypInfo, IniFiles, Graphics, // FMX 下如果 Graphics 找不到，需要工程选项里加 FMX 前缀
   CnIniStrUtils, CnStream {$IFDEF SUPPORT_ZLIB}, ZLib{$ENDIF};
 
 type

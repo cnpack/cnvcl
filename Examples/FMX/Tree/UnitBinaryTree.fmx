@@ -1,0 +1,19 @@
+object FormBinaryTree: TFormBinaryTree
+  Left = 306
+  Top = 44
+  Caption = 'Binary Tree'
+  ClientHeight = 480
+  ClientWidth = 696
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  Left = 306
+  Top = 44
+  DesignerMasterStyle = 0
+  object pbBinaryTree: TPaintBox
+    Size.Width = 688.000000000000000000
+    Size.Height = 453.000000000000000000
+    Size.PlatformDefault = False
+    OnPaint = pbBinaryTreePaint
+  end
+end

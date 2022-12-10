@@ -34,6 +34,9 @@ implementation
 
 {$R *.fmx}
 
+uses
+  CnSocket;
+
 procedure TFormTCPServer.btnOpenClick(Sender: TObject);
 begin
   if FTCP.Active then

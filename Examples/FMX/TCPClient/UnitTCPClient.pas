@@ -54,7 +54,7 @@ implementation
 {$R *.fmx}
 
 uses
-  CnNetwork;
+  CnNetwork, CnSocket;
 
 { TFormTCPClient }
 

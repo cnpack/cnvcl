@@ -90,6 +90,14 @@ function CnSend(S: TSocket; const Buf; Len, Flags: Integer): Integer;
 function CnRecv(S: TSocket; var Buf; Len, Flags: Integer): Integer;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 recv 函数的封装}
 
+function CnSendTo(S: TSocket; const Buf; Len, Flags: Integer;
+  var AddrTo: TSockAddr; ToLen: Integer): Integer;
+{* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 sendto 函数的封装}
+
+function CnRecvFrom(S: TSocket; var Buf; Len, Flags: Integer;
+  var AddrFrom: TSockAddr; var FromLen: Integer): Integer;
+{* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 recvfrom 函数的封装}
+
 function CnSelect(Nfds: Integer; Readfds, Writefds, Exceptfds: PCnFDSet;
   Timeout: PTimeVal): Longint;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 select 函数的封装}
@@ -183,6 +191,26 @@ begin
   Result := WinSock.recv(S, Buf, Len, Flags);
 {$ELSE}
   Result := Posix.SysSocket.recv(S, Buf, Len, Flags);
+{$ENDIF}
+end;
+
+function CnSendTo(S: TSocket; const Buf; Len, Flags: Integer;
+  var AddrTo: TSockAddr; ToLen: Integer): Integer;
+begin
+{$IFDEF MSWINDOWS}
+  Result := WinSock.sendto(S, Buf, Len, Flags, AddrTo, ToLen);
+{$ELSE}
+  Result := Posix.SysSocket.sendto(S, Buf, Len, Flags, sockaddr(AddrTo), ToLen);
+{$ENDIF}
+end;
+
+function CnRecvFrom(S: TSocket; var Buf; Len, Flags: Integer;
+  var AddrFrom: TSockAddr; var FromLen: Integer): Integer;
+begin
+{$IFDEF MSWINDOWS}
+  Result := WinSock.recvfrom(S, Buf, Len, Flags, AddrFrom, FromLen);
+{$ELSE}
+  Result := Posix.SysSocket.recvfrom(S, Buf, Len, Flags, sockaddr(AddrFrom), Cardinal(FromLen));
 {$ENDIF}
 end;
 

@@ -123,6 +123,9 @@ implementation
 
 {$R *.fmx}
 
+uses
+  CnCommon;
+
 const
   SM9_PRIME_HEX = 'B640000002A3A6F1D603AB4FF58EC74521F2934B1A7AEEDBE56F9B27E351457D';
 
@@ -1073,10 +1076,10 @@ begin
     '41E00A53DDA532DA1A7CE027B7A46F741006E85F5CDFF0730E75C05FB4E3216D',
     '69850938ABEA0112B57329F447E3A0CBAD3E2FDB1A77F335E89E1408D0EF1C25');
 
-  T := GetTickCount;
+  T := CnGetTickCount;
   for I := 1 to 10 do // 10 ¥Œ“™ 6 √Î∂‡÷”
     SM9RatePairing(F, Pubs, nil);
-  T := GetTickCount - T;
+  T := CnGetTickCount - T;
   ShowMessage(IntToStr(T));
 
   Pubs.Free;

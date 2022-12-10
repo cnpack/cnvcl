@@ -29,6 +29,7 @@ unit CnTree;
 *           TCnTree/Leaf 类似于 TTreeNodes/Node 的关系，支持深度和广度优先遍历，
 *           支持按深度优先的顺序以索引值的形式直接访问各个节点。
 *           红黑树尚未完全实现，不可用。
+*           另外，ComCtrls 的引用，导致 Windows 下的纯 FMX 工程也需引用 Vcl 前缀单元，之后再修
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6 + 10.3.1
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -61,7 +62,7 @@ interface
 
 {$I CnPack.inc}
 
-// 用 ENABLE_FMX 来控制 FMX 环境下是否支持 FMX，默认不支持，以避免编译出来的东西体积太大
+// 用 ENABLE_FMX 来控制支持 FMX 的编译器里头是否使用 FMX，默认不使用，以避免编译出来的东西体积太大
 {$IFNDEF ENABLE_FMX}
   {$UNDEF SUPPORT_FMX}
 {$ENDIF}
