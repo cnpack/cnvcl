@@ -5,7 +5,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
   FMX.ExtCtrls, FMX.StdCtrls, FMX.Edit, FMX.ListBox, FMX.TabControl, FMX.Types,
   FMX.Controls.Presentation;
 
@@ -485,7 +485,7 @@ begin
   else
     Len := (((Len - 1) div 8) + 1) * 8;
   SetLength(Output, Len);
-  ZeroMemory(@(Output[1]), Len);
+  FillChar(Output[1], Len, 0);
 
   if rbDESEcb.IsChecked then
   begin
@@ -517,10 +517,10 @@ begin
     if Length(IvStr) <> SizeOf(TmpDesIv) then
     begin
       ShowMessage('Invalid DES Iv, Use Our Default Iv.');
-      CopyMemory(@(TmpDesIv[0]), @(DesIv[0]), SizeOf(DesIv));
+      Move(DesIv[0], TmpDesIv[0], SizeOf(DesIv));
     end
     else
-      CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
+      Move(IvStr[1], TmpDesIv[0], SizeOf(DesIv));
 
     if chkDESUseTBytes.IsChecked then
     begin
@@ -567,7 +567,7 @@ begin
   else
     Len := (((Len - 1) div 8) + 1) * 8;
   SetLength(Output, Len);
-  ZeroMemory(@(Output[1]), Len);
+  FillChar(Output[1], Len, 0);
 
   if rbDESEcb.IsChecked then
   begin
@@ -595,10 +595,10 @@ begin
     if Length(IvStr) <> SizeOf(TmpDesIv) then
     begin
       ShowMessage('Invalid DES Iv, Use Our Default Iv.');
-      CopyMemory(@(TmpDesIv[0]), @(DesIv[0]), SizeOf(DesIv));
+      Move(DesIv[0], TmpDesIv[0], SizeOf(DesIv));
     end
     else
-      CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
+      Move(IvStr[1], TmpDesIv[0], SizeOf(DesIv));
 
     if chkDESUseTBytes.IsChecked then
     begin
@@ -675,7 +675,7 @@ end;
 
 procedure TFormCrypt.btnFileCRC32Click(Sender: TObject);
 var
-  Crc: DWORD;
+  Crc: Cardinal;
 begin
   Crc := 0;
   if OpenDialog1.Execute then
@@ -789,7 +789,7 @@ begin
   else
     Len := (((Len - 1) div 16) + 1) * 16;
   SetLength(Output, Len);
-  ZeroMemory(@(Output[1]), Len);
+  FillChar(Output[1], Len, 0);
 
   if rbSm4Ecb.IsChecked then
   begin
@@ -818,10 +818,10 @@ begin
     if Length(IvStr) <> SizeOf(TmpSm4Iv) then
     begin
       ShowMessage('Invalid SM4 Iv, Use Our Default Iv.');
-      CopyMemory(@(TmpSm4Iv[0]), @(Sm4Iv[0]), SizeOf(Sm4Iv));
+      Move(Sm4Iv[0], TmpSm4Iv[0], SizeOf(Sm4Iv));
     end
     else
-      CopyMemory(@(TmpSm4Iv[0]), @IvStr[1], SizeOf(Sm4Iv));
+      Move(IvStr[1], TmpSm4Iv[0], SizeOf(Sm4Iv));
 
 {$IFDEF TBYTES_DEFINED}
     KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
@@ -886,7 +886,7 @@ begin
   else
     Len := (((Len - 1) div 16) + 1) * 16;
   SetLength(Output, Len);
-  ZeroMemory(@(Output[1]), Len);
+  FillChar(Output[1], Len, 0);
 
   if rbSm4Ecb.IsChecked then
   begin
@@ -915,11 +915,10 @@ begin
     if Length(IvStr) <> SizeOf(TmpSm4Iv) then
     begin
       ShowMessage('Invalid SM4 Iv, Use Our Default Iv.');
-      CopyMemory(@(TmpSm4Iv[0]), @(Sm4Iv[0]), SizeOf(Sm4Iv));
+      Move(Sm4Iv[0], TmpSm4Iv[0], SizeOf(Sm4Iv));
     end
     else
-      CopyMemory(@(TmpSm4Iv[0]), @IvStr[1], SizeOf(Sm4Iv));
-
+      Move(IvStr[1], TmpSm4Iv[0], SizeOf(Sm4Iv));
 
     if chkSM4UseTBytes.IsChecked then
     begin
@@ -1025,10 +1024,10 @@ begin
     if Length(IvStr) <> SizeOf(TAESBuffer) then
     begin
       ShowMessage('Invalid AES Iv, Use Our Default Iv.');
-      CopyMemory(@TmpAesIv, @AesIv, SizeOf(TmpAesIv));
+      Move(AesIv[0], TmpAesIv[0], SizeOf(TmpAesIv));
     end
     else
-      CopyMemory(@TmpAesIv, @IvStr[1], SizeOf(TmpAesIv));
+      Move(IvStr[1], TmpAesIv[0], SizeOf(TmpAesIv));
 
 {$IFDEF TBYTES_DEFINED}
     if chkAESUseTBytes.IsChecked then
@@ -1199,10 +1198,10 @@ begin
     if Length(IvStr) <> SizeOf(TAESBuffer) then
     begin
       ShowMessage('Invalid AES Iv, Use Our Default Iv.');
-      CopyMemory(@TmpAesIv, @AesIv, SizeOf(TmpAesIv));
+      Move(AesIv[0], TmpAesIv[0], SizeOf(TmpAesIv));
     end
     else
-      CopyMemory(@TmpAesIv, @IvStr[1], SizeOf(TmpAesIv));
+      Move(IvStr[1], TmpAesIv[0], SizeOf(TmpAesIv));
 
 {$IFDEF TBYTES_DEFINED}
     if chkAESUseTBytes.IsChecked then
@@ -1409,7 +1408,7 @@ end;
 procedure TFormCrypt.btnZUC1Click(Sender: TObject);
 var
   Key, IV: array[0..15] of Byte;
-  KeyStream: array[0..1] of DWORD;
+  KeyStream: array[0..1] of Cardinal;
   List: TStringList;
   I: Integer;
 begin
@@ -1434,7 +1433,7 @@ end;
 procedure TFormCrypt.btnZUC2Click(Sender: TObject);
 var
   Key, IV: array[0..15] of Byte;
-  KeyStream: array[0..1] of DWORD;
+  KeyStream: array[0..1] of Cardinal;
   List: TStringList;
   I: Integer;
 begin
@@ -1463,7 +1462,7 @@ const
   IV: array[0..15] of Byte = ($84, $31, $9a, $a8, $de, $69, $15, $ca, $1f, $6b,
     $da, $6b, $fb, $d8, $c7, $66);
 var
-  KeyStream: array[0..1] of DWORD;
+  KeyStream: array[0..1] of Cardinal;
   List: TStringList;
   I: Integer;
 begin
@@ -1492,7 +1491,7 @@ const
   IV: array[0..15] of Byte = ($52, $95, $9d, $ab, $a0, $bf, $17, $6e, $ce, $2d,
     $c3, $15, $04, $9e, $b5, $74);
 var
-  KeyStream: array[0..1999] of DWORD;
+  KeyStream: array[0..1999] of Cardinal;
   List: TStringList;
 begin
   ZUC(PByte(@Key[0]), PByte(@IV[0]), PCardinal(@KeyStream[0]), 2000);
@@ -1520,7 +1519,7 @@ procedure TFormCrypt.btnZUCEIA31Click(Sender: TObject);
 var
   Key: array[0..15] of Byte;
   Msg: Byte;
-  Mac: DWORD;
+  Mac: Cardinal;
 begin
   FillChar(Key[0], SizeOf(Key), 0);
   Msg := 0;
@@ -1543,7 +1542,7 @@ const
     $59, $da, $05, $09, $78, $50);
 var
   Msg: array[0..20] of Byte;  // Enough for 90 bits
-  Mac: DWORD;
+  Mac: Cardinal;
 begin
   // FIXME: NOT Ready now.
   FillChar(Msg[0], SizeOf(Msg), 0);
@@ -1564,10 +1563,10 @@ procedure TFormCrypt.btnZUCEEA31Click(Sender: TObject);
 const
   Key: array[0..15] of Byte = ($17, $3d, $14, $ba, $50, $03, $73, $1d, $7a, $60,
     $04, $94, $70, $f0, $0a, $29);
-  Plain: array[0..6] of DWORD = ($6cf65340, $735552ab, $0c9752fa, $6f9025fe,
+  Plain: array[0..6] of Cardinal = ($6cf65340, $735552ab, $0c9752fa, $6f9025fe,
     $0bd675d9, $005875b2, 0);
 var
-  Cipher: array[0..6] of DWORD;
+  Cipher: array[0..6] of Cardinal;
   List: TStringList;
   I: Integer;
 begin
@@ -1664,7 +1663,7 @@ end;
 
 procedure TFormCrypt.btnCRC32HmacClick(Sender: TObject);
 var
-  Output: DWORD;
+  Output: Cardinal;
   S, Key: AnsiString;
 begin
   Key := AnsiString(edtCRC32HmacKey.Text);
@@ -1993,7 +1992,7 @@ begin
   else
     Len := (((Len - 1) div 8) + 1) * 8;
   SetLength(Output, Len);
-  ZeroMemory(@(Output[1]), Len);
+  FillChar(Output[1], Len, 0);
 
   if rb3DesECB.IsChecked then
   begin
@@ -2025,10 +2024,10 @@ begin
     if Length(IvStr) <> SizeOf(TmpDesIv) then
     begin
       ShowMessage('Invalid 3DES Iv, Use Our Default Iv.');
-      CopyMemory(@(TmpDesIv[0]), @(DesIv[0]), SizeOf(DesIv));
+      Move(DesIv[0], TmpDesIv[0], SizeOf(DesIv));
     end
     else
-      CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
+      Move(IvStr[1], TmpDesIv[0], SizeOf(DesIv));
 
     if chk3DESUseTBytes.IsChecked then
     begin
@@ -2075,7 +2074,7 @@ begin
   else
     Len := (((Len - 1) div 8) + 1) * 8;
   SetLength(Output, Len);
-  ZeroMemory(@(Output[1]), Len);
+  FillChar(Output[1], Len, 0);
 
   if rb3DesECB.IsChecked then
   begin
@@ -2103,10 +2102,10 @@ begin
     if Length(IvStr) <> SizeOf(TmpDesIv) then
     begin
       ShowMessage('Invalid 3DES Iv, Use Our Default Iv.');
-      CopyMemory(@(TmpDesIv[0]), @(DesIv[0]), SizeOf(DesIv));
+      Move(DesIv[0], TmpDesIv[0], SizeOf(DesIv));
     end
     else
-      CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
+      Move(IvStr[1], TmpDesIv[0], SizeOf(DesIv));
 
     if chk3DESUseTBytes.IsChecked then
     begin

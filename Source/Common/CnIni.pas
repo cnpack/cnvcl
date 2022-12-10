@@ -25,6 +25,8 @@ unit CnIni;
 * 单元名称：扩展的 INI 访问单元，支持 Win32/64 和 Posix
 * 单元作者：周劲羽 (zjy@cnpack.org)
 * 备    注：该单元编写时参考了 RxLib 2.75 中的 RxIni.pas
+*           编译时如出现 Graphics 找不到，请按编译平台是否 Windows 在工程选项中
+*           添加 Vcl 或 FMX 前缀
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -44,7 +46,7 @@ interface
 uses
   {$IFDEF MSWINDOWS} Windows, {$ELSE} System.Types, System.UITypes, System.UIConsts, {$ENDIF}
   Classes, SysUtils, TypInfo, IniFiles, Graphics,
-  CnIniStrUtils, CnStream{$IFDEF SUPPORT_ZLIB}, ZLib{$ENDIF};
+  CnIniStrUtils, CnStream {$IFDEF SUPPORT_ZLIB}, ZLib{$ENDIF};
 
 type
 

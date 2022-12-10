@@ -22,7 +22,7 @@ unit CnHexEditor;
 {* |<PRE>
 ================================================================================
 * 软件名称：CnPack 可视化组件包
-* 单元名称：CnHexEditor 文件十六进制查看修改实现单元
+* 单元名称：CnHexEditor 文件十六进制查看修改实现单元，只支持 Windows
 * 单元作者：Zswang(原创) 2006-12-28 wjhu111@21cn.com
 *           Guye (移植)
 * 备    注：该单元为 CnPack 组件包的一部分，实现了文件十六进制查看功能, 为可视
@@ -33,9 +33,9 @@ unit CnHexEditor;
 * 修改记录：2012.09.26 V1.2
 *               增加一 DataChange 方法供修改 MemoryStream 后更新界面用，感谢 veket
 *           2012.03.03 V1.1
-*               暂时屏蔽CMFONTCHANGED的第一次消息以免画错，原因不详
+*               暂时屏蔽 CMFONTCHANGED 的第一次消息以免画错，原因不详
 *           2008.01.15 V1.0 by Guye
-*               优化代码, 修改移植入 CnPack
+*               优化代码，修改移植入 CnPack
 ================================================================================
 |</PRE>}
 
@@ -65,7 +65,6 @@ type
 type
   TCnHexEditor = class(TCustomControl)
   private
-    { Private declarations }
     FFirstCmFontChanged: Boolean;
     FMemoryStream: TMemoryStream;
     FBaseAddress: Integer;

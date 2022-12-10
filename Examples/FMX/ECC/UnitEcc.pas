@@ -2066,26 +2066,26 @@ procedure TFormEcc.btnSRCompareClick(Sender: TObject);
 const
   COUNT = 100000;
 var
-  T1, T2: DWORD;
+  T1, T2: Cardinal;
   I: Integer;
   X, P, Y: Int64;
 begin
   X := 55;
   P := 73;    // 必须是 8u+1 型
 
-  T1 := GetTickCount;
+  T1 := CnGetTickCount;
   for I := 0 to COUNT - 1 do
   begin
     SquareRootModPrimeLucas(X, P, Y);                    // 1.2 秒
   end;
-  T1 := GetTickCount - T1;
+  T1 := CnGetTickCount - T1;
 
-  T2 := GetTickCount;
+  T2 := CnGetTickCount;
   for I := 0 to COUNT - 1 do
   begin
     TCnInt64EccHack(nil).TonelliShanks(X, P, Y);         // 0.7 秒
   end;
-  T2 := GetTickCount - T2;
+  T2 := CnGetTickCount - T2;
 
   ShowMessage(IntToStr(T1) + ' ' + IntToStr(T2));
 end;
@@ -2900,7 +2900,7 @@ procedure TFormEcc.btnTestJacobianClick(Sender: TObject);
 var
   P3, Q3, K3: TCnInt64Ecc3Point;
   P, Q: TCnInt64EccPoint;
-begin         
+begin
   P3.X := 6;
   P3.Y := 19;
   P3.Z := 1;
@@ -3022,10 +3022,10 @@ begin
   K.SetDec('1234567890ABCDEFFEDCBA0987654321');
   if rbBNAddNormal.IsChecked then
   begin
-    T := GetTickCount;
+    T := CnGetTickCount;
     for I := 1 to COUNT do
       FBNEcc.MultiplePoint(K, P);
-    T := GetTickCount - T;
+    T := CnGetTickCount - T;
   end
   else
   begin
@@ -3035,18 +3035,18 @@ begin
     // 仿射/雅可比坐标点的乘法运算速度提高近十倍
     if rbBNAddAffine.IsChecked then
     begin
-      T := GetTickCount;
+      T := CnGetTickCount;
       for I := 1 to COUNT do
         FBNEcc.AffineMultiplePoint(K, P3);
-      T := GetTickCount - T;
+      T := CnGetTickCount - T;
       CnAffinePointToEccPoint(P3, P, FBNEcc.FiniteFieldSize);
     end
     else
     begin
-      T := GetTickCount;
+      T := CnGetTickCount;
       for I := 1 to COUNT do
         FBNEcc.JacobianMultiplePoint(K, P3);
-      T := GetTickCount - T;
+      T := CnGetTickCount - T;
       CnJacobianPointToEccPoint(P3, P, FBNEcc.FiniteFieldSize);
     end;
 

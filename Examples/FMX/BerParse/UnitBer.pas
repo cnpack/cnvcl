@@ -3,7 +3,7 @@ unit UnitBer;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
   FMX.StdCtrls, CnTree, CnBase64, FMX.Edit, FMX.Memo, FMX.TreeView, FMX.Types,
   FMX.Layouts, FMX.ScrollBox, FMX.Controls.Presentation;
 

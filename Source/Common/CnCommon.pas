@@ -74,20 +74,17 @@ interface
 
 {$I CnPack.inc}
 
-// 如需要在 FMX 下使用，请定义 ENABLE_FMX
-
-// {$DEFINE ENABLE_FMX}
-
 uses
   SysUtils, Classes, TypInfo, IniFiles,
-{$IFDEF MSWINDOWS}
+{$IFDEF MSWINDOWS} // 如果 Windows 下编译错误找不到 ComCtrls 单元，请在编译选项里加 Vcl 前缀
   Windows, Messages, Graphics, Controls, Forms, Dialogs,
   ComCtrls, Math, Menus, Registry, ComObj, FileCtrl, ShellAPI, CommDlg,
   MMSystem, StdCtrls, ActiveX, ShlObj, CheckLst, MultiMon,
   {$IFNDEF FPC} TLHelp32, PsAPI,{$ENDIF}
 {$ELSE}
   System.UITypes, System.Math, FMX.ImgList, FMX.Graphics, FMX.ListView,
-  FMX.ListBox, FMX.Menus, FMX.Memo, FMX.Forms, FMX.Controls, FMX.Edit, FMX.ListView.Types,
+  FMX.ListBox, FMX.Menus, FMX.Memo, FMX.Forms, FMX.Controls, FMX.Edit,
+  FMX.ListView.Types, FMX.Dialogs,
 {$ENDIF}
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants, Types,
@@ -815,8 +812,12 @@ function MultiButtonsDlg(const Mess: string; Buttons: TCnDlgButtonCaptions;
   Caption: string = ''): TCnDlgResult;
 {* 显示多按钮对话框，动态构造按钮并返回其 ModalResult，暂不支持图标}
 
+{$ENDIF}
+
 const
   csDefComboBoxSection = 'History';
+
+{$IFDEF MSWINDOWS}
 
 function CnInputQuery(const ACaption, APrompt: string;
   var Value: string; Ini: TCustomIniFile = nil;
@@ -824,10 +825,14 @@ function CnInputQuery(const ACaption, APrompt: string;
   FormCallBack: TCnSenderCallback = nil): Boolean;
 {* 输入单行字符串的对话框}
 
+{$ENDIF}
+
 function CnInputBox(const ACaption, APrompt, ADefault: string;
   Ini: TCustomIniFile = nil; const Section: string = csDefComboBoxSection;
   FormCallBack: TCnSenderCallback = nil): string;
-{* 输入单行字符串的对话框}
+{* 输入单行字符串的对话框，注意 FMX 下历史功能与回调无效，仅简单返回内容}
+
+{$IFDEF MSWINDOWS}
 
 function CnInputMultiLineQuery(const ACaption, APrompt: string;
   var Value: string; FormCallBack: TCnSenderCallback = nil): Boolean;
@@ -1230,6 +1235,9 @@ procedure GetAllPropNamesFromClass(ACompClass: TClass; PropNames: TStrings;
 //==============================================================================
 // 其他杂项函数 by LiuXiao
 //==============================================================================
+
+function CnGetTickCount: Cardinal;
+{* 封装的获取系统启动以来的毫秒数的函数}
 
 {$IFDEF MSWINDOWS}
 
@@ -6360,15 +6368,23 @@ begin
     end;
 end;
 
-// 输入对话框
+{$ENDIF}
+
+// 输入单行字符串的对话框，注意 FMX 下历史功能与回调无效，仅简单返回内容
 function CnInputBox(const ACaption, APrompt, ADefault: string;
   Ini: TCustomIniFile; const Section: string;
   FormCallBack: TCnSenderCallback): string;
 begin
+{$IFDEF MSWINDOWS}
   Result := ADefault;
   if not CnInputQuery(ACaption, APrompt, Result, Ini, Section, False, FormCallBack) then
     Result := '';
+{$ELSE}
+  Result := InputBox(ACaption, APrompt, ADefault);
+{$ENDIF}
 end;
+
+{$IFDEF MSWINDOWS}
 
 // 输入多行字符串的对话框，返回 True 表示用户输入后点击 OK 了，输入内容在 Value 中
 function CnInputMultiLineQuery(const ACaption, APrompt: string;
@@ -8294,6 +8310,16 @@ begin
       FreeMem(PropListPtr);
     end;
   end;
+end;
+
+// 封装的获取系统启动以来的毫秒数的函数
+function CnGetTickCount: Cardinal;
+begin
+{$IFDEF MSWINDOWS}
+  Result := GetTickCount;
+{$ELSE}
+  Result := TThread.GetTickCount;
+{$ENDIF}
 end;
 
 {$IFDEF MSWINDOWS}

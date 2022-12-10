@@ -170,6 +170,9 @@ var
 
 implementation
 
+uses
+  CnCommon;
+
 {$R *.fmx}
 
 const
@@ -770,17 +773,17 @@ begin
     '715030503008149826851879663736112391510133285948979899043574839934736403237345250591459328567949556277745246326114316877320270131878504750555383083784129172406937229993107665106777698229304957100770658485651755733157282457972650319' +
     '300058715351813427200113310977605056839185172045391687814960');
 
-  T1 := GetTickCount;
+  T1 := CnGetTickCount;
   for I := 1 to 1 do
     BigNumberPowerMod(R, A, B, C);
-  T1 := GetTickCount - T1;
+  T1 := CnGetTickCount - T1;
 
   ShowMessage(R.ToHex);
 
-  T2 := GetTickCount;
+  T2 := CnGetTickCount;
   for I := 1 to 1 do
     BigNumberMontgomeryPowerMod(R, A, B, C);
-  T2 := GetTickCount - T2;
+  T2 := CnGetTickCount - T2;
 
   ShowMessage(R.ToDec);
   ShowMessage(IntToStr(T1) + ' : ' + IntToStr(T2));
@@ -814,10 +817,10 @@ begin
     '715030503008149826851879663736112391510133285948979899043574839934736403237345250591459328567949556277745246326114316877320270131878504750555383083784129172406937229993107665106777698229304957100770658485651755733157282457972650319' +
     '300058715351813427200113310977605056839185172045391687814960');
 
-  T1 := GetTickCount;
+  T1 := CnGetTickCount;
   for I := 1 to 100 do
     BigNumberMulMod(R, A, B, C);
-  T1 := GetTickCount - T1;
+  T1 := CnGetTickCount - T1;
 
   ShowMessage(R.ToDec);
   ShowMessage(IntToStr(T1));
@@ -840,10 +843,10 @@ begin
     '6871BC144844026DF2DEF6AAB6B0E17761CEFFD8616DDA0341A38A1A006384EE2176F2157AF350E73A1FACBC509A71EA2D69A61B67CD9D449058EADBB2C50' +
     '93B67292A5CD520CC033147789944B94B02B8E7114C8CCD4888ED79813C592F0BBAA0590C032FFFEC6B7D1CB7C1642DC9EFEBDFE6041B9545E73F61DDE75C01489F70F51CCBC1EF69');
 
-  T1 := GetTickCount;
+  T1 := CnGetTickCount;
   for I := 1 to 1 do
     BigNumberIsProbablyPrime(R, 5);
-  T1 := GetTickCount - T1;
+  T1 := CnGetTickCount - T1;
   ShowMessage(IntToStr(T1));
   R.Free;
 end;
@@ -872,9 +875,9 @@ begin
   FillChar(S[1], Length(S), Ord('9'));
   S[48] := '8';
   R.SetDec(S);
-  T1 := GetTickCount;
+  T1 := CnGetTickCount;
   B := BigNumberIsProbablyPrime(R);    // 2 次得400多秒，默认50次得万把秒，三四个小时
-  T1 := GetTickCount - T1;
+  T1 := CnGetTickCount - T1;
 
   if B then
     ShowMessage('Prime')
@@ -939,15 +942,15 @@ begin
   if BigNumberMulKaratsuba(Res, Num1, Num2) then
     ShowResult(Res);
 
-  Tick := GetTickCount;
+  Tick := CnGetTickCount;
   for I := 0 to 1000 do
     BigNumberMul(Res, Num1, Num2);
-  ShowMessage(IntToStr(GetTickCount - Tick));
+  ShowMessage(IntToStr(CnGetTickCount - Tick));
 
-  Tick := GetTickCount;
+  Tick := CnGetTickCount;
   for I := 0 to 1000 do
     BigNumberMulKaratsuba(Res, Num1, Num2);
-  ShowMessage(IntToStr(GetTickCount - Tick));
+  ShowMessage(IntToStr(CnGetTickCount - Tick));
 
   BigNumberFree(Res);
 end;
