@@ -189,7 +189,7 @@ type
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
     procedure Loaded; override;
     procedure UDPDataReceived(Sender: TComponent; Buffer: Pointer;
-      Len: Integer; FromIP: string; Port: Integer);
+      Len: Integer; const FromIP: string; Port: Integer);
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -347,7 +347,7 @@ begin
   FUDP.OnDataReceived := UDPDataReceived;
 
   if not (csDesigning in ComponentState) then
-    TCnUDPHack(FUDP).UpdateBinding;
+    FUDP.UpdateBinding;
 end;
 
 destructor TCnDNS.Destroy;
@@ -689,7 +689,7 @@ end;
 procedure TCnDNS.Loaded;
 begin
   inherited;
-  TCnUDPHack(FUDP).UpdateBinding;
+  FUDP.UpdateBinding;
 end;
 
 procedure TCnDNS.SendHostQuery(const Name: string; QueryType, QueryClass,
@@ -709,7 +709,7 @@ begin
 end;
 
 procedure TCnDNS.UDPDataReceived(Sender: TComponent; Buffer: Pointer;
-  Len: Integer; FromIP: string; Port: Integer);
+  Len: Integer; const FromIP: string; Port: Integer);
 var
   Packet: TCnDNSPacketObject;
 begin

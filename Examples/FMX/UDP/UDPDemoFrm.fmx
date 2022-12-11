@@ -1,0 +1,222 @@
+object Form1: TForm1
+  Left = 305
+  Top = 124
+  Caption = 'UDP Demo'
+  ClientHeight = 391
+  ClientWidth = 431
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnShow = FormShow
+  Left = 305
+  Top = 124
+  DesignerMasterStyle = 0
+  object grp1: TGroupBox
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 417.000000000000000000
+    Size.Height = 209.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Send'
+    TabOrder = 0
+    object lbl1: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 20.000000000000000000
+      Size.Width = 34.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Server:'
+    end
+    object lbl2: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 80.000000000000000000
+      Size.Width = 24.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Text:'
+    end
+    object lbl3: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 148.000000000000000000
+      Size.Width = 19.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'File:'
+    end
+    object btnFile: TSpeedButton
+      Position.X = 384.000000000000000000
+      Position.Y = 144.000000000000000000
+      Size.Width = 23.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = '...'
+      OnClick = btnFileClick
+    end
+    object lbl4: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 53.000000000000000000
+      Size.Width = 22.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Port:'
+    end
+    object lbl5: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 180.000000000000000000
+      Size.Width = 216.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Note: Increase RecvBufSize if file is too large.'
+    end
+    object mmoSend: TMemo
+      Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+      DataDetectorTypes = []
+      Lines.Strings = (
+        'CnUDP Component Demo.'
+        'Test it.')
+      TextSettings.WordWrap = True
+      Position.X = 56.000000000000000000
+      Position.Y = 80.000000000000000000
+      Size.Width = 353.000000000000000000
+      Size.Height = 57.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 3
+      Viewport.Width = 349.000000000000000000
+      Viewport.Height = 53.000000000000000000
+    end
+    object edtServer: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 0
+      Text = 'localhost'
+      Position.X = 56.000000000000000000
+      Position.Y = 20.000000000000000000
+      Size.Width = 353.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object edtFile: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 4
+      Position.X = 56.000000000000000000
+      Position.Y = 144.000000000000000000
+      Size.Width = 321.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object sePort: TSpinBox
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 1
+      Cursor = crIBeam
+      Position.X = 56.000000000000000000
+      Position.Y = 49.000000000000000000
+      Size.Width = 121.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object btnSendText: TButton
+      Position.X = 253.000000000000000000
+      Position.Y = 176.000000000000000000
+      Size.Width = 75.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      Text = 'Send &Text'
+      OnClick = btnSendTextClick
+    end
+    object btnSendFile: TButton
+      Position.X = 333.000000000000000000
+      Position.Y = 176.000000000000000000
+      Size.Width = 75.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 6
+      Text = 'Send &File'
+      OnClick = btnSendFileClick
+    end
+    object chkBoardCast: TCheckBox
+      Position.X = 328.000000000000000000
+      Position.Y = 52.000000000000000000
+      Size.Width = 81.000000000000000000
+      Size.Height = 17.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 2
+      Text = 'BroadCast'
+    end
+  end
+  object grp2: TGroupBox
+    Position.X = 7.000000000000000000
+    Position.Y = 224.000000000000000000
+    Size.Width = 417.000000000000000000
+    Size.Height = 129.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Receive'
+    TabOrder = 1
+    object lbl6: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 48.000000000000000000
+      Size.Width = 43.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Receive:'
+    end
+    object lbl8: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 21.000000000000000000
+      Size.Width = 46.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Bind Port:'
+    end
+    object lblStatus: TLabel
+      Position.X = 186.000000000000000000
+      Position.Y = 21.000000000000000000
+      Size.Width = 40.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'lblStatus'
+    end
+    object mmoReceive: TMemo
+      Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+      DataDetectorTypes = []
+      TextSettings.WordWrap = True
+      Position.X = 56.000000000000000000
+      Position.Y = 48.000000000000000000
+      Size.Width = 353.000000000000000000
+      Size.Height = 65.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Viewport.Width = 349.000000000000000000
+      Viewport.Height = 61.000000000000000000
+    end
+    object seBind: TSpinBox
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 0
+      Cursor = crIBeam
+      Position.X = 56.000000000000000000
+      Position.Y = 17.000000000000000000
+      Size.Width = 121.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      OnChange = seBindChange
+    end
+  end
+  object btnClose: TButton
+    Position.X = 344.000000000000000000
+    Position.Y = 360.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = '&Close'
+    OnClick = btnCloseClick
+  end
+  object dlgOpen: TOpenDialog
+    Left = 47
+    Top = 348
+  end
+  object dlgSave: TSaveDialog
+    Left = 79
+    Top = 348
+  end
+end

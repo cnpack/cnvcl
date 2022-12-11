@@ -40,12 +40,14 @@ interface
 {$I CnPack.inc}
 
 uses
+  SysUtils, Classes, Contnrs,
   {$IFDEF MSWINDOWS}
-  Windows, Messages, Classes, WinSock, Forms,
+  Windows, Messages, WinSock, Forms, // 需要设置工程的单元前缀 Vcl 或 FMX
   {$ELSE}
   Posix.Base, Posix.NetIf, Posix.SysSocket, Posix.ArpaInet, Posix.NetinetIn,
+  Posix.Unistd, System.Net.Socket,
   {$ENDIF}
-  SysUtils, Contnrs, CnClasses, CnConsts, CnNetConsts;
+  CnClasses, CnConsts, CnNetConsts, CnSocket;
 
 const
   csDefRecvBuffSize = 4096;
@@ -61,7 +63,7 @@ type
 { TCnUDP }
 
   TCnOnDataReceived = procedure(Sender: TComponent; Buffer: Pointer; Len: Integer;
-    FromIP: string; Port: Integer) of object;
+    const FromIP: string; Port: Integer) of object;
   {* 接收到数据事件
    |<PRE>
      Sender     - TCnUDP 对象
@@ -77,29 +79,36 @@ type
     FRemoteHost: string;
     FRemotePort: Integer;
     FLocalPort: Integer;
+{$IFDEF MSWINDOWS}
+    FSockCount: Integer;
     FSocketWindow: HWND;
-    FOnDataReceived: TCnOnDataReceived;
-    FListening: Boolean;
-    Wait_Flag: Boolean;
-    RemoteAddress: TSockAddr;
     RemoteHostS: PHostEnt;
     Succeed: Boolean;
-    Procing: Boolean;
     EventHandle: THandle;
+{$ELSE}
+    FThread: TThread;
+{$ENDIF}
+    Wait_Flag: Boolean;
+    FProcing: Boolean;
+    FRemoteAddress: TSockAddr;
+    FOnDataReceived: TCnOnDataReceived;
+    FListening: Boolean;
     FThisSocket: TSocket;
     Queue: TQueue;
     FLastError: Integer;
     FRecvBufSize: Cardinal;
     FRecvBuf: Pointer;
     FBindAddr: string;
-    FSockCount: Integer;
     FUDPSendBufSize: Cardinal;
     FUDPRecvBufSize: Cardinal;
+{$IFDEF MSWINDOWS}
     procedure WndProc(var Message: TMessage);
-    function ResolveRemoteHost(ARemoteHost: string): Boolean;
-    procedure SetLocalPort(NewLocalPort: Integer);
     procedure ProcessIncomingdata;
     procedure ProcessQueue;
+{$ENDIF}
+    function ResolveRemoteHost(ARemoteHost: string): Boolean;
+    procedure SetLocalPort(NewLocalPort: Integer);
+
     procedure FreeQueueItem(P: Pointer);
     function GetQueueCount: Integer;
     procedure SetupLastError;
@@ -112,7 +121,13 @@ type
     procedure SetUDPSendBufSize(const Value: Cardinal);
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
+    procedure DoDataReceived(Buffer: Pointer; Len: Integer; const FromIP: string; Port: Integer);
+{$IFDEF MSWINDOWS}
     procedure Wait;
+{$ELSE}
+    procedure StartThread;
+    procedure StopThread;
+{$ENDIF}
     procedure Loaded; override;
   public
     constructor Create(AOwner: TComponent); override;
@@ -131,10 +146,13 @@ type
     procedure ClearQueue;
     {* 清空数据队列。如果用户来不及处理接收到的数据，组件会把新数据包放到数据
        队列中，调用该方法可清空数据队列}
+
+{$IFDEF MSWINDOWS}
     function ProcessRecv: Boolean;
     {* 处理该 UDP 接口的接收内容。由于 CnUDP 组件的 OnDataReceived 是在主线程
        消息处理中调用的，如果主线程代码需要等待 UDP 接收而不希望处理所有消息，
        可以调用该函数。}
+{$ENDIF}
 
     property LastError: Integer read FLastError;
     {* 最后一次错误的错误号，只读属性}
@@ -164,6 +182,19 @@ type
     {* 接收到 UDP 数据包事件}
   end;
 
+{$IFNDEF MSWINDOWS}
+
+  TCnUDPReadThread = class(TThread)
+  private
+    FUDP: TCnUDP;
+  protected
+    procedure Execute; override;
+  public
+    property UDP: TCnUDP read FUDP write FUDP;
+  end;
+
+{$ENDIF}
+
 // 取广播地址
 procedure GetBroadCastAddress(sInt: TStrings);
 
@@ -177,6 +208,8 @@ implementation
 //==============================================================================
 // 辅助过程
 //==============================================================================
+
+{$IFDEF MSWINDOWS}
 
 // 从 Winsock 2.0导入函数 WSAIOCtl
 function WSAIoctl(S: TSocket; cmd: DWORD; lpInBuffer: PCHAR; dwInBufferLen:
@@ -206,6 +239,8 @@ type
     iiBroadcastAddress: sockaddr_gen;   // Broadcast address
     iiNetmask: sockaddr_gen;            // Network mask
   end;
+
+{$ENDIF}
 
 // 取本机所有地址或广播地址
 procedure DoGetIPAddress(sInt: TStrings; IsBroadCast: Boolean);
@@ -309,14 +344,16 @@ end;
 { TCnUDP }
 
 const
+{$IFDEF MSWINDOWS}
   WM_ASYNCHRONOUSPROCESS = WM_USER + 101;
+{$ENDIF}
   Const_cmd_true = 'TRUE';
 
 type
   PRecvDataRec = ^TRecvDataRec;
   TRecvDataRec = record
     FromIP: string[128];
-    FromPort: u_short;
+    FromPort: Word;
     Buff: Pointer;
     BuffSize: Integer;
   end;
@@ -326,19 +363,22 @@ begin
   inherited Create(AOwner);
   Queue := TQueue.Create;
   FListening := False;
-  Procing := False;
+  FProcing := False;
   FRecvBufSize := csDefRecvBuffSize;
   FUDPSendBufSize := csDefUDPSendBuffSize;
   FUDPRecvBufSize := csDefUDPRecvBuffSize;
   FBindAddr := '0.0.0.0';
 
+{$IFDEF MSWINDOWS}
   GetMem(RemoteHostS, MAXGETHOSTSTRUCT);
   FSocketWindow := AllocateHWND(WndProc);
   EventHandle := CreateEvent(nil, True, False, '');
+{$ENDIF}
+
   if SockStartup then
   begin
-    FThisSocket := Socket(AF_INET, SOCK_DGRAM, 0);
-    if FThisSocket = TSocket(INVALID_SOCKET) then
+    FThisSocket := CnNewSocket(AF_INET, SOCK_DGRAM, 0);
+    if FThisSocket = INVALID_SOCKET then
     begin
       SetupLastError;
       SockCleanup;
@@ -352,6 +392,10 @@ end;
 
 destructor TCnUDP.Destroy;
 begin
+{$IFNDEF MSWINDOWS}
+  StopThread;
+{$ENDIF}
+
   if FRecvBuf <> nil then
   begin
     FreeMem(FRecvBuf);
@@ -360,20 +404,31 @@ begin
 
   ClearQueue;
   Queue.Free;
+
+{$IFDEF MSWINDOWS}
   FreeMem(RemoteHostS, MAXGETHOSTSTRUCT);
   DeallocateHWND(FSocketWindow);
   CloseHandle(EventHandle);
+{$ENDIF}
+
   if FThisSocket <> 0 then
-    closesocket(FThisSocket);
+    CnCloseSocket(FThisSocket);
   if FListening then
     SockCleanup;
   inherited Destroy;
 end;
 
+procedure TCnUDP.DoDataReceived(Buffer: Pointer; Len: Integer;
+  const FromIP: string; Port: Integer);
+begin
+  if Assigned(FOnDataReceived) then
+    FOnDataReceived(Self, Buffer, Len, FromIP, Port);
+end;
+
 procedure TCnUDP.UpdateBinding;
 var
-  Data: DWORD;
-  Addr: TSockAddr;
+  Data: Cardinal;
+  Address: TSockAddr;
 begin
   if not (csDesigning in ComponentState) then
   begin
@@ -381,14 +436,14 @@ begin
 
     if FThisSocket <> 0 then
     begin
-      closesocket(FThisSocket);
+      CnCloseSocket(FThisSocket);
       SockCleanup;
     end;
 
     if SockStartup then
     begin
-      FThisSocket := Socket(AF_INET, SOCK_DGRAM, 0);
-      if FThisSocket = TSocket(INVALID_SOCKET) then
+      FThisSocket := CnNewSocket(AF_INET, SOCK_DGRAM, 0);
+      if FThisSocket = INVALID_SOCKET then
       begin
         SockCleanup;
         SetupLastError;
@@ -396,13 +451,17 @@ begin
       end;
     end;
 
-    FillChar(Addr, SizeOf(Addr), 0);
-    Addr.sin_addr.S_addr := Inet_Addr(PAnsiChar(AnsiString(FBindAddr)));
-    Addr.sin_family := AF_INET;
-    Addr.sin_port := htons(FLocalPort);
+    FillChar(Address, SizeOf(Address), 0);
+    if FBindAddr <> '' then
+      Address.sin_addr.S_addr := inet_addr(PAnsiChar(AnsiString(FBindAddr)))
+    else
+      Address.sin_addr.S_addr := INADDR_ANY;
+
+    Address.sin_family := AF_INET;
+    Address.sin_port := htons(FLocalPort);
+
     Wait_Flag := False;
-    if WinSock.Bind(FThisSocket, Addr, SizeOf(Addr)) =
-      SOCKET_ERROR then
+    if CnBind(FThisSocket, Address, SizeOf(Address)) = SOCKET_ERROR then
     begin
       SetupLastError;
       SockCleanup;
@@ -411,15 +470,23 @@ begin
 
     // Allow to send to 255.255.255.255
     Data := 1;
-    WinSock.setsockopt(FThisSocket, SOL_SOCKET, SO_BROADCAST,
+    CnSetSockOpt(FThisSocket, SOL_SOCKET, SO_BROADCAST,
       PAnsiChar(@Data), SizeOf(Data));
     Data := FUDPSendBufSize;
-    WinSock.setsockopt(FThisSocket, SOL_SOCKET, SO_SNDBUF,
+    CnSetSockOpt(FThisSocket, SOL_SOCKET, SO_SNDBUF,
       PAnsiChar(@Data), SizeOf(Data));
     Data := FUDPRecvBufSize;
-    WinSock.setsockopt(FThisSocket, SOL_SOCKET, SO_RCVBUF,
+    CnSetSockOpt(FThisSocket, SOL_SOCKET, SO_RCVBUF,
       PAnsiChar(@Data), SizeOf(Data));
+
+{$IFDEF MSWINDOWS}
     WSAAsyncSelect(FThisSocket, FSocketWindow, WM_ASYNCHRONOUSPROCESS, FD_READ);
+{$ELSE}
+    // 起监听线程
+    StopThread;
+    StartThread;
+{$ENDIF}
+
     FListening := True;
   end;
 end;
@@ -450,13 +517,20 @@ end;
 
 function TCnUDP.ResolveRemoteHost(ARemoteHost: string): Boolean;
 var
+{$IFDEF MSWINDOWS}
   Buf: array[0..127] of AnsiChar;
+{$ELSE}
+  IP: TIPAddress;
+{$ENDIF}
 begin
   Result := False;
-  if not FListening then Exit;
+  if not FListening then
+    Exit;
+
+{$IFDEF MSWINDOWS}
   try
-    RemoteAddress.sin_addr.S_addr := Inet_Addr(PAnsiChar(StrPCopy(Buf, {$IFDEF UNICODE}AnsiString{$ENDIF}(ARemoteHost))));
-    if RemoteAddress.sin_addr.S_addr = SOCKET_ERROR then
+    FRemoteAddress.sin_addr.S_addr := Inet_Addr(PAnsiChar(StrPCopy(Buf, {$IFDEF UNICODE}AnsiString{$ENDIF}(ARemoteHost))));
+    if FRemoteAddress.sin_addr.S_addr = SOCKET_ERROR then
     begin
       Wait_Flag := False;
       WSAAsyncGetHostByName(FSocketWindow, WM_ASYNCHRONOUSPROCESS, Buf,
@@ -464,9 +538,10 @@ begin
       repeat
         Wait;
       until Wait_Flag;
+
       if Succeed then
       begin
-        with RemoteAddress.sin_addr.S_un_b do
+        with FRemoteAddress.sin_addr.S_un_b do
         begin
           s_b1 := remotehostS.h_addr_list^[0];
           s_b2 := remotehostS.h_addr_list^[1];
@@ -478,8 +553,15 @@ begin
   except
     ;
   end;
-  if RemoteAddress.sin_addr.S_addr <> 0 then
+{$ELSE}
+  // POSIX 下如何异步解析？只能先写同步
+  IP := TIPAddress.LookupName(ARemoteHost);
+  FRemoteAddress.sin_addr := IP.Addr;
+{$ENDIF}
+
+  if FRemoteAddress.sin_addr.S_addr <> 0 then
     Result := True;
+
   if not Result then
     SetupLastError;
 end;
@@ -512,10 +594,11 @@ var
     try
       if not ResolveRemoteHost(Host) then
         Exit;
-      RemoteAddress.sin_family := AF_INET;
-      RemoteAddress.sin_port := htons(FRemotePort);
-      I := SizeOf(RemoteAddress);
-      if WinSock.sendto(FThisSocket, Buff^, Length, 0, RemoteAddress, I)
+      FRemoteAddress.sin_family := AF_INET;
+      FRemoteAddress.sin_port := htons(FRemotePort);
+      I := SizeOf(FRemoteAddress);
+
+      if CnSendTo(FThisSocket, Buff^, Length, 0, FRemoteAddress, I)
         <> SOCKET_ERROR then
         Result := True
       else
@@ -524,6 +607,7 @@ var
       SetupLastError;
     end;
   end;
+
 begin
   if BroadCast then
   begin
@@ -568,22 +652,23 @@ begin
   end;
 end;
 
+{$IFDEF MSWINDOWS}
+
 procedure TCnUDP.ProcessQueue;
 var
   Rec: PRecvDataRec;
 begin
-  if Procing then Exit;
-  Procing := True;
+  if FProcing then Exit;
+  FProcing := True;
   try
     while Queue.Count > 0 do
     begin
       Rec := Queue.Pop;
-      if Assigned(FOnDataReceived) then
-        FOnDataReceived(Self, Rec.Buff, Rec.BuffSize, string(Rec.FromIP), Rec.FromPort);
+      DoDataReceived(Rec.Buff, Rec.BuffSize, string(Rec.FromIP), Rec.FromPort);
       FreeQueueItem(Rec);
     end;
   finally
-    Procing := False;
+    FProcing := False;
   end;
 end;
 
@@ -624,7 +709,7 @@ begin
         if LParamLo = FD_READ then
         begin
           ProcessIncomingdata;
-          if not Procing then
+          if not FProcing then
             ProcessQueue;
         end
         else
@@ -645,27 +730,30 @@ end;
 
 procedure TCnUDP.ProcessIncomingdata;
 var
-  from: TSockAddr;
+  From: TSockAddr;
   I: Integer;
   Rec: PRecvDataRec;
   IBuffSize: Integer;
 begin
-  I := SizeOf(from);
+  I := SizeOf(From);
   if FRecvBuf = nil then
     GetMem(FRecvBuf, FRecvBufSize);
 
-  IBuffSize := WinSock.recvfrom(FThisSocket, FRecvBuf^, FRecvBufSize, 0, from, I);
+  IBuffSize := CnRecvFrom(FThisSocket, FRecvBuf^, FRecvBufSize, 0, From, I);
   if (IBuffSize > 0) and Assigned(FOnDataReceived) then
   begin
     GetMem(Rec, SizeOf(TRecvDataRec));
-    ZeroMemory(Rec, SizeOf(TRecvDataRec));
-    Rec.FromIP := ShortString(Format('%d.%d.%d.%d', [Ord(from.sin_addr.S_un_b.S_b1),
-      Ord(from.sin_addr.S_un_b.S_b2), Ord(from.sin_addr.S_un_b.S_b3),
-        Ord(from.sin_addr.S_un_b.S_b4)]));
-    Rec.FromPort := ntohs(from.sin_port);
+    FillChar(Rec^, SizeOf(TRecvDataRec), 0);
+
+    Rec.FromIP := ShortString(Format('%d.%d.%d.%d', [Ord(From.sin_addr.S_un_b.S_b1),
+      Ord(From.sin_addr.S_un_b.S_b2), Ord(From.sin_addr.S_un_b.S_b3),
+      Ord(From.sin_addr.S_un_b.S_b4)]));
+    Rec.FromPort := ntohs(From.sin_port);
+
     GetMem(Rec.Buff, IBuffSize);
     Rec.BuffSize := IBuffSize;
-    CopyMemory(Rec.Buff, FRecvBuf, IBuffSize);
+    Move(FRecvBuf^, Rec.Buff^, IBuffSize);
+
     Queue.Push(Rec);
   end;
 end;
@@ -687,25 +775,64 @@ begin
   ResetEvent(EventHandle);
 end;
 
+{$ELSE}
+
+procedure TCnUDP.StartThread;
+begin
+  if FThread = nil then
+  begin
+    FThread := TCnUDPReadThread.Create(True);
+    FThread.FreeOnTerminate := True;
+  end;
+
+  if FRecvBuf = nil then
+    GetMem(FRecvBuf, FRecvBufSize);
+
+  TCnUDPReadThread(FThread).UDP := Self;
+  FThread.Resume;
+end;
+
+procedure TCnUDP.StopThread;
+begin
+  FThread.Terminate;
+  try
+    FThread.WaitFor;
+  except
+    ;  // WaitFor 时可能已经 Terminated，导致出句柄无效的错
+  end;
+  FThread := nil;
+end;
+
+{$ENDIF}
+
 procedure TCnUDP.SetupLastError;
 begin
+{$IFDEF MSWINDOWS}
   FLastError := WSAGetLastError;
+{$ELSE}
+  FLastError := GetLastError;
+{$ENDIF}
 end;
 
 procedure TCnUDP.SockCleanup;
 begin
+{$IFDEF MSWINDOWS}
   if FSockCount > 0 then
   begin
     Dec(FSockCount);
     if FSockCount = 0 then
       WSACleanup;
   end;
+{$ENDIF}
 end;
 
 function TCnUDP.SockStartup: Boolean;
+{$IFDEF MSWINDOWS}
 var
   wsaData: TWSAData;
+{$ENDIF}
 begin
+{$IFDEF MSWINDOWS}
   if FSockCount = 0 then
   begin
     Result := WSAStartup($0101, wsaData) = 0;
@@ -713,6 +840,7 @@ begin
       Exit;
   end;
   Inc(FSockCount);
+{$ENDIF}
   Result := True;
 end;
 
@@ -726,17 +854,25 @@ end;
 
 function TCnUDP.GetLocalHost: string;
 var
-  p: PHostEnt;
   S: array[0..256] of AnsiChar;
+{$IFDEF MSWINDOWS}
+  P: PHostEnt;
+{$ENDIF}
 begin
+{$IFDEF MSWINDOWS}
   SockStartup;
   try
     GetHostName(@S, 256);
-    p := GetHostByName(@S);
-    Result := string(inet_ntoa(PInAddr(p^.h_addr_list^)^));
+    P := GetHostByName(@S);
+    Result := string(inet_ntoa(PInAddr(P^.h_addr_list^)^));
   finally
     SockCleanup;
   end;
+{$ELSE}
+  // 拿本机名称与 IP
+  Posix.Unistd.gethostname(@S, 256);
+  Result := TIPAddress.LookupName(string(S)).Address;
+{$ENDIF}
 end;
 
 procedure TCnUDP.SetRecvBufSize(const Value: Cardinal);
@@ -755,29 +891,68 @@ end;
 
 procedure TCnUDP.SetUDPRecvBufSize(const Value: Cardinal);
 var
-  Data: DWORD;
+  Data: Cardinal;
 begin
   FUDPRecvBufSize := Value;
   if FListening then
   begin
     Data := FUDPRecvBufSize;
-    WinSock.setsockopt(FThisSocket, SOL_SOCKET, SO_RCVBUF,
+    CnSetSockOpt(FThisSocket, SOL_SOCKET, SO_RCVBUF,
       PAnsiChar(@Data), SizeOf(Data));
   end;
 end;
 
 procedure TCnUDP.SetUDPSendBufSize(const Value: Cardinal);
 var
-  Data: DWORD;
+  Data: Cardinal;
 begin
   FUDPSendBufSize := Value;
   if FListening then
   begin
     Data := FUDPSendBufSize;
-    WinSock.setsockopt(FThisSocket, SOL_SOCKET, SO_SNDBUF,
+    CnSetSockOpt(FThisSocket, SOL_SOCKET, SO_SNDBUF,
       PAnsiChar(@Data), SizeOf(Data));
   end;
 end;
+
+{$IFNDEF MSWINDOWS}
+
+{ TCnUDPReadThread }
+
+procedure TCnUDPReadThread.Execute;
+var
+  Res, I, FromPort: Integer;
+  From: TSockAddr;
+  FromIP: string;
+begin
+  if (UDP = nil) or (UDP.FRecvBuf = nil) then
+    Exit;
+
+  I := SizeOf(From);
+  while not Terminated do
+  begin
+    Res := CnRecvFrom(UDP.FThisSocket, UDP.FRecvBuf, UDP.FRecvBufSize, 0, From, I);
+
+    if Res <> SOCKET_ERROR then
+    begin
+      if Res = 0 then
+        Continue;
+
+{$IFDEF MSWINDOWS}
+      FromIP := Format('%d.%d.%d.%d', [Ord(From.sin_addr.S_un_b.S_b1),
+        Ord(From.sin_addr.S_un_b.S_b2), Ord(From.sin_addr.S_un_b.S_b3),
+        Ord(From.sin_addr.S_un_b.S_b4)]);
+{$ELSE}
+      FromIP := TIPAddress.Create(From.sin_addr.s_addr).Address;
+{$ENDIF}
+
+      FromPort := ntohs(From.sin_port);
+      UDP.DoDataReceived(UDP.FRecvBuf, Res, FromIP, FromPort);
+    end;
+  end;
+end;
+
+{$ENDIF}
 
 end.
 

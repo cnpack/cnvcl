@@ -137,7 +137,7 @@ var
 
 const
   Base64TableLength = 64;
-  Base64Table:string[Base64TableLength]='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  Base64Table: string[Base64TableLength] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
   Pad = '=';
 
 //------------------------------------------------------------------------------

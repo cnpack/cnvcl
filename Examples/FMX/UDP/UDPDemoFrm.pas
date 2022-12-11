@@ -3,47 +3,48 @@ unit UDPDemoFrm;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, Buttons, Spin, CnUDP;
+  {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  FMX.StdCtrls, FMX.SpinBox, CnUDP, FMX.Edit, FMX.Memo, FMX.Types, FMX.EditBox,
+  FMX.ScrollBox, FMX.Controls.Presentation;
 
 type
   TForm1 = class(TForm)
     grp1: TGroupBox;
     lbl1: TLabel;
-    mmoSend: TMemo;
-    edtServer: TEdit;
     lbl2: TLabel;
     lbl3: TLabel;
-    edtFile: TEdit;
     btnFile: TSpeedButton;
     lbl4: TLabel;
+    lbl5: TLabel;
+    mmoSend: TMemo;
+    edtServer: TEdit;
+    edtFile: TEdit;
+    sePort: TSpinBox;
     btnSendText: TButton;
     btnSendFile: TButton;
+    chkBoardCast: TCheckBox;
     grp2: TGroupBox;
     lbl6: TLabel;
     lbl8: TLabel;
+    lblStatus: TLabel;
     mmoReceive: TMemo;
+    seBind: TSpinBox;
     btnClose: TButton;
-    CnUDP1: TCnUDP;
     dlgOpen: TOpenDialog;
     dlgSave: TSaveDialog;
-    lblStatus: TLabel;
-    chkBoardCast: TCheckBox;
-    lbl5: TLabel;
-    sePort: TSpinEdit;
-    seBind: TSpinEdit;
-    procedure btnFileClick(Sender: TObject);
-    procedure seBindChange(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure btnFileClick(Sender: TObject);
     procedure btnSendTextClick(Sender: TObject);
     procedure btnSendFileClick(Sender: TObject);
-    procedure CnUDP1DataReceived(Sender: TComponent; Buffer: Pointer;
-      Len: Integer; const FromIP: String; Port: Integer);
+    procedure seBindChange(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
+    CnUDP1: TCnUDP;
     procedure UpdateStatus;
   public
-
+    procedure CnUDP1DataReceived(Sender: TComponent; Buffer: Pointer;
+      Len: Integer; const FromIP: string; Port: Integer);
   end;
 
 var
@@ -51,24 +52,33 @@ var
 
 implementation
 
-{$R *.DFM}
+{$R *.fmx}
+
+uses
+  CnNative;
 
 const
   csTextFlag = #1;
 
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  CnUDP1 := TCnUDP.Create(Self);
+  CnUDP1.OnDataReceived := CnUDP1DataReceived;
+end;
+
 procedure TForm1.FormShow(Sender: TObject);
 begin
-  CnUDP1.LocalPort := seBind.Value;
+  CnUDP1.LocalPort := Trunc(seBind.Value);
   UpdateStatus;
 end;
 
 procedure TForm1.UpdateStatus;
 begin
   if CnUDP1.Listening then
-    lblStatus.Caption := 'Listening...'
+    lblStatus.Text := 'Listening...'
   else
-    lblStatus.Caption := 'Not listening.';
-  lblStatus.Caption := 'IP: ' + CnUDP1.LocalHost + ' ' + lblStatus.Caption;
+    lblStatus.Text := 'Not listening.';
+  lblStatus.Text := 'IP: ' + CnUDP1.LocalHost + ' ' + lblStatus.Text;
 end;
 
 procedure TForm1.btnFileClick(Sender: TObject);
@@ -79,7 +89,7 @@ end;
 
 procedure TForm1.seBindChange(Sender: TObject);
 begin
-  CnUDP1.LocalPort := seBind.Value;
+  CnUDP1.LocalPort := Trunc(seBind.Value);
   UpdateStatus;
 end;
 
@@ -90,8 +100,8 @@ begin
   // Insert a Text flag at head
   S := csTextFlag + AnsiString(mmoSend.Lines.Text);
   CnUDP1.RemoteHost := edtServer.Text;
-  CnUDP1.RemotePort := sePort.Value;
-  CnUDP1.SendBuffer(PAnsiChar(S), Length(S), chkBoardCast.Checked);
+  CnUDP1.RemotePort := Trunc(sePort.Value);
+  CnUDP1.SendBuffer(PAnsiChar(S), Length(S), chkBoardCast.IsChecked);
 end;
 
 procedure TForm1.btnSendFileClick(Sender: TObject);
@@ -104,8 +114,8 @@ begin
     try
       Stream.LoadFromFile(edtFile.Text);
       CnUDP1.RemoteHost := edtServer.Text;
-      CnUDP1.RemotePort := sePort.Value;
-      CnUDP1.SendStream(Stream, chkBoardCast.Checked);
+      CnUDP1.RemotePort := Trunc(sePort.Value);
+      CnUDP1.SendStream(Stream, chkBoardCast.IsChecked);
     finally
       Stream.Free;
     end;
@@ -113,7 +123,7 @@ begin
 end;
 
 procedure TForm1.CnUDP1DataReceived(Sender: TComponent; Buffer: Pointer;
-  Len: Integer; const FromIP: string; Port: Integer);
+  Len: Integer; const FromIP: String; Port: Integer);
 var
   S: AnsiString;
   Stream: TFileStream;
@@ -122,7 +132,7 @@ begin
   begin
     // Is text
     SetLength(S, Len - 1);
-    CopyMemory(PAnsiChar(S), PAnsiChar(Integer(Buffer) + 1), Len - 1);
+    Move(PAnsiChar(TCnNativeInt(Buffer) + 1)^, S[1], Len - 1);
     mmoReceive.Lines.Text := Format('From: %s:%d'#13#10, [FromIP, Port]) + string(S);
   end
   else

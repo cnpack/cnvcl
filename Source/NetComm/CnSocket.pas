@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS}, WinSock {$ELSE}, System.Net.Socket,
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows, WinSock {$ELSE}, System.Net.Socket,
   Posix.Base, Posix.NetIf, Posix.SysSocket, Posix.ArpaInet, Posix.NetinetIn,
   Posix.Unistd, Posix.SysSelect, Posix.SysTime {$ENDIF};
 
@@ -59,12 +59,16 @@ const
 {$IFNDEF MSWINDOWS}
   SOCKET_ERROR   = -1;
   INVALID_SOCKET = -1;
+  SO_DONTLINGER  = $FF7F;
 
 function getifaddrs(var Ifap: pifaddrs): Integer; cdecl; external libc name _PU + 'getifaddrs';
 
 procedure freeifaddrs(Ifap: pifaddrs); cdecl; external libc name _PU + 'freeifaddrs';
 
 {$ENDIF}
+
+function CnGetHostName: string;
+{* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 gethostname 函数的封装，返回本机名}
 
 function CnNewSocket(Af, Struct, Protocol: Integer): TSocket;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 socket 函数的封装}
@@ -84,13 +88,13 @@ function CnListen(S: TSocket; Backlog: Integer): Integer;
 function CnAccept(S: TSocket; Addr: PSockAddr; AddrLen: PInteger): TSocket;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 accept 函数的封装}
 
-function CnSend(S: TSocket; const Buf; Len, Flags: Integer): Integer;
+function CnSend(S: TSocket; var Buf; Len, Flags: Integer): Integer;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 send 函数的封装}
 
 function CnRecv(S: TSocket; var Buf; Len, Flags: Integer): Integer;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 recv 函数的封装}
 
-function CnSendTo(S: TSocket; const Buf; Len, Flags: Integer;
+function CnSendTo(S: TSocket; var Buf; Len, Flags: Integer;
   var AddrTo: TSockAddr; ToLen: Integer): Integer;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 sendto 函数的封装}
 
@@ -101,6 +105,10 @@ function CnRecvFrom(S: TSocket; var Buf; Len, Flags: Integer;
 function CnSelect(Nfds: Integer; Readfds, Writefds, Exceptfds: PCnFDSet;
   Timeout: PTimeVal): Longint;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 select 函数的封装}
+
+function CnSetSockOpt(S: TSocket; Level, OptName: Integer; OptVal: PAnsiChar;
+  OptLen: Integer): Integer;
+{* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 setsockopt 函数的封装}
 
 function CnShutdown(S: TSocket; How: Integer): Integer;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 shutdown 函数的封装}
@@ -121,6 +129,18 @@ function CnFDIsSet(F: Integer; var FD: TCnFDSet): Boolean;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 FD_ISSET 函数的封装}
 
 implementation
+
+function CnGetHostName: string;
+var
+  S: array[0..256] of AnsiChar;
+begin
+{$IFDEF MSWINDOWS}
+  WinSock.gethostname(@S[0], SizeOf(S));
+{$ELSE}
+  Posix.Unistd.gethostname(@S[0], SizeOf(S));
+{$ENDIF}
+  Result := string(S);
+end;
 
 function CnNewSocket(Af, Struct, Protocol: Integer): TSocket;
 begin
@@ -176,7 +196,7 @@ begin
 {$ENDIF}
 end;
 
-function CnSend(S: TSocket; const Buf; Len, Flags: Integer): Integer;
+function CnSend(S: TSocket; var Buf; Len, Flags: Integer): Integer;
 begin
 {$IFDEF MSWINDOWS}
   Result := WinSock.send(S, Buf, Len, Flags);
@@ -194,7 +214,7 @@ begin
 {$ENDIF}
 end;
 
-function CnSendTo(S: TSocket; const Buf; Len, Flags: Integer;
+function CnSendTo(S: TSocket; var Buf; Len, Flags: Integer;
   var AddrTo: TSockAddr; ToLen: Integer): Integer;
 begin
 {$IFDEF MSWINDOWS}
@@ -221,6 +241,16 @@ begin
   Result := WinSock.select(Nfds, Readfds, Writefds, Exceptfds, Timeout);
 {$ELSE}
   Result := Posix.SysSelect.select(Nfds, Readfds, Writefds, Exceptfds, Timeout);
+{$ENDIF}
+end;
+
+function CnSetSockOpt(S: TSocket; Level, OptName: Integer; OptVal: PAnsiChar;
+  OptLen: Integer): Integer;
+begin
+{$IFDEF MSWINDOWS}
+  Result := WinSock.setsockopt(S, Level, OptName, OptVal, OptLen);
+{$ELSE}
+  Result := Posix.SysSocket.setsockopt(S, Level, OptName, OptVal, OptLen);
 {$ENDIF}
 end;
 

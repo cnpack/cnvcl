@@ -1,7 +1,7 @@
 object Form1: TForm1
   Left = 305
   Top = 124
-  Width = 439
+  Width = 455
   Height = 418
   Caption = 'UDP Demo'
   Color = clBtnFace
