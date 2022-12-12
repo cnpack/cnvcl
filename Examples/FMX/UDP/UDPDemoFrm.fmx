@@ -108,6 +108,8 @@ object Form1: TForm1
       Touch.InteractiveGestures = [LongTap, DoubleTap]
       TabOrder = 1
       Cursor = crIBeam
+      Max = 65535.000000000000000000
+      Value = 14570.000000000000000000
       Position.X = 56.000000000000000000
       Position.Y = 49.000000000000000000
       Size.Width = 121.000000000000000000
@@ -169,10 +171,11 @@ object Form1: TForm1
       Text = 'Bind Port:'
     end
     object lblStatus: TLabel
+      AutoSize = True
       Position.X = 186.000000000000000000
       Position.Y = 21.000000000000000000
-      Size.Width = 40.000000000000000000
-      Size.Height = 13.000000000000000000
+      Size.Width = 175.000000000000000000
+      Size.Height = 18.000000000000000000
       Size.PlatformDefault = False
       Text = 'lblStatus'
     end
@@ -193,6 +196,8 @@ object Form1: TForm1
       Touch.InteractiveGestures = [LongTap, DoubleTap]
       TabOrder = 0
       Cursor = crIBeam
+      Max = 65535.000000000000000000
+      Value = 14570.000000000000000000
       Position.X = 56.000000000000000000
       Position.Y = 17.000000000000000000
       Size.Width = 121.000000000000000000
