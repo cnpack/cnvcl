@@ -71,7 +71,7 @@ function SHA1Buffer(const Buffer; Count: Cardinal): TSHA1Digest;
 {* 对数据块进行 SHA1 计算
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
-   Count: LongWord  - 数据块长度
+   Count: Cardinal  - 数据块长度
  |</PRE>}
 
 function SHA1Bytes(Data: TBytes): TSHA1Digest;
@@ -160,34 +160,34 @@ const
   HMAC_SHA1_BLOCK_SIZE_BYTE = 64;
   HMAC_SHA1_OUTPUT_LENGTH_BYTE = 20;
 
-function LRot16(X: Word; c: Integer): Word;
+function LRot16(X: Word; C: Integer): Word;
 begin
-  Result := X shl (c and 15) + X shr (16 - c and 15);
-//        mov     ecx, &c
+  Result := X shl (C and 15) + X shr (16 - C and 15);
+//        mov     ecx, &C
 //        mov     ax, &X
 //        rol     ax, cl
 //        mov     &Result, ax
 end;
 
-function RRot16(X: Word; c: Integer): Word;
+function RRot16(X: Word; C: Integer): Word;
 begin
-  Result := X shr (c and 15) + X shl (16 - c and 15);
-//        mov     ecx, &c
+  Result := X shr (C and 15) + X shl (16 - C and 15);
+//        mov     ecx, &C
 //        mov     ax, &X
 //        ror     ax, cl
 //        mov     &Result, ax
 end;
 
-function LRot32(X: Cardinal; c: Integer): Cardinal;
+function LRot32(X: Cardinal; C: Integer): Cardinal;
 begin
-  Result := X shl (c and 31) + X shr (32 - c and 31);
+  Result := X shl (C and 31) + X shr (32 - C and 31);
 //        mov     ecx, edx
 //        rol     eax, cl
 end;
 
-function RRot32(X: Cardinal; c: Integer): Cardinal;
+function RRot32(X: Cardinal; C: Integer): Cardinal;
 begin
-  Result := X shr (c and 31) + X shl (32 - c and 31);
+  Result := X shr (C and 31) + X shl (32 - C and 31);
 //        mov     ecx, edx
 //        ror     eax, cl
 end;
@@ -231,48 +231,48 @@ procedure SHA1Compress(var Data: TSHA1Context);
 var
   A, B, C, D, E, T: Cardinal;
   W: array[0..79] of Cardinal;
-  i: Integer;
+  I: Integer;
 begin
   Move(Data.Buffer, W, Sizeof(Data.Buffer));
-  for i := 0 to 15 do
-    W[i] := RB(W[i]);
-  for i := 16 to 79 do
-    W[i] := LRot32(W[i - 3] xor W[i - 8] xor W[i - 14] xor W[i - 16], 1);
+  for I := 0 to 15 do
+    W[I] := RB(W[I]);
+  for I := 16 to 79 do
+    W[I] := LRot32(W[I - 3] xor W[I - 8] xor W[I - 14] xor W[I - 16], 1);
   A := Data.Hash[0];
   B := Data.Hash[1];
   C := Data.Hash[2];
   D := Data.Hash[3];
   E := Data.Hash[4];
-  for i := 0 to 19 do
+  for I := 0 to 19 do
   begin
-    T := LRot32(A, 5) + F1(B, C, D) + E + W[i] + $5A827999;
+    T := LRot32(A, 5) + F1(B, C, D) + E + W[I] + $5A827999;
     E := D;
     D := C;
     C := LRot32(B, 30);
     B := A;
     A := T;
   end;
-  for i := 20 to 39 do
+  for I := 20 to 39 do
   begin
-    T := LRot32(A, 5) + F2(B, C, D) + E + W[i] + $6ED9EBA1;
+    T := LRot32(A, 5) + F2(B, C, D) + E + W[I] + $6ED9EBA1;
     E := D;
     D := C;
     C := LRot32(B, 30);
     B := A;
     A := T;
   end;
-  for i := 40 to 59 do
+  for I := 40 to 59 do
   begin
-    T := LRot32(A, 5) + F3(B, C, D) + E + W[i] + $8F1BBCDC;
+    T := LRot32(A, 5) + F3(B, C, D) + E + W[I] + $8F1BBCDC;
     E := D;
     D := C;
     C := LRot32(B, 30);
     B := A;
     A := T;
   end;
-  for i := 60 to 79 do
+  for I := 60 to 79 do
   begin
-    T := LRot32(A, 5) + F2(B, C, D) + E + W[i] + $CA62C1D6;
+    T := LRot32(A, 5) + F2(B, C, D) + E + W[I] + $CA62C1D6;
     E := D;
     D := C;
     C := LRot32(B, 30);
@@ -303,13 +303,14 @@ end;
 
 procedure SHA1UpdateLen(var Context: TSHA1Context; Len: Integer);
 var
-  i, k: Cardinal;
+  I: Cardinal;
+  K: Integer;
 begin
-  for k := 0 to 7 do
+  for K := 0 to 7 do
   begin
-    i := Context.Lo;
+    I := Context.Lo;
     Inc(Context.Lo, Len);
-    if Context.Lo < i then
+    if Context.Lo < I then
       Inc(Context.Hi);
   end;
 end;
