@@ -5,7 +5,7 @@ interface
 uses
   {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
   FMX.StdCtrls, FMX.SpinBox, CnUDP, FMX.Edit, FMX.Memo, FMX.Types, FMX.EditBox,
-  FMX.ScrollBox, FMX.Controls.Presentation;
+  FMX.ScrollBox, FMX.Controls.Presentation, FMX.Memo.Types;
 
 type
   TForm1 = class(TForm)
@@ -64,6 +64,8 @@ procedure TForm1.FormCreate(Sender: TObject);
 begin
   CnUDP1 := TCnUDP.Create(Self);
   CnUDP1.OnDataReceived := CnUDP1DataReceived;
+  CnUDP1.LocalPort := 5353;
+  CnUDP1.UpdateBinding;
 end;
 
 procedure TForm1.FormShow(Sender: TObject);

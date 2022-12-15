@@ -237,7 +237,7 @@ begin
   begin
     SockAddress.sin_family := AF_INET;
     if FLocalIP <> '' then
-      SockAddress.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(FLocalIP)))
+      SockAddress.sin_addr.S_addr := inet_addr(PAnsiChar(AnsiString(FLocalIP)))
     else
       SockAddress.sin_addr.S_addr := INADDR_ANY;
 

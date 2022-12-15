@@ -24,11 +24,14 @@ unit CnUDP;
 * 软件名称：网络通讯组件包
 * 单元名称：UDP 通讯单元
 * 单元作者：周劲羽 (zjy@cnpack.org)
-* 备    注：定义了 TCnUDP，使用非阻塞方式进行 UDP 通讯，支持广播
+* 备    注：定义了 TCnUDP，在 Windows下使用非阻塞方式进行 UDP 通讯，支持广播
+*           MACOS 下用线程阻塞方式
 * 开发平台：PWin2000Pro + Delphi 5.01
-* 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
+* 兼容测试：PWin9X/2000/XP/10+ Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2008.11.28 V1.1
+* 修改记录：2022.12.15 V1.2
+*                支持 MACOS，使用阻塞式线程
+*           2008.11.28 V1.1
 *                加入一控制接收缓冲区大小的属性
 *           2003.11.21 V1.0
 *                创建单元
@@ -87,6 +90,7 @@ type
     EventHandle: THandle;
 {$ELSE}
     FThread: TThread;
+    FLock: TObject;
 {$ENDIF}
     Wait_Flag: Boolean;
     FProcing: Boolean;
@@ -94,7 +98,7 @@ type
     FOnDataReceived: TCnOnDataReceived;
     FListening: Boolean;
     FThisSocket: TSocket;
-    Queue: TQueue;
+    FQueue: TQueue;
     FLastError: Integer;
     FRecvBufSize: Cardinal;
     FRecvBuf: Pointer;
@@ -104,8 +108,8 @@ type
 {$IFDEF MSWINDOWS}
     procedure WndProc(var Message: TMessage);
     procedure ProcessIncomingdata;
-    procedure ProcessQueue;
 {$ENDIF}
+    procedure ProcessQueue;
     function ResolveRemoteHost(ARemoteHost: string): Boolean;
     procedure SetLocalPort(NewLocalPort: Integer);
 
@@ -179,7 +183,7 @@ type
     {* UDP 接收的数据缓冲区大小}
     property OnDataReceived: TCnOnDataReceived read FOnDataReceived write
       FOnDataReceived;
-    {* 接收到 UDP 数据包事件}
+    {* 接收到 UDP 数据包事件。Windows 平台在主线程中执行，其余平台在线程中执行}
   end;
 
 {$IFNDEF MSWINDOWS}
@@ -188,6 +192,7 @@ type
   private
     FUDP: TCnUDP;
   protected
+    procedure ProcessData;
     procedure Execute; override;
   public
     property UDP: TCnUDP read FUDP write FUDP;
@@ -347,7 +352,7 @@ const
 {$IFDEF MSWINDOWS}
   WM_ASYNCHRONOUSPROCESS = WM_USER + 101;
 {$ENDIF}
-  Const_cmd_true = 'TRUE';
+  CONST_CMD_TRUE: AnsiString = 'TRUE';
 
 type
   PRecvDataRec = ^TRecvDataRec;
@@ -361,20 +366,22 @@ type
 constructor TCnUDP.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  Queue := TQueue.Create;
+  FQueue := TQueue.Create;
   FListening := False;
   FProcing := False;
   FRecvBufSize := csDefRecvBuffSize;
   FUDPSendBufSize := csDefUDPSendBuffSize;
   FUDPRecvBufSize := csDefUDPRecvBuffSize;
-  FBindAddr := '0.0.0.0';
 
 {$IFDEF MSWINDOWS}
   GetMem(RemoteHostS, MAXGETHOSTSTRUCT);
   FSocketWindow := AllocateHWND(WndProc);
   EventHandle := CreateEvent(nil, True, False, '');
+{$ELSE}
+  FLock := TObject.Create;
 {$ENDIF}
 
+  FBindAddr := '0.0.0.0';
   if SockStartup then
   begin
     FThisSocket := CnNewSocket(AF_INET, SOCK_DGRAM, 0);
@@ -384,8 +391,9 @@ begin
       SockCleanup;
       Exit;
     end;
-    setsockopt(FThisSocket, SOL_SOCKET, SO_DONTLINGER, Const_cmd_true, 4);
-    setsockopt(FThisSocket, SOL_SOCKET, SO_BROADCAST, Const_cmd_true, 4);
+
+    CnSetSockOpt(FThisSocket, SOL_SOCKET, SO_DONTLINGER, PAnsiChar(CONST_CMD_TRUE), 4);
+    CnSetSockOpt(FThisSocket, SOL_SOCKET, SO_BROADCAST, PAnsiChar(CONST_CMD_TRUE), 4);
     FListening := True;
   end;
 end;
@@ -403,12 +411,14 @@ begin
   end;
 
   ClearQueue;
-  Queue.Free;
+  FQueue.Free;
 
 {$IFDEF MSWINDOWS}
   FreeMem(RemoteHostS, MAXGETHOSTSTRUCT);
   DeallocateHWND(FSocketWindow);
   CloseHandle(EventHandle);
+{$ELSE}
+  FLock.Free;
 {$ENDIF}
 
   if FThisSocket <> 0 then
@@ -449,6 +459,8 @@ begin
         SetupLastError;
         Exit;
       end;
+      CnSetSockOpt(FThisSocket, SOL_SOCKET, SO_DONTLINGER, PAnsiChar(CONST_CMD_TRUE), 4);
+      CnSetSockOpt(FThisSocket, SOL_SOCKET, SO_BROADCAST, PAnsiChar(CONST_CMD_TRUE), 4);
     end;
 
     FillChar(Address, SizeOf(Address), 0);
@@ -598,8 +610,7 @@ var
       FRemoteAddress.sin_port := htons(FRemotePort);
       I := SizeOf(FRemoteAddress);
 
-      if CnSendTo(FThisSocket, Buff^, Length, 0, FRemoteAddress, I)
-        <> SOCKET_ERROR then
+      if CnSendTo(FThisSocket, Buff^, Length, 0, FRemoteAddress, I) <> SOCKET_ERROR then
         Result := True
       else
         SetupLastError;
@@ -628,7 +639,7 @@ end;
 
 function TCnUDP.GetQueueCount: Integer;
 begin
-  Result := Queue.Count;
+  Result := FQueue.Count;
 end;
 
 procedure TCnUDP.FreeQueueItem(P: Pointer);
@@ -637,7 +648,7 @@ var
 begin
   Rec := PRecvDataRec(P);
   Rec.FromIP := '';
-  FreeMem(Rec.Buff);
+  FreeMem(Rec^.Buff);
   FreeMem(Rec);
 end;
 
@@ -645,14 +656,12 @@ procedure TCnUDP.ClearQueue;
 var
   Rec: PRecvDataRec;
 begin
-  while Queue.Count > 0 do
+  while FQueue.Count > 0 do
   begin
-    Rec := Queue.Pop;
+    Rec := FQueue.Pop;
     FreeQueueItem(Rec);
   end;
 end;
-
-{$IFDEF MSWINDOWS}
 
 procedure TCnUDP.ProcessQueue;
 var
@@ -661,16 +670,24 @@ begin
   if FProcing then Exit;
   FProcing := True;
   try
-    while Queue.Count > 0 do
+{$IFNDEF MSWINDOWS}
+    TMonitor.Enter(FLock);
+{$ENDIF}
+    while FQueue.Count > 0 do
     begin
-      Rec := Queue.Pop;
-      DoDataReceived(Rec.Buff, Rec.BuffSize, string(Rec.FromIP), Rec.FromPort);
+      Rec := FQueue.Pop;
+      DoDataReceived(Rec^.Buff, Rec^.BuffSize, string(Rec^.FromIP), Rec^.FromPort);
       FreeQueueItem(Rec);
     end;
   finally
+{$IFNDEF MSWINDOWS}
+    TMonitor.Exit(FLock);
+{$ENDIF}
     FProcing := False;
   end;
 end;
+
+{$IFDEF MSWINDOWS}
 
 function TCnUDP.ProcessRecv: Boolean;
 var
@@ -754,7 +771,7 @@ begin
     Rec.BuffSize := IBuffSize;
     Move(FRecvBuf^, Rec.Buff^, IBuffSize);
 
-    Queue.Push(Rec);
+    FQueue.Push(Rec);
   end;
 end;
 
@@ -794,6 +811,9 @@ end;
 
 procedure TCnUDP.StopThread;
 begin
+  if FThread = nil then
+    Exit;
+
   FThread.Terminate;
   try
     FThread.WaitFor;
@@ -923,7 +943,7 @@ procedure TCnUDPReadThread.Execute;
 var
   Res, I, FromPort: Integer;
   From: TSockAddr;
-  FromIP: string;
+  Rec: PRecvDataRec;
 begin
   if (UDP = nil) or (UDP.FRecvBuf = nil) then
     Exit;
@@ -931,24 +951,43 @@ begin
   I := SizeOf(From);
   while not Terminated do
   begin
-    Res := CnRecvFrom(UDP.FThisSocket, UDP.FRecvBuf, UDP.FRecvBufSize, 0, From, I);
+    Res := CnRecvFrom(UDP.FThisSocket, UDP.FRecvBuf^, UDP.FRecvBufSize, 0, From, I);
 
     if Res <> SOCKET_ERROR then
     begin
       if Res = 0 then
         Continue;
 
-{$IFDEF MSWINDOWS}
-      FromIP := Format('%d.%d.%d.%d', [Ord(From.sin_addr.S_un_b.S_b1),
-        Ord(From.sin_addr.S_un_b.S_b2), Ord(From.sin_addr.S_un_b.S_b3),
-        Ord(From.sin_addr.S_un_b.S_b4)]);
-{$ELSE}
-      FromIP := TIPAddress.Create(From.sin_addr.s_addr).Address;
+      GetMem(Rec, SizeOf(TRecvDataRec));
+      FillChar(Rec^, SizeOf(TRecvDataRec), 0);
+
+      GetMem(Rec^.Buff, Res);
+      Rec^.FromIP := TIPAddress.Create(From.sin_addr).Address;
+      Rec^.FromPort := ntohs(From.sin_port);
+      Rec^.BuffSize := Res;
+      Move(UDP.FRecvBuf^, Rec^.Buff^, Res);
+
+{$IFNDEF MSWINDOWS}
+      TMonitor.Enter(UDP.FLock);
+{$ENDIF}
+      UDP.FQueue.Push(Rec);
+{$IFNDEF MSWINDOWS}
+      TMonitor.Exit(UDP.FLock);
 {$ENDIF}
 
-      FromPort := ntohs(From.sin_port);
-      UDP.DoDataReceived(UDP.FRecvBuf, Res, FromIP, FromPort);
+      Synchronize(ProcessData);
     end;
+  end;
+end;
+
+procedure TCnUDPReadThread.ProcessData;
+begin
+  if not UDP.FProcing then
+    UDP.ProcessQueue
+  else if UDP.FQueue.Count > 0 then
+  begin
+    Sleep(0);
+    Synchronize(ProcessData);
   end;
 end;
 
