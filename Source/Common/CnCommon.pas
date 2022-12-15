@@ -1364,6 +1364,12 @@ function ExtractPEDataDirectory(const FileName: string; DirectoryIndex: Integer;
 
 {$ENDIF}
 
+function LoadRawFileToBytes(const FileName: string): TBytes;
+{* 从文件中载入字节数组，不进行编码转换}
+
+procedure SaveRawFileFromBytes(B: TBytes; const FileName: string);
+{* 将字节数组写入文件，不进行编码转换}
+
 implementation
 
 uses
@@ -8513,6 +8519,44 @@ begin
     end;
   end;
 end;
+
+{$ENDIF}
+
+// 从文件中载入字节数组，不进行编码转换
+function LoadRawFileToBytes(const FileName: string): TBytes;
+var
+  F: TFileStream;
+begin
+  Result := nil;
+  if not FileExists(FileName) then
+    Exit;
+
+  F := TFileStream.Create(FileName, fmOpenRead);
+  try
+    SetLength(Result, F.Size);
+    F.Read(Result[0], F.Size);
+  finally
+    F.Free;
+  end;
+end;
+
+// 将字节数组写入文件，不进行编码转换
+procedure SaveRawFileFromBytes(B: TBytes; const FileName: string);
+var
+  F: TFileStream;
+begin
+  if B = nil then
+    Exit;
+
+  F := TFileStream.Create(FileName, fmCreate);
+  try
+    F.Write(B[0], Length(B));
+  finally
+    F.Free;
+  end;
+end;
+
+{$IFDEF MSWINDOWS}
 
 initialization
   WndLong := GetWindowLong(Application.Handle, GWL_EXSTYLE);
