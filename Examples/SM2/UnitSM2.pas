@@ -133,6 +133,7 @@ type
     chkEncDecTBytes: TCheckBox;
     chkSignTBytes: TCheckBox;
     btnCalcPubFromPriv: TButton;
+    chkSignBase64: TCheckBox;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -562,7 +563,10 @@ begin
 
     if CnSM2SignData(edtSM2UserId.Text, B, SignRes, PrivateKey, PublicKey, SM2) then
     begin
-      mmoSignResult.Lines.Text := SignRes.ToHex;
+      if chkSignBase64.Checked then
+        mmoSignResult.Lines.Text := SignRes.ToBase64(SM2.BytesCount)
+      else
+        mmoSignResult.Lines.Text := SignRes.ToHex(SM2.BytesCount);
     end
     else
       ShowMessage('Sign File Failed.');
@@ -572,7 +576,10 @@ begin
     if CnSM2SignData(edtSM2UserId.Text, FileStream.Memory, FileStream.Size, SignRes,
       PrivateKey, PublicKey, SM2) then
     begin
-      mmoSignResult.Lines.Text := SignRes.ToHex;
+      if chkSignBase64.Checked then
+        mmoSignResult.Lines.Text := SignRes.ToBase64(SM2.BytesCount)
+      else
+        mmoSignResult.Lines.Text := SignRes.ToHex(SM2.BytesCount);
     end
     else
       ShowMessage('Sign File Failed.');
@@ -606,6 +613,12 @@ begin
       ShowMessage('SM2 Private Key Base64 Invalid.');
       Result := False;
       Exit;
+    end;
+
+    if (Length(B) = 33) and (B[0] = 0) then
+    begin
+      Move(B[1], B[0], 32);
+      SetLength(B, 32);
     end;
 
     if Length(B) <> 32 then
@@ -1876,7 +1889,7 @@ begin
   PublicKey.Assign(SM2.Generator);
   SM2.MultiplePoint(PrivateKey, PublicKey);
 
-  edtSM2PublicKey.Text := PublicKey.ToHex;
+  edtSM2PublicKey.Text := PublicKey.ToHex(SM2.BytesCount);
   PublicKey.Free;
   PrivateKey.Free;
   SM2.Free;

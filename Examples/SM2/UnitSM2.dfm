@@ -328,6 +328,14 @@ object FormSM2: TFormSM2
           Caption = 'Using TBytes'
           TabOrder = 3
         end
+        object chkSignBase64: TCheckBox
+          Left = 680
+          Top = 232
+          Width = 97
+          Height = 17
+          Caption = 'Using Base64'
+          TabOrder = 12
+        end
       end
     end
     object tsKeyExchange: TTabSheet

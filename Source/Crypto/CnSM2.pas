@@ -39,7 +39,9 @@ unit CnSM2;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.11.01 V1.8
+* 修改记录：2022.12.15 V1.9
+*               修正签名时可能省略前导 0 导致签名计算错误的问题
+*           2022.11.01 V1.8
 *               签名时允许公钥传 nil，内部通过私钥计算出公钥进行签名
 *           2022.08.31 V1.7
 *               根据双方协同签名机制推理出三方协同签名机制并实现，并顺手实现三方协同解密
@@ -949,8 +951,8 @@ begin
     BigNumberWriteBinaryToStream(SM2.CoefficientB, Stream);
     BigNumberWriteBinaryToStream(SM2.Generator.X, Stream);
     BigNumberWriteBinaryToStream(SM2.Generator.Y, Stream);
-    BigNumberWriteBinaryToStream(PublicKey.X, Stream);
-    BigNumberWriteBinaryToStream(PublicKey.Y, Stream);
+    BigNumberWriteBinaryToStream(PublicKey.X, Stream, SM2.BytesCount);
+    BigNumberWriteBinaryToStream(PublicKey.Y, Stream, SM2.BytesCount);
 
     Result := SM3(PAnsiChar(Stream.Memory), Stream.Size);  // 算出 ZA
   finally
