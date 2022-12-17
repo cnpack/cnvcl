@@ -38,11 +38,11 @@ interface
 {$I CnPack.inc}
 
 uses
-  {$IFDEF MSWINDOWS} Windows, WinSock, {$ENDIF} SysUtils, Classes, Controls, StdCtrls,
+  {$IFDEF MSWINDOWS} Windows, WinSock, {$ELSE} Posix.ArpaInet, Posix.NetinetIn, {$ENDIF}
+  SysUtils, Classes, Controls, StdCtrls,
   CnClasses, CnConsts, CnNetConsts;
 
 type
-
   PCnIPOptionInformation = ^TCnIPOptionInformation;
   TCnIPOptionInformation = packed record
     TTL: Byte;              // Time To Live (used for traceroute)
@@ -54,12 +54,12 @@ type
 
   PCnIcmpEchoReply = ^TCnIcmpEchoReply;
   TCnIcmpEchoReply = packed record
-    Address: DWORD; // replying address
-    Status: DWORD;  // IP status value (see below)
-    RTT: DWORD;     // Round Trip Time in milliseconds
-    DataSize: Word; // reply data size
+    Address: Cardinal; // replying address
+    Status: Cardinal;  // IP status value (see below)
+    RTT: Cardinal;     // Round Trip Time in milliseconds
+    DataSize: Word;    // reply data size
     Reserved: Word;
-    Data: Pointer;  // pointer to reply data buffer
+    Data: Pointer;     // pointer to reply data buffer
     Options: TCnIPOptionInformation; // reply options
   end;
 
@@ -89,24 +89,26 @@ type
     FRemoteIP: string;
     FIPAddress: Int64;
     FTTL: Byte;
-    FTimeOut: DWORD;
+    FTimeOut: Cardinal;
     FPingCount: Integer;
     FDelay: Integer;
     FOnError: TOnPingError;
     FOnReceived: TOnPingReceive;
     FDataString: string;
+{$IFDEF MSWINDOWS}
     FWSAData: TWSAData;
+{$ENDIF}
     FIP: TCnIpInfo;
 
     procedure SetPingCount(const Value: Integer);
     procedure SetRemoteHost(const Value: string);
-    procedure SetTimeOut(const Value: DWORD);
+    procedure SetTimeOut(const Value: Cardinal);
     procedure SetTTL(const Value: Byte);
     procedure SetDataString(const Value: string);
     procedure SetRemoteIP(const Value: string);
     function PingIP_Host(const aIP: TCnIpInfo; const Data; Count: Cardinal;
       var aReply: string): Integer;
-    {* 以设定的数据 Data (无类型缓冲区) Ping一次并返回结果。Count表示数据长度 }
+    {* 以设定的数据 Data (无类型缓冲区) Ping 一次并返回结果。Count 表示数据长度 }
     function GetReplyString(aResult: Integer; aIP: TCnIpInfo;
       pIPE: PCnIcmpEchoReply): string;
     {* 返回结果字符串。}
@@ -122,14 +124,14 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function Ping(var aReply: string): Boolean;
-    {* 进行循环Ping,循环次数在PingCount属性中指定。}
+    {* 进行循环 Ping,循环次数在 PingCount 属性中指定。}
     function PingOnce(var aReply: string): Boolean; overload;
-    {* 以设定的数据Ping一次并返回结果。}
+    {* 以设定的数据 Ping 一次并返回结果。}
     function PingOnce(const aIP: string; var aReply: string): Boolean; overload;
-    {* 向指定IP进行一次Ping并返回结果。}
-    function PingFromBuffer(var Buffer; Count: Longint; var aReply: string):
+    {* 向指定 IP 进行一次 Ping 并返回结果。}
+    function PingFromBuffer(var Buffer; Count: Integer; var aReply: string):
       Boolean;
-    {* 以参数Buffer的数据Ping一次并读取返回结果。}
+    {* 以参数 Buffer 的数据 Ping 一次并读取返回结果。}
   published
     property RemoteIP: string read FRemoteIP write SetRemoteIP;
     {* 要Ping的目标主机地址，只支持ip}
@@ -141,14 +143,14 @@ type
     {* 相邻两次 Ping 间的时间间隔，单位毫秒，默认 0 也就是不延时}
     property TTL: Byte read FTTL write SetTTL;
     {* 设置的TTL值，Time to Live}
-    property TimeOut: DWORD read FTimeOut write SetTimeOut;
+    property TimeOut: Cardinal read FTimeOut write SetTimeOut;
     {* 设置的超时值}
     property DataString: string read GetDataString write SetDataString;
     {* 欲发送的数据，以字符串形式表示，默认为"CnPack Ping"。}
     property OnReceived: TOnPingReceive read FOnReceived write FOnReceived;
-    {* Ping一次成功时返回数据所触发的事件}
+    {* Ping 一次成功时返回数据所触发的事件}
     property OnError: TOnPingError read FOnError write FOnError;
-    {* Ping出错时返回的内容和信息。包括目的未知、不可达、超时等。}
+    {* Ping 出错时返回的内容和信息。包括目的未知、不可达、超时等。}
   end;
 
 implementation
@@ -160,6 +162,8 @@ uses
 
 const
   SCnPingData = 'CnPack Ping.';
+
+{$IFDEF MSWINDOWS}
   ICMPDLL = 'icmp.dll';
 
 type
@@ -205,6 +209,8 @@ begin
     FreeLibrary(IcmpDllHandle);
 end;
 
+{$ENDIF}
+
 //==============================================================================
 // Ping 通讯类
 //==============================================================================
@@ -214,8 +220,10 @@ end;
 constructor TCnPing.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+{$IFDEF MSWINDOWS}
   if IcmpDllHandle = 0 then
     InitIcmpFunctions;
+{$ENDIF}
 
   FRemoteIP := '127.0.0.1';
   FTTL := 64;
@@ -224,15 +232,19 @@ begin
   FTimeOut := 10;
   FDataString := SCnPingData;
 
-  FHICMP := IcmpCreateFile(); // 取得DLL句柄
+{$IFDEF MSWINDOWS}
+  FHICMP := IcmpCreateFile(); // 取得 DLL 句柄
   if FHICMP = INVALID_HANDLE_VALUE then
     raise Exception.Create(SICMPRunError);
+{$ENDIF}
 end;
 
 destructor TCnPing.Destroy;
 begin
+{$IFDEF MSWINDOWS}
   if FHICMP <> INVALID_HANDLE_VALUE then
     IcmpCloseHandle(FHICMP);
+{$ENDIF}
   inherited Destroy;
 end;
 
@@ -278,7 +290,7 @@ begin
   end;
 end;
 
-procedure TCnPing.SetTimeOut(const Value: DWORD);
+procedure TCnPing.SetTimeOut(const Value: Cardinal);
 begin
   FTimeOut := Value;
 end;
@@ -379,19 +391,21 @@ begin
     IPOpt.TTL := FTTL;
 
     try //Ping开始
+{$IFDEF MSWINDOWS}
       if WSAStartup(MAKEWORD(2, 0), FWSAData) <> 0 then
         raise Exception.Create(SInitFailed);
-      if IcmpSendEcho(FHICMP, //dll handle
-        aIP.Address, //target
-        pReqData, //data
-        Count, //data length
-        @IPOpt, //addree of ping option
+
+      if IcmpSendEcho(FHICMP, // dll handle
+        aIP.Address, // target
+        pReqData,    // data
+        Count,       // data length
+        @IPOpt,      // addree of ping option
         pCIER,
         SizeOf(TCnICMPEchoReply) + Count, //pack size
-        FTimeOut //timeout value
+        FTimeOut     // timeout value
         ) <> 0 then
       begin
-        Result := 0; // Ping正常返回
+        Result := 0; // Ping 正常返回
         if Assigned(FOnReceived) then
           FOnReceived(Self, aIP.IP, aIP.Host, IPOpt.TTL, IPOpt.TOS);
       end
@@ -401,6 +415,10 @@ begin
         if Assigned(FOnError) then
           FOnError(Self, aIP.IP, aIP.Host, IPOpt.TTL, IPOpt.TOS, SNoResponse);
       end;
+{$ELSE}
+      // TODO: POSIX sendto Ping and recvfrom
+      raise Exception.Create('NOT Implemented.');
+{$ENDIF}
     except
       on E: Exception do
       begin
@@ -410,7 +428,9 @@ begin
       end;
     end;
   finally
+{$IFDEF MSWINDOWS}
     WSACleanUP;
+{$ENDIF}
     aReply := GetReplyString(Result, aIP, pCIER);
     if pRevData <> nil then
     begin
@@ -466,7 +486,7 @@ begin
 
   GetMem(pIPAddr, Length(aIP.IP) + 1);
   try
-    ZeroMemory(pIPAddr, Length(aIP.IP) + 1);
+    FillChar(pIPAddr^, Length(aIP.IP) + 1, 0);
     StrPCopy(pIPAddr, {$IFDEF UNICODE}AnsiString{$ENDIF}(aIP.IP));
     aIP.Address := inet_addr(PAnsiChar(pIPAddr)); // IP转换成无点整型
   finally
@@ -475,9 +495,13 @@ begin
   Result := aIP.Address <> INADDR_NONE;
 end;
 
+{$IFDEF MSWINDOWS}
+
 initialization
 
 finalization
   FreeIcmpFunctions;
+
+{$ENDIF}
 
 end.

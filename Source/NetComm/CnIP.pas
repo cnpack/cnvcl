@@ -466,6 +466,7 @@ begin
   end;
 {$ELSE}
   // TODO: GetMAC
+  raise Exception.Create('NOT Implemented.');
 {$ENDIF}
 end;
 
@@ -595,15 +596,14 @@ begin
 {$ELSE}
   getifaddrs(Pif);
   OldPif := Pif;
-  iIP := 0;
   while Pif <> nil do // 先统计符合条件的数量
   begin
     if (Pif^.ifa_addr.sa_family = AF_INET) and ((Pif^.ifa_flags and IFF_LOOPBACK) = 0) then
-      Inc(iIP);
+      Inc(Result);
     Pif := Pif^.ifa_next;
   end;
-  SetLength(aLocalIP, iIP);
-  if iIP <= 0 then
+  SetLength(aLocalIP, Result);
+  if Result <= 0 then
     Exit;
 
   Pif := OldPif;
