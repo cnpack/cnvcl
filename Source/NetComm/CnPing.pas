@@ -38,41 +38,41 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, Controls, Winsock, StdCtrls, //Sockets,
+  {$IFDEF MSWINDOWS} Windows, WinSock, {$ENDIF} SysUtils, Classes, Controls, StdCtrls,
   CnClasses, CnConsts, CnNetConsts;
 
 type
 
   PCnIPOptionInformation = ^TCnIPOptionInformation;
   TCnIPOptionInformation = packed record
-    TTL: Byte; // Time To Live (used for traceroute)
-    TOS: Byte; // Type Of Service (usually 0)
-    Flags: Byte; // IP header flags (usually 0)
-    OptionsSize: Byte; // Size of options data (usually 0, max 40)
+    TTL: Byte;              // Time To Live (used for traceroute)
+    TOS: Byte;              // Type Of Service (usually 0)
+    Flags: Byte;            // IP header flags (usually 0)
+    OptionsSize: Byte;      // Size of options data (usually 0, max 40)
     OptionsData: PAnsiChar; // Options data buffer
   end;
 
   PCnIcmpEchoReply = ^TCnIcmpEchoReply;
   TCnIcmpEchoReply = packed record
     Address: DWORD; // replying address
-    Status: DWORD; // IP status value (see below)
-    RTT: DWORD; // Round Trip Time in milliseconds
+    Status: DWORD;  // IP status value (see below)
+    RTT: DWORD;     // Round Trip Time in milliseconds
     DataSize: Word; // reply data size
     Reserved: Word;
-    Data: Pointer; // pointer to reply data buffer
+    Data: Pointer;  // pointer to reply data buffer
     Options: TCnIPOptionInformation; // reply options
   end;
 
-  TIpInfo = record
+  TCnIpInfo = record
     Address: Int64;
     IP: string;
     Host: string;
   end;
 
-  TOnReceive = procedure(Sender: TComponent; IPAddr, HostName: string;
+  TOnPingReceive = procedure(Sender: TComponent; IpAddr, HostName: string;
     TTL, TOS: Byte) of object;
 
-  TOnError = procedure(Sender: TComponent; IPAddr, HostName: string;
+  TOnPingError = procedure(Sender: TComponent; IpAddr, HostName: string;
     TTL, TOS: Byte; ErrorMsg: string) of object;
 
 //==============================================================================
@@ -89,32 +89,32 @@ type
     FRemoteIP: string;
     FIPAddress: Int64;
     FTTL: Byte;
-    FTimeOut: DWord;
+    FTimeOut: DWORD;
     FPingCount: Integer;
     FDelay: Integer;
-    FOnError: TOnError;
-    FOnReceived: TOnReceive;
+    FOnError: TOnPingError;
+    FOnReceived: TOnPingReceive;
     FDataString: string;
     FWSAData: TWSAData;
-    FIP: TIpInfo;
+    FIP: TCnIpInfo;
 
     procedure SetPingCount(const Value: Integer);
     procedure SetRemoteHost(const Value: string);
-    procedure SetTimeOut(const Value: DWord);
+    procedure SetTimeOut(const Value: DWORD);
     procedure SetTTL(const Value: Byte);
     procedure SetDataString(const Value: string);
     procedure SetRemoteIP(const Value: string);
-    function PingIP_Host(const aIP: TIpInfo; const Data; Count: Cardinal;
+    function PingIP_Host(const aIP: TCnIpInfo; const Data; Count: Cardinal;
       var aReply: string): Integer;
-    {* 以设定的数据Data(无类型缓冲区)Ping一次并返回结果。Count表示数据长度 }
-    function GetReplyString(aResult: Integer; aIP: TIpInfo;
+    {* 以设定的数据 Data (无类型缓冲区) Ping一次并返回结果。Count表示数据长度 }
+    function GetReplyString(aResult: Integer; aIP: TCnIpInfo;
       pIPE: PCnIcmpEchoReply): string;
     {* 返回结果字符串。}
     function GetDataString: string;
     function GetIPByName(const aName: string; var aIP: string): Boolean;
-    {* 通过机器名称获取IP地址}
-    function SetIP(aIPAddr, aHost: string; var aIP: TIpInfo): Boolean;
-    {* 通过机器名称或IP地址填充完整IP信息}
+    {* 通过机器名称获取 IP 地址}
+    function SetIP(aIPAddr, aHost: string; var aIP: TCnIpInfo): Boolean;
+    {* 通过机器名称或 IP 地址填充完整 IP 信息}
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string);
       override;
@@ -141,19 +141,22 @@ type
     {* 相邻两次 Ping 间的时间间隔，单位毫秒，默认 0 也就是不延时}
     property TTL: Byte read FTTL write SetTTL;
     {* 设置的TTL值，Time to Live}
-    property TimeOut: DWord read FTimeOut write SetTimeOut;
+    property TimeOut: DWORD read FTimeOut write SetTimeOut;
     {* 设置的超时值}
     property DataString: string read GetDataString write SetDataString;
     {* 欲发送的数据，以字符串形式表示，默认为"CnPack Ping"。}
-    property OnReceived: TOnReceive read FOnReceived write FOnReceived;
+    property OnReceived: TOnPingReceive read FOnReceived write FOnReceived;
     {* Ping一次成功时返回数据所触发的事件}
-    property OnError: TOnError read FOnError write FOnError;
+    property OnError: TOnPingError read FOnError write FOnError;
     {* Ping出错时返回的内容和信息。包括目的未知、不可达、超时等。}
   end;
 
 implementation
 
 {$R-}
+
+uses
+  CnIP;
 
 const
   SCnPingData = 'CnPack Ping.';
@@ -175,8 +178,8 @@ type
                             RequestSize: Word;
                             RequestOptions: PCnIPOptionInformation;
                             ReplyBuffer: Pointer;
-                            ReplySize: DWord;
-                            TimeOut: DWord): DWord; stdcall;
+                            ReplySize: DWORD;
+                            TimeOut: DWORD): DWORD; stdcall;
 
 var
   IcmpCreateFile: TIcmpCreateFile = nil;
@@ -193,7 +196,7 @@ begin
     @IcmpCreateFile := GetProcAddress(IcmpDllHandle, 'IcmpCreateFile');
     @IcmpCloseHandle := GetProcAddress(IcmpDllHandle, 'IcmpCloseHandle');
     @IcmpSendEcho := GetProcAddress(IcmpDllHandle, 'IcmpSendEcho');
-  end;  
+  end;
 end;
 
 procedure FreeIcmpFunctions;
@@ -275,7 +278,7 @@ begin
   end;
 end;
 
-procedure TCnPing.SetTimeOut(const Value: DWord);
+procedure TCnPing.SetTimeOut(const Value: DWORD);
 begin
   FTimeOut := Value;
 end;
@@ -343,7 +346,7 @@ begin
   Result := PingIP_Host(FIP, Buffer, Count, aReply) >= 0;
 end;
 
-function TCnPing.PingIP_Host(const aIP: TIpInfo; const Data;
+function TCnPing.PingIP_Host(const aIP: TCnIpInfo; const Data;
   Count: Cardinal; var aReply: string): Integer;
 var
   IPOpt: TCnIPOptionInformation; // 发送数据结构
@@ -352,7 +355,7 @@ var
 begin
   Result := -100;
   pReqData := nil;
-  
+
   if Count <= 0 then
   begin
     aReply := GetReplyString(Result, aIP, nil);
@@ -416,11 +419,11 @@ begin
     end;
     if pReqData <> nil then
       FreeMem(pReqData); //释放内存
-    FreeMem(pCIER); //释放内存
+    FreeMem(pCIER);      //释放内存
   end;
 end;
 
-function TCnPing.GetReplyString(aResult: Integer; aIP: TIpInfo;
+function TCnPing.GetReplyString(aResult: Integer; aIP: TCnIpInfo;
   pIPE: PCnIcmpEchoReply): string;
 var
   sHost: string;
@@ -442,31 +445,12 @@ begin
   end;
 end;
 
-function TCnPing.GetIPByName(const aName: string;
-  var aIP: string): Boolean;
-var
-  pHost: PHostEnt;
-  FWSAData: TWSAData;
-  sName: array[0..255] of AnsiChar;
+function TCnPing.GetIPByName(const aName: string; var aIP: string): Boolean;
 begin
-  Result := False;
-  StrPCopy(sName, {$IFDEF UNICODE}AnsiString{$ENDIF}(aName));
-  aIP := '';
-  if aName = '' then
-    Exit;
-
-  WSAStartup($101, FWSAData);
-  try
-    pHost := GetHostByName(@sName);
-    Result := pHost <> nil;
-    if Result then
-      aIP := {$IFDEF UNICODE}String{$ENDIF}(inet_ntoa(PInAddr(pHost^.h_addr_list^)^));
-  finally
-    WSACleanup;
-  end;
+  Result := TCnIp.GetIPByName(aIP, aName);
 end;
 
-function TCnPing.SetIP(aIPAddr, aHost: string; var aIP: TIpInfo): Boolean;
+function TCnPing.SetIP(aIPAddr, aHost: string; var aIP: TCnIpInfo): Boolean;
 var
   pIPAddr: PAnsiChar;
 begin
