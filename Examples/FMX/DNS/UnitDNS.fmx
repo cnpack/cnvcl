@@ -1,0 +1,105 @@
+object FormDNS: TFormDNS
+  Left = 192
+  Top = 130
+  Caption = 'DNS'
+  ClientHeight = 480
+  ClientWidth = 588
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  Left = 192
+  Top = 130
+  DesignerMasterStyle = 0
+  object lblNameServer: TLabel
+    Position.X = 24.000000000000000000
+    Position.Y = 32.000000000000000000
+    Size.Width = 60.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'DNS Server:'
+  end
+  object lblHostName: TLabel
+    Position.X = 24.000000000000000000
+    Position.Y = 72.000000000000000000
+    Size.Width = 53.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'HostName:'
+  end
+  object edtDNSServer: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 0
+    Text = '8.8.8.8'
+    Position.X = 104.000000000000000000
+    Position.Y = 32.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object edtHostName: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 1
+    Text = 'www.cnpack.org'
+    Position.X = 104.000000000000000000
+    Position.Y = 72.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnQuery: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 72.000000000000000000
+    Size.Width = 113.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = 'Query using CnUDP'
+    OnClick = btnQueryClick
+  end
+  object mmoResponse: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    TextSettings.WordWrap = True
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    Position.X = 24.000000000000000000
+    Position.Y = 128.000000000000000000
+    Size.Width = 505.000000000000000000
+    Size.Height = 289.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Viewport.Width = 501.000000000000000000
+    Viewport.Height = 285.000000000000000000
+  end
+  object btnTestParseString: TButton
+    Position.X = 440.000000000000000000
+    Position.Y = 72.000000000000000000
+    Size.Width = 91.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Text = 'Parse String Test'
+    OnClick = btnTestParseStringClick
+  end
+  object btnDNS: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 32.000000000000000000
+    Size.Width = 113.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Text = 'Query Using CnDNS'
+    OnClick = btnDNSClick
+  end
+  object btnDNSDesign: TButton
+    Position.X = 440.000000000000000000
+    Position.Y = 32.000000000000000000
+    Size.Width = 89.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 6
+    Text = 'Query Design'
+    OnClick = btnDNSDesignClick
+  end
+end
