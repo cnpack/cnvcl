@@ -24,15 +24,17 @@ unit CnIP;
 * 软件名称：网络通讯组件包
 * 单元名称：IP 基础函数实现单元
 * 单元作者：胡昌洪 Sesame (sesamehch@163.com)
-* 备    注：
-*           收集整理了网络使用 IP 时常见的实现函数,增加 IP 地址计算功能
+* 备    注：支持 Windows 与 POSIX
+*           收集整理了网络使用 IP 时常见的实现函数，增加 IP 地址计算功能
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2019.03.03 V1.3
+* 修改记录：2022.12.17 V1.4
+*                增加对 MacOS 的支持，部分功能不可用
+*           2019.03.03 V1.3
 *                将部分函数改为 class 以外部也可调用
 *           2011.05.15 V1.2
-*                修正将127.0.0.1作为默认地址的问题
+*                修正将 127.0.0.1 作为默认地址的问题
 *           2009.08.14 V1.1
 *                增加对 D2009 的支持
 *           2008.04.14 V1.0
@@ -45,8 +47,10 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, Controls, Winsock, StdCtrls, //Sockets,
-  CnClasses, CnConsts, CnNetConsts;
+  {$IFDEF MSWINDOWS} Windows, Winsock, {$ELSE}
+  System.Net.Socket, Posix.NetinetIn, Posix.NetDB, Posix.ArpaInet, Posix.SysSocket, {$ENDIF}
+  SysUtils, Classes, Controls, StdCtrls,
+  CnClasses, CnConsts, CnNetConsts, CnSocket;
 
 const
   MAXIPNOTE = 255;
@@ -67,7 +71,7 @@ const
 
 type
   TIPNotes = array[1..4] of Byte;
-  {* IP地址的各子节点,如192.168.20.102,其中Note[1]=192 ... Note[4]=102}
+  {* IP 地址的各子节点,如 192.168.20.102，其中 Note[1]=192 ... Note[4]=102}
 
   TIP_NetType = (iptNone, iptANet, iptBNet, iptCNet, iptDNet, iptENet,
     iptBroadCast, iptKeepAddr);
@@ -85,7 +89,9 @@ type
     Loopback: Boolean;                   // 是否环回地址
     SupportBroadcast: Boolean;           // 是否支持广播
   end;
-  TIPGroup = array of TIP_Info; //IP地址组
+  TIPGroup = array of TIP_Info;          // IP地址组
+
+{$IFDEF MSWINDOWS}
 
   sockaddr_gen = packed record
     AddressIn: sockaddr_in;
@@ -93,11 +99,13 @@ type
   end;
 
   TINTERFACE_INFO = packed record
-    iiFlags: u_long; // Interface flags
+    iiFlags:  u_long; // Interface flags
     iiAddress: sockaddr_gen; // Interface address
     iiBroadcastAddress: sockaddr_gen; // Broadcast address
     iiNetmask: sockaddr_gen; // Network mask
   end;
+
+{$ENDIF}
 
   { TCnIp }
 
@@ -106,8 +114,9 @@ type
     FIP: TIP_Info;
     FLocalIPs: TIPGroup;
     FNotes: TIPNotes;
+{$IFDEF MSWINDOWS}
     FWSAData: TWSAData;
-
+{$ENDIF}
     function GetIPAddress: string;
     procedure SetIPAddress(const Value: string);
     function GetBroadCastIP: string;
@@ -127,6 +136,7 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
     property LocalIPGroup: TIPGroup read FLocalIPs;
     {* 本机 IP 地址相关信息，包含本机实际 IP 及 127.0.0.1}
     property LocalIPCount: Integer read GetLocalIPCount;
@@ -151,7 +161,7 @@ type
     {* 通过 IP 得到主机名称，aIpAddr='' 表示取本机 IP}
   published
     property IPAddress: string read GetIPAddress write SetIPAddress;
-    {* IP 地址字符串形式,默认为本机 IP 地址}
+    {* IP 地址字符串形式，默认为本机 IP 地址}
     property SubnetMask: string read GetSubnetMask write SetSubnetMask;
     {* IP 地址的子网掩码}
     property ComputerName: string read GetComputerName;
@@ -166,11 +176,13 @@ implementation
 
 {$R-}
 
+{$IFDEF MSWINDOWS}
+
 const
   WS2_32DLL = 'WS2_32.DLL';
 
 type
-  { 从Winsock 2.0导入函数WSAIOCtl -- 在Win98/ME/2K/Xp and 95 OSR2, NT srv pack #3下才有Winsock 2 }
+  { 从 Winsock 2.0 导入函数 WSAIOCtl -- 在 Win98/ME/2K/Xp and 95 OSR2, NT srv pack #3下才有 Winsock 2 }
   TWSAIoctl = function (s: TSocket; cmd: DWORD; lpInBuffer: PByte; dwInBufferLen:
                         DWORD; lpOutBuffer: PByte; dwOutBufferLen: DWORD;
                         lpdwOutBytesReturned: LPDWORD; lpOverLapped: POINTER;
@@ -194,6 +206,8 @@ begin
   if WS2_32DllHandle <> 0 then
     FreeLibrary(WS2_32DllHandle);
 end;  
+
+{$ENDIF}
 
 { TCnIp }
 
@@ -398,13 +412,17 @@ function TCnIp.GetComputerName: string;
 var
   sName: array[0..255] of AnsiChar;
 begin
+{$IFDEF MSWINDOWS}
   WSAStartup(2, FWSAData);
   try
     GetHostName(@sName, SizeOf(sName));
-    Result := {$IFDEF UNICODE}String{$ENDIF}(sName);
+    Result := {$IFDEF UNICODE}string{$ENDIF}(sName);
   finally
     WSACleanup;
   end;
+{$ELSE}
+  Result := CnGetHostName;
+{$ENDIF}
 end;
 
 function TCnIp.GetMacAddress: string;
@@ -414,6 +432,7 @@ var
   GUID1, GUID2: TGUID;
 begin
   Result := '';
+{$IFDEF MSWINDOWS}
   Lib := LoadLibrary('rpcrt4.dll');
   if Lib <> 0 then
   try
@@ -444,14 +463,22 @@ begin
   finally
     FreeLibrary(Lib);
   end;
+{$ELSE}
+  // TODO: GetMAC
+{$ENDIF}
 end;
 
 function TCnIp.GetIPByName(var aIP: string; const aName: string): Boolean;
+{$IFDEF MSWINDOWS}
 var
   pHost: PHostEnt;
   sName: array[0..256] of Char;
+{$ENDIF}
 begin
-  StrPCopy(sName, aName);
+{$IFDEF MSWINDOWS}
+  sName[256] := #0;
+  StrPLCopy(sName, aName, 255);
+
   WSAStartup($101, FWSAData);
   try
     if sName = '' then
@@ -459,43 +486,57 @@ begin
     pHost := GetHostByName(@sName);
     Result := pHost <> nil;
     if Result then
-      aIP := {$IFDEF UNICODE}String{$ENDIF}(inet_ntoa(PInAddr(pHost^.h_addr_list^)^));
+      aIP := {$IFDEF UNICODE}string{$ENDIF}(inet_ntoa(PInAddr(pHost^.h_addr_list^)^));
   finally
     WSACleanup;
   end;
+{$ELSE}
+  aIP := TIPAddress.LookupName(aName).Address;
+  Result := aIP <> '';
+{$ENDIF}
 end;
 
 function TCnIp.GetNameByIP(var aName: string; const aIP: string): Boolean;
 var
   HostEnt: PHostEnt;
-  InetAddr: dword;
+  InetAddr: Cardinal;
   sIP: string;
 begin
   Result := False;
   sIP := aIP;
   aName := '';
   if sIP = '' then
-    Exit;
+    sIP := '127.0.0.1';
+
+{$IFDEF MSWINDOWS}
   WSAStartup(2, FWSAData);
+{$ENDIF}
   try
     InetAddr := inet_addr(PAnsiChar({$IFDEF UNICODE}AnsiString{$ENDIF}(sIP)));
-    HostEnt := GetHostByAddr(@InetAddr, Length(sIP), PF_Inet);
+{$IFDEF MSWINDOWS}
+    HostEnt := gethostbyaddr(@InetAddr, SizeOf(InetAddr), PF_INET);
+{$ELSE}
+    HostEnt := gethostbyaddr(InetAddr, SizeOf(InetAddr), PF_INET);
+{$ENDIF}
     Result := HostEnt <> nil;
     if Result then
-      aName := {$IFDEF UNICODE}String{$ENDIF}(StrPas(Hostent^.h_name));
+      aName := {$IFDEF UNICODE}string{$ENDIF}(StrPas(HostEnt^.h_name));
   finally
+{$IFDEF MSWINDOWS}
     WSACleanup;
+{$ENDIF}
   end;
 end;
 
 {-------------------------------------------------------------------
-1. 创建一个Socket
-2. 调用WSAIOCtl获取网络连接
-3. 对每个连接，获取它的IP、掩码、广播地址、状态
-4. 将信息填充到IP数组中
-5. 结束关闭Socket
+1. 创建一个 Socket
+2. 调用 WSAIOCtl 获取网络连接
+3. 对每个连接，获取它的 IP、掩码、广播地址、状态
+4. 将信息填充到 IP 数组中
+5. 结束关闭 Socket
 --------------------------------------------------------------------}
 function TCnIp.EnumLocalIP(var aLocalIP: TIPGroup): Integer;
+{$IFDEF MSWINDOWS}
 var
   skLocal: TSocket;
   iIP: Integer;
@@ -503,9 +544,10 @@ var
   BytesReturned, SetFlags: u_long;
   pAddrInet: Sockaddr_IN;
   Buffer: array[0..20] of TINTERFACE_INFO;
+{$ENDIF}
 begin
   Result := 0;
-
+{$IFDEF MSWINDOWS}
   WSAStartup($101, FWSAData);
   try
     skLocal := Socket(AF_INET, SOCK_STREAM, 0); // Open a socket
@@ -541,7 +583,12 @@ begin
   finally
     WSACleanUp;
   end;
+{$ELSE}
+  // TODO: ENUMLOCALIP
+{$ENDIF}
 end;
+
+{$IFDEF MSWINDOWS}
 
 initialization
   InitWSAIoctl;
@@ -549,5 +596,6 @@ initialization
 finalization
   FreeWSAIoctl;
 
+{$ENDIF}
 end.
 

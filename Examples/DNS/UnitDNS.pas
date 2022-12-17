@@ -21,7 +21,7 @@ type
     btnDNSDesign: TButton;
     procedure btnQueryClick(Sender: TObject);
     procedure udpDNSDataReceived(Sender: TComponent; Buffer: Pointer;
-      Len: Integer; FromIP: String; Port: Integer);
+      Len: Integer; const FromIP: String; Port: Integer);
     procedure btnTestParseStringClick(Sender: TObject);
     procedure btnDNSClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -82,7 +82,7 @@ begin
 end;
 
 procedure TFormDNS.udpDNSDataReceived(Sender: TComponent; Buffer: Pointer;
-  Len: Integer; FromIP: String; Port: Integer);
+  Len: Integer; const FromIP: String; Port: Integer);
 var
   Packet: TCnDNSPacketObject;
   P: PCnDNSHeader;
