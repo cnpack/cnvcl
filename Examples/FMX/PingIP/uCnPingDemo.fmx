@@ -1,0 +1,250 @@
+object frmCnPingDemo: TfrmCnPingDemo
+  Left = 318
+  Top = 221
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = Single
+  Caption = 'CnPing CnIP Demo'
+  ClientHeight = 268
+  ClientWidth = 389
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnClose = FormClose
+  Left = 318
+  Top = 221
+  DesignerMasterStyle = 0
+  object Label1: TLabel
+    Position.X = 7.000000000000000000
+    Position.Y = 7.000000000000000000
+    Size.Width = 6.000000000000000000
+    Size.Height = 12.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object Panel2: TPanel
+    Size.Width = 389.000000000000000000
+    Size.Height = 82.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object GroupBox1: TGroupBox
+      Position.X = 7.000000000000000000
+      Position.Y = 5.000000000000000000
+      Size.Width = 370.000000000000000000
+      Size.Height = 73.000000000000000000
+      Size.PlatformDefault = False
+      Text = #35774#32622
+      TabOrder = 0
+      object Label2: TLabel
+        Position.X = 174.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 12.000000000000000000
+        Size.Height = 12.000000000000000000
+        Size.PlatformDefault = False
+        Text = #33267
+      end
+      object edtStartIP: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 0
+        Text = '192.168.1.105'
+        Position.X = 25.000000000000000000
+        Position.Y = 13.000000000000000000
+        Size.Width = 131.000000000000000000
+        Size.Height = 20.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object edtEndIP: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 1
+        Text = '192.168.1.105'
+        Position.X = 210.000000000000000000
+        Position.Y = 13.000000000000000000
+        Size.Width = 132.000000000000000000
+        Size.Height = 20.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnPingOnce: TButton
+        Tag = 1
+        Position.X = 105.000000000000000000
+        Position.Y = 43.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 20.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 3
+        Text = 'PingOnce'
+        OnClick = btnPingOnceClick
+      end
+      object btnPingBuffer: TButton
+        Tag = 2
+        Position.X = 187.000000000000000000
+        Position.Y = 43.000000000000000000
+        Size.Width = 74.000000000000000000
+        Size.Height = 20.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 4
+        Text = 'FromBuffer'
+        OnClick = btnPingBufferClick
+      end
+      object btnIPInfo: TButton
+        Tag = 3
+        Position.X = 268.000000000000000000
+        Position.Y = 43.000000000000000000
+        Size.Width = 74.000000000000000000
+        Size.Height = 20.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 5
+        Text = 'IP Info'
+        OnClick = btnIPInfoClick
+      end
+      object btnPing: TButton
+        Position.X = 25.000000000000000000
+        Position.Y = 43.000000000000000000
+        Size.Width = 74.000000000000000000
+        Size.Height = 20.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        Text = 'Ping'
+        OnClick = btnPingClick
+      end
+    end
+  end
+  object Panel3: TPanel
+    Position.Y = 82.000000000000000000
+    Size.Width = 389.000000000000000000
+    Size.Height = 164.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    object pgcResult: TTabControl
+      Size.Width = 389.000000000000000000
+      Size.Height = 164.000000000000000000
+      Size.PlatformDefault = False
+      TabIndex = 3
+      TabOrder = 0
+      TabPosition = Bottom
+      Sizes = (
+        389s
+        138s
+        389s
+        138s
+        389s
+        138s
+        389s
+        138s)
+      object TabSheet1: TTabItem
+        CustomIcon = <
+          item
+          end>
+        IsSelected = False
+        Size.Width = 70.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        StyleLookup = ''
+        TabOrder = 0
+        Text = 'Ping'#27979#35797
+        ExplicitSize.cx = 50.000000000000000000
+        ExplicitSize.cy = 50.000000000000000000
+        object redtPing: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          ReadOnly = True
+          TextSettings.Font.Family = #23435#20307
+          TextSettings.Font.Size = 5.000000000000000000
+          Size.Width = 381.000000000000000000
+          Size.Height = 137.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Viewport.Width = 377.000000000000000000
+          Viewport.Height = 133.000000000000000000
+        end
+      end
+      object TabSheet2: TTabItem
+        CustomIcon = <
+          item
+          end>
+        IsSelected = False
+        ImageIndex = 1
+        Size.Width = 100.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        StyleLookup = ''
+        TabOrder = 0
+        Text = 'PingOnce'#27979#35797
+        ExplicitSize.cx = 50.000000000000000000
+        ExplicitSize.cy = 50.000000000000000000
+        object chklstResult: TListBox
+          Size.Width = 381.000000000000000000
+          Size.Height = 137.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          DisableFocusEffect = True
+          ItemHeight = 12.000000000000000000
+          DefaultItemStyles.ItemStyle = ''
+          DefaultItemStyles.GroupHeaderStyle = ''
+          DefaultItemStyles.GroupFooterStyle = ''
+          ShowCheckboxes = True
+          Viewport.Width = 377.000000000000000000
+          Viewport.Height = 133.000000000000000000
+        end
+      end
+      object TabSheet3: TTabItem
+        CustomIcon = <
+          item
+          end>
+        IsSelected = False
+        ImageIndex = 2
+        Size.Width = 135.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        StyleLookup = ''
+        TabOrder = 0
+        Text = 'PingFromBuffer'#27979#35797
+        ExplicitSize.cx = 50.000000000000000000
+        ExplicitSize.cy = 50.000000000000000000
+        object redtPingBuffer: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          ReadOnly = True
+          Size.Width = 381.000000000000000000
+          Size.Height = 137.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Viewport.Width = 377.000000000000000000
+          Viewport.Height = 133.000000000000000000
+        end
+      end
+      object TabSheet4: TTabItem
+        CustomIcon = <
+          item
+          end>
+        IsSelected = True
+        ImageIndex = 3
+        Size.Width = 55.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        StyleLookup = ''
+        TabOrder = 0
+        Text = 'IP'#20449#24687
+        ExplicitSize.cx = 50.000000000000000000
+        ExplicitSize.cy = 50.000000000000000000
+        object redtIPInfo: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          ReadOnly = True
+          Size.Width = 381.000000000000000000
+          Size.Height = 137.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Viewport.Width = 377.000000000000000000
+          Viewport.Height = 133.000000000000000000
+        end
+      end
+    end
+  end
+  object statDemo: TStatusBar
+    Position.Y = 246.000000000000000000
+    ShowSizeGrip = True
+    Size.Width = 389.000000000000000000
+    Size.Height = 22.000000000000000000
+    Size.PlatformDefault = False
+  end
+end

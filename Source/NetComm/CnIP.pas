@@ -47,11 +47,11 @@ interface
 {$I CnPack.inc}
 
 uses
-  {$IFDEF MSWINDOWS} Windows, Winsock, {$ELSE}
+  {$IFDEF MSWINDOWS} Windows, Winsock, Nb30, {$ELSE}
   System.Net.Socket, Posix.NetinetIn, Posix.NetDB, Posix.ArpaInet, Posix.SysSocket,
-  Posix.NetIf, {$ENDIF}
+  Posix.NetIf, Posix.StrOpts, Posix.Errno, {$ENDIF}
   SysUtils, Classes, Controls, StdCtrls,
-  CnClasses, CnConsts, CnNetConsts, CnSocket;
+  CnClasses, CnConsts, CnNetConsts, CnNative, CnSocket;
 
 const
   MAXIPNOTE = 255;
@@ -208,6 +208,22 @@ begin
     FreeLibrary(WS2_32DllHandle);
 end;  
 
+{$ELSE}
+
+type
+  sockaddr_dl = record
+    sdl_len: Byte;    //* Total length of sockaddr */
+    sdl_family: Byte; //* AF_LINK */
+    sdl_index: Word;  //* if != 0, system given index for interface */
+    sdl_type: Byte;   //* interface type */
+    sdl_nlen: Byte;   //* interface name length, no trailing 0 reqd. */
+    sdl_alen: Byte;   //* link level address length */
+    sdl_slen: Byte;   //* link layer selector length */
+    sdl_data: array[0..11] of AnsiChar; //* minimum work area, can be larger;
+                                        //contains both if name and ll address */
+  end;
+  Psockaddr_dl = ^sockaddr_dl;
+
 {$ENDIF}
 
 { TCnIp }
@@ -315,7 +331,7 @@ begin
   Result := 0;
   if IPTypeCheck(aIP) = iptNone then
   begin
-    //raise Exception.Create(SCnErrorAddress);
+    // raise Exception.Create(SCnErrorAddress);
     Exit;
   end;
   if GetIPNotes(aIP, Notes) then
@@ -410,8 +426,10 @@ begin
 end;
 
 function TCnIp.GetComputerName: string;
+{$IFDEF MSWINDOWS}
 var
   sName: array[0..255] of AnsiChar;
+{$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
   WSAStartup(2, FWSAData);
@@ -428,13 +446,58 @@ end;
 
 function TCnIp.GetMacAddress: string;
 var
+{$IFDEF MSWINDOWS}
+{$IFDEF WIN32}
   Lib: Cardinal;
   Func: function(GUID: PGUID): Longint; stdcall;
   GUID1, GUID2: TGUID;
+{$ENDIF}
+  AdapterList: TLanaEnum;
+  NCB: TNCB;
+{$ELSE}
+  OldPif, Pif: Pifaddrs;
+  Ifn: PAnsiChar;
+  pAddrInet: sockaddr_in;
+  Sdl: Psockaddr_dl;
+{$ENDIF}
+
+{$IFDEF MSWINDOWS}
+  function GetAdapterInfo(Lana: AnsiChar): string;
+  var
+    Adapter: TAdapterStatus;
+    NCB: TNCB;
+  begin
+    Result := '';
+    FillChar(NCB, SizeOf(NCB), 0);
+    NCB.ncb_command := AnsiChar(NCBRESET);
+    NCB.ncb_lana_num := Lana;
+    if Netbios(@NCB) <> AnsiChar(NRC_GOODRET) then
+      Exit;
+
+    FillChar(NCB, SizeOf(NCB), 0);
+    NCB.ncb_command := AnsiChar(NCBASTAT);
+    NCB.ncb_lana_num := Lana;
+    NCB.ncb_callname := '*';
+
+    FillChar(Adapter, SizeOf(Adapter), 0);
+    NCB.ncb_buffer := @Adapter;
+    NCB.ncb_length := SizeOf(Adapter);
+    if Netbios(@NCB) <> AnsiChar(NRC_GOODRET) then
+      Exit;
+
+    Result :=
+      IntToHex(Byte(Adapter.adapter_address[0]), 2) + '-'+
+      IntToHex(Byte(Adapter.adapter_address[1]), 2) + '-'+
+      IntToHex(Byte(Adapter.adapter_address[2]), 2) + '-'+
+      IntToHex(Byte(Adapter.adapter_address[3]), 2) + '-'+
+      IntToHex(Byte(Adapter.adapter_address[4]), 2) + '-'+
+      IntToHex(Byte(Adapter.adapter_address[5]), 2) ;
+  end;
+{$ENDIF}
 begin
   Result := '';
-{$IFDEF MSWINDOWS}
-  Lib := LoadLibrary('rpcrt4.dll');
+{$IFDEF WIN32}
+  Lib := LoadLibrary('rpcrt4.dll'); // 该方法只在 Win32 下有效
   if Lib <> 0 then
   try
     if Win32Platform <> VER_PLATFORM_WIN32_NT then
@@ -464,9 +527,72 @@ begin
   finally
     FreeLibrary(Lib);
   end;
+{$ENDIF}
+
+  if Result <> '' then
+    Exit;
+
+{$IFDEF MSWINDOWS}
+  // Win32 失败后，或 Win64 下，拿 MAC 地址
+  FillChar(NCB, SizeOf(NCB), 0);
+  NCB.ncb_command := AnsiChar(NCBENUM);
+  NCB.ncb_buffer := @AdapterList;
+  NCB.ncb_length := SizeOf(AdapterList);
+  Netbios(@NCB);
+  if Byte(AdapterList.length) > 0 then
+    Result := GetAdapterInfo(AdapterList.lana[0])
 {$ELSE}
-  // TODO: GetMAC
-  raise Exception.Create('NOT Implemented.');
+  // POSIX 下拿 MAC 地址
+  getifaddrs(Pif);
+  OldPif := Pif;
+  Ifn := nil;
+
+  while Pif <> nil do
+  begin
+    if (Pif^.ifa_addr.sa_family = AF_INET) and ((Pif^.ifa_flags and IFF_LOOPBACK) = 0)
+      and (Pif^.ifa_name <> nil) then
+    begin
+      if Ifn = nil then
+        Ifn := PAnsiChar(Pif^.ifa_name);
+
+      // 拿 IP，如果不是 127.0.0.1 则用它
+      pAddrInet := Psockaddr_in(Pif^.ifa_addr)^;
+      if inet_ntoa(pAddrInet.sin_addr) <> '127.0.0.1' then
+      begin
+        Ifn := PAnsiChar(Pif^.ifa_name);
+        Break;
+      end;
+    end;
+    Pif := Pif^.ifa_next;
+  end;
+
+  if Ifn = nil then
+    Exit;
+
+  Pif := OldPif;
+  while Pif <> nil do
+  begin
+    if (Pif^.ifa_addr.sa_family = AF_LINK) and
+      (StrComp(Ifn, PAnsiChar(Pif^.ifa_name)) = 0) then
+    begin
+      Sdl := Psockaddr_dl(Pif^.ifa_addr);
+      if Sdl <> nil  then
+      begin
+        // Sdl^.sdl_data[Sdl^.sdl_nlen] 开始的 Sdl^.sdl_alen 字节就是 MAC 地址
+        if Sdl^.sdl_alen = 6 then
+        begin
+        Result :=
+          IntToHex(Ord(Sdl^.sdl_data[Sdl^.sdl_nlen]), 2) + '-' +
+          IntToHex(Ord(Sdl^.sdl_data[Sdl^.sdl_nlen + 1]), 2) + '-' +
+          IntToHex(Ord(Sdl^.sdl_data[Sdl^.sdl_nlen + 2]), 2) + '-' +
+          IntToHex(Ord(Sdl^.sdl_data[Sdl^.sdl_nlen + 3]), 2) + '-' +
+          IntToHex(Ord(Sdl^.sdl_data[Sdl^.sdl_nlen + 4]), 2) + '-' +
+          IntToHex(Ord(Sdl^.sdl_data[Sdl^.sdl_nlen + 5]), 2);
+        end;
+      end;
+    end;
+    Pif := Pif^.ifa_next;
+  end;
 {$ENDIF}
 end;
 
@@ -552,7 +678,6 @@ var
   Buffer: array[0..20] of TINTERFACE_INFO;
 {$ELSE}
   OldPif, Pif: Pifaddrs;
-  InAddr: in_addr;
   SetFlags: Cardinal;
 {$ENDIF}
 begin
@@ -612,8 +737,6 @@ begin
   begin
     if (Pif^.ifa_addr.sa_family = AF_INET) and ((Pif^.ifa_flags and IFF_LOOPBACK) = 0) then
     begin
-      InAddr := Psockaddr_in(Pif^.ifa_addr)^.sin_addr;
-
       pAddrInet := Psockaddr_in(Pif^.ifa_addr)^;
       aLocalIP[iIP].IPAddress := IPToInt({$IFDEF UNICODE}string{$ENDIF}(inet_ntoa(pAddrInet.sin_addr)));
       pAddrInet := Psockaddr_in(Pif^.ifa_netmask)^;
@@ -625,7 +748,6 @@ begin
       aLocalIP[iIP].Loopback := (SetFlags and IFF_LOOPBACK) = IFF_LOOPBACK;
       aLocalIP[iIP].SupportBroadcast := (SetFlags and IFF_BROADCAST) =
         IFF_BROADCAST;
-      aLocalIP[iIP].IPAddress := Psockaddr_in(Pif^.ifa_addr)^.sin_addr.s_addr;
 
       Inc(iIP);
     end;
