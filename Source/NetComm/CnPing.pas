@@ -84,7 +84,6 @@ type
   TCnPing = class(TCnComponent)
   {* 通过调用ICMP.DLL库中的函数来实现Ping功能。}
   private
-    FHICMP: THandle;
     FRemoteHost: string;
     FRemoteIP: string;
     FIPAddress: Int64;
@@ -96,6 +95,7 @@ type
     FOnReceived: TOnPingReceive;
     FDataString: string;
 {$IFDEF MSWINDOWS}
+    FHICMP: THandle;
     FWSAData: TWSAData;
 {$ENDIF}
     FIP: TCnIpInfo;
@@ -118,13 +118,13 @@ type
     function SetIP(aIPAddr, aHost: string; var aIP: TCnIpInfo): Boolean;
     {* 通过机器名称或 IP 地址填充完整 IP 信息}
   protected
-    procedure GetComponentInfo(var AName, Author, Email, Comment: string);
-      override;
+    procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
     function Ping(var aReply: string): Boolean;
-    {* 进行循环 Ping,循环次数在 PingCount 属性中指定。}
+    {* 进行循环 Ping，循环次数在 PingCount 属性中指定。}
     function PingOnce(var aReply: string): Boolean; overload;
     {* 以设定的数据 Ping 一次并返回结果。}
     function PingOnce(const aIP: string; var aReply: string): Boolean; overload;
@@ -134,15 +134,15 @@ type
     {* 以参数 Buffer 的数据 Ping 一次并读取返回结果。}
   published
     property RemoteIP: string read FRemoteIP write SetRemoteIP;
-    {* 要Ping的目标主机地址，只支持ip}
+    {* 要 Ping 的目标主机地址，只支持 IP}
     property RemoteHost: string read FRemoteHost write SetRemoteHost;
-    {* 要ping的目标主机名，有主机名存在时会覆盖 RemoteIP 的内容}
+    {* 要 Ping 的目标主机名，有主机名存在时会覆盖 RemoteIP 的内容}
     property PingCount: Integer read FPingCount write SetPingCount default 4;
-    {* 调用Ping方法时进行多少次数据发送，默认是4次。}
+    {* 调用 Ping 方法时进行多少次数据发送，默认是 4 次。}
     property Delay: Integer read FDelay write FDelay default 0;
     {* 相邻两次 Ping 间的时间间隔，单位毫秒，默认 0 也就是不延时}
     property TTL: Byte read FTTL write SetTTL;
-    {* 设置的TTL值，Time to Live}
+    {* 设置的 TTL 值，Time to Live}
     property TimeOut: Cardinal read FTimeOut write SetTimeOut;
     {* 设置的超时值}
     property DataString: string read GetDataString write SetDataString;
@@ -401,7 +401,7 @@ begin
         Count,       // data length
         @IPOpt,      // addree of ping option
         pCIER,
-        SizeOf(TCnICMPEchoReply) + Count, //pack size
+        SizeOf(TCnICMPEchoReply) + Count, // pack size
         FTimeOut     // timeout value
         ) <> 0 then
       begin
