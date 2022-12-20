@@ -597,7 +597,7 @@ type
     Offset:                Byte;        // 数据偏移，仅最左 4 bit，等同于包头长度
     Flags:                 Byte;        // TCP 包头标记
     Window:                Word;        // 窗口大小
-    Checksum:              Word;        // 校验和
+    Checksum:              Word;        // 校验和，是所在 IP 头的源地址起到本 TCP 数据结束的校验
     UrgentPointer:         Word;        // 紧急指针
   end;
 
@@ -623,7 +623,7 @@ type
     SourcePort:            Word;        // 源端口
     DestPort:              Word;        // 目的端口
     Length:                Word;        // 数据包长度，包括 UDP 头
-    Checksum:              Word;        // 校验和
+    Checksum:              Word;        // 校验和，是所在 IP 头的源地址起到本 UDP 数据结束的校验
   end;
 
   PCnUDPHeader = ^TCnUDPHeader;
@@ -645,7 +645,7 @@ type
   TCnICMPHeader = packed record
     MessageType:           Byte;         // 包的消息类型
     Code:                  Byte;         // 包的消息代码
-    Checksum:              Word;         // 校验和
+    Checksum:              Word;         // 校验和，只针对本包头以及包括的数据
     case Integer of
       0: (Unused:          Cardinal);
       1: (Ptr:             Byte;         // 指针
@@ -1464,6 +1464,9 @@ function GetNetworkCheckSum(const Buf: Pointer; ByteLength: Cardinal): Word;
 procedure FillIPHeaderCheckSum(const IPHeader: PCnIPHeader);
 {* 计算 IP 包头内的校验和并填到包头中}
 
+procedure FillICMPHeaderCheckSum(const ICMPHeader: PCnICMPHeader; DataByteLen: Integer);
+{* 计算 ICMP 包内的校验和并填到包头中，DataByteLen 须是 ICMP 包头后部的数据长度}
+
 implementation
 
 uses
@@ -1565,6 +1568,18 @@ begin
     IPHeader^.Checksum := 0;
     W := GetNetworkCheckSum(IPHeader, SizeOf(TCnIPHeader));
     IPHeader^.Checksum := W;
+  end;
+end;
+
+procedure FillICMPHeaderCheckSum(const ICMPHeader: PCnICMPHeader);
+var
+  W: Word;
+begin
+  if (ICMPHeader <> nil) and (DataByteLen >= 0) then
+  begin
+    ICMPHeader^.Checksum := 0;
+    W := GetNetworkCheckSum(ICMPHeader, SizeOf(TCnICMPHeader) + DataByteLen);
+    ICMPHeader^.Checksum := W;
   end;
 end;
 
