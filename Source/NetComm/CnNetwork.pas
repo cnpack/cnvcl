@@ -28,7 +28,9 @@ unit CnNetwork;
 * 开发平台：PWinXP + Delphi XE
 * 兼容测试：PWinXP/7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.07.23 V1.1
+* 修改记录：2022.12.20 V1.2
+*                增加一批设置函数
+*           2022.07.23 V1.1
 *                更改单元名称
 *           2016.10.05 V1.0
 *                创建单元
@@ -1215,6 +1217,24 @@ function CnGetIPSourceIP(const IPHeader: PCnIPHeader): Cardinal;
 function CnGetIPDestIP(const IPHeader: PCnIPHeader): Cardinal;
 {* 获得 IP 包头内的目的 IP 地址，存在网络字节转换}
 
+procedure CnSetIPTotalLength(const IPHeader: PCnIPHeader; TotalLength: Word);
+{* 设置 IP 包头内的包总长度，存在网络字节转换}
+
+procedure CnSetIPIdentification(const IPHeader: PCnIPHeader; Identification: Word);
+{* 设置 IP 包头内的标识，存在网络字节转换}
+
+procedure CnSetIPFragmentOffset(const IPHeader: PCnIPHeader; FragmentOffset: Word);
+{* 设置 IP 包头内的分段偏移，存在网络字节转换}
+
+procedure CnSetIPChecksum(const IPHeader: PCnIPHeader; Checksum: Word);
+{* 设置 IP 包头内的校验和，存在网络字节转换}
+
+procedure CnSetIPSourceIP(const IPHeader: PCnIPHeader; SourceIP: Cardinal);
+{* 设置 IP 包头内的源 IP 地址，存在网络字节转换}
+
+procedure CnSetIPDestIP(const IPHeader: PCnIPHeader; DestIP: Cardinal);
+{* 设置 IP 包头内的目的 IP 地址，存在网络字节转换}
+
 // ======================== TCP 包头系列函数 ===================================
 
 function CnGetTCPSourcePort(const TCPHeader: PCnTCPHeader): Integer;
@@ -1259,6 +1279,27 @@ function CnGetTCPChecksum(const TCPHeader: PCnTCPHeader): Word;
 function CnGetTCPUrgentPointer(const TCPHeader: PCnTCPHeader): Word;
 {* 获得 TCP 包头内的紧急指针，存在网络字节转换}
 
+procedure CnSetTCPSourcePort(const TCPHeader: PCnTCPHeader; SourcePort: Word);
+{* 设置 TCP 包头内的源端口号，存在网络字节转换}
+
+procedure CnSetTCPDestPort(const TCPHeader: PCnTCPHeader; DestPort: Word);
+{* 设置 TCP 包头内的目的端口号，存在网络字节转换}
+
+procedure CnSetTCPSequenceNumber(const TCPHeader: PCnTCPHeader; SequenceNumber: Cardinal);
+{* 设置 TCP 包头内的序列号，存在网络字节转换}
+
+procedure CnSetTCPAcknowledgementNumber(const TCPHeader: PCnTCPHeader; AcknowledgementNumber: Cardinal);
+{* 设置 TCP 包头内的响应号，存在网络字节转换}
+
+procedure CnSetTCPWindow(const TCPHeader: PCnTCPHeader; Window: Word);
+{* 设置 TCP 包头内的窗口大小，存在网络字节转换}
+
+procedure CnSetTCPChecksum(const TCPHeader: PCnTCPHeader; Checksum: Word);
+{* 设置 TCP 包头内的校验和，存在网络字节转换}
+
+procedure CnSetTCPUrgentPointer(const TCPHeader: PCnTCPHeader; UrgentPointer: Word);
+{* 设置 TCP 包头内的紧急指针，存在网络字节转换}
+
 // ======================== UDP 包头系列函数 ===================================
 
 function CnGetUDPSourcePort(const UDPHeader: PCnUDPHeader): Integer;
@@ -1273,6 +1314,18 @@ function CnGetUDPLength(const UDPHeader: PCnUDPHeader): Integer;
 function CnGetUDPChecksum(const UDPHeader: PCnUDPHeader): Word;
 {* 获得 UDP 包头内的校验和，存在网络字节转换}
 
+procedure CnSetUDPSourcePort(const UDPHeader: PCnUDPHeader; SourcePort: Word);
+{* 设置 UDP 包头内的源端口号，存在网络字节转换}
+
+procedure CnSetUDPDestPort(const UDPHeader: PCnUDPHeader; DestPort: Word);
+{* 设置 UDP 包头内的目的端口号，存在网络字节转换}
+
+procedure CnSetUDPLength(const UDPHeader: PCnUDPHeader; ByteLen: Word);
+{* 设置 UDP 包头内的包总长度，存在网络字节转换}
+
+procedure CnSetUDPChecksum(const UDPHeader: PCnUDPHeader; Checksum: Word);
+{* 设置 UDP 包头内的校验和，存在网络字节转换}
+
 // ======================== ICMP 包头系列函数 ==================================
 
 function CnGetICMPType(const ICMPHeader: PCnICMPHeader): Integer;
@@ -1282,19 +1335,31 @@ function CnGetICMPCode(const ICMPHeader: PCnICMPHeader): Integer;
 {* 获得 ICMP 包头内的消息代码}
 
 function CnGetICMPChecksum(const ICMPHeader: PCnICMPHeader): Word;
-{* 获得 ICMP 包头内的校验和}
+{* 获得 ICMP 包头内的校验和，存在网络字节转换}
 
 function CnGetICMPPointer(const ICMPHeader: PCnICMPHeader): Integer;
 {* 获得 ICMP 包头内的指针字段值}
 
 function CnGetICMPGatewayAddress(const ICMPHeader: PCnICMPHeader): Cardinal;
-{* 获得 ICMP 包头内的网关地址}
+{* 获得 ICMP 包头内的网关地址，存在网络字节转换}
 
 function CnGetICMPIdentifier(const ICMPHeader: PCnICMPHeader): Word;
-{* 获得 ICMP 包头内的标识号}
+{* 获得 ICMP 包头内的标识号，存在网络字节转换}
 
 function CnGetICMPSequenceNumber(const ICMPHeader: PCnICMPHeader): Word;
-{* 获得 ICMP 包头内的序列号}
+{* 获得 ICMP 包头内的序列号，存在网络字节转换}
+
+procedure CnSetICMPChecksum(const ICMPHeader: PCnICMPHeader; Checksum: Word);
+{* 设置 ICMP 包头内的校验和，存在网络字节转换}
+
+procedure CnSetICMPGatewayAddress(const ICMPHeader: PCnICMPHeader; GatewayAddress: Cardinal);
+{* 设置 ICMP 包头内的网关地址，存在网络字节转换}
+
+procedure CnSetICMPIdentifier(const ICMPHeader: PCnICMPHeader; Identifier: Word);
+{* 设置 ICMP 包头内的标识号，存在网络字节转换}
+
+procedure CnSetICMPSequenceNumber(const ICMPHeader: PCnICMPHeader; SequenceNumber: Word);
+{* 设置 ICMP 包头内的序列号，存在网络字节转换}
 
 // ========================== NTP 包系列函数 ===================================
 
@@ -1325,7 +1390,7 @@ function CnConvertDateTimeToNTPTimestamp(ADateTime: TDateTime): Int64;
 // ========================== DNS 包系列函数 ===================================
 
 function CnGetDNSHeaderId(const DNSHeader: PCnDNSHeader): Word;
-{* 获得 DNS 包头内的 Id}
+{* 获得 DNS 包头内的 Id，存在网络字节转换}
 
 function CnGetDNSHeaderQR(const DNSHeader: PCnDNSHeader): Integer;
 {* 获得 DNS 包头内的 QR 标识，查询或响应，返回 CN_DNS_HEADER_TYPE_*}
@@ -1349,19 +1414,19 @@ function CnGetDNSHeaderRCode(const DNSHeader: PCnDNSHeader): Integer;
 {* 获得 DNS 包头内的应答码，返回 CN_DNS_HEADER_RCODE_*}
 
 function CnGetDNSHeaderQDCount(const DNSHeader: PCnDNSHeader): Integer;
-{* 获得 DNS 包头内的请求记录数量}
+{* 获得 DNS 包头内的请求记录数量，存在网络字节转换}
 
 function CnGetDNSHeaderANCount(const DNSHeader: PCnDNSHeader): Integer;
-{* 获得 DNS 包头内的回答记录数量}
+{* 获得 DNS 包头内的回答记录数量，存在网络字节转换}
 
 function CnGetDNSHeaderNSCount(const DNSHeader: PCnDNSHeader): Integer;
-{* 获得 DNS 包头内的授权记录数量}
+{* 获得 DNS 包头内的授权记录数量，存在网络字节转换}
 
 function CnGetDNSHeaderARCount(const DNSHeader: PCnDNSHeader): Integer;
-{* 获得 DNS 包头内的附加记录数量}
+{* 获得 DNS 包头内的附加记录数量，存在网络字节转换}
 
 procedure CnSetDNSHeaderId(const DNSHeader: PCnDNSHeader; Id: Word);
-{* 设置 DNS 包头内的 Id}
+{* 设置 DNS 包头内的 Id，存在网络字节转换}
 
 procedure CnSetDNSHeaderQR(const DNSHeader: PCnDNSHeader; IsQuery: Boolean);
 {* 设置 DNS 包头内的 QR 标识，是查询还是响应}
@@ -1385,16 +1450,16 @@ procedure CnSetDNSHeaderRCode(const DNSHeader: PCnDNSHeader; RCode: Byte);
 {* 设置 DNS 包头内的应答码，使用 CN_DNS_HEADER_RCODE_*}
 
 procedure CnSetDNSHeaderQDCount(const DNSHeader: PCnDNSHeader; Count: Word);
-{* 设置 DNS 包头内的请求记录数量}
+{* 设置 DNS 包头内的请求记录数量，存在网络字节转换}
 
 procedure CnSetDNSHeaderANCount(const DNSHeader: PCnDNSHeader; Count: Word);
-{* 设置 DNS 包头内的回答记录数量}
+{* 设置 DNS 包头内的回答记录数量，存在网络字节转换}
 
 procedure CnSetDNSHeaderNSCount(const DNSHeader: PCnDNSHeader; Count: Word);
-{* 设置 DNS 包头内的授权记录数量}
+{* 设置 DNS 包头内的授权记录数量，存在网络字节转换}
 
 procedure CnSetDNSHeaderARCount(const DNSHeader: PCnDNSHeader; Count: Word);
-{* 设置 DNS 包头内的附加记录数量}
+{* 设置 DNS 包头内的附加记录数量，存在网络字节转换}
 
 // ======================== Socks 代理包系列函数 ===============================
 
@@ -1457,14 +1522,14 @@ function IPStringToCardinal(const IP: string): Cardinal;
 
 // ============================ 校验和计算函数 =================================
 
-function GetNetworkCheckSum(const Buf: Pointer; ByteLength: Cardinal): Word;
+function CnGetNetworkCheckSum(const Buf: Pointer; ByteLength: Cardinal): Word;
 {* 以反码进位规则计算一块区域的校验和，以 2 字节为单位，如果区域长度非偶数则补 0 计算
   返回的校验和会转成网络字节顺序}
 
-procedure FillIPHeaderCheckSum(const IPHeader: PCnIPHeader);
+procedure CnFillIPHeaderCheckSum(const IPHeader: PCnIPHeader);
 {* 计算 IP 包头内的校验和并填到包头中}
 
-procedure FillICMPHeaderCheckSum(const ICMPHeader: PCnICMPHeader; DataByteLen: Integer);
+procedure CnFillICMPHeaderCheckSum(const ICMPHeader: PCnICMPHeader; DataByteLen: Cardinal);
 {* 计算 ICMP 包内的校验和并填到包头中，DataByteLen 须是 ICMP 包头后部的数据长度}
 
 implementation
@@ -1527,7 +1592,7 @@ begin
   Result := (AA shl 24) or (BB shl 16) or (CC shl 8) or DD;
 end;
 
-function GetNetworkCheckSum(const Buf: Pointer; ByteLength: Cardinal): Word;
+function CnGetNetworkCheckSum(const Buf: Pointer; ByteLength: Cardinal): Word;
 var
   Sum: Cardinal;
   S: Word;
@@ -1556,29 +1621,29 @@ begin
   end;
 
   Result := (Sum and $FFFF) + (Sum shr 16);
-  Result := UInt16HostToNetwork(not Result);
+  Result := not Result;
 end;
 
-procedure FillIPHeaderCheckSum(const IPHeader: PCnIPHeader);
+procedure CnFillIPHeaderCheckSum(const IPHeader: PCnIPHeader);
 var
   W: Word;
 begin
   if IPHeader <> nil then
   begin
     IPHeader^.Checksum := 0;
-    W := GetNetworkCheckSum(IPHeader, SizeOf(TCnIPHeader));
-    IPHeader^.Checksum := W;
+    W := CnGetNetworkCheckSum(IPHeader, SizeOf(TCnIPHeader));
+    CnSetIPCheckSum(IPHeader, W);
   end;
 end;
 
-procedure FillICMPHeaderCheckSum(const ICMPHeader: PCnICMPHeader);
+procedure CnFillICMPHeaderCheckSum(const ICMPHeader: PCnICMPHeader; DataByteLen: Cardinal);
 var
   W: Word;
 begin
-  if (ICMPHeader <> nil) and (DataByteLen >= 0) then
+  if ICMPHeader <> nil then
   begin
     ICMPHeader^.Checksum := 0;
-    W := GetNetworkCheckSum(ICMPHeader, SizeOf(TCnICMPHeader) + DataByteLen);
+    W := CnGetNetworkCheckSum(ICMPHeader, SizeOf(TCnICMPHeader) + DataByteLen);
     ICMPHeader^.Checksum := W;
   end;
 end;
@@ -1653,6 +1718,37 @@ begin
   Result := UInt32NetworkToHost(IPHeader^.DestIp);
 end;
 
+procedure CnSetIPTotalLength(const IPHeader: PCnIPHeader; TotalLength: Word);
+begin
+  IPHeader^.TotalLength := UInt16HostToNetwork(TotalLength);
+end;
+
+procedure CnSetIPIdentification(const IPHeader: PCnIPHeader; Identification: Word);
+begin
+  IPHeader^.Identification := UInt16HostToNetwork(Identification);
+end;
+
+procedure CnSetIPFragmentOffset(const IPHeader: PCnIPHeader; FragmentOffset: Word);
+begin
+  IPHeader^.FlagOffset := UInt16HostToNetwork((FragmentOffset and CN_IP_FLAG_FRAGMENT_OFFSET_WORD_MASK)
+    or (UInt16NetworkToHost(IPHeader^.FlagOffset) and not CN_IP_FLAG_FRAGMENT_OFFSET_WORD_MASK));
+end;
+
+procedure CnSetIPChecksum(const IPHeader: PCnIPHeader; Checksum: Word);
+begin
+  IPHeader^.Checksum := UInt16HostToNetwork(Checksum);
+end;
+
+procedure CnSetIPSourceIP(const IPHeader: PCnIPHeader; SourceIP: Cardinal);
+begin
+  IPHeader^.SourceIp := UInt32HostToNetwork(SourceIP);
+end;
+
+procedure CnSetIPDestIP(const IPHeader: PCnIPHeader; DestIP: Cardinal);
+begin
+  IPHeader^.DestIp := UInt32HostToNetwork(DestIP);
+end;
+
 function CnGetTCPSourcePort(const TCPHeader: PCnTCPHeader): Integer;
 begin
   Result := UInt16NetworkToHost(TCPHeader^.SourcePort);
@@ -1723,6 +1819,41 @@ begin
   Result := UInt16NetworkToHost(TCPHeader^.UrgentPointer);
 end;
 
+procedure CnSetTCPSourcePort(const TCPHeader: PCnTCPHeader; SourcePort: Word);
+begin
+  TCPHeader^.SourcePort := UInt16HostToNetwork(SourcePort);
+end;
+
+procedure CnSetTCPDestPort(const TCPHeader: PCnTCPHeader; DestPort: Word);
+begin
+  TCPHeader^.DestPort := UInt16HostToNetwork(DestPort);
+end;
+
+procedure CnSetTCPSequenceNumber(const TCPHeader: PCnTCPHeader; SequenceNumber: Cardinal);
+begin
+  TCPHeader^.SequenceNumber := UInt32HostToNetwork(SequenceNumber);
+end;
+
+procedure CnSetTCPAcknowledgementNumber(const TCPHeader: PCnTCPHeader; AcknowledgementNumber: Cardinal);
+begin
+  TCPHeader^.AcknowledgementNumber := UInt32HostToNetwork(AcknowledgementNumber);
+end;
+
+procedure CnSetTCPWindow(const TCPHeader: PCnTCPHeader; Window: Word);
+begin
+  TCPHeader^.Window := UInt16HostToNetwork(Window);
+end;
+
+procedure CnSetTCPChecksum(const TCPHeader: PCnTCPHeader; Checksum: Word);
+begin
+  TCPHeader^.Checksum := UInt16HostToNetwork(Checksum);
+end;
+
+procedure CnSetTCPUrgentPointer(const TCPHeader: PCnTCPHeader; UrgentPointer: Word);
+begin
+  TCPHeader^.UrgentPointer := UInt16HostToNetwork(UrgentPointer);
+end;
+
 function CnGetUDPSourcePort(const UDPHeader: PCnUDPHeader): Integer;
 begin
   Result := UInt16NetworkToHost(UDPHeader^.SourcePort);
@@ -1741,6 +1872,26 @@ end;
 function CnGetUDPChecksum(const UDPHeader: PCnUDPHeader): Word;
 begin
   Result := UInt16NetworkToHost(UDPHeader^.Checksum);
+end;
+
+procedure CnSetUDPSourcePort(const UDPHeader: PCnUDPHeader; SourcePort: Word);
+begin
+  UDPHeader^.SourcePort := UInt16HostToNetwork(SourcePort);
+end;
+
+procedure CnSetUDPDestPort(const UDPHeader: PCnUDPHeader; DestPort: Word);
+begin
+  UDPHeader^.DestPort := UInt16HostToNetwork(DestPort);
+end;
+
+procedure CnSetUDPLength(const UDPHeader: PCnUDPHeader; ByteLen: Word);
+begin
+  UDPHeader^.Length := UInt16HostToNetwork(ByteLen);
+end;
+
+procedure CnSetUDPChecksum(const UDPHeader: PCnUDPHeader; Checksum: Word);
+begin
+  UDPHeader^.Checksum := UInt16HostToNetwork(Checksum);
 end;
 
 function CnGetICMPType(const ICMPHeader: PCnICMPHeader): Integer;
@@ -1776,6 +1927,26 @@ end;
 function CnGetICMPSequenceNumber(const ICMPHeader: PCnICMPHeader): Word;
 begin
   Result := UInt16NetworkToHost(ICMPHeader^.SequenceNumber);
+end;
+
+procedure CnSetICMPChecksum(const ICMPHeader: PCnICMPHeader; Checksum: Word);
+begin
+  ICMPHeader^.Checksum := UInt16HostToNetwork(Checksum);
+end;
+
+procedure CnSetICMPGatewayAddress(const ICMPHeader: PCnICMPHeader; GatewayAddress: Cardinal);
+begin
+  ICMPHeader^.GatewayAddress := UInt32HostToNetwork(GatewayAddress);
+end;
+
+procedure CnSetICMPIdentifier(const ICMPHeader: PCnICMPHeader; Identifier: Word);
+begin
+  ICMPHeader^.Identifier := UInt16HostToNetwork(Identifier);
+end;
+
+procedure CnSetICMPSequenceNumber(const ICMPHeader: PCnICMPHeader; SequenceNumber: Word);
+begin
+  ICMPHeader^.SequenceNumber := UInt16HostToNetwork(SequenceNumber);
 end;
 
 function CnGetNTPLeapIndicator(const NTPPacket: PCnNTPPacket): Integer;

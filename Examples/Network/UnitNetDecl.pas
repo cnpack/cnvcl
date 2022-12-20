@@ -517,7 +517,7 @@ const
 var
   R: Word;
 begin
-  R := GetNetworkCheckSum(@IP_DATA[0], SizeOf(IP_DATA));
+  R := CnGetNetworkCheckSum(@IP_DATA[0], SizeOf(IP_DATA));
   ShowMessage(IntToHex(R, 2)); // µÃµ½ E641
 end;
 
