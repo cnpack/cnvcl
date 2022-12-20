@@ -20,9 +20,11 @@ type
     lblIPCount: TLabel;
     rbAll: TRadioButton;
     btnIPManual: TButton;
+    btnCheckSum: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnSniffClick(Sender: TObject);
     procedure btnIPManualClick(Sender: TObject);
+    procedure btnCheckSumClick(Sender: TObject);
   private
     { Private declarations }
     FRecving: Boolean;
@@ -505,6 +507,18 @@ const
 begin
   mmoIPSniffer.Clear;
   ParsingPacket(@IP[0], SizeOf(IP));
+end;
+
+procedure TFormNetDecl.btnCheckSumClick(Sender: TObject);
+const
+  IP_DATA: array[0..19] of Byte =
+    ($45, $00, $00, $3C, $CA, $2C, $00, $00, $80, $01, $00, $00,
+     $C0, $A8, $04, $FD, $C0, $A8, $04, $05);
+var
+  R: Word;
+begin
+  R := GetNetworkCheckSum(@IP_DATA[0], SizeOf(IP_DATA));
+  ShowMessage(IntToHex(R, 2)); // µÃµ½ E641
 end;
 
 end.

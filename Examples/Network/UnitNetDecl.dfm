@@ -107,6 +107,15 @@ object FormNetDecl: TFormNetDecl
         TabOrder = 7
         OnClick = btnIPManualClick
       end
+      object btnCheckSum: TButton
+        Left = 720
+        Top = 16
+        Width = 75
+        Height = 21
+        Caption = 'Check Sum'
+        TabOrder = 8
+        OnClick = btnCheckSumClick
+      end
     end
   end
 end

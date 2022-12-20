@@ -1455,6 +1455,15 @@ function CardinalToIPString(const IP: Cardinal): string;
 function IPStringToCardinal(const IP: string): Cardinal;
 {* IPv4 字符串转换为整型，结果为 Host 字节顺序，网络传输时需要再转换}
 
+// ============================ 校验和计算函数 =================================
+
+function GetNetworkCheckSum(const Buf: Pointer; ByteLength: Cardinal): Word;
+{* 以反码进位规则计算一块区域的校验和，以 2 字节为单位，如果区域长度非偶数则补 0 计算
+  返回的校验和会转成网络字节顺序}
+
+procedure FillIPHeaderCheckSum(const IPHeader: PCnIPHeader);
+{* 计算 IP 包头内的校验和并填到包头中}
+
 implementation
 
 uses
@@ -1513,6 +1522,50 @@ begin
     Exit;
   end;
   Result := (AA shl 24) or (BB shl 16) or (CC shl 8) or DD;
+end;
+
+function GetNetworkCheckSum(const Buf: Pointer; ByteLength: Cardinal): Word;
+var
+  Sum: Cardinal;
+  S: Word;
+  P: PWord;
+begin
+  Result := 0;
+  if (Buf = nil) or (ByteLength = 0) then
+    Exit;
+
+  Sum := 0;
+  P := PWord(Buf);
+  while ByteLength > 1 do
+  begin
+    Sum := Sum + P^;
+    Inc(P);
+    Dec(ByteLength, 2);
+  end;
+
+  if ByteLength > 0 then
+  begin
+    S := (PByte(P))^;
+    if CurrentByteOrderIsBigEndian then
+      S := S shl 8;
+
+    Sum := Sum + S;
+  end;
+
+  Result := (Sum and $FFFF) + (Sum shr 16);
+  Result := UInt16HostToNetwork(not Result);
+end;
+
+procedure FillIPHeaderCheckSum(const IPHeader: PCnIPHeader);
+var
+  W: Word;
+begin
+  if IPHeader <> nil then
+  begin
+    IPHeader^.Checksum := 0;
+    W := GetNetworkCheckSum(IPHeader, SizeOf(TCnIPHeader));
+    IPHeader^.Checksum := W;
+  end;
 end;
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
