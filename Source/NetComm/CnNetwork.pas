@@ -60,9 +60,10 @@ const
   CN_IP_TOS_PRECEDENCE_NETWORK_CONTROL      = 7;
 
   {* IP 包头中 Type of Service 字段中的其他服务类型标记定义}
+  CN_IP_TOS_PRECEDENCE_MASK                 = $E0;
   CN_IP_TOS_DELAY_MASK                      = $10;
   CN_IP_TOS_THROUGHPUT_MASK                 = $8;
-  CN_IP_TOS_RELIBILITY_MASK                 = $4;
+  CN_IP_TOS_RELIABILITY_MASK                = $4;
 
   {* IP 包头中 Fragment Flag 字段中的分片标记定义}
   CN_IP_FLAG_DONT_FRAGMENT_WORD_MASK        = $4000;
@@ -552,7 +553,7 @@ type
 
   TCnIPHeader = packed record
     VerionHeaderLength: Byte;           // 版本和包头长度
-    TypeOfService:      Byte;           // 服务类型
+    TypeOfService:      Byte;           // 服务类型，高三位是 Precedence 值，再三位是 Delay、Throughtput、Reliability 标记
     TotalLength:        Word;           // 总长度，最大 65535
     Identification:     Word;           // 标识
     FlagOffset:         Word;           // 标志和片偏移
@@ -1190,8 +1191,8 @@ function CnGetIPTypeOfServiceDelay(const IPHeader: PCnIPHeader): Boolean;
 function CnGetIPTypeOfServiceThroughput(const IPHeader: PCnIPHeader): Boolean;
 {* 获得 IP 包头内的 Type of Service 字段中的 Throughput 值，True 为 High，False 为 Normal}
 
-function CnGetIPTypeOfServiceRelibility(const IPHeader: PCnIPHeader): Boolean;
-{* 获得 IP 包头内的 Type of Service 字段中的 Relibility 值，True 为 High，False 为 Normal}
+function CnGetIPTypeOfServiceReliability(const IPHeader: PCnIPHeader): Boolean;
+{* 获得 IP 包头内的 Type of Service 字段中的 Reliability 值，True 为 High，False 为 Normal}
 
 function CnGetIPTotalLength(const IPHeader: PCnIPHeader): Integer;
 {* 获得 IP 包头内的包总长度，存在网络字节转换}
@@ -1216,6 +1217,24 @@ function CnGetIPSourceIP(const IPHeader: PCnIPHeader): Cardinal;
 
 function CnGetIPDestIP(const IPHeader: PCnIPHeader): Cardinal;
 {* 获得 IP 包头内的目的 IP 地址，存在网络字节转换}
+
+procedure CnSetIPVersion(const IPHeader: PCnIPHeader; Version: Byte);
+{* 设置 IP 包头内的 IP 版本号}
+
+procedure CnSetIPHeaderLength(const IPHeader: PCnIPHeader; HeaderLength: Byte);
+{* 设置 IP 包头内的 IP 包头长度，单位为 4 字节}
+
+procedure CnSetIPTypeOfServicePrecedence(const IPHeader: PCnIPHeader; Precedence: Byte);
+{* 设置 IP 包头内的 Type of Service 字段中的 Precedence 值}
+
+procedure CnSetIPTypeOfServiceDelay(const IPHeader: PCnIPHeader; Delay: Boolean);
+{* 设置  IP 包头内的 Type of Service 字段中的 Delay 值，True 为 Low，False 为 Normal}
+
+procedure CnSetIPTypeOfServiceThroughput(const IPHeader: PCnIPHeader; Throughput: Boolean);
+{* 设置  IP 包头内的 Type of Service 字段中的 Throughput 值，True 为 High，False 为 Normal}
+
+procedure CnSetIPTypeOfServiceReliability(const IPHeader: PCnIPHeader; Reliability: Boolean);
+{* 设置  IP 包头内的 Type of Service 字段中的 Reliability 值，True 为 High，False 为 Normal}
 
 procedure CnSetIPTotalLength(const IPHeader: PCnIPHeader; TotalLength: Word);
 {* 设置 IP 包头内的包总长度，存在网络字节转换}
@@ -1673,9 +1692,9 @@ begin
   Result := (IPHeader^.TypeOfService and CN_IP_TOS_THROUGHPUT_MASK) <> 0;
 end;
 
-function CnGetIPTypeOfServiceRelibility(const IPHeader: PCnIPHeader): Boolean;
+function CnGetIPTypeOfServiceReliability(const IPHeader: PCnIPHeader): Boolean;
 begin
-  Result := (IPHeader^.TypeOfService and CN_IP_TOS_RELIBILITY_MASK) <> 0;
+  Result := (IPHeader^.TypeOfService and CN_IP_TOS_RELIABILITY_MASK) <> 0;
 end;
 
 function CnGetIPTotalLength(const IPHeader: PCnIPHeader): Integer;
@@ -1716,6 +1735,45 @@ end;
 function CnGetIPDestIP(const IPHeader: PCnIPHeader): Cardinal;
 begin
   Result := UInt32NetworkToHost(IPHeader^.DestIp);
+end;
+
+procedure CnSetIPVersion(const IPHeader: PCnIPHeader; Version: Byte);
+begin
+  IPHeader^.VerionHeaderLength := (Version shl 4) or (IPHeader^.VerionHeaderLength and $0F);
+end;
+
+procedure CnSetIPHeaderLength(const IPHeader: PCnIPHeader; HeaderLength: Byte);
+begin
+  IPHeader^.VerionHeaderLength := (HeaderLength and $0F) or (IPHeader^.VerionHeaderLength and $F0);
+end;
+
+procedure CnSetIPTypeOfServicePrecedence(const IPHeader: PCnIPHeader; Precedence: Byte);
+begin
+  IPHeader^.TypeOfService := (Precedence shl 5) or (IPHeader^.TypeOfService and not CN_IP_TOS_PRECEDENCE_MASK);
+end;
+
+procedure CnSetIPTypeOfServiceDelay(const IPHeader: PCnIPHeader; Delay: Boolean);
+begin
+  if Delay then
+    IPHeader^.TypeOfService := IPHeader^.TypeOfService or CN_IP_TOS_DELAY_MASK
+  else
+    IPHeader^.TypeOfService := IPHeader^.TypeOfService and not CN_IP_TOS_DELAY_MASK;
+end;
+
+procedure CnSetIPTypeOfServiceThroughput(const IPHeader: PCnIPHeader; Throughput: Boolean);
+begin
+  if Throughput then
+    IPHeader^.TypeOfService := IPHeader^.TypeOfService or CN_IP_TOS_THROUGHPUT_MASK
+  else
+    IPHeader^.TypeOfService := IPHeader^.TypeOfService and not CN_IP_TOS_THROUGHPUT_MASK;
+end;
+
+procedure CnSetIPTypeOfServiceReliability(const IPHeader: PCnIPHeader; Reliability: Boolean);
+begin
+  if Reliability then
+    IPHeader^.TypeOfService := IPHeader^.TypeOfService or CN_IP_TOS_RELIABILITY_MASK
+  else
+    IPHeader^.TypeOfService := IPHeader^.TypeOfService and not CN_IP_TOS_RELIABILITY_MASK;
 end;
 
 procedure CnSetIPTotalLength(const IPHeader: PCnIPHeader; TotalLength: Word);

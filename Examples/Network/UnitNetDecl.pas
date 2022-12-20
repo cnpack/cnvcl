@@ -26,7 +26,6 @@ type
     procedure btnIPManualClick(Sender: TObject);
     procedure btnCheckSumClick(Sender: TObject);
   private
-    { Private declarations }
     FRecving: Boolean;
     FRecCount: Integer;
     FSnifSock: TSocket;
@@ -35,7 +34,7 @@ type
     procedure StopSniff;
     procedure ParsingPacket(Buf: Pointer; DataLen: Integer);
   public
-    { Public declarations }
+
   end;
 
   TIpInfo = record
