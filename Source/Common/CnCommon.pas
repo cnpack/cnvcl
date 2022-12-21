@@ -1370,6 +1370,12 @@ function LoadRawFileToBytes(const FileName: string): TBytes;
 procedure SaveRawFileFromBytes(B: TBytes; const FileName: string);
 {* 将字节数组写入文件，不进行编码转换}
 
+function StrToBytes(const S: AnsiString): TBytes;
+{* 将 Ansi 字符串的内容转为一新的字节数组}
+
+function BytesToStr(Data: TBytes): AnsiString;
+{* 将字节数组的内容转为一新的 AnsiString}
+
 implementation
 
 uses
@@ -8553,6 +8559,26 @@ begin
     F.Write(B[0], Length(B));
   finally
     F.Free;
+  end;
+end;
+
+function StrToBytes(const S: AnsiString): TBytes;
+begin
+  Result := nil;
+  if S <> '' then
+  begin
+    SetLength(Result, Length(S));
+    Move(S[1], Result[0], Length(S));
+  end;
+end;
+
+function BytesToStr(Data: TBytes): AnsiString;
+begin
+  Result := '';
+  if Length(Data) > 0 then
+  begin
+    SetLength(Result, Length(Data));
+    Move(Data[0], Result[1], Length(Data));
   end;
 end;
 
