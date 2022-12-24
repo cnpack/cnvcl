@@ -146,6 +146,7 @@
       ..\..\Source\NetComm\CnPing.obj 
       ..\..\Source\NetComm\CnRS232.obj 
       ..\..\Source\NetComm\CnRS232Dialog.obj 
+      ..\..\Source\NetComm\CnSocket.obj 
       ..\..\Source\NetComm\CnTCPClient.obj 
       ..\..\Source\NetComm\CnTCPForwarder.obj 
       ..\..\Source\NetComm\CnThreadingTCPServer.obj 

@@ -215,6 +215,7 @@ contains
   CnPing in '..\..\Source\NetComm\CnPing.pas',
   CnRS232 in '..\..\Source\NetComm\CnRS232.pas',
   CnRS232Dialog in '..\..\Source\NetComm\CnRS232Dialog.pas' {CnRS232Dlg},
+  CnSocket in '..\..\Source\NetComm\CnSocket.pas',
   CnTCPClient in '..\..\Source\NetComm\CnTCPClient.pas',
   CnTCPForwarder in '..\..\Source\NetComm\CnTCPForwarder.pas',
   CnThreadingTCPServer in '..\..\Source\NetComm\CnThreadingTCPServer.pas',

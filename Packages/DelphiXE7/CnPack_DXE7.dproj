@@ -282,10 +282,11 @@
         <DCCReference Include="..\..\Source\NetComm\CnRS232Dialog.pas">
         	<Form>CnRS232Dlg</Form>
         </DCCReference>
-        <DCCReference Include="..\..\Source\NetComm\CnTwain.pas"/>
+        <DCCReference Include="..\..\Source\NetComm\CnSocket.pas"/>
         <DCCReference Include="..\..\Source\NetComm\CnTCPClient.pas"/>
         <DCCReference Include="..\..\Source\NetComm\CnTCPForwarder.pas"/>
         <DCCReference Include="..\..\Source\NetComm\CnThreadingTCPServer.pas"/>
+        <DCCReference Include="..\..\Source\NetComm\CnTwain.pas"/>
         <DCCReference Include="..\..\Source\NetComm\CnUDP.pas"/>
         <DCCReference Include="..\..\Source\NonVisual\CnActionListHook.pas"/>
         <DCCReference Include="..\..\Source\NonVisual\CnActiveScript.pas"/>
