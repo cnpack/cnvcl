@@ -117,6 +117,7 @@
         <DCCReference Include="..\..\Source\Common\CnEventHook.pas"/>
         <DCCReference Include="..\..\Source\Common\CnFitCurve.pas"/>
         <DCCReference Include="..\..\Source\Common\CnFloatConvert.pas"/>
+        <DCCReference Include="..\..\Source\Common\CnGB18030.pas"/>
         <DCCReference Include="..\..\Source\Common\CnFmxUtils.pas"/>
         <DCCReference Include="..\..\Source\Common\CnGraphUtils.pas"/>
         <DCCReference Include="..\..\Source\Common\CnHardWareInfo.pas"/>

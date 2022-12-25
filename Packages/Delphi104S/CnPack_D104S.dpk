@@ -57,6 +57,7 @@ contains
   CnEventHook in '..\..\Source\Common\CnEventHook.pas',
   CnFitCurve in '..\..\Source\Common\CnFitCurve.pas',
   CnFloatConvert in '..\..\Source\Common\CnFloatConvert.pas',
+  CnGB18030 in '..\..\Source\Common\CnGB18030.pas',
   CnFmxUtils in '..\..\Source\Common\CnFmxUtils.pas',
   CnGraphUtils in '..\..\Source\Common\CnGraphUtils.pas',
   CnHardWareInfo in '..\..\Source\Common\CnHardWareInfo.pas',

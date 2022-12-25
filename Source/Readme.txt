@@ -578,6 +578,9 @@ cnpack\Source 目录内容说明：
   CnRS232Dialog.pas
     CnRS232Dialog 串口设置对话框组件及窗体单元
 
+  CnSocket.pas
+    封装跨平台的 Socket 操作函数的单元
+
   CnTCPClient.pas
     TCP 客户端控件实现单元
 
@@ -593,7 +596,7 @@ cnpack\Source 目录内容说明：
   CnUDP.pas
     UDP 通讯组件单元
 
-                23 文件
+                24 文件
 
 \NonVisual －不可视组件
 

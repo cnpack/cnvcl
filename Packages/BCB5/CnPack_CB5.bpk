@@ -23,6 +23,8 @@
       ..\..\Source\Common\CnEventBus.obj 
       ..\..\Source\Common\CnEventHook.obj 
       ..\..\Source\Common\CnFitCurve.obj 
+      ..\..\Source\Common\CnFloatConvert.obj 
+      ..\..\Source\Common\CnGB18030.obj 
       ..\..\Source\Common\CnGraphUtils.obj 
       ..\..\Source\Common\CnHardWareInfo.obj 
       ..\..\Source\Common\CnHashMap.obj 
