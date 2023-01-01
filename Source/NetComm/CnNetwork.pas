@@ -48,6 +48,7 @@ const
   {* IP 包头中的版本字段的定义}
   CN_IP_VERSION_V4                          = 4;
   CN_IP_VERSION_V6                          = 6;
+  CN_IP_HEADER_LENGTH_V4                    = 5;
 
   {* IP 包头中 Type of Service 字段中的 Precedence 定义}
   CN_IP_TOS_PRECEDENCE_ROUTINE              = 0;

@@ -38,9 +38,10 @@ interface
 {$I CnPack.inc}
 
 uses
-  {$IFDEF MSWINDOWS} Windows, WinSock, {$ELSE} Posix.ArpaInet, Posix.NetinetIn, {$ENDIF}
+  {$IFDEF MSWINDOWS} Windows, WinSock, {$ELSE}
+  Posix.ArpaInet, Posix.NetinetIn, Posix.SysSocket, {$ENDIF}
   SysUtils, Classes, Controls, StdCtrls,
-  CnClasses, CnConsts, CnNetConsts;
+  CnClasses, CnConsts, CnNetConsts, CnNetwork, CnSocket;
 
 type
   PCnIPOptionInformation = ^TCnIPOptionInformation;
@@ -82,7 +83,7 @@ type
   { TCnPing }
 
   TCnPing = class(TCnComponent)
-  {* 通过调用ICMP.DLL库中的函数来实现Ping功能。}
+  {* 通过调用 ICMP.DLL 库中的函数来实现 Ping 功能。}
   private
     FRemoteHost: string;
     FRemoteIP: string;
@@ -108,7 +109,8 @@ type
     procedure SetRemoteIP(const Value: string);
     function PingIP_Host(const aIP: TCnIpInfo; const Data; Count: Cardinal;
       var aReply: string): Integer;
-    {* 以设定的数据 Data (无类型缓冲区) Ping 一次并返回结果。Count 表示数据长度 }
+    {* 以设定的数据 Data (无类型缓冲区) Ping 一次并返回结果。Count 表示数据长度
+      返回值为 SCN_ICMP_ERROR_* 系列常量 }
     function GetReplyString(aResult: Integer; aIP: TCnIpInfo;
       pIPE: PCnIcmpEchoReply): string;
     {* 返回结果字符串。}
@@ -162,6 +164,13 @@ uses
 
 const
   SCnPingData = 'CnPack Ping.';
+
+  SCN_ICMP_ERROR_OK         = 0;
+  SCN_ICMP_ERROR_BAD_ADDR   = -1;
+  SCN_ICMP_ERROR_TIME_OUT   = -2;
+  SCN_ICMP_ERROR_GENERAL    = -3;
+  SCN_ICMP_ERROR_SOCKET     = -4;
+  SCN_ICMP_ERROR_UNKNOWN    = -100;
 
 {$IFDEF MSWINDOWS}
   ICMPDLL = 'icmp.dll';
@@ -360,13 +369,14 @@ end;
 
 function TCnPing.PingIP_Host(const aIP: TCnIpInfo; const Data;
   Count: Cardinal; var aReply: string): Integer;
+{$IFDEF MSWINDOWS}
 var
   IPOpt: TCnIPOptionInformation; // 发送数据结构
   pReqData, pRevData: PAnsiChar;
   pCIER: PCnIcmpEchoReply;
+{$ENDIF}
 begin
-  Result := -100;
-  pReqData := nil;
+  Result := SCN_ICMP_ERROR_UNKNOWN;
 
   if Count <= 0 then
   begin
@@ -375,11 +385,13 @@ begin
   end;
   if aIP.Address = INADDR_NONE then
   begin
-    Result := -1;
+    Result := SCN_ICMP_ERROR_BAD_ADDR;
     aReply := GetReplyString(Result, aIP, nil);
     Exit;
   end;
 
+{$IFDEF MSWINDOWS}
+  pReqData := nil;
   GetMem(pCIER, SizeOf(TCnICMPEchoReply) + Count);
   GetMem(pRevData, Count);
   try
@@ -390,8 +402,7 @@ begin
     FillChar(IPOpt, Sizeof(IPOpt), 0); // 初始化发送数据结构
     IPOpt.TTL := FTTL;
 
-    try //Ping开始
-{$IFDEF MSWINDOWS}
+    try // Ping开始
       if WSAStartup(MAKEWORD(2, 0), FWSAData) <> 0 then
         raise Exception.Create(SInitFailed);
 
@@ -405,32 +416,27 @@ begin
         FTimeOut     // timeout value
         ) <> 0 then
       begin
-        Result := 0; // Ping 正常返回
+        Result := SCN_ICMP_ERROR_OK; // Ping 正常返回
         if Assigned(FOnReceived) then
           FOnReceived(Self, aIP.IP, aIP.Host, IPOpt.TTL, IPOpt.TOS);
       end
       else
       begin
-        Result := -2; // 没有响应
+        Result := SCN_ICMP_ERROR_TIME_OUT; // 没有响应
         if Assigned(FOnError) then
           FOnError(Self, aIP.IP, aIP.Host, IPOpt.TTL, IPOpt.TOS, SNoResponse);
       end;
-{$ELSE}
-      // TODO: POSIX sendto Ping and recvfrom
-      raise Exception.Create('NOT Implemented.');
-{$ENDIF}
     except
       on E: Exception do
       begin
-        Result := -3; // 发生错误
+        Result := SCN_ICMP_ERROR_GENERAL; // 发生错误
         if Assigned(FOnError) then
           FOnError(Self, aIP.IP, aIP.Host, IPOpt.TTL, IPOpt.TOS, E.Message);
       end;
     end;
   finally
-{$IFDEF MSWINDOWS}
     WSACleanUP;
-{$ENDIF}
+
     aReply := GetReplyString(Result, aIP, pCIER);
     if pRevData <> nil then
     begin
@@ -441,6 +447,10 @@ begin
       FreeMem(pReqData); //释放内存
     FreeMem(pCIER);      //释放内存
   end;
+{$ELSE}
+  // TODO: POSIX sendto Ping and recvfrom
+  raise Exception.Create('NOT Implemented.');
+{$ENDIF}
 end;
 
 function TCnPing.GetReplyString(aResult: Integer; aIP: TCnIpInfo;
@@ -450,9 +460,9 @@ var
 begin
   Result := SInvalidAddr;
   case aResult of
-    -100: Result := SICMPRunError;
-    -1: Result := SInvalidAddr;
-    -2: Result := Format(SNoResponse, [RemoteHost]);
+    SCN_ICMP_ERROR_UNKNOWN: Result := SICMPRunError;
+    SCN_ICMP_ERROR_BAD_ADDR: Result := SInvalidAddr;
+    SCN_ICMP_ERROR_TIME_OUT: Result := Format(SNoResponse, [RemoteHost]);
     else
       if pIPE <> nil then
       begin

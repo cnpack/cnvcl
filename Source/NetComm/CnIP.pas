@@ -76,16 +76,16 @@ type
 
   TIP_NetType = (iptNone, iptANet, iptBNet, iptCNet, iptDNet, iptENet,
     iptBroadCast, iptKeepAddr);
-  {* IP地址分类, 不是IP地址, A类地址, B类地址, C类地址, D类地址, E类地址,
-    广播地址, 保留地址(如127等)}
+  {* IP 地址分类：不是IP地址、A 类地址、B 类地址、C 类地址、D 类地址、E 类地址、
+    广播地址、保留地址（如 127 等）}
 
   TIP_Info = packed record
-    IPAddress: Cardinal;                 // IP地址,此处用整形存储
-    SubnetMask: Cardinal;                // 子网掩码,此处用整形存储
-    BroadCast: Cardinal;                 // 广播地址,此处用整形存储
+    IPAddress: Cardinal;                 // IP地址，此处用整形存储
+    SubnetMask: Cardinal;                // 子网掩码，此处用整形存储
+    BroadCast: Cardinal;                 // 广播地址，此处用整形存储
     HostName: array[0..255] of AnsiChar; // 主机名
-    NetType: TIP_NetType;                // IP地址的网络类型
-    Notes: TIPNotes;                     // IP地址的各子节点
+    NetType: TIP_NetType;                // IP 地址的网络类型
+    Notes: TIPNotes;                     // IP 地址的各子节点
     UpState: Boolean;                    // 启用状态
     Loopback: Boolean;                   // 是否环回地址
     SupportBroadcast: Boolean;           // 是否支持广播
