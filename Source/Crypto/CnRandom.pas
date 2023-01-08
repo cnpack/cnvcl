@@ -26,9 +26,11 @@ unit CnRandom;
 * 单元作者：刘啸
 * 备    注：
 * 开发平台：Win7 + Delphi 5.0
-* 兼容测试：暂未进行
+* 兼容测试：Win32/Win64/MacOS + Unicode/NonUnicode
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.08.22 V1.1
+* 修改记录：2023.01.08 V1.2
+*               修正 Win64 下 API 声明参数有误的问题
+*           2022.08.22 V1.1
 *               优先使用操作系统提供的随机数发生器
 *           2020.03.27 V1.0
 *               创建单元，从 CnPrimeNumber 中独立出来
@@ -78,14 +80,14 @@ const
   PROV_RSA_FULL = 1;
   NTE_BAD_KEYSET = $80090016;
 
-function CryptAcquireContext(phProv: PULONG; pszContainer: PAnsiChar;
+function CryptAcquireContext(phProv: PHandle; pszContainer: PAnsiChar;
   pszProvider: PAnsiChar; dwProvType: LongWord; dwFlags: LongWord): BOOL;
   stdcall; external ADVAPI32 name 'CryptAcquireContextA';
 
-function CryptReleaseContext(hProv: ULONG; dwFlags: LongWord): BOOL;
+function CryptReleaseContext(hProv: THandle; dwFlags: LongWord): BOOL;
   stdcall; external ADVAPI32 name 'CryptReleaseContext';
 
-function CryptGenRandom(hProv: ULONG; dwLen: LongWord; pbBuffer: PAnsiChar): BOOL;
+function CryptGenRandom(hProv: THandle; dwLen: LongWord; pbBuffer: PAnsiChar): BOOL;
   stdcall; external ADVAPI32 name 'CryptGenRandom';
 
 var
