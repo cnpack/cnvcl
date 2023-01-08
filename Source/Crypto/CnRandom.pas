@@ -89,7 +89,7 @@ function CryptGenRandom(hProv: ULONG; dwLen: LongWord; pbBuffer: PAnsiChar): BOO
   stdcall; external ADVAPI32 name 'CryptGenRandom';
 
 var
-  FHProv: THandle;
+  FHProv: THandle = 0;
 
 {$ENDIF}
 
@@ -227,8 +227,11 @@ end;
 
 procedure StopRandom;
 begin
-  CryptReleaseContext(FHProv, 0);
-  FHProv := 0;
+  if FHProv <> 0 then
+  begin
+    CryptReleaseContext(FHProv, 0);
+    FHProv := 0;
+  end;
 end;
 
 initialization
