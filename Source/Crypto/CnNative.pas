@@ -2018,7 +2018,7 @@ var
   Empty: Boolean;
 begin
   I := FirstIndex;
-  Dig := 0;
+  Dig := 0;    // To avoid warning
   Result := 0;
 
   if S = '' then
@@ -2057,7 +2057,7 @@ begin
         Break;
       if Sign and (Dig <> 0) then
         Break;
-      Result := Result shl 4 + Dig;
+      Result := Result shl 4 + TUInt64(Dig);
       Inc(I);
       Empty := False;
     end;
@@ -2076,7 +2076,7 @@ begin
         Break;
       if Sign and (Dig <> 0) then
         Break;
-      Result := Result * 10 + Dig;
+      Result := Result * 10 + TUInt64(Dig);
       Inc(I);
       Empty := False;
     end;
