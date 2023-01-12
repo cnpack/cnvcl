@@ -785,6 +785,15 @@ object FormBigNumber: TFormBigNumber
         TabOrder = 76
         OnClick = btnBase64Click
       end
+      object btnBatch: TButton
+        Left = 1048
+        Top = 560
+        Width = 121
+        Height = 57
+        Caption = 'Batch Test'
+        TabOrder = 77
+        OnClick = btnBatchClick
+      end
     end
     object tsSparseBigNumberList: TTabSheet
       Caption = 'Sparse BigNumber List'

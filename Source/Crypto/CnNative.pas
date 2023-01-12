@@ -529,7 +529,7 @@ procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64
   调用者须自行保证商在 64 位范围内，否则会抛溢出异常}
 
 procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64; var DivRes, ModRes: TUInt64);
-{* 128 位有符号数除以 64 位有符号数，商放 DivRes，余数放 ModRes
+{* 128 位无符号数除以 64 位无符号数，商放 DivRes，余数放 ModRes
   调用者须自行保证商在 64 位范围内，否则会抛溢出异常}
 
 {$ENDIF}
@@ -1965,7 +1965,7 @@ procedure UInt64MulUInt64(A, B: UInt64; var ResLo, ResHi: UInt64); assembler;
 asm
   PUSH RAX
   MOV RAX, RCX
-  IMUL RDX
+  MUL RDX         // 得用无符号，不能用有符号的 IMUL
   MOV [R8], RAX
   MOV [R9], RDX
   POP RAX

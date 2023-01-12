@@ -105,6 +105,7 @@ type
     btnBNHashMap: TButton;
     btnBSGS: TButton;
     btnBase64: TButton;
+    btnBatch: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -178,6 +179,7 @@ type
     procedure btnBNHashMapClick(Sender: TObject);
     procedure btnBSGSClick(Sender: TObject);
     procedure btnBase64Click(Sender: TObject);
+    procedure btnBatchClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -194,6 +196,9 @@ var
 implementation
 
 {$R *.DFM}
+
+uses
+  UnitBatchTest;
 
 const
   DEFAULT_RANDOM_LENGTH: Integer = 4096;
@@ -1514,6 +1519,19 @@ begin
   ShowMessage(S);
   Num2.SetBase64(S);
   ShowNumbers;
+end;
+
+procedure TFormBigNumber.btnBatchClick(Sender: TObject);
+begin
+  Assert(TestBigNumberGetBitsCount, 'TestBigNumberGetBitsCount');
+  Assert(TestBigNumberShiftLeft, 'TestBigNumberShiftLeft');
+  Assert(TestBigNumberDivWord, 'TestBigNumberDivWord');
+  Assert(TestBigNumberMulWord, 'TestBigNumberMulWord');
+  Assert(TestBigNumberHex, 'TestBigNumberHex');
+  Assert(TestBigNumberDec, 'TestBigNumberDec');
+  Assert(TestBigNumberUnsignedAdd, 'TestBigNumberUnsignedAdd');
+  Assert(TestBigNumberPowerMod, 'TestBigNumberPowerMod');
+  Assert(TestBigNumberDiv, 'TestBigNumberDiv');
 end;
 
 end.
