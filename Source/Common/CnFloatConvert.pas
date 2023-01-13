@@ -52,7 +52,10 @@ unit CnFloatConvert;
 * 开发平台：WinXP + Delphi 2009
 * 兼容测试：Delphi 2007
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.02.17
+* 修改记录：2023.01.13
+*               兼容处理 Win64 下 Extended 是 8 字节 Double 而不是 10 字节扩展精度的问题
+*               暂无法处理 MacOS64/Linux64 下的 16 字节 Extended
+*           2022.02.17
 *               增加 FPC 的编译支持，待测试
 *           2021.09.05
 *               加入三个将浮点数转换为 UInt64（不支持 UInt64 的以 Int64 代替）的函数
@@ -108,7 +111,13 @@ type
   {* Delphi 中无八倍精度类型，用数组及其指针代替}
   POctuple = ^TOctuple;
 
+  ECnFloatSizeError = class(Exception);
+
 const
+  CN_EXTENDED_SIZE_8  =          8;    // Win64 下的 Extended 只有 8 字节
+  CN_EXTENDED_SIZE_10 =          10;   // Win32 下的 Extended 是标准的 10 字节
+  CN_EXTENDED_SIZE_16 =          16;   // MACOS64/Linux64 是 16 字节
+
   CN_SIGN_SINGLE_MASK =          $80000000;
   CN_SIGN_DOUBLE_MASK =          $8000000000000000;
   CN_SIGN_EXTENDED_MASK =        $8000;      // 刨去了 8 字节有效数字
@@ -228,8 +237,12 @@ implementation
 const
   UINT64_EXTENDED_EXP_MAX = $4040; // UINT64 最大整数对应 Extended 浮点的最大指数
 
+resourcestring
+  SCN_ERROR_EXTENDED_SIZE = 'Extended Size Error';
+
 type
   TExtendedRec = packed record
+  {* 10 字节的扩展精度浮点数，只 Win32 下有效}
     Mantissa: TUInt64;
     ExpSign: Word;
   end;
@@ -725,6 +738,7 @@ UseExponent:
       Result := '-' + Result;
   end;
 end;
+
 function FloatDecimalToOctExtended(fIn: Extended; DecimalExp,
   AlwaysUseExponent: Boolean): AnsiString;
 const
@@ -942,9 +956,16 @@ end;
 procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
 begin
-  SignNegative := (PExtendedRec(@Value)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
-  Exponent := (PExtendedRec(@Value)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
-  Mantissa := PExtendedRec(@Value)^.Mantissa; // 有 1，不用加了
+  if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
+  begin
+    SignNegative := (PExtendedRec(@Value)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
+    Exponent := (PExtendedRec(@Value)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
+    Mantissa := PExtendedRec(@Value)^.Mantissa; // 有 1，不用加了
+  end
+  else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+    ExtractFloatDouble(Value, SignNegative, Exponent, Mantissa)
+  else
+    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
 end;
 
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
@@ -977,15 +998,27 @@ end;
 
 procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Extended);
+var
+  D: Double;
 begin
-  PExtendedRec(@Value)^.Mantissa := Mantissa;
-  Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
+  if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
+  begin
+    PExtendedRec(@Value)^.Mantissa := Mantissa;
+    Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
 
-  PExtendedRec(@Value)^.ExpSign := Exponent and CN_EXPONENT_EXTENDED_MASK;
-  if SignNegative then
-    PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign or CN_SIGN_EXTENDED_MASK
+    PExtendedRec(@Value)^.ExpSign := Exponent and CN_EXPONENT_EXTENDED_MASK;
+    if SignNegative then
+      PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign or CN_SIGN_EXTENDED_MASK
+    else
+      PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
+  end
+  else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+  begin
+    CombineFloatDouble(SignNegative, Exponent, Mantissa, D);
+    Value := D;
+  end
   else
-    PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
+    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
 end;
 
 // 将 UInt64 设为浮点数
@@ -1082,8 +1115,13 @@ end;
 
 function ExtendedIsInfinite(const AValue: Extended): Boolean;
 begin
-  Result := ((PExtendedRec(@AValue)^.ExpSign and $7FFF) = $7FFF) and
-            ((PExtendedRec(@AValue)^.Mantissa) = 0);
+  if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
+    Result := ((PExtendedRec(@AValue)^.ExpSign and $7FFF) = $7FFF) and
+              ((PExtendedRec(@AValue)^.Mantissa) = 0)
+  else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+    Result := DoubleIsInfinite(AValue)
+  else
+    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
 end;
 
 function SingleIsNan(const AValue: Single): Boolean;
@@ -1100,8 +1138,13 @@ end;
 
 function ExtendedIsNan(const AValue: Extended): Boolean;
 begin
-  Result := ((PExtendedRec(@AValue)^.ExpSign and $7FFF)  = $7FFF) and
-            ((PExtendedRec(@AValue)^.Mantissa and $7FFFFFFFFFFFFFFF) <> 0);
+  if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
+    Result := ((PExtendedRec(@AValue)^.ExpSign and $7FFF)  = $7FFF) and
+              ((PExtendedRec(@AValue)^.Mantissa and $7FFFFFFFFFFFFFFF) <> 0)
+  else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+    Result := DoubleIsNan(AValue)
+  else
+    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
 end;
 
 end.
