@@ -67,7 +67,9 @@ var
   A1, A2: Single;
   B1, B2: Double;
   C1, C2: Extended;
+{$IFDEF EXTENDED_SIZE_16}
   D1, D2: Extended;
+{$ENDIF}
 begin
   A1 := -0.33;            // C3 F5 A8 BE 是内存中的内容，处理时字节序要倒过来BEA8F5C3
   B1 := 1003.2354545;     // 91 09 F8 35 E2 59 8F 40，处理时同样倒过来
@@ -81,11 +83,14 @@ begin
   CombineFloatDouble(SignNeg2, Exponent2, Mantissa2, B2);
   CombineFloatExtended(SignNeg3, Exponent3, Mantissa3, C2);
 
-  // Delphi 不支持 16 字节完整浮点，虽然能拼凑，但中间结果都是错的
+{$IFDEF EXTENDED_SIZE_16}
+  D1 := -10;
+  // Delphi 不支持 IEEE 的 16 字节完整浮点，虽然能拆装拼凑，但中间结果都是错的
   ExtractFloatQuadruple(D1, SignNeg3, Exponent3, Mantissa3, Mantissa2);
   CombineFloatQuadruple(SignNeg3, Exponent3, Mantissa3, Mantissa2, D2);
+{$ENDIF}
 
-  if (A1 = A2) and (B1 = B2) and (C1 = C2) then
+  if (A1 = A2) and (B1 = B2) and (C1 = C2) {$IFDEF EXTENDED_SIZE_16} and (D1 = D2) {$ENDIF} then
     ShowMessage('Float Extract and Combine OK.');
 end;
 
