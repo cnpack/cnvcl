@@ -51,13 +51,15 @@ unit CnFloat;
 *           这三个常量指定最长能输出多少位，当结果超过这个数时，则一定使用科学计数法。
 *
 *           另外，Extended 只有 Win32 下是 10 字节，MacOS/Linux x64 下均是 16 字节，Win64 和 ARM 平台均是 8 字节
-*           而且，MacOS64 下的 16 字节扩展精度并非  IEEE 754-2008 中规定的 Quadruple 格式，可能是 double double
+*           而且，MacOS64 下的 16 字节扩展精度并非  IEEE 754-2008 中规定的 Quadruple 格式，而是前 10 字节截断，
+*           内部结构同 Win32 下的扩展 10 字节
+*
 * 开发平台：WinXP + Delphi 2009
 * 兼容测试：Delphi 2007，且 Extended 或以上只支持小端模式
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2023.01.13
 *               兼容处理 Win64 下 Extended 是 8 字节 Double 而不是 10 字节扩展精度的问题
-*               待测试处理 MacOS64/Linux64 下的 16 字节 Extended
+*               兼容处理 MacOS64/Linux64 下的 16 字节 Extended（只截断处理前 10 字节）
 *           2022.02.17
 *               增加 FPC 的编译支持，待测试
 *           2021.09.05
@@ -176,12 +178,14 @@ procedure ExtractFloatDouble(const Value: Double; out SignNegative: Boolean;
 
 procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
-{* 从扩展精度浮点数中解出符号位、指数、有效数字，注意不支持 16 字节的 Extended 格式
+{* 从扩展精度浮点数中解出符号位、指数、有效数字，支持 10 字节、
+  以及 16 字节截断为 10 字节的 Extended 格式
   注：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1}
 
 procedure ExtractFloatQuadruple(const Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out MantissaLo, MantissaHi: TUInt64);
-{* 从十六字节精度浮点数中解出符号位、指数、有效数字，只在 Extended 为 16 字节时有效
+{* 从十六字节精度浮点数中解出符号位、指数、有效数字，只在 Extended 为 16 字节
+  且格式是 IEEE 754-2008 里的四倍精度浮点时有效（目前 Delphi 不支持该格式）
   注：指数为真实指数；有效数字 112 位，分为高低两部分}
 
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
@@ -194,11 +198,13 @@ procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
 
 procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Extended);
-{* 把符号位、指数、有效数字拼成扩展精度浮点数，不支持 16 字节的 Extended 格式}
+{* 把符号位、指数、有效数字拼成扩展精度浮点数，支持 10 字节、
+  以及 16 字节截断为 10 字节的 Extended 格式}
 
 procedure CombineFloatQuadruple(SignNegative: Boolean; Exponent: Integer;
   MantissaLo, MantissaHi: TUInt64; var Value: Extended);
-{* 把符号位、指数、有效数字拼成扩展精度浮点数，只在 Extended 为 16 字节时有效}
+{* 把符号位、指数、有效数字拼成扩展精度浮点数，只在 Extended 为 16 字节
+  且格式是 IEEE 754-2008 里的四倍精度浮点时有效（目前 Delphi 不支持该格式）}
 
 function UInt64ToSingle(U: TUInt64): Single;
 {* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Single，仨函数实现相同}
@@ -971,7 +977,7 @@ end;
 procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
 begin
-  if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
+  if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
   begin
     SignNegative := (PExtendedRec10(@Value)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
     Exponent := (PExtendedRec10(@Value)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
@@ -1030,7 +1036,7 @@ procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
 var
   D: Double;
 begin
-  if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
+  if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
   begin
     PExtendedRec10(@Value)^.Mantissa := Mantissa;
     Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
