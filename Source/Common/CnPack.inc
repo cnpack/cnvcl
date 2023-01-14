@@ -3268,6 +3268,26 @@
   {$DEFINE DELPHI5OR6}
 {$ENDIF}
 
+{$IFDEF WIN64}
+  {$DEFINE EXTENDED_SIZE_8}      // Win64 下 Extended 类型长度 8 字节
+{$ENDIF}
+
+{$IFDEF CPUARM}
+  {$DEFINE EXTENDED_SIZE_8}      // ARM 平台 Extended 类型长度 8 字节
+{$ENDIF}
+
+{$IFDEF WIN32}
+  {$DEFINE EXTENDED_SIZE_10}     // Win32 下 Extended 类型长度 10 字节
+{$ENDIF}
+
+{$IFDEF MACOS64}
+  {$DEFINE EXTENDED_SIZE_16}     // MacOS64 下 Extended 类型长度 16 字节
+{$ENDIF}
+
+{$IFDEF LINUX64}
+  {$DEFINE EXTENDED_SIZE_16}     // Linux64 下 Extended 类型长度 16 字节
+{$ENDIF}
+
 //==============================================================================
 // 调试设置
 //==============================================================================

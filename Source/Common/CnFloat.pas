@@ -236,11 +236,9 @@ function DoubleIsNan(const AValue: Double): Boolean;
 function ExtendedIsNan(const AValue: Extended): Boolean;
 {* 扩展精度浮点数是否非实数}
 
-{$IFNDEF FPC}          // FPC、Windows 64/Linux 64 以及 Delphi 5、6 不支持以下三个函数
-{$IFNDEF MACOS}
-{$IFNDEF CPUX64}
-{$IFNDEF COMPILER5}
-{$IFNDEF COMPILER6}
+// FPC、Windows 64/Linux 64 等平台以及 Delphi 5、6 不支持以下三个函数
+{$IFDEF WIN32}
+{$IFDEF COMPILER7_UP}
 
 { FloatDecimalToBinExtended, FloatDecimalToOctExtended，FloatDecimalToHexExtended
   均调用了 FloatDecimalToBinaryExtended 过程，FloatDecimalToBinaryExtended 不公开。}
@@ -254,9 +252,6 @@ function FloatDecimalToOctExtended(fIn: Extended; DecimalExp,
 function FloatDecimalToHexExtended(fIn: Extended; DecimalExp,
   AlwaysUseExponent: Boolean): AnsiString; // Convert to hexdecimal
 
-{$ENDIF}
-{$ENDIF}
-{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 
@@ -277,11 +272,8 @@ type
   end;
   PExtendedRec10 = ^TExtendedRec10;
 
-{$IFNDEF FPC}
-{$IFNDEF MACOS}
-{$IFNDEF CPUX64}
-{$IFNDEF COMPILER5}
-{$IFNDEF COMPILER6}
+{$IFDEF WIN32}
+{$IFDEF COMPILER7_UP}
 
 type
   PConvertFloatSystem = ^TConvertFloatSystem;
@@ -955,9 +947,6 @@ UseExponent:
   end;
 end;
 
-{$ENDIF}
-{$ENDIF}
-{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 

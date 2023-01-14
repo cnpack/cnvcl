@@ -40,9 +40,8 @@ implementation
 
 procedure TFormFloat.Button1Click(Sender: TObject);
 begin
-{$IFNDEF WIN64}
-{$IFNDEF COMPILER5}
-{$IFNDEF COMPILER6}
+{$IFDEF WIN32}
+{$IFDEF COMPILER7_UP}
   if rdoBin.Checked then
     ShowMessage(FloatDecimalToBinExtended(StrToFloat(Edit1.Text), CheckBox1.Checked,
       CheckBox2.Checked))
@@ -52,7 +51,6 @@ begin
   else
     ShowMessage(FloatDecimalToHexExtended(StrToFloat(Edit1.Text), CheckBox1.Checked,
       CheckBox2.Checked));
-{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 end;
