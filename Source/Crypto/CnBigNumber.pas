@@ -1009,7 +1009,7 @@ var
 implementation
 
 uses
-  CnPrimeNumber, CnBigDecimal, CnFloatConvert, CnBase64;
+  CnPrimeNumber, CnBigDecimal, CnFloat, CnBase64;
 
 resourcestring
   SCN_BN_LOG_RANGE_ERROR = 'Log Range Error';

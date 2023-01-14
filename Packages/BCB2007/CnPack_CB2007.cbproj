@@ -535,7 +535,7 @@
     <DelphiCompile Include="..\..\Source\Common\CnSingletonComp.pas">
       <BuildOrder>150</BuildOrder>
     </DelphiCompile>
-    <DelphiCompile Include="..\..\Source\Common\CnFloatConvert.pas">
+    <DelphiCompile Include="..\..\Source\Common\CnFloat.pas">
       <BuildOrder>151</BuildOrder>
     </DelphiCompile>
     <DelphiCompile Include="..\..\Source\Graphics\CnPanel.pas">

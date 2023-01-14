@@ -180,8 +180,8 @@
         <UnitName Value="CnFitCurve"/>
       </Item41>
       <Item42>
-        <Filename Value="../../Source/Common/CnFloatConvert.pas"/>
-        <UnitName Value="CnFloatConvert"/>
+        <Filename Value="../../Source/Common/CnFloat.pas"/>
+        <UnitName Value="CnFloat"/>
       </Item42>
       <Item43>
         <Filename Value="../../Source/Common/CnGraph.pas"/>

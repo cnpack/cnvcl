@@ -14,7 +14,7 @@ uses
   CnSHA3, CnSM2, CnSM3, CnSM4, CnSM9, CnTEA, CnZUC, CnLinkedList, 
   CnBigDecimal, CnBigRational, CnBloomFilter, CnCalClass, CnCalendar, 
   CnClasses, CnConsts, CnContainers, CnDancingLinks, CnFitCurve, 
-  CnFloatConvert, CnGraph, CnGraphUtils, CnHashMap, CnHashTable, CnLockFree, 
+  CnFloat, CnGraph, CnGraphUtils, CnHashMap, CnHashTable, CnLockFree, 
   CnMath, CnMatrix, CnRopes, CnSingleton, CnSingletonComp, CnSkipList, 
   CnStrDiff, CnStream, CnStrings, CnTree, CnTreeClasses, CnWideStrings, 
   Cn25519, CnInt128;

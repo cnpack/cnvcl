@@ -56,7 +56,7 @@ cnpack\Source 目录内容说明：
   CnFitCurve.pas
     曲线拟合实现单元
 
-  CnFloatConvert.pas
+  CnFloat.pas
     浮点数转换为二、八、十六进制的实现单元
 
   CnFmxUtils.pas

@@ -552,7 +552,7 @@ function UnsignedAddWithLimitRadix(A, B, C: Cardinal; var R: Cardinal;
 implementation
 
 uses
-  CnFloatConvert;
+  CnFloat;
 
 var
   FByteOrderIsBigEndian: Boolean = False;

@@ -3,7 +3,7 @@ program Project1;
 uses
   Forms,
   Unit1 in 'Unit1.pas' {FormFloat},
-  CnFloatConvert in '..\..\Source\Common\CnFloatConvert.pas';
+  CnFloatConvert in '..\..\Source\Common\CnFloat.pas';
 
 {$R *.res}
 

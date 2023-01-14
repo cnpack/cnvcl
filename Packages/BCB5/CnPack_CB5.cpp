@@ -27,7 +27,7 @@ USEUNIT("..\..\Source\Common\CnDynObjBuilder.pas");
 USEUNIT("..\..\Source\Common\CnEventBus.pas");
 USEUNIT("..\..\Source\Common\CnEventHook.pas");
 USEUNIT("..\..\Source\Common\CnFitCurve.pas");
-USEUNIT("..\..\Source\Common\CnFloatConvert.pas");
+USEUNIT("..\..\Source\Common\CnFloat.pas");
 USEUNIT("..\..\Source\Common\CnGB18030.pas");
 USEUNIT("..\..\Source\Common\CnGraphUtils.pas");
 USEUNIT("..\..\Source\Common\CnHardWareInfo.pas");

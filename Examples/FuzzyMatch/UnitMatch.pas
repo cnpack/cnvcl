@@ -1160,7 +1160,7 @@ const
       'CnEventBus.pas',
       'CnEventHook.pas',
       'CnFitCurve.pas',
-      'CnFloatConvert.pas',
+      'CnFloat.pas',
       'CnFmxUtils.pas',
       'CnGraphUtils.pas',
       'CnHardWareInfo.pas',

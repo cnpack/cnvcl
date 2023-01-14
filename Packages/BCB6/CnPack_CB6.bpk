@@ -23,7 +23,7 @@
       ..\..\Source\Common\CnEventBus.obj 
       ..\..\Source\Common\CnEventHook.obj 
       ..\..\Source\Common\CnFitCurve.obj 
-      ..\..\Source\Common\CnFloatConvert.obj 
+      ..\..\Source\Common\CnFloat.obj 
       ..\..\Source\Common\CnGB18030.obj 
       ..\..\Source\Common\CnGraphUtils.obj 
       ..\..\Source\Common\CnHardWareInfo.obj 
@@ -305,7 +305,7 @@
       <FILE FILENAME="..\..\Source\Common\CnEventBus.pas" FORMNAME="" UNITNAME="CnEventBus" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnEventHook.pas" FORMNAME="" UNITNAME="CnEventHook" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnFitCurve.pas" FORMNAME="" UNITNAME="CnFitCurve" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Common\CnFloatConvert.pas" FORMNAME="" UNITNAME="CnFloatConvert" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnFloat.pas" FORMNAME="" UNITNAME="CnFloat" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnGB18030.pas" FORMNAME="" UNITNAME="CnGB18030" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnGraphUtils.pas" FORMNAME="" UNITNAME="CnGraphUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnHardWareInfo.pas" FORMNAME="" UNITNAME="CnHardWareInfo" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
