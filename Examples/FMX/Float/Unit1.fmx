@@ -1,0 +1,117 @@
+object FormFloat: TFormFloat
+  Left = 350
+  Top = 240
+  Caption = #28014#28857#25968#36716#25442#25104#23383#31526#20018' & Extract Float '#27979#35797
+  ClientHeight = 189
+  ClientWidth = 447
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  Left = 350
+  Top = 240
+  DesignerMasterStyle = 0
+  object Label1: TLabel
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 60.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = #36755#20837#28014#28857#25968
+  end
+  object Edit1: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 0
+    Text = '128.125'
+    Position.X = 8.000000000000000000
+    Position.Y = 27.000000000000000000
+    Size.Width = 337.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object CheckBox1: TCheckBox
+    Position.X = 8.000000000000000000
+    Position.Y = 54.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    Text = #21313#36827#21046#25351#25968#37096#20998
+  end
+  object CheckBox2: TCheckBox
+    Position.X = 8.000000000000000000
+    Position.Y = 77.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = #19968#23450#20351#29992#25351#25968
+  end
+  object Button1: TButton
+    Position.X = 353.000000000000000000
+    Position.Y = 25.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Text = #36716#25442
+    OnClick = Button1Click
+  end
+  object rdoBin: TRadioButton
+    IsChecked = True
+    Position.X = 8.000000000000000000
+    Position.Y = 112.000000000000000000
+    Size.Width = 113.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Text = #20108#36827#21046'(Binary)'
+  end
+  object rdoOct: TRadioButton
+    Position.X = 127.000000000000000000
+    Position.Y = 112.000000000000000000
+    Size.Width = 113.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Text = #20843#36827#21046'(Octal)'
+  end
+  object rdoHex: TRadioButton
+    Position.X = 246.000000000000000000
+    Position.Y = 112.000000000000000000
+    Size.Width = 139.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 6
+    Text = #21313#20845#36827#21046'(Hexdecimal)'
+  end
+  object btnExtract: TButton
+    Position.X = 352.000000000000000000
+    Position.Y = 64.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 7
+    Text = 'Extract'
+    OnClick = btnExtractClick
+  end
+  object btnUInt64ToFloat: TButton
+    Position.X = 144.000000000000000000
+    Position.Y = 64.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 8
+    Text = 'UInt64 To Float'
+    OnClick = btnUInt64ToFloatClick
+  end
+  object btnFloatToUInt64: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 64.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 9
+    Text = 'Float To UInt64'
+    OnClick = btnFloatToUInt64Click
+  end
+end

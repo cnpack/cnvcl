@@ -50,8 +50,8 @@ unit CnFloat;
 *             MaxOctDigits = 40;
 *           这三个常量指定最长能输出多少位，当结果超过这个数时，则一定使用科学计数法。
 *
-*           另外，Extended 只有 Win32 下是 10 字节，MACOS/Linux x64 下均是 16 字节，Win64 和 ARM 平台均是 8 字节
-*
+*           另外，Extended 只有 Win32 下是 10 字节，MacOS/Linux x64 下均是 16 字节，Win64 和 ARM 平台均是 8 字节
+*           而且，MacOS64 下的 16 字节扩展精度并非  IEEE 754-2008 中规定的 Quadruple 格式，可能是 double double
 * 开发平台：WinXP + Delphi 2009
 * 兼容测试：Delphi 2007，且 Extended 或以上只支持小端模式
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -109,22 +109,22 @@ uses
 
 type
   TQuadruple = packed record
+  {* Delphi 中无四倍精度类型，用结构及其指针代替}
     Lo: TUInt64;
     Hi0: Cardinal;
     case Boolean of
       True:  (Hi1: Cardinal);
       False: (W0, W1: Word);   // 小端机器上，符号和指数都在这个 W1 里
   end;
-  {* Delphi 中无四倍精度类型，用结构及其指针代替}
   PQuadruple = ^TQuadruple;
 
   TOctuple = packed record
+  {* Delphi 中无八倍精度类型，用两个 Int64 及其指针代替}
     F0: Int64;
     F1: Int64;
     F2: Int64;
     F3: Int64;
   end;
-  {* Delphi 中无八倍精度类型，用两个 Int64 及其指针代替}
   POctuple = ^TOctuple;
 
   ECnFloatSizeError = class(Exception);
@@ -989,12 +989,12 @@ begin
   if SizeOf(Extended) <> CN_EXTENDED_SIZE_16 then
     raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
 
-  SignNegative := (PQuadruple(@Value)^.Hi1 and CN_SIGN_QUADRUPLE_MASK) <> 0;
-  Exponent := (PQuadruple(@Value)^.Hi1 and CN_EXPONENT_QUADRUPLE_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
+  SignNegative := (PQuadruple(@Value)^.W1 and CN_SIGN_QUADRUPLE_MASK) <> 0;
+  Exponent := (PQuadruple(@Value)^.W1 and CN_EXPONENT_QUADRUPLE_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
 
   // Extract 16 Bytes to Mantissas
   MantissaLo := PQuadruple(@Value)^.Lo;
-  MantissaHi := PQuadruple(@Value)^.Hi0 or (PQuadruple(@Value)^.W0 shl 32) or (TUInt64(1) shl 48); // 高位再加个 1
+  MantissaHi := TUInt64(PQuadruple(@Value)^.Hi0) or (TUInt64(PQuadruple(@Value)^.W0) shl 32) or (TUInt64(1) shl 48); // 高位再加个 1
 end;
 
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
@@ -1062,7 +1062,7 @@ begin
   PQuadruple(@Value)^.Hi1 := (MantissaHi shr 32) and CN_SIGNIFICAND_QUADRUPLE_MASK;
 
   Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
-  PQuadruple(@Value)^.Hi1 := Exponent and CN_EXPONENT_QUADRUPLE_MASK;
+  PQuadruple(@Value)^.W1 := Exponent and CN_EXPONENT_QUADRUPLE_MASK;
   if SignNegative then
     PQuadruple(@Value)^.Hi1 := PQuadruple(@Value)^.Hi1 or CN_SIGN_QUADRUPLE_MASK
   else
