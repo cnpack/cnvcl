@@ -49,12 +49,15 @@ unit CnFloatConvert;
 *             MaxHexDigits = 30;
 *             MaxOctDigits = 40;
 *           这三个常量指定最长能输出多少位，当结果超过这个数时，则一定使用科学计数法。
+*
+*           另外，Extended 只有 Win32 下是 10 字节，MACOS/Linux x64 下均是 16 字节，Win64 和 ARM 平台均是 8 字节
+*
 * 开发平台：WinXP + Delphi 2009
-* 兼容测试：Delphi 2007
+* 兼容测试：Delphi 2007，且 Extended 或以上只支持小端模式
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2023.01.13
 *               兼容处理 Win64 下 Extended 是 8 字节 Double 而不是 10 字节扩展精度的问题
-*               暂无法处理 MacOS64/Linux64 下的 16 字节 Extended
+*               待测试处理 MacOS64/Linux64 下的 16 字节 Extended
 *           2022.02.17
 *               增加 FPC 的编译支持，待测试
 *           2021.09.05
@@ -84,18 +87,20 @@ uses
 
   IEEE 754-2008 加了
   四倍精度 Quadruple        1 符号位 S，15 位指数 E，112 位有效数 M，共 16 字节 128 位
-  八倍精度 Octuple          1 符号位 S，19 位指数 E，236 位有效数 M，共 32 字节 128 位
+  八倍精度 Octuple          1 符号位 S，19 位指数 E，236 位有效数 M，共 32 字节 256 位
 
-  其中，符号位 S，0 表示正，1 表示负；E 要减去 127/1023/16383 才是真正指数
+  其中，符号位 S，0 表示正，1 表示负；E 要减去 127/1023/16383/16383 才是真正指数
         M: 规范化单/双精度的二进制 M 的高位加个 1. 代表有效数，扩展的无需加，自身有 1.
            最终值：有效数（二进制 1.xxxx 的形式）乘以 2 的 E 次方（注意不是 10 的 E 次方！）
 
-  格式	        字节 1    字节 2    字节 3    字节 4    ...  字节 n（低位 0）
+  格式	        字节 1    字节 2    字节 3    字节 4    ...  字节 n（每个字节的右边低位是 0）
   单精度 4      SXXXXXXX  XMMMMMMM  MMMMMMMM  MMMMMMMM
   双精度 8      SXXXXXXX  XXXXMMMM  MMMMMMMM  MMMMMMMM  ...  MMMMMMMM
-  扩展双精度 10 SXXXXXXX  XXXXXXXX  1MMMMMMM  MMMMMMMM  ...  MMMMMMMM
+  扩展双精度 10 SXXXXXXX  XXXXXXXX  1MMMMMMM  MMMMMMMM  ...  MMMMMMMM  // 注意它的有效数字包括了 1，其余都省略了 1
   四倍精度 16   SXXXXXXX  XXXXXXXX  MMMMMMMM  MMMMMMMM  ...  MMMMMMMM
   八倍精度 32   SXXXXXXX  XXXXXXXX  XXXXMMMM  MMMMMMMM  ...  MMMMMMMM
+
+  注意：Little Endian 机器上，字节 1 到 n 还会来个倒序。本单元均已倒序处理
 
   0：全 0
   -0：全 0 但符号位为 1
@@ -103,12 +108,23 @@ uses
 }
 
 type
-  TQuadruple = array[0..15] of Byte;
-  {* Delphi 中无四倍精度类型，用数组及其指针代替}
+  TQuadruple = packed record
+    Lo: TUInt64;
+    Hi0: Cardinal;
+    case Boolean of
+      True:  (Hi1: Cardinal);
+      False: (W0, W1: Word);   // 小端机器上，符号和指数都在这个 W1 里
+  end;
+  {* Delphi 中无四倍精度类型，用结构及其指针代替}
   PQuadruple = ^TQuadruple;
 
-  TOctuple = array[0..31] of Byte;
-  {* Delphi 中无八倍精度类型，用数组及其指针代替}
+  TOctuple = packed record
+    F0: Int64;
+    F1: Int64;
+    F2: Int64;
+    F3: Int64;
+  end;
+  {* Delphi 中无八倍精度类型，用两个 Int64 及其指针代替}
   POctuple = ^TOctuple;
 
   ECnFloatSizeError = class(Exception);
@@ -120,15 +136,18 @@ const
 
   CN_SIGN_SINGLE_MASK =          $80000000;
   CN_SIGN_DOUBLE_MASK =          $8000000000000000;
-  CN_SIGN_EXTENDED_MASK =        $8000;      // 刨去了 8 字节有效数字
+  CN_SIGN_EXTENDED_MASK =        $8000;              // 刨去了 8 字节有效数字
+  CN_SIGN_QUADRUPLE_MASK =       $80000000;          // 只针对前四字节，刨去了后面所有内容
 
   CN_EXPONENT_SINGLE_MASK =      $7F800000;          // 还要右移 23 位
   CN_EXPONENT_DOUBLE_MASK =      $7FF0000000000000;  // 还要右移 52 位
-  CN_EXPONENT_EXTENDED_MASK =    $7FFF;       // 刨去了 8 字节有效数字
+  CN_EXPONENT_EXTENDED_MASK =    $7FFF;              // 刨去了 8 字节有效数字
+  CN_EXPONENT_QUADRUPLE_MASK =   $7FFF;              // 刨去了 14 字节有效数字
 
   CN_SIGNIFICAND_SINGLE_MASK =   $007FFFFF;          // 低 23 位
   CN_SIGNIFICAND_DOUBLE_MASK =   $000FFFFFFFFFFFFF;  // 低 52 位
   CN_SIGNIFICAND_EXTENDED_MASK = $FFFFFFFFFFFFFFFF;  // 低 64 位，其实就是全部 8 字节整
+  CN_SIGNIFICAND_QUADRUPLE_MASK = $FFFF;
 
   CN_SINGLE_SIGNIFICAND_BITLENGTH         = 23;
   CN_DOUBLE_SIGNIFICAND_BITLENGTH         = 52;
@@ -136,7 +155,7 @@ const
 
   CN_EXPONENT_OFFSET_SINGLE               = 127;     // 实际指数值要加上这仨才能存到内存的指数中
   CN_EXPONENT_OFFSET_DOUBLE               = 1023;
-  CN_EXPONENT_OFFSET_EXTENDED             = 16383;
+  CN_EXPONENT_OFFSET_EXTENDED             = 16383;   // 10 和 16 字节扩展精度浮点数均为这个数字
 
   CN_SINGLE_MIN_EXPONENT                  = -127;
   CN_SINGLE_MAX_EXPONENT                  = 127;     // 仨 Max 均不包括指数全 1 的情形（那是正负无穷大）
@@ -157,8 +176,13 @@ procedure ExtractFloatDouble(const Value: Double; out SignNegative: Boolean;
 
 procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
-{* 从扩展精度浮点数中解出符号位、指数、有效数字
+{* 从扩展精度浮点数中解出符号位、指数、有效数字，注意不支持 16 字节的 Extended 格式
   注：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1}
+
+procedure ExtractFloatQuadruple(const Value: Extended; out SignNegative: Boolean;
+  out Exponent: Integer; out MantissaLo, MantissaHi: TUInt64);
+{* 从十六字节精度浮点数中解出符号位、指数、有效数字，只在 Extended 为 16 字节时有效
+  注：指数为真实指数；有效数字 112 位，分为高低两部分}
 
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
   Mantissa: Cardinal; var Value: Single);
@@ -170,7 +194,11 @@ procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
 
 procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Extended);
-{* 把符号位、指数、有效数字拼成扩展精度浮点数}
+{* 把符号位、指数、有效数字拼成扩展精度浮点数，不支持 16 字节的 Extended 格式}
+
+procedure CombineFloatQuadruple(SignNegative: Boolean; Exponent: Integer;
+  MantissaLo, MantissaHi: TUInt64; var Value: Extended);
+{* 把符号位、指数、有效数字拼成扩展精度浮点数，只在 Extended 为 16 字节时有效}
 
 function UInt64ToSingle(U: TUInt64): Single;
 {* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Single，仨函数实现相同}
@@ -239,17 +267,15 @@ const
 
 resourcestring
   SCN_ERROR_EXTENDED_SIZE = 'Extended Size Error';
+  SCN_ERROR_MANTISSA_OVERFLOW = 'Extended Mantissa Overflow';
 
 type
-  TExtendedRec = packed record
+  TExtendedRec10 = packed record
   {* 10 字节的扩展精度浮点数，只 Win32 下有效}
     Mantissa: TUInt64;
     ExpSign: Word;
   end;
-  PExtendedRec = ^TExtendedRec;
-
-  TExtendedWords = array[0..4] of Word;
-  PExtendedWords = ^TExtendedWords;
+  PExtendedRec10 = ^TExtendedRec10;
 
 {$IFNDEF FPC}
 {$IFNDEF MACOS}
@@ -938,9 +964,9 @@ end;
 procedure ExtractFloatSingle(const Value: Single; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: Cardinal);
 begin
-  SignNegative := (PLongWord(@Value)^ and CN_SIGN_SINGLE_MASK) <> 0;
-  Exponent := ((PLongWord(@Value)^ and CN_EXPONENT_SINGLE_MASK) shr 23) - CN_EXPONENT_OFFSET_SINGLE;
-  Mantissa := PLongWord(@Value)^ and CN_SIGNIFICAND_SINGLE_MASK;
+  SignNegative := (PCardinal(@Value)^ and CN_SIGN_SINGLE_MASK) <> 0;
+  Exponent := ((PCardinal(@Value)^ and CN_EXPONENT_SINGLE_MASK) shr 23) - CN_EXPONENT_OFFSET_SINGLE;
+  Mantissa := PCardinal(@Value)^ and CN_SIGNIFICAND_SINGLE_MASK;
   Mantissa := Mantissa or (1 shl 23); // 高位再加个 1
 end;
 
@@ -958,9 +984,9 @@ procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
 begin
   if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
   begin
-    SignNegative := (PExtendedRec(@Value)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
-    Exponent := (PExtendedRec(@Value)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
-    Mantissa := PExtendedRec(@Value)^.Mantissa; // 有 1，不用加了
+    SignNegative := (PExtendedRec10(@Value)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
+    Exponent := (PExtendedRec10(@Value)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
+    Mantissa := PExtendedRec10(@Value)^.Mantissa; // 有 1，不用加了
   end
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
     ExtractFloatDouble(Value, SignNegative, Exponent, Mantissa)
@@ -968,18 +994,32 @@ begin
     raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
 end;
 
+procedure ExtractFloatQuadruple(const Value: Extended; out SignNegative: Boolean;
+  out Exponent: Integer; out MantissaLo, MantissaHi: TUInt64);
+begin
+  if SizeOf(Extended) <> CN_EXTENDED_SIZE_16 then
+    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+
+  SignNegative := (PQuadruple(@Value)^.Hi1 and CN_SIGN_QUADRUPLE_MASK) <> 0;
+  Exponent := (PQuadruple(@Value)^.Hi1 and CN_EXPONENT_QUADRUPLE_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
+
+  // Extract 16 Bytes to Mantissas
+  MantissaLo := PQuadruple(@Value)^.Lo;
+  MantissaHi := PQuadruple(@Value)^.Hi0 or (PQuadruple(@Value)^.W0 shl 32) or (TUInt64(1) shl 48); // 高位再加个 1
+end;
+
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
   Mantissa: Cardinal; var Value: Single);
 begin
   Mantissa := Mantissa and not (1 shl 23); // 去掉 23 位上的 1，如果有的话
-  PLongWord(@Value)^ := Mantissa and CN_SIGNIFICAND_SINGLE_MASK;
+  PCardinal(@Value)^ := Mantissa and CN_SIGNIFICAND_SINGLE_MASK;
   Inc(Exponent, CN_EXPONENT_OFFSET_SINGLE);
 
-  PLongWord(@Value)^ := PLongWord(@Value)^ or (LongWord(Exponent) shl 23);
+  PCardinal(@Value)^ := PCardinal(@Value)^ or (LongWord(Exponent) shl 23);
   if SignNegative then
-    PLongWord(@Value)^ := PLongWord(@Value)^ or CN_SIGN_SINGLE_MASK
+    PCardinal(@Value)^ := PCardinal(@Value)^ or CN_SIGN_SINGLE_MASK
   else
-    PLongWord(@Value)^ := PLongWord(@Value)^ and not CN_SIGN_SINGLE_MASK;
+    PCardinal(@Value)^ := PCardinal(@Value)^ and not CN_SIGN_SINGLE_MASK;
 end;
 
 procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
@@ -1003,14 +1043,14 @@ var
 begin
   if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
   begin
-    PExtendedRec(@Value)^.Mantissa := Mantissa;
+    PExtendedRec10(@Value)^.Mantissa := Mantissa;
     Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
 
-    PExtendedRec(@Value)^.ExpSign := Exponent and CN_EXPONENT_EXTENDED_MASK;
+    PExtendedRec10(@Value)^.ExpSign := Exponent and CN_EXPONENT_EXTENDED_MASK;
     if SignNegative then
-      PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign or CN_SIGN_EXTENDED_MASK
+      PExtendedRec10(@Value)^.ExpSign := PExtendedRec10(@Value)^.ExpSign or CN_SIGN_EXTENDED_MASK
     else
-      PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
+      PExtendedRec10(@Value)^.ExpSign := PExtendedRec10(@Value)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
   end
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
   begin
@@ -1019,6 +1059,25 @@ begin
   end
   else
     raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+end;
+
+procedure CombineFloatQuadruple(SignNegative: Boolean; Exponent: Integer;
+  MantissaLo, MantissaHi: TUInt64; var Value: Extended);
+begin
+  if SizeOf(Extended) <> CN_EXTENDED_SIZE_16 then
+    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+
+  MantissaHi := MantissaHi and not (TUInt64(1) shl 48); // 去掉 112 位上的 1，如果有的话
+  PQuadruple(@Value)^.Lo := MantissaLo;
+  PQuadruple(@Value)^.Hi0 := Cardinal(MantissaHi and $FFFFFFFF);
+  PQuadruple(@Value)^.Hi1 := (MantissaHi shr 32) and CN_SIGNIFICAND_QUADRUPLE_MASK;
+
+  Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
+  PQuadruple(@Value)^.Hi1 := Exponent and CN_EXPONENT_QUADRUPLE_MASK;
+  if SignNegative then
+    PQuadruple(@Value)^.Hi1 := PQuadruple(@Value)^.Hi1 or CN_SIGN_QUADRUPLE_MASK
+  else
+    PQuadruple(@Value)^.Hi1 := PQuadruple(@Value)^.Hi1 and not CN_SIGN_QUADRUPLE_MASK;
 end;
 
 // 将 UInt64 设为浮点数
@@ -1103,8 +1162,8 @@ end;
 
 function SingleIsInfinite(const AValue: Single): Boolean;
 begin
-  Result := ((PLongWord(@AValue)^ and $7F800000) = $7F800000) and
-            ((PLongWord(@AValue)^ and $007FFFFF) = $00000000);
+  Result := ((PCardinal(@AValue)^ and $7F800000) = $7F800000) and
+            ((PCardinal(@AValue)^ and $007FFFFF) = $00000000);
 end;
 
 function DoubleIsInfinite(const AValue: Double): Boolean;
@@ -1116,8 +1175,8 @@ end;
 function ExtendedIsInfinite(const AValue: Extended): Boolean;
 begin
   if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
-    Result := ((PExtendedRec(@AValue)^.ExpSign and $7FFF) = $7FFF) and
-              ((PExtendedRec(@AValue)^.Mantissa) = 0)
+    Result := ((PExtendedRec10(@AValue)^.ExpSign and $7FFF) = $7FFF) and
+              ((PExtendedRec10(@AValue)^.Mantissa) = 0)
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
     Result := DoubleIsInfinite(AValue)
   else
@@ -1126,8 +1185,8 @@ end;
 
 function SingleIsNan(const AValue: Single): Boolean;
 begin
-  Result := ((PLongWord(@AValue)^ and $7F800000)  = $7F800000) and
-            ((PLongWord(@AValue)^ and $007FFFFF) <> $00000000);
+  Result := ((PCardinal(@AValue)^ and $7F800000)  = $7F800000) and
+            ((PCardinal(@AValue)^ and $007FFFFF) <> $00000000);
 end;
 
 function DoubleIsNan(const AValue: Double): Boolean;
@@ -1139,8 +1198,8 @@ end;
 function ExtendedIsNan(const AValue: Extended): Boolean;
 begin
   if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
-    Result := ((PExtendedRec(@AValue)^.ExpSign and $7FFF)  = $7FFF) and
-              ((PExtendedRec(@AValue)^.Mantissa and $7FFFFFFFFFFFFFFF) <> 0)
+    Result := ((PExtendedRec10(@AValue)^.ExpSign and $7FFF)  = $7FFF) and
+              ((PExtendedRec10(@AValue)^.Mantissa and $7FFFFFFFFFFFFFFF) <> 0)
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
     Result := DoubleIsNan(AValue)
   else
