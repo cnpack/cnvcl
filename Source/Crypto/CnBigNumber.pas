@@ -1008,6 +1008,9 @@ procedure SparseBigNumberListMerge(Dst, Src1, Src2: TCnSparseBigNumberList; Add:
 {* 合并两个 SparseBigNumberList 至目标 List 中，指数相同的系数 Add 为 True 时相加，否则相减
   Dst 可以是 Src1 或 Src2，Src1 和 Src2 可以相等}
 
+function CnBigNumberIs64Mode: Boolean;
+{* 当前大数整体的工作模式是否是内部 64 位存储模式，供调试使用}
+
 var
   CnBigNumberOne: TCnBigNumber = nil;     // 表示 1 的常量
   CnBigNumberZero: TCnBigNumber = nil;    // 表示 0 的常量
@@ -1042,6 +1045,17 @@ const
 var
   FLocalBigNumberPool: TCnBigNumberPool = nil;
   FLocalBigBinaryPool: TCnBigBinaryPool = nil;
+
+{$IFDEF BN_DATA_USE_64}
+  FCnBigNumberIs64: Boolean = True;
+{$ELSE}
+  FCnBigNumberIs64: Boolean = False;
+{$ENDIF}
+
+function CnBigNumberIs64Mode: Boolean;
+begin
+  Result := FCnBigNumberIs64;
+end;
 
 function BigNumberNew: TCnBigNumber;
 begin

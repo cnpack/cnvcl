@@ -1535,6 +1535,7 @@ begin
   Assert(TestBigNumberShiftRightOne, 'TestBigNumberShiftRightOne');
   Assert(TestBigNumberFermatCheckComposite, 'TestBigNumberFermatCheckComposite');
   Assert(TestBigNumberIsProbablyPrime, 'TestBigNumberIsProbablyPrime');
+  Assert(TestBigNumberExpandWord, 'TestBigNumberExpandWord');
 end;
 
 end.

@@ -1,9 +1,9 @@
 object FormBigNumber: TFormBigNumber
   Left = 121
-  Top = 55
-  Width = 1222
-  Height = 713
+  Top = 8
   Caption = 'Big Number Test'
+  ClientHeight = 686
+  ClientWidth = 1230
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -154,7 +154,6 @@ object FormBigNumber: TFormBigNumber
         Top = 12
         Width = 93
         Height = 21
-        ItemHeight = 13
         TabOrder = 5
         Text = '4096'
         Items.Strings = (
