@@ -65,7 +65,7 @@ interface
 uses
   SysUtils, Classes, Math, CnNative, CnContainers
   {$IFDEF MSWINDOWS}, CnClasses {$ENDIF}
-  {$IFDEF MACOS}, System.Generics.Collections {$ENDIF};
+  {$IFDEF POSIX}, System.Generics.Collections {$ENDIF};
 
 const
   // 用 Miller Rabin 素数概率判断算法所进行的次数
