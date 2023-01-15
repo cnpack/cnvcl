@@ -26,9 +26,11 @@ unit CnRandom;
 * 单元作者：刘啸
 * 备    注：
 * 开发平台：Win7 + Delphi 5.0
-* 兼容测试：Win32/Win64/MacOS + Unicode/NonUnicode
+* 兼容测试：Win32/Win64/MacOS/Linux + Unicode/NonUnicode
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.01.08 V1.2
+* 修改记录：2023.01.15 V1.3
+*               非 Windows 下全改用 urandom 以支持 Linux
+*           2023.01.08 V1.2
 *               修正 Win64 下 API 声明参数有误的问题
 *           2022.08.22 V1.1
 *               优先使用操作系统提供的随机数发生器
@@ -93,6 +95,11 @@ function CryptGenRandom(hProv: THandle; dwLen: LongWord; pbBuffer: PAnsiChar): B
 var
   FHProv: THandle = 0;
 
+{$ELSE}
+
+const
+  DEV_FILE = '/dev/urandom';
+
 {$ENDIF}
 
 function CnRandomFillBytes(Buf: PAnsiChar; Len: Integer): Boolean;
@@ -131,10 +138,10 @@ begin
     end;
   end;
 {$ELSE}
-  // MacOS 下的随机填充实现，采用读取 /dev/random 内容的方式
+  // MacOS/Linux 下的随机填充实现，采用读取 /dev/urandom 内容的方式，不阻塞
   F := nil;
   try
-    F := TFileStream.Create('/dev/random', fmOpenRead);
+    F := TFileStream.Create(DEV_FILE, fmOpenRead);
     Result := F.Read(Buf^, Len) = Len;
   finally
     F.Free;
@@ -151,10 +158,10 @@ begin
 {$IFDEF MSWINDOWS}
   Result := CryptGenRandom(FHProv, Len, Buf);
 {$ELSE}
-  // MacOS 下的随机填充实现，采用读取 /dev/urandom 内容的方式，不阻塞
+  // MacOS/Linux 下的随机填充实现，采用读取 /dev/urandom 内容的方式，不阻塞
   F := nil;
   try
-    F := TFileStream.Create('/dev/urandom', fmOpenRead);
+    F := TFileStream.Create(DEV_FILE, fmOpenRead);
     Result := F.Read(Buf^, Len) = Len;
   finally
     F.Free;
