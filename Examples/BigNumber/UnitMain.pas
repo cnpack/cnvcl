@@ -1532,6 +1532,9 @@ begin
   Assert(TestBigNumberUnsignedAdd, 'TestBigNumberUnsignedAdd');
   Assert(TestBigNumberPowerMod, 'TestBigNumberPowerMod');
   Assert(TestBigNumberDiv, 'TestBigNumberDiv');
+  Assert(TestBigNumberShiftRightOne, 'TestBigNumberShiftRightOne');
+  Assert(TestBigNumberFermatCheckComposite, 'TestBigNumberFermatCheckComposite');
+  Assert(TestBigNumberIsProbablyPrime, 'TestBigNumberIsProbablyPrime');
 end;
 
 end.

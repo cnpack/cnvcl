@@ -98,14 +98,16 @@ const
   BN_BYTES              = 8;      // D 数组中的一个元素所包含的字节数
   BN_BITS2              = 64;     // D 数组中的一个元素所包含的位数
   BN_MASK2              = $FFFFFFFFFFFFFFFF;
+  BN_TBIT               = $8000000000000000;
 {$ELSE}
   BN_BYTES              = 4;      // D 数组中的一个元素所包含的字节数
   BN_BITS2              = 32;     // D 数组中的一个元素所包含的位数
   BN_MASK2              = $FFFFFFFF;
+  BN_TBIT               = $80000000;
 {$ENDIF}
 
   BN_BITS4              = 16;
-  BN_TBIT               = $80000000;
+
   BN_MASK2S             = $7FFFFFFF;
 
   BN_MASK2l             = $FFFF;
@@ -860,6 +862,10 @@ function BigNumberLog10(const Num: TCnBigNumber): Extended;
 
 function BigNumberLogN(const Num: TCnBigNumber): Extended;
 {* 返回大数的 e 为底的自然对数的扩展精度浮点值，内部用扩展精度浮点实现，超界未处理}
+
+function BigNumberFermatCheckComposite(const A, B, C: TCnBigNumber; T: Integer): Boolean;
+{* Miller-Rabin 算法中的单次费尔马测试，返回 True 表示 B 不是素数，
+  注意 A B C 并非任意选择，B 是待测试的素数，A 是随机数，C 是 B - 1 右移 T 位后得到的第一个奇数}
 
 function BigNumberIsProbablyPrime(const Num: TCnBigNumber; TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
 {* 概率性判断一个大数是否素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
