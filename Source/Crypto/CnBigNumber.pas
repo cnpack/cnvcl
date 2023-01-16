@@ -97,21 +97,22 @@ const
 {$IFDEF BN_DATA_USE_64}
   BN_BYTES              = 8;      // D 数组中的一个元素所包含的字节数
   BN_BITS2              = 64;     // D 数组中的一个元素所包含的位数
+  BN_BITS4              = 32;
   BN_MASK2              = $FFFFFFFFFFFFFFFF;
   BN_TBIT               = $8000000000000000;
+  BN_MASK2l             = $FFFFFFFF;
+  BN_MASK2h             = $FFFFFFFF00000000;
 {$ELSE}
   BN_BYTES              = 4;      // D 数组中的一个元素所包含的字节数
   BN_BITS2              = 32;     // D 数组中的一个元素所包含的位数
+  BN_BITS4              = 16;
   BN_MASK2              = $FFFFFFFF;
   BN_TBIT               = $80000000;
-{$ENDIF}
-
-  BN_BITS4              = 16;
-
-  BN_MASK2S             = $7FFFFFFF;
-
   BN_MASK2l             = $FFFF;
   BN_MASK2h             = $FFFF0000;
+{$ENDIF}
+
+  BN_MASK2S             = $7FFFFFFF; // 以下无需跟随 32/64 改动
   BN_MASK2h1            = $FFFF8000;
   BN_MASK3S             = $7FFFFFFFFFFFFFFF;
   BN_MASK3U             = $FFFFFFFFFFFFFFFF;
@@ -556,7 +557,8 @@ function BigNumberMulWord(const Num: TCnBigNumber; W: TCnBigNumberElement): Bool
 {* 大数乘以一个 UInt32/UInt64，结果仍放 Num 中，返回相乘是否成功}
 
 function BigNumberModWord(const Num: TCnBigNumber; W: TCnBigNumberElement): TCnBigNumberElement;
-{* 大数对一个 UInt32/UInt64 求余，返回余数}
+{* 大数对一个 UInt32/UInt64 求余，返回余数。
+   注意在内部 64 位的实现中，W 不能大于 UInt32。32 位内部实现则无限制}
 
 function BigNumberDivWord(const Num: TCnBigNumber; W: TCnBigNumberElement): TCnBigNumberElement;
 {* 大数除以一个 UInt32/UInt64，商重新放在 Num 中，返回余数}
@@ -1021,6 +1023,7 @@ uses
   CnPrimeNumber, CnBigDecimal, CnFloat, CnBase64;
 
 resourcestring
+  SCN_BN_64MOD_RANGE_ERROR = 'Mod Word only Supports Unsigned Int32';
   SCN_BN_LOG_RANGE_ERROR = 'Log Range Error';
   SCN_BN_LEGENDRE_ERROR = 'Legendre: A, P Must > 0';
   SCN_BN_FLOAT_EXP_RANGE_ERROR = 'Extended Float Exponent Range Error';
@@ -3601,6 +3604,9 @@ end;
 function BigNumberModWord(const Num: TCnBigNumber; W: TCnBigNumberElement): TCnBigNumberElement;
 var
   I: Integer;
+{$IFDEF BN_DATA_USE_64}
+  T: TCnBigNumberElement;
+{$ENDIF}
 begin
   if W = 0 then
   begin
@@ -3608,11 +3614,21 @@ begin
     Exit;
   end;
 
+{$IFDEF BN_DATA_USE_64}
+  if W > $FFFFFFFF then
+    raise Exception.Create(SCN_BN_64MOD_RANGE_ERROR);
+{$ENDIF}
+
   Result := 0;
   for I := Num.Top - 1 downto 0 do
   begin
+{$IFDEF BN_DATA_USE_64}
     Result := ((Result shl BN_BITS4) or ((PCnBigNumberElementArray(Num.D)^[I] shr BN_BITS4) and BN_MASK2l)) mod W;
     Result := ((Result shl BN_BITS4) or (PCnBigNumberElementArray(Num.D)^[I] and BN_MASK2l)) mod W;
+{$ELSE}
+    // 32 位下扩展过去做 UInt64 求余，逐级把上一级的余数作为下一级的高 64 位和下一级拼一块再除求余
+    Result := UInt64Mod((TUInt64(Result) shl BN_BITS2) or TUInt64(PCnBigNumberElementArray(Num.D)^[I]), W);
+{$ENDIF}
   end;
 end;
 
@@ -5734,6 +5750,7 @@ begin
   // 再用小额素数整除，不用 2 了，因为 2 之外的偶数已经被排除了
   for I := Low(CN_PRIME_NUMBERS_SQRT_UINT32) + 1 to High(CN_PRIME_NUMBERS_SQRT_UINT32) do
   begin
+    // 64 位模式下 BigNumberModWord 不支持除数大于 UInt32，这里素数表的内容符合要求
     if BigNumberModWord(Num, CN_PRIME_NUMBERS_SQRT_UINT32[I]) = 0 then
       Exit;
   end;
@@ -5798,6 +5815,7 @@ AGAIN:
   if not BigNumberRandBits(Num, BitsCount) then
     Exit;
 
+  // 64 位模式下 BigNumberModWord 不支持除数大于 UInt32，这里素数表的内容符合要求
   for I := 1 to BN_PRIME_NUMBERS - 1 do
     Mods[I] := BigNumberModWord(Num, CN_PRIME_NUMBERS_SQRT_UINT32[I + 1]);
 
@@ -6459,6 +6477,9 @@ var
   T, U, X, Y, Z, OldU, R: TCnBigNumber;
 begin
   Result := False;
+  if Prime.IsZero then
+    Exit;
+
   if A.IsZero then // 0 的平方 mod P = 0
   begin
     Res.SetZero;
@@ -6478,7 +6499,8 @@ begin
     U := FLocalBigNumberPool.Obtain;
     BigNumberCopy(U, Prime);
 
-    Rem := BigNumberModWord(Prime, 4);
+    // TODO: 优化为直接取低 4 位或 8 位
+    Rem := BigNumberModWord(Prime, 4);  // 64 位模式下 BigNumberModWord 不支持除数大于 UInt32，这里 4 符合要求
     if Rem = 3 then
     begin
       PrimeType := pt4U3;
@@ -6486,7 +6508,7 @@ begin
     end
     else
     begin
-      Rem := BigNumberModWord(Prime, 8);
+      Rem := BigNumberModWord(Prime, 8); // 64 位模式下 BigNumberModWord 不支持除数大于 UInt32，这里 4 符合要求
       if Rem = 1 then
       begin
         PrimeType := pt8U1;
