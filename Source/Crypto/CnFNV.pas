@@ -24,7 +24,9 @@ unit CnFNV;
 * 软件名称：开发包基础库
 * 单元名称：FNV Hash 实现单元
 * 单元作者：刘啸（liuxiao@cnpack.org)
-* 备    注：
+* 备    注：一种简易的可变长度的杂凑算法，有两个变种 FNV-1 和 FNV-1a，
+*           以特定素数与偏移量逐字节运算而来。算法创造者们为 Fowler-Noll-Vo
+*           详情参考自英文维基百科
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -42,63 +44,99 @@ uses
 
 type
   TCnFNVType = (cft32, cft64, cft128, cft256, cft512, cft1024);
+  {* 代表不同长度的 FNV 类型}
 
   TCnFNVHash32    = array[0..3] of Byte;
-  TCnFNVHash64    = array[0..7] of Byte;
-  TCnFNVHash128   = array[0..15] of Byte;
-  TCnFNVHash256   = array[0..31] of Byte;
-  TCnFNVHash512   = array[0..63] of Byte;
-  TCnFNVHash1024  = array[0..127] of Byte;
+  {* 32 位也就是 4 字节长的 FNV 结果}
 
-  // FNV 的结果，均以大端表示
+  TCnFNVHash64    = array[0..7] of Byte;
+  {* 64 位也就是 8 字节长的 FNV 结果}
+
+  TCnFNVHash128   = array[0..15] of Byte;
+  {* 128 位也就是 16 字节长的 FNV 结果}
+
+  TCnFNVHash256   = array[0..31] of Byte;
+  {* 256 位也就是 32 字节长的 FNV 结果}
+
+  TCnFNVHash512   = array[0..63] of Byte;
+  {* 512 位也就是 64 字节长的 FNV 结果}
+
+  TCnFNVHash1024  = array[0..127] of Byte;
+  {* 1024 位也就是 128 字节长的 FNV 结果}
+
+// 以上是 FNV 的结果类型，均以大端表示
 
 function FNV1Hash32(Data: TBytes): TCnFNVHash32; overload;
+{* 求字节数组的 FNV-1 杂凑结果，结果长度 32 位}
 
 function FNV1Hash64(Data: TBytes): TCnFNVHash64; overload;
+{* 求字节数组的 FNV-1 杂凑结果，结果长度 64 位}
 
 function FNV1Hash128(Data: TBytes): TCnFNVHash128; overload;
+{* 求字节数组的 FNV-1 杂凑结果，结果长度 128 位}
 
 function FNV1Hash256(Data: TBytes): TCnFNVHash256; overload;
+{* 求字节数组的 FNV-1 杂凑结果，结果长度 256 位}
 
 function FNV1Hash512(Data: TBytes): TCnFNVHash512; overload;
+{* 求字节数组的 FNV-1 杂凑结果，结果长度 512 位}
 
 function FNV1Hash1024(Data: TBytes): TCnFNVHash1024; overload;
+{* 求字节数组的 FNV-1 杂凑结果，结果长度 1024 位}
 
 function FNV1aHash32(Data: TBytes): TCnFNVHash32; overload;
+{* 求字节数组的 FNV-1a 杂凑结果，结果长度 32 位}
 
 function FNV1aHash64(Data: TBytes): TCnFNVHash64; overload;
+{* 求字节数组的 FNV-1a 杂凑结果，结果长度 64 位}
 
 function FNV1aHash128(Data: TBytes): TCnFNVHash128; overload;
+{* 求字节数组的 FNV-1a 杂凑结果，结果长度 128 位}
 
 function FNV1aHash256(Data: TBytes): TCnFNVHash256; overload;
+{* 求字节数组的 FNV-1a 杂凑结果，结果长度 256 位}
 
 function FNV1aHash512(Data: TBytes): TCnFNVHash512; overload;
+{* 求字节数组的 FNV-1a 杂凑结果，结果长度 512 位}
 
 function FNV1aHash1024(Data: TBytes): TCnFNVHash1024; overload;
+{* 求字节数组的 FNV-1a 杂凑结果，结果长度 1024 位}
 
 function FNV1Hash32(Data: Pointer; DataByteLen: Integer): TCnFNVHash32; overload;
+{* 求数据块的 FNV-1 杂凑结果，结果长度 32 位}
 
 function FNV1Hash64(Data: Pointer; DataByteLen: Integer): TCnFNVHash64; overload;
+{* 求数据块的 FNV-1 杂凑结果，结果长度 64 位}
 
 function FNV1Hash128(Data: Pointer; DataByteLen: Integer): TCnFNVHash128; overload;
+{* 求数据块的 FNV-1 杂凑结果，结果长度 128 位}
 
 function FNV1Hash256(Data: Pointer; DataByteLen: Integer): TCnFNVHash256; overload;
+{* 求数据块的 FNV-1 杂凑结果，结果长度 256 位}
 
 function FNV1Hash512(Data: Pointer; DataByteLen: Integer): TCnFNVHash512; overload;
+{* 求数据块的 FNV-1 杂凑结果，结果长度 512 位}
 
 function FNV1Hash1024(Data: Pointer; DataByteLen: Integer): TCnFNVHash1024; overload;
+{* 求数据块的 FNV-1 杂凑结果，结果长度 1024 位}
 
 function FNV1aHash32(Data: Pointer; DataByteLen: Integer): TCnFNVHash32; overload;
+{* 求数据块的 FNV-1a 杂凑结果，结果长度 32 位}
 
 function FNV1aHash64(Data: Pointer; DataByteLen: Integer): TCnFNVHash64; overload;
+{* 求数据块的 FNV-1a 杂凑结果，结果长度 64 位}
 
 function FNV1aHash128(Data: Pointer; DataByteLen: Integer): TCnFNVHash128; overload;
+{* 求数据块的 FNV-1a 杂凑结果，结果长度 128 位}
 
 function FNV1aHash256(Data: Pointer; DataByteLen: Integer): TCnFNVHash256; overload;
+{* 求数据块的 FNV-1a 杂凑结果，结果长度 256 位}
 
 function FNV1aHash512(Data: Pointer; DataByteLen: Integer): TCnFNVHash512; overload;
+{* 求数据块的 FNV-1a 杂凑结果，结果长度 512 位}
 
 function FNV1aHash1024(Data: Pointer; DataByteLen: Integer): TCnFNVHash1024; overload;
+{* 求数据块的 FNV-1a 杂凑结果，结果长度 1024 位}
 
 implementation
 
@@ -126,7 +164,7 @@ const
     (FNV_OFFSET_BASIS_32, FNV_OFFSET_BASIS_64, FNV_OFFSET_BASIS_128,
     FNV_OFFSET_BASIS_256, FNV_OFFSET_BASIS_512, FNV_OFFSET_BASIS_1024);
 
-  FNV_LENGTH: array[Low(TCnFNVType)..High(TCnFNVType)] of Integer =
+  FNV_BIT_LENGTH: array[Low(TCnFNVType)..High(TCnFNVType)] of Integer =
     (32, 64, 128, 256, 512, 1024);
 
 var
@@ -157,7 +195,7 @@ begin
   while Len > 0 do
   begin
     BigNumberMul(Res, Res, FNV_PRIMES_BIGNUMBER[FNVType]);
-    BigNumberKeepLowBits(Res, FNV_LENGTH[FNVType]);
+    BigNumberKeepLowBits(Res, FNV_BIT_LENGTH[FNVType]);
     BigNumberXorWord(Res, D^);
 
     Inc(D);
@@ -181,7 +219,7 @@ begin
   begin
     BigNumberXorWord(Res, D^);
     BigNumberMul(Res, Res, FNV_PRIMES_BIGNUMBER[FNVType]);
-    BigNumberKeepLowBits(Res, FNV_LENGTH[FNVType]);
+    BigNumberKeepLowBits(Res, FNV_BIT_LENGTH[FNVType]);
 
     Inc(D);
     Dec(Len);
@@ -291,7 +329,7 @@ begin
   R := TCnBigNumber.Create;
   try
     FNV1(cft32, PByte(Data), DataByteLen, R);
-    R.ToBinary(@Result[0], FNV_LENGTH[cft32]);
+    R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft32] div 8);
   finally
     R.Free;
   end;
@@ -304,7 +342,7 @@ begin
   R := TCnBigNumber.Create;
   try
     FNV1(cft64, PByte(Data), DataByteLen, R);
-    R.ToBinary(@Result[0], FNV_LENGTH[cft64]);
+    R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft64] div 8);
   finally
     R.Free;
   end;
@@ -317,7 +355,7 @@ begin
   R := TCnBigNumber.Create;
   try
     FNV1(cft128, PByte(Data), DataByteLen, R);
-    R.ToBinary(@Result[0], FNV_LENGTH[cft128]);
+    R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft128] div 8);
   finally
     R.Free;
   end;
@@ -330,7 +368,7 @@ begin
   R := TCnBigNumber.Create;
   try
     FNV1(cft256, PByte(Data), DataByteLen, R);
-    R.ToBinary(@Result[0], FNV_LENGTH[cft256]);
+    R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft256] div 8);
   finally
     R.Free;
   end;
@@ -343,7 +381,7 @@ begin
   R := TCnBigNumber.Create;
   try
     FNV1(cft512, PByte(Data), DataByteLen, R);
-    R.ToBinary(@Result[0], FNV_LENGTH[cft512]);
+    R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft512] div 8);
   finally
     R.Free;
   end;
@@ -356,7 +394,7 @@ begin
   R := TCnBigNumber.Create;
   try
     FNV1(cft1024, PByte(Data), DataByteLen, R);
-    R.ToBinary(@Result[0], FNV_LENGTH[cft1024]);
+    R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft1024] div 8);
   finally
     R.Free;
   end;
@@ -369,7 +407,7 @@ begin
   R := TCnBigNumber.Create;
   try
     FNV1a(cft32, PByte(Data), DataByteLen, R);
-    R.ToBinary(@Result[0], FNV_LENGTH[cft32]);
+    R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft32] div 8);
   finally
     R.Free;
   end;
@@ -382,7 +420,7 @@ begin
   R := TCnBigNumber.Create;
   try
     FNV1a(cft64, PByte(Data), DataByteLen, R);
-    R.ToBinary(@Result[0], FNV_LENGTH[cft64]);
+    R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft64] div 8);
   finally
     R.Free;
   end;
@@ -395,7 +433,7 @@ begin
   R := TCnBigNumber.Create;
   try
     FNV1a(cft128, PByte(Data), DataByteLen, R);
-    R.ToBinary(@Result[0], FNV_LENGTH[cft128]);
+    R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft128] div 8);
   finally
     R.Free;
   end;
@@ -408,7 +446,7 @@ begin
   R := TCnBigNumber.Create;
   try
     FNV1a(cft256, PByte(Data), DataByteLen, R);
-    R.ToBinary(@Result[0], FNV_LENGTH[cft256]);
+    R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft256] div 8);
   finally
     R.Free;
   end;
@@ -421,7 +459,7 @@ begin
   R := TCnBigNumber.Create;
   try
     FNV1a(cft512, PByte(Data), DataByteLen, R);
-    R.ToBinary(@Result[0], FNV_LENGTH[cft512]);
+    R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft512] div 8);
   finally
     R.Free;
   end;
@@ -434,7 +472,7 @@ begin
   R := TCnBigNumber.Create;
   try
     FNV1a(cft1024, PByte(Data), DataByteLen, R);
-    R.ToBinary(@Result[0], FNV_LENGTH[cft1024]);
+    R.ToBinary(@Result[0], FNV_BIT_LENGTH[cft1024] div 8);
   finally
     R.Free;
   end;

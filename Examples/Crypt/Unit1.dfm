@@ -2521,6 +2521,101 @@ object FormCrypt: TFormCrypt
         end
       end
     end
+    object tsFNV: TTabSheet
+      Caption = 'FNV'
+      ImageIndex = 23
+      object grpFNV: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 417
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'FNV'
+        TabOrder = 0
+        object lblFNVFrom: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblFNVType: TLabel
+          Left = 256
+          Top = 44
+          Width = 50
+          Height = 13
+          Caption = 'FNV Type:'
+        end
+        object edtFNV: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnFNV: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'FNV'
+          TabOrder = 1
+          OnClick = btnFNVClick
+        end
+        object pnlFNV: TPanel
+          Left = 24
+          Top = 120
+          Width = 377
+          Height = 73
+          BevelOuter = bvNone
+          TabOrder = 2
+          OnDblClick = ResultDblClick
+        end
+        object btnFNVFile: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File FNV'
+          TabOrder = 3
+        end
+        object cbbFNVType: TComboBox
+          Left = 312
+          Top = 40
+          Width = 89
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 4
+          Items.Strings = (
+            '32'
+            '64'
+            '128'
+            '256'
+            '512'
+            '1024')
+        end
+        object rbFNV1: TRadioButton
+          Left = 200
+          Top = 80
+          Width = 73
+          Height = 17
+          Caption = 'FNV-1'
+          Checked = True
+          TabOrder = 5
+          TabStop = True
+        end
+        object rbFNV1a: TRadioButton
+          Left = 272
+          Top = 80
+          Width = 73
+          Height = 17
+          Caption = 'FNV-1a'
+          TabOrder = 6
+        end
+      end
+    end
   end
   object OpenDialog1: TOpenDialog
     Left = 220

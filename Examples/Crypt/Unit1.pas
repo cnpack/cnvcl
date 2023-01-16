@@ -325,6 +325,17 @@ type
     btnAES256GCMEnTest: TButton;
     btnAES256GCMDeTest: TButton;
     btnAESGCMNoPaddingJava: TButton;
+    tsFNV: TTabSheet;
+    grpFNV: TGroupBox;
+    lblFNVFrom: TLabel;
+    edtFNV: TEdit;
+    btnFNV: TButton;
+    pnlFNV: TPanel;
+    btnFNVFile: TButton;
+    cbbFNVType: TComboBox;
+    lblFNVType: TLabel;
+    rbFNV1: TRadioButton;
+    rbFNV1a: TRadioButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -424,6 +435,7 @@ type
     procedure btnAES256GCMEnTestClick(Sender: TObject);
     procedure btnAES256GCMDeTestClick(Sender: TObject);
     procedure btnAESGCMNoPaddingJavaClick(Sender: TObject);
+    procedure btnFNVClick(Sender: TObject);
   private
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -439,7 +451,7 @@ implementation
 
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
-  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnAEAD, CnPemUtils, CnNative, CnCommon;
+  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnAEAD, CnFNV, CnPemUtils, CnNative, CnCommon;
 
 {$R *.DFM}
 
@@ -756,6 +768,7 @@ begin
   cbbDesPadding.ItemIndex := 0;
   cbb3DesPadding.ItemIndex := 0;
   cbbAesPadding.ItemIndex := 0;
+  cbbFNVType.ItemIndex := 0;
 
 {$IFNDEF TBYTES_DEFINED}
   chkSM4UseTBytes.Visible := False;
@@ -2642,6 +2655,55 @@ begin
     ShowMessage(BytesToHex(Plain))
   else
     ShowMessage('Decrypt Failed');
+end;
+
+procedure TFormCrypt.btnFNVClick(Sender: TObject);
+var
+  B: TBytes;
+  S: AnsiString;
+  T: TCnFNVType;
+  R32: TCnFNVHash32;
+  R64: TCnFNVHash64;
+  R128: TCnFNVHash128;
+  R256: TCnFNVHash256;
+  R512: TCnFNVHash512;
+  R1024: TCnFNVHash1024;
+begin
+  T := TCnFNVType(cbbFNVType.ItemIndex);
+  S := edtFNV.Text;
+  B := StrToBytes(S);
+
+  if rbFNV1.Checked then
+  begin
+    case T of
+      cft32: R32 := FNV1Hash32(B);
+      cft64: R64 := FNV1Hash64(B);
+      cft128: R128 := FNV1Hash128(B);
+      cft256: R256 := FNV1Hash256(B);
+      cft512: R512 := FNV1Hash512(B);
+      cft1024: R1024 := FNV1Hash1024(B);
+    end;
+  end
+  else if rbFNV1a.Checked then
+  begin
+    case T of
+      cft32: R32 := FNV1aHash32(B);
+      cft64: R64 := FNV1aHash64(B);
+      cft128: R128 := FNV1aHash128(B);
+      cft256: R256 := FNV1aHash256(B);
+      cft512: R512 := FNV1aHash512(B);
+      cft1024: R1024 := FNV1aHash1024(B);
+    end;
+  end;
+
+  case T of
+    cft32: pnlFNV.Caption := DataToHex(@R32[0], SizeOf(R32));
+    cft64: pnlFNV.Caption := DataToHex(@R64[0], SizeOf(R64));
+    cft128: pnlFNV.Caption := DataToHex(@R128[0], SizeOf(R128));
+    cft256: pnlFNV.Caption := DataToHex(@R256[0], SizeOf(R256));
+    cft512: pnlFNV.Caption := DataToHex(@R512[0], SizeOf(R512));
+    cft1024: pnlFNV.Caption := DataToHex(@R1024[0], SizeOf(R1024));
+  end;
 end;
 
 end.
