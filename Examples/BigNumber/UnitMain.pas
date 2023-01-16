@@ -1526,6 +1526,7 @@ begin
   Assert(TestBigNumberGetBitsCount, 'TestBigNumberGetBitsCount');
   Assert(TestBigNumberShiftLeft, 'TestBigNumberShiftLeft');
   Assert(TestBigNumberDivWord, 'TestBigNumberDivWord');
+  Assert(TestBigNumberModWord, 'TestBigNumberModWord');
   Assert(TestBigNumberMulWord, 'TestBigNumberMulWord');
   Assert(TestBigNumberHex, 'TestBigNumberHex');
   Assert(TestBigNumberDec, 'TestBigNumberDec');

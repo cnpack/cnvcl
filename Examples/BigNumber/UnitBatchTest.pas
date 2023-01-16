@@ -9,7 +9,11 @@ function TestBigNumberHex: Boolean;
 
 function TestBigNumberDec: Boolean;
 
+function TestBigNumberExpandWord: Boolean;
+
 function TestBigNumberMulWord: Boolean;
+
+function TestBigNumberModWord: Boolean;
 
 function TestBigNumberDivWord: Boolean;
 
@@ -55,6 +59,33 @@ begin
   BigNumberFree(T);
 end;
 
+function TestBigNumberExpandWord: Boolean;
+var
+  T: TCnBigNumber;
+begin
+  T := BigNumberNew;
+{$IFDEF CPUX64}
+  if CnBigNumberIs64Mode then
+  begin
+    BigNumberWordExpand(T, 8);
+    T.Top := 8;
+    PCnBigNumberElementArray(T.D)^[0] := $0F73D4B9F147A700;
+    PCnBigNumberElementArray(T.D)^[1] := $05D72BCFF78BBB54;
+    PCnBigNumberElementArray(T.D)^[2] := $074D5382782E0E84;
+    PCnBigNumberElementArray(T.D)^[3] := $07A20D1E34E475C2;
+    PCnBigNumberElementArray(T.D)^[4] := $0CA4A192F7331A65;
+    PCnBigNumberElementArray(T.D)^[5] := $0586C66DE2BD9685;
+    PCnBigNumberElementArray(T.D)^[6] := $0BACACDE82782B14;
+    PCnBigNumberElementArray(T.D)^[7] := $0F8DDBF39D15FB5B;
+
+    Result := T.ToHex() = '0F8DDBF39D15FB5B0BACACDE82782B140586C66DE2BD96850CA4A192F7331A6507A20D1E34E475C2074D5382782E0E8405D72BCFF78BBB540F73D4B9F147A700';
+  end
+  else
+{$ENDIF}
+    Result := True;
+  BigNumberFree(T);
+end;
+
 function TestBigNumberMulWord: Boolean;
 var
   T: TCnBigNumber;
@@ -66,6 +97,56 @@ begin
   BigNumberMulWord(T, W);
   Result := T.ToHex() = 'B4FB4C261C179660E6966CACA1345A00';
   BigNumberFree(T);
+end;
+
+function TestBigNumberModWord: Boolean;
+var
+  T: TCnBigNumber;
+  W, R: TCnBigNumberElement;
+begin
+  T := BigNumberNew;
+  try
+    T.SetDec('111757582461903');
+    W := 1;
+    R := BigNumberModWord(T, W);
+    Result := R = 0;
+
+    if not Result then
+      Exit;
+
+    T.SetDec('111757582461902544929520711250223739903');
+    W := 1000000000;
+    R := BigNumberModWord(T, W);
+    Result := R = 223739903;
+
+    if not Result then
+      Exit;
+
+    T.SetHex('0C7D4FAEC98EC3DF');
+    W := $6F6C929F;
+    R := BigNumberModWord(T, W);
+    Result := R = 1802899775;
+
+    if not Result then
+      Exit;
+
+    T.SetDec('12345667296');
+    W := 100000;
+    R := BigNumberModWord(T, W); // Win32 下居然出错等于 0，后已修复
+    Result := R = 67296;
+
+    if not Result then
+      Exit;
+
+{$IFDEF CPUX64}
+    T.SetDec('2345348872881627880943948657900100329812345667296');
+    W := 1000000000;
+    R := BigNumberModWord(T, W);
+    Result := R = 345667296;
+{$ENDIF}
+  finally
+    BigNumberFree(T);
+  end;
 end;
 
 function TestBigNumberDivWord: Boolean;
