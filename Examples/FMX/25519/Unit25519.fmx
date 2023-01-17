@@ -1,0 +1,552 @@
+object Form25519: TForm25519
+  Left = 192
+  Top = 107
+  Caption = '25519 Curves'
+  ClientHeight = 563
+  ClientWidth = 979
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 192
+  Top = 107
+  DesignerMasterStyle = 0
+  object pgc25519: TTabControl
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 953.000000000000000000
+    Size.Height = 521.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 0
+    TabPosition = Top
+    Sizes = (
+      953s
+      493s
+      953s
+      493s)
+    object ts25519: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 89.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = '25519 Basic'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grp25519: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 929.000000000000000000
+        Size.Height = 473.000000000000000000
+        Size.PlatformDefault = False
+        Text = '25519 Basic'
+        TabOrder = 0
+        object btnCurve25519G: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Curve25519 G on Curve?'
+          OnClick = btnCurve25519GClick
+        end
+        object btnEd25519G: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Ed25519 G on Curve?'
+          OnClick = btnEd25519GClick
+        end
+        object btnCurve25519GAdd: TButton
+          Position.X = 224.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Curve25519 G Add'
+          OnClick = btnCurve25519GAddClick
+        end
+        object btnEd25519GAdd: TButton
+          Position.X = 224.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Ed25519 G Add'
+          OnClick = btnEd25519GAddClick
+        end
+        object btnCurve25519GSub: TButton
+          Position.X = 432.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Curve25519 G Sub'
+          OnClick = btnCurve25519GSubClick
+        end
+        object btnEd25519GSub: TButton
+          Position.X = 432.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Ed25519 G Sub'
+          OnClick = btnEd25519GSubClick
+        end
+        object btnCurve25519GMul: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Curve25519 G Mul'
+          OnClick = btnCurve25519GMulClick
+        end
+        object btnEd25519GMul: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Ed25519 G Mul'
+          OnClick = btnEd25519GMulClick
+        end
+        object btnEd25519ExtendedAdd: TButton
+          Position.X = 224.000000000000000000
+          Position.Y = 104.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Ed25519 G Extended Add'
+          OnClick = btnEd25519ExtendedAddClick
+        end
+        object btnEd25519ExtendedMul: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 104.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Ed25519 G Extended Mul'
+          OnClick = btnEd25519ExtendedMulClick
+        end
+        object btnEd25519GenKey: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'Ed25519 Gen Key'
+          OnClick = btnEd25519GenKeyClick
+        end
+        object btnEd25519SignSample: TButton
+          Position.X = 224.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+          Text = 'Ed25519 Sign Sample'
+          OnClick = btnEd25519SignSampleClick
+        end
+        object btnEd25519PointData: TButton
+          Position.X = 432.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 12
+          Text = 'Ed25519 G Point Data'
+          OnClick = btnEd25519PointDataClick
+        end
+        object btnCurve25519DHKeyExchange: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 13
+          Text = 'Curve 25519 DH Key Exchange'
+          OnClick = btnCurve25519DHKeyExchangeClick
+        end
+        object btnCalcSqrt: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 104.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 14
+          Text = 'Mont/Ed 25519 Check'
+          OnClick = btnCalcSqrtClick
+        end
+        object btn25519PointConvert: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 15
+          Text = 'Curve/Ed 25519 PointConvert'
+          OnClick = btn25519PointConvertClick
+        end
+        object btnCurv25519MontLadderDouble: TButton
+          Position.X = 224.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 16
+          Text = 'Curv25519 Mont Ladder Double'
+          OnClick = btnCurv25519MontLadderDoubleClick
+        end
+        object btnCurv25519MontLadderAdd: TButton
+          Position.X = 432.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 17
+          Text = 'Curv25519 Mont Ladder Add'
+          OnClick = btnCurv25519MontLadderAddClick
+        end
+        object btnCurv25519MontLadderMul: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 18
+          Text = 'Curv25519 Mont Ladder Mul'
+          OnClick = btnCurv25519MontLadderMulClick
+        end
+        object btnBigNumberToField: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 272.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 19
+          Text = 'BigNumber To Field64'
+          OnClick = btnBigNumberToFieldClick
+        end
+        object btnField64Mul: TButton
+          Position.X = 224.000000000000000000
+          Position.Y = 272.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 20
+          Text = 'Field64 Mul'
+          OnClick = btnField64MulClick
+        end
+        object btnField64MulTime: TButton
+          Position.X = 432.000000000000000000
+          Position.Y = 272.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 21
+          Text = 'Field64 Mul Time'
+          OnClick = btnField64MulTimeClick
+        end
+        object btnCurv25519MontLadderField64Double: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 22
+          Text = 'Curv25519 Mont Ladder Field Double'
+          OnClick = btnCurv25519MontLadderField64DoubleClick
+        end
+        object btnCurv25519MontLadderField64Add: TButton
+          Position.X = 224.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 23
+          Text = 'Curv25519 Mont Ladder Field Add'
+          OnClick = btnCurv25519MontLadderField64AddClick
+        end
+        object btnCurv25519MontLadderField64Mul: TButton
+          Position.X = 432.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 24
+          Text = 'Curv25519 Mont Ladder Field Mul'
+          OnClick = btnCurv25519MontLadderField64MulClick
+        end
+        object btnField64Sub: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 272.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 25
+          Text = 'Field64 Sub'
+          OnClick = btnField64SubClick
+        end
+        object btnField64Reduce: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 26
+          Text = 'Field64 Reduce'
+          OnClick = btnField64ReduceClick
+        end
+        object btnEd25519ExtendedField64Add: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 27
+          Text = 'Ed25519 G Extended Field Add'
+          OnClick = btnEd25519ExtendedField64AddClick
+        end
+        object btnEd25519ExtendedField64Mul: TButton
+          Position.X = 224.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 28
+          Text = 'Ed25519 G Extended Field Mul'
+          OnClick = btnEd25519ExtendedField64MulClick
+        end
+        object btn25519Field64Power2k: TButton
+          Position.X = 432.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 29
+          Text = 'Field64 Power && Power 2k'
+          OnClick = btn25519Field64Power2kClick
+        end
+        object btn25519Field64PowerPMinus2: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 30
+          Text = 'Field64 Power p-2'
+          OnClick = btn25519Field64PowerPMinus2Click
+        end
+      end
+    end
+    object ts25519Sign: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 1
+      Size.Width = 135.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Ed25519 Sign/Verify'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpEd25519Sign: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 929.000000000000000000
+        Size.Height = 473.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Ed25519 Sign/Verify'
+        TabOrder = 0
+        object lblEd25519Priv: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 57.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Private Key:'
+        end
+        object lblEd25519Pub: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 53.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Public Key:'
+        end
+        object lblEd25519Msg: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 92.000000000000000000
+          Size.Width = 46.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Message:'
+        end
+        object lblEd25519Sig: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 124.000000000000000000
+          Size.Width = 48.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Signature:'
+        end
+        object edtEd25519Priv: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 0
+          Position.X = 88.000000000000000000
+          Position.Y = 22.000000000000000000
+          Size.Width = 473.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtEd25519Pub: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Position.X = 88.000000000000000000
+          Position.Y = 50.000000000000000000
+          Size.Width = 473.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnEd25519Gen: TButton
+          Position.X = 576.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 49.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Gen Keys'
+          OnClick = btnEd25519GenClick
+        end
+        object edtEd25519Message: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 3
+          Text = 'My Message to be Sign.'
+          Position.X = 88.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 473.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnEd25519Sign: TButton
+          Position.X = 576.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Sign'
+          OnClick = btnEd25519SignClick
+        end
+        object edtEd25519Sig: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 5
+          Position.X = 88.000000000000000000
+          Position.Y = 120.000000000000000000
+          Size.Width = 817.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnEd25519Verify: TButton
+          Position.X = 664.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Verify'
+          OnClick = btnEd25519VerifyClick
+        end
+        object btnSignTime: TButton
+          Position.X = 752.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Sign Time'
+          OnClick = btnSignTimeClick
+        end
+        object btnVerifyTime: TButton
+          Position.X = 840.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Verify Time'
+          OnClick = btnVerifyTimeClick
+        end
+        object btnEd25519SignFile: TButton
+          Position.X = 752.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 49.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Sign File'
+          OnClick = btnEd25519SignFileClick
+        end
+        object btnEd25519VerifyFile: TButton
+          Position.X = 840.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 49.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'Verify File'
+          OnClick = btnEd25519VerifyFileClick
+        end
+        object btnEd25519LoadKeys: TButton
+          Position.X = 664.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+          Text = 'Load Keys'
+        end
+        object btnEd25519SaveKeys: TButton
+          Position.X = 664.000000000000000000
+          Position.Y = 52.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 12
+          Text = 'Save Keys'
+        end
+      end
+    end
+  end
+  object dlgOpen1: TOpenDialog
+    Left = 788
+    Top = 184
+  end
+  object dlgSave1: TSaveDialog
+    Left = 828
+    Top = 184
+  end
+end
