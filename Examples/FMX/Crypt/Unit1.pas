@@ -1,4 +1,4 @@
-unit Unit1;
+Ôªøunit Unit1;
 
 interface
 
@@ -7,7 +7,7 @@ interface
 uses
   {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
   FMX.ExtCtrls, FMX.StdCtrls, FMX.Edit, FMX.ListBox, FMX.TabControl, FMX.Types,
-  FMX.Controls.Presentation;
+  FMX.Controls.Presentation, FMX.ComboEdit;
 
 type
   TFormCrypt = class(TForm)
@@ -287,6 +287,51 @@ type
     edtXXTeaEnc1: TEdit;
     edtXXTeaEnc2: TEdit;
     btnXXTeaDec: TButton;
+    tsPoly1305: TTabItem;
+    grpPoly1305: TGroupBox;
+    lblPoly1305: TLabel;
+    lblPoly1305Result: TLabel;
+    lblPoly1305Key: TLabel;
+    edtPoly1305: TEdit;
+    btnPoly1305: TButton;
+    edtPoly1305Key: TEdit;
+    tsChaCha20: TTabItem;
+    grpChaCha20: TGroupBox;
+    lblChaCha20: TLabel;
+    lblChaCha20Result: TLabel;
+    lblChaCha20Key: TLabel;
+    edtChaCha20: TEdit;
+    btnChaCha20Block: TButton;
+    edtChaCha20Key: TEdit;
+    btnChaCha20Data: TButton;
+    tsAEAD: TTabItem;
+    grpAEAD: TGroupBox;
+    btnGHash: TButton;
+    btnGMulBlock: TButton;
+    btnGHash1: TButton;
+    btnAES128GCMEnTest: TButton;
+    btnAES128GCMDeTest: TButton;
+    btnSM4GCM: TButton;
+    btnAESCMAC: TButton;
+    btnAESCCMEnc: TButton;
+    btnAESCCMDec: TButton;
+    btnSM4CCM: TButton;
+    btnAES192GCMEnTest: TButton;
+    btnAES192GCMDeTest: TButton;
+    btnAES256GCMEnTest: TButton;
+    btnAES256GCMDeTest: TButton;
+    btnAESGCMNoPaddingJava: TButton;
+    tsFNV: TTabItem;
+    grpFNV: TGroupBox;
+    lblFNVFrom: TLabel;
+    lblFNVType: TLabel;
+    edtFNV: TEdit;
+    btnFNV: TButton;
+    pnlFNV: TPanel;
+    btnFNVFile: TButton;
+    cbbFNVType: TComboEdit;
+    rbFNV1: TRadioButton;
+    rbFNV1a: TRadioButton;
     OpenDialog1: TOpenDialog;
     dlgSave: TSaveDialog;
     procedure FormCreate(Sender: TObject);
@@ -370,13 +415,31 @@ type
     procedure btnXTeaDecClick(Sender: TObject);
     procedure btnXXTeaEncClick(Sender: TObject);
     procedure btnXXTeaDecClick(Sender: TObject);
+    procedure btnPoly1305Click(Sender: TObject);
+    procedure btnChaCha20BlockClick(Sender: TObject);
+    procedure btnChaCha20DataClick(Sender: TObject);
+    procedure btnGHashClick(Sender: TObject);
+    procedure btnGMulBlockClick(Sender: TObject);
+    procedure btnGHash1Click(Sender: TObject);
+    procedure btnAES128GCMEnTestClick(Sender: TObject);
+    procedure btnAES128GCMDeTestClick(Sender: TObject);
+    procedure btnSM4GCMClick(Sender: TObject);
+    procedure btnAESCMACClick(Sender: TObject);
+    procedure btnAESCCMEncClick(Sender: TObject);
+    procedure btnAESCCMDecClick(Sender: TObject);
+    procedure btnSM4CCMClick(Sender: TObject);
+    procedure btnAES192GCMEnTestClick(Sender: TObject);
+    procedure btnAES192GCMDeTestClick(Sender: TObject);
+    procedure btnAES256GCMEnTestClick(Sender: TObject);
+    procedure btnAES256GCMDeTestClick(Sender: TObject);
+    procedure btnAESGCMNoPaddingJavaClick(Sender: TObject);
+    procedure btnFNVClick(Sender: TObject);
   private
-    { Private declarations }
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
     function FromHex(const Hex: string): AnsiString;
   public
-    { Public declarations }
+
   end;
 
 var
@@ -386,7 +449,7 @@ implementation
 
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
-  CnSHA3, CnTEA, CnPemUtils, CnNative;
+  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnAEAD, CnFNV, CnPemUtils, CnNative;
 
 {$R *.fmx}
 
@@ -693,6 +756,7 @@ begin
   cbbDesPadding.ItemIndex := 0;
   cbb3DesPadding.ItemIndex := 0;
   cbbAesPadding.ItemIndex := 0;
+  cbbFNVType.ItemIndex := 0;
 
 {$IFNDEF TBYTES_DEFINED}
   chkSM4UseTBytes.Visible := False;
@@ -783,7 +847,7 @@ begin
   else
     S := edtSm4.Text;
 
-  Len := Length(AnsiString(S)); // PKCS7/PKCS5 ∂‘∆Î ±–Ë“™µ˜’˚ Len
+  Len := Length(AnsiString(S)); // PKCS7/PKCS5 ÂØπÈΩêÊó∂ÈúÄË¶ÅË∞ÉÊï¥ Len
   if Len < 16 then
     Len := 16
   else
@@ -808,7 +872,7 @@ begin
     end
     else
     begin
-      // S “—æ≠¥¶¿Ì∫√¡À PKCS7 ∂‘∆Î
+      // S Â∑≤ÁªèÂ§ÑÁêÜÂ•Ω‰∫Ü PKCS7 ÂØπÈΩê
       SM4EncryptEcbStr(edtSm4Key.Text, S, @(Output[1]))
     end;
   end
@@ -1018,7 +1082,7 @@ begin
       end;
     end;
   end
-  else if rbAescbc.IsChecked or rbAescfb.IsChecked or rbAesofb.IsChecked then // ’‚ÿÌ∂º–Ë“™≥ı ºªØœÚ¡ø
+  else if rbAescbc.IsChecked or rbAescfb.IsChecked or rbAesofb.IsChecked then // Ëøô‰ª®ÈÉΩÈúÄË¶ÅÂàùÂßãÂåñÂêëÈáè
   begin
     IvStr := FromHex(edtAesIv.Text);
     if Length(IvStr) <> SizeOf(TAESBuffer) then
@@ -1036,7 +1100,7 @@ begin
       IvBytes := TEncoding.Default.GetBytes(IvStr);
       DataBytes := TEncoding.Default.GetBytes(edtAes.Text);
 
-      if rbAescbc.IsChecked and (cbbAesPadding.ItemIndex = 1) then // CBC –Ë“™∂‘∆Î
+      if rbAescbc.IsChecked and (cbbAesPadding.ItemIndex = 1) then // CBC ÈúÄË¶ÅÂØπÈΩê
         BytesAddPKCS7Padding(DataBytes, AES_BLOCKSIZE);
     end;
 {$ENDIF}
@@ -1106,7 +1170,7 @@ begin
       end
       else
       begin
-        // CFB ≤ª–Ë“™ Padding
+        // CFB ‰∏çÈúÄË¶Å Padding
         case cbbAesKeyBitType.ItemIndex of
           0:
             edtAesResult.Text := AESEncryptCfbStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt128);
@@ -1136,7 +1200,7 @@ begin
       end
       else
       begin
-        // OFB ≤ª–Ë“™ Padding
+        // OFB ÔøΩÔøΩÔøΩÔøΩ“™ Padding
         case cbbAesKeyBitType.ItemIndex of
           0:
             edtAesResult.Text := AESEncryptOfbStrToHex(edtAes.Text, edtAesKey.Text, TmpAesIv, kbt128);
@@ -1210,7 +1274,7 @@ begin
       IvBytes := TEncoding.Default.GetBytes(IvStr);
       DataBytes := TEncoding.Default.GetBytes(edtAes.Text);
 
-      if rbAescbc.IsChecked and (cbbAesPadding.ItemIndex = 1) then // CBC –Ë“™∂‘∆Î
+      if rbAescbc.IsChecked and (cbbAesPadding.ItemIndex = 1) then // CBC ÔøΩÔøΩ“™ÔøΩÔøΩÔøΩÔøΩ
         BytesAddPKCS7Padding(DataBytes, AES_BLOCKSIZE);
     end;
 {$ENDIF}
@@ -1267,7 +1331,7 @@ begin
       end
       else
       begin
-        // CFB ≤ª–Ë“™ Padding
+        // CFB ‰∏çÈúÄË¶Å Padding
         case cbbAesKeyBitType.ItemIndex of
           0:
             edtAesDecrypt.Text := AESDecryptCfbStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt128);
@@ -1297,7 +1361,7 @@ begin
       end
       else
       begin
-        // CFB ≤ª–Ë“™ Padding
+        // CFB ‰∏çÈúÄË¶Å Padding
         case cbbAesKeyBitType.ItemIndex of
           0:
             edtAesDecrypt.Text := AESDecryptOfbStrFromHex(edtAesResult.Text, edtAesKey.Text, TmpAesIv, kbt128);
@@ -1399,10 +1463,10 @@ begin
   end;
 end;
 
-// ‰»Î:
-// √‹‘ø k:      00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-// ≥ı ºœÚ¡ø iv: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-// ‰≥ˆ:
+//ËæìÂÖ•:
+// ÂØÜÈí• k:      00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+// ÂàùÂßãÂêëÈáè iv: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+//ËæìÂá∫:
 // z1: 27bede74
 // z2: 018082da
 procedure TFormCrypt.btnZUC1Click(Sender: TObject);
@@ -1424,10 +1488,10 @@ begin
   List.Free;
 end;
 
-// ‰»Î:
-//  √‹‘ø k:      ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
-//  ≥ı ºœÚ¡ø iv: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
-// ‰≥ˆ:
+//ËæìÂÖ•:
+//  ÂØÜÈí• k:      ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+//  ÂàùÂßãÂêëÈáè iv: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+//ËæìÂá∫:
 //  z1: 0657cfa0
 //  z2: 7096398b
 procedure TFormCrypt.btnZUC2Click(Sender: TObject);
@@ -1449,10 +1513,10 @@ begin
   List.Free;
 end;
 
-// ‰»Î:
-//  √‹‘ø k:      3d 4c 4b e9 6a 82 fd ae b5 8f 64 1d b1 7b 45 5b
-//  ≥ı ºœÚ¡ø iv: 84 31 9a a8 de 69 15 ca 1f 6b da 6b fb d8 c7 66
-// ‰≥ˆ:
+//ËæìÂÖ•:
+//  ÂØÜÈí• k:      3d 4c 4b e9 6a 82 fd ae b5 8f 64 1d b1 7b 45 5b
+//  ÂàùÂßãÂêëÈáè iv: 84 31 9a a8 de 69 15 ca 1f 6b da 6b fb d8 c7 66
+//ËæìÂá∫:
 //  z1: 14f1c272
 //  z2: 3279c419
 procedure TFormCrypt.btnZUC3Click(Sender: TObject);
@@ -1476,13 +1540,13 @@ begin
   List.Free;
 end;
 
-// ‰»Î:
+//ËæìÂÖ•:
 // Key: 4d 32 0b fa d4 c2 85 bf d6 b8 bd 00 f3 9d 8b 41
 // IV: 52 95 9d ab a0 bf 17 6e ce 2d c3 15 04 9e b5 74
-// ‰≥ˆ:
+//ËæìÂá∫:
 // z1: ed4400e7
 // z2: 0633e5c5
-//°≠°≠
+//‚Ä¶‚Ä¶
 // Z2000: 7a574cdb
 procedure TFormCrypt.btnZUC4Click(Sender: TObject);
 const
@@ -2167,6 +2231,466 @@ begin
   if OpenDialog1.Execute then
     if FileCRC8(OpenDialog1.FileName, Crc) then
       ShowMessage( IntToHex(Crc, 2));
+end;
+
+procedure TFormCrypt.btnPoly1305Click(Sender: TObject);
+var
+  L: Integer;
+  S: AnsiString;
+  K: AnsiString;
+  Key: TPoly1305Key;
+  Dig: TPoly1305Digest;
+begin
+//  S := 'Cryptographic Forum Research Group';
+//  K := '85d6be7857556d337f4452fe42d506a80103808afb0db2fd4abff6af4149f51b';
+//  HexToData(K, @Key[0]);
+
+  S := edtPoly1305.Text;
+  K := edtPoly1305Key.Text;
+  FillChar(Key[0], SizeOf(TPoly1305Key), 0);
+  L := Length(K);
+  if L > SizeOf(TPoly1305Key) then
+    L := SizeOf(TPoly1305Key);
+
+  Move(K[1], Key[0], L);
+  Dig := Poly1305Data(@S[1], Length(S), Key);
+  lblPoly1305Result.Text := Poly1305Print(Dig);
+end;
+
+procedure TFormCrypt.btnChaCha20BlockClick(Sender: TObject);
+var
+  SKey, SNonce: AnsiString;
+  Key: TChaChaKey;
+  Nonce: TChaChaNonce;
+  Cnt: TChaChaCounter;
+  State: TChaChaState;
+begin
+  SKey := '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f';
+  SNonce := '000000090000004a00000000';
+
+  HexToData(SKey, @Key[0]);
+  HexToData(SNonce, @Nonce[0]);
+
+  Cnt := 1;
+
+  ChaCha20Block(Key, Nonce, Cnt, State);
+end;
+
+procedure TFormCrypt.btnChaCha20DataClick(Sender: TObject);
+var
+  S, SKey, SNonce: AnsiString;
+  Key: TChaChaKey;
+  Nonce: TChaChaNonce;
+  EnRes: TBytes;
+begin
+  SKey := '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f';
+  SNonce := '000000000000004a00000000';
+
+  HexToData(SKey, @Key[0]);
+  HexToData(SNonce, @Nonce[0]);
+
+  S := 'Ladies and Gentlemen of the class of ''99: If I could offer you only one tip for the future, sunscreen would be it.';
+  SetLength(EnRes, Length(S));
+
+  ChaCha20EncryptData(Key, Nonce, @S[1], Length(S), @EnRes[0]);
+  ChaCha20DecryptData(Key, Nonce, @EnRes[0], Length(EnRes), @S[1]);
+  ShowMessage(S);
+
+  SetLength(EnRes, 0);
+end;
+
+procedure TFormCrypt.btnGHashClick(Sender: TObject);
+var
+  H: TGHash128Key;
+  C, A: TBytes;
+  T: TGHash128Tag;
+begin
+  HexToData('66E94BD4EF8A2C3B884CFA59CA342B2E', @H[0]);
+  GHash128(H, nil, 0, nil, 0, T);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // CÔøΩÔøΩA ÔøΩÔøΩŒ™ÔøΩ’£ÔøΩÔøΩÔøΩÔøΩ»´ 0
+
+  C := HexToBytes('0388DACE60B6A392F328C2B971B2FE78');
+  GHash128(H, @C[0], Length(C), nil, 0, T);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // F38CBB1AD69223DCC3457AE5B6B0F885ÔøΩÔøΩ“ªÔøΩÔøΩÔøΩÔøΩ CÔøΩÔøΩ√ª A
+
+  HexToData('b83b533708bf535d0aa6e52980d53b78', @H[0]);
+  C := HexToBytes('42831ec2217774244b7221b784d0d49ce3aa212f2c02a4e035c17e2329aca12e21d514b25466931c7d8f6a5aac84aa051ba30b396a0aac973d58e091473f5985');
+  T := GHash128Bytes(H, C, nil);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 7F1B32B81B820D02614F8895AC1D4EACÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ CÔøΩÔøΩ√ª A
+
+  HexToData('b83b533708bf535d0aa6e52980d53b78', @H[0]);
+  C := HexToBytes('42831ec2217774244b7221b784d0d49ce3aa212f2c02a4e035c17e2329aca12e21d514b25466931c7d8f6a5aac84aa051ba30b396a0aac973d58e091');
+  A := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+  T := GHash128Bytes(H, C, A);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 698e57f70e6ecc7fd9463b7260a9ae5f ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ C ÔøΩÔøΩ ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ A
+end;
+
+procedure TFormCrypt.btnGMulBlockClick(Sender: TObject);
+var
+  Sk, SIv, SX: string;
+  Key: TGHash128Key;
+  Iv: T128BitsBuffer;
+  X, Y, Z: T128BitsBuffer;
+begin
+  Sk := '00BA5F76F3D8982B199920E3221ED05F';
+  SIv := '384C3CEDE5CBC5560F002F94A8E4205A';
+  SX := '3BEA3321BDA9EBF02D5459BCE4295E3A';
+
+  HexToData(SK, @Key[0]);
+  HexToData(SIv, @Iv[0]);
+  HexToData(SX, @X[0]);
+
+  MemoryXor(@X[0], @Iv[0], SizeOf(T128BitsBuffer), @X[0]);
+
+  Move(Key[0], Y[0], SizeOf(T128BitsBuffer));
+  GMulBlock128(X, Y, Z);  // ÔøΩÔøΩÔøΩŸ∑ÔøΩÔøΩœΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ
+
+  ShowMessage(DataToHex(@Z[0], SizeOf(T128BitsBuffer)));
+end;
+
+procedure TFormCrypt.btnGHash1Click(Sender: TObject);
+var
+  H: TGHash128Key;
+  C, A: TBytes;
+  T: TGHash128Tag;
+  Ctx: TGHash128Context;
+begin
+  HexToData('b83b533708bf535d0aa6e52980d53b78', @H[0]);
+  C := HexToBytes('42831ec2217774244b7221b784d0d49ce3aa212f2c02a4e035c17e2329aca12e21d514b25466931c7d8f6a5aac84aa051ba30b396a0aac973d58e091');
+  A := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  GHash128Start(Ctx, H, @A[0], Length(A));
+  GHash128Update(Ctx, @C[0], Length(C));
+  GHash128Finish(Ctx, T);
+
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 698e57f70e6ecc7fd9463b7260a9ae5f ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ C ÔøΩÔøΩ ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ A
+end;
+
+procedure TFormCrypt.btnAES128GCMEnTestClick(Sender: TObject);
+var
+  Key, Iv, AD, Plain, C: TBytes;
+  T: TGCM128Tag;
+begin
+  Key := HexToBytes('00000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := nil;
+  AD := nil;
+
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv »´ 0ÔøΩÔøΩPlain ÔøΩÔøΩ AD ÔøΩ’£ÔøΩÔøΩÔøΩÔøΩƒøÔøΩ
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 58e2fccefa7e3061367f1d57a4e7455a
+
+  Key := HexToBytes('00000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := HexToBytes('00000000000000000000000000000000');
+  AD := nil;
+
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain »´ 0ÔøΩÔøΩAD ÔøΩÔøΩ
+  ShowMessage(DataToHex(@C[0], Length(T)));  // 0388dace60b6a392f328c2b971b2fe78
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // ab6e47d42cec13bdf53a67b21257bddf
+
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308');
+  Iv := HexToBytes('cafebabefacedbad');
+  Plain := HexToBytes('d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD »´ÔøΩ–£ÔøΩÔøΩÔøΩ AD ÔøΩÔøΩ 96
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 61353b4c2806934a777ff51fa22a4755699b2a714fcdc6f83766e5f97b6c742373806900e49f24b22b097544d4896b424989b5e1ebac0f07c23f4598
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 3612d2e79e3b0785561be14aaca2fccb
+end;
+
+procedure TFormCrypt.btnAES128GCMDeTestClick(Sender: TObject);
+var
+  Key, Iv, AD, C, P: TBytes;
+  T: TGCM128Tag;
+begin
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308');
+  Iv := HexToBytes('cafebabefacedbad');
+  C := HexToBytes('61353b4c2806934a777ff51fa22a4755699b2a714fcdc6f83766e5f97b6c742373806900e49f24b22b097544d4896b424989b5e1ebac0f07c23f4598');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+  HexToData('3612d2e79e3b0785561be14aaca2fccb', @T[0]);
+
+  P := AES128GCMDecryptBytes(Key, Iv, C, AD, T);
+  ShowMessage(DataToHex(@P[0], Length(P))); // d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39
+end;
+
+procedure TFormCrypt.btnSM4GCMClick(Sender: TObject);
+var
+  Key, Iv, AD, Plain, C: TBytes;
+  T: TGCM128Tag;
+begin
+  Key := HexToBytes('0123456789ABCDEFFEDCBA9876543210');
+  Iv := HexToBytes('00001234567800000000ABCD');
+  Plain := HexToBytes('AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDEEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA');
+  AD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+
+  C := SM4GCMEncryptBytes(Key, Iv, Plain, AD, T);  // ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ‘¥ÔøΩÔøΩ RFC 8998
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 17F399F08C67D5EE19D0DC9969C4BB7D5FD46FD3756489069157B282BB200735D82710CA5C22F0CCFA7CBF93D496AC15A56834CBCF98C397B4024A2691233B8D
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 83DE3541E4C2B58177E065A9BF7B62EC
+end;
+
+procedure TFormCrypt.btnAESCMACClick(Sender: TObject);
+var
+  Key, M: TBytes;
+  T: TCMAC128Tag;
+begin
+  Key := HexToBytes('2b7e151628aed2a6abf7158809cf4f3c');
+  T := AES128CMAC128Bytes(Key, nil);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // bb1d6929 e9593728 7fa37d12 9b756746
+
+  M := HexToBytes('6bc1bee22e409f96e93d7e117393172a');
+  T := AES128CMAC128Bytes(Key, M);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 070a16b4 6b4d4144 f79bdd9d d04a287c
+
+  M := HexToBytes('6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411');
+  T := AES128CMAC128Bytes(Key, M);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // dfa66747 de9ae630 30ca3261 1497c827
+
+  M := HexToBytes('6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710');
+  T := AES128CMAC128Bytes(Key, M);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 51f0bebf 7e3b9d92 fc497417 79363cfe
+end;
+
+procedure TFormCrypt.btnAESCCMEncClick(Sender: TObject);
+var
+  Key, Nonce, AAD, P, C: TBytes;
+  T: TCCM128Tag;
+begin
+  // NIST ÔøΩÔøΩÔøΩ”°ÔøΩ◊¢ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ–µÔøΩÔøΩ∆£ÔøΩÔøΩÎ±£÷§ CnAEAD Õ∑ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ–µÔøΩ Tag 4 ÔøΩ÷Ω⁄£ÔøΩÔøΩÔøΩ 8 ÔøΩ÷Ω⁄£ÔøΩ“≤ÔøΩÔøΩÔøΩÔøΩ CCM_M_LEN = 4; CCM_L_LEN = 8;
+  Key := HexToBytes('404142434445464748494a4b4c4d4e4f');
+  Nonce := HexToBytes('10111213141516');
+  P := HexToBytes('20212223');
+  AAD := HexToBytes('0001020304050607');
+
+  SetLength(C, Length(P));
+  AES128CCMEncrypt(@Key[0], Length(Key), @Nonce[0], Length(Nonce), @P[0],
+    Length(P), @AAD[0], Length(AAD), @C[0], T);
+
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));   // 4dac255d
+  ShowMessage(DataToHex(@C[0], Length(C)));   // 7162015b
+
+  // RFC ÔøΩÔøΩÔøΩ”°ÔøΩ◊¢ÔøΩÔøΩÔøΩÎ±£÷§ CnAEAD Õ∑ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ–µÔøΩ Tag 8 ÔøΩ÷Ω⁄£ÔøΩÔøΩÔøΩ 2 ÔøΩ÷Ω⁄£ÔøΩ“≤ÔøΩÔøΩÔøΩÔøΩ CCM_M_LEN = 8; CCM_L_LEN = 2;
+  Key := HexToBytes('C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF');
+  Nonce := HexToBytes('00000003020100A0A1A2A3A4A5');
+  P := HexToBytes('08090A0B0C0D0E0F101112131415161718191A1B1C1D1E');
+  AAD := HexToBytes('0001020304050607');
+
+  C := AES128CCMEncryptBytes(Key, Nonce, P, AAD, T);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 17E8D12CFDF926E0
+  ShowMessage(DataToHex(@C[0], Length(C))); // 588C979A 61C663D2 F066D0C2 C0F98980 6D5F6B61 DAC384
+end;
+
+procedure TFormCrypt.btnAESCCMDecClick(Sender: TObject);
+var
+  Key, Nonce, AAD, P, C: TBytes;
+  T: TCCM128Tag;
+begin
+  // NIST ÔøΩÔøΩÔøΩ”°ÔøΩ◊¢ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ–µÔøΩÔøΩ∆£ÔøΩÔøΩÎ±£÷§ CnAEAD Õ∑ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ–µÔøΩ Tag 4 ÔøΩ÷Ω⁄£ÔøΩÔøΩÔøΩ 8 ÔøΩ÷Ω⁄£ÔøΩ“≤ÔøΩÔøΩÔøΩÔøΩ CCM_M_LEN = 4; CCM_L_LEN = 8;
+  Key := HexToBytes('404142434445464748494a4b4c4d4e4f');
+  Nonce := HexToBytes('10111213141516');
+  C := HexToBytes('7162015b');
+  AAD := HexToBytes('0001020304050607');
+  HexToData('4dac255d', @T[0]);
+
+  SetLength(P, Length(C));
+  if AES128CCMDecrypt(@Key[0], Length(Key), @Nonce[0], Length(Nonce), @C[0],
+    Length(C), @AAD[0], Length(AAD), @P[0], T) then
+    ShowMessage(DataToHex(@P[0], Length(P)));   // 20212223
+
+  // RFC ÔøΩÔøΩÔøΩ”°ÔøΩ◊¢ÔøΩÔøΩÔøΩÎ±£÷§ CnAEAD Õ∑ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ–µÔøΩ Tag 8 ÔøΩ÷Ω⁄£ÔøΩÔøΩÔøΩ 2 ÔøΩ÷Ω⁄£ÔøΩ“≤ÔøΩÔøΩÔøΩÔøΩ CCM_M_LEN = 8; CCM_L_LEN = 2;
+  Key := HexToBytes('C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF');
+  Nonce := HexToBytes('00000003020100A0A1A2A3A4A5');
+  C := HexToBytes('588C979A61C663D2F066D0C2C0F989806D5F6B61DAC384');
+  AAD := HexToBytes('0001020304050607');
+  HexToData('17E8D12CFDF926E0', @T[0]); // ÔøΩÔøΩÔøΩÔøΩÔøΩ CnAEAD Õ∑ÔøΩÔøΩŒ¥ÔøΩÔøΩ»∑ÔøΩÔøΩÔøΩÔøΩ CCM_M_LEN ÔøΩÔøΩ CCM_L_LEN  ±ÔøΩÔøΩÔøΩÔøΩÔøΩ
+
+  P := AES128CCMEncryptBytes(Key, Nonce, C, AAD, T);
+  if P <> nil then
+    ShowMessage(DataToHex(@P[0], Length(P))); // 08090A0B0C0D0E0F101112131415161718191A1B1C1D1E
+end;
+
+procedure TFormCrypt.btnSM4CCMClick(Sender: TObject);
+var
+  Key, Nonce, AAD, P, C: TBytes;
+  T: TCCM128Tag;
+begin
+  // RFC 8998 ÔøΩÔøΩÔøΩ”£ÔøΩ◊¢ÔøΩÔøΩÔøΩÎ±£÷§ CnAEAD Õ∑ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ–µÔøΩ Tag 16 ÔøΩ÷Ω⁄£ÔøΩÔøΩÔøΩ 3 ÔøΩ÷Ω⁄£ÔøΩ“≤ÔøΩÔøΩÔøΩÔøΩ CCM_M_LEN = 16; CCM_L_LEN = 3;
+  Key := HexToBytes('0123456789ABCDEFFEDCBA9876543210');
+  Nonce := HexToBytes('00001234567800000000ABCD');
+  AAD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+  P := HexToBytes('AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDEEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA');
+  C := SM4CCMEncryptBytes(Key, Nonce, P, AAD, T);
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 48AF93501FA62ADBCD414CCE6034D895DDA1BF8F132F042098661572E7483094 FD12E518CE062C98ACEE28D95DF4416BED31A2F04476C18BB40C84A74B97DC5B
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 16842D4FA186F56AB33256971FA110F4
+end;
+
+procedure TFormCrypt.btnAES192GCMEnTestClick(Sender: TObject);
+var
+  Key, Iv, AD, Plain, C: TBytes;
+  T: TGCM128Tag;
+begin
+  Key := HexToBytes('000000000000000000000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := nil;
+  AD := nil;
+
+  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv »´ 0ÔøΩÔøΩPlain ÔøΩÔøΩ AD ÔøΩ’£ÔøΩÔøΩÔøΩÔøΩƒøÔøΩ
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // cd33b28ac773f74ba00ed1f312572435
+
+  Key := HexToBytes('000000000000000000000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := HexToBytes('00000000000000000000000000000000');
+  AD := nil;
+
+  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain »´ 0ÔøΩÔøΩAD ÔøΩÔøΩ
+  ShowMessage(DataToHex(@C[0], Length(T)));  // 98e7247c07f0fe411c267e4384b0f600
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 2ff58d80033927ab8ef4d4587514f0fb
+
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308feffe9928665731c');
+  Iv := HexToBytes('9313225df88406e555909c5aff5269aa6a7a9538534f7da1e4c303d2a318a728c3c0c95156809539fcf0e2429a6b525416aedbf5a0de6a57a637b39b');
+  Plain := HexToBytes('d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD »´ÔøΩ–£ÔøΩÔøΩÔøΩ AD ÔøΩÔøΩ 96
+  ShowMessage(DataToHex(@C[0], Length(C)));  // d27e88681ce3243c4830165a8fdcf9ff1de9a1d8e6b447ef6ef7b79828666e4581e79012af34ddd9e2f037589b292db3e67c036745fa22e7e9b7373b
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // dcf566ff291c25bbb8568fc3d376a6d9
+end;
+
+procedure TFormCrypt.btnAES192GCMDeTestClick(Sender: TObject);
+var
+  Key, Iv, AD, C, P: TBytes;
+  T: TGCM128Tag;
+begin
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308feffe9928665731c');
+  Iv := HexToBytes('9313225df88406e555909c5aff5269aa6a7a9538534f7da1e4c303d2a318a728c3c0c95156809539fcf0e2429a6b525416aedbf5a0de6a57a637b39b');
+  C := HexToBytes('d27e88681ce3243c4830165a8fdcf9ff1de9a1d8e6b447ef6ef7b79828666e4581e79012af34ddd9e2f037589b292db3e67c036745fa22e7e9b7373b');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  HexToData('dcf566ff291c25bbb8568fc3d376a6d9', @T[0]);
+
+  P := AES192GCMDecryptBytes(Key, Iv, C, AD, T);
+  ShowMessage(DataToHex(@P[0], Length(P))); // d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39
+end;
+
+procedure TFormCrypt.btnAES256GCMEnTestClick(Sender: TObject);
+var
+  Key, Iv, AD, Plain, C: TBytes;
+  T: TGCM128Tag;
+begin
+  Key := HexToBytes('0000000000000000000000000000000000000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := nil;
+  AD := nil;
+
+  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv »´ 0ÔøΩÔøΩPlain ÔøΩÔøΩ AD ÔøΩ’£ÔøΩÔøΩÔøΩÔøΩƒøÔøΩ
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 530f8afbc74536b9a963b4f1c4cb738b
+
+  Key := HexToBytes('0000000000000000000000000000000000000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := HexToBytes('00000000000000000000000000000000');
+  AD := nil;
+
+  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain »´ 0ÔøΩÔøΩAD ÔøΩÔøΩ
+  ShowMessage(DataToHex(@C[0], Length(T)));  // cea7403d4d606b6e074ec5d3baf39d18
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // d0d1c8a799996bf0265b98b5d48ab919
+
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308feffe9928665731c6d6a8f9467308308');
+  Iv := HexToBytes('cafebabefacedbaddecaf888');
+  Plain := HexToBytes('d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD »´ÔøΩ–£ÔøΩÔøΩÔøΩ AD ÔøΩÔøΩ 96
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 522dc1f099567d07f47f37a32a84427d643a8cdcbfe5c0c97598a2bd2555d1aa8cb08e48590dbb3da7b08b1056828838c5f61e6393ba7a0abcc9f662
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 76fc6ece0f4e1768cddf8853bb2d551b
+end;
+
+procedure TFormCrypt.btnAES256GCMDeTestClick(Sender: TObject);
+var
+  Key, Iv, AD, C, P: TBytes;
+  T: TGCM128Tag;
+begin
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308feffe9928665731c6d6a8f9467308308');
+  Iv := HexToBytes('cafebabefacedbaddecaf888');
+  C := HexToBytes('522dc1f099567d07f47f37a32a84427d643a8cdcbfe5c0c97598a2bd2555d1aa8cb08e48590dbb3da7b08b1056828838c5f61e6393ba7a0abcc9f662');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  HexToData('76fc6ece0f4e1768cddf8853bb2d551b', @T[0]);
+
+  P := AES256GCMDecryptBytes(Key, Iv, C, AD, T);
+  ShowMessage(DataToHex(@P[0], Length(P))); // d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39
+end;
+
+procedure TFormCrypt.btnAESGCMNoPaddingJavaClick(Sender: TObject);
+var
+  Key, Nonce, Text, AAD: AnsiString;
+  Res, Plain: TBytes;
+begin
+  Key := '0J7tEZyI4g41mfXCj2CkdUIKIsxc7xzE';
+  Nonce := 'AkSawJd1VOlx';
+  Text := '1234567890123456789';
+  AAD := 'question';
+
+  SetLength(Res, Length(Text) + SizeOf(TGCM128Tag));
+
+  AESGCMNoPaddingEncrypt(@Key[1], Length(Key), @Nonce[1], Length(Nonce), @Text[1], Length(Text), @AAD[1], Length(AAD), @Res[0]);
+
+  ShowMessage(BytesToHex(Res)); // Java ÔøΩÔøΩ√µÔøΩ e099392707bbf678fc457972872b8716082950a581c888e65642f382ebb648fb8d8a0cÔøΩÔøΩ“ªÔøΩÔøΩ
+
+  SetLength(Plain, Length(Res) - SizeOf(TGCM128Tag));
+  if AESGCMNoPaddingDecrypt(@Key[1], Length(Key), @Nonce[1], Length(Nonce), @Res[0], Length(Res), @AAD[1], Length(AAD), @Plain[0]) then
+    ShowMessage(BytesToHex(Plain))
+  else
+    ShowMessage('Decrypt Failed');
+end;
+
+procedure TFormCrypt.btnFNVClick(Sender: TObject);
+var
+  B: TBytes;
+  S: AnsiString;
+  T: TCnFNVType;
+  R32: TCnFNVHash32;
+  R64: TCnFNVHash64;
+  R128: TCnFNVHash128;
+  R256: TCnFNVHash256;
+  R512: TCnFNVHash512;
+  R1024: TCnFNVHash1024;
+begin
+  T := TCnFNVType(cbbFNVType.ItemIndex);
+  S := edtFNV.Text;
+  SetLength(B, Length(S));
+  if Length(B) > 0 then
+    Move(S[1], B[0], Length(S));
+
+  if rbFNV1.IsChecked then
+  begin
+    case T of
+      cft32: R32 := FNV1Hash32(B);
+      cft64: R64 := FNV1Hash64(B);
+      cft128: R128 := FNV1Hash128(B);
+      cft256: R256 := FNV1Hash256(B);
+      cft512: R512 := FNV1Hash512(B);
+      cft1024: R1024 := FNV1Hash1024(B);
+    end;
+  end
+  else if rbFNV1a.IsChecked then
+  begin
+    case T of
+      cft32: R32 := FNV1aHash32(B);
+      cft64: R64 := FNV1aHash64(B);
+      cft128: R128 := FNV1aHash128(B);
+      cft256: R256 := FNV1aHash256(B);
+      cft512: R512 := FNV1aHash512(B);
+      cft1024: R1024 := FNV1aHash1024(B);
+    end;
+  end;
+
+  case T of
+    cft32: ShowMessage(DataToHex(@R32[0], SizeOf(R32)));
+    cft64: ShowMessage(DataToHex(@R64[0], SizeOf(R64)));
+    cft128: ShowMessage(DataToHex(@R128[0], SizeOf(R128)));
+    cft256: ShowMessage(DataToHex(@R256[0], SizeOf(R256)));
+    cft512: ShowMessage(DataToHex(@R512[0], SizeOf(R512)));
+    cft1024: ShowMessage(DataToHex(@R1024[0], SizeOf(R1024)));
+  end;
 end;
 
 end.
