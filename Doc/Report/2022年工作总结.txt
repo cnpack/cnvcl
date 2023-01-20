@@ -9,7 +9,7 @@ CnPack 开发组 2022 年工作总结
 
 二、CnPack 源码继续于 GitHub 上维护。地址：http://github.com/cnpack
 
-三、CnVcl 中基础库新增了对 GB18030 编码的支持，密码库中新增了 25519 椭圆曲线的实现，128 位长整型运算支持，并完善对 Win32/Win64/MacOS/Linux 等的跨平台支持。增加密码库的 FMX 与 FPC 的支持。网络库部分组件新增跨平台支持。
+三、CnVcl 中基础库新增了对 GB18030 编码的支持，密码库中新增了 25519 椭圆曲线的实现，AEAD CCM/GCM 模式、128 位长整型运算支持，并完善对 Win32/Win64/MacOS/Linux 等的跨平台支持。增加密码库的 FMX 与 FPC 的支持。网络库部分组件新增跨平台支持。
 
 四、CnPack 公益基金的帐户继续公开接受用户捐助，目前支持支付宝扫码与微信扫码两种主要捐助方式。
 
@@ -61,7 +61,7 @@ CnPack Working Report in 2022
 
 2. CnPack Sources are maintained at GitHub. https://github.com/cnpack
 
-3. CnVcl Supports GB18030, ECC 25519, Int 128. Crypto Library Supports Win32/Win64/MacOS/Linux with FMX/FPC. Network Library Suppors FMX.
+3. CnVcl Supports GB18030, ECC 25519, AEAD CCM/GCM, Int 128. Crypto Library Supports Win32/Win64/MacOS/Linux with FMX/FPC. Network Library Suppors FMX.
 
 4. CnPack Foundation accepts Donation using alipay and wechat QR code in our help files, and paypal: donation@cnpack.org
 
