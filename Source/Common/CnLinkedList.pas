@@ -22,12 +22,14 @@ unit CnLinkedList;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：双向链表的List实现单元
+* 单元名称：双向链表的 List 实现单元
 * 单元作者：巴哈姆特
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 备    注：2010.01.20
+* 备    注：2022.01.22
+*               加入跨平台支持
+*           2010.01.20
 *               加入部分新功能
 *           2008.05.23
 *               移植单元，实现功能
@@ -39,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes;
+  {$IFDEF MSWINDOWS} Windows, {$ENDIF} SysUtils, Classes, Math, SyncObjs;
 
 {$IFNDEF COMPILER6_UP}
 const
@@ -148,7 +150,7 @@ type
     //FList: TList;
     FAutoClear: Boolean;
 
-    FLock: TRTLCriticalSection;
+    FLock: TCriticalSection;
     function GetItem(const Index: Integer): PCnLinkedNode;
     //function GetList: TList;
   protected
@@ -741,20 +743,25 @@ type
     procedure PushItem(AItem: Pointer); override;
   end;
 
+{
 function StrNewA(const Value: PAnsiChar): PAnsiChar;
 procedure StrDisposeA(var Value: PAnsiChar);
 function StrNewW(const Value: PWideChar): PWideChar;
 procedure StrDisposeW(var Value: PWideChar);
 function StrCmpA(const Value1, Value2: PAnsiChar): Integer;
 function StrCmpW(const Value1, Value2: PWideChar): Integer;
-{
+
 procedure DeleteObject(var AObject: TObject);
 procedure DeleteString(var AString: PAnsiChar); overload;
 procedure DeleteString(var AString: AnsiString); overload;
 procedure DeleteString(var AString: PWideChar); overload;
 procedure DeleteString(var AString: WideString); overload;
 }
+
 implementation
+
+uses
+  CnNative;
 
 function StrLenA(const Value: PAnsiChar): Cardinal;
 begin
@@ -786,15 +793,15 @@ begin
   if Len = 0 then
     Exit;
 
-  GetMem(Result, (Len + 1) * SizeOf(AnsiChar) + SizeOf(Cardinal));
+  GetMem(Result, (Len + 1) * SizeOf(AnsiChar) + SizeOf(TCnNativeUInt));
     // 分配内存空间
-  PCardinal(Result)^ := (Len + 1) * SizeOf(AnsiChar) + SizeOf(Cardinal);
+  TCnNativeUIntPtr(Result)^ := (Len + 1) * SizeOf(AnsiChar) + SizeOf(TCnNativeUInt);
     // 记录内存空间大小
-  Result := PAnsiChar(Cardinal(Result) + SizeOf(Cardinal));
+  Result := PAnsiChar(TCnNativeUInt(Result) + SizeOf(TCnNativeUInt));
     // 跳过保留大小的内存空间
-  ZeroMemory(Result, (Len + 1) * SizeOf(AnsiChar));
+  FillChar(Result^, (Len + 1) * SizeOf(AnsiChar), 0);
     // 清空内存区域
-  CopyMemory(Result, Value, Len * SizeOf(AnsiChar));
+  Move(Value^, Result^, Len * SizeOf(AnsiChar));
     // 复制数据
 end;
 
@@ -810,40 +817,48 @@ begin
   if Len = 0 then
     Exit;
 
-  GetMem(Result, (Len + 1) * SizeOf(WideChar) + SizeOf(Cardinal));
+  GetMem(Result, (Len + 1) * SizeOf(WideChar) + SizeOf(TCnNativeUInt));
     // 分配内存空间
-  PCardinal(Result)^ := (Len + 1) * SizeOf(WideChar) + SizeOf(Cardinal);
+  PCardinal(Result)^ := (Len + 1) * SizeOf(WideChar) + SizeOf(TCnNativeUInt);
     // 记录内存空间大小
-  Result := PWideChar(Cardinal(Result) + SizeOf(Cardinal));
+  Result := PWideChar(TCnNativeUInt(Result) + SizeOf(TCnNativeUInt));
     // 跳过保留大小的内存空间
-  ZeroMemory(Result, (Len + 1) * SizeOf(WideChar));
+  FillChar(Result^, (Len + 1) * SizeOf(WideChar), 0);
     // 清空内存区域
-  CopyMemory(Result, Value, Len * SizeOf(WideChar));
+  Move(Value^, Result^, Len * SizeOf(WideChar));
     // 复制数据
 end;
 
 procedure StrDisposeA(var Value: PAnsiChar);
 begin
-  Value := Pointer(Cardinal(Value) - SizeOf(Cardinal));
-  FreeMem(Value, Cardinal(Value^));
+  Value := Pointer(TCnNativeUInt(Value) - SizeOf(TCnNativeUInt));
+  FreeMem(Value, TCnNativeUInt(Value^));
 end;
 
 procedure StrDisposeW(var Value: PWideChar);
 begin
-  Value := Pointer(Cardinal(Value) - SizeOf(Cardinal));
-  FreeMem(Value, Cardinal(Value^));
+  Value := Pointer(TCnNativeUInt(Value) - SizeOf(TCnNativeUInt));
+  FreeMem(Value, TCnNativeUInt(Value^));
 end;
 
 function StrCmpA(const Value1, Value2: PAnsiChar): Integer;
 begin
+{$IFDEF MSWINDOWS}
   Result := CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
     Value1, StrLenA(Value1), Value2, StrLenA(Value2)) - 2;
+{$ELSE}
+  Result := StrLIComp(Value1, Value2, Min(StrLenA(Value1), StrLenA(Value2)));
+{$ENDIF}
 end;
 
 function StrCmpW(const Value1, Value2: PWideChar): Integer;
 begin
+{$IFDEF MSWINDOWS}
   Result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
     Value1, StrLenW(Value1), Value2, StrLenW(Value2)) - 2;
+{$ELSE}
+  Result := StrLIComp(Value1, Value2, Min(StrLenW(Value1), StrLenW(Value2)));
+{$ENDIF}
 end;
 
 procedure DeleteObject(var AObject: TObject);
@@ -1085,7 +1100,7 @@ end;
 constructor TCnCustomLinkedList.Create;
 begin
   inherited Create;
-  InitializeCriticalSection(FLock);
+  FLock := TCriticalSection.Create;
   ClearEvent;
 
   FFirst := nil;
@@ -1250,7 +1265,7 @@ begin
     FLast := nil;
   finally
     UnLock;
-    DeleteCriticalSection(FLock);
+    FLock.Free;
   end;
   inherited Destroy;
 end;
@@ -1504,7 +1519,7 @@ end;
 
 procedure TCnCustomLinkedList.Lock;
 begin
-  EnterCriticalSection(FLock);
+  FLock.Enter;
 end;
 
 procedure TCnCustomLinkedList.Move(const CurIndex, NewIndex: Integer);
@@ -1630,7 +1645,7 @@ end;
 
 procedure TCnCustomLinkedList.UnLock;
 begin
-  LeaveCriticalSection(FLock);
+  FLock.Leave;
 end;
 
 { TCnLinkedList }
@@ -2169,7 +2184,8 @@ begin
   end;
   FText := GetMemory((ResultLength + 1) * SizeOf(AnsiChar));
     // 划分内存
-  ZeroMemory(FText, (ResultLength + 1) * SizeOf(AnsiChar));
+  FillChar(FText^, (ResultLength + 1) * SizeOf(AnsiChar), 0);
+
   PResult := Pointer(FText);
   for Loop := 0 to Count - 1 do
   begin
@@ -2328,7 +2344,8 @@ begin
     while not (PValue^ in [#0, #10, #13]) do
       Inc(PValue);
     AString := GetMemory((PValue - PStart + 1) * SizeOf(AnsiChar));
-    ZeroMemory(AString, (PValue - PStart + 1) * SizeOf(AnsiChar));
+    FillChar(AString^, (PValue - PStart + 1) * SizeOf(AnsiChar), 0);
+
     System.Move(PStart^, Pointer(AString)^, (PValue - PStart) * SizeOf(AnsiChar));
     PItem := StrNewA(PAnsiChar(AString));
     Add(PItem);
@@ -2824,7 +2841,8 @@ begin
   end;
   FText := GetMemory((ResultLength + 1) * SizeOf(WideChar));
     // 划分内存
-  ZeroMemory(FText, (ResultLength + 1) * SizeOf(WideChar));
+  FillChar(FText^, (ResultLength + 1) * SizeOf(WideChar), 0);
+
   PResult := Pointer(FText);
   for Loop := 0 to Count - 1 do
   begin
@@ -2985,7 +3003,8 @@ begin
     while (PValue^ <> #0) and (PValue^ <> #10) and (PValue^ <> #13) do
       Inc(PValue);
     AString := GetMemory((PValue - PStart + 1) * SizeOf(WideChar));
-    ZeroMemory(AString, (PValue - PStart + 1) * SizeOf(WideChar));
+    FillChar(AString^, (PValue - PStart + 1) * SizeOf(WideChar), 0);
+
     System.Move(PStart^, Pointer(AString)^, (PValue - PStart) * SizeOf(WideChar));
     PItem := StrNewW(PWideChar(AString));
     Add(PItem);

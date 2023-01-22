@@ -1,0 +1,76 @@
+object FrmMain: TFrmMain
+  Left = 286
+  Top = 147
+  Caption = 'Linked List Demo'
+  ClientHeight = 341
+  ClientWidth = 442
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 286
+  Top = 147
+  DesignerMasterStyle = 0
+  object Memo1: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    TextSettings.WordWrap = True
+    Size.Width = 434.000000000000000000
+    Size.Height = 249.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    Viewport.Width = 430.000000000000000000
+    Viewport.Height = 245.000000000000000000
+  end
+  object Button1: TButton
+    Position.X = 339.000000000000000000
+    Position.Y = 266.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    Text = 'Multi-Thread'
+    OnClick = Button1Click
+  end
+  object Button2: TButton
+    Position.X = 15.000000000000000000
+    Position.Y = 266.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = 'Add'
+    OnClick = Button2Click
+  end
+  object Button3: TButton
+    Position.X = 96.000000000000000000
+    Position.Y = 266.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Text = 'Delete'
+    OnClick = Button3Click
+  end
+  object Button4: TButton
+    Position.X = 177.000000000000000000
+    Position.Y = 266.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Text = 'PrintList'
+    OnClick = Button4Click
+  end
+  object Button5: TButton
+    Position.X = 258.000000000000000000
+    Position.Y = 266.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Text = 'Exchange'
+    OnClick = Button5Click
+  end
+end
