@@ -1,0 +1,145 @@
+object FormMath: TFormMath
+  Left = 268
+  Top = 137
+  Caption = 'Math Test'
+  ClientHeight = 563
+  ClientWidth = 932
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  Left = 268
+  Top = 137
+  DesignerMasterStyle = 0
+  object lblRound: TLabel
+    Position.X = 808.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Width = 35.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Round:'
+  end
+  object edtValue: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 0
+    Text = '5'
+    Position.X = 16.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnInt64Sqrt: TButton
+    Position.X = 152.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    Text = 'Int64 Sqrt'
+    OnClick = btnInt64SqrtClick
+  end
+  object btnSqrt: TButton
+    Position.X = 240.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = 'Sqrt'
+    OnClick = btnSqrtClick
+  end
+  object btnLogN: TButton
+    Position.X = 328.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Text = 'LogN'
+    OnClick = btnLogNClick
+  end
+  object btnLog2: TButton
+    Position.X = 416.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Text = 'Log2'
+    OnClick = btnLog2Click
+  end
+  object btnLog10: TButton
+    Position.X = 504.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Text = 'Log10'
+    OnClick = btnLog10Click
+  end
+  object edtResult: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 6
+    ReadOnly = True
+    Position.X = 16.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 649.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnFloatPi: TButton
+    Position.X = 592.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 7
+    Text = 'Float Pi'
+    OnClick = btnFloatPiClick
+  end
+  object btnGaussLegendrePi: TButton
+    Position.X = 800.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 105.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 8
+    Text = 'Gauss Legendre Pi'
+    OnClick = btnGaussLegendrePiClick
+  end
+  object edtGLRound: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 9
+    Text = '8'
+    Position.X = 856.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Width = 33.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object mmoRes: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    TextSettings.WordWrap = True
+    Position.X = 16.000000000000000000
+    Position.Y = 88.000000000000000000
+    Size.Width = 889.000000000000000000
+    Size.Height = 241.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 11
+    Viewport.Width = 885.000000000000000000
+    Viewport.Height = 237.000000000000000000
+  end
+  object btnXGEuler: TButton
+    Position.X = 16.000000000000000000
+    Position.Y = 352.000000000000000000
+    Size.Width = 137.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 12
+    Text = 'Xavier Gourdon Euler'
+    OnClick = btnXGEulerClick
+  end
+end
