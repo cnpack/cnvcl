@@ -1,0 +1,343 @@
+object Form128: TForm128
+  Left = 241
+  Top = 225
+  Caption = 'Int128 & UInt128'
+  ClientHeight = 435
+  ClientWidth = 756
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  Left = 241
+  Top = 225
+  DesignerMasterStyle = 0
+  object btnSample1: TButton
+    Position.X = 8.000000000000000000
+    Position.Y = 360.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    Text = 'Sample 1'
+    OnClick = btnSample1Click
+  end
+  object grpInt128: TGroupBox
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 721.000000000000000000
+    Size.Height = 153.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Int128'
+    TabOrder = 1
+    object lblHex128A: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 48.000000000000000000
+      Size.Width = 32.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'A Hex:'
+    end
+    object lblHex128B: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 80.000000000000000000
+      Size.Width = 32.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'B Hex:'
+    end
+    object btn128Add: TSpeedButton
+      Position.X = 648.000000000000000000
+      Position.Y = 48.000000000000000000
+      Size.Width = 23.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = '+'
+      TextSettings.Font.Family = 'MS Sans Serif'
+      TextSettings.Font.Size = 10.000000000000000000
+      OnClick = btn128AddClick
+    end
+    object btn128Sub: TSpeedButton
+      Position.X = 648.000000000000000000
+      Position.Y = 76.000000000000000000
+      Size.Width = 23.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = '-'
+      TextSettings.Font.Family = 'MS Sans Serif'
+      TextSettings.Font.Size = 10.000000000000000000
+      OnClick = btn128SubClick
+    end
+    object btn128Mul: TSpeedButton
+      Position.X = 680.000000000000000000
+      Position.Y = 48.000000000000000000
+      Size.Width = 23.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = '*'
+      TextSettings.Font.Family = 'MS Sans Serif'
+      TextSettings.Font.Size = 10.000000000000000000
+      OnClick = btn128MulClick
+    end
+    object btn128Div: TSpeedButton
+      Position.X = 680.000000000000000000
+      Position.Y = 76.000000000000000000
+      Size.Width = 23.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = '/'
+      TextSettings.Font.Family = 'MS Sans Serif'
+      TextSettings.Font.Size = 10.000000000000000000
+      OnClick = btn128DivClick
+    end
+    object btn128Shl: TSpeedButton
+      Position.X = 56.000000000000000000
+      Position.Y = 20.000000000000000000
+      Size.Width = 23.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = '<'
+      TextSettings.Font.Family = 'MS Sans Serif'
+      TextSettings.Font.Size = 10.000000000000000000
+      OnClick = btn128ShlClick
+    end
+    object btn128Shr: TSpeedButton
+      Position.X = 88.000000000000000000
+      Position.Y = 20.000000000000000000
+      Size.Width = 23.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = '>'
+      TextSettings.Font.Family = 'MS Sans Serif'
+      TextSettings.Font.Size = 10.000000000000000000
+      OnClick = btn128ShrClick
+    end
+    object lblHex128r: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 120.000000000000000000
+      Size.Width = 33.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'R Hex:'
+    end
+    object edt128A: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 0
+      Text = '11111111222222223333333344444444'
+      TextSettings.Font.Family = 'Courier New'
+      TextSettings.Font.Size = 9.000000000000000000
+      Position.X = 56.000000000000000000
+      Position.Y = 48.000000000000000000
+      Size.Width = 585.000000000000000000
+      Size.Height = 23.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object edt128B: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 1
+      Text = '44444444555555556666666677777777'
+      TextSettings.Font.Family = 'Courier New'
+      TextSettings.Font.Size = 9.000000000000000000
+      Position.X = 56.000000000000000000
+      Position.Y = 76.000000000000000000
+      Size.Width = 585.000000000000000000
+      Size.Height = 23.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object edt128R: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 2
+      TextSettings.Font.Family = 'Courier New'
+      TextSettings.Font.Size = 9.000000000000000000
+      Position.X = 56.000000000000000000
+      Position.Y = 116.000000000000000000
+      Size.Width = 585.000000000000000000
+      Size.Height = 23.000000000000000000
+      Size.PlatformDefault = False
+    end
+  end
+  object grpUInt128: TGroupBox
+    Position.X = 8.000000000000000000
+    Position.Y = 168.000000000000000000
+    Size.Width = 721.000000000000000000
+    Size.Height = 177.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'UInt128'
+    TabOrder = 2
+    object lblHexU128A: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 48.000000000000000000
+      Size.Width = 32.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'A Hex:'
+    end
+    object btnU128Shl: TSpeedButton
+      Position.X = 56.000000000000000000
+      Position.Y = 20.000000000000000000
+      Size.Width = 23.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = '<'
+      TextSettings.Font.Family = 'MS Sans Serif'
+      TextSettings.Font.Size = 10.000000000000000000
+      OnClick = btnU128ShlClick
+    end
+    object btnU128Shr: TSpeedButton
+      Position.X = 88.000000000000000000
+      Position.Y = 20.000000000000000000
+      Size.Width = 23.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = '>'
+      TextSettings.Font.Family = 'MS Sans Serif'
+      TextSettings.Font.Size = 10.000000000000000000
+      OnClick = btnU128ShrClick
+    end
+    object btnU128Add: TSpeedButton
+      Position.X = 648.000000000000000000
+      Position.Y = 48.000000000000000000
+      Size.Width = 23.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = '+'
+      TextSettings.Font.Family = 'MS Sans Serif'
+      TextSettings.Font.Size = 10.000000000000000000
+      OnClick = btnU128AddClick
+    end
+    object btnU128Mul: TSpeedButton
+      Position.X = 680.000000000000000000
+      Position.Y = 48.000000000000000000
+      Size.Width = 23.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = '*'
+      TextSettings.Font.Family = 'MS Sans Serif'
+      TextSettings.Font.Size = 10.000000000000000000
+      OnClick = btnU128MulClick
+    end
+    object btnU128Div: TSpeedButton
+      Position.X = 680.000000000000000000
+      Position.Y = 76.000000000000000000
+      Size.Width = 23.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = '/'
+      TextSettings.Font.Family = 'MS Sans Serif'
+      TextSettings.Font.Size = 10.000000000000000000
+      OnClick = btnU128DivClick
+    end
+    object btnU128Sub: TSpeedButton
+      Position.X = 648.000000000000000000
+      Position.Y = 76.000000000000000000
+      Size.Width = 23.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = '-'
+      TextSettings.Font.Family = 'MS Sans Serif'
+      TextSettings.Font.Size = 10.000000000000000000
+      OnClick = btnU128SubClick
+    end
+    object lblHexU128B: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 80.000000000000000000
+      Size.Width = 32.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'B Hex:'
+    end
+    object lblHexU128R: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 120.000000000000000000
+      Size.Width = 33.000000000000000000
+      Size.Height = 13.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'R Hex:'
+    end
+    object edtU128A: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 0
+      Text = '22222222333333334444444455555555'
+      TextSettings.Font.Family = 'Courier New'
+      TextSettings.Font.Size = 9.000000000000000000
+      Position.X = 56.000000000000000000
+      Position.Y = 48.000000000000000000
+      Size.Width = 585.000000000000000000
+      Size.Height = 23.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object edtU128B: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 1
+      Text = 'FFFFFFFF333333335555555566666666'
+      TextSettings.Font.Family = 'Courier New'
+      TextSettings.Font.Size = 9.000000000000000000
+      Position.X = 56.000000000000000000
+      Position.Y = 76.000000000000000000
+      Size.Width = 585.000000000000000000
+      Size.Height = 23.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object edtU128R: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 2
+      TextSettings.Font.Family = 'Courier New'
+      TextSettings.Font.Size = 9.000000000000000000
+      Position.X = 56.000000000000000000
+      Position.Y = 116.000000000000000000
+      Size.Width = 585.000000000000000000
+      Size.Height = 23.000000000000000000
+      Size.PlatformDefault = False
+    end
+  end
+  object btnSample2: TButton
+    Position.X = 96.000000000000000000
+    Position.Y = 360.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Text = 'Sample 2'
+    OnClick = btnSample2Click
+  end
+  object btnSample3: TButton
+    Position.X = 184.000000000000000000
+    Position.Y = 360.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Text = 'Sample 3'
+    OnClick = btnSample3Click
+  end
+  object btnSample4: TButton
+    Position.X = 280.000000000000000000
+    Position.Y = 360.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Text = 'Sample 4'
+    OnClick = btnSample4Click
+  end
+  object btnSample5: TButton
+    Position.X = 376.000000000000000000
+    Position.Y = 360.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 6
+    Text = 'Sample 5'
+    OnClick = btnSample5Click
+  end
+  object btnSample6: TButton
+    Position.X = 464.000000000000000000
+    Position.Y = 360.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 7
+    Text = 'Sample6'
+    OnClick = btnSample6Click
+  end
+end
