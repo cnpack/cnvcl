@@ -1,0 +1,289 @@
+object FormDFT: TFormDFT
+  Left = 192
+  Top = 107
+  Caption = 
+    'DFT - Discrete Fourier Transform & NTT -  Number Theoretic Trans' +
+    'form'
+  ClientHeight = 603
+  ClientWidth = 970
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  Left = 192
+  Top = 107
+  DesignerMasterStyle = 0
+  object pgc1: TTabControl
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 941.000000000000000000
+    Size.Height = 555.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 0
+    TabPosition = Top
+    Sizes = (
+      941s
+      527s
+      941s
+      527s)
+    object tsDFTNTT: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 85.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'DFT && NTT'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpDFT: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 913.000000000000000000
+        Size.Height = 225.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'DFT'
+        TabOrder = 0
+        object btnDFTButterFly: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'DFT ButterFly'
+          OnClick = btnDFTButterFlyClick
+        end
+        object edtDftButterFly: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Position.X = 128.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 753.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnTwiddleFactors: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Twiddle Factors'
+          OnClick = btnTwiddleFactorsClick
+        end
+        object edtTwiddleFactors: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 3
+          Position.X = 128.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 753.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnTestDFT: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 120.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Test FFT && IFFT'
+          OnClick = btnTestDFTClick
+        end
+        object edtFFT: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 5
+          Position.X = 128.000000000000000000
+          Position.Y = 120.000000000000000000
+          Size.Width = 753.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtIFFT: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 6
+          Position.X = 128.000000000000000000
+          Position.Y = 168.000000000000000000
+          Size.Width = 753.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+      end
+      object grpNTT: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 240.000000000000000000
+        Size.Width = 913.000000000000000000
+        Size.Height = 273.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'NTT'
+        TabOrder = 1
+        object btnNTTButterFly: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'NTT ButterFly'
+          OnClick = btnNTTButterFlyClick
+        end
+        object edtNttButterFly: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Position.X = 128.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 753.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnNttFactors: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Ntt Factors'
+          OnClick = btnNttFactorsClick
+        end
+        object edtNttFactors: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 3
+          Position.X = 128.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 753.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnTestNtt: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 120.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Test NTT && INTT'
+          OnClick = btnTestNttClick
+        end
+        object edtNTT: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 5
+          Position.X = 128.000000000000000000
+          Position.Y = 120.000000000000000000
+          Size.Width = 753.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtINTT: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 6
+          Position.X = 128.000000000000000000
+          Position.Y = 168.000000000000000000
+          Size.Width = 753.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+      end
+    end
+    object tsDCT: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 1
+      Size.Width = 47.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'DCT'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpDCT: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 913.000000000000000000
+        Size.Height = 129.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'DCT'
+        TabOrder = 0
+        object btnDCT: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'DCT'
+          OnClick = btnDCTClick
+        end
+        object btnIDCT: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'IDCT'
+          OnClick = btnIDCTClick
+        end
+        object edtDCT: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Position.X = 128.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 753.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtIDCT: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 3
+          Position.X = 128.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 753.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+      end
+      object grpDCT2: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 144.000000000000000000
+        Size.Width = 913.000000000000000000
+        Size.Height = 369.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'DCT2'
+        TabOrder = 1
+        object btnDCT2: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'DCT2 / IDCT2'
+          OnClick = btnDCT2Click
+        end
+        object mmoDCT2: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Position.X = 128.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 753.000000000000000000
+          Size.Height = 329.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Viewport.Width = 753.000000000000000000
+          Viewport.Height = 329.000000000000000000
+        end
+      end
+    end
+  end
+end
