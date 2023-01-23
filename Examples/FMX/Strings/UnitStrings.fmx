@@ -1,0 +1,289 @@
+object FormStrings: TFormStrings
+  Left = 192
+  Top = 107
+  Caption = 'Strings Test for Unicode & Non-Unicode Compiler'
+  ClientHeight = 561
+  ClientWidth = 860
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 192
+  Top = 107
+  DesignerMasterStyle = 0
+  object pgcStrings: TTabControl
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 833.000000000000000000
+    Size.Height = 513.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 0
+    TabPosition = Top
+    Sizes = (
+      833s
+      485s)
+    object tsStringBuilder: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 98.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'String Builder'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpStringBuilder: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 809.000000000000000000
+        Size.Height = 437.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'String Builder'
+        TabOrder = 0
+        object lblStringBuilderInfo: TLabel
+          Position.X = 608.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 193.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBoolean: TButton
+          Position.X = 520.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Boolean'
+          OnClick = btnBooleanClick
+        end
+        object btnByte: TButton
+          Position.X = 440.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Byte'
+          OnClick = btnByteClick
+        end
+        object btnChar: TButton
+          Position.X = 360.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Char'
+          OnClick = btnCharClick
+        end
+        object btnCurrency: TButton
+          Position.X = 280.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Currency'
+          OnClick = btnCurrencyClick
+        end
+        object btnDouble: TButton
+          Position.X = 200.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Double'
+          OnClick = btnDoubleClick
+        end
+        object btnSmallint: TButton
+          Position.X = 520.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 12
+          Text = 'SmallInt'
+          OnClick = btnSmallintClick
+        end
+        object btnInteger: TButton
+          Position.X = 440.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+          Text = 'Integer'
+          OnClick = btnIntegerClick
+        end
+        object btnInt64: TButton
+          Position.X = 360.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'Int64'
+          OnClick = btnInt64Click
+        end
+        object btnTObject: TButton
+          Position.X = 280.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'TObject'
+        end
+        object btnShortint: TButton
+          Position.X = 200.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'ShortInt'
+          OnClick = btnShortintClick
+        end
+        object btnSingle: TButton
+          Position.X = 120.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Single'
+          OnClick = btnSingleClick
+        end
+        object btnUInt64: TButton
+          Position.X = 520.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 18
+          Text = 'UInt64'
+          OnClick = btnUInt64Click
+        end
+        object btnWord: TButton
+          Position.X = 440.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 17
+          Text = 'Word'
+          OnClick = btnWordClick
+        end
+        object btnCardinal: TButton
+          Position.X = 360.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 16
+          Text = 'Cardinal'
+          OnClick = btnCardinalClick
+        end
+        object btnPAnsiChar: TButton
+          Position.X = 280.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 15
+          Text = 'PAnsiChar'
+          OnClick = btnPAnsiCharClick
+        end
+        object btnCharRepeat: TButton
+          Position.X = 200.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 14
+          Text = 'Char Repeat'
+          OnClick = btnCharRepeatClick
+        end
+        object btnStringStartCount: TButton
+          Position.X = 120.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 13
+          Text = 'string Partly'
+          OnClick = btnStringStartCountClick
+        end
+        object btnFormat: TButton
+          Position.X = 120.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Format'
+          OnClick = btnFormatClick
+        end
+        object mmoContent: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Position.X = 16.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 577.000000000000000000
+          Size.Height = 97.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 19
+          Viewport.Width = 573.000000000000000000
+          Viewport.Height = 93.000000000000000000
+        end
+        object grpMode: TGroupBox
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 89.000000000000000000
+          Size.Height = 97.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Mode'
+          TabOrder = 20
+          object rbAuto: TRadioButton
+            IsChecked = True
+            Position.X = 8.000000000000000000
+            Position.Y = 16.000000000000000000
+            Size.Width = 73.000000000000000000
+            Size.Height = 19.000000000000000000
+            Size.PlatformDefault = False
+            TabOrder = 2
+            Text = 'Auto'
+          end
+          object rbAnsi: TRadioButton
+            Position.X = 8.000000000000000000
+            Position.Y = 40.000000000000000000
+            Size.Width = 73.000000000000000000
+            Size.Height = 19.000000000000000000
+            Size.PlatformDefault = False
+            TabOrder = 1
+            Text = 'Ansi'
+          end
+          object rbWide: TRadioButton
+            Position.X = 8.000000000000000000
+            Position.Y = 64.000000000000000000
+            Size.Width = 73.000000000000000000
+            Size.Height = 19.000000000000000000
+            Size.PlatformDefault = False
+            TabOrder = 0
+            Text = 'Wide'
+          end
+        end
+      end
+    end
+  end
+end
