@@ -1,0 +1,2455 @@
+object FormPolynomial: TFormPolynomial
+  Left = 241
+  Top = 133
+  Caption = 'Polynomial Test'
+  ClientHeight = 601
+  ClientWidth = 955
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 241
+  Top = 133
+  DesignerMasterStyle = 0
+  object lbl4: TLabel
+    Position.X = 449.000000000000000000
+    Position.Y = 284.000000000000000000
+    Size.Width = 5.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = '/'
+  end
+  object pgcPoly: TTabControl
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 929.000000000000000000
+    Size.Height = 553.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 0
+    TabPosition = Top
+    Sizes = (
+      929s
+      525s
+      929s
+      525s
+      929s
+      525s
+      929s
+      525s
+      929s
+      525s
+      929s
+      525s
+      929s
+      525s
+      929s
+      525s)
+    object tsIntegerPolynomial: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 116.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Int64 Polynomial'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpIntegerPolynomial: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 4.000000000000000000
+        Size.Width = 905.000000000000000000
+        Size.Height = 485.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Int64 Polynomial'
+        TabOrder = 0
+        object lblDeg1: TLabel
+          Position.X = 816.000000000000000000
+          Position.Y = 124.000000000000000000
+          Size.Width = 38.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Degree:'
+        end
+        object lblDeg2: TLabel
+          Position.X = 816.000000000000000000
+          Position.Y = 220.000000000000000000
+          Size.Width = 38.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Degree:'
+        end
+        object lblIPEqual: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 256.000000000000000000
+          Size.Width = 11.000000000000000000
+          Size.Height = 20.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Family = 'MS Sans Serif'
+          Text = '='
+        end
+        object btnIPCreate: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'To String'
+          OnClick = btnIPCreateClick
+        end
+        object edtIP1: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Position.X = 128.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 673.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object mmoIP1: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          ReadOnly = True
+          TextSettings.WordWrap = True
+          Position.X = 24.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 777.000000000000000000
+          Size.Height = 57.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Viewport.Width = 773.000000000000000000
+          Viewport.Height = 53.000000000000000000
+        end
+        object mmoIP2: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          ReadOnly = True
+          TextSettings.WordWrap = True
+          Position.X = 24.000000000000000000
+          Position.Y = 184.000000000000000000
+          Size.Width = 777.000000000000000000
+          Size.Height = 57.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+          Viewport.Width = 773.000000000000000000
+          Viewport.Height = 53.000000000000000000
+        end
+        object btnIP1Random: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Random'
+          OnClick = btnIP1RandomClick
+        end
+        object btnIP2Random: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 184.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 12
+          Text = 'Random'
+          OnClick = btnIP2RandomClick
+        end
+        object edtIPDeg1: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 5
+          Text = '9'
+          Position.X = 864.000000000000000000
+          Position.Y = 120.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtIPDeg2: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 13
+          Text = '7'
+          Position.X = 864.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnIPAdd: TButton
+          Position.X = 88.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Add'
+          OnClick = btnIPAddClick
+        end
+        object btnIPSub: TButton
+          Position.X = 192.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Sub'
+          OnClick = btnIPSubClick
+        end
+        object btnIPMul: TButton
+          Position.X = 296.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Mul'
+          OnClick = btnIPMulClick
+        end
+        object btnIPDiv: TButton
+          Position.X = 408.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Div && Mod'
+          OnClick = btnIPDivClick
+        end
+        object edtIP3: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 14
+          Position.X = 56.000000000000000000
+          Position.Y = 256.000000000000000000
+          Size.Width = 833.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnTestExample1: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 15
+          Text = 'Galois Test Point 1'
+          OnClick = btnTestExample1Click
+        end
+        object btnTestExample2: TButton
+          Position.X = 152.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 16
+          Text = 'Galois Test Point 2'
+          OnClick = btnTestExample2Click
+        end
+        object btnTestExample3: TButton
+          Position.X = 280.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 17
+          Text = 'Galois Test Power 3'
+          OnClick = btnTestExample3Click
+        end
+        object btnTestExample4: TButton
+          Position.X = 408.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 18
+          Text = 'Galois Test Power 4'
+          OnClick = btnTestExample4Click
+        end
+        object btnPolyGcd: TButton
+          Position.X = 792.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 97.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 21
+          Text = 'Test Poly Gcd'
+          OnClick = btnPolyGcdClick
+        end
+        object btnGaloisTestGcd: TButton
+          Position.X = 536.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 19
+          Text = 'Galois Test GCD'
+          OnClick = btnGaloisTestGcdClick
+        end
+        object btnTestGaloisMI: TButton
+          Position.X = 664.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 20
+          Text = 'Galois Test Inverse'
+          OnClick = btnTestGaloisMIClick
+        end
+        object btnGF28Test1: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 22
+          Text = 'GF2^8 Test1'
+          OnClick = btnGF28Test1Click
+        end
+        object btnTestGaloisDiv: TButton
+          Position.X = 152.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 23
+          Text = 'Test Galois Div'
+          OnClick = btnTestGaloisDivClick
+        end
+        object btnTestGaloisDivTime: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 408.000000000000000000
+          Size.Width = 241.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 29
+          Text = 'Test Galois Div Time'
+          OnClick = btnTestGaloisDivTimeClick
+        end
+        object btnTestGaloisCalc: TButton
+          Position.X = 280.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 24
+          Text = 'Test Galois Calc'
+          OnClick = btnTestGaloisCalcClick
+        end
+        object btnTestHugeDiv: TButton
+          Position.X = 408.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 25
+          Text = 'Test Huge Div 1'
+          OnClick = btnTestHugeDivClick
+        end
+        object btnTestHugeDiv2: TButton
+          Position.X = 536.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 26
+          Text = 'Test Huge Div 2'
+          OnClick = btnTestHugeDiv2Click
+        end
+        object btnTestHugeDiv3: TButton
+          Position.X = 664.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 27
+          Text = 'Test Huge Div 3'
+          OnClick = btnTestHugeDiv3Click
+        end
+        object btnTestPowerMod: TButton
+          Position.X = 792.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 97.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 28
+          Text = 'Test Power Mod'
+          OnClick = btnTestPowerModClick
+        end
+        object btnInt64PolySetString: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Set String'
+          OnClick = btnInt64PolySetStringClick
+        end
+        object btnTestBigDiv: TButton
+          Position.X = 280.000000000000000000
+          Position.Y = 408.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 30
+          Text = 'A Big Div'
+          OnClick = btnTestBigDivClick
+        end
+        object btnTestBigGCD: TButton
+          Position.X = 408.000000000000000000
+          Position.Y = 408.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 31
+          Text = 'A Big GCD'
+          OnClick = btnTestBigGCDClick
+        end
+        object btnInt64MulDFT: TButton
+          Position.X = 624.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'Mul DFT'
+          OnClick = btnInt64MulDFTClick
+        end
+        object btnTestInt64SimpleDFT: TButton
+          Position.X = 536.000000000000000000
+          Position.Y = 408.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 32
+          Text = 'Test Int64 Simple Mul DFT'
+          OnClick = btnTestInt64SimpleDFTClick
+        end
+        object btnTestInt64SimpleNTT: TButton
+          Position.X = 720.000000000000000000
+          Position.Y = 408.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 33
+          Text = 'Test Int64 Simple Mul NTT'
+          OnClick = btnTestInt64SimpleNTTClick
+        end
+        object btnIPIsMonic: TButton
+          Position.X = 712.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 65.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 34
+          Text = 'IsMonic'
+          OnClick = btnIPIsMonicClick
+        end
+      end
+    end
+    object tsExtensionEcc: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 1
+      Size.Width = 96.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Ecc on Galois'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpEccGalois: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 4.000000000000000000
+        Size.Width = 897.000000000000000000
+        Size.Height = 481.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Ecc on Galois'
+        TabOrder = 0
+        object btnGaloisOnCurve: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 129.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Test 1 Point on Curve'
+          OnClick = btnGaloisOnCurveClick
+        end
+        object btnEccPointAdd: TButton
+          Position.X = 176.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Test Point Add 1'
+          OnClick = btnEccPointAddClick
+        end
+        object btnTestEccPointAdd2: TButton
+          Position.X = 312.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 105.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Test Point Add 2'
+          OnClick = btnTestEccPointAdd2Click
+        end
+        object btnTestDivPoly: TButton
+          Position.X = 440.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 177.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Test Ecc Division Polynomial 1'
+          OnClick = btnTestDivPolyClick
+        end
+        object btnTestDivPoly2: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 177.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Test Ecc Division Polynomial 2'
+          OnClick = btnTestDivPoly2Click
+        end
+        object btnTestGaloisPoint2: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 129.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Test ? Point on Curve 1'
+          OnClick = btnTestGaloisPoint2Click
+        end
+        object btnTestPolyPoint2: TButton
+          Position.X = 176.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 129.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Test ? Point on Curve 2'
+          OnClick = btnTestPolyPoint2Click
+        end
+        object btnTestPolyEccPoint3: TButton
+          Position.X = 320.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 241.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Test 4 Points on Curve?'
+          OnClick = btnTestPolyEccPoint3Click
+        end
+        object btnTestGaloisPolyMulMod: TButton
+          Position.X = 784.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 105.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Test Galois MulMod'
+          OnClick = btnTestGaloisPolyMulModClick
+        end
+        object btnTestGaloisModularInverse1: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 161.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Test Galois Modular Inverse'
+          OnClick = btnTestGaloisModularInverse1Click
+        end
+        object btnTestEuclid2: TButton
+          Position.X = 192.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 161.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'Test Extended Euclid 2'
+          OnClick = btnTestEuclid2Click
+        end
+        object btnTestExtendEuclid3: TButton
+          Position.X = 360.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 161.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+          Text = 'Test Extended Euclid 3'
+          OnClick = btnTestExtendEuclid3Click
+        end
+        object btnTestEccDivisionPoly3: TButton
+          Position.X = 528.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 177.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 12
+          Text = 'Test Ecc Division Polynomial 3'
+          OnClick = btnTestEccDivisionPoly3Click
+        end
+        object mmoTestDivisionPolynomial: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          Position.X = 24.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 849.000000000000000000
+          Size.Height = 313.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 14
+          Viewport.Width = 849.000000000000000000
+          Viewport.Height = 313.000000000000000000
+        end
+        object btnGenerateDivisionPolynomial: TButton
+          Position.X = 720.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 13
+          Text = 'Generate Division Polynomial'
+          OnClick = btnGenerateDivisionPolynomialClick
+        end
+      end
+    end
+    object tsRationalPolynomial: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 2
+      Size.Width = 133.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Rational Polynomial'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpRationalPolynomial: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 4.000000000000000000
+        Size.Width = 905.000000000000000000
+        Size.Height = 481.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Int64 Rational Polynomial'
+        TabOrder = 0
+        object lbl1: TLabel
+          Position.X = 425.000000000000000000
+          Position.Y = 100.000000000000000000
+          Size.Width = 5.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = '/'
+        end
+        object lbl2: TLabel
+          Position.X = 425.000000000000000000
+          Position.Y = 180.000000000000000000
+          Size.Width = 5.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = '/'
+        end
+        object lbl3: TLabel
+          Position.X = 416.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 6.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = '='
+        end
+        object btnRP2Point: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Calc 2 * Point (x, 1*y) on Ecc'
+          OnClick = btnRP2PointClick
+        end
+        object edtRationalNominator1: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 4
+          Position.X = 16.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 385.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtRationalDenominator1: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 5
+          Position.X = 448.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 385.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnRationalPolynomialAdd: TButton
+          Position.X = 264.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Add'
+          OnClick = btnRationalPolynomialAddClick
+        end
+        object btnRationalPolynomialSub: TButton
+          Position.X = 352.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Sub'
+          OnClick = btnRationalPolynomialSubClick
+        end
+        object btnRationalPolynomialMul: TButton
+          Position.X = 440.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'Mul'
+          OnClick = btnRationalPolynomialMulClick
+        end
+        object btnRationalPolynomialDiv: TButton
+          Position.X = 528.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+          Text = 'Div'
+          OnClick = btnRationalPolynomialDivClick
+        end
+        object chkRationalPolynomialGalois: TCheckBox
+          Position.X = 648.000000000000000000
+          Position.Y = 140.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 13
+          Text = 'Galois'
+        end
+        object edtRationalPolynomialPrime: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 12
+          Text = '97'
+          Position.X = 728.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 105.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtRationalNominator2: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 14
+          Position.X = 16.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 385.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtRationalDenominator2: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 15
+          Position.X = 448.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 385.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnRationalPolynomialGenerate: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Generate'
+          OnClick = btnRationalPolynomialGenerateClick
+        end
+        object edtRationalResultNominator: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 16
+          Position.X = 20.000000000000000000
+          Position.Y = 240.000000000000000000
+          Size.Width = 385.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtRationalResultDenominator: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 17
+          Position.X = 452.000000000000000000
+          Position.Y = 240.000000000000000000
+          Size.Width = 385.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnManualOnCurve: TButton
+          Position.X = 224.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 209.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Manual Test OnCurve'
+          OnClick = btnManualOnCurveClick
+        end
+        object btnCheckDivisionPolynomialZero: TButton
+          Position.X = 464.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 225.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Check Division Polynomial Zero'
+          OnClick = btnCheckDivisionPolynomialZeroClick
+        end
+        object btnCalcSimpleEcc: TButton
+          Position.X = 728.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 161.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Calc Simple Ecc Int64'
+          OnClick = btnCalcSimpleEccClick
+        end
+        object mmoEcc: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          TextSettings.WordWrap = True
+          Position.X = 16.000000000000000000
+          Position.Y = 296.000000000000000000
+          Size.Width = 225.000000000000000000
+          Size.Height = 193.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 18
+          Viewport.Width = 225.000000000000000000
+          Viewport.Height = 193.000000000000000000
+        end
+        object btnCheckRationalAdd: TButton
+          Position.X = 264.000000000000000000
+          Position.Y = 296.000000000000000000
+          Size.Width = 209.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 19
+          Text = 'Check Rational Polynomial Add'
+          OnClick = btnCheckRationalAddClick
+        end
+        object btnTestPiXPolynomial: TButton
+          Position.X = 504.000000000000000000
+          Position.Y = 296.000000000000000000
+          Size.Width = 177.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 20
+          Text = 'Test Pi^2 + 2P Polynomial in Ring'
+          OnClick = btnTestPiXPolynomialClick
+        end
+        object btnTestGaloisEqual: TButton
+          Position.X = 696.000000000000000000
+          Position.Y = 296.000000000000000000
+          Size.Width = 137.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 21
+          Text = 'Test Galois Equal'
+          OnClick = btnTestGaloisEqualClick
+        end
+        object btnRationalSetString: TButton
+          Position.X = 120.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Set String'
+          OnClick = btnRationalSetStringClick
+        end
+        object btnInt64ComposeRationalRational: TButton
+          Position.X = 264.000000000000000000
+          Position.Y = 352.000000000000000000
+          Size.Width = 209.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 22
+          Text = 'Compose Rational using Rational'
+          OnClick = btnInt64ComposeRationalRationalClick
+        end
+        object btnInt64ComposePolyRational: TButton
+          Position.X = 264.000000000000000000
+          Position.Y = 400.000000000000000000
+          Size.Width = 209.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 24
+          Text = 'Compose Polynomial using Rational'
+          OnClick = btnInt64ComposePolyRationalClick
+        end
+        object btnInt64ComposeRationalPolynomial: TButton
+          Position.X = 264.000000000000000000
+          Position.Y = 448.000000000000000000
+          Size.Width = 209.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 25
+          Text = 'Compose Rational using Polynomial'
+          OnClick = btnInt64ComposeRationalPolynomialClick
+        end
+        object btnCompareRationalMul2Method: TButton
+          Position.X = 504.000000000000000000
+          Position.Y = 352.000000000000000000
+          Size.Width = 329.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 23
+          Text = 'Compare Int64 Rational Mul using  Division Polynomial and Add'
+          OnClick = btnCompareRationalMul2MethodClick
+        end
+      end
+    end
+    object tsBNPolynomial: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 3
+      Size.Width = 150.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'BigNumber Polynomial'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpBNPolynomial: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 4.000000000000000000
+        Size.Width = 905.000000000000000000
+        Size.Height = 505.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'BigNumber Polynomial'
+        TabOrder = 0
+        object lblBPEqual: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 256.000000000000000000
+          Size.Width = 11.000000000000000000
+          Size.Height = 20.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Family = 'MS Sans Serif'
+          Text = '='
+        end
+        object lblBP1Deg: TLabel
+          Position.X = 816.000000000000000000
+          Position.Y = 220.000000000000000000
+          Size.Width = 38.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Degree:'
+        end
+        object lblBP2Deg: TLabel
+          Position.X = 816.000000000000000000
+          Position.Y = 124.000000000000000000
+          Size.Width = 38.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Degree:'
+        end
+        object btnBNPToString: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'To String'
+          OnClick = btnBNPToStringClick
+        end
+        object edtBNPolynomial: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Position.X = 128.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 673.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object mmoBP1: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          ReadOnly = True
+          TextSettings.WordWrap = True
+          Position.X = 24.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 777.000000000000000000
+          Size.Height = 57.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Viewport.Width = 777.000000000000000000
+          Viewport.Height = 57.000000000000000000
+        end
+        object mmoBP2: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          ReadOnly = True
+          TextSettings.WordWrap = True
+          Position.X = 24.000000000000000000
+          Position.Y = 184.000000000000000000
+          Size.Width = 777.000000000000000000
+          Size.Height = 57.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Viewport.Width = 777.000000000000000000
+          Viewport.Height = 57.000000000000000000
+        end
+        object btnBPAdd: TButton
+          Position.X = 88.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Add'
+          OnClick = btnBPAddClick
+        end
+        object btnBPSub: TButton
+          Position.X = 192.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Sub'
+          OnClick = btnBPSubClick
+        end
+        object btnBPMul: TButton
+          Position.X = 296.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Mul'
+          OnClick = btnBPMulClick
+        end
+        object btnBPDivMod: TButton
+          Position.X = 408.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Div && Mod'
+          OnClick = btnBPDivModClick
+        end
+        object edtBP3: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 13
+          Position.X = 56.000000000000000000
+          Position.Y = 256.000000000000000000
+          Size.Width = 833.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBP2Deg: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 12
+          Text = '7'
+          Position.X = 864.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBP1Rand: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 184.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+          Text = 'Random'
+          OnClick = btnBP1RandClick
+        end
+        object edtBP1Deg: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 5
+          Text = '9'
+          Position.X = 864.000000000000000000
+          Position.Y = 120.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBP2Rand: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Random'
+          OnClick = btnBP2RandClick
+        end
+        object btnBNTestExample1: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 14
+          Text = 'Galois Test Point 1'
+          OnClick = btnBNTestExample1Click
+        end
+        object btnBNTestExample2: TButton
+          Position.X = 152.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 15
+          Text = 'Galois Test Point 2'
+          OnClick = btnBNTestExample2Click
+        end
+        object btnBNTestExample3: TButton
+          Position.X = 280.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 16
+          Text = 'Galois Test Power 3'
+          OnClick = btnBNTestExample3Click
+        end
+        object btnBNTestExample4: TButton
+          Position.X = 408.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 17
+          Text = 'Galois Test Power 4'
+          OnClick = btnBNTestExample4Click
+        end
+        object btnBNGaloisTestGcd: TButton
+          Position.X = 536.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 18
+          Text = 'Galois Test GCD'
+          OnClick = btnBNGaloisTestGcdClick
+        end
+        object btnBNTestGaloisMI: TButton
+          Position.X = 664.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 19
+          Text = 'Galois Test Inverse'
+          TextSettings.Font.Family = 'MS Sans Serif'
+          TextSettings.Font.Size = 8.000000000000000000
+          OnClick = btnBNTestGaloisMIClick
+        end
+        object btnBNPolyGcd: TButton
+          Position.X = 792.000000000000000000
+          Position.Y = 312.000000000000000000
+          Size.Width = 97.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 20
+          Text = 'Test Poly Gcd'
+          OnClick = btnBNPolyGcdClick
+        end
+        object btnBNGF28Test1: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 21
+          Text = 'GF2^8 Test1'
+          OnClick = btnBNGF28Test1Click
+        end
+        object btnBNTestGaloisDiv: TButton
+          Position.X = 152.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 22
+          Text = 'Test Galois Div'
+          OnClick = btnBNTestGaloisDivClick
+        end
+        object btnBNTestGaloisCalc: TButton
+          Position.X = 280.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 23
+          Text = 'Test Galois Calc'
+          OnClick = btnBNTestGaloisCalcClick
+        end
+        object btnBNTestHugeDiv1: TButton
+          Position.X = 408.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 24
+          Text = 'Test Huge Div 1'
+          OnClick = btnBNTestHugeDiv1Click
+        end
+        object btnBNTestHugeDiv2: TButton
+          Position.X = 536.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 25
+          Text = 'Test Huge Div 2'
+          OnClick = btnBNTestHugeDiv2Click
+        end
+        object btnBNTestHugeDiv3: TButton
+          Position.X = 664.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 26
+          Text = 'Test Huge Div 3'
+          OnClick = btnBNTestHugeDiv3Click
+        end
+        object btnBNTestPowerMod: TButton
+          Position.X = 792.000000000000000000
+          Position.Y = 360.000000000000000000
+          Size.Width = 97.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 27
+          Text = 'Test Power Mod'
+          OnClick = btnBNTestPowerModClick
+        end
+        object btnBNTestGaloisDivTime: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 408.000000000000000000
+          Size.Width = 241.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 28
+          Text = 'Test Galois Div Time'
+          OnClick = btnBNTestGaloisDivTimeClick
+        end
+        object btnBNPolySetString: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Set String'
+          OnClick = btnBNPolySetStringClick
+        end
+      end
+    end
+    object tsBNEccOnGalois: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 4
+      Size.Width = 165.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Big Number Ecc on Galois'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grp1: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 897.000000000000000000
+        Size.Height = 477.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'BigNumber Ecc on Galois'
+        TabOrder = 0
+        object btnBNTestMI1: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 161.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Test Galois Modular Inverse'
+          TextSettings.Font.Family = 'MS Sans Serif'
+          TextSettings.Font.Size = 8.000000000000000000
+          OnClick = btnBNTestMI1Click
+        end
+        object btnBNTestEuclid2: TButton
+          Position.X = 192.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 161.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'Test Extended Euclid 2'
+          OnClick = btnBNTestEuclid2Click
+        end
+        object btnBNTestGaloisMulMod: TButton
+          Position.X = 784.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 105.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Test Galois MulMod'
+          OnClick = btnBNTestGaloisMulModClick
+        end
+        object btnBNTestEuclid3: TButton
+          Position.X = 360.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 161.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+          Text = 'Test Extended Euclid 3'
+          OnClick = btnBNTestEuclid3Click
+        end
+        object btnBNEccDivisionPoly: TButton
+          Position.X = 528.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 177.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 12
+          Text = 'Test Ecc Division Polynomial 3'
+          OnClick = btnBNEccDivisionPolyClick
+        end
+        object btnBNGenerateDP: TButton
+          Position.X = 720.000000000000000000
+          Position.Y = 128.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 13
+          Text = 'Generate Division Polynomial'
+          OnClick = btnBNGenerateDPClick
+        end
+        object mmoBNTestDivisionPolynomials: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          Position.X = 24.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 849.000000000000000000
+          Size.Height = 313.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 14
+          Viewport.Width = 849.000000000000000000
+          Viewport.Height = 313.000000000000000000
+        end
+        object btnBNTestDivPoly1: TButton
+          Position.X = 440.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 177.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Test Ecc Division Polynomial 1'
+          OnClick = btnBNTestDivPoly1Click
+        end
+        object btnBNTestDivPoly2: TButton
+          Position.X = 640.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 177.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Test Ecc Division Polynomial 2'
+          OnClick = btnBNTestDivPoly2Click
+        end
+        object btnBNEccOnCurve: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 129.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Test 1 Point on Curve'
+          OnClick = btnBNEccOnCurveClick
+        end
+        object btnBNEccPointAdd1: TButton
+          Position.X = 176.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Test Point Add 1'
+          OnClick = btnBNEccPointAdd1Click
+        end
+        object btnBNEccPointAdd2: TButton
+          Position.X = 312.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 105.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Test Point Add 2'
+          OnClick = btnBNEccPointAdd2Click
+        end
+        object btnBNTestPoly1: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 129.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Test ? Point on Curve 1'
+          OnClick = btnBNTestPoly1Click
+        end
+        object btnBNTestPoly2: TButton
+          Position.X = 176.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 129.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Test ? Point on Curve 2'
+          OnClick = btnBNTestPoly2Click
+        end
+        object btnBNTestPoly3: TButton
+          Position.X = 320.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 241.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Test 4 Points on Curve?'
+          OnClick = btnBNTestPoly3Click
+        end
+      end
+    end
+    object tsBNRationalPolynomial: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 5
+      Size.Width = 198.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'BigNumber Rational Polynomial'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpBNRationalPolynomial: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 905.000000000000000000
+        Size.Height = 477.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'BigNumber Rational Polynomial'
+        TabOrder = 0
+        object lbl5: TLabel
+          Position.X = 425.000000000000000000
+          Position.Y = 100.000000000000000000
+          Size.Width = 5.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = '/'
+        end
+        object lbl6: TLabel
+          Position.X = 425.000000000000000000
+          Position.Y = 180.000000000000000000
+          Size.Width = 5.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = '/'
+        end
+        object lbl7: TLabel
+          Position.X = 416.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 6.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = '='
+        end
+        object btnBNTestDivPoly: TButton
+          Position.X = 464.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 225.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Check Division Polynomial Zero'
+          OnClick = btnBNTestDivPolyClick
+        end
+        object btnBNTestPointAdd: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Calc 2 * Point (x, 1*y) on Ecc'
+          OnClick = btnBNTestPointAddClick
+        end
+        object btnBNTestManualPoint: TButton
+          Position.X = 224.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 209.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Manual Test OnCurve'
+          OnClick = btnBNTestManualPointClick
+        end
+        object edtBNRationalNominator1: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 3
+          Position.X = 16.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 385.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNRationalDenominator1: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 4
+          Position.X = 448.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 385.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBNRationalGenerate: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Generate'
+          OnClick = btnBNRationalGenerateClick
+        end
+        object btnBNRationalAdd: TButton
+          Position.X = 264.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Add'
+          OnClick = btnBNRationalAddClick
+        end
+        object btnBNRationalSub: TButton
+          Position.X = 352.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Sub'
+          OnClick = btnBNRationalSubClick
+        end
+        object btnBNRationalMul: TButton
+          Position.X = 440.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Mul'
+          OnClick = btnBNRationalMulClick
+        end
+        object btnBNRationalDiv: TButton
+          Position.X = 528.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'Div'
+          OnClick = btnBNRationalDivClick
+        end
+        object chkBNRationalGalois: TCheckBox
+          Position.X = 648.000000000000000000
+          Position.Y = 140.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 17.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 12
+          Text = 'Galois'
+        end
+        object edtBNRationalGalois: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 11
+          Text = '97'
+          Position.X = 728.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 105.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNRationalNominator2: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 14
+          Position.X = 448.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 385.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNRationalDenominator2: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 13
+          Position.X = 16.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 385.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNRationalResultNominator: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 15
+          Position.X = 20.000000000000000000
+          Position.Y = 240.000000000000000000
+          Size.Width = 385.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNRationalResultDenominator: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 16
+          Position.X = 452.000000000000000000
+          Position.Y = 240.000000000000000000
+          Size.Width = 385.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBNTestRationalPointAdd1: TButton
+          Position.X = 264.000000000000000000
+          Position.Y = 296.000000000000000000
+          Size.Width = 209.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 17
+          Text = 'Check Rational Polynomial Add'
+          OnClick = btnBNTestRationalPointAdd1Click
+        end
+        object btnBNTestRationalPointAdd2: TButton
+          Position.X = 504.000000000000000000
+          Position.Y = 296.000000000000000000
+          Size.Width = 177.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 18
+          Text = 'Test Pi^2 + 2P Polynomial in Ring'
+          OnClick = btnBNTestRationalPointAdd2Click
+        end
+        object btnBNTestGaloisEqual: TButton
+          Position.X = 696.000000000000000000
+          Position.Y = 296.000000000000000000
+          Size.Width = 137.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 19
+          Text = 'Test Galois Equal'
+          OnClick = btnBNTestGaloisEqualClick
+        end
+        object btnBNRationalSetString: TButton
+          Position.X = 120.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Set String'
+          OnClick = btnBNRationalSetStringClick
+        end
+        object btnBNRationalRational: TButton
+          Position.X = 264.000000000000000000
+          Position.Y = 352.000000000000000000
+          Size.Width = 209.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 20
+          Text = 'Compose Rational using Rational'
+          OnClick = btnBNRationalRationalClick
+        end
+        object btnBNPolyRational: TButton
+          Position.X = 264.000000000000000000
+          Position.Y = 400.000000000000000000
+          Size.Width = 209.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 21
+          Text = 'Compose Polynomial using Rational'
+          OnClick = btnBNPolyRationalClick
+        end
+        object btnBNRationalPoly: TButton
+          Position.X = 264.000000000000000000
+          Position.Y = 448.000000000000000000
+          Size.Width = 209.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 22
+          Text = 'Compose Rational using Polynomial'
+          OnClick = btnBNRationalPolyClick
+        end
+      end
+    end
+    object tsBiInt64Polynomial: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 6
+      Size.Width = 129.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Bi Int64 Polynomial'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpBiInt64Poly: TGroupBox
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Position.X = 8.000000000000000000
+        Position.Y = 4.000000000000000000
+        Size.Width = 905.000000000000000000
+        Size.Height = 485.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Bi Int64 Polynomial'
+        TabOrder = 0
+        object lblIBPDeg: TLabel
+          Position.X = 816.000000000000000000
+          Position.Y = 124.000000000000000000
+          Size.Width = 38.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Degree:'
+        end
+        object lblIBP2Deg: TLabel
+          Position.X = 816.000000000000000000
+          Position.Y = 252.000000000000000000
+          Size.Width = 38.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Degree:'
+        end
+        object lblIBPEqual: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 288.000000000000000000
+          Size.Width = 11.000000000000000000
+          Size.Height = 20.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Family = 'MS Sans Serif'
+          Text = '='
+        end
+        object lblIBPPower: TLabel
+          Position.X = 344.000000000000000000
+          Position.Y = 158.000000000000000000
+          Size.Width = 21.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Exp:'
+        end
+        object lblIBPExtract: TLabel
+          Position.X = 672.000000000000000000
+          Position.Y = 158.000000000000000000
+          Size.Width = 38.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Degree:'
+        end
+        object lblIBPShiftX: TLabel
+          Position.X = 272.000000000000000000
+          Position.Y = 62.000000000000000000
+          Size.Width = 24.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Shift:'
+        end
+        object btnBiInt64ToString: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'To String'
+          OnClick = btnBiInt64ToStringClick
+        end
+        object edtBIP: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Position.X = 128.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 673.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBiInt64SetString: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Set String'
+          OnClick = btnBiInt64SetStringClick
+        end
+        object mmoIBP1: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          ReadOnly = True
+          TextSettings.WordWrap = True
+          Position.X = 24.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 777.000000000000000000
+          Size.Height = 57.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Viewport.Width = 777.000000000000000000
+          Viewport.Height = 57.000000000000000000
+        end
+        object btnIBP1Random: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Random'
+          OnClick = btnIBP1RandomClick
+        end
+        object edtIBP1Deg: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 5
+          Text = '4'
+          Position.X = 864.000000000000000000
+          Position.Y = 120.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object mmoIBP2: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          ReadOnly = True
+          TextSettings.WordWrap = True
+          Position.X = 24.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 777.000000000000000000
+          Size.Height = 57.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+          Viewport.Width = 777.000000000000000000
+          Viewport.Height = 57.000000000000000000
+        end
+        object btnIBP2Rand: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 12
+          Text = 'Random'
+          OnClick = btnIBP2RandClick
+        end
+        object edtIBP2Deg: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 13
+          Text = '4'
+          Position.X = 864.000000000000000000
+          Position.Y = 248.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnIBPAdd: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Add'
+          OnClick = btnIBPAddClick
+        end
+        object btnIBPSub: TButton
+          Position.X = 104.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Sub'
+          OnClick = btnIBPSubClick
+        end
+        object btnIBPMul: TButton
+          Position.X = 184.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Mul'
+          OnClick = btnIBPMulClick
+        end
+        object edtIBP3: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 14
+          Position.X = 56.000000000000000000
+          Position.Y = 288.000000000000000000
+          Size.Width = 833.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnIBPPower: TButton
+          Position.X = 264.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Power'
+          OnClick = btnIBPPowerClick
+        end
+        object edtIBPPower: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 10
+          Text = '4'
+          Position.X = 368.000000000000000000
+          Position.Y = 154.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnIBPEvalY: TButton
+          Position.X = 416.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 15
+          Text = 'Eval Y'
+          OnClick = btnIBPEvalYClick
+        end
+        object btnIBPEvalX: TButton
+          Position.X = 496.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 16
+          Text = 'Eval X'
+          OnClick = btnIBPEvalXClick
+        end
+        object btnIBPTranspose: TButton
+          Position.X = 576.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 17
+          Text = 'Transpose'
+          OnClick = btnIBPTransposeClick
+        end
+        object edtIBPExtract: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 18
+          Text = '2'
+          Position.X = 720.000000000000000000
+          Position.Y = 154.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnIBPExtractXY: TButton
+          Position.X = 752.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 19
+          Text = 'Extract'
+          OnClick = btnIBPExtractXYClick
+        end
+        object btnIBPIsMonicX: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 184.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 20
+          Text = 'IsMonicX'
+          OnClick = btnIBPIsMonicXClick
+        end
+        object edtIBPShiftX: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 21
+          Text = '4'
+          Position.X = 304.000000000000000000
+          Position.Y = 58.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnIBPShiftLeftX: TButton
+          Position.X = 192.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 22
+          Text = 'Shift Left'
+          OnClick = btnIBPShiftLeftXClick
+        end
+        object btnIBPShiftRightX: TButton
+          Position.X = 336.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 23
+          Text = 'Shift Right'
+          OnClick = btnIBPShiftRightXClick
+        end
+        object btnIBPDivModX: TButton
+          Position.X = 104.000000000000000000
+          Position.Y = 184.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 24
+          Text = 'DivX && ModX'
+          OnClick = btnIBPDivModXClick
+        end
+        object btnIBPTestMod: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 336.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 25
+          Text = 'Test Power Mod'
+          OnClick = btnIBPTestModClick
+        end
+        object btnIBPTestAKSExample: TButton
+          Position.X = 160.000000000000000000
+          Position.Y = 336.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 26
+          Text = 'Test AKS Example'
+          OnClick = btnIBPTestAKSExampleClick
+        end
+        object btnTestModExample: TButton
+          Position.X = 288.000000000000000000
+          Position.Y = 336.000000000000000000
+          Size.Width = 113.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 27
+          Text = 'Test Mod Example'
+          OnClick = btnTestModExampleClick
+        end
+      end
+    end
+    object tsBNBPolynomial: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 7
+      Size.Width = 164.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Bi BigNumber Polynomial'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpBNBPolynomial: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 4.000000000000000000
+        Size.Width = 905.000000000000000000
+        Size.Height = 509.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'grpBNBPolynomial'
+        TabOrder = 0
+        object lblBIBNPShiftX: TLabel
+          Position.X = 272.000000000000000000
+          Position.Y = 62.000000000000000000
+          Size.Width = 24.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Shift:'
+        end
+        object lblBNBIP1: TLabel
+          Position.X = 816.000000000000000000
+          Position.Y = 124.000000000000000000
+          Size.Width = 38.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Degree:'
+        end
+        object lblBNBPDeg2: TLabel
+          Position.X = 816.000000000000000000
+          Position.Y = 252.000000000000000000
+          Size.Width = 38.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Degree:'
+        end
+        object lblBNBPEqual: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 288.000000000000000000
+          Size.Width = 11.000000000000000000
+          Size.Height = 20.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Family = 'MS Sans Serif'
+          Text = '='
+        end
+        object lblBNBPExp: TLabel
+          Position.X = 344.000000000000000000
+          Position.Y = 158.000000000000000000
+          Size.Width = 21.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Exp:'
+        end
+        object lblBNBPExtractDegree: TLabel
+          Position.X = 672.000000000000000000
+          Position.Y = 158.000000000000000000
+          Size.Width = 38.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Degree:'
+        end
+        object btnBNBPToString: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'To String'
+          OnClick = btnBNBPToStringClick
+        end
+        object edtBNBP: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Position.X = 128.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 673.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBNBIPSetString: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Set String'
+          OnClick = btnBNBIPSetStringClick
+        end
+        object btnBIBNPShiftLeftX: TButton
+          Position.X = 192.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Shift Left'
+          OnClick = btnBIBNPShiftLeftXClick
+        end
+        object edtBIBNPShiftX: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 4
+          Text = '4'
+          Position.X = 304.000000000000000000
+          Position.Y = 58.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBIBNPShiftRightX: TButton
+          Position.X = 336.000000000000000000
+          Position.Y = 56.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Shift Right'
+          OnClick = btnBIBNPShiftRightXClick
+        end
+        object mmoBNBP1: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          ReadOnly = True
+          TextSettings.WordWrap = True
+          Position.X = 24.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 777.000000000000000000
+          Size.Height = 57.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Viewport.Width = 777.000000000000000000
+          Viewport.Height = 57.000000000000000000
+        end
+        object btnBNBP1Rand: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 88.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Random'
+          OnClick = btnBNBP1RandClick
+        end
+        object edtBNBP1Deg: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 8
+          Text = '4'
+          Position.X = 864.000000000000000000
+          Position.Y = 120.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object mmoBNBP2: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          ReadOnly = True
+          TextSettings.WordWrap = True
+          Position.X = 24.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 777.000000000000000000
+          Size.Height = 57.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Viewport.Width = 777.000000000000000000
+          Viewport.Height = 57.000000000000000000
+        end
+        object btnBNBP2Rand: TButton
+          Position.X = 816.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'Random'
+          OnClick = btnBNBP2RandClick
+        end
+        object edtBNBPDeg2: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 11
+          Text = '4'
+          Position.X = 864.000000000000000000
+          Position.Y = 248.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtBNBP3: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 12
+          Position.X = 56.000000000000000000
+          Position.Y = 288.000000000000000000
+          Size.Width = 833.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBNBPAdd: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 13
+          Text = 'Add'
+          OnClick = btnBNBPAddClick
+        end
+        object btnBNBPSub: TButton
+          Position.X = 104.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 14
+          Text = 'Sub'
+          OnClick = btnBNBPSubClick
+        end
+        object btnBNBPMul: TButton
+          Position.X = 184.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 15
+          Text = 'Mul'
+          OnClick = btnBNBPMulClick
+        end
+        object btnBNBPPower: TButton
+          Position.X = 264.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 16
+          Text = 'Power'
+          OnClick = btnBNBPPowerClick
+        end
+        object edtBNBPExp: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 17
+          Text = '4'
+          Position.X = 368.000000000000000000
+          Position.Y = 154.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBNBPEvalY: TButton
+          Position.X = 416.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 18
+          Text = 'Eval Y'
+          OnClick = btnBNBPEvalYClick
+        end
+        object btnBNBPEvalX: TButton
+          Position.X = 496.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 19
+          Text = 'Eval X'
+          OnClick = btnBNBPEvalXClick
+        end
+        object btnBNBPTranspose: TButton
+          Position.X = 576.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 20
+          Text = 'Transpose'
+          OnClick = btnBNBPTransposeClick
+        end
+        object edtBNBPExtractDegree: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 21
+          Text = '2'
+          Position.X = 720.000000000000000000
+          Position.Y = 154.000000000000000000
+          Size.Width = 25.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBNBPExtract: TButton
+          Position.X = 752.000000000000000000
+          Position.Y = 152.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 22
+          Text = 'Extract'
+          OnClick = btnBNBPExtractClick
+        end
+        object btnBNBPIsMonicX: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 184.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 23
+          Text = 'IsMonicX'
+          OnClick = btnBNBPIsMonicXClick
+        end
+        object btnBNBPDivXModX: TButton
+          Position.X = 104.000000000000000000
+          Position.Y = 184.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 24
+          Text = 'DivX && ModX'
+          OnClick = btnBNBPDivXModXClick
+        end
+        object btnTestSetString: TButton
+          Position.X = 24.000000000000000000
+          Position.Y = 344.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 25
+          Text = 'Test Set Value'
+          OnClick = btnTestSetStringClick
+        end
+        object btnTestBNBPAddSub: TButton
+          Position.X = 112.000000000000000000
+          Position.Y = 344.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 26
+          Text = 'Test Add/Sub'
+          OnClick = btnTestBNBPAddSubClick
+        end
+        object btnBNBPTestModX: TButton
+          Position.X = 200.000000000000000000
+          Position.Y = 344.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 27
+          Text = 'Test ModX'
+          OnClick = btnBNBPTestModXClick
+        end
+      end
+    end
+  end
+end
