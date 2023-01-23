@@ -445,10 +445,10 @@ function MemoryToBinStr(AMem: Pointer; MemByteLen: Integer; Sep: Boolean = False
 {* 将一块内存内容从低到高字节顺序输出为二进制字符串，Sep 表示是否空格分隔}
 
 procedure MemorySwap(AMem, BMem: Pointer; MemByteLen: Integer);
-{* 交换两块相同长度的内存块的内容}
+{* 交换两块相同长度的内存块的内容，如两者是相同的内存块则什么都不做}
 
 function MemoryCompare(AMem, BMem: Pointer; MemByteLen: Integer): Integer;
-{* 以无符号数的方式比较两块内存，返回 1、0、-1}
+{* 以无符号数的方式比较两块内存，返回 1、0、-1，如两者是相同的内存块则直接返回 0}
 
 procedure MemoryQuickSort(Mem: Pointer; ElementByteSize: Integer;
   ElementCount: Integer; CompareProc: TMemSortCompareProc = nil);
@@ -1187,6 +1187,9 @@ begin
   A := PCnLongWord32Array(AMem);
   B := PCnLongWord32Array(BMem);
 
+  if A = B then
+    Exit;
+
   while (MemByteLen and (not 3)) <> 0 do
   begin
     TC := A[0];
@@ -1224,8 +1227,9 @@ var
   BA, BB: PByteArray;
 begin
   Result := 0;
-  if (AMem = nil) and (BMem = nil) then
+  if ((AMem = nil) and (BMem = nil)) or (AMem = BMem) then // 同一块
     Exit;
+
   if MemByteLen <= 0 then
     Exit;
 
