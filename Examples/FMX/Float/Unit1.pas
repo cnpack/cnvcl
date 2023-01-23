@@ -104,6 +104,8 @@ begin
 {$IFNDEF SUPPORT_UINT64}
   U := -234567869758674564;
   ShowMessage(UInt64ToStr(U));
+{$ELSE}
+  U := 4234567869758674564;
 {$ENDIF}
 
   S := UInt64ToSingle(U);
