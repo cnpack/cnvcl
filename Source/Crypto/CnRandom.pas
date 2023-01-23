@@ -61,6 +61,22 @@ function RandomInt64: Int64;
 function RandomInt64LessThan(HighValue: Int64): Int64;
 {* 返回大于等于 0 且小于指定 Int64 值的随机数}
 
+function RandomUInt32: Cardinal;
+{* 返回 UInt32 范围内的随机数}
+
+function RandomUInt32LessThan(HighValue: Cardinal): Cardinal;
+{* 返回大于等于 0 且小于指定 UInt32 值的随机数}
+
+function RandomInt32: Integer;
+{* 返回大于等于 0 且小于 Int32 上限的随机数}
+
+function RandomInt32LessThan(HighValue: Integer): Integer;
+{* 返回大于等于 0 且小于指定 Int32 的随机数}
+
+function CnKnuthShuffle(ArrayBase: Pointer; ElementByteSize: Integer;
+  ElementCount: Integer): Boolean;
+{* 高德纳洗牌算法，将 ArrayBase 所指的元素尺寸为 ElementSize 的 ElementCount 个元素均匀洗牌}
+
 function CnRandomFillBytes(Buf: PAnsiChar; Len: Integer): Boolean;
 {* 使用 Windows API 或 /dev/random 设备实现区块随机填充，内部单次初始化随机数引擎并释放}
 
@@ -206,12 +222,76 @@ begin
     HL[0] := HL[0] mod (Cardinal(High(Integer)) + 1);    // Int64 最高位不能是 1，避免负数
 
   Result := (Int64(HL[0]) shl 32) + HL[1];
-  Result := Result mod HighValue;
+  Result := Result mod HighValue; // 未处理 HighValue 小于等于 0 的情形
 end;
 
 function RandomInt64: Int64;
 begin
   Result := RandomInt64LessThan(High(Int64));
+end;
+
+function RandomUInt32: Cardinal;
+var
+  D: Cardinal;
+begin
+  // 优先用系统的随机数发生器
+  if not CnRandomFillBytes2(@D, SizeOf(Cardinal)) then
+  begin
+    Randomize;
+    D := Trunc(Random * High(Cardinal) - 1) + 1;
+  end;
+
+  Result := D;
+end;
+
+function RandomUInt32LessThan(HighValue: Cardinal): Cardinal;
+begin
+  Result := RandomUInt32 mod HighValue;
+end;
+
+function RandomInt32: Integer;
+begin
+  Result := RandomInt32LessThan(High(Integer));
+end;
+
+function RandomInt32LessThan(HighValue: Integer): Integer;
+var
+  D: Cardinal;
+begin
+  // 优先用系统的随机数发生器
+  if not CnRandomFillBytes2(@D, SizeOf(Cardinal)) then
+  begin
+    Randomize;
+    D := Trunc(Random * High(Integer) - 1) + 1;
+  end
+  else
+    D := D mod (Cardinal(High(Integer)) + 1);
+
+  Result := Integer(D mod HighValue); // 未处理 HighValue 小于等于 0 的情形
+end;
+
+function CnKnuthShuffle(ArrayBase: Pointer; ElementByteSize: Integer;
+  ElementCount: Integer): Boolean;
+var
+  I, R: Integer;
+  B1, B2: Pointer;
+begin
+  Result := False;
+  if (ArrayBase = nil) or (ElementByteSize <= 0) or (ElementCount < 0) then // 超大的数组先不处理
+    Exit;
+
+  Result := True;
+  if ElementCount <= 1 then // 没元素或只有一个元素时不用洗
+    Exit;
+
+  for I := ElementCount - 1 downto 0 do
+  begin
+    R := RandomInt32LessThan(I + 1);  // 0 到 I 这个闭区间内的随机数，所以上限要加 1
+    B1 := Pointer(TCnNativeUInt(ArrayBase) + TCnNativeUInt(I * ElementByteSize));
+    B2 := Pointer(TCnNativeUInt(ArrayBase) + TCnNativeUInt(R * ElementByteSize));
+    MemorySwap(B1, B2, ElementByteSize);
+  end;
+  Result := True;
 end;
 
 {$IFDEF MSWINDOWS}
