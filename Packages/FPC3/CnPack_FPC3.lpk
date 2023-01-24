@@ -14,7 +14,7 @@
         <Style Value="1"/>
       </Parsing>
     </CompilerOptions>
-    <Files Count="61">
+    <Files Count="64">
       <Item1>
         <Filename Value="../../Source/Crypto/CnAES.pas"/>
         <UnitName Value="CnAES"/>
@@ -259,6 +259,18 @@
         <Filename Value="../../Source/Crypto/CnInt128.pas"/>
         <UnitName Value="CnInt128"/>
       </Item61>
+      <Item62>
+        <Filename Value="../../Source/Crypto/CnFNV.pas"/>
+        <UnitName Value="CnFNV"/>
+      </Item62>
+      <Item63>
+        <Filename Value="../../Source/Crypto/CnPoly1305.pas"/>
+        <UnitName Value="CnPoly1305"/>
+      </Item63>
+      <Item64>
+        <Filename Value="../../Source/Crypto/CnChaCha20.pas"/>
+        <UnitName Value="CnChaCha20"/>
+      </Item64>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">
