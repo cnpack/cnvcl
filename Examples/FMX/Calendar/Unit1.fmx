@@ -1,0 +1,310 @@
+object Form1: TForm1
+  Left = 273
+  Top = 110
+  BorderStyle = Single
+  Caption = 'CnCalendar '#27979#35797#31243#24207
+  ClientHeight = 573
+  ClientWidth = 565
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  Left = 273
+  Top = 110
+  DesignerMasterStyle = 0
+  object pgc1: TTabControl
+    Position.X = 10.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 545.000000000000000000
+    Size.Height = 553.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 0
+    TabPosition = Top
+    Sizes = (
+      545s
+      525s
+      545s
+      525s
+      545s
+      525s)
+    object ts1: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 49.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = #20844#21382
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object lblYear: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 20.000000000000000000
+        Size.Width = 12.000000000000000000
+        Size.Height = 12.000000000000000000
+        Size.PlatformDefault = False
+        Text = #24180
+        TabOrder = 4
+      end
+      object lblYue: TLabel
+        Position.X = 112.000000000000000000
+        Position.Y = 20.000000000000000000
+        Size.Width = 12.000000000000000000
+        Size.Height = 12.000000000000000000
+        Size.PlatformDefault = False
+        Text = #26376
+        TabOrder = 7
+      end
+      object lblDay: TLabel
+        Position.X = 208.000000000000000000
+        Position.Y = 20.000000000000000000
+        Size.Width = 12.000000000000000000
+        Size.Height = 12.000000000000000000
+        Size.PlatformDefault = False
+        Text = #26085
+        TabOrder = 8
+      end
+      object lblHour: TLabel
+        Position.X = 296.000000000000000000
+        Position.Y = 20.000000000000000000
+        Size.Width = 12.000000000000000000
+        Size.Height = 12.000000000000000000
+        Size.PlatformDefault = False
+        Text = #26102
+        TabOrder = 9
+      end
+      object mmoResult: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        TextSettings.WordWrap = True
+        Position.Y = 64.000000000000000000
+        Size.Width = 537.000000000000000000
+        Size.Height = 462.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 12
+        Viewport.Width = 533.000000000000000000
+        Viewport.Height = 458.000000000000000000
+      end
+      object edtYear: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 0
+        Text = '2005'
+        Position.X = 32.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 57.000000000000000000
+        Size.Height = 20.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object edtMonth: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 1
+        Text = '12'
+        Position.X = 128.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 57.000000000000000000
+        Size.Height = 20.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object edtDay: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 2
+        Text = '29'
+        Position.X = 224.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 57.000000000000000000
+        Size.Height = 20.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnCalc: TButton
+        Position.X = 384.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 6
+        Text = #19968#31639#65281
+        OnClick = btnCalcClick
+      end
+      object edtHour: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 3
+        Text = '0'
+        Position.X = 312.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 57.000000000000000000
+        Size.Height = 20.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object Button1: TButton
+        Position.X = 464.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 5
+        Text = #20108#31639#65281
+        OnClick = Button1Click
+      end
+    end
+    object tsCalendar: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 1
+      Size.Width = 49.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = #26376#21382
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object lblDate: TLabel
+        Position.X = 280.000000000000000000
+        Position.Y = 400.000000000000000000
+        Size.Width = 6.000000000000000000
+        Size.Height = 12.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+      end
+      object chkGanZhi: TCheckBox
+        Position.X = 40.000000000000000000
+        Position.Y = 352.000000000000000000
+        Size.Width = 97.000000000000000000
+        Size.Height = 17.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+        Text = #26174#31034#24178#25903
+        OnClick = chkGanZhiClick
+      end
+      object chkMonthButton: TCheckBox
+        Position.X = 160.000000000000000000
+        Position.Y = 352.000000000000000000
+        Size.Width = 177.000000000000000000
+        Size.Height = 17.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        Text = #26174#31034#26376#20221#21069#36827#21518#36864#25353#38062
+      end
+      object chkYearButton: TCheckBox
+        Position.X = 352.000000000000000000
+        Position.Y = 352.000000000000000000
+        Size.Width = 177.000000000000000000
+        Size.Height = 17.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 3
+        Text = #26174#31034#24180#20221#21069#36827#21518#36864#25353#38062
+      end
+    end
+    object tsConvert: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 2
+      Size.Width = 87.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = #20892#21382#36716#20844#21382
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object lbl1: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 20.000000000000000000
+        Size.Width = 12.000000000000000000
+        Size.Height = 12.000000000000000000
+        Size.PlatformDefault = False
+        Text = #24180
+        TabOrder = 4
+      end
+      object lbl2: TLabel
+        Position.X = 112.000000000000000000
+        Position.Y = 20.000000000000000000
+        Size.Width = 12.000000000000000000
+        Size.Height = 12.000000000000000000
+        Size.PlatformDefault = False
+        Text = #26376
+        TabOrder = 7
+      end
+      object lbl3: TLabel
+        Position.X = 208.000000000000000000
+        Position.Y = 20.000000000000000000
+        Size.Width = 12.000000000000000000
+        Size.Height = 12.000000000000000000
+        Size.PlatformDefault = False
+        Text = #26085
+        TabOrder = 8
+      end
+      object edtLunarYear: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 0
+        Text = '2009'
+        Position.X = 32.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 57.000000000000000000
+        Size.Height = 20.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object edtLunarMonth: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 1
+        Text = '5'
+        Position.X = 128.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 57.000000000000000000
+        Size.Height = 20.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object edtLunarDay: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 2
+        Text = '14'
+        Position.X = 224.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 57.000000000000000000
+        Size.Height = 20.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object chkLeap: TCheckBox
+        Position.X = 296.000000000000000000
+        Position.Y = 18.000000000000000000
+        Size.Width = 73.000000000000000000
+        Size.Height = 17.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 6
+        Text = #38384#26376
+        OnClick = chkGanZhiClick
+      end
+      object btnCalcLunar: TButton
+        Position.X = 384.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 3
+        Text = #31639#65281
+        OnClick = btnCalcLunarClick
+      end
+      object mmoLunar: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        TextSettings.WordWrap = True
+        Position.Y = 64.000000000000000000
+        Size.Width = 537.000000000000000000
+        Size.Height = 462.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 5
+        Viewport.Width = 533.000000000000000000
+        Viewport.Height = 458.000000000000000000
+      end
+    end
+  end
+end
