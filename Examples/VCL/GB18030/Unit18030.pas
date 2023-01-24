@@ -860,14 +860,14 @@ var
       begin
         SB.Append(AWS[I]);
         if I < AWS.Count - 1 then
-          SB.Append(',');
+          SB.Append(string(','));
         if (SB.CharLength >= 80) or (I = AWS.Count - 1) then
         begin
           OutAss.Add('    ' + SB.ToString);
           SB.Clear;
         end
         else
-          SB.Append(' ');
+          SB.Append(string(' '));
       end;
     end;
     OutAss.Add('  );');
@@ -1824,14 +1824,14 @@ begin
 
       SB.Append('$' + Copy(OT[I], 1, T - 1));
       if I < OT.Count - 1 then
-        SB.Append(',');
+        SB.Append(string(','));
       if (SB.CharLength >= 80) or (I = OT.Count - 1) then
       begin
         SL.Add('    ' + SB.ToString);
         SB.Clear;
       end
       else
-        SB.Append(' ');
+        SB.Append(string(' '));
     end;
     SL.Add('  );');
 
@@ -1845,14 +1845,14 @@ begin
 
       SB.Append('$' + Copy(OT[I], T + Length(EQUAL), MaxInt));
       if I < OT.Count - 1 then
-        SB.Append(',');
+        SB.Append(string(','));
       if (SB.CharLength >= 80) or (I = OT.Count - 1) then
       begin
         SL.Add('    ' + SB.ToString);
         SB.Clear;
       end
       else
-        SB.Append(' ');
+        SB.Append(string(' '));
     end;
     SL.Add('  );');
 
