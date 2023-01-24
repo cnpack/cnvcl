@@ -134,6 +134,9 @@ cnpack\Source 目录内容说明：
   CnRopes.pas
     Ropes 数据结构实现单元
 
+  CnRTL.pas
+    运行期异常捕捉实现单元
+
   CnShellUtils.pas
     Shell 工具单元
 
@@ -188,7 +191,7 @@ cnpack\Source 目录内容说明：
   CnZip.pas
     Zip 压缩文件实现单元
 
-              58 文件
+              66 文件
 
 \Crypto - 加解密算法目录
 
@@ -213,6 +216,9 @@ cnpack\Source 目录内容说明：
   CnCertificateAuthority.pas
     证书签名验证的实现单元
 
+  CnChaCha20.pas
+    ChaCha20 算法实现单元
+
   CnComplex.pas
     浮点复数实现单元
 
@@ -229,13 +235,16 @@ cnpack\Source 目录内容说明：
     椭圆曲线加密算法实现单元
 
   CnFEC.pas
-    前向纠错编码解码单元的部分实现
+    前向纠错编码解码算法的部分实现单元
 
-  CnKDF.pas
-    密码生成算法单元
+  CnFNV.pas
+    FNV 杂凑算法的实现单元
 
   CnInt128.pas
     128 位整数及其运算实现单元
+
+  CnKDF.pas
+    密码生成算法单元
 
   CnMD5.pas
     MD5 算法单元
@@ -246,11 +255,14 @@ cnpack\Source 目录内容说明：
   CnOTP.pas
     动态口令实现单元
 
-  CnPaillier
+  CnPaillier.pas
     加法同态 Paillier 算法实现单元
 
   CnPemUtils.pas
     PEM 格式处理工具单元
+
+  CnPoly1305.pas
+    Poly1305 算法实现单元
 
   CnPolynomial.pas
     多项式运算单元
@@ -264,7 +276,7 @@ cnpack\Source 目录内容说明：
   CnRSA.pas
     RSA 算法实现单元
 
-  CnSecretSharing
+  CnSecretSharing.pas
     秘密共享场景的 Shamir 门限方案实现单元
 
   CnSHA1.pas
@@ -294,7 +306,7 @@ cnpack\Source 目录内容说明：
   CnZUC.pas
     祖冲之算法实现单元
 
-                共 28 文件
+                共 38 文件
 
 \DbReport －数据库组件与报表库目录
 
