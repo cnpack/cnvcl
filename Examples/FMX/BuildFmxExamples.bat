@@ -32,7 +32,7 @@ ECHO Build FMX Examples Complete.
 :END
 CD %ROOTDIR%
 PAUSE
-EXIT
+:EXIT
 
 REM 删除编译中的临时文件
 :CLEANTMP
