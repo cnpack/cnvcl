@@ -67,6 +67,7 @@
       ..\..\Source\Crypto\CnDFT.obj 
       ..\..\Source\Crypto\CnECC.obj 
       ..\..\Source\Crypto\CnFEC.obj 
+      ..\..\Source\Crypto\CnFNV.obj 
       ..\..\Source\Crypto\CnInt128.obj 
       ..\..\Source\Crypto\CnKDF.obj 
       ..\..\Source\Crypto\CnMD5.obj 
@@ -350,6 +351,7 @@
       <FILE FILENAME="..\..\Source\Crypto\CnDFT.pas" FORMNAME="" UNITNAME="CnDFT" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnECC.pas" FORMNAME="" UNITNAME="CnECC" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnFEC.pas" FORMNAME="" UNITNAME="CnFEC" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnFNV.pas" FORMNAME="" UNITNAME="CnFNV" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnInt128.pas" FORMNAME="" UNITNAME="CnInt128" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnKDF.pas" FORMNAME="" UNITNAME="CnKDF" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnMD5.pas" FORMNAME="" UNITNAME="CnMD5" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
