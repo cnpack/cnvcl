@@ -138,7 +138,7 @@ uses
 
 {$R *.fmx}
 
-{$I ..\..\PrimeNumber\Carmichael.inc}
+{$I ..\..\VCL\PrimeNumber\Carmichael.inc}
 
 function IsPrime(N: Cardinal): Boolean;
 var
