@@ -476,9 +476,9 @@ function DataToHex(InData: Pointer; ByteLength: Integer; UseUpperCase: Boolean =
 {* 内存块转换为十六进制字符串，内存低位的内容出现在字符串左方，相当于网络字节顺序，
   UseUpperCase 控制输出内容的大小写}
 
-function HexToData(const Hex: string; OutData: Pointer): string;
+function HexToData(const Hex: string; OutData: Pointer): Integer;
 {* 十六进制字符串转换为内存块，字符串左方的内容出现在内存低位，相当于网络字节顺序，
-  十六进制字符串长度为奇或转换失败时抛出异常
+  十六进制字符串长度为奇或转换失败时抛出异常。返回转换成功的字节数
   注意 OutData 应该指向足够容纳转换内容的区域，长度至少为 Length(Hex) div 2}
 
 function StringToHex(const Data: string; UseUpperCase: Boolean = True): string;
@@ -1441,7 +1441,7 @@ begin
   end;
 end;
 
-function HexToData(const Hex: string; OutData: Pointer): string;
+function HexToData(const Hex: string; OutData: Pointer): Integer;
 var
   I, L: Integer;
   S: string;
@@ -1450,10 +1450,12 @@ begin
   if (L mod 2) <> 0 then
     raise Exception.Create('Error: not a Hex String');
 
+  Result := 0;
   for I := 1 to L div 2 do
   begin
     S := Copy(Hex, I * 2 - 1, 2);
     PByte(TCnNativeInt(OutData) + I - 1)^ := Byte(HexToInt(S));
+    Inc(Result);
   end;
 end;
 
