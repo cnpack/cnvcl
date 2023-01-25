@@ -59,8 +59,6 @@ const
   CN_HASH_MAP_MAX_CAPACITY = 1 shl 30;
 
 type
-  PObject = ^TObject;
-
   ECnHashException = class(Exception);
 
   {     When an EOutOfMemory exception throw,means there is not enough
@@ -274,7 +272,7 @@ type
     procedure ClearAll(Shrink: Boolean = False);
 
     function Get(HashCode: Integer; Key: TObject; out Value: TObject {$IFNDEF CPUX64};
-      Key32: TObject = nil; ValueHigh32: PObject = nil {$ENDIF}): Boolean;
+      Key32: TObject = nil; ValueHigh32: Pointer = nil {$ENDIF}): Boolean;
     {* 实质的 Get 操作，HashCode 由外界计算好了，返回是否存在与 Value 值。32 位下，如果值有高 32 位，再通过 ValueHigh32 返回}
     function Put(HashCode: Integer; Key, Value: TObject {$IFNDEF CPUX64};
       KeyHigh32: TObject = nil; ValueHigh32: TObject = nil {$ENDIF}): TCnHashNode;
@@ -341,6 +339,8 @@ resourcestring
   SCnHashConcurrentError = 'Modified by Others when Iteratoring';
 
 type
+  PObject = ^TObject;
+
   TCnHashMapIterator = class(TInterfacedObject, ICnHashMapIterator)
   {* ICnHashMapIterator 的实现类}
   private
@@ -369,7 +369,7 @@ end;
 
 procedure TCnBaseHashMap.AddInternal(AKey, AValue: Variant);
 var
-  i, j: Integer;
+  I, J: Integer;
   Pos, DeletedPos: Integer;
 begin
   //if smaller,then enlarge the size
@@ -377,17 +377,17 @@ begin
     ReSizeList(Size * Incr);
 
   //calculate hash code
-  i := HasHashCode(AKey);
+  I := HasHashCode(AKey);
   DeletedPos := -1;
-  Pos := i;
+  Pos := I;
 
-  for j := Low(FList) to High(FList) do
+  for J := Low(FList) to High(FList) do
   begin
-    Pos := (i + j) mod Length(FList);
+    Pos := (I + J) mod Length(FList);
 
     if FList[Pos].HashCode = -2 then
       Break
-    else if (FList[Pos].HashCode = i) and (FList[Pos].Key = AKey) then
+    else if (FList[Pos].HashCode = I) and (FList[Pos].Key = AKey) then
       Break;
 
     if (DeletedPos < 0) and (FList[Pos].HashCode = -1) then
@@ -395,15 +395,15 @@ begin
   end;
 
   if (FList[Pos].HashCode = -2) or
-    ((FList[Pos].HashCode = i) and (FList[Pos].Key = AKey)) then //new record
+    ((FList[Pos].HashCode = I) and (FList[Pos].Key = AKey)) then //new record
   begin
-    if (FList[Pos].HashCode = i) and (FList[Pos].Key = AKey) then
+    if (FList[Pos].HashCode = I) and (FList[Pos].Key = AKey) then
       DeleteValue(FList[Pos].Value)
     else
       Inc(FSize);
 
     FList[Pos].Key := AKey;
-    FList[Pos].HashCode := i;
+    FList[Pos].HashCode := I;
 
     FList[Pos].Value := AValue;
   end
@@ -412,7 +412,7 @@ begin
     Pos := DeletedPos;
 
     FList[Pos].Key := AKey;
-    FList[Pos].HashCode := i;
+    FList[Pos].HashCode := I;
     FList[Pos].Value := AValue;
 
     Inc(FSize);
@@ -439,14 +439,14 @@ end;
 
 procedure TCnBaseHashMap.CreateList(Length: Integer);
 var
-  i: Integer;
+  I: Integer;
   nTemp: Integer;
 begin
   FSize := 0;
   SetLength(FList, Length);
 
-  for i := Low(FList) to High(FList) do
-    FList[i].HashCode := -2; //just think -2 is space
+  for I := Low(FList) to High(FList) do
+    FList[I].HashCode := -2; //just think -2 is space
 
   FLengthBit := 1;
   nTemp := 2;
@@ -490,11 +490,11 @@ end;
 
 destructor TCnBaseHashMap.Destroy;
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := Low(FList) to High(FList) do
-    if FList[i].HashCode >= 0 then
-      DeleteValue(FList[i].Value);
+  for I := Low(FList) to High(FList) do
+    if FList[I].HashCode >= 0 then
+      DeleteValue(FList[I].Value);
 
   SetLength(FList, 0);
 
@@ -530,20 +530,20 @@ end;
 function TCnBaseHashMap.GetNextInternal(var AKey,
   AValue: Variant): Boolean;
 var
-  i: Integer;
+  I: Integer;
 begin
-  i := FCurPos + 1;
+  I := FCurPos + 1;
 
-  while (i < Length(FList)) and (FList[i].HashCode < 0) do
-    Inc(i);
+  while (I < Length(FList)) and (FList[I].HashCode < 0) do
+    Inc(I);
 
-  if i >= Length(FList) then
+  if I >= Length(FList) then
     Result := false
   else
   begin
-    FCurPos := i;
-    AKey := FList[i].Key;
-    AValue := FList[i].Value;
+    FCurPos := I;
+    AKey := FList[I].Key;
+    AValue := FList[I].Value;
 
     Result := true;
   end;
@@ -611,7 +611,7 @@ end;
 procedure TCnBaseHashMap.ReSizeList(NewLength: Integer);
 var
   TempList: array of TCnHashMapRec;
-  i: Integer;
+  I: Integer;
 begin
   //this is a protected procedure,not directly called outside
 
@@ -624,14 +624,14 @@ begin
 
   try
 
-    for i := Low(TempList) to High(TempList) do
-      TempList[i] := FList[i];
+    for I := Low(TempList) to High(TempList) do
+      TempList[I] := FList[I];
 
     CreateList(NewLength);
 
-    for i := Low(TempList) to High(TempList) do
-      if TempList[i].HashCode >= 0 then
-        AddInternal(TempList[i].Key, TempList[i].Value);
+    for I := Low(TempList) to High(TempList) do
+      if TempList[I].HashCode >= 0 then
+        AddInternal(TempList[I].Key, TempList[I].Value);
 
   finally
     SetLength(TempList, 0);
@@ -641,21 +641,21 @@ end;
 
 function TCnBaseHashMap.Search(AKey: Variant): Integer;
 var
-  i, j: Integer;
+  I, J: Integer;
   Pos: Integer;
 begin
   Result := -1;
 
   //calculate hash code first
-  i := HasHashCode(AKey);
+  I := HasHashCode(AKey);
 
-  for j := Low(FList) to High(FList) do
+  for J := Low(FList) to High(FList) do
   begin
-    Pos := (i + j) mod Length(FList);
+    Pos := (I + J) mod Length(FList);
 
     if FList[Pos].HashCode = -2 then
       Break
-    else if (FList[Pos].HashCode = i) and (FList[Pos].Key = AKey) then
+    else if (FList[Pos].HashCode = I) and (FList[Pos].Key = AKey) then
     begin
       Result := Pos;
       Break;
@@ -767,14 +767,14 @@ end;
 
 function TCnStrToStrHashMap.VariantHashCode(AKey: Variant): Integer;
 var
-  myHashCode, i: Integer;
+  myHashCode, I: Integer;
   HashString: string;
 begin
   myHashCode := 0;
   HashString := AKey;
 
-  for i := 1 to Length(HashString) do
-    myHashCode := myHashCode shl 5 + ord(HashString[i]) + myHashCode;
+  for I := 1 to Length(HashString) do
+    myHashCode := myHashCode shl 5 + ord(HashString[I]) + myHashCode;
 
   Result := Abs(myHashCode);
 end;
@@ -817,14 +817,14 @@ end;
 
 function TCnWideStrToWideStrHashMap.VariantHashCode(AKey: Variant): Integer;
 var
-  myHashCode, i: Integer;
+  myHashCode, I: Integer;
   HashString: WideString;
 begin
   myHashCode := 0;
   HashString := AKey;
 
-  for i := 1 to Length(HashString) do
-    myHashCode := myHashCode shl 5 + ord(HashString[i]) + myHashCode;
+  for I := 1 to Length(HashString) do
+    myHashCode := myHashCode shl 5 + ord(HashString[I]) + myHashCode;
 
   Result := Abs(myHashCode);
 end;
@@ -833,14 +833,14 @@ end;
 
 function TCnStrToPtrHashMap.VariantHashCode(AKey: Variant): Integer;
 var
-  iHashCode, i: Integer;
+  iHashCode, I: Integer;
   HashString: string;
 begin
   iHashCode := 0;
   HashString := AKey;
 
-  for i := 1 to Length(HashString) do
-    iHashCode := iHashCode shl 5 + Ord(HashString[i]) + iHashCode;
+  for I := 1 to Length(HashString) do
+    iHashCode := iHashCode shl 5 + Ord(HashString[I]) + iHashCode;
 
   Result := Abs(iHashCode);
 end;
@@ -909,14 +909,14 @@ end;
 
 function TCnStrToVariantHashMap.VariantHashCode(AKey: Variant): Integer;
 var
-  iHashCode, i: Integer;
+  iHashCode, I: Integer;
   HashString: string;
 begin
   iHashCode := 0;
   HashString := AKey;
 
-  for i := 1 to Length(HashString) do
-    iHashCode := iHashCode shl 5 + Ord(HashString[i]) + iHashCode;
+  for I := 1 to Length(HashString) do
+    iHashCode := iHashCode shl 5 + Ord(HashString[I]) + iHashCode;
 
   Result := Abs(iHashCode);
 end;
@@ -1109,7 +1109,7 @@ begin
 end;
 
 function TCnHashMap.Get(HashCode: Integer; Key: TObject; out Value: TObject
-  {$IFNDEF CPUX64}; Key32: TObject; ValueHigh32: PObject {$ENDIF}): Boolean;
+  {$IFNDEF CPUX64}; Key32: TObject; ValueHigh32: Pointer {$ENDIF}): Boolean;
 var
   Idx: Integer;
   Node: TCnHashNode;
@@ -1128,7 +1128,7 @@ begin
       Value := Node.Value;
 {$IFNDEF CPUX64}
       if ValueHigh32 <> nil then
-        ValueHigh32^ := Node.Value32;
+        (PObject(ValueHigh32))^ := Node.Value32;
 {$ENDIF}
       Break;
     end;
