@@ -91,8 +91,7 @@ interface
 
 uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnConsts, CnPrimeNumber,
-  CnBigNumber, CnBase64, CnBerUtils, CnPemUtils, CnNative, CnMD5, CnSHA1,
-  CnSHA2, CnSM3;
+  CnBigNumber, CnBerUtils, CnPemUtils, CnNative, CnMD5, CnSHA1, CnSHA2, CnSM3;
 
 const
   // 以下 OID 都预先写死，不动态计算编码了
