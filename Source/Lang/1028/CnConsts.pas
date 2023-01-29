@@ -23,7 +23,7 @@ unit CnConsts;
 ================================================================================
 * 软件名称：开发包基础库
 * 单元名称：公共资源字符串定义单元
-* 单元作者：CnPack开发组
+* 单元作者：CnPack 开发组
 * 备    注：
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
@@ -225,9 +225,12 @@ procedure _CnSetLastError(Err: Integer);
 
 implementation
 
+threadvar
+  CnErrorCode: Integer;
+
 function CnGetLastError: Integer;
 begin
-  Result := CnErrorCode
+  Result := CnErrorCode;
 end;
 
 procedure _CnSetLastError(Err: Integer);
