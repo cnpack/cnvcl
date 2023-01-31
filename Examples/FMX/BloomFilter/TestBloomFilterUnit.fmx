@@ -1,0 +1,35 @@
+object BloomFilterForm: TBloomFilterForm
+  Left = 192
+  Top = 130
+  Caption = 'String Bloom Filter Test'
+  ClientHeight = 480
+  ClientWidth = 928
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 192
+  Top = 130
+  DesignerMasterStyle = 0
+  object btnGenerate: TButton
+    Position.X = 48.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 169.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    Text = 'Generate 10000 string'
+    OnClick = btnGenerateClick
+  end
+  object chkDuplicate: TCheckBox
+    IsChecked = True
+    Position.X = 256.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 129.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    Text = 'Check Duplicate'
+  end
+end

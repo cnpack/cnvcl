@@ -36,7 +36,9 @@ unit CnBloomFilter;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2015.05.22 V1.0
+* 修改记录：2023.01.31 V1.1
+*               加入跨平台的支持
+*           2015.05.22 V1.0
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -46,12 +48,12 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, CnCRC32;
+  SysUtils, Classes, CnCRC32;
 
 const
   CN_LN_2 = 0.69314718;
 
-  CN_BLOOM_HASH_CRC32S: array[0..15] of DWORD =
+  CN_BLOOM_HASH_CRC32S: array[0..15] of Cardinal =
     ($00000000, $11111111, $22222222, $33333333, $44444444,
      $55555555, $66666666, $77777777, $88888888, $99999999,
      $AAAAAAAA, $BBBBBBBB, $CCCCCCCC, $DDDDDDDD, $EEEEEEEE,
@@ -88,6 +90,9 @@ type
   end;
 
 implementation
+
+resourcestring
+  SCnErrorNoProperSize = 'NO Proper Size Specified.';
 
 { TCnStringBloomFilter }
 
@@ -148,7 +153,7 @@ begin
         FBitSize := FCapacity * 15;
       end;
   else
-    raise ECnBloomFilterSizeException.Create('NO Proper Size Specified.');
+    raise ECnBloomFilterSizeException.Create(SCnErrorNoProperSize);
   end;
 
   SetLength(FHashResults, FHashFuncCount);
