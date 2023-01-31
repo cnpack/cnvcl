@@ -1,0 +1,156 @@
+object FormComplex: TFormComplex
+  Left = 192
+  Top = 107
+  Caption = 'Test Complex'
+  ClientHeight = 563
+  ClientWidth = 974
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  Left = 192
+  Top = 107
+  DesignerMasterStyle = 0
+  object grpComplex: TGroupBox
+    Position.X = 16.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 929.000000000000000000
+    Size.Height = 505.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Complex Number'
+    TabOrder = 0
+    object lbl1: TLabel
+      Position.X = 184.000000000000000000
+      Position.Y = 32.000000000000000000
+      Size.Width = 11.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Family = 'MS Sans Serif'
+      Text = '+'
+    end
+    object lbl2: TLabel
+      Position.X = 352.000000000000000000
+      Position.Y = 32.000000000000000000
+      Size.Width = 5.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Family = 'MS Sans Serif'
+      Text = 'i'
+    end
+    object lbl3: TLabel
+      Position.X = 184.000000000000000000
+      Position.Y = 120.000000000000000000
+      Size.Width = 11.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Family = 'MS Sans Serif'
+      Text = '+'
+    end
+    object lbl4: TLabel
+      Position.X = 352.000000000000000000
+      Position.Y = 120.000000000000000000
+      Size.Width = 5.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Family = 'MS Sans Serif'
+      Text = 'i'
+    end
+    object lbl5: TLabel
+      Position.X = 176.000000000000000000
+      Position.Y = 160.000000000000000000
+      Size.Width = 11.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Family = 'MS Sans Serif'
+      Text = '='
+    end
+    object edtComplexAR: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 0
+      Text = '3'
+      Position.X = 40.000000000000000000
+      Position.Y = 32.000000000000000000
+      Size.Width = 121.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object edtComplexAI: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 1
+      Text = '4'
+      Position.X = 208.000000000000000000
+      Position.Y = 32.000000000000000000
+      Size.Width = 121.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object edtComplexBR: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 2
+      Text = '1'
+      Position.X = 40.000000000000000000
+      Position.Y = 120.000000000000000000
+      Size.Width = 121.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object edtComplexBI: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 3
+      Text = '1'
+      Position.X = 208.000000000000000000
+      Position.Y = 120.000000000000000000
+      Size.Width = 121.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object btnAdd: TButton
+      Position.X = 40.000000000000000000
+      Position.Y = 72.000000000000000000
+      Size.Width = 57.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+      Text = 'Add'
+      OnClick = btnAddClick
+    end
+    object btnSub: TButton
+      Position.X = 120.000000000000000000
+      Position.Y = 72.000000000000000000
+      Size.Width = 57.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      Text = 'Sub'
+      OnClick = btnSubClick
+    end
+    object btnMul: TButton
+      Position.X = 200.000000000000000000
+      Position.Y = 72.000000000000000000
+      Size.Width = 57.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 6
+      Text = 'Mul'
+      OnClick = btnMulClick
+    end
+    object btnDiv: TButton
+      Position.X = 280.000000000000000000
+      Position.Y = 72.000000000000000000
+      Size.Width = 57.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 7
+      Text = 'Div'
+      OnClick = btnDivClick
+    end
+    object edtComplexResult: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 8
+      Position.X = 40.000000000000000000
+      Position.Y = 192.000000000000000000
+      Size.Width = 321.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+    end
+  end
+end
