@@ -1,0 +1,331 @@
+object FormRational: TFormRational
+  Left = 192
+  Top = 107
+  Caption = 'Big Rational Number Test'
+  ClientHeight = 629
+  ClientWidth = 1134
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 192
+  Top = 107
+  DesignerMasterStyle = 0
+  object lblFloat: TLabel
+    Position.X = 16.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 48.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Extended:'
+  end
+  object grpBR1: TGroupBox
+    Position.X = 16.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 465.000000000000000000
+    Size.Height = 145.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Big Rational Number 1:'
+    TabOrder = 0
+    object edtBR1N: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 0
+      Text = '10000'
+      Position.X = 24.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 273.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object edtBR1D: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 1
+      Text = '200'
+      Position.X = 24.000000000000000000
+      Position.Y = 88.000000000000000000
+      Size.Width = 273.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object btnSet1: TButton
+      Position.X = 312.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 75.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 2
+      Text = 'Set String'
+      OnClick = btnSet1Click
+    end
+    object btnSet2: TButton
+      Position.X = 312.000000000000000000
+      Position.Y = 56.000000000000000000
+      Size.Width = 75.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 3
+      Text = 'Set Value'
+      OnClick = btnSet2Click
+    end
+    object btnSet3: TButton
+      Position.X = 312.000000000000000000
+      Position.Y = 88.000000000000000000
+      Size.Width = 75.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+      Text = 'Set Int'
+      OnClick = btnSet3Click
+    end
+    object btnReduce: TButton
+      Position.X = 400.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 57.000000000000000000
+      Size.Height = 84.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      Text = 'Reduce'
+      OnClick = btnReduceClick
+    end
+  end
+  object grpRN2: TGroupBox
+    Position.X = 624.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 481.000000000000000000
+    Size.Height = 145.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Big Rational Number 2:'
+    TabOrder = 1
+    object edtBR2N: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 0
+      Text = '20000'
+      Position.X = 24.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 273.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object edtBR2D: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 1
+      Text = '250'
+      Position.X = 24.000000000000000000
+      Position.Y = 88.000000000000000000
+      Size.Width = 273.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object btnRN2SetValue: TButton
+      Position.X = 312.000000000000000000
+      Position.Y = 56.000000000000000000
+      Size.Width = 75.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 2
+      Text = 'Set Value'
+      OnClick = btnRN2SetValueClick
+    end
+    object btnToDec: TButton
+      Position.X = 312.000000000000000000
+      Position.Y = 88.000000000000000000
+      Size.Width = 75.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 3
+      Text = 'ToDec'
+      OnClick = btnToDecClick
+    end
+  end
+  object btnAdd: TButton
+    Position.X = 536.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Width = 25.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = '+'
+    OnClick = btnAddClick
+  end
+  object btnSub: TButton
+    Position.X = 536.000000000000000000
+    Position.Y = 93.000000000000000000
+    Size.Width = 25.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Text = '-'
+    OnClick = btnSubClick
+  end
+  object btnMul: TButton
+    Position.X = 536.000000000000000000
+    Position.Y = 131.000000000000000000
+    Size.Width = 25.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Text = '*'
+    OnClick = btnMulClick
+  end
+  object btnDiv: TButton
+    Position.X = 536.000000000000000000
+    Position.Y = 168.000000000000000000
+    Size.Width = 25.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Text = '/'
+    OnClick = btnDivClick
+  end
+  object edtExtended: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 6
+    Text = '-123321.847820398924'
+    Position.X = 80.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 233.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnSetExtended: TButton
+    Position.X = 328.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 7
+    Text = 'Set Extended'
+    OnClick = btnSetExtendedClick
+  end
+  object btnSetString: TButton
+    Position.X = 408.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 8
+    Text = 'Set String'
+    OnClick = btnSetStringClick
+  end
+  object btnAddInt: TButton
+    Position.X = 40.000000000000000000
+    Position.Y = 208.000000000000000000
+    Size.Width = 25.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 9
+    Text = '+'
+    OnClick = btnAddIntClick
+  end
+  object btnSubInt: TButton
+    Position.X = 40.000000000000000000
+    Position.Y = 245.000000000000000000
+    Size.Width = 25.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 10
+    Text = '-'
+    OnClick = btnSubIntClick
+  end
+  object btnMulInt: TButton
+    Position.X = 40.000000000000000000
+    Position.Y = 283.000000000000000000
+    Size.Width = 25.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 11
+    Text = '*'
+    OnClick = btnMulIntClick
+  end
+  object btnDivInt: TButton
+    Position.X = 40.000000000000000000
+    Position.Y = 320.000000000000000000
+    Size.Width = 25.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 12
+    Text = '/'
+    OnClick = btnDivIntClick
+  end
+  object edtInt: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 13
+    Text = '-3893472'
+    Position.X = 104.000000000000000000
+    Position.Y = 264.000000000000000000
+    Size.Width = 177.000000000000000000
+    Size.Height = 21.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnBNAdd: TButton
+    Position.X = 312.000000000000000000
+    Position.Y = 208.000000000000000000
+    Size.Width = 25.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 14
+    Text = '+'
+    OnClick = btnBNAddClick
+  end
+  object btnBNSub: TButton
+    Position.X = 312.000000000000000000
+    Position.Y = 245.000000000000000000
+    Size.Width = 25.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 15
+    Text = '-'
+    OnClick = btnBNSubClick
+  end
+  object btnBNMul: TButton
+    Position.X = 312.000000000000000000
+    Position.Y = 283.000000000000000000
+    Size.Width = 25.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 16
+    Text = '*'
+    OnClick = btnBNMulClick
+  end
+  object btnBNDiv: TButton
+    Position.X = 312.000000000000000000
+    Position.Y = 320.000000000000000000
+    Size.Width = 25.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 17
+    Text = '/'
+    OnClick = btnBNDivClick
+  end
+  object btnCompare: TButton
+    Position.X = 480.000000000000000000
+    Position.Y = 208.000000000000000000
+    Size.Width = 145.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 18
+    Text = 'Compare Rational Number'
+    OnClick = btnCompareClick
+  end
+  object btnCompareInt: TButton
+    Position.X = 480.000000000000000000
+    Position.Y = 248.000000000000000000
+    Size.Width = 145.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 19
+    Text = 'Compare Rational Number'
+    OnClick = btnCompareIntClick
+  end
+  object btnCompareBN: TButton
+    Position.X = 480.000000000000000000
+    Position.Y = 288.000000000000000000
+    Size.Width = 145.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 20
+    Text = 'Compare BigNumber'
+    OnClick = btnCompareBNClick
+  end
+end
