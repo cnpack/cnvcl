@@ -1,0 +1,220 @@
+object FormContainers: TFormContainers
+  Left = 260
+  Top = 121
+  BorderStyle = Single
+  Caption = 'Test Containers'
+  ClientHeight = 519
+  ClientWidth = 984
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 260
+  Top = 121
+  DesignerMasterStyle = 0
+  object lblCount: TLabel
+    Position.X = 744.000000000000000000
+    Position.Y = 112.000000000000000000
+    Size.Width = 34.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Count: '
+  end
+  object lblRingBuffer: TLabel
+    Position.X = 40.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 56.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Ring Buffer:'
+  end
+  object lblHashMapCount: TLabel
+    Position.X = 832.000000000000000000
+    Position.Y = 496.000000000000000000
+    Size.Width = 31.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Count:'
+  end
+  object lblHashMapCapacity: TLabel
+    Position.X = 600.000000000000000000
+    Position.Y = 496.000000000000000000
+    Size.Width = 44.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Capacity:'
+  end
+  object StringGrid: TStringGrid
+    CanFocus = True
+    ClipChildren = True
+    Position.X = 40.000000000000000000
+    Position.Y = 40.000000000000000000
+    Size.Width = 737.000000000000000000
+    Size.Height = 41.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    RowCount = 1
+    Options = [ColLines, RowLines]
+    Viewport.Width = 733.000000000000000000
+    Viewport.Height = 37.000000000000000000
+  end
+  object btnPushFront: TButton
+    Position.X = 40.000000000000000000
+    Position.Y = 112.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    Text = 'Push to Front'
+    OnClick = btnPushFrontClick
+  end
+  object btnPushBack: TButton
+    Position.X = 344.000000000000000000
+    Position.Y = 112.000000000000000000
+    Size.Width = 91.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = 'Push to Back'
+    OnClick = btnPushBackClick
+  end
+  object btnPopFront: TButton
+    Position.X = 448.000000000000000000
+    Position.Y = 112.000000000000000000
+    Size.Width = 89.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Text = 'Pop from Front'
+    OnClick = btnPopFrontClick
+  end
+  object btnPopBack: TButton
+    Position.X = 152.000000000000000000
+    Position.Y = 112.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Text = 'Pop from Back'
+    OnClick = btnPopBackClick
+  end
+  object sgMap: TStringGrid
+    CanFocus = True
+    ClipChildren = True
+    Position.X = 32.000000000000000000
+    Position.Y = 176.000000000000000000
+    Size.Width = 913.000000000000000000
+    Size.Height = 313.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Options = [ColLines, RowLines]
+    Viewport.Width = 893.000000000000000000
+    Viewport.Height = 293.000000000000000000
+    object StringColumn1: TStringColumn
+    end
+    object StringColumn2: TStringColumn
+    end
+    object StringColumn3: TStringColumn
+    end
+    object StringColumn4: TStringColumn
+    end
+    object StringColumn5: TStringColumn
+    end
+    object StringColumn6: TStringColumn
+    end
+    object StringColumn7: TStringColumn
+    end
+    object StringColumn8: TStringColumn
+    end
+    object StringColumn9: TStringColumn
+    end
+    object StringColumn10: TStringColumn
+    end
+    object StringColumn11: TStringColumn
+    end
+    object StringColumn12: TStringColumn
+    end
+    object StringColumn13: TStringColumn
+    end
+    object StringColumn14: TStringColumn
+    end
+    object StringColumn15: TStringColumn
+    end
+    object StringColumn16: TStringColumn
+    end
+    object StringColumn17: TStringColumn
+    end
+    object StringColumn18: TStringColumn
+    end
+    object StringColumn19: TStringColumn
+    end
+    object StringColumn20: TStringColumn
+    end
+    object StringColumn21: TStringColumn
+    end
+    object StringColumn22: TStringColumn
+    end
+    object StringColumn23: TStringColumn
+    end
+    object StringColumn24: TStringColumn
+    end
+    object StringColumn25: TStringColumn
+    end
+    object StringColumn26: TStringColumn
+    end
+    object StringColumn27: TStringColumn
+    end
+    object StringColumn28: TStringColumn
+    end
+    object StringColumn29: TStringColumn
+    end
+    object StringColumn30: TStringColumn
+    end
+    object StringColumn31: TStringColumn
+    end
+    object StringColumn32: TStringColumn
+    end
+  end
+  object btnHashMapAdd: TButton
+    Position.X = 840.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 105.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 6
+    Text = 'HashMap Add Int'
+    OnClick = btnHashMapAddClick
+  end
+  object btnHashMapDel: TButton
+    Position.X = 840.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Width = 105.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 7
+    Text = 'HashMap Del Int'
+    OnClick = btnHashMapDelClick
+  end
+  object btnHashMapClear: TButton
+    Position.X = 840.000000000000000000
+    Position.Y = 136.000000000000000000
+    Size.Width = 105.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 8
+    Text = 'HashMap Clear'
+    OnClick = btnHashMapClearClick
+  end
+  object btnHashMapAddInt64: TButton
+    Position.X = 840.000000000000000000
+    Position.Y = 96.000000000000000000
+    Size.Width = 105.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 9
+    Text = 'HashMap Add Int64'
+    OnClick = btnHashMapAddInt64Click
+  end
+end
