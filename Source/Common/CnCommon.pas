@@ -82,7 +82,7 @@ uses
   MMSystem, StdCtrls, ActiveX, ShlObj, CheckLst, MultiMon,
   {$IFNDEF FPC} TLHelp32, PsAPI,{$ENDIF}
 {$ELSE}
-  System.UITypes, System.Math, FMX.ImgList, FMX.Graphics, FMX.ListView,
+  System.Types, System.UITypes, System.Math, FMX.ImgList, FMX.Graphics, FMX.ListView,
   FMX.ListBox, FMX.Menus, FMX.Memo, FMX.Forms, FMX.Controls, FMX.Edit,
   FMX.ListView.Types, FMX.Dialogs,
 {$ENDIF}
