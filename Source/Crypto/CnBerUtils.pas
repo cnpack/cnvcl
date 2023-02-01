@@ -316,8 +316,13 @@ type
     destructor Destroy; override;
 
     procedure SaveTo(DestBuf: Pointer);
+    {* 将 BER 内容保存至 DestBuf 所指的内存区，内存区大小至少需要 GetTotalSize}
+
     procedure SaveToFile(const FileName: string);
+    {* 将 BER 内容保存至指定文件}
+
     procedure SaveToStream(Stream: TStream);
+    {* 将 BER 内容保存至流}
 
 {$IFDEF DEBUG}
   {$IFDEF MSWINDOWS}
