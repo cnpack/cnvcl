@@ -64,8 +64,7 @@ uses
   Classes, Windows, SysUtils, TypInfo, CnMethodHook;
 
 type
-  EHookException = class(Exception)
-  end;
+  ECnAntiCheaterHookException = class(Exception);
 
   TCnAntiCheater = class(TPersistent)
   {* 给子类提供 published 的 Integer 属性内容保护的基础类}
@@ -118,10 +117,14 @@ type
 
 implementation
 
+resourcestring
+  SCnErrorCallbackPoolInit = 'Callback Pool Init Error!';
+  SCnErrorHookPoolOverflow = 'Hook Pool Overflow!';
+
 const
   THUNK_SIZE = 4096; // x86 页大小，目前只弄一个页面
 
-  CALL_SIZE = 57; // GetCall 和 SetCall 结构尺寸中的较大的
+  CALL_SIZE = 57;    // GetCall 和 SetCall 结构尺寸中的较大的
 
 type
   TCnGetCall = packed record
@@ -253,7 +256,7 @@ procedure InitHookPool;
 begin
   FHookPool := VirtualAlloc(nil, THUNK_SIZE, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
   if FHookPool = nil then
-    raise EHookException.Create('Callback Pool Init Error!');
+    raise ECnAntiCheaterHookException.Create(SCnErrorCallbackPoolInit);
   FEmptyPtr := 0;
 end;
 
@@ -290,7 +293,9 @@ begin
     ClassList.Duplicates := dupIgnore;
   end;
 
-  if ClassList.IndexOf(AClass.ClassName) >= 0 then Exit;
+  if ClassList.IndexOf(AClass.ClassName) >= 0 then
+    Exit;
+
   I := ClassList.Add(AClass.ClassName);
 
   Item := TCnClassHookItem.Create;
@@ -418,7 +423,8 @@ var
   PropListPtr: PPropList;
   AHooker: TCnMethodHook;
 begin
-  if not FEnableProtect or SelfClassHookEnabled(Self) then Exit;
+  if not FEnableProtect or SelfClassHookEnabled(Self) then
+    Exit;
   HookItem := AddHookItem(Self);
 
   if FHookPool = nil then
@@ -440,7 +446,7 @@ begin
           if not AProcHooked(PropInfo^.GetProc) then
           begin
             if FEmptyPtr = (THUNK_SIZE div CALL_SIZE) then
-              raise EHookException.Create('Hook Pool Overflow!');
+              raise ECnAntiCheaterHookException.Create(SCnErrorHookPoolOverflow);
     
             AGet := PCnGetCall(Integer(FHookPool) + FEmptyPtr * CALL_SIZE);
             Inc(FEmptyPtr);
@@ -462,7 +468,7 @@ begin
           if not AProcHooked(PropInfo^.SetProc) then
           begin
             if FEmptyPtr = (THUNK_SIZE div CALL_SIZE) then
-              raise EHookException.Create('Hook Pool Overflow!');
+              raise ECnAntiCheaterHookException.Create(SCnErrorHookPoolOverflow);
     
             ASet := PCnSetCall(Integer(FHookPool) + FEmptyPtr * CALL_SIZE);
             Inc(FEmptyPtr);
@@ -492,7 +498,9 @@ var
   HookItem: TCnClassHookItem;
   I: Integer;
 begin
-  if not SelfClassHookEnabled(Self) then Exit;
+  if not SelfClassHookEnabled(Self) then
+    Exit;
+
   HookItem := GetHookItemFromClassList(Self);
   for I := 0 to HookItem.HookCount - 1 do
     HookItem.HookItems[I].UnhookMethod;
