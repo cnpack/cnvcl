@@ -1091,7 +1091,6 @@ var
   Obj: TObject;
 {$ENDIF}
 begin
-  Result := 0;
 {$IFDEF CPUX64}
   Obj := nil;
   Get(HashCodeFromInteger(Key), TObject(Key), Obj);
@@ -1104,7 +1103,9 @@ begin
   begin
     Int64Rec(Result).Hi := Cardinal(VHi);
     Int64Rec(Result).Lo := Cardinal(VLo);
-  end;
+  end
+  else
+    Result := 0;
 {$ENDIF}
 end;
 
