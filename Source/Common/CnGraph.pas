@@ -24,11 +24,13 @@ unit CnGraph;
 * 软件名称：CnPack 公共单元
 * 单元名称：实现图的单元
 * 单元作者：刘啸 (liuxiao@cnpack.org)
-* 备    注：
+* 备    注：支持跨平台
 * 开发平台：Win 7 + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2019.03.19 V1.0
+*               更改一处函数名以避免与 CnMatrix 冲突
+*           2019.03.19 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -188,12 +190,12 @@ type
     {* 广度优先遍历时遍历到一个顶点时的触发事件，Sender 是此顶点 }
   end;
 
-procedure CnMatrixToStrings(Matrix: TCnGraphMatrix; List: TStrings);
+procedure CnGraphMatrixToStrings(Matrix: TCnGraphMatrix; List: TStrings);
 {* 将矩阵转换为字符串列表用来显示}
 
 implementation
 
-procedure CnMatrixToStrings(Matrix: TCnGraphMatrix; List: TStrings);
+procedure CnGraphMatrixToStrings(Matrix: TCnGraphMatrix; List: TStrings);
 var
   I, J: Integer;
   S: string;

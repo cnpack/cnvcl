@@ -3,13 +3,14 @@ unit GraphUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, StdCtrls, CnGraph;
+  {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  FMX.StdCtrls, CnGraph, FMX.ListBox, FMX.Memo, FMX.TabControl, FMX.Types,
+  FMX.Layouts, FMX.Controls.Presentation, FMX.ScrollBox;
 
 type
   TFormGraph = class(TForm)
-    pgc1: TPageControl;
-    tsDirected: TTabSheet;
+    pgc1: TTabControl;
+    tsDirected: TTabItem;
     mmoLoad: TMemo;
     btnLoad: TButton;
     btnDumpVertex: TButton;
@@ -24,8 +25,8 @@ type
     procedure btnLoadClick(Sender: TObject);
     procedure btnDumpVertexClick(Sender: TObject);
     procedure btnBiCheckClick(Sender: TObject);
-    procedure lstVertexDblClick(Sender: TObject);
     procedure lstVertexClick(Sender: TObject);
+    procedure lstVertexDblClick(Sender: TObject);
     procedure btnAdjMatrixClick(Sender: TObject);
     procedure btnIncidenceMatrixClick(Sender: TObject);
   private
@@ -41,7 +42,7 @@ var
 
 implementation
 
-{$R *.DFM}
+{$R *.fmx}
 
 procedure TFormGraph.FormCreate(Sender: TObject);
 begin

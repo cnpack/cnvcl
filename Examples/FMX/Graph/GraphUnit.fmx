@@ -1,0 +1,192 @@
+object FormGraph: TFormGraph
+  Left = 113
+  Top = 125
+  Caption = 'Graph'
+  ClientHeight = 571
+  ClientWidth = 928
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 113
+  Top = 125
+  DesignerMasterStyle = 0
+  object pgc1: TTabControl
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 897.000000000000000000
+    Size.Height = 513.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 0
+    TabPosition = Top
+    Sizes = (
+      897s
+      485s)
+    object tsDirected: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 107.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Directed Graph'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object mmoLoad: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        Lines.Strings = (
+          #22522#30784#27169#22359'_'#21507#39277
+          ' '#19994#21153#27169#22359'_'#24651#29233
+          ' '#19994#21153#27169#22359'_'#19978#29677
+          ' '#19994#21153#27169#22359'_'#19979#29677
+          ' '#22522#30784#27169#22359'_'#32534#31243
+          #22522#30784#27169#22359'_'#30561#35273
+          ' '#22522#30784#27169#22359'_'#30561#35273
+          ' '#22522#30784#27169#22359'_'#20241#24687
+          ' '#19994#21153#27169#22359'_'#19979#29677
+          #22522#30784#27169#22359'_'#21917#27700
+          ' '#19994#21153#27169#22359'_'#24651#29233
+          ' '#19994#21153#27169#22359'_'#19978#29677
+          ' '#19994#21153#27169#22359'_'#19979#29677
+          ' '#22522#30784#27169#22359'_'#32534#31243
+          #22522#30784#27169#22359'_'#20241#24687
+          ' '#19994#21153#27169#22359'_'#30127#29378#36141#29289
+          ' '#19994#21153#27169#22359'_'#19979#29677
+          ' '#19994#21153#27169#22359'_'#25171#35910#35910
+          #22522#30784#27169#22359'_'#32534#31243
+          ' '#19994#21153#27169#22359'_'#19978#29677
+          ' '#19994#21153#27169#22359'_'#19979#29677
+          ' '#19994#21153#27169#22359'_'#28818#32929#28818#25104#32929#19996
+          #19994#21153#27169#22359'_'#24651#29233
+          ' '#19994#21153#27169#22359'_'#19978#29677
+          ' '#19994#21153#27169#22359'_'#19979#29677
+          ' '#19994#21153#27169#22359'_'#30127#29378#36141#29289
+          #19994#21153#27169#22359'_'#19978#29677
+          ' '#19994#21153#27169#22359'_'#30127#29378#36141#29289
+          #19994#21153#27169#22359'_'#19979#29677
+          ' '#19994#21153#27169#22359'_'#30127#29378#36141#29289
+          #19994#21153#27169#22359'_'#25171#35910#35910
+          ' '#19994#21153#27169#22359'_'#20080#19981#36215#25151
+          ' '#19994#21153#27169#22359'_'#28818#32929#28818#25104#32929#19996
+          #19994#21153#27169#22359'_'#30127#29378#36141#29289
+          ' '#19994#21153#27169#22359'_'#20080#19981#36215#25151
+          ' '#19994#21153#27169#22359'_'#28818#32929#28818#25104#32929#19996
+          ' '#19994#21153#27169#22359'_'#19978#29677
+          #19994#21153#27169#22359'_'#28818#32929#28818#25104#32929#19996
+          ' '#19994#21153#27169#22359'_'#19979#29677
+          ' '#19994#21153#27169#22359'_'#28818#32929#28818#25104#32929#19996
+          #19994#21153#27169#22359'_'#20080#19981#36215#25151
+          ' '#19994#21153#27169#22359'_'#19979#29677
+          ' '#19994#21153#27169#22359'_'#28818#32929#28818#25104#32929#19996)
+        TextSettings.WordWrap = True
+        Position.X = 8.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 225.000000000000000000
+        Size.Height = 457.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        Viewport.Width = 205.000000000000000000
+        Viewport.Height = 453.000000000000000000
+      end
+      object btnLoad: TButton
+        Position.X = 248.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+        Text = 'Generate'
+        OnClick = btnLoadClick
+      end
+      object btnDumpVertex: TButton
+        Position.X = 248.000000000000000000
+        Position.Y = 64.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        Text = 'Dump Vertex'
+        OnClick = btnDumpVertexClick
+      end
+      object btnBiCheck: TButton
+        Position.X = 248.000000000000000000
+        Position.Y = 112.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 3
+        Text = 'BiCheck'
+        OnClick = btnBiCheckClick
+      end
+      object lstVertex: TListBox
+        Position.X = 336.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 153.000000000000000000
+        Size.Height = 457.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 4
+        OnClick = lstVertexClick
+        OnDblClick = lstVertexDblClick
+        DisableFocusEffect = True
+        ItemHeight = 13.000000000000000000
+        DefaultItemStyles.ItemStyle = ''
+        DefaultItemStyles.GroupHeaderStyle = ''
+        DefaultItemStyles.GroupFooterStyle = ''
+        Viewport.Width = 149.000000000000000000
+        Viewport.Height = 453.000000000000000000
+      end
+      object mmoTravel: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        TextSettings.WordWrap = True
+        Position.X = 688.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 185.000000000000000000
+        Size.Height = 457.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 5
+        Viewport.Width = 181.000000000000000000
+        Viewport.Height = 453.000000000000000000
+      end
+      object mmoEdge: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        TextSettings.WordWrap = True
+        Position.X = 504.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 169.000000000000000000
+        Size.Height = 457.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 6
+        Viewport.Width = 165.000000000000000000
+        Viewport.Height = 453.000000000000000000
+      end
+      object btnAdjMatrix: TButton
+        Position.X = 248.000000000000000000
+        Position.Y = 160.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 7
+        Text = 'Adjacency'
+        OnClick = btnAdjMatrixClick
+      end
+      object btnIncidenceMatrix: TButton
+        Position.X = 248.000000000000000000
+        Position.Y = 208.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 8
+        Text = 'Incidence'
+        OnClick = btnIncidenceMatrixClick
+      end
+    end
+  end
+end
