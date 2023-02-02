@@ -82,9 +82,9 @@ uses
   MMSystem, StdCtrls, ActiveX, ShlObj, CheckLst, MultiMon,
   {$IFNDEF FPC} TLHelp32, PsAPI,{$ENDIF}
 {$ELSE}
-  System.Types, System.UITypes, System.Math, FMX.ImgList, FMX.Graphics, FMX.ListView,
-  FMX.ListBox, FMX.Menus, FMX.Memo, FMX.Forms, FMX.Controls, FMX.Edit,
-  FMX.ListView.Types, FMX.Dialogs,
+  System.Types, System.UITypes, System.Math, System.IOUtils, Posix.SysStat,
+  FMX.ImgList, FMX.Graphics, FMX.ListView, FMX.ListBox, FMX.Menus, FMX.Memo,
+  FMX.Forms, FMX.Controls, FMX.Edit, FMX.ListView.Types, FMX.Dialogs,
 {$ENDIF}
 {$IFDEF COMPILER6_UP}
   StrUtils, Variants, Types,
@@ -421,8 +421,6 @@ function StringReplaceNonAnsi(const S, OldPattern, NewPattern: string;
 function StringKMP(const Pattern, S: string): Integer;
 {* KMP 匹配算法，返回 S 中第一次出现 Pattern 的位置，位置以 1 开始，未匹配则返回 0}
 
-{$IFDEF MSWINDOWS}
-
 function Deltree(const Dir: string; DelRoot: Boolean = True;
   DelEmptyDirOnly: Boolean = False): Boolean;
 {* 删除整个目录, DelRoot 表示是否删除目录本身}
@@ -432,6 +430,8 @@ procedure DelEmptyTree(const Dir: string; DelRoot: Boolean = True);
 
 function GetDirFiles(const Dir: string; FileNames: TStrings = nil): Integer;
 {* 取文件夹下的直系文件列表，文件名不包含路径名。不搜索子目录。返回文件数}
+
+{$IFDEF MSWINDOWS}
 
 type
   TFindCallBack = procedure(const FileName: string; const Info: TSearchRec;
@@ -4217,8 +4217,6 @@ begin
     Result := I - J + 1;
 end;
 
-{$IFDEF MSWINDOWS}
-
 // 创建备份文件
 function CreateBakFile(const FileName, Ext: string): Boolean;
 var
@@ -4230,7 +4228,16 @@ begin
   else
     AExt := '.' + Ext;
   BakFileName := FileName + AExt;
+{$IFDEF MSWINDOWS}
   Result := CopyFile(PChar(FileName), PChar(BakFileName), False);
+{$ELSE}
+  Result := True;
+  try
+    TFile.Copy(FileName, BakFileName, False);
+  except
+    Result := False;
+  end;
+{$ENDIF}
 end;
 
 // 删除整个目录
@@ -4249,7 +4256,12 @@ begin
     begin
       if (SR.Name <> '.') and (SR.Name <> '..') then
       begin
+{$IFDEF MSWINDOWS}
         SetFileAttributes(PChar(AddDirSuffix(Dir) + SR.Name), FILE_ATTRIBUTE_NORMAL);
+{$ELSE}
+        TFile.SetAttributes(AddDirSuffix(Dir) + SR.Name, [TFileAttribute.faNormal]);
+{$ENDIF}
+
         if SR.Attr and faDirectory = faDirectory then
           Result := Deltree(AddDirSuffix(Dir) + SR.Name, True, DelEmptyDirOnly)
         else if not DelEmptyDirOnly then
@@ -4278,7 +4290,12 @@ begin
       if (sr.Name <> '.') and (sr.Name <> '..') and (sr.Attr and faDirectory
         = faDirectory) then
       begin
+{$IFDEF MSWINDOWS}
         SetFileAttributes(PChar(AddDirSuffix(Dir) + sr.Name), FILE_ATTRIBUTE_NORMAL);
+{$ELSE}
+        TFile.SetAttributes(AddDirSuffix(Dir) + SR.Name, [TFileAttribute.faNormal]);
+{$ENDIF}
+
         DelEmptyTree(AddDirSuffix(Dir) + sr.Name, True);
       end;
       fr := FindNext(sr);
@@ -4304,8 +4321,10 @@ begin
   Fr := FindFirst(AddDirSuffix(Dir) + '*.*', faAnyFile, Sr);
   while Fr = 0 do
   begin
-    if (Sr.Name <> '.') and (Sr.Name <> '..') and // 不是目录
-      (FILE_ATTRIBUTE_DIRECTORY and Sr.Attr = 0) then
+    if (Sr.Name <> '.') and (Sr.Name <> '..')// 不是目录
+      {$IFDEF MSWINDOWS} and (FILE_ATTRIBUTE_DIRECTORY and Sr.Attr = 0) {$ELSE}
+      and (S_IFDIR and Sr.Attr = 0) {$ENDIF}
+    then
     begin
       Inc(Result);
       if FileNames <> nil then
@@ -4315,6 +4334,8 @@ begin
   end;
   SysUtils.FindClose(Sr);
 end;
+
+{$IFDEF MSWINDOWS}
 
 // 根据指定类名查找窗体
 function FindFormByClass(AClass: TClass): TForm;
@@ -4331,6 +4352,8 @@ begin
     end;
   end;
 end;
+
+
 
 // 当前是否有模态窗口存在
 function ModalFormExists: Boolean;
