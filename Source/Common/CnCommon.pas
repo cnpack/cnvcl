@@ -123,7 +123,7 @@ type
 
 const
 {$IFNDEF COMPILER6_UP}
-  sLineBreak = {$IFDEF LINUX} #10 {$ENDIF} {$IFDEF MSWINDOWS} #13#10 {$ENDIF};
+  sLineBreak = {$IFDEF POSIX} #10 {$ENDIF} {$IFDEF MSWINDOWS} #13#10 {$ENDIF};
 {$ENDIF}
 
   Alpha = ['A'..'Z', 'a'..'z', '_'];
@@ -2501,7 +2501,7 @@ begin
     (StrByteType(Str2, Result - 1) = mbLeadByte) then
     Dec(Result);
 {$ENDIF}
-{$IFDEF LINUX}
+{$IFDEF POSIX}
   if (StrByteType(Str1, Result - 1) <> mbSingleByte) or
     (StrByteType(Str2, Result - 1) <> mbSingleByte) then
     Dec(Result);
@@ -2526,7 +2526,7 @@ begin
       mbLeadByte: Inc(p);
     end;
 {$ENDIF}
-{$IFDEF LINUX}
+{$IFDEF POSIX}
     if StrByteType(Str, Integer(p - Str)) = mbSingleByte then begin
       Inc(Result);
       Inc(p);

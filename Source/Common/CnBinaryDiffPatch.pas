@@ -54,7 +54,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, FileCtrl, {$IFDEF MSWINDOWS} Windows, {$ENDIF} CnCommon;
+  SysUtils, Classes, {$IFDEF MSWINDOWS} Windows, {$ENDIF} CnCommon;
 
 const
   CN_BINARY_DIFF_NAME_VER: AnsiString = 'CnBDiff1';
@@ -248,7 +248,7 @@ begin
   end;
 end;
 
-procedure PackLong(P: PByte; L: DWORD);
+procedure PackLong(P: PByte; L: Cardinal);
 begin
   P^ := L and $FF;
   Inc(P);
@@ -259,7 +259,7 @@ begin
   P^ := (L shr 24) and $FF;
 end;
 
-function GetLong(P: PByte): DWORD;
+function GetLong(P: PByte): Cardinal;
 begin
   Result := P^;
   Inc(P);
