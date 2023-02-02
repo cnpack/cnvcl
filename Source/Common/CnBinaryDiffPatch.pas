@@ -535,8 +535,11 @@ begin
 
         if (AnOffset > SrcLen) or (ASize > SrcLen) or (ASize + AnOffset > SrcLen) then
           raise ECnPatchFormatError.Create('Patch Copy Size Mismatch.');
-
+{$IFDEF MSWINDOWS}
         OldStream.Seek(AnOffset, soFromBeginning);
+{$ELSE}
+        OldStream.Seek(LongInt(AnOffset), soFromBeginning);
+{$ENDIF}
         CopyStreamData(OldStream, NewStream, ASize, GetLong(@Buf[8]), False);
         Dec(DstLen, ASize);
       end;

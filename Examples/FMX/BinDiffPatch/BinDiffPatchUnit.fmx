@@ -1,0 +1,350 @@
+object BinaryDiffPatchForm: TBinaryDiffPatchForm
+  Left = 192
+  Top = 107
+  BorderStyle = Single
+  Caption = 'Binary Diff & Patch Demo'
+  ClientHeight = 376
+  ClientWidth = 575
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  Left = 192
+  Top = 107
+  DesignerMasterStyle = 0
+  object pgc1: TTabControl
+    Position.X = 16.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 537.000000000000000000
+    Size.Height = 337.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 1
+    TabOrder = 0
+    TabPosition = Top
+    Sizes = (
+      537s
+      309s
+      537s
+      309s)
+    object tsFile: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      Size.Width = 101.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'File Diff/Patch'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpDiff: TGroupBox
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 489.000000000000000000
+        Size.Height = 265.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Binary Diff/Patch'
+        TabOrder = 0
+        object lblDiffOld: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 38.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Old File:'
+        end
+        object lblDiffNew: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 44.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'New File:'
+        end
+        object lblPatch: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 50.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Patch File:'
+        end
+        object lblPatchNew: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 44.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'New File:'
+        end
+        object edtDiffOld: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 0
+          Text = 'C:\1.c'
+          Position.X = 72.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 297.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtDiffNew: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Text = 'C:\2.c'
+          Position.X = 72.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 297.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnDiffBrowseOld: TButton
+          Position.X = 392.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Browse'
+          OnClick = btnDiffBrowseOldClick
+        end
+        object btnDiffBrowseNew: TButton
+          Position.X = 392.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Browse'
+          OnClick = btnDiffBrowseNewClick
+        end
+        object btnDiff: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 393.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Binary Diff Old File and New File to Patch File'
+          OnClick = btnDiffClick
+        end
+        object edtPatch: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 4
+          Text = 'C:\diff'
+          Position.X = 72.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 297.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnDiffBrowsePatch: TButton
+          Position.X = 392.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Browse'
+          OnClick = btnDiffBrowsePatchClick
+        end
+        object btnBinaryPatch: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 393.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Binary Patch Old File with Patch File to New File'
+          OnClick = btnBinaryPatchClick
+        end
+        object edtPatchNew: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 7
+          Text = 'C:\2.c.new'
+          Position.X = 72.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 297.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnPatchBrowseNew: TButton
+          Position.X = 392.000000000000000000
+          Position.Y = 176.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Browse'
+          OnClick = btnDiffBrowseNewClick
+        end
+      end
+    end
+    object tsDirectory: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      ImageIndex = 1
+      Size.Width = 132.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Directory Diff/Patch'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grpDir: TGroupBox
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 489.000000000000000000
+        Size.Height = 273.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Directory Diff/Patch'
+        TabOrder = 0
+        object lblOldDir: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 35.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Old Dir:'
+        end
+        object lblNewDir: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 41.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'New Dir:'
+        end
+        object lblPatchDir: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 47.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Patch Dir:'
+        end
+        object lblOutDir: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 180.000000000000000000
+          Size.Width = 41.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'New Dir:'
+        end
+        object edtOldDir: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 0
+          Text = 'C:\1'
+          Position.X = 72.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 297.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtNewDir: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 2
+          Text = 'C:\2'
+          Position.X = 72.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 297.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtPatchDir: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 4
+          Text = 'C:\diffdir'
+          Position.X = 72.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 297.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBrowseOldDir: TButton
+          Position.X = 392.000000000000000000
+          Position.Y = 32.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Browse'
+          OnClick = btnBrowseOldDirClick
+        end
+        object btnBrowseNewDir: TButton
+          Position.X = 392.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Browse'
+          OnClick = btnBrowseNewDirClick
+        end
+        object btnBrowsePatchDir: TButton
+          Position.X = 392.000000000000000000
+          Position.Y = 96.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Browse'
+          OnClick = btnBrowsePatchDirClick
+        end
+        object btnDiffDir: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 393.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Binary Diff Old Directory and New Directory to Patch Directory'
+          OnClick = btnDiffDirClick
+        end
+        object edtNewOutDir: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 7
+          Text = 'C:\newout'
+          Position.X = 72.000000000000000000
+          Position.Y = 180.000000000000000000
+          Size.Width = 297.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBrowseOutDir: TButton
+          Position.X = 392.000000000000000000
+          Position.Y = 180.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Browse'
+          OnClick = btnBrowseOutDirClick
+        end
+        object btnDirPatch: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 216.000000000000000000
+          Size.Width = 393.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Binary Patch Old Directory with Patch Directory to New Directory'
+          OnClick = btnDirPatchClick
+        end
+      end
+    end
+  end
+  object dlgOpen: TOpenDialog
+    Left = 136
+    Top = 64
+  end
+  object dlgSave: TSaveDialog
+    Left = 280
+    Top = 64
+  end
+end
