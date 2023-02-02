@@ -81,13 +81,16 @@ uses
   ComCtrls, Math, Menus, Registry, ComObj, FileCtrl, ShellAPI, CommDlg,
   MMSystem, StdCtrls, ActiveX, ShlObj, CheckLst, MultiMon,
   {$IFNDEF FPC} TLHelp32, PsAPI,{$ENDIF}
+  {$IFDEF COMPILER6_UP}
+    Types,
+  {$ENDIF}
 {$ELSE}
   System.Types, System.UITypes, System.Math, System.IOUtils, Posix.SysStat,
   FMX.ImgList, FMX.Graphics, FMX.ListView, FMX.ListBox, FMX.Menus, FMX.Memo,
   FMX.Forms, FMX.Controls, FMX.Edit, FMX.ListView.Types, FMX.Dialogs,
 {$ENDIF}
 {$IFDEF COMPILER6_UP}
-  StrUtils, Variants, Types,
+  StrUtils, Variants,
 {$ENDIF}
   CnConsts, CnNative, CnIni, CnIniStrUtils, CnWideStrings;
 
