@@ -110,8 +110,10 @@ function CnInputQuery(const ACaption, APrompt: string;
   var Value: string): Boolean;
 {* FMX 版本的 InputQuery，直接调用 FMX 自带的}
 
-procedure CnFmxSetStringGridColumnCount(Grid: TStringGrid; ColCount: Integer);
-{* 设置一 FMX 的 StringGrid 的列数功能的封装，内部需要增删 StringColumn}
+procedure CnFmxSetStringGridColumnCount(Grid: TStringGrid; ColCount: Integer;
+  ColWidth: Integer = 64);
+{* 设置一 FMX 的 StringGrid 的列数功能的封装，内部需要增删 StringColumn
+  如增，需要外部指定宽度 ColWidth，默认 64}
 
 implementation
 
@@ -420,9 +422,11 @@ begin
   Result := InputQuery(ACaption, APrompt, Value);
 end;
 
-procedure CnFmxSetStringGridColumnCount(Grid: TStringGrid; ColCount: Integer);
+procedure CnFmxSetStringGridColumnCount(Grid: TStringGrid; ColCount: Integer;
+  ColWidth: Integer);
 var
   I: Integer;
+  Column: TStringColumn;
 begin
   if (Grid = nil) or (ColCount < 0) then
     Exit;
@@ -435,7 +439,11 @@ begin
   else if Grid.ColumnCount < ColCount then
   begin
     for I := 1 to ColCount - Grid.ColumnCount do
-      TStringColumn.Create(Grid).Parent := Grid;
+    begin
+      Column := TStringColumn.Create(Grid);
+      Column.Width := ColWidth;
+      Column.Parent := Grid;
+    end;
   end;
 end;
 

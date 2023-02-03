@@ -111,70 +111,102 @@ object FormContainers: TFormContainers
     TabOrder = 5
     Options = [ColLines, RowLines]
     Viewport.Width = 893.000000000000000000
-    Viewport.Height = 293.000000000000000000
+    Viewport.Height = 309.000000000000000000
     object StringColumn1: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn2: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn3: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn4: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn5: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn6: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn7: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn8: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn9: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn10: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn11: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn12: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn13: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn14: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn15: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn16: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn17: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn18: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn19: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn20: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn21: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn22: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn23: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn24: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn25: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn26: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn27: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn28: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn29: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn30: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn31: TStringColumn
+      Size.Width = 24.000000000000000000
     end
     object StringColumn32: TStringColumn
+      Size.Width = 24.000000000000000000
     end
   end
   object btnHashMapAdd: TButton
