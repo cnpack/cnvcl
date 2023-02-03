@@ -42,61 +42,78 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs;
+  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Grid;
 
 type
   TCnFmxPosType = (fptLeft, fptTop, fptRight, fptBottom, fptWidth, fptHeight);
 
 function CnFmxGetObjectParent(AObject: TComponent): TComponent;
+{* 获取一个 FMX 的 Component 的 Parent。如果 AObject 并非 TFmxObject 的子类，返回 nil}
 
 function CnFmxGetControlParent(AControl: TComponent): TComponent;
+{* 获取一个 FMX 的 Control 的 Parent。如果 AControl 并非 FMX.TControl 的子类，返回 nil}
 
 function CnFmxGetControlsCount(AControl: TComponent): Integer;
+{* 获取一个 FMX 的 Control 的子 Control 数量。如果 AControl 并非 FMX.TControl 的子类，返回 -1}
 
 function CnFmxGetControlByIndex(AControl: TComponent; Index: Integer): TComponent;
+{* 获取一个 FMX 的 Control 的第 Index 个子 Control。如果 AControl 并非 FMX.TControl 的子类，返回 nil}
 
 function CnFmxIsInheritedFromClassByName(AObject: TObject; AClassName: string): Boolean;
+{* 获取一个 Object 是否继承自 AClassName 名字标识的 FMX 类}
 
 function CnFmxIsInheritedFromControl(AObject: TObject): Boolean;
+{* 获取一个 Object 是否继承自 FMX.TControl 类}
 
 function CnFmxClassIsInheritedFromControl(AClass: TClass): Boolean;
+{* 获取一个 Class 是否继承自 FMX.TControl 类}
 
 function CnFmxIsInheritedFromForm(AObject: TObject): Boolean;
+{* 获取一个 Object 是否继承自 FMX.TForm 类}
 
 function CnFmxClassIsInheritedFromForm(AClass: TClass): Boolean;
+{* 获取一个 Class 是否继承自 FMX.TForm 类}
 
 function CnFmxIsInheritedFromCommonCustomForm(AObject: TObject): Boolean;
+{* 获取一个 Object 是否继承自 FMX.TCommonCustomForm 类}
 
 function CnFmxIsInheritedFromFrame(AObject: TObject): Boolean;
+{* 获取一个 Object 是否继承自 FMX.TFrame 类}
 
 function CnFmxGetControlRect(AControl: TComponent): TRect;
+{* 获取一个 FMX 的 Control 的 Rect，内部手工计算}
 
 procedure CnFmxSetControlRect(AControl: TComponent; ARect: TRect);
+{* 设置一个 FMX 的 Control 的 Rect，内部手工计算}
 
 function CnFmxGetControlPositionValue(AControl: TComponent;
   PosType: TCnFmxPosType): Integer;
+{* 获取一个 FMX 的 Control 的位置、尺寸等，所需内容由 PosType 参数指定}
 
 procedure CnFmxSetControlPositionValue(AControl: TComponent; AValue: Single;
   PosType: TCnFmxPosType);
+{* 设置一个 FMX 的 Control 的位置、尺寸等，所设置的内容由 PosType 参数指定}
 
 procedure CnFmxControlBringToFront(AControl: TComponent);
+{* 将一个 FMX 的 Control 提至前面}
 
 procedure CnFmxControlSendToBack(AControl: TComponent);
+{* 将一个 FMX 的 Control 放至后面}
 
 function CnFmxGetCommonCustomFormCaption(AForm: TComponent): string;
+{* 获取一个 FMX 的 Form 的标题文字}
 
-// 为高版本语法的set赋值增加类名，如[seTop]变成[TSide.seTop]
 function CnFmxFixSetValue(const PType: string; const PValue: string): string;
+{* 为高版本语法的 set 赋值增加类名，如 [seTop] 变成 [TSide.seTop]}
 
 function CnInputQuery(const ACaption, APrompt: string;
   var Value: string): Boolean;
+{* FMX 版本的 InputQuery，直接调用 FMX 自带的}
+
+procedure CnFmxSetStringGridColumnCount(Grid: TStringGrid; ColCount: Integer);
+{* 设置一 FMX 的 StringGrid 的列数功能的封装，内部需要增删 StringColumn}
 
 implementation
-
-{$IFDEF DEBUG}
-uses
-  CnDebug;
-{$ENDIF}
 
 const
   CN_FMX_FIX_SET_COUNT = 10;
@@ -401,6 +418,25 @@ function CnInputQuery(const ACaption, APrompt: string;
   var Value: string): Boolean;
 begin
   Result := InputQuery(ACaption, APrompt, Value);
+end;
+
+procedure CnFmxSetStringGridColumnCount(Grid: TStringGrid; ColCount: Integer);
+var
+  I: Integer;
+begin
+  if (Grid = nil) or (ColCount < 0) then
+    Exit;
+
+  if Grid.ColumnCount > ColCount then
+  begin
+    for I := 1 to Grid.ColumnCount - ColCount do
+      Grid.Columns[Grid.ColumnCount - 1].Free;
+  end
+  else if Grid.ColumnCount < ColCount then
+  begin
+    for I := 1 to ColCount - Grid.ColumnCount do
+      TStringColumn.Create(Grid).Parent := Grid;
+  end;
 end;
 
 procedure CreateFmxSetFixArray;

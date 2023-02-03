@@ -81,21 +81,15 @@ implementation
 
 {$R *.fmx}
 
+uses
+  CnFmxUtils;
+
 procedure TFormContainers.DumpRing;
 var
   List: TList;
   F, B, I: Integer;
 begin
-  if StringGrid.ColumnCount > FRing.Size then
-  begin
-    for I := 1 to StringGrid.ColumnCount - FRing.Size do
-      StringGrid.Columns[StringGrid.ColumnCount - 1].Free;
-  end
-  else if StringGrid.ColumnCount < FRing.Size then
-  begin
-    for I := 1 to FRing.Size - StringGrid.ColumnCount do
-      TStringColumn.Create(StringGrid).Parent := StringGrid;
-  end;
+  CnFmxSetStringGridColumnCount(StringGrid, FRing.Size);
   // StringGrid.ColumnCount := FRing.Size;
 
   List := TList.Create;
@@ -171,16 +165,7 @@ var
   Node: TCnHashNode;
 begin
   lblHashMapCapacity.Text := 'Capacity: ' + IntToStr(FHashMap.Capacity);
-  if sgMap.ColumnCount > FHashMap.Capacity then
-  begin
-    for I := 1 to sgMap.ColumnCount - FHashMap.Capacity do
-      sgMap.Columns[sgMap.ColumnCount - 1].Free;
-  end
-  else if sgMap.ColumnCount < FHashMap.Capacity then
-  begin
-    for I := 1 to FHashMap.Capacity - sgMap.ColumnCount do
-      TStringColumn.Create(sgMap).Parent := sgMap;
-  end;
+  CnFmxSetStringGridColumnCount(sgMap, FHashMap.Capacity);
   // sgMap.ColumnCount := FHashMap.Capacity;
 
   sgMap.RowCount := 2;
