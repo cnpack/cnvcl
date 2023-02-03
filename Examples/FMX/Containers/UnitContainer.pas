@@ -89,7 +89,7 @@ begin
   if StringGrid.ColumnCount > FRing.Size then
   begin
     for I := 1 to StringGrid.ColumnCount - FRing.Size do
-      StringGrid.Columns[StringGrid.ColumnCount - 1].DisposeOf;
+      StringGrid.Columns[StringGrid.ColumnCount - 1].Free;
   end
   else if StringGrid.ColumnCount < FRing.Size then
   begin
@@ -174,7 +174,7 @@ begin
   if sgMap.ColumnCount > FHashMap.Capacity then
   begin
     for I := 1 to sgMap.ColumnCount - FHashMap.Capacity do
-      sgMap.Columns[sgMap.ColumnCount - 1].DisposeOf;
+      sgMap.Columns[sgMap.ColumnCount - 1].Free;
   end
   else if sgMap.ColumnCount < FHashMap.Capacity then
   begin
