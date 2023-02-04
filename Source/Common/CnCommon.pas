@@ -94,6 +94,16 @@ uses
 {$ENDIF}
   CnConsts, CnNative, CnIni, CnIniStrUtils, CnWideStrings;
 
+const
+{$IFNDEF COMPILER6_UP}
+  sLineBreak = {$IFDEF POSIX} #10 {$ENDIF} {$IFDEF MSWINDOWS} #13#10 {$ENDIF};
+{$ENDIF}
+
+  Alpha = ['A'..'Z', 'a'..'z', '_'];
+  AlphaNumeric = Alpha + ['0'..'9'];
+
+  SCN_UTF16_ANSI_WIDE_CHAR_SEP = $900;
+
 //------------------------------------------------------------------------------
 // 公共类型定义
 //------------------------------------------------------------------------------
@@ -124,15 +134,7 @@ type
 
   TCnSenderCallback = procedure(Sender: TObject);
 
-const
-{$IFNDEF COMPILER6_UP}
-  sLineBreak = {$IFDEF POSIX} #10 {$ENDIF} {$IFDEF MSWINDOWS} #13#10 {$ENDIF};
-{$ENDIF}
-
-  Alpha = ['A'..'Z', 'a'..'z', '_'];
-  AlphaNumeric = Alpha + ['0'..'9'];
-
-  SCN_UTF16_ANSI_WIDE_CHAR_SEP = $900;
+  TCnIdentWordStyle = (iwsLowerCase, iwsUpperCase, iwsUpperFirstChar);
 
 //==============================================================================
 // Ansi 字符串函数
@@ -1132,7 +1134,8 @@ procedure ShowLastError;
 {$ENDIF}
 
 function GetHzPy(const AHzStr: AnsiString): AnsiString;
-{* 取汉字的拼音}
+{* 取汉字的拼音首字母，注意编码必须是 GB2312，并且只支持部分常用字
+ （GBK/GB18030 编码也可但获取不到）}
 
 {$IFDEF UNICODE}
 function GetHzPyW(const AHzStr: string): string;
@@ -1355,7 +1358,7 @@ function CnMapFileToPointer(const FileName: string; out FileHandle, MapHandle: T
   out Address: Pointer): Boolean;
 {* 将文件映射为内存文件并返回文件句柄、映射句柄与映射的内存起始地址，成功返回 True
   如果返回 True，必须在使用完 Address 后调用 CnUnMapFileFromPointer
-  以释放 Address MapHandle 和 FileHandle}
+  以释放 Address、MapHandle 和 FileHandle}
 
 function CnUnMapFileFromPointer(var FileHandle, MapHandle: THandle;
   var Address: Pointer): Boolean;
@@ -1378,6 +1381,15 @@ function StrToBytes(const S: AnsiString): TBytes;
 
 function BytesToStr(Data: TBytes): AnsiString;
 {* 将字节数组的内容转为一新的 AnsiString}
+
+function ConvertStringToIdent(const Str: string; const Prefix: string = 'S';
+  UseUnderLine: Boolean = False; IdentWordStyle: TCnIdentWordStyle = iwsUpperFirstChar;
+  MaxWideChars: Integer = 7; MaxWords: Integer = 7): string;
+{* 将字符串中的符合标识符信息的内容抽取出来形成标识符并返回，内部针对汉字处理拼音
+  UseUnderLine：分词或拼音之间是否用下划线分隔
+  IdentWordStyle：分词使用全大写、全小写还是首字母大写
+  MaxWideChars：最长处理的双字节字符数，要有拼音才算
+  MaxWords：最长处理的分词数。注意这两个 Max 只要达到一个就完成}
 
 implementation
 
@@ -7744,7 +7756,7 @@ end;
 
 {$ENDIF}
 
-// 取汉字的拼音
+// 取汉字的拼音首字母
 function GetHzPy(const AHzStr: AnsiString): AnsiString;
 const
   ChinaCode: array[0..25, 0..1] of Integer = ((1601, 1636), (1637, 1832), (1833, 2077),
@@ -7771,7 +7783,9 @@ begin
         end;
       end;
       Inc(I);
-    end else Result := Result + AHzStr[I];
+    end
+    else
+      Result := Result + AHzStr[I];
     Inc(I);
   end;
 end;
@@ -8605,6 +8619,119 @@ begin
   begin
     SetLength(Result, Length(Data));
     Move(Data[0], Result[1], Length(Data));
+  end;
+end;
+
+type
+{$IFDEF UNICODE}
+  TIdentString = type string;
+{$ELSE}
+  TIdentString = WideString;
+{$ENDIF}
+
+function ConvertStringToIdent(const Str, Prefix: string; UseUnderLine: Boolean;
+  IdentWordStyle: TCnIdentWordStyle; MaxWideChars, MaxWords: Integer): string;
+const
+  ALPHA_NUM = ['A'..'Z', 'a'..'z', '0'..'9'];
+var
+  WS, WD: TIdentString;
+  Hz: AnsiString;
+  CC, CW: Integer;
+  P: PWideChar;
+  Builder: TCnStringBuilder;
+
+  function ProcessIdentStyle(const D: TIdentString): TIdentString;
+  var
+    I: Integer;
+  begin
+    case IdentWordStyle of
+      iwsLowerCase:
+        Result := LowerCase(D);
+      iwsUpperCase:
+        Result := UpperCase(D);
+      iwsUpperFirstChar:
+        begin
+          Result := LowerCase(D);
+          for I := 1 to Length(Result) do // 找到第一个小写字母的变成大写，避免数字开头
+          begin
+            if (Ord(Result[I]) < 128) and (AnsiChar(Result[I]) in ['a'..'z']) then
+            begin
+              Result[I] := WideChar(Ord(Result[1]) - 32);
+              Exit;
+            end;
+          end;
+        end;
+    end;
+  end;
+begin
+  // Ansi 和 Unicode 都得支持
+  Result := Prefix;
+  if Str = '' then
+    Exit;
+
+  Builder := nil;
+{$IFDEF UNICODE}
+  WS := Str;
+{$ELSE}
+  WS := WideString(Str);
+{$ENDIF};
+
+  // 从头到尾扫描宽字符，字母数字就放过去，汉字就转成拼音放过去，
+  try
+    Builder := TCnStringBuilder.Create(False);
+    P := PWideChar(WS);
+    CC := 0;
+    CW := 0; // 俩计数
+
+    while P^ <> #0 do
+    begin
+      WD := '';
+      if Ord(P^) > SCN_UTF16_ANSI_WIDE_CHAR_SEP then
+      begin
+        // 当作汉字，拿到拼音处理好后放 WD 里
+        Hz := AnsiString(P^);
+        WD := ProcessIdentStyle(GetHzPy(Hz));
+
+        Inc(P);
+        if WD <> '' then
+          Inc(CC);
+      end
+      else if (Ord(P^) < 128) and (AnsiChar(P^) in ALPHA_NUM) then
+      begin
+        // 是标识符，往后扫描至 #0 或非标识符
+        Builder.Append(P^);
+        Inc(P);
+        while (Ord(P^) < 128) and (AnsiChar(P^) in ALPHA_NUM) do
+        begin
+          Builder.Append(P^);
+          Inc(P);
+        end;
+
+        // 本 Word 扫描完毕，处理好后放 WD 里
+{$IFDEF UNICODE}
+        WD := ProcessIdentStyle(Builder.ToString);
+{$ELSE}
+        WD := ProcessIdentStyle(Builder.ToWideString);
+{$ENDIF}
+        Builder.Clear;
+        Inc(CW);
+      end
+      else
+        Inc(P); // 其余情况当作分隔符
+
+      if Length(WD) > 0 then
+      begin
+        if UseUnderLine and (Length(Result) > 0) then
+          Result := Result + '_' + string(WD)
+        else
+          Result := Result + string(WD);
+      end;
+
+      if (CC > MaxWideChars) or (CW > MaxWords) then
+        Break;
+    end;
+  finally
+    Builder.Free;
   end;
 end;
 
