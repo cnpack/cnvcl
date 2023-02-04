@@ -331,6 +331,15 @@ object FormGB18030: TFormGB18030
       TabOrder = 20
       OnClick = btnCompareUnicodeString2Click
     end
+    object btnPinYinTest: TButton
+      Left = 320
+      Top = 144
+      Width = 121
+      Height = 25
+      Caption = 'PinYin Test'
+      TabOrder = 21
+      OnClick = btnPinYinTestClick
+    end
   end
   object grpTestU2GB: TGroupBox
     Left = 592

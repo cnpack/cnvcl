@@ -56,6 +56,7 @@ type
     btnUnicodeIsDup: TButton;
     btnCompareUnicodeString: TButton;
     btnCompareUnicodeString2: TButton;
+    btnPinYinTest: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -93,6 +94,7 @@ type
     procedure btnUnicodeIsDupClick(Sender: TObject);
     procedure btnCompareUnicodeStringClick(Sender: TObject);
     procedure btnCompareUnicodeString2Click(Sender: TObject);
+    procedure btnPinYinTestClick(Sender: TObject);
   private
     // 以 Windows API 的方式批量生成 256 个 Unicode 字符
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
@@ -1936,6 +1938,16 @@ begin
     ShowMessage('Equal')
   else
     ShowMessage('NOT Equal');
+end;
+
+procedure TFormGB18030.btnPinYinTestClick(Sender: TObject);
+var
+  I: Integer;
+  WS: WideString;
+begin
+  WS := '啊我要吃饭菜面油条了';
+  for I := 1 to Length(WS) do
+    ShowMessage(GetPinYinFromUtf16Char(WS[I]));
 end;
 
 end.
