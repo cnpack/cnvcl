@@ -89,7 +89,7 @@ var
   List: TList;
   F, B, I: Integer;
 begin
-  CnFmxSetStringGridColumnCount(StringGrid, FRing.Size);
+  CnFmxSetStringGridColumnCount(StringGrid, FRing.Size, 24);
   // StringGrid.ColumnCount := FRing.Size;
 
   List := TList.Create;
@@ -165,7 +165,7 @@ var
   Node: TCnHashNode;
 begin
   lblHashMapCapacity.Text := 'Capacity: ' + IntToStr(FHashMap.Capacity);
-  CnFmxSetStringGridColumnCount(sgMap, FHashMap.Capacity);
+  CnFmxSetStringGridColumnCount(sgMap, FHashMap.Capacity, 24);
   // sgMap.ColumnCount := FHashMap.Capacity;
 
   sgMap.RowCount := 2;

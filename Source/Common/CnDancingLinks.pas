@@ -24,7 +24,7 @@ unit CnDancingLinks;
 * 软件名称：CnPack 公共单元
 * 单元名称：实现基于十字双向循环链表的稀疏矩阵，并且基于此实现舞蹈链表
 * 单元作者：刘啸 (liuxiao@cnpack.org)
-* 备    注：该单元为描述稀疏矩阵实现了十字双向循环链表。
+* 备    注：该单元为描述稀疏矩阵实现了十字双向循环链表，支持跨平台。
 *           并在此基础上实现了舞蹈链表的快速删除/恢复行列的机制。
 *           但尚未抽象出回溯递归操作。
 * 开发平台：PWinXP + Delphi 5.01
@@ -40,7 +40,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, Windows, SysUtils, Contnrs;
+  Classes, SysUtils, Contnrs;
 
 type
   ECnCrossLinkedMatrixException = class(Exception);

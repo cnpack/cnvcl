@@ -1,0 +1,139 @@
+object DancingLinksForm: TDancingLinksForm
+  Left = 192
+  Top = 130
+  Caption = 'Test Dancing Links Form - Left/Right Click Cell to Add/Delete.'
+  ClientHeight = 480
+  ClientWidth = 928
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 192
+  Top = 130
+  DesignerMasterStyle = 0
+  object lblRow: TLabel
+    Position.X = 112.000000000000000000
+    Position.Y = 36.000000000000000000
+    Size.Width = 41.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Row'
+  end
+  object lblCol: TLabel
+    Position.X = 272.000000000000000000
+    Position.Y = 36.000000000000000000
+    Size.Width = 57.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Column'
+  end
+  object Grid: TStringGrid
+    CanFocus = True
+    ClipChildren = True
+    Position.X = 32.000000000000000000
+    Position.Y = 72.000000000000000000
+    Size.Width = 841.000000000000000000
+    Size.Height = 345.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    RowCount = 2
+    Options = [ColLines, RowLines]
+    OnSelectCell = GridSelectCell
+    Viewport.Width = 837.000000000000000000
+    Viewport.Height = 341.000000000000000000
+    object StringColumn1: TStringColumn
+      Size.Width = 44.000000000000000000
+    end
+    object StringColumn2: TStringColumn
+      Size.Width = 44.000000000000000000
+    end
+  end
+  object btnCreate: TButton
+    Position.X = 376.000000000000000000
+    Position.Y = 32.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = 'Create'
+    OnClick = btnCreateClick
+  end
+  object stat1: TStatusBar
+    Position.Y = 461.000000000000000000
+    ShowSizeGrip = True
+    Size.Width = 928.000000000000000000
+    Size.Height = 19.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object btnExpandRow: TButton
+    Position.X = 552.000000000000000000
+    Position.Y = 32.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Text = 'Expand Row'
+    OnClick = btnExpandRowClick
+  end
+  object btnExpandCol: TButton
+    Position.X = 648.000000000000000000
+    Position.Y = 32.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Text = 'Expand Col'
+    OnClick = btnExpandColClick
+  end
+  object btnDump: TButton
+    Position.X = 464.000000000000000000
+    Position.Y = 32.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 6
+    Text = 'Dump'
+    OnClick = btnDumpClick
+  end
+  object spnbxRow: TSpinBox
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 8
+    Cursor = crIBeam
+    Value = 10.000000000000000000
+    Position.X = 32.000000000000000000
+    Position.Y = 32.000000000000000000
+    Size.Width = 73.000000000000000000
+    Size.Height = 22.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object spnbxCol: TSpinBox
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 7
+    Cursor = crIBeam
+    Value = 2.000000000000000000
+    Position.X = 192.000000000000000000
+    Position.Y = 32.000000000000000000
+    Size.Width = 73.000000000000000000
+    Size.Height = 22.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object lblStat: TLabel
+    Position.X = 32.000000000000000000
+    Position.Y = 432.000000000000000000
+    Size.Width = 577.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'lblStat'
+    TabOrder = 9
+  end
+  object lblStat2: TLabel
+    Position.X = 624.000000000000000000
+    Position.Y = 432.000000000000000000
+    Size.Width = 193.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'lblStat2'
+    TabOrder = 10
+  end
+end
