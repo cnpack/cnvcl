@@ -134,7 +134,7 @@ type
 
   TCnSenderCallback = procedure(Sender: TObject);
 
-  TCnIdentWordStyle = (iwsLowerCase, iwsUpperCase, iwsUpperFirstChar);
+  TCnIdentWordStyle = (iwsUpperCase, iwsLowerCase, iwsUpperFirstChar);
 
 //==============================================================================
 // Ansi 字符串函数
@@ -1411,6 +1411,9 @@ const
     @SCnMsgDlgOK, @SCnMsgDlgCancel, @SCnMsgDlgYes, @SCnMsgDlgNo, @SCnMsgDlgYesToAll,
     @SCnMsgDlgNoToAll
   );
+
+  SCN_CHINESE_SEP_CHARS: array[0..11] of WideString =
+    ('，', '。', '、', '！', '（', '）', '【', '】', '—', '…','《', '》');
 
 {$IFDEF MSWINDOWS}
 
@@ -7763,7 +7766,7 @@ const
     (2078, 2273), (2274, 2301), (2302, 2432), (2433, 2593), (2594, 2786), (9999, 0000),
     (2787, 3105), (3106, 3211), (3212, 3471), (3472, 3634), (3635, 3722), (3723, 3729),
     (3730, 3857), (3858, 4026), (4027, 4085), (4086, 4389), (4390, 4557), (9999, 0000),
-    (9999, 0000), (4558, 4683), (4684, 4924), (4925, 5248), (5249, 5589));
+    (9999, 0000), (4558, 4683), (4684, 4924), (4925, 5248), (5249, 5589)); // 仨 9999 0000 表示没有 i u v 开头的拼音
 var
   I, J, HzOrd: Integer;
 begin
@@ -8638,7 +8641,7 @@ var
   Hz: AnsiString;
   CC, CW: Integer;
   P: PWideChar;
-  Builder: TCnStringBuilder;
+  AnsiBuilder, WideBuilder: TCnStringBuilder;
 
   function ProcessIdentStyle(const D: TIdentString): TIdentString;
   var
@@ -8663,13 +8666,34 @@ var
         end;
     end;
   end;
+
+  function IsHZChar(UC: WideChar): Boolean;
+  var
+    I: Integer;
+  begin
+    Result := Ord(UC) > SCN_UTF16_ANSI_WIDE_CHAR_SEP;
+    if Result then
+    begin
+      for I := Low(SCN_CHINESE_SEP_CHARS) to High(SCN_CHINESE_SEP_CHARS) do
+      begin
+        if UC = SCN_CHINESE_SEP_CHARS[I] then
+        begin
+          Result := False;
+          Exit;
+        end;
+      end;
+    end;
+  end;
+
 begin
   // Ansi 和 Unicode 都得支持
   Result := Prefix;
   if Str = '' then
     Exit;
 
-  Builder := nil;
+  AnsiBuilder := nil;
+  WideBuilder := nil;
+
 {$IFDEF UNICODE}
   WS := Str;
 {$ELSE}
@@ -8678,7 +8702,9 @@ begin
 
   // 从头到尾扫描宽字符，字母数字就放过去，汉字就转成拼音放过去，
   try
-    Builder := TCnStringBuilder.Create(False);
+    AnsiBuilder := TCnStringBuilder.Create(True);
+    WideBuilder := TCnStringBuilder.Create(False);
+
     P := PWideChar(WS);
     CC := 0;
     CW := 0; // 俩计数
@@ -8686,34 +8712,46 @@ begin
     while P^ <> #0 do
     begin
       WD := '';
-      if Ord(P^) > SCN_UTF16_ANSI_WIDE_CHAR_SEP then
+      if IsHZChar(P^) then
       begin
-        // 当作汉字，拿到拼音处理好后放 WD 里
-        Hz := AnsiString(P^);
+        // 当作汉字找一串，拿到拼音处理好后放 WD 里
+        AnsiBuilder.Append(AnsiString(P^));
+        Inc(P);
+        while IsHZChar(P^) do
+        begin
+          AnsiBuilder.Append(AnsiString(P^));
+          Inc(P);
+        end;
+
+{$IFDEF UNICODE}
+        Hz := AnsiBuilder.ToAnsiString;
+{$ELSE}
+        Hz := AnsiBuilder.ToString;
+{$ENDIF}
         WD := ProcessIdentStyle(GetHzPy(Hz));
 
-        Inc(P);
+        AnsiBuilder.Clear;
         if WD <> '' then
           Inc(CC);
       end
       else if (Ord(P^) < 128) and (AnsiChar(P^) in ALPHA_NUM) then
       begin
         // 是标识符，往后扫描至 #0 或非标识符
-        Builder.Append(P^);
+        WideBuilder.Append(P^);
         Inc(P);
         while (Ord(P^) < 128) and (AnsiChar(P^) in ALPHA_NUM) do
         begin
-          Builder.Append(P^);
+          WideBuilder.Append(P^);
           Inc(P);
         end;
 
         // 本 Word 扫描完毕，处理好后放 WD 里
 {$IFDEF UNICODE}
-        WD := ProcessIdentStyle(Builder.ToString);
+        WD := ProcessIdentStyle(WideBuilder.ToString);
 {$ELSE}
-        WD := ProcessIdentStyle(Builder.ToWideString);
+        WD := ProcessIdentStyle(WideBuilder.ToWideString);
 {$ENDIF}
-        Builder.Clear;
+        WideBuilder.Clear;
         Inc(CW);
       end
       else
@@ -8731,7 +8769,8 @@ begin
         Break;
     end;
   finally
-    Builder.Free;
+    WideBuilder.Free;
+    AnsiBuilder.Free;
   end;
 end;
 
