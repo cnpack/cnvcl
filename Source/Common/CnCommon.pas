@@ -1384,7 +1384,7 @@ function BytesToStr(Data: TBytes): AnsiString;
 
 function ConvertStringToIdent(const Str: string; const Prefix: string = 'S';
   UseUnderLine: Boolean = False; IdentWordStyle: TCnIdentWordStyle = iwsUpperFirstChar;
-  MaxWideChars: Integer = 7; MaxWords: Integer = 7): string;
+  UseFullPinYin: Boolean = False; MaxWideChars: Integer = 7; MaxWords: Integer = 7): string;
 {* 将字符串中的符合标识符信息的内容抽取出来形成标识符并返回，内部针对汉字处理拼音
   UseUnderLine：分词或拼音之间是否用下划线分隔
   IdentWordStyle：分词使用全大写、全小写还是首字母大写
@@ -1394,7 +1394,7 @@ function ConvertStringToIdent(const Str: string; const Prefix: string = 'S';
 implementation
 
 uses
-  CnStrings {$IFDEF MSWINDOWS}, CnHexEditor {$ENDIF};
+  CnStrings, CnGB18030 {$IFDEF MSWINDOWS}, CnHexEditor {$ENDIF};
 
 const
   MINOR_DOUBLE = 1E-8;
@@ -8633,7 +8633,7 @@ type
 {$ENDIF}
 
 function ConvertStringToIdent(const Str, Prefix: string; UseUnderLine: Boolean;
-  IdentWordStyle: TCnIdentWordStyle; MaxWideChars, MaxWords: Integer): string;
+  IdentWordStyle: TCnIdentWordStyle; UseFullPinYin: Boolean; MaxWideChars, MaxWords: Integer): string;
 const
   ALPHA_NUM = ['A'..'Z', 'a'..'z', '0'..'9'];
 var
@@ -8714,21 +8714,29 @@ begin
       WD := '';
       if IsHZChar(P^) then
       begin
-        // 当作汉字找一串，拿到拼音处理好后放 WD 里
-        AnsiBuilder.Append(AnsiString(P^));
-        Inc(P);
-        while IsHZChar(P^) do
+        if UseFullPinYin then
         begin
+          // 单个汉字，拿到完整拼音，处理好后放 WD 里
+          WD := ProcessIdentStyle(GetPinYinFromUtf16Char(P^));
+          Inc(P);
+        end
+        else
+        begin
+          // 当作汉字往后找一串，拿到拼音处理好后放 WD 里
           AnsiBuilder.Append(AnsiString(P^));
           Inc(P);
-        end;
-
+          while IsHZChar(P^) do
+          begin
+            AnsiBuilder.Append(AnsiString(P^));
+            Inc(P);
+          end;
 {$IFDEF UNICODE}
-        Hz := AnsiBuilder.ToAnsiString;
+          Hz := AnsiBuilder.ToAnsiString;
 {$ELSE}
-        Hz := AnsiBuilder.ToString;
+          Hz := AnsiBuilder.ToString;
 {$ENDIF}
-        WD := ProcessIdentStyle(GetHzPy(Hz));
+          WD := ProcessIdentStyle(GetHzPy(Hz)); // GetHzPy 只支持 AnsiString
+        end;
 
         AnsiBuilder.Clear;
         if WD <> '' then
