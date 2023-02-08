@@ -724,7 +724,7 @@ begin
 end;
 
 {
-  MLen <= DataLen - SM3DigLength - 2 * Sm2 Byte Length - 1，劈开拿到 C1 C2 C3
+  MLen <= DataLen - SM3DigLength - 2 * Sm2ByteLength - 1，劈开拿到 C1 C2 C3
 
   PrivateKey * C1 => (x2, y2)
 

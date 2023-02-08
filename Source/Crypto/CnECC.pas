@@ -31,7 +31,7 @@ unit CnECC;
 *           概念：椭圆曲线的阶是曲线上的总点数（似乎不包括无限远点）
 *           基点的阶是基点标量乘多少等于无限远点。两者是倍数整除关系，可能相等
 * 开发平台：WinXP + Delphi 5.0
-* 兼容测试：暂未进行
+* 兼容测试：暂未进行，注意部分辅助函数缺乏固定长度处理，待修正
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2022.11.01 V2.1
 *               增加校验公私钥是否配对的函数
@@ -269,7 +269,7 @@ type
 
     function ToHex(FixedLen: Integer = 0): string;
     {* 转换为十六进制字符串，内部 R S 简单拼接，注意需要从十六进制中恢复时
-      宜指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而出错 }
+      宜指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而出错}
     procedure SetHex(const Buf: AnsiString);
     {* 从十六进制字符串中加载，内部对半拆分}
 
@@ -279,6 +279,10 @@ type
 
     function SetBase64(const Buf: AnsiString): Boolean;
     {* 从 Base64 字符串中加载，内部对半拆分。返回设置是否成功}
+
+    function ToAsn1Hex(FixedLen: Integer = 0): string;
+    {* 将 R S 拼接包装为 ASN1 的 BER/DER 格式，
+      宜指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而出错}
 
     property R: TCnBigNumber read FR;
     {* 签名 R 值}
@@ -806,12 +810,12 @@ function CnEccRecoverPublicKeyFromFile(const InFileName, InSignFileName: string;
 function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* 用私钥签名指定内存流，Ecc 中需要预先指定曲线}
+{* 用私钥签名指定内存流，Ecc 中需要预先指定曲线，签名格式是 ASN1/BER 包装的 R S}
 
 function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   CurveType: TCnEccCurveType; PrivateKey: TCnEccPrivateKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* 用预定义曲线与私钥签名指定内存流}
+{* 用预定义曲线与私钥签名指定内存流，签名格式是 ASN1/BER 包装的 R S}
 
 function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   Ecc: TCnEcc; PublicKey: TCnEccPublicKey;
@@ -8197,6 +8201,32 @@ begin
   C := Length(Buf) div 2;
   FR.SetHex(Copy(Buf, 1, C));
   FS.SetHex(Copy(Buf, C + 1, MaxInt));
+end;
+
+function TCnEccSignature.ToAsn1Hex(FixedLen: Integer): string;
+var
+  Writer: TCnBerWriter;
+  Root: TCnBerWriteNode;
+  Stream: TMemoryStream;
+begin
+  Writer := nil;
+  Stream := nil;
+
+  try
+    Writer := TCnBerWriter.Create;
+
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    AddBigNumberToWriter(Writer, FR, Root, FixedLen);
+    AddBigNumberToWriter(Writer, FS, Root, FixedLen);
+
+    Stream := TMemoryStream.Create;
+    Writer.SaveToStream(Stream);
+
+    Result := DataToHex(Stream.Memory, Stream.Size);
+  finally
+    Writer.Free;
+    Stream.Free;
+  end;
 end;
 
 function TCnEccSignature.ToBase64(FixedLen: Integer): string;
