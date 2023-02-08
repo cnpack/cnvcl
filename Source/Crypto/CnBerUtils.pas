@@ -363,7 +363,7 @@ function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
   Parent: TCnBerWriteNode; FixedLen: Integer = 0): TCnBerWriteNode;
 {* 将一个大数的内容写入一个新增的 Ber 整型格式的节点}
 
-procedure PutIndexedBigIntegerToBigInt(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
+procedure PutIndexedBigIntegerToBigNumber(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
 {* 将一个 Ber 整型格式的节点写入一个大数的内容}
 
 implementation
@@ -460,7 +460,7 @@ begin
   FreeMemory(P);
 end;
 
-procedure PutIndexedBigIntegerToBigInt(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
+procedure PutIndexedBigIntegerToBigNumber(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
 var
   P: Pointer;
 begin

@@ -849,17 +849,17 @@ begin
         // 8 和 9 整成公钥
         if PublicKey <> nil then
         begin
-          PutIndexedBigIntegerToBigInt(Reader.Items[8], PublicKey.PubKeyProduct);
-          PutIndexedBigIntegerToBigInt(Reader.Items[9], PublicKey.PubKeyExponent);
+          PutIndexedBigIntegerToBigNumber(Reader.Items[8], PublicKey.PubKeyProduct);
+          PutIndexedBigIntegerToBigNumber(Reader.Items[9], PublicKey.PubKeyExponent);
         end;
 
         // 8 10 11 12 整成私钥
         if PrivateKey <> nil then
         begin
-          PutIndexedBigIntegerToBigInt(Reader.Items[8], PrivateKey.PrivKeyProduct);
-          PutIndexedBigIntegerToBigInt(Reader.Items[10], PrivateKey.PrivKeyExponent);
-          PutIndexedBigIntegerToBigInt(Reader.Items[11], PrivateKey.PrimeKey1);
-          PutIndexedBigIntegerToBigInt(Reader.Items[12], PrivateKey.PrimeKey2);
+          PutIndexedBigIntegerToBigNumber(Reader.Items[8], PrivateKey.PrivKeyProduct);
+          PutIndexedBigIntegerToBigNumber(Reader.Items[10], PrivateKey.PrivKeyExponent);
+          PutIndexedBigIntegerToBigNumber(Reader.Items[11], PrivateKey.PrimeKey1);
+          PutIndexedBigIntegerToBigNumber(Reader.Items[12], PrivateKey.PrimeKey2);
         end;
 
         Result := True;
@@ -879,17 +879,17 @@ begin
           // 2 和 3 整成公钥
           if PublicKey <> nil then
           begin
-            PutIndexedBigIntegerToBigInt(Reader.Items[2], PublicKey.PubKeyProduct);
-            PutIndexedBigIntegerToBigInt(Reader.Items[3], PublicKey.PubKeyExponent);
+            PutIndexedBigIntegerToBigNumber(Reader.Items[2], PublicKey.PubKeyProduct);
+            PutIndexedBigIntegerToBigNumber(Reader.Items[3], PublicKey.PubKeyExponent);
           end;
 
           // 2 4 5 6 整成私钥
           if PrivateKey <> nil then
           begin
-            PutIndexedBigIntegerToBigInt(Reader.Items[2], PrivateKey.PrivKeyProduct);
-            PutIndexedBigIntegerToBigInt(Reader.Items[4], PrivateKey.PrivKeyExponent);
-            PutIndexedBigIntegerToBigInt(Reader.Items[5], PrivateKey.PrimeKey1);
-            PutIndexedBigIntegerToBigInt(Reader.Items[6], PrivateKey.PrimeKey2);
+            PutIndexedBigIntegerToBigNumber(Reader.Items[2], PrivateKey.PrivKeyProduct);
+            PutIndexedBigIntegerToBigNumber(Reader.Items[4], PrivateKey.PrivKeyExponent);
+            PutIndexedBigIntegerToBigNumber(Reader.Items[5], PrivateKey.PrimeKey1);
+            PutIndexedBigIntegerToBigNumber(Reader.Items[6], PrivateKey.PrimeKey2);
           end;
 
           Result := True;
@@ -982,8 +982,8 @@ begin
         // 6 和 7 整成公钥
         if PublicKey <> nil then
         begin
-          PutIndexedBigIntegerToBigInt(Reader.Items[6], PublicKey.PubKeyProduct);
-          PutIndexedBigIntegerToBigInt(Reader.Items[7], PublicKey.PubKeyExponent);
+          PutIndexedBigIntegerToBigNumber(Reader.Items[6], PublicKey.PubKeyProduct);
+          PutIndexedBigIntegerToBigNumber(Reader.Items[7], PublicKey.PubKeyExponent);
         end;
 
         Result := True;
@@ -1008,8 +1008,8 @@ begin
         // 1 和 2 整成公钥
         if PublicKey <> nil then
         begin
-          PutIndexedBigIntegerToBigInt(Reader.Items[1], PublicKey.PubKeyProduct);
-          PutIndexedBigIntegerToBigInt(Reader.Items[2], PublicKey.PubKeyExponent);
+          PutIndexedBigIntegerToBigNumber(Reader.Items[1], PublicKey.PubKeyProduct);
+          PutIndexedBigIntegerToBigNumber(Reader.Items[2], PublicKey.PubKeyExponent);
         end;
       
         Result := True;

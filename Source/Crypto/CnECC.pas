@@ -281,8 +281,11 @@ type
     {* 从 Base64 字符串中加载，内部对半拆分。返回设置是否成功}
 
     function ToAsn1Hex(FixedLen: Integer = 0): string;
-    {* 将 R S 拼接包装为 ASN1 的 BER/DER 格式，
+    {* 将 R S 拼接包装为 ASN1 的 BER/DER 格式的十六进制字符串，
       宜指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而出错}
+
+    function SetAsn1Hex(const Buf: AnsiString; FixedLen: Integer = 0): Boolean;
+    {* 从 ASN1 的 BER/DER 格式的十六进制字符串中加载  R S，返回加载是否成功}
 
     property R: TCnBigNumber read FR;
     {* 签名 R 值}
@@ -3775,7 +3778,7 @@ begin
         begin
           // 2 是私钥
           if PrivateKey <> nil then
-            PutIndexedBigIntegerToBigInt(Reader.Items[2], PrivateKey);
+            PutIndexedBigIntegerToBigNumber(Reader.Items[2], PrivateKey);
 
           // 4 又是曲线类型
           Node := Reader.Items[4];
@@ -4271,8 +4274,8 @@ begin
       Exit;
 
     Sig := TCnEccSignature.Create;
-    PutIndexedBigIntegerToBigInt(Reader.Items[1], Sig.R);
-    PutIndexedBigIntegerToBigInt(Reader.Items[2], Sig.S);
+    PutIndexedBigIntegerToBigNumber(Reader.Items[1], Sig.R);
+    PutIndexedBigIntegerToBigNumber(Reader.Items[2], Sig.S);
 
     Result := EccVerifyValue(Ecc, PublicKey, E, Sig);
   finally
@@ -4332,8 +4335,8 @@ begin
       Exit;
 
     Sig := TCnEccSignature.Create;
-    PutIndexedBigIntegerToBigInt(Reader.Items[1], Sig.R);
-    PutIndexedBigIntegerToBigInt(Reader.Items[2], Sig.S);
+    PutIndexedBigIntegerToBigNumber(Reader.Items[1], Sig.R);
+    PutIndexedBigIntegerToBigNumber(Reader.Items[2], Sig.S);
 
     Result := CnEccRecoverPublicKey(Ecc, E, Sig, OutPublicKey1, OutPublicKey2);
   finally
@@ -4461,8 +4464,8 @@ begin
       Exit;
 
     Sig := TCnEccSignature.Create;
-    PutIndexedBigIntegerToBigInt(Reader.Items[1], Sig.R);
-    PutIndexedBigIntegerToBigInt(Reader.Items[2], Sig.S);
+    PutIndexedBigIntegerToBigNumber(Reader.Items[1], Sig.R);
+    PutIndexedBigIntegerToBigNumber(Reader.Items[2], Sig.S);
 
     Result := EccVerifyValue(Ecc, PublicKey, E, Sig);
   finally
@@ -4522,8 +4525,8 @@ begin
       Exit;
 
     Sig := TCnEccSignature.Create;
-    PutIndexedBigIntegerToBigInt(Reader.Items[1], Sig.R);
-    PutIndexedBigIntegerToBigInt(Reader.Items[2], Sig.S);
+    PutIndexedBigIntegerToBigNumber(Reader.Items[1], Sig.R);
+    PutIndexedBigIntegerToBigNumber(Reader.Items[2], Sig.S);
 
     Result := CnEccRecoverPublicKey(Ecc, E, Sig, OutPublicKey1, OutPublicKey2);
   finally
@@ -8176,6 +8179,39 @@ begin
   FS.Free;
   FR.Free;
   inherited;
+end;
+
+function TCnEccSignature.SetAsn1Hex(const Buf: AnsiString; FixedLen: Integer): Boolean;
+var
+  B: TBytes;
+  Reader: TCnBerReader;
+  Root, NR, NS: TCnBerReadNode;
+begin
+  Result := False;
+  B := HexToBytes(Buf);
+  if Length(B) <= 1 then
+    Exit;
+
+  Reader := nil;
+  try
+    Reader := TCnBerReader.Create(PByte(@B[0]), Length(B));
+    Reader.ParseToTree;
+
+    if Reader.TotalCount = 3 then
+    begin
+      NR := Reader.Items[1];
+      NS := Reader.Items[2];
+
+      if (FixedLen <> 0) and ((NR.BerDataLength <> FixedLen) or (NS.BerDataLength <> FixedLen)) then
+        Exit;
+
+      PutIndexedBigIntegerToBigNumber(NR, FR);
+      PutIndexedBigIntegerToBigNumber(NS, FS);
+      Result := True;
+    end;
+  finally
+    Reader.Free;
+  end;
 end;
 
 function TCnEccSignature.SetBase64(const Buf: AnsiString): Boolean;
