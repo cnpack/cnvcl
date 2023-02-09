@@ -498,6 +498,12 @@ function HexToBytes(const Hex: string): TBytes;
 procedure ReverseBytes(Data: TBytes);
 {* 按字节顺序倒置一字节数组}
 
+function StreamToBytes(Stream: TStream): TBytes;
+{* 从流从头读入全部内容至字节数组，返回创建的字节数组}
+
+function BytesToStream(Data: TBytes; OutStream: TStream): Integer;
+{* 字节数组写入整个流，返回写入字节数}
+
 procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
 {* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，
   如 ByteLen 小于 MostLen，则 Dest 填充 0，要求 Dest 容纳至少 MostLen}
@@ -1576,6 +1582,27 @@ begin
     T := Data[I];
     Data[I] := Data[L - I - 1];
     Data[L - I - 1] := T;
+  end;
+end;
+
+function StreamToBytes(Stream: TStream): TBytes;
+begin
+  Result := nil;
+  if (Stream <> nil) and (Stream.Size > 0) then
+  begin
+    SetLength(Result, Stream.Size);
+    Stream.Position := 0;
+    Stream.Read(Result[0], Stream.Size);
+  end;
+end;
+
+function BytesToStream(Data: TBytes; OutStream: TStream): Integer;
+begin
+  Result := 0;
+  if (Data <> nil) and (Length(Data) > 0) and (OutStream <> nil) then
+  begin
+    OutStream.Size := 0;
+    Result := OutStream.Write(Data[0], Length(Data));
   end;
 end;
 
