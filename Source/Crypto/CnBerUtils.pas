@@ -137,7 +137,7 @@ type
     procedure CopyHeadTo(DestBuf: Pointer);
     {* 将节点头部也就是 TL 内容复制至缓冲区，缓冲区尺寸至少需要 BerLength - BerDataLength 大}
     procedure CopyTLVTo(DestBuf: Pointer);
-    {* 将节点全部内容复制至缓冲区，，缓冲区尺寸至少需要 BerLength 大}
+    {* 将节点全部内容复制至缓冲区，缓冲区尺寸至少需要 BerLength 大}
 
     function AsBoolean: Boolean;
     function AsShortInt: ShortInt;
@@ -353,6 +353,7 @@ type
     {* 添加一个原始节点，此节点的 Tag 值直接由 RawTag 指定，
        后面的长度内容等不计算了，直接由 RawLV 与 LVLen 的区域指定}
     property TotalSize: Integer read GetTotalSize;
+    {* 整棵树的总尺寸，字节为单位}
   end;
 
 function CompareObjectIdentifier(Node: TCnBerReadNode; OIDAddr: Pointer;
@@ -360,8 +361,9 @@ function CompareObjectIdentifier(Node: TCnBerReadNode; OIDAddr: Pointer;
 {* 比较一个 Node 中的数据是否等于一个指定的 OID}
 
 function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
-  Parent: TCnBerWriteNode; FixedLen: Integer = 0): TCnBerWriteNode;
-{* 将一个大数的内容写入一个新增的 Ber 整型格式的节点}
+  Parent: TCnBerWriteNode): TCnBerWriteNode;
+{* 将一个大数的内容写入一个新增的 Ber 整型格式的节点，无需指定固定长度，
+  节点会根据最高位的实际情况决定是否加一个字节 0}
 
 procedure PutIndexedBigIntegerToBigNumber(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
 {* 将一个 Ber 整型格式的节点写入一个大数的内容}
@@ -436,7 +438,7 @@ begin
 end;
 
 function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
-  Parent: TCnBerWriteNode; FixedLen: Integer): TCnBerWriteNode;
+  Parent: TCnBerWriteNode): TCnBerWriteNode;
 var
   P: Pointer;
   C, D: Integer;
@@ -454,7 +456,7 @@ begin
   D := C - Num.GetBytesCount;
 
   FillChar(P^, D, 0);
-  Num.ToBinary(PAnsiChar(TCnNativeInt(P) + D), FixedLen);
+  Num.ToBinary(PAnsiChar(TCnNativeInt(P) + D));
 
   Result := Writer.AddBasicNode(CN_BER_TAG_INTEGER, P, C, Parent);
   FreeMemory(P);
@@ -995,7 +997,8 @@ begin
   Mem := TMemoryStream.Create;
   try
     SaveToStream(Mem);
-    Mem.Write(DestBuf^, Mem.Size);
+    Mem.Position := 0;
+    Mem.Read(DestBuf^, Mem.Size);
   finally
     Mem.Free;
   end;

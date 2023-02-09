@@ -31,7 +31,7 @@ unit CnECC;
 *           概念：椭圆曲线的阶是曲线上的总点数（似乎不包括无限远点）
 *           基点的阶是基点标量乘多少等于无限远点。两者是倍数整除关系，可能相等
 * 开发平台：WinXP + Delphi 5.0
-* 兼容测试：暂未进行，注意部分辅助函数缺乏固定长度处理，待修正
+* 兼容测试：暂未进行，注意部分辅助函数缺乏固定长度处理，待修正，但 ASN.1 包装无需指定固定长度
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2022.11.01 V2.1
 *               增加校验公私钥是否配对的函数
@@ -280,12 +280,11 @@ type
     function SetBase64(const Buf: AnsiString): Boolean;
     {* 从 Base64 字符串中加载，内部对半拆分。返回设置是否成功}
 
-    function ToAsn1Hex(FixedLen: Integer = 0): string;
-    {* 将 R S 拼接包装为 ASN1 的 BER/DER 格式的十六进制字符串，
-      宜指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而出错}
+    function ToAsn1Hex: string;
+    {* 将 R S 拼接包装为 ASN1 的 BER/DER 格式的十六进制字符串}
 
-    function SetAsn1Hex(const Buf: AnsiString; FixedLen: Integer = 0): Boolean;
-    {* 从 ASN1 的 BER/DER 格式的十六进制字符串中加载  R S，返回加载是否成功}
+    function SetAsn1Hex(const Buf: AnsiString): Boolean;
+    {* 从 ASN1 的 BER/DER 格式的十六进制字符串中加载 R S，返回加载是否成功}
 
     property R: TCnBigNumber read FR;
     {* 签名 R 值}
@@ -8181,11 +8180,11 @@ begin
   inherited;
 end;
 
-function TCnEccSignature.SetAsn1Hex(const Buf: AnsiString; FixedLen: Integer): Boolean;
+function TCnEccSignature.SetAsn1Hex(const Buf: AnsiString): Boolean;
 var
   B: TBytes;
   Reader: TCnBerReader;
-  Root, NR, NS: TCnBerReadNode;
+  NR, NS: TCnBerReadNode;
 begin
   Result := False;
   B := HexToBytes(Buf);
@@ -8201,9 +8200,6 @@ begin
     begin
       NR := Reader.Items[1];
       NS := Reader.Items[2];
-
-      if (FixedLen <> 0) and ((NR.BerDataLength <> FixedLen) or (NS.BerDataLength <> FixedLen)) then
-        Exit;
 
       PutIndexedBigIntegerToBigNumber(NR, FR);
       PutIndexedBigIntegerToBigNumber(NS, FS);
@@ -8239,7 +8235,7 @@ begin
   FS.SetHex(Copy(Buf, C + 1, MaxInt));
 end;
 
-function TCnEccSignature.ToAsn1Hex(FixedLen: Integer): string;
+function TCnEccSignature.ToAsn1Hex: string;
 var
   Writer: TCnBerWriter;
   Root: TCnBerWriteNode;
@@ -8252,8 +8248,8 @@ begin
     Writer := TCnBerWriter.Create;
 
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
-    AddBigNumberToWriter(Writer, FR, Root, FixedLen);
-    AddBigNumberToWriter(Writer, FS, Root, FixedLen);
+    AddBigNumberToWriter(Writer, FR, Root);
+    AddBigNumberToWriter(Writer, FS, Root);
 
     Stream := TMemoryStream.Create;
     Writer.SaveToStream(Stream);
