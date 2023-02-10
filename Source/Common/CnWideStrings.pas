@@ -54,6 +54,12 @@ const
   CN_ALTERNATIVE_CHAR  = '?';
 
 type
+{$IFDEF UNICODE}
+  TCnWideString = string;
+{$ELSE}
+  TCnWideString = WideString;
+{$ENDIF}
+
   TCnCodePoint = type Cardinal;
   {* 字符码值，或者叫码点，不等于表达的编码方式}
 

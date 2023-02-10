@@ -13,6 +13,7 @@ object FormSM2: TFormSM2
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object lblSM2PublicKey: TLabel
@@ -171,6 +172,14 @@ object FormSM2: TFormSM2
           Caption = 'Using TBytes'
           TabOrder = 4
         end
+        object chkEncAsn1: TCheckBox
+          Left = 216
+          Top = 236
+          Width = 97
+          Height = 17
+          Caption = 'Using ASN1Hex'
+          TabOrder = 11
+        end
       end
     end
     object tsSignVerify: TTabSheet
@@ -220,6 +229,13 @@ object FormSM2: TFormSM2
           Height = 41
           Anchors = [akTop, akRight]
           Shape = bsLeftLine
+        end
+        object lblSM2SigFormat: TLabel
+          Left = 708
+          Top = 60
+          Width = 83
+          Height = 13
+          Caption = 'Signature Format:'
         end
         object btnSm2SignVerify: TButton
           Left = 16
@@ -328,13 +344,18 @@ object FormSM2: TFormSM2
           Caption = 'Using TBytes'
           TabOrder = 3
         end
-        object chkSignBase64: TCheckBox
-          Left = 680
-          Top = 232
-          Width = 97
-          Height = 17
-          Caption = 'Using Base64'
+        object cbbSM2SigFormat: TComboBox
+          Left = 802
+          Top = 56
+          Width = 145
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
           TabOrder = 12
+          Items.Strings = (
+            'Hex'
+            'Asn1Hex'
+            'Base64')
         end
       end
     end

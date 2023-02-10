@@ -71,7 +71,10 @@ uses
   SysUtils, Classes, Contnrs, CnNative, CnECC, CnBigNumber, CnConsts, CnSM3;
 
 const
-  CN_SM2_FINITEFIELD_BYTESIZE = 32; // 256 Bits
+  CN_SM2_FINITEFIELD_BYTESIZE = 32; // 256 Bits，SM2 椭圆曲线的素域位数，也是单个坐标值位数
+
+  CN_SM2_MIN_ENCRYPT_BYTESIZE = SizeOf(TSM3Digest) + CN_SM2_FINITEFIELD_BYTESIZE * 2;
+  // 最小的 SM2 加密结果长度，两个坐标加一个 SM3 摘要长度，共 96 字节
 
   // 错误码
   ECN_SM2_OK                           = ECN_OK; // 没错
@@ -156,12 +159,31 @@ function CnSM2DecryptData(EnData: TBytes; PrivateKey: TCnSM2PrivateKey;
    返回解密后的明文字节数组，如果解密失败则返回空}
 
 function CnSM2EncryptFile(const InFile, OutFile: string; PublicKey: TCnSM2PublicKey;
-  SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
-{* 用公钥加密 InFile 文件内容，加密结果存 OutFile 里，返回是否加密成功}
+  SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
+  IncludePrefixByte: Boolean = True): Boolean;
+{* 用公钥加密 InFile 文件内容，加密结果存 OutFile 里，返回是否加密成功
+   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
+   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括}
 
 function CnSM2DecryptFile(const InFile, OutFile: string; PrivateKey: TCnSM2PrivateKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
 {* 用私钥解密 InFile 文件内容，解密结果存 OutFile 里，返回是否解密成功}
+
+function CnSM2CryptToAsn1(EnData: TBytes; SM2: TCnSM2 = nil;
+  SequenceType: TCnSM2CryptSequenceType = cstC1C3C2; IncludePrefixByte: Boolean = True): TBytes; overload;
+{* 将 EnData 中字节数组形式的原始加密内容转换为 ASN1/BER 格式的字节数组}
+
+function CnSM2CryptToAsn1(EnStream: TStream; OutStream: TStream; SM2: TCnSM2 = nil;
+  SequenceType: TCnSM2CryptSequenceType = cstC1C3C2; IncludePrefixByte: Boolean = True): Boolean; overload;
+{* 将 EnStream 中流格式的原始加密内容转换为 ASN1/BER 格式并写入 OutStream 流中}
+
+function CnSM2CryptFromAsn1(Asn1Data: TBytes; SM2: TCnSM2 = nil;
+  SequenceType: TCnSM2CryptSequenceType = cstC1C3C2; IncludePrefixByte: Boolean = True): TBytes; overload;
+{* 将 Asn1Data 中 ASN1/BER 格式的字节数组形式的加密内容转换为原始字节数组}
+
+function CnSM2CryptFromAsn1(Asn1Stream: TStream; OutStream: TStream; SM2: TCnSM2 = nil;
+  SequenceType: TCnSM2CryptSequenceType = cstC1C3C2; IncludePrefixByte: Boolean = True): Boolean; overload;
+{* 将 Asn1Stream 中 ASN1/BER 格式流的加密内容转换为原始加密内容并写入 OutStream 流中}
 
 // ====================== SM2 椭圆曲线数字签名验证算法 =========================
 
@@ -409,7 +431,7 @@ function CnSM2Collaborative3DecryptAStep2(EnData: Pointer; DataLen: Integer;
 implementation
 
 uses
-  CnKDF;
+  CnKDF, CnBerUtils;
 
 const
   CN_SM2_DEF_UID: array[0..15] of Byte =
@@ -760,7 +782,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    MLen := DataLen - SizeOf(TSM3Digest) - (SM2.BitsCount div 4);
+    MLen := DataLen - CN_SM2_MIN_ENCRYPT_BYTESIZE;
     if MLen <= 0 then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -785,9 +807,9 @@ begin
       PrefixLen := 0;
 
     // 读出 C1
-    P2.X.SetBinary(M, SM2.BitsCount div 8);
-    Inc(M, SM2.BitsCount div 8);
-    P2.Y.SetBinary(M, SM2.BitsCount div 8);
+    P2.X.SetBinary(M, CN_SM2_FINITEFIELD_BYTESIZE);
+    Inc(M, CN_SM2_FINITEFIELD_BYTESIZE);
+    P2.Y.SetBinary(M, CN_SM2_FINITEFIELD_BYTESIZE);
     if P2.IsZero then
     begin
       _CnSetLastError(ECN_SM2_DECRYPT_INFINITE_ERROR);
@@ -877,7 +899,7 @@ begin
 end;
 
 function CnSM2EncryptFile(const InFile, OutFile: string; PublicKey: TCnSM2PublicKey;
-  SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
+  SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean): Boolean;
 var
   Stream: TMemoryStream;
   F: TFileStream;
@@ -890,7 +912,8 @@ begin
     Stream.LoadFromFile(InFile);
 
     F := TFileStream.Create(OutFile, fmCreate);
-    Result := CnSM2EncryptData(Stream.Memory, Stream.Size, F, PublicKey, SM2, SequenceType);
+    Result := CnSM2EncryptData(Stream.Memory, Stream.Size, F, PublicKey, SM2,
+      SequenceType, IncludePrefixByte);
   finally
     F.Free;
     Stream.Free;
@@ -898,7 +921,7 @@ begin
 end;
 
 function CnSM2DecryptFile(const InFile, OutFile: string; PrivateKey: TCnSM2PrivateKey;
-  SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
+  SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType): Boolean;
 var
   Stream: TMemoryStream;
   F: TFileStream;
@@ -916,6 +939,196 @@ begin
     F.Free;
     Stream.Free;
   end;
+end;
+
+function CnSM2CryptToAsn1(EnData: TBytes; SM2: TCnSM2;
+  SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean): TBytes;
+var
+  P: Pointer;
+  MLen: Integer;
+  Num: TCnBigNumber;
+  Writer: TCnBerWriter;
+  Root: TCnBerWriteNode;
+begin
+  Result := nil;
+  MLen := Length(EnData) - CN_SM2_MIN_ENCRYPT_BYTESIZE;
+  if MLen <= 0 then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
+    Exit;
+  end;
+
+  if IncludePrefixByte then
+  begin
+    if (MLen <= 1) or (EnData[0] <> 04) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+    P := @EnData[1]; // 跳过前导字节 04
+    Dec(MLen);
+  end
+  else
+    P := @EnData[0];
+
+  Writer := nil;
+  Num := nil;
+
+  try
+    Writer := TCnBerWriter.Create;
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+
+    Num := TCnBigNumber.Create;
+
+    // P 已指向 C1，写 C1 中的 X
+    Num.SetBinary(P, CN_SM2_FINITEFIELD_BYTESIZE);
+    AddBigNumberToWriter(Writer, Num, Root);
+    P := Pointer(TCnNativeInt(P) + CN_SM2_FINITEFIELD_BYTESIZE);
+
+    // 写 C1 中的 Y
+    Num.SetBinary(P, CN_SM2_FINITEFIELD_BYTESIZE);
+    AddBigNumberToWriter(Writer, Num, Root);
+    P := Pointer(TCnNativeInt(P) + CN_SM2_FINITEFIELD_BYTESIZE);
+
+    // C1 写完，根据类型处理 C3C2 或 C2C3
+    if SequenceType = cstC1C3C2 then
+    begin
+      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, SizeOf(TSM3Digest)); // 写 C3 校验
+      P := Pointer(TCnNativeInt(P) + SizeOf(TSM3Digest));
+      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, MLen);               // 写 C2 密文
+    end
+    else
+    begin
+      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, MLen);               // 写 C2 密文
+      P := Pointer(TCnNativeInt(P) + MLen);
+      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, SizeOf(TSM3Digest)); // 写 C3 校验
+    end;
+
+    SetLength(Result, Writer.TotalSize);
+    Writer.SaveTo(@Result[0]);
+  finally
+    Num.Free;
+    Writer.Free;
+  end;
+end;
+
+function CnSM2CryptToAsn1(EnStream: TStream; OutStream: TStream; SM2: TCnSM2;
+  SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean): Boolean;
+var
+  R: TBytes;
+begin
+  Result := False;
+  R := CnSM2CryptToAsn1(StreamToBytes(EnStream), SM2, SequenceType, IncludePrefixByte);
+  if R <> nil then
+    Result := BytesToStream(R, OutStream) > 0;
+end;
+
+function CnSM2CryptFromAsn1(Asn1Data: TBytes; SM2: TCnSM2;
+  SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean): TBytes;
+var
+  Idx: Integer;
+  Reader: TCnBerReader;
+  X, Y: TCnBigNumber;
+begin
+  Result := nil;
+  if Length(Asn1Data) < CN_SM2_MIN_ENCRYPT_BYTESIZE + 4 then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
+    Exit;
+  end;
+
+  Reader := nil;
+  X := nil;
+  Y := nil;
+
+  try
+    Reader := TCnBerReader.Create(@Asn1Data[0], Length(Asn1Data));
+    Reader.ParseToTree;
+
+    if Reader.TotalCount <> 5 then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
+    if (Reader.Items[1].BerDataLength > CN_SM2_FINITEFIELD_BYTESIZE + 1)
+      or ((Reader.Items[2].BerDataLength > CN_SM2_FINITEFIELD_BYTESIZE + 1)) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
+    X := TCnBigNumber.Create;
+    PutIndexedBigIntegerToBigNumber(Reader.Items[1], X);
+    if X.GetBytesCount > CN_SM2_FINITEFIELD_BYTESIZE then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
+    Y := TCnBigNumber.Create;
+    PutIndexedBigIntegerToBigNumber(Reader.Items[2], Y);
+    if Y.GetBytesCount > CN_SM2_FINITEFIELD_BYTESIZE then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
+      Exit;
+    end;
+
+    if SequenceType = cstC1C3C2 then
+    begin
+      if Reader.Items[3].BerDataLength <> SizeOf(TSM3Digest) then // 尾巴上的 C3 长度必须是 32 字节
+      begin
+        _CnSetLastError(ECN_SM2_INVALID_INPUT);
+       Exit;
+      end;
+    end
+    else
+    begin
+      if Reader.Items[4].BerDataLength <> SizeOf(TSM3Digest) then // 尾巴上的 C3 长度必须是 32 字节
+      begin
+        _CnSetLastError(ECN_SM2_INVALID_INPUT);
+       Exit;
+      end;
+    end;
+
+    Idx := CN_SM2_FINITEFIELD_BYTESIZE * 2 + Reader.Items[3].BerDataLength
+      + Reader.Items[4].BerDataLength;
+    if IncludePrefixByte then
+      Inc(Idx);
+
+    SetLength(Result, Idx);
+    Idx := 0;
+    if IncludePrefixByte then
+    begin
+      Result[0] := 04;
+      Inc(Idx);
+    end;
+    X.ToBinary(@Result[Idx], CN_SM2_FINITEFIELD_BYTESIZE);
+    Inc(Idx, CN_SM2_FINITEFIELD_BYTESIZE);
+    Y.ToBinary(@Result[Idx], CN_SM2_FINITEFIELD_BYTESIZE);
+
+    Inc(Idx, CN_SM2_FINITEFIELD_BYTESIZE);
+
+    // 无论 3 是 C3，4 是 C2，还是 3 是 C2，4 是 C3，都能这么写
+    Reader.Items[3].CopyDataTo(@Result[Idx]);
+    Inc(Idx, Reader.Items[3].BerDataLength);
+    Reader.Items[4].CopyDataTo(@Result[Idx]);
+  finally
+    Y.Free;
+    X.Free;
+    Reader.Free;
+  end;
+end;
+
+function CnSM2CryptFromAsn1(Asn1Stream: TStream; OutStream: TStream; SM2: TCnSM2;
+  SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean): Boolean;
+var
+  R: TBytes;
+begin
+  Result := False;
+  R := CnSM2CryptFromAsn1(StreamToBytes(Asn1Stream), SM2, SequenceType, IncludePrefixByte);
+  if R <> nil then
+    Result := BytesToStream(R, OutStream) > 0;
 end;
 
 // 计算 Za 值也就是 Hash(EntLen‖UserID‖a‖b‖xG‖yG‖xA‖yA)
@@ -1968,7 +2181,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    MLen := DataLen - SizeOf(TSM3Digest) - (SM2.BitsCount div 4);
+    MLen := DataLen - CN_SM2_MIN_ENCRYPT_BYTESIZE;
     if MLen <= 0 then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -2064,7 +2277,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    MLen := DataLen - SizeOf(TSM3Digest) - (SM2.BitsCount div 4);
+    MLen := DataLen - CN_SM2_MIN_ENCRYPT_BYTESIZE;
     if MLen <= 0 then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);

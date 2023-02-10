@@ -133,7 +133,9 @@ type
     chkEncDecTBytes: TCheckBox;
     chkSignTBytes: TCheckBox;
     btnCalcPubFromPriv: TButton;
-    chkSignBase64: TCheckBox;
+    chkEncAsn1: TCheckBox;
+    lblSM2SigFormat: TLabel;
+    cbbSM2SigFormat: TComboBox;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -170,6 +172,7 @@ type
     procedure btnSM2Coll3EncryptClick(Sender: TObject);
     procedure btnSM2Coll3DecryptClick(Sender: TObject);
     procedure btnCalcPubFromPrivClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     function CheckPublicKeyStr(Edit: TEdit): Boolean;
     function CheckPrivateKeyStr(Edit: TEdit): Boolean;
@@ -190,6 +193,9 @@ const
 
   USER_A: AnsiString = 'ALICE123@YAHOO.COM';
   USER_B: AnsiString = 'BILL456@YAHOO.COM';
+
+type
+  TSm2ResFormat = (rfHex, rfAsn1Hex, rfBase64);
 
 function HexToInt(const Hex: AnsiString): Integer;
 var
@@ -415,6 +421,8 @@ begin
     if Length(R) > 0 then
     begin
       ShowMessage('Encrypt OK');
+      if chkEncAsn1.Checked then
+        R := CnSM2CryptToAsn1(R, SM2, ST, chkPrefixByte.Checked);
       mmoSM2Result.Lines.Text := BytesToHex(R);
     end;
   end
@@ -423,6 +431,9 @@ begin
     if CnSM2EncryptData(@T[1], Length(T), EnStream, PublicKey, SM2, ST, chkPrefixByte.Checked) then
     begin
       ShowMessage('Encrypt OK');
+      if chkEncAsn1.Checked then
+        CnSM2CryptToAsn1(EnStream, EnStream, SM2, ST, chkPrefixByte.Checked);
+
       mmoSM2Result.Lines.Text := DataToHex(PAnsiChar(EnStream.Memory), EnStream.Size);
     end;
   end;
@@ -486,6 +497,9 @@ begin
     ST := cstC1C3C2
   else
     ST := cstC1C2C3;
+
+  if chkEncAsn1.Checked then
+    CnSM2CryptFromAsn1(EnStream, EnStream, SM2, ST, chkPrefixByte.Checked);
 
   if chkEncDecTBytes.Checked then
   begin
@@ -563,10 +577,11 @@ begin
 
     if CnSM2SignData(edtSM2UserId.Text, B, SignRes, PrivateKey, PublicKey, SM2) then
     begin
-      if chkSignBase64.Checked then
-        mmoSignResult.Lines.Text := SignRes.ToBase64(SM2.BytesCount)
-      else
-        mmoSignResult.Lines.Text := SignRes.ToHex(SM2.BytesCount);
+      case TSm2ResFormat(cbbSM2SigFormat.ItemIndex) of
+        rfHex: mmoSignResult.Lines.Text := SignRes.ToHex(SM2.BytesCount);
+        rfAsn1Hex: mmoSignResult.Lines.Text := SignRes.ToAsn1Hex;
+        rfBase64: mmoSignResult.Lines.Text := SignRes.ToBase64(SM2.BytesCount);
+      end;
     end
     else
       ShowMessage('Sign File Failed.');
@@ -576,10 +591,11 @@ begin
     if CnSM2SignData(edtSM2UserId.Text, FileStream.Memory, FileStream.Size, SignRes,
       PrivateKey, PublicKey, SM2) then
     begin
-      if chkSignBase64.Checked then
-        mmoSignResult.Lines.Text := SignRes.ToBase64(SM2.BytesCount)
-      else
-        mmoSignResult.Lines.Text := SignRes.ToHex(SM2.BytesCount);
+      case TSm2ResFormat(cbbSM2SigFormat.ItemIndex) of
+        rfHex: mmoSignResult.Lines.Text := SignRes.ToHex(SM2.BytesCount);
+        rfAsn1Hex: mmoSignResult.Lines.Text := SignRes.ToAsn1Hex;
+        rfBase64: mmoSignResult.Lines.Text := SignRes.ToBase64(SM2.BytesCount)
+      end;
     end
     else
       ShowMessage('Sign File Failed.');
@@ -702,12 +718,13 @@ begin
   FileStream.LoadFromFile(edtSM2FileSign.Text);
 
   SignRes := TCnSM2Signature.Create;
-  if IsHexString(mmoSignResult.Lines.Text) then
-    SignRes.SetHex(mmoSignResult.Lines.Text)
-  else
-  begin
-    if not SignRes.SetBase64(mmoSignResult.Lines.Text) then
-      ShowMessage('Invalid Base64 Signature.');
+
+  case TSM2ResFormat(cbbSM2SigFormat.ItemIndex) of
+    rfHex: SignRes.SetHex(mmoSignResult.Lines.Text);
+    rfAsn1Hex: SignRes.SetAsn1Hex(mmoSignResult.Lines.Text);
+    rfBase64:
+      if not SignRes.SetBase64(mmoSignResult.Lines.Text) then
+       ShowMessage('Invalid Base64 Signature.');
   end;
 
   if chkSignTBytes.Checked then
@@ -1893,6 +1910,11 @@ begin
   PublicKey.Free;
   PrivateKey.Free;
   SM2.Free;
+end;
+
+procedure TFormSM2.FormCreate(Sender: TObject);
+begin
+  cbbSM2SigFormat.ItemIndex := 0;
 end;
 
 end.

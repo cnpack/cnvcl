@@ -1386,8 +1386,9 @@ function ConvertStringToIdent(const Str: string; const Prefix: string = 'S';
   UseUnderLine: Boolean = False; IdentWordStyle: TCnIdentWordStyle = iwsUpperFirstChar;
   UseFullPinYin: Boolean = False; MaxWideChars: Integer = 7; MaxWords: Integer = 7): string;
 {* 将字符串中的符合标识符信息的内容抽取出来形成标识符并返回，内部针对汉字处理拼音
-  UseUnderLine：分词或拼音之间是否用下划线分隔
+  UseUnderLine：分词或拼音之间是否用下划线分隔（拼音使用首字母时相邻的汉字不分隔）
   IdentWordStyle：分词使用全大写、全小写还是首字母大写
+  UseFullPinYin：获取汉字拼音时使用全拼还是只首字母
   MaxWideChars：最长处理的双字节字符数，要有拼音才算
   MaxWords：最长处理的分词数。注意这两个 Max 只要达到一个就完成}
 
