@@ -8660,7 +8660,7 @@ var
           begin
             if (Ord(Result[I]) < 128) and (AnsiChar(Result[I]) in ['a'..'z']) then
             begin
-              Result[I] := WideChar(Ord(Result[1]) - 32);
+              Result[I] := WideChar(Ord(Result[I]) - 32);
               Exit;
             end;
           end;
