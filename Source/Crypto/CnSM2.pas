@@ -36,6 +36,9 @@ unit CnSM2;
 *           注意：当 UserId 传空时内部默认会使用字符串 1234567812345678 以符合
 *           《GM/T 0009-2012 SM2密码算法使用规范》第 10 节的要求
 *
+*           另外，签名时计算的 Za 值是 SM3(EntLen‖UserID‖a‖b‖xG‖yG‖xA‖yA)
+*           其中 EntLen 是 UserID 的位长度（也就是字节长度 * 8）的网络顺序字节表示
+*
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
@@ -1132,6 +1135,7 @@ begin
 end;
 
 // 计算 Za 值也就是 Hash(EntLen‖UserID‖a‖b‖xG‖yG‖xA‖yA)
+// 其中 EntLen 是 UserID 的位长度（也就是字节长度 * 8）的网络顺序字节表示
 function CalcSM2UserHash(const UserID: AnsiString; PublicKey: TCnSM2PublicKey;
   SM2: TCnSM2): TSM3Digest;
 var
@@ -1144,16 +1148,16 @@ begin
     if UserID <> '' then
     begin
       Len := Length(UserID) * 8;
-      ULen := ((Len and $FF) shl 8) or ((Len and $FF00) shr 8);
+      ULen := UInt16HostToNetwork(Len); // 转成网络字节顺序
 
       Stream.Write(ULen, SizeOf(ULen));
       if ULen > 0 then
         Stream.Write(UserID[1], Length(UserID));
     end
-    else // UserID 为空时按规范使用 1234567812345678
+    else // UserID 为空时按规范使用字符串 1234567812345678
     begin
       Len := SizeOf(CN_SM2_DEF_UID) * 8;
-      ULen := ((Len and $FF) shl 8) or ((Len and $FF00) shr 8);
+      ULen := UInt16HostToNetwork(Len); // 转成网络字节顺序
 
       Stream.Write(ULen, SizeOf(ULen));
       if ULen > 0 then
