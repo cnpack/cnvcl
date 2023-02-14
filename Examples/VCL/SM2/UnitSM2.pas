@@ -136,6 +136,7 @@ type
     chkEncAsn1: TCheckBox;
     lblSM2SigFormat: TLabel;
     cbbSM2SigFormat: TComboBox;
+    btnSaveSM2Key: TButton;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -173,6 +174,7 @@ type
     procedure btnSM2Coll3DecryptClick(Sender: TObject);
     procedure btnCalcPubFromPrivClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure btnSaveSM2KeyClick(Sender: TObject);
   private
     function CheckPublicKeyStr(Edit: TEdit): Boolean;
     function CheckPrivateKeyStr(Edit: TEdit): Boolean;
@@ -1915,6 +1917,32 @@ end;
 procedure TFormSM2.FormCreate(Sender: TObject);
 begin
   cbbSM2SigFormat.ItemIndex := 0;
+end;
+
+procedure TFormSM2.btnSaveSM2KeyClick(Sender: TObject);
+var
+  Priv: TCnSM2PrivateKey;
+  Pub: TCnSM2PublicKey;
+  CurveType: TCnEccCurveType;
+begin
+  if dlgSave1.Execute then
+  begin
+    Priv := TCnSM2PrivateKey.Create;
+    Pub := TCnSM2PublicKey.Create;
+
+    Pub.SetHex(edtSM2PublicKey.Text);
+    Priv.SetHex(edtSM2PrivateKey.Text);
+
+    if CnEccSaveKeysToPem(dlgSave1.FileName, Priv, Pub, ctSM2) then
+    begin
+      ShowMessage('Save SM2 Key OK.');
+    end
+    else
+      ShowMessage('Save SM2 Key Failed.');
+
+    Pub.Free;
+    Priv.Free;
+  end;
 end;
 
 end.

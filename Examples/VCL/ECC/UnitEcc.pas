@@ -391,36 +391,6 @@ begin
   Result := Res;
 end;
 
-function MyStrToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
-const
-  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
-                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
-var
-  I: Integer;
-  B: Byte;
-begin
-  Result := '';
-  for I := 0 to Length - 1 do
-  begin
-    B := PByte(Integer(Buffer) + I)^;
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}
-      (Digits[(B shr 4) and $0F] + Digits[B and $0F]);
-  end;
-end;
-
-function MyHexToStr(Hex: string): AnsiString;
-var
-  S: string;
-  I: Integer;
-begin
-  Result := '';
-  for I := 0 to Length(Hex) div 2 - 1 do
-  begin
-    S := Copy(Hex, I * 2 + 1, 2);
-    Result := Result + AnsiChar(HexToInt(S));
-  end;
-end;
-
 procedure TFormEcc.btnTest1Click(Sender: TObject);
 var
   P, Q: TCnInt64EccPoint;
@@ -2236,7 +2206,7 @@ begin
     SetLength(S, OutStream.Size);
     OutStream.Position := 0;
     OutStream.Read(S[1], OutStream.Size);
-    edtKeySign.Text := MyStrToHex(@S[1], Length(S));
+    edtKeySign.Text := DataToHex(@S[1], Length(S));
   end;
 
   InStream.Free;
@@ -2248,14 +2218,15 @@ procedure TFormEcc.btnKeyVerifyClick(Sender: TObject);
 var
   InStream, SignStream: TMemoryStream;
   S: AnsiString;
+  B: TBytes;
 begin
   InStream := TMemoryStream.Create;
   SignStream := TMemoryStream.Create;
   S := edtKeyData.Text; // 'abc'
   InStream.Write(S[1], Length(S));
 
-  S := MyHexToStr(edtKeySign.Text);
-  SignStream.Write(S[1], Length(S));
+  B := HexToBytes(edtKeySign.Text);
+  SignStream.Write(B[0], Length(B));
   SignStream.Position := 0;
 
   if CnEccVerifyStream(InStream, SignStream, FKeyEcc, FPublicKey,
@@ -2267,6 +2238,7 @@ begin
   InStream.Free;
   SignStream.Free;
   SetLength(S, 0);
+  SetLength(B, 0);
 end;
 
 procedure TFormEcc.btnKeyGenerateClick(Sender: TObject);
@@ -2289,7 +2261,7 @@ begin
     SetLength(S, Stream.Size);
     Stream.Position := 0;
     Stream.Read(S[1], Stream.Size);
-    edtKeySign.Text := MyStrToHex(@S[1], Length(S));
+    edtKeySign.Text := DataToHex(@S[1], Length(S));
 
     Stream.Free;
   end;
@@ -3080,6 +3052,7 @@ procedure TFormEcc.btnRecoverPubKeyClick(Sender: TObject);
 var
   InStream, SignStream: TMemoryStream;
   S: AnsiString;
+  B: TBytes;
   Pub1, Pub2: TCnEccPublicKey;
 begin
   // 从签名还原公钥
@@ -3088,8 +3061,8 @@ begin
   S := edtKeyData.Text; // 'abc'
   InStream.Write(S[1], Length(S));
 
-  S := MyHexToStr(edtKeySign.Text);
-  SignStream.Write(S[1], Length(S));
+  B := HexToBytes(edtKeySign.Text);
+  SignStream.Write(B[0], Length(B));
   SignStream.Position := 0;
 
   Pub1 := TCnEccPublicKey.Create;
@@ -3111,6 +3084,7 @@ begin
   InStream.Free;
   SignStream.Free;
   SetLength(S, 0);
+  SetLength(B, 0);
 end;
 
 procedure TFormEcc.btnEccFastSchoofClick(Sender: TObject);

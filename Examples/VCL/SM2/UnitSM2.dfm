@@ -1039,10 +1039,10 @@ object FormSM2: TFormSM2
   object btnLoadSM2Key: TButton
     Left = 994
     Top = 48
-    Width = 105
+    Width = 47
     Height = 25
     Anchors = [akTop, akRight]
-    Caption = 'Load SM2 Key'
+    Caption = 'Load'
     TabOrder = 3
     OnClick = btnLoadSM2KeyClick
   end
@@ -1064,6 +1064,16 @@ object FormSM2: TFormSM2
     Caption = 'Calc Public Key from Private Key'
     TabOrder = 6
     OnClick = btnCalcPubFromPrivClick
+  end
+  object btnSaveSM2Key: TButton
+    Left = 1050
+    Top = 48
+    Width = 47
+    Height = 25
+    Anchors = [akTop, akRight]
+    Caption = 'Save'
+    TabOrder = 7
+    OnClick = btnSaveSM2KeyClick
   end
   object dlgOpen1: TOpenDialog
     Left = 876
