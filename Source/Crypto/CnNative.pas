@@ -1395,7 +1395,7 @@ begin
     else if (C >= 'a') and (C <= 'f') then
       Res := Res * 16 + Ord(C) - Ord('a') + 10
     else
-      raise Exception.Create('Error: not a Hex String');
+      raise Exception.CreateFmt('Error: not a Hex String: %c', [C]);
   end;
   Result := Res;
 end;
@@ -1454,7 +1454,7 @@ var
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
-    raise Exception.Create('Error: not a Hex String');
+    raise Exception.CreateFmt('Error Length %d: not a Hex String', [L]);
 
   Result := 0;
   for I := 1 to L div 2 do
@@ -1506,7 +1506,7 @@ var
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
-    raise Exception.Create('Error: not a Hex String');
+    raise Exception.CreateFmt('Error Length %d: not a Hex String', [L]);
 
   SetLength(Result, L div 2);
   for I := 1 to L div 2 do
@@ -1557,7 +1557,7 @@ var
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
-    raise Exception.Create('Error: not a Hex String');
+    raise Exception.CreateFmt('Error Length %d: not a Hex String', [L]);
 
   SetLength(Result, L div 2);
   for I := 1 to L div 2 do
