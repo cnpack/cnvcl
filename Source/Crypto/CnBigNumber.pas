@@ -6148,7 +6148,9 @@ begin
     X1 := FLocalBigNumberPool.Obtain;
     Y := FLocalBigNumberPool.Obtain;
 
-    if BigNumberCopy(X1, X) = nil then Exit;
+    if BigNumberCopy(X1, X) = nil then
+      Exit;
+
     if BigNumberIsNegative(X1) then
     begin
       BigNumberSetNegative(X1, False);
