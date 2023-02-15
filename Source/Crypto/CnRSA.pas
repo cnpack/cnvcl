@@ -138,7 +138,7 @@ type
     FPrivKeyProduct: TCnBigNumber;
     FPrivKeyExponent: TCnBigNumber;
 {$IFDEF CN_RSA_USE_CRT}
-    FDP1: TCnBigNumber;
+    FDP1: TCnBigNumber;  // CRT 加速的三个中间变量
     FDQ1: TCnBigNumber;
     FQInv: TCnBigNumber;
 {$ENDIF}
@@ -151,9 +151,11 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure Assign(Source: TPersistent); override;
 
+    procedure Assign(Source: TPersistent); override;
+    {* 从另一私钥对象赋值}
     procedure Clear;
+    {* 清空值}
 
     property PrimeKey1: TCnBigNumber read FPrimeKey1 write FPrimeKey1;
     {* 大素数 1，p，要求比 q 大}
@@ -179,9 +181,11 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure Assign(Source: TPersistent); override;
 
+    procedure Assign(Source: TPersistent); override;
+    {* 从另一公钥对象赋值}
     procedure Clear;
+    {* 清空值}
 
     property PubKeyProduct: TCnBigNumber read FPubKeyProduct write FPubKeyProduct;
     {* 俩素数乘积 n，也叫 Modulus}
@@ -229,8 +233,7 @@ function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPriva
 {* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入
   自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释
   KeyHashMethod: 对应 PEM 文件的加密 Hash 算法，默认 MD5（无法根据 PEM 文件内容自动判断）
-  Password: PEM 文件如加密，此处应传对应密码
-}
+  Password: PEM 文件如加密，此处应传对应密码}
 
 function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
@@ -238,8 +241,7 @@ function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
 {* 从 PEM 格式的流中加载公私钥数据，如某钥参数为空则不载入
   自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释
   KeyHashMethod: 对应 PEM 文件的加密 Hash 算法，默认 MD5（无法根据 PEM 文件内容自动判断）
-  Password: PEM 文件如加密，此处应传对应密码
-}
+  Password: PEM 文件如加密，此处应传对应密码}
 
 function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS1;
@@ -249,8 +251,7 @@ function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivate
 {* 将公私钥写入 PEM 格式文件中，返回是否成功
   KeyEncryptMethod: 如 PEM 文件需加密，可用此参数指定加密方式，ckeNone 表示不加密，忽略后续参数
   KeyHashMethod: 生成 Key 的 Hash 算法，默认 MD5
-  Password: PEM 文件的加密密码
-}
+  Password: PEM 文件的加密密码}
 
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
@@ -322,7 +323,8 @@ function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
 function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
+  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey;
+  PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
 {* 用私钥对数据块进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中，并返回数据长度
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
@@ -833,7 +835,7 @@ end;
 
 function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
-  const Password: string = ''): Boolean; overload;
+  const Password: string = ''): Boolean;
 var
   LoadOK: Boolean;
   MemStream: TMemoryStream;
@@ -989,7 +991,7 @@ end;
 
 function CnRSALoadPublicKeyFromPem(const PemStream: TStream;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
-  const Password: string = ''): Boolean; overload;
+  const Password: string = ''): Boolean;
 var
   Mem: TMemoryStream;
   Reader: TCnBerReader;
@@ -1367,6 +1369,9 @@ var
 begin
   T := TCnBigNumber.Create;
   try
+    if BigNumberCompare(FPrimeKey1, FPrimeKey2) < 0 then // 确保 p > q
+      BigNumberSwap(FPrimeKey1, FPrimeKey2);
+
     // 计算 DP1 = D mod (PrimeKey1 - 1);
     BigNumberCopy(T, FPrimeKey1);
     T.SubWord(1);
@@ -1586,7 +1591,7 @@ begin
 end;
 
 function CnRSAEncryptFile(const InFileName, OutFileName: string;
-  PublicKey: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode): Boolean; overload;
+  PublicKey: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode): Boolean;
 var
   Stream: TMemoryStream;
   Res: array of Byte;
@@ -1614,7 +1619,7 @@ begin
 end;
 
 function CnRSAEncryptFile(const InFileName, OutFileName: string;
-  PrivateKey: TCnRSAPrivateKey): Boolean; overload;
+  PrivateKey: TCnRSAPrivateKey): Boolean;
 var
   Stream: TMemoryStream;
   Res: array of Byte;
@@ -1743,7 +1748,7 @@ begin
 end;
 
 function CnRSADecryptFile(const InFileName, OutFileName: string;
-  PrivateKey: TCnRSAPrivateKey; PaddingMode: TCnRSAPaddingMode): Boolean; overload;
+  PrivateKey: TCnRSAPrivateKey; PaddingMode: TCnRSAPaddingMode): Boolean;
 var
   Stream: TMemoryStream;
   Res: array of Byte;
