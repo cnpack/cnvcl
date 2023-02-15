@@ -25,6 +25,8 @@ unit CnRSA;
 * 单元名称：RSA 算法单元
 * 单元作者：刘啸
 * 备    注：包括 Int64 范围内的 RSA 算法以及大数算法，公钥 Exponent 默认固定使用 65537。
+*           另外官方提倡公钥加密、私钥解密，但 RSA 两者等同，也可私钥加密、公钥解密
+*           本单元两类方法都提供了，使用时须注意配对。
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -267,11 +269,19 @@ function CnRSASavePublicKeyToPem(const PemFileName: string;
 {* 将公钥写入 PEM 格式文件中，返回是否成功}
 
 function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
-  Res: TCnBigNumber): Boolean;
+  Res: TCnBigNumber): Boolean; overload;
 {* 利用上面生成的私钥对数据进行加密，返回加密是否成功}
 
+function CnRSAEncrypt(Data: TCnBigNumber; PublicKey: TCnRSAPublicKey;
+  Res: TCnBigNumber): Boolean; overload;
+{* 利用上面生成的公钥对数据进行加密，返回加密是否成功}
+
+function CnRSADecrypt(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
+  Data: TCnBigNumber): Boolean; overload;
+{* 利用上面生成的私钥对数据进行解密，返回解密是否成功}
+
 function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
-  Data: TCnBigNumber): Boolean;
+  Data: TCnBigNumber): Boolean; overload;
 {* 利用上面生成的公钥对数据进行解密，返回解密是否成功}
 
 // ======================== RSA 数据与文件加解密实现 ===========================
@@ -1254,12 +1264,28 @@ end;
 // 利用私钥对数据进行加密，返回加密是否成功
 function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Res: TCnBigNumber): Boolean;
+begin
+  Result := CnRSADecrypt(Res, PrivateKey, Data); // 本质上是同一个私钥运算，可复用
+end;
+
+// 利用公钥对数据进行加密，返回加密是否成功
+function CnRSAEncrypt(Data: TCnBigNumber; PublicKey: TCnRSAPublicKey;
+  Res: TCnBigNumber): Boolean;
+begin
+  Result := RSACrypt(Res, PublicKey.PubKeyProduct, PublicKey.PubKeyExponent, Data);
+end;
+
+// 利用私钥对数据进行解密，返回解密是否成功
+function CnRSADecrypt(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
+  Data: TCnBigNumber): Boolean;
 {$IFDEF CN_RSA_USE_CRT}
 var
   M1, M2: TCnBigNumber;
 {$ENDIF}
 begin
 {$IFDEF CN_RSA_USE_CRT}
+  Result := False;
+
   M1 := nil;
   M2 := nil;
 
@@ -1289,6 +1315,8 @@ begin
 
     BigNumberAdd(Res, M2, M1);
     // m = m2 + m1
+
+    Result := True;
   finally
     M2.Free;
     M1.Free;
@@ -1302,8 +1330,7 @@ end;
 function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
   Data: TCnBigNumber): Boolean;
 begin
-
-  Result := RSACrypt(Res, PublicKey.PubKeyProduct, PublicKey.PubKeyExponent, Data);
+  Result := CnRSAEncrypt(Data, PublicKey, Res); // 本质上是同一个公钥运算，可复用
 end;
 
 { TCnRSAPrivateKey }
