@@ -149,7 +149,7 @@ type
     lblFactorNumber: TLabel;
     edtDHNumber: TEdit;
     btnFindFactors: TButton;
-    lblInt64DHP: TLabel;
+    lblDHPrime: TLabel;
     edtDHPrime: TEdit;
     edtDHRoot: TEdit;
     btnGenInt64DH: TButton;
@@ -181,6 +181,28 @@ type
     cbbLoadKeyHash: TComboBox;
     chkOAEP: TCheckBox;
     btnInt64Sample: TButton;
+    grpChameleonHash: TGroupBox;
+    lblCHPrime: TLabel;
+    edtCHPrime: TEdit;
+    lblCHRoot: TLabel;
+    edtCHRoot: TEdit;
+    btnGenCH: TButton;
+    edtCHNumber: TEdit;
+    lblCHNumber: TLabel;
+    edtCHSecKey: TEdit;
+    lblCHSecKey: TLabel;
+    edtCHRandom1: TEdit;
+    lblCHRandom1: TLabel;
+    btnCalcCH: TButton;
+    edtCHHash: TEdit;
+    lblCHHash: TLabel;
+    lblCHRandom2: TLabel;
+    edtCHRandom2: TEdit;
+    btnFindRandom: TButton;
+    bvl2: TBevel;
+    lblCHNewNumber: TLabel;
+    edtCHNewNum: TEdit;
+    btnCHVerify: TButton;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -225,6 +247,10 @@ type
     procedure btnDHRandClick(Sender: TObject);
     procedure btnFastSqrtClick(Sender: TObject);
     procedure btnInt64SampleClick(Sender: TObject);
+    procedure btnGenCHClick(Sender: TObject);
+    procedure btnCalcCHClick(Sender: TObject);
+    procedure btnFindRandomClick(Sender: TObject);
+    procedure btnCHVerifyClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -938,6 +964,114 @@ begin
     edtRes.Text := Format('%u', [R]);
   if CnInt64RSADecrypt(R, FPubKeyProduct, FPubKeyExponent, R) then
     edtDataBack.Text := Format('%u', [R]);
+end;
+
+procedure TFormRSA.btnGenCHClick(Sender: TObject);
+var
+  Prime, Root: TCnBigNumber;
+begin
+  Prime := TCnBigNumber.Create;
+  Root := TCnBigNumber.Create;
+
+  if CnChameleonHashGeneratePrimeRootByBitsCount(StrToIntDef(cbbDHBits.Text, 64), Prime, Root) then
+  begin
+    edtCHPrime.Text := Prime.ToDec;
+    edtCHRoot.Text := Root.ToDec;
+  end
+  else
+    ShowMessage('DH Generation Error.');
+
+  Prime.Free;
+  Root.Free;
+end;
+
+procedure TFormRSA.btnCalcCHClick(Sender: TObject);
+var
+  Num, Prime, Root, Hash, SecKey, Rand: TCnBigNumber;
+begin
+  Num := TCnBigNumber.Create;
+  Prime := TCnBigNumber.Create;
+  Root := TCnBigNumber.Create;
+  Hash := TCnBigNumber.Create;
+  SecKey := TCnBigNumber.Create;
+  Rand := TCnBigNumber.Create;
+
+  Num.SetDec(edtCHNumber.Text);
+  Prime.SetDec(edtCHPrime.Text);
+  Root.SetDec(edtCHRoot.Text);
+  SecKey.SetDec(edtCHSecKey.Text);
+  Rand.SetDec(edtCHRandom1.Text);
+
+  if CnChameleonHashCalcDigest(Num, Rand, SecKey, Hash, Prime, Root) then
+    edtCHHash.Text := Hash.ToDec;
+
+  Num.Free;
+  Prime.Free;
+  Root.Free;
+  Hash.Free;
+  SecKey.Free;
+  Rand.Free;
+end;
+
+procedure TFormRSA.btnFindRandomClick(Sender: TObject);
+var
+  Num, NewNum, Prime, Root, Hash, SecKey, Rand, NewRand: TCnBigNumber;
+begin
+  Num := TCnBigNumber.Create;
+  NewNum := TCnBigNumber.Create;
+  Prime := TCnBigNumber.Create;
+  Root := TCnBigNumber.Create;
+  Hash := TCnBigNumber.Create;
+  SecKey := TCnBigNumber.Create;
+  Rand := TCnBigNumber.Create;
+  NewRand := TCnBigNumber.Create;
+
+  Num.SetDec(edtCHNumber.Text);
+  NewNum.SetDec(edtCHNewNum.Text);
+  Prime.SetDec(edtCHPrime.Text);
+  Root.SetDec(edtCHRoot.Text);
+  SecKey.SetDec(edtCHSecKey.Text);
+  Rand.SetDec(edtCHRandom1.Text);
+
+  if CnChameleonHashFindRandom(Num, NewNum, Rand, SecKey, NewRand, Prime, Root) then
+    edtCHRandom2.Text := NewRand.ToDec;
+
+  Num.Free;
+  NewNum.Free;
+  Prime.Free;
+  Root.Free;
+  Hash.Free;
+  SecKey.Free;
+  Rand.Free;
+  NewRand.Free;
+end;
+
+procedure TFormRSA.btnCHVerifyClick(Sender: TObject);
+var
+  Num, Prime, Root, Hash, SecKey, Rand: TCnBigNumber;
+begin
+  Num := TCnBigNumber.Create;
+  Prime := TCnBigNumber.Create;
+  Root := TCnBigNumber.Create;
+  Hash := TCnBigNumber.Create;
+  SecKey := TCnBigNumber.Create;
+  Rand := TCnBigNumber.Create;
+
+  Num.SetDec(edtCHNewNum.Text);
+  Prime.SetDec(edtCHPrime.Text);
+  Root.SetDec(edtCHRoot.Text);
+  SecKey.SetDec(edtCHSecKey.Text);
+  Rand.SetDec(edtCHRandom2.Text);
+
+  if CnChameleonHashCalcDigest(Num, Rand, SecKey, Hash, Prime, Root) then
+    ShowMessage(Hash.ToDec);
+
+  Num.Free;
+  Prime.Free;
+  Root.Free;
+  Hash.Free;
+  SecKey.Free;
+  Rand.Free;
 end;
 
 end.

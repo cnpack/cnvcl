@@ -1,6 +1,6 @@
 object FormRSA: TFormRSA
-  Left = 252
-  Top = 153
+  Left = 234
+  Top = 134
   BorderStyle = bsDialog
   Caption = 'RSA Demo'
   ClientHeight = 627
@@ -827,7 +827,7 @@ object FormRSA: TFormRSA
             Caption = 'Signature File:'
           end
           object lblSigMethod: TLabel
-            Left = 674
+            Left = 670
             Top = 42
             Width = 94
             Height = 13
@@ -837,13 +837,13 @@ object FormRSA: TFormRSA
           object edtSignFile: TEdit
             Left = 88
             Top = 8
-            Width = 747
+            Width = 743
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             TabOrder = 0
           end
           object btnSignBrowse: TButton
-            Left = 842
+            Left = 838
             Top = 8
             Width = 75
             Height = 21
@@ -864,14 +864,14 @@ object FormRSA: TFormRSA
           object edtSigFile: TEdit
             Left = 88
             Top = 72
-            Width = 747
+            Width = 743
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             ReadOnly = True
             TabOrder = 3
           end
           object btnSignatureBrowse: TButton
-            Left = 842
+            Left = 838
             Top = 72
             Width = 75
             Height = 21
@@ -900,7 +900,7 @@ object FormRSA: TFormRSA
             OnClick = btnPubVerifyClick
           end
           object cbbSig: TComboBox
-            Left = 778
+            Left = 774
             Top = 40
             Width = 65
             Height = 21
@@ -1220,7 +1220,7 @@ object FormRSA: TFormRSA
       end
     end
     object tsDiffieHellman: TTabSheet
-      Caption = 'Diffie Hellman'
+      Caption = 'Diffie Hellman / Chameleon Hash'
       ImageIndex = 4
       object lblSqrt: TLabel
         Left = 16
@@ -1243,7 +1243,7 @@ object FormRSA: TFormRSA
           Height = 13
           Caption = 'Number:'
         end
-        object lblInt64DHP: TLabel
+        object lblDHPrime: TLabel
           Left = 16
           Top = 60
           Width = 29
@@ -1452,6 +1452,173 @@ object FormRSA: TFormRSA
         Caption = 'Fast Sqrt'
         TabOrder = 2
         OnClick = btnFastSqrtClick
+      end
+      object grpChameleonHash: TGroupBox
+        Left = 16
+        Top = 280
+        Width = 761
+        Height = 265
+        Caption = 'Chameleon Hash'
+        TabOrder = 3
+        object lblCHPrime: TLabel
+          Left = 16
+          Top = 60
+          Width = 29
+          Height = 13
+          Caption = 'Prime:'
+        end
+        object lblCHRoot: TLabel
+          Left = 440
+          Top = 60
+          Width = 46
+          Height = 13
+          Caption = 'Min Root:'
+        end
+        object lblCHNumber: TLabel
+          Left = 16
+          Top = 24
+          Width = 25
+          Height = 13
+          Caption = 'Num:'
+        end
+        object lblCHSecKey: TLabel
+          Left = 16
+          Top = 96
+          Width = 55
+          Height = 13
+          Caption = 'Secret Key:'
+        end
+        object lblCHRandom1: TLabel
+          Left = 16
+          Top = 128
+          Width = 49
+          Height = 13
+          Caption = 'Random1:'
+        end
+        object lblCHHash: TLabel
+          Left = 16
+          Top = 160
+          Width = 28
+          Height = 13
+          Caption = 'Hash:'
+        end
+        object lblCHRandom2: TLabel
+          Left = 16
+          Top = 232
+          Width = 49
+          Height = 13
+          Caption = 'Random2:'
+        end
+        object bvl2: TBevel
+          Left = 16
+          Top = 184
+          Width = 729
+          Height = 9
+          Shape = bsTopLine
+        end
+        object lblCHNewNumber: TLabel
+          Left = 16
+          Top = 200
+          Width = 50
+          Height = 13
+          Caption = 'New Num:'
+        end
+        object edtCHPrime: TEdit
+          Left = 72
+          Top = 56
+          Width = 353
+          Height = 21
+          TabOrder = 0
+        end
+        object edtCHRoot: TEdit
+          Left = 496
+          Top = 56
+          Width = 121
+          Height = 21
+          TabOrder = 1
+        end
+        object btnGenCH: TButton
+          Left = 632
+          Top = 56
+          Width = 113
+          Height = 21
+          Caption = 'Generate CH'
+          TabOrder = 2
+          OnClick = btnGenCHClick
+        end
+        object edtCHNumber: TEdit
+          Left = 72
+          Top = 20
+          Width = 545
+          Height = 21
+          TabOrder = 3
+          Text = '73618513111136280958052434894378447995623'
+        end
+        object edtCHSecKey: TEdit
+          Left = 72
+          Top = 92
+          Width = 545
+          Height = 21
+          TabOrder = 4
+          Text = '7934806187680192847293875645476892163274087655'
+        end
+        object edtCHRandom1: TEdit
+          Left = 72
+          Top = 124
+          Width = 545
+          Height = 21
+          TabOrder = 5
+          Text = '87341342568764456767764521100906219000756'
+        end
+        object btnCalcCH: TButton
+          Left = 632
+          Top = 126
+          Width = 113
+          Height = 21
+          Caption = 'Calc Hash'
+          TabOrder = 6
+          OnClick = btnCalcCHClick
+        end
+        object edtCHHash: TEdit
+          Left = 72
+          Top = 156
+          Width = 545
+          Height = 21
+          TabOrder = 7
+        end
+        object edtCHRandom2: TEdit
+          Left = 72
+          Top = 228
+          Width = 545
+          Height = 21
+          TabOrder = 8
+        end
+        object btnFindRandom: TButton
+          Left = 632
+          Top = 198
+          Width = 113
+          Height = 21
+          Caption = 'Find Random'
+          TabOrder = 9
+          OnClick = btnFindRandomClick
+        end
+        object edtCHNewNum: TEdit
+          Left = 72
+          Top = 196
+          Width = 545
+          Height = 21
+          TabOrder = 10
+          Text = '961397411368986421346864224325900985312468'
+        end
+        object btnCHVerify: TButton
+          Left = 632
+          Top = 230
+          Width = 113
+          Height = 21
+          Caption = 'Verify Hash'
+          TabOrder = 11
+          OnClick = btnCHVerifyClick
+        end
       end
     end
   end

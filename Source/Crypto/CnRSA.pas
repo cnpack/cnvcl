@@ -30,7 +30,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.02.15 V2.5
+* 修改记录：2023.02.16 V2.6
+*               实现大数形式的基于离散对数的变色龙杂凑算法
+*           2023.02.15 V2.5
 *               大数 RSA 加密支持 CRT（中国剩余定理）加速，私钥运算耗时降至三分之一
 *           2022.04.26 V2.4
 *               修改 Integer 地址转换以支持 MacOS64
@@ -47,17 +49,17 @@ unit CnRSA;
 *           2019.04.19 V1.6
 *               支持 Win32/Win64/MacOS32
 *           2018.06.15 V1.5
-*               支持文件签名与验证，类似于 Openssl 中的用法，有原始签名与散列签名两类：
+*               支持文件签名与验证，类似于 Openssl 中的用法，有原始签名与杂凑签名两类：
 *               openssl rsautl -sign -in hello -inkey rsa.pem -out hello.default.sign.openssl
 *               // 私钥原始签名，直接把文件内容补齐后用私钥加密并存储，等同于加密，对应 CnRSASignFile 指定 sdtNone
 *               openssl dgst -md5 -sign rsa.pem -out hello.md5.sign.openssl hello
 *               openssl dgst -sha1 -sign rsa.pem -out hello.sha1.sign.openssl hello
 *               openssl dgst -sha256 -sign rsa.pem -out hello.sha256.sign.openssl hello
-*               // 私钥散列签名，可指定散列算法，默认 md5。对应 CnRSASignFile 并指定散列算法。
-*               // 原始文件散列值经过 BER 编码再 PKCS1 补齐后私钥加密并存储成签名文件
+*               // 私钥杂凑签名，可指定杂凑算法，默认 md5。对应 CnRSASignFile 并指定杂凑算法。
+*               // 原始文件杂凑值经过 BER 编码再 PKCS1 补齐后私钥加密并存储成签名文件
 *               openssl dgst -verify rsa_pub.pem -signature hello.sign.openssl hello
-*               // 公钥散列验证原始文件与签名文件，散列算法类型在签名文件中。
-*               // 对应 CnRSAVerify，公钥解开签名文件后去除 PKCS1 对齐再解开 BER 编码并比对散列值
+*               // 公钥杂凑验证原始文件与签名文件，杂凑算法类型在签名文件中。
+*               // 对应 CnRSAVerify，公钥解开签名文件后去除 PKCS1 对齐再解开 BER 编码并比对杂凑值
 *           2018.06.14 V1.5
 *               支持文件加解密，类似于 Openssl 中的用法，如：
 *               openssl rsautl -encrypt -in hello -inkey rsa_pub.pem -pubin -out hello.en.pub.openssl
@@ -353,14 +355,14 @@ function CnRSASignFile(const InFileName, OutSignFileName: string;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
 {* 用私钥签名指定文件。
    未指定数字摘要算法时等于将源文件用 PKCS1 Private_FF 补齐后加密
-   当指定了数字摘要算法时，使用指定数字摘要算法对文件进行计算得到散列值，
-   原始的二进制散列值进行 BER 编码再 PKCS1 补齐再用私钥加密}
+   当指定了数字摘要算法时，使用指定数字摘要算法对文件进行计算得到杂凑值，
+   原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐再用私钥加密}
 
 function CnRSAVerifyFile(const InFileName, InSignFileName: string;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到散列值，
-   并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到散列算法与散列值，
-   并比对两个二进制散列值是否相同，返回验证是否通过}
+{* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
+   并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到散列算法与杂凑值，
+   并比对两个二进制杂凑值是否相同，返回验证是否通过}
 
 function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
@@ -375,20 +377,20 @@ function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
 function AddOaepSha1MgfPadding(ToBuf: PByte; ToLen: Integer; PlainData: PByte;
   DataLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
 {* 对 Data 里 DataLen 的数据进行 OAEP 填充，内容放到 ToBuf 的 ToLen 里，返回填充是否成功。
-  默认使用 SHA1 对 DigestBuf 内容进行散列，ToLen 一般是 RSA 的密钥的积的字节数}
+  默认使用 SHA1 对 DigestBuf 内容进行杂凑，ToLen 一般是 RSA 的密钥的积的字节数}
 
 function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutLen: Integer; EnData: PByte;
   DataLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
 {* 对 EnData 里 DataLen 的数据进行 OAEP 检验并去除填充，内容放到 ToBuf 的 OutLen 里，返回检查是否成功。
   ToBuf 能容纳的实际长度不能太短，如成功，OutLen 返回明文数据长度
-  默认使用 SHA1 对 DigestBuf 内容进行散列，DataLen 要求是 RSA 的密钥的积的字节数}
+  默认使用 SHA1 对 DigestBuf 内容进行杂凑，DataLen 要求是 RSA 的密钥的积的字节数}
 
-// Diffie-Hellman 离散对数密钥交换算法
+// ================ Diffie-Hellman 离散对数密钥交换算法 ========================
 
 function CnDiffieHellmanGeneratePrimeRootByBitsCount(BitsCount: Integer;
   Prime, MinRoot: TCnBigNumber): Boolean;
-{* 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，涉及到因素分解因此较慢
-  且未做减一除 2 也是素数的要求，不是很安全}
+{* 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，实际等同于变色龙杂凑函数
+  涉及到因素分解因此较慢。原根也就是该素域的生成元，也就是各次幂求余能遍历素数以下所有值。}
 
 function CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey: TCnBigNumber;
   const OutPublicKey: TCnBigNumber): Boolean;
@@ -402,10 +404,27 @@ function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBig
    其中 SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime
    要保证安全，可以使用 CnPrimeNumber 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2}
 
+// ====================== 基于离散对数的变色龙杂凑函数 =========================
+
+function CnChameleonHashGeneratePrimeRootByBitsCount(BitsCount: Integer;
+  Prime, MinRoot: TCnBigNumber): Boolean;
+{* 生成基于离散对数的变色龙杂凑函数所需的素数与其最小原根，实际等同于 Diffie-Hellman，
+  涉及到因素分解因此较慢。原根也就是该素域的生成元，也就是各次幂求余能遍历素数以下所有值。}
+
+function CnChameleonHashCalcDigest(InData: TCnBigNumber; InRandom: TCnBigNumber;
+  InSecretKey: TCnBigNumber; OutHash: TCnBigNumber; Prime, Root: TCnBigNumber): Boolean;
+{* 基于普通离散对数的变色龙杂凑函数，根据一随机值与一 SecretKey，生成指定消息的杂凑
+  其中，Prime 和 Root 可由上面 CnDiffieHellmanGeneratePrimeRootByBitsCount 生成}
+
+function CnChameleonHashFindRandom(InOldData, InNewData: TCnBigNumber;
+  InOldRandom, InSecretKey: TCnBigNumber; OutNewRandom: TCnBigNumber; Prime, Root: TCnBigNumber): Boolean;
+{* 基于普通离散对数的变色龙杂凑函数，根据 SecretKey 与新旧消息，生成能够生成相同杂凑的新随机值
+  其中，Prime 和 Root 须与原始消息杂凑生成时相同}
+
 // ================================= 其他辅助函数 ==============================
 
 function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
-{* 从 BER 解析出的 OID 获取其对应的散列摘要类型}
+{* 从 BER 解析出的 OID 获取其对应的杂凑摘要类型}
 
 function AddDigestTypeOIDNodeToWriter(AWriter: TCnBerWriter; ASignType: TCnRSASignDigestType;
   AParent: TCnBerWriteNode): TCnBerWriteNode;
@@ -1538,6 +1557,7 @@ begin
   Res := nil;
   Data := nil;
   Stream := nil;
+
   try
     Stream := TMemoryStream.Create;
     if PaddingMode = cpmPKCS1 then
@@ -2342,6 +2362,59 @@ function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBig
 begin
   // SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime
   Result := BigNumberMontgomeryPowerMod(SecretKey, OtherPublicKey, SelfPrivateKey, Prime);
+end;
+
+// 生成基于离散对数的变色龙杂凑函数所需的素数与其最小原根，实际等同于 Diffie-Hellman
+function CnChameleonHashGeneratePrimeRootByBitsCount(BitsCount: Integer;
+  Prime, MinRoot: TCnBigNumber): Boolean;
+begin
+  Result := CnDiffieHellmanGeneratePrimeRootByBitsCount(BitsCount, Prime, MinRoot);
+end;
+
+// 基于普通离散对数的变色龙杂凑函数，根据一随机值与一 SecretKey，生成指定消息的杂凑
+function CnChameleonHashCalcDigest(InData: TCnBigNumber; InRandom: TCnBigNumber;
+  InSecretKey: TCnBigNumber; OutHash: TCnBigNumber; Prime, Root: TCnBigNumber): Boolean;
+var
+  T: TCnBigNumber;
+begin
+  T := nil;
+
+  // Hash(M, R) = g^(M + R * Sk) mod P
+  try
+    T := TCnBigNumber.Create;
+    BigNumberCopy(T, InSecretKey);
+    BigNumberDirectMulMod(T, InRandom, T, Prime);
+
+    BigNumberAddMod(T, InData, T, Prime);
+    Result := BigNumberMontgomeryPowerMod(OutHash, Root, T, Prime);
+  finally
+    T.Free;
+  end;
+end;
+
+// 基于普通离散对数的变色龙杂凑函数，根据 SecretKey 与新旧消息，生成能够生成相同杂凑的新随机值
+function CnChameleonHashFindRandom(InOldData, InNewData: TCnBigNumber;
+  InOldRandom, InSecretKey: TCnBigNumber; OutNewRandom: TCnBigNumber; Prime, Root: TCnBigNumber): Boolean;
+var
+  M, SK: TCnBigNumber;
+begin
+  M := nil;
+  SK := nil;
+
+  // R2 := ((M1 - M2)/SK + R1) mod P
+  try
+    M := TCnBigNumber.Create;
+    BigNumberSubMod(M, InOldData, InNewData, Prime);
+
+    SK := TCnBigNumber.Create;
+    BigNumberModularInverse(SK, InSecretKey, Prime);
+
+    BigNumberDirectMulMod(M, M, SK, Prime);
+    Result := BigNumberAddMod(OutNewRandom, M, InOldRandom, Prime);
+  finally
+    SK.Free;
+    M.Free;
+  end;
 end;
 
 function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
