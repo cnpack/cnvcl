@@ -1191,13 +1191,16 @@ procedure KillProcessByFileName(const FileName: String);
 {$ENDIF}
 
 function IndexStr(const AText: string; AValues: array of string; IgCase: Boolean = True): Integer;
-{* 查找字符串在动态数组中的索引，用于string类型使用Case语句}
+{* 查找字符串在动态数组中的索引，用于 string 类型使用 case 语句}
 
 function IndexInt(ANum: Integer; AValues: array of Integer): Integer;
-{* 查找整形变量在动态数组中的索引，用于变量使用Case语句}
+{* 查找整形变量在动态数组中的索引，用于变量使用 case 语句}
 
 procedure TrimStrings(AList: TStrings);
-{* 删除空行和每一行的行首尾空格 }
+{* 删除空行和每一行的行首尾空格}
+
+procedure RemoveDuplicatedStrings(AList: TStrings);
+{* 字符串列表去重}
 
 //==============================================================================
 // 级联属性操作相关函数 by LiuXiao
@@ -7882,6 +7885,31 @@ begin
   begin
     AList[I] := Trim(AList[I]);
     if AList[I] = '' then
+      AList.Delete(I);
+  end;
+end;
+
+// 字符串列表去重
+procedure RemoveDuplicatedStrings(AList: TStrings);
+var
+  I, J: Integer;
+  V: string;
+  Dup: Boolean;
+begin
+  for I := AList.Count - 1 downto 0 do
+  begin
+    V := AList[I];
+    Dup := False;
+    for J := 0 to I - 1 do
+    begin
+      if V = AList[J] then
+      begin
+        Dup := True;
+        Break;
+      end;
+    end;
+
+    if Dup then
       AList.Delete(I);
   end;
 end;

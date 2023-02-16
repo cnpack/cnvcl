@@ -1117,7 +1117,7 @@ begin
   end;
 end;
 
-{$IFDEF MACOS}
+{$IFDEF POSIX}
 
 { TCnInternalList<T> }
 
