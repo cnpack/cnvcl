@@ -28,7 +28,9 @@ unit CnInetUtils;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2005.09.14 V1.1
+* 修改记录：2023.02.22 V1.2
+*                EncodeURl 增加部分特殊字符的转换
+*           2005.09.14 V1.1
 *                增加 UserAgent 和 Proxy 设置(由 illk 提供)
 *           2003.03.09 V1.0
 *                创建单元
@@ -165,18 +167,19 @@ const
 
 function EncodeURL(const URL: string): string;
 const
-  UnsafeChars = ['*', '#', '%', '<', '>', '+', ' '];
+  UnsafeChars = ['*', '#', '%', '<', '>', '+', ' ', ';', '/', '?', '@', '=', '&',
+    '|', '{', '}', '\', '^', '~', '[', ']', '~', '`'];
 var
-  i: Integer;
+  I: Integer;
   InStr, OutStr: AnsiString;
 begin
   InStr := AnsiString(URL);
   OutStr := '';
-  for i := 1 to Length(InStr) do begin
-    if (InStr[i] in UnsafeChars) or (InStr[i] >= #$80) or (InStr[i] < #32) then
-      OutStr := OutStr + '%' + AnsiString(IntToHex(Ord(InStr[i]), 2))
+  for I := 1 to Length(InStr) do begin
+    if (InStr[I] in UnsafeChars) or (InStr[I] >= #$80) or (InStr[I] < #32) then
+      OutStr := OutStr + '%' + AnsiString(IntToHex(Ord(InStr[I]), 2))
     else
-      OutStr := OutStr + InStr[i];
+      OutStr := OutStr + InStr[I];
   end;
   Result := string(OutStr);
 end;
@@ -435,7 +438,7 @@ var
   hConnect, hRequest: HINTERNET;
   SizeStr: array[0..63] of Char;
   BufLen, Index: Cardinal;
-  i: Integer;
+  I: Integer;
   Port: Word;
   Flag: Cardinal;
   Verb, Opt: string;
@@ -470,11 +473,11 @@ begin
     begin
       Verb := 'POST';
       Opt := '';
-      for i := 0 to APost.Count - 1 do
+      for I := 0 to APost.Count - 1 do
         if Opt = '' then
-          Opt := EncodeURL(APost[i])
+          Opt := EncodeURL(APost[I])
         else
-          Opt := Opt + '&' + EncodeURL(APost[i]);
+          Opt := Opt + '&' + EncodeURL(APost[I]);
       POpt := PChar(Opt);
       OptLen := Length(Opt);
     end
@@ -496,9 +499,9 @@ begin
     if FDecoding and FDecodingValid then
       HttpAddRequestHeaders(hRequest, PChar(SAcceptEncoding),
         Length(SAcceptEncoding), HTTP_ADDREQ_FLAG_REPLACE or HTTP_ADDREQ_FLAG_ADD);
-    for i := 0 to FHttpRequestHeaders.Count - 1 do
-      HttpAddRequestHeaders(hRequest, PChar(FHttpRequestHeaders[i]),
-        Length(FHttpRequestHeaders[i]), HTTP_ADDREQ_FLAG_REPLACE or HTTP_ADDREQ_FLAG_ADD);
+    for I := 0 to FHttpRequestHeaders.Count - 1 do
+      HttpAddRequestHeaders(hRequest, PChar(FHttpRequestHeaders[I]),
+        Length(FHttpRequestHeaders[I]), HTTP_ADDREQ_FLAG_REPLACE or HTTP_ADDREQ_FLAG_ADD);
 
     if HttpSendRequest(hRequest, nil, 0, POpt, OptLen) then
     begin
