@@ -79,7 +79,7 @@ uses
 {$IFDEF MSWINDOWS} // 如果 Windows 下编译错误找不到 ComCtrls 单元，请在编译选项里加 Vcl 前缀
   Windows, Messages, Graphics, Controls, Forms, Dialogs,
   ComCtrls, Math, Menus, Registry, ComObj, FileCtrl, ShellAPI, CommDlg,
-  MMSystem, StdCtrls, ActiveX, ShlObj, CheckLst, MultiMon,
+  MMSystem, StdCtrls, ExtCtrls, ActiveX, ShlObj, CheckLst, MultiMon,
   {$IFNDEF FPC} TLHelp32, PsAPI,{$ENDIF}
   {$IFDEF COMPILER6_UP}
     Types,
@@ -562,6 +562,9 @@ function IsDateTime(const S: string): Boolean;
 function IsValidEmail(const S: string): Boolean;
 {* 判断是否有效的邮件地址}
 
+function IsSimpleFormat(const S: string): Boolean;
+{* 判断是否是简单的格式化字符串}
+
 function StrSpToInt(const Value: string; Sp: Char = ','): Int64;
 {* 去掉字符串中的分隔符－字符转换}
 
@@ -850,6 +853,11 @@ function CnInputMultiLineBox(const ACaption, APrompt, ADefault: string;
 procedure CnShowHexData(Data: Pointer; DataByteLength: Integer; BaseAddr: Integer = 0;
   const ACaption: string = ''; Modal: Boolean = True);
 {* 以十六进制的方式显示一块数据，Modal 参数控制对话框模态或非模态}
+
+function CnSingleOptionQuery(const ACaption, APrompt: string; Options: TStrings;
+  FormCallBack: TCnSenderCallback = nil): Integer;
+{* 弹出对话框以单选按钮框 RadioGroup 显示多个选项让用户选择，返回选中的索引
+  如用户未选择，或选择了取消，则返回 -1}
 
 {$ENDIF}
 
@@ -4832,6 +4840,32 @@ begin
   Result := AtCount = 1;
 end;
 
+// 判断是否是简单的格式化字符串
+function IsSimpleFormat(const S: string): Boolean;
+var
+  T: string;
+  I: Integer;
+begin
+  Result := False;
+  T := Trim(S);
+  if Length(T) <= 1 then
+    Exit;
+
+  if T[1] <> '%' then
+    Exit;
+
+  if not (T[Length(T)] in ['A'..'Z', 'a'..'z']) then
+    Exit;
+
+  for I := 2 to Length(T) - 1 do
+  begin
+    if not (T[I] in ['.', '-', '0'..'9']) then
+      Exit;
+  end;
+
+  Result := True;
+end;
+
 // 以不溢出的方式计算两个整型的算术平均数
 function AverageNoOverflow(A, B: Integer): Integer;
 begin
@@ -6445,7 +6479,7 @@ end;
 
 // 输入多行字符串的对话框，返回 True 表示用户输入后点击 OK 了，输入内容在 Value 中
 function CnInputMultiLineQuery(const ACaption, APrompt: string;
-  var Value: string; FormCallBack: TCnSenderCallback = nil): Boolean;
+  var Value: string; FormCallBack: TCnSenderCallback): Boolean;
 var
   Form: TForm;
   Prompt: TLabel;
@@ -6601,6 +6635,107 @@ begin
     end
     else
       Show; // 显示出来后供外部关闭释放
+  end;
+end;
+
+function CnSingleOptionQuery(const ACaption, APrompt: string; Options: TStrings;
+  FormCallBack: TCnSenderCallback): Integer;
+var
+  Form: TForm;
+  RG: TRadioGroup;
+  DialogUnits: TPoint;
+  ButtonTop, ButtonWidth, ButtonHeight: Integer;
+{$IFDEF CREATE_PARAMS_BUG}
+  OldLong: Longint;
+  AHandle: THandle;
+  NeedChange: Boolean;
+{$ENDIF}
+begin
+  Result := -1;
+  if (Options = nil) or (Options.Count <= 0) then
+    Exit;
+
+{$IFDEF CREATE_PARAMS_BUG}
+  NeedChange := False;
+  OldLong := 0;
+  AHandle := Application.ActiveFormHandle;
+{$ENDIF}
+
+  Form := TForm.Create(Application);
+  with Form do
+  try
+    Scaled := False;
+    Font.Handle := GetStockObject(DEFAULT_GUI_FONT);
+    Canvas.Font := Font;
+    DialogUnits := GetAveCharSize(Canvas);
+    BorderStyle := bsDialog;
+    Caption := ACaption;
+    if Caption = '' then
+      Caption := SCnPackAbout;
+
+    ClientWidth := MulDiv(360, DialogUnits.X, 4);
+    ClientHeight := MulDiv(128, DialogUnits.Y, 8);
+    Position := poScreenCenter;
+
+    RG := TRadioGroup.Create(Form);
+    with RG do
+    begin
+      Parent := Form;
+
+      Left := MulDiv(8, DialogUnits.X, 4);
+      Top := MulDiv(8, DialogUnits.Y, 8);
+      Caption := APrompt;
+      if Caption = '' then
+        Caption := Form.Caption;
+
+      Items.Assign(Options);
+    end;
+
+    ButtonTop := MulDiv(108, DialogUnits.Y, 8);
+    ButtonWidth := MulDiv(50, DialogUnits.X, 4);
+    ButtonHeight := MulDiv(14, DialogUnits.Y, 8);
+
+    with TButton.Create(Form) do
+    begin
+      Parent := Form;
+      Caption := SCnMsgDlgOK;
+      ModalResult := mrOk;
+      Default := True;
+      SetBounds(MulDiv(130, DialogUnits.X, 4), ButtonTop, ButtonWidth,
+        ButtonHeight);
+    end;
+
+    with TButton.Create(Form) do
+    begin
+      Parent := Form;
+      Caption := SCnMsgDlgCancel;
+      ModalResult := mrCancel;
+      Cancel := True;
+      SetBounds(MulDiv(185, DialogUnits.X, 4), ButtonTop, ButtonWidth,
+        ButtonHeight);
+    end;
+
+{$IFDEF CREATE_PARAMS_BUG}
+    if AHandle <> 0 then
+    begin
+      OldLong := GetWindowLong(AHandle, GWL_EXSTYLE);
+      NeedChange := OldLong and WS_EX_TOOLWINDOW = WS_EX_TOOLWINDOW;
+      if NeedChange then
+        SetWindowLong(AHandle, GWL_EXSTYLE, OldLong and not WS_EX_TOOLWINDOW);
+    end;
+{$ENDIF}
+
+    if Assigned(FormCallBack) then // 给外界一个处理界面的机会，如 HDPI 模式下放大等
+      FormCallBack(Form);
+
+    if ShowModal = mrOk then
+      Result := RG.ItemIndex;
+  finally
+{$IFDEF CREATE_PARAMS_BUG}
+    if NeedChange and (OldLong <> 0) then
+      SetWindowLong(AHandle, GWL_EXSTYLE, OldLong);
+{$ENDIF}
+    Form.Free;
   end;
 end;
 

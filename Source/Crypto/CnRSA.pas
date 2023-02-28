@@ -419,7 +419,8 @@ function CnChameleonHashCalcDigest(InData: TCnBigNumber; InRandom: TCnBigNumber;
 function CnChameleonHashFindRandom(InOldData, InNewData: TCnBigNumber;
   InOldRandom, InSecretKey: TCnBigNumber; OutNewRandom: TCnBigNumber; Prime, Root: TCnBigNumber): Boolean;
 {* 基于普通离散对数的变色龙杂凑函数，根据 SecretKey 与新旧消息，生成能够生成相同杂凑的新随机值
-  其中，Prime 和 Root 须与原始消息杂凑生成时相同}
+  其中，Prime 和 Root 须与原始消息杂凑生成时相同。
+  可以利用 SecretKey 和 NewRandom 对 InNewData 调用 CnChameleonHashCalcDigest 生成相同的 Hash 值}
 
 // ================================= 其他辅助函数 ==============================
 
