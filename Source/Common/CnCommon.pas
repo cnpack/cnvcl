@@ -1207,8 +1207,8 @@ function IndexInt(ANum: Integer; AValues: array of Integer): Integer;
 procedure TrimStrings(AList: TStrings);
 {* 删除空行和每一行的行首尾空格}
 
-procedure RemoveDuplicatedStrings(AList: TStrings);
-{* 字符串列表去重}
+procedure RemoveDuplicatedStrings(AList: TStrings; CaseSensitive: Boolean = True);
+{* 字符串列表去重，CaseSensitive 表示判断重复时是否区分大小写}
 
 //==============================================================================
 // 级联属性操作相关函数 by LiuXiao
@@ -1402,9 +1402,6 @@ function ConvertStringToIdent(const Str: string; const Prefix: string = 'S';
   UseFullPinYin：获取汉字拼音时使用全拼还是只首字母
   MaxWideChars：最长处理的双字节字符数，要有拼音才算
   MaxWords：最长处理的分词数。注意这两个 Max 只要达到一个就完成}
-
-procedure StringsRemoveDuplicated(List: TStrings; CaseSensitive: Boolean = True);
-{* 删除 Strings 中的重复部分}
 
 implementation
 
@@ -8028,27 +8025,54 @@ begin
 end;
 
 // 字符串列表去重
-procedure RemoveDuplicatedStrings(AList: TStrings);
+procedure RemoveDuplicatedStrings(AList: TStrings; CaseSensitive: Boolean);
 var
   I, J: Integer;
-  V: string;
+  V, UV: string;
   Dup: Boolean;
 begin
-  for I := AList.Count - 1 downto 0 do
-  begin
-    V := AList[I];
-    Dup := False;
-    for J := 0 to I - 1 do
-    begin
-      if V = AList[J] then
-      begin
-        Dup := True;
-        Break;
-      end;
-    end;
+  if (AList = nil) or (AList.Count <= 1) then
+    Exit;
 
-    if Dup then
-      AList.Delete(I);
+  if CaseSensitive then
+  begin
+    for I := AList.Count - 1 downto 0 do
+    begin
+      V := AList[I];
+      Dup := False;
+
+      for J := 0 to I - 1 do
+      begin
+        if V = AList[J] then
+        begin
+          Dup := True;
+          Break;
+        end;
+      end;
+
+      if Dup then
+        AList.Delete(I);
+    end;
+  end
+  else
+  begin
+    for I := AList.Count - 1 downto 0 do
+    begin
+      V := UpperCase(AList[I]);
+      Dup := False;
+
+      for J := 0 to I - 1 do
+      begin
+        if V = UpperCase(AList[J]) then
+        begin
+          Dup := True;
+          Break;
+        end;
+      end;
+
+      if Dup then
+        AList.Delete(I);
+    end;
   end;
 end;
 
@@ -8946,58 +8970,6 @@ begin
   finally
     WideBuilder.Free;
     AnsiBuilder.Free;
-  end;
-end;
-
-// 删除 Strings 中的重复部分
-procedure StringsRemoveDuplicated(List: TStrings; CaseSensitive: Boolean);
-var
-  I, J: Integer;
-  V, UV: string;
-  Dup: Boolean;
-begin
-  if (List = nil) or (List.Count <= 1) then
-    Exit;
-
-  if CaseSensitive then
-  begin
-    for I := List.Count - 1 downto 0 do
-    begin
-      V := List[I];
-      Dup := False;
-
-      for J := 0 to I - 1 do
-      begin
-        if V = List[J] then
-        begin
-          Dup := True;
-          Break;
-        end;
-      end;
-
-      if Dup then
-        List.Delete(I);
-    end;
-  end
-  else
-  begin
-    for I := List.Count - 1 downto 0 do
-    begin
-      V := UpperCase(List[I]);
-      Dup := False;
-
-      for J := 0 to I - 1 do
-      begin
-        if V = UpperCase(List[J]) then
-        begin
-          Dup := True;
-          Break;
-        end;
-      end;
-
-      if Dup then
-        List.Delete(I);
-    end;
   end;
 end;
 
