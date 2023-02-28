@@ -1403,6 +1403,9 @@ function ConvertStringToIdent(const Str: string; const Prefix: string = 'S';
   MaxWideChars：最长处理的双字节字符数，要有拼音才算
   MaxWords：最长处理的分词数。注意这两个 Max 只要达到一个就完成}
 
+procedure StringsRemoveDuplicated(List: TStrings; CaseSensitive: Boolean = True);
+{* 删除 Strings 中的重复部分}
+
 implementation
 
 uses
@@ -8943,6 +8946,58 @@ begin
   finally
     WideBuilder.Free;
     AnsiBuilder.Free;
+  end;
+end;
+
+// 删除 Strings 中的重复部分
+procedure StringsRemoveDuplicated(List: TStrings; CaseSensitive: Boolean);
+var
+  I, J: Integer;
+  V, UV: string;
+  Dup: Boolean;
+begin
+  if (List = nil) or (List.Count <= 1) then
+    Exit;
+
+  if CaseSensitive then
+  begin
+    for I := List.Count - 1 downto 0 do
+    begin
+      V := List[I];
+      Dup := False;
+
+      for J := 0 to I - 1 do
+      begin
+        if V = List[J] then
+        begin
+          Dup := True;
+          Break;
+        end;
+      end;
+
+      if Dup then
+        List.Delete(I);
+    end;
+  end
+  else
+  begin
+    for I := List.Count - 1 downto 0 do
+    begin
+      V := UpperCase(List[I]);
+      Dup := False;
+
+      for J := 0 to I - 1 do
+      begin
+        if V = UpperCase(List[J]) then
+        begin
+          Dup := True;
+          Break;
+        end;
+      end;
+
+      if Dup then
+        List.Delete(I);
+    end;
   end;
 end;
 
