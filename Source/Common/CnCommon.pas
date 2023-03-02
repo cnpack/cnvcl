@@ -8028,7 +8028,7 @@ end;
 procedure RemoveDuplicatedStrings(AList: TStrings; CaseSensitive: Boolean);
 var
   I, J: Integer;
-  V, UV: string;
+  V: string;
   Dup: Boolean;
 begin
   if (AList = nil) or (AList.Count <= 1) then
