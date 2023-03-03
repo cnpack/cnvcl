@@ -1395,13 +1395,15 @@ function BytesToStr(Data: TBytes): AnsiString;
 
 function ConvertStringToIdent(const Str: string; const Prefix: string = 'S';
   UseUnderLine: Boolean = False; IdentWordStyle: TCnIdentWordStyle = iwsUpperFirstChar;
-  UseFullPinYin: Boolean = False; MaxWideChars: Integer = 7; MaxWords: Integer = 7): string;
+  UseFullPinYin: Boolean = False; MaxWideChars: Integer = 7; MaxWords: Integer = 7;
+  MaxCharLength: Integer = 64): string;
 {* 将字符串中的符合标识符信息的内容抽取出来形成标识符并返回，内部针对汉字处理拼音
   UseUnderLine：分词或拼音之间是否用下划线分隔（拼音使用首字母时相邻的汉字不分隔）
   IdentWordStyle：分词使用全大写、全小写还是首字母大写
   UseFullPinYin：获取汉字拼音时使用全拼还是只首字母
   MaxWideChars：最长处理的双字节字符数，要有拼音才算
-  MaxWords：最长处理的分词数。注意这两个 Max 只要达到一个就完成}
+  MaxWords：最长处理的分词数
+  MaxCharLength: 最长的字符数。注意这三个 Max 只要达到一个就完成，可能会超 MaxCharLength}
 
 implementation
 
@@ -8824,7 +8826,8 @@ type
 {$ENDIF}
 
 function ConvertStringToIdent(const Str, Prefix: string; UseUnderLine: Boolean;
-  IdentWordStyle: TCnIdentWordStyle; UseFullPinYin: Boolean; MaxWideChars, MaxWords: Integer): string;
+  IdentWordStyle: TCnIdentWordStyle; UseFullPinYin: Boolean;
+  MaxWideChars, MaxWords, MaxCharLength: Integer): string;
 const
   ALPHA_NUM = ['A'..'Z', 'a'..'z', '0'..'9'];
 var
@@ -8881,6 +8884,8 @@ begin
   Result := Prefix;
   if Str = '' then
     Exit;
+  if MaxCharLength < 2 then
+    MaxCharLength := 64; // 默认 64
 
   AnsiBuilder := nil;
   WideBuilder := nil;
@@ -8964,7 +8969,7 @@ begin
           Result := Result + string(WD);
       end;
 
-      if (CC > MaxWideChars) or (CW > MaxWords) then
+      if (CC > MaxWideChars) or (CW > MaxWords) or (Length(Result) > MaxCharLength) then
         Break;
     end;
   finally
