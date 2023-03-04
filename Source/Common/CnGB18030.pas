@@ -177,6 +177,8 @@ uses
 const
   CN_GB18030_CODEPAGE  = 54936;
 
+  CN_GB18030_BOM: array[0..3] of Byte = ($84, $31, $95, $33);
+
 type
 {$IFDEF SUPPORT_ANSISTRING_CODEPAGE}
   TCnGB18030String = RawByteString;
@@ -316,8 +318,6 @@ type
   end;
 
 const
-  CN_GB18030_BOM: array[0..3] of Byte = ($84, $31, $95, $33);
-
   // GB18030 中的 52 个重码字的编码值，源于 GBK，原始数据在双字节四区，现在扩展区
   CN_DUPLICATES_GB18030: array[0..51] of TCnCodePoint = (
     $8336C936, $8336C937, $8336CA30, $8336CA31, $8336CA32, $8336CA35, $8336CA36,
