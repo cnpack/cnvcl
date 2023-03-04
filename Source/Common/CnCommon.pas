@@ -4842,6 +4842,8 @@ begin
   Result := AtCount = 1;
 end;
 
+{$WARNINGS OFF}
+
 // 判断是否是简单的格式化字符串
 function IsSimpleFormat(const S: string): Boolean;
 var
@@ -4867,6 +4869,8 @@ begin
 
   Result := True;
 end;
+
+{$WARNINGS ON}
 
 // 以不溢出的方式计算两个整型的算术平均数
 function AverageNoOverflow(A, B: Integer): Integer;
@@ -7712,6 +7716,8 @@ begin
       Break;
 end;
 
+{$WARNINGS OFF}
+
 // 检查中国大陆的 18 位身份证是否合法
 function CheckChineseIDCardNumber(const IDNumber: string): Boolean;
 const
@@ -7736,6 +7742,8 @@ begin
   if Remains[Sum] = UpperCase(IDNumber[18]) then
     Result := True;
 end;
+
+{$WARNINGS ON}
 
 {$IFDEF MSWINDOWS}
 
@@ -8720,6 +8728,8 @@ begin
   Result := True;
 end;
 
+{$WARNINGS OFF}
+
 // 处理一个 PE 文件，提取出其中第 DirectoryIndex 个 DataDirectory 的内容并写到流中，返回提取是否成功
 function ExtractPEDataDirectory(const FileName: string; DirectoryIndex: Integer;
   OutStream: TStream): Boolean;
@@ -8761,6 +8771,8 @@ begin
     end;
   end;
 end;
+
+{$WARNINGS ON}
 
 {$ENDIF}
 
@@ -8824,6 +8836,8 @@ type
 {$ELSE}
   TIdentString = WideString;
 {$ENDIF}
+
+{$WARNINGS OFF}
 
 function ConvertStringToIdent(const Str, Prefix: string; UseUnderLine: Boolean;
   IdentWordStyle: TCnIdentWordStyle; UseFullPinYin: Boolean;
@@ -8977,6 +8991,8 @@ begin
     AnsiBuilder.Free;
   end;
 end;
+
+{$WARNINGS ON}
 
 {$IFDEF MSWINDOWS}
 

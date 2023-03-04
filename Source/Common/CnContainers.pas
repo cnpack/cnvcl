@@ -502,6 +502,8 @@ begin
   Result := FCount;
 end;
 
+{$HINTS OFF}
+
 function TCnObjectRingBuffer.PopFromBack: TObject;
 begin
   Result := nil;  // 不加则低版本 Delphi 有警告，加则高版本 Delphi 有警告
@@ -546,6 +548,8 @@ begin
       FLock.Leave;
   end;
 end;
+
+{$HINTS ON}
 
 procedure TCnObjectRingBuffer.PushToBack(AObject: TObject);
 begin

@@ -490,6 +490,8 @@ begin
   end;
 end;
 
+{$WARNINGS OFF}
+
 function LowChar(AChar: Char): Char; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   if AChar in ['A'..'Z'] then
@@ -1963,6 +1965,8 @@ begin
 end;
 
 {$ENDIF}
+
+{$WARNINGS ON}
 
 { TCnStringBuilder }
 

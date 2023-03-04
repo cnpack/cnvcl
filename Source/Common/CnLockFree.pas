@@ -548,6 +548,8 @@ begin
   Result^.Next := nil;
 end;
 
+{$HINTS OFF}
+
 function TCnLockFreeLinkedList.Delete(Key: TObject): Boolean;
 var
   R, RN, L: PCnLockFreeLinkedNode;
@@ -770,6 +772,8 @@ begin
     InternalSearch(P2^.Key, P1, P2);
   Result := True;
 end;
+
+{$HINTS ON}
 
 function TCnLockFreeLinkedList.GetLast2Nodes(out P1,
   P2: PCnLockFreeLinkedNode): Boolean;

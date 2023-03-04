@@ -1400,6 +1400,8 @@ begin
   Result := Res;
 end;
 
+{$WARNINGS OFF}
+
 function IsHexString(const Hex: string): Boolean;
 var
   I, L: Integer;
@@ -1411,11 +1413,16 @@ begin
 
   for I := 1 to L do
   begin
+    // 注意此处 Unicode 下虽然有 Warning，但并不是将 Hex[I] 这个 WideChar 直接截断至 AnsiChar
+    // 后再进行判断（那样会导致“晦晦”这种 $66$66$66$66 的字符串出现误判），而是
+    // 直接通过 WideChar 的值（在 ax 中因而是双字节的）加减来判断，不会出现误判
     if not (Hex[I] in ['0'..'9', 'A'..'F', 'a'..'f']) then
       Exit;
   end;
   Result := True;
 end;
+
+{$WARNINGS ON}
 
 function DataToHex(InData: Pointer; ByteLength: Integer; UseUpperCase: Boolean = True): string;
 var
@@ -2041,6 +2048,8 @@ end;
 
 {$ENDIF}
 
+{$HINTS OFF}
+
 function _ValUInt64(const S: string; var Code: Integer): TUInt64;
 const
   FirstIndex = 1;
@@ -2120,6 +2129,8 @@ begin
   else
     Code := 0;
 end;
+
+{$HINTS ON}
 
 function UInt64ToHex(N: TUInt64): string;
 const
@@ -2594,7 +2605,11 @@ begin
     else
     begin
       // A 和 B 都小于 0，取反后采用 UInt64 相加取模（反后的和未溢出 UInt64 上限），模再被除数减一下
+{$IFDEF SUPPORT_UINT64}
+      Result := UInt64(N) - UInt64NonNegativeAddMod(-A, -B, N);
+{$ELSE}
       Result := N - UInt64NonNegativeAddMod(-A, -B, N);
+{$ENDIF}
     end;
   end
   else // 不溢出，直接加起来求余

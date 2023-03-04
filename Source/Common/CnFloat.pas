@@ -1031,6 +1031,8 @@ begin
     PUInt64(@Value)^ := PUInt64(@Value)^ and not CN_SIGN_DOUBLE_MASK;
 end;
 
+{$HINTS OFF}
+
 procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Extended);
 var
@@ -1055,6 +1057,8 @@ begin
   else
     raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
 end;
+
+{$HINTS ON}
 
 procedure CombineFloatQuadruple(SignNegative: Boolean; Exponent: Integer;
   MantissaLo, MantissaHi: TUInt64; var Value: Extended);

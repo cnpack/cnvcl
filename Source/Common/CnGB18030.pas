@@ -1052,7 +1052,7 @@ begin
       D1 := C1 - B1;   // 需要用 Integer，因为可能有负值
       D2 := C2 - B2;
 
-      Result := D1 * CN_GB18030_2CHAR_PAGE_COUNT + D2 + UBase;
+      Result := TCnCodePoint(Int64(D1 * CN_GB18030_2CHAR_PAGE_COUNT + D2) + Int64(UBase));
     end
     else
     begin
@@ -1088,8 +1088,8 @@ begin
       D3 := C3 - B3;
       D4 := C4 - B4;
 
-      Result := D1 * CN_GB18030_4CHAR_PAGE_COUNT1 + D2 * CN_GB18030_4CHAR_PAGE_COUNT2
-        + D3 * CN_GB18030_4CHAR_PAGE_COUNT3 + D4 + UBase;
+      Result := TCnCodePoint(Int64(D1 * CN_GB18030_4CHAR_PAGE_COUNT1 + D2 * CN_GB18030_4CHAR_PAGE_COUNT2
+        + D3 * CN_GB18030_4CHAR_PAGE_COUNT3 + D4) + Int64(UBase));
     end
     else
     begin
