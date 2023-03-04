@@ -1793,6 +1793,8 @@ begin
   Result := True;
 end;
 
+{$WARNINGS OFF}
+
 function BigNumberToBase64(const Num: TCnBigNumber): string;
 var
   B: TBytes;
@@ -1805,6 +1807,8 @@ begin
       Base64Encode(@B[0], Length(B), Result);
   end;
 end;
+
+{$WARNINGS ON}
 
 function BigNumberSetBase64(const Buf: AnsiString; const Res: TCnBigNumber): Boolean;
 var
