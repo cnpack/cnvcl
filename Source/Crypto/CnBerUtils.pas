@@ -663,7 +663,7 @@ end;
 
 function TCnBerReadNode.AsPrintableString: string;
 begin
-  Result := InternalAsString([CN_BER_TAG_PRINTABLESTRING]);
+  Result := string(InternalAsString([CN_BER_TAG_PRINTABLESTRING]));
 end;
 
 function TCnBerReadNode.InternalAsInteger(ByteSize: Integer): Integer;
@@ -783,19 +783,19 @@ end;
 
 function TCnBerReadNode.AsIA5String: string;
 begin
-  Result := InternalAsString([CN_BER_TAG_IA5STRING]);
+  Result := string(InternalAsString([CN_BER_TAG_IA5STRING]));
 end;
 
 function TCnBerReadNode.AsString: string;
 begin
-  Result := InternalAsString(CN_TAG_SET_STRING + CN_TAG_SET_TIME);
+  Result := string(InternalAsString(CN_TAG_SET_STRING + CN_TAG_SET_TIME));
 end;
 
 function TCnBerReadNode.AsDateTime: TDateTime;
 var
   S: string;
 begin
-  S := InternalAsString(CN_TAG_SET_TIME);
+  S := string(InternalAsString(CN_TAG_SET_TIME));
   // TODO: YYMMDDhhmm 后面加 Z 或 ss 或 +- 时区
 
   Result := StrToDateTime(S);
@@ -868,7 +868,7 @@ end;
 
 function TCnBerReadNode.AsRawString: string;
 begin
-  Result := InternalAsString([]);
+  Result := string(InternalAsString([]));
 end;
 
 function TCnBerReadNode.AsCommonInteger: Integer;

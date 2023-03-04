@@ -995,8 +995,8 @@ end;
 function FP2SetHex(const FP2: TCnFP2; const S0, S1: string): Boolean;
 begin
   Result := False;
-  if not FP2[0].SetHex(S0) then Exit;
-  if not FP2[1].SetHex(S1) then Exit;
+  if not FP2[0].SetHex(AnsiString(S0)) then Exit;
+  if not FP2[1].SetHex(AnsiString(S1)) then Exit;
   Result := True;
 end;
 
@@ -3410,7 +3410,7 @@ var
   G: TCnFP12;
   Stream: TMemoryStream;
   I, KLen: Integer;
-  P2, C2: array of Byte;
+  P2, C2: TBytes;
   PD: PByteArray;
   Mac: TSM3Digest;
 
@@ -3548,7 +3548,7 @@ var
   Stream: TMemoryStream;
   KLen, I, MLen: Integer;
   KDFKey: AnsiString;
-  C2: array of Byte;
+  C2: TBytes;
 
   procedure BytesRemovePKCS7Padding;
   var
@@ -4007,22 +4007,13 @@ begin
   end;
 end;
 
-function StrToHex(Value: PAnsiChar; Len: Integer): AnsiString;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I := 0 to Len - 1 do
-    Result := Result + IntToHex(Ord(Value[I]), 2);
-end;
-
 function SM9Hash(const Res: TCnBigNumber; Prefix: Byte; Data: Pointer; DataLen: Integer;
   N: TCnBigNumber): Boolean;
 var
   CT, SCT, HLen: Cardinal;
   I, CeilLen: Integer;
   IsInt: Boolean;
-  DArr, Ha: array of Byte; // Ha ³¤ HLen Bits
+  DArr, Ha: TBytes; // Ha ³¤ HLen Bits
   SM3D: TSM3Digest;
   BH, BN: TCnBigNumber;
 begin
@@ -4101,7 +4092,7 @@ end;
 
 function SM9Mac(Key: Pointer; KeyByteLength: Integer; Z: Pointer; ZByteLength: Integer): TSM3Digest;
 var
-  Arr: array of Byte;
+  Arr: TBytes;
 begin
   if (Key = nil) or (KeyByteLength <= 0) or (Z = nil) or (ZByteLength <= 0) then
     raise ECnSM9Exception.Create(SErrorMacParams);
@@ -4231,7 +4222,7 @@ end;
 
 function TCnSM9KeyEncapsulation.ToString: string;
 begin
-  Result := StrToHex(PAnsiChar(FKey), Length(FKey)) + CRLF + FCode.ToHex;
+  Result := DataToHex(PAnsiChar(FKey), Length(FKey)) + CRLF + FCode.ToHex;
 end;
 
 { TCnSM9KeyExchangeMasterKey }

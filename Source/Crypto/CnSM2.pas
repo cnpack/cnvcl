@@ -1448,7 +1448,7 @@ begin
 
   try
     InSign := TCnSM2Signature.Create;
-    InSign.SetHex(InHexSignature);
+    InSign.SetHex(AnsiString(InHexSignature));
 
     Stream := TMemoryStream.Create;
     Stream.LoadFromFile(FileName);

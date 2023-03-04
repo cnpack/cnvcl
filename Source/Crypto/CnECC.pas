@@ -1821,6 +1821,8 @@ begin
   end;
 end;
 
+{$WARNINGS OFF}
+
 function TCnInt64Ecc.PlainToPoint(Plain: Int64;
   var OutPoint: TCnInt64EccPoint): Boolean;
 var
@@ -1914,6 +1916,8 @@ begin
     end;
   end;
 end;
+
+{$WARNINGS ON}
 
 procedure TCnInt64Ecc.PointAddPoint(var P, Q, Sum: TCnInt64EccPoint);
 var
@@ -2163,8 +2167,8 @@ procedure TCnEccPoint.SetBase64(const Buf: AnsiString; Ecc: TCnEcc);
 var
   B: TBytes;
 begin
-  if Base64Decode(Buf, B) = BASE64_OK then
-    SetHex(BytesToHex(B), Ecc);
+  if Base64Decode(string(Buf), B) = BASE64_OK then
+    SetHex(AnsiString(BytesToHex(B)), Ecc);
 end;
 
 procedure TCnEccPoint.SetHex(const Buf: AnsiString; Ecc: TCnEcc);
@@ -2176,7 +2180,7 @@ begin
   if Length(Buf) < 4 then
     raise ECnEccException.Create(SCnEccErrorKeyData);
 
-  C := StrToIntDef(Copy(Buf, 1, 2), 0);
+  C := StrToIntDef(string(Copy(Buf, 1, 2)), 0);
   S := Copy(Buf, 3, MaxInt);
 
   if (C = EC_PUBLICKEY_UNCOMPRESSED) or (C = EC_PUBLICKEY_COMPRESSED_ODD) or
@@ -2454,7 +2458,7 @@ begin
   Load(ECC_PRE_DEFINED_PARAMS[Predefined].A, ECC_PRE_DEFINED_PARAMS[Predefined].B,
     ECC_PRE_DEFINED_PARAMS[Predefined].P, ECC_PRE_DEFINED_PARAMS[Predefined].X,
     ECC_PRE_DEFINED_PARAMS[Predefined].Y, ECC_PRE_DEFINED_PARAMS[Predefined].N,
-    StrToIntDef(ECC_PRE_DEFINED_PARAMS[Predefined].H, 1));
+    StrToIntDef(string(ECC_PRE_DEFINED_PARAMS[Predefined].H), 1));
 end;
 
 procedure TCnEcc.Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer);
@@ -8187,7 +8191,7 @@ var
   NR, NS: TCnBerReadNode;
 begin
   Result := False;
-  B := HexToBytes(Buf);
+  B := HexToBytes(string(Buf));
   if Length(B) <= 1 then
     Exit;
 
@@ -8215,9 +8219,9 @@ var
   B: TBytes;
 begin
   Result := False;
-  if Base64Decode(Buf, B) = BASE64_OK then
+  if Base64Decode(string(Buf), B) = BASE64_OK then
   begin
-    SetHex(BytesToHex(B));
+    SetHex(AnsiString(BytesToHex(B)));
     Result := True;
   end;
 end;
