@@ -1788,7 +1788,7 @@ begin
     end;
   vtString:
     begin
-      Result := StrToInt(Element.VString^);
+      Result := StrToInt(string(Element.VString^));
     end;
   else
     raise ECnPolynomialException.CreateFmt(SInvalidInteger, ['Coefficients ' + Element.VString^]);
@@ -1817,7 +1817,7 @@ begin
     end;
   vtString:
     begin
-      Result := Element.VString^;
+      Result := string(Element.VString^);
     end;
   vtObject:
     begin
@@ -2005,6 +2005,8 @@ begin
   end;
 end;
 
+{$WARNINGS OFF}
+
 function Int64PolynomialSetString(const P: TCnInt64Polynomial;
   const Str: string; const VarName: Char = 'X'): Boolean;
 var
@@ -2086,6 +2088,8 @@ begin
     P[E] := F;
   end;
 end;
+
+{$WARNINGS ON}
 
 function Int64PolynomialIsZero(const P: TCnInt64Polynomial): Boolean;
 begin
@@ -4721,6 +4725,8 @@ begin
   end;
 end;
 
+{$WARNINGS OFF}
+
 function BigNumberPolynomialSetString(const P: TCnBigNumberPolynomial;
   const Str: string; const VarName: Char = 'X'): Boolean;
 var
@@ -4797,9 +4803,11 @@ begin
       MDFlag := 0;
     end;
 
-    P[E].SetDec(Num);
+    P[E].SetDec(AnsiString(Num));
   end;
 end;
+
+{$WARNINGS ON}
 
 function BigNumberPolynomialIsZero(const P: TCnBigNumberPolynomial): Boolean;
 begin
@@ -7327,6 +7335,8 @@ begin
     Result := '0';
 end;
 
+{$WARNINGS OFF}
+
 function Int64BiPolynomialSetString(const P: TCnInt64BiPolynomial;
   const Str: string; const Var1Name: Char = 'X'; const Var2Name: Char = 'Y'): Boolean;
 var
@@ -7425,6 +7435,8 @@ begin
 
   Result := True;
 end;
+
+{$WARNINGS ON}
 
 function Int64BiPolynomialIsZero(const P: TCnInt64BiPolynomial): Boolean;
 begin
@@ -8567,6 +8579,8 @@ begin
     Result := '0';
 end;
 
+{$WARNINGS OFF}
+
 function BigNumberBiPolynomialSetString(const P: TCnBigNumberBiPolynomial;
   const Str: string; const Var1Name: Char = 'X'; const Var2Name: Char = 'Y'): Boolean;
 var
@@ -8658,11 +8672,13 @@ begin
     end;
 
     // 俩指数找完了，凑
-    P.SafeValue[E1, E2].SetDec(Num);
+    P.SafeValue[E1, E2].SetDec(AnsiString(Num));
   end;
 
   Result := True;
 end;
+
+{$WARNINGS ON}
 
 function BigNumberBiPolynomialIsZero(const P: TCnBigNumberBiPolynomial): Boolean;
 begin
@@ -10127,7 +10143,7 @@ begin
   begin
     S := ExtractBigNumberFromArrayConstElement(LowToHighXCoefficients[I]);
     if S <> '' then
-      SafeValue[I, YDegree].SetDec(ExtractBigNumberFromArrayConstElement(LowToHighXCoefficients[I]))
+      SafeValue[I, YDegree].SetDec(AnsiString(ExtractBigNumberFromArrayConstElement(LowToHighXCoefficients[I])));
   end;
 end;
 
@@ -10155,7 +10171,7 @@ begin
 
   YFactorsList[XDegree].Clear;
   for I := Low(LowToHighYCoefficients) to High(LowToHighYCoefficients) do
-    YFactorsList[XDegree].SafeValue[I].SetDec(ExtractBigNumberFromArrayConstElement(LowToHighYCoefficients[I]));
+    YFactorsList[XDegree].SafeValue[I].SetDec(AnsiString(ExtractBigNumberFromArrayConstElement(LowToHighYCoefficients[I])));
 end;
 
 procedure TCnBigNumberBiPolynomial.SetYCoefficentsFromPolynomial(

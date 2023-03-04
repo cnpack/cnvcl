@@ -1016,6 +1016,8 @@ begin
   end;
 end;
 
+{$WARNINGS OFF}
+
 // 封装的 Int64 的支持 A、B 为负数的 (A + B) mod C，但 C 仍要求正数否则结果不靠谱}
 function Int64AddMod(A, B, C: Int64): Int64;
 var
@@ -1175,6 +1177,8 @@ begin
   end;
   Result := True;
 end;
+
+{$WARNINGS ON}
 
 // 生成一个随机的 32 位无符号素数
 function CnGenerateUInt32Prime(HighBitSet: Boolean): Cardinal;
@@ -2236,6 +2240,8 @@ begin
   end;
 end;
 
+{$WARNINGS OFF}
+
 function CnInt64SquareRoot(X, P: Int64): Int64;
 const
   PT4U3 = 0;
@@ -2640,6 +2646,8 @@ begin
 
   Result := True;
 end;
+
+{$WARNINGS ON}
 
 end.
 

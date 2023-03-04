@@ -1326,52 +1326,52 @@ end;
 
 function SM4EncryptEcbBytesToHex(Key: TBytes; const Input: TBytes): AnsiString;
 begin
-  Result := BytesToHex(SM4EncryptEcbBytes(Key, Input));
+  Result := AnsiString(BytesToHex(SM4EncryptEcbBytes(Key, Input)));
 end;
 
 function SM4DecryptEcbBytesFromHex(Key: TBytes; const Input: AnsiString): TBytes;
 begin
-  Result := SM4DecryptEcbBytes(Key, HexToBytes(Input));
+  Result := SM4DecryptEcbBytes(Key, HexToBytes(string(Input)));
 end;
 
 function SM4EncryptCbcBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiString;
 begin
-  Result := BytesToHex(SM4EncryptCbcBytes(Key, Iv, Input));
+  Result := AnsiString(BytesToHex(SM4EncryptCbcBytes(Key, Iv, Input)));
 end;
 
 function SM4DecryptCbcBytesFromHex(Key, Iv: TBytes; const Input: AnsiString): TBytes;
 begin
-  Result := SM4DecryptCbcBytes(Key, Iv, HexToBytes(Input));
+  Result := SM4DecryptCbcBytes(Key, Iv, HexToBytes(string(Input)));
 end;
 
 function SM4EncryptCfbBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiString;
 begin
-  Result := BytesToHex(SM4EncryptCfbBytes(Key, Iv, Input));
+  Result := AnsiString(BytesToHex(SM4EncryptCfbBytes(Key, Iv, Input)));
 end;
 
 function SM4DecryptCfbBytesFromHex(Key, Iv: TBytes; const Input: AnsiString): TBytes;
 begin
-  Result := SM4DecryptCfbBytes(Key, Iv, HexToBytes(Input));
+  Result := SM4DecryptCfbBytes(Key, Iv, HexToBytes(string(Input)));
 end;
 
 function SM4EncryptOfbBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiString;
 begin
-  Result := BytesToHex(SM4EncryptOfbBytes(Key, Iv, Input));
+  Result := AnsiString(BytesToHex(SM4EncryptOfbBytes(Key, Iv, Input)));
 end;
 
 function SM4DecryptOfbBytesFromHex(Key, Iv: TBytes; const Input: AnsiString): TBytes;
 begin
-  Result := SM4DecryptOfbBytes(Key, Iv, HexToBytes(Input));
+  Result := SM4DecryptOfbBytes(Key, Iv, HexToBytes(string(Input)));
 end;
 
 function SM4EncryptCtrBytesToHex(Key, Nonce: TBytes; const Input: TBytes): AnsiString;
 begin
-  Result := BytesToHex(SM4EncryptCtrBytes(Key, Nonce, Input));
+  Result := AnsiString(BytesToHex(SM4EncryptCtrBytes(Key, Nonce, Input)));
 end;
 
 function SM4DecryptCtrBytesFromHex(Key, Nonce: TBytes; const Input: AnsiString): TBytes;
 begin
-  Result := SM4DecryptCtrBytes(Key, Nonce, HexToBytes(Input));
+  Result := SM4DecryptCtrBytes(Key, Nonce, HexToBytes(string(Input)));
 end;
 
 procedure SM4EncryptStreamECB(Source: TStream; Count: Cardinal;

@@ -172,12 +172,12 @@ var
 
 procedure SetPrime(FNVType: TCnFNVType; const Prime: TCnBigNumber);
 begin
-  Prime.SetHex(FNV_PRIMES[FNVType]);
+  Prime.SetHex(AnsiString(FNV_PRIMES[FNVType]));
 end;
 
 procedure SetOffsetBasis(FNVType: TCnFNVType; const Basis: TCnBigNumber);
 begin
-  Basis.SetHex(FNV_OFFSET_BASISES[FNVType]);
+  Basis.SetHex(AnsiString(FNV_OFFSET_BASISES[FNVType]));
 end;
 
 //    hash := FNV_offset_basis

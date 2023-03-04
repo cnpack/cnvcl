@@ -1120,7 +1120,7 @@ begin
       Delta := 16
     else
       Delta := 4;
-  SetCapacity(FCapacity + Delta);
+  SetCapacity(FCapacity + TUInt64(Delta));
 end;
 
 function TCnUInt64List.IndexOf(Item: TUInt64): TUInt64;

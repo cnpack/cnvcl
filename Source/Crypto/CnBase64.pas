@@ -505,7 +505,7 @@ function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero:
 var
   Data: TBytes;
 begin
-  Result := Base64Decode(InputData, Data, FixZero);
+  Result := Base64Decode(string(InputData), Data, FixZero);
   if (Result = BASE64_OK) and (Length(Data) > 0) then
   begin
     OutputData.Size := Length(Data);
@@ -552,9 +552,9 @@ begin
   OutPutData := nil;
 
   if FilterDecodeInput then
-    Data := FilterLine(InputData)
+    Data := FilterLine(AnsiString(InputData))
   else
-    Data := InputData;
+    Data := AnsiString(InputData);
 
   SrcLen := Length(Data);
   DstLen := SrcLen * 3 div 4;
@@ -622,7 +622,7 @@ function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; F
 var
   Data: TBytes;
 begin
-  Result := Base64Decode(InputData, Data, FixZero);
+  Result := Base64Decode(string(InputData), Data, FixZero);
   if (Result = BASE64_OK) and (Length(Data) > 0) then
   begin
     SetLength(OutputData, Length(Data));

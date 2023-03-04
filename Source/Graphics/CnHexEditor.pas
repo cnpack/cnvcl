@@ -48,14 +48,14 @@ uses
 
 type
   TCnWMImeChar = packed record
-    Msg: Cardinal;   
+    Msg: Cardinal;
     case Integer of
-      0: (
-        CharCode: Word;
+      0:
+        (CharCode: Word;
         KeyData: Longint;
         Result: Longint);
-      1: (
-        CharCode1: Byte;
+      1:
+        (CharCode1: Byte;
         CharCode2: Byte);
   end;
 
@@ -129,7 +129,8 @@ type
     procedure DoEnter; override;
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
-    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+      override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     function DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean; override;
     function DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean; override;
@@ -161,7 +162,8 @@ type
     property Font;
     property Color;
     property ReadOnly: Boolean read FReadOnly write SetReadOnly default False;
-    property ChangeDataSize: Boolean read FChangeDataSize write FChangeDataSize default True; 
+    property ChangeDataSize: Boolean read FChangeDataSize write FChangeDataSize
+      default True;
     property ParentFont;
     property ParentColor;
     property PopupMenu;
@@ -173,34 +175,41 @@ type
     property OnKeyDown;
     property OnKeyPress;
     property OnKeyUp;
-    property OnSelectionChange: TNotifyEvent read FOnSelectionChange write FOnSelectionChange;
+    property OnSelectionChange: TNotifyEvent read FOnSelectionChange write
+      FOnSelectionChange;
   end;
 
 implementation
 
-uses Math;
+uses
+  Math;
 
 //------------------------------------------------------------------------------
 // 流插入数据
 //------------------------------------------------------------------------------
 
-function CnInsertStream(Stream: TStream; Offset: Integer; const Buffer;
-  Length: Integer): Boolean;
+function CnInsertStream(Stream: TStream; Offset: Integer; const Buffer; Length:
+  Integer): Boolean;
 var
-  vBuffer: array[0..$1000-1] of Char;
+  vBuffer: array[0..$1000 - 1] of Char;
   I, L: Integer;
 begin
   Result := False;
-  if not Assigned(Stream) then Exit;
-  if Length <= 0 then Exit;
-  if Offset >= Stream.Size then Exit;
-  if Offset < 0 then Exit;
+  if not Assigned(Stream) then
+    Exit;
+  if Length <= 0 then
+    Exit;
+  if Offset >= Stream.Size then
+    Exit;
+  if Offset < 0 then
+    Exit;
   I := Stream.Size;
   Stream.Size := Stream.Size + Length;
   repeat
     if Offset + Length <= I - SizeOf(vBuffer) then
       L := SizeOf(vBuffer)
-    else L := I - Offset;
+    else
+      L := I - Offset;
     Stream.Position := I - L;
     Stream.Read(vBuffer, L);
     Stream.Position := I - L + Length;
@@ -213,19 +222,22 @@ end;
 
 //------------------------------------------------------------------------------
 // 删除流数据
-//------------------------------------------------------------------------------    
+//------------------------------------------------------------------------------
 
-function CnDeleteStream(Stream: TStream; Offset: Integer;
-  Length: Integer): Boolean;
+function CnDeleteStream(Stream: TStream; Offset: Integer; Length: Integer): Boolean;
 var
-  Buffer: array[0..$1000-1] of Char;
+  Buffer: array[0..$1000 - 1] of Char;
   I, L: Integer;
 begin
   Result := False;
-  if not Assigned(Stream) then Exit;
-  if Length <= 0 then Exit;
-  if Offset >= Stream.Size then Exit;
-  if Offset < 0 then Exit;
+  if not Assigned(Stream) then
+    Exit;
+  if Length <= 0 then
+    Exit;
+  if Offset >= Stream.Size then
+    Exit;
+  if Offset < 0 then
+    Exit;
   if Offset + Length >= Stream.Size then
     Stream.Size := Offset
   else
@@ -241,7 +253,7 @@ begin
     Stream.Size := Stream.Size - Length;
   end;
   Result := True;
-end; 
+end;
 
 procedure TCnHexEditor.AdjustScrollBars;
 var
@@ -276,17 +288,19 @@ function TCnHexEditor.CoordinateToPoint(mMouseObject: TCnMouseObject;
 begin
   case mMouseObject of
     moChar, moHex:
-    begin
-      Result.Y := mCoordinate.Y * FItemHeight;
-      Result.X := ColToChar(mMouseObject, mCoordinate.X) * FItemWidth;
-    end;
+      begin
+        Result.Y := mCoordinate.Y * FItemHeight;
+        Result.X := ColToChar(mMouseObject, mCoordinate.X) * FItemWidth;
+      end;
     moAddress:
-    begin
-      Result.Y := mCoordinate.Y * FItemHeight;
-      Result.X := 0;
-    end;
-  else Result := Point(-1, -1);
+      begin
+        Result.Y := mCoordinate.Y * FItemHeight;
+        Result.X := 0;
+      end;
+  else
+    Result := Point(-1, -1);
   end;
+
   Result.X := Result.X - FLeftLine * FItemWidth;
   Result.Y := Result.Y - FTopLine * FItemHeight;
 end;
@@ -304,7 +318,7 @@ begin
   FChangeDataSize := True;
   FColType := moHex;
   FFirstCmFontChanged := True;
-  
+
   try
     Font.Name := 'Fixedsys'; // 用等宽字体
   except
@@ -339,18 +353,17 @@ begin
   UpdateCaret;
   Invalidate;
   ScrollIntoView;
-  if Assigned(FOnSelectionChange) then FOnSelectionChange(Self);
+  if Assigned(FOnSelectionChange) then
+    FOnSelectionChange(Self);
 end;
 
-function TCnHexEditor.DoMouseWheelDown(Shift: TShiftState;
-  MousePos: TPoint): Boolean;
+function TCnHexEditor.DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean;
 begin
   Result := inherited DoMouseWheelDown(Shift, MousePos);
   Perform(WM_VSCROLL, MakeWParam(SB_PAGEDOWN, 0), 0);
 end;
 
-function TCnHexEditor.DoMouseWheelUp(Shift: TShiftState;
-  MousePos: TPoint): Boolean;
+function TCnHexEditor.DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean;
 begin
   Result := inherited DoMouseWheelUp(Shift, MousePos);
   Perform(WM_VSCROLL, MakeWParam(SB_PAGEUP, 0), 0);
@@ -363,165 +376,181 @@ begin
   inherited;
   case Key of
     VK_BACK:
-    begin
-      if not FChangeDataSize then Exit;
-      if FSelLength <= 0 then 
       begin
-        if FSelStart <= 0 then Exit;
-        Dec(FSelStart);
-        if CnDeleteStream(FMemoryStream, FSelStart, 1) then
+        if not FChangeDataSize then
+          Exit;
+        if FSelLength <= 0 then
         begin
-          CaretPoint := PositionToCoordinate(FSelStart);
-          FColIndex := CaretPoint.X;
-          FRowIndex := CaretPoint.Y;
-          DoChange;
-        end;
-      end
-      else begin
-        if CnDeleteStream(FMemoryStream, FSelStart, FSelLength) then
+          if FSelStart <= 0 then
+            Exit;
+          Dec(FSelStart);
+          if CnDeleteStream(FMemoryStream, FSelStart, 1) then
+          begin
+            CaretPoint := PositionToCoordinate(FSelStart);
+            FColIndex := CaretPoint.X;
+            FRowIndex := CaretPoint.Y;
+            DoChange;
+          end;
+        end
+        else
         begin
-          FSelLength := 0;
-          CaretPoint := PositionToCoordinate(FSelStart + FSelLength);
-          FColIndex := CaretPoint.X;
-          FRowIndex := CaretPoint.Y;
-          DoChange;
+          if CnDeleteStream(FMemoryStream, FSelStart, FSelLength) then
+          begin
+            FSelLength := 0;
+            CaretPoint := PositionToCoordinate(FSelStart + FSelLength);
+            FColIndex := CaretPoint.X;
+            FRowIndex := CaretPoint.Y;
+            DoChange;
+          end;
         end;
       end;
-    end;
     VK_DELETE:
-    begin
-      if not FChangeDataSize then Exit;
-      if FSelLength <= 0 then
       begin
-        if CnDeleteStream(FMemoryStream, FSelStart, 1) then DoChange;
-      end
-      else begin
-        if CnDeleteStream(FMemoryStream, FSelStart, FSelLength) then
+        if not FChangeDataSize then
+          Exit;
+        if FSelLength <= 0 then
         begin
-          FSelLength := 0;
-          CaretPoint := PositionToCoordinate(FSelStart + FSelLength);
-          FColIndex := CaretPoint.X;
-          FRowIndex := CaretPoint.Y;
-          DoChange;
+          if CnDeleteStream(FMemoryStream, FSelStart, 1) then
+            DoChange;
+        end
+        else
+        begin
+          if CnDeleteStream(FMemoryStream, FSelStart, FSelLength) then
+          begin
+            FSelLength := 0;
+            CaretPoint := PositionToCoordinate(FSelStart + FSelLength);
+            FColIndex := CaretPoint.X;
+            FRowIndex := CaretPoint.Y;
+            DoChange;
+          end;
         end;
       end;
-    end;
     VK_SHIFT:
-    begin
-      if FSelLength <= 0 then
       begin
-        FAnchorStart := FSelStart;
-        FAnchorOffset := 0;
-        FHexChar := #0;
+        if FSelLength <= 0 then
+        begin
+          FAnchorStart := FSelStart;
+          FAnchorOffset := 0;
+          FHexChar := #0;
+        end;
       end;
-    end;
     VK_DOWN:
-    begin
-      if ssShift in Shift then
-        AnchorOffset := AnchorOffset + 16
-      else
       begin
-        RowIndex := RowIndex + 1;
-        SelectionChange;
+        if ssShift in Shift then
+          AnchorOffset := AnchorOffset + 16
+        else
+        begin
+          RowIndex := RowIndex + 1;
+          SelectionChange;
+        end;
       end;
-    end;
     VK_UP:
-    begin
-      if ssShift in Shift then
-        AnchorOffset := AnchorOffset - 16
-      else
       begin
-        RowIndex := RowIndex - 1;
-        SelectionChange;
-      end;
-    end;
-    VK_NEXT:
-    begin
-      RowIndex := RowIndex + FVisibleLines;
-      if ssShift in Shift then
-      else SelectionChange;
-    end;
-    VK_PRIOR:
-    begin
-      RowIndex := RowIndex - FVisibleLines;
-      if ssShift in Shift then
-      else SelectionChange;
-    end;
-    VK_HOME:
-    begin
-      ColIndex := 0;
-      if ssCtrl in Shift then RowIndex := 0;
-      if ssShift in Shift then
-      else SelectionChange;
-    end;
-    VK_END:
-    begin
-      ColIndex := 15;
-      if ssCtrl in Shift then RowIndex := FLineCount - 1;
-      if ssShift in Shift then
-      else SelectionChange;
-    end;
-    VK_LEFT:
-    begin
-      if ssShift in Shift then
-        AnchorOffset := AnchorOffset - 1
-      else
-      begin
-        if ColIndex > 0 then
-          ColIndex := ColIndex - 1
-        else if RowIndex > 0 then
+        if ssShift in Shift then
+          AnchorOffset := AnchorOffset - 16
+        else
         begin
           RowIndex := RowIndex - 1;
-          ColIndex := RowMaxIndex(RowIndex);
+          SelectionChange;
         end;
-        SelectionChange;
       end;
-    end;
-    VK_RIGHT:
-    begin
-      if ssShift in Shift then
-        AnchorOffset := AnchorOffset + 1
-      else
+    VK_NEXT:
       begin
-        if ColIndex < 15 then
-          ColIndex := ColIndex + 1
-        else if RowIndex < FLineCount - 1 then
-        begin
-          ColIndex := 0;
-          RowIndex := RowIndex + 1;
-        end;
-        SelectionChange;
+        RowIndex := RowIndex + FVisibleLines;
+        if not (ssShift in Shift) then
+          SelectionChange;
       end;
-    end;
-    VK_TAB: if ColType = moHex then ColType := moChar else ColType := moHex;
+    VK_PRIOR:
+      begin
+        RowIndex := RowIndex - FVisibleLines;
+        if not (ssShift in Shift) then
+          SelectionChange;
+      end;
+    VK_HOME:
+      begin
+        ColIndex := 0;
+        if ssCtrl in Shift then
+          RowIndex := 0;
+        if not (ssShift in Shift) then
+          SelectionChange;
+      end;
+    VK_END:
+      begin
+        ColIndex := 15;
+        if ssCtrl in Shift then
+          RowIndex := FLineCount - 1;
+        if not (ssShift in Shift) then
+          SelectionChange;
+      end;
+    VK_LEFT:
+      begin
+        if ssShift in Shift then
+          AnchorOffset := AnchorOffset - 1
+        else
+        begin
+          if ColIndex > 0 then
+            ColIndex := ColIndex - 1
+          else if RowIndex > 0 then
+          begin
+            RowIndex := RowIndex - 1;
+            ColIndex := RowMaxIndex(RowIndex);
+          end;
+          SelectionChange;
+        end;
+      end;
+    VK_RIGHT:
+      begin
+        if ssShift in Shift then
+          AnchorOffset := AnchorOffset + 1
+        else
+        begin
+          if ColIndex < 15 then
+            ColIndex := ColIndex + 1
+          else if RowIndex < FLineCount - 1 then
+          begin
+            ColIndex := 0;
+            RowIndex := RowIndex + 1;
+          end;
+          SelectionChange;
+        end;
+      end;
+    VK_TAB:
+      if ColType = moHex then
+        ColType := moChar
+      else
+        ColType := moHex;
   end;
 end;
 
 function TCnHexEditor.LineViewText(mLineIndex: Integer): string;
 const
-  SHexDigits : array[0..15] of Char = '0123456789ABCDEF';
+  SHexDigits: array[0..15] of Char = '0123456789ABCDEF';
 var
   I, L: Integer;
   vBytes: array[0..15] of Byte;
   S: string;
 begin
   Result := '';
-  if mLineIndex < 0 then Exit;
+  if mLineIndex < 0 then
+    Exit;
   FMemoryStream.Position := mLineIndex * 16;
   L := FMemoryStream.Read(vBytes, 16);
   Result := Format('%.8x  ', [FBaseAddress + mLineIndex * 16]);
   S := '';
   for I := 0 to 15 do
   begin
-    if I = 8 then Result := Result + ' ';
+    if I = 8 then
+      Result := Result + ' ';
     if I < L then
     begin
       if vBytes[I] in [32..126] then
         S := S + Chr(vBytes[I])
-      else S := S + '.';
+      else
+        S := S + '.';
       Result := Result + SHexDigits[vBytes[I] shr $04] +
         SHexDigits[vBytes[I] and $0F] + ' '
-    end else
+    end
+    else
     begin
       Result := Result + '   ';
       S := S + ' ';
@@ -534,7 +563,8 @@ procedure TCnHexEditor.LoadFromFile(FileName: TFileName);
 begin
   if FileExists(FileName) then
     FMemoryStream.LoadFromFile(FileName)
-  else FMemoryStream.Clear;
+  else
+    FMemoryStream.Clear;
   FSelLength := 0;
   FSelStart := 0;
   FColIndex := 0;
@@ -553,49 +583,52 @@ begin
   DoChange;
 end;
 
-procedure TCnHexEditor.MouseDown(Button: TMouseButton; Shift: TShiftState; X,
-  Y: Integer);
+procedure TCnHexEditor.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   vCoordinate: TPoint;
 begin
   inherited;
-  if not Focused then SetFocus;
-  if Button = mbRight then Exit;
+  if not Focused then
+    SetFocus;
+  if Button = mbRight then
+    Exit;
   case MouseObject(Point(X, Y), vCoordinate) of
-    moAddress: ;
+    moAddress:
+      ;
     moHex:
-    begin
-      FColIndex := vCoordinate.X;
-      FColType := moHex;
-      FRowIndex := vCoordinate.Y;
-      FSelStart := Max(Min(CoordinatePosition(vCoordinate), FMemoryStream.Size), 0);
-      vCoordinate := PositionToCoordinate(FSelStart);
-      FColIndex := vCoordinate.X;
-      FRowIndex := vCoordinate.Y;
-      FAnchorStart := FSelStart;
-      FAnchorOffset := 0;
-      FHexChar := #0;
-      SelLength := 0;
-      UpdateCaret;
-      SelectionChange;
-    end;
+      begin
+        FColIndex := vCoordinate.X;
+        FColType := moHex;
+        FRowIndex := vCoordinate.Y;
+        FSelStart := Max(Min(CoordinatePosition(vCoordinate), FMemoryStream.Size), 0);
+        vCoordinate := PositionToCoordinate(FSelStart);
+        FColIndex := vCoordinate.X;
+        FRowIndex := vCoordinate.Y;
+        FAnchorStart := FSelStart;
+        FAnchorOffset := 0;
+        FHexChar := #0;
+        SelLength := 0;
+        UpdateCaret;
+        SelectionChange;
+      end;
     moChar:
-    begin
-      FColIndex := vCoordinate.X;
-      FColType := moChar;
-      RowIndex := vCoordinate.Y;
-      FSelStart := Max(Min(CoordinatePosition(vCoordinate), FMemoryStream.Size), 0);
-      vCoordinate := PositionToCoordinate(FSelStart);
-      FColIndex := vCoordinate.X;
-      FRowIndex := vCoordinate.Y;
-      FAnchorStart := FSelStart;
-      FAnchorOffset := 0;
-      FHexChar := #0;
-      SelLength := 0;
-      UpdateCaret;
-      SelectionChange;
-    end;
-    moNone:;
+      begin
+        FColIndex := vCoordinate.X;
+        FColType := moChar;
+        RowIndex := vCoordinate.Y;
+        FSelStart := Max(Min(CoordinatePosition(vCoordinate), FMemoryStream.Size), 0);
+        vCoordinate := PositionToCoordinate(FSelStart);
+        FColIndex := vCoordinate.X;
+        FRowIndex := vCoordinate.Y;
+        FAnchorStart := FSelStart;
+        FAnchorOffset := 0;
+        FHexChar := #0;
+        SelLength := 0;
+        UpdateCaret;
+        SelectionChange;
+      end;
+    moNone:
+      ;
   end;
 end;
 
@@ -605,7 +638,8 @@ var
   vAnchorType: TCnMouseObject;
 begin
   inherited;
-  if not Focused then Exit;
+  if not Focused then
+    Exit;
   { TODO -c2006.11.17 -oZswangY37 : 考虑拖拽移动内容 }
   if ssLeft in Shift then
   begin
@@ -623,19 +657,25 @@ begin
     X := Min(vCoordinate.X, X);
 
     vAnchorType := MouseObject(Point(X, Y), vCoordinate);
-    if vAnchorType <> FColType then Exit;
+    if vAnchorType <> FColType then
+      Exit;
     AnchorOffset := CoordinatePosition(vCoordinate) - FAnchorStart;
   end;
 
   case MouseObject(Point(X, Y), vCoordinate) of
-    moAddress: Cursor := crDefault;
-    moHex: Cursor := crIBeam;
-    moChar: Cursor := crIBeam;
-    moNone: Cursor := crDefault;
+    moAddress:
+      Cursor := crDefault;
+    moHex:
+      Cursor := crIBeam;
+    moChar:
+      Cursor := crIBeam;
+    moNone:
+      Cursor := crDefault;
   end;
 end;
 
-function TCnHexEditor.MouseObject(mPoint: TPoint; var nCoordinate: TPoint): TCnMouseObject;
+function TCnHexEditor.MouseObject(mPoint: TPoint; var nCoordinate: TPoint):
+  TCnMouseObject;
 var
   vRow, vCol: Integer;
 begin
@@ -643,32 +683,36 @@ begin
   vCol := (mPoint.X + FItemWidth * FLeftLine + FItemWidth div 2) div FItemWidth;
   case vCol of
     0..9:
-    begin
-      Result := moAddress;
-      nCoordinate.X := vRow;
-      nCoordinate.Y := vRow;
-    end;
-    10..58:
-    begin
-      Result := moHex;
-      case vCol of
-        10..33: nCoordinate.X := (vCol - 10) div 3;
-        34..35: nCoordinate.X := 8;
-        36..58:
-        begin
-          nCoordinate.X := (vCol - 11) div 3;
-        end;
-      else nCoordinate.X := vCol;
+      begin
+        Result := moAddress;
+        nCoordinate.X := vRow;
+        nCoordinate.Y := vRow;
       end;
-      nCoordinate.Y := vRow;
-    end;
+    10..58:
+      begin
+        Result := moHex;
+        case vCol of
+          10..33:
+            nCoordinate.X := (vCol - 10) div 3;
+          34..35:
+            nCoordinate.X := 8;
+          36..58:
+            begin
+              nCoordinate.X := (vCol - 11) div 3;
+            end;
+        else
+          nCoordinate.X := vCol;
+        end;
+        nCoordinate.Y := vRow;
+      end;
     60..76:
-    begin
-      Result := moChar;
-      nCoordinate.X := Min(vCol - 60, 15);
-      nCoordinate.Y := vRow;
-    end;
-  else Result := moNone;
+      begin
+        Result := moChar;
+        nCoordinate.X := Min(vCol - 60, 15);
+        nCoordinate.Y := vRow;
+      end;
+  else
+    Result := moNone;
   end;
 end;
 
@@ -693,7 +737,8 @@ begin
   for I := 0 to FVisibleLines - 1 do
   begin
     vCurrLine := I + FTopLine;
-    if vCurrLine >= FLineCount then Break;
+    if vCurrLine >= FLineCount then
+      Break;
     Canvas.TextOut(
       -FItemWidth * FLeftLine, I * FItemHeight, LineViewText(vCurrLine));
     ///////Begin 绘制选中区域
@@ -707,17 +752,20 @@ begin
         vPoint := CoordinateToPoint(FColType, Point(vSelStart.X, vCurrLine));
         Canvas.TextOut(
           vPoint.X, vPoint.Y, SelectionViewText(FColType, vCurrLine, vSelStart.X, vSelEnd.X));
-      end else if vCurrLine = vSelStart.Y then
+      end
+      else if vCurrLine = vSelStart.Y then
       begin
         vPoint := CoordinateToPoint(FColType, Point(vSelStart.X, vCurrLine));
         Canvas.TextOut(
           vPoint.X, vPoint.Y, SelectionViewText(FColType, vCurrLine, vSelStart.X, 15));
-      end else if vCurrLine = vSelEnd.Y then
+      end
+      else if vCurrLine = vSelEnd.Y then
       begin
         vPoint := CoordinateToPoint(FColType, Point(0, vCurrLine));
         Canvas.TextOut(
           vPoint.X, vPoint.Y, SelectionViewText(FColType, vCurrLine, 0, vSelEnd.X))
-      end else if (vCurrLine > vSelStart.Y) and (vCurrLine < vSelEnd.Y) then
+      end
+      else if (vCurrLine > vSelStart.Y) and (vCurrLine < vSelEnd.Y) then
       begin
         vPoint := CoordinateToPoint(FColType, Point(0, vCurrLine));
         Canvas.TextOut(
@@ -727,19 +775,23 @@ begin
       Canvas.Brush.Style := bsClear;
       if FColType = moChar then
         vUnColType := moHex
-      else vUnColType := moChar;
+      else
+        vUnColType := moChar;
       if (vCurrLine = vSelStart.Y) and (vCurrLine = vSelEnd.Y) then
       begin
         Rect.TopLeft := CoordinateToPoint(vUnColType, Point(vSelStart.X, vCurrLine));
         Rect.BottomRight := CoordinateToPoint(vUnColType, Point(vSelEnd.X, vCurrLine));
-        Rect.BottomRight.X := Rect.BottomRight.X + FItemWidth *(1 + Ord(vUnColType = moHex));
+        Rect.BottomRight.X := Rect.BottomRight.X + FItemWidth * (1 + Ord(vUnColType
+          = moHex));
         Rect.BottomRight.Y := Rect.BottomRight.Y + FItemHeight;
         Canvas.Rectangle(Rect);
-      end else if vCurrLine = vSelStart.Y then
+      end
+      else if vCurrLine = vSelStart.Y then
       begin
         Rect.TopLeft := CoordinateToPoint(vUnColType, Point(vSelStart.X, vCurrLine));
         Rect.BottomRight := CoordinateToPoint(vUnColType, Point(15, vCurrLine));
-        Rect.BottomRight.X := Rect.BottomRight.X + FItemWidth *(1 + Ord(vUnColType = moHex));
+        Rect.BottomRight.X := Rect.BottomRight.X + FItemWidth * (1 + Ord(vUnColType
+          = moHex));
         Rect.BottomRight.Y := Rect.BottomRight.Y + FItemHeight;
 
         Canvas.MoveTo(Rect.TopLeft.X, Rect.TopLeft.Y);
@@ -754,11 +806,13 @@ begin
         Rect.BottomRight.Y := Rect.BottomRight.Y + FItemHeight;
         Canvas.MoveTo(Rect.TopLeft.X, Rect.BottomRight.Y);
         Canvas.LineTo(Rect.BottomRight.X, Rect.BottomRight.Y);
-      end else if vCurrLine = vSelEnd.Y then
+      end
+      else if vCurrLine = vSelEnd.Y then
       begin
         Rect.TopLeft := CoordinateToPoint(vUnColType, Point(0, vCurrLine));
         Rect.BottomRight := CoordinateToPoint(vUnColType, Point(vSelEnd.X, vCurrLine));
-        Rect.BottomRight.X := Rect.BottomRight.X + FItemWidth *(1 + Ord(vUnColType = moHex));
+        Rect.BottomRight.X := Rect.BottomRight.X + FItemWidth * (1 + Ord(vUnColType
+          = moHex));
         Rect.BottomRight.Y := Rect.BottomRight.Y + FItemHeight;
         Canvas.MoveTo(Rect.TopLeft.X, Rect.TopLeft.Y);
         Canvas.LineTo(Rect.TopLeft.X, Rect.BottomRight.Y);
@@ -769,16 +823,19 @@ begin
         Canvas.LineTo(Rect.BottomRight.X, Rect.BottomRight.Y);
 
         Rect.TopLeft := CoordinateToPoint(vUnColType, Point(vSelEnd.X, vCurrLine));
-        Rect.TopLeft.X := Rect.TopLeft.X + FItemWidth *(1 + Ord(vUnColType = moHex));
+        Rect.TopLeft.X := Rect.TopLeft.X + FItemWidth * (1 + Ord(vUnColType = moHex));
         Rect.BottomRight := CoordinateToPoint(vUnColType, Point(15, vCurrLine));
-        Rect.BottomRight.X := Rect.BottomRight.X + FItemWidth *(1 + Ord(vUnColType = moHex));
+        Rect.BottomRight.X := Rect.BottomRight.X + FItemWidth * (1 + Ord(vUnColType
+          = moHex));
         Canvas.MoveTo(Rect.TopLeft.X, Rect.TopLeft.Y);
         Canvas.LineTo(Rect.BottomRight.X, Rect.TopLeft.Y);
-      end else if (vCurrLine > vSelStart.Y) and (vCurrLine < vSelEnd.Y) then
+      end
+      else if (vCurrLine > vSelStart.Y) and (vCurrLine < vSelEnd.Y) then
       begin
         Rect.TopLeft := CoordinateToPoint(vUnColType, Point(0, vCurrLine));
         Rect.BottomRight := CoordinateToPoint(vUnColType, Point(15, vCurrLine));
-        Rect.BottomRight.X := Rect.BottomRight.X + FItemWidth *(1 + Ord(vUnColType = moHex));
+        Rect.BottomRight.X := Rect.BottomRight.X + FItemWidth * (1 + Ord(vUnColType
+          = moHex));
         Rect.BottomRight.Y := Rect.BottomRight.Y + FItemHeight;
         Canvas.MoveTo(Rect.TopLeft.X, Rect.TopLeft.Y);
         Canvas.LineTo(Rect.TopLeft.X, Rect.BottomRight.Y);
@@ -843,8 +900,10 @@ var
 begin
   if Value <> FRowIndex then
   begin
-    if Value < 0 then Value := 0;
-    if Value >= FLineCount then Value := FLineCount - 1;
+    if Value < 0 then
+      Value := 0;
+    if Value >= FLineCount then
+      Value := FLineCount - 1;
 
     if (FRowIndex >= FTopLine) and (FRowIndex < FTopLine + FVisibleLines - 1) then
     begin
@@ -877,15 +936,18 @@ var
 begin
   if Value <> FLeftLine then
   begin
-    if Value < 0 then Value := 0;
-    if Value >= 76 then Value := 76 - 1;
+    if Value < 0 then
+      Value := 0;
+    if Value >= 76 then
+      Value := 76 - 1;
     LinesMoved := FLeftLine - Value;
     FLeftLine := Value;
     SetScrollPos(Handle, SB_HORZ, FLeftLine, True);
     if Abs(LinesMoved) = 1 then
     begin
       Rect := Bounds(1, 0, ClientWidth - FItemWidth, ClientHeight);
-      if LinesMoved = 1 then OffsetRect(Rect, FItemWidth, 0);
+      if LinesMoved = 1 then
+        OffsetRect(Rect, FItemWidth, 0);
       ScrollWindow(Handle, FItemWidth * LinesMoved, 0, @Rect, nil);
       if LinesMoved = -1 then
       begin
@@ -898,7 +960,9 @@ begin
         Rect.Right := FItemWidth;
       end;
       InvalidateRect(Handle, @Rect, False);
-    end else Invalidate;
+    end
+    else
+      Invalidate;
     UpdateCaret;
   end;
 end;
@@ -910,15 +974,18 @@ var
 begin
   if Value <> FTopLine then
   begin
-    if Value < 0 then Value := 0;
-    if Value >= FLineCount then Value := FLineCount - 1;
+    if Value < 0 then
+      Value := 0;
+    if Value >= FLineCount then
+      Value := FLineCount - 1;
     LinesMoved := FTopLine - Value;
     FTopLine := Value;
     SetScrollPos(Handle, SB_VERT, FTopLine, True);
     if Abs(LinesMoved) = 1 then
     begin
       Rect := Bounds(1, 0, ClientWidth, ClientHeight - FItemHeight);
-      if LinesMoved = 1 then OffsetRect(Rect, 0, FItemHeight);
+      if LinesMoved = 1 then
+        OffsetRect(Rect, 0, FItemHeight);
       ScrollWindow(Handle, 0, FItemHeight * LinesMoved, @Rect, nil);
       if LinesMoved = -1 then
       begin
@@ -931,7 +998,9 @@ begin
         Rect.Bottom := FItemHeight;
       end;
       InvalidateRect(Handle, @Rect, False);
-    end else Invalidate;
+    end
+    else
+      Invalidate;
     UpdateCaret;
   end;
 end;
@@ -941,8 +1010,10 @@ var
   vPos: TPoint;
 begin
   DestroyCaret;
-  if not Focused then Exit;
-  if FSelLength > 0 then Exit;
+  if not Focused then
+    Exit;
+  if FSelLength > 0 then
+    Exit;
   CreateCaret(Handle, 0, 2, Canvas.TextHeight('|'));
   ShowCaret(Handle);
 
@@ -969,19 +1040,26 @@ var
   Rect: TRect;
 begin
   inherited;
-  if not Focused then SetFocus; 
+  if not Focused then
+    SetFocus;
   NewLeftLine := FLeftLine;
   case Message.ScrollCode of
-    SB_LINEDOWN: Inc(NewLeftLine);
-    SB_LINEUP: Dec(NewLeftLine);
-    SB_PAGEDOWN: Inc(NewLeftLine, FVisibleLines - 1);
-    SB_PAGEUP: Dec(NewLeftLine, FVisibleLines - 1);
-    SB_THUMBPOSITION, SB_THUMBTRACK: NewLeftLine := Message.Pos;
+    SB_LINEDOWN:
+      Inc(NewLeftLine);
+    SB_LINEUP:
+      Dec(NewLeftLine);
+    SB_PAGEDOWN:
+      Inc(NewLeftLine, FVisibleLines - 1);
+    SB_PAGEUP:
+      Dec(NewLeftLine, FVisibleLines - 1);
+    SB_THUMBPOSITION, SB_THUMBTRACK:
+      NewLeftLine := Message.Pos;
   end;
 
   if NewLeftLine >= 76 - FVisibleChars + 1 then
     NewLeftLine := 76 - FVisibleChars + 1;
-  if NewLeftLine < 0 then NewLeftLine := 0;
+  if NewLeftLine < 0 then
+    NewLeftLine := 0;
 
   if NewLeftLine <> FLeftLine then
   begin
@@ -991,19 +1069,23 @@ begin
     if Abs(LinesMoved) = 1 then
     begin
       Rect := Bounds(0, 0, ClientWidth - FItemWidth, ClientHeight);
-      if LinesMoved = 1 then OffsetRect(Rect, FItemWidth, 0);
+      if LinesMoved = 1 then
+        OffsetRect(Rect, FItemWidth, 0);
       ScrollWindow(Handle, FItemWidth * LinesMoved, 0, @Rect, nil);
       if LinesMoved = -1 then
       begin
         Rect.Left := ClientWidth;
         Rect.Right := ClientWidth - FItemWidth;
-      end else
+      end
+      else
       begin
         Rect.Left := 0;
         Rect.Right := FItemWidth;
       end;
       Windows.InvalidateRect(Handle, @Rect, False);
-    end else Invalidate;
+    end
+    else
+      Invalidate;
     UpdateCaret;
   end;
 end;
@@ -1028,35 +1110,42 @@ var
   vRect: TRect;
 begin
   inherited;
-  if not Focused then SetFocus;
+  if not Focused then
+    SetFocus;
   NewTopLine := FTopLine;
   case Message.ScrollCode of
-    SB_LINEDOWN: Inc(NewTopLine);
-    SB_LINEUP: Dec(NewTopLine);
-    SB_PAGEDOWN: Inc(NewTopLine, FVisibleLines div 2);
-    SB_PAGEUP: Dec(NewTopLine, FVisibleLines div 2);
-    SB_THUMBPOSITION: vTracking := False;
+    SB_LINEDOWN:
+      Inc(NewTopLine);
+    SB_LINEUP:
+      Dec(NewTopLine);
+    SB_PAGEDOWN:
+      Inc(NewTopLine, FVisibleLines div 2);
+    SB_PAGEUP:
+      Dec(NewTopLine, FVisibleLines div 2);
+    SB_THUMBPOSITION:
+      vTracking := False;
     SB_THUMBTRACK:
-    begin
-      if not vTracking then
       begin
+        if not vTracking then
+        begin
+          vPos := Message.Pos;
+          vMouseY := Mouse.CursorPos.Y;
+        end;
+        vTracking := True;
+        I := Message.Pos - vPos;
+        if (I > 0) and (vMouseY > Mouse.CursorPos.Y) then
+          I := (Message.Pos) - (High(Smallint) * 2 + vPos);
+        if (I < 0) and (vMouseY < Mouse.CursorPos.Y) then
+          I := (High(Smallint) * 2 + Message.Pos) - vPos;
+        NewTopLine := GetScrollPos(Handle, SB_VERT) + I;
         vPos := Message.Pos;
         vMouseY := Mouse.CursorPos.Y;
       end;
-      vTracking := True;
-      I := Message.Pos - vPos;
-      if (I > 0) and (vMouseY > Mouse.CursorPos.Y) then
-        I := (Message.Pos) - (High(Smallint) * 2 + vPos);
-      if (I < 0) and (vMouseY < Mouse.CursorPos.Y) then
-        I := (High(Smallint) * 2 + Message.Pos) - vPos;
-      NewTopLine := GetScrollPos(Handle, SB_VERT) + I;
-      vPos := Message.Pos;
-      vMouseY := Mouse.CursorPos.Y;
-    end;
   end;
   if NewTopLine >= FLineCount - FVisibleLines + 1 then
     NewTopLine := FLineCount - FVisibleLines + 1;
-  if NewTopLine < 0 then NewTopLine := 0;
+  if NewTopLine < 0 then
+    NewTopLine := 0;
 
   if NewTopLine <> FTopLine then
   begin
@@ -1066,19 +1155,23 @@ begin
     if Abs(LinesMoved) = 1 then
     begin
       vRect := Bounds(0, 0, ClientWidth, ClientHeight - FItemHeight);
-      if LinesMoved = 1 then OffsetRect(vRect, 0, FItemHeight);
+      if LinesMoved = 1 then
+        OffsetRect(vRect, 0, FItemHeight);
       ScrollWindow(Handle, 0, FItemHeight * LinesMoved, @vRect, nil);
       if LinesMoved = -1 then
       begin
         vRect.Top := ClientHeight - FItemHeight;
         vRect.Bottom := ClientHeight;
-      end else
+      end
+      else
       begin
         vRect.Top := 0;
         vRect.Bottom := FItemHeight;
       end;
       Windows.InvalidateRect(Handle, @vRect, False);
-    end else Invalidate;
+    end
+    else
+      Invalidate;
     UpdateCaret;
   end;
 end;
@@ -1090,8 +1183,10 @@ var
 begin
   if Value <> FColIndex then
   begin
-    if Value < 0 then Value := 0;
-    if Value > RowMaxIndex(FRowIndex) then Value := RowMaxIndex(FRowIndex);
+    if Value < 0 then
+      Value := 0;
+    if Value > RowMaxIndex(FRowIndex) then
+      Value := RowMaxIndex(FRowIndex);
     FColIndex := Value;
     vCharIndex := ColToChar(FColType, FColIndex);
 
@@ -1115,7 +1210,8 @@ end;
 
 procedure TCnHexEditor.SetColType(const Value: TCnMouseObject);
 begin
-  if FColType = Value then Exit;
+  if FColType = Value then
+    Exit;
   FColType := Value;
   ScrollIntoView;
   UpdateCaret;
@@ -1130,39 +1226,46 @@ begin
     Result := 0
   else if mRowIndex = FLineCount - 1 then
     Result := FMemoryStream.Size mod 16
-  else Result := 15;
+  else
+    Result := 15;
 end;
 
-function TCnHexEditor.ColToChar(mColType: TCnMouseObject;
-  mCol: Integer): Integer;
+function TCnHexEditor.ColToChar(mColType: TCnMouseObject; mCol: Integer): Integer;
 begin
   Result := 0;
   case mColType of
-    moChar: Result := 60 + mCol;
+    moChar:
+      Result := 60 + mCol;
     moHex:
-    begin
-      case mCol  of
-        0..7: Result := 10 + mCol * 3;
-        8..15: Result := 11 + mCol * 3;
+      begin
+        case mCol of
+          0..7:
+            Result := 10 + mCol * 3;
+          8..15:
+            Result := 11 + mCol * 3;
+        end;
       end;
-    end;
   end;
 end;
 
 procedure TCnHexEditor.SetReadOnly(const Value: Boolean);
 begin
-  if FReadOnly = Value then Exit;
+  if FReadOnly = Value then
+    Exit;
   FReadOnly := Value;
-  if FReadOnly then Cursor := crDefault;
+  if FReadOnly then
+    Cursor := crDefault;
 end;
 
 procedure TCnHexEditor.SetSelLength(const Value: Integer);
 var
   vCaretPoint: TPoint;
 begin
-  if FSelLength = Value then Exit;
+  if FSelLength = Value then
+    Exit;
   FSelLength := Max(Min(Value, FMemoryStream.Size - FSelStart), 0);
-  if Assigned(FOnSelectionChange) then FOnSelectionChange(Self);
+  if Assigned(FOnSelectionChange) then
+    FOnSelectionChange(Self);
   vCaretPoint := PositionToCoordinate(FSelStart + FSelLength);
   FColIndex := vCaretPoint.X;
   FRowIndex := vCaretPoint.Y;
@@ -1173,10 +1276,12 @@ procedure TCnHexEditor.SetSelStart(Value: Integer);
 var
   vCaretPoint: TPoint;
 begin
-  if FSelStart = Value then Exit;
+  if FSelStart = Value then
+    Exit;
   FSelStart := Max(Min(Value, FMemoryStream.Size), 0);
   FSelLength := Max(Min(FSelLength, FMemoryStream.Size - FSelStart), 0);
-  if Assigned(FOnSelectionChange) then FOnSelectionChange(Self);
+  if Assigned(FOnSelectionChange) then
+    FOnSelectionChange(Self);
   vCaretPoint := PositionToCoordinate(FSelStart + FSelLength);
   FColIndex := vCaretPoint.X;
   FRowIndex := vCaretPoint.Y;
@@ -1192,39 +1297,47 @@ begin
   FSelStart := Max(Min(FRowIndex * 16 + FColIndex, FMemoryStream.Size), 0);
   FSelLength := 0;
   FHexChar := #0;
-  if vSelLength > 0 then Invalidate;
+  if vSelLength > 0 then
+    Invalidate;
   UpdateCaret;
-  if Assigned(FOnSelectionChange) then FOnSelectionChange(Self);
+  if Assigned(FOnSelectionChange) then
+    FOnSelectionChange(Self);
 end;
 
 function TCnHexEditor.PositionToCoordinate(mPosition: Integer): TPoint;
 begin
   Result := Point(-1, -1);
-  if mPosition < 0 then Exit;
-  if mPosition > FMemoryStream.Size then Exit;
+  if mPosition < 0 then
+    Exit;
+  if mPosition > FMemoryStream.Size then
+    Exit;
   Result.X := mPosition mod 16;
   Result.Y := mPosition div 16;
 end;
 
-function TCnHexEditor.SelectionViewText(mColType: TCnMouseObject;
-  mLineIndex: Integer; mStart, mEnd: Integer): string;
+function TCnHexEditor.SelectionViewText(mColType: TCnMouseObject; mLineIndex:
+  Integer; mStart, mEnd: Integer): string;
 const
-  cHexDigits : array[0..15] of Char = '0123456789ABCDEF';
+  cHexDigits: array[0..15] of Char = '0123456789ABCDEF';
 var
   I, L: Integer;
   vBytes: array[0..15] of Byte;
   S: string;
 begin
-  Result := ''; 
-  if mLineIndex < 0 then Exit;
+  Result := '';
+  if mLineIndex < 0 then
+    Exit;
   FMemoryStream.Position := mLineIndex * 16;
   L := FMemoryStream.Read(vBytes, 16);
   S := '';
   for I := Max(0, mStart) to Min(15, mEnd) do
   begin
     case mColType of
-      moHex: if I = 8 then Result := Result + ' ';
-      moChar: ;
+      moHex:
+        if I = 8 then
+          Result := Result + ' ';
+      moChar:
+        ;
     end;
     if I < L then
     begin
@@ -1235,20 +1348,25 @@ begin
         moChar:
           if vBytes[I] in [32..126] then
             Result := Result + Chr(vBytes[I])
-          else Result := Result + '.';
+          else
+            Result := Result + '.';
       end;
     end;
   end;
-  if mColType = moHex then Result := Trim(Result);
+  if mColType = moHex then
+    Result := Trim(Result);
 end;
 
 procedure TCnHexEditor.SetAnchorOffset(Value: Integer);
 var
   vCaretPoint: TPoint;
 begin
-  if FAnchorStart = Value then Exit;
-  if FAnchorStart + Value < 0 then Exit;
-  if FAnchorStart + Value > FMemoryStream.Size then Exit;
+  if FAnchorStart = Value then
+    Exit;
+  if FAnchorStart + Value < 0 then
+    Exit;
+  if FAnchorStart + Value > FMemoryStream.Size then
+    Exit;
   FAnchorOffset := Value;
   FSelLength := Abs(FAnchorOffset);
 
@@ -1256,7 +1374,8 @@ begin
   begin
     FSelStart := FAnchorStart + FAnchorOffset;
     vCaretPoint := PositionToCoordinate(FSelStart);
-  end else
+  end
+  else
   begin
     FSelStart := FAnchorStart;
     vCaretPoint := PositionToCoordinate(FSelStart + FSelLength);
@@ -1266,20 +1385,24 @@ begin
   ScrollIntoView;
   UpdateCaret;
   Invalidate;
-  if Assigned(FOnSelectionChange) then FOnSelectionChange(Self);
+  if Assigned(FOnSelectionChange) then
+    FOnSelectionChange(Self);
 end;
 
-procedure TCnHexEditor.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
-  Y: Integer);
+procedure TCnHexEditor.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   Coordinate: TPoint;
 begin
   inherited;
   case MouseObject(Point(X, Y), Coordinate) of
-    moAddress: Cursor := crDefault;
-    moHex: Cursor := crIBeam;
-    moChar: Cursor := crIBeam;
-    moNone: Cursor := crDefault;
+    moAddress:
+      Cursor := crDefault;
+    moHex:
+      Cursor := crIBeam;
+    moChar:
+      Cursor := crIBeam;
+    moNone:
+      Cursor := crDefault;
   end;
 end;
 
@@ -1297,10 +1420,13 @@ var
   vSelStart: Integer;
 begin
   inherited;
-  if FReadOnly then Exit;
-  if not FChangeDataSize and (FSelStart >= FMemoryStream.Size) then Exit;
+  if FReadOnly then
+    Exit;
+  if not FChangeDataSize and (FSelStart >= FMemoryStream.Size) then
+    Exit;
   case Msg.CharCode of
-    0..27, 128..255: Exit;
+    0..27, 128..255:
+      Exit;
   end;
 
   FMemoryStream.Position := FSelStart;
@@ -1308,22 +1434,28 @@ begin
   if FColType = moHex then
   begin
     case Msg.CharCode of
-      Ord('0')..Ord('9'): ;
-      Ord('A')..Ord('F'): ;
-      Ord('a')..Ord('f'): ;
-    else Exit;
+      Ord('0')..Ord('9'):
+        ;
+      Ord('A')..Ord('F'):
+        ;
+      Ord('a')..Ord('f'):
+        ;
+    else
+      Exit;
     end;
     if FHexChar = #0 then
     begin
       FHexChar := Char(Msg.CharCode);
       vChar := Char(StrToIntDef('$' + FHexChar, 0));
-    end else
+    end
+    else
     begin
       vChar := Char(StrToIntDef('$' + FHexChar + Char(Msg.CharCode), 0));
       FSelStart := FSelStart + 1;
       FHexChar := #0;
     end;
-  end else if FColType = moChar then
+  end
+  else if FColType = moChar then
   begin
     vChar := Char(Msg.CharCode);
     FSelStart := FSelStart + 1;
@@ -1339,7 +1471,8 @@ begin
   begin
     FSelLength := 0;
     Invalidate;
-  end else
+  end
+  else
   begin
     vCoordinate := PositionToCoordinate(vSelStart);
     vRect.TopLeft := CoordinateToPoint(moChar, vCoordinate);
@@ -1361,7 +1494,8 @@ var
   vRect: TRect;
 begin
   inherited;
-  if FReadOnly then Exit;
+  if FReadOnly then
+    Exit;
   FMemoryStream.Position := FSelStart;
   if FColType = moChar then
   begin
@@ -1377,7 +1511,8 @@ begin
     begin
       FSelLength := 0;
       Invalidate;
-    end else
+    end
+    else
     begin
       vCoordinate := PositionToCoordinate(FSelStart - 2);
       vRect.TopLeft := CoordinateToPoint(moChar, vCoordinate);
@@ -1397,7 +1532,8 @@ end;
 function TCnHexEditor.GetSelText: string;
 begin
   Result := '';
-  if FSelLength <= 0 then Exit;
+  if FSelLength <= 0 then
+    Exit;
   SetLength(Result, FSelLength);
   FMemoryStream.Position := FSelStart;
   FMemoryStream.Read(Result[1], FSelLength);
@@ -1409,7 +1545,8 @@ var
   L: Integer;
 begin
   L := Length(Value);
-  if (L <= 0) and (FSelLength <= 0) then Exit;
+  if (L <= 0) and (FSelLength <= 0) then
+    Exit;
   if FSelLength > 0 then
     CnDeleteStream(FMemoryStream, FSelStart, FSelLength);
   if L > 0 then
@@ -1452,3 +1589,4 @@ begin
 end;
 
 end.
+

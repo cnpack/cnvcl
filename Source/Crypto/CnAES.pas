@@ -3428,7 +3428,7 @@ var
 begin
   Result := '';
   for I := 0 to Len - 1 do
-    Result := Result + IntToHex(Ord(Value[I]), 2);
+    Result := Result + AnsiString(IntToHex(Ord(Value[I]), 2));
 end;
 
 function HexToInt(Hex: AnsiString): Integer;
@@ -4286,49 +4286,49 @@ end;
 // AES ECB 模式加密字节数组并将其转换成十六进制
 function AESEncryptEcbBytesToHex(Value, Key: TBytes; KeyBit: TKeyBitType): AnsiString;
 begin
-  Result := BytesToHex(AESEncryptEcbBytes(Value, Key, KeyBit));
+  Result := AnsiString(BytesToHex(AESEncryptEcbBytes(Value, Key, KeyBit)));
 end;
 
 // AES ECB 解密十六进制字符串并返回字节数组
 function AESDecryptEcbBytesFromHex(Value: AnsiString; Key: TBytes; KeyBit: TKeyBitType): TBytes;
 begin
-  Result := AESDecryptEcbBytes(HexToBytes(Value), Key, KeyBit);
+  Result := AESDecryptEcbBytes(HexToBytes(string(Value)), Key, KeyBit);
 end;
 
 // AES CBC 模式加密字节数组并将其转换成十六进制
 function AESEncryptCbcBytesToHex(Value, Key, Iv: TBytes; KeyBit: TKeyBitType): AnsiString;
 begin
-  Result := BytesToHex(AESEncryptCbcBytes(Value, Key, Iv, KeyBit));
+  Result := AnsiString(BytesToHex(AESEncryptCbcBytes(Value, Key, Iv, KeyBit)));
 end;
 
 // AES CBC 解密十六进制字符串并返回字节数组
 function AESDecryptCbcBytesFromHex(Value: AnsiString; Key, Iv: TBytes; KeyBit: TKeyBitType): TBytes;
 begin
-  Result := AESDecryptCbcBytes(HexToBytes(Value), Key, Iv, KeyBit);
+  Result := AESDecryptCbcBytes(HexToBytes(string(Value)), Key, Iv, KeyBit);
 end;
 
 // AES CFB 模式加密字节数组并将其转换成十六进制
 function AESEncryptCfbBytesToHex(Value, Key, Iv: TBytes; KeyBit: TKeyBitType): AnsiString;
 begin
-  Result := BytesToHex(AESEncryptCfbBytes(Value, Key, Iv, KeyBit));
+  Result := AnsiString(BytesToHex(AESEncryptCfbBytes(Value, Key, Iv, KeyBit)));
 end;
 
 // AES CFB 解密十六进制字符串并返回字节数组
 function AESDecryptCfbBytesFromHex(Value: AnsiString; Key, Iv: TBytes; KeyBit: TKeyBitType): TBytes;
 begin
-  Result := AESDecryptCfbBytes(HexToBytes(Value), Key, Iv, KeyBit);
+  Result := AESDecryptCfbBytes(HexToBytes(string(Value)), Key, Iv, KeyBit);
 end;
 
 // AES OFB 模式加密字节数组并将其转换成十六进制
 function AESEncryptOfbBytesToHex(Value, Key, Iv: TBytes; KeyBit: TKeyBitType): AnsiString;
 begin
-  Result := BytesToHex(AESEncryptOfbBytes(Value, Key, Iv, KeyBit));
+  Result := AnsiString(BytesToHex(AESEncryptOfbBytes(Value, Key, Iv, KeyBit)));
 end;
 
 // AES OFB 解密十六进制字符串并返回字节数组
 function AESDecryptOfbBytesFromHex(Value: AnsiString; Key, Iv: TBytes; KeyBit: TKeyBitType): TBytes;
 begin
-  Result := AESDecryptOfbBytes(HexToBytes(Value), Key, Iv, KeyBit);
+  Result := AESDecryptOfbBytes(HexToBytes(string(Value)), Key, Iv, KeyBit);
 end;
 
 end.

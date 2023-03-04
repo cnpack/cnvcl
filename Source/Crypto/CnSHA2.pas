@@ -617,6 +617,8 @@ begin
   Context.State[7] := Context.State[7] + H;
 end;
 
+{$WARNINGS OFF}
+
 procedure SHA512Transform(var Context: TSHA512Context; Data: PAnsiChar; BlockCount: Integer);
 var
   A, B, C, D, E, F, G, H, T1, T2: TUInt64;
@@ -672,6 +674,7 @@ begin
       Inc(I);
     end;
 
+    // 以下有符号无符号相加有 Warning，但无影响
     Context.State[0] := Context.State[0] + A;
     Context.State[1] := Context.State[1] + B;
     Context.State[2] := Context.State[2] + C;
@@ -682,6 +685,8 @@ begin
     Context.State[7] := Context.State[7] + H;
   end;
 end;
+
+{$WARNINGS ON}
 
 procedure SHA224Init(var Context: TSHA224Context);
 begin
@@ -828,6 +833,8 @@ begin
   end;
 end;
 
+{$WARNINGS OFF}
+
 procedure SHA384Init(var Context: TSHA384Context);
 begin
   Context.DataLen := 0;
@@ -842,6 +849,8 @@ begin
   Context.State[7] := $47B5481DBEFA4FA4;
   FillChar(Context.Data, SizeOf(Context.Data), 0);
 end;
+
+{$WARNINGS ON}
 
 procedure SHA384Update(var Context: TSHA384Context; Buffer: PAnsiChar; Len: Cardinal);
 begin
@@ -863,6 +872,8 @@ begin
   Move(Dig[0], Digest[0], SizeOf(TSHA384Digest));
 end;
 
+{$WARNINGS OFF}
+
 procedure SHA512Init(var Context: TSHA512Context);
 begin
   Context.DataLen := 0;
@@ -877,6 +888,8 @@ begin
   Context.State[7] := $5BE0CD19137E2179;
   FillChar(Context.Data, SizeOf(Context.Data), 0);
 end;
+
+{$WARNINGS ON}
 
 procedure SHA512Update(var Context: TSHA512Context; Buffer: PAnsiChar; Len: Cardinal);
 var

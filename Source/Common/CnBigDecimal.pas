@@ -709,7 +709,7 @@ begin
   DC := DC - E; // 结合指数一起计算小数部分长度给 DC
 
   Res.FScale := DC;
-  Res.FValue.SetDec(V);
+  Res.FValue.SetDec(AnsiString(V));
 
   if (not Res.FValue.IsNegative) and Neg then
     Res.FValue.SetNegative(True);
@@ -1840,7 +1840,7 @@ begin
   if not Assigned(DotPos) and (C <> 'e') and (C <> 'E') then
   begin
     // 如果没小数点又没有指数，说明是整数
-    Res.FValue.SetDec(V);
+    Res.FValue.SetDec(AnsiString(V));
     if (not Res.FValue.IsNegative) and Neg then
       Res.FValue.SetNegative(True);
 
@@ -1880,12 +1880,12 @@ begin
   // 这里得到的值是没有小数点的 V，以及指示其中应该有十进制小数点位置的 DC，分开处理
   if DC = 0 then
   begin
-    Res.FValue.SetDec(V);
+    Res.FValue.SetDec(AnsiString(V));
     Res.FScale := 0;
   end
   else if DC < 0 then // 还要乘以 10^-DC，还是整数
   begin
-    Res.FValue.SetDec(V);
+    Res.FValue.SetDec(AnsiString(V));
     BigNumberMulPower10(Res.FValue, -DC);
   end
   else // DC > 0，说明有小数
@@ -1919,7 +1919,7 @@ begin
       P10.SetOne;
       BigNumberMulPower10(P10, Length(V)); // 每次乘后要和 P10 比较以决定这一位是不是 1
 
-      T.SetDec(V);
+      T.SetDec(AnsiString(V));
       I := 0;
       DRes.SetZero;
 
@@ -1942,7 +1942,7 @@ begin
       end;
 
       // 得到 I 位二进制值，在 DRes 里，就是小数点后的小数部分了，和整数部分拼起来
-      T.SetDec(S);
+      T.SetDec(AnsiString(S));
       T.ShiftLeft(I);
       BigNumberAdd(Res.FValue, T, DRes);
       Res.FScale := I;

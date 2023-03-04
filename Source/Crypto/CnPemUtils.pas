@@ -161,15 +161,6 @@ begin
     Result := B;
 end;
 
-function StrToHex(Value: PAnsiChar; Len: Integer): AnsiString;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I := 0 to Len - 1 do
-    Result := Result + IntToHex(Ord(Value[I]), 2);
-end;
-
 function HexToInt(Hex: AnsiString): Integer;
 var
   I, Res: Integer;
@@ -188,18 +179,6 @@ begin
     else raise Exception.Create('Error: not a Hex String');
   end;
   Result := Res;
-end;
-
-function HexToStr(Value: AnsiString): AnsiString;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I := 1 to Length(Value) do
-  begin
-    if ((I mod 2) = 1) then
-      Result := Result + AnsiChar(HexToInt(Copy(Value, I, 2)));
-  end;
 end;
 
 function AddPKCS1Padding(PaddingType, BlockSize: Integer; Data: Pointer;
@@ -477,7 +456,7 @@ begin
   // 生成随机 Iv
   SetLength(IvStr, ENC_TYPE_BLOCK_SIZE[KeyEncrypt]);
   CnRandomFillBytes(@(IvStr[1]), ENC_TYPE_BLOCK_SIZE[KeyEncrypt]);
-  HexIv := UpperCase(StrToHex(@(IvStr[1]), ENC_TYPE_BLOCK_SIZE[KeyEncrypt]));
+  HexIv := DataToHex(@(IvStr[1]), ENC_TYPE_BLOCK_SIZE[KeyEncrypt], True); // 要求大写
 
   EncryptedHead := ENC_HEAD_PROCTYPE + ' ' +  ENC_HEAD_PROCTYPE_NUM + ',' + ENC_HEAD_ENCRYPTED + CRLF;
   EncryptedHead := EncryptedHead + ENC_HEAD_DEK + ' ' + ENC_TYPE_STRS[KeyEncrypt]
@@ -489,12 +468,12 @@ begin
   try
     if KeyHash = ckhMd5 then
     begin
-      if not CnGetDeriveKey(Password, IvStr, @Keys[0], SizeOf(Keys)) then
+      if not CnGetDeriveKey(AnsiString(Password), IvStr, @Keys[0], SizeOf(Keys)) then
         Exit;
     end
     else if KeyHash = ckhSha256 then
     begin
-      if not CnGetDeriveKey(Password, IvStr, @Keys[0], SizeOf(Keys), ckdSha256) then
+      if not CnGetDeriveKey(AnsiString(Password), IvStr, @Keys[0], SizeOf(Keys), ckdSha256) then
         Exit;
     end
     else
@@ -578,22 +557,24 @@ begin
 
   try
     DS := TMemoryStream.Create;
-    if BASE64_OK <> Base64Decode(S, DS, False) then
+    if BASE64_OK <> Base64Decode(AnsiString(S), DS, False) then
       Exit;
 
     DS.Position := 0;
-    IvStr := HexToStr(HexIv);
+    SetLength(IvStr, HexToData(HexIv));
+    if Length(IvStr) > 0 then
+      HexToData(HexIv, @IvStr[1]);
 
     // 根据密码明文与 Salt 以及 Hash 算法计算出加解密的 Key
     FillChar(Keys[0], SizeOf(Keys), 0);
     if KeyHash = ckhMd5 then
     begin
-      if not CnGetDeriveKey(Password, IvStr, @Keys[0], SizeOf(Keys)) then
+      if not CnGetDeriveKey(AnsiString(Password), IvStr, @Keys[0], SizeOf(Keys)) then
         Exit;
     end
     else if KeyHash = ckhSha256 then
     begin
-      if not CnGetDeriveKey(Password, IvStr, @Keys[0], SizeOf(Keys), ckdSha256) then
+      if not CnGetDeriveKey(AnsiString(Password), IvStr, @Keys[0], SizeOf(Keys), ckdSha256) then
         Exit;
     end
     else
@@ -776,7 +757,7 @@ begin
 
           // To De Base64 S
           MemoryStream.Clear;
-          Result := (BASE64_OK = Base64Decode(S, MemoryStream, False));
+          Result := (BASE64_OK = Base64Decode(AnsiString(S), MemoryStream, False));
         end;
       end;
     finally

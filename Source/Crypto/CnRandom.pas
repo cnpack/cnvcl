@@ -267,7 +267,7 @@ begin
   else
     D := D mod (Cardinal(High(Integer)) + 1);
 
-  Result := Integer(D mod HighValue); // 未处理 HighValue 小于等于 0 的情形
+  Result := Integer(Int64(D) mod Int64(HighValue)); // 未处理 HighValue 小于等于 0 的情形
 end;
 
 function CnKnuthShuffle(ArrayBase: Pointer; ElementByteSize: Integer;

@@ -631,8 +631,8 @@ begin
   begin
     N := Copy(Value, 1, P - 1);
     D := Copy(Value, P + 1, MaxInt);
-    FNominator.SetDec(N);
-    FDenominator.SetDec(D);
+    FNominator.SetDec(AnsiString(N));
+    FDenominator.SetDec(AnsiString(D));
     Reduce;
   end
   else
@@ -643,7 +643,7 @@ begin
       // 处理小数点
       N := Copy(Value, 1, P - 1);
       D := Copy(Value, P + 1, MaxInt);
-      FNominator.SetDec(N + D);
+      FNominator.SetDec(AnsiString(N + D));
       FDenominator.SetOne;
       for P := 1 to Length(D) do
         FDenominator.MulWord(10);
@@ -651,7 +651,7 @@ begin
     end
     else
     begin
-      FNominator.SetDec(Value);
+      FNominator.SetDec(AnsiString(Value));
       FDenominator.SetOne;
     end;
   end;
@@ -667,8 +667,8 @@ end;
 procedure TCnBigRational.SetValue(const ANominator,
   ADenominator: string);
 begin
-  FNominator.SetDec(ANominator);
-  FDenominator.SetDec(ADenominator);
+  FNominator.SetDec(AnsiString(ANominator));
+  FDenominator.SetDec(AnsiString(ADenominator));
 end;
 
 procedure TCnBigRational.SetZero;

@@ -112,6 +112,8 @@ begin
     Result := F;
 end;
 
+{$HINTS OFF}
+
 function Int64Sqrt(N: Int64): Extended;
 var
   X0: Extended;
@@ -161,6 +163,8 @@ begin
     X0 := Result;
   end;
 end;
+
+{$HINTS ON}
 
 function Int64LogN(N: Int64): Extended;
 var
