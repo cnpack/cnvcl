@@ -2748,6 +2748,8 @@ begin
   Move(F25519Field64NegOne[0], Field[0], SizeOf(TCn25519Field64));
 end;
 
+{$WARNINGS OFF}
+
 procedure Cn25519Field64Negate(var Field: TCn25519Field64);
 begin
   Field[0] := 36028797018963664 - Field[0];
@@ -2758,6 +2760,8 @@ begin
   Cn25519Field64Reduce(Field);
 end;
 
+{$WARNINGS ON}
+
 procedure Cn25519Field64Add(var Res, A, B: TCn25519Field64);
 var
   I: Integer;
@@ -2765,6 +2769,8 @@ begin
   for I := Low(TCn25519Field64) to High(TCn25519Field64) do
     Res[I] := A[I] + B[I];
 end;
+
+{$WARNINGS OFF}
 
 procedure Cn25519Field64Sub(var Res, A, B: TCn25519Field64);
 begin
@@ -2775,6 +2781,8 @@ begin
   Res[4] := A[4] + 36028797018963952 - B[4];
   Cn25519Field64Reduce(Res);
 end;
+
+{$WARNINGS ON}
 
 procedure Cn25519Field64Mul(var Res, A, B: TCn25519Field64);
 var

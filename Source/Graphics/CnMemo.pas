@@ -80,7 +80,6 @@ type
     FOnChanging: TNotifyEvent;
     FAutoWrap: Boolean;
     FWrapWidth: Integer;
-    procedure ExchangeItems(Index1, Index2: Integer);
     procedure Grow;
     procedure SetAutoWrap(const Value: Boolean);
     procedure SetWrapWidth(const Value: Integer);
@@ -113,6 +112,7 @@ type
 
     function GetText: PChar; virtual;
     procedure Insert(Index: Integer; const S: string); virtual;
+    procedure ExchangeItems(Index1, Index2: Integer); virtual;
     procedure LoadFromFile(const FileName: string); virtual;
     procedure LoadFromStream(Stream: TStream); virtual;
     procedure Move(CurIndex, NewIndex: Integer); virtual;
@@ -180,8 +180,9 @@ type
   {* 有字符串编辑功能的文本组件}
   private
     FReadOnly: Boolean;
+{$IFNDEF UNICODE}
     FPrevChar: Char;
-
+{$ENDIF}
     function DeleteText(StartRow, StartCol, EndRow, EndCol: Integer): Boolean;
     {* 删除起始行列到结束行列间的内容}
     function InsertTextAt(const Text: string; ARow, ACol: Integer;
@@ -507,6 +508,8 @@ begin
   SetTextStr(Text);
 end;
 
+{$WARNINGS OFF}
+
 procedure TCnEditorStringList.SetTextStr(const Value: string);
 var
   P, Start: PChar;
@@ -534,6 +537,8 @@ begin
     EndUpdate;
   end;
 end;
+
+{$WARNINGS ON}
 
 procedure TCnEditorStringList.SetUpdateState(Updating: Boolean);
 begin
@@ -1694,6 +1699,8 @@ begin
     InsertText(S);
 end;
 
+{$WARNINGS OFF}
+
 procedure TCnMemo.WMKeyChar(var Message: TMessage);
 var
   Key: Word;
@@ -1734,5 +1741,7 @@ begin
 {$ENDIF}
   end;
 end;
+
+{$WARNINGS ON}
 
 end.

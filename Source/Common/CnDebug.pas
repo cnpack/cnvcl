@@ -254,7 +254,9 @@ type
 
   TCnAnsiCharSet = set of AnsiChar; // 32 字节大小
 {$IFDEF UNICODE}
+  {$WARNINGS OFF}
   TCnWideCharSet = set of WideChar; // D2009 以上的 set 支持 WideChar 但实际上是裁剪到 AnsiChar，大小仍然是 32
+  {$WARNINGS ON}
 {$ENDIF}
 
   TCnTimeDesc = packed record
@@ -4759,7 +4761,7 @@ begin
 
     Filter.Enabled := Header^.Filter.Enabled <> 0;
     Filter.Level := Header^.Filter.Level;
-    Filter.Tag := TagArray;
+    Filter.Tag := string(TagArray);
     Filter.MsgTypes := Header^.Filter.MsgTypes;
     Header^.Filter.NeedRefresh := 0;
   end;
@@ -4943,7 +4945,7 @@ begin
   // 判断是否支持 64 位
   if IsWin64 then
   begin
-    S := LowerCase(ViewerExe);
+    S := LowerCase(string(ViewerExe));
     Len := Length(S);
 
     if Len > Length(SCnDotExe) + 4 then
@@ -4963,7 +4965,7 @@ begin
       begin
         if Copy(S, Len - Length(Subfix64) + 1, MaxInt) <> Subfix64 then // 但末尾不是 64.exe
         begin
-          S := ViewerExe;
+          S := string(ViewerExe);
           Insert('64', S, Len - Length(Subfix) + 1);
           if FileExists(S) then
             Insert('64', ViewerExe, Len - Length(Subfix) + 1); // 把 64 插点前面并且判断文件存在不

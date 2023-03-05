@@ -523,7 +523,7 @@ begin
       if Ret = 0 then
       begin
         // 拿该 Socket 的本地信息
-        ClientThread.ClientSocket.LocalIP := inet_ntoa(ConnAddr.sin_addr);
+        ClientThread.ClientSocket.LocalIP := string(inet_ntoa(ConnAddr.sin_addr));
         ClientThread.ClientSocket.LocalPort := ntohs(ConnAddr.sin_port);
       end
       else // 如果没拿到，姑且拿监听的 Socket 的本地信息，注意 IP 可能是空
@@ -533,7 +533,7 @@ begin
       end;
 
       // 拿该 Socket 的对端客户端信息
-      ClientThread.ClientSocket.RemoteIP := inet_ntoa(SockAddress.sin_addr);
+      ClientThread.ClientSocket.RemoteIP := string(inet_ntoa(SockAddress.sin_addr));
       ClientThread.ClientSocket.RemotePort := ntohs(SockAddress.sin_port);
 
       FServer.FListLock.Enter;

@@ -198,6 +198,8 @@ begin
   XlsBeginStream(FStream, 0);
 end;
 
+{$HINTS OFF}
+
 procedure TCnXlsWriter.SetCells(const ACol: Byte; const ARow: Word; const Value: Variant);
 var
   aStr: string;
@@ -245,5 +247,7 @@ begin
     XlsWriteCellBlank(FStream, ACol, ARow);
   end;
 end;
+
+{$HINTS ON}
 
 end.

@@ -151,17 +151,17 @@ end;
 
 procedure TCnIniCfg.CheckProperties;
 var
-  i, j: Integer;
+  I, j: Integer;
 begin
   if FPropList <> nil then
   begin
-    for i := 1 to FPropCount - 1 do
+    for I := 1 to FPropCount - 1 do
     begin
-      for j := 0 to i - 1 do
-        if (FPropList[i].PropType^ = FPropList[j].PropType^) and
-          (FPropList[i].Index = FPropList[j].Index) then
+      for j := 0 to I - 1 do
+        if (FPropList[I].PropType^ = FPropList[j].PropType^) and
+          (FPropList[I].Index = FPropList[j].Index) then
           raise ECnIniCfgError.CreateFmt('Property index does not allow duplicates. Class: %s, Property: %s and %s',
-            [ClassName, FPropList[i].Name, FPropList[j].Name]);
+            [ClassName, FPropList[I].Name, FPropList[j].Name]);
     end;
   end;
 end;
@@ -173,67 +173,69 @@ end;
 
 function TCnIniCfg.GetDefaultValue(const PropName: string): Variant;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := '';
-  for i := Low(FDefPropNames) to High(FDefPropNames) do
-    if SameText(FDefPropNames[i], PropName) then
+  for I := Low(FDefPropNames) to High(FDefPropNames) do
+    if SameText(FDefPropNames[I], PropName) then
     begin
-      Result := FDefPropValues[i];
-      Exit;
-    end;  
-end;
-
-function TCnIniCfg.GetBoolean(const Index: Integer): Boolean;
-var
-  i: Integer;
-begin
-  Result := False;
-  for i := 0 to FPropCount - 1 do
-    if (FPropList[i].PropType^ = TypeInfo(Boolean)) and (FPropList[i].Index = Index) then
-    begin
-      Result := FIni.ReadBool('Boolean', FPropList[i].Name, FPropList[i].Default <> 0);
+      Result := FDefPropValues[I];
       Exit;
     end;
 end;
 
+function TCnIniCfg.GetBoolean(const Index: Integer): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 0 to FPropCount - 1 do
+  begin
+    if (FPropList[I].PropType^ = TypeInfo(Boolean)) and (FPropList[I].Index = Index) then
+    begin
+      Result := FIni.ReadBool('Boolean', string(FPropList[I].Name), FPropList[I].Default <> 0);
+      Exit;
+    end;
+  end;
+end;
+
 function TCnIniCfg.GetDouble(const Index: Integer): Double;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := 0;
-  for i := 0 to FPropCount - 1 do
-    if (FPropList[i].PropType^.Kind = tkFloat) and (FPropList[i].Index = Index) then
+  for I := 0 to FPropCount - 1 do
+    if (FPropList[I].PropType^.Kind = tkFloat) and (FPropList[I].Index = Index) then
     begin
-      Result := FIni.ReadFloat('Float', FPropList[i].Name,
-        StrToFloatDef(GetDefaultValue(FPropList[i].Name), 0));
+      Result := FIni.ReadFloat('Float', string(FPropList[I].Name),
+        StrToFloatDef(GetDefaultValue(string(FPropList[I].Name)), 0));
       Exit;
     end;
 end;
 
 function TCnIniCfg.GetInteger(const Index: Integer): Integer;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := 0;
-  for i := 0 to FPropCount - 1 do
-    if (FPropList[i].PropType^.Kind = tkInteger) and (FPropList[i].Index = Index) then
+  for I := 0 to FPropCount - 1 do
+    if (FPropList[I].PropType^.Kind = tkInteger) and (FPropList[I].Index = Index) then
     begin
-      Result := FIni.ReadInteger('Integer', FPropList[i].Name,
-        FPropList[i].Default);
+      Result := FIni.ReadInteger('Integer', string(FPropList[I].Name),
+        FPropList[I].Default);
       Exit;
     end;
 end;
 
 function TCnIniCfg.GetString(const Index: Integer): string;
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 0 to FPropCount - 1 do
-    if (FPropList[i].PropType^.Kind in [tkString, tkLString]) and (FPropList[i].Index = Index) then
+  for I := 0 to FPropCount - 1 do
+    if (FPropList[I].PropType^.Kind in [tkString, tkLString]) and (FPropList[I].Index = Index) then
     begin
-      Result := FIni.ReadString('String', FPropList[i].Name,
-        GetDefaultValue(FPropList[i].Name));
+      Result := FIni.ReadString('String', string(FPropList[I].Name),
+        GetDefaultValue(string(FPropList[I].Name)));
       Exit;
     end;
 end;
@@ -241,60 +243,60 @@ end;
 procedure TCnIniCfg.SetBoolean(const Index: Integer;
   const Value: Boolean);
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 0 to FPropCount - 1 do
-    if (FPropList[i].PropType^ = TypeInfo(Boolean)) and (FPropList[i].Index = Index) then
+  for I := 0 to FPropCount - 1 do
+    if (FPropList[I].PropType^ = TypeInfo(Boolean)) and (FPropList[I].Index = Index) then
     begin
-      if Value <> (FPropList[i].Default <> 0) then
-        FIni.WriteBool('Boolean', FPropList[i].Name, Value)
+      if Value <> (FPropList[I].Default <> 0) then
+        FIni.WriteBool('Boolean', string(FPropList[I].Name), Value)
       else
-        FIni.DeleteKey('Boolean', FPropList[i].Name);
+        FIni.DeleteKey('Boolean', string(FPropList[I].Name));
       Exit;
     end;
 end;
 
 procedure TCnIniCfg.SetDouble(const Index: Integer; const Value: Double);
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 0 to FPropCount - 1 do
-    if (FPropList[i].PropType^.Kind = tkFloat) and (FPropList[i].Index = Index) then
+  for I := 0 to FPropCount - 1 do
+    if (FPropList[I].PropType^.Kind = tkFloat) and (FPropList[I].Index = Index) then
     begin
-      if Value <> StrToFloatDef(GetDefaultValue(FPropList[i].Name), 0) then
-        FIni.WriteFloat('Float', FPropList[i].Name, Value)
+      if Value <> StrToFloatDef(GetDefaultValue(string(FPropList[I].Name)), 0) then
+        FIni.WriteFloat('Float', string(FPropList[I].Name), Value)
       else
-        FIni.DeleteKey('Float', FPropList[i].Name);
+        FIni.DeleteKey('Float', string(FPropList[I].Name));
       Exit;
     end;
 end;
 
 procedure TCnIniCfg.SetInteger(const Index, Value: Integer);
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 0 to FPropCount - 1 do
-    if (FPropList[i].PropType^.Kind = tkInteger) and (FPropList[i].Index = Index) then
+  for I := 0 to FPropCount - 1 do
+    if (FPropList[I].PropType^.Kind = tkInteger) and (FPropList[I].Index = Index) then
     begin
-      if Value <> FPropList[i].Default then
-        FIni.WriteInteger('Integer', FPropList[i].Name, Value)
+      if Value <> FPropList[I].Default then
+        FIni.WriteInteger('Integer', string(FPropList[I].Name), Value)
       else
-        FIni.DeleteKey('Integer', FPropList[i].Name);
+        FIni.DeleteKey('Integer', string(FPropList[I].Name));
       Exit;
     end;
 end;
 
 procedure TCnIniCfg.SetString(const Index: Integer; const Value: string);
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 0 to FPropCount - 1 do
-    if (FPropList[i].PropType^.Kind in [tkString, tkLString]) and (FPropList[i].Index = Index) then
+  for I := 0 to FPropCount - 1 do
+    if (FPropList[I].PropType^.Kind in [tkString, tkLString]) and (FPropList[I].Index = Index) then
     begin
-      if Value <> GetDefaultValue(FPropList[i].Name) then
-        FIni.WriteString('String', FPropList[i].Name, Value)
+      if Value <> GetDefaultValue(string(FPropList[I].Name)) then
+        FIni.WriteString('String', string(FPropList[I].Name), Value)
       else
-        FIni.DeleteKey('String', FPropList[i].Name);
+        FIni.DeleteKey('String', string(FPropList[I].Name));
       Exit;
     end;
 end;

@@ -206,7 +206,7 @@ begin
   case Prop.PropType^.Kind of
     tkClass:
       begin
-        PropObj := GetObjectProp(Obj, Prop.Name);
+        PropObj := GetObjectProp(Obj, string(Prop.Name));
         if PropObj is TPersistent then
         begin
           WriteXMLData(TPersistent(PropObj), Node.ChildNodes.Nodes[Prop.Name]);
@@ -219,36 +219,36 @@ begin
       end;
     tkInterface:
       begin
-        IPropObj := GetInterfaceProp(Obj, Prop.Name);
+        IPropObj := GetInterfaceProp(Obj, string(Prop.Name));
         //
       end;
     tkMethod:
       begin
-        Node.Attributes[Prop.Name] := GetPropValue(Obj, Prop.Name);
+        Node.Attributes[string(Prop.Name)] := GetPropValue(Obj, string(Prop.Name));
       end;
     tkEnumeration:
       begin
-        Node.Attributes[Prop.Name] := GetEnumProp(Obj, Prop.Name);
+        Node.Attributes[string(Prop.Name)] := GetEnumProp(Obj, string(Prop.Name));
       end;
     tkSet:
       begin
-        Node.Attributes[Prop.Name] := GetSetProp(Obj, Prop.Name);
+        Node.Attributes[string(Prop.Name)] := GetSetProp(Obj, string(Prop.Name));
       end;
     tkUnknown, tkInteger, tkChar, tkFloat, tkWChar, tkVariant, tkInt64:
       begin
-        Node.Attributes[Prop.Name] := GetPropValue(Obj, Prop.Name);
+        Node.Attributes[string(Prop.Name)] := GetPropValue(Obj, string(Prop.Name));
       end;
     tkString, tkLString, tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}:
       begin
-        Node.Attributes[Prop.Name] := GetPropValue(Obj, Prop.Name);
+        Node.Attributes[string(Prop.Name)] := GetPropValue(Obj, string(Prop.Name));
       end;
     tkArray, tkDynArray:
       begin
-        Node.Attributes[Prop.Name] := GetPropValue(Obj, Prop.Name);
+        Node.Attributes[string(Prop.Name)] := GetPropValue(Obj, string(Prop.Name));
       end;
     tkRecord:
       begin
-        Node.Attributes[Prop.Name] := GetPropValue(Obj, Prop.Name);
+        Node.Attributes[string(Prop.Name)] := GetPropValue(Obj, string(Prop.Name));
       end;
   end;
 end;
@@ -479,7 +479,7 @@ begin
       Pprop := PList^[I];
       if not PropIsReadOnly(PProp) then
       begin
-        PropNode := Node.AttributeNodes.FindNode(PProp.Name);
+        PropNode := Node.AttributeNodes.FindNode(string(PProp.Name));
         if PropNode <> nil then
         begin
           SetXMLPropValue(Instance, PropNode, PProp);
@@ -492,7 +492,7 @@ begin
       Pprop := Plist^[I];
       if Pprop.PropType^.Kind = tkClass then
       begin
-        PropNode := Node.ChildNodes.FindNode(PProp.Name);
+        PropNode := Node.ChildNodes.FindNode(string(PProp.Name));
         if PropNode <> nil then
         begin
           ReadXmlObject(Instance, PropNode, Pprop);
@@ -608,7 +608,7 @@ procedure TCnXMLObjectReader.ReadXMLObject(Instance: TPersistent; PropNode:
 var
   PropObj: TObject;
 begin
-  PropObj := GetObjectProp(Instance, PProp.Name);
+  PropObj := GetObjectProp(Instance, string(PProp.Name));
   if PropObj is TPersistent then
   begin
     ReadPersistentFromXML(PropNode, TPersistent(PropObj));
@@ -649,7 +649,7 @@ begin
   case PProp.PropType^.Kind of
     tkEnumeration:
       begin
-        SetEnumProp(Obj, PProp.Name, PropNode.NodeValue);
+        SetEnumProp(Obj, string(PProp.Name), PropNode.NodeValue);
       end;
     tkMethod:
       begin
@@ -658,7 +658,7 @@ begin
       end;
   else
     begin
-      SetPropValue(Obj, PProp.Name, PropNode.NodeValue);
+      SetPropValue(Obj, string(PProp.Name), PropNode.NodeValue);
     end;
   end;
 end;

@@ -389,8 +389,8 @@ type
       TCnRedisMultiBulkNode): Boolean;
     procedure SetRecvBufferSize(Value: Cardinal);
     function GetConnecting: Boolean;
-    function CreateSocketOfClassName(const Name: string): ICnRedisSocket;
   protected
+    function CreateSocketOfClassName(const Name: string): ICnRedisSocket;
     function Connect: Boolean; virtual;
     function SendAndReceive(const Send: string; Recv: TCnRedisMultiBulkNode;
       Force: Boolean = False): Boolean; virtual;
@@ -2691,7 +2691,6 @@ end;
 function TCnRedisClient.SCAN(cursor: Integer; MATCH: string; Count: Integer):
   TCnRedisMultiBulk;
 var
-  Reply: TCnRedisMultiBulk;
   _Cmd: string;
 begin
   _Cmd := Format('SCAN %d', [cursor]);

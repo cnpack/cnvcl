@@ -631,6 +631,8 @@ begin
     Result := '-' + Result;
 end;
 
+{$WARNINGS OFF}
+
 function HexToInt128(const S: string): TCnInt128;
 var
   I, K: Integer;
@@ -723,6 +725,8 @@ begin
     Int128Negate(Result);
 end;
 
+{$WARNINGS ON}
+
 // ======================== UInt128 ¼ÆËãº¯Êý ===================================
 
 procedure UInt128Set(var R: TCnUInt128; Lo, Hi: TUInt64);
@@ -753,6 +757,8 @@ begin
   N.Lo64 := 0;
   N.Hi64 := 0;
 end;
+
+{$WARNINGS OFF}
 
 procedure UInt128Add(var R, A, B: TCnUInt128);
 var
@@ -787,6 +793,8 @@ begin
   UInt64Sub(R.Lo64, A.Lo64, B.Lo64, C);
   R.Hi64 := A.Hi64 - B.Hi64 - C;
 end;
+
+{$WARNINGS ON}
 
 procedure UInt128Mul(var R, A, B: TCnUInt128; ResHi: PCnUInt128);
 var
@@ -1087,6 +1095,8 @@ begin
   end;
 end;
 
+{$WARNINGS OFF}
+
 function HexToUInt128(const S: string): TCnUInt128;
 var
   I, K: Integer;
@@ -1157,6 +1167,8 @@ begin
       raise EConvertError.CreateFmt(SInvalidInteger, [S[I]]);
   end;
 end;
+
+{$WARNINGS ON}
 
 end.
 

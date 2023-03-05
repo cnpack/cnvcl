@@ -251,7 +251,7 @@ begin
 
   for _ItemIndex := 0 to FOwner.GetCount - 1 do //枚举所有待查数据表内数据
   begin
-    _FileName := FOwner.FDataList[_ItemIndex].FileName; //内存搜索不需要全路径名
+    _FileName := string(FOwner.FDataList[_ItemIndex].FileName); //内存搜索不需要全路径名
     _ModuleInfo := GetModuleInfo(_FileName); //取得模块信息
     if (_ModuleInfo.CodeStartAddr <= 0) or (_ModuleInfo.CodeSize <= 0) then
     begin
@@ -302,7 +302,7 @@ begin
   try
     for _ItemIndex := 0 to FOwner.GetCount - 1 do //枚举所有待查数据表内数据
     begin
-      _FileName := FOwner.Directory + FOwner.FDataList[_ItemIndex].FileName;
+      _FileName := FOwner.Directory + string(FOwner.FDataList[_ItemIndex].FileName);
       if not FileExists(_FileName) then //文件不存在
       begin
         FOwner.DoErrEvent(elFileErr, Format('%s,文件打开错误!', [FOwner.FDataList[_ItemIndex].FileName]));

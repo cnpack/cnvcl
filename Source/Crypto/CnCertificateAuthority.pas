@@ -1263,7 +1263,7 @@ begin
       ValueNode := ValueNode.Items[0]; // 指向 OctetString 的子节点，Value 所在
       if CompareObjectIdentifier(OidNode, @OID_EXT_SUBJECTKEYIDENTIFIER, SizeOf(OID_EXT_SUBJECTKEYIDENTIFIER)) then
       begin
-        StandardExt.SubjectKeyIdentifier := ValueNode.AsRawString;
+        StandardExt.SubjectKeyIdentifier := ValueNode.AsAnsiString;
       end
       else if CompareObjectIdentifier(OidNode, @OID_EXT_KEYUSAGE, SizeOf(OID_EXT_KEYUSAGE)) then
       begin
@@ -1320,7 +1320,7 @@ begin
       else if CompareObjectIdentifier(OidNode, @OID_EXT_AUTHORITYKEYIDENTIFIER, SizeOf(OID_EXT_AUTHORITYKEYIDENTIFIER)) then
       begin
         if ValueNode.Count = 1 then
-          StandardExt.AuthorityKeyIdentifier := ValueNode[0].AsRawString;
+          StandardExt.AuthorityKeyIdentifier := ValueNode[0].AsAnsiString;
       end
       else if CompareObjectIdentifier(OidNode, @OID_EXT_EXTKEYUSAGE, SizeOf(OID_EXT_EXTKEYUSAGE)) then
       begin

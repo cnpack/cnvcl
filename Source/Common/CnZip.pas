@@ -823,8 +823,10 @@ begin
     if CreateSubdirs and (Dir <> '') then
       ForceDirectories(Dir);
 
+{$WARNINGS OFF}
     if AFileName[Length(AFileName) - 1] in ['\', '/'] then
       Exit;
+{$WARNINGS ON}
 
     OutStream := TFileStream.Create(AFileName, fmCreate);
     try

@@ -157,6 +157,8 @@ type
 
     function AsRawString: string;
     {* 直接返回字符串，不限制类型}
+    function AsAnsiString: AnsiString;
+    {* 返回 Ansi 字符串}
     function AsString: string;
     {* 返回字符串，限制为几种字符串类型}
     function AsPrintableString: string;
@@ -869,6 +871,11 @@ end;
 function TCnBerReadNode.AsRawString: string;
 begin
   Result := string(InternalAsString([]));
+end;
+
+function TCnBerReadNode.AsAnsiString: AnsiString;
+begin
+  Result := InternalAsString([]);
 end;
 
 function TCnBerReadNode.AsCommonInteger: Integer;

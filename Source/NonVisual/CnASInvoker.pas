@@ -521,8 +521,8 @@ function SameTypeInfo(const RegInfo: PTypeInfo; const OtherInfo: PTypeInfo):
   Boolean;
 begin
   Result := (RegInfo = OtherInfo) or
-    ((RegInfo.Kind = OtherInfo.Kind) and TypeNamesMatch(RegInfo^.Name,
-    OtherInfo^.Name));
+    ((RegInfo.Kind = OtherInfo.Kind) and TypeNamesMatch(string(RegInfo^.Name),
+    string(OtherInfo^.Name)));
 end;
 
 function TypeNamesMatch(const RegName: string; const OtherName: string): Boolean;
@@ -1359,7 +1359,7 @@ begin
       PUnicodeString(NatData)^ := Value;
 {$ENDIF}
     tkString:
-      PShortString(NatData)^ := Value;
+      PShortString(NatData)^ := ShortString(Value);
     tkLString:
       PString(NatData)^ := Value;
     tkEnumeration:

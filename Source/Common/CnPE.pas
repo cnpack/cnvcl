@@ -1441,7 +1441,7 @@ begin
   while I < FExportNumberOfNames do // 再补充名字
   begin
     O := POrd^; // 取出序号表中的内容，是 AddressOfFunctions 里的下标
-    FExportItems[O].Name := ExtractNewString(RvaToActual(PName^));  // 取名字与序号对应的下标
+    FExportItems[O].Name := string(ExtractNewString(RvaToActual(PName^)));  // 取名字与序号对应的下标
 
     Inc(PName);
     Inc(POrd);
@@ -1984,7 +1984,7 @@ begin
         begin
           L := Ord(PName^);
           Inc(PName);
-          S := StrNew(PName);
+          S := string(StrNew(PName));
           FNames.Add(S);
           Inc(PName, L + 1);
         end;
