@@ -439,6 +439,7 @@ function GetCnDateOrder(const DateFormat: string): TCnDateOrder;
 var
   I: Integer;
 begin
+  Result := DefaulTCnDateOrder;
   I := 1;
   while I <= Length(DateFormat) do
   begin
@@ -457,7 +458,6 @@ begin
     end;
     Exit;
   end;
-  Result := DefaulTCnDateOrder;
 end;
 
 function ExpandYear(Year: Integer): Integer;

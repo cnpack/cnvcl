@@ -104,18 +104,19 @@ type
   // Read a xml to Object
   TCnXMLObjectReader = class(TCnXMLObjectFiler)
   private
-    procedure FindRootNode;
-    function PropIsReadOnly(Pinfo: PPropInfo): Boolean;
-    function PropIsValue(Pinfo: PPropInfo): Boolean;
     procedure ReadCollection(Collection: TCollection; Node: IXMLNode);
     procedure ReadPersistentFromXML(Node: IXMLNode; Instance: TPersistent);
-    procedure BuildInterfaceFromXML(Node: IXMLNode; Instance: IInterface);
-    procedure SetObjPropValue(PropName: string; Instance, PropObj: TPersistent);
     procedure ReadXMLObject(Instance: TPersistent; PropNode: IXMLNode; PProp:
       PPropInfo);
     procedure SetXMLPropValue(Obj: TPersistent; PropNode: IXMLNode; PProp:
       PPropInfo);
   protected
+    procedure FindRootNode;
+    function PropIsReadOnly(Pinfo: PPropInfo): Boolean;
+    function PropIsValue(Pinfo: PPropInfo): Boolean;
+    procedure BuildInterfaceFromXML(Node: IXMLNode; Instance: IInterface);
+    procedure SetObjPropValue(PropName: string; Instance, PropObj: TPersistent);
+
     procedure ReadObject(Obj: TObject; const PropNode: IXMLNode); virtual;
     procedure ReadPersistent(Obj: TPersistent; Node: IXMLNode); virtual;
     function ReadValueFromXML(NOde: IXMLNode): variant;

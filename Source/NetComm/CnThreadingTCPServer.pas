@@ -154,7 +154,7 @@ type
     FBytesReceived: Cardinal;
     FBytesSent: Cardinal;
     FOnShutdownClient: TNotifyEvent;
-    FMaxConnections: Cardinal;
+    FMaxConnections: Integer;
     procedure SetActive(const Value: Boolean);
     procedure SetLocalIP(const Value: string);
     procedure SetLocalPort(const Value: Word);
@@ -207,7 +207,7 @@ type
     {* 监听的本地 IP}
     property LocalPort: Word read FLocalPort write SetLocalPort;
     {* 监听的本地端口}
-    property MaxConnections: Cardinal read FMaxConnections write FMaxConnections;
+    property MaxConnections: Integer read FMaxConnections write FMaxConnections;
     {* 能够接入的最大连接数，超过则 Accept 时直接关闭新接入连接}
 
     property OnError: TCnServerSocketErrorEvent read FOnError write FOnError;

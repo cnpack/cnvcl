@@ -181,8 +181,7 @@ type
   private
     FReadOnly: Boolean;
     FPrevChar: Char;
-    procedure DisableStringsChange;
-    procedure EnableStringsChange;
+
     function DeleteText(StartRow, StartCol, EndRow, EndCol: Integer): Boolean;
     {* 删除起始行列到结束行列间的内容}
     function InsertTextAt(const Text: string; ARow, ACol: Integer;
@@ -192,6 +191,8 @@ type
     procedure WMKeyChar(var Message: TMessage); message WM_CHAR;
     procedure KeyDown(var Key: WORD; Shift: TShiftState); override;
 
+    procedure DisableStringsChange;
+    procedure EnableStringsChange;
   public
     procedure DeleteSelection;
     {* 删除选择区，但不重画}
@@ -1710,7 +1711,7 @@ begin
   begin
     // TODO: 处理 Tab
   end
-  else if Ord(Ch) >= Ord(20) then
+  else if Ord(Ch) >= 20 then
   begin
 {$IFDEF UNICODE}
     InsertText(string(Ch)); // Unicode 时输入法敲出来的双字节字符直接通过一个 WM_CHAR 发来

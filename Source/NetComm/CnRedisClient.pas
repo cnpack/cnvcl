@@ -2493,12 +2493,12 @@ end;
 function TCnRedisClient.PUBSUB(const Command, Arguments: string; Value: TStrings):
   Integer;
 begin
-
+  Result := 0; // Nothing
 end;
 
 function TCnRedisClient.PUNSUBSCRIBE(const patterns: string): string;
 begin
-
+  Result := '';
 end;
 
 function TCnRedisClient.AUTH(const Password: string): Boolean;
