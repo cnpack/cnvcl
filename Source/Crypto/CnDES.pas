@@ -120,6 +120,18 @@ function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
 function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文}
 
+function DESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
+{* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0}
+
+function DESDecryptECBStrFromHex(const StrHex, Key: AnsiString): AnsiString;
+{* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文}
+
+function DESEncryptCBCStrToHex(const Str, Key, Iv: AnsiString): AnsiString;
+{* 传入明文与加密 Key 与 Iv，DES 加密返回转换成十六进制的密文，CBC 模式，明文末尾可能补 0}
+
+function DESDecryptCBCStrFromHex(const StrHex, Key, Iv: AnsiString): AnsiString;
+{* 传入十六进制的密文与加密 Key 与 Iv，DES CBC 解密返回明文}
+
 function DESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
 {* DES-ECB 封装好的针对 TBytes 的加解密方法
  |<PRE>
@@ -747,24 +759,8 @@ begin
 end;
 
 function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
-var
-  TempResult, Temp: AnsiString;
-  I: Integer;
 begin
-  Result := '';
-  if Str = '' then
-    Exit;
-
-  SetResultLengthUsingInput(Str, TempResult);
-  DESEncryptECBStr(Key, Str, @TempResult[1]);
-
-  for I := 0 to Length(TempResult) - 1 do
-  begin
-    Temp := AnsiString(Format('%x', [Ord(TempResult[I + 1])]));
-    if Length(Temp) = 1 then
-      Temp := '0' + Temp;
-    Result := Result + Temp;
-  end;
+  Result := DESEncryptECBStrToHex(Str, Key);
 end;
 
 function HexToInt(const Hex: AnsiString): Integer;
@@ -789,6 +785,32 @@ begin
 end;
 
 function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
+begin
+  Result := DESDecryptECBStrFromHex(StrHex, Key);
+end;
+
+function DESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
+var
+  TempResult, Temp: AnsiString;
+  I: Integer;
+begin
+  Result := '';
+  if Str = '' then
+    Exit;
+
+  SetResultLengthUsingInput(Str, TempResult);
+  DESEncryptECBStr(Key, Str, @TempResult[1]);
+
+  for I := 0 to Length(TempResult) - 1 do
+  begin
+    Temp := AnsiString(Format('%x', [Ord(TempResult[I + 1])]));
+    if Length(Temp) = 1 then
+      Temp := '0' + Temp;
+    Result := Result + Temp;
+  end;
+end;
+
+function DESDecryptECBStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 var
   Str, Temp: AnsiString;
   I: Integer;
@@ -802,6 +824,43 @@ begin
 
   SetResultLengthUsingInput(Str, Result);
   DESDecryptECBStr(Key, Str, @(Result[1]));
+end;
+
+function DESEncryptCBCStrToHex(const Str, Key, Iv: AnsiString): AnsiString;
+var
+  TempResult, Temp: AnsiString;
+  I: Integer;
+begin
+  Result := '';
+  if Str = '' then
+    Exit;
+
+  SetResultLengthUsingInput(Str, TempResult);
+  DESEncryptCBCStr(Key, PAnsiChar(Iv), Str, @TempResult[1]);
+
+  for I := 0 to Length(TempResult) - 1 do
+  begin
+    Temp := AnsiString(Format('%x', [Ord(TempResult[I + 1])]));
+    if Length(Temp) = 1 then
+      Temp := '0' + Temp;
+    Result := Result + Temp;
+  end;
+end;
+
+function DESDecryptCBCStrFromHex(const StrHex, Key, Iv: AnsiString): AnsiString;
+var
+  Str, Temp: AnsiString;
+  I: Integer;
+begin
+  Str := '';
+  for I := 0 to Length(StrHex) div 2 - 1 do
+  begin
+    Temp := Copy(StrHex, I * 2 + 1, 2);
+    Str := Str + AnsiChar(HexToInt(Temp));
+  end;
+
+  SetResultLengthUsingInput(Str, Result);
+  DESDecryptCBCStr(Key, PAnsiChar(Iv), Str, @(Result[1]));
 end;
 
 function DESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;

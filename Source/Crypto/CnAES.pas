@@ -3422,15 +3422,6 @@ begin
   end;
 end;
 
-function StrToHex(Value: PAnsiChar; Len: Integer): AnsiString;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I := 0 to Len - 1 do
-    Result := Result + AnsiString(IntToHex(Ord(Value[I]), 2));
-end;
-
 function HexToInt(Hex: AnsiString): Integer;
 var
   I, Res: Integer;
@@ -3502,7 +3493,7 @@ begin
         EncryptAESStreamECB(SS, 0, AESKey256, DS);
       end;
     end;
-    Result := StrToHex(PAnsiChar(DS.Memory), DS.Size);
+    Result := DataToHex(DS.Memory, DS.Size);
   finally
     SS.Free;
     DS.Free;
@@ -3597,7 +3588,7 @@ begin
         EncryptAESStreamCBC(SS, 0, AESKey256, Iv, DS);
       end;
     end;
-    Result := StrToHex(PAnsiChar(DS.Memory), DS.Size);
+    Result := DataToHex(DS.Memory, DS.Size);
   finally
     SS.Free;
     DS.Free;
@@ -3692,7 +3683,7 @@ begin
         EncryptAESStreamCFB(SS, 0, AESKey256, Iv, DS);
       end;
     end;
-    Result := StrToHex(PAnsiChar(DS.Memory), DS.Size);
+    Result := DataToHex(DS.Memory, DS.Size);
   finally
     SS.Free;
     DS.Free;
@@ -3787,7 +3778,7 @@ begin
         EncryptAESStreamOFB(SS, 0, AESKey256, Iv, DS);
       end;
     end;
-    Result := StrToHex(PAnsiChar(DS.Memory), DS.Size);
+    Result := DataToHex(DS.Memory, DS.Size);
   finally
     SS.Free;
     DS.Free;
