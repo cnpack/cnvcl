@@ -775,27 +775,6 @@ begin
   Result := DESEncryptECBStrToHex(Str, Key);
 end;
 
-function HexToInt(const Hex: AnsiString): Integer;
-var
-  I, Res: Integer;
-  C: AnsiChar;
-begin
-  Res := 0;
-  for I := 0 to Length(Hex) - 1 do
-  begin
-    C := Hex[I + 1];
-    if (C >= '0') and (C <= '9') then
-      Res := Res * 16 + Ord(C) - Ord('0')
-    else if (C >= 'A') and (C <= 'F') then
-      Res := Res * 16 + Ord(C) - Ord('A') + 10
-    else if (C >= 'a') and (C <= 'f') then
-      Res := Res * 16 + Ord(C) - Ord('a') + 10
-    else
-      raise Exception.Create('Error: not a Hex String');
-  end;
-  Result := Res;
-end;
-
 function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 begin
   Result := DESDecryptECBStrFromHex(StrHex, Key);

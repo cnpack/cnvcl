@@ -469,6 +469,9 @@ function UInt32ToStr(V: Cardinal): string;
 function UInt64ToBinStr(V: TUInt64): string;
 {* 将一无符号 64 字节整数转换为二进制字符串}
 
+function HexToInt(const Hex: string): Integer;
+{* 将一十六进制字符串转换为整型，适合较短尤其是 2 字符的字符串}
+
 function IsHexString(const Hex: string): Boolean;
 {* 判断一字符串是否合法的十六进制字符串，不区分大小写}
 
