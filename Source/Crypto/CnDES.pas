@@ -114,11 +114,11 @@ procedure DESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
 
-function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
-{* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0}
+function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+{* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0。等同于 DESEncryptECBStrToHex}
 
-function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
-{* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文}
+function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;{$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+{* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文。等同于 DESDecryptECBStrFromHex}
 
 function DESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
 {* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0}
@@ -220,11 +220,23 @@ procedure TripleDESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
 
-function TripleDESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
+function TripleDESEncryptStrToHex(const Str, Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+{* 传入明文与加密 Key，3DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0。等同于 TripleDESEncryptECBStrToHex}
+
+function TripleDESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+{* 传入十六进制的密文与加密 Key，3DES ECB 解密返回明文。等同于 TripleDESDecryptECBStrFromHex}
+
+function TripleDESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
 {* 传入明文与加密 Key，3DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0}
 
-function TripleDESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
+function TripleDESDecryptECBStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key，3DES ECB 解密返回明文}
+
+function TripleDESEncryptCBCStrToHex(const Str, Key, Iv: AnsiString): AnsiString;
+{* 传入明文与加密 Key 与 Iv，3DES 加密返回转换成十六进制的密文，CBC 模式，明文末尾可能补 0}
+
+function TripleDESDecryptCBCStrFromHex(const StrHex, Key, Iv: AnsiString): AnsiString;
+{* 传入十六进制的密文与加密 Key 与 Iv，3DES CBC 解密返回明文}
 
 function TripleDESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
 {* 3DES-ECB 封装好的针对 TBytes 的加解密方法
@@ -1385,6 +1397,16 @@ begin
 end;
 
 function TripleDESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
+begin
+  Result := TripleDESEncryptECBStrToHex(Str, Key);
+end;
+
+function TripleDESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
+begin
+  Result := TripleDESDecryptECBStrFromHex(StrHex, Key);
+end;
+
+function TripleDESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
 var
   TempResult, Temp: AnsiString;
   I: Integer;
@@ -1402,7 +1424,7 @@ begin
   end;
 end;
 
-function TripleDESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
+function TripleDESDecryptECBStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 var
   Str, Temp: AnsiString;
   I: Integer;
@@ -1416,6 +1438,40 @@ begin
 
   SetResultLengthUsingInput(Str, Result);
   TripleDESDecryptECBStr(Key, Str, @(Result[1]));
+end;
+
+function TripleDESEncryptCBCStrToHex(const Str, Key, Iv: AnsiString): AnsiString;
+var
+  TempResult, Temp: AnsiString;
+  I: Integer;
+begin
+  SetResultLengthUsingInput(Str, TempResult);
+  TripleDESEncryptCBCStr(Key, PAnsiChar(Iv), Str, @TempResult[1]);
+
+  Result := '';
+  for I := 0 to Length(TempResult) - 1 do
+  begin
+    Temp := AnsiString(Format('%x', [Ord(TempResult[I + 1])]));
+    if Length(Temp) = 1 then
+      Temp := '0' + Temp;
+    Result := Result + Temp;
+  end;
+end;
+
+function TripleDESDecryptCBCStrFromHex(const StrHex, Key, Iv: AnsiString): AnsiString;
+var
+  Str, Temp: AnsiString;
+  I: Integer;
+begin
+  Str := '';
+  for I := 0 to Length(StrHex) div 2 - 1 do
+  begin
+    Temp := Copy(StrHex, I * 2 + 1, 2);
+    Str := Str + AnsiChar(HexToInt(Temp));
+  end;
+
+  SetResultLengthUsingInput(Str, Result);
+  TripleDESDecryptCBCStr(Key, PAnsiChar(Iv), Str, @(Result[1]));
 end;
 
 function TripleDESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
