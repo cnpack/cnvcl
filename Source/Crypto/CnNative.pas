@@ -469,8 +469,11 @@ function UInt32ToStr(V: Cardinal): string;
 function UInt64ToBinStr(V: TUInt64): string;
 {* 将一无符号 64 字节整数转换为二进制字符串}
 
-function HexToInt(const Hex: string): Integer;
+function HexToInt(const Hex: string): Integer; overload;
 {* 将一十六进制字符串转换为整型，适合较短尤其是 2 字符的字符串}
+
+function HexToInt(Hex: PChar; CharLen: Integer): Integer; overload;
+{* 将一十六进制字符串指针所指的内容转换为整型，适合较短尤其是 2 字符的字符串}
 
 function IsHexString(const Hex: string): Boolean;
 {* 判断一字符串是否合法的十六进制字符串，不区分大小写}
@@ -489,6 +492,9 @@ function StringToHex(const Data: string; UseUpperCase: Boolean = True): string;
 {* 字符串转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
 
 function HexToString(const Hex: string): string;
+{* 十六进制字符串转换为字符串，十六进制字符串长度为奇或转换失败时抛出异常}
+
+function HexToAnsiStr(const Hex: AnsiString): AnsiString;
 {* 十六进制字符串转换为字符串，十六进制字符串长度为奇或转换失败时抛出异常}
 
 function BytesToHex(Data: TBytes; UseUpperCase: Boolean = True): string;
@@ -1383,15 +1389,15 @@ const
   LoDigits: array[0..15] of Char = ('0', '1', '2', '3', '4', '5', '6', '7',
                                   '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
 
-function HexToInt(const Hex: string): Integer;
+function HexToInt(Hex: PChar; CharLen: Integer): Integer;
 var
   I, Res: Integer;
   C: Char;
 begin
   Res := 0;
-  for I := 0 to Length(Hex) - 1 do
+  for I := 0 to CharLen - 1 do
   begin
-    C := Hex[I + 1];
+    C := Hex[I];
     if (C >= '0') and (C <= '9') then
       Res := Res * 16 + Ord(C) - Ord('0')
     else if (C >= 'A') and (C <= 'F') then
@@ -1399,9 +1405,14 @@ begin
     else if (C >= 'a') and (C <= 'f') then
       Res := Res * 16 + Ord(C) - Ord('a') + 10
     else
-      raise Exception.CreateFmt('Error: not a Hex String: %c', [C]);
+      raise Exception.CreateFmt('Error: not a Hex PChar: %c', [C]);
   end;
   Result := Res;
+end;
+
+function HexToInt(const Hex: string): Integer;
+begin
+  Result := HexToInt(PChar(Hex), Length(Hex));
 end;
 
 {$WARNINGS OFF}
@@ -1461,7 +1472,7 @@ end;
 function HexToData(const Hex: string; OutData: Pointer): Integer;
 var
   I, L: Integer;
-  S: string;
+  H: PChar;
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
@@ -1474,10 +1485,10 @@ begin
   end;
 
   Result := 0;
+  H := PChar(Hex);
   for I := 1 to L div 2 do
   begin
-    S := Copy(Hex, I * 2 - 1, 2);
-    PByte(TCnNativeInt(OutData) + I - 1)^ := Byte(HexToInt(S));
+    PByte(TCnNativeInt(OutData) + I - 1)^ := Byte(HexToInt(@H[(I - 1) * 2], 2));
     Inc(Result);
   end;
 end;
@@ -1519,16 +1530,31 @@ end;
 function HexToString(const Hex: string): string;
 var
   I, L: Integer;
-  S: string;
+  H: PChar;
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
     raise Exception.CreateFmt('Error Length %d: not a Hex String', [L]);
 
   SetLength(Result, L div 2);
+  H := PChar(Hex);
+  for I := 1 to L div 2 do
+    Result[I] := Chr(HexToInt(@H[(I - 1) * 2], 2));
+end;
+
+function HexToAnsiStr(const Hex: AnsiString): AnsiString;
+var
+  I, L: Integer;
+  S: string;
+begin
+  L := Length(Hex);
+  if (L mod 2) <> 0 then
+    raise Exception.CreateFmt('Error Length %d: not a Hex AnsiString', [L]);
+
+  SetLength(Result, L div 2);
   for I := 1 to L div 2 do
   begin
-    S := Copy(Hex, I * 2 - 1, 2);
+    S := string(Copy(Hex, I * 2 - 1, 2));
     Result[I] := Chr(HexToInt(S));
   end;
 end;
@@ -1570,18 +1596,17 @@ end;
 function HexToBytes(const Hex: string): TBytes;
 var
   I, L: Integer;
-  S: string;
+  H: PChar;
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
     raise Exception.CreateFmt('Error Length %d: not a Hex String', [L]);
 
   SetLength(Result, L div 2);
+  H := PChar(Hex);
+
   for I := 1 to L div 2 do
-  begin
-    S := Copy(Hex, I * 2 - 1, 2);
-    Result[I - 1] := Byte(HexToInt(S));
-  end;
+    Result[I - 1] := Byte(HexToInt(@H[(I - 1) * 2], 2));
 end;
 
 procedure ReverseBytes(Data: TBytes);
