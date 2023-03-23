@@ -1555,7 +1555,7 @@ begin
   for I := 1 to L div 2 do
   begin
     S := string(Copy(Hex, I * 2 - 1, 2));
-    Result[I] := Chr(HexToInt(S));
+    Result[I] := AnsiChar(Chr(HexToInt(S)));
   end;
 end;
 
