@@ -1923,7 +1923,6 @@ procedure TFormSM2.btnSaveSM2KeyClick(Sender: TObject);
 var
   Priv: TCnSM2PrivateKey;
   Pub: TCnSM2PublicKey;
-  CurveType: TCnEccCurveType;
 begin
   if dlgSave1.Execute then
   begin
