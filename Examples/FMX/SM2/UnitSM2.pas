@@ -226,7 +226,7 @@ var
   RandA, RandB: TCnBigNumber;
   OutRA, OutRB: TCnEccPoint;
   KA, KB: AnsiString;
-  OpSA, OpSB, OpS2: TSM3Digest;
+  OpSA, OpSB, OpS2: TCnSM3Digest;
 begin
   SM2 := TCnSM2.Create(ctSM2Example256);
   APrivateKey := TCnEccPrivateKey.Create;
@@ -567,7 +567,7 @@ var
   RandA, RandB: TCnBigNumber;
   OutRA, OutRB: TCnEccPoint;
   KA, KB: AnsiString;
-  OpSA, OpSB, OpS2: TSM3Digest;
+  OpSA, OpSB, OpS2: TCnSM3Digest;
 begin
   if not CheckPublicKeyStr(edtSM2PublicKey) or not CheckPublicKeyStr(edtSM2BPublicKey) then
     Exit;
