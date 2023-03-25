@@ -91,33 +91,7 @@ uses
   {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
 
 const
-  BN_BITS_UINT_32       = 32;
-  BN_BITS_UINT_64       = 64;
-
-{$IFDEF BN_DATA_USE_64}
-  BN_BYTES              = 8;      // D 数组中的一个元素所包含的字节数
-  BN_BITS2              = 64;     // D 数组中的一个元素所包含的位数
-  BN_BITS4              = 32;
-  BN_MASK2              = $FFFFFFFFFFFFFFFF;
-  BN_TBIT               = $8000000000000000;
-  BN_MASK2l             = $FFFFFFFF;
-  BN_MASK2h             = $FFFFFFFF00000000;
-{$ELSE}
-  BN_BYTES              = 4;      // D 数组中的一个元素所包含的字节数
-  BN_BITS2              = 32;     // D 数组中的一个元素所包含的位数
-  BN_BITS4              = 16;
-  BN_MASK2              = $FFFFFFFF;
-  BN_TBIT               = $80000000;
-  BN_MASK2l             = $FFFF;
-  BN_MASK2h             = $FFFF0000;
-{$ENDIF}
-
-  BN_MASK2S             = $7FFFFFFF; // 以下无需跟随 32/64 改动
-  BN_MASK2h1            = $FFFF8000;
-  BN_MASK3S             = $7FFFFFFFFFFFFFFF;
-  BN_MASK3U             = $FFFFFFFFFFFFFFFF;
-
-  BN_MILLER_RABIN_DEF_COUNT = 50; // Miller-Rabin 算法的默认测试次数
+  CN_BN_MILLER_RABIN_DEF_COUNT = 50; // Miller-Rabin 算法的默认测试次数
 
 type
 {$IFDEF SUPPORT_UINT64}
@@ -869,19 +843,19 @@ function BigNumberFermatCheckComposite(const A, B, C: TCnBigNumber; T: Integer):
 {* Miller-Rabin 算法中的单次费尔马测试，返回 True 表示 B 不是素数，
   注意 A B C 并非任意选择，B 是待测试的素数，A 是随机数，C 是 B - 1 右移 T 位后得到的第一个奇数}
 
-function BigNumberIsProbablyPrime(const Num: TCnBigNumber; TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+function BigNumberIsProbablyPrime(const Num: TCnBigNumber; TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
 {* 概率性判断一个大数是否素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
 
 function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer;
-  TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+  TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
 {* 生成一个指定字节位数的大素数，不保证最高位为 1。TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
 
 function BigNumberGeneratePrimeByBitsCount(const Num: TCnBigNumber; BitsCount: Integer;
-  TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+  TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
 {* 生成一个指定二进制位数的大素数，最高位确保为 1。TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
 
 function BigNumberNextPrime(Res, Num: TCnBigNumber;
-  TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+  TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
 {* 生成一个比 Num 大或相等的大素数，结果放 Res，Res 可以是 Num，
   TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
 
@@ -1014,8 +988,8 @@ function CnBigNumberIs64Mode: Boolean;
 {* 当前大数整体的工作模式是否是内部 64 位存储模式，供调试使用}
 
 var
-  CnBigNumberOne: TCnBigNumber = nil;     // 表示 1 的常量
-  CnBigNumberZero: TCnBigNumber = nil;    // 表示 0 的常量
+  CnBigNumberOne: TCnBigNumber = nil;     // 表示 1 的大数常量
+  CnBigNumberZero: TCnBigNumber = nil;    // 表示 0 的大数常量
 
 implementation
 
@@ -1030,6 +1004,32 @@ resourcestring
 
 const
   Hex: string = '0123456789ABCDEF';
+
+  BN_BITS_UINT_32       = 32;
+  BN_BITS_UINT_64       = 64;
+
+{$IFDEF BN_DATA_USE_64}
+  BN_BYTES              = 8;      // D 数组中的一个元素所包含的字节数
+  BN_BITS2              = 64;     // D 数组中的一个元素所包含的位数
+  BN_BITS4              = 32;
+  BN_MASK2              = $FFFFFFFFFFFFFFFF;
+  BN_TBIT               = $8000000000000000;
+  BN_MASK2l             = $FFFFFFFF;
+  BN_MASK2h             = $FFFFFFFF00000000;
+{$ELSE}
+  BN_BYTES              = 4;      // D 数组中的一个元素所包含的字节数
+  BN_BITS2              = 32;     // D 数组中的一个元素所包含的位数
+  BN_BITS4              = 16;
+  BN_MASK2              = $FFFFFFFF;
+  BN_TBIT               = $80000000;
+  BN_MASK2l             = $FFFF;
+  BN_MASK2h             = $FFFF0000;
+{$ENDIF}
+
+  BN_MASK2S             = $7FFFFFFF; // 以下无需跟随 32/64 改动
+  BN_MASK2h1            = $FFFF8000;
+  BN_MASK3S             = $7FFFFFFFFFFFFFFF;
+  BN_MASK3U             = $FFFFFFFFFFFFFFFF;
 
   BN_DEC_CONV = 1000000000;
   BN_DEC_FMT = '%u';
@@ -5860,7 +5860,7 @@ end;
 
 // 生成一个指定二进制位数的大素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
 function BigNumberGeneratePrimeByBitsCount(const Num: TCnBigNumber; BitsCount: Integer;
-  TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+  TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
 begin
   Result := False;
   if not BigNumberRandBits(Num, BitsCount) then
@@ -5879,7 +5879,7 @@ begin
 end;
 
 function BigNumberNextPrime(Res, Num: TCnBigNumber;
-  TestCount: Integer = BN_MILLER_RABIN_DEF_COUNT): Boolean;
+  TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
 begin
   Result := True;
   if Num.IsNegative or Num.IsZero or Num.IsOne or (Num.GetWord = 2) then

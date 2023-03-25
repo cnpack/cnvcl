@@ -533,6 +533,9 @@ function GetCASignNameFromSignType(Sign: TCnCASignType): string;
 
 implementation
 
+uses
+  CnNative;
+
 const
   // PKCS#10
   PEM_CERTIFICATE_REQUEST_HEAD = '-----BEGIN CERTIFICATE REQUEST-----';
@@ -639,29 +642,6 @@ var
 //  DummyCASignType: TCnCASignType;
   DummyDigestType: TCnRSASignDigestType;
 
-function PrintHex(const Buf: Pointer; Len: Integer): string;
-var
-  I: Integer;
-  P: PByteArray;
-const
-  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
-                                      '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
-begin
-  Result := '';
-  if Len <= 0 then
-    Exit;
-
-  P := PByteArray(Buf);
-  if P = nil then
-    Exit;
-
-  for I := 0 to Len - 1 do
-  begin
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(P^[I] shr 4) and $0F] +
-              Digits[P^[I] and $0F]);
-  end;
-end;
-
 function AddCASignTypeOIDNodeToWriter(AWriter: TCnBerWriter; CASignType: TCnCASignType;
   AParent: TCnBerWriteNode): TCnBerWriteNode;
 begin
@@ -690,28 +670,28 @@ end;
 function CalcDigestData(const Buffer; Count: Integer; CASignType: TCnCASignType;
   outStream: TStream): Boolean;
 var
-  Md5: TMD5Digest;
-  Sha1: TSHA1Digest;
-  Sha256: TSHA256Digest;
+  Md5: TCnMD5Digest;
+  Sha1: TCnSHA1Digest;
+  Sha256: TCnSHA256Digest;
 begin
   Result := False;
   case CASignType of
     ctMd5RSA, ctMd5Ecc:
       begin
         Md5 := MD5Buffer(Buffer, Count);
-        outStream.Write(Md5, SizeOf(TMD5Digest));
+        outStream.Write(Md5, SizeOf(TCnMD5Digest));
         Result := True;
       end;
     ctSha1RSA, ctSha1Ecc:
       begin
         Sha1 := SHA1Buffer(Buffer, Count);
-        outStream.Write(Sha1, SizeOf(TSHA1Digest));
+        outStream.Write(Sha1, SizeOf(TCnSHA1Digest));
         Result := True;
       end;
     ctSha256RSA, ctSha256Ecc:
       begin
         Sha256 := SHA256Buffer(Buffer, Count);
-        outStream.Write(Sha256, SizeOf(TSHA256Digest));
+        outStream.Write(Sha256, SizeOf(TCnSHA256Digest));
         Result := True;
       end;
   end;
@@ -761,8 +741,8 @@ var
   Node: TCnBerWriteNode;
 begin
   Node := AWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, PubNode);
-  AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_RSAENCRYPTION_PKCS1[0],
-    SizeOf(OID_RSAENCRYPTION_PKCS1), Node);
+  AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @CN_OID_RSAENCRYPTION_PKCS1[0],
+    SizeOf(CN_OID_RSAENCRYPTION_PKCS1), Node);
   AWriter.AddNullNode(Node);
   Node := AWriter.AddContainerNode(CN_BER_TAG_BIT_STRING, PubNode);
   Node := AWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, Node);
@@ -786,8 +766,8 @@ var
 begin
   Result := False;
   Node := AWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, PubNode);
-  AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EC_PUBLIC_KEY[0],
-    SizeOf(OID_EC_PUBLIC_KEY), Node);
+  AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @CN_OID_EC_PUBLIC_KEY[0],
+    SizeOf(CN_OID_EC_PUBLIC_KEY), Node);
   CurveLen := GetOIDFromCurveType(CurveType, CurvePtr);
   if CurveLen <= 0 then
     Exit;
@@ -1467,12 +1447,12 @@ begin
       IsRSA := False;
       if (PubNode.Count = 2) and (PubNode.Items[0].Count = 2) then
         IsRSA := CompareObjectIdentifier(PubNode.Items[0].Items[0],
-          @OID_RSAENCRYPTION_PKCS1[0], SizeOf(OID_RSAENCRYPTION_PKCS1));
+          @CN_OID_RSAENCRYPTION_PKCS1[0], SizeOf(CN_OID_RSAENCRYPTION_PKCS1));
 
       IsECC := False;
       if (PubNode.Count = 2) and (PubNode.Items[0].Count = 2) then
         IsECC := CompareObjectIdentifier(PubNode.Items[0].Items[0],
-          @OID_EC_PUBLIC_KEY[0], SizeOf(OID_EC_PUBLIC_KEY));
+          @CN_OID_EC_PUBLIC_KEY[0], SizeOf(CN_OID_EC_PUBLIC_KEY));
 
       if not IsRSA and not IsECC then // 算法不是 RSA 也不是 ECC
         Exit;
@@ -1936,12 +1916,12 @@ begin
   end;
 
   Result := Result + SCRLF + 'CA Signature Type: ' + GetCASignNameFromSignType(FCASignType);
-  Result := Result + SCRLF + 'Signature: ' + PrintHex(FSignValue, FSignLength);
+  Result := Result + SCRLF + 'Signature: ' + DataToHex(FSignValue, FSignLength);
   if FIsRSA then
     Result := Result + SCRLF + 'Signature Hash: ' + GetRSADigestNameFromSignDigestType(FRSADigestType)
   else
     Result := Result + SCRLF + 'Signature Hash: ' + GetEccDigestNameFromSignDigestType(FEccDigestType);
-  Result := Result + SCRLF + 'Digest: ' + PrintHex(FDigestValue, FDigestLength);
+  Result := Result + SCRLF + 'Digest: ' + DataToHex(FDigestValue, FDigestLength);
 end;
 
 function GetCASignNameFromSignType(Sign: TCnCASignType): string;
@@ -1966,7 +1946,7 @@ var
   Year, Month, Day, Hour, Minute, Sec, MSec: Word;
 begin
   FDateTime := Value;
-  
+
   // 将时间日期转换成字符串并给 FUTCTimeString，使用 YYMMDDhhmm[ss]Z 的格式
   DecodeDate(FDateTime, Year, Month, Day);
   DecodeTime(FDateTime, Hour, Minute, Sec, MSec);
@@ -2161,12 +2141,12 @@ begin
     IsRSA := False;
     if (Node.Count = 2) and (Node.Items[0].Count = 2) then
       IsRSA := CompareObjectIdentifier(Node.Items[0].Items[0],
-        @OID_RSAENCRYPTION_PKCS1[0], SizeOf(OID_RSAENCRYPTION_PKCS1));
+        @CN_OID_RSAENCRYPTION_PKCS1[0], SizeOf(CN_OID_RSAENCRYPTION_PKCS1));
 
     IsECC := False;
     if (Node.Count = 2) and (Node.Items[0].Count = 2) then
       IsECC := CompareObjectIdentifier(Node.Items[0].Items[0],
-        @OID_EC_PUBLIC_KEY[0], SizeOf(OID_EC_PUBLIC_KEY));
+        @CN_OID_EC_PUBLIC_KEY[0], SizeOf(CN_OID_EC_PUBLIC_KEY));
 
     if not IsRSA and not IsECC then // 被签发者的算法不是 RSA 也不是 ECC
       Exit;
@@ -2274,14 +2254,14 @@ begin
     Result := 'Self-Signature ';
   Result := Result + FBasicCertificate.ToString;
   Result := Result + SCRLF + 'CA Signature Type: ' + GetCASignNameFromSignType(FCASignType);
-  Result := Result + SCRLF + 'Signature: ' + PrintHex(FSignValue, FSignLength);
+  Result := Result + SCRLF + 'Signature: ' + DataToHex(FSignValue, FSignLength);
   if FDigestValue <> nil then
   begin
     if FIsRSA then
       Result := Result + SCRLF + 'Hash: ' + GetRSADigestNameFromSignDigestType(FRSADigestType)
     else
       Result := Result + SCRLF + 'Hash: ' + GetEccDigestNameFromSignDigestType(FEccDigestType);
-    Result := Result + SCRLF + 'Digest: ' + PrintHex(FDigestValue, FDigestLength);
+    Result := Result + SCRLF + 'Digest: ' + DataToHex(FDigestValue, FDigestLength);
   end
   else
     Result := Result + SCRLF + '<No Digest>';
@@ -2369,8 +2349,8 @@ begin
   Result := Result + SCRLF + 'Extended Key Usage: ' + IntToHex(SetVal, 2);
   Result := Result + SCRLF + 'Basic Constraints is CA: ' + InttoStr(Integer(FBasicConstraintsCA));
   Result := Result + SCRLF + 'Basic Constraints Path Len: ' + InttoStr(FBasicConstraintsPathLen);
-  Result := Result + SCRLF + 'Authority Key Identifier: ' + PrintHex(Pointer(FAuthorityKeyIdentifier), Length(FAuthorityKeyIdentifier));
-  Result := Result + SCRLF + 'Subject Key Identifier: ' + PrintHex(Pointer(FSubjectKeyIdentifier), Length(FSubjectKeyIdentifier));
+  Result := Result + SCRLF + 'Authority Key Identifier: ' + DataToHex(Pointer(FAuthorityKeyIdentifier), Length(FAuthorityKeyIdentifier));
+  Result := Result + SCRLF + 'Subject Key Identifier: ' + DataToHex(Pointer(FSubjectKeyIdentifier), Length(FSubjectKeyIdentifier));
   Result := Result + SCRLF + 'Subject Alternative Names: ' + SCRLF + FSubjectAltName.Text;
   Result := Result + SCRLF + 'Issuer Alternative Names: '+ SCRLF + FIssuerAltName.Text;
   Result := Result + SCRLF + 'CRL Distribution Points: '+ SCRLF + FCRLDistributionPoints.Text;

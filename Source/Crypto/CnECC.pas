@@ -83,7 +83,7 @@ uses
 
 const
   // ecPublicKey 的 OID
-  OID_EC_PUBLIC_KEY: array [0..6] of Byte = (               // 1.2.840.10045.2.1
+  CN_OID_EC_PUBLIC_KEY: array [0..6] of Byte = (               // 1.2.840.10045.2.1
     $2A, $86, $48, $CE, $3D, $02, $01
   );
 
@@ -2167,7 +2167,7 @@ procedure TCnEccPoint.SetBase64(const Buf: AnsiString; Ecc: TCnEcc);
 var
   B: TBytes;
 begin
-  if Base64Decode(string(Buf), B) = BASE64_OK then
+  if Base64Decode(string(Buf), B) = ECN_BASE64_OK then
     SetHex(AnsiString(BytesToHex(B)), Ecc);
 end;
 
@@ -3715,7 +3715,7 @@ begin
       begin
         // 2 要判断是否公钥
         Node := Reader.Items[2];
-        if (Node.BerLength <> SizeOf(OID_EC_PUBLIC_KEY)) or not CompareMem(@OID_EC_PUBLIC_KEY[0],
+        if (Node.BerLength <> SizeOf(CN_OID_EC_PUBLIC_KEY)) or not CompareMem(@CN_OID_EC_PUBLIC_KEY[0],
           Node.BerAddress, Node.BerLength) then
           Exit;
 
@@ -3896,8 +3896,8 @@ begin
     Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
 
     // 给 Node 加 ECPublicKey 与 曲线类型的 ObjectIdentifier
-    Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EC_PUBLIC_KEY[0],
-      SizeOf(OID_EC_PUBLIC_KEY), Node);
+    Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @CN_OID_EC_PUBLIC_KEY[0],
+      SizeOf(CN_OID_EC_PUBLIC_KEY), Node);
     Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, OIDPtr, OIDLen, Node);
     WriteEccPublicKeyToBitStringNode(Writer, Node, PublicKey);
 
@@ -3918,35 +3918,35 @@ end;
 function CalcDigestStream(InStream: TStream; SignType: TCnEccSignDigestType;
   outStream: TStream): Boolean;
 var
-  Md5: TMD5Digest;
-  Sha1: TSHA1Digest;
-  Sha256: TSHA256Digest;
-  Sm3Dig: TSM3Digest;
+  Md5: TCnMD5Digest;
+  Sha1: TCnSHA1Digest;
+  Sha256: TCnSHA256Digest;
+  Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
   case SignType of
     esdtMD5:
       begin
         Md5 := MD5Stream(InStream);
-        outStream.Write(Md5, SizeOf(TMD5Digest));
+        outStream.Write(Md5, SizeOf(TCnMD5Digest));
         Result := True;
       end;
     esdtSHA1:
       begin
         Sha1 := SHA1Stream(InStream);
-        outStream.Write(Sha1, SizeOf(TSHA1Digest));
+        outStream.Write(Sha1, SizeOf(TCnSHA1Digest));
         Result := True;
       end;
     esdtSHA256:
       begin
         Sha256 := SHA256Stream(InStream);
-        outStream.Write(Sha256, SizeOf(TSHA256Digest));
+        outStream.Write(Sha256, SizeOf(TCnSHA256Digest));
         Result := True;
       end;
     esdtSM3:
       begin
         Sm3Dig := SM3Stream(InStream);
-        outStream.Write(Sm3Dig, SizeOf(TSM3Digest));
+        outStream.Write(Sm3Dig, SizeOf(TCnSM3Digest));
         Result := True;
       end;
   end;
@@ -3956,35 +3956,35 @@ end;
 function CalcDigestFile(const FileName: string; SignType: TCnEccSignDigestType;
   outStream: TStream): Boolean;
 var
-  Md5: TMD5Digest;
-  Sha1: TSHA1Digest;
-  Sha256: TSHA256Digest;
-  Sm3Dig: TSM3Digest;
+  Md5: TCnMD5Digest;
+  Sha1: TCnSHA1Digest;
+  Sha256: TCnSHA256Digest;
+  Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
   case SignType of
     esdtMD5:
       begin
         Md5 := MD5File(FileName);
-        outStream.Write(Md5, SizeOf(TMD5Digest));
+        outStream.Write(Md5, SizeOf(TCnMD5Digest));
         Result := True;
       end;
     esdtSHA1:
       begin
         Sha1 := SHA1File(FileName);
-        outStream.Write(Sha1, SizeOf(TSHA1Digest));
+        outStream.Write(Sha1, SizeOf(TCnSHA1Digest));
         Result := True;
       end;
     esdtSHA256:
       begin
         Sha256 := SHA256File(FileName);
-        outStream.Write(Sha256, SizeOf(TSHA256Digest));
+        outStream.Write(Sha256, SizeOf(TCnSHA256Digest));
         Result := True;
       end;
     esdtSM3:
       begin
         Sm3Dig := SM3File(FileName);
-        outStream.Write(Sm3Dig, SizeOf(TSM3Digest));
+        outStream.Write(Sm3Dig, SizeOf(TCnSM3Digest));
         Result := True;
       end;
   end;
@@ -8219,7 +8219,7 @@ var
   B: TBytes;
 begin
   Result := False;
-  if Base64Decode(string(Buf), B) = BASE64_OK then
+  if Base64Decode(string(Buf), B) = ECN_BASE64_OK then
   begin
     SetHex(AnsiString(BytesToHex(B)));
     Result := True;

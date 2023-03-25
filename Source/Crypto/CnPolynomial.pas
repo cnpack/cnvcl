@@ -1675,11 +1675,11 @@ procedure BigNumberBiPolynomialGaloisDivWord(const P: TCnBigNumberBiPolynomial; 
 {* 将 Prime 次方阶有限域上的二元大整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
 
 var
-  CnInt64PolynomialOne: TCnInt64Polynomial = nil;     // 表示 1 的常量
-  CnInt64PolynomialZero: TCnInt64Polynomial = nil;    // 表示 0 的常量
+  CnInt64PolynomialOne: TCnInt64Polynomial = nil;     // 表示 1 的 Int64 多项式常量
+  CnInt64PolynomialZero: TCnInt64Polynomial = nil;    // 表示 0 的 Int64 多项式常量
 
-  CnBigNumberPolynomialOne: TCnBigNumberPolynomial = nil;     // 表示 1 的常量
-  CnBigNumberPolynomialZero: TCnBigNumberPolynomial = nil;    // 表示 0 的常量
+  CnBigNumberPolynomialOne: TCnBigNumberPolynomial = nil;     // 表示 1 的大数多项式常量
+  CnBigNumberPolynomialZero: TCnBigNumberPolynomial = nil;    // 表示 0 的大数多项式常量
 
 implementation
 

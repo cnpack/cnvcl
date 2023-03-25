@@ -78,7 +78,7 @@ uses
 const
   CN_SM2_FINITEFIELD_BYTESIZE = 32; // 256 Bits，SM2 椭圆曲线的素域位数，也是单个坐标值位数
 
-  CN_SM2_MIN_ENCRYPT_BYTESIZE = SizeOf(TSM3Digest) + CN_SM2_FINITEFIELD_BYTESIZE * 2;
+  CN_SM2_MIN_ENCRYPT_BYTESIZE = SizeOf(TCnSM3Digest) + CN_SM2_FINITEFIELD_BYTESIZE * 2;
   // 最小的 SM2 加密结果长度，两个坐标加一个 SM3 摘要长度，共 96 字节
 
   // 错误码
@@ -241,23 +241,23 @@ function CnSM2KeyExchangeAStep1(const AUserID, BUserID: AnsiString; KeyByteLengt
 
 function CnSM2KeyExchangeBStep1(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   BPrivateKey: TCnSM2PrivateKey; APublicKey, BPublicKey: TCnSM2PublicKey; InRA: TCnEccPoint;
-  out OutKeyB: AnsiString; OutRB: TCnEccPoint; out OutOptionalSB: TSM3Digest;
-  out OutOptionalS2: TSM3Digest; SM2: TCnSM2 = nil): Boolean;
+  out OutKeyB: AnsiString; OutRB: TCnEccPoint; out OutOptionalSB: TCnSM3Digest;
+  out OutOptionalS2: TCnSM3Digest; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 的密钥交换协议，第二步 B 用户收到 A 的数据，计算 Kb，并把可选的验证结果返回 A
   输入：A B 的用户名，所需密码长度、自己的私钥、双方的公钥、A 传来的 RA
   输出：计算成功的共享密钥 Kb、生成的随机点 RB（发给 A）、可选的校验杂凑 SB（发给 A 验证），可选的校验杂凑 S2}
 
 function CnSM2KeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   APrivateKey: TCnSM2PrivateKey; APublicKey, BPublicKey: TCnSM2PublicKey; MyRA, InRB: TCnEccPoint;
-  MyARand: TCnBigNumber; out OutKeyA: AnsiString; InOptionalSB: TSM3Digest;
-  out OutOptionalSA: TSM3Digest; SM2: TCnSM2 = nil): Boolean;
+  MyARand: TCnBigNumber; out OutKeyA: AnsiString; InOptionalSB: TCnSM3Digest;
+  out OutOptionalSA: TCnSM3Digest; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 的密钥交换协议，第三步 A 用户收到 B 的数据计算 Ka，并把可选的验证结果返回 B，初步协商好 Ka = Kb
   输入：A B 的用户名，所需密码长度、自己的私钥、双方的公钥、B 传来的 RB 与可选的 SB，自己的点 RA、自己的随机值 MyARand
   输出：计算成功的共享密钥 Ka、可选的校验杂凑 SA（发给 B 验证）}
 
 function CnSM2KeyExchangeBStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   BPrivateKey: TCnSM2PrivateKey; APublicKey, BPublicKey: TCnSM2PublicKey;
-  InOptionalSA: TSM3Digest; MyOptionalS2: TSM3Digest; SM2: TCnSM2 = nil): Boolean;
+  InOptionalSA: TCnSM3Digest; MyOptionalS2: TCnSM3Digest; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 的密钥交换协议，第四步 B 用户收到 A 的数据计算结果校验，协商完毕，此步可选
   实质上只对比 B 第二步生成的 S2 与 A 第三步发来的 SA，其余参数均不使用}
 
@@ -633,7 +633,7 @@ var
   I: Integer;
   Buf: array of Byte;
   KDFStr, T, C3H: AnsiString;
-  Sm3Dig: TSM3Digest;
+  Sm3Dig: TCnSM3Digest;
   SM2IsNil: Boolean;
 begin
   Result := False;
@@ -715,13 +715,13 @@ begin
 
     if SequenceType = cstC1C3C2 then
     begin
-      OutStream.Write(Sm3Dig[0], SizeOf(TSM3Digest));        // 写入 C3
+      OutStream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));        // 写入 C3
       OutStream.Write(T[1], DataLen);                        // 写入 C2
     end
     else
     begin
       OutStream.Write(T[1], DataLen);                        // 写入 C2
-      OutStream.Write(Sm3Dig[0], SizeOf(TSM3Digest));        // 写入 C3
+      OutStream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));        // 写入 C3
     end;
 
     Result := True;
@@ -776,7 +776,7 @@ var
   SM2IsNil: Boolean;
   P2: TCnEccPoint;
   I, PrefixLen: Integer;
-  Sm3Dig: TSM3Digest;
+  Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
   if (EnData = nil) or (DataLen <= 0) or (OutStream = nil) or (PrivateKey = nil) then
@@ -837,7 +837,7 @@ begin
     begin
       SetLength(MP, MLen);
       M := PAnsiChar(EnData);
-      Inc(M, SizeOf(TSM3Digest) + (SM2.BitsCount div 4) + PrefixLen); // 跳过 C3 指向 C2
+      Inc(M, SizeOf(TCnSM3Digest) + (SM2.BitsCount div 4) + PrefixLen); // 跳过 C3 指向 C2
       for I := 1 to MLen do
         MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I])); // 和 KDF 做异或，在 MP 里得到明文
 
@@ -849,7 +849,7 @@ begin
 
       M := PAnsiChar(EnData);
       Inc(M, (SM2.BitsCount div 4) + PrefixLen);             // M 指向 C3
-      if CompareMem(@Sm3Dig[0], M, SizeOf(TSM3Digest)) then  // 比对 Hash 是否相等
+      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对 Hash 是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
 
@@ -874,7 +874,7 @@ begin
 
       M := PAnsiChar(EnData);
       Inc(M, (SM2.BitsCount div 4) + PrefixLen + MLen);      // 指向 C3
-      if CompareMem(@Sm3Dig[0], M, SizeOf(TSM3Digest)) then  // 比对 Hash 是否相等
+      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对 Hash 是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
 
@@ -1004,15 +1004,15 @@ begin
     // C1 写完，根据类型处理 C3C2 或 C2C3
     if SequenceType = cstC1C3C2 then
     begin
-      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, SizeOf(TSM3Digest)); // 写 C3 校验
-      P := Pointer(TCnNativeInt(P) + SizeOf(TSM3Digest));
+      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, SizeOf(TCnSM3Digest)); // 写 C3 校验
+      P := Pointer(TCnNativeInt(P) + SizeOf(TCnSM3Digest));
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, MLen);               // 写 C2 密文
     end
     else
     begin
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, MLen);               // 写 C2 密文
       P := Pointer(TCnNativeInt(P) + MLen);
-      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, SizeOf(TSM3Digest)); // 写 C3 校验
+      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, SizeOf(TCnSM3Digest)); // 写 C3 校验
     end;
 
     SetLength(Result, Writer.TotalSize);
@@ -1087,7 +1087,7 @@ begin
 
     if SequenceType = cstC1C3C2 then
     begin
-      if Reader.Items[3].BerDataLength <> SizeOf(TSM3Digest) then // 尾巴上的 C3 长度必须是 32 字节
+      if Reader.Items[3].BerDataLength <> SizeOf(TCnSM3Digest) then // 尾巴上的 C3 长度必须是 32 字节
       begin
         _CnSetLastError(ECN_SM2_INVALID_INPUT);
        Exit;
@@ -1095,7 +1095,7 @@ begin
     end
     else
     begin
-      if Reader.Items[4].BerDataLength <> SizeOf(TSM3Digest) then // 尾巴上的 C3 长度必须是 32 字节
+      if Reader.Items[4].BerDataLength <> SizeOf(TCnSM3Digest) then // 尾巴上的 C3 长度必须是 32 字节
       begin
         _CnSetLastError(ECN_SM2_INVALID_INPUT);
        Exit;
@@ -1145,7 +1145,7 @@ end;
 // 计算 Za 值也就是 Hash(EntLen‖UserID‖a‖b‖xG‖yG‖xA‖yA)
 // 其中 EntLen 是 UserID 的位长度（也就是字节长度 * 8）的网络顺序字节表示
 function CalcSM2UserHash(const UserID: AnsiString; PublicKey: TCnSM2PublicKey;
-  SM2: TCnSM2): TSM3Digest;
+  SM2: TCnSM2): TCnSM3Digest;
 var
   Stream: TMemoryStream;
   Len: Integer;
@@ -1187,15 +1187,15 @@ end;
 
 // 根据 Za 与数据再次计算杂凑值 e
 function CalcSM2SignatureHash(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
-  PublicKey: TCnSM2PublicKey; SM2: TCnSM2): TSM3Digest;
+  PublicKey: TCnSM2PublicKey; SM2: TCnSM2): TCnSM3Digest;
 var
   Stream: TMemoryStream;
-  Sm3Dig: TSM3Digest;
+  Sm3Dig: TCnSM3Digest;
 begin
   Stream := TMemoryStream.Create;
   try
     Sm3Dig := CalcSM2UserHash(UserID, PublicKey, SM2);
-    Stream.Write(Sm3Dig[0], SizeOf(TSM3Digest));
+    Stream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));
     Stream.Write(PlainData^, DataLen);
 
     Result := SM3(PAnsiChar(Stream.Memory), Stream.Size);  // 再次算出杂凑值 e
@@ -1224,7 +1224,7 @@ var
   SM2IsNil: Boolean;
   PubIsNil: Boolean;
   HexSet: Boolean;
-  Sm3Dig: TSM3Digest;
+  Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
   if (PlainData = nil) or (DataLen <= 0) or (OutSignature = nil) or
@@ -1281,7 +1281,7 @@ begin
       SM2.MultiplePoint(K, P);
 
       // 计算 R = (e + x) mod N
-      E.SetBinary(@Sm3Dig[0], SizeOf(TSM3Digest));
+      E.SetBinary(@Sm3Dig[0], SizeOf(TCnSM3Digest));
       BigNumberAdd(E, E, P.X);
       BigNumberMod(R, E, SM2.Order); // 算出 R 后 E 不用了
 
@@ -1365,7 +1365,7 @@ var
   K, R, E: TCnBigNumber;
   P, Q: TCnEccPoint;
   SM2IsNil: Boolean;
-  Sm3Dig: TSM3Digest;
+  Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
   if (PlainData = nil) or (DataLen <= 0) or (InSignature = nil) or (PublicKey = nil) then
@@ -1409,7 +1409,7 @@ begin
     SM2.MultiplePoint(R, Q);
     SM2.PointAddPoint(P, Q, P);   // s * G + t * PublicKey => P
 
-    E.SetBinary(@Sm3Dig[0], SizeOf(TSM3Digest));
+    E.SetBinary(@Sm3Dig[0], SizeOf(TCnSM3Digest));
     BigNumberAdd(E, E, P.X);
 
     BigNumberNonNegativeMod(R, E, SM2.Order);
@@ -1495,7 +1495,7 @@ end;
 {
   计算交换出的密钥：KDF(Xuv‖Yuv‖Za‖Zb, kLen)
 }
-function CalcSM2ExchangeKey(UV: TCnEccPoint; Za, Zb: TSM3Digest; KeyByteLength: Integer): AnsiString;
+function CalcSM2ExchangeKey(UV: TCnEccPoint; Za, Zb: TCnSM3Digest; KeyByteLength: Integer): AnsiString;
 var
   Stream: TMemoryStream;
   S: AnsiString;
@@ -1504,8 +1504,8 @@ begin
   try
     BigNumberWriteBinaryToStream(UV.X, Stream);
     BigNumberWriteBinaryToStream(UV.Y, Stream);
-    Stream.Write(Za[0], SizeOf(TSM3Digest));
-    Stream.Write(Zb[0], SizeOf(TSM3Digest));
+    Stream.Write(Za[0], SizeOf(TCnSM3Digest));
+    Stream.Write(Zb[0], SizeOf(TCnSM3Digest));
 
     SetLength(S, Stream.Size);
     Stream.Position := 0;
@@ -1522,10 +1522,10 @@ end;
   Hash(0x02‖Yuv‖Hash(Xuv‖Za‖Zb‖X1‖Y1‖X2‖Y2))
        0x03
 }
-function CalcSM2OptionalSig(UV, P1, P2: TCnEccPoint; Za, Zb: TSM3Digest; Step2or3: Boolean): TSM3Digest;
+function CalcSM2OptionalSig(UV, P1, P2: TCnEccPoint; Za, Zb: TCnSM3Digest; Step2or3: Boolean): TCnSM3Digest;
 var
   Stream: TMemoryStream;
-  Sm3Dig: TSM3Digest;
+  Sm3Dig: TCnSM3Digest;
   B: Byte;
 begin
   if Step2or3 then
@@ -1536,8 +1536,8 @@ begin
   Stream := TMemoryStream.Create;
   try
     BigNumberWriteBinaryToStream(UV.X, Stream);
-    Stream.Write(Za[0], SizeOf(TSM3Digest));
-    Stream.Write(Zb[0], SizeOf(TSM3Digest));
+    Stream.Write(Za[0], SizeOf(TCnSM3Digest));
+    Stream.Write(Zb[0], SizeOf(TCnSM3Digest));
     BigNumberWriteBinaryToStream(P1.X, Stream);
     BigNumberWriteBinaryToStream(P1.Y, Stream);
     BigNumberWriteBinaryToStream(P2.X, Stream);
@@ -1547,7 +1547,7 @@ begin
     Stream.Clear;
     Stream.Write(B, 1);
     BigNumberWriteBinaryToStream(UV.Y, Stream);
-    Stream.Write(Sm3Dig[0], SizeOf(TSM3Digest));
+    Stream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));
 
     Result := SM3(PAnsiChar(Stream.Memory), Stream.Size);
   finally
@@ -1606,13 +1606,13 @@ end;
 }
 function CnSM2KeyExchangeBStep1(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   BPrivateKey: TCnSM2PrivateKey; APublicKey, BPublicKey: TCnSM2PublicKey; InRA: TCnEccPoint;
-  out OutKeyB: AnsiString; OutRB: TCnEccPoint; out OutOptionalSB: TSM3Digest;
-  out OutOptionalS2: TSM3Digest; SM2: TCnSM2): Boolean;
+  out OutKeyB: AnsiString; OutRB: TCnEccPoint; out OutOptionalSB: TCnSM3Digest;
+  out OutOptionalS2: TCnSM3Digest; SM2: TCnSM2): Boolean;
 var
   SM2IsNil: Boolean;
   R, X, T: TCnBigNumber;
   V: TCnEccPoint;
-  Za, Zb: TSM3Digest;
+  Za, Zb: TCnSM3Digest;
 begin
   Result := False;
   if (KeyByteLength <= 0) or (BPrivateKey = nil) or (APublicKey = nil) or
@@ -1697,13 +1697,13 @@ end;
 
 function CnSM2KeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   APrivateKey: TCnSM2PrivateKey; APublicKey, BPublicKey: TCnSM2PublicKey; MyRA, InRB: TCnEccPoint;
-  MyARand: TCnBigNumber; out OutKeyA: AnsiString; InOptionalSB: TSM3Digest;
-  out OutOptionalSA: TSM3Digest; SM2: TCnSM2): Boolean;
+  MyARand: TCnBigNumber; out OutKeyA: AnsiString; InOptionalSB: TCnSM3Digest;
+  out OutOptionalSA: TCnSM3Digest; SM2: TCnSM2): Boolean;
 var
   SM2IsNil: Boolean;
   X, T: TCnBigNumber;
   U: TCnEccPoint;
-  Za, Zb: TSM3Digest;
+  Za, Zb: TCnSM3Digest;
 begin
   Result := False;
   if (KeyByteLength <= 0) or (APrivateKey = nil) or (APublicKey = nil) or
@@ -1758,7 +1758,7 @@ begin
 
     // 然后计算 SB 核对
     OutOptionalSA := CalcSM2OptionalSig(U, MyRA, InRB, Za, Zb, True);
-    if not CompareMem(@OutOptionalSA[0], @InOptionalSB[0], SizeOf(TSM3Digest)) then
+    if not CompareMem(@OutOptionalSA[0], @InOptionalSB[0], SizeOf(TCnSM3Digest)) then
       Exit;
 
     // 然后计算 SA 供 B 核对
@@ -1775,9 +1775,9 @@ end;
 
 function CnSM2KeyExchangeBStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   BPrivateKey: TCnSM2PrivateKey; APublicKey, BPublicKey: TCnSM2PublicKey;
-  InOptionalSA: TSM3Digest; MyOptionalS2: TSM3Digest; SM2: TCnSM2): Boolean;
+  InOptionalSA: TCnSM3Digest; MyOptionalS2: TCnSM3Digest; SM2: TCnSM2): Boolean;
 begin
-  Result := CompareMem(@InOptionalSA[0], @MyOptionalS2[0], SizeOf(TSM3Digest));
+  Result := CompareMem(@InOptionalSA[0], @MyOptionalS2[0], SizeOf(TCnSM3Digest));
 end;
 
 {
@@ -1790,7 +1790,7 @@ function CnSM2SchnorrProve(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2Public
   OutR: TCnEccPoint; OutZ: TCnBigNumber; SM2: TCnSM2): Boolean;
 var
   R: TCnBigNumber;
-  Dig: TSM3Digest;
+  Dig: TCnSM3Digest;
   SM2IsNil: Boolean;
   Stream: TMemoryStream;
 begin
@@ -1828,7 +1828,7 @@ begin
 
     Dig := SM3(Stream.Memory, Stream.Size);
 
-    OutZ.SetBinary(@Dig[0], SizeOf(TSM3Digest));
+    OutZ.SetBinary(@Dig[0], SizeOf(TCnSM3Digest));
 
     // 注意，此处无需也不能 mod P！
     BigNumberMul(OutZ, OutZ, PrivateKey);
@@ -1852,7 +1852,7 @@ function CnSM2SchnorrCheck(PublicKey: TCnSM2PublicKey; InR: TCnEccPoint;
   InZ: TCnBigNumber; SM2: TCnSM2): Boolean;
 var
   C: TCnBigNumber;
-  Dig: TSM3Digest;
+  Dig: TCnSM3Digest;
   SM2IsNil: Boolean;
   Stream: TMemoryStream;
   P1, P2: TCnEccPoint;
@@ -1884,7 +1884,7 @@ begin
     Dig := SM3(Stream.Memory, Stream.Size);
 
     C := TCnBigNumber.Create;
-    C.SetBinary(@Dig[0], SizeOf(TSM3Digest));
+    C.SetBinary(@Dig[0], SizeOf(TCnSM3Digest));
 
     P1 := TCnEccPoint.Create;
     P1.Assign(SM2.Generator);
@@ -1999,7 +1999,7 @@ function CnSM2CollaborativeSignAStep1(const UserID: AnsiString; PlainData: Point
   DataLen: Integer; OutHashEToB: TCnBigNumber; OutQToB: TCnEccPoint; OutRandKA: TCnBigNumber;
   PrivateKeyA: TCnSM2CollaborativePrivateKey; PublicKey: TCnSM2PublicKey; SM2: TCnSM2): Boolean;
 var
-  Sm3Dig: TSM3Digest;
+  Sm3Dig: TCnSM3Digest;
   SM2IsNil: Boolean;
 begin
   Result := False;
@@ -2017,7 +2017,7 @@ begin
       SM2 := TCnSM2.Create;
 
     Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataLen, PublicKey, SM2); // 杂凑值 e 要给 B
-    OutHashEToB.SetBinary(@Sm3Dig[0], SizeOf(TSM3Digest));
+    OutHashEToB.SetBinary(@Sm3Dig[0], SizeOf(TCnSM3Digest));
 
     if not BigNumberRandRange(OutRandKA, SM2.Order) then
     begin
@@ -2296,7 +2296,7 @@ var
   KDFStr, T, C3H: AnsiString;
   P2: TCnEccPoint;
   I, PrefixLen: Integer;
-  Sm3Dig: TSM3Digest;
+  Sm3Dig: TCnSM3Digest;
   SM2IsNil: Boolean;
 begin
   Result := False;
@@ -2361,7 +2361,7 @@ begin
     begin
       SetLength(MP, MLen);
       M := PAnsiChar(EnData);
-      Inc(M, SizeOf(TSM3Digest) + (SM2.BitsCount div 4) + PrefixLen); // 跳过 C3 指向 C2
+      Inc(M, SizeOf(TCnSM3Digest) + (SM2.BitsCount div 4) + PrefixLen); // 跳过 C3 指向 C2
       for I := 1 to MLen do
         MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I]));    // 和 KDF 做异或，在 MP 里得到明文
 
@@ -2373,7 +2373,7 @@ begin
 
       M := PAnsiChar(EnData);
       Inc(M, (SM2.BitsCount div 4) + PrefixLen);             // M 指向 C3
-      if CompareMem(@Sm3Dig[0], M, SizeOf(TSM3Digest)) then  // 比对 Hash 是否相等
+      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对 Hash 是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
 
@@ -2398,7 +2398,7 @@ begin
 
       M := PAnsiChar(EnData);
       Inc(M, (SM2.BitsCount div 4) + PrefixLen + MLen);      // 指向 C3
-      if CompareMem(@Sm3Dig[0], M, SizeOf(TSM3Digest)) then  // 比对 Hash 是否相等
+      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对 Hash 是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
 

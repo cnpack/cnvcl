@@ -140,8 +140,8 @@ var
   OD, TD: Cardinal;
   TenPow: Integer;
   Fmt: string;
-  SM3Dig: TSM3Digest;
-  SM4KBuf, SM4IDBuf: array[0..SM4_BLOCKSIZE - 1] of Byte;
+  SM3Dig: TCnSM3Digest;
+  SM4KBuf, SM4IDBuf: array[0..CN_SM4_BLOCKSIZE - 1] of Byte;
 
   // 两个 128 位大端整数 A B 相加，结果放到 R 里，不考虑 128 位溢出
   procedure Add128Bits(A, B, R: PByteArray);
@@ -181,7 +181,7 @@ begin
   try
     if FPasswordType = copSM3 then // SM3 计算
     begin
-      SetLength(S, SizeOf(TSM3Digest)); // 32 字节
+      SetLength(S, SizeOf(TCnSM3Digest)); // 32 字节
 
       // K 和 ID 拼一块，做 SM3 后结果放入 S
       SetLength(KID, Length(ID) + Length(FSeedKey));
@@ -190,7 +190,7 @@ begin
         Move(ID[0], KID[Length(FSeedKey)], Length(ID));
 
         SM3Dig := SM3(PAnsiChar(@KID[0]), Length(KID));
-        Move(SM3Dig[0], S[0], SizeOf(TSM3Digest));
+        Move(SM3Dig[0], S[0], SizeOf(TCnSM3Digest));
       finally
         SetLength(KID, 0);
       end;
@@ -215,15 +215,15 @@ begin
     end
     else // SM4 计算
     begin
-      SetLength(S, SM4_BLOCKSIZE); // 16 字节
+      SetLength(S, CN_SM4_BLOCKSIZE); // 16 字节
 
       // K 和 ID 每 16 字节加密一段，两者长度不等
       Cnt := Max(Length(FSeedKey), Length(ID));           // 拿到 K 和 ID 的较长值
-      Cnt := (Cnt + SM4_BLOCKSIZE - 1) div SM4_BLOCKSIZE; // 往长里取整
+      Cnt := (Cnt + CN_SM4_BLOCKSIZE - 1) div CN_SM4_BLOCKSIZE; // 往长里取整
 
       // 分配两个整区，共 Cnt 块
-      SetLength(SM4K, Cnt * SM4_BLOCKSIZE);
-      SetLength(SM4ID, Cnt * SM4_BLOCKSIZE);
+      SetLength(SM4K, Cnt * CN_SM4_BLOCKSIZE);
+      SetLength(SM4ID, Cnt * CN_SM4_BLOCKSIZE);
 
       try
         // 分别把内容塞进整区，后面已补 0
@@ -236,13 +236,13 @@ begin
         for L := 0 to Cnt - 1 do
         begin
           // S 的内容和 SM4K 的第 L 块内容相加放 SM4KBuf 里
-          Add128Bits(PByteArray(@S[0]), PByteArray(@SM4K[L * SM4_BLOCKSIZE]), PByteArray(@SM4KBuf[0]));
+          Add128Bits(PByteArray(@S[0]), PByteArray(@SM4K[L * CN_SM4_BLOCKSIZE]), PByteArray(@SM4KBuf[0]));
 
           // S 的内容和 SM4ID 的第 L 块内容相加放 SM4IDBuf 里
-          Add128Bits(PByteArray(@S[0]), PByteArray(@SM4ID[L * SM4_BLOCKSIZE]), PByteArray(@SM4IDBuf[0]));
+          Add128Bits(PByteArray(@S[0]), PByteArray(@SM4ID[L * CN_SM4_BLOCKSIZE]), PByteArray(@SM4IDBuf[0]));
 
           // SM4KBuf 与 SM4IDBuf 进行 SM4 加密，内容放 S 里
-          SM4Encrypt(PAnsiChar(@SM4KBuf[0]), PAnsiChar(@SM4IDBuf[0]), PAnsiChar(@S[0]), SM4_BLOCKSIZE);
+          SM4Encrypt(PAnsiChar(@SM4KBuf[0]), PAnsiChar(@SM4IDBuf[0]), PAnsiChar(@S[0]), CN_SM4_BLOCKSIZE);
         end;
       finally
         SetLength(SM4K, 0);

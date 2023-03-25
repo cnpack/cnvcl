@@ -165,15 +165,15 @@ type
   {* 位操作类型}
 
 type
-  TMemSortCompareProc = function (P1, P2: Pointer; ElementByteSize: Integer): Integer;
+  TCnMemSortCompareProc = function (P1, P2: Pointer; ElementByteSize: Integer): Integer;
   {* 内存固定块尺寸的数组排序比较函数原型}
 
 const
-  MAX_SQRT_INT64: Cardinal               = 3037000499;
-  MAX_UINT16: Word                       = $FFFF;
-  MAX_UINT32: Cardinal                   = $FFFFFFFF;
-  MAX_TUINT64: TUInt64                   = $FFFFFFFFFFFFFFFF;
-  MAX_SIGNED_INT64_IN_TUINT64: TUInt64   = $7FFFFFFFFFFFFFFF;
+  CN_MAX_SQRT_INT64: Cardinal               = 3037000499;
+  CN_MAX_UINT16: Word                       = $FFFF;
+  CN_MAX_UINT32: Cardinal                   = $FFFFFFFF;
+  CN_MAX_TUINT64: TUInt64                   = $FFFFFFFFFFFFFFFF;
+  CN_MAX_SIGNED_INT64_IN_TUINT64: TUInt64   = $7FFFFFFFFFFFFFFF;
 
 {*
   对于 D567 等不支持 UInt64 的编译器，虽然可以用 Int64 代替 UInt64 进行加减、存储
@@ -451,7 +451,7 @@ function MemoryCompare(AMem, BMem: Pointer; MemByteLen: Integer): Integer;
 {* 以无符号数的方式比较两块内存，返回 1、0、-1，如两者是相同的内存块则直接返回 0}
 
 procedure MemoryQuickSort(Mem: Pointer; ElementByteSize: Integer;
-  ElementCount: Integer; CompareProc: TMemSortCompareProc = nil);
+  ElementCount: Integer; CompareProc: TCnMemSortCompareProc = nil);
 {* 针对固定大小的元素的数组进行排序}
 
 function UInt8ToBinStr(V: Byte): string;
@@ -2130,7 +2130,7 @@ begin
       else
         Break;
       end;
-      if Result > (MAX_TUINT64 shr 4) then
+      if Result > (CN_MAX_TUINT64 shr 4) then
         Break;
       if Sign and (Dig <> 0) then
         Break;
@@ -2149,7 +2149,7 @@ begin
         Break;
       end;
 
-      if Result > UInt64Div(MAX_TUINT64, 10) then
+      if Result > UInt64Div(CN_MAX_TUINT64, 10) then
         Break;
       if Sign and (Dig <> 0) then
         Break;
@@ -2667,7 +2667,7 @@ begin
       // 和 = 溢出结果 + 2^64
       // 和 mod N = 溢出结果 mod N + (2^64 - 1) mod N) + 1
       // 这里 N 至少是 2^63 + 1，溢出结果最多是 2^64 - 2，所以前两项相加不会溢出，可以直接相加后减一再求模
-      Result := UInt64Mod(UInt64Mod(A + B, N) + UInt64Mod(MAX_TUINT64, N) + 1, N);
+      Result := UInt64Mod(UInt64Mod(A + B, N) + UInt64Mod(CN_MAX_TUINT64, N) + 1, N);
     end
     else
       Result := UInt64Mod(C + D, N);
@@ -2736,7 +2736,7 @@ end;
 function UInt64NonNegativeMulMod(A, B, N: TUInt64): TUInt64;
 begin
   Result := 0;
-  if (UInt64Compare(A, MAX_UINT32) <= 0) and (UInt64Compare(B, MAX_UINT32) <= 0) then
+  if (UInt64Compare(A, CN_MAX_UINT32) <= 0) and (UInt64Compare(B, CN_MAX_UINT32) <= 0) then
   begin
     Result := UInt64Mod(A * B, N); // 足够小的话直接乘后求模
   end
@@ -2960,7 +2960,7 @@ begin
 end;
 
 procedure InternalQuickSort(Mem: Pointer; L, R: Integer; ElementByteSize: Integer;
-  CompareProc: TMemSortCompareProc = nil);
+  CompareProc: TCnMemSortCompareProc);
 var
   I, J, P: Integer;
 begin
@@ -3002,7 +3002,7 @@ begin
 end;
 
 procedure MemoryQuickSort(Mem: Pointer; ElementByteSize: Integer;
-  ElementCount: Integer; CompareProc: TMemSortCompareProc);
+  ElementCount: Integer; CompareProc: TCnMemSortCompareProc);
 begin
   if (Mem <> nil) and (ElementCount > 0) and (ElementCount > 0) then
   begin

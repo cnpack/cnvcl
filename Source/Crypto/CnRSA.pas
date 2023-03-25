@@ -104,7 +104,7 @@ uses
 
 const
   // 以下 OID 都预先写死，不动态计算编码了
-  OID_RSAENCRYPTION_PKCS1: array[0..8] of Byte = ( // 1.2.840.113549.1.1.1
+  CN_OID_RSAENCRYPTION_PKCS1: array[0..8] of Byte = ( // 1.2.840.113549.1.1.1
     $2A, $86, $48, $86, $F7, $0D, $01, $01, $01
   );  // $2A = 40 * 1 + 2
 
@@ -1163,8 +1163,8 @@ begin
       Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
 
       // 给 Node1 加 ObjectIdentifier 与 Null
-      Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_RSAENCRYPTION_PKCS1[0],
-        SizeOf(OID_RSAENCRYPTION_PKCS1), Node);
+      Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @CN_OID_RSAENCRYPTION_PKCS1[0],
+        SizeOf(CN_OID_RSAENCRYPTION_PKCS1), Node);
       Writer.AddNullNode(Node);
 
       Node := Writer.AddContainerNode(CN_BER_TAG_OCTET_STRING, Root);
@@ -1243,8 +1243,8 @@ begin
       Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
 
       // 给 Node 加 ObjectIdentifier 与 Null
-      Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_RSAENCRYPTION_PKCS1[0],
-        SizeOf(OID_RSAENCRYPTION_PKCS1), Node);
+      Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @CN_OID_RSAENCRYPTION_PKCS1[0],
+        SizeOf(CN_OID_RSAENCRYPTION_PKCS1), Node);
       Writer.AddNullNode(Node);
 
       Node := Writer.AddContainerNode(CN_BER_TAG_BIT_STRING, Root);
@@ -1810,35 +1810,35 @@ end;
 function CalcDigestStream(InStream: TStream; SignType: TCnRSASignDigestType;
   outStream: TStream): Boolean;
 var
-  Md5: TMD5Digest;
-  Sha1: TSHA1Digest;
-  Sha256: TSHA256Digest;
-  Sm3Dig: TSM3Digest;
+  Md5: TCnMD5Digest;
+  Sha1: TCnSHA1Digest;
+  Sha256: TCnSHA256Digest;
+  Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
   case SignType of
     rsdtMD5:
       begin
         Md5 := MD5Stream(InStream);
-        outStream.Write(Md5, SizeOf(TMD5Digest));
+        outStream.Write(Md5, SizeOf(TCnMD5Digest));
         Result := True;
       end;
     rsdtSHA1:
       begin
         Sha1 := SHA1Stream(InStream);
-        outStream.Write(Sha1, SizeOf(TSHA1Digest));
+        outStream.Write(Sha1, SizeOf(TCnSHA1Digest));
         Result := True;
       end;
     rsdtSHA256:
       begin
         Sha256 := SHA256Stream(InStream);
-        outStream.Write(Sha256, SizeOf(TSHA256Digest));
+        outStream.Write(Sha256, SizeOf(TCnSHA256Digest));
         Result := True;
       end;
     rsdtSM3:
       begin
         Sm3Dig := SM3Stream(InStream);
-        outStream.Write(Sm3Dig, SizeOf(TSM3Digest));
+        outStream.Write(Sm3Dig, SizeOf(TCnSM3Digest));
         Result := True;
       end
   end;
@@ -1853,35 +1853,35 @@ end;
 function CalcDigestFile(const FileName: string; SignType: TCnRSASignDigestType;
   outStream: TStream): Boolean;
 var
-  Md5: TMD5Digest;
-  Sha1: TSHA1Digest;
-  Sha256: TSHA256Digest;
-  Sm3Dig: TSM3Digest;
+  Md5: TCnMD5Digest;
+  Sha1: TCnSHA1Digest;
+  Sha256: TCnSHA256Digest;
+  Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
   case SignType of
     rsdtMD5:
       begin
         Md5 := MD5File(FileName);
-        outStream.Write(Md5, SizeOf(TMD5Digest));
+        outStream.Write(Md5, SizeOf(TCnMD5Digest));
         Result := True;
       end;
     rsdtSHA1:
       begin
         Sha1 := SHA1File(FileName);
-        outStream.Write(Sha1, SizeOf(TSHA1Digest));
+        outStream.Write(Sha1, SizeOf(TCnSHA1Digest));
         Result := True;
       end;
     rsdtSHA256:
       begin
         Sha256 := SHA256File(FileName);
-        outStream.Write(Sha256, SizeOf(TSHA256Digest));
+        outStream.Write(Sha256, SizeOf(TCnSHA256Digest));
         Result := True;
       end;
     rsdtSM3:
       begin
         Sm3Dig := SM3File(FileName);
-        outStream.Write(Sm3Dig, SizeOf(TSM3Digest));
+        outStream.Write(Sm3Dig, SizeOf(TCnSM3Digest));
         Result := True;
       end;
   end;
@@ -2447,12 +2447,12 @@ function Pkcs1Sha1MGF(Seed: Pointer; SeedLen: Integer; OutMask: Pointer;
 var
   I, OutLen, MdLen: Integer;
   Cnt: array[0..3] of Byte;
-  Ctx: TSHA1Context;
-  Dig: TSHA1Digest;
+  Ctx: TCnSHA1Context;
+  Dig: TCnSHA1Digest;
 begin
   Result := False;
   OutLen := 0;
-  MdLen := SizeOf(TSHA1Digest);
+  MdLen := SizeOf(TCnSHA1Digest);
   if (Seed = nil) or (SeedLen <= 0) then
     Exit;
 
@@ -2473,13 +2473,13 @@ begin
 
     if OutLen + MdLen <= MaskLen then
     begin
-      SHA1Final(Ctx, PSHA1Digest(TCnNativeInt(OutMask) + OutLen)^);
+      SHA1Final(Ctx, PCnSHA1Digest(TCnNativeInt(OutMask) + OutLen)^);
       OutLen := OutLen + MdLen;
     end
     else
     begin
       SHA1Final(Ctx, Dig);
-      Move(Dig[0], PSHA1Digest(TCnNativeInt(OutMask) + OutLen)^, MaskLen - OutLen);
+      Move(Dig[0], PCnSHA1Digest(TCnNativeInt(OutMask) + OutLen)^, MaskLen - OutLen);
       OutLen := MaskLen;
     end;
 
@@ -2492,14 +2492,14 @@ function AddOaepSha1MgfPadding(ToBuf: PByte; ToLen: Integer; PlainData: PByte;
   DataLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
 var
   EmLen, MdLen, I: Integer;
-  SeedMask: TSHA1Digest;
+  SeedMask: TCnSHA1Digest;
   DB, Seed: PByteArray;
   DBMask: array of Byte;
 begin
   Result := False;
   EmLen:= ToLen - 1;
 
-  MdLen := SizeOf(TSHA1Digest);
+  MdLen := SizeOf(TCnSHA1Digest);
 
   if (DataLen > EmLen - 2 * MdLen - 1) or (EmLen < 2 * MdLen + 1) then
   begin
@@ -2563,7 +2563,7 @@ function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutLen: Integer; EnData: PBy
 var
   I, MdLen, DBLen, MStart: Integer;
   MaskedDB, MaskedSeed: PByteArray;
-  Seed, ParamHash: TSHA1Digest;
+  Seed, ParamHash: TCnSHA1Digest;
   DB: array of Byte;
 begin
   Result := False;
@@ -2579,7 +2579,7 @@ begin
     Exit;
   end;
 
-  MdLen := SizeOf(TSHA1Digest);
+  MdLen := SizeOf(TCnSHA1Digest);
   DBLen := DataLen - MdLen - 1;
   if DBLen <= 0 then
   begin

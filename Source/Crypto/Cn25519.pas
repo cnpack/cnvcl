@@ -592,13 +592,13 @@ begin
   end;
 end;
 
-function CalcBigNumberDigest(const Num: TCnBigNumber; FixedLen: Integer): TSHA512Digest;
+function CalcBigNumberDigest(const Num: TCnBigNumber; FixedLen: Integer): TCnSHA512Digest;
 var
   Stream: TStream;
 begin
   Stream := TMemoryStream.Create;
   try
-    FillChar(Result[0], SizeOf(TSHA512Digest), 0);
+    FillChar(Result[0], SizeOf(TCnSHA512Digest), 0);
     if BigNumberWriteBinaryToStream(Num, Stream, FixedLen) <> FixedLen then
       Exit;
 
@@ -612,7 +612,7 @@ end;
 procedure CalcBigNumbersFromPrivateKey(const InPrivateKey: TCnBigNumber; FixedLen: Integer;
   OutMulFactor, OutHashPrefix: TCnBigNumber);
 var
-  Dig: TSHA512Digest;
+  Dig: TCnSHA512Digest;
 begin
   // 拿 PrivateKey 做 Sha512，得到 64 字节结果 Dig
   Dig := CalcBigNumberDigest(InPrivateKey, CN_25519_BLOCK_BYTESIZE);
@@ -2139,7 +2139,7 @@ var
   Is25519Nil: Boolean;
   Stream: TMemoryStream;
   R, S, K, HP: TCnBigNumber;
-  Dig: TSHA512Digest;
+  Dig: TCnSHA512Digest;
   Data: TCnEd25519Data;
 begin
   Result := False;
@@ -2174,8 +2174,8 @@ begin
     // 计算出 SHA512 值作为 r 乘数，准备乘以基点作为 R 点
     Dig := SHA512Buffer(Stream.Memory, Stream.Size);
 
-    ReverseMemory(@Dig[0], SizeOf(TSHA512Digest)); // 需要倒转一次
-    R.SetBinary(@Dig[0], SizeOf(TSHA512Digest));
+    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest)); // 需要倒转一次
+    R.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
     BigNumberNonNegativeMod(R, R, Ed25519.Order);  // r 乘数太大先 mod 一下阶
 
     OutSignature.R.Assign(Ed25519.Generator);
@@ -2198,8 +2198,8 @@ begin
     // 再次杂凑 R||PublicKey||明文
     Dig := SHA512Buffer(Stream.Memory, Stream.Size);
 
-    ReverseMemory(@Dig[0], SizeOf(TSHA512Digest)); // 又需要倒转一次
-    K.SetBinary(@Dig[0], SizeOf(TSHA512Digest));
+    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest)); // 又需要倒转一次
+    K.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
     BigNumberNonNegativeMod(K, K, Ed25519.Order);  // 乘数太大再先 mod 一下阶
 
     // 计算乘数 R + K * S mod Order
@@ -2226,7 +2226,7 @@ var
   T: TCnBigNumber;
   Stream: TMemoryStream;
   Data: TCnEd25519Data;
-  Dig: TSHA512Digest;
+  Dig: TCnSHA512Digest;
 begin
   Result := False;
   if (PlainData = nil) or (DataLen <= 0) or (PublicKey = nil) or (InSignature = nil) then
@@ -2263,10 +2263,10 @@ begin
     Stream.Write(PlainData^, DataLen);                    // 拼明文
 
     Dig := SHA512Buffer(Stream.Memory, Stream.Size);      // 计算 Hash 作为值
-    ReverseMemory(@Dig[0], SizeOf(TSHA512Digest));        // 需要倒转一次
+    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));        // 需要倒转一次
 
     T := F25519BigNumberPool.Obtain;
-    T.SetBinary(@Dig[0], SizeOf(TSHA512Digest));
+    T.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
     T.MulWord(8);
     BigNumberNonNegativeMod(T, T, Ed25519.Order); // T 乘数太大先 mod 一下阶
 

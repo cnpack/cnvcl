@@ -854,7 +854,7 @@ function CnSM9UserKeyExchangeAStep1(const BUserID: AnsiString; KeyByteLength: In
 function CnSM9UserKeyExchangeBStep1(const AUserID, BUserID: AnsiString;
   KeyByteLength: Integer; KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
   KeyExchangeBUserKey: TCnSM9KeyExchangeUserPrivateKey; InRA: TCnEccPoint;
-  OutRB: TCnEccPoint; out KeyB: AnsiString; out OutOptionalSB: TSM3Digest;
+  OutRB: TCnEccPoint; out KeyB: AnsiString; out OutOptionalSB: TCnSM3Digest;
   OutG1, OutG2, OutG3: TCnFP12; SM9: TCnSM9 = nil): Boolean;
 {* 密钥交换第二步，B 用 A、B 的 ID 以及加密主公钥与自己的私钥，根据所密钥长度与 RA
   生成协商密钥 KeyB。另外生成另一个椭圆曲线点 RB 再加上一个可选的校验结果 SB 给 A
@@ -863,13 +863,13 @@ function CnSM9UserKeyExchangeBStep1(const AUserID, BUserID: AnsiString;
 function CnSM9UserKeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
   KeyExchangeAUserKey: TCnSM9KeyExchangeUserPrivateKey; InRandA: TCnBigNumber;
-  InRA, InRB: TCnEccPoint; InOptionalSB: TSM3Digest; out KeyA: AnsiString;
-  out OutOptionalSA: TSM3Digest; SM9: TCnSM9 = nil): Boolean;
+  InRA, InRB: TCnEccPoint; InOptionalSB: TCnSM3Digest; out KeyA: AnsiString;
+  out OutOptionalSA: TCnSM3Digest; SM9: TCnSM9 = nil): Boolean;
 {* 密钥交换第三步，A 用 B 的 ID 以及加密主公钥与自己的私钥，根据所密钥长度与 RA、RB
   生成协商密钥 KeyA，以及一个可选的校验结果 SA 给 B，此处 KeyA 应当等于 KeyB}
 
 function CnSM9UserKeyExchangeBStep2(const AUserID, BUserID: AnsiString;
-  InRA, InRB: TCnEccPoint; InOptionalSA: TSM3Digest; InG1, InG2, InG3: TCnFP12;
+  InRA, InRB: TCnEccPoint; InOptionalSA: TCnSM3Digest; InG1, InG2, InG3: TCnFP12;
   SM9: TCnSM9 = nil): Boolean;
 {* 密钥交换第四步，可选。B 用 A、B 的 ID 以及第二步中的三个中间结果，根据 RA、RB
   计算出校验结果并与 InOptionalSA 比较，不通过则校验失败}
@@ -886,7 +886,7 @@ function CnSM9Hash2(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
 {* SM9 中规定的第二个密码函数，内部使用 SM3，256 位的散列函数
   输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order}
 
-function SM9Mac(Key: Pointer; KeyByteLength: Integer; Z: Pointer; ZByteLength: Integer): TSM3Digest;
+function SM9Mac(Key: Pointer; KeyByteLength: Integer; Z: Pointer; ZByteLength: Integer): TCnSM3Digest;
 {* 根据密钥 Key 与消息 Z，求消息认证码}
 
 implementation
@@ -908,7 +908,7 @@ const
   CN_SM9_HASH_PREFIX_1 = 1;
   CN_SM9_HASH_PREFIX_2 = 2;
 
-  CN_SM3_DIGEST_BITS = SizeOf(TSM3Digest) * 8;
+  CN_SM3_DIGEST_BITS = SizeOf(TCnSM3Digest) * 8;
 
 var
   FLocalBigNumberPool: TCnBigNumberPool = nil;
@@ -3412,7 +3412,7 @@ var
   I, KLen: Integer;
   P2, C2: TBytes;
   PD: PByteArray;
-  Mac: TSM3Digest;
+  Mac: TCnSM3Digest;
 
   procedure BytesAddPKCS7Padding(BlockSize: Byte);
   var
@@ -3438,7 +3438,7 @@ begin
 
   // SM4 的 Key 长度只能 16
   if EncryptionMode = semSM4 then
-    K1ByteLength := SM4_KEYSIZE;
+    K1ByteLength := CN_SM4_KEYSIZE;
 
   C := SM9 = nil;
   if C then
@@ -3492,7 +3492,7 @@ begin
 
       SetLength(P2, DataLen);
       Move(PlainData^, P2[0], DataLen);
-      BytesAddPKCS7Padding(SM4_BLOCKSIZE); // 复制原始数据并在尾部加上几个几的 PKCS7 对齐
+      BytesAddPKCS7Padding(CN_SM4_BLOCKSIZE); // 复制原始数据并在尾部加上几个几的 PKCS7 对齐
 
       SetLength(C2, Length(P2));
 
@@ -3515,7 +3515,7 @@ begin
     Mac := SM9Mac(@(KDFKey[KLen - K2ByteLength + 1]), K2ByteLength, @C2[0], Length(C2)); // 用 K2 和 C2 算出 C3
 
     CnEccPointToStream(Q, OutStream, SM9.BytesCount);             // 写 C1
-    OutStream.Write(Mac[0], SizeOf(TSM3Digest));  // 写 C3
+    OutStream.Write(Mac[0], SizeOf(TCnSM3Digest));  // 写 C3
     OutStream.Write(C2[0], Length(C2));           // 写 C2
 
     Result := True;
@@ -3540,7 +3540,7 @@ function CnSM9UserDecryptData(const DestUserID: AnsiString;
 var
   C: Boolean;
   C1: TCnEccPoint;
-  C3, Mac: TSM3Digest;
+  C3, Mac: TCnSM3Digest;
   P: PByteArray;
   PC: PAnsiChar;
   AP: TCnFP2AffinePoint;
@@ -3574,7 +3574,7 @@ begin
   if C then
     SM9 := TCnSM9.Create;
 
-  if DataLen <= (SM9.BitsCount div 4) + SizeOf(TSM3Digest) then
+  if DataLen <= (SM9.BitsCount div 4) + SizeOf(TCnSM3Digest) then
     Exit;
 
   C1 := nil;
@@ -3596,11 +3596,11 @@ begin
     if not SM9.IsPointOnCurve(C1) then Exit;
 
     Inc(PC, SM9.BitsCount div 8);
-    Move(PC^, C3[0], SizeOf(TSM3Digest)); // 取出 C3 以备比较
-    Inc(PC, SizeOf(TSM3Digest));  // PC 现在指向密文 C2
+    Move(PC^, C3[0], SizeOf(TCnSM3Digest)); // 取出 C3 以备比较
+    Inc(PC, SizeOf(TCnSM3Digest));  // PC 现在指向密文 C2
 
     P := PByteArray(PC);
-    MLen := DataLen - SM9.BitsCount div 4 - SizeOf(TSM3Digest); // MLen 密文长度
+    MLen := DataLen - SM9.BitsCount div 4 - SizeOf(TCnSM3Digest); // MLen 密文长度
 
     AP := TCnFP2AffinePoint.Create;
     FP2PointToFP2AffinePoint(AP, EncryptionUserKey);
@@ -3615,7 +3615,7 @@ begin
     SetLength(C2, MLen);
     if EncryptionMode = semSM4 then
     begin
-      KLen := SM4_KEYSIZE + K2ByteLength;
+      KLen := CN_SM4_KEYSIZE + K2ByteLength;
       KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
       Mac := SM9Mac(@(KDFKey[KLen - K2ByteLength + 1]), K2ByteLength, @P[0], MLen); // 用 K2 和 C2 算出 C3
 
@@ -3635,7 +3635,7 @@ begin
         C2[I] := Byte(KDFKey[I + 1]) xor P^[I];
     end;
 
-    if CompareMem(@C3[0], @Mac[0], SizeOf(TSM3Digest)) then
+    if CompareMem(@C3[0], @Mac[0], SizeOf(TCnSM3Digest)) then
     begin
       OutStream.Write(C2[0], Length(C2));
       Result := True;
@@ -3763,7 +3763,7 @@ end;
 function CnSM9UserKeyExchangeBStep1(const AUserID, BUserID: AnsiString;
   KeyByteLength: Integer; KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
   KeyExchangeBUserKey: TCnSM9KeyExchangeUserPrivateKey; InRA: TCnEccPoint;
-  OutRB: TCnEccPoint; out KeyB: AnsiString; out OutOptionalSB: TSM3Digest;
+  OutRB: TCnEccPoint; out KeyB: AnsiString; out OutOptionalSB: TCnSM3Digest;
   OutG1, OutG2, OutG3: TCnFP12; SM9: TCnSM9 = nil): Boolean;
 var
   C: Boolean;
@@ -3772,7 +3772,7 @@ var
   AP: TCnFP2AffinePoint;
   Stream: TMemoryStream;
   B: Byte;
-  D: TSM3Digest;
+  D: TCnSM3Digest;
 begin
   Result := False;
 
@@ -3843,7 +3843,7 @@ begin
     B := CN_SM9_KEY_EXCHANGE_HASHID1;
     Stream.Write(B, 1);
     FP12ToStream(OutG1, Stream, SM9.BytesCount);
-    Stream.Write(D[0], SizeOf(TSM3Digest));
+    Stream.Write(D[0], SizeOf(TCnSM3Digest));
     OutOptionalSB := SM3(Stream.Memory, Stream.Size); // 第二次 Hash
 
     Result := True;
@@ -3860,15 +3860,15 @@ end;
 function CnSM9UserKeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
   KeyExchangeAUserKey: TCnSM9KeyExchangeUserPrivateKey; InRandA: TCnBigNumber;
-  InRA, InRB: TCnEccPoint; InOptionalSB: TSM3Digest; out KeyA: AnsiString;
-  out OutOptionalSA: TSM3Digest; SM9: TCnSM9 = nil): Boolean;
+  InRA, InRB: TCnEccPoint; InOptionalSB: TCnSM3Digest; out KeyA: AnsiString;
+  out OutOptionalSA: TCnSM3Digest; SM9: TCnSM9 = nil): Boolean;
 var
   C: Boolean;
   G1, G2, G3: TCnFP12;
   AP: TCnFP2AffinePoint;
   Stream: TMemoryStream;
   B: Byte;
-  D: TSM3Digest;
+  D: TCnSM3Digest;
 begin
   Result := False;
   if (InRA = nil) or (InRB = nil) or (InRandA = nil) then Exit;
@@ -3913,10 +3913,10 @@ begin
     B := CN_SM9_KEY_EXCHANGE_HASHID1;
     Stream.Write(B, 1);
     FP12ToStream(G1, Stream, SM9.BytesCount);
-    Stream.Write(D[0], SizeOf(TSM3Digest));
+    Stream.Write(D[0], SizeOf(TCnSM3Digest));
     D := SM3(Stream.Memory, Stream.Size); // 第二次 Hash
 
-    if not CompareMem(@D[0], @InOptionalSB[0], SizeOf(TSM3Digest)) then Exit;
+    if not CompareMem(@D[0], @InOptionalSB[0], SizeOf(TCnSM3Digest)) then Exit;
 
     // 校验 SA SB 通过后，开始计算密钥
     Stream.Clear;
@@ -3944,7 +3944,7 @@ begin
     B := CN_SM9_KEY_EXCHANGE_HASHID2;
     Stream.Write(B, 1);
     FP12ToStream(G1, Stream, SM9.BytesCount);
-    Stream.Write(D[0], SizeOf(TSM3Digest));
+    Stream.Write(D[0], SizeOf(TCnSM3Digest));
     OutOptionalSA := SM3(Stream.Memory, Stream.Size); // 第二次 Hash
 
     Result := True;
@@ -3960,11 +3960,11 @@ begin
 end;
 
 function CnSM9UserKeyExchangeBStep2(const AUserID, BUserID: AnsiString;
-  InRA, InRB: TCnEccPoint; InOptionalSA: TSM3Digest; InG1, InG2, InG3: TCnFP12;
+  InRA, InRB: TCnEccPoint; InOptionalSA: TCnSM3Digest; InG1, InG2, InG3: TCnFP12;
   SM9: TCnSM9 = nil): Boolean;
 var
   C: Boolean;
-  D: TSM3Digest;
+  D: TCnSM3Digest;
   Stream: TMemoryStream;
   B: Byte;
 begin
@@ -3995,11 +3995,11 @@ begin
 
     Stream.Write(B, 1);
     FP12ToStream(InG1, Stream, SM9.BytesCount);
-    Stream.Write(D[0], SizeOf(TSM3Digest));
+    Stream.Write(D[0], SizeOf(TCnSM3Digest));
 
     // 第二次 Hash
     D := SM3(Stream.Memory, Stream.Size);
-    Result := CompareMem(@D[0], @InOptionalSA[0], SizeOf(TSM3Digest));
+    Result := CompareMem(@D[0], @InOptionalSA[0], SizeOf(TCnSM3Digest));
   finally
     Stream.Free;
     if C then
@@ -4014,7 +4014,7 @@ var
   I, CeilLen: Integer;
   IsInt: Boolean;
   DArr, Ha: TBytes; // Ha 长 HLen Bits
-  SM3D: TSM3Digest;
+  SM3D: TCnSM3Digest;
   BH, BN: TCnBigNumber;
 begin
   Result := False;
@@ -4055,10 +4055,10 @@ begin
       if (I = CeilLen) and not IsInt then
       begin
         // 是最后一个，不整除时只移动一部分
-        Move(SM3D[0], Ha[(I - 1) * SizeOf(TSM3Digest)], (HLen mod CN_SM3_DIGEST_BITS) div 8);
+        Move(SM3D[0], Ha[(I - 1) * SizeOf(TCnSM3Digest)], (HLen mod CN_SM3_DIGEST_BITS) div 8);
       end
       else
-        Move(SM3D[0], Ha[(I - 1) * SizeOf(TSM3Digest)], SizeOf(TSM3Digest));
+        Move(SM3D[0], Ha[(I - 1) * SizeOf(TCnSM3Digest)], SizeOf(TCnSM3Digest));
 
       Inc(CT);
     end;
@@ -4090,7 +4090,7 @@ begin
   Result := SM9Hash(Res, CN_SM9_HASH_PREFIX_2, Data, DataLen, N);
 end;
 
-function SM9Mac(Key: Pointer; KeyByteLength: Integer; Z: Pointer; ZByteLength: Integer): TSM3Digest;
+function SM9Mac(Key: Pointer; KeyByteLength: Integer; Z: Pointer; ZByteLength: Integer): TCnSM3Digest;
 var
   Arr: TBytes;
 begin

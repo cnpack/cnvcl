@@ -959,12 +959,12 @@ end;
 // 想办法计算 (A + B) mod C，不能直接算，容易溢出
 function AddMod(A, B, C: TUInt64): TUInt64;
 begin
-  if UInt64Compare(A, MAX_TUINT64 - B) > 0 then
+  if UInt64Compare(A, CN_MAX_TUINT64 - B) > 0 then
   begin
     // 有溢出，另外想办法，溢出点为 2^64，设为 K，也就是 MAX_TUINT64（简称 M) + 1
     // 再设 A + B = S，那么直接相加取模的结果其实是 (S - K) % C，而我们要求 S % C
     // S % C = ((S - K) % C + K % C) % C = ((S - K) % C + M % C + 1) % C
-    Result := UInt64Mod(UInt64Mod(A + B, C) + UInt64Mod(MAX_TUINT64, C) + 1, C);
+    Result := UInt64Mod(UInt64Mod(A + B, C) + UInt64Mod(CN_MAX_TUINT64, C) + 1, C);
   end
   else
   begin
@@ -1163,13 +1163,13 @@ begin
     R := Random;
 
     // A := Trunc(Random * (N - 1)) + 1; 但 N - 1作为 Int64 可能小于 0，要拆分
-    if UInt64Compare(N - 1, MAX_SIGNED_INT64_IN_TUINT64) <= 0 then // if N - 1 > 0 ?
+    if UInt64Compare(N - 1, CN_MAX_SIGNED_INT64_IN_TUINT64) <= 0 then // if N - 1 > 0 ?
       A := Trunc(Random * (N - 1)) + 1
     else
     begin
       // Int64(N - 1) < 0，拆成 MAX_SIGNED_INT64_IN_TUINT64 以及 N - MAX_SIGNED_INT64_IN_TUINT64 - 1
-      RA := Trunc(R * MAX_SIGNED_INT64_IN_TUINT64);
-      RA := RA + Trunc(R * (N - MAX_SIGNED_INT64_IN_TUINT64 - 1));
+      RA := Trunc(R * CN_MAX_SIGNED_INT64_IN_TUINT64);
+      RA := RA + Trunc(R * (N - CN_MAX_SIGNED_INT64_IN_TUINT64 - 1));
       A := RA + 1; // 大于 Int64 上限 Trunc 会出浮点错，改成分别 Trunc 后相加
     end;
     if FermatCheckComposite(A, N, X, T) then
@@ -1225,12 +1225,12 @@ end;
 // 想办法计算 (A + B) mod C，不能直接算，容易溢出
 function AddMod64(A, B, C: UInt64): UInt64;
 begin
-  if A > MAX_TUINT64 - B then
+  if A > CN_MAX_TUINT64 - B then
   begin
     // 有溢出，另外想办法，溢出点为 2^64，设为 K，也就是 MAX_TUINT64（简称 M) + 1
     // 再设 A + B = S，那么直接相加取模的结果其实是 (S - K) % C，而我们要求 S % C
     // S % C = ((S - K) % C + K % C) % C = ((S - K) % C + M % C + 1) % C
-    Result := ((A + B) mod C + MAX_TUINT64 mod C + 1) mod C;
+    Result := ((A + B) mod C + CN_MAX_TUINT64 mod C + 1) mod C;
   end
   else
   begin
