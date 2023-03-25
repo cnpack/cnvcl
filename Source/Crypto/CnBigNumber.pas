@@ -1815,7 +1815,7 @@ var
   B: TBytes;
 begin
   Result := False;
-  if Base64Decode(string(Buf), B) = BASE64_OK then
+  if Base64Decode(string(Buf), B) = ECN_BASE64_OK then
     Result := BigNumberSetBinary(@B[0], Length(B), Res);
 end;
 

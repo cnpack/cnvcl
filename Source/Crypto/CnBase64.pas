@@ -61,37 +61,37 @@ interface
 uses
   SysUtils, Classes, CnNative, CnConsts;
 
-function Base64Encode(InputData: TStream; var OutputData: string): Byte; overload;
-{* 对流进行 Base64 编码，如编码成功返回 BASE64_OK
+function Base64Encode(InputData: TStream; var OutputData: string): Integer; overload;
+{* 对流进行 Base64 编码，如编码成功返回 ECN_BASE64_OK
 |<PRE>
   InputData: TStream           - 要编码的数据流
   var OutputData: AnsiString   - 编码后的数据
 |</PRE>}
 
-function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte; overload;
-{* 对字符串进行 Base64 编码，如编码成功返回 BASE64_OK
+function Base64Encode(const InputData: AnsiString; var OutputData: string): Integer; overload;
+{* 对字符串进行 Base64 编码，如编码成功返回 ECN_BASE64_OK
 |<PRE>
   InputData: AnsiString        - 要编码的数据
   var OutputData: AnsiString   - 编码后的数据
 |</PRE>}
 
-function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string): Byte; overload;
-{* 对数据进行 Base64 编码，如编码成功返回 BASE64_OK
+function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string): Integer; overload;
+{* 对数据进行 Base64 编码，如编码成功返回 ECN_BASE64_OK
 |<PRE>
   InputData: AnsiString        - 要编码的数据
   var OutputData: AnsiString   - 编码后的数据
 |</PRE>}
 
-function Base64Encode(InputData: TBytes; var OutputData: string): Byte; overload;
-{* 对 TBytes 进行 Base64 编码，如编码成功返回 BASE64_OK
+function Base64Encode(InputData: TBytes; var OutputData: string): Integer; overload;
+{* 对 TBytes 进行 Base64 编码，如编码成功返回 ECN_BASE64_OK
 |<PRE>
   InputData: TBytes           - 要编码的数据流
   var OutputData: AnsiString   - 编码后的数据
 |</PRE>}
 
 function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString;
-  FixZero: Boolean = True): Byte; overload;
-{* 对数据进行 Base64 解码，如解码成功返回 BASE64_OK
+  FixZero: Boolean = True): Integer; overload;
+{* 对数据进行 Base64 解码，如解码成功返回 ECN_BASE64_OK
 |<PRE>
   InputData: AnsiString        - 要解码的数据
   var OutputData: AnsiString   - 解码后的数据
@@ -99,8 +99,8 @@ function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString;
 |</PRE>}
 
 function Base64Decode(const InputData: AnsiString; OutputData: TStream;
-  FixZero: Boolean = True): Byte; overload;
-{* 对数据进行 Base64 解码，如解码成功返回 BASE64_OK
+  FixZero: Boolean = True): Integer; overload;
+{* 对数据进行 Base64 解码，如解码成功返回 ECN_BASE64_OK
 |<PRE>
   InputData: AnsiString        - 要解码的数据
   var OutputData: TStream      - 解码后的数据
@@ -108,8 +108,8 @@ function Base64Decode(const InputData: AnsiString; OutputData: TStream;
 |</PRE>}
 
 function Base64Decode(InputData: string; out OutputData: TBytes;
-  FixZero: Boolean = True): Byte; overload;
-{* 对数据进行 Base64 解码，如解码成功返回 BASE64_OK
+  FixZero: Boolean = True): Integer; overload;
+{* 对数据进行 Base64 解码，如解码成功返回 ECN_BASE64_OK
 |<PRE>
   InputData: string            - 要编码的数据流
   out OutputData: TBytes       - 解码后的数据
@@ -117,18 +117,20 @@ function Base64Decode(InputData: string; out OutputData: TBytes;
 |</PRE>}
 
 // 原始移植的版本，比较慢
-function Base64Encode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Byte; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+function Base64Encode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Integer; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 
 // 原始移植的版本，比较慢
-function Base64Decode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Byte; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+function Base64Decode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Integer; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 
 const
-  BASE64_OK       = ECN_OK; // 转换成功
-  BASE64_ERROR    = 1; // 转换错误（未知错误） (e.g. can't encode octet in input stream) -> error in implementation
-  BASE64_INVALID  = 2; // 输入的字符串中有非法字符 (在 FilterDecodeInput=False 时可能出现)
-  BASE64_LENGTH   = 3; // 数据长度非法
-  BASE64_DATALEFT = 4; // too much input data left (receveived 'end of encoded data' but not end of input string)
-  BASE64_PADDING  = 5; // 输入的数据未能以正确的填充字符结束
+  ECN_BASE64_OK                        = ECN_OK; // 转换成功
+  ECN_BASE64_ERROR_BASE                = ECN_CUSTOM_ERROR_BASE + $500; // Base64 错误码基准
+
+  ECN_BASE64_ERROR                     = ECN_BASE64_ERROR_BASE + 1; // 转换错误（未知错误） (e.g. can't encode octet in input stream) -> error in implementation
+  ECN_BASE64_INVALID                   = ECN_BASE64_ERROR_BASE + 2; // 输入的字符串中有非法字符 (在 FilterDecodeInput=False 时可能出现)
+  ECN_BASE64_LENGTH                    = ECN_BASE64_ERROR_BASE + 3; // 数据长度非法
+  ECN_BASE64_DATALEFT                  = ECN_BASE64_ERROR_BASE + 4; // too much input data left (receveived 'end of encoded data' but not end of input string)
+  ECN_BASE64_PADDING                   = ECN_BASE64_ERROR_BASE + 5; // 输入的数据未能以正确的填充字符结束
 
 implementation
 
@@ -174,7 +176,7 @@ const
     );  
 
 // 原始移植的版本，比较慢
-function Base64Encode_Slow(const InputData: AnsiString; var OutputData:AnsiString): Byte;
+function Base64Encode_Slow(const InputData: AnsiString; var OutputData:AnsiString): Integer;
 var
   I: Integer;
   CurrentB,PrevB: Byte;
@@ -201,7 +203,7 @@ begin
   I:=1;
   if (InputLength = 0) then
   begin
-    Result := BASE64_OK;
+    Result := ECN_BASE64_OK;
     Exit;
   end;
 
@@ -213,7 +215,7 @@ begin
     C := (CurrentB shr 2);
     if not ValueToCharacter(C, S) then
     begin
-      Result := BASE64_ERROR;
+      Result := ECN_BASE64_ERROR;
       Exit;
     end;
     OutPutData := OutPutData + S;
@@ -232,7 +234,7 @@ begin
     C:=(PrevB and $03) shl 4 + (CurrentB shr 4);  //取出 XX 后 4 位并将其左移4位与 XX 右移 4 位合并成六位
     if not ValueToCharacter(C,S) then             //检测取得的字符是否在 Base64Table 内
     begin
-      Result := BASE64_ERROR;
+      Result := ECN_BASE64_ERROR;
       Exit;
     end;
     OutPutData := OutPutData+S;
@@ -254,7 +256,7 @@ begin
       C := (PrevB and $0F) shl 2 + (CurrentB shr 6); //取出 XX 后 4 位并将其左移 2 位与 XX 右移 6 位合并成六位
       if not ValueToCharacter(C, S) then             //检测取得的字符是否在 Base64Table 内
       begin
-        Result := BASE64_ERROR;
+        Result := ECN_BASE64_ERROR;
         Exit;
       end;
     end;
@@ -268,18 +270,18 @@ begin
       C := (CurrentB and $3F);                      //取出 XX 后6位
       if not ValueToCharacter(C, S) then            //检测取得的字符是否在 Base64Table 内
       begin
-        Result := BASE64_ERROR;
+        Result := ECN_BASE64_ERROR;
         Exit;
       end;
     end;
     OutPutData := OutPutData + S;
   until InputLength <= 0;
 
-  Result := BASE64_OK;
+  Result := ECN_BASE64_OK;
 end;
 
 // 原始移植的版本，比较慢
-function Base64Decode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Byte;
+function Base64Decode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Integer;
 var
   I: Integer;
   InputLength: Integer;
@@ -319,7 +321,7 @@ var
 begin
   if (InputData = '') then
   begin
-    Result := BASE64_OK;
+    Result := ECN_BASE64_OK;
     Exit;
   end;
   OutPutData := '';
@@ -332,7 +334,7 @@ begin
   InputLength := Length(Data);
   if InputLength mod 4 <> 0 then
   begin
-    Result := BASE64_LENGTH;
+    Result := ECN_BASE64_LENGTH;
     Exit;
   end;
 
@@ -343,7 +345,7 @@ begin
     S := Data[I];
     if not CharacterToValue(S, CurrentB) then
     begin
-      Result := BASE64_INVALID;
+      Result := ECN_BASE64_INVALID;
       Exit;
     end;
 
@@ -351,7 +353,7 @@ begin
     S := Data[I];
     if not CharacterToValue(S, PrevB) then
     begin
-      Result := BASE64_INVALID;
+      Result := ECN_BASE64_INVALID;
       Exit;
     end;
 
@@ -365,13 +367,13 @@ begin
     begin
       if (I <> InputLength-1) then
       begin
-        Result := BASE64_DATALEFT;
+        Result := ECN_BASE64_DATALEFT;
         Exit;
       end
       else
       if Data[I + 1] <> pad then
       begin
-        Result := BASE64_PADDING;
+        Result := ECN_BASE64_PADDING;
         Exit;
       end;
     end
@@ -379,7 +381,7 @@ begin
     begin
       if not CharacterToValue(S,CurrentB) then
       begin
-        Result:=BASE64_INVALID;
+        Result:=ECN_BASE64_INVALID;
         Exit;
       end;
       C:=(PrevB shl 4) + (CurrentB shr 2);
@@ -393,7 +395,7 @@ begin
     begin
       if (I <> InputLength) then
       begin
-        Result := BASE64_DATALEFT;
+        Result := ECN_BASE64_DATALEFT;
         Exit;
       end;
     end
@@ -401,7 +403,7 @@ begin
     begin
      if not CharacterToValue(S, PrevB) then
      begin
-       Result := BASE64_INVALID;
+       Result := ECN_BASE64_INVALID;
        Exit;
      end;
      C := (CurrentB shl 6) + (PrevB);
@@ -409,11 +411,11 @@ begin
     end;
   until (I >= InputLength);
 
-  Result := BASE64_OK;
+  Result := ECN_BASE64_OK;
 end;
 
 // 以下为 wr960204 改进的快速 Base64 编解码算法
-function Base64Encode(InputData: TStream; var OutputData: string): Byte; overload;
+function Base64Encode(InputData: TStream; var OutputData: string): Integer;
 var
   Mem: TMemoryStream;
 begin
@@ -426,7 +428,7 @@ begin
   end;
 end;
 
-function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string): Byte;
+function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string): Integer;
 var
   Times, I: Integer;
   x1, x2, x3, x4: AnsiChar;
@@ -434,7 +436,7 @@ var
 begin
   if (InputData = nil) or (DataLen <= 0) then
   begin
-    Result := BASE64_LENGTH;
+    Result := ECN_BASE64_LENGTH;
     Exit;
   end;
 
@@ -482,31 +484,31 @@ begin
     OutputData[I shl 2 + 4] := Char(X4);
   end;
   OutputData := Trim(OutputData);
-  Result := BASE64_OK;
+  Result := ECN_BASE64_OK;
 end;
 
-function Base64Encode(const InputData: AnsiString; var OutputData: string): Byte;
+function Base64Encode(const InputData: AnsiString; var OutputData: string): Integer;
 begin
   if InputData <> '' then
     Result := Base64Encode(@InputData[1], Length(InputData), OutputData)
   else
-    Result := BASE64_LENGTH;
+    Result := ECN_BASE64_LENGTH;
 end;
 
-function Base64Encode(InputData: TBytes; var OutputData: string): Byte;
+function Base64Encode(InputData: TBytes; var OutputData: string): Integer;
 begin
   if Length(InputData) > 0 then
     Result := Base64Encode(@InputData[0], Length(InputData), OutputData)
   else
-    Result := BASE64_LENGTH;
+    Result := ECN_BASE64_LENGTH;
 end;
 
-function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean): Byte;
+function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean): Integer;
 var
   Data: TBytes;
 begin
   Result := Base64Decode(string(InputData), Data, FixZero);
-  if (Result = BASE64_OK) and (Length(Data) > 0) then
+  if (Result = ECN_BASE64_OK) and (Length(Data) > 0) then
   begin
     OutputData.Size := Length(Data);
     OutputData.Position := 0;
@@ -515,7 +517,7 @@ begin
 end;
 
 function Base64Decode(InputData: string; out OutputData: TBytes;
-  FixZero: Boolean): Byte;
+  FixZero: Boolean): Integer;
 var
   SrcLen, DstLen, Times, I: Integer;
   x1, x2, x3, x4, xt: Byte;
@@ -546,7 +548,7 @@ var
 begin
   if (InputData = '') then
   begin
-    Result := BASE64_OK;
+    Result := ECN_BASE64_OK;
     Exit;
   end;
   OutPutData := nil;
@@ -615,15 +617,15 @@ begin
     SetLength(OutputData, DstLen);
   end;
 
-  Result := BASE64_OK;
+  Result := ECN_BASE64_OK;
 end;
 
-function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean): Byte;
+function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean): Integer;
 var
   Data: TBytes;
 begin
   Result := Base64Decode(string(InputData), Data, FixZero);
-  if (Result = BASE64_OK) and (Length(Data) > 0) then
+  if (Result = ECN_BASE64_OK) and (Length(Data) > 0) then
   begin
     SetLength(OutputData, Length(Data));
     Move(Data[0], OutputData[1], Length(Data));

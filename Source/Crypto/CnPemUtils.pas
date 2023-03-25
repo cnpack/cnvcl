@@ -537,7 +537,7 @@ begin
 
   try
     DS := TMemoryStream.Create;
-    if BASE64_OK <> Base64Decode(AnsiString(S), DS, False) then
+    if ECN_BASE64_OK <> Base64Decode(AnsiString(S), DS, False) then
       Exit;
 
     DS.Position := 0;
@@ -737,7 +737,7 @@ begin
 
           // To De Base64 S
           MemoryStream.Clear;
-          Result := (BASE64_OK = Base64Decode(AnsiString(S), MemoryStream, False));
+          Result := (ECN_BASE64_OK = Base64Decode(AnsiString(S), MemoryStream, False));
         end;
       end;
     finally
@@ -803,7 +803,7 @@ begin
         Exit;
     end;
 
-    if Base64_OK = Base64Encode(MemoryStream, S) then
+    if ECN_BASE64_OK = Base64Encode(MemoryStream, S) then
     begin
       List := TStringList.Create;
       try
