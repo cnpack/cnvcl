@@ -1093,8 +1093,8 @@ begin
   begin
     H := Int64Rec(U).Hi;
     L := Int64Rec(U).Lo;
-    Result := Int64(H) * Int64(MAX_UINT16 + 1); // 拆开两步乘
-    Result := Result * (MAX_UINT16 + 1);
+    Result := Int64(H) * Int64(CN_MAX_UINT16 + 1); // 拆开两步乘
+    Result := Result * (CN_MAX_UINT16 + 1);
     Result := Result + L;
   end
   else

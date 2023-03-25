@@ -956,7 +956,7 @@ var
   RandA, RandB: TCnBigNumber;
   BG1, BG2, BG3: TCnFP12;
   KeyA, KeyB: AnsiString;
-  SB, SA: TSM3Digest;
+  SB, SA: TCnSM3Digest;
 begin
   mmoKeyExchange.Lines.Clear;
   SM9 := TCnSM9.Create;
@@ -1018,7 +1018,7 @@ begin
     begin
       mmoKeyExchange.Lines.Add('B User Step 1: RB & SB & Key!');
       mmoKeyExchange.Lines.Add(RB.ToString);
-      mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@SB[0]), SizeOf(TSM3Digest)));
+      mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@SB[0]), SizeOf(TCnSM3Digest)));
 
       mmoKeyExchange.Lines.Add('BG1:');
       mmoKeyExchange.Lines.Add(BG1.ToString);
@@ -1038,7 +1038,7 @@ begin
       mmoKeyExchange.Lines.Add('A User Step 2: Key! & SA');
       mmoKeyExchange.Lines.Add('A Key:');
       mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@KeyA[1]), Length(KeyA)));
-      mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@SA[0]), SizeOf(TSM3Digest)));
+      mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@SA[0]), SizeOf(TCnSM3Digest)));
     end;
 
     // 第四步，B 调用，使用了第一步里传过来的 RA 以及第二步自身的 BG1、BG2、BG3、RB 以及第三步里传过来的 SA

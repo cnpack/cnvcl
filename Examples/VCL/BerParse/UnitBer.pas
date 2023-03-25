@@ -420,7 +420,7 @@ begin
 
       // To De Base64 S
       MemoryStream.Clear;
-      Result := (BASE64_OK = Base64Decode(S, MemoryStream, False));
+      Result := (ECN_BASE64_OK = Base64Decode(S, MemoryStream, False));
     end;
   finally
     Sl.Free;
