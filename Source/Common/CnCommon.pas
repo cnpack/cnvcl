@@ -4855,6 +4855,12 @@ begin
   if Length(T) <= 1 then
     Exit;
 
+  // 去掉前后单引号
+  if T[1] = '''' then
+    Delete(T, 1, 1);
+  if T[Length(T)] = '''' then
+    Delete(T, Length(T), 1);
+
   if T[1] <> '%' then
     Exit;
 
