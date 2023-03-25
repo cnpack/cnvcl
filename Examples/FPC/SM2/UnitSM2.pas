@@ -206,7 +206,7 @@ begin
   // 里头的随机数 K 要 6CB28D99385C175C94F94E934817663FC176D925DD72B727260DBAAE1FB2F96F
   if CnSM2SignData(USER_A, @MSG2[1], Length(MSG2), Sig, PrivateKey, PublicKey, SM2) then
   begin
-    ShowMessage('Sig OK: ' + Sig.X.ToHex + ', ' + Sig.Y.ToHex);
+    ShowMessage('Sig OK: ' + Sig.R.ToHex + ', ' + Sig.S.ToHex);
     if CnSM2VerifyData(USER_A, @MSG2[1], Length(MSG2), Sig, PublicKey, SM2) then
       ShowMessage('Verify OK.');
   end;
@@ -227,7 +227,7 @@ var
   RandA, RandB: TCnBigNumber;
   OutRA, OutRB: TCnEccPoint;
   KA, KB: AnsiString;
-  OpSA, OpSB, OpS2: TSM3Digest;
+  OpSA, OpSB, OpS2: TCnSM3Digest;
 begin
   SM2 := TCnSM2.Create(ctSM2Example256);
   APrivateKey := TCnEccPrivateKey.Create;
@@ -552,7 +552,7 @@ var
   RandA, RandB: TCnBigNumber;
   OutRA, OutRB: TCnEccPoint;
   KA, KB: AnsiString;
-  OpSA, OpSB, OpS2: TSM3Digest;
+  OpSA, OpSB, OpS2: TCnSM3Digest;
 begin
   if not CheckPublicKeyStr(edtSM2PublicKey) or not CheckPublicKeyStr(edtSM2BPublicKey) then
     Exit;

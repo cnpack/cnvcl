@@ -410,7 +410,7 @@ var
     $FE, $DC, $BA, $98, $76, $54, $32, $10
   );
 
-  AesIv: TAESBuffer = (
+  AesIv: TCnAESBuffer = (
     $01, $23, $45, $67, $89, $AB, $CD, $EF,
     $FE, $DC, $BA, $98, $76, $54, $32, $10
   );
@@ -557,7 +557,7 @@ begin
     else
     begin
       if cbbDesPadding.ItemIndex = 1 then
-        DESEncryptEcbStr(edtDESKey.Text, StrAddPKCS7Padding(edtDesFrom.Text, DES_BLOCKSIZE), @(Output[1]))
+        DESEncryptEcbStr(edtDESKey.Text, StrAddPKCS7Padding(edtDesFrom.Text, CN_DES_BLOCKSIZE), @(Output[1]))
       else
         DESEncryptEcbStr(edtDESKey.Text, edtDesFrom.Text, @(Output[1]));
     end;
@@ -592,7 +592,7 @@ begin
     begin
       if cbbDesPadding.ItemIndex = 1 then
         DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])),
-          StrAddPKCS7Padding(edtDesFrom.Text, DES_BLOCKSIZE), @(Output[1]))
+          StrAddPKCS7Padding(edtDesFrom.Text, CN_DES_BLOCKSIZE), @(Output[1]))
       else
         DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), edtDesFrom.Text, @(Output[1]));
     end;
@@ -850,7 +850,7 @@ begin
     else
     begin
       if cbbSm4Padding.ItemIndex = 1 then
-        SM4EncryptEcbStr(edtSm4Key.Text, StrAddPKCS7Padding(edtSm4.Text, SM4_BLOCKSIZE), @(Output[1]))
+        SM4EncryptEcbStr(edtSm4Key.Text, StrAddPKCS7Padding(edtSm4.Text, CN_SM4_BLOCKSIZE), @(Output[1]))
       else // 末尾补 0 的对齐
         SM4EncryptEcbStr(edtSm4Key.Text, edtSm4.Text, @(Output[1]));
     end;
@@ -893,7 +893,7 @@ begin
     begin
       if cbbSm4Padding.ItemIndex = 1 then
         SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])),
-          StrAddPKCS7Padding(edtSm4.Text, SM4_BLOCKSIZE), @(Output[1]))
+          StrAddPKCS7Padding(edtSm4.Text, CN_SM4_BLOCKSIZE), @(Output[1]))
       else
         SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]))
     end
@@ -998,7 +998,7 @@ end;
 
 procedure TFormCrypt.btnAesEncryptClick(Sender: TObject);
 var
-  TmpAesIv: TAESBuffer;
+  TmpAesIv: TCnAESBuffer;
   IvStr: AnsiString;
 {$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
@@ -1033,13 +1033,13 @@ begin
         case cbbAesKeyBitType.ItemIndex of
           0:
             edtAesResult.Text := AESEncryptEcbStrToHex(StrAddPKCS7Padding(edtAes.Text,
-              AES_BLOCKSIZE), edtAesKey.Text, kbt128);
+              CN_AES_BLOCKSIZE), edtAesKey.Text, kbt128);
           1:
             edtAesResult.Text := AESEncryptEcbStrToHex(StrAddPKCS7Padding(edtAes.Text,
-              AES_BLOCKSIZE), edtAesKey.Text, kbt192);
+              CN_AES_BLOCKSIZE), edtAesKey.Text, kbt192);
           2:
             edtAesResult.Text := AESEncryptEcbStrToHex(StrAddPKCS7Padding(edtAes.Text,
-              AES_BLOCKSIZE), edtAesKey.Text, kbt256);
+              CN_AES_BLOCKSIZE), edtAesKey.Text, kbt256);
         end;
       end
       else
@@ -1058,7 +1058,7 @@ begin
   else if rbAescbc.Checked or rbAescfb.Checked or rbAesofb.Checked then // 这仨都需要初始化向量
   begin
     IvStr := FromHex(edtAesIv.Text);
-    if Length(IvStr) <> SizeOf(TAESBuffer) then
+    if Length(IvStr) <> SizeOf(TCnAESBuffer) then
     begin
       ShowMessage('Invalid AES Iv, Use Our Default Iv.');
       CopyMemory(@TmpAesIv, @AesIv, SizeOf(TmpAesIv));
@@ -1102,13 +1102,13 @@ begin
           case cbbAesKeyBitType.ItemIndex of
             0:
               edtAesResult.Text := AESEncryptCbcStrToHex(StrAddPKCS7Padding(edtAes.Text,
-                AES_BLOCKSIZE), edtAesKey.Text, TmpAesIv, kbt128);
+                CN_AES_BLOCKSIZE), edtAesKey.Text, TmpAesIv, kbt128);
             1:
               edtAesResult.Text := AESEncryptCbcStrToHex(StrAddPKCS7Padding(edtAes.Text,
-                AES_BLOCKSIZE), edtAesKey.Text, TmpAesIv, kbt192);
+                CN_AES_BLOCKSIZE), edtAesKey.Text, TmpAesIv, kbt192);
             2:
               edtAesResult.Text := AESEncryptCbcStrToHex(StrAddPKCS7Padding(edtAes.Text,
-                AES_BLOCKSIZE), edtAesKey.Text, TmpAesIv, kbt256);
+                CN_AES_BLOCKSIZE), edtAesKey.Text, TmpAesIv, kbt256);
           end;
         end
         else
@@ -1189,7 +1189,7 @@ end;
 
 procedure TFormCrypt.btnAesDecryptClick(Sender: TObject);
 var
-  TmpAesIv: TAESBuffer;
+  TmpAesIv: TCnAESBuffer;
   IvStr: AnsiString;
 {$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
@@ -1232,7 +1232,7 @@ begin
   else if rbAescbc.Checked or rbAescfb.Checked or rbAesofb.Checked then
   begin
     IvStr := FromHex(edtAesIv.Text);
-    if Length(IvStr) <> SizeOf(TAESBuffer) then
+    if Length(IvStr) <> SizeOf(TCnAESBuffer) then
     begin
       ShowMessage('Invalid AES Iv, Use Our Default Iv.');
       CopyMemory(@TmpAesIv, @AesIv, SizeOf(TmpAesIv));
@@ -1619,7 +1619,7 @@ end;
 
 procedure TFormCrypt.btnSHA256HmacClick(Sender: TObject);
 var
-  Output: TSHA256Digest;
+  Output: TCnSHA256Digest;
   S, Key: AnsiString;
 begin
   Key := AnsiString(edtSHA256HmacKey.Text);
@@ -1630,7 +1630,7 @@ end;
 
 procedure TFormCrypt.btnSHA224HmacClick(Sender: TObject);
 var
-  Output: TSHA224Digest;
+  Output: TCnSHA224Digest;
   S, Key: AnsiString;
 begin
   Key := AnsiString(edtSHA224HmacKey.Text);
@@ -1641,7 +1641,7 @@ end;
 
 procedure TFormCrypt.btnSHA384HmacClick(Sender: TObject);
 var
-  Output: TSHA384Digest;
+  Output: TCnSHA384Digest;
   S, Key: AnsiString;
 begin
   Key := AnsiString(edtSHA384HmacKey.Text);
@@ -1654,7 +1654,7 @@ end;
 
 procedure TFormCrypt.btnSHA512HmacClick(Sender: TObject);
 var
-  Output: TSHA512Digest;
+  Output: TCnSHA512Digest;
   S, Key: AnsiString;
 begin
   Key := AnsiString(edtSHA512HmacKey.Text);
@@ -1667,7 +1667,7 @@ end;
 
 procedure TFormCrypt.btnSHA1HmacClick(Sender: TObject);
 var
-  Output: TSHA1Digest;
+  Output: TCnSHA1Digest;
   S, Key: AnsiString;
 begin
   Key := AnsiString(edtSHA1HmacKey.Text);
@@ -1678,7 +1678,7 @@ end;
 
 procedure TFormCrypt.btnMD5HmacClick(Sender: TObject);
 var
-  Output: TMD5Digest;
+  Output: TCnMD5Digest;
   S, Key: AnsiString;
 begin
   Key := AnsiString(edtMD5HmacKey.Text);
@@ -1689,7 +1689,7 @@ end;
 
 procedure TFormCrypt.btnSM3HmacClick(Sender: TObject);
 var
-  Output: TSM3Digest;
+  Output: TCnSM3Digest;
   S, Key: AnsiString;
 begin
   Key := AnsiString(edtSM3HmacKey.Text);
@@ -1743,7 +1743,7 @@ end;
 
 procedure TFormCrypt.btnSHA3_224HmacClick(Sender: TObject);
 var
-  Output: TSHA3_224Digest;
+  Output: TCnSHA3_224Digest;
   S, Key: AnsiString;
 begin
   Key := AnsiString(edtSHA3_224HmacKey.Text);
@@ -1763,7 +1763,7 @@ end;
 
 procedure TFormCrypt.btnSHA3_256HmacClick(Sender: TObject);
 var
-  Output: TSHA3_256Digest;
+  Output: TCnSHA3_256Digest;
   S, Key: AnsiString;
 begin
   Key := AnsiString(edtSHA3_256HmacKey.Text);
@@ -1799,7 +1799,7 @@ end;
 
 procedure TFormCrypt.btnSHA3_384HmacClick(Sender: TObject);
 var
-  Output: TSHA3_384Digest;
+  Output: TCnSHA3_384Digest;
   S, Key: AnsiString;
 begin
   Key := AnsiString(edtSHA3_384HmacKey.Text);
@@ -1837,7 +1837,7 @@ end;
 
 procedure TFormCrypt.btnSHA3_512HmacClick(Sender: TObject);
 var
-  Output: TSHA3_512Digest;
+  Output: TCnSHA3_512Digest;
   S, Key: AnsiString;
 begin
   Key := AnsiString(edtSHA3_512HmacKey.Text);
@@ -1931,7 +1931,7 @@ begin
   if OpenDialog1.Execute then
   begin
     M := TFileStream.Create(OpenDialog1.FileName, fmOpenRead);
-    if Base64Encode(M, S) = Base64_OK then
+    if Base64Encode(M, S) = ECN_BASE64_OK then
       edtBase64Result.Text := S;
     M.Free;
   end;
@@ -2050,7 +2050,7 @@ begin
     begin
       if cbb3DesPadding.ItemIndex = 1 then
         TripleDESEncryptEcbStr(edt3DESKey.Text,
-          StrAddPKCS7Padding(edt3DesFrom.Text, TRIPLE_DES_BLOCKSIZE), @(Output[1]))
+          StrAddPKCS7Padding(edt3DesFrom.Text, CN_TRIPLE_DES_BLOCKSIZE), @(Output[1]))
       else
         TripleDESEncryptEcbStr(edt3DESKey.Text, edt3DesFrom.Text, @(Output[1]));
     end;
@@ -2084,7 +2084,7 @@ begin
     begin
       if cbb3DesPadding.ItemIndex = 1 then
         TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])),
-          StrAddPKCS7Padding(edt3DesFrom.Text, TRIPLE_DES_BLOCKSIZE), @(Output[1]))
+          StrAddPKCS7Padding(edt3DesFrom.Text, CN_TRIPLE_DES_BLOCKSIZE), @(Output[1]))
       else
         TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), edt3DesFrom.Text, @(Output[1]));
     end;

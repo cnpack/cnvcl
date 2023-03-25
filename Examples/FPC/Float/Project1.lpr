@@ -5,7 +5,7 @@ program Project1;
 uses
   Forms, Interfaces,
   Unit1 in 'Unit1.pas' {FormFloat},
-  CnFloatConvert in '..\..\Source\Common\CnFloatConvert.pas';
+  CnFloat in '..\..\Source\Common\CnFloat.pas';
 
 {$R *.res}
 
