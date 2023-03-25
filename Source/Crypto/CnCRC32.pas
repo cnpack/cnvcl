@@ -210,8 +210,8 @@ function CRC64Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
 implementation
 
 const
-  csBuff_Size = 4096;
-  csCRC64 = $C96C5795D7870F42;
+  BUFF_SIZE = 4096;
+  CODE_CRC64 = $C96C5795D7870F42;
 
   HMAC_CRC32_BLOCK_SIZE_BYTE = 4;
   HMAC_CRC32_OUTPUT_LENGTH_BYTE = 4;
@@ -222,7 +222,7 @@ const
 type
   // 文件缓冲区
   PBuff = ^TBuff;
-  TBuff = array[0..csBuff_Size - 1] of Byte;
+  TBuff = array[0..BUFF_SIZE - 1] of Byte;
 
   // CRC8 表
   TCRC8Table = array[0..255] of Byte;
@@ -850,7 +850,7 @@ begin
     for J := 0 to 7 do
     begin
       if (Data and 1) <> 0 then
-        Data := Data shr 1 xor csCRC64
+        Data := Data shr 1 xor CODE_CRC64
       else
         Data := Data shr 1;
 

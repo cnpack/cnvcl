@@ -51,10 +51,10 @@ uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative;
 
 type
-  PSHA1Digest = ^TSHA1Digest;
-  TSHA1Digest = array[0..19] of Byte;
+  PCnSHA1Digest = ^TCnSHA1Digest;
+  TCnSHA1Digest = array[0..19] of Byte;
 
-  TSHA1Context = record
+  TCnSHA1Context = record
     Hash: array[0..4] of Cardinal;
     Hi, Lo: Cardinal;
     Buffer: array[0..63] of Byte;
@@ -63,50 +63,50 @@ type
     Opad: array[0..63] of Byte;      {!< HMAC: outer padding        }
   end;
 
-  TSHA1CalcProgressFunc = procedure (ATotal, AProgress: Int64;
+  TCnSHA1CalcProgressFunc = procedure (ATotal, AProgress: Int64;
     var Cancel: Boolean) of object;
   {* 进度回调事件类型声明}
 
-function SHA1Buffer(const Buffer; Count: Cardinal): TSHA1Digest;
+function SHA1Buffer(const Buffer; Count: Cardinal): TCnSHA1Digest;
 {* 对数据块进行 SHA1 计算
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
    Count: Cardinal  - 数据块长度
  |</PRE>}
 
-function SHA1Bytes(Data: TBytes): TSHA1Digest;
+function SHA1Bytes(Data: TBytes): TCnSHA1Digest;
 {* 对 TBytes 进行 SHA1 计算
  |<PRE>
    Data     - 要计算的字节数组
  |</PRE>}
 
-function SHA1String(const Str: string): TSHA1Digest;
+function SHA1String(const Str: string): TCnSHA1Digest;
 {* 对 String 类型数据进行 SHA1 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
    代码中会将其转换成 AnsiString 进行计算
  |<PRE>
    Str: string       - 要计算的字符串
  |</PRE>}
 
-function SHA1StringA(const Str: AnsiString): TSHA1Digest;
+function SHA1StringA(const Str: AnsiString): TCnSHA1Digest;
 {* 对 AnsiString 类型数据进行 SHA1 计算
  |<PRE>
    Str: AnsiString       - 要计算的字符串
  |</PRE>}
 
-function SHA1StringW(const Str: WideString): TSHA1Digest;
+function SHA1StringW(const Str: WideString): TCnSHA1Digest;
 {* 对 WideString 类型数据进行 SHA1 计算，计算前会调用 WideCharToMultyByte 进行转换
  |<PRE>
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
-function SHA1UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA1Digest;
+function SHA1UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA1Digest;
 {* 对 UnicodeString 类型数据进行直接的 SHA1 计算，不进行转换
  |<PRE>
    Str: UnicodeString/WideString       - 要计算的宽字符串
  |</PRE>}
 
 function SHA1File(const FileName: string;
-  CallBack: TSHA1CalcProgressFunc = nil): TSHA1Digest;
+  CallBack: TCnSHA1CalcProgressFunc = nil): TCnSHA1Digest;
 {* 对指定文件内容进行 SHA1 计算
  |<PRE>
    FileName: string  - 要计算的文件名
@@ -114,40 +114,40 @@ function SHA1File(const FileName: string;
  |</PRE>}
 
 function SHA1Stream(Stream: TStream;
-  CallBack: TSHA1CalcProgressFunc = nil): TSHA1Digest;
+  CallBack: TCnSHA1CalcProgressFunc = nil): TCnSHA1Digest;
 {* 对指定流数据进行 SHA1 计算
  |<PRE>
    Stream: TStream  - 要计算的流内容
    CallBack: TSHA1CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
-procedure SHA1Init(var Context: TSHA1Context);
+procedure SHA1Init(var Context: TCnSHA1Context);
 
-procedure SHA1Update(var Context: TSHA1Context; Buffer: Pointer; Len: Integer);
+procedure SHA1Update(var Context: TCnSHA1Context; Buffer: Pointer; Len: Integer);
 
-procedure SHA1Final(var Context: TSHA1Context; var Digest: TSHA1Digest);
+procedure SHA1Final(var Context: TCnSHA1Context; var Digest: TCnSHA1Digest);
 
-function SHA1Print(const Digest: TSHA1Digest): string;
+function SHA1Print(const Digest: TCnSHA1Digest): string;
 {* 以十六进制格式输出 SHA1 计算值
  |<PRE>
    Digest: TSHA1Digest  - 指定的 SHA1 计算值
  |</PRE>}
 
-function SHA1Match(const D1, D2: TSHA1Digest): Boolean;
+function SHA1Match(const D1, D2: TCnSHA1Digest): Boolean;
 {* 比较两个 SHA1 计算值是否相等
  |<PRE>
    D1: TSHA1Digest   - 需要比较的 SHA1 计算值
    D2: TSHA1Digest   - 需要比较的 SHA1 计算值
  |</PRE>}
 
-function SHA1DigestToStr(aDig: TSHA1Digest): string;
+function SHA1DigestToStr(aDig: TCnSHA1Digest): string;
 {* SHA1 计算值转 string
  |<PRE>
    aDig: TSHA1Digest   - 需要转换的 SHA1 计算值
  |</PRE>}
 
 procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TSHA1Digest);
+  Length: Cardinal; var Output: TCnSHA1Digest);
 
 {* Hash-based Message Authentication Code (based on SHA1) }
 
@@ -227,7 +227,7 @@ begin
   Result := (A shr 24) or ((A shr 8) and $FF00) or ((A shl 8) and $FF0000) or (A shl 24);
 end;
 
-procedure SHA1Compress(var Data: TSHA1Context);
+procedure SHA1Compress(var Data: TCnSHA1Context);
 var
   A, B, C, D, E, T: Cardinal;
   W: array[0..79] of Cardinal;
@@ -288,7 +288,7 @@ begin
   FillChar(Data.Buffer, Sizeof(Data.Buffer), 0);
 end;
 
-procedure SHA1Init(var Context: TSHA1Context);
+procedure SHA1Init(var Context: TCnSHA1Context);
 begin
   Context.Hi := 0;
   Context.Lo := 0;
@@ -301,7 +301,7 @@ begin
   Context.Hash[4] := $C3D2E1F0;
 end;
 
-procedure SHA1UpdateLen(var Context: TSHA1Context; Len: Integer);
+procedure SHA1UpdateLen(var Context: TCnSHA1Context; Len: Integer);
 var
   I: Cardinal;
   K: Integer;
@@ -315,7 +315,7 @@ begin
   end;
 end;
 
-procedure SHA1Update(var Context: TSHA1Context; Buffer: Pointer; Len: Integer);
+procedure SHA1Update(var Context: TCnSHA1Context; Buffer: Pointer; Len: Integer);
 type
   PByte = ^Byte;
 begin
@@ -334,7 +334,7 @@ begin
   end;
 end;
 
-procedure SHA1UpdateW(var Context: TSHA1Context; Input: PWideChar; CharLength: Cardinal);
+procedure SHA1UpdateW(var Context: TCnSHA1Context; Input: PWideChar; CharLength: Cardinal);
 var
 {$IFDEF MSWINDOWS}
   pContent: PAnsiChar;
@@ -360,7 +360,7 @@ begin
 {$ENDIF}
 end;
 
-procedure SHA1Final(var Context: TSHA1Context; var Digest: TSHA1Digest);
+procedure SHA1Final(var Context: TCnSHA1Context; var Digest: TCnSHA1Digest);
 type
   PDWord = ^Cardinal;
 begin
@@ -379,18 +379,18 @@ begin
 end;
 
 // 对数据块进行 SHA1 计算
-function SHA1Buffer(const Buffer; Count: Cardinal): TSHA1Digest;
+function SHA1Buffer(const Buffer; Count: Cardinal): TCnSHA1Digest;
 var
-  Context: TSHA1Context;
+  Context: TCnSHA1Context;
 begin
   SHA1Init(Context);
   SHA1Update(Context, PAnsiChar(Buffer), Count);
   SHA1Final(Context, Result);
 end;
 
-function SHA1Bytes(Data: TBytes): TSHA1Digest;
+function SHA1Bytes(Data: TBytes): TCnSHA1Digest;
 var
-  Context: TSHA1Context;
+  Context: TCnSHA1Context;
 begin
   SHA1Init(Context);
   SHA1Update(Context, PAnsiChar(@Data[0]), Length(Data));
@@ -398,7 +398,7 @@ begin
 end;
 
 // 对 String 类型数据进行 SHA1 计算
-function SHA1String(const Str: string): TSHA1Digest;
+function SHA1String(const Str: string): TCnSHA1Digest;
 var
   AStr: AnsiString;
 begin
@@ -407,9 +407,9 @@ begin
 end;
 
 // 对 AnsiString 类型数据进行 SHA1 计算
-function SHA1StringA(const Str: AnsiString): TSHA1Digest;
+function SHA1StringA(const Str: AnsiString): TCnSHA1Digest;
 var
-  Context: TSHA1Context;
+  Context: TCnSHA1Context;
 begin
   SHA1Init(Context);
   SHA1Update(Context, PAnsiChar(Str), Length(Str));
@@ -417,18 +417,18 @@ begin
 end;
 
 // 对 WideString 类型数据进行 SHA1 计算
-function SHA1StringW(const Str: WideString): TSHA1Digest;
+function SHA1StringW(const Str: WideString): TCnSHA1Digest;
 var
-  Context: TSHA1Context;
+  Context: TCnSHA1Context;
 begin
   SHA1Init(Context);
   SHA1UpdateW(Context, PWideChar(Str), Length(Str));
   SHA1Final(Context, Result);
 end;
 
-function SHA1UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TSHA1Digest;
+function SHA1UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA1Digest;
 var
-  Context: TSHA1Context;
+  Context: TCnSHA1Context;
 begin
   SHA1Init(Context);
   SHA1Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
@@ -436,9 +436,9 @@ begin
 end;
 
 function InternalSHA1Stream(Stream: TStream; const BufSize: Cardinal; var D:
-  TSHA1Digest; CallBack: TSHA1CalcProgressFunc = nil): Boolean;
+  TCnSHA1Digest; CallBack: TCnSHA1CalcProgressFunc = nil): Boolean;
 var
-  Context: TSHA1Context;
+  Context: TCnSHA1Context;
   Buf: PAnsiChar;
   BufLen: Cardinal;
   Size: Int64;
@@ -483,20 +483,20 @@ end;
 
 // 对指定流进行 SHA1 计算
 function SHA1Stream(Stream: TStream;
-  CallBack: TSHA1CalcProgressFunc = nil): TSHA1Digest;
+  CallBack: TCnSHA1CalcProgressFunc = nil): TCnSHA1Digest;
 begin
   InternalSHA1Stream(Stream, 4096 * 1024, Result, CallBack);
 end;
 
 // 对指定文件数据进行 SHA1 计算
 function SHA1File(const FileName: string;
-  CallBack: TSHA1CalcProgressFunc): TSHA1Digest;
+  CallBack: TCnSHA1CalcProgressFunc): TCnSHA1Digest;
 var
 {$IFDEF MSWINDOWS}
   FileHandle: THandle;
   MapHandle: THandle;
   ViewPointer: Pointer;
-  Context: TSHA1Context;
+  Context: TCnSHA1Context;
 {$ENDIF}
   Stream: TStream;
   FileIsZeroSize: Boolean;
@@ -586,13 +586,13 @@ begin
 end;
 
 // 以十六进制格式输出 SHA1 计算值
-function SHA1Print(const Digest: TSHA1Digest): string;
+function SHA1Print(const Digest: TCnSHA1Digest): string;
 begin
-  Result := DataToHex(@Digest[0], SizeOf(TSHA1Digest));
+  Result := DataToHex(@Digest[0], SizeOf(TCnSHA1Digest));
 end;
 
 // 比较两个 SHA1 计算值是否相等
-function SHA1Match(const D1, D2: TSHA1Digest): Boolean;
+function SHA1Match(const D1, D2: TCnSHA1Digest): Boolean;
 var
   I: Integer;
 begin
@@ -606,7 +606,7 @@ begin
 end;
 
 // SHA1 计算值转 string
-function SHA1DigestToStr(aDig: TSHA1Digest): string;
+function SHA1DigestToStr(aDig: TCnSHA1Digest): string;
 var
   I: Integer;
 begin
@@ -615,10 +615,10 @@ begin
     Result[I] := Chr(aDig[I - 1]);
 end;
 
-procedure SHA1HmacInit(var Ctx: TSHA1Context; Key: PAnsiChar; KeyLength: Integer);
+procedure SHA1HmacInit(var Ctx: TCnSHA1Context; Key: PAnsiChar; KeyLength: Integer);
 var
   I: Integer;
-  Sum: TSHA1Digest;
+  Sum: TCnSHA1Digest;
 begin
   if KeyLength > HMAC_SHA1_BLOCK_SIZE_BYTE then
   begin
@@ -640,15 +640,15 @@ begin
   SHA1Update(Ctx, @(Ctx.Ipad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
 end;
 
-procedure SHA1HmacUpdate(var Ctx: TSHA1Context; Input: PAnsiChar; Length: Cardinal);
+procedure SHA1HmacUpdate(var Ctx: TCnSHA1Context; Input: PAnsiChar; Length: Cardinal);
 begin
   SHA1Update(Ctx, Input, Length);
 end;
 
-procedure SHA1HmacFinal(var Ctx: TSHA1Context; var Output: TSHA1Digest);
+procedure SHA1HmacFinal(var Ctx: TCnSHA1Context; var Output: TCnSHA1Digest);
 var
   Len: Integer;
-  TmpBuf: TSHA1Digest;
+  TmpBuf: TCnSHA1Digest;
 begin
   Len := HMAC_SHA1_OUTPUT_LENGTH_BYTE;
   SHA1Final(Ctx, TmpBuf);
@@ -659,9 +659,9 @@ begin
 end;
 
 procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TSHA1Digest);
+  Length: Cardinal; var Output: TCnSHA1Digest);
 var
-  Ctx: TSHA1Context;
+  Ctx: TCnSHA1Context;
 begin
   SHA1HmacInit(Ctx, Key, KeyLength);
   SHA1HmacUpdate(Ctx, Input, Length);

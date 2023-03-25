@@ -44,49 +44,49 @@ uses
   Classes, SysUtils, CnNative;
 
 const
-  CHACHA_STATE_SIZE   = 16;
+  CN_CHACHA_STATE_SIZE   = 16;
   {* ChaCha20 算法的状态块数，64 字节}
 
-  CHACHA_KEY_SIZE     = 32;
+  CN_CHACHA_KEY_SIZE     = 32;
   {* ChaCha20 算法的 Key 字节长度}
 
-  CHACHA_NONCE_SIZE   = 12;
+  CN_CHACHA_NONCE_SIZE   = 12;
   {* ChaCha20 算法的 Nonce 字节长度}
 
-  CHACHA_COUNT_SIZE   = 4;
+  CN_CHACHA_COUNT_SIZE   = 4;
   {* ChaCha20 算法的计数器字节长度，实际运算时使用 Cardinal 代替}
 
 type
-  TChaChaKey = array[0..CHACHA_KEY_SIZE - 1] of Byte;
+  TCnChaChaKey = array[0..CN_CHACHA_KEY_SIZE - 1] of Byte;
   {* ChaCha20 算法的 Key}
 
-  TChaChaNonce = array[0..CHACHA_NONCE_SIZE - 1] of Byte;
+  TCnChaChaNonce = array[0..CN_CHACHA_NONCE_SIZE - 1] of Byte;
   {* ChaCha20 算法的 Nonce}
 
-  TChaChaCounter = Cardinal;
+  TCnChaChaCounter = Cardinal;
   {* ChaCha20 算法的计数器}
 
-  TChaChaState = array[0..CHACHA_STATE_SIZE - 1] of Cardinal;
+  TCnChaChaState = array[0..CN_CHACHA_STATE_SIZE - 1] of Cardinal;
   {* ChaCha20 算法的状态块}
 
-procedure ChaCha20Block(var Key: TChaChaKey; var Nonce: TChaChaNonce;
-  Counter: TChaChaCounter; var OutState: TChaChaState);
+procedure ChaCha20Block(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
+  Counter: TCnChaChaCounter; var OutState: TCnChaChaState);
 {* 进行一次块运算，包括 20 轮的子运算}
 
-function ChaCha20EncryptBytes(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+function ChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Data: TBytes): TBytes;
 {* 对字节数组进行 ChaCha20 加密}
 
-function ChaCha20DecryptBytes(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+function ChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   EnData: TBytes): TBytes;
 {* 对字节数组进行 ChaCha20 解密}
 
-function ChaCha20EncryptData(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+function ChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
 {* 对 Data 所指的 DataByteLength 长度的数据块进行 ChaCha20 加密，
   密文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
 
-function ChaCha20DecryptData(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+function ChaCha20DecryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   EnData: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
 {* 对 Data 所指的 DataByteLength 长度的密文数据块进行 ChaCha20 解密，
   明文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
@@ -123,13 +123,13 @@ begin
   ROT(B, 7);
 end;
 
-procedure QuarterRoundState(var State: TChaChaState; A, B, C, D: Integer);
+procedure QuarterRoundState(var State: TCnChaChaState; A, B, C, D: Integer);
 begin
   QuarterRound(State[A], State[B], State[C], State[D]);
 end;
 
-procedure BuildState(var State: TChaChaState; var Key: TChaChaKey;
-  var Nonce: TChaChaNonce; Counter: TChaChaCounter);
+procedure BuildState(var State: TCnChaChaState; var Key: TCnChaChaKey;
+  var Nonce: TCnChaChaNonce; Counter: TCnChaChaCounter);
 begin
   State[0] := CHACHA20_CONST0;
   State[1] := CHACHA20_CONST1;
@@ -152,7 +152,7 @@ begin
   State[15] := PCardinal(@Nonce[8])^;
 end;
 
-procedure ChaCha20InnerBlock(var State: TChaChaState);
+procedure ChaCha20InnerBlock(var State: TCnChaChaState);
 begin
   QuarterRoundState(State, 0, 4, 8, 12);
   QuarterRoundState(State, 1, 5, 9, 13);
@@ -165,28 +165,28 @@ begin
   QuarterRoundState(State, 3, 4, 9, 14);
 end;
 
-procedure ChaCha20Block(var Key: TChaChaKey; var Nonce: TChaChaNonce;
-  Counter: TChaChaCounter; var OutState: TChaChaState);
+procedure ChaCha20Block(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
+  Counter: TCnChaChaCounter; var OutState: TCnChaChaState);
 var
   I: Integer;
-  State: TChaChaState;
+  State: TCnChaChaState;
 begin
   BuildState(State, Key, Nonce, Counter);
-  Move(State[0], OutState[0], SizeOf(TChaChaState));
+  Move(State[0], OutState[0], SizeOf(TCnChaChaState));
 
   for I := 1 to 10 do
     ChaCha20InnerBlock(OutState);
 
-  for I := Low(TChaChaState) to High(TChaChaState) do
+  for I := Low(TCnChaChaState) to High(TCnChaChaState) do
     OutState[I] := OutState[I] + State[I];
 end;
 
-function ChaCha20Data(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+function ChaCha20Data(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
 var
   I, J, L, B: Integer;
-  Cnt: TChaChaCounter;
-  Stream: TChaChaState;
+  Cnt: TCnChaChaCounter;
+  Stream: TCnChaChaState;
   P, Q, M: PByteArray;
 begin
   Result := False;
@@ -194,7 +194,7 @@ begin
     Exit;
 
   Cnt := 1;
-  B := DataByteLength div (SizeOf(Cardinal) * CHACHA_STATE_SIZE); // 有 B 个完整块
+  B := DataByteLength div (SizeOf(Cardinal) * CN_CHACHA_STATE_SIZE); // 有 B 个完整块
   P := PByteArray(Data);
   Q := PByteArray(Output);
   M := PByteArray(@Stream[0]);
@@ -206,18 +206,18 @@ begin
       ChaCha20Block(Key, Nonce, Cnt, Stream);
 
       // P、Q 已各指向要处理的原始块与密文块
-      for J := 0 to SizeOf(Cardinal) * CHACHA_STATE_SIZE - 1 do
+      for J := 0 to SizeOf(Cardinal) * CN_CHACHA_STATE_SIZE - 1 do
         Q^[J] := P^[J] xor M[J];
 
       // 指向下一块
-      P := PByteArray(TCnNativeInt(P) + SizeOf(Cardinal) * CHACHA_STATE_SIZE);
-      Q := PByteArray(TCnNativeInt(Q) + SizeOf(Cardinal) * CHACHA_STATE_SIZE);
+      P := PByteArray(TCnNativeInt(P) + SizeOf(Cardinal) * CN_CHACHA_STATE_SIZE);
+      Q := PByteArray(TCnNativeInt(Q) + SizeOf(Cardinal) * CN_CHACHA_STATE_SIZE);
 
       Inc(Cnt);
     end;
   end;
 
-  L := DataByteLength mod (SizeOf(Cardinal) * CHACHA_STATE_SIZE);
+  L := DataByteLength mod (SizeOf(Cardinal) * CN_CHACHA_STATE_SIZE);
   if L > 0 then // 还有剩余块，长度为 L
   begin
     ChaCha20Block(Key, Nonce, Cnt, Stream);
@@ -228,7 +228,7 @@ begin
   end;
 end;
 
-function ChaCha20EncryptBytes(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+function ChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Data: TBytes): TBytes;
 var
   L: Integer;
@@ -246,7 +246,7 @@ begin
   end;
 end;
 
-function ChaCha20DecryptBytes(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+function ChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   EnData: TBytes): TBytes;
 var
   L: Integer;
@@ -264,13 +264,13 @@ begin
   end;
 end;
 
-function ChaCha20EncryptData(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+function ChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
 begin
   Result := ChaCha20Data(Key, Nonce, Data, DataByteLength, Output);
 end;
 
-function ChaCha20DecryptData(var Key: TChaChaKey; var Nonce: TChaChaNonce;
+function ChaCha20DecryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   EnData: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
 begin
   Result := ChaCha20Data(Key, Nonce, EnData, DataByteLength, Output);

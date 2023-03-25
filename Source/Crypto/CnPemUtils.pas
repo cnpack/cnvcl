@@ -419,13 +419,13 @@ var
   Keys: array[0..31] of Byte; // 最长的 Key 也只有 32 字节
   IvStr: AnsiString;
   HexIv: string;
-  AESKey128: TAESKey128;
-  AESKey192: TAESKey192;
-  AESKey256: TAESKey256;
-  AesIv: TAESBuffer;
-  DesKey: TDESKey;
-  Des3Key: T3DESKey;
-  DesIv: TDESIv;
+  AESKey128: TCnAESKey128;
+  AESKey192: TCnAESKey192;
+  AESKey256: TCnAESKey256;
+  AesIv: TCnAESBuffer;
+  DesKey: TCnDESKey;
+  Des3Key: TCn3DESKey;
+  DesIv: TCnDESIv;
 begin
   Result := False;
 
@@ -462,40 +462,40 @@ begin
     case KeyEncrypt of
       ckeDES:
         begin
-          Move(Keys[0], DesKey[0], SizeOf(TDESKey));
-          Move(IvStr[1], DesIv[0], SizeOf(TDESIv));
+          Move(Keys[0], DesKey[0], SizeOf(TCnDESKey));
+          Move(IvStr[1], DesIv[0], SizeOf(TCnDESIv));
 
           DESEncryptStreamCBC(Stream, Stream.Size, DesKey, DesIv, ES);
           Result := True;
         end;
       cke3DES:
         begin
-          Move(Keys[0], Des3Key[0], SizeOf(T3DESKey));
-          Move(IvStr[1], DesIv[0], SizeOf(T3DESIv));
+          Move(Keys[0], Des3Key[0], SizeOf(TCn3DESKey));
+          Move(IvStr[1], DesIv[0], SizeOf(TCn3DESIv));
 
           TripleDESEncryptStreamCBC(Stream, Stream.Size, Des3Key, DesIv, ES);
           Result := True;
         end;
       ckeAES128:
         begin
-          Move(Keys[0], AESKey128[0], SizeOf(TAESKey128));
-          Move(IvStr[1], AesIv[0], SizeOf(TAESBuffer));
+          Move(Keys[0], AESKey128[0], SizeOf(TCnAESKey128));
+          Move(IvStr[1], AesIv[0], SizeOf(TCnAESBuffer));
 
           EncryptAESStreamCBC(Stream, Stream.Size, AESKey128, AesIv, ES);
           Result := True;
         end;
       ckeAES192:
         begin
-          Move(Keys[0], AESKey192[0], SizeOf(TAESKey192));
-          Move(IvStr[1], AesIv[0], SizeOf(TAESBuffer));
+          Move(Keys[0], AESKey192[0], SizeOf(TCnAESKey192));
+          Move(IvStr[1], AesIv[0], SizeOf(TCnAESBuffer));
 
           EncryptAESStreamCBC(Stream, Stream.Size, AESKey192, AesIv, ES);
           Result := True;
         end;
       ckeAES256:
         begin
-          Move(Keys[0], AESKey256[0], SizeOf(TAESKey256));
-          Move(IvStr[1], AesIv[0], SizeOf(TAESBuffer));
+          Move(Keys[0], AESKey256[0], SizeOf(TCnAESKey256));
+          Move(IvStr[1], AesIv[0], SizeOf(TCnAESBuffer));
 
           EncryptAESStreamCBC(Stream, Stream.Size, AESKey256, AesIv, ES);
           Result := True;
@@ -520,14 +520,14 @@ function DecryptPemString(const S, M1, M2, HexIv, Password: string; Stream: TMem
 var
   DS: TMemoryStream;
   Keys: array[0..31] of Byte; // 最长的 Key 也只有 32 字节
-  AESKey128: TAESKey128;
-  AESKey192: TAESKey192;
-  AESKey256: TAESKey256;
+  AESKey128: TCnAESKey128;
+  AESKey192: TCnAESKey192;
+  AESKey256: TCnAESKey256;
   IvStr: AnsiString;
-  AesIv: TAESBuffer;
-  DesKey: TDESKey;
-  Des3Key: T3DESKey;
-  DesIv: TDESIv;
+  AesIv: TCnAESBuffer;
+  DesKey: TCnDESKey;
+  Des3Key: TCn3DESKey;
+  DesIv: TCnDESIv;
 begin
   Result := False;
   DS := nil;
@@ -564,8 +564,8 @@ begin
     if (M1 = ENC_TYPE_AES256) and (M2 = ENC_BLOCK_CBC) then
     begin
       // 解开 AES-256-CBC 加密的密文
-      Move(Keys[0], AESKey256[0], SizeOf(TAESKey256));
-      Move(IvStr[1], AesIv[0], Min(SizeOf(TAESBuffer), Length(IvStr)));
+      Move(Keys[0], AESKey256[0], SizeOf(TCnAESKey256));
+      Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
 
       DecryptAESStreamCBC(DS, DS.Size, AESKey256, AesIv, Stream);
       RemovePKCS7Padding(Stream);
@@ -574,8 +574,8 @@ begin
     else if (M1 = ENC_TYPE_AES192) and (M2 = ENC_BLOCK_CBC) then
     begin
       // 解开 AES-192-CBC 加密的密文
-      Move(Keys[0], AESKey192[0], SizeOf(TAESKey192));
-      Move(IvStr[1], AesIv[0], Min(SizeOf(TAESBuffer), Length(IvStr)));
+      Move(Keys[0], AESKey192[0], SizeOf(TCnAESKey192));
+      Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
 
       DecryptAESStreamCBC(DS, DS.Size, AESKey192, AesIv, Stream);
       RemovePKCS7Padding(Stream);
@@ -584,8 +584,8 @@ begin
     else if (M1 = ENC_TYPE_AES128) and (M2 = ENC_BLOCK_CBC) then
     begin
       // 解开 AES-128-CBC 加密的密文，但 D5 下貌似可能碰到编译器的 Bug 导致出 AV。
-      Move(Keys[0], AESKey128[0], SizeOf(TAESKey128));
-      Move(IvStr[1], AesIv[0], Min(SizeOf(TAESBuffer), Length(IvStr)));
+      Move(Keys[0], AESKey128[0], SizeOf(TCnAESKey128));
+      Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
 
       DecryptAESStreamCBC(DS, DS.Size, AESKey128, AesIv, Stream);
       RemovePKCS7Padding(Stream);
@@ -594,8 +594,8 @@ begin
     else if (M1 = ENC_TYPE_DES) and (M2 = ENC_BLOCK_CBC) then
     begin
       // 解开 DES-CBC 加密的密文
-      Move(Keys[0], DesKey[0], SizeOf(TDESKey));
-      Move(IvStr[1], DesIv[0], Min(SizeOf(TDESIv), Length(IvStr)));
+      Move(Keys[0], DesKey[0], SizeOf(TCnDESKey));
+      Move(IvStr[1], DesIv[0], Min(SizeOf(TCnDESIv), Length(IvStr)));
 
       DESDecryptStreamCBC(DS, DS.Size, DesKey, DesIv, Stream);
       RemovePKCS7Padding(Stream);
@@ -604,8 +604,8 @@ begin
     else if (M1 = ENC_TYPE_3DES) and (M2 = ENC_BLOCK_CBC) then
     begin
       // 解开 3DES-CBC 加密的密文
-      Move(Keys[0], Des3Key[0], SizeOf(T3DESKey));
-      Move(IvStr[1], DesIv[0], Min(SizeOf(T3DESIv), Length(IvStr)));
+      Move(Keys[0], Des3Key[0], SizeOf(TCn3DESKey));
+      Move(IvStr[1], DesIv[0], Min(SizeOf(TCn3DESIv), Length(IvStr)));
 
       TripleDESDecryptStreamCBC(DS, DS.Size, Des3Key, DesIv, Stream);
       RemovePKCS7Padding(Stream);

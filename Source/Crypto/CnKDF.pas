@@ -106,8 +106,8 @@ end;
 function CnGetDeriveKey(const Password, Salt: AnsiString; OutKey: PAnsiChar; KeyLength: Cardinal;
   KeyHash: TCnKeyDeriveHash): Boolean;
 var
-  Md5Dig, Md5Dig2: TMD5Digest;
-  Sha256Dig, Sha256Dig2: TSHA256Digest;
+  Md5Dig, Md5Dig2: TCnMD5Digest;
+  Sha256Dig, Sha256Dig2: TCnSHA256Digest;
   SaltBuf, PS, PSMD5, PSSHA256: AnsiString;
 begin
   Result := False;
@@ -126,50 +126,50 @@ begin
   PS := AnsiString(Password) + SaltBuf; // 规定前 8 个字节作为 Salt
   if KeyHash = ckdMd5 then
   begin
-    SetLength(PSMD5, SizeOf(TMD5Digest) + Length(PS));
-    Move(PS[1], PSMD5[SizeOf(TMD5Digest) + 1], Length(PS));
+    SetLength(PSMD5, SizeOf(TCnMD5Digest) + Length(PS));
+    Move(PS[1], PSMD5[SizeOf(TCnMD5Digest) + 1], Length(PS));
     Md5Dig := MD5StringA(PS);
     // 密码与 Salt 拼起来的 MD5 结果（16 Byte）作为第一部分
 
-    Move(Md5Dig[0], OutKey^, Min(KeyLength, SizeOf(TMD5Digest)));
-    if KeyLength <= SizeOf(TMD5Digest) then
+    Move(Md5Dig[0], OutKey^, Min(KeyLength, SizeOf(TCnMD5Digest)));
+    if KeyLength <= SizeOf(TCnMD5Digest) then
     begin
       Result := True;
       Exit;
     end;
 
-    KeyLength := KeyLength - SizeOf(TMD5Digest);
-    OutKey := PAnsiChar(TCnNativeInt(OutKey) + SizeOf(TMD5Digest));
+    KeyLength := KeyLength - SizeOf(TCnMD5Digest);
+    OutKey := PAnsiChar(TCnNativeInt(OutKey) + SizeOf(TCnMD5Digest));
 
-    Move(Md5Dig[0], PSMD5[1], SizeOf(TMD5Digest));
+    Move(Md5Dig[0], PSMD5[1], SizeOf(TCnMD5Digest));
     Md5Dig2 := MD5StringA(PSMD5);
-    Move(Md5Dig2[0], OutKey^, Min(KeyLength, SizeOf(TMD5Digest)));
-    if KeyLength <= SizeOf(TMD5Digest) then
+    Move(Md5Dig2[0], OutKey^, Min(KeyLength, SizeOf(TCnMD5Digest)));
+    if KeyLength <= SizeOf(TCnMD5Digest) then
       Result := True;
 
     // 否则 KeyLength 太大，满足不了
   end
   else if KeyHash = ckdSha256 then
   begin
-    SetLength(PSSHA256, SizeOf(TSHA256Digest) + Length(PS));
-    Move(PS[1], PSSHA256[SizeOf(TSHA256Digest) + 1], Length(PS));
+    SetLength(PSSHA256, SizeOf(TCnSHA256Digest) + Length(PS));
+    Move(PS[1], PSSHA256[SizeOf(TCnSHA256Digest) + 1], Length(PS));
     Sha256Dig := SHA256StringA(PS);
     // 密码与 Salt 拼起来的 SHA256 结果（32 Byte）作为第一部分
 
-    Move(Sha256Dig[0], OutKey^, Min(KeyLength, SizeOf(TSHA256Digest)));
-    if KeyLength <= SizeOf(TSHA256Digest) then
+    Move(Sha256Dig[0], OutKey^, Min(KeyLength, SizeOf(TCnSHA256Digest)));
+    if KeyLength <= SizeOf(TCnSHA256Digest) then
     begin
       Result := True;
       Exit;
     end;
 
-    KeyLength := KeyLength - SizeOf(TSHA256Digest);
-    OutKey := PAnsiChar(TCnNativeInt(OutKey) + SizeOf(TSHA256Digest));
+    KeyLength := KeyLength - SizeOf(TCnSHA256Digest);
+    OutKey := PAnsiChar(TCnNativeInt(OutKey) + SizeOf(TCnSHA256Digest));
 
-    Move(Sha256Dig[0], PSSHA256[1], SizeOf(TSHA256Digest));
+    Move(Sha256Dig[0], PSSHA256[1], SizeOf(TCnSHA256Digest));
     Sha256Dig2 := SHA256StringA(PSSHA256);
-    Move(Sha256Dig2[0], OutKey^, Min(KeyLength, SizeOf(TSHA256Digest)));
-    if KeyLength <= SizeOf(TSHA256Digest) then
+    Move(Sha256Dig2[0], OutKey^, Min(KeyLength, SizeOf(TCnSHA256Digest)));
+    if KeyLength <= SizeOf(TCnSHA256Digest) then
       Result := True;
 
     // 否则 KeyLength 太大，满足不了
@@ -187,8 +187,8 @@ function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyLength: Int
   KeyHash: TCnPBKDF1KeyHash): AnsiString;
 var
   I: Integer;
-  Md5Dig, TM: TMD5Digest;
-  Sha1Dig, TS: TSHA1Digest;
+  Md5Dig, TM: TCnMD5Digest;
+  Sha1Dig, TS: TCnSHA1Digest;
   Ptr: PAnsiChar;
 begin
   if (Password = '') or (Count <= 0) or (DerivedKeyLength <= 0) then
@@ -197,7 +197,7 @@ begin
   case KeyHash of
     cpdfMd5:
       begin
-        if DerivedKeyLength > SizeOf(TMD5Digest) then
+        if DerivedKeyLength > SizeOf(TCnMD5Digest) then
           raise ECnKDFException.Create(SCnKDFErrorTooLong);
 
         SetLength(Result, DerivedKeyLength);
@@ -208,7 +208,7 @@ begin
           for I := 2 to Count do
           begin
             TM := Md5Dig;
-            Md5Dig := MD5Buffer(Ptr, SizeOf(TMD5Digest)); // Got T_c
+            Md5Dig := MD5Buffer(Ptr, SizeOf(TCnMD5Digest)); // Got T_c
           end;
         end;
 
@@ -216,7 +216,7 @@ begin
       end;
     cpdfSha1:
       begin
-        if DerivedKeyLength > SizeOf(TSHA1Digest) then
+        if DerivedKeyLength > SizeOf(TCnSHA1Digest) then
           raise ECnKDFException.Create(SCnKDFErrorTooLong);
 
         SetLength(Result, DerivedKeyLength);
@@ -227,7 +227,7 @@ begin
           for I := 2 to Count do
           begin
             TS := Sha1Dig;
-            Sha1Dig := SHA1Buffer(Ptr, SizeOf(TSHA1Digest)); // Got T_c
+            Sha1Dig := SHA1Buffer(Ptr, SizeOf(TCnSHA1Digest)); // Got T_c
           end;
         end;
 
@@ -253,8 +253,8 @@ function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Int
   KeyHash: TCnPBKDF2KeyHash): AnsiString;
 var
   HLen, D, I, J, K: Integer;
-  Sha1Dig1, Sha1Dig, T1: TSHA1Digest;
-  Sha256Dig1, Sha256Dig, T256: TSHA256Digest;
+  Sha1Dig1, Sha1Dig, T1: TCnSHA1Digest;
+  Sha256Dig1, Sha256Dig, T256: TCnSHA256Digest;
   S, S1, S256: AnsiString;
 begin
   Result := '';
@@ -271,8 +271,8 @@ begin
   end;
 
   D := (DerivedKeyLength div HLen) + 1;
-  SetLength(S1, SizeOf(TSHA1Digest));
-  SetLength(S256, SizeOf(TSHA256Digest));
+  SetLength(S1, SizeOf(TCnSHA1Digest));
+  SetLength(S256, SizeOf(TCnSHA256Digest));
 
   if KeyHash = cpdfSha1Hmac then
   begin
@@ -288,13 +288,13 @@ begin
 
       for J := 2 to Count do
       begin
-        SHA1Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(@T1[0]), SizeOf(TSHA1Digest), Sha1Dig);
+        SHA1Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(@T1[0]), SizeOf(TCnSHA1Digest), Sha1Dig);
         T1 := Sha1Dig;
-        for K := Low(TSHA1Digest) to High(TSHA1Digest) do
+        for K := Low(TCnSHA1Digest) to High(TCnSHA1Digest) do
           Sha1Dig1[K] := Sha1Dig1[K] xor T1[K];
       end;
 
-      Move(Sha1Dig1[0], S1[1], SizeOf(TSHA1Digest));
+      Move(Sha1Dig1[0], S1[1], SizeOf(TCnSHA1Digest));
       Result := Result + S1;
     end;
     Result := Copy(Result, 1, DerivedKeyLength);
@@ -313,13 +313,13 @@ begin
 
       for J := 2 to Count do
       begin
-        SHA256Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(@T256[0]), SizeOf(TSHA256Digest), Sha256Dig);
+        SHA256Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(@T256[0]), SizeOf(TCnSHA256Digest), Sha256Dig);
         T256 := Sha256Dig;
-        for K := Low(TSHA256Digest) to High(TSHA256Digest) do
+        for K := Low(TCnSHA256Digest) to High(TCnSHA256Digest) do
           Sha256Dig1[K] := Sha256Dig1[K] xor T256[K];
       end;
 
-      Move(Sha256Dig1[0], S256[1], SizeOf(TSHA256Digest));
+      Move(Sha256Dig1[0], S256[1], SizeOf(TCnSHA256Digest));
       Result := Result + S256;
     end;
     Result := Copy(Result, 1, DerivedKeyLength);
@@ -330,14 +330,14 @@ function CnSM2KDF(const Data: AnsiString; DerivedKeyLength: Integer): AnsiString
 var
   S, SDig: AnsiString;
   I, D: Integer;
-  Dig: TSM3Digest;
+  Dig: TCnSM3Digest;
 begin
   Result := '';
   if (Data = '') or (DerivedKeyLength <= 0) then
     raise ECnKDFException.Create(SCnKDFErrorParam);
 
-  SetLength(SDig, SizeOf(TSM3Digest));
-  D := DerivedKeyLength div SizeOf(TSM3Digest) + 1;
+  SetLength(SDig, SizeOf(TCnSM3Digest));
+  D := DerivedKeyLength div SizeOf(TCnSM3Digest) + 1;
   for I := 1 to D do
   begin
 {$IFDEF UNICODE}
@@ -346,7 +346,7 @@ begin
     S := Data + Chr(I shr 24) + Chr(I shr 16) + Chr(I shr 8) + Chr(I);
 {$ENDIF}
     Dig := SM3StringA(S);
-    Move(Dig[0], SDig[1], SizeOf(TSM3Digest));
+    Move(Dig[0], SDig[1], SizeOf(TCnSM3Digest));
     Result := Result + SDig;
   end;
   Result := Copy(Result, 1, DerivedKeyLength);
@@ -364,7 +364,7 @@ var
   CT, SCT: Cardinal;
   I, CeilLen: Integer;
   IsInt: Boolean;
-  SM3D: TSM3Digest;
+  SM3D: TCnSM3Digest;
 begin
   Result := '';
   if (Data = nil) or (DataLen <= 0) or (DerivedKeyLength <= 0) then
@@ -377,8 +377,8 @@ begin
     SetLength(DArr, DataLen + SizeOf(Cardinal));
     Move(Data^, DArr[0], DataLen);
 
-    IsInt := DerivedKeyLength mod SizeOf(TSM3Digest) = 0;
-    CeilLen := (DerivedKeyLength + SizeOf(TSM3Digest) - 1) div SizeOf(TSM3Digest);
+    IsInt := DerivedKeyLength mod SizeOf(TCnSM3Digest) = 0;
+    CeilLen := (DerivedKeyLength + SizeOf(TCnSM3Digest) - 1) div SizeOf(TCnSM3Digest);
 
     SetLength(Result, DerivedKeyLength);
     for I := 1 to CeilLen do
@@ -390,10 +390,10 @@ begin
       if (I = CeilLen) and not IsInt then
       begin
         // 是最后一个，不整除 32 时只移动一部分
-        Move(SM3D[0], Result[(I - 1) * SizeOf(TSM3Digest) + 1], (DerivedKeyLength mod SizeOf(TSM3Digest)));
+        Move(SM3D[0], Result[(I - 1) * SizeOf(TCnSM3Digest) + 1], (DerivedKeyLength mod SizeOf(TCnSM3Digest)));
       end
       else
-        Move(SM3D[0], Result[(I - 1) * SizeOf(TSM3Digest) + 1], SizeOf(TSM3Digest));
+        Move(SM3D[0], Result[(I - 1) * SizeOf(TCnSM3Digest) + 1], SizeOf(TCnSM3Digest));
 
       Inc(CT);
     end;
@@ -408,7 +408,7 @@ var
   CT, SCT: Cardinal;
   L, I, CeilLen: Integer;
   IsInt: Boolean;
-  SM3D: TSM3Digest;
+  SM3D: TCnSM3Digest;
 begin
   Result := nil;
   L := Length(Data);
@@ -422,8 +422,8 @@ begin
     SetLength(DArr, L + SizeOf(Cardinal));
     Move(Data[0], DArr[0], L);
 
-    IsInt := DerivedKeyLength mod SizeOf(TSM3Digest) = 0;
-    CeilLen := (DerivedKeyLength + SizeOf(TSM3Digest) - 1) div SizeOf(TSM3Digest);
+    IsInt := DerivedKeyLength mod SizeOf(TCnSM3Digest) = 0;
+    CeilLen := (DerivedKeyLength + SizeOf(TCnSM3Digest) - 1) div SizeOf(TCnSM3Digest);
 
     SetLength(Result, DerivedKeyLength);
     for I := 1 to CeilLen do
@@ -435,10 +435,10 @@ begin
       if (I = CeilLen) and not IsInt then
       begin
         // 是最后一个，不整除 32 时只移动一部分
-        Move(SM3D[0], Result[(I - 1) * SizeOf(TSM3Digest)], (DerivedKeyLength mod SizeOf(TSM3Digest)));
+        Move(SM3D[0], Result[(I - 1) * SizeOf(TCnSM3Digest)], (DerivedKeyLength mod SizeOf(TCnSM3Digest)));
       end
       else
-        Move(SM3D[0], Result[(I - 1) * SizeOf(TSM3Digest)], SizeOf(TSM3Digest));
+        Move(SM3D[0], Result[(I - 1) * SizeOf(TCnSM3Digest)], SizeOf(TCnSM3Digest));
 
       Inc(CT);
     end;

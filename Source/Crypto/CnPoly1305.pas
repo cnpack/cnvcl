@@ -42,27 +42,27 @@ uses
   Classes, SysUtils, CnNative, CnBigNumber;
 
 const
-  POLY1305_KEYSIZE   = 32;       // 输入 32 字节也就是 256 位的 Key
+  CN_POLY1305_KEYSIZE   = 32;       // 输入 32 字节也就是 256 位的 Key
 
-  POLY1305_BLOCKSIZE = 16;       // 内部分块，每块 16 字节
+  CN_POLY1305_BLOCKSIZE = 16;       // 内部分块，每块 16 字节
 
-  POLY1305_DIGSIZE   = 16;       // 输出 16 字节也就是 128 位的摘要
+  CN_POLY1305_DIGSIZE   = 16;       // 输出 16 字节也就是 128 位的摘要
 
 type
-  TPoly1305Key = array[0..POLY1305_KEYSIZE - 1] of Byte;
+  TCnPoly1305Key = array[0..CN_POLY1305_KEYSIZE - 1] of Byte;
   {* Poly1305 算法的 Key}
 
-  TPoly1305Digest = array[0..POLY1305_DIGSIZE - 1] of Byte;
+  TCnPoly1305Digest = array[0..CN_POLY1305_DIGSIZE - 1] of Byte;
   {* Poly1305 算法的杂凑结果}
 
-function Poly1305Bytes(Data: TBytes; Key: TBytes): TPoly1305Digest;
+function Poly1305Bytes(Data: TBytes; Key: TBytes): TCnPoly1305Digest;
 {* 计算字节数组的 Poly1305 杂凑值}
 
 function Poly1305Data(Data: Pointer; DataByteLength: Integer;
-  Key: TPoly1305Key): TPoly1305Digest;
+  Key: TCnPoly1305Key): TCnPoly1305Digest;
 {* 计算数据块的 Poly1305 杂凑值}
 
-function Poly1305Print(const Digest: TPoly1305Digest): string;
+function Poly1305Print(const Digest: TCnPoly1305Digest): string;
 {* 以十六进制格式输出 Poly1305 计算值}
 
 implementation
@@ -71,32 +71,32 @@ var
   Prime: TCnBigNumber = nil; // Poly1305 使用的素数
   Clamp: TCnBigNumber = nil; // Poly1305 使用的 Clamp
 
-function Poly1305Bytes(Data: TBytes; Key: TBytes): TPoly1305Digest;
+function Poly1305Bytes(Data: TBytes; Key: TBytes): TCnPoly1305Digest;
 var
-  AKey: TPoly1305Key;
+  AKey: TCnPoly1305Key;
   L: Integer;
 begin
-  FillChar(AKey[0], SizeOf(TPoly1305Key), 0);
+  FillChar(AKey[0], SizeOf(TCnPoly1305Key), 0);
   L := Length(Key);
-  if L > SizeOf(TPoly1305Key) then
-    L := SizeOf(TPoly1305Key);
+  if L > SizeOf(TCnPoly1305Key) then
+    L := SizeOf(TCnPoly1305Key);
 
   Move(Key[0], AKey[0], L);
   Result := Poly1305Data(@Data[0], Length(Data), AKey);
 end;
 
 function Poly1305Data(Data: Pointer; DataByteLength: Integer;
-  Key: TPoly1305Key): TPoly1305Digest;
+  Key: TCnPoly1305Key): TCnPoly1305Digest;
 var
   I, B, L: Integer;
   R, S, A, N: TCnBigNumber;
-  Buf: array[0..POLY1305_BLOCKSIZE] of Byte;
+  Buf: array[0..CN_POLY1305_BLOCKSIZE] of Byte;
   P: PByteArray;
-  RKey: TPoly1305Key;
+  RKey: TCnPoly1305Key;
 begin
-  Move(Key[0], RKey[0], SizeOf(TPoly1305Key));
-  ReverseMemory(@RKey[0], POLY1305_BLOCKSIZE);
-  ReverseMemory(@RKey[POLY1305_BLOCKSIZE], POLY1305_BLOCKSIZE);
+  Move(Key[0], RKey[0], SizeOf(TCnPoly1305Key));
+  ReverseMemory(@RKey[0], CN_POLY1305_BLOCKSIZE);
+  ReverseMemory(@RKey[CN_POLY1305_BLOCKSIZE], CN_POLY1305_BLOCKSIZE);
 
   R := nil;
   S := nil;
@@ -104,27 +104,27 @@ begin
   N := nil;
 
   try
-    R := TCnBigNumber.FromBinary(@RKey[0], POLY1305_BLOCKSIZE);
+    R := TCnBigNumber.FromBinary(@RKey[0], CN_POLY1305_BLOCKSIZE);
     BigNumberAnd(R, R, Clamp);
 
-    S := TCnBigNumber.FromBinary(@RKey[POLY1305_BLOCKSIZE], POLY1305_BLOCKSIZE);
+    S := TCnBigNumber.FromBinary(@RKey[CN_POLY1305_BLOCKSIZE], CN_POLY1305_BLOCKSIZE);
 
     A := TCnBigNumber.Create;
     A.SetZero;
 
     N := TCnBigNumber.Create;
 
-    B := (DataByteLength + POLY1305_BLOCKSIZE - 1) div POLY1305_BLOCKSIZE;
+    B := (DataByteLength + CN_POLY1305_BLOCKSIZE - 1) div CN_POLY1305_BLOCKSIZE;
     P := PByteArray(Data);
 
     for I := 1 to B do
     begin
       if I <> B then // 普通块，16 字节满的
-        L := POLY1305_BLOCKSIZE
+        L := CN_POLY1305_BLOCKSIZE
       else           // 尾块，可能不够 16 字节
-        L := DataByteLength mod POLY1305_BLOCKSIZE;
+        L := DataByteLength mod CN_POLY1305_BLOCKSIZE;
 
-      Move(P^[(I - 1) * POLY1305_BLOCKSIZE], Buf[0], L);  // 内容塞上
+      Move(P^[(I - 1) * CN_POLY1305_BLOCKSIZE], Buf[0], L);  // 内容塞上
       Buf[L] := 1;                                        // 高字节再置个 1
 
       ReverseMemory(@Buf[0], L + 1);
@@ -135,10 +135,10 @@ begin
     end;
 
     BigNumberAdd(A, A, S);
-    BigNumberKeepLowBits(A, 8 * POLY1305_DIGSIZE);
+    BigNumberKeepLowBits(A, 8 * CN_POLY1305_DIGSIZE);
 
-    A.ToBinary(@Result[0], POLY1305_DIGSIZE);
-    ReverseMemory(@Result[0], SizeOf(TPoly1305Digest));
+    A.ToBinary(@Result[0], CN_POLY1305_DIGSIZE);
+    ReverseMemory(@Result[0], SizeOf(TCnPoly1305Digest));
   finally
     N.Free;
     A.Free;
@@ -147,9 +147,9 @@ begin
   end;
 end;
 
-function Poly1305Print(const Digest: TPoly1305Digest): string;
+function Poly1305Print(const Digest: TCnPoly1305Digest): string;
 begin
-  Result := DataToHex(@Digest[0], SizeOf(TPoly1305Digest));
+  Result := DataToHex(@Digest[0], SizeOf(TCnPoly1305Digest));
 end;
 
 initialization
