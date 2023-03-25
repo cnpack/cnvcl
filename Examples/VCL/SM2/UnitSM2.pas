@@ -315,7 +315,7 @@ var
   RandA, RandB: TCnBigNumber;
   OutRA, OutRB: TCnEccPoint;
   KA, KB: AnsiString;
-  OpSA, OpSB, OpS2: TSM3Digest;
+  OpSA, OpSB, OpS2: TCnSM3Digest;
 begin
   SM2 := TCnSM2.Create(ctSM2Example256);
   APrivateKey := TCnSM2PrivateKey.Create;
@@ -626,7 +626,7 @@ begin
   end
   else // 当作 Base64
   begin
-    if Base64Decode(Edit.Text, B) <> BASE64_OK then
+    if Base64Decode(Edit.Text, B) <> ECN_BASE64_OK then
     begin
       ShowMessage('SM2 Private Key Base64 Invalid.');
       Result := False;
@@ -673,7 +673,7 @@ begin
   end
   else // 当作 Base64
   begin
-    if Base64Decode(Edit.Text, B) <> BASE64_OK then
+    if Base64Decode(Edit.Text, B) <> ECN_BASE64_OK then
     begin
       ShowMessage('SM2 Public Key Base64 Invalid.');
       Result := False;
@@ -806,7 +806,7 @@ var
   RandA, RandB: TCnBigNumber;
   OutRA, OutRB: TCnEccPoint;
   KA, KB: AnsiString;
-  OpSA, OpSB, OpS2: TSM3Digest;
+  OpSA, OpSB, OpS2: TCnSM3Digest;
 begin
   if not CheckPublicKeyStr(edtSM2PublicKey) or not CheckPublicKeyStr(edtSM2BPublicKey) then
     Exit;

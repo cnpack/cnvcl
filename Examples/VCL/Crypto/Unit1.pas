@@ -1974,7 +1974,7 @@ begin
   if OpenDialog1.Execute then
   begin
     M := TFileStream.Create(OpenDialog1.FileName, fmOpenRead);
-    if Base64Encode(M, S) = Base64_OK then
+    if Base64Encode(M, S) = ECN_BASE64_OK then
       edtBase64Result.Text := S;
     M.Free;
   end;
