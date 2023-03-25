@@ -2307,22 +2307,22 @@ var
 begin
   HexToData('66E94BD4EF8A2C3B884CFA59CA342B2E', @H[0]);
   GHash128(H, nil, 0, nil, 0, T);
-  ShowMessage(DataToHex(@T[0], SizeOf(T))); // C��A ��Ϊ�գ����ȫ 0
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // C、A 均为空，结果全 0
 
   C := HexToBytes('0388DACE60B6A392F328C2B971B2FE78');
   GHash128(H, @C[0], Length(C), nil, 0, T);
-  ShowMessage(DataToHex(@T[0], SizeOf(T))); // F38CBB1AD69223DCC3457AE5B6B0F885��һ���� C��û A
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // F38CBB1AD69223DCC3457AE5B6B0F885，一块整 C，没 A
 
   HexToData('b83b533708bf535d0aa6e52980d53b78', @H[0]);
   C := HexToBytes('42831ec2217774244b7221b784d0d49ce3aa212f2c02a4e035c17e2329aca12e21d514b25466931c7d8f6a5aac84aa051ba30b396a0aac973d58e091473f5985');
   T := GHash128Bytes(H, C, nil);
-  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 7F1B32B81B820D02614F8895AC1D4EAC������� C��û A
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 7F1B32B81B820D02614F8895AC1D4EAC，多块整 C，没 A
 
   HexToData('b83b533708bf535d0aa6e52980d53b78', @H[0]);
   C := HexToBytes('42831ec2217774244b7221b784d0d49ce3aa212f2c02a4e035c17e2329aca12e21d514b25466931c7d8f6a5aac84aa051ba30b396a0aac973d58e091');
   A := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
   T := GHash128Bytes(H, C, A);
-  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 698e57f70e6ecc7fd9463b7260a9ae5f ������ C �� ������ A
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 698e57f70e6ecc7fd9463b7260a9ae5f 多块非整 C 和 多块非整 A
 end;
 
 procedure TFormCrypt.btnGMulBlockClick(Sender: TObject);
@@ -2343,7 +2343,7 @@ begin
   MemoryXor(@X[0], @Iv[0], SizeOf(TCn128BitsBuffer), @X[0]);
 
   Move(Key[0], Y[0], SizeOf(TCn128BitsBuffer));
-  GMulBlock128(X, Y, Z);  // ���ٷ��Ͻ�������
+  GMulBlock128(X, Y, Z);  // 至少符合交换律了
 
   ShowMessage(DataToHex(@Z[0], SizeOf(TCn128BitsBuffer)));
 end;
@@ -2363,7 +2363,7 @@ begin
   GHash128Update(Ctx, @C[0], Length(C));
   GHash128Finish(Ctx, T);
 
-  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 698e57f70e6ecc7fd9463b7260a9ae5f ������ C �� ������ A
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 698e57f70e6ecc7fd9463b7260a9ae5f 多块非整 C 和 多块非整 A
 end;
 
 procedure TFormCrypt.btnAES128GCMEnTestClick(Sender: TObject);
@@ -2376,7 +2376,7 @@ begin
   Plain := nil;
   AD := nil;
 
-  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv ȫ 0��Plain �� AD �գ����Ŀ�
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv 全 0，Plain 和 AD 空，密文空
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 58e2fccefa7e3061367f1d57a4e7455a
 
   Key := HexToBytes('00000000000000000000000000000000');
@@ -2384,7 +2384,7 @@ begin
   Plain := HexToBytes('00000000000000000000000000000000');
   AD := nil;
 
-  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain ȫ 0��AD ��
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain 全 0，AD 空
   ShowMessage(DataToHex(@C[0], Length(T)));  // 0388dace60b6a392f328c2b971b2fe78
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // ab6e47d42cec13bdf53a67b21257bddf
 
@@ -2393,7 +2393,7 @@ begin
   Plain := HexToBytes('d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39');
   AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
 
-  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD ȫ�У��� AD �� 96
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD 全有，且 AD 非 96
   ShowMessage(DataToHex(@C[0], Length(C)));  // 61353b4c2806934a777ff51fa22a4755699b2a714fcdc6f83766e5f97b6c742373806900e49f24b22b097544d4896b424989b5e1ebac0f07c23f4598
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 3612d2e79e3b0785561be14aaca2fccb
 end;
@@ -2423,7 +2423,7 @@ begin
   Plain := HexToBytes('AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDEEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA');
   AD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
 
-  C := SM4GCMEncryptBytes(Key, Iv, Plain, AD, T);  // ����������Դ�� RFC 8998
+  C := SM4GCMEncryptBytes(Key, Iv, Plain, AD, T);  // 例子数据来源于 RFC 8998
   ShowMessage(DataToHex(@C[0], Length(C)));  // 17F399F08C67D5EE19D0DC9969C4BB7D5FD46FD3756489069157B282BB200735D82710CA5C22F0CCFA7CBF93D496AC15A56834CBCF98C397B4024A2691233B8D
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 83DE3541E4C2B58177E065A9BF7B62EC
 end;
@@ -2455,7 +2455,7 @@ var
   Key, Nonce, AAD, P, C: TBytes;
   T: TCnCCM128Tag;
 begin
-  // NIST ���ӡ�ע������������е��ƣ��뱣֤ CnAEAD ͷ�������е� Tag 4 �ֽڣ��� 8 �ֽڣ�Ҳ���� CCM_M_LEN = 4; CCM_L_LEN = 8;
+  // NIST 例子。注意从例子数据中倒推，须保证 CnAEAD 头部声明中的 Tag 4 字节，长 8 字节，也就是 CCM_M_LEN = 4; CCM_L_LEN = 8;
   Key := HexToBytes('404142434445464748494a4b4c4d4e4f');
   Nonce := HexToBytes('10111213141516');
   P := HexToBytes('20212223');
@@ -2468,7 +2468,7 @@ begin
   ShowMessage(DataToHex(@T[0], SizeOf(T)));   // 4dac255d
   ShowMessage(DataToHex(@C[0], Length(C)));   // 7162015b
 
-  // RFC ���ӡ�ע���뱣֤ CnAEAD ͷ�������е� Tag 8 �ֽڣ��� 2 �ֽڣ�Ҳ���� CCM_M_LEN = 8; CCM_L_LEN = 2;
+  // RFC 例子。注意须保证 CnAEAD 头部声明中的 Tag 8 字节，长 2 字节，也就是 CCM_M_LEN = 8; CCM_L_LEN = 2;
   Key := HexToBytes('C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF');
   Nonce := HexToBytes('00000003020100A0A1A2A3A4A5');
   P := HexToBytes('08090A0B0C0D0E0F101112131415161718191A1B1C1D1E');
@@ -2484,7 +2484,7 @@ var
   Key, Nonce, AAD, P, C: TBytes;
   T: TCnCCM128Tag;
 begin
-  // NIST ���ӡ�ע������������е��ƣ��뱣֤ CnAEAD ͷ�������е� Tag 4 �ֽڣ��� 8 �ֽڣ�Ҳ���� CCM_M_LEN = 4; CCM_L_LEN = 8;
+  // NIST 例子。注意从例子数据中倒推，须保证 CnAEAD 头部声明中的 Tag 4 字节，长 8 字节，也就是 CCM_M_LEN = 4; CCM_L_LEN = 8;
   Key := HexToBytes('404142434445464748494a4b4c4d4e4f');
   Nonce := HexToBytes('10111213141516');
   C := HexToBytes('7162015b');
@@ -2496,12 +2496,12 @@ begin
     Length(C), @AAD[0], Length(AAD), @P[0], T) then
     ShowMessage(DataToHex(@P[0], Length(P)));   // 20212223
 
-  // RFC ���ӡ�ע���뱣֤ CnAEAD ͷ�������е� Tag 8 �ֽڣ��� 2 �ֽڣ�Ҳ���� CCM_M_LEN = 8; CCM_L_LEN = 2;
+  // RFC 例子。注意须保证 CnAEAD 头部声明中的 Tag 8 字节，长 2 字节，也就是 CCM_M_LEN = 8; CCM_L_LEN = 2;
   Key := HexToBytes('C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF');
   Nonce := HexToBytes('00000003020100A0A1A2A3A4A5');
   C := HexToBytes('588C979A61C663D2F066D0C2C0F989806D5F6B61DAC384');
   AAD := HexToBytes('0001020304050607');
-  HexToData('17E8D12CFDF926E0', @T[0]); // ����� CnAEAD ͷ��δ��ȷ���� CCM_M_LEN �� CCM_L_LEN ʱ�����
+  HexToData('17E8D12CFDF926E0', @T[0]); // 这句在 CnAEAD 头部未正确声明 CCM_M_LEN 和 CCM_L_LEN 时会出错
 
   P := AES128CCMEncryptBytes(Key, Nonce, C, AAD, T);
   if P <> nil then
@@ -2513,7 +2513,7 @@ var
   Key, Nonce, AAD, P, C: TBytes;
   T: TCnCCM128Tag;
 begin
-  // RFC 8998 ���ӣ�ע���뱣֤ CnAEAD ͷ�������е� Tag 16 �ֽڣ��� 3 �ֽڣ�Ҳ���� CCM_M_LEN = 16; CCM_L_LEN = 3;
+  // RFC 8998 例子，注意须保证 CnAEAD 头部声明中的 Tag 16 字节，长 3 字节，也就是 CCM_M_LEN = 16; CCM_L_LEN = 3;
   Key := HexToBytes('0123456789ABCDEFFEDCBA9876543210');
   Nonce := HexToBytes('00001234567800000000ABCD');
   AAD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
@@ -2533,7 +2533,7 @@ begin
   Plain := nil;
   AD := nil;
 
-  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv ȫ 0��Plain �� AD �գ����Ŀ�
+  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv 全 0，Plain 和 AD 空，密文空
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // cd33b28ac773f74ba00ed1f312572435
 
   Key := HexToBytes('000000000000000000000000000000000000000000000000');
@@ -2541,7 +2541,7 @@ begin
   Plain := HexToBytes('00000000000000000000000000000000');
   AD := nil;
 
-  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain ȫ 0��AD ��
+  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain 全 0，AD 空
   ShowMessage(DataToHex(@C[0], Length(T)));  // 98e7247c07f0fe411c267e4384b0f600
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 2ff58d80033927ab8ef4d4587514f0fb
 
@@ -2550,7 +2550,7 @@ begin
   Plain := HexToBytes('d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39');
   AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
 
-  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD ȫ�У��� AD �� 96
+  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD 全有，且 AD 非 96
   ShowMessage(DataToHex(@C[0], Length(C)));  // d27e88681ce3243c4830165a8fdcf9ff1de9a1d8e6b447ef6ef7b79828666e4581e79012af34ddd9e2f037589b292db3e67c036745fa22e7e9b7373b
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // dcf566ff291c25bbb8568fc3d376a6d9
 end;
@@ -2581,7 +2581,7 @@ begin
   Plain := nil;
   AD := nil;
 
-  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv ȫ 0��Plain �� AD �գ����Ŀ�
+  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv 全 0，Plain 和 AD 空，密文空
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 530f8afbc74536b9a963b4f1c4cb738b
 
   Key := HexToBytes('0000000000000000000000000000000000000000000000000000000000000000');
@@ -2589,7 +2589,7 @@ begin
   Plain := HexToBytes('00000000000000000000000000000000');
   AD := nil;
 
-  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain ȫ 0��AD ��
+  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain 全 0，AD 空
   ShowMessage(DataToHex(@C[0], Length(T)));  // cea7403d4d606b6e074ec5d3baf39d18
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // d0d1c8a799996bf0265b98b5d48ab919
 
@@ -2598,7 +2598,7 @@ begin
   Plain := HexToBytes('d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39');
   AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
 
-  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD ȫ�У��� AD �� 96
+  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD 全有，且 AD 非 96
   ShowMessage(DataToHex(@C[0], Length(C)));  // 522dc1f099567d07f47f37a32a84427d643a8cdcbfe5c0c97598a2bd2555d1aa8cb08e48590dbb3da7b08b1056828838c5f61e6393ba7a0abcc9f662
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 76fc6ece0f4e1768cddf8853bb2d551b
 end;
@@ -2633,7 +2633,7 @@ begin
 
   AESGCMNoPaddingEncrypt(@Key[1], Length(Key), @Nonce[1], Length(Nonce), @Text[1], Length(Text), @AAD[1], Length(AAD), @Res[0]);
 
-  ShowMessage(BytesToHex(Res)); // Java ��õ� e099392707bbf678fc457972872b8716082950a581c888e65642f382ebb648fb8d8a0c��һ��
+  ShowMessage(BytesToHex(Res)); // Java 里得到 e099392707bbf678fc457972872b8716082950a581c888e65642f382ebb648fb8d8a0c��һ��
 
   SetLength(Plain, Length(Res) - SizeOf(TCnGCM128Tag));
   if AESGCMNoPaddingDecrypt(@Key[1], Length(Key), @Nonce[1], Length(Nonce), @Res[0], Length(Res), @AAD[1], Length(AAD), @Plain[0]) then
