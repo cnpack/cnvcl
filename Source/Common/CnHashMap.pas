@@ -200,7 +200,7 @@ type
     FNext: TCnHashNode;
     FKey: TObject;
     FValue: TObject;
-{$IFNDEF CPUX64}      // 32 位下要容纳 64 位的 Key 和 Value，需要额外的存储空间存高 32 位
+{$IFNDEF CPU64BITS}      // 32 位下要容纳 64 位的 Key 和 Value，需要额外的存储空间存高 32 位
     FKey32: TObject;
     FValue32: TObject;
 {$ENDIF}
@@ -208,7 +208,7 @@ type
     procedure SetKey(const Value: TObject);
     procedure SetValue(const Value: TObject);
     function GetValue: TObject;
-{$IFNDEF CPUX64}
+{$IFNDEF CPU64BITS}
     function GetKey32: TObject;
     function GetValue32: TObject;
     procedure SetKey32(const Value: TObject);
@@ -224,7 +224,7 @@ type
     {* 32 位程序下的 Key 的低 32 位；64 位程序下的整 64 位 Key}
     property Value: TObject read GetValue write SetValue;
     {* 32 位程序下的 Value 的低 32 位；64 位程序下的整 64 位 Value}
-{$IFNDEF CPUX64}
+{$IFNDEF CPU64BITS}
     property Key32: TObject read GetKey32 write SetKey32;
     {* 32 位程序下的 Key 的高 32 位}
     property Value32: TObject read GetValue32 write SetValue32;
@@ -271,16 +271,16 @@ type
     procedure Resize(NewCapacity: Integer);
     procedure ClearAll(Shrink: Boolean = False);
 
-    function Get(HashCode: Integer; Key: TObject; out Value: TObject {$IFNDEF CPUX64};
+    function Get(HashCode: Integer; Key: TObject; out Value: TObject {$IFNDEF CPU64BITS};
       Key32: TObject = nil; ValueHigh32: Pointer = nil {$ENDIF}): Boolean;
     {* 实质的 Get 操作，HashCode 由外界计算好了，返回是否存在与 Value 值。32 位下，如果值有高 32 位，再通过 ValueHigh32 返回}
-    function Put(HashCode: Integer; Key, Value: TObject {$IFNDEF CPUX64};
+    function Put(HashCode: Integer; Key, Value: TObject {$IFNDEF CPU64BITS};
       KeyHigh32: TObject = nil; ValueHigh32: TObject = nil {$ENDIF}): TCnHashNode;
     {* 实质的 Put 操作，HashCode 由外界计算好了，返回搁进去的 Node，如果存在则覆盖}
-    function Contain(HashCode: Integer; Key: TObject {$IFNDEF CPUX64};
+    function Contain(HashCode: Integer; Key: TObject {$IFNDEF CPU64BITS};
       KeyHigh32: TObject = nil {$ENDIF}): TCnHashNode;
     {* 实质的查找操作，HashCode 由外界计算好了，返回存此 Key 的节点}
-    function Del(HashCode: Integer; Key: TObject {$IFNDEF CPUX64};
+    function Del(HashCode: Integer; Key: TObject {$IFNDEF CPU64BITS};
       KeyHigh32: TObject = nil {$ENDIF}): Boolean;
     {* 实质的删除操作，HashCode 由外界计算好了，返回是否找到并删除，False 时表示没找到}
   protected
@@ -289,7 +289,7 @@ type
     function HashCodeFromInteger(I: Integer): Integer; virtual;
     function HashCodeFromInt64(I64: Int64): Integer; virtual;
 
-    function KeyEqual(Key1, Key2: TObject {$IFNDEF CPUX64}; Key132, Key232: TObject {$ENDIF}): Boolean; virtual;
+    function KeyEqual(Key1, Key2: TObject {$IFNDEF CPU64BITS}; Key132, Key232: TObject {$ENDIF}): Boolean; virtual;
     {* 内部比较 Key 的方法，默认为引用地址比对，子类可重载。
       注意 Key 是 TObject 时，俩 Key32 固定为 0，因为无论 32 还是 64 位下均一个 Key 就够了}
 
@@ -938,7 +938,7 @@ end;
 
 procedure TCnHashMap.Add(Key, Value: Int64);
 begin
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   Put(HashCodeFromInt64(Key), TObject(Key), TObject(Value));
 {$ELSE}
   Put(HashCodeFromInt64(Key), TObject(Int64Rec(Key).Lo), TObject(Int64Rec(Value).Lo),
@@ -949,13 +949,13 @@ end;
 procedure TCnHashMap.Add(Key, Value: Integer);
 begin
   Put(HashCodeFromInteger(Key), TObject(Key), TObject(Value)
-    {$IFNDEF CPUX64}, nil, nil {$ENDIF});
+    {$IFNDEF CPU64BITS}, nil, nil {$ENDIF});
 end;
 
 procedure TCnHashMap.Add(Key, Value: TObject);
 begin
   Put(HashCodeFromObject(Key), Key, Value
-    {$IFNDEF CPUX64} , nil, nil {$ENDIF});
+    {$IFNDEF CPU64BITS} , nil, nil {$ENDIF});
 end;
 
 procedure TCnHashMap.CheckResize;
@@ -969,7 +969,7 @@ begin
   ClearAll(True);
 end;
 
-function TCnHashMap.Contain(HashCode: Integer; Key: TObject {$IFNDEF CPUX64};
+function TCnHashMap.Contain(HashCode: Integer; Key: TObject {$IFNDEF CPU64BITS};
   KeyHigh32: TObject {$ENDIF}): TCnHashNode;
 var
   Idx: Integer;
@@ -983,7 +983,7 @@ begin
     Exit;
 
   repeat
-    if KeyEqual(Key, Node.Key {$IFNDEF CPUX64}, KeyHigh32, Node.Key32 {$ENDIF}) then
+    if KeyEqual(Key, Node.Key {$IFNDEF CPU64BITS}, KeyHigh32, Node.Key32 {$ENDIF}) then
     begin
       Result := Node;
       Exit;
@@ -1014,7 +1014,7 @@ begin
   Result := TCnHashMapIterator.Create(Self);
 end;
 
-function TCnHashMap.Del(HashCode: Integer; Key: TObject {$IFNDEF CPUX64};
+function TCnHashMap.Del(HashCode: Integer; Key: TObject {$IFNDEF CPU64BITS};
   KeyHigh32: TObject {$ENDIF}): Boolean;
 var
   Idx: Integer;
@@ -1029,7 +1029,7 @@ begin
 
   Prev := nil;
   repeat
-    if KeyEqual(Key, Node.Key {$IFNDEF CPUX64}, KeyHigh32, Node.Key32 {$ENDIF}) then
+    if KeyEqual(Key, Node.Key {$IFNDEF CPU64BITS}, KeyHigh32, Node.Key32 {$ENDIF}) then
     begin
       // 是这个 Node，要删
       if FTable[Idx] = Node then
@@ -1085,13 +1085,13 @@ end;
 
 function TCnHashMap.Find(Key: Int64): Int64;
 var
-{$IFNDEF CPUX64}
+{$IFNDEF CPU64BITS}
   VLo, VHi: TObject;
 {$ELSE}
   Obj: TObject;
 {$ENDIF}
 begin
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   Obj := nil;
   Get(HashCodeFromInteger(Key), TObject(Key), Obj);
   Result := Int64(Obj);
@@ -1110,7 +1110,7 @@ begin
 end;
 
 function TCnHashMap.Get(HashCode: Integer; Key: TObject; out Value: TObject
-  {$IFNDEF CPUX64}; Key32: TObject; ValueHigh32: Pointer {$ENDIF}): Boolean;
+  {$IFNDEF CPU64BITS}; Key32: TObject; ValueHigh32: Pointer {$ENDIF}): Boolean;
 var
   Idx: Integer;
   Node: TCnHashNode;
@@ -1123,11 +1123,11 @@ begin
     Exit;
 
   repeat
-    if KeyEqual(Key, Node.Key {$IFNDEF CPUX64}, Key32, Node.Key32 {$ENDIF}) then
+    if KeyEqual(Key, Node.Key {$IFNDEF CPU64BITS}, Key32, Node.Key32 {$ENDIF}) then
     begin
       Result := True;
       Value := Node.Value;
-{$IFNDEF CPUX64}
+{$IFNDEF CPU64BITS}
       if ValueHigh32 <> nil then
         (PObject(ValueHigh32))^ := Node.Value32;
 {$ENDIF}
@@ -1173,7 +1173,7 @@ end;
 
 function TCnHashMap.HasKey(Key: Int64): Boolean;
 begin
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   Result := Contain(HashCodeFromInt64(Key), TObject(Key)) <> nil;
 {$ELSE}
   Result := Contain(HashCodeFromInt64(Key), TObject(Int64Rec(Key).Lo),
@@ -1187,7 +1187,7 @@ begin
 end;
 
 function TCnHashMap.Put(HashCode: Integer; Key, Value: TObject
- {$IFNDEF CPUX64}; KeyHigh32, ValueHigh32: TObject {$ENDIF}): TCnHashNode;
+ {$IFNDEF CPU64BITS}; KeyHigh32, ValueHigh32: TObject {$ENDIF}): TCnHashNode;
 var
   Idx: Integer;
   Node, Prev: TCnHashNode;
@@ -1197,7 +1197,7 @@ var
     ANode.Hash := HashCode;
     ANode.Key := Key;
     ANode.Value := Value;
-{$IFNDEF CPUX64}
+{$IFNDEF CPU64BITS}
     ANode.Key32 := KeyHigh32;
     ANode.Value32 := ValueHigh32;
 {$ENDIF}
@@ -1219,7 +1219,7 @@ begin
   else
   begin
     repeat
-      if KeyEqual(Key, Node.Key {$IFNDEF CPUX64}, KeyHigh32, Node.Key32 {$ENDIF}) then // 找到了 Key，直接塞 Value
+      if KeyEqual(Key, Node.Key {$IFNDEF CPU64BITS}, KeyHigh32, Node.Key32 {$ENDIF}) then // 找到了 Key，直接塞 Value
       begin
         Result := PutKeyValueToNode(Node);
         Inc(FModCount);
@@ -1240,7 +1240,7 @@ end;
 
 procedure TCnHashMap.Remove(Key: Int64);
 begin
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   Del(HashCodeFromInt64(Key), TObject(Key));
 {$ELSE}
   Del(HashCodeFromInt64(Key), TObject(Int64Rec(Key).Lo), TObject(Int64Rec(Key).Hi));
@@ -1336,9 +1336,9 @@ begin
 end;
 
 function TCnHashMap.KeyEqual(Key1, Key2: TObject
-  {$IFNDEF CPUX64}; Key132, Key232: TObject {$ENDIF}): Boolean;
+  {$IFNDEF CPU64BITS}; Key132, Key232: TObject {$ENDIF}): Boolean;
 begin
-  Result := (Key1 = Key2) {$IFNDEF CPUX64} and (Key132 = Key232) {$ENDIF};
+  Result := (Key1 = Key2) {$IFNDEF CPU64BITS} and (Key132 = Key232) {$ENDIF};
 end;
 
 function TCnHashMap.Find(Key: TObject; out OutObj: TObject): Boolean;
@@ -1357,13 +1357,13 @@ end;
 
 function TCnHashMap.Find(Key: Int64; out OutInt64: Int64): Boolean;
 var
-{$IFNDEF CPUX64}
+{$IFNDEF CPU64BITS}
   VLo, VHi: TObject;
 {$ELSE}
   Obj: TObject;
 {$ENDIF}
 begin
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   Obj := nil;
   Result := Get(HashCodeFromInteger(Key), TObject(Key), Obj);
   if Result then
@@ -1388,7 +1388,7 @@ begin
   Result := FKey;
 end;
 
-{$IFNDEF CPUX64}
+{$IFNDEF CPU64BITS}
 
 function TCnHashNode.GetKey32: TObject;
 begin
@@ -1399,7 +1399,7 @@ end;
 
 function TCnHashNode.GetKey64: Int64;
 begin
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   Result := Int64(FKey);
 {$ELSE}
   Int64Rec(Result).Hi := Cardinal(FKey32);
@@ -1412,7 +1412,7 @@ begin
   Result := FValue;
 end;
 
-{$IFNDEF CPUX64}
+{$IFNDEF CPU64BITS}
 
 function TCnHashNode.GetValue32: TObject;
 begin
@@ -1423,7 +1423,7 @@ end;
 
 function TCnHashNode.GetValue64: Int64;
 begin
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   Result := Int64(FValue);
 {$ELSE}
   Int64Rec(Result).Hi := Cardinal(FValue32);
@@ -1436,7 +1436,7 @@ begin
   FKey := Value;
 end;
 
-{$IFNDEF CPUX64}
+{$IFNDEF CPU64BITS}
 
 procedure TCnHashNode.SetKey32(const Value: TObject);
 begin
@@ -1447,7 +1447,7 @@ end;
 
 procedure TCnHashNode.SetKey64(const Value: Int64);
 begin
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   FKey := TObject(Value);
 {$ELSE}
   FKey32 := TObject(Int64Rec(Value).Hi);
@@ -1460,7 +1460,7 @@ begin
   FValue := Value;
 end;
 
-{$IFNDEF CPUX64}
+{$IFNDEF CPU64BITS}
 
 procedure TCnHashNode.SetValue32(const Value: TObject);
 begin
@@ -1471,7 +1471,7 @@ end;
 
 procedure TCnHashNode.SetValue64(const Value: Int64);
 begin
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   FValue := TObject(Value);
 {$ELSE}
   FValue32 := TObject(Int64Rec(Value).Hi);

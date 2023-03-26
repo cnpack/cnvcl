@@ -2796,7 +2796,7 @@ begin
     Exit;
   end;
 
-{$IFDEF CPU64BITS}
+{$IFDEF SUPPORT_UINT64}
   Result := Cardinal(((UInt64(H) shl 32) or UInt64(L)) div UInt64(D));
 {$ELSE}
   Result := 0;
@@ -2806,16 +2806,6 @@ begin
     DIV ECX       // DIV 貌似等于 DIVL，这段优化比下面调 _lludiv 的耗时少了 20%
     MOV Result, EAX
   end;
-//  asm
-//    PUSH 0
-//    PUSH D
-//    MOV EAX, L
-//    MOV EDX, H
-//    CALL System.@_lludiv;
-//    // Delphi 自身汇编实现的 64 位无符号除法函数，入参要求
-//    // Dividend(EAX(lo):EDX(hi)), Divisor([ESP+8](hi):[ESP+4](lo))
-//    MOV Result, EAX
-//  end;
 {$ENDIF}
 end;
 
