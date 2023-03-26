@@ -98,7 +98,7 @@ type
   TCnNativeUIntPtr = PCardinal;
 {$ENDIF}
 
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   TCnUInt64        = NativeUInt;
   TCnInt64         = NativeInt;
 {$ELSE}
@@ -286,7 +286,7 @@ function IsInt64MulOverflow(A, B: Int64): Boolean;
 {* 判断两个 64 位有符号数相乘是否溢出 64 位有符号上限}
 
 function PointerToInteger(P: Pointer): Integer;
-{* 指针类型转换成整型，支持 32/64 位}
+{* 指针类型转换成整型，支持 32/64 位，注意 64 位下可能会丢超出 32 位的内容}
 
 function IntegerToPointer(I: Integer): Pointer;
 {* 整型转换成指针类型，支持 32/64 位}
@@ -531,6 +531,8 @@ procedure ConstantTimeConditionalSwap64(CanSwap: Boolean; var A, B: TUInt64);
 {* 针对两个八字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
 
 {$IFDEF MSWINDOWS}
+
+// 这四个函数因为用了 Intel 汇编，因而只支持 32 位和 64 位的 Intel CPU，照理应该用条件：CPUX86 或 CPUX64
 
 procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer);
 {* 64 位有符号数除以 32 位有符号数，商放 DivRes，余数放 ModRes
@@ -1905,21 +1907,9 @@ end;
 
 {$ENDIF}
 
-{$IFDEF CPUX64}
+{$IFDEF SUPPORT_UINT64}
 
-function UInt64Mod(A, B: TUInt64): TUInt64;
-begin
-  Result := A mod B;
-end;
-
-function UInt64Div(A, B: TUInt64): TUInt64;
-begin
-  Result := A div B;
-end;
-
-{$ELSE}
-
-{$IFDEF FPC}
+// 只要支持 64 位无符号整数，无论 32/64 位 Intel 还是 ARM，无论 Delphi 还是 FPC，无论什么操作系统都能如此
 
 function UInt64Mod(A, B: TUInt64): TUInt64;
 begin
@@ -1933,7 +1923,7 @@ end;
 
 {$ELSE}
 {
-  UInt64 求 A mod B
+  不支持 UInt64 的低版本 Delphi 下用 Int64 求 A mod/div B
 
   调用的入栈顺序是 A 的高位，A 的低位，B 的高位，B 的低位。挨个 push 完毕并进入函数后，
   ESP 是返回地址，ESP+4 是 B 的低位，ESP + 8 是 B 的高位，ESP + C 是 A 的低位，ESP + 10 是 A 的高位
@@ -1966,16 +1956,16 @@ end;
 
 {$ENDIF}
 
-{$ENDIF}
-
 {$IFDEF SUPPORT_UINT64}
+
+// 只要支持 64 位无符号整数，无论 32/64 位 Intel 还是 ARM，无论 Delphi 还是 FPC，无论什么操作系统都能如此
 
 function UInt64Mul(A, B: Cardinal): TUInt64;
 begin
   Result := TUInt64(A) * B;
 end;
 
-{$ELSE}
+{$ELSE} // 只有低版本 Delphi 会进这里
 
 {
   无符号 32 位整数相乘，如果结果直接使用 Int64 会溢出，模拟 64 位无符号运算
@@ -2608,7 +2598,7 @@ end;
 // 指针类型转换成整型，支持 32/64 位
 function PointerToInteger(P: Pointer): Integer;
 begin
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   // 先这么写，利用 Pointer 的低 32 位存 Integer
   Result := Integer(P);
 {$ELSE}
@@ -2619,7 +2609,7 @@ end;
 // 整型转换成指针类型，支持 32/64 位
 function IntegerToPointer(I: Integer): Pointer;
 begin
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   // 先这么写，利用 Pointer 的低 32 位存 Integer
   Result := Pointer(I);
 {$ELSE}

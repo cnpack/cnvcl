@@ -78,7 +78,7 @@ interface
 {$I CnPack.inc}
 
 {$UNDEF BN_DATA_USE_64}
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   // {$DEFINE BN_DATA_USE_64}
   // BN_DATA_USE_64 表示在 64 位下，内部使用 64 位进行存储计算以提高效率，待测试
   // 如不定义，默认使用 32 位
@@ -424,7 +424,7 @@ type
   protected
     function HashCodeFromObject(Obj: TObject): Integer; override;
     function KeyEqual(Key1, Key2: TObject
-      {$IFNDEF CPUX64}; Key132, Key232: TObject {$ENDIF}): Boolean; override;
+      {$IFNDEF CPU64BITS}; Key132, Key232: TObject {$ENDIF}): Boolean; override;
     procedure DoFreeNode(Node: TCnHashNode); override;
   public
     constructor Create(AOwnsKey, AOwnsValue: Boolean); reintroduce; virtual;
@@ -2796,7 +2796,7 @@ begin
     Exit;
   end;
 
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   Result := Cardinal(((UInt64(H) shl 32) or UInt64(L)) div UInt64(D));
 {$ELSE}
   Result := 0;
@@ -8307,7 +8307,7 @@ begin
 end;
 
 function TCnBigNumberHashMap.KeyEqual(Key1, Key2: TObject
-  {$IFNDEF CPUX64}; Key132, Key232: TObject {$ENDIF}): Boolean;
+  {$IFNDEF CPU64BITS}; Key132, Key232: TObject {$ENDIF}): Boolean;
 begin
   Result := BigNumberEqual(TCnBigNumber(Key1), TCnBigNumber(Key2));
 end;

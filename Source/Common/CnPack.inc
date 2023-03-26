@@ -33,18 +33,54 @@
   // Free Pascal Compiler 3.x Up Definitions
   {$DEFINE SUPPORT_PASCAL}    // Pascal
   {$DEFINE SUPPORT_UINT64}    // UInt64
+  {$DEFINE SUPPORT_32_AND_64} // 支持 32 和 64 位，可用 NativeInt 等
   {$IFDEF SYSTEMINLINE}
     {$DEFINE SUPPORT_INLINE}  // inline
   {$ENDIF}
-  {$IFDEF WIN64}
-    {$DEFINE CPUX64}  // x64
-  {$ENDIF}
-  {$IFDEF WINDOWS}
-    {$DEFINE MSWINDOWS}  // MS Windows
-  {$ENDIF}
+
   {$DEFINE OBJECT_HAS_TOSTRING} // TObject.ToString
-  {$asmMode intel}
-  {$mode Delphi}         // Delphi Compatibility, not DelphiUnicode
+
+  // 以下是 CPU 定义从 FPC 映射到 Delphi
+  {$IFDEF CPU386}     // Intel 32 CPU
+    {$DEFINE CPU32BITS}
+    {$DEFINE CPUX86}
+    {$asmMode intel}
+  {$ENDIF}
+  {$IFDEF CPUi386}
+    {$DEFINE CPU32BITS}
+    {$DEFINE CPUX86}
+    {$asmMode intel}
+  {$ENDIF}
+
+  {$IFDEF CPUAMD64}   // Intel 64 CPU
+    {$DEFINE CPU64BITS}
+    {$DEFINE CPUX64}
+    {$asmMode intel}
+  {$ENDIF}
+  {$IFDEF CPUX86_64}
+    {$DEFINE CPU64BITS}
+    {$DEFINE CPUX64}
+    {$asmMode intel}
+  {$ENDIF}
+  {$IFDEF CPUIA64}
+    {$DEFINE CPU64BITS}
+    {$DEFINE CPUX64}
+    {$asmMode intel}
+  {$ENDIF}
+
+  {$IFDEF CPUARM}      // ARM 32 bit processor
+    {$DEFINE CPU32BITS}
+    {$DEFINE CPUARM}
+    {$DEFINE CPUARM32}
+  {$ENDIF}
+
+  {$IFDEF CPUAARCH64}  // ARM 64 bit processor
+    {$DEFINE CPU64BITS}
+    {$DEFINE CPUARM}
+    {$DEFINE CPUARM64}
+  {$ENDIF}
+
+  // {$mode Delphi}         // Delphi Compatibility, not DelphiUnicode
 {$ELSE FPC} // Below is for Delphi Compiler
 
 //{$DEFINE PERSONAL_EDITION}

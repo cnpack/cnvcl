@@ -28,6 +28,9 @@ unit CnLockFree;
 *           并基于此实现了自旋锁与无锁有序链表、单读单写的无锁循环队列
 *           无锁有序链表参考了 Timothy L. Harris 的论文：
 *             《A Pragmatic Implementation of Non-Blocking Linked-Lists》
+*
+*           注：因为缺乏跨各种平台的完整实现，因而内部暂时不引用此单元以避免影响跨平台
+*
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/ 10.3，包括 Win32/64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -51,7 +54,7 @@ const
   CN_RING_QUEUE_DEFAULT_CAPACITY = 16;
 
 type
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
   TCnSpinLockRecord = NativeInt;
 {$ELSE}
   TCnSpinLockRecord = Integer;
@@ -394,7 +397,7 @@ begin
 {$ENDIF}
 end;
 
-{$IFDEF SUPPORT_ATOMIC}
+{$IFDEF SUPPORT_ATOMIC} // 高版本 Delphi 的实现，不同平台自动区分
 
 function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer;
   Comperand: Pointer): Boolean;
@@ -402,9 +405,9 @@ begin
   AtomicCmpExchange(Target, NewValue, Comperand, Result);
 end;
 
-{$ELSE}
+{$ELSE} // 较低版本 Delphi 以及 FPC 的分开实现
 
-{$IFDEF WIN64}
+{$IFDEF CPUX64} // WIN64 下，包括 FPC 的 Win64 也就是 CPUX64 下的汇编实现
 
 // XE2 的 Win64 下没有 Atomic 系列函数
 function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer;
@@ -419,16 +422,7 @@ end;
 
 {$ELSE}
 
-{$IFDEF FPC}
-
-// TODO: FPC 下面的实现
-function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer;
-  Comperand: Pointer): Boolean;
-begin
-  raise Exception.Create(SCnNotImplemented);
-end;
-
-{$ELSE}
+{$IFDEF CPUX86}
 
 // XE2 或以下版本的 Win32 实现
 function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer;
@@ -441,6 +435,15 @@ asm
   LOCK CMPXCHG [ECX], EDX
   SETZ AL
   AND EAX, $FF
+end;
+
+{$ELSE}
+
+// TODO: ARM32/64 下面的实现，先以 FPC 为主
+function CnAtomicCompareAndSet(var Target: Pointer; NewValue: Pointer;
+  Comperand: Pointer): Boolean;
+begin
+  raise Exception.Create(SCnNotImplemented);
 end;
 
 {$ENDIF}

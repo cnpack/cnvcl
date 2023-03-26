@@ -63,9 +63,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Math, CnNative, CnContainers
-  {$IFDEF MSWINDOWS}, CnClasses {$ENDIF}
-  {$IFDEF POSIX}, System.Generics.Collections {$ENDIF};
+  SysUtils, Classes, Math, CnNative, CnContainers, CnClasses;
 
 const
   // 用 Miller Rabin 素数概率判断算法所进行的次数
@@ -734,7 +732,7 @@ function MontgomeryPowerMod64(A, B, C: UInt64): UInt64;
 
 {$ENDIF}
 
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
 
 function CnUInt64IsPrime(N: NativeUInt): Boolean;
 {* 概率性判断一 64 位无符号整数是否是素数}
@@ -1290,7 +1288,7 @@ end;
 
 {$ENDIF}
 
-{$IFDEF CPUX64}
+{$IFDEF CPU64BITS}
 
 function FermatCheckComposite64(A, B, C, T: NativeUInt): Boolean;
 var
@@ -1410,17 +1408,12 @@ begin
   until False;
 
   Factors := TCnUInt32List.Create;
-{$IFDEF MSWINDOWS}
   Factors.IgnoreDuplicated := True;
-{$ENDIF}
+
   MaxRoot := 0;
 
   try
     CnUInt32FindFactors(Prime - 1, Factors);
-{$IFNDEF MSWINDOWS}
-    // 手工去重
-    TCnInternalList<LongWord>(Factors).RemoveDuplictedElements;
-{$ENDIF}
     for I := Prime - 1 downto 2 do
     begin
       if CheckPrimitiveRoot32(I, Prime, Factors) then
@@ -1448,17 +1441,12 @@ begin
   until False;
 
   Factors := TCnUInt64List.Create;
-{$IFDEF MSWINDOWS}
   Factors.IgnoreDuplicated := True;
-{$ENDIF}
+
   MaxRoot := 0;
 
   try
     CnInt64FindFactors(Prime - 1, Factors);
-{$IFNDEF MSWINDOWS}
-    // 手工去重
-    TCnInternalList<UInt64>(Factors).RemoveDuplictedElements;
-{$ENDIF}
     I := Prime - 1;
     while UInt64Compare(I, 2) >= 0 do
     begin
@@ -1492,16 +1480,10 @@ begin
   until False;
 
   Factors := TCnUInt32List.Create;
-{$IFDEF MSWINDOWS}
   Factors.IgnoreDuplicated := True;
-{$ENDIF}
 
   try
     CnUInt32FindFactors(Prime - 1, Factors);
-{$IFNDEF MSWINDOWS}
-    // 手工去重
-    TCnInternalList<LongWord>(Factors).RemoveDuplictedElements;
-{$ENDIF}
     OutRoots.Clear;
     for I := 2 to Prime - 1 do
     begin
@@ -1531,16 +1513,10 @@ begin
   until False;
 
   Factors := TCnUInt64List.Create;
-{$IFDEF MSWINDOWS}
   Factors.IgnoreDuplicated := True;
-{$ENDIF}
 
   try
     CnInt64FindFactors(Prime - 1, Factors);
-{$IFNDEF MSWINDOWS}
-    // 手工去重
-    TCnInternalList<UInt64>(Factors).RemoveDuplictedElements;
-{$ENDIF}
     OutRoots.Clear;
 
     I := 2;
@@ -1617,16 +1593,10 @@ begin
   Result := True;
 
   Factors := TCnUInt32List.Create;
-{$IFDEF MSWINDOWS}
   Factors.IgnoreDuplicated := True;
-{$ENDIF}
 
   try
     CnUInt32FindFactors(Num - 1, Factors);
-{$IFNDEF MSWINDOWS}
-    // 手工去重
-    TCnInternalList<LongWord>(Factors).RemoveDuplictedElements;
-{$ENDIF}
 
     for I := 0 to Factors.Count - 1 do
     begin
@@ -1650,16 +1620,10 @@ begin
   Result := True;
 
   Factors := TCnUInt64List.Create;
-{$IFDEF MSWINDOWS}
   Factors.IgnoreDuplicated := True;
-{$ENDIF}
 
   try
     CnInt64FindFactors(Num - 1, Factors);
-{$IFNDEF MSWINDOWS}
-    // 手工去重
-    TCnInternalList<UInt64>(Factors).RemoveDuplictedElements;
-{$ENDIF}
 
     I := 0;
     while UInt64Compare(I, Factors.Count) < 0 do
@@ -1854,16 +1818,10 @@ var
 begin
   // 先求 Num 的不重复的质因数，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
   F := TCnUInt32List.Create;
-{$IFDEF MSWINDOWS}
   F.IgnoreDuplicated := True;
-{$ENDIF}
 
   try
     CnUInt32FindFactors(Num, F);
-{$IFNDEF MSWINDOWS}
-    // 手工去重
-    TCnInternalList<Cardinal>(F).RemoveDuplictedElements;
-{$ENDIF}
 
     Result := Num;
     for I := 0 to F.Count - 1 do
@@ -1883,16 +1841,10 @@ var
 begin
   // 先求 Num 的不重复的质因数，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
   F := TCnUInt64List.Create;
-{$IFDEF MSWINDOWS}
   F.IgnoreDuplicated := True;
-{$ENDIF}
 
   try
     CnInt64FindFactors(Num, F);
-{$IFNDEF MSWINDOWS}
-    // 手工去重
-    TCnInternalList<UInt64>(F).RemoveDuplictedElements;
-{$ENDIF}
 
     Result := Num;
     for I := 0 to F.Count - 1 do

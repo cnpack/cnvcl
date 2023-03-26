@@ -48,7 +48,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, TypInfo, SyncObjs, {$IFDEF FPC} RTLConsts, {$ELSE}
+  SysUtils, Classes, TypInfo, SyncObjs, {$IFDEF MSWINDOWS} Windows, {$ENDIF}
+  {$IFDEF FPC} RTLConsts, {$ELSE}
   {$IFDEF COMPILER6_UP} RTLConsts, {$ELSE} Consts, {$ENDIF} {$ENDIF} CnNative;
 
 type
@@ -67,7 +68,7 @@ type
     function GetLocking: Boolean;
   protected
     property LockCount: Integer read FLockCount;
-    {* 当前Lock计数，只读属性}
+    {* 当前 Lock 计数，只读属性}
   public
     constructor Create;
     {* 构造器，用于产生一个该类的实例}
@@ -75,10 +76,10 @@ type
     procedure Lock;
     {* 进入临界区，为保证多线程同步而加锁，必须与Unlock成对使用}
     function TryLock: Boolean;
-    {* 如果当前Lock计数为零，则加锁返回真，否则返回假。
-       如果返回真，必须在操作完成后调用UnLock释放锁}
+    {* 如果当前 Lock 计数为零，则加锁返回真，否则返回假。
+       如果返回真，必须在操作完成后调用 UnLock 释放锁}
     procedure Unlock;
-    {* 退出临界区，释放同步锁，必须与Lock成对使用}
+    {* 退出临界区，释放同步锁，必须与 Lock 成对使用}
     property Locking: Boolean read GetLocking;
     {* 取当前加锁状态}
   end;
@@ -384,7 +385,7 @@ procedure AssignPersistent(Source, Dest: TPersistent; UseDefineProperties:
 implementation
 
 uses
-  CnConsts, CnLockFree;
+  CnConsts;
 
 type
   TPersistentHack = class(TPersistent);
@@ -496,7 +497,11 @@ end;
 // 加锁
 procedure TCnLockObject.Lock;
 begin
-  CnAtomicIncrement32(FLockCount);
+{$IFDEF SUPPORT_ATOMIC}
+  AtomicIncrement(FLockCount);
+{$ELSE}
+  InterlockedIncrement(FLockCount);
+{$ENDIF}
   FLock.Enter;
 end;
 
@@ -504,7 +509,11 @@ end;
 procedure TCnLockObject.Unlock;
 begin
   FLock.Leave;
-  CnAtomicDecrement32(FLockCount);
+{$IFDEF SUPPORT_ATOMIC}
+  AtomicDecrement(FLockCount);
+{$ELSE}
+  InterlockedDecrement(FLockCount);
+{$ENDIF}
 end;
 
 function TCnLockObject.GetLocking: Boolean;

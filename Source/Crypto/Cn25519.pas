@@ -60,6 +60,7 @@ uses
 
 const
   CN_25519_BLOCK_BYTESIZE = 32;
+  {* 25519 曲线相关算法的数据块大小}
 
 type
   TCn25519Field64 = array[0..4] of TUInt64;

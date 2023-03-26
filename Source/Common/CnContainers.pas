@@ -273,16 +273,11 @@ type
 
 {$IFDEF POSIX}
 
-  // MACOS/LINUX 等平台下的 TCnUInt32/64List 没有 IgnoreDuplicated 功能，需要手工去重
+  // MACOS/LINUX 等平台下的 TList 没有 IgnoreDuplicated 功能，需要手工去重
   TCnInternalList<T> = class(TList<T>)
   public
     procedure RemoveDuplictedElements;
   end;
-
-  // 以下俩定义只在 MACOS/LINUX 等平台下有效，不与 CnClasses 中的同名类冲突
-  TCnUInt32List = class(TCnInternalList<Cardinal>);
-
-  TCnUInt64List = class(TCnInternalList<UInt64>);
 
 {$ENDIF}
 
