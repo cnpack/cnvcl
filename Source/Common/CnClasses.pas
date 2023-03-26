@@ -63,7 +63,7 @@ type
   TCnLockObject = class (TObject)
   {* 用于线程同步的对象类}
   private
-    FLock: TCriticalSection;
+    FLock: SyncObjs.TCriticalSection;
     FLockCount: Integer;
     function GetLocking: Boolean;
   protected
@@ -464,7 +464,7 @@ end;
 //==============================================================================
 
 var
-  CounterLock: TCriticalSection = nil;
+  CounterLock: SyncObjs.TCriticalSection = nil;
 
 { TCnLockObject }
 
@@ -472,7 +472,7 @@ var
 constructor TCnLockObject.Create;
 begin
   inherited;
-  FLock := TCriticalSection.Create; // 初始化临界区
+  FLock := SyncObjs.TCriticalSection.Create; // 初始化临界区
 end;
 
 // 释放
@@ -1220,7 +1220,7 @@ begin
 end;
 
 initialization
-  CounterLock := TCriticalSection.Create;
+  CounterLock := SyncObjs.TCriticalSection.Create;
 
 finalization
   CounterLock.Free;
