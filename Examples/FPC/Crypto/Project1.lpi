@@ -50,13 +50,13 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source\Crypto;..\..\..\Source\Common"/>
-      <OtherUnitFiles Value="..\..\..\Source\Crypto"/>
+      <IncludeFiles Value="..\..\..\Source\Crypto;..\..\..\Source\Common;$(ProjOutDir)"/>
+      <OtherUnitFiles Value="..\..\..\Source\Crypto;..\..\..\Source\Common"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
-        <SyntaxMode Value="delphi"/>
+        <SyntaxMode Value="Delphi"/>
       </SyntaxOptions>
     </Parsing>
     <Linking>
