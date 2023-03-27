@@ -49,7 +49,7 @@
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Common\CnFloatConvert.pas"/>
+        <Filename Value="..\..\..\Source\Common\CnFloat.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
     </Units>

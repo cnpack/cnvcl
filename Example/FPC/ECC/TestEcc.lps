@@ -105,7 +105,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Common\CnFloatConvert.pas"/>
+        <Filename Value="..\..\..\Source\Common\CnFloat.pas"/>
         <EditorIndex Value="14"/>
         <TopLine Value="236"/>
         <CursorPos X="3" Y="227"/>

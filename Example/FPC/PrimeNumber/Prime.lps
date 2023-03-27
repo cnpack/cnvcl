@@ -93,7 +93,7 @@
         <Loaded Value="True"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Common\CnFloatConvert.pas"/>
+        <Filename Value="..\..\..\Source\Common\CnFloat.pas"/>
         <EditorIndex Value="2"/>
         <TopLine Value="61"/>
         <CursorPos X="22" Y="73"/>
@@ -148,7 +148,7 @@
         <Caret Line="236" Column="7" TopLine="223"/>
       </Position>
       <Position>
-        <Filename Value="..\..\..\Source\Common\CnFloatConvert.pas"/>
+        <Filename Value="..\..\..\Source\Common\CnFloat.pas"/>
         <Caret Line="227" Column="3" TopLine="215"/>
       </Position>
       <Position>
@@ -156,7 +156,7 @@
         <Caret Line="125" Column="61" TopLine="113"/>
       </Position>
       <Position>
-        <Filename Value="..\..\..\Source\Common\CnFloatConvert.pas"/>
+        <Filename Value="..\..\..\Source\Common\CnFloat.pas"/>
         <Caret Line="73" Column="22" TopLine="61"/>
       </Position>
       <Position>

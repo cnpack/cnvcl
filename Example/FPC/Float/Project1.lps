@@ -32,7 +32,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Common\CnFloatConvert.pas"/>
+        <Filename Value="..\..\..\Source\Common\CnFloat.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="61"/>
         <CursorPos X="41" Y="73"/>

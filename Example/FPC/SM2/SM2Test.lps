@@ -36,7 +36,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Common\CnFloatConvert.pas"/>
+        <Filename Value="..\..\..\Source\Common\CnFloat.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <UsageCount Value="20"/>
