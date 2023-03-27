@@ -547,7 +547,7 @@ begin
       KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
       DataBytes := TEncoding.Default.GetBytes(edtDesFrom.Text);
       if cbbDesPadding.ItemIndex = 1 then
-        BytesAddPKCS7Padding(DataBytes, DES_BLOCKSIZE);
+        BytesAddPKCS7Padding(DataBytes, CN_DES_BLOCKSIZE);
 
       ResBytes := DESEncryptEcbBytes(KeyBytes, DataBytes);
       edtDESCode.Text := BytesToHex(ResBytes);
@@ -581,7 +581,7 @@ begin
       IvBytes := TEncoding.Default.GetBytes(IvStr);
       DataBytes := TEncoding.Default.GetBytes(edtDesFrom.Text);
       if cbbDesPadding.ItemIndex = 1 then
-        BytesAddPKCS7Padding(DataBytes, DES_BLOCKSIZE);
+        BytesAddPKCS7Padding(DataBytes, CN_DES_BLOCKSIZE);
 
       ResBytes := DESEncryptCbcBytes(KeyBytes, IvBytes, DataBytes);
       edtDESCode.Text := BytesToHex(ResBytes);
@@ -840,7 +840,7 @@ begin
       KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
       DataBytes := TEncoding.Default.GetBytes(edtSm4.Text);
       if cbbSm4Padding.ItemIndex = 1 then
-        BytesAddPKCS7Padding(DataBytes, SM4_BLOCKSIZE);
+        BytesAddPKCS7Padding(DataBytes, CN_SM4_BLOCKSIZE);
 
       ResBytes := SM4EncryptEcbBytes(KeyBytes, DataBytes);
       edtSm4Code.Text := BytesToHex(ResBytes);
@@ -872,7 +872,7 @@ begin
     DataBytes := TEncoding.Default.GetBytes(edtSm4.Text);
 
     if rbSm4Cbc.Checked and (cbbSm4Padding.ItemIndex = 1) then
-      BytesAddPKCS7Padding(DataBytes, SM4_BLOCKSIZE);
+      BytesAddPKCS7Padding(DataBytes, CN_SM4_BLOCKSIZE);
 {$ENDIF}
 
     if chkSM4UseTBytes.Checked then
@@ -1012,7 +1012,7 @@ begin
       KeyBytes := TEncoding.Default.GetBytes(edtAesKey.Text);
       DataBytes := TEncoding.Default.GetBytes(edtAes.Text);
       if cbbAesPadding.ItemIndex = 1 then
-        BytesAddPKCS7Padding(DataBytes, AES_BLOCKSIZE);
+        BytesAddPKCS7Padding(DataBytes, CN_AES_BLOCKSIZE);
 
       case cbbAesKeyBitType.ItemIndex of
         0:
@@ -1074,7 +1074,7 @@ begin
       DataBytes := TEncoding.Default.GetBytes(edtAes.Text);
 
       if rbAescbc.Checked and (cbbAesPadding.ItemIndex = 1) then // CBC 需要对齐
-        BytesAddPKCS7Padding(DataBytes, AES_BLOCKSIZE);
+        BytesAddPKCS7Padding(DataBytes, CN_AES_BLOCKSIZE);
     end;
 {$ENDIF}
 
@@ -1248,7 +1248,7 @@ begin
       DataBytes := TEncoding.Default.GetBytes(edtAes.Text);
 
       if rbAescbc.Checked and (cbbAesPadding.ItemIndex = 1) then // CBC 需要对齐
-        BytesAddPKCS7Padding(DataBytes, AES_BLOCKSIZE);
+        BytesAddPKCS7Padding(DataBytes, CN_AES_BLOCKSIZE);
     end;
 {$ENDIF}
 
@@ -2039,7 +2039,7 @@ begin
       KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
       DataBytes := TEncoding.Default.GetBytes(edt3DesFrom.Text);
       if cbb3DesPadding.ItemIndex = 1 then
-        BytesAddPKCS7Padding(DataBytes, TRIPLE_DES_BLOCKSIZE);
+        BytesAddPKCS7Padding(DataBytes, CN_TRIPLE_DES_BLOCKSIZE);
 
       ResBytes := TripleDESEncryptEcbBytes(KeyBytes, DataBytes);
       edt3DESCode.Text := BytesToHex(ResBytes);
@@ -2073,7 +2073,7 @@ begin
       IvBytes := TEncoding.Default.GetBytes(IvStr);
       DataBytes := TEncoding.Default.GetBytes(edt3DesFrom.Text);
       if cbb3DesPadding.ItemIndex = 1 then
-        BytesAddPKCS7Padding(DataBytes, TRIPLE_DES_BLOCKSIZE);
+        BytesAddPKCS7Padding(DataBytes, CN_TRIPLE_DES_BLOCKSIZE);
 
       ResBytes := TripleDESEncryptCbcBytes(KeyBytes, IvBytes, DataBytes);
       edt3DESCode.Text := BytesToHex(ResBytes);
