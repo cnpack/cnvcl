@@ -923,7 +923,7 @@ begin
     B := PCnLongWord32Array(TCnNativeInt(B) + SizeOf(Cardinal));
     R := PCnLongWord32Array(TCnNativeInt(R) + SizeOf(Cardinal));
 
-    Dec(N, 4);
+    Dec(N, SizeOf(Cardinal));
   end;
 
   if N > 0 then
@@ -1210,14 +1210,14 @@ begin
 
   while (MemByteLen and (not 3)) <> 0 do
   begin
-    TC := A[0];
-    A[0] := B[0];
-    B[0] := TC;
+    TC := A^[0];
+    A^[0] := B^[0];
+    B^[0] := TC;
 
     A := PCnLongWord32Array(TCnNativeInt(A) + SizeOf(Cardinal));
     B := PCnLongWord32Array(TCnNativeInt(B) + SizeOf(Cardinal));
 
-    Dec(MemByteLen, 4);
+    Dec(MemByteLen, SizeOf(Cardinal));
   end;
 
   if MemByteLen > 0 then
@@ -1227,9 +1227,9 @@ begin
 
     while MemByteLen <> 0 do
     begin
-      TB := BA[0];
-      BA[0] := BB[0];
-      BB[0] := TB;
+      TB := BA^[0];
+      BA^[0] := BB^[0];
+      BB^[0] :=TB;
 
       BA := PByteArray(TCnNativeInt(BA) + SizeOf(Byte));
       BB := PByteArray(TCnNativeInt(BB) + SizeOf(Byte));
@@ -1267,12 +1267,12 @@ begin
 
   while (MemByteLen and (not 3)) <> 0 do
   begin
-    if A[0] > B[0] then
+    if A^[0] > B^[0] then
     begin
       Result := 1;
       Exit;
     end
-    else if A[0] < B[0] then
+    else if A^[0] < B^[0] then
     begin
       Result := -1;
       Exit;
@@ -1281,7 +1281,7 @@ begin
     A := PCnLongWord32Array(TCnNativeInt(A) + SizeOf(Cardinal));
     B := PCnLongWord32Array(TCnNativeInt(B) + SizeOf(Cardinal));
 
-    Dec(MemByteLen, 4);
+    Dec(MemByteLen, SizeOf(Cardinal));
   end;
 
   if MemByteLen > 0 then
@@ -1291,12 +1291,12 @@ begin
 
     while MemByteLen <> 0 do
     begin
-      if BA[0] > BB[0] then
+      if BA^[0] > BB^[0] then
       begin
         Result := 1;
         Exit;
       end
-      else if BA[0] < BB[0] then
+      else if BA^[0] < BB^[0] then
       begin
         Result := -1;
         Exit;
