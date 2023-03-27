@@ -81,7 +81,7 @@
     {$DEFINE CPUARM64}
   {$ENDIF}
 
-  // {$mode Delphi}         // Delphi Compatibility, not DelphiUnicode
+  {$mode Delphi}       // Delphi Compatibility, not DelphiUnicode。注意源码中勿重复声明
 {$ELSE FPC} // Below is for Delphi Compiler
 
 //{$DEFINE PERSONAL_EDITION}

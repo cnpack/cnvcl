@@ -1,7 +1,5 @@
 unit Unit1;
 
-{$MODE Delphi}
-
 interface
 
 {$I CnPack.inc}
