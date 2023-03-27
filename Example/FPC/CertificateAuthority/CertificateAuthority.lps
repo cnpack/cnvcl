@@ -23,7 +23,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Crypto\backup\CnRSA.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\CnRSA.pas"/>
         <EditorIndex Value="-1"/>
         <UsageCount Value="20"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>

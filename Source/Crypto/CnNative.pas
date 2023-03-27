@@ -1763,7 +1763,7 @@ asm
         MOV     [RAX], RDX                    // 余数放入 RAX 所指的 ModRes
 end;
 
-procedure UInt128DivUInt64Mod(ALo, AHi: UInt64; B: UInt64; var DivRes, ModRes: UInt64); assembler
+procedure UInt128DivUInt64Mod(ALo, AHi: UInt64; B: UInt64; var DivRes, ModRes: UInt64); assembler;
 asm
         MOV     RAX, RCX                      // ALo 放入 RAX，AHi 已经在 RDX 了
         MOV     RCX, R8                       // B 放入 RCX

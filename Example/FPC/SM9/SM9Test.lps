@@ -22,7 +22,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Crypto\backup\backup\CnBigNumber.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\CnBigNumber.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="4"/>
         <UsageCount Value="20"/>

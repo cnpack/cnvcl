@@ -41,7 +41,7 @@
         <HasResources Value="True"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Crypto\backup\backup\CnBigNumber.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\CnBigNumber.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
@@ -58,8 +58,8 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source\Crypto;..\..\..\Source\Crypto\backup\backup;..\..\..\Source\Common"/>
-      <OtherUnitFiles Value="..\..\..\Source\Crypto;..\..\..\Source\Crypto\backup\backup;..\..\..\Source\Common"/>
+      <IncludeFiles Value="..\..\..\Source\Crypto;..\..\..\Source\Common"/>
+      <OtherUnitFiles Value="..\..\..\Source\Crypto;..\..\..\Source\Common"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>

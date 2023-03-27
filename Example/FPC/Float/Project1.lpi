@@ -54,8 +54,8 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source\Common;..\..\..\Source\Crypto\backup"/>
-      <Libraries Value="..\..\..\Source\Common"/>
+      <IncludeFiles Value="..\..\..\Source\Common;..\..\..\Source\Crypto"/>
+      <Libraries Value="..\..\..\Source\Common;..\..\..\Source\Crypto"/>
       <OtherUnitFiles Value="..\..\..\Source\Common;..\..\..\Source\Crypto"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       <ObjectPath Value="..\..\..\Source\Common"/>

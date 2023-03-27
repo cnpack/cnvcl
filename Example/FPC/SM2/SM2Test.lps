@@ -22,14 +22,14 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Crypto\backup\CnBigNumber.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\CnBigNumber.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <UsageCount Value="20"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Common\backup\CnContainers.pas"/>
+        <Filename Value="..\..\..\Source\Common\CnContainers.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <UsageCount Value="20"/>
@@ -43,7 +43,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Common\backup\CnLockFree.pas"/>
+        <Filename Value="..\..\..\Source\Common\CnLockFree.pas"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="10"/>
@@ -64,11 +64,11 @@
         <Filename Value="SM2Test.lpr"/>
       </Position>
       <Position>
-        <Filename Value="..\..\..\Source\Common\backup\CnLockFree.pas"/>
+        <Filename Value="..\..\..\Source\Common\CnLockFree.pas"/>
         <Caret Line="23" Column="116"/>
       </Position>
       <Position>
-        <Filename Value="..\..\..\Source\Common\backup\CnLockFree.pas"/>
+        <Filename Value="..\..\..\Source\Common\CnLockFree.pas"/>
       </Position>
       <Position>
         <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\win\wininc\redef.inc"/>
