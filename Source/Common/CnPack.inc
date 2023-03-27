@@ -39,6 +39,7 @@
   {$ENDIF}
 
   {$DEFINE OBJECT_HAS_TOSTRING} // TObject.ToString
+  {$DEFINE TBYTES_DEFINED}
 
   // 以下是 CPU 定义从 FPC 映射到 Delphi
   {$IFDEF CPU386}     // Intel 32 CPU
