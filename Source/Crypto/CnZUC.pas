@@ -313,7 +313,7 @@ procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
   M: PByte; BitLen: Cardinal; C: PByte);
 var
   IV: array[0..15] of Byte;
-  LastBits: Cardinal;
+  LastBits, K: Cardinal;
   I, L: Integer;
   Z: PCardinal;
 begin
@@ -350,8 +350,11 @@ begin
       xor (PCardinal(TCnNativeInt(Z) + I * SizeOf(Cardinal)))^;
 
   if LastBits <> 0 then
+  begin
+    K := $100000000 - (1 shl LastBits); // FPC 下写一块会出 Internal Error，分开独立用个新变量 K
     (PCardinal(TCnNativeInt(C) + L * SizeOf(Cardinal)))^ := (PCardinal(TCnNativeInt(C) + L * SizeOf(Cardinal)))^
-      and ($100000000 - (1 shl LastBits));
+      and K;
+  end;
 
   FreeMemory(Z);
 end;
