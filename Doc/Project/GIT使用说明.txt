@@ -19,13 +19,13 @@ http://www.cnpack.org
 由于 Google Code 关闭了 SVN 文件发布服务，并且访问不顺畅，我们已迁移至 GitHub。
 
 CnPack 的 GitHub 项目首页：
-http://github.com/cnpack/
+https://github.com/cnpack/
 
-CnPack 代码分两个库，cnvcl与cnwizards。
+CnPack 代码分两个库，cnvcl 与 cnwizards。
 
 两个库的时间线：
-http://github.com/cnpack/cnwizards/commits/master
-http://github.com/cnpack/cnvcl/commits/master
+https://github.com/cnpack/cnwizards/commits/master
+https://github.com/cnpack/cnvcl/commits/master
 
 欲直接匿名获得代码，可以在安装了 Git 命令行的情况下，直接运行：
 

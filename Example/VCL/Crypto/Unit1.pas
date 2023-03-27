@@ -555,7 +555,7 @@ begin
   else
     Len := (((Len - 1) div 8) + 1) * 8;
   SetLength(Output, Len);
-  ZeroMemory(@(Output[1]), Len);
+  FillChar(Output[1], Len, 0);
 
   if rbDESEcb.Checked then
   begin
@@ -584,10 +584,10 @@ begin
     if Length(IvStr) <> SizeOf(TmpDesIv) then
     begin
       ShowMessage('Invalid DES Iv, Use Our Default Iv.');
-      CopyMemory(@(TmpDesIv[0]), @(DesIv[0]), SizeOf(DesIv));
+      Move(DesIv[0], TmpDesIv[0], SizeOf(DesIv));
     end
     else
-      CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
+      Move(IvStr[1], TmpDesIv[0], SizeOf(DesIv));
 
     if chkDESUseTBytes.Checked then
     begin
@@ -631,7 +631,7 @@ begin
   else
     Len := (((Len - 1) div 8) + 1) * 8;
   SetLength(Output, Len);
-  ZeroMemory(@(Output[1]), Len);
+  FillChar(Output[1], Len, 0);
 
   if rbDESEcb.Checked then
   begin
@@ -659,10 +659,10 @@ begin
     if Length(IvStr) <> SizeOf(TmpDesIv) then
     begin
       ShowMessage('Invalid DES Iv, Use Our Default Iv.');
-      CopyMemory(@(TmpDesIv[0]), @(DesIv[0]), SizeOf(DesIv));
+      Move(DesIv[0], TmpDesIv[0], SizeOf(DesIv));
     end
     else
-      CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
+      Move(IvStr[1], TmpDesIv[0], SizeOf(DesIv));
 
     if chkDESUseTBytes.Checked then
     begin
@@ -865,7 +865,7 @@ begin
   else
     Len := (((Len - 1) div 16) + 1) * 16;
   SetLength(Output, Len);
-  ZeroMemory(@(Output[1]), Len);
+  FillChar(Output[1], Len, 0);
 
   if rbSm4Ecb.Checked then
   begin
@@ -894,10 +894,10 @@ begin
     if Length(IvStr) <> SizeOf(TmpSm4Iv) then
     begin
       ShowMessage('Invalid SM4 Iv, Use Our Default Iv.');
-      CopyMemory(@(TmpSm4Iv[0]), @(Sm4Iv[0]), SizeOf(Sm4Iv));
+      Move(Sm4Iv[0], TmpSm4Iv[0], SizeOf(Sm4Iv));
     end
     else
-      CopyMemory(@(TmpSm4Iv[0]), @IvStr[1], SizeOf(Sm4Iv));
+      Move(IvStr[1], TmpSm4Iv[0], SizeOf(Sm4Iv));
 
 {$IFDEF TBYTES_DEFINED}
     KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
@@ -961,7 +961,7 @@ begin
   else
     Len := (((Len - 1) div 16) + 1) * 16;
   SetLength(Output, Len);
-  ZeroMemory(@(Output[1]), Len);
+  FillChar(Output[1], Len, 0);
 
   if rbSm4Ecb.Checked then
   begin
@@ -990,11 +990,10 @@ begin
     if Length(IvStr) <> SizeOf(TmpSm4Iv) then
     begin
       ShowMessage('Invalid SM4 Iv, Use Our Default Iv.');
-      CopyMemory(@(TmpSm4Iv[0]), @(Sm4Iv[0]), SizeOf(Sm4Iv));
+      Move(Sm4Iv[0], TmpSm4Iv[0], SizeOf(Sm4Iv));
     end
     else
-      CopyMemory(@(TmpSm4Iv[0]), @IvStr[1], SizeOf(Sm4Iv));
-
+      Move(IvStr[1], TmpSm4Iv[0], SizeOf(Sm4Iv));
 
     if chkSM4UseTBytes.Checked then
     begin
@@ -1104,10 +1103,10 @@ begin
     if Length(IvStr) <> SizeOf(TCnAESBuffer) then
     begin
       ShowMessage('Invalid AES Iv, Use Our Default Iv.');
-      CopyMemory(@TmpAesIv, @AesIv, SizeOf(TmpAesIv));
+      Move(AesIv, TmpAesIv, SizeOf(TmpAesIv));
     end
     else
-      CopyMemory(@TmpAesIv, @IvStr[1], SizeOf(TmpAesIv));
+      Move(IvStr[1], TmpAesIv, SizeOf(TmpAesIv));
 
 {$IFDEF TBYTES_DEFINED}
     if chkAESUseTBytes.Checked then
@@ -1278,10 +1277,10 @@ begin
     if Length(IvStr) <> SizeOf(TCnAESBuffer) then
     begin
       ShowMessage('Invalid AES Iv, Use Our Default Iv.');
-      CopyMemory(@TmpAesIv, @AesIv, SizeOf(TmpAesIv));
+      Move(AesIv, TmpAesIv, SizeOf(TmpAesIv));
     end
     else
-      CopyMemory(@TmpAesIv, @IvStr[1], SizeOf(TmpAesIv));
+      Move(IvStr[1], TmpAesIv, SizeOf(TmpAesIv));
 
 {$IFDEF TBYTES_DEFINED}
     if chkAESUseTBytes.Checked then
@@ -2077,7 +2076,7 @@ begin
   else
     Len := (((Len - 1) div 8) + 1) * 8;
   SetLength(Output, Len);
-  ZeroMemory(@(Output[1]), Len);
+  FillChar(Output[1], Len, 0);
 
   if rb3DESEcb.Checked then
   begin
@@ -2106,10 +2105,10 @@ begin
     if Length(IvStr) <> SizeOf(TmpDesIv) then
     begin
       ShowMessage('Invalid 3DES Iv, Use Our Default Iv.');
-      CopyMemory(@(TmpDesIv[0]), @(DesIv[0]), SizeOf(DesIv));
+      Move(DesIv[0], TmpDesIv[0], SizeOf(DesIv));
     end
     else
-      CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
+      Move(IvStr[1], TmpDesIv[0], SizeOf(DesIv));
 
     if chk3DESUseTBytes.Checked then
     begin
@@ -2153,7 +2152,7 @@ begin
   else
     Len := (((Len - 1) div 8) + 1) * 8;
   SetLength(Output, Len);
-  ZeroMemory(@(Output[1]), Len);
+  FillChar(Output[1], Len, 0);
 
   if rb3DESEcb.Checked then
   begin
@@ -2181,10 +2180,10 @@ begin
     if Length(IvStr) <> SizeOf(TmpDesIv) then
     begin
       ShowMessage('Invalid 3DES Iv, Use Our Default Iv.');
-      CopyMemory(@(TmpDesIv[0]), @(DesIv[0]), SizeOf(DesIv));
+      Move(DesIv[0], TmpDesIv[0], SizeOf(DesIv));
     end
     else
-      CopyMemory(@(TmpDesIv[0]), @IvStr[1], SizeOf(DesIv));
+      Move(IvStr[1], TmpDesIv[0], SizeOf(DesIv));
 
     if chk3DESUseTBytes.Checked then
     begin
