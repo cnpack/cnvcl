@@ -5,8 +5,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  LCLIntf, LCLType, LMessages, Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls, StdCtrls, ComCtrls, Clipbrd;
+  LCLIntf, LCLType, LMessages, {$IFDEF MSWINDOWS} Windows, {$ENDIF} Messages, SysUtils,
+  Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, ComCtrls, Clipbrd;
 
 type
   TFormCrypt = class(TForm)

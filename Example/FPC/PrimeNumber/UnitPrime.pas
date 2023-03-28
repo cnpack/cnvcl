@@ -5,8 +5,9 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, Buttons, ExtCtrls, CnNative, CnBigNumber;
+  LCLIntf, LCLType, LMessages, {$IFDEF MSWINDOWS} Windows, {$ENDIF} Messages,
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ComCtrls,
+  Buttons, ExtCtrls, CnNative, CnBigNumber;
 
 type
   TFormPrime = class(TForm)
@@ -139,7 +140,7 @@ uses
 
 {$R *.lfm}
 
-{$I ..\..\PrimeNumber\Carmichael.inc}
+{$I ..\..\VCL\PrimeNumber\Carmichael.inc}
 
 function IsPrime(N: Cardinal): Boolean;
 var
@@ -409,7 +410,7 @@ var
 begin
   //Rs := TCnUInt64List.Create;
   //CnGenerateInt64DiffieHellmanPrimeRoots(P, Rs);
-  CnGenerateInt64DiffieHellmanPrimeRoot(P, R);
+  CnGenerateInt64DiffieHellmanPrimeMaxRoot(P, R);
   edtDHPrime.Text := UInt64ToStr(P);
   //ShowMessage('Found ' + IntToStr(Rs.Count) + 'Primetive Roots for ' + edtDHPrime.Text);
   edtDHRoot.Text := UInt64ToStr(R);
@@ -431,7 +432,7 @@ var
 begin
   //Rs := TCnUInt32List.Create;
   //CnGenerateUInt32DiffieHellmanPrimeRoots(P, Rs);
-  CnGenerateUInt32DiffieHellmanPrimeRoot(P, R);
+  CnGenerateUInt32DiffieHellmanPrimeMaxRoot(P, R);
   edtDHPrime.Text := UInt64ToStr(P);
   //ShowMessage('Found ' + IntToStr(Rs.Count) + 'Primetive Roots for ' + edtDHPrime.Text);
   edtDHRoot.Text := UInt64ToStr(R);
@@ -584,39 +585,39 @@ begin
     Inc(K);
   ShowMessage(IntToStr(K));
 
-  K := MAX_SIGNED_INT64_IN_TUINT64;  // < Int64
+  K := CN_MAX_SIGNED_INT64_IN_TUINT64;  // < Int64
   while not CnInt64IsPrime(K) do
     Dec(K);
   ShowMessage(IntToStr(K));
 
-  M := MAX_SIGNED_INT64_IN_TUINT64;  // > Int64
+  M := CN_MAX_SIGNED_INT64_IN_TUINT64;  // > Int64
   while not CnInt64IsPrime(M) do
     Inc(M);
   ShowMessage(UInt64ToStr(M));
 
-  M := MAX_TUINT64;
+  M := CN_MAX_TUINT64;
   while not CnInt64IsPrime(M) do     // < UInt64
     Dec(M);
   ShowMessage(UInt64ToStr(M));
 
-  M := UInt64Sqrt(MAX_SIGNED_INT64_IN_TUINT64);
+  M := UInt64Sqrt(CN_MAX_SIGNED_INT64_IN_TUINT64);
   while not CnInt64IsPrime(M) do     // < Sqrt Int64
     Dec(M);
   ShowMessage(UInt64ToStr(M));
 
-  M := UInt64Sqrt(MAX_SIGNED_INT64_IN_TUINT64) + 1;
+  M := UInt64Sqrt(CN_MAX_SIGNED_INT64_IN_TUINT64) + 1;
   while not CnInt64IsPrime(M) do     // > Sqrt Int64
     Inc(M);
   ShowMessage(UInt64ToStr(M));
 
   // 比 Sqrt(2 * Max UInt64) 小的，也就是 MaxUInt32 * 1.4142135
-  M := Trunc(MAX_UINT32 * 1.4142135);
+  M := Trunc(CN_MAX_UINT32 * 1.4142135);
   while not CnInt64IsPrime(M) do     // < Sqrt 2 * UInt64
     Dec(M);
   ShowMessage(UInt64ToStr(M));
 
   // 比 Sqrt(2 * Max UInt64) 大的，也就是 MaxUInt32 * 1.4142136
-  M := Trunc(MAX_UINT32 * 1.4142136);
+  M := Trunc(CN_MAX_UINT32 * 1.4142136);
   while not CnInt64IsPrime(M) do     // > Sqrt 2 * UInt64
     Inc(M);
   ShowMessage(UInt64ToStr(M));

@@ -1,14 +1,12 @@
 unit UnitNative;
 
-{$MODE Delphi}
-
 interface
 
 {$I CnPack.inc}
 
 uses
-LCLIntf, LCLType, LMessages, Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnNative, ExtCtrls, Buttons;
+  LCLIntf, LCLType, LMessages, {$IFDEF MSWINDOWS} Windows, {$ENDIF} Messages, SysUtils,
+  Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, CnNative, ExtCtrls, Buttons;
 
 type
   TFormNative = class(TForm)
@@ -216,8 +214,8 @@ procedure TFormNative.btnUInt64AddClick(Sender: TObject);
 var
   A, B, L, H: TUInt64;
 begin
-  A := MAX_TUINT64;
-  B := MAX_TUINT64;
+  A := CN_MAX_TUINT64;
+  B := CN_MAX_TUINT64;
 
   UInt64AddUInt64(A, B, L, H);
   ShowMessage(UInt64ToHex(L));
