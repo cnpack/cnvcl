@@ -92,13 +92,16 @@ function RemovePKCS1Padding(InData: Pointer; InDataLen: Integer; OutBuf: Pointer
 {* 去掉 PKCS1 的 Padding，返回成功与否。OutBuf 所指区域的可用长度需调用者自行保证
   如成功，OutLen 返回原文数据长度}
 
-procedure AddPKCS7Padding(Stream: TMemoryStream; BlockSize: Byte);
+function GetPKCS7PaddingByteLength(OrignalByteLen: Integer; BlockSize: Integer): Integer;
+{* 根据原始长度与块长度计算 PKCS7 对齐后的长度}
+
+procedure AddPKCS7Padding(Stream: TMemoryStream; BlockSize: Integer);
 {* 给数据末尾加上 PKCS7 规定的填充“几个几”的填充数据}
 
 procedure RemovePKCS7Padding(Stream: TMemoryStream);
 {* 去除 PKCS7 规定的末尾填充“几个几”的填充数据}
 
-function StrAddPKCS7Padding(const Str: AnsiString; BlockSize: Byte): AnsiString;
+function StrAddPKCS7Padding(const Str: AnsiString; BlockSize: Integer): AnsiString;
 {* 给字符串末尾加上 PKCS7 规定的填充“几个几”的填充数据}
 
 function StrRemovePKCS7Padding(const Str: AnsiString): AnsiString;
@@ -116,7 +119,7 @@ function StrAddPKCS5Padding(const Str: AnsiString): AnsiString;
 function StrRemovePKCS5Padding(const Str: AnsiString): AnsiString;
 {* 去除 PKCS5 规定的字符串末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
 
-procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Byte);
+procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Integer);
 {* 给字节数组末尾加上 PKCS7 规定的填充“几个几”的填充数据}
 
 procedure BytesRemovePKCS7Padding(var Data: TBytes);
@@ -279,7 +282,18 @@ begin
   end;
 end;
 
-procedure AddPKCS7Padding(Stream: TMemoryStream; BlockSize: Byte);
+function GetPKCS7PaddingByteLength(OrignalByteLen: Integer; BlockSize: Integer): Integer;
+var
+  R: Byte;
+begin
+  R := OrignalByteLen mod BlockSize;
+  R := BlockSize - R;
+  if R = 0 then
+    R := R + BlockSize;
+  Result := OrignalByteLen + R;
+end;
+
+procedure AddPKCS7Padding(Stream: TMemoryStream; BlockSize: Integer);
 var
   R: Byte;
   Buf: array[0..255] of Byte;
@@ -321,16 +335,25 @@ begin
   end;
 end;
 
-function StrAddPKCS7Padding(const Str: AnsiString; BlockSize: Byte): AnsiString;
+function StrAddPKCS7Padding(const Str: AnsiString; BlockSize: Integer): AnsiString;
 var
+  I, L: Integer;
   R: Byte;
 begin
-  R := Length(Str) mod BlockSize;
+  L := Length(Str);
+  R := L mod BlockSize;
   R := BlockSize - R;
   if R = 0 then
     R := R + BlockSize;
 
-  Result := Str + AnsiString(StringOfChar(Chr(R), R));
+  SetLength(Result, L + R);
+  if L > 0 then
+    Move(Str[1], Result[1], L);
+
+  for I := 1 to R do
+    Result[L + I] := AnsiChar(R);
+
+  // Result := Str + AnsiString(StringOfChar(Chr(R), R));
 end;
 
 function StrRemovePKCS7Padding(const Str: AnsiString): AnsiString;
@@ -369,7 +392,7 @@ begin
   Result := StrRemovePKCS7Padding(Str);
 end;
 
-procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Byte);
+procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Integer);
 var
   R: Byte;
   L, I: Integer;
