@@ -483,7 +483,12 @@ begin
   if Len < CN_DES_BLOCKSIZE then
     Len := CN_DES_BLOCKSIZE
   else
-    Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
+  begin
+    if cbbDesPadding.ItemIndex = 1 then
+      Len := GetPKCS7PaddingByteLength(Len, CN_DES_BLOCKSIZE)
+    else
+      Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
+  end;
   SetLength(Output, Len);
   FillChar(Output[1], Len, 0);
 
@@ -1980,7 +1985,12 @@ begin
   if Len < CN_DES_BLOCKSIZE then
     Len := CN_DES_BLOCKSIZE
   else
-    Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
+  begin
+    if cbb3DesPadding.ItemIndex = 1 then
+      Len := GetPKCS7PaddingByteLength(Len, CN_DES_BLOCKSIZE)
+    else
+      Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
+  end;
   SetLength(Output, Len);
   FillChar(Output[1], Len, 0);
 
