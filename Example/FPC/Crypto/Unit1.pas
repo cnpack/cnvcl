@@ -776,7 +776,12 @@ begin
   if Len < CN_SM4_BLOCKSIZE then
     Len := CN_SM4_BLOCKSIZE
   else
-    Len := (((Len - 1) div CN_SM4_BLOCKSIZE) + 1) * CN_SM4_BLOCKSIZE;
+  begin
+    if cbbSm4Padding.ItemIndex = 1 then
+      Len := GetPKCS7PaddingByteLength(Len, CN_SM4_BLOCKSIZE)
+    else
+      Len := (((Len - 1) div CN_SM4_BLOCKSIZE) + 1) * CN_SM4_BLOCKSIZE;
+  end;
   SetLength(Output, Len);
   FillChar(Output[1], Len, 0);
 
