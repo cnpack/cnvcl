@@ -536,17 +536,17 @@ procedure TFormCrypt.btnDesCryptClick(Sender: TObject);
 var
   Output: AnsiString;
   Len: Integer;
-  TmpDesIv: array[0..7] of Byte;
+  TmpDesIv: array[0..CN_DES_BLOCKSIZE - 1] of Byte;
   IvStr: AnsiString;
 {$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
 {$ENDIF}
 begin
   Len := Length(AnsiString(edtDesFrom.Text));
-  if Len < 8 then
-    Len := 8
+  if Len < CN_DES_BLOCKSIZE then
+    Len := CN_DES_BLOCKSIZE
   else
-    Len := (((Len - 1) div 8) + 1) * 8;
+    Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
   SetLength(Output, Len);
   FillChar(Output[1], Len, 0);
 
@@ -618,17 +618,17 @@ var
   S, IvStr: AnsiString;
   Output: AnsiString;
   Len: Integer;
-  TmpDesIv: array[0..7] of Byte;
+  TmpDesIv: array[0..CN_DES_BLOCKSIZE - 1] of Byte;
 {$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes: TBytes;
 {$ENDIF}
 begin
   S := AnsiString(FromHex(edtDESCode.Text));
   Len := Length(S);
-  if Len < 8 then
-    Len := 8
+  if Len < CN_DES_BLOCKSIZE then
+    Len := CN_DES_BLOCKSIZE
   else
-    Len := (((Len - 1) div 8) + 1) * 8;
+    Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
   SetLength(Output, Len);
   FillChar(Output[1], Len, 0);
 
@@ -836,7 +836,7 @@ procedure TFormCrypt.btnSm4Click(Sender: TObject);
 var
   S, Output: AnsiString;
   Len: Integer;
-  TmpSm4Iv: array[0..15] of Byte;
+  TmpSm4Iv: array[0..CN_SM4_BLOCKSIZE - 1] of Byte;
   IvStr: AnsiString;
 {$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
@@ -848,10 +848,10 @@ begin
     S := edtSm4.Text;
 
   Len := Length(AnsiString(S)); // PKCS7/PKCS5 对齐时需要调整 Len
-  if Len < 16 then
-    Len := 16
+  if Len < CN_SM4_BLOCKSIZE then
+    Len := CN_SM4_BLOCKSIZE
   else
-    Len := (((Len - 1) div 16) + 1) * 16;
+    Len := (((Len - 1) div CN_SM4_BLOCKSIZE) + 1) * CN_SM4_BLOCKSIZE;
   SetLength(Output, Len);
   FillChar(Output[1], Len, 0);
 
@@ -938,17 +938,17 @@ var
   S, IvStr: AnsiString;
   Output: AnsiString;
   Len: Integer;
-  TmpSm4Iv: array[0..15] of Byte;
+  TmpSm4Iv: array[0..CN_SM4_BLOCKSIZE - 1] of Byte;
 {$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes: TBytes;
 {$ENDIF}
 begin
   S := AnsiString(FromHex(edtSm4Code.Text));
   Len := Length(S);
-  if Len < 16 then
-    Len := 16
+  if Len < CN_SM4_BLOCKSIZE then
+    Len := CN_SM4_BLOCKSIZE
   else
-    Len := (((Len - 1) div 16) + 1) * 16;
+    Len := (((Len - 1) div CN_SM4_BLOCKSIZE) + 1) * CN_SM4_BLOCKSIZE;
   SetLength(Output, Len);
   FillChar(Output[1], Len, 0);
 
@@ -2044,17 +2044,17 @@ procedure TFormCrypt.btn3DesCryptClick(Sender: TObject);
 var
   Output: AnsiString;
   Len: Integer;
-  TmpDesIv: array[0..7] of Byte;
+  TmpDesIv: array[0..CN_DES_BLOCKSIZE - 1] of Byte;
   IvStr: AnsiString;
 {$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
 {$ENDIF}
 begin
   Len := Length(AnsiString(edt3DesFrom.Text));
-  if Len < 8 then
-    Len := 8
+  if Len < CN_DES_BLOCKSIZE then
+    Len := CN_DES_BLOCKSIZE
   else
-    Len := (((Len - 1) div 8) + 1) * 8;
+    Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
   SetLength(Output, Len);
   FillChar(Output[1], Len, 0);
 
@@ -2126,17 +2126,17 @@ var
   S, IvStr: AnsiString;
   Output: AnsiString;
   Len: Integer;
-  TmpDesIv: array[0..7] of Byte;
+  TmpDesIv: array[0..CN_DES_BLOCKSIZE - 1] of Byte;
 {$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes: TBytes;
 {$ENDIF}
 begin
   S := AnsiString(FromHex(edt3DESCode.Text));
   Len := Length(S);
-  if Len < 8 then
-    Len := 8
+  if Len < CN_DES_BLOCKSIZE then
+    Len := CN_DES_BLOCKSIZE
   else
-    Len := (((Len - 1) div 8) + 1) * 8;
+    Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
   SetLength(Output, Len);
   FillChar(Output[1], Len, 0);
 
