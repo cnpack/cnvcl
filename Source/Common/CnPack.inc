@@ -34,6 +34,7 @@
   {$DEFINE SUPPORT_PASCAL}    // Pascal
   {$DEFINE SUPPORT_UINT64}    // UInt64
   {$DEFINE SUPPORT_32_AND_64} // 支持 32 和 64 位，可用 NativeInt 等
+  {$DEFINE SUPPORT_ENCODING}  // Unicode 字符串支持 Encoding 转换
   {$IFDEF SYSTEMINLINE}
     {$DEFINE SUPPORT_INLINE}  // inline
   {$ENDIF}
@@ -3194,6 +3195,7 @@
 
 {$IFDEF BDS2009_UP}
   {$DEFINE UNICODE_STRING}
+  {$DEFINE SUPPORT_ENCODING}        // Unicode with TEncoding
   {$DEFINE SUPPORT_PUINT64}         // Has Pointer of UInt64
   {$DEFINE OBJECT_HAS_TOSTRING}     // TObject.ToString Function
   {$DEFINE OBJECT_HAS_EQUAL}        // TObject.Equal Function
@@ -3203,6 +3205,7 @@
   {$DEFINE SUPPORT_GENERIC}         // 支持泛型
   {$DEFINE SUPPORT_ANSISTRING_CODEPAGE}
   // AnsiString 的声明支持指定代码页
+
   {$DEFINE IDE_MAINFORM_EAT_MOUSEWHEEL}
   // MainForm of 2009 or Above will eat Message in MouseWheelHandler
   {$DEFINE IDE_CODEINSIGHT_AUTOINVOKE}
