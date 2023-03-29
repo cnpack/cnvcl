@@ -8818,22 +8818,24 @@ end;
 
 function StrToBytes(const S: AnsiString): TBytes;
 begin
-  Result := nil;
   if S <> '' then
   begin
     SetLength(Result, Length(S));
     Move(S[1], Result[0], Length(S));
-  end;
+  end
+  else
+    Result := nil;
 end;
 
 function BytesToStr(Data: TBytes): AnsiString;
 begin
-  Result := '';
   if Length(Data) > 0 then
   begin
     SetLength(Result, Length(Data));
     Move(Data[0], Result[1], Length(Data));
-  end;
+  end
+  else
+    Result := '';
 end;
 
 type
