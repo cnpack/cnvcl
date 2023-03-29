@@ -409,6 +409,30 @@ var
     $FE, $DC, $BA, $98, $76, $54, $32, $10
   );
 
+function StrToBytes(const S: AnsiString): TBytes;
+begin
+  if S <> '' then
+  begin
+    SetLength(Result, Length(S));
+    Move(S[1], Result[0], Length(S));
+  end
+  else
+    Result := nil;
+end;
+
+function BytesToStr(Data: TBytes): AnsiString;
+begin
+  if Length(Data) > 0 then
+  begin
+    SetLength(Result, Length(Data));
+    Move(Data[0], Result[1], Length(Data));
+  end
+  else
+    Result := '';
+end;
+
+
+
 function HexToInt(const Hex: AnsiString): Integer;
 var
   I, Res: Integer;
@@ -531,7 +555,7 @@ begin
     begin
 {$IFDEF TBYTES_DEFINED}
       KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
-      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      IvBytes := StrToBytes(IvStr);
       DataBytes := TEncoding.Default.GetBytes(edtDesFrom.Text);
       if cbbDesPadding.ItemIndex = 1 then
         BytesAddPKCS7Padding(DataBytes, CN_DES_BLOCKSIZE);
@@ -609,7 +633,7 @@ begin
     begin
 {$IFDEF TBYTES_DEFINED}
       KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
-      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      IvBytes := StrToBytes(IvStr);
       ResBytes := DESDecryptCbcBytes(KeyBytes, IvBytes, HexToBytes(edtDESCode.Text));
       if cbbDesPadding.ItemIndex = 1 then
         BytesRemovePKCS7Padding(ResBytes);
@@ -826,7 +850,7 @@ begin
 
 {$IFDEF TBYTES_DEFINED}
     KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
-    IvBytes := TEncoding.Default.GetBytes(IvStr);
+    IvBytes := StrToBytes(IvStr);
     DataBytes := TEncoding.Default.GetBytes(edtSm4.Text);
 
     if rbSm4Cbc.Checked and (cbbSm4Padding.ItemIndex = 1) then
@@ -922,7 +946,7 @@ begin
     begin
 {$IFDEF TBYTES_DEFINED}
       KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
-      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      IvBytes := StrToBytes(IvStr);
       if rbSm4Cbc.Checked then
         ResBytes := SM4DecryptCbcBytes(KeyBytes, IvBytes, HexToBytes(edtSm4Code.Text))
       else if rbSm4Cfb.Checked then
@@ -1028,7 +1052,7 @@ begin
     if chkAESUseTBytes.Checked then
     begin
       KeyBytes := TEncoding.Default.GetBytes(edtAesKey.Text);
-      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      IvBytes := StrToBytes(IvStr);
       DataBytes := TEncoding.Default.GetBytes(edtAes.Text);
 
       if rbAescbc.Checked and (cbbAesPadding.ItemIndex = 1) then // CBC 需要对齐
@@ -1202,7 +1226,7 @@ begin
     if chkAESUseTBytes.Checked then
     begin
       KeyBytes := TEncoding.Default.GetBytes(edtAesKey.Text);
-      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      IvBytes := StrToBytes(IvStr);
       DataBytes := TEncoding.Default.GetBytes(edtAes.Text);
 
       if rbAescbc.Checked and (cbbAesPadding.ItemIndex = 1) then // CBC 需要对齐
@@ -2033,7 +2057,7 @@ begin
     begin
 {$IFDEF TBYTES_DEFINED}
       KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
-      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      IvBytes := StrToBytes(IvStr);
       DataBytes := TEncoding.Default.GetBytes(edt3DesFrom.Text);
       if cbb3DesPadding.ItemIndex = 1 then
         BytesAddPKCS7Padding(DataBytes, CN_TRIPLE_DES_BLOCKSIZE);
@@ -2111,7 +2135,7 @@ begin
     begin
 {$IFDEF TBYTES_DEFINED}
       KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
-      IvBytes := TEncoding.Default.GetBytes(IvStr);
+      IvBytes := StrToBytes(IvStr);
       ResBytes := TripleDESDecryptCbcBytes(KeyBytes, IvBytes, HexToBytes(edt3DESCode.Text));
       if cbb3DesPadding.ItemIndex = 1 then
         BytesRemovePKCS7Padding(ResBytes);
