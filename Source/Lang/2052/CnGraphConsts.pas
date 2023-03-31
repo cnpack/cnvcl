@@ -23,7 +23,7 @@ unit CnGraphConsts;
 ================================================================================
 * 软件名称：界面控件包
 * 单元名称：资源字符串定义单元
-* 单元作者：CnPack开发组
+* 单元作者：CnPack 开发组
 * 备    注：该单元定义了界面类用到的资源字符串
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
@@ -42,15 +42,15 @@ var
   SCnAOCaptionFont: string = '字体(&F)';
   SCnAOCaptionOption: string = '设置(&O)';
 
-  SCreateDCFromEmptyBmp: string = '不能为空位图分配DC';
-  SAllocDIBFail: string = '创建DIB对象句柄失败';
-  SCreateDCFail: string = '创建DC失败';
-  SSelectBmpToDCFail: string = '无法将位图对象选择到DC中';
-  SBitmapIsEmpty: string = '无法访问一个空位图的象素数据';
-  SInvalidPixel: string = '无效的象素点 x: %d, y: %d';
-  SInvalidPixelF: string = '无效的象素点 x: %f, y: %f';
+  SCreateDCFromEmptyBmp: string = '不能为空位图分配 DC';
+  SAllocDIBFail: string = '创建 DIB 对象句柄失败';
+  SCreateDCFail: string = '创建 DC 失败';
+  SSelectBmpToDCFail: string = '无法将位图对象选择到 DC 中';
+  SBitmapIsEmpty: string = '无法访问一个空位图的像素数据';
+  SInvalidPixel: string = '无效的像素点 x: %d, y: %d';
+  SInvalidPixelF: string = '无效的像素点 x: %f, y: %f';
   SInvalidScanLine: string = '无效的扫描线 Row: %d';
-  SInvalidAlphaBitmap: string = '在Alpha混合处理中，用于混合的图像大小必须与当前图像一致';
+  SInvalidAlphaBitmap: string = '在 Alpha 混合处理中，用于混合的图像大小必须与当前图像一致';
   SInvalidForeBitmap: string = '在字体蒙板混合处理中，前景图与蒙板大小必须一致';
   SReadBmpError: string = '读位图数据出错';
 

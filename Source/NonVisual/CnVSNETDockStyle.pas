@@ -1081,7 +1081,7 @@ begin
       Canvas.LineTo(Left, Top);
       Canvas.LineTo(Left, Top + ButtonHeight);
     end;
-    { 如果自动隐藏按钮是按下的，图钉的位置就要向右下角移动一个象素的单位 }
+    { 如果自动隐藏按钮是按下的，图钉的位置就要向右下角移动一个像素的单位 }
     if AZone.AutoHideBtnState = bsDown then
     begin
       Inc(Left);
@@ -1171,7 +1171,7 @@ begin
       Canvas.LineTo(Left, Top);
       Canvas.LineTo(Left, Top + ButtonHeight);
     end;
-    { 如果关闭按钮是按下的，X的位置就要向右下角移动一个象素的单位 }
+    { 如果关闭按钮是按下的，X的位置就要向右下角移动一个像素的单位 }
     if AZone.CloseBtnState = bsDown then
       OffsetRect(DrawRect, 1, 1);
     { 画关闭按钮的X }

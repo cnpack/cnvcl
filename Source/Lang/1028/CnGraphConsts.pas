@@ -23,7 +23,7 @@ unit CnGraphConsts;
 ================================================================================
 * Èí¼þÃû³Æ£º½çÃæ¿Ø¼þ°ü
 * µ¥ÔªÃû³Æ£º×ÊÔ´×Ö·û´®¶¨Òåµ¥Ôª
-* µ¥Ôª×÷Õß£ºCnPack¿ª·¢×é
+* µ¥Ôª×÷Õß£ºCnPack ¿ª·¢×é
 * ±¸    ×¢£º¸Ãµ¥Ôª¶¨ÒåÁË½çÃæÀàÓÃµ½µÄ×ÊÔ´×Ö·û´®
 * ¿ª·¢Æ½Ì¨£ºPWin98SE + Delphi 5.0
 * ¼æÈÝ²âÊÔ£ºPWin9X/2000/XP + Delphi 5/6
@@ -42,15 +42,15 @@ var
   SCnAOCaptionFont: string = '¦rÅé(&F)';
   SCnAOCaptionOption: string = '³]¸m(&O)';
 
-  SCreateDCFromEmptyBmp: string = '¤£¯à¬°ªÅ¦ì¹Ï¤À°tDC';
-  SAllocDIBFail: string = '³Ð«ØDIB¹ï¹³¥y¬`¥¢±Ñ';
-  SCreateDCFail: string = '³Ð«ØDC¥¢±Ñ';
-  SSelectBmpToDCFail: string = 'µLªk±N¦ì¹Ï¹ï¹³¿ï¾Ü¨ìDC¤¤';
-  SBitmapIsEmpty: string = 'µLªk³X°Ý¤@­ÓªÅ¦ì¹Ïªº¶H¯À¼Æ¾Ú';
-  SInvalidPixel: string = 'µL®Äªº¶H¯ÀÂI x: %d, y: %d';
-  SInvalidPixelF: string = 'µL®Äªº¶H¯ÀÂI x: %f, y: %f';
+  SCreateDCFromEmptyBmp: string = '¤£¯à¬°ªÅ¦ì¹Ï¤À°t DC';
+  SAllocDIBFail: string = '³Ð«Ø DIB ¹ï¹³¥y¬`¥¢±Ñ';
+  SCreateDCFail: string = '³Ð«Ø DC ¥¢±Ñ';
+  SSelectBmpToDCFail: string = 'µLªk±N¦ì¹Ï¹ï¹³¿ï¾Ü¨ì DC ¤¤';
+  SBitmapIsEmpty: string = 'µLªk³X°Ý¤@­ÓªÅ¦ì¹Ïªº¹³¯À¼Æ¾Ú';
+  SInvalidPixel: string = 'µL®Äªº¹³¯ÀÂI x: %d, y: %d';
+  SInvalidPixelF: string = 'µL®Äªº¹³¯ÀÂI x: %f, y: %f';
   SInvalidScanLine: string = 'µL®Äªº±½ºË½u Row: %d';
-  SInvalidAlphaBitmap: string = '¦bAlpha²V¦X³B²z¤¤¡A¥Î©ó²V¦Xªº¹Ï¹³¤j¤p¥²¶·»P·í«e¹Ï¹³¤@­P';
+  SInvalidAlphaBitmap: string = '¦b Alpha ²V¦X³B²z¤¤¡A¥Î©ó²V¦Xªº¹Ï¹³¤j¤p¥²¶·»P·í«e¹Ï¹³¤@­P';
   SInvalidForeBitmap: string = '¦b¦rÅé»XªO²V¦X³B²z¤¤¡A«e´º¹Ï»P»XªO¤j¤p¥²¶·¤@­P';
   SReadBmpError: string = 'Åª¦ì¹Ï¼Æ¾Ú¥X¿ù';
 

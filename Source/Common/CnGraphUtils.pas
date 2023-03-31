@@ -106,8 +106,8 @@ function CMYToRGB(const C, M, Y: Byte): TColor;
 procedure RGBToCMY(const RGB: TColor; out C, M, Y: Byte);
 {* RGB 颜色转换为 CMY 颜色
  |<PRE>
- |<BR> Color: TColor　　　RGB 颜色值
- |<BR> C, M, Y: Byte　　　输出分别为 Cyan 青、Magenta 品红、Yellow 黄分量，0..255
+ |<BR> Color: TColor      RGB 颜色值
+ |<BR> C, M, Y: Byte      输出分别为 Cyan 青、Magenta 品红、Yellow 黄分量，0..255
  |</PRE>}
 
 //------------------------------------------------------------------------------

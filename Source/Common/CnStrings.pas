@@ -27,7 +27,7 @@ unit CnStrings;
 * 单元作者：CnPack 开发组 刘啸 (liuxiao@cnpack.org)
 * 开发平台：PWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
-* 备　　注：AnsiStringList 移植自 Delphi 7 的 StringList
+* 备    注：AnsiStringList 移植自 Delphi 7 的 StringList
 * 最后更新：2022.10.25
 *               增加 StringBuilder 的实现，支持 Ansi 和 Unicode 模式
 *           2022.04.25

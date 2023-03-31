@@ -28,7 +28,7 @@ unit CnAAFont;
 *           樊升
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
-* 备　　注：平滑字体算法由李文松朋友提供的AAFont修改而来
+* 备    注：平滑字体算法由李文松朋友提供的 AAFont 修改而来
 * 最后更新：2021.07.23
 *               TCnAABlend 的 BlendEx 方法以及 TCnAAFontEx 的 TextOutput 方法支持
 *               目标为 32 位带 Alpha 通道的位图，需要调用者指定 DestIsAlpha 为 True
@@ -340,9 +340,9 @@ type
     function ScanLine(Line: Integer): Pointer; overload;
     {* 返回蒙板图扫描线地址}
     function Pixel(X, Y: Integer): Byte;
-    {* 返回蒙板图指定象素灰度值}
+    {* 返回蒙板图指定像素灰度值}
     function PixelAddr(X, Y: Integer): Pointer;
-    {* 返回蒙板图指定象素地址}
+    {* 返回蒙板图指定像素地址}
     property Height: Integer read FHeight;
     {* 蒙板图的高度}
     property Width: Integer read FWidth;
@@ -1631,7 +1631,7 @@ begin
   end;
 end;
 
-// 象素地址
+// 像素地址
 function TCnAAMask.PixelAddr(X, Y: Integer): Pointer;
 begin
   if (X < 0) or (X > Width - 1) or (Y < 0) or (Y > Height - 1) then
@@ -1640,7 +1640,7 @@ begin
     Result := Pointer(TCnNativeInt(FPMaskBuff) + (Height - 1 + Y) * BytesLineMask + X);
 end;
 
-// 象素
+// 像素
 function TCnAAMask.Pixel(X, Y: Integer): Byte;
 begin
   if (X < 0) or (X > Width - 1) or (Y < 0) or (Y > Height - 1) then

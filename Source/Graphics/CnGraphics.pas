@@ -58,23 +58,23 @@ type
   end;
 
   PCnLine = ^TCnLine;
-  {* 指向TCnLine的指针类型，一般指向一行位图扫描线数据}
+  {* 指向 TCnLine 的指针类型，一般指向一行位图扫描线数据}
   TCnLine = array[0..65535] of TCnColor;
-  {* TCnColor数组类型，一般为一行位图扫描线数据}
+  {* TCnColor 数组类型，一般为一行位图扫描线数据}
   PPCnLines = ^TPCnLines;
-  {* 指向TPCnLines的指针类型，一般用来指向位图扫描线地址数组}
+  {* 指向 TPCnLines 的指针类型，一般用来指向位图扫描线地址数组}
   TPCnLines = array[0..65535] of PCnLine;
-  {* PCnLine数组类型，一般用于存储位图扫描线地址数组}
+  {* PCnLine 数组类型，一般用于存储位图扫描线地址数组}
 
   TFilterCore = array[0..2, 0..2] of SmallInt;
-  {* 用于3X3图像卷积处理的卷积核陈列}
+  {* 用于 3x3 图像卷积处理的卷积核陈列}
 
   TPointF = record
   {* 浮点数坐标记录类型}
     x, y: Single;
   end;
   TPointFArray = array of TPointF;
-  {* TPointF浮点数坐标动态数组，一般用于图形绘制参数传递}
+  {* TPointF 浮点数坐标动态数组，一般用于图形绘制参数传递}
 
   TRectF = record
   {* 浮点数矩形记录类型}
@@ -86,11 +86,11 @@ type
   TCnDrawMode = (dmDraw, dmCenter, dmStretched, dmResize, dmTiled);
   {* 图像绘制模式
    |<BR>
-   |<BR>　　dmDraw　　　将源图像直接绘制在目标图像左上角
-   |<BR>　　dmCenter　　将源图像绘制到目标图像中心位置
-   |<BR>　　dmStretched　将源图像缩放绘制到目标图像
-   |<BR>　　dmResize　　缩放绘制时保持源图像长宽比
-   |<BR>　　dmTiled　　　源图像平铺绘制到目标图像
+   |<BR>    dmDraw       将源图像直接绘制在目标图像左上角
+   |<BR>    dmCenter     将源图像绘制到目标图像中心位置
+   |<BR>    dmStretched  将源图像缩放绘制到目标图像
+   |<BR>    dmResize     缩放绘制时保持源图像长宽比
+   |<BR>    dmTiled      源图像平铺绘制到目标图像
   }
 
 const
@@ -99,9 +99,9 @@ const
 
 type
   TCnAlpha = Byte;
-  {* 图像Alpha混合系数0..255，0表示全透明，255表示不透明}
+  {* 图像 Alpha 混合系数 0..255，0 表示全透明，255 表示不透明}
   TCnProgress = 0..csMaxProgress;
-  {* 处理进程百分比类型0..100}
+  {* 处理进程百分比类型 0..100}
 
 //--------------------------------------------------------//
 // 图像处理异常类型定义                                   //
@@ -109,14 +109,14 @@ type
 
 type
   ECnGraphics = class(Exception);
-  {* CnPack快速图像库异常基类}
+  {* CnPack 快速图像库异常基类}
 
   EInvalidPixel = class(ECnGraphics);
-  {* 无效的象素点异常，通常是因为访问TCnBitmap的象素点时范围超界}
+  {* 无效的像素点异常，通常是因为访问 TCnBitmap 的像素点时范围超界}
   EInvalidScanLine = class(ECnGraphics);
-  {* 无效的扫描线异常，通常是因为访问TCnBitmap的扫描线时范围超界}
+  {* 无效的扫描线异常，通常是因为访问 TCnBitmap 的扫描线时范围超界}
   EBitmapIsEmpty = class(ECnGraphics);
-  {* 无法访问空位图异常，通常是因为访问没有位图数据的TCnBitmap的象素或扫描线}
+  {* 无法访问空位图异常，通常是因为访问没有位图数据的 TCnBitmap 的像素或扫描线}
   EInvalidForeBmp = class(ECnGraphics);
   {* 无效的前景图异常，在绘制平滑字体时产生，内部调试用}
 
@@ -129,18 +129,18 @@ const
 
 type
   TCnGradPos = 0..csMaxGradPos;
-  {* 渐变颜色位置类型0..100，用于标识一个中间颜色在渐变色带中的位置}
+  {* 渐变颜色位置类型 0..100，用于标识一个中间颜色在渐变色带中的位置}
   TCnGradStyle = (gsLeftToRight, gsRightToLeft, gsTopToBottom, gsBottomToTop,
     gsCenterToLR, gsCenterToTB, gsRadial);
   {* 渐变色绘制模式
    |<BR>
-   |<BR>　　gsLeftToRight　　从左到右渐变
-   |<BR>　　gsRightToLeft　　从右到左渐变
-   |<BR>　　gsTopToBottom　　从上到下渐变
-   |<BR>　　gsBottomToTop　　从下到上渐变
-   |<BR>　　gsCenterToLR　　　从中间到两边渐变
-   |<BR>　　gsCenterToTB　　　从中间到上下渐变
-   |<BR>　　gsRadial　　　   从中间四周辐射渐变
+   |<BR>    gsLeftToRight     从左到右渐变
+   |<BR>    gsRightToLeft     从右到左渐变
+   |<BR>    gsTopToBottom     从上到下渐变
+   |<BR>    gsBottomToTop     从下到上渐变
+   |<BR>    gsCenterToLR      从中间到两边渐变
+   |<BR>    gsCenterToTB      从中间到上下渐变
+   |<BR>    gsRadial          从中间四周辐射渐变
   }
   TCnMiddleColor = class;
 
@@ -155,7 +155,7 @@ type
     procedure SetPos(const Value: TCnGradPos);
   public
     constructor Create(Collection: TCollection); override;
-    {* 构造器，应传递一个TCnMiddleColor对象做参数，一般不需要手动调用}
+    {* 构造器，应传递一个 TCnMiddleColor 对象做参数，一般不需要手动调用}
     procedure Assign(Source: TPersistent); override;
     {* 赋值方法，一般不需要手动调用}
   published
@@ -168,7 +168,7 @@ type
 { TCnMiddleColor }
 
   TCnMiddleColor = class(TOwnedCollection)
-  {* 渐变颜色带的中间色收集器类，主要用于TCnGradientColor对象中}
+  {* 渐变颜色带的中间色收集器类，主要用于 TCnGradientColor 对象中}
   private
     FSorting: Boolean;
     function GetItem(Index: Integer): TCnMiddleColorItem;
@@ -184,8 +184,8 @@ type
     procedure Add(AColor: TColor; APos: TCnGradPos);
     {* 增加子项方法，用于向中间色带中增加一个颜色项
      |<BR>
-     |<BR>　　AColor: TColor　　　增加的颜色值
-     |<BR>　　APos: TCnGradPos　　该颜色在渐变色带中的位置
+     |<BR>    AColor: TColor      增加的颜色值
+     |<BR>    APos: TCnGradPos    该颜色在渐变色带中的位置
     }
     procedure Sort;
     {* 对渐变色按位置排序，一般不需要手动调用}
@@ -197,7 +197,7 @@ type
 { TCnGradientColor }
 
   TCnGradientColor = class(TCnPersistent)
-  {* 渐变颜色类，保存了渐变色绘制参数，可作为参数传递给TCnBitmap的渐变色绘制方式}
+  {* 渐变颜色类，保存了渐变色绘制参数，可作为参数传递给 TCnBitmap 的渐变色绘制方式}
   private
     FColorStart: TColor;
     FColorEnd: TColor;
@@ -232,22 +232,22 @@ type
   TFontQuality = (fqHigh, fqNormal, fqLow, fqNone);
   {* 平滑字体绘制精度类型
    |<BR>
-   |<BR>　　fqHigh　　　高精度绘制，采用4X4采样，速度较慢
-   |<BR>　　fqNormal　　普通精度绘制，采用3X3采样，最佳速度质量比，默认值
-   |<BR>　　fqLow　　　　低精度绘制，采用2X2采样，速度较快
-   |<BR>　　fqNone　　　无平滑效果
+   |<BR>    fqHigh      高精度绘制，采用4x4采样，速度较慢
+   |<BR>    fqNormal    普通精度绘制，采用3x3采样，最佳速度质量比，默认值
+   |<BR>    fqLow       低精度绘制，采用2x2采样，速度较快
+   |<BR>    fqNone      无平滑效果
   }
   TFontStyleEx = (fsShadow, fsGradient, fsTexture, fsNoise, fsOutline,
     fsLighting, fsSpray);
   {* 平滑字体扩展特效风格
    |<BR>
-   |<BR>　　fsShadow　　　设置阴影效果，见TCnShadow
-   |<BR>　　fsGradient　　设置文本颜色渐变效果，见TCnGradientColor
-   |<BR>　　fsTexture　　　设置文本纹理图
-   |<BR>　　fsNoise　　　　设置文本噪声纹理
-   |<BR>　　fsOutline　　　设置文本以轮廓线方式显示
-   |<BR>　　fsLighting　　设置灯光效果，见TCnLighting
-   |<BR>　　fsSpray　　　　设置喷溅效果
+   |<BR>    fsShadow      设置阴影效果，见 TCnShadow
+   |<BR>    fsGradient    设置文本颜色渐变效果，见 TCnGradientColor
+   |<BR>    fsTexture     设置文本纹理图
+   |<BR>    fsNoise       设置文本噪声纹理
+   |<BR>    fsOutline     设置文本以轮廓线方式显示
+   |<BR>    fsLighting    设置灯光效果，见 TCnLighting
+   |<BR>    fsSpray       设置喷溅效果
   }
   TFontStyleExs = set of TFontStyleEx;
   {* 平滑字体扩展特效风格集合}
@@ -285,9 +285,9 @@ type
     property Color: TColor read FColor write SetColor default $00444444;
     {* 阴影颜色}
     property OffsetX: TShadowOffset read FOffsetX write SetOffsetX default 2;
-    {* 阴影在水平方向的偏移量，范围为-20..20，为负表示向左偏}
+    {* 阴影在水平方向的偏移量，范围为 -20..20，为负表示向左偏}
     property OffsetY: TShadowOffset read FOffsetY write SetOffsetY default 2;
-    {* 阴影在垂直方向的偏移量，范围为-20..20，为负表示向上偏}
+    {* 阴影在垂直方向的偏移量，范围为 -20..20，为负表示向上偏}
   end;
 
 { TCnShadow }
@@ -325,20 +325,21 @@ type
     property Color: TColor read FColor write SetColor default clWhite;
     {* 灯光颜色}
     property OffsetX: TLightingOffset read FOffsetX write SetOffsetX default 0;
-    {* 光照中心点偏移范围（目标矩形宽度的百分比），为负表示左偏，范围为-200..200}
+    {* 光照中心点偏移范围（目标矩形宽度的百分比），为负表示左偏，范围为 -200..200}
     property OffsetY: TLightingOffset read FOffsetY write SetOffsetY default 0;
-    {* 光照中心点偏移范围（目标矩形高度的百分比），为负表示上偏，范围为-200..200}
+    {* 光照中心点偏移范围（目标矩形高度的百分比），为负表示上偏，范围为 -200..200}
     property Width: TLightingRange read FWidth write SetWidth default 80;
-    {* 光照范围宽度（目标矩形宽度的百分比），范围为0..1000}
+    {* 光照范围宽度（目标矩形宽度的百分比），范围为 0..1000}
     property Height: TLightingRange read FHeight write SetHeight default 80;
-    {* 光照范围高度（目标矩形宽度的百分比），范围为0..1000}
+    {* 光照范围高度（目标矩形宽度的百分比），范围为 0..1000}
     property Angle: Double read FAngle write SetAngle;
+    {* 光照范围角度，范围为 -360..360}
   end;
 
 { TCnFont }
 
   TCnFont = class(TFont)
-  {* 平滑特效字体类，从TFont派生而来，提供了一些特效显示参数}
+  {* 平滑特效字体类，从 TFont 派生而来，提供了一些特效显示参数}
   private
     FOwner: TPersistent;
     FNoise: Byte;
@@ -385,22 +386,22 @@ type
     property Quality: TFontQuality read FQuality write SetQuality default fqNormal;
     {* 字体平滑显示精度}
     property Shadow: TCnShadow read FShadow write SetShadow;
-    {* 字体阴影显示参数，受StyleEx属性影响}
+    {* 字体阴影显示参数，受 StyleEx 属性影响}
     property Gradient: TCnGradientColor read FGradient write SetGradient;
-    {* 字体前景渐变效果参数，受StyleEx属性影响}
+    {* 字体前景渐变效果参数，受 StyleEx 属性影响}
     property Lighting: TCnLighting read FLighting write SetLighting;
-    {* 字体前景光照效果参数，受StyleEx属性影响}
+    {* 字体前景光照效果参数，受 StyleEx 属性影响}
     property Texture: TPicture read GetTexture write SetTexture;
-    {* 字体前景纹理效果参数，受StyleEx属性影响}
+    {* 字体前景纹理效果参数，受 StyleEx 属性影响}
     property TextureMode: TCnDrawMode read FTextureMode write SetTextureMode
       default dmTiled;
     {* 字体前景纹理效果显示模式}
     property Alpha: TCnAlpha read FAlpha write SetAlpha default csMaxAlpha;
     {* 字体不透明度参数}
     property Noise: Byte read FNoise write SetNoise default 0;
-    {* 字体前景随机噪声效果参数，受StyleEx属性影响}
+    {* 字体前景随机噪声效果参数，受 StyleEx 属性影响}
     property Spray: Byte read FSpray write SetSpray default 0;
-    {* 字体前景喷溅效果参数，受StyleEx属性影响}
+    {* 字体前景喷溅效果参数，受 StyleEx 属性影响}
   end;
 
 { TCnFontMask }
@@ -433,29 +434,29 @@ type
   TGdiAllocStyle = (gsInternal, gsNormal, gsActive);
   {* GDI 资源管理方式
    |<BR>
-   |<BR>　　　　　　　　　DC　　　　HBITMAP
-   |<BR>　　gsInternal:　即时释放　即时释放
-   |<BR>　　gsNormal:　　即时释放　定时释放
-   |<BR>　　gsActive:　　即时释放　从不释放
+   |<BR>                  DC        HBITMAP
+   |<BR>    gsInternal:  即时释放  即时释放
+   |<BR>    gsNormal:    即时释放  定时释放
+   |<BR>    gsActive:    即时释放  从不释放
   }
 
   TAdjustRange = -100..100;
   {* 图像属性变化范围}
 
   TPenWeight = (pwThin, pwNormal, pwThick);
-  {* 图像抗锯齿画笔粗细程度，均为1个象素宽度以内
+  {* 图像抗锯齿画笔粗细程度，均为1个像素宽度以内
    |<BR>
-   |<BR>　　pwThin:　　细画笔，绘制出的图形较浅
-   |<BR>　　pwNormal:　常规画笔，绘制出的图形适中
-   |<BR>　　pwThick:　　粗画笔，绘制出的图形较粗
+   |<BR>    pwThin:    细画笔，绘制出的图形较浅
+   |<BR>    pwNormal:  常规画笔，绘制出的图形适中
+   |<BR>    pwThick:    粗画笔，绘制出的图形较粗
   }
 
   TColorChannel = (ccRed, ccGreen, ccBlue);
   {* 图像颜色通道
    |<BR>
-   |<BR>　　ccRed:　　红色通道
-   |<BR>　　ccGreen:　绿色通道
-   |<BR>　　ccBlue:　　蓝色通道
+   |<BR>    ccRed:    红色通道
+   |<BR>    ccGreen:  绿色通道
+   |<BR>    ccBlue:    蓝色通道
   }
   TColorChannels = set of TColorChannel;
   {* 图像颜色通道集合}
@@ -471,7 +472,7 @@ type
 { TCnCanvas }
 
   TCnCanvas = class(TCanvas)
-  {* 用于TCnBitmap内部的画布类，请勿直接使用}
+  {* 用于 TCnBitmap 内部的画布类，请勿直接使用}
   private
     FBitmap: TCnBitmap;
     FDC: HDC;
@@ -490,7 +491,7 @@ type
 { TCnBitmap }
 
   TCnBitmap = class(TCnPersistent)
-  {* CnPack快速图像类}
+  {* CnPack 快速图像类}
   private
     FHandle: HBITMAP;
     FBitmapInfo: TBitmapInfo;
@@ -577,7 +578,7 @@ type
     property RowInc: Integer read FRowInc;
     property Gap: Integer read FGap;
   public
-    function Equals(Obj: TObject): Boolean; {$IFDEF OBJECT_HAS_EQUAL}override;{$ENDIF}
+    function Equals(Obj: TObject): Boolean; {$IFDEF OBJECT_HAS_EQUAL} override; {$ENDIF}
     constructor Create; override;
     {* 构造器，用于创建一个该类的实例}
     destructor Destroy; override;
@@ -590,15 +591,15 @@ type
     procedure DrawLine(x1, y1, x2, y2: Integer; Color: TColor);
     {* 以指定颜色绘制一条直线
      |<BR>
-     |<BR> x1, y1: Integer　　起始点坐标
-     |<BR> x2, y2: Integer　　结束点坐标}
+     |<BR> x1, y1: Integer    起始点坐标
+     |<BR> x2, y2: Integer    结束点坐标}
     procedure FrameRect(Rect: TRect; Color: TColor);
     {* 以指定颜色绘制一个矩形框架}
     procedure FreeImage; virtual;
     {* 将整个位图清空，释放所有已分配的资源}
     function CreateRegion(var RgnData: PRgnData): Integer;
-    {* 根据当前的透明色属性TransparentColor从位图中创建一个Region区域数据。
-     |<BR> 变量参数RgnData为PRgnData指针类型，用于接收数据结果。
+    {* 根据当前的透明色属性 TransparentColor 从位图中创建一个 Region 区域数据。
+     |<BR> 变量参数 RgnData 为 PRgnData 指针类型，用于接收数据结果。
      |<BR> 返回值为结果数据块的字节数。}
 
     // 与外部交换数据
@@ -606,7 +607,7 @@ type
     {* 赋值过程，允许从其它图像对象中获取数据。
      |<BR>
      |<BR> 支持以下的源图像类型：
-     |<BR> TCnBitmap、TBitmap、TGraphic、TPicture以及它们的派生类如TIcon、TJpegImage等
+     |<BR> TCnBitmap、TBitmap、TGraphic、TPicture 以及它们的派生类如 TIcon、TJpegImage 等
      |<BR> 当Source为nil时，清空当前位图，释放所有已分配的资源。}
     procedure SetSize(AWidth, AHeight: Integer); overload;
     {* 设置当前图像大小，如果变更大小，原图像数据将丢失。}
@@ -617,25 +618,25 @@ type
     procedure LoadFromMemory(ABits: Pointer; AWidth, AHeight: Integer);
     {* 从内存中装载位图
      |<BR>
-     |<BR> ABits: Pointer　　指向一块数据区，数据内容应该是24位格式的图像数据
-     |<BR> AWidth, AHeight: Integer　　位图的宽度和高度}
+     |<BR> ABits: Pointer    指向一块数据区，数据内容应该是 24 位格式的图像数据
+     |<BR> AWidth, AHeight: Integer    位图的宽度和高度}
     procedure LoadFromStream(Stream: TStream);
     {* 从流中装载位图}
     procedure LoadFromFile(const FileName: string);
     {* 从图像文件中装载位图
      |<BR> 内部使用TPicture来读取文件，允许系统中支持的图像文件格式。
-     |<BR> 如Icon、Wmf、Jpeg（需要Jpeg单元）等图像文件}
+     |<BR> 如 Icon、Wmf、Jpeg（需要 Jpeg 单元）等图像文件}
     procedure LoadFromResourceName(instance: THandle; const ResName: string);
-    {* 从资源中装载位图，参数为模块句柄和BITMAP资源名}
+    {* 从资源中装载位图，参数为模块句柄和 BITMAP 资源名}
     procedure LoadFromResourceID(instance: THandle; ResID: Integer);
-    {* 从资源中装载位图，参数为模块句柄和BITMAP资源ID}
+    {* 从资源中装载位图，参数为模块句柄和 BITMAP 资源 ID}
     procedure LoadFromClipboardFormat(AFormat: Word; AData: THandle;
       APalette: HPALETTE);
     {* 从剪帖板中装载位图}
     procedure SaveToStream(Stream: TStream);
     {* 将当前位图保存到流}
     procedure SaveToFile(const FileName: string);
-    {* 将当前位图保存到Bmp文件，文件格式为24位Bmp位图文件}
+    {* 将当前位图保存到 Bmp 文件，文件格式为 24 位 Bmp 位图文件}
     procedure SaveToClipboardFormat(var Format: Word; var Data: THandle;
       var APalette: HPALETTE);
     {* 复制位图到剪帖板中}
@@ -644,192 +645,192 @@ type
     procedure Draw(DstX, DstY: Integer; Src: TCnBitmap); overload;
     {* 图像绘制方法，将源图像全部绘制到当前位图中
      |<BR>
-     |<BR> DstX, DstY: Integer　　当前图像的左上角坐标
-     |<BR> Src: TCnBitmap　　源图像}
+     |<BR> DstX, DstY: Integer    当前图像的左上角坐标
+     |<BR> Src: TCnBitmap    源图像}
     procedure DrawEx(DstX, DstY: Integer; Src: TCnBitmap; SrcRect: TRect); overload;
     {* 增强的图像绘制方法，将源图像中的一部分绘制到当前位图中
      |<BR>
-     |<BR> DstX, DstY: Integer　　当前图像的左上角坐标
-     |<BR> Src: TCnBitmap　　源图像
-     |<BR> SrcRect: TRect　　源图像矩形}
+     |<BR> DstX, DstY: Integer    当前图像的左上角坐标
+     |<BR> Src: TCnBitmap    源图像
+     |<BR> SrcRect: TRect    源图像矩形}
     procedure Draw(DstX, DstY: Integer; Src: TGraphic); overload;
     {* 图像绘制方法，将源图像全部绘制到当前位图中
      |<BR>
-     |<BR> DstX, DstY: Integer　　当前图像的左上角坐标
-     |<BR> Src: TGraphic　　源图像，可以是TIcon、TBitmap、TJpegImage等派生类}
+     |<BR> DstX, DstY: Integer    当前图像的左上角坐标
+     |<BR> Src: TGraphic    源图像，可以是TIcon、TBitmap、TJpegImage等派生类}
     procedure DrawEx(DstX, DstY: Integer; Src: TGraphic; SrcRect: TRect); overload;
     {* 增强的图像绘制方法，将源图像中的一部分绘制到当前位图中
      |<BR>
-     |<BR> DstX, DstY: Integer　　当前图像的左上角坐标
-     |<BR> Src: TGraphic　　源图像，可以是TIcon、TBitmap、TJpegImage等派生类
-     |<BR> SrcRect: TRect　　源图像矩形}
+     |<BR> DstX, DstY: Integer    当前图像的左上角坐标
+     |<BR> Src: TGraphic     源图像，可以是 TIcon、TBitmap、TJpegImage 等派生类
+     |<BR> SrcRect: TRect    源图像矩形}
     procedure Draw(DstX, DstY: Integer; hSrc: HDC; SrcRect: TRect); overload;
     {* 图像绘制方法，将源DC上的一部分绘制到当前位图中
      |<BR>
-     |<BR> DstX, DstY: Integer　　为当前图像的左上角坐标
-     |<BR> hSrc: HDC　　　　源DC句柄，可以是TCanvas.Handle
-     |<BR> SrcRect: TRect　　源图像矩形}
+     |<BR> DstX, DstY: Integer    为当前图像的左上角坐标
+     |<BR> hSrc: HDC         源 DC 句柄，可以是 TCanvas.Handle
+     |<BR> SrcRect: TRect    源图像矩形}
     procedure DrawTo(hDst: HDC; DstX, DstY: Integer); overload;
-    {* 图像绘制方法，将当前位图全部绘制到目标DC上
+    {* 图像绘制方法，将当前位图全部绘制到目标 DC 上
      |<BR>
-     |<BR> hDst: HDC　　　　目标DC句柄，可以是TCanvas.Handle
-     |<BR> DstX, DstY: Integer　　目标画布的左上角坐标}
+     |<BR> hDst: HDC        目标 DC 句柄，可以是 TCanvas.Handle
+     |<BR> DstX, DstY: Integer    目标画布的左上角坐标}
     procedure DrawToEx(hDst: HDC; DstX, DstY: Integer; SrcRect: TRect); overload;
-    {* 增强的图像绘制方法，将当前的一部分绘制到目标DC上
+    {* 增强的图像绘制方法，将当前的一部分绘制到目标 DC 上
      |<BR>
-     |<BR> hDst: HDC　　　　目标DC句柄，可以是TCanvas.Handle
-     |<BR> DstX, DstY: Integer　　目标画布的左上角坐标
-     |<BR> SrcRect: TRect　　当前图像源矩形}
+     |<BR> hDst: HDC        目标 DC 句柄，可以是 TCanvas.Handle
+     |<BR> DstX, DstY: Integer    目标画布的左上角坐标
+     |<BR> SrcRect: TRect    当前图像源矩形}
     procedure DrawMode(Src: TCnBitmap; Mode: TCnDrawMode); overload;
     {* 指定模式的图像绘制方法，将源图像按指定的模式绘制到当前图像上
      |<BR>
-     |<BR> Src: TCnBitmap　　源图像
-     |<BR> Mode: TCnDrawMode　绘制方式}
+     |<BR> Src: TCnBitmap     源图像
+     |<BR> Mode: TCnDrawMode  绘制方式}
     procedure DrawModeEx(Src: TCnBitmap; Mode: TCnDrawMode; Alpha: TCnAlpha); overload;
-    {* 指定模式的图像绘制方法，将源图像按指定的模式绘制到当前图像上，支持Alpha混合
+    {* 指定模式的图像绘制方法，将源图像按指定的模式绘制到当前图像上，支持 Alpha 混合
      |<BR>
-     |<BR> Src: TCnBitmap　　源图像
-     |<BR> Mode: TCnDrawMode　绘制方式}
+     |<BR> Src: TCnBitmap     源图像
+     |<BR> Mode: TCnDrawMode  绘制方式}
     procedure DrawMode(Src: TGraphic; Mode: TCnDrawMode); overload;
     {* 指定模式的图像绘制方法，将源图像按指定的模式绘制到当前图像上
      |<BR>
-     |<BR> Src: TGraphic　　　源图像，可以是TIcon、TBitmap、TJpegImage等派生类
-     |<BR> Mode: TCnDrawMode　绘制方式}
+     |<BR> Src: TGraphic      源图像，可以是TIcon、TBitmap、TJpegImage等派生类
+     |<BR> Mode: TCnDrawMode  绘制方式}
     procedure DrawModeEx(Src: TGraphic; Mode: TCnDrawMode; Alpha: TCnAlpha); overload;
-    {* 指定模式的图像绘制方法，将源图像按指定的模式绘制到当前图像上，支持Alpha混合
+    {* 指定模式的图像绘制方法，将源图像按指定的模式绘制到当前图像上，支持 Alpha 混合
      |<BR>
-     |<BR> Src: TGraphic　　　源图像，可以是TIcon、TBitmap、TJpegImage等派生类
-     |<BR> Mode: TCnDrawMode　绘制方式}
+     |<BR> Src: TGraphic      源图像，可以是TIcon、TBitmap、TJpegImage等派生类
+     |<BR> Mode: TCnDrawMode  绘制方式}
 
     // 中心绘制
     procedure CenterDraw(Src: TCnBitmap); overload;
     {* 将源图像绘制到当前图像的中心位置上
      |<BR>
-     |<BR> Src: TCnBitmap　　　源图像}
+     |<BR> Src: TCnBitmap      源图像}
     procedure CenterDraw(Src: TGraphic); overload;
     {* 将源图像绘制到当前图像的中心位置上
      |<BR>
-     |<BR> Src: TGraphic　　　源图像，可以是TIcon、TBitmap、TJpegImage等派生类}
+     |<BR> Src: TGraphic      源图像，可以是 TIcon、TBitmap、TJpegImage 等派生类}
 
     // 平铺绘制
     procedure TileDraw(Src: TCnBitmap); overload;
     {* 将源图像平铺绘制到当前图像
      |<BR>
-     |<BR> Src: TCnBitmap　　　源图像}
+     |<BR> Src: TCnBitmap      源图像}
     procedure TileDrawEx(DstRect: TRect; Src: TCnBitmap); overload;
     {* 将源图像平铺绘制到当前图像指定区域内
      |<BR>
-     |<BR> DstRect: TRect　　　当前图像目标矩形
-     |<BR> Src: TCnBitmap　　　源图像}
+     |<BR> DstRect: TRect      当前图像目标矩形
+     |<BR> Src: TCnBitmap      源图像}
     procedure TileDraw(Src: TGraphic); overload;
     {* 将源图像平铺绘制到当前图像
      |<BR>
-     |<BR> Src: TGraphic　　　源图像，可以是TIcon、TBitmap、TJpegImage等派生类}
+     |<BR> Src: TGraphic      源图像，可以是 TIcon、TBitmap、TJpegImage 等派生类}
     procedure TileDrawEx(DstRect: TRect; Src: TGraphic); overload;
     {* 将源图像平铺绘制到当前图像指定区域内
      |<BR>
-     |<BR> DstRect: TRect　　　当前图像目标矩形
-     |<BR> Src: TCnBitmap　　　源图像，可以是TIcon、TBitmap、TJpegImage等派生类}
+     |<BR> DstRect: TRect      当前图像目标矩形
+     |<BR> Src: TCnBitmap      源图像，可以是 TIcon、TBitmap、TJpegImage 等派生类}
     procedure TileDrawTo(hDst: HDC; DstRect: TRect); overload;
     {* 将当前图像平铺绘制到目标DC指定区域内
      |<BR>
-     |<BR> hDst: HDC　　　　　目标DC句柄，可以是TCanvas.Handle
-     |<BR> DstRect: TRect　　　目标矩形}
+     |<BR> hDst: HDC          目标 DC 句柄，可以是TCanvas.Handle
+     |<BR> DstRect: TRect     目标矩形}
 
     // 缩放绘制
     procedure StretchDraw(Src: TCnBitmap); overload;
     {* 将源图像缩放绘制到当前图像中
      |<BR>
-     |<BR> Src: TCnBitmap　　源图像}
+     |<BR> Src: TCnBitmap    源图像}
     procedure StretchDrawEx(DstRect, SrcRect: TRect; Src: TCnBitmap); overload;
     {* 将源图像的一部分缩放绘制到当前图像中指定区域内
      |<BR>
-     |<BR> DstRect: TRect　　目标矩形
-     |<BR> SrcRect: TRect　　源矩形
-     |<BR> Src: TCnBitmap　　源图像}
+     |<BR> DstRect: TRect    目标矩形
+     |<BR> SrcRect: TRect    源矩形
+     |<BR> Src: TCnBitmap    源图像}
     procedure StretchDraw(Src: TGraphic); overload;
     {* 将源图像缩放绘制到当前图像中
      |<BR>
-     |<BR> Src: TGraphic　　源图像，可以是TIcon、TBitmap、TJpegImage等派生类}
+     |<BR> Src: TGraphic     源图像，可以是 TIcon、TBitmap、TJpegImage 等派生类}
     procedure StretchDrawEx(DstRect, SrcRect: TRect; Src: TGraphic); overload;
     {* 将源图像的一部分缩放绘制到当前图像指定区域内
      |<BR>
-     |<BR> DstRect: TRect　　目标矩形
-     |<BR> SrcRect: TRect　　源矩形
-     |<BR> Src: TGraphic　　　源图像，可以是TIcon、TBitmap、TJpegImage等派生类}
+     |<BR> DstRect: TRect     目标矩形
+     |<BR> SrcRect: TRect     源矩形
+     |<BR> Src: TGraphic      源图像，可以是 TIcon、TBitmap、TJpegImage 等派生类}
     procedure StretchDraw(SrcRect: TRect; hSrc: HDC); overload;
     {* 将源DC上的指定区域缩放绘制到当前图像中
      |<BR>
-     |<BR> SrcRect: TRect　　源矩形
-     |<BR> hSrc: HDC　　　　　源DC句柄，可以是TCanvas.Handle}
+     |<BR> SrcRect: TRect     源矩形
+     |<BR> hSrc: HDC          源 DC 句柄，可以是 TCanvas.Handle}
     procedure StretchDrawEx(DstRect, SrcRect: TRect; hSrc: HDC); overload;
     {* 将源DC上的指定区域缩放绘制到当前图像指定区域内
      |<BR>
-     |<BR> DstRect: TRect　　目标矩形
-     |<BR> SrcRect: TRect　　源矩形
-     |<BR> hSrc: HDC　　　　　源DC句柄，可以是TCanvas.Handle}
+     |<BR> DstRect: TRect     目标矩形
+     |<BR> SrcRect: TRect     源矩形
+     |<BR> hSrc: HDC          源 DC 句柄，可以是 TCanvas.Handle}
     procedure StretchDrawTo(Dst: TImage); overload;
     {* 将当前图像缩放绘制到TImage控件中
      |<BR>
-     |<BR> Dst: TImage　　　目标控件}
+     |<BR> Dst: TImage       目标控件}
     procedure StretchDrawTo(hDst: HDC; DstRect: TRect); overload;
     {* 将当前图像缩放绘制到DC中
      |<BR>
-     |<BR> hDst: HDC　　　　目标DC句柄，可以是TCanvas.Handle
-     |<BR> DstRect: TRect　　目标矩形}
+     |<BR> hDst: HDC         目标 DC 句柄，可以是 TCanvas.Handle
+     |<BR> DstRect: TRect    目标矩形}
     procedure StretchDrawToEx(hDst: HDC; DstRect, SrcRect: TRect); overload;
     {* 将当前图像的一部分缩放绘制到DC中
      |<BR>
-     |<BR> hDst: HDC　　　　目标DC句柄，可以是TCanvas.Handle
-     |<BR> DstRect: TRect　　目标矩形
-     |<BR> SrcRect: TRect　　源矩形}
+     |<BR> hDst: HDC         目标DC句柄，可以是 TCanvas.Handle
+     |<BR> DstRect: TRect    目标矩形
+     |<BR> SrcRect: TRect    源矩形}
 
     // Alpha混合绘制
     procedure AlphaDraw(Src: TCnBitmap; Alpha: TCnAlpha; Stretch: Boolean); overload;
     {* 将源图像与当前图像按指定的比例混合到当前图像中
      |<BR>
-     |<BR> Src: TCnBitmap　　源图像
-     |<BR> Alpha: TCnAlpha　　源图像的不透明度
-     |<BR> Stretch: Boolean　当图像大小不一致时，是否自动对源图像进行缩放}
+     |<BR> Src: TCnBitmap     源图像
+     |<BR> Alpha: TCnAlpha    源图像的不透明度
+     |<BR> Stretch: Boolean   当图像大小不一致时，是否自动对源图像进行缩放}
     procedure AlphaDraw(DstX, DstY: Integer; Src: TCnBitmap; SrcRect: TRect;
       Alpha: TCnAlpha); overload;
     {* 将源图像中的一部分与当前图像按指定的比例混合到当前图像指定位置中
      |<BR>
-     |<BR> DstX, DstY: Integer　　目标位置左上角坐标
-     |<BR> Src: TCnBitmap　　源图像
-     |<BR> SrcRect: TRect　　源矩形
-     |<BR> Alpha: TCnAlpha　　源图像的不透明度}
+     |<BR> DstX, DstY: Integer    目标位置左上角坐标
+     |<BR> Src: TCnBitmap         源图像
+     |<BR> SrcRect: TRect         源矩形
+     |<BR> Alpha: TCnAlpha        源图像的不透明度}
     procedure AlphaDrawGrad(Src: TCnBitmap; Style: TCnGradStyle;
       Stretch: Boolean; StartAlpha: TCnAlpha = 0; EndAlpha: TCnAlpha = csMaxAlpha);
     {* 将源图像与当前图像按渐变的比例混合到当前图像指定位置中
      |<BR>
-     |<BR> Src: TCnBitmap　　　　源图像
-     |<BR> Style: TCnGradStyle　　渐变混合方式
-     |<BR> Stretch: Boolean　　　当图像大小不一致时，是否自动对源图像进行缩放
-     |<BR> StartAlpha: TCnAlpha　渐变起始的不透明度
-     |<BR> EndAlpha: TCnAlpha　　渐变结束的不透明度}
+     |<BR> Src: TCnBitmap         源图像
+     |<BR> Style: TCnGradStyle    渐变混合方式
+     |<BR> Stretch: Boolean       当图像大小不一致时，是否自动对源图像进行缩放
+     |<BR> StartAlpha: TCnAlpha   渐变起始的不透明度
+     |<BR> EndAlpha: TCnAlpha     渐变结束的不透明度}
     procedure AlphaDrawEx(DstRect: TRect; Front, Back: TCnBitmap; Alpha: TCnAlpha;
       Stretch: Boolean);
     {* 将两个图像按指定的比例混合到当前图像指定区域中
      |<BR>
-     |<BR> Front: TCnBitmap　　　前景图像
-     |<BR> Back: TCnBitmap　　　　背景图像
-     |<BR> Alpha: TCnAlpha　　　　前景图像的不透明度
-     |<BR> Stretch: Boolean　　　当图像大小不一致时，是否自动对源图像进行缩放}
+     |<BR> Front: TCnBitmap       前景图像
+     |<BR> Back: TCnBitmap        背景图像
+     |<BR> Alpha: TCnAlpha        前景图像的不透明度
+     |<BR> Stretch: Boolean       当图像大小不一致时，是否自动对源图像进行缩放}
 
     // 渐变色绘制
     procedure DrawGradient(GradColor: TCnGradientColor);
     {* 在当前图像中产生渐变颜色效果
      |<BR>
-     |<BR> GradColor: TCnGradientColor　　渐变效果参数}
+     |<BR> GradColor: TCnGradientColor    渐变效果参数}
     procedure DrawGradientEx(GradColor: TCnGradientColor; Rect: TRect; Alpha:
       TCnAlpha);
     {* 在当前图像指定区域中产生半透明的渐变颜色效果
      |<BR>
-     |<BR> GradColor: TCnGradientColor　　渐变效果参数
-     |<BR> Rect: TRect　　　　指定区域
-     |<BR> Alpha: TCnAlpha　　渐变效果的不透明度
-     |<BR> 注：当选择辐射渐变方式时，根据当前SmoothFilter属性可支持抗锯齿处理 }
+     |<BR> GradColor: TCnGradientColor    渐变效果参数
+     |<BR> Rect: TRect        指定区域
+     |<BR> Alpha: TCnAlpha    渐变效果的不透明度
+     |<BR> 注：当选择辐射渐变方式时，根据当前 SmoothFilter 属性可支持抗锯齿处理 }
 
     // 按钮位图绘制
     procedure Disabled;
@@ -838,151 +839,151 @@ type
       ShadowColor: TColor; DrawHighlight: Boolean);
     {* 将当前图像按失效按钮的风格进行绘制，根据当前的透明色属性判断
      |<BR>
-     |<BR> OutlineColor: TColor　　目标图像轮廓颜色
-     |<BR> BackColor: TColor　　　目标图像背景颜色
-     |<BR> HighlightColor: TColor　目标图像高亮区颜色
-     |<BR> ShadowColor: TColor　　目标图像阴影颜色
-     |<BR> DrawHighlight: Boolean　是否绘制高亮区}
+     |<BR> OutlineColor: TColor    目标图像轮廓颜色
+     |<BR> BackColor: TColor       目标图像背景颜色
+     |<BR> HighlightColor: TColor  目标图像高亮区颜色
+     |<BR> ShadowColor: TColor     目标图像阴影颜色
+     |<BR> DrawHighlight: Boolean  是否绘制高亮区}
     procedure DrawDisabled(hDst: HDC; ARect: TRect);
     {* 将当前图像按失效按钮的风格绘制到目标DC上，根据当前的透明色属性判断
        完成绘制后当前图像内容不变
      |<BR>
-     |<BR> hDst: HDC　　　　目标DC句柄，可以是TCanvas.Handle
-     |<BR> ARect: TRect　　　目标矩形}
+     |<BR> hDst: HDC         目标 DC 句柄，可以是 TCanvas.Handle
+     |<BR> ARect: TRect      目标矩形}
     procedure DrawDisabledEx(hDst: HDC; ARect: TRect; OutlineColor,
       BackColor, HighlightColor, ShadowColor: TColor; DrawHighlight: Boolean);
-    {* 将当前图像按失效按钮的风格绘制到目标DC上，根据当前的透明色属性判断
+    {* 将当前图像按失效按钮的风格绘制到目标 DC 上，根据当前的透明色属性判断
        完成绘制后当前图像内容不变
      |<BR>
-     |<BR> hDst: HDC　　　　　　　目标DC句柄，可以是TCanvas.Handle
-     |<BR> ARect: TRect　　　　　　目标矩形
-     |<BR> OutlineColor: TColor　　目标图像轮廓颜色
-     |<BR> BackColor: TColor　　　目标图像背景颜色
-     |<BR> HighlightColor: TColor　目标图像高亮区颜色
-     |<BR> ShadowColor: TColor　　目标图像阴影颜色
-     |<BR> DrawHighlight: Boolean　是否绘制高亮区}
+     |<BR> hDst: HDC               目标 DC 句柄，可以是 TCanvas.Handle
+     |<BR> ARect: TRect            目标矩形
+     |<BR> OutlineColor: TColor    目标图像轮廓颜色
+     |<BR> BackColor: TColor       目标图像背景颜色
+     |<BR> HighlightColor: TColor  目标图像高亮区颜色
+     |<BR> ShadowColor: TColor     目标图像阴影颜色
+     |<BR> DrawHighlight: Boolean  是否绘制高亮区}
     procedure Shadowed;
     {* 将当前图像按带阴影按钮的风格进行绘制，根据当前的透明色属性判断}
     procedure ShadowedEx(OutlineColor, ShadowColor, BackColor: TColor;
       Blur: Boolean; OffsetX, OffsetY: Integer);
     {* 将当前图像按带阴影按钮的风格进行绘制，根据当前的透明色属性判断
      |<BR>
-     |<BR> OutlineColor: TColor　　目标图像轮廓颜色
-     |<BR> ShadowColor: TColor　　目标图像阴影颜色
-     |<BR> BackColor: TColor　　　目标图像背景颜色
-     |<BR> Blur: Boolean　　　　　阴影是否模糊
-     |<BR> OffsetX: Integer　　　　阴影水平偏移量，为负表示左偏
-     |<BR> OffsetY: Integer　　　　阴影垂直偏移量，为负表示上偏}
+     |<BR> OutlineColor: TColor    目标图像轮廓颜色
+     |<BR> ShadowColor: TColor     目标图像阴影颜色
+     |<BR> BackColor: TColor       目标图像背景颜色
+     |<BR> Blur: Boolean           阴影是否模糊
+     |<BR> OffsetX: Integer        阴影水平偏移量，为负表示左偏
+     |<BR> OffsetY: Integer        阴影垂直偏移量，为负表示上偏}
     procedure DrawShadowed(hDst: HDC; ARect: TRect);
     {* 将当前图像按带阴影按钮的风格绘制到目标DC上，根据当前的透明色属性判断
        完成绘制后当前图像内容不变
      |<BR>
-     |<BR> hDst: HDC　　　　目标DC句柄，可以是TCanvas.Handle
-     |<BR> ARect: TRect　　　目标矩形}
+     |<BR> hDst: HDC         目标 DC 句柄，可以是 TCanvas.Handle
+     |<BR> ARect: TRect      目标矩形}
     procedure DrawShadowedEx(hDst: HDC; ARect: TRect; OutlineColor, ShadowColor,
       BackColor: TColor; Blur: Boolean; OffsetX, OffsetY: Integer);
     {* 将当前图像按带阴影按钮的风格绘制到目标DC上，根据当前的透明色属性判断
        完成绘制后当前图像内容不变
      |<BR>
-     |<BR> hDst: HDC　　　　　　　目标DC句柄，可以是TCanvas.Handle
-     |<BR> ARect: TRect　　　　　　目标矩形
-     |<BR> OutlineColor: TColor　　目标图像轮廓颜色
-     |<BR> ShadowColor: TColor　　目标图像阴影颜色
-     |<BR> BackColor: TColor　　　目标图像背景颜色
-     |<BR> Blur: Boolean　　　　　阴影是否模糊
-     |<BR> OffsetX: Integer　　　　阴影水平偏移量，为负表示左偏
-     |<BR> OffsetY: Integer　　　　阴影垂直偏移量，为负表示上偏}
+     |<BR> hDst: HDC               目标 DC 句柄，可以是 TCanvas.Handle
+     |<BR> ARect: TRect            目标矩形
+     |<BR> OutlineColor: TColor    目标图像轮廓颜色
+     |<BR> ShadowColor: TColor     目标图像阴影颜色
+     |<BR> BackColor: TColor       目标图像背景颜色
+     |<BR> Blur: Boolean           阴影是否模糊
+     |<BR> OffsetX: Integer        阴影水平偏移量，为负表示左偏
+     |<BR> OffsetY: Integer        阴影垂直偏移量，为负表示上偏}
 
     // 图像颜色属性调整方法
     procedure RGB(ra, ga, ba: TAdjustRange);
     {* 调整当前图像的各颜色分量
      |<BR>
-     |<BR> ra, ga, ba: TAdjustRange　分别为红、绿、蓝分量调整范围
-     |<BR> 范围值为-100..100，0表示不变，正为增加，负为减少}
+     |<BR> ra, ga, ba: TAdjustRange  分别为红、绿、蓝分量调整范围
+     |<BR> 范围值为 -100..100，0 表示不变，正为增加，负为减少}
     procedure Brightness(Range: TAdjustRange; Channels: TColorChannels =
       csAllChannels);
     {* 调整当前图像的亮度
      |<BR>
-     |<BR> Range: TAdjustRange　亮度范围值为-100..100，0表示不变，正为增加，负为减少
-     |<BR> Channels: TColorChannels　　颜色通道设置}
+     |<BR> Range: TAdjustRange  亮度范围值为 -100..100，0 表示不变，正为增加，负为减少
+     |<BR> Channels: TColorChannels    颜色通道设置}
     procedure Contrast(Range: TAdjustRange; Channels: TColorChannels = csAllChannels);
     {* 调整当前图像的对比度
      |<BR>
-     |<BR> Range: TAdjustRange　比对度范围值为-100..100，0表示不变，正为增加，负为减少
-     |<BR> Channels: TColorChannels　　颜色通道设置}
+     |<BR> Range: TAdjustRange  比对度范围值为 -100..100，0 表示不变，正为增加，负为减少
+     |<BR> Channels: TColorChannels    颜色通道设置}
     procedure Saturation(Range: TAdjustRange; Channels: TColorChannels =
       csAllChannels);
     {* 调整当前图像的颜色饱和度
      |<BR>
-     |<BR> Range: TAdjustRange　饱和度范围值为-100..100，0表示不变，正为增加，负为减少
-     |<BR> Channels: TColorChannels　　颜色通道设置}
+     |<BR> Range: TAdjustRange  饱和度范围值为 -100..100，0 表示不变，正为增加，负为减少
+     |<BR> Channels: TColorChannels    颜色通道设置}
     procedure Levels(InLow, InHigh, OutLow, OutHigh: Byte;
       Channels: TColorChannels = csAllChannels);
     {* 调整当前图像的色阶
      |<BR>
-     |<BR> InLow, InHigh: Byte　　输入图像的灰度值上、下限
-     |<BR> OutLow, OutHigh: Byte　输出图像的灰度值上、下限
-     |<BR> Channels: TColorChannels　　颜色通道设置}
+     |<BR> InLow, InHigh: Byte    输入图像的灰度值上、下限
+     |<BR> OutLow, OutHigh: Byte  输出图像的灰度值上、下限
+     |<BR> Channels: TColorChannels    颜色通道设置}
     procedure Grayscale(Channels: TColorChannels = csAllChannels);
     {* 将当前图像转换为灰度图
      |<BR>
-     |<BR> Channels: TColorChannels　　颜色通道设置}
+     |<BR> Channels: TColorChannels    颜色通道设置}
     procedure Invert(Channels: TColorChannels = csAllChannels);
-    {* 将当前图像所有象素的颜色反转
+    {* 将当前图像所有像素的颜色反转
      |<BR>
-     |<BR> Channels: TColorChannels　　颜色通道设置}
+     |<BR> Channels: TColorChannels    颜色通道设置}
     procedure Colorize(Color: TColor); overload;
     {* 调整当前图像按指定颜色彩色化，支持图像透明设置
      |<BR>
-     |<BR> Color: TColor　指定颜色值}
+     |<BR> Color: TColor  指定颜色值}
     procedure Colorize(Color: TCnColor); overload;
     {* 调整当前图像按指定颜色彩色化，支持图像透明设置
      |<BR>
-     |<BR> Color: TCnColor　指定颜色值}
+     |<BR> Color: TCnColor  指定颜色值}
 
     // 图像几何变换
     procedure Flip(Horizontal: Boolean);
     {* 将当前图像几何位置翻转
      |<BR>
-     |<BR> Horizontal: Boolean　为真表示水平翻转，为假表示垂直翻转}
+     |<BR> Horizontal: Boolean  为真表示水平翻转，为假表示垂直翻转}
     procedure Turn(Angle: TTurnAngle);
     {* 将当前图像几何位置旋转
      |<BR>
-     |<BR> Angle: TTurnAngle　转动角度、可为ta90、ta180、ta270}
+     |<BR> Angle: TTurnAngle  转动角度、可为 ta90、ta180、ta270}
 
     procedure VShift(Amount: Integer);
     {* 将当前图像进行垂直平移
      |<BR>
-     |<BR> Amount: Integer　平移量，允许为负}
+     |<BR> Amount: Integer  平移量，允许为负}
     procedure HShift(Amount: Integer);
     {* 将当前图像进行水平平移
      |<BR>
-     |<BR> Amount: Integer　平移量，允许为负}
+     |<BR> Amount: Integer  平移量，允许为负}
     procedure Rotate(DstCenter: TPoint; Src: TCnBitmap; Angle: Double);
     {* 将源图像旋转后绘制到当前图像指定位置上，支持源图像透明属性
      |<BR>
-     |<BR> DstCenter: TPoint　目标中心点位置，允许在当前图像外
-     |<BR> Src: TCnBitmap　　　源图像
-     |<BR> Angle: Double　　　源图像旋转角度，单位为度数}
+     |<BR> DstCenter: TPoint   目标中心点位置，允许在当前图像外
+     |<BR> Src: TCnBitmap      源图像
+     |<BR> Angle: Double       源图像旋转角度，单位为度数}
 
     // 滤镜处理方法
     procedure ApplyFilter(Core: TFilterCore; Cent: Integer = 0);
     {* 对当前图像按指定模板进行卷积运算
      |<BR>
-     |<BR> Core: TFilterCore　3X3卷积核
-     |<BR> Cent: Integer 　　　卷积结果因素}
+     |<BR> Core: TFilterCore  3x3 卷积核
+     |<BR> Cent: Integer       卷积结果因素}
     procedure Blur;
-    {* 对当前图像进行模糊处理，使用3X3均值算子}
+    {* 对当前图像进行模糊处理，使用 3x3 均值算子}
     procedure GaussianBlur(Amount: Integer);
     {* 对当前图像进行快速高斯模糊处理
      |<BR>
-     |<BR> Amount: Integer　　模糊半径}
+     |<BR> Amount: Integer    模糊半径}
     procedure Sharpen;
     {* 对当前图像进行锐化处理}
     procedure SharpenMore(Amount: Integer);
     {* 对当前图像进行更多的锐化处理
      |<BR>
-     |<BR> Amount: Integer　　锐化程度}
+     |<BR> Amount: Integer    锐化程度}
     procedure Spray(Amount: Integer);
     {* 对当前图像进行喷溅滤镜处理}
     procedure Emboss;
@@ -996,171 +997,171 @@ type
     procedure Wave(XDiv, YDiv, RatioVal: Double; Wrap: Boolean);
     {* 对当前图像进行扭曲变形
      |<BR>
-     |<BR> XDiv, YDiv: Double　　水平、垂直方向的扭曲系数
-     |<BR> RatioVal: Double　　　扭曲程度
-     |<BR> Wrap: Boolean　　　　　指定是否自动环绕}
+     |<BR> XDiv, YDiv: Double    水平、垂直方向的扭曲系数
+     |<BR> RatioVal: Double      扭曲程度
+     |<BR> Wrap: Boolean         指定是否自动环绕}
     procedure Mosaic(xAmount, yAmount: Integer);
     {* 将当前图像马赛克化
      |<BR>
-     |<BR> xAmount: Integer　　矩形块宽度
-     |<BR> yAmount: Integer　　矩形块高度}
+     |<BR> xAmount: Integer    矩形块宽度
+     |<BR> yAmount: Integer    矩形块高度}
     procedure Twist(Amount: Integer);
     {* 将当前图像转化为旋涡图
      |<BR>
-     |<BR> Amount: Integer　　半径系数}
+     |<BR> Amount: Integer     半径系数}
     procedure Lighting(Center: TPoint; OffX, OffY: Integer; Angle: Double;
       Color: TColor; Amount: TCnAlpha); overload;
     {* 在当前图像上产生光照效果
      |<BR>
-     |<BR> Center: TPoint　　　光照中心点
-     |<BR> OffX, OffY: Integer　光照范围，长、短轴半径
-     |<BR> Angle: Double　　　　角度，OffX指定的长轴与水平轴的夹角
-     |<BR> Color: TColor　　　　光照颜色
-     |<BR> Amount: TCnAlpha　　光照强度}
+     |<BR> Center: TPoint       光照中心点
+     |<BR> OffX, OffY: Integer  光照范围，长、短轴半径
+     |<BR> Angle: Double        角度，OffX 指定的长轴与水平轴的夹角
+     |<BR> Color: TColor        光照颜色
+     |<BR> Amount: TCnAlpha     光照强度}
     procedure Lighting(Rect: TRect; Data: TCnLighting); overload;
     {* 在当前图像上产生光照效果
      |<BR>
-     |<BR> Rect: TRect　　　　光照目标范围（未旋转前）
-     |<BR> Data: TCnLighting　光照参数}
+     |<BR> Rect: TRect        光照目标范围（未旋转前）
+     |<BR> Data: TCnLighting  光照参数}
     procedure Mask(MaskColor: TCnColor); overload;
     {* 将当前图像按指定颜色为标准二值化
      |<BR>
-     |<BR> MaskColor: TCnColor　　指定的颜色，与该颜色相同的变为白色，反之为黑色}
+     |<BR> MaskColor: TCnColor    指定的颜色，与该颜色相同的变为白色，反之为黑色}
     procedure MaskEx(MaskColor, InColor, BackColor: TCnColor); overload;
     {* 将当前图像按指定颜色为标准二值化
      |<BR>
-     |<BR> MaskColor: TCnColor　　指定的颜色
-     |<BR> InColor: TCnColor　　　图像中与指定色相同的象素用该颜色替代
-     |<BR> BackColor: TCnColor　　图像中与指定色不同的象素用该颜色替代}
+     |<BR> MaskColor: TCnColor    指定的颜色
+     |<BR> InColor: TCnColor      图像中与指定色相同的像素用该颜色替代
+     |<BR> BackColor: TCnColor    图像中与指定色不同的像素用该颜色替代}
     procedure Mask(MaskColor: TColor); overload;
     {* 将当前图像按指定颜色为标准二值化
      |<BR>
-     |<BR> MaskColor: TColor　　指定的颜色，与该颜色相同的变为白色，反之为黑色}
+     |<BR> MaskColor: TColor    指定的颜色，与该颜色相同的变为白色，反之为黑色}
     procedure MaskEx(MaskColor, InColor, BackColor: TColor); overload;
     {* 将当前图像按指定颜色为标准二值化
      |<BR>
-     |<BR> MaskColor: TColor　　指定的颜色
-     |<BR> InColor: TColor　　　图像中与指定色相同的象素用该颜色替代
-     |<BR> BackColor: TColor　　图像中与指定色不同的象素用该颜色替代}
+     |<BR> MaskColor: TColor    指定的颜色
+     |<BR> InColor: TColor      图像中与指定色相同的像素用该颜色替代
+     |<BR> BackColor: TColor    图像中与指定色不同的像素用该颜色替代}
     procedure AddColorNoise(Amount: Integer);
     {* 在当前图像中增加彩色噪声点
      |<BR>
-     |<BR> Amount: Integer　　噪声系数}
+     |<BR> Amount: Integer    噪声系数}
     procedure AddMonoNoise(Amount: Integer);
     {* 在当前图像中增加黑白噪声点
      |<BR>
-     |<BR> Amount: Integer　　噪声系数}
+     |<BR> Amount: Integer    噪声系数}
     procedure RemoveNoise(Amount: Integer);
     {* 从当前图像中移去噪声点，用于图像降噪处理
      |<BR>
-     |<BR> Amount: Integer　　噪声系数}
+     |<BR> Amount: Integer    噪声系数}
     procedure AddMiddleColor(Color: TColor);
     {* 将当前图像与指定颜色做均值运算，类似于蒙板处理
      |<BR>
-     |<BR> Color: TColor　　前景颜色}
+     |<BR> Color: TColor    前景颜色}
     procedure AddMiddleColorEx(Color: TColor; Rect: TRect);
     {* 将当前图像的指定区域与指定颜色做均值运算，类似于蒙板处理
      |<BR>
-     |<BR> Color: TColor　　前景颜色
-     |<BR> Rect: TRect　　　指定矩形}
+     |<BR> Color: TColor    前景颜色
+     |<BR> Rect: TRect      指定矩形}
 
     // 其它图像处理方法
     procedure InterpolateRect(Rect: TRect; c00, c10, c01, c11: TCnColor); overload;
     {* 根据四角颜色值用渐变色填充矩形
      |<BR>
-     |<BR> Rect: TRect　　　矩形块
-     |<BR> c00: TCnColor　　左上角颜色
-     |<BR> c10: TCnColor　　右上角颜色
-     |<BR> c01: TCnColor　　左下角颜色
-     |<BR> c11: TCnColor　　右上角颜色}
+     |<BR> Rect: TRect      矩形块
+     |<BR> c00: TCnColor    左上角颜色
+     |<BR> c10: TCnColor    右上角颜色
+     |<BR> c01: TCnColor    左下角颜色
+     |<BR> c11: TCnColor    右上角颜色}
     procedure InterpolateRect(Rect: TRect; c00, c10, c01, c11: TColor); overload;
     {* 根据四角颜色值用渐变色填充矩形
      |<BR>
-     |<BR> Rect: TRect　　矩形块
-     |<BR> c00: TColor　　左上角颜色
-     |<BR> c10: TColor　　右上角颜色
-     |<BR> c01: TColor　　左下角颜色
-     |<BR> c11: TColor　　右上角颜色}
+     |<BR> Rect: TRect    矩形块
+     |<BR> c00: TColor    左上角颜色
+     |<BR> c10: TColor    右上角颜色
+     |<BR> c01: TColor    左下角颜色
+     |<BR> c11: TColor    右上角颜色}
 
     // 抗锯齿画笔绘制方法（支持小数）
     procedure DrawLineF(x1, y1, x2, y2: Single; Color: TColor);
     {* 以指定颜色绘制一条直线，使用抗锯齿算法
      |<BR>
-     |<BR> x1, y1: Single　　起始点坐标
-     |<BR> x2, y2: Single　　结束点坐标
-     |<BR> Color: TColor　　直线颜色}
+     |<BR> x1, y1: Single    起始点坐标
+     |<BR> x2, y2: Single    结束点坐标
+     |<BR> Color: TColor     直线颜色}
     procedure LineToF(x, y: Single); overload;
     {* 从当前点PenPosF绘制直线到目标点，同时移动画笔坐标，使用抗锯齿算法
      |<BR>
-     |<BR> x, y: Single　　目标点坐标}
+     |<BR> x, y: Single      目标点坐标}
     procedure LineToF(Point: TPointF); overload;
     {* 从当前点PenPosF绘制直线到目标点，同时移动画笔坐标，使用抗锯齿算法
      |<BR>
-     |<BR> Point: TPointF　　目标点坐标}
+     |<BR> Point: TPointF    目标点坐标}
     procedure MoveToF(x, y: Single); overload;
     {* 移动当前画笔到目标点
      |<BR>
-     |<BR> x, y: Single　　目标点坐标}
+     |<BR> x, y: Single      目标点坐标}
     procedure MoveToF(Point: TPointF); overload;
     {* 移动当前画笔到目标点
      |<BR>
-     |<BR> Point: TPointF　　目标点坐标}
+     |<BR> Point: TPointF    目标点坐标}
     procedure DrawRectF(const Rect: TRectF);
     {* 使用画笔绘制一个矩形，使用抗锯齿算法
      |<BR>
-     |<BR> Rect: TRectF　　目标矩形}
+     |<BR> Rect: TRectF    目标矩形}
     procedure PolylineF(const Points: TPointFArray);
     {* 使用画笔绘制折线，使用抗锯齿算法
      |<BR>
-     |<BR> Points: TPointFArray　　各顶点坐标数组}
+     |<BR> Points: TPointFArray    各顶点坐标数组}
     procedure EllipseF(x1, y1, x2, y2: Single); overload;
     {* 使用画笔绘制椭圆，使用抗锯齿算法
      |<BR>
-     |<BR> x1, y1: Single　　外接矩形的左上角坐标
-     |<BR> x2, y2: Single　　外接矩形的右下角坐标}
+     |<BR> x1, y1: Single    外接矩形的左上角坐标
+     |<BR> x2, y2: Single    外接矩形的右下角坐标}
     procedure EllipseF(const Rect: TRectF); overload;
     {* 使用画笔绘制椭圆，使用抗锯齿算法
      |<BR>
-     |<BR> Rect: TRectF　　外接矩形}
+     |<BR> Rect: TRectF    外接矩形}
 
     // 平滑字体绘制方法
     function TextExtent(const Text: string): TSize;
-    {* 计算文本显示区域，使用平滑字体Font属性，不支持多行文本
+    {* 计算文本显示区域，使用平滑字体 Font 属性，不支持多行文本
      |<BR>
-     |<BR> Text: string　　文本内容
-     |<BR> Result: TSize　　文本区域}
+     |<BR> Text: string    文本内容
+     |<BR> Result: TSize    文本区域}
     function TextHeight(const Text: string): Integer;
-    {* 计算文本显示高度，使用平滑字体Font属性，不支持多行文本
+    {* 计算文本显示高度，使用平滑字体 Font 属性，不支持多行文本
      |<BR>
-     |<BR> Text: string　　　文本内容
-     |<BR> Result: Integer　　文本显示高度}
+     |<BR> Text: string      文本内容
+     |<BR> Result: Integer    文本显示高度}
     function TextWidth(const Text: string): Integer;
-    {* 计算文本显示宽度，使用平滑字体Font属性，不支持多行文本
+    {* 计算文本显示宽度，使用平滑字体 Font 属性，不支持多行文本
      |<BR>
-     |<BR> Text: string　　　文本内容
-     |<BR> Result: Integer　　文本显示宽度}
+     |<BR> Text: string      文本内容
+     |<BR> Result: Integer    文本显示宽度}
     procedure TextOut(x, y: Integer; const Text: string);
-    {* 在当前当前图像中绘制文本，使用平滑字体Font属性，不支持多行文本
-     |<BR> FontClear属性决定文本背景是否透明，FontBkColor为不透明时的背景填充色
+    {* 在当前当前图像中绘制文本，使用平滑字体 Font 属性，不支持多行文本
+     |<BR> FontClear 属性决定文本背景是否透明，FontBkColor 为不透明时的背景填充色
      |<BR>
-     |<BR> x, y: Integer　　文本左上角坐标
-     |<BR> Text: string　　　文本内容}
+     |<BR> x, y: Integer    文本左上角坐标
+     |<BR> Text: string      文本内容}
 
     // 高级属性
     property Handle: HBITMAP read GetHandle;
-    {* 当前位图HBITMAP句柄，只读属性。如果位图为空，将出现异常}
+    {* 当前位图 HBITMAP 句柄，只读属性。如果位图为空，将出现异常}
     property DC: HDC read GetDC;
-    {* 当前位图DC句柄，只读属性。如果位图为空，将出现异常}
+    {* 当前位图 DC 句柄，只读属性。如果位图为空，将出现异常}
     property Bits: Pointer read FBits;
-    {* 当前位图象素数据存放的地址，只读属性。如果位图为空，返回nil}
+    {* 当前位图像素数据存放的地址，只读属性。如果位图为空，返回nil}
     property Size: Integer read FSize;
-    {* 当前位图象素数据块的大小，只读属性。如果位图为空，返回0}
+    {* 当前位图像素数据块的大小，只读属性。如果位图为空，返回 0}
     property GdiAllocStyle: TGdiAllocStyle read FGdiAllocStyle write FGdiAllocStyle;
     {* 当前位图的GDI资源管理方式，高级属性}
     property ScanLine[Row: Integer]: PCnLine read GetScanLine;
     {* 取得当前位图一行扫描线地址，只读属性。如果位图为空或范围超限，将出现异常}
     property Pixels[x, y: Integer]: TCnColor read GetPixel write SetPixel;
-    {* 访问位图中的某个象素。如果位图为空或范围超限，将出现异常}
+    {* 访问位图中的某个像素。如果位图为空或范围超限，将出现异常}
 
     // 常规属性
     property Width: Integer read FWidth write SetWidth;
@@ -1184,7 +1185,7 @@ type
 
     // 抗锯齿图形绘制属性
     property PixelsF[x, y: Single]: TCnColor read GetPixelsF write SetPixelsF;
-    {* 访问位图中的小数坐标的象素。如果位图为空或范围超限，将出现异常}
+    {* 访问位图中的小数坐标的像素。如果位图为空或范围超限，将出现异常}
     property PenPosF: TPointF read FPenPosF write FPenPosF;
     {* 在抗锯齿图形绘制中，当前画笔的位置}
     property PenColor: TColor read FPenColor write FPenColor default clBlack;
@@ -1193,17 +1194,17 @@ type
     {* 在抗锯齿图形绘制中，当前画笔的粗细程度}
   published
     property Transparent: Boolean read FTransparent write FTransparent default False;
-    {* 图像的透明属性，在所有的图像绘制过程中有效，根据TransparentColor来判断}
+    {* 图像的透明属性，在所有的图像绘制过程中有效，根据 TransparentColor 来判断}
     property TransparentColor: TColor read FTransparentColor write
       FTransparentColor default clDefault;
-    {* 图像的透明色属性，位图中与该颜色相同的象素点按透明处理。
-     |<BR> 当值为clDefault时，使用图像左下角象素颜色值来代替。}
+    {* 图像的透明色属性，位图中与该颜色相同的像素点按透明处理。
+     |<BR> 当值为 clDefault 时，使用图像左下角像素颜色值来代替。}
   end;
 
 procedure FreeBmpDC;
-{* 释放程序中所有位图已分配的DC句柄}
+{* 释放程序中所有位图已分配的 DC 句柄}
 procedure FreeBmpHandle(All: Boolean);
-{* 释放程序中所有位图已分配的HBITMAP句柄，如果参数为假，根据GdiAllocStyle属性判断}
+{* 释放程序中所有位图已分配的 HBITMAP 句柄，如果参数为假，根据 GdiAllocStyle 属性判断}
 
 //--------------------------------------------------------//
 // 公用运行时间过程库                                     //
@@ -1212,78 +1213,78 @@ procedure FreeBmpHandle(All: Boolean);
 var
   HSLRange: Integer = 240;
 
-// HSL颜色与RGB色转换函数
+// HSL 颜色与 RGB 色转换函数
 function HSLToRGB(H, S, L: Double): TColor;
-{* HSL颜色转换为RGB颜色
+{* HSL 颜色转换为 RGB 颜色
  |<BR>
- |<BR> H, S, L: Double　　分别为色调、饱和度、亮度分量，为"0"到"1"之间的小数
- |<BR> Result: TColor　　　返回RGB颜色值}
+ |<BR> H, S, L: Double    分别为色调、饱和度、亮度分量，为"0"到"1"之间的小数
+ |<BR> Result: TColor      返回RGB颜色值}
 function HSLRangeToRGB(H, S, L: Integer): TColor;
-{* HSL颜色转换为RGB颜色
+{* HSL 颜色转换为 RGB 颜色
  |<BR>
- |<BR> H, S, L: Integer　　分别为色调、饱和度、亮度分量，0..240
- |<BR> Result: TColor　　　返回RGB颜色值}
+ |<BR> H, S, L: Integer    分别为色调、饱和度、亮度分量，0..240
+ |<BR> Result: TColor      返回RGB颜色值}
 procedure RGBToHSL(Color: TColor; out H, S, L: Double);
-{* RGB颜色转换为HSL颜色
+{* RGB 颜色转换为 HSL 颜色
  |<BR>
- |<BR> Color: TColor　　　RGB颜色值
- |<BR> H, S, L: Integer　　输出分别为色调、饱和度、亮度分量，为"0"到"1"之间的小数}
+ |<BR> Color: TColor      RGB 颜色值
+ |<BR> H, S, L: Integer    输出分别为色调、饱和度、亮度分量，为"0"到"1"之间的小数}
 procedure RGBToHSLRange(Color: TColor; out H, S, L: Integer);
-{* RGB颜色转换为HSL颜色
+{* RGB 颜色转换为 HSL 颜色
  |<BR>
- |<BR> Color: TColor　　　RGB颜色值
- |<BR> H, S, L: Integer　　输出分别为色调、饱和度、亮度分量，0..240}
+ |<BR> Color: TColor      RGB 颜色值
+ |<BR> H, S, L: Integer    输出分别为色调、饱和度、亮度分量，0..240}
 
-// CMY颜色与RGB色转换函数
+// CMY 颜色与 RGB 色转换函数
 function CMYToRGB(const C, M, Y: Byte): TColor;
-{* CMY颜色转换为RGB颜色
+{* CMY 颜色转换为 RGB 颜色
  |<BR>
- |<BR> C, M, Y: Byte　　　分别为Cyan青、Magenta品红、Yellow黄分量，0..255
- |<BR> Result: TColor　　　返回RGB颜色值}
+ |<BR> C, M, Y: Byte      分别为 Cyan 青、Magenta 品红、Yellow 黄分量，0..255
+ |<BR> Result: TColor      返回 RGB 颜色值}
 procedure RGBToCMY(const RGB: TColor; out C, M, Y: Byte);
-{* RGB颜色转换为CMY颜色
+{* RGB 颜色转换为 CMY 颜色
  |<BR>
- |<BR> Color: TColor　　　RGB颜色值
- |<BR> C, M, Y: Byte　　　输出分别为Cyan青、Magenta品红、Yellow黄分量，0..255}
+ |<BR> Color: TColor      RGB 颜色值
+ |<BR> C, M, Y: Byte      输出分别为 Cyan 青、Magenta 品红、Yellow 黄分量，0..255}
 
-// CMYK颜色与RGB色转换函数
+// CMYK 颜色与 RGB 色转换函数
 function CMYKToRGB(const C, M, Y, K: Byte): TColor;
-{* CMYK颜色转换为RGB颜色
+{* CMYK 颜色转换为 RGB 颜色
  |<BR>
- |<BR> C, M, Y, K: Byte　　分别为Cyan青、Magenta品红、Yellow黄、Black黑分量，0..255
- |<BR> Result: TColor　　　返回RGB颜色值}
+ |<BR> C, M, Y, K: Byte    分别为 Cyan 青、Magenta 品红、Yellow 黄、Black 黑分量，0..255
+ |<BR> Result: TColor      返回 RGB 颜色值}
 procedure RGBToCMYK(const RGB: TColor; out C, M, Y, K: Byte);
-{* RGB颜色转换为CMY颜色
+{* RGB 颜色转换为 CMY 颜色
  |<BR>
- |<BR> Color: TColor　　　RGB颜色值
- |<BR> C, M, Y, K: Byte　　输出分别为Cyan青、Magenta品红、Yellow黄、Black黑分量，0..255}
+ |<BR> Color: TColor      RGB 颜色值
+ |<BR> C, M, Y, K: Byte    输出分别为 Cyan 青、Magenta 品红、Yellow 黄、Black 黑分量，0..255}
 
 // 增强的颜色处理函数
 function Gray(Intensity: Byte): TColor;
-{* 返回一个灰度RGB颜色值}
+{* 返回一个灰度 RGB 颜色值}
 function Intensity(Color: TColor): Byte;
-{* 计算RGB颜色值的灰度值}
+{* 计算 RGB 颜色值的灰度值}
 function RandomColor: TColor;
-{* 返回一个随机RGB颜色值}
+{* 返回一个随机 RGB 颜色值}
 procedure DeRGB(Color: TColor; var r, g, b: Byte);
-{* 将Color分解为r、g、b颜色分量}
+{* 将 Color 分解为 r、g、b 颜色分量}
 
 // CnColor颜色处理函数
 function CnColor(r, g, b: Byte): TCnColor; overload;
-{* 根据r、g、b颜色分量返回一个TCnColor颜色值}
+{* 根据 r、g、b 颜色分量返回一个 TCnColor 颜色值}
 function CnColor(Color: TColor): TCnColor; overload;
-{* 转换TColor颜色为一个TCnColor颜色值，允许使用系统颜色值}
+{* 转换 TColor 颜色为一个 TCnColor 颜色值，允许使用系统颜色值}
 function CnGray(Intensity: Byte): TCnColor;
-{* 返回一个灰度级的TCnColor颜色值}
+{* 返回一个灰度级的 TCnColor 颜色值}
 function CnWinColor(RGB: TCnColor): TColor;
-{* 转换TCnColor颜色为一个TColor颜色值}
+{* 转换 TCnColor 颜色为一个 TColor 颜色值}
 function CnColorEqu(RGB1, RGB2: TCnColor): Boolean;
-{* 判断两个TCnColor颜色是否相等}
+{* 判断两个 TCnColor 颜色是否相等}
 
 function PointF(x, y: Single): TPointF;
-{* 返回一个浮点数坐标TPointF}
+{* 返回一个浮点数坐标 TPointF}
 function RectF(Left, Top, Right, Bottom: Single): TRectF;
-{* 返回一个浮点数矩形TRectF}
+{* 返回一个浮点数矩形 TRectF}
 
 // 从父控件复制背景。这个过程来自 RxLibrary VCLUtils。注意并不总是有效，尤其是 IDE 编辑器中
 procedure CopyControlParentImageToCanvas(AControl: TControl; Dest: TCanvas);
@@ -1341,11 +1342,11 @@ var
 // 公用运行时间过程库                                     //
 //--------------------------------------------------------//
 
-// HSL、RGB转换函数算法来源：
+// HSL、RGB 转换函数算法来源：
 // http:/www.r2m.com/win-developer-faq/graphics/8.html
 // Grahame Marsh 12 October 1997
 
-// HSL颜色转换为RGB色
+// HSL 颜色转换为 RGB 色
 function HSLToRGB(H, S, L: Double): TColor;
 var
   M1, M2: Double;
@@ -1390,13 +1391,13 @@ begin
   Result := RGB(r, g, b);
 end;
 
-// HSL颜色范围转换为RGB色
+// HSL 颜色范围转换为 RGB 色
 function HSLRangeToRGB(H, S, L: Integer): TColor;
 begin
   Result := HSLToRGB(H / (HSLRange - 1), S / HSLRange, L / HSLRange)
 end;
 
-// RGB颜色转为HSL色
+// RGB 颜色转为 HSL 色
 procedure RGBToHSL(Color: TColor; out H, S, L: Double);
 var
   r, g, b, D, Cmax, Cmin: Double;
@@ -1431,7 +1432,7 @@ begin
   end
 end;
 
-// RGB颜色转为HSL色范围
+// RGB 颜色转为 HSL 色范围
 procedure RGBToHSLRange(Color: TColor; out H, S, L: Integer);
 var
   Hd, Sd, Ld: Double;
@@ -1442,10 +1443,10 @@ begin
   L := Round(Ld * HSLRange);
 end;
 
-// CMY颜色与RGB色转换函数
-// 算法提供：CnPack开发组 铁男
+// CMY 颜色与 RGB 色转换函数
+// 算法提供：CnPack 开发组 铁男
 
-// CMY颜色转换为RGB
+// CMY 颜色转换为 RGB
 function CMYToRGB(const C, M, Y: Byte): TColor;
 var
   r, g, b: Byte;
@@ -1456,7 +1457,7 @@ begin
   Result := RGB(r, g, b);
 end;
 
-// RGB颜色转换为CMY
+// RGB 颜色转换为 CMY
 procedure RGBToCMY(const RGB: TColor; out C, M, Y: Byte);
 var
   r, g, b: Byte;
@@ -1467,10 +1468,10 @@ begin
   Y := 255 - b;
 end;
 
-// CMYK颜色与RGB色转换函数
-// 算法提供：CnPack开发组 铁男
+// CMYK 颜色与 RGB 色转换函数
+// 算法提供：CnPack 开发组 铁男
 
-// CMYK颜色转换为RGB
+// CMYK 颜色转换为 RGB
 function CMYKtoRGB(const C, M, Y, K: Byte): TColor;
 var
   r, g, b: Byte;
@@ -1481,7 +1482,7 @@ begin
   Result := RGB(r, g, b);
 end;
 
-// RGB颜色转换为CMYK
+// RGB 颜色转换为 CMYK
 procedure RGBToCMYK(const RGB: TColor; out C, M, Y, K: Byte);
 begin
   RGBToCMY(RGB, C, M, Y);
@@ -1532,7 +1533,7 @@ begin
   b := GetBValue(Color);
 end;
 
-// CnColor颜色处理函数
+// CnColor 颜色处理函数
 function CnColor(r, g, b: Byte): TCnColor;
 begin
   Result.r := r;
@@ -1540,7 +1541,7 @@ begin
   Result.b := b;
 end;
 
-// 系统颜色转为TCnColor
+// 系统颜色转为 TCnColor
 function CnColor(Color: TColor): TCnColor;
 begin
   Color := ColorToRGB(Color);
@@ -1549,7 +1550,7 @@ begin
   Result.b := Color shr 16;
 end;
 
-// 产生灰度级TCnColor
+// 产生灰度级 TCnColor
 function CnGray(Intensity: Byte): TCnColor;
 begin
   Result.r := Intensity;
@@ -1557,7 +1558,7 @@ begin
   Result.b := Intensity;
 end;
 
-// TCnColor转为TColor
+// TCnColor 转为 TColor
 function CnWinColor(RGB: TCnColor): TColor;
 begin
   Result := RGB.b shl 16 + RGB.g shl 8 + RGB.r;
@@ -2446,13 +2447,13 @@ begin
   inherited;
 end;
 
-// 取DC
+// 取 DC
 function TCnCanvas.GetHandle: HDC;
 begin
   Result := inherited Handle; // 取继承而来的句柄
 end;
 
-// 创建DC，重载方法，由TCanvas内部调用
+// 创建 DC，重载方法，由 TCanvas 内部调用
 procedure TCnCanvas.CreateHandle;
 var
   H: HDC;
@@ -2641,13 +2642,13 @@ begin
   end;
 end;
 
-// GDI句柄已分配
+// GDI 句柄已分配
 function TCnBitmap.HandleAllocated: Boolean;
 begin
   Result := FHandle <> 0;
 end;
 
-// 需要HBITMAP句柄
+// 需要 HBITMAP 句柄
 procedure TCnBitmap.HandleNeeded;
 var
   Tmp: Pointer;
@@ -2665,7 +2666,7 @@ begin
       biWidth := Width;
       biHeight := -Height;    // 高度为负，扫描线按低地址到高地址方式存放
       biPlanes := 1;
-      biBitCount := 24;       // 24Bit RGB位图
+      biBitCount := 24;       // 24 Bit RGB 位图
       biCompression := BI_RGB;
     end;                      // 原图像数据
     Tmp := FBits;             // 创建位图
@@ -2689,7 +2690,7 @@ begin
   if not HandleAllocated then Exit;
 
   if Assigned(FCanvas) then
-    TCnCanvas(FCanvas).FreeContext; // 释放DC
+    TCnCanvas(FCanvas).FreeContext; // 释放 DC
   Lock;
   try
     if KeepData then          // 保留数据，仅删除位图句柄
@@ -2719,14 +2720,14 @@ begin
   end;
 end;
 
-// 取位图句柄HBITMAP
+// 取位图句柄 HBITMAP
 function TCnBitmap.GetHandle: HBITMAP;
 begin
   if not HandleAllocated then HandleNeeded;
   Result := FHandle;
 end;
 
-// 取得DC
+// 取得 DC
 function TCnBitmap.GetDC: HDC;
 begin
   Result := Canvas.Handle;
@@ -2751,17 +2752,17 @@ begin
   FHeight := AHeight;
   if (AWidth > 0) and (AHeight > 0) then
   begin
-    FRowInc := (FWidth * 3) + FWidth mod 4; // 每行扫描线长度，按4字节对齐
-    FGap := FWidth mod 4;     // 每行扫描线最后的无效字数
+    FRowInc := (FWidth * 3) + FWidth mod 4; // 每行扫描线长度，按 4 字节对齐
+    FGap := FWidth mod 4;       // 每行扫描线最后的无效字数
     FSize := FRowInc * FHeight; // 图像大小
-    GetMem(FBits, FSize);     // 分配图像空间
-    UpdateScanLine;           // 更新扫描线指针数组内容
+    GetMem(FBits, FSize);       // 分配图像空间
+    UpdateScanLine;             // 更新扫描线指针数组内容
     //Fill(CnWinColor(GetTranColor));  // 以透明色填充
   end;
   Changed;
 end;
 
-// 设置图像尺寸（TRect类型参数）
+// 设置图像尺寸（TRect 类型参数）
 procedure TCnBitmap.SetSize(ARect: TRect);
 begin
   SetSize(ARect.Right - ARect.Left, ARect.Bottom - ARect.Top);
@@ -2807,7 +2808,7 @@ begin
   if TransparentColor <> clDefault then
     Result := CnColor(TransparentColor)
   else if not Empty then
-    Result := Pixels[0, Height - 1] // 默认为左下角象素（与TBitmap保持一致）
+    Result := Pixels[0, Height - 1] // 默认为左下角像素（与 TBitmap 保持一致）
   else
     Result := CnColor(0, 0, 0);
 end;
@@ -2827,7 +2828,7 @@ end;
 procedure TCnBitmap.SetFont(const Value: TCnFont);
 begin
   if Value <> nil then
-    Font.Assign(Value);       // 自动调用GetFont方法保证实例化
+    Font.Assign(Value);       // 自动调用 GetFont 方法保证实例化
 end;
 
 // 以指定色填充位图
@@ -2855,7 +2856,7 @@ begin
   begin
     DeRect(ARect, x, y, w, h);
     lw := w * 3;              // 存储宽度
-    ARGB := CnColor(Color);   // 转换为RGB格式
+    ARGB := CnColor(Color);   // 转换为 RGB 格式
     Tmp := @FScanLine[y][x];
     if Color = clBlack then   // 黑色全部清零
       FillChar(Tmp^, lw, 0)
@@ -2920,7 +2921,7 @@ begin
   end;
 end;
 
-// 以当前图像创建一个Region
+// 以当前图像创建一个 Region
 function TCnBitmap.CreateRegion(var RgnData: PRgnData): Integer;
 const
   Max = 10000;
@@ -2960,7 +2961,7 @@ begin
       Inc(x);
     end;
   end;
-  // 创建Region数据
+  // 创建 Region 数据
   Result := Count * SizeOf(TRect);
   GetMem(Rgndata, SizeOf(TRgnDataHeader) + Result);
   FillChar(Rgndata^, SizeOf(TRgnDataHeader) + Result, 0);
@@ -3008,7 +3009,7 @@ begin
       FTransparent := TBitmap(Source).Transparent;
       Exit;
     end
-    else if Source is TGraphic then // TIcon、TJpegImage等等
+    else if Source is TGraphic then // TIcon、TJpegImage 等等
     begin
       SetSize(TGraphic(Source).Width, TGraphic(Source).Height);
       if not Empty then
@@ -3050,7 +3051,7 @@ begin
         Bitblt(TBitmap(Dest).Canvas.Handle, 0, 0, Width, Height, DC, 0, 0, SRCCOPY);
       Exit;
     end
-    else if Dest is TGraphic then // TIcon、TJpegImage等等
+    else if Dest is TGraphic then // TIcon、TJpegImage 等等
     begin
       Bmp := TBitmap.Create;
       try
@@ -3079,7 +3080,7 @@ end;
 // 算法修改：周劲羽                                       //
 //--------------------------------------------------------//
 
-// 定义存储属性（保存在DFM中的自定义属性）
+// 定义存储属性（保存在 DFM 中的自定义属性）
 procedure TCnBitmap.DefineProperties(Filer: TFiler);
 
   function DoWrite: Boolean;
@@ -3090,11 +3091,11 @@ procedure TCnBitmap.DefineProperties(Filer: TFiler);
     else
       Result := not Empty;
   end;
-begin                         // 定义属性Data保存图像数据
+begin                         // 定义属性 Data 保存图像数据
   Filer.DefineBinaryProperty('Data', ReadData, WriteData, DoWrite);
 end;
 
-// 从DFM流中读数据过程
+// 从 DFM 流中读数据过程
 procedure TCnBitmap.ReadData(Stream: TStream);
 var
   AWidth, AHeight, ASize: Integer;
@@ -3116,7 +3117,7 @@ begin
   end;
 end;
 
-// 写数据到DFM流过程
+// 写数据到 DFM 流过程
 procedure TCnBitmap.WriteData(Stream: TStream);
 var
   ASize: Integer;
@@ -3130,7 +3131,7 @@ begin
   begin
     GetMem(Buff, Size);
     try
-      Move(Bits^, Buff^, Size); // 临时缓冲
+      Move(Bits^, Buff^, Size);      // 临时缓冲
       ASize := Compress(Buff, Size); // 压缩数据
       Stream.Write(ASize, SizeOf(ASize));
       Stream.Write(Buff^, ASize);
@@ -3171,14 +3172,15 @@ begin
     end;
   end;
 end;
+
 {$WARNINGS ON}
 
 //--------------------------------------------------------//
-// 象素访问用代码                                         //
+// 像素访问用代码                                         //
 // 算法设计：周劲羽                                       //
 //--------------------------------------------------------//
 
-// 取象素颜色值
+// 取像素颜色值
 function TCnBitmap.GetPixel(x, y: Integer): TCnColor;
 begin
   if Empty then
@@ -3189,7 +3191,7 @@ begin
     Result := FScanLine[y, x];
 end;
 
-// 写象素
+// 写像素
 procedure TCnBitmap.SetPixel(x, y: Integer; const Value: TCnColor);
 begin
   if Empty then
@@ -3223,7 +3225,7 @@ begin
   SetSize(AWidth, AHeight);
 end;
 
-// 内存中装载位图（RGB数据块）
+// 内存中装载位图（RGB 数据块）
 procedure TCnBitmap.LoadFromMemory(ABits: Pointer; AWidth, AHeight: Integer);
 begin
   Changing;
@@ -3249,7 +3251,7 @@ begin
   Changed;
 end;
 
-// 从文件中装载位图（通过TPicture装载，支持BMP、ICO、JPEG等格式）
+// 从文件中装载位图（通过 TPicture 装载，支持 BMP、ICO、JPEG 等格式）
 procedure TCnBitmap.LoadFromFile(const FileName: string);
 var
   Picture: TPicture;
@@ -3265,7 +3267,7 @@ begin
   Changed;
 end;
 
-// 从资源中装载位图（资源ID）
+// 从资源中装载位图（资源 ID）
 procedure TCnBitmap.LoadFromResourceID(instance: THandle; ResID: Integer);
 var
   Bmp: TBitmap;
@@ -3298,7 +3300,7 @@ begin
   Changed;
 end;
 
-// 从剪帖板中装载位图
+// 从剪贴板中装载位图
 procedure TCnBitmap.LoadFromClipboardFormat(AFormat: Word; AData: THandle;
   APalette: HPALETTE);
 var
@@ -3343,7 +3345,7 @@ begin
   end;
 end;
 
-// 复制位图到剪帖板中
+// 复制位图到剪贴板中
 procedure TCnBitmap.SaveToClipboardFormat(var Format: Word;
   var Data: THandle; var APalette: HPALETTE);
 var
@@ -3408,7 +3410,7 @@ begin
   end;
 end;
 
-// 绘制TCnBitmap位图增强版
+// 绘制 TCnBitmap 位图增强版
 procedure TCnBitmap.DoDraw(DstX, DstY: Integer; Src: TCnBitmap;
   SrcRect: TRect; Tran: Boolean);
 var
@@ -3440,8 +3442,8 @@ begin
   end
   else
   begin
-    n1 := @FScanLine[y][x];   // 目标位图左上角象素地址
-    n2 := @Src.FScanLine[sy][sx]; // 源位图左上角象素地址
+    n1 := @FScanLine[y][x];   // 目标位图左上角像素地址
+    n2 := @Src.FScanLine[sy][sx]; // 源位图左上角像素地址
     for I := 0 to h - 1 do
     begin
       Move(n2^, n1^, w * 3);  // 复制图像数据
@@ -3452,14 +3454,14 @@ begin
   Changed;
 end;
 
-// 绘制TCnBitmap位图
+// 绘制 TCnBitmap 位图
 procedure TCnBitmap.Draw(DstX, DstY: Integer; Src: TCnBitmap);
 begin
   if Empty or not Assigned(Src) or Src.Empty then Exit;
   DrawEx(DstX, DstY, Src, Src.ClientRect);
 end;
 
-// 绘制TCnBitmap位图增强版
+// 绘制 TCnBitmap 位图增强版
 procedure TCnBitmap.DrawEx(DstX, DstY: Integer; Src: TCnBitmap;
   SrcRect: TRect);
 begin
@@ -3467,14 +3469,14 @@ begin
   DoDraw(DstX, DstY, Src, SrcRect, Src.Transparent);
 end;
 
-// 绘制TGraphic位图，TBitmap、TIcon、TJpegImage等
+// 绘制 TGraphic 位图，TBitmap、TIcon、TJpegImage 等
 procedure TCnBitmap.Draw(DstX, DstY: Integer; Src: TGraphic);
 begin
   if Empty or not Assigned(Src) or Src.Empty then Exit;
   DrawEx(DstX, DstY, Src, Rect(0, 0, Src.Width, Src.Height));
 end;
 
-// 绘制TGraphic位图增强版
+// 绘制 TGraphic 位图增强版
 procedure TCnBitmap.DrawEx(DstX, DstY: Integer; Src: TGraphic;
   SrcRect: TRect);
 begin
@@ -3486,7 +3488,7 @@ begin
   Changed;
 end;
 
-// 从DC上复制位图，必须指定源矩形
+// 从 DC 上复制位图，必须指定源矩形
 procedure TCnBitmap.Draw(DstX, DstY: Integer; hSrc: HDC; SrcRect: TRect);
 begin
   if Empty then Exit;
@@ -3497,13 +3499,13 @@ begin
   Changed;
 end;
 
-// 绘制自身到DC
+// 绘制自身到 DC
 procedure TCnBitmap.DrawTo(hDst: HDC; DstX, DstY: Integer);
 begin
   DrawToEx(hDst, DstX, DstY, ClientRect);
 end;
 
-// 绘制自身到DC增强版
+// 绘制自身到 DC 增强版
 procedure TCnBitmap.DrawToEx(hDst: HDC; DstX, DstY: Integer; SrcRect: TRect);
 var
   Bmp: TCnBitmap;
@@ -3559,7 +3561,7 @@ begin
   end;
 end;
 
-// 按指定模式绘制，支持Alpha混合
+// 按指定模式绘制，支持 Alpha 混合
 procedure TCnBitmap.DrawModeEx(Src: TCnBitmap; Mode: TCnDrawMode;
   Alpha: TCnAlpha);
 var
@@ -3622,7 +3624,7 @@ begin
   end;
 end;
 
-// 按指定模式绘制，支持Alpha混合
+// 按指定模式绘制，支持 Alpha 混合
 procedure TCnBitmap.DrawModeEx(Src: TGraphic; Mode: TCnDrawMode;
   Alpha: TCnAlpha);
 var
@@ -3643,14 +3645,14 @@ end;
 // 算法设计：周劲羽                                       //
 //--------------------------------------------------------//
 
-// 绘制TCnBitmap位图到中心
+// 绘制 TCnBitmap 位图到中心
 procedure TCnBitmap.CenterDraw(Src: TCnBitmap);
 begin
   if Empty or not Assigned(Src) or Src.Empty then Exit;
   Draw((Width - Src.Width) div 2, (Height - Src.Height) div 2, Src);
 end;
 
-// 绘制TGraphic到中心
+// 绘制 TGraphic 到中心
 procedure TCnBitmap.CenterDraw(Src: TGraphic);
 begin
   if Empty or not Assigned(Src) or Src.Empty then Exit;
@@ -3662,13 +3664,13 @@ end;
 // 算法设计：周劲羽                                       //
 //--------------------------------------------------------//
 
-// 平铺绘制TCnBitmap位图
+// 平铺绘制 TCnBitmap 位图
 procedure TCnBitmap.TileDraw(Src: TCnBitmap);
 begin
   TileDrawEx(ClientRect, Src);
 end;
 
-// 平铺绘制TCnBitmap位图增强版
+// 平铺绘制 TCnBitmap 位图增强版
 procedure TCnBitmap.TileDrawEx(DstRect: TRect; Src: TCnBitmap);
 var
   I, J, x, y, w, h: Integer;
@@ -3685,13 +3687,13 @@ begin
   end;
 end;
 
-// 平铺绘制TGraphic
+// 平铺绘制 TGraphic
 procedure TCnBitmap.TileDraw(Src: TGraphic);
 begin
   TileDrawEx(ClientRect, Src);
 end;
 
-// 平铺绘制TGraphic增强版
+// 平铺绘制 TGraphic 增强版
 procedure TCnBitmap.TileDrawEx(DstRect: TRect; Src: TGraphic);
 var
   I, J, x, y, w, h: Integer;
@@ -3708,7 +3710,7 @@ begin
   end;
 end;
 
-// 平铺绘制自身到DC
+// 平铺绘制自身到 DC
 procedure TCnBitmap.TileDrawTo(hDst: HDC; DstRect: TRect);
 var
   I, J, x, y, w, h: Integer;
@@ -3775,7 +3777,7 @@ begin
         begin
           with Read[xP shr 16] do // 透明处理
             if (b <> TranColor.b) or (g <> TranColor.g) or (r <> TranColor.r) then
-              pc^ := Read[xP shr 16]; // 源图像最邻近象素
+              pc^ := Read[xP shr 16]; // 源图像最邻近像素
           Inc(pc);
           Inc(xP, xiScale);
         end;
@@ -3791,7 +3793,7 @@ begin
         pc := @Dst.FScanLine[y][0];
         for x := 0 to Dst.Width - 1 do
         begin
-          pc^ := Read[xP shr 16]; // 源图像最邻近象素
+          pc^ := Read[xP shr 16]; // 源图像最邻近像素
           Inc(pc);
           Inc(xP, xiScale);
         end;
@@ -3811,12 +3813,12 @@ begin
         Read := FScanLine[y]; // 源图像当前行
         for x := 0 to Width - 1 do
         begin
-          Tmp := Read[x];     // 源图像当前象素
+          Tmp := Read[x];     // 源图像当前像素
           if (Tmp.b <> TranColor.b) or (Tmp.g <> TranColor.g) or
             (Tmp.r <> TranColor.r) then // 透明处理
           begin
-            xP := Round(xScale * x); // 目标图像最邻近起始象素
-            xD := Round(xScale * (x + 1)) - 1; // 目标图像最邻近结束象素
+            xP := Round(xScale * x); // 目标图像最邻近起始像素
+            xD := Round(xScale * (x + 1)) - 1; // 目标图像最邻近结束像素
             if xD > Dst.Width - 1 then xD := Dst.Width - 1;
             for xCount := xP to xD do
               Dst.FScanLine[yP][xCount] := Tmp; // 复制一行
@@ -3835,11 +3837,11 @@ begin
       for y := 0 to Height - 1 do
       begin
         yP := Round(yScale * y); // 目标图像最邻近起始行
-        Read := FScanLine[y]; // 源图像当前行
+        Read := FScanLine[y];    // 源图像当前行
         for x := 0 to Width - 1 do
         begin
-          xP := Round(xScale * x); // 目标图像最邻近起始象素
-          Tmp := Read[x];     // 源图像当前象素
+          xP := Round(xScale * x); // 目标图像最邻近起始像素
+          Tmp := Read[x];     // 源图像当前像素
           for xCount := 0 to xiScale - 1 do
           begin
             xD := xCount + xP;
@@ -3893,14 +3895,14 @@ begin
     for x := 0 to Dst.Width - 1 do
     begin
       t := xP shr 15;
-      z := xP and $7FFF;      // 源计算象素与左象素之差 "x"
-      Col1 := @Read[t];       // 左上象素 "f(0,0)"
-      Col2 := @Read[t + 1];   // 右上象素 "f(1,0)"
-      Col3 := @Read2[t];      // 左下象素 "f(0,1)"
-      Col4 := @Read2[t + 1];  // 右下象素 "f(1,1)"
+      z := xP and $7FFF;      // 源计算像素与左像素之差 "x"
+      Col1 := @Read[t];       // 左上像素 "f(0,0)"
+      Col2 := @Read[t + 1];   // 右上像素 "f(1,0)"
+      Col3 := @Read2[t];      // 左下像素 "f(0,1)"
+      Col4 := @Read2[t + 1];  // 右下像素 "f(1,1)"
       if Tran then
         with TranColor do
-        begin                 // 透明时取目标象素
+        begin                 // 透明时取目标像素
           if (Col1.b = b) and (Col1.g = g) and (Col1.r = r) then Col1 := pc;
           if (Col2.b = b) and (Col2.g = g) and (Col2.r = r) then Col2 := pc;
           if (Col3.b = b) and (Col3.g = g) and (Col3.r = r) then Col3 := pc;
@@ -3910,9 +3912,9 @@ begin
       begin
         // 计算加权值
         w2 := (z * iz2) shr 15; // 右上 p(1,0) = x(1-y);
-        w1 := iz2 - w2;       // 左上 p(0,0) = (1-y)(1-x) = (1-y)-p(0,1)
-        w4 := (z * z2) shr 15; // 右下 p(1,1) = x*y
-        w3 := z2 - w4;        // 左下 p(0,1) = y(1-x) = y-p(1,1)
+        w1 := iz2 - w2;         // 左上 p(0,0) = (1-y)(1-x) = (1-y)-p(0,1)
+        w4 := (z * z2) shr 15;  // 右下 p(1,1) = x*y
+        w3 := z2 - w4;          // 左下 p(0,1) = y(1-x) = y-p(1,1)
         // f(x,y) = [f(1,0) - f(0,0)]x + [f(0,1) - f(0,0)y +
         //          [f(1,1) + (f0,0) - f(0,1) - f(1,0)]xy + f(0,0)
         //        = f(0,0)p(0,0) + f(1,0)p(1,0) + f(0,1)p(0,1) + f(1,1)p(1,1)
@@ -3932,7 +3934,7 @@ end;
 // 算法设计：周劲羽                                       //
 //--------------------------------------------------------//
 
-// 缩放绘制TCnBitmap位图
+// 缩放绘制 TCnBitmap 位图
 procedure TCnBitmap.StretchDraw(Src: TCnBitmap);
 begin
   if Empty or not Assigned(Src) or Src.Empty then Exit;
@@ -3952,7 +3954,7 @@ begin
   end;
 end;
 
-// 缩放绘制TCnBitmap位图增强版
+// 缩放绘制 TCnBitmap 位图增强版
 procedure TCnBitmap.StretchDrawEx(DstRect, SrcRect: TRect; Src: TCnBitmap);
 var
   SrcBmp, DstBmp: TCnBitmap;
@@ -3998,13 +4000,13 @@ begin
   end;
 end;
 
-// 缩放绘制TGraphic
+// 缩放绘制 TGraphic
 procedure TCnBitmap.StretchDraw(Src: TGraphic);
 begin
   StretchDrawEx(ClientRect, Rect(0, 0, Src.Width, Src.Height), Src);
 end;
 
-// 缩放绘制TGraphic增强版
+// 缩放绘制 TGraphic 增强版
 procedure TCnBitmap.StretchDrawEx(DstRect, SrcRect: TRect; Src: TGraphic);
 var
   SrcBmp: TCnBitmap;
@@ -4025,7 +4027,7 @@ begin
   end;
 end;
 
-// 缩放绘制DC
+// 缩放绘制 DC
 procedure TCnBitmap.StretchDraw(SrcRect: TRect; hSrc: HDC);
 var
   SrcBmp: TCnBitmap;
@@ -4046,7 +4048,7 @@ begin
   end;
 end;
 
-// 缩放绘制DC增强版
+// 缩放绘制 DC 增强版
 procedure TCnBitmap.StretchDrawEx(DstRect, SrcRect: TRect; hSrc: HDC);
 var
   DstBmp: TCnBitmap;
@@ -4070,7 +4072,7 @@ begin
   end;
 end;
 
-// 自身缩放绘制到TImage
+// 自身缩放绘制到 TImage
 procedure TCnBitmap.StretchDrawTo(Dst: TImage);
 begin
   if Assigned(Dst) then
@@ -4080,7 +4082,7 @@ begin
   end;
 end;
 
-// 自身缩放绘制到DC
+// 自身缩放绘制到 DC
 procedure TCnBitmap.StretchDrawTo(hDst: HDC; DstRect: TRect);
 var
   DstBmp: TCnBitmap;
@@ -4097,7 +4099,7 @@ begin
   end;
 end;
 
-// 自身缩放绘制到DC增强版
+// 自身缩放绘制到 DC 增强版
 procedure TCnBitmap.StretchDrawToEx(hDst: HDC; DstRect, SrcRect: TRect);
 var
   SrcBmp: TCnBitmap;
@@ -4115,9 +4117,9 @@ begin
 end;
 
 //--------------------------------------------------------//
-// Alpha混合绘制                                          //
+// Alpha 混合绘制                                         //
 // 算法来源：FastLib、pnBitmap                            //
-// 算法改进：周劲羽（增加透明绘制功能、增强功能及改进） //
+// 算法改进：周劲羽（增加透明绘制功能、增强功能及改进）   //
 //--------------------------------------------------------//
 
 // 检查源图像是否需要缩放
@@ -4142,7 +4144,7 @@ begin
     Result := Src;
 end;
 
-// Alpha混合绘制
+// Alpha 混合绘制
 procedure TCnBitmap.AlphaDraw(Src: TCnBitmap; Alpha: TCnAlpha;
   Stretch: Boolean);
 var
@@ -4214,7 +4216,7 @@ begin
   end;
 end;
 
-// Alpha混合绘制（允许指定位置）
+// Alpha 混合绘制（允许指定位置）
 // 算法设计：周劲羽
 procedure TCnBitmap.AlphaDraw(DstX, DstY: Integer; Src: TCnBitmap;
   SrcRect: TRect; Alpha: TCnAlpha);
@@ -4239,7 +4241,7 @@ begin
   end;
 
   Changing;
-  for I := -255 to 255 do     // 建立Alpha混合表
+  for I := -255 to 255 do     // 建立 Alpha 混合表
     Table[I] := (FAlpha * I) shr 8;
   Tran := Src.Transparent;
   TranColor := Src.GetTranColor;
@@ -4263,7 +4265,7 @@ begin
   Changed;
 end;
 
-// 渐变透明的Alpha混合操作
+// 渐变透明的 Alpha 混合操作
 // 算法设计：周劲羽
 procedure TCnBitmap.AlphaDrawGrad(Src: TCnBitmap; Style: TCnGradStyle;
   Stretch: Boolean; StartAlpha: TCnAlpha; EndAlpha: TCnAlpha);
@@ -4289,7 +4291,7 @@ begin
     Bmp := CheckAlphaSrc(Src, ClientRect, Stretch); // 处理源位图缩放
     Tran := (Bmp = Src) and Src.Transparent; // 源位图透明且未缩放
     TranColor := Src.GetTranColor;
-    // 计算渐变Alpha表
+    // 计算渐变 Alpha 表
     if Style in [gsLeftToRight, gsRightToLeft, gsCenterToLR] then
       BufLen := FWidth        // 缓冲区长度
     else if Style in [gsTopToBottom, gsBottomToTop, gsCenterToTB] then
@@ -4313,7 +4315,7 @@ begin
       SA := AlphaToInt(EndAlpha) shl 16;
       EA := AlphaToInt(StartAlpha) shl 16;
     end;
-    AddA := Round((EA - SA) / Len); // 每象素增量
+    AddA := Round((EA - SA) / Len); // 每像素增量
     CurA := SA;
     for I := 0 to Len - 1 do
     begin
@@ -4408,7 +4410,7 @@ begin
   end;
 end;
 
-// 增强的Alpha混合操作（前景、背景混合到自身）
+// 增强的 Alpha 混合操作（前景、背景混合到自身）
 // 算法设计：周劲羽
 procedure TCnBitmap.AlphaDrawEx(DstRect: TRect; Front, Back: TCnBitmap;
   Alpha: TCnAlpha; Stretch: Boolean);
@@ -4456,10 +4458,10 @@ begin
     TranColorBk := Back.GetTranColor;
 
     FAlpha := AlphaToInt(Alpha);
-    for I := -255 to 255 do   // 建立Alpha混合表
+    for I := -255 to 255 do   // 建立 Alpha 混合表
       Table[I] := (FAlpha * I) shr 8;
 
-    if TranFt or TranBk then  // 需要处理透明（速度下降约20%）
+    if TranFt or TranBk then  // 需要处理透明（速度下降约 20%）
     begin
       for y := 0 to h - 1 do
       begin
@@ -4552,7 +4554,7 @@ begin
   BeginUpdate;
   try
     if FAlpha < 255 then
-      for I := -255 to 255 do // 建立Alpha混合表
+      for I := -255 to 255 do // 建立 Alpha 混合表
         Table[I] := (FAlpha * I) shr 8;
 
     if GradColor.FStyle in [gsLeftToRight, gsRightToLeft, gsCenterToLR] then
@@ -5405,9 +5407,9 @@ end;
 
 // 位图旋转
 // 算法设计：周劲羽 2002.01.27
-// 支持最邻近插值算法和快速二次插值算法（SmoothFilter属性）
+// 支持最邻近插值算法和快速二次插值算法（SmoothFilter 属性）
 // 支持完整的透明方式
-// Angle: 角度-360..360;
+// Angle: 角度 -360..360;
 procedure TCnBitmap.Rotate(DstCenter: TPoint; Src: TCnBitmap; Angle: Double);
 var
   FAngle: Double;
@@ -5460,10 +5462,10 @@ begin
       else
       begin                   // 二次插值算法
         if SrcX > 0 then
-          x1 := SrcX shr 15   // 左邻近象素
+          x1 := SrcX shr 15   // 左邻近像素
         else
           x1 := -(-SrcX shr 15);
-        x2 := x1 + 1;         // 右邻近象素
+        x2 := x1 + 1;         // 右邻近像素
         if SrcY > 0 then
           y1 := SrcY shr 15
         else
@@ -5475,14 +5477,14 @@ begin
           Dst := @FScanLine[y][x];
           if (x1 >= 0) and (y1 >= 0) then
           begin
-            Col1 := @Src.FScanLine[y1][x1]; // 左上角象素
+            Col1 := @Src.FScanLine[y1][x1]; // 左上角像素
             if Tran and (TranColor.b = Col1.b) and (TranColor.g = Col1.g) and
               (TranColor.r = Col1.r) then // 透明检查
               Col1 := Dst;
           end
           else
             Col1 := Dst;
-          if (x2 < Src.Width) and (y1 >= 0) then // 右上角象素
+          if (x2 < Src.Width) and (y1 >= 0) then // 右上角像素
           begin
             Col2 := @Src.FScanLine[y1][x2]; // 透明检查
             if Tran and (TranColor.b = Col2.b) and (TranColor.g = Col2.g) and
@@ -5491,7 +5493,7 @@ begin
           end
           else
             Col2 := Dst;
-          if (x1 >= 0) and (y2 < Src.Height) then // 左下角象素
+          if (x1 >= 0) and (y2 < Src.Height) then // 左下角像素
           begin
             Col3 := @Src.FScanLine[y2][x1]; // 透明检查
             if Tran and (TranColor.b = Col3.b) and (TranColor.g = Col3.g) and
@@ -5500,7 +5502,7 @@ begin
           end
           else
             Col3 := Dst;
-          if (x2 < Src.Width) and (y2 < Src.Height) then // 右下角象素
+          if (x2 < Src.Width) and (y2 < Src.Height) then // 右下角像素
           begin
             Col4 := @Src.FScanLine[y2][x2];
             if Tran and (TranColor.b = Col4.b) and (TranColor.g = Col4.g) and
@@ -5563,7 +5565,7 @@ begin
     p1 := Pointer(TCnNativeInt(Buff) - RowInc);
     p2 := Buff;
     p3 := Pointer(TCnNativeInt(Buff) + RowInc);
-    Dst := Bits;              // 目标象素
+    Dst := Bits;              // 目标像素
     for y := 0 to Height - 1 do
     begin
       if y > 0 then
@@ -5791,7 +5793,7 @@ begin
   if Empty then Exit;
   Changing;
   p1 := Bits;                 // 第一行
-  p2 := Pointer(TCnNativeInt(p1) + RowInc + 3); // 右下各加一象素
+  p2 := Pointer(TCnNativeInt(p1) + RowInc + 3); // 右下各加一像素
   GetMem(Line, RowInc);       // 临时行保存最后一行扫描线内容
   try
     CopyMemory(Line, FScanLine[FHeight - 1], RowInc);
@@ -5799,7 +5801,7 @@ begin
     begin
       for x := 0 to Width - 1 do
       begin
-        p1.b := (p1.b + not p2.b) shr 1; // 当前象素与右下角象素取反的平均值
+        p1.b := (p1.b + not p2.b) shr 1; // 当前像素与右下角像素取反的平均值
         p1.g := (p1.g + not p2.g) shr 1;
         p1.r := (p1.r + not p2.r) shr 1;
         Inc(p1);
@@ -6280,7 +6282,7 @@ begin
         else if beta > 180 then
           beta := beta - 180
         else if beta > 90 then
-          beta := 180 - beta; // 变换到90度范围内
+          beta := 180 - beta; // 变换到 90 度范围内
         if Len <= Table[beta] then
         begin                 // 加权值为点到中心的距离与中心到该方向椭圆周距离之比
           Weight := FAlpha * (Table[beta] - Len) div Table[beta];
@@ -6399,7 +6401,7 @@ begin
   Changed;
 end;
 
-// 移去噪声点（阀值平滑算子3X3卷积）
+// 移去噪声点（阈值平滑算子 3x3 卷积）
 // 算法设计：周劲羽
 procedure TCnBitmap.RemoveNoise(Amount: Integer);
 var
@@ -6421,7 +6423,7 @@ begin
     for y := 1 to Height - 2 do
     begin
       for x := 1 to Width - 2 do
-      begin                   // 邻近八象素平均值
+      begin                   // 邻近八像素平均值
         db := (y1[x - 1].b + y1[x].b + y1[x + 1].b + y2[x - 1].b +
           y2[x + 1].b + y3[x - 1].b + y3[x].b + y3[x + 1].b) shr 3;
         dg := (y1[x - 1].g + y1[x].g + y1[x + 1].g + y2[x - 1].g +
@@ -6560,7 +6562,7 @@ end;
 // 算法参考：Graphic32、FastLib                           //
 //--------------------------------------------------------//
 
-// 取浮点数象素颜色
+// 取浮点数像素颜色
 function TCnBitmap.GetPixelsF(x, y: Single): TCnColor;
 begin
   if Empty then
@@ -6571,7 +6573,7 @@ begin
     Result := DoGetPixelF(Round(x * $8000), Round(y * $8000));
 end;
 
-// 写浮点数象素颜色
+// 写浮点数像素颜色
 procedure TCnBitmap.SetPixelsF(x, y: Single; const Value: TCnColor);
 begin
   if Empty then
@@ -6582,7 +6584,7 @@ begin
     DoSetPixelF(Round(x * $8000), Round(y * $8000), Value);
 end;
 
-// 取小数（乘$7FFF）点象素
+// 取小数（乘 $7FFF）点像素
 function TCnBitmap.DoGetPixelF(x, y: Integer): TCnColor;
 var
   x1, x2, y1, y2: Integer;
@@ -6611,7 +6613,7 @@ begin
   Result.r := (Col1.r * w1 + Col2.r * w2 + Col3.r * w3 + Col4.r * w4) shr 15;
 end;
 
-// 写小数（乘$7FFF）点象素
+// 写小数（乘 $7FFF）点像素
 procedure TCnBitmap.DoSetPixelF(x, y: Integer; ARGB: TCnColor);
 var
   x1, x2, y1, y2: Integer;
@@ -7058,7 +7060,7 @@ begin
   // 目标灰度为源矩形块的平均值
   case Font.Quality of
     fqHigh:
-      begin                   // 高精度4X4采样
+      begin                   // 高精度 4x4 采样
         for I := 0 to Extend.cy - 1 do
         begin
           for J := 0 to Extend.cx - 1 do
@@ -7078,7 +7080,7 @@ begin
         end;
       end;
     fqNormal:
-      begin                   // 普通精度3X3采样
+      begin                   // 普通精度 3x3 采样
         for I := 0 to Extend.cy - 1 do
         begin
           for J := 0 to Extend.cx - 1 do
@@ -7096,7 +7098,7 @@ begin
         end;
       end;
     fqLow:
-      begin                   // 低精度2X2采样
+      begin                   // 低精度 2x2 采样
         for I := 0 to Extend.cy - 1 do
         begin
           for J := 0 to Extend.cx - 1 do
@@ -7427,7 +7429,7 @@ end;
 
 initialization
   BitmapList := TThreadList.Create;
-  BitmapList.duplicates := dupIgnore; // 重复加入时忽略
+  BitmapList.duplicates := dupIgnore;   // 重复加入时忽略
   CnCanvasList := TThreadList.Create;
   CnCanvasList.duplicates := dupIgnore; // 重复加入时忽略
   GdiActTimer := TTimer.Create(nil);

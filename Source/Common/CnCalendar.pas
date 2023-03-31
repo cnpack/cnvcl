@@ -3248,7 +3248,7 @@ begin
   begin
     Dec(LunDay);
     if LunDay < 1 then
-      LunDay := LunDay + 30;	
+      LunDay := LunDay + 30;
   end;
   
   // 2025.4.27 ~ 5.26 ÉÙÒ»Ìì

@@ -3474,8 +3474,8 @@ begin
 
   while Evaluate(c, PointerXX(p)^) <> #0 do
   begin
-	  case c of
-		  '?': begin
+    case c of
+      '?': begin
           if n^ = '.' then
           begin
             while (p^ <> '.') and (p^ <> #0) do
@@ -3534,7 +3534,7 @@ begin
       '<': begin
           while n^ <> #0 do
           begin
-				    if FileNameMatch(p, n) = 0 then
+            if FileNameMatch(p, n) = 0 then
             begin
               Result := 0;
               Exit;
@@ -3580,7 +3580,7 @@ begin
         end;
         Result := 0;
         Exit;
-			end;
+      end;
       if c <> n^ then
       begin
         Result := -1;

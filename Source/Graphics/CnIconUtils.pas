@@ -88,11 +88,11 @@ begin
     for x := 0 to Dst.Width - 1 do
     begin
       t := xP shr 15;
-      z := xP and $7FFF;      // 源计算象素与左象素之差 "x"
-      Col1 := @Read[t];       // 左上象素 "f(0,0)"
-      Col2 := @Read[t + 1];   // 右上象素 "f(1,0)"
-      Col3 := @Read2[t];      // 左下象素 "f(0,1)"
-      Col4 := @Read2[t + 1];  // 右下象素 "f(1,1)"
+      z := xP and $7FFF;      // 源计算像素与左像素之差 "x"
+      Col1 := @Read[t];       // 左上像素 "f(0,0)"
+      Col2 := @Read[t + 1];   // 右上像素 "f(1,0)"
+      Col3 := @Read2[t];      // 左下像素 "f(0,1)"
+      Col4 := @Read2[t + 1];  // 右下像素 "f(1,1)"
       w2 := (z * iz2) shr 15;
       w1 := iz2 - w2;
       w4 := (z * z2) shr 15;

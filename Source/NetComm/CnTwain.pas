@@ -185,9 +185,9 @@ const
   CAP_FEEDPAGE = $1009;
   CAP_REWINDPAGE = $100a;
   CAP_INDICATORS = $100b;    //Added 1.1
-  CAP_SUPPORTEDCAPSEXT = $100c; 	// Added 1.6
-  CAP_PAPERDETECTABLE = $100d; 	// Added 1.6
-  CAP_UICONTROLLABLE = $100e; 	// Added 1.6
+  CAP_SUPPORTEDCAPSEXT = $100c;  // Added 1.6
+  CAP_PAPERDETECTABLE = $100d;   // Added 1.6
+  CAP_UICONTROLLABLE = $100e;    // Added 1.6
    // image data sources MAY support these caps
   ICAP_AUTOBRIGHT = $1100;
   ICAP_BRIGHTNESS = $1101;

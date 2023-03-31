@@ -211,7 +211,7 @@ begin
       if H <> nil then
         with H^ do
         Result := Format('%d.%d.%d.%d', [Ord(h_addr^[0]), Ord(h_addr^[1]),
-      		  Ord(h_addr^[2]), Ord(h_addr^[3])]);
+          Ord(h_addr^[2]), Ord(h_addr^[3])]);
     end;
   end
   else

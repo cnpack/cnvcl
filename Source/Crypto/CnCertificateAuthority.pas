@@ -1125,7 +1125,7 @@ end;
 // RSA 如果无公钥，则只取签名值，不解开。ECC 不管有没有都解不开
 {
   SEQUENCE
-    OBJECT IDENTIFIER 1.2.840.113549.1.1.5　sha1WithRSAEncryption(PKCS #1) 或 sha256WithECDSA
+    OBJECT IDENTIFIER 1.2.840.113549.1.1.5  sha1WithRSAEncryption(PKCS #1) 或 sha256WithECDSA
     NULL
   BIT STRING  如果是 RSA 则此节点是对齐加密后的 Hash 值；如果是 ECC 则是一个 SEQ 子节点下面再两个 INTEGER
 }

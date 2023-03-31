@@ -419,7 +419,7 @@ type
     property ScrollDelay: Word read FScrollDelay write SetScrollDelay default 60;
     {* 滚动时的延时，单位为毫秒}
     property ScrollStep: Integer read FScrollStep write SetScrollStep default 1;
-    {* 一次滚动的象素数，如果设定为负数将向下滚动}
+    {* 一次滚动的像素数，如果设定为负数将向下滚动}
     property RepeatCount: TBorderWidth read FRepeatCount write SetRepeatCount default 0;
     {* 允许循环次数，指定次数的循环结束将自动停止滚动，并产生 OnComplete 事件。
      |<BR> 该值设为 0 将无限循环。}

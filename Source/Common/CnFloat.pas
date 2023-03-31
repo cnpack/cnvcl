@@ -95,7 +95,7 @@ uses
         M: 规范化单/双精度的二进制 M 的高位加个 1. 代表有效数，扩展的无需加，自身有 1.
            最终值：有效数（二进制 1.xxxx 的形式）乘以 2 的 E 次方（注意不是 10 的 E 次方！）
 
-  格式	        字节 1    字节 2    字节 3    字节 4    ...  字节 n（每个字节的右边低位是 0）
+  格式          字节 1    字节 2    字节 3    字节 4    ...  字节 n（每个字节的右边低位是 0）
   单精度 4      SXXXXXXX  XMMMMMMM  MMMMMMMM  MMMMMMMM
   双精度 8      SXXXXXXX  XXXXMMMM  MMMMMMMM  MMMMMMMM  ...  MMMMMMMM
   扩展双精度 10 SXXXXXXX  XXXXXXXX  1MMMMMMM  MMMMMMMM  ...  MMMMMMMM  // 注意它的有效数字包括了 1，其余都省略了 1

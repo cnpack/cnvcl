@@ -57,7 +57,7 @@ type
 { TCnGraphicControl }
 
   TCnGraphicControl = class(TControl)
-  {* CnPack界面类图形控件基础类}
+  {* CnPack 界面类图形控件基础类}
   private
     FLoaded: Boolean;
     FUpdateCount: Integer;
@@ -79,13 +79,13 @@ type
     procedure SetAlphaBlend(const Value: Boolean);
   protected
     function IsUpdating: Boolean;
-    {* 当前更新计数是否大于0（正在更新），只读属性}
+    {* 当前更新计数是否大于 0（正在更新），只读属性}
     procedure WndProc(var Msg: TMessage); override;
     procedure Paint; virtual;
     {* 控件绘制方法，当控件当前状态改变后自动调用该方法，供重载用
      |<BR> 控件重载此方法对 Face 进行绘制}
     procedure Loaded; override;
-    {* 运行期属性已装载（或设计期第一次Paint时调用），可重载
+    {* 运行期属性已装载（或设计期第一次 Paint 时调用），可重载
      |<BR> 重载时请调用 inherited}
     procedure Changed; virtual;
     {* 属性已变更，请在修改控件属性后调用该方法，以通知控件重绘，可重载
@@ -93,7 +93,7 @@ type
      |<BR> 重载时请调用 inherited}
     procedure OnFaceChange(Sender: TObject); virtual;
     procedure OnChildChange(Sender: TObject); virtual;
-    {* 子属性已变更通知，默认为调用Changed方法，可重载}
+    {* 子属性已变更通知，默认为调用 Changed 方法，可重载}
     procedure MouseEnter; virtual;
     {* 鼠标移入控件通知，可重载，重载时请调用 inherited 以产生事件}
     procedure MouseLeave; virtual;
@@ -101,19 +101,19 @@ type
     procedure SetTransparent(const Value: Boolean); virtual;
     {* 设置控件透明属性，可重载，重载时请调用 inherited}
     property Face: TCnBitmap read FFace;
-    {* 控件表面画布镜象，TCnBitmap类型，在内存中保存了控件当前图像
+    {* 控件表面画布镜象，TCnBitmap 类型，在内存中保存了控件当前图像
      |<BR> 当需要在屏幕上绘制控件时，直接将该位图复制到屏幕上以获得快速的显示
-     |<BR> 该属性类似于其它控件的Canvas属性，用户可直接在Face上绘图，如果需要
+     |<BR> 该属性类似于其它控件的 Canvas 属性，用户可直接在 Face 上绘图，如果需要
            在屏幕上输出，请调用控件的Refresh或Repaint方法}
     property AlphaBlend: Boolean read FAlphaBlend write SetAlphaBlend default False;
-    {* 控件的半透明属性，如果为真允许控件显示为半透明效果，不透明度为AlphaBlendValue}
+    {* 控件的半透明属性，如果为真允许控件显示为半透明效果，不透明度为 AlphaBlendValue}
     property AlphaBlendValue: TCnAlpha read FAlphaBlendValue write SetAlphaBlendValue
       default csMaxAlpha;
-    {* 控件的不透明度属性，受AlphaBlend的影响，为0时完全透明，255时不透明}
+    {* 控件的不透明度属性，受 AlphaBlend 的影响，为0时完全透明，255时不透明}
     property Transparent: Boolean read FTransparent write SetTransparent default False;
     {* 控件的背景透明属性，为真允许控件显示为不规则的形状，即背景透明}
     property FullPaint: Boolean read FFullPaint write SetFullPaint default True;
-    {* 决定当设置Transparent属性时，是否每次重绘控件都复制控件背景
+    {* 决定当设置 Transparent 属性时，是否每次重绘控件都复制控件背景
     |<BR> 当控件后面的控件和父控件画面为静态时，关闭该属性可提高显示速度
     |<BR> 当控件后面的控件和父控件画面为动态时，请设置为真}
     property OnMouseEnter: TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
@@ -130,10 +130,10 @@ type
     {* 设置控件的位置和大小，可重载}
     procedure BeginUpdate;
     {* 开始更新控件，更新过程中控件不重绘，可重载
-     |<BR> 在对成批属性进行修改时请调用该方法，注意必须与EndUpdate成对使用}
+     |<BR> 在对成批属性进行修改时请调用该方法，注意必须与 EndUpdate 成对使用}
     procedure EndUpdate;
-    {* 结束更新，如果当前更新计数为0，自动调用Change方法，可重载
-     |<BR> 在对成批属性修改后请调用该方法，注意必须与BeginUpdate成对使用}
+    {* 结束更新，如果当前更新计数为0，自动调用 Change 方法，可重载
+     |<BR> 在对成批属性修改后请调用该方法，注意必须与 BeginUpdate 成对使用}
     procedure Repaint; override;
     {* 强迫控件在屏幕上绘制，如果手动修改了 Face 属性，请调用此方法，可重载}
     procedure ReDraw; virtual;
@@ -202,7 +202,7 @@ type
   TCnFontAccess = class(TCnFont);
 
 // 从父控件复制图像
-// 代码修改自RxLibrary VCLUtils
+// 代码修改自 RxLibrary VCLUtils
 procedure CopyParentImage(Control: TControl; Bmp: TCnBitmap);
 var
   I, Count, x, y, SaveIndex: Integer;
@@ -274,7 +274,7 @@ begin
                 SaveIndex := SaveDC(Bmp.DC);
                 SetViewportOrgEx(Bmp.DC, Left + x, Top + y, nil);
                 IntersectClipRect(Bmp.DC, 0, 0, Width, Height);
-                Perform(WM_PAINT, Bmp.DC, 0); // 强制控件绘制到目标DC
+                Perform(WM_PAINT, Bmp.DC, 0); // 强制控件绘制到目标 DC
               finally
                 RestoreDC(Bmp.DC, SaveIndex);
                 ControlState := ControlState - [csPaintCopy];
@@ -325,7 +325,7 @@ end;
 // 可重载的方法                                           //
 //--------------------------------------------------------//
 
-// 运行期属性已装载（或设计期第一次Paint时调用）
+// 运行期属性已装载（或设计期第一次 Paint 时调用）
 // 重载时请调用 inherited
 procedure TCnGraphicControl.Loaded;
 begin
@@ -419,7 +419,7 @@ begin
     if FTransparent then
       CopyParentImage(Self, Face) // 如果透明先复制父控件图像
     else
-      Face.Fill(Color);       // 不透明用Color填充
+      Face.Fill(Color);       // 不透明用 Color 填充
     Paint;                    // 调用虚拟方法Paint绘制控件
     FPainting := False;
   end;
@@ -576,7 +576,7 @@ end;
 // 可重载的方法                                           //
 //--------------------------------------------------------//
 
-// 运行期属性已装载（或设计期第一次Paint时调用）
+// 运行期属性已装载（或设计期第一次 Paint 时调用）
 // 重载时请调用 inherited
 procedure TCnWinControl.Loaded;
 begin
@@ -667,8 +667,8 @@ begin
   if FTransparent then
     CopyParentImage(Self, Face) // 如果透明先复制父控件图像
   else
-    Face.Fill(Color);         // 不透明用Color填充
-  Paint;                      // 调用虚拟方法Paint绘制控件
+    Face.Fill(Color);         // 不透明用 Color 填充
+  Paint;                      // 调用虚拟方法 Paint 绘制控件
 end;
 
 // 控件重绘方法
@@ -712,7 +712,7 @@ begin
     try
       Bmp.LoadBlank(Width, Height);
       CopyParentImage(Self, Bmp); // 从父控件复制图像
-      Bmp.AlphaDraw(Face, AlphaBlendValue, False); // Alpha混合
+      Bmp.AlphaDraw(Face, AlphaBlendValue, False); // Alpha 混合
       Bmp.DrawTo(Msg.DC, 0, 0); // 绘制到目标DC
     finally
       Bmp.Free;

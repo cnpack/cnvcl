@@ -122,7 +122,7 @@ procedure Int128ClearBit(var N: TCnInt128; Bit: Integer);
 {* 将一 128 位有符号数的某一位置 0，Bit 从 0 到 127}
 
 function Int128IsBitSet(var N: TCnInt128; Bit: Integer): Boolean;
-{* 返回一　128 位有符号数的某一位是否是 0，Bit 从 0 到 127}
+{* 返回一 128 位有符号数的某一位是否是 0，Bit 从 0 到 127}
 
 function Int128IsNegative(var N: TCnInt128): Boolean;
 {* 判断一 128 位有符号数是否是负数}
@@ -212,7 +212,7 @@ procedure UInt128ClearBit(var N: TCnUInt128; Bit: Integer);
 {* 将一 128 位无符号数的某一位置 0，Bit 从 0 到 127}
 
 function UInt128IsBitSet(var N: TCnUInt128; Bit: Integer): Boolean;
-{* 返回一　128 位无符号数的某一位是否是 0，Bit 从 0 到 127}
+{* 返回一 128 位无符号数的某一位是否是 0，Bit 从 0 到 127}
 
 function UInt128Equal(var A, B: TCnUInt128): Boolean; overload;
 {* 判断两个 128 位无符号数是否相等}
