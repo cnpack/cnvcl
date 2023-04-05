@@ -818,7 +818,8 @@ procedure LongMessageDlg(const Mess: string; AutoWrap: Boolean = False;
 
 function MultiButtonsDlg(const Mess: string; Buttons: TCnDlgButtonCaptions;
   Caption: string = ''): TCnDlgResult;
-{* 显示多按钮对话框，动态构造按钮并返回其 ModalResult，暂不支持图标}
+{* 显示多按钮对话框，动态构造按钮并返回其 ModalResult，暂不支持图标
+  注意 Buttons 里传入的 set 中的按钮顺序，需和 TCnDlgButtonCaption 中声明的一致}
 
 {$ENDIF}
 

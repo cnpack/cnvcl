@@ -43,7 +43,8 @@ unit CnCalendar;
 *           zjy (zjy@cnpack.org)
 *           罗建仁
 * 备    注：星期、年月日时干支、年生肖、节气日期、星座、阴阳五行、十二建（神）、
-*           三元、九运、九星、二十八宿、九九三伏已实现，公历、农历互相转换也初步实现。
+*           三元、九运、九星、二十八宿、九九、三伏、吉神方位已实现，
+*           公历、农历互相转换也初步实现。
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -3325,19 +3326,19 @@ begin
 
   if (Result = GetLeapMonth(AYear - 1)) and (AMonth = 1) and (ADay < LunDay) then
   begin
-    Result := - Result;    //如果 AYear - 1年末是闰月且该月接到了 AYear 年,则 AYear 年年初也是闰月
+    Result := - Result;    // 如果 AYear - 1 年末是闰月且该月接到了 AYear 年,则 AYear 年年初也是闰月
   end
   else if Result = GetLeapMonth(AYear) then
   begin
-    // 如果得到的月份数与当年所闰的月相同，比如1612年1月31号。
-    // 上面计算所得的是11月，并且1612年年底有个闰11月，这俩不能混淆
+    // 如果得到的月份数与当年所闰的月相同，比如 1612 年 1 月 31 号。
+    // 上面计算所得的是 11 月，并且 1612 年年底有个闰 11 月，这俩不能混淆
     if (AMonth in [1, 2]) and (GetLeapMonth(AYear) <> 12) then
     begin
       // 粗略判断，如果月份在年初，且今年闰月不是12月，就说明两个月不是一个年的，
       // 所以不是闰月，修正为普通月。但这个修正可能不是太准确
 
-      // 比如1984年有闰10月，而1984.1.1的农历月为10，
-      // 但这是从1983年阴历接过来的，所以不是1984年的闰10月
+      // 比如 1984 年有闰 10 月，而 1984.1.1 的农历月为 10，
+      // 但这是从 1983 年阴历接过来的，所以不是 1984 年的闰 10 月
       Result := Result + 1;
     end
     else
@@ -3348,7 +3349,7 @@ begin
   else
   begin
     if (Result < GetLeapMonth(AYear)) or (AMonth < Result) and (GetLeapMonth(AYear) > 0) then
-      Result := Result + 1;  //如果 AYear 年是闰月但当月未过闰月则前面多扣除了本年的闰月，这里应当补偿
+      Result := Result + 1;  // 如果 AYear 年是闰月但当月未过闰月则前面多扣除了本年的闰月，这里应当补偿
 
     Result := Round(GetRemain(Result - 1, 12) + 1);
   end;
