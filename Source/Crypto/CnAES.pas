@@ -17,14 +17,14 @@
 {            电子邮件：master@cnpack.org                                       }
 {                                                                              }
 {******************************************************************************}
-(**************************************************)
-(*                                                *)
-(*     Advanced Encryption Standard (AES)         *)
-(*                                                *)
-(*     Copyright (c) 1998-2001                    *)
-(*     EldoS, Alexander Ionov                     *)
-(*                                                *)
-(**************************************************)
+(******************************************************************************)
+(*                                                                            *)
+(*                    Advanced Encryption Standard (AES)                      *)
+(*                                                                            *)
+(*                    Copyright (c) 1998-2001                                 *)
+(*                    EldoS, Alexander Ionov                                  *)
+(*                                                                            *)
+(******************************************************************************)
 
 unit CnAES;
 {* |<PRE>
@@ -61,16 +61,27 @@ uses
 
 const
   CN_AES_BLOCKSIZE = 16;
+  {* AES 的分组加密块大小，无论密码位数多少，均为 16 字节}
 
 type
   TCnKeyBitType = (kbt128, kbt192, kbt256);
+  {* AES 的三种密码位数，16 字节、24 字节和 32 字节}
 
   ECnAESError = class(Exception);
+  {* AES 异常}
 
   TCnAESBuffer = array [0..15] of Byte;
+  {* AES 加解密块}
+
   TCnAESKey128 = array [0..15] of Byte;
+  {* AES128 的密码结构，16 字节}
+
   TCnAESKey192 = array [0..23] of Byte;
+  {* AES192 的密码结构，24 字节}
+
   TCnAESKey256 = array [0..31] of Byte;
+  {* AES256 的密码结构，32 字节}
+
   TCnAESExpandedKey128 = array [0..43] of Cardinal;
   TCnAESExpandedKey192 = array [0..53] of Cardinal;
   TCnAESExpandedKey256 = array [0..63] of Cardinal;
@@ -280,89 +291,89 @@ procedure DecryptAESStreamOFB(Source: TStream; Count: Cardinal;
 
 // ============== 明文字符串与密文十六进制字符串之间的加解密 ===================
 
-// AES ECB 模式加密字符串并将其转换成十六进制
 function AESEncryptEcbStrToHex(Value: AnsiString; Key: AnsiString;
   KeyBit: TCnKeyBitType = kbt128): AnsiString;
+{* AES ECB 模式加密字符串并将其转换成十六进制}
 
-// AES ECB 解密十六进制字符串
 function AESDecryptEcbStrFromHex(Value: AnsiString; Key: AnsiString;
   KeyBit: TCnKeyBitType = kbt128): AnsiString;
+{* AES ECB 解密十六进制字符串}
 
-// AES CBC 模式加密字符串并将其转换成十六进制
 function AESEncryptCbcStrToHex(Value: AnsiString; Key: AnsiString;
   const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+{* AES CBC 模式加密字符串并将其转换成十六进制}
 
-// AES CBC 解密十六进制字符串
 function AESDecryptCbcStrFromHex(Value: AnsiString; Key: AnsiString;
   const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+{* AES CBC 解密十六进制字符串}
 
-// AES CFB 模式加密字符串并将其转换成十六进制
 function AESEncryptCfbStrToHex(Value: AnsiString; Key: AnsiString;
   const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+{* AES CFB 模式加密字符串并将其转换成十六进制}
 
-// AES CFB 解密十六进制字符串
 function AESDecryptCfbStrFromHex(Value: AnsiString; Key: AnsiString;
   const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+{* AES CFB 解密十六进制字符串}
 
-// AES OFB 模式加密字符串并将其转换成十六进制
 function AESEncryptOfbStrToHex(Value: AnsiString; Key: AnsiString;
   const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+{* AES OFB 模式加密字符串并将其转换成十六进制}
 
-// AES OFB 解密十六进制字符串
 function AESDecryptOfbStrFromHex(Value: AnsiString; Key: AnsiString;
   const Iv: TCnAESBuffer; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+{* AES OFB 解密十六进制字符串}
 
 // ================= 明文字节数组与密文字节数组之间的加解密 ====================
 
-// AES ECB 模式加密字节数组
 function AESEncryptEcbBytes(Value, Key: TBytes; KeyBit: TCnKeyBitType = kbt128): TBytes;
+{* AES ECB 模式加密字节数组}
 
-// AES ECB 模式解密字节数组
 function AESDecryptEcbBytes(Value, Key: TBytes; KeyBit: TCnKeyBitType = kbt128): TBytes;
+{* AES ECB 模式解密字节数组}
 
-// AES CBC 模式加密字节数组
 function AESEncryptCbcBytes(Value, Key, Iv: TBytes; KeyBit: TCnKeyBitType = kbt128): TBytes;
+{* AES CBC 模式加密字节数组}
 
-// AES CBC 模式解密字节数组
 function AESDecryptCbcBytes(Value, Key, Iv: TBytes; KeyBit: TCnKeyBitType = kbt128): TBytes;
+{* AES CBC 模式解密字节数组}
 
-// AES CFB 模式加密字节数组
 function AESEncryptCfbBytes(Value, Key, Iv: TBytes; KeyBit: TCnKeyBitType = kbt128): TBytes;
+{* AES CFB 模式加密字节数组}
 
-// AES CFB 模式解密字节数组
 function AESDecryptCfbBytes(Value, Key, Iv: TBytes; KeyBit: TCnKeyBitType = kbt128): TBytes;
+{* AES CFB 模式解密字节数组}
 
-// AES OFB 模式加密字节数组
 function AESEncryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TCnKeyBitType = kbt128): TBytes;
+{* AES OFB 模式加密字节数组}
 
-// AES OFB 模式解密字节数组
 function AESDecryptOfbBytes(Value, Key, Iv: TBytes; KeyBit: TCnKeyBitType = kbt128): TBytes;
+{* AES OFB 模式解密字节数组}
 
 // ============== 明文字节数组与密文十六进制字符串之间的加解密 =================
 
-// AES ECB 模式加密字节数组并将其转换成十六进制
 function AESEncryptEcbBytesToHex(Value, Key: TBytes; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+{* AES ECB 模式加密字节数组并将其转换成十六进制}
 
-// AES ECB 解密十六进制字符串并返回字节数组
 function AESDecryptEcbBytesFromHex(Value: AnsiString; Key: TBytes; KeyBit: TCnKeyBitType = kbt128): TBytes;
+{* AES ECB 解密十六进制字符串并返回字节数组}
 
-// AES CBC 模式加密字节数组并将其转换成十六进制
 function AESEncryptCbcBytesToHex(Value, Key, Iv: TBytes; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+{* AES CBC 模式加密字节数组并将其转换成十六进制}
 
-// AES CBC 解密十六进制字符串并返回字节数组
 function AESDecryptCbcBytesFromHex(Value: AnsiString; Key, Iv: TBytes; KeyBit: TCnKeyBitType = kbt128): TBytes;
+{* AES CBC 解密十六进制字符串并返回字节数组}
 
-// AES CFB 模式加密字节数组并将其转换成十六进制
 function AESEncryptCfbBytesToHex(Value, Key, Iv: TBytes; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+{* AES CFB 模式加密字节数组并将其转换成十六进制}
 
-// AES CFB 解密十六进制字符串并返回字节数组
 function AESDecryptCfbBytesFromHex(Value: AnsiString; Key, Iv: TBytes; KeyBit: TCnKeyBitType = kbt128): TBytes;
+{* AES CFB 解密十六进制字符串并返回字节数组}
 
-// AES OFB 模式加密字节数组并将其转换成十六进制
 function AESEncryptOfbBytesToHex(Value, Key, Iv: TBytes; KeyBit: TCnKeyBitType = kbt128): AnsiString;
+{* AES OFB 模式加密字节数组并将其转换成十六进制}
 
-// AES OFB 解密十六进制字符串并返回字节数组
 function AESDecryptOfbBytesFromHex(Value: AnsiString; Key, Iv: TBytes; KeyBit: TCnKeyBitType = kbt128): TBytes;
+{* AES OFB 解密十六进制字符串并返回字节数组}
 
 implementation
 

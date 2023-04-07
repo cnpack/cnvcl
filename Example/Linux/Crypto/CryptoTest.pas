@@ -13,6 +13,9 @@ procedure TestCrypto;
 
 // ============================== Native =======================================
 
+function TestStrToUInt64: Boolean;
+function TestUInt64Div: Boolean;
+function TestUInt64Mod: Boolean;
 
 // ============================== BigNumber ====================================
 
@@ -75,6 +78,9 @@ procedure TestCrypto;
 begin
 // ============================== Native =======================================
 
+  Assert(TestStrToUInt64, 'TestStrToUInt64');
+  Assert(TestUInt64Div, 'TestUInt64Div');
+  Assert(TestUInt64Mod, 'TestUInt64Mod');
 
 // ============================== BigNumber ====================================
 
@@ -134,6 +140,81 @@ end;
 
 // ============================== Native =======================================
 
+function TestStrToUInt64: Boolean;
+var
+  A: TUInt64;
+  S: string;
+begin
+  S := '10977225559701242671';
+  A := StrToUInt64(S);
+  Result := UInt64ToStr(A) = S;
+end;
+
+function TestUInt64Div: Boolean;
+var
+  A0, A1, A2, A3, A4, A5, A6, A7, A8, B1, B2, B3, B4, B5, B6, B7, B8: TUInt64;
+begin
+  A0 := 0;
+  A1 := TUInt64(4227372036857772807);
+  A2 := TUInt64(-2227372036857772807); // 16219372036851778809
+  A3 := TUInt64(97372037857779845);
+  A4 := TUInt64(-97372037857779845);   // 18349372035851771771
+  A5 := $22222222FFFFFFFF;
+  A6 := $FFFFFFFF22222222;
+  A7 := $FEFEFEFEFEFEFEFE;
+  A8 := $FEFEFEFEFEFEFEFE;
+  B1 := TUInt64(84560395435344);
+  B2 := TUInt64(-684560395435342);     // 18446059513314116274
+  B3 := TUInt64(-784560395435344);     // 18445959513314116272
+  B4 := TUInt64(64560395435344);
+  B5 := $1111111111111111;
+  B6 := $1111111111111111;
+  B7 := $0000000033333333;
+  B8 := $3333333300000000;
+
+  Result := (UInt64Div(A0, B1) = 0)
+    and (UInt64Div(A1, B1) = 49992)
+    and (UInt64Div(A2, B2) = 0)
+    and (UInt64Div(A3, B3) = 0)
+    and (UInt64Div(A4, B4) = 284220)
+    and (UInt64Div(A5, B5) = 2)
+    and (UInt64Div(A6, B6) = 14)
+    and (UInt64Div(A7, B7) = 21390621439)
+    and (UInt64Div(A8, B8) = 4);
+end;
+
+function TestUInt64Mod: Boolean;
+var
+  A0, A1, A2, A3, A4, A5, A6, A7, A8, B1, B2, B3, B4, B5, B6, B7, B8: TUInt64;
+begin
+  A0 := 0;
+  A1 := TUInt64(4227372036857772807);
+  A2 := TUInt64(-2227372036857772807); // 16219372036851778809
+  A3 := TUInt64(97372037857779845);
+  A4 := TUInt64(-97372037857779845);   // 18349372035851771771
+  A5 := $22222222FFFFFFFF;
+  A6 := $FFFFFFFF22222222;
+  A7 := $FEFEFEFEFEFEFEFE;
+  A8 := $FEFEFEFEFEFEFEFE;
+  B1 := TUInt64(84560395435344);
+  B2 := TUInt64(-684560395435342);     // 18446059513314116274
+  B3 := TUInt64(-784560395435344);     // 18445959513314116272
+  B4 := TUInt64(64560395435344);
+  B5 := $1111111111111111;
+  B6 := $1111111111111111;
+  B7 := $0000000033333333;
+  B8 := $3333333300000000;
+
+  Result := (UInt64Mod(A0, B1) = 0)
+    and (UInt64Mod(A1, B1) = 28748254055559)
+    and (UInt64ToStr(UInt64Mod(A2, B2)) = '16219372036851778809')
+    and (UInt64Mod(A3, B3) = 97372037857779845)
+    and (UInt64Mod(A4, B4) = 16445218300091)
+    and (UInt64Mod(A5, B5) = 3722304989)
+    and (UInt64Mod(A6, B6) = 1229782934524998452)
+    and (UInt64Mod(A7, B7) = 825307441)
+    and (UInt64Mod(A8, B8) = 3617008645339807486);
+end;
 
 // ============================== BigNumber ====================================
 

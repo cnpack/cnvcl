@@ -1965,7 +1965,7 @@ begin
   Result := TUInt64(A) * B;
 end;
 
-{$ELSE} // 只有低版本 Delphi 会进这里
+{$ELSE} // 只有低版本 Delphi 会进这里，Win32 x86
 
 {
   无符号 32 位整数相乘，如果结果直接使用 Int64 会溢出，模拟 64 位无符号运算
@@ -2023,7 +2023,7 @@ begin
   end;
 end;
 
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
 
 // 64 位下两个无符号 64 位整数相乘，结果放 ResLo 与 ResHi 中，直接用汇编实现，比下面快了一倍以上
 procedure UInt64MulUInt64(A, B: UInt64; var ResLo, ResHi: UInt64); assembler;
