@@ -42,7 +42,7 @@ uses
   CnSM4 in '..\..\..\Source\Crypto\CnSM4.pas',
   CnSM9 in '..\..\..\Source\Crypto\CnSM9.pas',
   CnTEA in '..\..\..\Source\Crypto\CnTEA.pas',
-  CnZUC in '..\..\..\Source\Crypto\CnZUC.pas'
+  CnZUC in '..\..\..\Source\Crypto\CnZUC.pas',
   CryptoTest in 'CryptoTest.pas';
 
 begin

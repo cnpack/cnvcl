@@ -45,6 +45,11 @@ function TestDESEcb1: Boolean;
 function Test3DESEcb1: Boolean;
 
 // ================================ AES ========================================
+
+function TestAESEcb128: Boolean;
+function TestAESEcb192: Boolean;
+function TestAESEcb256: Boolean;
+
 // ================================ CRC ========================================
 // ================================ MD5 ========================================
 // ================================ SHA1 =======================================
@@ -96,10 +101,17 @@ begin
 // ================================ DES ========================================
 
   Assert(TestDESEcb1, 'TestDESEcb1');
-  Assert(Test3DESEcb1, 'Test3DESEcb1');
 
 // ================================ 3DES =======================================
+
+  Assert(Test3DESEcb1, 'Test3DESEcb1');
+
 // ================================ AES ========================================
+
+  Assert(TestAESEcb128, 'TestAESEcb128');
+  Assert(TestAESEcb192, 'TestAESEcb192');
+  Assert(TestAESEcb256, 'TestAESEcb256');
+
 // ================================ CRC ========================================
 // ================================ MD5 ========================================
 // ================================ SHA1 =======================================
@@ -425,12 +437,49 @@ var
 begin
   S := '0123456789ABCDEF';
   DataBytes := HexToBytes(S);
-  KeyBytes := HexToBytes('133457799BBCDFF1AABBCCDD');
+  KeyBytes := HexToBytes('9BBCDFF1AABBCCDD');
   ResBytes := TripleDESEncryptEcbBytes(KeyBytes, DataBytes);
-  Result := BytesToHex(ResBytes) = '85E813540F0AB405';
+  Result := BytesToHex(ResBytes) = '119102AA7D6000EE';
 end;
 
 // ================================ AES ========================================
+
+function TestAESEcb128: Boolean;
+var
+  S: AnsiString;
+  KeyBytes, ResBytes, DataBytes: TBytes;
+begin
+  S := '0123456789ABCDEF0123456789ABCDEF';
+  DataBytes := HexToBytes(S);
+  KeyBytes := HexToBytes('2B7E151628AED2A6ABF7158809CF4F3C');
+  ResBytes := AESEncryptEcbBytes(DataBytes, KeyBytes, kbt128);
+  Result := BytesToHex(ResBytes) = 'D44F0B792FD3B7C102A300501DBA089C';
+end;
+
+function TestAESEcb192: Boolean;
+var
+  S: AnsiString;
+  KeyBytes, ResBytes, DataBytes: TBytes;
+begin
+  S := '0123456789ABCDEF0123456789ABCDEF';
+  DataBytes := HexToBytes(S);
+  KeyBytes := HexToBytes('8E73B0F7DA0E6452C810F32B809079E562F8EAD2522C6B7B');
+  ResBytes := AESEncryptEcbBytes(DataBytes, KeyBytes, kbt192);
+  Result := BytesToHex(ResBytes) = '5AF10516B9E7334485405B63C11EC1F4';
+end;
+
+function TestAESEcb256: Boolean;
+var
+  S: AnsiString;
+  KeyBytes, ResBytes, DataBytes: TBytes;
+begin
+  S := '0123456789ABCDEF0123456789ABCDEF';
+  DataBytes := HexToBytes(S);
+  KeyBytes := HexToBytes('603DEB1015CA71BE2B73AEF0857D77811F352C073B6108D72D9810A30914DFF4');
+  ResBytes := AESEncryptEcbBytes(DataBytes, KeyBytes, kbt256);
+  Result := BytesToHex(ResBytes) = 'D71F96DEF80F6F19F80461CAEB8BE29F';
+end;
+
 // ================================ CRC ========================================
 // ================================ MD5 ========================================
 // ================================ SHA1 =======================================
