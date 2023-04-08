@@ -54,6 +54,12 @@ function TestAESEcb192: Boolean;
 function TestAESEcb256: Boolean;
 
 // ================================ CRC ========================================
+
+function TestCRC8CCITT: Boolean;
+function TestCRC16CCITT: Boolean;
+function TestCRC32: Boolean;
+function TestCRC64ECMA: Boolean;
+
 // ================================ MD5 ========================================
 // ================================ SHA1 =======================================
 // ================================ SHA2 =======================================
@@ -119,6 +125,12 @@ begin
   Assert(TestAESEcb256, 'TestAESEcb256');
 
 // ================================ CRC ========================================
+
+  Assert(TestCRC8CCITT, 'TestCRC8CCITT');
+  Assert(TestCRC16CCITT, 'TestCRC16CCITT');
+  Assert(TestCRC32, 'TestCRC32');
+  Assert(TestCRC64ECMA, 'TestCRC64ECMA');
+
 // ================================ MD5 ========================================
 // ================================ SHA1 =======================================
 // ================================ SHA2 =======================================
@@ -562,6 +574,39 @@ begin
 end;
 
 // ================================ CRC ========================================
+
+function TestCRC8CCITT: Boolean;
+var
+  S: AnsiString;
+begin
+  S := 'CnPack Test';
+  Result := CRC8Calc(0, S[1], Length(S)) = $79;
+end;
+
+function TestCRC16CCITT: Boolean;
+var
+  S: AnsiString;
+begin
+  S := 'CnPack Test';
+  Result := CRC16Calc(0, S[1], Length(S)) = $F352;
+end;
+
+function TestCRC32: Boolean;
+var
+  S: AnsiString;
+begin
+  S := 'CnPack Test';
+  Result := CRC32Calc(0, S[1], Length(S)) = $C5B59359;
+end;
+
+function TestCRC64ECMA: Boolean;
+var
+  S: AnsiString;
+begin
+  S := 'CnPack Test';
+  Result := CRC64Calc(0, S[1], Length(S)) = $95CF1FEBBF05E07E;
+end;
+
 // ================================ MD5 ========================================
 // ================================ SHA1 =======================================
 // ================================ SHA2 =======================================
