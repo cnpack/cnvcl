@@ -2023,7 +2023,7 @@ begin
   end;
 end;
 
-{$IFDEF CPUX64}
+{$IFDEF WIN64}  // 注意 Linux 64 下不支持 ASM，只能 WIN64
 
 // 64 位下两个无符号 64 位整数相乘，结果放 ResLo 与 ResHi 中，直接用汇编实现，比下面快了一倍以上
 procedure UInt64MulUInt64(A, B: UInt64; var ResLo, ResHi: UInt64); assembler;

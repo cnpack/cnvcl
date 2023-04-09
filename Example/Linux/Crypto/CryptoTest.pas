@@ -5,6 +5,7 @@ interface
 {$I CnPack.inc}
 
 uses
+  SysUtils,
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32;
 

@@ -68,7 +68,7 @@ procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
   Bearer       5                 The bearer identity
   Direction    1                 传输方向
   CK           128               机密性密钥
-  BitLen       32                输入消息的Bit长度
+  BitLen       32                输入消息的 Bit 长度
   M            BitLen            输入比特流的内存块地址
 
   输出：
