@@ -42,7 +42,9 @@ unit CnSM2;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.03.25 V2.0
+* 修改记录：2023.04.10 V2.1
+*               修正部分坐标值较小的情况下的加解密对齐问题
+*           2023.03.25 V2.0
 *               加密与签名时允许外界指定随机数，传入随机数的十六进制字符串
 *           2022.12.15 V1.9
 *               修正签名时可能省略前导 0 导致签名计算错误的问题
@@ -687,30 +689,30 @@ begin
       OutStream.Write(B, 1);
     end;
 
-    SetLength(Buf, P1.X.GetBytesCount);
-    P1.X.ToBinary(@Buf[0]);
-    OutStream.Write(Buf[0], P1.X.GetBytesCount);
-    SetLength(Buf, P1.Y.GetBytesCount);
-    P1.Y.ToBinary(@Buf[0]);
-    OutStream.Write(Buf[0], P1.Y.GetBytesCount); // 拼成 C1
+    SetLength(Buf, CN_SM2_FINITEFIELD_BYTESIZE);
+    P1.X.ToBinary(@Buf[0], CN_SM2_FINITEFIELD_BYTESIZE);
+    OutStream.Write(Buf[0], CN_SM2_FINITEFIELD_BYTESIZE);
+    SetLength(Buf, CN_SM2_FINITEFIELD_BYTESIZE);
+    P1.Y.ToBinary(@Buf[0], CN_SM2_FINITEFIELD_BYTESIZE);
+    OutStream.Write(Buf[0], CN_SM2_FINITEFIELD_BYTESIZE); // 拼成 C1
 
     P2 := TCnEccPoint.Create;
     P2.Assign(PublicKey);
     SM2.MultiplePoint(K, P2); // 计算出 K * PublicKey 得到 X2 Y2
 
-    SetLength(KDFStr, P2.X.GetBytesCount + P2.Y.GetBytesCount);
-    P2.X.ToBinary(@KDFStr[1]);
-    P2.Y.ToBinary(@KDFStr[P2.X.GetBytesCount + 1]);
+    SetLength(KDFStr, CN_SM2_FINITEFIELD_BYTESIZE * 2);
+    P2.X.ToBinary(@KDFStr[1], CN_SM2_FINITEFIELD_BYTESIZE);
+    P2.Y.ToBinary(@KDFStr[CN_SM2_FINITEFIELD_BYTESIZE + 1], CN_SM2_FINITEFIELD_BYTESIZE);
     T := CnSM2KDF(KDFStr, DataLen);
 
     M := PAnsiChar(PlainData);
     for I := 1 to DataLen do
       T[I] := AnsiChar(Byte(T[I]) xor Byte(M[I - 1])); // T 里是 C2，但先不能写
 
-    SetLength(C3H, P2.X.GetBytesCount + P2.Y.GetBytesCount + DataLen);
-    P2.X.ToBinary(@C3H[1]);
-    Move(M[0], C3H[P2.X.GetBytesCount + 1], DataLen);
-    P2.Y.ToBinary(@C3H[P2.X.GetBytesCount + DataLen + 1]); // 拼成算 C3 的
+    SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + DataLen);
+    P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
+    Move(M[0], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], DataLen);
+    P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + DataLen + 1], CN_SM2_FINITEFIELD_BYTESIZE); // 拼成算 C3 的
     Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
 
     if SequenceType = cstC1C3C2 then
@@ -828,27 +830,27 @@ begin
 
     SM2.MultiplePoint(PrivateKey, P2);
 
-    SetLength(KDFStr, P2.X.GetBytesCount + P2.Y.GetBytesCount);
-    P2.X.ToBinary(@KDFStr[1]);
-    P2.Y.ToBinary(@KDFStr[P2.X.GetBytesCount + 1]);
+    SetLength(KDFStr, CN_SM2_FINITEFIELD_BYTESIZE * 2);
+    P2.X.ToBinary(@KDFStr[1], CN_SM2_FINITEFIELD_BYTESIZE);
+    P2.Y.ToBinary(@KDFStr[CN_SM2_FINITEFIELD_BYTESIZE + 1], CN_SM2_FINITEFIELD_BYTESIZE);
     T := CnSM2KDF(KDFStr, MLen);
 
     if SequenceType = cstC1C3C2 then
     begin
       SetLength(MP, MLen);
       M := PAnsiChar(EnData);
-      Inc(M, SizeOf(TCnSM3Digest) + (SM2.BitsCount div 4) + PrefixLen); // 跳过 C3 指向 C2
+      Inc(M, SizeOf(TCnSM3Digest) + CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen); // 跳过 C3 指向 C2
       for I := 1 to MLen do
         MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I])); // 和 KDF 做异或，在 MP 里得到明文
 
-      SetLength(C3H, P2.X.GetBytesCount + P2.Y.GetBytesCount + MLen);
-      P2.X.ToBinary(@C3H[1]);
-      Move(MP[1], C3H[P2.X.GetBytesCount + 1], MLen);
-      P2.Y.ToBinary(@C3H[P2.X.GetBytesCount + MLen + 1]);    // 拼成算 C3 的
+      SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
+      P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
+      Move(MP[1], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], MLen);
+      P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + MLen + 1], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成算 C3 的
       Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
 
       M := PAnsiChar(EnData);
-      Inc(M, (SM2.BitsCount div 4) + PrefixLen);             // M 指向 C3
+      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);             // M 指向 C3
       if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对 Hash 是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
@@ -861,19 +863,19 @@ begin
     begin
       SetLength(MP, MLen);
       M := PAnsiChar(EnData);
-      Inc(M, (SM2.BitsCount div 4) + PrefixLen);  // 指向 C2
+      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);  // 指向 C2
 
       for I := 1 to MLen do
         MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I])); // 和 KDF 做异或，在 MP 里得到明文
 
-      SetLength(C3H, P2.X.GetBytesCount + P2.Y.GetBytesCount + MLen);
-      P2.X.ToBinary(@C3H[1]);
-      Move(MP[1], C3H[P2.X.GetBytesCount + 1], MLen);
-      P2.Y.ToBinary(@C3H[P2.X.GetBytesCount + MLen + 1]);    // 拼成算 C3 的
+      SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
+      P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
+      Move(MP[1], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], MLen);
+      P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + MLen + 1], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成算 C3 的
       Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
 
       M := PAnsiChar(EnData);
-      Inc(M, (SM2.BitsCount div 4) + PrefixLen + MLen);      // 指向 C3
+      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen + MLen);      // 指向 C3
       if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对 Hash 是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
@@ -2352,27 +2354,27 @@ begin
 
     // 以下同常规解密
 
-    SetLength(KDFStr, P2.X.GetBytesCount + P2.Y.GetBytesCount);
-    P2.X.ToBinary(@KDFStr[1]);
-    P2.Y.ToBinary(@KDFStr[P2.X.GetBytesCount + 1]);
+    SetLength(KDFStr, CN_SM2_FINITEFIELD_BYTESIZE * 2);
+    P2.X.ToBinary(@KDFStr[1], CN_SM2_FINITEFIELD_BYTESIZE);
+    P2.Y.ToBinary(@KDFStr[CN_SM2_FINITEFIELD_BYTESIZE + 1], CN_SM2_FINITEFIELD_BYTESIZE);
     T := CnSM2KDF(KDFStr, MLen);
 
     if SequenceType = cstC1C3C2 then
     begin
       SetLength(MP, MLen);
       M := PAnsiChar(EnData);
-      Inc(M, SizeOf(TCnSM3Digest) + (SM2.BitsCount div 4) + PrefixLen); // 跳过 C3 指向 C2
+      Inc(M, SizeOf(TCnSM3Digest) + CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen); // 跳过 C3 指向 C2
       for I := 1 to MLen do
         MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I]));    // 和 KDF 做异或，在 MP 里得到明文
 
-      SetLength(C3H, P2.X.GetBytesCount + P2.Y.GetBytesCount + MLen);
-      P2.X.ToBinary(@C3H[1]);
-      Move(MP[1], C3H[P2.X.GetBytesCount + 1], MLen);
-      P2.Y.ToBinary(@C3H[P2.X.GetBytesCount + MLen + 1]);    // 拼成算 C3 的
+      SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
+      P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
+      Move(MP[1], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], MLen);
+      P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + MLen + 1], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成算 C3 的
       Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
 
       M := PAnsiChar(EnData);
-      Inc(M, (SM2.BitsCount div 4) + PrefixLen);             // M 指向 C3
+      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);             // M 指向 C3
       if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对 Hash 是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
@@ -2385,19 +2387,19 @@ begin
     begin
       SetLength(MP, MLen);
       M := PAnsiChar(EnData);
-      Inc(M, (SM2.BitsCount div 4) + PrefixLen);             // 指向 C2
+      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);             // 指向 C2
 
       for I := 1 to MLen do
         MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I]));    // 和 KDF 做异或，在 MP 里得到明文
 
-      SetLength(C3H, P2.X.GetBytesCount + P2.Y.GetBytesCount + MLen);
-      P2.X.ToBinary(@C3H[1]);
-      Move(MP[1], C3H[P2.X.GetBytesCount + 1], MLen);
-      P2.Y.ToBinary(@C3H[P2.X.GetBytesCount + MLen + 1]);    // 拼成算 C3 的
+      SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
+      P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
+      Move(MP[1], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], MLen);
+      P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + MLen + 1], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成算 C3 的
       Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
 
       M := PAnsiChar(EnData);
-      Inc(M, (SM2.BitsCount div 4) + PrefixLen + MLen);      // 指向 C3
+      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen + MLen);      // 指向 C3
       if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对 Hash 是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
