@@ -9,7 +9,11 @@ uses
 type
   TFormOneTimePassword = class(TForm)
     btnGenerate: TButton;
+    btnGen2: TButton;
+    btnGen3: TButton;
     procedure btnGenerateClick(Sender: TObject);
+    procedure btnGen2Click(Sender: TObject);
+    procedure btnGen3Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -65,7 +69,7 @@ var
 begin
   T := TCnDynamicToken.Create;
 
-  K := HexToStr('1234567890abcdef1234567890abcdef');
+  K := HexToStr('1234567890ABCDEF1234567890ABCDEF');
   T.SetSeedKey(@K[1], Length(K));
 
   Q := '5678';
@@ -76,6 +80,40 @@ begin
   T.Period := 1;
 
   T.PasswordType := copSM4;
+
+  ShowMessage(T.OneTimePassword);
+
+  T.Free;
+end;
+
+procedure TFormOneTimePassword.btnGen2Click(Sender: TObject);
+var
+  T: TCnHOTPGenerator;
+  K: AnsiString;
+begin
+  T := TCnHOTPGenerator.Create;
+
+  K := HexToStr('1234567890ABCDEF1234567890ABCDEF');
+  T.SetSeedKey(@K[1], Length(K));
+  T.SetCounter(4);
+
+  ShowMessage(T.OneTimePassword);
+  ShowMessage(T.OneTimePassword);
+  ShowMessage(T.OneTimePassword);
+
+  T.Free;
+end;
+
+procedure TFormOneTimePassword.btnGen3Click(Sender: TObject);
+var
+  T: TCnTOTPGenerator;
+  K: AnsiString;
+begin
+  T := TCnTOTPGenerator.Create;
+
+  K := HexToStr('1234567890ABCDEF1234567890ABCDEF');
+  T.SetSeedKey(@K[1], Length(K));
+  T.PasswordType := tptSHA1;
 
   ShowMessage(T.OneTimePassword);
 
