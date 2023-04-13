@@ -174,7 +174,7 @@ function MD5DigestToStr(aDig: TCnMD5Digest): string;
  |</PRE>}
 
 procedure MD5Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnMD5Digest);
+  ByteLength: Cardinal; var Output: TCnMD5Digest);
 
 {* Hash-based Message Authentication Code (based on MD5) }
 
@@ -767,12 +767,12 @@ begin
 end;
 
 procedure MD5Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnMD5Digest);
+  ByteLength: Cardinal; var Output: TCnMD5Digest);
 var
   Ctx: TCnMD5Context;
 begin
   MD5HmacInit(Ctx, Key, KeyLength);
-  MD5HmacUpdate(Ctx, Input, Length);
+  MD5HmacUpdate(Ctx, Input, ByteLength);
   MD5HmacFinal(Ctx, Output);
 end;
 

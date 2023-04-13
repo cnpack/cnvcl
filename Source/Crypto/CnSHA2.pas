@@ -409,16 +409,16 @@ function SHA512DigestToStr(aDig: TCnSHA512Digest): string;
  |</PRE>}
 
 procedure SHA224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnSHA224Digest);
+  ByteLength: Cardinal; var Output: TCnSHA224Digest);
 
 procedure SHA256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnSHA256Digest);
+  ByteLength: Cardinal; var Output: TCnSHA256Digest);
 
 procedure SHA384Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnSHA384Digest);
+  ByteLength: Cardinal; var Output: TCnSHA384Digest);
 
 procedure SHA512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnSHA512Digest);
+  ByteLength: Cardinal; var Output: TCnSHA512Digest);
 
 {* Hash-based Message Authentication Code (based on SHA224/256/384/512) }
 
@@ -1050,7 +1050,7 @@ var
   Context: TCnSHA384Context;
 begin
   SHA384Init(Context);
-  SHA384Update(Context, PAnsiChar(@Data), Length(Data));
+  SHA384Update(Context, PAnsiChar(@Data[0]), Length(Data));
   SHA384Final(Context, Result);
 end;
 
@@ -1795,22 +1795,22 @@ begin
 end;
 
 procedure SHA224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnSHA224Digest);
+  ByteLength: Cardinal; var Output: TCnSHA224Digest);
 var
   Context: TCnSHA224Context;
 begin
   SHA224HmacInit(Context, Key, KeyLength);
-  SHA224HmacUpdate(Context, Input, Length);
+  SHA224HmacUpdate(Context, Input, ByteLength);
   SHA224HmacFinal(Context, Output);
 end;
 
 procedure SHA256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnSHA256Digest);
+  ByteLength: Cardinal; var Output: TCnSHA256Digest);
 var
   Context: TCnSHA256Context;
 begin
   SHA256HmacInit(Context, Key, KeyLength);
-  SHA256HmacUpdate(Context, Input, Length);
+  SHA256HmacUpdate(Context, Input, ByteLength);
   SHA256HmacFinal(Context, Output);
 end;
 
@@ -1859,12 +1859,12 @@ begin
 end;
 
 procedure SHA384Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnSHA384Digest);
+  ByteLength: Cardinal; var Output: TCnSHA384Digest);
 var
   Context: TCnSHA384Context;
 begin
   SHA384HmacInit(Context, Key, KeyLength);
-  SHA384HmacUpdate(Context, Input, Length);
+  SHA384HmacUpdate(Context, Input, ByteLength);
   SHA384HmacFinal(Context, Output);
 end;
 
@@ -1913,12 +1913,12 @@ begin
 end;
 
 procedure SHA512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnSHA512Digest);
+  ByteLength: Cardinal; var Output: TCnSHA512Digest);
 var
   Context: TCnSHA512Context;
 begin
   SHA512HmacInit(Context, Key, KeyLength);
-  SHA512HmacUpdate(Context, Input, Length);
+  SHA512HmacUpdate(Context, Input, ByteLength);
   SHA512HmacFinal(Context, Output);
 end;
 

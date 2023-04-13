@@ -84,14 +84,14 @@ function TestSHA512HMac: Boolean;
 
 // ================================ SHA3 =======================================
 
-//function TestSHA3_224: Boolean;
-//function TestSHA3_224HMac: Boolean;
-//function TestSHA3_256: Boolean;
-//function TestSHA3_256HMac: Boolean;
-//function TestSHA3_384: Boolean;
-//function TestSHA3_384HMac: Boolean;
-//function TestSHA3_512: Boolean;
-//function TestSHA3_512HMac: Boolean;
+function TestSHA3_224: Boolean;
+function TestSHA3_224HMac: Boolean;
+function TestSHA3_256: Boolean;
+function TestSHA3_256HMac: Boolean;
+function TestSHA3_384: Boolean;
+function TestSHA3_384HMac: Boolean;
+function TestSHA3_512: Boolean;
+function TestSHA3_512HMac: Boolean;
 
 // ================================ Base64 =====================================
 // ================================ AEAD =======================================
@@ -184,6 +184,16 @@ begin
   Assert(TestSHA512HMac, 'TestSHA512HMac');
 
 // ================================ SHA3 =======================================
+
+ TestSHA3_224;
+ TestSHA3_224HMac;
+ TestSHA3_256;
+ TestSHA3_256HMac;
+ TestSHA3_384;
+ TestSHA3_384HMac;
+ TestSHA3_512;
+ TestSHA3_512HMac;
+
 // ================================ Base64 =====================================
 // ================================ AEAD =======================================
 // ================================ ChaCha20 ===================================
@@ -760,7 +770,7 @@ var
 begin
   Data := HexToBytes('436E5061636B2054657374');
   Dig := SHA384Bytes(Data);
-  Result := DataToHex(@Dig[0], SizeOf(TCnSHA384Digest)) = '1E0DC3B08DD0D112201822661D8209121CBF059989C648BC875D4A6980FAF0DC7CAE3928BE1C1508788649AED07A7352';
+  Result := DataToHex(@Dig[0], SizeOf(TCnSHA384Digest)) = 'CD9140D47932B7169483561B583EB6E63BB9BE117EB213F0CC8BD186305E8D6CF7078ED618CC197DB3808BE113C6FBA0';
 end;
 
 function TestSHA384HMac: Boolean;
@@ -798,6 +808,47 @@ begin
 end;
 
 // ================================ SHA3 =======================================
+
+function TestSHA3_224: Boolean;
+begin
+
+end;
+
+function TestSHA3_224HMac: Boolean;
+begin
+
+end;
+
+function TestSHA3_256: Boolean;
+begin
+
+end;
+
+function TestSHA3_256HMac: Boolean;
+begin
+
+end;
+
+function TestSHA3_384: Boolean;
+begin
+
+end;
+
+function TestSHA3_384HMac: Boolean;
+begin
+
+end;
+
+function TestSHA3_512: Boolean;
+begin
+
+end;
+
+function TestSHA3_512HMac: Boolean;
+begin
+
+end;
+
 // ================================ Base64 =====================================
 // ================================ AEAD =======================================
 // ================================ ChaCha20 ===================================

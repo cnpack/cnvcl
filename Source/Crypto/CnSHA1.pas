@@ -147,7 +147,7 @@ function SHA1DigestToStr(aDig: TCnSHA1Digest): string;
  |</PRE>}
 
 procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnSHA1Digest);
+  ByteLength: Cardinal; var Output: TCnSHA1Digest);
 
 {* Hash-based Message Authentication Code (based on SHA1) }
 
@@ -659,12 +659,12 @@ begin
 end;
 
 procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnSHA1Digest);
+  ByteLength: Cardinal; var Output: TCnSHA1Digest);
 var
   Ctx: TCnSHA1Context;
 begin
   SHA1HmacInit(Ctx, Key, KeyLength);
-  SHA1HmacUpdate(Ctx, Input, Length);
+  SHA1HmacUpdate(Ctx, Input, ByteLength);
   SHA1HmacFinal(Ctx, Output);
 end;
 
