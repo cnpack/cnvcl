@@ -185,14 +185,14 @@ begin
 
 // ================================ SHA3 =======================================
 
- TestSHA3_224;
- TestSHA3_224HMac;
- TestSHA3_256;
- TestSHA3_256HMac;
- TestSHA3_384;
- TestSHA3_384HMac;
- TestSHA3_512;
- TestSHA3_512HMac;
+  Assert(TestSHA3_224, 'TestSHA3_224');
+  Assert(TestSHA3_224HMac, 'TestSHA3_224HMac');
+  Assert(TestSHA3_256, 'TestSHA3_256');
+  Assert(TestSHA3_256HMac, 'TestSHA3_256HMac');
+  Assert(TestSHA3_384, 'TestSHA3_384');
+  Assert(TestSHA3_384HMac, 'TestSHA3_384HMac');
+  Assert(TestSHA3_512, 'TestSHA3_512');
+  Assert(TestSHA3_512HMac, 'TestSHA3_512HMac');
 
 // ================================ Base64 =====================================
 // ================================ AEAD =======================================
@@ -810,43 +810,91 @@ end;
 // ================================ SHA3 =======================================
 
 function TestSHA3_224: Boolean;
+var
+  Dig: TCnSHA3_224Digest;
+  Data: TBytes;
 begin
-
+  Data := HexToBytes('436E5061636B2054657374');
+  Dig := SHA3_224Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnSHA3_224Digest)) = '95CAE72FFEE9915A8745A2E5170DB4D38A1CEA2EAF252075D0611784';
 end;
 
 function TestSHA3_224HMac: Boolean;
+var
+  S: AnsiString;
+  Dig: TCnSHA3_224Digest;
+  Data: TBytes;
 begin
-
+  S := 'CnPack Key';
+  Data := HexToBytes('436E5061636B2054657374');
+  SHA3_224Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
+  Result := DataToHex(@Dig[0], SizeOf(TCnSHA3_224Digest)) = 'A20F92973578642EC6A841EAB0AA4091C24E7629715D656C006E0E53';
 end;
 
 function TestSHA3_256: Boolean;
+var
+  Dig: TCnSHA3_256Digest;
+  Data: TBytes;
 begin
-
+  Data := HexToBytes('436E5061636B2054657374');
+  Dig := SHA3_256Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnSHA3_256Digest)) = '02C7DBCCD45CCFD93B77FD679636472C5A6547D48710EFF3F02E8D26C8A80396';
 end;
 
 function TestSHA3_256HMac: Boolean;
+var
+  S: AnsiString;
+  Dig: TCnSHA3_256Digest;
+  Data: TBytes;
 begin
-
+  S := 'CnPack Key';
+  Data := HexToBytes('436E5061636B2054657374');
+  SHA3_256Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
+  Result := DataToHex(@Dig[0], SizeOf(TCnSHA3_256Digest)) = 'FFF6F1CA3728ADB22D5E2B07B302BE522AE62A5D3711841E0C0A0F483AEC8DCE';
 end;
 
 function TestSHA3_384: Boolean;
+var
+  Dig: TCnSHA3_384Digest;
+  Data: TBytes;
 begin
-
+  Data := HexToBytes('436E5061636B2054657374');
+  Dig := SHA3_384Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnSHA3_384Digest)) = '4B2591066C2988CE32478A0EC3985E34A19161E51EBBAF589C5E94AC88443E7CE27A998592626615444F6829F2966E87';
 end;
 
 function TestSHA3_384HMac: Boolean;
+var
+  S: AnsiString;
+  Dig: TCnSHA3_384Digest;
+  Data: TBytes;
 begin
-
+  S := 'CnPack Key';
+  Data := HexToBytes('436E5061636B2054657374');
+  SHA3_384Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
+  Result := DataToHex(@Dig[0], SizeOf(TCnSHA3_384Digest)) = 'DB48EE0068F826CC97D0B305DCC1C726662C4EE428404F7BC923DC14142E1D12050D55355AD784046F2C848323F67832';
 end;
 
 function TestSHA3_512: Boolean;
+var
+  Dig: TCnSHA3_512Digest;
+  Data: TBytes;
 begin
-
+  Data := HexToBytes('436E5061636B2054657374');
+  Dig := SHA3_512Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnSHA3_512Digest)) = '7A71323C66B4C7C3A6FAEA8FB38824914B3CEBF0FE95B550F0F3281F3A6B0F30D2B60E405CDB1E3B9C87A7B0986DFA6234685DEDF3271DABE840D9146186B281';
 end;
 
 function TestSHA3_512HMac: Boolean;
+var
+  S: AnsiString;
+  Dig: TCnSHA3_512Digest;
+  Data: TBytes;
 begin
-
+  S := 'CnPack Key';
+  Data := HexToBytes('436E5061636B2054657374');
+  SHA3_512Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
+  Result := DataToHex(@Dig[0], SizeOf(TCnSHA3_512Digest)) = 'F97C8E267641A64BD1DF46A6EBB032F53C76DF3DC6D549201235CC499A0974189D712503B3DE023C96F5CBA36F021AD31BD0FF809D67FEF220BE32F42848247E';
 end;
 
 // ================================ Base64 =====================================
