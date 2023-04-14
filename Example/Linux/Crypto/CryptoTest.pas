@@ -118,6 +118,10 @@ function TestPoly1305: Boolean;
 // ================================ ZUC ========================================
 // ================================ TEA ========================================
 // ================================ FNV ========================================
+
+function TestFNV1: Boolean;
+function TestFNV1a: Boolean;
+
 // ================================ ECC ========================================
 // ================================ SM2 ========================================
 // ================================ SM3 ========================================
@@ -239,6 +243,10 @@ begin
 // ================================ ZUC ========================================
 // ================================ TEA ========================================
 // ================================ FNV ========================================
+
+  Assert(TestFNV1, 'TestFNV1');
+  Assert(TestFNV1a, 'TestFNV1a');
+
 // ================================ ECC ========================================
 // ================================ SM2 ========================================
 // ================================ SM3 ========================================
@@ -1192,6 +1200,61 @@ end;
 // ================================ ZUC ========================================
 // ================================ TEA ========================================
 // ================================ FNV ========================================
+
+function TestFNV1: Boolean;
+var
+  S: AnsiString;
+  R32: TCnFNVHash32;
+  R64: TCnFNVHash64;
+  R128: TCnFNVHash128;
+  R256: TCnFNVHash256;
+  R512: TCnFNVHash512;
+  R1024: TCnFNVHash1024;
+begin
+  S := 'CnPack Test';
+  R32 := FNV1Hash32(@S[1], Length(S));
+  R64 := FNV1Hash64(@S[1], Length(S));
+  R128 := FNV1Hash128(@S[1], Length(S));
+  R256 := FNV1Hash256(@S[1], Length(S));
+  R512 := FNV1Hash512(@S[1], Length(S));
+  R1024 := FNV1Hash1024(@S[1], Length(S));
+
+  Result  := (DataToHex(@R32[0], SizeOf(TCnFNVHash32)) = '6C942797')
+    and (DataToHex(@R64[0], SizeOf(TCnFNVHash64)) = 'ED78DF90BF4705F7')
+    and (DataToHex(@R128[0], SizeOf(TCnFNVHash128)) = '9FDD06116E58550841478B690F1987DF')
+    and (DataToHex(@R256[0], SizeOf(TCnFNVHash256)) = 'D41B9B05355E0B5605A530EC0883AAD4DB43EEA7B7BF7DC168E67C776B2BB1E7')
+    and (DataToHex(@R512[0], SizeOf(TCnFNVHash512)) = '000093BF8B221FDB9305331987CA9405EE207CD80D000000000000000000000000000000000000000000000011FF0EDB280FED457327DA3AC36257CB3335312E')
+    and (DataToHex(@R1024[0], SizeOf(TCnFNVHash1024)) = '3FA9D253E52AE80105B382C80A01E27A53D7BC1D201EFB47B38F4D6E465488F81C0F43E9072F908DBCA3A30000000000000000000000000000000000000000000'
+      + '0000000000000000000000000000000000253EB20F42A7228AF9022D9F35ECE5BB71E40FCD8717B80D164AB921709996E5C4397605870150BFF1F2AA31D53D9');
+end;
+
+function TestFNV1a: Boolean;
+var
+  S: AnsiString;
+  R32: TCnFNVHash32;
+  R64: TCnFNVHash64;
+  R128: TCnFNVHash128;
+  R256: TCnFNVHash256;
+  R512: TCnFNVHash512;
+  R1024: TCnFNVHash1024;
+begin
+  S := 'CnPack Test';
+  R32 := FNV1aHash32(@S[1], Length(S));
+  R64 := FNV1aHash64(@S[1], Length(S));
+  R128 := FNV1aHash128(@S[1], Length(S));
+  R256 := FNV1aHash256(@S[1], Length(S));
+  R512 := FNV1aHash512(@S[1], Length(S));
+  R1024 := FNV1aHash1024(@S[1], Length(S));
+
+  Result := (DataToHex(@R32[0], SizeOf(TCnFNVHash32)) = '70BC2FDB')
+    and (DataToHex(@R64[0], SizeOf(TCnFNVHash64)) = '0B2F2A33D0684C7B')
+    and (DataToHex(@R128[0], SizeOf(TCnFNVHash128)) = 'ACE1FE5B039B0404E1E97664DCAFA2D3')
+    and (DataToHex(@R256[0], SizeOf(TCnFNVHash256)) = '9612F703060D51E09F686AEC0883AAD4DB43EEB1051F744B884B4FB9DAC7314B')
+    and (DataToHex(@R512[0], SizeOf(TCnFNVHash512)) =   '000093BF8B221FDB9337A00C1232AFFB766F227EF3000000000000000000000000000000000000000000000011FF0EDB280FED4B9760B10B4FA20363B8261786')
+    and (DataToHex(@R1024[0], SizeOf(TCnFNVHash1024)) = '3FA9D253E52AE80105B382C80A01E27A53D7BC1D201EFB47B38F4D6E465489CAD8F2E23BEDE6954C0B8699000000000000000000000000000000000000000000'
+      + '00000000000000000000000000000000000253EB20F42A7228AF9022D9F35ECE5BB71E40FCD8717B80D164AB921709996E5C43B515A262332A46CD9B163889E1');
+end;
+
 // ================================ ECC ========================================
 // ================================ SM2 ========================================
 // ================================ SM3 ========================================
