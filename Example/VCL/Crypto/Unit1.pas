@@ -2348,7 +2348,7 @@ begin
   AD := nil;
 
   C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain È« 0£¬AD ¿Õ
-  ShowMessage(DataToHex(@C[0], Length(T)));  // 0388dace60b6a392f328c2b971b2fe78
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 0388dace60b6a392f328c2b971b2fe78
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // ab6e47d42cec13bdf53a67b21257bddf
 
   Key := HexToBytes('feffe9928665731c6d6a8f9467308308');
@@ -2505,7 +2505,7 @@ begin
   AD := nil;
 
   C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain È« 0£¬AD ¿Õ
-  ShowMessage(DataToHex(@C[0], Length(T)));  // 98e7247c07f0fe411c267e4384b0f600
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 98e7247c07f0fe411c267e4384b0f600
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 2ff58d80033927ab8ef4d4587514f0fb
 
   Key := HexToBytes('feffe9928665731c6d6a8f9467308308feffe9928665731c');
@@ -2553,7 +2553,7 @@ begin
   AD := nil;
 
   C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain È« 0£¬AD ¿Õ
-  ShowMessage(DataToHex(@C[0], Length(T)));  // cea7403d4d606b6e074ec5d3baf39d18
+  ShowMessage(DataToHex(@C[0], Length(C)));  // cea7403d4d606b6e074ec5d3baf39d18
   ShowMessage(DataToHex(@T[0], SizeOf(T)));  // d0d1c8a799996bf0265b98b5d48ab919
 
   Key := HexToBytes('feffe9928665731c6d6a8f9467308308feffe9928665731c6d6a8f9467308308');

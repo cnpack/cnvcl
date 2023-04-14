@@ -7,7 +7,8 @@ interface
 uses
   SysUtils,
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
-  CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20;
+  CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
+  CnPoly1305;
 
 procedure TestCrypto;
 {* 密码库总测试入口}
@@ -98,11 +99,22 @@ function TestSHA3_512HMac: Boolean;
 function TestBase64: Boolean;
 
 // ================================ AEAD =======================================
+
+function TestAEADAESCCM: Boolean;
+function TestAEADSM4CCM: Boolean;
+function TestAEADAES128GCM: Boolean;
+function TestAEADAES192GCM: Boolean;
+function TestAEADAES256GCM: Boolean;
+function TestAEADSM4GCM: Boolean;
+
 // ================================ ChaCha20 ===================================
 
 function TestChaCha20: Boolean;
 
 // ================================ Poly1305 ===================================
+
+function TestPoly1305: Boolean;
+
 // ================================ ZUC ========================================
 // ================================ TEA ========================================
 // ================================ FNV ========================================
@@ -209,11 +221,21 @@ begin
   Assert(TestBase64, 'TestBase64');
 
 // ================================ AEAD =======================================
+
+  Assert(TestAEADAESCCM, 'TestAEADAESCCM');
+  Assert(TestAEADSM4CCM, 'TestAEADSM4CCM');
+  Assert(TestAEADAES128GCM, 'TestAEADAES128GCM');
+  Assert(TestAEADAES192GCM, 'TestAEADAES192GCM');
+  Assert(TestAEADAES256GCM, 'TestAEADAES256GCM');
+
 // ================================ ChaCha20 ===================================
 
   Assert(TestChaCha20, 'TestChaCha20');
 
 // ================================ Poly1305 ===================================
+
+  Assert(TestPoly1305, 'TestPoly1305');
+
 // ================================ ZUC ========================================
 // ================================ TEA ========================================
 // ================================ FNV ========================================
@@ -932,6 +954,200 @@ begin
 end;
 
 // ================================ AEAD =======================================
+
+function TestAEADAESCCM: Boolean;
+var
+  Key, Nonce, AAD, P, C, R: TBytes;
+  T: TCnCCM128Tag;
+begin
+  // RFC 例子。注意须保证 CnAEAD 头部声明中的 Tag 8 字节，长 2 字节，也就是 CCM_M_LEN = 8; CCM_L_LEN = 2;
+  Key := HexToBytes('C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF');
+  Nonce := HexToBytes('00000003020100A0A1A2A3A4A5');
+  P := HexToBytes('08090A0B0C0D0E0F101112131415161718191A1B1C1D1E');
+  AAD := HexToBytes('0001020304050607');
+
+  C := AES128CCMEncryptBytes(Key, Nonce, P, AAD, T);
+  Result := (DataToHex(@T[0], SizeOf(T)) = '17E8D12CFDF926E0') and
+    (DataToHex(@C[0], Length(C)) = '588C979A61C663D2F066D0C2C0F989806D5F6B61DAC384');
+  if not Result then Exit;
+
+  R := AES128CCMDecryptBytes(Key, Nonce, C, AAD, T);
+  Result := DataToHex(@R[0], Length(R)) = '08090A0B0C0D0E0F101112131415161718191A1B1C1D1E';
+end;
+
+function TestAEADSM4CCM: Boolean;
+var
+  Key, Nonce, AAD, P, C, R: TBytes;
+  T: TCnCCM128Tag;
+begin
+  // 未按 RFC 标准实现，因为需要修改 CnAEAD 中的常量定义为 Tag 16 字节，长 3 字节
+  Key := HexToBytes('0123456789ABCDEFFEDCBA9876543210');
+  Nonce := HexToBytes('00001234567800000000ABCD');
+  AAD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+  P := HexToBytes('AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDEEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA');
+  C := SM4CCMEncryptBytes(Key, Nonce, P, AAD, T);
+  Result := (DataToHex(@C[0], Length(C)) = '794758F9EEA0EA7BA8F8FE055EB786901AAFDD76EEF3C4CBDA26BB9DF9BE91589F33DEF61EE9C21204487153E313FB577A2053819853185E4E46C7F77A0ED1DA')
+    and (DataToHex(@T[0], SizeOf(T)) = '5449D18B576EE743');
+  if not Result then Exit;
+
+  R := SM4CCMDecryptBytes(Key, Nonce, C, AAD, T);
+  Result := DataToHex(@R[0], Length(R)) = 'AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDEEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA';
+end;
+
+function TestAEADAES128GCM: Boolean;
+var
+  Key, Iv, AD, Plain, C, P: TBytes;
+  T: TCnGCM128Tag;
+begin
+  Key := HexToBytes('00000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := nil;
+  AD := nil;
+
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv 全 0，Plain 和 AD 空，密文空
+  Result := DataToHex(@T[0], SizeOf(T)) = '58E2FCCEFA7E3061367F1D57A4E7455A';
+  if not Result then Exit;
+
+  Key := HexToBytes('00000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := HexToBytes('00000000000000000000000000000000');
+  AD := nil;
+
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain 全 0，AD 空
+  Result := (DataToHex(@C[0], Length(C)) = '0388DACE60B6A392F328C2B971B2FE78')
+    and (DataToHex(@T[0], SizeOf(T)) = 'AB6E47D42CEC13BDF53A67B21257BDDF');
+  if not Result then Exit;
+
+  Key := HexToBytes('FEFFE9928665731C6D6A8F9467308308');
+  Iv := HexToBytes('CAFEBABEFACEDBAD');
+  Plain := HexToBytes('D9313225F88406E5A55909C5AFF5269A86A7A9531534F7DA2E4C303D8A318A721C3C0C95956809532FCF0E2449A6B525B16AEDF5AA0DE657BA637B39');
+  AD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD 全有，且 AD 非 96
+  Result := (DataToHex(@C[0], Length(C)) = '61353B4C2806934A777FF51FA22A4755699B2A714FCDC6F83766E5F97B6C742373806900E49F24B22B097544D4896B424989B5E1EBAC0F07C23F4598')
+    and (DataToHex(@T[0], SizeOf(T)) = '3612D2E79E3B0785561BE14AACA2FCCB');
+  if not Result then Exit;
+
+  // 解密
+  Key := HexToBytes('FEFFE9928665731C6D6A8F9467308308');
+  Iv := HexToBytes('CAFEBABEFACEDBAD');
+  C := HexToBytes('61353B4C2806934A777FF51FA22A4755699B2A714FCDC6F83766E5F97B6C742373806900E49F24B22B097544D4896B424989B5E1EBAC0F07C23F4598');
+  AD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+  HexToData('3612D2E79E3B0785561BE14AACA2FCCB', @T[0]);
+
+  P := AES128GCMDecryptBytes(Key, Iv, C, AD, T);
+  Result := DataToHex(@P[0], Length(P)) = 'D9313225F88406E5A55909C5AFF5269A86A7A9531534F7DA2E4C303D8A318A721C3C0C95956809532FCF0E2449A6B525B16AEDF5AA0DE657BA637B39';
+end;
+
+function TestAEADAES192GCM: Boolean;
+var
+  Key, Iv, AD, Plain, C, P: TBytes;
+  T: TCnGCM128Tag;
+begin
+  Key := HexToBytes('000000000000000000000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := nil;
+  AD := nil;
+
+  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv 全 0，Plain 和 AD 空，密文空
+  Result := DataToHex(@T[0], SizeOf(T)) = 'CD33B28AC773F74BA00ED1F312572435';
+  if not Result then Exit;
+
+  Key := HexToBytes('000000000000000000000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := HexToBytes('00000000000000000000000000000000');
+  AD := nil;
+
+  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain 全 0，AD 空
+  Result := (DataToHex(@C[0], Length(C)) = '98E7247C07F0FE411C267E4384B0F600') and
+    (DataToHex(@T[0], SizeOf(T)) = '2FF58D80033927AB8EF4D4587514F0FB');
+  if not Result then Exit;
+
+  Key := HexToBytes('FEFFE9928665731C6D6A8F9467308308FEFFE9928665731C');
+  Iv := HexToBytes('9313225DF88406E555909C5AFF5269AA6A7A9538534F7DA1E4C303D2A318A728C3C0C95156809539FCF0E2429A6B525416AEDBF5A0DE6A57A637B39B');
+  Plain := HexToBytes('D9313225F88406E5A55909C5AFF5269A86A7A9531534F7DA2E4C303D8A318A721C3C0C95956809532FCF0E2449A6B525B16AEDF5AA0DE657BA637B39');
+  AD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+
+  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD 全有，且 AD 非 96
+  Result := (DataToHex(@C[0], Length(C)) = 'D27E88681CE3243C4830165A8FDCF9FF1DE9A1D8E6B447EF6EF7B79828666E4581E79012AF34DDD9E2F037589B292DB3E67C036745FA22E7E9B7373B')
+    and (DataToHex(@T[0], SizeOf(T)) = 'DCF566FF291C25BBB8568FC3D376A6D9');
+  if not Result then Exit;
+
+  Key := HexToBytes('FEFFE9928665731C6D6A8F9467308308FEFFE9928665731C');
+  Iv := HexToBytes('9313225DF88406E555909C5AFF5269AA6A7A9538534F7DA1E4C303D2A318A728C3C0C95156809539FCF0E2429A6B525416AEDBF5A0DE6A57A637B39B');
+  C := HexToBytes('D27E88681CE3243C4830165A8FDCF9FF1DE9A1D8E6B447EF6EF7B79828666E4581E79012AF34DDD9E2F037589B292DB3E67C036745FA22E7E9B7373B');
+  AD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+
+  HexToData('DCF566FF291C25BBB8568FC3D376A6D9', @T[0]);
+
+  P := AES192GCMDecryptBytes(Key, Iv, C, AD, T);
+  Result := DataToHex(@P[0], Length(P)) = 'D9313225F88406E5A55909C5AFF5269A86A7A9531534F7DA2E4C303D8A318A721C3C0C95956809532FCF0E2449A6B525B16AEDF5AA0DE657BA637B39';
+end;
+
+function TestAEADAES256GCM: Boolean;
+var
+  Key, Iv, AD, Plain, C, P: TBytes;
+  T: TCnGCM128Tag;
+begin
+  Key := HexToBytes('0000000000000000000000000000000000000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := nil;
+  AD := nil;
+
+  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv 全 0，Plain 和 AD 空，密文空
+  Result := DataToHex(@T[0], SizeOf(T)) = '530F8AFBC74536B9A963B4F1C4CB738B';
+  if not Result then Exit;
+
+  Key := HexToBytes('0000000000000000000000000000000000000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := HexToBytes('00000000000000000000000000000000');
+  AD := nil;
+
+  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain 全 0，AD 空
+  Result := (DataToHex(@C[0], Length(C)) = 'CEA7403D4D606B6E074EC5D3BAF39D18')
+    and (DataToHex(@T[0], SizeOf(T)) = 'D0D1C8A799996BF0265B98B5D48AB919');
+  if not Result then Exit;
+
+  Key := HexToBytes('FEFFE9928665731C6D6A8F9467308308FEFFE9928665731C6D6A8F9467308308');
+  Iv := HexToBytes('CAFEBABEFACEDBADDECAF888');
+  Plain := HexToBytes('D9313225F88406E5A55909C5AFF5269A86A7A9531534F7DA2E4C303D8A318A721C3C0C95956809532FCF0E2449A6B525B16AEDF5AA0DE657BA637B39');
+  AD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+
+  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD 全有，且 AD 非 96
+  Result := (DataToHex(@C[0], Length(C)) = '522DC1F099567D07F47F37A32A84427D643A8CDCBFE5C0C97598A2BD2555D1AA8CB08E48590DBB3DA7B08B1056828838C5F61E6393BA7A0ABCC9F662')
+    and (DataToHex(@T[0], SizeOf(T)) = '76FC6ECE0F4E1768CDDF8853BB2D551B');
+  if not Result then Exit;
+
+  Key := HexToBytes('FEFFE9928665731C6D6A8F9467308308FEFFE9928665731C6D6A8F9467308308');
+  Iv := HexToBytes('CAFEBABEFACEDBADDECAF888');
+  C := HexToBytes('522DC1F099567D07F47F37A32A84427D643A8CDCBFE5C0C97598A2BD2555D1AA8CB08E48590DBB3DA7B08B1056828838C5F61E6393BA7A0ABCC9F662');
+  AD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+
+  HexToData('76FC6ECE0F4E1768CDDF8853BB2D551B', @T[0]);
+
+  P := AES256GCMDecryptBytes(Key, Iv, C, AD, T);
+  Result := DataToHex(@P[0], Length(P)) = 'D9313225F88406E5A55909C5AFF5269A86A7A9531534F7DA2E4C303D8A318A721C3C0C95956809532FCF0E2449A6B525B16AEDF5AA0DE657BA637B39';
+end;
+
+function TestAEADSM4GCM: Boolean;
+var
+  Key, Iv, AD, Plain, C, P: TBytes;
+  T: TCnGCM128Tag;
+begin
+  Key := HexToBytes('0123456789ABCDEFFEDCBA9876543210');
+  Iv := HexToBytes('00001234567800000000ABCD');
+  Plain := HexToBytes('AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDEEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA');
+  AD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+
+  C := SM4GCMEncryptBytes(Key, Iv, Plain, AD, T);  // 例子数据来源于 RFC 8998
+  Result := (DataToHex(@C[0], Length(C)) = '17F399F08C67D5EE19D0DC9969C4BB7D5FD46FD3756489069157B282BB200735D82710CA5C22F0CCFA7CBF93D496AC15A56834CBCF98C397B4024A2691233B8D')
+    and (DataToHex(@T[0], SizeOf(T)) = '83DE3541E4C2B58177E065A9BF7B62EC');
+  if not Result then Exit;
+
+  P := SM4GCMDecryptBytes(Key, Iv, C, AD, T);
+  Result := DataToHex(@P[0], Length(P)) = 'AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDEEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA';
+end;
+
 // ================================ ChaCha20 ===================================
 
 function TestChaCha20: Boolean;
@@ -960,6 +1176,19 @@ begin
 end;
 
 // ================================ Poly1305 ===================================
+
+function TestPoly1305: Boolean;
+var
+  S: AnsiString;
+  Key: TCnPoly1305Key;
+  Dig: TCnPoly1305Digest;
+begin
+  S := 'Cryptographic Forum Research Group';
+  HexToData('85D6BE7857556D337F4452FE42D506A80103808AFB0DB2FD4ABFF6AF4149F51B', @Key[0]);
+  Dig := Poly1305Data(@S[1], Length(S), Key);
+  Result := DataToHex(@Dig[0], SizeOf(TCnPoly1305Digest)) = 'A8061DC1305136C6C22B8BAF0C0127A9';
+end;
+
 // ================================ ZUC ========================================
 // ================================ TEA ========================================
 // ================================ FNV ========================================

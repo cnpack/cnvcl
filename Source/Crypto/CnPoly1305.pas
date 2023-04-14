@@ -42,11 +42,14 @@ uses
   Classes, SysUtils, CnNative, CnBigNumber;
 
 const
-  CN_POLY1305_KEYSIZE   = 32;       // 输入 32 字节也就是 256 位的 Key
+  CN_POLY1305_KEYSIZE   = 32;
+  {* Poly1305 算法的密码长度，输入 32 字节也就是 256 位的 Key}
 
-  CN_POLY1305_BLOCKSIZE = 16;       // 内部分块，每块 16 字节
+  CN_POLY1305_BLOCKSIZE = 16;
+  {* Poly1305 算法的内部分块长度，每块 16 字节}
 
-  CN_POLY1305_DIGSIZE   = 16;       // 输出 16 字节也就是 128 位的摘要
+  CN_POLY1305_DIGSIZE   = 16;
+  {* Poly1305 算法的摘要输出长度，16 字节也就是 128 位}
 
 type
   TCnPoly1305Key = array[0..CN_POLY1305_KEYSIZE - 1] of Byte;
