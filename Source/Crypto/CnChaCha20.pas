@@ -24,9 +24,9 @@ unit CnChaCha20;
 * 软件名称：开发包基础库
 * 单元名称：ChaCha20 流密码算法实现单元
 * 单元作者：刘啸（liuxiao@cnpack.org)
-* 备    注：根据 RFC 7539 实现，其中 nonce 类似于初始化向量
-*           块运算；输入 32 字节 Key、12 字节 nonce、4 字节 Counter，输出 64 字节内容
-*           流运算：输入 32 字节 Key、12 字节 nonce、4 字节 Counter，任意长度明/密文
+* 备    注：根据 RFC 7539 实现，其中 Nonce 类似于初始化向量
+*           块运算；输入 32 字节 Key、12 字节 Nonce、4 字节 Counter，输出 64 字节内容
+*           流运算：输入 32 字节 Key、12 字节 Nonce、4 字节 Counter，任意长度明/密文
 *                   输出相同长度密/明文
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
@@ -207,7 +207,7 @@ begin
 
       // P、Q 已各指向要处理的原始块与密文块
       for J := 0 to SizeOf(Cardinal) * CN_CHACHA_STATE_SIZE - 1 do
-        Q^[J] := P^[J] xor M[J];
+        Q^[J] := P^[J] xor M^[J];
 
       // 指向下一块
       P := PByteArray(TCnNativeInt(P) + SizeOf(Cardinal) * CN_CHACHA_STATE_SIZE);
@@ -224,8 +224,9 @@ begin
 
     // P、Q 已各指向要处理的原始块与密文块
     for J := 0 to L - 1 do
-      Q^[J] := P^[J] xor M[J];
+      Q^[J] := P^[J] xor M^[J];
   end;
+  Result := True;
 end;
 
 function ChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;

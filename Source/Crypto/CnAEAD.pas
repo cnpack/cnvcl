@@ -63,15 +63,20 @@ uses
   SysUtils, Classes, CnNative;
 
 const
-  CN_AEAD_BLOCK  = 16;       // GHASH/GCM/CMAC 以及 AES/SM4 等的分组都是 16 字节
+  CN_AEAD_BLOCK  = 16;
+  {* GHASH/GCM/CMAC 以及 AES/SM4 等的分组长度，均为 16 字节}
 
-  CN_GCM_NONCE_LENGTH = 12;  // 12 字节的 Nonce 与计数器拼成完整 Iv
+  CN_GCM_NONCE_LENGTH = 12;
+  {* 12 字节的 Nonce 与计数器拼成完整的 Iv}
 
-  CN_CCM_M_LEN = 8;          // CCM 认证 Tag 默认长 12 字节，取值范围 4 到 16，实际存放的是 (M - 2) / 2
+  CN_CCM_M_LEN = 8;
+  {* CCM 认证 Tag 默认长 12 字节，取值范围 4 到 16，实际存放的是 (M - 2) / 2}
 
-  CN_CCM_L_LEN = 2;          // 明文长度所占的字节数，取值范围 2 到 8，8 代表 Int64，实际存放的是 L - 1
+  CN_CCM_L_LEN = 2;
+  {* 明文长度所占的字节数，取值范围 2 到 8，8 代表 Int64，实际存放的是 L - 1}
 
   CN_CCM_NONCE = 15 - CN_CCM_L_LEN;
+  {* CCM 的 Nonce 长度}
 
 type
   TCn128BitsBuffer = array[0..CN_AEAD_BLOCK - 1] of Byte;

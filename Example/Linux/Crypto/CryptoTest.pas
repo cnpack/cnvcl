@@ -7,7 +7,7 @@ interface
 uses
   SysUtils,
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
-  CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3;
+  CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
@@ -94,8 +94,14 @@ function TestSHA3_512: Boolean;
 function TestSHA3_512HMac: Boolean;
 
 // ================================ Base64 =====================================
+
+function TestBase64: Boolean;
+
 // ================================ AEAD =======================================
 // ================================ ChaCha20 ===================================
+
+function TestChaCha20: Boolean;
+
 // ================================ Poly1305 ===================================
 // ================================ ZUC ========================================
 // ================================ TEA ========================================
@@ -103,6 +109,10 @@ function TestSHA3_512HMac: Boolean;
 // ================================ ECC ========================================
 // ================================ SM2 ========================================
 // ================================ SM3 ========================================
+
+function TestSM3: Boolean;
+function TestSM3HMac: Boolean;
+
 // ================================ SM9 ========================================
 // ================================ RSA ========================================
 // ================================ KDF ========================================
@@ -195,8 +205,14 @@ begin
   Assert(TestSHA3_512HMac, 'TestSHA3_512HMac');
 
 // ================================ Base64 =====================================
+
+  Assert(TestBase64, 'TestBase64');
+
 // ================================ AEAD =======================================
 // ================================ ChaCha20 ===================================
+
+  Assert(TestChaCha20, 'TestChaCha20');
+
 // ================================ Poly1305 ===================================
 // ================================ ZUC ========================================
 // ================================ TEA ========================================
@@ -204,6 +220,10 @@ begin
 // ================================ ECC ========================================
 // ================================ SM2 ========================================
 // ================================ SM3 ========================================
+
+  Assert(TestSM3, 'TestSM3');
+  Assert(TestSM3Hmac, 'TestSM3Hmac');
+
 // ================================ SM9 ========================================
 // ================================ RSA ========================================
 // ================================ KDF ========================================
@@ -898,8 +918,47 @@ begin
 end;
 
 // ================================ Base64 =====================================
+
+function TestBase64: Boolean;
+var
+  Res: AnsiString;
+  Data: TBytes;
+begin
+  Data := HexToBytes('000102030405060708090A0B0C0D0E0F32333425');
+  if ECN_BASE64_OK = Base64Encode(Data, Res) then
+    Result := Res = 'AAECAwQFBgcICQoLDA0ODzIzNCU='
+  else
+    Result := False;
+end;
+
 // ================================ AEAD =======================================
 // ================================ ChaCha20 ===================================
+
+function TestChaCha20: Boolean;
+var
+  S, SKey, SNonce: AnsiString;
+  Key: TCnChaChaKey;
+  Nonce: TCnChaChaNonce;
+  EnRes, DeRes: TBytes;
+begin
+  SKey := '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f';
+  SNonce := '000000000000004a00000000';
+
+  HexToData(SKey, @Key[0]);
+  HexToData(SNonce, @Nonce[0]);
+
+  S := 'Ladies and Gentlemen of the class of ''99: If I could offer you only one tip for the future, sunscreen would be it.';
+  SetLength(EnRes, Length(S));
+
+  ChaCha20EncryptData(Key, Nonce, @S[1], Length(S), @EnRes[0]);
+  Result := BytesToHex(EnRes) = '6E2E359A2568F98041BA0728DD0D6981E97E7AEC1D4360C20A27AFCCFD9FAE0BF91B65C5524733AB8F593DABCD62B3571639D624E65152AB8F530C359F0861D807CA0DBF500D6A6156A38E088A22B65E52BC514D16CCF806818CE91AB77937365AF90BBF74A35BE6B40B8EEDF2785E42874D';
+  if not Result then
+    Exit;
+
+  DeRes := ChaCha20DecryptBytes(Key, Nonce, EnRes);
+  Result := (DeRes <> nil) and CompareMem(@S[1], @DeRes[0], Length(DeRes));
+end;
+
 // ================================ Poly1305 ===================================
 // ================================ ZUC ========================================
 // ================================ TEA ========================================
@@ -907,6 +966,29 @@ end;
 // ================================ ECC ========================================
 // ================================ SM2 ========================================
 // ================================ SM3 ========================================
+
+function TestSM3: Boolean;
+var
+  Dig: TCnSM3Digest;
+  Data: TBytes;
+begin
+  Data := HexToBytes('436E5061636B2054657374');
+  Dig := SM3Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnSM3Digest)) = '3E956CABBF6D874D00F9CCF2C993C7BDDBC5AEF373C2D5E7BFA99B847289653F';
+end;
+
+function TestSM3HMac: Boolean;
+var
+  S: AnsiString;
+  Dig: TCnSM3Digest;
+  Data: TBytes;
+begin
+  S := 'CnPack Key';
+  Data := HexToBytes('436E5061636B2054657374');
+  SM3Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
+  Result := DataToHex(@Dig[0], SizeOf(TCnSM3Digest)) = '393FFDFADE8A0E6ADFF832E6E126B2713EEB48066FEA8963CF63C258F65E368F';
+end;
+
 // ================================ SM9 ========================================
 // ================================ RSA ========================================
 // ================================ KDF ========================================
