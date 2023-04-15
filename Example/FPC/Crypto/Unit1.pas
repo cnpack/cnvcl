@@ -1542,7 +1542,7 @@ var
 begin
   FillChar(Key[0], SizeOf(Key), 0);
   Msg := 0;
-  ZUCEIA3(PByte(@Key[0]), 0, 0, 0, @Msg, 1, @Mac);
+  ZUCEIA3(@Key[0], 0, 0, 0, @Msg, 1, Mac);
   ShowMessage('$' + IntToHex(Mac, 2));
 end;
 
@@ -1563,9 +1563,8 @@ var
   Msg: array[0..20] of Byte;  // Enough for 90 bits
   Mac: DWORD;
 begin
-  // FIXME: NOT Ready now.
   FillChar(Msg[0], SizeOf(Msg), 0);
-  ZUCEIA3(PByte(@Key[0]), $561eb2dd, $14, 0, @(Msg[0]), 90, @Mac);
+  ZUCEIA3(@Key[0], $561eb2dd, $14, 0, @(Msg[0]), 90, Mac);
   ShowMessage('$' + IntToHex(Mac, 2));
 end;
 
@@ -1590,7 +1589,7 @@ var
   I: Integer;
 begin
   FillChar(Cipher[0], SizeOf(Cipher), 0);
-  ZUCEEA3(PByte(@Key[0]), $66035492, $F, 0, PByte(@Plain[0]), 193, PByte(@Cipher[0]));
+  ZUCEEA3(@Key[0], $66035492, $F, 0, @Plain[0], 193, @Cipher[0]);
 
   List := TStringList.Create;
   for I := Low(Cipher) to High(Cipher) do
