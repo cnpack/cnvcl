@@ -8,7 +8,7 @@ uses
   SysUtils,
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
-  CnPoly1305;
+  CnPoly1305, CnTEA;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
@@ -117,6 +117,11 @@ function TestPoly1305: Boolean;
 
 // ================================ ZUC ========================================
 // ================================ TEA ========================================
+
+function TestTea: Boolean;
+function TestXTea: Boolean;
+function TestXXTea: Boolean;
+
 // ================================ FNV ========================================
 
 function TestFNV1: Boolean;
@@ -242,6 +247,11 @@ begin
 
 // ================================ ZUC ========================================
 // ================================ TEA ========================================
+
+  Assert(TestTea, 'TestTea');
+  Assert(TestXTea, 'TestXTea');
+  Assert(TestXXTea, 'TestXXTea');
+
 // ================================ FNV ========================================
 
   Assert(TestFNV1, 'TestFNV1');
@@ -1199,6 +1209,67 @@ end;
 
 // ================================ ZUC ========================================
 // ================================ TEA ========================================
+
+function TestTea: Boolean;
+var
+  TeaKey: TCnTeaKey;
+  TeaData: TCnTeaData;
+begin
+  TeaKey[0] := $A0B1C2D3;
+  TeaKey[1] := $E4F5A6B7;
+  TeaKey[2] := $C8D9EAFB;
+  TeaKey[3] := $ACBDCEDF;
+  TeaData[0] := $12345678;
+  TeaData[1] := $9ABCDEF0;
+
+  CnTeaEncrypt(TeaKey, TeaData);
+  Result := (TeaData[0] = $6E47CFDB) and (TeaData[1] = $FBC61842);
+  if not Result then Exit;
+
+  CnTeaDecrypt(TeaKey, TeaData);
+  Result := (TeaData[0] = $12345678) and (TeaData[1] = $9ABCDEF0);
+end;
+
+function TestXTea: Boolean;
+var
+  TeaKey: TCnTeaKey;
+  TeaData: TCnTeaData;
+begin
+  TeaKey[0] := $A0B1C2D3;
+  TeaKey[1] := $E4F5A6B7;
+  TeaKey[2] := $C8D9EAFB;
+  TeaKey[3] := $ACBDCEDF;
+  TeaData[0] := $12345678;
+  TeaData[1] := $9ABCDEF0;
+
+  CnXTeaEncrypt(TeaKey, TeaData);
+  Result := (TeaData[0] = $7C5C0473) and (TeaData[1] = $C5957C19);
+  if not Result then Exit;
+
+  CnXTeaDecrypt(TeaKey, TeaData);
+  Result := (TeaData[0] = $12345678) and (TeaData[1] = $9ABCDEF0);
+end;
+
+function TestXXTea: Boolean;
+var
+  TeaKey: TCnTeaKey;
+  TeaData: TCnTeaData;
+begin
+  TeaKey[0] := $A0B1C2D3;
+  TeaKey[1] := $E4F5A6B7;
+  TeaKey[2] := $C8D9EAFB;
+  TeaKey[3] := $ACBDCEDF;
+  TeaData[0] := $12345678;
+  TeaData[1] := $9ABCDEF0;
+
+  CnXXTeaEncrypt(TeaKey, @TeaData[0], SizeOf(TCnTeaData) div SizeOf(Cardinal));
+  Result := (TeaData[0] = $3F4E62BB) and (TeaData[1] = $D187DE94);
+  if not Result then Exit;
+
+  CnXXTeaDecrypt(TeaKey, @TeaData[0], SizeOf(TCnTeaData) div SizeOf(Cardinal));
+  Result := (TeaData[0] = $12345678) and (TeaData[1] = $9ABCDEF0);
+end;
+
 // ================================ FNV ========================================
 
 function TestFNV1: Boolean;

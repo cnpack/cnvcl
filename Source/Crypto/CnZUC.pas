@@ -24,9 +24,10 @@ unit CnZUC;
 * 软件名称：开发包基础库
 * 单元名称：祖冲之算法实现单元
 * 单元作者：刘啸（liuxiao@cnpack.org)
-* 备    注：参考国密算法公开文档 祖冲之序列密码算法 ZUC stream cipher algorithm
-*           并参考移植网络上的多份 ZUC 的 C/Cpp 实现代码
-*           主要为：https://github.com/mitshell/CryptoMobile/blob/master/ZUC.c
+* 备    注：参考国密算法公开文档《祖冲之序列密码算法 ZUC stream cipher algorithm》
+*           与英文的《Specification of the 3GPP Confidentiality and Integrity
+*           Algorithms 128-EEA3 & 128-EIA3》仨文档，并参考移植其 C 实现代码
+*
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -46,52 +47,51 @@ interface
 uses
   Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative;
 
-procedure ZUCGenerateKeyStream(KeyStream: PCardinal; KeyStreamLen: Cardinal);
-
-procedure ZUCInitialization(Key: PByte; IV: PByte);
-
-// ZUC 算法
 procedure ZUC(Key: PByte; IV: PByte; KeyStream: PCardinal; KeyStreamLen: Cardinal);
 {*
+  祖冲之基础算法
+
   Key 和 IV 为输入的 16 字节数据。
-  KeyStream 为输出地址，长度应为 KeyStreamLen * SizeOf(DWORD)
+  KeyStream 为输出地址，长度应为 KeyStreamLen * SizeOf(Cardinal)
   KeyStreamLen 是要求计算的长度
 }
 
-// EEA3 机密性保护算法，一个流加密系统，使用机密性密钥 CK 来加解密数据块
 procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
-  M: PByte; BitLen: Cardinal; C: PByte);
+  M: PCardinal; BitLen: Cardinal; C: PCardinal);
 {*
+  基于祖冲之算法的 EEA3 机密性保护算法。一个流加密系统，使用机密性密钥 CK 来加解密数据块
+
   输入：
   参数         规模（比特数）    说明
   Count        32                计数器
   Bearer       5                 The bearer identity
   Direction    1                 传输方向
   CK           128               机密性密钥
+  M            BitLen            输入比特流的内存块地址，长度需是四字节的倍数
   BitLen       32                输入消息的 Bit 长度
-  M            BitLen            输入比特流的内存块地址
 
   输出：
   参数         规模（比特数）    说明
-  C            BitLen            放置输出比特流的内存块地址，能容纳的 Bit 长度必须大于或等于 BitLen
+  C            BitLen            放置输出比特流的内存块地址，能容纳的 Bit 长度必须大于或等于 BitLen，且是四字节的倍数
 }
 
-// EIA3 完整性保护算法，使用一个完整性密钥 IK 对给定的输入消息计算出一个 32 位的 MAC 值
 procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: Cardinal;
-  M: PByte; BitLen: Cardinal; Mac: PCardinal);
+  M: PCardinal; BitLen: Cardinal; Mac: PCardinal);
 {*
+  基于祖冲之算法的 EIA3 完整性保护算法，使用一个完整性密钥 IK 对给定的输入消息计算出一个 32 位的 MAC 值
+
   输入：
   参数         规模（比特数）    说明
   Count        32                计数器
   Bearer       5                 The bearer identity
   DIRECTION    1                 传输方向
   IK           128               完整性密钥
+  M            BitLen            输入比特流的内存地址，长度需是四字节的倍数
   BitLen       32                输入比特流的长度
-  M            BitLen            输入比特流的内存地址
 
   输出：
   参数         规模（比特数）    说明
-  MAC          32                32位MAC值
+  MAC          32                32 位MAC值
 }
 
 implementation
@@ -310,18 +310,15 @@ begin
 end;
 
 procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
-  M: PByte; BitLen: Cardinal; C: PByte);
+  M: PCardinal; BitLen: Cardinal; C: PCardinal);
 var
   IV: array[0..15] of Byte;
-  LastBits, K: Cardinal;
-  I, L: Integer;
+  I: Integer;
+  L: Cardinal;
   Z: PCardinal;
+  PC, PM, PZ: PCnLongWord32Array;
 begin
-  for I := 0 to 15 do
-    IV[I] := 0;
-
   L := (BitLen + 31) div 32;                   // 四字节为单位的长度
-  LastBits := (32 - (BitLen mod 32)) mod 32;   // 四字节为单位后剩下的 Bits 数
   Z := PCardinal(GetMemory(L * SizeOf(Cardinal)));
 
   IV[0] := (Count shr 24) and $FF;
@@ -343,18 +340,14 @@ begin
   IV[14] := IV[6];
   IV[15] := IV[7];
 
-  ZUC(CK, PByte(@IV[0]), Z, L);
+  ZUC(CK, @IV[0], Z, L);
+
+  PC := PCnLongWord32Array(C);
+  PM := PCnLongWord32Array(M);
+  PZ := PCnLongWord32Array(Z);
 
   for I := 0 to L - 1 do
-    (PCardinal(TCnNativeInt(C) + I * SizeOf(Cardinal)))^ := (PCardinal(TCnNativeInt(M) + I * SizeOf(Cardinal)))^
-      xor (PCardinal(TCnNativeInt(Z) + I * SizeOf(Cardinal)))^;
-
-  if LastBits <> 0 then
-  begin
-    K := $100000000 - (1 shl LastBits); // FPC 下写一块会出 Internal Error，分开独立用个新变量 K
-    (PCardinal(TCnNativeInt(C) + L * SizeOf(Cardinal)))^ := (PCardinal(TCnNativeInt(C) + L * SizeOf(Cardinal)))^
-      and K;
-  end;
+    PC^[I] := PM^[I] xor PZ^[I];
 
   FreeMemory(Z);
 end;
@@ -374,15 +367,19 @@ end;
 
 // 取内存块第 I 个 Bit 起的一个 Bit，I 从 0 开始，返回 0 或 1
 function GetBit(Data: PCardinal; I: Integer): Byte;
+var
+  A, B: Cardinal;
 begin
-  if (PCardinal(TCnNativeInt(Data) + SizeOf(Cardinal) * I div 32))^ and (1 shl (31 - (I mod 32))) <> 0 then
+  A := PCardinal(TCnNativeInt(Data) + SizeOf(Cardinal) * (I div 32))^;
+  B := 1 shl (31 - (I mod 32));
+  if (A and B) <> 0 then
     Result := 1
   else
     Result := 0;
 end;
 
 procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: Cardinal;
-  M: PByte; BitLen: Cardinal; Mac: PCardinal);
+  M: PCardinal; BitLen: Cardinal; Mac: PCardinal);
 var
   IV: array[0..15] of Byte;
   T: Cardinal;
@@ -417,7 +414,7 @@ begin
   T := 0;
   for I := 0 to BitLen - 1 do
   begin
-    if GetBit(PCardinal(M), I) <> 0 then
+    if GetBit(M, I) <> 0 then
       T := T xor GetDWord(Z, I);
   end;
   T := T xor GetDWord(Z, BitLen);

@@ -50,13 +50,17 @@ const
 type
   ECnTeaException = class(Exception);
 
-  TCnTeaKey = array[0..3] of Cardinal;  // TEA 算法的密钥格式，四个 32Bit 数
+  TCnTeaKey = array[0..3] of Cardinal;
+  {* TEA 算法的密钥格式，四个 32Bit 数}
 
-  TCnTeaData = array[0..1] of Cardinal; // TEA 算法的数据格式，二个 32Bit 数
+  TCnTeaData = array[0..1] of Cardinal;
+  {* TEA 算法的数据格式，二个 32Bit 数}
 
   TCnXXTeaData = array[0..16383] of Cardinal;
+  {* XXTEA 算法支持更长的 32Bit 数组}
 
-  PCnXXTeaData = ^TCnXXTeaData;         // XXTEA 算法支持更长的 LongWord 数组
+  PCnXXTeaData = ^TCnXXTeaData;
+  {* XXTEA 算法的 32Bit 数组指针}
 
 procedure CnTeaEncrypt(Key: TCnTeaKey; var Data: TCnTeaData;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
