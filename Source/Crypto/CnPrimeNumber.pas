@@ -848,7 +848,7 @@ function CnInt64MontgomeryMulMod(A, B, RExp, R2ModN, N, NNegInv: TUInt64): TUInt
    比起 MultipleMod 实现，有一定提速作用}
 
 function CnInt64Legendre(A, P: Int64): Integer;
-{* 计算勒让德符号 ( A / P) 的值，范围为 Int64}
+{* 计算勒让德符号 (A / P) 的值，范围为 Int64}
 
 procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
 {* 计算 IEEE P1363 的规范中说明的 Lucas 序列，范围为 Int64

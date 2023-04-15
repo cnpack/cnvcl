@@ -162,7 +162,7 @@ type
     property PrimeKey1: TCnBigNumber read FPrimeKey1 write FPrimeKey1;
     {* 大素数 1，p，要求比 q 大}
     property PrimeKey2: TCnBigNumber read FPrimeKey2 write FPrimeKey2;
-    {* 大素数 2，q，要求比 q 小}
+    {* 大素数 2，q，要求比 p 小}
     property PrivKeyProduct: TCnBigNumber read FPrivKeyProduct write FPrivKeyProduct;
     {* 俩素数乘积 n，也叫 Modulus}
     property PrivKeyExponent: TCnBigNumber read FPrivKeyExponent write FPrivKeyProduct;
@@ -218,7 +218,7 @@ function CnInt64RSADecrypt(Res: TUInt64; PubKeyProduct: TUInt64;
 // 大数范围内的 RSA 加解密实现
 
 function CnRSAGenerateKeysByPrimeBits(PrimeBits: Integer; PrivateKey: TCnRSAPrivateKey;
-  PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean = False): Boolean;
+  PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean = False): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 生成 RSA 算法所需的公私钥，PrimeBits 是素数的二进制位数，其余参数均为生成。
    PrimeBits 取值为 512/1024/2048等，注意目前不是乘积的范围。内部缺乏安全判断。不推荐使用。
    PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537}
@@ -243,7 +243,7 @@ function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
 {* 从 PEM 格式的流中加载公私钥数据，如某钥参数为空则不载入
   自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释
   KeyHashMethod: 对应 PEM 文件的加密 Hash 算法，默认 MD5（无法根据 PEM 文件内容自动判断）
-  Password: PEM 文件如加密，此处应传对应密码}
+  Password: PEM 文件如加密，此处应传对应密码，未加密可不传}
 
 function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS1;
@@ -253,7 +253,7 @@ function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivate
 {* 将公私钥写入 PEM 格式文件中，返回是否成功
   KeyEncryptMethod: 如 PEM 文件需加密，可用此参数指定加密方式，ckeNone 表示不加密，忽略后续参数
   KeyHashMethod: 生成 Key 的 Hash 算法，默认 MD5
-  Password: PEM 文件的加密密码}
+  Password: PEM 文件的加密密码，未加密可不传}
 
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
@@ -396,13 +396,13 @@ function CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey: TCnBigNumber
   const OutPublicKey: TCnBigNumber): Boolean;
 {* 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥
    其中 OutPublicKey = (Root ^ SelfPrivateKey) mod Prime
-   要保证安全，可以使用 CnPrimeNumber 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2}
+   要保证安全，可以使用 CnSecretSharing 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2}
 
 function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBigNumber;
   const SecretKey: TCnBigNumber): Boolean;
 {* 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
    其中 SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime
-   要保证安全，可以使用 CnPrimeNumber 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2}
+   要保证安全，可以使用 CnSecretSharing 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2}
 
 // ====================== 基于离散对数的变色龙杂凑函数 =========================
 
