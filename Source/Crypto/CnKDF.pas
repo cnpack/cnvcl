@@ -50,6 +50,7 @@ uses
 
 type
   TCnKeyDeriveHash = (ckdMd5, ckdSha256, ckdSha1);
+  {* CnGetDeriveKey 中使用的 Hash 途径}
 
   TCnPBKDF1KeyHash = (cpdfMd2, cpdfMd5, cpdfSha1);
   {* PBKDF1 规定的三种 Hash 途径}
@@ -58,6 +59,7 @@ type
   {* PBKDF2 规定的两种 Hash 途径}
 
   ECnKDFException = class(Exception);
+  {* KDF 相关异常}
 
 function CnGetDeriveKey(const Password, Salt: AnsiString; OutKey: PAnsiChar; KeyLength: Cardinal;
   KeyHash: TCnKeyDeriveHash = ckdMd5): Boolean;
@@ -352,12 +354,6 @@ begin
   Result := Copy(Result, 1, DerivedKeyLength);
 end;
 
-function SwapCardinal(Value: Cardinal): Cardinal;
-begin
-  Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
-    or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
-end;
-
 function CnSM9KDF(Data: Pointer; DataLen: Integer; DerivedKeyLength: Integer): AnsiString;
 var
   DArr: TBytes;
@@ -383,7 +379,7 @@ begin
     SetLength(Result, DerivedKeyLength);
     for I := 1 to CeilLen do
     begin
-      SCT := SwapCardinal(CT);  // 虽然文档中没说，但要倒序一下
+      SCT := UInt32HostToNetwork(CT);  // 虽然文档中没说，但要倒序一下
       Move(SCT, DArr[DataLen], SizeOf(Cardinal));
       SM3D := SM3(@DArr[0], Length(DArr));
 
@@ -428,7 +424,7 @@ begin
     SetLength(Result, DerivedKeyLength);
     for I := 1 to CeilLen do
     begin
-      SCT := SwapCardinal(CT);  // 虽然文档中没说，但要倒序一下
+      SCT := UInt32HostToNetwork(CT);  // 虽然文档中没说，但要倒序一下
       Move(SCT, DArr[L], SizeOf(Cardinal));
       SM3D := SM3(@DArr[0], Length(DArr));
 
