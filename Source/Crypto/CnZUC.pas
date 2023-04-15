@@ -26,8 +26,10 @@ unit CnZUC;
 * 单元作者：刘啸（liuxiao@cnpack.org)
 * 备    注：参考国密算法公开文档《祖冲之序列密码算法 ZUC stream cipher algorithm》
 *           与英文的《Specification of the 3GPP Confidentiality and Integrity
-*           Algorithms 128-EEA3 & 128-EIA3》仨文档，并参考移植其 C 实现代码
+*           Algorithms 128-EEA3 & 128-EIA3》仨文档，并参考移植其 C 实现代码，
+*           注意 ZUCEEA3 加解密调用相同，也就是其他参数相同的情况下，传明文得到密文，传密文得到明文
 *           祖冲之算法面向四字节为单位的数据流，四字节内部的大小端未处理
+*           规范中要求数据均为大端，因而在小端 CPU 上需要颠倒四字节内部的内容，目前未实现
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -59,7 +61,7 @@ procedure ZUC(Key: PByte; IV: PByte; KeyStream: PCardinal; KeyStreamLen: Cardina
 procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
   M: PCardinal; BitLen: Cardinal; C: PCardinal);
 {*
-  基于祖冲之算法的 EEA3 机密性保护算法。一个流加密系统，使用机密性密钥 CK 来加解密数据块
+  基于祖冲之算法的 128-EEA3 机密性保护算法。一个流加密系统，使用机密性密钥 CK 来加解密数据块
 
   输入：
   参数         规模（比特数）    说明
@@ -73,12 +75,14 @@ procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
   输出：
   参数         规模（比特数）    说明
   C            BitLen            放置输出比特流的内存块地址，能容纳的 Bit 长度必须大于或等于 BitLen，且是四字节的倍数
+
+  注意因为是流异或加密。传入如果是明文，加密一次便输出密文，如果传入密文，则调用一次会还原成明文
 }
 
 procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: Cardinal;
   M: PCardinal; BitLen: Cardinal; out Mac: Cardinal);
 {*
-  基于祖冲之算法的 EIA3 完整性保护算法，使用一个完整性密钥 IK 对给定的输入消息计算出一个 32 位的 MAC 值
+  基于祖冲之算法的 128-EIA3 完整性保护算法，使用一个完整性密钥 IK 对给定的输入消息计算出一个 32 位的 MAC 值
 
   输入：
   参数         规模（比特数）    说明
@@ -314,11 +318,12 @@ procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
 var
   IV: array[0..15] of Byte;
   I: Integer;
-  L: Cardinal;
+  L, LB, K: Cardinal;
   Z: PCardinal;
   PC, PM, PZ: PCnLongWord32Array;
 begin
-  L := (BitLen + 31) div 32;                   // 四字节为单位的长度
+  L := (BitLen + 31) div 32;                   // 四字节为单位的长度，末块已补齐
+  LB := L * 32 - BitLen;                       // 最后一块四字节的有效位数
   Z := PCardinal(GetMemory(L * SizeOf(Cardinal)));
 
   IV[0] := (Count shr 24) and $FF;
@@ -349,6 +354,11 @@ begin
   for I := 0 to L - 1 do
     PC^[I] := PM^[I] xor PZ^[I];
 
+  if LB > 0 then // 最后一块不满四字节的话，最后一个 Cardinal 结果里超出有效 Bit 的部分应该填 0，也就是只保留低 Bit 的结果
+  begin
+    K := $100000000 - (1 shl LB); // FPC 下写一块会出 Internal Error，分开独立用个新变量 K，作为低 LB 位全 0 的 Mask
+    PC^[L - 1] := PC^[L - 1] and K;
+  end;
   FreeMemory(Z);
 end;
 

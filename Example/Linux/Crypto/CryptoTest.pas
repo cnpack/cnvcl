@@ -121,7 +121,9 @@ function TestZUC1: Boolean;
 function TestZUC2: Boolean;
 function TestZUC3: Boolean;
 function TestZUC4: Boolean;
-function TestZUCEEA3: Boolean;
+function TestZUCEEA31: Boolean;
+function TestZUCEEA32: Boolean;
+function TestZUCEEA33: Boolean;
 function TestZUCEIA31: Boolean;
 function TestZUCEIA32: Boolean;
 function TestZUCEIA33: Boolean;
@@ -261,7 +263,9 @@ begin
   Assert(TestZUC2, 'TestZUC2');
   Assert(TestZUC3, 'TestZUC3');
   Assert(TestZUC4, 'TestZUC4');
-  // Assert(TestZUCEEA3, 'TestZUCEEA3');
+  Assert(TestZUCEEA31, 'TestZUCEEA31');
+  Assert(TestZUCEEA32, 'TestZUCEEA32');
+  Assert(TestZUCEEA33, 'TestZUCEEA33');
   Assert(TestZUCEIA31, 'TestZUCEIA31');
   Assert(TestZUCEIA32, 'TestZUCEIA32');
   Assert(TestZUCEIA33, 'TestZUCEIA33');
@@ -1236,7 +1240,7 @@ var
 begin
   FillChar(Key[0], SizeOf(Key), 0);
   FillChar(IV[0], SizeOf(IV), 0);
-  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCardinal(@KeyStream[0]), SizeOf(KeyStream) div SizeOf(Cardinal));
+  ZUC(@Key[0], @IV[0], PCardinal(@KeyStream[0]), SizeOf(KeyStream) div SizeOf(Cardinal));
 
   Result := (KeyStream[0] = $27BEDE74) and (KeyStream[1] = $018082DA);
 end;
@@ -1248,7 +1252,7 @@ var
 begin
   FillChar(Key[0], SizeOf(Key), $FF);
   FillChar(IV[0], SizeOf(IV), $FF);
-  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCardinal(@KeyStream[0]), SizeOf(KeyStream) div SizeOf(Cardinal));
+  ZUC(@Key[0], @IV[0], PCardinal(@KeyStream[0]), SizeOf(KeyStream) div SizeOf(Cardinal));
 
   Result := (KeyStream[0] = $0657CFA0) and (KeyStream[1] = $7096398B);
 end;
@@ -1262,7 +1266,7 @@ const
 var
   KeyStream: array[0..1] of Cardinal;
 begin
-  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCardinal(@KeyStream[0]), SizeOf(KeyStream) div SizeOf(Cardinal));
+  ZUC(@Key[0], @IV[0], PCardinal(@KeyStream[0]), SizeOf(KeyStream) div SizeOf(Cardinal));
   Result := (KeyStream[0] = $14F1C272) and (KeyStream[1] = $3279C419);
 end;
 
@@ -1275,11 +1279,11 @@ const
 var
   KeyStream: array[0..1999] of Cardinal;
 begin
-  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCardinal(@KeyStream[0]), SizeOf(KeyStream) div SizeOf(Cardinal));
+  ZUC(@Key[0], @IV[0], PCardinal(@KeyStream[0]), SizeOf(KeyStream) div SizeOf(Cardinal));
   Result := (KeyStream[0] = $ED4400E7) and (KeyStream[1] = $0633E5C5) and (KeyStream[1999] = $7A574CDB);
 end;
 
-function TestZUCEEA3: Boolean;
+function TestZUCEEA31: Boolean;
 const
   Key: array[0..15] of Byte = ($17, $3D, $14, $BA, $50, $03, $73, $1D, $7A, $60,
     $04, $94, $70, $F0, $0A, $29);
@@ -1289,10 +1293,76 @@ var
   Cipher: array[0..6] of Cardinal;
 begin
   FillChar(Cipher[0], SizeOf(Cipher), 0);
-  ZUCEEA3(PByte(@Key[0]), $66035492, $F, 0, @Plain[0], 193, @Cipher[0]);
+  ZUCEEA3(@Key[0], $66035492, $F, 0, @Plain[0], 193, @Cipher[0]);
 
   Result := (Cipher[0] = $A6C85FC6) and (Cipher[1] = $6AFB8533) and (Cipher[2] = $AAFC2518)
     and (Cipher[3] = $DFE78494) and (Cipher[4] = $0EE1E4B0) and (Cipher[5] = $30238CC8) and (Cipher[6] = 0);
+  if not Result then Exit;
+
+  ZUCEEA3(@Key[0], $66035492, $F, 0, @Cipher[0], 193, @Cipher[0]);
+  Result := CompareMem(@Cipher[0], @Plain[0], SizeOf(Cipher));
+end;
+
+function TestZUCEEA32: Boolean;
+const
+  Key: array[0..15] of Byte = ($E5, $BD, $3E, $A0, $EB, $55, $AD, $E8, $66, $C6, $AC, $58, $BD, $54, $30, $2A);
+  Plain: array[0..24] of Cardinal = ($14A8EF69, $3D678507, $BBE7270A, $7F67FF50, $06C3525B, $9807E467, $C4E56000, $BA338F5D,
+    $42955903, $67518222, $46C80D3B, $38F07F4B, $E2D8FF58, $05F51322, $29BDE93B, $BBDCAF38,
+    $2BF1EE97, $2FBF9977, $BADA8945, $847A2A6C, $9AD34A66, $7554E04D, $1F7FA2C3, $3241BD8F,
+    $01BA220D);
+  Res: array[0..24] of Cardinal = ($131D43E0, $DEA1BE5C, $5A1BFD97, $1D852CBF, $712D7B4F, $57961FEA, $3208AFA8, $BCA433F4,
+    $56AD09C7, $417E58BC, $69CF8866, $D1353F74, $865E8078, $1D202DFB, $3ECFF7FC, $BC3B190F,
+    $E82A204E, $D0E350FC, $0F6F2613, $B2F2BCA6, $DF5A473A, $57A4A00D, $985EBAD8, $80D6F238,
+    $64A07B01);
+var
+  Cipher: array[0..24] of Cardinal;
+begin
+  FillChar(Cipher[0], SizeOf(Cipher), 0);
+  ZUCEEA3(@Key[0], $56823, $18, 1, @Plain[0], 800, @Cipher[0]);
+
+  Result := CompareMem(@Cipher[0], @Res[0], SizeOf(Cipher));
+  if not Result then Exit;
+
+  ZUCEEA3(@Key[0], $56823, $18, 1, @Cipher[0], 800, @Cipher[0]);
+  Result := CompareMem(@Cipher[0], @Plain[0], SizeOf(Cipher));
+end;
+
+function TestZUCEEA33: Boolean;
+const
+  Key: array[0..15] of Byte = ($DB, $84, $B4, $FB, $CC, $DA, $56, $3B, $66, $22, $7B, $FE, $45, $6F, $0F, $77);
+  Plain: array[0..87] of Cardinal = ($E539F3B8, $973240DA, $03F2B8AA, $05EE0A00, $DBAFC0E1, $82055DFE, $3D7383D9, $2CEF40E9,
+    $2928605D, $52D05F4F, $9018A1F1, $89AE3997, $CE19155F, $B1221DB8, $BB0951A8, $53AD852C,
+    $E16CFF07, $382C93A1, $57DE00DD, $B125C753, $9FD85045, $E4EE07E0, $C43F9E9D, $6F414FC4,
+    $D1C62917, $813F74C0, $0FC83F3E, $2ED7C45B, $A5835264, $B43E0B20, $AFDA6B30, $53BFB642,
+    $3B7FCE25, $479FF5F1, $39DD9B5B, $995558E2, $A56BE18D, $D581CD01, $7C735E6F, $0D0D97C4,
+    $DDC1D1DA, $70C6DB4A, $12CC9277, $8E2FBBD6, $F3BA52AF, $91C9C6B6, $4E8DA4F7, $A2C266D0,
+    $2D001753, $DF089603, $93C5D568, $88BF49EB, $5C16D9A8, $0427A416, $BCB597DF, $5BFE6F13,
+    $890A07EE, $1340E647, $6B0D9AA8, $F822AB0F, $D1AB0D20, $4F40B7CE, $6F2E136E, $B67485E5,
+    $07804D50, $4588AD37, $FFD81656, $8B2DC403, $11DFB654, $CDEAD47E, $2385C343, $6203DD83,
+    $6F9C64D9, $7462AD5D, $FA63B5CF, $E08ACB95, $32866F5C, $A787566F, $CA93E6B1, $693EE15C,
+    $F6F7A2D6, $89D97417, $98DC1C23, $8E1BE650, $733B18FB, $34FF880E, $16BBD21B, $47AC0000);
+  Res: array[0..87] of Cardinal = ($4BBFA91B, $A25D47DB, $9A9F190D, $962A19AB, $323926B3, $51FBD39E, $351E05DA, $8B8925E3,
+    $0B1CCE0D, $12211010, $95815CC7, $CB631950, $9EC0D679, $40491987, $E13F0AFF, $AC332AA6,
+    $AA64626D, $3E9A1917, $519E0B97, $B655C6A1, $65E44CA9, $FEAC0790, $D2A321AD, $3D86B79C,
+    $5138739F, $A38D887E, $C7DEF449, $CE8ABDD3, $E7F8DC4C, $A9E7B733, $14AD310F, $9025E619,
+    $46B3A56D, $C649EC0D, $A0D63943, $DFF592CF, $962A7EFB, $2C8524E3, $5A2A6E78, $79D62604,
+    $EF268695, $FA400302, $7E22E608, $30775220, $64BD4A5B, $906B5F53, $1274F235, $ED506CFF,
+    $0154C754, $928A0CE5, $476F2CB1, $020A1222, $D32C1455, $ECAEF1E3, $68FB344D, $1735BFBE,
+    $DEB71D0A, $33A2A54B, $1DA5A294, $E679144D, $DF11EB1A, $3DE8CF0C, $C0619179, $74F35C1D,
+    $9CA0AC81, $807F8FCC, $E6199A6C, $7712DA86, $5021B04C, $E0439516, $F1A526CC, $DA9FD9AB,
+    $BD53C3A6, $84F9AE1E, $7EE6B11D, $A138EA82, $6C5516B5, $AADF1ABB, $E36FA7FF, $F92E3A11,
+    $76064E8D, $95F2E488, $2B5500B9, $3228B219, $4A475C1A, $27F63F9F, $FD264989, $A1BC0000);
+var
+  Cipher: array[0..87] of Cardinal;
+begin
+  FillChar(Cipher[0], SizeOf(Cipher), 0);
+  ZUCEEA3(@Key[0], $E4850FE1, $10, 1, @Plain[0], 2798, @Cipher[0]);
+
+  Result := CompareMem(@Cipher[0], @Res[0], SizeOf(Cipher));
+  if not Result then Exit;
+
+  ZUCEEA3(@Key[0], $E4850FE1, $10, 1, @Cipher[0], 2798, @Cipher[0]);
+  Result := CompareMem(@Cipher[0], @Plain[0], SizeOf(Cipher));
 end;
 
 function TestZUCEIA31: Boolean;
