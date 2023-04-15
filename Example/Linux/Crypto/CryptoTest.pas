@@ -1,4 +1,39 @@
+{******************************************************************************}
+{                       CnPack For Delphi/C++Builder                           }
+{                     中国人自己的开放源码第三方开发包                         }
+{                   (C)Copyright 2001-2023 CnPack 开发组                       }
+{                   ------------------------------------                       }
+{                                                                              }
+{            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
+{        改和重新发布这一程序。                                                }
+{                                                                              }
+{            发布这一开发包的目的是希望它有用，但没有任何担保。甚至没有        }
+{        适合特定目的而隐含的担保。更详细的情况请参阅 CnPack 发布协议。        }
+{                                                                              }
+{            您应该已经和开发包一起收到一份 CnPack 发布协议的副本。如果        }
+{        还没有，可访问我们的网站：                                            }
+{                                                                              }
+{            网站地址：http://www.cnpack.org                                   }
+{            电子邮件：master@cnpack.org                                       }
+{                                                                              }
+{******************************************************************************}
+
 unit CryptoTest;
+{* |<PRE>
+================================================================================
+* 软件名称：CnPack 密码库
+* 单元名称：CnPack 密码库批量测试单元
+* 单元作者：刘啸 (liuxiao@cnpack.org)
+* 备    注：测试失败的用例会通过 Assert 抛出异常
+* 开发平台：PWin7 + Delphi 5.0
+* 兼容测试：编译器：Delphi 5~2007 的非 Unicode、Delphi 2009 或以上的 Unicode、FPC 3.2 以上
+*           CPU：Intel 32 位、Intel 64 位、ARM 32/64 位、龙芯 64 位
+*           OS: Win32、Win64、MacOS64、Linux64
+* 本 地 化：该单元中的字符串均符合本地化处理方式
+* 修改记录：2023.03.10 V1.0
+*               创建单元，实现功能
+================================================================================
+|</PRE>}
 
 interface
 
@@ -8,7 +43,7 @@ uses
   SysUtils,
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
-  CnPoly1305, CnTEA, CnZUC;
+  CnPoly1305, CnTEA, CnZUC, CnPrimeNumber;
 
 procedure TestCrypto;
 {* 密码库总测试入口}
@@ -151,6 +186,13 @@ function TestSM3HMac: Boolean;
 // ================================ KDF ========================================
 
 function TestKDFSM2SM9: Boolean;
+
+// ================================ Prime Number ===============================
+
+function TestPrimeNumber1: Boolean;
+function TestPrimeNumber2: Boolean;
+
+// ================================ 25519 ========================================
 
 implementation
 
@@ -295,6 +337,13 @@ begin
 // ================================ KDF ========================================
 
   Assert(TestKDFSM2SM9, 'TestKDFSM2SM9');
+
+// ================================ Prime Number ===============================
+
+  Assert(TestPrimeNumber1, 'TestPrimeNumber1');
+  Assert(TestPrimeNumber2, 'TestPrimeNumber2');
+
+// ================================ 25519 ======================================
 
   Writeln('Crypto Test End.');
 end;
@@ -989,7 +1038,7 @@ end;
 
 function TestBase64: Boolean;
 var
-  Res: AnsiString;
+  Res: string;
   Data: TBytes;
 begin
   Data := HexToBytes('000102030405060708090A0B0C0D0E0F32333425');
@@ -1561,5 +1610,33 @@ begin
   Res := CnSM2SM9KDF(Pass, 19);
   Result := DataToHex(@Res[0], Length(Res)) = '046B04A9ADF53B389B9E2AAFB47D90F4D08978';
 end;
+
+// ================================ Prime Number ===============================
+
+function TestPrimeNumber1: Boolean;
+begin
+  Result := CnInt64IsPrime($E838B1A3989C4CED) and CnInt64AKSIsPrime(7347991325871728837)
+    and CnInt64IsPerfectPower(1350851717672992089) and (CnInt64BigStepGiantStep(8723, 3623, 65537) = 21200)
+    and CnIsInt64PrimitiveRoot(12636050766252483707, 12636050766252483704)
+    and CnIsInt64PrimitiveRoot(11782576137868526279, 7);
+end;
+
+function TestPrimeNumber2: Boolean;
+var
+  R, F: array of TUInt64;
+  C: TUInt64;
+begin
+  SetLength(R, 3);
+  SetLength(F, 3);
+
+  // 有物不知其数，三三数之剩二，五五数之剩三，七七数之剩二。问物几何？
+  F[0] := 3; F[1] := 5; F[2] := 7;
+  R[0] := 2; R[1] := 3; R[2] := 2;
+  C := ChineseRemainderTheoremInt64(R, F);
+  Result := C = 23;
+end;
+
+// ================================ 25519 ========================================
+
 
 end.
