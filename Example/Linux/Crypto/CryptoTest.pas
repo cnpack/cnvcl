@@ -8,7 +8,7 @@ uses
   SysUtils,
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
-  CnPoly1305, CnTEA;
+  CnPoly1305, CnTEA, CnZUC;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
@@ -116,6 +116,16 @@ function TestChaCha20: Boolean;
 function TestPoly1305: Boolean;
 
 // ================================ ZUC ========================================
+
+function TestZUC1: Boolean;
+function TestZUC2: Boolean;
+function TestZUC3: Boolean;
+function TestZUC4: Boolean;
+function TestZUCEEA3: Boolean;
+function TestZUCEIA31: Boolean;
+function TestZUCEIA32: Boolean;
+function TestZUCEIA33: Boolean;
+
 // ================================ TEA ========================================
 
 function TestTea: Boolean;
@@ -246,6 +256,16 @@ begin
   Assert(TestPoly1305, 'TestPoly1305');
 
 // ================================ ZUC ========================================
+
+  Assert(TestZUC1, 'TestZUC1');
+  Assert(TestZUC2, 'TestZUC2');
+  Assert(TestZUC3, 'TestZUC3');
+  Assert(TestZUC4, 'TestZUC4');
+  // Assert(TestZUCEEA3, 'TestZUCEEA3');
+  Assert(TestZUCEIA31, 'TestZUCEIA31');
+  Assert(TestZUCEIA32, 'TestZUCEIA32');
+  Assert(TestZUCEIA33, 'TestZUCEIA33');
+
 // ================================ TEA ========================================
 
   Assert(TestTea, 'TestTea');
@@ -1208,6 +1228,109 @@ begin
 end;
 
 // ================================ ZUC ========================================
+
+function TestZUC1: Boolean;
+var
+  Key, IV: array[0..15] of Byte;
+  KeyStream: array[0..1] of Cardinal;
+begin
+  FillChar(Key[0], SizeOf(Key), 0);
+  FillChar(IV[0], SizeOf(IV), 0);
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCardinal(@KeyStream[0]), SizeOf(KeyStream) div SizeOf(Cardinal));
+
+  Result := (KeyStream[0] = $27BEDE74) and (KeyStream[1] = $018082DA);
+end;
+
+function TestZUC2: Boolean;
+var
+  Key, IV: array[0..15] of Byte;
+  KeyStream: array[0..1] of Cardinal;
+begin
+  FillChar(Key[0], SizeOf(Key), $FF);
+  FillChar(IV[0], SizeOf(IV), $FF);
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCardinal(@KeyStream[0]), SizeOf(KeyStream) div SizeOf(Cardinal));
+
+  Result := (KeyStream[0] = $0657CFA0) and (KeyStream[1] = $7096398B);
+end;
+
+function TestZUC3: Boolean;
+const
+  Key: array[0..15] of Byte = ($3D, $4C, $4B, $E9, $6A, $82, $FD, $AE, $B5, $8F,
+    $64, $1D, $B1, $7B, $45, $5B);
+  IV: array[0..15] of Byte = ($84, $31, $9A, $A8, $DE, $69, $15, $CA, $1F, $6B,
+    $DA, $6B, $FB, $D8, $C7, $66);
+var
+  KeyStream: array[0..1] of Cardinal;
+begin
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCardinal(@KeyStream[0]), SizeOf(KeyStream) div SizeOf(Cardinal));
+  Result := (KeyStream[0] = $14F1C272) and (KeyStream[1] = $3279C419);
+end;
+
+function TestZUC4: Boolean;
+const
+  Key: array[0..15] of Byte = ($4D, $32, $0B, $FA, $D4, $C2, $85, $BF, $D6, $B8,
+    $BD, $00, $F3, $9D, $8B, $41);
+  IV: array[0..15] of Byte = ($52, $95, $9D, $AB, $A0, $BF, $17, $6E, $CE, $2D,
+    $C3, $15, $04, $9E, $B5, $74);
+var
+  KeyStream: array[0..1999] of Cardinal;
+begin
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCardinal(@KeyStream[0]), SizeOf(KeyStream) div SizeOf(Cardinal));
+  Result := (KeyStream[0] = $ED4400E7) and (KeyStream[1] = $0633E5C5) and (KeyStream[1999] = $7A574CDB);
+end;
+
+function TestZUCEEA3: Boolean;
+const
+  Key: array[0..15] of Byte = ($17, $3D, $14, $BA, $50, $03, $73, $1D, $7A, $60,
+    $04, $94, $70, $F0, $0A, $29);
+  Plain: array[0..6] of Cardinal = ($6CF65340, $735552AB, $0C9752FA, $6F9025FE,
+    $0BD675D9, $005875B2, 0);
+var
+  Cipher: array[0..6] of Cardinal;
+begin
+  FillChar(Cipher[0], SizeOf(Cipher), 0);
+  ZUCEEA3(PByte(@Key[0]), $66035492, $F, 0, @Plain[0], 193, @Cipher[0]);
+
+  Result := (Cipher[0] = $A6C85FC6) and (Cipher[1] = $6AFB8533) and (Cipher[2] = $AAFC2518)
+    and (Cipher[3] = $DFE78494) and (Cipher[4] = $0EE1E4B0) and (Cipher[5] = $30238CC8) and (Cipher[6] = 0);
+end;
+
+function TestZUCEIA31: Boolean;
+var
+  Key: array[0..15] of Byte;
+  Msg: Cardinal;
+  Mac: Cardinal;
+begin
+  FillChar(Key[0], SizeOf(Key), 0);
+  Msg := 0;
+  ZUCEIA3(@Key[0], 0, 0, 0, @Msg, 1, Mac);
+  Result := Mac = $C8A9595E;
+end;
+
+function TestZUCEIA32: Boolean;
+const
+  Key: array[0..15] of Byte = ($47, $05, $41, $25, $56, $1E, $B2, $DD, $A9, $40, $59, $DA, $05, $09, $78, $50);
+var
+  Msg: array[0..2] of Cardinal;
+  Mac: Cardinal;
+begin
+  FillChar(Msg[0], SizeOf(Msg), 0);
+  ZUCEIA3(@Key[0], $561EB2DD, $14, 0, @Msg[0], 90, Mac);
+  Result := Mac = $6719A088;
+end;
+
+function TestZUCEIA33: Boolean;
+const
+  Key: array[0..15] of Byte = ($C9, $E6, $CE, $C4, $60, $7C, $72, $DB, $00, $0A, $EF, $A8, $83, $85, $AB, $0A);
+  Msg: array[0..18] of Cardinal = ($983B41D4, $7D780C9E, $1AD11D7E, $B70391B1, $DE0B35DA, $2DC62F83, $E7B78D63, $06CA0EA0,
+    $7E941B7B, $E91348F9, $FCB170E2, $217FECD9, $7F9F68AD, $B16E5D7D, $21E569D2, $80ED775C, $EBDE3F40, $93C53881, 0);
+var
+  Mac: Cardinal;
+begin
+  ZUCEIA3(@Key[0], $A94059DA, $A, 1, @Msg[0], 577, Mac);
+  Result := Mac = $FAE8FF0B;
+end;
+
 // ================================ TEA ========================================
 
 function TestTea: Boolean;

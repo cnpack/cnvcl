@@ -27,7 +27,7 @@ unit CnZUC;
 * 备    注：参考国密算法公开文档《祖冲之序列密码算法 ZUC stream cipher algorithm》
 *           与英文的《Specification of the 3GPP Confidentiality and Integrity
 *           Algorithms 128-EEA3 & 128-EIA3》仨文档，并参考移植其 C 实现代码
-*
+*           祖冲之算法面向四字节为单位的数据流，四字节内部的大小端未处理
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -53,7 +53,7 @@ procedure ZUC(Key: PByte; IV: PByte; KeyStream: PCardinal; KeyStreamLen: Cardina
 
   Key 和 IV 为输入的 16 字节数据。
   KeyStream 为输出地址，长度应为 KeyStreamLen * SizeOf(Cardinal)
-  KeyStreamLen 是要求计算的长度
+  KeyStreamLen 是要求计算的长度，以四字节为单位
 }
 
 procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
@@ -76,7 +76,7 @@ procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
 }
 
 procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: Cardinal;
-  M: PCardinal; BitLen: Cardinal; Mac: PCardinal);
+  M: PCardinal; BitLen: Cardinal; out Mac: Cardinal);
 {*
   基于祖冲之算法的 EIA3 完整性保护算法，使用一个完整性密钥 IK 对给定的输入消息计算出一个 32 位的 MAC 值
 
@@ -91,7 +91,7 @@ procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: Cardinal;
 
   输出：
   参数         规模（比特数）    说明
-  MAC          32                32 位MAC值
+  MAC          32                32 位 MAC 值
 }
 
 implementation
@@ -358,11 +358,13 @@ var
   T: Integer;
 begin
   T := I mod 32;
+  I := I div 32;
+
   if T = 0 then
-    Result := (PCardinal(TCnNativeInt(Data) + SizeOf(Cardinal) * I div 32))^
+    Result := PCardinal(TCnNativeInt(Data) + SizeOf(Cardinal) * I)^
   else
-    Result := ((PCardinal(TCnNativeInt(Data) + SizeOf(Cardinal) * I div 32))^ shl T) or
-      ((PCardinal(TCnNativeInt(Data) + SizeOf(Cardinal) * ((I div 32) + 1)))^ shr (32 - T));
+    Result := (PCardinal(TCnNativeInt(Data) + SizeOf(Cardinal) * I)^ shl T) or
+      (PCardinal(TCnNativeInt(Data) + SizeOf(Cardinal) * (I + 1))^ shr (32 - T));
 end;
 
 // 取内存块第 I 个 Bit 起的一个 Bit，I 从 0 开始，返回 0 或 1
@@ -379,7 +381,7 @@ begin
 end;
 
 procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: Cardinal;
-  M: PCardinal; BitLen: Cardinal; Mac: PCardinal);
+  M: PCardinal; BitLen: Cardinal; out Mac: Cardinal);
 var
   IV: array[0..15] of Byte;
   T: Cardinal;
@@ -410,7 +412,7 @@ begin
   L := (N + 31) div 32;
   Z := PCardinal(GetMemory(L * SizeOf(Cardinal)));
 
-  ZUC(IK, PByte(@IV[0]), Z, L);
+  ZUC(IK, @IV[0], Z, L);
   T := 0;
   for I := 0 to BitLen - 1 do
   begin
@@ -419,7 +421,7 @@ begin
   end;
   T := T xor GetDWord(Z, BitLen);
 
-  Mac^ := T xor (PCardinal(TCnNativeInt(Z) + SizeOf(Cardinal) * (L - 1)))^;
+  Mac := T xor PCardinal(TCnNativeInt(Z) + SizeOf(Cardinal) * (L - 1))^;
   FreeMemory(Z);
 end;
 
