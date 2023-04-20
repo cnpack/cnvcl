@@ -123,6 +123,7 @@ var
 {$IFDEF MSWINDOWS}
   HProv: THandle;
   Res: DWORD;
+  B: Boolean;
 {$ELSE}
   F: TFileStream;
 {$ENDIF}
@@ -131,7 +132,11 @@ begin
 {$IFDEF MSWINDOWS}
   // 使用 Windows API 实现区块随机填充
   HProv := 0;
-  if not CryptAcquireContext(@HProv, nil, nil, PROV_RSA_FULL, 0) then
+  B := CryptAcquireContext(@HProv, nil, nil, PROV_RSA_FULL, 0);
+  if not B then
+    B := CryptAcquireContext(@HProv, nil, nil, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
+
+  if not B then
   begin
     Res := GetLastError;
     if Res = NTE_BAD_KEYSET then // KeyContainer 不存在，用新建的方式
@@ -299,9 +304,14 @@ end;
 procedure StartRandom;
 var
   Res: DWORD;
+  B: Boolean;
 begin
   FHProv := 0;
-  if not CryptAcquireContext(@FHProv, nil, nil, PROV_RSA_FULL, 0) then
+  B := CryptAcquireContext(@FHProv, nil, nil, PROV_RSA_FULL, 0);
+  if not B then
+    B := CryptAcquireContext(@FHProv, nil, nil, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
+
+  if not B then
   begin
     Res := GetLastError;
     if Res = NTE_BAD_KEYSET then // KeyContainer 不存在，用新建的方式

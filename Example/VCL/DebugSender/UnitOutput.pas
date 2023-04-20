@@ -772,6 +772,7 @@ begin
   if FComponenet = nil then
     FComponenet := TCnSampleComponent.Create(Self);
 
+  (FComponenet as TCnSampleComponent).OnClick := btnEvaluateSampleClick;
   CnDebugger.EvaluateObject(FComponenet);
 end;
 
