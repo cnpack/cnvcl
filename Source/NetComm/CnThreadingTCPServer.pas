@@ -101,8 +101,10 @@ type
   end;
 
   TCnServerSocketErrorEvent = procedure (Sender: TObject; SocketError: Integer) of object;
+  {* 出错的事件类型}
 
   TCnSocketAcceptEvent = procedure (Sender: TObject; ClientSocket: TCnClientSocket) of object;
+  {* 有客户端连接成功后的处理事件类型}
 
   TCnTCPAcceptThread = class(TThread)
   {* 监听线程，一个 TCPServer 只有一个，用于 Accept}
@@ -144,6 +146,8 @@ type
     FListLock: TCriticalSection;
     FClientThreads: TObjectList; // 存储 Accept 出的每个和 Client 通讯的线程
     FActive: Boolean;
+    FOpening: Boolean;
+    FClosing: Boolean;
     FListening: Boolean;
     FActualLocalPort: Word;
     FLocalPort: Word;
@@ -198,6 +202,10 @@ type
     {* 从各客户端收取的总字节数}
     property Listening: Boolean read FListening;
     {* 是否正在监听}
+    property Openinng: Boolean read FOpening;
+    {* 是否在 Open 过程中，Open 成功或失败后置为 False}
+    property Closing: Boolean read FClosing;
+    {* 是否在 Close 过程中，Close 成功或失败后置为 False}
     property ActualLocalPort: Word read GetActualLocalPort;
     {* LocalPort 为 0 时随机选择一个端口监听，返回该端口值}
   published
@@ -211,9 +219,10 @@ type
     {* 能够接入的最大连接数，超过则 Accept 时直接关闭新接入连接}
 
     property OnError: TCnServerSocketErrorEvent read FOnError write FOnError;
-    {* 出错事件}
+    {* 出错事件，参数是 Server 实例}
     property OnAccept: TCnSocketAcceptEvent read FOnAccept write FOnAccept;
-    {* 新客户端连接上时触发的事件，处理函数可循环接收、输出，退出事件则断开连接}
+    {* 新客户端连接上时触发的事件，由对应客户端的处理线程调用，
+      处理函数可循环接收、输出，退出事件则断开连接，事件参数为 Server 实例与 ClientSocket 实例}
     property OnShutdownClient: TNotifyEvent read FOnShutdownClient write FOnShutdownClient;
     {* 调用 ClientSocket.Shutdown 关闭某客户端时触发，供使用者额外关闭客户端连接相关的另外资源}
   end;
@@ -290,25 +299,30 @@ begin
 
   if FActive then
   begin
-    // 通知停止 Accept 线程，防止还有新 Client 进来
-    CnShutdown(FSocket, SD_BOTH); // 忽略未连接时的出错
-    CheckSocketError(CnCloseSocket(FSocket));
-
-    FSocket := INVALID_SOCKET;
-    FAcceptThread.Terminate;
+    FClosing := True;
     try
-      FAcceptThread.WaitFor;
-    except
-      ;  // WaitFor 时可能已经 Terminated，导致出句柄无效的错
+      // 通知停止 Accept 线程，防止还有新 Client 进来
+      CnShutdown(FSocket, SD_BOTH); // 忽略未连接时的出错
+      CheckSocketError(CnCloseSocket(FSocket));
+
+      FSocket := INVALID_SOCKET;
+      FAcceptThread.Terminate;
+      try
+        FAcceptThread.WaitFor;
+      except
+        ;  // WaitFor 时可能已经 Terminated，导致出句柄无效的错
+      end;
+      FAcceptThread := nil;
+
+      // 踢掉所有客户端
+      KickAll;
+
+      FActualLocalPort := 0;
+      FListening := False;
+      FActive := False;
+    finally
+      FClosing := False;
     end;
-    FAcceptThread := nil;
-
-    // 踢掉所有客户端
-    KickAll;
-
-    FActualLocalPort := 0;
-    FListening := False;
-    FActive := False;
   end;
 end;
 
@@ -432,21 +446,26 @@ begin
   FActive := FSocket <> INVALID_SOCKET;
   if FActive then
   begin
-    if Bind then
-    begin
-      if Listen then
+    FOpening := True;
+    try
+      if Bind then
       begin
-        // 创建 Accept 线程，等新的客户来连接
-        if FAcceptThread = nil then
+        if Listen then
         begin
-          FAcceptThread := TCnTCPAcceptThread.Create(True);
-          FAcceptThread.FreeOnTerminate := True;
-        end;
+          // 创建 Accept 线程，等新的客户来连接
+          if FAcceptThread = nil then
+          begin
+            FAcceptThread := TCnTCPAcceptThread.Create(True);
+            FAcceptThread.FreeOnTerminate := True;
+          end;
 
-        FAcceptThread.Server := Self;
-        FAcceptThread.ServerSocket := FSocket;
-        FAcceptThread.Resume;
+          FAcceptThread.Server := Self;
+          FAcceptThread.ServerSocket := FSocket;
+          FAcceptThread.Resume;
+        end;
       end;
+    finally
+      FOpening := False;
     end;
   end;
 end;
