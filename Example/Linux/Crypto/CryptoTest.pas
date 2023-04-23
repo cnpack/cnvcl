@@ -179,6 +179,7 @@ function TestFNV1a: Boolean;
 
 function TestSM21: Boolean;
 function TestSM22: Boolean;
+function TestSM23: Boolean;
 
 // ================================ SM3 ========================================
 
@@ -338,6 +339,7 @@ begin
 
   Assert(TestSM21, 'TestSM21');
   Assert(TestSM22, 'TestSM22');
+  Assert(TestSM23, 'TestSM23');
 
 // ================================ SM3 ========================================
 
@@ -1602,30 +1604,36 @@ begin
   M := 'message digest';
   U := '1234567812345678';
 
-  Priv := TCnSM2PrivateKey.Create;
-  Pub := TCnSM2PublicKey.Create;
-  Sig := TCnSM2Signature.Create;
+  Priv := nil;
+  Pub := nil;
+  Sig := nil;
 
-  Priv.SetHex('3945208F7B2144B13F36E38AC6D39F95889393692860B51A42FB81EF4DF7C5B8');
-  Pub.X.SetHex('09F9DF311E5421A150DD7D161E4BC5C672179FAD1833FC076BB08FF356F35020');
-  Pub.Y.SetHex('CCEA490CE26775A52DC6EA718CC1AA600AED05FBF35E084A6632F6072DA9AD13');
+  try
+    Priv := TCnSM2PrivateKey.Create;
+    Pub := TCnSM2PublicKey.Create;
+    Sig := TCnSM2Signature.Create;
 
-  Result := CnSM2CheckKeys(Priv, Pub);
-  if not Result then Exit;
+    Priv.SetHex('3945208F7B2144B13F36E38AC6D39F95889393692860B51A42FB81EF4DF7C5B8');
+    Pub.X.SetHex('09F9DF311E5421A150DD7D161E4BC5C672179FAD1833FC076BB08FF356F35020');
+    Pub.Y.SetHex('CCEA490CE26775A52DC6EA718CC1AA600AED05FBF35E084A6632F6072DA9AD13');
 
-  if CnSM2SignData(U, @M[1], Length(M), Sig, Priv, Pub, nil, '59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21') then
-  begin
-    Result := Sig.ToHex() = 'F5A03B0648D2C4630EEAC513E1BB81A15944DA3827D5B74143AC7EACEEE720B3' +
-      'B1B6AA29DF212FD8763182BC0D421CA1BB9038FD1F7F42D4840B69C485BBC1AA';
-
+    Result := CnSM2CheckKeys(Priv, Pub);
     if not Result then Exit;
 
-    Result := CnSM2VerifyData(U, @M[1], Length(M), Sig, Pub);
-  end;
+    if CnSM2SignData(U, @M[1], Length(M), Sig, Priv, Pub, nil, '59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21') then
+    begin
+      Result := Sig.ToHex() = 'F5A03B0648D2C4630EEAC513E1BB81A15944DA3827D5B74143AC7EACEEE720B3' +
+        'B1B6AA29DF212FD8763182BC0D421CA1BB9038FD1F7F42D4840B69C485BBC1AA';
 
-  Sig.Free;
-  Pub.Free;
-  Priv.Free;
+      if not Result then Exit;
+
+      Result := CnSM2VerifyData(U, @M[1], Length(M), Sig, Pub);
+  end;
+  finally
+    Sig.Free;
+    Pub.Free;
+    Priv.Free;
+  end;
 end;
 
 function TestSM22: Boolean;
@@ -1638,34 +1646,106 @@ begin
   // SM2 加密解密，《SM2椭 圆曲线公钥密码算法第五部分参数定义》中的例子
   M := 'encryption standard';
 
-  Priv := TCnSM2PrivateKey.Create;
-  Pub := TCnSM2PublicKey.Create;
-  EnStream := TMemoryStream.Create;
+  Priv := nil;
+  Pub := nil;
+  EnStream := nil;
+  DeStream := nil;
 
-  Priv.SetHex('3945208F7B2144B13F36E38AC6D39F95889393692860B51A42FB81EF4DF7C5B8');
-  Pub.X.SetHex('09F9DF311E5421A150DD7D161E4BC5C672179FAD1833FC076BB08FF356F35020');
-  Pub.Y.SetHex('CCEA490CE26775A52DC6EA718CC1AA600AED05FBF35E084A6632F6072DA9AD13');
+  try
+    Priv := TCnSM2PrivateKey.Create;
+    Pub := TCnSM2PublicKey.Create;
+    EnStream := TMemoryStream.Create;
 
-  Result := False;
-  if CnSM2EncryptData(@M[1], Length(M), EnStream, Pub, nil, cstC1C3C2, True, '59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21') then
-  begin
-    Result := DataToHex(EnStream.Memory, EnStream.Size) = '04' +
-      '04EBFC718E8D1798620432268E77FEB6415E2EDE0E073C0F4F640ECD2E149A73' +
-      'E858F9D81E5430A57B36DAAB8F950A3C64E6EE6A63094D99283AFF767E124DF0' +
-      '59983C18F809E262923C53AEC295D30383B54E39D609D160AFCB1908D0BD8766' +
-      '21886CA989CA9C7D58087307CA93092D651EFA';
+    Priv.SetHex('3945208F7B2144B13F36E38AC6D39F95889393692860B51A42FB81EF4DF7C5B8');
+    Pub.X.SetHex('09F9DF311E5421A150DD7D161E4BC5C672179FAD1833FC076BB08FF356F35020');
+    Pub.Y.SetHex('CCEA490CE26775A52DC6EA718CC1AA600AED05FBF35E084A6632F6072DA9AD13');
 
+    Result := False;
+    if CnSM2EncryptData(@M[1], Length(M), EnStream, Pub, nil, cstC1C3C2, True, '59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21') then
+    begin
+      Result := DataToHex(EnStream.Memory, EnStream.Size) = '04' +
+        '04EBFC718E8D1798620432268E77FEB6415E2EDE0E073C0F4F640ECD2E149A73' +
+        'E858F9D81E5430A57B36DAAB8F950A3C64E6EE6A63094D99283AFF767E124DF0' +
+        '59983C18F809E262923C53AEC295D30383B54E39D609D160AFCB1908D0BD8766' +
+        '21886CA989CA9C7D58087307CA93092D651EFA';
+
+      if not Result then Exit;
+
+      DeStream := TMemoryStream.Create;
+      if CnSM2DecryptData(EnStream.Memory, EnStream.Size, DeStream, Priv) then
+        Result := CompareMem(DeStream.Memory, @M[1], DeStream.Size);
+    end;
+  finally
+    DeStream.Free;
+    EnStream.Free;
+    Pub.Free;
+    Priv.Free;
+  end;
+end;
+
+function TestSM23: Boolean;
+const
+  KEY_LENGTH = 16;
+  AID = '12341234';
+  BID = '43214321';
+var
+  APrivateKey, BPrivateKey: TCnSM2PrivateKey;
+  APublicKey, BPublicKey: TCnSM2PublicKey;
+  RandA, RandB: TCnBigNumber;
+  OutRA, OutRB: TCnEccPoint;
+  KA, KB: AnsiString;
+  OpSA, OpSB, OpS2: TCnSM3Digest;
+begin
+  APrivateKey := TCnSM2PrivateKey.Create;
+  APublicKey := TCnSM2PublicKey.Create;
+  BPrivateKey := TCnSM2PrivateKey.Create;
+  BPublicKey := TCnSM2PublicKey.Create;
+
+  RandA := TCnBigNumber.Create;
+  RandB := TCnBigNumber.Create;
+  OutRA := TCnEccPoint.Create;
+  OutRB := TCnEccPoint.Create;
+
+  try
+    APrivateKey.SetHex('81EB26E941BB5AF16DF116495F90695272AE2CD63D6C4AE1678418BE48230029');
+    APublicKey.X.SetHex('160E12897DF4EDB61DD812FEB96748FBD3CCF4FFE26AA6F6DB9540AF49C94232');
+    APublicKey.Y.SetHex('4A7DAD08BB9A459531694BEB20AA489D6649975E1BFCF8C4741B78B4B223007F');
+    BPrivateKey.SetHex('785129917D45A9EA5437A59356B82338EAADDA6CEB199088F14AE10DEFA229B5');
+    BPublicKey.X.SetHex('6AE848C57C53C7B1B5FA99EB2286AF078BA64C64591B8B566F7357D576F16DFB');
+    BPublicKey.Y.SetHex('EE489D771621A27B36C5C7992062E9CD09A9264386F3FBEA54DFF69305621C4D');
+
+    // Step1
+    Result := CnSM2KeyExchangeAStep1(AID, BID, KEY_LENGTH,
+      APrivateKey, APublicKey, BPublicKey, RandA, OutRA);
     if not Result then Exit;
 
-    DeStream := TMemoryStream.Create;
-    if CnSM2DecryptData(EnStream.Memory, EnStream.Size, DeStream, Priv) then
-      Result := CompareMem(DeStream.Memory, @M[1], DeStream.Size);
-    DeStream.Free;
-  end;
+    // Step2
+    Result := CnSM2KeyExchangeBStep1(AID, BID, KEY_LENGTH,
+      BPrivateKey, APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, OpS2);
+    if not Result then Exit;
 
-  EnStream.Free;
-  Pub.Free;
-  Priv.Free;
+    // Step3
+    Result := CnSM2KeyExchangeAStep2(AID, BID, KEY_LENGTH,
+      APrivateKey, APublicKey, BPublicKey, OutRA, OutRB, RandA, KA, OpSB, OpSA);
+    if not Result then Exit;
+
+    // Step4
+    Result := CnSM2KeyExchangeBStep2(AID, BID, KEY_LENGTH,
+      BPrivateKey, APublicKey, BPublicKey, OpSA, OpS2);
+    if not Result then Exit;
+
+    Result := KA = KB;
+  finally
+    OutRA.Free;
+    OutRB.Free;
+    RandA.Free;
+    RandB.Free;
+
+    APublicKey.Free;
+    APrivateKey.Free;
+    BPublicKey.Free;
+    BPrivateKey.Free;
+  end;
 end;
 
 // ================================ SM3 ========================================
