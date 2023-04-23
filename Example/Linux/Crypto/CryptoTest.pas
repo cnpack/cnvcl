@@ -187,6 +187,11 @@ function TestSM3: Boolean;
 function TestSM3HMac: Boolean;
 
 // ================================ SM9 ========================================
+
+function TestSM9Hash1: Boolean;
+function TestSM9Hash2: Boolean;
+function TestSM9Mac: Boolean;
+
 // ================================ RSA ========================================
 
 function TestRSA1: Boolean;
@@ -347,6 +352,11 @@ begin
   Assert(TestSM3Hmac, 'TestSM3Hmac');
 
 // ================================ SM9 ========================================
+
+  Assert(TestSM9Hash1, 'TestSM9Hash1');
+  Assert(TestSM9Hash2, 'TestSM9Hash2');
+  Assert(TestSM9Mac, 'TestSM9Mac');
+
 // ================================ RSA ========================================
 
   Assert(TestRSA1, 'TestRSA1');
@@ -1773,6 +1783,71 @@ begin
 end;
 
 // ================================ SM9 ========================================
+
+function TestSM9Hash1: Boolean;
+var
+  SM9: TCnSM9;
+  S: AnsiString;
+  Res: TCnBigNumber;
+begin
+  // SM9 相关杂凑之一，《SM9 标识密码算法第 5 部分：参数定义》中的签名部分与密钥交换部分的杂凑例子
+  SM9 := TCnSM9.Create;
+  S := 'Alice' + #1;
+  Res := TCnBigNumber.Create;
+
+  CnSM9Hash1(Res, @S[1], Length(S), SM9.Order);
+  Result := Res.ToHex() = '2ACC468C3926B0BDB2767E99FF26E084DE9CED8DBC7D5FBF418027B667862FAB';
+  if not Result then Exit;
+
+  S := 'Alice' + #2;
+  CnSM9Hash1(Res, @S[1], Length(S), SM9.Order);
+  Result := Res.ToHex() = 'A9AC0FDA7380ED8E3325FDDCD40A7221E3CD72F6FFA7F27D54AD494CEDB4E212';
+
+  Res.Free;
+  SM9.Free;
+end;
+
+function TestSM9Hash2: Boolean;
+var
+  SM9: TCnSM9;
+  S: AnsiString;
+  Data: TBytes;
+  Res: TCnBigNumber;
+begin
+  // SM9 相关杂凑之二，《SM9 标识密码算法第 5 部分：参数定义》中的密钥交换部分的杂凑例子
+  SM9 := TCnSM9.Create;
+  Data := HexToBytes('4368696E65736520494253207374616E6461726481377B8FDBC2839B4FA2D0E0F8AA6853BBBE9E9C' +
+    '4099608F8612C6078ACD7563815AEBA217AD502DA0F48704CC73CABB3C06209BD87142E14CBD99E8' +
+    'BCA1680F30DADC5CD9E207AEE32209F6C3CA3EC0D800A1A42D33C73153DED47C70A39D2E8EAF5D17' +
+    '9A1836B359A9D1D9BFC19F2EFCDB829328620962BD3FDF15F2567F58A543D25609AE943920679194' +
+    'ED30328BB33FD15660BDE485C6B79A7B32B013983F012DB04BA59FE88DB889321CC2373D4C0C35E8' +
+    '4F7AB1FF33679BCA575D67654F8624EB435B838CCA77B2D0347E65D5E46964412A096F4150D8C5ED' +
+    'E5440DDF0656FCB663D24731E80292188A2471B8B68AA993899268499D23C89755A1A89744643CEA' +
+    'D40F0965F28E1CD2895C3D118E4F65C9A0E3E741B6DD52C0EE2D25F5898D60848026B7EFB8FCC1B2' +
+    '442ECF0795F8A81CEE99A6248F294C82C90D26BD6A814AAF475F128AEF43A128E37F80154AE6CB92' +
+    'CAD7D1501BAE30F750B3A9BD1F96B08E97997363911314705BFB9A9DBB97F75553EC90FBB2DDAE53' +
+    'C8F68E42');
+  Res := TCnBigNumber.Create;
+
+  CnSM9Hash2(Res, @Data[0], Length(Data), SM9.Order);
+  Result := Res.ToHex() = '823C4B21E4BD2DFE1ED92C606653E996668563152FC33F55D7BFBB9BD9705ADB';
+
+  Res.Free;
+  SM9.Free;
+end;
+
+function TestSM9Mac: Boolean;
+var
+  K, C: TBytes;
+  D: TCnSM3Digest;
+begin
+  // SM9 相关杂凑 MAC，《SM9 标识密码算法第 5 部分：参数定义》中的加密部分的杂凑例子
+  K := HexToBytes('8651FFD5F738003E51DF31174D0E4E402FD87F4581B612F74259DB574F67ECE6');
+  C := HexToBytes('1B5F5B0E951489682F3E64E1378CDD5DA9513B1C');
+  D := SM9Mac(@K[0], Length(K), @C[0], Length(C));
+  Result := DataToHex(@D[0], SizeOf(TCnSM3Digest)) = 'BA672387BCD6DE5016A158A52BB2E7FC429197BCAB70B25AFEE37A2B9DB9F367';
+end;
+
 // ================================ RSA ========================================
 
 function TestRSA1: Boolean;
