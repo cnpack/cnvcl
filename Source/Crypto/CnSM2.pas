@@ -127,6 +127,10 @@ function CnSM2GenerateKeys(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2Public
   SM2: TCnSM2 = nil): Boolean;
 {* 生成一对 SM2 公私钥}
 
+function CnSM2CheckKeys(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
+  SM2: TCnSM2 = nil): Boolean;
+{* 检验一对 SM2 公私钥是否合法}
+
 // ========================= SM2 椭圆曲线加解密算法 ============================
 
 function CnSM2EncryptData(PlainData: Pointer; DataLen: Integer; OutStream:
@@ -606,6 +610,39 @@ begin
     Result := True;
     _CnSetLastError(ECN_SM2_OK);
   finally
+    if SM2IsNil then
+      SM2.Free;
+  end;
+end;
+
+function CnSM2CheckKeys(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
+  SM2: TCnSM2 = nil): Boolean;
+var
+  SM2IsNil: Boolean;
+  Pub: TCnSM2PublicKey;
+begin
+  Result := False;
+  if (PrivateKey = nil) or (PublicKey = nil) then
+  begin
+    _CnSetLastError(ECN_SM2_INVALID_INPUT);
+    Exit;
+  end;
+
+  SM2IsNil := SM2 = nil;
+  Pub := nil;
+
+  try
+    if SM2IsNil then
+      SM2 := TCnSM2.Create;
+
+    Pub := TCnSM2PublicKey.Create;
+    Pub.Assign(SM2.Generator);
+    SM2.MultiplePoint(PrivateKey, Pub);
+
+    Result := CnEccPointsEqual(Pub, PublicKey);
+    _CnSetLastError(ECN_SM2_OK);
+  finally
+    Pub.Free;
     if SM2IsNil then
       SM2.Free;
   end;
@@ -1268,7 +1305,7 @@ begin
       if RandHex <> '' then
       begin
         K.SetHex(RandHex);
-        HexSet := True
+        HexSet := True;
       end
       else
       begin
