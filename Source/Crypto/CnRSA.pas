@@ -1989,12 +1989,13 @@ begin
 
     if RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res) then
     begin
-      SetLength(ResBuf, Res.GetBytesCount);
-      Res.ToBinary(@ResBuf[0]);
+      // 注意 Res 可能存在前导 0，所以此处必须以 PrivateKey.GetBytesCount 为准，才能确保不漏前导 0
+      SetLength(ResBuf, PrivateKey.GetBytesCount);
+      Res.ToBinary(@ResBuf[0], PrivateKey.GetBytesCount);
 
       // 保存用私钥加密后的内容至文件
       Stream.Clear;
-      Stream.Write(ResBuf[0], Res.GetBytesCount);
+      Stream.Write(ResBuf[0], PrivateKey.GetBytesCount);
       Stream.SaveToStream(OutSignStream);
 
       Result := True;
