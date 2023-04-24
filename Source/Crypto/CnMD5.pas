@@ -175,8 +175,19 @@ function MD5DigestToStr(aDig: TCnMD5Digest): string;
 
 procedure MD5Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnMD5Digest);
+{* Hash-based Message Authentication Code (based on MD5)}
 
-{* Hash-based Message Authentication Code (based on MD5) }
+// 以下三个函数用于外部持续对数据进行零散的 MD5 计算，MD5Update 可多次被调用
+
+procedure MD5Init(var Context: TCnMD5Context);
+{* 初始化一轮 MD5 计算上下文，准备计算 MD5 结果}
+
+procedure MD5Update(var Context: TCnMD5Context; Input: PAnsiChar; ByteLength: Cardinal);
+{* 以初始化后的上下文对一块数据进行 MD5 计算。
+  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
+
+procedure MD5Final(var Context: TCnMD5Context; var Digest: TCnMD5Digest);
+{* 结束本轮计算，将 MD5 结果返回至 Digest 中}
 
 implementation
 
@@ -399,7 +410,7 @@ begin
 end;
 
 // Update given Context to include Length bytes of Input
-procedure MD5Update(var Context: TCnMD5Context; Input: PAnsiChar; Length: Cardinal);
+procedure MD5Update(var Context: TCnMD5Context; Input: PAnsiChar; ByteLength: Cardinal);
 var
   Index: Cardinal;
   PartLen: Cardinal;
@@ -407,19 +418,19 @@ var
 begin
   with Context do
   begin
-    Index := (Count[0] shr 3) and $3f;
-    Inc(Count[0], Length shl 3);
-    if Count[0] < (Length shl 3) then Inc(Count[1]);
-    Inc(Count[1], Length shr 29);
+    Index := (Count[0] shr 3) and $3F;
+    Inc(Count[0], ByteLength shl 3);
+    if Count[0] < (ByteLength shl 3) then Inc(Count[1]);
+    Inc(Count[1], ByteLength shr 29);
   end;
 
   PartLen := 64 - Index;
-  if Length >= PartLen then
+  if ByteLength >= PartLen then
   begin
     Move(Input^, Context.Buffer[Index], PartLen);
     Transform(@Context.Buffer, Context.State);
     I := PartLen;
-    while I + 63 < Length do
+    while I + 63 < ByteLength do
     begin
       Transform(@Input[I], Context.State);
       Inc(I, 64);
@@ -429,7 +440,7 @@ begin
   else
     I := 0;
 
-  Move(Input[I], Context.Buffer[Index], Length - I);
+  Move(Input[I], Context.Buffer[Index], ByteLength - I);
 end;
 
 procedure MD5UpdateW(var Context: TCnMD5Context; Input: PWideChar; CharLength: Cardinal);

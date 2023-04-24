@@ -64,17 +64,21 @@ type
 
 // 以下三个函数用于外部持续对数据进行零散的 SM3 计算，SM3Update 可多次被调用
 
-procedure SM3Start(var Ctx: TCnSM3Context);
+procedure SM3Init(var Context: TCnSM3Context);
+{* 初始化一轮 SM3 计算上下文，准备计算 SM3 结果}
 
-procedure SM3Update(var Ctx: TCnSM3Context; Input: PAnsiChar; CharLength: Cardinal);
+procedure SM3Update(var Context: TCnSM3Context; Input: PAnsiChar; ByteLength: Cardinal);
+{* 以初始化后的上下文对一块数据进行 SM3 计算。
+  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
 
-procedure SM3Finish(var Ctx: TCnSM3Context; var Output: TCnSM3Digest);
+procedure SM3Final(var Context: TCnSM3Context; var Digest: TCnSM3Digest);
+{* 结束本轮计算，将 SM3 结果返回至 Digest 中}
 
-function SM3(Input: PAnsiChar; Length: Cardinal): TCnSM3Digest;
+function SM3(Input: PAnsiChar; ByteLength: Cardinal): TCnSM3Digest;
 {* 对数据块进行 SM3 计算
  |<PRE>
-   Input: PAnsiChar  - 要计算的数据块
-   Length: Cardinal  - 数据块长度
+   Input: PAnsiChar      - 要计算的数据块
+   ByteLength: Cardinal  - 数据块的字节长度
  |</PRE>}
 
 //procedure SM3HmacStarts(var Ctx: TSM3Context; Key: PAnsiChar; KeyLength: Integer);
@@ -84,7 +88,7 @@ function SM3(Input: PAnsiChar; Length: Cardinal): TCnSM3Digest;
 //procedure SM3HmacFinish(var Ctx: TSM3Context; var Output: TSM3Digest);
 
 procedure SM3Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnSM3Digest);
+  ByteLength: Cardinal; var Output: TCnSM3Digest);
 
 {* Hash-based Message Authentication Code (based on SM3) }
 
@@ -92,11 +96,11 @@ function SM3Buffer(const Buffer; Count: Cardinal): TCnSM3Digest;
 {* 对数据块进行 SM3 计算
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
-   Count: LongWord  - 数据块长度
+   Count: Cardinal  - 数据块长度
  |</PRE>}
 
 function SM3Bytes(Data: TBytes): TCnSM3Digest;
-{* 对 TBytes 进行 MD5 计算
+{* 对 TBytes 进行 SM3 计算
  |<PRE>
    Data     - 要计算的字节数组
  |</PRE>}
@@ -230,25 +234,25 @@ begin
   Result := X xor ROTL(X, 15) xor ROTL(X, 23);
 end;
 
-procedure SM3Start(var Ctx: TCnSM3Context);
+procedure SM3Init(var Context: TCnSM3Context);
 begin
-  Ctx.Total[0] := 0;
-  Ctx.Total[1] := 0;
+  Context.Total[0] := 0;
+  Context.Total[1] := 0;
 
-  Ctx.State[0] := $7380166F;
-  Ctx.State[1] := $4914B2B9;
-  Ctx.State[2] := $172442D7;
-  Ctx.State[3] := $DA8A0600;
-  Ctx.State[4] := $A96F30BC;
-  Ctx.State[5] := $163138AA;
-  Ctx.State[6] := $E38DEE4D;
-  Ctx.State[7] := $B0FB0E4E;
+  Context.State[0] := $7380166F;
+  Context.State[1] := $4914B2B9;
+  Context.State[2] := $172442D7;
+  Context.State[3] := $DA8A0600;
+  Context.State[4] := $A96F30BC;
+  Context.State[5] := $163138AA;
+  Context.State[6] := $E38DEE4D;
+  Context.State[7] := $B0FB0E4E;
 
-  FillChar(Ctx.Buffer, SizeOf(Ctx.Buffer), 0);
+  FillChar(Context.Buffer, SizeOf(Context.Buffer), 0);
 end;
 
 // 一次处理 64byte 也就是512bit 数据块
-procedure SM3Process(var Ctx: TCnSM3Context; Data: PAnsiChar);
+procedure SM3Process(var Context: TCnSM3Context; Data: PAnsiChar);
 var
   SS1, SS2, TT1, TT2: Cardinal;
   W: array[0..67] of Cardinal;
@@ -295,14 +299,14 @@ begin
 
   // 已经处理好俩数组W/W1的值。
 
-  A := Ctx.State[0];
-  B := Ctx.State[1];
-  C := Ctx.State[2];
-  D := Ctx.State[3];
-  E := Ctx.State[4];
-  F := Ctx.State[5];
-  G := Ctx.State[6];
-  H := Ctx.State[7];
+  A := Context.State[0];
+  B := Context.State[1];
+  C := Context.State[2];
+  D := Context.State[3];
+  E := Context.State[4];
+  F := Context.State[5];
+  G := Context.State[6];
+  H := Context.State[7];
 
   for J := 0 to 15 do
   begin
@@ -336,14 +340,14 @@ begin
     E := P0(TT2);
   end;
 
-  Ctx.State[0] := Ctx.State[0] xor A;
-  Ctx.State[1] := Ctx.State[1] xor B;
-  Ctx.State[2] := Ctx.State[2] xor C;
-  Ctx.State[3] := Ctx.State[3] xor D;
-  Ctx.State[4] := Ctx.State[4] xor E;
-  Ctx.State[5] := Ctx.State[5] xor F;
-  Ctx.State[6] := Ctx.State[6] xor G;
-  Ctx.State[7] := Ctx.State[7] xor H;
+  Context.State[0] := Context.State[0] xor A;
+  Context.State[1] := Context.State[1] xor B;
+  Context.State[2] := Context.State[2] xor C;
+  Context.State[3] := Context.State[3] xor D;
+  Context.State[4] := Context.State[4] xor E;
+  Context.State[5] := Context.State[5] xor F;
+  Context.State[6] := Context.State[6] xor G;
+  Context.State[7] := Context.State[7] xor H;
 
   // 本轮无误
 end;
@@ -374,80 +378,80 @@ begin
 {$ENDIF}
 end;
 
-procedure SM3Update(var Ctx: TCnSM3Context; Input: PAnsiChar; CharLength: Cardinal);
+procedure SM3Update(var Context: TCnSM3Context; Input: PAnsiChar; ByteLength: Cardinal);
 var
   Fill, Left: Cardinal;
 begin
-  if (Input = nil) or (CharLength <= 0) then
+  if (Input = nil) or (ByteLength <= 0) then
     Exit;
 
-  Left := Ctx.Total[0] and $3F;
+  Left := Context.Total[0] and $3F;
   Fill := 64 - Left;
 
-  Ctx.Total[0] := Ctx.Total[0] + CharLength;
-  Ctx.Total[0] := Ctx.Total[0] and $FFFFFFFF;
+  Context.Total[0] := Context.Total[0] + ByteLength;
+  Context.Total[0] := Context.Total[0] and $FFFFFFFF;
 
-  if Ctx.Total[0] < CharLength then
-    Ctx.Total[1] := Ctx.Total[1] + 1;
+  if Context.Total[0] < ByteLength then
+    Context.Total[1] := Context.Total[1] + 1;
 
-  if (Left <> 0) and (CharLength >= Fill) then
+  if (Left <> 0) and (ByteLength >= Fill) then
   begin
-    Move(Input^, Ctx.Buffer[Left], Fill);
-    SM3Process(Ctx, @(Ctx.Buffer[0]));
+    Move(Input^, Context.Buffer[Left], Fill);
+    SM3Process(Context, @(Context.Buffer[0]));
     Input := Input + Fill;
-    CharLength := CharLength - Fill;
+    ByteLength := ByteLength - Fill;
     Left := 0;
   end;
 
-  while CharLength >= 64 do
+  while ByteLength >= 64 do
   begin
-    SM3Process(Ctx, Input);
+    SM3Process(Context, Input);
     Input := Input + 64;
-    CharLength := CharLength - 64;
+    ByteLength := ByteLength - 64;
   end;
 
-  if CharLength > 0 then
-    Move(Input^, Ctx.Buffer[Left], CharLength);
+  if ByteLength > 0 then
+    Move(Input^, Context.Buffer[Left], ByteLength);
 end;
 
-procedure SM3Finish(var Ctx: TCnSM3Context; var Output: TCnSM3Digest);
+procedure SM3Final(var Context: TCnSM3Context; var Digest: TCnSM3Digest);
 var
   Last, Padn: Cardinal;
   High, Low: Cardinal;
   MsgLen: array[0..7] of Byte;
 begin
-  High := (Ctx.Total[0] shr 29) or (Ctx.Total[1] shl 3);
-  Low := Ctx.Total[0] shl 3;
+  High := (Context.Total[0] shr 29) or (Context.Total[1] shl 3);
+  Low := Context.Total[0] shl 3;
 
   PutULongBe(High, @(MsgLen[0]), 0);
   PutULongBe(Low, @(MsgLen[0]), 4);
 
-  Last := Ctx.Total[0] and $3F;
+  Last := Context.Total[0] and $3F;
   if Last < 56 then
     Padn := 56 - Last
   else
     Padn := 120 - Last;
 
-  SM3Update(Ctx, @(SM3Padding[0]), Padn);
-  SM3Update(Ctx, @(MsgLen[0]), 8);
+  SM3Update(Context, @(SM3Padding[0]), Padn);
+  SM3Update(Context, @(MsgLen[0]), 8);
 
-  PutULongBe(Ctx.State[0], @Output,  0);
-  PutULongBe(Ctx.State[1], @Output,  4);
-  PutULongBe(Ctx.State[2], @Output,  8);
-  PutULongBe(Ctx.State[3], @Output, 12);
-  PutULongBe(Ctx.State[4], @Output, 16);
-  PutULongBe(Ctx.State[5], @Output, 20);
-  PutULongBe(Ctx.State[6], @Output, 24);
-  PutULongBe(Ctx.State[7], @Output, 28);
+  PutULongBe(Context.State[0], @Digest,  0);
+  PutULongBe(Context.State[1], @Digest,  4);
+  PutULongBe(Context.State[2], @Digest,  8);
+  PutULongBe(Context.State[3], @Digest, 12);
+  PutULongBe(Context.State[4], @Digest, 16);
+  PutULongBe(Context.State[5], @Digest, 20);
+  PutULongBe(Context.State[6], @Digest, 24);
+  PutULongBe(Context.State[7], @Digest, 28);
 end;
 
-function SM3(Input: PAnsiChar; Length: Cardinal): TCnSM3Digest;
+function SM3(Input: PAnsiChar; ByteLength: Cardinal): TCnSM3Digest;
 var
   Ctx: TCnSM3Context;
 begin
-  SM3Start(Ctx);
-  SM3Update(Ctx, Input, Length);
-  SM3Finish(Ctx, Result);
+  SM3Init(Ctx);
+  SM3Update(Ctx, Input, ByteLength);
+  SM3Final(Ctx, Result);
 end;
 
 procedure SM3HmacStarts(var Ctx: TCnSM3Context; Key: PAnsiChar; KeyLength: Integer);
@@ -471,7 +475,7 @@ begin
     Ctx.Opad[I] := Byte(Ctx.Opad[I] xor Byte(Key[I]));
   end;
 
-  SM3Start(Ctx);
+  SM3Init(Ctx);
   SM3Update(Ctx, @(Ctx.Ipad[0]), HMAC_SM3_BLOCK_SIZE_BYTE);
 end;
 
@@ -486,20 +490,20 @@ var
   TmpBuf: TCnSM3Digest;
 begin
   Len := HMAC_SM3_OUTPUT_LENGTH_BYTE;
-  SM3Finish(Ctx, TmpBuf);
-  SM3Start(Ctx);
+  SM3Final(Ctx, TmpBuf);
+  SM3Init(Ctx);
   SM3Update(Ctx, @(Ctx.Opad[0]), HMAC_SM3_BLOCK_SIZE_BYTE);
   SM3Update(Ctx, @(TmpBuf[0]), Len);
-  SM3Finish(Ctx, Output);
+  SM3Final(Ctx, Output);
 end;
 
 procedure SM3Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  Length: Cardinal; var Output: TCnSM3Digest);
+  ByteLength: Cardinal; var Output: TCnSM3Digest);
 var
   Ctx: TCnSM3Context;
 begin
   SM3HmacStarts(Ctx, Key, KeyLength);
-  SM3HmacUpdate(Ctx, Input, Length);
+  SM3HmacUpdate(Ctx, Input, ByteLength);
   SM3HmacFinish(Ctx, Output);
 end;
 
@@ -507,18 +511,18 @@ function SM3Buffer(const Buffer; Count: Cardinal): TCnSM3Digest;
 var
   Context: TCnSM3Context;
 begin
-  SM3Start(Context);
+  SM3Init(Context);
   SM3Update(Context, PAnsiChar(Buffer), Count);
-  SM3Finish(Context, Result);
+  SM3Final(Context, Result);
 end;
 
 function SM3Bytes(Data: TBytes): TCnSM3Digest;
 var
   Context: TCnSM3Context;
 begin
-  SM3Start(Context);
+  SM3Init(Context);
   SM3Update(Context, PAnsiChar(@Data[0]), Length(Data));
-  SM3Finish(Context, Result);
+  SM3Final(Context, Result);
 end;
 
 // 对 String 类型数据进行 SM3 转换
@@ -535,9 +539,9 @@ function SM3StringA(const Str: AnsiString): TCnSM3Digest;
 var
   Context: TCnSM3Context;
 begin
-  SM3Start(Context);
+  SM3Init(Context);
   SM3Update(Context, PAnsiChar(Str), Length(Str));
-  SM3Finish(Context, Result);
+  SM3Final(Context, Result);
 end;
 
 // 对 WideString 类型数据进行 SM3 转换
@@ -545,9 +549,9 @@ function SM3StringW(const Str: WideString): TCnSM3Digest;
 var
   Context: TCnSM3Context;
 begin
-  SM3Start(Context);
+  SM3Init(Context);
   SM3UpdateW(Context, PWideChar(Str), Length(Str));
-  SM3Finish(Context, Result);
+  SM3Final(Context, Result);
 end;
 
 // 对 UnicodeString 类型数据进行直接的 SM3 计算，不进行转换
@@ -555,9 +559,9 @@ function SM3UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString 
 var
   Context: TCnSM3Context;
 begin
-  SM3Start(Context);
+  SM3Init(Context);
   SM3Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
-  SM3Finish(Context, Result);
+  SM3Final(Context, Result);
 end;
 
 function InternalSM3Stream(Stream: TStream; const BufSize: Cardinal; var D:
@@ -581,7 +585,7 @@ begin
   else BufLen := BufSize;
 
   CancelCalc := False;
-  SM3Start(Context);
+  SM3Init(Context);
   GetMem(Buf, BufLen);
   try
     Stream.Position := 0;
@@ -598,7 +602,7 @@ begin
         end;
       end;
     until (ReadBytes = 0) or (TotalBytes = Size);
-    SM3Finish(Context, D);
+    SM3Final(Context, D);
     Result := True;
   finally
     FreeMem(Buf, BufLen);
@@ -661,7 +665,7 @@ begin
   else
   begin
 {$IFDEF MSWINDOWS}
-    SM3Start(Context);
+    SM3Init(Context);
     FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
                   FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
                   FILE_FLAG_SEQUENTIAL_SCAN, 0);
@@ -698,7 +702,7 @@ begin
         CloseHandle(FileHandle);
       end;
     end;
-    SM3Finish(Context, Result);
+    SM3Final(Context, Result);
 {$ENDIF}
   end;
 end;

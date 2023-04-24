@@ -308,29 +308,53 @@ function SHA512Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc = nil):
    CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
-procedure SHA224Init(var Context: TCnSHA224Context);
+// 以下三个函数用于外部持续对数据进行零散的 SHA224 计算，SHA224Update 可多次被调用
 
-procedure SHA224Update(var Context: TCnSHA224Context; Buffer: PAnsiChar; Len: Cardinal);
+procedure SHA224Init(var Context: TCnSHA224Context);
+{* 初始化一轮 SHA224 计算上下文，准备计算 SHA224 结果}
+
+procedure SHA224Update(var Context: TCnSHA224Context; Input: PAnsiChar; ByteLength: Cardinal);
+{* 以初始化后的上下文对一块数据进行 SHA224 计算。
+  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
 
 procedure SHA224Final(var Context: TCnSHA224Context; var Digest: TCnSHA224Digest);
+{* 结束本轮计算，将 SHA224 结果返回至 Digest 中}
+
+// 以下三个函数用于外部持续对数据进行零散的 SHA256 计算，SHA256Update 可多次被调用
 
 procedure SHA256Init(var Context: TCnSHA256Context);
+{* 初始化一轮 SHA256 计算上下文，准备计算 SHA256 结果}
 
-procedure SHA256Update(var Context: TCnSHA256Context; Buffer: PAnsiChar; Len: Cardinal);
+procedure SHA256Update(var Context: TCnSHA256Context; Input: PAnsiChar; ByteLength: Cardinal);
+{* 以初始化后的上下文对一块数据进行 SHA256 计算。
+  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
 
 procedure SHA256Final(var Context: TCnSHA256Context; var Digest: TCnSHA256Digest);
+{* 结束本轮计算，将 SHA256 结果返回至 Digest 中}
+
+// 以下三个函数用于外部持续对数据进行零散的 SHA384 计算，SHA384Update 可多次被调用
 
 procedure SHA384Init(var Context: TCnSHA384Context);
+{* 初始化一轮 SHA384 计算上下文，准备计算 SHA384 结果}
 
-procedure SHA384Update(var Context: TCnSHA384Context; Buffer: PAnsiChar; Len: Cardinal);
+procedure SHA384Update(var Context: TCnSHA384Context; Input: PAnsiChar; ByteLength: Cardinal);
+{* 以初始化后的上下文对一块数据进行 SHA384 计算。
+  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
 
 procedure SHA384Final(var Context: TCnSHA384Context; var Digest: TCnSHA384Digest);
+{* 结束本轮计算，将 SHA384 结果返回至 Digest 中}
+
+// 以下三个函数用于外部持续对数据进行零散的 SHA512 计算，SHA512Update 可多次被调用
 
 procedure SHA512Init(var Context: TCnSHA512Context);
+{* 初始化一轮 SHA512 计算上下文，准备计算 SHA512 结果}
 
-procedure SHA512Update(var Context: TCnSHA512Context; Buffer: PAnsiChar; Len: Cardinal);
+procedure SHA512Update(var Context: TCnSHA512Context; Input: PAnsiChar; ByteLength: Cardinal);
+{* 以初始化后的上下文对一块数据进行 SHA512 计算。
+  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
 
 procedure SHA512Final(var Context: TCnSHA512Context; var Digest: TCnSHA512Digest);
+{* 结束本轮计算，将 SHA512 结果返回至 Digest 中}
 
 function SHA224Print(const Digest: TCnSHA224Digest): string;
 {* 以十六进制格式输出 SHA224 计算值
@@ -703,16 +727,16 @@ begin
   FillChar(Context.Data, SizeOf(Context.Data), 0);
 end;
 
-procedure SHA224Update(var Context: TCnSHA224Context; Buffer: PAnsiChar; Len: Cardinal);
+procedure SHA224Update(var Context: TCnSHA224Context; Input: PAnsiChar; ByteLength: Cardinal);
 begin
-  SHA256Update(Context, Buffer, Len);
+  SHA256Update(Context, Input, ByteLength);
 end;
 
-procedure SHA256UpdateW(var Context: TCnSHA256Context; Buffer: PWideChar; Len: Cardinal); forward;
+procedure SHA256UpdateW(var Context: TCnSHA256Context; Input: PWideChar; CharLength: Cardinal); forward;
 
-procedure SHA224UpdateW(var Context: TCnSHA224Context; Buffer: PWideChar; Len: Cardinal);
+procedure SHA224UpdateW(var Context: TCnSHA224Context; Input: PWideChar; CharLength: Cardinal);
 begin
-  SHA256UpdateW(Context, Buffer, Len);
+  SHA256UpdateW(Context, Input, CharLength);
 end;
 
 procedure SHA224Final(var Context: TCnSHA224Context; var Digest: TCnSHA224Digest);
@@ -738,13 +762,13 @@ begin
   FillChar(Context.Data, SizeOf(Context.Data), 0);
 end;
 
-procedure SHA256Update(var Context: TCnSHA256Context; Buffer: PAnsiChar; Len: Cardinal);
+procedure SHA256Update(var Context: TCnSHA256Context; Input: PAnsiChar; ByteLength: Cardinal);
 var
   I: Integer;
 begin
-  for I := 0 to Len - 1 do
+  for I := 0 to ByteLength - 1 do
   begin
-    Context.Data[Context.DataLen] := Byte(Buffer[I]);
+    Context.Data[Context.DataLen] := Byte(Input[I]);
     Inc(Context.DataLen);
     if Context.DataLen = 64 then
     begin
@@ -755,7 +779,7 @@ begin
   end;
 end;
 
-procedure SHA256UpdateW(var Context: TCnSHA256Context; Buffer: PWideChar; Len: Cardinal);
+procedure SHA256UpdateW(var Context: TCnSHA256Context; Input: PWideChar; CharLength: Cardinal);
 var
 {$IFDEF MSWINDOWS}
   Content: PAnsiChar;
@@ -766,16 +790,16 @@ var
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
-  GetMem(Content, Len * SizeOf(WideChar));
+  GetMem(Content, CharLength * SizeOf(WideChar));
   try
-    iLen := WideCharToMultiByte(0, 0, Buffer, Len, // 代码页默认用 0
-      PAnsiChar(Content), Len * SizeOf(WideChar), nil, nil);
+    iLen := WideCharToMultiByte(0, 0, Input, CharLength, // 代码页默认用 0
+      PAnsiChar(Content), CharLength * SizeOf(WideChar), nil, nil);
     SHA256Update(Context, Content, iLen);
   finally
     FreeMem(Content);
   end;
 {$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
-  S := StrNew(Buffer);
+  S := StrNew(Input);
   A := AnsiString(S);
   SHA256Update(Context, @A[1], Length(A));
 {$ENDIF}
@@ -852,16 +876,16 @@ end;
 
 {$WARNINGS ON}
 
-procedure SHA384Update(var Context: TCnSHA384Context; Buffer: PAnsiChar; Len: Cardinal);
+procedure SHA384Update(var Context: TCnSHA384Context; Input: PAnsiChar; ByteLength: Cardinal);
 begin
-  SHA512Update(Context, Buffer, Len);
+  SHA512Update(Context, Input, ByteLength);
 end;
 
-procedure SHA512UpdateW(var Context: TCnSHA512Context; Buffer: PWideChar; Len: Cardinal); forward;
+procedure SHA512UpdateW(var Context: TCnSHA512Context; Input: PWideChar; CharLength: Cardinal); forward;
 
-procedure SHA384UpdateW(var Context: TCnSHA384Context; Buffer: PWideChar; Len: Cardinal);
+procedure SHA384UpdateW(var Context: TCnSHA384Context; Input: PWideChar; CharLength: Cardinal);
 begin
-  SHA512UpdateW(Context, Buffer, Len);
+  SHA512UpdateW(Context, Input, CharLength);
 end;
 
 procedure SHA384Final(var Context: TCnSHA384Context; var Digest: TCnSHA384Digest);
@@ -891,39 +915,39 @@ end;
 
 {$WARNINGS ON}
 
-procedure SHA512Update(var Context: TCnSHA512Context; Buffer: PAnsiChar; Len: Cardinal);
+procedure SHA512Update(var Context: TCnSHA512Context; Input: PAnsiChar; ByteLength: Cardinal);
 var
   TempLength, RemainLength, NewLength, BlockCount: Cardinal;
 begin
   TempLength := 128 - Context.DataLen;
-  if Len < TempLength then
-    RemainLength := Len
+  if ByteLength < TempLength then
+    RemainLength := ByteLength
   else
     RemainLength := TempLength;
 
-  Move(Buffer^, Context.Data[Context.DataLen], RemainLength);
-  if Context.DataLen + Len < 128 then
+  Move(Input^, Context.Data[Context.DataLen], RemainLength);
+  if Context.DataLen + ByteLength < 128 then
   begin
-    Inc(Context.DataLen, Len);
+    Inc(Context.DataLen, ByteLength);
     Exit;
   end;
 
-  NewLength := Cardinal(Len) - RemainLength;
+  NewLength := Cardinal(ByteLength) - RemainLength;
   BlockCount := NewLength div 128;
-  Buffer := PAnsiChar(Cardinal(Buffer) + RemainLength);
+  Input := PAnsiChar(TCnNativeUInt(Input) + RemainLength);
 
   SHA512Transform(Context, @Context.Data[0], 1);
-  SHA512Transform(Context, Buffer, BlockCount);
+  SHA512Transform(Context, Input, BlockCount);
 
   RemainLength := NewLength mod 128;
-  Buffer := PAnsiChar(Cardinal(Buffer) + (BlockCount shl 7));
-  Move(Buffer^, Context.Data[Context.DataLen], RemainLength);
+  Input := PAnsiChar(TCnNativeUInt(Input) + (BlockCount shl 7));
+  Move(Input^, Context.Data[Context.DataLen], RemainLength);
 
   Context.DataLen := RemainLength;
   Inc(Context.TotalLen, (BlockCount + 1) shl 7);
 end;
 
-procedure SHA512UpdateW(var Context: TCnSHA512Context; Buffer: PWideChar; Len: Cardinal);
+procedure SHA512UpdateW(var Context: TCnSHA512Context; Input: PWideChar; CharLength: Cardinal);
 var
 {$IFDEF MSWINDOWS}
   Content: PAnsiChar;
@@ -934,16 +958,16 @@ var
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
-  GetMem(Content, Len * SizeOf(WideChar));
+  GetMem(Content, CharLength * SizeOf(WideChar));
   try
-    iLen := WideCharToMultiByte(0, 0, Buffer, Len, // 代码页默认用 0
-      PAnsiChar(Content), Len * SizeOf(WideChar), nil, nil);
+    iLen := WideCharToMultiByte(0, 0, Input, CharLength, // 代码页默认用 0
+      PAnsiChar(Content), CharLength * SizeOf(WideChar), nil, nil);
     SHA512Update(Context, Content, iLen);
   finally
     FreeMem(Content);
   end;
 {$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
-  S := StrNew(Buffer);
+  S := StrNew(Input);
   A := AnsiString(S);
   SHA512Update(Context, @A[1], Length(A));
 {$ENDIF}

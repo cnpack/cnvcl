@@ -121,11 +121,17 @@ function SHA1Stream(Stream: TStream;
    CallBack: TSHA1CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
-procedure SHA1Init(var Context: TCnSHA1Context);
+// 以下三个函数用于外部持续对数据进行零散的 SHA1 计算，SHA1Update 可多次被调用
 
-procedure SHA1Update(var Context: TCnSHA1Context; Buffer: Pointer; Len: Integer);
+procedure SHA1Init(var Context: TCnSHA1Context);
+{* 初始化一轮 SHA1 计算上下文，准备计算 SHA1 结果}
+
+procedure SHA1Update(var Context: TCnSHA1Context; Input: PAnsiChar; ByteLength: Integer);
+{* 以初始化后的上下文对一块数据进行 SHA1 计算。
+  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
 
 procedure SHA1Final(var Context: TCnSHA1Context; var Digest: TCnSHA1Digest);
+{* 结束本轮计算，将 SHA1 结果返回至 Digest 中}
 
 function SHA1Print(const Digest: TCnSHA1Digest): string;
 {* 以十六进制格式输出 SHA1 计算值
@@ -163,33 +169,21 @@ const
 function LRot16(X: Word; C: Integer): Word;
 begin
   Result := X shl (C and 15) + X shr (16 - C and 15);
-//        mov     ecx, &C
-//        mov     ax, &X
-//        rol     ax, cl
-//        mov     &Result, ax
 end;
 
 function RRot16(X: Word; C: Integer): Word;
 begin
   Result := X shr (C and 15) + X shl (16 - C and 15);
-//        mov     ecx, &C
-//        mov     ax, &X
-//        ror     ax, cl
-//        mov     &Result, ax
 end;
 
 function LRot32(X: Cardinal; C: Integer): Cardinal;
 begin
   Result := X shl (C and 31) + X shr (32 - C and 31);
-//        mov     ecx, edx
-//        rol     eax, cl
 end;
 
 function RRot32(X: Cardinal; C: Integer): Cardinal;
 begin
   Result := X shr (C and 31) + X shl (32 - C and 31);
-//        mov     ecx, edx
-//        ror     eax, cl
 end;
 
 procedure XorBlock(I1, I2, O1: PByteArray; Len: Integer);
@@ -315,17 +309,15 @@ begin
   end;
 end;
 
-procedure SHA1Update(var Context: TCnSHA1Context; Buffer: Pointer; Len: Integer);
-type
-  PByte = ^Byte;
+procedure SHA1Update(var Context: TCnSHA1Context; Input: PAnsiChar; ByteLength: Integer);
 begin
-  SHA1UpdateLen(Context, Len);
-  while Len > 0 do
+  SHA1UpdateLen(Context, ByteLength);
+  while ByteLength > 0 do
   begin
-    Context.Buffer[Context.Index] := PByte(Buffer)^;
-    Inc(PByte(Buffer));
+    Context.Buffer[Context.Index] := PByte(Input)^;
+    Inc(PByte(Input));
     Inc(Context.Index);
-    Dec(Len);
+    Dec(ByteLength);
     if Context.Index = 64 then
     begin
       Context.Index := 0;
