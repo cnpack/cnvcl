@@ -78,10 +78,11 @@ uses
   SysUtils, Classes, Contnrs, CnNative, CnECC, CnBigNumber, CnConsts, CnSM3;
 
 const
-  CN_SM2_FINITEFIELD_BYTESIZE = 32; // 256 Bits，SM2 椭圆曲线的素域位数，也是单个坐标值位数
+  CN_SM2_FINITEFIELD_BYTESIZE = 32;
+  {* SM2 椭圆曲线的素域位数，256 Bits，也是单个坐标值位数}
 
   CN_SM2_MIN_ENCRYPT_BYTESIZE = SizeOf(TCnSM3Digest) + CN_SM2_FINITEFIELD_BYTESIZE * 2;
-  // 最小的 SM2 加密结果长度，两个坐标加一个 SM3 摘要长度，共 96 字节
+  {* 最小的 SM2 加密结果长度，两个坐标加一个 SM3 摘要长度，共 96 字节}
 
   // 错误码
   ECN_SM2_OK                           = ECN_OK; // 没错
@@ -101,16 +102,17 @@ type
   {* SM2 的公钥就是普通椭圆曲线的公钥}
 
   TCnSM2 = class(TCnEcc)
-  {* SM2 椭圆曲线运算类，具体实现在指定曲线类型的基类 TCnEcc 中}
+  {* SM2 椭圆曲线运算类，具体大部分实现在指定曲线类型的基类 TCnEcc 中}
   public
     constructor Create; override;
+    {* 构造函数}
 
     procedure AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point); override;
     {* 使用预计算的仿射坐标点进行加速}
   end;
 
   TCnSM2Signature = class(TCnEccSignature);
-  {* SM2 椭圆曲线签名的内容就是普通椭圆曲线的签名的内容（注意算法与文件格式不同）}
+  {* SM2 椭圆曲线签名的内容就是普通椭圆曲线的签名的内容（注意与 ECC 的算法与文件格式不同）}
 
   TCnSM2CryptSequenceType = (cstC1C3C2, cstC1C2C3);
   {* SM2 加密数据时的拼接方式，国标上是 C1C3C2，但经常有 C1C2C3 的版本，故此做兼容}

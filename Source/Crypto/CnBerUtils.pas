@@ -635,11 +635,11 @@ begin
         if ALeaf.BerTag = CN_BER_TAG_BIT_STRING then
         begin
           // BIT_STRING 数据区第一个内容字节是该 BIT_STRING 凑成 8 的倍数所缺少的 Bit 数，这里跳过
-          ParseArea(ALeaf, PByteArray(Cardinal(AData) + Run + 1),
+          ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run + 1),
             ALeaf.BerDataLength - 1, ALeaf.BerDataOffset + 1);
         end
         else
-          ParseArea(ALeaf, PByteArray(Cardinal(AData) + Run),
+          ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run),
             ALeaf.BerDataLength, ALeaf.BerDataOffset);
       except
         ; // 如果内嵌解析失败，不终止，当做普通节点

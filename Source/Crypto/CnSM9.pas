@@ -300,6 +300,7 @@ type
 
   TCnSM9SignatureMasterPrivateKey = class(TCnBigNumber);
   {* SM9 中的签名主私钥，随机生成}
+
   TCnSM9SignatureMasterPublicKey  = class(TCnFP2Point);
   {* SM9 中的签名主公钥，用签名主私钥乘以 G2 点而来}
 
