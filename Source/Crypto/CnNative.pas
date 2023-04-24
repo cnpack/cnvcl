@@ -514,6 +514,9 @@ function StreamToBytes(Stream: TStream): TBytes;
 function BytesToStream(Data: TBytes; OutStream: TStream): Integer;
 {* 字节数组写入整个流，返回写入字节数}
 
+function ConcatBytes(A, B: TBytes): TBytes;
+{* 将 A B 两个字节数组顺序拼好返回，A B 保持不变}
+
 procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
 {* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，
   如 ByteLen 小于 MostLen，则 Dest 填充 0，要求 Dest 容纳至少 MostLen}
@@ -1648,6 +1651,24 @@ begin
     OutStream.Size := 0;
     Result := OutStream.Write(Data[0], Length(Data));
   end;
+end;
+
+function ConcatBytes(A, B: TBytes): TBytes;
+begin
+{$IFDEF SUPPORT_TBYTES_OPERATION}
+  Result := A + B;
+{$ELSE}
+  if (A = nil) or (Length(A) = 0) then
+    Result := B
+  else if (B = nil) or (Length(B) = 0) then
+    Result := A
+  else
+  begin
+    SetLength(Result, Length(A) + Length(B));
+    Move(A[0], Result[0], Length(A));
+    Move(B[0], Result[Length(A)], Length(B));
+  end;
+{$ENDIF}
 end;
 
 procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
