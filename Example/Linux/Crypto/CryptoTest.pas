@@ -199,6 +199,8 @@ function TestRSA2: Boolean;
 
 // ================================ KDF ========================================
 
+function TestKDFPB1: Boolean;
+function TestKDFPB2: Boolean;
 function TestKDFSM2SM9: Boolean;
 
 // ================================ Prime Number ===============================
@@ -364,6 +366,8 @@ begin
 
 // ================================ KDF ========================================
 
+  Assert(TestKDFPB1, 'TestKDFPB1');
+  Assert(TestKDFPB2, 'TestKDFPB2');
   Assert(TestKDFSM2SM9, 'TestKDFSM2SM9');
 
 // ================================ Prime Number ===============================
@@ -1810,7 +1814,6 @@ end;
 function TestSM9Hash2: Boolean;
 var
   SM9: TCnSM9;
-  S: AnsiString;
   Data: TBytes;
   Res: TCnBigNumber;
 begin
@@ -1942,6 +1945,42 @@ begin
 end;
 
 // ================================ KDF ========================================
+
+function TestKDFPB1: Boolean;
+var
+  Pass, Salt, Res: AnsiString;
+  P, S, R: TBytes;
+begin
+  P := AnsiToBytes('123456');
+  S := HexToBytes('123456');
+  R := CnPBKDF1Bytes(P, S, 1000, 16, cpdfMd5);
+  Result := DataToHex(@R[0], Length(R)) = '090583F4EA468E822CDC7A8C7C785E1B';
+
+  if not Result then Exit;
+
+  Pass := '123456';
+  Salt := HexToString('123456');
+  Res := CnPBKDF1(Pass, Salt, 1000, 16, cpdfMd5);
+  Result := DataToHex(@Res[1], Length(Res)) = '090583F4EA468E822CDC7A8C7C785E1B';
+end;
+
+function TestKDFPB2: Boolean;
+var
+  Pass, Salt, Res: AnsiString;
+  P, S, R: TBytes;
+begin
+  P := AnsiToBytes('123456');
+  S := HexToBytes('123456');
+  R := CnPBKDF2Bytes(P, S, 1000, 32, cpdfSha256Hmac);
+  Result := DataToHex(@R[0], Length(R)) = '87410D487A6414E9ADB9D078CBA7E28BFCB0C3767F1BD4C1A628010FF91DDD1A';
+
+  if not Result then Exit;
+
+  Pass := '123456';
+  Salt := HexToString('123456');
+  Res := CnPBKDF2(Pass, Salt, 1000, 32, cpdfSha256Hmac);
+  Result := DataToHex(@Res[1], Length(Res)) = '87410D487A6414E9ADB9D078CBA7E28BFCB0C3767F1BD4C1A628010FF91DDD1A';
+end;
 
 function TestKDFSM2SM9: Boolean;
 var

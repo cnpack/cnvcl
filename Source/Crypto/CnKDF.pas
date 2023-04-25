@@ -53,7 +53,7 @@ type
   {* CnGetDeriveKey 中使用的 Hash 途径}
 
   TCnPBKDF1KeyHash = (cpdfMd2, cpdfMd5, cpdfSha1);
-  {* PBKDF1 规定的三种 Hash 途径}
+  {* PBKDF1 规定的三种 Hash 途径，其中 MD2 我们不支持}
 
   TCnPBKDF2KeyHash = (cpdfSha1Hmac, cpdfSha256Hmac);
   {* PBKDF2 规定的两种 Hash 途径}
@@ -66,27 +66,37 @@ function CnGetDeriveKey(const Password, Salt: AnsiString; OutKey: PAnsiChar; Key
 {* 类似于 Openssl 中的 BytesToKey，用密码和盐与指定的 Hash 算法生成加密 Key，
   目前的限制是 KeyLength 最多支持两轮 Hash，也就是 MD5 32 字节，SHA256 64 字节}
 
-function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
+function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyByteLength: Integer;
   KeyHash: TCnPBKDF1KeyHash = cpdfMd5): AnsiString;
 {* Password Based KDF 1 实现，简单的固定 Hash 迭代，只支持 MD5 和 SHA1，
-   DerivedKeyLength 是所需的密钥字节数，长度固定}
+   DerivedKeyByteLength 是所需的密钥字节数，长度固定}
 
-function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
+function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyByteLength: Integer;
   KeyHash: TCnPBKDF2KeyHash = cpdfSha1Hmac): AnsiString;
 {* Password Based KDF 2 实现，基于 HMAC-SHA1 或 HMAC-SHA256，
-   DerivedKeyLength 是所需的密钥字节数，长度可变，允许超长}
+   DerivedKeyByteLength 是所需的密钥字节数，长度可变，允许超长}
 
-function CnSM2KDF(const Data: AnsiString; DerivedKeyLength: Integer): AnsiString;
+function CnPBKDF1Bytes(const Password, Salt: TBytes; Count, DerivedKeyByteLength: Integer;
+  KeyHash: TCnPBKDF1KeyHash = cpdfMd5): TBytes;
+{* Password Based KDF 1 实现，简单的固定 Hash 迭代，只支持 MD5 和 SHA1，
+   DerivedKeyByteLength 是所需的密钥字节数，长度固定}
+
+function CnPBKDF2Bytes(const Password, Salt: TBytes; Count, DerivedKeyByteLength: Integer;
+  KeyHash: TCnPBKDF2KeyHash = cpdfSha1Hmac): TBytes;
+{* Password Based KDF 2 实现，基于 HMAC-SHA1 或 HMAC-SHA256，
+   DerivedKeyByteLength 是所需的密钥字节数，长度可变，允许超长}
+
+function CnSM2KDF(const Data: AnsiString; DerivedKeyByteLength: Integer): AnsiString;
 {* SM2 椭圆曲线公钥密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，
   均不支持规范中说的非整字节数，行为可能和下面的 CnSM9KDF 等同，
   同时似乎也是没有 SharedInfo 的 ANSI-X9.63-KDF}
 
-function CnSM9KDF(Data: Pointer; DataLen: Integer; DerivedKeyLength: Integer): AnsiString;
+function CnSM9KDF(Data: Pointer; DataLen: Integer; DerivedKeyByteLength: Integer): AnsiString;
 {* SM9 标识密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，
   均不支持规范中说的非整字节数，行为可能和上面的 CnSM2KDF 等同，
   同时似乎也是没有 SharedInfo 的 ANSI-X9.63-KDF}
 
-function CnSM2SM9KDF(Data: TBytes; DerivedKeyLength: Integer): TBytes;
+function CnSM2SM9KDF(Data: TBytes; DerivedKeyByteLength: Integer): TBytes;
 {* 字节数组形式的 SM2 椭圆曲线公钥密码算法与 SM9 标识密码算法中规定的密钥派生函数，
    DerivedKeyLength 是所需的密钥字节数，返回派生的密钥字节数组}
 
@@ -185,59 +195,15 @@ end;
   T_c = Hash (T_{c-1}) ,
   DK = Tc<0..dkLen-1>
 *)
-function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
+function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyByteLength: Integer;
   KeyHash: TCnPBKDF1KeyHash): AnsiString;
 var
-  I: Integer;
-  Md5Dig, TM: TCnMD5Digest;
-  Sha1Dig, TS: TCnSHA1Digest;
-  Ptr: PAnsiChar;
+  P, S, Res: TBytes;
 begin
-  if (Password = '') or (Count <= 0) or (DerivedKeyLength <= 0) then
-    raise ECnKDFException.Create(SCnKDFErrorParam);
-
-  case KeyHash of
-    cpdfMd5:
-      begin
-        if DerivedKeyLength > SizeOf(TCnMD5Digest) then
-          raise ECnKDFException.Create(SCnKDFErrorTooLong);
-
-        SetLength(Result, DerivedKeyLength);
-        Md5Dig := MD5StringA(Password + Salt);  // Got T1
-        if Count > 1 then
-        begin
-          Ptr := PAnsiChar(@TM[0]);
-          for I := 2 to Count do
-          begin
-            TM := Md5Dig;
-            Md5Dig := MD5Buffer(Ptr, SizeOf(TCnMD5Digest)); // Got T_c
-          end;
-        end;
-
-        Move(Md5Dig[0], Result[1], DerivedKeyLength);
-      end;
-    cpdfSha1:
-      begin
-        if DerivedKeyLength > SizeOf(TCnSHA1Digest) then
-          raise ECnKDFException.Create(SCnKDFErrorTooLong);
-
-        SetLength(Result, DerivedKeyLength);
-        Sha1Dig := SHA1StringA(Password + Salt);  // Got T1
-        if Count > 1 then
-        begin
-          Ptr := PAnsiChar(@TS[0]);
-          for I := 2 to Count do
-          begin
-            TS := Sha1Dig;
-            Sha1Dig := SHA1Buffer(Ptr, SizeOf(TCnSHA1Digest)); // Got T_c
-          end;
-        end;
-
-        Move(Sha1Dig[0], Result[1], DerivedKeyLength);
-      end;
-    else
-      raise ECnKDFException.Create(SCnKDFHashNOTSupport);
-  end;
+  P := AnsiToBytes(Password);
+  S := AnsiToBytes(Salt);
+  Res := CnPBKDF1Bytes(P, S, Count, DerivedKeyByteLength, KeyHash);
+  Result := BytesToAnsi(Res);
 end;
 
 {
@@ -251,17 +217,90 @@ end;
   ...
   Uc = PRF(Password, Uc-1)
 }
-function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyLength: Integer;
+function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyByteLength: Integer;
   KeyHash: TCnPBKDF2KeyHash): AnsiString;
+var
+  P, S, Res: TBytes;
+begin
+  P := AnsiToBytes(Password);
+  S := AnsiToBytes(Salt);
+  Res := CnPBKDF2Bytes(P, S, Count, DerivedKeyByteLength, KeyHash);
+  Result := BytesToAnsi(Res);
+end;
+
+function CnPBKDF1Bytes(const Password, Salt: TBytes; Count, DerivedKeyByteLength: Integer;
+  KeyHash: TCnPBKDF1KeyHash = cpdfMd5): TBytes;
+var
+  I: Integer;
+  Md5Dig, TM: TCnMD5Digest;
+  Sha1Dig, TS: TCnSHA1Digest;
+  Ptr: PAnsiChar;
+begin
+  Result := nil;
+  if (Password = nil) or (Count <= 0) or (DerivedKeyByteLength <= 0) then
+    raise ECnKDFException.Create(SCnKDFErrorParam);
+
+  case KeyHash of
+    cpdfMd5:
+      begin
+        if DerivedKeyByteLength > SizeOf(TCnMD5Digest) then
+          raise ECnKDFException.Create(SCnKDFErrorTooLong);
+
+        SetLength(Result, DerivedKeyByteLength);
+        Md5Dig := MD5Bytes(ConcatBytes(Password, Salt));  // Got T1
+        if Count > 1 then
+        begin
+          Ptr := PAnsiChar(@TM[0]);
+          for I := 2 to Count do
+          begin
+            TM := Md5Dig;
+            Md5Dig := MD5Buffer(Ptr, SizeOf(TCnMD5Digest)); // Got T_c
+          end;
+        end;
+
+        Move(Md5Dig[0], Result[0], DerivedKeyByteLength);
+      end;
+    cpdfSha1:
+      begin
+        if DerivedKeyByteLength > SizeOf(TCnSHA1Digest) then
+          raise ECnKDFException.Create(SCnKDFErrorTooLong);
+
+        SetLength(Result, DerivedKeyByteLength);
+        Sha1Dig := SHA1Bytes(ConcatBytes(Password, Salt));  // Got T1
+        if Count > 1 then
+        begin
+          Ptr := PAnsiChar(@TS[0]);
+          for I := 2 to Count do
+          begin
+            TS := Sha1Dig;
+            Sha1Dig := SHA1Buffer(Ptr, SizeOf(TCnSHA1Digest)); // Got T_c
+          end;
+        end;
+
+        Move(Sha1Dig[0], Result[0], DerivedKeyByteLength);
+      end;
+    else
+      raise ECnKDFException.Create(SCnKDFHashNOTSupport);
+  end;
+end;
+
+function CnPBKDF2Bytes(const Password, Salt: TBytes; Count, DerivedKeyByteLength: Integer;
+  KeyHash: TCnPBKDF2KeyHash = cpdfSha1Hmac): TBytes;
 var
   HLen, D, I, J, K: Integer;
   Sha1Dig1, Sha1Dig, T1: TCnSHA1Digest;
   Sha256Dig1, Sha256Dig, T256: TCnSHA256Digest;
-  S, S1, S256: AnsiString;
+  S, S1, S256, Pad: TBytes;
+  PAddr: Pointer;
 begin
-  Result := '';
-  if {(Password = '') or} (Salt = '') or (Count <= 0) or (DerivedKeyLength <=0) then
+  Result := nil;
+  if (Salt = nil) or (Count <= 0) or (DerivedKeyByteLength <=0) then
     raise ECnKDFException.Create(SCnKDFErrorParam);
+
+  if (Password = nil) or (Length(Password) = 0) then
+    PAddr := nil
+  else
+    PAddr := @Password[0];
 
   case KeyHash of
     cpdfSha1Hmac:
@@ -272,74 +311,77 @@ begin
     raise ECnKDFException.Create(SCnKDFErrorParam);
   end;
 
-  D := (DerivedKeyLength div HLen) + 1;
+  D := (DerivedKeyByteLength div HLen) + 1;
   SetLength(S1, SizeOf(TCnSHA1Digest));
   SetLength(S256, SizeOf(TCnSHA256Digest));
 
+  SetLength(Pad, 4);
   if KeyHash = cpdfSha1Hmac then
   begin
     for I := 1 to D do
     begin
-{$IFDEF UNICODE}
-      S := Salt + AnsiChar(I shr 24) + AnsiChar(I shr 16) + AnsiChar(I shr 8) + AnsiChar(I);
-{$ELSE}
-      S := Salt + Chr(I shr 24) + Chr(I shr 16) + Chr(I shr 8) + Chr(I);
-{$ENDIF}
-      SHA1Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(S), Length(S), Sha1Dig1);
+      Pad[0] := I shr 24;
+      Pad[1] := I shr 16;
+      Pad[2] := I shr 8;
+      Pad[3] := I;
+      S := ConcatBytes(Salt, Pad);
+
+      SHA1Hmac(PAddr, Length(Password), PAnsiChar(@S[0]), Length(S), Sha1Dig1);
       T1 := Sha1Dig1;
 
       for J := 2 to Count do
       begin
-        SHA1Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(@T1[0]), SizeOf(TCnSHA1Digest), Sha1Dig);
+        SHA1Hmac(PAddr, Length(Password), PAnsiChar(@T1[0]), SizeOf(TCnSHA1Digest), Sha1Dig);
         T1 := Sha1Dig;
         for K := Low(TCnSHA1Digest) to High(TCnSHA1Digest) do
           Sha1Dig1[K] := Sha1Dig1[K] xor T1[K];
       end;
 
-      Move(Sha1Dig1[0], S1[1], SizeOf(TCnSHA1Digest));
-      Result := Result + S1;
+      Move(Sha1Dig1[0], S1[0], Length(S1));
+      Result := ConcatBytes(Result, S1);
     end;
-    Result := Copy(Result, 1, DerivedKeyLength);
+    Result := Copy(Result, 0, DerivedKeyByteLength);
   end
   else if KeyHash = cpdfSha256Hmac then
   begin
     for I := 1 to D do
     begin
-{$IFDEF UNICODE}
-      S := Salt + AnsiChar(I shr 24) + AnsiChar(I shr 16) + AnsiChar(I shr 8) + AnsiChar(I);
-{$ELSE}
-      S := Salt + Chr(I shr 24) + Chr(I shr 16) + Chr(I shr 8) + Chr(I);
-{$ENDIF}
-      SHA256Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(S), Length(S), Sha256Dig1);
+      Pad[0] := I shr 24;
+      Pad[1] := I shr 16;
+      Pad[2] := I shr 8;
+      Pad[3] := I;
+      S := ConcatBytes(Salt, Pad);
+
+      SHA256Hmac(PAddr, Length(Password), PAnsiChar(@S[0]), Length(S), Sha256Dig1);
       T256 := Sha256Dig1;
 
       for J := 2 to Count do
       begin
-        SHA256Hmac(PAnsiChar(Password), Length(Password), PAnsiChar(@T256[0]), SizeOf(TCnSHA256Digest), Sha256Dig);
+        SHA256Hmac(PAddr, Length(Password), PAnsiChar(@T256[0]), SizeOf(TCnSHA256Digest), Sha256Dig);
         T256 := Sha256Dig;
         for K := Low(TCnSHA256Digest) to High(TCnSHA256Digest) do
           Sha256Dig1[K] := Sha256Dig1[K] xor T256[K];
       end;
 
-      Move(Sha256Dig1[0], S256[1], SizeOf(TCnSHA256Digest));
-      Result := Result + S256;
+      Move(Sha256Dig1[0], S256[0], SizeOf(TCnSHA256Digest));
+      Result := ConcatBytes(Result, S256);
     end;
-    Result := Copy(Result, 1, DerivedKeyLength);
+    Result := Copy(Result, 0, DerivedKeyByteLength);
   end;
 end;
 
-function CnSM2KDF(const Data: AnsiString; DerivedKeyLength: Integer): AnsiString;
+function CnSM2KDF(const Data: AnsiString; DerivedKeyByteLength: Integer): AnsiString;
 var
   S, SDig: AnsiString;
   I, D: Integer;
   Dig: TCnSM3Digest;
 begin
   Result := '';
-  if (Data = '') or (DerivedKeyLength <= 0) then
+  if (Data = '') or (DerivedKeyByteLength <= 0) then
     raise ECnKDFException.Create(SCnKDFErrorParam);
 
   SetLength(SDig, SizeOf(TCnSM3Digest));
-  D := DerivedKeyLength div SizeOf(TCnSM3Digest) + 1;
+  D := DerivedKeyByteLength div SizeOf(TCnSM3Digest) + 1;
   for I := 1 to D do
   begin
 {$IFDEF UNICODE}
@@ -351,10 +393,10 @@ begin
     Move(Dig[0], SDig[1], SizeOf(TCnSM3Digest));
     Result := Result + SDig;
   end;
-  Result := Copy(Result, 1, DerivedKeyLength);
+  Result := Copy(Result, 1, DerivedKeyByteLength);
 end;
 
-function CnSM9KDF(Data: Pointer; DataLen: Integer; DerivedKeyLength: Integer): AnsiString;
+function CnSM9KDF(Data: Pointer; DataLen: Integer; DerivedKeyByteLength: Integer): AnsiString;
 var
   DArr: TBytes;
   CT, SCT: Cardinal;
@@ -363,7 +405,7 @@ var
   SM3D: TCnSM3Digest;
 begin
   Result := '';
-  if (Data = nil) or (DataLen <= 0) or (DerivedKeyLength <= 0) then
+  if (Data = nil) or (DataLen <= 0) or (DerivedKeyByteLength <= 0) then
     raise ECnKDFException.Create(SCnKDFErrorParam);
 
   DArr := nil;
@@ -373,10 +415,10 @@ begin
     SetLength(DArr, DataLen + SizeOf(Cardinal));
     Move(Data^, DArr[0], DataLen);
 
-    IsInt := DerivedKeyLength mod SizeOf(TCnSM3Digest) = 0;
-    CeilLen := (DerivedKeyLength + SizeOf(TCnSM3Digest) - 1) div SizeOf(TCnSM3Digest);
+    IsInt := DerivedKeyByteLength mod SizeOf(TCnSM3Digest) = 0;
+    CeilLen := (DerivedKeyByteLength + SizeOf(TCnSM3Digest) - 1) div SizeOf(TCnSM3Digest);
 
-    SetLength(Result, DerivedKeyLength);
+    SetLength(Result, DerivedKeyByteLength);
     for I := 1 to CeilLen do
     begin
       SCT := UInt32HostToNetwork(CT);  // 虽然文档中没说，但要倒序一下
@@ -386,7 +428,7 @@ begin
       if (I = CeilLen) and not IsInt then
       begin
         // 是最后一个，不整除 32 时只移动一部分
-        Move(SM3D[0], Result[(I - 1) * SizeOf(TCnSM3Digest) + 1], (DerivedKeyLength mod SizeOf(TCnSM3Digest)));
+        Move(SM3D[0], Result[(I - 1) * SizeOf(TCnSM3Digest) + 1], (DerivedKeyByteLength mod SizeOf(TCnSM3Digest)));
       end
       else
         Move(SM3D[0], Result[(I - 1) * SizeOf(TCnSM3Digest) + 1], SizeOf(TCnSM3Digest));
@@ -398,7 +440,7 @@ begin
   end;
 end;
 
-function CnSM2SM9KDF(Data: TBytes; DerivedKeyLength: Integer): TBytes;
+function CnSM2SM9KDF(Data: TBytes; DerivedKeyByteLength: Integer): TBytes;
 var
   DArr: TBytes;
   CT, SCT: Cardinal;
@@ -408,7 +450,7 @@ var
 begin
   Result := nil;
   L := Length(Data);
-  if (L <= 0) or (DerivedKeyLength <= 0) then
+  if (L <= 0) or (DerivedKeyByteLength <= 0) then
     raise ECnKDFException.Create(SCnKDFErrorParam);
 
   DArr := nil;
@@ -418,10 +460,10 @@ begin
     SetLength(DArr, L + SizeOf(Cardinal));
     Move(Data[0], DArr[0], L);
 
-    IsInt := DerivedKeyLength mod SizeOf(TCnSM3Digest) = 0;
-    CeilLen := (DerivedKeyLength + SizeOf(TCnSM3Digest) - 1) div SizeOf(TCnSM3Digest);
+    IsInt := DerivedKeyByteLength mod SizeOf(TCnSM3Digest) = 0;
+    CeilLen := (DerivedKeyByteLength + SizeOf(TCnSM3Digest) - 1) div SizeOf(TCnSM3Digest);
 
-    SetLength(Result, DerivedKeyLength);
+    SetLength(Result, DerivedKeyByteLength);
     for I := 1 to CeilLen do
     begin
       SCT := UInt32HostToNetwork(CT);  // 虽然文档中没说，但要倒序一下
@@ -431,7 +473,7 @@ begin
       if (I = CeilLen) and not IsInt then
       begin
         // 是最后一个，不整除 32 时只移动一部分
-        Move(SM3D[0], Result[(I - 1) * SizeOf(TCnSM3Digest)], (DerivedKeyLength mod SizeOf(TCnSM3Digest)));
+        Move(SM3D[0], Result[(I - 1) * SizeOf(TCnSM3Digest)], (DerivedKeyByteLength mod SizeOf(TCnSM3Digest)));
       end
       else
         Move(SM3D[0], Result[(I - 1) * SizeOf(TCnSM3Digest)], SizeOf(TCnSM3Digest));
