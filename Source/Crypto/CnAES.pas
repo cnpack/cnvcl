@@ -3431,18 +3431,6 @@ begin
   end;
 end;
 
-function HexToStr(Value: AnsiString): AnsiString;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I := 1 to Length(Value) do
-  begin
-    if ((I mod 2) = 1) then
-      Result := Result + AnsiChar(HexToInt(Copy(Value, I, 2)));
-  end;
-end;
-
 // AES ECB 加密字符串并将其转换成十六进制
 function AESEncryptEcbStrToHex(Value: AnsiString; Key: AnsiString;
   KeyBit: TCnKeyBitType): AnsiString;
@@ -3497,7 +3485,7 @@ var
   AESKey128: TCnAESKey128;
   AESKey192: TCnAESKey192;
   AESKey256: TCnAESKey256;
-  Tmp: AnsiString;
+  Tmp: TBytes;
 begin
   Result := '';
   SS := nil;
@@ -3505,8 +3493,8 @@ begin
 
   try
     SS := TMemoryStream.Create;
-    Tmp := HexToStr(Value);
-    SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
+    Tmp := HexToBytes(Value);
+    SS.Write(PAnsiChar(@Tmp[0])^, Length(Tmp));
     SS.Position := 0;
     DS := TMemoryStream.Create;
 
@@ -3592,7 +3580,7 @@ var
   AESKey128: TCnAESKey128;
   AESKey192: TCnAESKey192;
   AESKey256: TCnAESKey256;
-  Tmp: AnsiString;
+  Tmp: TBytes;
 begin
   Result := '';
   SS := nil;
@@ -3600,8 +3588,8 @@ begin
 
   try
     SS := TMemoryStream.Create;
-    Tmp := HexToStr(Value);
-    SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
+    Tmp := HexToBytes(Value);
+    SS.Write(PAnsiChar(@Tmp[0])^, Length(Tmp));
     SS.Position := 0;
     DS := TMemoryStream.Create;
 
@@ -3687,7 +3675,7 @@ var
   AESKey128: TCnAESKey128;
   AESKey192: TCnAESKey192;
   AESKey256: TCnAESKey256;
-  Tmp: AnsiString;
+  Tmp: TBytes;
 begin
   Result := '';
   SS := nil;
@@ -3695,8 +3683,8 @@ begin
 
   try
     SS := TMemoryStream.Create;
-    Tmp := HexToStr(Value);
-    SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
+    Tmp := HexToBytes(Value);
+    SS.Write(PAnsiChar(@Tmp[0])^, Length(Tmp));
     SS.Position := 0;
     DS := TMemoryStream.Create;
 
@@ -3782,7 +3770,7 @@ var
   AESKey128: TCnAESKey128;
   AESKey192: TCnAESKey192;
   AESKey256: TCnAESKey256;
-  Tmp: AnsiString;
+  Tmp: TBytes;
 begin
   Result := '';
   SS := nil;
@@ -3790,8 +3778,8 @@ begin
 
   try
     SS := TMemoryStream.Create;
-    Tmp := HexToStr(Value);
-    SS.Write(PAnsiChar(@Tmp[1])^, Length(Tmp));
+    Tmp := HexToBytes(Value);
+    SS.Write(PAnsiChar(@Tmp[0])^, Length(Tmp));
     SS.Position := 0;
     DS := TMemoryStream.Create;
 
