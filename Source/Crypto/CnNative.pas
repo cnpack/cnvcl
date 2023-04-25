@@ -497,6 +497,9 @@ function HexToString(const Hex: string): string;
 function HexToAnsiStr(const Hex: AnsiString): AnsiString;
 {* 十六进制字符串转换为字符串，十六进制字符串长度为奇或转换失败时抛出异常}
 
+function AnsiStrToHex(const Data: AnsiString; UseUpperCase: Boolean = True): AnsiString;
+{* AnsiString 转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
+
 function BytesToHex(Data: TBytes; UseUpperCase: Boolean = True): string;
 {* 字节数组转换为十六进制字符串，下标低位的内容出现在字符串左方，相当于网络字节顺序，
   UseUpperCase 控制输出内容的大小写}
@@ -1400,6 +1403,13 @@ const
   LoDigits: array[0..15] of Char = ('0', '1', '2', '3', '4', '5', '6', '7',
                                   '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
 
+const
+  AnsiHiDigits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
+                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+const
+  AnsiLoDigits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
+                                  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
+
 function HexToInt(Hex: PChar; CharLen: Integer): Integer;
 var
   I, Res: Integer;
@@ -1567,6 +1577,40 @@ begin
   begin
     S := string(Copy(Hex, I * 2 - 1, 2));
     Result[I] := AnsiChar(Chr(HexToInt(S)));
+  end;
+end;
+
+function AnsiStrToHex(const Data: AnsiString; UseUpperCase: Boolean): AnsiString;
+var
+  I, L: Integer;
+  B: Byte;
+  Buffer: PAnsiChar;
+begin
+  Result := '';
+  L := Length(Data);
+  if L = 0 then
+    Exit;
+
+  SetLength(Result, L * 2);
+  Buffer := @Data[1];
+
+  if UseUpperCase then
+  begin
+    for I := 0 to L - 1 do
+    begin
+      B := PByte(TCnNativeInt(Buffer) + I)^;
+      Result[I * 2 + 1] := AnsiHiDigits[(B shr 4) and $0F];
+      Result[I * 2 + 2] := AnsiHiDigits[B and $0F];
+    end;
+  end
+  else
+  begin
+    for I := 0 to L - 1 do
+    begin
+      B := PByte(TCnNativeInt(Buffer) + I)^;
+      Result[I * 2 + 1] := AnsiLoDigits[(B shr 4) and $0F];
+      Result[I * 2 + 2] := AnsiLoDigits[B and $0F];
+    end;
   end;
 end;
 
