@@ -2037,8 +2037,9 @@ begin
 
     if RSACrypt(Data, PublicKey.PubKeyProduct, PublicKey.PubKeyExponent, Res) then
     begin
-      SetLength(ResBuf, Res.GetBytesCount);
-      Res.ToBinary(@ResBuf[0]);
+      // 注意 Res 可能存在前导 0，所以此处必须以 PublicKey.GetBytesCount 为准，才能确保不漏前导 0
+      SetLength(ResBuf, PublicKey.GetBytesCount);
+      Res.ToBinary(@ResBuf[0], PublicKey.GetBytesCount);
 
       // 从 Res 中解出 PKCS1 对齐的内容放入 BerBuf 中
       SetLength(BerBuf, Length(ResBuf));
