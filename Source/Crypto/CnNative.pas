@@ -514,8 +514,14 @@ function StreamToBytes(Stream: TStream): TBytes;
 function BytesToStream(Data: TBytes; OutStream: TStream): Integer;
 {* 字节数组写入整个流，返回写入字节数}
 
+function AnsiToBytes(const Str: AnsiString): TBytes;
+{* 将 AnsiString 的内容转换为字节数组，不处理编码}
+
+function BytesToAnsi(const Data: TBytes): AnsiString;
+{* 将字节数组的内容转换为 AnsiString，不处理编码}
+
 function ConcatBytes(A, B: TBytes): TBytes;
-{* 将 A B 两个字节数组顺序拼好返回，A B 保持不变}
+{* 将 A B 两个字节数组顺序拼好返回一个新字节数组，A B 保持不变}
 
 procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
 {* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，
@@ -1653,22 +1659,41 @@ begin
   end;
 end;
 
+function AnsiToBytes(const Str: AnsiString): TBytes;
+begin
+  SetLength(Result, Length(Str));
+  if Length(Str) > 0 then
+    Move(Str[1], Result[0], Length(Str));
+end;
+
+function BytesToAnsi(const Data: TBytes): AnsiString;
+begin
+  SetLength(Result, Length(Data));
+  if Length(Data) > 0 then
+    Move(Data[0], Result[1], Length(Data));
+end;
+
 function ConcatBytes(A, B: TBytes): TBytes;
 begin
-{$IFDEF SUPPORT_TBYTES_OPERATION}
-  Result := A + B;
-{$ELSE}
+  // 哪怕是 XE7 后也不能直接相加，因为 A 或 B 为空时会返回另一字节数组而不是新数组
   if (A = nil) or (Length(A) = 0) then
-    Result := B
+  begin
+    SetLength(Result, Length(B));
+    if Length(B) > 0 then
+      Move(B[0], Result[0], Length(B));
+  end
   else if (B = nil) or (Length(B) = 0) then
-    Result := A
+  begin
+    SetLength(Result, Length(A));
+    if Length(A) > 0 then
+      Move(A[0], Result[0], Length(A));
+  end
   else
   begin
     SetLength(Result, Length(A) + Length(B));
     Move(A[0], Result[0], Length(A));
     Move(B[0], Result[Length(A)], Length(B));
   end;
-{$ENDIF}
 end;
 
 procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
