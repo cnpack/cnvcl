@@ -3470,7 +3470,7 @@ begin
         EncryptAESStreamECB(SS, 0, AESKey256, DS);
       end;
     end;
-    Result := DataToHex(DS.Memory, DS.Size);
+    Result := AnsiString(DataToHex(DS.Memory, DS.Size));
   finally
     SS.Free;
     DS.Free;
@@ -3493,7 +3493,7 @@ begin
 
   try
     SS := TMemoryStream.Create;
-    Tmp := HexToBytes(Value);
+    Tmp := HexToBytes(string(Value));
     SS.Write(PAnsiChar(@Tmp[0])^, Length(Tmp));
     SS.Position := 0;
     DS := TMemoryStream.Create;
@@ -3565,7 +3565,7 @@ begin
         EncryptAESStreamCBC(SS, 0, AESKey256, Iv, DS);
       end;
     end;
-    Result := DataToHex(DS.Memory, DS.Size);
+    Result := AnsiString(DataToHex(DS.Memory, DS.Size));
   finally
     SS.Free;
     DS.Free;
@@ -3588,7 +3588,7 @@ begin
 
   try
     SS := TMemoryStream.Create;
-    Tmp := HexToBytes(Value);
+    Tmp := HexToBytes(string(Value));
     SS.Write(PAnsiChar(@Tmp[0])^, Length(Tmp));
     SS.Position := 0;
     DS := TMemoryStream.Create;
@@ -3660,7 +3660,7 @@ begin
         EncryptAESStreamCFB(SS, 0, AESKey256, Iv, DS);
       end;
     end;
-    Result := DataToHex(DS.Memory, DS.Size);
+    Result := AnsiString(DataToHex(DS.Memory, DS.Size));
   finally
     SS.Free;
     DS.Free;
@@ -3683,7 +3683,7 @@ begin
 
   try
     SS := TMemoryStream.Create;
-    Tmp := HexToBytes(Value);
+    Tmp := HexToBytes(string(Value));
     SS.Write(PAnsiChar(@Tmp[0])^, Length(Tmp));
     SS.Position := 0;
     DS := TMemoryStream.Create;
@@ -3755,7 +3755,7 @@ begin
         EncryptAESStreamOFB(SS, 0, AESKey256, Iv, DS);
       end;
     end;
-    Result := DataToHex(DS.Memory, DS.Size);
+    Result := AnsiString(DataToHex(DS.Memory, DS.Size));
   finally
     SS.Free;
     DS.Free;
@@ -3778,7 +3778,7 @@ begin
 
   try
     SS := TMemoryStream.Create;
-    Tmp := HexToBytes(Value);
+    Tmp := HexToBytes(string(Value));
     SS.Write(PAnsiChar(@Tmp[0])^, Length(Tmp));
     SS.Position := 0;
     DS := TMemoryStream.Create;
