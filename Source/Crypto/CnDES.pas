@@ -782,8 +782,7 @@ end;
 
 function DESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
 var
-  TempResult, Temp: AnsiString;
-  I: Integer;
+  TempResult: AnsiString;
 begin
   Result := '';
   if Str = '' then
@@ -791,36 +790,21 @@ begin
 
   SetResultLengthUsingInput(Str, TempResult);
   DESEncryptECBStr(Key, Str, @TempResult[1]);
-
-  for I := 0 to Length(TempResult) - 1 do
-  begin
-    Temp := AnsiString(Format('%x', [Ord(TempResult[I + 1])]));
-    if Length(Temp) = 1 then
-      Temp := '0' + Temp;
-    Result := Result + Temp;
-  end;
+  Result := AnsiStrToHex(TempResult);
 end;
 
 function DESDecryptECBStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 var
-  Str, Temp: AnsiString;
-  I: Integer;
+  Str: AnsiString;
 begin
-  Str := '';
-  for I := 0 to Length(StrHex) div 2 - 1 do
-  begin
-    Temp := Copy(StrHex, I * 2 + 1, 2);
-    Str := Str + AnsiChar(HexToInt(Temp));
-  end;
-
+  Str := HexToAnsiStr(StrHex);
   SetResultLengthUsingInput(Str, Result);
   DESDecryptECBStr(Key, Str, @(Result[1]));
 end;
 
 function DESEncryptCBCStrToHex(const Str, Key, Iv: AnsiString): AnsiString;
 var
-  TempResult, Temp: AnsiString;
-  I: Integer;
+  TempResult: AnsiString;
 begin
   Result := '';
   if Str = '' then
@@ -828,28 +812,14 @@ begin
 
   SetResultLengthUsingInput(Str, TempResult);
   DESEncryptCBCStr(Key, PAnsiChar(Iv), Str, @TempResult[1]);
-
-  for I := 0 to Length(TempResult) - 1 do
-  begin
-    Temp := AnsiString(Format('%x', [Ord(TempResult[I + 1])]));
-    if Length(Temp) = 1 then
-      Temp := '0' + Temp;
-    Result := Result + Temp;
-  end;
+  Result := AnsiStrToHex(TempResult);
 end;
 
 function DESDecryptCBCStrFromHex(const StrHex, Key, Iv: AnsiString): AnsiString;
 var
-  Str, Temp: AnsiString;
-  I: Integer;
+  Str: AnsiString;
 begin
-  Str := '';
-  for I := 0 to Length(StrHex) div 2 - 1 do
-  begin
-    Temp := Copy(StrHex, I * 2 + 1, 2);
-    Str := Str + AnsiChar(HexToInt(Temp));
-  end;
-
+  Str := HexToAnsiStr(StrHex);
   SetResultLengthUsingInput(Str, Result);
   DESDecryptCBCStr(Key, PAnsiChar(Iv), Str, @(Result[1]));
 end;
@@ -1405,16 +1375,9 @@ end;
 
 function TripleDESDecryptECBStrFromHex(const StrHex, Key: AnsiString): AnsiString;
 var
-  Str, Temp: AnsiString;
-  I: Integer;
+  Str: AnsiString;
 begin
-  Str := '';
-  for I := 0 to Length(StrHex) div 2 - 1 do
-  begin
-    Temp := Copy(StrHex, I * 2 + 1, 2);
-    Str := Str + AnsiChar(HexToInt(Temp));
-  end;
-
+  Str := HexToAnsiStr(StrHex);
   SetResultLengthUsingInput(Str, Result);
   TripleDESDecryptECBStr(Key, Str, @(Result[1]));
 end;
@@ -1439,16 +1402,9 @@ end;
 
 function TripleDESDecryptCBCStrFromHex(const StrHex, Key, Iv: AnsiString): AnsiString;
 var
-  Str, Temp: AnsiString;
-  I: Integer;
+  Str: AnsiString;
 begin
-  Str := '';
-  for I := 0 to Length(StrHex) div 2 - 1 do
-  begin
-    Temp := Copy(StrHex, I * 2 + 1, 2);
-    Str := Str + AnsiChar(HexToInt(Temp));
-  end;
-
+  Str := HexToAnsiStr(StrHex);
   SetResultLengthUsingInput(Str, Result);
   TripleDESDecryptCBCStr(Key, PAnsiChar(Iv), Str, @(Result[1]));
 end;
