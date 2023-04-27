@@ -297,7 +297,6 @@ end;
 procedure TCnSkinForm.NewWndProc(var Message: TMessage);
 var
   Pt: TPoint;
-  WP: PWindowPos;
   Btn: TWindowButton;
   Right, Bottom: Integer;
   Rgn: HRGN;
@@ -318,7 +317,6 @@ begin
           FSaveWndProc(Message);
           if Message.WParam <> 0 then
           begin
-            WP := TWMNCCalcSize(Message).CalcSize_Params^.lppos;
             with TWMNCCalcSize(Message).CalcSize_Params^.rgrc[0] do
             begin
               Inc(Top, CnSkinThemes.CurrentSkin.CaptionHeight);
