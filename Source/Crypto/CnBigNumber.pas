@@ -87,6 +87,7 @@ interface
 uses
   Classes, SysUtils, Math, CnNative {$IFDEF MSWINDOWS}, Windows {$ENDIF},
   Contnrs, CnContainers, CnHashMap, CnRandom
+  {$IFNDEF COMPILER5}, Types {$ENDIF}
   {$IFDEF BN_DATA_USE_64}, CnInt128 {$ENDIF}
   {$IFDEF UNICODE}, AnsiStrings {$ENDIF};
 
