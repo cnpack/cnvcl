@@ -86,17 +86,21 @@ function CnPBKDF2Bytes(const Password, Salt: TBytes; Count, DerivedKeyByteLength
 {* Password Based KDF 2 实现，基于 HMAC-SHA1 或 HMAC-SHA256，参数与返回值均为字节数组
    DerivedKeyByteLength 是所需的密钥字节数，长度可变，允许超长}
 
-// ==================== SM2/SM9 中规定的同一种密钥派生函数 =====================
+// ============ SM2/SM9 中规定的同一种密钥派生函数的六种封装实现 ===============
 
 function CnSM2KDF(const Data: AnsiString; DerivedKeyByteLength: Integer): AnsiString;
 {* SM2 椭圆曲线公钥密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，
-  均不支持规范中说的非整字节数，行为和下面的 CnSM9KDF 等同，返回 AnsiString
-  同时似乎也是没有 SharedInfo 的 ANSI-X9.63-KDF}
+  返回 AnsiString，同时似乎也是没有 SharedInfo 的 ANSI-X9.63-KDF}
 
 function CnSM9KDF(Data: Pointer; DataLen: Integer; DerivedKeyByteLength: Integer): AnsiString;
 {* SM9 标识密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，
-  均不支持规范中说的非整字节数，行为和上面的 CnSM2KDF 等同，返回 AnsiString
-  同时似乎也是没有 SharedInfo 的 ANSI-X9.63-KDF}
+  返回 AnsiString，同时似乎也是没有 SharedInfo 的 ANSI-X9.63-KDF}
+
+function CnSM2KDFBytes(const Data: TBytes; DerivedKeyByteLength: Integer): TBytes;
+{* 参数为字节数组形式的 SM2 椭圆曲线公钥密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，返回字节数组}
+
+function CnSM9KDFBytes(Data: Pointer; DataLen: Integer; DerivedKeyByteLength: Integer): TBytes;
+{* 参数为内存块形式的 SM9 标识密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，返回字节数组}
 
 function CnSM2SM9KDF(Data: TBytes; DerivedKeyByteLength: Integer): TBytes; overload;
 {* 参数为字节数组形式的 SM2 椭圆曲线公钥密码算法与 SM9 标识密码算法中规定的密钥派生函数，
@@ -393,6 +397,16 @@ var
 begin
   Res := CnSM2SM9KDF(Data, DataLen, DerivedKeyByteLength);
   Result := BytesToAnsi(Res);
+end;
+
+function CnSM2KDFBytes(const Data: TBytes; DerivedKeyByteLength: Integer): TBytes;
+begin
+  Result := CnSM2SM9KDF(Data, DerivedKeyByteLength);
+end;
+
+function CnSM9KDFBytes(Data: Pointer; DataLen: Integer; DerivedKeyByteLength: Integer): TBytes;
+begin
+  Result := CnSM2SM9KDF(Data, DataLen, DerivedKeyByteLength);
 end;
 
 function CnSM2SM9KDF(Data: TBytes; DerivedKeyByteLength: Integer): TBytes;

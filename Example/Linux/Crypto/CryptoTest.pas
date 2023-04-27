@@ -1984,8 +1984,22 @@ end;
 
 function TestKDFSM2SM9: Boolean;
 var
-  Pass, Res: TBytes;
+  Pass, Res, PB: TBytes;
+  P, S1, S2, S3: AnsiString;
+  I: Integer;
 begin
+  for I := 8 to 1000 do
+  begin
+    P := 'xsdsdf';
+    S1 := AnsiStrToHex(CnSM2KDF(P, I));
+    S2 := AnsiStrToHex(CnSM9KDF(@P[1], Length(P), I));
+    PB := AnsiToBytes(P);
+    S3 := BytesToHex(CnSM2SM9KDF(PB, I));
+    Result := (S1 = S2) and (S2 = S3);
+    if not Result then
+      Exit;
+  end;
+
   Pass := HexToBytes('57E7B63623FAE5F08CDA468E872A20AFA03DED41BF1403770E040DC83AF31A67991F2B01EBF9EFD8881F0A0493000603');
   Res := CnSM2SM9KDF(Pass, 19);
   Result := DataToHex(@Res[0], Length(Res)) = '046B04A9ADF53B389B9E2AAFB47D90F4D08978';
