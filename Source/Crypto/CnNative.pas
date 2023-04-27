@@ -526,6 +526,9 @@ function BytesToAnsi(const Data: TBytes): AnsiString;
 function ConcatBytes(A, B: TBytes): TBytes;
 {* 将 A B 两个字节数组顺序拼好返回一个新字节数组，A B 保持不变}
 
+function NewBytesFromMemory(Data: Pointer; DataByteLen: Integer): TBytes;
+{* 新建一字节数组，并从一片内存区域复制内容过来。}
+
 procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
 {* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，
   如 ByteLen 小于 MostLen，则 Dest 填充 0，要求 Dest 容纳至少 MostLen}
@@ -1737,6 +1740,17 @@ begin
     SetLength(Result, Length(A) + Length(B));
     Move(A[0], Result[0], Length(A));
     Move(B[0], Result[Length(A)], Length(B));
+  end;
+end;
+
+function NewBytesFromMemory(Data: Pointer; DataByteLen: Integer): TBytes;
+begin
+  if (Data = nil) or (DataByteLen <= 0) then
+    Result := nil
+  else
+  begin
+    SetLength(Result, DataByteLen);
+    Move(Data^, Result[0], DataByteLen);
   end;
 end;
 
