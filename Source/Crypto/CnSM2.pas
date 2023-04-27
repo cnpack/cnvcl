@@ -672,8 +672,8 @@ var
   B: Byte;
   M: PAnsiChar;
   I: Integer;
-  Buf: array of Byte;
-  KDFStr, T, C3H: AnsiString;
+  Buf, T, KDFB: TBytes;
+  C3H: AnsiString;
   Sm3Dig: TCnSM3Digest;
   SM2IsNil: Boolean;
 begin
@@ -739,14 +739,14 @@ begin
     P2.Assign(PublicKey);
     SM2.MultiplePoint(K, P2); // 计算出 K * PublicKey 得到 X2 Y2
 
-    SetLength(KDFStr, CN_SM2_FINITEFIELD_BYTESIZE * 2);
-    P2.X.ToBinary(@KDFStr[1], CN_SM2_FINITEFIELD_BYTESIZE);
-    P2.Y.ToBinary(@KDFStr[CN_SM2_FINITEFIELD_BYTESIZE + 1], CN_SM2_FINITEFIELD_BYTESIZE);
-    T := CnSM2KDF(KDFStr, DataLen);
+    SetLength(KDFB, CN_SM2_FINITEFIELD_BYTESIZE * 2);
+    P2.X.ToBinary(@KDFB[0], CN_SM2_FINITEFIELD_BYTESIZE);
+    P2.Y.ToBinary(@KDFB[CN_SM2_FINITEFIELD_BYTESIZE], CN_SM2_FINITEFIELD_BYTESIZE);
+    T := CnSM2KDFBytes(KDFB, DataLen);
 
     M := PAnsiChar(PlainData);
     for I := 1 to DataLen do
-      T[I] := AnsiChar(Byte(T[I]) xor Byte(M[I - 1])); // T 里是 C2，但先不能写
+      T[I - 1] := Byte(T[I - 1]) xor Byte(M[I - 1]); // T 里是 C2，但先不能写
 
     SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + DataLen);
     P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
@@ -756,13 +756,13 @@ begin
 
     if SequenceType = cstC1C3C2 then
     begin
-      OutStream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));        // 写入 C3
-      OutStream.Write(T[1], DataLen);                        // 写入 C2
+      OutStream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));      // 写入 C3
+      OutStream.Write(T[0], DataLen);                        // 写入 C2
     end
     else
     begin
-      OutStream.Write(T[1], DataLen);                        // 写入 C2
-      OutStream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));        // 写入 C3
+      OutStream.Write(T[0], DataLen);                        // 写入 C2
+      OutStream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));      // 写入 C3
     end;
 
     Result := True;
@@ -813,7 +813,8 @@ var
   MLen: Integer;
   M: PAnsiChar;
   MP: AnsiString;
-  KDFStr, T, C3H: AnsiString;
+  KDFB, T: TBytes;
+  C3H: AnsiString;
   SM2IsNil: Boolean;
   P2: TCnEccPoint;
   I, PrefixLen: Integer;
@@ -869,10 +870,10 @@ begin
 
     SM2.MultiplePoint(PrivateKey, P2);
 
-    SetLength(KDFStr, CN_SM2_FINITEFIELD_BYTESIZE * 2);
-    P2.X.ToBinary(@KDFStr[1], CN_SM2_FINITEFIELD_BYTESIZE);
-    P2.Y.ToBinary(@KDFStr[CN_SM2_FINITEFIELD_BYTESIZE + 1], CN_SM2_FINITEFIELD_BYTESIZE);
-    T := CnSM2KDF(KDFStr, MLen);
+    SetLength(KDFB, CN_SM2_FINITEFIELD_BYTESIZE * 2);
+    P2.X.ToBinary(@KDFB[0], CN_SM2_FINITEFIELD_BYTESIZE);
+    P2.Y.ToBinary(@KDFB[CN_SM2_FINITEFIELD_BYTESIZE], CN_SM2_FINITEFIELD_BYTESIZE);
+    T := CnSM2KDFBytes(KDFB, MLen);
 
     if SequenceType = cstC1C3C2 then
     begin
@@ -880,7 +881,7 @@ begin
       M := PAnsiChar(EnData);
       Inc(M, SizeOf(TCnSM3Digest) + CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen); // 跳过 C3 指向 C2
       for I := 1 to MLen do
-        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I])); // 和 KDF 做异或，在 MP 里得到明文
+        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1])); // 和 KDF 做异或，在 MP 里得到明文
 
       SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
       P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
@@ -905,7 +906,7 @@ begin
       Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);  // 指向 C2
 
       for I := 1 to MLen do
-        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I])); // 和 KDF 做异或，在 MP 里得到明文
+        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1])); // 和 KDF 做异或，在 MP 里得到明文
 
       SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
       P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
@@ -1539,7 +1540,7 @@ end;
 function CalcSM2ExchangeKey(UV: TCnEccPoint; Za, Zb: TCnSM3Digest; KeyByteLength: Integer): AnsiString;
 var
   Stream: TMemoryStream;
-  S: AnsiString;
+  S: TBytes;
 begin
   Stream := TMemoryStream.Create;
   try
@@ -1550,9 +1551,9 @@ begin
 
     SetLength(S, Stream.Size);
     Stream.Position := 0;
-    Stream.Read(S[1], Stream.Size);
+    Stream.Read(S[0], Stream.Size);
 
-    Result := CnSM2KDF(S, KeyByteLength);
+    Result := BytesToAnsi(CnSM2KDFBytes(S, KeyByteLength));
   finally
     SetLength(S, 0);
     Stream.Free;
@@ -2334,7 +2335,8 @@ var
   MLen: Integer;
   M: PAnsiChar;
   MP: AnsiString;
-  KDFStr, T, C3H: AnsiString;
+  KDFB, T: TBytes;
+  C3H: AnsiString;
   P2: TCnEccPoint;
   I, PrefixLen: Integer;
   Sm3Dig: TCnSM3Digest;
@@ -2393,10 +2395,10 @@ begin
 
     // 以下同常规解密
 
-    SetLength(KDFStr, CN_SM2_FINITEFIELD_BYTESIZE * 2);
-    P2.X.ToBinary(@KDFStr[1], CN_SM2_FINITEFIELD_BYTESIZE);
-    P2.Y.ToBinary(@KDFStr[CN_SM2_FINITEFIELD_BYTESIZE + 1], CN_SM2_FINITEFIELD_BYTESIZE);
-    T := CnSM2KDF(KDFStr, MLen);
+    SetLength(KDFB, CN_SM2_FINITEFIELD_BYTESIZE * 2);
+    P2.X.ToBinary(@KDFB[0], CN_SM2_FINITEFIELD_BYTESIZE);
+    P2.Y.ToBinary(@KDFB[CN_SM2_FINITEFIELD_BYTESIZE], CN_SM2_FINITEFIELD_BYTESIZE);
+    T := CnSM2KDFBytes(KDFB, MLen);
 
     if SequenceType = cstC1C3C2 then
     begin
@@ -2404,7 +2406,7 @@ begin
       M := PAnsiChar(EnData);
       Inc(M, SizeOf(TCnSM3Digest) + CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen); // 跳过 C3 指向 C2
       for I := 1 to MLen do
-        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I]));    // 和 KDF 做异或，在 MP 里得到明文
+        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1]));    // 和 KDF 做异或，在 MP 里得到明文
 
       SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
       P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
@@ -2429,7 +2431,7 @@ begin
       Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);             // 指向 C2
 
       for I := 1 to MLen do
-        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I]));    // 和 KDF 做异或，在 MP 里得到明文
+        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1]));    // 和 KDF 做异或，在 MP 里得到明文
 
       SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
       P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
