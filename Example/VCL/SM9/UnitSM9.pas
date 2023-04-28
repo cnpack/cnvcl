@@ -125,6 +125,9 @@ implementation
 
 {$R *.DFM}
 
+uses
+  CnNative;
+
 const
   SM9_PRIME_HEX = 'B640000002A3A6F1D603AB4FF58EC74521F2934B1A7AEEDBE56F9B27E351457D';
 
@@ -955,7 +958,7 @@ var
   RA, RB: TCnEccPoint;
   RandA, RandB: TCnBigNumber;
   BG1, BG2, BG3: TCnFP12;
-  KeyA, KeyB: AnsiString;
+  KeyA, KeyB: TBytes;
   SB, SA: TCnSM3Digest;
 begin
   mmoKeyExchange.Lines.Clear;
@@ -1028,7 +1031,7 @@ begin
       mmoKeyExchange.Lines.Add(BG3.ToString);
 
       mmoKeyExchange.Lines.Add('B Key:');
-      mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@KeyB[1]), Length(KeyB)));
+      mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@KeyB[0]), Length(KeyB)));
     end;
 
     // 第三步，A 调用，使用了第二步里传过来的 RB 和 SB 以及第一步自身的 RandA
@@ -1037,7 +1040,7 @@ begin
     begin
       mmoKeyExchange.Lines.Add('A User Step 2: Key! & SA');
       mmoKeyExchange.Lines.Add('A Key:');
-      mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@KeyA[1]), Length(KeyA)));
+      mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@KeyA[0]), Length(KeyA)));
       mmoKeyExchange.Lines.Add(StrToHex(PAnsiChar(@SA[0]), SizeOf(TCnSM3Digest)));
     end;
 
@@ -1047,9 +1050,8 @@ begin
       mmoKeyExchange.Lines.Add('B User Step 2: Check SA OK');
     end;
 
-    if KeyA = KeyB then
+    if CompareBytes(KeyA, KeyB) then
       mmoKeyExchange.Lines.Add('KeyA = KeyB. Exchange OK.');
-
   finally
     BG3.Free;
     BG2.Free;

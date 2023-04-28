@@ -855,7 +855,7 @@ function CnSM9UserKeyExchangeAStep1(const BUserID: AnsiString; KeyByteLength: In
 function CnSM9UserKeyExchangeBStep1(const AUserID, BUserID: AnsiString;
   KeyByteLength: Integer; KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
   KeyExchangeBUserKey: TCnSM9KeyExchangeUserPrivateKey; InRA: TCnEccPoint;
-  OutRB: TCnEccPoint; out KeyB: AnsiString; out OutOptionalSB: TCnSM3Digest;
+  OutRB: TCnEccPoint; out KeyB: TBytes; out OutOptionalSB: TCnSM3Digest;
   OutG1, OutG2, OutG3: TCnFP12; SM9: TCnSM9 = nil): Boolean;
 {* 密钥交换第二步，B 用 A、B 的 ID 以及加密主公钥与自己的私钥，根据所密钥长度与 RA
   生成协商密钥 KeyB。另外生成另一个椭圆曲线点 RB 再加上一个可选的校验结果 SB 给 A
@@ -864,7 +864,7 @@ function CnSM9UserKeyExchangeBStep1(const AUserID, BUserID: AnsiString;
 function CnSM9UserKeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
   KeyExchangeAUserKey: TCnSM9KeyExchangeUserPrivateKey; InRandA: TCnBigNumber;
-  InRA, InRB: TCnEccPoint; InOptionalSB: TCnSM3Digest; out KeyA: AnsiString;
+  InRA, InRB: TCnEccPoint; InOptionalSB: TCnSM3Digest; out KeyA: TBytes;
   out OutOptionalSA: TCnSM3Digest; SM9: TCnSM9 = nil): Boolean;
 {* 密钥交换第三步，A 用 B 的 ID 以及加密主公钥与自己的私钥，根据所密钥长度与 RA、RB
   生成协商密钥 KeyA，以及一个可选的校验结果 SA 给 B，此处 KeyA 应当等于 KeyB}
@@ -3764,7 +3764,7 @@ end;
 function CnSM9UserKeyExchangeBStep1(const AUserID, BUserID: AnsiString;
   KeyByteLength: Integer; KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
   KeyExchangeBUserKey: TCnSM9KeyExchangeUserPrivateKey; InRA: TCnEccPoint;
-  OutRB: TCnEccPoint; out KeyB: AnsiString; out OutOptionalSB: TCnSM3Digest;
+  OutRB: TCnEccPoint; out KeyB: TBytes; out OutOptionalSB: TCnSM3Digest;
   OutG1, OutG2, OutG3: TCnFP12; SM9: TCnSM9 = nil): Boolean;
 var
   C: Boolean;
@@ -3828,7 +3828,7 @@ begin
     FP12ToStream(OutG2, Stream, SM9.BytesCount);
     FP12ToStream(OutG3, Stream, SM9.BytesCount);
 
-    KeyB := CnSM9KDF(Stream.Memory, Stream.Size, KeyByteLength); // 生成了协商密钥
+    KeyB := CnSM9KDFBytes(Stream.Memory, Stream.Size, KeyByteLength); // 生成了协商密钥
 
     // 再计算可选的校验值
     Stream.Clear;
@@ -3861,7 +3861,7 @@ end;
 function CnSM9UserKeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
   KeyExchangeAUserKey: TCnSM9KeyExchangeUserPrivateKey; InRandA: TCnBigNumber;
-  InRA, InRB: TCnEccPoint; InOptionalSB: TCnSM3Digest; out KeyA: AnsiString;
+  InRA, InRB: TCnEccPoint; InOptionalSB: TCnSM3Digest; out KeyA: TBytes;
   out OutOptionalSA: TCnSM3Digest; SM9: TCnSM9 = nil): Boolean;
 var
   C: Boolean;
@@ -3929,7 +3929,7 @@ begin
     FP12ToStream(G2, Stream, SM9.BytesCount);
     FP12ToStream(G3, Stream, SM9.BytesCount);
 
-    KeyA := CnSM9KDF(Stream.Memory, Stream.Size, KeyByteLength); // 生成了协商密钥
+    KeyA := CnSM9KDFBytes(Stream.Memory, Stream.Size, KeyByteLength); // 生成了协商密钥
 
     // 可选：再来一把校验
     Stream.Clear;
