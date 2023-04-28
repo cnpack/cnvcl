@@ -1381,7 +1381,7 @@ end;
 procedure TFormBigNumber.btnBNRawDumpClick(Sender: TObject);
 var
   L: Integer;
-  B: array of Byte;
+  B: TBytes;
 begin
   L := BigNumberRawDump(Num1);
   if L > 0 then

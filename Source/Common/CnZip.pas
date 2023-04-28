@@ -53,15 +53,17 @@ interface
 // {$DEFINE DEBUGZIP}
 
 uses
-  SysUtils, Classes, Windows, Contnrs, FileCtrl, CnCRC32, ZLib
+  SysUtils, Classes, Windows, Contnrs, FileCtrl, CnCRC32, CnNative, ZLib
   {$IFNDEF DISABLE_DIRECTORY_SUPPORT}, CnCommon {$ENDIF}
   {$IFNDEF COMPILER6_UP} , CnWideStrings  {$ENDIF};
   // D5 下需要用到 CnWideStrings 单元做 UTF8 支持
 
 type
   ECnZipException = class(Exception);
+  {* Zip 相关异常}
 
   TCnZipCompressionMethod = (
+  {* Zip 压缩类型}
     zcStored, zcShrunk, zcReduce1, zcReduce2, zcReduce3, zcReduce4, zcImplode,
     zcTokenize, zcDeflate, zcDeflate64, zcPKImplode, zcReserved11, zcBZIP2,
     zcReserved13, zcLZMA, zcReserved15, zcReserved16, zcReserved17, zcTERSE,
@@ -71,6 +73,7 @@ type
   );
 
   TCnZipHeader = packed record
+  {* Zip 文件头结构}
     MadeByVersion:      Word;     // Start of Central Header
     RequiredVersion:    Word;     // Start of Local Header
     Flag:               Word;
@@ -93,6 +96,7 @@ type
   PCnZipHeader = ^TCnZipHeader;
 
   TCnZipEndOfCentralHeader = packed record
+  {* Zip Central 头结束部分结构}
     DiskNumber:          Word;
     CentralDirStartDisk: Word;
     NumEntriesThisDisk:  Word;
@@ -134,10 +138,11 @@ type
     {* 该 Zip 文件是否有密码}
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
-
+    {* 析构函数}
     function IndexOf(const FileName: string): Integer;
-
+    {* 在该 Zip 文件中查找指定文件名，返回其顺序索引}
     property FileCount: Integer read GetFileCount;
     {* 该 Zip 文件包含的文件个数}
     property FileName[Index: Integer]: string read GetFileName;
@@ -937,7 +942,7 @@ function TCnZipReader.SearchEndOfCentralHeader(Stream: TStream;
 var
   I: Integer;
   BackRead, ReadSize, MaxBack: Longint;
-  BackBuf: array of Byte;
+  BackBuf: TBytes;
 begin
   if Stream.Size < $FFFF then
     MaxBack := Stream.Size
@@ -1221,7 +1226,7 @@ var
   Signature: Cardinal;
   LStartPos: Int64;
   C: Integer;
-  Buffer: array of Byte;
+  Buffer: TBytes;
 begin
   FOutStream.Position := FEndFileData;
   LocalHeader^.LocalHeaderOffset := FEndFileData;
@@ -1568,7 +1573,7 @@ function TCnEncryptStoredStream.Write(const Buffer; Count: Integer): Integer;
 const
   MaxBufSize = $F000;
 var
-  B: array of Byte;
+  B: TBytes;
   C, I: Integer;
   P: PByte;
 begin

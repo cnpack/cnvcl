@@ -134,10 +134,13 @@ type
     // 1 为负，0 为正
 
     constructor Create; virtual;
+    {* 构造函数}
+
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Init;
-    {* 初始化为全 0，并不分配 D 内存}
+    {* 初始化为全 0，并不为 D 分配内存}
 
     procedure Clear;
     {* 将自身数据空间填 0，并不释放 D 内存}
@@ -161,10 +164,10 @@ type
     {* 返回大数是否为奇数}
 
     function GetBitsCount: Integer;
-    {* 返回大数有多少个有效 Bits}
+    {* 返回大数有多少个有效 Bits 位}
 
     function GetBytesCount: Integer;
-    {* 返回大数有多少个有效 Bytes}
+    {* 返回大数有多少个有效 Bytes 字节}
 
     function GetWordCount: Integer;
     {* 返回大数有多少个有效 UInt32/UInt64}
@@ -333,18 +336,22 @@ type
     constructor Create; reintroduce;
 
     function Add: TCnBigNumber; overload;
-    {* 新增一个大数对象，返回该对象，注意添加后无需也不能手动释放}
+    {* 新增一个大数对象，返回该对象，注意添加后无需也不应手动释放}
     function Add(ABigNumber: TCnBigNumber): Integer; overload;
-    {* 添加外部的大数对象，注意添加后无需也不能手动释放}
+    {* 添加外部的大数对象，注意添加后无需也不应手动释放}
     function Remove(ABigNumber: TCnBigNumber): Integer;
+    {* 从列表中删除指定引用的大数对象并释放}
     function IndexOfValue(ABigNumber: TCnBigNumber): Integer;
+    {* 根据大数的值在列表中查找该值对应的位置索引}
     procedure Insert(Index: Integer; ABigNumber: TCnBigNumber);
+    {* 在第 Index 个位置前插入大数对象}
     procedure RemoveDuplicated;
-    {* 去重，也就是删除并释放重复的大数值对象只留一个}
+    {* 去重，也就是删除并释放值重复的大数对象，只留一个}
     procedure SumTo(Sum: TCnBigNumber);
     {* 列表内所有数求和}
 
     property Items[Index: Integer]: TCnBigNumber read GetItem write SetItem; default;
+    {* 大数列表项}
   end;
 
   TCnBigNumberPool = class(TCnMathObjectPool)
@@ -369,7 +376,9 @@ type
     {* 将指数与大数转成字符串}
 
     property Exponent: Integer read FExponent write FExponent;
+    {* 指数}
     property Value: TCnBigNumber read FValue;
+    {* 大数}
   end;
 
   TCnSparseBigNumberList = class(TObjectList)
@@ -984,6 +993,8 @@ procedure SparseBigNumberListCopy(Dst, Src: TCnSparseBigNumberList);
 procedure SparseBigNumberListMerge(Dst, Src1, Src2: TCnSparseBigNumberList; Add: Boolean = True);
 {* 合并两个 SparseBigNumberList 至目标 List 中，指数相同的系数 Add 为 True 时相加，否则相减
   Dst 可以是 Src1 或 Src2，Src1 和 Src2 可以相等}
+
+// ============================ 其他大数函数 ===================================
 
 function CnBigNumberIs64Mode: Boolean;
 {* 当前大数整体的工作模式是否是内部 64 位存储模式，供调试使用}

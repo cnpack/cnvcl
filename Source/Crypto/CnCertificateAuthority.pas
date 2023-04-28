@@ -250,8 +250,8 @@ type
 
 {
   标准扩展包括以下内容：
-  // Authority Key Identifier       签发者密钥标识符 array of Byte
-  // Subject Key Identifier         被签发者公钥标记 array of Byte
+  // Authority Key Identifier       签发者密钥标识符，字节数组
+  // Subject Key Identifier         被签发者公钥标记，字节数组
   // Key Usage                      密钥用法集合 TCnCerKeyUsages
   // Certificate Policies
   // Policy Mappings

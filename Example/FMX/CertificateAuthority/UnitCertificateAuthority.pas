@@ -100,22 +100,8 @@ implementation
 
 {$R *.fmx}
 
-function PrintHex(const Buf: Pointer; Len: Integer): string;
-var
-  I: Integer;
-  P: PByteArray;
-const
-  Digits: array[0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6', '7',
-                                  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
-begin
-  Result := '';
-  P := PByteArray(Buf);
-  for I := 0 to Len - 1 do
-  begin
-    Result := Result + {$IFDEF UNICODE}string{$ENDIF}(Digits[(P[I] shr 4) and $0F] +
-              Digits[P[I] and $0F]);
-  end;
-end;
+uses
+  CnNative;
 
 procedure TFormCA.FormCreate(Sender: TObject);
 begin
@@ -145,7 +131,7 @@ end;
 procedure TFormCA.btnParseCSRClick(Sender: TObject);
 var
   CSR: TCnCertificateRequest;
-  OutBuf: array of Byte;
+  OutBuf: TBytes;
   OutLen: Integer;
 begin
   CSR := TCnCertificateRequest.Create;
@@ -162,7 +148,7 @@ begin
         mmoCSRParse.Lines.Add('');
         mmoCSRParse.Lines.Add('--------');
         mmoCSRParse.Lines.Add('Digest after RSA Decryption:');
-        mmoCSRParse.Lines.Add(PrintHex(@OutBuf[0], OutLen));
+        mmoCSRParse.Lines.Add(DataToHex(@OutBuf[0], OutLen));
       end;
     end;
   end
