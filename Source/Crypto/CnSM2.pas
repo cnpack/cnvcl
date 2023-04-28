@@ -42,7 +42,9 @@ unit CnSM2;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.04.10 V2.1
+* 修改记录：2023.04.29 V2.2
+*               将密钥交换的输出密钥格式由 AnsiString 改为 TBytes 以避免乱码
+*           2023.04.10 V2.1
 *               修正部分坐标值较小的情况下的加解密对齐问题
 *           2023.03.25 V2.0
 *               加密与签名时允许外界指定随机数，传入随机数的十六进制字符串
@@ -249,7 +251,7 @@ function CnSM2KeyExchangeAStep1(const AUserID, BUserID: AnsiString; KeyByteLengt
 
 function CnSM2KeyExchangeBStep1(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   BPrivateKey: TCnSM2PrivateKey; APublicKey, BPublicKey: TCnSM2PublicKey; InRA: TCnEccPoint;
-  out OutKeyB: AnsiString; OutRB: TCnEccPoint; out OutOptionalSB: TCnSM3Digest;
+  out OutKeyB: TBytes; OutRB: TCnEccPoint; out OutOptionalSB: TCnSM3Digest;
   out OutOptionalS2: TCnSM3Digest; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 的密钥交换协议，第二步 B 用户收到 A 的数据，计算 Kb，并把可选的验证结果返回 A
   输入：A B 的用户名，所需密码长度、自己的私钥、双方的公钥、A 传来的 RA
@@ -257,7 +259,7 @@ function CnSM2KeyExchangeBStep1(const AUserID, BUserID: AnsiString; KeyByteLengt
 
 function CnSM2KeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   APrivateKey: TCnSM2PrivateKey; APublicKey, BPublicKey: TCnSM2PublicKey; MyRA, InRB: TCnEccPoint;
-  MyARand: TCnBigNumber; out OutKeyA: AnsiString; InOptionalSB: TCnSM3Digest;
+  MyARand: TCnBigNumber; out OutKeyA: TBytes; InOptionalSB: TCnSM3Digest;
   out OutOptionalSA: TCnSM3Digest; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 的密钥交换协议，第三步 A 用户收到 B 的数据计算 Ka，并把可选的验证结果返回 B，初步协商好 Ka = Kb
   输入：A B 的用户名，所需密码长度、自己的私钥、双方的公钥、B 传来的 RB 与可选的 SB，自己的点 RA、自己的随机值 MyARand
@@ -1537,7 +1539,7 @@ end;
 {
   计算交换出的密钥：KDF(Xuv‖Yuv‖Za‖Zb, kLen)
 }
-function CalcSM2ExchangeKey(UV: TCnEccPoint; Za, Zb: TCnSM3Digest; KeyByteLength: Integer): AnsiString;
+function CalcSM2ExchangeKey(UV: TCnEccPoint; Za, Zb: TCnSM3Digest; KeyByteLength: Integer): TBytes;
 var
   Stream: TMemoryStream;
   S: TBytes;
@@ -1553,7 +1555,7 @@ begin
     Stream.Position := 0;
     Stream.Read(S[0], Stream.Size);
 
-    Result := BytesToAnsi(CnSM2KDFBytes(S, KeyByteLength));
+    Result := CnSM2KDFBytes(S, KeyByteLength);
   finally
     SetLength(S, 0);
     Stream.Free;
@@ -1648,7 +1650,7 @@ end;
 }
 function CnSM2KeyExchangeBStep1(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   BPrivateKey: TCnSM2PrivateKey; APublicKey, BPublicKey: TCnSM2PublicKey; InRA: TCnEccPoint;
-  out OutKeyB: AnsiString; OutRB: TCnEccPoint; out OutOptionalSB: TCnSM3Digest;
+  out OutKeyB: TBytes; OutRB: TCnEccPoint; out OutOptionalSB: TCnSM3Digest;
   out OutOptionalS2: TCnSM3Digest; SM2: TCnSM2): Boolean;
 var
   SM2IsNil: Boolean;
@@ -1739,7 +1741,7 @@ end;
 
 function CnSM2KeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
   APrivateKey: TCnSM2PrivateKey; APublicKey, BPublicKey: TCnSM2PublicKey; MyRA, InRB: TCnEccPoint;
-  MyARand: TCnBigNumber; out OutKeyA: AnsiString; InOptionalSB: TCnSM3Digest;
+  MyARand: TCnBigNumber; out OutKeyA: TBytes; InOptionalSB: TCnSM3Digest;
   out OutOptionalSA: TCnSM3Digest; SM2: TCnSM2): Boolean;
 var
   SM2IsNil: Boolean;

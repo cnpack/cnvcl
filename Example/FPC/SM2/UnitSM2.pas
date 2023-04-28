@@ -226,7 +226,7 @@ var
   APublicKey, BPublicKey: TCnEccPublicKey;
   RandA, RandB: TCnBigNumber;
   OutRA, OutRB: TCnEccPoint;
-  KA, KB: AnsiString;
+  KA, KB: TBytes;
   OpSA, OpSB, OpS2: TCnSM3Digest;
 begin
   SM2 := TCnSM2.Create(ctSM2Example256);
@@ -551,7 +551,7 @@ var
   APublicKey, BPublicKey: TCnEccPublicKey;
   RandA, RandB: TCnBigNumber;
   OutRA, OutRB: TCnEccPoint;
-  KA, KB: AnsiString;
+  KA, KB: TBytes;
   OpSA, OpSB, OpS2: TCnSM3Digest;
 begin
   if not CheckPublicKeyStr(edtSM2PublicKey) or not CheckPublicKeyStr(edtSM2BPublicKey) then
