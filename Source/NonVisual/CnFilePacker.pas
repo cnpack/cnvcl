@@ -42,28 +42,24 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Windows, CnConsts, CnCompConsts, CnClasses, CnCommon;
-
-const
-  SCnIncCounts = 20;
-  SFileNameError = 'Destination FileName is Empty.';
+  Classes, SysUtils, Windows, CnConsts, CnCompConsts, CnNative, CnClasses, CnCommon;
 
 type
 
-//文件结构
-//PPackHeader |PPackDir| （TDataBlock|data|，...）
+// 文件结构 PPackHeader |PPackDir| （TDataBlock|data|，...）
 
-// 压缩模式
   TCompressMode = (cmNONE, cmCustom, cmZIP, cmRAR);
-
-  TBytes = array of Byte;
+  {* 压缩模式}
 
 //------------------------------------------------------------------------------
 // 文件头
 //------------------------------------------------------------------------------
+
   PPackHeader = ^TPackHeader;
+  {* 打包文件头结构指针}
 
   TPackHeader = record
+  {* 打包文件头结构}
     ZipName: array[0..7] of AnsiChar;      //= ('cnpacker');
     FileInfoCount: Cardinal;
     Compress: TCompressMode;
@@ -73,9 +69,12 @@ type
 //------------------------------------------------------------------------------
 // 文件信息
 //------------------------------------------------------------------------------
+
   PPackFileInformation = ^TPackFileInformation;
+  {* 文件打包相关的信息结构指针}
 
   TPackFileInformation = record
+  {* 文件打包相关的信息结构}
     Name: array[0..255] of AnsiChar;
     DataStart: Cardinal;
   end;
@@ -85,24 +84,27 @@ type
 //------------------------------------------------------------------------------
 // 数据头
 //------------------------------------------------------------------------------
+
   TDataBlock = record
+  {* 文件数据头}
     FileName: array[0..255] of AnsiChar;
-  //MD5:TMD5Digest;
     DataLength: Cardinal;
   end;
 
 //------------------------------------------------------------------------------
 // 文件描述元
 //------------------------------------------------------------------------------
+
   TFileCell = record
+  {* 文件描述元}
     ReadFileName: string;
     ConvertFileName: string;
   end;
 
   TFileCells = array of TFileCell;
 
-   // 压缩接口
   ICnCompress = interface
+  {* 文件打包相关的压缩接口}
     ['{F2379CD7-824B-4D8A-89C3-D897BF95F34C}']
     function GetCompressMode: TCompressMode;
     procedure DoCompressData(var AStream: TBytes; var ALength: Cardinal);
@@ -111,105 +113,113 @@ type
 
 { TCnFilePacker }
 
-  ECnFilePackerException = class(Exception)
-  end;
+  ECnFilePackerException = class(Exception);
+  {* 文件打包相关异常}
 
   TCnFilePacker = class(TCnComponent)
+  {* 文件打包实现类}
   private
-    {*文件头}
     FPackHeaderInfo: PPackHeader;
-    {*打包文件的文件信息}
+    {* 文件头}
     FPackFileInformations: TArrayPackFileInformation;
-    {*供外部使用的文件信息}
+    {* 打包文件的文件信息}
     FImportPackFileInfo: TArrayPackFileInformation;
-    {*供外部使用的文件目录信息}
+    {* 供外部使用的文件信息}
     FImprotPackDirectoryInfo: TArrayPackFileInformation;
-    {*标志是否创建了保存主目录，即解包文件的目录}
+    {* 供外部使用的文件目录信息}
     FCreateSavePath: Boolean;
-    {*压缩模式}
+    {* 标志是否创建了保存主目录，即解包文件的目录}
     FCompressMode: TCompressMode;
-    {*是否压缩}
+    {* 压缩模式}
     FCompress: Boolean;
-    {*是否包含子目录}
+    {* 是否压缩}
     FPackedSubDirectory: Boolean;
-    {*形成文件列表}
+    {* 是否包含子目录}
     FFiles: TFileCells;
-    {*文件信息的当前数量，总数量}
+    {* 形成文件列表}
     FCurrent, FCount: Cardinal;
-    {*文件信息的数量，打包时=fcurrent，解包时从包中得到的}
+    {* 文件信息的当前数量，总数量}
     FFileinfoCount: Cardinal;
-    {*fDestFilename是打包后的文件的文件路径}
-    {*FSavePath是解包后存放的目录}
-    FDestFileName, FSavePath: string;
-
-    {*标志是否使用addfile函数增加了文件}
-    FAddFilesCount: integer;
-    {*传入的自定义压缩类}
+    {* 文件信息的数量，打包时=fcurrent，解包时从包中得到的}
+    FDestFileName: string;
+    {* 打包后的文件的文件路径}
+    FSavePath: string;
+    {* 解包后存放的目录}
+    FAddFilesCount: Integer;
+    {* 标志是否使用 AddFile 函数增加的文件的数量}
     FCompressInterface: ICnCompress;
-    {* 属性字段用到的函数，前边加prop区别}
+    {* 传入的自定义压缩类}
     function GetPropGetPackFileDirectoryInfo: TArrayPackFileInformation;
     function GetPropGetPackFileInformation: TArrayPackFileInformation;
     function GetPropGetPackHeader: TPackHeader;
-    {*压缩数据函数}
+    {* 属性字段用到的函数，前边加 prop 以示区别}
     procedure CompressData(var AStream: TBytes; var ALength: Cardinal);
-    {*解压缩数据函数}
+    {* 压缩数据函数}
     procedure DeCompressData(var AStream: TBytes; var ALength: Cardinal);
+    {* 解压缩数据函数}
   protected
     FPack, FDestFile: TFileStream;
     procedure CheckFileCellsCounts;
-    {*如果需要压缩，不适用压缩接口的话，重载这两个虚函数！}
+    
     procedure DoCompressData(var AStream: TBytes; var ALength: Cardinal); virtual;
     procedure DoDeCompressData(var AStream: TBytes; var ALength: Cardinal); virtual;
-    {*得到打包文件的文件头}
+    {* 如果需要压缩，不适用压缩接口的话，重载这两个虚函数！}
     function GetPackHeader: PPackHeader;
-    {*分配一块内存并得到打包文件文件的信息，由外部负责释放}
+    {* 得到打包文件的文件头}
     function GetPackFileInformation: TArrayPackFileInformation;
-    
+    {* 分配一块内存并得到打包文件文件的信息，由外部负责释放}
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    {*形成打包文件的主函数}
-    procedure DoPack();
-    {*存储一个文件}
+    
+    procedure DoPack;
+    {* 组装打包文件的主函数}
     procedure SaveToFile(APackFileInfo: TPackFileInformation);
-    {*存储所以文件}
+    {* 存储一个文件}
     procedure SaveToFiles;
-    {*创建文件目录}
+    {* 存储所有文件}
     procedure CreateDirectory;
-    {*添加目录}
+    {* 创建文件目录}
     procedure AddDircetory(ADirName: string); overload;
     procedure AddDircetory(ARootName, ADirName: string); overload;
-    {*添加文件}
+    {* 添加目录}
     procedure AddFile(ADirName, AFileName: string); overload;
     procedure AddFile(AFileName: string); overload;
-    {*添加压缩类}
+    {* 添加文件}
     procedure AddCompressClass(ACompressClass: TInterfacedClass);
-    {*得到文件信息}
+    {* 添加压缩类}
     property PackFileInformation: TArrayPackFileInformation read GetPropGetPackFileInformation;
+    {* 文件信息}
     property PackFileDirectoryInfo: TArrayPackFileInformation read GetPropGetPackFileDirectoryInfo;
+    {* 文件目录信息}
   published
     property DestFileName: string read FDestFileName write FDestFileName;
     property SavePath: string read FSavePath write FSavePath;
     property PackedSubDirectory: Boolean read FPackedSubDirectory write FPackedSubDirectory;
     property Compress: Boolean read FCompress write FCompress;
     property CompressMode: TCompressMode read FCompressMode write FCompressMode;
-    {*得到文件头信息}
+
     property PackHeaderInformation: TPackHeader read GetPropGetPackHeader;
+    {* 文件头信息}
   end;
 
 implementation
 
-//以最后一个'\' 为界得到后面部分
+const
+  SCnIncCounts = 20;
+  SFileNameError = 'Destination FileName is Empty.';
+
+// 以最后一个 '\' 为界得到后面部分
 function GetFileName(AFileName: string): string;
 var
-  Len, i: Cardinal;
+  Len, I: Cardinal;
 begin
   Len := Length(AFileName);
   for I := Len - 1 downto 1 do
-    if AFileName[i] = '\' then
+    if AFileName[I] = '\' then
       Break;
-  Result := Copy(AFileName, i + 1, Len - i);
+  Result := Copy(AFileName, I + 1, Len - I);
 end;
 
 procedure Check(var ADirName: string);
@@ -228,12 +238,12 @@ end;
 procedure TCnFilePacker.AddDircetory(ARootName, ADirName: string);
 var
   CurrentDirectory, LastNameofCurrentDirectory: string;
-  //递归目录，形成文件列表
+  // 递归目录，形成文件列表
 
   procedure FindFile(ADirName: string);
   var
     SRec: TSearchRec;
-    tmpCurrentDirectory, tmpLastNameofCurrentDirectory: string;     //保存当前目录层递归没有退栈，nnd
+    tmpCurrentDirectory, tmpLastNameofCurrentDirectory: string;     // 保存当前目录层递归没有退栈，nnd
   begin
     if FindFirst(ADirName, faAnyFile, SRec) = 0 then
     begin
@@ -279,7 +289,7 @@ begin
   CurrentDirectory := ADirName;
   LastNameofCurrentDirectory := _CnExtractFileName(CurrentDirectory);
   
-  if Length(ADirName) = 3 then //is 'xyz:\'
+  if Length(ADirName) = 3 then // is 'xyz:\'
     LastNameofCurrentDirectory := '';
   FFiles[FCurrent].ReadFileName := ADirName + IntToStr(GetFileAttributes(PChar(ADirName))) + '?';
   FFiles[FCurrent].ConvertFileName := ARootName + IntToStr(GetFileAttributes(PChar(ADirName))) + '?';
@@ -336,7 +346,7 @@ end;
 constructor TCnFilePacker.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  //fms := TMemoryStream.Create;
+  // fms := TMemoryStream.Create;
   FCompress := False;
   FPackedSubDirectory := true;
   FAddFilesCount := -1;
@@ -348,7 +358,7 @@ end;
 
 procedure TCnFilePacker.CreateDirectory;
 var
-  i: Integer;
+  I: Integer;
   S, DirName: string;
   attr: Byte;
 begin
@@ -360,9 +370,9 @@ begin
   
   for I := 0 to FFileinfoCount - 1 do
   begin
-    S := {$IFDEF UNICODE}String{$ENDIF}(FPackFileInformations[i].Name);
+    S := {$IFDEF UNICODE}string{$ENDIF}(FPackFileInformations[I].Name);
     if Length(s) < 7 then
-      Continue;     //xyz:\16?
+      Continue;     // xyz:\16?
       
     if s[Length(s)] = '?' then
     begin
@@ -405,12 +415,12 @@ end;
 
 procedure TCnFilePacker.SaveToFile(APackFileInfo: TPackFileInformation);
 var
-  f: TFileStream;   //临时文件流，保存文件
+  F: TFileStream;   // 临时文件流，保存文件
   db: TDataBlock;
-  Tdb: TBytes;   //临时缓冲区，存中间数据
+  Tdb: TBytes;      // 临时缓冲区，存中间数据
   S: string;
 begin
-  S := {$IFDEF UNICODE}String{$ENDIF}(APackFileInfo.Name);
+  S := {$IFDEF UNICODE}string{$ENDIF}(APackFileInfo.Name);
   if (s = '') or (s[Length(s)] = '?') then
     Exit;
   
@@ -425,16 +435,16 @@ begin
     begin
       SetLength(Tdb, db.DataLength);
       FDestFile.Read(Tdb[0], db.DataLength);
-      f := TFileStream.Create(SavePath + '\' + S, fmCreate or fmOpenReadWrite);
+      F := TFileStream.Create(SavePath + '\' + S, fmCreate or fmOpenReadWrite);
       if CompressMode <> cmNONE then
         DeCompressData(Tdb, db.DataLength);
-      f.Write(tdb[0], db.DataLength);
-      f.Free;
+      F.Write(tdb[0], db.DataLength);
+      F.Free;
     end
     else
     begin
-      f := TFileStream.Create(SavePath + '\' + S, fmCreate or fmOpenReadWrite);
-      f.Free;
+      F := TFileStream.Create(SavePath + '\' + S, fmCreate or fmOpenReadWrite);
+      F.Free;
     end;
   finally
     FreeAndNil(FDestFile);
@@ -443,9 +453,9 @@ end;
 
 function TCnFilePacker.GetPackFileInformation: TArrayPackFileInformation;
 var
-  i: Integer;
+  I: Integer;
   db: TDataBlock;
-  fms: TFileStream;  //临时文件流
+  fms: TFileStream;  // 临时文件流
 begin
   if FPackHeaderInfo <> nil then
   begin
@@ -455,7 +465,7 @@ begin
 
   FPackHeaderInfo := GetPackHeader;
   CompressMode := FPackHeaderInfo^.Compress;
-  if FPackHeaderInfo^.ZipName <> 'CNPACKER' then//文件头不是cnpacker，退出
+  if FPackHeaderInfo^.ZipName <> 'CNPACKER' then // 文件头不是 cnpacker，退出
     Exit;
   Fms := TFileStream.Create(DestFileName, fmOpenRead);
   Fms.Position := SizeOf(TpackHeader);
@@ -465,8 +475,8 @@ begin
   for I := 0 to FPackHeaderInfo^.FileInfoCount - 1 do
   begin
     Fms.Read(db, SizeOf(db));
-    StrCopy(Result[i].Name, db.FileName);
-    Result[i].DataStart := Fms.Position - SizeOf(db);
+    StrCopy(Result[I].Name, db.FileName);
+    Result[I].DataStart := Fms.Position - SizeOf(db);
     Fms.Position := Fms.Position + LongInt(db.DataLength);
   end;
   Fms.Free;
@@ -494,7 +504,7 @@ end;
 
 function TCnFilePacker.GetPropGetPackFileDirectoryInfo: TArrayPackFileInformation;
 var
-  i: Cardinal;
+  I: Cardinal;
   S: string;
   count, current: Cardinal;
 begin
@@ -505,7 +515,7 @@ begin
   
   for I := 0 to FFileinfoCount - 1 do
   begin
-    S := {$IFDEF UNICODE}String{$ENDIF}(FPackFileInformations[i].Name);
+    S := {$IFDEF UNICODE}string{$ENDIF}(FPackFileInformations[I].Name);
     if S[Length(s)] = '?' then
     begin
       S := IncludeTrailingBackslash(_CnExtractFilePath(S));
@@ -517,7 +527,7 @@ begin
       end;
       
       StrPCopy(FImprotPackDirectoryInfo[current].Name, {$IFDEF UNICODE}AnsiString{$ENDIF}(S));
-      FImprotPackDirectoryInfo[current].DataStart := FPackFileInformations[i].DataStart;
+      FImprotPackDirectoryInfo[current].DataStart := FPackFileInformations[I].DataStart;
       Inc(current);
     end;
   end;
@@ -527,7 +537,7 @@ end;
 
 function TCnFilePacker.GetPropGetPackFileInformation: TArrayPackFileInformation;
 var
-  i: Cardinal;
+  I: Cardinal;
   S: string;
   count, current: Cardinal;
 begin
@@ -538,7 +548,7 @@ begin
   
   for I := 0 to FFileinfoCount - 1 do
   begin
-    S := {$IFDEF UNICODE}String{$ENDIF}(FPackFileInformations[i].Name);
+    S := {$IFDEF UNICODE}string{$ENDIF}(FPackFileInformations[I].Name);
     if S[Length(s)] <> '?' then
     begin
       if current = count then
@@ -547,8 +557,8 @@ begin
         SetLength(FImportPackFileInfo, count);
       end;
       
-      FImportPackFileInfo[current].Name := FPackFileInformations[i].Name;
-      FImportPackFileInfo[current].DataStart := FPackFileInformations[i].DataStart;
+      FImportPackFileInfo[current].Name := FPackFileInformations[I].Name;
+      FImportPackFileInfo[current].DataStart := FPackFileInformations[I].DataStart;
       Inc(current);
     end;
   end;
@@ -572,9 +582,9 @@ procedure TCnFilePacker.DoPack();
 var
   ph: TPackHeader;
   db: TDataBlock;
-  i: Integer;
+  I: Integer;
   Tdb: TBytes;
-  f: TFileStream;
+  F: TFileStream;
 begin
   FillChar(ph, SizeOf(Tpackheader), #0);
   if DestFileName = '' then
@@ -584,7 +594,7 @@ begin
   begin
     FPack := TFileStream.Create(DestFileName, fmCreate);
     FPack.Position := 0;
-        //步过文件头
+    // 步过文件头
     FPack.Seek(SizeOf(TPackHeader), soFromCurrent);
   end
   else
@@ -594,39 +604,39 @@ begin
     FPack.Position := FPack.Size;
   end;
   
-   //循环all文件
+   // 循环所有文件
   for I := 0 to FCurrent - 1 do
   begin
-    if FFiles[i].ReadFileName[Length(FFiles[i].ReadFileName)] = '?' then
+    if FFiles[I].ReadFileName[Length(FFiles[I].ReadFileName)] = '?' then
     begin
-      strpcopy(db.FileName, {$IFDEF UNICODE}AnsiString{$ENDIF}(Ffiles[i].ConvertFileName));
+      strpcopy(db.FileName, {$IFDEF UNICODE}AnsiString{$ENDIF}(FFiles[I].ConvertFileName));
       db.DataLength := 0;
       FPack.Write(db, SizeOf(db));
     end
     else
     begin
-      f := TFileStream.Create(FFiles[i].ReadFileName, fmOpenRead);
-      strpcopy(db.FileName, {$IFDEF UNICODE}AnsiString{$ENDIF}(Ffiles[i].ConvertFileName));
+      F := TFileStream.Create(FFiles[I].ReadFileName, fmOpenRead);
+      strpcopy(db.FileName, {$IFDEF UNICODE}AnsiString{$ENDIF}(FFiles[I].ConvertFileName));
       db.DataLength := F.Size;
       if db.DataLength <> 0 then
       begin
         SetLength(Tdb, db.DataLength);
-        f.Read(Tdb[0], db.DataLength);
+        F.Read(Tdb[0], db.DataLength);
         if CompressMode <> cmNONE then
           CompressData(tdb, db.DataLength);
         FPack.Write(db, SizeOf(db));
         FPack.Write(tdb[0], db.DataLength);
-        FreeAndNil(f);
+        FreeAndNil(F);
       end
       else
       begin
         FPack.Write(db, SizeOf(db));
-        FreeAndNil(f);
+        FreeAndNil(F);
       end;
     end;
   end;
   
-  //写文件头
+  // 写文件头
   ph.ZipName := 'CNPACKER';
   ph.Compress := CompressMode;
   ph.FileSize := FPack.Size;
@@ -636,20 +646,19 @@ begin
   FreeAndNil(FPack);
   FCurrent := 0;
   FCount := 20;
-  SetLength(Ffiles, FCount);
+  SetLength(FFiles, FCount);
 end;
 
 procedure TCnFilePacker.SaveToFiles;
 var
-  i: integer;
+  I: Integer;
 begin
   if FPackFileInformations = nil then
-    FPackFileInformations := self.GetPackFileInformation;      //先得到目录，
-  Self.CreateDirectory;     //创建目录
+    FPackFileInformations := GetPackFileInformation;      // 先得到目录
+  CreateDirectory;     // 创建目录
   for I := 0 to Length(FPackFileInformations) - 1 do
-  begin
-    Self.SaveToFile(FPackFileInformations[i]);      //枚举调用解包每个文件
-  end;
+    SaveToFile(FPackFileInformations[I]);      // 枚举调用解包每个文件
+
   FreeAndNil(FDestFile);
 end;
 

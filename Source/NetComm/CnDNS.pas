@@ -43,14 +43,11 @@ interface
 
 uses
   SysUtils, Classes, {$IFDEF MSWINDOWS} Windows, {$ENDIF} Contnrs,
-  CnClasses, CnConsts, CnNetConsts, CnIP, CnUDP, CnNetwork;
+  CnClasses, CnConsts, CnNetConsts, CnNative, CnIP, CnUDP, CnNetwork;
 
 type
-{$IFNDEF TBYTES_DEFINED}
-  TBytes = array of Byte;
-{$ENDIF}
-
   ECnDNSException = class(Exception);
+  {* DNS 相关异常}
 
   TCnDNSQuestion = class
   {* 代表一个 DNS 包中的 Question 类型的记录}
@@ -228,9 +225,6 @@ type
   end;
 
 implementation
-
-uses
-  CnNative;
 
 { TCnDNSPacketObject }
 
