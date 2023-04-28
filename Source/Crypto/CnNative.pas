@@ -529,6 +529,9 @@ function ConcatBytes(A, B: TBytes): TBytes;
 function NewBytesFromMemory(Data: Pointer; DataByteLen: Integer): TBytes;
 {* 新建一字节数组，并从一片内存区域复制内容过来。}
 
+function CompareBytes(A, B: TBytes): Boolean;
+{* 比较两个字节数组内容是否相同}
+
 procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
 {* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，
   如 ByteLen 小于 MostLen，则 Dest 填充 0，要求 Dest 容纳至少 MostLen}
@@ -1752,6 +1755,22 @@ begin
     SetLength(Result, DataByteLen);
     Move(Data^, Result[0], DataByteLen);
   end;
+end;
+
+function CompareBytes(A, B: TBytes): Boolean;
+var
+  L: Integer;
+begin
+  Result := False;
+
+  L := Length(A);
+  if Length(B) <> L then // 长度不等则退出
+    Exit;
+
+  if L = 0 then          // 长度相等
+    Result := True       // 如都是 0 视作相等
+  else
+    Result := CompareMem(@A[0], @B[0], L);
 end;
 
 procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
