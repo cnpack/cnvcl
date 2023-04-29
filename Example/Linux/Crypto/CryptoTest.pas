@@ -175,6 +175,10 @@ function TestFNV1: Boolean;
 function TestFNV1a: Boolean;
 
 // ================================ ECC ========================================
+
+function TestECCMul: Boolean;
+function TestECCSchoof: Boolean;
+
 // ================================ SM2 ========================================
 
 function TestSM21: Boolean;
@@ -191,6 +195,10 @@ function TestSM3HMac: Boolean;
 function TestSM9Hash1: Boolean;
 function TestSM9Hash2: Boolean;
 function TestSM9Mac: Boolean;
+function TestSM9Sign: Boolean;
+function TestSM9KeyExchange: Boolean;
+function TestSM9KeyEncapsulation: Boolean;
+function TestSM9PublicEncryption: Boolean;
 
 // ================================ RSA ========================================
 
@@ -342,6 +350,10 @@ begin
   Assert(TestFNV1a, 'TestFNV1a');
 
 // ================================ ECC ========================================
+
+  Assert(TestECCMul, 'TestECCMul');
+  Assert(TestECCSchoof, 'TestECCSchoof');
+
 // ================================ SM2 ========================================
 
   Assert(TestSM21, 'TestSM21');
@@ -1605,6 +1617,124 @@ begin
 end;
 
 // ================================ ECC ========================================
+
+function TestEccMul: Boolean;
+const
+  RES = '0408F4F37E2D8F74E18C1B8FDE2374D5F28402FB8AB7FD1CC5B786AA40851A70CBC2ECA87B8BD2C0BE52698E9D5EE19840C4D40CA696E16159134769FA1AE85B2E';
+var
+  Ecc: TCnEcc;
+  P: TCnEccPoint;
+  P3: TCnEcc3Point;
+  K: TCnBigNumber;
+begin
+  Ecc := TCnEcc.Create(ctSecp256k1);
+  P := TCnEccPoint.Create;
+  P3 := TCnEcc3Point.Create;
+  K := TCnBigNumber.Create;
+
+  try
+    K.SetDec('123456789');
+    P.Assign(Ecc.Generator);
+
+    Ecc.NormalMultiplePoint(K, P);
+    Result := P.ToHex = RES;
+    if not Result then Exit;
+
+    P.Assign(Ecc.Generator);
+    CnEccPointToEcc3Point(P, P3);
+    Ecc.AffineMultiplePoint(K, P3);
+    CnAffinePointToEccPoint(P3, P, Ecc.FiniteFieldSize);
+
+    Result := P.ToHex = RES;
+    if not Result then Exit;
+
+    P.Assign(Ecc.Generator);
+    CnEccPointToEcc3Point(P, P3);
+    Ecc.JacobianMultiplePoint(K, P3);
+    CnJacobianPointToEccPoint(P3, P, Ecc.FiniteFieldSize);
+    Result := P.ToHex = RES;
+  finally
+    K.Free;
+    P3.Free;
+    P.Free;
+    Ecc.Free;
+  end;
+end;
+
+function TestECCSchoof: Boolean;
+var
+  A, B, Q, R: TCnBigNumber;
+begin
+  Result := False;
+
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  Q := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+
+  try
+    A.SetWord(2);
+    B.SetWord(1);
+    Q.SetWord(13);
+
+    if CnEccSchoof(R, A, B, Q) then
+      Result := R.ToDec = '8';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetWord(65537);
+
+    if CnEccSchoof(R, A, B, Q) then
+      Result := R.ToDec = '65751';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetDec('2147483629');
+
+    if CnEccSchoof(R, A, B, Q) then
+      Result := R.ToDec = '2147464597';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetWord(3037000493);
+
+    if CnEccSchoof(R, A, B, Q) then
+      Result := R.ToDec = '3036927405';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetDec('4294967291');
+
+    if CnEccSchoof(R, A, B, Q) then
+      Result := R.ToDec = '4294994984';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetDec('6074000687');
+
+    if CnEccSchoof(R, A, B, Q) then
+      Result := R.ToDec = '6074024457';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetDec('6074001169');
+
+    if CnEccSchoof(R, A, B, Q) then
+      Result := R.ToDec = '6074123004';
+  finally
+    R.Free;
+    Q.Free;
+    B.Free;
+    A.Free;
+  end;
+end;
+
 // ================================ SM2 ========================================
 
 function TestSM21: Boolean;
@@ -1707,7 +1837,7 @@ var
   APublicKey, BPublicKey: TCnSM2PublicKey;
   RandA, RandB: TCnBigNumber;
   OutRA, OutRB: TCnEccPoint;
-  KA, KB: AnsiString;
+  KA, KB: TBytes;
   OpSA, OpSB, OpS2: TCnSM3Digest;
 begin
   APrivateKey := TCnSM2PrivateKey.Create;
@@ -1748,7 +1878,7 @@ begin
       BPrivateKey, APublicKey, BPublicKey, OpSA, OpS2);
     if not Result then Exit;
 
-    Result := KA = KB;
+    Result := CompareBytes(KA, KB);
   finally
     OutRA.Free;
     OutRB.Free;
@@ -1849,6 +1979,26 @@ begin
   C := HexToBytes('1B5F5B0E951489682F3E64E1378CDD5DA9513B1C');
   D := SM9Mac(@K[0], Length(K), @C[0], Length(C));
   Result := DataToHex(@D[0], SizeOf(TCnSM3Digest)) = 'BA672387BCD6DE5016A158A52BB2E7FC429197BCAB70B25AFEE37A2B9DB9F367';
+end;
+
+function TestSM9Sign: Boolean;
+begin
+
+end;
+
+function TestSM9KeyExchange: Boolean;
+begin
+
+end;
+
+function TestSM9KeyEncapsulation: Boolean;
+begin
+
+end;
+
+function TestSM9PublicEncryption: Boolean;
+begin
+
 end;
 
 // ================================ RSA ========================================
