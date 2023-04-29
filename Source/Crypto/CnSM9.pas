@@ -54,7 +54,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnContainers, CnNative, CnBigNumber, CnECC, CnSM3;
+  Classes, SysUtils, CnConsts, CnContainers, CnNative, CnBigNumber, CnECC, CnSM3;
 
 const
   // 一个参数 T，不知道叫啥，但 SM9 所选择的 BN 曲线里，
@@ -122,8 +122,21 @@ const
   CN_SM9_KEY_EXCHANGE_HASHID1 = $82;
   CN_SM9_KEY_EXCHANGE_HASHID2 = $83;
 
+  // 错误码
+  ECN_SM9_OK                           = ECN_OK; // 没错
+  ECN_SM9_ERROR_BASE                   = ECN_CUSTOM_ERROR_BASE + $600; // SM9 错误码基准
+
+  ECN_SM9_INVALID_INPUT                = ECN_SM9_ERROR_BASE + 1; // 输入为空或长度不对
+  ECN_SM9_RANDOM_ERROR                 = ECN_SM9_ERROR_BASE + 2; // 随机数相关错误
+  ECN_SM9_BIGNUMBER_ERROR              = ECN_SM9_ERROR_BASE + 3; // 大数运算错误
+  ECN_SM9_ENCRYPT_MASTERKEY_ZERO_ERROR = ECN_SM9_ERROR_BASE + 4; // 加密时主公钥为 0
+  ECN_SM9_SIGN_MASTERKEY_ZERO_ERROR    = ECN_SM9_ERROR_BASE + 5; // 签名时主公钥为 0
+  ECN_SM9_HASH_ERROR                   = ECN_SM9_ERROR_BASE + 6; // 杂凑错误
+  ECN_SM9_KDF_ERROR                    = ECN_SM9_ERROR_BASE + 7; // 密钥派生错误
+
 type
   ECnSM9Exception = class(Exception);
+  {* SM9 相关异常}
 
   TCnFP2 = class
   {* 二次扩域大整系数元素实现类}
@@ -365,7 +378,7 @@ type
   TCnSM9KeyEncapsulation = class
   {* 密钥封装结果类，注意往外传只需要传 Code}
   private
-    FKey: AnsiString;
+    FKey: TBytes;
     FKeyLength: Integer;
     FCode: TCnSM9KeyEncapsulationCode;
   public
@@ -376,7 +389,7 @@ type
 
     property KeyByteLength: Integer read FKeyLength;
     {* 密文的字节长度}
-    property Key: AnsiString read FKey write FKey;
+    property Key: TBytes read FKey write FKey;
     {* 封装的密钥，无需往外传}
     property Code: TCnSM9KeyEncapsulationCode read FCode;
     {* 封装的密文，需要往外传}
@@ -784,7 +797,7 @@ function CnSM9KGCGenerateSignatureUserKey(SignatureMasterPrivateKey:
 
 function CnSM9UserSignData(SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey;
   SignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey; PlainData: Pointer;
-  DataLen: Integer; OutSignature: TCnSM9Signature; SM9: TCnSM9 = nil): Boolean;
+  DataLen: Integer; OutSignature: TCnSM9Signature; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
 {* 利用用户签名私钥与用户 ID 对数据进行签名，返回成功与否，签名值放在 OutSignature 中
   注意因有用户私钥存在，用户 ID 无需参与签名}
 
@@ -809,13 +822,13 @@ function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterPrivateKey:
 
 function CnSM9UserSendKeyEncapsulation(const DestUserID: AnsiString; KeyByteLength: Integer;
   EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey;
-  OutKeyEncapsulation: TCnSM9KeyEncapsulation; SM9: TCnSM9 = nil): Boolean;
+  OutKeyEncapsulation: TCnSM9KeyEncapsulation; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
 {* 普通用户根据目标用户的 ID 与加密主公钥，生成 KeyLength 长度的字节串密钥封装内容，
   返回封装是否成功}
 
 function CnSM9UserReceiveKeyEncapsulation(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyByteLength: Integer;
-  InKeyEncapsulationC: TCnSM9KeyEncapsulationCode; out Key: AnsiString; SM9: TCnSM9 = nil): Boolean;
+  InKeyEncapsulationC: TCnSM9KeyEncapsulationCode; out Key: TBytes; SM9: TCnSM9 = nil): Boolean;
 {* 目标用户根据自身的 ID 与用户加密私钥钥，从 KeyEncapsulation 对象中还原 KeyLength
   长度的字节串密钥封装内容放在 Key 中，返回解封是否成功}
 
@@ -824,7 +837,7 @@ function CnSM9UserReceiveKeyEncapsulation(const DestUserID: AnsiString;
 function CnSM9UserEncryptData(const DestUserID: AnsiString;
   EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey; PlainData: Pointer;
   DataLen: Integer; K1ByteLength, K2ByteLength: Integer; OutStream: TStream;
-  EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil): Boolean;
+  EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
 {* 使用加密主公钥与目标用户的 ID 加密数据并写入流，返回加密是否成功，
   EncryptionMode 是 SM4 时 K1Length 参数值忽略，内部固定为 16 字节，
   SM4 使用 ECB 模式与 PKCS7 对齐}
@@ -848,7 +861,7 @@ function CnSM9KGCGenerateKeyExchangeUserKey(KeyExchangeMasterPrivateKey:
 
 function CnSM9UserKeyExchangeAStep1(const BUserID: AnsiString; KeyByteLength: Integer;
   KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey; OutRA: TCnEccPoint;
-  OutRandA: TCnBigNumber; SM9: TCnSM9 = nil): Boolean;
+  OutRandA: TCnBigNumber; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
 {* 密钥交换第一步，A 用 B 的 ID 以及加密主公钥生成一个椭圆曲线点 RA 给 B
   同时记录中间计算结果 OutRandA，需要外部传入保存其值，在第三步中使用}
 
@@ -893,7 +906,7 @@ function SM9Mac(Key: Pointer; KeyByteLength: Integer; Z: Pointer; ZByteLength: I
 implementation
 
 uses
-  CnKDF, CnSM4;
+  CnKDF, CnSM4, CnPemUtils;
 
 resourcestring
   SAffinePointZError = 'Affine Point Z Must be 1';
@@ -2565,7 +2578,7 @@ begin
   else if Index = 1 then
     Result := F1
   else
-    raise Exception.CreateFmt(SListIndexError, [Index]);
+    raise ECnSM9Exception.CreateFmt(SListIndexError, [Index]);
 end;
 
 function TCnFP2.IsOne: Boolean;
@@ -2641,7 +2654,7 @@ begin
   else if Index = 1 then
     Result := F1
   else
-    raise Exception.CreateFmt(SListIndexError, [Index]);
+    raise ECnSM9Exception.CreateFmt(SListIndexError, [Index]);
 end;
 
 function TCnFP4.IsOne: Boolean;
@@ -2732,7 +2745,7 @@ begin
   else if Index = 2 then
     Result := F2
   else
-    raise Exception.CreateFmt(SListIndexError, [Index]);
+    raise ECnSM9Exception.CreateFmt(SListIndexError, [Index]);
 end;
 
 function TCnFP12.IsOne: Boolean;
@@ -3008,7 +3021,12 @@ begin
 
   AP := nil;
   try
-    if not BigNumberRandRange(SignatureMasterKey.PrivateKey, SM9.Order) then Exit;
+    if not BigNumberRandRange(SignatureMasterKey.PrivateKey, SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_RANDOM_ERROR);
+      Exit;
+    end;
+
     if SignatureMasterKey.PrivateKey.IsZero then
       SignatureMasterKey.PrivateKey.SetOne;
 
@@ -3019,6 +3037,7 @@ begin
     FP2AffinePointToFP2Point(SignatureMasterKey.PublicKey, AP, SM9.FiniteFieldSize);
 
     Result := True;
+    _CnSetLastError(ECN_SM9_OK);
   finally
     AP.Free;
     if C then
@@ -3047,20 +3066,33 @@ begin
 
     // 计算 T1 := Hash1(ID‖hid，SM9Order) + MasterPrivateKey，注意以下的有限域均是针对 Order 阶，而不是基域 P
     S := AUserID + AnsiChar(CN_SM9_SIGNATURE_USER_HID);
-    if not CnSM9Hash1(T1, @S[1], Length(S), SM9.Order) then Exit;
+    if not CnSM9Hash1(T1, @S[1], Length(S), SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_HASH_ERROR);
+      Exit;
+    end;
 
     BigNumberAddMod(T1, T1, SignatureMasterPrivateKey, SM9.Order);
 
     if T1.IsZero then
-      raise ECnSM9Exception.Create(SSigMasterKeyZero);
+    begin
+      _CnSetLastError(ECN_SM9_SIGN_MASTERKEY_ZERO_ERROR);
+      Exit;
+    end;
 
     // 计算 T2 = PrivateKey / T1
-    if not BigNumberModularInverse(T1, T1, SM9.Order) then Exit;
+    if not BigNumberModularInverse(T1, T1, SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_BIGNUMBER_ERROR);
+      Exit;
+    end;
+
     BigNumberDirectMulMod(T2, SignatureMasterPrivateKey, T1, SM9.Order);
 
     OutSignatureUserPrivateKey.Assign(SM9.Generator);
     SM9.MultiplePoint(T2, OutSignatureUserPrivateKey); // 这里才是有限域 SM9 的 P
     Result := True;
+    _CnSetLastError(ECN_SM9_OK);
   finally
     T2.Free;
     T1.Free;
@@ -3072,12 +3104,13 @@ end;
 
 function CnSM9UserSignData(SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey;
   SignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey; PlainData: Pointer;
-  DataLen: Integer; OutSignature: TCnSM9Signature; SM9: TCnSM9): Boolean;
+  DataLen: Integer; OutSignature: TCnSM9Signature; SM9: TCnSM9; const RandHex: string): Boolean;
 var
   C: Boolean;
   G: TCnFP12;
   AP: TCnFP2AffinePoint;
   R, L: TCnBigNumber;
+  HexSet: Boolean;
   Stream: TMemoryStream;
 begin
   Result := False;
@@ -3102,10 +3135,23 @@ begin
     R := TCnBigNumber.Create;
     Stream := TMemoryStream.Create;
     L := TCnBigNumber.Create;
+    HexSet := False;
 
     repeat
-      // 生成随机 R
-      if not BigNumberRandRange(R, SM9.Order) then Exit;
+      if RandHex <> '' then
+      begin
+        R.SetHex(AnsiString(RandHex));
+        HexSet := True;
+      end
+      else
+      begin
+        // 生成随机 R
+        if not BigNumberRandRange(R, SM9.Order) then
+        begin
+          _CnSetLastError(ECN_SM9_RANDOM_ERROR);
+          Exit;
+        end;
+      end;
       // 测试数据 R.SetHex('033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE');
       if R.IsZero then
         R.SetOne;   // 确保范围在 [1, N-1]
@@ -3117,16 +3163,24 @@ begin
       Stream.Write(PlainData^, DataLen);
       FP12ToStream(G, Stream, SM9.BytesCount);
 
-      if not CnSM9Hash2(OutSignature.H, Stream.Memory, Stream.Size, SM9.Order) then Exit;
+      if not CnSM9Hash2(OutSignature.H, Stream.Memory, Stream.Size, SM9.Order) then
+      begin
+        _CnSetLastError(ECN_SM9_HASH_ERROR);
+        Exit;
+      end;
 
       BigNumberSub(L, R, OutSignature.H);
       BigNumberNonNegativeMod(L, L, SM9.Order);
+
+      if HexSet and L.IsZero then // 外部传入的固定随机数导致 L 为 0，重试也没意义了，直接出错退出
+        Exit;
     until not L.IsZero;
 
     // 计算出了 L 和 H，再乘私钥点得到签名
     OutSignature.S.Assign(SignatureUserPrivateKey);
     SM9.MultiplePoint(L, OutSignature.S);
     Result := True;
+    _CnSetLastError(ECN_SM9_OK);
   finally
     L.Free;
     Stream.Free;
@@ -3150,7 +3204,11 @@ var
   Stream: TMemoryStream;
 begin
   Result := False;
-  if InSignature.H.IsZero or InSignature.H.IsNegative then Exit;
+  if InSignature.H.IsZero or InSignature.H.IsNegative then
+  begin
+    _CnSetLastError(ECN_SM9_INVALID_INPUT);
+    Exit;
+  end;
 
   C := SM9 = nil;
   if C then
@@ -3180,7 +3238,11 @@ begin
     H := TCnBigNumber.Create;
     // 计算 H1
     S := AUserID + AnsiChar(CN_SM9_SIGNATURE_USER_HID);
-    if not CnSM9Hash1(H, @S[1], Length(S), SM9.Order) then Exit;
+    if not CnSM9Hash1(H, @S[1], Length(S), SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_HASH_ERROR);
+      Exit;
+    end;
 
     // 计算 G2 域上的 H1*P2
     FP2PointToFP2AffinePoint(AP, SM9.Generator2);
@@ -3203,7 +3265,12 @@ begin
     FP12ToStream(W, Stream, SM9.BytesCount);
 
     // 再次拼上原文与 FP12 计算 Hash2 并比对
-    if not CnSM9Hash2(H, Stream.Memory, Stream.Size, SM9.Order) then Exit;
+    if not CnSM9Hash2(H, Stream.Memory, Stream.Size, SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_HASH_ERROR);
+      Exit;
+    end;
+
     Result := BigNumberEqual(H, InSignature.H);
   finally
     Stream.Free;
@@ -3235,6 +3302,7 @@ begin
     SM9.MultiplePoint(EncryptionMasterKey.PrivateKey, EncryptionMasterKey.PublicKey);
 
     Result := True;
+    _CnSetLastError(ECN_SM9_OK);
   finally
     if C then
       SM9.Free;
@@ -3261,14 +3329,26 @@ begin
     S := AUserID + AnsiChar(CN_SM9_KEY_ENCAPSULATION_USER_HID);
 
     T1 := TCnBigNumber.Create;
-    if not CnSM9Hash1(T1, @S[1], Length(S), SM9.Order) then Exit;
+    if not CnSM9Hash1(T1, @S[1], Length(S), SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_HASH_ERROR);
+      Exit;
+    end;
 
     BigNumberAdd(T1, T1, EncryptionMasterPrivateKey);
 
     if T1.IsZero then
-      raise ECnSM9Exception.Create(SEncMasterKeyZero);
+    begin
+      _CnSetLastError(ECN_SM9_ENCRYPT_MASTERKEY_ZERO_ERROR);
+      Exit;
+    end;
 
-    if not BigNumberModularInverse(T1, T1, SM9.Order) then Exit;
+    if not BigNumberModularInverse(T1, T1, SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_BIGNUMBER_ERROR);
+      Exit;
+    end;
+
     BigNumberDirectMulMod(T1, T1, EncryptionMasterPrivateKey, SM9.Order);
 
     AP := TCnFP2AffinePoint.Create;
@@ -3277,6 +3357,7 @@ begin
     FP2AffinePointToFP2Point(OutEncryptionUserKey, AP, SM9.FiniteFieldSize);
 
     Result := True;
+    _CnSetLastError(ECN_SM9_OK);
   finally
     AP.Free;
     T1.Free;
@@ -3287,7 +3368,7 @@ end;
 
 function CnSM9UserSendKeyEncapsulation(const DestUserID: AnsiString; KeyByteLength: Integer;
   EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey;
-  OutKeyEncapsulation: TCnSM9KeyEncapsulation; SM9: TCnSM9): Boolean;
+  OutKeyEncapsulation: TCnSM9KeyEncapsulation; SM9: TCnSM9; const RandHex: string): Boolean;
 var
   C: Boolean;
   S: AnsiString;
@@ -3311,14 +3392,27 @@ begin
     S := DestUserID + AnsiChar(CN_SM9_KEY_ENCAPSULATION_USER_HID);
     H := TCnBigNumber.Create;
 
-    if not CnSM9Hash1(H, @S[1], Length(S), SM9.Order) then Exit;
+    if not CnSM9Hash1(H, @S[1], Length(S), SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_HASH_ERROR);
+      Exit;
+    end;
 
     OutKeyEncapsulation.Code.Assign(SM9.Generator);
     SM9.MultiplePoint(H, OutKeyEncapsulation.Code);
     SM9.PointAddPoint(EncryptionPublicKey, OutKeyEncapsulation.Code, OutKeyEncapsulation.Code);
 
     R := TCnBigNumber.Create;
-    if not BigNumberRandRange(R, SM9.Order) then Exit;
+    if RandHex <> '' then
+      R.SetHex(AnsiString(RandHex))
+    else
+    begin
+      if not BigNumberRandRange(R, SM9.Order) then
+      begin
+        _CnSetLastError(ECN_SM9_RANDOM_ERROR);
+        Exit;
+      end;
+    end;
     // 测试数据 R.SetHex('74015F8489C01EF4270456F9E6475BFB602BDE7F33FD482AB4E3684A6722');
     if R.IsZero then
       R.SetOne;
@@ -3337,7 +3431,7 @@ begin
     FP12ToStream(G, Stream, SM9.BytesCount);
     Stream.Write(DestUserID[1], Length(DestUserID));
 
-    OutKeyEncapsulation.Key := CnSM9KDF(Stream.Memory, Stream.Size, KeyByteLength); // 得到封装密钥 K
+    OutKeyEncapsulation.Key := CnSM9KDFBytes(Stream.Memory, Stream.Size, KeyByteLength); // 得到封装密钥 K
     Result := KeyByteLength = Length(OutKeyEncapsulation.Key);
   finally
     Stream.Free;
@@ -3352,7 +3446,7 @@ end;
 
 function CnSM9UserReceiveKeyEncapsulation(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyByteLength: Integer;
-  InKeyEncapsulationC: TCnSM9KeyEncapsulationCode; out Key: AnsiString; SM9: TCnSM9): Boolean;
+  InKeyEncapsulationC: TCnSM9KeyEncapsulationCode; out Key: TBytes; SM9: TCnSM9): Boolean;
 var
   C: Boolean;
   W: TCnFP12;
@@ -3369,7 +3463,11 @@ begin
   Stream := nil;
 
   try
-    if not SM9.IsPointOnCurve(InKeyEncapsulationC) then Exit;
+    if not SM9.IsPointOnCurve(InKeyEncapsulationC) then
+    begin
+      _CnSetLastError(ECN_SM9_INVALID_INPUT);
+      Exit;
+    end;
 
     W := TCnFP12.Create;
     AP := TCnFP2AffinePoint.Create;
@@ -3381,8 +3479,13 @@ begin
     FP12ToStream(W, Stream, SM9.BytesCount);
     Stream.Write(DestUserID[1], Length(DestUserID));
 
-    Key := CnSM9KDF(Stream.Memory, Stream.Size, KeyByteLength);
-    Result := Key <> '';
+    Key := CnSM9KDFBytes(Stream.Memory, Stream.Size, KeyByteLength);
+    Result := Length(Key) > 0;
+
+    if Result then
+      _CnSetLastError(ECN_SM9_OK)
+    else
+      _CnSetLastError(ECN_SM9_KDF_ERROR);
   finally
     Stream.Free;
     AP.Free;
@@ -3401,7 +3504,7 @@ end;
 function CnSM9UserEncryptData(const DestUserID: AnsiString;
   EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey; PlainData: Pointer;
   DataLen: Integer; K1ByteLength, K2ByteLength: Integer; OutStream: TStream;
-  EncryptionMode: TCnSM9EncrytionMode; SM9: TCnSM9): Boolean;
+  EncryptionMode: TCnSM9EncrytionMode; SM9: TCnSM9; const RandHex: string): Boolean;
 var
   C: Boolean;
   S, KDFKey: AnsiString;
@@ -3414,28 +3517,14 @@ var
   P2, C2: TBytes;
   PD: PByteArray;
   Mac: TCnSM3Digest;
-
-  procedure BytesAddPKCS7Padding(BlockSize: Byte);
-  var
-    Rb: Byte;
-    L, J: Integer;
-  begin
-    L := Length(P2);
-    Rb := L mod BlockSize;
-    Rb := BlockSize - Rb;
-    if Rb = 0 then
-      Rb := Rb + BlockSize;
-
-    SetLength(P2, L + Rb);
-    for J := 0 to Rb - 1 do
-      P2[L + J] := Rb;
-  end;
-
 begin
   Result := False;
   if (DestUserID = '') or (PlainData = nil) or (DataLen <= 0) or (K1ByteLength <= 0)
     or (K2ByteLength <= 0) then
+  begin
+    _CnSetLastError(ECN_SM9_INVALID_INPUT);
     Exit;
+  end;
 
   // SM4 的 Key 长度只能 16
   if EncryptionMode = semSM4 then
@@ -3458,7 +3547,11 @@ begin
     S := DestUserID + AnsiChar(CN_SM9_ENCRYPTION_USER_HID);
     H := TCnBigNumber.Create;
 
-    if not CnSM9Hash1(H, @S[1], Length(S), SM9.Order) then Exit;
+    if not CnSM9Hash1(H, @S[1], Length(S), SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_HASH_ERROR);
+      Exit;
+    end;
 
     Q := TCnEccPoint.Create;
     Q.Assign(SM9.Generator);
@@ -3466,7 +3559,16 @@ begin
     SM9.PointAddPoint(EncryptionPublicKey, Q, Q);
 
     R := TCnBigNumber.Create;
-    if not BigNumberRandRange(R, SM9.Order) then Exit;
+    if RandHex <> '' then
+      R.SetHex(AnsiString(RandHex))
+    else
+    begin
+      if not BigNumberRandRange(R, SM9.Order) then
+      begin
+        _CnSetLastError(ECN_SM9_RANDOM_ERROR);
+        Exit;
+      end;
+    end;
     // 测试数据 R.SetHex('AAC0541779C8FC45E3E2CB25C12B5D2576B2129AE8BB5EE2CBE5EC9E785C');
     if R.IsZero then
       R.SetOne;
@@ -3493,7 +3595,7 @@ begin
 
       SetLength(P2, DataLen);
       Move(PlainData^, P2[0], DataLen);
-      BytesAddPKCS7Padding(CN_SM4_BLOCKSIZE); // 复制原始数据并在尾部加上几个几的 PKCS7 对齐
+      BytesAddPKCS7Padding(P2, CN_SM4_BLOCKSIZE); // 复制原始数据并在尾部加上几个几的 PKCS7 对齐
 
       SetLength(C2, Length(P2));
 
@@ -3515,11 +3617,12 @@ begin
 
     Mac := SM9Mac(@(KDFKey[KLen - K2ByteLength + 1]), K2ByteLength, @C2[0], Length(C2)); // 用 K2 和 C2 算出 C3
 
-    CnEccPointToStream(Q, OutStream, SM9.BytesCount);             // 写 C1
-    OutStream.Write(Mac[0], SizeOf(TCnSM3Digest));  // 写 C3
-    OutStream.Write(C2[0], Length(C2));           // 写 C2
+    CnEccPointToStream(Q, OutStream, SM9.BytesCount);    // 写 C1
+    OutStream.Write(Mac[0], SizeOf(TCnSM3Digest));       // 写 C3
+    OutStream.Write(C2[0], Length(C2));                  // 写 C2
 
     Result := True;
+    _CnSetLastError(ECN_SM9_OK);
   finally
     SetLength(P2, 0);
     SetLength(C2, 0);
@@ -3550,33 +3653,25 @@ var
   KLen, I, MLen: Integer;
   KDFKey: AnsiString;
   C2: TBytes;
-
-  procedure BytesRemovePKCS7Padding;
-  var
-    L: Integer;
-    V: Byte;
-  begin
-    L := Length(C2);
-    if L = 0 then
-      Exit;
-
-    V := Ord(C2[L - 1]);  // 末是几表示加了几
-
-    if V <= L then
-      SetLength(C2, L - V);
-  end;
-
 begin
   Result := False;
   if (EnData = nil) or (K2ByteLength <= 0) or (DataLen <= 0) then
+  begin
+    _CnSetLastError(ECN_SM9_INVALID_INPUT);
     Exit;
+  end;
 
   C := SM9 = nil;
   if C then
     SM9 := TCnSM9.Create;
 
   if DataLen <= (SM9.BitsCount div 4) + SizeOf(TCnSM3Digest) then
+  begin
+    _CnSetLastError(ECN_SM9_INVALID_INPUT);
+    if C then
+      SM9.Free;
     Exit;
+  end;
 
   C1 := nil;
   AP := nil;
@@ -3594,7 +3689,11 @@ begin
     C1.Y.SetBinary(PC, SM9.BitsCount div 8);
 
     // 先判断是否在曲线上
-    if not SM9.IsPointOnCurve(C1) then Exit;
+    if not SM9.IsPointOnCurve(C1) then
+    begin
+      _CnSetLastError(ECN_SM9_INVALID_INPUT);
+      Exit;
+    end;
 
     Inc(PC, SM9.BitsCount div 8);
     Move(PC^, C3[0], SizeOf(TCnSM3Digest)); // 取出 C3 以备比较
@@ -3623,7 +3722,7 @@ begin
       // SK4 解出明文到 C2
       SM4Decrypt(@KDFKey[1], @P[0], @C2[0], Length(C2));
       // 去掉 C2 尾部的 PKCS7 内容即为明文
-      BytesRemovePKCS7Padding;
+      BytesRemovePKCS7Padding(C2);
     end
     else if EncryptionMode = semXOR then
     begin
@@ -3639,7 +3738,9 @@ begin
     if CompareMem(@C3[0], @Mac[0], SizeOf(TCnSM3Digest)) then
     begin
       OutStream.Write(C2[0], Length(C2));
+
       Result := True;
+      _CnSetLastError(ECN_SM9_OK);
     end;
   finally
     SetLength(C2, 0);
@@ -3659,12 +3760,18 @@ function CnSM9KGCGenerateKeyExchangeMasterKey(KeyExchangeMasterKey:
 var
   C: Boolean;
 begin
+  Result := False;
   C := SM9 = nil;
   if C then
     SM9 := TCnSM9.Create;
 
   try
-    BigNumberRandRange(KeyExchangeMasterKey.PrivateKey, SM9.Order);
+    if not BigNumberRandRange(KeyExchangeMasterKey.PrivateKey, SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_RANDOM_ERROR);
+      Exit;
+    end;
+
     if KeyExchangeMasterKey.PrivateKey.IsZero then
       KeyExchangeMasterKey.PrivateKey.SetOne;
 
@@ -3672,6 +3779,7 @@ begin
     SM9.MultiplePoint(KeyExchangeMasterKey.PrivateKey, KeyExchangeMasterKey.PublicKey);
 
     Result := True;
+    _CnSetLastError(ECN_SM9_OK);
   finally
     if C then
       SM9.Free;
@@ -3699,14 +3807,25 @@ begin
     S := AUserID + AnsiChar(CN_SM9_KEY_EXCHANGE_USER_HID);
 
     T1 := TCnBigNumber.Create;
-    if not CnSM9Hash1(T1, @S[1], Length(S), SM9.Order) then Exit;
+    if not CnSM9Hash1(T1, @S[1], Length(S), SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_HASH_ERROR);
+      Exit;
+    end;
 
     BigNumberAdd(T1, T1, KeyExchangeMasterPrivateKey);
 
     if T1.IsZero then
-      raise ECnSM9Exception.Create(SEncMasterKeyZero);
+    begin
+      _CnSetLastError(ECN_SM9_ENCRYPT_MASTERKEY_ZERO_ERROR);
+      Exit;
+    end;
 
-    if not BigNumberModularInverse(T1, T1, SM9.Order) then Exit;
+    if not BigNumberModularInverse(T1, T1, SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_BIGNUMBER_ERROR);
+      Exit;
+    end;
     BigNumberDirectMulMod(T1, T1, KeyExchangeMasterPrivateKey, SM9.Order);
 
     AP := TCnFP2AffinePoint.Create;
@@ -3715,6 +3834,7 @@ begin
     FP2AffinePointToFP2Point(OutKeyExchangeUserKey, AP, SM9.FiniteFieldSize);
 
     Result := True;
+    _CnSetLastError(ECN_SM9_OK);
   finally
     AP.Free;
     T1.Free;
@@ -3725,7 +3845,7 @@ end;
 
 function CnSM9UserKeyExchangeAStep1(const BUserID: AnsiString; KeyByteLength: Integer;
   KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey; OutRA: TCnEccPoint;
-  OutRandA: TCnBigNumber; SM9: TCnSM9 = nil): Boolean;
+  OutRandA: TCnBigNumber; SM9: TCnSM9; const RandHex: string): Boolean;
 var
   C: Boolean;
   S: AnsiString;
@@ -3741,19 +3861,33 @@ begin
   try
     S := BUserID + AnsiChar(CN_SM9_KEY_EXCHANGE_USER_HID);
     T := TCnBigNumber.Create;
-    if not CnSM9Hash1(T, @S[1], Length(S), SM9.Order) then Exit;
+    if not CnSM9Hash1(T, @S[1], Length(S), SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_HASH_ERROR);
+      Exit;
+    end;
 
     OutRA.Assign(SM9.Generator);
     SM9.MultiplePoint(T, OutRA);
     SM9.PointAddPoint(OutRA, KeyExchangePublicKey, OutRA);
 
-    if not BigNumberRandRange(OutRandA, SM9.Order) then Exit;
+    if RandHex <> '' then
+      OutRandA.SetHex(AnsiString(RandHex))
+    else
+    begin
+      if not BigNumberRandRange(OutRandA, SM9.Order) then
+      begin
+        _CnSetLastError(ECN_SM9_RANDOM_ERROR);
+        Exit;
+      end;
+    end;
     // 测试数据 OutRandA.SetHex('5879DD1D51E175946F23B1B41E93BA31C584AE59A426EC1046A4D03B06C8');
     if OutRandA.IsZero then
       OutRandA.SetOne;
 
     SM9.MultiplePoint(OutRandA, OutRA);
     Result := True;
+    _CnSetLastError(ECN_SM9_OK);
   finally
     T.Free;
     if C then
@@ -3778,7 +3912,11 @@ begin
   Result := False;
 
   if (InRA = nil) or (KeyByteLength <= 0) or
-    (OutG1 = nil) or (OutG2 = nil) or (OutG3 = nil) then Exit;
+    (OutG1 = nil) or (OutG2 = nil) or (OutG3 = nil) then
+  begin
+    _CnSetLastError(ECN_SM9_INVALID_INPUT);
+    Exit;
+  end;
 
   C := SM9 = nil;
   if C then
@@ -3790,18 +3928,30 @@ begin
   Stream := nil;
 
   try
-    if not SM9.IsPointOnCurve(InRA) then Exit;
+    if not SM9.IsPointOnCurve(InRA) then
+    begin
+      _CnSetLastError(ECN_SM9_INVALID_INPUT);
+      Exit;
+    end;
 
     S := AUserID + AnsiChar(CN_SM9_KEY_EXCHANGE_USER_HID);
     T := TCnBigNumber.Create;
-    if not CnSM9Hash1(T, @S[1], Length(S), SM9.Order) then Exit;
+    if not CnSM9Hash1(T, @S[1], Length(S), SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_HASH_ERROR);
+      Exit;
+    end;
 
     OutRB.Assign(SM9.Generator);
     SM9.MultiplePoint(T, OutRB);
     SM9.PointAddPoint(OutRB, KeyExchangePublicKey, OutRB);
 
     R := TCnBigNumber.Create;
-    if not BigNumberRandRange(R, SM9.Order) then Exit;
+    if not BigNumberRandRange(R, SM9.Order) then
+    begin
+      _CnSetLastError(ECN_SM9_RANDOM_ERROR);
+      Exit;
+    end;
     // 测试数据 R.SetHex('018B98C44BEF9F8537FB7D071B2C928B3BC65BD3D69E1EEE213564905634FE');
     if R.IsZero then
       R.SetOne;
@@ -3848,6 +3998,7 @@ begin
     OutOptionalSB := SM3(Stream.Memory, Stream.Size); // 第二次 Hash
 
     Result := True;
+    _CnSetLastError(ECN_SM9_OK);
   finally
     Stream.Free;
     AP.Free;
@@ -3872,7 +4023,11 @@ var
   D: TCnSM3Digest;
 begin
   Result := False;
-  if (InRA = nil) or (InRB = nil) or (InRandA = nil) then Exit;
+  if (InRA = nil) or (InRB = nil) or (InRandA = nil) then
+  begin
+    _CnSetLastError(ECN_SM9_INVALID_INPUT);
+    Exit;
+  end;
 
   C := SM9 = nil;
   if C then
@@ -3885,7 +4040,11 @@ begin
   Stream := nil;
 
   try
-    if not SM9.IsPointOnCurve(InRB) then Exit;
+    if not SM9.IsPointOnCurve(InRB) then
+    begin
+      _CnSetLastError(ECN_SM9_INVALID_INPUT);
+      Exit;
+    end;
 
     AP := TCnFP2AffinePoint.Create;
     FP2PointToFP2AffinePoint(AP, SM9.Generator2);
@@ -3917,7 +4076,11 @@ begin
     Stream.Write(D[0], SizeOf(TCnSM3Digest));
     D := SM3(Stream.Memory, Stream.Size); // 第二次 Hash
 
-    if not CompareMem(@D[0], @InOptionalSB[0], SizeOf(TCnSM3Digest)) then Exit;
+    if not CompareMem(@D[0], @InOptionalSB[0], SizeOf(TCnSM3Digest)) then
+    begin
+      _CnSetLastError(ECN_SM9_INVALID_INPUT);
+      Exit;
+    end;
 
     // 校验 SA SB 通过后，开始计算密钥
     Stream.Clear;
@@ -3949,6 +4112,7 @@ begin
     OutOptionalSA := SM3(Stream.Memory, Stream.Size); // 第二次 Hash
 
     Result := True;
+    _CnSetLastError(ECN_SM9_OK);
   finally
     Stream.Free;
     AP.Free;
@@ -3972,7 +4136,11 @@ begin
   Result := False;
 
   if (InRA = nil) or (InRB = nil) or
-    (InG1 = nil) or (InG2 = nil) or (InG3 = nil) then Exit;
+    (InG1 = nil) or (InG2 = nil) or (InG3 = nil) then
+  begin
+    _CnSetLastError(ECN_SM9_INVALID_INPUT);
+    Exit;
+  end;
 
   C := SM9 = nil;
   if C then
@@ -4001,6 +4169,14 @@ begin
     // 第二次 Hash
     D := SM3(Stream.Memory, Stream.Size);
     Result := CompareMem(@D[0], @InOptionalSA[0], SizeOf(TCnSM3Digest));
+
+    if Result then
+      _CnSetLastError(ECN_SM9_OK)
+    else
+    begin
+      _CnSetLastError(ECN_SM9_INVALID_INPUT);
+      Exit;
+    end;
   finally
     Stream.Free;
     if C then
@@ -4071,6 +4247,7 @@ begin
     BigNumberNonNegativeMod(Res, BH, BN);
     Res.AddWord(1);
     Result := True;
+    _CnSetLastError(ECN_SM9_OK);
   finally
     BN.Free;
     BH.Free;

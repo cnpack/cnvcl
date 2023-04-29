@@ -725,7 +725,7 @@ end;
 
 function TestSM4Standard1: Boolean;
 var
-  S: AnsiString;
+  S: string;
   KeyBytes, ResBytes, DataBytes: TBytes;
 begin
   S := '0123456789ABCDEFFEDCBA9876543210';
@@ -737,7 +737,7 @@ end;
 
 function TestSM4Standard2: Boolean;
 var
-  S: AnsiString;
+  S: string;
   KeyBytes, DataBytes: TBytes;
   I: Integer;
 begin
@@ -753,7 +753,7 @@ end;
 
 function TestDESEcb1: Boolean;
 var
-  S: AnsiString;
+  S: string;
   KeyBytes, ResBytes, DataBytes: TBytes;
 begin
   S := '0123456789ABCDEF';
@@ -767,7 +767,7 @@ end;
 
 function Test3DESEcb1: Boolean;
 var
-  S: AnsiString;
+  S: string;
   KeyBytes, ResBytes, DataBytes: TBytes;
 begin
   S := '0123456789ABCDEF';
@@ -781,7 +781,7 @@ end;
 
 function TestAESEcb128: Boolean;
 var
-  S: AnsiString;
+  S: string;
   KeyBytes, ResBytes, DataBytes: TBytes;
 begin
   S := '0123456789ABCDEF0123456789ABCDEF';
@@ -793,7 +793,7 @@ end;
 
 function TestAESEcb192: Boolean;
 var
-  S: AnsiString;
+  S: string;
   KeyBytes, ResBytes, DataBytes: TBytes;
 begin
   S := '0123456789ABCDEF0123456789ABCDEF';
@@ -805,7 +805,7 @@ end;
 
 function TestAESEcb256: Boolean;
 var
-  S: AnsiString;
+  S: string;
   KeyBytes, ResBytes, DataBytes: TBytes;
 begin
   S := '0123456789ABCDEF0123456789ABCDEF';
@@ -1291,13 +1291,13 @@ end;
 
 function TestChaCha20: Boolean;
 var
-  S, SKey, SNonce: AnsiString;
+  S, SKey, SNonce: string;
   Key: TCnChaChaKey;
   Nonce: TCnChaChaNonce;
   EnRes, DeRes: TBytes;
 begin
-  SKey := '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f';
-  SNonce := '000000000000004a00000000';
+  SKey := '000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F';
+  SNonce := '000000000000004A00000000';
 
   HexToData(SKey, @Key[0]);
   HexToData(SNonce, @Nonce[0]);
@@ -2109,7 +2109,7 @@ begin
   if not Result then Exit;
 
   Pass := '123456';
-  Salt := HexToString('123456');
+  Salt := HexToAnsiStr('123456');
   Res := CnPBKDF1(Pass, Salt, 1000, 16, cpdfMd5);
   Result := DataToHex(@Res[1], Length(Res)) = '090583F4EA468E822CDC7A8C7C785E1B';
 end;
@@ -2127,7 +2127,7 @@ begin
   if not Result then Exit;
 
   Pass := '123456';
-  Salt := HexToString('123456');
+  Salt := HexToAnsiStr('123456');
   Res := CnPBKDF2(Pass, Salt, 1000, 32, cpdfSha256Hmac);
   Result := DataToHex(@Res[1], Length(Res)) = '87410D487A6414E9ADB9D078CBA7E28BFCB0C3767F1BD4C1A628010FF91DDD1A';
 end;
@@ -2144,7 +2144,7 @@ begin
     S1 := AnsiStrToHex(CnSM2KDF(P, I));
     S2 := AnsiStrToHex(CnSM9KDF(@P[1], Length(P), I));
     PB := AnsiToBytes(P);
-    S3 := BytesToHex(CnSM2SM9KDF(PB, I));
+    S3 := AnsiString(BytesToHex(CnSM2SM9KDF(PB, I)));
     Result := (S1 = S2) and (S2 = S3);
     if not Result then
       Exit;

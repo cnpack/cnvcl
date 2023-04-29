@@ -709,7 +709,7 @@ begin
 
     // 使用指定 K， 或生成一个随机 K
     if RandHex <> '' then
-      K.SetHex(RandHex)
+      K.SetHex(AnsiString(RandHex))
     else
     begin
       if not BigNumberRandRange(K, SM2.Order) then
@@ -1309,7 +1309,7 @@ begin
       // 使用指定 K，或生成一个随机 K
       if RandHex <> '' then
       begin
-        K.SetHex(RandHex);
+        K.SetHex(AnsiString(RandHex));
         HexSet := True;
       end
       else

@@ -508,6 +508,12 @@ function HexToBytes(const Hex: string): TBytes;
 {* 十六进制字符串转换为字节数组，字符串左边的内容出现在下标低位，相当于网络字节顺序，
   字符串长度为奇或转换失败时抛出异常}
 
+function StreamToHex(Stream: TStream; UseUpperCase: Boolean = True): string;
+{* 将流中的全部内容从头转换为十六进制字符串}
+
+function HexToStream(const Hex: string; Stream: TStream): Integer;
+{* 将十六进制字符串内容转换后写入流中，返回写入的字节数}
+
 procedure ReverseBytes(Data: TBytes);
 {* 按字节顺序倒置一字节数组}
 
@@ -1668,6 +1674,58 @@ begin
 
   for I := 1 to L div 2 do
     Result[I - 1] := Byte(HexToInt(@H[(I - 1) * 2], 2));
+end;
+
+function StreamToHex(Stream: TStream; UseUpperCase: Boolean): string;
+var
+  B: Byte;
+  I: Integer;
+begin
+  Result := '';
+  if Stream.Size > 0 then
+  begin
+    Stream.Position := 0;
+    SetLength(Result, Stream.Size * 2);
+    I := 1;
+    if UseUpperCase then
+    begin
+      while Stream.Read(B, 1) = 1 do
+      begin
+        Result[I] := HiDigits[(B shr 4) and $0F];
+        Inc(I);
+        Result[I] := HiDigits[B and $0F];
+        Inc(I);
+      end;
+    end
+    else
+    begin
+      while Stream.Read(B, 1) = 1 do
+      begin
+        Result[I] := LoDigits[(B shr 4) and $0F];
+        Inc(I);
+        Result[I] := LoDigits[B and $0F];
+        Inc(I);
+      end;
+    end;
+  end;
+end;
+
+function HexToStream(const Hex: string; Stream: TStream): Integer;
+var
+  I, L: Integer;
+  H: PChar;
+  B: Byte;
+begin
+  L := Length(Hex);
+  if (L mod 2) <> 0 then
+    raise Exception.CreateFmt('Error Length %d: not a Hex String', [L]);
+
+  H := PChar(Hex);
+  for I := 1 to L div 2 do
+  begin
+    B := Byte(HexToInt(@H[(I - 1) * 2], 2));
+    Stream.Write(B, 1);
+  end;
 end;
 
 procedure ReverseBytes(Data: TBytes);
