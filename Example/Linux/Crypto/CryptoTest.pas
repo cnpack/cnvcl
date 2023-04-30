@@ -371,6 +371,11 @@ begin
   Assert(TestSM9Hash2, 'TestSM9Hash2');
   Assert(TestSM9Mac, 'TestSM9Mac');
 
+  Assert(TestSM9Sign, 'TestSM9Sign');
+  Assert(TestSM9KeyExchange, 'TestSM9KeyExchange');
+  Assert(TestSM9KeyEncapsulation, 'TestSM9KeyEncapsulation');
+  Assert(TestSM9PublicEncryption, 'TestSM9PublicEncryption');
+
 // ================================ RSA ========================================
 
   Assert(TestRSA1, 'TestRSA1');
@@ -1291,7 +1296,8 @@ end;
 
 function TestChaCha20: Boolean;
 var
-  S, SKey, SNonce: string;
+  S: AnsiString;
+  SKey, SNonce: string;
   Key: TCnChaChaKey;
   Nonce: TCnChaChaNonce;
   EnRes, DeRes: TBytes;
@@ -1982,23 +1988,277 @@ begin
 end;
 
 function TestSM9Sign: Boolean;
+var
+  SigMasterKey: TCnSM9SignatureMasterKey;
+  SigUserKey: TCnSM9SignatureUserPrivateKey;
+  Sig: TCnSM9Signature;
+  AP: TCnFP2AffinePoint;
+  SM9: TCnSM9;
+  User, S: AnsiString;
 begin
+  // 《SM9 标识密码算法第 5 部分：参数定义》中的附录 A 中的签名验签例子
+  SM9 := TCnSM9.Create;
+  SigMasterKey := TCnSM9SignatureMasterKey.Create;
+  SigUserKey := TCnSM9SignatureUserPrivateKey.Create;
+  Sig := TCnSM9Signature.Create;
+  AP := TCnFP2AffinePoint.Create;
 
+  try
+    // 示例 Master Key
+    SigMasterKey.PrivateKey.SetHex('0130E78459D78545CB54C587E02CF480CE0B66340F319F348A1D5B1F2DC5F4');
+    FP2PointToFP2AffinePoint(AP, SM9.Generator2);
+
+    FP2AffinePointMul(AP, AP, SigMasterKey.PrivateKey, SM9.FiniteFieldSize);
+    FP2AffinePointToFP2Point(SigMasterKey.PublicKey, AP, SM9.FiniteFieldSize);
+
+    // 核对 Master Key
+    Result := (SigMasterKey.PublicKey.X.ToString = '9F64080B3084F733E48AFF4B41B565011CE0711C5E392CFB0AB1B6791B94C408,29DBA116152D1F786CE843ED24A3B573414D2177386A92DD8F14D65696EA5E32')
+      and (SigMasterKey.PublicKey.Y.ToString = '69850938ABEA0112B57329F447E3A0CBAD3E2FDB1A77F335E89E1408D0EF1C25,41E00A53DDA532DA1A7CE027B7A46F741006E85F5CDFF0730E75C05FB4E3216D');
+    if not Result then Exit;
+
+    // 生成示例 User Key
+    User := 'Alice';
+    CnSM9KGCGenerateSignatureUserKey(SigMasterKey.PrivateKey, User, SigUserKey);
+
+    // 核对 User Key
+    Result := SigUserKey.ToHex = '04A5702F05CF1315305E2D6EB64B0DEB923DB1A0BCF0CAFF90523AC8754AA6982078559A844411F9825C109F5EE3F52D720DD01785392A727BB1556952B2B013D3';
+    if not Result then Exit;
+
+    S := 'Chinese IBS standard';
+
+    // 签名
+    Result := CnSM9UserSignData(SigMasterKey.PublicKey, SigUserKey, @S[1], Length(S), Sig,
+      nil, '033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE');
+    if not Result then Exit;
+
+    Result := (Sig.H.ToHex = '823C4B21E4BD2DFE1ED92C606653E996668563152FC33F55D7BFBB9BD9705ADB')
+      and (Sig.S.ToHex = '0473BF96923CE58B6AD0E13E9643A406D8EB98417C50EF1B29CEF9ADB48B6D598C856712F1C2E0968AB7769F42A99586AED139D5B8B3E15891827CC2ACED9BAA05');
+    if not Result then Exit;
+
+    // 验证
+    Result := CnSM9UserVerifyData(User, @S[1], Length(S), Sig, SigMasterKey.PublicKey);
+  finally
+    AP.Free;
+    Sig.Free;
+    SigUserKey.Free;
+    SigMasterKey.Free;
+    SM9.Free;
+  end;
 end;
 
 function TestSM9KeyExchange: Boolean;
+const
+  KLEN = 16;
+var
+  AUser, BUser: AnsiString;
+  RA, RB: TCnEccPoint;
+  RandA, RandB: TCnBigNumber;
+  BG1, BG2, BG3: TCnFP12;
+  KeyA, KeyB: TBytes;
+  SB, SA: TCnSM3Digest;
+  KeyExchangeMasterKey: TCnSM9KeyExchangeMasterKey;
+  KeyExchangeUserA, KeyExchangeUserB: TCnSM9KeyExchangeUserPrivateKey;
 begin
+  // 《SM9 标识密码算法第 5 部分：参数定义》中的附录 B 中的密钥交换例子
+  KeyExchangeMasterKey := TCnSM9KeyExchangeMasterKey.Create;
+  KeyExchangeUserA := TCnSM9KeyExchangeUserPrivateKey.Create;
+  KeyExchangeUserB := TCnSM9KeyExchangeUserPrivateKey.Create;
 
+  // 设置示例 Master Key
+  KeyExchangeMasterKey.PrivateKey.SetHex('02E65B0762D042F51F0D23542B13ED8CFA2E9A0E7206361E013A283905E31F');
+  KeyExchangeMasterKey.PublicKey.X.SetHex('9174542668E8F14AB273C0945C3690C66E5DD09678B86F734C4350567ED06283');
+  KeyExchangeMasterKey.PublicKey.Y.SetHex('54E598C6BF749A3DACC9FFFEDD9DB6866C50457CFC7AA2A4AD65C3168FF74210');
+
+  // 生成示例 User Key
+  AUser := 'Alice';
+  BUser := 'Bob';
+  CnSM9KGCGenerateKeyExchangeUserKey(KeyExchangeMasterKey.PrivateKey, AUser, KeyExchangeUserA);
+  CnSM9KGCGenerateKeyExchangeUserKey(KeyExchangeMasterKey.PrivateKey, BUser, KeyExchangeUserB);
+
+  Result := (KeyExchangeUserA.X.ToString = '0FE8EAB395199B56BF1D75BD2CD610B6424F08D1092922C5882B52DCD6CA832A,7DA57BC50241F9E5BFDDC075DD9D32C7777100D736916CFC165D8D36E0634CD7')
+    and (KeyExchangeUserA.Y.ToString = '83A457DAF52CAD464C903B26062CAF937BB40E37DADED9EDA401050E49C8AD0C,6970876B9AAD1B7A50BB4863A11E574AF1FE3C5975161D73DE4C3AF621FB1EFB')
+    and (KeyExchangeUserB.X.ToString = '74CCC3AC9C383C60AF083972B96D05C75F12C8907D128A17ADAFBAB8C5A4ACF7,01092FF4DE89362670C21711B6DBE52DCD5F8E40C6654B3DECE573C2AB3D29B2')
+    and (KeyExchangeUserB.Y.ToString = '44B0294AA04290E1524FF3E3DA8CFD432BB64DE3A8040B5B88D1B5FC86A4EBC1,8CFC48FB4FF37F1E27727464F3C34E2153861AD08E972D1625FC1A7BD18D5539');
+  if not Result then Exit;
+
+  // 开始交换
+  RA := nil;
+  RandA := nil;
+  RB := nil;
+  RandB := nil;
+
+  BG1 := nil;
+  BG2 := nil;
+  BG3 := nil;
+
+  try
+    // 第一步，A 调用
+    RA := TCnEccPoint.Create;
+    RandA := TCnBigNumber.Create;
+
+    Result := CnSM9UserKeyExchangeAStep1(BUser, KLEN, KeyExchangeMasterKey.PublicKey, RA, RandA, nil,
+      '5879DD1D51E175946F23B1B41E93BA31C584AE59A426EC1046A4D03B06C8');
+    if not Result then Exit;
+
+    Result := (RandA.ToHex = '5879DD1D51E175946F23B1B41E93BA31C584AE59A426EC1046A4D03B06C8')
+      and (RA.X.ToHex = '7CBA5B19069EE66AA79D490413D11846B9BA76DD22567F809CF23B6D964BB265')
+      and (RA.Y.ToHex = 'A9760C99CB6F706343FED05637085864958D6C90902ABA7D405FBEDF7B781599');
+    if not Result then Exit;
+
+    // 第二步，B 调用，使用了第一步里传来的 RA
+    RB := TCnEccPoint.Create;
+    BG1 := TCnFP12.Create;
+    BG2 := TCnFP12.Create;
+    BG3 := TCnFP12.Create;
+    Result := CnSM9UserKeyExchangeBStep1(AUser, BUser, KLEN, KeyExchangeMasterKey.PublicKey,
+      KeyExchangeUserB, RA, RB, KeyB, SB, BG1, BG2, BG3, nil, '018B98C44BEF9F8537FB7D071B2C928B3BC65BD3D69E1EEE213564905634FE');
+    if not Result then Exit;
+
+    Result := (RB.X.ToHex = '861E91485FB7623D2794F495031A35598B493BD45BE37813ABC710FCC1F34482')
+      and (RB.Y.ToHex = '32D906A469EBC1216A802A7052D5617CD430FB56FBA729D41D9BD668E9EB9600')
+      and (DataToHex(@SB[0], SizeOf(TCnSM3Digest)) = '3BB4BCEE8139C960B4D6566DB1E0D5F0B2767680E5E1BF934103E6C66E40FFEE')
+      and (DataToHex(@KeyB[0], Length(KeyB)) = 'C5C13A8F59A97CDEAE64F16A2272A9E7');
+    if not Result then Exit;
+
+    // BG1、BG2、BG3 的判断太长，省略
+
+    // 第三步，A 调用，使用了第二步里传过来的 RB 和 SB 以及第一步自身的 RandA
+    Result := CnSM9UserKeyExchangeAStep2(AUser, BUser, KLEN, KeyExchangeMasterKey.PublicKey,
+      KeyExchangeUserA, RandA, RA, RB, SB, KeyA, SA);
+    if not Result then Exit;
+
+    Result := (DataToHex(@KeyA[0], Length(KeyA)) = 'C5C13A8F59A97CDEAE64F16A2272A9E7')
+      and (DataToHex(@SA[0], SizeOf(TCnSM3Digest)) = '195D1B7256BA7E0E67C71202A25F8C94FF8241702C2F55D613AE1C6B98215172');
+    if not Result then Exit;
+
+    // 第四步，B 调用，使用了第一步里传过来的 RA 以及第二步自身的 BG1、BG2、BG3、RB 以及第三步里传过来的 SA
+    Result := CnSM9UserKeyExchangeBStep2(AUser, BUser, RA, RB, SA, BG1, BG2, BG3);
+    if not Result then Exit;
+
+    Result := CompareBytes(KeyA, KeyB);
+  finally
+    BG3.Free;
+    BG2.Free;
+    BG1.Free;
+    RandB.Free;
+    RB.Free;
+    RandA.Free;
+    RA.Free;
+
+    KeyExchangeUserB.Free;
+    KeyExchangeUserA.Free;
+    KeyExchangeMasterKey.Free;
+  end;
 end;
 
 function TestSM9KeyEncapsulation: Boolean;
+var
+  MasterKey: TCnSM9EncryptionMasterKey;
+  UserKey: TCnSM9EncryptionUserPrivateKey;
+  KeyEncapsulation: TCnSM9KeyEncapsulation;
+  Key: TBytes;
 begin
+  // 《SM9 标识密码算法第 5 部分：参数定义》中的附录 C 中的密钥封装例子
+  MasterKey := TCnSM9EncryptionMasterKey.Create;
+  UserKey := TCnSM9EncryptionUserPrivateKey.Create;
+  KeyEncapsulation := TCnSM9KeyEncapsulation.Create;
 
+  try
+    MasterKey.PrivateKey.SetHex('01EDEE3778F441F8DEA3D9FA0ACC4E07EE36C93F9A08618AF4AD85CEDE1C22');
+    MasterKey.PublicKey.X.SetHex('787ED7B8A51F3AB84E0A66003F32DA5C720B17ECA7137D39ABC66E3C80A892FF');
+    MasterKey.PublicKey.Y.SetHex('769DE61791E5ADC4B9FF85A31354900B202871279A8C49DC3F220F644C57A7B1');
+
+    Result := CnSM9KGCGenerateEncryptionUserKey(MasterKey.PrivateKey, 'Bob', UserKey);
+    if not Result then Exit;
+
+    Result := (UserKey.X.ToString = '94736ACD2C8C8796CC4785E938301A139A059D3537B6414140B2D31EECF41683,115BAE85F5D8BC6C3DBD9E5342979ACCCF3C2F4F28420B1CB4F8C0B59A19B158')
+      and (UserKey.Y.ToString = '7AA5E47570DA7600CD760A0CF7BEAF71C447F3844753FE74FA7BA92CA7D3B55F,27538A62E7F7BFB51DCE08704796D94C9D56734F119EA44732B50E31CDEB75C1');
+    if not Result then Exit;
+
+    Result := CnSM9UserSendKeyEncapsulation('Bob', 32, MasterKey.PublicKey, KeyEncapsulation, nil, '74015F8489C01EF4270456F9E6475BFB602BDE7F33FD482AB4E3684A6722');
+    if not Result then Exit;
+
+    Result := (BytesToHex(KeyEncapsulation.Key) = '4FF5CF86D2AD40C8F4BAC98D76ABDBDE0C0E2F0A829D3F911EF5B2BCE0695480')
+      and (KeyEncapsulation.Code.X.ToHex = '1EDEE2C3F465914491DE44CEFB2CB434AB02C308D9DC5E2067B4FED5AAAC8A0F')
+      and (KeyEncapsulation.Code.Y.ToHex = '1C9B4C435ECA35AB83BB734174C0F78FDE81A53374AFF3B3602BBC5E37BE9A4C');
+    if not Result then Exit;
+
+    Result := CnSM9UserReceiveKeyEncapsulation('Bob', UserKey, 32, KeyEncapsulation.Code, Key);
+    if not Result then Exit;
+
+    Result := BytesToHex(Key) = '4FF5CF86D2AD40C8F4BAC98D76ABDBDE0C0E2F0A829D3F911EF5B2BCE0695480';
+  finally
+    KeyEncapsulation.Free;
+    UserKey.Free;
+    MasterKey.Free;
+  end;
 end;
 
 function TestSM9PublicEncryption: Boolean;
+var
+  User, S: AnsiString;
+  EnStream, DeStream: TMemoryStream;
+  KeyEncMasterKey: TCnSM9EncryptionMasterKey;
+  KeyEncUserKey: TCnSM9EncryptionUserPrivateKey;
 begin
+  // 《SM9 标识密码算法第 5 部分：参数定义》中的附录 D 中的公钥加密私钥解密的例子
+  KeyEncMasterKey := TCnSM9EncryptionMasterKey.Create;
+  KeyEncUserKey := TCnSM9EncryptionUserPrivateKey.Create;
 
+  EnStream := TMemoryStream.Create;
+  DeStream := TMemoryStream.Create;
+
+  try
+    // 生成示例 Master Key
+    KeyEncMasterKey.PrivateKey.SetHex('01EDEE3778F441F8DEA3D9FA0ACC4E07EE36C93F9A08618AF4AD85CEDE1C22');
+    KeyEncMasterKey.PublicKey.X.SetHex('787ED7B8A51F3AB84E0A66003F32DA5C720B17ECA7137D39ABC66E3C80A892FF');
+    KeyEncMasterKey.PublicKey.Y.SetHex('769DE61791E5ADC4B9FF85A31354900B202871279A8C49DC3F220F644C57A7B1');
+
+    // 生成示例 User Key
+    User := 'Bob';
+    CnSM9KGCGenerateEncryptionUserKey(KeyEncMasterKey.PrivateKey, User, KeyEncUserKey);
+
+    Result := (KeyEncUserKey.X.ToString = '94736ACD2C8C8796CC4785E938301A139A059D3537B6414140B2D31EECF41683,115BAE85F5D8BC6C3DBD9E5342979ACCCF3C2F4F28420B1CB4F8C0B59A19B158')
+      and (KeyEncUserKey.Y.ToString = '7AA5E47570DA7600CD760A0CF7BEAF71C447F3844753FE74FA7BA92CA7D3B55F,27538A62E7F7BFB51DCE08704796D94C9D56734F119EA44732B50E31CDEB75C1');
+    if not Result then Exit;
+
+    S := 'Chinese IBE standard';
+
+    Result := CnSM9UserEncryptData(User, KeyEncMasterKey.PublicKey, @S[1], Length(S), 16, 32, EnStream, semSM4, nil,
+      'AAC0541779C8FC45E3E2CB25C12B5D2576B2129AE8BB5EE2CBE5EC9E785C');
+    if not Result then Exit;
+
+    Result := StreamToHex(EnStream) = '2445471164490618E1EE20528FF1D545B0F14C8BCAA44544F03DAB5DAC07D8FF42FFCA97'
+      + 'D57CDDC05EA405F2E586FEB3A6930715532B8000759F13059ED59AC0FD3C98DD92C44C68'
+      + '332675A370CCEEDE31E0C5CD209C257601149D12B394A2BEE05B6FAC6F11B965268C994F'
+      + '00DBA7A8BB00FD60583546CBDF4649250863F10A';
+    if not Result then Exit;
+
+    Result := CnSM9UserDecryptData(User, KeyEncUserKey, EnStream.Memory, EnStream.Size, 32, DeStream, semSM4);
+    Result := StreamToHex(DeStream) = '4368696E65736520494245207374616E64617264';
+    if not Result then Exit;
+
+    EnStream.Clear;
+    DeStream.Clear;
+    Result := CnSM9UserEncryptData(User, KeyEncMasterKey.PublicKey, @S[1], Length(S), 16, 32, EnStream, semKDF, nil,
+      'AAC0541779C8FC45E3E2CB25C12B5D2576B2129AE8BB5EE2CBE5EC9E785C');
+    if not Result then Exit;
+
+    Result := StreamToHex(EnStream) = '2445471164490618E1EE20528FF1D545B0F14C8BCAA44544F03DAB5DAC07D8FF42FFCA97'
+      + 'D57CDDC05EA405F2E586FEB3A6930715532B8000759F13059ED59AC0BA672387BCD6DE50'
+      + '16A158A52BB2E7FC429197BCAB70B25AFEE37A2B9DB9F3671B5F5B0E951489682F3E64E1'
+      + '378CDD5DA9513B1C';
+    if not Result then Exit;
+
+    Result := CnSM9UserDecryptData(User, KeyEncUserKey, EnStream.Memory, EnStream.Size, 32, DeStream, semKDF);
+    if not Result then Exit;
+    Result := StreamToHex(DeStream) = '4368696E65736520494245207374616E64617264';
+  finally
+    EnStream.Free;
+    DeStream.Free;
+    KeyEncUserKey.Free;
+    KeyEncMasterKey.Free;
+  end;
 end;
 
 // ================================ RSA ========================================
