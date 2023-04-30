@@ -395,7 +395,7 @@ type
     {* 封装的密文，需要往外传}
   end;
 
-  TCnSM9EncrytionMode = (semSM4, semXOR);
+  TCnSM9EncrytionMode = (semSM4, semKDF);
   {* SM9 公钥加密的两种模式，用 SM4 分组加密或 KDF 序列密码异或}
 
   TCnSM9KeyExchangeUserPrivateKey = class(TCnFP2Point);
@@ -829,7 +829,7 @@ function CnSM9UserSendKeyEncapsulation(const DestUserID: AnsiString; KeyByteLeng
 function CnSM9UserReceiveKeyEncapsulation(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyByteLength: Integer;
   InKeyEncapsulationC: TCnSM9KeyEncapsulationCode; out Key: TBytes; SM9: TCnSM9 = nil): Boolean;
-{* 目标用户根据自身的 ID 与用户加密私钥钥，从 KeyEncapsulation 对象中还原 KeyLength
+{* 目标用户根据自身的 ID 与自己的用户加密私钥，从 KeyEncapsulation 对象中还原 KeyLength
   长度的字节串密钥封装内容放在 Key 中，返回解封是否成功}
 
 // ======================= SM9 具体实现函数：加解密 ============================
@@ -869,7 +869,7 @@ function CnSM9UserKeyExchangeBStep1(const AUserID, BUserID: AnsiString;
   KeyByteLength: Integer; KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
   KeyExchangeBUserKey: TCnSM9KeyExchangeUserPrivateKey; InRA: TCnEccPoint;
   OutRB: TCnEccPoint; out KeyB: TBytes; out OutOptionalSB: TCnSM3Digest;
-  OutG1, OutG2, OutG3: TCnFP12; SM9: TCnSM9 = nil): Boolean;
+  OutG1, OutG2, OutG3: TCnFP12; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
 {* 密钥交换第二步，B 用 A、B 的 ID 以及加密主公钥与自己的私钥，根据所密钥长度与 RA
   生成协商密钥 KeyB。另外生成另一个椭圆曲线点 RB 再加上一个可选的校验结果 SB 给 A
   同时记录 OutG1, OutG2, OutG3 三个中间计算结果，需要外部传入保存其值，在第四步中使用}
@@ -3152,7 +3152,7 @@ begin
           Exit;
         end;
       end;
-      // 测试数据 R.SetHex('033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE');
+
       if R.IsZero then
         R.SetOne;   // 确保范围在 [1, N-1]
 
@@ -3413,7 +3413,7 @@ begin
         Exit;
       end;
     end;
-    // 测试数据 R.SetHex('74015F8489C01EF4270456F9E6475BFB602BDE7F33FD482AB4E3684A6722');
+
     if R.IsZero then
       R.SetOne;
 
@@ -3569,7 +3569,7 @@ begin
         Exit;
       end;
     end;
-    // 测试数据 R.SetHex('AAC0541779C8FC45E3E2CB25C12B5D2576B2129AE8BB5EE2CBE5EC9E785C');
+
     if R.IsZero then
       R.SetOne;
 
@@ -3602,7 +3602,7 @@ begin
       // 使用 KDFKey 的 1 到 K1Length 作为密码来 SM4 加密对齐后的明文并放到 C2 中
       SM4Encrypt(@KDFKey[1], @P2[0], @C2[0], Length(P2));
     end
-    else if EncryptionMode = semXOR then
+    else if EncryptionMode = semKDF then
     begin
       KLen := DataLen + K2ByteLength;
       KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
@@ -3724,7 +3724,7 @@ begin
       // 去掉 C2 尾部的 PKCS7 内容即为明文
       BytesRemovePKCS7Padding(C2);
     end
-    else if EncryptionMode = semXOR then
+    else if EncryptionMode = semKDF then
     begin
       KLen := MLen + K2ByteLength;
       KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
@@ -3756,7 +3756,7 @@ end;
 // ====================== SM9 具体实现函数：密钥协商 ===========================
 
 function CnSM9KGCGenerateKeyExchangeMasterKey(KeyExchangeMasterKey:
-  TCnSM9KeyExchangeMasterKey; SM9: TCnSM9 = nil): Boolean;
+  TCnSM9KeyExchangeMasterKey; SM9: TCnSM9): Boolean;
 var
   C: Boolean;
 begin
@@ -3788,7 +3788,7 @@ end;
 
 function CnSM9KGCGenerateKeyExchangeUserKey(KeyExchangeMasterPrivateKey:
   TCnSM9KeyExchangeMasterPrivateKey; const AUserID: AnsiString;
-  OutKeyExchangeUserKey: TCnSM9KeyExchangeUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
+  OutKeyExchangeUserKey: TCnSM9KeyExchangeUserPrivateKey; SM9: TCnSM9): Boolean;
 var
   C: Boolean;
   S: AnsiString;
@@ -3881,7 +3881,7 @@ begin
         Exit;
       end;
     end;
-    // 测试数据 OutRandA.SetHex('5879DD1D51E175946F23B1B41E93BA31C584AE59A426EC1046A4D03B06C8');
+
     if OutRandA.IsZero then
       OutRandA.SetOne;
 
@@ -3899,7 +3899,7 @@ function CnSM9UserKeyExchangeBStep1(const AUserID, BUserID: AnsiString;
   KeyByteLength: Integer; KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
   KeyExchangeBUserKey: TCnSM9KeyExchangeUserPrivateKey; InRA: TCnEccPoint;
   OutRB: TCnEccPoint; out KeyB: TBytes; out OutOptionalSB: TCnSM3Digest;
-  OutG1, OutG2, OutG3: TCnFP12; SM9: TCnSM9 = nil): Boolean;
+  OutG1, OutG2, OutG3: TCnFP12; SM9: TCnSM9; const RandHex: string): Boolean;
 var
   C: Boolean;
   S: AnsiString;
@@ -3947,12 +3947,17 @@ begin
     SM9.PointAddPoint(OutRB, KeyExchangePublicKey, OutRB);
 
     R := TCnBigNumber.Create;
-    if not BigNumberRandRange(R, SM9.Order) then
+    if RandHex <> '' then
+      R.SetHex(AnsiString(RandHex))
+    else
     begin
-      _CnSetLastError(ECN_SM9_RANDOM_ERROR);
-      Exit;
+      if not BigNumberRandRange(R, SM9.Order) then
+      begin
+        _CnSetLastError(ECN_SM9_RANDOM_ERROR);
+        Exit;
+      end;
     end;
-    // 测试数据 R.SetHex('018B98C44BEF9F8537FB7D071B2C928B3BC65BD3D69E1EEE213564905634FE');
+
     if R.IsZero then
       R.SetOne;
 
@@ -4013,7 +4018,7 @@ function CnSM9UserKeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteL
   KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
   KeyExchangeAUserKey: TCnSM9KeyExchangeUserPrivateKey; InRandA: TCnBigNumber;
   InRA, InRB: TCnEccPoint; InOptionalSB: TCnSM3Digest; out KeyA: TBytes;
-  out OutOptionalSA: TCnSM3Digest; SM9: TCnSM9 = nil): Boolean;
+  out OutOptionalSA: TCnSM3Digest; SM9: TCnSM9): Boolean;
 var
   C: Boolean;
   G1, G2, G3: TCnFP12;
@@ -4126,7 +4131,7 @@ end;
 
 function CnSM9UserKeyExchangeBStep2(const AUserID, BUserID: AnsiString;
   InRA, InRB: TCnEccPoint; InOptionalSA: TCnSM3Digest; InG1, InG2, InG3: TCnFP12;
-  SM9: TCnSM9 = nil): Boolean;
+  SM9: TCnSM9): Boolean;
 var
   C: Boolean;
   D: TCnSM3Digest;

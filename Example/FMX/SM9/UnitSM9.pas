@@ -906,13 +906,13 @@ begin
 
   EnStream.Clear;
   DeStream.Clear;
-  if CnSM9UserEncryptData(User, FKeyEncMasterKey.PublicKey, @S[1], Length(S), 16, 32, EnStream, semXOR) then
+  if CnSM9UserEncryptData(User, FKeyEncMasterKey.PublicKey, @S[1], Length(S), 16, 32, EnStream, semKDF) then
   begin
     mmoEnc.Lines.Add('SM9 with XOR Encryption:');
     mmoEnc.Lines.Add(StreamToHex(EnStream));
   end;
 
-  if CnSM9UserDecryptData(User, FKeyEncUserKey, EnStream.Memory, EnStream.Size, 32, DeStream, semXOR) then
+  if CnSM9UserDecryptData(User, FKeyEncUserKey, EnStream.Memory, EnStream.Size, 32, DeStream, semKDF) then
   begin
     mmoEnc.Lines.Add('SM9 with SM4 Decryption:');
     SetLength(S, DeStream.Size);

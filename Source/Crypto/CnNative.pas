@@ -1716,6 +1716,7 @@ var
   H: PChar;
   B: Byte;
 begin
+  Result := 0;
   L := Length(Hex);
   if (L mod 2) <> 0 then
     raise Exception.CreateFmt('Error Length %d: not a Hex String', [L]);
@@ -1724,7 +1725,7 @@ begin
   for I := 1 to L div 2 do
   begin
     B := Byte(HexToInt(@H[(I - 1) * 2], 2));
-    Stream.Write(B, 1);
+    Inc(Result, Stream.Write(B, 1));
   end;
 end;
 
