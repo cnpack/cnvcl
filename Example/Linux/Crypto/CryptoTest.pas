@@ -2235,6 +2235,8 @@ begin
     if not Result then Exit;
 
     Result := CnSM9UserDecryptData(User, KeyEncUserKey, EnStream.Memory, EnStream.Size, 32, DeStream, semSM4);
+    if not Result then Exit;
+
     Result := StreamToHex(DeStream) = '4368696E65736520494245207374616E64617264';
     if not Result then Exit;
 
@@ -2252,6 +2254,7 @@ begin
 
     Result := CnSM9UserDecryptData(User, KeyEncUserKey, EnStream.Memory, EnStream.Size, 32, DeStream, semKDF);
     if not Result then Exit;
+
     Result := StreamToHex(DeStream) = '4368696E65736520494245207374616E64617264';
   finally
     EnStream.Free;

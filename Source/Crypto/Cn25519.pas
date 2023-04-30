@@ -29,6 +29,12 @@ unit Cn25519;
 *           已实现仅基于 X 以及蒙哥马利阶梯的快速标量乘以及扩展四元坐标的快速点加
 *           以及结合多项式约减代替模运算所进行的加速算法，是原始点加算法速度的五十倍以上
 *           签名基于 rfc 8032 的说明
+*           注意：25519 的公钥并非如传统 ECC 那样等于私钥直接点乘 G 点而来，而是经过了
+*               其他运算才得到乘数，再点乘 G 点得到公钥，且可以不完整存储 X Y，只存 Y
+*               且将 X 的奇偶存入。
+*           RFC 8032 中，将随机产生的 32 字节值叫 SecretKey，将其算出乘数再点乘得到公钥
+*               再存 Y 和 X 奇偶性的 32 字节叫 PublicKey，加起来一共 64 字节是为一对公私钥。
+*               但本单元中仍按常规的 ECC 公私钥处理，求 X 需要额外调用
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -253,7 +259,7 @@ type
   end;
 
   TCnCurve25519 = class(TCnMontgomeryCurve)
-  {* rfc 7748/8032 中规定的 Curve25519 曲线}
+  {* RFC 7748/8032 中规定的 Curve25519 曲线}
   public
     constructor Create; override;
 
@@ -269,7 +275,7 @@ type
   TCnEd25519SignatureData = array[0..2 * CN_25519_BLOCK_BYTESIZE - 1] of Byte;
 
   TCnEd25519 = class(TCnTwistedEdwardsCurve)
-  {* rfc 7748/8032 中规定的 Ed25519 曲线}
+  {* RFC 7748/8032 中规定的 Ed25519 曲线}
   public
     constructor Create; override;
 
@@ -277,7 +283,7 @@ type
     {* 生成一对 Ed25519 椭圆曲线的公私钥，其中公钥的基点乘数根据 SHA512 运算而来}
 
     procedure PlainToPoint(Plain: TCnEd25519Data; OutPoint: TCnEccPoint);
-    {* 将 32 字节值转换为坐标点，涉及到求解}
+    {* 将 32 字节值转换为坐标点，涉及到求解。也用于从 32 字节格式的公钥中恢复完整的坐标点公钥}
     procedure PointToPlain(Point: TCnEccPoint; var OutPlain: TCnEd25519Data);
     {* 将点坐标转换成 32 字节值，拼 Y 并放 X 正负一位}
 
@@ -622,7 +628,8 @@ begin
   // （和 CoFactor 是 2^3 = 8 对应），且最高位 2^255 得置 0，次高位 2^254 得置 1
   if OutMulFactor <> nil then
   begin
-    ReverseMemory(@Dig[0], CN_25519_BLOCK_BYTESIZE);         // 得倒个序
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Dig[0], CN_25519_BLOCK_BYTESIZE);       // 得倒个序
     OutMulFactor.SetBinary(@Dig[0], CN_25519_BLOCK_BYTESIZE);
 
     OutMulFactor.ClearBit(0);                                // 低三位置 0
@@ -2085,7 +2092,8 @@ begin
 
   FillChar(Data[0], SizeOf(TCnEd25519Data), 0);
   P.Y.ToBinary(@Data[0], SizeOf(TCnEd25519Data));
-  ReverseMemory(@Data[0], SizeOf(TCnEd25519Data)); // 小端序，需要倒一下
+  if CurrentByteOrderIsLittleEndian then
+    ReverseMemory(@Data[0], SizeOf(TCnEd25519Data)); // 小端序的就需要倒一下
 
   if P.X.IsOdd then // X 是奇数，最低位是 1
     Data[CN_25519_BLOCK_BYTESIZE - 1] := Data[CN_25519_BLOCK_BYTESIZE - 1] or $80  // 高位置 1
@@ -2102,7 +2110,8 @@ begin
     Exit;
 
   Move(Data[0], D[0], SizeOf(TCnEd25519Data));
-  ReverseMemory(@D[0], SizeOf(TCnEd25519Data));
+  if CurrentByteOrderIsLittleEndian then
+    ReverseMemory(@D[0], SizeOf(TCnEd25519Data));
   P.Y.SetBinary(@D[0], SizeOf(TCnEd25519Data));
 
   // 最高位是否是 0 表示了 X 的奇偶
@@ -2119,7 +2128,8 @@ begin
 
   FillChar(Data[0], SizeOf(TCnEd25519Data), 0);
   N.ToBinary(@Data[0], SizeOf(TCnEd25519Data));
-  ReverseMemory(@Data[0], SizeOf(TCnEd25519Data));
+  if CurrentByteOrderIsLittleEndian then
+    ReverseMemory(@Data[0], SizeOf(TCnEd25519Data));
 end;
 
 procedure CnEd25519DataToBigNumber(Data: TCnEd25519Data; N: TCnBigNumber);
@@ -2130,7 +2140,8 @@ begin
     Exit;
 
   Move(Data[0], D[0], SizeOf(TCnEd25519Data));
-  ReverseMemory(@D[0], SizeOf(TCnEd25519Data));
+  if CurrentByteOrderIsLittleEndian then
+    ReverseMemory(@D[0], SizeOf(TCnEd25519Data));
   N.SetBinary(@D[0], SizeOf(TCnEd25519Data));
 end;
 
@@ -2175,7 +2186,8 @@ begin
     // 计算出 SHA512 值作为 r 乘数，准备乘以基点作为 R 点
     Dig := SHA512Buffer(Stream.Memory, Stream.Size);
 
-    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest)); // 需要倒转一次
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest)); // 需要倒转一次
     R.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
     BigNumberNonNegativeMod(R, R, Ed25519.Order);  // r 乘数太大先 mod 一下阶
 
@@ -2199,7 +2211,8 @@ begin
     // 再次杂凑 R||PublicKey||明文
     Dig := SHA512Buffer(Stream.Memory, Stream.Size);
 
-    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest)); // 又需要倒转一次
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest)); // 又需要倒转一次
     K.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
     BigNumberNonNegativeMod(K, K, Ed25519.Order);  // 乘数太大再先 mod 一下阶
 
@@ -2264,7 +2277,8 @@ begin
     Stream.Write(PlainData^, DataLen);                    // 拼明文
 
     Dig := SHA512Buffer(Stream.Memory, Stream.Size);      // 计算 Hash 作为值
-    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));        // 需要倒转一次
+    if CurrentByteOrderIsLittleEndian then
+      ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));    // 需要倒转一次
 
     T := F25519BigNumberPool.Obtain;
     T.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
