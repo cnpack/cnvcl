@@ -43,7 +43,7 @@ uses
   SysUtils, Classes,
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
-  CnPoly1305, CnTEA, CnZUC, CnPrimeNumber;
+  CnPoly1305, CnTEA, CnZUC, CnPrimeNumber, Cn25519;
 
 procedure TestCrypto;
 {* 密码库总测试入口}
@@ -216,7 +216,11 @@ function TestKDFSM2SM9: Boolean;
 function TestPrimeNumber1: Boolean;
 function TestPrimeNumber2: Boolean;
 
-// ================================ 25519 ========================================
+// ================================ 25519 ======================================
+
+function Test25519Sign: Boolean;
+
+// ================================= END =======================================
 
 implementation
 
@@ -393,6 +397,10 @@ begin
   Assert(TestPrimeNumber2, 'TestPrimeNumber2');
 
 // ================================ 25519 ======================================
+
+  Assert(Test25519Sign, 'Test25519Sign');
+
+// ================================= END =======================================
 
   Writeln('Crypto Test End.');
 end;
@@ -2445,5 +2453,44 @@ end;
 
 // ================================ 25519 ========================================
 
+function Test25519Sign: Boolean;
+var
+  Ed: TCnEd25519;
+  Data: TCnEd25519Data;
+  PrivKey: TCnEccPrivateKey;
+  PubKey: TCnEccPublicKey;
+  SigData: TCnEd25519SignatureData;
+  Sig: TCnEd25519Signature;
+  B: Byte;
+begin
+  // RFC 8032 中的 Test Vector 2
+  Ed := TCnEd25519.Create;
+  PrivKey := TCnEccPrivateKey.Create;
+  PubKey := TCnEccPublicKey.Create;
+  Sig := TCnEd25519Signature.Create;
+
+  try
+    PrivKey.SetHex('4CCD089B28FF96DA9DB6C346EC114E0F5B8A319F35ABA624DA8CF6ED4FB8A6FB');
+    HexToData('3D4017C3E843895A92B70AA74D1B7EBC9C982CCF2EC4968CC0CD55F12AF4660C', @Data[0]);
+    Ed.PlainToPoint(Data, PubKey);
+
+    B := $72;
+    Result := CnEd25519SignData(@B, 1, PrivKey, PubKey, Sig);
+    if not Result then Exit;
+
+    Sig.SaveToData(SigData);
+    Result := DataToHex(@SigData, SizeOf(SigData)) = '92A009A9F0D4CAB8720E820B5F642540A2B27B5416503F8FB3762223EBDB69DA085AC1E43E15996E458F3613D0F11D8C387B2EAEB4302AEEB00D291612BB0C00';
+    if not Result then Exit;
+
+    Result := CnEd25519VerifyData(@B, 1, Sig, PubKey);
+  finally
+    Sig.Free;
+    PubKey.Free;
+    PrivKey.Free;
+    Ed.Free;
+  end;
+end;
+
+// ================================= END =======================================
 
 end.
