@@ -1430,9 +1430,16 @@ begin
       SM2 := TCnSM2.Create;
 
     if BigNumberCompare(InSignature.R, SM2.Order) >= 0 then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
+    end;
+
     if BigNumberCompare(InSignature.S, SM2.Order) >= 0 then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
+    end;
 
     Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataLen, PublicKey, SM2); // 杂凑值 e
 
@@ -1445,7 +1452,10 @@ begin
     BigNumberAdd(K, InSignature.R, InSignature.S);
     BigNumberNonNegativeMod(R, K, SM2.Order);
     if R.IsZero then  // (r + s) mod n = 0 则失败，这里 R 是文中的 T
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
+    end;
 
     P.Assign(SM2.Generator);
     SM2.MultiplePoint(InSignature.S, P);
@@ -1677,7 +1687,10 @@ begin
       SM2 := TCnSM2.Create;
 
     if not SM2.IsPointOnCurve(InRA) then // 验证传过来的 RA 是否满足方程
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
+    end;
 
     R := TCnBigNumber.Create;
     if not BigNumberRandRange(R, SM2.Order) then
@@ -1767,7 +1780,10 @@ begin
       SM2 := TCnSM2.Create;
 
     if not SM2.IsPointOnCurve(InRB) then // 验证传过来的 RB 是否满足方程
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
+    end;
 
     X := TCnBigNumber.Create;
     BigNumberCopy(X, MyRA.X);
@@ -1803,7 +1819,10 @@ begin
     // 然后计算 SB 核对
     OutOptionalSA := CalcSM2OptionalSig(U, MyRA, InRB, Za, Zb, True);
     if not CompareMem(@OutOptionalSA[0], @InOptionalSB[0], SizeOf(TCnSM3Digest)) then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
+    end;
 
     // 然后计算 SA 供 B 核对
     OutOptionalSA := CalcSM2OptionalSig(U, MyRA, InRB, Za, Zb, False);
@@ -1865,10 +1884,16 @@ begin
 
     Stream := TMemoryStream.Create;
     if CnEccPointToStream(PublicKey, Stream, CN_SM2_FINITEFIELD_BYTESIZE) <= 0 then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
+    end;
 
     if CnEccPointToStream(OutR, Stream, CN_SM2_FINITEFIELD_BYTESIZE) <= 0 then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
+    end;
 
     Dig := SM3(Stream.Memory, Stream.Size);
 
@@ -1920,10 +1945,16 @@ begin
 
     Stream := TMemoryStream.Create;
     if CnEccPointToStream(PublicKey, Stream, CN_SM2_FINITEFIELD_BYTESIZE) <= 0 then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
+    end;
 
     if CnEccPointToStream(InR, Stream, CN_SM2_FINITEFIELD_BYTESIZE) <= 0 then
+    begin
+      _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
+    end;
 
     Dig := SM3(Stream.Memory, Stream.Size);
 
@@ -2223,7 +2254,10 @@ begin
       if not BigNumberEqual(T, SM2.Order) then
       begin
         if BigNumberCopy(OutSignature.R, InRFromB) = nil then
+        begin
+          _CnSetLastError(ECN_SM2_BIGNUMBER_ERROR);
           Exit;
+        end;
       end;
 
       Result := True;
