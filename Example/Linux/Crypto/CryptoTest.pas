@@ -222,6 +222,9 @@ function TestPaillier2: Boolean;
 
 // ============================= SecretSharing =================================
 
+function TestSecretSharingShamir: Boolean;
+function TestSecretSharingFeldmanVss: Boolean;
+
 // ================================ ECC ========================================
 
 function TestECCMul: Boolean;
@@ -408,6 +411,9 @@ begin
   Assert(TestPaillier2, 'TestPaillier2');
 
 // ============================= SecretSharing =================================
+
+  Assert(TestSecretSharingShamir, 'TestSecretSharingShamir');
+  Assert(TestSecretSharingFeldmanVss, 'TestSecretSharingFeldmanVss');
 
 // ================================ ECC ========================================
 
@@ -2639,6 +2645,102 @@ begin
 end;
 
 // ============================= SecretSharing =================================
+
+function TestSecretSharingShamir: Boolean;
+var
+  I: Integer;
+  S, P: TCnBigNumber;
+  Orders, Shares, X, Y: TCnBigNumberList;
+begin
+  S := TCnBigNumber.FromDec('43333333333333874874874874253253');
+  P := TCnBigNumber.Create;
+
+  Orders := TCnBigNumberList.Create;
+  Shares := TCnBigNumberList.Create;
+
+  X := TCnBigNumberList.Create;
+  Y := TCnBigNumberList.Create;
+
+  try
+    P.SetHex('A1E21A8374A4ED028A32195B14F6E29F2B219406015E8BF5E97B737ADF299873BA'
+      + 'C0E46C60B8E2BAA6F0EB5DD9920EACFAFDACCDA31288F1C494D861A803E9FE0C056F62D'
+      + '7C882EFA7D312B20C93E687715CE026BC3EC4750547EF3E375887E819B969B0F03A84D4'
+      + 'B63252FDC979B952DE4C32B1BA5E8D1166DFF612EF60220B');
+
+    Result := CnShamirSplit(S, 5, 3, Orders, Shares, P);
+    if not Result then Exit;
+
+    X.Add.SetWord(1);
+    X.Add.SetWord(3);
+    X.Add.SetWord(5);
+    BigNumberCopy(Y.Add, Shares[0]);
+    BigNumberCopy(Y.Add, Shares[2]);
+    BigNumberCopy(Y.Add, Shares[4]);
+
+    Result := CnShamirReconstruct(P, X, Y, S);
+    if not Result then Exit;
+
+    Result := S.ToHex = '0222F18D35EBF4A436D083FF4FC5';
+  finally
+    Y.Free;
+    X.Free;
+    Shares.Free;
+    Orders.Free;
+    P.Free;
+    S.Free;
+  end;
+end;
+
+function TestSecretSharingFeldmanVss: Boolean;
+var
+  I: Integer;
+  S, P, G, O: TCnBigNumber;
+  Orders, Shares, Comms, X, Y: TCnBigNumberList;
+begin
+  S := TCnBigNumber.FromDec('23333333333333874874874874253253');
+  P := TCnBigNumber.FromHex(CN_PRIME_FFDHE_2048);
+  G := TCnBigNumber.FromDec('2');
+
+  Orders := TCnBigNumberList.Create;
+  Shares := TCnBigNumberList.Create;
+  Comms := TCnBigNumberList.Create;
+
+  X := TCnBigNumberList.Create;
+  Y := TCnBigNumberList.Create;
+  O := TCnBigNumber.Create;
+
+  try
+    Result := CnFeldmanVssSplit(S, 5, 3, Orders, Shares, Comms, P, G);
+    if not Result then Exit;
+
+    for I := 0 to Shares.Count - 1 do
+    begin
+      O.SetWord(I + 1);
+      Result := CnFeldmanVssVerify(P, G, O, Shares[I], Comms);
+      if not Result then Exit;
+    end;
+
+    X.Add.SetWord(1);
+    X.Add.SetWord(3);
+    X.Add.SetWord(5);
+    BigNumberCopy(Y.Add, Shares[0]);
+    BigNumberCopy(Y.Add, Shares[2]);
+    BigNumberCopy(Y.Add, Shares[4]);
+
+    Result := CnFeldmanVssReconstruct(P, G, X, Y, Comms, S);
+    Result := S.ToHex = '1268210F5A67381A08383FF4FC5';
+  finally
+    O.Free;
+    Y.Free;
+    X.Free;
+    Comms.Free;
+    Shares.Free;
+    Orders.Free;
+    P.Free;
+    S.Free;
+    G.Free;
+  end;
+end;
 
 // ================================ ECC ========================================
 
