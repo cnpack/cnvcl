@@ -2648,7 +2648,6 @@ end;
 
 function TestSecretSharingShamir: Boolean;
 var
-  I: Integer;
   S, P: TCnBigNumber;
   Orders, Shares, X, Y: TCnBigNumberList;
 begin
