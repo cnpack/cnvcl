@@ -2728,6 +2728,8 @@ begin
     BigNumberCopy(Y.Add, Shares[4]);
 
     Result := CnFeldmanVssReconstruct(P, G, X, Y, Comms, S);
+    if not Result then Exit;
+
     Result := S.ToHex = '1268210F5A67381A08383FF4FC5';
   finally
     O.Free;
