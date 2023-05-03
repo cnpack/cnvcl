@@ -528,6 +528,7 @@ object Form25519: TForm25519
           Size.PlatformDefault = False
           TabOrder = 11
           Text = 'Load Keys'
+          OnClick = btnEd25519LoadKeysClick
         end
         object btnEd25519SaveKeys: TButton
           Position.X = 664.000000000000000000
@@ -537,6 +538,7 @@ object Form25519: TForm25519
           Size.PlatformDefault = False
           TabOrder = 12
           Text = 'Save Keys'
+          OnClick = btnEd25519SaveKeysClick
         end
       end
     end

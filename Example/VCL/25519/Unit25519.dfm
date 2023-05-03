@@ -463,6 +463,7 @@ object Form25519: TForm25519
           Height = 21
           Caption = 'Load Keys'
           TabOrder = 11
+          OnClick = btnEd25519LoadKeysClick
         end
         object btnEd25519SaveKeys: TButton
           Left = 664
@@ -471,6 +472,7 @@ object Form25519: TForm25519
           Height = 21
           Caption = 'Save Keys'
           TabOrder = 12
+          OnClick = btnEd25519SaveKeysClick
         end
       end
     end

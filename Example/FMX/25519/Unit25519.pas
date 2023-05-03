@@ -104,6 +104,8 @@ type
     procedure btnVerifyTimeClick(Sender: TObject);
     procedure btnEd25519SignFileClick(Sender: TObject);
     procedure btnEd25519VerifyFileClick(Sender: TObject);
+    procedure btnEd25519LoadKeysClick(Sender: TObject);
+    procedure btnEd25519SaveKeysClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -293,6 +295,16 @@ begin
   P.Free;
 end;
 
+procedure TForm25519.btnEd25519LoadKeysClick(Sender: TObject);
+var
+  Data: TCnEd25519Data;
+begin
+  HexToData(edtEd25519Priv.Text, @Data[0]);
+  TCnEd25519PrivateKey(FPrivKey).LoadFromData(Data);
+  HexToData(edtEd25519Pub.Text, @Data[0]);
+  TCnEd25519PublicKey(FPubKey).LoadFromData(Data);
+end;
+
 procedure TForm25519.btnCurve25519GMulClick(Sender: TObject);
 var
   P: TCnEccPoint;
@@ -433,7 +445,7 @@ procedure TForm25519.btnEd25519GenKeyClick(Sender: TObject);
 var
   Data: TCnEd25519Data;
 begin
-  FEd25519.GenerateKeys(FPrivKey, FPubKey);
+  FEd25519.GenerateKeys(TCnEd25519PrivateKey(FPrivKey), TCnEd25519PublicKey(FPubKey));
   FEd25519.PointToPlain(FPubKey, Data);
   ShowMessage(FPubKey.ToString);
 end;
@@ -445,7 +457,7 @@ var
 begin
   B := $72;
   Sig := TCnEd25519Signature.Create;
-  if CnEd25519SignData(@B, 1, FPrivKey, FPubKey, Sig) then
+  if CnEd25519SignData(@B, 1, TCnEd25519PrivateKey(FPrivKey), TCnEd25519PublicKey(FPubKey), Sig) then
   begin
     ShowMessage('Sign OK');
     Sig.SaveToData(FSigData);
@@ -457,7 +469,7 @@ begin
     if CnEccPointsEqual(Sig.R, ASig.R) and BigNumberEqual(Sig.S, ASig.S) then
       ShowMessage('Sig Save/Load OK');
 
-    if CnEd25519VerifyData(@B, 1, Sig, FPubKey) then
+    if CnEd25519VerifyData(@B, 1, Sig, TCnEd25519PublicKey(FPubKey)) then
       ShowMessage('Verify OK')
     else
       ShowMessage('Verify Fail. Maybe Key needs to be Re-Generated?');
@@ -1177,7 +1189,7 @@ procedure TForm25519.btnEd25519GenClick(Sender: TObject);
 var
   Pub: TCnEd25519Data;
 begin
-  if FEd25519.GenerateKeys(FPrivKey, FPubKey) then
+  if FEd25519.GenerateKeys(TCnEd25519PrivateKey(FPrivKey), TCnEd25519PublicKey(FPubKey)) then
   begin
     edtEd25519Priv.Text := FPrivKey.ToHex(CN_25519_BLOCK_BYTESIZE);
     FEd25519.PointToPlain(FPubKey, Pub);
@@ -1185,17 +1197,27 @@ begin
   end;
 end;
 
+procedure TForm25519.btnEd25519SaveKeysClick(Sender: TObject);
+var
+  Data: TCnEd25519Data;
+begin
+  TCnEd25519PrivateKey(FPrivKey).SaveToData(Data);
+  edtEd25519Priv.Text := DataToHex(@Data[0], SizeOf(Data));
+  TCnEd25519PublicKey(FPubKey).SaveToData(Data);
+  edtEd25519Pub.Text := DataToHex(@Data[0], SizeOf(Data));
+end;
+
 procedure TForm25519.btnEd25519SignClick(Sender: TObject);
 var
-  Priv: TCnEccPrivateKey;
-  Pub: TCnEccPublicKey;
+  Priv: TCnEd25519PrivateKey;
+  Pub: TCnEd25519PublicKey;
   PubData: TCnEd25519Data;
   Sig: TCnEd25519Signature;
   SigData: TCnEd25519SignatureData;
   S: AnsiString;
 begin
-  Priv := TCnEccPrivateKey.Create;
-  Pub := TCnEccPublicKey.Create;
+  Priv := TCnEd25519PrivateKey.Create;
+  Pub := TCnEd25519PublicKey.Create;
 
   HexToData(edtEd25519Pub.Text, @PubData[0]);
   FEd25519.PlainToPoint(PubData, Pub);
@@ -1220,13 +1242,13 @@ end;
 
 procedure TForm25519.btnEd25519VerifyClick(Sender: TObject);
 var
-  Pub: TCnEccPublicKey;
+  Pub: TCnEd25519PublicKey;
   PubData: TCnEd25519Data;
   Sig: TCnEd25519Signature;
   SigData: TCnEd25519SignatureData;
   S: AnsiString;
 begin
-  Pub := TCnEccPublicKey.Create;
+  Pub := TCnEd25519PublicKey.Create;
 
   HexToData(edtEd25519Pub.Text, @PubData[0]);
   FEd25519.PlainToPoint(PubData, Pub);
@@ -1245,8 +1267,8 @@ end;
 
 procedure TForm25519.btnSignTimeClick(Sender: TObject);
 var
-  Priv: TCnEccPrivateKey;
-  Pub: TCnEccPublicKey;
+  Priv: TCnEd25519PrivateKey;
+  Pub: TCnEd25519PublicKey;
   PubData: TCnEd25519Data;
   Sig: TCnEd25519Signature;
   SigData: TCnEd25519SignatureData;
@@ -1254,8 +1276,8 @@ var
   T: Cardinal;
   I: Integer;
 begin
-  Priv := TCnEccPrivateKey.Create;
-  Pub := TCnEccPublicKey.Create;
+  Priv := TCnEd25519PrivateKey.Create;
+  Pub := TCnEd25519PublicKey.Create;
 
   HexToData(edtEd25519Pub.Text, @PubData[0]);
   FEd25519.PlainToPoint(PubData, Pub);
@@ -1284,7 +1306,7 @@ end;
 
 procedure TForm25519.btnVerifyTimeClick(Sender: TObject);
 var
-  Pub: TCnEccPublicKey;
+  Pub: TCnEd25519PublicKey;
   PubData: TCnEd25519Data;
   Sig: TCnEd25519Signature;
   SigData: TCnEd25519SignatureData;
@@ -1292,7 +1314,7 @@ var
   T: Cardinal;
   I: Integer;
 begin
-  Pub := TCnEccPublicKey.Create;
+  Pub := TCnEd25519PublicKey.Create;
 
   HexToData(edtEd25519Pub.Text, @PubData[0]);
   FEd25519.PlainToPoint(PubData, Pub);
@@ -1320,8 +1342,8 @@ end;
 procedure TForm25519.btnEd25519SignFileClick(Sender: TObject);
 var
   Ed: TCnEd25519;
-  Priv: TCnEccPrivateKey;
-  Pub: TCnEccPublicKey;
+  Priv: TCnEd25519PrivateKey;
+  Pub: TCnEd25519PublicKey;
   PubData: TCnEd25519Data;
   SigStream: TMemoryStream;
 begin
@@ -1329,8 +1351,8 @@ begin
   if dlgOpen1.Execute then
   begin
     Ed := TCnEd25519.Create;
-    Priv := TCnEccPrivateKey.Create;
-    Pub := TCnEccPublicKey.Create;
+    Priv := TCnEd25519PrivateKey.Create;
+    Pub := TCnEd25519PublicKey.Create;
 
     HexToData(edtEd25519Pub.Text, @PubData[0]);
     Ed.PlainToPoint(PubData, Pub);
@@ -1359,7 +1381,7 @@ end;
 procedure TForm25519.btnEd25519VerifyFileClick(Sender: TObject);
 var
   Ed: TCnEd25519;
-  Pub: TCnEccPublicKey;
+  Pub: TCnEd25519PublicKey;
   PubData: TCnEd25519Data;
   SigStream: TMemoryStream;
 begin
@@ -1368,7 +1390,7 @@ begin
   if dlgOpen1.Execute and dlgSave1.Execute then
   begin
     Ed := TCnEd25519.Create;
-    Pub := TCnEccPublicKey.Create;
+    Pub := TCnEd25519PublicKey.Create;
 
     HexToData(edtEd25519Pub.Text, @PubData[0]);
     Ed.PlainToPoint(PubData, Pub);
