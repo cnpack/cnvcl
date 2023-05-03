@@ -99,6 +99,8 @@ type
     function GetValue(const Name: WideString): WideString;
     procedure SetValue(const Name, Value: WideString);
     procedure QuickSort(L, R: Integer; SCompare: TCnWideStringListSortCompare);
+    function GetObject(Index: Integer): TObject;
+    procedure PutObject(Index: Integer; const Value: TObject);
   protected
     function Get(Index: Integer): WideString; virtual;
     function GetCount: Integer; virtual;
@@ -110,6 +112,7 @@ type
     destructor Destroy; override;
     function Add(const S: WideString): Integer; virtual;
     procedure AddStrings(Strings: TCnWideStringList); virtual;
+    function AddObject(const S: string; AObject: TObject): Integer; virtual;
     procedure Assign(Source: TPersistent); override;
     procedure Clear; virtual;
     procedure Delete(Index: Integer); virtual; 
@@ -125,6 +128,7 @@ type
     procedure Sort; virtual;
     property Count: Integer read GetCount;
     property Names[Index: Integer]: WideString read GetName;
+    property Objects[Index: Integer]: TObject read GetObject write PutObject;
     property Values[const Name: WideString]: WideString read GetValue write SetValue;
     property Strings[Index: Integer]: WideString read Get write Put; default;
     property Text: WideString read GetTextStr write SetTextStr;
@@ -216,6 +220,13 @@ begin
   Insert(Count, S);
 end;
 
+function TCnWideStringList.AddObject(const S: string;
+  AObject: TObject): Integer;
+begin
+  Result := Add(S);
+  PutObject(Result, AObject);
+end;
+
 procedure TCnWideStringList.AddStrings(Strings: TCnWideStringList);
 var
   I: Integer;
@@ -298,8 +309,13 @@ begin
   Result := Get(Index);
   P := Pos('=', Result);
   if P <> 0 then
-    SetLength(Result, P-1) else
+    SetLength(Result, P - 1) else
     SetLength(Result, 0);
+end;
+
+function TCnWideStringList.GetObject(Index: Integer): TObject;
+begin
+  Result := PCnWideStringItem(FList[Index])^.FObject;
 end;
 
 function TCnWideStringList.GetTextStr: WideString;
@@ -437,6 +453,11 @@ var
 begin
   P := PCnWideStringItem(FList[Index]);
   P^.FString := S;
+end;
+
+procedure TCnWideStringList.PutObject(Index: Integer; const Value: TObject);
+begin
+  PCnWideStringItem(FList[Index])^.FObject := Value;
 end;
 
 procedure TCnWideStringList.QuickSort(L, R: Integer;
