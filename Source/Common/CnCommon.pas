@@ -1208,7 +1208,10 @@ function IndexInt(ANum: Integer; AValues: array of Integer): Integer;
 procedure TrimStrings(AList: TStrings);
 {* 删除空行和每一行的行首尾空格}
 
-procedure RemoveDuplicatedStrings(AList: TStrings; CaseSensitive: Boolean = True);
+procedure RemoveDuplicatedStrings(AList: TStrings; CaseSensitive: Boolean = True); overload;
+{* 字符串列表去重，CaseSensitive 表示判断重复时是否区分大小写}
+
+procedure RemoveDuplicatedStrings(AList: TCnWideStringList; CaseSensitive: Boolean = True); overload;
 {* 字符串列表去重，CaseSensitive 表示判断重复时是否区分大小写}
 
 //==============================================================================
@@ -8043,6 +8046,57 @@ end;
 
 // 字符串列表去重
 procedure RemoveDuplicatedStrings(AList: TStrings; CaseSensitive: Boolean);
+var
+  I, J: Integer;
+  V: string;
+  Dup: Boolean;
+begin
+  if (AList = nil) or (AList.Count <= 1) then
+    Exit;
+
+  if CaseSensitive then
+  begin
+    for I := AList.Count - 1 downto 0 do
+    begin
+      V := AList[I];
+      Dup := False;
+
+      for J := 0 to I - 1 do
+      begin
+        if V = AList[J] then
+        begin
+          Dup := True;
+          Break;
+        end;
+      end;
+
+      if Dup then
+        AList.Delete(I);
+    end;
+  end
+  else
+  begin
+    for I := AList.Count - 1 downto 0 do
+    begin
+      V := UpperCase(AList[I]);
+      Dup := False;
+
+      for J := 0 to I - 1 do
+      begin
+        if V = UpperCase(AList[J]) then
+        begin
+          Dup := True;
+          Break;
+        end;
+      end;
+
+      if Dup then
+        AList.Delete(I);
+    end;
+  end;
+end;
+
+procedure RemoveDuplicatedStrings(AList: TCnWideStringList; CaseSensitive: Boolean);
 var
   I, J: Integer;
   V: string;
