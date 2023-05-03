@@ -1,5 +1,7 @@
 unit Unit25519;
 
+{$MODE Delphi}
+
 interface
 
 uses
@@ -122,24 +124,24 @@ var
 
 implementation
 
-{$R *.DFM}
+{$R *.lfm}
 
 const
   SCN_25519_PRIME = '7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED';
   // 2^255 - 19
 
   SCN_25519_COFACTOR = 8;
-  // ÓàÒò×Ó¾ùÎª 8£¬Ò²¾ÍÊÇÍÖÔ²ÇúÏß×ÜµãÊıÊÇ G µã½×ÊıµÄ°Ë±¶
+  // ä½™å› å­å‡ä¸º 8ï¼Œä¹Ÿå°±æ˜¯æ¤­åœ†æ›²çº¿æ€»ç‚¹æ•°æ˜¯ G ç‚¹é˜¶æ•°çš„å…«å€
 
   SCN_25519_ORDER = '1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED';
-  // »ùµã½×Êı¾ùÎª 2^252 + 27742317777372353535851937790883648493
+  // åŸºç‚¹é˜¶æ•°å‡ä¸º 2^252 + 27742317777372353535851937790883648493
 
-  // 25519 Å¤Çú°®µÂ»ªÇúÏß²ÎÊı
+  // 25519 æ‰­æ›²çˆ±å¾·åæ›²çº¿å‚æ•°
   SCN_25519_EDWARDS_A = '-01';
   // -1
 
   SCN_25519_EDWARDS_D = '52036CEE2B6FFE738CC740797779E89800700A4D4141D8AB75EB4DCA135978A3';
-  // -121655/121656£¬Ò²¾ÍÊÇ 121656 * D mod P = P - 121655 ËãµÃ D =
+  // -121655/121656ï¼Œä¹Ÿå°±æ˜¯ 121656 * D mod P = P - 121655 ç®—å¾— D =
   // 37095705934669439343138083508754565189542113879843219016388785533085940283555
 
   SCN_25519_EDWARDS_GX = '216936D3CD6E53FEC0A4E231FDD6DC5C692CC7609525A7B2C9562D608F25D51A';
@@ -188,12 +190,12 @@ begin
   Q.Assign(FCurve25519.Generator);
 
   FCurve25519.PointAddPoint(P, Q, P);
-  // P ÊÇ 2*G
+  // P æ˜¯ 2*G
   if FCurve25519.IsPointOnCurve(P) then
     ShowMessage('Curve 25519 G + G is on this Curve');
 
   FCurve25519.PointAddPoint(P, Q, P);
-  // P ÊÇ 3*G
+  // P æ˜¯ 3*G
   if FCurve25519.IsPointOnCurve(P) then
     ShowMessage('Curve 25519 G + 2*G is on this Curve');
 
@@ -220,12 +222,12 @@ begin
   Q.Assign(FEd25519.Generator);
 
   FEd25519.PointAddPoint(P, Q, P);
-  // P ÊÇ 2*G
+  // P æ˜¯ 2*G
   if FEd25519.IsPointOnCurve(P) then
     ShowMessage('Curve 25519 G + G is on this Curve');
 
   FEd25519.PointAddPoint(P, Q, P);
-  // P ÊÇ 3*G
+  // P æ˜¯ 3*G
   if FEd25519.IsPointOnCurve(P) then
     ShowMessage('Ed 25519 G + 2*G is on this Curve');
 
@@ -254,12 +256,12 @@ begin
   FCurve25519.PointAddPoint(P, Q, P);
   FCurve25519.PointAddPoint(P, Q, P);
 
-  // P ÊÇ 3*G£¬Q ÊÇ G
-  FCurve25519.PointSubPoint(P, Q, Q); // Q ÊÇ 2*G
+  // P æ˜¯ 3*Gï¼ŒQ æ˜¯ G
+  FCurve25519.PointSubPoint(P, Q, Q); // Q æ˜¯ 2*G
   if FCurve25519.IsPointOnCurve(Q) then
     ShowMessage('Curve 25519 3*G - G is on this Curve');
 
-  FCurve25519.PointSubPoint(P, P, Q); // Q ÊÇÎŞÏŞÔ¶µã
+  FCurve25519.PointSubPoint(P, P, Q); // Q æ˜¯æ— é™è¿œç‚¹
   if Q.IsZero then
     ShowMessage('Curve 25519 G - G is Zero');
 
@@ -280,12 +282,12 @@ begin
   FEd25519.PointAddPoint(P, Q, P);
   FEd25519.PointAddPoint(P, Q, P);
 
-  // P ÊÇ 3*G£¬Q ÊÇ G
-  FEd25519.PointSubPoint(P, Q, Q); // Q ÊÇ 2*G
+  // P æ˜¯ 3*Gï¼ŒQ æ˜¯ G
+  FEd25519.PointSubPoint(P, Q, Q); // Q æ˜¯ 2*G
   if FEd25519.IsPointOnCurve(Q) then
     ShowMessage('Curve 25519 3*G - G is on this Curve');
 
-  FEd25519.PointSubPoint(P, P, Q); // Q ÊÇÎŞÏŞÔ¶µã
+  FEd25519.PointSubPoint(P, P, Q); // Q æ˜¯æ— é™è¿œç‚¹
   if FEd25519.IsNeutualPoint(Q) then
     ShowMessage('Curve 25519 G - G is Zero');
 
@@ -338,8 +340,8 @@ begin
   Q.Assign(FEd25519.Generator);
 //  FEd25519.SetNeutualPoint(P);
 //  FEd25519.SetNeutualPoint(Q);
-  // ============ ÏàÍ¬µãµÄµã¼Ó ================
-  // P ÊÇ G , Q ÊÇ G
+  // ============ ç›¸åŒç‚¹çš„ç‚¹åŠ  ================
+  // P æ˜¯ G , Q æ˜¯ G
   CnEccPointToEcc4Point(P4, P, FEd25519.FiniteFieldSize);
   CnEccPointToEcc4Point(Q4, Q, FEd25519.FiniteFieldSize);
 
@@ -347,20 +349,20 @@ begin
   // ShowMessage(S4.ToString);
   FEd25519.PointAddPoint(P, Q, S);
 
-  // ÑéÖ¤ S ºÍ S4 ÊÇ·ñÏàµÈ
+  // éªŒè¯ S å’Œ S4 æ˜¯å¦ç›¸ç­‰
   CnEcc4PointToEccPoint(P, S4, FEd25519.FiniteFieldSize);
   //ShowMessage(P.ToString);
   //ShowMessage(S.ToString);
   if CnEccPointsEqual(P, S) then
     ShowMessage('Extended Add G+G OK');
 
-  // ============ ²»Í¬µãµÄµã¼Ó ================
+  // ============ ä¸åŒç‚¹çš„ç‚¹åŠ  ================
   P.Assign(FEd25519.Generator);
   Q.Assign(FEd25519.Generator);
   //FEd25519.SetNeutualPoint(Q);
   FEd25519.PointAddPoint(P, Q, P);
 
-  // P ÊÇ 2*G , Q ÊÇ G
+  // P æ˜¯ 2*G , Q æ˜¯ G
   CnEccPointToEcc4Point(P4, P, FEd25519.FiniteFieldSize);
   CnEccPointToEcc4Point(Q4, Q, FEd25519.FiniteFieldSize);
 
@@ -368,7 +370,7 @@ begin
   FEd25519.PointAddPoint(P, Q, S);
   // ShowMessage(S.ToString);
 
-  // ÑéÖ¤ S ºÍ S4 ÊÇ·ñÏàµÈ
+  // éªŒè¯ S å’Œ S4 æ˜¯å¦ç›¸ç­‰
   CnEcc4PointToEccPoint(P, S4, FEd25519.FiniteFieldSize);
   // ShowMessage(S4.ToString);
   if CnEccPointsEqual(P, S) then
@@ -411,7 +413,7 @@ begin
 
   T1 := GetTickCount;
   for I := 1 to 1000 do
-    FEd25519.MultiplePoint(M, P); // ÒÑ¾­¸ÄÔì³É Extended µÄÁË
+    FEd25519.MultiplePoint(M, P); // å·²ç»æ”¹é€ æˆ Extended çš„äº†
   T1 := GetTickCount - T1;
 
   T2 := GetTickCount;
@@ -419,7 +421,7 @@ begin
     FEd25519.ExtendedMultiplePoint(M, P4);
   T2 := GetTickCount - T2;
 
-  ShowMessage(Format('Normal %d, Extended %d', [T1, T2])); // Extended ±È³£¹æµÄ¿ìÊ®±¶ÒÔÉÏ£¡
+  ShowMessage(Format('Normal %d, Extended %d', [T1, T2])); // Extended æ¯”å¸¸è§„çš„å¿«åå€ä»¥ä¸Šï¼
   CnEcc4PointToEccPoint(Q, P4, FEd25519.FiniteFieldSize);
   if CnEccPointsEqual(P, Q) then
     ShowMessage('Ed 25519 1000 Mul/ExtendedMul Equal OK');
@@ -453,7 +455,7 @@ begin
     ASig := TCnEd25519Signature.Create;
     ASig.LoadFromData(FSigData);
 
-    // ±È½Ï Sig ºÍ ASig ÊÇ·ñÏàÍ¬
+    // æ¯”è¾ƒ Sig å’Œ ASig æ˜¯å¦ç›¸åŒ
     if CnEccPointsEqual(Sig.R, ASig.R) and BigNumberEqual(Sig.S, ASig.S) then
       ShowMessage('Sig Save/Load OK');
 
@@ -530,13 +532,13 @@ begin
     Priv1.SetHex('77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a');
     Priv2.SetHex('5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb');
 
-    CnCurve25519KeyExchangeStep1(Priv1, Key1); // µÚÒ»·½µ÷ÓÃ£¬²úÉú Key 1
-    CnCurve25519KeyExchangeStep1(Priv2, Key2); // ÁíÒ»·½µ÷ÓÃ£¬²úÉú Key 2
+    CnCurve25519KeyExchangeStep1(Priv1, Key1); // ç¬¬ä¸€æ–¹è°ƒç”¨ï¼Œäº§ç”Ÿ Key 1
+    CnCurve25519KeyExchangeStep1(Priv2, Key2); // å¦ä¸€æ–¹è°ƒç”¨ï¼Œäº§ç”Ÿ Key 2
 
-    // Key2 ¸øÒ»£¬Key1 ¸øÁíÒ»·½
+    // Key2 ç»™ä¸€ï¼ŒKey1 ç»™å¦ä¸€æ–¹
 
-    CnCurve25519KeyExchangeStep2(Priv1, Key2, Key1O); // µÚÒ»·½µ÷ÓÃ£¬²úÉú¹«ÓĞ Key 1O
-    CnCurve25519KeyExchangeStep2(Priv2, Key1, Key2O); // µÚÒ»·½µ÷ÓÃ£¬²úÉú¹«ÓĞ Key 2O
+    CnCurve25519KeyExchangeStep2(Priv1, Key2, Key1O); // ç¬¬ä¸€æ–¹è°ƒç”¨ï¼Œäº§ç”Ÿå…¬æœ‰ Key 1O
+    CnCurve25519KeyExchangeStep2(Priv2, Key1, Key2O); // ç¬¬ä¸€æ–¹è°ƒç”¨ï¼Œäº§ç”Ÿå…¬æœ‰ Key 2O
 
     if CnEccPointsEqual(Key1O, Key2O) then
       ShowMessage('Key Exchange OK '+ Key1O.ToString);
@@ -557,8 +559,8 @@ procedure TForm25519.btnCalcSqrtClick(Sender: TObject);
 var
   Prime, P, R, Inv: TCnBigNumber;
 begin
-  // ¼ì²é Curve25519 ÇúÏß By^2 = x^3 + Ax^2 + x Óë Ed25519 ÇúÏß au^2 + v^2 = 1 + du^2v^2
-  // µÄ²ÎÊı·ûºÏ¹ØÏµ B = 4 /(a-d) £¨Ã»·¨ÑéÖ¤£©  A = 2(a+d)/(a-d) ÒÑÑéÖ¤
+  // æ£€æŸ¥ Curve25519 æ›²çº¿ By^2 = x^3 + Ax^2 + x ä¸ Ed25519 æ›²çº¿ au^2 + v^2 = 1 + du^2v^2
+  // çš„å‚æ•°ç¬¦åˆå…³ç³» B = 4 /(a-d) ï¼ˆæ²¡æ³•éªŒè¯ï¼‰  A = 2(a+d)/(a-d) å·²éªŒè¯
 
   Prime := TCnBigNumber.Create;
   Prime.SetHex('7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED');
@@ -632,22 +634,22 @@ begin
   Q := TCnEccPoint.Create;
 
   P.Assign(FCurve25519.Generator);
-  FCurve25519.PointToXAffinePoint(P, P); // ×ª»»ÎªÉäÓ°µã
-  FCurve25519.XAffinePointToPoint(P, P); // ÔÙ×ª»»»ØÀ´
-  ShowMessage(P.ToString); // ºÍ G ÏàµÈ
+  FCurve25519.PointToXAffinePoint(P, P); // è½¬æ¢ä¸ºå°„å½±ç‚¹
+  FCurve25519.XAffinePointToPoint(P, P); // å†è½¬æ¢å›æ¥
+  ShowMessage(P.ToString); // å’Œ G ç›¸ç­‰
 
   FCurve25519.PointToXAffinePoint(P, FCurve25519.Generator);
-  ShowMessage(P.ToString); // P µÃµ½ÉäÓ° G µã
+  ShowMessage(P.ToString); // P å¾—åˆ°å°„å½± G ç‚¹
   FCurve25519.MontgomeryLadderPointXDouble(P, P);
-  ShowMessage(P.ToString); // P µÃµ½ÉäÓ° 2*G µã
+  ShowMessage(P.ToString); // P å¾—åˆ°å°„å½± 2*G ç‚¹
   FCurve25519.XAffinePointToPoint(P, P);
-  ShowMessage(P.ToString); // P µÃµ½ÆÕÍ¨ 2*G µã
+  ShowMessage(P.ToString); // P å¾—åˆ°æ™®é€š 2*G ç‚¹
 
   Q.Assign(FCurve25519.Generator);
   FCurve25519.PointAddPoint(Q, Q, Q);
   ShowMessage(Q.ToString);
 
-  // P ÊÇ X Y ĞÎÊ½µÄ 2*G£¬Q ÊÇÆÕÍ¨ĞÎÊ½µÄ 2*G£¬ÅĞ¶ÏÆä X ÊÇ·ñÏàµÈ
+  // P æ˜¯ X Y å½¢å¼çš„ 2*Gï¼ŒQ æ˜¯æ™®é€šå½¢å¼çš„ 2*Gï¼Œåˆ¤æ–­å…¶ X æ˜¯å¦ç›¸ç­‰
   if BigNumberEqual(P.X, Q.X) then
   begin
     if BigNumberEqual(P.Y, Q.Y) then
@@ -680,26 +682,26 @@ begin
   ShowMessage(P.ToString);                // 9, 1
   FCurve25519.PointToXAffinePoint(Q, Q);  // Q 0
   ShowMessage(Q.ToString);                // 0, 1
-  FCurve25519.MontgomeryLadderPointXAdd(P, P, Q, P); // ÀíÂÛÉÏ P ÒªµÃµ½×ÔÉí
-  ShowMessage(P.ToString); // ½á¹û²»ÊÇ 9, 1
+  FCurve25519.MontgomeryLadderPointXAdd(P, P, Q, P); // ç†è®ºä¸Š P è¦å¾—åˆ°è‡ªèº«
+  ShowMessage(P.ToString); // ç»“æœä¸æ˜¯ 9, 1
   FCurve25519.XAffinePointToPoint(P, P);
-  ShowMessage(P.ToString); // ×ª»»»ØÀ´²ÅÊÇ 9, xxxxxxx µÈÓÚ FCurve25519.Generator
+  ShowMessage(P.ToString); // è½¬æ¢å›æ¥æ‰æ˜¯ 9, xxxxxxx ç­‰äº FCurve25519.Generator
 
   P.Assign(FCurve25519.Generator);
-  FCurve25519.PointToXAffinePoint(P, P); // P ×ª»»ÎªÉäÓ°µã G
-  FCurve25519.MontgomeryLadderPointXDouble(Q, P); // Q ÉäÓ° 2*G
+  FCurve25519.PointToXAffinePoint(P, P); // P è½¬æ¢ä¸ºå°„å½±ç‚¹ G
+  FCurve25519.MontgomeryLadderPointXDouble(Q, P); // Q å°„å½± 2*G
 
-  FCurve25519.MontgomeryLadderPointXAdd(P, Q, P, P); // P µÃµ½ÉäÓ° 3*G
+  FCurve25519.MontgomeryLadderPointXAdd(P, Q, P, P); // P å¾—åˆ°å°„å½± 3*G
 
   FCurve25519.XAffinePointToPoint(P, P);
-  ShowMessage(P.ToString); // P µÃµ½ÆÕÍ¨ 3*G µã
+  ShowMessage(P.ToString); // P å¾—åˆ°æ™®é€š 3*G ç‚¹
 
   Q.Assign(FCurve25519.Generator);
   FCurve25519.PointAddPoint(Q, Q, Q);
-  FCurve25519.PointAddPoint(Q, FCurve25519.Generator, Q); // Q Ö±½Ó¼Ó³öÆÕÍ¨ 3*G µã
+  FCurve25519.PointAddPoint(Q, FCurve25519.Generator, Q); // Q ç›´æ¥åŠ å‡ºæ™®é€š 3*G ç‚¹
   ShowMessage(Q.ToString);
 
-  // P ÊÇ X Y ĞÎÊ½µÄ 3*G£¬Q ÊÇÆÕÍ¨ĞÎÊ½µÄ 3*G£¬ÅĞ¶ÏÆä X ÊÇ·ñÏàµÈ
+  // P æ˜¯ X Y å½¢å¼çš„ 3*Gï¼ŒQ æ˜¯æ™®é€šå½¢å¼çš„ 3*Gï¼Œåˆ¤æ–­å…¶ X æ˜¯å¦ç›¸ç­‰
   if BigNumberEqual(P.X, Q.X) then
   begin
     if BigNumberEqual(P.Y, Q.Y) then
@@ -731,9 +733,9 @@ begin
   Q := TCnEccPoint.Create;
 
   P.Assign(FCurve25519.Generator);
-  FCurve25519.PointToXAffinePoint(P, P); // P ×ª»»ÎªÉäÓ°µã G
-  FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P ×Ô³Ë
-  FCurve25519.XAffinePointToPoint(P, P); // nG ×ª»»ÎªÆÕÍ¨µã
+  FCurve25519.PointToXAffinePoint(P, P); // P è½¬æ¢ä¸ºå°„å½±ç‚¹ G
+  FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P è‡ªä¹˜
+  FCurve25519.XAffinePointToPoint(P, P); // nG è½¬æ¢ä¸ºæ™®é€šç‚¹
 
   Q.Assign(FCurve25519.Generator);
   FCurve25519.MultiplePoint(MUL_COUNT, Q);
@@ -753,12 +755,12 @@ begin
   end;
 
   Q.Assign(FCurve25519.Generator);
-  FCurve25519.PointToXAffinePoint(Q, Q); // Q ×ª»»ÎªÉäÓ°µã G
+  FCurve25519.PointToXAffinePoint(Q, Q); // Q è½¬æ¢ä¸ºå°„å½±ç‚¹ G
   T1 := GetTickCount;
   for I := 1 to 1000 do
   begin
     P.Assign(Q);
-    FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P ×Ô³Ë£¬ÃÉ¸çÂíÀû½×Ìİ·¨±È³£¹æµÄ¿ìÊ®±¶ÒÔÉÏ£¡
+    FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P è‡ªä¹˜ï¼Œè’™å“¥é©¬åˆ©é˜¶æ¢¯æ³•æ¯”å¸¸è§„çš„å¿«åå€ä»¥ä¸Šï¼
   end;
   T1 := GetTickCount - T1;
 
@@ -766,7 +768,7 @@ begin
   for I := 1 to 1000 do
   begin
     P.Assign(FCurve25519.Generator);
-    FCurve25519.MultiplePoint(MUL_COUNT, P); // P ×Ô³Ë£¬Ò²ÒÑ¾­¸Ä³ÉÃÉ¸çÂíÀû½×Ìİ·¨ÁË
+    FCurve25519.MultiplePoint(MUL_COUNT, P); // P è‡ªä¹˜ï¼Œä¹Ÿå·²ç»æ”¹æˆè’™å“¥é©¬åˆ©é˜¶æ¢¯æ³•äº†
   end;
   T2 := GetTickCount - T2;
 
@@ -825,9 +827,9 @@ begin
   B := TCnBigNumber.FromHex('66666666555555554444444433333333222222221111111100000000');
 
 //  A := TCnBigNumber.FromHex('F00000000000000000000000');
-//  B := TCnBigNumber.FromHex('F00000000000000000000000'); // ²âÊÔÊı¾İ
+//  B := TCnBigNumber.FromHex('F00000000000000000000000'); // æµ‹è¯•æ•°æ®
 
-//  A := TCnBigNumber.FromHex('1000000000000000000000000'); // ¶à¸ö 0 ¾Í³ö´íÁË£¬³Ë»ı±ä³ÉÈ« 0 ÁË£¬¸ÃÎÊÌâÒÑĞŞ¸´
+//  A := TCnBigNumber.FromHex('1000000000000000000000000'); // å¤šä¸ª 0 å°±å‡ºé”™äº†ï¼Œä¹˜ç§¯å˜æˆå…¨ 0 äº†ï¼Œè¯¥é—®é¢˜å·²ä¿®å¤
 //  B := TCnBigNumber.FromHex('100000000000000000000000'); 
 
   Cn25519BigNumberToField64(FA, A);
@@ -837,10 +839,10 @@ begin
 
   C := TCnBigNumber.Create;
   Cn25519Field64ToBigNumber(C, FC);
-  ShowMessage(C.ToHex());  // ÕâÀïºÍÏÂÃæÒªÏàµÈ
+  ShowMessage(C.ToHex());  // è¿™é‡Œå’Œä¸‹é¢è¦ç›¸ç­‰
 
   BigNumberDirectMulMod(C, A, B, FEd25519.FiniteFieldSize);
-  ShowMessage(C.ToHex());  // ÕâÀïºÍÉÏÃæÒªÏàµÈ
+  ShowMessage(C.ToHex());  // è¿™é‡Œå’Œä¸Šé¢è¦ç›¸ç­‰
 
   C.Free;
   B.Free;
@@ -873,7 +875,7 @@ begin
     BigNumberDirectMulMod(C, A, B, FEd25519.FiniteFieldSize);
   T2 := GetTickCount - T2;
 
-  ShowMessage(Format('Field %d. DirectMulMod %d', [T1, T2])); // Ç°ÕßÉÔÎ¢¿ìÒ»µãµã
+  ShowMessage(Format('Field %d. DirectMulMod %d', [T1, T2])); // å‰è€…ç¨å¾®å¿«ä¸€ç‚¹ç‚¹
 
   C.Free;
   B.Free;
@@ -891,20 +893,20 @@ begin
   Q := TCnEccPoint.Create;
 
   P.Assign(FCurve25519.Generator);
-  FCurve25519.PointToField64XAffinePoint(PF, P); // ×ª»»Îª¶àÏîÊ½µã
-  FCurve25519.Field64XAffinePointToPoint(P, PF); // ÔÙ×ª»»»ØÀ´
-  ShowMessage(P.ToString); // ºÍ G ÏàµÈ
+  FCurve25519.PointToField64XAffinePoint(PF, P); // è½¬æ¢ä¸ºå¤šé¡¹å¼ç‚¹
+  FCurve25519.Field64XAffinePointToPoint(P, PF); // å†è½¬æ¢å›æ¥
+  ShowMessage(P.ToString); // å’Œ G ç›¸ç­‰
 
-  FCurve25519.PointToField64XAffinePoint(PF, FCurve25519.Generator); // PF µÃµ½ÉäÓ° G µã
-  FCurve25519.MontgomeryLadderField64PointXDouble(PF, PF); // P µÃµ½ÉäÓ° 2*G µã
+  FCurve25519.PointToField64XAffinePoint(PF, FCurve25519.Generator); // PF å¾—åˆ°å°„å½± G ç‚¹
+  FCurve25519.MontgomeryLadderField64PointXDouble(PF, PF); // P å¾—åˆ°å°„å½± 2*G ç‚¹
   FCurve25519.Field64XAffinePointToPoint(P, PF);
-  ShowMessage(P.ToString); // P µÃµ½ÆÕÍ¨ 2*G µã
+  ShowMessage(P.ToString); // P å¾—åˆ°æ™®é€š 2*G ç‚¹
 
   Q.Assign(FCurve25519.Generator);
   FCurve25519.PointAddPoint(Q, Q, Q);
   ShowMessage(Q.ToString);
 
-  // P ÊÇ X Y ĞÎÊ½µÄ 2*G£¬Q ÊÇÆÕÍ¨ĞÎÊ½µÄ 2*G£¬ÅĞ¶ÏÆä X ÊÇ·ñÏàµÈ
+  // P æ˜¯ X Y å½¢å¼çš„ 2*Gï¼ŒQ æ˜¯æ™®é€šå½¢å¼çš„ 2*Gï¼Œåˆ¤æ–­å…¶ X æ˜¯å¦ç›¸ç­‰
   if BigNumberEqual(P.X, Q.X) then
   begin
     if BigNumberEqual(P.Y, Q.Y) then
@@ -934,18 +936,18 @@ begin
   Q := TCnEccPoint.Create;
 
   P.Assign(FCurve25519.Generator);
-  FCurve25519.PointToField64XAffinePoint(PF, P); // PF ×ª»»Îª¶àÏîÊ½ÉäÓ°µã G
-  FCurve25519.MontgomeryLadderField64PointXDouble(QF, PF); // QF ¶àÏîÊ½ÉäÓ° 2*G
-  FCurve25519.MontgomeryLadderField64PointXAdd(PF, QF, PF, PF); // PF µÃµ½¶àÏîÊ½ÉäÓ° 3*G
+  FCurve25519.PointToField64XAffinePoint(PF, P); // PF è½¬æ¢ä¸ºå¤šé¡¹å¼å°„å½±ç‚¹ G
+  FCurve25519.MontgomeryLadderField64PointXDouble(QF, PF); // QF å¤šé¡¹å¼å°„å½± 2*G
+  FCurve25519.MontgomeryLadderField64PointXAdd(PF, QF, PF, PF); // PF å¾—åˆ°å¤šé¡¹å¼å°„å½± 3*G
   FCurve25519.Field64XAffinePointToPoint(P, PF);
-  ShowMessage(P.ToString); // P µÃµ½ÆÕÍ¨ 3*G µã£¬ËÆºõËãµÃ²»¶Ô
+  ShowMessage(P.ToString); // P å¾—åˆ°æ™®é€š 3*G ç‚¹ï¼Œä¼¼ä¹ç®—å¾—ä¸å¯¹
 
   Q.Assign(FCurve25519.Generator);
   FCurve25519.PointAddPoint(Q, Q, Q);
-  FCurve25519.PointAddPoint(Q, FCurve25519.Generator, Q); // Q Ö±½Ó¼Ó³öÆÕÍ¨ 3*G µã
+  FCurve25519.PointAddPoint(Q, FCurve25519.Generator, Q); // Q ç›´æ¥åŠ å‡ºæ™®é€š 3*G ç‚¹
   ShowMessage(Q.ToString);
 
-  // P ÊÇ X Y ĞÎÊ½µÄ 3*G£¬Q ÊÇÆÕÍ¨ĞÎÊ½µÄ 3*G£¬ÅĞ¶ÏÆä X ÊÇ·ñÏàµÈ
+  // P æ˜¯ X Y å½¢å¼çš„ 3*Gï¼ŒQ æ˜¯æ™®é€šå½¢å¼çš„ 3*Gï¼Œåˆ¤æ–­å…¶ X æ˜¯å¦ç›¸ç­‰
   if BigNumberEqual(P.X, Q.X) then
   begin
     if BigNumberEqual(P.Y, Q.Y) then
@@ -979,7 +981,7 @@ begin
 
   C := TCnBigNumber.Create;
   Cn25519Field64ToBigNumber(C, FC);
-  ShowMessage(C.ToHex());  // ÕâÀïºÍÏÂÃæÒªÏàµÈ
+  ShowMessage(C.ToHex());  // è¿™é‡Œå’Œä¸‹é¢è¦ç›¸ç­‰
 
   C.Free;
   B.Free;
@@ -999,12 +1001,12 @@ begin
 
   R := TCnBigNumber.Create;
   Cn25519Field64ToBigNumber(R, FA);
-  ShowMessage(R.ToHex); // µÃµ½ 40
+  ShowMessage(R.ToHex); // å¾—åˆ° 40
 
   Cn25519Field64Reduce(FA);
   ShowMessage(Cn25519Field64ToHex(FA));
   Cn25519Field64ToBigNumber(R, FA);
-  ShowMessage(R.ToHex); // ²»ÖªµÀµÃµ½ÁË¸öÉ¶
+  ShowMessage(R.ToHex); // ä¸çŸ¥é“å¾—åˆ°äº†ä¸ªå•¥
 
   R.Free;
 end;
@@ -1024,14 +1026,14 @@ begin
   Q := TCnEccPoint.Create;
 
   P.Assign(FCurve25519.Generator);
-  FCurve25519.PointToField64XAffinePoint(PF, P); // P ×ª»»Îª¶àÏîÊ½µã G
-  FCurve25519.MontgomeryLadderField64MultiplePoint(MUL_COUNT, PF); // P ×Ô³Ë
-  FCurve25519.Field64XAffinePointToPoint(P, PF); // nG ×ª»»ÎªÆÕÍ¨µã
+  FCurve25519.PointToField64XAffinePoint(PF, P); // P è½¬æ¢ä¸ºå¤šé¡¹å¼ç‚¹ G
+  FCurve25519.MontgomeryLadderField64MultiplePoint(MUL_COUNT, PF); // P è‡ªä¹˜
+  FCurve25519.Field64XAffinePointToPoint(P, PF); // nG è½¬æ¢ä¸ºæ™®é€šç‚¹
 
   P.Assign(FCurve25519.Generator);
-  FCurve25519.PointToXAffinePoint(P, P); // P ×ª»»ÎªÉäÓ°µã G
-  FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P ×Ô³Ë
-  FCurve25519.XAffinePointToPoint(P, P); // nG ×ª»»ÎªÆÕÍ¨µã
+  FCurve25519.PointToXAffinePoint(P, P); // P è½¬æ¢ä¸ºå°„å½±ç‚¹ G
+  FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P è‡ªä¹˜
+  FCurve25519.XAffinePointToPoint(P, P); // nG è½¬æ¢ä¸ºæ™®é€šç‚¹
 
   Q.Assign(FCurve25519.Generator);
   FCurve25519.MultiplePoint(MUL_COUNT, Q);
@@ -1051,12 +1053,12 @@ begin
   end;
 
   Q.Assign(FCurve25519.Generator);
-  FCurve25519.PointToXAffinePoint(Q, Q); // Q ×ª»»ÎªÉäÓ°µã G
+  FCurve25519.PointToXAffinePoint(Q, Q); // Q è½¬æ¢ä¸ºå°„å½±ç‚¹ G
   T1 := GetTickCount;
   for I := 1 to 5000 do
   begin
     P.Assign(Q);
-    FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P ×Ô³Ë£¬ÃÉ¸çÂíÀû½×Ìİ·¨
+    FCurve25519.MontgomeryLadderMultiplePoint(MUL_COUNT, P); // P è‡ªä¹˜ï¼Œè’™å“¥é©¬åˆ©é˜¶æ¢¯æ³•
   end;
   T1 := GetTickCount - T1;
 
@@ -1066,7 +1068,7 @@ begin
   for I := 1 to 5000 do
   begin
     Cn25519Field64EccPointCopy(PF, QF);
-    FCurve25519.MontgomeryLadderField64MultiplePoint(MUL_COUNT, PF); // PF ¶àÏîÊ½²ğÏî·¨×Ô³Ë£¬ÓÖ¿ìÁË½üÒ»±¶£¡
+    FCurve25519.MontgomeryLadderField64MultiplePoint(MUL_COUNT, PF); // PF å¤šé¡¹å¼æ‹†é¡¹æ³•è‡ªä¹˜ï¼Œåˆå¿«äº†è¿‘ä¸€å€ï¼
   end;
   T2 := GetTickCount - T2;
 
@@ -1088,31 +1090,31 @@ begin
   P.Assign(FEd25519.Generator);
   Q.Assign(FEd25519.Generator);
 
-  // ============ ÏàÍ¬µãµÄµã¼Ó ================
+  // ============ ç›¸åŒç‚¹çš„ç‚¹åŠ  ================
   CnEccPointToField64Ecc4Point(P4, P);
   CnEccPointToField64Ecc4Point(Q4, Q);
 
   FEd25519.ExtendedField64PointAddPoint(P4, Q4, S4);
   FEd25519.PointAddPoint(P, Q, S);
 
-  // ÑéÖ¤ S ºÍ S4 ÊÇ·ñÏàµÈ
+  // éªŒè¯ S å’Œ S4 æ˜¯å¦ç›¸ç­‰
   CnField64Ecc4PointToEccPoint(P, S4);
   if CnEccPointsEqual(P, S) then
     ShowMessage('Extended Add G+G OK');
 
-  // ============ ²»Í¬µãµÄµã¼Ó ================
+  // ============ ä¸åŒç‚¹çš„ç‚¹åŠ  ================
   P.Assign(FEd25519.Generator);
   Q.Assign(FEd25519.Generator);
   FEd25519.PointAddPoint(P, Q, P);
 
-  // P ÊÇ 2*G , Q ÊÇ G
+  // P æ˜¯ 2*G , Q æ˜¯ G
   CnEccPointToField64Ecc4Point(P4, P);
   CnEccPointToField64Ecc4Point(Q4, Q);
 
   FEd25519.ExtendedField64PointAddPoint(P4, Q4, S4);
   FEd25519.PointAddPoint(P, Q, S);
 
-  // ÑéÖ¤ S ºÍ S4 ÊÇ·ñÏàµÈ
+  // éªŒè¯ S å’Œ S4 æ˜¯å¦ç›¸ç­‰
   CnField64Ecc4PointToEccPoint(P, S4);
   if CnEccPointsEqual(P, S) then
     ShowMessage('Extended Add G+2G OK');
@@ -1155,7 +1157,7 @@ begin
 
   T1 := GetTickCount;
   for I := 1 to 1000 do
-    Ed.MultiplePoint(M, P); // ×ßÔ­Ê¼µÄµã¼Ó
+    Ed.MultiplePoint(M, P); // èµ°åŸå§‹çš„ç‚¹åŠ 
   T1 := GetTickCount - T1;
 
   T2 := GetTickCount;
@@ -1163,7 +1165,7 @@ begin
     FEd25519.ExtendedField64MultiplePoint(M, P4);
   T2 := GetTickCount - T2;
 
-  ShowMessage(Format('Normal %d, Field64 Extended %d', [T1, T2])); // Field64 Extended ±È Extended µÄ»¹Òª¿ìÒ»±¶ÒÔÉÏ£¡
+  ShowMessage(Format('Normal %d, Field64 Extended %d', [T1, T2])); // Field64 Extended æ¯” Extended çš„è¿˜è¦å¿«ä¸€å€ä»¥ä¸Šï¼
   CnField64Ecc4PointToEccPoint(Q, P4);
   if CnEccPointsEqual(P, Q) then
     ShowMessage('Ed 25519 1000 Mul/ Field64 Extended Mul Equal OK');
@@ -1273,8 +1275,8 @@ begin
   end;
   T := GetTickCount - T;
   ShowMessage('Sign OK ' + IntToStr(T));
-  // 32 Î»£º7 ÃëÇ©Ò»Ç§´Î£¬Ò»´Î 7 ºÁÃë
-  // 64 Î»£º2.5 ÃëÇ©Ò»Ç§´Î£¬Ò»´Î 2.5 ºÁÃë
+  // 32 ä½ï¼š7 ç§’ç­¾ä¸€åƒæ¬¡ï¼Œä¸€æ¬¡ 7 æ¯«ç§’
+  // 64 ä½ï¼š2.5 ç§’ç­¾ä¸€åƒæ¬¡ï¼Œä¸€æ¬¡ 2.5 æ¯«ç§’
 
   Sig.Free;
 
@@ -1310,8 +1312,8 @@ begin
   end;
   T := GetTickCount - T;
   ShowMessage('Verify OK ' + IntToStr(T));
-  // 32 Î»£º15 ÃëÑéÖ¤Ò»Ç§´Î£¬Ò»´Î 15 ºÁÃë
-  // 64 Î»£º4.5 ÃëÑéÖ¤Ò»Ç§´Î£¬Ò»´Î 4.5 ºÁÃë
+  // 32 ä½ï¼š15 ç§’éªŒè¯ä¸€åƒæ¬¡ï¼Œä¸€æ¬¡ 15 æ¯«ç§’
+  // 64 ä½ï¼š4.5 ç§’éªŒè¯ä¸€åƒæ¬¡ï¼Œä¸€æ¬¡ 4.5 æ¯«ç§’
 
   Sig.Free;
   Pub.Free;
@@ -1409,18 +1411,18 @@ begin
   P := TCnBigNumber.FromHex(SCN_25519_PRIME);
   BigNumberPowerWordMod(B, B, L, P);
 
-  ShowMessage(B.ToHex());  // ÒÔÉÏÁ© B ºÍ C ÏàµÈ
+  ShowMessage(B.ToHex());  // ä»¥ä¸Šä¿© B å’Œ C ç›¸ç­‰
 
   C.SetWord(K);
   B.SetHex(DATA);
   BigNumberPowerMod(B, B, C, P);
-  ShowMessage(B.ToHex());          // ´óÊıËã³öÕıÈ·Öµ
+  ShowMessage(B.ToHex());          // å¤§æ•°ç®—å‡ºæ­£ç¡®å€¼
 
   B.SetHex(DATA);
   Cn25519BigNumberToField64(D, B);
   Cn25519Field64Power(D, D, K);
   Cn25519Field64ToBigNumber(C, D);
-  ShowMessage(C.ToHex());          // ÒÔÏÂØí B ºÍ C ÏàµÈ
+  ShowMessage(C.ToHex());          // ä»¥ä¸‹ä»¨ B å’Œ C ç›¸ç­‰
 
   B.SetHex(DATA);
   Cn25519BigNumberToField64(D, B);
@@ -1448,18 +1450,18 @@ begin
 
   C := TCnBigNumber.Create;
   C.SetHex(DATA);
-  BigNumberPowerMod(C, C, B, P);  // ¼ÆËã C µÄ p-2 ´Î·½£¬Á½ÕßÏàµÈ
+  BigNumberPowerMod(C, C, B, P);  // è®¡ç®— C çš„ p-2 æ¬¡æ–¹ï¼Œä¸¤è€…ç›¸ç­‰
   ShowMessage(C.ToHex());
 
   C.SetHex(DATA);
   Cn25519BigNumberToField64(D, C);
-  Cn25519Field64Power(D, D, B);    // ¼ÆËã C µÄ p-2 ´Î·½
+  Cn25519Field64Power(D, D, B);    // è®¡ç®— C çš„ p-2 æ¬¡æ–¹
   Cn25519Field64ToBigNumber(C, D);
   ShowMessage(C.ToHex());
 
   B.SetHex(DATA);
   BigNumberDirectMulMod(C, B, C, P);
-  ShowMessage(C.ToHex());          // µÃµ½ 1
+  ShowMessage(C.ToHex());          // å¾—åˆ° 1
 
   P.Free;
   C.Free;
