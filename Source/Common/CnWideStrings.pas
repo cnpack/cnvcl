@@ -51,7 +51,10 @@ uses
 
 const
   CN_INVALID_CODEPOINT = $FFFFFFFF;
+  {* 非法的码点值}
+
   CN_ALTERNATIVE_CHAR  = '?';
+  {* 编码转换遇到错误时的默认替换字符}
 
 type
 {$IFDEF UNICODE}
@@ -93,6 +96,7 @@ type
   end;
 
   TCnWideStringList = class(TPersistent)
+  {* WideString 版的 TStringList 实现}
   private
     FList: TList;
     function GetName(Index: Integer): WideString;
@@ -961,7 +965,7 @@ begin
 
   if (B1 >= CN_UTF16_4CHAR_PREFIX1_LOW) and (B1 < CN_UTF16_4CHAR_PREFIX1_HIGH) then
   begin
-    // 如果两个单字节字符，其值分别在 $D800 到 $DBFF 之间
+    // 如果两个单字节字符拼一块，其值在 $D800 到 $DBFF 之间，也就是该双字节的高位字节在 [$D8, $DC) 区间内
     Inc(P);
     B2 := GetUtf16HighByte(P);
 

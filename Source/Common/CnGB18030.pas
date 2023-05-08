@@ -176,8 +176,10 @@ uses
 
 const
   CN_GB18030_CODEPAGE  = 54936;
+  {* GB18030 编码的代码页}
 
   CN_GB18030_BOM: array[0..3] of Byte = ($84, $31, $95, $33);
+  {* GB18030 编码的 BOM 文件头}
 
 type
 {$IFDEF SUPPORT_ANSISTRING_CODEPAGE}
@@ -370,6 +372,7 @@ const
     (GBHead: $F8A1; GBTail: $FEFE; UHead: $E234; UTail: $E4C5)
   );
   // 双字节三区内还有 9983~99F5 -> 6AAD~6B1F 一段有 115 个字符连续，不过忽略
+
   CN_GB18030_2CHAR_PAGE_COUNT = 94;
 
   // 四字节码转换相关。有连续完整大区（标 *** 的），也有不连续区中的连续小段区间（连续字符大于 32 个的）
