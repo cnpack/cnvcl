@@ -118,6 +118,9 @@ procedure CnFmxSetStringGridColumnCount(Grid: TStringGrid; ColCount: Integer;
 procedure CnFmxMoveSubControl(FromControl, ToControl: TComponent);
 {* 将 FromControl 的所有子 Control 按顺序移动至 ToControl 下}
 
+function CnFmxGetControlPosition(AControl: TComponent): TSmallPoint;
+{* 返回 FMX Control 的位置}
+
 implementation
 
 const
@@ -469,6 +472,21 @@ begin
   begin
     Ctl := TControl(CnFmxGetControlByIndex(FromCtl, 0));
     Ctl.Parent := ToCtl;
+  end;
+end;
+
+function CnFmxGetControlPosition(AControl: TComponent): TSmallPoint;
+begin
+  Result.x := 0;
+  Result.y := 0;
+
+  if AControl = nil then
+    Exit;
+
+  if AControl.InheritsFrom(TControl) then
+  begin
+    Result.x := Trunc(TControl(AControl).Position.X);
+    Result.y := Trunc(TControl(AControl).Position.Y);
   end;
 end;
 
