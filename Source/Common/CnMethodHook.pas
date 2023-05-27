@@ -28,7 +28,9 @@ unit CnMethodHook;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：
 * 本 地 化：该单元中的字符串支持本地化处理方式
-* 修改记录：2018.01.12
+* 修改记录：2023.05.27
+*               加入 Win64 下的支持，但不确定是否覆盖了所有长跳转的情况
+*           2018.01.12
 *               加入获得接口成员函数地址的方法，构造器增加 DefaultHook 参数
 *           2016.10.31
 *               加入 Hooked 属性
@@ -47,8 +49,12 @@ uses
 type
   PCnLongJump = ^TCnLongJump;
   TCnLongJump = packed record
-    JmpOp: Byte;        // Jmp 相对跳转指令，为 $E9
+    JmpOp: Byte;        // Jmp 相对跳转指令，为 $E9，32 位和 64 位通用
+{$IFDEF CPU64BITS}
+    Addr: DWORD;        // 64 位下的跳转到的相对地址，也是 32 位，但不确定有无覆盖所有情况
+{$ELSE}
     Addr: Pointer;      // 跳转到的相对地址
+{$ENDIF}
   end;
 
   TCnMethodHook = class
@@ -100,7 +106,7 @@ resourcestring
 
 const
   csJmpCode = $E9;              // 相对跳转指令机器码
-  csJmp32Code = $25FF;
+  csJmp32Code = $25FF;          // BPL 内入口的跳转机器码，32 位和 64 位通用
 
 type
 {$IFDEF CPU64BITS}
@@ -239,8 +245,13 @@ begin
 
     // 用跳转指令替换原来方法前 5 字节代码
     PCnLongJump(FOldMethod)^.JmpOp := csJmpCode;
+{$IFDEF CPU64BITS}
+    PCnLongJump(FOldMethod)^.Addr := DWORD(TCnAddressInt(FNewMethod) -
+      TCnAddressInt(FOldMethod) - SizeOf(TCnLongJump)); // 64 下也使用 32 位相对地址
+{$ELSE}
     PCnLongJump(FOldMethod)^.Addr := Pointer(TCnAddressInt(FNewMethod) -
       TCnAddressInt(FOldMethod) - SizeOf(TCnLongJump)); // 使用 32 位相对地址
+{$ENDIF}
 
     // 保存多处理器下指令缓冲区同步
     FlushInstructionCache(GetCurrentProcess, FOldMethod, SizeOf(TCnLongJump));
