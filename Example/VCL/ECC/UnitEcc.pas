@@ -3112,6 +3112,7 @@ begin
   if CnEccSchoof2(R, A, B, Q) then
     ShowMsg(R.ToDec); // 得到 65751，成功！
 
+
   A.SetWord(7);
   B.SetWord(1);
   Q.SetDec('2147483629');
@@ -3149,10 +3150,17 @@ begin
 
   A.SetWord(7);
   B.SetWord(1);
-  Q.SetDec('9223372036854775783');
+  Q.SetDec('13446163232037310043');
 
   if CnEccSchoof2(R, A, B, Q) then
-    ShowMsg(R.ToDec); // 跑了一个半小时，得到 9223372037391309723，无从判断对否
+    ShowMsg(R.ToDec); // 跑了一个半小时，得到 13446163228212048345，无从判断对否
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetHex('01000000000000000D');
+
+  if CnEccSchoof2(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 跑了两个小时，得到 18446744066071115814，无从判断对否
 
   R.Free;
   Q.Free;
