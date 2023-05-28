@@ -33,7 +33,9 @@ unit CnECC;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行，注意部分辅助函数缺乏固定长度处理，待修正，但 ASN.1 包装无需指定固定长度
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.11.01 V2.1
+* 修改记录：2023.05.28 V2.2
+*               能够计算 Int64 型椭圆曲线的判别式与 j 不变量
+*           2022.11.01 V2.1
 *               增加校验公私钥是否配对的函数
 *           2022.06.10 V2.0
 *               点乘改为默认使用仿射坐标以加速，点加不变
@@ -122,7 +124,9 @@ type
     FOrder: Int64;
     FSizeUFactor: Int64;
     FSizePrimeType: TCnPrimeType;
-    F2Inverse: Int64; // 2 针对 FFiniteFieldSize 的模反，供雅可比坐标计算
+    F2Inverse: Int64;               // 2 针对 FFiniteFieldSize 的模反，供雅可比坐标计算
+    function GetJInvariance: Int64;
+    function GetDelta: Int64;
   protected
     // Tonelli-Shanks 模素数二次剩余求解，返回 False 表示失败，调用者需自行保证 P 为素数
     function TonelliShanks(X, P: Int64; out Y: Int64): Boolean;
@@ -187,6 +191,11 @@ type
     {* 有限域的上界，素数 p}
     property Order: Int64 read FOrder;
     {* 基点的阶数}
+
+    property Delta: Int64 read GetDelta;
+    {* 判别式}
+    property JInvariance: Int64 read GetJInvariance;
+    {* j 不变量}
   end;
 
   TCnEcc = class;
@@ -2111,6 +2120,57 @@ begin
   end;
   Y := (R mod P + P) mod P;
   Result := True;
+end;
+
+function TCnInt64Ecc.GetJInvariance: Int64;
+var
+  D, T: Int64;
+begin
+{
+  对于椭圆曲线方程 y^2 + a1*xy + a3*y = x^3 + a2*x^2 + a4*x + a6
+  映射到 y^2 = x^3 + Ax + B，可得 a1 = 0，a2 = 0，a3 = 0，a4 = A，a6 = B
+  则：
+
+    b2 = a1^2 + 4a2 = 0
+    b4 = a1*a3 + 2a4 = 2A
+    b6 = a3^2 + 4a6 = 4B
+    b8 = a1^2*a6 + 4a2*a6 - a1*a3*a4 + a2*a3^2 - a4^2 = -A^2
+
+    c4 = b2^2 - 24b4 = -48A
+    c6 = b2^3 + 36b2*b4 - 216b6 = -864B
+
+    Delta = -b2^2*b8 -8b4^3 -27b6^2 + 9b2*b4*b6 = -64A^3 - 432B^2
+
+    j 不变量 = c4^3 / Delta = (-110592 * A^3) / (-64A^3 - 432B^2)
+}
+
+  D := GetDelta;
+  D := Int64ModularInverse(D, FFiniteFieldSize);
+  T := Int64NonNegativeMulMod(-110592, FCoefficientA, FFiniteFieldSize);
+  T := Int64NonNegativeMulMod(T, FCoefficientA, FFiniteFieldSize);
+  T := Int64NonNegativeMulMod(T, FCoefficientA, FFiniteFieldSize);
+  Result := Int64NonNegativeMulMod(T, D, FFiniteFieldSize);
+end;
+
+function TCnInt64Ecc.GetDelta: Int64;
+begin
+{
+  对于椭圆曲线方程 y^2 + a1*xy + a3*y = x^3 + a2*x^2 + a4*x + a6
+  映射到 y^2 = x^3 + Ax + B，可得 a1 = 0，a2 = 0，a3 = 0，a4 = A，a6 = B
+  则：
+
+    b2 = a1^2 + 4a2 = 0
+    b4 = a1*a3 + 2a4 = 2A
+    b6 = a3^2 + 4a6 = 4B
+    b8 = a1^2*a6 + 4a2*a6 - a1*a3*a4 + a2*a3^2 - a4^2 = -A^2
+
+    c4 = b2^2 - 24b4 = -48A
+    c6 = b2^3 + 36b2*b4 - 216b6 = -864B
+
+    Delta = -b2^2*b8 -8b4^3 -27b6^2 + 9b2*b4*b6 = -64A^3 - 432B^2
+}
+  Result := -64 * FCoefficientA * FCoefficientA * FCoefficientA
+    - 432 * FCoefficientB * FCoefficientB;
 end;
 
 { TCnEccPoint }
