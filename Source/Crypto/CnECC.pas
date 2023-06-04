@@ -682,8 +682,9 @@ function CnEccSchoof2(Res, A, B, Q: TCnBigNumber): Boolean;
 {* 用 Wikipedia 上的改进型 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数
   运算速度较上面的原始版本无明显提升}
 
-function CnEccFastSchoof(Res, A, B, Q: TCnBigNumber): Boolean;
-{* 用增强型 GCD 的 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数}
+function CnEccFastSchoof(Res, A, B, Q: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+{* 用增强型 GCD 的 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数
+  TODO: P16 计算基本通过。P19X 计算验证未通过，P19Y 计算未实现}
 
 function CnInt64EccGenerateParams(var FiniteFieldSize, CoefficientA, CoefficientB,
   GX, GY, Order: Int64): Boolean;
@@ -7754,11 +7755,11 @@ begin
       LDP := F(L);
 
       // 准备好 PXP2X 和 Y2，分别等于 x^(q^2) - x 和 x^3 + Ax + B
-      PXP2X.SetCoefficents([0, 1]); // PXP2X := X
-      BigNumberPolynomialGaloisPower(PXP2X, PXP2X, Q, Q, LDP); // X^q
-      BigNumberPolynomialGaloisPower(PXP2X, PXP2X, Q, Q, LDP); // X^(q^2)
+      PXP2X.SetCoefficents([0, 1]); // PXP2X := x
+      BigNumberPolynomialGaloisPower(PXP2X, PXP2X, Q, Q, LDP); // x^q
+      BigNumberPolynomialGaloisPower(PXP2X, PXP2X, Q, Q, LDP); // x^(q^2)
       T1.SetCoefficents([0, 1]);   // T1 = x
-      BigNumberPolynomialGaloisSub(PXP2X, PXP2X, T1, Q, LDP);  // X^(q^2) - X
+      BigNumberPolynomialGaloisSub(PXP2X, PXP2X, T1, Q, LDP);  // x^(q^2) - x
 
       // 准备好 PXPX，等于 x^q - x
       PXPX.SetCoefficents([0, 1]); // PXP2X := X
@@ -7781,13 +7782,11 @@ begin
       else
       begin
         // K 是偶数，P16 = (X^(q^2) - X) * F[K]^2 * (x^3 + Ax + B) + F[K-1] * F[K+1]
-        BigNumberPolynomialGaloisMul(T1, F(K),
-          F(K), Q, LDP);
+        BigNumberPolynomialGaloisMul(T1, F(K), F(K), Q, LDP);
         BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);
         BigNumberPolynomialGaloisMul(T1, T1, PXP2X, Q, LDP);
 
-        BigNumberPolynomialGaloisMul(T2, F(K - 1),
-          F(K + 1), Q, LDP);
+        BigNumberPolynomialGaloisMul(T2, F(K - 1), F(K + 1), Q, LDP);
 
         BigNumberPolynomialGaloisAdd(P16, T1, T2, Q, LDP);
       end;
@@ -7940,7 +7939,7 @@ begin
           for T := 1 to L - 1 do
           begin
             // K 是奇数的情况下也挨个计算 P19X，当其 mod LDP = 0 且和 LDP 的最大公约式 <> 1 时，有正负 T 符合要求
-            // K 奇 t 奇的情况下 P19X = 以下ａ表示 alpha，b 表示 beta
+            // K 奇 t 奇的情况下 P19X = （以下 a 表示 alpha，b 表示 beta）
             // Ft^2p * (b^2 * Y^2 * (Y^2 * Fk-1 * Fk+1 - Fk^2 *(x^(p^2) + x^p + x) + a^2 * Fk^2)) + Fk^2 * b^2 * Y^2 * (Ft-1 * Ft+1)^p * (Y^2)^p
             // t 偶的情况下 P19X 变成（均可变为纯 x 多项式）
             // Ft^2p * (Y^2)^p * (b^2 * Y^2 * (Y^2 * Fk-1 * Fk+1 - Fk^2 *(x^(p^2) + x^p + x) + a^2 * Fk^2)) + Fk^2 * b^2 * Y^2 * (Ft-1 * Ft+1)^p
