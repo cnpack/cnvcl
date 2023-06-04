@@ -229,6 +229,7 @@ function TestSecretSharingFeldmanVss: Boolean;
 
 function TestECCMul: Boolean;
 function TestECCSchoof: Boolean;
+function TestECCSchoof2: Boolean;
 
 // ================================= END =======================================
 
@@ -419,6 +420,7 @@ begin
 
   Assert(TestECCMul, 'TestECCMul');
   Assert(TestECCSchoof, 'TestECCSchoof');
+  Assert(TestECCSchoof2, 'TestECCSchoof2');
 
 // ================================= END =======================================
 
@@ -2358,16 +2360,16 @@ function Test25519Sign: Boolean;
 var
   Ed: TCnEd25519;
   Data: TCnEd25519Data;
-  PrivKey: TCnEccPrivateKey;
-  PubKey: TCnEccPublicKey;
+  PrivKey: TCnEd25519PrivateKey;
+  PubKey: TCnEd25519PublicKey;
   SigData: TCnEd25519SignatureData;
   Sig: TCnEd25519Signature;
   B: Byte;
 begin
   // RFC 8032 ÖÐµÄ Test Vector 2
   Ed := TCnEd25519.Create;
-  PrivKey := TCnEccPrivateKey.Create;
-  PubKey := TCnEccPublicKey.Create;
+  PrivKey := TCnEd25519PrivateKey.Create;
+  PubKey := TCnEd25519PublicKey.Create;
   Sig := TCnEd25519Signature.Create;
 
   try
@@ -2853,6 +2855,80 @@ begin
     Q.SetDec('6074001169');
 
     if CnEccSchoof(R, A, B, Q) then
+      Result := R.ToDec = '6074123004';
+  finally
+    R.Free;
+    Q.Free;
+    B.Free;
+    A.Free;
+  end;
+end;
+
+function TestECCSchoof2: Boolean;
+var
+  A, B, Q, R: TCnBigNumber;
+begin
+  Result := False;
+
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  Q := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+
+  try
+    A.SetWord(2);
+    B.SetWord(1);
+    Q.SetWord(13);
+
+    if CnEccSchoof2(R, A, B, Q) then
+      Result := R.ToDec = '8';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetWord(65537);
+
+    if CnEccSchoof2(R, A, B, Q) then
+      Result := R.ToDec = '65751';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetDec('2147483629');
+
+    if CnEccSchoof2(R, A, B, Q) then
+      Result := R.ToDec = '2147464597';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetWord(3037000493);
+
+    if CnEccSchoof2(R, A, B, Q) then
+      Result := R.ToDec = '3036927405';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetDec('4294967291');
+
+    if CnEccSchoof2(R, A, B, Q) then
+      Result := R.ToDec = '4294994984';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetDec('6074000687');
+
+    if CnEccSchoof2(R, A, B, Q) then
+      Result := R.ToDec = '6074024457';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetDec('6074001169');
+
+    if CnEccSchoof2(R, A, B, Q) then
       Result := R.ToDec = '6074123004';
   finally
     R.Free;
