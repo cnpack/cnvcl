@@ -33,7 +33,9 @@ unit CnECC;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行，注意部分辅助函数缺乏固定长度处理，待修正，但 ASN.1 包装无需指定固定长度
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.05.28 V2.2
+* 修改记录：2023.06.24 V2.3
+*               补上完整的 Fash Schoof 实现但验证未通过，不能使用
+*           2023.05.28 V2.2
 *               能够计算 Int64 型椭圆曲线的判别式与 j 不变量
 *           2022.11.01 V2.1
 *               增加校验公私钥是否配对的函数
@@ -684,7 +686,7 @@ function CnEccSchoof2(Res, A, B, Q: TCnBigNumber): Boolean;
 
 function CnEccFastSchoof(Res, A, B, Q: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 用增强型 GCD 的 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数
-  TODO: P16 计算基本通过。P19X, P19Y 计算验证未通过}
+  TODO: P16 计算基本通过。P19X, P19Y 计算验证未通过，不能投入实际使用}
 
 function CnInt64EccGenerateParams(var FiniteFieldSize, CoefficientA, CoefficientB,
   GX, GY, Order: Int64): Boolean;
@@ -7861,12 +7863,10 @@ begin
         BigNumberPolynomialGaloisPower(T2, F(W), 3, Q, LDP);
         BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP); // T1 得到第一项大乘
 
-        BigNumberPolynomialGaloisMul(T2, F(W + 2),
-          F(W + 2), Q, LDP);  // T2 得到减项
+        BigNumberPolynomialGaloisMul(T2, F(W + 2), F(W + 2), Q, LDP);  // T2 得到减项
         BigNumberPolynomialGaloisMul(T2, T2, F(W - 1), Q, LDP);
 
-        BigNumberPolynomialGaloisMul(T3, F(W - 2),
-          F(W - 2), Q, LDP);  // T3 得到加项
+        BigNumberPolynomialGaloisMul(T3, F(W - 2), F(W - 2), Q, LDP);  // T3 得到加项
         BigNumberPolynomialGaloisMul(T3, T3, F(W + 1), Q, LDP);
 
         BigNumberPolynomialGaloisSub(P18, T1, T2, Q, LDP);
@@ -7940,7 +7940,7 @@ begin
           BigNumberPolynomialGaloisMulWord(PBeta, 4, Q);
           // 得到的 PBeta 在使用时需要乘以一个 y，同时释放 T1 T2 T3 等
 
-          for T := 1 to L - 1 do
+          for T := 1 to L - 1 do // 这个 T 指希腊字母中的 Tao
           begin
             // K 是奇数的情况下也挨个计算 P19X，当其 mod LDP = 0 且和 LDP 的最大公约式 <> 1 时，有正负 T 符合要求
             // K 奇 t 奇的情况下 P19X = （以下 a 表示 alpha，b 表示 beta）
@@ -8142,8 +8142,7 @@ begin
             end;
 
             // 计算前面的加项，不能用 T3
-            BigNumberPolynomialGaloisMul(T1, F(K - 1),
-              F(K + 1), Q, LDP);    // T1 得到 Fk-1 * Fk+1
+            BigNumberPolynomialGaloisMul(T1, F(K - 1), F(K + 1), Q, LDP);       // T1 得到 Fk-1 * Fk+1
 
             BigNumberPolynomialGaloisMul(T2, F(K), F(K), Q, LDP);
             BigNumberPolynomialGaloisMul(T2, T2, PXP2XPX, Q, LDP);

@@ -3080,6 +3080,12 @@ begin
   B.SetWord(74);
   Q.SetWord(97);
 
+  // 该例子中
+  // 2 是 0
+  // 3 未知
+  // 5 是 3
+  // 7 是 4
+
   if CnEccFastSchoof(R, A, B, Q) then
     ShowMsg(R.ToDec);
 
