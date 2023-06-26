@@ -438,8 +438,6 @@ resourcestring
   SCnSqrtRangeError = 'Sqrt Range Error.';
 
 const
-  SCN_EXTEND_GAP = '0.000000001';
-
   SCN_FIVE_POWER_UINT32 = 13;
   SCN_POWER_FIVES32: array[0..13] of Cardinal = (
     1,                               // 5 ^ 0
@@ -1426,7 +1424,6 @@ begin
       BigDecimalAdd(R, R, X0);
       BigDecimalDiv(R, R, D, SqrtPrecision * 2);
 
-      // if Abs(R - X0) < SCN_EXTEND_GAP then
       BigDecimalSub(T, R, X0);
       if T.IsNegative then
         T.Negate;
