@@ -40,6 +40,9 @@ interface
 uses
   SysUtils, Classes;
 
+const
+  CN_PI = 3.1415926535897932384626;
+
 {
   计算连分数：
                   A1
@@ -89,6 +92,9 @@ function XavierGourdonEuler(BlockSize: Integer = 1000): string;
 
 function FloatAlmostZero(F: Extended): Boolean;
 {* 判断一浮点数是否离 0 足够近}
+
+function FloatEqual(A, B: Extended): Boolean;
+{* 封装的两个浮点数是否相等的判断}
 
 implementation
 
@@ -433,6 +439,11 @@ end;
 function FloatAlmostZero(F: Extended): Boolean;
 begin
   Result := CnAbs(F) < SCN_EXTEND_GAP;
+end;
+
+function FloatEqual(A, B: Extended): Boolean;
+begin
+  Result := FloatAlmostZero(A - B);
 end;
 
 end.
