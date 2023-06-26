@@ -28,7 +28,9 @@ unit CnComplex;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2020.11.20 V1.0
+* 修改记录：2023.06.26 V1.1
+*               增加辐角与绝对值等函数
+*           2020.11.20 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -38,9 +40,12 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, SysConst;
+  Classes, SysUtils, SysConst, Math;
 
 type
+  ECnComplexNumberException = class(Exception);
+  {* 复数相关的异常}
+
   TCnComplexNumber = packed record
   {* 浮点精度的复数表示结构}
     R: Extended;
@@ -51,6 +56,9 @@ type
   TCnComplexArray = array[0..8191] of TCnComplexNumber;
 
   PCnComplexArray = ^TCnComplexArray;
+
+function ComplexNumberIsZero(var Complex: TCnComplexNumber): Boolean;
+{* 返回复数是否为 0}
 
 procedure ComplexNumberSetZero(var Complex: TCnComplexNumber);
 {* 复数置 0}
@@ -116,6 +124,12 @@ function ComplexIsPureReal(var Complex: TCnComplexNumber): Boolean;
 function ComplexIsPureImaginary(var Complex: TCnComplexNumber): Boolean;
 {* 复数是否纯虚数，也就是判断实部是否为 0 且虚部不为 0}
 
+function ComplexNumberAbsolute(var Complex: TCnComplexNumber): Extended;
+{* 返回复数的绝对值，也即距复平面原点的距离}
+
+function ComplexNumberArgument(var Complex: TCnComplexNumber): Extended;
+{* 返回复数的辐角主值，也即与复平面正 X 轴的夹角，范围在 0 到 2π}
+
 implementation
 
 function ExtendedEqual(A, B: Extended): Boolean;
@@ -123,6 +137,11 @@ const
   EQU = 0.0000001;
 begin
   Result := Abs(A - B) < EQU;
+end;
+
+function ComplexNumberIsZero(var Complex: TCnComplexNumber): Boolean;
+begin
+  Result := (Complex.R = 0) and (Complex.I = 0);
 end;
 
 procedure ComplexNumberSetZero(var Complex: TCnComplexNumber);
@@ -267,6 +286,35 @@ end;
 function ComplexIsPureImaginary(var Complex: TCnComplexNumber): Boolean;
 begin
   Result := ExtendedEqual(Complex.R, 0.0) and not ExtendedEqual(Complex.I, 0.0);
+end;
+
+function ComplexNumberAbsolute(var Complex: TCnComplexNumber): Extended;
+begin
+  Result := Sqrt(Complex.R * Complex.R + Complex.I * Complex.I);
+end;
+
+function ComplexNumberArgument(var Complex: TCnComplexNumber): Extended;
+begin
+  if Complex.I = 0 then
+  begin
+    if Complex.R >= 0 then // 正实数辐角返回 0，包括 0 也凑合着返回 0
+      Result := 0
+    else
+      Result := Pi;     // 复实数辐角返回 π
+  end
+  else if Complex.R = 0 then
+  begin
+    if Complex.I > 0 then      // 正纯虚数辐角返回半 π
+      Result := Pi / 2
+    else
+      Result := Pi + Pi / 2;   // 复纯虚数辐角返回 3π/2
+  end
+  else // 实部虚部均不为 0
+  begin
+    Result := ArcTan2(Complex.I, Complex.R);
+    if Result < 0 then
+      Result := Result + Pi * 2;
+  end;
 end;
 
 end.

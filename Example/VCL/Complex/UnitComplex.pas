@@ -23,10 +23,14 @@ type
     btnDiv: TButton;
     lbl5: TLabel;
     edtComplexResult: TEdit;
+    btnAbsolute: TButton;
+    btnArgument: TButton;
     procedure btnAddClick(Sender: TObject);
     procedure btnSubClick(Sender: TObject);
     procedure btnMulClick(Sender: TObject);
     procedure btnDivClick(Sender: TObject);
+    procedure btnAbsoluteClick(Sender: TObject);
+    procedure btnArgumentClick(Sender: TObject);
   private
     FC1, FC2, FCR: TCnComplexNumber;
   public
@@ -78,6 +82,24 @@ begin
   SetComplexValue;
   ComplexNumberDiv(FCR, FC1, FC2);
   ShowComplexValue;
+end;
+
+procedure TFormComplex.btnAbsoluteClick(Sender: TObject);
+var
+  R: Extended;
+begin
+  SetComplexValue;
+  R := ComplexNumberAbsolute(FC1);
+  ShowMessage(FloatToStr(R));
+end;
+
+procedure TFormComplex.btnArgumentClick(Sender: TObject);
+var
+  R: Extended;
+begin
+  SetComplexValue;
+  R := ComplexNumberArgument(FC1);
+  ShowMessage(FloatToStr(R / PI) + ' ¦Ð');
 end;
 
 end.

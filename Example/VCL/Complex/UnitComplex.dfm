@@ -160,5 +160,23 @@ object FormComplex: TFormComplex
       Height = 21
       TabOrder = 8
     end
+    object btnAbsolute: TButton
+      Left = 392
+      Top = 32
+      Width = 75
+      Height = 25
+      Caption = 'Absolute'
+      TabOrder = 9
+      OnClick = btnAbsoluteClick
+    end
+    object btnArgument: TButton
+      Left = 480
+      Top = 32
+      Width = 75
+      Height = 25
+      Caption = 'Argument'
+      TabOrder = 10
+      OnClick = btnArgumentClick
+    end
   end
 end
