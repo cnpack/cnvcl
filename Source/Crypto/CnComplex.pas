@@ -40,7 +40,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, SysConst, Math;
+  Classes, SysUtils, SysConst, Math, CnMath;
 
 type
   ECnComplexNumberException = class(Exception);
@@ -132,13 +132,6 @@ function ComplexNumberArgument(var Complex: TCnComplexNumber): Extended;
 
 implementation
 
-function ExtendedEqual(A, B: Extended): Boolean;
-const
-  EQU = 0.0000001;
-begin
-  Result := Abs(A - B) < EQU;
-end;
-
 function ComplexNumberIsZero(var Complex: TCnComplexNumber): Boolean;
 begin
   Result := (Complex.R = 0) and (Complex.I = 0);
@@ -184,7 +177,7 @@ end;
 
 function ComplexNumberEqual(var Complex1, Complex2: TCnComplexNumber): Boolean;
 begin
-  Result := ExtendedEqual(Complex1.R, Complex2.R) and ExtendedEqual(Complex1.I, Complex2.I);
+  Result := FloatEqual(Complex1.R, Complex2.R) and FloatEqual(Complex1.I, Complex2.I);
 end;
 
 procedure ComplexNumberSwap(var Complex1, Complex2: TCnComplexNumber);
@@ -236,7 +229,7 @@ var
   T, D: Extended;
 begin
   D := Complex2.R * Complex2.R + Complex2.I * Complex2.I;
-  if ExtendedEqual(D, 0.0) then
+  if FloatEqual(D, 0.0) then
     raise EZeroDivide.Create(SZeroDivide);
 
   T := (Complex1.R * Complex2.R + Complex1.I * Complex2.I) / D;
@@ -280,12 +273,12 @@ end;
 
 function ComplexIsPureReal(var Complex: TCnComplexNumber): Boolean;
 begin
-  Result := ExtendedEqual(Complex.I, 0.0);
+  Result := FloatEqual(Complex.I, 0.0);
 end;
 
 function ComplexIsPureImaginary(var Complex: TCnComplexNumber): Boolean;
 begin
-  Result := ExtendedEqual(Complex.R, 0.0) and not ExtendedEqual(Complex.I, 0.0);
+  Result := FloatEqual(Complex.R, 0.0) and not FloatEqual(Complex.I, 0.0);
 end;
 
 function ComplexNumberAbsolute(var Complex: TCnComplexNumber): Extended;
