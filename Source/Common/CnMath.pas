@@ -46,6 +46,9 @@ const
 function CnAbs(F: Extended): Extended; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 计算绝对值}
 
+function CnFloor(F: Extended): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+{* 向下取整}
+
 {
   计算连分数：
                   A1
@@ -99,6 +102,9 @@ function FloatAlmostZero(F: Extended): Boolean; {$IFDEF SUPPORT_INLINE} inline; 
 function FloatEqual(A, B: Extended): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 封装的两个浮点数是否相等的判断}
 
+function NormalizeAngle(Angle: Extended): Extended;
+{* 将角度变至 [0, 2π) 范围内}
+
 implementation
 
 uses
@@ -120,6 +126,13 @@ begin
     Result := -F
   else
     Result := F;
+end;
+
+function CnFloor(F: Extended): Integer;
+begin
+  Result := Trunc(F);
+  if Frac(F) < 0 then
+    Dec(Result);
 end;
 
 {$HINTS OFF}
@@ -448,6 +461,14 @@ end;
 function FloatEqual(A, B: Extended): Boolean;
 begin
   Result := FloatAlmostZero(A - B);
+end;
+
+function NormalizeAngle(Angle: Extended): Extended;
+begin
+  Result := Angle;
+  Result := Result - 2 * CN_PI * CnFloor(Result / (2 * CN_PI));
+  if Result < 0 then
+    Result := Result + 2 * CN_PI;
 end;
 
 end.
