@@ -43,6 +43,9 @@ uses
 const
   CN_PI = 3.1415926535897932384626;
 
+function CnAbs(F: Extended): Extended; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+{* 计算绝对值}
+
 {
   计算连分数：
                   A1
@@ -90,10 +93,10 @@ function GaussLegendrePi(RoundCount: Integer = 8): string;
 function XavierGourdonEuler(BlockSize: Integer = 1000): string;
 {* 用 Xavier Gourdon 法计算欧拉常数 e 的值，参数为计算轮数}
 
-function FloatAlmostZero(F: Extended): Boolean;
+function FloatAlmostZero(F: Extended): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 判断一浮点数是否离 0 足够近}
 
-function FloatEqual(A, B: Extended): Boolean;
+function FloatEqual(A, B: Extended): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 封装的两个浮点数是否相等的判断}
 
 implementation
@@ -102,7 +105,8 @@ uses
   CnBigDecimal;
 
 const
-  SCN_EXTEND_GAP = 0.00000000001;
+  SCN_FLOAT_GAP = 0.000001;         // 普通浮点判断
+  SCN_EXTEND_GAP = 0.00000000001;   // 本单元中的迭代计算差值
   SCN_LOGN_TO_LOG2 = 1.4426950408889634073599246810019;
   SCN_LOGN_TO_LOG10 = 0.43429448190325182765112891891661;
 
@@ -438,7 +442,7 @@ end;
 
 function FloatAlmostZero(F: Extended): Boolean;
 begin
-  Result := CnAbs(F) < SCN_EXTEND_GAP;
+  Result := CnAbs(F) < SCN_FLOAT_GAP;
 end;
 
 function FloatEqual(A, B: Extended): Boolean;
