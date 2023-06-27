@@ -49,13 +49,18 @@ type
   TCnComplexNumber = packed record
   {* 浮点精度的复数表示结构}
     R: Extended;
+    {* 实部}
     I: Extended;
+    {* 虚部}
   end;
   PCnComplexNumber = ^TCnComplexNumber;
+  {* 指向复数结构的指针}
 
   TCnComplexArray = array[0..8191] of TCnComplexNumber;
+  {* 复数结构数组}
 
   PCnComplexArray = ^TCnComplexArray;
+  {* 指向复数结构数组的指针}
 
 function ComplexNumberIsZero(var Complex: TCnComplexNumber): Boolean;
 {* 返回复数是否为 0}
@@ -290,23 +295,23 @@ function ComplexNumberArgument(var Complex: TCnComplexNumber): Extended;
 begin
   if Complex.I = 0 then
   begin
-    if Complex.R >= 0 then // 正实数辐角返回 0，包括 0 也凑合着返回 0
+    if Complex.R >= 0 then     // 正实数辐角返回 0，包括 0 也凑合着返回 0
       Result := 0
     else
-      Result := Pi;     // 复实数辐角返回 π
+      Result := CN_PI;         // 复实数辐角返回 π
   end
   else if Complex.R = 0 then
   begin
     if Complex.I > 0 then      // 正纯虚数辐角返回半 π
-      Result := Pi / 2
+      Result := CN_PI / 2
     else
-      Result := Pi + Pi / 2;   // 复纯虚数辐角返回 3π/2
+      Result := CN_PI + CN_PI / 2;   // 复纯虚数辐角返回 3π/2
   end
   else // 实部虚部均不为 0
   begin
     Result := ArcTan2(Complex.I, Complex.R);
     if Result < 0 then
-      Result := Result + Pi * 2;
+      Result := Result + CN_PI * 2;
   end;
 end;
 
