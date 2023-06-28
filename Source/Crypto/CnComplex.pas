@@ -135,6 +135,12 @@ function ComplexNumberAbsolute(var Complex: TCnComplexNumber): Extended;
 function ComplexNumberArgument(var Complex: TCnComplexNumber): Extended;
 {* 返回复数的辐角主值，也即与复平面正 X 轴的夹角，范围在 0 到 2π}
 
+var
+  CnComplexZero: TCnComplexNumber;
+  CnComplexOne: TCnComplexNumber;
+  CnComplexOneI: TCnComplexNumber;
+  CnComplexNegOneI: TCnComplexNumber;
+
 implementation
 
 function ComplexNumberIsZero(var Complex: TCnComplexNumber): Boolean;
@@ -314,5 +320,17 @@ begin
       Result := Result + CN_PI * 2;
   end;
 end;
+
+initialization
+  ComplexNumberSetZero(CnComplexZero);
+
+  CnComplexOne.R := 1;
+  CnComplexOne.I := 0;
+
+  CnComplexOneI.R := 0;
+  CnComplexOneI.I := 1;
+
+  CnComplexNegOneI.R := 0;
+  CnComplexNegOneI.I := -1;
 
 end.
