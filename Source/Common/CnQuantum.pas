@@ -55,8 +55,8 @@ unit CnQuantum;
 
   俩角、仨坐标、俩复数（其中 a 的虚部为 0）的对应关系如何理解？
 
-  a     1     0
-  b = a 0 + b 1，要先证明这步矩阵运算，还好理解。
+  a     1     0                                                                 (a)
+  b = a 0 + b 1，要先证明这步矩阵运算，还好理解。说明这个量子比特的矩阵形式就是 (b)
 
   Bloch 球，Z 轴正方向最上点表示基态 0，最下点表示基态 1，XY轴前后左右四个点是根号 2 分之一正负排列。但不理解三根轴的几何意义。
 
@@ -66,6 +66,9 @@ unit CnQuantum;
   一个矩阵如果乘以某个向量，结果等于某个常数乘以某个向量，那么这常数和这向量就称为该矩阵的特征向量和特征值。好理解，但不知道有啥用。
 
   双量子比特状态的纠缠难以理解。
+
+  量子比特的矩阵变换，是变换矩阵在左，量子比特矩阵也就是列向量在右，结果是一个列向量
+  矩阵一行对应元素乘列向量对应元素，得到结果的对应列元素
 
 }
 
@@ -119,12 +122,16 @@ type
     constructor Create(AX, AY, AZ: Extended); overload;
 
     procedure Assign(Source: TPersistent); override;
+    {* 复制量子比特}
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 输出成字符串}
 
     property X: Extended read FX write SetFX;
+    {* 该量子比特的在布洛赫球的笛卡尔坐标系中的 X 坐标}
     property Y: Extended read FY write SetFY;
+    {* 该量子比特的在布洛赫球的笛卡尔坐标系中的 Y 坐标}
     property Z: Extended read FZ write SetFZ;
+    {* 该量子比特的在布洛赫球的笛卡尔坐标系中的 Z 坐标}
 
     property Phi: Extended read FPhi write SetPhi;
     {* 相位差角，体现 a 和 b 复向量的夹角，范围在 [0, 2π)}
@@ -132,8 +139,22 @@ type
     {* 辐角，体现 a 和 b 复向量的绝对值涨落，范围在 [0, π]，实现中除以了 2 以符合习惯}
 
     property Alpha: TCnComplexNumber read FAlpha write SetAlpha;
+    {* 该量子比特的第一个复向量}
     property Beta: TCnComplexNumber read FBeta write SetBeta;
+    {* 该量子比特的第二个复向量}
   end;
+
+procedure CnQuBitMulMatrix(InQ, OutQ: TCnQuBit; var M00, M01, M10, M11: TCnComplexNumber); overload;
+{* 对量子比特进行二维方阵运算，参数是复数，InQ，OutQ 可以是同一个对象
+  00 代表矩阵中的首行首列元素，01 代表首行次列，10 代表次行首列，11 代表次行次列}
+
+procedure CnQuBitMulMatrix(InQ, OutQ: TCnQuBit; M00, M01, M10, M11: Extended); overload;
+{* 对量子比特进行二维方阵运算，参数是实数，InQ，OutQ 可以是同一个对象
+  00 代表矩阵中的首行首列元素，01 代表首行次列，10 代表次行首列，11 代表次行次列}
+
+var
+  CnQuBitBaseZero: TCnQuBit = nil;
+  CnQuBitBaseOne: TCnQuBit = nil;
 
 implementation
 
@@ -333,5 +354,51 @@ begin
   if FTheta > CN_PI then
     raise ECnQuantumException.Create(SCN_ERROR_QUBIT_ANGLE_RANGE);
 end;
+
+procedure CnQuBitMulMatrix(InQ, OutQ: TCnQuBit; var M00, M01, M10, M11: TCnComplexNumber);
+var
+  T1, T2, T: TCnComplexNumber;
+begin
+  // OutQ.Alpha = M00 * InQ.Alpha + M01 * InQ.Beta
+  // OutQ.Beta  = M10 * InQ.Alpha + M11 * InQ.Beta
+
+  ComplexNumberMul(T1, InQ.FAlpha, M00);
+  ComplexNumberMul(T2, InQ.FBeta,  M01);
+  ComplexNumberAdd(T, T1, T2);
+
+  ComplexNumberMul(T1, InQ.FAlpha, M10);
+  ComplexNumberMul(T2, InQ.FBeta,  M11);
+
+  ComplexNumberCopy(OutQ.FAlpha, T);
+  ComplexNumberAdd(T, T1, T2);
+  ComplexNumberCopy(OutQ.FBeta, T);
+
+  OutQ.UpdateFromComplex;
+end;
+
+procedure CnQuBitMulMatrix(InQ, OutQ: TCnQuBit; M00, M01, M10, M11: Extended);
+var
+  C00, C01, C10, C11: TCnComplexNumber;
+begin
+  C00.R := M00;
+  C01.R := M01;
+  C10.R := M10;
+  C11.R := M11;
+
+  C00.I := 0;
+  C01.I := 0;
+  C10.I := 0;
+  C11.I := 0;
+
+  CnQuBitMulMatrix(InQ, OutQ, C00, C01, C10, C11);
+end;
+
+initialization
+  CnQuBitBaseZero := TCnQuBit.Create(1, 0, 0, 0);
+  CnQuBitBaseOne := TCnQuBit.Create(0, 0, 1, 0);
+
+finalization
+  CnQuBitBaseZero.Free;
+  CnQuBitBaseOne.Free;
 
 end.
