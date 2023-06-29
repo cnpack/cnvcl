@@ -135,6 +135,10 @@ function ComplexNumberAbsolute(var Complex: TCnComplexNumber): Extended;
 function ComplexNumberArgument(var Complex: TCnComplexNumber): Extended;
 {* 返回复数的辐角主值，也即与复平面正 X 轴的夹角，范围在 0 到 2π}
 
+procedure ComplexNumberSetAbsoluteArgument(var Complex: TCnComplexNumber;
+  AnAbsolute, AnArgument: Extended);
+{* 设置一复数的绝对值与辐角值}
+
 var
   CnComplexZero: TCnComplexNumber;
   CnComplexOne: TCnComplexNumber;
@@ -319,6 +323,13 @@ begin
     if Result < 0 then
       Result := Result + CN_PI * 2;
   end;
+end;
+
+procedure ComplexNumberSetAbsoluteArgument(var Complex: TCnComplexNumber;
+  AnAbsolute, AnArgument: Extended);
+begin
+  Complex.R := AnAbsolute * Cos(AnArgument);
+  Complex.I := AnAbsolute * Sin(AnArgument);
 end;
 
 initialization
