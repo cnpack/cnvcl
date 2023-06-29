@@ -152,6 +152,21 @@ procedure CnQuBitMulMatrix(InQ, OutQ: TCnQuBit; M00, M01, M10, M11: Extended); o
 {* 对量子比特进行二维方阵运算，参数是实数，InQ，OutQ 可以是同一个对象
   00 代表矩阵中的首行首列元素，01 代表首行次列，10 代表次行首列，11 代表次行次列}
 
+procedure CnQuBitHadamardGate(InQ, OutQ: TCnQuBit);
+{* 量子比特 Hadamard 门变换}
+
+procedure CnQuBitPauliXGate(InQ, OutQ: TCnQuBit);
+{* 量子比特泡利 X 门变换，相当于 NOT，也即 |0> 和 |1> 的系数互换}
+
+procedure CnQuBitPauliYGate(InQ, OutQ: TCnQuBit);
+{* 量子比特泡利 Y 门变换}
+
+procedure CnQuBitPauliZGate(InQ, OutQ: TCnQuBit);
+{* 量子比特泡利 Z 门变换，保留基本状态 |0> 不变，并且将 |1> 的系数换成负的}
+
+procedure CnQuBitPhaseShiftGate(InQ, OutQ: TCnQuBit; ATheta: Extended);
+{* 量子比特相位偏移门变换，保留基本状态 |0> 并且将 |1> 的系数换成辐角为 ATheta 的单位模长复向量}
+
 var
   CnQuBitBaseZero: TCnQuBit = nil;
   CnQuBitBaseOne: TCnQuBit = nil;
@@ -391,6 +406,34 @@ begin
   C11.I := 0;
 
   CnQuBitMulMatrix(InQ, OutQ, C00, C01, C10, C11);
+end;
+
+procedure CnQuBitHadamardGate(InQ, OutQ: TCnQuBit);
+begin
+  CnQuBitMulMatrix(InQ, OutQ, Sqrt(2)/2, Sqrt(2)/2, Sqrt(2)/2, -Sqrt(2)/2);
+end;
+
+procedure CnQuBitPauliXGate(InQ, OutQ: TCnQuBit);
+begin
+  CnQuBitMulMatrix(InQ, OutQ, 0, 1, 1, 0);
+end;
+
+procedure CnQuBitPauliYGate(InQ, OutQ: TCnQuBit);
+begin
+  CnQuBitMulMatrix(InQ, OutQ, CnComplexZero, CnComplexOneI, CnComplexNegOneI, CnComplexZero);
+end;
+
+procedure CnQuBitPauliZGate(InQ, OutQ: TCnQuBit);
+begin
+  CnQuBitMulMatrix(InQ, OutQ, 1, 0, 0, -1);
+end;
+
+procedure CnQuBitPhaseShiftGate(InQ, OutQ: TCnQuBit; ATheta: Extended);
+var
+  C: TCnComplexNumber;
+begin
+  ComplexNumberSetAbsoluteArgument(C, 1, ATheta);
+  CnQuBitMulMatrix(InQ, OutQ, CnComplexOne, CnComplexZero, CnComplexZero, C);
 end;
 
 initialization
