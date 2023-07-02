@@ -44,12 +44,12 @@ unit CnQuantum;
   本来 a 和 b 俩复数是有四维的，但又因为有 |a|^2+|b|^2 = 1 的约束条件，
   因而是在四维空间单位超球面上的点，可以再加上忽视全局相位的条件，非线性映射到三维的单位球面上
 
-  因为|a|^2+|b|^2=1，所以可设 a 为一个幅度是某角度 cos 值 thita，自身角度任意的复数，
+  因为|a|^2+|b|^2=1，所以可设 a 为一个幅度是某角度 cos 值 theta，自身角度任意的复数，
   b 为一个幅度是同一角度的 sin 值，自身角度任意的另一个复数。这个自身角度叫做全局相位
   这样取绝对值后，俩自身角度消失，只剩 cos 平方加 sin 平方，等于 1。
 
   但因为 a 和 b 有自身角度的存在，它们之间的角度差，就是相对相位 phi，范围在 0 到 2π。
-  控制幅度的那个角 thita，范围在 0 到半 π。
+  控制幅度的那个角 theta，范围在 0 到半 π。
   因此，只要两个角，就能确定 a 和 b，类似于一个方位角加一个仰角就能确定球面上的点。
   似乎还要加个前提：共同全局相位无需考虑，因而可设 a 为实数。
 
@@ -118,8 +118,16 @@ type
     {* 将两个角度规整为合法范围内}
   public
     constructor Create(AR, AI, BR, BI: Extended); overload;
+    {* 创建并设置其两个复向量值}
     constructor Create(APhi, ATheta: Extended); overload;
+    {* 创建并设置其相位差角与辐角值}
     constructor Create(AX, AY, AZ: Extended); overload;
+    {* 创建并设置其笛卡尔坐标系值}
+
+    constructor CreateAsOne;
+    {* 创建并设置为基态 1}
+    constructor CreateAsZero;
+    {* 创建并设置为基态 0}
 
     procedure Assign(Source: TPersistent); override;
     {* 复制量子比特}
@@ -329,7 +337,8 @@ end;
 
 function TCnQuBit.ToString: string;
 begin
-  Result := ComplexNumberToString(FAlpha) + '|0> + ' + ComplexNumberToString(FBeta) + '|1>';
+  Result := ComplexNumberToString(FAlpha) + '|0> + ' + ComplexNumberToString(FBeta) + '|1>'
+    + '   Theta: ' + FloatToStr(FTheta) + ' Phi: ' + FloatToStr(FPhi);
 end;
 
 procedure TCnQuBit.UpdateFromAngle;
@@ -434,6 +443,16 @@ var
 begin
   ComplexNumberSetAbsoluteArgument(C, 1, ATheta);
   CnQuBitMulMatrix(InQ, OutQ, CnComplexOne, CnComplexZero, CnComplexZero, C);
+end;
+
+constructor TCnQuBit.CreateAsOne;
+begin
+  Create(0, 0, 1, 0);
+end;
+
+constructor TCnQuBit.CreateAsZero;
+begin
+  Create(1, 0, 0, 0);
 end;
 
 initialization
