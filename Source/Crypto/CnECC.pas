@@ -7769,9 +7769,9 @@ begin
       PXPX.SetCoefficents([0, 1]); // PXP2X := X
       BigNumberPolynomialGaloisPower(PXPX, PXPX, Q, Q, LDP); // X^q
       T1.SetCoefficents([0, 1]);   // T1 = x
-      BigNumberPolynomialGaloisSub(PXPX, PXPX, T1, Q, LDP);  // X^(q^2) - X
+      BigNumberPolynomialGaloisSub(PXPX, PXPX, T1, Q, LDP);  // X^q - X
 
-      // 判断是否存在 L 阶扭点 P，使得 π^2(P) = 正负 K * (P)，分 K 是奇偶来分别计算 P16
+      // 判断是否存在 L 阶扭点 P，使得 π^2(P) = 正负 K * (P)，分 K 是奇偶来分别计算 P16，基本上和论文中的计算例子一致
       if K and 1 <> 0 then
       begin
         // K 是奇数，P16 = (X^(q^2) - X) * F[K]^2 + F[K-1] * F[K+1] * (x^3 + Ax + B)
@@ -7808,7 +7808,7 @@ begin
           Continue;
         end;
 
-        // 存在二次剩余，t 为正负 2W，判断其符号，要计算 P17
+        // 存在二次剩余，t 为正负 2W，判断其符号，要计算 P17，基本上和论文中的计算代码阅读对比后认为一致
         if W and 1 <> 0 then
         begin
           // W 是奇数，P17 = (X^q - X) * F[W]^2 + F[W-1] * F[W+1] * (x^3 + Ax + B)
@@ -7824,8 +7824,8 @@ begin
         begin
           // W 是偶数，P17 = (X^q - X) * F[W]^2 * (x^3 + Ax + B) + F[W-1] * F[W+1]
           BigNumberPolynomialGaloisMul(T1, F(W), F(W), Q, LDP);
-          BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);
           BigNumberPolynomialGaloisMul(T1, T1, PXPX, Q, LDP);
+          BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);
 
           BigNumberPolynomialGaloisMul(T2, F(W - 1), F(W + 1), Q, LDP);
 
@@ -7840,7 +7840,7 @@ begin
           Continue;
         end;
 
-        // 否则 t 是正负 2W，再判断正负号，求 P18
+        // 否则 t 是正负 2W，再判断正负号，求 P18，基本上和论文中的计算代码阅读对比后认为一致
         BigNumberCopy(Q12, Q);
         Q12.SubWord(1);
         Q12.ShiftRightOne;   // 得到 (Q - 1) / 2
@@ -7879,33 +7879,42 @@ begin
         else
           Ta[I] := 2 * W;
       end
-      else // 不等于正负
+      else // 不等于正负，开始整 P19X 和 P19Y
       begin
         QT := FEccBigNumberPool.Obtain; // 准备一个临时大数作为 Q 相关的指数的临时存储
 
         PAlpha := FEccPolynomialPool.Obtain;
         PBeta := FEccPolynomialPool.Obtain;
 
+        // 先计算 Alpha
         BigNumberPolynomialGaloisMul(T1, F(K - 1), F(K - 1), Q, LDP);
-        BigNumberPolynomialGaloisMul(T1, T1, F(K + 2), Q, LDP);
+        BigNumberPolynomialGaloisMul(T1, T1, F(K + 2), Q, LDP);                 // T1 得到 Fk-1^2 * Fk+2
 
         BigNumberPolynomialGaloisMul(T2, F(K + 1), F(K + 1), Q, LDP);
-        BigNumberPolynomialGaloisMul(T2, T2, F(K - 2), Q, LDP);
+        BigNumberPolynomialGaloisMul(T2, T2, F(K - 2), Q, LDP);                 // T2 得到 Fk+1^2 * Fk-2
 
-        BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP); // T1 是减式，释放 T2
+        BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP); // T1 是减式 Fk-1^2 * Fk+2 - Fk+1^2 * Fk-2，释放 T2
 
         Q23 := FEccBigNumberPool.Obtain;
         BigNumberMul(Q23, Q, Q);
-        Q23.AddWord(3);
-        Q23.ShiftRightOne;  // 得到 (Q^2 + 3)/2，用来做 Y^2 的指数
+
+        if K and 1 <> 0 then  // K 偶数时需要 (Q^2 + 3)/2
+          Q23.AddWord(3)
+        else
+          Q23.AddWord(1);     // K 奇数时需要 (Q^2 + 1)/2
+
+        Q23.ShiftRightOne;  // 得到 (Q^2 + 3)/2 或 (Q^2 + 1)/2，用来做 Y^2 的指数
 
         BigNumberPolynomialGaloisPower(T2, Y2, Q23, Q, LDP);
         BigNumberPolynomialGaloisPower(T3, F(K), 3, Q, LDP);
         BigNumberPolynomialGaloisMul(T2, T2, T3, Q, LDP);
         BigNumberPolynomialGaloisMulWord(T2, 4, Q); // 得到第三个减式
 
-        BigNumberPolynomialSub(PAlpha, T1, T2);
+        BigNumberPolynomialSub(PAlpha, T1, T2);     // 计算出 PAlpha，释放 T1 T2
+        // 注意此处如果 K 是奇数，得到的 PAlpha 在使用时还要乘以一个 Y2
+        // 如果 K 是偶数，得到的 PAlpha 其实是 Alpha / y 的值
 
+        // 再计算 Beta
         NPXP2X := FEccPolynomialPool.Obtain;
         BigNumberPolynomialCopy(NPXP2X, PXP2X);
         BigNumberPolynomialGaloisNegate(NPXP2X, Q); // NPXPX 得到 x - x^(q^2)
@@ -7915,7 +7924,39 @@ begin
 
         BigNumberPolynomialGaloisMul(T2, F(K - 1), F(K + 1), Q, LDP); // T2 得到 F(k-1)* F(k+1)
 
-        // 另外准备好 x^(p^2) + x^p + x
+        if K and 1 <> 0 then // 奇数
+        begin
+          // K 是奇数，对应的 Alpha 是纯 x 的系数，Beta 则需要乘一个 y，也就是说，PBeta 其实是 Beta / y 的值
+          // Alpha = Y^2 * 上面的 PAlpha
+          BigNumberPolynomialGaloisMul(PAlpha, PAlpha, Y2, Q, LDP); // 完整的 Alpha 计算完毕
+
+          // 再分别计算 Beta T2 要乘以 Y2
+          BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);
+
+          BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP); // T1 得到减的结果
+
+          // 再乘以 4Fk
+          BigNumberPolynomialGaloisMul(PBeta, T1, F(K), Q, LDP);
+          BigNumberPolynomialGaloisMulWord(PBeta, 4, Q);          // 得到的 PBeta 在使用时需要额外乘以一个 y
+        end
+        else // 偶数
+        begin
+          // K 是偶数，对应的 Alpha 是需要乘一个 y，也就是说，PAlpha 其实是 Alpha / y 的值，Beta 则是纯 x 的系数
+
+          // 再分别计算 Beta，T1 要乘以 Y2
+          BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);
+
+          BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP); // T1 得到减的结果
+
+          // 再乘以 4Fk
+          BigNumberPolynomialGaloisMul(PBeta, T1, F(K), Q, LDP);
+          BigNumberPolynomialGaloisMulWord(PBeta, 4, Q);
+
+          // Beta = Y^2 * 上面的 PBeta
+          BigNumberPolynomialGaloisMul(PBeta, PBeta, Y2, Q, LDP);    // 完整的 Beta 计算完毕
+        end;
+
+        // 以上 Alpha 和 Beta 准备好了，另外准备好 x^(p^2) + x^p + x
         PXP2XPX := FEccPolynomialPool.Obtain;
         PXP2XPX.SetCoefficents([0, 2]);        // 得到 2x
         BigNumberPolynomialGaloisAdd(PXP2XPX, PXP2X, PXP2XPX, Q, LDP); // 与旧的加一下得到 x^(p^2) + x
@@ -7926,20 +7967,6 @@ begin
 
         if K and 1 <> 0 then
         begin
-          // K 是奇数，对应的 Alpha 是纯 x 的系数，Beta 则需要乘一个 y
-          // Alpha = Y^2 * 上面的 PAlpha
-          BigNumberPolynomialGaloisMul(PAlpha, PAlpha, Y2, Q, LDP); // Alpha 计算完毕
-
-          // 再计算 Beta，T2 要乘以 Y2
-          BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);
-
-          BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP); // T1 得到减的结果
-
-          // 再乘以 4Fk
-          BigNumberPolynomialGaloisMul(PBeta, T1, F(K), Q, LDP);
-          BigNumberPolynomialGaloisMulWord(PBeta, 4, Q);
-          // 得到的 PBeta 在使用时需要乘以一个 y，同时释放 T1 T2 T3 等
-
           for T := 1 to L - 1 do // 这个 T 指希腊字母中的 Tao
           begin
             // K 是奇数的情况下也挨个计算 P19X，当其 mod LDP = 0 且和 LDP 的最大公约式 <> 1 时，有正负 T 符合要求
@@ -8102,21 +8129,6 @@ begin
         end
         else
         begin
-          // K 是偶数，对应的 Alpha 是需要乘一个 y，Beta 则是纯 x 的系数
-
-          // Alpha 计算完毕，后面用的时候需要乘以一个 y
-          // 再计算 Beta，T1 要乘以 Y2
-          BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);
-
-          BigNumberPolynomialGaloisAdd(T1, T1, T2, Q, LDP); // T1 得到加的结果
-
-          // 再乘以 4Fk
-          BigNumberPolynomialGaloisMul(PBeta, T1, F(K), Q, LDP);
-          BigNumberPolynomialGaloisMulWord(PBeta, 4, Q);
-
-          BigNumberPolynomialGaloisMul(PBeta, PBeta, Y2, Q, LDP);
-          // 得到纯 X 的 PBeta，同时释放 T1 T2 T3 等
-
           for T := 1 to L - 1 do
           begin
             // K 偶 t 奇的情况下 P19X = 以下ａ表示 alpha，b 表示 beta
