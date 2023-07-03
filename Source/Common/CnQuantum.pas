@@ -134,6 +134,11 @@ type
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 输出成字符串}
 
+    function ZeroProbability: Extended;
+    {* 观测获知其坍缩至基态 0 的概率}
+    function OneProbability: Extended;
+    {* 观测获知其坍缩至基态 1 的概率}
+
     property X: Extended read FX write SetFX;
     {* 该量子比特的在布洛赫球的笛卡尔坐标系中的 X 坐标}
     property Y: Extended read FY write SetFY;
@@ -453,6 +458,16 @@ end;
 constructor TCnQuBit.CreateAsZero;
 begin
   Create(1, 0, 0, 0);
+end;
+
+function TCnQuBit.OneProbability: Extended;
+begin
+  Result := ComplexNumberAbsolute(FBeta);
+end;
+
+function TCnQuBit.ZeroProbability: Extended;
+begin
+  Result := ComplexNumberAbsolute(FAlpha);
 end;
 
 initialization
