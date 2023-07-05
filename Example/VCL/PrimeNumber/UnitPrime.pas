@@ -100,6 +100,9 @@ type
     btnMontReduct: TButton;
     btnMontMulMod: TButton;
     btnMontMulModTime: TButton;
+    bvl4: TBevel;
+    edtShor: TEdit;
+    btnShor: TButton;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -137,6 +140,7 @@ type
     procedure btnMontReductClick(Sender: TObject);
     procedure btnMontMulModClick(Sender: TObject);
     procedure btnMontMulModTimeClick(Sender: TObject);
+    procedure btnShorClick(Sender: TObject);
   private
 
   public
@@ -849,6 +853,19 @@ begin
   T2 := GetTickCount - T2;
 
   ShowMessage(Format('Mont %d, Direct %d', [T1, T2])); // 有一定提速作用
+end;
+
+procedure TFormPrime.btnShorClick(Sender: TObject);
+var
+  N, F: TUInt64;
+begin
+  N := StrToUInt64(edtShor.Text);
+  F := CnUInt64Shor(N, 7);
+
+  if F > 1 then
+    ShowMessage('OK ' + UInt64ToStr(F))
+  else
+    ShowMessage('Fail. Prime or Base Error');
 end;
 
 end.

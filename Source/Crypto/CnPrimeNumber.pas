@@ -889,6 +889,10 @@ procedure CnUInt64FillCombinatorialNumbersMod(List: TCnInt64List; N: Integer; P:
 function CnInt64AKSIsPrime(N: Int64): Boolean;
 {* 用 AKS 算法判断某正整数是否是素数，判断 9223372036854775783 约需 10 秒钟}
 
+function CnUInt64Shor(N: TUInt64; Base: TUInt64 = 3): TUInt64;
+{* 模拟秀尔算法做 UInt64 范围内的 N 的质因素分解，如果是合数则返回一个因数，失败返回 1
+  注意 Base 的取值很重要，如不合适哪怕 N 为合数也会分解失败，且无必然合适的 Base 值}
+
 implementation
 
 uses
@@ -2600,6 +2604,53 @@ begin
 end;
 
 {$WARNINGS ON}
+
+function CnUInt64Shor(N: TUInt64; Base: TUInt64): TUInt64;
+var
+  T: Integer;
+  R, RH, A, M1, M, X1, X2, F1, F2: TUInt64;
+begin
+  Result := 1;
+  T := GetUInt64HighBits(N);
+  if T <= 0 then
+    Exit;
+
+  RH := 1 shl T;    // N 的位数全为 1 再加一作为搜索上限
+  A := Base;        // 比 N 小且和 N 互素的
+
+  R := 2;
+  M1 := UInt64Mod(A, N);
+
+  while UInt64Compare(R, RH) <= 0 do
+  begin
+    M := MontgomeryPowerMod(A, R, N);
+    if M = M1 then
+    begin
+      // 找到了周期性
+      R := R - 1; // 周期为 R
+
+      if R and 1 <> 0 then // 奇数不可靠
+        Exit;
+
+      R := R shr 1;
+      X1 := UInt64NonNegativPower(A, R);
+
+      X2 := X1 + 1;
+      X1 := X1 - 1;
+
+      F1 := CnInt64GreatestCommonDivisor(X1, N);
+      F2 := CnInt64GreatestCommonDivisor(X2, N);
+
+      if (F1 <> 1) and (F1 <> N) then
+        Result := F1
+      else if (F2 <> 1) and (F2 <> N) then
+        Result := F2;
+
+      Exit;
+    end;
+    Inc(R);
+  end;
+end;
 
 end.
 

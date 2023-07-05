@@ -673,6 +673,13 @@ object FormPrime: TFormPrime
     object tsCRT: TTabSheet
       Caption = 'CRT && BSGS && Perfect Power'
       ImageIndex = 4
+      object bvl4: TBevel
+        Left = 24
+        Top = 112
+        Width = 609
+        Height = 17
+        Shape = bsTopLine
+      end
       object btnCRTTest: TButton
         Left = 24
         Top = 24
@@ -734,6 +741,23 @@ object FormPrime: TFormPrime
         Caption = 'Combinatorial Numbers Mod'
         TabOrder = 6
         OnClick = btnComNumModClick
+      end
+      object edtShor: TEdit
+        Left = 24
+        Top = 136
+        Width = 121
+        Height = 21
+        TabOrder = 7
+        Text = '115'
+      end
+      object btnShor: TButton
+        Left = 160
+        Top = 136
+        Width = 75
+        Height = 25
+        Caption = 'Shor'
+        TabOrder = 8
+        OnClick = btnShorClick
       end
     end
   end
