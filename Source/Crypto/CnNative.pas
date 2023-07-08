@@ -554,6 +554,9 @@ procedure ConstantTimeConditionalSwap32(CanSwap: Boolean; var A, B: Cardinal);
 procedure ConstantTimeConditionalSwap64(CanSwap: Boolean; var A, B: TUInt64);
 {* 针对两个八字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
 
+function ConstantTimeCompareBytes(A, B: TBytes): Boolean;
+{* 针对俩相同长度的字节数组的执行时间固定的比较，内容相同时返回 True}
+
 {$IFDEF MSWINDOWS}
 
 // 这四个函数因为用了 Intel 汇编，因而只支持 32 位和 64 位的 Intel CPU，照理应该用条件：CPUX86 或 CPUX64
@@ -1907,6 +1910,19 @@ begin
   B := B xor V;
 end;
 
+function ConstantTimeCompareBytes(A, B: TBytes): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if Length(A) <> Length(B) then
+    Exit;
+
+  Result := True;
+  for I := 0 to Length(A) - 1 do // 每个字节都比较，而不是碰到不同就退出
+    Result := Result and (A[I] = B[I]);
+end;
+
 {$IFDEF MSWINDOWS}
 
 {$IFDEF CPUX64}
@@ -2485,7 +2501,7 @@ begin
   Result := B <> 0;
 end;
 
-// 返回 Int64 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1
+// 返回 UInt64 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1
 function GetUInt64HighBits(B: TUInt64): Integer;
 begin
   if B = 0 then
