@@ -365,6 +365,7 @@ var
   A16, B16: Word;
   A32, B32: Cardinal;
   A64, B64: TUInt64;
+  A, B: TBytes;
 begin
   A8 := 45;
   B8 := 247;
@@ -385,6 +386,11 @@ begin
   B64 := 4701000299999283434;
   ConstantTimeConditionalSwap64(chkSwap.Checked, A64, B64);
   mmoRes.Lines.Add(Format('%d, %d', [A64, B64]));
+
+  A := AnsiToBytes('123');
+  B := AnsiToBytes('123');
+  if ConstantTimeBytesEqual(A, B) then
+    mmoRes.Lines.Add('2 Bytes Equal');
 end;
 
 procedure TFormNative.btnInt64DivModClick(Sender: TObject);
