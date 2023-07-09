@@ -454,6 +454,10 @@ begin
 end;
 
 function FloatAlmostZero(F: Extended): Boolean;
+{$IFDEF SUPPORT_INLINE}
+const
+  SCN_FLOAT_GAP = 0.000001; // inline 不能使用外边的常量
+{$ENDIF}
 begin
   Result := CnAbs(F) < SCN_FLOAT_GAP;
 end;
