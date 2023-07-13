@@ -222,15 +222,28 @@ type
     {* 设为无穷远点也即 0 点}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 转换为字符串，简单输出用逗号分隔的十六进制 X 和 Y 坐标值}
 
-    procedure SetHex(const Buf: AnsiString; Ecc: TCnEcc = nil); // 有 02 03 04 前缀的处理
+    procedure SetHex(const Buf: AnsiString; Ecc: TCnEcc = nil);
+    {* 从十六进制字符串中加载点坐标，内部有 02 03 04 前缀的处理，
+      如果无 02 03 04 前缀则对半劈开分别赋值给 X 和 Y
+      如果前缀是 02 或 03，说明内容只有 X 坐标，此时需传入 Ecc 曲线实例来计算 Y 坐标}
+
     function ToHex(FixedLen: Integer = 0): string;
+    {* 输出成带 03 或 04 前缀的十六进制字符串，如果只有 X 值，使用 03 前缀}
 
-    procedure SetBase64(const Buf: AnsiString; Ecc: TCnEcc = nil); // 有 02 03 04 前缀的处理
+    procedure SetBase64(const Buf: AnsiString; Ecc: TCnEcc = nil);
+    {* 从 Base64 字符串中加载点坐标，内部有 02 03 04 前缀的处理，
+      如果无 02 03 04 前缀则对半劈开分别赋值给 X 和 Y
+      如果前缀是 02 或 03，说明内容只有 X 坐标，此时需传入 Ecc 曲线实例来计算 Y 坐标}
+
     function ToBase64(FixedLen: Integer = 0): string;
+    {* 输出成带 03 或 04 前缀的 Base64 字符串，如果只有 X 值，使用 03 前缀}
 
     property X: TCnBigNumber read FX write SetX;
+    {* 椭圆曲线点的 X 坐标}
     property Y: TCnBigNumber read FY write SetY;
+    {* 椭圆曲线点的 Y 坐标}
   end;
 
   TCnEcc3Point = class(TPersistent)
@@ -7969,8 +7982,9 @@ begin
         begin
           for T := 1 to L - 1 do // 这个 T 指希腊字母中的 Tao
           begin
-            // K 是奇数的情况下也挨个计算 P19X，当其 mod LDP = 0 且和 LDP 的最大公约式 <> 1 时，有正负 T 符合要求
-            // K 奇 t 奇的情况下 P19X = （以下 a 表示 alpha，b 表示 beta）
+            // K 是奇数的情况下，对应 PBeta 实际上是 Beta / y，需要乘以一个 Y
+            // 也挨个计算 P19X，当其 mod LDP = 0 且和 LDP 的最大公约式 <> 1 时，有正负 T 符合要求
+            // K 奇 t 奇的情况下 P19X = （以下 a 表示 alpha，b 表示 beta/y）
             // Ft^2p * (b^2 * Y^2 * (Y^2 * Fk-1 * Fk+1 - Fk^2 *(x^(p^2) + x^p + x) + a^2 * Fk^2)) + Fk^2 * b^2 * Y^2 * (Ft-1 * Ft+1)^p * (Y^2)^p
             // t 偶的情况下 P19X 变成（均可变为纯 x 多项式）
             // Ft^2p * (Y^2)^p * (b^2 * Y^2 * (Y^2 * Fk-1 * Fk+1 - Fk^2 *(x^(p^2) + x^p + x) + a^2 * Fk^2)) + Fk^2 * b^2 * Y^2 * (Ft-1 * Ft+1)^p
@@ -7980,7 +7994,7 @@ begin
             BigNumberPolynomialGaloisMul(T1, F(K), F(K), Q, LDP);
             BigNumberPolynomialGaloisMul(T2, PBeta, PBeta, Q, LDP);
             BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP);
-            BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP); // T1 得到 Fk^2 * b^2 * Y^2，对应 PBeta 需要乘以一个 Y
+            BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP); // T1 得到 Fk^2 * b^2 * Y^2，
 
             BigNumberPolynomialGaloisMul(T2, F(T - 1), F(T + 1), Q, LDP);
             BigNumberPolynomialGaloisPower(T2, T2, Q, Q, LDP);
@@ -8131,7 +8145,8 @@ begin
         begin
           for T := 1 to L - 1 do
           begin
-            // K 偶 t 奇的情况下 P19X = 以下ａ表示 alpha，b 表示 beta
+            // K 偶数时，PAlpha 其实是 Alpha / y 的值
+            // K 偶 t 奇的情况下 P19X = 以下 a 表示 alpha/y，b 表示 beta
             // Ft^2p * (b^2 * (Fk-1 * Fk+1 - Y^2 * Fk^2 *(x^(p^2) + x^p + x) + (Y^2)^2 * a^2 * Fk^2)) + Fk^2 * b^2 * Y^2 *(Ft-1 * Ft+1)^p * (Y^2)^p
             // t 偶的情况下 P19X 变成（均可变为纯 x 多项式）
             // Ft^2p * (Y^2)^p * (b^2 * (Fk-1 * Fk+1 - Y^2 * Fk^2 *(x^(p^2) + x^p + x) + (Y^2)^2 * a^2 * Fk^2)) + Fk^2 * b^2 * Y^2 *(Ft-1 * Ft+1)^p
