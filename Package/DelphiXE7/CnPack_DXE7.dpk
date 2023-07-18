@@ -41,7 +41,6 @@ requires
   dsnap,
   xmlrtl,
   soaprtl,
-  {$IFNDEF WIN64}bdertl,{$ENDIF}
   vclsmp,
   fmx;
 
