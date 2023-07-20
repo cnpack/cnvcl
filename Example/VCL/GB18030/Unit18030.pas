@@ -109,19 +109,19 @@ type
     // 取到下一个四字节值的 GB18030 字符编码值
     procedure Step4GB18030CodePoint(var CP: TCnCodePoint);
 
-    // 以 Windows API 的方式代码生成 GB1830 到 Unicode 的批量映射区间，供比对结果
+    // 以 Windows API 的方式代码生成 GB18030 到 Unicode 的批量映射区间，供比对结果
     function Gen2GB18030ToUtf16Page(FromH, FromL, ToH, ToL: Byte; Content: TCnWideStringList): Integer;
     function Gen4GB18030ToUtf16Page(From4, To4: TCnCodePoint; Content: TCnWideStringList): Integer;
 
-    // 以 Windows API 的方式代码生成 GB1830 到 Unicode 的映射数组内容，供 CnPack 编程使用
+    // 以 Windows API 的方式代码生成 GB18030 到 Unicode 的映射数组内容，供 CnPack 编程使用
     function Gen2GB18030ToUtf16Array(FromH, FromL, ToH, ToL: Byte; CGB, CU: TCnWideStringList): Integer;
     function Gen4GB18030ToUtf16Array(From4, To4: TCnCodePoint; CGB, CU: TCnWideStringList): Integer;
 
-    // 以 CnPack 的代码生成 GB1830 到 Unicode 的批量映射区间，供和上面 Windows API 的方式比对结果
+    // 以 CnPack 的代码生成 GB18030 到 Unicode 的批量映射区间，供和上面 Windows API 的方式比对结果
     function GenCn2GB18030ToUtf16Page(FromH, FromL, ToH, ToL: Byte; Content: TCnAnsiStringList): Integer;
     function GenCn4GB18030ToUtf16Page(From4, To4: TCnCodePoint; Content: TCnAnsiStringList): Integer;
 
-    // 以 Windows API 的方式代码生成 Unicode 到 GB1830 的批量映射区间
+    // 以 Windows API 的方式代码生成 Unicode 到 GB18030 的批量映射区间
     function GenUnicodeToGB18030Page(FromU, ToU: TCnCodePoint; Content: TCnWideStringList): Integer;
 
     // 以 CnPack 的代码生成指定范围内的 Utf16 字符到 GB18030 字符的映射
