@@ -149,7 +149,7 @@ type
     property ModeBottom: Integer read FModeBottom write SetModeBottom;
     {* 0 是从上向下}
     property ModeColumn: Integer read FModeColumn write SetModeColumn;
-    {*  0 是先行后列
+    {*  0 是先行后列}
     property FirstLowBit: Integer read FFirstLowBit write SetFirstLowBit;
     {* 0 先高位后低位}
     property ModeStructOut: Integer read FModeStructOut write FModeStructOut;
