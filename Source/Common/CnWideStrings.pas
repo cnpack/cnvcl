@@ -186,7 +186,7 @@ function GetCodePointFromUtf164Char(PtrTo4Char: Pointer): TCnCodePoint;
 
 function GetUtf16CharFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): Integer;
 {* 计算一个 Unicode 编码值的二字节或四字节表示，如果 PtrToChars 指向的位置不为空，
-  则将结果放在 PtrToChars 所指的二字节或四字节区域
+  则将结果放在 PtrToChars 所指的二字节或四字节区域，如果码点非法，则返回 1 并设 PtrToChars 为 #0#0
   调用者在 CP 超过 $FFFF 时须保证 PtrToChars 所指的区域至少四字节，反之二字节即可
   返回 1 或 2，分别表示处理的是二字节或四字节}
 
@@ -1022,6 +1022,18 @@ var
   L, H: Byte;
   LW, HW: Word;
 begin
+  if CP = CN_INVALID_CODEPOINT then
+  begin
+    if PtrToChars <> nil then
+    begin
+      C2 := PCn2CharRec(PtrToChars);
+      SetUtf16LowByte(0, C2);
+      SetUtf16HighByte(0, C2);
+    end;
+    Result := 1;
+    Exit;
+  end;
+
   if CP >= CN_UTF16_EXT_BASE then
   begin
     if PtrToChars <> nil then
