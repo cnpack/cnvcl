@@ -99,6 +99,7 @@ type
   {* WideString 版的 TStringList 实现}
   private
     FList: TList;
+    FUseSingleLF: Boolean;
     function GetName(Index: Integer): WideString;
     function GetValue(const Name: WideString): WideString;
     procedure SetValue(const Name, Value: WideString);
@@ -136,6 +137,8 @@ type
     property Values[const Name: WideString]: WideString read GetValue write SetValue;
     property Strings[Index: Integer]: WideString read Get write Put; default;
     property Text: WideString read GetTextStr write SetTextStr;
+    property UseSingleLF: Boolean read FUseSingleLF write FUseSingleLF;
+    {* 增加的属性，控制 GetTextStr 时使用的换行是否是单个 #10 而不是常规的 #13#10}
   end;
 
 { TCnWideMemIniFile }
@@ -196,6 +199,9 @@ uses
   CnGB18030;
 
 const
+  SLineBreak = #13#10;
+  SLineBreakLF = #10;
+
   CN_UTF16_4CHAR_PREFIX1_LOW  = $D8;
   CN_UTF16_4CHAR_PREFIX1_HIGH = $DC;
   CN_UTF16_4CHAR_PREFIX2_LOW  = $DC;
@@ -330,7 +336,12 @@ var
 begin
   C := GetCount;
   Size := 0;
-  LB := #13#10;
+
+  if FUseSingleLF then
+    LB := SLineBreakLF
+  else
+    LB := SLineBreak;
+
   for I := 0 to C - 1 do Inc(Size, Length(Get(I)) + Length(LB));
   SetString(Result, nil, Size);
   P := Pointer(Result);
@@ -340,13 +351,13 @@ begin
     L := Length(S);
     if L <> 0 then
     begin
-      System.Move(Pointer(S)^, P^, L*SizeOf(WideChar));
+      System.Move(Pointer(S)^, P^, L * SizeOf(WideChar));
       Inc(P, L);
     end;
     L := Length(LB);
     if L <> 0 then
     begin
-      System.Move(Pointer(LB)^, P^, L*SizeOf(WideChar));
+      System.Move(Pointer(LB)^, P^, L * SizeOf(WideChar));
       Inc(P, L);
     end;
   end;

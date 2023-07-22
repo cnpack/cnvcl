@@ -71,6 +71,7 @@ type
     FNameValueSeparator: AnsiChar;
     FUpdateCount: Integer;
     FAdapter: ICnStringsAdapter;
+    FUseSingleLF: Boolean;
     function GetCommaText: AnsiString;
     function GetDelimitedText: AnsiString;
     function GetName(Index: Integer): AnsiString;
@@ -146,6 +147,8 @@ type
     property Strings[Index: Integer]: AnsiString read Get write Put; default;
     property Text: AnsiString read GetTextStr write SetTextStr;
     property StringsAdapter: ICnStringsAdapter read FAdapter write SetStringsAdapter;
+    property UseSingleLF: Boolean read FUseSingleLF write FUseSingleLF;
+    {* 增加的属性，控制 GetTextStr 时使用的换行是否是单个 #10 而不是常规的 #13#10}
   end;
 
   TCnAnsiStringList = class;
@@ -379,6 +382,7 @@ implementation
 
 const
   SLineBreak = #13#10;
+  SLineBreakLF = #10;
   STRING_BUILDER_DEFAULT_CAPACITY = 16;
 
 resourcestring
@@ -892,7 +896,12 @@ var
 begin
   Count := GetCount;
   Size := 0;
-  LB := SLineBreak;
+
+  if FUseSingleLF then
+    LB := SLineBreakLF
+  else
+    LB := SLineBreak;
+
   for I := 0 to Count - 1 do Inc(Size, Length(Get(I)) + Length(LB));
   SetString(Result, nil, Size);
   P := Pointer(Result);
