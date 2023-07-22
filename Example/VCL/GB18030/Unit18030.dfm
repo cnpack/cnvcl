@@ -1,7 +1,7 @@
 object FormGB18030: TFormGB18030
   Left = 147
-  Top = 91
-  Width = 1053
+  Top = 92
+  Width = 1162
   Height = 633
   Caption = 'Unicode and GB18030'
   Color = clBtnFace
@@ -83,7 +83,7 @@ object FormGB18030: TFormGB18030
       Top = 112
       Width = 169
       Height = 113
-      Caption = 'Generate GB18030 Utf16  Table'
+      Caption = 'Generate GB18030 Utf16 Table'
       TabOrder = 2
       OnClick = btnGenGB18030PageClick
     end
@@ -138,7 +138,7 @@ object FormGB18030: TFormGB18030
   object grpMisc: TGroupBox
     Left = 240
     Top = 16
-    Width = 737
+    Width = 897
     Height = 265
     Caption = 'Misc'
     TabOrder = 1
@@ -436,6 +436,24 @@ object FormGB18030: TFormGB18030
       TabOrder = 2
       OnClick = btnGenGB18030PagePartly2Click
     end
+  end
+  object btnGenGB18030PuaUtf16: TButton
+    Left = 952
+    Top = 312
+    Width = 169
+    Height = 25
+    Caption = 'Generate GB18030 PUA Utf16'
+    TabOrder = 6
+    OnClick = btnGenGB18030PuaUtf16Click
+  end
+  object btnGenGB18030Utf16Pua: TButton
+    Left = 952
+    Top = 352
+    Width = 169
+    Height = 25
+    Caption = 'Generate GB18030 Utf16 PUA'
+    TabOrder = 7
+    OnClick = btnGenGB18030Utf16PuaClick
   end
   object dlgSave1: TSaveDialog
     FileName = 'CHARS.txt'
