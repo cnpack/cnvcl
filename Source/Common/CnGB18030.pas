@@ -190,7 +190,7 @@ unit CnGB18030;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2023.07.23
-*               根据全国信息技术标准化网的 GB18030-2022MappingTableBMP.txt 和 GB18030-2022MappingTableSMP.txt
+*               根据全国信息技术标准化网 NITS 的 GB18030-2022MappingTableBMP.txt 和 GB18030-2022MappingTableSMP.txt
 *               核对调整了 CnPack 的转码函数，目前已保持一致
 *           2023.02.04
 *               实现常用汉字的 Utf16 字符和 GB18030 字符的小写完整拼音获取

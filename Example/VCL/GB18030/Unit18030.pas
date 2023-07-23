@@ -2106,7 +2106,7 @@ var
   S: AnsiString;
 begin
   // 用 CnPack 的方法生成 Unicode 从 0000 开始 到 FFFF 的和 GB18030 对应的码表
-  // 以和信标委提供的 GB18030-2022MappingTableBMP.txt 对照，注意内部部分调整码位的顺序不同但内容应一致
+  // 以和信标委 NITS 提供的 GB18030-2022MappingTableBMP.txt 对照，注意内部部分调整码位的顺序不同但内容应一致
   SL := TCnAnsiStringList.Create;
   SL.UseSingleLF := True;
   for I := $0 to $FFFF do
@@ -2137,7 +2137,7 @@ var
   S: AnsiString;
 begin
   // 用 CnPack 的方法生成 Unicode 从 10000 开始 到 10FFFF 的和 GB18030 对应的码表
-  // 以和信标委提供的 GB18030-2022MappingTableSMP.txt 对照，顺序内容应一致
+  // 以和信标委 NITS 提供的 GB18030-2022MappingTableSMP.txt 对照，顺序内容应一致
   SL := TCnAnsiStringList.Create;
   SL.UseSingleLF := True;
   for I := $10000 to $10FFFF do

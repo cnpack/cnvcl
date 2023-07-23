@@ -442,7 +442,7 @@ object FormGB18030: TFormGB18030
     Top = 312
     Width = 201
     Height = 185
-    Caption = 'NTS && PUA'
+    Caption = 'NITS && PUA'
     TabOrder = 6
     object btnGenGB18030PuaUtf16: TButton
       Left = 16
