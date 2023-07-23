@@ -478,6 +478,7 @@ object FormGB18030: TFormGB18030
       Height = 25
       Caption = 'Generate GB18030 Unicode SMP '
       TabOrder = 3
+      OnClick = btnGenGB18030UnicodeMapSMPClick
     end
   end
   object dlgSave1: TSaveDialog

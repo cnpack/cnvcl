@@ -103,6 +103,7 @@ type
     procedure btnGenGB18030PuaUtf16Click(Sender: TObject);
     procedure btnGenGB18030Utf16PuaClick(Sender: TObject);
     procedure btnGenGB18030UnicodeMapBMPClick(Sender: TObject);
+    procedure btnGenGB18030UnicodeMapSMPClick(Sender: TObject);
   private
     // 以 Windows API 的方式批量生成 256 个 Unicode 字符
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
@@ -2120,6 +2121,37 @@ begin
   end;
 
   dlgSave1.FileName := 'GB18030-2022MappingTableBMP_Cn.txt';
+  if dlgSave1.Execute then
+  begin
+    SL.SaveToFile(dlgSave1.FileName);
+    ShowMessage('Save to ' + dlgSave1.FileName);
+  end;
+  SL.Free;
+end;
+
+procedure TFormGB18030.btnGenGB18030UnicodeMapSMPClick(Sender: TObject);
+var
+  UCP, GBCP: TCnCodePoint;
+  SL: TCnAnsiStringList;
+  I: Integer;
+  S: AnsiString;
+begin
+  // 用 CnPack 的方法生成 Unicode 从 10000 开始 到 10FFFF 的和 GB18030 对应的码表
+  // 以和信标委提供的 GB18030-2022MappingTableSMP.txt 对照，顺序内容应一致
+  SL := TCnAnsiStringList.Create;
+  SL.UseSingleLF := True;
+  for I := $10000 to $10FFFF do
+  begin
+    UCP := TCnCodePoint(I);
+    GBCP := GetGB18030FromUnicodeCodePoint(UCP);
+    if GBCP <> CN_INVALID_CODEPOINT then
+    begin
+      S := Format('%x', [UCP]) + #9 + IntToHex(GBCP, 2);
+      SL.Add(S);
+    end;
+  end;
+
+  dlgSave1.FileName := 'GB18030-2022MappingTableSMP_Cn.txt';
   if dlgSave1.Execute then
   begin
     SL.SaveToFile(dlgSave1.FileName);
