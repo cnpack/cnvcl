@@ -1,6 +1,6 @@
 object FormGB18030: TFormGB18030
   Left = 147
-  Top = 92
+  Top = 93
   Width = 1162
   Height = 633
   Caption = 'Unicode and GB18030'
@@ -437,23 +437,48 @@ object FormGB18030: TFormGB18030
       OnClick = btnGenGB18030PagePartly2Click
     end
   end
-  object btnGenGB18030PuaUtf16: TButton
-    Left = 952
+  object grpPuaNTS: TGroupBox
+    Left = 944
     Top = 312
-    Width = 169
-    Height = 25
-    Caption = 'Generate GB18030 PUA Utf16'
+    Width = 201
+    Height = 185
+    Caption = 'NTS && PUA'
     TabOrder = 6
-    OnClick = btnGenGB18030PuaUtf16Click
-  end
-  object btnGenGB18030Utf16Pua: TButton
-    Left = 952
-    Top = 352
-    Width = 169
-    Height = 25
-    Caption = 'Generate GB18030 Utf16 PUA'
-    TabOrder = 7
-    OnClick = btnGenGB18030Utf16PuaClick
+    object btnGenGB18030PuaUtf16: TButton
+      Left = 16
+      Top = 24
+      Width = 169
+      Height = 25
+      Caption = 'Generate GB18030 PUA Utf16'
+      TabOrder = 0
+      OnClick = btnGenGB18030PuaUtf16Click
+    end
+    object btnGenGB18030Utf16Pua: TButton
+      Left = 16
+      Top = 56
+      Width = 169
+      Height = 25
+      Caption = 'Generate GB18030 Utf16 PUA'
+      TabOrder = 1
+      OnClick = btnGenGB18030Utf16PuaClick
+    end
+    object btnGenGB18030UnicodeMapBMP: TButton
+      Left = 16
+      Top = 112
+      Width = 169
+      Height = 25
+      Caption = 'Generate GB18030 Unicode BMP '
+      TabOrder = 2
+      OnClick = btnGenGB18030UnicodeMapBMPClick
+    end
+    object btnGenGB18030UnicodeMapSMP: TButton
+      Left = 16
+      Top = 144
+      Width = 169
+      Height = 25
+      Caption = 'Generate GB18030 Unicode SMP '
+      TabOrder = 3
+    end
   end
   object dlgSave1: TSaveDialog
     FileName = 'CHARS.txt'

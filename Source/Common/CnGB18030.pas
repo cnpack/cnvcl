@@ -165,7 +165,7 @@ unit CnGB18030;
 *             GB18030 码点与 Unicode 十六个扩展平面的对应关系：
 *                90308130~95328235 = 10000~1FFFF   一
 *                95328236~9A348431 = 20000~2FFFF   二
-*                9A348432~9F368537 = 30000~3FFFF   仨
+*                9A348432~9F368537 = 30000~3FFFF   三
 *                9F368538~A4388733 = 40000~4FFFF   四
 *                A4388734~AA308839 = 50000~5FFFF   五
 *                AA308930~AF328A35 = 60000~6FFFF   六
@@ -413,7 +413,7 @@ const
   CN_GB18030_2CHAR_PAGE_COUNT = 94;
 
   // 四字节码转换相关。有连续完整大区（标 *** 的），也有不连续区中的连续小段区间（连续字符大于 32 个的）
-  CN_GB18030_4CHAR_PAGES: array[0..66] of TCnGB18030MappingPage = (
+  CN_GB18030_4CHAR_PAGES: array[0..69] of TCnGB18030MappingPage = (
 
     // 分隔区一：
     (GBHead: $81308130; GBTail: $81308435; UHead: $0080; UTail: $00A3),   // 36
@@ -427,7 +427,11 @@ const
     (GBHead: $81318132; GBTail: $81359935; UHead: $060C; UTail: $1AAF),   // *** 维吾尔、哈萨克、柯尔克孜文一头到西双版纳老傣文尾
 
     // 分隔区八：
-    (GBHead: $81359936; GBTail: $8136A531; UHead: $1AB0; UTail: $200F),   // 1376
+    // (GBHead: $81359936; GBTail: $8136A531; UHead: $1AB0; UTail: $200F),   // 1376
+    // 注意：该区一个 Unicode 字符 1E3F 映射到 GB18030 的 A8BC 因而要拆开处理，这一个字符要额外写入映射表中
+    (GBHead: $81359936; GBTail: $8135F436; UHead: $1AB0; UTail: $1E3E),   //
+    (GBHead: $8135F438; GBTail: $8136A531; UHead: $1E40; UTail: $200F),   //
+
     (GBHead: $8136A830; GBTail: $8136B331; UHead: $203C; UTail: $20AB),   // 112
     (GBHead: $8136B332; GBTail: $8136BB37; UHead: $20AD; UTail: $2102),   // 86
     (GBHead: $8136BE34; GBTail: $8136C435; UHead: $2122; UTail: $215F),   // 62
@@ -479,7 +483,11 @@ const
     (GBHead: $8234F634; GBTail: $82358731; UHead: $4D1A; UTail: $4DAD),   // 148
 
     (GBHead: $82358739; GBTail: $82358F32; UHead: $4DB6; UTail: $4DFF),   // *** 分隔区十一
-    (GBHead: $82358F33; GBTail: $8336BE36; UHead: $9FA6; UTail: $D7A3),   // *** CJK 统一汉字头到朝鲜文音节尾
+
+    // (GBHead: $82358F33; GBTail: $8336BE36; UHead: $9FA6; UTail: $D7A3),   // *** CJK 统一汉字头到朝鲜文音节尾
+    // 注意：该区 82359037 到 82359134 本来线性对应的八个字符 9FB4 到 9FBB 和其他另外八个调换映射到 Unicode PUA 区因而要拆开处理，这八个字符正反都改写入映射表中
+    (GBHead: $82358F33; GBTail: $82359036; UHead: $9FA6; UTail: $9FB3),   //  CJK 统一汉字头到朝鲜文音节尾
+    (GBHead: $82359135; GBTail: $82359036; UHead: $9FBC; UTail: $D7A3),   //  CJK 统一汉字头到朝鲜文音节尾
 
     // 分隔区十五：
     (GBHead: $8336BE37; GBTail: $8336C738; UHead: $D7A4; UTail: $D7FF),   // 92
@@ -491,7 +499,10 @@ const
     (GBHead: $8430BA32; GBTail: $8430FE35; UHead: $FB50; UTail: $FDFB),   // *** 维吾尔、哈萨克、柯尔克孜文二
 
     // 分隔区十六：
-    (GBHead: $8430FE36; GBTail: $84318537; UHead: $FDFC; UTail: $FE2F),   // 52
+    // (GBHead: $8430FE36; GBTail: $84318537; UHead: $FDFC; UTail: $FE2F),   // 52
+    // 注意：该区 84318236 到 84318335 本来线性对应的十个 Unicode 字符 FE10 到 FE19 和其他另外十个调换映射到了其他位置因而要拆开处理，这十个字符正反都改写入映射表中
+    (GBHead: $8430FE36; GBTail: $84318235; UHead: $FDFC; UTail: $FE0F),
+    (GBHead: $84318336; GBTail: $84318537; UHead: $FE1A; UTail: $FE2F),
 
     (GBHead: $84318730; GBTail: $84319530; UHead: $FE70; UTail: $FEFC),   // *** 维吾尔、哈萨克、柯尔克孜文三
 

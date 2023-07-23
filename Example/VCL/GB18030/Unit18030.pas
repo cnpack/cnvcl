@@ -57,8 +57,11 @@ type
     btnCompareUnicodeString: TButton;
     btnCompareUnicodeString2: TButton;
     btnPinYinTest: TButton;
+    grpPuaNTS: TGroupBox;
     btnGenGB18030PuaUtf16: TButton;
     btnGenGB18030Utf16Pua: TButton;
+    btnGenGB18030UnicodeMapBMP: TButton;
+    btnGenGB18030UnicodeMapSMP: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -99,6 +102,7 @@ type
     procedure btnPinYinTestClick(Sender: TObject);
     procedure btnGenGB18030PuaUtf16Click(Sender: TObject);
     procedure btnGenGB18030Utf16PuaClick(Sender: TObject);
+    procedure btnGenGB18030UnicodeMapBMPClick(Sender: TObject);
   private
     // 以 Windows API 的方式批量生成 256 个 Unicode 字符
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
@@ -574,10 +578,6 @@ begin
 //   F8A1~FEFE                     用户 2 区    连续    658           E234 到 E4C5
 
   R := 0;
-
-  R := Gen4GB18030ToUtf16Page($90308130, $FE39FE39, WS);
-  ShowMessage(IntToStr(R)); Exit;
-
   WS.Add('区：双字节汉字三; 上一区字符数：' + IntToStr(R));
   R := Gen2GB18030ToUtf16Page($81, $40, $A0, $7E, WS);
   R := R + Gen2GB18030ToUtf16Page($81, $80, $A0, $FE, WS);
@@ -2089,6 +2089,37 @@ begin
   GenCn2Utf16ToGB18030PageChars(0, 0, $FF, $FF, SL, $10);
 
   dlgSave1.FileName := 'UTF16_PUA_GB18030.txt';
+  if dlgSave1.Execute then
+  begin
+    SL.SaveToFile(dlgSave1.FileName);
+    ShowMessage('Save to ' + dlgSave1.FileName);
+  end;
+  SL.Free;
+end;
+
+procedure TFormGB18030.btnGenGB18030UnicodeMapBMPClick(Sender: TObject);
+var
+  UCP, GBCP: TCnCodePoint;
+  SL: TCnAnsiStringList;
+  I: Integer;
+  S: AnsiString;
+begin
+  // 用 CnPack 的方法生成 Unicode 从 0000 开始 到 FFFF 的和 GB18030 对应的码表
+  // 以和信标委提供的 GB18030-2022MappingTableBMP.txt 对照，注意内部部分调整码位的顺序不同但内容应一致
+  SL := TCnAnsiStringList.Create;
+  SL.UseSingleLF := True;
+  for I := $0 to $FFFF do
+  begin
+    UCP := TCnCodePoint(I);
+    GBCP := GetGB18030FromUnicodeCodePoint(UCP);
+    if GBCP <> CN_INVALID_CODEPOINT then
+    begin
+      S := Format('%4.4x', [UCP]) + #9 + IntToHex(GBCP, 2);
+      SL.Add(S);
+    end;
+  end;
+
+  dlgSave1.FileName := 'GB18030-2022MappingTableBMP_Cn.txt';
   if dlgSave1.Execute then
   begin
     SL.SaveToFile(dlgSave1.FileName);
