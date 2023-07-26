@@ -189,7 +189,9 @@ unit CnGB18030;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2023.07.23
+* 修改记录：2023.07.27
+*               加入三千五百多个 Unicode 正式码与 PUA 码的对照表
+*           2023.07.23
 *               根据全国信息技术标准化网 NITS 的 GB18030-2022MappingTableBMP.txt 和 GB18030-2022MappingTableSMP.txt
 *               核对调整了 CnPack 的转码函数，目前已保持一致
 *           2023.02.04
@@ -381,6 +383,8 @@ const
     $FE98, $FE99, $FE9A, $FE9B, $FE9C, $FE9D, $FE9E, $FE9F
   );
 
+  // 以下 52 个重码字皆包含在 Unicode_Pua.inc 所声明的重码字列表中因而废弃不用
+
   // GBK 中的 52 个重码字的 Unicode 区的正式值，都在 3400 到 4DB5 这个 CJK 扩展 A 区里
   CN_DUPLICATES_UNICODE: array[0..51] of TCnCodePoint = (
     $3473, $3447, $359E, $361A, $360E, $396E, $3918, $39CF, $39DF, $3A73, $39D0,
@@ -398,6 +402,8 @@ const
     $E84F, $E850, $E851, $E852, $E853, $E856, $E857, $E858, $E859, $E85A, $E85B,
     $E85C, $E85D, $E85E, $E85F, $E860, $E861, $E862, $E863
   );
+
+  // 以上 52 个重码字皆包含在 Unicode_Pua.inc 所声明的重码字列表中因而废弃不用
 
   // 三个三重码字，也就是一个字有仨码！来源于 JRT0253-2022 规范
   CN_DUPLICATES_3_UNICODE: array[0..2] of array[0..2] of TCnCodePoint = (
@@ -532,6 +538,8 @@ const
 
 {$I GB18030_Unicode_4.inc}
 
+{$I Unicode_Pua.inc}
+
 var
   F2GB18030ToUnicodeMap: TCnHashMap = nil;
   F4GB18030ToUnicodeMap: TCnHashMap = nil;
@@ -579,10 +587,12 @@ begin
   if FUnicodeDuplicateMap = nil then
   begin
     FUnicodeDuplicateMap := TCnHashMap.Create(256);
-    for I := Low(CN_DUPLICATES_UNICODE) to High(CN_DUPLICATES_UNICODE) do
-      FUnicodeDuplicateMap.Add(Integer(CN_DUPLICATES_UNICODE[I]), CN_DUPLICATES_UNICODE_PUA[I]);
-    for I := Low(CN_DUPLICATES_UNICODE_PUA) to High(CN_DUPLICATES_UNICODE_PUA) do
-      FUnicodeDuplicateMap.Add(Integer(CN_DUPLICATES_UNICODE_PUA[I]), CN_DUPLICATES_UNICODE[I]);
+    // 52 个重码字皆包含在 Unicode_Pua.inc 所声明的重码字列表中因而此处改用大表格
+
+    for I := Low(CN_UNICODE_PUA_MAPPING) to High(CN_UNICODE_PUA_MAPPING) do
+      FUnicodeDuplicateMap.Add(Integer(CN_UNICODE_PUA_MAPPING[I]), CN_UNICODE_UCS_MAPPING[I]);
+    for I := Low(CN_UNICODE_UCS_MAPPING) to High(CN_UNICODE_UCS_MAPPING) do
+      FUnicodeDuplicateMap.Add(Integer(CN_UNICODE_UCS_MAPPING[I]), CN_UNICODE_PUA_MAPPING[I]);
   end;
 end;
 
