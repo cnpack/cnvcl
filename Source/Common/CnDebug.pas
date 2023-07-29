@@ -317,6 +317,8 @@ type
 
     function GetActive: Boolean;
     procedure SetActive(const Value: Boolean);
+    function IntArrayToString(ArrayAddress: Pointer; ElementCount, ElementSize: Integer;
+      Sign: Boolean): string;
     function SizeToString(ASize: TSize): string;
     function PointToString(APoint: TPoint): string;
     function RectToString(ARect: TRect): string;
@@ -474,6 +476,8 @@ type
     procedure LogComponentWithTag(AComponent: TComponent; const ATag: string);
     procedure LogCurrentStack(const AMsg: string = '');
     procedure LogConstArray(const Arr: array of const; const AMsg: string = '');
+    procedure LogIntegerArray(const Arr: array of Integer; const AMsg: string = '');
+    procedure LogCardinalArray(const Arr: array of Cardinal; const AMsg: string = '');
     procedure LogClass(const AClass: TClass; const AMsg: string = '');
     procedure LogClassByName(const AClassName: string; const AMsg: string = '');
     procedure LogInterface(const AIntf: IUnknown; const AMsg: string = '');
@@ -557,6 +561,8 @@ type
     procedure TraceComponentWithTag(AComponent: TComponent; const ATag: string);
     procedure TraceCurrentStack(const AMsg: string = '');
     procedure TraceConstArray(const Arr: array of const; const AMsg: string = '');
+    procedure TraceIntegerArray(const Arr: array of Integer; const AMsg: string = '');
+    procedure TraceCardinalArray(const Arr: array of Cardinal; const AMsg: string = '');
     procedure TraceClass(const AClass: TClass; const AMsg: string = '');
     procedure TraceClassByName(const AClassName: string; const AMsg: string = '');
     procedure TraceInterface(const AIntf: IUnknown; const AMsg: string = '');
@@ -750,6 +756,9 @@ const
   SCnUnknownError = 'Unknown Error! ';
   SCnLastErrorFmt = 'Last Error (Code: %d): %s';
   SCnConstArray = 'Array of Const:';
+  SCnIntegerArray = 'Array of Int32:';
+  SCnCardinalArray = 'Array of UInt32:';
+  SCnEmptyArray = '<Empty Array>';
   SCnClass = 'Class:';
   SCnHierarchy = 'Hierarchy:';
   SCnClassFmt = '%s ClassName %s. InstanceSize %d%s%s';
@@ -2458,6 +2467,155 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogIntegerArray(const Arr: array of Integer; const AMsg: string);
+{$IFDEF DEBUG}
+var
+  P: Pointer;
+{$ENDIF}
+begin
+{$IFDEF DEBUG}
+  if Length(Arr) = 0 then
+    P := nil
+  else
+    P := @Arr[0];
+
+  if AMsg = '' then
+    LogFull(FormatMsg('%s %s', [SCnIntegerArray,
+      IntArrayToString(P, Length(Arr), SizeOf(Integer), True)]),
+      CurrentTag, CurrentLevel, CurrentMsgType)
+  else
+    LogFull(FormatMsg('%s %s', [AMsg,
+      IntArrayToString(P, Length(Arr), SizeOf(Integer), True)]),
+      CurrentTag, CurrentLevel, CurrentMsgType);
+{$ENDIF}
+end;
+
+procedure TCnDebugger.LogCardinalArray(const Arr: array of Cardinal; const AMsg: string);
+{$IFDEF DEBUG}
+var
+  P: Pointer;
+{$ENDIF}
+begin
+{$IFDEF DEBUG}
+  if Length(Arr) = 0 then
+    P := nil
+  else
+    P := @Arr[0];
+
+  if AMsg = '' then
+    LogFull(FormatMsg('%s %s', [SCnIntegerArray,
+      IntArrayToString(P, Length(Arr), SizeOf(Cardinal), False)]),
+      CurrentTag, CurrentLevel, CurrentMsgType)
+  else
+    LogFull(FormatMsg('%s %s', [AMsg,
+      IntArrayToString(P, Length(Arr), SizeOf(Cardinal), False)]),
+      CurrentTag, CurrentLevel, CurrentMsgType);
+{$ENDIF}
+end;
+
+function TCnDebugger.IntArrayToString(ArrayAddress: Pointer;
+  ElementCount, ElementSize: Integer; Sign: Boolean): string;
+var
+  I: Integer;
+  PtrInt8: PShortInt;
+  PtrUInt8: PByte;
+  PtrInt16: PSmallInt;
+  PtrUInt16: PWORD;
+  PtrInt32: PInteger;
+  PtrUInt32: PDWORD;
+begin
+  if (ArrayAddress = nil) or (ElementCount = 0) or (ElementSize <= 0) then
+  begin
+    Result := SCnEmptyArray;
+    Exit;
+  end;
+
+  Result := '';
+  case ElementSize of
+    1:
+      begin
+        if Sign then
+        begin
+          PtrInt8 := PShortInt(ArrayAddress);
+          for I := 0 to ElementCount - 1 do
+          begin
+            if I = 0 then
+              Result := Format('%d', [PtrInt8^])
+            else
+              Result := Result + ',' + Format('%d', [PtrInt8^]);
+            Inc(PtrInt8);
+          end;
+        end
+        else
+        begin
+          PtrUInt8 := PByte(ArrayAddress);
+          for I := 0 to ElementCount - 1 do
+          begin
+            if I = 0 then
+              Result := Format('%u', [PtrUInt8^])
+            else
+              Result := Result + ',' + Format('%u', [PtrUInt8^]);
+            Inc(PtrUInt8);
+          end;
+        end;
+      end;
+    2:
+      begin
+        if Sign then
+        begin
+          PtrInt16 := PSmallInt(ArrayAddress);
+          for I := 0 to ElementCount - 1 do
+          begin
+            if I = 0 then
+              Result := Format('%d', [PtrInt16^])
+            else
+              Result := Result + ',' + Format('%d', [PtrInt16^]);
+            Inc(PtrInt16);
+          end;
+        end
+        else
+        begin
+          PtrUInt16 := PWord(ArrayAddress);
+          for I := 0 to ElementCount - 1 do
+          begin
+            if I = 0 then
+              Result := Format('%u', [PtrUInt16^])
+            else
+              Result := Result + ',' + Format('%u', [PtrUInt16^]);
+            Inc(PtrUInt16);
+          end;
+        end;
+      end;
+    4:
+      begin
+        if Sign then
+        begin
+          PtrInt32 := PInteger(ArrayAddress);
+          for I := 0 to ElementCount - 1 do
+          begin
+            if I = 0 then
+              Result := Format('%d', [PtrInt32^])
+            else
+              Result := Result + ',' + Format('%d', [PtrInt32^]);
+            Inc(PtrInt32);
+          end;
+        end
+        else
+        begin
+          PtrUInt32 := PDWORD(ArrayAddress);
+          for I := 0 to ElementCount - 1 do
+          begin
+            if I = 0 then
+              Result := Format('%u', [PtrUInt32^])
+            else
+              Result := Result + ',' + Format('%u', [PtrUInt32^]);
+            Inc(PtrUInt32);
+          end;
+        end;
+      end;
+  end;
+end;
+
 function TCnDebugger.PointToString(APoint: TPoint): string;
 begin
   Result := '(' + IntToStr(APoint.x) + ',' + IntToStr(APoint.y) + ')';
@@ -3211,6 +3369,44 @@ begin
   else
     TraceFull(FormatMsg('%s %s', [AMsg, FormatConstArray(Arr)]), CurrentTag,
       CurrentLevel, CurrentMsgType);
+end;
+
+procedure TCnDebugger.TraceIntegerArray(const Arr: array of Integer; const AMsg: string);
+var
+  P: Pointer;
+begin
+  if Length(Arr) = 0 then
+    P := nil
+  else
+    P := @Arr[0];
+
+  if AMsg = '' then
+    TraceFull(FormatMsg('%s %s', [SCnIntegerArray,
+      IntArrayToString(P, Length(Arr), SizeOf(Integer), True)]),
+      CurrentTag, CurrentLevel, CurrentMsgType)
+  else
+    TraceFull(FormatMsg('%s %s', [AMsg,
+      IntArrayToString(P, Length(Arr), SizeOf(Integer), True)]),
+      CurrentTag, CurrentLevel, CurrentMsgType);
+end;
+
+procedure TCnDebugger.TraceCardinalArray(const Arr: array of Cardinal; const AMsg: string);
+var
+  P: Pointer;
+begin
+  if Length(Arr) = 0 then
+    P := nil
+  else
+    P := @Arr[0];
+
+  if AMsg = '' then
+    TraceFull(FormatMsg('%s %s', [SCnIntegerArray,
+      IntArrayToString(P, Length(Arr), SizeOf(Cardinal), False)]),
+      CurrentTag, CurrentLevel, CurrentMsgType)
+  else
+    TraceFull(FormatMsg('%s %s', [AMsg,
+      IntArrayToString(P, Length(Arr), SizeOf(Cardinal), False)]),
+      CurrentTag, CurrentLevel, CurrentMsgType);
 end;
 
 function TCnDebugger.GetDiscardedMessageCount: Integer;
