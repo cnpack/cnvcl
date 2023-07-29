@@ -1409,6 +1409,10 @@ function ConvertStringToIdent(const Str: string; const Prefix: string = 'S';
   MaxWords：最长处理的分词数
   MaxCharLength: 最长的字符数。注意这三个 Max 只要达到一个就完成，可能会超 MaxCharLength}
 
+function Int32Len(IntPtr: Pointer): Integer;
+{* 返回以 0 结尾的四字节长度块的块数，不包括结尾的 0，类似于 StrLen
+   注意 Int8Len 和 Int16Len 可以用 StrLen PAnsiChar/PWideChar 代替}
+
 implementation
 
 uses
@@ -9056,6 +9060,22 @@ begin
 end;
 
 {$WARNINGS ON}
+
+function Int32Len(IntPtr: Pointer): Integer;
+var
+  P: PDWORD;
+begin
+  Result := 0;
+  if IntPtr = nil then
+    Exit;
+
+  P := PDWORD(IntPtr);
+  while P^ <> 0 do
+  begin
+    Inc(Result);
+    Inc(P);
+  end;
+end;
 
 {$IFDEF MSWINDOWS}
 
