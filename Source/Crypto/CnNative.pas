@@ -152,11 +152,23 @@ type
 
 {$IFNDEF TBYTES_DEFINED}
   TBytes = array of Byte;
-  {* 无符号字节数组，未定义时定义上}
+  {* 无符号字节动态数组，未定义时定义上}
 {$ENDIF}
 
   TShortInts = array of ShortInt;
-  {* 有符号字节数组}
+  {* 有符号字节动态数组}
+
+  TSmallInts = array of SmallInt;
+  {* 有符号双字节动态数组}
+
+  TWords = array of Word;
+  {* 无符号双字节动态数组}
+
+  TIntegers = array of Integer;
+  {* 有符号四字节动态数组}
+
+  TCardinals = array of Cardinal;
+  {* 无符号四字节动态数组}
 
   PCnByte = ^Byte;
   PCnWord = ^Word;
