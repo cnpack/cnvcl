@@ -476,8 +476,10 @@ type
     procedure LogComponentWithTag(AComponent: TComponent; const ATag: string);
     procedure LogCurrentStack(const AMsg: string = '');
     procedure LogConstArray(const Arr: array of const; const AMsg: string = '');
-    procedure LogIntegerArray(const Arr: array of Integer; const AMsg: string = '');
-    procedure LogCardinalArray(const Arr: array of Cardinal; const AMsg: string = '');
+    procedure LogIntegerArray(const Arr: array of Integer; const AMsg: string = ''); overload;
+    procedure LogIntegerArray(const ArrAddr: Pointer; Count: Integer; const AMsg: string = ''); overload;
+    procedure LogCardinalArray(const Arr: array of Cardinal; const AMsg: string = ''); overload;
+    procedure LogCardinalArray(const ArrAddr: Pointer; Count: Integer; const AMsg: string = ''); overload;
     procedure LogClass(const AClass: TClass; const AMsg: string = '');
     procedure LogClassByName(const AClassName: string; const AMsg: string = '');
     procedure LogInterface(const AIntf: IUnknown; const AMsg: string = '');
@@ -561,8 +563,10 @@ type
     procedure TraceComponentWithTag(AComponent: TComponent; const ATag: string);
     procedure TraceCurrentStack(const AMsg: string = '');
     procedure TraceConstArray(const Arr: array of const; const AMsg: string = '');
-    procedure TraceIntegerArray(const Arr: array of Integer; const AMsg: string = '');
-    procedure TraceCardinalArray(const Arr: array of Cardinal; const AMsg: string = '');
+    procedure TraceIntegerArray(const Arr: array of Integer; const AMsg: string = ''); overload;
+    procedure TraceIntegerArray(const ArrAddr: Pointer; Count: Integer; const AMsg: string = ''); overload;
+    procedure TraceCardinalArray(const Arr: array of Cardinal; const AMsg: string = ''); overload;
+    procedure TraceCardinalArray(const ArrAddr: Pointer; Count: Integer; const AMsg: string = ''); overload;
     procedure TraceClass(const AClass: TClass; const AMsg: string = '');
     procedure TraceClassByName(const AClassName: string; const AMsg: string = '');
     procedure TraceInterface(const AIntf: IUnknown; const AMsg: string = '');
@@ -2490,6 +2494,21 @@ begin
 {$ENDIF}
 end;
 
+procedure TCnDebugger.LogIntegerArray(const ArrAddr: Pointer; Count: Integer;
+  const AMsg: string);
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    LogFull(FormatMsg('%s %s', [SCnIntegerArray,
+      IntArrayToString(ArrAddr, Count, SizeOf(Integer), True)]),
+      CurrentTag, CurrentLevel, CurrentMsgType)
+  else
+    LogFull(FormatMsg('%s %s', [AMsg,
+      IntArrayToString(ArrAddr, Count, SizeOf(Integer), True)]),
+      CurrentTag, CurrentLevel, CurrentMsgType);
+{$ENDIF}
+end;
+
 procedure TCnDebugger.LogCardinalArray(const Arr: array of Cardinal; const AMsg: string);
 {$IFDEF DEBUG}
 var
@@ -2509,6 +2528,21 @@ begin
   else
     LogFull(FormatMsg('%s %s', [AMsg,
       IntArrayToString(P, Length(Arr), SizeOf(Cardinal), False)]),
+      CurrentTag, CurrentLevel, CurrentMsgType);
+{$ENDIF}
+end;
+
+procedure TCnDebugger.LogCardinalArray(const ArrAddr: Pointer; Count: Integer;
+  const AMsg: string);
+begin
+{$IFDEF DEBUG}
+  if AMsg = '' then
+    LogFull(FormatMsg('%s %s', [SCnIntegerArray,
+      IntArrayToString(ArrAddr, Count, SizeOf(Cardinal), False)]),
+      CurrentTag, CurrentLevel, CurrentMsgType)
+  else
+    LogFull(FormatMsg('%s %s', [AMsg,
+      IntArrayToString(ArrAddr, Count, SizeOf(Cardinal), False)]),
       CurrentTag, CurrentLevel, CurrentMsgType);
 {$ENDIF}
 end;
@@ -3390,6 +3424,19 @@ begin
       CurrentTag, CurrentLevel, CurrentMsgType);
 end;
 
+procedure TCnDebugger.TraceIntegerArray(const ArrAddr: Pointer; Count: Integer;
+  const AMsg: string);
+begin
+  if AMsg = '' then
+    TraceFull(FormatMsg('%s %s', [SCnIntegerArray,
+      IntArrayToString(ArrAddr, Count, SizeOf(Integer), True)]),
+      CurrentTag, CurrentLevel, CurrentMsgType)
+  else
+    TraceFull(FormatMsg('%s %s', [AMsg,
+      IntArrayToString(ArrAddr, Count, SizeOf(Integer), True)]),
+      CurrentTag, CurrentLevel, CurrentMsgType);
+end;
+
 procedure TCnDebugger.TraceCardinalArray(const Arr: array of Cardinal; const AMsg: string);
 var
   P: Pointer;
@@ -3406,6 +3453,19 @@ begin
   else
     TraceFull(FormatMsg('%s %s', [AMsg,
       IntArrayToString(P, Length(Arr), SizeOf(Cardinal), False)]),
+      CurrentTag, CurrentLevel, CurrentMsgType);
+end;
+
+procedure TCnDebugger.TraceCardinalArray(const ArrAddr: Pointer; Count: Integer;
+  const AMsg: string);
+begin
+  if AMsg = '' then
+    TraceFull(FormatMsg('%s %s', [SCnIntegerArray,
+      IntArrayToString(ArrAddr, Count, SizeOf(Cardinal), False)]),
+      CurrentTag, CurrentLevel, CurrentMsgType)
+  else
+    TraceFull(FormatMsg('%s %s', [AMsg,
+      IntArrayToString(ArrAddr, Count, SizeOf(Cardinal), False)]),
       CurrentTag, CurrentLevel, CurrentMsgType);
 end;
 
