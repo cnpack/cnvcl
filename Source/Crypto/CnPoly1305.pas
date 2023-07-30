@@ -255,7 +255,7 @@ begin
   end;
 end;
 
-procedure Poly1305Final(Context: TCnPoly1305Context; var Digest: TCnPoly1305Digest);
+procedure Poly1305Final(var Context: TCnPoly1305Context; var Digest: TCnPoly1305Digest);
 begin
   BigNumberAdd(Context.A, Context.A, Context.S);
   BigNumberKeepLowBits(Context.A, 8 * CN_POLY1305_DIGSIZE);
