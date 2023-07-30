@@ -408,6 +408,12 @@ function UInt32NetworkToHost(Value: Cardinal): Cardinal;
 function UInt16NetworkToHost(Value: Word): Word;
 {* 将 UInt16 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
 
+procedure MemoryNetworkToHost(AMem: Pointer; MemByteLen: Integer);
+{* 将一片内存区域从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
+
+procedure MemoryHostToNetwork(AMem: Pointer; MemByteLen: Integer);
+{* 将一片内存区域从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+
 procedure ReverseMemory(AMem: Pointer; MemByteLen: Integer);
 {* 按字节顺序倒置一块内存块，字节内部不变}
 
@@ -930,6 +936,18 @@ begin
 
   for I := 0 to MemByteLen - 1 do
     P^[I] := ReverseBitsInInt8(P^[I]);
+end;
+
+procedure MemoryNetworkToHost(AMem: Pointer; MemByteLen: Integer);
+begin
+  if not FByteOrderIsBigEndian then
+    ReverseMemory(AMem, MemByteLen);
+end;
+
+procedure MemoryHostToNetwork(AMem: Pointer; MemByteLen: Integer);
+begin
+  if not FByteOrderIsBigEndian then
+    ReverseMemory(AMem, MemByteLen);
 end;
 
 // N 字节长度的内存块的位操作
