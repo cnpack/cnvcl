@@ -142,6 +142,7 @@ function TestAEADAES192GCM: Boolean;
 function TestAEADAES256GCM: Boolean;
 function TestAEADSM4GCM: Boolean;
 function TestAEADChaCha20Poly1305: Boolean;
+function TestAEADXChaCha20Poly1305: Boolean;
 
 // ================================ ChaCha20 ===================================
 
@@ -342,6 +343,7 @@ begin
   MyAssert(TestAEADAES256GCM, 'TestAEADAES256GCM');
   MyAssert(TestAEADSM4GCM, 'TestAEADSM4GCM');
   MyAssert(TestAEADChaCha20Poly1305, 'TestAEADChaCha20Poly1305');
+  MyAssert(TestAEADXChaCha20Poly1305, 'TestAEADXChaCha20Poly1305');
 
 // ================================ ChaCha20 ===================================
 
@@ -1333,16 +1335,16 @@ end;
 
 function TestAEADChaCha20Poly1305: Boolean;
 var
-  Plain, Key, AAD, Nonce, EnData, DeData: TBytes;
+  Plain, Key, AAD, Iv, EnData, DeData: TBytes;
   Tag: TCnPoly1305Digest;
 begin
   // 例子来自 RFC 8439
   Plain := AnsiToBytes('Ladies and Gentlemen of the class of ''99: If I could offer you only one tip for the future, sunscreen would be it.');
   AAD := HexToBytes('50515253C0C1C2C3C4C5C6C7');
   Key := HexToBytes('808182838485868788898A8B8C8D8E8F909192939495969798999A9B9C9D9E9F');
-  Nonce := HexToBytes('070000004041424344454647');
+  Iv := HexToBytes('070000004041424344454647');
 
-  EnData := ChaCha20Poly1305EncryptBytes(Key, Nonce, Plain, AAD, Tag);
+  EnData := ChaCha20Poly1305EncryptBytes(Key, Iv, Plain, AAD, Tag);
 
   Result := DataToHex(@Tag[0], SizeOf(TCnPoly1305Digest)) = '1AE10B594F09E26A7E902ECBD0600691';
 
@@ -1355,7 +1357,36 @@ begin
 
   if not Result then Exit;
 
-  DeData := ChaCha20Poly1305DecryptBytes(Key, Nonce, EnData, AAD, Tag);
+  DeData := ChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD, Tag);
+  Result := CompareBytes(DeData, Plain);
+end;
+
+
+function TestAEADXChaCha20Poly1305: Boolean;
+var
+  Plain, Key, AAD, Iv, EnData, DeData: TBytes;
+  Tag: TCnPoly1305Digest;
+begin
+  // 例子来自 RFC 草案
+  Plain := AnsiToBytes('Ladies and Gentlemen of the class of ''99: If I could offer you only one tip for the future, sunscreen would be it.');
+  AAD := HexToBytes('50515253C0C1C2C3C4C5C6C7');
+  Key := HexToBytes('808182838485868788898A8B8C8D8E8F909192939495969798999A9B9C9D9E9F');
+  Iv := HexToBytes('404142434445464748494a4b4c4d4e4f5051525354555657');
+
+  EnData := XChaCha20Poly1305EncryptBytes(Key, Iv, Plain, AAD, Tag);
+
+  Result := DataToHex(@Tag[0], SizeOf(TCnPoly1305Digest)) = 'C0875924C1C7987947DEAFD8780ACF49';
+
+  if not Result then Exit;
+    Result := DataToHex(@EnData[0], Length(EnData)) =
+      'BD6D179D3E83D43B9576579493C0E939572A1700252BFACCBED2902C21396CBB' +
+      '731C7F1B0B4AA6440BF3A82F4EDA7E39AE64C6708C54C216CB96B72E1213B452' +
+      '2F8C9BA40DB5D945B11B69B982C1BB9E3F3FAC2BC369488F76B2383565D3FFF9' +
+      '21F9664C97637DA9768812F615C68B13B52E';
+
+  if not Result then Exit;
+
+  DeData := XChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD, Tag);
   Result := CompareBytes(DeData, Plain);
 end;
 

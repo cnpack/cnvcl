@@ -91,11 +91,12 @@ type
 
 procedure ChaCha20Block(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Counter: TCnChaChaCounter; var OutState: TCnChaChaState);
-{* 进行一次块运算，包括 20 轮的子运算，外部指定计数器}
+{* 进行一次块运算，包括 20 轮的子运算，外部指定 12 字节的 Nonce 与一个四字节计数器}
 
 procedure HChaCha20SubKey(var Key: TCnChaChaKey; var Nonce: TCnHChaChaNonce;
   var OutSubKey: TCnHChaChaSubKey);
-{* 进行一次 HChaCha20 块运算，包括 20 轮的子运算，输出 SubKey，计数器为 Nonce 前四字节}
+{* 进行一次 HChaCha20 块运算，包括 20 轮的子运算，输出 SubKey，
+  外部指定 16 字节的 Nonce，实际上是 Nonce 前四字节作为计数器，后 12 字节为 ChaCha20 的 Nonce}
 
 function ChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Data: TBytes): TBytes;

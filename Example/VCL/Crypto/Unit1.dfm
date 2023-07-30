@@ -2546,6 +2546,15 @@ object FormCrypt: TFormCrypt
           TabOrder = 15
           OnClick = btnChaCha20Poly1305AeadClick
         end
+        object btnXChaCha20Poly1305Aead: TButton
+          Left = 496
+          Top = 160
+          Width = 169
+          Height = 25
+          Caption = 'XChaCha20 Poly1305 AEAD Test'
+          TabOrder = 16
+          OnClick = btnXChaCha20Poly1305AeadClick
+        end
       end
     end
     object tsFNV: TTabSheet

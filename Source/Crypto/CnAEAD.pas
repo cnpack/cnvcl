@@ -48,7 +48,9 @@ unit CnAEAD;
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.10.22 V1.1
+* 修改记录：2022.07.31 V1.2
+*               加入 ChaCha20-Poly1305 和 XChaCha20-Poly1305 算法
+*           2022.10.22 V1.1
 *               修正 AES192/256 的 Key 可能被错误截断的问题，并增加 Tag 拼接在密文后的处理
 *           2022.07.27 V1.0
 *               创建单元
@@ -403,6 +405,37 @@ function ChaCha20Poly1305EncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTa
 
 function ChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
 {* 使用密码、初始化向量、额外数据对密文进行 ChaCha20_Poly1305 解密并验证，成功则返回明文
+  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+
+// =================== XChaCha20_Poly1305 数据块加解密函数 =====================
+
+procedure XChaCha20Poly1305Encrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutEnData: Pointer; var OutTag: TCnPoly1305Digest);
+{* 使用密码、初始化向量、额外数据对明文进行 XChaCha20_Poly1305 加密，返回密文至 OutEnData 所指的区域中
+  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
+  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证
+  其中，KeyByteLength 要求为 32 字节否则会截断或补 0，
+  Iv 要求为 24 字节否则也截断或补 0（另一种说法是 8 字节然而要额外加个 4 字节固定数据，这里未采用）
+  输出的 Tag 为 16 字节}
+
+function XChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutPlainData: Pointer; var InTag: TCnPoly1305Digest): Boolean;
+{* 使用密码、初始化向量、额外数据对密文进行 XChaCha20_Poly1305 解密并验证，
+  其中，KeyByteLength 要求为 32 字节否则会截断或补 0，
+  Iv 要求为 24 字节否则也截断或补 0（另一种说法是 8 字节然而要额外加个 4 字节固定数据，这里未采用）
+  成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
+  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+
+// ================== XChaCha20_Poly1305 字节数组加解密函数 =====================
+
+function XChaCha20Poly1305EncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnPoly1305Digest): TBytes;
+{* 使用密码、临时数据、额外数据对明文进行 XChaCha20_Poly1305 加密，返回密文
+  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+
+function XChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
+{* 使用密码、初始化向量、额外数据对密文进行 XChaCha20_Poly1305 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
 implementation
@@ -1962,6 +1995,140 @@ begin
   else
   begin
     ChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+      Length(AAD), nil, InTag); // 没密文，其实 Tag 比对成功与否都没用
+  end;
+end;
+
+// =================== XChaCha20_Poly1305 数据块加解密函数 =====================
+
+procedure XChaCha20Poly1305Encrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutEnData: Pointer; var OutTag: TCnPoly1305Digest);
+var
+  ChaChaKey: TCnChaChaKey;
+  H: TCnHChaChaNonce;
+  N: TCnChaChaNonce;
+  OutKey: TCnHChaChaSubKey;
+  P: PByte;
+begin
+  MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
+  MoveMost(Iv^, H[0], IvByteLength, SizeOf(TCnHChaChaNonce));
+
+  HChaCha20SubKey(ChaChaKey, H, OutKey); // 算出一个新的 Key
+  N[0] := 0;                             // 四字节 0 加上 XChaCha20 的剩下 8 字节共 12 字节作为 ChaCha20_Poly1305 的 Nonce
+  N[1] := 0;
+  N[2] := 0;
+  N[3] := 0;
+
+  P := PByte(Iv);
+  Inc(P, 16);
+  Move(P^, N[4], CN_XCHACHA_NONCE_SIZE - CN_HCHACHA_NONCE_SIZE);
+
+  ChaCha20Poly1305Encrypt(@OutKey[0], SizeOf(TCnHChaChaSubKey), @N[0], SizeOf(TCnChaChaNonce),
+    PlainData, PlainByteLength, AAD, AADByteLength, OutEnData, OutTag);
+end;
+
+function XChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutPlainData: Pointer; var InTag: TCnPoly1305Digest): Boolean;
+var
+  ChaChaKey: TCnChaChaKey;
+  H: TCnHChaChaNonce;
+  N: TCnChaChaNonce;
+  OutKey: TCnHChaChaSubKey;
+  P: PByte;
+begin
+  MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
+  MoveMost(Iv^, H[0], IvByteLength, SizeOf(TCnHChaChaNonce));
+
+  HChaCha20SubKey(ChaChaKey, H, OutKey); // 算出一个新的 Key
+  N[0] := 0;                             // 四字节 0 加上 XChaCha20 的剩下 8 字节共 12 字节作为 ChaCha20_Poly1305 的 Nonce
+  N[1] := 0;
+  N[2] := 0;
+  N[3] := 0;
+
+  P := PByte(Iv);
+  Inc(P, 16);
+  Move(P^, N[4], CN_XCHACHA_NONCE_SIZE - CN_HCHACHA_NONCE_SIZE);
+
+  Result := ChaCha20Poly1305Decrypt(@OutKey[0], SizeOf(TCnHChaChaSubKey), @N[0], SizeOf(TCnChaChaNonce),
+    EnData, EnByteLength, AAD, AADByteLength, OutPlainData, InTag);
+end;
+
+// ================== XChaCha20_Poly1305 字节数组加解密函数 ====================
+
+function XChaCha20Poly1305EncryptBytes(Key, Iv, PlainData, AAD: TBytes;
+  var OutTag: TCnPoly1305Digest): TBytes;
+var
+  K, I, P, A: Pointer;
+begin
+  if Key = nil then
+    K := nil
+  else
+    K := @Key[0];
+
+  if Iv = nil then
+    I := nil
+  else
+    I := @Iv[0];
+
+  if PlainData = nil then
+    P := nil
+  else
+    P := @PlainData[0];
+
+  if AAD = nil then
+    A := nil
+  else
+    A := @AAD[0];
+
+  if Length(PlainData) > 0 then
+  begin
+    SetLength(Result, Length(PlainData));
+    XChaCha20Poly1305Encrypt(K, Length(Key), I, Length(Iv), P, Length(PlainData), A,
+      Length(AAD), @Result[0], OutTag);
+  end
+  else
+  begin
+    XChaCha20Poly1305Encrypt(K, Length(Key), I, Length(Iv), P, Length(PlainData), A,
+      Length(AAD), nil, OutTag);
+  end;
+end;
+
+function XChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
+var
+  K, I, P, A: Pointer;
+begin
+  if Key = nil then
+    K := nil
+  else
+    K := @Key[0];
+
+  if Iv = nil then
+    I := nil
+  else
+    I := @Iv[0];
+
+  if EnData = nil then
+    P := nil
+  else
+    P := @EnData[0];
+
+  if AAD = nil then
+    A := nil
+  else
+    A := @AAD[0];
+
+  if Length(EnData) > 0 then
+  begin
+    SetLength(Result, Length(EnData));
+    if not XChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+      Length(AAD), @Result[0], InTag) then // Tag 比对失败则返回
+      SetLength(Result, 0);
+  end
+  else
+  begin
+    XChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
       Length(AAD), nil, InTag); // 没密文，其实 Tag 比对成功与否都没用
   end;
 end;
