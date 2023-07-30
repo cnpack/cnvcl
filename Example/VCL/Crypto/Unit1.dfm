@@ -1,6 +1,6 @@
 object FormCrypt: TFormCrypt
-  Left = 263
-  Top = 177
+  Left = 371
+  Top = 243
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO for Win32/Win64'
   ClientHeight = 500
@@ -2371,6 +2371,24 @@ object FormCrypt: TFormCrypt
           Caption = 'ChaCha20 Data'
           TabOrder = 3
           OnClick = btnChaCha20DataClick
+        end
+        object btnHChaCha20SubKey: TButton
+          Left = 416
+          Top = 80
+          Width = 113
+          Height = 25
+          Caption = 'HChaCha20 SubKey'
+          TabOrder = 4
+          OnClick = btnHChaCha20SubKeyClick
+        end
+        object btnXChaCha20Enc: TButton
+          Left = 416
+          Top = 112
+          Width = 113
+          Height = 25
+          Caption = 'XChaCha20 Test'
+          TabOrder = 5
+          OnClick = btnXChaCha20EncClick
         end
       end
     end
