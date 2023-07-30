@@ -60,7 +60,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNative;
+  SysUtils, Classes, CnPoly1305, CnNative;
 
 const
   CN_AEAD_BLOCK  = 16;
@@ -374,10 +374,41 @@ function SM4CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; Non
   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
   以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
 
+// =================== ChaCha20_Poly1305 数据块加解密函数 ======================
+
+procedure ChaCha20Poly1305Encrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutEnData: Pointer; var OutTag: TCnPoly1305Digest);
+{* 使用密码、初始化向量、额外数据对明文进行 ChaCha20_Poly1305 加密，返回密文至 OutEnData 所指的区域中
+  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
+  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证
+  其中，KeyByteLength 要求为 32 字节否则会截断或补 0，
+  Iv 要求为 12 字节否则也截断或补 0（另一种说法是 8 字节然而要额外加个 4 字节固定数据，这里未采用）
+  输出的 Tag 为 16 字节}
+
+function ChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutPlainData: Pointer; var InTag: TCnPoly1305Digest): Boolean;
+{* 使用密码、初始化向量、额外数据对密文进行 ChaCha20_Poly1305 解密并验证，
+  其中，KeyByteLength 要求为 32 字节否则会截断或补 0，
+  Iv 要求为 12 字节否则也截断或补 0（另一种说法是 8 字节然而要额外加个 4 字节固定数据，这里未采用）
+  成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
+  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+
+// ================== ChaCha20_Poly1305 字节数组加解密函数 =====================
+
+function ChaCha20Poly1305EncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnPoly1305Digest): TBytes;
+{* 使用密码、临时数据、额外数据对明文进行 ChaCha20_Poly1305 加密，返回密文
+  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+
+function ChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
+{* 使用密码、初始化向量、额外数据对密文进行 ChaCha20_Poly1305 解密并验证，成功则返回明文
+  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+
 implementation
 
 uses
-  CnSM4, CnAES;
+  CnSM4, CnAES, CnChaCha20;
 
 const
   GHASH_POLY: TCn128BitsBuffer = ($E1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
@@ -1765,6 +1796,174 @@ function SM4CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; Non
 begin
   Result := CCMDecrypt(Key, KeyByteLength, Nonce, NonceByteLength, EnData, EnByteLength,
     AAD, AADByteLength, OutPlainData, InTag, aetSM4);
+end;
+
+// =================== ChaCha20_Poly1305 数据块加解密函数 ======================
+
+procedure ChaCha20Poly1305Encrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
+  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutEnData: Pointer; var OutTag: TCnPoly1305Digest);
+var
+  ChaChaKey: TCnChaChaKey;
+  Nonce: TCnChaChaNonce;
+  OutKey: TCnChaChaState;
+  Poly1305Key: TCnPoly1305Key;
+  Poly1305Context: TCnPoly1305Context;
+  Lens: array[0..1] of Int64;
+begin
+  MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
+  MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
+
+  ChaCha20Block(ChaChaKey, Nonce, 0, OutKey); // 注意这里的计数器是 0
+
+  // 64 字节的 OutKey 的前一半作为计算 Poly1305 摘要 Tag 的 Key
+  Move(OutKey[0], Poly1305Key[0], SizeOf(TCnPoly1305Key));
+
+  ChaCha20EncryptData(ChaChaKey, Nonce, PlainData, PlainByteLength, OutEnData);
+
+  // 开始分块计算 Poly1305
+  Poly1305Init(Poly1305Context, Poly1305Key);
+
+  // 先算 AAD 及其 Padding
+  Poly1305Update(Poly1305Context, AAD, AADByteLength, True);
+
+  // 再算密文及其 Padding
+  Poly1305Update(Poly1305Context, OutEnData, PlainByteLength, True);
+
+  Lens[0] := AADByteLength;
+  Lens[1] := PlainByteLength;
+  Lens[0] := Int64ToLittleEndian(Lens[0]); // RFC 规定要走小端
+  Lens[1] := Int64ToLittleEndian(Lens[1]);
+
+  // 再算两个长度
+  Poly1305Update(Poly1305Context, @Lens[0], SizeOf(Lens));
+
+  // 最后得到结果
+  Poly1305Final(Poly1305Context, OutTag);
+end;
+
+function ChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
+  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
+  OutPlainData: Pointer; var InTag: TCnPoly1305Digest): Boolean;
+var
+  ChaChaKey: TCnChaChaKey;
+  Nonce: TCnChaChaNonce;
+  OutKey: TCnChaChaState;
+  Poly1305Key: TCnPoly1305Key;
+  Poly1305Context: TCnPoly1305Context;
+  Tag: TCnPoly1305Digest;
+  Lens: array[0..1] of Int64;
+begin
+  MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
+  MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
+
+  ChaCha20Block(ChaChaKey, Nonce, 0, OutKey); // 注意这里的计数器是 0
+
+  // 64 字节的 OutKey 的前一半作为计算 Poly1305 摘要 Tag 的 Key
+  Move(OutKey[0], Poly1305Key[0], SizeOf(TCnPoly1305Key));
+
+  ChaCha20DecryptData(ChaChaKey, Nonce, EnData, EnByteLength, OutPlainData);
+
+  // 开始分块计算 Poly1305
+  Poly1305Init(Poly1305Context, Poly1305Key);
+
+  // 先算 AAD 及其 Padding
+  Poly1305Update(Poly1305Context, AAD, AADByteLength, True);
+
+  // 再算密文及其 Padding
+  Poly1305Update(Poly1305Context, EnData, EnByteLength, True);
+
+  Lens[0] := AADByteLength;
+  Lens[1] := EnByteLength;
+  Lens[0] := Int64ToLittleEndian(Lens[0]); // RFC 规定要走小端
+  Lens[1] := Int64ToLittleEndian(Lens[1]);
+
+  // 再算两个长度
+  Poly1305Update(Poly1305Context, @Lens[0], SizeOf(Lens));
+
+  // 最后得到结果
+  Poly1305Final(Poly1305Context, Tag);
+
+  // 当且仅当计算出的 Tag 和传入 Tag 相同才通过
+  Result := CompareMem(@Tag[0], @InTag[0], SizeOf(TCnPoly1305Digest));
+end;
+
+// ================== ChaCha20_Poly1305 字节数组加解密函数 =====================
+
+function ChaCha20Poly1305EncryptBytes(Key, Iv, PlainData, AAD: TBytes;
+  var OutTag: TCnPoly1305Digest): TBytes;
+var
+  K, I, P, A: Pointer;
+begin
+  if Key = nil then
+    K := nil
+  else
+    K := @Key[0];
+
+  if Iv = nil then
+    I := nil
+  else
+    I := @Iv[0];
+
+  if PlainData = nil then
+    P := nil
+  else
+    P := @PlainData[0];
+
+  if AAD = nil then
+    A := nil
+  else
+    A := @AAD[0];
+
+  if Length(PlainData) > 0 then
+  begin
+    SetLength(Result, Length(PlainData));
+    ChaCha20Poly1305Encrypt(K, Length(Key), I, Length(Iv), P, Length(PlainData), A,
+      Length(AAD), @Result[0], OutTag);
+  end
+  else
+  begin
+    ChaCha20Poly1305Encrypt(K, Length(Key), I, Length(Iv), P, Length(PlainData), A,
+      Length(AAD), nil, OutTag);
+  end;
+end;
+
+function ChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
+var
+  K, I, P, A: Pointer;
+begin
+  if Key = nil then
+    K := nil
+  else
+    K := @Key[0];
+
+  if Iv = nil then
+    I := nil
+  else
+    I := @Iv[0];
+
+  if EnData = nil then
+    P := nil
+  else
+    P := @EnData[0];
+
+  if AAD = nil then
+    A := nil
+  else
+    A := @AAD[0];
+
+  if Length(EnData) > 0 then
+  begin
+    SetLength(Result, Length(EnData));
+    if not ChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+      Length(AAD), @Result[0], InTag) then // Tag 比对失败则返回
+      SetLength(Result, 0);
+  end
+  else
+  begin
+    ChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+      Length(AAD), nil, InTag); // 没密文，其实 Tag 比对成功与否都没用
+  end;
 end;
 
 end.

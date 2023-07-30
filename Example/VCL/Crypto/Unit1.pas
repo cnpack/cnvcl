@@ -338,6 +338,7 @@ type
     rbFNV1a: TRadioButton;
     btnHChaCha20SubKey: TButton;
     btnXChaCha20Enc: TButton;
+    btnChaCha20Poly1305Aead: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -440,6 +441,7 @@ type
     procedure btnFNVClick(Sender: TObject);
     procedure btnHChaCha20SubKeyClick(Sender: TObject);
     procedure btnXChaCha20EncClick(Sender: TObject);
+    procedure btnChaCha20Poly1305AeadClick(Sender: TObject);
   private
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -2712,6 +2714,24 @@ begin
     'D0F5BBDC270C65B1749A6EFFF1FBAA09536175CCD29FB9E6057B307320D31683' +
     '8A9C71F70B5B5907A66F7EA49AADC409' then
   ShowMessage('OK');
+end;
+
+procedure TFormCrypt.btnChaCha20Poly1305AeadClick(Sender: TObject);
+var
+  Plain, Key, AAD, Nonce, EnData, DeData: TBytes;
+  Tag: TCnPoly1305Digest;
+begin
+  Plain := AnsiToBytes('Ladies and Gentlemen of the class of ''99: If I could offer you only one tip for the future, sunscreen would be it.');
+  AAD := HexToBytes('50515253C0C1C2C3C4C5C6C7');
+  Key := HexToBytes('808182838485868788898A8B8C8D8E8F909192939495969798999A9B9C9D9E9F');
+  Nonce := HexToBytes('070000004041424344454647');
+
+  EnData := ChaCha20Poly1305EncryptBytes(Key, Nonce, Plain, AAD, Tag);
+
+  DeData := ChaCha20Poly1305DecryptBytes(Key, Nonce, EnData, AAD, Tag);
+
+  if CompareBytes(DeData, Plain) then
+    ShowMessage('OK');
 end;
 
 end.
