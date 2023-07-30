@@ -121,8 +121,12 @@ type
     function GetDebugDump: string;
   public
     D: PCnBigNumberElement;
-    // 一个 array[0..Top-1] of UInt32/UInt64 数组，越往后越代表高位。
-    // 在 x86 这种小端 CPU 上，该大数值严格等于本数组字节倒序所表达的数，大端没测过，行为八成不靠谱
+    // 一个 array[0..Top-1] of UInt32/UInt64 数组，元素越往后越代表高位，元素内部依赖 CPU 字节序。
+    // 在 x86 这种小端 CPU 上，该大数值严格等于本数组字节倒序所表达的数，
+    // 大端则每个元素内部倒序再全部从高到低读字节，才符合可读的要求，具体也没条件测
+    // 因而在 ToBinary/FromBinary/SetBinary 时，有个元素间的倒序过程，
+    // 另外元素内部的字节在读取写入时使用了拆字节拼接，因而抹平了 CPU 的大小端区别
+    // 这样对应的 Binary 内存区域从低地址到高地址每个字节都符合网络或阅读习惯，无论 CPU 的大小端是啥
 
     Top: Integer;
     // Top 表示数字上限，也即有 Top 个有效 UInt32/UInt64，D[Top - 1] 是最高位有效数所在的 UInt32/UInt64
@@ -587,7 +591,8 @@ function BigNumberToBinary(const Num: TCnBigNumber; Buf: PAnsiChar; FixedLen: In
 {* 将一个大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
    返回 Buf 写入的长度，注意不处理正负号。如果 Buf 为 nil，则直接返回所需长度
    大数长度超过 FixedLen 时按大数实际字节长度写，否则先写字节 0 补齐长度
-   注意内部有个倒序的过程，也就是说低内存被写入的是大数内部的高位数据，符合网络或阅读习惯}
+   注意内部有个元素间倒序的过程，同时元素内也有拆字节的过程，抹平了 CPU 大小端的不同
+   也就是说低内存被写入的是大数内部的高位数据，符合网络或阅读习惯}
 
 function BigNumberFromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
 {* 将一个二进制块转换成大数对象，注意不处理正负号。其结果不用时必须用 BigNumberFree 释放}
@@ -597,7 +602,7 @@ function BigNumberReadBinaryFromStream(const Num: TCnBigNumber; Stream: TStream)
 
 function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream;
   FixedLen: Integer = 0): Integer;
-{* 将一个大数的二进制部分写入流，返回写入流的长度。注意内部有个倒序的过程以符合网络或阅读习惯
+{* 将一个大数的二进制部分写入流，返回写入流的长度。注意内部有个元素间以及元素内倒序的过程以符合网络或阅读习惯
   FixedLen 表示大数内容不够 FixedLen 字节长度时高位补足 0 以保证 Stream 中输出固定 FixedLen 字节的长度
   大数长度超过 FixedLen 时按大数实际字节长度写}
 
@@ -609,7 +614,8 @@ function BigNumberToBytes(const Num: TCnBigNumber): TBytes;
 
 function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
   const Res: TCnBigNumber): Boolean;
-{* 将一个二进制块赋值给指定大数对象，注意不处理正负号，内部采用复制}
+{* 将一个二进制块赋值给指定大数对象，注意不处理正负号，内部采用复制，
+  注意内部有个元素间倒序以及逐个字节由低到高拼成一个元素的过程，以符合网络或阅读习惯}
 
 function BigNumberToBase64(const Num: TCnBigNumber): string;
 {* 将一个大数对象转成 Base64 字符串，不处理正负号}
@@ -1787,12 +1793,12 @@ begin
   while N > 0 do
   begin
     L := (L shl 8) or Ord(Buf^);
-    Buf := PAnsiChar(TCnNativeInt(Buf) + 1);
+    Buf := PAnsiChar(TCnNativeInt(Buf) + 1);  // Buf 是越处理越往高地址走
 
     if M = 0 then
     begin
       Dec(I);
-      PCnBigNumberElementArray(Res.D)^[I] := L;
+      PCnBigNumberElementArray(Res.D)^[I] := L; // D 的 I 则是越处理越往低地址走
       L := 0;
       M := BN_BYTES - 1;
     end

@@ -26,7 +26,9 @@ unit CnPoly1305;
 * 单元作者：刘啸（liuxiao@cnpack.org)
 * 备    注：根据 RFC 7539 实现
 *           输入为任意长度数据与 32 字节密钥，输出 16 字节杂凑值，发散性并不是很好
-*           TODO: 检查 ReverseMemory 是否是出于大小端需要
+*           注意：由于 TCnBigNumber 使用的 Binary 均是网络字节顺序也就是大端
+*           但 RFC 中又规定这里得小端因此代码中要手动调用 ReverseMemory
+*           无论 CPU 是大端还是小端
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -84,10 +86,12 @@ function Poly1305Print(const Digest: TCnPoly1305Digest): string;
 procedure Poly1305Init(out Context: TCnPoly1305Context; Key: TCnPoly1305Key);
 {* 初始化一轮 Poly1305 计算上下文，内部创建 Context 准备计算 Poly1305 结果}
 
-procedure Poly1305Update(Context: TCnPoly1305Context; Input: PAnsiChar; ByteLength: Cardinal);
+procedure Poly1305Update(Context: TCnPoly1305Context; Input: PAnsiChar;
+  ByteLength: Cardinal; ZeroPadding: Boolean = False);
 {* 以初始化后的上下文对一块数据进行 Poly1305 计算。
   可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
-  但目前限制每一块长度必须是 16 字节的整数倍，否则内部会补 0}
+  但该 Update 的行为在碰见末尾非整块时会强行计算，不会像其他杂凑一样暂存等下一轮或 Final
+  ZeroPadding 控制末尾块非 16 整时是否补 0}
 
 procedure Poly1305Final(var Context: TCnPoly1305Context; var Digest: TCnPoly1305Digest);
 {* 结束本轮计算，将 Poly130 结果返回至 Digest 中并释放 Context}
@@ -123,8 +127,8 @@ var
 begin
   Move(Key[0], RKey[0], SizeOf(TCnPoly1305Key));
 
-  // TODO: 此处的 ReverseMemory 是否限于 x86 这种小端 CPU
-  // 大端 CPU 是否要 ReverseMemory?
+  // 由于 TCnBigNumber 使用的 Binary 均是网络字节顺序也就是大端
+  // 但 RFC 中又规定这里得小端因此要手动调用 ReverseMemory 无论 CPU 是大端还是小端
   ReverseMemory(@RKey[0], CN_POLY1305_BLOCKSIZE);
   ReverseMemory(@RKey[CN_POLY1305_BLOCKSIZE], CN_POLY1305_BLOCKSIZE);
 
@@ -224,7 +228,8 @@ begin
   Context.N.SetZero;
 end;
 
-procedure Poly1305Update(Context: TCnPoly1305Context; Input: PAnsiChar; ByteLength: Cardinal);
+procedure Poly1305Update(Context: TCnPoly1305Context; Input: PAnsiChar;
+  ByteLength: Cardinal; ZeroPadding: Boolean);
 var
   I, B, L: Integer;
   Buf: array[0..CN_POLY1305_BLOCKSIZE] of Byte;
@@ -241,11 +246,15 @@ begin
     begin
       L := ByteLength mod CN_POLY1305_BLOCKSIZE;
       if L = 0 then
-        L := CN_POLY1305_BLOCKSIZE;
+        L := CN_POLY1305_BLOCKSIZE
+      else if ZeroPadding then
+        FillChar(Buf[0], SizeOf(Buf), 0); // 末尾块不足 16 又要补 0 所以先要填充全 0
     end;
 
     Move(P^[(I - 1) * CN_POLY1305_BLOCKSIZE], Buf[0], L);  // 内容塞上
-    Buf[L] := 1;                                           // 紧邻的高字节再置个 1
+    if ZeroPadding then                                    // 末尾块如果要补 0 则上面补了，下面要补个 1
+      L := CN_POLY1305_BLOCKSIZE;
+    Buf[L] := 1;                                           // 紧邻的高字节（或补 0 时最高字节）再置个 1
 
     ReverseMemory(@Buf[0], L + 1);
     Context.N.SetBinary(@Buf[0], L + 1);
