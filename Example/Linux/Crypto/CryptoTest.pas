@@ -141,6 +141,7 @@ function TestAEADAES128GCM: Boolean;
 function TestAEADAES192GCM: Boolean;
 function TestAEADAES256GCM: Boolean;
 function TestAEADSM4GCM: Boolean;
+function TestAEADChaCha20Poly1305: Boolean;
 
 // ================================ ChaCha20 ===================================
 
@@ -237,194 +238,202 @@ function TestECCSchoof2: Boolean;
 
 implementation
 
+procedure MyAssert(V: Boolean; const Msg: string);
+begin
+  Writeln(Msg + '...');
+  Assert(V);
+end;
+
 procedure TestCrypto;
 begin
   Writeln('Crypto Test Start...');
 
 // ============================== Native =======================================
 
-  Assert(TestStrToUInt64, 'TestStrToUInt64');
-  Assert(TestUInt64Div, 'TestUInt64Div');
-  Assert(TestUInt64Mod, 'TestUInt64Mod');
+  MyAssert(TestStrToUInt64, 'TestStrToUInt64');
+  MyAssert(TestUInt64Div, 'TestUInt64Div');
+  MyAssert(TestUInt64Mod, 'TestUInt64Mod');
 
 // ============================== BigNumber ====================================
 
-  Assert(TestBigNumberHex, 'TestBigNumberHex');
-  Assert(TestBigNumberDec, 'TestBigNumberDec');
-  Assert(TestBigNumberExpandWord, 'TestBigNumberExpandWord');
-  Assert(TestBigNumberModWord, 'TestBigNumberModWord');
-  Assert(TestBigNumberMulWord, 'TestBigNumberMulWord');
-  Assert(TestBigNumberDivWord, 'TestBigNumberDivWord');
-  Assert(TestBigNumberUnsignedAdd, 'TestBigNumberUnsignedAdd');
-  Assert(TestBigNumberPowerMod, 'TestBigNumberPowerMod');
-  Assert(TestBigNumberDiv, 'TestBigNumberDiv');
-  Assert(TestBigNumberShiftLeft, 'TestBigNumberShiftLeft');
-  Assert(TestBigNumberGetBitsCount, 'TestBigNumberGetBitsCount');
-  Assert(TestBigNumberShiftRightOne, 'TestBigNumberShiftRightOne');
-  Assert(TestBigNumberFermatCheckComposite, 'TestBigNumberFermatCheckComposite');
-  Assert(TestBigNumberIsProbablyPrime, 'TestBigNumberIsProbablyPrime');
+  MyAssert(TestBigNumberHex, 'TestBigNumberHex');
+  MyAssert(TestBigNumberDec, 'TestBigNumberDec');
+  MyAssert(TestBigNumberExpandWord, 'TestBigNumberExpandWord');
+  MyAssert(TestBigNumberModWord, 'TestBigNumberModWord');
+  MyAssert(TestBigNumberMulWord, 'TestBigNumberMulWord');
+  MyAssert(TestBigNumberDivWord, 'TestBigNumberDivWord');
+  MyAssert(TestBigNumberUnsignedAdd, 'TestBigNumberUnsignedAdd');
+  MyAssert(TestBigNumberPowerMod, 'TestBigNumberPowerMod');
+  MyAssert(TestBigNumberDiv, 'TestBigNumberDiv');
+  MyAssert(TestBigNumberShiftLeft, 'TestBigNumberShiftLeft');
+  MyAssert(TestBigNumberGetBitsCount, 'TestBigNumberGetBitsCount');
+  MyAssert(TestBigNumberShiftRightOne, 'TestBigNumberShiftRightOne');
+  MyAssert(TestBigNumberFermatCheckComposite, 'TestBigNumberFermatCheckComposite');
+  MyAssert(TestBigNumberIsProbablyPrime, 'TestBigNumberIsProbablyPrime');
 
 // ================================ SM4 ========================================
 
-  Assert(TestSM4Standard1, 'TestSM4Standard1');
-  Assert(TestSM4Standard2, 'TestSM4Standard2');
+  MyAssert(TestSM4Standard1, 'TestSM4Standard1');
+  MyAssert(TestSM4Standard2, 'TestSM4Standard2');
 
 // ================================ DES ========================================
 
-  Assert(TestDESEcb1, 'TestDESEcb1');
+  MyAssert(TestDESEcb1, 'TestDESEcb1');
 
 // ================================ 3DES =======================================
 
-  Assert(Test3DESEcb1, 'Test3DESEcb1');
+  MyAssert(Test3DESEcb1, 'Test3DESEcb1');
 
 // ================================ AES ========================================
 
-  Assert(TestAESEcb128, 'TestAESEcb128');
-  Assert(TestAESEcb192, 'TestAESEcb192');
-  Assert(TestAESEcb256, 'TestAESEcb256');
+  MyAssert(TestAESEcb128, 'TestAESEcb128');
+  MyAssert(TestAESEcb192, 'TestAESEcb192');
+  MyAssert(TestAESEcb256, 'TestAESEcb256');
 
 // ================================ CRC ========================================
 
-  Assert(TestCRC8CCITT, 'TestCRC8CCITT');
-  Assert(TestCRC16CCITT, 'TestCRC16CCITT');
-  Assert(TestCRC32, 'TestCRC32');
-  Assert(TestCRC64ECMA, 'TestCRC64ECMA');
+  MyAssert(TestCRC8CCITT, 'TestCRC8CCITT');
+  MyAssert(TestCRC16CCITT, 'TestCRC16CCITT');
+  MyAssert(TestCRC32, 'TestCRC32');
+  MyAssert(TestCRC64ECMA, 'TestCRC64ECMA');
 
 // ================================ MD5 ========================================
 
-  Assert(TestMD5, 'TestMD5');
-  Assert(TestMD5Hmac, 'TestMD5Hmac');
+  MyAssert(TestMD5, 'TestMD5');
+  MyAssert(TestMD5Hmac, 'TestMD5Hmac');
 
 // ================================ SHA1 =======================================
 
-  Assert(TestSHA1, 'TestSHA1');
-  Assert(TestSHA1Hmac, 'TestSHA1Hmac');
+  MyAssert(TestSHA1, 'TestSHA1');
+  MyAssert(TestSHA1Hmac, 'TestSHA1Hmac');
 
 // ================================ SHA2 =======================================
 
-  Assert(TestSHA224, 'TestSHA224');
-  Assert(TestSHA224HMac, 'TestSHA224HMac');
-  Assert(TestSHA256, 'TestSHA256');
-  Assert(TestSHA256HMac, 'TestSHA256HMac');
-  Assert(TestSHA384, 'TestSHA384');
-  Assert(TestSHA384HMac, 'TestSHA384HMac');
-  Assert(TestSHA512, 'TestSHA512');
-  Assert(TestSHA512HMac, 'TestSHA512HMac');
+  MyAssert(TestSHA224, 'TestSHA224');
+  MyAssert(TestSHA224HMac, 'TestSHA224HMac');
+  MyAssert(TestSHA256, 'TestSHA256');
+  MyAssert(TestSHA256HMac, 'TestSHA256HMac');
+  MyAssert(TestSHA384, 'TestSHA384');
+  MyAssert(TestSHA384HMac, 'TestSHA384HMac');
+  MyAssert(TestSHA512, 'TestSHA512');
+  MyAssert(TestSHA512HMac, 'TestSHA512HMac');
 
 // ================================ SHA3 =======================================
 
-  Assert(TestSHA3_224, 'TestSHA3_224');
-  Assert(TestSHA3_224HMac, 'TestSHA3_224HMac');
-  Assert(TestSHA3_256, 'TestSHA3_256');
-  Assert(TestSHA3_256HMac, 'TestSHA3_256HMac');
-  Assert(TestSHA3_384, 'TestSHA3_384');
-  Assert(TestSHA3_384HMac, 'TestSHA3_384HMac');
-  Assert(TestSHA3_512, 'TestSHA3_512');
-  Assert(TestSHA3_512HMac, 'TestSHA3_512HMac');
+  MyAssert(TestSHA3_224, 'TestSHA3_224');
+  MyAssert(TestSHA3_224HMac, 'TestSHA3_224HMac');
+  MyAssert(TestSHA3_256, 'TestSHA3_256');
+  MyAssert(TestSHA3_256HMac, 'TestSHA3_256HMac');
+  MyAssert(TestSHA3_384, 'TestSHA3_384');
+  MyAssert(TestSHA3_384HMac, 'TestSHA3_384HMac');
+  MyAssert(TestSHA3_512, 'TestSHA3_512');
+  MyAssert(TestSHA3_512HMac, 'TestSHA3_512HMac');
 
 // ================================ Base64 =====================================
 
-  Assert(TestBase64, 'TestBase64');
+  MyAssert(TestBase64, 'TestBase64');
 
 // ================================ AEAD =======================================
 
-  Assert(TestAEADAESCCM, 'TestAEADAESCCM');
-  Assert(TestAEADSM4CCM, 'TestAEADSM4CCM');
-  Assert(TestAEADAES128GCM, 'TestAEADAES128GCM');
-  Assert(TestAEADAES192GCM, 'TestAEADAES192GCM');
-  Assert(TestAEADAES256GCM, 'TestAEADAES256GCM');
+  MyAssert(TestAEADAESCCM, 'TestAEADAESCCM');
+  MyAssert(TestAEADSM4CCM, 'TestAEADSM4CCM');
+  MyAssert(TestAEADAES128GCM, 'TestAEADAES128GCM');
+  MyAssert(TestAEADAES192GCM, 'TestAEADAES192GCM');
+  MyAssert(TestAEADAES256GCM, 'TestAEADAES256GCM');
+  MyAssert(TestAEADSM4GCM, 'TestAEADSM4GCM');
+  MyAssert(TestAEADChaCha20Poly1305, 'TestAEADChaCha20Poly1305');
 
 // ================================ ChaCha20 ===================================
 
-  Assert(TestChaCha20, 'TestChaCha20');
-  Assert(TestHChaCha20SubKey, 'TestHChaCha20SubKey');
-  Assert(TestXChaCha20, 'TestXChaCha20');
+  MyAssert(TestChaCha20, 'TestChaCha20');
+  MyAssert(TestHChaCha20SubKey, 'TestHChaCha20SubKey');
+  MyAssert(TestXChaCha20, 'TestXChaCha20');
 
 // ================================ Poly1305 ===================================
 
-  Assert(TestPoly1305, 'TestPoly1305');
+  MyAssert(TestPoly1305, 'TestPoly1305');
 
 // ================================ ZUC ========================================
 
-  Assert(TestZUC1, 'TestZUC1');
-  Assert(TestZUC2, 'TestZUC2');
-  Assert(TestZUC3, 'TestZUC3');
-  Assert(TestZUC4, 'TestZUC4');
-  Assert(TestZUCEEA31, 'TestZUCEEA31');
-  Assert(TestZUCEEA32, 'TestZUCEEA32');
-  Assert(TestZUCEEA33, 'TestZUCEEA33');
-  Assert(TestZUCEIA31, 'TestZUCEIA31');
-  Assert(TestZUCEIA32, 'TestZUCEIA32');
-  Assert(TestZUCEIA33, 'TestZUCEIA33');
+  MyAssert(TestZUC1, 'TestZUC1');
+  MyAssert(TestZUC2, 'TestZUC2');
+  MyAssert(TestZUC3, 'TestZUC3');
+  MyAssert(TestZUC4, 'TestZUC4');
+  MyAssert(TestZUCEEA31, 'TestZUCEEA31');
+  MyAssert(TestZUCEEA32, 'TestZUCEEA32');
+  MyAssert(TestZUCEEA33, 'TestZUCEEA33');
+  MyAssert(TestZUCEIA31, 'TestZUCEIA31');
+  MyAssert(TestZUCEIA32, 'TestZUCEIA32');
+  MyAssert(TestZUCEIA33, 'TestZUCEIA33');
 
 // ================================ TEA ========================================
 
-  Assert(TestTea, 'TestTea');
-  Assert(TestXTea, 'TestXTea');
-  Assert(TestXXTea, 'TestXXTea');
+  MyAssert(TestTea, 'TestTea');
+  MyAssert(TestXTea, 'TestXTea');
+  MyAssert(TestXXTea, 'TestXXTea');
 
 // ================================ FNV ========================================
 
-  Assert(TestFNV1, 'TestFNV1');
-  Assert(TestFNV1a, 'TestFNV1a');
+  MyAssert(TestFNV1, 'TestFNV1');
+  MyAssert(TestFNV1a, 'TestFNV1a');
 
 // ================================ SM2 ========================================
 
-  Assert(TestSM21, 'TestSM21');
-  Assert(TestSM22, 'TestSM22');
-  Assert(TestSM23, 'TestSM23');
+  MyAssert(TestSM21, 'TestSM21');
+  MyAssert(TestSM22, 'TestSM22');
+  MyAssert(TestSM23, 'TestSM23');
 
 // ================================ SM3 ========================================
 
-  Assert(TestSM3, 'TestSM3');
-  Assert(TestSM3Hmac, 'TestSM3Hmac');
+  MyAssert(TestSM3, 'TestSM3');
+  MyAssert(TestSM3Hmac, 'TestSM3Hmac');
 
 // ================================ SM9 ========================================
 
-  Assert(TestSM9Hash1, 'TestSM9Hash1');
-  Assert(TestSM9Hash2, 'TestSM9Hash2');
-  Assert(TestSM9Mac, 'TestSM9Mac');
+  MyAssert(TestSM9Hash1, 'TestSM9Hash1');
+  MyAssert(TestSM9Hash2, 'TestSM9Hash2');
+  MyAssert(TestSM9Mac, 'TestSM9Mac');
 
-  Assert(TestSM9Sign, 'TestSM9Sign');
-  Assert(TestSM9KeyExchange, 'TestSM9KeyExchange');
-  Assert(TestSM9KeyEncapsulation, 'TestSM9KeyEncapsulation');
-  Assert(TestSM9PublicEncryption, 'TestSM9PublicEncryption');
+  MyAssert(TestSM9Sign, 'TestSM9Sign');
+  MyAssert(TestSM9KeyExchange, 'TestSM9KeyExchange');
+  MyAssert(TestSM9KeyEncapsulation, 'TestSM9KeyEncapsulation');
+  MyAssert(TestSM9PublicEncryption, 'TestSM9PublicEncryption');
 
 // ================================ RSA ========================================
 
-  Assert(TestRSA1, 'TestRSA1');
-  Assert(TestRSA2, 'TestRSA2');
+  MyAssert(TestRSA1, 'TestRSA1');
+  MyAssert(TestRSA2, 'TestRSA2');
 
 // ================================ KDF ========================================
 
-  Assert(TestKDFPB1, 'TestKDFPB1');
-  Assert(TestKDFPB2, 'TestKDFPB2');
-  Assert(TestKDFSM2SM9, 'TestKDFSM2SM9');
+  MyAssert(TestKDFPB1, 'TestKDFPB1');
+  MyAssert(TestKDFPB2, 'TestKDFPB2');
+  MyAssert(TestKDFSM2SM9, 'TestKDFSM2SM9');
 
 // ================================ Prime Number ===============================
 
-  Assert(TestPrimeNumber1, 'TestPrimeNumber1');
-  Assert(TestPrimeNumber2, 'TestPrimeNumber2');
+  MyAssert(TestPrimeNumber1, 'TestPrimeNumber1');
+  MyAssert(TestPrimeNumber2, 'TestPrimeNumber2');
 
 // ================================ 25519 ======================================
 
-  Assert(Test25519Sign, 'Test25519Sign');
+  MyAssert(Test25519Sign, 'Test25519Sign');
 
 // =============================== Paillier ====================================
 
-  Assert(TestPaillier1, 'TestPaillier1');
-  Assert(TestPaillier2, 'TestPaillier2');
+  MyAssert(TestPaillier1, 'TestPaillier1');
+  MyAssert(TestPaillier2, 'TestPaillier2');
 
 // ============================= SecretSharing =================================
 
-  Assert(TestSecretSharingShamir, 'TestSecretSharingShamir');
-  Assert(TestSecretSharingFeldmanVss, 'TestSecretSharingFeldmanVss');
+  MyAssert(TestSecretSharingShamir, 'TestSecretSharingShamir');
+  MyAssert(TestSecretSharingFeldmanVss, 'TestSecretSharingFeldmanVss');
 
 // ================================ ECC ========================================
 
-  Assert(TestECCMul, 'TestECCMul');
-  Assert(TestECCSchoof, 'TestECCSchoof');
-  Assert(TestECCSchoof2, 'TestECCSchoof2');
+  MyAssert(TestECCMul, 'TestECCMul');
+  MyAssert(TestECCSchoof, 'TestECCSchoof');
+  MyAssert(TestECCSchoof2, 'TestECCSchoof2');
 
 // ================================= END =======================================
 
@@ -587,32 +596,28 @@ begin
     R := BigNumberModWord(T, W);
     Result := R = 0;
 
-    if not Result then
-      Exit;
+    if not Result then Exit;
 
     T.SetDec('111757582461902544929520711250223739903');
     W := 1000000000;
     R := BigNumberModWord(T, W);
     Result := R = 223739903;
 
-    if not Result then
-      Exit;
+    if not Result then Exit;
 
     T.SetHex('0C7D4FAEC98EC3DF');
     W := $6F6C929F;
     R := BigNumberModWord(T, W);
     Result := R = 1802899775;
 
-    if not Result then
-      Exit;
+    if not Result then Exit;
 
     T.SetDec('12345667296');
     W := 100000;
     R := BigNumberModWord(T, W); // Win32 下居然出错等于 0，后已修复
     Result := R = 67296;
 
-    if not Result then
-      Exit;
+    if not Result then Exit;
 
 {$IFDEF CPU64BITS}
     T.SetDec('2345348872881627880943948657900100329812345667296');
@@ -1326,6 +1331,34 @@ begin
   Result := DataToHex(@P[0], Length(P)) = 'AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDEEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA';
 end;
 
+function TestAEADChaCha20Poly1305: Boolean;
+var
+  Plain, Key, AAD, Nonce, EnData, DeData: TBytes;
+  Tag: TCnPoly1305Digest;
+begin
+  // 例子来自 RFC 8439
+  Plain := AnsiToBytes('Ladies and Gentlemen of the class of ''99: If I could offer you only one tip for the future, sunscreen would be it.');
+  AAD := HexToBytes('50515253C0C1C2C3C4C5C6C7');
+  Key := HexToBytes('808182838485868788898A8B8C8D8E8F909192939495969798999A9B9C9D9E9F');
+  Nonce := HexToBytes('070000004041424344454647');
+
+  EnData := ChaCha20Poly1305EncryptBytes(Key, Nonce, Plain, AAD, Tag);
+
+  Result := DataToHex(@Tag[0], SizeOf(TCnPoly1305Digest)) = '1AE10B594F09E26A7E902ECBD0600691';
+
+  if not Result then Exit;
+    Result := DataToHex(@EnData[0], Length(EnData)) =
+      'D31A8D34648E60DB7B86AFBC53EF7EC2A4ADED51296E08FEA9E2B5A736EE62D6' +
+      '3DBEA45E8CA9671282FAFB69DA92728B1A71DE0A9E060B2905D6A5B67ECD3B36' +
+      '92DDBD7F2D778B8C9803AEE328091B58FAB324E4FAD675945585808B4831D7BC' +
+      '3FF4DEF08E4B7A9DE576D26586CEC64B6116';
+
+  if not Result then Exit;
+
+  DeData := ChaCha20Poly1305DecryptBytes(Key, Nonce, EnData, AAD, Tag);
+  Result := CompareBytes(DeData, Plain);
+end;
+
 // ================================ ChaCha20 ===================================
 
 function TestChaCha20: Boolean;
@@ -1348,8 +1381,7 @@ begin
 
   ChaCha20EncryptData(Key, Nonce, @S[1], Length(S), @EnRes[0]);
   Result := BytesToHex(EnRes) = '6E2E359A2568F98041BA0728DD0D6981E97E7AEC1D4360C20A27AFCCFD9FAE0BF91B65C5524733AB8F593DABCD62B3571639D624E65152AB8F530C359F0861D807CA0DBF500D6A6156A38E088A22B65E52BC514D16CCF806818CE91AB77937365AF90BBF74A35BE6B40B8EEDF2785E42874D';
-  if not Result then
-    Exit;
+  if not Result then Exit;
 
   DeRes := ChaCha20DecryptBytes(Key, Nonce, EnRes);
   Result := (DeRes <> nil) and CompareMem(@S[1], @DeRes[0], Length(DeRes));
@@ -1753,7 +1785,7 @@ begin
       if not Result then Exit;
 
       Result := CnSM2VerifyData(U, @M[1], Length(M), Sig, Pub);
-  end;
+    end;
   finally
     Sig.Free;
     Pub.Free;
@@ -2384,8 +2416,7 @@ begin
     PB := AnsiToBytes(P);
     S3 := AnsiString(BytesToHex(CnSM2SM9KDF(PB, I)));
     Result := (S1 = S2) and (S2 = S3);
-    if not Result then
-      Exit;
+    if not Result then Exit;
   end;
 
   Pass := HexToBytes('57E7B63623FAE5F08CDA468E872A20AFA03DED41BF1403770E040DC83AF31A67991F2B01EBF9EFD8881F0A0493000603');
