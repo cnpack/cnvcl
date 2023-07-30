@@ -1857,7 +1857,7 @@ begin
 
   if ByteLen > MostLen then
     ByteLen := MostLen
-  else if ByteLen < MostLen then
+  else if ByteLen < MostLen then // TODO: 可优化为只填充不满的部分但后面有空再整
     FillChar(Dest, MostLen, 0);
 
   Move(Source, Dest, ByteLen);

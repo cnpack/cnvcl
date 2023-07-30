@@ -25,7 +25,8 @@ unit CnPoly1305;
 * 单元名称：Poly1305 消息认证算法实现单元
 * 单元作者：刘啸（liuxiao@cnpack.org)
 * 备    注：根据 RFC 7539 实现
-*           输入为任意长度数据与 32 字节密钥，输出 16 字节杂凑值
+*           输入为任意长度数据与 32 字节密钥，输出 16 字节杂凑值，发散性并不是很好
+*           TODO: 检查 ReverseMemory 是否是出于大小端需要
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -58,6 +59,18 @@ type
   TCnPoly1305Digest = array[0..CN_POLY1305_DIGSIZE - 1] of Byte;
   {* Poly1305 算法的杂凑结果}
 
+  TCnPoly1305Context = class
+  {* 分块计算 Poly1305 的上下文对象}
+  private
+    R: TCnBigNumber;
+    S: TCnBigNumber;
+    A: TCnBigNumber;
+    N: TCnBigNumber;
+  public
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
 function Poly1305Bytes(Data: TBytes; Key: TBytes): TCnPoly1305Digest;
 {* 计算字节数组的 Poly1305 杂凑值}
 
@@ -67,6 +80,17 @@ function Poly1305Data(Data: Pointer; DataByteLength: Integer;
 
 function Poly1305Print(const Digest: TCnPoly1305Digest): string;
 {* 以十六进制格式输出 Poly1305 计算值}
+
+procedure Poly1305Init(out Context: TCnPoly1305Context; Key: TCnPoly1305Key);
+{* 初始化一轮 Poly1305 计算上下文，内部创建 Context 准备计算 Poly1305 结果}
+
+procedure Poly1305Update(Context: TCnPoly1305Context; Input: PAnsiChar; ByteLength: Cardinal);
+{* 以初始化后的上下文对一块数据进行 Poly1305 计算。
+  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
+  但目前限制每一块长度必须是 16 字节的整数倍，否则内部会补 0}
+
+procedure Poly1305Final(var Context: TCnPoly1305Context; var Digest: TCnPoly1305Digest);
+{* 结束本轮计算，将 Poly130 结果返回至 Digest 中并释放 Context}
 
 implementation
 
@@ -98,6 +122,9 @@ var
   RKey: TCnPoly1305Key;
 begin
   Move(Key[0], RKey[0], SizeOf(TCnPoly1305Key));
+
+  // TODO: 此处的 ReverseMemory 是否限于 x86 这种小端 CPU
+  // 大端 CPU 是否要 ReverseMemory?
   ReverseMemory(@RKey[0], CN_POLY1305_BLOCKSIZE);
   ReverseMemory(@RKey[CN_POLY1305_BLOCKSIZE], CN_POLY1305_BLOCKSIZE);
 
@@ -125,10 +152,14 @@ begin
       if I <> B then // 普通块，16 字节满的
         L := CN_POLY1305_BLOCKSIZE
       else           // 尾块，可能不够 16 字节
+      begin
         L := DataByteLength mod CN_POLY1305_BLOCKSIZE;
+        if L = 0 then
+          L := CN_POLY1305_BLOCKSIZE;
+      end;
 
       Move(P^[(I - 1) * CN_POLY1305_BLOCKSIZE], Buf[0], L);  // 内容塞上
-      Buf[L] := 1;                                        // 高字节再置个 1
+      Buf[L] := 1;                                           // 紧邻的高字节再置个 1
 
       ReverseMemory(@Buf[0], L + 1);
       N.SetBinary(@Buf[0], L + 1);
@@ -153,6 +184,86 @@ end;
 function Poly1305Print(const Digest: TCnPoly1305Digest): string;
 begin
   Result := DataToHex(@Digest[0], SizeOf(TCnPoly1305Digest));
+end;
+
+{ TCnPoly1305Context }
+
+constructor TCnPoly1305Context.Create;
+begin
+  inherited;
+  R := TCnBigNumber.Create;
+  S := TCnBigNumber.Create;
+  A := TCnBigNumber.Create;
+  N := TCnBigNumber.Create;
+end;
+
+destructor TCnPoly1305Context.Destroy;
+begin
+  N.Free;
+  A.Free;
+  S.Free;
+  R.Free;
+  inherited;
+end;
+
+procedure Poly1305Init(out Context: TCnPoly1305Context; Key: TCnPoly1305Key);
+var
+  RKey: TCnPoly1305Key;
+begin
+  Move(Key[0], RKey[0], SizeOf(TCnPoly1305Key));
+  ReverseMemory(@RKey[0], CN_POLY1305_BLOCKSIZE);
+  ReverseMemory(@RKey[CN_POLY1305_BLOCKSIZE], CN_POLY1305_BLOCKSIZE);
+
+  Context := TCnPoly1305Context.Create;
+
+  Context.R.SetBinary(@RKey[0], CN_POLY1305_BLOCKSIZE);
+  BigNumberAnd(Context.R, Context.R, Clamp);
+
+  Context.S.SetBinary(@RKey[CN_POLY1305_BLOCKSIZE], CN_POLY1305_BLOCKSIZE);
+  Context.A.SetZero;
+  Context.N.SetZero;
+end;
+
+procedure Poly1305Update(Context: TCnPoly1305Context; Input: PAnsiChar; ByteLength: Cardinal);
+var
+  I, B, L: Integer;
+  Buf: array[0..CN_POLY1305_BLOCKSIZE] of Byte;
+  P: PByteArray;
+begin
+  B := (ByteLength + CN_POLY1305_BLOCKSIZE - 1) div CN_POLY1305_BLOCKSIZE;
+  P := PByteArray(Input);
+
+  for I := 1 to B do
+  begin
+    if I <> B then // 普通块，16 字节满的
+      L := CN_POLY1305_BLOCKSIZE
+    else           // 尾块，可能不够 16 字节
+    begin
+      L := ByteLength mod CN_POLY1305_BLOCKSIZE;
+      if L = 0 then
+        L := CN_POLY1305_BLOCKSIZE;
+    end;
+
+    Move(P^[(I - 1) * CN_POLY1305_BLOCKSIZE], Buf[0], L);  // 内容塞上
+    Buf[L] := 1;                                           // 紧邻的高字节再置个 1
+
+    ReverseMemory(@Buf[0], L + 1);
+    Context.N.SetBinary(@Buf[0], L + 1);
+
+    BigNumberAdd(Context.A, Context.A, Context.N);
+    BigNumberDirectMulMod(Context.A, Context.R, Context.A, Prime);
+  end;
+end;
+
+procedure Poly1305Final(Context: TCnPoly1305Context; var Digest: TCnPoly1305Digest);
+begin
+  BigNumberAdd(Context.A, Context.A, Context.S);
+  BigNumberKeepLowBits(Context.A, 8 * CN_POLY1305_DIGSIZE);
+
+  Context.A.ToBinary(@Digest[0], CN_POLY1305_DIGSIZE);
+  ReverseMemory(@Digest[0], SizeOf(TCnPoly1305Digest));
+
+  FreeAndNil(Context);
 end;
 
 initialization

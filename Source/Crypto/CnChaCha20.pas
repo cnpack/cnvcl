@@ -91,46 +91,46 @@ type
 
 procedure ChaCha20Block(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Counter: TCnChaChaCounter; var OutState: TCnChaChaState);
-{* 进行一次块运算，包括 20 轮的子运算}
+{* 进行一次块运算，包括 20 轮的子运算，外部指定计数器}
 
 procedure HChaCha20SubKey(var Key: TCnChaChaKey; var Nonce: TCnHChaChaNonce;
   var OutSubKey: TCnHChaChaSubKey);
-{* 进行一次 HChaCha20 块运算，包括 20 轮的子运算，输出 SubKey}
+{* 进行一次 HChaCha20 块运算，包括 20 轮的子运算，输出 SubKey，计数器为 Nonce 前四字节}
 
 function ChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Data: TBytes): TBytes;
-{* 对字节数组进行 ChaCha20 加密}
+{* 对字节数组进行 ChaCha20 加密，内部使用的计数器为 1}
 
 function ChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   EnData: TBytes): TBytes;
-{* 对字节数组进行 ChaCha20 解密}
+{* 对字节数组进行 ChaCha20 解密，内部使用的计数器为 1}
 
 function ChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
-{* 对 Data 所指的 DataByteLength 长度的数据块进行 ChaCha20 加密，
+{* 对 Data 所指的 DataByteLength 长度的数据块进行 ChaCha20 加密，内部使用的计数器为 1
   密文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
 
 function ChaCha20DecryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   EnData: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
-{* 对 Data 所指的 DataByteLength 长度的密文数据块进行 ChaCha20 解密，
+{* 对 Data 所指的 DataByteLength 长度的密文数据块进行 ChaCha20 解密，内部使用的计数器为 1
   明文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
 
 function XChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
   Data: TBytes): TBytes;
-{* 对字节数组进行 XChaCha20 加密}
+{* 对字节数组进行 XChaCha20 加密，内部使用的计数器为 1}
 
 function XChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
   EnData: TBytes): TBytes;
-{* 对字节数组进行 XChaCha20 解密}
+{* 对字节数组进行 XChaCha20 解密，内部使用的计数器为 1}
 
 function XChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
-{* 对 Data 所指的 DataByteLength 长度的数据块进行 XChaCha20 加密，
+{* 对 Data 所指的 DataByteLength 长度的数据块进行 XChaCha20 加密，内部使用的计数器为 1
   密文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
 
 function XChaCha20DecryptData(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
   EnData: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
-{* 对 Data 所指的 DataByteLength 长度的密文数据块进行 XChaCha20 解密，
+{* 对 Data 所指的 DataByteLength 长度的密文数据块进行 XChaCha20 解密，内部使用的计数器为 1
   明文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
 
 implementation
