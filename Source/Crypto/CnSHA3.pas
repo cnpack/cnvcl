@@ -22,7 +22,7 @@ unit CnSHA3;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：SHA3(SHA3-224/256/384/512) 算法实现单元
+* 单元名称：SHA3(SHA3-224/256/384/512/SHAKE128/SHAKE256) 算法实现单元
 * 单元作者：刘啸（Liu Xiao）
 * 备    注：D567下可以用有符号 Int64 代替无符号 UInt64 来计算 SHA3_512/384，原因是
 *           基于补码规则，有无符号数的加减移位以及溢出的舍弃机制等都相同，唯一不
@@ -30,7 +30,9 @@ unit CnSHA3;
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.04.26 V1.3
+* 修改记录：2023.08.02 V1.4
+*               加入 SHAKE128/SHAKE256 的可变长度摘要的计算
+*           2022.04.26 V1.3
 *               修改 LongWord 与 Integer 地址转换以支持 MacOS64
 *           2019.12.12 V1.2
 *               支持 TBytes
@@ -54,15 +56,19 @@ type
 
   PCnSHA3_224Digest = ^TCnSHA3_224Digest;
   TCnSHA3_224Digest = array[0..27] of Byte;
+  {* SHA3_224 杂凑结果类型}
 
   PCnSHA3_256Digest = ^TCnSHA3_256Digest;
   TCnSHA3_256Digest = array[0..31] of Byte;
+  {* SHA3_256 杂凑结果类型}
 
   PCnSHA3_384Digest = ^TCnSHA3_384Digest;
   TCnSHA3_384Digest = array[0..47] of Byte;
+  {* SHA3_384 杂凑结果类型}
 
   PCnSHA3_512Digest = ^TCnSHA3_512Digest;
   TCnSHA3_512Digest = array[0..63] of Byte;
+  {* SHA3_512 杂凑结果类型}
 
   TCnSHA3Context = packed record
     State: array[0..24] of Int64;
@@ -77,7 +83,7 @@ type
 
   TCnSHA3CalcProgressFunc = procedure(ATotal, AProgress: Int64; var Cancel:
     Boolean) of object;
-  {* 进度回调事件类型声明}
+  {* SHA3 计算进度回调事件类型声明}
 
 function SHA3_224Buffer(const Buffer; Count: Cardinal): TCnSHA3_224Digest;
 {* 对数据块进行 SHA3_224 计算
@@ -107,6 +113,22 @@ function SHA3_512Buffer(const Buffer; Count: Cardinal): TCnSHA3_512Digest;
   Count: Cardinal  - 数据块长度
  |</PRE>}
 
+function SHAKE128Buffer(const Buffer; Count: Cardinal; DigestByteLength: Cardinal): TBytes;
+{* 对数据块进行杂凑长度可变的 SHAKE128 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   const Buffer     - 要计算的数据块，一般传个地址
+   Count: Cardinal  - 数据块长度
+   DigestByteLength: Cardinal - 所需杂凑的长度
+ |</PRE>}
+
+function SHAKE256Buffer(const Buffer; Count: Cardinal; DigestByteLength: Cardinal): TBytes;
+{* 对数据块进行杂凑长度可变的 SHAKE128 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   const Buffer     - 要计算的数据块，一般传个地址
+   Count: Cardinal  - 数据块长度
+   DigestByteLength: Cardinal - 所需杂凑的长度
+ |</PRE>}
+
 function SHA3_224Bytes(Data: TBytes): TCnSHA3_224Digest;
 {* 对字节数组进行 SHA3_224 计算
  |<PRE>
@@ -129,6 +151,20 @@ function SHA3_512Bytes(Data: TBytes): TCnSHA3_512Digest;
 {* 对字节数组进行 SHA3_512 计算
  |<PRE>
    Data     - 要计算的字节数组
+ |</PRE>}
+
+function SHAKE128Bytes(Data: TBytes; DigestByteLength: Cardinal): TBytes;
+{* 对字节数组进行杂凑长度可变的 SHAKE128 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   Data     - 要计算的字节数组
+   DigestByteLength: Cardinal - 所需杂凑的字节长度
+ |</PRE>}
+
+function SHAKE256Bytes(Data: TBytes; DigestByteLength: Cardinal): TBytes;
+{* 对字节数组进行杂凑长度可变的 SHAKE256 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   Data     - 要计算的字节数组
+   DigestByteLength: Cardinal - 所需杂凑的字节长度
  |</PRE>}
 
 function SHA3_224String(const Str: string): TCnSHA3_224Digest;
@@ -159,6 +195,22 @@ function SHA3_512String(const Str: string): TCnSHA3_512Digest;
    Str: string       - 要计算的字符串
  |</PRE>}
 
+function SHAKE128String(const Str: string; DigestByteLength: Cardinal): TBytes;
+{* 对 String 类型数据进行杂凑长度可变的 SHAKE128 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果
+   注意 D2009 或以上版本的 string 为 UnicodeString，代码中会将其转换成 AnsiString 进行计算
+ |<PRE>
+   Str: string       - 要计算的字符串
+   DigestByteLength: Cardinal - 所需杂凑的字节长度
+ |</PRE>}
+
+function SHAKE256String(const Str: string; DigestByteLength: Cardinal): TBytes;
+{* 对 String 类型数据进行杂凑长度可变的 SHAKE256 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果
+   注意 D2009 或以上版本的 string 为 UnicodeString，代码中会将其转换成 AnsiString 进行计算
+ |<PRE>
+   Str: string       - 要计算的字符串
+   DigestByteLength: Cardinal - 所需杂凑的字节长度
+ |</PRE>}
+
 function SHA3_224UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA3_224Digest;
 {* 对 UnicodeString 类型数据进行直接的 SHA3_224 计算，不进行转换
  |<PRE>
@@ -181,6 +233,24 @@ function SHA3_512UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideSt
 {* 对 UnicodeString 类型数据进行直接的 SHA3_512 计算，不进行转换
  |<PRE>
    Str: UnicodeString/WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHAKE128UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF};
+  DigestByteLength: Cardinal): TBytes;
+{* 对 UnicodeString 类型数据进行杂凑长度可变的直接 SHAKE128 计算，不进行转换，
+   返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+   DigestByteLength: Cardinal          - 所需杂凑的字节长度
+ |</PRE>}
+
+function SHAKE256UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF};
+  DigestByteLength: Cardinal): TBytes;
+{* 对 UnicodeString 类型数据进行杂凑长度可变的直接 SHAKE256 计算，不进行转换，
+   返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   Str: UnicodeString/WideString       - 要计算的宽字符串
+   DigestByteLength: Cardinal          - 所需杂凑的字节长度
  |</PRE>}
 
 function SHA3_224StringA(const Str: AnsiString): TCnSHA3_224Digest;
@@ -221,15 +291,45 @@ function SHA3_384StringW(const Str: WideString): TCnSHA3_384Digest;
 
 function SHA3_512StringA(const Str: AnsiString): TCnSHA3_512Digest;
 {* 对 AnsiString 类型数据进行 SHA3_512 计算
-|<PRE>
- Str: AnsiString       - 要计算的字符串
-|</PRE>}
+ |<PRE>
+   Str: AnsiString       - 要计算的字符串
+ |</PRE>}
 
 function SHA3_512StringW(const Str: WideString): TCnSHA3_512Digest;
 {* 对 WideString 类型数据进行 SHA512 计算，计算前会调用 WideCharToMultyByte 进行转换
-|<PRE>
- Str: WideString       - 要计算的字符串
-|</PRE>}
+ |<PRE>
+   Str: WideString       - 要计算的字符串
+ |</PRE>}
+
+function SHAKE128StringA(const Str: AnsiString; DigestByteLength: Cardinal): TBytes;
+{* 对 AnsiString 类型数据进行杂凑长度可变的直接 SHAKE128 计算，
+   返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   Str: AnsiString       - 要计算的字符串
+   DigestByteLength: Cardinal          - 所需杂凑的字节长度
+ |</PRE>}
+
+function SHAKE128StringW(const Str: WideString; DigestByteLength: Cardinal): TBytes;
+{* 对 WideString 类型数据进行杂凑长度可变的直接 SHAKE128 计算，计算前会调用 WideCharToMultyByte 进行转换
+ |<PRE>
+   Str: WideString       - 要计算的字符串
+   DigestByteLength: Cardinal          - 所需杂凑的字节长度
+ |</PRE>}
+
+function SHAKE256StringA(const Str: AnsiString; DigestByteLength: Cardinal): TBytes;
+{* 对 AnsiString 类型数据进行杂凑长度可变的直接 SHAKE128 计算，
+   返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   Str: AnsiString       - 要计算的字符串
+   DigestByteLength: Cardinal          - 所需杂凑的字节长度
+ |</PRE>}
+
+function SHAKE256StringW(const Str: WideString; DigestByteLength: Cardinal): TBytes;
+{* 对 WideString 类型数据进行杂凑长度可变的直接 SHAKE256 计算，计算前会调用 WideCharToMultyByte 进行转换
+ |<PRE>
+   Str: WideString       - 要计算的字符串
+   DigestByteLength: Cardinal          - 所需杂凑的字节长度
+ |</PRE>}
 
 function SHA3_224File(const FileName: string; CallBack: TCnSHA3CalcProgressFunc =
   nil): TCnSHA3_224Digest;
@@ -295,6 +395,46 @@ function SHA3_512Stream(Stream: TStream; CallBack: TCnSHA3CalcProgressFunc = nil
    CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
+function SHAKE128File(const FileName: string; DigestByteLength: Cardinal;
+  CallBack: TCnSHA3CalcProgressFunc = nil): TBytes;
+{* 对指定文件内容进行杂凑长度可变的 SHAKE128 计算
+   返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   FileName: string  - 要计算的文件名
+   DigestByteLength: Cardinal      - 所需杂凑的字节长度
+   CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
+function SHAKE128Stream(Stream: TStream; DigestByteLength: Cardinal;
+  CallBack: TCnSHA3CalcProgressFunc = nil): TBytes;
+{* 对指定数据流进行杂凑长度可变的 SHAKE128 计算
+   返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   Stream: TStream  - 要计算的流内容
+   DigestByteLength: Cardinal      - 所需杂凑的字节长度
+   CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
+function SHAKE256File(const FileName: string; DigestByteLength: Cardinal;
+  CallBack: TCnSHA3CalcProgressFunc = nil): TBytes;
+{* 对指定文件内容进行杂凑长度可变的 SHAKE256 计算
+   返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   FileName: string  - 要计算的文件名
+   DigestByteLength: Cardinal      - 所需杂凑的字节长度
+   CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
+function SHAKE256Stream(Stream: TStream; DigestByteLength: Cardinal;
+  CallBack: TCnSHA3CalcProgressFunc = nil): TBytes;
+{* 对指定数据流进行杂凑长度可变的 SHAKE256 计算
+   返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   Stream: TStream  - 要计算的流内容
+   DigestByteLength: Cardinal      - 所需杂凑的字节长度
+   CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
+ |</PRE>}
+
 function SHA3_224Print(const Digest: TCnSHA3_224Digest): string;
 {* 以十六进制格式输出 SHA3_224 计算值
  |<PRE>
@@ -317,6 +457,18 @@ function SHA3_512Print(const Digest: TCnSHA3_512Digest): string;
 {* 以十六进制格式输出 SHA3_512 计算值
  |<PRE>
    Digest: TSHA3_512Digest  - 指定的 SHA3_512 计算值
+ |</PRE>}
+
+function SHAKE128Print(const Digest: TBytes): string;
+{* 以十六进制格式输出 SHAKE128 计算值
+ |<PRE>
+   Digest: TBytes  - 指定的 SHAKE128 计算值
+ |</PRE>}
+
+function SHAKE256Print(const Digest: TBytes): string;
+{* 以十六进制格式输出 SHAKE256 计算值
+ |<PRE>
+   Digest: TBytes  - 指定的 SHAKE128 计算值
  |</PRE>}
 
 function SHA3_224Match(const D1, D2: TCnSHA3_224Digest): Boolean;
@@ -347,28 +499,54 @@ function SHA3_512Match(const D1, D2: TCnSHA3_512Digest): Boolean;
    D2: TSHA3_512Digest   - 需要比较的 SHA3_512 计算值
  |</PRE>}
 
-function SHA3_224DigestToStr(aDig: TCnSHA3_224Digest): string;
+function SHAKE128Match(const D1, D2: TBytes): Boolean;
+{* 比较两个 SHAKE128 计算值是否相等
+ |<PRE>
+   D1: TBytes            - 需要比较的 SHAKE128 计算值
+   D2: TBytes            - 需要比较的 SHAKE128 计算值
+ |</PRE>}
+
+function SHAKE256Match(const D1, D2: TBytes): Boolean;
+{* 比较两个 SHAKE256 计算值是否相等
+ |<PRE>
+   D1: TBytes            - 需要比较的 SHAKE256 计算值
+   D2: TBytes            - 需要比较的 SHAKE256 计算值
+ |</PRE>}
+
+function SHA3_224DigestToStr(const Digest: TCnSHA3_224Digest): string;
 {* SHA3_224 计算值转 string
  |<PRE>
-   aDig: TSHA3_224Digest   - 需要转换的 SHA3_224 计算值
+   Digest: TSHA3_224Digest   - 需要转换的 SHA3_224 计算值
  |</PRE>}
 
-function SHA3_256DigestToStr(aDig: TCnSHA3_256Digest): string;
+function SHA3_256DigestToStr(const Digest: TCnSHA3_256Digest): string;
 {* SHA3_256 计算值转 string
  |<PRE>
-   aDig: TSHA3_256Digest   - 需要转换的 SHA3_256 计算值
+   Digest: TSHA3_256Digest   - 需要转换的 SHA3_256 计算值
  |</PRE>}
 
-function SHA3_384DigestToStr(aDig: TCnSHA3_384Digest): string;
+function SHA3_384DigestToStr(const Digest: TCnSHA3_384Digest): string;
 {* SHA3_384 计算值转 string
  |<PRE>
-   aDig: TSHA3_384Digest   - 需要转换的 SHA3_384 计算值
+   Digest: TSHA3_384Digest   - 需要转换的 SHA3_384 计算值
  |</PRE>}
 
-function SHA3_512DigestToStr(aDig: TCnSHA3_512Digest): string;
+function SHA3_512DigestToStr(const Digest: TCnSHA3_512Digest): string;
 {* SHA3_512 计算值转 string
  |<PRE>
-   aDig: TSHA3_512Digest   - 需要转换的 SHA3_512 计算值
+   Digest: TSHA3_512Digest   - 需要转换的 SHA3_512 计算值
+ |</PRE>}
+
+function SHAKE128DigestToStr(const Digest: TBytes): string;
+{* SHAKE128 计算值转 string
+ |<PRE>
+   Digest: TBytes            - 需要转换的 SHAKE128 计算值
+ |</PRE>}
+
+function SHAKE256DigestToStr(const Digest: TBytes): string;
+{* SHAKE256 计算值转 string
+ |<PRE>
+   Digest: TBytes            - 需要转换的 SHAKE256 计算值
  |</PRE>}
 
 // procedure SHA3Init(var Context: TSHA3Context; SHA3Type: TSHA3Type);
@@ -423,6 +601,32 @@ procedure SHA3_512Update(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLeng
 procedure SHA3_512Final(var Context: TCnSHA3Context; var Digest: TCnSHA3_512Digest);
 {* 结束本轮计算，将 SHA3_512 结果返回至 Digest 中}
 
+// 以下三个函数用于外部持续对数据进行零散的 SHAKE128 计算，SHAKE128Update 可多次被调用
+
+procedure SHAKE128Init(var Context: TCnSHA3Context; DigestByteLength: Cardinal);
+{* 初始化一轮 SHAKE128 计算上下文，准备计算 SHAKE128 结果，
+  DigestByteLength 为所需的杂凑的字节长度}
+
+procedure SHAKE128Update(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLength: Cardinal);
+{* 以初始化后的上下文对一块数据进行 SHAKE128 计算。
+  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
+
+procedure SHAKE128Final(var Context: TCnSHA3Context; out Digest: TBytes);
+{* 结束本轮计算，将 SHAKE128 结果返回至 Digest 中}
+
+// 以下三个函数用于外部持续对数据进行零散的 SHAKE128 计算，SHAKE128Update 可多次被调用
+
+procedure SHAKE256Init(var Context: TCnSHA3Context; DigestByteLength: Cardinal);
+{* 初始化一轮 SHAKE256 计算上下文，准备计算 SHAKE128 结果，
+  DigestByteLength 为所需的杂凑的字节长度}
+
+procedure SHAKE256Update(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLength: Cardinal);
+{* 以初始化后的上下文对一块数据进行 SHAKE256 计算。
+  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
+
+procedure SHAKE256Final(var Context: TCnSHA3Context; out Digest: TBytes);
+{* 结束本轮计算，将 SHAKE256 结果返回至 Digest 中}
+
 procedure SHA3_224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA3_224Digest);
 
@@ -440,10 +644,11 @@ procedure SHA3_512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
 implementation
 
 type
-  TSHA3Type = (stSHA3_224, stSHA3_256, stSHA3_384, stSHA3_512);
+  TSHA3Type = (stSHA3_224, stSHA3_256, stSHA3_384, stSHA3_512, stSHAKE128, stSHAKE256);
 
 const
   MAX_FILE_SIZE = 512 * 1024 * 1024;
+  STREAM_BUF_SIZE = 4096 * 1024;
   // If file size <= this size (bytes), using Mapping, else stream
 
   SHA3_ROUNDS = 24;
@@ -458,6 +663,9 @@ const
   SHA3_256_BLOCK_SIZE_BYTE = 136;
   SHA3_384_BLOCK_SIZE_BYTE = 104;
   SHA3_512_BLOCK_SIZE_BYTE = 72;
+
+  SHAKE128_BLOCK_SIZE_BYTE = 168;
+  SHAKE256_BLOCK_SIZE_BYTE = 136;
 
   HMAC_SHA3_224_BLOCK_SIZE_BYTE = SHA3_224_BLOCK_SIZE_BYTE;
   HMAC_SHA3_256_BLOCK_SIZE_BYTE = SHA3_256_BLOCK_SIZE_BYTE;
@@ -555,7 +763,8 @@ begin
   end;
 end;
 
-procedure SHA3Init(var Context: TCnSHA3Context; SHA3Type: TSHA3Type);
+procedure SHA3Init(var Context: TCnSHA3Context; SHA3Type: TSHA3Type;
+  DigestByteLength: Cardinal = 0);
 begin
   FillChar(Context.State, SizeOf(Context.State), 0);
   FillChar(Context.Block, SizeOf(Context.Block), 0);
@@ -582,6 +791,16 @@ begin
     begin
       Context.BlockLen := SHA3_512_BLOCK_SIZE_BYTE;
       Context.DigestLen := SHA3_512_OUTPUT_LENGTH_BYTE;
+    end;
+  stSHAKE128:
+    begin
+      Context.BlockLen := SHAKE128_BLOCK_SIZE_BYTE;
+      Context.DigestLen := DigestByteLength;
+    end;
+  stSHAKE256:
+    begin
+      Context.BlockLen := SHAKE256_BLOCK_SIZE_BYTE;
+      Context.DigestLen := DigestByteLength;
     end;
   end;
 end;
@@ -618,7 +837,7 @@ procedure SHA3UpdateW(var Context: TCnSHA3Context; Input: PWideChar; ByteLength:
 var
 {$IFDEF MSWINDOWS}
   Content: PAnsiChar;
-  iLen: Cardinal;
+  Len: Cardinal;
 {$ELSE}
   S: string; // 必须是 UnicodeString
   A: AnsiString;
@@ -627,9 +846,9 @@ begin
 {$IFDEF MSWINDOWS}
   GetMem(Content, ByteLength * SizeOf(WideChar));
   try
-    iLen := WideCharToMultiByte(0, 0, Input, ByteLength, // 代码页默认用 0
+    Len := WideCharToMultiByte(0, 0, Input, ByteLength, // 代码页默认用 0
       PAnsiChar(Content), ByteLength * SizeOf(WideChar), nil, nil);
-    SHA3Update(Context, Content, iLen);
+    SHA3Update(Context, Content, Len);
   finally
     FreeMem(Content);
   end;
@@ -640,12 +859,27 @@ begin
 {$ENDIF}
 end;
 
-procedure SHA3Final(var Context: TCnSHA3Context; var Digest: TCnSHA3GeneralDigest);
+// SHA3_224/256/384/512 专用
+procedure SHA3Final(var Context: TCnSHA3Context; var Digest: TCnSHA3GeneralDigest); overload;
 begin
   Context.Block[Context.Index] := 6;
   Context.Block[Context.BlockLen - 1] := Context.Block[Context.BlockLen - 1] or $80;
   SHA3_Transform(Context);
   Move(Context.State[0], Digest[0], Context.DigestLen);
+end;
+
+// SHAKE128 和 SHAKE256 专用
+procedure SHA3Final(var Context: TCnSHA3Context; out Digest: TBytes); overload;
+begin
+  Context.Block[Context.Index] := $1F;
+  Context.Block[Context.BlockLen - 1] := Context.Block[Context.BlockLen - 1] or $80;
+  SHA3_Transform(Context);
+
+  if Context.DigestLen <= SizeOf(Context.State) then
+  begin
+    SetLength(Digest, Context.DigestLen);
+    Move(Context.State[0], Digest[0], Context.DigestLen);
+  end;
 end;
 
 procedure SHA3_224Init(var Context: TCnSHA3Context);
@@ -720,6 +954,36 @@ begin
   Move(Res[0], Digest[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
 
+procedure SHAKE128Init(var Context: TCnSHA3Context; DigestByteLength: Cardinal);
+begin
+  SHA3Init(Context, stSHAKE128, DigestByteLength);
+end;
+
+procedure SHAKE128Update(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLength: Cardinal);
+begin
+  SHA3Update(Context, Input, ByteLength);
+end;
+
+procedure SHAKE128Final(var Context: TCnSHA3Context; out Digest: TBytes);
+begin
+  SHA3Final(Context, Digest);
+end;
+
+procedure SHAKE256Init(var Context: TCnSHA3Context; DigestByteLength: Cardinal);
+begin
+  SHA3Init(Context, stSHAKE256, DigestByteLength);
+end;
+
+procedure SHAKE256Update(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLength: Cardinal);
+begin
+  SHA3Update(Context, Input, ByteLength);
+end;
+
+procedure SHAKE256Final(var Context: TCnSHA3Context; out Digest: TBytes);
+begin
+  SHA3Final(Context, Digest);
+end;
+
 // 对数据块进行 SHA3_224 计算
 function SHA3_224Buffer(const Buffer; Count: Cardinal): TCnSHA3_224Digest;
 var
@@ -766,6 +1030,26 @@ begin
   SHA3Update(Context, PAnsiChar(Buffer), Count);
   SHA3Final(Context, Res);
   Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
+end;
+
+// 对数据块进行 SHAKE128 计算
+function SHAKE128Buffer(const Buffer; Count: Cardinal; DigestByteLength: Cardinal): TBytes;
+var
+  Context: TCnSHA3Context;
+begin
+  SHAKE128Init(Context, DigestByteLength);
+  SHAKE128Update(Context, PAnsiChar(Buffer), Count);
+  SHAKE128Final(Context, Result);
+end;
+
+// 对数据块进行 SHAKE256 计算
+function SHAKE256Buffer(const Buffer; Count: Cardinal; DigestByteLength: Cardinal): TBytes;
+var
+  Context: TCnSHA3Context;
+begin
+  SHAKE256Init(Context, DigestByteLength);
+  SHAKE256Update(Context, PAnsiChar(Buffer), Count);
+  SHAKE256Final(Context, Result);
 end;
 
 // 对字节数组进行 SHA3_224 计算
@@ -816,6 +1100,26 @@ begin
   Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
 
+// 对字节数组进行 SHAKE128 计算
+function SHAKE128Bytes(Data: TBytes; DigestByteLength: Cardinal): TBytes;
+var
+  Context: TCnSHA3Context;
+begin
+  SHAKE128Init(Context, DigestByteLength);
+  SHAKE128Update(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHAKE128Final(Context, Result);
+end;
+
+// 对字节数组进行 SHAKE256 计算
+function SHAKE256Bytes(Data: TBytes; DigestByteLength: Cardinal): TBytes;
+var
+  Context: TCnSHA3Context;
+begin
+  SHAKE256Init(Context, DigestByteLength);
+  SHAKE256Update(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHAKE256Final(Context, Result);
+end;
+
 // 对 String 类型数据进行 SHA3_224 计算
 function SHA3_224String(const Str: string): TCnSHA3_224Digest;
 var
@@ -850,6 +1154,24 @@ var
 begin
   AStr := AnsiString(Str);
   Result := SHA3_512StringA(AStr);
+end;
+
+// 对 String 类型数据进行 SHAKE128 计算
+function SHAKE128String(const Str: string; DigestByteLength: Cardinal): TBytes;
+var
+  AStr: AnsiString;
+begin
+  AStr := AnsiString(Str);
+  Result := SHAKE128StringA(AStr, DigestByteLength);
+end;
+
+// 对 String 类型数据进行 SHAKE256 计算
+function SHAKE256String(const Str: string; DigestByteLength: Cardinal): TBytes;
+var
+  AStr: AnsiString;
+begin
+  AStr := AnsiString(Str);
+  Result := SHAKE256StringA(AStr, DigestByteLength);
 end;
 
 // 对 UnicodeString 类型数据进行直接的 SHA3_224 计算，不进行转换
@@ -898,6 +1220,28 @@ begin
   SHA3Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
   SHA3Final(Context, Res);
   Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
+end;
+
+// 对 UnicodeString 类型数据进行直接的 SHAKE128 计算，不进行转换
+function SHAKE128UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF};
+  DigestByteLength: Cardinal): TBytes;
+var
+  Context: TCnSHA3Context;
+begin
+  SHAKE128Init(Context, DigestByteLength);
+  SHAKE128Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  SHAKE128Final(Context, Result);
+end;
+
+// 对 UnicodeString 类型数据进行直接的 SHAKE256 计算，不进行转换
+function SHAKE256UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF};
+  DigestByteLength: Cardinal): TBytes;
+var
+  Context: TCnSHA3Context;
+begin
+  SHAKE256Init(Context, DigestByteLength);
+  SHAKE256Update(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  SHAKE256Final(Context, Result);
 end;
 
 // 对 AnsiString 类型数据进行SHA224 计算
@@ -996,8 +1340,49 @@ begin
   Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
 
+// 对 AnsiString 类型数据进行 SHAKE128 计算
+function SHAKE128StringA(const Str: AnsiString; DigestByteLength: Cardinal): TBytes;
+var
+  Context: TCnSHA3Context;
+begin
+  SHAKE128Init(Context, DigestByteLength);
+  SHAKE128Update(Context, PAnsiChar(Str), Length(Str));
+  SHAKE128Final(Context, Result);
+end;
+
+// 对 WideString 类型数据进行 SHAKE128 计算
+function SHAKE128StringW(const Str: WideString; DigestByteLength: Cardinal): TBytes;
+var
+  Context: TCnSHA3Context;
+begin
+  SHAKE128Init(Context, DigestByteLength);
+  SHA3UpdateW(Context, PWideChar(Str), Length(Str)); // SHAKE128UpdateW = SHA3UpdateW
+  SHAKE128Final(Context, Result);
+end;
+
+// 对 AnsiString 类型数据进行 SHAKE256 计算
+function SHAKE256StringA(const Str: AnsiString; DigestByteLength: Cardinal): TBytes;
+var
+  Context: TCnSHA3Context;
+begin
+  SHAKE256Init(Context, DigestByteLength);
+  SHAKE256Update(Context, PAnsiChar(Str), Length(Str));
+  SHAKE256Final(Context, Result);
+end;
+
+// 对 WideString 类型数据进行 SHAKE256 计算
+function SHAKE256StringW(const Str: WideString; DigestByteLength: Cardinal): TBytes;
+var
+  Context: TCnSHA3Context;
+begin
+  SHAKE256Init(Context, DigestByteLength);
+  SHA3UpdateW(Context, PWideChar(Str), Length(Str)); // SHAKE256UpdateW = SHA3UpdateW
+  SHAKE256Final(Context, Result);
+end;
+
+// SHA3Type 只能是 stSHA3_224, stSHA3_256, stSHA3_384, stSHA3_512
 function InternalSHA3Stream(Stream: TStream; const BufSize: Cardinal; var D:
-  TCnSHA3GeneralDigest; SHA3Type: TSHA3Type; CallBack: TCnSHA3CalcProgressFunc = nil): Boolean;
+  TCnSHA3GeneralDigest; SHA3Type: TSHA3Type; CallBack: TCnSHA3CalcProgressFunc): Boolean; overload;
 var
   Buf: PAnsiChar;
   BufLen: Cardinal;
@@ -1048,44 +1433,112 @@ begin
   end;
 end;
 
+// SHA3Type 只能是 stSHAKE128 或 stSHAKE256
+function InternalSHA3Stream(Stream: TStream; const BufSize: Cardinal;
+  SHA3Type: TSHA3Type; DigestByteLength: Cardinal; out D: TBytes;
+  CallBack: TCnSHA3CalcProgressFunc): Boolean; overload;
+var
+  Buf: PAnsiChar;
+  BufLen: Cardinal;
+  Size: Int64;
+  ReadBytes: Cardinal;
+  TotalBytes: Int64;
+  SavePos: Int64;
+  CancelCalc: Boolean;
+  Context: TCnSHA3Context;
+begin
+  Result := False;
+  Size := Stream.Size;
+  SavePos := Stream.Position;
+  TotalBytes := 0;
+  if Size = 0 then
+    Exit;
+  if Size < BufSize then
+    BufLen := Size
+  else
+    BufLen := BufSize;
+
+  CancelCalc := False;
+  SHA3Init(Context, SHA3Type, DigestByteLength);
+
+  GetMem(Buf, BufLen);
+  try
+    Stream.Position := 0;
+    repeat
+      ReadBytes := Stream.Read(Buf^, BufLen);
+      if ReadBytes <> 0 then
+      begin
+        Inc(TotalBytes, ReadBytes);
+        SHA3Update(Context, Buf, ReadBytes);
+
+        if Assigned(CallBack) then
+        begin
+          CallBack(Size, TotalBytes, CancelCalc);
+          if CancelCalc then
+            Exit;
+        end;
+      end;
+    until (ReadBytes = 0) or (TotalBytes = Size);
+    SHA3Final(Context, D);
+    Result := True;
+  finally
+    FreeMem(Buf, BufLen);
+    Stream.Position := SavePos;
+  end;
+end;
+
 // 对指定流进行 SHA3_224 计算
-function SHA3_224Stream(Stream: TStream; CallBack: TCnSHA3CalcProgressFunc = nil):
+function SHA3_224Stream(Stream: TStream; CallBack: TCnSHA3CalcProgressFunc):
   TCnSHA3_224Digest;
 var
   Dig: TCnSHA3GeneralDigest;
 begin
-  InternalSHA3Stream(Stream, 4096 * 1024, Dig, stSHA3_224, CallBack);
+  InternalSHA3Stream(Stream, STREAM_BUF_SIZE, Dig, stSHA3_224, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA3_224Digest));
 end;
 
 // 对指定流进行 SHA3_256 计算
-function SHA3_256Stream(Stream: TStream; CallBack: TCnSHA3CalcProgressFunc = nil):
+function SHA3_256Stream(Stream: TStream; CallBack: TCnSHA3CalcProgressFunc):
   TCnSHA3_256Digest;
 var
   Dig: TCnSHA3GeneralDigest;
 begin
-  InternalSHA3Stream(Stream, 4096 * 1024, Dig, stSHA3_256, CallBack);
+  InternalSHA3Stream(Stream, STREAM_BUF_SIZE, Dig, stSHA3_256, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA3_256Digest));
 end;
 
 // 对指定流进行 SHA3_384 计算
-function SHA3_384Stream(Stream: TStream; CallBack: TCnSHA3CalcProgressFunc = nil):
+function SHA3_384Stream(Stream: TStream; CallBack: TCnSHA3CalcProgressFunc):
   TCnSHA3_384Digest;
 var
   Dig: TCnSHA3GeneralDigest;
 begin
-  InternalSHA3Stream(Stream, 4096 * 1024, Dig, stSHA3_384, CallBack);
+  InternalSHA3Stream(Stream, STREAM_BUF_SIZE, Dig, stSHA3_384, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA3_384Digest));
 end;
 
 // 对指定流进行 SHA3_512 计算
-function SHA3_512Stream(Stream: TStream; CallBack: TCnSHA3CalcProgressFunc = nil):
+function SHA3_512Stream(Stream: TStream; CallBack: TCnSHA3CalcProgressFunc):
   TCnSHA3_512Digest;
 var
   Dig: TCnSHA3GeneralDigest;
 begin
-  InternalSHA3Stream(Stream, 4096 * 1024, Dig, stSHA3_512, CallBack);
+  InternalSHA3Stream(Stream, STREAM_BUF_SIZE, Dig, stSHA3_512, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA3_512Digest));
+end;
+
+// 对指定数据流进行杂凑长度可变的 SHAKE128 计算
+function SHAKE128Stream(Stream: TStream; DigestByteLength: Cardinal;
+  CallBack: TCnSHA3CalcProgressFunc): TBytes;
+begin
+  InternalSHA3Stream(Stream, STREAM_BUF_SIZE, stSHAKE128, DigestByteLength, Result, CallBack);
+end;
+
+// 对指定数据流进行杂凑长度可变的 SHAKE256 计算
+function SHAKE256Stream(Stream: TStream; DigestByteLength: Cardinal;
+  CallBack: TCnSHA3CalcProgressFunc = nil): TBytes;
+begin
+  InternalSHA3Stream(Stream, STREAM_BUF_SIZE, stSHAKE256, DigestByteLength, Result, CallBack);
 end;
 
 function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string; out IsEmpty: Boolean): Boolean;
@@ -1119,7 +1572,7 @@ var
 end;
 
 function InternalSHA3File(const FileName: string; SHA3Type: TSHA3Type;
-  CallBack: TCnSHA3CalcProgressFunc): TCnSHA3GeneralDigest;
+  CallBack: TCnSHA3CalcProgressFunc): TCnSHA3GeneralDigest; overload;
 var
 {$IFDEF MSWINDOWS}
   Context: TCnSHA3Context;
@@ -1136,7 +1589,7 @@ begin
     // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
-      InternalSHA3Stream(Stream, 4096 * 1024, Result, SHA3Type, CallBack);
+      InternalSHA3Stream(Stream, STREAM_BUF_SIZE, Result, SHA3Type, CallBack);
     finally
       Stream.Free;
     end;
@@ -1145,6 +1598,74 @@ begin
   begin
 {$IFDEF MSWINDOWS}
     SHA3Init(Context, SHA3Type);
+    FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
+      FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
+      FILE_FLAG_SEQUENTIAL_SCAN, 0);
+    if FileHandle <> INVALID_HANDLE_VALUE then
+    begin
+      try
+        MapHandle := CreateFileMapping(FileHandle, nil, PAGE_READONLY, 0, 0, nil);
+        if MapHandle <> 0 then
+        begin
+          try
+            ViewPointer := MapViewOfFile(MapHandle, FILE_MAP_READ, 0, 0, 0);
+            if ViewPointer <> nil then
+            begin
+              try
+                SHA3Update(Context, ViewPointer, GetFileSize(FileHandle, nil));
+              finally
+                UnmapViewOfFile(ViewPointer);
+              end;
+            end
+            else
+            begin
+              raise Exception.Create('MapViewOfFile Failed. ' + IntToStr(GetLastError));
+            end;
+          finally
+            CloseHandle(MapHandle);
+          end;
+        end
+        else
+        begin
+          if not FileIsZeroSize then
+            raise Exception.Create('CreateFileMapping Failed. ' + IntToStr(GetLastError));
+        end;
+      finally
+        CloseHandle(FileHandle);
+      end;
+    end;
+    SHA3Final(Context, Result);
+{$ENDIF}
+  end;
+end;
+
+function InternalSHA3File(const FileName: string; SHA3Type: TSHA3Type;
+  DigestByteLength: Cardinal; CallBack: TCnSHA3CalcProgressFunc): TBytes; overload;
+var
+{$IFDEF MSWINDOWS}
+  Context: TCnSHA3Context;
+  FileHandle: THandle;
+  MapHandle: THandle;
+  ViewPointer: Pointer;
+{$ENDIF}
+  Stream: TStream;
+  FileIsZeroSize: Boolean;
+begin
+  FileIsZeroSize := False;
+  if FileSizeIsLargeThanMaxOrCanNotMap(FileName, FileIsZeroSize) then
+  begin
+    // 大于 2G 的文件可能 Map 失败，采用流方式循环处理
+    Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+    try
+      InternalSHA3Stream(Stream, STREAM_BUF_SIZE, SHA3Type, DigestByteLength, Result, CallBack);
+    finally
+      Stream.Free;
+    end;
+  end
+  else
+  begin
+{$IFDEF MSWINDOWS}
+    SHA3Init(Context, SHA3Type, DigestByteLength);
     FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
       FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
       FILE_FLAG_SEQUENTIAL_SCAN, 0);
@@ -1226,6 +1747,20 @@ begin
   Move(Dig[0], Result[0], SizeOf(TCnSHA3_512Digest));
 end;
 
+// 对指定文件内容进行杂凑长度可变的 SHAKE128 计算
+function SHAKE128File(const FileName: string; DigestByteLength: Cardinal;
+  CallBack: TCnSHA3CalcProgressFunc): TBytes;
+begin
+  Result := InternalSHA3File(FileName, stSHAKE128, DigestByteLength, CallBack);
+end;
+
+// 对指定文件内容进行杂凑长度可变的 SHAKE256 计算
+function SHAKE256File(const FileName: string; DigestByteLength: Cardinal;
+  CallBack: TCnSHA3CalcProgressFunc = nil): TBytes;
+begin
+  Result := InternalSHA3File(FileName, stSHAKE256, DigestByteLength, CallBack);
+end;
+
 // 以十六进制格式输出 SHA3_224 计算值
 function SHA3_224Print(const Digest: TCnSHA3_224Digest): string;
 begin
@@ -1250,100 +1785,88 @@ begin
   Result := DataToHex(@Digest[0], SizeOf(TCnSHA3_512Digest));
 end;
 
+// 以十六进制格式输出 SHAKE128 计算值
+function SHAKE128Print(const Digest: TBytes): string;
+begin
+  Result := BytesToHex(Digest);
+end;
+
+// 以十六进制格式输出 SHAKE256 计算值
+function SHAKE256Print(const Digest: TBytes): string;
+begin
+  Result := BytesToHex(Digest);
+end;
+
 // 比较两个 SHA3_224 计算值是否相等
 function SHA3_224Match(const D1, D2: TCnSHA3_224Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 28) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnSHA3_224Digest));
 end;
 
 // 比较两个 SHA3_256 计算值是否相等
 function SHA3_256Match(const D1, D2: TCnSHA3_256Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 32) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnSHA3_256Digest));
 end;
 
 // 比较两个 SHA3_384 计算值是否相等
 function SHA3_384Match(const D1, D2: TCnSHA3_384Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 48) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnSHA3_384Digest));
 end;
 
 // 比较两个 SHA3_512 计算值是否相等
 function SHA3_512Match(const D1, D2: TCnSHA3_512Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 64) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnSHA3_512Digest));;
+end;
+
+// 比较两个 SHAKE128 计算值是否相等
+function SHAKE128Match(const D1, D2: TBytes): Boolean;
+begin
+  Result := CompareBytes(D1, D2);
+end;
+
+// 比较两个 SHAKE256 计算值是否相等
+function SHAKE256Match(const D1, D2: TBytes): Boolean;
+begin
+  Result := CompareBytes(D1, D2);
 end;
 
 // SHA3_224 计算值转 string
-function SHA3_224DigestToStr(aDig: TCnSHA3_224Digest): string;
-var
-  I: Integer;
+function SHA3_224DigestToStr(const Digest: TCnSHA3_224Digest): string;
 begin
-  SetLength(Result, 28);
-  for I := 1 to 28 do
-    Result[I] := Chr(aDig[I - 1]);
+  Result := MemoryToString(@Digest[0], SizeOf(TCnSHA3_224Digest));
 end;
 
 // SHA3_256 计算值转 string
-function SHA3_256DigestToStr(aDig: TCnSHA3_256Digest): string;
-var
-  I: Integer;
+function SHA3_256DigestToStr(const Digest: TCnSHA3_256Digest): string;
 begin
-  SetLength(Result, 32);
-  for I := 1 to 32 do
-    Result[I] := Chr(aDig[I - 1]);
+  Result := MemoryToString(@Digest[0], SizeOf(TCnSHA3_256Digest));;
 end;
 
 // SHA3_384 计算值转 string
-function SHA3_384DigestToStr(aDig: TCnSHA3_384Digest): string;
-var
-  I: Integer;
+function SHA3_384DigestToStr(const Digest: TCnSHA3_384Digest): string;
 begin
-  SetLength(Result, 48);
-  for I := 1 to 48 do
-    Result[I] := Chr(aDig[I - 1]);
+  Result := MemoryToString(@Digest[0], SizeOf(TCnSHA3_384Digest));
 end;
 
 // SHA3_512 计算值转 string
-function SHA3_512DigestToStr(aDig: TCnSHA3_512Digest): string;
-var
-  I: Integer;
+function SHA3_512DigestToStr(const Digest: TCnSHA3_512Digest): string;
 begin
-  SetLength(Result, 64);
-  for I := 1 to 64 do
-    Result[I] := Chr(aDig[I - 1]);
+  Result := MemoryToString(@Digest[0], SizeOf(TCnSHA3_512Digest));
+end;
+
+// SHAKE128 计算值转 string
+function SHAKE128DigestToStr(const Digest: TBytes): string;
+begin
+  Result := BytesToString(Digest);
+end;
+
+// SHAKE256 计算值转 string
+function SHAKE256DigestToStr(const Digest: TBytes): string;
+begin
+  Result := BytesToString(Digest);
 end;
 
 procedure SHA3_224HmacInit(var Context: TCnSHA3Context; Key: PAnsiChar; KeyLength: Integer);
