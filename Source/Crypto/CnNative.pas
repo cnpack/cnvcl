@@ -409,25 +409,27 @@ function UInt16NetworkToHost(Value: Word): Word;
 {* 将 UInt16 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
 
 procedure MemoryNetworkToHost(AMem: Pointer; MemByteLen: Integer);
-{* 将一片内存区域从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
+{* 将一片内存区域从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换，
+  该方法应用场合较少，大多二/四/八字节转换已经足够}
 
 procedure MemoryHostToNetwork(AMem: Pointer; MemByteLen: Integer);
-{* 将一片内存区域从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+{* 将一片内存区域从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换，
+  该方法应用场合较少，大多二/四/八字节转换已经足够}
 
 procedure ReverseMemory(AMem: Pointer; MemByteLen: Integer);
 {* 按字节顺序倒置一块内存块，字节内部不变}
 
 function ReverseBitsInInt8(V: Byte): Byte;
-{* 倒置一字节内容}
+{* 倒置一字节内部的位的内容}
 
 function ReverseBitsInInt16(V: Word): Word;
-{* 倒置二字节内容}
+{* 倒置二字节及其内部位的内容}
 
 function ReverseBitsInInt32(V: Cardinal): Cardinal;
-{* 倒置四字节内容}
+{* 倒置四字节及其内部位的内容}
 
 function ReverseBitsInInt64(V: Int64): Int64;
-{* 倒置八字节内容}
+{* 倒置八字节及其内部位的内容}
 
 procedure ReverseMemoryWithBits(AMem: Pointer; MemByteLen: Integer);
 {* 按字节顺序倒置一块内存块，并且每个字节也倒过来}
@@ -546,6 +548,12 @@ function AnsiToBytes(const Str: AnsiString): TBytes;
 
 function BytesToAnsi(const Data: TBytes): AnsiString;
 {* 将字节数组的内容转换为 AnsiString，不处理编码}
+
+function BytesToString(const Data: TBytes): string;
+{* 将字节数组的内容转换为 string，内部逐个赋值，不处理编码}
+
+function MemoryToString(Mem: Pointer; MemByteLen: Integer): string;
+{* 将内存块的内容转换为 string，内部逐个赋值，不处理编码}
 
 function ConcatBytes(A, B: TBytes): TBytes;
 {* 将 A B 两个字节数组顺序拼好返回一个新字节数组，A B 保持不变}
@@ -1816,6 +1824,32 @@ begin
   SetLength(Result, Length(Data));
   if Length(Data) > 0 then
     Move(Data[0], Result[1], Length(Data));
+end;
+
+function BytesToString(const Data: TBytes): string;
+var
+  I: Integer;
+begin
+  SetLength(Result, Length(Data));
+  for I := 1 to Length(Data) do
+    Result[I] := Chr(Data[I - 1]);
+end;
+
+function MemoryToString(Mem: Pointer; MemByteLen: Integer): string;
+var
+  P: PByteArray;
+  I: Integer;
+begin
+  if (Mem = nil) or (MemByteLen <= 0) then
+  begin
+    Result := '';
+    Exit;
+  end;
+
+  P := PByteArray(Mem);
+  SetLength(Result, MemByteLen);
+  for I := 1 to MemByteLen do
+    Result[I] := Chr(P^[I - 1]);
 end;
 
 function ConcatBytes(A, B: TBytes): TBytes;
