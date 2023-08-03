@@ -27,6 +27,10 @@ unit CnSHA3;
 * 备    注：D567下可以用有符号 Int64 代替无符号 UInt64 来计算 SHA3_512/384，原因是
 *           基于补码规则，有无符号数的加减移位以及溢出的舍弃机制等都相同，唯一不
 *           同的是比较，而本单元中没有类似的比较。
+*           另外，SHA3 规范来自 NIST.FIPS.202
+*           SHA-3 Standard: Permutation-Based Hash and Extendable-Output Functions
+*           其中额外定义了 Bit 串到 Byte 串的转换
+*           简而言之就是 Bit 串长度能够整除 8 时每 8 个 Bit 按位倒置就是一个字节，字节间的顺序保持不变
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -49,6 +53,13 @@ interface
 
 uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative;
+
+const
+  CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH = 32;
+  {* SHAKE128 默认杂凑结果的字节长度}
+
+  CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH = 64;
+  {* SHAKE256 默认杂凑结果的字节长度}
 
 type
   PCnSHA3GeneralDigest = ^TCnSHA3GeneralDigest;
@@ -113,7 +124,7 @@ function SHA3_512Buffer(const Buffer; Count: Cardinal): TCnSHA3_512Digest;
   Count: Cardinal  - 数据块长度
  |</PRE>}
 
-function SHAKE128Buffer(const Buffer; Count: Cardinal; DigestByteLength: Cardinal): TBytes;
+function SHAKE128Buffer(const Buffer; Count: Cardinal; DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对数据块进行杂凑长度可变的 SHAKE128 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
@@ -121,7 +132,7 @@ function SHAKE128Buffer(const Buffer; Count: Cardinal; DigestByteLength: Cardina
    DigestByteLength: Cardinal - 所需杂凑的长度
  |</PRE>}
 
-function SHAKE256Buffer(const Buffer; Count: Cardinal; DigestByteLength: Cardinal): TBytes;
+function SHAKE256Buffer(const Buffer; Count: Cardinal; DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对数据块进行杂凑长度可变的 SHAKE128 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果
  |<PRE>
    const Buffer     - 要计算的数据块，一般传个地址
@@ -153,14 +164,14 @@ function SHA3_512Bytes(Data: TBytes): TCnSHA3_512Digest;
    Data     - 要计算的字节数组
  |</PRE>}
 
-function SHAKE128Bytes(Data: TBytes; DigestByteLength: Cardinal): TBytes;
+function SHAKE128Bytes(Data: TBytes; DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对字节数组进行杂凑长度可变的 SHAKE128 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果
  |<PRE>
    Data     - 要计算的字节数组
    DigestByteLength: Cardinal - 所需杂凑的字节长度
  |</PRE>}
 
-function SHAKE256Bytes(Data: TBytes; DigestByteLength: Cardinal): TBytes;
+function SHAKE256Bytes(Data: TBytes; DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对字节数组进行杂凑长度可变的 SHAKE256 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果
  |<PRE>
    Data     - 要计算的字节数组
@@ -195,7 +206,7 @@ function SHA3_512String(const Str: string): TCnSHA3_512Digest;
    Str: string       - 要计算的字符串
  |</PRE>}
 
-function SHAKE128String(const Str: string; DigestByteLength: Cardinal): TBytes;
+function SHAKE128String(const Str: string; DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对 String 类型数据进行杂凑长度可变的 SHAKE128 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果
    注意 D2009 或以上版本的 string 为 UnicodeString，代码中会将其转换成 AnsiString 进行计算
  |<PRE>
@@ -203,7 +214,7 @@ function SHAKE128String(const Str: string; DigestByteLength: Cardinal): TBytes;
    DigestByteLength: Cardinal - 所需杂凑的字节长度
  |</PRE>}
 
-function SHAKE256String(const Str: string; DigestByteLength: Cardinal): TBytes;
+function SHAKE256String(const Str: string; DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对 String 类型数据进行杂凑长度可变的 SHAKE256 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果
    注意 D2009 或以上版本的 string 为 UnicodeString，代码中会将其转换成 AnsiString 进行计算
  |<PRE>
@@ -236,7 +247,7 @@ function SHA3_512UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideSt
  |</PRE>}
 
 function SHAKE128UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF};
-  DigestByteLength: Cardinal): TBytes;
+  DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对 UnicodeString 类型数据进行杂凑长度可变的直接 SHAKE128 计算，不进行转换，
    返回长度为 DigestByteLength 的字节数组作为杂凑结果
  |<PRE>
@@ -245,7 +256,7 @@ function SHAKE128UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideSt
  |</PRE>}
 
 function SHAKE256UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF};
-  DigestByteLength: Cardinal): TBytes;
+  DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对 UnicodeString 类型数据进行杂凑长度可变的直接 SHAKE256 计算，不进行转换，
    返回长度为 DigestByteLength 的字节数组作为杂凑结果
  |<PRE>
@@ -301,7 +312,7 @@ function SHA3_512StringW(const Str: WideString): TCnSHA3_512Digest;
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
-function SHAKE128StringA(const Str: AnsiString; DigestByteLength: Cardinal): TBytes;
+function SHAKE128StringA(const Str: AnsiString; DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对 AnsiString 类型数据进行杂凑长度可变的直接 SHAKE128 计算，
    返回长度为 DigestByteLength 的字节数组作为杂凑结果
  |<PRE>
@@ -309,14 +320,14 @@ function SHAKE128StringA(const Str: AnsiString; DigestByteLength: Cardinal): TBy
    DigestByteLength: Cardinal          - 所需杂凑的字节长度
  |</PRE>}
 
-function SHAKE128StringW(const Str: WideString; DigestByteLength: Cardinal): TBytes;
+function SHAKE128StringW(const Str: WideString; DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对 WideString 类型数据进行杂凑长度可变的直接 SHAKE128 计算，计算前会调用 WideCharToMultyByte 进行转换
  |<PRE>
    Str: WideString       - 要计算的字符串
    DigestByteLength: Cardinal          - 所需杂凑的字节长度
  |</PRE>}
 
-function SHAKE256StringA(const Str: AnsiString; DigestByteLength: Cardinal): TBytes;
+function SHAKE256StringA(const Str: AnsiString; DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对 AnsiString 类型数据进行杂凑长度可变的直接 SHAKE128 计算，
    返回长度为 DigestByteLength 的字节数组作为杂凑结果
  |<PRE>
@@ -324,7 +335,7 @@ function SHAKE256StringA(const Str: AnsiString; DigestByteLength: Cardinal): TBy
    DigestByteLength: Cardinal          - 所需杂凑的字节长度
  |</PRE>}
 
-function SHAKE256StringW(const Str: WideString; DigestByteLength: Cardinal): TBytes;
+function SHAKE256StringW(const Str: WideString; DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对 WideString 类型数据进行杂凑长度可变的直接 SHAKE256 计算，计算前会调用 WideCharToMultyByte 进行转换
  |<PRE>
    Str: WideString       - 要计算的字符串
@@ -395,7 +406,7 @@ function SHA3_512Stream(Stream: TStream; CallBack: TCnSHA3CalcProgressFunc = nil
    CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
-function SHAKE128File(const FileName: string; DigestByteLength: Cardinal;
+function SHAKE128File(const FileName: string; DigestByteLength: Cardinal  = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH;
   CallBack: TCnSHA3CalcProgressFunc = nil): TBytes;
 {* 对指定文件内容进行杂凑长度可变的 SHAKE128 计算
    返回长度为 DigestByteLength 的字节数组作为杂凑结果
@@ -405,7 +416,7 @@ function SHAKE128File(const FileName: string; DigestByteLength: Cardinal;
    CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
-function SHAKE128Stream(Stream: TStream; DigestByteLength: Cardinal;
+function SHAKE128Stream(Stream: TStream; DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH;
   CallBack: TCnSHA3CalcProgressFunc = nil): TBytes;
 {* 对指定数据流进行杂凑长度可变的 SHAKE128 计算
    返回长度为 DigestByteLength 的字节数组作为杂凑结果
@@ -415,7 +426,7 @@ function SHAKE128Stream(Stream: TStream; DigestByteLength: Cardinal;
    CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
-function SHAKE256File(const FileName: string; DigestByteLength: Cardinal;
+function SHAKE256File(const FileName: string; DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH;
   CallBack: TCnSHA3CalcProgressFunc = nil): TBytes;
 {* 对指定文件内容进行杂凑长度可变的 SHAKE256 计算
    返回长度为 DigestByteLength 的字节数组作为杂凑结果
@@ -425,7 +436,7 @@ function SHAKE256File(const FileName: string; DigestByteLength: Cardinal;
    CallBack: TSHA3CalcProgressFunc - 进度回调函数，默认为空
  |</PRE>}
 
-function SHAKE256Stream(Stream: TStream; DigestByteLength: Cardinal;
+function SHAKE256Stream(Stream: TStream; DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH;
   CallBack: TCnSHA3CalcProgressFunc = nil): TBytes;
 {* 对指定数据流进行杂凑长度可变的 SHAKE256 计算
    返回长度为 DigestByteLength 的字节数组作为杂凑结果
@@ -603,7 +614,7 @@ procedure SHA3_512Final(var Context: TCnSHA3Context; var Digest: TCnSHA3_512Dige
 
 // 以下三个函数用于外部持续对数据进行零散的 SHAKE128 计算，SHAKE128Update 可多次被调用
 
-procedure SHAKE128Init(var Context: TCnSHA3Context; DigestByteLength: Cardinal);
+procedure SHAKE128Init(var Context: TCnSHA3Context; DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH);
 {* 初始化一轮 SHAKE128 计算上下文，准备计算 SHAKE128 结果，
   DigestByteLength 为所需的杂凑的字节长度}
 
@@ -616,8 +627,8 @@ procedure SHAKE128Final(var Context: TCnSHA3Context; out Digest: TBytes);
 
 // 以下三个函数用于外部持续对数据进行零散的 SHAKE128 计算，SHAKE128Update 可多次被调用
 
-procedure SHAKE256Init(var Context: TCnSHA3Context; DigestByteLength: Cardinal);
-{* 初始化一轮 SHAKE256 计算上下文，准备计算 SHAKE128 结果，
+procedure SHAKE256Init(var Context: TCnSHA3Context; DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH);
+{* 初始化一轮 SHAKE256 计算上下文，准备计算 SHAKE256 结果，
   DigestByteLength 为所需的杂凑的字节长度}
 
 procedure SHAKE256Update(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLength: Cardinal);
@@ -1558,7 +1569,7 @@ end;
 
 // 对指定数据流进行杂凑长度可变的 SHAKE256 计算
 function SHAKE256Stream(Stream: TStream; DigestByteLength: Cardinal;
-  CallBack: TCnSHA3CalcProgressFunc = nil): TBytes;
+  CallBack: TCnSHA3CalcProgressFunc): TBytes;
 begin
   InternalSHA3Stream(Stream, STREAM_BUF_SIZE, stSHAKE256, DigestByteLength, Result, CallBack);
 end;
@@ -1778,7 +1789,7 @@ end;
 
 // 对指定文件内容进行杂凑长度可变的 SHAKE256 计算
 function SHAKE256File(const FileName: string; DigestByteLength: Cardinal;
-  CallBack: TCnSHA3CalcProgressFunc = nil): TBytes;
+  CallBack: TCnSHA3CalcProgressFunc): TBytes;
 begin
   Result := InternalSHA3File(FileName, stSHAKE256, DigestByteLength, CallBack);
 end;
