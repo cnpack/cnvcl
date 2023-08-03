@@ -56,15 +56,19 @@ type
 
   PCnSHA224Digest = ^TCnSHA224Digest;
   TCnSHA224Digest = array[0..27] of Byte;
+  {* SHA224 杂凑结果类型}
 
   PCnSHA256Digest = ^TCnSHA256Digest;
   TCnSHA256Digest = array[0..31] of Byte;
+  {* SHA256 杂凑结果类型}
 
   PCnSHA384Digest = ^TCnSHA384Digest;
   TCnSHA384Digest = array[0..47] of Byte;
+  {* SHA384 杂凑结果类型}
 
   PCnSHA512Digest = ^TCnSHA512Digest;
   TCnSHA512Digest = array[0..63] of Byte;
+  {* SHA512 杂凑结果类型}
 
   TCnSHA256Context = packed record
     DataLen: Cardinal;

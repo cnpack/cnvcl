@@ -73,15 +73,21 @@ type
     destructor Destroy; override;
   end;
 
+function Poly1305Buffer(const Buffer; Count: Cardinal; Key: TCnPoly1305Key): TCnPoly1305Digest;
+{* 对数据块进行 Poly1305 计算，Buffer 一般传个地址}
+
 function Poly1305Bytes(Data: TBytes; Key: TBytes): TCnPoly1305Digest;
 {* 计算字节数组的 Poly1305 杂凑值}
 
-function Poly1305Data(Data: Pointer; DataByteLength: Integer;
+function Poly1305Data(Data: Pointer; DataByteLength: Cardinal;
   Key: TCnPoly1305Key): TCnPoly1305Digest;
 {* 计算数据块的 Poly1305 杂凑值}
 
 function Poly1305Print(const Digest: TCnPoly1305Digest): string;
 {* 以十六进制格式输出 Poly1305 计算值}
+
+function Poly1305Match(const D1, D2: TCnPoly1305Digest): Boolean;
+{* 比较两个 Poly1305 计算值是否相等}
 
 procedure Poly1305Init(out Context: TCnPoly1305Context; Key: TCnPoly1305Key);
 {* 初始化一轮 Poly1305 计算上下文，内部创建 Context 准备计算 Poly1305 结果}
@@ -116,7 +122,16 @@ begin
   Result := Poly1305Data(@Data[0], Length(Data), AKey);
 end;
 
-function Poly1305Data(Data: Pointer; DataByteLength: Integer;
+function Poly1305Buffer(const Buffer; Count: Cardinal; Key: TCnPoly1305Key): TCnPoly1305Digest;
+var
+  C: TCnPoly1305Context;
+begin
+  Poly1305Init(C, Key);
+  Poly1305Update(C, PAnsiChar(Buffer), Count);
+  Poly1305Final(C, Result);
+end;
+
+function Poly1305Data(Data: Pointer; DataByteLength: Cardinal;
   Key: TCnPoly1305Key): TCnPoly1305Digest;
 var
   I, B, L: Integer;
@@ -188,6 +203,11 @@ end;
 function Poly1305Print(const Digest: TCnPoly1305Digest): string;
 begin
   Result := DataToHex(@Digest[0], SizeOf(TCnPoly1305Digest));
+end;
+
+function Poly1305Match(const D1, D2: TCnPoly1305Digest): Boolean;
+begin
+  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnPoly1305Digest));
 end;
 
 { TCnPoly1305Context }
