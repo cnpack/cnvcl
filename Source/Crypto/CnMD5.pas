@@ -167,10 +167,10 @@ function MD5Match(const D1, D2: TCnMD5Digest): Boolean;
    D2: TMD5Digest   - 需要比较的 MD5 计算值
  |</PRE>}
 
-function MD5DigestToStr(aDig: TCnMD5Digest): string;
+function MD5DigestToStr(Digest: TCnMD5Digest): string;
 {* MD5 计算值转 string
  |<PRE>
-   aDig: TMD5Digest   - 需要转换的 MD5 计算值
+   Digest: TMD5Digest   - 需要转换的 MD5 计算值
  |</PRE>}
 
 procedure MD5Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
@@ -712,26 +712,14 @@ end;
 
 // 比较两个 MD5 计算值是否相等
 function MD5Match(const D1, D2: TCnMD5Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 16) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnMD5Digest));
 end;
 
 // MD5 计算值转 string
-function MD5DigestToStr(aDig: TCnMD5Digest): string;
-var
-  I: Integer;
+function MD5DigestToStr(Digest: TCnMD5Digest): string;
 begin
-  SetLength(Result, 16);
-  for I := 1 to 16 do
-    Result[I] := Chr(aDig[I - 1]);
+  Result := MemoryToString(@Digest[0], SizeOf(TCnMD5Digest));
 end;
 
 procedure MD5HmacInit(var Ctx: TCnMD5Context; Key: PAnsiChar; KeyLength: Integer);

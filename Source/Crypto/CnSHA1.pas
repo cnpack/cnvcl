@@ -146,10 +146,10 @@ function SHA1Match(const D1, D2: TCnSHA1Digest): Boolean;
    D2: TSHA1Digest   - 需要比较的 SHA1 计算值
  |</PRE>}
 
-function SHA1DigestToStr(aDig: TCnSHA1Digest): string;
+function SHA1DigestToStr(Digest: TCnSHA1Digest): string;
 {* SHA1 计算值转 string
  |<PRE>
-   aDig: TSHA1Digest   - 需要转换的 SHA1 计算值
+   Digest: TSHA1Digest   - 需要转换的 SHA1 计算值
  |</PRE>}
 
 procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
@@ -598,13 +598,9 @@ begin
 end;
 
 // SHA1 计算值转 string
-function SHA1DigestToStr(aDig: TCnSHA1Digest): string;
-var
-  I: Integer;
+function SHA1DigestToStr(Digest: TCnSHA1Digest): string;
 begin
-  SetLength(Result, 20);
-  for I := 1 to 20 do
-    Result[I] := Chr(aDig[I - 1]);
+  Result := MemoryToString(@Digest[0], SizeOf(TCnSHA1Digest));
 end;
 
 procedure SHA1HmacInit(var Ctx: TCnSHA1Context; Key: PAnsiChar; KeyLength: Integer);

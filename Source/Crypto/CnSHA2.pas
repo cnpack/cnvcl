@@ -412,28 +412,28 @@ function SHA512Match(const D1, D2: TCnSHA512Digest): Boolean;
    D2: TSHA512Digest   - 需要比较的 SHA512 计算值
  |</PRE>}
 
-function SHA224DigestToStr(aDig: TCnSHA224Digest): string;
+function SHA224DigestToStr(Digest: TCnSHA224Digest): string;
 {* SHA224 计算值转 string
  |<PRE>
-   aDig: TSHA224Digest   - 需要转换的 SHA224 计算值
+   Digest: TSHA224Digest   - 需要转换的 SHA224 计算值
  |</PRE>}
 
-function SHA256DigestToStr(aDig: TCnSHA256Digest): string;
+function SHA256DigestToStr(Digest: TCnSHA256Digest): string;
 {* SHA256 计算值转 string
  |<PRE>
-   aDig: TSHA256Digest   - 需要转换的 SHA256 计算值
+   Digest: TSHA256Digest   - 需要转换的 SHA256 计算值
  |</PRE>}
 
-function SHA384DigestToStr(aDig: TCnSHA384Digest): string;
+function SHA384DigestToStr(Digest: TCnSHA384Digest): string;
 {* SHA384 计算值转 string
  |<PRE>
-   aDig: TSHA384Digest   - 需要转换的 SHA384 计算值
+   Digest: TSHA384Digest   - 需要转换的 SHA384 计算值
  |</PRE>}
 
-function SHA512DigestToStr(aDig: TCnSHA512Digest): string;
+function SHA512DigestToStr(Digest: TCnSHA512Digest): string;
 {* SHA512 计算值转 string
  |<PRE>
-   aDig: TSHA512Digest   - 需要转换的 SHA512 计算值
+   Digest: TSHA512Digest   - 需要转换的 SHA512 计算值
  |</PRE>}
 
 procedure SHA224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
@@ -1695,43 +1695,27 @@ begin
 end;
 
 // SHA224 计算值转 string
-function SHA224DigestToStr(aDig: TCnSHA224Digest): string;
-var
-  I: Integer;
+function SHA224DigestToStr(Digest: TCnSHA224Digest): string;
 begin
-  SetLength(Result, 28);
-  for I := 1 to 28 do
-    Result[I] := Chr(aDig[I - 1]);
+  Result := MemoryToString(@Digest[0], SizeOf(TCnSHA224Digest));
 end;
 
 // SHA256 计算值转 string
-function SHA256DigestToStr(aDig: TCnSHA256Digest): string;
-var
-  I: Integer;
+function SHA256DigestToStr(Digest: TCnSHA256Digest): string;
 begin
-  SetLength(Result, 32);
-  for I := 1 to 32 do
-    Result[I] := Chr(aDig[I - 1]);
+  Result := MemoryToString(@Digest[0], SizeOf(TCnSHA256Digest));
 end;
 
 // SHA384 计算值转 string
-function SHA384DigestToStr(aDig: TCnSHA384Digest): string;
-var
-  I: Integer;
+function SHA384DigestToStr(Digest: TCnSHA384Digest): string;
 begin
-  SetLength(Result, 48);
-  for I := 1 to 48 do
-    Result[I] := Chr(aDig[I - 1]);
+  Result := MemoryToString(@Digest[0], SizeOf(TCnSHA384Digest));
 end;
 
 // SHA512 计算值转 string
-function SHA512DigestToStr(aDig: TCnSHA512Digest): string;
-var
-  I: Integer;
+function SHA512DigestToStr(Digest: TCnSHA512Digest): string;
 begin
-  SetLength(Result, 64);
-  for I := 1 to 64 do
-    Result[I] := Chr(aDig[I - 1]);
+  Result := MemoryToString(@Digest[0], SizeOf(TCnSHA512Digest));
 end;
 
 procedure SHA224HmacInit(var Context: TCnSHA224Context; Key: PAnsiChar; KeyLength: Integer);
