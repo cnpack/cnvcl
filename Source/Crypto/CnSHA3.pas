@@ -703,6 +703,7 @@ begin
   Result := (Q shl N) xor (Q shr (64 - N));
 end;
 
+// 一轮 SHA3 计算，输入是 Block 内容，输出是 State 内容
 procedure SHA3_Transform(var Context: TCnSHA3Context);
 type
   PUInt64Array = ^TUInt64Array;
@@ -809,18 +810,18 @@ procedure SHA3Update(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLength: 
 var
   R, Idx: Cardinal;
 begin
-  Idx := Context.Index;
+  Idx := Context.Index;                                 // Index 是 Block 中的初始位置指针
   repeat
     if ByteLength < Context.BlockLen - Idx then
-      R := ByteLength
+      R := ByteLength                                   // 填不满
     else
-      R := Context.BlockLen - Idx;
+      R := Context.BlockLen - Idx;                      // 填满可能还有剩
 
-    FillChar(Context.Block, SizeOf(Context.Block), 0);
-    Move(Input^, Context.Block[Idx], R);
+    FillChar(Context.Block[Idx], SizeOf(Context.Block) - Idx, 0);  // 确保尾巴为 0
+    Move(Input^, Context.Block[Idx], R);                // 且 Block 的前半部分不被覆盖
 
-    if (Idx + R) < Context.BlockLen then
-    begin
+    if (Idx + R) < Context.BlockLen then                // 如果没填满则本轮不计算
+    begin                                               // 只更新 Index 位置指针
       Idx := Idx + R;
       Break;
     end;
@@ -833,7 +834,7 @@ begin
   Context.Index := Idx;
 end;
 
-procedure SHA3UpdateW(var Context: TCnSHA3Context; Input: PWideChar; ByteLength: Cardinal);
+procedure SHA3UpdateW(var Context: TCnSHA3Context; Input: PWideChar; CharLength: Cardinal);
 var
 {$IFDEF MSWINDOWS}
   Content: PAnsiChar;
@@ -844,10 +845,10 @@ var
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
-  GetMem(Content, ByteLength * SizeOf(WideChar));
+  GetMem(Content, CharLength * SizeOf(WideChar));
   try
-    Len := WideCharToMultiByte(0, 0, Input, ByteLength, // 代码页默认用 0
-      PAnsiChar(Content), ByteLength * SizeOf(WideChar), nil, nil);
+    Len := WideCharToMultiByte(0, 0, Input, CharLength, // 代码页默认用 0
+      PAnsiChar(Content), CharLength * SizeOf(WideChar), nil, nil);
     SHA3Update(Context, Content, Len);
   finally
     FreeMem(Content);
@@ -870,15 +871,36 @@ end;
 
 // SHAKE128 和 SHAKE256 专用
 procedure SHA3Final(var Context: TCnSHA3Context; out Digest: TBytes); overload;
+var
+  Idx, DL: Cardinal;
 begin
   Context.Block[Context.Index] := $1F;
   Context.Block[Context.BlockLen - 1] := Context.Block[Context.BlockLen - 1] or $80;
   SHA3_Transform(Context);
 
-  if Context.DigestLen <= SizeOf(Context.State) then
+  SetLength(Digest, Context.DigestLen);
+  if Context.DigestLen <= Context.BlockLen then
+    Move(Context.State[0], Digest[0], Context.DigestLen)
+  else
   begin
-    SetLength(Digest, Context.DigestLen);
-    Move(Context.State[0], Digest[0], Context.DigestLen);
+    DL := Context.DigestLen;
+    Idx := 0;
+
+    while DL >= Context.BlockLen do
+    begin
+      Move(Context.State[0], Digest[Idx], Context.BlockLen);
+      Inc(Idx, Context.BlockLen);
+      Dec(DL, Context.BlockLen);
+
+      if DL > 0 then
+      begin
+        FillChar(Context.Block[0], SizeOf(Context.Block), 0);
+        SHA3_Transform(Context);
+      end;
+    end;
+
+    if DL > 0 then
+      Move(Context.State[0], Digest[Idx], DL);
   end;
 end;
 
