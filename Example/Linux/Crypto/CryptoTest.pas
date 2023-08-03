@@ -101,33 +101,43 @@ function TestCRC64ECMA: Boolean;
 
 function TestMD5: Boolean;
 function TestMD5Hmac: Boolean;
+function TestMD5Update: Boolean;
 
 // ================================ SHA1 =======================================
 
 function TestSHA1: Boolean;
 function TestSHA1HMac: Boolean;
+function TestSHA1Update: Boolean;
 
 // ================================ SHA2 =======================================
 
 function TestSHA224: Boolean;
 function TestSHA224HMac: Boolean;
+function TestSHA224Update: Boolean;
 function TestSHA256: Boolean;
 function TestSHA256HMac: Boolean;
+function TestSHA256Update: Boolean;
 function TestSHA384: Boolean;
 function TestSHA384HMac: Boolean;
+function TestSHA384Update: Boolean;
 function TestSHA512: Boolean;
 function TestSHA512HMac: Boolean;
+function TestSHA512Update: Boolean;
 
 // ================================ SHA3 =======================================
 
 function TestSHA3_224: Boolean;
 function TestSHA3_224HMac: Boolean;
+function TestSHA3_224Update: Boolean;
 function TestSHA3_256: Boolean;
 function TestSHA3_256HMac: Boolean;
+function TestSHA3_256Update: Boolean;
 function TestSHA3_384: Boolean;
 function TestSHA3_384HMac: Boolean;
+function TestSHA3_384Update: Boolean;
 function TestSHA3_512: Boolean;
 function TestSHA3_512HMac: Boolean;
+function TestSHA3_512Update: Boolean;
 
 // ================================ Base64 =====================================
 
@@ -153,6 +163,7 @@ function TestXChaCha20: Boolean;
 // ================================ Poly1305 ===================================
 
 function TestPoly1305: Boolean;
+function TestPoly1305Update: Boolean;
 
 // ================================ ZUC ========================================
 
@@ -188,6 +199,7 @@ function TestSM23: Boolean;
 
 function TestSM3: Boolean;
 function TestSM3HMac: Boolean;
+function TestSM3Update: Boolean;
 
 // ================================ SM9 ========================================
 
@@ -302,33 +314,43 @@ begin
 
   MyAssert(TestMD5, 'TestMD5');
   MyAssert(TestMD5Hmac, 'TestMD5Hmac');
+  MyAssert(TestMD5Update, 'TestMD5Update');
 
 // ================================ SHA1 =======================================
 
   MyAssert(TestSHA1, 'TestSHA1');
   MyAssert(TestSHA1Hmac, 'TestSHA1Hmac');
+  MyAssert(TestSHA1Update, 'TestSHA1Update');
 
 // ================================ SHA2 =======================================
 
   MyAssert(TestSHA224, 'TestSHA224');
   MyAssert(TestSHA224HMac, 'TestSHA224HMac');
+  MyAssert(TestSHA224Update, 'TestSHA224Update');
   MyAssert(TestSHA256, 'TestSHA256');
   MyAssert(TestSHA256HMac, 'TestSHA256HMac');
+  MyAssert(TestSHA256Update, 'TestSHA256Update');
   MyAssert(TestSHA384, 'TestSHA384');
   MyAssert(TestSHA384HMac, 'TestSHA384HMac');
+  MyAssert(TestSHA384Update, 'TestSHA384Update');
   MyAssert(TestSHA512, 'TestSHA512');
   MyAssert(TestSHA512HMac, 'TestSHA512HMac');
+  MyAssert(TestSHA512Update, 'TestSHA512Update');
 
 // ================================ SHA3 =======================================
 
   MyAssert(TestSHA3_224, 'TestSHA3_224');
   MyAssert(TestSHA3_224HMac, 'TestSHA3_224HMac');
+  MyAssert(TestSHA3_224Update, 'TestSHA3_224Update');
   MyAssert(TestSHA3_256, 'TestSHA3_256');
   MyAssert(TestSHA3_256HMac, 'TestSHA3_256HMac');
+  MyAssert(TestSHA3_256Update, 'TestSHA3_256Update');
   MyAssert(TestSHA3_384, 'TestSHA3_384');
   MyAssert(TestSHA3_384HMac, 'TestSHA3_384HMac');
+  MyAssert(TestSHA3_384Update, 'TestSHA3_384Update');
   MyAssert(TestSHA3_512, 'TestSHA3_512');
   MyAssert(TestSHA3_512HMac, 'TestSHA3_512HMac');
+  MyAssert(TestSHA3_512Update, 'TestSHA3_512Update');
 
 // ================================ Base64 =====================================
 
@@ -389,6 +411,7 @@ begin
 
   MyAssert(TestSM3, 'TestSM3');
   MyAssert(TestSM3Hmac, 'TestSM3Hmac');
+  MyAssert(TestSM3Update, 'TestSM3Update');
 
 // ================================ SM9 ========================================
 
@@ -920,6 +943,25 @@ begin
   Result := DataToHex(@Dig[0], SizeOf(TCnMD5Digest)) = 'EE48551E4F54DFBAA43C65124FCCC675';
 end;
 
+function TestMD5Update: Boolean;
+var
+  D1, D2: TCnMD5Digest;
+  C: TCnMD5Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := MD5StringA(S);
+  MD5Init(C);
+  MD5Update(C, PAnsiChar(S1), Length(S1));
+  MD5Update(C, PAnsiChar(S2), Length(S2));
+  MD5Final(C, D2);
+
+  Result := MD5Match(D1, D2);
+end;
+
 // ================================ SHA1 =======================================
 
 function TestSHA1: Boolean;
@@ -942,6 +984,25 @@ begin
   Data := HexToBytes('436E5061636B2054657374');
   SHA1Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
   Result := DataToHex(@Dig[0], SizeOf(TCnSHA1Digest)) = '1DD4E8CD93226D7D8253890260F62A4B8293766D';
+end;
+
+function TestSHA1Update: Boolean;
+var
+  D1, D2: TCnSHA1Digest;
+  C: TCnSHA1Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := SHA1StringA(S);
+  SHA1Init(C);
+  SHA1Update(C, PAnsiChar(S1), Length(S1));
+  SHA1Update(C, PAnsiChar(S2), Length(S2));
+  SHA1Final(C, D2);
+
+  Result := SHA1Match(D1, D2);
 end;
 
 // ================================ SHA2 =======================================
@@ -968,6 +1029,25 @@ begin
   Result := DataToHex(@Dig[0], SizeOf(TCnSHA224Digest)) = '33E0602F3BE8EEACA7C6F27B2158036FCD2D835893E0B22A158127C2';
 end;
 
+function TestSHA224Update: Boolean;
+var
+  D1, D2: TCnSHA224Digest;
+  C: TCnSHA224Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := SHA224StringA(S);
+  SHA224Init(C);
+  SHA224Update(C, PAnsiChar(S1), Length(S1));
+  SHA224Update(C, PAnsiChar(S2), Length(S2));
+  SHA224Final(C, D2);
+
+  Result := SHA224Match(D1, D2);
+end;
+
 function TestSHA256: Boolean;
 var
   Dig: TCnSHA256Digest;
@@ -988,6 +1068,25 @@ begin
   Data := HexToBytes('436E5061636B2054657374');
   SHA256Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
   Result := DataToHex(@Dig[0], SizeOf(TCnSHA256Digest)) = 'DF8F5CA95CBF28996BD0A262084F539982FABCBEC3D6F2FF9CB6A31BE620E11C';
+end;
+
+function TestSHA256Update: Boolean;
+var
+  D1, D2: TCnSHA256Digest;
+  C: TCnSHA256Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := SHA256StringA(S);
+  SHA256Init(C);
+  SHA256Update(C, PAnsiChar(S1), Length(S1));
+  SHA256Update(C, PAnsiChar(S2), Length(S2));
+  SHA256Final(C, D2);
+
+  Result := SHA256Match(D1, D2);
 end;
 
 function TestSHA384: Boolean;
@@ -1012,6 +1111,25 @@ begin
   Result := DataToHex(@Dig[0], SizeOf(TCnSHA384Digest)) = '3EC487D5A1E6011585C9AE5582E12DDA154D48C52851FE2633176B92FF8A6A08DE024617E641968D6D891719442BB082';
 end;
 
+function TestSHA384Update: Boolean;
+var
+  D1, D2: TCnSHA384Digest;
+  C: TCnSHA384Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := SHA384StringA(S);
+  SHA384Init(C);
+  SHA384Update(C, PAnsiChar(S1), Length(S1));
+  SHA384Update(C, PAnsiChar(S2), Length(S2));
+  SHA384Final(C, D2);
+
+  Result := SHA384Match(D1, D2);
+end;
+
 function TestSHA512: Boolean;
 var
   Dig: TCnSHA512Digest;
@@ -1032,6 +1150,25 @@ begin
   Data := HexToBytes('436E5061636B2054657374');
   SHA512Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
   Result := DataToHex(@Dig[0], SizeOf(TCnSHA512Digest)) = 'DBBBEE460673F447B39CC9F72C2C23361281497834F2830BBCF56F1325282172303B9DB2F88D61AF0EEE5997D3035E2CFA9DF7E57B8FE77B0F9F694318C18E46';
+end;
+
+function TestSHA512Update: Boolean;
+var
+  D1, D2: TCnSHA512Digest;
+  C: TCnSHA512Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := SHA512StringA(S);
+  SHA512Init(C);
+  SHA512Update(C, PAnsiChar(S1), Length(S1));
+  SHA512Update(C, PAnsiChar(S2), Length(S2));
+  SHA512Final(C, D2);
+
+  Result := SHA512Match(D1, D2);
 end;
 
 // ================================ SHA3 =======================================
@@ -1058,6 +1195,25 @@ begin
   Result := DataToHex(@Dig[0], SizeOf(TCnSHA3_224Digest)) = 'A20F92973578642EC6A841EAB0AA4091C24E7629715D656C006E0E53';
 end;
 
+function TestSHA3_224Update: Boolean;
+var
+  D1, D2: TCnSHA3_224Digest;
+  C: TCnSHA3Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := SHA3_224StringA(S);
+  SHA3_224Init(C);
+  SHA3_224Update(C, PAnsiChar(S1), Length(S1));
+  SHA3_224Update(C, PAnsiChar(S2), Length(S2));
+  SHA3_224Final(C, D2);
+
+  Result := SHA3_224Match(D1, D2);
+end;
+
 function TestSHA3_256: Boolean;
 var
   Dig: TCnSHA3_256Digest;
@@ -1078,6 +1234,25 @@ begin
   Data := HexToBytes('436E5061636B2054657374');
   SHA3_256Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
   Result := DataToHex(@Dig[0], SizeOf(TCnSHA3_256Digest)) = 'FFF6F1CA3728ADB22D5E2B07B302BE522AE62A5D3711841E0C0A0F483AEC8DCE';
+end;
+
+function TestSHA3_256Update: Boolean;
+var
+  D1, D2: TCnSHA3_256Digest;
+  C: TCnSHA3Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := SHA3_256StringA(S);
+  SHA3_256Init(C);
+  SHA3_256Update(C, PAnsiChar(S1), Length(S1));
+  SHA3_256Update(C, PAnsiChar(S2), Length(S2));
+  SHA3_256Final(C, D2);
+
+  Result := SHA3_256Match(D1, D2);
 end;
 
 function TestSHA3_384: Boolean;
@@ -1102,6 +1277,25 @@ begin
   Result := DataToHex(@Dig[0], SizeOf(TCnSHA3_384Digest)) = 'DB48EE0068F826CC97D0B305DCC1C726662C4EE428404F7BC923DC14142E1D12050D55355AD784046F2C848323F67832';
 end;
 
+function TestSHA3_384Update: Boolean;
+var
+  D1, D2: TCnSHA3_384Digest;
+  C: TCnSHA3Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := SHA3_384StringA(S);
+  SHA3_384Init(C);
+  SHA3_384Update(C, PAnsiChar(S1), Length(S1));
+  SHA3_384Update(C, PAnsiChar(S2), Length(S2));
+  SHA3_384Final(C, D2);
+
+  Result := SHA3_384Match(D1, D2);
+end;
+
 function TestSHA3_512: Boolean;
 var
   Dig: TCnSHA3_512Digest;
@@ -1122,6 +1316,25 @@ begin
   Data := HexToBytes('436E5061636B2054657374');
   SHA3_512Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
   Result := DataToHex(@Dig[0], SizeOf(TCnSHA3_512Digest)) = 'F97C8E267641A64BD1DF46A6EBB032F53C76DF3DC6D549201235CC499A0974189D712503B3DE023C96F5CBA36F021AD31BD0FF809D67FEF220BE32F42848247E';
+end;
+
+function TestSHA3_512Update: Boolean;
+var
+  D1, D2: TCnSHA3_512Digest;
+  C: TCnSHA3Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := SHA3_512StringA(S);
+  SHA3_512Init(C);
+  SHA3_512Update(C, PAnsiChar(S1), Length(S1));
+  SHA3_512Update(C, PAnsiChar(S2), Length(S2));
+  SHA3_512Final(C, D2);
+
+  Result := SHA3_512Match(D1, D2);
 end;
 
 // ================================ Base64 =====================================
@@ -1489,6 +1702,28 @@ begin
   HexToData('85D6BE7857556D337F4452FE42D506A80103808AFB0DB2FD4ABFF6AF4149F51B', @Key[0]);
   Dig := Poly1305Data(@S[1], Length(S), Key);
   Result := DataToHex(@Dig[0], SizeOf(TCnPoly1305Digest)) = 'A8061DC1305136C6C22B8BAF0C0127A9';
+end;
+
+function TestPoly1305Update: Boolean;
+var
+  D1, D2: TCnPoly1305Digest;
+  C: TCnPoly1305Context;
+  K: TCnPoly1305Key;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  FillChar(K[0], SizeOf(TCnPoly1305Key), $FF);
+
+  D1 := Poly1305Buffer(S, Length(S), K);
+  Poly1305Init(C, K);
+  Poly1305Update(C, PAnsiChar(S1), Length(S1));
+  Poly1305Update(C, PAnsiChar(S2), Length(S2));
+  Poly1305Final(C, D2);
+
+  Result := Poly1305Match(D1, D2);
 end;
 
 // ================================ ZUC ========================================
@@ -1958,6 +2193,25 @@ begin
   Data := HexToBytes('436E5061636B2054657374');
   SM3Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
   Result := DataToHex(@Dig[0], SizeOf(TCnSM3Digest)) = '393FFDFADE8A0E6ADFF832E6E126B2713EEB48066FEA8963CF63C258F65E368F';
+end;
+
+function TestSM3Update: Boolean;
+var
+  D1, D2: TCnSM3Digest;
+  C: TCnSM3Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := SM3StringA(S);
+  SM3Init(C);
+  SM3Update(C, PAnsiChar(S1), Length(S1));
+  SM3Update(C, PAnsiChar(S2), Length(S2));
+  SM3Final(C, D2);
+
+  Result := SM3Match(D1, D2);
 end;
 
 // ================================ SM9 ========================================
