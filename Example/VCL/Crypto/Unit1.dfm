@@ -1954,6 +1954,115 @@ object FormCrypt: TFormCrypt
         end
       end
     end
+    object tsSHAKE: TTabSheet
+      Caption = 'SHAKE'
+      ImageIndex = 24
+      object grpSHAKE: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 433
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'SHAKE'
+        TabOrder = 0
+        object lblSHAKE: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblDigLen: TLabel
+          Left = 256
+          Top = 44
+          Width = 37
+          Height = 13
+          Caption = 'Length:'
+        end
+        object edtSHAKE: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnSHAKE: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'SHAKE'
+          TabOrder = 1
+          OnClick = btnSHAKEClick
+        end
+        object btnSHAKEFile: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File SHAKE'
+          TabOrder = 3
+          OnClick = btnSHAKEFileClick
+        end
+        object btnUSHAKE: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 SHAKE'
+          TabOrder = 2
+          OnClick = btnUSHAKEClick
+        end
+        object rbSHAKE128: TRadioButton
+          Left = 272
+          Top = 80
+          Width = 113
+          Height = 17
+          Caption = '128'
+          Checked = True
+          TabOrder = 4
+          TabStop = True
+        end
+        object rbSHAKE256: TRadioButton
+          Left = 328
+          Top = 80
+          Width = 113
+          Height = 17
+          Caption = '256'
+          TabOrder = 5
+        end
+        object edtSHAKELength: TEdit
+          Left = 296
+          Top = 40
+          Width = 65
+          Height = 21
+          TabOrder = 6
+          Text = '200'
+        end
+        object udSHAKE: TUpDown
+          Left = 361
+          Top = 40
+          Width = 15
+          Height = 21
+          Associate = edtSHAKELength
+          Min = 1
+          Max = 1000
+          Position = 200
+          TabOrder = 7
+          Wrap = False
+        end
+        object mmoSHAKE: TMemo
+          Left = 8
+          Top = 112
+          Width = 417
+          Height = 89
+          ReadOnly = True
+          ScrollBars = ssVertical
+          TabOrder = 8
+        end
+      end
+    end
     object tsZUC: TTabSheet
       Caption = 'ZUC'
       ImageIndex = 13

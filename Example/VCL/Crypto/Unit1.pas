@@ -340,6 +340,19 @@ type
     btnXChaCha20Enc: TButton;
     btnChaCha20Poly1305Aead: TButton;
     btnXChaCha20Poly1305Aead: TButton;
+    tsSHAKE: TTabSheet;
+    grpSHAKE: TGroupBox;
+    lblSHAKE: TLabel;
+    edtSHAKE: TEdit;
+    btnSHAKE: TButton;
+    btnSHAKEFile: TButton;
+    btnUSHAKE: TButton;
+    rbSHAKE128: TRadioButton;
+    rbSHAKE256: TRadioButton;
+    lblDigLen: TLabel;
+    edtSHAKELength: TEdit;
+    udSHAKE: TUpDown;
+    mmoSHAKE: TMemo;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -444,6 +457,9 @@ type
     procedure btnXChaCha20EncClick(Sender: TObject);
     procedure btnChaCha20Poly1305AeadClick(Sender: TObject);
     procedure btnXChaCha20Poly1305AeadClick(Sender: TObject);
+    procedure btnSHAKEClick(Sender: TObject);
+    procedure btnUSHAKEClick(Sender: TObject);
+    procedure btnSHAKEFileClick(Sender: TObject);
   private
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -2757,6 +2773,36 @@ begin
 
   if CompareBytes(DeData, Plain) then
     ShowMessage('OK');
+end;
+
+procedure TFormCrypt.btnSHAKEClick(Sender: TObject);
+var
+  S: AnsiString;
+begin
+  S := edtSHAKE.Text;
+  if rbSHAKE128.Checked then
+    mmoSHAKE.Lines.Text := BytesToHex(SHAKE128String(S, udSHAKE.Position))
+  else
+    mmoSHAKE.Lines.Text := BytesToHex(SHAKE256String(S, udSHAKE.Position));
+end;
+
+procedure TFormCrypt.btnUSHAKEClick(Sender: TObject);
+begin
+  if rbSHAKE128.Checked then
+    mmoSHAKE.Lines.Text := BytesToHex(SHAKE128UnicodeString(edtSHAKE.Text, udSHAKE.Position))
+  else
+    mmoSHAKE.Lines.Text := BytesToHex(SHAKE256UnicodeString(edtSHAKE.Text, udSHAKE.Position));
+end;
+
+procedure TFormCrypt.btnSHAKEFileClick(Sender: TObject);
+begin
+  if OpenDialog1.Execute then
+  begin
+    if rbSHAKE128.Checked then
+      mmoSHAKE.Lines.Text := BytesToHex(SHAKE128File(OpenDialog1.FileName, udSHAKE.Position))
+    else
+      mmoSHAKE.Lines.Text := BytesToHex(SHAKE256File(OpenDialog1.FileName, udSHAKE.Position));
+  end;
 end;
 
 end.
