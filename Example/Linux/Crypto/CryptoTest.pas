@@ -1388,7 +1388,7 @@ function TestSHAKE256: Boolean;
 var
   S, R: TBytes;
 begin
-  // 例子来源于 NIST 的 SHAKE128_Msg160 Example
+  // 例子来源于 NIST 的 SHAKE256_Msg160 Example
   SetLength(S, 200);
   FillChar(S[0], Length(S), $A3);
   R := SHAKE256Bytes(S, 32 * 16);
