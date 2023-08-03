@@ -251,7 +251,7 @@ begin
   FillChar(Context.Buffer, SizeOf(Context.Buffer), 0);
 end;
 
-// 一次处理 64byte 也就是512bit 数据块
+// 一次处理 64 字节也就是 512 位数据块
 procedure SM3Process(var Context: TCnSM3Context; Data: PAnsiChar);
 var
   SS1, SS2, TT1, TT2: Cardinal;
@@ -720,16 +720,8 @@ begin
 end;
 
 function SM3Match(const D1, D2: TCnSM3Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 32) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
-  end;
+  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnSM3Digest));
 end;
 
 end.
