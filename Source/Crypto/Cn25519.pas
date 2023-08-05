@@ -24,8 +24,8 @@ unit Cn25519;
 * 软件名称：开发包基础库
 * 单元名称：25519 系列椭圆曲线算法单元
 * 单元作者：刘啸
-* 备    注：目前实现了 Montgomery 椭圆曲线 y^2 = x^3 + A*X^2 + x
-*           以及扭曲 Edwards 椭圆曲线 au^2 + v^2 = 1 + d * u^2 * v^2 的点加减乘
+* 备    注：目前实现了 Montgomery 椭圆曲线 y^2 = x^3 + A*X^2 + x （文中叫 Curve，参数 A）
+*           以及扭曲 Edwards 椭圆曲线 au^2 + v^2 = 1 + d * u^2 * v^2 （文中叫 Ed，参数 a d）的点加减乘
 *           已实现仅基于 X 以及蒙哥马利阶梯的快速标量乘以及扩展四元坐标的快速点加
 *           以及结合多项式约减代替模运算所进行的加速算法，是原始点加算法速度的五十倍以上
 *           签名基于 rfc 8032 的说明
@@ -65,7 +65,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnNative, CnBigNumber, CnInt128, CnECC, CnSHA2;
+  Classes, SysUtils, CnNative, CnBigNumber, CnInt128, CnECC, CnSHA2, CnSHA3;
 
 const
   CN_25519_BLOCK_BYTESIZE = 32;
@@ -549,11 +549,14 @@ resourcestring
   SCnECanNOTCalcErrorFmt = 'Can NOT Calucate %s,%s + %s,%s';
 
 const
+
+// ============================ 25519 曲线参数 =================================
+
   SCN_25519_PRIME = '7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED';
   // 2^255 - 19
 
   SCN_25519_COFACTOR = 8;
-  // 余因子均为 8，也就是椭圆曲线总点数是 G 点阶数的八倍
+  // 余因子均为 8，也就是 25519 椭圆曲线总点数是 G 点阶数的八倍
 
   SCN_25519_ORDER = '1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED';
   // 基点阶数均为 2^252 + 27742317777372353535851937790883648493
@@ -581,6 +584,7 @@ const
 
   SCN_25519_MONT_GX = '09';
   // 9
+
   SCN_25519_MONT_GY = '20AE19A1B8A086B4E01EDD2C7748D14C923D4D7E6D7C61B229E9C5A27ECED3D9';
   // 等于 RFC 中的 y = 14781619447589544791020593568409986887264606134616475288964881837755586237401，但似乎不是 4/5，也就是 5 * Y mod P = 4
   // 可能是 5F51E65E475F794B1FE122D388B72EB36DC2B28192839E4DD6163A5D81312C14 才符合 4/5 并且和 Ed25519 的 GY 对应
@@ -596,6 +600,10 @@ const
 // 但 Curve25519 曲线与 Ed25519 曲线又经过了参数调整，B = 4 /(a-d) 不成立
 // 同样，(x, y) 与 (u, v) 的对应关系也因为 A B a d 关系的调整而不满足标准映射
 // =============================================================================
+
+type
+  TCn25519448Digest = array[0..63] of Byte;
+  {* 25519 和 448 曲线使用的数据块摘要大小，SHA512 与 SHAKE256 均为 64 字节}
 
 var
   F25519BigNumberPool: TCnBigNumberPool = nil;
@@ -624,17 +632,40 @@ begin
   end;
 end;
 
-function CalcBigNumberDigest(const Num: TCnBigNumber; FixedLen: Integer): TCnSHA512Digest;
+// 计算大数的 SHA512 结果，长度 64 字节
+function CalcBigNumberSHA512Digest(const Num: TCnBigNumber; FixedLen: Integer): TCn25519448Digest;
 var
   Stream: TStream;
+  D: TCnSHA512Digest;
 begin
   Stream := TMemoryStream.Create;
   try
-    FillChar(Result[0], SizeOf(TCnSHA512Digest), 0);
+    FillChar(Result[0], SizeOf(TCn25519448Digest), 0);
     if BigNumberWriteBinaryToStream(Num, Stream, FixedLen) <> FixedLen then
       Exit;
 
-    Result := SHA512Stream(Stream);
+    D := SHA512Stream(Stream);
+    Move(D[0], Result[0], SizeOf(TCnSHA512Digest));
+  finally
+    Stream.Free;
+  end;
+end;
+
+// 计算大数的 SHAKE256 结果，长度取 64 字节
+function CalcBigNumberSHAKE256Digest(const Num: TCnBigNumber; FixedLen: Integer): TCn25519448Digest;
+var
+  Stream: TStream;
+  D: TBytes;
+begin
+  Stream := TMemoryStream.Create;
+  try
+    FillChar(Result[0], SizeOf(TCn25519448Digest), 0);
+    if BigNumberWriteBinaryToStream(Num, Stream, FixedLen) <> FixedLen then
+      Exit;
+
+    D := SHAKE256Stream(Stream);
+    if Length(D) = SizeOf(TCn25519448Digest) then
+      Move(D[0], Result[0], SizeOf(TCn25519448Digest));
   finally
     Stream.Free;
   end;
@@ -644,10 +675,10 @@ end;
 procedure CalcBigNumbersFromPrivateKey(const InPrivateKey: TCnBigNumber; FixedLen: Integer;
   OutMulFactor, OutHashPrefix: TCnBigNumber);
 var
-  Dig: TCnSHA512Digest;
+  Dig: TCn25519448Digest;
 begin
   // 拿 PrivateKey 做 Sha512，得到 64 字节结果 Dig
-  Dig := CalcBigNumberDigest(InPrivateKey, CN_25519_BLOCK_BYTESIZE);
+  Dig := CalcBigNumberSHA512Digest(InPrivateKey, CN_25519_BLOCK_BYTESIZE);
 
   // 拿它做 Sha512，得到 64 字节结果，前 32 字节取来做乘数，先倒序，低 3 位得清零，
   // （和 CoFactor 是 2^3 = 8 对应），且最高位 2^255 得置 0，次高位 2^254 得置 1

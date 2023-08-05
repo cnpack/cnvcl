@@ -1168,8 +1168,6 @@ begin
   SHA512Final(Context, Result);
 end;
 
-
-
 // 对 AnsiString 类型数据进行 SHA224 计算
 function SHA224StringA(const Str: AnsiString): TCnSHA224Digest;
 var
