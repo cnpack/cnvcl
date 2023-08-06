@@ -1059,6 +1059,24 @@ object FormCrypt: TFormCrypt
           Caption = 'CTR'
           TabOrder = 13
         end
+        object btnSM4Utf8Enc: TButton
+          Left = 496
+          Top = 112
+          Width = 89
+          Height = 25
+          Caption = 'Utf8 Bytes Enc'
+          TabOrder = 14
+          OnClick = btnSM4Utf8EncClick
+        end
+        object btnSM4Utf8Dec: TButton
+          Left = 496
+          Top = 200
+          Width = 89
+          Height = 25
+          Caption = 'Utf8 Bytes Dec'
+          TabOrder = 15
+          OnClick = btnSM4Utf8DecClick
+        end
       end
     end
     object tsAES: TTabSheet

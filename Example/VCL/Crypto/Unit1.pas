@@ -353,6 +353,8 @@ type
     edtSHAKELength: TEdit;
     udSHAKE: TUpDown;
     mmoSHAKE: TMemo;
+    btnSM4Utf8Enc: TButton;
+    btnSM4Utf8Dec: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -460,6 +462,8 @@ type
     procedure btnSHAKEClick(Sender: TObject);
     procedure btnUSHAKEClick(Sender: TObject);
     procedure btnSHAKEFileClick(Sender: TObject);
+    procedure btnSM4Utf8EncClick(Sender: TObject);
+    procedure btnSM4Utf8DecClick(Sender: TObject);
   private
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -2803,6 +2807,87 @@ begin
     else
       mmoSHAKE.Lines.Text := BytesToHex(SHAKE256File(OpenDialog1.FileName, udSHAKE.Position));
   end;
+end;
+
+procedure TFormCrypt.btnSM4Utf8EncClick(Sender: TObject);
+var
+  S: AnsiString;
+  Key, Data, Iv, Res: TBytes;
+begin
+  // 整好 UTF8 内容
+  S := CnAnsiToUtf8(edtSm4.Text);
+  Key := MyStringToBytes(edtSm4Key.Text);
+  Data := AnsiToBytes(S);
+
+  // 这几种模式要准备好初始化向量
+  if rbSm4Cbc.Checked or rbSm4Cfb.Checked or rbSm4Ofb.Checked or rbSm4Ctr.Checked then
+  begin
+    Iv := HexToBytes(edtSM4Iv.Text);
+    if Length(Iv) <> CN_SM4_BLOCKSIZE then
+    begin
+      ShowMessage('Invalid SM4 Iv, Use Our Default Iv.');
+      SetLength(Iv, CN_SM4_BLOCKSIZE);
+      Move(Sm4Iv[0], Iv[0], CN_SM4_BLOCKSIZE);
+    end;
+  end;
+
+  // 这几种模式要处理对齐
+  if rbSm4Ecb.Checked or rbSm4Cbc.Checked then
+    if cbbSm4Padding.ItemIndex = 1 then
+      BytesAddPKCS7Padding(Data, CN_SM4_BLOCKSIZE);
+
+  // 然后加密
+  if rbSm4Ecb.Checked then
+    Res := SM4EncryptEcbBytes(Key, Data)
+  else if rbSm4Cbc.Checked then
+    Res := SM4EncryptCbcBytes(Key, Iv, Data)
+  else if rbSm4Cfb.Checked then
+    Res := SM4EncryptCfbBytes(Key, Iv, Data)
+  else if rbSm4Ofb.Checked then
+    Res := SM4EncryptOfbBytes(Key, Iv, Data)
+  else if rbSm4Ctr.Checked then
+    Res := SM4EncryptCtrBytes(Key, Iv, Data);
+
+  edtSm4Code.Text := BytesToHex(Res);
+end;
+
+procedure TFormCrypt.btnSM4Utf8DecClick(Sender: TObject);
+var
+  Key, Data, Iv, Res: TBytes;
+begin
+  Key := MyStringToBytes(edtSm4Key.Text);
+  Data := HexToBytes(edtSm4Code.Text);
+
+  // 这几种模式要准备好初始化向量
+  if rbSm4Cbc.Checked or rbSm4Cfb.Checked or rbSm4Ofb.Checked or rbSm4Ctr.Checked then
+  begin
+    Iv := HexToBytes(edtSM4Iv.Text);
+    if Length(Iv) <> CN_SM4_BLOCKSIZE then
+    begin
+      ShowMessage('Invalid SM4 Iv, Use Our Default Iv.');
+      SetLength(Iv, CN_SM4_BLOCKSIZE);
+      Move(Sm4Iv[0], Iv[0], CN_SM4_BLOCKSIZE);
+    end;
+  end;
+
+  // 然后解密
+  if rbSm4Ecb.Checked then
+    Res := SM4DecryptEcbBytes(Key, Data)
+  else if rbSm4Cbc.Checked then
+    Res := SM4DecryptCbcBytes(Key, Iv, Data)
+  else if rbSm4Cfb.Checked then
+    Res := SM4DecryptCfbBytes(Key, Iv, Data)
+  else if rbSm4Ofb.Checked then
+    Res := SM4DecryptOfbBytes(Key, Iv, Data)
+  else if rbSm4Ctr.Checked then
+    Res := SM4DecryptCtrBytes(Key, Iv, Data);
+
+  // 这几种模式要处理对齐
+  if rbSm4Ecb.Checked or rbSm4Cbc.Checked then
+    if cbbSm4Padding.ItemIndex = 1 then
+      BytesRemovePKCS7Padding(Res);
+
+  edtSm4Dec.Text := CnUtf8ToAnsi(BytesToAnsi(Res));
 end;
 
 end.
