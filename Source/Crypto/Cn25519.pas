@@ -24,7 +24,7 @@ unit Cn25519;
 * 软件名称：开发包基础库
 * 单元名称：25519 系列椭圆曲线算法单元
 * 单元作者：刘啸
-* 备    注：目前实现了 Montgomery 椭圆曲线 y^2 = x^3 + A*X^2 + x （文中叫 Curve，参数 A）
+* 备    注：目前实现了 RFC 7448 中 Montgomery 椭圆曲线 y^2 = x^3 + A*X^2 + x （文中叫 Curve，参数 A）
 *           以及扭曲 Edwards 椭圆曲线 au^2 + v^2 = 1 + d * u^2 * v^2 （文中叫 Ed，参数 a d）的点加减乘
 *           已实现仅基于 X 以及蒙哥马利阶梯的快速标量乘以及扩展四元坐标的快速点加
 *           以及结合多项式约减代替模运算所进行的加速算法，是原始点加算法速度的五十倍以上
@@ -70,6 +70,9 @@ uses
 const
   CN_25519_BLOCK_BYTESIZE = 32;
   {* 25519 曲线相关算法的数据块大小}
+
+  CN_448_BLOCK_BYTESIZE = 56;
+  {* 448 曲线相关算法的数据块大小}
 
 type
   TCn25519Field64 = array[0..4] of TUInt64;
@@ -261,10 +264,14 @@ type
     {* 辅助因子 H，也就是总点数 = N * H，先用 Integer 表示}
   end;
 
+  TCnCurve25519Data = array[0..CN_25519_BLOCK_BYTESIZE - 1] of Byte;
+  {* Curve25519 的标量乘法数据，内容按 RFC 7448 要求为小端字节顺序}
+
   TCnCurve25519 = class(TCnMontgomeryCurve)
   {* RFC 7748/8032 中规定的 Curve25519 曲线}
   public
     constructor Create; override;
+    {* 构造函数，内部初始化蒙哥马利 25519 曲线的参数}
 
     procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey); override;
     {* 生成一对 Curve25519 椭圆曲线的公私钥，其中私钥的高低位有特殊处理}
@@ -601,6 +608,56 @@ const
 // 同样，(x, y) 与 (u, v) 的对应关系也因为 A B a d 关系的调整而不满足标准映射
 // =============================================================================
 
+// ============================== 448 曲线参数 =================================
+
+  SCN_448_PRIME = 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF';
+  // 2^448 - 2^224 - 1
+
+  SCN_448_COFACTOR = 4;
+  // 余因子均为 4，也就是 448 椭圆曲线总点数是 G 点阶数的四倍
+
+  SCN_448_ORDER = '3FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF7CCA23E9C44EDB49AED63690216CC2728DC58F552378C292AB5844F3';
+  // 基点阶数为 2^446 - 13818066809895115352007386748515426880336692474882178609894547503885
+
+  // 448 扭曲爱德华曲线参数
+  SCN_448_EDWARDS_A = '01';
+  // 1
+
+  SCN_448_EDWARDS_D = '-39081';
+  // 要不要转正嗫
+
+  SCN_448_EDWARDS_GX = '4F1970C66BED0DED221D15A622BF36DA9E146570470F1767EA6DE324A3D3A46412AE1AF72AB66511433B80E18B00938E2626A82BC70CC05E';
+  // RFC 中的 224580040295924300187604334099896036246789641632564134246125461686950415467406032909029192869357953282578032075146446173674602635247710
+
+  SCN_448_EDWARDS_GY = '693F46716EB6BC248876203756C9C7624BEA73736CA3984087789C1E05A0C2D73AD3FF1CE67C39C4FDBD132C4ED7C8AD9808795BF230FA14';
+  // RFC 中的 298819210078481492676017930443930673437544040154080242095928241372331506189835876003536878655418784733982303233503462500531545062832660
+
+  // 448 蒙哥马利曲线参数
+  SCN_448_MONT_A = '0262A6';
+  // 156326
+
+  SCN_448_MONT_B = '01';
+  // 1
+
+  SCN_448_MONT_GX = '05';
+  // U 5
+
+  SCN_448_MONT_GY = '7D235D1295F5B1F66C98AB6E58326FCECBAE5D34F55545D060F75DC28DF3F6EDB8027E2346430D211312C4B150677AF76FD7223D457B5B1A';
+  // 等于 RFC 中的 V = 355293926785568175264127502063783334808976399387714271831880898435169088786967410002932673765864550910142774147268105838985595290606362
+
+  SCN_448_SQRT_156324 = '';
+  // 提前算好的 sqrt(156324)，供点坐标转换计算
+
+// =============================================================================
+// 448 上面两根曲线照理满足 RFC 7448 中标明的 P 有限域内的映射关系
+//
+//  (u, v) = (y^2/x^2, (2 - x^2 - y^2)*y/x^3)                 已验证
+//  (x, y) = (4*v*(u^2 - 1)/(u^4 - 2*u^2 + 4*v^2 + 1),        计算太复杂而未验证
+//            -(u^5 - 2*u^3 - 4*u*v^2 + u)/                   想必一定是对的
+//             (u^5 - 2*u^2*v^2 - 2*u^3 - 2*v^2 + u))
+//
+// =============================================================================
+
 type
   TCn25519448Digest = array[0..63] of Byte;
   {* 25519 和 448 曲线使用的数据块摘要大小，SHA512 与 SHAKE256 均为 64 字节}
@@ -630,6 +687,25 @@ begin
     Cn25519Field64Swap(A.X, B.X);
     Cn25519Field64Swap(A.Y, B.Y);
   end;
+end;
+
+// 按 RFC 规定处理 25519 的随机数或私钥
+procedure Process25519Key(Key: TCnBigNumber);
+begin
+  Key.ClearBit(0);                                // 低三位置 0
+  Key.ClearBit(1);
+  Key.ClearBit(2);
+  Key.ClearBit(CN_25519_BLOCK_BYTESIZE * 8 - 1);  // 最高位置 0
+  Key.SetBit(CN_25519_BLOCK_BYTESIZE * 8 - 2);    // 次高位置 1
+end;
+
+// 按 RFC 规定处理 448 的随机数或私钥
+procedure Process448Key(Key: TCnBigNumber);
+begin
+  Key.ClearBit(0);                                // 低二位置 0
+  Key.ClearBit(1);
+
+  Key.SetBit(CN_448_BLOCK_BYTESIZE * 8 - 1);      // 最高位置 1
 end;
 
 // 计算大数的 SHA512 结果，长度 64 字节
@@ -684,15 +760,10 @@ begin
   // （和 CoFactor 是 2^3 = 8 对应），且最高位 2^255 得置 0，次高位 2^254 得置 1
   if OutMulFactor <> nil then
   begin
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Dig[0], CN_25519_BLOCK_BYTESIZE);       // 得倒个序
+    ReverseMemory(@Dig[0], CN_25519_BLOCK_BYTESIZE);       // 得倒个序
     OutMulFactor.SetBinary(@Dig[0], CN_25519_BLOCK_BYTESIZE);
 
-    OutMulFactor.ClearBit(0);                                // 低三位置 0
-    OutMulFactor.ClearBit(1);
-    OutMulFactor.ClearBit(2);
-    OutMulFactor.ClearBit(CN_25519_BLOCK_BYTESIZE * 8 - 1);  // 最高位置 0
-    OutMulFactor.SetBit(CN_25519_BLOCK_BYTESIZE * 8 - 2);    // 次高位置 1
+    Process25519Key(OutMulFactor);
   end;
 
   // 后 32 字节作为 Hash 的入口参数
@@ -1584,14 +1655,10 @@ procedure TCnCurve25519.GenerateKeys(PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey);
 begin
   BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
-  if PrivateKey.IsZero then                         // 万一真拿到 0，就加 1
-    PrivateKey.SetOne;
+  if PrivateKey.IsZero then                         // 万一真拿到 0，就设为 8
+    PrivateKey.SetWord(8);
 
-  PrivateKey.ClearBit(0);                                // 低三位置 0
-  PrivateKey.ClearBit(1);
-  PrivateKey.ClearBit(2);
-  PrivateKey.ClearBit(CN_25519_BLOCK_BYTESIZE * 8 - 1);  // 最高位置 0
-  PrivateKey.SetBit(CN_25519_BLOCK_BYTESIZE * 8 - 2);    // 次高位置 1
+  Process25519Key(PrivateKey);                           // 按 RFC 规定处理私钥
 
   PublicKey.Assign(FGenerator);
   MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
@@ -2148,8 +2215,8 @@ begin
 
   FillChar(Data[0], SizeOf(TCnEd25519Data), 0);
   P.Y.ToBinary(@Data[0], SizeOf(TCnEd25519Data));
-  if CurrentByteOrderIsLittleEndian then
-    ReverseMemory(@Data[0], SizeOf(TCnEd25519Data)); // 小端序的就需要倒一下
+  ReverseMemory(@Data[0], SizeOf(TCnEd25519Data));
+  // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
 
   if P.X.IsOdd then // X 是奇数，最低位是 1
     Data[CN_25519_BLOCK_BYTESIZE - 1] := Data[CN_25519_BLOCK_BYTESIZE - 1] or $80  // 高位置 1
@@ -2166,8 +2233,9 @@ begin
     Exit;
 
   Move(Data[0], D[0], SizeOf(TCnEd25519Data));
-  if CurrentByteOrderIsLittleEndian then
-    ReverseMemory(@D[0], SizeOf(TCnEd25519Data));
+  ReverseMemory(@D[0], SizeOf(TCnEd25519Data));
+  // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
+
   P.Y.SetBinary(@D[0], SizeOf(TCnEd25519Data));
 
   // 最高位是否是 0 表示了 X 的奇偶
@@ -2184,8 +2252,8 @@ begin
 
   FillChar(Data[0], SizeOf(TCnEd25519Data), 0);
   N.ToBinary(@Data[0], SizeOf(TCnEd25519Data));
-  if CurrentByteOrderIsLittleEndian then
-    ReverseMemory(@Data[0], SizeOf(TCnEd25519Data));
+  ReverseMemory(@Data[0], SizeOf(TCnEd25519Data));
+  // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
 end;
 
 procedure CnEd25519DataToBigNumber(Data: TCnEd25519Data; N: TCnBigNumber);
@@ -2196,8 +2264,9 @@ begin
     Exit;
 
   Move(Data[0], D[0], SizeOf(TCnEd25519Data));
-  if CurrentByteOrderIsLittleEndian then
-    ReverseMemory(@D[0], SizeOf(TCnEd25519Data));
+  ReverseMemory(@D[0], SizeOf(TCnEd25519Data));
+  // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
+
   N.SetBinary(@D[0], SizeOf(TCnEd25519Data));
 end;
 
@@ -2242,8 +2311,9 @@ begin
     // 计算出 SHA512 值作为 r 乘数，准备乘以基点作为 R 点
     Dig := SHA512Buffer(Stream.Memory, Stream.Size);
 
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest)); // 需要倒转一次
+    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
+    // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
+
     R.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
     BigNumberNonNegativeMod(R, R, Ed25519.Order);  // r 乘数太大先 mod 一下阶
 
@@ -2267,8 +2337,9 @@ begin
     // 再次杂凑 R||PublicKey||明文
     Dig := SHA512Buffer(Stream.Memory, Stream.Size);
 
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest)); // 又需要倒转一次
+    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
+    // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而又需要倒一下
+
     K.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
     BigNumberNonNegativeMod(K, K, Ed25519.Order);  // 乘数太大再先 mod 一下阶
 
@@ -2333,8 +2404,7 @@ begin
     Stream.Write(PlainData^, DataLen);                    // 拼明文
 
     Dig := SHA512Buffer(Stream.Memory, Stream.Size);      // 计算 Hash 作为值
-    if CurrentByteOrderIsLittleEndian then
-      ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));    // 需要倒转一次
+    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));      // 需要倒转一次
 
     T := F25519BigNumberPool.Obtain;
     T.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));

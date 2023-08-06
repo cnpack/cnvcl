@@ -262,8 +262,8 @@ type
     {* 将大数扩展成支持 Words 个 UInt32/UInt64，成功返回扩展的大数对象本身 Self，失败返回 nil}
 
     function ToBinary(const Buf: PAnsiChar; FixedLen: Integer = 0): Integer;
-    {* 将大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
-       返回 Buf 写入的长度}
+    {* 将大数转换成二进制数据放入 Buf 中，使用符合阅读习惯的网络字节顺序，
+       Buf 的长度必须大于等于其 BytesCount，返回 Buf 写入的长度}
 
     function LoadFromStream(Stream: TStream): Boolean;
     {* 从流中加载大数}
@@ -272,7 +272,7 @@ type
     {* 将大数写入流}
 
     function SetBinary(Buf: PAnsiChar; Len: Integer): Boolean;
-    {* 根据一个二进制块给自身赋值，内部采用复制}
+    {* 根据一个二进制块给自身赋值，使用符合阅读习惯的网络字节顺序，内部采用复制}
 
     class function FromBinary(Buf: PAnsiChar; Len: Integer): TCnBigNumber;
     {* 根据一个二进制块产生一个新的大数对象，其内容为复制}
@@ -607,10 +607,10 @@ function BigNumberWriteBinaryToStream(const Num: TCnBigNumber; Stream: TStream;
   大数长度超过 FixedLen 时按大数实际字节长度写}
 
 function BigNumberFromBytes(Buf: TBytes): TCnBigNumber;
-{* 将一个字节数组内容转换成大数对象，注意不处理正负号。其结果不用时必须用 BigNumberFree 释放}
+{* 将一个字节数组内容转换成大数对象，字节顺序同 Binary，注意不处理正负号。其结果不用时必须用 BigNumberFree 释放}
 
 function BigNumberToBytes(const Num: TCnBigNumber): TBytes;
-{* 将一个大数转换成二进制数据写入字节数组并返回，失败返回 nil}
+{* 将一个大数转换成二进制数据写入字节数组并返回，字节顺序同 Binary，失败返回 nil}
 
 function BigNumberSetBinary(Buf: PAnsiChar; Len: Integer;
   const Res: TCnBigNumber): Boolean;
