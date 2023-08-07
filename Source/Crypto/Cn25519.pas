@@ -41,7 +41,9 @@ unit Cn25519;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.07.30 V1.5
+* 修改记录：2023.08.08 V1.6
+*               加入 448 蒙哥马利曲线的初步实现
+*           2022.07.30 V1.5
 *               去除部分无用的判断以精简代码
 *           2022.06.14 V1.4
 *               实现 Ed25519 对文件的签名与验证
@@ -277,7 +279,8 @@ type
     {* 生成一对 Curve25519 椭圆曲线的公私钥，其中私钥的高低位有特殊处理}
 
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); override;
-    {* 计算某点 P 的 k * P 值，值重新放入 Point，内部实现使用 64 位多项式拆项的蒙哥马利阶梯算法}
+    {* 计算某点 P 的 k * P 值，值重新放入 Point，Point 中允许只存 X 信息
+       内部实现使用 64 位多项式拆项的蒙哥马利阶梯算法}
   end;
 
   TCnEd25519Data = array[0..CN_25519_BLOCK_BYTESIZE - 1] of Byte;
@@ -383,6 +386,25 @@ type
     {* 签名数 S}
   end;
 
+  TCnCurve448Data = array[0..CN_448_BLOCK_BYTESIZE - 1] of Byte;
+  {* Curve448 的乘数数据，内容一般是网络字节顺序}
+
+  TCnCurve448 = class(TCnMontgomeryCurve)
+  {* RFC 7748/8032 中规定的 Curve448 曲线}
+  public
+    constructor Create; override;
+    {* 构造函数，内部初始化蒙哥马利 448 曲线的参数}
+
+    procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey); override;
+    {* 生成一对 Curve448 椭圆曲线的公私钥，其中私钥的高低位有特殊处理}
+
+    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); override;
+    {* 计算某点 P 的 k * P 值，值重新放入 Point，Point 中允许只存 X 信息
+       注意 448 不适用 2^51 的多项式加速算法，内部实现仅 X 的射影点的蒙哥马利阶梯算法}
+  end;
+
+// ========================= 椭圆曲线坐标点转换函数 ============================
+
 function CnEcc4PointToString(const P: TCnEcc4Point): string;
 {* 将一个 TCnEcc4Point 点坐标转换为十进制字符串}
 
@@ -399,6 +421,8 @@ function CnEccPointToEcc4Point(DestPoint: TCnEcc4Point; SourcePoint: TCnEccPoint
 function CnEcc4PointToEccPoint(DestPoint: TCnEccPoint; SourcePoint: TCnEcc4Point;
   Prime: TCnBigNumber): Boolean;
 {* 大数范围内的扩展仿射坐标到普通坐标的点转换}
+
+// ======================= Curve25519 椭圆曲线辅助函数 =========================
 
 procedure CnCurve25519PointToEd25519Point(DestPoint, SourcePoint: TCnEccPoint);
 {* 将 Curve25519 的坐标点转换为 Ed25519 的坐标点，Source 和 Dest 可以相同}
@@ -417,6 +441,12 @@ procedure CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data);
 {* 按 25519 标准将乘数转换为 32 字节数组，返回转换是否成功}
 
 procedure CnEd25519DataToBigNumber(Data: TCnEd25519Data; N: TCnBigNumber);
+{* 按 25519 标准将 32 字节数组转换为乘数，返回转换是否成功}
+
+procedure CnCurve25519BigNumberToData(N: TCnBigNumber; var Data: TCnCurve25519Data);
+{* 按 25519 标准将乘数转换为 32 字节数组，返回转换是否成功}
+
+procedure CnCurve25519DataToBigNumber(Data: TCnCurve25519Data; N: TCnBigNumber);
 {* 按 25519 标准将 32 字节数组转换为乘数，返回转换是否成功}
 
 procedure CnProcess25519ScalarNumber(Num: TCnBigNumber);
@@ -552,11 +582,21 @@ function CnField64Ecc4PointToEcc4Point(DestPoint: TCnEcc4Point;
   var SourcePoint: TCn25519Field64Ecc4Point): Boolean;
 {* 大数范围内的扩展仿射多项式坐标到扩展仿射坐标的点转换}
 
+procedure CnCurve448BigNumberToData(N: TCnBigNumber; var Data: TCnCurve448Data);
+{* 按 448 标准将乘数转换为 32 字节数组，返回转换是否成功}
+
+procedure CnCurve448DataToBigNumber(Data: TCnCurve448Data; N: TCnBigNumber);
+{* 按 448 标准将 32 字节数组转换为乘数，返回转换是否成功}
+
+procedure CnProcess448ScalarNumber(Num: TCnBigNumber);
+{* 按 RFC 规定处理 448 的随机数或私钥}
+
 implementation
 
 resourcestring
-  SCnEInverseError = 'Point Inverse Error.';
-  SCnECanNOTCalcErrorFmt = 'Can NOT Calucate %s,%s + %s,%s';
+  SCnErrorPointInverse = 'Point Inverse Error.';
+  SCnErrorCanNOTCalcFmt = 'Can NOT Calucate %s,%s + %s,%s';
+  SCnErrorNumberTooBig = 'Number is Too Big.';
 
 const
 
@@ -700,6 +740,34 @@ begin
   Num.ClearBit(2);
   Num.ClearBit(CN_25519_BLOCK_BYTESIZE * 8 - 1);  // 最高位置 0
   Num.SetBit(CN_25519_BLOCK_BYTESIZE * 8 - 2);    // 次高位置 1
+end;
+
+procedure CnCurve448BigNumberToData(N: TCnBigNumber; var Data: TCnCurve448Data);
+begin
+  if N = nil then
+    Exit;
+
+  if N.GetBytesCount > SizeOf(TCnCurve448Data) then
+    raise ECnEccException.Create(SCnErrorNumberTooBig);
+
+  FillChar(Data[0], SizeOf(TCnCurve448Data), 0);
+  N.ToBinary(@Data[0], SizeOf(TCnCurve448Data));
+  ReverseMemory(@Data[0], SizeOf(TCnCurve448Data));
+  // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
+end;
+
+procedure CnCurve448DataToBigNumber(Data: TCnCurve448Data; N: TCnBigNumber);
+var
+  D: TCnCurve448Data;
+begin
+  if N = nil then
+    Exit;
+
+  Move(Data[0], D[0], SizeOf(TCnCurve448Data));
+  ReverseMemory(@D[0], SizeOf(TCnCurve448Data));
+  // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
+
+  N.SetBinary(@D[0], SizeOf(TCnCurve448Data));
 end;
 
 // 按 RFC 规定处理 448 的随机数或私钥
@@ -983,7 +1051,7 @@ end;
 procedure TCnTwistedEdwardsCurve.PointInverse(P: TCnEccPoint);
 begin
   if BigNumberIsNegative(P.X) or (BigNumberCompare(P.X, FFiniteFieldSize) >= 0) then
-    raise ECnEccException.Create(SCnEInverseError);
+    raise ECnEccException.Create(SCnErrorPointInverse);
 
   BigNumberSub(P.X, FFiniteFieldSize, P.X);
 end;
@@ -1356,7 +1424,7 @@ begin
         if BigNumberCompare(T, FFiniteFieldSize) = 0 then  // 互反，和为 0
           Sum.SetZero
         else                                               // 不互反，挂了
-          raise ECnEccException.CreateFmt(SCnECanNOTCalcErrorFmt,
+          raise ECnEccException.CreateFmt(SCnErrorCanNOTCalcFmt,
             [P.X.ToDec, P.Y.ToDec, Q.X.ToDec, Q.Y.ToDec]);
 
         Exit;
@@ -1397,7 +1465,7 @@ end;
 procedure TCnMontgomeryCurve.PointInverse(P: TCnEccPoint);
 begin
   if BigNumberIsNegative(P.Y) or (BigNumberCompare(P.Y, FFiniteFieldSize) >= 0) then
-    raise ECnEccException.Create(SCnEInverseError);
+    raise ECnEccException.Create(SCnErrorPointInverse);
 
   BigNumberSub(P.Y, FFiniteFieldSize, P.Y);
 end;
@@ -1658,10 +1726,10 @@ procedure TCnCurve25519.GenerateKeys(PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey);
 begin
   BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
-  if PrivateKey.IsZero then                         // 万一真拿到 0，就设为 8
-    PrivateKey.SetWord(8);
+  if PrivateKey.IsZero then                         // 万一真拿到 0，就设为 4
+    PrivateKey.SetWord(4);
 
-  CnProcess25519ScalarNumber(PrivateKey);           // 按 RFC 规定处理私钥
+  CnProcess448ScalarNumber(PrivateKey);             // 按 RFC 规定处理私钥
 
   PublicKey.Assign(FGenerator);
   MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
@@ -2250,8 +2318,11 @@ end;
 
 procedure CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data);
 begin
-  if (N = nil) or (N.GetBytesCount > SizeOf(TCnEd25519Data)) then
+  if N = nil then
     Exit;
+
+  if N.GetBytesCount > SizeOf(TCnEd25519Data) then
+    raise ECnEccException.Create(SCnErrorNumberTooBig);
 
   FillChar(Data[0], SizeOf(TCnEd25519Data), 0);
   N.ToBinary(@Data[0], SizeOf(TCnEd25519Data));
@@ -2271,6 +2342,16 @@ begin
   // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
 
   N.SetBinary(@D[0], SizeOf(TCnEd25519Data));
+end;
+
+procedure CnCurve25519BigNumberToData(N: TCnBigNumber; var Data: TCnCurve25519Data);
+begin
+  CnEd25519BigNumberToData(N, TCnEd25519Data(Data)); // 实现与 Ed25519 等同
+end;
+
+procedure CnCurve25519DataToBigNumber(Data: TCnCurve25519Data; N: TCnBigNumber);
+begin
+  CnEd25519DataToBigNumber(TCnEd25519Data(Data), N); // 实现与 Ed25519 等同
 end;
 
 function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEd25519PrivateKey;
@@ -3257,6 +3338,42 @@ end;
 procedure TCnEd25519PublicKey.SaveToData(var Data: TCnEd25519Data);
 begin
   CnEd25519PointToData(Self, Data); // 只存 Y，以及 X 的奇偶性
+end;
+
+{ TCnCurve448 }
+
+constructor TCnCurve448.Create;
+begin
+  inherited;
+  Load(SCN_448_MONT_A, SCN_448_MONT_B, SCN_448_PRIME, SCN_448_MONT_GX,
+    SCN_448_MONT_GY, SCN_448_ORDER, SCN_448_COFACTOR);
+end;
+
+procedure TCnCurve448.GenerateKeys(PrivateKey: TCnEccPrivateKey;
+  PublicKey: TCnEccPublicKey);
+begin
+  BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
+  if PrivateKey.IsZero then                         // 万一真拿到 0，就设为 8
+    PrivateKey.SetWord(8);
+
+  CnProcess25519ScalarNumber(PrivateKey);           // 按 RFC 规定处理私钥
+
+  PublicKey.Assign(FGenerator);
+  MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次;
+end;
+
+procedure TCnCurve448.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+var
+  P: TCnEccPoint;
+begin
+  P := TCnEccPoint.Create;   // 注意 448 不适用 2^51 的多项式加速算法
+  try
+    PointToXAffinePoint(P, Point);
+    MontgomeryLadderMultiplePoint(K, P);
+    XAffinePointToPoint(Point, P);
+  finally
+    P.Free;
+  end;
 end;
 
 initialization

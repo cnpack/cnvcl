@@ -69,6 +69,7 @@ type
     grp448Basic: TGroupBox;
     btn448CheckMap: TButton;
     btnCurve25519Test: TButton;
+    btnCurve448Test: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -113,6 +114,7 @@ type
     procedure btnEd25519SaveKeysClick(Sender: TObject);
     procedure btn448CheckMapClick(Sender: TObject);
     procedure btnCurve25519TestClick(Sender: TObject);
+    procedure btnCurve448TestClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -1563,19 +1565,50 @@ begin
 // 要 = c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552 后两者均为 u
 
   HexToData('A546E36BF0527C9D3B16154B82465EDD62144C0AC1FC5A18506A2244BA449AC4', @D[0]);
-  ReverseMemory(@D[0], SizeOf(TCnCurve25519Data));
-  K := TCnBigNumber.FromBinary(@D[0], SizeOf(TCnCurve25519Data));
+  K := TCnBigNumber.Create;
+  CnCurve25519DataToBigNumber(D, K);
   CnProcess25519ScalarNumber(K);
 
   P := TCnEccPoint.Create;
   HexToData('E6DB6867583030DB3594C1A424B15F7C726624EC26B3353B10A903A6D0AB1C4C', @D[0]);
-  ReverseMemory(@D[0], SizeOf(TCnCurve25519Data));
-  P.X.SetBinary(@D[0], SizeOf(TCnCurve25519Data));
+  CnCurve25519DataToBigNumber(D, P.X);
 
   Curve := TCnCurve25519.Create;
   Curve.MultiplePoint(K, P);
 
   ShowMessage(P.X.ToHex); // 倒过来即得到 C3DA55379DE9C6908E94EA4DF28D084F32ECCF03491C71F754B4075577A28552
+
+  Curve.Free;
+  P.Free;
+  K.Free;
+end;
+
+procedure TForm25519.btnCurve448TestClick(Sender: TObject);
+var
+  Curve: TCnCurve448;
+  K: TCnBigNumber;
+  P: TCnEccPoint;
+  D: TCnCurve448Data;
+begin
+// 3d262fddf9ec8e88495266fea19a34d28882acef045104d0d1aae121700a779c984c24f8cdd78fbff44943eba368f54b29259a4f1c600ad3
+// * 06fce640fa3487bfda5f6cf2d5263f8aad88334cbd07437f020f08f9814dc031ddbdc38c19c6da2583fa5429db94ada18aa7a7fb4ef8a086
+// 要 = ce3e4ff95a60dc6697da1db1d85e6afbdf79b50a2412d7546d5f239fe14fbaadeb445fc66a01b0779d98223961111e21766282f73dd96b6f
+// 后两者均为 u
+
+  HexToData('3D262FDDF9EC8E88495266FEA19A34D28882ACEF045104D0D1AAE121700A779C984C24F8CDD78FBFF44943EBA368F54B29259A4F1C600AD3', @D[0]);
+  ReverseMemory(@D[0], SizeOf(TCnCurve448Data));
+  K := TCnBigNumber.FromBinary(@D[0], SizeOf(TCnCurve448Data));
+  CnProcess448ScalarNumber(K);
+
+  P := TCnEccPoint.Create;
+  HexToData('06FCE640FA3487BFDA5F6CF2D5263F8AAD88334CBD07437F020F08F9814DC031DDBDC38C19C6DA2583FA5429DB94ADA18AA7A7FB4EF8A086', @D[0]);
+  ReverseMemory(@D[0], SizeOf(TCnCurve448Data));
+  P.X.SetBinary(@D[0], SizeOf(TCnCurve448Data));
+
+  Curve := TCnCurve448.Create;
+  Curve.MultiplePoint(K, P);
+
+  ShowMessage(P.X.ToHex); // 倒过来即得到 CE3E4FF95A60DC6697DA1DB1D85E6AFBDF79B50A2412D7546D5F239FE14FBAADEB445FC66A01B0779D98223961111E21766282F73DD96B6F
 
   Curve.Free;
   P.Free;

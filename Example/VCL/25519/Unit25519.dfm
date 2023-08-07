@@ -504,6 +504,15 @@ object Form25519: TForm25519
           TabOrder = 0
           OnClick = btn448CheckMapClick
         end
+        object btnCurve448Test: TButton
+          Left = 224
+          Top = 24
+          Width = 185
+          Height = 25
+          Caption = 'Curve 448 Scalar'
+          TabOrder = 1
+          OnClick = btnCurve448TestClick
+        end
       end
     end
   end
