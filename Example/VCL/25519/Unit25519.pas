@@ -65,6 +65,10 @@ type
     btnEd25519SaveKeys: TButton;
     btn25519Field64Power2k: TButton;
     btn25519Field64PowerPMinus2: TButton;
+    ts448Basic: TTabSheet;
+    grp448Basic: TGroupBox;
+    btn448CheckMap: TButton;
+    btnCurve25519Test: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -107,6 +111,8 @@ type
     procedure btn25519Field64PowerPMinus2Click(Sender: TObject);
     procedure btnEd25519LoadKeysClick(Sender: TObject);
     procedure btnEd25519SaveKeysClick(Sender: TObject);
+    procedure btn448CheckMapClick(Sender: TObject);
+    procedure btnCurve25519TestClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -550,7 +556,6 @@ begin
     Priv2.Free;
     Priv1.Free;
   end;
-
 end;
 
 procedure TForm25519.btnCalcSqrtClick(Sender: TObject);
@@ -1484,6 +1489,97 @@ begin
   edtEd25519Priv.Text := DataToHex(@Data[0], SizeOf(Data));
   TCnEd25519PublicKey(FPubKey).SaveToData(Data);
   edtEd25519Pub.Text := DataToHex(@Data[0], SizeOf(Data));
+end;
+
+procedure TForm25519.btn448CheckMapClick(Sender: TObject);
+const
+  SCN_448_PRIME = 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF';
+  SCN_448_MONT_GU = '05';
+  SCN_448_MONT_GV = '7D235D1295F5B1F66C98AB6E58326FCECBAE5D34F55545D060F75DC28DF3F6EDB8027E2346430D211312C4B150677AF76FD7223D457B5B1A';
+  SCN_448_EDWARDS_GX = '4F1970C66BED0DED221D15A622BF36DA9E146570470F1767EA6DE324A3D3A46412AE1AF72AB66511433B80E18B00938E2626A82BC70CC05E';
+  SCN_448_EDWARDS_GY = '693F46716EB6BC248876203756C9C7624BEA73736CA3984087789C1E05A0C2D73AD3FF1CE67C39C4FDBD132C4ED7C8AD9808795BF230FA14';
+var
+  P, U, V, X, Y: TCnBigNumber;
+  T1, T2: TCnBigNumber;
+begin
+// 照理应满足
+//  (u, v) = (y^2/x^2, (2 - x^2 - y^2)*y/x^3)
+//  (x, y) = (4*v*(u^2 - 1)/(u^4 - 2*u^2 + 4*v^2 + 1),
+//            -(u^5 - 2*u^3 - 4*u*v^2 + u)/
+//             (u^5 - 2*u^2*v^2 - 2*u^3 - 2*v^2 + u))
+
+  P := TCnBigNumber.FromHex(SCN_448_PRIME);
+  U := TCnBigNumber.FromHex(SCN_448_MONT_GU);
+  V := TCnBigNumber.FromHex(SCN_448_MONT_GV);
+  X := TCnBigNumber.FromHex(SCN_448_EDWARDS_GX);
+  Y := TCnBigNumber.FromHex(SCN_448_EDWARDS_GY);
+
+  T1 := TCnBigNumber.Create;
+  T2 := TCnBigNumber.Create;
+
+  BigNumberDirectMulMod(T1, X, X, P);
+  BigNumberPrimeModularInverse(T1, T1, P);  // T1 得到 1 / x^2
+  BigNumberDirectMulMod(T2, Y, Y, P);
+  BigNumberDirectMulMod(T2, T1, T2, P);     // T1 得到 y^2 / x^2
+
+  if BigNumberEqual(U, T2) then
+    ShowMessage('U Mapping OK');
+
+  BigNumberDirectMulMod(T1, X, X, P);
+  BigNumberDirectMulMod(T2, Y, Y, P);
+  BigNumberAddMod(T2, T1, T2, P);           // T2 得到 x^2 + y^2 并释放 T1
+  BigNumberSubWord(T2, 2);                  // T2 得到 x^2 + y^2 - 2
+  BigNumberSubMod(T2, CnBigNumberZero, T2, P);  // 0 - T2 得到 2 - x^2 - y^2
+  BigNumberDirectMulMod(T2, T2, Y, P);          // T2 得到分母 (2 - x^2 - y^2)*y
+
+  BigNumberDirectMulMod(T1, X, X, P);
+  BigNumberDirectMulMod(T1, T1, X, P);
+  BigNumberPrimeModularInverse(T1, T1, P);  // T1 得到 1 / x^3
+
+  BigNumberDirectMulMod(T2, T1, T2, P);     // T2 得到 (2 - x^2 - y^2)*y/x^3
+  if BigNumberEqual(V, T2) then
+    ShowMessage('V Mapping OK');
+
+  // X OK 和 Y OK 因计算太复杂就不验证了想必一定是对的
+
+  T2.Free;
+  T1.Free;
+
+  Y.Free;
+  X.Free;
+  V.Free;
+  U.Free;
+  P.Free;
+end;
+
+procedure TForm25519.btnCurve25519TestClick(Sender: TObject);
+var
+  Curve: TCnCurve25519;
+  K: TCnBigNumber;
+  P: TCnEccPoint;
+  D: TCnCurve25519Data;
+begin
+// a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4 * e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c
+// 要 = c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552 后两者均为 u
+
+  HexToData('A546E36BF0527C9D3B16154B82465EDD62144C0AC1FC5A18506A2244BA449AC4', @D[0]);
+  ReverseMemory(@D[0], SizeOf(TCnCurve25519Data));
+  K := TCnBigNumber.FromBinary(@D[0], SizeOf(TCnCurve25519Data));
+  CnProcess25519ScalarNumber(K);
+
+  P := TCnEccPoint.Create;
+  HexToData('E6DB6867583030DB3594C1A424B15F7C726624EC26B3353B10A903A6D0AB1C4C', @D[0]);
+  ReverseMemory(@D[0], SizeOf(TCnCurve25519Data));
+  P.X.SetBinary(@D[0], SizeOf(TCnCurve25519Data));
+
+  Curve := TCnCurve25519.Create;
+  Curve.MultiplePoint(K, P);
+
+  ShowMessage(P.X.ToHex); // 倒过来即得到 C3DA55379DE9C6908E94EA4DF28D084F32ECCF03491C71F754B4075577A28552
+
+  Curve.Free;
+  P.Free;
+  K.Free;
 end;
 
 end.

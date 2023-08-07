@@ -231,6 +231,7 @@ function TestPrimeNumber2: Boolean;
 
 // ================================ 25519 ======================================
 
+function Test25519CurveMul: Boolean;
 function Test25519Sign: Boolean;
 
 // =============================== Paillier ====================================
@@ -446,6 +447,7 @@ begin
 
 // ================================ 25519 ======================================
 
+  MyAssert(Test25519CurveMul, 'Test25519CurveMul');
   MyAssert(Test25519Sign, 'Test25519Sign');
 
 // =============================== Paillier ====================================
@@ -2862,6 +2864,40 @@ begin
     PrivKey.Free;
     Ed.Free;
   end;
+end;
+
+function Test25519CurveMul: Boolean;
+var
+  Curve: TCnCurve25519;
+  K: TCnBigNumber;
+  P: TCnEccPoint;
+  D: TCnCurve25519Data;
+begin
+  // 测试用例来源于 RFC 7748 中的 Test Vector
+  // a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4 * e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c
+  // 要 = c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552 后两者均为 u
+
+  HexToData('A546E36BF0527C9D3B16154B82465EDD62144C0AC1FC5A18506A2244BA449AC4', @D[0]);
+  ReverseMemory(@D[0], SizeOf(TCnCurve25519Data));
+  K := TCnBigNumber.FromBinary(@D[0], SizeOf(TCnCurve25519Data));
+  CnProcess25519ScalarNumber(K);
+
+  P := TCnEccPoint.Create;
+  HexToData('E6DB6867583030DB3594C1A424B15F7C726624EC26B3353B10A903A6D0AB1C4C', @D[0]);
+  ReverseMemory(@D[0], SizeOf(TCnCurve25519Data));
+  P.X.SetBinary(@D[0], SizeOf(TCnCurve25519Data));
+
+  Curve := TCnCurve25519.Create;
+  Curve.MultiplePoint(K, P);
+
+  P.X.ToBinary(@D[0]);
+  ReverseMemory(@D[0], SizeOf(TCnCurve25519Data));
+
+  Result := DataToHex(@D[0], SizeOf(TCnCurve25519Data)) = 'C3DA55379DE9C6908E94EA4DF28D084F32ECCF03491C71F754B4075577A28552';
+
+  Curve.Free;
+  P.Free;
+  K.Free;
 end;
 
 // =============================== Paillier ====================================

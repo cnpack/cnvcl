@@ -324,6 +324,15 @@ object Form25519: TForm25519
           TabOrder = 30
           OnClick = btn25519Field64PowerPMinus2Click
         end
+        object btnCurve25519Test: TButton
+          Left = 432
+          Top = 104
+          Width = 185
+          Height = 25
+          Caption = 'Curve 25519 Scalar'
+          TabOrder = 31
+          OnClick = btnCurve25519TestClick
+        end
       end
     end
     object ts25519Sign: TTabSheet
@@ -473,6 +482,27 @@ object Form25519: TForm25519
           Caption = 'Save Keys'
           TabOrder = 12
           OnClick = btnEd25519SaveKeysClick
+        end
+      end
+    end
+    object ts448Basic: TTabSheet
+      Caption = '448 Basic'
+      ImageIndex = 2
+      object grp448Basic: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 929
+        Height = 473
+        Caption = 'grp448Basic'
+        TabOrder = 0
+        object btn448CheckMap: TButton
+          Left = 16
+          Top = 24
+          Width = 185
+          Height = 25
+          Caption = 'Check 448 (X,Y) <=> (U, V)'
+          TabOrder = 0
+          OnClick = btn448CheckMapClick
         end
       end
     end

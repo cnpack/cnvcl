@@ -28,7 +28,7 @@ unit Cn25519;
 *           以及扭曲 Edwards 椭圆曲线 au^2 + v^2 = 1 + d * u^2 * v^2 （文中叫 Ed，参数 a d）的点加减乘
 *           已实现仅基于 X 以及蒙哥马利阶梯的快速标量乘以及扩展四元坐标的快速点加
 *           以及结合多项式约减代替模运算所进行的加速算法，是原始点加算法速度的五十倍以上
-*           签名基于 rfc 8032 的说明
+*           签名基于 RFC 8032 的说明
 *           注意：Ed25519 的公钥并非如传统 ECC 那样等于私钥直接点乘 G 点而来，而是经过了
 *               其他运算才得到乘数，再点乘 G 点得到公钥，且可以不完整存储 X Y，只存 Y
 *               且将 X 的奇偶存入。
@@ -265,7 +265,7 @@ type
   end;
 
   TCnCurve25519Data = array[0..CN_25519_BLOCK_BYTESIZE - 1] of Byte;
-  {* Curve25519 的标量乘法数据，内容按 RFC 7448 要求为小端字节顺序}
+  {* Curve25519 的乘数数据，内容一般是网络字节顺序}
 
   TCnCurve25519 = class(TCnMontgomeryCurve)
   {* RFC 7748/8032 中规定的 Curve25519 曲线}
@@ -418,6 +418,9 @@ procedure CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data);
 
 procedure CnEd25519DataToBigNumber(Data: TCnEd25519Data; N: TCnBigNumber);
 {* 按 25519 标准将 32 字节数组转换为乘数，返回转换是否成功}
+
+procedure CnProcess25519ScalarNumber(Num: TCnBigNumber);
+{* 按 RFC 规定处理 25519 的随机数或私钥}
 
 // ===================== Ed25519 椭圆曲线数字签名验证算法 ======================
 
@@ -690,22 +693,22 @@ begin
 end;
 
 // 按 RFC 规定处理 25519 的随机数或私钥
-procedure Process25519Key(Key: TCnBigNumber);
+procedure CnProcess25519ScalarNumber(Num: TCnBigNumber);
 begin
-  Key.ClearBit(0);                                // 低三位置 0
-  Key.ClearBit(1);
-  Key.ClearBit(2);
-  Key.ClearBit(CN_25519_BLOCK_BYTESIZE * 8 - 1);  // 最高位置 0
-  Key.SetBit(CN_25519_BLOCK_BYTESIZE * 8 - 2);    // 次高位置 1
+  Num.ClearBit(0);                                // 低三位置 0
+  Num.ClearBit(1);
+  Num.ClearBit(2);
+  Num.ClearBit(CN_25519_BLOCK_BYTESIZE * 8 - 1);  // 最高位置 0
+  Num.SetBit(CN_25519_BLOCK_BYTESIZE * 8 - 2);    // 次高位置 1
 end;
 
 // 按 RFC 规定处理 448 的随机数或私钥
-procedure Process448Key(Key: TCnBigNumber);
+procedure CnProcess448ScalarNumber(Num: TCnBigNumber);
 begin
-  Key.ClearBit(0);                                // 低二位置 0
-  Key.ClearBit(1);
+  Num.ClearBit(0);                                // 低二位置 0
+  Num.ClearBit(1);
 
-  Key.SetBit(CN_448_BLOCK_BYTESIZE * 8 - 1);      // 最高位置 1
+  Num.SetBit(CN_448_BLOCK_BYTESIZE * 8 - 1);      // 最高位置 1
 end;
 
 // 计算大数的 SHA512 结果，长度 64 字节
@@ -763,7 +766,7 @@ begin
     ReverseMemory(@Dig[0], CN_25519_BLOCK_BYTESIZE);       // 得倒个序
     OutMulFactor.SetBinary(@Dig[0], CN_25519_BLOCK_BYTESIZE);
 
-    Process25519Key(OutMulFactor);
+    CnProcess25519ScalarNumber(OutMulFactor);
   end;
 
   // 后 32 字节作为 Hash 的入口参数
@@ -1658,7 +1661,7 @@ begin
   if PrivateKey.IsZero then                         // 万一真拿到 0，就设为 8
     PrivateKey.SetWord(8);
 
-  Process25519Key(PrivateKey);                           // 按 RFC 规定处理私钥
+  CnProcess25519ScalarNumber(PrivateKey);           // 按 RFC 规定处理私钥
 
   PublicKey.Assign(FGenerator);
   MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
