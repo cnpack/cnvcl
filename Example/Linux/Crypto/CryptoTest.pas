@@ -235,6 +235,7 @@ function Test25519CurveMul: Boolean;
 function Test25519CurveGMul: Boolean;
 function Test25519Sign: Boolean;
 function Test448CurveMul: Boolean;
+function Test448CurveGMul: Boolean;
 
 // =============================== Paillier ====================================
 
@@ -453,6 +454,7 @@ begin
   MyAssert(Test25519CurveGMul, 'Test25519CurveGMul');
   MyAssert(Test25519Sign, 'Test25519Sign');
   MyAssert(Test448CurveMul, 'Test448CurveMul');
+  MyAssert(Test448CurveGMul, 'Test448CurveGMul');
 
 // =============================== Paillier ====================================
 
@@ -2965,6 +2967,39 @@ begin
   ReverseMemory(@D[0], SizeOf(TCnCurve448Data));
 
   Result := DataToHex(@D[0], SizeOf(TCnCurve448Data)) = '884A02576239FF7A2F2F63B2DB6A9FF37047AC13568E1E30FE63C4A7AD1B3EE3A5700DF34321D62077E63633C575C1C954514E99DA7C179D';
+
+  Curve.Free;
+  P.Free;
+  K.Free;
+end;
+
+function Test448CurveGMul: Boolean;
+var
+  Curve: TCnCurve448;
+  K: TCnBigNumber;
+  P: TCnEccPoint;
+  D: TCnCurve448Data;
+begin
+  // 测试用例来源于 RFC 7748 中的 Diffie-Hellman 的 Test Vector
+  // 9a8f4925d1519f5775cf46b04b5800d4ee9ee8bae8bc5565d498c28dd9c9baf574a9419744897391006382a6f127ab1d9ac2d8c0a598726b * 5
+  // 要 = 9b08f7cc31b7e3e67d22d5aea121074a273bd2b83de09c63faa73d2c22c5d9bbc836647241d953d40c5b12da88120d53177f80e532c41fa0 后两者均为 u
+
+  HexToData('9A8F4925D1519F5775CF46B04B5800D4EE9EE8BAE8BC5565D498C28DD9C9BAF574A9419744897391006382A6F127AB1D9AC2D8C0A598726B', @D[0]);
+  K := TCnBigNumber.Create;
+  CnCurve448DataToBigNumber(D, K);
+  CnProcess448ScalarNumber(K);
+
+  P := TCnEccPoint.Create;
+  HexToData('0500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000', @D[0]);
+  CnCurve448DataToBigNumber(D, P.X);
+
+  Curve := TCnCurve448.Create;
+  Curve.MultiplePoint(K, P);
+
+  P.X.ToBinary(@D[0]);
+  ReverseMemory(@D[0], SizeOf(TCnCurve448Data));
+
+  Result := DataToHex(@D[0], SizeOf(TCnCurve448Data)) = '9B08F7CC31B7E3E67D22D5AEA121074A273BD2B83DE09C63FAA73D2C22C5D9BBC836647241D953D40C5B12DA88120D53177F80E532C41FA0';
 
   Curve.Free;
   P.Free;
