@@ -2951,18 +2951,21 @@ begin
   // 要 = 884a02576239ff7a2f2f63b2db6a9ff37047ac13568e1e30fe63c4a7ad1b3ee3a5700df34321d62077e63633c575c1c954514e99da7c179d
   // 后两者均为 u
 
+  FillChar(D[0], SizeOf(TCnCurve448Data), 0);
   HexToData('203D494428B8399352665DDCA42F9DE8FEF600908E0D461CB021F8C538345DD77C3E4806E25F46D3315C44E0A5B4371282DD2C8D5BE3095F', @D[0]);
   K := TCnBigNumber.Create;
   CnCurve448DataToBigNumber(D, K);
-  CnProcess448ScalarNumber(K);
+  CnProcessCurve448ScalarNumber(K);
 
   P := TCnEccPoint.Create;
+  FillChar(D[0], SizeOf(TCnCurve448Data), 0);
   HexToData('0FBCC2F993CD56D3305B0B7D9E55D4C1A8FB5DBB52F8E9A1E9B6201B165D015894E56C4D3570BEE52FE205E28A78B91CDFBDE71CE8D157DB', @D[0]);
   CnCurve448DataToBigNumber(D, P.X);
 
   Curve := TCnCurve448.Create;
   Curve.MultiplePoint(K, P);
 
+  FillChar(D[0], SizeOf(TCnCurve448Data), 0);
   P.X.ToBinary(@D[0]);
   ReverseMemory(@D[0], SizeOf(TCnCurve448Data));
 
@@ -2984,18 +2987,21 @@ begin
   // 9a8f4925d1519f5775cf46b04b5800d4ee9ee8bae8bc5565d498c28dd9c9baf574a9419744897391006382a6f127ab1d9ac2d8c0a598726b * 5
   // 要 = 9b08f7cc31b7e3e67d22d5aea121074a273bd2b83de09c63faa73d2c22c5d9bbc836647241d953d40c5b12da88120d53177f80e532c41fa0 后两者均为 u
 
+  FillChar(D[0], SizeOf(TCnCurve448Data), 0);
   HexToData('9A8F4925D1519F5775CF46B04B5800D4EE9EE8BAE8BC5565D498C28DD9C9BAF574A9419744897391006382A6F127AB1D9AC2D8C0A598726B', @D[0]);
   K := TCnBigNumber.Create;
   CnCurve448DataToBigNumber(D, K);
-  CnProcess448ScalarNumber(K);
+  CnProcessCurve448ScalarNumber(K);
 
   P := TCnEccPoint.Create;
+  FillChar(D[0], SizeOf(TCnCurve448Data), 0);
   HexToData('0500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000', @D[0]);
   CnCurve448DataToBigNumber(D, P.X);
 
   Curve := TCnCurve448.Create;
   Curve.MultiplePoint(K, P);
 
+  FillChar(D[0], SizeOf(TCnCurve448Data), 0);
   P.X.ToBinary(@D[0]);
   ReverseMemory(@D[0], SizeOf(TCnCurve448Data));
 
