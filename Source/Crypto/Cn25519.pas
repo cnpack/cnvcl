@@ -235,23 +235,6 @@ type
     procedure MontgomeryLadderMultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload;
     {* 用蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
 
-    // ======= 蒙哥马利阶梯算法中的仅 X 的射影坐标点 2^51 多项式加速算法 =======
-
-    procedure PointToField64XAffinePoint(var DestPoint: TCn25519Field64EccPoint; SourcePoint: TCnEccPoint);
-    {* 将包含 X Y 的椭圆曲线点转换为射影坐标 X Y Z 并只保留 X Z 并转换为多项式点，供蒙哥马利阶梯算法使用}
-    procedure Field64XAffinePointToPoint(DestPoint: TCnEccPoint; var SourcePoint: TCn25519Field64EccPoint);
-    {* 将多项式形式的只含 X Z(Y 代替 Z) 的射影坐标点转换为普通曲线点}
-
-    procedure MontgomeryLadderField64PointXDouble(var Dbl: TCn25519Field64EccPoint; var P: TCn25519Field64EccPoint);
-    {* 多项式形式的蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用，Dbl 可以是 P}
-    procedure MontgomeryLadderField64PointXAdd(var Sum, P, Q, PMinusQ: TCn25519Field64EccPoint);
-    {* 多项式形式的蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值}
-
-    procedure MontgomeryLadderField64MultiplePoint(K: Int64; var Point: TCn25519Field64EccPoint); overload;
-    {* 用多项式形式的蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
-    procedure MontgomeryLadderField64MultiplePoint(K: TCnBigNumber; var Point: TCn25519Field64EccPoint); overload;
-    {* 用多项式形式的蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
-
     property Generator: TCnEccPoint read FGenerator;
     {* 基点坐标 G}
     property CoefficientA: TCnBigNumber read FCoefficientA;
@@ -281,6 +264,23 @@ type
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); override;
     {* 计算某点 P 的 k * P 值，值重新放入 Point，Point 中允许只存 X 信息
        内部实现使用 64 位多项式拆项的蒙哥马利阶梯算法}
+
+    // ======= 蒙哥马利阶梯算法中的仅 X 的射影坐标点 2^51 多项式加速算法 =======
+
+    procedure PointToField64XAffinePoint(var DestPoint: TCn25519Field64EccPoint; SourcePoint: TCnEccPoint);
+    {* 将包含 X Y 的椭圆曲线点转换为射影坐标 X Y Z 并只保留 X Z 并转换为多项式点，供蒙哥马利阶梯算法使用}
+    procedure Field64XAffinePointToPoint(DestPoint: TCnEccPoint; var SourcePoint: TCn25519Field64EccPoint);
+    {* 将多项式形式的只含 X Z(Y 代替 Z) 的射影坐标点转换为普通曲线点}
+
+    procedure MontgomeryLadderField64PointXDouble(var Dbl: TCn25519Field64EccPoint; var P: TCn25519Field64EccPoint);
+    {* 多项式形式的蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用，Dbl 可以是 P}
+    procedure MontgomeryLadderField64PointXAdd(var Sum, P, Q, PMinusQ: TCn25519Field64EccPoint);
+    {* 多项式形式的蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值}
+
+    procedure MontgomeryLadderField64MultiplePoint(K: Int64; var Point: TCn25519Field64EccPoint); overload;
+    {* 用多项式形式的蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
+    procedure MontgomeryLadderField64MultiplePoint(K: TCnBigNumber; var Point: TCn25519Field64EccPoint); overload;
+    {* 用多项式形式的蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
   end;
 
   TCnEd25519Data = array[0..CN_25519_BLOCK_BYTESIZE - 1] of Byte;
@@ -1579,135 +1579,6 @@ begin
   end;
 end;
 
-procedure TCnMontgomeryCurve.Field64XAffinePointToPoint(DestPoint: TCnEccPoint;
-  var SourcePoint: TCn25519Field64EccPoint);
-var
-  T: TCnEccPoint;
-begin
-  if DestPoint = nil then
-    Exit;
-
-  T := TCnEccPoint.Create;
-  try
-    Cn25519Field64ToBigNumber(T.X, SourcePoint.X);  // 多项式点转换为射影坐标 X Z 点
-    Cn25519Field64ToBigNumber(T.Y, SourcePoint.Y);
-
-    XAffinePointToPoint(DestPoint, T);   // 多项式点转换为射影坐标 X Z 点
-  finally
-    T.Free;
-  end;
-end;
-
-procedure TCnMontgomeryCurve.MontgomeryLadderField64MultiplePoint(
-  K: TCnBigNumber; var Point: TCn25519Field64EccPoint);
-var
-  I, C: Integer;
-  X0, X1: TCn25519Field64EccPoint;
-begin
-  if BigNumberIsZero(K) then // 不考虑 K 为负值的情况
-  begin
-    Cn25519Field64Zero(Point.X);
-    Cn25519Field64Zero(Point.Y);
-    Exit;
-  end
-  else if BigNumberIsOne(K) then // 乘 1 无需动
-    Exit;
-
-  Cn25519Field64EccPointCopy(X1, Point);
-  MontgomeryLadderField64PointXDouble(X0, Point);
-
-  C := K.GetBitsCount;
-  for I := C - 2 downto 0 do // 内部先不考虑 Time Constant 执行时间固定的要求
-  begin
-    ConditionalSwapField64Point(K.IsBitSet(I + 1) <> K.IsBitSet(I), X0, X1); // 换
-
-    MontgomeryLadderField64PointXAdd(X1, X0, X1, Point);
-    MontgomeryLadderField64PointXDouble(X0, X0);
-  end;
-
-  ConditionalSwapField64Point(K.IsBitSet(0), X0, X1);
-  Cn25519Field64EccPointCopy(Point, X0);
-end;
-
-procedure TCnMontgomeryCurve.MontgomeryLadderField64MultiplePoint(K: Int64;
-  var Point: TCn25519Field64EccPoint);
-var
-  BK: TCnBigNumber;
-begin
-  BK := F25519BigNumberPool.Obtain;
-  try
-    BK.SetInt64(K);
-    MontgomeryLadderField64MultiplePoint(BK, Point);
-  finally
-    F25519BigNumberPool.Recycle(BK);
-  end;
-end;
-
-procedure TCnMontgomeryCurve.MontgomeryLadderField64PointXAdd(var Sum, P,
-  Q, PMinusQ: TCn25519Field64EccPoint);
-var
-  V0, V1, V2, V3, V4: TCn25519Field64;
-begin
-  Cn25519Field64Add(V0, P.X, P.Y);
-  Cn25519Field64Sub(V1, Q.X, Q.Y);
-  Cn25519Field64Mul(V1, V1, V0);
-
-  Cn25519Field64Sub(V0, P.X, P.Y);
-  Cn25519Field64Add(V2, Q.X, Q.Y);
-  Cn25519Field64Mul(V2, V2, V0);
-
-  Cn25519Field64Add(V3, V1, V2);
-  Cn25519Field64Mul(V3, V3, V3);
-
-  Cn25519Field64Sub(V4, V1, V2);
-  Cn25519Field64Mul(V4, V4, V4);
-
-  Cn25519Field64Copy(V0, PMinusQ.X);   // V0 备份，避免 Sum 和 PMinusQ 是同一个点时被改动
-  Cn25519Field64Mul(Sum.X, PMinusQ.Y, V3);
-  Cn25519Field64Mul(Sum.Y, V0, V4);
-end;
-
-procedure TCnMontgomeryCurve.MontgomeryLadderField64PointXDouble(var Dbl,
-  P: TCn25519Field64EccPoint);
-var
-  V1, V2, V3: TCn25519Field64;
-begin
-  CheckLadderConst;
-  Cn25519Field64Add(V1, P.X, P.Y);
-  Cn25519Field64Mul(V1, V1, V1);
-
-  Cn25519Field64Sub(V2, P.X, P.Y);
-  Cn25519Field64Mul(V2, V2, V2);
-
-  Cn25519Field64Mul(Dbl.X, V1, V2);
-
-  Cn25519Field64Sub(V1, V1, V2);
-  Cn25519Field64Mul(V3, V1, FLadderField64);
-
-  Cn25519Field64Add(V3, V3, V2);
-
-  Cn25519Field64Mul(Dbl.Y, V1, V3);
-end;
-
-procedure TCnMontgomeryCurve.PointToField64XAffinePoint(
-  var DestPoint: TCn25519Field64EccPoint; SourcePoint: TCnEccPoint);
-var
-  T: TCnEccPoint;
-begin
-  if SourcePoint = nil then
-    Exit;
-
-  T := TCnEccPoint.Create;
-  try
-    PointToXAffinePoint(T, SourcePoint); // 普通点转换为射影坐标 X Z 点
-
-    Cn25519BigNumberToField64(DestPoint.X, T.X);    // 射影坐标 X Z 点转换为多项式点
-    Cn25519BigNumberToField64(DestPoint.Y, T.Y);
-  finally
-    T.Free;
-  end;
-end;
-
 procedure TCnMontgomeryCurve.XAffinePointInverse(P: TCnEccPoint);
 begin
   // P 不用动
@@ -1742,6 +1613,135 @@ begin
   PointToField64XAffinePoint(M, Point);
   MontgomeryLadderField64MultiplePoint(K, M);
   Field64XAffinePointToPoint(Point, M);
+end;
+
+procedure TCnCurve25519.PointToField64XAffinePoint(
+  var DestPoint: TCn25519Field64EccPoint; SourcePoint: TCnEccPoint);
+var
+  T: TCnEccPoint;
+begin
+  if SourcePoint = nil then
+    Exit;
+
+  T := TCnEccPoint.Create;
+  try
+    PointToXAffinePoint(T, SourcePoint); // 普通点转换为射影坐标 X Z 点
+
+    Cn25519BigNumberToField64(DestPoint.X, T.X);    // 射影坐标 X Z 点转换为多项式点
+    Cn25519BigNumberToField64(DestPoint.Y, T.Y);
+  finally
+    T.Free;
+  end;
+end;
+
+procedure TCnCurve25519.Field64XAffinePointToPoint(DestPoint: TCnEccPoint;
+  var SourcePoint: TCn25519Field64EccPoint);
+var
+  T: TCnEccPoint;
+begin
+  if DestPoint = nil then
+    Exit;
+
+  T := TCnEccPoint.Create;
+  try
+    Cn25519Field64ToBigNumber(T.X, SourcePoint.X);  // 多项式点转换为射影坐标 X Z 点
+    Cn25519Field64ToBigNumber(T.Y, SourcePoint.Y);
+
+    XAffinePointToPoint(DestPoint, T);   // 多项式点转换为射影坐标 X Z 点
+  finally
+    T.Free;
+  end;
+end;
+
+procedure TCnCurve25519.MontgomeryLadderField64MultiplePoint(
+  K: TCnBigNumber; var Point: TCn25519Field64EccPoint);
+var
+  I, C: Integer;
+  X0, X1: TCn25519Field64EccPoint;
+begin
+  if BigNumberIsZero(K) then // 不考虑 K 为负值的情况
+  begin
+    Cn25519Field64Zero(Point.X);
+    Cn25519Field64Zero(Point.Y);
+    Exit;
+  end
+  else if BigNumberIsOne(K) then // 乘 1 无需动
+    Exit;
+
+  Cn25519Field64EccPointCopy(X1, Point);
+  MontgomeryLadderField64PointXDouble(X0, Point);
+
+  C := K.GetBitsCount;
+  for I := C - 2 downto 0 do // 内部先不考虑 Time Constant 执行时间固定的要求
+  begin
+    ConditionalSwapField64Point(K.IsBitSet(I + 1) <> K.IsBitSet(I), X0, X1); // 换
+
+    MontgomeryLadderField64PointXAdd(X1, X0, X1, Point);
+    MontgomeryLadderField64PointXDouble(X0, X0);
+  end;
+
+  ConditionalSwapField64Point(K.IsBitSet(0), X0, X1);
+  Cn25519Field64EccPointCopy(Point, X0);
+end;
+
+procedure TCnCurve25519.MontgomeryLadderField64MultiplePoint(K: Int64;
+  var Point: TCn25519Field64EccPoint);
+var
+  BK: TCnBigNumber;
+begin
+  BK := F25519BigNumberPool.Obtain;
+  try
+    BK.SetInt64(K);
+    MontgomeryLadderField64MultiplePoint(BK, Point);
+  finally
+    F25519BigNumberPool.Recycle(BK);
+  end;
+end;
+
+procedure TCnCurve25519.MontgomeryLadderField64PointXAdd(var Sum, P,
+  Q, PMinusQ: TCn25519Field64EccPoint);
+var
+  V0, V1, V2, V3, V4: TCn25519Field64;
+begin
+  Cn25519Field64Add(V0, P.X, P.Y);
+  Cn25519Field64Sub(V1, Q.X, Q.Y);
+  Cn25519Field64Mul(V1, V1, V0);
+
+  Cn25519Field64Sub(V0, P.X, P.Y);
+  Cn25519Field64Add(V2, Q.X, Q.Y);
+  Cn25519Field64Mul(V2, V2, V0);
+
+  Cn25519Field64Add(V3, V1, V2);
+  Cn25519Field64Mul(V3, V3, V3);
+
+  Cn25519Field64Sub(V4, V1, V2);
+  Cn25519Field64Mul(V4, V4, V4);
+
+  Cn25519Field64Copy(V0, PMinusQ.X);   // V0 备份，避免 Sum 和 PMinusQ 是同一个点时被改动
+  Cn25519Field64Mul(Sum.X, PMinusQ.Y, V3);
+  Cn25519Field64Mul(Sum.Y, V0, V4);
+end;
+
+procedure TCnCurve25519.MontgomeryLadderField64PointXDouble(var Dbl,
+  P: TCn25519Field64EccPoint);
+var
+  V1, V2, V3: TCn25519Field64;
+begin
+  CheckLadderConst;
+  Cn25519Field64Add(V1, P.X, P.Y);
+  Cn25519Field64Mul(V1, V1, V1);
+
+  Cn25519Field64Sub(V2, P.X, P.Y);
+  Cn25519Field64Mul(V2, V2, V2);
+
+  Cn25519Field64Mul(Dbl.X, V1, V2);
+
+  Cn25519Field64Sub(V1, V1, V2);
+  Cn25519Field64Mul(V3, V1, FLadderField64);
+
+  Cn25519Field64Add(V3, V3, V2);
+
+  Cn25519Field64Mul(Dbl.Y, V1, V3);
 end;
 
 { TCnEd25519 }
