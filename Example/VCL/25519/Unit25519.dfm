@@ -1,6 +1,6 @@
 object Form25519: TForm25519
   Left = 192
-  Top = 107
+  Top = 110
   Width = 979
   Height = 563
   Caption = '25519 Curves'
@@ -505,13 +505,58 @@ object Form25519: TForm25519
           OnClick = btn448CheckMapClick
         end
         object btnCurve448Test: TButton
-          Left = 224
+          Left = 400
           Top = 24
           Width = 185
           Height = 25
           Caption = 'Curve 448 Scalar'
           TabOrder = 1
           OnClick = btnCurve448TestClick
+        end
+        object btnConvert448Point: TButton
+          Left = 224
+          Top = 24
+          Width = 161
+          Height = 25
+          Caption = 'Convert 448 Point'
+          TabOrder = 2
+          OnClick = btnConvert448PointClick
+        end
+        object btnCurve448GOn: TButton
+          Left = 608
+          Top = 24
+          Width = 137
+          Height = 25
+          Caption = 'Curve 448 G On Curve?'
+          TabOrder = 3
+          OnClick = btnCurve448GOnClick
+        end
+        object btnEd448GOn: TButton
+          Left = 768
+          Top = 24
+          Width = 137
+          Height = 25
+          Caption = 'Ed 448 G On Curve?'
+          TabOrder = 4
+          OnClick = btnEd448GOnClick
+        end
+        object btnEd448PlainToPoint: TButton
+          Left = 768
+          Top = 64
+          Width = 137
+          Height = 25
+          Caption = 'Ed 448 G Plain To Point'
+          TabOrder = 5
+          OnClick = btnEd448PlainToPointClick
+        end
+        object btnAnother448GOn: TButton
+          Left = 608
+          Top = 64
+          Width = 137
+          Height = 25
+          Caption = 'Another 448 G On Curve?'
+          TabOrder = 6
+          OnClick = btnAnother448GOnClick
         end
       end
     end

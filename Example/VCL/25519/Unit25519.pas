@@ -70,6 +70,11 @@ type
     btn448CheckMap: TButton;
     btnCurve25519Test: TButton;
     btnCurve448Test: TButton;
+    btnConvert448Point: TButton;
+    btnCurve448GOn: TButton;
+    btnEd448GOn: TButton;
+    btnEd448PlainToPoint: TButton;
+    btnAnother448GOn: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -115,12 +120,19 @@ type
     procedure btn448CheckMapClick(Sender: TObject);
     procedure btnCurve25519TestClick(Sender: TObject);
     procedure btnCurve448TestClick(Sender: TObject);
+    procedure btnConvert448PointClick(Sender: TObject);
+    procedure btnCurve448GOnClick(Sender: TObject);
+    procedure btnEd448GOnClick(Sender: TObject);
+    procedure btnEd448PlainToPointClick(Sender: TObject);
+    procedure btnAnother448GOnClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
     FPrivKey: TCnEccPrivateKey;
     FPubKey: TCnEccPublicKey;
     FSigData: TCnEd25519SignatureData;
+    FCurve448: TCnCurve448;
+    FEd448: TCnEd448;
   public
 
   end;
@@ -161,6 +173,8 @@ procedure TForm25519.FormCreate(Sender: TObject);
 begin
   FCurve25519 := TCnCurve25519.Create;
   FEd25519 := TCnEd25519.Create;
+  FCurve448 := TCnCurve448.Create;
+  FEd448 := TCnEd448.Create;
   FPrivKey := TCnEccPrivateKey.Create;
   FPubKey := TCnEccPublicKey.Create;
 end;
@@ -169,6 +183,8 @@ procedure TForm25519.FormDestroy(Sender: TObject);
 begin
   FPubKey.Free;
   FPrivKey.Free;
+  FEd448.Free;
+  FCurve448.Free;
   FEd25519.Free;
   FCurve25519.Free;
 end;
@@ -180,9 +196,20 @@ begin
 end;
 
 procedure TForm25519.btnEd25519GClick(Sender: TObject);
+var
+  Data: TCnEd25519Data;
+  P: TCnEccPoint;
 begin
   if FEd25519.IsPointOnCurve(FEd25519.Generator) then
     ShowMessage('Ed 25519 Generator Point is on this Curve');
+
+  CnEd25519PointToData(FEd25519.Generator, Data);
+  P := TCnEccPoint.Create;
+  FEd25519.PlainToPoint(Data, P);
+  if CnEccPointsEqual(P, FEd25519.Generator) then
+    ShowMessage('Ed25519 G Plain To Point is G');
+
+  P.Free;
 end;
 
 procedure TForm25519.btnCurve25519GAddClick(Sender: TObject);
@@ -1598,7 +1625,7 @@ begin
   HexToData('3D262FDDF9EC8E88495266FEA19A34D28882ACEF045104D0D1AAE121700A779C984C24F8CDD78FBFF44943EBA368F54B29259A4F1C600AD3', @D[0]);
   ReverseMemory(@D[0], SizeOf(TCnCurve448Data));
   K := TCnBigNumber.FromBinary(@D[0], SizeOf(TCnCurve448Data));
-  CnProcess448ScalarNumber(K);
+  CnProcessCurve448ScalarNumber(K);
 
   P := TCnEccPoint.Create;
   HexToData('06FCE640FA3487BFDA5F6CF2D5263F8AAD88334CBD07437F020F08F9814DC031DDBDC38C19C6DA2583FA5429DB94ADA18AA7A7FB4EF8A086', @D[0]);
@@ -1613,6 +1640,87 @@ begin
   Curve.Free;
   P.Free;
   K.Free;
+end;
+
+procedure TForm25519.btnConvert448PointClick(Sender: TObject);
+const
+  SCN_448_MONT_GU = '05';
+  SCN_448_MONT_GV = '7D235D1295F5B1F66C98AB6E58326FCECBAE5D34F55545D060F75DC28DF3F6EDB8027E2346430D211312C4B150677AF76FD7223D457B5B1A';
+  SCN_448_EDWARDS_GX = '4F1970C66BED0DED221D15A622BF36DA9E146570470F1767EA6DE324A3D3A46412AE1AF72AB66511433B80E18B00938E2626A82BC70CC05E';
+  SCN_448_EDWARDS_GY = '693F46716EB6BC248876203756C9C7624BEA73736CA3984087789C1E05A0C2D73AD3FF1CE67C39C4FDBD132C4ED7C8AD9808795BF230FA14';
+var
+  PM, PE: TCnEccPoint;
+
+  procedure SetPoints;
+  begin
+    PM.X.SetHex(SCN_448_MONT_GU);
+    PM.Y.SetHex(SCN_448_MONT_GV);
+    PE.X.SetHex(SCN_448_EDWARDS_GX);
+    PE.Y.SetHex(SCN_448_EDWARDS_GY);
+  end;
+
+begin
+  PM := TCnEccPoint.Create;
+  PE := TCnEccPoint.Create;
+
+  SetPoints;
+  CnEd448PointToCurve448Point(PE, PE);
+  if CnEccPointsEqual(PE, PM) then
+    ShowMessage('Ed 448 to Curve 448 OK');
+
+  SetPoints;
+  CnCurve448PointToEd448Point(PM, PM);
+  if CnEccPointsEqual(PE, PM) then
+    ShowMessage('Curve 448 to Ed 448 OK');
+
+  PE.Free;
+  PM.Free;
+end;
+
+procedure TForm25519.btnCurve448GOnClick(Sender: TObject);
+begin
+  if FCurve448.IsPointOnCurve(FCurve448.Generator) then
+    ShowMessage('Curve 448 Generator Point is on this Curve');
+end;
+
+procedure TForm25519.btnEd448GOnClick(Sender: TObject);
+begin
+  if FEd448.IsPointOnCurve(FEd448.Generator) then
+    ShowMessage('Ed 448 Generator Point is on this Curve');
+end;
+
+procedure TForm25519.btnEd448PlainToPointClick(Sender: TObject);
+var
+  Data: TCnEd448Data;
+  P: TCnEccPoint;
+begin
+  CnEd448PointToData(FEd448.Generator, Data);
+  P := TCnEccPoint.Create;
+  FEd448.PlainToPoint(Data, P);
+  if FEd448.IsPointOnCurve(P) then
+    ShowMessage('Point is on Curve.');
+  if CnEccPointsEqual(P, FEd448.Generator) then
+    ShowMessage('G Plain To Point is G');
+  P.Free;
+end;
+
+procedure TForm25519.btnAnother448GOnClick(Sender: TObject);
+var
+  Ed: TCnEd448;
+begin
+  Ed := TCnEd448.Create;
+  Ed.CoefficientD.SetDec('611975850744529176160423220965553317543219696871016626328968936415087860042636474891785599283666020414768678979989378147065462815545017');
+  Ed.Generator.X.SetDec('345397493039729516374008604150537410266655260075183290216406970281645695073672344430481787759340633221708391583424041788924124567700732');
+  Ed.Generator.Y.SetDec('363419362147803445274661903944002267176820680343659030140745099590306164083365386343198191849338272965044442230921818680526749009182718');
+
+//  Ed.CoefficientD.SetDec('-39081');
+//  Ed.Generator.X.SetDec('224580040295924300187604334099896036246789641632564134246125461686950415467406032909029192869357953282578032075146446173674602635247710');
+//  Ed.Generator.Y.SetDec('298819210078481492676017930443930673437544040154080242095928241372331506189835876003536878655418784733982303233503462500531545062832660');
+
+  if Ed.IsPointOnCurve(Ed.Generator) then
+    ShowMessage('New Point is on Curve.');
+
+  Ed.Free;
 end;
 
 end.
