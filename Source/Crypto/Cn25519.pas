@@ -38,6 +38,9 @@ unit Cn25519;
 *               本单元中既可按常规的 ECC 公私钥处理，也可用 LoadFromData/SaveToData 方法
 *               与 32/57 字节内容加载存储。
 *           本单元中既可按常规的 ECC 公私钥处理，也可用 LoadFromData/SaveToData 方法与 32/57 字节内容加载存储。
+*           另外 Curve25519/448 的椭圆曲线点/公钥存储到 32/56 字节的数据中时存的是纯 X 值
+*           这与 Ed25519/448 的椭圆曲线点/公钥存储到 32/57 字节中的数据不同，后者是存 Y 和 X 的奇偶性
+*
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -221,7 +224,7 @@ type
     procedure Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1); virtual;
     {* 加载曲线参数，注意字符串参数是十六进制格式}
 
-    procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey); virtual;
+    //procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey); virtual;
     {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
 
     procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
@@ -279,13 +282,33 @@ type
   TCnCurve25519Data = array[0..CN_25519_BLOCK_BYTESIZE - 1] of Byte;
   {* Curve25519 的乘数数据，内容一般是网络字节顺序}
 
+  TCnCurve25519PrivateKey = class(TCnEccPrivateKey)
+  {* Curve25519 私钥}
+  public
+    procedure SaveToData(var Data: TCnCurve25519Data);
+    {* 将私钥内容转换成 32 字节内容供存储与传输}
+
+    procedure LoadFromData(Data: TCnCurve25519Data);
+    {* 从 32 字节内容中加载私钥}
+  end;
+
+  TCnCurve25519PublicKey = class(TCnEccPublicKey)
+  {* Curve25519 公钥}
+  public
+    procedure SaveToData(var Data: TCnCurve25519Data);
+    {* 公钥内容转换成 32 字节内容供存储与传输}
+
+    procedure LoadFromData(Data: TCnCurve25519Data);
+    {* 从 32 字节内容中加载公钥，注意只加载 Y 且没有求解 X}
+  end;
+
   TCnCurve25519 = class(TCnMontgomeryCurve)
   {* RFC 7748/8032 中规定的 Curve25519 曲线}
   public
     constructor Create; override;
     {* 构造函数，内部初始化蒙哥马利 25519 曲线的参数}
 
-    procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey); override;
+    procedure GenerateKeys(PrivateKey: TCnCurve25519PrivateKey; PublicKey: TCnCurve25519PublicKey);
     {* 生成一对 Curve25519 椭圆曲线的公私钥，其中私钥的高低位有特殊处理}
 
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); override;
@@ -330,10 +353,10 @@ type
   {* Ed25519 公钥}
   public
     procedure SaveToData(var Data: TCnEd25519Data);
-    {* 私钥内容转换成 32 字节内容供存储与传输}
+    {* 公钥内容转换成 32 字节内容供存储与传输}
 
     procedure LoadFromData(Data: TCnEd25519Data);
-    {* 从 32 字节内容中加载私钥}
+    {* 从 32 字节内容中加载公钥}
   end;
 
   TCnEd25519 = class(TCnTwistedEdwardsCurve)
@@ -396,13 +419,33 @@ type
   TCnCurve448Data = array[0..CN_448_CURVE_BLOCK_BYTESIZE - 1] of Byte;
   {* Curve448 的乘数数据 56 字节，内容一般是网络字节顺序}
 
+  TCnCurve448PrivateKey = class(TCnEccPrivateKey)
+  {* Curve448 私钥}
+  public
+    procedure SaveToData(var Data: TCnCurve448Data);
+    {* 将私钥内容转换成 56 字节内容供存储与传输}
+
+    procedure LoadFromData(Data: TCnCurve448Data);
+    {* 从 56 字节内容中加载私钥}
+  end;
+
+  TCnCurve448PublicKey = class(TCnEccPublicKey)
+  {* Curve448 公钥}
+  public
+    procedure SaveToData(var Data: TCnCurve448Data);
+    {* 公钥内容转换成 56 字节内容供存储与传输}
+
+    procedure LoadFromData(Data: TCnCurve448Data);
+    {* 从 56 字节内容中加载公钥}
+  end;
+
   TCnCurve448 = class(TCnMontgomeryCurve)
   {* RFC 7748/8032 中规定的 Curve448 曲线}
   public
     constructor Create; override;
     {* 构造函数，内部初始化蒙哥马利 448 曲线的参数}
 
-    procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey); override;
+    procedure GenerateKeys(PrivateKey: TCnCurve448PrivateKey; PublicKey: TCnCurve448PublicKey);
     {* 生成一对 Curve448 椭圆曲线的公私钥，其中私钥的高低位有特殊处理}
 
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); override;
@@ -481,8 +524,14 @@ procedure CnCurve25519PointToEd25519Point(DestPoint, SourcePoint: TCnEccPoint);
 procedure CnEd25519PointToCurve25519Point(DestPoint, SourcePoint: TCnEccPoint);
 {* 将 Ed25519 的坐标点转换为 Curve25519 的坐标点，Source 和 Dest 可以相同}
 
+procedure CnCurve25519PointToData(P: TCnEccPoint; var Data: TCnCurve25519Data);
+{* 按 25519 标准将椭圆曲线点转换为压缩方式的 32 字节数组，存 X 值}
+
+procedure CnCurve25519DataToPoint(Data: TCnCurve25519Data; P: TCnEccPoint);
+{* 按 25519 标准将 32 字节数组转换为椭圆曲线点压缩方式，P 中返回对应 X 值，无需求 Y}
+
 procedure CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data);
-{* 按 25519 标准将椭圆曲线点转换为压缩方式的 32 字节数组}
+{* 按 25519 标准将椭圆曲线点转换为压缩方式的 32 字节数组，存 Y 值与 X 的奇偶性}
 
 procedure CnEd25519DataToPoint(Data: TCnEd25519Data; P: TCnEccPoint; out XOdd: Boolean);
 {* 按 25519 标准将 32 字节数组转换为椭圆曲线点压缩方式
@@ -521,16 +570,16 @@ function CnEd25519VerifyFile(const FileName: string; InSignatureStream: TStream;
   PublicKey: TCnEd25519PublicKey; Ed25519: TCnEd25519 = nil): Boolean;
 {* Ed25519 用公钥对文件与签名进行验证，InSignatureStream 内部须是 64 字节签名值，返回验证是否成功}
 
-// ================= Ed25519 椭圆曲线 Diffie-Hellman 密钥交换  =================
+// =============== Curve25519 椭圆曲线 Diffie-Hellman 密钥交换  ================
 
 function CnCurve25519KeyExchangeStep1(SelfPrivateKey: TCnEccPrivateKey;
   OutPointToAnother: TCnEccPoint; Curve25519: TCnCurve25519 = nil): Boolean;
-{* 基于 25519 的 Diffie-Hellman 密钥交换算法，A 与 B 均先调用此方法，
+{* 基于 Curve25519 的 Diffie-Hellman 密钥交换算法，A 与 B 均先调用此方法，
   根据各自私钥生成点坐标，该点坐标需发给对方。返回生成是否成功}
 
 function CnCurve25519KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
   InPointFromAnother: TCnEccPoint; OutKey: TCnEccPoint; Curve25519: TCnCurve25519 = nil): Boolean;
-{* 基于 25519 的 Diffie-Hellman 密钥交换算法，A 与 B 收到对方的 Point 坐标后再调用此方法，
+{* 基于 Curve25519 的 Diffie-Hellman 密钥交换算法，A 与 B 收到对方的 Point 坐标后再调用此方法，
   根据各自私钥生成一共同的点坐标，该点坐标便为共享密钥，可再通过派生进一步复杂化。
   返回生成是否成功}
 
@@ -642,8 +691,14 @@ procedure CnCurve448PointToEd448Point(DestPoint, SourcePoint: TCnEccPoint);
 procedure CnEd448PointToCurve448Point(DestPoint, SourcePoint: TCnEccPoint);
 {* 将 Ed448 的坐标点转换为 Curve448 的坐标点，Source 和 Dest 可以相同}
 
+procedure CnCurve448PointToData(P: TCnEccPoint; var Data: TCnCurve448Data);
+{* 按蒙哥马利 448 标准将椭圆曲线点转换为压缩方式的 56 字节数组，存 X 值}
+
+procedure CnCurve448DataToPoint(Data: TCnCurve448Data; P: TCnEccPoint);
+{* 按蒙哥马利 448 标准将 56 字节数组转换为椭圆曲线点压缩方式，P 中返回对应 X 值，无需计算 Y}
+
 procedure CnEd448PointToData(P: TCnEccPoint; var Data: TCnEd448Data);
-{* 按扭曲爱德华 448 标准将椭圆曲线点转换为压缩方式的 57 字节数组}
+{* 按扭曲爱德华 448 标准将椭圆曲线点转换为压缩方式的 57 字节数组，存 Y 值与 X 的奇偶性}
 
 procedure CnEd448DataToPoint(Data: TCnEd448Data; P: TCnEccPoint; out XOdd: Boolean);
 {* 按扭曲爱德华 448 标准将 57 字节数组转换为椭圆曲线点压缩方式
@@ -666,6 +721,20 @@ procedure CnProcessCurve448ScalarNumber(Num: TCnBigNumber);
 
 procedure CnProcessEd448ScalarNumber(Num: TCnBigNumber);
 {* 按 RFC 规定处理扭曲爱德华 448 的随机数或私钥}
+
+// ================ Curve448 椭圆曲线 Diffie-Hellman 密钥交换  =================
+
+function CnCurve448KeyExchangeStep1(SelfPrivateKey: TCnEccPrivateKey;
+  OutPointToAnother: TCnEccPoint; Curve448: TCnCurve448 = nil): Boolean;
+{* 基于 Curve448 的 Diffie-Hellman 密钥交换算法，A 与 B 均先调用此方法，
+  根据各自私钥生成点坐标，该点坐标需发给对方。返回生成是否成功}
+
+function CnCurve448KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
+  InPointFromAnother: TCnEccPoint; OutKey: TCnEccPoint; Curve448: TCnCurve448 = nil): Boolean;
+{* 基于 Curve448 的 Diffie-Hellman 密钥交换算法，A 与 B 收到对方的 Point 坐标后再调用此方法，
+  根据各自私钥生成一共同的点坐标，该点坐标便为共享密钥，可再通过派生进一步复杂化。
+  返回生成是否成功}
+
 
 implementation
 
@@ -772,9 +841,8 @@ const
 // 448 上面两根曲线照理满足 RFC 7448 中标明的 P 有限域内的映射关系
 //
 //  (u, v) = (y^2/x^2, (2 - x^2 - y^2)*y/x^3)                 已验证
-//  (x, y) = (4*v*(u^2 - 1)/(u^4 - 2*u^2 + 4*v^2 + 1),        计算太复杂而未验证
-//            -(u^5 - 2*u^3 - 4*u*v^2 + u)/                   想必一定是对的
-//             (u^5 - 2*u^2*v^2 - 2*u^3 - 2*v^2 + u))
+//  (x, y) = (4*v*(u^2 - 1)/(u^4 - 2*u^2 + 4*v^2 + 1),        未验证成功
+//            -(u^5 - 2*u^3 - 4*u*v^2 + u)/(u^5 - 2*u^2*v^2 - 2*u^3 - 2*v^2 + u))
 //
 // =============================================================================
 
@@ -818,104 +886,6 @@ begin
   Num.ClearBit(CN_25519_BLOCK_BYTESIZE * 8 - 1);  // 最高位置 0
   Num.SetBit(CN_25519_BLOCK_BYTESIZE * 8 - 2);    // 次高位置 1
 end;
-
-// =============================================================================
-//
-//          Curve448 的 u v 和 Ed448 的 x y 的双向映射关系为：
-//
-//         (u, v) = ((y-1)/(y+1), sqrt(156324)*u/x)
-//         (x, y) = (sqrt(156324)*u/v, (1+u)/(1-u))
-//
-// =============================================================================
-
-//procedure CnCurve448PointToEd448Point(DestPoint, SourcePoint: TCnEccPoint);
-//var
-//  T1, T2, S, P, TX: TCnBigNumber;
-//begin
-//  // x = s * u / v
-//  // y =  (1+u)/(1-u)
-//
-//  T1 := nil;
-//  T2 := nil;
-//  S := nil;
-//  P := nil;
-//  TX := nil;
-//
-//  try
-//    T1 := F25519BigNumberPool.Obtain;
-//    T2 := F25519BigNumberPool.Obtain;
-//    S := F25519BigNumberPool.Obtain;
-//    P := F25519BigNumberPool.Obtain;
-//    TX := F25519BigNumberPool.Obtain;
-//
-//    P.SetHex(SCN_448_PRIME);
-//    T1.SetHex(SCN_448_SQRT_156324);
-//    BigNumberDirectMulMod(T1, T1, SourcePoint.X, P);        // T1 得到 s * u
-//    BigNumberModularInverse(T2, SourcePoint.Y, P);          // T2 得到 1 / v
-//
-//    BigNumberDirectMulMod(TX, T1, T2, P);                   // TX 暂存 x 并释放 T1 和 T2
-//
-//    BigNumberCopy(T1, SourcePoint.X);
-//    BigNumberCopy(T2, SourcePoint.X);
-//    BigNumberAddMod(T1, T1, CnBigNumberOne, P);             // T1 得到 1+u
-//    BigNumberSubMod(T2, CnBigNumberOne, T2, P);             // T2 得到 1-u
-//    BigNumberModularInverse(T2, T2, P);                     // T2 得到 1/(1-u)
-//
-//    BigNumberDirectMulMod(DestPoint.Y, T1, T2, P);
-//    BigNumberCopy(DestPoint.X, TX);
-//  finally
-//    F25519BigNumberPool.Recycle(TX);
-//    F25519BigNumberPool.Recycle(P);
-//    F25519BigNumberPool.Recycle(S);
-//    F25519BigNumberPool.Recycle(T2);
-//    F25519BigNumberPool.Recycle(T1);
-//  end;
-//end;
-//
-//procedure CnEd448PointToCurve448Point(DestPoint, SourcePoint: TCnEccPoint);
-//var
-//  T1, T2, S, P, TX: TCnBigNumber;
-//begin
-//  // u = (y-1)/(y+1)
-//  // v = s * u / x
-//
-//  T1 := nil;
-//  T2 := nil;
-//  S := nil;
-//  P := nil;
-//  TX := nil;
-//
-//  try
-//    T1 := F25519BigNumberPool.Obtain;
-//    T2 := F25519BigNumberPool.Obtain;
-//    S := F25519BigNumberPool.Obtain;
-//    P := F25519BigNumberPool.Obtain;
-//    TX := F25519BigNumberPool.Obtain;
-//
-//    P.SetHex(SCN_448_PRIME);
-//
-//    BigNumberCopy(T1, SourcePoint.Y);
-//    BigNumberCopy(T2, SourcePoint.Y);
-//    BigNumberAddMod(T1, T1, CnBigNumberOne, P);             // T1 得到 y+1
-//    BigNumberModularInverse(T1, T1, P);                     // T1 得到 1/(y+1)
-//    BigNumberSubMod(T2, T2, CnBigNumberOne, P);             // T2 得到 y-1
-//
-//    BigNumberDirectMulMod(TX, T1, T2, P);                   // TX 暂存 u 并释放 T1 和 T2
-//
-//    T1.SetHex(SCN_448_SQRT_156324);
-//    BigNumberDirectMulMod(T1, T1, TX, P);                   // T1 得到 s * u 注意 u 是上面计算的
-//    BigNumberModularInverse(T2, SourcePoint.X, P);          // T2 得到 1 / x
-//
-//    BigNumberDirectMulMod(DestPoint.Y, T1, T2, P);          // 算出 v
-//    BigNumberCopy(DestPoint.X, TX);                         // 塞进 u
-//  finally
-//    F25519BigNumberPool.Recycle(TX);
-//    F25519BigNumberPool.Recycle(P);
-//    F25519BigNumberPool.Recycle(S);
-//    F25519BigNumberPool.Recycle(T2);
-//    F25519BigNumberPool.Recycle(T1);
-//  end;
-//end;
 
 // =============================================================================
 //
@@ -1062,6 +1032,31 @@ begin
   end;
 end;
 
+procedure CnCurve448PointToData(P: TCnEccPoint; var Data: TCnCurve448Data);
+begin
+  if P = nil then
+    Exit;
+
+  FillChar(Data[0], SizeOf(TCnCurve448Data), 0);
+  P.X.ToBinary(@Data[0], SizeOf(TCnCurve448Data));
+  ReverseMemory(@Data[0], SizeOf(TCnCurve448Data));
+  // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
+end;
+
+procedure CnCurve448DataToPoint(Data: TCnCurve448Data; P: TCnEccPoint);
+var
+  D: TCnCurve448Data;
+begin
+  if P = nil then
+    Exit;
+
+  Move(Data[0], D[0], SizeOf(TCnCurve448Data));
+  ReverseMemory(@D[0], SizeOf(TCnCurve448Data));
+  // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
+
+  P.X.SetBinary(@D[0], SizeOf(TCnCurve448Data));
+end;
+
 procedure CnEd448PointToData(P: TCnEccPoint; var Data: TCnEd448Data);
 begin
   if P = nil then
@@ -1170,6 +1165,56 @@ begin
 
   Num.SetBit((CN_448_EDWARDS_BLOCK_BYTESIZE - 1) * 8 - 1);     // 次字节的最高位置 1
   BigNumberKeepLowBits(Num, (CN_448_EDWARDS_BLOCK_BYTESIZE - 1) * 8);   // 最高字节置 0
+end;
+
+function CnCurve448KeyExchangeStep1(SelfPrivateKey: TCnEccPrivateKey;
+  OutPointToAnother: TCnEccPoint; Curve448: TCnCurve448): Boolean;
+var
+  Is448Nil: Boolean;
+begin
+  Result := False;
+  if (SelfPrivateKey = nil) or (OutPointToAnother = nil) then
+    Exit;
+
+  Is448Nil := Curve448 = nil;
+
+  try
+    if Is448Nil then
+      Curve448 := TCnCurve448.Create;
+
+    OutPointToAnother.Assign(Curve448.Generator);
+    Curve448.MultiplePoint(SelfPrivateKey, OutPointToAnother);
+
+    Result := True;
+  finally
+    if Is448Nil then
+      Curve448.Free;
+  end;
+end;
+
+function CnCurve448KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
+  InPointFromAnother: TCnEccPoint; OutKey: TCnEccPoint; Curve448: TCnCurve448): Boolean;
+var
+  Is448Nil: Boolean;
+begin
+  Result := False;
+  if (SelfPrivateKey = nil) or (InPointFromAnother = nil) or (OutKey = nil) then
+    Exit;
+
+  Is448Nil := Curve448 = nil;
+
+  try
+    if Is448Nil then
+      Curve448 := TCnCurve448.Create;
+
+    OutKey.Assign(InPointFromAnother);
+    Curve448.MultiplePoint(SelfPrivateKey, OutKey);
+
+    Result := True;
+  finally
+    if Is448Nil then
+      Curve448.Free;
+  end;
 end;
 
 // 计算大数的 SHA512 结果，长度 64 字节
@@ -1761,16 +1806,16 @@ begin
   inherited;
 end;
 
-procedure TCnMontgomeryCurve.GenerateKeys(PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey);
-begin
-  BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
-  if PrivateKey.IsZero then                         // 万一真拿到 0，就加 1
-    PrivateKey.SetOne;
-
-  PublicKey.Assign(FGenerator);
-  MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
-end;
+//procedure TCnMontgomeryCurve.GenerateKeys(PrivateKey: TCnEccPrivateKey;
+//  PublicKey: TCnEccPublicKey);
+//begin
+//  BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
+//  if PrivateKey.IsZero then                         // 万一真拿到 0，就加 1
+//    PrivateKey.SetOne;
+//
+//  PublicKey.Assign(FGenerator);
+//  MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
+//end;
 
 function TCnMontgomeryCurve.IsPointOnCurve(P: TCnEccPoint): Boolean;
 var
@@ -2236,6 +2281,35 @@ begin
   // P 不用动
 end;
 
+
+{ TCnCurve25519PrivateKey }
+
+procedure TCnCurve25519PrivateKey.LoadFromData(Data: TCnCurve25519Data);
+begin
+  CnCurve25519DataToBigNumber(Data, Self);
+  CnProcess25519ScalarNumber(Self);
+end;
+
+procedure TCnCurve25519PrivateKey.SaveToData(var Data: TCnCurve25519Data);
+begin
+  CnProcess25519ScalarNumber(Self);
+  CnCurve25519BigNumberToData(Self, Data);
+end;
+
+{ TCnCurve25519PublicKey }
+
+procedure TCnCurve25519PublicKey.LoadFromData(Data: TCnCurve25519Data);
+var
+  XOdd: Boolean;
+begin
+  CnEd25519DataToPoint(TCnEd25519Data(Data), Self, XOdd);   // 复用 Ed25519 的，只加载 Y 和奇偶性后者还省略了
+end;
+
+procedure TCnCurve25519PublicKey.SaveToData(var Data: TCnCurve25519Data);
+begin
+  CnEd25519PointToData(Self, TCnEd25519Data(Data));   // 复用 Ed25519 的，只存 Y，以及 X 的奇偶性
+end;
+
 { TCnCurve25519 }
 
 constructor TCnCurve25519.Create;
@@ -2245,14 +2319,14 @@ begin
     SCN_25519_MONT_GY, SCN_25519_ORDER, SCN_25519_COFACTOR);
 end;
 
-procedure TCnCurve25519.GenerateKeys(PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey);
+procedure TCnCurve25519.GenerateKeys(PrivateKey: TCnCurve25519PrivateKey;
+  PublicKey: TCnCurve25519PublicKey);
 begin
   BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
   if PrivateKey.IsZero then                         // 万一真拿到 0，就设为 4
     PrivateKey.SetWord(4);
 
-  CnProcessCurve448ScalarNumber(PrivateKey);             // 按 RFC 规定处理私钥
+  CnProcess25519ScalarNumber(PrivateKey);           // 按 RFC 规定处理私钥
 
   PublicKey.Assign(FGenerator);
   MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
@@ -2745,6 +2819,31 @@ begin
     F25519BigNumberPool.Recycle(T);
     F25519BigNumberPool.Recycle(S);
   end;
+end;
+
+procedure CnCurve25519PointToData(P: TCnEccPoint; var Data: TCnCurve25519Data);
+begin
+  if P = nil then
+    Exit;
+
+  FillChar(Data[0], SizeOf(TCnEd25519Data), 0);
+  P.X.ToBinary(@Data[0], SizeOf(TCnEd25519Data));
+  ReverseMemory(@Data[0], SizeOf(TCnEd25519Data));
+  // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
+end;
+
+procedure CnCurve25519DataToPoint(Data: TCnCurve25519Data; P: TCnEccPoint);
+var
+  D: TCnCurve25519Data;
+begin
+  if P = nil then
+    Exit;
+
+  Move(Data[0], D[0], SizeOf(TCnCurve25519Data));
+  ReverseMemory(@D[0], SizeOf(TCnCurve25519Data));
+  // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
+
+  P.Y.SetBinary(@D[0], SizeOf(TCnCurve25519Data));
 end;
 
 procedure CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data);
@@ -3736,10 +3835,12 @@ end;
 procedure TCnEd25519PrivateKey.LoadFromData(Data: TCnEd25519Data);
 begin
   CnEd25519DataToBigNumber(Data, Self);
+  CnProcess25519ScalarNumber(Self);
 end;
 
 procedure TCnEd25519PrivateKey.SaveToData(var Data: TCnEd25519Data);
 begin
+  CnProcess25519ScalarNumber(Self);
   CnEd25519BigNumberToData(Self, Data);
 end;
 
@@ -3762,6 +3863,32 @@ begin
   CnEd25519PointToData(Self, Data); // 只存 Y，以及 X 的奇偶性
 end;
 
+{ TCnCurve448PrivateKey }
+
+procedure TCnCurve448PrivateKey.LoadFromData(Data: TCnCurve448Data);
+begin
+  CnCurve448DataToBigNumber(Data, Self);
+  CnProcessCurve448ScalarNumber(Self);
+end;
+
+procedure TCnCurve448PrivateKey.SaveToData(var Data: TCnCurve448Data);
+begin
+  CnProcessCurve448ScalarNumber(Self);
+  CnCurve448BigNumberToData(Self, Data);
+end;
+
+{ TCnCurve448PublicKey }
+
+procedure TCnCurve448PublicKey.LoadFromData(Data: TCnCurve448Data);
+begin
+  CnCurve448DataToPoint(Data, Self);
+end;
+
+procedure TCnCurve448PublicKey.SaveToData(var Data: TCnCurve448Data);
+begin
+  CnCurve448PointToData(Self, Data);
+end;
+
 { TCnCurve448 }
 
 constructor TCnCurve448.Create;
@@ -3771,14 +3898,14 @@ begin
     SCN_448_MONT_GY, SCN_448_ORDER, SCN_448_COFACTOR);
 end;
 
-procedure TCnCurve448.GenerateKeys(PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey);
+procedure TCnCurve448.GenerateKeys(PrivateKey: TCnCurve448PrivateKey;
+  PublicKey: TCnCurve448PublicKey);
 begin
   BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
   if PrivateKey.IsZero then                         // 万一真拿到 0，就设为 8
     PrivateKey.SetWord(8);
 
-  CnProcess25519ScalarNumber(PrivateKey);           // 按 RFC 规定处理私钥
+  CnProcessCurve448ScalarNumber(PrivateKey);        // 按 RFC 规定处理私钥
 
   PublicKey.Assign(FGenerator);
   MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次;

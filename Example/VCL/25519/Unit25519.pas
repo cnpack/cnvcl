@@ -75,6 +75,8 @@ type
     btnEd448GOn: TButton;
     btnEd448PlainToPoint: TButton;
     btnAnother448GOn: TButton;
+    btnConvertAnother448Point: TButton;
+    btnCurve448DHKeyExchange: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -125,6 +127,8 @@ type
     procedure btnEd448GOnClick(Sender: TObject);
     procedure btnEd448PlainToPointClick(Sender: TObject);
     procedure btnAnother448GOnClick(Sender: TObject);
+    procedure btnConvertAnother448PointClick(Sender: TObject);
+    procedure btnCurve448DHKeyExchangeClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -168,6 +172,10 @@ const
   SCN_25519_EDWARDS_GY = '6666666666666666666666666666666666666666666666666666666666666658';
   // 46316835694926478169428394003475163141307993866256225615783033603165251855960
 
+  SCN_448_PRIME = 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF';
+
+  SCN_448_SQRT_156324 = 'BA4D3A0829B6112F8812E51BA0BB2ABEBC1CB08EB48E556936BA50FDD2E7D68AF8CB32160522425B3F990812ABBE635AD37A21E17551B193';
+  // 提前算好的 sqrt(156324)，供点坐标转换计算
 
 procedure TForm25519.FormCreate(Sender: TObject);
 begin
@@ -539,9 +547,10 @@ end;
 
 procedure TForm25519.btnCurve25519DHKeyExchangeClick(Sender: TObject);
 var
-  Priv1, Priv2: TCnEccPrivateKey;
+  Priv1, Priv2: TCnCurve25519PrivateKey;
   Pub1, Pub2: TCnEccPublicKey;
   Key1, Key2, Key1O, Key2O: TCnEccPoint;
+  D: TCnCurve25519Data;
 begin
   Priv1 := nil;
   Priv2 := nil;
@@ -553,8 +562,8 @@ begin
   Key2O := nil;
 
   try
-    Priv1 := TCnEccPrivateKey.Create;
-    Priv2 := TCnEccPrivateKey.Create;
+    Priv1 := TCnCurve25519PrivateKey.Create;
+    Priv2 := TCnCurve25519PrivateKey.Create;
     Pub1 := TCnEccPublicKey.Create;
     Pub2 := TCnEccPublicKey.Create;
     Key1 := TCnEccPoint.Create;
@@ -562,8 +571,10 @@ begin
     Key1O := TCnEccPoint.Create;
     Key2O := TCnEccPoint.Create;
 
-    Priv1.SetHex('77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a');
-    Priv2.SetHex('5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb');
+    HexToData('77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a', @D[0]);
+    Priv1.LoadFromData(D);
+    HexToData('5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb', @D[0]);
+    Priv2.LoadFromData(D);
 
     CnCurve25519KeyExchangeStep1(Priv1, Key1); // 第一方调用，产生 Key 1
     CnCurve25519KeyExchangeStep1(Priv2, Key2); // 另一方调用，产生 Key 2
@@ -575,6 +586,8 @@ begin
 
     if CnEccPointsEqual(Key1O, Key2O) then
       ShowMessage('Key Exchange OK '+ Key1O.ToString);
+
+    // RFC 中的 Secret K 是 Key1O 的 X 坐标再倒过来
   finally
     Key2O.Free;
     Key1O.Free;
@@ -1721,6 +1734,196 @@ begin
     ShowMessage('New Point is on Curve.');
 
   Ed.Free;
+end;
+
+// =============================================================================
+//
+//          Curve448 的 u v 和 RFC 上另一款 Ed448 的 x y 的双向映射关系为：
+//
+//         (u, v) = ((y-1)/(y+1), sqrt(156324)*u/x)
+//         (x, y) = (sqrt(156324)*u/v, (1+u)/(1-u))
+//
+// =============================================================================
+
+procedure MyCurve448PointToEd448Point(DestPoint, SourcePoint: TCnEccPoint);
+var
+  T1, T2, S, P, TX: TCnBigNumber;
+begin
+  // x = s * u / v
+  // y =  (1+u)/(1-u)
+
+  T1 := nil;
+  T2 := nil;
+  S := nil;
+  P := nil;
+  TX := nil;
+
+  try
+    T1 := TCnBigNumber.Create;
+    T2 := TCnBigNumber.Create;
+    S := TCnBigNumber.Create;
+    P := TCnBigNumber.Create;
+    TX := TCnBigNumber.Create;
+
+    P.SetHex(SCN_448_PRIME);
+    T1.SetHex(SCN_448_SQRT_156324);
+    BigNumberDirectMulMod(T1, T1, SourcePoint.X, P);        // T1 得到 s * u
+    BigNumberModularInverse(T2, SourcePoint.Y, P);          // T2 得到 1 / v
+
+    BigNumberDirectMulMod(TX, T1, T2, P);                   // TX 暂存 x 并释放 T1 和 T2
+
+    BigNumberCopy(T1, SourcePoint.X);
+    BigNumberCopy(T2, SourcePoint.X);
+    BigNumberAddMod(T1, T1, CnBigNumberOne, P);             // T1 得到 1+u
+    BigNumberSubMod(T2, CnBigNumberOne, T2, P);             // T2 得到 1-u
+    BigNumberModularInverse(T2, T2, P);                     // T2 得到 1/(1-u)
+
+    BigNumberDirectMulMod(DestPoint.Y, T1, T2, P);
+    BigNumberCopy(DestPoint.X, TX);
+  finally
+    TX.Free;
+    P.Free;
+    S.Free;
+    T2.Free;
+    T1.Free;
+  end;
+end;
+
+procedure MyEd448PointToCurve448Point(DestPoint, SourcePoint: TCnEccPoint);
+var
+  T1, T2, S, P, TX: TCnBigNumber;
+begin
+  // u = (y-1)/(y+1)
+  // v = s * u / x
+
+  T1 := nil;
+  T2 := nil;
+  S := nil;
+  P := nil;
+  TX := nil;
+
+  try
+    T1 := TCnBigNumber.Create;
+    T2 := TCnBigNumber.Create;
+    S := TCnBigNumber.Create;
+    P := TCnBigNumber.Create;
+    TX := TCnBigNumber.Create;
+
+    P.SetHex(SCN_448_PRIME);
+
+    BigNumberCopy(T1, SourcePoint.Y);
+    BigNumberCopy(T2, SourcePoint.Y);
+    BigNumberAddMod(T1, T1, CnBigNumberOne, P);             // T1 得到 y+1
+    BigNumberModularInverse(T1, T1, P);                     // T1 得到 1/(y+1)
+    BigNumberSubMod(T2, T2, CnBigNumberOne, P);             // T2 得到 y-1
+
+    BigNumberDirectMulMod(TX, T1, T2, P);                   // TX 暂存 u 并释放 T1 和 T2
+
+    T1.SetHex(SCN_448_SQRT_156324);
+    BigNumberDirectMulMod(T1, T1, TX, P);                   // T1 得到 s * u 注意 u 是上面计算的
+    BigNumberModularInverse(T2, SourcePoint.X, P);          // T2 得到 1 / x
+
+    BigNumberDirectMulMod(DestPoint.Y, T1, T2, P);          // 算出 v
+    BigNumberCopy(DestPoint.X, TX);                         // 塞进 u
+  finally
+    TX.Free;
+    P.Free;
+    S.Free;
+    T2.Free;
+    T1.Free;
+  end;
+end;
+
+procedure TForm25519.btnConvertAnother448PointClick(Sender: TObject);
+const
+  SCN_448_MONT_GU = '05';
+  SCN_448_MONT_GV = '355293926785568175264127502063783334808976399387714271831880898435169088786967410002932673765864550910142774147268105838985595290606362';
+  SCN_448_EDWARDS_GX = '345397493039729516374008604150537410266655260075183290216406970281645695073672344430481787759340633221708391583424041788924124567700732';
+  SCN_448_EDWARDS_GY = '363419362147803445274661903944002267176820680343659030140745099590306164083365386343198191849338272965044442230921818680526749009182718';
+var
+  PM, PE, P: TCnEccPoint;
+
+  procedure SetPoints;
+  begin
+    PM.X.SetDec(SCN_448_MONT_GU);
+    PM.Y.SetDec(SCN_448_MONT_GV);
+    PE.X.SetDec(SCN_448_EDWARDS_GX);
+    PE.Y.SetDec(SCN_448_EDWARDS_GY);
+  end;
+
+begin
+  PM := TCnEccPoint.Create;
+  PE := TCnEccPoint.Create;
+  P := TCnEccPoint.Create;
+
+  SetPoints;
+  MyEd448PointToCurve448Point(P, PE);
+  if CnEccPointsEqual(P, PM) then
+    ShowMessage('My Ed 448 to Curve 448 OK');
+
+  SetPoints;
+  MyCurve448PointToEd448Point(P, PM);
+  if CnEccPointsEqual(P, PE) then
+    ShowMessage('My Curve 448 to Ed 448 OK');
+
+  // Curve448 与 RFC 中另一个 Ed 对应曲线的坐标转换均验证通不过
+  P.Free;
+  PE.Free;
+  PM.Free;
+end;
+
+procedure TForm25519.btnCurve448DHKeyExchangeClick(Sender: TObject);
+var
+  Priv1, Priv2: TCnCurve448PrivateKey;
+  Pub1, Pub2: TCnEccPublicKey;
+  Key1, Key2, Key1O, Key2O: TCnEccPoint;
+  D: TCnCurve448Data;
+begin
+  Priv1 := nil;
+  Priv2 := nil;
+  Pub1 := nil;
+  Pub2 := nil;
+  Key1 := nil;
+  Key2 := nil;
+  Key1O := nil;
+  Key2O := nil;
+
+  try
+    Priv1 := TCnCurve448PrivateKey.Create;
+    Priv2 := TCnCurve448PrivateKey.Create;
+    Pub1 := TCnEccPublicKey.Create;
+    Pub2 := TCnEccPublicKey.Create;
+    Key1 := TCnEccPoint.Create;
+    Key2 := TCnEccPoint.Create;
+    Key1O := TCnEccPoint.Create;
+    Key2O := TCnEccPoint.Create;
+
+    // 俩 Private Key 来源于 RFC 7748
+    HexToData('9a8f4925d1519f5775cf46b04b5800d4ee9ee8bae8bc5565d498c28dd9c9baf574a9419744897391006382a6f127ab1d9ac2d8c0a598726b', @D[0]);
+    Priv1.LoadFromData(D);
+    HexToData('1c306a7ac2a0e2e0990b294470cba339e6453772b075811d8fad0d1d6927c120bb5ee8972b0d3e21374c9c921b09d1b0366f10b65173992d', @D[0]);
+    Priv2.LoadFromData(D);
+
+    CnCurve448KeyExchangeStep1(Priv1, Key1); // 第一方调用，产生 Key 1
+    CnCurve448KeyExchangeStep1(Priv2, Key2); // 另一方调用，产生 Key 2
+
+    // Key2 给一，Key1 给另一方
+
+    CnCurve448KeyExchangeStep2(Priv1, Key2, Key1O); // 第一方调用，产生公有 Key 1O
+    CnCurve448KeyExchangeStep2(Priv2, Key1, Key2O); // 第一方调用，产生公有 Key 2O
+
+    if CnEccPointsEqual(Key1O, Key2O) then
+      ShowMessage('Key Exchange OK '+ Key1O.ToString);
+  finally
+    Key2O.Free;
+    Key1O.Free;
+    Key2.Free;
+    Key1.Free;
+    Pub2.Free;
+    Pub1.Free;
+    Priv2.Free;
+    Priv1.Free;
+  end;
 end;
 
 end.

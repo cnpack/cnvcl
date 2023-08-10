@@ -558,6 +558,24 @@ object Form25519: TForm25519
           TabOrder = 6
           OnClick = btnAnother448GOnClick
         end
+        object btnConvertAnother448Point: TButton
+          Left = 224
+          Top = 64
+          Width = 161
+          Height = 25
+          Caption = 'Convert Another 448 Point'
+          TabOrder = 7
+          OnClick = btnConvertAnother448PointClick
+        end
+        object btnCurve448DHKeyExchange: TButton
+          Left = 400
+          Top = 64
+          Width = 185
+          Height = 25
+          Caption = 'Curve 448 DH Key Exchange'
+          TabOrder = 8
+          OnClick = btnCurve448DHKeyExchangeClick
+        end
       end
     end
   end

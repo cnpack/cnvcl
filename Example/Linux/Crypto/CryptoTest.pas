@@ -233,9 +233,11 @@ function TestPrimeNumber2: Boolean;
 
 function Test25519CurveMul: Boolean;
 function Test25519CurveGMul: Boolean;
+function Test25519KeyExchange: Boolean;
 function Test25519Sign: Boolean;
 function Test448CurveMul: Boolean;
 function Test448CurveGMul: Boolean;
+function Test448KeyExchange: Boolean;
 
 // =============================== Paillier ====================================
 
@@ -452,9 +454,11 @@ begin
 
   MyAssert(Test25519CurveMul, 'Test25519CurveMul');
   MyAssert(Test25519CurveGMul, 'Test25519CurveGMul');
+  MyAssert(Test25519KeyExchange, 'Test25519KeyExchange');
   MyAssert(Test25519Sign, 'Test25519Sign');
   MyAssert(Test448CurveMul, 'Test448CurveMul');
   MyAssert(Test448CurveGMul, 'Test448CurveGMul');
+  MyAssert(Test448KeyExchange, 'Test448KeyExchange');
 
 // =============================== Paillier ====================================
 
@@ -2900,6 +2904,66 @@ begin
   K.Free;
 end;
 
+function Test25519KeyExchange: Boolean;
+var
+  Priv1, Priv2: TCnCurve25519PrivateKey;
+  Pub1, Pub2: TCnEccPublicKey;
+  Key1, Key2, Key1O, Key2O: TCnEccPoint;
+  D: TCnCurve25519Data;
+begin
+  Priv1 := nil;
+  Priv2 := nil;
+  Pub1 := nil;
+  Pub2 := nil;
+  Key1 := nil;
+  Key2 := nil;
+  Key1O := nil;
+  Key2O := nil;
+
+  try
+    Priv1 := TCnCurve25519PrivateKey.Create;
+    Priv2 := TCnCurve25519PrivateKey.Create;
+    Pub1 := TCnEccPublicKey.Create;
+    Pub2 := TCnEccPublicKey.Create;
+    Key1 := TCnEccPoint.Create;
+    Key2 := TCnEccPoint.Create;
+    Key1O := TCnEccPoint.Create;
+    Key2O := TCnEccPoint.Create;
+
+    // 俩 Private Key 来源于 RFC 7748
+    HexToData('77076D0A7318A57D3C16C17251B26645DF4C2F87EBC0992AB177FBA51DB92C2A', @D[0]);
+    Priv1.LoadFromData(D);
+    HexToData('5DAB087E624A8A4B79E17F8B83800EE66F3BB1292618B6FD1C2F8B27FF88E0EB', @D[0]);
+    Priv2.LoadFromData(D);
+
+    CnCurve25519KeyExchangeStep1(Priv1, Key1); // 第一方调用，产生 Key 1
+    CnCurve25519KeyExchangeStep1(Priv2, Key2); // 另一方调用，产生 Key 2
+
+    // Key2 给一，Key1 给另一方
+
+    CnCurve25519KeyExchangeStep2(Priv1, Key2, Key1O); // 第一方调用，产生公有 Key 1O
+    CnCurve25519KeyExchangeStep2(Priv2, Key1, Key2O); // 第一方调用，产生公有 Key 2O
+
+    Result := CnEccPointsEqual(Key1O, Key2O);
+
+    // RFC 中的 Secret K 是 Key1O 的 X 坐标倒过来
+    if Result then
+    begin
+      CnCurve25519PointToData(Key1O, D);
+      Result := DataToHex(@D[0], SizeOf(TCnCurve25519Data)) = '4A5D9D5BA4CE2DE1728E3BF480350F25E07E21C947D19E3376F09B3C1E161742';
+    end;
+  finally
+    Key2O.Free;
+    Key1O.Free;
+    Key2.Free;
+    Key1.Free;
+    Pub2.Free;
+    Pub1.Free;
+    Priv2.Free;
+    Priv1.Free;
+  end;
+end;
+
 function Test25519Sign: Boolean;
 var
   Ed: TCnEd25519;
@@ -3010,6 +3074,66 @@ begin
   Curve.Free;
   P.Free;
   K.Free;
+end;
+
+function Test448KeyExchange: Boolean;
+var
+  Priv1, Priv2: TCnCurve448PrivateKey;
+  Pub1, Pub2: TCnEccPublicKey;
+  Key1, Key2, Key1O, Key2O: TCnEccPoint;
+  D: TCnCurve448Data;
+begin
+  Priv1 := nil;
+  Priv2 := nil;
+  Pub1 := nil;
+  Pub2 := nil;
+  Key1 := nil;
+  Key2 := nil;
+  Key1O := nil;
+  Key2O := nil;
+
+  try
+    Priv1 := TCnCurve448PrivateKey.Create;
+    Priv2 := TCnCurve448PrivateKey.Create;
+    Pub1 := TCnEccPublicKey.Create;
+    Pub2 := TCnEccPublicKey.Create;
+    Key1 := TCnEccPoint.Create;
+    Key2 := TCnEccPoint.Create;
+    Key1O := TCnEccPoint.Create;
+    Key2O := TCnEccPoint.Create;
+
+    // 俩 Private Key 来源于 RFC 7748
+    HexToData('9A8F4925D1519F5775CF46B04B5800D4EE9EE8BAE8BC5565D498C28DD9C9BAF574A9419744897391006382A6F127AB1D9AC2D8C0A598726B', @D[0]);
+    Priv1.LoadFromData(D);
+    HexToData('1C306A7AC2A0E2E0990B294470CBA339E6453772B075811D8FAD0D1D6927C120BB5EE8972B0D3E21374C9C921B09D1B0366F10B65173992D', @D[0]);
+    Priv2.LoadFromData(D);
+
+    CnCurve448KeyExchangeStep1(Priv1, Key1); // 第一方调用，产生 Key 1
+    CnCurve448KeyExchangeStep1(Priv2, Key2); // 另一方调用，产生 Key 2
+
+    // Key2 给一，Key1 给另一方
+
+    CnCurve448KeyExchangeStep2(Priv1, Key2, Key1O); // 第一方调用，产生公有 Key 1O
+    CnCurve448KeyExchangeStep2(Priv2, Key1, Key2O); // 第一方调用，产生公有 Key 2O
+
+    Result := CnEccPointsEqual(Key1O, Key2O);
+
+    // RFC 中的 Secret K 是 Key1O 的 X 坐标倒过来
+    if Result then
+    begin
+      CnCurve448PointToData(Key1O, D);
+      Result := DataToHex(@D[0], SizeOf(TCnCurve448Data)) = '07FFF4181AC6CC95EC1C16A94A0F74D12DA232CE40A77552281D282BB60C0B56FD2464C335543936521C24403085D59A449A5037514A879D';
+    end;
+  finally
+    Key2O.Free;
+    Key1O.Free;
+    Key2.Free;
+    Key1.Free;
+    Pub2.Free;
+    Pub1.Free;
+    Priv2.Free;
+    Priv1.Free;
+  end;
 end;
 
 // =============================== Paillier ====================================
