@@ -29,15 +29,15 @@ unit Cn25519;
 *           已实现仅基于 X 以及蒙哥马利阶梯的快速标量乘以及扩展四元坐标的快速点加
 *           以及结合多项式约减代替模运算所进行的加速算法，是原始点加算法速度的五十倍以上
 *           签名基于 RFC 8032 的说明
-*           注意：Ed25519 的公钥并非如传统 ECC 那样等于私钥直接点乘 G 点而来，而是经过了
+*           注意：Ed25519/Ed448 的公钥并非如传统 ECC 那样等于私钥直接点乘 G 点而来，而是经过了
 *               其他运算才得到乘数，再点乘 G 点得到公钥，且可以不完整存储 X Y，只存 Y
 *               且将 X 的奇偶存入。
-*           RFC 8032 的 Ed25519 的签名规范中，将随机产生的 32 字节值叫 SecretKey，将其算出乘数
-*               再点乘得到公钥再存 Y 和 X 奇偶性的 32 字节叫 PublicKey，加起来一共 64 字节是为
+*           RFC 8032 的 Ed25519/Ed448 的签名规范中，将随机产生的 32/57 字节值叫 SecretKey，将其算出乘数
+*               再点乘得到公钥再存 Y 和 X 奇偶性的 32/57 字节叫 PublicKey，加起来一共 64/114 字节是为
 *               一对公私钥。
 *               本单元中既可按常规的 ECC 公私钥处理，也可用 LoadFromData/SaveToData 方法
-*               与 32 字节内容加载存储。
-*               Curve25519 公私钥则没这么高的私钥要求，但私钥同样要清/置某些位才能作为乘数。
+*               与 32/57 字节内容加载存储。
+*           本单元中既可按常规的 ECC 公私钥处理，也可用 LoadFromData/SaveToData 方法与 32/57 字节内容加载存储。
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -126,6 +126,9 @@ type
     FFiniteFieldSize: TCnBigNumber;
     FGenerator: TCnEccPoint;
     FCoFactor: Integer;
+
+    function CalcXFromY(InY, OutX: TCnBigNumber; XOdd: Boolean): Boolean;
+    {* 从 Y 值对方程 x^2 = (Y^2 - 1) / (D*Y^2 - A) mod P 求解，传入 Y 和 X 是否奇偶的标记，返回求解是否成功}
   public
     constructor Create; overload; virtual;
     {* 普通构造函数，未初始化参数}
@@ -337,6 +340,7 @@ type
   {* RFC 7748/8032 中规定的 Ed25519 曲线}
   public
     constructor Create; override;
+    {* 构造函数}
 
     function GenerateKeys(PrivateKey: TCnEd25519PrivateKey; PublicKey: TCnEd25519PublicKey): Boolean;
     {* 生成一对 Ed25519 椭圆曲线的公私钥，其中公钥的基点乘数根据 SHA512 运算而来}
@@ -436,7 +440,7 @@ type
   {* RFC 7748/8032 中规定的 Ed448 曲线}
   public
     constructor Create; override;
-    {* 构造函数，内部初始化扭曲爱德华 448 曲线的参数}
+    {* 构造函数，内部初始化非扭曲爱德华 448 曲线的参数}
 
     function GenerateKeys(PrivateKey: TCnEd448PrivateKey; PublicKey: TCnEd448PublicKey): Boolean;
     {* 生成一对 Ed448 椭圆曲线的公私钥，其中公钥的基点乘数根据 SHAKE256 运算而来}
@@ -503,7 +507,7 @@ procedure CnProcess25519ScalarNumber(Num: TCnBigNumber);
 
 function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEd25519PrivateKey;
   PublicKey: TCnEd25519PublicKey; OutSignature: TCnEd25519Signature; Ed25519: TCnEd25519 = nil): Boolean;
-{* Ed25519 用公私钥对数据块进行签名，返回签名是否成功}
+{* Ed25519 用公私钥对数据块进行签名，返回签名是否成功，为了提升效率需调用者自行保证公私钥匹配否则签名无效}
 
 function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd25519Signature;
   PublicKey: TCnEd25519PublicKey; Ed25519: TCnEd25519 = nil): Boolean;
@@ -660,12 +664,16 @@ procedure CnCurve448DataToBigNumber(Data: TCnCurve448Data; N: TCnBigNumber);
 procedure CnProcessCurve448ScalarNumber(Num: TCnBigNumber);
 {* 按 RFC 规定处理蒙哥马利 448 的随机数或私钥}
 
+procedure CnProcessEd448ScalarNumber(Num: TCnBigNumber);
+{* 按 RFC 规定处理扭曲爱德华 448 的随机数或私钥}
+
 implementation
 
 resourcestring
   SCnErrorPointInverse = 'Point Inverse Error.';
   SCnErrorCanNOTCalcFmt = 'Can NOT Calucate %s,%s + %s,%s';
   SCnErrorNumberTooBig = 'Number is Too Big.';
+  SCnErrorPointNotOnCurve = 'Point NOT On Curve.';
 
 const
 
@@ -731,12 +739,12 @@ const
   SCN_448_ORDER = '3FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF7CCA23E9C44EDB49AED63690216CC2728DC58F552378C292AB5844F3';
   // 基点阶数为 2^446 - 13818066809895115352007386748515426880336692474882178609894547503885
 
-  // 448 扭曲爱德华曲线参数
+  // 448 扭曲爱德华曲线参数，但 1 似乎代表非扭曲
   SCN_448_EDWARDS_A = '01';
   // 1
 
   SCN_448_EDWARDS_D = '-39081';
-  // 要不要转正嗫
+  // 不要转正
 
   SCN_448_EDWARDS_GX = '4F1970C66BED0DED221D15A622BF36DA9E146570470F1767EA6DE324A3D3A46412AE1AF72AB66511433B80E18B00938E2626A82BC70CC05E';
   // RFC 中的 224580040295924300187604334099896036246789641632564134246125461686950415467406032909029192869357953282578032075146446173674602635247710
@@ -771,12 +779,12 @@ const
 // =============================================================================
 
 type
-  TCn25519448Digest = array[0..63] of Byte;
-  {* 25519 和 448 曲线使用的数据块摘要大小，SHA512 与 SHAKE256 均为 64 字节}
+  TCnSHAKE256Digest = array[0..CN_448_EDWARDS_BLOCK_BYTESIZE * 2 - 1] of Byte;
 
 var
   F25519BigNumberPool: TCnBigNumberPool = nil;
   FPrime25519: TCnBigNumber = nil;
+  FPrime448: TCnBigNumber = nil;
 
   // 仨常量
   F25519Field64Zero: TCn25519Field64 = (0, 0, 0, 0, 0);
@@ -1149,61 +1157,68 @@ end;
 // 按 RFC 规定处理 448 的随机数或私钥
 procedure CnProcessCurve448ScalarNumber(Num: TCnBigNumber);
 begin
-  Num.ClearBit(0);                                // 低二位置 0
+  Num.ClearBit(0);                                    // 低二位置 0
   Num.ClearBit(1);
 
-  Num.SetBit(CN_448_CURVE_BLOCK_BYTESIZE * 8 - 1);// 最高位置 1
+  Num.SetBit(CN_448_CURVE_BLOCK_BYTESIZE * 8 - 1);    // 最高位置 1
+end;
+
+procedure CnProcessEd448ScalarNumber(Num: TCnBigNumber);
+begin
+  Num.ClearBit(0);                                    // 低二位置 0
+  Num.ClearBit(1);
+
+  Num.SetBit((CN_448_EDWARDS_BLOCK_BYTESIZE - 1) * 8 - 1);     // 次字节的最高位置 1
+  BigNumberKeepLowBits(Num, (CN_448_EDWARDS_BLOCK_BYTESIZE - 1) * 8);   // 最高字节置 0
 end;
 
 // 计算大数的 SHA512 结果，长度 64 字节
-function CalcBigNumberSHA512Digest(const Num: TCnBigNumber; FixedLen: Integer): TCn25519448Digest;
+function CalcBigNumberSHA512Digest(const Num: TCnBigNumber; FixedLen: Integer): TCnSHA512Digest;
 var
   Stream: TStream;
-  D: TCnSHA512Digest;
 begin
   Stream := TMemoryStream.Create;
   try
-    FillChar(Result[0], SizeOf(TCn25519448Digest), 0);
+    FillChar(Result[0], SizeOf(TCnSHA512Digest), 0);
     if BigNumberWriteBinaryToStream(Num, Stream, FixedLen) <> FixedLen then
       Exit;
 
-    D := SHA512Stream(Stream);
-    Move(D[0], Result[0], SizeOf(TCnSHA512Digest));
+    Result := SHA512Stream(Stream);
   finally
     Stream.Free;
   end;
 end;
 
-// 计算大数的 SHAKE256 结果，长度取 64 字节
-function CalcBigNumberSHAKE256Digest(const Num: TCnBigNumber; FixedLen: Integer): TCn25519448Digest;
+// 计算大数的 SHAKE256 结果，长度取 114 字节
+function CalcBigNumberSHAKE256Digest(const Num: TCnBigNumber; FixedLen: Integer): TCnSHAKE256Digest;
 var
   Stream: TStream;
   D: TBytes;
 begin
   Stream := TMemoryStream.Create;
   try
-    FillChar(Result[0], SizeOf(TCn25519448Digest), 0);
+    FillChar(Result[0], SizeOf(TCnSHAKE256Digest), 0);
     if BigNumberWriteBinaryToStream(Num, Stream, FixedLen) <> FixedLen then
       Exit;
 
-    D := SHAKE256Stream(Stream);
-    if Length(D) = SizeOf(TCn25519448Digest) then
-      Move(D[0], Result[0], SizeOf(TCn25519448Digest));
+    D := SHAKE256Stream(Stream, SizeOf(TCnSHAKE256Digest));
+    if Length(D) = SizeOf(TCnSHAKE256Digest) then
+      Move(D[0], Result[0], SizeOf(TCnSHAKE256Digest));
   finally
     Stream.Free;
   end;
 end;
 
 // 根据随机私钥，生成公钥与 Ed25519 签名使用的 Hash 种子
-procedure CalcBigNumbersFromPrivateKey(const InPrivateKey: TCnBigNumber; FixedLen: Integer;
+procedure CalcBigNumbersFrom25519PrivateKey(const InPrivateKey: TCnBigNumber; FixedLen: Integer;
   OutMulFactor, OutHashPrefix: TCnBigNumber);
 var
-  Dig: TCn25519448Digest;
+  Dig: TCnSHA512Digest;
 begin
-  // 拿 PrivateKey 做 Sha512，得到 64 字节结果 Dig
+  // 拿 PrivateKey 做 SHA512，得到 64 字节结果 Dig
   Dig := CalcBigNumberSHA512Digest(InPrivateKey, CN_25519_BLOCK_BYTESIZE);
 
-  // 拿它做 Sha512，得到 64 字节结果，前 32 字节取来做乘数，先倒序，低 3 位得清零，
+  // 拿它做 SHA512，得到 64 字节结果，前 32 字节取来做乘数，先倒序，低 3 位得清零，
   // （和 CoFactor 是 2^3 = 8 对应），且最高位 2^255 得置 0，次高位 2^254 得置 1
   if OutMulFactor <> nil then
   begin
@@ -1216,6 +1231,30 @@ begin
   // 后 32 字节作为 Hash 的入口参数
   if OutHashPrefix <> nil then
     OutHashPrefix.SetBinary(@Dig[CN_25519_BLOCK_BYTESIZE], CN_25519_BLOCK_BYTESIZE);
+end;
+
+// 根据随机私钥，生成公钥与 Ed448 签名使用的 Hash 种子
+procedure CalcBigNumbersFrom448PrivateKey(const InPrivateKey: TCnBigNumber; FixedLen: Integer;
+  OutMulFactor, OutHashPrefix: TCnBigNumber);
+var
+  Dig: TCnSHAKE256Digest;
+begin
+  // 拿 PrivateKey 做 SHAKE256，得到 114 字节结果 Dig
+  Dig := CalcBigNumberSHAKE256Digest(InPrivateKey, CN_448_EDWARDS_BLOCK_BYTESIZE);
+
+  // 拿它做 SHAKE256，得到 114 字节结果，前 57 字节取来做乘数，先倒序，低 2 位得清零，
+  // （和 CoFactor 是 2^2 = 4 对应），且最高位字节得全部置 0，次高位字节的最高位得置 1
+  if OutMulFactor <> nil then
+  begin
+    ReverseMemory(@Dig[0], CN_448_EDWARDS_BLOCK_BYTESIZE);       // 得倒个序
+    OutMulFactor.SetBinary(@Dig[0], CN_448_EDWARDS_BLOCK_BYTESIZE);
+
+    CnProcessEd448ScalarNumber(OutMulFactor);
+  end;
+
+  // 后 57 字节作为 Hash 的入口参数
+  if OutHashPrefix <> nil then
+    OutHashPrefix.SetBinary(@Dig[CN_448_EDWARDS_BLOCK_BYTESIZE], CN_448_EDWARDS_BLOCK_BYTESIZE);
 end;
 
 { TCnTwistedEdwardsCurve }
@@ -1648,6 +1687,44 @@ begin
     ExtendedPointAddPoint(P, Inv, Diff);
   finally
     Inv.Free;
+  end;
+end;
+
+function TCnTwistedEdwardsCurve.CalcXFromY(InY, OutX: TCnBigNumber;
+  XOdd: Boolean): Boolean;
+var
+  T, Y, Inv: TCnBigNumber;
+begin
+  T := nil;
+  Y := nil;
+  Inv := nil;
+
+  try
+    T := F25519BigNumberPool.Obtain;
+    Y := F25519BigNumberPool.Obtain;
+
+    BigNumberDirectMulMod(Y, InY, InY, FFiniteFieldSize);
+    Y.SubWord(1); // Y := Y^2 - 1
+
+    BigNumberDirectMulMod(T, InY, InY, FFiniteFieldSize);
+    BigNumberDirectMulMod(T, T, FCoefficientD, FFiniteFieldSize);
+    BigNumberSubMod(T, T, FCoefficientA, FFiniteFieldSize);
+    // T := D*Y^2 - A
+
+    Inv := F25519BigNumberPool.Obtain;
+    BigNumberModularInverse(Inv, T, FFiniteFieldSize);
+
+    BigNumberDirectMulMod(Y, Y, Inv, FFiniteFieldSize);  // Y 得到方程右边的值
+
+    Result := BigNumberSquareRootModPrime(OutX, Y, FFiniteFieldSize);
+
+    // 算出 X 了
+    if Result and OutX.IsBitSet(0) <> XOdd then
+      BigNumberSub(OutX, FFiniteFieldSize, OutX);
+  finally
+    F25519BigNumberPool.Recycle(Inv);
+    F25519BigNumberPool.Recycle(Y);
+    F25519BigNumberPool.Recycle(T);
   end;
 end;
 
@@ -2491,7 +2568,7 @@ begin
 
   K := F25519BigNumberPool.Obtain;
   try
-    CalcBigNumbersFromPrivateKey(PrivateKey, CN_25519_BLOCK_BYTESIZE, K, nil);
+    CalcBigNumbersFrom25519PrivateKey(PrivateKey, CN_25519_BLOCK_BYTESIZE, K, nil);
 
     // 该乘数 K 乘以 G 点得到公钥
     PublicKey.Assign(FGenerator);
@@ -2776,7 +2853,7 @@ begin
     HP := F25519BigNumberPool.Obtain;
 
     // 根据私钥得到私钥乘数 s 与杂凑前缀
-    CalcBigNumbersFromPrivateKey(PrivateKey, CN_25519_BLOCK_BYTESIZE, S, HP);
+    CalcBigNumbersFrom25519PrivateKey(PrivateKey, CN_25519_BLOCK_BYTESIZE, S, HP);
 
     // 杂凑前缀拼上原始文字
     Stream := TMemoryStream.Create;
@@ -3054,11 +3131,9 @@ begin
   CnField64Ecc4PointToEccPoint(Point, P4);
 end;
 
-procedure TCnEd25519.PlainToPoint(Plain: TCnEd25519Data;
-  OutPoint: TCnEccPoint);
+procedure TCnEd25519.PlainToPoint(Plain: TCnEd25519Data; OutPoint: TCnEccPoint);
 var
   XOdd: Boolean;
-  T, Y, Inv: TCnBigNumber;
 begin
   if OutPoint = nil then
     Exit;
@@ -3066,39 +3141,9 @@ begin
   // 先从 Plain 中还原 Y 坐标以及 X 点的奇偶性
   CnEd25519DataToPoint(Plain, OutPoint, XOdd);
 
-  // 得到 Y 后求解 x 的方程 x^2 = (Y^2 - 1) / (D*Y^2 + 1) mod P
-  // 注意素数 25519 是 8u5 的形式
-
-  T := nil;
-  Y := nil;
-  Inv := nil;
-
-  try
-    T := F25519BigNumberPool.Obtain;
-    Y := F25519BigNumberPool.Obtain;
-
-    BigNumberDirectMulMod(Y, OutPoint.Y, OutPoint.Y, FFiniteFieldSize);
-    Y.SubWord(1); // Y := Y^2 - 1
-
-    BigNumberDirectMulMod(T, OutPoint.Y, OutPoint.Y, FFiniteFieldSize);
-    BigNumberDirectMulMod(T, T, FCoefficientD, FFiniteFieldSize);
-    T.AddWord(1); // T := D*Y^2 + 1
-
-    Inv := F25519BigNumberPool.Obtain;
-    BigNumberModularInverse(Inv, T, FFiniteFieldSize);
-
-    BigNumberDirectMulMod(Y, Y, Inv, FFiniteFieldSize);  // Y 得到方程右边的值
-
-    BigNumberSquareRootModPrime(OutPoint.X, Y, FFiniteFieldSize);
-
-    // 算出 X 了
-    if OutPoint.X.IsBitSet(0) <> XOdd then
-      BigNumberSub(OutPoint.X, FFiniteFieldSize, OutPoint.X);
-  finally
-    F25519BigNumberPool.Recycle(Inv);
-    F25519BigNumberPool.Recycle(Y);
-    F25519BigNumberPool.Recycle(T);
-  end;
+  // 得到 Y 后求解 X， 注意素数 25519 是 8u5 的形式
+  if not CalcXFromY(OutPoint.Y, OutPoint.X, XOdd) then
+    raise ECnEccException.Create(SCnErrorPointNotOnCurve);
 end;
 
 procedure TCnEd25519.PointToPlain(Point: TCnEccPoint;
@@ -3795,33 +3840,73 @@ end;
 
 function TCnEd448.GenerateKeys(PrivateKey: TCnEd448PrivateKey;
   PublicKey: TCnEd448PublicKey): Boolean;
+var
+  K: TCnBigNumber;
 begin
+  Result := False;
 
+  // 随机 57 字节做 PrivateKey
+  if not BigNumberRandBytes(PrivateKey, CN_448_EDWARDS_BLOCK_BYTESIZE) then
+    Exit;
+
+  K := F25519BigNumberPool.Obtain;
+  try
+    CalcBigNumbersFrom448PrivateKey(PrivateKey, CN_448_EDWARDS_BLOCK_BYTESIZE, K, nil);
+
+    // 该乘数 K 乘以 G 点得到公钥
+    PublicKey.Assign(FGenerator);
+    MultiplePoint(K, PublicKey);                         // 基点乘 K 次
+
+    Result := True;
+  finally
+    F25519BigNumberPool.Recycle(K);
+  end;
 end;
 
 procedure TCnEd448.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+var
+  P4: TCnEcc4Point;
 begin
-  inherited;
-
+  P4 := TCnEcc4Point.Create;
+  try
+    CnEccPointToEcc4Point(P4, Point, FPrime448);
+    ExtendedMultiplePoint(K, P4);
+    CnEcc4PointToEccPoint(Point, P4, FPrime448);
+  finally
+    P4.Free;
+  end;
 end;
 
-procedure TCnEd448.PlainToPoint(Plain: TCnEd448Data;
-  OutPoint: TCnEccPoint);
+procedure TCnEd448.PlainToPoint(Plain: TCnEd448Data; OutPoint: TCnEccPoint);
+var
+  XOdd: Boolean;
 begin
+  if OutPoint = nil then
+    Exit;
 
+  // 先从 Plain 中还原 Y 坐标以及 X 点的奇偶性
+  CnEd448DataToPoint(Plain, OutPoint, XOdd);
+
+  // 再求解 X 坐标
+  if not CalcXFromY(OutPoint.Y, OutPoint.X, XOdd) then
+    raise ECnEccException.Create(SCnErrorPointNotOnCurve);
 end;
 
-procedure TCnEd448.PointToPlain(Point: TCnEccPoint;
-  var OutPlain: TCnEd448Data);
+procedure TCnEd448.PointToPlain(Point: TCnEccPoint; var OutPlain: TCnEd448Data);
 begin
+  if (Point = nil) or (BigNumberCompare(Point.Y, FFiniteFieldSize) >= 0) then
+    Exit;
 
+  CnEd448PointToData(Point, OutPlain);
 end;
 
 initialization
   F25519BigNumberPool := TCnBigNumberPool.Create;
   FPrime25519 := TCnBigNumber.FromHex(SCN_25519_PRIME);
+  FPrime448 := TCnBigNumber.FromHex(SCN_448_PRIME);
 
 finalization
+  FPrime448.Free;
   FPrime25519.Free;
   F25519BigNumberPool.Free;
 

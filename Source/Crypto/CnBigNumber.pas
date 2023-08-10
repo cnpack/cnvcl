@@ -6550,6 +6550,8 @@ begin
           // 结果是 g^(u+1) mod p
           BigNumberAddWord(U, 1);
           BigNumberMontgomeryPowerMod(Y, A, U, Prime);
+          // 但解可能逆运算平方回去 mod Prime 后得到 -A 不符合原要求因而需要验算
+
           BigNumberDirectMulMod(Z, Y, Y, Prime);
           if BigNumberCompare(Z, A) = 0 then
           begin
