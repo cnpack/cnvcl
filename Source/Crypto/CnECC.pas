@@ -738,7 +738,7 @@ function CnEccDiffieHellmanComputeKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivate
    其中 SecretKey = SelfPrivateKey * OtherPublicKey}
 
 function CnInt64EccPointToEcc3Point(var P: TCnInt64EccPoint; var P3: TCnInt64Ecc3Point): Boolean;
-{* Int64 范围内的普通坐标到仿射或雅可比坐标的点转换}
+{* Int64 范围内的普通坐标到仿射或雅可比坐标的点转换，等同于 CnInt64EccPointToAffinePoint 和 CnInt64EccPointToJacobianPoint}
 
 function CnInt64AffinePointToEccPoint(var P3: TCnInt64Ecc3Point;
   var P: TCnInt64EccPoint; Prime: Int64): Boolean;
@@ -749,7 +749,7 @@ function CnInt64JacobianPointToEccPoint(var P3: TCnInt64Ecc3Point;
 {* Int64 范围内的雅可比坐标到普通坐标的点转换}
 
 function CnEccPointToEcc3Point(P: TCnEccPoint; P3: TCnEcc3Point): Boolean;
-{* 大数范围内的普通坐标到仿射或雅可比坐标的点转换}
+{* 大数范围内的普通坐标到仿射或雅可比坐标的点转换，等同于 CnEccPointToAffinePoint 和 CnEccPointToJacobianPoint}
 
 function CnAffinePointToEccPoint(P3: TCnEcc3Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
 {* 大数范围内的仿射坐标到普通坐标的点转换}
