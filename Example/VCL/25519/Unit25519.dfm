@@ -20,7 +20,7 @@ object Form25519: TForm25519
     Top = 8
     Width = 953
     Height = 521
-    ActivePage = ts25519
+    ActivePage = ts448Basic
     TabOrder = 0
     object ts25519: TTabSheet
       Caption = '25519 Basic'
@@ -602,6 +602,15 @@ object Form25519: TForm25519
           Caption = 'Ed448 G Mul'
           TabOrder = 11
           OnClick = btnEd448GMulClick
+        end
+        object btnEd448SignSample: TButton
+          Left = 400
+          Top = 104
+          Width = 185
+          Height = 25
+          Caption = 'Ed448 Sign Sample'
+          TabOrder = 12
+          OnClick = btnEd448SignSampleClick
         end
       end
     end

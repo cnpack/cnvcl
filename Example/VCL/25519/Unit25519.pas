@@ -80,6 +80,7 @@ type
     btnEd448CalcKey: TButton;
     btnEd448GAdd: TButton;
     btnEd448GMul: TButton;
+    btnEd448SignSample: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -135,12 +136,13 @@ type
     procedure btnEd448CalcKeyClick(Sender: TObject);
     procedure btnEd448GAddClick(Sender: TObject);
     procedure btnEd448GMulClick(Sender: TObject);
+    procedure btnEd448SignSampleClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
     FPrivKey: TCnEccPrivateKey;
     FPubKey: TCnEccPublicKey;
-    FSigData: TCnEd25519SignatureData;
+    F25519SigData: TCnEd25519SignatureData;
     FCurve448: TCnCurve448;
     FEd448: TCnEd448;
   public
@@ -512,10 +514,10 @@ begin
   if CnEd25519SignData(@B, 1, TCnEd25519PrivateKey(FPrivKey), TCnEd25519PublicKey(FPubKey), Sig) then
   begin
     ShowMessage('Sign OK');
-    Sig.SaveToData(FSigData);
+    Sig.SaveToData(F25519SigData);
 
     ASig := TCnEd25519Signature.Create;
-    ASig.LoadFromData(FSigData);
+    ASig.LoadFromData(F25519SigData);
 
     // 比较 Sig 和 ASig 是否相同
     if CnEccPointsEqual(Sig.R, ASig.R) and BigNumberEqual(Sig.S, ASig.S) then
@@ -2062,6 +2064,54 @@ begin
   P3.Free;
   P.Free;
   Prime.Free;
+end;
+
+procedure TForm25519.btnEd448SignSampleClick(Sender: TObject);
+var
+  Ed: TCnEd448;
+  Data: TCnEd448Data;
+  PrivKey: TCnEd448PrivateKey;
+  PubKey: TCnEd448PublicKey;
+  SigData: TCnEd448SignatureData;
+  Sig: TCnEd448Signature;
+  B: Byte;
+  R: Boolean;
+begin
+  // RFC 8032 中的 Test Vector
+  // Secret Key: c4eab05d357007c632f3dbb48489924d552b08fe0c353a0d4a1f00acda2c463afbea67c5e8d2877c5e3bc397a659949ef8021e954e0a12274e
+  // Public Key: 43ba28f430cdff456ae531545f7ecd0ac834a55d9358c0372bfa0c6c6798c0866aea01eb00742802b8438ea4cb82169c235160627b4c3a9480
+  // Message 1 Byte: 03
+  // User Context: nil
+
+  Ed := TCnEd448.Create;
+  PrivKey := TCnEd448PrivateKey.Create;
+  PubKey := TCnEd448PublicKey.Create;
+  Sig := TCnEd448Signature.Create;
+
+  try
+    HexToData('C4EAB05D357007C632F3DBB48489924D552B08FE0C353A0D4A1F00ACDA2C463AFBEA67C5E8D2877C5E3BC397A659949EF8021E954E0A12274E', @Data[0]);
+    PrivKey.LoadFromData(Data);
+    HexToData('43BA28F430CDFF456AE531545F7ECD0AC834A55D9358C0372BFA0C6C6798C0866AEA01EB00742802B8438EA4CB82169C235160627B4C3A9480', @Data[0]);
+    PubKey.LoadFromData(Data);
+
+    B := $03;
+    R := CnEd448SignData(@B, 1, PrivKey, PubKey, Sig); // 无 UserContext
+    if not R then Exit;
+
+    Sig.SaveToData(SigData);
+    R := DataToHex(@SigData, SizeOf(SigData)) = '26B8F91727BD62897AF15E41EB43C377EFB9C610D48F2335CB0BD0087810F4352541B143C4B981B7E18F62DE8CCDF633FC1BF037AB7CD779805E0DBCC0AAE1CBCEE1AFB2E027DF36BC04DCECBF154336C19F0AF7E0A6472905E799F1953D2A0FF3348AB21AA4ADAFD1D234441CF807C03A00';
+    if not R then Exit;
+
+    ShowMessage('Sign OK');
+    R := CnEd448VerifyData(@B, 1, Sig, PubKey);
+    if R then
+      ShowMessage('Verify OK');
+  finally
+    Sig.Free;
+    PubKey.Free;
+    PrivKey.Free;
+    Ed.Free;
+  end;
 end;
 
 end.

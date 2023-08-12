@@ -39,13 +39,14 @@ unit Cn25519;
 *               与 32/57 字节内容加载存储。
 *           本单元中既可按常规的 ECC 公私钥处理，也可用 LoadFromData/SaveToData 方法与 32/57 字节内容加载存储。
 *           另外 Curve25519/448 的椭圆曲线点/公钥存储到 32/56 字节的数据中时存的是纯 X 值
-*           这与 Ed25519/448 的椭圆曲线点/公钥存储到 32/57 字节中的数据不同，后者是存 Y 和 X 的奇偶性
-*
+*               这与 Ed25519/448 的椭圆曲线点/公钥存储到 32/57 字节中的数据不同，后者是存 Y 和 X 的奇偶性
+*           另外 Ed25519 曲线是扭曲爱德华曲线因而可以用四元扩展法计算加速，还能因为 2^255-19 这个素数用 64 位有限域多项式加速
+*               但 Ed448 曲线是非扭曲爱德华曲线导致不能与 Ed25519 一样加速，只能用三元射影点加算法加速
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.08.08 V1.6
-*               加入 448 蒙哥马利曲线的初步实现
+* 修改记录：2023.08.12 V1.6
+*               加入 448 蒙哥马利曲线与非扭曲爱德华曲线的初步实现
 *           2022.07.30 V1.5
 *               去除部分无用的判断以精简代码
 *           2022.06.14 V1.4
@@ -931,6 +932,8 @@ var
   FBigNumberPool: TCnBigNumberPool = nil;
   FPrime25519: TCnBigNumber = nil;
   FPrime448: TCnBigNumber = nil;
+  FEd448SignPrefix: AnsiString = 'SigEd448';
+
 
   // 仨常量
   F25519Field64Zero: TCn25519Field64 = (0, 0, 0, 0, 0);
@@ -1255,6 +1258,8 @@ var
   R, S, K, HP: TCnBigNumber;
   Dig: TCnSHAKE256Digest;
   Data: TCnEd448Data;
+  E: Byte;
+  D: TBytes;
 begin
   Result := False;
   if (PlainData = nil) or (DataLen <= 0) or (PrivateKey = nil) or (PublicKey = nil)
@@ -1280,31 +1285,51 @@ begin
     // 根据私钥得到私钥乘数 s 与杂凑前缀
     CnCalcKeysFromEd448PrivateKey(PrivateKey, CN_448_EDWARDS_BLOCK_BYTESIZE, S, HP);
 
-    // SHAKE256(dom4(F, C) || prefix || PH(M), 114) 其中 F 是 0，C 是 最长 255 字符串的用户名之类的且 PH 就是原始函数
+    // SHAKE256(dom4(F, C) || HashPrefix || M, 114) 其中 F 是 0，C 是 最长 255 字符串的用户名之类的
     // 注意 RFC 8032 中的 dom4(F, C) = "SigEd448" || octet(F) || octet(OLEN(C)) || C
 
     // 杂凑前缀拼上原始文字
+    E := 0;
     Stream := TMemoryStream.Create;
+    Stream.Write(FEd448SignPrefix[1], Length(FEd448SignPrefix));
+    Stream.Write(E, 1);
+    E := Length(UserContext);
+    Stream.Write(E, 1);
+    if E > 0 then
+      Stream.Write(UserContext[0], E);   // "SigEd448" || octet(F) || octet(OLEN(C)) || C
+
     BigNumberWriteBinaryToStream(HP, Stream, CN_448_EDWARDS_BLOCK_BYTESIZE);
     Stream.Write(PlainData^, DataLen);
 
     // 计算出 114 字节的 SHAKE256 值作为 r 乘数，准备乘以基点作为 R 点
-    //Dig := SHA512Buffer(Stream.Memory, Stream.Size);
+    D := SHAKE256Buffer(Stream.Memory, Stream.Size, SizeOf(TCnSHAKE256Digest));
+    if Length(D) <> SizeOf(TCnSHAKE256Digest) then
+      Exit;
 
-    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
+    Move(D[0], Dig[0], SizeOf(TCnSHAKE256Digest));
+    ReverseMemory(@Dig[0], SizeOf(TCnSHAKE256Digest));
     // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
 
-    R.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
+    R.SetBinary(@Dig[0], SizeOf(TCnSHAKE256Digest));
     BigNumberNonNegativeMod(R, R, Ed448.Order);  // 但 r 乘数实在是太大，先 mod 一下阶
 
     OutSignature.R.Assign(Ed448.Generator);
     Ed448.MultiplePoint(R, OutSignature.R);      // 计算得到签名值 R，该值是一个点坐标
 
+    // SHAKE256("SigEd448" || octet(F) || octet(OLEN(C)) || C || R || PublicKey || M, 114)
     // 再 Hash 计算 S，先点 R 转换为字节数组
     Ed448.PointToPlain(OutSignature.R, Data);
 
     // 拼起来
     Stream.Clear;
+    E := 0;
+    Stream.Write(FEd448SignPrefix[1], Length(FEd448SignPrefix));
+    Stream.Write(E, 1);
+    E := Length(UserContext);
+    Stream.Write(E, 1);
+    if E > 0 then
+      Stream.Write(UserContext[0], E);   // "SigEd448" || octet(F) || octet(OLEN(C)) || C
+
     Stream.Write(Data[0], SizeOf(TCnEd448Data));
 
     // 公钥点也转换为字节数组
@@ -1314,13 +1339,16 @@ begin
     // 写明文，拼凑完毕
     Stream.Write(PlainData^, DataLen);
 
-    // 再次杂凑 R||PublicKey||明文
-    //Dig := SHA512Buffer(Stream.Memory, Stream.Size);
+    // 再次杂凑
+    D := SHAKE256Buffer(Stream.Memory, Stream.Size, SizeOf(TCnSHAKE256Digest));
+    if Length(D) <> SizeOf(TCnSHAKE256Digest) then
+      Exit;
 
-    ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
+    Move(D[0], Dig[0], SizeOf(TCnSHAKE256Digest));
+    ReverseMemory(@Dig[0], SizeOf(TCnSHAKE256Digest));
     // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而又需要倒一下
 
-    K.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
+    K.SetBinary(@Dig[0], SizeOf(TCnSHAKE256Digest));
     BigNumberNonNegativeMod(K, K, Ed448.Order);  // 乘数太大再先 mod 一下阶
 
     // 计算乘数 R + K * S mod Order

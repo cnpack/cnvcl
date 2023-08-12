@@ -240,6 +240,7 @@ function Test448CurveMul: Boolean;
 function Test448CurveGMul: Boolean;
 function Test448KeyExchange: Boolean;
 function Test448CalcKey: Boolean;
+function Test448Sign: Boolean;
 
 // =============================== Paillier ====================================
 
@@ -463,6 +464,7 @@ begin
   MyAssert(Test448CurveGMul, 'Test448CurveGMul');
   MyAssert(Test448KeyExchange, 'Test448KeyExchange');
   MyAssert(Test448CalcKey, 'Test448CalcKey');
+  MyAssert(Test448Sign, 'Test448Sign');
 
 // =============================== Paillier ====================================
 
@@ -3016,7 +3018,7 @@ begin
     HexToData('4CCD089B28FF96DA9DB6C346EC114E0F5B8A319F35ABA624DA8CF6ED4FB8A6FB', @Data[0]);
     PrivKey.LoadFromData(Data);
     HexToData('3D4017C3E843895A92B70AA74D1B7EBC9C982CCF2EC4968CC0CD55F12AF4660C', @Data[0]);
-    Ed.PlainToPoint(Data, PubKey);
+    PubKey.LoadFromData(Data);
 
     B := $72;
     Result := CnEd25519SignData(@B, 1, PrivKey, PubKey, Sig);
@@ -3193,6 +3195,50 @@ begin
   Ed.Free;
   K.Free;
   S.Free;
+end;
+
+function Test448Sign: Boolean;
+var
+  Ed: TCnEd448;
+  Data: TCnEd448Data;
+  PrivKey: TCnEd448PrivateKey;
+  PubKey: TCnEd448PublicKey;
+  SigData: TCnEd448SignatureData;
+  Sig: TCnEd448Signature;
+  B: Byte;
+begin
+  // RFC 8032 ÖÐµÄ Test Vector
+  // Secret Key: c4eab05d357007c632f3dbb48489924d552b08fe0c353a0d4a1f00acda2c463afbea67c5e8d2877c5e3bc397a659949ef8021e954e0a12274e
+  // Public Key: 43ba28f430cdff456ae531545f7ecd0ac834a55d9358c0372bfa0c6c6798c0866aea01eb00742802b8438ea4cb82169c235160627b4c3a9480
+  // Message 1 Byte: 03
+  // User Context: nil
+
+  Ed := TCnEd448.Create;
+  PrivKey := TCnEd448PrivateKey.Create;
+  PubKey := TCnEd448PublicKey.Create;
+  Sig := TCnEd448Signature.Create;
+
+  try
+    HexToData('C4EAB05D357007C632F3DBB48489924D552B08FE0C353A0D4A1F00ACDA2C463AFBEA67C5E8D2877C5E3BC397A659949EF8021E954E0A12274E', @Data[0]);
+    PrivKey.LoadFromData(Data);
+    HexToData('43BA28F430CDFF456AE531545F7ECD0AC834A55D9358C0372BFA0C6C6798C0866AEA01EB00742802B8438EA4CB82169C235160627B4C3A9480', @Data[0]);
+    PubKey.LoadFromData(Data);
+
+    B := $03;
+    Result := CnEd448SignData(@B, 1, PrivKey, PubKey, Sig); // ÎÞ UserContext
+    if not Result then Exit;
+
+    Sig.SaveToData(SigData);
+    Result := DataToHex(@SigData, SizeOf(SigData)) = '26B8F91727BD62897AF15E41EB43C377EFB9C610D48F2335CB0BD0087810F4352541B143C4B981B7E18F62DE8CCDF633FC1BF037AB7CD779805E0DBCC0AAE1CBCEE1AFB2E027DF36BC04DCECBF154336C19F0AF7E0A6472905E799F1953D2A0FF3348AB21AA4ADAFD1D234441CF807C03A00';
+    if not Result then Exit;
+
+    Result := CnEd448VerifyData(@B, 1, Sig, PubKey);
+  finally
+    Sig.Free;
+    PubKey.Free;
+    PrivKey.Free;
+    Ed.Free;
+  end;
 end;
 
 // =============================== Paillier ====================================
