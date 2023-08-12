@@ -4239,7 +4239,7 @@ end;
 
 procedure TCnEd448.AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
 var
-  I: Integer;
+  I, C: Integer;
   E, R: TCnEcc3Point;
 begin
   if BigNumberIsNegative(K) then
@@ -4270,11 +4270,14 @@ begin
     E.Y := Point.Y;
     E.Z := Point.Z;
 
-    for I := 0 to BigNumberGetBitsCount(K) - 1 do
+    C := BigNumberGetBitsCount(K);
+    for I := 0 to C - 1 do
     begin
       if BigNumberIsBitSet(K, I) then
         AffinePointAddPoint(R, E, R);
-      AffinePointAddPoint(E, E, E);
+
+      if I < C - 1 then
+        AffinePointAddPoint(E, E, E);
     end;
 
     Point.X := R.X;
@@ -4367,10 +4370,9 @@ begin
       BigNumberAddMod(G, B, E, FFiniteFieldSize);            // G = B + E
 
       // 后面 E 用不着，和 J 一块做临时变量
-      BigNumberAddMod(E, Q.X, Q.Y, FFiniteFieldSize);
-      BigNumberModularInverse(J, E, FFiniteFieldSize);       // J = 1 / (X2 + Y2)
+      BigNumberAddMod(J, Q.X, Q.Y, FFiniteFieldSize);        // J = X2 + Y2
       BigNumberAddMod(E, P.X, P.Y, FFiniteFieldSize);        // E = X1 + Y1
-      BigNumberDirectMulMod(H, E, J, FFiniteFieldSize);      // H = (X1 + Y1) * (X2 + Y2) 释放 E J
+      BigNumberDirectMulMod(H, E, J, FFiniteFieldSize);      // H = (X1 + Y1) * (X2 + Y2)
 
       BigNumberSubMod(H, H, C, FFiniteFieldSize);
       BigNumberSubMod(H, H, D, FFiniteFieldSize);            // H 发生变化但后面不用 H 了

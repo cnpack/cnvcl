@@ -1,6 +1,6 @@
 object Form25519: TForm25519
   Left = 192
-  Top = 110
+  Top = 111
   Width = 979
   Height = 563
   Caption = '25519 Curves'
@@ -575,6 +575,33 @@ object Form25519: TForm25519
           Caption = 'Curve 448 DH Key Exchange'
           TabOrder = 8
           OnClick = btnCurve448DHKeyExchangeClick
+        end
+        object btnEd448CalcKey: TButton
+          Left = 16
+          Top = 64
+          Width = 185
+          Height = 25
+          Caption = 'Ed448 Calc Key'
+          TabOrder = 9
+          OnClick = btnEd448CalcKeyClick
+        end
+        object btnEd448GAdd: TButton
+          Left = 16
+          Top = 104
+          Width = 185
+          Height = 25
+          Caption = 'Ed448 G Add'
+          TabOrder = 10
+          OnClick = btnEd448GAddClick
+        end
+        object btnEd448GMul: TButton
+          Left = 224
+          Top = 104
+          Width = 161
+          Height = 25
+          Caption = 'Ed448 G Mul'
+          TabOrder = 11
+          OnClick = btnEd448GMulClick
         end
       end
     end

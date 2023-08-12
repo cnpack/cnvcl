@@ -234,10 +234,12 @@ function TestPrimeNumber2: Boolean;
 function Test25519CurveMul: Boolean;
 function Test25519CurveGMul: Boolean;
 function Test25519KeyExchange: Boolean;
+function Test25519CalcKey: Boolean;
 function Test25519Sign: Boolean;
 function Test448CurveMul: Boolean;
 function Test448CurveGMul: Boolean;
 function Test448KeyExchange: Boolean;
+function Test448CalcKey: Boolean;
 
 // =============================== Paillier ====================================
 
@@ -455,10 +457,12 @@ begin
   MyAssert(Test25519CurveMul, 'Test25519CurveMul');
   MyAssert(Test25519CurveGMul, 'Test25519CurveGMul');
   MyAssert(Test25519KeyExchange, 'Test25519KeyExchange');
+  MyAssert(Test25519CalcKey, 'Test25519CalcKey');
   MyAssert(Test25519Sign, 'Test25519Sign');
   MyAssert(Test448CurveMul, 'Test448CurveMul');
   MyAssert(Test448CurveGMul, 'Test448CurveGMul');
   MyAssert(Test448KeyExchange, 'Test448KeyExchange');
+  MyAssert(Test448CalcKey, 'Test448CalcKey');
 
 // =============================== Paillier ====================================
 
@@ -2861,9 +2865,7 @@ begin
   Curve := TCnCurve25519.Create;
   Curve.MultiplePoint(K, P);
 
-  P.X.ToBinary(@D[0]);
-  ReverseMemory(@D[0], SizeOf(TCnCurve25519Data));
-
+  CnCurve25519BigNumberToData(P.X, D);
   Result := DataToHex(@D[0], SizeOf(TCnCurve25519Data)) = 'C3DA55379DE9C6908E94EA4DF28D084F32ECCF03491C71F754B4075577A28552';
 
   Curve.Free;
@@ -2894,9 +2896,7 @@ begin
   Curve := TCnCurve25519.Create;
   Curve.MultiplePoint(K, P);
 
-  P.X.ToBinary(@D[0]);
-  ReverseMemory(@D[0], SizeOf(TCnCurve25519Data));
-
+  CnCurve25519BigNumberToData(P.X, D);
   Result := DataToHex(@D[0], SizeOf(TCnCurve25519Data)) = '8520F0098930A754748B7DDCB43EF75A0DBF3A0D26381AF4EBA4A98EAA9B4E6A';
 
   Curve.Free;
@@ -2964,6 +2964,38 @@ begin
   end;
 end;
 
+function Test25519CalcKey: Boolean;
+var
+  S, K: TCnBigNumber;
+  D: TCnEd25519Data;
+  Ed: TCnEd25519;
+  Pub: TCnEd25519PublicKey;
+begin
+  // RFC 8032 中的 Test Vector
+  // SECRET KEY: 9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60
+  // PUBLIC KEY: d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a
+
+  S := TCnBigNumber.Create;
+  K := TCnBigNumber.Create;
+  Ed := TCnEd25519.Create;
+  Pub := TCnEd25519PublicKey.Create;
+
+  HexToData('9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60', @D[0]);
+  CnEd25519DataToBigNumber(D, S);
+  CnCalcKeysFromEd25519PrivateKey(S, CN_25519_BLOCK_BYTESIZE, K, nil);
+
+  Pub.Assign(Ed.Generator);
+  Ed.MultiplePoint(K, Pub);
+
+  Pub.SaveToData(D);
+  Result := DataToHex(@D[0], SizeOf(TCnEd25519Data)) = 'D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A';
+
+  Pub.Free;
+  Ed.Free;
+  K.Free;
+  S.Free;
+end;
+
 function Test25519Sign: Boolean;
 var
   Ed: TCnEd25519;
@@ -2981,7 +3013,8 @@ begin
   Sig := TCnEd25519Signature.Create;
 
   try
-    PrivKey.SetHex('4CCD089B28FF96DA9DB6C346EC114E0F5B8A319F35ABA624DA8CF6ED4FB8A6FB');
+    HexToData('4CCD089B28FF96DA9DB6C346EC114E0F5B8A319F35ABA624DA8CF6ED4FB8A6FB', @Data[0]);
+    PrivKey.LoadFromData(Data);
     HexToData('3D4017C3E843895A92B70AA74D1B7EBC9C982CCF2EC4968CC0CD55F12AF4660C', @Data[0]);
     Ed.PlainToPoint(Data, PubKey);
 
@@ -3029,10 +3062,7 @@ begin
   Curve := TCnCurve448.Create;
   Curve.MultiplePoint(K, P);
 
-  FillChar(D[0], SizeOf(TCnCurve448Data), 0);
-  P.X.ToBinary(@D[0]);
-  ReverseMemory(@D[0], SizeOf(TCnCurve448Data));
-
+  CnCurve448BigNumberToData(P.X, D);
   Result := DataToHex(@D[0], SizeOf(TCnCurve448Data)) = '884A02576239FF7A2F2F63B2DB6A9FF37047AC13568E1E30FE63C4A7AD1B3EE3A5700DF34321D62077E63633C575C1C954514E99DA7C179D';
 
   Curve.Free;
@@ -3065,10 +3095,7 @@ begin
   Curve := TCnCurve448.Create;
   Curve.MultiplePoint(K, P);
 
-  FillChar(D[0], SizeOf(TCnCurve448Data), 0);
-  P.X.ToBinary(@D[0]);
-  ReverseMemory(@D[0], SizeOf(TCnCurve448Data));
-
+  CnCurve448BigNumberToData(P.X, D);
   Result := DataToHex(@D[0], SizeOf(TCnCurve448Data)) = '9B08F7CC31B7E3E67D22D5AEA121074A273BD2B83DE09C63FAA73D2C22C5D9BBC836647241D953D40C5B12DA88120D53177F80E532C41FA0';
 
   Curve.Free;
@@ -3134,6 +3161,38 @@ begin
     Priv2.Free;
     Priv1.Free;
   end;
+end;
+
+function Test448CalcKey: Boolean;
+var
+  S, K: TCnBigNumber;
+  D: TCnEd448Data;
+  Ed: TCnEd448;
+  Pub: TCnEd448PublicKey;
+begin
+  // RFC 8032 中的 Test Vector
+  // SECRET KEY: c4eab05d357007c632f3dbb48489924d552b08fe0c353a0d4a1f00acda2c463afbea67c5e8d2877c5e3bc397a659949ef8021e954e0a12274e
+  // PUBLIC KEY: 43ba28f430cdff456ae531545f7ecd0ac834a55d9358c0372bfa0c6c6798c0866aea01eb00742802b8438ea4cb82169c235160627b4c3a9480
+
+  S := TCnBigNumber.Create;
+  K := TCnBigNumber.Create;
+  Ed := TCnEd448.Create;
+  Pub := TCnEd448PublicKey.Create;
+
+  HexToData('6C82A562CB808D10D632BE89C8513EBF6C929F34DDFA8C9F63C9960EF6E348A3528C8A3FCC2F044E39A3FC5B94492F8F032E7549A20098F95B', @D[0]);
+  CnEd448DataToBigNumber(D, S);
+  CnCalcKeysFromEd448PrivateKey(S, CN_448_EDWARDS_BLOCK_BYTESIZE, K, nil);
+
+  Pub.Assign(Ed.Generator);
+  Ed.MultiplePoint(K, Pub);
+
+  Pub.SaveToData(D);
+  Result := DataToHex(@D[0], SizeOf(TCnEd448Data)) = '5FD7449B59B461FD2CE787EC616AD46A1DA1342485A70E1F8A0EA75D80E96778EDF124769B46C7061BD6783DF1E50F6CD1FA1ABEAFE8256180';
+
+  Pub.Free;
+  Ed.Free;
+  K.Free;
+  S.Free;
 end;
 
 // =============================== Paillier ====================================

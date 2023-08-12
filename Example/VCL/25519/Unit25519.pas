@@ -77,6 +77,9 @@ type
     btnAnother448GOn: TButton;
     btnConvertAnother448Point: TButton;
     btnCurve448DHKeyExchange: TButton;
+    btnEd448CalcKey: TButton;
+    btnEd448GAdd: TButton;
+    btnEd448GMul: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnCurve25519GClick(Sender: TObject);
@@ -129,6 +132,9 @@ type
     procedure btnAnother448GOnClick(Sender: TObject);
     procedure btnConvertAnother448PointClick(Sender: TObject);
     procedure btnCurve448DHKeyExchangeClick(Sender: TObject);
+    procedure btnEd448CalcKeyClick(Sender: TObject);
+    procedure btnEd448GAddClick(Sender: TObject);
+    procedure btnEd448GMulClick(Sender: TObject);
   private
     FCurve25519: TCnCurve25519;
     FEd25519: TCnEd25519;
@@ -173,6 +179,21 @@ const
   // 46316835694926478169428394003475163141307993866256225615783033603165251855960
 
   SCN_448_PRIME = 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF';
+
+  SCN_448_ORDER = '3FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF7CCA23E9C44EDB49AED63690216CC2728DC58F552378C292AB5844F3';
+  // 基点阶数为 2^446 - 13818066809895115352007386748515426880336692474882178609894547503885
+
+  SCN_448_MONT_GU = '05';
+
+  SCN_448_MONT_GV = '7D235D1295F5B1F66C98AB6E58326FCECBAE5D34F55545D060F75DC28DF3F6EDB8027E2346430D211312C4B150677AF76FD7223D457B5B1A';
+
+  SCN_448_EDWARDS_A = '01';
+
+  SCN_448_EDWARDS_D = '-98A9';
+
+  SCN_448_EDWARDS_GX = '4F1970C66BED0DED221D15A622BF36DA9E146570470F1767EA6DE324A3D3A46412AE1AF72AB66511433B80E18B00938E2626A82BC70CC05E';
+
+  SCN_448_EDWARDS_GY = '693F46716EB6BC248876203756C9C7624BEA73736CA3984087789C1E05A0C2D73AD3FF1CE67C39C4FDBD132C4ED7C8AD9808795BF230FA14';
 
   SCN_448_SQRT_156324 = 'BA4D3A0829B6112F8812E51BA0BB2ABEBC1CB08EB48E556936BA50FDD2E7D68AF8CB32160522425B3F990812ABBE635AD37A21E17551B193';
   // 提前算好的 sqrt(156324)，供点坐标转换计算
@@ -1534,12 +1555,6 @@ begin
 end;
 
 procedure TForm25519.btn448CheckMapClick(Sender: TObject);
-const
-  SCN_448_PRIME = 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF';
-  SCN_448_MONT_GU = '05';
-  SCN_448_MONT_GV = '7D235D1295F5B1F66C98AB6E58326FCECBAE5D34F55545D060F75DC28DF3F6EDB8027E2346430D211312C4B150677AF76FD7223D457B5B1A';
-  SCN_448_EDWARDS_GX = '4F1970C66BED0DED221D15A622BF36DA9E146570470F1767EA6DE324A3D3A46412AE1AF72AB66511433B80E18B00938E2626A82BC70CC05E';
-  SCN_448_EDWARDS_GY = '693F46716EB6BC248876203756C9C7624BEA73736CA3984087789C1E05A0C2D73AD3FF1CE67C39C4FDBD132C4ED7C8AD9808795BF230FA14';
 var
   P, U, V, X, Y: TCnBigNumber;
   T1, T2: TCnBigNumber;
@@ -1924,6 +1939,129 @@ begin
     Priv2.Free;
     Priv1.Free;
   end;
+end;
+
+procedure TForm25519.btnEd448CalcKeyClick(Sender: TObject);
+var
+  S, K: TCnBigNumber;
+  D: TCnEd448Data;
+  Ed: TCnEd448;
+  Pub: TCnEd448PublicKey;
+begin
+  // RFC 8032 中的 Test Vector
+  // SECRET KEY: 258cdd4ada32ed9c9ff54e63756ae582fb8fab2ac721f2c8e676a72768513d939f63dddb55609133f29adf86ec9929dccb52c1c5fd2ff7e21b
+  // PUBLIC KEY: 3ba16da0c6f2cc1f30187740756f5e798d6bc5fc015d7c63cc9510ee3fd44adc24d8e968b6e46e6f94d19b945361726bd75e149ef09817f580
+
+  S := TCnBigNumber.Create;
+  K := TCnBigNumber.Create;
+  Ed := TCnEd448.Create;
+  Pub := TCnEd448PublicKey.Create;
+
+  HexToData('258CDD4ADA32ED9C9FF54E63756AE582FB8FAB2AC721F2C8E676A72768513D939F63DDDB55609133F29ADF86EC9929DCCB52C1C5FD2FF7E21B', @D[0]);
+  CnEd448DataToBigNumber(D, S);
+  CnCalcKeysFromEd448PrivateKey(S, CN_448_EDWARDS_BLOCK_BYTESIZE, K, nil);
+
+  Pub.Assign(Ed.Generator);
+  Ed.MultiplePoint(K, Pub);
+
+  Pub.SaveToData(D);
+  if DataToHex(@D[0], SizeOf(TCnEd448Data)) = '3BA16DA0C6F2CC1F30187740756F5E798D6BC5FC015D7C63CC9510EE3FD44ADC24D8E968B6E46E6F94D19B945361726BD75E149EF09817F580' then
+    ShowMessage('Key Calc OK');
+
+  Pub.Free;
+  Ed.Free;
+  K.Free;
+  S.Free;
+end;
+
+procedure TForm25519.btnEd448GAddClick(Sender: TObject);
+var
+  P, Q: TCnEccPoint;
+begin
+  P := TCnEccPoint.Create;
+  Q := TCnEccPoint.Create;
+
+  P.Assign(FEd448.Generator);
+  Q.Assign(FEd448.Generator);
+
+  FEd448.PointAddPoint(P, Q, P);
+  // P 是 2*G
+  if FEd448.IsPointOnCurve(P) then
+    ShowMessage('Curve 448 G + G is on this Curve');
+
+  FEd448.PointAddPoint(P, Q, P);
+  // P 是 3*G
+  if FEd448.IsPointOnCurve(P) then
+    ShowMessage('Ed 448 G + 2*G is on this Curve');
+
+  P.Assign(FEd448.Generator);
+  Q.Assign(FEd448.Generator);
+  FEd448.PointInverse(Q);
+
+  FEd448.PointAddPoint(P, Q, P);
+  if FEd448.IsNeutualPoint(P) then
+    ShowMessage('Ed 448 G + -G is Zero');
+
+  Q.Free;
+  P.Free;
+end;
+
+procedure TForm25519.btnEd448GMulClick(Sender: TObject);
+var
+  Ed: TCnTwistedEdwardsCurve;
+  Prime: TCnBigNumber;
+  P: TCnEccPoint;
+  P3, P32: TCnEcc3Point;
+begin
+  Prime := TCnBigNumber.FromHex(SCN_448_PRIME);
+
+  P := TCnEccPoint.Create;
+  P.Assign(FEd448.Generator);
+  P3 := TCnEcc3Point.Create;
+
+  CnEccPointToEcc3Point(P, P3);
+  P.X.SetZero;
+  P.Y.SetZero;
+  FEd448.AffinePointAddPoint(P3, P3, P3);
+  if FEd448.IsAffinePointOnCurve(P3) then
+    ShowMessage('Ed 448 Affine G + G P3 is on this Curve');
+
+  CnAffinePointToEccPoint(P3, P, Prime);
+  if FEd448.IsPointOnCurve(P) then
+    ShowMessage('Ed 448 Affine G + G P is on this Curve');
+
+  P32 := TCnEcc3Point.Create;
+  CnEccPointToEcc3Point(FEd448.Generator, P32);
+  FEd448.AffinePointAddPoint(P3, P32, P32);
+  if FEd448.IsAffinePointOnCurve(P32) then
+    ShowMessage('Ed 448 Affine G + G + G P32 is on this Curve');
+
+  FEd448.SetNeutualAffinePoint(P32);                // 中性点
+  CnEccPointToEcc3Point(FEd448.Generator, P3);      // G 点
+  FEd448.AffinePointAddPoint(P32, P3, P3);          // 简单相加
+  if FEd448.IsAffinePointOnCurve(P3) then
+    ShowMessage('Ed 448 Affine 0 + G P3 is on this Curve');
+
+  P.Assign(FEd448.Generator);
+  CnEccPointToEcc3Point(P, P3);
+  FEd448.AffineMultiplePoint(2, P3);
+  if FEd448.IsAffinePointOnCurve(P3) then
+    ShowMessage('Ed 448 Affine 2*G P3 is on this Curve');
+
+  // 拿原始的扭曲爱德华曲线来算二倍点的原始坐标
+  Ed := TCnTwistedEdwardsCurve.Create;
+  Ed.Load(SCN_448_EDWARDS_A, SCN_448_EDWARDS_D, SCN_448_PRIME, SCN_448_EDWARDS_GX,
+    SCN_448_EDWARDS_GY, SCN_448_ORDER, 4);
+  P.Assign(FEd448.Generator);
+  Ed.MultiplePoint(2, P);
+  if Ed.IsPointOnCurve(P) then
+    ShowMessage('TwistedEdwardsCurve 2 * G is on this Curve');
+
+  Ed.Free;
+  P32.Free;
+  P3.Free;
+  P.Free;
+  Prime.Free;
 end;
 
 end.
