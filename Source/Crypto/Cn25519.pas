@@ -46,7 +46,7 @@ unit Cn25519;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2023.08.12 V1.6
-*               加入 448 蒙哥马利曲线与非扭曲爱德华曲线的初步实现
+*               加入 448 蒙哥马利曲线与非扭曲爱德华曲线的完整实现以及 Ed448 的签名验签功能
 *           2022.07.30 V1.5
 *               去除部分无用的判断以精简代码
 *           2022.06.14 V1.4
@@ -317,7 +317,7 @@ type
   {* Ed25519 的公私钥数据，RFC 规定其内容是小端字节顺序}
 
   TCnEd25519SignatureData = array[0..2 * CN_25519_BLOCK_BYTESIZE - 1] of Byte;
-  {* Ed25519 的签名数据，内容一般是网络字节顺序}
+  {* Ed25519 的签名数据，内容一般是小端字节顺序}
 
   TCnEd25519PrivateKey = class(TCnEccPrivateKey)
   {* Ed25519 私钥，注意它不是基点乘数，杂凑后的部分内容变换后才是}
@@ -456,10 +456,10 @@ type
   end;
 
   TCnEd448Data = array[0..CN_448_EDWARDS_BLOCK_BYTESIZE - 1] of Byte;
-  {* Ed448 的公私钥数据，内容一般是网络字节顺序}
+  {* Ed448 的公私钥数据，内容一般是小端字节顺序}
 
   TCnEd448SignatureData = array[0..2 * CN_448_EDWARDS_BLOCK_BYTESIZE - 1] of Byte;
-  {* Ed448 的签名数据，内容一般是网络字节顺序}
+  {* Ed448 的签名数据，内容一般是小端字节顺序}
 
   TCnEd448Signature = class(TPersistent)
   {* Ed448 的签名，是一个点与一个大数，与 TCnEccSignature 不同}
@@ -522,21 +522,21 @@ type
     {* 重载父类的普通点乘，内部改用扩展三元快速乘}
 
     function IsNeutualAffinePoint(P: TCnEcc3Point): Boolean;
-    {* 判断点是否是中性点，也就是判断 X = 0 且 Y = Z <> 0，与 Weierstrass 的无限远点全 0 不同}
+    {* 判断点是否是三元中性点，也就是判断 X = 0 且 Y = Z <> 0，与 Weierstrass 的无限远点全 0 不同}
     procedure SetNeutualAffinePoint(P: TCnEcc3Point);
-    {* 将点设为中性点，也就是 X := 0 且 Y := 1 且 Z := 1}
+    {* 将点设为三元中性点，也就是 X := 0 且 Y := 1 且 Z := 1}
 
-    // ================ 非扩展扭曲爱德华坐标（三元）点加速算法 =================
+    // ================ 扩展非扭曲爱德华坐标（三元）点加速算法 =================
 
     procedure AffinePointAddPoint(P, Q, Sum: TCnEcc3Point);
-    {* 使用非扩展扭曲爱德华坐标（四元）的快速点加法计算 P + Q，值放入 Sum 中，Diff 可以是 P、Q 之一，P、Q 可以相同
+    {* 使用扩展非扭曲爱德华坐标（三元）的快速点加法计算 P + Q，值放入 Sum 中，Diff 可以是 P、Q 之一，P、Q 可以相同
        该算法来源于 RFC 8032，且要求该非扭曲爱德华曲线的 A 得为 1，Ed448 曲线恰好符合}
     procedure AffinePointSubPoint(P, Q, Diff: TCnEcc3Point);
-    {* 使用扩展扭曲爱德华坐标（四元）计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    {* 使用扩展非扭曲爱德华坐标（三元）计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure AffinePointInverse(P: TCnEcc3Point);
-    {* 使用扩展扭曲爱德华坐标（四元）计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
+    {* 使用扩展非扭曲爱德华坐标（三元）计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
     function IsAffinePointOnCurve(P: TCnEcc3Point): Boolean;
-    {* 判断扩展扭曲爱德华坐标（四元） P 点是否在本曲线上}
+    {* 判断扩展非扭曲爱德华坐标（三元） P 点是否在本曲线上}
 
     procedure AffineMultiplePoint(K: Int64; Point: TCnEcc3Point); overload;
     {* 计算某点 P 的 k * P 值，值重新放入 P}
@@ -1369,8 +1369,86 @@ end;
 
 function CnEd448VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd448Signature;
   PublicKey: TCnEd448PublicKey; const UserContext: TBytes; Ed448: TCnEd448): Boolean;
+var
+  Is448Nil: Boolean;
+  L, R, M: TCnEccPoint;
+  T: TCnBigNumber;
+  Stream: TMemoryStream;
+  Data: TCnEd448Data;
+  Dig: TCnSHAKE256Digest;
+  D: TBytes;
+  E: Byte;
 begin
+  Result := False;
+  if (PlainData = nil) or (DataLen <= 0) or (PublicKey = nil) or (InSignature = nil) then
+    Exit;
 
+  L := nil;
+  R := nil;
+  Stream := nil;
+  T := nil;
+  M := nil;
+  Is448Nil := Ed448 = nil;
+
+  try
+    if Is448Nil then
+      Ed448 := TCnEd448.Create;
+
+    // 验证 4*S*基点 是否 = 4*R点 + 4*Hash(R57位||公钥点57位||明文) * 公钥点
+    L := TCnEccPoint.Create;
+    R := TCnEccPoint.Create;
+
+    L.Assign(Ed448.Generator);
+    Ed448.MultiplePoint(InSignature.S, L);
+    Ed448.MultiplePoint(4, L);  // 算到左边点
+
+    R.Assign(InSignature.R);
+    Ed448.MultiplePoint(4, R);  // 算到 4*R 点待加
+
+    Stream := TMemoryStream.Create;
+    // SHAKE256("SigEd448" || octet(F) || octet(OLEN(C)) || C || R || A || M, 114)
+    E := 0;
+    Stream.Write(FEd448SignPrefix[1], Length(FEd448SignPrefix));
+    Stream.Write(E, 1);
+    E := Length(UserContext);
+    Stream.Write(E, 1);
+    if E > 0 then
+      Stream.Write(UserContext[0], E);   // "SigEd448" || octet(F) || octet(OLEN(C)) || C
+
+    CnEd448PointToData(InSignature.R, Data);
+    Stream.Write(Data[0], SizeOf(TCnEd448Data));        // 拼 R 点
+
+    CnEd448PointToData(PublicKey, Data);
+    Stream.Write(Data[0], SizeOf(TCnEd448Data));        // 拼公钥点 A
+    Stream.Write(PlainData^, DataLen);                  // 拼明文
+
+    D := SHAKE256Buffer(Stream.Memory, Stream.Size, SizeOf(TCnSHAKE256Digest));
+    if Length(D) <> SizeOf(TCnSHAKE256Digest) then      // 计算 Hash 作为 k '值
+      Exit;
+
+    Move(D[0], Dig[0], SizeOf(TCnSHAKE256Digest));
+    ReverseMemory(@Dig[0], SizeOf(TCnSHAKE256Digest));      // 需要倒转一次
+
+    T := FBigNumberPool.Obtain;                             // T 是 RFC 中的 k'
+    T.SetBinary(@Dig[0], SizeOf(TCnSHAKE256Digest));
+    T.MulWord(4);
+    BigNumberNonNegativeMod(T, T, Ed448.Order);             // T 乘数太大先 mod 一下阶
+
+    M := TCnEccPoint.Create;
+    M.Assign(PublicKey);
+    Ed448.MultiplePoint(T, M);      // T 乘公钥点
+    Ed448.PointAddPoint(R, M, R);   // 点加
+
+    Result := CnEccPointsEqual(L, R);
+  finally
+    M.Free;
+    FBigNumberPool.Recycle(T);
+    Stream.Free;
+    R.Free;
+    L.Free;
+    if Is448Nil then
+      Ed448.Free;
+  end;
 end;
 
 function CnEd448SignFile(const FileName: string; PrivateKey: TCnEd448PrivateKey;

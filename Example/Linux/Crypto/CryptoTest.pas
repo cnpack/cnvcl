@@ -240,7 +240,8 @@ function Test448CurveMul: Boolean;
 function Test448CurveGMul: Boolean;
 function Test448KeyExchange: Boolean;
 function Test448CalcKey: Boolean;
-function Test448Sign: Boolean;
+function Test448Sign1: Boolean;
+function Test448Sign2: Boolean;
 
 // =============================== Paillier ====================================
 
@@ -464,7 +465,8 @@ begin
   MyAssert(Test448CurveGMul, 'Test448CurveGMul');
   MyAssert(Test448KeyExchange, 'Test448KeyExchange');
   MyAssert(Test448CalcKey, 'Test448CalcKey');
-  MyAssert(Test448Sign, 'Test448Sign');
+  MyAssert(Test448Sign1, 'Test448Sign1');
+  MyAssert(Test448Sign2, 'Test448Sign2');
 
 // =============================== Paillier ====================================
 
@@ -3197,7 +3199,7 @@ begin
   S.Free;
 end;
 
-function Test448Sign: Boolean;
+function Test448Sign1: Boolean;
 var
   Ed: TCnEd448;
   Data: TCnEd448Data;
@@ -3233,6 +3235,52 @@ begin
     if not Result then Exit;
 
     Result := CnEd448VerifyData(@B, 1, Sig, PubKey);
+  finally
+    Sig.Free;
+    PubKey.Free;
+    PrivKey.Free;
+    Ed.Free;
+  end;
+end;
+
+function Test448Sign2: Boolean;
+var
+  Ed: TCnEd448;
+  Data: TCnEd448Data;
+  PrivKey: TCnEd448PrivateKey;
+  PubKey: TCnEd448PublicKey;
+  SigData: TCnEd448SignatureData;
+  Sig: TCnEd448Signature;
+  C: TBytes;
+  B: Byte;
+begin
+  // RFC 8032 ÖÐµÄ Test Vector
+  // Secret Key: c4eab05d357007c632f3dbb48489924d552b08fe0c353a0d4a1f00acda2c463afbea67c5e8d2877c5e3bc397a659949ef8021e954e0a12274e
+  // Public Key: 43ba28f430cdff456ae531545f7ecd0ac834a55d9358c0372bfa0c6c6798c0866aea01eb00742802b8438ea4cb82169c235160627b4c3a9480
+  // Message 1 Byte: 03
+  // User Context: 666f6f
+
+  Ed := TCnEd448.Create;
+  PrivKey := TCnEd448PrivateKey.Create;
+  PubKey := TCnEd448PublicKey.Create;
+  Sig := TCnEd448Signature.Create;
+
+  try
+    HexToData('C4EAB05D357007C632F3DBB48489924D552B08FE0C353A0D4A1F00ACDA2C463AFBEA67C5E8D2877C5E3BC397A659949EF8021E954E0A12274E', @Data[0]);
+    PrivKey.LoadFromData(Data);
+    HexToData('43BA28F430CDFF456AE531545F7ECD0AC834A55D9358C0372BFA0C6C6798C0866AEA01EB00742802B8438EA4CB82169C235160627B4C3A9480', @Data[0]);
+    PubKey.LoadFromData(Data);
+
+    B := $03;
+    C := HexToBytes('666F6F');
+    Result := CnEd448SignData(@B, 1, PrivKey, PubKey, Sig, C); // ÓÐ UserContext
+    if not Result then Exit;
+
+    Sig.SaveToData(SigData);
+    Result := DataToHex(@SigData, SizeOf(SigData)) = 'D4F8F6131770DD46F40867D6FD5D5055DE43541F8C5E35ABBCD001B32A89F7D2151F7647F11D8CA2AE279FB842D607217FCE6E042F6815EA000C85741DE5C8DA1144A6A1ABA7F96DE42505D7A7298524FDA538FCCBBB754F578C1CAD10D54D0D5428407E85DCBC98A49155C13764E66C3C00';
+    if not Result then Exit;
+
+    Result := CnEd448VerifyData(@B, 1, Sig, PubKey, C);
   finally
     Sig.Free;
     PubKey.Free;
