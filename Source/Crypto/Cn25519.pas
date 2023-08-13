@@ -270,6 +270,12 @@ type
 
     procedure LoadFromData(Data: TCnCurve25519Data);
     {* 从 32 字节的小端字节顺序内容中加载私钥}
+
+    function SaveToHex(UseUpperCase: Boolean = True): string;
+    {* 转换为 64 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+
+    procedure LoadFromHex(const Hex: string);
+    {* 从 64 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
   end;
 
   TCnCurve25519PublicKey = class(TCnEccPublicKey)
@@ -280,6 +286,13 @@ type
 
     procedure LoadFromData(Data: TCnCurve25519Data);
     {* 从 32 字节的小端字节顺序内容中加载公钥，注意只加载 Y 且没有求解 X}
+
+    function SaveToHex(UseUpperCase: Boolean = True): string;
+    {* 转换为 64 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+
+    procedure LoadFromHex(const Hex: string);
+    {* 从 64 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致
+      同样注意只加载 Y 且没有求解 X}
   end;
 
   TCnCurve25519 = class(TCnMontgomeryCurve)
@@ -327,6 +340,12 @@ type
 
     procedure LoadFromData(Data: TCnEd25519Data);
     {* 从 32 字节的小端字节顺序内容中加载私钥}
+
+    function SaveToHex(UseUpperCase: Boolean = True): string;
+    {* 转换为 64 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+
+    procedure LoadFromHex(const Hex: string);
+    {* 从 64 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
   end;
 
   TCnEd25519PublicKey = class(TCnEccPublicKey)
@@ -337,6 +356,12 @@ type
 
     procedure LoadFromData(Data: TCnEd25519Data);
     {* 从 32 字节的小端字节顺序内容中加载公钥}
+
+    function SaveToHex(UseUpperCase: Boolean = True): string;
+    {* 转换为 64 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+
+    procedure LoadFromHex(const Hex: string);
+    {* 从 64 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
   end;
 
   TCnEd25519 = class(TCnTwistedEdwardsCurve)
@@ -402,15 +427,24 @@ type
     FS: TCnBigNumber;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
+    {* 对象间赋值}
 
     procedure SaveToData(var Sig: TCnEd25519SignatureData);
-    {* 内容转换成 64 字节签名内容供存储与传输}
+    {* 内容转换成 64 字节小端顺序签名内容供存储与传输}
 
     procedure LoadFromData(Sig: TCnEd25519SignatureData);
-    {* 从 64 字节签名内容中加载签名}
+    {* 从 64 字节小端顺序签名内容中加载签名}
+
+    function SaveToHex(UseUpperCase: Boolean = True): string;
+    {* 转换为 128 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+
+    procedure LoadFromHex(const Hex: string);
+    {* 从 128 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
 
     property R: TCnEccPoint read FR;
     {* 签名点 R}
@@ -429,6 +463,12 @@ type
 
     procedure LoadFromData(Data: TCnCurve448Data);
     {* 从 56 字节的小端字节顺序内容中加载私钥}
+
+    function SaveToHex(UseUpperCase: Boolean = True): string;
+    {* 转换为 112 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+
+    procedure LoadFromHex(const Hex: string);
+    {* 从 112 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
   end;
 
   TCnCurve448PublicKey = class(TCnEccPublicKey)
@@ -439,6 +479,12 @@ type
 
     procedure LoadFromData(Data: TCnCurve448Data);
     {* 从 56 字节的小端字节顺序内容中加载公钥}
+
+    function SaveToHex(UseUpperCase: Boolean = True): string;
+    {* 转换为 112 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+
+    procedure LoadFromHex(const Hex: string);
+    {* 从 112 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
   end;
 
   TCnCurve448 = class(TCnMontgomeryCurve)
@@ -478,6 +524,12 @@ type
     procedure LoadFromData(Sig: TCnEd448SignatureData);
     {* 从 114 字节签名内容中加载签名}
 
+    function SaveToHex(UseUpperCase: Boolean = True): string;
+    {* 转换为 228 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+
+    procedure LoadFromHex(const Hex: string);
+    {* 从 228 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
+
     property R: TCnEccPoint read FR;
     {* 签名点 R}
     property S: TCnBigNumber read FS;
@@ -492,6 +544,12 @@ type
 
     procedure LoadFromData(Data: TCnEd448Data);
     {* 从 57 字节的小端字节顺序内容中加载私钥}
+
+    function SaveToHex(UseUpperCase: Boolean = True): string;
+    {* 转换为 114 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+
+    procedure LoadFromHex(const Hex: string);
+    {* 从 114 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
   end;
 
   TCnEd448PublicKey = class(TCnEccPublicKey)
@@ -502,6 +560,12 @@ type
 
     procedure LoadFromData(Data: TCnEd448Data);
     {* 从 57 字节的小端字节顺序内容中加载私钥}
+
+    function SaveToHex(UseUpperCase: Boolean = True): string;
+    {* 转换为 114 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+
+    procedure LoadFromHex(const Hex: string);
+    {* 从 114 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
   end;
 
   TCnEd448 = class(TCnTwistedEdwardsCurve)
@@ -822,6 +886,7 @@ resourcestring
   SCnErrorCanNOTCalcFmt = 'Can NOT Calucate %s,%s + %s,%s';
   SCnErrorNumberTooBig = 'Number is Too Big.';
   SCnErrorPointNotOnCurve = 'Point NOT On Curve.';
+  SCnErrorInvalidHexLength = 'Invalid Hex String Length.';
 
 const
 
@@ -2445,10 +2510,29 @@ begin
   CnProcess25519ScalarNumber(Self);
 end;
 
+procedure TCnCurve25519PrivateKey.LoadFromHex(const Hex: string);
+var
+  D: TCnCurve25519Data;
+begin
+  if HexToData(Hex) <> SizeOf(D) then
+    raise ECnEccException.Create(SCnErrorInvalidHexLength);
+
+  HexToData(Hex, @D[0]);
+  LoadFromData(D);
+end;
+
 procedure TCnCurve25519PrivateKey.SaveToData(var Data: TCnCurve25519Data);
 begin
   CnProcess25519ScalarNumber(Self);
   CnCurve25519BigNumberToData(Self, Data);
+end;
+
+function TCnCurve25519PrivateKey.SaveToHex(UseUpperCase: Boolean): string;
+var
+  D: TCnCurve25519Data;
+begin
+  SaveToData(D);
+  Result := DataToHex(@D[0], SizeOf(D), UseUpperCase);
 end;
 
 { TCnCurve25519PublicKey }
@@ -2460,9 +2544,28 @@ begin
   CnEd25519DataToPoint(TCnEd25519Data(Data), Self, XOdd);   // 复用 Ed25519 的，只加载 Y 和奇偶性后者还省略了
 end;
 
+procedure TCnCurve25519PublicKey.LoadFromHex(const Hex: string);
+var
+  D: TCnCurve25519Data;
+begin
+  if HexToData(Hex) <> SizeOf(D) then
+    raise ECnEccException.Create(SCnErrorInvalidHexLength);
+
+  HexToData(Hex, @D[0]);
+  LoadFromData(D);
+end;
+
 procedure TCnCurve25519PublicKey.SaveToData(var Data: TCnCurve25519Data);
 begin
   CnEd25519PointToData(Self, TCnEd25519Data(Data));   // 复用 Ed25519 的，只存 Y，以及 X 的奇偶性
+end;
+
+function TCnCurve25519PublicKey.SaveToHex(UseUpperCase: Boolean): string;
+var
+  D: TCnCurve25519Data;
+begin
+  SaveToData(D);
+  Result := DataToHex(@D[0], SizeOf(D), UseUpperCase);
 end;
 
 { TCnCurve25519 }
@@ -3706,6 +3809,17 @@ begin
   CnEd25519DataToBigNumber(Data, FS);
 end;
 
+procedure TCnEd25519Signature.LoadFromHex(const Hex: string);
+var
+  D: TCnEd25519SignatureData;
+begin
+  if HexToData(Hex) <> SizeOf(D) then
+    raise ECnEccException.Create(SCnErrorInvalidHexLength);
+
+  HexToData(Hex, @D[0]);
+  LoadFromData(D);
+end;
+
 procedure TCnEd25519Signature.SaveToData(var Sig: TCnEd25519SignatureData);
 var
   Data: TCnEd25519Data;
@@ -3719,6 +3833,15 @@ begin
   // 把 S 数写入 Data
   CnEd25519BigNumberToData(FS, Data);
   Move(Data[0], Sig[SizeOf(TCnEd25519Data)], SizeOf(TCnEd25519Data));
+end;
+
+
+function TCnEd25519Signature.SaveToHex(UseUpperCase: Boolean): string;
+var
+  D: TCnEd25519SignatureData;
+begin
+  SaveToData(D);
+  Result := DataToHex(@D[0], SizeOf(D), UseUpperCase);
 end;
 
 procedure Cn25519BigNumberToField64(var Field: TCn25519Field64; const Num: TCnBigNumber);
@@ -4211,9 +4334,28 @@ begin
   CnEd25519DataToBigNumber(Data, Self);
 end;
 
+procedure TCnEd25519PrivateKey.LoadFromHex(const Hex: string);
+var
+  D: TCnEd25519Data;
+begin
+  if HexToData(Hex) <> SizeOf(D) then
+    raise ECnEccException.Create(SCnErrorInvalidHexLength);
+
+  HexToData(Hex, @D[0]);
+  LoadFromData(D);
+end;
+
 procedure TCnEd25519PrivateKey.SaveToData(var Data: TCnEd25519Data);
 begin
   CnEd25519BigNumberToData(Self, Data);
+end;
+
+function TCnEd25519PrivateKey.SaveToHex(UseUpperCase: Boolean): string;
+var
+  D: TCnEd25519Data;
+begin
+  SaveToData(D);
+  Result := DataToHex(@D[0], SizeOf(D), UseUpperCase);
 end;
 
 { TCnEd25519PublicKey }
@@ -4230,9 +4372,28 @@ begin
   end;
 end;
 
+procedure TCnEd25519PublicKey.LoadFromHex(const Hex: string);
+var
+  D: TCnEd25519Data;
+begin
+  if HexToData(Hex) <> SizeOf(D) then
+    raise ECnEccException.Create(SCnErrorInvalidHexLength);
+
+  HexToData(Hex, @D[0]);
+  LoadFromData(D);
+end;
+
 procedure TCnEd25519PublicKey.SaveToData(var Data: TCnEd25519Data);
 begin
   CnEd25519PointToData(Self, Data); // 只存 Y，以及 X 的奇偶性
+end;
+
+function TCnEd25519PublicKey.SaveToHex(UseUpperCase: Boolean): string;
+var
+  D: TCnEd25519Data;
+begin
+  SaveToData(D);
+  Result := DataToHex(@D[0], SizeOf(D), UseUpperCase);
 end;
 
 { TCnCurve448PrivateKey }
@@ -4243,10 +4404,29 @@ begin
   CnProcessCurve448ScalarNumber(Self);
 end;
 
+procedure TCnCurve448PrivateKey.LoadFromHex(const Hex: string);
+var
+  D: TCnCurve448Data;
+begin
+  if HexToData(Hex) <> SizeOf(D) then
+    raise ECnEccException.Create(SCnErrorInvalidHexLength);
+
+  HexToData(Hex, @D[0]);
+  LoadFromData(D);
+end;
+
 procedure TCnCurve448PrivateKey.SaveToData(var Data: TCnCurve448Data);
 begin
   CnProcessCurve448ScalarNumber(Self);
   CnCurve448BigNumberToData(Self, Data);
+end;
+
+function TCnCurve448PrivateKey.SaveToHex(UseUpperCase: Boolean): string;
+var
+  D: TCnCurve448Data;
+begin
+  SaveToData(D);
+  Result := DataToHex(@D[0], SizeOf(D), UseUpperCase);
 end;
 
 { TCnCurve448PublicKey }
@@ -4256,9 +4436,28 @@ begin
   CnCurve448DataToPoint(Data, Self);
 end;
 
+procedure TCnCurve448PublicKey.LoadFromHex(const Hex: string);
+var
+  D: TCnCurve448Data;
+begin
+  if HexToData(Hex) <> SizeOf(D) then
+    raise ECnEccException.Create(SCnErrorInvalidHexLength);
+
+  HexToData(Hex, @D[0]);
+  LoadFromData(D);
+end;
+
 procedure TCnCurve448PublicKey.SaveToData(var Data: TCnCurve448Data);
 begin
   CnCurve448PointToData(Self, Data);
+end;
+
+function TCnCurve448PublicKey.SaveToHex(UseUpperCase: Boolean): string;
+var
+  D: TCnCurve448Data;
+begin
+  SaveToData(D);
+  Result := DataToHex(@D[0], SizeOf(D), UseUpperCase);
 end;
 
 { TCnCurve448 }
@@ -4304,9 +4503,28 @@ begin
   CnEd448DataToBigNumber(Data, Self);
 end;
 
+procedure TCnEd448PrivateKey.LoadFromHex(const Hex: string);
+var
+  D: TCnEd448Data;
+begin
+  if HexToData(Hex) <> SizeOf(D) then
+    raise ECnEccException.Create(SCnErrorInvalidHexLength);
+
+  HexToData(Hex, @D[0]);
+  LoadFromData(D);
+end;
+
 procedure TCnEd448PrivateKey.SaveToData(var Data: TCnEd448Data);
 begin
   CnEd448BigNumberToData(Self, Data);
+end;
+
+function TCnEd448PrivateKey.SaveToHex(UseUpperCase: Boolean): string;
+var
+  D: TCnEd448Data;
+begin
+  SaveToData(D);
+  Result := DataToHex(@D[0], SizeOf(D), UseUpperCase);
 end;
 
 { TCnEd448PublicKey }
@@ -4323,9 +4541,28 @@ begin
   end;
 end;
 
+procedure TCnEd448PublicKey.LoadFromHex(const Hex: string);
+var
+  D: TCnEd448Data;
+begin
+  if HexToData(Hex) <> SizeOf(D) then
+    raise ECnEccException.Create(SCnErrorInvalidHexLength);
+
+  HexToData(Hex, @D[0]);
+  LoadFromData(D);
+end;
+
 procedure TCnEd448PublicKey.SaveToData(var Data: TCnEd448Data);
 begin
   CnEd448PointToData(Self, Data); // 只存 Y，以及 X 的奇偶性
+end;
+
+function TCnEd448PublicKey.SaveToHex(UseUpperCase: Boolean): string;
+var
+  D: TCnEd448Data;
+begin
+  SaveToData(D);
+  Result := DataToHex(@D[0], SizeOf(D), UseUpperCase);
 end;
 
 { TCnEd448 }
@@ -4669,6 +4906,17 @@ begin
   CnEd448DataToBigNumber(Data, FS);
 end;
 
+procedure TCnEd448Signature.LoadFromHex(const Hex: string);
+var
+  D: TCnEd448SignatureData;
+begin
+  if HexToData(Hex) <> SizeOf(D) then
+    raise ECnEccException.Create(SCnErrorInvalidHexLength);
+
+  HexToData(Hex, @D[0]);
+  LoadFromData(D);
+end;
+
 procedure TCnEd448Signature.SaveToData(var Sig: TCnEd448SignatureData);
 var
   Data: TCnEd448Data;
@@ -4682,6 +4930,14 @@ begin
   // 把 S 数写入 Data
   CnEd448BigNumberToData(FS, Data);
   Move(Data[0], Sig[SizeOf(TCnEd448Data)], SizeOf(TCnEd448Data));
+end;
+
+function TCnEd448Signature.SaveToHex(UseUpperCase: Boolean): string;
+var
+  D: TCnEd448SignatureData;
+begin
+  SaveToData(D);
+  Result := DataToHex(@D[0], SizeOf(D), UseUpperCase);
 end;
 
 initialization
