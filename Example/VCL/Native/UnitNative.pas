@@ -369,27 +369,27 @@ var
 begin
   A8 := 45;
   B8 := 247;
-  ConstantTimeConditionalSwap8(chkSwap.Checked, A8, B8);
+  ConstTimeConditionalSwap8(chkSwap.Checked, A8, B8);
   mmoRes.Lines.Add(Format('%d, %d', [A8, B8]));
 
   A16 := 4502;
   B16 := 24701;
-  ConstantTimeConditionalSwap16(chkSwap.Checked, A16, B16);
+  ConstTimeConditionalSwap16(chkSwap.Checked, A16, B16);
   mmoRes.Lines.Add(Format('%d, %d', [A16, B16]));
 
   A32 := 45020001;
   B32 := 247010002;
-  ConstantTimeConditionalSwap32(chkSwap.Checked, A32, B32);
+  ConstTimeConditionalSwap32(chkSwap.Checked, A32, B32);
   mmoRes.Lines.Add(Format('%d, %d', [A32, B32]));
 
   A64 := 4502000199999283434;
   B64 := 4701000299999283434;
-  ConstantTimeConditionalSwap64(chkSwap.Checked, A64, B64);
+  ConstTimeConditionalSwap64(chkSwap.Checked, A64, B64);
   mmoRes.Lines.Add(Format('%d, %d', [A64, B64]));
 
   A := AnsiToBytes('123');
   B := AnsiToBytes('123');
-  if ConstantTimeBytesEqual(A, B) then
+  if ConstTimeBytesEqual(A, B) then
     mmoRes.Lines.Add('2 Bytes Equal');
 end;
 

@@ -35,7 +35,9 @@ unit CnNative;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.11.11 V2.3
+* 修改记录：2023.08.14 V2.4
+*               补上几个时间固定的函数并改名
+*           2022.11.11 V2.3
 *               补上几个无符号数的字节顺序调换函数
 *           2022.07.23 V2.2
 *               增加几个内存位运算函数与二进制转换字符串函数，并改名为 CnNative
@@ -568,23 +570,60 @@ procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
 {* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，
   如 ByteLen 小于 MostLen，则 Dest 填充 0，要求 Dest 容纳至少 MostLen}
 
-procedure ConstantTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
+// ================ 以下是执行时间固定的无 if 判断的部分逻辑函数 ===============
+
+procedure ConstTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
 {* 针对两个字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
 
-procedure ConstantTimeConditionalSwap16(CanSwap: Boolean; var A, B: Word);
+procedure ConstTimeConditionalSwap16(CanSwap: Boolean; var A, B: Word);
 {* 针对两个双字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
 
-procedure ConstantTimeConditionalSwap32(CanSwap: Boolean; var A, B: Cardinal);
+procedure ConstTimeConditionalSwap32(CanSwap: Boolean; var A, B: Cardinal);
 {* 针对两个四字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
 
-procedure ConstantTimeConditionalSwap64(CanSwap: Boolean; var A, B: TUInt64);
+procedure ConstTimeConditionalSwap64(CanSwap: Boolean; var A, B: TUInt64);
 {* 针对两个八字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
 
-function ConstantTimeByteEqual(A, B: Byte): Boolean;
-{* 针对俩字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True}
+function ConstTimeEqual8(A, B: Byte): Boolean;
+{* 针对俩单字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True}
 
-function ConstantTimeBytesEqual(A, B: TBytes): Boolean;
+function ConstTimeEqual16(A, B: Word): Boolean;
+{* 针对俩双字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True}
+
+function ConstTimeEqual32(A, B: Cardinal): Boolean;
+{* 针对俩四字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True}
+
+function ConstTimeEqual64(A, B: TUInt64): Boolean;
+{* 针对俩八字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True}
+
+function ConstTimeBytesEqual(A, B: TBytes): Boolean;
 {* 针对俩相同长度的字节数组的执行时间固定的比较，内容相同时返回 True}
+
+function ConstTimeExpandBoolean8(V: Boolean): Byte;
+{* 根据 V 的值返回一字节全 1 或全 0}
+
+function ConstTimeExpandBoolean16(V: Boolean): Word;
+{* 根据 V 的值返回俩字节全 1 或全 0}
+
+function ConstTimeExpandBoolean32(V: Boolean): Cardinal;
+{* 根据 V 的值返回四字节全 1 或全 0}
+
+function ConstTimeExpandBoolean64(V: Boolean): TUInt64;
+{* 根据 V 的值返回八字节全 1 或全 0}
+
+function ConstTimeConditionalSelect8(Condition: Boolean; A, B: Byte): Byte;
+{* 针对两个字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B}
+
+function ConstTimeConditionalSelect16(Condition: Boolean; A, B: Word): Word;
+{* 针对两个双字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B}
+
+function ConstTimeConditionalSelect32(Condition: Boolean; A, B: Cardinal): Cardinal;
+{* 针对两个四字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B}
+
+function ConstTimeConditionalSelect64(Condition: Boolean; A, B: TUInt64): TUInt64;
+{* 针对两个八字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B}
+
+// ================ 以上是执行时间固定的无 if 判断的部分逻辑函数 ===============
 
 {$IFDEF MSWINDOWS}
 
@@ -650,7 +689,7 @@ begin
   Result := not CurrentByteOrderIsBigEndian;
 end;
 
-function SwapInt64(Value: Int64): Int64;
+function ReverseInt64(Value: Int64): Int64;
 var
   Lo, Hi: Cardinal;
   Rec: Int64Rec;
@@ -666,7 +705,7 @@ begin
   Result := Int64(Rec);
 end;
 
-function SwapUInt64(Value: TUInt64): TUInt64;
+function ReverseUInt64(Value: TUInt64): TUInt64;
 var
   Lo, Hi: Cardinal;
   Rec: Int64Rec;
@@ -687,7 +726,7 @@ begin
   if FByteOrderIsBigEndian then
     Result := Value
   else
-    Result := SwapInt64(Value);
+    Result := ReverseInt64(Value);
 end;
 
 function Int32ToBigEndian(Value: Integer): Integer;
@@ -712,7 +751,7 @@ begin
   if not FByteOrderIsBigEndian then
     Result := Value
   else
-    Result := SwapInt64(Value);
+    Result := ReverseInt64(Value);
 end;
 
 function Int32ToLittleEndian(Value: Integer): Integer;
@@ -737,7 +776,7 @@ begin
   if FByteOrderIsBigEndian then
     Result := Value
   else
-    Result := SwapUInt64(Value);
+    Result := ReverseUInt64(Value);
 end;
 
 function UInt32ToBigEndian(Value: Cardinal): Cardinal;
@@ -762,7 +801,7 @@ begin
   if not FByteOrderIsBigEndian then
     Result := Value
   else
-    Result := SwapUInt64(Value);
+    Result := ReverseUInt64(Value);
 end;
 
 function UInt32ToLittleEndian(Value: Cardinal): Cardinal;
@@ -785,7 +824,7 @@ end;
 function Int64HostToNetwork(Value: Int64): Int64;
 begin
   if not FByteOrderIsBigEndian then
-    Result := SwapInt64(Value)
+    Result := ReverseInt64(Value)
   else
     Result := Value;
 end;
@@ -810,7 +849,7 @@ end;
 function Int64NetworkToHost(Value: Int64): Int64;
 begin
   if not FByteOrderIsBigEndian then
-    REsult := SwapInt64(Value)
+    REsult := ReverseInt64(Value)
   else
     Result := Value;
 end;
@@ -837,7 +876,7 @@ begin
   if CurrentByteOrderIsBigEndian then
     Result := Value
   else
-    Result := SwapUInt64(Value);
+    Result := ReverseUInt64(Value);
 end;
 
 function UInt32HostToNetwork(Value: Cardinal): Cardinal;
@@ -862,7 +901,7 @@ begin
   if CurrentByteOrderIsBigEndian then
     Result := Value
   else
-    Result := SwapUInt64(Value);
+    Result := ReverseUInt64(Value);
 end;
 
 function UInt32NetworkToHost(Value: Cardinal): Cardinal;
@@ -1915,69 +1954,47 @@ begin
   Move(Source, Dest, ByteLen);
 end;
 
-procedure ConstantTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
+procedure ConstTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
 var
   T, V: Byte;
 begin
-  if CanSwap then
-    T := $FF
-  else
-    T := 0;
-
+  T := ConstTimeExpandBoolean8(CanSwap);
   V := (A xor B) and T;
   A := A xor V;
   B := B xor V;
 end;
 
-procedure ConstantTimeConditionalSwap16(CanSwap: Boolean; var A, B: Word);
+procedure ConstTimeConditionalSwap16(CanSwap: Boolean; var A, B: Word);
 var
   T, V: Word;
 begin
-  if CanSwap then
-    T := $FFFF
-  else
-    T := 0;
-
+  T := ConstTimeExpandBoolean16(CanSwap);
   V := (A xor B) and T;
   A := A xor V;
   B := B xor V;
 end;
 
-procedure ConstantTimeConditionalSwap32(CanSwap: Boolean; var A, B: Cardinal);
+procedure ConstTimeConditionalSwap32(CanSwap: Boolean; var A, B: Cardinal);
 var
   T, V: Cardinal;
 begin
-  if CanSwap then
-    T := $FFFFFFFF
-  else
-    T := 0;
-
+  T := ConstTimeExpandBoolean32(CanSwap);
   V := (A xor B) and T;
   A := A xor V;
   B := B xor V;
 end;
 
-procedure ConstantTimeConditionalSwap64(CanSwap: Boolean; var A, B: TUInt64);
+procedure ConstTimeConditionalSwap64(CanSwap: Boolean; var A, B: TUInt64);
 var
   T, V: TUInt64;
 begin
-  if CanSwap then
-  begin
-{$IFDEF SUPPORT_UINT64}
-    T := $FFFFFFFFFFFFFFFF;
-{$ELSE}
-    T := not 0;
-{$ENDIF}
-  end
-  else
-    T := 0;
-
+  T := ConstTimeExpandBoolean64(CanSwap);
   V := (A xor B) and T;
   A := A xor V;
   B := B xor V;
 end;
 
-function ConstantTimeByteEqual(A, B: Byte): Boolean;
+function ConstTimeEqual8(A, B: Byte): Boolean;
 var
   R: Byte;
 begin
@@ -1988,7 +2005,25 @@ begin
   Result := Boolean(R);   // 只有全 1 才是 1
 end;
 
-function ConstantTimeBytesEqual(A, B: TBytes): Boolean;
+function ConstTimeEqual16(A, B: Word): Boolean;
+begin
+  Result := ConstTimeEqual8(Byte(A shr 8), Byte(B shr 8))
+    and ConstTimeEqual8(Byte(A and $FF), Byte(B and $FF));
+end;
+
+function ConstTimeEqual32(A, B: Cardinal): Boolean;
+begin
+  Result := ConstTimeEqual16(Word(A shr 16), Word(B shr 16))
+    and ConstTimeEqual16(Word(A and $FFFF), Word(B and $FFFF));
+end;
+
+function ConstTimeEqual64(A, B: TUInt64): Boolean;
+begin
+  Result := ConstTimeEqual32(Cardinal(A shr 32), Cardinal(B shr 32))
+    and ConstTimeEqual32(Cardinal(A and $FFFFFFFF), Cardinal(B and $FFFFFFFF));
+end;
+
+function ConstTimeBytesEqual(A, B: TBytes): Boolean;
 var
   I: Integer;
 begin
@@ -1998,7 +2033,71 @@ begin
 
   Result := True;
   for I := 0 to Length(A) - 1 do // 每个字节都比较，而不是碰到不同就退出
-    Result := Result and (ConstantTimeByteEqual(A[I], B[I]));
+    Result := Result and (ConstTimeEqual8(A[I], B[I]));
+end;
+
+function ConstTimeExpandBoolean8(V: Boolean): Byte;
+begin
+  Result := Byte(V);
+  Result := not Result;                  // 如果 V 是 True，非 0，则此步 R 非纯 $FF，R 里头有 0
+  Result := Result and (Result shr 4);   // 以下一半一半地与
+  Result := Result and (Result shr 2);   // 如果有一位出现 0
+  Result := Result and (Result shr 1);   // 最后结果就是 00000000，否则 00000001
+  Result := Result or (Result shl 1);    // True 得到 00000000，False 得到 00000001，再往高位两倍两倍地扩
+  Result := Result or (Result shl 2);
+  Result := Result or (Result shl 4);    // 最终全 0 或 全 1
+  Result := not Result;                  // 反成全 1 或全 0
+end;
+
+function ConstTimeExpandBoolean16(V: Boolean): Word;
+var
+  R: Byte;
+begin
+  R := ConstTimeExpandBoolean8(V);
+  Result := R;
+  Result := (Result shl 8) or R;         // 单字节全 1 或全 0 扩成双字节
+end;
+
+function ConstTimeExpandBoolean32(V: Boolean): Cardinal;
+var
+  R: Word;
+begin
+  R := ConstTimeExpandBoolean16(V);
+  Result := R;
+  Result := (Result shl 16) or R;        // 双字节全 1 或全 0 扩成四字节
+end;
+
+function ConstTimeExpandBoolean64(V: Boolean): TUInt64;
+var
+  R: Cardinal;
+begin
+  R := ConstTimeExpandBoolean32(V);
+  Result := R;
+  Result := (Result shl 32) or R;        // 四字节全 1 或全 0 扩成八字节
+end;
+
+function ConstTimeConditionalSelect8(Condition: Boolean; A, B: Byte): Byte;
+begin
+  ConstTimeConditionalSwap8(Condition, A, B);
+  Result := B;
+end;
+
+function ConstTimeConditionalSelect16(Condition: Boolean; A, B: Word): Word;
+begin
+  ConstTimeConditionalSwap16(Condition, A, B);
+  Result := B;
+end;
+
+function ConstTimeConditionalSelect32(Condition: Boolean; A, B: Cardinal): Cardinal;
+begin
+  ConstTimeConditionalSwap32(Condition, A, B);
+  Result := B;
+end;
+
+function ConstTimeConditionalSelect64(Condition: Boolean; A, B: TUInt64): TUInt64;
+begin
+  ConstTimeConditionalSwap64(Condition, A, B);
+  Result := B;
 end;
 
 {$IFDEF MSWINDOWS}

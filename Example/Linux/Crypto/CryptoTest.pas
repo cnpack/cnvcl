@@ -54,6 +54,14 @@ function TestStrToUInt64: Boolean;
 function TestUInt64Div: Boolean;
 function TestUInt64Mod: Boolean;
 
+// =========================== Constant Time ===================================
+
+function TestConstTimeSwap: Boolean;
+function TestConstTimeSelect: Boolean;
+function TestConstTimeEqual: Boolean;
+function TestConstTimeExpandBool: Boolean;
+function TestConstTimeBytes: Boolean;
+
 // ============================== BigNumber ====================================
 
 function TestBigNumberHex: Boolean;
@@ -278,6 +286,14 @@ begin
   MyAssert(TestStrToUInt64, 'TestStrToUInt64');
   MyAssert(TestUInt64Div, 'TestUInt64Div');
   MyAssert(TestUInt64Mod, 'TestUInt64Mod');
+
+// =========================== Constant Time ===================================
+
+  MyAssert(TestConstTimeSwap, 'TestConstTimeSwap');
+  MyAssert(TestConstTimeSelect, 'TestConstTimeSelect');
+  MyAssert(TestConstTimeEqual, 'TestConstTimeEqual');
+  MyAssert(TestConstTimeExpandBool, 'TestConstTimeExpandBool');
+  MyAssert(TestConstTimeBytes, 'TestConstTimeBytes');
 
 // ============================== BigNumber ====================================
 
@@ -565,6 +581,137 @@ begin
     and (UInt64Mod(A6, B6) = 1229782934524998452)
     and (UInt64Mod(A7, B7) = 825307441)
     and (UInt64Mod(A8, B8) = 3617008645339807486);
+end;
+
+// =========================== Constant Time ===================================
+
+function TestConstTimeSwap: Boolean;
+var
+  A8, B8: Byte;
+  A16, B16: Word;
+  A32, B32: Cardinal;
+  A64, B64: TUInt64;
+begin
+  A8 := $02; B8 := $9F;
+  ConstTimeConditionalSwap8(False, A8, B8);
+  Result := (A8 = $02) and (B8 = $9F);
+
+  if not Result then Exit;
+
+  ConstTimeConditionalSwap8(True, A8, B8);
+  Result := (A8 = $9F) and (B8 = $2);
+
+  if not Result then Exit;
+
+  A16 := $D280; B16 := $319B;
+  ConstTimeConditionalSwap16(False, A16, B16);
+  Result := (A16 = $D280) and (B16 = $319B);
+
+  if not Result then Exit;
+
+  ConstTimeConditionalSwap16(True, A16, B16);
+  Result := (A16 = $319B) and (B16 = $D280);
+
+  if not Result then Exit;
+
+  A32 := $1D327806; B32 := $C379EB02;
+  ConstTimeConditionalSwap32(False, A32, B32);
+  Result := (A32 = $1D327806) and (B32 = $C379EB02);
+
+  if not Result then Exit;
+
+  ConstTimeConditionalSwap32(True, A32, B32);
+  Result := (A32 = $C379EB02) and (B32 = $1D327806);
+
+  if not Result then Exit;
+
+  A64 := $2A64C05397B3C10D; B64 := $9C34A79E5B0F2180;
+  ConstTimeConditionalSwap64(False, A64, B64);
+  Result := (A64 = $2A64C05397B3C10D) and (B64 = $9C34A79E5B0F2180);
+
+  if not Result then Exit;
+
+  ConstTimeConditionalSwap64(True, A64, B64);
+  Result := (A64 = $9C34A79E5B0F2180) and (B64 = $2A64C05397B3C10D);
+end;
+
+function TestConstTimeSelect: Boolean;
+var
+  A8, B8: Byte;
+  A16, B16: Word;
+  A32, B32: Cardinal;
+  A64, B64: TUInt64;
+begin
+  A8 := $02; B8 := $9F;
+  Result := (ConstTimeConditionalSelect8(False, A8, B8) = B8)
+    and (ConstTimeConditionalSelect8(True, A8, B8) = A8);
+
+  if not Result then Exit;
+
+  A16 := $D280; B16 := $319B;
+  Result := (ConstTimeConditionalSelect16(False, A16, B16) = B16)
+    and (ConstTimeConditionalSelect16(True, A16, B16) = A16);
+
+  if not Result then Exit;
+
+  A32 := $1D327806; B32 := $C379EB02;
+  Result := (ConstTimeConditionalSelect32(False, A32, B32) = B32)
+    and (ConstTimeConditionalSelect32(True, A32, B32) = A32);
+
+  if not Result then Exit;
+
+  A64 := $2A64C05397B3C10D; B64 := $9C34A79E5B0F2180;
+  Result := (ConstTimeConditionalSelect64(False, A64, B64) = B64)
+    and (ConstTimeConditionalSelect64(True, A64, B64) = A64);
+end;
+
+function TestConstTimeEqual: Boolean;
+var
+  A8, B8: Byte;
+  A16, B16: Word;
+  A32, B32: Cardinal;
+  A64, B64: TUInt64;
+begin
+  Result := ConstTimeEqual8($09, $09) and ConstTimeEqual16($C32F, $C32F)
+    and ConstTimeEqual32($7A8E6C1D, $7A8E6C1D) and ConstTimeEqual64($2A68C45397B3C10D, $2A68C45397B3C10D);
+
+  if not Result then Exit;
+
+  A8 := $02; B8 := $9F;
+  A16 := $D280; B16 := $319B;
+  A32 := $1D327806; B32 := $C379EB02;
+  A64 := $2A64C05397B3C10D; B64 := $9C34A79E5B0F2180;
+  Result := (not ConstTimeEqual8(A8, B8)) and (not ConstTimeEqual16(A16, B16))
+    and (not ConstTimeEqual32(A32, B32)) and (not ConstTimeEqual64(A64, B64));
+end;
+
+function TestConstTimeExpandBool: Boolean;
+begin
+  Result := (ConstTimeExpandBoolean8(False) = 0)
+    and (ConstTimeExpandBoolean16(False) = 0)
+    and (ConstTimeExpandBoolean32(False) = 0)
+    and (ConstTimeExpandBoolean64(False) = 0);
+
+  if not Result then Exit;
+
+  Result := (ConstTimeExpandBoolean8(True) = $FF)
+    and (ConstTimeExpandBoolean16(True) = $FFFF)
+    and (ConstTimeExpandBoolean32(True) = $FFFFFFFF)
+    and (ConstTimeExpandBoolean64(True) = not 0);
+end;
+
+function TestConstTimeBytes: Boolean;
+var
+  A, B: TBytes;
+begin
+  A := HexToBytes('0987654321FBACDE');
+  B := HexToBytes('0987654321FBACDE');
+  Result := ConstTimeBytesEqual(A, B);
+
+  if not Result then Exit;
+
+  B[4] := $FF;
+  Result := not ConstTimeBytesEqual(A, B);
 end;
 
 // ============================== BigNumber ====================================
