@@ -280,11 +280,6 @@ end;
 
 procedure TestCrypto;
 begin
-  if CurrentByteOrderIsBigEndian then
-    Writeln('=== Big Endian ===');
-  if CurrentByteOrderIsLittleEndian then
-    Writeln('=== Little Endian ===');
-
 {$IFDEF CPU64BITS}
   Writeln('*** CPU 64 Bits ***');
 {$ELSE}
@@ -294,6 +289,11 @@ begin
 {$IFDEF CPUARM}
   Writeln('*** ARM ***');
 {$ENDIF}
+
+  if CurrentByteOrderIsBigEndian then
+    Writeln('=== Big Endian ===');
+  if CurrentByteOrderIsLittleEndian then
+    Writeln('=== Little Endian ===');
 
   Writeln('Crypto Test Start...');
 
@@ -540,7 +540,7 @@ begin
   A32 := $1D327806;
   B32 := UInt32ToBigEndian(A32);
   C32 := UInt32ToLittleEndian(A32);
-  Result := (DataToHex(@C32, SizeOf(C32)) = '1D327806')  and (DataToHex(@C32, SizeOf(C32)) = '0678321D');
+  Result := (DataToHex(@B32, SizeOf(B32)) = '1D327806')  and (DataToHex(@C32, SizeOf(C32)) = '0678321D');
 
   if not Result then Exit;
 
@@ -740,7 +740,7 @@ begin
   Result := (ConstTimeExpandBoolean8(True) = $FF)
     and (ConstTimeExpandBoolean16(True) = $FFFF)
     and (ConstTimeExpandBoolean32(True) = $FFFFFFFF)
-    and (ConstTimeExpandBoolean64(True) = not 0);
+    and (ConstTimeExpandBoolean64(True) = $FFFFFFFFFFFFFFFF);
 end;
 
 function TestConstTimeBytes: Boolean;
