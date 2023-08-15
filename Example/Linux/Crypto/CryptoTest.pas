@@ -50,6 +50,7 @@ procedure TestCrypto;
 
 // ============================== Native =======================================
 
+function TestEndian: Boolean;
 function TestStrToUInt64: Boolean;
 function TestUInt64Div: Boolean;
 function TestUInt64Mod: Boolean;
@@ -279,10 +280,26 @@ end;
 
 procedure TestCrypto;
 begin
+  if CurrentByteOrderIsBigEndian then
+    Writeln('=== Big Endian ===');
+  if CurrentByteOrderIsLittleEndian then
+    Writeln('=== Little Endian ===');
+
+{$IFDEF CPU64BITS}
+  Writeln('*** CPU 64 Bits ***');
+{$ELSE}
+  Writeln('*** CPU 32 Bits ***');
+{$ENDIF}
+
+{$IFDEF CPUARM}
+  Writeln('*** ARM ***');
+{$ENDIF}
+
   Writeln('Crypto Test Start...');
 
 // ============================== Native =======================================
 
+  MyAssert(TestEndian, 'TestEndian');
   MyAssert(TestStrToUInt64, 'TestStrToUInt64');
   MyAssert(TestUInt64Div, 'TestUInt64Div');
   MyAssert(TestUInt64Mod, 'TestUInt64Mod');
@@ -506,6 +523,32 @@ begin
 end;
 
 // ============================== Native =======================================
+
+function TestEndian: Boolean;
+var
+  A16, B16, C16: Word;
+  A32, B32, C32: Cardinal;
+  A64, B64, C64: TUInt64;
+begin
+  A16 := $D280;
+  B16 := UInt16ToBigEndian(A16);
+  C16 := UInt16ToLittleEndian(A16);
+  Result := (DataToHex(@B16, SizeOf(B16)) = 'D280')  and (DataToHex(@C16, SizeOf(C16)) = '80D2');
+
+  if not Result then Exit;
+
+  A32 := $1D327806;
+  B32 := UInt32ToBigEndian(A32);
+  C32 := UInt32ToLittleEndian(A32);
+  Result := (DataToHex(@C32, SizeOf(C32)) = '1D327806')  and (DataToHex(@C32, SizeOf(C32)) = '0678321D');
+
+  if not Result then Exit;
+
+  A64 := $2A64C05397B3C10D;;
+  B64 := UInt64ToBigEndian(A64);
+  C64 := UInt64ToLittleEndian(A64);
+  Result := (DataToHex(@B64, SizeOf(B64)) = '2A64C05397B3C10D')  and (DataToHex(@C64, SizeOf(C64)) = '0DC1B39753C0642A');
+end;
 
 function TestStrToUInt64: Boolean;
 var
