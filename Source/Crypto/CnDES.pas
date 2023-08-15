@@ -423,7 +423,7 @@ begin
   for I := 0 to 7 do InData[I] := NewData[I];
 end;
 
-procedure Expand(InData: array of Byte; var OutData: array of Byte);
+procedure Expand(const InData: array of Byte; var OutData: array of Byte);
 var
   I: Integer;
 begin
@@ -523,7 +523,7 @@ begin
   end;
 end;
 
-procedure Encry(InData, ASubKey: array of Byte; var OutData: array of Byte);
+procedure Encry(const InData, ASubKey: array of Byte; var OutData: array of Byte);
 var
   OutBuf: array[0..5] of Byte;
   Buf: array[0..7] of Byte;
