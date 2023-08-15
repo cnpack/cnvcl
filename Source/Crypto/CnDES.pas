@@ -291,9 +291,9 @@ procedure TripleDESDecryptStreamCBC(Source: TStream; Count: Cardinal;
 implementation
 
 resourcestring
-  SInvalidInBufSize = 'Invalid Buffer Size for Decryption';
-  SReadError = 'Stream Read Error';
-  SWriteError = 'Stream Write Error';
+  SCnInvalidInBufSize = 'Invalid Buffer Size for Decryption';
+  SCnReadError = 'Stream Read Error';
+  SCnWriteError = 'Stream Write Error';
 
 type
   TKeyByte = array[0..5] of Byte;
@@ -454,7 +454,7 @@ begin
   Result := (sBox[S][c] and $0F);
 end;
 
-procedure PermutationChoose1(InData: array of Byte; var OutData: array of Byte);
+procedure PermutationChoose1(const InData: array of Byte; var OutData: array of Byte);
 var
   I: Integer;
 begin
@@ -464,7 +464,7 @@ begin
       OutData[I shr 3] := OutData[I shr 3] or (1 shl (7 - (I and $07)));
 end;
 
-procedure PermutationChoose2(InData: array of Byte; var OutData: array of Byte);
+procedure PermutationChoose2(const InData: array of Byte; var OutData: array of Byte);
 var
   I: Integer;
 begin
@@ -488,7 +488,7 @@ begin
   end;
 end;
 
-procedure MakeKey(InKey: array of Byte; var OutKey: array of TKeyByte);
+procedure MakeKey(const InKey: array of Byte; var OutKey: array of TKeyByte);
 const
   bitDisplace: array[0..15] of Byte =
     (1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1);
@@ -546,7 +546,7 @@ begin
 end;
 
 // InData 和 OutData 要求都是 8 字节数组
-procedure DesData(DesMode: TDesMode; SubKey: TSubKey; InData: array of Byte;
+procedure DesData(DesMode: TDesMode; SubKey: TSubKey; const InData: array of Byte;
   var OutData: array of Byte);
 var
   I, J: Integer;
@@ -983,13 +983,13 @@ begin
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
-      raise EStreamError.Create(SReadError);
+      raise EStreamError.Create(SCnReadError);
 
     DesData(dmEncry, SubKey, TempIn, TempOut);
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
-      raise EStreamError.Create(SWriteError);
+      raise EStreamError.Create(SCnWriteError);
 
     Dec(Count, SizeOf(TCnDESBuffer));
   end;
@@ -998,14 +998,14 @@ begin
   begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
-      raise EStreamError.Create(SReadError);
+      raise EStreamError.Create(SCnReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
 
     DesData(dmEncry, SubKey, TempIn, TempOut);
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
-      raise EStreamError.Create(SWriteError);
+      raise EStreamError.Create(SCnWriteError);
   end;
 end;
 
@@ -1027,20 +1027,20 @@ begin
   if Count = 0 then
     Exit;
   if (Count mod SizeOf(TCnDESBuffer)) > 0 then
-    raise Exception.Create(SInvalidInBufSize);
+    raise Exception.Create(SCnInvalidInBufSize);
 
   MakeKey(Key, SubKey);
   while Count >= SizeOf(TCnDESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
-      raise EStreamError.Create(SReadError);
+      raise EStreamError.Create(SCnReadError);
 
     DesData(dmDecry, SubKey, TempIn, TempOut);
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
-      raise EStreamError.Create(SWriteError);
+      raise EStreamError.Create(SCnWriteError);
 
     Dec(Count, SizeOf(TCnDESBuffer));
   end;
@@ -1072,7 +1072,7 @@ begin
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
-      raise EStreamError.Create(SReadError);
+      raise EStreamError.Create(SCnReadError);
 
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
@@ -1081,7 +1081,7 @@ begin
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
-      raise EStreamError.Create(SWriteError);
+      raise EStreamError.Create(SCnWriteError);
 
     Move(TempOut[0], Vector[0], SizeOf(TCnDESIv));
     Dec(Count, SizeOf(TCnDESBuffer));
@@ -1091,7 +1091,7 @@ begin
   begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
-      raise EStreamError.Create(SReadError);
+      raise EStreamError.Create(SCnReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
 
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
@@ -1101,7 +1101,7 @@ begin
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
-      raise EStreamError.Create(SWriteError);
+      raise EStreamError.Create(SCnWriteError);
   end;
 end;
 
@@ -1124,7 +1124,7 @@ begin
   if Count = 0 then
     Exit;
   if (Count mod SizeOf(TCnDESBuffer)) > 0 then
-    raise Exception.Create(SInvalidInBufSize);
+    raise Exception.Create(SCnInvalidInBufSize);
 
   Vector1 := InitVector;
   MakeKey(Key, SubKey);
@@ -1133,7 +1133,7 @@ begin
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
-      raise EStreamError(SReadError);
+      raise EStreamError(SCnReadError);
 
     Move(TempIn[0], Vector2[0], SizeOf(TCnDESIv));
     DesData(dmDecry, SubKey, TempIn, TempOut);
@@ -1143,7 +1143,7 @@ begin
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
-      raise EStreamError(SWriteError);
+      raise EStreamError(SCnWriteError);
 
     Vector1 := Vector2;
     Dec(Count, SizeOf(TCnDESBuffer));
@@ -1587,7 +1587,7 @@ begin
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
-      raise EStreamError.Create(SReadError);
+      raise EStreamError.Create(SCnReadError);
 
     DesData(dmEncry, SubKey1, TempIn, TempOut);
     DesData(dmDecry, SubKey2, TempOut, TempIn);
@@ -1595,7 +1595,7 @@ begin
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
-      raise EStreamError.Create(SWriteError);
+      raise EStreamError.Create(SCnWriteError);
 
     Dec(Count, SizeOf(TCnDESBuffer));
   end;
@@ -1604,7 +1604,7 @@ begin
   begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
-      raise EStreamError.Create(SReadError);
+      raise EStreamError.Create(SCnReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
 
     DesData(dmEncry, SubKey1, TempIn, TempOut);
@@ -1613,7 +1613,7 @@ begin
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
-      raise EStreamError.Create(SWriteError);
+      raise EStreamError.Create(SCnWriteError);
   end;
 end;
 
@@ -1636,7 +1636,7 @@ begin
   if Count = 0 then
     Exit;
   if (Count mod SizeOf(TCnDESBuffer)) > 0 then
-    raise Exception.Create(SInvalidInBufSize);
+    raise Exception.Create(SCnInvalidInBufSize);
 
   Make3DESKeys(Key, K1, K2, K3);
   MakeKey(K1, SubKey1);
@@ -1647,7 +1647,7 @@ begin
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
-      raise EStreamError.Create(SReadError);
+      raise EStreamError.Create(SCnReadError);
 
     DesData(dmDecry, SubKey3, TempIn, TempOut);
     DesData(dmEncry, SubKey2, TempOut, TempIn);
@@ -1655,7 +1655,7 @@ begin
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
-      raise EStreamError.Create(SWriteError);
+      raise EStreamError.Create(SCnWriteError);
 
     Dec(Count, SizeOf(TCnDESBuffer));
   end;
@@ -1691,7 +1691,7 @@ begin
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
-      raise EStreamError.Create(SReadError);
+      raise EStreamError.Create(SCnReadError);
 
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
@@ -1702,7 +1702,7 @@ begin
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
-      raise EStreamError.Create(SWriteError);
+      raise EStreamError.Create(SCnWriteError);
 
     Move(TempOut[0], Vector[0], SizeOf(TCnDESIv));
     Dec(Count, SizeOf(TCnDESBuffer));
@@ -1712,7 +1712,7 @@ begin
   begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
-      raise EStreamError.Create(SReadError);
+      raise EStreamError.Create(SCnReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
 
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
@@ -1724,7 +1724,7 @@ begin
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
-      raise EStreamError.Create(SWriteError);
+      raise EStreamError.Create(SCnWriteError);
   end;
 end;
 
@@ -1748,7 +1748,7 @@ begin
   if Count = 0 then
     Exit;
   if (Count mod SizeOf(TCnDESBuffer)) > 0 then
-    raise Exception.Create(SInvalidInBufSize);
+    raise Exception.Create(SCnInvalidInBufSize);
 
   Vector1 := InitVector;
   Make3DESKeys(Key, K1, K2, K3);
@@ -1760,7 +1760,7 @@ begin
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
-      raise EStreamError(SReadError);
+      raise EStreamError(SCnReadError);
 
     Move(TempIn[0], Vector2[0], SizeOf(TCnDESIv));
 
@@ -1773,7 +1773,7 @@ begin
 
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
-      raise EStreamError(SWriteError);
+      raise EStreamError(SCnWriteError);
 
     Vector1 := Vector2;
     Dec(Count, SizeOf(TCnDESBuffer));
