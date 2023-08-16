@@ -1,9 +1,9 @@
 object Form25519: TForm25519
   Left = 192
-  Top = 107
+  Top = 111
   Width = 979
   Height = 563
-  Caption = '25519 Curves'
+  Caption = '25519/448 Curves'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -322,17 +322,26 @@ object Form25519: TForm25519
           TabOrder = 30
           OnClick = btn25519Field64PowerPMinus2Click
         end
+        object btnCurve25519Test: TButton
+          Left = 430
+          Top = 90
+          Width = 185
+          Height = 25
+          Caption = 'Curve 25519 Scalar'
+          TabOrder = 31
+          OnClick = btnCurve25519TestClick
+        end
       end
     end
     object ts25519Sign: TTabSheet
-      Caption = 'Ed25519 Sign/Verify'
+      Caption = 'Ed25519/448 Sign/Verify'
       ImageIndex = 1
       object grpEd25519Sign: TGroupBox
         Left = 8
         Top = 8
         Width = 929
         Height = 473
-        Caption = 'Ed25519 Sign/Verify'
+        Caption = 'Ed25519/448 Sign/Verify'
         TabOrder = 0
         object lblEd25519Priv: TLabel
           Left = 14
@@ -358,6 +367,41 @@ object Form25519: TForm25519
         object lblEd25519Sig: TLabel
           Left = 14
           Top = 110
+          Width = 48
+          Height = 13
+          Caption = 'Signature:'
+        end
+        object bvl2: TBevel
+          Left = 14
+          Top = 142
+          Width = 897
+          Height = 18
+          Shape = bsBottomLine
+        end
+        object lblEd448Priv: TLabel
+          Left = 14
+          Top = 194
+          Width = 57
+          Height = 13
+          Caption = 'Private Key:'
+        end
+        object lblEd448Pub: TLabel
+          Left = 14
+          Top = 226
+          Width = 53
+          Height = 13
+          Caption = 'Public Key:'
+        end
+        object lblEd448Msg: TLabel
+          Left = 14
+          Top = 262
+          Width = 46
+          Height = 13
+          Caption = 'Message:'
+        end
+        object lblEd448Sig: TLabel
+          Left = 14
+          Top = 294
           Width = 48
           Height = 13
           Caption = 'Signature:'
@@ -418,23 +462,23 @@ object Form25519: TForm25519
           TabOrder = 6
           OnClick = btnEd25519VerifyClick
         end
-        object btnSignTime: TButton
+        object btn25519SignTime: TButton
           Left = 750
           Top = 74
           Width = 75
           Height = 21
           Caption = 'Sign Time'
           TabOrder = 7
-          OnClick = btnSignTimeClick
+          OnClick = btn25519SignTimeClick
         end
-        object btnVerifyTime: TButton
+        object btn25519VerifyTime: TButton
           Left = 838
           Top = 74
           Width = 75
           Height = 21
           Caption = 'Verify Time'
           TabOrder = 8
-          OnClick = btnVerifyTimeClick
+          OnClick = btn25519VerifyTimeClick
         end
         object btnEd25519SignFile: TButton
           Left = 750
@@ -471,6 +515,245 @@ object Form25519: TForm25519
           Caption = 'Save Keys'
           TabOrder = 12
           OnClick = btnEd25519SaveKeysClick
+        end
+        object edtEd448Sig: TEdit
+          Left = 86
+          Top = 290
+          Width = 817
+          Height = 21
+          TabOrder = 13
+        end
+        object edtEd448Message: TEdit
+          Left = 86
+          Top = 258
+          Width = 473
+          Height = 21
+          TabOrder = 14
+          Text = 'My Message to be Sign.'
+        end
+        object edtEd448Pub: TEdit
+          Left = 86
+          Top = 220
+          Width = 473
+          Height = 21
+          TabOrder = 15
+        end
+        object edtEd448Priv: TEdit
+          Left = 86
+          Top = 192
+          Width = 473
+          Height = 21
+          TabOrder = 16
+        end
+        object btnEd448Gen: TButton
+          Left = 574
+          Top = 194
+          Width = 75
+          Height = 49
+          Caption = 'Gen Keys'
+          TabOrder = 17
+          OnClick = btnEd448GenClick
+        end
+        object btnEd448LoadKeys: TButton
+          Left = 662
+          Top = 194
+          Width = 75
+          Height = 21
+          Caption = 'Load Keys'
+          TabOrder = 18
+          OnClick = btnEd448LoadKeysClick
+        end
+        object btnEd448SaveKeys: TButton
+          Left = 662
+          Top = 222
+          Width = 75
+          Height = 21
+          Caption = 'Save Keys'
+          TabOrder = 19
+          OnClick = btnEd448SaveKeysClick
+        end
+        object btnEd448Sign: TButton
+          Left = 574
+          Top = 258
+          Width = 75
+          Height = 21
+          Caption = 'Sign'
+          TabOrder = 20
+          OnClick = btnEd448SignClick
+        end
+        object btnEd448Verify: TButton
+          Left = 662
+          Top = 258
+          Width = 75
+          Height = 21
+          Caption = 'Verify'
+          TabOrder = 21
+          OnClick = btnEd448VerifyClick
+        end
+        object btn448SignTime: TButton
+          Left = 750
+          Top = 258
+          Width = 75
+          Height = 21
+          Caption = 'Sign Time'
+          TabOrder = 22
+          OnClick = btn448SignTimeClick
+        end
+        object btnEd448SignFile: TButton
+          Left = 750
+          Top = 194
+          Width = 75
+          Height = 49
+          Caption = 'Sign File'
+          TabOrder = 23
+          OnClick = btnEd448SignFileClick
+        end
+        object btnEd448VerifyFile: TButton
+          Left = 838
+          Top = 194
+          Width = 75
+          Height = 49
+          Caption = 'Verify File'
+          TabOrder = 24
+          OnClick = btnEd448VerifyFileClick
+        end
+        object btn448VerifyTime: TButton
+          Left = 838
+          Top = 258
+          Width = 75
+          Height = 21
+          Caption = 'Verify Time'
+          TabOrder = 25
+          OnClick = btn448VerifyTimeClick
+        end
+      end
+    end
+    object ts448Basic: TTabSheet
+      Caption = '448 Basic'
+      ImageIndex = 2
+      object grp448Basic: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 929
+        Height = 473
+        Caption = 'grp448Basic'
+        TabOrder = 0
+        object btn448CheckMap: TButton
+          Left = 14
+          Top = 10
+          Width = 185
+          Height = 25
+          Caption = 'Check 448 (X,Y) <=> (U, V)'
+          TabOrder = 0
+          OnClick = btn448CheckMapClick
+        end
+        object btnCurve448Test: TButton
+          Left = 398
+          Top = 10
+          Width = 185
+          Height = 25
+          Caption = 'Curve 448 Scalar'
+          TabOrder = 1
+          OnClick = btnCurve448TestClick
+        end
+        object btnConvert448Point: TButton
+          Left = 222
+          Top = 10
+          Width = 161
+          Height = 25
+          Caption = 'Convert 448 Point'
+          TabOrder = 2
+          OnClick = btnConvert448PointClick
+        end
+        object btnCurve448GOn: TButton
+          Left = 606
+          Top = 10
+          Width = 137
+          Height = 25
+          Caption = 'Curve 448 G On Curve?'
+          TabOrder = 3
+          OnClick = btnCurve448GOnClick
+        end
+        object btnEd448GOn: TButton
+          Left = 766
+          Top = 10
+          Width = 137
+          Height = 25
+          Caption = 'Ed 448 G On Curve?'
+          TabOrder = 4
+          OnClick = btnEd448GOnClick
+        end
+        object btnEd448PlainToPoint: TButton
+          Left = 766
+          Top = 50
+          Width = 137
+          Height = 25
+          Caption = 'Ed 448 G Plain To Point'
+          TabOrder = 5
+          OnClick = btnEd448PlainToPointClick
+        end
+        object btnAnother448GOn: TButton
+          Left = 606
+          Top = 50
+          Width = 137
+          Height = 25
+          Caption = 'Another 448 G On Curve?'
+          TabOrder = 6
+          OnClick = btnAnother448GOnClick
+        end
+        object btnConvertAnother448Point: TButton
+          Left = 222
+          Top = 50
+          Width = 161
+          Height = 25
+          Caption = 'Convert Another 448 Point'
+          TabOrder = 7
+          OnClick = btnConvertAnother448PointClick
+        end
+        object btnCurve448DHKeyExchange: TButton
+          Left = 398
+          Top = 50
+          Width = 185
+          Height = 25
+          Caption = 'Curve 448 DH Key Exchange'
+          TabOrder = 8
+          OnClick = btnCurve448DHKeyExchangeClick
+        end
+        object btnEd448CalcKey: TButton
+          Left = 14
+          Top = 50
+          Width = 185
+          Height = 25
+          Caption = 'Ed448 Calc Key'
+          TabOrder = 9
+          OnClick = btnEd448CalcKeyClick
+        end
+        object btnEd448GAdd: TButton
+          Left = 14
+          Top = 90
+          Width = 185
+          Height = 25
+          Caption = 'Ed448 G Add'
+          TabOrder = 10
+          OnClick = btnEd448GAddClick
+        end
+        object btnEd448GMul: TButton
+          Left = 222
+          Top = 90
+          Width = 161
+          Height = 25
+          Caption = 'Ed448 G Mul'
+          TabOrder = 11
+          OnClick = btnEd448GMulClick
+        end
+        object btnEd448SignSample: TButton
+          Left = 398
+          Top = 90
+          Width = 185
+          Height = 25
+          Caption = 'Ed448 Sign Sample'
+          TabOrder = 12
+          OnClick = btnEd448SignSampleClick
         end
       end
     end
