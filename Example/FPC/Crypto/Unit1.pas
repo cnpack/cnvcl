@@ -5,8 +5,9 @@ interface
 {$I CnPack.inc}
 
 uses
-  LCLIntf, LCLType, LMessages, {$IFDEF MSWINDOWS} Windows, {$ENDIF} Messages, SysUtils,
-  Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, ComCtrls, Clipbrd;
+  LCLIntf, LCLType, LMessages, {$IFDEF MSWINDOWS} Windows, {$ENDIF}  Messages,
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls,
+  ComCtrls, Clipbrd;
 
 type
   TFormCrypt = class(TForm)
@@ -289,6 +290,72 @@ type
     rbAesofb: TRadioButton;
     rbSm4Cfb: TRadioButton;
     rbSm4Ofb: TRadioButton;
+    tsPoly1305: TTabSheet;
+    grpPoly1305: TGroupBox;
+    lblPoly1305: TLabel;
+    lblPoly1305Result: TLabel;
+    lblPoly1305Key: TLabel;
+    edtPoly1305: TEdit;
+    btnPoly1305: TButton;
+    edtPoly1305Key: TEdit;
+    tsChaCha20: TTabSheet;
+    grpChaCha20: TGroupBox;
+    lblChaCha20: TLabel;
+    lblChaCha20Result: TLabel;
+    lblChaCha20Key: TLabel;
+    edtChaCha20: TEdit;
+    btnChaCha20Block: TButton;
+    edtChaCha20Key: TEdit;
+    btnChaCha20Data: TButton;
+    rbSm4Ctr: TRadioButton;
+    tsAEAD: TTabSheet;
+    grpAEAD: TGroupBox;
+    btnGHash: TButton;
+    btnGMulBlock: TButton;
+    btnGHash1: TButton;
+    btnAES128GCMEnTest: TButton;
+    btnAES128GCMDeTest: TButton;
+    btnSM4GCM: TButton;
+    btnAESCMAC: TButton;
+    btnAESCCMEnc: TButton;
+    btnAESCCMDec: TButton;
+    btnSM4CCM: TButton;
+    chkBase64ShowHex: TCheckBox;
+    btnAES192GCMEnTest: TButton;
+    btnAES192GCMDeTest: TButton;
+    btnAES256GCMEnTest: TButton;
+    btnAES256GCMDeTest: TButton;
+    btnAESGCMNoPaddingJava: TButton;
+    tsFNV: TTabSheet;
+    grpFNV: TGroupBox;
+    lblFNVFrom: TLabel;
+    edtFNV: TEdit;
+    btnFNV: TButton;
+    pnlFNV: TPanel;
+    btnFNVFile: TButton;
+    cbbFNVType: TComboBox;
+    lblFNVType: TLabel;
+    rbFNV1: TRadioButton;
+    rbFNV1a: TRadioButton;
+    btnHChaCha20SubKey: TButton;
+    btnXChaCha20Enc: TButton;
+    btnChaCha20Poly1305Aead: TButton;
+    btnXChaCha20Poly1305Aead: TButton;
+    tsSHAKE: TTabSheet;
+    grpSHAKE: TGroupBox;
+    lblSHAKE: TLabel;
+    edtSHAKE: TEdit;
+    btnSHAKE: TButton;
+    btnSHAKEFile: TButton;
+    btnUSHAKE: TButton;
+    rbSHAKE128: TRadioButton;
+    rbSHAKE256: TRadioButton;
+    lblDigLen: TLabel;
+    edtSHAKELength: TEdit;
+    udSHAKE: TUpDown;
+    mmoSHAKE: TMemo;
+    btnSM4Utf8Enc: TButton;
+    btnSM4Utf8Dec: TButton;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -370,13 +437,40 @@ type
     procedure btnFileCRC16Click(Sender: TObject);
     procedure btnCRC8Click(Sender: TObject);
     procedure btnFileCRC8Click(Sender: TObject);
+    procedure btnPoly1305Click(Sender: TObject);
+    procedure btnChaCha20BlockClick(Sender: TObject);
+    procedure btnChaCha20DataClick(Sender: TObject);
+    procedure btnGHashClick(Sender: TObject);
+    procedure btnGMulBlockClick(Sender: TObject);
+    procedure btnGHash1Click(Sender: TObject);
+    procedure btnAES128GCMEnTestClick(Sender: TObject);
+    procedure btnAES128GCMDeTestClick(Sender: TObject);
+    procedure btnSM4GCMClick(Sender: TObject);
+    procedure btnAESCMACClick(Sender: TObject);
+    procedure btnAESCCMEncClick(Sender: TObject);
+    procedure btnAESCCMDecClick(Sender: TObject);
+    procedure btnSM4CCMClick(Sender: TObject);
+    procedure btnAES192GCMEnTestClick(Sender: TObject);
+    procedure btnAES192GCMDeTestClick(Sender: TObject);
+    procedure btnAES256GCMEnTestClick(Sender: TObject);
+    procedure btnAES256GCMDeTestClick(Sender: TObject);
+    procedure btnAESGCMNoPaddingJavaClick(Sender: TObject);
+    procedure btnFNVClick(Sender: TObject);
+    procedure btnHChaCha20SubKeyClick(Sender: TObject);
+    procedure btnXChaCha20EncClick(Sender: TObject);
+    procedure btnChaCha20Poly1305AeadClick(Sender: TObject);
+    procedure btnXChaCha20Poly1305AeadClick(Sender: TObject);
+    procedure btnSHAKEClick(Sender: TObject);
+    procedure btnUSHAKEClick(Sender: TObject);
+    procedure btnSHAKEFileClick(Sender: TObject);
+    procedure btnSM4Utf8EncClick(Sender: TObject);
+    procedure btnSM4Utf8DecClick(Sender: TObject);
   private
-    { Private declarations }
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
     function FromHex(const Hex: string): AnsiString;
   public
-    { Public declarations }
+
   end;
 
 var
@@ -386,7 +480,7 @@ implementation
 
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
-  CnSHA3, CnTEA, CnPemUtils, CnNative;
+  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnAEAD, CnFNV, CnPemUtils, CnNative;
 
 {$R *.lfm}
 
@@ -409,29 +503,23 @@ var
     $FE, $DC, $BA, $98, $76, $54, $32, $10
   );
 
-function StrToBytes(const S: AnsiString): TBytes;
+function MyStringToBytes(const Str: string): TBytes;
 begin
-  if S <> '' then
-  begin
-    SetLength(Result, Length(S));
-    Move(S[1], Result[0], Length(S));
-  end
-  else
-    Result := nil;
+{$IFDEF UNICODE}
+  Result := TEncoding.Default.GetBytes(Str);
+{$ELSE}
+  Result := AnsiToBytes(AnsiString(Str)); // 包括 FPC
+{$ENDIF}
 end;
 
-function BytesToStr(Data: TBytes): AnsiString;
+function MyBytesToString(const Bytes: TBytes): string;
 begin
-  if Length(Data) > 0 then
-  begin
-    SetLength(Result, Length(Data));
-    Move(Data[0], Result[1], Length(Data));
-  end
-  else
-    Result := '';
+{$IFDEF UNICODE}
+  Result := TEncoding.Default.GetString(Bytes);
+{$ELSE}
+  Result := string(BytesToAnsi(Bytes)); // 包括 FPC
+{$ENDIF}
 end;
-
-
 
 function HexToInt(const Hex: AnsiString): Integer;
 var
@@ -495,24 +583,22 @@ end;
 
 procedure TFormCrypt.btnDesCryptClick(Sender: TObject);
 var
-  Output: AnsiString;
+  S, Output: AnsiString;
   Len: Integer;
   TmpDesIv: array[0..CN_DES_BLOCKSIZE - 1] of Byte;
   IvStr: AnsiString;
-{$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
-{$ENDIF}
 begin
-  Len := Length(AnsiString(edtDesFrom.Text));
+  if cbbDesPadding.ItemIndex = 1 then
+    S := StrAddPKCS7Padding(edtDesFrom.Text, CN_DES_BLOCKSIZE)
+  else
+    S := edtDesFrom.Text;
+
+  Len := Length(AnsiString(S));
   if Len < CN_DES_BLOCKSIZE then
     Len := CN_DES_BLOCKSIZE
   else
-  begin
-    if cbbDesPadding.ItemIndex = 1 then
-      Len := GetPKCS7PaddingByteLength(Len, CN_DES_BLOCKSIZE)
-    else
-      Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
-  end;
+    Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
   SetLength(Output, Len);
   FillChar(Output[1], Len, 0);
 
@@ -520,25 +606,20 @@ begin
   begin
     if chkDESUseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
-      KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
-      DataBytes := TEncoding.Default.GetBytes(edtDesFrom.Text);
+      KeyBytes := MyStringToBytes(edtDESKey.Text);
+      DataBytes := MyStringToBytes(edtDesFrom.Text);
       if cbbDesPadding.ItemIndex = 1 then
         BytesAddPKCS7Padding(DataBytes, CN_DES_BLOCKSIZE);
 
       ResBytes := DESEncryptEcbBytes(KeyBytes, DataBytes);
       edtDESCode.Text := BytesToHex(ResBytes);
       Exit;
-{$ENDIF}
     end
     else
     begin
-      if cbbDesPadding.ItemIndex = 1 then
-        DESEncryptEcbStr(edtDESKey.Text, StrAddPKCS7Padding(edtDesFrom.Text, CN_DES_BLOCKSIZE), @(Output[1]))
-      else
-        DESEncryptEcbStr(edtDESKey.Text, edtDesFrom.Text, @(Output[1]));
+      // 已经处理好了 PKCS7 对齐
+      DESEncryptEcbStr(edtDESKey.Text, S, @(Output[1]));
     end;
-      
   end
   else
   begin
@@ -553,30 +634,25 @@ begin
 
     if chkDESUseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
-      KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
-      IvBytes := StrToBytes(IvStr);
-      DataBytes := TEncoding.Default.GetBytes(edtDesFrom.Text);
+      KeyBytes := MyStringToBytes(edtDESKey.Text);
+      IvBytes := MyStringToBytes(IvStr);
+      DataBytes := MyStringToBytes(edtDesFrom.Text);
       if cbbDesPadding.ItemIndex = 1 then
         BytesAddPKCS7Padding(DataBytes, CN_DES_BLOCKSIZE);
 
       ResBytes := DESEncryptCbcBytes(KeyBytes, IvBytes, DataBytes);
       edtDESCode.Text := BytesToHex(ResBytes);
       Exit;
-{$ENDIF}
     end
     else
     begin
       if cbbDesPadding.ItemIndex = 1 then
-        DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])),
-          StrAddPKCS7Padding(edtDesFrom.Text, CN_DES_BLOCKSIZE), @(Output[1]))
+        DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), S, @(Output[1]))
       else
         DESEncryptCbcStr(edtDESKey.Text, PAnsiChar(@(TmpDesIv[0])), edtDesFrom.Text, @(Output[1]));
     end;
   end;
   edtDESCode.Text := ToHex(@(Output[1]), Length(Output));
-
-  // edtDESCode.Text := DESEncryptStrToHex(edtDesFrom.Text, edtDESKey.Text);
 end;
 
 procedure TFormCrypt.btnDesDecryptClick(Sender: TObject);
@@ -585,9 +661,7 @@ var
   Output: AnsiString;
   Len: Integer;
   TmpDesIv: array[0..CN_DES_BLOCKSIZE - 1] of Byte;
-{$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes: TBytes;
-{$ENDIF}
 begin
   S := AnsiString(FromHex(edtDESCode.Text));
   Len := Length(S);
@@ -602,14 +676,12 @@ begin
   begin
     if chkDESUseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
-      KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
+      KeyBytes := MyStringToBytes(edtDESKey.Text);
       ResBytes := DESDecryptEcbBytes(KeyBytes, HexToBytes(edtDESCode.Text));
       if cbbDesPadding.ItemIndex = 1 then
         BytesRemovePKCS7Padding(ResBytes);
-      edtDesOrigin.Text := TEncoding.Default.GetString(ResBytes);
+      edtDesOrigin.Text := MyBytesToString(ResBytes);
       Exit;
-{$ENDIF}
     end
     else
     begin
@@ -631,15 +703,13 @@ begin
 
     if chkDESUseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
-      KeyBytes := TEncoding.Default.GetBytes(edtDESKey.Text);
-      IvBytes := StrToBytes(IvStr);
+      KeyBytes := MyStringToBytes(edtDESKey.Text);
+      IvBytes := MyStringToBytes(IvStr);
       ResBytes := DESDecryptCbcBytes(KeyBytes, IvBytes, HexToBytes(edtDESCode.Text));
       if cbbDesPadding.ItemIndex = 1 then
         BytesRemovePKCS7Padding(ResBytes);
-      edtDesOrigin.Text := TEncoding.Default.GetString(ResBytes);
+      edtDesOrigin.Text := MyBytesToString(ResBytes);
       Exit;
-{$ENDIF}
     end
     else
     begin
@@ -658,11 +728,7 @@ var
   S: string;
 begin
   if chkBase64UseTBytes.Checked then
-  begin
-{$IFDEF TBYTES_DEFINED}
-    Base64Encode(TEncoding.Default.GetBytes(edtBase64from.Text), S);
-{$ENDIF}
-  end
+    Base64Encode(MyStringToBytes(edtBase64from.Text), S)
   else
     Base64Encode(edtBase64from.Text, S);
   edtBase64Result.Text := S;
@@ -671,20 +737,28 @@ end;
 procedure TFormCrypt.btnBase64DecodeClick(Sender: TObject);
 var
   S: AnsiString;
-{$IFDEF TBYTES_DEFINED}
   Res: TBytes;
-{$ENDIF}
 begin
+  Res := nil;
+  S := '';
+
   if chkBase64UseTBytes.Checked then
   begin
-{$IFDEF TBYTES_DEFINED}
     Base64Decode(edtBase64Result.Text, Res);
-    S := TEncoding.Default.GetString(Res);
-{$ENDIF}
+    S := MyBytesToString(Res);
   end
   else
     Base64Decode(edtBase64Result.Text, S);
   edtbase64Decode.Text := S;
+
+  //if chkBase64ShowHex.Checked then
+  //begin
+  //  if Res <> nil then
+  //    CnShowHexData(@Res[0], Length(Res));
+  //
+  //  if S <> '' then
+  //    CnShowHexData(@S[1], Length(S));
+  //end;
 end;
 
 procedure TFormCrypt.btnCRC32Click(Sender: TObject);
@@ -722,14 +796,21 @@ begin
   cbbDesPadding.ItemIndex := 0;
   cbb3DesPadding.ItemIndex := 0;
   cbbAesPadding.ItemIndex := 0;
+  cbbFNVType.ItemIndex := 0;
 
-{$IFNDEF TBYTES_DEFINED}
-  chkSM4UseTBytes.Visible := False;
-  chkDESUseTBytes.Visible := False;
-  chk3DESUseTBytes.Visible := False;
-  chkBase64UseTBytes.Visible := False;
-  chkAESUseTBytes.Visible := False;
-{$ENDIF}
+//{$IFNDEF TBYTES_DEFINED}
+//  chkSM4UseTBytes.Visible := False;
+//  chkDESUseTBytes.Visible := False;
+//  chk3DESUseTBytes.Visible := False;
+//  chkBase64UseTBytes.Visible := False;
+//  chkAESUseTBytes.Visible := False;
+//{$ELSE}
+  chkSM4UseTBytes.Checked := True;
+  chkDESUseTBytes.Checked := True;
+  chk3DESUseTBytes.Checked := True;
+  chkBase64UseTBytes.Checked := True;
+  chkAESUseTBytes.Checked := True;
+//{$ENDIF}
 end;
 
 procedure TFormCrypt.btnCRC64Click(Sender: TObject);
@@ -793,24 +874,22 @@ end;
 
 procedure TFormCrypt.btnSm4Click(Sender: TObject);
 var
-  Output: AnsiString;
+  S, Output: AnsiString;
   Len: Integer;
   TmpSm4Iv: array[0..CN_SM4_BLOCKSIZE - 1] of Byte;
   IvStr: AnsiString;
-{$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
-{$ENDIF}
 begin
-  Len := Length(AnsiString(edtSm4.Text));
+  if cbbSm4Padding.ItemIndex = 1 then
+    S := StrAddPKCS7Padding(edtSm4.Text, CN_SM4_BLOCKSIZE)
+  else
+    S := edtSm4.Text;
+
+  Len := Length(AnsiString(S)); // PKCS7/PKCS5 对齐时需要调整 Len
   if Len < CN_SM4_BLOCKSIZE then
     Len := CN_SM4_BLOCKSIZE
   else
-  begin
-    if cbbSm4Padding.ItemIndex = 1 then
-      Len := GetPKCS7PaddingByteLength(Len, CN_SM4_BLOCKSIZE)
-    else
-      Len := (((Len - 1) div CN_SM4_BLOCKSIZE) + 1) * CN_SM4_BLOCKSIZE;
-  end;
+    Len := (((Len - 1) div CN_SM4_BLOCKSIZE) + 1) * CN_SM4_BLOCKSIZE;
   SetLength(Output, Len);
   FillChar(Output[1], Len, 0);
 
@@ -818,26 +897,22 @@ begin
   begin
     if chkSM4UseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
-      KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
-      DataBytes := TEncoding.Default.GetBytes(edtSm4.Text);
+      KeyBytes := MyStringToBytes(edtSm4Key.Text);
+      DataBytes := MyStringToBytes(edtSm4.Text);
       if cbbSm4Padding.ItemIndex = 1 then
         BytesAddPKCS7Padding(DataBytes, CN_SM4_BLOCKSIZE);
 
       ResBytes := SM4EncryptEcbBytes(KeyBytes, DataBytes);
       edtSm4Code.Text := BytesToHex(ResBytes);
       Exit;
-{$ENDIF}
     end
     else
     begin
-      if cbbSm4Padding.ItemIndex = 1 then
-        SM4EncryptEcbStr(edtSm4Key.Text, StrAddPKCS7Padding(edtSm4.Text, CN_SM4_BLOCKSIZE), @(Output[1]))
-      else // 末尾补 0 的对齐
-        SM4EncryptEcbStr(edtSm4Key.Text, edtSm4.Text, @(Output[1]));
+      // S 已经处理好了 PKCS7 对齐
+      SM4EncryptEcbStr(edtSm4Key.Text, S, @(Output[1]))
     end;
   end
-  else if rbSm4Cbc.Checked or rbSm4Cfb.Checked or rbSm4Ofb.Checked then
+  else if rbSm4Cbc.Checked or rbSm4Cfb.Checked or rbSm4Ofb.Checked or rbSm4Ctr.Checked then
   begin
     IvStr := FromHex(edtSM4Iv.Text);
     if Length(IvStr) <> SizeOf(TmpSm4Iv) then
@@ -848,45 +923,43 @@ begin
     else
       Move(IvStr[1], TmpSm4Iv[0], SizeOf(Sm4Iv));
 
-{$IFDEF TBYTES_DEFINED}
-    KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
-    IvBytes := StrToBytes(IvStr);
-    DataBytes := TEncoding.Default.GetBytes(edtSm4.Text);
+    KeyBytes := MyStringToBytes(edtSm4Key.Text);
+    IvBytes := MyStringToBytes(IvStr);
+    DataBytes := MyStringToBytes(edtSm4.Text);
 
-    if rbSm4Cbc.Checked and (cbbSm4Padding.ItemIndex = 1) then
-      BytesAddPKCS7Padding(DataBytes, CN_SM4_BLOCKSIZE);
-{$ENDIF}
+    if rbSm4Cbc.Checked then
+    begin
+      if cbbSm4Padding.ItemIndex = 1 then
+        BytesAddPKCS7Padding(DataBytes, CN_SM4_BLOCKSIZE);
+    end;
 
     if chkSM4UseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
       if rbSm4Cbc.Checked then
         ResBytes := SM4EncryptCbcBytes(KeyBytes, IvBytes, DataBytes)
       else if rbSm4Cfb.Checked then
         ResBytes := SM4EncryptCfbBytes(KeyBytes, IvBytes, DataBytes)
       else if rbSm4Ofb.Checked then
-        ResBytes := SM4EncryptOfbBytes(KeyBytes, IvBytes, DataBytes);
+        ResBytes := SM4EncryptOfbBytes(KeyBytes, IvBytes, DataBytes)
+      else if rbSm4Ctr.Checked then
+        ResBytes := SM4EncryptCtrBytes(KeyBytes, IvBytes, DataBytes);
 
       edtSm4Code.Text := BytesToHex(ResBytes);
       Exit;
-{$ENDIF}
     end
     else if rbSm4Cbc.Checked then
     begin
       if cbbSm4Padding.ItemIndex = 1 then
-        SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])),
-          StrAddPKCS7Padding(edtSm4.Text, CN_SM4_BLOCKSIZE), @(Output[1]))
+        SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]))
       else
-        SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]))
+        SM4EncryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]));
     end
     else if rbSm4Cfb.Checked then
-    begin
       SM4EncryptCfbStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]))
-    end
     else if rbSm4Ofb.Checked then
-    begin
       SM4EncryptOfbStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]))
-    end
+    else if rbSm4Ctr.Checked then
+      SM4EncryptCtrStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), edtSm4.Text, @(Output[1]));
   end;
   edtSm4Code.Text := ToHex(@(Output[1]), Length(Output));
 end;
@@ -897,9 +970,7 @@ var
   Output: AnsiString;
   Len: Integer;
   TmpSm4Iv: array[0..CN_SM4_BLOCKSIZE - 1] of Byte;
-{$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes: TBytes;
-{$ENDIF}
 begin
   S := AnsiString(FromHex(edtSm4Code.Text));
   Len := Length(S);
@@ -914,14 +985,13 @@ begin
   begin
     if chkSM4UseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
-      KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
+      KeyBytes := MyStringToBytes(edtSm4Key.Text);
       ResBytes := SM4DecryptEcbBytes(KeyBytes, HexToBytes(edtSm4Code.Text));
       if cbbSm4Padding.ItemIndex = 1 then
         BytesRemovePKCS7Padding(ResBytes);
-      edtSm4Dec.Text := TEncoding.Default.GetString(ResBytes);
+
+      edtSm4Dec.Text := MyBytesToString(ResBytes);
       Exit;
-{$ENDIF}
     end
     else
     begin
@@ -930,7 +1000,7 @@ begin
         Output := StrRemovePKCS7Padding(Output);
     end;
   end
-  else if rbSm4Cbc.Checked or rbSm4Cfb.Checked or rbSm4Ofb.Checked then
+  else if rbSm4Cbc.Checked or rbSm4Cfb.Checked or rbSm4Ofb.Checked or rbSm4Ctr.Checked then
   begin
     IvStr := FromHex(edtSM4Iv.Text);
     if Length(IvStr) <> SizeOf(TmpSm4Iv) then
@@ -941,29 +1011,31 @@ begin
     else
       Move(IvStr[1], TmpSm4Iv[0], SizeOf(Sm4Iv));
 
-
     if chkSM4UseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
-      KeyBytes := TEncoding.Default.GetBytes(edtSm4Key.Text);
-      IvBytes := StrToBytes(IvStr);
+      KeyBytes := MyStringToBytes(edtSm4Key.Text);
+      IvBytes := MyStringToBytes(IvStr);
       if rbSm4Cbc.Checked then
         ResBytes := SM4DecryptCbcBytes(KeyBytes, IvBytes, HexToBytes(edtSm4Code.Text))
       else if rbSm4Cfb.Checked then
         ResBytes := SM4DecryptCfbBytes(KeyBytes, IvBytes, HexToBytes(edtSm4Code.Text))
       else if rbSm4Ofb.Checked then
-        ResBytes := SM4DecryptOfbBytes(KeyBytes, IvBytes, HexToBytes(edtSm4Code.Text));
+        ResBytes := SM4DecryptOfbBytes(KeyBytes, IvBytes, HexToBytes(edtSm4Code.Text))
+      else if rbSm4Ctr.Checked then
+        ResBytes := SM4DecryptCtrBytes(KeyBytes, IvBytes, HexToBytes(edtSm4Code.Text));
 
-      if rbSm4Cbc.Checked and (cbbSm4Padding.ItemIndex = 1) then
-        BytesRemovePKCS7Padding(ResBytes);
+      if rbSm4Cbc.Checked then
+      begin
+        if cbbSm4Padding.ItemIndex = 1 then
+          BytesRemovePKCS7Padding(ResBytes);
+      end;
 
-      edtSm4Dec.Text := TEncoding.Default.GetString(ResBytes);
+      edtSm4Dec.Text := MyBytesToString(ResBytes);
       Exit;
-{$ENDIF}
     end
     else
     begin
-      if rbSm4Cbc.Checked then
+      if rbSm4Ecb.Checked or rbSm4Cbc.Checked then
       begin
         SM4DecryptCbcStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]));
         if cbbSm4Padding.ItemIndex = 1 then
@@ -972,7 +1044,9 @@ begin
       else if rbSm4Cfb.Checked then
         SM4DecryptCfbStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]))
       else if rbSm4Ofb.Checked then
-        SM4DecryptOfbStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]));
+        SM4DecryptOfbStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]))
+      else if rbSm4Ctr.Checked then
+        SM4DecryptCtrStr(edtSm4Key.Text, PAnsiChar(@(TmpSm4Iv[0])), S, @(Output[1]));
     end;
   end;
   edtSm4Dec.Text := Output;
@@ -982,17 +1056,14 @@ procedure TFormCrypt.btnAesEncryptClick(Sender: TObject);
 var
   TmpAesIv: TCnAESBuffer;
   IvStr: AnsiString;
-{$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
-{$ENDIF}
 begin
   if rbAesecb.Checked then
   begin
     if chkAESUseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
-      KeyBytes := TEncoding.Default.GetBytes(edtAesKey.Text);
-      DataBytes := TEncoding.Default.GetBytes(edtAes.Text);
+      KeyBytes := MyStringToBytes(edtAesKey.Text);
+      DataBytes := MyStringToBytes(edtAes.Text);
       if cbbAesPadding.ItemIndex = 1 then
         BytesAddPKCS7Padding(DataBytes, CN_AES_BLOCKSIZE);
 
@@ -1006,7 +1077,6 @@ begin
       end;
       edtAesResult.Text := BytesToHex(ResBytes);
       Exit;
-{$ENDIF}
     end
     else
     begin
@@ -1048,23 +1118,20 @@ begin
     else
       Move(IvStr[1], TmpAesIv, SizeOf(TmpAesIv));
 
-{$IFDEF TBYTES_DEFINED}
     if chkAESUseTBytes.Checked then
     begin
-      KeyBytes := TEncoding.Default.GetBytes(edtAesKey.Text);
-      IvBytes := StrToBytes(IvStr);
-      DataBytes := TEncoding.Default.GetBytes(edtAes.Text);
+      KeyBytes := MyStringToBytes(edtAesKey.Text);
+      IvBytes := MyStringToBytes(IvStr);
+      DataBytes := MyStringToBytes(edtAes.Text);
 
       if rbAescbc.Checked and (cbbAesPadding.ItemIndex = 1) then // CBC 需要对齐
         BytesAddPKCS7Padding(DataBytes, CN_AES_BLOCKSIZE);
     end;
-{$ENDIF}
 
     if rbAescbc.Checked then
     begin
       if chkAESUseTBytes.Checked then
       begin
-{$IFDEF TBYTES_DEFINED}
         case cbbAesKeyBitType.ItemIndex of
           0:
             ResBytes := AESEncryptCbcBytes(DataBytes, KeyBytes, IvBytes, kbt128);
@@ -1075,7 +1142,6 @@ begin
         end;
         edtAesResult.Text := BytesToHex(ResBytes);
         Exit;
-{$ENDIF}
       end
       else
       begin
@@ -1110,7 +1176,6 @@ begin
     begin
       if chkAESUseTBytes.Checked then
       begin
-{$IFDEF TBYTES_DEFINED}
         case cbbAesKeyBitType.ItemIndex of
           0:
             ResBytes := AESEncryptCfbBytes(DataBytes, KeyBytes, IvBytes, kbt128);
@@ -1121,7 +1186,6 @@ begin
         end;
         edtAesResult.Text := BytesToHex(ResBytes);
         Exit;
-{$ENDIF}
       end
       else
       begin
@@ -1140,7 +1204,6 @@ begin
     begin
       if chkAESUseTBytes.Checked then
       begin
-{$IFDEF TBYTES_DEFINED}
         case cbbAesKeyBitType.ItemIndex of
           0:
             ResBytes := AESEncryptOfbBytes(DataBytes, KeyBytes, IvBytes, kbt128);
@@ -1151,7 +1214,6 @@ begin
         end;
         edtAesResult.Text := BytesToHex(ResBytes);
         Exit;
-{$ENDIF}
       end
       else
       begin
@@ -1173,16 +1235,13 @@ procedure TFormCrypt.btnAesDecryptClick(Sender: TObject);
 var
   TmpAesIv: TCnAESBuffer;
   IvStr: AnsiString;
-{$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
-{$ENDIF}
 begin
   if rbAesecb.Checked then
   begin
     if chkAESUseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
-      KeyBytes := TEncoding.Default.GetBytes(edtAesKey.Text);
+      KeyBytes := MyStringToBytes(edtAesKey.Text);
       case cbbAesKeyBitType.ItemIndex of
         0:
           ResBytes := AESDecryptEcbBytes(HexToBytes(edtAesResult.Text), KeyBytes, kbt128);
@@ -1193,9 +1252,8 @@ begin
       end;
       if cbbAesPadding.ItemIndex = 1 then
         BytesRemovePKCS7Padding(ResBytes);
-      edtAesDecrypt.Text := TEncoding.Default.GetString(ResBytes);
+      edtAesDecrypt.Text := MyBytesToString(ResBytes);
       Exit;
-{$ENDIF}
     end
     else
     begin
@@ -1222,23 +1280,20 @@ begin
     else
       Move(IvStr[1], TmpAesIv, SizeOf(TmpAesIv));
 
-{$IFDEF TBYTES_DEFINED}
     if chkAESUseTBytes.Checked then
     begin
-      KeyBytes := TEncoding.Default.GetBytes(edtAesKey.Text);
-      IvBytes := StrToBytes(IvStr);
-      DataBytes := TEncoding.Default.GetBytes(edtAes.Text);
+      KeyBytes := MyStringToBytes(edtAesKey.Text);
+      IvBytes := MyStringToBytes(IvStr);
+      DataBytes := MyStringToBytes(edtAes.Text);
 
       if rbAescbc.Checked and (cbbAesPadding.ItemIndex = 1) then // CBC 需要对齐
         BytesAddPKCS7Padding(DataBytes, CN_AES_BLOCKSIZE);
     end;
-{$ENDIF}
 
     if rbAescbc.Checked then
     begin
       if chkAESUseTBytes.Checked then
       begin
-{$IFDEF TBYTES_DEFINED}
         case cbbAesKeyBitType.ItemIndex of
           0:
             ResBytes := AESDecryptCbcBytes(HexToBytes(edtAesResult.Text), KeyBytes, IvBytes, kbt128);
@@ -1249,9 +1304,8 @@ begin
         end;
         if cbbAesPadding.ItemIndex = 1 then
           BytesRemovePKCS7Padding(ResBytes);
-        edtAesDecrypt.Text := TEncoding.Default.GetString(ResBytes);
+        edtAesDecrypt.Text := MyBytesToString(ResBytes);
         Exit;
-{$ENDIF}
       end
       else
       begin
@@ -1271,7 +1325,6 @@ begin
     begin
       if chkAESUseTBytes.Checked then
       begin
-{$IFDEF TBYTES_DEFINED}
         case cbbAesKeyBitType.ItemIndex of
           0:
             ResBytes := AESDecryptCfbBytes(HexToBytes(edtAesResult.Text), KeyBytes, IvBytes, kbt128);
@@ -1280,9 +1333,8 @@ begin
           2:
             ResBytes := AESEncryptCfbBytes(HexToBytes(edtAesResult.Text), KeyBytes, IvBytes, kbt256);
         end;
-        edtAesDecrypt.Text := TEncoding.Default.GetString(ResBytes);
+        edtAesDecrypt.Text := MyBytesToString(ResBytes);
         Exit;
-{$ENDIF}
       end
       else
       begin
@@ -1301,7 +1353,6 @@ begin
     begin
       if chkAESUseTBytes.Checked then
       begin
-{$IFDEF TBYTES_DEFINED}
         case cbbAesKeyBitType.ItemIndex of
           0:
             ResBytes := AESDecryptOfbBytes(HexToBytes(edtAesResult.Text), KeyBytes, IvBytes, kbt128);
@@ -1310,9 +1361,8 @@ begin
           2:
             ResBytes := AESEncryptOfbBytes(HexToBytes(edtAesResult.Text), KeyBytes, IvBytes, kbt256);
         end;
-        edtAesDecrypt.Text := TEncoding.Default.GetString(ResBytes);
+        edtAesDecrypt.Text := MyBytesToString(ResBytes);
         Exit;
-{$ENDIF}
       end
       else
       begin
@@ -1433,7 +1483,7 @@ var
 begin
   FillChar(Key[0], SizeOf(Key), 0);
   FillChar(IV[0], SizeOf(IV), 0);
-  ZUC(PByte(@Key[0]), PByte(@IV[0]), PLongWord(@KeyStream[0]), 2);
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCardinal(@KeyStream[0]), 2);
 
   List := TStringList.Create;
   for I := Low(KeyStream) to High(KeyStream) do
@@ -1458,7 +1508,7 @@ var
 begin
   FillChar(Key[0], SizeOf(Key), $FF);
   FillChar(IV[0], SizeOf(IV), $FF);
-  ZUC(PByte(@Key[0]), PByte(@IV[0]), PLongWord(@KeyStream[0]), 2);
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCardinal(@KeyStream[0]), 2);
 
   List := TStringList.Create;
   for I := Low(KeyStream) to High(KeyStream) do
@@ -1485,7 +1535,7 @@ var
   List: TStringList;
   I: Integer;
 begin
-  ZUC(PByte(@Key[0]), PByte(@IV[0]), PLongWord(@KeyStream[0]), 2);
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCardinal(@KeyStream[0]), 2);
 
   List := TStringList.Create;
   for I := Low(KeyStream) to High(KeyStream) do
@@ -1513,7 +1563,7 @@ var
   KeyStream: array[0..1999] of DWORD;
   List: TStringList;
 begin
-  ZUC(PByte(@Key[0]), PByte(@IV[0]), PLongWord(@KeyStream[0]), 2000);
+  ZUC(PByte(@Key[0]), PByte(@IV[0]), PCardinal(@KeyStream[0]), 2000);
 
   List := TStringList.Create;
   List.Add('$' + IntToHex(KeyStream[0], 2));
@@ -1996,24 +2046,22 @@ end;
 
 procedure TFormCrypt.btn3DesCryptClick(Sender: TObject);
 var
-  Output: AnsiString;
+  S, Output: AnsiString;
   Len: Integer;
   TmpDesIv: array[0..CN_DES_BLOCKSIZE - 1] of Byte;
   IvStr: AnsiString;
-{$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
-{$ENDIF}
 begin
-  Len := Length(AnsiString(edt3DesFrom.Text));
+  if cbb3DesPadding.ItemIndex = 1 then
+    S := StrAddPKCS7Padding(edt3DesFrom.Text, CN_TRIPLE_DES_BLOCKSIZE)
+  else
+    S := edt3DesFrom.Text;
+
+  Len := Length(AnsiString(S));
   if Len < CN_DES_BLOCKSIZE then
     Len := CN_DES_BLOCKSIZE
   else
-  begin
-    if cbb3DesPadding.ItemIndex = 1 then
-      Len := GetPKCS7PaddingByteLength(Len, CN_DES_BLOCKSIZE)
-    else
-      Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
-  end;
+    Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
   SetLength(Output, Len);
   FillChar(Output[1], Len, 0);
 
@@ -2021,24 +2069,19 @@ begin
   begin
     if chk3DESUseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
-      KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
-      DataBytes := TEncoding.Default.GetBytes(edt3DesFrom.Text);
+      KeyBytes := MyStringToBytes(edt3DESKey.Text);
+      DataBytes := MyStringToBytes(edt3DesFrom.Text);
       if cbb3DesPadding.ItemIndex = 1 then
         BytesAddPKCS7Padding(DataBytes, CN_TRIPLE_DES_BLOCKSIZE);
 
       ResBytes := TripleDESEncryptEcbBytes(KeyBytes, DataBytes);
       edt3DESCode.Text := BytesToHex(ResBytes);
       Exit;
-{$ENDIF}
     end
     else
     begin
-      if cbb3DesPadding.ItemIndex = 1 then
-        TripleDESEncryptEcbStr(edt3DESKey.Text,
-          StrAddPKCS7Padding(edt3DesFrom.Text, CN_TRIPLE_DES_BLOCKSIZE), @(Output[1]))
-      else
-        TripleDESEncryptEcbStr(edt3DESKey.Text, edt3DesFrom.Text, @(Output[1]));
+      // 已经处理好了 PKCS7 对齐
+      TripleDESEncryptEcbStr(edt3DESKey.Text, S, @(Output[1]));
     end;
   end
   else
@@ -2054,30 +2097,25 @@ begin
 
     if chk3DESUseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
-      KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
-      IvBytes := StrToBytes(IvStr);
-      DataBytes := TEncoding.Default.GetBytes(edt3DesFrom.Text);
+      KeyBytes := MyStringToBytes(edt3DESKey.Text);
+      IvBytes := MyStringToBytes(IvStr);
+      DataBytes := MyStringToBytes(edt3DesFrom.Text);
       if cbb3DesPadding.ItemIndex = 1 then
         BytesAddPKCS7Padding(DataBytes, CN_TRIPLE_DES_BLOCKSIZE);
 
       ResBytes := TripleDESEncryptCbcBytes(KeyBytes, IvBytes, DataBytes);
       edt3DESCode.Text := BytesToHex(ResBytes);
       Exit;
-{$ENDIF}
     end
     else
     begin
       if cbb3DesPadding.ItemIndex = 1 then
-        TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])),
-          StrAddPKCS7Padding(edt3DesFrom.Text, CN_TRIPLE_DES_BLOCKSIZE), @(Output[1]))
+        TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), S, @(Output[1]))
       else
         TripleDESEncryptCbcStr(edt3DESKey.Text, PAnsiChar(@(TmpDesIv[0])), edt3DesFrom.Text, @(Output[1]));
     end;
   end;
   edt3DESCode.Text := ToHex(@(Output[1]), Length(Output));
-
-  // edt3DESCode.Text := TripleDESEncryptStrToHex(edt3DesFrom.Text, edt3DESKey.Text);
 end;
 
 procedure TFormCrypt.btn3DesDecryptClick(Sender: TObject);
@@ -2086,9 +2124,7 @@ var
   Output: AnsiString;
   Len: Integer;
   TmpDesIv: array[0..CN_DES_BLOCKSIZE - 1] of Byte;
-{$IFDEF TBYTES_DEFINED}
   KeyBytes, IvBytes, ResBytes: TBytes;
-{$ENDIF}
 begin
   S := AnsiString(FromHex(edt3DESCode.Text));
   Len := Length(S);
@@ -2103,14 +2139,12 @@ begin
   begin
     if chk3DESUseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
-      KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
+      KeyBytes := MyStringToBytes(edt3DESKey.Text);
       ResBytes := TripleDESDecryptEcbBytes(KeyBytes, HexToBytes(edt3DESCode.Text));
       if cbb3DesPadding.ItemIndex = 1 then
         BytesRemovePKCS7Padding(ResBytes);
-      edt3DesOrigin.Text := TEncoding.Default.GetString(ResBytes);
+      edt3DesOrigin.Text := MyBytesToString(ResBytes);
       Exit;
-{$ENDIF}
     end
     else
     begin
@@ -2132,15 +2166,13 @@ begin
 
     if chk3DESUseTBytes.Checked then
     begin
-{$IFDEF TBYTES_DEFINED}
-      KeyBytes := TEncoding.Default.GetBytes(edt3DESKey.Text);
-      IvBytes := StrToBytes(IvStr);
+      KeyBytes := MyStringToBytes(edt3DESKey.Text);
+      IvBytes := MyStringToBytes(IvStr);
       ResBytes := TripleDESDecryptCbcBytes(KeyBytes, IvBytes, HexToBytes(edt3DESCode.Text));
       if cbb3DesPadding.ItemIndex = 1 then
         BytesRemovePKCS7Padding(ResBytes);
-      edt3DesOrigin.Text := TEncoding.Default.GetString(ResBytes);
+      edt3DesOrigin.Text := MyBytesToString(ResBytes);
       Exit;
-{$ENDIF}
     end
     else
     begin
@@ -2190,6 +2222,673 @@ begin
   if OpenDialog1.Execute then
     if FileCRC8(OpenDialog1.FileName, Crc) then
       pnlCRC32.Caption := IntToHex(Crc, 2);
+end;
+
+procedure TFormCrypt.btnPoly1305Click(Sender: TObject);
+var
+  L: Integer;
+  S: AnsiString;
+  K: AnsiString;
+  Key: TCnPoly1305Key;
+  Dig: TCnPoly1305Digest;
+begin
+//  S := 'Cryptographic Forum Research Group';
+//  K := '85d6be7857556d337f4452fe42d506a80103808afb0db2fd4abff6af4149f51b';
+//  HexToData(K, @Key[0]);
+
+  S := edtPoly1305.Text;
+  K := edtPoly1305Key.Text;
+  FillChar(Key[0], SizeOf(TCnPoly1305Key), 0);
+  L := Length(K);
+  if L > SizeOf(TCnPoly1305Key) then
+    L := SizeOf(TCnPoly1305Key);
+
+  Move(K[1], Key[0], L);
+  Dig := Poly1305Data(@S[1], Length(S), Key);
+  lblPoly1305Result.Caption := Poly1305Print(Dig);
+end;
+
+procedure TFormCrypt.btnChaCha20BlockClick(Sender: TObject);
+var
+  SKey, SNonce: AnsiString;
+  Key: TCnChaChaKey;
+  Nonce: TCnChaChaNonce;
+  Cnt: TCnChaChaCounter;
+  State: TCnChaChaState;
+begin
+  SKey := '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f';
+  SNonce := '000000090000004a00000000';
+
+  HexToData(SKey, @Key[0]);
+  HexToData(SNonce, @Nonce[0]);
+
+  Cnt := 1;
+
+  ChaCha20Block(Key, Nonce, Cnt, State);
+end;
+
+procedure TFormCrypt.btnChaCha20DataClick(Sender: TObject);
+var
+  S, SKey, SNonce: AnsiString;
+  Key: TCnChaChaKey;
+  Nonce: TCnChaChaNonce;
+  EnRes: TBytes;
+begin
+  SKey := '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f';
+  SNonce := '000000000000004a00000000';
+
+  HexToData(SKey, @Key[0]);
+  HexToData(SNonce, @Nonce[0]);
+
+  S := 'Ladies and Gentlemen of the class of ''99: If I could offer you only one tip for the future, sunscreen would be it.';
+  SetLength(EnRes, Length(S));
+
+  ChaCha20EncryptData(Key, Nonce, @S[1], Length(S), @EnRes[0]);
+  ChaCha20DecryptData(Key, Nonce, @EnRes[0], Length(EnRes), @S[1]);
+  ShowMessage(S);
+
+  SetLength(EnRes, 0);
+end;
+
+procedure TFormCrypt.btnGHashClick(Sender: TObject);
+var
+  H: TCnGHash128Key;
+  C, A: TBytes;
+  T: TCnGHash128Tag;
+begin
+  HexToData('66E94BD4EF8A2C3B884CFA59CA342B2E', @H[0]);
+  GHash128(H, nil, 0, nil, 0, T);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // C、A 均为空，结果全 0
+
+  C := HexToBytes('0388DACE60B6A392F328C2B971B2FE78');
+  GHash128(H, @C[0], Length(C), nil, 0, T);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // F38CBB1AD69223DCC3457AE5B6B0F885，一块整 C，没 A
+
+  HexToData('b83b533708bf535d0aa6e52980d53b78', @H[0]);
+  C := HexToBytes('42831ec2217774244b7221b784d0d49ce3aa212f2c02a4e035c17e2329aca12e21d514b25466931c7d8f6a5aac84aa051ba30b396a0aac973d58e091473f5985');
+  T := GHash128Bytes(H, C, nil);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 7F1B32B81B820D02614F8895AC1D4EAC，多块整 C，没 A
+
+  HexToData('b83b533708bf535d0aa6e52980d53b78', @H[0]);
+  C := HexToBytes('42831ec2217774244b7221b784d0d49ce3aa212f2c02a4e035c17e2329aca12e21d514b25466931c7d8f6a5aac84aa051ba30b396a0aac973d58e091');
+  A := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+  T := GHash128Bytes(H, C, A);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 698e57f70e6ecc7fd9463b7260a9ae5f 多块非整 C 和 多块非整 A
+end;
+
+procedure TFormCrypt.btnGMulBlockClick(Sender: TObject);
+var
+  Sk, SIv, SX: string;
+  Key: TCnGHash128Key;
+  Iv: TCn128BitsBuffer;
+  X, Y, Z: TCn128BitsBuffer;
+begin
+  Sk := '00BA5F76F3D8982B199920E3221ED05F';
+  SIv := '384C3CEDE5CBC5560F002F94A8E4205A';
+  SX := '3BEA3321BDA9EBF02D5459BCE4295E3A';
+
+  HexToData(SK, @Key[0]);
+  HexToData(SIv, @Iv[0]);
+  HexToData(SX, @X[0]);
+
+  MemoryXor(@X[0], @Iv[0], SizeOf(TCn128BitsBuffer), @X[0]);
+
+  Move(Key[0], Y[0], SizeOf(TCn128BitsBuffer));
+  GMulBlock128(X, Y, Z);  // 至少符合交换律了
+
+  ShowMessage(DataToHex(@Z[0], SizeOf(TCn128BitsBuffer)));
+end;
+
+procedure TFormCrypt.btnGHash1Click(Sender: TObject);
+var
+  H: TCnGHash128Key;
+  C, A: TBytes;
+  T: TCnGHash128Tag;
+  Ctx: TCnGHash128Context;
+begin
+  HexToData('b83b533708bf535d0aa6e52980d53b78', @H[0]);
+  C := HexToBytes('42831ec2217774244b7221b784d0d49ce3aa212f2c02a4e035c17e2329aca12e21d514b25466931c7d8f6a5aac84aa051ba30b396a0aac973d58e091');
+  A := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  GHash128Start(Ctx, H, @A[0], Length(A));
+  GHash128Update(Ctx, @C[0], Length(C));
+  GHash128Finish(Ctx, T);
+
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 698e57f70e6ecc7fd9463b7260a9ae5f 多块非整 C 和 多块非整 A
+end;
+
+procedure TFormCrypt.btnAES128GCMEnTestClick(Sender: TObject);
+var
+  Key, Iv, AD, Plain, C: TBytes;
+  T: TCnGCM128Tag;
+begin
+  Key := HexToBytes('00000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := nil;
+  AD := nil;
+
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv 全 0，Plain 和 AD 空，密文空
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 58e2fccefa7e3061367f1d57a4e7455a
+
+  Key := HexToBytes('00000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := HexToBytes('00000000000000000000000000000000');
+  AD := nil;
+
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain 全 0，AD 空
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 0388dace60b6a392f328c2b971b2fe78
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // ab6e47d42cec13bdf53a67b21257bddf
+
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308');
+  Iv := HexToBytes('cafebabefacedbad');
+  Plain := HexToBytes('d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  C := AES128GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD 全有，且 AD 非 96
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 61353b4c2806934a777ff51fa22a4755699b2a714fcdc6f83766e5f97b6c742373806900e49f24b22b097544d4896b424989b5e1ebac0f07c23f4598
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 3612d2e79e3b0785561be14aaca2fccb
+end;
+
+procedure TFormCrypt.btnAES128GCMDeTestClick(Sender: TObject);
+var
+  Key, Iv, AD, C, P: TBytes;
+  T: TCnGCM128Tag;
+begin
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308');
+  Iv := HexToBytes('cafebabefacedbad');
+  C := HexToBytes('61353b4c2806934a777ff51fa22a4755699b2a714fcdc6f83766e5f97b6c742373806900e49f24b22b097544d4896b424989b5e1ebac0f07c23f4598');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+  HexToData('3612d2e79e3b0785561be14aaca2fccb', @T[0]);
+
+  P := AES128GCMDecryptBytes(Key, Iv, C, AD, T);
+  ShowMessage(DataToHex(@P[0], Length(P))); // d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39
+end;
+
+procedure TFormCrypt.btnSM4GCMClick(Sender: TObject);
+var
+  Key, Iv, AD, Plain, C: TBytes;
+  T: TCnGCM128Tag;
+begin
+  Key := HexToBytes('0123456789ABCDEFFEDCBA9876543210');
+  Iv := HexToBytes('00001234567800000000ABCD');
+  Plain := HexToBytes('AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDEEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA');
+  AD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+
+  C := SM4GCMEncryptBytes(Key, Iv, Plain, AD, T);  // 例子数据来源于 RFC 8998
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 17F399F08C67D5EE19D0DC9969C4BB7D5FD46FD3756489069157B282BB200735D82710CA5C22F0CCFA7CBF93D496AC15A56834CBCF98C397B4024A2691233B8D
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 83DE3541E4C2B58177E065A9BF7B62EC
+end;
+
+procedure TFormCrypt.btnAESCMACClick(Sender: TObject);
+var
+  Key, M: TBytes;
+  T: TCnCMAC128Tag;
+begin
+  Key := HexToBytes('2b7e151628aed2a6abf7158809cf4f3c');
+  T := AES128CMAC128Bytes(Key, nil);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // bb1d6929 e9593728 7fa37d12 9b756746
+
+  M := HexToBytes('6bc1bee22e409f96e93d7e117393172a');
+  T := AES128CMAC128Bytes(Key, M);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 070a16b4 6b4d4144 f79bdd9d d04a287c
+
+  M := HexToBytes('6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411');
+  T := AES128CMAC128Bytes(Key, M);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // dfa66747 de9ae630 30ca3261 1497c827
+
+  M := HexToBytes('6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710');
+  T := AES128CMAC128Bytes(Key, M);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 51f0bebf 7e3b9d92 fc497417 79363cfe
+end;
+
+procedure TFormCrypt.btnAESCCMEncClick(Sender: TObject);
+var
+  Key, Nonce, AAD, P, C: TBytes;
+  T: TCnCCM128Tag;
+begin
+  // NIST 例子。注意从例子数据中倒推，须保证 CnAEAD 头部声明中的 Tag 4 字节，长 8 字节，也就是 CCM_M_LEN = 4; CCM_L_LEN = 8;
+  Key := HexToBytes('404142434445464748494a4b4c4d4e4f');
+  Nonce := HexToBytes('10111213141516');
+  P := HexToBytes('20212223');
+  AAD := HexToBytes('0001020304050607');
+
+  SetLength(C, Length(P));
+  AES128CCMEncrypt(@Key[0], Length(Key), @Nonce[0], Length(Nonce), @P[0],
+    Length(P), @AAD[0], Length(AAD), @C[0], T);
+
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));   // 4dac255d
+  ShowMessage(DataToHex(@C[0], Length(C)));   // 7162015b
+
+  // RFC 例子。注意须保证 CnAEAD 头部声明中的 Tag 8 字节，长 2 字节，也就是 CCM_M_LEN = 8; CCM_L_LEN = 2;
+  Key := HexToBytes('C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF');
+  Nonce := HexToBytes('00000003020100A0A1A2A3A4A5');
+  P := HexToBytes('08090A0B0C0D0E0F101112131415161718191A1B1C1D1E');
+  AAD := HexToBytes('0001020304050607');
+
+  C := AES128CCMEncryptBytes(Key, Nonce, P, AAD, T);
+  ShowMessage(DataToHex(@T[0], SizeOf(T))); // 17E8D12CFDF926E0
+  ShowMessage(DataToHex(@C[0], Length(C))); // 588C979A 61C663D2 F066D0C2 C0F98980 6D5F6B61 DAC384
+end;
+
+procedure TFormCrypt.btnAESCCMDecClick(Sender: TObject);
+var
+  Key, Nonce, AAD, P, C: TBytes;
+  T: TCnCCM128Tag;
+begin
+  // NIST 例子。注意从例子数据中倒推，须保证 CnAEAD 头部声明中的 Tag 4 字节，长 8 字节，也就是 CCM_M_LEN = 4; CCM_L_LEN = 8;
+  Key := HexToBytes('404142434445464748494a4b4c4d4e4f');
+  Nonce := HexToBytes('10111213141516');
+  C := HexToBytes('7162015b');
+  AAD := HexToBytes('0001020304050607');
+  HexToData('4dac255d', @T[0]);
+
+  SetLength(P, Length(C));
+  if AES128CCMDecrypt(@Key[0], Length(Key), @Nonce[0], Length(Nonce), @C[0],
+    Length(C), @AAD[0], Length(AAD), @P[0], T) then
+    ShowMessage(DataToHex(@P[0], Length(P)));   // 20212223
+
+  // RFC 例子。注意须保证 CnAEAD 头部声明中的 Tag 8 字节，长 2 字节，也就是 CCM_M_LEN = 8; CCM_L_LEN = 2;
+  Key := HexToBytes('C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF');
+  Nonce := HexToBytes('00000003020100A0A1A2A3A4A5');
+  C := HexToBytes('588C979A61C663D2F066D0C2C0F989806D5F6B61DAC384');
+  AAD := HexToBytes('0001020304050607');
+  HexToData('17E8D12CFDF926E0', @T[0]); // 这句在 CnAEAD 头部未正确声明 CCM_M_LEN 和 CCM_L_LEN 时会出错
+
+  P := AES128CCMEncryptBytes(Key, Nonce, C, AAD, T);
+  if P <> nil then
+    ShowMessage(DataToHex(@P[0], Length(P))); // 08090A0B0C0D0E0F101112131415161718191A1B1C1D1E
+end;
+
+procedure TFormCrypt.btnSM4CCMClick(Sender: TObject);
+var
+  Key, Nonce, AAD, P, C: TBytes;
+  T: TCnCCM128Tag;
+begin
+  // RFC 8998 例子，注意须保证 CnAEAD 头部声明中的 Tag 16 字节，长 3 字节，也就是 CCM_M_LEN = 16; CCM_L_LEN = 3;
+  Key := HexToBytes('0123456789ABCDEFFEDCBA9876543210');
+  Nonce := HexToBytes('00001234567800000000ABCD');
+  AAD := HexToBytes('FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2');
+  P := HexToBytes('AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDEEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA');
+  C := SM4CCMEncryptBytes(Key, Nonce, P, AAD, T);
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 48AF93501FA62ADBCD414CCE6034D895DDA1BF8F132F042098661572E7483094 FD12E518CE062C98ACEE28D95DF4416BED31A2F04476C18BB40C84A74B97DC5B
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 16842D4FA186F56AB33256971FA110F4
+end;
+
+procedure TFormCrypt.btnAES192GCMEnTestClick(Sender: TObject);
+var
+  Key, Iv, AD, Plain, C: TBytes;
+  T: TCnGCM128Tag;
+begin
+  Key := HexToBytes('000000000000000000000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := nil;
+  AD := nil;
+
+  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv 全 0，Plain 和 AD 空，密文空
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // cd33b28ac773f74ba00ed1f312572435
+
+  Key := HexToBytes('000000000000000000000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := HexToBytes('00000000000000000000000000000000');
+  AD := nil;
+
+  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain 全 0，AD 空
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 98e7247c07f0fe411c267e4384b0f600
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 2ff58d80033927ab8ef4d4587514f0fb
+
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308feffe9928665731c');
+  Iv := HexToBytes('9313225df88406e555909c5aff5269aa6a7a9538534f7da1e4c303d2a318a728c3c0c95156809539fcf0e2429a6b525416aedbf5a0de6a57a637b39b');
+  Plain := HexToBytes('d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  C := AES192GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD 全有，且 AD 非 96
+  ShowMessage(DataToHex(@C[0], Length(C)));  // d27e88681ce3243c4830165a8fdcf9ff1de9a1d8e6b447ef6ef7b79828666e4581e79012af34ddd9e2f037589b292db3e67c036745fa22e7e9b7373b
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // dcf566ff291c25bbb8568fc3d376a6d9
+end;
+
+procedure TFormCrypt.btnAES192GCMDeTestClick(Sender: TObject);
+var
+  Key, Iv, AD, C, P: TBytes;
+  T: TCnGCM128Tag;
+begin
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308feffe9928665731c');
+  Iv := HexToBytes('9313225df88406e555909c5aff5269aa6a7a9538534f7da1e4c303d2a318a728c3c0c95156809539fcf0e2429a6b525416aedbf5a0de6a57a637b39b');
+  C := HexToBytes('d27e88681ce3243c4830165a8fdcf9ff1de9a1d8e6b447ef6ef7b79828666e4581e79012af34ddd9e2f037589b292db3e67c036745fa22e7e9b7373b');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  HexToData('dcf566ff291c25bbb8568fc3d376a6d9', @T[0]);
+
+  P := AES192GCMDecryptBytes(Key, Iv, C, AD, T);
+  ShowMessage(DataToHex(@P[0], Length(P))); // d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39
+end;
+
+procedure TFormCrypt.btnAES256GCMEnTestClick(Sender: TObject);
+var
+  Key, Iv, AD, Plain, C: TBytes;
+  T: TCnGCM128Tag;
+begin
+  Key := HexToBytes('0000000000000000000000000000000000000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := nil;
+  AD := nil;
+
+  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv 全 0，Plain 和 AD 空，密文空
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 530f8afbc74536b9a963b4f1c4cb738b
+
+  Key := HexToBytes('0000000000000000000000000000000000000000000000000000000000000000');
+  Iv := HexToBytes('000000000000000000000000');
+  Plain := HexToBytes('00000000000000000000000000000000');
+  AD := nil;
+
+  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain 全 0，AD 空
+  ShowMessage(DataToHex(@C[0], Length(C)));  // cea7403d4d606b6e074ec5d3baf39d18
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // d0d1c8a799996bf0265b98b5d48ab919
+
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308feffe9928665731c6d6a8f9467308308');
+  Iv := HexToBytes('cafebabefacedbaddecaf888');
+  Plain := HexToBytes('d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  C := AES256GCMEncryptBytes(Key, Iv, Plain, AD, T);  // Key Iv Plain AD 全有，且 AD 非 96
+  ShowMessage(DataToHex(@C[0], Length(C)));  // 522dc1f099567d07f47f37a32a84427d643a8cdcbfe5c0c97598a2bd2555d1aa8cb08e48590dbb3da7b08b1056828838c5f61e6393ba7a0abcc9f662
+  ShowMessage(DataToHex(@T[0], SizeOf(T)));  // 76fc6ece0f4e1768cddf8853bb2d551b
+end;
+
+procedure TFormCrypt.btnAES256GCMDeTestClick(Sender: TObject);
+var
+  Key, Iv, AD, C, P: TBytes;
+  T: TCnGCM128Tag;
+begin
+  Key := HexToBytes('feffe9928665731c6d6a8f9467308308feffe9928665731c6d6a8f9467308308');
+  Iv := HexToBytes('cafebabefacedbaddecaf888');
+  C := HexToBytes('522dc1f099567d07f47f37a32a84427d643a8cdcbfe5c0c97598a2bd2555d1aa8cb08e48590dbb3da7b08b1056828838c5f61e6393ba7a0abcc9f662');
+  AD := HexToBytes('feedfacedeadbeeffeedfacedeadbeefabaddad2');
+
+  HexToData('76fc6ece0f4e1768cddf8853bb2d551b', @T[0]);
+
+  P := AES256GCMDecryptBytes(Key, Iv, C, AD, T);
+  ShowMessage(DataToHex(@P[0], Length(P))); // d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39
+end;
+
+procedure TFormCrypt.btnAESGCMNoPaddingJavaClick(Sender: TObject);
+var
+  Key, Nonce, Text, AAD: AnsiString;
+  Res, Plain: TBytes;
+begin
+  Key := '0J7tEZyI4g41mfXCj2CkdUIKIsxc7xzE';
+  Nonce := 'AkSawJd1VOlx';
+  Text := '1234567890123456789';
+  AAD := 'question';
+
+  SetLength(Res, Length(Text) + SizeOf(TCnGCM128Tag));
+
+  AESGCMNoPaddingEncrypt(@Key[1], Length(Key), @Nonce[1], Length(Nonce), @Text[1], Length(Text), @AAD[1], Length(AAD), @Res[0]);
+
+  ShowMessage(BytesToHex(Res)); // Java 里得到 e099392707bbf678fc457972872b8716082950a581c888e65642f382ebb648fb8d8a0c，一致
+
+  SetLength(Plain, Length(Res) - SizeOf(TCnGCM128Tag));
+  if AESGCMNoPaddingDecrypt(@Key[1], Length(Key), @Nonce[1], Length(Nonce), @Res[0], Length(Res), @AAD[1], Length(AAD), @Plain[0]) then
+    ShowMessage(BytesToHex(Plain))
+  else
+    ShowMessage('Decrypt Failed');
+end;
+
+procedure TFormCrypt.btnFNVClick(Sender: TObject);
+var
+  B: TBytes;
+  S: AnsiString;
+  T: TCnFNVType;
+  R32: TCnFNVHash32;
+  R64: TCnFNVHash64;
+  R128: TCnFNVHash128;
+  R256: TCnFNVHash256;
+  R512: TCnFNVHash512;
+  R1024: TCnFNVHash1024;
+begin
+  T := TCnFNVType(cbbFNVType.ItemIndex);
+  S := edtFNV.Text;
+  B := AnsiToBytes(S);
+
+  if rbFNV1.Checked then
+  begin
+    case T of
+      cft32: R32 := FNV1Hash32(B);
+      cft64: R64 := FNV1Hash64(B);
+      cft128: R128 := FNV1Hash128(B);
+      cft256: R256 := FNV1Hash256(B);
+      cft512: R512 := FNV1Hash512(B);
+      cft1024: R1024 := FNV1Hash1024(B);
+    end;
+  end
+  else if rbFNV1a.Checked then
+  begin
+    case T of
+      cft32: R32 := FNV1aHash32(B);
+      cft64: R64 := FNV1aHash64(B);
+      cft128: R128 := FNV1aHash128(B);
+      cft256: R256 := FNV1aHash256(B);
+      cft512: R512 := FNV1aHash512(B);
+      cft1024: R1024 := FNV1aHash1024(B);
+    end;
+  end;
+
+  case T of
+    cft32: pnlFNV.Caption := DataToHex(@R32[0], SizeOf(R32));
+    cft64: pnlFNV.Caption := DataToHex(@R64[0], SizeOf(R64));
+    cft128: pnlFNV.Caption := DataToHex(@R128[0], SizeOf(R128));
+    cft256: pnlFNV.Caption := DataToHex(@R256[0], SizeOf(R256));
+    cft512: pnlFNV.Caption := DataToHex(@R512[0], SizeOf(R512));
+    cft1024: pnlFNV.Caption := DataToHex(@R1024[0], SizeOf(R1024));
+  end;
+end;
+
+procedure TFormCrypt.btnHChaCha20SubKeyClick(Sender: TObject);
+var
+  SKey, SNonce: AnsiString;
+  Key: TCnChaChaKey;
+  Nonce: TCnHChaChaNonce;
+  SubKey: TCnHChaChaSubKey;
+begin
+  SKey := '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f';
+  SNonce := '000000090000004a0000000031415927';
+
+  HexToData(SKey, @Key[0]);
+  HexToData(SNonce, @Nonce[0]);
+
+  HChaCha20SubKey(Key, Nonce, SubKey);
+end;
+
+procedure TFormCrypt.btnXChaCha20EncClick(Sender: TObject);
+var
+  SKey, SNonce, Plain: AnsiString;
+  Key: TCnChaChaKey;
+  Nonce: TCnXChaChaNonce;
+  PT, Res: TBytes;
+begin
+  SKey := '808182838485868788898A8B8C8D8E8F909192939495969798999A9B9C9D9E9F';
+  SNonce := '404142434445464748494A4B4C4D4E4F5051525354555658';
+  Plain :=
+    '5468652064686F6C65202870726F6E6F756E6365642022646F6C652229206973' +
+    '20616C736F206B6E6F776E2061732074686520417369617469632077696C6420' +
+    '646F672C2072656420646F672C20616E642077686973746C696E6720646F672E' +
+    '2049742069732061626F7574207468652073697A65206F662061204765726D61' +
+    '6E20736865706865726420627574206C6F6F6B73206D6F7265206C696B652061' +
+    '206C6F6E672D6C656767656420666F782E205468697320686967686C7920656C' +
+    '757369766520616E6420736B696C6C6564206A756D70657220697320636C6173' +
+    '736966696564207769746820776F6C7665732C20636F796F7465732C206A6163' +
+    '6B616C732C20616E6420666F78657320696E20746865207461786F6E6F6D6963' +
+    '2066616D696C792043616E696461652E';
+
+  HexToData(SKey, @Key[0]);
+  HexToData(SNonce, @Nonce[0]);
+  PT := HexToBytes(Plain);
+
+  Res := XChaCha20EncryptBytes(Key, Nonce, PT);
+
+  if DataToHex(@Res[0], Length(Res)) =
+    '7D0A2E6B7F7C65A236542630294E063B7AB9B555A5D5149AA21E4AE1E4FBCE87' +
+    'ECC8E08A8B5E350ABE622B2FFA617B202CFAD72032A3037E76FFDCDC4376EE05' +
+    '3A190D7E46CA1DE04144850381B9CB29F051915386B8A710B8AC4D027B8B050F' +
+    '7CBA5854E028D564E453B8A968824173FC16488B8970CAC828F11AE53CABD201' +
+    '12F87107DF24EE6183D2274FE4C8B1485534EF2C5FBC1EC24BFC3663EFAA08BC' +
+    '047D29D25043532DB8391A8A3D776BF4372A6955827CCB0CDD4AF403A7CE4C63' +
+    'D595C75A43E045F0CCE1F29C8B93BD65AFC5974922F214A40B7C402CDB91AE73' +
+    'C0B63615CDAD0480680F16515A7ACE9D39236464328A37743FFC28F4DDB324F4' +
+    'D0F5BBDC270C65B1749A6EFFF1FBAA09536175CCD29FB9E6057B307320D31683' +
+    '8A9C71F70B5B5907A66F7EA49AADC409' then
+  ShowMessage('OK');
+end;
+
+procedure TFormCrypt.btnChaCha20Poly1305AeadClick(Sender: TObject);
+var
+  Plain, Key, AAD, Nonce, EnData, DeData: TBytes;
+  Tag: TCnPoly1305Digest;
+begin
+  Plain := AnsiToBytes('Ladies and Gentlemen of the class of ''99: If I could offer you only one tip for the future, sunscreen would be it.');
+  AAD := HexToBytes('50515253C0C1C2C3C4C5C6C7');
+  Key := HexToBytes('808182838485868788898A8B8C8D8E8F909192939495969798999A9B9C9D9E9F');
+  Nonce := HexToBytes('070000004041424344454647');
+
+  EnData := ChaCha20Poly1305EncryptBytes(Key, Nonce, Plain, AAD, Tag);
+
+  DeData := ChaCha20Poly1305DecryptBytes(Key, Nonce, EnData, AAD, Tag);
+
+  if CompareBytes(DeData, Plain) then
+    ShowMessage('OK');
+end;
+
+procedure TFormCrypt.btnXChaCha20Poly1305AeadClick(Sender: TObject);
+var
+  Plain, Key, AAD, Nonce, EnData, DeData: TBytes;
+  Tag: TCnPoly1305Digest;
+begin
+  Plain := HexToBytes(
+    '4C616469657320616E642047656E746C656D656E206F662074686520636C6173' +
+    '73206F66202739393A204966204920636F756C64206F6666657220796F75206F' +
+    '6E6C79206F6E652074697020666F7220746865206675747572652C2073756E73' +
+    '637265656E20776F756C642062652069742E');
+
+  AAD := HexToBytes('50515253C0C1C2C3C4C5C6C7');
+  Key := HexToBytes('808182838485868788898A8B8C8D8E8F909192939495969798999A9B9C9D9E9F');
+  Nonce := HexToBytes('404142434445464748494a4b4c4d4e4f5051525354555657');
+
+  EnData := XChaCha20Poly1305EncryptBytes(Key, Nonce, Plain, AAD, Tag);
+
+  DeData := XChaCha20Poly1305DecryptBytes(Key, Nonce, EnData, AAD, Tag);
+
+  if CompareBytes(DeData, Plain) then
+    ShowMessage('OK');
+end;
+
+procedure TFormCrypt.btnSHAKEClick(Sender: TObject);
+var
+  S: AnsiString;
+begin
+  S := edtSHAKE.Text;
+  if rbSHAKE128.Checked then
+    mmoSHAKE.Lines.Text := BytesToHex(SHAKE128String(S, udSHAKE.Position))
+  else
+    mmoSHAKE.Lines.Text := BytesToHex(SHAKE256String(S, udSHAKE.Position));
+end;
+
+procedure TFormCrypt.btnUSHAKEClick(Sender: TObject);
+begin
+  if rbSHAKE128.Checked then
+    mmoSHAKE.Lines.Text := BytesToHex(SHAKE128UnicodeString(edtSHAKE.Text, udSHAKE.Position))
+  else
+    mmoSHAKE.Lines.Text := BytesToHex(SHAKE256UnicodeString(edtSHAKE.Text, udSHAKE.Position));
+end;
+
+procedure TFormCrypt.btnSHAKEFileClick(Sender: TObject);
+begin
+  if OpenDialog1.Execute then
+  begin
+    if rbSHAKE128.Checked then
+      mmoSHAKE.Lines.Text := BytesToHex(SHAKE128File(OpenDialog1.FileName, udSHAKE.Position))
+    else
+      mmoSHAKE.Lines.Text := BytesToHex(SHAKE256File(OpenDialog1.FileName, udSHAKE.Position));
+  end;
+end;
+
+procedure TFormCrypt.btnSM4Utf8EncClick(Sender: TObject);
+var
+  S: AnsiString;
+  Key, Data, Iv, Res: TBytes;
+begin
+  // 整好 UTF8 内容
+  S := Utf8Encode(edtSm4.Text);
+  Key := MyStringToBytes(edtSm4Key.Text);
+  Data := AnsiToBytes(S);
+
+  // 这几种模式要准备好初始化向量
+  if rbSm4Cbc.Checked or rbSm4Cfb.Checked or rbSm4Ofb.Checked or rbSm4Ctr.Checked then
+  begin
+    Iv := HexToBytes(edtSM4Iv.Text);
+    if Length(Iv) <> CN_SM4_BLOCKSIZE then
+    begin
+      ShowMessage('Invalid SM4 Iv, Use Our Default Iv.');
+      SetLength(Iv, CN_SM4_BLOCKSIZE);
+      Move(Sm4Iv[0], Iv[0], CN_SM4_BLOCKSIZE);
+    end;
+  end;
+
+  // 这几种模式要处理对齐
+  if rbSm4Ecb.Checked or rbSm4Cbc.Checked then
+    if cbbSm4Padding.ItemIndex = 1 then
+      BytesAddPKCS7Padding(Data, CN_SM4_BLOCKSIZE);
+
+  // 然后加密
+  if rbSm4Ecb.Checked then
+    Res := SM4EncryptEcbBytes(Key, Data)
+  else if rbSm4Cbc.Checked then
+    Res := SM4EncryptCbcBytes(Key, Iv, Data)
+  else if rbSm4Cfb.Checked then
+    Res := SM4EncryptCfbBytes(Key, Iv, Data)
+  else if rbSm4Ofb.Checked then
+    Res := SM4EncryptOfbBytes(Key, Iv, Data)
+  else if rbSm4Ctr.Checked then
+    Res := SM4EncryptCtrBytes(Key, Iv, Data);
+
+  edtSm4Code.Text := BytesToHex(Res);
+end;
+
+procedure TFormCrypt.btnSM4Utf8DecClick(Sender: TObject);
+var
+  Key, Data, Iv, Res: TBytes;
+begin
+  Key := MyStringToBytes(edtSm4Key.Text);
+  Data := HexToBytes(edtSm4Code.Text);
+
+  // 这几种模式要准备好初始化向量
+  if rbSm4Cbc.Checked or rbSm4Cfb.Checked or rbSm4Ofb.Checked or rbSm4Ctr.Checked then
+  begin
+    Iv := HexToBytes(edtSM4Iv.Text);
+    if Length(Iv) <> CN_SM4_BLOCKSIZE then
+    begin
+      ShowMessage('Invalid SM4 Iv, Use Our Default Iv.');
+      SetLength(Iv, CN_SM4_BLOCKSIZE);
+      Move(Sm4Iv[0], Iv[0], CN_SM4_BLOCKSIZE);
+    end;
+  end;
+
+  // 然后解密
+  if rbSm4Ecb.Checked then
+    Res := SM4DecryptEcbBytes(Key, Data)
+  else if rbSm4Cbc.Checked then
+    Res := SM4DecryptCbcBytes(Key, Iv, Data)
+  else if rbSm4Cfb.Checked then
+    Res := SM4DecryptCfbBytes(Key, Iv, Data)
+  else if rbSm4Ofb.Checked then
+    Res := SM4DecryptOfbBytes(Key, Iv, Data)
+  else if rbSm4Ctr.Checked then
+    Res := SM4DecryptCtrBytes(Key, Iv, Data);
+
+  // 这几种模式要处理对齐
+  if rbSm4Ecb.Checked or rbSm4Cbc.Checked then
+    if cbbSm4Padding.ItemIndex = 1 then
+      BytesRemovePKCS7Padding(Res);
+
+  edtSm4Dec.Text := Utf8Decode(BytesToAnsi(Res));
 end;
 
 end.
