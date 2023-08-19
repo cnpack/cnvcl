@@ -2401,7 +2401,7 @@ procedure TCnDebugger.LogRawString(const Value: string);
 begin
 {$IFDEF DEBUG}
   if Value <> '' then
-    TraceMemDump(Pointer(Value), Length(Value) * SizeOf(Char));
+    LogMemDump(Pointer(Value), Length(Value) * SizeOf(Char));
 {$ENDIF}
 end;
 
@@ -2409,7 +2409,7 @@ procedure TCnDebugger.LogRawAnsiString(const Value: AnsiString);
 begin
 {$IFDEF DEBUG}
   if Value <> '' then
-    TraceMemDump(Pointer(Value), Length(Value) * SizeOf(AnsiChar));
+    LogMemDump(Pointer(Value), Length(Value) * SizeOf(AnsiChar));
 {$ENDIF}
 end;
 
@@ -2417,7 +2417,7 @@ procedure TCnDebugger.LogRawWideString(const Value: WideString);
 begin
 {$IFDEF DEBUG}
   if Value <> '' then
-    TraceMemDump(Pointer(Value), Length(Value) * SizeOf(WideChar));
+    LogMemDump(Pointer(Value), Length(Value) * SizeOf(WideChar));
 {$ENDIF}
 end;
 
@@ -2428,9 +2428,9 @@ begin
     Exit;
 
   if AMsg = '' then
-    TraceMsg(Strings.Text)
+    LogMsg(Strings.Text)
   else
-    TraceMsg(AMsg + SCnCRLF + Strings.Text);
+    LogMsg(AMsg + SCnCRLF + Strings.Text);
 {$ENDIF}
 end;
 

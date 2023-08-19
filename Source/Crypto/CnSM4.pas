@@ -61,10 +61,13 @@ uses
 
 const
   CN_SM4_KEYSIZE = 16;
+  {* SM4 的密码长度 16 字节}
 
   CN_SM4_BLOCKSIZE = 16;
+  {* SM4 的分块长度 16 字节}
 
   CN_SM4_NONCESIZE = 8;
+  {* SM4 的 CTR 模式下的准初始化向量长度 8 字节}
 
 type
   TCnSM4Key    = array[0..CN_SM4_KEYSIZE - 1] of Byte;
