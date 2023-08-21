@@ -54,7 +54,9 @@ unit CnContainers;
 * 开发平台：PWinXP + Delphi 7
 * 兼容测试：PWin2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.11.05 V1.3
+* 修改记录：2023.08.21 V1.4
+*               增加扩展精度浮点数列表
+*           2020.11.05 V1.3
 *               将大数池基类抽取至此处
 *           2017.01.17 V1.2
 *               加入 TCnObjectRingBuffer 循环缓冲区实现
@@ -76,7 +78,8 @@ uses
 {$DEFINE MULTI_THREAD} // 数学对象池支持多线程，性能略有下降，如不需要，注释此行即可
 
 type
-  TCnQueue = class
+  TCnQueue = class(TObject)
+  {* 指针队列实现类}
   private
     FMultiThread: Boolean;
     FHead: TObject;
@@ -94,6 +97,7 @@ type
   end;
 
   TCnObjectStack = class(TObject)
+  {* 对象栈实现类}
   private
     FList: TList;
   public
@@ -110,8 +114,10 @@ type
   end;
 
   ECnRingBufferFullException = class(Exception);
+  {* 循环队列缓冲区满时触发的异常}
 
   ECnRingBufferEmptyException = class(Exception);
+  {* 循环队列缓冲区空时触发的异常}
 
   TCnObjectRingBuffer = class(TObject)
   {* 循环队列缓冲区}
@@ -181,7 +187,7 @@ type
   end;
 
   TCnIntegerList = class(TList)
-  {* 整数列表}
+  {* 整数列表，利用 32 位 Pointer 或 64 位 Pointer 的低 32 位存 Integer}
   private
     function Get(Index: Integer): Integer;
     procedure Put(Index: Integer; const Value: Integer);
@@ -229,6 +235,46 @@ type
     property Count: Integer read FCount write SetCount;
     property Items[Index: Integer]: Int64 read Get write Put; default;
     property List: PInt64List read FList;
+  end;
+
+  PExtendedList = ^TExtendedList;
+  TExtendedList = array[0..MaxListSize - 1] of Extended;
+
+  TCnExtendedList = class(TObject)
+  {* 扩展精度浮点数列表，注意不同平台下元素长度可能不一样}
+  private
+    FList: PExtendedList;
+    FCount: Integer;
+    FCapacity: Integer;
+  protected
+    function Get(Index: Integer): Extended;
+    procedure Grow; virtual;
+    procedure Put(Index: Integer; Item: Extended);
+    procedure SetCapacity(NewCapacity: Integer);
+    procedure SetCount(NewCount: Integer);
+  public
+    destructor Destroy; override;
+    function Add(Item: Extended): Integer;
+    procedure Clear; virtual;
+    procedure Delete(Index: Integer);
+    procedure DeleteLow(ACount: Integer);
+    {* 新增方法，删除 ACount 个最低端元素，如果 Count 不够则删除 Count 个}
+    class procedure Error(const Msg: string; Data: Integer); virtual;
+    procedure Exchange(Index1, Index2: Integer);
+    function Expand: TCnExtendedList;
+    function First: Extended;
+    function IndexOf(Item: Extended): Integer;
+    procedure Insert(Index: Integer; Item: Extended);
+    procedure InsertBatch(Index: Integer; ACount: Integer);
+    {* 新增方法，在某位置批量插入全 0 值 ACount 个}
+    function Last: Extended;
+    procedure Move(CurIndex, NewIndex: Integer);
+    function Remove(Item: Extended): Integer;
+
+    property Capacity: Integer read FCapacity write SetCapacity;
+    property Count: Integer read FCount write SetCount;
+    property Items[Index: Integer]: Extended read Get write Put; default;
+    property List: PExtendedList read FList;
   end;
 
   PRefObjectList = ^TRefObjectList;
@@ -297,6 +343,7 @@ uses
 
 resourcestring
   SCnInt64ListError = 'Int64 List Error. %d';
+  SCnExtendedListError = 'Float List Error. %d';
   SCnRefObjectListError = 'Reference Object List Error. %d';
   SCnEmptyPopFromBackError = 'Ring Buffer Empty. Can NOT Pop From Back.';
   SCnEmptyPopFromFrontError = 'Ring Buffer Empty. Can NOT Pop From Front.';
@@ -873,6 +920,207 @@ begin
     SetCapacity(NewCount);
   if NewCount > FCount then
     FillChar(FList^[FCount], (NewCount - FCount) * SizeOf(Int64), 0)
+  else
+    for I := FCount - 1 downto NewCount do
+      Delete(I);
+  FCount := NewCount;
+end;
+
+{ TCnExtendedList }
+
+destructor TCnExtendedList.Destroy;
+begin
+  Clear;
+end;
+
+function TCnExtendedList.Add(Item: Extended): Integer;
+begin
+  Result := FCount;
+  if Result = FCapacity then
+    Grow;
+  FList^[Result] := Item;
+  Inc(FCount);
+end;
+
+procedure TCnExtendedList.Clear;
+begin
+  SetCount(0);
+  SetCapacity(0);
+end;
+
+procedure TCnExtendedList.Delete(Index: Integer);
+begin
+  if (Index < 0) or (Index >= FCount) then
+    Error(SCnExtendedListError, Index);
+
+  Dec(FCount);
+  if Index < FCount then
+    System.Move(FList^[Index + 1], FList^[Index],
+      (FCount - Index) * SizeOf(Extended));
+end;
+
+procedure TCnExtendedList.DeleteLow(ACount: Integer);
+begin
+  if ACount > 0 then
+  begin
+    if ACount >= FCount then
+      Clear
+    else
+    begin
+      Dec(FCount, ACount);
+
+      // 从 0 删除到 ACount - 1，也就是把 ACount 到 Count - 1 处的 Move 到 0
+      System.Move(FList^[ACount], FList^[0],
+        FCount * SizeOf(Extended));
+    end;
+  end;
+end;
+
+class procedure TCnExtendedList.Error(const Msg: string; Data: Integer);
+begin
+  raise EListError.CreateFmt(Msg, [Data]);
+end;
+
+procedure TCnExtendedList.Exchange(Index1, Index2: Integer);
+var
+  Item: Extended;
+begin
+  if (Index1 < 0) or (Index1 >= FCount) then
+    Error(SCnExtendedListError, Index1);
+  if (Index2 < 0) or (Index2 >= FCount) then
+    Error(SCnExtendedListError, Index2);
+  Item := FList^[Index1];
+  FList^[Index1] := FList^[Index2];
+  FList^[Index2] := Item;
+end;
+
+function TCnExtendedList.Expand: TCnExtendedList;
+begin
+  if FCount = FCapacity then
+    Grow;
+  Result := Self;
+end;
+
+function TCnExtendedList.First: Extended;
+begin
+  Result := Get(0);
+end;
+
+function TCnExtendedList.Get(Index: Integer): Extended;
+begin
+  if (Index < 0) or (Index >= FCount) then
+    Error(SCnExtendedListError, Index);
+  Result := FList^[Index];
+end;
+
+procedure TCnExtendedList.Grow;
+var
+  Delta: Integer;
+begin
+  if FCapacity > 64 then
+    Delta := FCapacity div 4
+  else
+    if FCapacity > 8 then
+      Delta := 16
+    else
+      Delta := 4;
+  SetCapacity(FCapacity + Delta);
+end;
+
+function TCnExtendedList.IndexOf(Item: Extended): Integer;
+begin
+  Result := 0;
+  while (Result < FCount) and (Abs(FList^[Result] - Item) < 0.00001) do
+    Inc(Result);
+  if Result = FCount then
+    Result := -1;
+end;
+
+procedure TCnExtendedList.Insert(Index: Integer; Item: Extended);
+begin
+  if (Index < 0) or (Index > FCount) then
+    Error(SCnExtendedListError, Index);
+  if FCount = FCapacity then
+    Grow;
+  if Index < FCount then
+    System.Move(FList^[Index], FList^[Index + 1],
+      (FCount - Index) * SizeOf(Extended));
+  FList^[Index] := Item;
+  Inc(FCount);
+end;
+
+procedure TCnExtendedList.InsertBatch(Index, ACount: Integer);
+begin
+  if ACount <= 0 then
+    Exit;
+
+  if (Index < 0) or (Index > FCount) then
+    Error(SCnExtendedListError, Index);
+  SetCapacity(FCount + ACount); // 容量扩充至至少 FCount + ACount，FCount 没变
+
+  System.Move(FList^[Index], FList^[Index + ACount],
+    (FCount - Index) * SizeOf(Extended));
+  System.FillChar(FList^[Index], ACount * SizeOf(Extended), 0);
+  FCount := FCount + ACount;
+end;
+
+function TCnExtendedList.Last: Extended;
+begin
+  Result := Get(FCount - 1);
+end;
+
+procedure TCnExtendedList.Move(CurIndex, NewIndex: Integer);
+var
+  Item: Extended;
+begin
+  if CurIndex <> NewIndex then
+  begin
+    if (NewIndex < 0) or (NewIndex >= FCount) then
+      Error(SCnExtendedListError, NewIndex);
+    Item := Get(CurIndex);
+    FList^[CurIndex] := 0;
+    Delete(CurIndex);
+    Insert(NewIndex, 0);
+    FList^[NewIndex] := Item;
+  end;
+end;
+
+procedure TCnExtendedList.Put(Index: Integer; Item: Extended);
+begin
+  if (Index < 0) or (Index >= FCount) then
+    Error(SCnExtendedListError, Index);
+
+  FList^[Index] := Item;
+end;
+
+function TCnExtendedList.Remove(Item: Extended): Integer;
+begin
+  Result := IndexOf(Item);
+  if Result >= 0 then
+    Delete(Result);
+end;
+
+procedure TCnExtendedList.SetCapacity(NewCapacity: Integer);
+begin
+  if (NewCapacity < FCount) or (NewCapacity > MaxListSize) then
+    Error(SCnExtendedListError, NewCapacity);
+  if NewCapacity <> FCapacity then
+  begin
+    ReallocMem(FList, NewCapacity * SizeOf(Extended));
+    FCapacity := NewCapacity;
+  end;
+end;
+
+procedure TCnExtendedList.SetCount(NewCount: Integer);
+var
+  I: Integer;
+begin
+  if (NewCount < 0) or (NewCount > MaxListSize) then
+    Error(SCnExtendedListError, NewCount);
+  if NewCount > FCapacity then
+    SetCapacity(NewCount);
+  if NewCount > FCount then
+    FillChar(FList^[FCount], (NewCount - FCount) * SizeOf(Extended), 0)
   else
     for I := FCount - 1 downto NewCount do
       Delete(I);
