@@ -748,7 +748,8 @@ function BigNumberSqr(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean
 function BigNumberSqrt(const Res: TCnBigNumber; const Num: TCnBigNumber): Boolean;
 {* 计算一大数对象的平方根的整数部分，结果放 Res 中，返回平方计算是否成功，Res 可以是 Num}
 
-function BigNumberRoot(const Res: TCnBigNumber; const Num: TCnBigNumber; Exponent: Integer): Boolean;
+function BigNumberRoot(const Res: TCnBigNumber; const Num: TCnBigNumber;
+  Exponent: Integer): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 计算一大数对象的 Exp 次方根的整数部分，结果放 Res 中，返回根计算是否成功
   要求 Num 不能为负，Exponent 不能为 0 或负
   注：FIXME: 因为大数无法进行浮点计算，目前整数运算有偏差，结果偏大，不推荐使用！}
@@ -769,7 +770,17 @@ function BigNumberMulFloat(const Res: TCnBigNumber; Num: TCnBigNumber;
 function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
 {* 两大数对象相除，Num / Divisor，商放 Res 中，余数放 Remain 中，返回除法计算是否成功，
-   Res 可以是 Num，Remain 可以是 nil 以不需要计算余数}
+   Res 可以是 Num，Remain 可以是 nil 以不需要计算余数
+   被除数与除数均以正数相除得到正的商和正的余数，之后的正负规则如下：
+   正被除数正除数得到正商和正余数，如  10005 /  100 =  100 ...  5
+   负被除数正除数得到负商和负余数，如 -10005 /  100 = -100 ... -5
+   正被除数负除数得到负商和正余数，如  10005 / -100 = -100 ...  5
+   负被除数负除数得到正商和负余数，如 -10005 / -100 =  100 ... -5
+   余数符号跟着被除数走，且余数绝对值会小于除数绝对值，不会出现余 95 这种情况}
+
+function BigNumberRoundDiv(const Res: TCnBigNumber; const Num: TCnBigNumber;
+  const Divisor: TCnBigNumber): Boolean;
+{* 两大数对象相除，Num / Divisor，商四舍五入放 Res 中，返回除法计算是否成功，Res 可以是 Num}
 
 function BigNumberMod(const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
@@ -4825,6 +4836,42 @@ begin
     WNum.Top := BackupTop;
     WNum.DMax := BackupDMax;
     FLocalBigNumberPool.Recycle(WNum);
+  end;
+end;
+
+function BigNumberRoundDiv(const Res: TCnBigNumber; const Num: TCnBigNumber;
+  const Divisor: TCnBigNumber): Boolean;
+var
+  R, H: TCnBigNumber;
+  C: Integer;
+begin
+  R := FLocalBigNumberPool.Obtain;
+  H := FLocalBigNumberPool.Obtain;
+  try
+    Result := BigNumberDiv(Res, R, Num, Divisor);
+
+    // 根据余数 R 判断 Res 是否要加减一
+    BigNumberShiftRightOne(H, Divisor);
+    // H 是除数一半的整数部分小于等于除数的精确的一半
+
+    if Divisor.IsOdd then
+      H.AddWord(1);
+
+    C := BigNumberUnsignedCompare(R, H); // 比较绝对值
+    if C >= 0 then 
+    begin
+      // 除数是偶数时，H 是除数的一半，因而余数大于或等于 H 时符合五入
+      // 除数是奇数时，H 是除数的一半大一，因而余数大于或等于 H 时一定大于一半，也符合五入
+      // 五入是商的绝对值加一，要看商的符号决定是加一还是减一
+      if Res.IsNegative then
+        Res.SubWord(1)
+      else
+        Res.AddWord(1);
+    end;
+    // 其余情况四舍，不动
+  finally
+    FLocalBigNumberPool.Recycle(H);
+    FLocalBigNumberPool.Recycle(R);
   end;
 end;
 
