@@ -72,6 +72,15 @@ type
     {* 向量维度，设置后能自动创建大数对象}
   end;
 
+  TCnBigNumberVectorPool = class(TCnMathObjectPool)
+  {* 大整数向量池实现类，允许使用到大整数向量的地方自行创建大整数向量池}
+  protected
+    function CreateObject: TObject; override;
+  public
+    function Obtain: TCnBigNumberVector; reintroduce;
+    procedure Recycle(Num: TCnBigNumberVector); reintroduce;
+  end;
+
 // ======================== Int64 整数向量计算函数 =============================
 
 function Int64VectorModule(const V: TCnInt64Vector): Extended;
@@ -136,7 +145,8 @@ resourcestring
   SCnErrorVectorDimensionNotEqual = 'Error Dimension NOT Equal!';
 
 var
-  FBigNumberVectorPool: TCnBigNumberPool = nil;
+  FBigNumberPool: TCnBigNumberPool = nil;
+  FBigNumberVectorPool: TCnBigNumberVectorPool = nil;
 
 procedure CheckInt64VectorDimensionEqual(const A, B: TCnInt64Vector);
 begin
@@ -317,7 +327,7 @@ var
   T: TCnBigNumber;
 begin
   Res.SetZero;
-  T := FBigNumberVectorPool.Obtain;
+  T := FBigNumberPool.Obtain;
   try
     for I := 0 to V.Dimension - 1 do
     begin
@@ -325,7 +335,7 @@ begin
       BigNumberAdd(Res, Res, T);
     end;
   finally
-    FBigNumberVectorPool.Recycle(T);
+    FBigNumberPool.Recycle(T);
   end;
 end;
 
@@ -403,7 +413,7 @@ begin
   CheckBigNumberVectorDimensionEqual(A, B);
 
   Res.SetZero;
-  T := FBigNumberVectorPool.Obtain;
+  T := FBigNumberPool.Obtain;
   try
     for I := 0 to A.Dimension - 1 do
     begin
@@ -411,14 +421,34 @@ begin
       BigNumberAdd(Res, Res, T);
     end;
   finally
-    FBigNumberVectorPool.Recycle(T);
+    FBigNumberPool.Recycle(T);
   end;
 end;
 
+{ TCnBigNumberVectorPool }
+
+function TCnBigNumberVectorPool.CreateObject: TObject;
+begin
+  Result := TCnBigNumberVector.Create(1);
+end;
+
+function TCnBigNumberVectorPool.Obtain: TCnBigNumberVector;
+begin
+  Result := TCnBigNumberVector(inherited Obtain);
+  Result.SetDimension(1);
+end;
+
+procedure TCnBigNumberVectorPool.Recycle(Num: TCnBigNumberVector);
+begin
+  inherited Recycle(Num);
+end;
+
 initialization
-  FBigNumberVectorPool := TCnBigNumberPool.Create;
+  FBigNumberPool := TCnBigNumberPool.Create;
+  FBigNumberVectorPool := TCnBigNumberVectorPool.Create;
 
 finalization
   FBigNumberVectorPool.Free;
+  FBigNumberPool.Free;
 
 end.
