@@ -338,6 +338,7 @@ type
     procedure SetItem(Index: Integer; ABigNumber: TCnBigNumber);
   public
     constructor Create; reintroduce;
+    {* 构造函数}
 
     function Add: TCnBigNumber; overload;
     {* 新增一个大数对象，返回该对象，注意添加后无需也不应手动释放}
@@ -401,6 +402,7 @@ type
     procedure SetSafeValue(Exponent: Integer; const Value: TCnBigNumber);
   public
     constructor Create; reintroduce;
+    {* 构造函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 将所有元素中的指数与大数转成多行字符串}
@@ -904,7 +906,7 @@ procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，调用者需自行保证 A B 互素
    A, B 是已知大数，X, Y 是解出来的结果，注意 X 有可能小于 0，如需要正数，可以再加上 B
    X 被称为 A 针对 B 的模反元素，因此本算法也用来算 A 针对 B 的模反元素
-   （由于可以视作 -Y，所以本方法与上一方法是等同的 ）}
+   （由于可以视作 -Y，所以本方法与上一方法是等同的）}
 
 function BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
 {* 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
