@@ -74,6 +74,7 @@ function TestBigNumberDivWord: Boolean;
 function TestBigNumberUnsignedAdd: Boolean;
 function TestBigNumberPowerMod: Boolean;
 function TestBigNumberDiv: Boolean;
+function TestBigNumberRoundDiv: Boolean;
 function TestBigNumberShiftLeft: Boolean;
 function TestBigNumberGetBitsCount: Boolean;
 function TestBigNumberShiftRightOne: Boolean;
@@ -323,6 +324,7 @@ begin
   MyAssert(TestBigNumberUnsignedAdd, 'TestBigNumberUnsignedAdd');
   MyAssert(TestBigNumberPowerMod, 'TestBigNumberPowerMod');
   MyAssert(TestBigNumberDiv, 'TestBigNumberDiv');
+  MyAssert(TestBigNumberRoundDiv, 'TestBigNumberRoundDiv');
   MyAssert(TestBigNumberShiftLeft, 'TestBigNumberShiftLeft');
   MyAssert(TestBigNumberGetBitsCount, 'TestBigNumberGetBitsCount');
   MyAssert(TestBigNumberShiftRightOne, 'TestBigNumberShiftRightOne');
@@ -932,6 +934,119 @@ begin
 
   BigNumberDiv(R, C, A, B);
   Result := (R.ToHex() = '07ADE6030E1F606EC328070C769EEC15') and (C.ToHex() = '24A5D892043E5E97');
+
+  BigNumberFree(R);
+  BigNumberFree(C);
+  BigNumberFree(B);
+  BigNumberFree(A);
+end;
+
+function TestBigNumberRoundDiv: Boolean;
+var
+  A, B, C, R: TCnBigNumber;
+begin
+  A := BigNumberNew;
+  B := BigNumberNew;
+  C := BigNumberNew;
+  R := BigNumberNew;
+
+  // 被除数和除数正负、负负、负正、正负，加上是四舍还是五入、除数奇偶，一共十六种组合情况
+  A.SetDec('10005');
+  B.SetDec('100');
+  BigNumberRoundDiv(C, A, B);        // 100 5
+  Result := C.ToDec() = '100';
+  if not Result then Exit;
+
+  A.SetDec('10050');
+  B.SetDec('100');
+  BigNumberRoundDiv(C, A, B);        // 100 50
+  Result := C.ToDec() = '101';
+  if not Result then Exit;
+
+  A.SetDec('-10005');
+  B.SetDec('100');
+  BigNumberRoundDiv(C, A, B);        // 100 -5
+  Result := C.ToDec() = '-100';
+  if not Result then Exit;
+
+  A.SetDec('-10050');
+  B.SetDec('100');
+  BigNumberRoundDiv(C, A, B);        // 100 -50
+  Result := C.ToDec() = '-101';
+  if not Result then Exit;
+
+  A.SetDec('10005');
+  B.SetDec('-100');
+  BigNumberRoundDiv(C, A, B);        // -100 5
+  Result := C.ToDec() = '-100';
+  if not Result then Exit;
+
+  A.SetDec('10050');
+  B.SetDec('-100');
+  BigNumberRoundDiv(C, A, B);        // -100 50
+  Result := C.ToDec() = '-101';
+  if not Result then Exit;
+
+  A.SetDec('-10005');
+  B.SetDec('-100');
+  BigNumberRoundDiv(C, A, B);        // 100 -5
+  Result := C.ToDec() = '100';
+  if not Result then Exit;
+
+  A.SetDec('-10050');
+  B.SetDec('-100');
+  BigNumberRoundDiv(C, A, B);        // 100 -50
+  Result := C.ToDec() = '101';
+  if not Result then Exit;
+
+  // 以上除数是偶以下除数是奇
+  A.SetDec('10048');
+  B.SetDec('99');
+  BigNumberRoundDiv(C, A, B);        // 101 49
+  Result := C.ToDec() = '101';
+  if not Result then Exit;
+
+  A.SetDec('10049');
+  B.SetDec('99');
+  BigNumberRoundDiv(C, A, B);        // 101 50
+  Result := C.ToDec() = '102';
+  if not Result then Exit;
+
+  A.SetDec('-10048');
+  B.SetDec('99');
+  BigNumberRoundDiv(C, A, B);        // 101 -49
+  Result := C.ToDec() = '-101';
+  if not Result then Exit;
+
+  A.SetDec('-10049');
+  B.SetDec('99');
+  BigNumberRoundDiv(C, A, B);        // 101 -50
+  Result := C.ToDec() = '-102';
+  if not Result then Exit;
+
+  A.SetDec('10048');
+  B.SetDec('-99');
+  BigNumberRoundDiv(C, A, B);        // -101 49
+  Result := C.ToDec() = '-101';
+  if not Result then Exit;
+
+  A.SetDec('10049');
+  B.SetDec('-99');
+  BigNumberRoundDiv(C, A, B);        // -101 50
+  Result := C.ToDec() = '-102';
+  if not Result then Exit;
+
+  A.SetDec('-10048');
+  B.SetDec('-99');
+  BigNumberRoundDiv(C, A, B);        // 101 -49
+  Result := C.ToDec() = '101';
+  if not Result then Exit;
+
+  A.SetDec('-10049');
+  B.SetDec('-99');
+  BigNumberRoundDiv(C, A, B);        // 101 -50
+  Result := C.ToDec() = '102';
+  if not Result then Exit;
 
   BigNumberFree(R);
   BigNumberFree(C);

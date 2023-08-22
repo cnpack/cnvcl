@@ -4854,11 +4854,16 @@ begin
     BigNumberShiftRightOne(H, Divisor);
     // H 是除数一半的整数部分小于等于除数的精确的一半
 
-    if Divisor.IsOdd then
-      H.AddWord(1);
+    if Divisor.IsOdd then // H 的绝对值加一
+    begin
+      if Divisor.IsNegative then
+        H.SubWord(1)
+      else
+        H.AddWord(1);
+    end;
 
     C := BigNumberUnsignedCompare(R, H); // 比较绝对值
-    if C >= 0 then 
+    if C >= 0 then
     begin
       // 除数是偶数时，H 是除数的一半，因而余数大于或等于 H 时符合五入
       // 除数是奇数时，H 是除数的一半大一，因而余数大于或等于 H 时一定大于一半，也符合五入
