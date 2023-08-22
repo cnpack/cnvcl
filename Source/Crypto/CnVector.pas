@@ -86,6 +86,9 @@ procedure Int64VectorCopy(const Dst: TCnInt64Vector; const Src: TCnInt64Vector);
 procedure Int64VectorSwap(const A: TCnInt64Vector; const B: TCnInt64Vector);
 {* 交换俩 Int64 向量的内容}
 
+function Int64VectorEqual(const A: TCnInt64Vector; const B: TCnInt64Vector): Boolean;
+{* 判断俩 Int64 向量是否相等}
+
 procedure Int64VectorAdd(const Res: TCnInt64Vector; const A: TCnInt64Vector;
   const B: TCnInt64Vector);
 {* 俩 Int64 向量的加法，和向量返回各维度对应和。Res 和 A B 可以是同一个对象}
@@ -110,6 +113,9 @@ procedure BigNumberVectorCopy(const Dst: TCnBigNumberVector; const Src: TCnBigNu
 
 procedure BigNumberVectorSwap(const A: TCnBigNumberVector; const B: TCnBigNumberVector);
 {* 交换俩大整数向量的内容}
+
+function BigNumberVectorEqual(const A: TCnBigNumberVector; const B: TCnBigNumberVector): Boolean;
+{* 判断俩大整数向量是否相等}
 
 procedure BigNumberVectorAdd(const Res: TCnBigNumberVector; const A: TCnBigNumberVector;
   const B: TCnBigNumberVector);
@@ -187,6 +193,24 @@ begin
       T := A[I];
       A[I] := B[I];
       B[I] := T;
+    end;
+  end;
+end;
+
+function Int64VectorEqual(const A: TCnInt64Vector; const B: TCnInt64Vector): Boolean;
+var
+  I: Integer;
+begin
+  Result := A.Dimension = B.Dimension;
+  if Result then
+  begin
+    for I := 0 to A.Dimension - 1 do
+    begin
+      if A[I] <> B[I] then
+      begin
+        Result := False;
+        Exit;
+      end;
     end;
   end;
 end;
@@ -327,6 +351,24 @@ begin
 
     for I := 0 to A.Dimension - 1 do
       BigNumberSwap(A[I], B[I]);
+  end;
+end;
+
+function BigNumberVectorEqual(const A: TCnBigNumberVector; const B: TCnBigNumberVector): Boolean;
+var
+  I: Integer;
+begin
+  Result := A.Dimension = B.Dimension;
+  if Result then
+  begin
+    for I := 0 to A.Dimension - 1 do
+    begin
+      if not BigNumberEqual(A[I], B[I]) then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
   end;
 end;
 
