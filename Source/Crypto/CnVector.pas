@@ -24,7 +24,7 @@ unit CnVector;
 * 软件名称：开发包基础库
 * 单元名称：向量计算单元
 * 单元作者：刘啸
-* 备    注：
+* 备    注：约定下标 0 代表向量行表达式最左边或列表达式最上面的维度的数据
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -51,8 +51,11 @@ type
     procedure SetDimension(const Value: Integer);
 
   public
-    constructor Create(ADimension: Integer); virtual;
+    constructor Create(ADimension: Integer = 1); virtual;
     {* 构造函数，参数是向量维度}
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将 Int64 向量转成字符串}
 
     property Dimension: Integer read GetDimension write SetDimension;
     {* 向量维度}
@@ -65,8 +68,11 @@ type
     procedure SetDimension(const Value: Integer);
 
   public
-    constructor Create(ADimension: Integer); virtual;
+    constructor Create(ADimension: Integer = 1); virtual;
     {* 构造函数，参数是向量维度}
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将大整数向量转成字符串}
 
     property Dimension: Integer read GetDimension write SetDimension;
     {* 向量维度，设置后能自动创建大数对象}
@@ -83,6 +89,9 @@ type
 
 // ======================== Int64 整数向量计算函数 =============================
 
+function Int64VectorToString(const V: TCnInt64Vector): string;
+{* 将 Int64 向量转换为字符串形式供输出}
+
 function Int64VectorModule(const V: TCnInt64Vector): Extended;
 {* 返回 Int64 向量长度（模长），也即各项平方和的平方根}
 
@@ -93,10 +102,13 @@ procedure Int64VectorCopy(const Dst: TCnInt64Vector; const Src: TCnInt64Vector);
 {* 复制 Int64 向量的内容}
 
 procedure Int64VectorSwap(const A: TCnInt64Vector; const B: TCnInt64Vector);
-{* 交换俩 Int64 向量的内容}
+{* 交换俩 Int64 向量的内容，要求两个向量同维}
 
 function Int64VectorEqual(const A: TCnInt64Vector; const B: TCnInt64Vector): Boolean;
 {* 判断俩 Int64 向量是否相等}
+
+procedure Int64VectorNegate(const Res: TCnInt64Vector; const A: TCnInt64Vector);
+{* 求 Int64 向量的反向量，Res 和 A 可以是同一个对象}
 
 procedure Int64VectorAdd(const Res: TCnInt64Vector; const A: TCnInt64Vector;
   const B: TCnInt64Vector);
@@ -104,10 +116,16 @@ procedure Int64VectorAdd(const Res: TCnInt64Vector; const A: TCnInt64Vector;
 
 procedure Int64VectorSub(const Res: TCnInt64Vector; const A: TCnInt64Vector;
   const B: TCnInt64Vector);
-{* 俩 Int64 向量的减法，和向量返回各维度对应差。Res 和 A B 可以是同一个对象}
+{* 俩 Int64 向量的减法，差向量返回各维度对应差。Res 和 A B 可以是同一个对象}
+
+procedure Int64VectorMul(const Res: TCnInt64Vector; const A: TCnInt64Vector; N: Int64);
+{* Int64 向量和数的标量乘法。Res 和 A 可以是同一个对象}
 
 function Int64VectorDotProduct(const A: TCnInt64Vector; const B: TCnInt64Vector): Int64;
 {* 俩 Int64 向量的标量乘法也就是点乘，返回各维度对应乘积之和。A 和 B 可以是同一个对象}
+
+function Int64GaussianReduction(const V1, V2: TCnInt64Vector; const X, Y: TCnInt64Vector): Boolean;
+{* 对两个二维 Int64 向量做高斯约减以求解 SVP 问题，返回是否成功}
 
 // ========================= 大整数向量计算函数 ================================
 
@@ -126,17 +144,27 @@ procedure BigNumberVectorSwap(const A: TCnBigNumberVector; const B: TCnBigNumber
 function BigNumberVectorEqual(const A: TCnBigNumberVector; const B: TCnBigNumberVector): Boolean;
 {* 判断俩大整数向量是否相等}
 
+procedure BigNumberVectorNegate(const Res: TCnBigNumberVector; const A: TCnBigNumberVector);
+{* 求大整数向量的反向量，Res 和 A 可以是同一个对象}
+
 procedure BigNumberVectorAdd(const Res: TCnBigNumberVector; const A: TCnBigNumberVector;
   const B: TCnBigNumberVector);
 {* 俩大整数向量的加法，和向量返回各维度对应和。Res 和 A B 可以是同一个对象}
 
 procedure BigNumberVectorSub(const Res: TCnBigNumberVector; const A: TCnBigNumberVector;
   const B: TCnBigNumberVector);
-{* 俩大整数向量的减法，和向量返回各维度对应差。Res 和 A B 可以是同一个对象}
+{* 俩大整数向量的减法，差向量返回各维度对应差。Res 和 A B 可以是同一个对象}
+
+procedure BigNumberVectorMul(const Res: TCnBigNumberVector; const A: TCnBigNumberVector;
+  const N: TCnBigNumber);
+{* 大整数向量与数的标量乘法。Res 和 A 可以是同一个对象}
 
 procedure BigNumberVectorDotProduct(const Res: TCnBigNumber; A: TCnBigNumberVector;
   const B: TCnBigNumberVector);
 {* 俩大整数向量的标量乘法也就是点乘，返回各维度对应乘积之和。A 和 B 可以是同一个对象}
+
+function BigNumberGaussianReduction(const V1, V2: TCnBigNumberVector; const X, Y: TCnBigNumberVector): Boolean;
+{* 对两个二维大整数向量做高斯约减以求解 SVP 问题，返回是否成功}
 
 implementation
 
@@ -154,17 +182,26 @@ begin
     raise ECnVectorException.Create(SCnErrorVectorDimensionNotEqual);
 end;
 
-function Int64VectorModule(const V: TCnInt64Vector): Extended;
+function Int64VectorToString(const V: TCnInt64Vector): string;
 var
   I: Integer;
-  S: Int64;
+begin
+  Result := '(';
+  for I := 0 to V.Dimension - 1 do
+  begin
+    if I = 0 then
+      Result := Result + IntToStr(V[I])
+    else
+      Result := Result + ', ' + IntToStr(V[I]);
+  end;
+  Result := Result + ')';
+end;
+
+function Int64VectorModule(const V: TCnInt64Vector): Extended;
+var
   T: Extended;
 begin
-  S := 0;
-  for I := 0 to V.Dimension - 1 do
-    S := S + V[I] * V[I];
-
-  T := S;
+  T := Int64VectorModuleSquare(V);
   Result := Sqrt(T);
 end;
 
@@ -225,6 +262,15 @@ begin
   end;
 end;
 
+procedure Int64VectorNegate(const Res: TCnInt64Vector; const A: TCnInt64Vector);
+var
+  I: Integer;
+begin
+  Res.Dimension := A.Dimension;
+  for I := 0 to A.Dimension - 1 do
+    Res[I] := -A[I];
+end;
+
 procedure Int64VectorAdd(const Res: TCnInt64Vector; const A: TCnInt64Vector;
   const B: TCnInt64Vector);
 var
@@ -232,6 +278,7 @@ var
 begin
   CheckInt64VectorDimensionEqual(A, B);
 
+  Res.Dimension := A.Dimension;
   for I := 0 to A.Dimension - 1 do
     Res[I] := A[I] + B[I];
 end;
@@ -243,8 +290,18 @@ var
 begin
   CheckInt64VectorDimensionEqual(A, B);
 
+  Res.Dimension := A.Dimension;
   for I := 0 to A.Dimension - 1 do
     Res[I] := A[I] - B[I];
+end;
+
+procedure Int64VectorMul(const Res: TCnInt64Vector; const A: TCnInt64Vector; N: Int64);
+var
+  I: Integer;
+begin
+  Res.Dimension := A.Dimension;
+  for I := 0 to A.Dimension - 1 do
+    Res[I] := A[I] * N;
 end;
 
 function Int64VectorDotProduct(const A: TCnInt64Vector; const B: TCnInt64Vector): Int64;
@@ -256,6 +313,54 @@ begin
   Result := 0;
   for I := 0 to A.Dimension - 1 do
     Result := Result + A[I] * B[I];
+end;
+
+function Int64GaussianReduction(const V1, V2: TCnInt64Vector; const X, Y: TCnInt64Vector): Boolean;
+var
+  U1, U2, T: TCnInt64Vector;
+  M: Int64;
+  K: Extended;
+begin
+  U1 := nil;
+  U2 := nil;
+  T := nil;
+
+  try
+    U1 := TCnInt64Vector.Create;
+    U2 := TCnInt64Vector.Create;
+    T := TCnInt64Vector.Create;
+
+    Int64VectorCopy(U1, X);
+    Int64VectorCopy(U2, Y);
+
+    if Int64VectorModule(U1) > Int64VectorModule(U2) then
+      Int64VectorSwap(U1, U2);
+
+    while True do
+    begin
+      K := Int64VectorDotProduct(U2, U1) / Int64VectorDotProduct(U1, U1);
+      M := Round(K);  // K 可能比取整后的 M 大
+
+      Int64VectorMul(T, U1, M);
+      Int64VectorSub(U2, U2, T);
+      if M > K then
+        Int64VectorNegate(U2, U2);
+
+      if Int64VectorModule(U1) <= Int64VectorModule(U2) then
+      begin
+        Int64VectorCopy(V1, U1);
+        Int64VectorCopy(V2, U2);
+        Result := True;
+        Exit;
+      end
+      else
+        Int64VectorSwap(U1, U2);
+    end;
+  finally
+    T.Free;
+    U2.Free;
+    U1.Free;
+  end;
 end;
 
 { TCnInt64Vector }
@@ -279,6 +384,11 @@ begin
   SetCount(Value);
 end;
 
+function TCnInt64Vector.ToString: string;
+begin
+  Result := Int64VectorToString(Self);
+end;
+
 { TCnBigNumberVector }
 
 constructor TCnBigNumberVector.Create(ADimension: Integer);
@@ -300,7 +410,7 @@ begin
     raise ECnVectorException.Create(SCnErrorVectorDimensionInvalid);
 
   OC := Count;
-  Count := Value + 1; // 直接设置 Count，如变小，会自动释放多余的对象
+  Count := Value; // 直接设置 Count，如变小，会自动释放多余的对象
 
   if Count > OC then  // 增加的部分创建新对象
   begin
@@ -313,6 +423,21 @@ procedure CheckBigNumberVectorDimensionEqual(const A, B: TCnBigNumberVector);
 begin
   if A.Dimension <> B.Dimension then
     raise ECnVectorException.Create(SCnErrorVectorDimensionNotEqual);
+end;
+
+function BigNumberVectorToString(const V: TCnBigNumberVector): string;
+var
+  I: Integer;
+begin
+  Result := '(';
+  for I := 0 to V.Dimension - 1 do
+  begin
+    if I = 0 then
+      Result := Result + V[I].ToString
+    else
+      Result := Result + ', ' + V[I].ToString;
+  end;
+  Result := Result + ')';
 end;
 
 procedure BigNumberVectorModule(const Res: TCnBigNumber; const V: TCnBigNumberVector);
@@ -382,6 +507,15 @@ begin
   end;
 end;
 
+procedure BigNumberVectorNegate(const Res: TCnBigNumberVector; const A: TCnBigNumberVector);
+var
+  I: Integer;
+begin
+  BigNumberVectorCopy(Res, A);
+  for I := 0 to A.Dimension - 1 do
+    Res[I].Negate;
+end;
+
 procedure BigNumberVectorAdd(const Res: TCnBigNumberVector; const A: TCnBigNumberVector;
   const B: TCnBigNumberVector);
 var
@@ -389,6 +523,7 @@ var
 begin
   CheckBigNumberVectorDimensionEqual(A, B);
 
+  Res.Dimension := A.Dimension;
   for I := 0 to A.Dimension - 1 do
     BigNumberAdd(Res[I], A[I], B[I]);
 end;
@@ -400,8 +535,19 @@ var
 begin
   CheckBigNumberVectorDimensionEqual(A, B);
 
+  Res.Dimension := A.Dimension;
   for I := 0 to A.Dimension - 1 do
     BigNumberSub(Res[I], A[I], B[I]);
+end;
+
+procedure BigNumberVectorMul(const Res: TCnBigNumberVector; const A: TCnBigNumberVector;
+  const N: TCnBigNumber);
+var
+  I: Integer;
+begin
+  Res.Dimension := A.Dimension;
+  for I := 0 to A.Dimension - 1 do
+    BigNumberMul(Res[I], A[I], N);
 end;
 
 procedure BigNumberVectorDotProduct(const Res: TCnBigNumber; A: TCnBigNumberVector;
@@ -423,6 +569,76 @@ begin
   finally
     FBigNumberPool.Recycle(T);
   end;
+end;
+
+function BigNumberGaussianReduction(const V1, V2: TCnBigNumberVector;
+  const X, Y: TCnBigNumberVector): Boolean;
+var
+  U1, U2, T: TCnBigNumberVector;
+  M, M1, M2: TCnBigNumber;
+  Ru: Boolean;
+begin
+  U1 := nil;
+  U2 := nil;
+  T := nil;
+  M := nil;
+  M1 := nil;
+  M2 := nil;
+
+  try
+    U1 := FBigNumberVectorPool.Obtain;
+    U2 := FBigNumberVectorPool.Obtain;
+    T := FBigNumberVectorPool.Obtain;
+    M := FBigNumberPool.Obtain;
+    M1 := FBigNumberPool.Obtain;
+    M2 := FBigNumberPool.Obtain;
+
+    // 确保 |X| <= |Y|
+    BigNumberVectorCopy(U1, X);
+    BigNumberVectorCopy(U2, Y);
+
+    BigNumberVectorModuleSquare(M1, U1);
+    BigNumberVectorModuleSquare(M2, U2);
+    if BigNumberCompare(M1, M2) > 0 then
+      BigNumberVectorSwap(U1, U2);
+
+    // U1 := X;  U2 := Y;
+    while True do
+    begin
+      BigNumberVectorDotProduct(M2, U2, U1);
+      BigNumberVectorDotProduct(M1, U1, U1);
+      BigNumberRoundDiv(M, M2, M1, Ru); // Ru 如果为 True 表示整数 M 比真实结果大
+
+      BigNumberVectorMul(T, U1, M);
+      BigNumberVectorSub(U2, U2, T);
+      if Ru then
+        BigNumberVectorNegate(U2, U2);
+
+      BigNumberVectorModuleSquare(M1, U1);
+      BigNumberVectorModuleSquare(M2, U2);
+      if BigNumberCompare(M1, M2) <= 0 then
+      begin
+        BigNumberVectorCopy(V1, U1);
+        BigNumberVectorCopy(V2, U2);
+        Result := True;
+        Exit;
+      end
+      else
+        BigNumberVectorSwap(U1, U2);
+    end;
+  finally
+    FBigNumberPool.Recycle(M2);
+    FBigNumberPool.Recycle(M1);
+    FBigNumberPool.Recycle(M);
+    FBigNumberVectorPool.Recycle(T);
+    FBigNumberVectorPool.Recycle(U2);
+    FBigNumberVectorPool.Recycle(U1);
+  end;
+end;
+
+function TCnBigNumberVector.ToString: string;
+begin
+  Result := BigNumberVectorToString(Self);
 end;
 
 { TCnBigNumberVectorPool }

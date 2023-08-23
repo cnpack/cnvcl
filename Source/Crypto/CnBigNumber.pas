@@ -629,7 +629,7 @@ function BigNumberFromBase64(const Buf: AnsiString): TCnBigNumber;
 {* 将一串 Base64 字符串转换为大数对象，不处理正负号。其结果不用时必须用 BigNumberFree 释放}
 
 function BigNumberToString(const Num: TCnBigNumber): string;
-{* 将一个大数对象转成十进制字符串，负以 - 表示}
+{* 将一个大数对象转成普通可读的十六进制字符串，负以 - 表示}
 
 function BigNumberToHex(const Num: TCnBigNumber; FixedLen: Integer = 0): string;
 {* 将一个大数对象转成十六进制字符串，负以 - 表示
