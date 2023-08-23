@@ -944,6 +944,7 @@ end;
 function TestBigNumberRoundDiv: Boolean;
 var
   A, B, C, R: TCnBigNumber;
+  F: Boolean;
 begin
   A := BigNumberNew;
   B := BigNumberNew;
@@ -953,99 +954,99 @@ begin
   // 被除数和除数正负、负负、负正、正负，加上是四舍还是五入、除数奇偶，一共十六种组合情况
   A.SetDec('10005');
   B.SetDec('100');
-  BigNumberRoundDiv(C, A, B);        // 100 5
-  Result := C.ToDec() = '100';
+  BigNumberRoundDiv(C, A, B, F);        // 100 5
+  Result := (not F) and (C.ToDec() = '100');
   if not Result then Exit;
 
   A.SetDec('10050');
   B.SetDec('100');
-  BigNumberRoundDiv(C, A, B);        // 100 50
-  Result := C.ToDec() = '101';
+  BigNumberRoundDiv(C, A, B, F);        // 100 50
+  Result := F and (C.ToDec() = '101');
   if not Result then Exit;
 
   A.SetDec('-10005');
   B.SetDec('100');
-  BigNumberRoundDiv(C, A, B);        // 100 -5
-  Result := C.ToDec() = '-100';
+  BigNumberRoundDiv(C, A, B, F);        // 100 -5
+  Result := (not F) and (C.ToDec() = '-100');
   if not Result then Exit;
 
   A.SetDec('-10050');
   B.SetDec('100');
-  BigNumberRoundDiv(C, A, B);        // 100 -50
-  Result := C.ToDec() = '-101';
+  BigNumberRoundDiv(C, A, B, F);        // 100 -50
+  Result := F and (C.ToDec() = '-101');
   if not Result then Exit;
 
   A.SetDec('10005');
   B.SetDec('-100');
-  BigNumberRoundDiv(C, A, B);        // -100 5
-  Result := C.ToDec() = '-100';
+  BigNumberRoundDiv(C, A, B, F);        // -100 5
+  Result := (not F) and (C.ToDec() = '-100');
   if not Result then Exit;
 
   A.SetDec('10050');
   B.SetDec('-100');
-  BigNumberRoundDiv(C, A, B);        // -100 50
-  Result := C.ToDec() = '-101';
+  BigNumberRoundDiv(C, A, B, F);        // -100 50
+  Result := F and (C.ToDec() = '-101');
   if not Result then Exit;
 
   A.SetDec('-10005');
   B.SetDec('-100');
-  BigNumberRoundDiv(C, A, B);        // 100 -5
-  Result := C.ToDec() = '100';
+  BigNumberRoundDiv(C, A, B, F);        // 100 -5
+  Result := (not F) and (C.ToDec() = '100');
   if not Result then Exit;
 
   A.SetDec('-10050');
   B.SetDec('-100');
-  BigNumberRoundDiv(C, A, B);        // 100 -50
-  Result := C.ToDec() = '101';
+  BigNumberRoundDiv(C, A, B, F);        // 100 -50
+  Result := F and (C.ToDec() = '101');
   if not Result then Exit;
 
   // 以上除数是偶以下除数是奇
   A.SetDec('10048');
   B.SetDec('99');
-  BigNumberRoundDiv(C, A, B);        // 101 49
-  Result := C.ToDec() = '101';
+  BigNumberRoundDiv(C, A, B, F);        // 101 49
+  Result := (not F) and (C.ToDec() = '101');
   if not Result then Exit;
 
   A.SetDec('10049');
   B.SetDec('99');
-  BigNumberRoundDiv(C, A, B);        // 101 50
-  Result := C.ToDec() = '102';
+  BigNumberRoundDiv(C, A, B, F);        // 101 50
+  Result := F and (C.ToDec() = '102');
   if not Result then Exit;
 
   A.SetDec('-10048');
   B.SetDec('99');
-  BigNumberRoundDiv(C, A, B);        // 101 -49
-  Result := C.ToDec() = '-101';
+  BigNumberRoundDiv(C, A, B, F);        // 101 -49
+  Result := (not F) and (C.ToDec() = '-101');
   if not Result then Exit;
 
   A.SetDec('-10049');
   B.SetDec('99');
-  BigNumberRoundDiv(C, A, B);        // 101 -50
-  Result := C.ToDec() = '-102';
+  BigNumberRoundDiv(C, A, B, F);        // 101 -50
+  Result := F and (C.ToDec() = '-102');
   if not Result then Exit;
 
   A.SetDec('10048');
   B.SetDec('-99');
-  BigNumberRoundDiv(C, A, B);        // -101 49
-  Result := C.ToDec() = '-101';
+  BigNumberRoundDiv(C, A, B, F);        // -101 49
+  Result := (not F) and (C.ToDec() = '-101');
   if not Result then Exit;
 
   A.SetDec('10049');
   B.SetDec('-99');
-  BigNumberRoundDiv(C, A, B);        // -101 50
-  Result := C.ToDec() = '-102';
+  BigNumberRoundDiv(C, A, B, F);        // -101 50
+  Result := F and (C.ToDec() = '-102');
   if not Result then Exit;
 
   A.SetDec('-10048');
   B.SetDec('-99');
-  BigNumberRoundDiv(C, A, B);        // 101 -49
-  Result := C.ToDec() = '101';
+  BigNumberRoundDiv(C, A, B, F);        // 101 -49
+  Result := (not F) and (C.ToDec() = '101');
   if not Result then Exit;
 
   A.SetDec('-10049');
   B.SetDec('-99');
-  BigNumberRoundDiv(C, A, B);        // 101 -50
-  Result := C.ToDec() = '102';
+  BigNumberRoundDiv(C, A, B, F);        // 101 -50
+  Result := F and (C.ToDec() = '102');
   if not Result then Exit;
 
   BigNumberFree(R);

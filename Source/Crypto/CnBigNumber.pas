@@ -779,8 +779,10 @@ function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
    余数符号跟着被除数走，且余数绝对值会小于除数绝对值，不会出现余 95 这种情况}
 
 function BigNumberRoundDiv(const Res: TCnBigNumber; const Num: TCnBigNumber;
-  const Divisor: TCnBigNumber): Boolean;
-{* 两大数对象相除，Num / Divisor，商四舍五入放 Res 中，返回除法计算是否成功，Res 可以是 Num}
+  const Divisor: TCnBigNumber; out Rounding: Boolean): Boolean;
+{* 两大数对象相除，Num / Divisor，商四舍五入放 Res 中，Res 可以是 Num，
+   注意入的方向始终是绝对值大的方向，与 Round 函数基本保持一致，但忽略其四舍六入五成双的规则，逢五必入
+   返回除法计算是否成功，Rounding 参数返回真实结果的舍入情况，True 表示入，False 表示舍}
 
 function BigNumberMod(const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
@@ -4840,7 +4842,7 @@ begin
 end;
 
 function BigNumberRoundDiv(const Res: TCnBigNumber; const Num: TCnBigNumber;
-  const Divisor: TCnBigNumber): Boolean;
+  const Divisor: TCnBigNumber; out Rounding: Boolean): Boolean;
 var
   R, H: TCnBigNumber;
   C: Integer;
@@ -4872,8 +4874,10 @@ begin
         Res.SubWord(1)
       else
         Res.AddWord(1);
-    end;
-    // 其余情况四舍，不动
+      Rounding := True;
+    end
+    else // 其余情况四舍，不动
+      Rounding := False;
   finally
     FLocalBigNumberPool.Recycle(H);
     FLocalBigNumberPool.Recycle(R);
