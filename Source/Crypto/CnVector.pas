@@ -124,8 +124,8 @@ procedure Int64VectorMul(const Res: TCnInt64Vector; const A: TCnInt64Vector; N: 
 function Int64VectorDotProduct(const A: TCnInt64Vector; const B: TCnInt64Vector): Int64;
 {* 俩 Int64 向量的标量乘法也就是点乘，返回各维度对应乘积之和。A 和 B 可以是同一个对象}
 
-function Int64GaussianReduction(const V1, V2: TCnInt64Vector; const X, Y: TCnInt64Vector): Boolean;
-{* 对两个二维 Int64 向量做高斯约减以求解 SVP 问题，返回是否成功}
+function Int64GaussianLatticeReduction(const V1, V2: TCnInt64Vector; const X, Y: TCnInt64Vector): Boolean;
+{* 对两个二维 Int64 向量做整数格上的近似高斯格基约减以求解二维 SVP 问题，返回是否成功}
 
 // ========================= 大整数向量计算函数 ================================
 
@@ -163,8 +163,8 @@ procedure BigNumberVectorDotProduct(const Res: TCnBigNumber; A: TCnBigNumberVect
   const B: TCnBigNumberVector);
 {* 俩大整数向量的标量乘法也就是点乘，返回各维度对应乘积之和。A 和 B 可以是同一个对象}
 
-function BigNumberGaussianReduction(const V1, V2: TCnBigNumberVector; const X, Y: TCnBigNumberVector): Boolean;
-{* 对两个二维大整数向量做高斯约减以求解 SVP 问题，返回是否成功}
+function BigNumberGaussianLatticeReduction(const V1, V2: TCnBigNumberVector; const X, Y: TCnBigNumberVector): Boolean;
+{* 对两个二维大整数向量做整数格上的近似高斯格基约减以求解二维 SVP 问题，返回是否成功}
 
 implementation
 
@@ -315,7 +315,7 @@ begin
     Result := Result + A[I] * B[I];
 end;
 
-function Int64GaussianReduction(const V1, V2: TCnInt64Vector; const X, Y: TCnInt64Vector): Boolean;
+function Int64GaussianLatticeReduction(const V1, V2: TCnInt64Vector; const X, Y: TCnInt64Vector): Boolean;
 var
   U1, U2, T: TCnInt64Vector;
   M: Int64;
@@ -343,8 +343,8 @@ begin
 
       Int64VectorMul(T, U1, M);
       Int64VectorSub(U2, U2, T);
-      if M > K then
-        Int64VectorNegate(U2, U2);
+//      if M > K then   // 这里用负似乎意义不大且各版本不一
+//        Int64VectorNegate(U2, U2);
 
       if Int64VectorModule(U1) <= Int64VectorModule(U2) then
       begin
@@ -571,7 +571,7 @@ begin
   end;
 end;
 
-function BigNumberGaussianReduction(const V1, V2: TCnBigNumberVector;
+function BigNumberGaussianLatticeReduction(const V1, V2: TCnBigNumberVector;
   const X, Y: TCnBigNumberVector): Boolean;
 var
   U1, U2, T: TCnBigNumberVector;
@@ -611,8 +611,8 @@ begin
 
       BigNumberVectorMul(T, U1, M);
       BigNumberVectorSub(U2, U2, T);
-      if Ru then
-        BigNumberVectorNegate(U2, U2);
+//      if Ru then   // 这里用负似乎意义不大且各版本不一
+//        BigNumberVectorNegate(U2, U2);
 
       BigNumberVectorModuleSquare(M1, U1);
       BigNumberVectorModuleSquare(M2, U2);
