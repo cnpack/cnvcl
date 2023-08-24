@@ -1030,10 +1030,10 @@ uses
   CnPrimeNumber, CnBigDecimal, CnFloat, CnBase64;
 
 resourcestring
-  SCN_BN_64MOD_RANGE_ERROR = 'Mod Word only Supports Unsigned Int32';
-  SCN_BN_LOG_RANGE_ERROR = 'Log Range Error';
-  SCN_BN_LEGENDRE_ERROR = 'Legendre: A, P Must > 0';
-  SCN_BN_FLOAT_EXP_RANGE_ERROR = 'Extended Float Exponent Range Error';
+  SCnErrorBigNumberInvalid64ModRange = 'Mod Word only Supports Unsigned Int32';
+  SCnErrorBigNumberLogRange = 'Log Range Error';
+  SCnErrorBigNumberLegendre = 'Legendre: A, P Must > 0';
+  CnErrorBigNumberFloatExponentRange = 'Extended Float Exponent Range Error';
 
 const
   Hex: string = '0123456789ABCDEF';
@@ -3643,7 +3643,7 @@ begin
 
 {$IFDEF BN_DATA_USE_64}
   if W > $FFFFFFFF then
-    raise Exception.Create(SCN_BN_64MOD_RANGE_ERROR);
+    raise Exception.Create(SCnErrorBigNumberInvalid64ModRange);
 {$ENDIF}
 
   Result := 0;
@@ -4087,7 +4087,7 @@ begin
     E := B - 1;
 
     if E > CN_EXTENDED_MAX_EXPONENT then
-      raise ERangeError.Create(SCN_BN_FLOAT_EXP_RANGE_ERROR);
+      raise ERangeError.Create(CnErrorBigNumberFloatExponentRange);
 
     if B <= 64 then
     begin
@@ -5690,7 +5690,7 @@ end;
 procedure CheckLog(const Num: TCnBigNumber);
 begin
   if Num.IsZero or Num.IsNegative then
-    raise ERangeError.Create(SCN_BN_LOG_RANGE_ERROR);
+    raise ERangeError.Create(SCnErrorBigNumberLogRange);
 end;
 
 function BigNumberLog2(const Num: TCnBigNumber): Extended;
@@ -6291,7 +6291,7 @@ var
   AA, Q: TCnBigNumber;
 begin
   if A.IsZero or A.IsNegative or P.IsZero or P.IsNegative then
-    raise Exception.Create(SCN_BN_LEGENDRE_ERROR);
+    raise Exception.Create(SCnErrorBigNumberLegendre);
 
   if A.IsOne then
   begin
@@ -6344,7 +6344,7 @@ var
   R, Res: TCnBigNumber;
 begin
   if A.IsZero or A.IsNegative or P.IsZero or P.IsNegative then
-    raise Exception.Create(SCN_BN_LEGENDRE_ERROR);
+    raise Exception.Create(SCnErrorBigNumberLegendre);
 
   R := FLocalBigNumberPool.Obtain;
   Res := FLocalBigNumberPool.Obtain;

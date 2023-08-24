@@ -113,11 +113,11 @@ function CnSM2SM9KDF(Data: Pointer; DataLen: Integer; DerivedKeyByteLength: Inte
 implementation
 
 resourcestring
-  SCnKDFErrorTooLong = 'Derived Key Too Long.';
-  SCnKDFErrorParam = 'Invalid Parameters.';
-  SCnKDFHashNOTSupport = 'Hash Method NOT Support.';
+  SCnErrorKDFKeyTooLong = 'Derived Key Too Long.';
+  SCnErrorKDFParam = 'Invalid Parameters.';
+  SCnErrorKDFHashNOTSupport = 'Hash Method NOT Support.';
 
-function Min(A, B: Integer): Integer;
+function Min(A, B: Integer): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   if A < B then
     Result := A
@@ -143,7 +143,7 @@ begin
     Move(Salt[1], SaltBuf[1], Min(Length(Salt), 8));
 
   if not (KeyHash in [ckdMd5, ckdSha256]) then
-    raise ECnKDFException.Create(SCnKDFHashNOTSupport);
+    raise ECnKDFException.Create(SCnErrorKDFHashNOTSupport);
 
   PS := AnsiString(Password) + SaltBuf; // 规定前 8 个字节作为 Salt
   if KeyHash = ckdMd5 then
@@ -248,13 +248,13 @@ var
 begin
   Result := nil;
   if (Password = nil) or (Count <= 0) or (DerivedKeyByteLength <= 0) then
-    raise ECnKDFException.Create(SCnKDFErrorParam);
+    raise ECnKDFException.Create(SCnErrorKDFParam);
 
   case KeyHash of
     cpdfMd5:
       begin
         if DerivedKeyByteLength > SizeOf(TCnMD5Digest) then
-          raise ECnKDFException.Create(SCnKDFErrorTooLong);
+          raise ECnKDFException.Create(SCnErrorKDFKeyTooLong);
 
         SetLength(Result, DerivedKeyByteLength);
         Md5Dig := MD5Bytes(ConcatBytes(Password, Salt));  // Got T1
@@ -273,7 +273,7 @@ begin
     cpdfSha1:
       begin
         if DerivedKeyByteLength > SizeOf(TCnSHA1Digest) then
-          raise ECnKDFException.Create(SCnKDFErrorTooLong);
+          raise ECnKDFException.Create(SCnErrorKDFKeyTooLong);
 
         SetLength(Result, DerivedKeyByteLength);
         Sha1Dig := SHA1Bytes(ConcatBytes(Password, Salt));  // Got T1
@@ -290,7 +290,7 @@ begin
         Move(Sha1Dig[0], Result[0], DerivedKeyByteLength);
       end;
     else
-      raise ECnKDFException.Create(SCnKDFHashNOTSupport);
+      raise ECnKDFException.Create(SCnErrorKDFHashNOTSupport);
   end;
 end;
 
@@ -305,7 +305,7 @@ var
 begin
   Result := nil;
   if (Salt = nil) or (Count <= 0) or (DerivedKeyByteLength <=0) then
-    raise ECnKDFException.Create(SCnKDFErrorParam);
+    raise ECnKDFException.Create(SCnErrorKDFParam);
 
   if (Password = nil) or (Length(Password) = 0) then
     PAddr := nil
@@ -318,7 +318,7 @@ begin
     cpdfSha256Hmac:
       HLen := 32;
   else
-    raise ECnKDFException.Create(SCnKDFErrorParam);
+    raise ECnKDFException.Create(SCnErrorKDFParam);
   end;
 
   D := (DerivedKeyByteLength div HLen) + 1;
@@ -385,7 +385,7 @@ var
   Res: TBytes;
 begin
   if (Data = '') or (DerivedKeyByteLength <= 0) then
-    raise ECnKDFException.Create(SCnKDFErrorParam);
+    raise ECnKDFException.Create(SCnErrorKDFParam);
 
   Res := CnSM2SM9KDF(@Data[1], Length(Data), DerivedKeyByteLength);
   Result := BytesToAnsi(Res);
@@ -412,7 +412,7 @@ end;
 function CnSM2SM9KDF(Data: TBytes; DerivedKeyByteLength: Integer): TBytes;
 begin
   if (Data = nil) or (Length(Data) <= 0) or (DerivedKeyByteLength <= 0) then
-    raise ECnKDFException.Create(SCnKDFErrorParam);
+    raise ECnKDFException.Create(SCnErrorKDFParam);
 
   Result := CnSM2SM9KDF(@Data[0], Length(Data), DerivedKeyByteLength);
 end;
@@ -427,7 +427,7 @@ var
 begin
   Result := nil;
   if (Data = nil) or (DataLen <= 0) or (DerivedKeyByteLength <= 0) then
-    raise ECnKDFException.Create(SCnKDFErrorParam);
+    raise ECnKDFException.Create(SCnErrorKDFParam);
 
   DArr := nil;
   CT := 1;

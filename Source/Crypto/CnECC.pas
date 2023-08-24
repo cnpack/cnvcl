@@ -948,8 +948,8 @@ uses
   CnContainers, CnRandom, CnBase64;
 
 resourcestring
-  SCnEccErrorCurveType = 'Invalid Curve Type.';
-  SCnEccErrorKeyData = 'Invalid Key or Data.';
+  SCnErrorEccCurveType = 'Invalid Curve Type.';
+  SCnErrorEccKeyData = 'Invalid Key or Data.';
 
 type
   TCnEccPredefinedHexParams = packed record
@@ -2254,7 +2254,7 @@ var
   P: TCnEccPoint;
 begin
   if Length(Buf) < 4 then
-    raise ECnEccException.Create(SCnEccErrorKeyData);
+    raise ECnEccException.Create(SCnErrorEccKeyData);
 
   C := StrToIntDef(string(Copy(Buf, 1, 2)), 0);
   S := Copy(Buf, 3, MaxInt);
@@ -2267,7 +2267,7 @@ begin
     begin
       // 前导字节后面的内容长度不对，这里重新把前导字节算进来，当公私钥一块判断
       if (Length(Buf) mod 4) <> 0 then // 如果长度还不对，则出错
-        raise ECnEccException.Create(SCnEccErrorKeyData);
+        raise ECnEccException.Create(SCnErrorEccKeyData);
 
       // 把前导字节算进来的长度是对的，直接劈开 Buf 赋值
       C := Length(Buf) div 2;
@@ -2308,13 +2308,13 @@ begin
         end;
       end
       else  // 前导字节内容非法
-        raise ECnEccException.Create(SCnEccErrorKeyData);
+        raise ECnEccException.Create(SCnErrorEccKeyData);
     end;
   end
   else // 前导字节非合法值，说明无前导字节
   begin
     if (Length(Buf) mod 4) <> 0 then // 一半公钥一半私钥，长度得相等
-      raise ECnEccException.Create(SCnEccErrorKeyData);
+      raise ECnEccException.Create(SCnErrorEccKeyData);
 
     C := Length(Buf) div 2;
     FX.SetHex(Copy(Buf, 1, C));
@@ -2461,7 +2461,7 @@ var
   RandomKey: TCnBigNumber;
 begin
   if not IsPointOnCurve(PublicKey) or not IsPointOnCurve(PlainPoint) then
-    raise ECnEccException.Create(SCnEccErrorKeyData);
+    raise ECnEccException.Create(SCnErrorEccKeyData);
 
   RandomKey := FEccBigNumberPool.Obtain;
   try
@@ -3620,7 +3620,7 @@ var
   Ecc: TCnEcc;
 begin
   if CurveType = ctCustomized then
-    raise ECnEccException.Create(SCnEccErrorCurveType);
+    raise ECnEccException.Create(SCnErrorEccCurveType);
 
   Ecc := TCnEcc.Create(CurveType);
   try
@@ -4247,7 +4247,7 @@ var
   Ecc: TCnEcc;
 begin
   if CurveType = ctCustomized then
-    raise ECnEccException.Create(SCnEccErrorCurveType);
+    raise ECnEccException.Create(SCnErrorEccCurveType);
 
   Ecc := TCnEcc.Create(CurveType);
   try
@@ -4371,7 +4371,7 @@ var
   Ecc: TCnEcc;
 begin
   if CurveType = ctCustomized then
-    raise ECnEccException.Create(SCnEccErrorCurveType);
+    raise ECnEccException.Create(SCnErrorEccCurveType);
 
   Ecc := TCnEcc.Create(CurveType);
   try
@@ -4433,7 +4433,7 @@ var
   Ecc: TCnEcc;
 begin
   if CurveType = ctCustomized then
-    raise ECnEccException.Create(SCnEccErrorCurveType);
+    raise ECnEccException.Create(SCnErrorEccCurveType);
 
   Ecc := TCnEcc.Create(CurveType);
   try
@@ -4501,7 +4501,7 @@ var
   Ecc: TCnEcc;
 begin
   if CurveType = ctCustomized then
-    raise ECnEccException.Create(SCnEccErrorCurveType);
+    raise ECnEccException.Create(SCnErrorEccCurveType);
 
   Ecc := TCnEcc.Create(CurveType);
   try
@@ -4562,7 +4562,7 @@ var
   Ecc: TCnEcc;
 begin
   if CurveType = ctCustomized then
-    raise ECnEccException.Create(SCnEccErrorCurveType);
+    raise ECnEccException.Create(SCnErrorEccCurveType);
 
   Ecc := TCnEcc.Create(CurveType);
   try
@@ -4623,7 +4623,7 @@ var
   Ecc: TCnEcc;
 begin
   if CurveType = ctCustomized then
-    raise ECnEccException.Create(SCnEccErrorCurveType);
+    raise ECnEccException.Create(SCnErrorEccCurveType);
 
   Ecc := TCnEcc.Create(CurveType);
   try
@@ -8510,7 +8510,7 @@ var
   C: Integer;
 begin
   if (Length(Buf) < 4) or ((Length(Buf) mod 4) <> 0) then
-    raise ECnEccException.Create(SCnEccErrorKeyData);
+    raise ECnEccException.Create(SCnErrorEccKeyData);
 
   // 一半一半，长度得相等
   C := Length(Buf) div 2;

@@ -1684,10 +1684,9 @@ var
 implementation
 
 resourcestring
-  SCnInvalidDegree = 'Invalid Degree %d';
-  // SCnErrorDivExactly = 'Can NOT Divide Exactly for Integer Polynomial.';
-  SCnInvalidExponent = 'Invalid Exponent %d';
-  SCnDegreeTooLarge = 'Degree Too Large';
+  SCnErrorPolynomialInvalidDegree = 'Invalid Degree %d';
+  SCnErrorPolynomialInvalidExponent = 'Invalid Exponent %d';
+  SCnErrorPolynomialDegreeTooLarge = 'Degree Too Large';
 
 var
   FLocalInt64PolynomialPool: TCnInt64PolynomialPool = nil;
@@ -1701,7 +1700,7 @@ var
 procedure CheckDegree(Degree: Integer);
 begin
   if Degree < 0 then
-    raise ECnPolynomialException.CreateFmt(SCnInvalidDegree, [Degree]);
+    raise ECnPolynomialException.CreateFmt(SCnErrorPolynomialInvalidDegree, [Degree]);
 end;
 
 function VarPower(const VarName: string; E: Integer): string;
@@ -2358,7 +2357,7 @@ begin
     // 如果不是 2 的整数次幂
     M := GetUInt32HighBits(Cardinal(M)); // M 得到最高位的 1 的位置，不会是 -1
     if M > 30 then
-      raise ECnPolynomialException.Create(SCnDegreeTooLarge);
+      raise ECnPolynomialException.Create(SCnErrorPolynomialDegreeTooLarge);
 
     Inc(M);
     M := 1 shl M; // 得到比 M 大的最小的 2 的整数次幂
@@ -2443,7 +2442,7 @@ begin
     // 如果不是 2 的整数次幂
     M := GetUInt32HighBits(Cardinal(M)); // M 得到最高位的 1 的位置，不会是 -1
     if M > 30 then
-      raise ECnPolynomialException.Create(SCnDegreeTooLarge);
+      raise ECnPolynomialException.Create(SCnErrorPolynomialDegreeTooLarge);
 
     Inc(M);
     M := 1 shl M; // 得到比 M 大的最小的 2 的整数次幂
@@ -2583,7 +2582,7 @@ begin
     Exit;
   end
   else if Exponent < 0 then
-    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
+    raise ECnPolynomialException.CreateFmt(SCnErrorPolynomialInvalidExponent, [Exponent]);
 
   T := FLocalInt64PolynomialPool.Obtain;
   Int64PolynomialCopy(T, P);
@@ -5220,7 +5219,7 @@ begin
     Exit;
   end
   else if Exponent.IsNegative then
-    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent.ToDec]);
+    raise ECnPolynomialException.CreateFmt(SCnErrorPolynomialInvalidExponent, [Exponent.ToDec]);
 
   T := FLocalBigNumberPolynomialPool.Obtain;
   BigNumberPolynomialCopy(T, P);
@@ -5705,7 +5704,7 @@ begin
     Exit;
   end
   else if Exponent.IsNegative then
-    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
+    raise ECnPolynomialException.CreateFmt(SCnErrorPolynomialInvalidExponent, [Exponent]);
 
   T := FLocalBigNumberPolynomialPool.Obtain;
   BigNumberPolynomialCopy(T, P);
@@ -7186,7 +7185,7 @@ function TCnInt64BiPolynomial.GetYFactorsList(
   Index: Integer): TCnInt64List;
 begin
   if (Index < 0) or (Index >= FXs.Count) then
-    raise ECnPolynomialException.CreateFmt(SCnInvalidDegree, [Index]);
+    raise ECnPolynomialException.CreateFmt(SCnErrorPolynomialInvalidDegree, [Index]);
 
   Result := TCnInt64List(FXs[Index]);
 end;
@@ -7843,7 +7842,7 @@ begin
     Exit;
   end
   else if Exponent < 0 then
-    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent]);
+    raise ECnPolynomialException.CreateFmt(SCnErrorPolynomialInvalidExponent, [Exponent]);
 
   T := FLocalInt64BiPolynomialPool.Obtain;
   Int64BiPolynomialCopy(T, P);
@@ -9178,7 +9177,7 @@ begin
     Exit;
   end
   else if Exponent.IsNegative then
-    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent.ToDec]);
+    raise ECnPolynomialException.CreateFmt(SCnErrorPolynomialInvalidExponent, [Exponent.ToDec]);
 
   T := FLocalBigNumberBiPolynomialPool.Obtain;
   BigNumberBiPolynomialCopy(T, P);
@@ -9689,7 +9688,7 @@ begin
     Exit;
   end
   else if Exponent.IsNegative then
-    raise ECnPolynomialException.CreateFmt(SCnInvalidExponent, [Exponent.ToDec]);
+    raise ECnPolynomialException.CreateFmt(SCnErrorPolynomialInvalidExponent, [Exponent.ToDec]);
 
   T := FLocalBigNumberBiPolynomialPool.Obtain;
   BigNumberBiPolynomialCopy(T, P);
@@ -10049,7 +10048,7 @@ function TCnBigNumberBiPolynomial.GetYFactorsList(
   Index: Integer): TCnSparseBigNumberList;
 begin
   if Index < 0 then
-    raise ECnPolynomialException.CreateFmt(SCnInvalidDegree, [Index]);
+    raise ECnPolynomialException.CreateFmt(SCnErrorPolynomialInvalidDegree, [Index]);
 
   if Index >= FXs.Count then
     FXs.Count := Index + 1;

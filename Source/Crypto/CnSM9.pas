@@ -909,12 +909,12 @@ uses
   CnKDF, CnSM4, CnPemUtils;
 
 resourcestring
-  SAffinePointZError = 'Affine Point Z Must be 1';
-  SListIndexError = 'List Index Out of Bounds (%d)';
-  SDivByZero = 'Division by Zero';
-  SErrorMacParams = 'Error Mac Params';
-  SSigMasterKeyZero = 'Signature Master Key Zero';
-  SEncMasterKeyZero = 'Encryption Master Key Zero';
+  SCnErrorSM9AffinePointZError = 'Affine Point Z Must be 1';
+  SCnErrorSM9ListIndexError = 'List Index Out of Bounds (%d)';
+  SCnErrorSM9DivByZero = 'Division by Zero';
+  SCnErrorSM9MacParams = 'Error Mac Params';
+  SCnErrorSM9SigMasterKeyZero = 'Signature Master Key Zero';
+  SCnErrorSM9EncMasterKeyZero = 'Encryption Master Key Zero';
 
 const
   CRLF = #13#10;
@@ -1209,7 +1209,7 @@ var
   Inv: TCnFP2;
 begin
   if F2.IsZero then
-    raise EZeroDivide.Create(SDivByZero);
+    raise EZeroDivide.Create(SCnErrorSM9DivByZero);
 
   if F1 = F2 then
     Res.SetOne
@@ -1470,7 +1470,7 @@ var
   Inv: TCnFP4;
 begin
   if F2.IsZero then
-    raise EZeroDivide.Create(SDivByZero);
+    raise EZeroDivide.Create(SCnErrorSM9DivByZero);
 
   if F1 = F2 then
     Res.SetOne
@@ -1812,7 +1812,7 @@ var
   Inv: TCnFP12;
 begin
   if F2.IsZero then
-    raise EZeroDivide.Create(SDivByZero);
+    raise EZeroDivide.Create(SCnErrorSM9DivByZero);
 
   if F1 = F2 then
     Res.SetOne
@@ -1933,7 +1933,7 @@ begin
     FP2Copy(FP2Y, P.Y);
   end
   else
-    raise ECnSM9Exception.Create(SAffinePointZError);
+    raise ECnSM9Exception.Create(SCnErrorSM9AffinePointZError);
 end;
 
 procedure FP2AffinePointSetCoordinates(const P: TCnFP2AffinePoint; const FP2X, FP2Y: TCnFP2);
@@ -2275,7 +2275,7 @@ var
 begin
   // X := X/Z   Y := Y/Z
   if FP2AP.Z.IsZero then
-    raise EZeroDivide.Create(SDivByZero);
+    raise EZeroDivide.Create(SCnErrorSM9DivByZero);
 
   V := FLocalFP2Pool.Obtain;
   try
@@ -2578,7 +2578,7 @@ begin
   else if Index = 1 then
     Result := F1
   else
-    raise ECnSM9Exception.CreateFmt(SListIndexError, [Index]);
+    raise ECnSM9Exception.CreateFmt(SCnErrorSM9ListIndexError, [Index]);
 end;
 
 function TCnFP2.IsOne: Boolean;
@@ -2654,7 +2654,7 @@ begin
   else if Index = 1 then
     Result := F1
   else
-    raise ECnSM9Exception.CreateFmt(SListIndexError, [Index]);
+    raise ECnSM9Exception.CreateFmt(SCnErrorSM9ListIndexError, [Index]);
 end;
 
 function TCnFP4.IsOne: Boolean;
@@ -2745,7 +2745,7 @@ begin
   else if Index = 2 then
     Result := F2
   else
-    raise ECnSM9Exception.CreateFmt(SListIndexError, [Index]);
+    raise ECnSM9Exception.CreateFmt(SCnErrorSM9ListIndexError, [Index]);
 end;
 
 function TCnFP12.IsOne: Boolean;
@@ -4278,7 +4278,7 @@ var
   Arr: TBytes;
 begin
   if (Key = nil) or (KeyByteLength <= 0) or (Z = nil) or (ZByteLength <= 0) then
-    raise ECnSM9Exception.Create(SErrorMacParams);
+    raise ECnSM9Exception.Create(SCnErrorSM9MacParams);
 
   SetLength(Arr, KeyByteLength + ZByteLength);
   Move(Z^, Arr[0], ZByteLength);
