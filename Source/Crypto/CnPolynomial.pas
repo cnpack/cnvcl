@@ -1687,6 +1687,8 @@ resourcestring
   SCnErrorPolynomialInvalidDegree = 'Invalid Degree %d';
   SCnErrorPolynomialInvalidExponent = 'Invalid Exponent %d';
   SCnErrorPolynomialDegreeTooLarge = 'Degree Too Large';
+  SCnErrorPolynomialGCDMustOne = 'Modular Inverse Need GCD = 1';
+  SCnErrorPolynomialGaloisInvalidDegree = 'Galois Division Polynomial Invalid Degree';
 
 var
   FLocalInt64PolynomialPool: TCnInt64PolynomialPool = nil;
@@ -2497,7 +2499,7 @@ var
   T: Int64;
 begin
   if Int64PolynomialIsZero(Divisor) then
-    raise ECnPolynomialException.Create(SDivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   if Divisor.MaxDegree > P.MaxDegree then // 除式次数高不够除，直接变成余数
   begin
@@ -2940,7 +2942,7 @@ var
   K, T: Int64;
 begin
   if Int64PolynomialIsZero(Divisor) then
-    raise ECnPolynomialException.Create(SDivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   // 无需担心不能整除的问题，因为有逆元和 mod 操作
 
@@ -3092,7 +3094,7 @@ var
   B: Boolean;
 begin
   if N = 0 then
-    raise ECnPolynomialException.Create(SDivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   B := N < 0;
   if B then
@@ -3250,7 +3252,7 @@ begin
       G := FLocalInt64PolynomialPool.Obtain;
       Int64PolynomialGaloisGreatestCommonDivisor(G, X, Modulus, Prime);
       if not G.IsOne then
-        raise ECnPolynomialException.Create('Modular Inverse Need GCD = 1');
+        raise ECnPolynomialException.Create(SCnErrorPolynomialGCDMustOne);
     end;
 
     X1 := FLocalInt64PolynomialPool.Obtain;
@@ -3384,7 +3386,7 @@ var
   D1, D2, D3, Y4: TCnInt64Polynomial;
 begin
   if Degree < 0 then
-    raise ECnPolynomialException.Create('Galois Division Polynomial Invalid Degree')
+    raise ECnPolynomialException.Create(SCnErrorPolynomialGaloisInvalidDegree)
   else if Degree = 0 then
   begin
     outDivisionPolynomial.SetCoefficents([0]);  // f0(X) = 0
@@ -3793,7 +3795,7 @@ var
   N: TCnInt64Polynomial;
 begin
   if R2.IsZero then
-    raise EDivByZero.Create('Divide by Zero.');
+    raise EDivByZero.Create(SDivByZero);
 
   N := FLocalInt64PolynomialPool.Obtain; // 交叉相乘，必须用中间变量，防止 RationalResult 是 Number1 或 Number 2
   try
@@ -3914,7 +3916,7 @@ procedure Int64RationalPolynomialDiv(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial);
 begin
   if P1.IsZero then
-    raise EDivByZero.Create('Divide by Zero.')
+    raise EDivByZero.Create(SDivByZero)
   else if P1.IsOne then
     RationalResult.Assign(R1)
   else
@@ -4134,7 +4136,7 @@ var
   N: TCnInt64Polynomial;
 begin
   if R2.IsZero then
-    raise EDivByZero.Create('Divide by Zero.');
+    raise EDivByZero.Create(SDivByZero);
 
   N := FLocalInt64PolynomialPool.Obtain; // 交叉相乘，必须用中间变量，防止 RationalResult 是 Number1 或 Number 2
   try
@@ -4259,7 +4261,7 @@ procedure Int64RationalPolynomialGaloisDiv(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
 begin
   if P1.IsZero then
-    raise EDivByZero.Create('Divide by Zero.')
+    raise EDivByZero.Create(SDivByZero)
   else if P1.IsOne then
     RationalResult.Assign(R1)
   else
@@ -5125,7 +5127,7 @@ var
   T, R: TCnBigNumber;
 begin
   if BigNumberPolynomialIsZero(Divisor) then
-    raise ECnPolynomialException.Create(SDivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   if Divisor.MaxDegree > P.MaxDegree then // 除式次数高不够除，直接变成余数
   begin
@@ -5605,7 +5607,7 @@ var
   K, T: TCnBigNumber;
 begin
   if BigNumberPolynomialIsZero(Divisor) then
-    raise ECnPolynomialException.Create(SDivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   if Divisor.MaxDegree > P.MaxDegree then // 除式次数高不够除，直接变成余数
   begin
@@ -5794,7 +5796,7 @@ var
   K, T: TCnBigNumber;
 begin
   if N = 0 then
-    raise ECnPolynomialException.Create(SDivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   K := nil;
   T := nil;
@@ -5856,7 +5858,7 @@ var
   B: Boolean;
 begin
   if N.IsZero then
-    raise ECnPolynomialException.Create(SDivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   B := N.IsNegative;
   if B then
@@ -6023,7 +6025,7 @@ begin
       G := FLocalBigNumberPolynomialPool.Obtain;
       BigNumberPolynomialGaloisGreatestCommonDivisor(G, X, Modulus, Prime);
       if not G.IsOne then
-        raise ECnPolynomialException.Create('Modular Inverse Need GCD = 1');
+        raise ECnPolynomialException.Create(SCnErrorPolynomialGCDMustOne);
     end;
 
     X1 := FLocalBigNumberPolynomialPool.Obtain;
@@ -6482,7 +6484,7 @@ var
   N: TCnBigNumberPolynomial;
 begin
   if R2.IsZero then
-    raise EDivByZero.Create('Divide by Zero.');
+    raise EDivByZero.Create(SDivByZero);
 
   N := FLocalBigNumberPolynomialPool.Obtain; // 交叉相乘，必须用中间变量，防止 RationalResult 是 Number1 或 Number 2
   try
@@ -6607,7 +6609,7 @@ procedure BigNumberRationalPolynomialDiv(R1: TCnBigNumberRationalPolynomial;
   P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
 begin
   if P1.IsZero then
-    raise EDivByZero.Create('Divide by Zero.')
+    raise EDivByZero.Create(SDivByZero)
   else if P1.IsOne then
     RationalResult.Assign(R1)
   else
@@ -6827,7 +6829,7 @@ var
   N: TCnBigNumberPolynomial;
 begin
   if R2.IsZero then
-    raise EDivByZero.Create('Divide by Zero.');
+    raise EDivByZero.Create(SDivByZero);
 
   N := FLocalBigNumberPolynomialPool.Obtain; // 交叉相乘，必须用中间变量，防止 RationalResult 是 Number1 或 Number 2
   try
@@ -6952,7 +6954,7 @@ procedure BigNumberRationalPolynomialGaloisDiv(R1: TCnBigNumberRationalPolynomia
   P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
 begin
   if P1.IsZero then
-    raise EDivByZero.Create('Divide by Zero.')
+    raise EDivByZero.Create(SDivByZero)
   else if P1.IsOne then
     RationalResult.Assign(R1)
   else
@@ -7757,7 +7759,7 @@ var
 begin
   Result := False;
   if Int64BiPolynomialIsZero(Divisor) then
-    raise ECnPolynomialException.Create(SDivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   if Divisor.MaxXDegree > P.MaxXDegree then // 除式次数高不够除，直接变成余数
   begin
@@ -8124,7 +8126,7 @@ var
 begin
   Result := False;
   if Int64BiPolynomialIsZero(Divisor) then
-    raise ECnPolynomialException.Create(SDivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   if Divisor.MaxXDegree > P.MaxXDegree then // 除式次数高不够除，直接变成余数
   begin
@@ -8325,7 +8327,7 @@ var
   B: Boolean;
 begin
   if N = 0 then
-    raise ECnPolynomialException.Create(SDivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   B := N < 0;
   if B then
@@ -9091,7 +9093,7 @@ var
 begin
   Result := False;
   if BigNumberBiPolynomialIsZero(Divisor) then
-    raise ECnPolynomialException.Create(SDivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   if Divisor.MaxXDegree > P.MaxXDegree then // 除式次数高不够除，直接变成余数
   begin
@@ -9594,7 +9596,7 @@ var
 begin
   Result := False;
   if BigNumberBiPolynomialIsZero(Divisor) then
-    raise ECnPolynomialException.Create(SDivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   if Divisor.MaxXDegree > P.MaxXDegree then // 除式次数高不够除，直接变成余数
   begin

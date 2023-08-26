@@ -54,7 +54,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnConsts, CnContainers, CnNative, CnBigNumber, CnECC, CnSM3;
+  Classes, SysUtils, SysConst,
+  CnConsts, CnContainers, CnNative, CnBigNumber, CnECC, CnSM3;
 
 const
   // 一个参数 T，不知道叫啥，但 SM9 所选择的 BN 曲线里，
@@ -911,7 +912,6 @@ uses
 resourcestring
   SCnErrorSM9AffinePointZError = 'Affine Point Z Must be 1';
   SCnErrorSM9ListIndexError = 'List Index Out of Bounds (%d)';
-  SCnErrorSM9DivByZero = 'Division by Zero';
   SCnErrorSM9MacParams = 'Error Mac Params';
   SCnErrorSM9SigMasterKeyZero = 'Signature Master Key Zero';
   SCnErrorSM9EncMasterKeyZero = 'Encryption Master Key Zero';
@@ -1209,7 +1209,7 @@ var
   Inv: TCnFP2;
 begin
   if F2.IsZero then
-    raise EZeroDivide.Create(SCnErrorSM9DivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   if F1 = F2 then
     Res.SetOne
@@ -1470,7 +1470,7 @@ var
   Inv: TCnFP4;
 begin
   if F2.IsZero then
-    raise EZeroDivide.Create(SCnErrorSM9DivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   if F1 = F2 then
     Res.SetOne
@@ -1812,7 +1812,7 @@ var
   Inv: TCnFP12;
 begin
   if F2.IsZero then
-    raise EZeroDivide.Create(SCnErrorSM9DivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   if F1 = F2 then
     Res.SetOne
@@ -2275,7 +2275,7 @@ var
 begin
   // X := X/Z   Y := Y/Z
   if FP2AP.Z.IsZero then
-    raise EZeroDivide.Create(SCnErrorSM9DivByZero);
+    raise EDivByZero.Create(SDivByZero);
 
   V := FLocalFP2Pool.Obtain;
   try
