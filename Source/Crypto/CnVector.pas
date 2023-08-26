@@ -124,9 +124,6 @@ procedure Int64VectorMul(const Res: TCnInt64Vector; const A: TCnInt64Vector; N: 
 function Int64VectorDotProduct(const A: TCnInt64Vector; const B: TCnInt64Vector): Int64;
 {* 俩 Int64 向量的标量乘法也就是点乘，返回各维度对应乘积之和。A 和 B 可以是同一个对象}
 
-function Int64GaussianLatticeReduction(const V1, V2: TCnInt64Vector; const X, Y: TCnInt64Vector): Boolean;
-{* 对两个二维 Int64 向量做整数格上的近似高斯格基约减以求解二维 SVP 问题，返回是否成功}
-
 // ========================= 大整数向量计算函数 ================================
 
 procedure BigNumberVectorModule(const Res: TCnBigNumber; const V: TCnBigNumberVector);
@@ -163,9 +160,6 @@ procedure BigNumberVectorDotProduct(const Res: TCnBigNumber; A: TCnBigNumberVect
   const B: TCnBigNumberVector);
 {* 俩大整数向量的标量乘法也就是点乘，返回各维度对应乘积之和。A 和 B 可以是同一个对象}
 
-function BigNumberGaussianLatticeReduction(const V1, V2: TCnBigNumberVector; const X, Y: TCnBigNumberVector): Boolean;
-{* 对两个二维大整数向量做整数格上的近似高斯格基约减以求解二维 SVP 问题，返回是否成功}
-
 implementation
 
 resourcestring
@@ -174,7 +168,6 @@ resourcestring
 
 var
   FBigNumberPool: TCnBigNumberPool = nil;
-  FBigNumberVectorPool: TCnBigNumberVectorPool = nil;
 
 procedure CheckInt64VectorDimensionEqual(const A, B: TCnInt64Vector);
 begin
@@ -313,54 +306,6 @@ begin
   Result := 0;
   for I := 0 to A.Dimension - 1 do
     Result := Result + A[I] * B[I];
-end;
-
-function Int64GaussianLatticeReduction(const V1, V2: TCnInt64Vector; const X, Y: TCnInt64Vector): Boolean;
-var
-  U1, U2, T: TCnInt64Vector;
-  M: Int64;
-  K: Extended;
-begin
-  U1 := nil;
-  U2 := nil;
-  T := nil;
-
-  try
-    U1 := TCnInt64Vector.Create;
-    U2 := TCnInt64Vector.Create;
-    T := TCnInt64Vector.Create;
-
-    Int64VectorCopy(U1, X);
-    Int64VectorCopy(U2, Y);
-
-    if Int64VectorModule(U1) > Int64VectorModule(U2) then
-      Int64VectorSwap(U1, U2);
-
-    while True do
-    begin
-      K := Int64VectorDotProduct(U2, U1) / Int64VectorDotProduct(U1, U1);
-      M := Round(K);  // K 可能比取整后的 M 大
-
-      Int64VectorMul(T, U1, M);
-      Int64VectorSub(U2, U2, T);
-//      if M > K then   // 这里用负似乎意义不大且各版本不一
-//        Int64VectorNegate(U2, U2);
-
-      if Int64VectorModule(U1) <= Int64VectorModule(U2) then
-      begin
-        Int64VectorCopy(V1, U1);
-        Int64VectorCopy(V2, U2);
-        Result := True;
-        Exit;
-      end
-      else
-        Int64VectorSwap(U1, U2);
-    end;
-  finally
-    T.Free;
-    U2.Free;
-    U1.Free;
-  end;
 end;
 
 { TCnInt64Vector }
@@ -571,71 +516,6 @@ begin
   end;
 end;
 
-function BigNumberGaussianLatticeReduction(const V1, V2: TCnBigNumberVector;
-  const X, Y: TCnBigNumberVector): Boolean;
-var
-  U1, U2, T: TCnBigNumberVector;
-  M, M1, M2: TCnBigNumber;
-  Ru: Boolean;
-begin
-  U1 := nil;
-  U2 := nil;
-  T := nil;
-  M := nil;
-  M1 := nil;
-  M2 := nil;
-
-  try
-    U1 := FBigNumberVectorPool.Obtain;
-    U2 := FBigNumberVectorPool.Obtain;
-    T := FBigNumberVectorPool.Obtain;
-    M := FBigNumberPool.Obtain;
-    M1 := FBigNumberPool.Obtain;
-    M2 := FBigNumberPool.Obtain;
-
-    // 确保 |X| <= |Y|
-    BigNumberVectorCopy(U1, X);
-    BigNumberVectorCopy(U2, Y);
-
-    BigNumberVectorModuleSquare(M1, U1);
-    BigNumberVectorModuleSquare(M2, U2);
-    if BigNumberCompare(M1, M2) > 0 then
-      BigNumberVectorSwap(U1, U2);
-
-    // U1 := X;  U2 := Y;
-    while True do
-    begin
-      BigNumberVectorDotProduct(M2, U2, U1);
-      BigNumberVectorDotProduct(M1, U1, U1);
-      BigNumberRoundDiv(M, M2, M1, Ru); // Ru 如果为 True 表示整数 M 比真实结果大
-
-      BigNumberVectorMul(T, U1, M);
-      BigNumberVectorSub(U2, U2, T);
-//      if Ru then   // 这里用负似乎意义不大且各版本不一
-//        BigNumberVectorNegate(U2, U2);
-
-      BigNumberVectorModuleSquare(M1, U1);
-      BigNumberVectorModuleSquare(M2, U2);
-      if BigNumberCompare(M1, M2) <= 0 then
-      begin
-        BigNumberVectorCopy(V1, U1);
-        BigNumberVectorCopy(V2, U2);
-        Result := True;
-        Exit;
-      end
-      else
-        BigNumberVectorSwap(U1, U2);
-    end;
-  finally
-    FBigNumberPool.Recycle(M2);
-    FBigNumberPool.Recycle(M1);
-    FBigNumberPool.Recycle(M);
-    FBigNumberVectorPool.Recycle(T);
-    FBigNumberVectorPool.Recycle(U2);
-    FBigNumberVectorPool.Recycle(U1);
-  end;
-end;
-
 function TCnBigNumberVector.ToString: string;
 begin
   Result := BigNumberVectorToString(Self);
@@ -661,10 +541,8 @@ end;
 
 initialization
   FBigNumberPool := TCnBigNumberPool.Create;
-  FBigNumberVectorPool := TCnBigNumberVectorPool.Create;
 
 finalization
-  FBigNumberVectorPool.Free;
   FBigNumberPool.Free;
 
 end.
