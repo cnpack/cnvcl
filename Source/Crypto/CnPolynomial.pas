@@ -100,7 +100,7 @@ type
     function IsMonic: Boolean;
     {* 是否首一多项式}
     property MaxDegree: Integer read GetMaxDegree write SetMaxDegree;
-    {* 最高次数，0 开始，基于 Count 所以只能是 Integer}
+    {* 最高次数，0 开始，基于 Count 所以只能是 Integer，下标遍历时使用 0 到 MaxDegree}
   end;
 
   TCnInt64RationalPolynomial = class(TPersistent)
@@ -1674,6 +1674,9 @@ procedure BigNumberBiPolynomialGaloisMulWord(const P: TCnBigNumberBiPolynomial; 
 procedure BigNumberBiPolynomialGaloisDivWord(const P: TCnBigNumberBiPolynomial; N: Int64; Prime: TCnBigNumber);
 {* 将 Prime 次方阶有限域上的二元大整系数多项式各项系数除以 N，也就是乘以 N 的逆元再 mod Prime}
 
+procedure Int64PolynomialToBigNumberPolynomial(const Dst: TCnBigNumberPolynomial; const Src: TCnInt64Polynomial);
+{* 将一 Int64 整系数多项式赋值给一大整系数多项式}
+
 var
   CnInt64PolynomialOne: TCnInt64Polynomial = nil;     // 表示 1 的 Int64 多项式常量
   CnInt64PolynomialZero: TCnInt64Polynomial = nil;    // 表示 0 的 Int64 多项式常量
@@ -1689,6 +1692,7 @@ resourcestring
   SCnErrorPolynomialDegreeTooLarge = 'Degree Too Large';
   SCnErrorPolynomialGCDMustOne = 'Modular Inverse Need GCD = 1';
   SCnErrorPolynomialGaloisInvalidDegree = 'Galois Division Polynomial Invalid Degree';
+  SCnErrorPolynomialNoGaloisInverse = 'NO Modular Inverse. Can NOT Galois Div';
 
 var
   FLocalInt64PolynomialPool: TCnInt64PolynomialPool = nil;
@@ -2944,7 +2948,7 @@ begin
   if Int64PolynomialIsZero(Divisor) then
     raise EDivByZero.Create(SDivByZero);
 
-  // 无需担心不能整除的问题，因为有逆元和 mod 操作
+  // 无需担心不能整除的问题，因为有逆元和 mod 操作，但逆元不存在时不好整只能出错
 
   if Divisor.MaxDegree > P.MaxDegree then // 除式次数高不够除，直接变成余数
   begin
@@ -2974,6 +2978,9 @@ begin
       K := 1
     else
       K := CnInt64ModularInverse2(Divisor[Divisor.MaxDegree], Prime); // K 是除式最高位的逆元
+
+    if K = 0 then
+      raise ECnPolynomialException.Create(SCnErrorPolynomialNoGaloisInverse);
 
     for I := 0 to D do
     begin
@@ -4700,9 +4707,9 @@ begin
   Result := Dst;
   if Src <> Dst then
   begin
-    Dst.Clear;
+    Dst.MaxDegree := Src.MaxDegree;
     for I := 0 to Src.Count - 1 do
-      Dst.Add(BigNumberDuplicate(Src[I]));
+      BigNumberCopy(Dst[I], Src[I]);
     Dst.CorrectTop;
   end;
 end;
@@ -9893,6 +9900,15 @@ begin
   end;
 end;
 
+procedure Int64PolynomialToBigNumberPolynomial(const Dst: TCnBigNumberPolynomial;
+  const Src: TCnInt64Polynomial);
+var
+  I: Integer;
+begin
+  Dst.MaxDegree := Src.MaxDegree;
+  for I := 0 to Src.MaxDegree do
+    Dst[I].SetInt64(Src[I]);
+end;
 { TCnBigNumberBiPolynomial }
 
 procedure TCnBigNumberBiPolynomial.Clear;
