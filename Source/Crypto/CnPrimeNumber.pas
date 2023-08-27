@@ -677,6 +677,9 @@ const
   CN_MIN_PRIME_MORE_THAN_SQRT_INT64 = 3037000507;
 
 type
+  ECnPrimeException = class(Exception);
+  {* 素数相关异常}
+
   TCnPrimeType = (pt4U3, pt8U5, pt8U1);
   {* 素数类型，mod 4 余 3、mod 8 余 5、mod 8 余 1，用于二次剩余模素数求解}
 
@@ -797,25 +800,25 @@ procedure CnInt64FindFactors(Num: TUInt64; Factors: TCnUInt64List);
 {* 求一 64 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中}
 
 function CnEulerUInt32(Num: Cardinal): Cardinal;
-{* 求不大于一 32 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数}
+{* 求不大于一 32 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数}
 
 function CnEulerInt64(Num: TUInt64): TUInt64;
-{* 求不大于一 64 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数}
+{* 求不大于一 64 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数}
 
 function CnUInt32ModularInverse(X: Cardinal; Modulus: Cardinal): Cardinal;
-{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt32，X、M 必须互质，否则返回 0}
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt32，X、Modulus 必须互素，否则抛出异常}
 
 function CnInt64ModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
-{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt64，X、M 必须互质，否则返回 0}
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt64，X、Modulus 必须互素，否则抛出异常}
 
 function CnInt64ModularInverse2(X: Int64; Modulus: Int64): Int64;
-{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、M 必须互质}
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、Modulus 必须互素，否则抛出异常}
 
 function CnInt64NegativeModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
-{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = -1，范围为 UInt64，X、M 必须互质，否则返回 0}
+{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = -1，范围为 UInt64，X、Modulus 必须互素，否则抛出异常}
 
 function CnInt64NegativeModularInverse2(X: Int64; Modulus: Int64): Int64;
-{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、M 必须互质}
+{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、Modulus 必须互素，否则抛出异常}
 
 function CnUInt32ExtendedEuclideanGcd(A, B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，调用者需自行保证 A B 互素
@@ -897,6 +900,9 @@ implementation
 
 uses
   CnHashMap, CnPolynomial, CnBigNumber, CnRandom;
+
+resourcestring
+  SCnErrorPrimeNOTCoprime = 'NOT Coprime.';
 
 // 从 CN_PRIME_NUMBERS_SQRT_UINT32 数组中随机挑选一个素数
 function CnPickRandomSmallPrime: Integer;
@@ -1814,7 +1820,7 @@ begin
   CnInt64FindFactors(UInt64Div(Num, P), Factors);
 end;
 
-// 求不大于一 32 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数
+// 求不大于一 32 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数
 function CnEulerUInt32(Num: Cardinal): Cardinal;
 var
   F: TCnUInt32List;
@@ -1837,7 +1843,7 @@ begin
   end;
 end;
 
-// 求不大于一 64 位无符号数 Num 的与 Num 互质的正整数的个数，也就是欧拉函数
+// 求不大于一 64 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数
 function CnEulerInt64(Num: TUInt64): TUInt64;
 var
   F: TCnUInt64List;
@@ -1867,7 +1873,7 @@ var
 begin
   Result := 0;
   if CnUInt32GreatestCommonDivisor(X, Modulus) <> 1 then
-    Exit;
+    raise ECnPrimeException.Create(SCnErrorPrimeNOTCoprime);
 
   // 转换成不定方程 XY + MN = 1，其中 Y、N 是未知数
   CnUInt32ExtendedEuclideanGcd(X, Modulus, Result, N);
@@ -1882,7 +1888,7 @@ var
 begin
   Result := 0;
   if CnInt64GreatestCommonDivisor(X, Modulus) <> 1 then
-    Exit;
+    raise ECnPrimeException.Create(SCnErrorPrimeNOTCoprime);
 
   // 转换成不定方程 XY + MN = 1，其中 Y、N 是未知数
   CnInt64ExtendedEuclideanGcd(X, Modulus, Result, N);
@@ -1890,14 +1896,14 @@ begin
     Result := Result + Modulus;
 end;
 
-// 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、M 必须互质
+// 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、M 必须互素
 function CnInt64ModularInverse2(X: Int64; Modulus: Int64): Int64;
 var
   N: Int64;
 begin
   Result := 0;
   if CnInt64GreatestCommonDivisor2(X, Modulus) <> 1 then
-    Exit;
+    raise ECnPrimeException.Create(SCnErrorPrimeNOTCoprime);
 
   // 转换成不定方程 XY + MN = 1，其中 Y、N 是未知数
   CnInt64ExtendedEuclideanGcd1(X, Modulus, Result, N);
@@ -1905,13 +1911,13 @@ begin
     Result := Result + Modulus;
 end;
 
-// 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = -1，范围为 UInt64，X、M 必须互质，否则返回 0
+// 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = -1，范围为 UInt64，X、M 必须互素
 function CnInt64NegativeModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
 begin
   Result := Modulus - CnInt64ModularInverse(X, Modulus);
 end;
 
-// 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、M 必须互质}
+// 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、M 必须互素}
 function CnInt64NegativeModularInverse2(X: Int64; Modulus: Int64): Int64;
 begin
   Result := Modulus - CnInt64ModularInverse2(X, Modulus);
