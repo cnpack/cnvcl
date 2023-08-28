@@ -109,7 +109,7 @@ object FormComplex: TFormComplex
       Size.Width = 57.000000000000000000
       Size.Height = 25.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 4
+      TabOrder = 7
       Text = 'Add'
       OnClick = btnAddClick
     end
@@ -119,7 +119,7 @@ object FormComplex: TFormComplex
       Size.Width = 57.000000000000000000
       Size.Height = 25.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 5
+      TabOrder = 8
       Text = 'Sub'
       OnClick = btnSubClick
     end
@@ -129,7 +129,7 @@ object FormComplex: TFormComplex
       Size.Width = 57.000000000000000000
       Size.Height = 25.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 6
+      TabOrder = 9
       Text = 'Mul'
       OnClick = btnMulClick
     end
@@ -139,18 +139,48 @@ object FormComplex: TFormComplex
       Size.Width = 57.000000000000000000
       Size.Height = 25.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 7
+      TabOrder = 10
       Text = 'Div'
       OnClick = btnDivClick
     end
     object edtComplexResult: TEdit
       Touch.InteractiveGestures = [LongTap, DoubleTap]
-      TabOrder = 8
+      TabOrder = 11
       Position.X = 40.000000000000000000
       Position.Y = 192.000000000000000000
       Size.Width = 321.000000000000000000
       Size.Height = 21.000000000000000000
       Size.PlatformDefault = False
+    end
+    object btnAbsolute: TButton
+      Position.X = 384.000000000000000000
+      Position.Y = 32.000000000000000000
+      Size.Width = 89.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 6
+      Text = 'Absolute'
+      OnClick = btnAbsoluteClick
+    end
+    object btnArgumet: TButton
+      Position.X = 488.000000000000000000
+      Position.Y = 32.000000000000000000
+      Size.Width = 89.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      Text = 'Argument'
+      OnClick = btnArgumetClick
+    end
+    object btnSqrt: TButton
+      Position.X = 384.000000000000000000
+      Position.Y = 72.000000000000000000
+      Size.Width = 89.000000000000000000
+      Size.Height = 25.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+      Text = 'Sqrt'
+      OnClick = btnSqrtClick
     end
   end
 end

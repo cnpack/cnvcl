@@ -25,12 +25,14 @@ type
     edtComplexResult: TEdit;
     btnAbsolute: TButton;
     btnArgument: TButton;
+    btnSqrt: TButton;
     procedure btnAddClick(Sender: TObject);
     procedure btnSubClick(Sender: TObject);
     procedure btnMulClick(Sender: TObject);
     procedure btnDivClick(Sender: TObject);
     procedure btnAbsoluteClick(Sender: TObject);
     procedure btnArgumentClick(Sender: TObject);
+    procedure btnSqrtClick(Sender: TObject);
   private
     FC1, FC2, FCR: TCnComplexNumber;
   public
@@ -100,6 +102,13 @@ begin
   SetComplexValue;
   R := ComplexNumberArgument(FC1);
   ShowMessage(FloatToStr(R / PI) + ' ¦Ð');
+end;
+
+procedure TFormComplex.btnSqrtClick(Sender: TObject);
+begin
+  SetComplexValue;
+  ComplexNumberSqrt(FCR, FC1);
+  ShowComplexValue;
 end;
 
 end.

@@ -178,5 +178,14 @@ object FormComplex: TFormComplex
       TabOrder = 10
       OnClick = btnArgumentClick
     end
+    object btnSqrt: TButton
+      Left = 392
+      Top = 72
+      Width = 75
+      Height = 25
+      Caption = 'Sqrt'
+      TabOrder = 11
+      OnClick = btnSqrtClick
+    end
   end
 end

@@ -120,6 +120,9 @@ procedure ComplexNumberDiv(var Res: TCnComplexNumber;
   var Complex: TCnComplexNumber; Value: Extended); overload;
 {* 复数与浮点数的除法，Complex 和 Res 可以是同一个结构}
 
+procedure ComplexNumberSqrt(var Res: TCnComplexNumber; var Complex: TCnComplexNumber);
+{* 求复数的平方根，只返回其中一个，如果需要另一个，实部虚部各取负就行}
+
 procedure ComplexConjugate(var Res, Complex: TCnComplexNumber);
 {* 获得共轭复数，Res 可以是 Complex}
 
@@ -278,6 +281,16 @@ procedure ComplexNumberDiv(var Res: TCnComplexNumber;
 begin
   Res.R := Complex.R / Value;
   Res.I := Complex.I;
+end;
+
+procedure ComplexNumberSqrt(var Res: TCnComplexNumber; var Complex: TCnComplexNumber);
+var
+  R, A: Extended;
+begin
+  R := FloatSqrt(ComplexNumberAbsolute(Complex));
+  A := ComplexNumberArgument(Complex) / 2;
+
+  ComplexNumberSetAbsoluteArgument(Res, R, A);
 end;
 
 procedure ComplexConjugate(var Res, Complex: TCnComplexNumber);
