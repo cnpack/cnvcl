@@ -353,7 +353,7 @@ function CnRSADecryptFile(const InFileName, OutFileName: string;
 
 function CnRSASignFile(const InFileName, OutSignFileName: string;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用私钥签名指定文件。
+{* 用私钥签名指定文件，返回签名是否成功。
    未指定数字摘要算法时等于将源文件用 PKCS1 Private_FF 补齐后加密
    当指定了数字摘要算法时，使用指定数字摘要算法对文件进行计算得到杂凑值，
    原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐再用私钥加密}
@@ -366,11 +366,19 @@ function CnRSAVerifyFile(const InFileName, InSignFileName: string;
 
 function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用私钥签名指定内存流}
+{* 用私钥签名指定内存流，返回签名是否成功}
 
 function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用公钥与签名值验证指定内存流}
+{* 用公钥与签名值验证指定内存流，返回验证是否通过}
+
+function CnRSASignBytes(InData: TBytes; PrivateKey: TCnRSAPrivateKey;
+  SignType: TCnRSASignDigestType = rsdtMD5): TBytes;
+{* 用私钥签名字节数组，返回签名值的字节数组，如签名失败则返回空}
+
+function CnRSAVerifyBytes(InData: TBytes; InSignBytes: TBytes;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
+{* 用公钥与签名字节数组验证指定字节数组，返回验证是否通过}
 
 // OAEP Padding 的生成与验证算法
 
@@ -2102,6 +2110,50 @@ begin
     Res.Free;
     SetLength(ResBuf, 0);
     SetLength(BerBuf, 0);
+  end;
+end;
+
+function CnRSASignBytes(InData: TBytes; PrivateKey: TCnRSAPrivateKey;
+  SignType: TCnRSASignDigestType): TBytes;
+var
+  InStream, OutStream: TMemoryStream;
+begin
+  Result := nil;
+  InStream := nil;
+  OutStream := nil;
+
+  try
+    InStream := TMemoryStream.Create;
+    BytesToStream(InData, InStream);
+
+    OutStream := TMemoryStream.Create;
+    if CnRSASignStream(InStream, OutStream, PrivateKey, SignType) then
+      Result := StreamToBytes(OutStream);
+  finally
+    OutStream.Free;
+    InStream.Free;
+  end;
+end;
+
+function CnRSAVerifyBytes(InData: TBytes; InSignBytes: TBytes;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType): Boolean;
+var
+  InStream, SignStream: TMemoryStream;
+begin
+  Result := False;
+  InStream := nil;
+  SignStream := nil;
+
+  try
+    InStream := TMemoryStream.Create;
+    BytesToStream(InData, InStream);
+
+    SignStream := TMemoryStream.Create;
+    BytesToStream(InSignBytes, SignStream);
+    Result := CnRSAVerifyStream(InStream, SignStream, PublicKey, SignType);
+  finally
+    SignStream.Free;
+    InStream.Free;
   end;
 end;
 
