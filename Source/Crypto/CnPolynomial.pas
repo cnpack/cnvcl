@@ -355,15 +355,17 @@ function Int64PolynomialNttMul(const Res: TCnInt64Polynomial; P1: TCnInt64Polyno
   注：多项式系数只支持 [0, CN_P) 区间，多项式项数必须小于模数的 2^23，因此适用范围也不广}
 
 function Int64PolynomialDiv(const Res: TCnInt64Polynomial; const Remain: TCnInt64Polynomial;
-  const P: TCnInt64Polynomial; const Divisor: TCnInt64Polynomial): Boolean;
+  const P: TCnInt64Polynomial; const Divisor: TCnInt64Polynomial; ErrMulFactor: PInt64 = nil): Boolean;
 {* 两个一元整系数多项式对象相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    注意当商式或余式出现无法整除的分数时会返回 False，表示无法支持，调用者务必判断返回值
+   返回 False 时如 ErrMulFactor 参数不为空，则会返回被除式各系数应当乘上多少才可以整除的值
    Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor}
 
 function Int64PolynomialMod(const Res: TCnInt64Polynomial; const P: TCnInt64Polynomial;
-  const Divisor: TCnInt64Polynomial): Boolean;
+  const Divisor: TCnInt64Polynomial; ErrMulFactor: PInt64 = nil): Boolean;
 {* 两个一元整系数多项式对象求余，余数放至 Res 中，返回求余是否成功，
-   注意当商式或余式出现无法整除的分数时会返回 False，表示无法支持，调用者务必判断返回值，
+   注意当商式或余式出现无法整除的分数时会返回 False，表示无法支持，调用者务必判断返回值
+   返回 False 时如 ErrMulFactor 参数不为空，则会返回被除式各系数应当乘上多少才可以整除的值
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function Int64PolynomialPower(const Res: TCnInt64Polynomial;
@@ -738,15 +740,17 @@ function BigNumberPolynomialMul(const Res: TCnBigNumberPolynomial; P1: TCnBigNum
 {* 两个一元大整系数多项式对象相乘，结果放至 Res 中，返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2}
 
 function BigNumberPolynomialDiv(const Res: TCnBigNumberPolynomial; const Remain: TCnBigNumberPolynomial;
-  const P: TCnBigNumberPolynomial; const Divisor: TCnBigNumberPolynomial): Boolean;
+  const P: TCnBigNumberPolynomial; const Divisor: TCnBigNumberPolynomial; ErrMulFactor: TCnBigNumber = nil): Boolean;
 {* 两个一元大整系数多项式对象相除，商放至 Res 中，余数放在 Remain 中，返回相除是否成功，
    注意当商式或余式出现无法整除的分数时会返回 False，表示无法支持，调用者务必判断返回值
+   返回 False 时如 ErrMulFactor 参数不为空，则会返回被除式各系数应当乘上多少才可以整除的值
    Res 或 Remail 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor}
 
 function BigNumberPolynomialMod(const Res: TCnBigNumberPolynomial; const P: TCnBigNumberPolynomial;
-  const Divisor: TCnBigNumberPolynomial): Boolean;
+  const Divisor: TCnBigNumberPolynomial; ErrMulFactor: TCnBigNumber = nil): Boolean;
 {* 两个一元大整系数多项式对象求余，余数放至 Res 中，返回求余是否成功，
-   注意当商式或余式出现无法整除的分数时会返回 False，表示无法支持，调用者务必判断返回值，
+   注意当商式或余式出现无法整除的分数时会返回 False，表示无法支持，调用者务必判断返回值
+   返回 False 时如 ErrMulFactor 参数不为空，则会返回被除式各系数应当乘上多少才可以整除的值
    Res 可以是 P 或 Divisor，P 可以是 Divisor}
 
 function BigNumberPolynomialPower(const Res: TCnBigNumberPolynomial;
@@ -2494,7 +2498,7 @@ begin
 end;
 
 function Int64PolynomialDiv(const Res: TCnInt64Polynomial; const Remain: TCnInt64Polynomial;
-  const P: TCnInt64Polynomial; const Divisor: TCnInt64Polynomial): Boolean;
+  const P: TCnInt64Polynomial; const Divisor: TCnInt64Polynomial; ErrMulFactor: PInt64): Boolean;
 var
   SubRes: TCnInt64Polynomial; // 容纳递减差
   MulRes: TCnInt64Polynomial; // 容纳除数乘积
@@ -2538,8 +2542,13 @@ begin
       if (SubRes[P.MaxDegree - I] mod Divisor[Divisor.MaxDegree]) <> 0 then
       begin
         Result := False;
+        if ErrMulFactor <> nil then
+        begin
+          // Divisor[Divisor.MaxDegree] 乘以两者的最大公约数
+          ErrMulFactor^ := Divisor[Divisor.MaxDegree] *
+            CnInt64GreatestCommonDivisor(SubRes[P.MaxDegree - I], Divisor[Divisor.MaxDegree]);
+        end;
         Exit;
-        // raise ECnPolynomialException.Create(SCnErrorDivExactly);
       end;
 
       Int64PolynomialCopy(MulRes, Divisor);
@@ -2564,9 +2573,9 @@ begin
 end;
 
 function Int64PolynomialMod(const Res: TCnInt64Polynomial; const P: TCnInt64Polynomial;
-  const Divisor: TCnInt64Polynomial): Boolean;
+  const Divisor: TCnInt64Polynomial; ErrMulFactor: PInt64): Boolean;
 begin
-  Result := Int64PolynomialDiv(nil, Res, P, Divisor);
+  Result := Int64PolynomialDiv(nil, Res, P, Divisor, ErrMulFactor);
 end;
 
 function Int64PolynomialPower(const Res: TCnInt64Polynomial;
@@ -2656,8 +2665,8 @@ function Int64PolynomialGreatestCommonDivisor(const Res: TCnInt64Polynomial;
   const P1, P2: TCnInt64Polynomial): Boolean;
 var
   A, B, C: TCnInt64Polynomial;
+  MF: Int64;
 begin
-  Result := False;
   A := nil;
   B := nil;
   C := nil;
@@ -2681,8 +2690,8 @@ begin
     while not B.IsZero do
     begin
       Int64PolynomialCopy(C, B);        // 备份 B
-      if not Int64PolynomialMod(B, A, B) then   // A mod B 给 B
-        Exit;
+      while not Int64PolynomialMod(B, A, B, @MF) do   // A mod B 给 B
+        Int64PolynomialMulWord(A, MF);
 
       // B 要系数约分化简
       Int64PolynomialReduce(B);
@@ -3152,6 +3161,13 @@ begin
     begin
       Int64PolynomialCopy(C, B);          // 备份 B
       Int64PolynomialGaloisMod(B, A, B, Prime);  // A mod B 给 B
+
+      if B.MaxDegree = 0 then  // 如果是常数项则变为 1
+      begin
+        if B[0] <> 0 then
+          B[0] := 1;
+      end;
+
       Int64PolynomialCopy(A, C);          // 原始 B 给 A
     end;
 
@@ -5125,7 +5141,7 @@ begin
 end;
 
 function BigNumberPolynomialDiv(const Res: TCnBigNumberPolynomial; const Remain: TCnBigNumberPolynomial;
-  const P: TCnBigNumberPolynomial; const Divisor: TCnBigNumberPolynomial): Boolean;
+  const P: TCnBigNumberPolynomial; const Divisor: TCnBigNumberPolynomial; ErrMulFactor: TCnBigNumber): Boolean;
 var
   SubRes: TCnBigNumberPolynomial; // 容纳递减差
   MulRes: TCnBigNumberPolynomial; // 容纳除数乘积
@@ -5176,7 +5192,15 @@ begin
         Exit;
 
       if not T.IsZero then
+      begin
+        if ErrMulFactor <> nil then
+        begin
+          // Divisor[Divisor.MaxDegree] 乘以两者的最大公约数
+          if BigNumberGcd(T, SubRes[P.MaxDegree - I], Divisor[Divisor.MaxDegree]) then
+            BigNumberMul(ErrMulFactor, Divisor[Divisor.MaxDegree], T);
+        end;
         Exit;
+      end;
 
       BigNumberPolynomialCopy(MulRes, Divisor);
       BigNumberPolynomialShiftLeft(MulRes, D - I);                 // 对齐到 SubRes 的最高次
@@ -5203,9 +5227,9 @@ begin
 end;
 
 function BigNumberPolynomialMod(const Res: TCnBigNumberPolynomial; const P: TCnBigNumberPolynomial;
-  const Divisor: TCnBigNumberPolynomial): Boolean;
+  const Divisor: TCnBigNumberPolynomial; ErrMulFactor: TCnBigNumber): Boolean;
 begin
-  Result := BigNumberPolynomialDiv(nil, Res, P, Divisor);
+  Result := BigNumberPolynomialDiv(nil, Res, P, Divisor, ErrMulFactor);
 end;
 
 function BigNumberPolynomialPower(const Res: TCnBigNumberPolynomial;
@@ -5925,6 +5949,13 @@ begin
     begin
       BigNumberPolynomialCopy(C, B);          // 备份 B
       BigNumberPolynomialGaloisMod(B, A, B, Prime);  // A mod B 给 B
+
+      if B.MaxDegree = 0 then  // 如果是常数项则变为 1
+      begin
+        if not B[0].IsZero then
+          B[0].SetOne;
+      end;
+
       BigNumberPolynomialCopy(A, C);          // 原始 B 给 A
     end;
 
