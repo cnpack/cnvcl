@@ -2140,7 +2140,6 @@ function CnRSAVerifyBytes(InData: TBytes; InSignBytes: TBytes;
 var
   InStream, SignStream: TMemoryStream;
 begin
-  Result := False;
   InStream := nil;
   SignStream := nil;
 
