@@ -911,29 +911,37 @@ function BigNumberIsUInt64(const Num: TCnBigNumber): Boolean;
 
 procedure BigNumberExtendedEuclideanGcd(A, B: TCnBigNumber; X: TCnBigNumber;
   Y: TCnBigNumber);
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，调用者需自行保证 A B 互素
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
+   调用者需自行保证 A B 互素，因为结果只满足 A * X + B * Y = GCD(A, B)
    A, B 是已知大数，X, Y 是解出来的结果，注意 X 有可能小于 0，如需要正数，可以再加上 B}
 
 procedure BigNumberExtendedEuclideanGcd2(A, B: TCnBigNumber; X: TCnBigNumber;
   Y: TCnBigNumber);
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，调用者需自行保证 A B 互素
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
+   调用者需自行保证 A B 互素，因为结果只满足 A * X + B * Y = GCD(A, B)
    A, B 是已知大数，X, Y 是解出来的结果，注意 X 有可能小于 0，如需要正数，可以再加上 B
    X 被称为 A 针对 B 的模反元素，因此本算法也用来算 A 针对 B 的模反元素
    （由于可以视作 -Y，所以本方法与上一方法是等同的）}
 
-function BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
+function BigNumberModularInverse(const Res: TCnBigNumber;
+  X, Modulus: TCnBigNumber; CheckGcd: Boolean = False): Boolean;
 {* 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
+   CheckGcd 参数为 True 时，内部会检查 X、Modulus 是否互素，不互素则直接返回 False
    调用者须自行保证 X、Modulus 互素，且 Res 不能是 X 或 Modulus}
 
-function BigNumberPrimeModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
+function BigNumberPrimeModularInverse(const Res: TCnBigNumber;
+  X, Modulus: TCnBigNumber): Boolean;
 {* 求 X 针对素数 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
+   CheckGcd 参数为 True 时，内部会检查 X、Modulus 是否互素，不互素则直接返回 False
    调用者须自行保证 Modulus 为素数，且 Res 不能是 X 或 Modulus，内部用费马小定理求值，略慢}
 
-function BigNumberNegativeModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
+function BigNumberNegativeModularInverse(const Res: TCnBigNumber;
+  X, Modulus: TCnBigNumber; CheckGcd: Boolean = False): Boolean;
 {* 求 X 针对 Modulus 的负模反或叫负模逆元 Y，满足 (X * Y) mod M = -1，X 可为负值，Y 求出正值。
    调用者须自行保证 X、Modulus 互素，且 Res 不能是 X 或 Modulus}
 
-procedure BigNumberModularInverseWord(const Res: TCnBigNumber; X: Integer; Modulus: TCnBigNumber);
+procedure BigNumberModularInverseWord(const Res: TCnBigNumber;
+  X: Integer; Modulus: TCnBigNumber; CheckGcd: Boolean = False);
 {* 求 32 位有符号数 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
    调用者须自行保证 X、Modulus 互素，且 Res 不能是 X 或 Modulus}
 
@@ -6203,7 +6211,8 @@ begin
 end;
 
 // 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。调用者须自行保证 X、Modulus 互素
-function BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
+function BigNumberModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber;
+  CheckGcd: Boolean): Boolean;
 var
   Neg: Boolean;
   X1, Y: TCnBigNumber;
@@ -6217,6 +6226,13 @@ begin
   try
     X1 := FLocalBigNumberPool.Obtain;
     Y := FLocalBigNumberPool.Obtain;
+
+    if CheckGcd then
+    begin
+      BigNumberGcd(X1, X, Modulus);
+      if not X1.IsOne then
+        Exit;
+    end;
 
     if BigNumberCopy(X1, X) = nil then
       Exit;
@@ -6263,23 +6279,24 @@ begin
 end;
 
 // 求 X 针对 Modulus 的负模反或叫负模逆元 Y，满足 (X * Y) mod M = -1，X 可为负值，Y 求出正值
-function BigNumberNegativeModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBigNumber): Boolean;
+function BigNumberNegativeModularInverse(const Res: TCnBigNumber;
+  X, Modulus: TCnBigNumber; CheckGcd: Boolean): Boolean;
 begin
-  Result := BigNumberModularInverse(Res, X, Modulus);
+  Result := BigNumberModularInverse(Res, X, Modulus, CheckGcd);
   if Result then
     Result := BigNumberSub(Res, Modulus, Res); // 负逆元等于模数减逆元
 end;
 
 // 求 32 位有符号数 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值
 procedure BigNumberModularInverseWord(const Res: TCnBigNumber; X: Integer;
-  Modulus: TCnBigNumber);
+  Modulus: TCnBigNumber; CheckGcd: Boolean);
 var
   T: TCnBigNumber;
 begin
   T := FLocalBigNumberPool.Obtain;
   try
     T.SetInteger(X);
-    BigNumberModularInverse(Res, T, Modulus);
+    BigNumberModularInverse(Res, T, Modulus, CheckGcd);
   finally
     FLocalBigNumberPool.Recycle(T);
   end;
