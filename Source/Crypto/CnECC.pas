@@ -1294,7 +1294,7 @@ begin
 end;
 
 // 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是说支持 X 为负值
-function Int64ModularInverse(X: Int64; Modulus: Int64): Int64;
+function MyInt64ModularInverse(X: Int64; Modulus: Int64): Int64;
 var
   Neg: Boolean;
 begin
@@ -1768,7 +1768,7 @@ begin
     Sum.Y := Int64NonNegativeAddMod(Sum.Y, -T, FFiniteFieldSize);
 
     if F2Inverse = 0 then
-      F2Inverse := Int64ModularInverse(2, FFiniteFieldSize); // 除以 2
+      F2Inverse := MyInt64ModularInverse(2, FFiniteFieldSize); // 除以 2
     Sum.Y := Int64NonNegativeMulMod(Sum.Y, F2Inverse, FFiniteFieldSize);
 
     // Z := PZ * QZ * D3
@@ -1971,7 +1971,7 @@ begin
       Sum.Y := 0;
     end;
 
-    Y := Int64ModularInverse(Y, FFiniteFieldSize);
+    Y := MyInt64ModularInverse(Y, FFiniteFieldSize);
     K := Int64MultipleMod(X, Y, FFiniteFieldSize); // 得到斜率
   end
   else if (P.X = Q.X) and ((P.Y = -Q.Y) or (P.Y + Q.Y = FFiniteFieldSize)) then        // P = -Q
@@ -1987,7 +1987,7 @@ begin
     X := Q.X - P.X;
 
     // Y/X = Y*X^-1 = Y * (X 针对 p 的逆元)
-    X := Int64ModularInverse(X, FFiniteFieldSize);
+    X := MyInt64ModularInverse(X, FFiniteFieldSize);
     K := Int64MultipleMod(Y, X, FFiniteFieldSize); // 得到斜率
   end
   else if P.Y <> Q.Y then
@@ -2161,7 +2161,7 @@ begin
 }
 
   D := GetDelta;
-  D := Int64ModularInverse(D, FFiniteFieldSize);
+  D := MyInt64ModularInverse(D, FFiniteFieldSize);
   T := Int64NonNegativeMulMod(-110592, FCoefficientA, FFiniteFieldSize);
   T := Int64NonNegativeMulMod(T, FCoefficientA, FFiniteFieldSize);
   T := Int64NonNegativeMulMod(T, FCoefficientA, FFiniteFieldSize);
@@ -3511,7 +3511,7 @@ function CnInt64AffinePointToEccPoint(var P3: TCnInt64Ecc3Point;
 var
   V: Int64;
 begin
-  V := Int64ModularInverse(P3.Z, Prime);
+  V := MyInt64ModularInverse(P3.Z, Prime);
   P.X := Int64NonNegativeMulMod(P3.X, V, Prime);
   P.Y := Int64NonNegativeMulMod(P3.Y, V, Prime);
   Result := True;
@@ -3523,11 +3523,11 @@ var
   T, V: Int64;
 begin
   T := Int64NonNegativeMulMod(P3.Z, P3.Z, Prime); // Z^2
-  V := Int64ModularInverse(T, Prime);       // 1 / Z^2
+  V := MyInt64ModularInverse(T, Prime);       // 1 / Z^2
   P.X := Int64NonNegativeMulMod(P3.X, V, Prime);
 
   T := Int64NonNegativeMulMod(P3.Z, T, Prime); // Z^3
-  V := Int64ModularInverse(T, Prime);       // 1 / Z^3
+  V := MyInt64ModularInverse(T, Prime);       // 1 / Z^3
   P.Y := Int64NonNegativeMulMod(P3.Y, V, Prime);
   Result := True;
 end;
