@@ -806,19 +806,24 @@ function CnEulerInt64(Num: TUInt64): TUInt64;
 {* 求不大于一 64 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数}
 
 function CnUInt32ModularInverse(X: Cardinal; Modulus: Cardinal): Cardinal;
-{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt32，X、Modulus 必须互素，否则抛出异常}
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt32
+   X、Modulus 必须互素，如不互素则模逆元不存在，返回 0}
 
 function CnInt64ModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
-{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt64，X、Modulus 必须互素，否则抛出异常}
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt64
+   X、Modulus 必须互素，如不互素则模逆元不存在，返回 0}
 
 function CnInt64ModularInverse2(X: Int64; Modulus: Int64): Int64;
-{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、Modulus 必须互素，否则抛出异常}
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值
+   X、Modulus 必须互素，如不互素则模逆元不存在，返回 0}
 
 function CnInt64NegativeModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
-{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = -1，范围为 UInt64，X、Modulus 必须互素，否则抛出异常}
+{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = -1，范围为 UInt64
+   X、Modulus 必须互素，如不互素则负模逆元不存在，返回 0}
 
 function CnInt64NegativeModularInverse2(X: Int64; Modulus: Int64): Int64;
-{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值，X、Modulus 必须互素，否则抛出异常}
+{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值
+   X、Modulus 必须互素，如不互素则负模逆元不存在，返回 0}
 
 function CnUInt32ExtendedEuclideanGcd(A, B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，调用者需自行保证 A B 互素
@@ -900,9 +905,6 @@ implementation
 
 uses
   CnHashMap, CnPolynomial, CnBigNumber, CnRandom;
-
-resourcestring
-  SCnErrorPrimeNOTCoprime = 'NOT Coprime.';
 
 // 从 CN_PRIME_NUMBERS_SQRT_UINT32 数组中随机挑选一个素数
 function CnPickRandomSmallPrime: Integer;
@@ -1873,7 +1875,7 @@ var
 begin
   Result := 0;
   if CnUInt32GreatestCommonDivisor(X, Modulus) <> 1 then
-    raise ECnPrimeException.Create(SCnErrorPrimeNOTCoprime);
+    Exit;
 
   // 转换成不定方程 XY + MN = 1，其中 Y、N 是未知数
   CnUInt32ExtendedEuclideanGcd(X, Modulus, Result, N);
@@ -1888,7 +1890,7 @@ var
 begin
   Result := 0;
   if CnInt64GreatestCommonDivisor(X, Modulus) <> 1 then
-    raise ECnPrimeException.Create(SCnErrorPrimeNOTCoprime);
+    Exit;
 
   // 转换成不定方程 XY + MN = 1，其中 Y、N 是未知数
   CnInt64ExtendedEuclideanGcd(X, Modulus, Result, N);
@@ -1903,7 +1905,7 @@ var
 begin
   Result := 0;
   if CnInt64GreatestCommonDivisor2(X, Modulus) <> 1 then
-    raise ECnPrimeException.Create(SCnErrorPrimeNOTCoprime);
+    Exit;
 
   // 转换成不定方程 XY + MN = 1，其中 Y、N 是未知数
   CnInt64ExtendedEuclideanGcd1(X, Modulus, Result, N);
