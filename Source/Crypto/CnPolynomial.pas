@@ -27,10 +27,15 @@ unit CnPolynomial;
 * 备    注：1、支持普通的整系数多项式四则运算，除法只支持除数最高次数为 1 的情况
 *           支持有限扩域范围内的多项式四则运算，系数均 mod p 并且结果对本原多项式求余
 *           2、支持大整数系数多项式以及有理分式在普通四则运算以及在有限扩域范围内的运算
+*           3、素数幂模下多项式环的整系数多项式求逆判断算法来源于《一种新的重模剩余类环中元素逆的求法》，
+*              河北省科学院学报，2009 年 3 月（注意其中的计算算法不靠谱）
+*              实际计算算法来源于 stackoverflow 上 William Whyte 以及 Sonel Sharam 的帖子
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.12.01 V1.6
+* 修改记录：2023.09.01 V1.7
+*               实现素数幂模下多项式环的整系数多项式求逆
+*           2021.12.01 V1.6
 *               实现 BigNumber 范围内的二元整系数多项式及其运算，包括有限域内
 *           2021.11.17 V1.5
 *               实现 Int64 范围内的二元整系数多项式及其运算，包括有限域内
@@ -375,6 +380,10 @@ function Int64PolynomialPower(const Res: TCnInt64Polynomial;
 
 function Int64PolynomialReduce(const P: TCnInt64Polynomial): Integer;
 {* 化简一元整系数多项式系数，也就是找多项式系数的最大公约数，各个系数除以它，返回最大公约数}
+
+procedure Int64PolynomialCentralize(const P: TCnInt64Polynomial; Modulus: Int64);
+{* 对一元整系数多项式系数进行中心化处理，也即把 [0, M - 1] 改为 [1 - (M + 1) div 2, M div 2]
+   也即大于 M div 2 的系数要减 M，注意 Modulus 不一定是素数}
 
 function Int64PolynomialGreatestCommonDivisor(const Res: TCnInt64Polynomial;
   const P1, P2: TCnInt64Polynomial): Boolean;
@@ -769,6 +778,10 @@ function BigNumberPolynomialPower(const Res: TCnBigNumberPolynomial;
 
 procedure BigNumberPolynomialReduce(const P: TCnBigNumberPolynomial);
 {* 化简一元大整系数多项式系数，也就是找多项式系数的最大公约数，各个系数除以它}
+
+procedure BigNumberPolynomialCentralize(const P: TCnBigNumberPolynomial; Modulus: TCnBigNumber);
+{* 对一元大整系数多项式系数进行中心化处理，也即把 [0, M - 1] 改为 [1 - (M + 1) div 2, M div 2]
+   也即大于 M div 2 的系数要减 M，注意 Modulus 不一定是素数}
 
 function BigNumberPolynomialGreatestCommonDivisor(const Res: TCnBigNumberPolynomial;
   const P1, P2: TCnBigNumberPolynomial): Boolean;
@@ -2677,6 +2690,17 @@ begin
   end;
 end;
 
+procedure Int64PolynomialCentralize(const P: TCnInt64Polynomial; Modulus: Int64);
+var
+  I: Integer;
+  K: Int64;
+begin
+  K := Modulus div 2;
+  for I := 0 to P.MaxDegree do
+    if P[I] > K then
+      P[I] := P[I] - Modulus;
+end;
+
 function Int64PolynomialGreatestCommonDivisor(const Res: TCnInt64Polynomial;
   const P1, P2: TCnInt64Polynomial): Boolean;
 var
@@ -3339,8 +3363,6 @@ var
   N: Integer;
   P: Int64;
 begin
-  // 判断算法来源于《一种新的重模剩余类环中元素逆的求法》，胡波赵红芳冯春雨，河北省科学院学报，2009 年 3 月
-  // 计算算法来源于stackoverflow 上 William Whyte 以及 Sonel Sharam 的帖子
   // 原始 X 和 Modulus 是模 PrimeRoot^Exponent 下的，各系数对 PrimeRoot 求模得到 F 和 G 俩多项式
 
   if Exponent < 2 then
@@ -5408,6 +5430,18 @@ begin
   end;
 end;
 
+procedure BigNumberPolynomialCentralize(const P: TCnBigNumberPolynomial; Modulus: TCnBigNumber);
+var
+  I: Integer;
+  K: TCnBigNumber;
+begin
+  K := FLocalBigNumberPool.Obtain;
+  BigNumberShiftRightOne(K, Modulus);
+  for I := 0 to P.MaxDegree do
+    if BigNumberCompare(P[I], K) > 0 then
+      BigNumberSub(P[I], P[I], Modulus);
+end;
+
 function BigNumberPolynomialGreatestCommonDivisor(const Res: TCnBigNumberPolynomial;
   const P1, P2: TCnBigNumberPolynomial): Boolean;
 var
@@ -6219,8 +6253,6 @@ var
   N: Integer;
   P: TCnBigNumber;
 begin
-  // 判断算法来源于《一种新的重模剩余类环中元素逆的求法》，胡波赵红芳冯春雨，河北省科学院学报，2009 年 3 月
-  // 计算算法来源于stackoverflow 上 William Whyte 以及 Sonel Sharam 的帖子
   // 原始 X 和 Modulus 是模 PrimeRoot^Exponent 下的，各系数对 PrimeRoot 求模得到 F 和 G 俩多项式
 
   if Exponent < 2 then
