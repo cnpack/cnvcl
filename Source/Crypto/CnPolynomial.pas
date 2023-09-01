@@ -482,6 +482,12 @@ procedure Int64PolynomialGaloisModularInverse(const Res: TCnInt64Polynomial;
    满足 (X * Y) mod M = 1，调用者须尽量保证 X、Modulus 互素，且 Res 不能为 X 或 Modulus
    CheckGcd 参数为 True 时，内部会检查 X、Modulus 是否互素，不互素则抛出异常}
 
+function Int64PolynomialGaloisPrimePowerModularInverse(const Res: TCnInt64Polynomial;
+  X, Modulus: TCnInt64Polynomial; PrimeRoot, Exponent: Integer): Boolean;
+{* 求一元整系数多项式 X 在素数的多次幂模也就是 PrimeRoot 的 Exponent 次方阶有限域上
+   针对 Modulus 的模反多项式或叫模逆元多项式 Y，满足 (X * Y) mod M = 1
+   返回求逆是否成功，Res 不能为 X 或 Modulus}
+
 function Int64PolynomialGaloisCompose(const Res: TCnInt64Polynomial;
   const F, P: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial = nil): Boolean;
 {* 在 Prime 次方阶有限域上进行一元整系数多项式代换，也就是计算 F(P(x))，返回是否计算成功，Res 可以是 F 或 P}
@@ -899,6 +905,12 @@ procedure BigNumberPolynomialGaloisModularInverse(const Res: TCnBigNumberPolynom
 {* 求一元大整系数多项式 X 在 Prime 次方阶有限域上针对 Modulus 的模反多项式或叫模逆元多项式 Y，
    满足 (X * Y) mod M = 1，调用者须尽量保证 X、Modulus 互素，且 Res 不能为 X 或 Modulus
    CheckGcd 参数为 True 时，内部会检查 X、Modulus 是否互素}
+
+function BigNumberPolynomialGaloisPrimePowerModularInverse(const Res: TCnBigNumberPolynomial;
+  X, Modulus: TCnBigNumberPolynomial; PrimeRoot: TCnBigNumber; Exponent: Integer): Boolean;
+{* 求一元大整系数多项式 X 在素数的多次幂模也就是 PrimeRoot 的 Exponent 次方阶有限域上
+   针对 Modulus 的模反多项式或叫模逆元多项式 Y，满足 (X * Y) mod M = 1
+   返回求逆是否成功，Res 不能为 X 或 Modulus}
 
 function BigNumberPolynomialGaloisCompose(const Res: TCnBigNumberPolynomial;
   const F, P: TCnBigNumberPolynomial; Prime: TCnBigNumber; Primitive: TCnBigNumberPolynomial = nil): Boolean;
@@ -3320,6 +3332,69 @@ begin
   end;
 end;
 
+function Int64PolynomialGaloisPrimePowerModularInverse(const Res: TCnInt64Polynomial;
+  X, Modulus: TCnInt64Polynomial; PrimeRoot, Exponent: Integer): Boolean;
+var
+  F, G, T: TCnInt64Polynomial;
+  N: Integer;
+  P: Int64;
+begin
+  // 判断算法来源于《一种新的重模剩余类环中元素逆的求法》，胡波赵红芳冯春雨，河北省科学院学报，2009 年 3 月
+  // 计算算法来源于stackoverflow 上 William Whyte 以及 Sonel Sharam 的帖子
+  // 原始 X 和 Modulus 是模 PrimeRoot^Exponent 下的，各系数对 PrimeRoot 求模得到 F 和 G 俩多项式
+
+  if Exponent < 2 then
+    raise ECnPolynomialException.Create(SCnErrorPolynomialInvalidExponent);
+
+  F := nil;
+  G := nil;
+  T := nil;
+
+  try
+    F := FLocalInt64PolynomialPool.Obtain;
+    G := FLocalInt64PolynomialPool.Obtain;
+
+    Int64PolynomialCopy(F, X);
+    Int64PolynomialCopy(G, Modulus);
+
+    Int64PolynomialNonNegativeModWord(F, PrimeRoot);
+    Int64PolynomialNonNegativeModWord(G, PrimeRoot);
+
+    T := FLocalInt64PolynomialPool.Obtain;
+    Int64PolynomialGaloisGreatestCommonDivisor(T, F, G, PrimeRoot);
+
+    Result := T.IsOne;  // F G 释放了可以复用
+    if not Result then  // 须 PrimeRoot 下互素 PrimeRoot^Exponent 下才有逆元
+      Exit;
+
+    Int64PolynomialGaloisModularInverse(T, F, G, PrimeRoot); // 求 PrimeRoot 模下的逆多项式
+
+    N := 2;
+    while N <= Exponent do
+    begin
+      // T := (p * T - X * T^2) in Ring(p^n, M)
+
+      P := Int64NonNegativPower(PrimeRoot, N);
+
+      Int64PolynomialGaloisMul(F, T, T, P);
+      Int64PolynomialGaloisMul(F, F, X, P);
+
+      Int64PolynomialGaloisMulWord(T, PrimeRoot, P);
+      Int64PolynomialGaloisSub(T, T, F, P, Modulus);
+
+      N := N + 1;
+    end;
+
+    // Result := T in Ring(p^e, M)
+    P := Int64NonNegativPower(PrimeRoot, Exponent);
+    Result := Int64PolynomialGaloisMod(Res, T, Modulus, P);
+  finally
+    FLocalInt64PolynomialPool.Recycle(T);
+    FLocalInt64PolynomialPool.Recycle(G);
+    FLocalInt64PolynomialPool.Recycle(F);
+  end;
+end;
+
 function Int64PolynomialGaloisCompose(const Res: TCnInt64Polynomial;
   const F, P: TCnInt64Polynomial; Prime: Int64; Primitive: TCnInt64Polynomial): Boolean;
 var
@@ -5339,7 +5414,6 @@ var
   A, B, C: TCnBigNumberPolynomial;
   MF: TCnBigNumber;
 begin
-  Result := False;
   A := nil;
   B := nil;
   C := nil;
@@ -6135,6 +6209,72 @@ begin
     FLocalBigNumberPolynomialPool.Recycle(X1);
     FLocalBigNumberPolynomialPool.Recycle(Y);
     FLocalBigNumberPolynomialPool.Recycle(G);
+  end;
+end;
+
+function BigNumberPolynomialGaloisPrimePowerModularInverse(const Res: TCnBigNumberPolynomial;
+  X, Modulus: TCnBigNumberPolynomial; PrimeRoot: TCnBigNumber; Exponent: Integer): Boolean;
+var
+  F, G, T: TCnBigNumberPolynomial;
+  N: Integer;
+  P: TCnBigNumber;
+begin
+  // 判断算法来源于《一种新的重模剩余类环中元素逆的求法》，胡波赵红芳冯春雨，河北省科学院学报，2009 年 3 月
+  // 计算算法来源于stackoverflow 上 William Whyte 以及 Sonel Sharam 的帖子
+  // 原始 X 和 Modulus 是模 PrimeRoot^Exponent 下的，各系数对 PrimeRoot 求模得到 F 和 G 俩多项式
+
+  if Exponent < 2 then
+    raise ECnPolynomialException.Create(SCnErrorPolynomialInvalidExponent);
+
+  F := nil;
+  G := nil;
+  T := nil;
+  P := nil;
+
+  try
+    F := FLocalBigNumberPolynomialPool.Obtain;
+    G := FLocalBigNumberPolynomialPool.Obtain;
+
+    BigNumberPolynomialCopy(F, X);
+    BigNumberPolynomialCopy(G, Modulus);
+
+    BigNumberPolynomialNonNegativeModBigNumber(F, PrimeRoot);
+    BigNumberPolynomialNonNegativeModBigNumber(G, PrimeRoot);
+
+    T := FLocalBigNumberPolynomialPool.Obtain;
+    BigNumberPolynomialGaloisGreatestCommonDivisor(T, F, G, PrimeRoot);
+
+    Result := T.IsOne;  // F G 释放了可以复用
+    if not Result then  // 须 PrimeRoot 下互素 PrimeRoot^Exponent 下才有逆元
+      Exit;
+
+    BigNumberPolynomialGaloisModularInverse(T, F, G, PrimeRoot); // 求 PrimeRoot 模下的逆多项式
+
+    N := 2;
+    P := FLocalBigNumberPool.Obtain;
+    while N <= Exponent do
+    begin
+      // T := (p * T - X * T^2) in Ring(p^n, M)
+
+      BigNumberPower(P, PrimeRoot, Cardinal(N));
+
+      BigNumberPolynomialGaloisMul(F, T, T, P);
+      BigNumberPolynomialGaloisMul(F, F, X, P);
+
+      BigNumberPolynomialGaloisMulBigNumber(T, PrimeRoot, P);
+      BigNumberPolynomialGaloisSub(T, T, F, P, Modulus);
+
+      N := N + 1;
+    end;
+
+    // Result := T in Ring(p^e, M)
+    BigNumberPower(P, PrimeRoot, Cardinal(Exponent));
+    Result := BigNumberPolynomialGaloisMod(Res, T, Modulus, P);
+  finally
+    FLocalBigNumberPool.Recycle(P);
+    FLocalBigNumberPolynomialPool.Recycle(T);
+    FLocalBigNumberPolynomialPool.Recycle(G);
+    FLocalBigNumberPolynomialPool.Recycle(F);
   end;
 end;
 

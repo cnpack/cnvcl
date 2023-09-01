@@ -43,7 +43,8 @@ uses
   SysUtils, Classes,
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
-  CnPoly1305, CnTEA, CnZUC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing;
+  CnPoly1305, CnTEA, CnZUC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
+  CnPolynomial;
 
 procedure TestCrypto;
 {* 密码库总测试入口}
@@ -80,6 +81,10 @@ function TestBigNumberGetBitsCount: Boolean;
 function TestBigNumberShiftRightOne: Boolean;
 function TestBigNumberFermatCheckComposite: Boolean;
 function TestBigNumberIsProbablyPrime: Boolean;
+
+// ============================= Polynomial ====================================
+
+function TestBigNumberPolynomialGaloisPrimePowerModularInverse: Boolean;
 
 // ================================ SM4 ========================================
 
@@ -330,6 +335,10 @@ begin
   MyAssert(TestBigNumberShiftRightOne, 'TestBigNumberShiftRightOne');
   MyAssert(TestBigNumberFermatCheckComposite, 'TestBigNumberFermatCheckComposite');
   MyAssert(TestBigNumberIsProbablyPrime, 'TestBigNumberIsProbablyPrime');
+
+// ============================= Polynomial ====================================
+
+  MyAssert(TestBigNumberPolynomialGaloisPrimePowerModularInverse, 'TestBigNumberPolynomialGaloisPrimePowerModularInverse');
 
 // ================================ SM4 ========================================
 
@@ -1118,6 +1127,53 @@ begin
   A.SetHex('F8DDBF39D15FB5B8BACACDE02782B14C586C66DA2BD9685FCA4A192F7331A6537A20D1E34E475C2774D5382582E0E84D5D72BCFE78BBB54EF73D4B9B147A7001');
   Result := BigNumberIsProbablyPrime(A);
   BigNumberFree(A);
+end;
+
+// ============================= Polynomial ====================================
+
+function TestBigNumberPolynomialGaloisPrimePowerModularInverse: Boolean;
+var
+  F, G, Fp, Fq, Ring: TCnBigNumberPolynomial;
+  Root: TCnBigNumber;
+begin
+  // NTRU 多项式例子公开参数 N = 11, P = 3, Q = 32
+  // 多项式最高次数 N - 1
+  // 随机生成多项式 F 和 G 作为私钥，参数均为 -1 或 0 或 1
+  F := TCnBigNumberPolynomial.Create([-1, 1, 1, 0, -1, 0, 1, 0, 0, 1, -1]);
+  // -1+x+x^2-x^4+x^6+x^9-x^10
+
+  G := TCnBigNumberPolynomial.Create([-1, 0, 1, 1, 0, 1, 0, 0, -1, 0, -1]);
+  // -1+x^2+x^3+x^5-x^8-x^10
+
+  Fp := TCnBigNumberPolynomial.Create;
+  Fq := TCnBigNumberPolynomial.Create;
+
+  Ring := TCnBigNumberPolynomial.Create;
+  Ring.MaxDegree := 11;
+  Ring[11].SetOne;
+  Ring[0].SetOne;
+  Ring[0].Negate;  // 多项式环为 x^n - 1
+
+  Root := TCnBigNumber.Create;
+
+  Root.SetWord(3);
+  // 求 F 针对 3 与 x^11 - 1 的模逆多项式
+  BigNumberPolynomialGaloisModularInverse(Fp, F, Ring, Root);
+  Result := Fp.ToString = '2X^9+X^8+2X^7+X^5+2X^4+2X^3+2X+1';
+
+  if not Result then Exit;
+
+  Root.SetWord(2);
+  // 求 F 针对 32 与 x^11 - 1 的模逆多项式
+  BigNumberPolynomialGaloisPrimePowerModularInverse(Fq, F, Ring, Root, 5);
+  Result := Fq.ToString = '30X^10+18X^9+20X^8+22X^7+16X^6+15X^5+4X^4+16X^3+6X^2+9X+5';
+
+  Root.Free;
+  Ring.Free;
+  Fq.Free;
+  Fp.Free;
+  G.Free;
+  F.Free;
 end;
 
 // ================================ SM4 ========================================
