@@ -690,6 +690,9 @@ function BigNumberCopyHigh(const Dst: TCnBigNumber; const Src: TCnBigNumber;
 procedure BigNumberSwap(const Num1: TCnBigNumber; const Num2: TCnBigNumber);
 {* 交换两个大数对象的内容}
 
+procedure BigNumberSwapBit(const Num: TCnBigNumber; BitIndex1, BitIndex2: Integer);
+{* 交换大数中两个指定 Bit 位的内容，BitIndex 均以 0 开始}
+
 function BigNumberRandBytes(const Num: TCnBigNumber; BytesCount: Integer): Boolean;
 {* 产生固定字节长度的随机大数，不保证最高位置 1，甚至最高字节都不保证非 0}
 
@@ -2412,6 +2415,30 @@ begin
   Num2.Top := TmpTop;
   Num2.DMax := TmpDMax;
   Num2.Neg := TmpNeg;
+end;
+
+procedure BigNumberSwapBit(const Num: TCnBigNumber; BitIndex1, BitIndex2: Integer);
+var
+  B1, B2: Boolean;
+begin
+  if (BitIndex1 = BitIndex2) or (BitIndex1 < 0) or (BitIndex2 < 0) then
+    Exit;
+
+  if (BitIndex1 >= Num.GetBitsCount) or (BitIndex2 >= Num.GetBitsCount) then
+    Exit;
+
+  B1 := Num.IsBitSet(BitIndex1);
+  B2 := Num.IsBitSet(BitIndex2);
+
+  if B2 then
+    Num.SetBit(BitIndex1)
+  else
+    Num.ClearBit(BitIndex1);
+
+  if B1 then
+    Num.SetBit(BitIndex2)
+  else
+    Num.ClearBit(BitIndex2);
 end;
 
 // ============================ 低阶运算定义开始 ===============================

@@ -5436,10 +5436,14 @@ var
   K: TCnBigNumber;
 begin
   K := FLocalBigNumberPool.Obtain;
-  BigNumberShiftRightOne(K, Modulus);
-  for I := 0 to P.MaxDegree do
-    if BigNumberCompare(P[I], K) > 0 then
-      BigNumberSub(P[I], P[I], Modulus);
+  try
+    BigNumberShiftRightOne(K, Modulus);
+    for I := 0 to P.MaxDegree do
+      if BigNumberCompare(P[I], K) > 0 then
+        BigNumberSub(P[I], P[I], Modulus);
+  finally
+    FLocalBigNumberPool.Recycle(K);
+  end;
 end;
 
 function BigNumberPolynomialGreatestCommonDivisor(const Res: TCnBigNumberPolynomial;
