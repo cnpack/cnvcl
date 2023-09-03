@@ -38,7 +38,96 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNative, CnVector, CnBigNumber;
+  SysUtils, Classes, CnNative, CnVector, CnBigNumber, CnPolynomial, CnRandom;
+
+type
+  ECnLatticeException = class(Exception);
+  {* NTRU 相关异常}
+
+  TCnNTRUParamType = (cnptCustomized, cnptClassic, cnptHPS2048509, cnptHPS2048677,
+    cnptHPS4096821);
+  {* NTRU 几个推荐参数}
+
+  TCnNTRUPrivateKey = class
+  {* Number Theory Research Unit 的私钥，F G 两个多项式及其模逆}
+  private
+    FFQ: TCnInt64Polynomial;
+    FF: TCnInt64Polynomial;
+    FG: TCnInt64Polynomial;
+    FFP: TCnInt64Polynomial;
+    procedure SetFF(const Value: TCnInt64Polynomial);
+    procedure SetFFP(const Value: TCnInt64Polynomial);
+    procedure SetFFQ(const Value: TCnInt64Polynomial);
+    procedure SetFG(const Value: TCnInt64Polynomial);
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    property F: TCnInt64Polynomial read FF write SetFF;
+    {* 私钥多项式 F，随机生成时要求有 D 或 D+1 个 1，D 个 -1，其他是 0}
+    property G: TCnInt64Polynomial read FG write SetFG;
+    {* 私钥多项式 G，随机生成时要求有 D 个 1，D 个 -1，其他是 0}
+    property FQ: TCnInt64Polynomial read FFQ write SetFFQ;
+    {* 私钥多项式 F 对大模 Q 的模逆多项式，由外界计算而设，供运算加速用}
+    property FP: TCnInt64Polynomial read FFP write SetFFP;
+    {* 私钥多项式 F 对小素数模 P 的模逆多项式，由外界计算而设，供运算加速用}
+  end;
+
+  TCnNTRUPublicKey = class
+  {* Number Theory Research Unit 的公钥，一个 H 多项式}
+  private
+    FH: TCnInt64Polynomial;
+    procedure SetFH(const Value: TCnInt64Polynomial);
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    property H: TCnInt64Polynomial read FH write SetFH;
+    {* 公钥多项式}
+  end;
+
+  TCnNTRU = class
+  {* Number Theory Research Unit 实现类}
+  private
+    FQ: Int64;
+    FQExponent: Integer;
+    FD: Integer;
+    FN: Integer;
+    FPrime: Integer;
+    FRing: TCnInt64Polynomial;
+  protected
+    procedure RandPolynomial(const P: TCnInt64Polynomial; MaxDegree, OneCount,
+      MinusOneCount: Integer); overload;
+    {* 随机生成最高次数是 MaxDegree 的多项式，有 OneCount 个 1，MinusOneCount 个 -1，其余是 0}
+    procedure RandPolynomial(const P: TCnInt64Polynomial; MaxDegree: Integer); overload;
+    {* 随机生成最高次数是 MaxDegree 的多项式，内部系数 1 0 -1 随机}
+  public
+    constructor Create(NTRUType: TCnNTRUParamType = cnptClassic); virtual;
+    destructor Destroy; override;
+
+    procedure Load(Predefined: TCnNTRUParamType);
+    {* 加载预定类型的 NTUR 参数}
+
+    procedure GenerateKeys(PrivateKey: TCnNTRUPrivateKey; PublicKey: TCnNTRUPublicKey);
+    {* 生成一对公私钥}
+    procedure Encrypt(PublicKey: TCnNTRUPublicKey; PlainData: TCnInt64Polynomial;
+      OutEnData: TCnInt64Polynomial);
+    {* 用公钥加密明文多项式得到密文多项式}
+    procedure Decrypt(PrivateKey: TCnNTRUPrivateKey; EnData: TCnInt64Polynomial;
+      OutPlainData: TCnInt64Polynomial);
+    {* 用私钥解密密文多项式得到明文多项式}
+
+    property Ring: TCnInt64Polynomial read FRing;
+    {* 多项式环}
+    property N: Integer read FN write FN;
+    {* 多项式位数}
+    property D: Integer read FD write FD;
+    {* 控制私钥多项式的参数范围}
+    property Prime: Integer read FPrime write FPrime;
+    {* 小素数模，默认 3}
+    property QExponent: Integer read FQExponent write FQExponent;
+    {* 大素数幂模的幂指数，底为 2，模为 2^QExponent}
+  end;
 
 function Int64GaussianLatticeReduction(const V1, V2: TCnInt64Vector;
   const X, Y: TCnInt64Vector): Boolean;
@@ -51,8 +140,30 @@ function BigNumberGaussianLatticeReduction(const V1, V2: TCnBigNumberVector;
 
 implementation
 
+resourcestring
+  SCnErrorLatticeNTRUInvalidParam = 'Invalid NTRU Value.';
+
+type
+  TCnNTRUPredefinedParams = packed record
+    N: Int64;
+    D: Int64;
+    P: Int64;
+    QExp: Int64;
+  end;
+
+const
+  NTRU_PRE_DEFINED_PARAMS: array[TCnNTRUParamType] of TCnNTRUPredefinedParams = (
+    (N: 11; D: 3; P: 3; QExp: 2),
+    (N: 251; D: 72; P: 3; QExp: 8),
+    (N: 509; D: 127; P: 3; QExp: 11),  // D 内部是 2^QExp div 16 - 1
+    (N: 677; D: 127; P: 3; QExp: 11),  // D 内部是 2^QExp div 16 - 1
+    (N: 821; D: 255; P: 3; QExp: 12)   // D 内部是 2^QExp div 16 - 1
+    // (N: 702; D: 0; P: 3; QExp: 13)
+  );
+
 var
   FBigNumberPool: TCnBigNumberPool = nil;
+  FInt64PolynomialPool: TCnInt64PolynomialPool = nil;
   FBigNumberVectorPool: TCnBigNumberVectorPool = nil;
 
 function Int64GaussianLatticeReduction(const V1, V2: TCnInt64Vector;
@@ -169,12 +280,208 @@ begin
   end;
 end;
 
+{ TCnNTRUPublicKey }
+
+constructor TCnNTRUPublicKey.Create;
+begin
+  inherited;
+  FH := TCnInt64Polynomial.Create;
+end;
+
+destructor TCnNTRUPublicKey.Destroy;
+begin
+  FH.Free;
+  inherited;
+end;
+
+procedure TCnNTRUPublicKey.SetFH(const Value: TCnInt64Polynomial);
+begin
+  Int64PolynomialCopy(FH, Value);
+end;
+
+{ TCnNTRUPrivateKey }
+
+constructor TCnNTRUPrivateKey.Create;
+begin
+  inherited;
+  FF := TCnInt64Polynomial.Create;
+  FG := TCnInt64Polynomial.Create;
+  FFP := TCnInt64Polynomial.Create;
+  FFQ := TCnInt64Polynomial.Create;
+end;
+
+destructor TCnNTRUPrivateKey.Destroy;
+begin
+  FFQ.Free;
+  FFP.Free;
+  FG.Free;
+  FF.Free;
+  inherited;
+end;
+
+procedure TCnNTRUPrivateKey.SetFF(const Value: TCnInt64Polynomial);
+begin
+  Int64PolynomialCopy(FF, Value);
+end;
+
+procedure TCnNTRUPrivateKey.SetFFP(const Value: TCnInt64Polynomial);
+begin
+  Int64PolynomialCopy(FFP, Value);
+end;
+
+procedure TCnNTRUPrivateKey.SetFFQ(const Value: TCnInt64Polynomial);
+begin
+  Int64PolynomialCopy(FFQ, Value);
+end;
+
+procedure TCnNTRUPrivateKey.SetFG(const Value: TCnInt64Polynomial);
+begin
+  Int64PolynomialCopy(FG, Value);
+end;
+
+{ TCnNTRU }
+
+constructor TCnNTRU.Create(NTRUType: TCnNTRUParamType);
+begin
+  inherited Create;
+  FRing := TCnInt64Polynomial.Create;
+  Load(NTRUType);
+end;
+
+procedure TCnNTRU.Decrypt(PrivateKey: TCnNTRUPrivateKey; EnData,
+  OutPlainData: TCnInt64Polynomial);
+begin
+  // 在 Ring 上计算 F * 密文 mod FQ 再 mod Prime 再乘以 Fp mod Prime
+  Int64PolynomialGaloisMul(OutPlainData, PrivateKey.F, EnData, FQ, FRing);
+  Int64PolynomialCentralize(OutPlainData, FQ);
+
+  Int64PolynomialNonNegativeModWord(OutPlainData, FPrime);
+  Int64PolynomialGaloisMul(OutPlainData, OutPlainData, PrivateKey.FP, FPrime, FRing);
+  Int64PolynomialCentralize(OutPlainData, FPrime);
+end;
+
+destructor TCnNTRU.Destroy;
+begin
+  FRing.Free;
+  inherited;
+end;
+
+procedure TCnNTRU.Encrypt(PublicKey: TCnNTRUPublicKey; PlainData,
+  OutEnData: TCnInt64Polynomial);
+var
+  R: TCnInt64Polynomial;
+begin
+  // 在 Ring 上计算随机 R * H + PlainData mod FQ
+  R := nil;
+
+  try
+    R := FInt64PolynomialPool.Obtain;
+    RandPolynomial(R, FN - 1);
+
+    Int64PolynomialGaloisMul(OutEnData, R, PublicKey.H, FQ, FRing);
+    Int64PolynomialGaloisAdd(OutEnData, OutEnData, PlainData, FQ, FRing);
+  finally
+    FInt64PolynomialPool.Recycle(R);
+  end;
+end;
+
+procedure TCnNTRU.GenerateKeys(PrivateKey: TCnNTRUPrivateKey;
+  PublicKey: TCnNTRUPublicKey);
+var
+  HasInv: Boolean;
+begin
+  repeat
+    // 随机按数量生成多项式 F，并求逆，确保都存在
+    RandPolynomial(PrivateKey.F, FN - 1, D, D);
+    HasInv := True;
+    try
+      Int64PolynomialGaloisModularInverse(PrivateKey.FP, PrivateKey.F,
+        FRing, FPrime, True);
+    except
+      HasInv := False;
+    end;
+
+    if HasInv then
+    begin
+      HasInv := Int64PolynomialGaloisPrimePowerModularInverse(PrivateKey.FQ,
+        PrivateKey.F, FRing, 2, FQExponent);
+      if HasInv then
+        Break;
+    end;
+  until False;
+
+  // 再随机生成多项式 G，与 F 一起作为私钥，同时 FQ FP 是一大一小俩模逆多项式，存起来备运算
+  RandPolynomial(PrivateKey.G, FN - 1, D, D);
+
+  // 计算出 H 后中心化，作为公钥
+  Int64PolynomialGaloisMul(PublicKey.H, PrivateKey.FQ, PrivateKey.G, FQ, FRing);
+  Int64PolynomialGaloisMulWord(PublicKey.H, FPrime, FQ);
+  Int64PolynomialCentralize(PublicKey.H, FQ);
+end;
+
+procedure TCnNTRU.Load(Predefined: TCnNTRUParamType);
+begin
+  FN := NTRU_PRE_DEFINED_PARAMS[Predefined].N;
+  FD := NTRU_PRE_DEFINED_PARAMS[Predefined].D;
+  FPrime := NTRU_PRE_DEFINED_PARAMS[Predefined].P;
+  FQExponent := NTRU_PRE_DEFINED_PARAMS[Predefined].QExp;
+
+  FQ := Int64NonNegativPower(2, FQExponent);
+
+  FRing.SetZero;
+  FRing.MaxDegree := N;
+  FRing[N] := 1;
+  FRing[0] := -1;
+end;
+
+procedure TCnNTRU.RandPolynomial(const P: TCnInt64Polynomial; MaxDegree,
+  OneCount, MinusOneCount: Integer);
+var
+  F: array of Integer;
+  I: Integer;
+begin
+  if (MaxDegree < 0) or (OneCount < 0) or (MinusOneCount < 0) or
+    (OneCount + MinusOneCount >= MaxDegree) then
+    raise ECnLatticeException.Create(SCnErrorLatticeNTRUInvalidParam);
+
+  SetLength(F, MaxDegree + 1);
+  for I := 0 to OneCount - 1 do
+    F[I] := 1;
+  for I := OneCount to OneCount + MinusOneCount - 1 do
+    F[I] := -1;
+  for I := OneCount + MinusOneCount to MaxDegree do
+    F[I] := 0;
+
+  // 洗牌算法
+  CnKnuthShuffle(@F[0], SizeOf(Integer), Length(F));
+
+  P.MaxDegree := MaxDegree;
+  for I := 0 to MaxDegree do
+    P[I] := F[I];
+
+  SetLength(F, 0);
+end;
+
+procedure TCnNTRU.RandPolynomial(const P: TCnInt64Polynomial; MaxDegree: Integer);
+var
+  I: Integer;
+begin
+  if MaxDegree < 0 then
+    raise ECnLatticeException.Create(SCnErrorLatticeNTRUInvalidParam);
+
+  P.MaxDegree := MaxDegree;
+  for I := 0 to MaxDegree do
+    P[I] := RandomUInt32LessThan(3) - 1; // [0, 3) 也就是 0 1 2 都减一就是 -1 0 1
+end;
+
 initialization
   FBigNumberPool := TCnBigNumberPool.Create;
+  FInt64PolynomialPool := TCnInt64PolynomialPool.Create;
   FBigNumberVectorPool := TCnBigNumberVectorPool.Create;
 
 finalization
   FBigNumberVectorPool.Free;
+  FInt64PolynomialPool.Free;
   FBigNumberPool.Free;
 
 end.
