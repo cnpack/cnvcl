@@ -64,7 +64,7 @@ type
     destructor Destroy; override;
 
     property F: TCnInt64Polynomial read FF write SetFF;
-    {* 私钥多项式 F，随机生成时要求有 D 或 D+1 个 1，D 个 -1，其他是 0}
+    {* 私钥多项式 F，随机生成时要求有 D+1 个 1，D 个 -1，其他是 0}
     property G: TCnInt64Polynomial read FG write SetFG;
     {* 私钥多项式 G，随机生成时要求有 D 个 1，D 个 -1，其他是 0}
     property FQ: TCnInt64Polynomial read FFQ write SetFFQ;
@@ -392,7 +392,8 @@ var
 begin
   repeat
     // 随机按数量生成多项式 F，并求逆，确保都存在
-    RandPolynomial(PrivateKey.F, FN - 1, D, D);
+    //（似乎 D 个 1、D 个 -1 始终无逆，得用 D + 1 个 1）
+    RandPolynomial(PrivateKey.F, FN - 1, D + 1, D);
     HasInv := True;
     try
       Int64PolynomialGaloisModularInverse(PrivateKey.FP, PrivateKey.F,
