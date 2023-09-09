@@ -44,7 +44,7 @@ uses
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
-  CnPolynomial;
+  CnPolynomial, CnBits;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
@@ -81,6 +81,11 @@ function TestBigNumberGetBitsCount: Boolean;
 function TestBigNumberShiftRightOne: Boolean;
 function TestBigNumberFermatCheckComposite: Boolean;
 function TestBigNumberIsProbablyPrime: Boolean;
+
+// ================================ Bits =======================================
+
+function TestBitsEmpty: Boolean;
+function TestBitsAppend: Boolean;
 
 // ============================= Polynomial ====================================
 
@@ -335,6 +340,11 @@ begin
   MyAssert(TestBigNumberShiftRightOne, 'TestBigNumberShiftRightOne');
   MyAssert(TestBigNumberFermatCheckComposite, 'TestBigNumberFermatCheckComposite');
   MyAssert(TestBigNumberIsProbablyPrime, 'TestBigNumberIsProbablyPrime');
+
+// ================================ Bits =======================================
+
+  MyAssert(TestBitsEmpty, 'TestBitsEmpty');
+  MyAssert(TestBitsAppend, 'TestBitsAppend');
 
 // ============================= Polynomial ====================================
 
@@ -1127,6 +1137,47 @@ begin
   A.SetHex('F8DDBF39D15FB5B8BACACDE02782B14C586C66DA2BD9685FCA4A192F7331A6537A20D1E34E475C2774D5382582E0E84D5D72BCFE78BBB54EF73D4B9B147A7001');
   Result := BigNumberIsProbablyPrime(A);
   BigNumberFree(A);
+end;
+
+// ================================ Bits =======================================
+
+function TestBitsEmpty: Boolean;
+var
+  B: TCnBitBuilder;
+begin
+  B := TCnBitBuilder.Create;
+  B.AppendByte(0, False);
+  Result := B.ToString = '';
+  B.Free;
+end;
+
+function TestBitsAppend: Boolean;
+var
+  B: TCnBitBuilder;
+begin
+  B := TCnBitBuilder.Create;
+  B.AppendByte($38, False);
+  Result := B.ToString = '000111';
+  if not Result then Exit;
+
+  B.AppendBit(False);
+  Result := B.ToString = '0001110';
+  if not Result then Exit;
+
+  B.Clear;
+  B.AppendByte($EA);
+  Result := B.ToString = '01010111';
+  if not Result then Exit;
+
+  B.AppendWord($9F3B);
+  Result := B.ToString = '010101111101110011111001';
+
+  B.AppendByteRange($FE, 3);
+  Result := B.ToString = '0101011111011100111110010111';
+
+  B.AppendDWord($12345678, False);
+  Result := B.ToString = '010101111101110011111001011100011110011010100010110001001';
+  B.Free;
 end;
 
 // ============================= Polynomial ====================================

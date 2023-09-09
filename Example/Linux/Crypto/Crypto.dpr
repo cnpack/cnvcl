@@ -12,6 +12,7 @@ uses
   CnBase64 in '..\..\..\Source\Crypto\CnBase64.pas',
   CnBerUtils in '..\..\..\Source\Crypto\CnBerUtils.pas',
   CnBigNumber in '..\..\..\Source\Crypto\CnBigNumber.pas',
+  CnBits in '..\..\..\Source\Crypto\CnBits.pas',
   CnCertificateAuthority in '..\..\..\Source\Crypto\CnCertificateAuthority.pas',
   CnChaCha20 in '..\..\..\Source\Crypto\CnChaCha20.pas',
   CnComplex in '..\..\..\Source\Crypto\CnComplex.pas',
