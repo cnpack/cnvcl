@@ -63,13 +63,14 @@ type
     function GetByteLength: Integer;
     function GetBit(Index: Integer): Boolean;
     procedure SetBit(Index: Integer; const Value: Boolean);
+    procedure SetBitLength(const Value: Integer);
   protected
     procedure ExpandCapacity;
     {* 扩展内容区，首先保证大于 ByteLength 否则扩展至两倍，其次容量增长百分之五十}
     procedure EnsureCapacity(const ABitSize: Integer);
     {* 确保至少 ABitSize 的容量，常用的调用办法是 FBitLength + Delta}
   public
-    constructor Create;
+    constructor Create; virtual;
     destructor Destroy; override;
 
     procedure Clear;
@@ -92,7 +93,15 @@ type
     {* 增加一个字节数组}
 
     function ToBytes: TBytes;
-    {* 将内容拼凑成字节数组并返回，位数往字节数上凑整}
+    {* 将全部内容拼凑成字节数组并返回，位数往字节数上凑整}
+    procedure SetBytes(Data: TBytes);
+    {* 将字节数组内容设置为整个位内容}
+    function ReadFrom(AMem: Pointer; AByteLength: Integer): Integer;
+    {* 清空自身后从内存区域读入全部内容，返回读入的字节长度}
+    function WriteTo(AMem: Pointer): Integer;
+    {* 将全部内容写入指定内存区域，返回写入的字节长度，如 AMem 传 nil 则返回所需的长度}
+    function Copy(Index, Count: Integer): Cardinal;
+    {* 从指定 Index 处复制 Count 个位放入结果中，Count 超长无法容纳则抛异常}
 
     property Bit[Index: Integer]: Boolean read GetBit write SetBit;
     {* 按索引访问位内容}
@@ -102,7 +111,7 @@ type
     {* 以字节为单位的内部已经拼凑的实际内容长度，由 BitLength 计算而来}
     property MaxByteCapacity: Integer read FMaxByteCapacity;
     {* 以字节为单位的可设置的最大容量长度}
-    property BitLength: Integer read FBitLength;
+    property BitLength: Integer read FBitLength write SetBitLength;
     {* 以位为单位的实际内容长度}
   end;
 
@@ -111,6 +120,7 @@ implementation
 resourcestring
   SCnErrorByteCapacityFmt = 'Error New Capacity or Length Value %d';
   SCnErrorBitIndexFmt = 'Invalid Bit Index %d';
+  SCnErrorBitTooLargeFmt = 'Bit Count Too Large %d';
 
 const
   BIT_BUILDER_DEFAULT_CAPACITY = 16;
@@ -199,6 +209,23 @@ begin
   ByteCapacity := BIT_BUILDER_DEFAULT_CAPACITY;
 end;
 
+function TCnBitBuilder.Copy(Index, Count: Integer): Cardinal;
+var
+  I: Integer;
+begin
+  if Count > SizeOf(Cardinal) * 8 then
+    raise ERangeError.CreateFmt(SCnErrorBitTooLargeFmt, [Count]);
+
+  Result := 0;
+  for I := Index to Index + Count - 1 do
+  begin
+    if Bit[I] then
+      Result := Result or (1 shl (I - Index))
+    else
+      Result := Result and not (1 shl (I - Index));
+  end;
+end;
+
 constructor TCnBitBuilder.Create;
 begin
   inherited;
@@ -252,6 +279,19 @@ begin
   Result := (FBitLength + 7) div 8;
 end;
 
+function TCnBitBuilder.ReadFrom(AMem: Pointer; AByteLength: Integer): Integer;
+begin
+  Result := 0;
+  Clear;
+
+  if (AMem = nil) or (AByteLength <= 0) then
+    Exit;
+
+  ByteLength := AByteLength;
+  Move(AMem^, FData[0], AByteLength);
+  Result := AByteLength;
+end;
+
 procedure TCnBitBuilder.SetBit(Index: Integer; const Value: Boolean);
 begin
   if (Index >= 0) and (Index < FBitLength) then
@@ -263,6 +303,12 @@ begin
   end
   else
     raise ERangeError.CreateFmt(SCnErrorBitIndexFmt, [Index]);
+end;
+
+procedure TCnBitBuilder.SetBitLength(const Value: Integer);
+begin
+  FBitLength := Value;
+  EnsureCapacity(FBitLength);
 end;
 
 procedure TCnBitBuilder.SetByteCapacity(const Value: Integer);
@@ -277,6 +323,13 @@ procedure TCnBitBuilder.SetByteLength(const Value: Integer);
 begin
   FBitLength := Value * 8;
   EnsureCapacity(FBitLength);
+end;
+
+procedure TCnBitBuilder.SetBytes(Data: TBytes);
+begin
+  ByteLength := Length(Data);
+  if FBitLength > 0 then
+    Move(Data[0], FData[0], Length(Data));
 end;
 
 function TCnBitBuilder.ToBytes: TBytes;
@@ -301,6 +354,13 @@ begin
         Result[I + 1] := '0';
     end;
   end;
+end;
+
+function TCnBitBuilder.WriteTo(AMem: Pointer): Integer;
+begin
+  Result := GetByteLength;
+  if (AMem <> nil) and (Result > 0) then
+    Move(FData[0], AMem^, Result);
 end;
 
 end.
