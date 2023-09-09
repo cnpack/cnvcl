@@ -117,8 +117,8 @@ const
   SCN_LOGN_TO_LOG10 = 0.43429448190325182765112891891661;
 
 resourcestring
-  SCN_SQRT_RANGE_ERROR = 'Sqrt Range Error.';
-  SCN_LOG_RANGE_ERROR = 'Log Range Error.';
+  SCnErrorMathSqrtRange = 'Sqrt Range Error.';
+  SCnErrorMathLogRange = 'Log Range Error.';
 
 function CnAbs(F: Extended): Extended;
 begin
@@ -142,7 +142,7 @@ var
   X0: Extended;
 begin
   if N < 0 then
-    raise ERangeError.Create(SCN_SQRT_RANGE_ERROR);
+    raise ERangeError.Create(SCnErrorMathSqrtRange);
 
   Result := 0;
   if (N = 0) or (N = 1) then
@@ -167,7 +167,7 @@ var
   X0: Extended;
 begin
   if F < 0 then
-    raise ERangeError.Create(SCN_SQRT_RANGE_ERROR);
+    raise ERangeError.Create(SCnErrorMathSqrtRange);
 
   Result := 0;
   if (F = 0) or (F = 1) then
@@ -196,7 +196,7 @@ var
   Z, D: Extended;
 begin
   if N <= 0 then
-    raise ERangeError.Create(SCN_LOG_RANGE_ERROR);
+    raise ERangeError.Create(SCnErrorMathLogRange);
 
   Result := 0;
   if N = 1 then
@@ -230,7 +230,7 @@ var
   Z, D: Extended;
 begin
   if F <= 0 then
-    raise ERangeError.Create(SCN_LOG_RANGE_ERROR);
+    raise ERangeError.Create(SCnErrorMathLogRange);
 
   Result := 0;
   if F = 1 then

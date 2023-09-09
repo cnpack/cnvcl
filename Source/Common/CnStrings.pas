@@ -273,6 +273,7 @@ type
     procedure SetCharLength(const Value: Integer);
   protected
     procedure ExpandCharCapacity;
+    {* 根据 CharLength 的要求来扩展内部存储为 CharLength * 2，如 CharLength 太短则固定扩展 Capacity 的 0.5 倍}
 
     function AppendString(const Value: string): TCnStringBuilder;
     {* 将 string 添加到 FData，无论是否 Unicode 环境。由调用者根据 AnsiMode 控制}

@@ -32,6 +32,7 @@ unit CnNative;
 *           后来加入 UInt64 的包装，注意 D567 下不直接支持 UInt64 的运算，需要用
 *           辅助函数实现，目前实现了 div 与 mod
 *           另外地址运算 Integer(APtr) 在 64 位下尤其是 MacOS 上容易出现截断，需要用 NativeInt
+*           后来补上大量底层的函数与工具类
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -247,11 +248,23 @@ function GetUInt64HighBits(B: TUInt64): Integer;
 function GetUInt32HighBits(B: Cardinal): Integer;
 {* 返回 Cardinal 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1}
 
+function GetUInt16HighBits(B: Word): Integer;
+{* 返回 Word 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1}
+
+function GetUInt8HighBits(B: Byte): Integer;
+{* 返回 Byte 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1}
+
 function GetUInt64LowBits(B: TUInt64): Integer;
 {* 返回 Int64 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1}
 
 function GetUInt32LowBits(B: Cardinal): Integer;
 {* 返回 Cardinal 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1}
+
+function GetUInt16LowBits(B: Word): Integer;
+{* 返回 Word 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1}
+
+function GetUInt8LowBits(B: Byte): Integer;
+{* 返回 Byte 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1}
 
 function Int64Mod(M, N: Int64): Int64;
 {* 封装的 Int64 Mod，M 碰到负值时取反求模再模减，但 N 仍要求正数否则结果不靠谱}
@@ -2751,6 +2764,57 @@ begin
   Result := 31 - Result;
 end;
 
+function GetUInt16HighBits(B: Word): Integer;
+begin
+  if B = 0 then
+  begin
+    Result := -1;
+    Exit;
+  end;
+
+  Result := 1;
+  if B shr 8 = 0 then
+  begin
+    Inc(Result, 8);
+    B := B shl 8;
+  end;
+  if B shr 12 = 0 then
+  begin
+    Inc(Result, 4);
+    B := B shl 4;
+  end;
+  if B shr 14 = 0 then
+  begin
+    Inc(Result, 2);
+    B := B shl 2;
+  end;
+  Result := Result - Integer(B shr 15); // 得到前导 0 的数量
+  Result := 15 - Result;
+end;
+
+function GetUInt8HighBits(B: Byte): Integer;
+begin
+  if B = 0 then
+  begin
+    Result := -1;
+    Exit;
+  end;
+
+  Result := 1;
+  if B shr 4 = 0 then
+  begin
+    Inc(Result, 4);
+    B := B shl 4;
+  end;
+  if B shr 6 = 0 then
+  begin
+    Inc(Result, 2);
+    B := B shl 2;
+  end;
+  Result := Result - Integer(B shr 7); // 得到前导 0 的数量
+  Result := 7 - Result;
+end;
+
 // 返回 Int64 的是 1 的最低二进制位是第几位，最低位是 0，如果没有 1，返回 -1
 function GetUInt64LowBits(B: TUInt64): Integer;
 var
@@ -2832,6 +2896,62 @@ begin
   end;
   B := B shl 1;
   Result := N - Integer(B shr 31);
+end;
+
+// 返回 Word 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1
+function GetUInt16LowBits(B: Word): Integer;
+var
+  Y, N: Integer;
+begin
+  Result := -1;
+  if B = 0 then
+    Exit;
+
+  N := 15;
+  Y := B shl 8;
+  if Y <> 0 then
+  begin
+    Dec(N, 8);
+    B := Y;
+  end;
+  Y := B shl 4;
+  if Y <> 0 then
+  begin
+    Dec(N, 4);
+    B := Y;
+  end;
+  Y := B shl 2;
+  if Y <> 0 then
+  begin
+    Dec(N, 2);
+    B := Y;
+  end;
+  B := B shl 1;
+  Result := N - Integer(B shr 15);
+end;
+
+// 返回 Byte 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1
+function GetUInt8LowBits(B: Byte): Integer;
+var
+  N: Integer;
+begin
+  Result := -1;
+  if B = 0 then
+    Exit;
+
+  N := 7;
+  if B shr 4 = 0 then
+  begin
+    Dec(N, 4);
+    B := B shl 4;
+  end;
+  if B shr 6 = 0 then
+  begin
+    Dec(N, 2);
+    B := B shl 2;
+  end;
+  B := B shl 1;
+  Result := N - Integer(B shr 7);
 end;
 
 // 封装的 Int64 Mod，碰到负值时取反求模再模减
