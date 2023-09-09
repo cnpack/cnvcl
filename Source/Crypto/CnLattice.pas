@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNative, CnVector, CnBigNumber, CnPolynomial, CnRandom;
+  SysUtils, Classes, CnNative, CnVector, CnBigNumber, CnPolynomial, CnRandom, CnBits;
 
 type
   ECnLatticeException = class(Exception);
@@ -129,6 +129,17 @@ type
     {* 大素数幂模的幂指数，底为 2，模为 2^QExponent}
   end;
 
+procedure DataToInt64Polynomial(const Res: TCnInt64Polynomial; Data: Pointer;
+  ByteLength: Integer; N, Prime: Int64);
+{* 根据 NTRU 的规范将数据内容转换为模 Prime 小素数的多项式供加解密
+   以 Prime 的二进制位数为单位劈分数据，取前 N - 1 个系数，小端转换为多项式的 0 次
+   到 N - 2 次项系数，N - 1 次系数则是各系数和 mod Prime 再取负，返回转换是否成功}
+
+function Int64PolynomialToData(const P: TCnInt64Polynomial; N, Prime: Int64; Data: Pointer): Integer;
+{* 根据 NTRU 的规范将模 Prime 的多项式转换为数据内容并放于 Data 所指的内存中，返回放置的内存长度
+   先将多项式系数 mod 到 0 到 Prime - 1 的范围，每个值放入以 Prime 的二进制位数为单位的数据块
+   再拼起来补 0 凑足整数字节。如果 Data 传 nil，则返回所需的内存长度}
+
 function Int64GaussianLatticeReduction(const V1, V2: TCnInt64Vector;
   const X, Y: TCnInt64Vector): Boolean;
 {* 对两个二维 Int64 向量做整数格上的近似高斯格基约减以求解二维 SVP 问题，返回是否成功}
@@ -142,6 +153,8 @@ implementation
 
 resourcestring
   SCnErrorLatticeNTRUInvalidParam = 'Invalid NTRU Value.';
+  SCnErrorLatticePrimeTooMuch = 'Prime Too Much %d';
+  SCnErrorLatticeDataTooLong = 'Data Too Long %d';
 
 type
   TCnNTRUPredefinedParams = packed record
@@ -277,6 +290,81 @@ begin
     FBigNumberVectorPool.Recycle(T);
     FBigNumberVectorPool.Recycle(U2);
     FBigNumberVectorPool.Recycle(U1);
+  end;
+end;
+
+procedure DataToInt64Polynomial(const Res: TCnInt64Polynomial; Data: Pointer;
+  ByteLength: Integer; N, Prime: Int64);
+var
+  I, Blk: Integer;
+  Bld: TCnBitBuilder;
+  B: Byte;
+  Sum: Int64;
+begin
+  Blk := GetUInt64HighBits(Prime);
+  if (Res = nil) or (Blk < 0) or (N <= 1) then
+    Exit;
+
+  if Blk > 7 then // 限制在一个字节内的小素数
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticePrimeTooMuch, [Prime]);
+
+  // 一共要读　Blk * (N - 1) 个位，如果待读的内容超长则抛出异常
+  if ByteLength * 8 > Blk * (N - 1) then
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeDataTooLong, [ByteLength]);
+
+  Bld := TCnBitBuilder.Create;
+  try
+    Bld.ReadFrom(Data, ByteLength); // 读入了内容
+    if Bld.BitLength < Blk * (N - 1) then  // 如果内容太短不够 Blk * (N - 1) 个位，则要补上
+      Bld.BitLength := Blk * (N - 1);
+
+    Res.MaxDegree := N - 1;
+    Sum := 0;
+    for I := 0 to N - 2 do
+    begin
+      B := Bld.Copy(Blk * I, Blk);  // TODO: 检查是否要小端？
+      B := B mod Prime;             // B 较小且 Prime 是小素数，可以直接 mod
+      Res[I] := B;
+      Sum := Sum + B;
+    end;
+    Res[N - 1] := -Int64NonNegativeMod(Sum, Prime);
+  finally
+    Bld.Free;
+  end;
+end;
+
+function Int64PolynomialToData(const P: TCnInt64Polynomial; N, Prime: Int64;
+  Data: Pointer): Integer;
+var
+  I, Blk: Integer;
+  B: Byte;
+  Bld: TCnBitBuilder;
+begin
+  Result := 0;
+  Blk := GetUInt64HighBits(Prime);
+  if (P = nil) or (Blk < 0) or (N <= 1) then
+    Exit;
+
+  if Blk > 7 then // 限制在一个字节内的小素数
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticePrimeTooMuch, [Prime]);
+
+  // 多项式最多 N 个项，从 0 到 N - 1 次，超过的忽略，不足的会在 Data 后部补 0
+  Result := (N * Blk + 7) div 8;
+  if Data = nil then
+    Exit;
+
+  FillChar(Data^, Result, 0);
+  Bld := TCnBitBuilder.Create;
+  try
+    for I := 0 to N - 2 do
+    begin
+      B := Byte(Int64NonNegativeMod(P[I], Prime));
+      Bld.AppendByteRange(B, Blk - 1); // 0 到 Blk - 1 共 Blk 位
+    end;
+    // 最高的 N - 1 次项是检验项，不参与输入
+    Bld.WriteTo(Data);
+  finally
+    Bld.Free;
   end;
 end;
 
