@@ -110,12 +110,18 @@ type
 
     procedure GenerateKeys(PrivateKey: TCnNTRUPrivateKey; PublicKey: TCnNTRUPublicKey);
     {* 生成一对公私钥}
+
     procedure Encrypt(PublicKey: TCnNTRUPublicKey; PlainData: TCnInt64Polynomial;
       OutEnData: TCnInt64Polynomial);
-    {* 用公钥加密明文多项式得到密文多项式}
+    {* 用公钥加密明文多项式得到密文多项式，两者次数最高 N - 1，因为环是 X^N - 1}
     procedure Decrypt(PrivateKey: TCnNTRUPrivateKey; EnData: TCnInt64Polynomial;
       OutPlainData: TCnInt64Polynomial);
-    {* 用私钥解密密文多项式得到明文多项式}
+    {* 用私钥解密密文多项式得到明文多项式，两者次数最高 N - 1，因为环是 X^N - 1}
+
+    function EncryptBytes(PublicKey: TCnNTRUPublicKey; Data: TBytes): TBytes;
+    {* 用公钥加密明文字节数组，返回加密结果}
+    function DecryptBytes(PrivateKey: TCnNTRUPrivateKey; EnData: TBytes): TBytes;
+    {* 用私钥解密密文字节数组，返回解密结果}
 
     property Ring: TCnInt64Polynomial read FRing;
     {* 多项式环}
@@ -129,15 +135,20 @@ type
     {* 大素数幂模的幂指数，底为 2，模为 2^QExponent}
   end;
 
-procedure DataToInt64Polynomial(const Res: TCnInt64Polynomial; Data: Pointer;
-  ByteLength: Integer; N, Prime: Int64);
-{* 根据 NTRU 的规范将数据内容转换为模 Prime 小素数的多项式供加解密
-   以 Prime 的二进制位数为单位劈分数据，取前 N - 1 个系数，小端转换为多项式的 0 次
-   到 N - 2 次项系数，N - 1 次系数则是各系数和 mod Prime 再取负，返回转换是否成功}
+procedure NTRUDataToInt64Polynomial(const Res: TCnInt64Polynomial; Data: Pointer;
+  ByteLength: Integer; N, Modulus: Int64; CheckSum: Boolean = True);
+{* 根据 NTRU 的规范将数据内容转换为模数的多项式供加解密，如数据超长会抛异常
+   以 Q 的二进制位数为单位劈分数据，如 CheckSum 为 True，则取前 N - 1 个系数，小端转换为
+   多项式的 0 次到 N - 2 次项系数，N - 1 次系数则是各系数和 mod Q 再取负，适合于明文转换
+   如 CheckSum 为 False，则取前 N 个系数，小端转换为多项式的 0 次到 N - 1 次项系数，适合于密文转换
+   返回转换是否成功}
 
-function Int64PolynomialToData(const P: TCnInt64Polynomial; N, Prime: Int64; Data: Pointer): Integer;
-{* 根据 NTRU 的规范将模 Prime 的多项式转换为数据内容并放于 Data 所指的内存中，返回放置的内存长度
-   先将多项式系数 mod 到 0 到 Prime - 1 的范围，每个值放入以 Prime 的二进制位数为单位的数据块
+function NTRUInt64PolynomialToData(const P: TCnInt64Polynomial; N, Modulus: Int64;
+  Data: Pointer; CheckSum: Boolean = True): Integer;
+{* 根据 NTRU 的规范将模数的多项式转换为数据内容并放于 Data 所指的内存中，返回放置的内存长度
+   如 CheckSum 为 True，只取 0 到 N - 1 次共 N - 2 个系数，适合于明文转换
+   如 CheckSum 为 False 则取 0 到 N 次共 N - 1 个系数，适合于密文转换
+   先将多项式系数 mod 到 0 到 Q - 1 的范围，每个值放入以 Q 的二进制位数为单位的数据块
    再拼起来补 0 凑足整数字节。如果 Data 传 nil，则返回所需的内存长度}
 
 function Int64GaussianLatticeReduction(const V1, V2: TCnInt64Vector;
@@ -153,7 +164,7 @@ implementation
 
 resourcestring
   SCnErrorLatticeNTRUInvalidParam = 'Invalid NTRU Value.';
-  SCnErrorLatticePrimeTooMuch = 'Prime Too Much %d';
+  SCnErrorLatticeModulusTooMuch = 'Modulus Too Much %d';
   SCnErrorLatticeDataTooLong = 'Data Too Long %d';
 
 type
@@ -293,75 +304,88 @@ begin
   end;
 end;
 
-procedure DataToInt64Polynomial(const Res: TCnInt64Polynomial; Data: Pointer;
-  ByteLength: Integer; N, Prime: Int64);
+procedure NTRUDataToInt64Polynomial(const Res: TCnInt64Polynomial; Data: Pointer;
+  ByteLength: Integer; N, Modulus: Int64; CheckSum: Boolean);
 var
-  I, Blk: Integer;
+  I, Blk, C: Integer;
   Bld: TCnBitBuilder;
-  B: Byte;
+  B: Cardinal;
   Sum: Int64;
 begin
-  Blk := GetUInt64HighBits(Prime);
+  Blk := GetUInt64HighBits(Modulus);
   if (Res = nil) or (Blk < 0) or (N <= 1) then
     Exit;
 
-  if Blk > 7 then // 限制在一个字节内的小素数
-    raise ECnLatticeException.CreateFmt(SCnErrorLatticePrimeTooMuch, [Prime]);
+  if Blk > 31 then // 限制在 Cardinal 内的模数
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeModulusTooMuch, [Modulus]);
 
-  // 一共要读　Blk * (N - 1) 个位，如果待读的内容超长则抛出异常
-  if ByteLength * 8 > Blk * (N - 1) then
+  if CheckSum then
+    C := N - 1  // 读 N - 1 个，第 N 个留着做校验和
+  else
+    C := N;     // 读 N 个
+
+  // 一共要读　Blk * C 个位，如果待读的内容字节数超出这么多位所占的字节数，则抛出异常
+  if ByteLength > (Blk * C + 7) div 8 then
     raise ECnLatticeException.CreateFmt(SCnErrorLatticeDataTooLong, [ByteLength]);
 
   Bld := TCnBitBuilder.Create;
   try
     Bld.ReadFrom(Data, ByteLength); // 读入了内容
-    if Bld.BitLength < Blk * (N - 1) then  // 如果内容太短不够 Blk * (N - 1) 个位，则要补上
-      Bld.BitLength := Blk * (N - 1);
+    if Bld.BitLength < Blk * C then  // 如果内容太短不够 Blk * C 个位，则要补上
+      Bld.BitLength := Blk * C;
 
-    Res.MaxDegree := N - 1;
+    Res.MaxDegree := N - 1; // 读 N - 1 个时 N - 1 次是校验位，读 N 个时最高 N - 1 次
     Sum := 0;
-    for I := 0 to N - 2 do
+    for I := 0 to C - 1 do
     begin
       B := Bld.Copy(Blk * I, Blk);  // TODO: 检查是否要小端？
-      B := B mod Prime;             // B 较小且 Prime 是小素数，可以直接 mod
+      B := Int64NonNegativeMod(B, Modulus);
       Res[I] := B;
       Sum := Sum + B;
     end;
-    Res[N - 1] := -Int64NonNegativeMod(Sum, Prime);
+
+    if CheckSum then
+      Res[N - 1] := -Int64NonNegativeMod(Sum, Modulus);
   finally
     Bld.Free;
   end;
 end;
 
-function Int64PolynomialToData(const P: TCnInt64Polynomial; N, Prime: Int64;
-  Data: Pointer): Integer;
+function NTRUInt64PolynomialToData(const P: TCnInt64Polynomial; N, Modulus: Int64;
+  Data: Pointer; CheckSum: Boolean): Integer;
 var
-  I, Blk: Integer;
-  B: Byte;
+  I, Blk, C: Integer;
+  B: Cardinal;
   Bld: TCnBitBuilder;
 begin
   Result := 0;
-  Blk := GetUInt64HighBits(Prime);
+  Blk := GetUInt64HighBits(Modulus);
   if (P = nil) or (Blk < 0) or (N <= 1) then
     Exit;
 
-  if Blk > 7 then // 限制在一个字节内的小素数
-    raise ECnLatticeException.CreateFmt(SCnErrorLatticePrimeTooMuch, [Prime]);
+  if Blk > 31 then // 限制在 Cardinal 内的模数
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeModulusTooMuch, [Modulus]);
 
-  // 多项式最多 N 个项，从 0 到 N - 1 次，超过的忽略，不足的会在 Data 后部补 0
-  Result := (N * Blk + 7) div 8;
+  if CheckSum then
+    C := N - 1
+  else
+    C := N;
+
+  // 多项式最多 C 个项，从 0 到 C - 1 次，超过的忽略，不足的会在 Data 后部补 0
+  Result := (C * Blk + 7) div 8;
   if Data = nil then
     Exit;
 
   FillChar(Data^, Result, 0);
   Bld := TCnBitBuilder.Create;
   try
-    for I := 0 to N - 2 do
+    for I := 0 to C - 1 do
     begin
-      B := Byte(Int64NonNegativeMod(P[I], Prime));
-      Bld.AppendByteRange(B, Blk - 1); // 0 到 Blk - 1 共 Blk 位
+      B := Cardinal(Int64NonNegativeMod(P[I], Modulus));
+      Bld.AppendDWordRange(B, Blk - 1); // 0 到 Blk - 1 共 Blk 位
     end;
-    // 最高的 N - 1 次项是检验项，不参与输入
+    // CheckSum 为 True 时最高的 N - 1 次项是检验项，不参与输入
+
     Bld.WriteTo(Data);
   finally
     Bld.Free;
@@ -448,6 +472,35 @@ begin
   Int64PolynomialCentralize(OutPlainData, FPrime);
 end;
 
+function TCnNTRU.DecryptBytes(PrivateKey: TCnNTRUPrivateKey; EnData: TBytes): TBytes;
+var
+  En, De: TCnInt64Polynomial;
+  L: Integer;
+begin
+  Result := nil;
+  En := nil;
+  De := nil;
+
+  try
+    En := FInt64PolynomialPool.Obtain;
+    NTRUDataToInt64Polynomial(En, @EnData[0], Length(EnData), FN, FQ, False);
+    // 密文不需要最高项做校验因而得传 False
+
+    De := FInt64PolynomialPool.Obtain;
+    Decrypt(PrivateKey, En, De);
+
+    L := NTRUInt64PolynomialToData(De, FN, FPrime, nil);
+    if L > 0 then
+    begin
+      SetLength(Result, L);
+      NTRUInt64PolynomialToData(De, FN, FPrime, @Result[0]);
+    end;
+  finally
+    FInt64PolynomialPool.Recycle(De);
+    FInt64PolynomialPool.Recycle(En);
+  end;
+end;
+
 destructor TCnNTRU.Destroy;
 begin
   FRing.Free;
@@ -470,6 +523,34 @@ begin
     Int64PolynomialGaloisAdd(OutEnData, OutEnData, PlainData, FQ, FRing);
   finally
     FInt64PolynomialPool.Recycle(R);
+  end;
+end;
+
+function TCnNTRU.EncryptBytes(PublicKey: TCnNTRUPublicKey; Data: TBytes): TBytes;
+var
+  Pl, En: TCnInt64Polynomial;
+  L: Integer;
+begin
+  Result := nil;
+  Pl := nil;
+  En := nil;
+
+  try
+    Pl := FInt64PolynomialPool.Obtain;
+    NTRUDataToInt64Polynomial(Pl, @Data[0], Length(Data), FN, FPrime);
+
+    En := FInt64PolynomialPool.Obtain;
+    Encrypt(PublicKey, Pl, En);
+
+    L := NTRUInt64PolynomialToData(En, FN, FQ, nil, False);
+    if L > 0 then
+    begin
+      SetLength(Result, L);
+      NTRUInt64PolynomialToData(En, FN, FQ, @Result[0], False);
+    end;
+  finally
+    FInt64PolynomialPool.Recycle(En);
+    FInt64PolynomialPool.Recycle(Pl);
   end;
 end;
 

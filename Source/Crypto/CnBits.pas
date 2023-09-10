@@ -81,14 +81,21 @@ type
 
     procedure AppendBit(Value: Boolean);
     {* 增加一位}
+
     procedure AppendByteRange(Value: Byte; MaxRange: Integer);
     {* 增加一个字节中的 0 到 MaxRange 位}
+    procedure AppendWordRange(Value: Word; MaxRange: Integer);
+    {* 增加一个双字节中的 0 到 MaxRange 位}
+    procedure AppendDWordRange(Value: Cardinal; MaxRange: Integer);
+    {* 增加一个四字节中的 0 到 MaxRange 位}
+
     procedure AppendByte(Value: Byte; Full: Boolean = True);
     {* 增加一个字节，Full 表示是八位都加上去还是忽略高位的 0}
     procedure AppendWord(Value: Word; Full: Boolean = True);
     {* 增加一个双字节，Full 表示是十六位都加上去还是忽略高位的 0}
     procedure AppendDWord(Value: Cardinal; Full: Boolean = True);
     {* 增加一个四字节，Full 表示是三十二位都加上去还是忽略高位的 0}
+
     procedure AppendBytes(Value: TBytes);
     {* 增加一个字节数组}
 
@@ -192,6 +199,20 @@ begin
   AppendByte(H3, Full);
 end;
 
+procedure TCnBitBuilder.AppendDWordRange(Value: Cardinal; MaxRange: Integer);
+var
+  I: Integer;
+begin
+  if MaxRange < 0 then
+    Exit;
+
+  if MaxRange > 31 then
+    MaxRange := 31;
+
+  for I := 0 to MaxRange do
+    AppendBit((Value and (1 shl I)) <> 0);
+end;
+
 procedure TCnBitBuilder.AppendWord(Value: Word; Full: Boolean);
 var
   H, L: Byte;
@@ -201,6 +222,20 @@ begin
 
   AppendByte(L, Full or (H <> 0)); // 有高位存在的话，低 8 位必须 Full
   AppendByte(H, Full);
+end;
+
+procedure TCnBitBuilder.AppendWordRange(Value: Word; MaxRange: Integer);
+var
+  I: Integer;
+begin
+  if MaxRange < 0 then
+    Exit;
+
+  if MaxRange > 15 then
+    MaxRange := 15;
+
+  for I := 0 to MaxRange do
+    AppendBit((Value and (1 shl I)) <> 0);
 end;
 
 procedure TCnBitBuilder.Clear;
