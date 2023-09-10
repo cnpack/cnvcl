@@ -28,7 +28,9 @@ unit CnLattice;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.08.25 V1.0
+* 修改记录：2023.09.10 V1.1
+*               实现 NTRU 的加解密算法
+*           2023.08.25 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -63,6 +65,9 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 显示 F 和 G 的字符串}
+
     property F: TCnInt64Polynomial read FF write SetFF;
     {* 私钥多项式 F，随机生成时要求有 D+1 个 1，D 个 -1，其他是 0}
     property G: TCnInt64Polynomial read FG write SetFG;
@@ -82,6 +87,9 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 显示 H 的字符串}
+
     property H: TCnInt64Polynomial read FH write SetFH;
     {* 公钥多项式}
   end;
@@ -100,10 +108,12 @@ type
       MinusOneCount: Integer); overload;
     {* 随机生成最高次数是 MaxDegree 的多项式，有 OneCount 个 1，MinusOneCount 个 -1，其余是 0}
     procedure RandPolynomial(const P: TCnInt64Polynomial; MaxDegree: Integer); overload;
-    {* 随机生成最高次数是 MaxDegree 的多项式，内部系数 1 0 -1 随机}
+    {* 随机生成最高次数是 MaxDegree 的多项式，内部系数 1 0 -1 随机，注意与 FPrime 无关}
   public
     constructor Create(NTRUType: TCnNTRUParamType = cnptClassic); virtual;
+    {* 构造函数，指定 NTRU 参数类型}
     destructor Destroy; override;
+    {* 析构函数，指定 NTRU 参数类型}
 
     procedure Load(Predefined: TCnNTRUParamType);
     {* 加载预定类型的 NTUR 参数}
@@ -119,9 +129,9 @@ type
     {* 用私钥解密密文多项式得到明文多项式，两者次数最高 N - 1，因为环是 X^N - 1}
 
     function EncryptBytes(PublicKey: TCnNTRUPublicKey; Data: TBytes): TBytes;
-    {* 用公钥加密明文字节数组，返回加密结果}
+    {* 用公钥加密明文字节数组，返回加密结果，注意明文会被补 #0 到规定长度}
     function DecryptBytes(PrivateKey: TCnNTRUPrivateKey; EnData: TBytes): TBytes;
-    {* 用私钥解密密文字节数组，返回解密结果}
+    {* 用私钥解密密文字节数组，返回解密结果，注意明文会被补 #0 到规定长度}
 
     property Ring: TCnInt64Polynomial read FRing;
     {* 多项式环}
@@ -411,6 +421,11 @@ begin
   Int64PolynomialCopy(FH, Value);
 end;
 
+function TCnNTRUPublicKey.ToString: string;
+begin
+  Result := H.ToString;
+end;
+
 { TCnNTRUPrivateKey }
 
 constructor TCnNTRUPrivateKey.Create;
@@ -451,6 +466,11 @@ begin
   Int64PolynomialCopy(FG, Value);
 end;
 
+function TCnNTRUPrivateKey.ToString: string;
+begin
+  Result := FF.ToString + ',' + FG.ToString;
+end;
+
 { TCnNTRU }
 
 constructor TCnNTRU.Create(NTRUType: TCnNTRUParamType);
@@ -484,11 +504,12 @@ begin
   try
     En := FInt64PolynomialPool.Obtain;
     NTRUDataToInt64Polynomial(En, @EnData[0], Length(EnData), FN, FQ, False);
-    // 密文不需要最高项做校验因而得传 False
+    // 密文数据转多项式，模数要用大模数，且不需要最高项做校验
 
     De := FInt64PolynomialPool.Obtain;
     Decrypt(PrivateKey, En, De);
 
+    // 明文多项式转明文数据，模数得用小素数
     L := NTRUInt64PolynomialToData(De, FN, FPrime, nil);
     if L > 0 then
     begin
@@ -538,10 +559,12 @@ begin
   try
     Pl := FInt64PolynomialPool.Obtain;
     NTRUDataToInt64Polynomial(Pl, @Data[0], Length(Data), FN, FPrime);
+    // 明文数据转明文多项式，模数要用小素数
 
     En := FInt64PolynomialPool.Obtain;
     Encrypt(PublicKey, Pl, En);
 
+    // 密文多项式转密文数据，模数要用大模数，且最高位无需校验
     L := NTRUInt64PolynomialToData(En, FN, FQ, nil, False);
     if L > 0 then
     begin
