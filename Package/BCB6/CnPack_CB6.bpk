@@ -60,6 +60,7 @@
       ..\..\Source\Crypto\CnBase64.obj 
       ..\..\Source\Crypto\CnBerUtils.obj 
       ..\..\Source\Crypto\CnBigNumber.obj 
+      ..\..\Source\Crypto\CnBits.obj 
       ..\..\Source\Crypto\CnCertificateAuthority.obj 
       ..\..\Source\Crypto\CnComplex.obj 
       ..\..\Source\Crypto\CnCRC32.obj 
@@ -70,6 +71,7 @@
       ..\..\Source\Crypto\CnFNV.obj 
       ..\..\Source\Crypto\CnInt128.obj 
       ..\..\Source\Crypto\CnKDF.obj 
+      ..\..\Source\Crypto\CnLattice.obj 
       ..\..\Source\Crypto\CnMD5.obj 
       ..\..\Source\Crypto\CnNative.obj 
       ..\..\Source\Crypto\CnOTP.obj 
@@ -88,6 +90,7 @@
       ..\..\Source\Crypto\CnSM4.obj 
       ..\..\Source\Crypto\CnSM9.obj 
       ..\..\Source\Crypto\CnTEA.obj 
+      ..\..\Source\Crypto\CnVector.obj 
       ..\..\Source\Crypto\CnZUC.obj 
       ..\..\Source\DbReport\CnADOBinding.obj 
       ..\..\Source\DbReport\CnADOUpdateSQL.obj 
@@ -344,6 +347,7 @@
       <FILE FILENAME="..\..\Source\Crypto\CnBase64.pas" FORMNAME="" UNITNAME="CnBase64" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnBerUtils.pas" FORMNAME="" UNITNAME="CnBerUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnBigNumber.pas" FORMNAME="" UNITNAME="CnBigNumber" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnBits.pas" FORMNAME="" UNITNAME="CnBits" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnCertificateAuthority.pas" FORMNAME="" UNITNAME="CnCertificateAuthority" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnComplex.pas" FORMNAME="" UNITNAME="CnComplex" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnCRC32.pas" FORMNAME="" UNITNAME="CnCRC32" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
@@ -354,6 +358,7 @@
       <FILE FILENAME="..\..\Source\Crypto\CnFNV.pas" FORMNAME="" UNITNAME="CnFNV" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnInt128.pas" FORMNAME="" UNITNAME="CnInt128" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnKDF.pas" FORMNAME="" UNITNAME="CnKDF" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnLattice.pas" FORMNAME="" UNITNAME="CnLattice" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnMD5.pas" FORMNAME="" UNITNAME="CnMD5" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnNative.pas" FORMNAME="" UNITNAME="CnNative" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnOTP.pas" FORMNAME="" UNITNAME="CnOTP" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
@@ -372,6 +377,7 @@
       <FILE FILENAME="..\..\Source\Crypto\CnSM4.pas" FORMNAME="" UNITNAME="CnSM4" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnSM9.pas" FORMNAME="" UNITNAME="CnSM9" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnTEA.pas" FORMNAME="" UNITNAME="CnTEA" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnVector.pas" FORMNAME="" UNITNAME="CnVector" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnZUC.pas" FORMNAME="" UNITNAME="CnZUC" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\DbReport\CnADOBinding.pas" FORMNAME="" UNITNAME="CnADOBinding" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\DbReport\CnADOUpdateSQL.pas" FORMNAME="" UNITNAME="CnADOUpdateSQL" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

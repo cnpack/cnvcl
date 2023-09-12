@@ -58,6 +58,7 @@
       ..\..\Source\Crypto\CnBase64.obj 
       ..\..\Source\Crypto\CnBerUtils.obj 
       ..\..\Source\Crypto\CnBigNumber.obj 
+      ..\..\Source\Crypto\CnBits.obj 
       ..\..\Source\Crypto\CnCertificateAuthority.obj 
       ..\..\Source\Crypto\CnComplex.obj 
       ..\..\Source\Crypto\CnCRC32.obj 
@@ -68,6 +69,7 @@
       ..\..\Source\Crypto\CnFNV.obj 
       ..\..\Source\Crypto\CnInt128.obj 
       ..\..\Source\Crypto\CnKDF.obj 
+      ..\..\Source\Crypto\CnLattice.obj 
       ..\..\Source\Crypto\CnMD5.obj 
       ..\..\Source\Crypto\CnNative.obj 
       ..\..\Source\Crypto\CnOTP.obj 
@@ -86,6 +88,7 @@
       ..\..\Source\Crypto\CnSM4.obj 
       ..\..\Source\Crypto\CnSM9.obj 
       ..\..\Source\Crypto\CnTEA.obj 
+      ..\..\Source\Crypto\CnVector.obj 
       ..\..\Source\Crypto\CnZUC.obj 
       ..\..\Source\DbReport\CnADOBinding.obj 
       ..\..\Source\DbReport\CnADOUpdateSQL.obj 
