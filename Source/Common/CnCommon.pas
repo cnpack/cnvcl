@@ -1643,6 +1643,20 @@ begin
             Exit;
           Inc(Utf8Text);
         end;
+      4: // UTF8-MB4
+        begin
+          Inc(WideIdx);
+          Inc(Utf8Text);
+          if Utf8Text^ = #0 then
+            Exit;
+          Inc(Utf8Text);
+          if Utf8Text^ = #0 then
+            Exit;
+          Inc(Utf8Text);
+          if Utf8Text^ = #0 then
+            Exit;
+          Inc(Utf8Text);
+        end;
       else
         Exit;
     end;
@@ -1693,8 +1707,10 @@ begin
     Result := 2
   else if B and $F0 = $E0 then // 1110 xxxx 10xxxxxx 10xxxxxx
     Result := 3
+  else if B and $F8 = $F0 then // 1111 0xxx 10xxxxxx 10xxxxxx 10xxxxxx
+    Result := 4
   else
-    raise Exception.Create('More than UTF16 NOT Support.');
+    raise Exception.Create('More than UTF8-MB4 NOT Support.');
 end;
 
 // 手动将宽字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算
