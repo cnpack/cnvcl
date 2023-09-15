@@ -300,7 +300,8 @@ type
 
     function Append(const Value: Boolean): TCnStringBuilder; overload;
     function Append(const Value: Byte): TCnStringBuilder; overload;
-    function Append(const Value: Char): TCnStringBuilder; overload;
+    function AppendChar(const Value: Char): TCnStringBuilder;
+    // Char 和单字符 String 是混淆的，因而改名，不用 overload
     function AppendCurrency(const Value: Currency): TCnStringBuilder; overload;
     // Currency 低版本 Delphi 中和 Double 是混淆的，因而改名，不用 overload
     function Append(const Value: Double): TCnStringBuilder; overload;
@@ -2254,7 +2255,7 @@ begin
   Result := Append(CurrToStr(Value));
 end;
 
-function TCnStringBuilder.Append(const Value: Char): TCnStringBuilder;
+function TCnStringBuilder.AppendChar(const Value: Char): TCnStringBuilder;
 var
   S: string;
 begin
