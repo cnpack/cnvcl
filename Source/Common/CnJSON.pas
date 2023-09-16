@@ -109,7 +109,7 @@ type
     FParent: TCnJSONBase;
   public
     function AddChild(AChild: TCnJSONBase): TCnJSONBase; virtual;
-    function ToJSON(Indent: Integer): string; virtual; abstract;
+    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; virtual; abstract;
     property Parent: TCnJSONBase read FParent write FParent;
   end;
 
@@ -120,7 +120,15 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
-    function ToJSON(Indent: Integer = 0): string; override;
+    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
+
+    function IsObject: Boolean; virtual;
+    function IsArray: Boolean; virtual;
+    function IsString: Boolean; virtual;
+    function IsNumber: Boolean; virtual;
+    function IsNull: Boolean; virtual;
+    function IsTrue: Boolean; virtual;
+    function IsFalse: Boolean; virtual;
 
     property Content: AnsiString read FContent write FContent;
   end;
@@ -142,7 +150,9 @@ type
     destructor Destroy; override;
 
     function AddChild(AChild: TCnJSONBase): TCnJSONBase; override; // 添加 Pair
-    function ToJSON(Indent: Integer = 0): string; override;
+    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
+
+    function IsObject: Boolean; override;
 
     property Count: Integer read GetCount;
     {* 有多少个 Name Value 对}
@@ -157,35 +167,35 @@ type
   private
 
   public
-
+    function IsString: Boolean; override;
   end;
 
   TCnJSONNumber = class(TCnJSONValue)
   private
 
   public
-
+    function IsNumber: Boolean; override;
   end;
 
   TCnJSONNull = class(TCnJSONValue)
   private
 
   public
-
+    function IsNull: Boolean; override;
   end;
 
   TCnJSONTrue = class(TCnJSONValue)
   private
 
   public
-
+    function IsTrue: Boolean; override;
   end;
 
   TCnJSONFalse = class(TCnJSONValue)
   private
 
   public
-
+    function IsFalse: Boolean; override;
   end;
 
 {
@@ -203,7 +213,7 @@ type
     function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
     // 添加 Value 作为数组元素
 
-    function ToJSON(Indent: Integer = 0): string; override;
+    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
 
     property Count: Integer read GetCount;
     property Values[Index: Integer]: TCnJSONValue read GetValues;
@@ -218,7 +228,9 @@ type
     destructor Destroy; override;
 
     function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
-    // 添加 Value 作为 Value
+    // 设置 Value 作为 Value
+
+    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
 
     property Name: TCnJSONString read FName;
     {* 键名，持有}
@@ -233,6 +245,7 @@ implementation
 
 const
   CN_BLANK_CHARSET: set of AnsiChar = [#9, #10, #13, #32]; // RFC 规范中只允许这几个作为空白符
+  CN_INDENT_DELTA = 4; // 输出时的缩进空格
   CRLF = #13#10;
 
 resourcestring
@@ -388,6 +401,7 @@ function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject;
 var
   P: TCnJSONParser;
 begin
+  Result := nil;
   P := TCnJSONParser.Create;
   try
     P.SetOrigin(PAnsiChar(JsonStr));
@@ -636,7 +650,12 @@ end;
 function TCnJSONObject.AddChild(AChild: TCnJSONBase): TCnJSONBase;
 begin
   if AChild is TCnJSONPair then
+  begin
     FPairs.Add(AChild);
+    Result := AChild;
+  end
+  else
+    Result := nil;
 end;
 
 constructor TCnJSONObject.Create;
@@ -666,7 +685,12 @@ begin
   Result := (FPairs[Index] as TCnJSONPair).Value;
 end;
 
-function TCnJSONObject.ToJSON(Indent: Integer): string;
+function TCnJSONObject.IsObject: Boolean;
+begin
+  Result := True;
+end;
+
+function TCnJSONObject.ToJSON(UseFormat: Boolean; Indent: Integer): string;
 var
   I: Integer;
   Bld: TCnStringBuilder;
@@ -676,19 +700,35 @@ begin
 
   Bld := TCnStringBuilder.Create;
   try
-    Bld.Append('{' + CRLF);
+    if UseFormat then
+      Bld.Append('{' + CRLF)
+    else
+      Bld.AppendChar('{');
 
     for I := 0 to Count - 1 do
     begin
-      Bld.Append(StringOfChar(' ', Indent));
-      Bld.Append(Names[I].ToJSON(Indent));
-      Bld.Append(': ');
-      Bld.Append(Values[I].ToJSON(Indent));
+      if UseFormat then
+        Bld.Append(StringOfChar(' ', Indent + CN_INDENT_DELTA));
+
+      Bld.Append(Names[I].ToJSON(UseFormat, Indent + CN_INDENT_DELTA));
+      Bld.AppendChar(':');
+      if UseFormat then
+        Bld.AppendChar(' ');
+      Bld.Append(Values[I].ToJSON(UseFormat, Indent + CN_INDENT_DELTA));
 
       if I <> Count - 1 then
-        Bld.Append(', ');
+      begin
+        Bld.AppendChar(',');
+        if UseFormat then
+          Bld.Append(CRLF);
+      end;
     end;
-    Bld.Append(CRLF + StringOfChar(' ', Indent) + '}');
+
+    if UseFormat then
+      Bld.Append(CRLF + StringOfChar(' ', Indent) + '}')
+    else
+      Bld.AppendChar('}');
+
     Result := Bld.ToString;
   finally
     Bld.Free;
@@ -708,7 +748,42 @@ begin
   inherited;
 end;
 
-function TCnJSONValue.ToJSON(Indent: Integer): string;
+function TCnJSONValue.IsArray: Boolean;
+begin
+  Result := False;
+end;
+
+function TCnJSONValue.IsFalse: Boolean;
+begin
+  Result := False;
+end;
+
+function TCnJSONValue.IsNull: Boolean;
+begin
+  Result := False;
+end;
+
+function TCnJSONValue.IsNumber: Boolean;
+begin
+  Result := False;
+end;
+
+function TCnJSONValue.IsObject: Boolean;
+begin
+  Result := False;
+end;
+
+function TCnJSONValue.IsString: Boolean;
+begin
+  Result := False;
+end;
+
+function TCnJSONValue.IsTrue: Boolean;
+begin
+  Result := False;
+end;
+
+function TCnJSONValue.ToJSON(UseFormat: Boolean; Indent: Integer): string;
 begin
   Result := FContent;
 end;
@@ -718,7 +793,12 @@ end;
 function TCnJSONArray.AddChild(AChild: TCnJSONBase): TCnJSONBase;
 begin
   if AChild is TCnJSONValue then
+  begin
     FValues.Add(AChild);
+    Result := AChild;
+  end
+  else
+    Result := nil;
 end;
 
 constructor TCnJSONArray.Create;
@@ -743,21 +823,35 @@ begin
   Result := TCnJSONValue(FValues[Index]);
 end;
 
-function TCnJSONArray.ToJSON(Indent: Integer): string;
+function TCnJSONArray.ToJSON(UseFormat: Boolean; Indent: Integer): string;
 var
   Bld: TCnStringBuilder;
   I: Integer;
 begin
   Bld := TCnStringBuilder.Create;
   try
-    Bld.Append('[' + CRLF);
+    Bld.AppendChar('[');
+    if UseFormat then
+      Bld.Append(CRLF + StringOfChar(' ', Indent + CN_INDENT_DELTA));
+
     for I := 0 to Count - 1 do
     begin
-      Bld.Append(Values[I].ToJSON(Indent));
+      Bld.Append(Values[I].ToJSON(UseFormat, Indent + CN_INDENT_DELTA));
       if I <> Count - 1 then
-        Bld.Append(', ');
+      begin
+        Bld.AppendChar(',');
+        if UseFormat then
+          Bld.AppendChar(' ');
+      end;
     end;
-    Bld.Append(']');
+
+    if UseFormat then
+    begin
+      Bld.Append(CRLF);
+      Bld.Append(StringOfChar(' ', Indent) + ']');
+    end
+    else
+      Bld.AppendChar(']');
     Result := Bld.ToString;
   finally
     Bld.Free;
@@ -772,7 +866,12 @@ begin
     raise ECnJSONException.Create(SCnErrorJSONPair);
 
   if AChild is TCnJSONValue then
+  begin
     FValue := AChild as TCnJSONValue;
+    Result := AChild;
+  end
+  else
+    Result := nil;
 end;
 
 constructor TCnJSONPair.Create;
@@ -789,11 +888,51 @@ begin
   inherited;
 end;
 
+function TCnJSONPair.ToJSON(UseFormat: Boolean; Indent: Integer): string;
+begin
+  // 不做，不应调用到这儿
+end;
+
 { TCnJSONBase }
 
 function TCnJSONBase.AddChild(AChild: TCnJSONBase): TCnJSONBase;
 begin
+  Result := AChild;
+end;
 
+{ TCnJSONString }
+
+function TCnJSONString.IsString: Boolean;
+begin
+  Result := True;
+end;
+
+{ TCnJSONNumber }
+
+function TCnJSONNumber.IsNumber: Boolean;
+begin
+  Result := True;
+end;
+
+{ TCnJSONNull }
+
+function TCnJSONNull.IsNull: Boolean;
+begin
+  Result := True;
+end;
+
+{ TCnJSONTrue }
+
+function TCnJSONTrue.IsTrue: Boolean;
+begin
+  Result := True;
+end;
+
+{ TCnJSONFalse }
+
+function TCnJSONFalse.IsFalse: Boolean;
+begin
+  Result := True;
 end;
 
 end.
