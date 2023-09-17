@@ -25,6 +25,8 @@ unit CnJSON;
 * 单元名称：JSON 解析与组装单元，适用于 DXE6 以下无 JSON 解析库的场合
 * 单元作者：CnPack 开发组 Liu Xiao
 * 备    注：适合 UTF8 无注释格式，根据 RFC 7159 来处理
+*           注意未经严格全面测试，不适合替代 System.JSON
+*           仅在无 System.JSON 的低版本中充当 JSON 解析用
 * 开发平台：PWinXP + Delphi 7
 * 兼容测试：PWinXP/7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -104,6 +106,8 @@ type
 
   TCnJSONString = class;
 
+  TCnJSONPair = class;
+
   TCnJSONBase = class
   private
     FParent: TCnJSONBase;
@@ -116,12 +120,18 @@ type
   TCnJSONValue = class(TCnJSONBase)
   private
     FContent: AnsiString;
+    // 解析时存储 JSON 中解析出的 UTF8 原始内容，组装时存 UTF8 的 JSON 字符串内容
+    procedure SetContent(const Value: AnsiString);
+  protected
+    FUpdated: Boolean;
   public
     constructor Create; virtual;
     destructor Destroy; override;
 
+    // 以下方法组装用
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
 
+    // 以下方法解析用
     function IsObject: Boolean; virtual;
     function IsArray: Boolean; virtual;
     function IsString: Boolean; virtual;
@@ -130,7 +140,13 @@ type
     function IsTrue: Boolean; virtual;
     function IsFalse: Boolean; virtual;
 
-    property Content: AnsiString read FContent write FContent;
+    function AsString: string; virtual;
+    function AsInteger: Integer; virtual;
+    function AsInt64: Int64; virtual;
+    function AsFloat: Extended; virtual;
+    function AsBoolean: Boolean; virtual;
+
+    property Content: AnsiString read FContent write SetContent;
   end;
 
 {
@@ -149,9 +165,19 @@ type
     constructor Create; override;
     destructor Destroy; override;
 
-    function AddChild(AChild: TCnJSONBase): TCnJSONBase; override; // 添加 Pair
+    function AddChild(AChild: TCnJSONBase): TCnJSONBase; override; // 内部解析时添加 Pair
+
+    // 以下方法组装用
+    function AddPair(const Name: string; Value: TCnJSONValue): TCnJSONPair; overload;
+    function AddPair(const Name: string; const Value: string): TCnJSONPair; overload;
+    function AddPair(const Name: string; Value: Integer): TCnJSONPair; overload;
+    function AddPair(const Name: string; Value: Extended): TCnJSONPair; overload;
+    function AddPair(const Name: string; Value: Boolean): TCnJSONPair; overload;
+    function AddPair(const Name: string): TCnJSONPair; overload;
+
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
 
+    // 以下方法解析用
     function IsObject: Boolean; override;
 
     property Count: Integer read GetCount;
@@ -165,9 +191,21 @@ type
 }
   TCnJSONString = class(TCnJSONValue)
   private
+    FValue: string;
+    // 与 Content 同步的 string 格式内容
+    procedure SetValue(const Value: string);
 
+    function JsonFormatToString(const Str: AnsiString): string;
+    {* 把 JSON 中的内容解析转义后返回，包括去引号、解释转义等}
+    function StringToJsonFormat(const Str: string): AnsiString;
+    {* 把字符串加上双引号与转义后返回为 JSON 格式，内部会做 UTF8 转换}
   public
     function IsString: Boolean; override;
+    function AsString: string; override;
+    {* 根据 Content 值更新 Value 并返回}
+
+    property Value: string read FValue write SetValue;
+    {* 组装时供外界写入值，内部同步更新 Content}
   end;
 
   TCnJSONNumber = class(TCnJSONValue)
@@ -211,7 +249,15 @@ type
     destructor Destroy; override;
 
     function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
-    // 添加 Value 作为数组元素
+    // 内部添加 Value 作为数组元素
+
+    // 外部组装用
+    function AddValue(Value: TCnJSONValue): TCnJSONArray; overload;
+    function AddValue(const Value: string): TCnJSONArray; overload;
+    function AddValue(Value: Integer): TCnJSONArray; overload;
+    function AddValue(Value: Extended): TCnJSONArray; overload;
+    function AddValue(Value: Boolean): TCnJSONArray; overload;
+    function AddValue: TCnJSONArray; overload;
 
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
 
@@ -228,20 +274,25 @@ type
     destructor Destroy; override;
 
     function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
-    // 设置 Value 作为 Value
+    // 设置 AChild 作为其 Value
 
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
 
     property Name: TCnJSONString read FName;
-    {* 键名，持有}
-    property Value: TCnJSONValue read FValue;
-    {* 值，外部设置其引用，负责释放}
+    {* 键名，持有，自身负责释放}
+    property Value: TCnJSONValue read FValue write FValue;
+    {* 值，外部设置其引用，自身负责释放}
   end;
 
 function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject;
 {* 解析 UTF8 格式的 JSON 字符串为 JSON 对象}
 
 implementation
+
+{$IFNDEF UNICODE}
+uses
+  CnWideStrings;
+{$ENDIF}
 
 const
   CN_BLANK_CHARSET: set of AnsiChar = [#9, #10, #13, #32]; // RFC 规范中只允许这几个作为空白符
@@ -252,6 +303,8 @@ resourcestring
   SCnErrorJSONTokenFmt = 'JSON Token %s Expected at Offset %d';
   SCnErrorJSONValueFmt = 'JSON Value Error %s at Offset %d';
   SCnErrorJSONPair = 'JSON Pair Value Conflict';
+  SCnErrorJSONTypeMismatch = 'JSON Value Type Mismatch';
+  SCnErrorJSONStringParse = 'JSON String Parse Error';
 
 // 注意，每个 JSONParseXXXX 函数执行完后，P 的 TokenID 总指向这个元素后紧邻的非空元素
 
@@ -658,6 +711,54 @@ begin
     Result := nil;
 end;
 
+function TCnJSONObject.AddPair(const Name: string; Value: Integer): TCnJSONPair;
+var
+  V: TCnJSONNumber;
+begin
+  V := TCnJSONNumber.Create;
+  V.Content := IntToStr(Value);
+  Result := AddPair(Name, V);
+end;
+
+function TCnJSONObject.AddPair(const Name, Value: string): TCnJSONPair;
+var
+  V: TCnJSONString;
+begin
+  V := TCnJSONString.Create;
+  V.Value := Value;
+  Result := AddPair(Name, V);
+end;
+
+function TCnJSONObject.AddPair(const Name: string; Value: TCnJSONValue): TCnJSONPair;
+begin
+  Result := TCnJSONPair.Create;
+  AddChild(Result);
+  Result.Name.Content := Name;
+  Result.Value := Value;
+end;
+
+function TCnJSONObject.AddPair(const Name: string): TCnJSONPair;
+begin
+  Result := AddPair(Name, TCnJSONNull.Create);
+end;
+
+function TCnJSONObject.AddPair(const Name: string; Value: Boolean): TCnJSONPair;
+begin
+  if Value then
+    Result := AddPair(Name, TCnJSONTrue.Create)
+  else
+    Result := AddPair(Name, TCnJSONFalse.Create);
+end;
+
+function TCnJSONObject.AddPair(const Name: string; Value: Extended): TCnJSONPair;
+var
+  V: TCnJSONNumber;
+begin
+  V := TCnJSONNumber.Create;
+  V.Content := FloatToStr(Value);
+  Result := AddPair(Name, V);
+end;
+
 constructor TCnJSONObject.Create;
 begin
   inherited;
@@ -737,6 +838,45 @@ end;
 
 { TCnJSONValue }
 
+function TCnJSONValue.AsBoolean: Boolean;
+begin
+  if IsTrue then
+    Result := True
+  else if IsFalse then
+    Result := False
+  else
+    raise ECnJSONException.Create(SCnErrorJSONTypeMismatch);
+end;
+
+function TCnJSONValue.AsFloat: Extended;
+begin
+  if not IsNumber then
+    raise ECnJSONException.Create(SCnErrorJSONTypeMismatch);
+
+  Result := StrToFloat(FContent);
+end;
+
+function TCnJSONValue.AsInt64: Int64;
+begin
+  if not IsNumber then
+    raise ECnJSONException.Create(SCnErrorJSONTypeMismatch);
+
+  Result := StrToInt64(FContent);
+end;
+
+function TCnJSONValue.AsInteger: Integer;
+begin
+  if not IsNumber then
+    raise ECnJSONException.Create(SCnErrorJSONTypeMismatch);
+
+  Result := StrToInt(FContent);
+end;
+
+function TCnJSONValue.AsString: string;
+begin
+  Result := FContent; // 基类返回原始内容
+end;
+
 constructor TCnJSONValue.Create;
 begin
 
@@ -783,6 +923,12 @@ begin
   Result := False;
 end;
 
+procedure TCnJSONValue.SetContent(const Value: AnsiString);
+begin
+  FContent := Value;
+  FUpdated := True;
+end;
+
 function TCnJSONValue.ToJSON(UseFormat: Boolean; Indent: Integer): string;
 begin
   Result := FContent;
@@ -799,6 +945,53 @@ begin
   end
   else
     Result := nil;
+end;
+
+function TCnJSONArray.AddValue(const Value: string): TCnJSONArray;
+var
+  V: TCnJSONString;
+begin
+  V := TCnJSONString.Create;
+  V.Value := Value;
+  Result := AddValue(V);
+end;
+
+function TCnJSONArray.AddValue(Value: TCnJSONValue): TCnJSONArray;
+begin
+  if Value <> nil then
+    FValues.Add(Value);
+  Result := Self;
+end;
+
+function TCnJSONArray.AddValue(Value: Integer): TCnJSONArray;
+var
+  V: TCnJSONNumber;
+begin
+  V := TCnJSONNumber.Create;
+  V.Content := IntToStr(Value);
+  Result := AddValue(V);
+end;
+
+function TCnJSONArray.AddValue(Value: Boolean): TCnJSONArray;
+begin
+  if Value then
+    Result := AddValue(TCnJSONTrue.Create)
+  else
+    Result := AddValue(TCnJSONFalse.Create)
+end;
+
+function TCnJSONArray.AddValue(Value: Extended): TCnJSONArray;
+var
+  V: TCnJSONNumber;
+begin
+  V := TCnJSONNumber.Create;
+  V.Content := FloatToStr(Value);
+  Result := AddValue(V);
+end;
+
+function TCnJSONArray.AddValue: TCnJSONArray;
+begin
+  Result := AddValue(TCnJSONNull.Create);
 end;
 
 constructor TCnJSONArray.Create;
@@ -902,9 +1095,206 @@ end;
 
 { TCnJSONString }
 
+function TCnJSONString.AsString: string;
+begin
+  if FUpdated then
+  begin
+    FValue := JsonFormatToString(Content);
+    FUpdated := False;
+  end;
+  Result := FValue;
+end;
+
 function TCnJSONString.IsString: Boolean;
 begin
   Result := True;
+end;
+
+function TCnJSONString.JsonFormatToString(const Str: AnsiString): string;
+var
+  Bld: TCnStringBuilder;
+  P: PWideChar;
+  U: Integer;
+{$IFDEF UNICODE}
+  WS: string;
+{$ELSE}
+  WS: WideString;
+{$ENDIF}
+  B0, B1, B2, B3: Byte;
+
+  procedure CheckHex(B: Byte);
+  begin
+    if not (AnsiChar(B) in ['0'..'9', 'A'..'F', 'a'..'f']) then
+      raise ECnJSONException.Create(SCnErrorJSONStringParse);
+  end;
+
+  function HexToDec(const Value: Byte): Integer;
+  begin
+    if Value > Ord('9') then
+    begin
+      if Value > Ord('F') then
+        Result := Value - Ord('a') + 10
+      else
+        Result := Value - Ord('A') + 10;
+    end
+    else
+      Result := Value - Ord('0');
+  end;
+
+begin
+  Result := '';
+  if Length(Str) = 0 then
+    Exit;
+
+  // Unicode 环境下使用系统的转换，否则使用 CnWideStrings 里的转换
+{$IFDEF UNICODE}
+  WS := UTF8ToUnicodeString(Str);
+{$ELSE}
+  WS := CnUtf8DecodeToWideString(Str);
+{$ENDIF}
+
+  if Length(WS) = 0 then
+    raise ECnJSONException.Create(SCnErrorJSONStringParse); // UTF8 解码失败
+
+  P := @WS[1];
+  if P^ <> '"' then
+    raise ECnJSONException.Create(SCnErrorJSONStringParse);
+
+  Bld := TCnStringBuilder.Create(False);
+  try
+    Inc(P);
+    while (P^ <> '"') and (P^ <> #0) do
+    begin
+      if P^ = '\' then
+      begin
+        Inc(P);
+        case P^ of
+          '\': Bld.AppendWideChar('\');
+          '"': Bld.AppendWideChar('"');
+          'b': Bld.AppendWideChar(#$08);
+          't': Bld.AppendWideChar(#$09);
+          'n': Bld.AppendWideChar(#$0A);
+          'f': Bld.AppendWideChar(#$0C);
+          'r': Bld.AppendWideChar(#$0D);
+          'u':
+            begin
+              Inc(P);
+              B3 := Ord(P^);
+              CheckHex(B3);
+
+              Inc(P);
+              B2 := Ord(P^);
+              CheckHex(B2);
+
+              Inc(P);
+              B1 := Ord(P^);
+              CheckHex(B1);
+
+              Inc(P);
+              B0 := Ord(P^);
+              CheckHex(B0);
+
+              U := (HexToDec(B3) shl 12) or (HexToDec(B2) shl 8) or (HexToDec(B1) shl 4) or HexToDec(B0);
+              Bld.AppendWideChar(WideChar(U));
+            end;
+        else
+          raise ECnJSONException.Create(SCnErrorJSONStringParse);
+        end;
+      end
+      else
+        Bld.AppendWideChar(P^);
+      Inc(P);
+    end;
+
+{$IFDEF UNICODE}
+    Result := Bld.ToString;
+    // Unicode 版本下使用 Wide 版本，直接输出 string
+{$ELSE}
+    Result := AnsiString(Bld.ToWideString);
+    // 非 Unicode 下强行使用 Wide 版本时只支持输出 WideString，外部转换成 AnsiString
+{$ENDIF}
+  finally
+    Bld.Free;
+  end;
+end;
+
+procedure TCnJSONString.SetValue(const Value: string);
+begin
+  FValue := Value;
+  Content := StringToJsonFormat(Value);
+  FUpdated := False; // 由 Value 发起的对 Content 的更新，Content 无需逆向去更新 FValue
+end;
+
+function TCnJSONString.StringToJsonFormat(const Str: string): AnsiString;
+var
+  Bld: TCnStringBuilder;
+  P: PChar;
+begin
+  // 加引号以及转义编码再 UTF8 转换
+  Bld := TCnStringBuilder.Create;
+  try
+    Bld.AppendChar('"');
+    if Length(Str) > 0 then
+    begin
+      P := @Str[1];
+      while P^ <> #0 do
+      begin
+        case P^ of
+          '\':
+            begin
+              Bld.AppendChar('\');
+              Bld.AppendChar('\');
+            end;
+          '"':
+            begin
+              Bld.AppendChar('\');
+              Bld.AppendChar('"');
+            end;
+          #$08:
+            begin
+              Bld.AppendChar('\');
+              Bld.AppendChar('b');
+            end;
+          #$09:
+            begin
+              Bld.AppendChar('\');
+              Bld.AppendChar('t');
+            end;
+          #$0A:
+            begin
+              Bld.AppendChar('\');
+              Bld.AppendChar('n');
+            end;
+          #$0C:
+            begin
+              Bld.AppendChar('\');
+              Bld.AppendChar('f');
+            end;
+          #$0D:
+            begin
+              Bld.AppendChar('\');
+              Bld.AppendChar('r');
+            end;
+        else
+          Bld.AppendChar(P^);
+        end;
+        Inc(P);
+      end;
+    end;
+
+    Bld.AppendChar('"');
+
+{$IFDEF UNICODE}
+    Result := UTF8Encode(Bld.ToString);
+    // Unicode 环境下 StringBuilder 内部使用 Wide 模式，返回 UnicodeString，直接编码成 UTF8
+{$ELSE}
+    // 非 Unicode 环境下 StringBuilder 内部使用 Ansi 模式，返回 AnsiString（内部可能有双字节字符）
+    // 转成 WideString 后编码成 UTF8
+    Result := CnUtf8EncodeWideString(WideString(Bld.ToString));
+{$ENDIF}
+  finally
+    Bld.Free;
+  end;
 end;
 
 { TCnJSONNumber }
