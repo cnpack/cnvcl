@@ -109,15 +109,20 @@ type
   TCnJSONPair = class;
 
   TCnJSONBase = class
+  {* JSON 中的各元素的基类}
   private
     FParent: TCnJSONBase;
-  public
+  protected
     function AddChild(AChild: TCnJSONBase): TCnJSONBase; virtual;
+    {* 供解析 JSON 时各元素拼装用，一般不需要让用户调用}
+  public
+
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; virtual; abstract;
     property Parent: TCnJSONBase read FParent write FParent;
   end;
 
   TCnJSONValue = class(TCnJSONBase)
+  {* 代表 JSON 中的值的类}
   private
     FContent: AnsiString;
     // 解析时存储 JSON 中解析出的 UTF8 原始内容，组装时存 UTF8 的 JSON 字符串内容
@@ -156,21 +161,24 @@ type
   member = string name-separator value
 }
   TCnJSONObject = class(TCnJSONValue)
+  {* 代表 JSON 中的对象值的类，也是 JSON 顶层类}
   private
     FPairs: TObjectList;
     function GetCount: Integer;
     function GetName(Index: Integer): TCnJSONString;
     function GetValue(Index: Integer): TCnJSONValue;
+  protected
+    function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
+    {* 供内部解析时添加 Pair}
   public
     constructor Create; override;
     destructor Destroy; override;
-
-    function AddChild(AChild: TCnJSONBase): TCnJSONBase; override; // 内部解析时添加 Pair
 
     // 以下方法组装用
     function AddPair(const Name: string; Value: TCnJSONValue): TCnJSONPair; overload;
     function AddPair(const Name: string; const Value: string): TCnJSONPair; overload;
     function AddPair(const Name: string; Value: Integer): TCnJSONPair; overload;
+    function AddPair(const Name: string; Value: Int64): TCnJSONPair; overload;
     function AddPair(const Name: string; Value: Extended): TCnJSONPair; overload;
     function AddPair(const Name: string; Value: Boolean): TCnJSONPair; overload;
     function AddPair(const Name: string): TCnJSONPair; overload;
@@ -190,6 +198,7 @@ type
   string = quotation-mark *char quotation-mark
 }
   TCnJSONString = class(TCnJSONValue)
+  {* 代表 JSON 中的字符串值的类}
   private
     FValue: string;
     // 与 Content 同步的 string 格式内容
@@ -209,6 +218,7 @@ type
   end;
 
   TCnJSONNumber = class(TCnJSONValue)
+  {* 代表 JSON 中的数字值的类}
   private
 
   public
@@ -216,23 +226,29 @@ type
   end;
 
   TCnJSONNull = class(TCnJSONValue)
+  {* 代表 JSON 中的空值类}
   private
 
   public
+    constructor Create; override;
     function IsNull: Boolean; override;
   end;
 
   TCnJSONTrue = class(TCnJSONValue)
+  {* 代表 JSON 中的真值的类}
   private
 
   public
+    constructor Create; override;
     function IsTrue: Boolean; override;
   end;
 
   TCnJSONFalse = class(TCnJSONValue)
+  {* 代表 JSON 中的假值的类}
   private
 
   public
+    constructor Create; override;
     function IsFalse: Boolean; override;
   end;
 
@@ -240,16 +256,17 @@ type
   array = begin-array [ value *( value-separator value ) ] end-array
 }
   TCnJSONArray = class(TCnJSONValue)
+  {* 代表 JSON 中的数组类}
   private
     FValues: TObjectList;
     function GetCount: Integer;
     function GetValues(Index: Integer): TCnJSONValue;
+  protected
+    function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
+    {* 内部添加 Value 作为数组元素}
   public
     constructor Create; override;
     destructor Destroy; override;
-
-    function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
-    // 内部添加 Value 作为数组元素
 
     // 外部组装用
     function AddValue(Value: TCnJSONValue): TCnJSONArray; overload;
@@ -262,26 +279,29 @@ type
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
 
     property Count: Integer read GetCount;
+    {* 数组里的元素数量}
     property Values[Index: Integer]: TCnJSONValue read GetValues;
+    {* 数组里的元素}
   end;
 
   TCnJSONPair = class(TCnJSONBase)
+  {* 代表 JSON 中 Object 内的 Name 和 Value 的组合类}
   private
     FName: TCnJSONString;
     FValue: TCnJSONValue;
+  protected
+    function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
+    {* 设置 AChild 作为其 Value}
   public
     constructor Create; virtual;
     destructor Destroy; override;
 
-    function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
-    // 设置 AChild 作为其 Value
-
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
 
     property Name: TCnJSONString read FName;
-    {* 键名，持有，自身负责释放}
+    {* 键名，自动创建并持有，自身负责释放}
     property Value: TCnJSONValue read FValue write FValue;
-    {* 值，外部设置其引用，自身负责释放}
+    {* 值，不自动创建，外部设置其引用，自身负责释放}
   end;
 
 function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject;
@@ -705,6 +725,7 @@ begin
   if AChild is TCnJSONPair then
   begin
     FPairs.Add(AChild);
+    AChild.Parent := Self;
     Result := AChild;
   end
   else
@@ -756,6 +777,15 @@ var
 begin
   V := TCnJSONNumber.Create;
   V.Content := FloatToStr(Value);
+  Result := AddPair(Name, V);
+end;
+
+function TCnJSONObject.AddPair(const Name: string; Value: Int64): TCnJSONPair;
+var
+  V: TCnJSONNumber;
+begin
+  V := TCnJSONNumber.Create;
+  V.Content := IntToStr(Value);
   Result := AddPair(Name, V);
 end;
 
@@ -941,6 +971,7 @@ begin
   if AChild is TCnJSONValue then
   begin
     FValues.Add(AChild);
+    AChild.Parent := Self;
     Result := AChild;
   end
   else
@@ -1061,6 +1092,7 @@ begin
   if AChild is TCnJSONValue then
   begin
     FValue := AChild as TCnJSONValue;
+    AChild.Parent := Self;
     Result := AChild;
   end
   else
@@ -1091,6 +1123,7 @@ end;
 function TCnJSONBase.AddChild(AChild: TCnJSONBase): TCnJSONBase;
 begin
   Result := AChild;
+  AChild.Parent := Self;
 end;
 
 { TCnJSONString }
@@ -1306,6 +1339,12 @@ end;
 
 { TCnJSONNull }
 
+constructor TCnJSONNull.Create;
+begin
+  inherited;
+  FContent := 'null';
+end;
+
 function TCnJSONNull.IsNull: Boolean;
 begin
   Result := True;
@@ -1313,12 +1352,24 @@ end;
 
 { TCnJSONTrue }
 
+constructor TCnJSONTrue.Create;
+begin
+  inherited;
+  FContent := 'true';
+end;
+
 function TCnJSONTrue.IsTrue: Boolean;
 begin
   Result := True;
 end;
 
 { TCnJSONFalse }
+
+constructor TCnJSONFalse.Create;
+begin
+  inherited;
+  FContent := 'false';
+end;
 
 function TCnJSONFalse.IsFalse: Boolean;
 begin

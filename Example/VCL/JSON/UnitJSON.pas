@@ -3,7 +3,7 @@ unit UnitJSON;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ComCtrls, TypInfo, CnJSON;
 
 type
@@ -19,7 +19,12 @@ type
     mmoJSONToken: TMemo;
     lblToken: TLabel;
     lblStr: TLabel;
+    tsJSONConstruct: TTabSheet;
+    btnJSONConstruct1: TButton;
+    mmoOutput: TMemo;
+    chkConstructFormat: TCheckBox;
     procedure btnParseClick(Sender: TObject);
+    procedure btnJSONConstruct1Click(Sender: TObject);
   private
     procedure DumpJSONToTreeView(JSON: TCnJSONObject);
   public
@@ -120,6 +125,37 @@ begin
   tvJSON.Items.Clear;
   AddJSONValueToNode(JSON, nil);
   tvJSON.Items[0].Expand(True);
+end;
+
+procedure TFormJSON.btnJSONConstruct1Click(Sender: TObject);
+var
+  JObj: TCnJSONObject;
+  JArr: TCnJSONArray;
+begin
+  JObj := TCnJSONObject.Create;
+  JArr := TCnJSONArray.Create;
+
+  JObj.AddPair('Test1', 'Kick me');
+  JObj.AddPair('Test2', True);
+  JArr.AddValue('³Ô·¹');
+  JArr.AddValue('abc'#13#10'cde');
+  JArr.AddValue(+5.56);
+  JObj.AddPair('TestArray', JArr);
+
+  JObj.AddPair('Test3', False);
+  JObj.AddPair('Test4');
+  JObj.AddPair('Test5', -323);
+  JObj.AddPair('Test6', 3.14e8);
+
+{$IFDEF UNICODE}
+  mmoOutput.Lines.Text := UTF8Decode(JObj.ToJSON(chkConstructFormat.Checked));
+{$ELSE}
+  mmoOutput.Lines.Text := AnsiString(CnUtf8DecodeToWideString(JObj.ToJSON(chkConstructFormat.Checked)));
+{$ENDIF}
+
+
+  JObj.Free;
+  // JArr ¸úËæ Free ÁË
 end;
 
 end.

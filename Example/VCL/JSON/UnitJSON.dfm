@@ -1,9 +1,10 @@
 object FormJSON: TFormJSON
   Left = 192
   Top = 138
-  Width = 1051
-  Height = 638
+  BorderStyle = bsDialog
   Caption = 'JSON Test'
+  ClientHeight = 587
+  ClientWidth = 1001
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,6 +12,7 @@ object FormJSON: TFormJSON
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
   object pgc1: TPageControl
@@ -19,6 +21,7 @@ object FormJSON: TFormJSON
     Width = 985
     Height = 569
     ActivePage = tsJSONParse
+    Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsJSONParse: TTabSheet
       Caption = 'JSON Parse'
@@ -81,7 +84,7 @@ object FormJSON: TFormJSON
           '                "age":15'
           '            },'
           '            {'
-          '                "name": "Ma\u45A3rty",'
+          '                "name": "Ma\u996drty",'
           '                "age": null,'
           '    "die": true'
           '            }'
@@ -106,6 +109,35 @@ object FormJSON: TFormJSON
         Height = 241
         ScrollBars = ssVertical
         TabOrder = 5
+      end
+    end
+    object tsJSONConstruct: TTabSheet
+      Caption = 'JSON Construct'
+      ImageIndex = 1
+      object btnJSONConstruct1: TButton
+        Left = 16
+        Top = 16
+        Width = 113
+        Height = 25
+        Caption = 'JSON Construct 1'
+        TabOrder = 0
+        OnClick = btnJSONConstruct1Click
+      end
+      object mmoOutput: TMemo
+        Left = 16
+        Top = 64
+        Width = 537
+        Height = 289
+        ReadOnly = True
+        TabOrder = 1
+      end
+      object chkConstructFormat: TCheckBox
+        Left = 16
+        Top = 368
+        Width = 97
+        Height = 17
+        Caption = 'Format'
+        TabOrder = 2
       end
     end
   end
