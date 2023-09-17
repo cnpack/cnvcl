@@ -277,13 +277,6 @@ type
 
     function AppendString(const Value: string): TCnStringBuilder;
     {* 将 string 添加到 FData，无论是否 Unicode 环境。由调用者根据 AnsiMode 控制}
-{$IFDEF UNICODE}
-    function AppendAnsi(const Value: AnsiString): TCnStringBuilder;
-    {* 将 AnsiString 添加到 Unicode 环境下的 FAnsiData。由调用者根据 AnsiMode 控制}
-{$ELSE}
-    function AppendWide(const Value: WideString): TCnStringBuilder;
-    {* 将 WideString 添加到 FWideData，非 Unicode 环境中使用。由调用者根据 AnsiMode 控制}
-{$ENDIF}
   public
     constructor Create; overload;
     {* 构造函数，内部实现默认 string}
@@ -296,12 +289,21 @@ type
     procedure Clear;
     {* 清空内容}
 
+{$IFDEF UNICODE}
+    function AppendAnsi(const Value: AnsiString): TCnStringBuilder;
+    {* 将 AnsiString 添加到 Unicode 环境下的 FAnsiData。由调用者根据 AnsiMode 控制}
+{$ELSE}
+    function AppendWide(const Value: WideString): TCnStringBuilder;
+    {* 将 WideString 添加到非 Unicode 环境中的 FWideData，由调用者根据 AnsiMode 控制}
+{$ENDIF}
+
     function Append(const Value: string): TCnStringBuilder; overload;
     {* 添加通用字符串，是所有其他参数类型 Append 的总入口，内部根据当前编译器以及 AnsiMode 决定用何种实现来拼}
 
     function Append(const Value: Boolean): TCnStringBuilder; overload;
     function Append(const Value: Byte): TCnStringBuilder; overload;
     function AppendChar(const Value: Char): TCnStringBuilder;
+    function AppendAnsiChar(const Value: AnsiChar): TCnStringBuilder;
     function AppendWideChar(const Value: WideChar): TCnStringBuilder;
     // Char 和单字符 String 是混淆的，因而改名，不用 overload
     function AppendCurrency(const Value: Currency): TCnStringBuilder; overload;
@@ -2333,6 +2335,15 @@ function TCnStringBuilder.Append(const AFormat: string;
   const Args: array of const): TCnStringBuilder;
 begin
   Result := Append(Format(AFormat, Args));
+end;
+
+function TCnStringBuilder.AppendAnsiChar(const Value: AnsiChar): TCnStringBuilder;
+var
+  S: AnsiString;
+begin
+  SetLength(S, 1);
+  Move(Value, S[1], SizeOf(AnsiChar));
+  Result := Append(S);
 end;
 
 function TCnStringBuilder.AppendWideChar(const Value: WideChar): TCnStringBuilder;
