@@ -253,7 +253,7 @@ type
   end;
 
   TCnStringBuilder = class
-  {* 输出灵活的 StringBuilder，暂时只支持添加，不支持删除
+  {* 输出形式灵活的 StringBuilder，暂时只支持添加，不支持删除
     非 Unicode 版本支持 string 和 WideString，Unicode 版本支持 AnsiString 和 string}
   private
     FModeIsFromOut: Boolean;
@@ -288,9 +288,10 @@ type
     constructor Create; overload;
     {* 构造函数，内部实现默认 string}
     constructor Create(IsAnsi: Boolean); overload;
-    {* 可指定内部是 Ansi 还是 Wided 的构造函数}
+    {* 可指定内部是 Ansi 还是 Wide 的构造函数}
 
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Clear;
     {* 清空内容}
@@ -301,6 +302,7 @@ type
     function Append(const Value: Boolean): TCnStringBuilder; overload;
     function Append(const Value: Byte): TCnStringBuilder; overload;
     function AppendChar(const Value: Char): TCnStringBuilder;
+    function AppendWideChar(const Value: WideChar): TCnStringBuilder;
     // Char 和单字符 String 是混淆的，因而改名，不用 overload
     function AppendCurrency(const Value: Currency): TCnStringBuilder; overload;
     // Currency 低版本 Delphi 中和 Double 是混淆的，因而改名，不用 overload
@@ -325,13 +327,14 @@ type
     function AppendLine(const Value: string): TCnStringBuilder; overload;
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 返回内容的 string 形式，无论是否 Unicode 环境。
-      换句话说非 Unicode 环境中返回 AnsiString，Unicode 环境中返回 UnicodeString}
+    {* 返回内容的 string 形式，无论是否 Unicode 环境，只要 AnsiMode 符合编译器的 Unicode 支持
+      换句话说非 Unicode 环境中 AnsiMode 为 True 时才返回 AnsiString，
+      Unicode 环境中 AnsiMode 为 False 时才返回 UnicodeString，其余情况返回空}
 
     function ToAnsiString: AnsiString;
-    {* 返回内容的 AnsiString 形式，应在 Unicode 环境中使用}
+    {* 强行返回内容的 AnsiString 形式，无论 AnsiMode 如何。应在 Unicode 环境中使用}
     function ToWideString: WideString;
-    {* 返回内容的 WideString 形式，应在非 Unicode 环境中使用}
+    {* 强行返回内容的 WideString 形式，无论 AnsiMode 如何。应在非 Unicode 环境中使用}
 
     property CharCapacity: Integer read GetCharCapacity write SetCharCapacity;
     {* 以字符为单位的内部缓冲区的容量}
@@ -2167,14 +2170,14 @@ end;
 function TCnStringBuilder.ToAnsiString: AnsiString;
 begin
 {$IFDEF UNICODE}
-  if FAnsiMode then // Unicode 环境下如果是 Ansi 模式，用 FAnsiData
+  if FAnsiMode then // Unicode 环境下如果是 Ansi 模式，用 FAnsiData，无需转换
   begin
     if FCharLength = CharCapacity then
       Result := FAnsiData
     else
       Result := Copy(FAnsiData, 1, FCharLength);
   end
-  else  // Unicode 环境下如果是非 Ansi 模式，用 FData
+  else  // Unicode 环境下如果是非 Ansi 模式，用 FData，进行 AnsiString 转换
   begin
     if FCharLength = CharCapacity then
       Result := AnsiString(FData)
@@ -2189,14 +2192,14 @@ end;
 function TCnStringBuilder.ToWideString: WideString;
 begin
 {$IFNDEF UNICODE}
-  if FAnsiMode then // 非 Unicode 环境下如果是 Ansi 模式，用 FData
+  if FAnsiMode then // 非 Unicode 环境下如果是 Ansi 模式，用 FData，进行 WideString 转换
   begin
     if FCharLength = CharCapacity then
-      Result := FData
+      Result := WideString(FData)
     else
-      Result := Copy(FData, 1, FCharLength);
+      Result := WideString(Copy(FData, 1, FCharLength));
   end
-  else // Unicode 环境下如果是非 Ansi 模式，用 FWideData
+  else // 非 Unicode 环境下如果是非 Ansi 模式，用 FWideData，无需转换
   begin
     if FCharLength = CharCapacity then
       Result := FWideData
@@ -2330,6 +2333,15 @@ function TCnStringBuilder.Append(const AFormat: string;
   const Args: array of const): TCnStringBuilder;
 begin
   Result := Append(Format(AFormat, Args));
+end;
+
+function TCnStringBuilder.AppendWideChar(const Value: WideChar): TCnStringBuilder;
+var
+  S: WideString;
+begin
+  SetLength(S, 1);
+  Move(Value, S[1], SizeOf(WideChar));
+  Result := Append(S);
 end;
 
 end.
