@@ -26,7 +26,16 @@ unit CnJSON;
 * 单元作者：CnPack 开发组 Liu Xiao
 * 备    注：适合 UTF8 无注释格式，根据 RFC 7159 来处理
 *           注意未经严格全面测试，不适合替代 System.JSON
-*           仅在无 System.JSON 的低版本中充当 JSON 解析用
+*           仅在无 System.JSON 的低版本中充当 JSON 解析与组装用
+*
+*           解析：
+*              调用函数 CnJSONParse，传入 UTF8 格式的 JSONString，返回 JSONObject 对象
+*
+*           组装：
+*              创建 TCnJSONObject 后调用其 AddPair 函数
+*              需要数组时创建 TCnJSONArray 后调用其 AddValue 函数
+*              根 TCnJSONObject 调用 ToJSON 方法能生成 UTF8 格式的 JSON 字符串
+*
 * 开发平台：PWinXP + Delphi 7
 * 兼容测试：PWinXP/7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -50,7 +59,7 @@ type
     jttNameValueSep, jttElementSep, jttNumber, jttString, jttNull, jttTrue,
     jttFalse, jttBlank, jttTerminated, jttUnknown);
   {* JSON 中的符号类型，对应左大括号、右大括号、左中括号、右中括号、分号、逗号、
-    数字、双引号字符串、null、true、false、空格回车、#0等}
+    数字、双引号字符串、null、true、false、空格回车、#0、未知等}
 
   TCnJSONParser = class
   {* UTF8 格式的无注释的 JSON 字符串解析器}
@@ -136,7 +145,7 @@ type
     // 以下方法组装用
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
 
-    // 以下方法解析用
+    // 以下方法解析时判断类型用
     function IsObject: Boolean; virtual;
     function IsArray: Boolean; virtual;
     function IsString: Boolean; virtual;
@@ -145,6 +154,7 @@ type
     function IsTrue: Boolean; virtual;
     function IsFalse: Boolean; virtual;
 
+    // 以下方法解析时取值用
     function AsString: string; virtual;
     function AsInteger: Integer; virtual;
     function AsInt64: Int64; virtual;
@@ -167,6 +177,7 @@ type
     function GetCount: Integer;
     function GetName(Index: Integer): TCnJSONString;
     function GetValue(Index: Integer): TCnJSONValue;
+    function GetValueByName(const Name: string): TCnJSONValue;
   protected
     function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
     {* 供内部解析时添加 Pair}
@@ -193,6 +204,8 @@ type
     {* 有多少个 Name Value 对}
     property Names[Index: Integer]: TCnJSONString read GetName;
     property Values[Index: Integer]: TCnJSONValue read GetValue;
+
+    property ValueByName[const Name: string]: TCnJSONValue read GetValueByName; default;
   end;
 
 {
@@ -815,6 +828,21 @@ end;
 function TCnJSONObject.GetValue(Index: Integer): TCnJSONValue;
 begin
   Result := (FPairs[Index] as TCnJSONPair).Value;
+end;
+
+function TCnJSONObject.GetValueByName(const Name: string): TCnJSONValue;
+var
+  I: Integer;
+begin
+  for I := 0 to FPairs.Count - 1 do
+  begin
+    if TCnJSONPair(FPairs[I]).Name.AsString = Name then
+    begin
+      Result := TCnJSONPair(FPairs[I]).Value;
+      Exit;
+    end;
+  end;
+  Result := nil;
 end;
 
 function TCnJSONObject.IsObject: Boolean;
