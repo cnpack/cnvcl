@@ -117,7 +117,7 @@ type
     {* 供解析 JSON 时各元素拼装用，一般不需要让用户调用}
   public
 
-    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; virtual; abstract;
+    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; virtual; abstract;
     property Parent: TCnJSONBase read FParent write FParent;
   end;
 
@@ -134,7 +134,7 @@ type
     destructor Destroy; override;
 
     // 以下方法组装用
-    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
+    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
 
     // 以下方法解析用
     function IsObject: Boolean; virtual;
@@ -183,7 +183,8 @@ type
     function AddPair(const Name: string; Value: Boolean): TCnJSONPair; overload;
     function AddPair(const Name: string): TCnJSONPair; overload;
 
-    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
+    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
+    {* 生成 JSON 字符串}
 
     // 以下方法解析用
     function IsObject: Boolean; override;
@@ -276,7 +277,7 @@ type
     function AddValue(Value: Boolean): TCnJSONArray; overload;
     function AddValue: TCnJSONArray; overload;
 
-    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
+    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
 
     property Count: Integer read GetCount;
     {* 数组里的元素数量}
@@ -296,7 +297,7 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
-    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): string; override;
+    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
 
     property Name: TCnJSONString read FName;
     {* 键名，自动创建并持有，自身负责释放}
@@ -821,7 +822,7 @@ begin
   Result := True;
 end;
 
-function TCnJSONObject.ToJSON(UseFormat: Boolean; Indent: Integer): string;
+function TCnJSONObject.ToJSON(UseFormat: Boolean; Indent: Integer): AnsiString;
 var
   I: Integer;
   Bld: TCnStringBuilder;
@@ -829,27 +830,39 @@ begin
   if Indent < 0 then
     Indent := 0;
 
-  Bld := TCnStringBuilder.Create;
+  Bld := TCnStringBuilder.Create(True);
   try
     if UseFormat then
       Bld.Append('{' + CRLF)
     else
-      Bld.AppendChar('{');
+      Bld.AppendAnsiChar('{');
 
     for I := 0 to Count - 1 do
     begin
       if UseFormat then
         Bld.Append(StringOfChar(' ', Indent + CN_INDENT_DELTA));
 
+{$IFDEF UNICODE}
+      Bld.AppendAnsi(Names[I].ToJSON(UseFormat, Indent + CN_INDENT_DELTA));
+      // 要显式走 Ansi，因为内容可能是 UTF8，不能额外进行 string 转换
+{$ELSE}
       Bld.Append(Names[I].ToJSON(UseFormat, Indent + CN_INDENT_DELTA));
-      Bld.AppendChar(':');
+{$ENDIF}
+
+      Bld.AppendAnsiChar(':');
       if UseFormat then
-        Bld.AppendChar(' ');
+        Bld.AppendAnsiChar(' ');
+
+{$IFDEF UNICODE}
+      Bld.AppendAnsi(Values[I].ToJSON(UseFormat, Indent + CN_INDENT_DELTA));
+      // 要显式走 Ansi，因为内容可能是 UTF8，不能额外进行 string 转换
+{$ELSE}
       Bld.Append(Values[I].ToJSON(UseFormat, Indent + CN_INDENT_DELTA));
+{$ENDIF}
 
       if I <> Count - 1 then
       begin
-        Bld.AppendChar(',');
+        Bld.AppendAnsiChar(',');
         if UseFormat then
           Bld.Append(CRLF);
       end;
@@ -858,9 +871,9 @@ begin
     if UseFormat then
       Bld.Append(CRLF + StringOfChar(' ', Indent) + '}')
     else
-      Bld.AppendChar('}');
+      Bld.AppendAnsiChar('}');
 
-    Result := Bld.ToString;
+    Result := Bld.ToAnsiString;
   finally
     Bld.Free;
   end;
@@ -959,8 +972,9 @@ begin
   FUpdated := True;
 end;
 
-function TCnJSONValue.ToJSON(UseFormat: Boolean; Indent: Integer): string;
+function TCnJSONValue.ToJSON(UseFormat: Boolean; Indent: Integer): AnsiString;
 begin
+  // FContent 是 UTF8 格式
   Result := FContent;
 end;
 
@@ -1047,25 +1061,25 @@ begin
   Result := TCnJSONValue(FValues[Index]);
 end;
 
-function TCnJSONArray.ToJSON(UseFormat: Boolean; Indent: Integer): string;
+function TCnJSONArray.ToJSON(UseFormat: Boolean; Indent: Integer): AnsiString;
 var
   Bld: TCnStringBuilder;
   I: Integer;
 begin
-  Bld := TCnStringBuilder.Create;
+  Bld := TCnStringBuilder.Create(True);
   try
-    Bld.AppendChar('[');
+    Bld.AppendAnsiChar('[');
     if UseFormat then
       Bld.Append(CRLF + StringOfChar(' ', Indent + CN_INDENT_DELTA));
 
     for I := 0 to Count - 1 do
     begin
-      Bld.Append(Values[I].ToJSON(UseFormat, Indent + CN_INDENT_DELTA));
+      Bld.AppendAnsi(Values[I].ToJSON(UseFormat, Indent + CN_INDENT_DELTA));
       if I <> Count - 1 then
       begin
-        Bld.AppendChar(',');
+        Bld.AppendAnsiChar(',');
         if UseFormat then
-          Bld.AppendChar(' ');
+          Bld.AppendAnsiChar(' ');
       end;
     end;
 
@@ -1075,8 +1089,9 @@ begin
       Bld.Append(StringOfChar(' ', Indent) + ']');
     end
     else
-      Bld.AppendChar(']');
-    Result := Bld.ToString;
+      Bld.AppendAnsiChar(']');
+
+    Result := Bld.ToAnsiString;
   finally
     Bld.Free;
   end;
@@ -1113,7 +1128,7 @@ begin
   inherited;
 end;
 
-function TCnJSONPair.ToJSON(UseFormat: Boolean; Indent: Integer): string;
+function TCnJSONPair.ToJSON(UseFormat: Boolean; Indent: Integer): AnsiString;
 begin
   // 不做，不应调用到这儿
 end;
@@ -1193,7 +1208,7 @@ begin
   if P^ <> '"' then
     raise ECnJSONException.Create(SCnErrorJSONStringParse);
 
-  Bld := TCnStringBuilder.Create(False);
+  Bld := TCnStringBuilder.Create(False);  // 处理双字节字符串得用 Wide 模式
   try
     Inc(P);
     while (P^ <> '"') and (P^ <> #0) do
