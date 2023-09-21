@@ -117,7 +117,7 @@ type
 
   TCnJSONPair = class;
 
-  TCnJSONBase = class
+  TCnJSONBase = class(TPersistent)
   {* JSON 中的各元素的基类}
   private
     FParent: TCnJSONBase;
@@ -141,6 +141,8 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
+
+    procedure Assign(Source: TPersistent); override;
 
     // 以下方法组装用
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
@@ -185,6 +187,10 @@ type
     constructor Create; override;
     destructor Destroy; override;
 
+    procedure Assign(Source: TPersistent); override;
+
+    procedure Clear;
+
     // 以下方法组装用
     function AddPair(const Name: string; Value: TCnJSONValue): TCnJSONPair; overload;
     function AddPair(const Name: string; const Value: string): TCnJSONPair; overload;
@@ -207,6 +213,8 @@ type
 
     property ValueByName[const Name: string]: TCnJSONValue read GetValueByName; default;
   end;
+
+  TCnJSONValueClass = class of TCnJSONValue;
 
 {
   string = quotation-mark *char quotation-mark
@@ -282,6 +290,10 @@ type
     constructor Create; override;
     destructor Destroy; override;
 
+    procedure Assign(Source: TPersistent); override;
+
+    procedure Clear;
+
     // 外部组装用
     function AddValue(Value: TCnJSONValue): TCnJSONArray; overload;
     function AddValue(const Value: string): TCnJSONArray; overload;
@@ -309,6 +321,8 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
+
+    procedure Assign(Source: TPersistent); override;
 
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
 
@@ -803,6 +817,33 @@ begin
   Result := AddPair(Name, V);
 end;
 
+procedure TCnJSONObject.Assign(Source: TPersistent);
+var
+  I: Integer;
+  JObj: TCnJSONObject;
+  Pair: TCnJSONPair;
+begin
+  if Source is TCnJSONObject then
+  begin
+    JObj := Source as TCnJSONObject;
+    FPairs.Clear;
+
+    for I := 0 to JObj.Count - 1 do
+    begin
+      Pair := TCnJSONPair.Create;
+      Pair.Assign(TCnJSONPair(JObj.FPairs[I]));
+      FPairs.Add(Pair);
+    end;
+  end
+  else
+    inherited;
+end;
+
+procedure TCnJSONObject.Clear;
+begin
+  FPairs.Clear;
+end;
+
 constructor TCnJSONObject.Create;
 begin
   inherited;
@@ -943,6 +984,16 @@ begin
   Result := StrToInt(FContent);
 end;
 
+procedure TCnJSONValue.Assign(Source: TPersistent);
+begin
+  if Source is TCnJSONValue then
+  begin
+    Content := (Source as TCnJSONValue).Content;
+  end
+  else
+    inherited;
+end;
+
 function TCnJSONValue.AsString: string;
 begin
   Result := FContent; // 基类返回原始内容
@@ -1067,6 +1118,37 @@ begin
   Result := AddValue(TCnJSONNull.Create);
 end;
 
+procedure TCnJSONArray.Assign(Source: TPersistent);
+var
+  I: Integer;
+  Clz: TCnJSONValueClass;
+  V: TCnJSONValue;
+  Arr: TCnJSONArray;
+begin
+  if Source is TCnJSONArray then
+  begin
+    Arr := Source as TCnJSONArray;
+
+    FValues.Clear;
+    for I := 0 to Arr.Count - 1 do
+    begin
+      Clz := TCnJSONValueClass(Arr.Values[I].ClassType);
+      V := TCnJSONValue(Clz.NewInstance);
+      V.Create;
+      V.Assign(Arr.Values[I]);
+
+      AddValue(V);
+    end;
+  end
+  else
+    inherited;
+end;
+
+procedure TCnJSONArray.Clear;
+begin
+  FValues.Clear;
+end;
+
 constructor TCnJSONArray.Create;
 begin
   inherited;
@@ -1102,7 +1184,11 @@ begin
 
     for I := 0 to Count - 1 do
     begin
+{$IFDEF UNICODE}
       Bld.AppendAnsi(Values[I].ToJSON(UseFormat, Indent + CN_INDENT_DELTA));
+{$ELSE}
+      Bld.Append(Values[I].ToJSON(UseFormat, Indent + CN_INDENT_DELTA));
+{$ENDIF}
       if I <> Count - 1 then
       begin
         Bld.AppendAnsiChar(',');
@@ -1140,6 +1226,28 @@ begin
   end
   else
     Result := nil;
+end;
+
+procedure TCnJSONPair.Assign(Source: TPersistent);
+var
+  Clz: TCnJSONValueClass;
+  Pair: TCnJSONPair;
+begin
+  if Source is TCnJSONPair then
+  begin
+    Pair := Source as TCnJSONPair;
+    FName.Assign(Pair.Name);
+
+    if Pair.Value <> nil then
+    begin
+      Clz := TCnJSONValueClass(Pair.Value.ClassType);
+      FValue := TCnJSONValue(Clz.NewInstance);
+      FValue.Create;
+      FValue.Assign(Pair.Value);
+    end;
+  end
+  else
+    inherited;
 end;
 
 constructor TCnJSONPair.Create;

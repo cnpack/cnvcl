@@ -129,8 +129,9 @@ end;
 
 procedure TFormJSON.btnJSONConstruct1Click(Sender: TObject);
 var
-  JObj: TCnJSONObject;
+  JObj, JObj1: TCnJSONObject;
   JArr: TCnJSONArray;
+  S, S1: AnsiString;
 begin
   JObj := TCnJSONObject.Create;
   JArr := TCnJSONArray.Create;
@@ -147,13 +148,25 @@ begin
   JObj.AddPair('Test5', -323);
   JObj.AddPair('Test6', 3.14e8);
 
+  S := JObj.ToJSON(chkConstructFormat.Checked);
 {$IFDEF UNICODE}
-  mmoOutput.Lines.Text := UTF8Decode(JObj.ToJSON(chkConstructFormat.Checked));
+  mmoOutput.Lines.Text := UTF8Decode(S);
 {$ELSE}
-  mmoOutput.Lines.Text := AnsiString(CnUtf8DecodeToWideString(JObj.ToJSON(chkConstructFormat.Checked)));
+  mmoOutput.Lines.Text := AnsiString(CnUtf8DecodeToWideString(S));
 {$ENDIF}
 
+  JObj1 := TCnJSONObject.Create;
+  JObj1.Assign(JObj);
 
+  S1 := JObj1.ToJSON(chkConstructFormat.Checked);
+  ShowMessage(S1);
+
+  if S1 = S then
+    ShowMessage('Assign Equal')
+  else
+    ShowMessage('Assign Error');
+
+  JObj1.Free;
   JObj.Free;
   // JArr ¸úËæ Free ÁË
 end;
