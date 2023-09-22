@@ -113,7 +113,7 @@ type
   {* 遍历图时触发访问某顶点的事件，Vertex 是顶点}
 
   TCnGraph = class(TObject)
-  {* 图实现类}
+  {* 图实现类，支持有向和无向两种模式}
   private
     FVertexes: TObjectList;
     FDirected: Boolean;
@@ -194,6 +194,12 @@ procedure CnGraphMatrixToStrings(Matrix: TCnGraphMatrix; List: TStrings);
 {* 将矩阵转换为字符串列表用来显示}
 
 implementation
+
+resourcestring
+  SCnErrorGraphNoVertexes = 'NO Vertexes.';
+  SCnErrorGraphNoEdges = 'NO Edges.';
+  SCnErrorGraphNoIndegreeForUndirectedGraph = 'NO InDegree for Undirected Graph.';
+  SCnErrorGraphNoOutdegreeForUndirectedGraph = 'NO OutDegree for Undirected Graph.';
 
 procedure CnGraphMatrixToStrings(Matrix: TCnGraphMatrix; List: TStrings);
 var
@@ -437,7 +443,7 @@ var
   VR, VC: TCnVertex;
 begin
   if VertexCount = 0 then
-    raise ECnGraphException.Create('NO Vertexes.');
+    raise ECnGraphException.Create(SCnErrorGraphNoVertexes);
 
   SetLength(Result, VertexCount, VertexCount);
 
@@ -459,9 +465,10 @@ var
   Row, Col, I, Idx: Integer;
 begin
   if VertexCount = 0 then
-    raise ECnGraphException.Create('NO Vertexes.');
+    raise ECnGraphException.Create(SCnErrorGraphNoVertexes);
+
   if EdgeCount = 0 then
-    raise ECnGraphException.Create('NO Edges.');
+    raise ECnGraphException.Create(SCnErrorGraphNoEdges);
 
   SetLength(Result, VertexCount, EdgeCount);
 
@@ -530,7 +537,7 @@ end;
 function TCnGraph.GetVertexInDegree(Vertex: TCnVertex): Integer;
 begin
   if not FDirected then
-    raise ECnGraphException.Create('NO InDegree for Undirected Graph.');
+    raise ECnGraphException.Create(SCnErrorGraphNoIndegreeForUndirectedGraph);
 
   if HasVertex(Vertex) then
     Result := Vertex.InNeighbourCount
@@ -541,7 +548,7 @@ end;
 function TCnGraph.GetVertexOutDegree(Vertex: TCnVertex): Integer;
 begin
   if not FDirected then
-    raise ECnGraphException.Create('NO OutDegree for Undirected Graph.');
+    raise ECnGraphException.Create(SCnErrorGraphNoOutdegreeForUndirectedGraph);
 
   if HasVertex(Vertex) then
     Result := Vertex.OutNeighbourCount
