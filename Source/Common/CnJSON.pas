@@ -94,7 +94,9 @@ type
     procedure StepBOM;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Next;
     {* 跳至下一个 Token 并确定 TokenID}
@@ -140,9 +142,12 @@ type
     FUpdated: Boolean;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
+    {* 赋值函数}
 
     // 以下方法组装用
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
@@ -164,6 +169,7 @@ type
     function AsBoolean: Boolean; virtual;
 
     property Content: AnsiString read FContent write SetContent;
+    {* 普通值类型时代表原始 UTF8 格式的字符串内容}
   end;
 
 {
@@ -185,11 +191,15 @@ type
     {* 供内部解析时添加 Pair}
   public
     constructor Create; override;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
+    {* 赋值函数}
 
     procedure Clear;
+    {* 清除所有内容}
 
     // 以下方法组装用
     function AddPair(const Name: string; Value: TCnJSONValue): TCnJSONPair; overload;
@@ -201,17 +211,23 @@ type
     function AddPair(const Name: string): TCnJSONPair; overload;
 
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
-    {* 生成 JSON 字符串}
+    {* 生成 UTF8 格式的 JSON 字符串}
 
     // 以下方法解析用
     function IsObject: Boolean; override;
 
+    class function FromJSON(const JsonStr: AnsiString): TCnJSONObject;
+    {* 解析 UTF8 格式的 JSON 字符串，返回新对象}
+
     property Count: Integer read GetCount;
     {* 有多少个 Name Value 对}
-    property Names[Index: Integer]: TCnJSONString read GetName;
-    property Values[Index: Integer]: TCnJSONValue read GetValue;
 
+    property Names[Index: Integer]: TCnJSONString read GetName;
+    {* 名称对象索引}
+    property Values[Index: Integer]: TCnJSONValue read GetValue;
+    {* 值对象索引，注意值可能是 TCnJSONValue 的不同子类实例}
     property ValueByName[const Name: string]: TCnJSONValue read GetValueByName; default;
+    {* 根据名称获取值的实例}
   end;
 
   TCnJSONValueClass = class of TCnJSONValue;
@@ -288,11 +304,15 @@ type
     {* 内部添加 Value 作为数组元素}
   public
     constructor Create; override;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
+    {* 赋值函数}
 
     procedure Clear;
+    {* 清除所有内容}
 
     // 外部组装用
     function AddValue(Value: TCnJSONValue): TCnJSONArray; overload;
@@ -303,6 +323,7 @@ type
     function AddValue: TCnJSONArray; overload;
 
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
+    {* 生成 UTF8 格式的 JSON 字符串}
 
     property Count: Integer read GetCount;
     {* 数组里的元素数量}
@@ -320,11 +341,15 @@ type
     {* 设置 AChild 作为其 Value}
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
+    {* 赋值函数}
 
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
+    {* 生成 UTF8 格式的 JSON 字符串}
 
     property Name: TCnJSONString read FName;
     {* 键名，自动创建并持有，自身负责释放}
@@ -854,6 +879,11 @@ destructor TCnJSONObject.Destroy;
 begin
   FPairs.Free;
   inherited;
+end;
+
+class function TCnJSONObject.FromJSON(const JsonStr: AnsiString): TCnJSONObject;
+begin
+  Result := CnJSONParse(JsonStr);
 end;
 
 function TCnJSONObject.GetCount: Integer;
