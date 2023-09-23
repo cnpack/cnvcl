@@ -114,6 +114,8 @@ type
     {* 按钮类型}
     property ButtonCursor: TCursor read FButtonCursor write SetButtonCursor default crDefault;
     {* 按钮上的光标}
+    property ButtonWidth: Integer read FButtonWidth;
+    {* 按钮宽度，只读}
     property Alignment: TAlignment read FAlignment write FAlignment default TaLeftJustify;
     {* 对齐方式}
     property TextType: TTextType read FTextType write FTextType default NormalText;
