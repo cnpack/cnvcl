@@ -219,6 +219,8 @@ type
     class function FromJSON(const JsonStr: AnsiString): TCnJSONObject;
     {* 解析 UTF8 格式的 JSON 字符串，返回新对象}
 
+    procedure GetNames(OutNames: TStrings);
+    {* 将 Name Value 对的 Name 放入 OutNames 列表}
     property Count: Integer read GetCount;
     {* 有多少个 Name Value 对}
 
@@ -894,6 +896,18 @@ end;
 function TCnJSONObject.GetName(Index: Integer): TCnJSONString;
 begin
   Result := (FPairs[Index] as TCnJSONPair).Name;
+end;
+
+procedure TCnJSONObject.GetNames(OutNames: TStrings);
+var
+  I: Integer;
+begin
+  if OutNames <> nil then
+  begin
+    OutNames.Clear;
+    for I := 0 to Count - 1 do
+      OutNames.Add((FPairs[I] as TCnJSONPair).Name.AsString);
+  end;
 end;
 
 function TCnJSONObject.GetValue(Index: Integer): TCnJSONValue;
