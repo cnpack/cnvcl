@@ -104,7 +104,7 @@ procedure TFormJSON.DumpJSONToTreeView(JSON: TCnJSONObject);
       for I := 0 to JObj.Count - 1 do
       begin
         Pair := tvJSON.Items.AddChild(Node, Format('<pair:%d>', [I])); // Node 是每个 Pair 的 Parent
-        tvJSON.Items.AddChild(Pair, JObj.Names[I].Content);
+        tvJSON.Items.AddChild(Pair, JObj.Names[I].AsString);
         AddJSONValueToNode(JObj.Values[I], Pair);
       end;
     end
