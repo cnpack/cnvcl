@@ -1,7 +1,7 @@
 object Form25519: TForm25519
   Left = 192
-  Top = 107
-  Caption = '25519 Curves'
+  Top = 111
+  Caption = '25519/448 Curves'
   ClientHeight = 563
   ClientWidth = 979
   FormFactor.Width = 320
@@ -10,7 +10,7 @@ object Form25519: TForm25519
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Left = 192
-  Top = 107
+  Top = 111
   DesignerMasterStyle = 0
   object pgc25519: TTabControl
     Position.X = 8.000000000000000000
@@ -22,6 +22,8 @@ object Form25519: TForm25519
     TabOrder = 0
     TabPosition = Top
     Sizes = (
+      953s
+      493s
       953s
       493s
       953s
@@ -357,6 +359,16 @@ object Form25519: TForm25519
           Text = 'Field64 Power p-2'
           OnClick = btn25519Field64PowerPMinus2Click
         end
+        object btnCurve25519Test: TButton
+          Position.X = 432.000000000000000000
+          Position.Y = 104.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 31
+          Text = 'Curve 25519 Scalar'
+          OnClick = btnCurve25519TestClick
+        end
       end
     end
     object ts25519Sign: TTabItem
@@ -365,12 +377,12 @@ object Form25519: TForm25519
         end>
       IsSelected = False
       ImageIndex = 1
-      Size.Width = 135.000000000000000000
+      Size.Width = 159.000000000000000000
       Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
       StyleLookup = ''
       TabOrder = 0
-      Text = 'Ed25519 Sign/Verify'
+      Text = 'Ed25519/448 Sign/Verify'
       ExplicitSize.cx = 50.000000000000000000
       ExplicitSize.cy = 50.000000000000000000
       object grpEd25519Sign: TGroupBox
@@ -379,7 +391,7 @@ object Form25519: TForm25519
         Size.Width = 929.000000000000000000
         Size.Height = 473.000000000000000000
         Size.PlatformDefault = False
-        Text = 'Ed25519 Sign/Verify'
+        Text = 'Ed25519/448 Sign/Verify'
         TabOrder = 0
         object lblEd25519Priv: TLabel
           Position.X = 16.000000000000000000
@@ -408,6 +420,38 @@ object Form25519: TForm25519
         object lblEd25519Sig: TLabel
           Position.X = 16.000000000000000000
           Position.Y = 124.000000000000000000
+          Size.Width = 48.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Signature:'
+        end
+        object lblEd448Priv: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 57.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Private Key:'
+        end
+        object lblEd448Pub: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 240.000000000000000000
+          Size.Width = 53.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Public Key:'
+        end
+        object lblEd448Msg: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 276.000000000000000000
+          Size.Width = 46.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Message:'
+        end
+        object lblEd448Sig: TLabel
+          Position.X = 16.000000000000000000
+          Position.Y = 308.000000000000000000
           Size.Width = 48.000000000000000000
           Size.Height = 13.000000000000000000
           Size.PlatformDefault = False
@@ -480,7 +524,7 @@ object Form25519: TForm25519
           Text = 'Verify'
           OnClick = btnEd25519VerifyClick
         end
-        object btnSignTime: TButton
+        object btn25519SignTime: TButton
           Position.X = 752.000000000000000000
           Position.Y = 88.000000000000000000
           Size.Width = 75.000000000000000000
@@ -488,9 +532,9 @@ object Form25519: TForm25519
           Size.PlatformDefault = False
           TabOrder = 7
           Text = 'Sign Time'
-          OnClick = btnSignTimeClick
+          OnClick = btn25519SignTimeClick
         end
-        object btnVerifyTime: TButton
+        object btn25519VerifyTime: TButton
           Position.X = 840.000000000000000000
           Position.Y = 88.000000000000000000
           Size.Width = 75.000000000000000000
@@ -498,7 +542,7 @@ object Form25519: TForm25519
           Size.PlatformDefault = False
           TabOrder = 8
           Text = 'Verify Time'
-          OnClick = btnVerifyTimeClick
+          OnClick = btn25519VerifyTimeClick
         end
         object btnEd25519SignFile: TButton
           Position.X = 752.000000000000000000
@@ -539,6 +583,287 @@ object Form25519: TForm25519
           TabOrder = 12
           Text = 'Save Keys'
           OnClick = btnEd25519SaveKeysClick
+        end
+        object edtEd448Sig: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 13
+          Position.X = 88.000000000000000000
+          Position.Y = 304.000000000000000000
+          Size.Width = 817.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtEd448Message: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 14
+          Text = 'My Message to be Sign.'
+          Position.X = 88.000000000000000000
+          Position.Y = 272.000000000000000000
+          Size.Width = 473.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtEd448Pub: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 15
+          Position.X = 88.000000000000000000
+          Position.Y = 234.000000000000000000
+          Size.Width = 473.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object edtEd448Priv: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 16
+          Position.X = 88.000000000000000000
+          Position.Y = 206.000000000000000000
+          Size.Width = 473.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnEd448Gen: TButton
+          Position.X = 576.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 49.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 17
+          Text = 'Gen Keys'
+          OnClick = btnEd448GenClick
+        end
+        object btnEd448LoadKeys: TButton
+          Position.X = 664.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 18
+          Text = 'Load Keys'
+          OnClick = btnEd448LoadKeysClick
+        end
+        object btnEd448SaveKeys: TButton
+          Position.X = 664.000000000000000000
+          Position.Y = 236.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 19
+          Text = 'Save Keys'
+          OnClick = btnEd448SaveKeysClick
+        end
+        object btnEd448Sign: TButton
+          Position.X = 576.000000000000000000
+          Position.Y = 272.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 20
+          Text = 'Sign'
+          OnClick = btnEd448SignClick
+        end
+        object btnEd448Verify: TButton
+          Position.X = 664.000000000000000000
+          Position.Y = 272.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 21
+          Text = 'Verify'
+          OnClick = btnEd448VerifyClick
+        end
+        object btn448SignTime: TButton
+          Position.X = 752.000000000000000000
+          Position.Y = 272.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 22
+          Text = 'Sign Time'
+          OnClick = btn448SignTimeClick
+        end
+        object btnEd448SignFile: TButton
+          Position.X = 752.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 49.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 23
+          Text = 'Sign File'
+          OnClick = btnEd448SignFileClick
+        end
+        object btnEd448VerifyFile: TButton
+          Position.X = 840.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 49.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 24
+          Text = 'Verify File'
+          OnClick = btnEd448VerifyFileClick
+        end
+        object btn448VerifyTime: TButton
+          Position.X = 840.000000000000000000
+          Position.Y = 272.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 25
+          Text = 'Verify Time'
+          OnClick = btn448VerifyTimeClick
+        end
+      end
+    end
+    object ts448Basic: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 2
+      Size.Width = 75.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = '448 Basic'
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object grp448Basic: TGroupBox
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 929.000000000000000000
+        Size.Height = 473.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'grp448Basic'
+        TabOrder = 0
+        object btn448CheckMap: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Text = 'Check 448 (X,Y) <=> (U, V)'
+          OnClick = btn448CheckMapClick
+        end
+        object btnCurve448Test: TButton
+          Position.X = 400.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = 'Curve 448 Scalar'
+          OnClick = btnCurve448TestClick
+        end
+        object btnConvert448Point: TButton
+          Position.X = 224.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 161.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'Convert 448 Point'
+          OnClick = btnConvert448PointClick
+        end
+        object btnCurve448GOn: TButton
+          Position.X = 608.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 137.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Curve 448 G On Curve?'
+          OnClick = btnCurve448GOnClick
+        end
+        object btnEd448GOn: TButton
+          Position.X = 768.000000000000000000
+          Position.Y = 24.000000000000000000
+          Size.Width = 137.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'Ed 448 G On Curve?'
+          OnClick = btnEd448GOnClick
+        end
+        object btnEd448PlainToPoint: TButton
+          Position.X = 768.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 137.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'Ed 448 G Plain To Point'
+          OnClick = btnEd448PlainToPointClick
+        end
+        object btnAnother448GOn: TButton
+          Position.X = 608.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 137.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'Another 448 G On Curve?'
+          OnClick = btnAnother448GOnClick
+        end
+        object btnConvertAnother448Point: TButton
+          Position.X = 224.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 161.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 7
+          Text = 'Convert Another 448 Point'
+          OnClick = btnConvertAnother448PointClick
+        end
+        object btnCurve448DHKeyExchange: TButton
+          Position.X = 400.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Curve 448 DH Key Exchange'
+          OnClick = btnCurve448DHKeyExchangeClick
+        end
+        object btnEd448CalcKey: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 64.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 9
+          Text = 'Ed448 Calc Key'
+          OnClick = btnEd448CalcKeyClick
+        end
+        object btnEd448GAdd: TButton
+          Position.X = 16.000000000000000000
+          Position.Y = 104.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 10
+          Text = 'Ed448 G Add'
+          OnClick = btnEd448GAddClick
+        end
+        object btnEd448GMul: TButton
+          Position.X = 224.000000000000000000
+          Position.Y = 104.000000000000000000
+          Size.Width = 161.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 11
+          Text = 'Ed448 G Mul'
+          OnClick = btnEd448GMulClick
+        end
+        object btnEd448SignSample: TButton
+          Position.X = 400.000000000000000000
+          Position.Y = 104.000000000000000000
+          Size.Width = 185.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 12
+          Text = 'Ed448 Sign Sample'
+          OnClick = btnEd448SignSampleClick
         end
       end
     end

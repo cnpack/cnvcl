@@ -871,11 +871,11 @@ function CnEd448VerifyFile(const FileName: string; InSignatureStream: TStream;
 
 // ======================= Ed25519/448 私钥额外计算函数 ========================
 
-procedure CnCalcKeysFromEd25519PrivateKey(const InPrivateKey: TCnBigNumber; FixedLen: Integer;
+procedure CnCalcKeysFromEd25519PrivateKey(const InPrivateKey: TCnBigNumber;
   OutMulFactor, OutHashPrefix: TCnBigNumber);
 {* 根据随机私钥也叫 Secret Key 生成公钥与 Ed25519 签名使用的 Hash 种子}
 
-procedure CnCalcKeysFromEd448PrivateKey(const InPrivateKey: TCnBigNumber; FixedLen: Integer;
+procedure CnCalcKeysFromEd448PrivateKey(const InPrivateKey: TCnBigNumber;
   OutMulFactor, OutHashPrefix: TCnBigNumber);
 {* 根据随机私钥也叫 Secret Key 生成公钥与 Ed448 签名使用的 Hash 种子}
 
@@ -1348,7 +1348,7 @@ begin
     HP := FBigNumberPool.Obtain;
 
     // 根据私钥得到私钥乘数 s 与杂凑前缀
-    CnCalcKeysFromEd448PrivateKey(PrivateKey, CN_448_EDWARDS_BLOCK_BYTESIZE, S, HP);
+    CnCalcKeysFromEd448PrivateKey(PrivateKey, S, HP);
 
     // SHAKE256(dom4(F, C) || HashPrefix || M, 114) 其中 F 是 0，C 是 最长 255 字符串的用户名之类的
     // 注意 RFC 8032 中的 dom4(F, C) = "SigEd448" || octet(F) || octet(OLEN(C)) || C
@@ -1674,7 +1674,7 @@ begin
 end;
 
 // 根据随机私钥，生成公钥与 Ed25519 签名使用的 Hash 种子
-procedure CnCalcKeysFromEd25519PrivateKey(const InPrivateKey: TCnBigNumber; FixedLen: Integer;
+procedure CnCalcKeysFromEd25519PrivateKey(const InPrivateKey: TCnBigNumber;
   OutMulFactor, OutHashPrefix: TCnBigNumber);
 var
   Dig: TCnSHA512Digest;
@@ -1699,7 +1699,7 @@ begin
 end;
 
 // 根据随机私钥，生成公钥与 Ed448 签名使用的 Hash 种子
-procedure CnCalcKeysFromEd448PrivateKey(const InPrivateKey: TCnBigNumber; FixedLen: Integer;
+procedure CnCalcKeysFromEd448PrivateKey(const InPrivateKey: TCnBigNumber;
   OutMulFactor, OutHashPrefix: TCnBigNumber);
 var
   Dig: TCnSHAKE256Digest;
@@ -2914,7 +2914,7 @@ begin
 
   K := FBigNumberPool.Obtain;
   try
-    CnCalcKeysFromEd25519PrivateKey(PrivateKey, CN_25519_BLOCK_BYTESIZE, K, nil);
+    CnCalcKeysFromEd25519PrivateKey(PrivateKey, K, nil);
 
     // 该乘数 K 乘以 G 点得到公钥
     PublicKey.Assign(FGenerator);
@@ -3488,7 +3488,7 @@ begin
     HP := FBigNumberPool.Obtain;
 
     // 根据私钥得到私钥乘数 s 与杂凑前缀
-    CnCalcKeysFromEd25519PrivateKey(PrivateKey, CN_25519_BLOCK_BYTESIZE, S, HP);
+    CnCalcKeysFromEd25519PrivateKey(PrivateKey, S, HP);
 
     // 杂凑前缀拼上原始文字，注意 RFC 8032 中的 dom2(x, y) 在此为空，且 Context 和 phFlag 全为空
     // 且 PH 函数为原始函数，因而大大简化了
@@ -4789,7 +4789,7 @@ begin
 
   K := FBigNumberPool.Obtain;
   try
-    CnCalcKeysFromEd448PrivateKey(PrivateKey, CN_448_EDWARDS_BLOCK_BYTESIZE, K, nil);
+    CnCalcKeysFromEd448PrivateKey(PrivateKey, K, nil);
 
     // 该乘数 K 乘以 G 点得到公钥
     PublicKey.Assign(FGenerator);
