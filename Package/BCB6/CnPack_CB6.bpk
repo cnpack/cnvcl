@@ -32,6 +32,7 @@
       ..\..\Source\Common\CnIni.obj 
       ..\..\Source\Common\CnIniCfg.obj 
       ..\..\Source\Common\CnIniStrUtils.obj 
+      ..\..\Source\Common\CnJSON.obj 
       ..\..\Source\Common\CnLinkedList.obj 
       ..\..\Source\Common\CnLockFree.obj 
       ..\..\Source\Common\CnMatrix.obj 
@@ -318,6 +319,7 @@
       <FILE FILENAME="..\..\Source\Common\CnIni.pas" FORMNAME="" UNITNAME="CnIni" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnIniCfg.pas" FORMNAME="" UNITNAME="CnIniCfg" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnIniStrUtils.pas" FORMNAME="" UNITNAME="CnIniStrUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnJSON.pas" FORMNAME="" UNITNAME="CnJSON" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnLinkedList.pas" FORMNAME="" UNITNAME="CnLinkedList" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnLockFree.pas" FORMNAME="" UNITNAME="CnLockFree" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMatrix.pas" FORMNAME="" UNITNAME="CnMatrix" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

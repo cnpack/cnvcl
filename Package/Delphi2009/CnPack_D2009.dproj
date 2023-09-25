@@ -91,6 +91,7 @@
 			<DCCReference Include="..\..\Source\Common\CnIni.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnIniCfg.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnIniStrUtils.pas"/>
+			<DCCReference Include="..\..\Source\Common\CnJSON.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnLinkedList.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnLockFree.pas"/>
 			<DCCReference Include="..\..\Source\Common\CnMatrix.pas"/>
