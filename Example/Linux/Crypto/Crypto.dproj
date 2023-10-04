@@ -150,6 +150,7 @@
         <DCCReference Include="..\..\..\Source\Crypto\CnBase64.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnBerUtils.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnBigNumber.pas"/>
+        <DCCReference Include="..\..\..\Source\Crypto\CnBits.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnCertificateAuthority.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnChaCha20.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnComplex.pas"/>
@@ -161,6 +162,7 @@
         <DCCReference Include="..\..\..\Source\Crypto\CnFNV.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnInt128.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnKDF.pas"/>
+        <DCCReference Include="..\..\..\Source\Crypto\CnLattice.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnMD5.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnNative.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnOTP.pas"/>
