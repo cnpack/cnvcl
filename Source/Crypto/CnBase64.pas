@@ -35,6 +35,7 @@ unit CnBase64;
 * 单元名称：Base64 编码算法单元
 * 单元作者：詹葵（Solin） solin@21cn.com; http://www.ilovezhuzhu.net
 *           wr960204
+*           Liu Xiao
 * 备    注：该单元包括标准 Base64 与 Base64URL 实现
 *           Base64URL 规则基于标准 Base64 但把 + / 替换成了 - _，且删除后 =
 * 开发平台：PWin2003Std + Delphi 6.0
@@ -395,6 +396,10 @@ begin
     Data := FilterLine(AnsiString(InputData))
   else
     Data := AnsiString(InputData);
+
+  // 如果是 Base64URL 编码的结果去掉了尾部的 =，则需要根据长度是否是 4 的倍数而补上
+  if (Length(Data) and $03) <> 0 then
+    Data := Data + StringOfChar('=', 4 - (Length(Data) and $03));
 
   SrcLen := Length(Data);
   DstLen := SrcLen * 3 div 4;

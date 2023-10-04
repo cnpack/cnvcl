@@ -44,7 +44,7 @@ uses
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
-  CnPolynomial, CnBits;
+  CnPolynomial, CnBits, CnLattice;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
@@ -164,6 +164,7 @@ function TestSHAKE256: Boolean;
 // ================================ Base64 =====================================
 
 function TestBase64: Boolean;
+function TestBase64URL: Boolean;
 
 // ================================ AEAD =======================================
 
@@ -423,6 +424,7 @@ begin
 // ================================ Base64 =====================================
 
   MyAssert(TestBase64, 'TestBase64');
+  MyAssert(TestBase64URL, 'TestBase64URL');
 
 // ================================ AEAD =======================================
 
@@ -1171,9 +1173,11 @@ begin
 
   B.AppendWord($9F3B);
   Result := B.ToString = '010101111101110011111001';
+  if not Result then Exit;
 
   B.AppendByteRange($FE, 3);
   Result := B.ToString = '0101011111011100111110010111';
+  if not Result then Exit;
 
   B.AppendDWord($12345678, False);
   Result := B.ToString = '010101111101110011111001011100011110011010100010110001001';
@@ -1865,11 +1869,37 @@ end;
 function TestBase64: Boolean;
 var
   Res: string;
-  Data: TBytes;
+  Data, Output: TBytes;
 begin
   Data := HexToBytes('000102030405060708090A0B0C0D0E0F32333425');
   if ECN_BASE64_OK = Base64Encode(Data, Res) then
     Result := Res = 'AAECAwQFBgcICQoLDA0ODzIzNCU='
+  else
+    Result := False;
+
+  if not Result then Exit;
+
+  if ECN_BASE64_OK = Base64Decode(Res, Output) then
+    Result := CompareBytes(Data, Output)
+  else
+    Result := False;
+end;
+
+function TestBase64URL: Boolean;
+var
+  Res: string;
+  Data, Output: TBytes;
+begin
+  Data := HexToBytes('7138482280EFC1DB9E401E3AF0AE710DCE7ADF7B1E105A2AC318C5FF1489C904');
+  if ECN_BASE64_OK = Base64Encode(Data, Res, True) then
+    Result := Res = 'cThIIoDvwdueQB468K5xDc5633seEFoqwxjF_xSJyQQ'
+  else
+    Result := False;
+
+  if not Result then Exit;
+
+  if ECN_BASE64_OK = Base64Decode(Res, Output) then
+    Result := CompareBytes(Data, Output)
   else
     Result := False;
 end;
@@ -3397,7 +3427,7 @@ begin
 
   HexToData('9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60', @D[0]);
   CnEd25519DataToBigNumber(D, S);
-  CnCalcKeysFromEd25519PrivateKey(S, CN_25519_BLOCK_BYTESIZE, K, nil);
+  CnCalcKeysFromEd25519PrivateKey(S, K, nil);
 
   Pub.Assign(Ed.Generator);
   Ed.MultiplePoint(K, Pub);
@@ -3591,7 +3621,7 @@ begin
 
   HexToData('6C82A562CB808D10D632BE89C8513EBF6C929F34DDFA8C9F63C9960EF6E348A3528C8A3FCC2F044E39A3FC5B94492F8F032E7549A20098F95B', @D[0]);
   CnEd448DataToBigNumber(D, S);
-  CnCalcKeysFromEd448PrivateKey(S, CN_448_EDWARDS_BLOCK_BYTESIZE, K, nil);
+  CnCalcKeysFromEd448PrivateKey(S, K, nil);
 
   Pub.Assign(Ed.Generator);
   Ed.MultiplePoint(K, Pub);
