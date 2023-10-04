@@ -35,11 +35,14 @@ unit CnBase64;
 * 单元名称：Base64 编码算法单元
 * 单元作者：詹葵（Solin） solin@21cn.com; http://www.ilovezhuzhu.net
 *           wr960204
-* 备    注：该单元有两个版本的 Base64 实现，分别属移植改进而来。
+* 备    注：该单元包括标准 Base64 与 Base64URL 实现
+*           Base64URL 规则基于标准 Base64 但把 + / 替换成了 - _，且删除后 =
 * 开发平台：PWin2003Std + Delphi 6.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2019.12.12 V1.5
+* 修改记录：2023.10.04 V1.6
+*               删除慢速实现。Base64Encode 与 Base64Decode 支持 Base64URL 的编码与解码
+*           2019.12.12 V1.5
 *               支持 TBytes
 *           2019.04.15 V1.4
 *               支持 Win32/Win64/MacOS
@@ -61,37 +64,45 @@ interface
 uses
   SysUtils, Classes, CnNative, CnConsts;
 
-function Base64Encode(InputData: TStream; var OutputData: string): Integer; overload;
-{* 对流进行 Base64 编码，如编码成功返回 ECN_BASE64_OK
+function Base64Encode(InputData: TStream; var OutputData: string;
+  URL: Boolean = False): Integer; overload;
+{* 对流进行 Base64 编码或 Base64URL 编码，如编码成功返回 ECN_BASE64_OK
 |<PRE>
   InputData: TStream           - 要编码的数据流
   var OutputData: AnsiString   - 编码后的数据
+  URL: Boolean                 - True 则使用 Base64URL 编码，False 则使用标准 Base64 编码，默认 False
 |</PRE>}
 
-function Base64Encode(const InputData: AnsiString; var OutputData: string): Integer; overload;
-{* 对字符串进行 Base64 编码，如编码成功返回 ECN_BASE64_OK
+function Base64Encode(const InputData: AnsiString; var OutputData: string;
+  URL: Boolean = False): Integer; overload;
+{* 对字符串进行 Base64 编码或 Base64URL 编码，如编码成功返回 ECN_BASE64_OK
 |<PRE>
   InputData: AnsiString        - 要编码的数据
   var OutputData: AnsiString   - 编码后的数据
+  URL: Boolean                 - True 则使用 Base64URL 编码，False 则使用标准 Base64 编码，默认 False
 |</PRE>}
 
-function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string): Integer; overload;
-{* 对数据进行 Base64 编码，如编码成功返回 ECN_BASE64_OK
+function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string;
+  URL: Boolean = False): Integer; overload;
+{* 对数据进行 Base64 编码或 Base64URL 编码，如编码成功返回 ECN_BASE64_OK
 |<PRE>
   InputData: AnsiString        - 要编码的数据
   var OutputData: AnsiString   - 编码后的数据
+  URL: Boolean                 - True 则使用 Base64URL 编码，False 则使用标准 Base64 编码，默认 False
 |</PRE>}
 
-function Base64Encode(InputData: TBytes; var OutputData: string): Integer; overload;
-{* 对 TBytes 进行 Base64 编码，如编码成功返回 ECN_BASE64_OK
+function Base64Encode(InputData: TBytes; var OutputData: string;
+  URL: Boolean = False): Integer; overload;
+{* 对 TBytes 进行 Base64 编码或 Base64URL 编码，如编码成功返回 ECN_BASE64_OK
 |<PRE>
-  InputData: TBytes           - 要编码的数据流
+  InputData: TBytes            - 要编码的数据流
   var OutputData: AnsiString   - 编码后的数据
+  URL: Boolean                 - True 则使用 Base64URL 编码，False 则使用标准 Base64 编码，默认 False
 |</PRE>}
 
 function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString;
   FixZero: Boolean = True): Integer; overload;
-{* 对数据进行 Base64 解码，如解码成功返回 ECN_BASE64_OK
+{* 对数据进行 Base64 解码（包括 Base64URL 解码），如解码成功返回 ECN_BASE64_OK
 |<PRE>
   InputData: AnsiString        - 要解码的数据
   var OutputData: AnsiString   - 解码后的数据
@@ -100,7 +111,7 @@ function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString;
 
 function Base64Decode(const InputData: AnsiString; OutputData: TStream;
   FixZero: Boolean = True): Integer; overload;
-{* 对数据进行 Base64 解码，如解码成功返回 ECN_BASE64_OK
+{* 对数据进行 Base64 解码（包括 Base64URL 解码），如解码成功返回 ECN_BASE64_OK
 |<PRE>
   InputData: AnsiString        - 要解码的数据
   var OutputData: TStream      - 解码后的数据
@@ -109,18 +120,12 @@ function Base64Decode(const InputData: AnsiString; OutputData: TStream;
 
 function Base64Decode(InputData: string; out OutputData: TBytes;
   FixZero: Boolean = True): Integer; overload;
-{* 对数据进行 Base64 解码，如解码成功返回 ECN_BASE64_OK
+{* 对数据进行 Base64 解码（包括 Base64URL 解码），如解码成功返回 ECN_BASE64_OK
 |<PRE>
-  InputData: string            - 要编码的数据流
+  InputData: string            - 要解码的数据
   out OutputData: TBytes       - 解码后的数据
   FixZero: Boolean             - 是否移去尾部的 0
 |</PRE>}
-
-// 原始移植的版本，比较慢
-function Base64Encode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Integer; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-
-// 原始移植的版本，比较慢
-function Base64Decode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Integer; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 
 const
   ECN_BASE64_OK                        = ECN_OK; // 转换成功
@@ -140,6 +145,7 @@ var
 const
   Base64TableLength = 64;
   Base64Table: string[Base64TableLength] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  Base64TableURL: string[Base64TableLength] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   Pad = '=';
 
 //------------------------------------------------------------------------------
@@ -158,277 +164,51 @@ const
     '4', '5', '6', '7', '8', '9', '+', '/',
     '=');
 
+  EnCodeTabURL: array[0..64] of AnsiChar =
+  (
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+    'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+    'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+    'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+    'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+    'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+    'w', 'x', 'y', 'z', '0', '1', '2', '3',
+    '4', '5', '6', '7', '8', '9', '-', '_',
+    '=');
+
 //------------------------------------------------------------------------------
 // 解码的参考表
 //------------------------------------------------------------------------------
 
-  { 不包含在 Base64 里面的字符直接给零, 反正也取不到}
+  { 不包含在 Base64 里面的字符直接给零，反正也取不到}
   DecodeTable: array[#0..#127] of Byte =
   (
     Byte('='), 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
     00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-    00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 62, 00, 00, 00, 63,
+    00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 62, 00, 62, 00, 63,  // 这里的第一个 62、和 63 是 + 和 /，因而 - 补上 62
     52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 00, 00, 00, 00, 00, 00,
-    00, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
-    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 00, 00, 00, 00, 00,
+    00, 00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 00, 00, 00, 00, 63,  // _ 补上 63
     00, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
     41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 00, 00, 00, 00, 00
-    );  
+  );
 
-// 原始移植的版本，比较慢
-function Base64Encode_Slow(const InputData: AnsiString; var OutputData:AnsiString): Integer;
-var
-  I: Integer;
-  CurrentB,PrevB: Byte;
-  C: Byte;
-  S: AnsiChar;
-  InputLength: Integer;
-
-  function ValueToCharacter(Value: Byte; var Character: AnsiChar): Boolean;
-  //******************************************************************
-  // 将一个在 0..Base64TableLength - 1 区间内的值，转换为与 Base64 编
-  // 码相对应的字符来表示，如果转换成功则返回 True
-  //******************************************************************
-  begin
-    Result := True;
-    if (Value > Base64TableLength - 1) then
-      Result := False
-    else
-      Character := AnsiChar(Base64Table[Value + 1]);
-  end;
-
-begin
-  OutPutData := '';
-  InputLength := Length(InputData);
-  I:=1;
-  if (InputLength = 0) then
-  begin
-    Result := ECN_BASE64_OK;
-    Exit;
-  end;
-
-  repeat
-    // 第一次转换
-    CurrentB := Ord(InputData[I]);
-    Inc(I);
-    InputLength := InputLength-1;
-    C := (CurrentB shr 2);
-    if not ValueToCharacter(C, S) then
-    begin
-      Result := ECN_BASE64_ERROR;
-      Exit;
-    end;
-    OutPutData := OutPutData + S;
-    PrevB := CurrentB;
-
-    // 第二次转换
-    if InputLength = 0 then
-      CurrentB := 0
-    else
-    begin
-      CurrentB := Ord(InputData[I]);
-      Inc(I);
-    end;
-
-    InputLength := InputLength-1;
-    C:=(PrevB and $03) shl 4 + (CurrentB shr 4);  //取出 XX 后 4 位并将其左移4位与 XX 右移 4 位合并成六位
-    if not ValueToCharacter(C,S) then             //检测取得的字符是否在 Base64Table 内
-    begin
-      Result := ECN_BASE64_ERROR;
-      Exit;
-    end;
-    OutPutData := OutPutData+S;
-    PrevB := CurrentB;
-
-    // 第三次转换
-    if InputLength<0 then
-      S := Pad
-    else
-    begin
-      if InputLength = 0 then
-        CurrentB := 0
-      else
-      begin
-        CurrentB := Ord(InputData[I]);
-        Inc(I);
-      end;
-      InputLength := InputLength - 1;
-      C := (PrevB and $0F) shl 2 + (CurrentB shr 6); //取出 XX 后 4 位并将其左移 2 位与 XX 右移 6 位合并成六位
-      if not ValueToCharacter(C, S) then             //检测取得的字符是否在 Base64Table 内
-      begin
-        Result := ECN_BASE64_ERROR;
-        Exit;
-      end;
-    end;
-    OutPutData:=OutPutData+S;
-
-    // 第四次转换
-    if InputLength < 0 then
-      S := Pad
-    else
-    begin
-      C := (CurrentB and $3F);                      //取出 XX 后6位
-      if not ValueToCharacter(C, S) then            //检测取得的字符是否在 Base64Table 内
-      begin
-        Result := ECN_BASE64_ERROR;
-        Exit;
-      end;
-    end;
-    OutPutData := OutPutData + S;
-  until InputLength <= 0;
-
-  Result := ECN_BASE64_OK;
-end;
-
-// 原始移植的版本，比较慢
-function Base64Decode_Slow(const InputData: AnsiString; var OutputData: AnsiString): Integer;
-var
-  I: Integer;
-  InputLength: Integer;
-  CurrentB, PrevB: Byte;
-  C: Byte;
-  S: AnsiChar;
-  Data: AnsiString;
-
-  function CharacterToValue(Character: AnsiChar; var Value: Byte): Boolean;
-  //******************************************************************
-  // 转换字符为一在 0..Base64TableLength - 1 区间中的值，如果转换成功
-  // 则返回 True (即字符在 Base64Table 中)
-  //******************************************************************
-  begin
-    Result := True;
-    Value := Pos(Character, Base64Table);
-    if Value = 0 then
-      Result := False
-    else
-      Value := Value - 1;
-  end;
-
-  function FilterLine(const InputData: AnsiString): AnsiString;
-  //******************************************************************
-  // 过滤所有不在 Base64Table 中的字符，返回值为过滤后的字符
-  //******************************************************************
-  var
-    F: Byte;
-    I: Integer;
-  begin
-    Result := '';
-    for I := 1 to Length(InputData) do
-      if CharacterToValue(inputData[I], F) or (InputData[I] = Pad) then
-        Result := Result + InputData[I];
-  end;
-
-begin
-  if (InputData = '') then
-  begin
-    Result := ECN_BASE64_OK;
-    Exit;
-  end;
-  OutPutData := '';
-
-  if FilterDecodeInput then
-    Data := FilterLine(InputData)
-  else
-    Data := InputData;
-
-  InputLength := Length(Data);
-  if InputLength mod 4 <> 0 then
-  begin
-    Result := ECN_BASE64_LENGTH;
-    Exit;
-  end;
-
-  I := 0;
-  repeat
-    // 第一次转换
-    Inc(I);
-    S := Data[I];
-    if not CharacterToValue(S, CurrentB) then
-    begin
-      Result := ECN_BASE64_INVALID;
-      Exit;
-    end;
-
-    Inc(I);
-    S := Data[I];
-    if not CharacterToValue(S, PrevB) then
-    begin
-      Result := ECN_BASE64_INVALID;
-      Exit;
-    end;
-
-    C := (CurrentB shl 2) + (PrevB shr 4);
-    OutPutData := {$IFDEF UNICODE}AnsiString{$ENDIF}(OutPutData + {$IFDEF UNICODE}AnsiString{$ENDIF}(Chr(C)));
-
-    // 第二次转换
-    Inc(I);
-    S := Data[I];
-    if S = pad then
-    begin
-      if (I <> InputLength-1) then
-      begin
-        Result := ECN_BASE64_DATALEFT;
-        Exit;
-      end
-      else
-      if Data[I + 1] <> pad then
-      begin
-        Result := ECN_BASE64_PADDING;
-        Exit;
-      end;
-    end
-    else
-    begin
-      if not CharacterToValue(S,CurrentB) then
-      begin
-        Result:=ECN_BASE64_INVALID;
-        Exit;
-      end;
-      C:=(PrevB shl 4) + (CurrentB shr 2);
-      OutPutData := OutPutData+{$IFDEF UNICODE}AnsiString{$ENDIF}(chr(C));
-    end;
-
-    // 第三次转换
-    Inc(I);
-    S := Data[I];
-    if S = pad then
-    begin
-      if (I <> InputLength) then
-      begin
-        Result := ECN_BASE64_DATALEFT;
-        Exit;
-      end;
-    end
-    else
-    begin
-     if not CharacterToValue(S, PrevB) then
-     begin
-       Result := ECN_BASE64_INVALID;
-       Exit;
-     end;
-     C := (CurrentB shl 6) + (PrevB);
-     OutPutData := OutPutData + {$IFDEF UNICODE}AnsiString{$ENDIF}(Chr(C));
-    end;
-  until (I >= InputLength);
-
-  Result := ECN_BASE64_OK;
-end;
-
-// 以下为 wr960204 改进的快速 Base64 编解码算法
-function Base64Encode(InputData: TStream; var OutputData: string): Integer;
+function Base64Encode(InputData: TStream; var OutputData: string; URL: Boolean): Integer;
 var
   Mem: TMemoryStream;
 begin
   Mem := TMemoryStream.Create;
   try
     Mem.CopyFrom(InputData, InputData.Size);
-    Result := Base64Encode(Mem.Memory, Mem.Size, OutputData);
+    Result := Base64Encode(Mem.Memory, Mem.Size, OutputData, URL);
   finally
     Mem.Free;
   end;
 end;
 
-function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string): Integer;
+// 以下为 wr960204 改进的快速 Base64 编解码算法
+function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string;
+  URL: Boolean): Integer;
 var
   Times, I: Integer;
   x1, x2, x3, x4: AnsiChar;
@@ -446,59 +226,117 @@ begin
     Times := DataLen div 3 + 1;
   SetLength(OutputData, Times * 4);   //一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
 
-  for I := 0 to Times - 1 do
+  if URL then
   begin
-    if DataLen >= (3 + I * 3) then
+    for I := 0 to Times - 1 do
     begin
-      x1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
-      Xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
-      Xt := Xt or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
-      x2 := EnCodeTab[Xt];
-      Xt := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
-      Xt := Xt or (Ord(PAnsiChar(InputData)[2 + I * 3]) shr 6);
-      x3 := EnCodeTab[Xt];
-      Xt := (Ord(PAnsiChar(InputData)[2 + I * 3]) and 63);
-      x4 := EnCodeTab[Xt];
-    end
-    else if DataLen >= (2 + I * 3) then
-    begin
-      x1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
-      Xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
-      Xt := Xt or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
-      x2 := EnCodeTab[Xt];
-      Xt := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
-      x3 := EnCodeTab[Xt ];
-      x4 := '=';
-    end
-    else
-    begin
-      x1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
-      Xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
-      x2 := EnCodeTab[Xt];
-      x3 := '=';
-      x4 := '=';
+      if DataLen >= (3 + I * 3) then
+      begin
+        x1 := EnCodeTabURL[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+        Xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
+        Xt := Xt or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
+        x2 := EnCodeTabURL[Xt];
+        Xt := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
+        Xt := Xt or (Ord(PAnsiChar(InputData)[2 + I * 3]) shr 6);
+        x3 := EnCodeTabURL[Xt];
+        Xt := (Ord(PAnsiChar(InputData)[2 + I * 3]) and 63);
+        x4 := EnCodeTabURL[Xt];
+      end
+      else if DataLen >= (2 + I * 3) then
+      begin
+        x1 := EnCodeTabURL[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+        Xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
+        Xt := Xt or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
+        x2 := EnCodeTabURL[Xt];
+        Xt := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
+        x3 := EnCodeTabURL[Xt ];
+        x4 := '=';
+      end
+      else
+      begin
+        x1 := EnCodeTabURL[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+        Xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
+        x2 := EnCodeTabURL[Xt];
+        x3 := '=';
+        x4 := '=';
+      end;
+      OutputData[I shl 2 + 1] := Char(X1);
+      OutputData[I shl 2 + 2] := Char(X2);
+      OutputData[I shl 2 + 3] := Char(X3);
+      OutputData[I shl 2 + 4] := Char(X4);
     end;
-    OutputData[I shl 2 + 1] := Char(X1);
-    OutputData[I shl 2 + 2] := Char(X2);
-    OutputData[I shl 2 + 3] := Char(X3);
-    OutputData[I shl 2 + 4] := Char(X4);
+  end
+  else
+  begin
+    for I := 0 to Times - 1 do
+    begin
+      if DataLen >= (3 + I * 3) then
+      begin
+        x1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+        Xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
+        Xt := Xt or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
+        x2 := EnCodeTab[Xt];
+        Xt := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
+        Xt := Xt or (Ord(PAnsiChar(InputData)[2 + I * 3]) shr 6);
+        x3 := EnCodeTab[Xt];
+        Xt := (Ord(PAnsiChar(InputData)[2 + I * 3]) and 63);
+        x4 := EnCodeTab[Xt];
+      end
+      else if DataLen >= (2 + I * 3) then
+      begin
+        x1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+        Xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
+        Xt := Xt or (Ord(PAnsiChar(InputData)[1 + I * 3]) shr 4);
+        x2 := EnCodeTab[Xt];
+        Xt := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
+        x3 := EnCodeTab[Xt ];
+        x4 := '=';
+      end
+      else
+      begin
+        x1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
+        Xt := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
+        x2 := EnCodeTab[Xt];
+        x3 := '=';
+        x4 := '=';
+      end;
+      OutputData[I shl 2 + 1] := Char(X1);
+      OutputData[I shl 2 + 2] := Char(X2);
+      OutputData[I shl 2 + 3] := Char(X3);
+      OutputData[I shl 2 + 4] := Char(X4);
+    end;
   end;
+
   OutputData := Trim(OutputData);
+  if URL then
+  begin
+    // 删除 OutputData 尾部的 = 字符，理论上最多三个
+    if (Length(OutputData) > 0) and (OutputData[Length(OutputData)] = '=') then
+    begin
+      Delete(OutputData, Length(OutputData), 1);
+      if (Length(OutputData) > 0) and (OutputData[Length(OutputData)] = '=') then
+      begin
+        Delete(OutputData, Length(OutputData), 1);
+        if (Length(OutputData) > 0) and (OutputData[Length(OutputData)] = '=') then
+          Delete(OutputData, Length(OutputData), 1);
+      end;
+    end;
+  end;
   Result := ECN_BASE64_OK;
 end;
 
-function Base64Encode(const InputData: AnsiString; var OutputData: string): Integer;
+function Base64Encode(const InputData: AnsiString; var OutputData: string; URL: Boolean): Integer;
 begin
   if InputData <> '' then
-    Result := Base64Encode(@InputData[1], Length(InputData), OutputData)
+    Result := Base64Encode(@InputData[1], Length(InputData), OutputData, URL)
   else
     Result := ECN_BASE64_LENGTH;
 end;
 
-function Base64Encode(InputData: TBytes; var OutputData: string): Integer;
+function Base64Encode(InputData: TBytes; var OutputData: string; URL: Boolean): Integer;
 begin
   if Length(InputData) > 0 then
-    Result := Base64Encode(@InputData[0], Length(InputData), OutputData)
+    Result := Base64Encode(@InputData[0], Length(InputData), OutputData, URL)
   else
     Result := ECN_BASE64_LENGTH;
 end;
@@ -535,7 +373,7 @@ var
     FillChar(P^, Srclen, 0);
     for I := 1 to SrcLen do
     begin
-      if Source[I] in ['0'..'9', 'A'..'Z', 'a'..'z', '+', '/', '='] then
+      if Source[I] in ['0'..'9', 'A'..'Z', 'a'..'z', '+', '/', '=', '-', '_'] then
       begin
         PP^ := Source[I];
         Inc(PP);
