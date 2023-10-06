@@ -4868,7 +4868,7 @@ end;
 
 {$WARNINGS OFF}
 
-// 判断是否是简单的格式化字符串
+// 判断是否是简单的格式化字符串，支持单引号和双引号
 function IsSimpleFormat(const S: string): Boolean;
 var
   T: string;
@@ -4879,10 +4879,10 @@ begin
   if Length(T) <= 1 then
     Exit;
 
-  // 去掉前后单引号
-  if T[1] = '''' then
+  // 去掉前后单双引号
+  if (T[1] = '''') or (T[1] = '"') then
     Delete(T, 1, 1);
-  if T[Length(T)] = '''' then
+  if (T[Length(T)] = '''') or (T[Length(T)] = '"') then
     Delete(T, Length(T), 1);
 
   if T[1] <> '%' then
