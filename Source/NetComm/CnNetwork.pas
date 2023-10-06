@@ -526,6 +526,79 @@ const
   CN_TLS_ALERT_DESC_CERTIFICATE_REQUIRED                         = 116; //
   CN_TLS_ALERT_DESC_NO_APPLICATION_PROTOCOL                      = 120; //
 
+  {* TLS/SSL 的 Cipher 列表}
+  {* TLS 1.3}
+  CN_CIPHER_TLS_AES_128_GCM_SHA256                               = $1301;
+  CN_CIPHER_TLS_AES_256_GCM_SHA384                               = $1302;
+  CN_CIPHER_TLS_CHACHA20_POLY1305_SHA256                         = $1303;
+  CN_CIPHER_TLS_AES_128_CCM_SHA256                               = $1304;
+  CN_CIPHER_TLS_AES_128_CCM_8_SHA256                             = $1305;
+  CN_CIPHER_TLS_SM4_GCM_SM3                                      = $00C6; // RFC 8998
+  CN_CIPHER_TLS_SM4_CCM_SM3                                      = $00C7; // RFC 8998
+
+  {* SSLv3，已停用}
+  CN_CIPHER_DHE_RSA_AES256_SHA                                   = $0039;
+  CN_CIPHER_DHE_RSA_AES128_SHA                                   = $0033;
+  CN_CIPHER_SRP_RSA_AES_256_CBC_SHA                              = $C021;
+  CN_CIPHER_SRP_AES_256_CBC_SHA                                  = $C020;
+  CN_CIPHER_RSA_PSK_AES256_CBC_SHA                               = $0095;
+  CN_CIPHER_DHE_PSK_AES256_CBC_SHA                               = $0091;
+  CN_CIPHER_AES256_SHA                                           = $0035;
+  CN_CIPHER_PSK_AES256_CBC_SHA                                   = $008D;
+  CN_CIPHER_SRP_RSA_AES_128_CBC_SHA                              = $C01E;
+  CN_CIPHER_SRP_AES_128_CBC_SHA                                  = $C01D;
+  CN_CIPHER_RSA_PSK_AES128_CBC_SHA                               = $0094;
+  CN_CIPHER_DHE_PSK_AES128_CBC_SHA                               = $0090;
+  CN_CIPHER_AES128_SHA                                           = $002F;
+  CN_CIPHER_PSK_AES128_CBC_SHA                                   = $008C;
+
+  {* TLS 1，已停用}
+  CN_CIPHER_ECDHE_ECDSA_AES256_SHA                               = $C00A;
+  CN_CIPHER_ECDHE_RSA_AES256_SHA                                 = $C014;
+  CN_CIPHER_ECDHE_ECDSA_AES128_SHA                               = $C009;
+  CN_CIPHER_ECDHE_RSA_AES128_SHA                                 = $C013;
+  CN_CIPHER_ECDHE_PSK_AES256_CBC_SHA384                          = $C038;
+  CN_CIPHER_ECDHE_PSK_AES256_CBC_SHA                             = $C036;
+  CN_CIPHER_RSA_PSK_AES256_CBC_SHA384                            = $00B7;
+  CN_CIPHER_DHE_PSK_AES256_CBC_SHA384                            = $00B3;
+  CN_CIPHER_PSK_AES256_CBC_SHA384                                = $00AF;
+  CN_CIPHER_ECDHE_PSK_AES128_CBC_SHA256                          = $C037;
+  CN_CIPHER_ECDHE_PSK_AES128_CBC_SHA                             = $C035;
+  CN_CIPHER_RSA_PSK_AES128_CBC_SHA256                            = $00B6;
+  CN_CIPHER_DHE_PSK_AES128_CBC_SHA256                            = $00B2;
+  CN_CIPHER_PSK_AES128_CBC_SHA256                                = $00AE;
+
+  {* TLS 1.2，已停用}
+  CN_CIPHER_ECDHE_ECDSA_AES256_GCM_SHA384                        = $C02C;
+  CN_CIPHER_ECDHE_RSA_AES256_GCM_SHA384                          = $C030;
+  CN_CIPHER_DHE_RSA_AES256_GCM_SHA384                            = $009F;
+  CN_CIPHER_ECDHE_ECDSA_CHACHA20_POLY1305                        = $CCA9;
+  CN_CIPHER_ECDHE_RSA_CHACHA20_POLY1305                          = $CCA8;
+  CN_CIPHER_DHE_RSA_CHACHA20_POLY1305                            = $CCAA;
+  CN_CIPHER_ECDHE_ECDSA_AES128_GCM_SHA256                        = $C02B;
+  CN_CIPHER_ECDHE_RSA_AES128_GCM_SHA256                          = $C02F;
+  CN_CIPHER_DHE_RSA_AES128_GCM_SHA256                            = $009E;
+  CN_CIPHER_ECDHE_ECDSA_AES256_SHA384                            = $C024;
+  CN_CIPHER_ECDHE_RSA_AES256_SHA384                              = $C028;
+  CN_CIPHER_DHE_RSA_AES256_SHA256                                = $006B;
+  CN_CIPHER_ECDHE_ECDSA_AES128_SHA256                            = $C023;
+  CN_CIPHER_ECDHE_RSA_AES128_SHA256                              = $C027;
+  CN_CIPHER_DHE_RSA_AES128_SHA256                                = $0067;
+  CN_CIPHER_RSA_PSK_AES256_GCM_SHA384                            = $00AD;
+  CN_CIPHER_DHE_PSK_AES256_GCM_SHA384                            = $00AB;
+  CN_CIPHER_RSA_PSK_CHACHA20_POLY1305                            = $CCAE;
+  CN_CIPHER_DHE_PSK_CHACHA20_POLY1305                            = $CCAD;
+  CN_CIPHER_ECDHE_PSK_CHACHA20_POLY1305                          = $CCAC;
+  CN_CIPHER_AES256_GCM_SHA384                                    = $009D;
+  CN_CIPHER_PSK_AES256_GCM_SHA384                                = $00A9;
+  CN_CIPHER_PSK_CHACHA20_POLY1305                                = $CCAB;
+  CN_CIPHER_RSA_PSK_AES128_GCM_SHA256                            = $00AC;
+  CN_CIPHER_DHE_PSK_AES128_GCM_SHA256                            = $00AA;
+  CN_CIPHER_AES128_GCM_SHA256                                    = $009C;
+  CN_CIPHER_PSK_AES128_GCM_SHA256                                = $00A8;
+  CN_CIPHER_AES256_SHA256                                        = $003D;
+  CN_CIPHER_AES128_SHA256                                        = $003C;
+
 type
 
 {*
