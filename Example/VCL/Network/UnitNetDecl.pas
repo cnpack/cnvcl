@@ -21,10 +21,16 @@ type
     rbAll: TRadioButton;
     btnIPManual: TButton;
     btnCheckSum: TButton;
+    tsSSL: TTabSheet;
+    btnSSLListenStart: TButton;
+    btnSSLParseTest: TButton;
+    mmoSSL: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure btnSniffClick(Sender: TObject);
     procedure btnIPManualClick(Sender: TObject);
     procedure btnCheckSumClick(Sender: TObject);
+    procedure btnSSLListenStartClick(Sender: TObject);
+    procedure btnSSLParseTestClick(Sender: TObject);
   private
     FRecving: Boolean;
     FRecCount: Integer;
@@ -34,7 +40,8 @@ type
     procedure StopSniff;
     procedure ParsingPacket(Buf: Pointer; DataLen: Integer);
   public
-
+    FSocket: TSocket;
+    FAddr: TSockAddrIn;
   end;
 
   TIpInfo = record
@@ -84,7 +91,7 @@ var
 implementation
 
 uses
-  CnNetwork;
+  CnNetwork, CnNative;
 
 {$R *.DFM}
 
@@ -518,6 +525,104 @@ var
 begin
   R := CnGetNetworkCheckSum(@IP_DATA[0], SizeOf(IP_DATA));
   ShowMessage(IntToHex(R, 2)); // 得到 E641
+end;
+
+procedure TFormNetDecl.btnSSLListenStartClick(Sender: TObject);
+var
+  ClientSocket: TSocket;
+  ClientAddr: TSockAddrIn;
+  BufLen: Integer;
+  Data: array[0..1023] of Byte;
+  F: TFileStream;
+begin
+  // 创建套接字
+  FSocket := socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if FSocket = INVALID_SOCKET then
+    raise Exception.Create('Socket creation failed');
+
+  // 绑定到本地端口
+  FAddr.sin_family := AF_INET;
+  FAddr.sin_port := htons(8020);
+  FAddr.sin_addr.S_addr := htonl(INADDR_ANY);
+  if bind(FSocket, FAddr, SizeOf(FAddr)) <> 0 then
+    raise Exception.Create('Bind failed');
+
+  // 开始监听连接请求
+  if listen(FSocket, SOMAXCONN) <> 0 then
+    raise Exception.Create('Listen failed');
+
+  ClientSocket := accept(FSocket, @ClientAddr, @BufLen);
+  if ClientSocket = INVALID_SOCKET then
+    Exit;
+
+  try
+    // 从客户端接收数据
+    BufLen := recv(ClientSocket, Data, SizeOf(Data), 0);
+    if BufLen > 0 then
+    begin
+      // 处理接收到的数据
+      F := TFileStream.Create('Data.txt', fmCreate);
+      F.WriteBuffer(Data[0], BufLen);
+      F.Free;
+    end;
+  finally
+    // 关闭客户端套接字
+    closesocket(ClientSocket);
+  end;
+end;
+
+procedure TFormNetDecl.btnSSLParseTestClick(Sender: TObject);
+const
+  DATA_CLIENT_HELLO =
+    '1603010200010001FC0303FB55143D5EA1D3D75161F4F1C4D005CC5481ADE320' +
+    'C1A7CC2D63584EFBFB6A8A202D028CC0B79560C101974EA1F6F16992E14C5456' +
+    '5751FC0214FFDE2B782D52C80020CACA130113021303C02BC02FC02CC030CCA9' +
+    'CCA8C013C014009C009D002F0035010001931A1A00000010000E000C02683208' +
+    '687474702F312E31000A000A0008EAEA001D0017001844690005000302683200' +
+    '0B00020100001700000033002B0029EAEA000100001D00207FF1FDC5590367C8' +
+    '316B70BA34BF05CA810ECB47337D973EC82BF60FDE114C13001B000302000200' +
+    '0500050100000000000D0012001004030804040105030805050108060601002D' +
+    '00020101FF0100010000120000002B0007068A8A0304030300230000FAFA0001' +
+    '00001500E0000000000000000000000000000000000000000000000000000000' +
+    '0000000000000000000000000000000000000000000000000000000000000000' +
+    '0000000000000000000000000000000000000000000000000000000000000000' +
+    '0000000000000000000000000000000000000000000000000000000000000000' +
+    '0000000000000000000000000000000000000000000000000000000000000000' +
+    '0000000000000000000000000000000000000000000000000000000000000000' +
+    '0000000000000000000000000000000000000000000000000000000000000000' +
+    '0000000000';
+var
+  I: Integer;
+  Data, T: TBytes;
+  Cp: TWords;
+  P1: PCnTLSRecordLayer;
+  P2: PCnTLSHandShakeHeader;
+  P3: PCnTLSHandShakeClientHello;
+begin
+  mmoSSL.Lines.Clear;
+  Data := HexToBytes(DATA_CLIENT_HELLO);
+  P1 := PCnTLSRecordLayer(@Data[0]);
+  mmoSSL.Lines.Add(Format('TLSRecordLayer.ContentType %d', [P1^.ContentType]));
+  mmoSSL.Lines.Add(Format('TLSRecordLayer.MajorVersion %d', [P1^.MajorVersion]));
+  mmoSSL.Lines.Add(Format('TLSRecordLayer.MinorVersion %d', [P1^.MinorVersion]));
+  mmoSSL.Lines.Add(Format('TLSRecordLayer.BodyLength %d', [CnGetTLSRecordLayerBodyLength(P1)]));
+
+  P2 := PCnTLSHandShakeHeader(@(P1^.Body));
+  mmoSSL.Lines.Add(Format('TLSHandShakeHeader.HandShakeType %d', [P2^.HandShakeType]));
+  mmoSSL.Lines.Add(Format('TLSHandShakeHeader.Length %d', [CnGetTLSHandShakeHeaderContentLength(P2)]));
+
+  P3 := PCnTLSHandShakeClientHello(@(P2^.Content));
+  mmoSSL.Lines.Add(Format('TLSHandShakeClientHello.ProtocolVersion $%4.4x', [P3^.ProtocolVersion]));
+  mmoSSL.Lines.Add(Format('TLSHandShakeClientHello.Random32: %s', [DataToHex(@P3^.Random[0], SizeOf(P3^.Random))]));
+  mmoSSL.Lines.Add(Format('TLSHandShakeClientHello.SessionLength %d', [P3^.SessionLength]));
+  T := CnGetTLSHandShakeClientHelloSessionId(P3);
+  mmoSSL.Lines.Add(Format('TLSHandShakeClientHello.SessionId: %s', [BytesToHex(T)]));
+  mmoSSL.Lines.Add(Format('TLSHandShakeClientHello.CipherSuitesLength: %d', [CnGetTLSHandShakeClientHelloCipherSuitesLength(P3)]));
+
+  Cp := CnGetTLSHandShakeClientHelloCipherSuites(P3);
+  for I := 0 to Length(Cp) - 1 do
+    mmoSSL.Lines.Add(Format('TLSHandShakeClientHello.CipherSuites[%d]: %4.4x %s', [I, Cp[I], GetNameFromCipher(Cp[I])]));
+
 end;
 
 end.

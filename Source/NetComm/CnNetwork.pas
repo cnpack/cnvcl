@@ -42,7 +42,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ELSE}, Posix.NetinetIn {$ENDIF};
+  SysUtils, Classes, CnNative {$IFDEF MSWINDOWS}, Windows {$ELSE}, Posix.NetinetIn {$ENDIF};
 
 const
   {* IP 包头中的版本字段的定义}
@@ -457,6 +457,13 @@ const
   CN_BGP_ERRORSUBCODE_UPDATE_OPTIONAL_ATTRIBUTE_ERROR            = $09; // Optional Attribute Error
   CN_BGP_ERRORSUBCODE_UPDATE_INVALID_NETWORK_FIELD               = $0A; // Invalid Network Field
   CN_BGP_ERRORSUBCODE_UPDATE_MALFORMED_AS_PATH                   = $0B; // Malformed AS_PATH
+
+  {* TLS/SSL 各版本的版本号}
+  CN_TLS_SSL_VERSION_SSL_30                                      = $0300;
+  CN_TLS_SSL_VERSION_TLS_10                                      = $0301;
+  CN_TLS_SSL_VERSION_TLS_11                                      = $0302;
+  CN_TLS_SSL_VERSION_TLS_12                                      = $0303;
+  CN_TLS_SSL_VERSION_TLS_13                                      = $0304;
 
   {* TLS/SSL 协议中的内容类型}
   CN_TLS_CONTENT_TYPE_HANDSHAKE                                  = 22;  // 握手协议
@@ -1248,6 +1255,30 @@ type
   PCnTLSAlertPacket = ^TCnTLSAlertPacket;
 
 
+{
+  TLS/SSL 握手包 ClientHello 示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeHeader 的 Content 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |       ProtocolVersion         |        Random ...             |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+  TCnTLSHandShakeClientHello = packed record
+    ProtocolVersion:          Word;                    // 真正有效的 TLS/SSL 版本号
+    Random:                   array[0..31] of Byte;    // 32 字节随机数，其中前 4 字节可能是时间戳
+    SessionLength:            Byte;                    // 1 字节 SessionId 长度
+    SessionId:                array[0..0] of Byte;     // 实际长度为 [0..SessionLength - 1]
+    CipherSuitesLength:       Word;                    // 以字节为单位的 CipherSuites 列表长度
+    CipherSuites:             array[0..0] of Word;
+  end;
+
+  PCnTLSHandShakeClientHello = ^TCnTLSHandShakeClientHello;
+
 // ======================== IP 包头系列函数 ====================================
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
@@ -1605,6 +1636,24 @@ function CnGetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandS
 procedure CnSetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader; ContentLength: Cardinal);
 {* 设置 TLS/SSL 握手协议报文的内容长度}
 
+function CnGetTLSHandShakeClientHelloSessionId(const ClientHello: PCnTLSHandShakeClientHello): TBytes;
+{* 获取 TLS/SSL 握手协议报文 ClientHello 类型中的 SessionId}
+
+procedure CnSetTLSHandShakeClientHelloSessionId(const ClientHello: PCnTLSHandShakeClientHello; SessionId: TBytes);
+{* 设置 TLS/SSL 握手协议报文 ClientHello 类型中的 SessionId}
+
+function CnGetTLSHandShakeClientHelloCipherSuitesLength(const ClientHello: PCnTLSHandShakeClientHello): Word;
+{* 获取 TLS/SSL 握手协议报文 ClientHello 类型中的 CipherSuites 长度，单位是字节}
+
+procedure CnSetTLSHandShakeClientHelloCipherSuitesLength(const ClientHello: PCnTLSHandShakeClientHello; CipherSuitesLength: Word);
+{* 设置 TLS/SSL 握手协议报文 ClientHello 类型中的 CipherSuites 长度，单位是字节}
+
+function CnGetTLSHandShakeClientHelloCipherSuites(const ClientHello: PCnTLSHandShakeClientHello): TWords;
+{* 获取 TLS/SSL 握手协议报文 ClientHello 类型中的 CipherSuites}
+
+procedure CnSetTLSHandShakeClientHelloCipherSuites(const ClientHello: PCnTLSHandShakeClientHello; CipherSuites: TWords);
+{* 设置 TLS/SSL 握手协议报文 ClientHello 类型中的 CipherSuites}
+
 // =========================== IP 地址转换函数 =================================
 
 function CardinalToIPString(const IP: Cardinal): string;
@@ -1625,10 +1674,12 @@ procedure CnFillIPHeaderCheckSum(const IPHeader: PCnIPHeader);
 procedure CnFillICMPHeaderCheckSum(const ICMPHeader: PCnICMPHeader; DataByteLen: Cardinal);
 {* 计算 ICMP 包内的校验和并填到包头中，DataByteLen 须是 ICMP 包头后部的数据长度}
 
-implementation
+// =============================== 其他函数 ====================================
 
-uses
-  CnNative;
+function GetNameFromCipher(Cipher: Word): string;
+{* 从 SSL/TLS 的 Cipher 值获取其名称}
+
+implementation
 
 function CardinalToIPString(const IP: Cardinal): string;
 var
@@ -1741,6 +1792,148 @@ begin
   end;
 end;
 
+function GetNameFromCipher(Cipher: Word): string;
+begin
+  case Cipher of
+    {* TLS 1.3}
+    CN_CIPHER_TLS_AES_128_GCM_SHA256:
+      Result := 'TLS_AES_128_GCM_SHA256';
+    CN_CIPHER_TLS_AES_256_GCM_SHA384:
+      Result := 'TLS_AES_256_GCM_SHA384';
+    CN_CIPHER_TLS_CHACHA20_POLY1305_SHA256:
+      Result := 'TLS_CHACHA20_POLY1305_SHA256';
+    CN_CIPHER_TLS_AES_128_CCM_SHA256:
+      Result := 'TLS_AES_128_CCM_SHA256';
+    CN_CIPHER_TLS_AES_128_CCM_8_SHA256:
+      Result := 'TLS_AES_128_CCM_8_SHA256';
+    CN_CIPHER_TLS_SM4_GCM_SM3:
+      Result := 'TLS_SM4_GCM_SM3';
+    CN_CIPHER_TLS_SM4_CCM_SM3:
+      Result := 'TLS_SM4_CCM_SM3';
+
+    {* SSLv3，已停用}
+    CN_CIPHER_DHE_RSA_AES256_SHA:
+      Result := 'DHE_RSA_AES256_SHA';
+    CN_CIPHER_DHE_RSA_AES128_SHA:
+      Result := 'DHE_RSA_AES128_SHA';
+    CN_CIPHER_SRP_RSA_AES_256_CBC_SHA:
+      Result := 'SRP_RSA_AES_256_CBC_SHA';
+    CN_CIPHER_SRP_AES_256_CBC_SHA:
+      Result := 'SRP_AES_256_CBC_SHA';
+    CN_CIPHER_RSA_PSK_AES256_CBC_SHA:
+      Result := 'RSA_PSK_AES256_CBC_SHA';
+    CN_CIPHER_DHE_PSK_AES256_CBC_SHA:
+      Result := 'DHE_PSK_AES256_CBC_SHA';
+    CN_CIPHER_AES256_SHA:
+      Result := 'AES256_SHA';
+    CN_CIPHER_PSK_AES256_CBC_SHA:
+      Result := 'PSK_AES256_CBC_SHA';
+    CN_CIPHER_SRP_RSA_AES_128_CBC_SHA:
+      Result := 'SRP_RSA_AES_128_CBC_SHA';
+    CN_CIPHER_SRP_AES_128_CBC_SHA:
+      Result := 'SRP_AES_128_CBC_SHA';
+    CN_CIPHER_RSA_PSK_AES128_CBC_SHA:
+      Result := 'RSA_PSK_AES128_CBC_SHA';
+    CN_CIPHER_DHE_PSK_AES128_CBC_SHA:
+      Result := 'DHE_PSK_AES128_CBC_SHA';
+    CN_CIPHER_AES128_SHA:
+      Result := 'AES128_SHA';
+    CN_CIPHER_PSK_AES128_CBC_SHA:
+      Result := 'PSK_AES128_CBC_SHA';
+
+    {* TLS 1，已停用}
+    CN_CIPHER_ECDHE_ECDSA_AES256_SHA:
+      Result := 'ECDHE_ECDSA_AES256_SHA';
+    CN_CIPHER_ECDHE_RSA_AES256_SHA:
+      Result := 'ECDHE_RSA_AES256_SHA';
+    CN_CIPHER_ECDHE_ECDSA_AES128_SHA:
+      Result := 'ECDHE_ECDSA_AES128_SHA';
+    CN_CIPHER_ECDHE_RSA_AES128_SHA:
+      Result := 'ECDHE_RSA_AES128_SHA';
+    CN_CIPHER_ECDHE_PSK_AES256_CBC_SHA384:
+      Result := 'ECDHE_PSK_AES256_CBC_SHA384';
+    CN_CIPHER_ECDHE_PSK_AES256_CBC_SHA:
+      Result := 'ECDHE_PSK_AES256_CBC_SHA';
+    CN_CIPHER_RSA_PSK_AES256_CBC_SHA384:
+      Result := 'RSA_PSK_AES256_CBC_SHA384';
+    CN_CIPHER_DHE_PSK_AES256_CBC_SHA384:
+      Result := 'DHE_PSK_AES256_CBC_SHA384';
+    CN_CIPHER_PSK_AES256_CBC_SHA384:
+      Result := 'PSK_AES256_CBC_SHA384';
+    CN_CIPHER_ECDHE_PSK_AES128_CBC_SHA256:
+      Result := 'ECDHE_PSK_AES128_CBC_SHA256';
+    CN_CIPHER_ECDHE_PSK_AES128_CBC_SHA:
+      Result := 'ECDHE_PSK_AES128_CBC_SHA';
+    CN_CIPHER_RSA_PSK_AES128_CBC_SHA256:
+      Result := 'RSA_PSK_AES128_CBC_SHA256';
+    CN_CIPHER_DHE_PSK_AES128_CBC_SHA256:
+      Result := 'DHE_PSK_AES128_CBC_SHA256';
+    CN_CIPHER_PSK_AES128_CBC_SHA256:
+      Result := 'PSK_AES128_CBC_SHA256';
+
+    {* TLS 1.2，已停用}
+    CN_CIPHER_ECDHE_ECDSA_AES256_GCM_SHA384:
+      Result := 'ECDHE_ECDSA_AES256_GCM_SHA384';
+    CN_CIPHER_ECDHE_RSA_AES256_GCM_SHA384:
+      Result := 'ECDHE_RSA_AES256_GCM_SHA384';
+    CN_CIPHER_DHE_RSA_AES256_GCM_SHA384:
+      Result := 'DHE_RSA_AES256_GCM_SHA384';
+    CN_CIPHER_ECDHE_ECDSA_CHACHA20_POLY1305:
+      Result := 'ECDHE_ECDSA_CHACHA20_POLY1305';
+    CN_CIPHER_ECDHE_RSA_CHACHA20_POLY1305:
+      Result := 'ECDHE_RSA_CHACHA20_POLY1305';
+    CN_CIPHER_DHE_RSA_CHACHA20_POLY1305:
+      Result := 'DHE_RSA_CHACHA20_POLY1305';
+    CN_CIPHER_ECDHE_ECDSA_AES128_GCM_SHA256:
+      Result := 'ECDHE_ECDSA_AES128_GCM_SHA256';
+    CN_CIPHER_ECDHE_RSA_AES128_GCM_SHA256:
+      Result := 'ECDHE_RSA_AES128_GCM_SHA256';
+    CN_CIPHER_DHE_RSA_AES128_GCM_SHA256:
+      Result := 'DHE_RSA_AES128_GCM_SHA256';
+    CN_CIPHER_ECDHE_ECDSA_AES256_SHA384:
+      Result := 'ECDHE_ECDSA_AES256_SHA384';
+    CN_CIPHER_ECDHE_RSA_AES256_SHA384:
+      Result := 'ECDHE_RSA_AES256_SHA384';
+    CN_CIPHER_DHE_RSA_AES256_SHA256:
+      Result := 'DHE_RSA_AES256_SHA256';
+    CN_CIPHER_ECDHE_ECDSA_AES128_SHA256:
+      Result := 'ECDHE_ECDSA_AES128_SHA256';
+    CN_CIPHER_ECDHE_RSA_AES128_SHA256:
+      Result := 'ECDHE_RSA_AES128_SHA256';
+    CN_CIPHER_DHE_RSA_AES128_SHA256:
+      Result := 'DHE_RSA_AES128_SHA256';
+    CN_CIPHER_RSA_PSK_AES256_GCM_SHA384:
+      Result := 'RSA_PSK_AES256_GCM_SHA384';
+    CN_CIPHER_DHE_PSK_AES256_GCM_SHA384:
+      Result := 'DHE_PSK_AES256_GCM_SHA384';
+    CN_CIPHER_RSA_PSK_CHACHA20_POLY1305:
+      Result := 'RSA_PSK_CHACHA20_POLY1305';
+    CN_CIPHER_DHE_PSK_CHACHA20_POLY1305:
+      Result := 'DHE_PSK_CHACHA20_POLY1305';
+    CN_CIPHER_ECDHE_PSK_CHACHA20_POLY1305:
+      Result := 'ECDHE_PSK_CHACHA20_POLY1305';
+    CN_CIPHER_AES256_GCM_SHA384:
+      Result := 'AES256_GCM_SHA384';
+    CN_CIPHER_PSK_AES256_GCM_SHA384:
+      Result := 'PSK_AES256_GCM_SHA384';
+    CN_CIPHER_PSK_CHACHA20_POLY1305:
+      Result := 'PSK_CHACHA20_POLY1305';
+    CN_CIPHER_RSA_PSK_AES128_GCM_SHA256:
+      Result := 'RSA_PSK_AES128_GCM_SHA256';
+    CN_CIPHER_DHE_PSK_AES128_GCM_SHA256:
+      Result := 'DHE_PSK_AES128_GCM_SHA256';
+    CN_CIPHER_AES128_GCM_SHA256:
+      Result := 'AES128_GCM_SHA256';
+    CN_CIPHER_PSK_AES128_GCM_SHA256:
+      Result := 'PSK_AES128_GCM_SHA256';
+    CN_CIPHER_AES256_SHA256:
+      Result := 'AES256_SHA256';
+    CN_CIPHER_AES128_SHA256:
+      Result := 'AES128_SHA256';
+  else
+    Result := 'CIPHER_UNKNOWN';
+  end;
+end;
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
 begin
   Result := (IPHeader^.VerionHeaderLength and $F0) shr 4;
@@ -2503,13 +2696,90 @@ end;
 
 function CnGetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader): Cardinal;
 begin
-  Result := HandShakeHeader^.LengthHi shl 24 + UInt16NetworkToHost(HandShakeHeader^.LengthLo);
+  Result := (HandShakeHeader^.LengthHi shl 16) + UInt16NetworkToHost(HandShakeHeader^.LengthLo);
 end;
 
 procedure CnSetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader; ContentLength: Cardinal);
 begin
   HandShakeHeader^.LengthHi := (ContentLength shr 16) and $00FF;
   HandShakeHeader^.LengthLo := UInt16HostToNetwork(ContentLength and $FFFF);
+end;
+
+function CnGetTLSHandShakeClientHelloSessionId(const ClientHello: PCnTLSHandShakeClientHello): TBytes;
+begin
+  SetLength(Result, ClientHello^.SessionLength);
+  if ClientHello^.SessionLength > 0 then
+    Move(ClientHello^.SessionId[0], Result[0], ClientHello^.SessionLength);
+end;
+
+procedure CnSetTLSHandShakeClientHelloSessionId(const ClientHello: PCnTLSHandShakeClientHello; SessionId: TBytes);
+begin
+  ClientHello^.SessionLength := Byte(Length(SessionId));
+  if ClientHello^.SessionLength > 0 then
+    Move(SessionId[0], ClientHello^.SessionId[0], ClientHello^.SessionLength);
+end;
+
+function CnGetTLSHandShakeClientHelloCipherSuitesLength(const ClientHello: PCnTLSHandShakeClientHello): Word;
+var
+  P: PByte;
+  W: PCnWord;
+begin
+  P := @(ClientHello^.SessionLength);
+  Inc(P, SizeOf(Byte) + P^); // SessionLength 本身加 SessionId 长度
+  W := PCnWord(P);
+  Result := UInt16NetworkToHost(W^);
+end;
+
+procedure CnSetTLSHandShakeClientHelloCipherSuitesLength(const ClientHello: PCnTLSHandShakeClientHello; CipherSuitesLength: Word);
+var
+  P: PByte;
+  W: PCnWord;
+begin
+  P := @(ClientHello^.SessionLength);
+  Inc(P, SizeOf(Byte) + P^);
+  W := PCnWord(P);
+  W^ := UInt16HostToNetwork(CipherSuitesLength);
+end;
+
+function CnGetTLSHandShakeClientHelloCipherSuites(const ClientHello: PCnTLSHandShakeClientHello): TWords;
+var
+  I: Integer;
+  L: Word;
+  P: PByte;
+begin
+  P := @(ClientHello^.SessionLength);
+  Inc(P, SizeOf(Byte) + P^);
+  L := CnGetTLSHandShakeClientHelloCipherSuitesLength(ClientHello) shr 1;
+  Inc(P, SizeOf(Word));
+
+  SetLength(Result, L);
+  if L > 0 then
+  begin
+    Move(P^, Result[0], L shl 1);
+    for I := 0 to Length(Result) - 1 do
+      Result[I] := UInt16HostToNetwork(Result[I]);
+  end;
+end;
+
+procedure CnSetTLSHandShakeClientHelloCipherSuites(const ClientHello: PCnTLSHandShakeClientHello; CipherSuites: TWords);
+var
+  I: Integer;
+  L: Word;
+  P: PByte;
+begin
+  L := Length(CipherSuites);
+  if L > 0 then
+  begin
+    CnSetTLSHandShakeClientHelloCipherSuitesLength(ClientHello, L);
+
+    P := @(ClientHello^.SessionLength);
+    Inc(P, SizeOf(Byte) + P^);
+    Inc(P, SizeOf(Word));
+
+    for I := 0 to Length(CipherSuites) - 1 do
+      CipherSuites[I] := UInt16HostToNetwork(CipherSuites[I]);
+    Move(CipherSuites[0], P^, L * SizeOf(Word));
+  end;
 end;
 
 end.

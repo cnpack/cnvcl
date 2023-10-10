@@ -1,6 +1,6 @@
 object FormNetDecl: TFormNetDecl
   Left = 192
-  Top = 107
+  Top = 108
   Width = 864
   Height = 472
   Caption = 'Net Declaration Test'
@@ -115,6 +115,35 @@ object FormNetDecl: TFormNetDecl
         Caption = 'Check Sum'
         TabOrder = 8
         OnClick = btnCheckSumClick
+      end
+    end
+    object tsSSL: TTabSheet
+      Caption = 'SSL/TLS'
+      ImageIndex = 1
+      object btnSSLListenStart: TButton
+        Left = 16
+        Top = 16
+        Width = 137
+        Height = 25
+        Caption = 'Listen Start'
+        TabOrder = 0
+        OnClick = btnSSLListenStartClick
+      end
+      object btnSSLParseTest: TButton
+        Left = 176
+        Top = 16
+        Width = 145
+        Height = 25
+        Caption = 'Parse ClientHello Test'
+        TabOrder = 1
+        OnClick = btnSSLParseTestClick
+      end
+      object mmoSSL: TMemo
+        Left = 16
+        Top = 56
+        Width = 777
+        Height = 305
+        TabOrder = 2
       end
     end
   end
