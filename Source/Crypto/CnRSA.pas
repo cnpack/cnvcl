@@ -845,7 +845,7 @@ PKCS#8:
         INTEGER                                       11 私钥  p
         INTEGER                                       12 私钥  q
         INTEGER
-        INTEGER
+
         INTEGER
 *)
 function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
@@ -1515,7 +1515,7 @@ begin
 
     if RSACrypt(D, Product, Exponent, R) then
     begin
-      R.ToBinary(OutBuf);
+      R.ToBinary(OutBuf); // TODO: Fixed Len?
       OutLen := R.GetBytesCount;
 
       Result := True;
@@ -1593,7 +1593,7 @@ begin
     if not RSACrypt(Data, Product, Exponent, Res) then
       Exit;
 
-    Res.ToBinary(PAnsiChar(OutBuf));
+    Res.ToBinary(PAnsiChar(OutBuf), Stream.Size);
 
     Result := True;
     _CnSetLastError(ECN_RSA_OK);
@@ -1696,11 +1696,8 @@ begin
       Exit;
 
     SetLength(ResBuf, BlockSize);
-    if Res.GetBytesCount = BlockSize then
-      Res.ToBinary(PAnsiChar(@ResBuf[0]))
-    else if Res.GetBytesCount < BlockSize then
-      Res.ToBinary(PAnsiChar(@ResBuf[BlockSize - Res.GetBytesCount]));
-      // 解出来的 Res 可能前面有 0 导致 GetBytesCount 不够 BlockSize，需要右对齐
+    Res.ToBinary(PAnsiChar(@ResBuf[0]), BlockSize);
+    // 解出来的 Res 可能前面有 0 导致 GetBytesCount 不够 BlockSize，需要右对齐
 
     if PaddingMode = cpmPKCS1 then
     begin
@@ -2220,7 +2217,7 @@ begin
     if RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res) then
     begin
       SetLength(ResBuf, Res.GetBytesCount);
-      Res.ToBinary(@ResBuf[0]);
+      Res.ToBinary(@ResBuf[0]); // TODO: FixedLen?
 
       // 保存用私钥加密后的内容至文件
       Stream.Clear;
@@ -2270,7 +2267,7 @@ begin
     if RSACrypt(Data, PublicKey.PubKeyProduct, PublicKey.PubKeyExponent, Res) then
     begin
       SetLength(ResBuf, Res.GetBytesCount);
-      Res.ToBinary(@ResBuf[0]);
+      Res.ToBinary(@ResBuf[0]); // TODO: FixedLen?
 
       // 从 Res 中解出 PKCS1 对齐的内容放入 BerBuf 中
       SetLength(BerBuf, Length(ResBuf));
