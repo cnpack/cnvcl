@@ -606,6 +606,14 @@ const
   CN_CIPHER_AES256_SHA256                                        = $003D;
   CN_CIPHER_AES128_SHA256                                        = $003C;
 
+  {* TLS/SSL 中的 ExtensionType，来自 RFC 3546}
+  CN_TLS_EXTENSIONTYPE_SERVER_NAME                               = 0;
+  CN_TLS_EXTENSIONTYPE_MAX_FRAGMENT_LENGTH                       = 1;
+  CN_TLS_EXTENSIONTYPE_CLIENT_CERTIFICATE_URL                    = 2;
+  CN_TLS_EXTENSIONTYPE_TRUSTED_CA_KEYS                           = 3;
+  CN_TLS_EXTENSIONTYPE_TRUNCATED_HMAC                            = 4;
+  CN_TLS_EXTENSIONTYPE_STATUS_REQUEST                            = 5;
+
 type
 
 {*
@@ -1254,7 +1262,6 @@ type
 
   PCnTLSAlertPacket = ^TCnTLSAlertPacket;
 
-
 {
   TLS/SSL 握手包 ClientHello 示意图，字节内左边是高位，右边是低位。
   字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
@@ -1273,8 +1280,11 @@ type
     Random:                   array[0..31] of Byte;    // 32 字节随机数，其中前 4 字节可能是时间戳
     SessionLength:            Byte;                    // 1 字节 SessionId 长度
     SessionId:                array[0..0] of Byte;     // 实际长度为 [0..SessionLength - 1]
-    CipherSuitesLength:       Word;                    // 以字节为单位的 CipherSuites 列表长度
-    CipherSuites:             array[0..0] of Word;
+    CipherSuitesLength:       Word;                    // 以字节为单位的 CipherSuites 列表长度，占 2 字节
+    CipherSuites:             array[0..0] of Word;     // 实际字节长度为 CipherSuitesLength
+    CompressionMethodLength:  Byte;                    // 1 字节压缩方法长度
+    CompressionMethod:        array[0..0] of Byte;     // 压缩方法列表
+
   end;
 
   PCnTLSHandShakeClientHello = ^TCnTLSHandShakeClientHello;
@@ -1653,6 +1663,18 @@ function CnGetTLSHandShakeClientHelloCipherSuites(const ClientHello: PCnTLSHandS
 
 procedure CnSetTLSHandShakeClientHelloCipherSuites(const ClientHello: PCnTLSHandShakeClientHello; CipherSuites: TWords);
 {* 设置 TLS/SSL 握手协议报文 ClientHello 类型中的 CipherSuites}
+
+function CnGetTLSHandShakeClientHelloCompressionMethodLength(const ClientHello: PCnTLSHandShakeClientHello): Byte;
+{* 获取 TLS/SSL 握手协议报文 ClientHello 类型中的 CompressionMethod 长度，单位是字节}
+
+procedure CnSetTLSHandShakeClientHelloCompressionMethodLength(const ClientHello: PCnTLSHandShakeClientHello; CompressionMethodLength: Byte);
+{* 设置 TLS/SSL 握手协议报文 ClientHello 类型中的 CompressionMethod 长度，单位是字节}
+
+function CnGetTLSHandShakeClientHelloCompressionMethod(const ClientHello: PCnTLSHandShakeClientHello): TBytes;
+{* 获取 TLS/SSL 握手协议报文 ClientHello 类型中的 CompressionMethod}
+
+procedure CnSetTLSHandShakeClientHelloCompressionMethod(const ClientHello: PCnTLSHandShakeClientHello; CompressionMethod: TBytes);
+{* 设置 TLS/SSL 握手协议报文 ClientHello 类型中的 CompressionMethod}
 
 // =========================== IP 地址转换函数 =================================
 
@@ -2780,6 +2802,64 @@ begin
       CipherSuites[I] := UInt16HostToNetwork(CipherSuites[I]);
     Move(CipherSuites[0], P^, L * SizeOf(Word));
   end;
+end;
+
+function CnGetTLSHandShakeClientHelloCompressionMethodLength(const ClientHello: PCnTLSHandShakeClientHello): Byte;
+var
+  P: PByte;
+  L: Word;
+begin
+  P := @(ClientHello^.SessionLength);
+  Inc(P, SizeOf(Byte) + P^);
+  L := CnGetTLSHandShakeClientHelloCipherSuitesLength(ClientHello);
+  Inc(P, SizeOf(Word) + L);
+  Result := P^;
+end;
+
+procedure CnSetTLSHandShakeClientHelloCompressionMethodLength(const ClientHello: PCnTLSHandShakeClientHello; CompressionMethodLength: Byte);
+var
+  P: PByte;
+  L: Word;
+begin
+  P := @(ClientHello^.SessionLength);
+  Inc(P, SizeOf(Byte) + P^);
+  L := CnGetTLSHandShakeClientHelloCipherSuitesLength(ClientHello);
+  Inc(P, SizeOf(Word) + L);
+  P^ := CompressionMethodLength;
+end;
+
+function CnGetTLSHandShakeClientHelloCompressionMethod(const ClientHello: PCnTLSHandShakeClientHello): TBytes;
+var
+  P: PByte;
+  L: Word;
+  B: Byte;
+begin
+  P := @(ClientHello^.SessionLength);
+  Inc(P, SizeOf(Byte) + P^);
+  L := CnGetTLSHandShakeClientHelloCipherSuitesLength(ClientHello);
+  Inc(P, SizeOf(Word) + L);
+  B := P^;
+
+  Inc(P);
+  SetLength(Result, B);
+  if B > 0 then
+    Move(P^, Result[0], B);
+end;
+
+procedure CnSetTLSHandShakeClientHelloCompressionMethod(const ClientHello: PCnTLSHandShakeClientHello; CompressionMethod: TBytes);
+var
+  P: PByte;
+  L: Word;
+begin
+  P := @(ClientHello^.SessionLength);
+  Inc(P, SizeOf(Byte) + P^);
+  L := CnGetTLSHandShakeClientHelloCipherSuitesLength(ClientHello);
+  Inc(P, SizeOf(Word) + L);
+  P^ := Length(CompressionMethod);
+
+  Inc(P);
+  if Length(CompressionMethod) > 0 then
+    Move(CompressionMethod[0], P^, Length(CompressionMethod));
 end;
 
 end.

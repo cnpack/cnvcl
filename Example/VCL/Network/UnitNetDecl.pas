@@ -623,6 +623,9 @@ begin
   for I := 0 to Length(Cp) - 1 do
     mmoSSL.Lines.Add(Format('TLSHandShakeClientHello.CipherSuites[%d]: %4.4x %s', [I, Cp[I], GetNameFromCipher(Cp[I])]));
 
+  mmoSSL.Lines.Add(Format('TLSHandShakeClientHello.CompressionMethodLength: %d', [CnGetTLSHandShakeClientHelloCompressionMethodLength(P3)]));
+  T := CnGetTLSHandShakeClientHelloCompressionMethod(P3);
+  mmoSSL.Lines.Add(Format('TLSHandShakeClientHello.CompressionMethod: %s', [BytesToHex(T)]));
 end;
 
 end.
