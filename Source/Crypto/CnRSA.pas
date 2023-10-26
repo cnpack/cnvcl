@@ -164,7 +164,7 @@ type
     property PrimeKey2: TCnBigNumber read FPrimeKey2 write FPrimeKey2;
     {* 大素数 2，q，要求比 p 小}
     property PrivKeyProduct: TCnBigNumber read FPrivKeyProduct write FPrivKeyProduct;
-    {* 俩素数乘积 n，也叫 Modulus}
+    {* 俩素数乘积 n，也叫 Modulus，生成时其位数需严格等于所需安全位数}
     property PrivKeyExponent: TCnBigNumber read FPrivKeyExponent write FPrivKeyProduct;
     {* 私钥指数 d}
     property BitsCount: Integer read GetBitsCount;
