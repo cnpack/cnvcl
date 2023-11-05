@@ -62,11 +62,20 @@ begin
 end;
 
 procedure TForm1.btn1Click(Sender: TObject);
+var
+  E: Cardinal;
 begin
   if cbb1.Text <> '' then
   begin
     Aborted := False;
     mmo1.Lines.Text := CnInet.GetString(cbb1.Text);
+
+    if mmo1.Lines.Text = '' then
+    begin
+      E := GetLastError;
+      if E <> 0 then
+        ShowMessage('Error Code: ' + IntToStr(E));
+    end;
   end;
 end;
 
