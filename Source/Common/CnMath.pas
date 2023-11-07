@@ -42,12 +42,13 @@ uses
 
 const
   CN_PI = 3.1415926535897932384626;
+  CN_FLOAT_DEFAULT_DIGIT = 10;
 
 function CnAbs(F: Extended): Extended; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 计算绝对值}
 
 function CnFloor(F: Extended): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 向下取整}
+{* 向数轴负方向取整}
 
 {
   计算连分数：
@@ -104,6 +105,9 @@ function FloatEqual(A, B: Extended): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$
 
 function NormalizeAngle(Angle: Extended): Extended;
 {* 将角度变至 [0, 2π) 范围内}
+
+function FloatToHex(Value: Extended; MaxDigit: Integer = CN_FLOAT_DEFAULT_DIGIT): string;
+{* 浮点数转换为十六进制字符串，包括整数部分与小数部分，MaxDigit 指明除不尽时最多保留小数点后多少位}
 
 implementation
 
@@ -473,6 +477,57 @@ begin
   Result := Result - 2 * CN_PI * CnFloor(Result / (2 * CN_PI));
   if Result < 0 then
     Result := Result + 2 * CN_PI;
+end;
+
+function FloatToHex(Value: Extended; MaxDigit: Integer): string;
+var
+  A, B: Extended;
+  S: string;
+  Neg: Boolean;
+  R, C: Integer;
+begin
+  A := Int(Value);
+  B := Frac(Value);
+
+  Neg := A < 0;
+  if Neg then
+  begin
+    A := -A;
+    B := -B;
+  end;
+
+  Result := '';
+  while not FloatAlmostZero(A) do
+  begin
+    // 求 A 除以 16 的余数
+    R := Trunc(A - Int(A / 16.0) * 16);
+
+    // 将余数转换为十六进制字符并添加到字符串
+    Result := IntToHex(R, 1) + Result;
+
+    // 整数部分除以 16
+    A := Int(A / 16);
+  end;
+
+  C := 0;
+  S := '.';
+  while (CnAbs(B) >= SCN_EXTEND_GAP) and (C <= MaxDigit) do
+  begin
+    B := B * 16;               // 乘以 16 取整数部分
+    R := Trunc(B);
+    S := S + IntToHex(R, 1);
+
+    B := B - R;
+    Inc(C);
+  end;
+
+  if Result = '' then
+    Result := '0'
+  else if Neg then
+    Result := '-' + Result;
+
+  if S <> '.' then
+    Result := Result + S;
 end;
 
 end.

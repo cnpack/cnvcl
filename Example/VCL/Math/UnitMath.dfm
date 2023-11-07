@@ -136,4 +136,21 @@ object FormMath: TFormMath
     TabOrder = 12
     OnClick = btnXGEulerClick
   end
+  object btnFloatToHex: TButton
+    Left = 176
+    Top = 352
+    Width = 75
+    Height = 25
+    Caption = 'FloatToHex'
+    TabOrder = 13
+    OnClick = btnFloatToHexClick
+  end
+  object edtFloat: TEdit
+    Left = 264
+    Top = 352
+    Width = 121
+    Height = 21
+    TabOrder = 14
+    Text = '2981627637829.182774'
+  end
 end

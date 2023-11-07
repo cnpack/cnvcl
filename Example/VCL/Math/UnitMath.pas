@@ -22,6 +22,8 @@ type
     udGL: TUpDown;
     mmoRes: TMemo;
     btnXGEuler: TButton;
+    btnFloatToHex: TButton;
+    edtFloat: TEdit;
     procedure btnInt64SqrtClick(Sender: TObject);
     procedure btnSqrtClick(Sender: TObject);
     procedure btnLogNClick(Sender: TObject);
@@ -30,6 +32,7 @@ type
     procedure btnFloatPiClick(Sender: TObject);
     procedure btnGaussLegendrePiClick(Sender: TObject);
     procedure btnXGEulerClick(Sender: TObject);
+    procedure btnFloatToHexClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -81,6 +84,16 @@ end;
 procedure TFormMath.btnXGEulerClick(Sender: TObject);
 begin
   mmoRes.Lines.Text := XavierGourdonEuler(5000);
+end;
+
+procedure TFormMath.btnFloatToHexClick(Sender: TObject);
+var
+  X: Extended;
+  S: string;
+begin
+  X := StrToFloat(edtFloat.Text);
+  S := FloatToHex(X);
+  ShowMessage(S);
 end;
 
 end.
