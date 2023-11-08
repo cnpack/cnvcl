@@ -50,6 +50,9 @@ function CnAbs(F: Extended): Extended; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 function CnFloor(F: Extended): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 向数轴负方向取整}
 
+function CnCeil(F: Extended): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+{* 向数轴正方向取整}
+
 {
   计算连分数：
                   A1
@@ -109,10 +112,13 @@ function NormalizeAngle(Angle: Extended): Extended;
 function FloatToHex(Value: Extended; MaxDigit: Integer = CN_FLOAT_DEFAULT_DIGIT): string;
 {* 浮点数转换为十六进制字符串，包括整数部分与小数部分，MaxDigit 指明除不尽时最多保留小数点后多少位}
 
+function HexToFloat(const Hex: string): Extended;
+{* 十六进制字符串转换成浮点数，支持带小数点的小数}
+
 implementation
 
 uses
-  CnBigDecimal;
+  CnBigDecimal, CnNative;
 
 const
   SCN_FLOAT_GAP = 0.000001;         // 普通浮点判断
@@ -137,6 +143,13 @@ begin
   Result := Trunc(F);
   if Frac(F) < 0 then
     Dec(Result);
+end;
+
+function CnCeil(F: Extended): Integer;
+begin
+  Result := Trunc(F);
+  if Frac(F) > 0 then
+    Inc(Result);
 end;
 
 {$HINTS OFF}
@@ -528,6 +541,84 @@ begin
 
   if S <> '.' then
     Result := Result + S;
+end;
+
+function HexToFloat(const Hex: string): Extended;
+var
+  I: Integer;
+  S: string;
+  Neg: Boolean;
+
+  function HexIntegerToFloat(Hex: PChar; CharLen: Integer): Extended;
+  var
+    I: Integer;
+    C: Char;
+  begin
+    Result := 0;
+    for I := 0 to CharLen - 1 do
+    begin
+      C := Hex[I];
+      if (C >= '0') and (C <= '9') then
+        Result := Result * 16 + Ord(C) - Ord('0')
+      else if (C >= 'A') and (C <= 'F') then
+        Result := Result * 16 + Ord(C) - Ord('A') + 10
+      else if (C >= 'a') and (C <= 'f') then
+        Result := Result * 16 + Ord(C) - Ord('a') + 10
+      else
+        raise Exception.CreateFmt('Error: not a Hex PChar: %c', [C]);
+    end;
+  end;
+
+  function HexDecimalToFloat(Hex: PChar; CharLen: Integer): Extended;
+  var
+    I: Integer;
+    C: Char;
+    R: Extended;
+  begin
+    Result := 0;
+    R := 1;
+    for I := 0 to CharLen - 1 do
+    begin
+      C := Hex[I];
+      R := R / 16;
+      if (C >= '0') and (C <= '9') then
+        Result := Result + (Ord(C) - Ord('0')) * R
+      else if (C >= 'A') and (C <= 'F') then
+        Result := Result + (Ord(C) - Ord('A') + 10) * R
+      else if (C >= 'a') and (C <= 'f') then
+        Result := Result + (Ord(C) - Ord('a') + 10) * R
+      else
+        raise Exception.CreateFmt('Error: not a Hex PChar: %c', [C]);
+    end;
+  end;
+
+begin
+  I := Pos('.', Hex);
+  if I > 0 then
+    S := Copy(Hex, 1, I - 1)
+  else
+    S := Hex;
+
+  Neg := False;
+  if (Length(S) > 0) and (S[1] = '-') then
+  begin
+    Delete(S, 1, 1);
+    Neg := True;
+  end;
+
+  // 整数部分转换成值
+  Result := HexIntegerToFloat(PChar(S), Length(S));
+
+  if I > 0 then
+  begin
+    S := Copy(Hex, I + 1, MaxInt);
+
+    // 把小数部分转换成值
+    Result := Result + HexDecimalToFloat(PChar(S), Length(S));
+  end;
+
+  if Neg then
+    Result := -Result;
 end;
 
 end.

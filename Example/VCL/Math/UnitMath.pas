@@ -94,6 +94,9 @@ begin
   X := StrToFloat(edtFloat.Text);
   S := FloatToHex(X);
   ShowMessage(S);
+
+  X := HexToFloat(S);
+  edtFloat.Text := FloatToStr(X);
 end;
 
 end.
