@@ -46,7 +46,7 @@
 
     開發包支持 Delphi 5/6/7/2005/2006/2007/2009/2010/XE/XE2/XE3/XE4/XE5/
 XE6/XE7/XE8/10 Seattle/10.1 Berlin/10.2 Tokyo/10.3 Rio/10.4 Sydney/11
-Alexandria 和 C++Builder 5/6。
+Alexandria/12 Athens 和 C++Builder 5/6。
     用戶需要在 IDE 中打開 Packages目錄下的包文件（注意版本號），再在包
 文件窗口中進行編譯安裝。其中帶 dcl 前綴的為設計期包，無此前綴的為運行期
 包。注意應該先編譯運行期包，再安裝設計期包。
