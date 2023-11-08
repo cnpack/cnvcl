@@ -8358,7 +8358,13 @@ function TCnSparseBigNumberList.Top: TCnExponentBigNumberPair;
 begin
   Result := nil;
   if Count > 0 then
+  begin
+{$IFDEF LIST_INDEX_NATIVEINT}
+    Result := TCnExponentBigNumberPair(Items[Count - 1]);
+{$ELSE}
     Result := Items[Count - 1];
+{$ENDIF}
+  end;
 end;
 
 function TCnSparseBigNumberList.ToString: string;
