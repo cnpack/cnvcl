@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  CnButtons, StdCtrls, ExtCtrls, CnCommon;
+  CnButtons, StdCtrls, ExtCtrls, TypInfo, CnCommon;
 
 type
   TForm1 = class(TForm)
@@ -172,11 +172,11 @@ end;
 
 procedure TForm1.lblTestMultiDlgClick(Sender: TObject);
 begin
-  Caption := IntToStr(Ord(MultiButtonsDlg('Test Message Empty', [])));
-  Caption := IntToStr(Ord(MultiButtonsDlg('Test Message 1 Button and some Long Message for me.', [cdbCancel])));
-  Caption := IntToStr(Ord(MultiButtonsDlg('Test Message 2 Buttons', [cdbYes, cdbNo])));
-  Caption := IntToStr(Ord(MultiButtonsDlg('Test Message 3 Buttons', [cdbOK, cdbCancel, cdbYes])));
-  Caption := IntToStr(Ord(MultiButtonsDlg('Test Message 4 Buttons and some Very very very very very very... Long long Messages.', [cdbYes, cdbNo, cdbYesToAll, cdbNoToAll])));
+  Caption := GetEnumName(TypeInfo(TCnDlgResult), Ord(MultiButtonsDlg('Test Message Empty', [])));
+  Caption := GetEnumName(TypeInfo(TCnDlgResult), Ord(MultiButtonsDlg('Test Message 1 Button and some Long Message for me.', [cdbCancel])));
+  Caption := GetEnumName(TypeInfo(TCnDlgResult), Ord(MultiButtonsDlg('Test Message 2 Buttons', [cdbYes, cdbNo])));
+  Caption := GetEnumName(TypeInfo(TCnDlgResult), Ord(MultiButtonsDlg('Test Message 3 Buttons', [cdbOK, cdbCancel, cdbYes])));
+  Caption := GetEnumName(TypeInfo(TCnDlgResult), Ord(MultiButtonsDlg('Test Message 4 Buttons and some Very very very very very very... Long long Messages.', [cdbYes, cdbNo, cdbYesToAll, cdbNoToAll])));
 end;
 
 end.

@@ -1430,8 +1430,8 @@ const
 {$ENDIF}
 
   SCnDlgButtonCaptions: array[Low(TCnDlgButtonCaption)..High(TCnDlgButtonCaption)] of PString = (
-    @SCnMsgDlgOK, @SCnMsgDlgCancel, @SCnMsgDlgYes, @SCnMsgDlgNo, @SCnMsgDlgYesToAll,
-    @SCnMsgDlgNoToAll
+    @SCnMsgDlgCancel, @SCnMsgDlgOK, @SCnMsgDlgNo, @SCnMsgDlgYes, @SCnMsgDlgNoToAll,
+    @SCnMsgDlgYesToAll
   );
 
   SCN_CHINESE_SEP_CHARS: array[0..11] of WideString =
