@@ -24,7 +24,7 @@ unit CnBits;
 * 软件名称：开发包基础库
 * 单元名称：位处理单元
 * 单元作者：刘啸
-* 备    注：据
+* 备    注：
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -98,6 +98,8 @@ type
 
     procedure AppendBytes(Value: TBytes);
     {* 增加一个字节数组}
+    procedure AppendData(Data: Pointer; DataByteLen: Integer);
+    {* 增加一个数据块}
 
     function ToBytes: TBytes;
     {* 将全部内容拼凑成字节数组并返回，位数往字节数上凑整}
@@ -111,7 +113,7 @@ type
     {* 从指定 Index 处复制 Count 个位放入结果中，Count 超长无法容纳则抛异常}
 
     property Bit[Index: Integer]: Boolean read GetBit write SetBit;
-    {* 按索引访问位内容}
+    {* 按索引访问位内容，1 为 True，0 为 False。索引范围为 0 到 BitLength - 1}
     property ByteCapacity: Integer read GetByteCapacity write SetByteCapacity;
     {* 以字节为单位的内部缓冲区的容量，设置时不能比 ByteLength 小}
     property ByteLength: Integer read GetByteLength write SetByteLength;
@@ -182,6 +184,22 @@ begin
 
   for I := 0 to Length(Value) - 1 do
     AppendByte(Value[I]);
+end;
+
+procedure TCnBitBuilder.AppendData(Data: Pointer; DataByteLen: Integer);
+var
+  I: Integer;
+  P: PByte;
+begin
+  if (Data <> nil) and (DataByteLen > 0) then
+  begin
+    P := PByte(Data);
+    for I := 0 to DataByteLen - 1 do
+    begin
+      AppendByte(P^);
+      Inc(P);
+    end;
+  end;
 end;
 
 procedure TCnBitBuilder.AppendDWord(Value: Cardinal; Full: Boolean);
