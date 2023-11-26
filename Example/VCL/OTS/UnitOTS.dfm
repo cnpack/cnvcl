@@ -263,5 +263,211 @@ object FormOTS: TFormOTS
         WordWrap = False
       end
     end
+    object tsSM3WOTS: TTabSheet
+      Caption = 'SM3 W-OTS'
+      ImageIndex = 2
+      object lblSM3WOTSMessage: TLabel
+        Left = 8
+        Top = 323
+        Width = 46
+        Height = 13
+        Anchors = [akLeft, akBottom]
+        Caption = 'Message:'
+      end
+      object lblSM3WOTSPrivate: TLabel
+        Left = 8
+        Top = 40
+        Width = 36
+        Height = 13
+        Caption = 'Private:'
+      end
+      object lblSM3WOTSPublic: TLabel
+        Left = 8
+        Top = 176
+        Width = 32
+        Height = 13
+        Caption = 'Public:'
+      end
+      object lblSM3WOTSSignature: TLabel
+        Left = 402
+        Top = 323
+        Width = 48
+        Height = 13
+        Anchors = [akRight, akBottom]
+        Caption = 'Signature:'
+      end
+      object btnGenSM3WOTSKeys: TButton
+        Left = 8
+        Top = 8
+        Width = 177
+        Height = 25
+        Caption = 'Generate SM3 WOTS Keys'
+        TabOrder = 0
+        OnClick = btnGenSM3WOTSKeysClick
+      end
+      object mmoSM3WOTSPrivateKey: TMemo
+        Left = 80
+        Top = 40
+        Width = 859
+        Height = 129
+        Anchors = [akLeft, akTop, akRight]
+        ScrollBars = ssVertical
+        TabOrder = 1
+        WordWrap = False
+      end
+      object mmoSM3WOTSPublicKey: TMemo
+        Left = 80
+        Top = 176
+        Width = 859
+        Height = 129
+        Anchors = [akLeft, akTop, akRight]
+        ScrollBars = ssVertical
+        TabOrder = 2
+        WordWrap = False
+      end
+      object mmoSM3WOTSMessage: TMemo
+        Left = 80
+        Top = 323
+        Width = 257
+        Height = 81
+        Anchors = [akLeft, akBottom]
+        Lines.Strings = (
+          'Test message for SM3 WOTS.')
+        TabOrder = 3
+      end
+      object btnSM3WOTSSign: TButton
+        Left = 80
+        Top = 419
+        Width = 257
+        Height = 25
+        Anchors = [akLeft, akBottom]
+        Caption = 'SM3 WOTS Sign'
+        TabOrder = 4
+        OnClick = btnSM3WOTSSignClick
+      end
+      object btnSM3WOTSVerify: TButton
+        Left = 80
+        Top = 451
+        Width = 257
+        Height = 25
+        Anchors = [akLeft, akBottom]
+        Caption = 'SM3 WOTS Verify'
+        TabOrder = 5
+        OnClick = btnSM3WOTSVerifyClick
+      end
+      object mmoSM3WOTSSignature: TMemo
+        Left = 402
+        Top = 347
+        Width = 535
+        Height = 128
+        Anchors = [akRight, akBottom]
+        ScrollBars = ssVertical
+        TabOrder = 6
+        WordWrap = False
+      end
+    end
+    object tsSHA256WOTS: TTabSheet
+      Caption = 'SHA256 W-OTS'
+      ImageIndex = 3
+      object lblSHA256WOTSMessage: TLabel
+        Left = 8
+        Top = 323
+        Width = 46
+        Height = 13
+        Anchors = [akLeft, akBottom]
+        Caption = 'Message:'
+      end
+      object lblSHA256WOTSPrivate: TLabel
+        Left = 8
+        Top = 40
+        Width = 36
+        Height = 13
+        Caption = 'Private:'
+      end
+      object lblSHA256WOTSPublic: TLabel
+        Left = 8
+        Top = 176
+        Width = 32
+        Height = 13
+        Caption = 'Public:'
+      end
+      object lblSHA256WOTSSignature: TLabel
+        Left = 402
+        Top = 323
+        Width = 48
+        Height = 13
+        Anchors = [akRight, akBottom]
+        Caption = 'Signature:'
+      end
+      object btnGenSHA256WOTSKeys: TButton
+        Left = 8
+        Top = 8
+        Width = 177
+        Height = 25
+        Caption = 'Generate SHA256 WOTS Keys'
+        TabOrder = 0
+        OnClick = btnGenSHA256WOTSKeysClick
+      end
+      object mmoSHA256WOTSPrivateKey: TMemo
+        Left = 80
+        Top = 40
+        Width = 859
+        Height = 129
+        Anchors = [akLeft, akTop, akRight]
+        ScrollBars = ssVertical
+        TabOrder = 1
+        WordWrap = False
+      end
+      object mmoSHA256WOTSPublicKey: TMemo
+        Left = 80
+        Top = 176
+        Width = 859
+        Height = 129
+        Anchors = [akLeft, akTop, akRight]
+        ScrollBars = ssVertical
+        TabOrder = 2
+        WordWrap = False
+      end
+      object mmoSHA256WOTSMessage: TMemo
+        Left = 80
+        Top = 323
+        Width = 257
+        Height = 81
+        Anchors = [akLeft, akBottom]
+        Lines.Strings = (
+          'Test message for SHA256 WOTS.')
+        TabOrder = 3
+      end
+      object btnSHA256WOTSSign: TButton
+        Left = 80
+        Top = 419
+        Width = 257
+        Height = 25
+        Anchors = [akLeft, akBottom]
+        Caption = 'SHA256 WOTS Sign'
+        TabOrder = 4
+        OnClick = btnSHA256WOTSSignClick
+      end
+      object btnSHA256WOTSVerify: TButton
+        Left = 80
+        Top = 451
+        Width = 257
+        Height = 25
+        Anchors = [akLeft, akBottom]
+        Caption = 'SHA256 WOTS Verify'
+        TabOrder = 5
+        OnClick = btnSHA256WOTSVerifyClick
+      end
+      object mmoSHA256WOTSSignature: TMemo
+        Left = 402
+        Top = 347
+        Width = 535
+        Height = 128
+        Anchors = [akRight, akBottom]
+        ScrollBars = ssVertical
+        TabOrder = 6
+        WordWrap = False
+      end
+    end
   end
 end

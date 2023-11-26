@@ -22,7 +22,7 @@ unit CnOTS;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：一次性杂凑签名算法实现单元，目前实现了基于 SM3 与 SHA256 的简单实现
+* 单元名称：一次性杂凑签名算法实现单元，目前有基于 SM3 与 SHA256 的 OTS/W-OTS 简单实现
 * 单元作者：刘啸
 * 备    注：Hash Based One Time Signature，其他长度的杂凑算法暂未实现
 * 开发平台：Win7 + Delphi 5.0
@@ -41,8 +41,11 @@ uses
   SysUtils, Classes, CnNative, CnBits, CnRandom, CnSM3, CnSHA2;
 
 type
+
+// ================ Lamport 发明的常规 OTS，结合 SM3 杂凑算法 ==================
+
   TCnOTSSM3PrivateKey = array[0..(SizeOf(TCnSM3Digest) * 8 * 2) - 1] of TCnSM3Digest;
-  {* 基于 SM3 杂凑算法的一次性杂凑签名私钥，为 256 * 2 个随机值，为一致起见，长度取 SM3 的结果长度}
+  {* 基于 SM3 杂凑算法的一次性杂凑签名私钥，为 256 * 2 个随机值，为一致起见，单个随机值长度取 SM3 的结果长度}
 
   TCnOTSSM3PublicKey = array[0..(SizeOf(TCnSM3Digest) * 8 * 2) - 1] of TCnSM3Digest;
   {* 基于 SM3 杂凑算法的一次性杂凑签名公钥，为 256 * 2 个随机值的 SM3 杂凑值}
@@ -53,8 +56,10 @@ type
   TCnOTSSM3VerificationKey = array[0..(SizeOf(TCnSM3Digest) * 8) - 1] of TCnSM3Digest;
   {* 基于 SM3 杂凑算法的一次性杂凑签名验证密钥，实际上是从私钥中抽取的 256 个随机值}
 
+// =============== Lamport 发明的常规 OTS，结合 SHA256 杂凑算法 ================
+
   TCnOTSSHA256PrivateKey = array[0..(SizeOf(TCnSHA256Digest) * 8 * 2) - 1] of TCnSHA256Digest;
-  {* 基于 SHA256 杂凑算法的一次性杂凑签名私钥，为 256 * 2 个随机值，为一致起见，长度取 SHA256 的结果长度}
+  {* 基于 SHA256 杂凑算法的一次性杂凑签名私钥，为 256 * 2 个随机值，为一致起见，单个随机值长度取 SHA256 的结果长度}
 
   TCnOTSSHA256PublicKey = array[0..(SizeOf(TCnSHA256Digest) * 8 * 2) - 1] of TCnSHA256Digest;
   {* 基于 SHA256 杂凑算法的一次性杂凑签名公钥，为 256 * 2 个随机值的 SHA256 杂凑值}
@@ -64,6 +69,30 @@ type
 
   TCnOTSSHA256VerificationKey = array[0..(SizeOf(TCnSHA256Digest) * 8) - 1] of TCnSHA256Digest;
   {* 基于 SHA256 杂凑算法的一次性杂凑签名验证密钥，实际上是从私钥中抽取的 256 个随机值}
+
+// ===== Winternitz 发明的 W-OTS，取 n = 8 也即 1 字节，结合 SM3 杂凑算法 ======
+
+  TCnWOTSSM3PrivateKey = array[0..SizeOf(TCnSM3Digest) + 1] of TCnSM3Digest;
+  {* 基于 SM3 杂凑算法的 W-OTS 私钥，为 32 个随机值加上一个双字节校验和，为一致起见，单个随机值长度取 SM3 的结果长度}
+
+  TCnWOTSSM3PublicKey = array[0..SizeOf(TCnSM3Digest) + 1] of TCnSM3Digest;
+  {* 基于 SM3 杂凑算法的 W-OTS 公钥，为 32 个随机值加上一个双字节校验和各计算 256 次得到的 SM3 杂凑值}
+
+  TCnWOTSSM3Signature = array[0..SizeOf(TCnSM3Digest) + 1] of TCnSM3Digest;
+  {* 基于 SM3 杂凑算法的 W-OTS 签名，为 32 个 SM3 杂凑值加上一个双字节校验和，注意双字节按网络顺序存储}
+
+// ===== Winternitz 发明的 W-OTS，取 n = 8 也即 1 字节，结合 SHA256 杂凑算法 ======
+
+  TCnWOTSSHA256PrivateKey = array[0..SizeOf(TCnSHA256Digest) + 1] of TCnSHA256Digest;
+  {* 基于 SHA256 杂凑算法的 W-OTS 私钥，为 32 个随机值加上一个双字节校验和，为一致起见，单个随机值长度取 SHA256 的结果长度}
+
+  TCnWOTSSHA256PublicKey = array[0..SizeOf(TCnSHA256Digest) + 1] of TCnSHA256Digest;
+  {* 基于 SHA256 杂凑算法的 W-OTS 公钥，为 32 个随机值加上一个双字节校验和各计算 256 次得到的 SHA256 杂凑值}
+
+  TCnWOTSSHA256Signature = array[0..SizeOf(TCnSHA256Digest) + 1] of TCnSHA256Digest;
+  {* 基于 SHA256 杂凑算法的 W-OTS 签名，为 32 个 SHA256 杂凑值加上一个双字节校验和，注意双字节按网络顺序存储}
+
+// ================ Lamport 发明的常规 OTS，结合 SM3 杂凑算法 ==================
 
 function CnOTSSM3GenerateKeys(var PrivateKey: TCnOTSSM3PrivateKey;
   var PublicKey: TCnOTSSM3PublicKey): Boolean;
@@ -94,6 +123,8 @@ function CnOTSSM3VerifyBytes(Data: TBytes; Signature: TCnOTSSM3Signature;
   PublicKey: TCnOTSSM3PublicKey; VerifyKey: TCnOTSSM3VerificationKey): Boolean;
 {* 根据明文、公布的验证密钥与公钥验证字节数组的签名是否正确，返回验证是否成功}
 
+// =============== Lamport 发明的常规 OTS，结合 SHA256 杂凑算法 ================
+
 function CnOTSSHA256GenerateKeys(var PrivateKey: TCnOTSSHA256PrivateKey;
   var PublicKey: TCnOTSSHA256PublicKey): Boolean;
 {* 生成一对基于 SHA256 杂凑算法的一次性杂凑签名公私钥，返回生成是否成功}
@@ -123,7 +154,58 @@ function CnOTSSHA256VerifyBytes(Data: TBytes; Signature: TCnOTSSHA256Signature;
   PublicKey: TCnOTSSHA256PublicKey; VerifyKey: TCnOTSSHA256VerificationKey): Boolean;
 {* 根据明文、公布的验证密钥与公钥验证字节数组的签名是否正确，返回验证是否成功}
 
+// ===== Winternitz 发明的 W-OTS，取 n = 8 也即 1 字节，结合 SM3 杂凑算法 ======
+
+function CnWOTSSM3GenerateKeys(var PrivateKey: TCnWOTSSM3PrivateKey;
+  var PublicKey: TCnWOTSSM3PublicKey): Boolean;
+{* 生成一对基于 SM3 杂凑算法的 W-OTS 一次性杂凑签名公私钥，返回生成是否成功}
+
+procedure CnWOTSSM3SignData(Data: Pointer; DataByteLen: Integer;
+  PrivateKey: TCnWOTSSM3PrivateKey; var OutSignature: TCnWOTSSM3Signature);
+{* 根据私钥生成指定内存块数据的一次性杂凑签名及验证这个签名的密钥。
+  平时公布明文、签名值，有验证需求时，给验证方公布公钥}
+
+function CnWOTSSM3VerifyData(Data: Pointer; DataByteLen: Integer;
+  Signature: TCnWOTSSM3Signature; PublicKey: TCnWOTSSM3PublicKey): Boolean;
+{* 根据明文、公布的公钥验证指定内存块数据的签名是否正确，返回验证是否成功}
+
+procedure CnWOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnWOTSSM3PrivateKey;
+  var OutSignature: TCnWOTSSM3Signature);
+{* 根据私钥生成字节数组的一次性杂凑签名及验证这个签名的密钥。
+  平时公布明文、签名值，有验证需求时，给验证方公布公钥}
+
+function CnWOTSSM3VerifyBytes(Data: TBytes; Signature: TCnWOTSSM3Signature;
+  PublicKey: TCnWOTSSM3PublicKey): Boolean;
+{* 根据明文、公布的公钥验证指定内存块数据的签名是否正确，返回验证是否成功}
+
+// ===== Winternitz 发明的 W-OTS，取 n = 8 也即 1 字节，结合 SHA256 杂凑算法 ======
+
+function CnWOTSSHA256GenerateKeys(var PrivateKey: TCnWOTSSHA256PrivateKey;
+  var PublicKey: TCnWOTSSHA256PublicKey): Boolean;
+{* 生成一对基于 SHA256 杂凑算法的 W-OTS 一次性杂凑签名公私钥，返回生成是否成功}
+
+procedure CnWOTSSHA256SignData(Data: Pointer; DataByteLen: Integer;
+  PrivateKey: TCnWOTSSHA256PrivateKey; var OutSignature: TCnWOTSSHA256Signature);
+{* 根据私钥生成指定内存块数据的一次性杂凑签名及验证这个签名的密钥。
+  平时公布明文、签名值，有验证需求时，给验证方公布公钥}
+
+function CnWOTSSHA256VerifyData(Data: Pointer; DataByteLen: Integer;
+  Signature: TCnWOTSSHA256Signature; PublicKey: TCnWOTSSHA256PublicKey): Boolean;
+{* 根据明文、公布的公钥验证指定内存块数据的签名是否正确，返回验证是否成功}
+
+procedure CnWOTSSHA256SignBytes(Data: TBytes; PrivateKey: TCnWOTSSHA256PrivateKey;
+  var OutSignature: TCnWOTSSHA256Signature);
+{* 根据私钥生成字节数组的一次性杂凑签名及验证这个签名的密钥。
+  平时公布明文、签名值，有验证需求时，给验证方公布公钥}
+
+function CnWOTSSHA256VerifyBytes(Data: TBytes; Signature: TCnWOTSSHA256Signature;
+  PublicKey: TCnWOTSSHA256PublicKey): Boolean;
+{* 根据明文、公布的公钥验证指定内存块数据的签名是否正确，返回验证是否成功}
+
 implementation
+
+const
+  CN_WOTS_ROUND = 256;
 
 function CnOTSSM3GenerateKeys(var PrivateKey: TCnOTSSM3PrivateKey;
   var PublicKey: TCnOTSSM3PublicKey): Boolean;
@@ -313,6 +395,290 @@ begin
     Result := CnOTSSHA256VerifyData(nil, 0, Signature, PublicKey, VerifyKey)
   else
     Result := CnOTSSHA256VerifyData(@Data[0], Length(Data), Signature, PublicKey, VerifyKey);
+end;
+
+function CnWOTSSM3GenerateKeys(var PrivateKey: TCnWOTSSM3PrivateKey;
+  var PublicKey: TCnWOTSSM3PublicKey): Boolean;
+var
+  I, J: Integer;
+  Dig: TCnSM3Digest;
+begin
+  Result := CnRandomFillBytes(@PrivateKey[0], SizeOf(TCnWOTSSM3PrivateKey));
+  if Result then
+  begin
+    for I := Low(TCnWOTSSM3PublicKey) to High(TCnWOTSSM3PublicKey) do
+    begin
+      Dig := PrivateKey[I];
+      for J := 0 to CN_WOTS_ROUND - 1 do
+        Dig := SM3(@Dig[0], SizeOf(TCnSM3Digest));
+
+      PublicKey[I] := Dig;
+    end;
+  end;
+end;
+
+procedure CnWOTSSM3SignData(Data: Pointer; DataByteLen: Integer;
+  PrivateKey: TCnWOTSSM3PrivateKey; var OutSignature: TCnWOTSSM3Signature);
+var
+  I, J: Integer;
+  Dig, D: TCnSM3Digest;
+  P: PByte;
+  Sum, B: Word;
+begin
+  Dig := SM3(PAnsiChar(Data), DataByteLen);
+  Sum := 0;
+
+  for I := 0 to SizeOf(TCnSM3Digest) - 1 do
+  begin
+    D := PrivateKey[I];
+    B := CN_WOTS_ROUND - Dig[I];             // 避免 Byte 溢出，要用 Word
+
+    for J := 0 to B - 1 do
+      D := SM3(@D[0], SizeOf(TCnSM3Digest)); // 根据字节数，用私钥计算 256 - 每个字节的杂凑次数
+
+    OutSignature[I] := D;
+    Sum := Sum + Dig[I];
+  end;
+
+  // 对两位校验和也同样计算
+  Sum := UInt16HostToNetwork(Sum);
+  P := PByte(@Sum);
+
+  D := PrivateKey[High(TCnSM3Digest) + 1];
+  B := CN_WOTS_ROUND - P^;
+  for J := 0 to B - 1 do
+    D := SM3(@D[0], SizeOf(TCnSM3Digest));
+  OutSignature[High(TCnSM3Digest) + 1] := D;
+
+  Inc(P);
+  D := PrivateKey[High(TCnSM3Digest) + 2];
+  B := CN_WOTS_ROUND - P^;
+  for J := 0 to B - 1 do
+    D := SM3(@D[0], SizeOf(TCnSM3Digest));
+  OutSignature[High(TCnSM3Digest) + 2] := D;
+end;
+
+function CnWOTSSM3VerifyData(Data: Pointer; DataByteLen: Integer;
+  Signature: TCnWOTSSM3Signature; PublicKey: TCnWOTSSM3PublicKey): Boolean;
+var
+  I, J: Integer;
+  Dig, D: TCnSM3Digest;
+  P: PByte;
+  Sum, B: Word;
+begin
+  Result := False;
+
+  Dig := SM3(PAnsiChar(Data), DataByteLen);
+  Sum := 0;
+
+  for I := 0 to SizeOf(TCnSM3Digest) - 1 do
+  begin
+    D := Signature[I];
+    B := Dig[I];                             // 避免 Byte 溢出，要用 Word
+
+    for J := 0 to B - 1 do
+      D := SM3(@D[0], SizeOf(TCnSM3Digest)); // 根据字节数，用私钥计算每个字节的杂凑次数
+
+    if not SM3Match(D, PublicKey[I]) then
+      Exit;
+
+    Sum := Sum + Dig[I];
+  end;
+
+  // 对两位校验和也同样计算
+  Sum := UInt16HostToNetwork(Sum);
+  P := PByte(@Sum);
+
+  D := Signature[High(TCnSM3Digest) + 1];
+  B := P^;
+  for J := 0 to B - 1 do
+    D := SM3(@D[0], SizeOf(TCnSM3Digest));
+
+  if not SM3Match(D, PublicKey[High(TCnSM3Digest) + 1]) then
+    Exit;
+
+  Inc(P);
+  D := Signature[High(TCnSM3Digest) + 2];
+  B := P^;
+  for J := 0 to B - 1 do
+    D := SM3(@D[0], SizeOf(TCnSM3Digest));
+
+  if not SM3Match(D, PublicKey[High(TCnSM3Digest) + 2]) then
+    Exit;
+
+  Result := True;
+end;
+
+procedure CnWOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnWOTSSM3PrivateKey;
+  var OutSignature: TCnWOTSSM3Signature);
+begin
+  if Length(Data) = 0 then
+    CnWOTSSM3SignData(nil, 0, PrivateKey, OutSignature)
+  else
+    CnWOTSSM3SignData(@Data[0], Length(Data), PrivateKey, OutSignature);
+end;
+
+function CnWOTSSM3VerifyBytes(Data: TBytes; Signature: TCnWOTSSM3Signature;
+  PublicKey: TCnWOTSSM3PublicKey): Boolean;
+begin
+  if Length(Data) = 0 then
+    Result := CnWOTSSM3VerifyData(nil, 0, Signature, PublicKey)
+  else
+    Result := CnWOTSSM3VerifyData(@Data[0], Length(Data), Signature, PublicKey);
+end;
+
+function CnWOTSSHA256GenerateKeys(var PrivateKey: TCnWOTSSHA256PrivateKey;
+  var PublicKey: TCnWOTSSHA256PublicKey): Boolean;
+var
+  I, J: Integer;
+  Dig: TCnSHA256Digest;
+  P: Pointer;
+begin
+  Result := CnRandomFillBytes(@PrivateKey[0], SizeOf(TCnWOTSSHA256PrivateKey));
+  if Result then
+  begin
+    for I := Low(TCnWOTSSHA256PublicKey) to High(TCnWOTSSHA256PublicKey) do
+    begin
+      Dig := PrivateKey[I];
+      for J := 0 to CN_WOTS_ROUND - 1 do
+      begin
+        P := @Dig[0];
+        Dig := SHA256Buffer(P, SizeOf(TCnSHA256Digest));
+      end;
+
+      PublicKey[I] := Dig;
+    end;
+  end;
+end;
+
+procedure CnWOTSSHA256SignData(Data: Pointer; DataByteLen: Integer;
+  PrivateKey: TCnWOTSSHA256PrivateKey; var OutSignature: TCnWOTSSHA256Signature);
+var
+  I, J: Integer;
+  Dig, D: TCnSHA256Digest;
+  P: PByte;
+  Sum, B: Word;
+  PB: Pointer;
+begin
+  Dig := SHA256Buffer(PAnsiChar(Data), DataByteLen);
+  Sum := 0;
+
+  for I := 0 to SizeOf(TCnSHA256Digest) - 1 do
+  begin
+    D := PrivateKey[I];
+    B := CN_WOTS_ROUND - Dig[I];             // 避免 Byte 溢出，要用 Word
+
+    for J := 0 to B - 1 do
+    begin
+      PB := @D[0];
+      D := SHA256Buffer(PB, SizeOf(TCnSHA256Digest)); // 根据字节数，用私钥计算 256 - 每个字节的杂凑次数
+    end;
+
+    OutSignature[I] := D;
+    Sum := Sum + Dig[I];
+  end;
+
+  // 对两位校验和也同样计算
+  Sum := UInt16HostToNetwork(Sum);
+  P := PByte(@Sum);
+
+  D := PrivateKey[High(TCnSHA256Digest) + 1];
+  B := CN_WOTS_ROUND - P^;
+  for J := 0 to B - 1 do
+  begin
+    PB := @D[0];
+    D := SHA256Buffer(PB, SizeOf(TCnSHA256Digest));
+  end;
+  OutSignature[High(TCnSHA256Digest) + 1] := D;
+
+  Inc(P);
+  D := PrivateKey[High(TCnSHA256Digest) + 2];
+  B := CN_WOTS_ROUND - P^;
+  for J := 0 to B - 1 do
+  begin
+    PB := @D[0];
+    D := SHA256Buffer(PB, SizeOf(TCnSHA256Digest));
+  end;
+  OutSignature[High(TCnSHA256Digest) + 2] := D;
+end;
+
+function CnWOTSSHA256VerifyData(Data: Pointer; DataByteLen: Integer;
+  Signature: TCnWOTSSHA256Signature; PublicKey: TCnWOTSSHA256PublicKey): Boolean;
+var
+  I, J: Integer;
+  Dig, D: TCnSHA256Digest;
+  P: PByte;
+  Sum, B: Word;
+  PB: Pointer;
+begin
+  Result := False;
+
+  Dig := SHA256Buffer(PAnsiChar(Data), DataByteLen);
+  Sum := 0;
+
+  for I := 0 to SizeOf(TCnSHA256Digest) - 1 do
+  begin
+    D := Signature[I];
+    B := Dig[I];                             // 避免 Byte 溢出，要用 Word
+
+    for J := 0 to B - 1 do
+    begin
+      PB := @D[0];
+      D := SHA256Buffer(PB, SizeOf(TCnSHA256Digest)); // 根据字节数，用私钥计算每个字节的杂凑次数
+    end;
+
+    if not SHA256Match(D, PublicKey[I]) then
+      Exit;
+
+    Sum := Sum + Dig[I];
+  end;
+
+  // 对两位校验和也同样计算
+  Sum := UInt16HostToNetwork(Sum);
+  P := PByte(@Sum);
+
+  D := Signature[High(TCnSHA256Digest) + 1];
+  B := P^;
+  for J := 0 to B - 1 do
+  begin
+    PB := @D[0];
+    D := SHA256Buffer(PB, SizeOf(TCnSHA256Digest));
+  end;
+
+  if not SHA256Match(D, PublicKey[High(TCnSHA256Digest) + 1]) then
+    Exit;
+
+  Inc(P);
+  D := Signature[High(TCnSHA256Digest) + 2];
+  B := P^;
+  for J := 0 to B - 1 do
+  begin
+    PB := @D[0];
+    D := SHA256Buffer(PB, SizeOf(TCnSHA256Digest));
+  end;
+
+  if not SHA256Match(D, PublicKey[High(TCnSHA256Digest) + 2]) then
+    Exit;
+
+  Result := True;
+end;
+
+procedure CnWOTSSHA256SignBytes(Data: TBytes; PrivateKey: TCnWOTSSHA256PrivateKey;
+  var OutSignature: TCnWOTSSHA256Signature);
+begin
+  if Length(Data) = 0 then
+    CnWOTSSHA256SignData(nil, 0, PrivateKey, OutSignature)
+  else
+    CnWOTSSHA256SignData(@Data[0], Length(Data), PrivateKey, OutSignature);
+end;
+
+function CnWOTSSHA256VerifyBytes(Data: TBytes; Signature: TCnWOTSSHA256Signature;
+  PublicKey: TCnWOTSSHA256PublicKey): Boolean;
+begin
+  if Length(Data) = 0 then
+    Result := CnWOTSSHA256VerifyData(nil, 0, Signature, PublicKey)
+  else
+    Result := CnWOTSSHA256VerifyData(@Data[0], Length(Data), Signature, PublicKey);
 end;
 
 end.
