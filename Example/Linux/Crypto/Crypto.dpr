@@ -28,6 +28,7 @@ uses
   CnMD5 in '..\..\..\Source\Crypto\CnMD5.pas',
   CnNative in '..\..\..\Source\Crypto\CnNative.pas',
   CnOTP in '..\..\..\Source\Crypto\CnOTP.pas',
+  CnOTS in '..\..\..\Source\Crypto\CnOTS.pas',
   CnPaillier in '..\..\..\Source\Crypto\CnPaillier.pas',
   CnPemUtils in '..\..\..\Source\Crypto\CnPemUtils.pas',
   CnPoly1305 in '..\..\..\Source\Crypto\CnPoly1305.pas',

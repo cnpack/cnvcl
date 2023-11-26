@@ -44,7 +44,7 @@ uses
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
-  CnPolynomial, CnBits, CnLattice;
+  CnPolynomial, CnBits, CnLattice, CnOTS;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
@@ -273,6 +273,13 @@ function TestPaillier2: Boolean;
 
 function TestSecretSharingShamir: Boolean;
 function TestSecretSharingFeldmanVss: Boolean;
+
+// ================================ OTS ========================================
+
+function TestOTSSM3: Boolean;
+function TestOTSSHA256: Boolean;
+function TestWOTSSM3: Boolean;
+function TestWOTSSHA256: Boolean;
 
 // ================================ ECC ========================================
 
@@ -533,6 +540,13 @@ begin
 
   MyAssert(TestSecretSharingShamir, 'TestSecretSharingShamir');
   MyAssert(TestSecretSharingFeldmanVss, 'TestSecretSharingFeldmanVss');
+
+// ================================ OTS ========================================
+
+  MyAssert(TestOTSSM3, 'TestOTSSM3');
+  MyAssert(TestOTSSHA256, 'TestOTSSHA256');
+  MyAssert(TestWOTSSM3, 'TestWOTSSM3');
+  MyAssert(TestWOTSSHA256, 'TestWOTSSHA256');
 
 // ================================ ECC ========================================
 
@@ -4068,6 +4082,82 @@ begin
     S.Free;
     G.Free;
   end;
+end;
+
+// ================================ OTS ========================================
+
+function TestOTSSM3: Boolean;
+var
+  Priv: TCnOTSSM3PrivateKey;
+  Pub: TCnOTSSM3PublicKey;
+  Sig: TCnOTSSM3Signature;
+  Ver: TCnOTSSM3VerificationKey;
+  S: AnsiString;
+  B: TBytes;
+begin
+  Result := CnOTSSM3GenerateKeys(Priv, Pub);
+  if not Result then Exit;
+
+  S := 'Test Message for Hash Based One Time Signature.';
+  B := AnsiToBytes(S);
+  CnOTSSM3SignBytes(B, Priv, Pub, Sig, Ver);
+
+  Result := CnOTSSM3VerifyBytes(B, Sig, Pub, Ver);
+end;
+
+function TestOTSSHA256: Boolean;
+var
+  Priv: TCnOTSSHA256PrivateKey;
+  Pub: TCnOTSSHA256PublicKey;
+  Sig: TCnOTSSHA256Signature;
+  Ver: TCnOTSSHA256VerificationKey;
+  S: AnsiString;
+  B: TBytes;
+begin
+  Result := CnOTSSHA256GenerateKeys(Priv, Pub);
+  if not Result then Exit;
+
+  S := 'Test Message for Hash Based One Time Signature.';
+  B := AnsiToBytes(S);
+  CnOTSSHA256SignBytes(B, Priv, Pub, Sig, Ver);
+
+  Result := CnOTSSHA256VerifyBytes(B, Sig, Pub, Ver);
+end;
+
+function TestWOTSSM3: Boolean;
+var
+  Priv: TCnWOTSSM3PrivateKey;
+  Pub: TCnWOTSSM3PublicKey;
+  Sig: TCnWOTSSM3Signature;
+  S: AnsiString;
+  B: TBytes;
+begin
+  Result := CnWOTSSM3GenerateKeys(Priv, Pub);
+  if not Result then Exit;
+
+  S := 'Test Message for Hash Based One Time Signature.';
+  B := AnsiToBytes(S);
+  CnWOTSSM3SignBytes(B, Priv, Sig);
+
+  Result := CnWOTSSM3VerifyBytes(B, Sig, Pub);
+end;
+
+function TestWOTSSHA256: Boolean;
+var
+  Priv: TCnWOTSSHA256PrivateKey;
+  Pub: TCnWOTSSHA256PublicKey;
+  Sig: TCnWOTSSHA256Signature;
+  S: AnsiString;
+  B: TBytes;
+begin
+  Result := CnWOTSSHA256GenerateKeys(Priv, Pub);
+  if not Result then Exit;
+
+  S := 'Test Message for Hash Based One Time Signature.';
+  B := AnsiToBytes(S);
+  CnWOTSSHA256SignBytes(B, Priv, Sig);
+
+  Result := CnWOTSSHA256VerifyBytes(B, Sig, Pub);
 end;
 
 // ================================ ECC ========================================
