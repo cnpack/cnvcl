@@ -388,11 +388,15 @@ begin
        Result := Pointer(InterlockedCompareExchange(Integer(Target), Integer(NewValue), Integer(Comperand)));
     {$ENDIF}
   {$ELSE}
-  {$IFDEF FPC}
-  Result := Pointer(InterlockedCompareExchange(LongInt(Target), LongInt(NewValue), LongInt(Comperand)));
-  {$ELSE}// D567 下的 InterlockedCompareExchange 被声明为 Pointer
-  Result := InterlockedCompareExchange(Target, NewValue, Comperand);
-  {$ENDIF}
+    {$IFDEF FPC}
+      {$IFDEF CPU64BITS}
+      Result := Pointer(InterlockedCompareExchange64(QWord(Target), QWord(NewValue), QWord(Comperand)));
+      {$ELSE}
+      Result := Pointer(InterlockedCompareExchange(LongInt(Target), LongInt(NewValue), LongInt(Comperand)));
+      {$ENDIF}
+    {$ELSE}// D567 下的 InterlockedCompareExchange 被声明为 Pointer
+      Result := InterlockedCompareExchange(Target, NewValue, Comperand);
+    {$ENDIF}
   {$ENDIF}
 {$ENDIF}
 end;
