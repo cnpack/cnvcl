@@ -44,7 +44,9 @@ unit CnCertificateAuthority;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.12.09 V1.5
+* 修改记录：2023.11.27 V1.6
+*               读 PEM 格式的 CRT 证书时也支持二进制 ASN.1 格式的 CER 证书
+*           2021.12.09 V1.5
 *               加入 SM2/SM3 证书类型的解析支持
 *           2020.04.17 V1.4
 *               支持 ECC/RSA 证书父子校验
@@ -504,11 +506,11 @@ function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey: TCnEccPub
 
 function CnCALoadCertificateFromFile(const FileName: string;
   Certificate: TCnCertificate): Boolean;
-{* 解析 PEM 格式的 CRT 证书文件并将内容放入 TCnCertificate 对象中}
+{* 解析 PEM 格式的 CRT 证书文件或原始的二进制 CER 文件，并将内容放入 TCnCertificate 对象中}
 
 function CnCALoadCertificateFromStream(Stream: TStream;
   Certificate: TCnCertificate): Boolean;
-{* 解析 PEM 格式的 CRT 证书流并将内容放入 TCnCertificate 对象中}
+{* 解析 PEM 格式的 CRT 证书流或原始的二进制 CER 流，并将内容放入 TCnCertificate 对象中}
 
 function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string;
   const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
@@ -2054,7 +2056,7 @@ begin
   try
     Mem := TMemoryStream.Create;
     if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD, PEM_CERTIFICATE_TAIL, Mem) then
-      Exit;
+      Mem.LoadFromStream(Stream); // 如果以 PEM 方式加载失败，则尝试以原始二进制方式加载
 
     Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, True);
     Reader.ParseToTree;

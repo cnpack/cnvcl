@@ -196,7 +196,7 @@ cnpack\Source 目录内容说明：
 \Crypto - 加解密算法目录
 
   Cn25519.pas
-    Curve25519/Ed25519 系列椭圆曲线实现单元
+    Curve25519/Ed25519/448 系列椭圆曲线实现单元
 
   CnAEAD.pas
     AEAD 关联数据认证加密算法单元
@@ -246,6 +246,9 @@ cnpack\Source 目录内容说明：
   CnKDF.pas
     密码生成算法单元
 
+  CnLattice.pas
+    格密码计算单元
+
   CnMD5.pas
     MD5 算法单元
 
@@ -254,6 +257,9 @@ cnpack\Source 目录内容说明：
 
   CnOTP.pas
     动态口令实现单元
+
+  CnOTS.pas
+    一次性杂凑签名实现单元
 
   CnPaillier.pas
     加法同态 Paillier 算法实现单元
@@ -303,10 +309,13 @@ cnpack\Source 目录内容说明：
   CnTEA.pas
     TEA/XTEA/XXTEA 算法实现单元
 
+  CnVector.pas
+    向量计算实现单元
+
   CnZUC.pas
     祖冲之算法实现单元
 
-                共 38 文件
+                共 41 文件
 
 \DbReport －数据库组件与报表库目录
 
