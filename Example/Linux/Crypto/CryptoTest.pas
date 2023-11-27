@@ -278,6 +278,8 @@ function TestSecretSharingFeldmanVss: Boolean;
 
 function TestOTSSM3: Boolean;
 function TestOTSSHA256: Boolean;
+function TestMOTSSM3: Boolean;
+function TestMOTSSHA256: Boolean;
 function TestWOTSSM3: Boolean;
 function TestWOTSSHA256: Boolean;
 
@@ -545,6 +547,8 @@ begin
 
   MyAssert(TestOTSSM3, 'TestOTSSM3');
   MyAssert(TestOTSSHA256, 'TestOTSSHA256');
+  MyAssert(TestMOTSSM3, 'TestMOTSSM3');
+  MyAssert(TestMOTSSHA256, 'TestMOTSSHA256');
   MyAssert(TestWOTSSM3, 'TestWOTSSM3');
   MyAssert(TestWOTSSHA256, 'TestWOTSSHA256');
 
@@ -4122,6 +4126,42 @@ begin
   CnOTSSHA256SignBytes(B, Priv, Pub, Sig, Ver);
 
   Result := CnOTSSHA256VerifyBytes(B, Sig, Pub, Ver);
+end;
+
+function TestMOTSSM3: Boolean;
+var
+  Priv: TCnMOTSSM3PrivateKey;
+  Pub: TCnMOTSSM3PublicKey;
+  Sig: TCnMOTSSM3Signature;
+  S: AnsiString;
+  B: TBytes;
+begin
+  Result := CnMOTSSM3GenerateKeys(Priv, Pub);
+  if not Result then Exit;
+
+  S := 'Test Message for Hash Based One Time Signature.';
+  B := AnsiToBytes(S);
+  CnMOTSSM3SignBytes(B, Priv, Sig);
+
+  Result := CnMOTSSM3VerifyBytes(B, Sig, Pub);
+end;
+
+function TestMOTSSHA256: Boolean;
+var
+  Priv: TCnMOTSSHA256PrivateKey;
+  Pub: TCnMOTSSHA256PublicKey;
+  Sig: TCnMOTSSHA256Signature;
+  S: AnsiString;
+  B: TBytes;
+begin
+  Result := CnMOTSSHA256GenerateKeys(Priv, Pub);
+  if not Result then Exit;
+
+  S := 'Test Message for Hash Based One Time Signature.';
+  B := AnsiToBytes(S);
+  CnMOTSSHA256SignBytes(B, Priv, Sig);
+
+  Result := CnMOTSSHA256VerifyBytes(B, Sig, Pub);
 end;
 
 function TestWOTSSM3: Boolean;
