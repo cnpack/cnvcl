@@ -310,6 +310,12 @@ type
     function SetAsn1Hex(const Buf: AnsiString): Boolean;
     {* 从 ASN1 的 BER/DER 格式的十六进制字符串中加载 R S，返回加载是否成功}
 
+    function ToAsn1Base64: string;
+    {* 将 R S 拼接包装为 ASN1 的 BER/DER 格式的内容后再 Base64 编码}
+
+    function SetAsn1Base64(const Buf: AnsiString): Boolean;
+    {* 从 ASN1 的 BER/DER 格式的 Base64 字符串中加载 R S，返回加载是否成功}
+
     property R: TCnBigNumber read FR;
     {* 签名 R 值}
     property S: TCnBigNumber read FS;
@@ -8463,6 +8469,39 @@ begin
   inherited;
 end;
 
+function TCnEccSignature.SetAsn1Base64(const Buf: AnsiString): Boolean;
+var
+  B: TBytes;
+  Reader: TCnBerReader;
+  NR, NS: TCnBerReadNode;
+begin
+  Result := False;
+  B := HexToBytes(string(Buf));
+  if Length(B) <= 1 then
+    Exit;
+
+  Reader := nil;
+  try
+    if Base64Decode(string(Buf), B) = ECN_BASE64_OK then
+    begin
+      Reader := TCnBerReader.Create(PByte(@B[0]), Length(B));
+      Reader.ParseToTree;
+
+      if Reader.TotalCount = 3 then
+      begin
+        NR := Reader.Items[1];
+        NS := Reader.Items[2];
+
+        PutIndexedBigIntegerToBigNumber(NR, FR);
+        PutIndexedBigIntegerToBigNumber(NS, FS);
+        Result := True;
+      end;
+    end;
+  finally
+    Reader.Free;
+  end;
+end;
+
 function TCnEccSignature.SetAsn1Hex(const Buf: AnsiString): Boolean;
 var
   B: TBytes;
@@ -8516,6 +8555,32 @@ begin
   C := Length(Buf) div 2;
   FR.SetHex(Copy(Buf, 1, C));
   FS.SetHex(Copy(Buf, C + 1, MaxInt));
+end;
+
+function TCnEccSignature.ToAsn1Base64: string;
+var
+  Writer: TCnBerWriter;
+  Root: TCnBerWriteNode;
+  Stream: TMemoryStream;
+begin
+  Writer := nil;
+  Stream := nil;
+
+  try
+    Writer := TCnBerWriter.Create;
+
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    AddBigNumberToWriter(Writer, FR, Root);
+    AddBigNumberToWriter(Writer, FS, Root);
+
+    Stream := TMemoryStream.Create;
+    Writer.SaveToStream(Stream);
+
+    Base64Encode(Stream, Result);
+  finally
+    Writer.Free;
+    Stream.Free;
+  end;
 end;
 
 function TCnEccSignature.ToAsn1Hex: string;
