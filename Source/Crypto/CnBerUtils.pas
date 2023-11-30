@@ -771,10 +771,25 @@ end;
 function TCnBerReadNode.AsDateTime: TDateTime;
 var
   S: string;
+  Y, M, D, H, Mi, Se: Word;
 begin
   S := string(InternalAsString(CN_TAG_SET_TIME));
   // TODO: YYMMDDhhmm 后面加 Z 或 ss 或 +- 时区
+  if (Length(S) in [11, 13]) and (S[Length(S)] = 'Z') then
+  begin
+    Y := StrToInt(Copy(S, 1, 2)) + 2000;
+    M := StrToInt(Copy(S, 3, 2));
+    D := StrToInt(Copy(S, 5, 2));
+    H := StrToInt(Copy(S, 7, 2));
+    Mi := StrToInt(Copy(S, 9, 2));
+    if Length(S) = 13 then
+      Se := StrToInt(Copy(S, 11, 2))
+    else
+      Se := 0;
 
+    Result := EncodeDate(Y, M, D) + EncodeTime(H, Mi, Se, 0);
+  end
+  else
   Result := StrToDateTime(S);
   // TODO: 也可能是 Integer 的 Binary Time 格式，
   // 1970 年 1 月 1 日零时起的秒数，参考 rfc4049
