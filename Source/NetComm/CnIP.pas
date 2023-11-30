@@ -160,16 +160,17 @@ type
     {* 通过主机名称得到 IP，aName='' 表示取本机名称}
     class function GetNameByIP(var aName: string; const aIP: string = ''): Boolean;
     {* 通过 IP 得到主机名称，aIpAddr='' 表示取本机 IP}
+
   published
-    property IPAddress: string read GetIPAddress write SetIPAddress;
+    property IPAddress: string read GetIPAddress write SetIPAddress stored False;
     {* IP 地址字符串形式，默认为本机 IP 地址}
-    property SubnetMask: string read GetSubnetMask write SetSubnetMask;
+    property SubnetMask: string read GetSubnetMask write SetSubnetMask stored False;
     {* IP 地址的子网掩码}
-    property ComputerName: string read GetComputerName;
+    property ComputerName: string read GetComputerName stored False;
     {* 本机名称}
-    property MacAddress: string read GetMacAddress;
+    property MacAddress: string read GetMacAddress stored False;
     {* 本机 Mac 地址}
-    property BroadCastIP: string read GetBroadCastIP;
+    property BroadCastIP: string read GetBroadCastIP stored False;
     {* 广播地址}
   end;
 
