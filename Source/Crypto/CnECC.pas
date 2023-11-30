@@ -8476,11 +8476,8 @@ var
   NR, NS: TCnBerReadNode;
 begin
   Result := False;
-  B := HexToBytes(string(Buf));
-  if Length(B) <= 1 then
-    Exit;
-
   Reader := nil;
+
   try
     if Base64Decode(string(Buf), B) = ECN_BASE64_OK then
     begin
