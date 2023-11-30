@@ -8576,7 +8576,7 @@ begin
     Stream := TMemoryStream.Create;
     Writer.SaveToStream(Stream);
 
-    Base64Encode(Stream, Result);
+    Base64Encode(Stream.Memory, Stream.Size, Result);
   finally
     Writer.Free;
     Stream.Free;
