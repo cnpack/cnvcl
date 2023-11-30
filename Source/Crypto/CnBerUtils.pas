@@ -389,31 +389,6 @@ begin
   end;
 end;
 
-function SwapWord(Value: Word): Word;
-begin
-  Result := ((Value and $FF00) shr 8) or ((Value and $00FF) shl 8);
-end;
-
-function SwapCardinal(Value: Cardinal): Cardinal;
-begin
-  Result := ((Value and $000000FF) shl 24) or ((Value and $0000FF00) shl 8)
-    or ((Value and $00FF0000) shr 8) or ((Value and $FF000000) shr 24);
-end;
-
-function SwapInt64(Value: Int64): Int64;
-var
-  Lo, Hi: Cardinal;
-  Rec: Int64Rec;
-begin
-  Lo := Int64Rec(Value).Lo;
-  Hi := Int64Rec(Value).Hi;
-  Lo := SwapCardinal(Lo);
-  Hi := SwapCardinal(Hi);
-  Rec.Lo := Hi;
-  Rec.Hi := Lo;
-  Result := Int64(Rec);
-end;
-
 function CompareObjectIdentifier(Node: TCnBerReadNode; OIDAddr: Pointer;
   OIDSize: Integer): Boolean;
 var
@@ -687,9 +662,9 @@ begin
 
   // Byte 不需交换，SmallInt 交换两位，Integer 交换四位
   if ByteSize = SizeOf(Word) then
-    IntValue := Integer(SwapWord(Word(IntValue)))
+    IntValue := Integer(UInt16NetworkToHost(Word(IntValue)))
   else if ByteSize = SizeOf(Cardinal) then
-    IntValue := SwapCardinal(IntValue);
+    IntValue := UInt32NetworkToHost(IntValue);
   Result := IntValue;
 end;
 
@@ -704,7 +679,7 @@ begin
 
   Result := 0;
   CopyDataTo(@Result);
-  Result := SwapInt64(Result);
+  Result := Int64NetworkToHost(Result);
 end;
 
 function TCnBerReadNode.AsByte: Byte;
@@ -894,9 +869,9 @@ begin
 
   // Byte 不需交换，SmallInt 交换两位，Integer 交换四位
   if FBerDataLength = SizeOf(Word) then
-    IntValue := Integer(SwapWord(Word(IntValue)))
+    IntValue := Integer(UInt16NetworkToHost(Word(IntValue)))
   else if FBerDataLength = SizeOf(Cardinal) then
-    IntValue := SwapCardinal(IntValue);
+    IntValue := UInt32NetworkToHost(IntValue);
   Result := IntValue;
 end;
 
@@ -1112,14 +1087,14 @@ begin
     begin
       LenLen := 2;
       W := ADataLen;
-      W := SwapWord(W);
+      W := UInt16HostToNetwork(W);
       Move(W, FHead[2], LenLen);
     end
     else if ADataLen < $1000000 then
     begin
       LenLen := 3;
       D := ADataLen;
-      D := SwapCardinal(D);
+      D := UInt32HostToNetwork(D);
       D := D shr 8;
       Move(D, FHead[2], LenLen);
     end
@@ -1127,7 +1102,7 @@ begin
     begin
       LenLen := 4;
       D := ADataLen;
-      D := SwapCardinal(D);
+      D := UInt32HostToNetwork(D);
       Move(D, FHead[2], LenLen);
     end;
 
