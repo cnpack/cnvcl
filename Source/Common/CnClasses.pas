@@ -28,7 +28,9 @@ unit CnClasses;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2018.08.30 V1.4
+* 修改记录：2023.11.30 V1.5
+*               新增封装字节数组的类
+*           2018.08.30 V1.4
 *               新增 TCnUInt32List/TCnUInt64List 类
 *           2003.03.02 V1.3
 *               新增 TCnLockObject 类
@@ -377,6 +379,31 @@ type
     // 内部下标、尺寸均由 TUInt64 表示，不过由于编译器限制实际上达不到 TUInt64
     property List: PCnUInt64Array read FList;
     property IgnoreDuplicated: Boolean read FIgnoreDuplicated write FIgnoreDuplicated;
+  end;
+
+  TCnBytesObject = class
+  {* 封装了字节数组的对象}
+  private
+    FData: TBytes;
+  public
+    constructor Create(AMem: Pointer = nil; MemByteSize: Integer = 0); virtual;
+    destructor Destroy; override;
+
+    property Data: TBytes read FData write FData;
+  end;
+
+  TCnBytesPair = class
+  {* 封装了俩字节数组的对象}
+  private
+    FKey: TBytes;
+    FValue: TBytes;
+  public
+    constructor Create(AKeyMem: Pointer = nil; KeyMemByteSize: Integer = 0;
+      AValueMem: Pointer = nil; ValueMemByteSize: Integer = 0); virtual;
+    destructor Destroy; override;
+
+    property Key: TBytes read FKey write FKey;
+    property Value: TBytes read FValue write FValue;
   end;
 
 procedure AssignPersistent(Source, Dest: TPersistent; UseDefineProperties:
@@ -1217,6 +1244,51 @@ begin
     for I := FCount - 1 downto NewCount do
       Delete(I);
   FCount := NewCount;
+end;
+
+{ TCnBytesObject }
+
+constructor TCnBytesObject.Create(AMem: Pointer; MemByteSize: Integer);
+begin
+  inherited Create;
+  if (AMem <> nil) and (MemByteSize > 0) then
+  begin
+    SetLength(FData, MemByteSize);
+    Move(AMem^, FData[0], MemByteSize);
+  end;
+end;
+
+destructor TCnBytesObject.Destroy;
+begin
+  SetLength(FData, 0);
+  inherited;
+end;
+
+{ TCnBytesPair }
+
+constructor TCnBytesPair.Create(AKeyMem: Pointer; KeyMemByteSize: Integer;
+  AValueMem: Pointer; ValueMemByteSize: Integer);
+begin
+  inherited Create;
+
+  if (AKeyMem <> nil) and (KeyMemByteSize > 0) then
+  begin
+    SetLength(FKey, KeyMemByteSize);
+    Move(AKeyMem^, FKey[0], KeyMemByteSize);
+  end;
+
+  if (AValueMem <> nil) and (ValueMemByteSize > 0) then
+  begin
+    SetLength(FValue, ValueMemByteSize);
+    Move(AValueMem^, FValue[0], ValueMemByteSize);
+  end;
+end;
+
+destructor TCnBytesPair.Destroy;
+begin
+  SetLength(FKey, 0);
+  SetLength(FValue, 0);
+  inherited;
 end;
 
 initialization
