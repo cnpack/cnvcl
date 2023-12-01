@@ -355,7 +355,8 @@ object FormSM2: TFormSM2
           Items.Strings = (
             'Hex'
             'Asn1Hex'
-            'Base64')
+            'Base64'
+            'Asn1Base64')
         end
       end
     end

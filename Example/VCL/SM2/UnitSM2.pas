@@ -197,7 +197,7 @@ const
   USER_B: AnsiString = 'BILL456@YAHOO.COM';
 
 type
-  TSm2ResFormat = (rfHex, rfAsn1Hex, rfBase64);
+  TSm2ResFormat = (rfHex, rfAsn1Hex, rfBase64, rfAsn1Base64);
 
 function HexToInt(const Hex: AnsiString): Integer;
 var
@@ -583,6 +583,7 @@ begin
         rfHex: mmoSignResult.Lines.Text := SignRes.ToHex(SM2.BytesCount);
         rfAsn1Hex: mmoSignResult.Lines.Text := SignRes.ToAsn1Hex;
         rfBase64: mmoSignResult.Lines.Text := SignRes.ToBase64(SM2.BytesCount);
+        rfAsn1Base64: mmoSignResult.Lines.Text := SignRes.ToAsn1Base64;
       end;
     end
     else
@@ -596,7 +597,8 @@ begin
       case TSm2ResFormat(cbbSM2SigFormat.ItemIndex) of
         rfHex: mmoSignResult.Lines.Text := SignRes.ToHex(SM2.BytesCount);
         rfAsn1Hex: mmoSignResult.Lines.Text := SignRes.ToAsn1Hex;
-        rfBase64: mmoSignResult.Lines.Text := SignRes.ToBase64(SM2.BytesCount)
+        rfBase64: mmoSignResult.Lines.Text := SignRes.ToBase64(SM2.BytesCount);
+        rfAsn1Base64: mmoSignResult.Lines.Text := SignRes.ToAsn1Base64;
       end;
     end
     else
@@ -726,7 +728,10 @@ begin
     rfAsn1Hex: SignRes.SetAsn1Hex(mmoSignResult.Lines.Text);
     rfBase64:
       if not SignRes.SetBase64(mmoSignResult.Lines.Text) then
-       ShowMessage('Invalid Base64 Signature.');
+        ShowMessage('Invalid Base64 Signature.');
+    rfAsn1Base64:
+      if not SignRes.SetAsn1Base64(mmoSignResult.Lines.Text) then
+        ShowMessage('Invalid Asn1 Base64 Signature.');
   end;
 
   if chkSignTBytes.Checked then
