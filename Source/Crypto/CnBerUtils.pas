@@ -526,7 +526,7 @@ var
   Run, Start: Cardinal;
   Tag, DataLen, DataOffset, LenLen, Delta: Integer;
   B: Byte;
-  IsStruct: Boolean;
+  IsStruct, LenSingle: Boolean;
   ALeaf: TCnBerReadNode;
 begin
   Run := 0;  // Run 是基于 AData 起始处的偏移量
@@ -559,10 +559,12 @@ begin
       DataOffset := AStartOffset + Run + 1;
       Inc(Delta); // 加上长度的这一字节
       Inc(Run);   // Run 指向数据
+      LenSingle := True;
     end
     else
     begin
       // 本字节高位为 1，表示长度的长度
+      LenSingle := False;
       LenLen := B and CN_BER_LENGTH_MASK;
       Inc(Delta); // 加上长度的长度这一字节
       Inc(Run);   // Run 指向长度
@@ -602,8 +604,12 @@ begin
       ALeaf.BerLength, ALeaf.BerTag, GetTagName(ALeaf.BerTag), ALeaf.BerDataLength]);
 {$ENDIF}
 
-    if IsStruct or (FParseInnerString and (ALeaf.BerTag in [CN_BER_TAG_BIT_STRING,
-      CN_BER_TAG_OCTET_STRING])) then
+    // 有子节点时对长度的要求：(DataLen > 0) 或 (DataLen = 0 且 LenSingle 为 False)
+    // 也就是说，单纯一个字节表示 DataLen 是 0，确实就表示没数据
+    // 组合表示 0，才说明是无固定长度数据，有子节点且最后一个字节点以 00 00 结尾
+    if (IsStruct or (FParseInnerString and (ALeaf.BerTag in [CN_BER_TAG_BIT_STRING,
+      CN_BER_TAG_OCTET_STRING])))
+      and ((DataLen > 0) or (DataLen = 0) and not LenSingle) then
     begin
       // 说明 BerDataOffset 到 BerDataLength 内可能有子节点
       try
