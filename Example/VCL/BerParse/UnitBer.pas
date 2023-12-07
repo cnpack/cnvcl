@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, CnTree, CnBase64;
+  StdCtrls, ComCtrls, CnTree, CnBase64, CnClasses, Menus;
 
 {
   测试的 bin 文件用 openssl 生成的 rsa key 经 base64 解码而来
@@ -23,6 +23,10 @@ type
     dlgSave: TSaveDialog;
     btnDeBase64Parse: TButton;
     chkParseInner: TCheckBox;
+    pmTree: TPopupMenu;
+    SaveNodeContent1: TMenuItem;
+    ShowContent1: TMenuItem;
+    SaveNodeContent2: TMenuItem;
     procedure btnParseClick(Sender: TObject);
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -32,12 +36,15 @@ type
     procedure btnDeBase64ParseClick(Sender: TObject);
     procedure tv1Collapsing(Sender: TObject; Node: TTreeNode;
       var AllowCollapse: Boolean);
+    procedure ShowContent1Click(Sender: TObject);
+    procedure SaveNodeContent1Click(Sender: TObject);
+    procedure SaveNodeContent2Click(Sender: TObject);
   private
-    FReadHints: TStrings;
+    FReadHints: TStringList;
     procedure SaveNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode;
       var Valid: Boolean);
   public
-    { Public declarations }
+    procedure ClearList;
   end;
 
 var
@@ -46,7 +53,7 @@ var
 implementation
 
 uses
-  CnBerUtils;
+  CnBerUtils, CnNative;
 
 {$R *.DFM}
 
@@ -172,7 +179,7 @@ begin
     end;
 
     Reader.OnSaveNode := SaveNode;
-    FReadHints.Clear;
+    ClearList;
     Reader.DumpToTreeView(tv1);
     if tv1.Items.Count > 0 then
       tv1.Items[0].Expand(True);
@@ -312,7 +319,7 @@ end;
 procedure TFormParseBer.SaveNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode;
   var Valid: Boolean);
 var
-  Head, Mem: Pointer;
+  Head, Mem, All: Pointer;
   BerNode: TCnBerReadNode;
   S: string;
 begin
@@ -330,10 +337,12 @@ begin
   end
   else
   begin
+    All := GetMemory(BerNode.BerLength);
     Mem := GetMemory(BerNode.BerDataLength);
     Head := GetMemory(BerNode.BerLength - BerNode.BerDataLength);
     if (Mem <> nil) and (Head <> nil) then
     begin
+      BerNode.CopyTLVTo(All);
       BerNode.CopyDataTo(Mem);
       BerNode.CopyHeadTo(Head);
       S := HexDumpMemory(Head, BerNode.BerLength - BerNode.BerDataLength)
@@ -352,6 +361,9 @@ begin
 
       FReadHints.Add(S);
       ATreeNode.Data := Pointer(FReadHints.Count - 1);
+      FReadHints.Objects[FReadHints.Count - 1] := TCnBytesPair.Create(Mem, BerNode.BerDataLength, All, BerNode.BerLength);
+
+      FreeMemory(All);
       FreeMemory(Mem);
       FreeMemory(Head);
     end;
@@ -365,6 +377,7 @@ end;
 
 procedure TFormParseBer.FormDestroy(Sender: TObject);
 begin
+  ClearList;
   FReadHints.Free;
 end;
 
@@ -464,6 +477,52 @@ procedure TFormParseBer.tv1Collapsing(Sender: TObject; Node: TTreeNode;
   var AllowCollapse: Boolean);
 begin
   AllowCollapse := False;
+end;
+
+procedure TFormParseBer.ShowContent1Click(Sender: TObject);
+begin
+  if tv1.Selected <> nil then
+    ShowMessage(FReadHints[Integer(tv1.Selected.Data)]);
+end;
+
+procedure TFormParseBer.SaveNodeContent1Click(Sender: TObject);
+var
+  F: TFileStream;
+begin
+  if tv1.Selected <> nil then
+  begin
+    if dlgSave.Execute then
+    begin
+      F := TFileStream.Create(dlgSave.FileName, fmCreate);
+      BytesToStream((FReadHints.Objects[Integer(tv1.Selected.Data)] as TCnBytesPair).Key, F);
+      F.Free;
+    end;
+  end;
+end;
+
+procedure TFormParseBer.ClearList;
+var
+  I: Integer;
+begin
+  for I := 0 to FReadHints.Count - 1 do
+    FReadHints.Objects[I].Free;
+
+  FReadHints.Clear;
+end;
+
+procedure TFormParseBer.SaveNodeContent2Click(Sender: TObject);
+var
+  F: TFileStream;
+begin
+  if tv1.Selected <> nil then
+  begin
+    if dlgSave.Execute then
+    begin
+      F := TFileStream.Create(dlgSave.FileName, fmCreate);
+      BytesToStream((FReadHints.Objects[Integer(tv1.Selected.Data)] as TCnBytesPair).Value, F);
+      F.Free;
+    end;
+  end;
 end;
 
 end.
