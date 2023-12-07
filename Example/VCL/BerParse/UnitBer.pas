@@ -167,7 +167,7 @@ begin
     begin
       Mem := TMemoryStream.Create;
       Mem.LoadFromFile(edtFile.Text);
-      Reader := TCnBerReader.Create(Mem.Memory, Mem.Size, True);
+      Reader := TCnBerReader.Create(Mem.Memory, Mem.Size, chkParseInner.Checked);
       Reader.ParseToTree;
     end;
 

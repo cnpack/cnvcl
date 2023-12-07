@@ -203,6 +203,7 @@ type
     FData: PByte;
     FDataLen: Cardinal;
     FParseInnerString: Boolean;
+    FCurrentIsBitString: Boolean;
 {$IFDEF DEBUG}
   {$IFDEF MSWINDOWS}
     function GetOnSaveNode: TCnTreeNodeEvent;
@@ -615,9 +616,20 @@ begin
       try
         if ALeaf.BerTag = CN_BER_TAG_BIT_STRING then
         begin
-          // BIT_STRING 数据区第一个内容字节是该 BIT_STRING 凑成 8 的倍数所缺少的 Bit 数，这里跳过
-          ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run + 1),
-            ALeaf.BerDataLength - 1, ALeaf.BerDataOffset + 1);
+          FCurrentIsBitString := True;
+          try
+            try
+              // BIT_STRING 数据区第一个内容字节是该 BIT_STRING 凑成 8 的倍数所缺少的 Bit 数，这里要跳过
+              ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run + 1),
+                ALeaf.BerDataLength - 1, ALeaf.BerDataOffset + 1);
+            except
+              // 但有些场合没这个字节。所以上面出错时，不跳过这个字节，重新解析
+              ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run),
+                ALeaf.BerDataLength, ALeaf.BerDataOffset);
+            end;
+          finally
+            FCurrentIsBitString := False;
+          end;
         end
         else
           ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run),
