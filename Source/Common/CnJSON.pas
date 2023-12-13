@@ -1311,6 +1311,7 @@ end;
 function TCnJSONPair.ToJSON(UseFormat: Boolean; Indent: Integer): AnsiString;
 begin
   // 不做，不应调用到这儿
+  Result := '';
 end;
 
 { TCnJSONBase }

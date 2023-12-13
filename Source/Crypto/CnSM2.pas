@@ -98,10 +98,10 @@ const
 
 type
   TCnSM2PrivateKey = TCnEccPrivateKey;
-  {* SM2 的私钥就是普通椭圆曲线的私钥}
+  {* SM2 的私钥就是普通椭圆曲线的私钥，可以用 ECC 中的相应 Load/Save 函数处理}
 
   TCnSM2PublicKey = TCnEccPublicKey;
-  {* SM2 的公钥就是普通椭圆曲线的公钥}
+  {* SM2 的公钥就是普通椭圆曲线的公钥，可以用 ECC 中的相应 Load/Save 函数处理}
 
   TCnSM2 = class(TCnEcc)
   {* SM2 椭圆曲线运算类，具体大部分实现在指定曲线类型的基类 TCnEcc 中}

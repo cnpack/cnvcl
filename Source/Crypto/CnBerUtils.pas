@@ -24,11 +24,13 @@ unit CnBerUtils;
 * 软件名称：开发包基础库
 * 单元名称：处理 ASN.1 的 BER 编码单元
 * 单元作者：刘啸
-* 备    注：
+* 备    注：不支持不定长编码
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.04.26 V1.5
+* 修改记录：2023.12.13 V1.6
+*               增加对 00 00 不固定长度节点的解析支持，待进一步测试
+*           2022.04.26 V1.5
 *               修改 LongWord 与 Integer 地址转换以支持 MacOS64
 *           2022.04.15 V1.4
 *               加入一 AsCommonInteger 方法允许自动根据数据长度 1、2、4 获取整型值。
@@ -216,9 +218,12 @@ type
 {$ENDIF}
     function GetTotalCount: Integer;
     function GetItems(Index: Integer): TCnBerReadNode;
-    procedure ParseArea(Parent: TCnLeaf; AData: PByteArray;
-      ADataLen: Cardinal; AStartOffset: Cardinal);
-    {* 解析一段数据，该数据里的所有 ASN.1 节点均序次挂在 Parent 节点下}
+    function ParseArea(Parent: TCnLeaf; AData: PByteArray; ADataLen: Cardinal;
+      AStartOffset: Cardinal; var IsEnd: Boolean; IsTop: Boolean = True): Cardinal;
+    {* 解析一段数据为一个或多个节点，该数据里的所有 ASN.1 节点均序次挂在 Parent 节点下，
+      返回这个 Area 的总长度。IsTop 表示是 Parent 是 Root 顶级节点，以处理长度问题。
+      ADataLen 如果传 0，表示是不定长节点，ParseArea 此时需要判断 00 00 以告知上一级结尾了
+      并通过 IsEnd 函数返回告诉调用者}
   protected
 
   public
@@ -521,18 +526,21 @@ begin
   Result := FBerTree.Root.AllCount;
 end;
 
-procedure TCnBerReader.ParseArea(Parent: TCnLeaf; AData: PByteArray;
-  ADataLen: Cardinal; AStartOffset: Cardinal);
+function TCnBerReader.ParseArea(Parent: TCnLeaf; AData: PByteArray;
+  ADataLen: Cardinal; AStartOffset: Cardinal; var IsEnd: Boolean; IsTop: Boolean): Cardinal;
 var
   Run, Start: Cardinal;
-  Tag, DataLen, DataOffset, LenLen, Delta: Integer;
+  Tag, DataLen, DataOffset, LenLen, Delta, SubLen: Integer;
   B: Byte;
-  IsStruct, LenSingle: Boolean;
+  IsStruct, OutLenIsZero, MyEnd, LenSingle: Boolean;
   ALeaf: TCnBerReadNode;
 begin
   Run := 0;  // Run 是基于 AData 起始处的偏移量
+  Result := ADataLen;
+  OutLenIsZero := ADataLen = 0;
+  MyEnd := False;
 
-  while Run < ADataLen do
+  while (ADataLen = 0) or (Run < ADataLen) do // ADataLen 如果等于 0 表示是不定长节点
   begin
     B := AData^[Run];
 
@@ -546,11 +554,21 @@ begin
     Tag := B and CN_BER_TAG_VALUE_MASK;
 
     Inc(Run);
-    if Run >= ADataLen then
+    if (Run >= ADataLen) and (ADataLen > 0) then
       raise Exception.CreateFmt('Data Corruption when Processing Tag (Base %d), %d > %d.',
         [AStartOffset, Run, ADataLen]);
 
-    // Run 指向长度，处理长度
+    // Run 指向长度，如果 Tag 和长度都是 0，表示不定长内容的终结，不新建节点
+    // 注意 ADataLen 可能因为是顶层节点，长度由外部传入，
+    if (IsTop or (ADataLen = 0)) and (B = 0) and (AData^[Run] = 0) then
+    begin
+      if OutLenIsZero then // 加 Tag 和 0 长度俩字节
+        Inc(Result, 2);
+      IsEnd := True;
+      Exit;
+    end;
+
+    // 处理长度
     Delta := 1;  // 1 表示 Tag 所占字节
     B := AData^[Run];
     if (B and CN_BER_LENLEN_MASK) = 0 then
@@ -568,23 +586,27 @@ begin
       LenSingle := False;
       LenLen := B and CN_BER_LENGTH_MASK;
       Inc(Delta); // 加上长度的长度这一字节
-      Inc(Run);   // Run 指向长度
+      Inc(Run);   // Run 指向具体长度，如果 LenLen 为 0，则 Run 指向下一个 Area 开头
 
       // AData[Run] 到 AData[Run + LenLen - 1] 是长度
-      if Run + Cardinal(LenLen) - 1 >= ADataLen then
+      if (ADataLen > 0) and (Run + Cardinal(LenLen) - 1 >= ADataLen) then
         raise Exception.CreateFmt('Data Corruption when Processing Tag (Base %d) at %d Got Len %d.',
           [AStartOffset, Run, LenLen]);
 
+      DataLen := 0;
       if LenLen = SizeOf(Byte) then
         DataLen := AData^[Run]
       else if LenLen = SizeOf(Word) then
         DataLen := (Cardinal(AData^[Run]) shl 8) or Cardinal(AData^[Run + 1])
-      else // if LenLen > SizeOf(Word) then
-        raise Exception.CreateFmt('Length Too Long (Base %d) %d.', [AStartOffset, LenLen]);
+      else if LenLen > SizeOf(Word) then  // TODO: LenLen = 0 时是不定长编码，BER 中支持，以 00 00 结尾
+        raise Exception.CreateFmt('Length Too Long or Incorrect (Base %d) %d.', [AStartOffset, LenLen]);
 
       DataOffset := AStartOffset + Run + Cardinal(LenLen);
-      Inc(Delta, LenLen);
-      Inc(Run, LenLen);   // Run 指向数据
+      if LenLen > 0 then
+      begin
+        Inc(Delta, LenLen);
+        Inc(Run, LenLen);   // Run 指向数据
+      end;
     end;
 
     // Tag, Len, DataOffset 都齐全了，Delta 是数据起始区与当前节点起始区的偏移
@@ -597,14 +619,18 @@ begin
     ALeaf.BerOffset := AStartOffset + Start;
     ALeaf.BerLength := DataLen + Delta;
     ALeaf.BerTag := Tag;
-    ALeaf.BerDataLength := DataLen;
+    ALeaf.BerDataLength := DataLen;  // 注意 DataLen 为 0 时，如 LenSingle 是 True，表示没东西，为 False 才表示未定长度
     ALeaf.BerDataOffset := DataOffset;
+
+    if OutLenIsZero then
+      Inc(Result, ALeaf.BerLength);
 
 {$IFDEF DEBUG}
     ALeaf.Text := Format('Offset %d. Len %d. Tag %d (%s). DataLen %d', [ALeaf.BerOffset,
       ALeaf.BerLength, ALeaf.BerTag, GetTagName(ALeaf.BerTag), ALeaf.BerDataLength]);
 {$ENDIF}
 
+    SubLen := 0;
     // 有子节点时对长度的要求：(DataLen > 0) 或 (DataLen = 0 且 LenSingle 为 False)
     // 也就是说，单纯一个字节表示 DataLen 是 0，确实就表示没数据
     // 组合表示 0，才说明是无固定长度数据，有子节点且最后一个字节点以 00 00 结尾
@@ -614,44 +640,57 @@ begin
     begin
       // 说明 BerDataOffset 到 BerDataLength 内可能有子节点
       try
-        if ALeaf.BerTag = CN_BER_TAG_BIT_STRING then
+        if (ALeaf.BerTag = CN_BER_TAG_BIT_STRING) and (AData^[Run + 1] < 8) then
         begin
           FCurrentIsBitString := True;
           try
             try
               // BIT_STRING 数据区第一个内容字节是该 BIT_STRING 凑成 8 的倍数所缺少的 Bit 数，这里要跳过
-              ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run + 1),
-                ALeaf.BerDataLength - 1, ALeaf.BerDataOffset + 1);
+              SubLen := ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run + 1),
+                ALeaf.BerDataLength - 1, ALeaf.BerDataOffset + 1, MyEnd, False);
             except
               // 但有些场合没这个字节。所以上面出错时，不跳过这个字节，重新解析
-              ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run),
-                ALeaf.BerDataLength, ALeaf.BerDataOffset);
+              SubLen := ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run),
+                ALeaf.BerDataLength, ALeaf.BerDataOffset, MyEnd, False);
             end;
           finally
             FCurrentIsBitString := False;
           end;
         end
         else
-          ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run),
-            ALeaf.BerDataLength, ALeaf.BerDataOffset);
+        begin
+          SubLen := ParseArea(ALeaf, PByteArray(TCnNativeUInt(AData) + Run),
+            ALeaf.BerDataLength, ALeaf.BerDataOffset, MyEnd, False);
+        end;
       except
         ; // 如果内嵌解析失败，不终止，当做普通节点
       end;
     end;
 
-    Inc(Run, DataLen);
+    if DataLen = 0 then // 本轮的本块（不是外头总块）长度不确定时，步进时要走子解析返回的长度
+      Inc(Run, SubLen)
+    else
+      Inc(Run, DataLen);
+
+    Inc(Result, SubLen);  // 子块无论结束与否，其长度都要叠加到父长度上返回
   end;
 end;
 
 procedure TCnBerReader.ParseToTree;
+var
+  MyEnd: Boolean;
 begin
-  ParseArea(FBerTree.Root, PByteArray(FData), FDataLen, 0);
+  ParseArea(FBerTree.Root, PByteArray(FData), FDataLen, 0, MyEnd);
 end;
 
 procedure TCnBerReader.ManualParseNodeData(RootNode: TCnBerReadNode);
+var
+  MyEnd: Boolean;
 begin
   RootNode.Clear;
-  ParseArea(RootNode, PByteArray(RootNode.BerDataAddress), RootNode.BerDataLength, RootNode.BerDataOffset);
+  ParseArea(RootNode, PByteArray(RootNode.BerDataAddress), RootNode.BerDataLength,
+    RootNode.BerDataOffset, MyEnd, False);
+  // 注意 RootNode 一般不会是 Tree 的 Root，因而 IsTop 要传 False
 end;
 
 { TCnBerReadNode }
@@ -808,7 +847,8 @@ begin
     Result := EncodeDate(Y, M, D) + EncodeTime(H, Mi, Se, 0);
   end
   else
-  Result := StrToDateTime(S);
+    Result := StrToDateTime(S);
+
   // TODO: 也可能是 Integer 的 Binary Time 格式，
   // 1970 年 1 月 1 日零时起的秒数，参考 rfc4049
 end;
