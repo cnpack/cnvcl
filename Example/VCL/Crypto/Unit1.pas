@@ -752,10 +752,9 @@ begin
 
   if chkBase64ShowHex.Checked then
   begin
-    if Res <> nil then
-      CnShowHexData(@Res[0], Length(Res));
-
-    if S <> '' then
+    if chkBase64UseTBytes.Checked and (Res <> nil) then
+      CnShowHexData(@Res[0], Length(Res))
+    else if S <> '' then
       CnShowHexData(@S[1], Length(S));
   end;
 end;
