@@ -238,6 +238,10 @@ function TestSM9PublicEncryption: Boolean;
 
 function TestRSA1: Boolean;
 function TestRSA2: Boolean;
+function TestRSAPrivPubPkcs1: Boolean;
+function TestRSAPubPkcs1: Boolean;
+function TestRSAPrivPubPkcs8: Boolean;
+function TestRSAPubPkcs8: Boolean;
 
 // ================================ KDF ========================================
 
@@ -292,6 +296,9 @@ function TestECCSchoof2: Boolean;
 // ================================= END =======================================
 
 implementation
+
+const
+  SCRLF = #13#10;
 
 procedure MyAssert(V: Boolean; const Msg: string);
 begin
@@ -507,6 +514,10 @@ begin
 
   MyAssert(TestRSA1, 'TestRSA1');
   MyAssert(TestRSA2, 'TestRSA2');
+  MyAssert(TestRSAPrivPubPkcs1, 'TestRSAPrivPubPkcs1');
+  MyAssert(TestRSAPubPkcs1, 'TestRSAPubPkcs1');
+  MyAssert(TestRSAPrivPubPkcs8, 'TestRSAPrivPubPkcs8');
+  MyAssert(TestRSAPubPkcs8, 'TestRSAPubPkcs8');
 
 // ================================ KDF ========================================
 
@@ -3218,6 +3229,175 @@ begin
     ASec.Free;
     BSec.Free;
   end;
+end;
+
+function TestRSAPrivPubPkcs1: Boolean;
+const
+  PEM = '-----BEGIN RSA PRIVATE KEY-----' + SCRLF +
+    'MIIEowIBAAKCAQEAx/WjnDhkoGxhA98dT43fCQneQMzfLhwcMNU693cLcU7VlJRn' + SCRLF +
+    'JPRb04IZYn1kOuretPvMmDCDHv8r4hZxaue0IW6sUjfSgcf2kk70WT+0NMHlSjWl' + SCRLF +
+    'h3R56rePbbDyQRJZJTZS85iki49VjoWO4JUzyH4iyPto8uu6/gHdmR/bfaEMxb9W' + SCRLF +
+    'VFWENHzeznCk8+84tWzi6Chom8sryKBxaaa3b8SsfBAfutgFqNWtc69xWb5k3xqU' + SCRLF +
+    'tyFVLX9Ga9cG07lsW0Zsnw5zHNS9wQi7MIrNlfPVhsWr943rjAyea0UnXzhFQfRH' + SCRLF +
+    'GuHbNKaQTsoiDlZXfYCq4vQ/TWTcuJrflBmsBQIDAQABAoIBAQCUeCIcO48TwoUi' + SCRLF +
+    'T8a+rBN/7ZDVwoiv/vU7mQeoeP7JCgTxxmLzgHCyEjZw97O1P3FPJmtaUSL6n/Lg' + SCRLF +
+    'c1ORUitga4GNpp8p9+Rv7CnoHrHaPmHWgRDAC87+ZX8crjah9FK2m6hp8Nu0OCAJ' + SCRLF +
+    'q8dTn9UMOAPyASKCxF9afN4h9RKPKvaHI9Em0+1i9Y5MIRv5MYDhRC+9cxj3ExFX' + SCRLF +
+    'ZyAtV+IQkYIGaUEEZiE3yFhITlBQyI+W9nY/tdP9UaNwHvj4gNff9QZs2aWUcgbp' + SCRLF +
+    'uvqSzHegJpeG8wBBIi/1OAZh0lNg4isImcXcxbmaLfUTl2tcMn2bY5A54q/M97EG' + SCRLF +
+    'P9OnMVTdAoGBAOPXJwE1MlcvUzogmEl0DPQUMOztGkeqEjUNgHgXrndQBnsN2fqS' + SCRLF +
+    '2ILeZkRq0XsdEnEM5e3mt8zvLnm63IvYC14/P1gKXM24PbXMARYnQtDZR/4TJC9+' + SCRLF +
+    '1mg/mydTaDuDslww2J6gT1avJXZ4nA9A/FXG6c0kyZrDZ8COZdsW2OhTAoGBAOCs' + SCRLF +
+    'Vm7gI0u1H7RAwi6ndtnVxOLL0DNbPsWyb8yvMpS/jMTqJWBejX5ko6vtu8dTPdW4' + SCRLF +
+    'iEMDob8Q/AmWXIhGXqPZ5MGguaafnSnT+JTGqZG3f6g4y6gKoA3aOWWTROV8SEpD' + SCRLF +
+    'TvW4tflcbKJ9lCqdbPp9nO8bTka/779WOyGWTi9HAoGAWLMoQjYdlQedlSGfZ+lA' + SCRLF +
+    'Kb26lmJwOrohQHozK428pEKJY1qvI/gLRlei5LvZNd7JkS1+TjHmGGh9ZXKz7dV8' + SCRLF +
+    'B4MD/Bh8rLIvhBkZyzAZuQj+GBIHol30xr0MgDDegVzyESYLDyZF/O9O3GJ0DxQz' + SCRLF +
+    'qIk5+F18Bz5PpA1L5hFs/HUCgYBzlpZ9QplGGPAvt2VvxT5zQfSiTgNWeKop4ex8' + SCRLF +
+    '3OHj/0x3/pKuKtcW4MYH7S4/lUbpzp9kAtlTSHSypgYDIlkMaUy0hXEeFV4xJ9nr' + SCRLF +
+    'CO4yhrqJnHbChHzlw5Dl/kdi3Xb/pfNYnegZW4CUdJEm/4kSsk9sAJtb8OFyifWw' + SCRLF +
+    'CPk+fwKBgCJc9FM7r2I78I8JZcb13EK42NRuMKrbQxA9MVOgImEWRv/XlQpRbAvM' + SCRLF +
+    'FjSgW48MX1FYg1iEwU1yWVlEn8i8o2qNOiewCmwPyBIqlNXzB+Yjl3/fMVSAKSSj' + SCRLF +
+    'rZxpGqzDLndn4shtB74jrTDU+uOu8RLQhRbQVAE8TlQOusLXjY/p' + SCRLF +
+    '-----END RSA PRIVATE KEY-----';
+var
+  S: AnsiString;
+  Stream: TMemoryStream;
+  Priv: TCnRSAPrivateKey;
+  Pub: TCnRSAPublicKey;
+begin
+  Stream := TMemoryStream.Create;
+  S := AnsiString(PEM);
+  Stream.Write(S[1], Length(S));
+  Stream.Position := 0;
+
+  Priv := TCnRSAPrivateKey.Create;
+  Pub := TCnRSAPublicKey.Create;
+
+  Result := CnRSALoadKeysFromPem(Stream, Priv, Pub);
+
+  if not Result then Exit;
+
+  Result := CnRSAVerifyKeys(Priv, Pub);
+
+  Pub.Free;
+  Priv.Free;
+  Stream.Free;
+end;
+
+function TestRSAPubPkcs1: Boolean;
+const
+  PEM =
+    '-----BEGIN RSA PUBLIC KEY-----' + SCRLF +
+    'MIIBCgKCAQEAx/WjnDhkoGxhA98dT43fCQneQMzfLhwcMNU693cLcU7VlJRnJPRb' + SCRLF +
+    '04IZYn1kOuretPvMmDCDHv8r4hZxaue0IW6sUjfSgcf2kk70WT+0NMHlSjWlh3R5' + SCRLF +
+    '6rePbbDyQRJZJTZS85iki49VjoWO4JUzyH4iyPto8uu6/gHdmR/bfaEMxb9WVFWE' + SCRLF +
+    'NHzeznCk8+84tWzi6Chom8sryKBxaaa3b8SsfBAfutgFqNWtc69xWb5k3xqUtyFV' + SCRLF +
+    'LX9Ga9cG07lsW0Zsnw5zHNS9wQi7MIrNlfPVhsWr943rjAyea0UnXzhFQfRHGuHb' + SCRLF +
+    'NKaQTsoiDlZXfYCq4vQ/TWTcuJrflBmsBQIDAQAB' + SCRLF +
+    '-----END RSA PUBLIC KEY-----';
+var
+  S: AnsiString;
+  Stream: TMemoryStream;
+  Pub: TCnRSAPublicKey;
+begin
+  Stream := TMemoryStream.Create;
+  S := AnsiString(PEM);
+  Stream.Write(S[1], Length(S));
+  Stream.Position := 0;
+
+  Pub := TCnRSAPublicKey.Create;
+
+  Result := CnRSALoadPublicKeyFromPem(Stream, Pub);
+
+  Pub.Free;
+  Stream.Free;
+end;
+
+function TestRSAPrivPubPkcs8: Boolean;
+const
+  PEM =
+    '-----BEGIN PRIVATE KEY-----' + SCRLF +
+    'MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDH9aOcOGSgbGED' + SCRLF +
+    '3x1Pjd8JCd5AzN8uHBww1Tr3dwtxTtWUlGck9FvTghlifWQ66t60+8yYMIMe/yvi' + SCRLF +
+    'FnFq57QhbqxSN9KBx/aSTvRZP7Q0weVKNaWHdHnqt49tsPJBElklNlLzmKSLj1WO' + SCRLF +
+    'hY7glTPIfiLI+2jy67r+Ad2ZH9t9oQzFv1ZUVYQ0fN7OcKTz7zi1bOLoKGibyyvI' + SCRLF +
+    'oHFpprdvxKx8EB+62AWo1a1zr3FZvmTfGpS3IVUtf0Zr1wbTuWxbRmyfDnMc1L3B' + SCRLF +
+    'CLswis2V89WGxav3jeuMDJ5rRSdfOEVB9Eca4ds0ppBOyiIOVld9gKri9D9NZNy4' + SCRLF +
+    'mt+UGawFAgMBAAECggEBAJR4Ihw7jxPChSJPxr6sE3/tkNXCiK/+9TuZB6h4/skK' + SCRLF +
+    'BPHGYvOAcLISNnD3s7U/cU8ma1pRIvqf8uBzU5FSK2BrgY2mnyn35G/sKegesdo+' + SCRLF +
+    'YdaBEMALzv5lfxyuNqH0UrabqGnw27Q4IAmrx1Of1Qw4A/IBIoLEX1p83iH1Eo8q' + SCRLF +
+    '9ocj0SbT7WL1jkwhG/kxgOFEL71zGPcTEVdnIC1X4hCRggZpQQRmITfIWEhOUFDI' + SCRLF +
+    'j5b2dj+10/1Ro3Ae+PiA19/1BmzZpZRyBum6+pLMd6Aml4bzAEEiL/U4BmHSU2Di' + SCRLF +
+    'KwiZxdzFuZot9ROXa1wyfZtjkDnir8z3sQY/06cxVN0CgYEA49cnATUyVy9TOiCY' + SCRLF +
+    'SXQM9BQw7O0aR6oSNQ2AeBeud1AGew3Z+pLYgt5mRGrRex0ScQzl7ea3zO8uebrc' + SCRLF +
+    'i9gLXj8/WApczbg9tcwBFidC0NlH/hMkL37WaD+bJ1NoO4OyXDDYnqBPVq8ldnic' + SCRLF +
+    'D0D8VcbpzSTJmsNnwI5l2xbY6FMCgYEA4KxWbuAjS7UftEDCLqd22dXE4svQM1s+' + SCRLF +
+    'xbJvzK8ylL+MxOolYF6NfmSjq+27x1M91biIQwOhvxD8CZZciEZeo9nkwaC5pp+d' + SCRLF +
+    'KdP4lMapkbd/qDjLqAqgDdo5ZZNE5XxISkNO9bi1+Vxson2UKp1s+n2c7xtORr/v' + SCRLF +
+    'v1Y7IZZOL0cCgYBYsyhCNh2VB52VIZ9n6UApvbqWYnA6uiFAejMrjbykQoljWq8j' + SCRLF +
+    '+AtGV6Lku9k13smRLX5OMeYYaH1lcrPt1XwHgwP8GHyssi+EGRnLMBm5CP4YEgei' + SCRLF +
+    'XfTGvQyAMN6BXPIRJgsPJkX8707cYnQPFDOoiTn4XXwHPk+kDUvmEWz8dQKBgHOW' + SCRLF +
+    'ln1CmUYY8C+3ZW/FPnNB9KJOA1Z4qinh7Hzc4eP/THf+kq4q1xbgxgftLj+VRunO' + SCRLF +
+    'n2QC2VNIdLKmBgMiWQxpTLSFcR4VXjEn2esI7jKGuomcdsKEfOXDkOX+R2Lddv+l' + SCRLF +
+    '81id6BlbgJR0kSb/iRKyT2wAm1vw4XKJ9bAI+T5/AoGAIlz0UzuvYjvwjwllxvXc' + SCRLF +
+    'QrjY1G4wqttDED0xU6AiYRZG/9eVClFsC8wWNKBbjwxfUViDWITBTXJZWUSfyLyj' + SCRLF +
+    'ao06J7AKbA/IEiqU1fMH5iOXf98xVIApJKOtnGkarMMud2fiyG0HviOtMNT6467x' + SCRLF +
+    'EtCFFtBUATxOVA66wteNj+k=' + SCRLF +
+    '-----END PRIVATE KEY-----';
+var
+  S: AnsiString;
+  Stream: TMemoryStream;
+  Priv: TCnRSAPrivateKey;
+  Pub: TCnRSAPublicKey;
+begin
+  Stream := TMemoryStream.Create;
+  S := AnsiString(PEM);
+  Stream.Write(S[1], Length(S));
+  Stream.Position := 0;
+
+  Priv := TCnRSAPrivateKey.Create;
+  Pub := TCnRSAPublicKey.Create;
+
+  Result := CnRSALoadKeysFromPem(Stream, Priv, Pub);
+
+  if not Result then Exit;
+
+  Result := CnRSAVerifyKeys(Priv, Pub);
+
+  Pub.Free;
+  Priv.Free;
+  Stream.Free;
+end;
+
+function TestRSAPubPkcs8: Boolean;
+const
+  PEM =
+    '-----BEGIN PUBLIC KEY-----' + SCRLF +
+    'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx/WjnDhkoGxhA98dT43f' + SCRLF +
+    'CQneQMzfLhwcMNU693cLcU7VlJRnJPRb04IZYn1kOuretPvMmDCDHv8r4hZxaue0' + SCRLF +
+    'IW6sUjfSgcf2kk70WT+0NMHlSjWlh3R56rePbbDyQRJZJTZS85iki49VjoWO4JUz' + SCRLF +
+    'yH4iyPto8uu6/gHdmR/bfaEMxb9WVFWENHzeznCk8+84tWzi6Chom8sryKBxaaa3' + SCRLF +
+    'b8SsfBAfutgFqNWtc69xWb5k3xqUtyFVLX9Ga9cG07lsW0Zsnw5zHNS9wQi7MIrN' + SCRLF +
+    'lfPVhsWr943rjAyea0UnXzhFQfRHGuHbNKaQTsoiDlZXfYCq4vQ/TWTcuJrflBms' + SCRLF +
+    'BQIDAQAB' + SCRLF +
+    '-----END PUBLIC KEY-----';
+var
+  S: AnsiString;
+  Stream: TMemoryStream;
+  Pub: TCnRSAPublicKey;
+begin
+  Stream := TMemoryStream.Create;
+  S := AnsiString(PEM);
+  Stream.Write(S[1], Length(S));
+  Stream.Position := 0;
+
+  Pub := TCnRSAPublicKey.Create;
+
+  Result := CnRSALoadPublicKeyFromPem(Stream, Pub);
+
+  Pub.Free;
+  Stream.Free;
 end;
 
 // ================================ KDF ========================================
