@@ -28,7 +28,9 @@ unit CnPemUtils;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.03.09 V1.4
+* 修改记录：2023.12.14 V1.5
+*               增加 SaveMemoryToPemStream 函数但未完整测试
+*           2022.03.09 V1.4
 *               增加六个 PKCS5 对齐的处理函数
 *           2021.05.14 V1.3
 *               增加四个 PKCS7 对齐的处理函数
@@ -77,6 +79,11 @@ function SaveMemoryToPemFile(const FileName, Head, Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''; Append: Boolean = False): Boolean;
 {* 将 Stream 的内容进行 Base64 编码后加密分行并补上文件头尾再写入文件，Append 为 True 时表示追加}
+
+function SaveMemoryToPemStream(Stream: TStream; const FileName, Head, Tail: string;
+  MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
+  KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''; Append: Boolean = False): Boolean;
+{* 将 Stream 的内容进行 Base64 编码后加密分行并补上头尾再写入流，Append 为 True 时表示追加}
 
 // ===================== PKCS1 / PKCS7 Padding 对齐处理函数 ====================
 
@@ -850,6 +857,52 @@ begin
         end
         else
           List.SaveToFile(FileName);
+
+        Result := True;
+      finally
+        List.Free;
+      end;
+    end;
+  end;
+end;
+
+function SaveMemoryToPemStream(Stream: TStream; const FileName, Head, Tail: string;
+  MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod;
+  KeyHashMethod: TCnKeyHashMethod; const Password: string; Append: Boolean): Boolean;
+var
+  S, EH: string;
+  List, Sl: TStringList;
+begin
+  Result := False;
+  if (MemoryStream <> nil) and (MemoryStream.Size <> 0) then
+  begin
+    MemoryStream.Position := 0;
+
+    if (KeyEncryptMethod <> ckeNone) and (Password <> '') then
+    begin
+      // 给 MemoryStream 对齐
+      AddPKCS7Padding(MemoryStream, ENC_TYPE_BLOCK_SIZE[KeyEncryptMethod]);
+
+      // 再加密
+      if not EncryptPemStream(KeyHashMethod, KeyEncryptMethod, MemoryStream, Password, EH) then
+        Exit;
+    end;
+
+    if ECN_BASE64_OK = Base64Encode(MemoryStream, S) then
+    begin
+      List := TStringList.Create;
+      try
+        SplitStringToList(S, List);
+
+        List.Insert(0, Head);  // 普通头
+        if EH <> '' then       // 加密头
+          List.Insert(1, EH);
+        List.Add(Tail);        // 普通尾
+
+        if not Append then
+          Stream.Size := 0;
+
+        List.SaveToStream(Stream);
 
         Result := True;
       finally
