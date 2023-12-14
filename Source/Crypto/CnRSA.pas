@@ -30,7 +30,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.02.16 V2.6
+* 修改记录：2023.12.14 V2.7
+*               增加验证公私钥的机制
+*           2023.02.16 V2.6
 *               实现大数形式的基于离散对数的变色龙杂凑算法
 *           2023.02.15 V2.5
 *               大数 RSA 加密支持 CRT（中国剩余定理）加速，私钥运算耗时降至三分之一
@@ -228,6 +230,9 @@ function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
 {* 生成 RSA 算法所需的公私钥，ModulusBits 是素数乘积的二进制位数，其余参数均为生成。
    ModulusBits 取值为 512/1024/2048等。内部有安全判断。
    PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537}
+
+function CnRSAVerifyKeys(PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
+{* 验证一对 RSA 公私钥是否配套}
 
 function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
@@ -799,11 +804,65 @@ begin
   _CnSetLastError(ECN_RSA_OK);
 end;
 
+function CnRSAVerifyKeys(PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
+var
+  T, M, P: TCnBigNumber;
+begin
+  // 私钥的俩素数乘积要等于私钥的 Product
+  // 公私钥的 Product 得相等
+  // 公钥指数是 3 或 65537
+  // 验证 d
+  Result := False;
+  if (PrivateKey = nil) or (PublicKey = nil) then
+    Exit;
+
+  if not BigNumberEqual(PrivateKey.PrivKeyProduct, PublicKey.PubKeyProduct) then
+    Exit;
+
+  // e 只允许 3 或 65537
+  if not PublicKey.PubKeyExponent.IsWord(65537) and not PublicKey.PubKeyExponent.IsWord(3) then
+    Exit;
+
+  T := nil;
+  P := nil;
+  M := nil;
+
+  try
+    T := TCnBigNumber.Create;
+    BigNumberMul(T, PrivateKey.PrimeKey1, PrivateKey.PrimeKey2);
+    if not BigNumberEqual(T, PublicKey.PubKeyProduct) then
+      Exit;
+
+    // 验证 d 是否是 e * d mod (p-1)(q-1) = 1
+    P := TCnBigNumber.Create;
+    BigNumberCopy(P, PrivateKey.PrimeKey1);
+    BigNumberCopy(T, PrivateKey.PrimeKey2);
+    BigNumberSubWord(P, 1);
+    BigNumberSubWord(T, 1);
+
+    BigNumberMul(T, P, T); // T 得到 (p-1)(q-1)
+
+    M := TCnBigNumber.Create;
+    BigNumberMul(M, PrivateKey.FPrivKeyExponent, PublicKey.PubKeyExponent); // M 得到 e * d
+
+    BigNumberMod(P, M, T);
+    if not P.IsOne then
+      Exit;
+
+    Result := True;
+    _CnSetLastError(ECN_RSA_OK);
+  finally
+    M.Free;
+    P.Free;
+    T.Free;
+  end;
+end;
+
 // 从 PEM 格式文件中加载公私钥数据
 (*
 PKCS#1:
-  RSAPrivateKey ::= SEQUENCE {                        0
-    version Version,                                  1 0
+  RSAPrivateKey ::= SEQUENCE {                       0
+    version Version,                                 1 0
     modulus INTEGER, – n                             2 公私钥
     publicExponent INTEGER, – e                      3 公钥
     privateExponent INTEGER, – d                     4 私钥
@@ -812,7 +871,7 @@ PKCS#1:
     exponent1 INTEGER, – d mod (p-1)                 7 CRT 系数 1
     exponent2 INTEGER, – d mod (q-1)                 8 CRT 系数 2
     coefficient INTEGER, – (1/q) mod p               9 CRT 系数 3：q 针对 p 的模逆元
-    otherPrimeInfos OtherPrimeInfos OPTIONAL          10
+    otherPrimeInfos OtherPrimeInfos OPTIONAL         10
 
     模逆元 x = (1/q) mod p 可得 xq = 1 mod p 也即 xq = 1 + yp 也就是 qx + (-p)y = 1
     可以用扩展欧几里得辗转相除法直接求解
