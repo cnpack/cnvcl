@@ -640,7 +640,7 @@ begin
     begin
       // 说明 BerDataOffset 到 BerDataLength 内可能有子节点
       try
-        if (ALeaf.BerTag = CN_BER_TAG_BIT_STRING) and (AData^[Run + 1] < 8) then
+        if ALeaf.BerTag = CN_BER_TAG_BIT_STRING then // 凑成 8 的倍数所缺少的 Bit 数照理应小于 8，但不能加这个额外条件 and (AData^[Run + 1] < 8)
         begin
           FCurrentIsBitString := True;
           try
