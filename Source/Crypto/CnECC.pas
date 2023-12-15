@@ -3958,6 +3958,7 @@ var
   Reader: TCnBerReader;
   Node: TCnBerReadNode;
   CurveType2: TCnEccCurveType;
+  OldPos: Int64;
 begin
   Result := False;
   MemStream := nil;
@@ -3965,11 +3966,13 @@ begin
 
   try
     MemStream := TMemoryStream.Create;
+    OldPos := PemStream.Position;
     if LoadPemStreamToMemory(PemStream, PEM_EC_PARAM_HEAD, PEM_EC_PARAM_TAIL,
       MemStream, Password, KeyHashMethod) then
       // 读 ECPARAM 也即椭圆曲线类型
       CurveType := GetCurveTypeFromOID(PAnsiChar(MemStream.Memory), MemStream.Size);
 
+    PemStream.Position := OldPos;
     if LoadPemStreamToMemory(PemStream, PEM_EC_PRIVATE_HEAD, PEM_EC_PRIVATE_TAIL,
       MemStream, Password, KeyHashMethod) then
     begin
