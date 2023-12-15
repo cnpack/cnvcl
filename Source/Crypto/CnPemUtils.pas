@@ -80,7 +80,7 @@ function SaveMemoryToPemFile(const FileName, Head, Tail: string;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''; Append: Boolean = False): Boolean;
 {* 将 Stream 的内容进行 Base64 编码后加密分行并补上文件头尾再写入文件，Append 为 True 时表示追加}
 
-function SaveMemoryToPemStream(Stream: TStream; const FileName, Head, Tail: string;
+function SaveMemoryToPemStream(Stream: TStream; const Head, Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''; Append: Boolean = False): Boolean;
 {* 将 Stream 的内容进行 Base64 编码后加密分行并补上头尾再写入流，Append 为 True 时表示追加}
@@ -866,12 +866,12 @@ begin
   end;
 end;
 
-function SaveMemoryToPemStream(Stream: TStream; const FileName, Head, Tail: string;
+function SaveMemoryToPemStream(Stream: TStream; const Head, Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod;
   KeyHashMethod: TCnKeyHashMethod; const Password: string; Append: Boolean): Boolean;
 var
   S, EH: string;
-  List, Sl: TStringList;
+  List: TStringList;
 begin
   Result := False;
   if (MemoryStream <> nil) and (MemoryStream.Size <> 0) then
