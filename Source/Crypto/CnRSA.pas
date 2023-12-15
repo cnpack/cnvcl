@@ -128,7 +128,7 @@ type
   {* RSA 签名所支持的数字摘要算法，可无摘要}
 
   TCnRSAKeyType = (cktPKCS1, cktPKCS8);
-  {* RSA 密钥文件格式}
+  {* RSA 密钥文件格式。注意它和 CnECC 中的 TCnEccKeyType 名字重复，使用时要注意}
 
   TCnRSAPaddingMode = (cpmPKCS1, cpmOAEP);
   {* RSA 加密的填充模式，PKCS1 适合加解密，包括三种填充类型，
@@ -283,8 +283,14 @@ function CnRSALoadPublicKeyFromPem(const PemStream: TStream;
 function CnRSASavePublicKeyToPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS8;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
-  const Password: string = ''): Boolean;
+  const Password: string = ''): Boolean; overload;
 {* 将公钥写入 PEM 格式文件中，返回是否成功}
+
+function CnRSASavePublicKeyToPem(PemStream: TStream;
+  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS8;
+  KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
+  const Password: string = ''): Boolean; overload;
+{* 将公钥写入 PEM 格式流中，返回是否成功}
 
 function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Res: TCnBigNumber): Boolean; overload;
@@ -1428,8 +1434,9 @@ begin
     Exit;
   end;
 
-  Mem := nil;
   Writer := nil;
+  Mem := nil;
+
   try
     Writer := TCnBerWriter.Create;
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
@@ -1464,6 +1471,71 @@ begin
         PEM_RSA_PUBLIC_TAIL, Mem, KeyEncryptMethod, ckhMd5, Password)
     else if KeyType = cktPKCS8 then
       Result := SaveMemoryToPemFile(PemFileName, PEM_PUBLIC_HEAD,
+        PEM_PUBLIC_TAIL, Mem, KeyEncryptMethod, ckhMd5, Password);
+
+    if Result then
+      _CnSetLastError(ECN_RSA_OK)
+    else
+      _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
+  finally
+    Mem.Free;
+    Writer.Free;
+  end;
+end;
+
+function CnRSASavePublicKeyToPem(PemStream: TStream;
+  PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType;
+  KeyEncryptMethod: TCnKeyEncryptMethod; const Password: string): Boolean;
+var
+  Root, Node: TCnBerWriteNode;
+  Writer: TCnBerWriter;
+  Mem: TMemoryStream;
+begin
+  Result := False;
+  if (PublicKey = nil) or (PublicKey.PubKeyProduct.GetBytesCount <= 0) or
+    (PublicKey.PubKeyExponent.GetBytesCount <= 0) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Exit;
+  end;
+
+  Writer := nil;
+  Mem := nil;
+
+  try
+    Writer := TCnBerWriter.Create;
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    if KeyType = cktPKCS1 then
+    begin
+      // 拼 PKCS1 格式的内容，比较简单
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyProduct, Root);
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyExponent, Root);
+    end
+    else if KeyType = cktPKCS8 then
+    begin
+      // 拼 PKCS8 格式的内容
+      Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+
+      // 给 Node 加 ObjectIdentifier 与 Null
+      Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @CN_OID_RSAENCRYPTION_PKCS1[0],
+        SizeOf(CN_OID_RSAENCRYPTION_PKCS1), Node);
+      Writer.AddNullNode(Node);
+
+      Node := Writer.AddContainerNode(CN_BER_TAG_BIT_STRING, Root);
+      Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Node);
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyProduct, Node);
+      AddBigNumberToWriter(Writer, PublicKey.PubKeyExponent, Node);
+    end;
+
+    // 树搭好了，输出并 Base64 再分段再拼头尾最后写文件
+    Mem := TMemoryStream.Create;
+    Writer.SaveToStream(Mem);
+
+    if KeyType = cktPKCS1 then
+      Result := SaveMemoryToPemStream(PemStream, PEM_RSA_PUBLIC_HEAD,
+        PEM_RSA_PUBLIC_TAIL, Mem, KeyEncryptMethod, ckhMd5, Password)
+    else if KeyType = cktPKCS8 then
+      Result := SaveMemoryToPemStream(PemStream, PEM_PUBLIC_HEAD,
         PEM_PUBLIC_TAIL, Mem, KeyEncryptMethod, ckhMd5, Password);
 
     if Result then

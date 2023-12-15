@@ -424,7 +424,7 @@ type
   end;
 
   TCnEccKeyType = (cktPKCS1, cktPKCS8);
-  {* ECC 密钥文件格式}
+  {* ECC 密钥文件格式。注意它和 CnRSA 中的 TCnRSAKeyType 名字重复，使用时要注意}
 
   TCnEcc2Matrix = class(TCn2DObjectList)
   {* 容纳 TCnEccPoint 的二维数组对象}
