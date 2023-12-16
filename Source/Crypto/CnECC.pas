@@ -4052,7 +4052,7 @@ begin
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
     B := 1;
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, Root); // д Version 1
-    AddBigNumberToWriter(Writer, PrivateKey, Root);       // д˽Կ
+    AddBigNumberToWriter(Writer, PrivateKey, Root, CN_BER_TAG_OCTET_STRING);   // д˽Կ
 
     Node := Writer.AddContainerNode(CN_BER_TAG_RESERVED, Root);
     Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
@@ -4117,7 +4117,7 @@ begin
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
     B := 1;
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, Root); // д Version 1
-    AddBigNumberToWriter(Writer, PrivateKey, Root);       // д˽Կ
+    AddBigNumberToWriter(Writer, PrivateKey, Root, CN_BER_TAG_OCTET_STRING);   // д˽Կ
 
     Node := Writer.AddContainerNode(CN_BER_TAG_RESERVED, Root);
     Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
@@ -4168,7 +4168,7 @@ begin
     Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @CN_OID_EC_PUBLIC_KEY[0],
       SizeOf(CN_OID_EC_PUBLIC_KEY), Node);
     Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, OIDPtr, OIDLen, Node);
-    WriteEccPublicKeyToBitStringNode(Writer, Node, PublicKey);
+    WriteEccPublicKeyToBitStringNode(Writer, Root, PublicKey);
 
     Mem := TMemoryStream.Create;
     Writer.SaveToStream(Mem);
@@ -4213,7 +4213,7 @@ begin
     Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @CN_OID_EC_PUBLIC_KEY[0],
       SizeOf(CN_OID_EC_PUBLIC_KEY), Node);
     Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, OIDPtr, OIDLen, Node);
-    WriteEccPublicKeyToBitStringNode(Writer, Node, PublicKey);
+    WriteEccPublicKeyToBitStringNode(Writer, Root, PublicKey);
 
     Mem := TMemoryStream.Create;
     Writer.SaveToStream(Mem);

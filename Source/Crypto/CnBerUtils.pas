@@ -369,7 +369,7 @@ function CompareObjectIdentifier(Node: TCnBerReadNode; OIDAddr: Pointer;
 {* 比较一个 Node 中的数据是否等于一个指定的 OID}
 
 function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
-  Parent: TCnBerWriteNode): TCnBerWriteNode;
+  Parent: TCnBerWriteNode; Tag: Integer = CN_BER_TAG_INTEGER): TCnBerWriteNode;
 {* 将一个大数的内容写入一个新增的 Ber 整型格式的节点，无需指定固定长度，
   节点会根据最高位的实际情况决定是否加一个字节 0}
 
@@ -421,7 +421,7 @@ begin
 end;
 
 function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
-  Parent: TCnBerWriteNode): TCnBerWriteNode;
+  Parent: TCnBerWriteNode; Tag: Integer): TCnBerWriteNode;
 var
   P: Pointer;
   C, D: Integer;
@@ -441,7 +441,7 @@ begin
   FillChar(P^, D, 0);
   Num.ToBinary(PAnsiChar(TCnNativeInt(P) + D));
 
-  Result := Writer.AddBasicNode(CN_BER_TAG_INTEGER, P, C, Parent);
+  Result := Writer.AddBasicNode(Tag, P, C, Parent);
   FreeMemory(P);
 end;
 

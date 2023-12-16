@@ -44,7 +44,7 @@ uses
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
-  CnPolynomial, CnBits, CnLattice, CnOTS;
+  CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
@@ -290,6 +290,8 @@ function TestWOTSSHA256: Boolean;
 // ================================ ECC ========================================
 
 function TestECCMul: Boolean;
+function TestECCPrivPub: Boolean;
+function TestECCPub: Boolean;
 function TestECCSchoof: Boolean;
 function TestECCSchoof2: Boolean;
 
@@ -566,6 +568,8 @@ begin
 // ================================ ECC ========================================
 
   MyAssert(TestECCMul, 'TestECCMul');
+  MyAssert(TestECCPrivPub, 'TestECCPrivPub');
+  MyAssert(TestECCPub, 'TestECCPub');
   MyAssert(TestECCSchoof, 'TestECCSchoof');
   MyAssert(TestECCSchoof2, 'TestECCSchoof2');
 
@@ -3261,7 +3265,8 @@ const
     'rZxpGqzDLndn4shtB74jrTDU+uOu8RLQhRbQVAE8TlQOusLXjY/p' + SCRLF +
     '-----END RSA PRIVATE KEY-----';
 var
-  S: AnsiString;
+  S, D: AnsiString;
+  Sl: TStringList;
   Stream: TMemoryStream;
   Priv: TCnRSAPrivateKey;
   Pub: TCnRSAPublicKey;
@@ -3280,6 +3285,21 @@ begin
 
   Result := CnRSAVerifyKeys(Priv, Pub);
 
+  if not Result then Exit;
+
+  Stream.Size := 0;
+  Result := CnRSASaveKeysToPem(Stream, Priv, Pub);
+
+  if not Result then Exit;
+
+  Stream.Position := 0;
+  Sl := TStringList.Create;
+  Sl.LoadFromStream(Stream);
+
+  D := Trim(AnsiString(Sl.Text));
+  Result := S = D;
+
+  Sl.Free;
   Pub.Free;
   Priv.Free;
   Stream.Free;
@@ -3297,7 +3317,8 @@ const
     'NKaQTsoiDlZXfYCq4vQ/TWTcuJrflBmsBQIDAQAB' + SCRLF +
     '-----END RSA PUBLIC KEY-----';
 var
-  S: AnsiString;
+  S, D: AnsiString;
+  Sl: TStringList;
   Stream: TMemoryStream;
   Pub: TCnRSAPublicKey;
 begin
@@ -3310,6 +3331,21 @@ begin
 
   Result := CnRSALoadPublicKeyFromPem(Stream, Pub);
 
+  if not Result then Exit;
+
+  Stream.Size := 0;
+  Result := CnRSASavePublicKeyToPem(Stream, Pub, CnRSA.cktPKCS1);
+
+  if not Result then Exit;
+
+  Stream.Position := 0;
+  Sl := TStringList.Create;
+  Sl.LoadFromStream(Stream);
+
+  D := Trim(AnsiString(Sl.Text));
+  Result := S = D;
+
+  Sl.Free;
   Pub.Free;
   Stream.Free;
 end;
@@ -3346,7 +3382,8 @@ const
     'EtCFFtBUATxOVA66wteNj+k=' + SCRLF +
     '-----END PRIVATE KEY-----';
 var
-  S: AnsiString;
+  S, D: AnsiString;
+  Sl: TStringList;
   Stream: TMemoryStream;
   Priv: TCnRSAPrivateKey;
   Pub: TCnRSAPublicKey;
@@ -3364,6 +3401,20 @@ begin
   if not Result then Exit;
 
   Result := CnRSAVerifyKeys(Priv, Pub);
+
+  if not Result then Exit;
+
+  Stream.Size := 0;
+  Result := CnRSASaveKeysToPem(Stream, Priv, Pub, CnRSA.cktPKCS8);
+
+  if not Result then Exit;
+
+  Stream.Position := 0;
+  Sl := TStringList.Create;
+  Sl.LoadFromStream(Stream);
+
+  D := Trim(AnsiString(Sl.Text));
+  Result := S = D;
 
   Pub.Free;
   Priv.Free;
@@ -3383,7 +3434,8 @@ const
     'BQIDAQAB' + SCRLF +
     '-----END PUBLIC KEY-----';
 var
-  S: AnsiString;
+  S, D: AnsiString;
+  Sl: TStringList;
   Stream: TMemoryStream;
   Pub: TCnRSAPublicKey;
 begin
@@ -3396,6 +3448,21 @@ begin
 
   Result := CnRSALoadPublicKeyFromPem(Stream, Pub);
 
+  if not Result then Exit;
+
+  Stream.Size := 0;
+  Result := CnRSASavePublicKeyToPem(Stream, Pub);
+
+  if not Result then Exit;
+
+  Stream.Position := 0;
+  Sl := TStringList.Create;
+  Sl.LoadFromStream(Stream);
+
+  D := Trim(AnsiString(Sl.Text));
+  Result := S = D;
+
+  Sl.Free;
   Pub.Free;
   Stream.Free;
 end;
@@ -4423,6 +4490,99 @@ begin
     P.Free;
     Ecc.Free;
   end;
+end;
+
+function TestECCPrivPub: Boolean;
+const
+  PEM =
+    '-----BEGIN EC PARAMETERS-----' + SCRLF +
+    'BgUrgQQACg==' + SCRLF +
+    '-----END EC PARAMETERS-----' + SCRLF +
+    '-----BEGIN EC PRIVATE KEY-----' + SCRLF +
+    'MHQCAQEEICuHh07yriJJanWerJegB55n7bE8pEDhbKNdNoegP2FnoAcGBSuBBAAK' + SCRLF +
+    'oUQDQgAEbr8v5r1XGP8R1hLozBbymC0VWmYoU/N8LaouJVaFHfvBNyqaOiaDZ5/m' + SCRLF +
+    'hIE7Y9kK1omjOY1Z9km9goNlVrc29A==' + SCRLF +
+    '-----END EC PRIVATE KEY-----';
+var
+  S, D: AnsiString;
+  Sl: TStringList;
+  Stream: TMemoryStream;
+  Priv: TCnEccPrivateKey;
+  Pub: TCnEccPublicKey;
+  CurveType: TCnEccCurveType;
+begin
+  Stream := TMemoryStream.Create;
+  S := AnsiString(PEM);
+  Stream.Write(S[1], Length(S));
+  Stream.Position := 0;
+
+  Priv := TCnEccPrivateKey.Create;
+  Pub := TCnEccPublicKey.Create;
+
+  Result := CnEccLoadKeysFromPem(Stream, Priv, Pub, CurveType);
+
+  if not Result then Exit;
+
+  Result := CnEccVerifyKeys(CurveType, Priv, Pub);
+
+  if not Result then Exit;
+
+  Stream.Size := 0;
+  Result := CnEccSaveKeysToPem(Stream, Priv, Pub, CurveType);
+
+  if not Result then Exit;
+
+  Stream.Position := 0;
+  Sl := TStringList.Create;
+  Sl.LoadFromStream(Stream);
+
+  D := Trim(AnsiString(Sl.Text));
+  Result := S = D;
+
+  Pub.Free;
+  Priv.Free;
+  Stream.Free;
+end;
+
+function TestECCPub: Boolean;
+const
+  PEM =
+    '-----BEGIN PUBLIC KEY-----' + SCRLF +
+    'MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEbr8v5r1XGP8R1hLozBbymC0VWmYoU/N8' + SCRLF +
+    'LaouJVaFHfvBNyqaOiaDZ5/mhIE7Y9kK1omjOY1Z9km9goNlVrc29A==' + SCRLF +
+    '-----END PUBLIC KEY-----';
+var
+  S, D: AnsiString;
+  Sl: TStringList;
+  Stream: TMemoryStream;
+  Pub: TCnEccPublicKey;
+  CurveType: TCnEccCurveType;
+begin
+  Stream := TMemoryStream.Create;
+  S := AnsiString(PEM);
+  Stream.Write(S[1], Length(S));
+  Stream.Position := 0;
+
+  Pub := TCnEccPublicKey.Create;
+
+  Result := CnEccLoadPublicKeyFromPem(Stream, Pub, CurveType);
+
+  if not Result then Exit;
+
+  Stream.Size := 0;
+  Result := CnEccSavePublicKeyToPem(Stream, Pub, CurveType);
+
+  if not Result then Exit;
+
+  Stream.Position := 0;
+  Sl := TStringList.Create;
+  Sl.LoadFromStream(Stream);
+
+  D := Trim(AnsiString(Sl.Text));
+  Result := S = D;
+
+  Pub.Free;
+  Stream.Free;
 end;
 
 function TestECCSchoof: Boolean;
