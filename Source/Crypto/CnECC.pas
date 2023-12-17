@@ -60,8 +60,14 @@ unit CnECC;
 *               与 SM2 规范不同，与 RSA 的 Hash 后补 Hash 种类再对齐成 BER 内容也不同
 *           2020.03.28 V1.4
 *               实现 ECC 公私钥 PEM 文件的生成与读写，类似于 openssl 的功能
-*               openssl ecparam -name secp256k1 -genkey -out ec.pem
-*               openssl ec -in ec.pem -pubout -out ecpub.pem
+*               openssl ecparam -name secp256k1 -genkey -out ec_pkcs1.pem
+*                    // PKCS#1 格式的公私钥
+*               openssl pkcs8 -topk8 -inform PEM -in ec_pkcs1.pem -outform PEM -nocrypt -out ec_pkcs8.pem
+*                    // PKCS#8 格式的公私钥
+*               openssl ec -in ec.pem -pubout -out ecpub_pkcs1.pem
+*                    // PKCS#1 格式的公钥
+*               openssl ec -in ec_pkcs8.pem -outform PEM -pubout -out ecpub_pkcs8.pem
+*                    // PKCS#8 格式的公钥
 *           2018.09.29 V1.3
 *               实现大数椭圆曲线根据 X 求 Y 的两种算法，并默认用速度更快的 Lucas
 *           2018.09.13 V1.2
@@ -1087,6 +1093,7 @@ const
     )
   );
 
+  // PKCS#1
   PEM_EC_PARAM_HEAD = '-----BEGIN EC PARAMETERS-----';
   PEM_EC_PARAM_TAIL = '-----END EC PARAMETERS-----';
 
@@ -1095,6 +1102,10 @@ const
 
   PEM_EC_PUBLIC_HEAD = '-----BEGIN PUBLIC KEY-----';
   PEM_EC_PUBLIC_TAIL = '-----END PUBLIC KEY-----';
+
+  // PKCS#8
+  PEM_PRIVATE_HEAD = '-----BEGIN PRIVATE KEY-----';
+  PEM_PRIVATE_TAIL = '-----END PRIVATE KEY-----';
 
   // ECC 私钥文件里两个节点的 BER Tag 要求的特殊 TypeMask
   ECC_PRIVATEKEY_TYPE_MASK  = $80;
@@ -3799,43 +3810,13 @@ function CnEccLoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnEccPublicKey; out CurveType: TCnEccCurveType;
   KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
-  MemStream: TMemoryStream;
-  Reader: TCnBerReader;
-  Node: TCnBerReadNode;
+  Stream: TStream;
 begin
-  Result := False;
-  MemStream := nil;
-  Reader := nil;
-
-  if PublicKey = nil then
-    Exit;
-
+  Stream := TFileStream.Create(PemFileName, fmOpenRead or fmShareDenyWrite);
   try
-    MemStream := TMemoryStream.Create;
-    if LoadPemFileToMemory(PemFileName, PEM_EC_PUBLIC_HEAD, PEM_EC_PUBLIC_TAIL,
-      MemStream, Password, KeyHashMethod) then
-    begin
-      Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
-      Reader.ParseToTree;
-      if Reader.TotalCount >= 5 then
-      begin
-        // 2 要判断是否公钥
-        Node := Reader.Items[2];
-        if (Node.BerDataLength <> SizeOf(CN_OID_EC_PUBLIC_KEY)) or not CompareMem(@CN_OID_EC_PUBLIC_KEY[0],
-          Node.BerDataAddress, Node.BerDataLength) then
-          Exit;
-
-        // 3 是曲线类型
-        Node := Reader.Items[3];
-        CurveType := GetCurveTypeFromOID(Node.BerAddress, Node.BerLength);
-
-        // 读 4 里的公钥
-        Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[4], PublicKey);
-      end;
-    end;
+    Result := CnEccLoadPublicKeyFromPem(Stream, PublicKey, CurveType, KeyHashMethod, Password);
   finally
-    MemStream.Free;
-    Reader.Free;
+    Stream.Free;
   end;
 end;
 
@@ -3884,71 +3865,50 @@ begin
 end;
 
 (*
-   ECPrivateKey ::= SEQUENCE {
-     version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
-     privateKey     OCTET STRING,
-     parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
-     publicKey  [1] BIT STRING OPTIONAL
-   }
+  PKCS#1: RFC5915
+
+  ECPrivateKey ::= SEQUENCE {
+    version        INTEGER { ecPrivkeyVer1(1) } (ecPrivkeyVer1),
+    privateKey     OCTET STRING,
+    parameters [0] ECParameters {{ NamedCurve }} OPTIONAL,
+    publicKey  [1] BIT STRING OPTIONAL
+  }
 
   SEQUENCE (4 elem)
     INTEGER 1
-    OCTET STRING (32 byte) 10C8813CC012D659A282B261E86D0440848DB246A077C427203F92FD90B3CD77
+    OCTET STRING (32 byte) 私钥
     [0] (1 elem)
       OBJECT IDENTIFIER 1.3.132.0.10 secp256k1 (SECG (Certicom) named elliptic curve)
     [1] (1 elem)
-      BIT STRING
+      BIT STRING  公钥
+
+  PKCS#8: 复杂一点
+
+  SEQUENCE (3 elem)
+    INTEGER 0  Version
+    SEQUENCE (2 elem)
+      OBJECT IDENTIFIER 1.2.840.10045.2.1 ecPublicKey (ANSI X9.62 public key type)
+      OBJECT IDENTIFIER 1.3.132.0.10 secp256k1 (SECG (Certicom) named elliptic curve)
+    OCTET STRING (109 byte) …
+      SEQUENCE (3 elem)
+        INTEGER 1
+        OCTET STRING (32 byte) 私钥
+        [1] (1 elem)
+          BIT STRING (520 bit) 公钥
+
 *)
 function CnEccLoadKeysFromPem(const PemFileName: string; PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey; out CurveType: TCnEccCurveType;
   KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
-  MemStream: TMemoryStream;
-  Reader: TCnBerReader;
-  Node: TCnBerReadNode;
-  CurveType2: TCnEccCurveType;
+  Stream: TStream;
 begin
-  Result := False;
-  MemStream := nil;
-  Reader := nil;
-
+  Stream := TFileStream.Create(PemFileName, fmOpenRead or fmShareDenyWrite);
   try
-    MemStream := TMemoryStream.Create;
-    if LoadPemFileToMemory(PemFileName, PEM_EC_PARAM_HEAD, PEM_EC_PARAM_TAIL,
-      MemStream, Password, KeyHashMethod) then
-      // 读 ECPARAM 也即椭圆曲线类型
-      CurveType := GetCurveTypeFromOID(PAnsiChar(MemStream.Memory), MemStream.Size);
-
-    if LoadPemFileToMemory(PemFileName, PEM_EC_PRIVATE_HEAD, PEM_EC_PRIVATE_TAIL,
-      MemStream, Password, KeyHashMethod) then
-    begin
-      Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
-      Reader.ParseToTree;
-      if Reader.TotalCount >= 7 then
-      begin
-        Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
-        if Node.AsByte = 1 then  // 只支持版本 1
-        begin
-          // 2 是私钥
-          if PrivateKey <> nil then
-            PutIndexedBigIntegerToBigNumber(Reader.Items[2], PrivateKey);
-
-          // 4 又是曲线类型
-          Node := Reader.Items[4];
-          CurveType2 := GetCurveTypeFromOID(Node.BerAddress, Node.BerLength);
-          if (CurveType <> ctCustomized) and (CurveType2 <> CurveType) then
-            Exit;
-
-          CurveType := CurveType2; // 如果俩读出不一样，以第二个为准
-
-          // 读 6 里的公钥
-          Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[6], PublicKey);
-        end;
-      end;
-    end;
+    Result := CnEccLoadKeysFromPem(Stream, PrivateKey, PublicKey, CurveType,
+      KeyHashMethod, Password);
   finally
-    MemStream.Free;
-    Reader.Free;
+    Stream.Free;
   end;
 end;
 
@@ -3961,6 +3921,7 @@ var
   Node: TCnBerReadNode;
   CurveType2: TCnEccCurveType;
   OldPos: Int64;
+  IsPkcs1: Boolean;
 begin
   Result := False;
   MemStream := nil;
@@ -3969,36 +3930,73 @@ begin
   try
     MemStream := TMemoryStream.Create;
     OldPos := PemStream.Position;
+    IsPkcs1 := False;
     if LoadPemStreamToMemory(PemStream, PEM_EC_PARAM_HEAD, PEM_EC_PARAM_TAIL,
       MemStream, Password, KeyHashMethod) then
+    begin
       // 读 ECPARAM 也即椭圆曲线类型
       CurveType := GetCurveTypeFromOID(PAnsiChar(MemStream.Memory), MemStream.Size);
+      IsPkcs1 := True;
+    end;
 
     PemStream.Position := OldPos;
-    if LoadPemStreamToMemory(PemStream, PEM_EC_PRIVATE_HEAD, PEM_EC_PRIVATE_TAIL,
-      MemStream, Password, KeyHashMethod) then
+    if IsPkcs1 then
     begin
-      Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
-      Reader.ParseToTree;
-      if Reader.TotalCount >= 7 then
+      if LoadPemStreamToMemory(PemStream, PEM_EC_PRIVATE_HEAD, PEM_EC_PRIVATE_TAIL,
+        MemStream, Password, KeyHashMethod) then
       begin
-        Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
-        if Node.AsByte = 1 then  // 只支持版本 1
+        Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size);
+        Reader.ParseToTree;
+        if Reader.TotalCount >= 7 then
         begin
-          // 2 是私钥
-          if PrivateKey <> nil then
-            PutIndexedBigIntegerToBigNumber(Reader.Items[2], PrivateKey);
+          Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
+          if Node.AsByte = 1 then  // 只支持版本 1
+          begin
+            // 2 是私钥
+            if PrivateKey <> nil then
+              PutIndexedBigIntegerToBigNumber(Reader.Items[2], PrivateKey);
 
-          // 4 又是曲线类型
-          Node := Reader.Items[4];
-          CurveType2 := GetCurveTypeFromOID(Node.BerAddress, Node.BerLength);
-          if (CurveType <> ctCustomized) and (CurveType2 <> CurveType) then
-            Exit;
+            // 4 又是曲线类型
+            Node := Reader.Items[4];
+            CurveType2 := GetCurveTypeFromOID(Node.BerAddress, Node.BerLength);
+            if (CurveType <> ctCustomized) and (CurveType2 <> CurveType) then
+              Exit;
 
-          CurveType := CurveType2; // 如果俩读出不一样，以第二个为准
+            CurveType := CurveType2; // 如果俩读出不一样，以第二个为准
 
-          // 读 6 里的公钥
-          Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[6], PublicKey);
+            // 读 6 里的公钥
+            if PublicKey <> nil then
+              Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[6], PublicKey);
+          end;
+        end;
+      end;
+    end
+    else // 不是 PKCS#1，判断是否有 PKCS#8 的标记
+    begin
+      if LoadPemStreamToMemory(PemStream, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL,
+        MemStream, Password, KeyHashMethod) then
+      begin
+        Reader := TCnBerReader.Create(PByte(MemStream.Memory), MemStream.Size, True);
+        Reader.ParseToTree;
+        if Reader.TotalCount >= 11 then // 有 PKCS#8 标记且数量够
+        begin
+          Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
+          if Node.AsByte = 0 then  // 只支持版本 0
+          begin
+            Node := Reader.Items[3]; // 3 是 ecPublicKey 的 Object Identifier
+            if CompareObjectIdentifier(Node, @CN_OID_EC_PUBLIC_KEY[0], SizeOf(CN_OID_EC_PUBLIC_KEY)) then
+            begin
+              // 4 又是曲线类型
+              Node := Reader.Items[4];
+              CurveType := GetCurveTypeFromOID(Node.BerAddress, Node.BerLength);
+
+              if PrivateKey <> nil then
+                PutIndexedBigIntegerToBigNumber(Reader.Items[8], PrivateKey);
+
+              if PublicKey <> nil then
+                Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[10], PublicKey);
+            end;
+          end;
         end;
       end;
     end;
@@ -4143,43 +4141,14 @@ function CnEccSavePublicKeyToPem(const PemFileName: string;
   KeyType: TCnEccKeyType; KeyEncryptMethod: TCnKeyEncryptMethod;
   KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
-  Root, Node: TCnBerWriteNode;
-  Writer: TCnBerWriter;
-  Mem: TMemoryStream;
-  OIDPtr: Pointer;
-  OIDLen: Integer;
+  Stream: TStream;
 begin
-  // TODO: PKCS8 待实现
-  Result := False;
-  if (PublicKey = nil) or (PublicKey.X.IsZero) then
-    Exit;
-
-  OIDLen := GetOIDFromCurveType(CurveType, OIDPtr);
-  if (OIDPtr = nil) or (OIDLen <= 0) then
-    Exit;
-
-  Writer := nil;
-  Mem := nil;
-
+  Stream := TFileStream.Create(PemFileName, fmCreate);
   try
-    Writer := TCnBerWriter.Create;
-    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
-    Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
-
-    // 给 Node 加 ECPublicKey 与 曲线类型的 ObjectIdentifier
-    Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @CN_OID_EC_PUBLIC_KEY[0],
-      SizeOf(CN_OID_EC_PUBLIC_KEY), Node);
-    Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, OIDPtr, OIDLen, Node);
-    WriteEccPublicKeyToBitStringNode(Writer, Root, PublicKey);
-
-    Mem := TMemoryStream.Create;
-    Writer.SaveToStream(Mem);
-
-    Result := SaveMemoryToPemFile(PemFileName, PEM_EC_PUBLIC_HEAD, PEM_EC_PUBLIC_TAIL, Mem,
+    Result := CnEccSavePublicKeyToPem(Stream, PublicKey, CurveType, KeyType,
       KeyEncryptMethod, KeyHashMethod, Password);
   finally
-    Mem.Free;
-    Writer.Free;
+    Stream.Free;
   end;
 end;
 
