@@ -797,13 +797,13 @@ function CnEccLoadKeysFromPem(PemStream: TStream; PrivateKey: TCnEccPrivateKey;
 {* 从 PEM 格式流中加载公私钥数据，如某钥参数为空则不载入}
 
 function CnEccSaveKeysToPem(const PemFileName: string; PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType;
+  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType; KeyType: TCnEccKeyType = cktPKCS1;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean; overload;
 {* 将公私钥写入 PEM 格式文件中，返回是否成功}
 
 function CnEccSaveKeysToPem(PemStream: TStream; PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType;
+  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType; KeyType: TCnEccKeyType = cktPKCS1;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean; overload;
 {* 将公私钥写入 PEM 格式流中，返回是否成功}
@@ -4007,72 +4007,23 @@ begin
 end;
 
 function CnEccSaveKeysToPem(const PemFileName: string; PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType;
-  KeyEncryptMethod: TCnKeyEncryptMethod;
-  KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
+  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType; KeyType: TCnEccKeyType;
+  KeyEncryptMethod: TCnKeyEncryptMethod; KeyHashMethod: TCnKeyHashMethod;
+  const Password: string): Boolean;
 var
-  Root, Node: TCnBerWriteNode;
-  Writer: TCnBerWriter;
-  Mem: TMemoryStream;
-  OIDPtr: Pointer;
-  OIDLen: Integer;
-  B: Byte;
+  Stream: TStream;
 begin
-  Result := False;
-  if (PrivateKey = nil) or (PublicKey = nil) then
-    Exit;
-
-  OIDLen := GetOIDFromCurveType(CurveType, OIDPtr);
-  if (OIDPtr = nil) or (OIDLen <= 0) then
-    Exit;
-
-  Mem := nil;
-  Writer := nil;
-
+  Stream := TFileStream.Create(PemFileName, fmCreate);
   try
-    Mem := TMemoryStream.Create;
-    if (KeyEncryptMethod = ckeNone) or (Password = '') then
-    begin
-      // 不加密，分两段，第一段手工写
-      B := CN_BER_TAG_OBJECT_IDENTIFIER;
-      Mem.Write(B, 1);
-      B := OIDLen;
-      Mem.Write(B, 1);
-
-      Mem.Write(OIDPtr^, OIDLen);
-      if not SaveMemoryToPemFile(PemFileName, PEM_EC_PARAM_HEAD, PEM_EC_PARAM_TAIL, Mem) then
-        Exit;
-
-      Mem.Clear;
-    end;
-
-    Writer := TCnBerWriter.Create;
-
-    // 第二段组树
-    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
-    B := 1;
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, Root); // 写 Version 1
-    AddBigNumberToWriter(Writer, PrivateKey, Root, CN_BER_TAG_OCTET_STRING);   // 写私钥
-
-    Node := Writer.AddContainerNode(CN_BER_TAG_RESERVED, Root);
-    Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
-    Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, PByte(OIDPtr), OIDLen, Node);
-
-    Node := Writer.AddContainerNode(CN_BER_TAG_BOOLEAN, Root); // 居然要用 BOOLEAN 才行
-    Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
-
-    WriteEccPublicKeyToBitStringNode(Writer, Node, PublicKey);
-    Writer.SaveToStream(Mem);
-    Result := SaveMemoryToPemFile(PemFileName, PEM_EC_PRIVATE_HEAD, PEM_EC_PRIVATE_TAIL, Mem,
-      KeyEncryptMethod, KeyHashMethod, Password, True);
+    Result := CnEccSaveKeysToPem(Stream, PrivateKey, PublicKey, CurveType,
+      KeyType, KeyEncryptMethod, KeyHashMethod, Password);
   finally
-    Writer.Free;
-    Mem.Free;
+    Stream.Free;
   end;
 end;
 
 function CnEccSaveKeysToPem(PemStream: TStream; PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType;
+  PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType; KeyType: TCnEccKeyType;
   KeyEncryptMethod: TCnKeyEncryptMethod;
   KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
@@ -4095,41 +4046,73 @@ begin
   Writer := nil;
 
   try
-    Mem := TMemoryStream.Create;
-    if (KeyEncryptMethod = ckeNone) or (Password = '') then
+    if KeyType = cktPKCS1 then // PKCS1 格式，分两段
     begin
-      // 不加密，分两段，第一段手工写
-      B := CN_BER_TAG_OBJECT_IDENTIFIER;
-      Mem.Write(B, 1);
-      B := OIDLen;
-      Mem.Write(B, 1);
+      Mem := TMemoryStream.Create;
+      if (KeyEncryptMethod = ckeNone) or (Password = '') then
+      begin
+        // 不加密，分两段，第一段手工写
+        B := CN_BER_TAG_OBJECT_IDENTIFIER;
+        Mem.Write(B, 1);
+        B := OIDLen;
+        Mem.Write(B, 1);
 
-      Mem.Write(OIDPtr^, OIDLen);
-      if not SaveMemoryToPemStream(PemStream, PEM_EC_PARAM_HEAD, PEM_EC_PARAM_TAIL, Mem) then
-        Exit;
+        Mem.Write(OIDPtr^, OIDLen);
+        if not SaveMemoryToPemStream(PemStream, PEM_EC_PARAM_HEAD, PEM_EC_PARAM_TAIL, Mem) then
+          Exit;
 
-      Mem.Clear;
+        Mem.Clear;
+      end;
+
+      Writer := TCnBerWriter.Create;
+
+      // 第二段组树
+      Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+      B := 1;
+      Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, Root); // 写 Version 1
+      AddBigNumberToWriter(Writer, PrivateKey, Root, CN_BER_TAG_OCTET_STRING);   // 写私钥
+
+      Node := Writer.AddContainerNode(CN_BER_TAG_RESERVED, Root);
+      Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
+      Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, PByte(OIDPtr), OIDLen, Node);
+
+      Node := Writer.AddContainerNode(CN_BER_TAG_BOOLEAN, Root); // 居然要用 BOOLEAN 才行
+      Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
+
+      WriteEccPublicKeyToBitStringNode(Writer, Node, PublicKey);
+      Writer.SaveToStream(Mem);
+      Result := SaveMemoryToPemStream(PemStream, PEM_EC_PRIVATE_HEAD, PEM_EC_PRIVATE_TAIL, Mem,
+        KeyEncryptMethod, KeyHashMethod, Password, True);
+    end
+    else if KeyType = cktPKCS8 then
+    begin
+      Writer := TCnBerWriter.Create;
+
+      Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+      B := 0;
+      Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, Root); // 写 Version 0
+
+      Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+      Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @CN_OID_EC_PUBLIC_KEY[0], SizeOf(CN_OID_EC_PUBLIC_KEY), Node);
+      Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, PByte(OIDPtr), OIDLen, Node);
+
+      Node := Writer.AddContainerNode(CN_BER_TAG_OCTET_STRING, Root);
+      Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Node);
+      B := 1;
+      Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, Node);
+
+      AddBigNumberToWriter(Writer, PrivateKey, Node, CN_BER_TAG_OCTET_STRING);   // 写私钥
+
+      Node := Writer.AddContainerNode(CN_BER_TAG_BOOLEAN, Node);
+      Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
+      WriteEccPublicKeyToBitStringNode(Writer, Node, PublicKey);                 // 写公钥
+
+      Mem := TMemoryStream.Create;
+      Writer.SaveToStream(Mem);
+
+      Result := SaveMemoryToPemStream(PemStream, PEM_PRIVATE_HEAD, PEM_PRIVATE_TAIL, Mem,
+        KeyEncryptMethod, KeyHashMethod, Password, True);
     end;
-
-    Writer := TCnBerWriter.Create;
-
-    // 第二段组树
-    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
-    B := 1;
-    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, Root); // 写 Version 1
-    AddBigNumberToWriter(Writer, PrivateKey, Root, CN_BER_TAG_OCTET_STRING);   // 写私钥
-
-    Node := Writer.AddContainerNode(CN_BER_TAG_RESERVED, Root);
-    Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
-    Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, PByte(OIDPtr), OIDLen, Node);
-
-    Node := Writer.AddContainerNode(CN_BER_TAG_BOOLEAN, Root); // 居然要用 BOOLEAN 才行
-    Node.BerTypeMask := ECC_PRIVATEKEY_TYPE_MASK;
-
-    WriteEccPublicKeyToBitStringNode(Writer, Node, PublicKey);
-    Writer.SaveToStream(Mem);
-    Result := SaveMemoryToPemStream(PemStream, PEM_EC_PRIVATE_HEAD, PEM_EC_PRIVATE_TAIL, Mem,
-      KeyEncryptMethod, KeyHashMethod, Password, True);
   finally
     Writer.Free;
     Mem.Free;

@@ -290,7 +290,8 @@ function TestWOTSSHA256: Boolean;
 // ================================ ECC ========================================
 
 function TestECCMul: Boolean;
-function TestECCPrivPub: Boolean;
+function TestECCPrivPubPkcs1: Boolean;
+function TestECCPrivPubPkcs8: Boolean;
 function TestECCPub: Boolean;
 function TestECCSchoof: Boolean;
 function TestECCSchoof2: Boolean;
@@ -568,7 +569,8 @@ begin
 // ================================ ECC ========================================
 
   MyAssert(TestECCMul, 'TestECCMul');
-  MyAssert(TestECCPrivPub, 'TestECCPrivPub');
+  MyAssert(TestECCPrivPubPkcs1, 'TestECCPrivPubPkcs1');
+  MyAssert(TestECCPrivPubPkcs8, 'TestECCPrivPubPkcs8');
   MyAssert(TestECCPub, 'TestECCPub');
   MyAssert(TestECCSchoof, 'TestECCSchoof');
   MyAssert(TestECCSchoof2, 'TestECCSchoof2');
@@ -4492,7 +4494,7 @@ begin
   end;
 end;
 
-function TestECCPrivPub: Boolean;
+function TestECCPrivPubPkcs1: Boolean;
 const
   PEM =
     '-----BEGIN EC PARAMETERS-----' + SCRLF +
@@ -4529,6 +4531,55 @@ begin
 
   Stream.Size := 0;
   Result := CnEccSaveKeysToPem(Stream, Priv, Pub, CurveType);
+
+  if not Result then Exit;
+
+  Stream.Position := 0;
+  Sl := TStringList.Create;
+  Sl.LoadFromStream(Stream);
+
+  D := Trim(AnsiString(Sl.Text));
+  Result := S = D;
+
+  Pub.Free;
+  Priv.Free;
+  Stream.Free;
+end;
+
+function TestECCPrivPubPkcs8: Boolean;
+const
+  PEM =
+    '-----BEGIN PRIVATE KEY-----' + SCRLF +
+    'MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQgK4eHTvKuIklqdZ6sl6AH' + SCRLF +
+    'nmftsTykQOFso102h6A/YWehRANCAARuvy/mvVcY/xHWEujMFvKYLRVaZihT83wt' + SCRLF +
+    'qi4lVoUd+8E3Kpo6JoNnn+aEgTtj2QrWiaM5jVn2Sb2Cg2VWtzb0' + SCRLF +
+    '-----END PRIVATE KEY-----';
+var
+  S, D: AnsiString;
+  Sl: TStringList;
+  Stream: TMemoryStream;
+  Priv: TCnEccPrivateKey;
+  Pub: TCnEccPublicKey;
+  CurveType: TCnEccCurveType;
+begin
+  Stream := TMemoryStream.Create;
+  S := AnsiString(PEM);
+  Stream.Write(S[1], Length(S));
+  Stream.Position := 0;
+
+  Priv := TCnEccPrivateKey.Create;
+  Pub := TCnEccPublicKey.Create;
+
+  Result := CnEccLoadKeysFromPem(Stream, Priv, Pub, CurveType);
+
+  if not Result then Exit;
+
+  Result := CnEccVerifyKeys(CurveType, Priv, Pub);
+
+  if not Result then Exit;
+
+  Stream.Size := 0;
+  Result := CnEccSaveKeysToPem(Stream, Priv, Pub, CurveType, CnECC.cktPKCS8);
 
   if not Result then Exit;
 
