@@ -120,6 +120,10 @@ begin
   FStateImages.Handle := ImageList_LoadBitmap(hInstance, 'CNTREEVIEWSTATE',
     16, 0, clFuchsia);
   StateImages := FStateImages;
+
+{$IFDEF DELPHI120_ATHENS_UP}
+  CheckBoxes := True;
+{$ENDIF}
   OnCustomDrawItem := DoCustomDrawItem;
 end;
 
