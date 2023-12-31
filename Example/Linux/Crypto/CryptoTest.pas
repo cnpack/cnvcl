@@ -44,7 +44,7 @@ uses
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
-  CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils;
+  CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
@@ -86,6 +86,17 @@ function TestBigNumberIsProbablyPrime: Boolean;
 
 function TestBitsEmpty: Boolean;
 function TestBitsAppend: Boolean;
+
+// =============================== Int128 ======================================
+
+function TestInt128Add: Boolean;
+function TestInt128Sub: Boolean;
+function TestInt128Mul: Boolean;
+function TestInt128DivMod: Boolean;
+function TestUInt128Add: Boolean;
+function TestUInt128Sub: Boolean;
+function TestUInt128Mul: Boolean;
+function TestUInt128DivMod: Boolean;
 
 // ============================= Polynomial ====================================
 
@@ -365,6 +376,17 @@ begin
 
   MyAssert(TestBitsEmpty, 'TestBitsEmpty');
   MyAssert(TestBitsAppend, 'TestBitsAppend');
+
+// =============================== Int128 ======================================
+
+  MyAssert(TestInt128Add, 'TestInt128Add');
+  MyAssert(TestInt128Sub, 'TestInt128Sub');
+  MyAssert(TestInt128Mul, 'TestInt128Mul');
+  MyAssert(TestInt128DivMod, 'TestInt128DivMod');
+  MyAssert(TestUInt128Add, 'TestUInt128Add');
+  MyAssert(TestUInt128Sub, 'TestUInt128Sub');
+  MyAssert(TestUInt128Mul, 'TestUInt128Mul');
+  MyAssert(TestUInt128DivMod, 'TestUInt128DivMod');
 
 // ============================= Polynomial ====================================
 
@@ -1217,6 +1239,104 @@ begin
   B.AppendDWord($12345678, False);
   Result := B.ToString = '010101111101110011111001011100011110011010100010110001001';
   B.Free;
+end;
+
+// =============================== Int128 ======================================
+
+function TestInt128Add: Boolean;
+var
+  A, B, R: TCnInt128;
+begin
+  A := StrToInt128('922337203685477580700');
+  B := StrToInt128('10000');
+
+  Int128Add(R, A, B);
+
+  Result := Int128ToStr(R) = '922337203685477590700';
+end;
+
+function TestInt128Sub: Boolean;
+var
+  A, B, R: TCnInt128;
+begin
+  A := StrToInt128('-922337203685477580800');
+  B := StrToInt128('-10000');
+
+  Int128Sub(R, A, B);
+
+  Result := Int128ToStr(R) = '-922337203685477570800';
+end;
+
+function TestInt128Mul: Boolean;
+var
+  A, B, R: TCnInt128;
+begin
+  A := StrToInt128('10000000000000000000000000');
+  B := StrToInt128('8');
+
+  Int128Mul(R, A, B);
+
+  Result := Int128ToStr(R) = '80000000000000000000000000';
+end;
+
+function TestInt128DivMod: Boolean;
+var
+  A, B, R, M: TCnInt128;
+begin
+  A := StrToInt128('123459223372036854775807000');
+  B := StrToInt128('10000');
+
+  Int128DivMod(A, B, R, M);
+
+  Result := (Int128ToStr(R) = '12345922337203685477580') and (Int128ToStr(M) = '7000');
+end;
+
+function TestUInt128Add: Boolean;
+var
+  A, B, R: TCnUInt128;
+begin
+  A := StrToUInt128('8937478937471844674407370955161500');
+  B := StrToUInt128('1000');
+
+  UInt128Add(R, A, B);
+
+  Result := UInt128ToStr(R) = '8937478937471844674407370955162500';
+end;
+
+function TestUInt128Sub: Boolean;
+var
+  A, B, R: TCnUInt128;
+begin
+  A := StrToUInt128('324467474718446741844674407370955161600');
+  B := StrToUInt128('1000');
+
+  UInt128Sub(R, A, B);
+
+  Result := UInt128ToStr(R) = '324467474718446741844674407370955160600';
+end;
+
+function TestUInt128Mul: Boolean;
+var
+  A, B, R: TCnUInt128;
+begin
+  A := StrToUInt128('100000000000000000000888888888');
+  B := StrToUInt128('987654321');
+
+  UInt128Mul(R, A, B);
+
+  Result := UInt128ToStr(R) = '98765432100000000000877914951122085048';
+end;
+
+function TestUInt128DivMod: Boolean;
+var
+  A, B, R, M: TCnUInt128;
+begin
+  A := StrToUInt128('7370954431844674407370955161500');
+  B := StrToUInt128('10000');
+
+  UInt128DivMod(A, B, R, M);
+
+  Result := (UInt128ToStr(R) = '737095443184467440737095516') and (UInt128ToStr(M) = '1500');
 end;
 
 // ============================= Polynomial ====================================
