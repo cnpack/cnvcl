@@ -185,6 +185,8 @@ type
 
 const
   CN_MAX_SQRT_INT64: Cardinal               = 3037000499;
+  CN_MAX_INT64: Int64                       = $7FFFFFFFFFFFFFFF;
+  CN_MIN_INT64: Int64                       = $8000000000000000;
   CN_MAX_UINT16: Word                       = $FFFF;
   CN_MAX_UINT32: Cardinal                   = $FFFFFFFF;
   CN_MAX_TUINT64: TUInt64                   = $FFFFFFFFFFFFFFFF;

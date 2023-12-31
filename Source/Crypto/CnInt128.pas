@@ -42,6 +42,16 @@ interface
 uses
   SysUtils, Classes, SysConst, CnNative;
 
+const
+  SCN_MAX_INT128 = '170141183460469231731687303715884105727';
+  {* 最大的有符号 Int128 值，等于 7FFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF}
+
+  SCN_MIN_INT128 = '-170141183460469231731687303715884105728';
+  {* 最小的有符号 Int128 值，等于 80000000 00000000 00000000 00000000}
+
+  SCN_MAX_UINT128 = '440282366920938463463374607431768211455';
+  {* 最大的无符号 UInt128 值，等于 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF}
+
 type
   TCnInt128 = packed record   // 128 位有符号整数结构
     Lo64, Hi64: Int64;        // 注意 Lo64 内部仍作为 64 位无符号整数处理
@@ -74,19 +84,19 @@ procedure Int128Add(var R, A, B: TCnInt128); overload;
 {* 128 位有符号数相加，不考虑溢出的情况。R、A、B 可以相同。A B 使用补码无需分开考虑正负值}
 
 procedure Int128Add(var R, A: TCnInt128; V: Int64); overload;
-{* 给一 128 位有符号数加上一个 64 位有符号数。考虑了 B 为负值的情况}
+{* 给一 128 位有符号数加上一个 64 位有符号数。考虑了 V 为负值的情况}
 
 procedure Int128Sub(var R, A, B: TCnInt128); overload;
 {* 128 位有符号数相减，不考虑溢出的情况。R、A、B 可以相同}
 
 procedure Int128Sub(var R, A: TCnInt128; V: Int64); overload;
-{* 给一 128 位有符号数减去一个 64 位有符号数。考虑了 B 为负值的情况}
+{* 给一 128 位有符号数减去一个 64 位有符号数。考虑了 V 为负值的情况}
 
 procedure Int128Mul(var R, A, B: TCnInt128);
-{* 128 位有符号数相乘，有溢出则抛异常（ResHi 参数暂不起作用）。R、A、B 可以相同}
+{* 128 位有符号数相乘，有溢出则抛异常（暂时未实现 UInt128 的 ResHi 参数机制）。R、A、B 可以相同}
 
 procedure Int128DivMod(var A, B, R, M: TCnInt128);
-{* 128 位有符号数整除求余，A / B = R ... M。A、B、R、M 可以复用但 R M 不能相同}
+{* 128 位有符号数整除求余，A / B = R ... M 其中 A、B、R、M 可以复用但 R M 不能相同}
 
 procedure Int128Div(var R, A, B: TCnInt128);
 {* 128 位有符号数整除，R = A div B。R、A、B 可以相同}
@@ -95,10 +105,10 @@ procedure Int128Mod(var R, A, B: TCnInt128);
 {* 128 位有符号数求余，R = A mod B。R、A、B 可以相同}
 
 procedure Int128ShiftLeft(var N: TCnInt128; S: Integer);
-{* 128 位有符号数按位左移}
+{* 128 位有符号数按位左移 S 位，如 S 为负，表示右移}
 
 procedure Int128ShiftRight(var N: TCnInt128; S: Integer);
-{* 128 位有符号数按位右移}
+{* 128 位有符号数按位右移 S 位，如 S 为负，表示左移}
 
 procedure Int128And(var R, A, B: TCnInt128);
 {* 两个 128 位有符号数按位与}
@@ -110,7 +120,7 @@ procedure Int128Xor(var R, A, B: TCnInt128);
 {* 两个 128 位有符号数按位异或}
 
 procedure Int128Negate(var N: TCnInt128);
-{* 将一 128 位有符号数置为其相反数}
+{* 将一 128 位有符号数置为其相反数，注意当最小的 Int128 负值时会产生溢出异常}
 
 procedure Int128Not(var N: TCnInt128);
 {* 将一 128 位有符号数求反}
@@ -188,10 +198,10 @@ procedure UInt128Mod(var R, A, B: TCnUInt128);
 {* 128 位无符号数求余，R = A mod B。R、A、B 可以相同}
 
 procedure UInt128ShiftLeft(var N: TCnUInt128; S: Integer);
-{* 128 位无符号数按位左移}
+{* 128 位无符号数按位左移 S 位，如 S 为负，表示右移}
 
 procedure UInt128ShiftRight(var N: TCnUInt128; S: Integer);
-{* 128 位无符号数按位右移}
+{* 128 位无符号数按位右移 S 位，如 S 为负，表示左移}
 
 procedure UInt128And(var R, A, B: TCnUInt128);
 {* 两个 128 位无符号数按位与}
@@ -239,6 +249,11 @@ function StrToUInt128(const S: string): TCnUInt128;
 {* 将十进制字符串转换为 128 位无符号数}
 
 implementation
+
+const
+  SCnErrorInt128NegateOverflow = 'Int128 Negate Overflow';
+  SCnErrorInt128MulOverflow = 'Int128 Mul Overflow';
+  SCnErrorUint128MulOverflow = 'UInt128 Mul Overflow';
 
 var
   FInt128Zero: TCnInt128 = (Lo64: 0; Hi64: 0);
@@ -366,7 +381,7 @@ begin
 
   UInt128Mul(TCnUInt128(R), TCnUInt128(A), TCnUInt128(B));
   if Int128IsNegative(R) then // 乘积是负说明溢出了
-    raise EIntOverflow.Create('Int128 Mul Overflow');
+    raise EIntOverflow.Create(SCnErrorInt128MulOverflow);
 
   if N1 <> N2 then // 只要有一个变过
     Int128Negate(R);
@@ -506,6 +521,7 @@ end;
 procedure Int128Negate(var N: TCnInt128);
 var
   C: Integer;
+  OldHi64: Int64;
 begin
   // 全部求反然后总体加一
   N.Lo64 := not N.Lo64;
@@ -517,7 +533,12 @@ begin
   UInt64Add(N.Lo64, N.Lo64, 1, C);
 {$ENDIF}
   if C > 0 then
+  begin
+    if N.Hi64 = CN_MAX_INT64 then // Hi64 太大会产生溢出
+      raise EIntOverflow.Create(SCnErrorInt128NegateOverflow);
+
     N.Hi64 := N.Hi64 + C;
+  end;
 end;
 
 procedure Int128Not(var N: TCnInt128);
@@ -680,12 +701,19 @@ begin
     Exit;
   end;
 
+  // 最小的负值下面求相反数会出错，直接处理
+  if (N.Hi64 = CN_MIN_INT64) and (N.Lo64 = 0) then
+  begin
+    Result := SCN_MIN_INT128;
+    Exit;
+  end;
+
   Int128Copy(T, N);
   Int128Set(Ten, 10);
 
   Neg := Int128IsNegative(T);
   if Neg then
-    Int128Negate(T);
+    Int128Negate(T); // 注意 T 如果是最小的负值，此处会溢出，所以上面提前处理掉
 
   Result := '';
   while not Int128IsZero(T) do
@@ -819,7 +847,7 @@ begin
   begin
     // 有溢出，溢出的值要放 ResHi^ 中，如果外界没提供，就抛异常
     if ResHi = nil then
-      raise EIntOverflow.Create('UInt128 Mul Overflow');
+      raise EIntOverflow.Create(SCnErrorUint128MulOverflow);
 
     T.Hi64 := 0;
     T.Lo64 := R1.Hi64;
