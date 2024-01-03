@@ -53,7 +53,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Variants, Contnrs, TypInfo, CnStrings;
+  Classes, SysUtils, {$IFNDEF COMPILER5} Variants, {$ENDIF} Contnrs, TypInfo,
+  CnNative, CnStrings;
 
 type
   ECnJSONException = class(Exception);

@@ -677,6 +677,13 @@ function UnsignedAddWithLimitRadix(A, B, C: Cardinal; var R: Cardinal;
   结果确保在 L 和 H 的闭区间内，用户须确保 H 大于 L，不考虑溢出的情形
   该函数多用于字符分区间计算与映射，其中 C 一般是进位}
 
+{$IFDEF COMPILER5}
+
+function BoolToStr(Value: Boolean; UseBoolStrs: Boolean = False): string;
+{* Delphi 5 下没有该函数，补上}
+
+{$ENDIF}
+
 implementation
 
 uses
@@ -3499,6 +3506,28 @@ begin
       InternalQuickSort(Mem, 0, ElementCount - 1, ElementByteSize, DefaultCompareProc);
   end;
 end;
+
+{$IFDEF COMPILER5}
+
+function BoolToStr(Value: Boolean; UseBoolStrs: Boolean): string;
+begin
+  if UseBoolStrs then
+  begin
+    if Value then
+      Result := 'True'
+    else
+      Result := 'False';
+  end
+  else
+  begin
+    if Value then
+      Result := '-1'
+    else
+      Result := '0';
+  end;
+end;
+
+{$ENDIF}
 
 initialization
   FByteOrderIsBigEndian := CurrentByteOrderIsBigEndian;
