@@ -49,6 +49,13 @@ interface
 uses
   Classes, SysUtils, {$IFDEF MSWINDOWS} Windows, {$ENDIF} CnNative;
 
+const
+  SCN_BOM_UTF8: array[0..2] of Byte = ($EF, $BB, $BF);
+
+  SCN_BOM_UTF16_LE: array[0..1] of Byte = ($FF, $FE);
+
+  SCN_BOM_UTF16_BE: array[0..1] of Byte = ($FE, $FF);
+
 type
   // 匹配模式，开头匹配，中间匹配，全范围模糊匹配
   TCnMatchMode = (mmStart, mmAnywhere, mmFuzzy);
