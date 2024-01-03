@@ -23,8 +23,10 @@ type
     btnJSONConstruct1: TButton;
     mmoOutput: TMemo;
     chkConstructFormat: TCheckBox;
+    btnWrite: TButton;
     procedure btnParseClick(Sender: TObject);
     procedure btnJSONConstruct1Click(Sender: TObject);
+    procedure btnWriteClick(Sender: TObject);
   private
     procedure DumpJSONToTreeView(JSON: TCnJSONObject);
   public
@@ -169,6 +171,11 @@ begin
   JObj1.Free;
   JObj.Free;
   // JArr ¸úËæ Free ÁË
+end;
+
+procedure TFormJSON.btnWriteClick(Sender: TObject);
+begin
+  mmoOutput.Lines.Text := TCnJSONWriter.SaveToJSON(Self);
 end;
 
 end.

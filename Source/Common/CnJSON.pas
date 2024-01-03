@@ -28,6 +28,10 @@ unit CnJSON;
 *           注意未经严格全面测试，不适合替代 System.JSON
 *           仅在无 System.JSON 的低版本中充当 JSON 解析与组装用
 *
+*           一段 JSON 是一个 JSONObject，包含一个或多个 Key Value 对，
+*           Key 是字符串，Value 则可以是普通值、JSONObject 或 JSONArray，
+*           JSONArray 是一排 JSONValue
+*
 *           解析：
 *              调用函数 CnJSONParse，传入 UTF8 格式的 JSONString，返回 JSONObject 对象
 *
@@ -36,8 +40,8 @@ unit CnJSON;
 *              需要数组时创建 TCnJSONArray 后调用其 AddValue 函数
 *              根 TCnJSONObject 调用 ToJSON 方法能生成 UTF8 格式的 JSON 字符串
 *
-* 开发平台：PWinXP + Delphi 7
-* 兼容测试：PWinXP/7 + Delphi 2009 ~
+* 开发平台：PWin7 + Delphi 7
+* 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2023.09.15 V1.0
 *                创建单元
@@ -49,7 +53,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Contnrs, TypInfo, CnStrings;
+  Classes, SysUtils, Variants, Contnrs, TypInfo, CnStrings;
 
 type
   ECnJSONException = class(Exception);
@@ -359,6 +363,26 @@ type
     {* 值，不自动创建，外部设置其引用，自身负责释放}
   end;
 
+  TCnJSONReader = class
+  private
+    procedure Read(Instance: TPersistent; Obj: TCnJSONObject);
+    procedure ReadCollection(Instance: TPersistent; Obj: TCnJSONObject);
+  public
+    class procedure LoadFromFile(Instance: TPersistent; const FileName: string);
+    class procedure LoadFromJSON(Instance: TPersistent; const JSON: AnsiString);
+  end;
+
+  TCnJSONWriter = class
+  private
+    procedure WriteNameValue(Obj: TCnJSONObject; const Name, Value: string);
+    procedure WriteProperty(Instance: TPersistent; PropInfo: PPropInfo; Obj: TCnJSONObject);
+    procedure Write(Instance: TPersistent; Obj: TCnJSONObject);
+  public
+    class procedure SaveToFile(Instance: TPersistent; const FileName: string;
+      Utf8Bom: Boolean = True);
+    class function SaveToJSON(Instance: TPersistent): AnsiString;
+  end;
+
 function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject;
 {* 解析 UTF8 格式的 JSON 字符串为 JSON 对象}
 
@@ -380,6 +404,16 @@ resourcestring
   SCnErrorJSONPair = 'JSON Pair Value Conflict';
   SCnErrorJSONTypeMismatch = 'JSON Value Type Mismatch';
   SCnErrorJSONStringParse = 'JSON String Parse Error';
+
+function JSONDateTimeToStr(Value: TDateTime): string;
+begin
+  if Trunc(Value) = 0 then
+    Result := FormatDateTime('''hh:mm:ss.zzz''', Value)
+  else if Frac(Value) = 0 then
+    Result := FormatDateTime('''yyyy-mm-dd''', Value)
+  else
+    Result := FormatDateTime('''yyyy-mm-dd hh:mm:ss.zzz''', Value);
+end;
 
 // 注意，每个 JSONParseXXXX 函数执行完后，P 的 TokenID 总指向这个元素后紧邻的非空元素
 
@@ -1570,6 +1604,229 @@ end;
 function TCnJSONFalse.IsFalse: Boolean;
 begin
   Result := True;
+end;
+
+{ TCnJSONReader }
+
+class procedure TCnJSONReader.LoadFromFile(Instance: TPersistent;
+  const FileName: string);
+begin
+
+end;
+
+class procedure TCnJSONReader.LoadFromJSON(Instance: TPersistent;
+  const JSON: AnsiString);
+var
+  Obj: TCnJSONObject;
+  Reader: TCnJSONReader;
+begin
+  Obj := nil;
+  Reader := nil;
+
+  try
+    Obj := CnJSONParse(JSON);
+    Reader := TCnJSONReader.Create;
+
+    if Instance is TCollection then
+      Reader.ReadCollection(Instance, Obj)
+    else
+      Reader.Read(Instance, Obj)
+  finally
+    Reader.Free;
+    Obj.Free;
+  end;
+end;
+
+procedure TCnJSONReader.Read(Instance: TPersistent; Obj: TCnJSONObject);
+begin
+
+end;
+
+procedure TCnJSONReader.ReadCollection(Instance: TPersistent; Obj: TCnJSONObject);
+begin
+
+end;
+
+{ TCnJSONWriter }
+
+class procedure TCnJSONWriter.SaveToFile(Instance: TPersistent;
+  const FileName: string; Utf8Bom: Boolean);
+var
+  JSON: AnsiString;
+  F: TFileStream;
+begin
+  JSON := SaveToJSON(Instance);
+  if JSON = '' then
+    Exit;
+
+  // UTF8 格式的 AnsiString，写 BOM 头与内容到文件
+  F := TFileStream.Create(FileName, fmCreate);
+  try
+    if Utf8Bom then
+      F.Write(SCN_BOM_UTF8[0], SizeOf(SCN_BOM_UTF8));
+    F.Write(JSON[1], Length(JSON));
+  finally
+    F.Free;
+  end;
+end;
+
+class function TCnJSONWriter.SaveToJSON(Instance: TPersistent): AnsiString;
+var
+  Obj: TCnJSONObject;
+  Writer: TCnJSONWriter;
+begin
+  Obj := nil;
+  Writer := nil;
+
+  try
+    Obj := TCnJSONObject.Create;
+    Writer := TCnJSONWriter.Create;
+
+    Writer.Write(Instance, Obj);
+    Result := Obj.ToJSON;
+  finally
+    Writer.Free;
+    Obj.Free;
+  end;
+end;
+
+procedure TCnJSONWriter.Write(Instance: TPersistent; Obj: TCnJSONObject);
+var
+  PropCount: Integer;
+  PropList: PPropList;
+  I: Integer;
+  PropInfo: PPropInfo;
+  Arr: TCnJSONArray;
+  Sub: TCnJSONObject;
+begin
+  PropCount := GetTypeData(Instance.ClassInfo)^.PropCount;
+  if PropCount = 0 then
+    Exit;
+
+  GetMem(PropList, PropCount * SizeOf(Pointer));
+  try
+    GetPropInfos(Instance.ClassInfo, PropList);
+    for I := 0 to PropCount - 1 do
+    begin
+      PropInfo := PropList^[I];
+      if PropInfo = nil then
+        Break;
+
+      if IsStoredProp(Instance, PropInfo) then
+        WriteProperty(Instance, PropInfo, Obj)
+    end;
+  finally
+    FreeMem(PropList, PropCount * SizeOf(Pointer));
+  end;
+
+  if Instance is TCollection then
+  begin
+    Arr := TCnJSONArray.Create;
+    Obj.AddPair('Items', Arr);
+
+    for I := 0 to (Instance as TCollection).Count - 1 do
+    begin
+      Sub := TCnJSONObject.Create;
+      Arr.AddChild(Sub);
+      Write((Instance as TCollection).Items[I], Sub);
+    end;
+  end;
+end;
+
+procedure TCnJSONWriter.WriteNameValue(Obj: TCnJSONObject; const Name,
+  Value: string);
+begin
+  Obj.AddPair(Name, Value);
+end;
+
+procedure TCnJSONWriter.WriteProperty(Instance: TPersistent;
+  PropInfo: PPropInfo; Obj: TCnJSONObject);
+var
+  PropType: PTypeInfo;
+
+  procedure WriteStrProp;
+  var
+    Value: string;
+  begin
+    Value := GetStrProp(Instance, PropInfo);
+    WriteNameValue(Obj, string(PropInfo^.Name), Value);
+  end;
+
+  procedure WriteOrdProp;
+  var
+    Value: Longint;
+  begin
+    Value := GetOrdProp(Instance, PropInfo);
+    if Value <> PPropInfo(PropInfo)^.Default then
+    begin
+      case PropType^.Kind of
+        tkInteger:
+          WriteNameValue(Obj, string(PropInfo^.Name), IntToStr(Value));
+        tkChar:
+          WriteNameValue(Obj, string(PropInfo^.Name), Chr(Value));
+        tkSet:
+          WriteNameValue(Obj, string(PropInfo^.Name), GetSetProp(Instance, PPropInfo(PropInfo), True));
+        tkEnumeration:
+          begin
+            if PropType = TypeInfo(Boolean) then
+              WriteNameValue(Obj, string(PropInfo^.Name), BoolToStr(Boolean(Value), True))
+            else
+              WriteNameValue(Obj, string(PropInfo^.Name), GetEnumName(PropType, Value));
+          end;
+      end;
+    end;
+  end;
+
+  procedure WriteFloatProp;
+  var
+    Value: Extended;
+  begin
+    Value := GetFloatProp(Instance, PropInfo);
+    WriteNameValue(Obj, string(PropInfo^.Name), FloatToStr(Value));
+  end;
+
+  procedure WriteInt64Prop;
+  var
+    Value: Int64;
+  begin
+    Value := GetInt64Prop(Instance, PropInfo);
+    WriteNameValue(Obj, string(PropInfo^.Name), IntToStr(Value));
+  end;
+
+  procedure WriteObjectProp;
+  var
+    Value: TObject;
+    SubObj: TCnJSONObject;
+  begin
+    Value := TObject(GetOrdProp(Instance, PropInfo));
+    if Value <> nil then
+    begin
+      if Value is TPersistent then
+      begin
+        SubObj := TCnJSONObject.Create;
+        Obj.AddPair(string(PropInfo^.Name), SubObj);
+        Write(TPersistent(Value), SubObj);
+      end;
+    end;
+  end;
+
+begin
+  if (PPropInfo(PropInfo)^.SetProc <> nil) and
+    (PPropInfo(PropInfo)^.GetProc <> nil) then
+  begin
+    PropType := PPropInfo(PropInfo)^.PropType^;
+    case PropType^.Kind of
+      tkInteger, tkChar, tkEnumeration, tkSet:
+        WriteOrdProp;
+      tkString, tkLString, tkWString {$IFDEF UNICODE}, tkUString {$ENDIF}:
+        WriteStrProp;
+      tkFloat:
+        // 时间日期暂时不额外处理，内部都用浮点先整
+        WriteFloatProp;
+      tkInt64: WriteInt64Prop;
+      tkClass: WriteObjectProp;
+    end;
+  end;
 end;
 
 end.

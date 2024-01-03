@@ -139,6 +139,15 @@ object FormJSON: TFormJSON
         Caption = 'Format'
         TabOrder = 2
       end
+      object btnWrite: TButton
+        Left = 152
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = 'Write Form'
+        TabOrder = 3
+        OnClick = btnWriteClick
+      end
     end
   end
 end
