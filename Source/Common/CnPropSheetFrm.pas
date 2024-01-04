@@ -966,6 +966,7 @@ end;
 function GetPropValueStr(Instance: TObject; PropInfo: PPropInfo): string;
 var
   iTmp: Integer;
+  Obj: TObject;
   S: string;
   IntToId: TIntToIdent;
   AMethod: TMethod;
@@ -1008,8 +1009,8 @@ begin
       end;
     tkClass:
       begin
-        iTmp := GetOrdProp(Instance, PropInfo);
-        S := GetObjValueStr(TObject(iTmp));
+        Obj := GetObjectProp(Instance, PropInfo);
+        S := GetObjValueStr(Obj);
       end;
     tkEnumeration:
       S := GetEnumProp(Instance, PropInfo);

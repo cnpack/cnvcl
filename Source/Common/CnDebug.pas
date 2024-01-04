@@ -1122,16 +1122,15 @@ begin
             end;
           tkClass:
             begin
-              OrdValue := GetOrdProp(PropOwner, PropertyInfo);
-              if OrdValue = 0 then
+              NextObject := GetObjectProp(PropOwner, PropertyInfo);
+              if NextObject = nil then
               begin
                 NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = <' +
-                  TypeInfoName(PropertyType) + '> (not assigned)';
+                  TypeInfoName(PropertyType) + '> (Not Assigned)';
                 List.Add(NewLine);
               end
               else
               begin
-                NextObject := TObject(OrdValue);
                 NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = <' +
                   TypeInfoName(PropertyType) + '>';
                 if NextObject is TComponent then
@@ -1150,7 +1149,7 @@ begin
                   try
                     AddObjectToStringList(NextObject, List, Level + 1);
                   except
-                    List.Add('*** Exception triggered ***');
+                    List.Add(SCnObjException);
                   end;
                 end;
               end;
