@@ -2101,9 +2101,9 @@ function TCnStringBuilder.GetCharCapacity: Integer;
 begin
 {$IFDEF UNICODE}
    if FAnsiMode then
-     Result := Length(FData)
+     Result := Length(FAnsiData)
    else
-     Result := Length(FAnsiData);
+     Result := Length(FData);
 {$ELSE}
    if FAnsiMode then
      Result := Length(FData)
