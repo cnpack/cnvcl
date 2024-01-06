@@ -1907,12 +1907,11 @@ begin
       tkString, tkLString, tkWString {$IFDEF UNICODE}, tkUString {$ENDIF}:
         ReadStrProp;
       tkFloat:
-//        if (PropType = TypeInfo(TDateTime)) or (PropType = TypeInfo(TTime)) or (PropType = TypeInfo(TDate)) then
-//          ReadDateTimeProp
-//        else
-          ReadFloatProp;
-      tkInt64: ReadInt64Prop;
-      tkClass: ReadObjectProp;
+        ReadFloatProp; // 时间日期暂时不额外处理，内部都用浮点先整
+      tkInt64:
+        ReadInt64Prop;
+      tkClass:
+        ReadObjectProp;
     end;
   end;
 end;
@@ -2091,10 +2090,11 @@ begin
       tkString, tkLString, tkWString {$IFDEF UNICODE}, tkUString {$ENDIF}:
         WriteStrProp;
       tkFloat:
-        // 时间日期暂时不额外处理，内部都用浮点先整
-        WriteFloatProp;
-      tkInt64: WriteInt64Prop;
-      tkClass: WriteObjectProp;
+        WriteFloatProp; // 时间日期暂时不额外处理，内部都用浮点先整
+      tkInt64:
+        WriteInt64Prop;
+      tkClass:
+        WriteObjectProp;
     end;
   end;
 end;
