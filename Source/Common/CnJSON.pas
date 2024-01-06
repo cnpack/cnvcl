@@ -396,7 +396,7 @@ type
   public
     class procedure SaveToFile(Instance: TPersistent; const FileName: string;
       Utf8Bom: Boolean = True);
-    class function SaveToJSON(Instance: TPersistent): AnsiString;
+    class function SaveToJSON(Instance: TPersistent; UseFormat: Boolean = True): AnsiString;
   end;
 
 function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject;
@@ -1940,7 +1940,8 @@ begin
   end;
 end;
 
-class function TCnJSONWriter.SaveToJSON(Instance: TPersistent): AnsiString;
+class function TCnJSONWriter.SaveToJSON(Instance: TPersistent;
+  UseFormat: Boolean): AnsiString;
 var
   Obj: TCnJSONObject;
   Writer: TCnJSONWriter;
@@ -1953,7 +1954,7 @@ begin
     Writer := TCnJSONWriter.Create;
 
     Writer.Write(Instance, Obj);
-    Result := Obj.ToJSON;
+    Result := Obj.ToJSON(UseFormat);
   finally
     Writer.Free;
     Obj.Free;
