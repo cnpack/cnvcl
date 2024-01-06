@@ -24,9 +24,11 @@ type
     mmoOutput: TMemo;
     chkConstructFormat: TCheckBox;
     btnWrite: TButton;
+    btnComponent: TButton;
     procedure btnParseClick(Sender: TObject);
     procedure btnJSONConstruct1Click(Sender: TObject);
     procedure btnWriteClick(Sender: TObject);
+    procedure btnComponentClick(Sender: TObject);
   private
     procedure DumpJSONToTreeView(JSON: TCnJSONObject);
   public
@@ -41,7 +43,7 @@ implementation
 {$R *.dfm}
 
 uses
-  CnWideStrings;
+  CnWideStrings, CnSampleComponent;
 
 procedure TFormJSON.btnParseClick(Sender: TObject);
 var
@@ -176,6 +178,22 @@ end;
 procedure TFormJSON.btnWriteClick(Sender: TObject);
 begin
   mmoOutput.Lines.Text := TCnJSONWriter.SaveToJSON(Self);
+end;
+
+procedure TFormJSON.btnComponentClick(Sender: TObject);
+var
+  C: TCnSampleComponent;
+  S: AnsiString;
+begin
+  C := TCnSampleComponent.Create(nil);
+  mmoOutput.Lines.Text := TCnJSONWriter.SaveToJSON(C);
+
+  TCnJSONReader.LoadFromJSON(C, mmoOutput.Lines.Text);
+
+  S := TCnJSONWriter.SaveToJSON(C);
+  if S <> mmoOutput.Lines.Text then
+    ShowMessage('Error');
+  C.Free;
 end;
 
 end.

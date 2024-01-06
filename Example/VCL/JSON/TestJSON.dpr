@@ -3,7 +3,8 @@ program TestJSON;
 uses
   Forms,
   UnitJSON in 'UnitJSON.pas' {FormJSON},
-  CnJSON in '..\..\..\Source\Common\CnJSON.pas';
+  CnJSON in '..\..\..\Source\Common\CnJSON.pas',
+  CnSampleComponent in '..\..\..\..\cnwizards\Source\Examples\CnSampleComponent.pas';
 
 {$R *.res}
 

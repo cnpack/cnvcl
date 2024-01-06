@@ -1,6 +1,7 @@
 object FormJSON: TFormJSON
   Left = 192
   Top = 138
+  Anchors = [akLeft, akTop, akRight, akBottom]
   BorderStyle = bsDialog
   Caption = 'JSON Test'
   ClientHeight = 587
@@ -147,6 +148,15 @@ object FormJSON: TFormJSON
         Caption = 'Write Form'
         TabOrder = 3
         OnClick = btnWriteClick
+      end
+      object btnComponent: TButton
+        Left = 256
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = 'Component'
+        TabOrder = 4
+        OnClick = btnComponentClick
       end
     end
   end
