@@ -82,6 +82,8 @@ begin
   DumpJSONToTreeView(Obj);
   S := Obj.ToJSON(chkJSONFormat.Checked); // UTF8 格式，不能直接塞到 Memo 里
 
+  ShowMessage(IntToStr(Obj['animals']['dog'].Values[0]['age'].AsInteger));
+
 {$IFDEF UNICODE}
   mmoJSONReconstruct.Lines.Text := UTF8Decode(S);
 {$ELSE}

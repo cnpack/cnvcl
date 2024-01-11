@@ -439,7 +439,7 @@ function GetGanZhiFromDay(AYear, AMonth, ADay, AHour: Integer): Integer; overloa
 {* 获得某公历日的天干地支，0-59 对应 甲子到癸亥，小时参数用于判断 23 小时后是次日}
 
 function GetGanZhiFromDay(AllDays: Integer): Integer; overload;
-{* 获得某公历日的天干地支，0-59 对应 甲子到癸亥}
+{* 获得某公历日的天干地支，0-59 对应 甲子到癸亥，参数为距离公元元年 1 月 0 日的绝对天数}
 
 function GetGanZhiFromMonth(AYear, AMonth, ADay: Integer): Integer; overload;
 {* 获得某公历月的天干地支，需要日是因为月以节气分界，不考虑时。0-59 对应 甲子到癸亥}

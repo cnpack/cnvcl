@@ -32,6 +32,10 @@ unit CnJSON;
 *           Key 是双引号字符串，Value 则可以是普通值、JSONObject 或 JSONArray，
 *           JSONArray 是一排 JSONValue
 *
+*           JSONValue 设有 Count 及 [Integer] 缺省索引作为是 JSONArray 时的子项，
+*           设有 Count 及 Values[String] 非缺省索引作为是 JSONObject 时的子项，String 参数为 Key
+*           这样可以写 Obj['animals']['dog'].Values[0]['age'].AsInteger 的级联形式来访问
+*
 *           解析：
 *              调用函数 CnJSONParse，传入 UTF8 格式的 JSONString，返回 JSONObject 对象
 *
@@ -45,7 +49,9 @@ unit CnJSON;
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2023.09.15 V1.0
+* 修改记录：2024.01.11 V1.1
+*                 加入级联默认属性，加入 Reader 和 Writer
+*           2023.09.15 V1.0
 *                创建单元
 ================================================================================
 |</PRE>}
@@ -147,6 +153,12 @@ type
     procedure SetContent(const Value: AnsiString);
   protected
     FUpdated: Boolean;
+
+    function GetName(Index: Integer): TCnJSONString; virtual;
+    function GetValueByName(const Name: string): TCnJSONValue; virtual;
+
+    function GetCount: Integer; virtual;
+    function GetValue(Index: Integer): TCnJSONValue; virtual;
   public
     constructor Create; virtual;
     {* 构造函数}
@@ -177,6 +189,18 @@ type
 
     property Content: AnsiString read FContent write SetContent;
     {* 普通值类型时代表原始 UTF8 格式的字符串内容}
+
+    // 是 Object 或 Array 时提供相关模拟的属性，由子类实现
+    property Names[Index: Integer]: TCnJSONString read GetName;
+    {* 名称对象索引}
+    property ValueByName[const Name: string]: TCnJSONValue read GetValueByName; default;
+    {* 根据名称获取值的实例}
+
+    property Count: Integer read GetCount;
+    {* 如果是数组，表示数组里的元素数量}
+
+    property Values[Index: Integer]: TCnJSONValue read GetValue;
+    {* 值对象索引，如果是数组则是数组元素，注意值可能是 TCnJSONValue 的不同子类实例}
   end;
 
 {
@@ -189,13 +213,14 @@ type
   {* 代表 JSON 中的对象值的类，也是 JSON 顶层类}
   private
     FPairs: TObjectList;
-    function GetCount: Integer;
-    function GetName(Index: Integer): TCnJSONString;
-    function GetValue(Index: Integer): TCnJSONValue;
-    function GetValueByName(const Name: string): TCnJSONValue;
+
   protected
     function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
     {* 供内部解析时添加 Pair}
+    function GetName(Index: Integer): TCnJSONString; override;
+    function GetValueByName(const Name: string): TCnJSONValue; override;
+    function GetCount: Integer; override;
+    function GetValue(Index: Integer): TCnJSONValue; override;
   public
     constructor Create; override;
     {* 构造函数}
@@ -306,11 +331,11 @@ type
   {* 代表 JSON 中的数组类}
   private
     FValues: TObjectList;
-    function GetCount: Integer;
-    function GetValues(Index: Integer): TCnJSONValue;
   protected
     function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
     {* 内部添加 Value 作为数组元素}
+    function GetCount: Integer; override;
+    function GetValue(Index: Integer): TCnJSONValue; override;
   public
     constructor Create; override;
     {* 构造函数}
@@ -336,7 +361,7 @@ type
 
     property Count: Integer read GetCount;
     {* 数组里的元素数量}
-    property Values[Index: Integer]: TCnJSONValue read GetValues; default;
+    property Values[Index: Integer]: TCnJSONValue read GetValue; default;
     {* 数组里的元素}
   end;
 
@@ -421,6 +446,7 @@ resourcestring
   SCnErrorJSONTypeMismatch = 'JSON Value Type Mismatch';
   SCnErrorJSONStringParse = 'JSON String Parse Error';
   SCnErrorJSONReadProperty = 'JSON Error Read Property %s';
+  SCnErrorJSONValueTypeNotImplementedFmt = 'NOT Implemented for this JSON Value Type %s';
 
 function JSONDateTimeToStr(Value: TDateTime): string;
 begin
@@ -1106,6 +1132,26 @@ begin
   inherited;
 end;
 
+function TCnJSONValue.GetCount: Integer;
+begin
+  raise ECnJSONException.CreateFmt(SCnErrorJSONValueTypeNotImplementedFmt, [ClassName]);
+end;
+
+function TCnJSONValue.GetName(Index: Integer): TCnJSONString;
+begin
+  raise ECnJSONException.CreateFmt(SCnErrorJSONValueTypeNotImplementedFmt, [ClassName]);
+end;
+
+function TCnJSONValue.GetValue(Index: Integer): TCnJSONValue;
+begin
+  raise ECnJSONException.CreateFmt(SCnErrorJSONValueTypeNotImplementedFmt, [ClassName]);
+end;
+
+function TCnJSONValue.GetValueByName(const Name: string): TCnJSONValue;
+begin
+  raise ECnJSONException.CreateFmt(SCnErrorJSONValueTypeNotImplementedFmt, [ClassName]);
+end;
+
 function TCnJSONValue.IsArray: Boolean;
 begin
   Result := False;
@@ -1262,7 +1308,7 @@ begin
   Result := FValues.Count;
 end;
 
-function TCnJSONArray.GetValues(Index: Integer): TCnJSONValue;
+function TCnJSONArray.GetValue(Index: Integer): TCnJSONValue;
 begin
   Result := TCnJSONValue(FValues[Index]);
 end;
