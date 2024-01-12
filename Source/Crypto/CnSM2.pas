@@ -42,7 +42,9 @@ unit CnSM2;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win7 + XE
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.04.29 V2.2
+* 修改记录：2024.01.12 V2.3
+*               SM2 公钥类支持在不传 SM2 实例时加载压缩格式的公钥
+*           2023.04.29 V2.2
 *               将密钥交换的输出密钥格式由 AnsiString 改为 TBytes 以避免乱码
 *           2023.04.10 V2.1
 *               修正部分坐标值较小的情况下的加解密对齐问题
@@ -100,8 +102,11 @@ type
   TCnSM2PrivateKey = TCnEccPrivateKey;
   {* SM2 的私钥就是普通椭圆曲线的私钥，可以用 ECC 中的相应 Load/Save 函数处理}
 
-  TCnSM2PublicKey = TCnEccPublicKey;
+  TCnSM2PublicKey = class(TCnEccPublicKey)
   {* SM2 的公钥就是普通椭圆曲线的公钥，可以用 ECC 中的相应 Load/Save 函数处理}
+  public
+    procedure SetHex(const Buf: AnsiString); reintroduce;
+  end;
 
   TCnSM2 = class(TCnEcc)
   {* SM2 椭圆曲线运算类，具体大部分实现在指定曲线类型的基类 TCnEcc 中}
@@ -119,10 +124,10 @@ type
   TCnSM2CryptSequenceType = (cstC1C3C2, cstC1C2C3);
   {* SM2 加密数据时的拼接方式，国标上是 C1C3C2，但经常有 C1C2C3 的版本，故此做兼容}
 
-  TCnSM2CollaborativePrivateKey = TCnEccPrivateKey;
+  TCnSM2CollaborativePrivateKey = TCnSM2PrivateKey;
   {* SM2 协同私钥就是普通椭圆曲线的私钥，但有至少两个}
 
-  TCnSM2CollaborativePublicKey = TCnEccPublicKey;
+  TCnSM2CollaborativePublicKey = TCnSM2PublicKey;
   {* SM2 协同私钥就是普通椭圆曲线的公钥，同样是一个}
 
 // ========================== SM2 椭圆曲线密钥生成 =============================
@@ -469,6 +474,20 @@ begin
   BigNumberSetBit(X, W);
   for I := W + 1 to X.GetBitsCount - 1 do
     BigNumberClearBit(X, I);
+end;
+
+{ TCnSM2PublicKey }
+
+procedure TCnSM2PublicKey.SetHex(const Buf: AnsiString);
+var
+  SM2: TCnSM2;
+begin
+  SM2 := TCnSM2.Create;
+  try
+    inherited SetHex(Buf, SM2);
+  finally
+    SM2.Free;
+  end;
 end;
 
 { TCnSM2 }
