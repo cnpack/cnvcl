@@ -115,6 +115,12 @@ function FloatToHex(Value: Extended; MaxDigit: Integer = CN_FLOAT_DEFAULT_DIGIT)
 function HexToFloat(const Hex: string): Extended;
 {* 十六进制字符串转换成浮点数，支持带小数点的小数}
 
+function CnIntAbs(N: Integer): Integer;
+{* 取得整型的绝对值}
+
+function CnInt64Abs(N: Int64): Int64;
+{* 取得 Int64 的绝对值}
+
 implementation
 
 uses
@@ -619,6 +625,22 @@ begin
 
   if Neg then
     Result := -Result;
+end;
+
+function CnIntAbs(N: Integer): Integer;
+begin
+  if N < 0 then
+    Result := -N
+  else
+    Result := N;
+end;
+
+function CnInt64Abs(N: Int64): Int64;
+begin
+  if N < 0 then
+    Result := -N
+  else
+    Result := N;
 end;
 
 end.
