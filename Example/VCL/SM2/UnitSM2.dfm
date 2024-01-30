@@ -37,7 +37,7 @@ object FormSM2: TFormSM2
     Height = 486
     ActivePage = tsEncDec
     Anchors = [akLeft, akTop, akRight, akBottom]
-    TabOrder = 5
+    TabOrder = 9
     object tsEncDec: TTabSheet
       Caption = 'Encryttion / Decryption'
       object grpSm2Enc: TGroupBox
@@ -141,7 +141,7 @@ object FormSM2: TFormSM2
           Width = 169
           Height = 25
           Caption = 'Decrypt File using Private Key'
-          TabOrder = 10
+          TabOrder = 11
           OnClick = btnSM2DecryptFileClick
         end
         object rbC1C3C2: TRadioButton
@@ -178,7 +178,7 @@ object FormSM2: TFormSM2
           Width = 97
           Height = 17
           Caption = 'Using ASN1Hex'
-          TabOrder = 11
+          TabOrder = 10
         end
       end
     end
@@ -251,7 +251,7 @@ object FormSM2: TFormSM2
           Top = 232
           Width = 161
           Height = 21
-          TabOrder = 5
+          TabOrder = 6
           Text = 'CnPack Team'
         end
         object edtSM2FileSign: TEdit
@@ -278,7 +278,7 @@ object FormSM2: TFormSM2
           Width = 1027
           Height = 113
           Anchors = [akLeft, akTop, akRight]
-          TabOrder = 4
+          TabOrder = 5
         end
         object btnSM2Verify: TButton
           Left = 536
@@ -286,7 +286,7 @@ object FormSM2: TFormSM2
           Width = 129
           Height = 25
           Caption = 'Verify using Public Key'
-          TabOrder = 7
+          TabOrder = 8
           OnClick = btnSM2VerifyClick
         end
         object btnSM2SignFile: TButton
@@ -295,7 +295,7 @@ object FormSM2: TFormSM2
           Width = 281
           Height = 25
           Caption = 'Sign using Private Key and Public Key'
-          TabOrder = 6
+          TabOrder = 7
           OnClick = btnSM2SignFileClick
         end
         object btnSignFile: TButton
@@ -305,7 +305,7 @@ object FormSM2: TFormSM2
           Height = 25
           Anchors = [akTop, akRight]
           Caption = 'Sign File'
-          TabOrder = 8
+          TabOrder = 9
           OnClick = btnSignFileClick
         end
         object btnVerifyFile: TButton
@@ -315,7 +315,7 @@ object FormSM2: TFormSM2
           Height = 25
           Anchors = [akTop, akRight]
           Caption = 'Verify File'
-          TabOrder = 9
+          TabOrder = 10
           OnClick = btnVerifyFileClick
         end
         object btnSm2SignTime: TButton
@@ -324,7 +324,7 @@ object FormSM2: TFormSM2
           Width = 281
           Height = 25
           Caption = 'Sign Time'
-          TabOrder = 10
+          TabOrder = 11
           OnClick = btnSm2SignTimeClick
         end
         object btnSM2VerifyTime: TButton
@@ -333,7 +333,7 @@ object FormSM2: TFormSM2
           Width = 129
           Height = 25
           Caption = 'Verify Time'
-          TabOrder = 11
+          TabOrder = 12
           OnClick = btnSM2VerifyTimeClick
         end
         object chkSignTBytes: TCheckBox
@@ -351,7 +351,7 @@ object FormSM2: TFormSM2
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 12
+          TabOrder = 4
           Items.Strings = (
             'Hex'
             'Asn1Hex'
@@ -1024,37 +1024,37 @@ object FormSM2: TFormSM2
     Width = 843
     Height = 21
     Anchors = [akLeft, akTop, akRight]
-    TabOrder = 2
+    TabOrder = 3
     Text = 'F0D75B33B825F32B39A0AA3E143E4AE0210CB23BBFAADB006211C5053E2399A0'
   end
   object btnGenerateKey: TButton
-    Left = 994
-    Top = 16
+    Left = 874
+    Top = 80
     Width = 105
     Height = 25
     Anchors = [akTop, akRight]
     Caption = 'Generate 2 Keys'
-    TabOrder = 1
+    TabOrder = 7
     OnClick = btnGenerateKeyClick
   end
   object btnLoadSM2Key: TButton
     Left = 994
     Top = 48
-    Width = 47
+    Width = 52
     Height = 25
     Anchors = [akTop, akRight]
     Caption = 'Load'
-    TabOrder = 3
+    TabOrder = 4
     OnClick = btnLoadSM2KeyClick
   end
   object btnVerifySm2Key: TButton
     Left = 994
     Top = 80
-    Width = 105
+    Width = 108
     Height = 25
     Anchors = [akTop, akRight]
     Caption = 'Verify SM2 Key'
-    TabOrder = 4
+    TabOrder = 8
     OnClick = btnVerifySm2KeyClick
   end
   object btnCalcPubFromPriv: TButton
@@ -1069,12 +1069,32 @@ object FormSM2: TFormSM2
   object btnSaveSM2Key: TButton
     Left = 1050
     Top = 48
-    Width = 47
+    Width = 52
     Height = 25
     Anchors = [akTop, akRight]
     Caption = 'Save'
-    TabOrder = 7
+    TabOrder = 5
     OnClick = btnSaveSM2KeyClick
+  end
+  object btnLoadSM2PubKey: TButton
+    Left = 994
+    Top = 16
+    Width = 52
+    Height = 25
+    Anchors = [akTop, akRight]
+    Caption = 'Load Pub'
+    TabOrder = 1
+    OnClick = btnLoadSM2PubKeyClick
+  end
+  object btnSaveSM2PubKey: TButton
+    Left = 1050
+    Top = 16
+    Width = 52
+    Height = 25
+    Anchors = [akTop, akRight]
+    Caption = 'Save Pub'
+    TabOrder = 2
+    OnClick = btnSaveSM2PubKeyClick
   end
   object dlgOpen1: TOpenDialog
     Left = 876

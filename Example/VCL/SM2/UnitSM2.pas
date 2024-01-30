@@ -137,6 +137,8 @@ type
     lblSM2SigFormat: TLabel;
     cbbSM2SigFormat: TComboBox;
     btnSaveSM2Key: TButton;
+    btnLoadSM2PubKey: TButton;
+    btnSaveSM2PubKey: TButton;
     procedure btnSm2Example1Click(Sender: TObject);
     procedure btnSm2SignVerifyClick(Sender: TObject);
     procedure btnSM2KeyExchangeClick(Sender: TObject);
@@ -175,6 +177,8 @@ type
     procedure btnCalcPubFromPrivClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnSaveSM2KeyClick(Sender: TObject);
+    procedure btnLoadSM2PubKeyClick(Sender: TObject);
+    procedure btnSaveSM2PubKeyClick(Sender: TObject);
   private
     function CheckPublicKeyStr(Edit: TEdit): Boolean;
     function CheckPrivateKeyStr(Edit: TEdit): Boolean;
@@ -198,27 +202,6 @@ const
 
 type
   TSm2ResFormat = (rfHex, rfAsn1Hex, rfBase64, rfAsn1Base64);
-
-function HexToInt(const Hex: AnsiString): Integer;
-var
-  I, Res: Integer;
-  ch: AnsiChar;
-begin
-  Res := 0;
-  for I := 0 to Length(Hex) - 1 do
-  begin
-    ch := Hex[I + 1];
-    if (ch >= '0') and (ch <= '9') then
-      Res := Res * 16 + Ord(ch) - Ord('0')
-    else if (ch >= 'A') and (ch <= 'F') then
-      Res := Res * 16 + Ord(ch) - Ord('A') + 10
-    else if (ch >= 'a') and (ch <= 'f') then
-      Res := Res * 16 + Ord(ch) - Ord('a') + 10
-    else
-      raise Exception.Create('Error: not a Hex String');
-  end;
-  Result := Res;
-end;
 
 function MyStreamFromHex(const Hex: string; Stream: TStream): Integer;
 var
@@ -1946,6 +1929,54 @@ begin
 
     Pub.Free;
     Priv.Free;
+  end;
+end;
+
+procedure TFormSM2.btnLoadSM2PubKeyClick(Sender: TObject);
+var
+  Pub: TCnSM2PublicKey;
+  CurveType: TCnEccCurveType;
+begin
+  if dlgOpen1.Execute then
+  begin
+    Pub := TCnSM2PublicKey.Create;
+
+    if CnEccLoadPublicKeyFromPem(dlgOpen1.FileName, Pub, CurveType) then
+    begin
+      if CurveType <> ctSM2 then
+      begin
+        ShowMessage('NOT SM2 Public Key');
+        Exit;
+      end;
+
+      edtSM2PublicKey.Text := Pub.ToHex;
+      edtSM2PrivateKey.Text := '';
+    end
+    else
+      ShowMessage('Load SM2 Public Key Failed.');
+
+    Pub.Free;
+  end;
+end;
+
+procedure TFormSM2.btnSaveSM2PubKeyClick(Sender: TObject);
+var
+  Pub: TCnSM2PublicKey;
+begin
+  if dlgSave1.Execute then
+  begin
+    Pub := TCnSM2PublicKey.Create;
+
+    Pub.SetHex(edtSM2PublicKey.Text);
+
+    if CnEccSavePublicKeyToPem(dlgSave1.FileName, Pub, ctSM2) then
+    begin
+      ShowMessage('Save SM2 Public Key OK.');
+    end
+    else
+      ShowMessage('Save SM2 Publick Key Failed.');
+
+    Pub.Free;
   end;
 end;
 
