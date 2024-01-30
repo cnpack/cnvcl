@@ -1,0 +1,1738 @@
+{******************************************************************************}
+{                       CnPack For Delphi/C++Builder                           }
+{                     中国人自己的开放源码第三方开发包                         }
+{                   (C)Copyright 2001-2024 CnPack 开发组                       }
+{                   ------------------------------------                       }
+{                                                                              }
+{            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
+{        改和重新发布这一程序。                                                }
+{                                                                              }
+{            发布这一开发包的目的是希望它有用，但没有任何担保。甚至没有        }
+{        适合特定目的而隐含的担保。更详细的情况请参阅 CnPack 发布协议。        }
+{                                                                              }
+{            您应该已经和开发包一起收到一份 CnPack 发布协议的副本。如果        }
+{        还没有，可访问我们的网站：                                            }
+{                                                                              }
+{            网站地址：http://www.cnpack.org                                   }
+{            电子邮件：master@cnpack.org                                       }
+{                                                                              }
+{******************************************************************************}
+
+unit CnPDF;
+{* |<PRE>
+================================================================================
+* 软件名称：开发包基础库
+* 单元名称：PDF 简易解析生成单元
+* 单元作者：刘啸
+* 备    注：简单的 PDF 格式处理单元
+*           解析：先线性进行词法分析，再解析出多个对象，再将对象整理成树
+*           生成：先构造固定的对象树，补充内容后写入流
+*
+*           文件尾的 Trailer 的 Root 指向 Catalog 对象，大体的树结构如下：
+*
+*           Catalog -> Pages -> Page1 -> Resource
+*                   |        |      | -> Content
+*                   |        |      | -> Thunbnail Image
+*                   |        |      | -> Annoation
+*                   |        -> Page2 ...
+*                   |
+*                   -> Outline Hierarchy -> Outline Entry
+*                   |                  | -> Outline Entry
+*                   |
+*                   -> Artical Threads -> Thread
+*                   |                | -> Thread
+*                   -> Named Destination
+*                   -> Interactive Form
+*
+* 开发平台：Win 7 + Delphi 5.0
+* 兼容测试：暂未进行
+* 本 地 化：该单元无需本地化处理
+* 修改记录：2024.01.28 V1.0
+*               创建单元
+================================================================================
+|</PRE>}
+
+interface
+
+{$I CnPack.inc}
+
+uses
+  SysUtils, Classes, Contnrs, jpeg, CnNative, CnStrings;
+
+type
+  ECnPDFException = class(Exception);
+  {* PDF 异常}
+
+  ECnPDFEofException = class(Exception);
+  {* 解析 PDF 时碰到内容尾}
+
+//==============================================================================
+// 以下是 PDF 文件中各种对象类的声明及继承关系
+//
+//  TCnPDFObject 派生出
+//    简单：TCnPDFNumberObject、TCnPDFNameObject、TCnPDFBooleanObject、
+//          TCnPDFNullObject、TCnPDFStringObject、TCnPDFReferenceObject
+//    复合：TCnPDFArrayObject，线性包含多个 TCnPDFObject
+//          TCnPDFDictionaryObject，包含多个 TCnPDFNameObject 与 TCnPDFObject 对
+//          TCnPDFStreamObject，包含一个 TCnPDFDictionaryObject 与一片二进制数据
+//
+//==============================================================================
+
+  TCnPDFXRefType = (xrtNormal, xrtDeleted, xrtFree);
+  {* 对象的交叉引用类型：自由无引用、正常引用、已删除}
+
+  TCnPDFObject = class
+  {* PDF 文件中的对象基类}
+  private
+    FID: Cardinal;
+    FGeneration: Cardinal;
+    FXRefType: TCnPDFXRefType;
+  protected
+    function CheckWriteObjectStart(Stream: TStream): Cardinal;
+    function CheckWriteObjectEnd(Stream: TStream): Cardinal;
+  public
+    function WriteToStream(Stream: TStream): Cardinal; virtual; abstract;
+
+    property ID: Cardinal read FID write FID;
+    {* 对象 ID，如为 0，写入时不写前后缀}
+    property Generation: Cardinal read FGeneration write FGeneration;
+    {* 对象的代数，一般为 0}
+    property XRefType: TCnPDFXRefType read FXRefType write FXRefType;
+    {* 对象交叉引用类型，一般为 normal}
+  end;
+
+  TCnPDFSimpleObject = class(TCnPDFObject)
+  {* 简单的 PDF 文件对象基类，有一段简单内容，可按格式输出}
+  private
+
+  protected
+    FContent: TBytes;
+  public
+    constructor Create(const AContent: AnsiString); overload;
+    {* 从一简单内容创建对象}
+    constructor Create(const Data: TBytes); overload;
+    {* 从一简单内容创建对象}
+
+    function WriteToStream(Stream: TStream): Cardinal; override;
+    {* 简单对象，默认照原样输出}
+
+    property Content: TBytes read FContent write FContent;
+    {* 不包括包装格式前后缀的具体内容}
+  end;
+
+  TCnPDFNumberObject = class(TCnPDFSimpleObject)
+  {* PDF 文件中的数字对象类}
+  public
+    constructor Create(Num: Integer); reintroduce;overload;
+    constructor Create(Num: Int64); reintroduce; overload;
+    constructor Create(Num: Extended); reintroduce; overload;
+  end;
+
+  TCnPDFNameObject = class(TCnPDFSimpleObject)
+  {* PDF 文件中的名字对象类}
+  public
+    function WriteToStream(Stream: TStream): Cardinal; override;
+    {* 输出斜杠加名字}
+  end;
+
+  TCnPDFBooleanObject = class(TCnPDFSimpleObject)
+  {* PDF 文件中的布尔对象类}
+  public
+    constructor Create(IsTrue: Boolean); reintroduce;
+  end;
+
+  TCnPDFNullObject = class(TCnPDFSimpleObject)
+  {* PDF 文件中的空对象类}
+  public
+    constructor Create; reintroduce;
+  end;
+
+  TCnPDFStringObject = class(TCnPDFSimpleObject)
+  {* PDF 文件中的字符串对象类}
+  public
+    constructor Create(const AnsiStr: AnsiString); overload;
+    constructor Create(const WideStr: WideString); overload;
+{$IFDEF UNICODE}
+    constructor Create(const UnicodeStr: string); overload;
+{$ENDIF}
+
+    function WriteToStream(Stream: TStream): Cardinal; override;
+    {* 输出一对小括号加上其内的字符串}
+  end;
+
+  TCnPDFReferenceObject = class(TCnPDFSimpleObject)
+  {* PDF 文件中的引用对象类}
+  private
+    FRef: TCnPDFObject;
+  public
+    constructor Create(Obj: TCnPDFObject); reintroduce; virtual;
+    destructor Destroy; override;
+
+    function WriteToStream(Stream: TStream): Cardinal; override;
+    {* 输出数字 数字 R}
+  end;
+
+  TCnPDFDictPair = class
+  {* PDF 文件中的字典对象类中的名字对象对，持有名字与值两个对象}
+  private
+    FName: TCnPDFNameObject;
+    FValue: TCnPDFObject;
+  public
+    constructor Create(const Name: string); virtual;
+    destructor Destroy; override;
+
+    function WriteToStream(Stream: TStream): Cardinal;
+    {* 输出名字 值}
+
+    property Name: TCnPDFNameObject read FName;
+    {* 名字对象}
+    property Value: TCnPDFObject read FValue write FValue;
+    {* 值对象，可由外界设置，自身释放}
+  end;
+
+
+  TCnPDFArrayObject = class(TCnPDFObject)
+  {* PDF 文件中的数组对象类，持有数组内的元素对象}
+  private
+    FElements: TObjectList;
+    function GetItem(Index: Integer): TCnPDFObject;
+    procedure SetItem(Index: Integer; const Value: TCnPDFObject);
+    function GetCount: Integer;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    procedure Clear;
+    function WriteToStream(Stream: TStream): Cardinal; override;
+    {* 输出[及每个对象及]}
+
+    procedure AddObject(Obj: TCnPDFObject);
+    {* 添加一个对象，外部请勿释放此对象}
+    procedure AddNumber(Value: Integer); overload;
+    procedure AddNumber(Value: Int64); overload;
+    procedure AddNumber(Value: Extended); overload;
+    procedure AddNul;
+    procedure AddTrue;
+    procedure AddFalse;
+    procedure AddObjectRef(Obj: TCnPDFObject);
+    procedure AddAnsiString(const Value: AnsiString);
+    procedure AddWideString(const Value: WideString);
+{$IFDEF UNICODE}
+    procedure AddUnicodeString(const Value: string);
+{$ENDIF}
+
+    property Count: Integer read GetCount;
+    property Items[Index: Integer]: TCnPDFObject read GetItem write SetItem;
+    {* 序号引用其元素}
+  end;
+
+  TCnPDFDictionaryObject = class(TCnPDFObject)
+  {* PDF 文件中的字典对象类，持有内部 Pair}
+  private
+    FPairs: TObjectList;
+    function GetValue(const Name: string): TCnPDFObject;
+    procedure SetValue(const Name: string; const Value: TCnPDFObject);
+    function GetCount: Integer;
+  protected
+    function IndexOfName(const Name: string): Integer;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    procedure Clear;
+    function WriteToStream(Stream: TStream): Cardinal; override;
+    {* 输出<<及每个Pair及>>}
+
+    function AddName(const Name: string): TCnPDFDictPair; overload;
+    {* 添加一个名称，值由外界赋值，赋值后外部请勿释放此对象}
+    function AddName(const Name1, Name2: string): TCnPDFDictPair; overload;
+    {* 添加两个名称分别作为名称与值}
+
+    function AddArray(const Name: string): TCnPDFArrayObject;
+    {* 添加一个命名的空数组，注意返回的是数组对象本身}
+
+    function AddNumber(const Name: string; Value: Integer): TCnPDFDictPair; overload;
+    function AddNumber(const Name: string; Value: Int64): TCnPDFDictPair; overload;
+    function AddNumber(const Name: string; Value: Extended): TCnPDFDictPair; overload;
+    function AddNull(const Name: string): TCnPDFDictPair;
+    function AddTrue(const Name: string): TCnPDFDictPair;
+    function AddFalse(const Name: string): TCnPDFDictPair;
+    function AddObjectRef(const Name: string; Obj: TCnPDFObject): TCnPDFDictPair;
+    function AddString(const Name: string; const Value: string): TCnPDFDictPair;
+    function AddAnsiString(const Name: string; const Value: AnsiString): TCnPDFDictPair;
+    function AddWideString(const Name: string; const Value: WideString): TCnPDFDictPair;
+{$IFDEF UNICODE}
+    function AddUnicodeString(const Name: string; const Value: string): TCnPDFDictPair;
+{$ENDIF}
+
+    property Count: Integer read GetCount;
+    {* 字典内的元素数量}
+    property Values[const Name: string]: TCnPDFObject read GetValue write SetValue; default;
+    {* 根据名字引用对象}
+  end;
+
+  TCnPDFStreamObject = class(TCnPDFObject)
+  {* PDF 文件中的流对象类，据说包含一字典一流}
+  private
+    FStream: TBytes;
+    FDictionary: TCnPDFDictionaryObject;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    procedure SetJpegImage(const JpegFileName: string);
+    {* 将一 JPEG 格式的文件放入本对象} 
+
+    function WriteToStream(Stream: TStream): Cardinal; override;
+    {* 输出 stream 及流及 endstream}
+
+    property Dictionary: TCnPDFDictionaryObject read FDictionary;
+    {* 字典}
+    property Stream: TBytes read FStream;
+    {* 包含的原始流内容}
+  end;
+
+  TCnPDFObjectManager = class(TObjectList)
+  {* PDFDocument 类内部使用的管理每个独立对象的类}
+  private
+    FCurrentID: Integer;
+    function GetItem(Index: Integer): TCnPDFObject;
+    procedure SetItem(Index: Integer; const Value: TCnPDFObject);
+  public
+    constructor Create;
+
+    function Add(AObject: TCnPDFObject): Integer; reintroduce;
+    property Items[Index: Integer]: TCnPDFObject read GetItem write SetItem; default;
+    property CurrentID: Integer read FCurrentID;
+  end;
+
+  TCnPDFHeader = class
+  {* PDF 文件头的解析与生成}
+  private
+    FVersion: string;
+    FComment: string;
+  public
+    constructor Create; virtual;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    function WriteToStream(Stream: TStream): Cardinal;
+    {* 将内容输出至流}
+
+    property Version: string read FVersion write FVersion;
+    {* 字符串形式的版本号，如 1.7 等}
+    property Comment: string read FComment write FComment;
+    {* 一段单行注释，用一些复杂字符}
+  end;
+
+  TCnPDFXRefItem = class(TCollectionItem)
+  {* PDF 文件里的交叉引用表的条目，多个条目属于一个段}
+  private
+    FObjectGeneration: Cardinal;
+    FObjectXRefType: TCnPDFXRefType;
+    FObjectOffset: Cardinal;
+  public
+    property ObjectGeneration: Cardinal read FObjectGeneration write FObjectGeneration;
+    {* 对象代数}
+    property ObjectXRefType: TCnPDFXRefType read FObjectXRefType write FObjectXRefType;
+    {* 对象引用类型}
+    property ObjectOffset: Cardinal read FObjectOffset write FObjectOffset;
+    {* 对象在文件中的偏移量}
+  end;
+
+  TCnPDFXRefCollection = class(TCollection)
+  {* PDF 文件里的交叉引用表中的一个段的解析与生成，包含多个条目}
+  private
+    FObjectIndex: Cardinal;
+    function GetItem(Index: Integer): TCnPDFXRefItem;
+    procedure SetItem(Index: Integer; const Value: TCnPDFXRefItem);
+  public
+    constructor Create; reintroduce;
+    destructor Destroy; override;
+
+    function WriteToStream(Stream: TStream): Cardinal;
+    {* 将内容输出至流}
+
+    function Add: TCnPDFXRefItem;
+    {* 添加一个空交叉引用条目}
+
+    property ObjectIndex: Cardinal read FObjectIndex write FObjectIndex;
+    {* 本段内的对象起始编号}
+    property Items[Index: Integer]: TCnPDFXRefItem read GetItem write SetItem;
+    {* 本段的连续对象数}
+  end;
+
+  TCnPDFXRefTable = class
+  {* PDF 文件中的交叉引用表的解析与生成，包括一个或多个段}
+  private
+    FSegments: TObjectList;
+    function GetSegmenet(Index: Integer): TCnPDFXRefCollection;
+    function GetSegmentCount: Integer;
+    procedure SetSegment(Index: Integer;
+      const Value: TCnPDFXRefCollection);
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    procedure Clear;
+
+    function WriteToStream(Stream: TStream): Cardinal;
+    {* 将内容输出至流}
+
+    function AddSegment: TCnPDFXRefCollection;
+    {* 增加一个空段}
+
+    property SegmentCount: Integer read GetSegmentCount;
+    {* 交叉引用表中的段数}
+    property Segments[Index: Integer]: TCnPDFXRefCollection read GetSegmenet write SetSegment;
+    {* 交叉引用表中的每一段}
+  end;
+
+  TCnPDFTrailer = class
+  {* PDF 文件尾的解析与生成}
+  private
+    FDictionary: TCnPDFDictionaryObject;
+    FXRefStart: Cardinal;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    function WriteToStream(Stream: TStream): Cardinal;
+    {* 将内容输出至流}
+
+    property Dictionary: TCnPDFDictionaryObject read FDictionary;
+    {* 文件尾的字典，包括 Size、Root、Info 等关键信息}
+
+    property XRefStart: Cardinal read FXRefStart write FXRefStart;
+    {* 交叉引用表的起始字节偏移量，可以指向 xref 原始表，也可用是一个 类型是 XRef 的 Object，里头有流式内容}
+  end;
+
+  TCnPDFBody = class
+  {* PDF 内容组织类}
+  private
+    FObjects: TCnPDFObjectManager;     // 所有对象都在这里管辖，其余都是引用
+    FPageList: TObjectList;
+    FResourceList: TObjectList;
+    FContentList: TObjectList;
+    FPages: TCnPDFDictionaryObject;    // 页面树对象
+    FCatalog: TCnPDFDictionaryObject;  // 根目录对象，供 Trailer 中引用
+    FXRefTable: TCnPDFXRefTable;
+    FInfo: TCnPDFDictionaryObject;     // 信息对象，供 Trailer 中引用
+    function GetPage(Index: Integer): TCnPDFDictionaryObject;
+    function GetPageCount: Integer;
+  protected
+    procedure ArrangeIDs;
+    {* 给所有对象的 ID 顺序赋值}
+    procedure SyncPages;
+    {* 将页面内容引用赋值给 Pages 的 Kids}
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    procedure SortObjects;
+    {* 将对象表按对象编号排序}
+
+    function WriteToStream(Stream: TStream): Cardinal;
+    {* 将内容输出至流}
+
+    procedure AddObject(Obj: TCnPDFObject);
+    {* 让外界添加创建好的对象并交给本类管理}
+    property Objects: TCnPDFObjectManager read FObjects;
+    {* 所有对象供访问}
+    property XRefTable: TCnPDFXRefTable read FXRefTable write FXRefTable;
+    {* 交叉引用表的引用，供写入各个对象的偏移等}
+
+    // 以下大概必须
+    property Info: TCnPDFDictionaryObject read FInfo;
+    {* 信息对象，类型为字典}
+
+    property Catalog: TCnPDFDictionaryObject read FCatalog;
+    {* 根对象，类型为字典，其 /Pages 指向 Pages 对象}
+
+    property Pages: TCnPDFDictionaryObject read FPages;
+    {* 页面列表，类型为字典，其 /Kids 指向各个页面}
+    property PageCount: Integer read GetPageCount;
+    {* 页面对象数量}
+    property Page[Index: Integer]: TCnPDFDictionaryObject read GetPage;
+    {* 多个页面对象，类型为字典，有 MediaBox（定义纸张大小）、Resources（字体资源等）、
+      Parent（指向页面列表父节点），Contents（页面内容操作符）}
+    function AddPage: TCnPDFDictionaryObject;
+    {* 增加一页面}
+  end;
+
+//==============================================================================
+//
+// 以下是 PDF 文件的结构，包含四个类
+//
+//==============================================================================
+
+  TCnPDFDocument = class
+  private
+    FHeader: TCnPDFHeader;
+    FBody: TCnPDFBody;
+    FXRefTable: TCnPDFXRefTable;
+    FTrailer: TCnPDFTrailer;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    procedure LoadFromFile(const FileName: string);
+    procedure SaveToFile(const FileName: string);
+
+    procedure LoadFromStream(Stream: TStream);
+    procedure SaveToStream(Stream: TStream);
+
+    property Header: TCnPDFHeader read FHeader;
+    property Body: TCnPDFBody read FBody;
+    property XRefTable: TCnPDFXRefTable read FXRefTable;
+    property Trailer: TCnPDFTrailer read FTrailer;
+  end;
+
+//==============================================================================
+//
+// 以下是 PDF 文件的词法和语法解析，暂未实现
+//
+//==============================================================================
+
+  TCnPDFTokenType = (pttComment, pttBlank, pttLineBreak, pttNumber,
+    pttNull, pttTrue, pttFalse, pttObj, pttStream, pttEnd, pttXref, pttStartxref, pttTrailer,
+    pttName, pttStringBegin, pttStringEnd, pttArrayBegin, pttArranEnd,
+    pttDictionaryBegin, pttDictionaryEnd, pptStreamData, pttUnknown);
+  {* PDF 文件内容中的符号类型，对应%、空格、回车换行、数字、
+    null、true、false、obj、stream、end、xref、startxref、trailer
+    /、(、)、[、]、<<、>>、流内容}
+
+  TCnPDFParser = class
+  {* PDF 内容解析器}
+  private
+    FRun: Integer;
+    FTokenPos: Integer;
+    FOrigin: PAnsiChar;
+    FByteLength: Cardinal;
+    FStringLen: Integer; // 当前字符串的字符长度
+    FProcTable: array[#0..#255] of procedure of object;
+    FTokenID: TCnPDFTokenType;
+
+    procedure KeywordProc;               // obj stream end null true false 等固定标识符
+    procedure NameBeginProc;             // /
+    procedure StringBeginProc;           // (
+    procedure StringEndProc;             // )
+    procedure ArrayBeginProc;            // [
+    procedure ArrayEndProc;              // ]
+    procedure DictionaryBeginProc;       // <<
+    procedure DictionaryEndProc;         // >>
+    procedure CommentProc;               // %
+    procedure NumberProc;                // 数字+-
+    procedure BlankProc;                 // 空格 Tab 等
+    procedure CRLFProc;                  // 回车或换行或回车换行
+    procedure UnknownProc;               // 未知
+    function GetToken: AnsiString;
+    procedure SetRunPos(const Value: Integer);
+    function GetTokenLength: Integer;
+  protected
+    procedure Error(const Msg: string);
+    function TokenEqualStr(Org: PAnsiChar; const Str: AnsiString): Boolean;
+    procedure MakeMethodTable;
+    procedure StepRun; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+  public
+    constructor Create; virtual;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    procedure SetOrigin(const PDFBuf: PAnsiChar; PDFByteSize: Cardinal);
+
+    procedure Next;
+    {* 跳至下一个 Token 并确定 TokenID}
+    procedure NextNoJunk;
+    {* 跳至下一个非 Null 以及非空格 Token 并确定 TokenID}
+
+    property Origin: PAnsiChar read FOrigin;
+    {* 待解析的 PDF 内容}
+    property RunPos: Integer read FRun write SetRunPos;
+    {* 当前处理位置相对于 FOrigin 的线性偏移量，单位为字节数，0 开始}
+    property TokenID: TCnPDFTokenType read FTokenID;
+    {* 当前 Token 类型}
+    property Token: AnsiString read GetToken;
+    {* 当前 Token 的字符串内容，暂不解析}
+    property TokenLength: Integer read GetTokenLength;
+    {* 当前 Token 的字节长度}
+  end;
+
+implementation
+
+const
+  SPACE: AnsiChar = ' ';
+  CRLF: array[0..1] of AnsiChar = (#13, #10);
+
+  OBJFMT: AnsiString = '%d %d obj';
+  ENDOBJ: AnsiString = 'endobj';
+  XREF: AnsiString = 'xref';
+  BEGINSTREAM: AnsiString = 'stream';
+  ENDSTREAM: AnsiString = 'endstream';
+
+  TRAILER: AnsiString = 'trailer';
+  STARTXREF: AnsiString = 'startxref';
+  EOF: AnsiString = '%%EOF';
+
+function WriteSpace(Stream: TStream): Cardinal;
+begin
+  Result := Stream.Write(SPACE, SizeOf(SPACE));
+end;
+
+function WriteCRLF(Stream: TStream): Cardinal;
+begin
+  Result := Stream.Write(CRLF[0], SizeOf(CRLF));
+end;
+
+function WriteLine(Stream: TStream; const Str: AnsiString): Cardinal;
+begin
+  if Length(Str) > 0 then
+    Result := Stream.Write(Str[1], Length(Str))
+  else
+    Result := 0;
+  Inc(Result, WriteCRLF(Stream));
+end;
+
+function WriteString(Stream: TStream; const Str: AnsiString): Cardinal;
+begin
+  if Length(Str) > 0 then
+    Result := Stream.Write(Str[1], Length(Str))
+  else
+    Result := 0;
+end;
+
+function WriteBytes(Stream: TStream; const Data: TBytes): Cardinal;
+begin
+  if Length(Data) > 0 then
+    Result := Stream.Write(Data[0], Length(Data))
+  else
+    Result := 0;
+end;
+
+function XRefTypeToString(XRefType: TCnPDFXRefType): AnsiString;
+begin
+  case XRefType of
+    xrtFree: Result := 'f';
+    xrtNormal: Result := 'n';
+    xrtDeleted: Result := 'd';
+  else
+    Result := 'n';
+  end;
+end;
+
+{ TCnPDFTrailer }
+
+constructor TCnPDFTrailer.Create;
+begin
+  inherited;
+  FDictionary := TCnPDFDictionaryObject.Create;
+end;
+
+destructor TCnPDFTrailer.Destroy;
+begin
+  FDictionary.Free;
+  inherited;
+end;
+
+function TCnPDFTrailer.WriteToStream(Stream: TStream): Cardinal;
+begin
+  Result := 0;
+  Inc(Result, WriteLine(Stream, TRAILER));
+  Inc(Result, FDictionary.WriteToStream(Stream));
+  Inc(Result, WriteLine(Stream, STARTXREF));
+  Inc(Result, WriteLine(Stream, IntToStr(FXRefStart)));
+  Inc(Result, WriteLine(Stream, EOF));
+end;
+
+{ TCnPDFXRefCollection }
+
+function TCnPDFXRefCollection.Add: TCnPDFXRefItem;
+begin
+  Result := TCnPDFXRefItem(inherited Add);
+end;
+
+constructor TCnPDFXRefCollection.Create;
+begin
+  inherited Create(TCnPDFXRefItem);
+end;
+
+destructor TCnPDFXRefCollection.Destroy;
+begin
+
+  inherited;
+end;
+
+function TCnPDFXRefCollection.GetItem(Index: Integer): TCnPDFXRefItem;
+begin
+  Result := TCnPDFXRefItem(inherited GetItem(Index));
+end;
+
+procedure TCnPDFXRefCollection.SetItem(Index: Integer;
+  const Value: TCnPDFXRefItem);
+begin
+  inherited SetItem(Index, Value);
+end;
+
+function TCnPDFXRefCollection.WriteToStream(Stream: TStream): Cardinal;
+var
+  I: Integer;
+begin
+  Result := WriteLine(Stream, Format('%d %d', [FObjectIndex, Count]));
+  for I := 0 to Count - 1 do
+    Inc(Result, WriteLine(Stream, Format('%10.10d %5.5d %s', [Items[I].ObjectOffset,
+      Items[I].ObjectGeneration, XRefTypeToString(Items[I].ObjectXRefType)])));
+end;
+
+{ TCnPDFXRefTable }
+
+function TCnPDFXRefTable.AddSegment: TCnPDFXRefCollection;
+begin
+  Result := TCnPDFXRefCollection.Create;
+  FSegments.Add(Result);
+end;
+
+procedure TCnPDFXRefTable.Clear;
+begin
+  FSegments.Clear;
+end;
+
+constructor TCnPDFXRefTable.Create;
+begin
+  inherited;
+  FSegments := TObjectList.Create(True);
+end;
+
+destructor TCnPDFXRefTable.Destroy;
+begin
+  FSegments.Free;
+  inherited;
+end;
+
+function TCnPDFXRefTable.GetSegmenet(Index: Integer): TCnPDFXRefCollection;
+begin
+  Result := TCnPDFXRefCollection(FSegments[Index]);
+end;
+
+function TCnPDFXRefTable.GetSegmentCount: Integer;
+begin
+  Result := FSegments.Count;
+end;
+
+procedure TCnPDFXRefTable.SetSegment(Index: Integer;
+  const Value: TCnPDFXRefCollection);
+begin
+  FSegments[Index] := Value;
+end;
+
+function TCnPDFXRefTable.WriteToStream(Stream: TStream): Cardinal;
+var
+  I: Integer;
+begin
+  Result := WriteLine(Stream, XREF);
+  for I := 0 to SegmentCount - 1 do
+    Inc(Result, Segments[I].WriteToStream(Stream));
+end;
+
+{ TCnPDFParser }
+
+procedure TCnPDFParser.ArrayBeginProc;
+begin
+
+end;
+
+procedure TCnPDFParser.ArrayEndProc;
+begin
+
+end;
+
+procedure TCnPDFParser.BlankProc;
+begin
+  repeat
+    StepRun;
+  until not (FOrigin[FRun] in [#9, #32]);
+  FTokenID := pttBlank;
+end;
+
+procedure TCnPDFParser.CommentProc;
+begin
+  repeat
+    StepRun;
+  until (FOrigin[FRun] in [#13, #10]);
+  FTokenID := pttComment;
+end;
+
+constructor TCnPDFParser.Create;
+begin
+  inherited;
+  MakeMethodTable;
+end;
+
+procedure TCnPDFParser.CRLFProc;
+begin
+  repeat
+    StepRun;
+  until not (FOrigin[FRun] in [#13, #10]);
+  FTokenID := pttLineBreak;
+end;
+
+destructor TCnPDFParser.Destroy;
+begin
+
+  inherited;
+end;
+
+procedure TCnPDFParser.DictionaryBeginProc;
+begin
+  StepRun;
+  if FOrigin[FRun] = '<' then
+    FTokenID := pttDictionaryBegin
+  else
+    Error('Dictionary Begin Corrupt');
+end;
+
+procedure TCnPDFParser.DictionaryEndProc;
+begin
+  StepRun;
+  if FOrigin[FRun] = '>' then
+    FTokenID := pttDictionaryEnd
+  else
+    Error('Dictionary End Corrupt');
+end;
+
+procedure TCnPDFParser.Error(const Msg: string);
+begin
+  raise ECnPDFException.CreateFmt('PDF Parse Error at %d: %s', [FRun, Msg]);
+end;
+
+function TCnPDFParser.GetToken: AnsiString;
+var
+  Len: Cardinal;
+  OutStr: AnsiString;
+begin
+  Len := FRun - FTokenPos;                         // 两个偏移量之差，单位为字符数
+  SetString(OutStr, (FOrigin + FTokenPos), Len);   // 以指定内存地址与长度构造字符串
+  Result := OutStr;
+end;
+
+function TCnPDFParser.GetTokenLength: Integer;
+begin
+  Result := FRun - FTokenPos;
+end;
+
+procedure TCnPDFParser.KeywordProc;
+begin
+
+end;
+
+procedure TCnPDFParser.MakeMethodTable;
+var
+  I: AnsiChar;
+begin
+  for I := #0 to #255 do
+  begin
+    case I of
+      '%':
+        FProcTable[I] := CommentProc;
+      #9, #32:
+        FProcTable[I] := BlankProc;
+      #10, #13:
+        FProcTable[I] := CRLFProc;
+      '(':
+        FProcTable[I] := StringBeginProc;
+      ')':
+        FProcTable[I] := StringEndProc;
+      '0'..'9', '+', '-':
+        FProcTable[I] := NumberProc;
+      '[':
+        FProcTable[I] := ArrayBeginProc;
+      ']':
+        FProcTable[I] := ArrayEndProc;
+      '<':
+        FProcTable[I] := DictionaryBeginProc;
+      '>':
+        FProcTable[I] := DictionaryEndProc;
+      '/':
+        FProcTable[I] := NameBeginProc;
+      'f', 'n', 't', 'o', 's', 'e', 'x':
+        FProcTable[I] := KeywordProc;
+    else
+      FProcTable[I] := UnknownProc;
+    end;
+  end;
+end;
+
+procedure TCnPDFParser.NameBeginProc;
+begin
+  repeat
+    StepRun;
+  until not (FOrigin[FRun] in ['a'..'z', 'A'..'Z', '_']); // 假设名字类似于标识符
+  FTokenID := pttName;
+end;
+
+procedure TCnPDFParser.Next;
+begin
+
+end;
+
+procedure TCnPDFParser.NextNoJunk;
+begin
+
+end;
+
+procedure TCnPDFParser.NumberProc;
+begin
+  repeat
+    StepRun;
+  until not (FOrigin[FRun] in ['0'..'9', '.', 'e', 'E']); // 负号不能再出现了，是否能出现 e 这种科学计数法？
+  FTokenID := pttNumber;
+end;
+
+procedure TCnPDFParser.SetOrigin(const PDFBuf: PAnsiChar;
+  PDFByteSize: Cardinal);
+begin
+  FOrigin := PDFBuf;
+  FRun := 0;
+  FByteLength := PDFByteSize;
+  Next;
+end;
+
+procedure TCnPDFParser.SetRunPos(const Value: Integer);
+begin
+  FRun := Value;
+  Next;
+end;
+
+procedure TCnPDFParser.StepRun;
+begin
+  Inc(FRun);
+  if FRun >= FByteLength then
+    raise ECnPDFEofException.Create('EOF');
+end;
+
+procedure TCnPDFParser.StringBeginProc;
+begin
+
+end;
+
+procedure TCnPDFParser.StringEndProc;
+begin
+
+end;
+
+function TCnPDFParser.TokenEqualStr(Org: PAnsiChar;
+  const Str: AnsiString): Boolean;
+begin
+
+end;
+
+procedure TCnPDFParser.UnknownProc;
+begin
+
+end;
+
+{ TCnPDFHeader }
+
+constructor TCnPDFHeader.Create;
+begin
+  inherited;
+  FVersion := '1.7';
+  FComment := '中国CnPack开发组';
+end;
+
+destructor TCnPDFHeader.Destroy;
+begin
+
+  inherited;
+end;
+
+function TCnPDFHeader.WriteToStream(Stream: TStream): Cardinal;
+begin
+  Result := WriteLine(Stream, '%PDF-' + FVersion);
+  Inc(Result, WriteLine(Stream, '%' + FComment));
+end;
+
+{ TCnPDFObject }
+
+function TCnPDFObject.CheckWriteObjectEnd(Stream: TStream): Cardinal;
+begin
+  if ID > 0 then
+    Result := WriteLine(Stream, ENDOBJ)
+  else
+    Result := 0;
+end;
+
+function TCnPDFObject.CheckWriteObjectStart(Stream: TStream): Cardinal;
+begin
+  if ID > 0 then
+    Result := WriteLine(Stream, Format(OBJFMT, [ID, Generation]))
+  else
+    Result := 0;
+end;
+
+{ TCnPDFDocument }
+
+constructor TCnPDFDocument.Create;
+begin
+  inherited;
+  FHeader := TCnPDFHeader.Create;
+  FBody := TCnPDFBody.Create;
+  FXRefTable := TCnPDFXRefTable.Create;
+  FTrailer := TCnPDFTrailer.Create;
+
+  FBody.XRefTable := FXRefTable;
+  FTrailer.Dictionary.AddObjectRef('Root', FBody.Catalog);
+  FTrailer.Dictionary.AddObjectRef('Info', FBody.Info);
+end;
+
+destructor TCnPDFDocument.Destroy;
+begin
+  FTrailer.Free;
+  FXRefTable.Free;
+  FBody.Free;
+  FHeader.Free;
+  inherited;
+end;
+
+procedure TCnPDFDocument.LoadFromFile(const FileName: string);
+var
+  F: TFileStream;
+begin
+  F := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    LoadFromStream(F);
+  finally
+    F.Free;
+  end;
+end;
+
+procedure TCnPDFDocument.LoadFromStream(Stream: TStream);
+begin
+
+end;
+
+procedure TCnPDFDocument.SaveToFile(const FileName: string);
+var
+  F: TFileStream;
+begin
+  F := TFileStream.Create(FileName, fmCreate);
+  try
+    SaveToStream(F);
+  finally
+    F.Free;
+  end;
+end;
+
+procedure TCnPDFDocument.SaveToStream(Stream: TStream);
+begin
+  FHeader.WriteToStream(Stream);
+
+  FBody.SyncPages;
+  FBody.WriteToStream(Stream);
+
+  FTrailer.XRefStart := Stream.Position;
+  FXRefTable.WriteToStream(Stream);
+
+  FTrailer.Dictionary.Values['Size'] := TCnPDFNumberObject.Create(FBody.Objects.CurrentID + 1);
+  FTrailer.WriteToStream(Stream);
+end;
+
+{ TCnPDFDictPair }
+
+constructor TCnPDFDictPair.Create(const Name: string);
+begin
+  inherited Create;
+  FName := TCnPDFNameObject.Create(Name);
+end;
+
+destructor TCnPDFDictPair.Destroy;
+begin
+  FName.Free;
+  FValue.Free; // 如果外界没设置，则为 nil，不影响
+  inherited;
+end;
+
+function TCnPDFDictPair.WriteToStream(Stream: TStream): Cardinal;
+begin
+  Result := WriteString(Stream, CRLF);
+  Inc(Result, FName.WriteToStream(Stream));
+  Inc(Result, WriteSpace(Stream));
+  if FValue <> nil then
+    Inc(Result, FValue.WriteToStream(Stream));
+end;
+
+{ TCnPDFNameObject }
+
+function TCnPDFNameObject.WriteToStream(Stream: TStream): Cardinal;
+begin
+  Result := WriteString(Stream, '/' + BytesToAnsi(Content));
+end;
+
+{ TCnPDFDictionaryObject }
+
+function TCnPDFDictionaryObject.AddAnsiString(const Name: string;
+  const Value: AnsiString): TCnPDFDictPair;
+begin
+  Result := AddName(Name);
+  Result.Value := TCnPDFStringObject.Create(Value);
+end;
+
+function TCnPDFDictionaryObject.AddArray(const Name: string): TCnPDFArrayObject;
+var
+  Pair: TCnPDFDictPair;
+begin
+  Pair := AddName(Name);
+  Result := TCnPDFArrayObject.Create;
+  Pair.Value := Result;
+end;
+
+function TCnPDFDictionaryObject.AddFalse(const Name: string): TCnPDFDictPair;
+begin
+  Result := AddName(Name);
+  Result.Value := TCnPDFBooleanObject.Create(False);
+end;
+
+function TCnPDFDictionaryObject.AddName(const Name: string): TCnPDFDictPair;
+begin
+  Result := TCnPDFDictPair.Create(Name);
+  FPairs.Add(Result);
+end;
+
+function TCnPDFDictionaryObject.AddName(const Name1,
+  Name2: string): TCnPDFDictPair;
+begin
+  Result := TCnPDFDictPair.Create(Name1);
+  Result.Value := TCnPDFNameObject.Create(Name2);
+  FPairs.Add(Result);
+end;
+
+function TCnPDFDictionaryObject.AddNull(const Name: string): TCnPDFDictPair;
+begin
+  Result := AddName(Name);
+  Result.Value := TCnPDFNullObject.Create;
+end;
+
+function TCnPDFDictionaryObject.AddNumber(const Name: string;
+  Value: Int64): TCnPDFDictPair;
+begin
+  Result := AddName(Name);
+  Result.Value := TCnPDFNumberObject.Create(Value);
+end;
+
+function TCnPDFDictionaryObject.AddNumber(const Name: string;
+  Value: Integer): TCnPDFDictPair;
+begin
+  Result := AddName(Name);
+  Result.Value := TCnPDFNumberObject.Create(Value);
+end;
+
+function TCnPDFDictionaryObject.AddNumber(const Name: string;
+  Value: Extended): TCnPDFDictPair;
+begin
+  Result := AddName(Name);
+  Result.Value := TCnPDFNumberObject.Create(Value);
+end;
+
+function TCnPDFDictionaryObject.AddObjectRef(const Name: string;
+  Obj: TCnPDFObject): TCnPDFDictPair;
+begin
+  Result := AddName(Name);
+  Result.Value := TCnPDFReferenceObject.Create(Obj);
+end;
+
+function TCnPDFDictionaryObject.AddString(const Name,
+  Value: string): TCnPDFDictPair;
+begin
+{$IFDEF UNICODE}
+  Result := AddUnicodeString(Name, Value);
+{$ELSE}
+  Result := AddAnsiString(Name, Value);
+{$ENDIF}
+end;
+
+function TCnPDFDictionaryObject.AddTrue(const Name: string): TCnPDFDictPair;
+begin
+  Result := AddName(Name);
+  Result.Value := TCnPDFBooleanObject.Create(True);
+end;
+
+{$IFDEF UNICODE}
+
+function TCnPDFDictionaryObject.AddUnicodeString(const Name,
+  Value: string): TCnPDFDictPair;
+begin
+  Result := AddName(Name);
+  Result.Value := TCnPDFStringObject.Create(Value);
+end;
+
+{$ENDIF}
+
+function TCnPDFDictionaryObject.AddWideString(const Name: string;
+  const Value: WideString): TCnPDFDictPair;
+begin
+  Result := AddName(Name);
+  Result.Value := TCnPDFStringObject.Create(Value);
+end;
+
+procedure TCnPDFDictionaryObject.Clear;
+begin
+  FPairs.Clear;
+end;
+
+constructor TCnPDFDictionaryObject.Create;
+begin
+  inherited;
+  FPairs := TObjectList.Create(True);
+end;
+
+destructor TCnPDFDictionaryObject.Destroy;
+begin
+  FPairs.Free;
+  inherited;
+end;
+
+function TCnPDFDictionaryObject.GetCount: Integer;
+begin
+  Result := FPairs.Count;
+end;
+
+function TCnPDFDictionaryObject.GetValue(const Name: string): TCnPDFObject;
+var
+  Idx: Integer;
+begin
+  Idx := IndexOfName(Name);
+  if Idx >= 0 then
+    Result := TCnPDFDictPair(FPairs[Idx]).Value
+  else
+    Result := nil;
+end;
+
+function TCnPDFDictionaryObject.IndexOfName(const Name: string): Integer;
+var
+  I: Integer;
+  Pair: TCnPDFDictPair;
+  S: string;
+begin
+  for I := 0 to FPairs.Count - 1 do
+  begin
+    Pair := TCnPDFDictPair(FPairs[I]);
+    S := string(BytesToAnsi(Pair.Name.Content));
+
+    if S = Name then
+    begin
+      Result := I;
+      Exit;
+    end;
+  end;
+  Result := -1;
+end;
+
+procedure TCnPDFDictionaryObject.SetValue(const Name: string;
+  const Value: TCnPDFObject);
+var
+  Idx: Integer;
+  Pair: TCnPDFDictPair;
+begin
+  Idx := IndexOfName(Name);
+  if Idx >= 0 then
+  begin
+    if TCnPDFDictPair(FPairs[Idx]).Value <> nil then
+      TCnPDFDictPair(FPairs[Idx]).Value.Free;
+    TCnPDFDictPair(FPairs[Idx]).Value := Value;
+  end
+  else
+  begin
+    Pair := AddName(Name);
+    Pair.Value := Value;
+  end;
+end;
+
+function TCnPDFDictionaryObject.WriteToStream(Stream: TStream): Cardinal;
+var
+  I: Integer;
+begin
+  Result := 0;
+  Inc(Result, CheckWriteObjectStart(Stream));
+  if FPairs.Count <= 0 then
+  begin
+    Inc(Result, WriteString(Stream, '<<>>'));
+    Exit;
+  end;
+
+  Inc(Result, WriteString(Stream, '<<'));
+  for I := 0 to FPairs.Count - 1 do
+  begin
+    Inc(Result, (FPairs[I] as TCnPDFDictPair).WriteToStream(Stream));
+    // Inc(Result, WriteCRLF(Stream));
+  end;
+  Inc(Result, WriteCRLF(Stream));
+  Inc(Result, WriteLine(Stream, '>>'));
+  Inc(Result, CheckWriteObjectEnd(Stream));
+end;
+
+{ TCnPDFArrayObject }
+
+procedure TCnPDFArrayObject.AddAnsiString(const Value: AnsiString);
+begin
+  AddObject(TCnPDFStringObject.Create(Value));
+end;
+
+procedure TCnPDFArrayObject.AddFalse;
+begin
+  AddObject(TCnPDFBooleanObject.Create(False));
+end;
+
+procedure TCnPDFArrayObject.AddNul;
+begin
+  AddObject(TCnPDFNullObject.Create);
+end;
+
+procedure TCnPDFArrayObject.AddNumber(Value: Extended);
+begin
+  AddObject(TCnPDFNumberObject.Create(Value));
+end;
+
+procedure TCnPDFArrayObject.AddNumber(Value: Integer);
+begin
+  AddObject(TCnPDFNumberObject.Create(Value));
+end;
+
+procedure TCnPDFArrayObject.AddNumber(Value: Int64);
+begin
+  AddObject(TCnPDFNumberObject.Create(Value));
+end;
+
+procedure TCnPDFArrayObject.AddObject(Obj: TCnPDFObject);
+begin
+  FElements.Add(Obj);
+end;
+
+procedure TCnPDFArrayObject.AddObjectRef(Obj: TCnPDFObject);
+begin
+  AddObject(TCnPDFReferenceObject.Create(Obj));
+end;
+
+procedure TCnPDFArrayObject.AddTrue;
+begin
+  AddObject(TCnPDFBooleanObject.Create(True));
+end;
+
+{$IFDEF UNICODE}
+
+procedure TCnPDFArrayObject.AddUnicodeString(const Value: string);
+begin
+  AddObject(TCnPDFStringObject.Create(Value));
+end;
+
+{$ENDIF}
+
+procedure TCnPDFArrayObject.AddWideString(const Value: WideString);
+begin
+  AddObject(TCnPDFStringObject.Create(Value));
+end;
+
+procedure TCnPDFArrayObject.Clear;
+begin
+  FElements.Clear;
+end;
+
+constructor TCnPDFArrayObject.Create;
+begin
+  inherited;
+  FElements := TObjectList.Create(True);
+end;
+
+destructor TCnPDFArrayObject.Destroy;
+begin
+  FElements.Free;
+  inherited;
+end;
+
+function TCnPDFArrayObject.GetCount: Integer;
+begin
+  Result := FElements.Count;
+end;
+
+function TCnPDFArrayObject.GetItem(Index: Integer): TCnPDFObject;
+begin
+  Result := TCnPDFObject(FElements[Index]);
+end;
+
+procedure TCnPDFArrayObject.SetItem(Index: Integer;
+  const Value: TCnPDFObject);
+begin
+  FElements[Index] := Value;
+end;
+
+function TCnPDFArrayObject.WriteToStream(Stream: TStream): Cardinal;
+var
+  I: Integer;
+begin
+  Result := 0;
+  Inc(Result, CheckWriteObjectStart(Stream));
+  Inc(Result, WriteString(Stream, '['));
+  for I := 0 to FElements.Count - 1 do
+  begin
+    Inc(Result, (FElements[I] as TCnPDFObject).WriteToStream(Stream));
+    if I < FElements.Count - 1 then
+      Inc(Result, WriteSpace(Stream));
+  end;
+  Inc(Result, WriteString(Stream, ']'));
+  Inc(Result, CheckWriteObjectEnd(Stream));
+end;
+
+{ TCnPDFSimpleObject }
+
+constructor TCnPDFSimpleObject.Create(const AContent: AnsiString);
+begin
+  inherited Create;
+  FContent := AnsiToBytes(AContent);
+end;
+
+constructor TCnPDFSimpleObject.Create(const Data: TBytes);
+begin
+  inherited Create;
+  if Length(Data) > 0 then
+    FContent := NewBytesFromMemory(@Data[0], Length(Data));
+end;
+
+function TCnPDFSimpleObject.WriteToStream(Stream: TStream): Cardinal;
+begin
+  Result := 0;
+  Inc(Result, CheckWriteObjectStart(Stream));
+  Inc(Result, WriteBytes(Stream, Content));
+  Inc(Result, CheckWriteObjectEnd(Stream));
+end;
+
+{ TCnPDFReferenceObject }
+
+constructor TCnPDFReferenceObject.Create(Obj: TCnPDFObject);
+begin
+  inherited Create('');
+  FRef := Obj;
+end;
+
+destructor TCnPDFReferenceObject.Destroy;
+begin
+
+  inherited;
+end;
+
+function TCnPDFReferenceObject.WriteToStream(Stream: TStream): Cardinal;
+begin
+  Result := 0;
+  if FRef <> nil then
+  begin
+    Inc(Result, WriteString(Stream, IntToStr(FRef.ID)));
+    Inc(Result, WriteSpace(Stream));
+    Inc(Result, WriteString(Stream, IntToStr(FRef.Generation)));
+    Inc(Result, WriteSpace(Stream));
+    Inc(Result, WriteString(Stream, 'R'));
+  end;
+end;
+
+{ TCnPDFBooleanObject }
+
+constructor TCnPDFBooleanObject.Create(IsTrue: Boolean);
+begin
+  if IsTrue then
+    inherited Create('true')
+  else
+    inherited Create('false');
+end;
+
+{ TCnPDFNullObject }
+
+constructor TCnPDFNullObject.Create;
+begin
+  inherited Create('null');
+end;
+
+{ TCnPDFStringObject }
+
+constructor TCnPDFStringObject.Create(const AnsiStr: AnsiString);
+begin
+  inherited Create(AnsiStr);
+end;
+
+constructor TCnPDFStringObject.Create(const WideStr: WideString);
+begin
+  if Length(WideStr) > 0 then
+  begin
+    SetLength(FContent, Length(WideStr) * SizeOf(WideChar) + 2);
+    Move(SCN_BOM_UTF16_LE[0], FContent[0], SizeOf(SCN_BOM_UTF16_LE));
+    Move(WideStr[1], FContent[2], Length(WideStr) * SizeOf(WideChar));
+  end;
+end;
+
+{$IFDEF UNICODE}
+
+constructor TCnPDFStringObject.Create(const UnicodeStr: string);
+begin
+  if Length(UnicodeStr) > 0 then
+  begin
+    SetLength(FContent, Length(UnicodeStr) * SizeOf(WideChar) + 2);
+    Move(SCN_BOM_UTF16_LE[0], FContent[0], SizeOf(SCN_BOM_UTF16_LE));
+    Move(UnicodeStr[1], FContent[2], Length(UnicodeStr) * SizeOf(WideChar));
+  end;
+end;
+
+{$ENDIF}
+
+function TCnPDFStringObject.WriteToStream(Stream: TStream): Cardinal;
+begin
+  Result := 0;
+  Inc(Result, WriteString(Stream, '('));
+  Inc(Result, WriteBytes(Stream, Content));
+  Inc(Result, WriteString(Stream, ')'));
+end;
+
+{ TCnPDFStreamObject }
+
+constructor TCnPDFStreamObject.Create;
+begin
+  inherited;
+  FDictionary := TCnPDFDictionaryObject.Create;
+end;
+
+destructor TCnPDFStreamObject.Destroy;
+begin
+  SetLength(FStream, 0);
+  FDictionary.Free;
+  inherited;
+end;
+
+procedure TCnPDFStreamObject.SetJpegImage(const JpegFileName: string);
+var
+  F: TFileStream;
+  S: Int64;
+  J: TJPEGImage;
+begin
+  if FileExists(JpegFileName) then
+  begin
+    FDictionary.Clear;
+
+    FDictionary.AddName('Type', 'XObject');
+    FDictionary.AddName('Subtype', 'Image');
+    FDictionary.AddNumber('BitsPerComponent', 8);
+    FDictionary.AddName('ColorSpace', 'DeviceRGB');
+    FDictionary.AddName('Filter', 'DCTDecode');
+
+    J := TJPEGImage.Create;
+    try
+      J.LoadFromFile(JpegFileName);
+      FDictionary.AddNumber('Height', J.Height);
+      FDictionary.AddNumber('Width', J.Width);
+    finally
+      J.Free;
+    end;
+
+    F := TFileStream.Create(JpegFileName, fmOpenRead or fmShareDenyWrite);
+    try
+      S := F.Size;
+      FDictionary.AddNumber('Length', S);
+      SetLength(FStream, S);
+
+      F.Read(FStream[0], S);
+    finally
+      F.Free;
+    end;
+  end;
+end;
+
+function TCnPDFStreamObject.WriteToStream(Stream: TStream): Cardinal;
+begin
+  Result := 0;
+  if FDictionary <> nil then
+    Inc(Result, FDictionary.WriteToStream(Stream));
+
+  Inc(Result, WriteLine(Stream, BEGINSTREAM));
+  if Length(FStream) > 0 then
+    Inc(Result, Stream.Write(FStream[0], Length(FStream)));
+
+  Inc(Result, WriteCRLF(Stream));
+  Inc(Result, WriteLine(Stream, ENDSTREAM));
+end;
+
+{ TCnPDFBody }
+
+procedure TCnPDFBody.AddObject(Obj: TCnPDFObject);
+begin
+  FObjects.Add(Obj);
+end;
+
+function TCnPDFBody.AddPage: TCnPDFDictionaryObject;
+begin
+  Result := TCnPDFDictionaryObject.Create;
+  Result['Parent'] := TCnPDFReferenceObject.Create(FPages);
+  Result['Resources'] := TCnPDFDictionaryObject.Create;
+
+  FObjects.Add(Result);
+  FPageList.Add(Result);
+end;
+
+procedure TCnPDFBody.ArrangeIDs;
+var
+  I: Integer;
+begin
+  for I := 0 to FObjects.Count - 1 do
+    TCnPDFObject(FObjects[I]).ID := I + 1;
+end;
+
+constructor TCnPDFBody.Create;
+begin
+  inherited;
+  FObjects := TCnPDFObjectManager.Create;
+
+  FInfo := TCnPDFDictionaryObject.Create;
+  FObjects.Add(FInfo);
+  FCatalog := TCnPDFDictionaryObject.Create;
+  FCatalog.AddName('Type', 'Catalog');
+  FObjects.Add(FCatalog);
+
+  FPages := TCnPDFDictionaryObject.Create;
+  FPages.AddName('Type', 'Pages');
+  FObjects.Add(FPages);
+
+  FPages.AddArray('Kids');
+  FCatalog.AddObjectRef('Pages', FPages);
+
+  FPageList := TObjectList.Create(False);
+  FContentList := TObjectList.Create(False);
+  FResourceList := TObjectList.Create(False);
+end;
+
+destructor TCnPDFBody.Destroy;
+begin
+  FResourceList.Free;
+  FContentList.Free;
+  FPageList.Free;
+
+  FObjects.Free;
+  inherited;
+end;
+
+function TCnPDFBody.GetPage(Index: Integer): TCnPDFDictionaryObject;
+begin
+  Result := TCnPDFDictionaryObject(FPageList[Index]);
+end;
+
+function TCnPDFBody.GetPageCount: Integer;
+begin
+  Result := FPageList.Count;
+end;
+
+function PDFObjectCompare(Item1, Item2: Pointer): Integer;
+var
+  P1, P2: TCnPDFObject;
+begin
+  P1 := TCnPDFObject(Item1);
+  P2 := TCnPDFObject(Item2);
+  Result := P1.ID - P2.ID;
+end;
+
+procedure TCnPDFBody.SortObjects;
+begin
+  FObjects.Sort(PDFObjectCompare);
+end;
+
+procedure TCnPDFBody.SyncPages;
+var
+  I: Integer;
+  Arr: TCnPDFArrayObject;
+begin
+  FPages['Count'] := TCnPDFNumberObject.Create(FPageList.Count);
+  Arr := FPages['Kids'] as TCnPDFArrayObject;
+
+  for I := 0 to FPageList.Count - 1 do
+    Arr.AddObjectRef(FPageList[I] as TCnPDFObject);
+end;
+
+function TCnPDFBody.WriteToStream(Stream: TStream): Cardinal;
+var
+  I: Integer;
+  OldID: Int64;
+  Obj: TCnPDFObject;
+  Collection: TCnPDFXRefCollection;
+  Item: TCnPDFXRefItem;
+begin
+  FXRefTable.Clear;
+  SortObjects;
+
+  Result := 0;
+  OldID := -1;
+  Collection := nil;
+
+  for I := 0 to FObjects.Count - 1 do
+  begin
+    Obj := TCnPDFObject(FObjects[I]);
+    if Obj.ID > OldID + 1 then
+    begin
+      // 新起 Segment，起点 Index 为该 Obj.ID
+      Collection := FXRefTable.AddSegment;
+      Collection.ObjectIndex := Obj.ID;
+    end
+    else if Obj.ID = OldID + 1 then
+    begin
+      // 属于本 Segment，
+    end;
+
+    // 用旧 Collection 或新 Collection 新建 Item
+    Item := Collection.Add;
+    Item.ObjectGeneration := Obj.Generation;
+    Item.ObjectXRefType := Obj.XRefType;
+    Item.ObjectOffset := Stream.Position;
+
+    // 更新 ID
+    OldID := Obj.ID;
+
+    Inc(Result, Obj.WriteToStream(Stream));
+  end;
+end;
+
+{ TCnPDFObjectManger }
+
+function TCnPDFObjectManager.Add(AObject: TCnPDFObject): Integer;
+begin
+  Result := inherited Add(AObject);
+  Inc(FCurrentID);
+  AObject.ID := FCurrentID;
+end;
+
+constructor TCnPDFObjectManager.Create;
+begin
+  inherited Create(True);
+end;
+
+function TCnPDFObjectManager.GetItem(Index: Integer): TCnPDFObject;
+begin
+  Result := TCnPDFObject(inherited GetItem(Index));
+end;
+
+procedure TCnPDFObjectManager.SetItem(Index: Integer;
+  const Value: TCnPDFObject);
+begin
+  inherited SetItem(Index, Value);
+  Inc(FCurrentID);
+  Value.ID := FCurrentID;
+end;
+
+{ TCnPDFNumberObject }
+
+constructor TCnPDFNumberObject.Create(Num: Integer);
+begin
+  inherited Create(AnsiString(IntToStr(Num)));
+end;
+
+constructor TCnPDFNumberObject.Create(Num: Int64);
+begin
+  inherited Create(AnsiString(IntToStr(Num)));
+end;
+
+constructor TCnPDFNumberObject.Create(Num: Extended);
+begin
+  inherited Create(AnsiString(FloatToStr(Num)));
+end;
+
+end.

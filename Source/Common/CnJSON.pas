@@ -87,7 +87,7 @@ type
     procedure KeywordProc;               // null true false Øí±êÊ¶·û
     procedure ObjectBeginProc;           // {
     procedure ObjectEndProc;             // }
-    procedure ArrayBeginProc;            // []
+    procedure ArrayBeginProc;            // [
     procedure ArrayEndProc;              // ]
     procedure NameValueSepProc;          // :
     procedure ArrayElementSepProc;       // ,
