@@ -26,9 +26,11 @@ unit CnCheckTreeView;
 * 单元作者：周劲羽 (zjy@cnpack.org)
 *           刘啸（liuxiao@cnpack.org)
 * 备    注：使用 TreeNode 的 StateIndex 来保存检查框设置，用户请勿手动更改该值
-            使用 OverlayIndex 来保存 Enable 设置，当 CanDisableNode 属性为 True
-            时，用户请勿手动更改该值，另外 OnCustomDrawItem 事件用来绘制 Node 在
-            Disable 时的效果，用户可重写此事件进行其他风格的绘制。
+*           使用 OverlayIndex 来保存 Enable 设置，当 CanDisableNode 属性为 True
+*           时，用户请勿手动更改该值，另外 OnCustomDrawItem 事件用来绘制 Node 在
+*           Disable 时的效果，用户可重写此事件进行其他风格的绘制。
+*           注：Delphi 12 下对 Check 状态的初始化不能在 Form 的 Create 事件里做，
+*           得在 Show 事件里做，否则树的勾选状态显示全是否，实际内部又是正确的。
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
