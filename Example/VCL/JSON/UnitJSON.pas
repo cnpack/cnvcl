@@ -25,10 +25,13 @@ type
     chkConstructFormat: TCheckBox;
     btnWrite: TButton;
     btnComponent: TButton;
+    btnGenHuge: TButton;
+    dlgSave1: TSaveDialog;
     procedure btnParseClick(Sender: TObject);
     procedure btnJSONConstruct1Click(Sender: TObject);
     procedure btnWriteClick(Sender: TObject);
     procedure btnComponentClick(Sender: TObject);
+    procedure btnGenHugeClick(Sender: TObject);
   private
     procedure DumpJSONToTreeView(JSON: TCnJSONObject);
   public
@@ -196,6 +199,21 @@ begin
   if S <> mmoOutput.Lines.Text then
     ShowMessage('Error');
   C.Free;
+end;
+
+procedure TFormJSON.btnGenHugeClick(Sender: TObject);
+var
+  I: Integer;
+  Obj: TCnJSONObject;
+begin
+  Obj := TCnJSONObject.Create;
+  for I := 0 to 500000 do
+    Obj.AddPair('TestName' + IntToStr(I), 'TestValue' + IntToStr(2 * I));
+
+  if dlgSave1.Execute then
+    TCnJSONWriter.JSONObjectToFile(Obj, dlgSave1.FileName);
+
+  Obj.Free;
 end;
 
 end.

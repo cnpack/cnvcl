@@ -49,7 +49,9 @@ unit CnJSON;
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.01.11 V1.1
+* 修改记录：2024.02.03 V1.2
+*                 加入全局函数并修复空数组的问题
+*           2024.01.11 V1.1
 *                 加入级联默认属性，加入 Reader 和 Writer
 *           2023.09.15 V1.0
 *                创建单元
@@ -448,7 +450,7 @@ type
     {* 将 Instance 的各属性写入 JSON 字符串，UseFormat 控制是否带缩进格式}
   end;
 
-function CnJSONCompose(Obj: TCnJSONObject; UseFormat: Boolean = True; Indent: Integer = 0): AnsiString;
+function CnJSONConstruct(Obj: TCnJSONObject; UseFormat: Boolean = True; Indent: Integer = 0): AnsiString;
 {* 将 JSON 对象转为 UTF8 格式的 JSON 字符串}
 
 function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject;
@@ -653,7 +655,7 @@ begin
   end;
 end;
 
-function CnJSONCompose(Obj: TCnJSONObject; UseFormat: Boolean;
+function CnJSONConstruct(Obj: TCnJSONObject; UseFormat: Boolean;
   Indent: Integer): AnsiString;
 begin
   if Obj <> nil then
@@ -2024,7 +2026,7 @@ class procedure TCnJSONWriter.JSONObjectToFile(Obj: TCnJSONObject;
 var
   JSON: AnsiString;
 begin
-  JSON := CnJSONCompose(Obj, UseFormat, Indent);
+  JSON := CnJSONConstruct(Obj, UseFormat, Indent);
   JSONToFile(JSON, FileName, Utf8Bom);
 end;
 
