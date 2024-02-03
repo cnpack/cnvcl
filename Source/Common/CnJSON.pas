@@ -408,11 +408,16 @@ type
     procedure ReadProperty(Instance: TPersistent; PropInfo: PPropInfo; Obj: TCnJSONObject);
   public
     procedure Read(Instance: TPersistent; Obj: TCnJSONObject);
-    {* 从 JSONObject 中读入属性并赋值给 Instance 的各属性}
+    {* 遍历 Instance 的各属性名并从 JSONObject 中读入对应属性值}
+
+    class function FileToJSONObject(const FileName: string): TCnJSONObject;
+    {* 从 JSON 文件中创建 JSON 对象}
+    class function FileToJSON(const FileName: string): AnsiString;
+    {* 从 JSON 文件中载入 JSON 字符串}
     class procedure LoadFromFile(Instance: TPersistent; const FileName: string);
-    {* 从 JSON 文件中载入属性并赋值给 Instance 的各属性}
+    {* 遍历 Instance 的各属性名并从 JSON 文件中读入对应属性值}
     class procedure LoadFromJSON(Instance: TPersistent; const JSON: AnsiString);
-    {* 从 JSON 字符串中载入属性并赋值给 Instance 的各属性}
+    {* 遍历 Instance 的各属性名并从 JSON 字符串中读入对应属性值}
   end;
 
   TCnJSONWriter = class
@@ -442,6 +447,9 @@ type
     class function SaveToJSON(Instance: TPersistent; UseFormat: Boolean = True): AnsiString;
     {* 将 Instance 的各属性写入 JSON 字符串，UseFormat 控制是否带缩进格式}
   end;
+
+function CnJSONCompose(Obj: TCnJSONObject; UseFormat: Boolean = True; Indent: Integer = 0): AnsiString;
+{* 将 JSON 对象转为 UTF8 格式的 JSON 字符串}
 
 function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject;
 {* 解析 UTF8 格式的 JSON 字符串为 JSON 对象}
@@ -542,7 +550,7 @@ begin
   P.NextNoJunk;
 
   Current.AddChild(Result);
-  while P.TokenID <> jttTerminated do
+  while not (P.TokenID in [jttTerminated, jttArrayEnd]) do
   begin
     JSONParseValue(P, Result);
     if P.TokenID = jttElementSep then
@@ -643,6 +651,15 @@ begin
   finally
     P.Free;
   end;
+end;
+
+function CnJSONCompose(Obj: TCnJSONObject; UseFormat: Boolean;
+  Indent: Integer): AnsiString;
+begin
+  if Obj <> nil then
+    Result := Obj.ToJSON(UseFormat, Indent)
+  else
+    Result := '';
 end;
 
 { TCnJSONParser }
@@ -1697,10 +1714,8 @@ end;
 
 { TCnJSONReader }
 
-class procedure TCnJSONReader.LoadFromFile(Instance: TPersistent;
-  const FileName: string);
+class function TCnJSONReader.FileToJSON(const FileName: string): AnsiString;
 var
-  S: AnsiString;
   F: TFileStream;
 begin
   // 如有 UTF8Bom 则原始读入，无则直接读入，不处理 UTF16 格式也就碰到 UTF 16 会出错
@@ -1708,21 +1723,36 @@ begin
   try
     if F.Size > 0 then
     begin
-      SetLength(S, F.Size);
-      F.Read(S[1], F.Size);
+      SetLength(Result, F.Size);
+      F.Read(Result[1], F.Size);
 
       // 去掉 UTF8 的 BOM 头
-      if Length(S) > SizeOf(SCN_BOM_UTF8) then
+      if Length(Result) > SizeOf(SCN_BOM_UTF8) then
       begin
-        if CompareMem(@S[1], @SCN_BOM_UTF8[0], SizeOf(SCN_BOM_UTF8)) then
-          Delete(S, 1, SizeOf(SCN_BOM_UTF8));
+        if CompareMem(@Result[1], @SCN_BOM_UTF8[0], SizeOf(SCN_BOM_UTF8)) then
+          Delete(Result, 1, SizeOf(SCN_BOM_UTF8));
       end;
-
-      LoadFromJSON(Instance, S);
     end;
   finally
     F.Free;
   end;
+end;
+
+class function TCnJSONReader.FileToJSONObject(const FileName: string): TCnJSONObject;
+var
+  JSON: AnsiString;
+begin
+  JSON := FileToJSON(FileName);
+  Result := CnJSONParse(JSON);
+end;
+
+class procedure TCnJSONReader.LoadFromFile(Instance: TPersistent;
+  const FileName: string);
+var
+  S: AnsiString;
+begin
+  S := FileToJSON(FileName);
+  LoadFromJSON(Instance, S);
 end;
 
 class procedure TCnJSONReader.LoadFromJSON(Instance: TPersistent;
@@ -1938,7 +1968,7 @@ var
           if PropType = TypeInfo(Boolean) then
           begin
             if ReadBooleanValue(Obj, string(PropInfo^.Name), VB) then
-              SetOrdProp(Obj, string(PropInfo^.Name), Ord(VB));
+              SetOrdProp(Instance, string(PropInfo^.Name), Ord(VB));
           end
           else
           begin
@@ -1994,7 +2024,7 @@ class procedure TCnJSONWriter.JSONObjectToFile(Obj: TCnJSONObject;
 var
   JSON: AnsiString;
 begin
-  JSON := Obj.ToJSON(UseFormat, Indent);
+  JSON := CnJSONCompose(Obj, UseFormat, Indent);
   JSONToFile(JSON, FileName, Utf8Bom);
 end;
 

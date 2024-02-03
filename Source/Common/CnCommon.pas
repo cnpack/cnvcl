@@ -1847,9 +1847,9 @@ begin
 {$ENDIF}
 end;
 
-// 对ExtractFileExt的封装，Delphi XE3的ExtractFileExt因为调用了
-// TStringHelper.LastDelimiter（0基）导致ExtractFileExt('.dpr')不再返回'.dpr'，
-// 而是返回空值了； XE3下SysUtils.LastDelimiter还是与XE2兼容的
+// 对ExtractFileExt 的封装，Delphi XE3 的 ExtractFileExt 因为调用了
+// TStringHelper.LastDelimiter（0基）导致 ExtractFileExt('.dpr') 不再返回'.dpr'，
+// 而是返回空值了；XE3 下 SysUtils.LastDelimiter 还是与 XE2 兼容的
 function _CnExtractFileExt(const FileName: string): string;
 {$IFDEF DELPHIXE3_UP}
 var
@@ -1866,8 +1866,8 @@ begin
 end;
 {$ENDIF}
 
-// 对ExtractFileName的封装，防止Delphi XE3的
-// TStringHelper.LastDelimiter引入的不兼容
+// 对 ExtractFileName 的封装，防止 Delphi XE3 的
+// TStringHelper.LastDelimiter 引入的不兼容
 function _CnExtractFileName(const FileName: string): string;
 {$IFDEF DELPHIXE3_UP}
 var
