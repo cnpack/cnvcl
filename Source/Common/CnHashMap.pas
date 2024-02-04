@@ -146,7 +146,6 @@ type
     property HashCodeMethod: TCnHashCodeType read FHashCodeMethod write SetHashCodeMethod;
     property UseCustomHash: Boolean read FUseCustomHash write SetUseCustomHash;
     property OnCustomHashCode: TCnCustomHashCodeMethod read FOnCustomHashCode write SetOnCustomHashCode;
-
   end;
 
   TCnStrToStrHashMap = class(TCnBaseHashMap)
@@ -432,7 +431,7 @@ begin
   FHashCodeMethod := CnHashMod;
 
   FOnCustomHashCode := nil;
-  FUseCustomHash := false;
+  FUseCustomHash := False;
 
   CreateList(AListLength);
 end;
@@ -471,7 +470,7 @@ begin
   Pos := Search(AKey);
 
   if Pos = -1 then
-    Result := false
+    Result := False
   else
   begin
     FList[Pos].HashCode := -1; //deleted
@@ -479,7 +478,7 @@ begin
 
     dec(FSize);
 
-    Result := true;
+    Result := True;
   end;
 end;
 
@@ -513,12 +512,12 @@ begin
   Pos := Search(AKey);
 
   if Pos = -1 then
-    Result := false
+    Result := False
   else
   begin
     AValue := FList[Pos].Value;
 
-    Result := true;
+    Result := True;
   end;
 end;
 
@@ -533,19 +532,18 @@ var
   I: Integer;
 begin
   I := FCurPos + 1;
-
   while (I < Length(FList)) and (FList[I].HashCode < 0) do
     Inc(I);
 
   if I >= Length(FList) then
-    Result := false
+    Result := False
   else
   begin
     FCurPos := I;
     AKey := FList[I].Key;
     AValue := FList[I].Value;
 
-    Result := true;
+    Result := True;
   end;
 end;
 
@@ -562,7 +560,6 @@ var
   nTemp, nTemp2, nTemp3: Integer;
 begin
   {ATTENTION: New Hash Code Method add here}
-
   case (HashCodeMethod) of
     CnHashMove:
       begin
@@ -580,12 +577,11 @@ begin
         Result := nTemp2;
       end;
 
-
     CnHashMod:
       Result := AKey mod Length(FList);
 
   else
-    //we treat as the Mod Method
+    // we treat as the Mod Method
     Result := AKey mod Length(FList);
   end;
 
@@ -613,17 +609,16 @@ var
   TempList: array of TCnHashMapRec;
   I: Integer;
 begin
-  //this is a protected procedure,not directly called outside
+  // this is a protected procedure,not directly called outside
 
-  //first we check the NewLength is valid
+  // first we check the NewLength is valid
   if (NewLength < Size) then
     raise ECnHashException.Create('New list size is not valid');
 
-  //then we do the actual act,this will take a long time if list is long
+  // then we do the actual act,this will take a long time if list is long
   SetLength(TempList, Length(FList));
 
   try
-
     for I := Low(TempList) to High(TempList) do
       TempList[I] := FList[I];
 
@@ -632,11 +627,9 @@ begin
     for I := Low(TempList) to High(TempList) do
       if TempList[I].HashCode >= 0 then
         AddInternal(TempList[I].Key, TempList[I].Value);
-
   finally
     SetLength(TempList, 0);
   end;
-
 end;
 
 function TCnBaseHashMap.Search(AKey: Variant): Integer;
@@ -646,7 +639,7 @@ var
 begin
   Result := -1;
 
-  //calculate hash code first
+  // calculate hash code first
   I := HasHashCode(AKey);
 
   for J := Low(FList) to High(FList) do
@@ -667,7 +660,7 @@ procedure TCnBaseHashMap.SetHashCodeMethod(const Value: TCnHashCodeType);
 begin
   if (FHashCodeMethod <> Value) then
   begin
-    //we should refresh this list,because hash code has been changed also
+    // we should refresh this list,because hash code has been changed also
     FHashCodeMethod := Value;
     Refresh;
   end;
@@ -675,11 +668,10 @@ end;
 
 procedure TCnBaseHashMap.SetIncr(Value: Integer);
 begin
-  if (Value <= 1) then
+  if Value <= 1 then
     raise ECnHashException.Create('Incr should be lagerer than 1')
-  else
-    if (Value <> FIncr) then
-      FIncr := Value;
+  else if Value <> FIncr then
+    FIncr := Value;
 end;
 
 procedure TCnBaseHashMap.SetOnCustomHashCode(
@@ -692,29 +684,27 @@ begin
       Refresh;
   end
   else
-  //close  UseCustomHash
   begin
     FOnCustomHashCode := Value;
-    UseCustomHash := false;
+    UseCustomHash := False;
   end;
 end;
 
 procedure TCnBaseHashMap.SetUseCustomHash(const Value: Boolean);
 begin
-  if (Value <> FUseCustomHash) then
-    if not (Value) then
+  if Value <> FUseCustomHash then
+  begin
+    if not Value then
     begin
       FUseCustomHash := Value;
-
       Refresh;
     end
-    else
-      if Assigned(OnCustomHashCode) then
-      begin
-        FUseCustomHash := Value;
-
-        Refresh;
-      end;
+    else if Assigned(FOnCustomHashCode) then
+    begin
+      FUseCustomHash := Value;
+      Refresh;
+    end;
+  end;
 end;
 
 procedure TCnBaseHashMap.StartEnum;
@@ -724,8 +714,8 @@ end;
 
 function TCnBaseHashMap.VariantHashCode(AKey: Variant): Integer;
 begin
-  //here is just a example
-  //u should change it when it's a string or an object
+  // here is just a example
+  // You should change it when it's a string or an object
   Result := Integer(AKey);
 end;
 
@@ -847,7 +837,7 @@ end;
 
 procedure TCnStrToPtrHashMap.Add(const AKey: string; AValue: Pointer);
 begin
-  AddInternal(AKey, Integer(AValue));
+  AddInternal(AKey, TCnNativeInt(AValue));
 end;
 
 function TCnStrToPtrHashMap.Delete(const AKey: string): Boolean;
@@ -862,7 +852,7 @@ begin
   Result := FindInternal(Variant(AKey), vValue);
 
   if Result then
-    AValue := Pointer(Integer(vValue));
+    AValue := Pointer(TCnNativeInt(vValue));
 end;
 
 function TCnStrToPtrHashMap.GetNext(var AKey: string; var AValue: Pointer): Boolean;
@@ -874,7 +864,7 @@ begin
   if Result then
   begin
     AKey := vKey;
-    AValue := Pointer(Integer(vValue));
+    AValue := Pointer(TCnNativeInt(vValue));
   end;
 end;
 

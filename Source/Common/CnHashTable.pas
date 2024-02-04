@@ -24,11 +24,13 @@ unit CnHashTable;
 * 软件名称：开发包基础库
 * 单元名称：高性能 Hash 表单元
 * 单元作者：Chinbo（Shenloqi）
-* 备    注：该单元实现了高性能哈希表
+* 备    注：该单元实现了高性能 String 对 Object 的哈希表
 * 开发平台：PWin2K SP3 + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 6/7 C++Builder 6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2006.08.23
+* 修改记录：2024.02.04
+*                增加对 Delphi 5 的支持，待测试
+*           2006.08.23
 *                创建单元
 ================================================================================
 |</PRE>}
@@ -38,7 +40,7 @@ interface
 {$I CnPack.inc}
 
 {$IFDEF COMPILER5}
-  'Error: Delphi 5/C++Builder 5 NOT support!';
+//  'Error: Delphi 5/C++Builder 5 NOT support!';
 {$ENDIF}
 
 uses
@@ -54,7 +56,7 @@ var
 type
   TCnBucket = class(TStringList)
   protected
-    function CompareStrings(const S1, S2: string): Integer; override;
+    function CompareStrings(const S1, S2: string): Integer; {$IFNDEF COMPILER5} override; {$ENDIF}
   public
     constructor Create(const InitCapacity: Integer);
 
@@ -104,10 +106,10 @@ type
     procedure BeginUpdate;
     procedure EndUpdate;
 
-    procedure Add(const S: string; obj: TObject); virtual;
+    procedure Add(const S: string; Obj: TObject); virtual;
     procedure Clear; virtual;
     procedure Delete(const S: string); virtual;
-    procedure Put(const S: string; obj: TObject); virtual;
+    procedure Put(const S: string; Obj: TObject); virtual;
 
     procedure BuildSortedList;
 
@@ -396,7 +398,7 @@ begin
   begin
     for I := 0 to iCount - 1 do
     begin
-      Result := CRC16Table[Result shr (CRC16Bits-8)] xor Word((Result shl 8)) xor S[I];
+      Result := CRC16Table[Result shr (CRC16Bits - 8)] xor Word((Result shl 8)) xor S[I];
     end;
   end
   else
@@ -406,13 +408,13 @@ begin
     DecCount := iCount - 1;
     while I < DecCount do
     begin
-      Result := CRC16Table[Result shr (CRC16Bits-8)] xor Word((Result shl 8)) xor S[I];
+      Result := CRC16Table[Result shr (CRC16Bits - 8)] xor Word((Result shl 8)) xor S[I];
       Inc(I, Step);
     end;
   end;
   for I := 0 to Crc16Bytes - 1 do
   begin
-    Result := CRC16Table[Result shr (CRC16Bits-8)] xor Word((Result shl 8)) xor (OldCRC shr (CRC16Bits-8));
+    Result := CRC16Table[Result shr (CRC16Bits - 8)] xor Word((Result shl 8)) xor (OldCRC shr (CRC16Bits - 8));
     OldCRC := Word(OldCRC shl 8);
   end;
 end;
@@ -436,13 +438,13 @@ begin
     DecCount := iCount - 1;
     while I < DecCount do
     begin
-      Result := Crc32Table[Result shr (CRC32Bits-8)] xor (Result shl 8) xor S[I];
+      Result := Crc32Table[Result shr (CRC32Bits - 8)] xor (Result shl 8) xor S[I];
       Inc(I, Step);
     end;
   end;
   for I := 0 to Crc32Bytes - 1 do
   begin
-    Result := Crc32Table[Result shr (CRC32Bits-8)] xor (Result shl 8) xor (OldCRC shr (CRC32Bits-8));
+    Result := Crc32Table[Result shr (CRC32Bits - 8)] xor (Result shl 8) xor (OldCRC shr (CRC32Bits - 8));
     OldCRC := OldCRC shl 8;
   end;
 end;
@@ -455,7 +457,13 @@ begin
   if Sorted and Find(S, Result) then
     Objects[Result] := AObject
   else
+  begin
+{$IFDEF COMPILER5}
+    inherited AddObject(s, AObject);
+{$ELSE}
     InsertItem(Result, S, AObject);
+{$ENDIF}
+  end;
 end;
 
 {$ifopt R+}
@@ -687,7 +695,10 @@ begin
     Capacity := InitCapacity;
 
   Sorted := True;
+
+{$IFNDEF COMPILER5}
   CaseSensitive := True;
+{$ENDIF}
 end;
 
 function TCnBucket.EnsureAddObject(const S: string;
@@ -701,16 +712,21 @@ begin
   begin
     Find(S, Result);
   end;
+
+{$IFDEF COMPILER5}
+  inherited AddObject(s, AObject);
+{$ELSE}
   InsertItem(Result, S, AObject);
+{$ENDIF}
 end;
 
 { TCnHashTableBase }
 
-procedure TCnHashTable.Add(const S: string; obj: TObject);
+procedure TCnHashTable.Add(const S: string; Obj: TObject);
 begin
   with Find(S) do
   begin
-    EnsureAddObject(S, obj);
+    EnsureAddObject(S, Obj);
     NeedRebuildBucketCounts;
     DoRehash(Count);
   end;
@@ -1000,14 +1016,14 @@ begin
     FCount := -1;
 end;
 
-procedure TCnHashTable.Put(const S: string; obj: TObject);
+procedure TCnHashTable.Put(const S: string; Obj: TObject);
 var
   I: Integer;
 begin
   with Find(S) do
   begin
     I := Count;
-    AddObject(S, obj);
+    AddObject(S, Obj);
     if I <> Count then
     begin
       NeedRebuildBucketCounts;
