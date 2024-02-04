@@ -49,7 +49,9 @@ unit CnJSON;
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.02.03 V1.2
+* 修改记录：2024.02.04 V1.3
+*                 JSONObject 的 Key Value 对数量超过阈值时，内部用哈希表进行加速
+*           2024.02.03 V1.2
 *                 加入全局函数并修复空数组的问题
 *           2024.01.11 V1.1
 *                 加入级联默认属性，加入 Reader 和 Writer
@@ -64,7 +66,7 @@ interface
 
 uses
   Classes, SysUtils, {$IFNDEF COMPILER5} Variants, {$ENDIF} Contnrs, TypInfo,
-  CnNative, CnStrings;
+  CnNative, CnStrings, CnHashTable;
 
 type
   ECnJSONException = class(Exception);
@@ -217,7 +219,7 @@ type
   {* 代表 JSON 中的对象值的类，也是 JSON 顶层类}
   private
     FPairs: TObjectList;
-
+    FMap: TCnHashTable;
   protected
     function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
     {* 供内部解析时添加 Pair}
@@ -467,6 +469,9 @@ const
   CN_BLANK_CHARSET: set of AnsiChar = [#9, #10, #13, #32]; // RFC 规范中只允许这几个作为空白符
   CN_INDENT_DELTA = 4; // 输出时的缩进空格
   CRLF = #13#10;
+
+  CN_NAME_HASH_THRESHOLD = 128;
+  {* JSONObject 的 Key Value 对数量超过这个阈值时，内部用哈希表进行加速}
 
 resourcestring
   SCnErrorJSONTokenFmt = 'JSON Token %s Expected at Offset %d';
@@ -897,12 +902,28 @@ begin
 end;
 
 function TCnJSONObject.AddChild(AChild: TCnJSONBase): TCnJSONBase;
+var
+  I: Integer;
 begin
   if AChild is TCnJSONPair then
   begin
     FPairs.Add(AChild);
     AChild.Parent := Self;
     Result := AChild;
+
+    // 如果之前已经超了 THRESHOLD，则有了 Map，无论如何都加 Map
+    if (FMap <> nil) or (FPairs.Count > CN_NAME_HASH_THRESHOLD) then
+    begin
+      if FMap = nil then
+      begin
+        // 如果是首次超，则创建 Map 并将之前的都加进来
+        FMap := TCnHashTable.Create;
+        for I := 0 to FPairs.Count - 1 do
+          FMap.Add(TCnJSONPair(FPairs[I]).Name.AsString, FPairs[I]);
+      end;
+
+      FMap.Add(TCnJSONPair(AChild).Name.AsString, Pointer(AChild)); // 暂未判重
+    end;
   end
   else
     Result := nil;
@@ -980,7 +1001,7 @@ begin
     begin
       Pair := TCnJSONPair.Create;
       Pair.Assign(TCnJSONPair(JObj.FPairs[I]));
-      FPairs.Add(Pair);
+      AddChild(Pair);
     end;
   end
   else
@@ -1000,6 +1021,7 @@ end;
 
 destructor TCnJSONObject.Destroy;
 begin
+  FMap.Free;
   FPairs.Free;
   inherited;
 end;
@@ -1039,13 +1061,25 @@ end;
 function TCnJSONObject.GetValueByName(const Name: string): TCnJSONValue;
 var
   I: Integer;
+  P: Pointer;
 begin
-  // TODO: 用散列来加速
-  for I := 0 to FPairs.Count - 1 do
+  if FMap = nil then
   begin
-    if TCnJSONPair(FPairs[I]).Name.AsString = Name then
+    for I := 0 to FPairs.Count - 1 do
     begin
-      Result := TCnJSONPair(FPairs[I]).Value;
+      if TCnJSONPair(FPairs[I]).Name.AsString = Name then
+      begin
+        Result := TCnJSONPair(FPairs[I]).Value;
+        Exit;
+      end;
+    end
+  end
+  else // 用散列来加速
+  begin
+    P := FMap.GetValues(Name);
+    if P <> nil then
+    begin
+      Result := TCnJSONPair(P).Value;
       Exit;
     end;
   end;

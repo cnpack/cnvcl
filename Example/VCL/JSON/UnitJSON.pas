@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ComCtrls, TypInfo, CnJSON;
+  Dialogs, StdCtrls, ComCtrls, TypInfo, CnJSON, CnCommon;
 
 type
   TFormJSON = class(TForm)
@@ -27,11 +27,14 @@ type
     btnComponent: TButton;
     btnGenHuge: TButton;
     dlgSave1: TSaveDialog;
+    btnOpenHuge: TButton;
+    dlgOpen1: TOpenDialog;
     procedure btnParseClick(Sender: TObject);
     procedure btnJSONConstruct1Click(Sender: TObject);
     procedure btnWriteClick(Sender: TObject);
     procedure btnComponentClick(Sender: TObject);
     procedure btnGenHugeClick(Sender: TObject);
+    procedure btnOpenHugeClick(Sender: TObject);
   private
     procedure DumpJSONToTreeView(JSON: TCnJSONObject);
   public
@@ -214,6 +217,30 @@ begin
     TCnJSONWriter.JSONObjectToFile(Obj, dlgSave1.FileName);
 
   Obj.Free;
+end;
+
+procedure TFormJSON.btnOpenHugeClick(Sender: TObject);
+var
+  I, Cnt: Integer;
+  Obj: TCnJSONObject;
+  S: string;
+  T, T1, T2: Cardinal;
+begin
+  if dlgOpen1.Execute then
+  begin
+    T := CnGetTickCount;
+    Obj := TCnJSONReader.FileToJSONObject(dlgOpen1.FileName);
+    T1 := CnGetTickCount;
+    Cnt := 0;
+    for I := 0 to 100 do
+    begin
+      S := Obj.ValueByName['TestName430950'].AsString;
+      if S <> '' then
+        Inc(Cnt);
+    end;
+    T2 := CnGetTickCount;
+    ShowMessage(Format('Create %d ms. Search %d Times using %d ms', [T1 - T, Cnt, T2 - T1]));
+  end;
 end;
 
 end.
