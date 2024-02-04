@@ -364,24 +364,23 @@ const
     ($D5DD39AB, $6C6ED05C), ($AC8205D1, $281A651A), ($657DE587, $520F9BA8),
     ($CBD92E4D, $D98E1F86));
 
-function CRC8(const S: string): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function CRC8(const S: PByteArray; iCount: Integer): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
-  I, iLen, iStep: Integer;
+  I, iStep: Integer;
 begin
   Result := 0;
-  iLen := Length(S);
-  if iLen < 32 then
+  if iCount < 32 then
   begin
-    for I := 1 to iLen do
+    for I := 0 to iCount - 1 do
     begin
       Result := CRC8Table[Result xor Byte(S[I])];
     end;
   end
   else
   begin
-    iStep := iLen div 32 + 1;
+    iStep := iCount div 32 + 1;
     I := 1;
-    while I < iLen do
+    while I < iCount do
     begin
       Result := CRC8Table[Result xor Byte(S[I])];
       Inc(I, iStep);
@@ -758,7 +757,7 @@ end;
 
 procedure TCnHashTable.BuildSortedList;
 var
-  I, j: Integer;
+  I, J: Integer;
 begin
   with FSortedList do
   begin
@@ -766,10 +765,8 @@ begin
     Capacity := Self.Count;
     for I := 0 to FBucketCount - 1 do
     begin
-      for j := 0 to FBuckets[I].Count - 1 do
-      begin
-        AddObject(FBuckets[I].Strings[j], FBuckets[I].Objects[j]);
-      end;
+      for J := 0 to FBuckets[I].Count - 1 do
+        AddObject(FBuckets[I].Strings[J], FBuckets[I].Objects[J]);
     end;
     Sort;
   end;
@@ -1053,7 +1050,7 @@ procedure TCnHashTable.RehashTo(NewSize: Integer; const InitCapacity: Integer);
 var
   TmpBuckets: TCnBucketDynArray;
   TmpBucketSize: Integer;
-  I, j: Integer;
+  I, J: Integer;
 begin
   Assert(NewSize > 0);
   if NewSize = FBucketCount then
@@ -1078,11 +1075,8 @@ begin
   begin
     with TmpBuckets[I] do
     begin
-      for j := 0 to Count - 1 do
-      begin
-//        Self.Put(Strings[j], Objects[j]);
-        Self.Add(Strings[j], Objects[j]);
-      end;
+      for J := 0 to Count - 1 do
+        Self.Add(Strings[J], Objects[J]);
       Free;
     end;
   end;
@@ -1107,7 +1101,7 @@ end;
 
 function TCnHashTableSmall.HashOf(const S: string): Cardinal;
 begin
-  Result := CRC8(S);
+  Result := CRC8(Pointer(S), Length(S) * SizeOf(Char));
 end;
 
 procedure TCnHashTableSmall.RehashTo(NewSize: Integer;
