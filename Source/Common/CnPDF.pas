@@ -181,6 +181,9 @@ type
     constructor Create(const Name: string); virtual;
     destructor Destroy; override;
 
+    procedure ChangeToArray;
+    {* 当 Value 是简单对象或 nil 时，转换 Value 成数组对象，并将旧 Value 设为其第一个元素}
+
     function WriteToStream(Stream: TStream): Cardinal;
     {* 输出名字 值}
 
@@ -250,6 +253,8 @@ type
 
     function AddArray(const Name: string): TCnPDFArrayObject;
     {* 添加一个命名的空数组，注意返回的是数组对象本身}
+    function AddDictionary(const Name: string): TCnPDFDictionaryObject;
+    {* 添加一个命名的空字典，注意返回的是字典对象本身}
 
     function AddNumber(const Name: string; Value: Integer): TCnPDFDictPair; overload;
     function AddNumber(const Name: string; Value: Int64): TCnPDFDictPair; overload;
@@ -293,7 +298,7 @@ type
   end;
 
   TCnPDFObjectManager = class(TObjectList)
-  {* PDFDocument 类内部使用的管理每个独立对象的类}
+  {* PDFDocument 类内部使用的管理每个独立对象的总类}
   private
     FCurrentID: Integer;
     function GetItem(Index: Integer): TCnPDFObject;
@@ -412,13 +417,13 @@ type
   {* PDF 内容组织类}
   private
     FObjects: TCnPDFObjectManager;     // 所有对象都在这里管辖，其余都是引用
-    FPageList: TObjectList;
-    FResourceList: TObjectList;
-    FContentList: TObjectList;
+    FPageList: TObjectList;            // 页面对象列表
+    FResourceList: TObjectList;        // 页面对象的资源列表，先都塞一块，一般是 Dictionary
+    FContentList: TObjectList;         // 页面对象的内容列表，先都塞一块，一般是 Stream
     FPages: TCnPDFDictionaryObject;    // 页面树对象
     FCatalog: TCnPDFDictionaryObject;  // 根目录对象，供 Trailer 中引用
-    FXRefTable: TCnPDFXRefTable;
     FInfo: TCnPDFDictionaryObject;     // 信息对象，供 Trailer 中引用
+    FXRefTable: TCnPDFXRefTable;       // 交叉引用表的引用
     function GetPage(Index: Integer): TCnPDFDictionaryObject;
     function GetPageCount: Integer;
   protected
@@ -437,9 +442,10 @@ type
     {* 将内容输出至流}
 
     procedure AddObject(Obj: TCnPDFObject);
-    {* 让外界添加创建好的对象并交给本类管理}
+    {* 让外界添加创建好的对象并交给本类管理，内部会替该对象生成有效 ID}
     property Objects: TCnPDFObjectManager read FObjects;
     {* 所有对象供访问}
+
     property XRefTable: TCnPDFXRefTable read FXRefTable write FXRefTable;
     {* 交叉引用表的引用，供写入各个对象的偏移等}
 
@@ -459,6 +465,11 @@ type
       Parent（指向页面列表父节点），Contents（页面内容操作符）}
     function AddPage: TCnPDFDictionaryObject;
     {* 增加一页面}
+
+    function AddResource(Page: TCnPDFDictionaryObject): TCnPDFDictionaryObject;
+    {* 给某页增加一个 Resource，Page 的 /Resources 指向或包括此对象}
+    function AddContent(Page: TCnPDFDictionaryObject): TCnPDFStreamObject;
+    {* 给某页增加一个 Content，Page 的 /Contents 指向或包括此对象}
   end;
 
 //==============================================================================
@@ -495,13 +506,14 @@ type
 //
 //==============================================================================
 
-  TCnPDFTokenType = (pttComment, pttBlank, pttLineBreak, pttNumber,
-    pttNull, pttTrue, pttFalse, pttObj, pttStream, pttEnd, pttXref, pttStartxref, pttTrailer,
-    pttName, pttStringBegin, pttStringEnd, pttArrayBegin, pttArranEnd,
-    pttDictionaryBegin, pttDictionaryEnd, pptStreamData, pttUnknown);
+  TCnPDFTokenType = (pttUnknown, pttComment, pttBlank, pttLineBreak, pttNumber,
+    pttNull, pttTrue, pttFalse, pttObj, pttEndObj, pttStream, pttEnd, pttR, pttXref, pttStartxref, pttTrailer,
+    pttName, pttStringBegin, pttString, pttStringEnd,
+    pttHexStringBegin, pttHexString, pttHexStringEnd, pttArrayBegin, pttArrayEnd,
+    pttDictionaryBegin, pttDictionaryEnd, pttStreamData, pttEndStream);
   {* PDF 文件内容中的符号类型，对应%、空格、回车换行、数字、
-    null、true、false、obj、stream、end、xref、startxref、trailer
-    /、(、)、[、]、<<、>>、流内容}
+    null、true、false、obj、stream、end、R、xref、startxref、trailer
+    /、(、)、<、>、[、]、<<、>>、流内容}
 
   TCnPDFParser = class
   {* PDF 内容解析器}
@@ -513,6 +525,7 @@ type
     FStringLen: Integer; // 当前字符串的字符长度
     FProcTable: array[#0..#255] of procedure of object;
     FTokenID: TCnPDFTokenType;
+    FPrevNonBlankID: TCnPDFTokenType;
 
     procedure KeywordProc;               // obj stream end null true false 等固定标识符
     procedure NameBeginProc;             // /
@@ -520,13 +533,18 @@ type
     procedure StringEndProc;             // )
     procedure ArrayBeginProc;            // [
     procedure ArrayEndProc;              // ]
-    procedure DictionaryBeginProc;       // <<
-    procedure DictionaryEndProc;         // >>
+    procedure LessThanProc;       // <<
+    procedure GreaterThanProc;         // >>
     procedure CommentProc;               // %
     procedure NumberProc;                // 数字+-
     procedure BlankProc;                 // 空格 Tab 等
     procedure CRLFProc;                  // 回车或换行或回车换行
     procedure UnknownProc;               // 未知
+
+    procedure StringProc;                // 手工调用的字符串处理
+    procedure HexStringProc;             // 手工调用的十六进制字符串处理
+    procedure StreamDataProc;            // 手工调用的流内容处理
+
     function GetToken: AnsiString;
     procedure SetRunPos(const Value: Integer);
     function GetTokenLength: Integer;
@@ -739,12 +757,14 @@ end;
 
 procedure TCnPDFParser.ArrayBeginProc;
 begin
-
+  StepRun;
+  FTokenID := pttArrayBegin;
 end;
 
 procedure TCnPDFParser.ArrayEndProc;
 begin
-
+  StepRun;
+  FTokenID := pttArrayEnd;
 end;
 
 procedure TCnPDFParser.BlankProc;
@@ -783,22 +803,30 @@ begin
   inherited;
 end;
 
-procedure TCnPDFParser.DictionaryBeginProc;
+procedure TCnPDFParser.LessThanProc;
 begin
   StepRun;
   if FOrigin[FRun] = '<' then
-    FTokenID := pttDictionaryBegin
+  begin
+    StepRun;
+    FTokenID := pttDictionaryBegin;
+  end
   else
-    Error('Dictionary Begin Corrupt');
+    FTokenID := pttHexStringBegin;
+  // Error('Dictionary Begin Corrupt');
 end;
 
-procedure TCnPDFParser.DictionaryEndProc;
+procedure TCnPDFParser.GreaterThanProc;
 begin
   StepRun;
   if FOrigin[FRun] = '>' then
-    FTokenID := pttDictionaryEnd
+  begin
+    StepRun;
+    FTokenID := pttDictionaryEnd;
+  end
   else
-    Error('Dictionary End Corrupt');
+    FTokenID := pttHexStringEnd;
+  // Error('Dictionary End Corrupt');
 end;
 
 procedure TCnPDFParser.Error(const Msg: string);
@@ -823,7 +851,51 @@ end;
 
 procedure TCnPDFParser.KeywordProc;
 begin
+  FStringLen := 0;
+  repeat
+    StepRun;
+    Inc(FStringLen);
+  until not (FOrigin[FRun] in ['a'..'z']); // 找到小写字母组合的标识符尾巴
 
+  FTokenID := pttUnknown; // 先这么设
+  // 比较 endstream endobj stream false null true obj end
+
+  if FStringLen = 9 then
+  begin
+    if TokenEqualStr(FOrigin + FRun - FStringLen, 'endstream') then
+      FTokenID := pttEndStream
+  end
+  else if FStringLen = 6 then
+  begin
+    if TokenEqualStr(FOrigin + FRun - FStringLen, 'stream') then
+      FTokenID := pttStream
+    else if TokenEqualStr(FOrigin + FRun - FStringLen, 'endobj') then
+      FTokenID := pttEndObj
+  end
+  else if FStringLen = 5 then
+  begin
+    if TokenEqualStr(FOrigin + FRun - FStringLen, 'false') then
+      FTokenID := pttFalse
+  end
+  else if FStringLen = 4 then
+  begin
+    if TokenEqualStr(FOrigin + FRun - FStringLen, 'true') then
+      FTokenID := pttTrue
+    else if TokenEqualStr(FOrigin + FRun - FStringLen, 'null') then
+      FTokenID := pttNull;
+  end
+  else if FStringLen = 3 then
+  begin
+    if TokenEqualStr(FOrigin + FRun - FStringLen, 'obj') then
+      FTokenID := pttObj
+    else if TokenEqualStr(FOrigin + FRun - FStringLen, 'end') then
+      FTokenID := pttEnd;
+  end
+  else if FStringLen = 1 then
+  begin
+    if TokenEqualStr(FOrigin + FRun - FStringLen, 'R') then
+      FTokenID := pttR
+  end;
 end;
 
 procedure TCnPDFParser.MakeMethodTable;
@@ -850,12 +922,12 @@ begin
       ']':
         FProcTable[I] := ArrayEndProc;
       '<':
-        FProcTable[I] := DictionaryBeginProc;
+        FProcTable[I] := LessThanProc;
       '>':
-        FProcTable[I] := DictionaryEndProc;
+        FProcTable[I] := GreaterThanProc;
       '/':
         FProcTable[I] := NameBeginProc;
-      'f', 'n', 't', 'o', 's', 'e', 'x':
+      'f', 'n', 't', 'o', 's', 'e', 'x', 'R':
         FProcTable[I] := KeywordProc;
     else
       FProcTable[I] := UnknownProc;
@@ -872,13 +944,30 @@ begin
 end;
 
 procedure TCnPDFParser.Next;
+var
+  OldId: TCnPDFTokenType;
 begin
+  FTokenPos := FRun;
+  OldId := FTokenID;
 
+  if (FTokenID = pttStringBegin) and (FOrigin[FRun] <> ')') then
+    StringProc
+  else if (FTokenID = pttHexStringBegin) and (FOrigin[FRun] <> '>') then
+    HexStringProc
+  else if (FTokenID = pttLineBreak) and (FPrevNonBlankID = pttStream) then
+    StreamDataProc
+  else
+    FProcTable[FOrigin[FRun]];
+
+  if not (FTokenID in [pttBlank, pttComment]) then // 保留一个非空回溯
+    FPrevNonBlankID := OldId;
 end;
 
 procedure TCnPDFParser.NextNoJunk;
 begin
-
+  repeat
+    Next;
+  until not (FTokenID in [pttBlank]);
 end;
 
 procedure TCnPDFParser.NumberProc;
@@ -908,28 +997,89 @@ procedure TCnPDFParser.StepRun;
 begin
   Inc(FRun);
   if FRun >= FByteLength then
-    raise ECnPDFEofException.Create('EOF');
+    raise ECnPDFEofException.Create('PDF EOF');
+end;
+
+procedure TCnPDFParser.StreamDataProc;
+var
+  I, OldRun: Integer;
+  Es: AnsiString;
+begin
+  // 开始流内容，到回车换行后判断后方是否 endstream
+  SetLength(Es, 9);
+  repeat
+    StepRun;
+
+    if FOrigin[FRun] in [#13, #10] then
+    begin
+      repeat
+        StepRun;
+      until not (FOrigin[FRun] in [#13, #10]);
+
+      // 往前跳八个并判断是否 endstream 关键字，无论是否成功都跳回来
+      OldRun := FRun; // 记录原始位置
+      for I := 1 to 9 do
+      begin
+        Es[I] := FOrigin[FRun];
+        StepRun;
+      end;
+      FRun := OldRun; // 回来
+
+      if Es = 'endstream' then // 只有碰到 endstream 才跳出
+        Break;
+    end;
+  until False;
+
+  FTokenID := pttStreamData;
 end;
 
 procedure TCnPDFParser.StringBeginProc;
 begin
-
+  StepRun;
+  FTokenID := pttStringBegin;
 end;
 
 procedure TCnPDFParser.StringEndProc;
 begin
-
+  StepRun;
+  FTokenID := pttStringEnd;
 end;
 
-function TCnPDFParser.TokenEqualStr(Org: PAnsiChar;
-  const Str: AnsiString): Boolean;
+procedure TCnPDFParser.StringProc;
 begin
+  // TODO: 判断头俩字节是否是 UTF16，是则俩字节俩字节读直到单个碰到 ) 否则单个读直到读到 )
+  repeat
+    StepRun;
+  until FOrigin[FRun] = ')';
+  FTokenID := pttString;
+end;
 
+function TCnPDFParser.TokenEqualStr(Org: PAnsiChar; const Str: AnsiString): Boolean;
+var
+  I: Integer;
+begin
+  Result := True;
+  for I := 0 to Length(Str) - 1 do
+  begin
+    if Org[I] <> Str[I + 1] then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
 end;
 
 procedure TCnPDFParser.UnknownProc;
 begin
+  StepRun;
+  FTokenID := pttUnknown;
+end;
 
+procedure TCnPDFParser.HexStringProc;
+begin
+  repeat
+    StepRun;
+  until not (FOrigin[FRun] in ['0'..'9', 'a'..'f', 'A'..'F']);
 end;
 
 { TCnPDFHeader }
@@ -1040,6 +1190,19 @@ end;
 
 { TCnPDFDictPair }
 
+procedure TCnPDFDictPair.ChangeToArray;
+var
+  Arr: TCnPDFArrayObject;
+begin
+  if not (FValue is TCnPDFArrayObject) then
+  begin
+    Arr := TCnPDFArrayObject.Create;
+    if FValue <> nil then
+      Arr.AddObject(FValue);
+    FValue := Arr;
+  end;
+end;
+
 constructor TCnPDFDictPair.Create(const Name: string);
 begin
   inherited Create;
@@ -1084,6 +1247,15 @@ var
 begin
   Pair := AddName(Name);
   Result := TCnPDFArrayObject.Create;
+  Pair.Value := Result;
+end;
+
+function TCnPDFDictionaryObject.AddDictionary(const Name: string): TCnPDFDictionaryObject;
+var
+  Pair: TCnPDFDictPair;
+begin
+  Pair := AddName(Name);
+  Result := TCnPDFDictionaryObject.Create;
   Pair.Value := Result;
 end;
 
@@ -1557,6 +1729,13 @@ end;
 
 { TCnPDFBody }
 
+function TCnPDFBody.AddContent(Page: TCnPDFDictionaryObject): TCnPDFStreamObject;
+begin
+  Result := TCnPDFStreamObject.Create;
+  FObjects.Add(Result);
+  Page['/Contents'] := TCnPDFReferenceObject.Create(Result);
+end;
+
 procedure TCnPDFBody.AddObject(Obj: TCnPDFObject);
 begin
   FObjects.Add(Obj);
@@ -1570,6 +1749,13 @@ begin
 
   FObjects.Add(Result);
   FPageList.Add(Result);
+end;
+
+function TCnPDFBody.AddResource(Page: TCnPDFDictionaryObject): TCnPDFDictionaryObject;
+begin
+  Result := TCnPDFDictionaryObject.Create;
+  FObjects.Add(Result);
+  Page['/Resources'] := TCnPDFReferenceObject.Create(Result);
 end;
 
 procedure TCnPDFBody.ArrangeIDs;
