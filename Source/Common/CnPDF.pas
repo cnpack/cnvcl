@@ -47,7 +47,9 @@ unit CnPDF;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.01.28 V1.0
+* 修改记录：2024.02.06 V1.0
+*               基本完成词法分析，待组织语法树
+*           2024.01.28 V1.0
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -151,7 +153,11 @@ type
   {* PDF 文件中的字符串对象类}
   public
     constructor Create(const AnsiStr: AnsiString); overload;
+{$IFDEF COMPILER5}
+    constructor CreateW(const WideStr: WideString); // D5 不让 overload
+{$ELSE}
     constructor Create(const WideStr: WideString); overload;
+{$ENDIF}
 {$IFDEF UNICODE}
     constructor Create(const UnicodeStr: string); overload;
 {$ENDIF}
@@ -997,12 +1003,11 @@ procedure TCnPDFParser.NumberProc;
 begin
   repeat
     StepRun;
-  until not (FOrigin[FRun] in ['0'..'9', '.', 'e', 'E']); // 负号不能再出现了，是否能出现 e 这种科学计数法？
+  until not (FOrigin[FRun] in ['0'..'9', '.']); // 负号不能再出现了，也不能出现 e 这种科学计数法
   FTokenID := pttNumber;
 end;
 
-procedure TCnPDFParser.SetOrigin(const PDFBuf: PAnsiChar;
-  PDFByteSize: Cardinal);
+procedure TCnPDFParser.SetOrigin(const PDFBuf: PAnsiChar; PDFByteSize: Cardinal);
 begin
   FOrigin := PDFBuf;
   FRun := 0;
@@ -1069,13 +1074,20 @@ begin
 end;
 
 procedure TCnPDFParser.StringProc;
+var
+  C: Integer;
 begin
   // TODO: 判断头俩字节是否是 UTF16，是则俩字节俩字节读直到单个碰到 ) 否则单个读直到读到 )
+  C := 0;
   repeat
     StepRun;
     if FOrigin[FRun - 1] = '\' then
-      StepRun;
-  until FOrigin[FRun] = ')';
+      StepRun
+    else if FOrigin[FRun - 1] = '(' then
+      Inc(C)
+    else if FOrigin[FRun - 1] = ')' then
+      Dec(C);
+  until (FOrigin[FRun] = ')') and (C = 0);
   FTokenID := pttString;
 end;
 
@@ -1104,7 +1116,7 @@ procedure TCnPDFParser.HexStringProc;
 begin
   repeat
     StepRun;
-  until not (FOrigin[FRun] in ['0'..'9', 'a'..'f', 'A'..'F']);
+  until not (FOrigin[FRun] in ['0'..'9', 'a'..'f', 'A'..'F'] + CRLFS + WHITESPACES);
 end;
 
 { TCnPDFHeader }
@@ -1369,7 +1381,11 @@ function TCnPDFDictionaryObject.AddWideString(const Name: string;
   const Value: WideString): TCnPDFDictPair;
 begin
   Result := AddName(Name);
+{$IFDEF COMPILER5}
+  Result.Value := TCnPDFStringObject.CreateW(Value);
+{$ELSE}
   Result.Value := TCnPDFStringObject.Create(Value);
+{$ENDIF}
 end;
 
 procedure TCnPDFDictionaryObject.Clear;
@@ -1653,6 +1669,20 @@ begin
   inherited Create(AnsiStr);
 end;
 
+{$IFDEF COMPILER5}
+
+constructor TCnPDFStringObject.CreateW(const WideStr: WideString);
+begin
+  if Length(WideStr) > 0 then
+  begin
+    SetLength(FContent, Length(WideStr) * SizeOf(WideChar) + 2);
+    Move(SCN_BOM_UTF16_LE[0], FContent[0], SizeOf(SCN_BOM_UTF16_LE));
+    Move(WideStr[1], FContent[2], Length(WideStr) * SizeOf(WideChar));
+  end;
+end;
+
+{$ELSE}
+
 constructor TCnPDFStringObject.Create(const WideStr: WideString);
 begin
   if Length(WideStr) > 0 then
@@ -1662,6 +1692,8 @@ begin
     Move(WideStr[1], FContent[2], Length(WideStr) * SizeOf(WideChar));
   end;
 end;
+
+{$ENDIF}
 
 {$IFDEF UNICODE}
 
