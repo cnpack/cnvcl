@@ -507,7 +507,8 @@ type
 //==============================================================================
 
   TCnPDFTokenType = (pttUnknown, pttComment, pttBlank, pttLineBreak, pttNumber,
-    pttNull, pttTrue, pttFalse, pttObj, pttEndObj, pttStream, pttEnd, pttR, pttXref, pttStartxref, pttTrailer,
+    pttNull, pttTrue, pttFalse, pttObj, pttEndObj, pttStream, pttEnd, pttR,
+    pttN, pttD, pttF, pttXref, pttStartxref, pttTrailer,
     pttName, pttStringBegin, pttString, pttStringEnd,
     pttHexStringBegin, pttHexString, pttHexStringEnd, pttArrayBegin, pttArrayEnd,
     pttDictionaryBegin, pttDictionaryEnd, pttStreamData, pttEndStream);
@@ -583,6 +584,13 @@ implementation
 const
   SPACE: AnsiChar = ' ';
   CRLF: array[0..1] of AnsiChar = (#13, #10);
+
+  CRLFS: set of AnsiChar = [#13, #10];
+  // PDF 规范中的空白字符中的回车换行
+  WHITESPACES: set of AnsiChar = [#0, #9, #12, #32];
+  // PDF 规范中除了回车换行之外的空白字符
+  DELIMETERS: set of AnsiChar = ['(', ')', '<', '>', '[', ']', '{', '}', '%'];
+  // PDF 规范中的分隔字符
 
   OBJFMT: AnsiString = '%d %d obj';
   ENDOBJ: AnsiString = 'endobj';
@@ -771,7 +779,7 @@ procedure TCnPDFParser.BlankProc;
 begin
   repeat
     StepRun;
-  until not (FOrigin[FRun] in [#9, #32]);
+  until not (FOrigin[FRun] in WHITESPACES);
   FTokenID := pttBlank;
 end;
 
@@ -855,7 +863,7 @@ begin
   repeat
     StepRun;
     Inc(FStringLen);
-  until not (FOrigin[FRun] in ['a'..'z']); // 找到小写字母组合的标识符尾巴
+  until not (FOrigin[FRun] in ['a'..'z', 'A'..'Z']); // 找到小写字母组合的标识符尾巴
 
   FTokenID := pttUnknown; // 先这么设
   // 比较 endstream endobj stream false null true obj end
@@ -864,6 +872,13 @@ begin
   begin
     if TokenEqualStr(FOrigin + FRun - FStringLen, 'endstream') then
       FTokenID := pttEndStream
+    else if TokenEqualStr(FOrigin + FRun - FStringLen, 'startxref') then
+      FTokenID := pttStartxref
+  end
+  else if FStringLen = 7 then
+  begin
+    if TokenEqualStr(FOrigin + FRun - FStringLen, 'trailer') then
+      FTokenID := pttTrailer
   end
   else if FStringLen = 6 then
   begin
@@ -882,7 +897,9 @@ begin
     if TokenEqualStr(FOrigin + FRun - FStringLen, 'true') then
       FTokenID := pttTrue
     else if TokenEqualStr(FOrigin + FRun - FStringLen, 'null') then
-      FTokenID := pttNull;
+      FTokenID := pttNull
+    else if TokenEqualStr(FOrigin + FRun - FStringLen, 'xref') then
+      FTokenID := pttXref;
   end
   else if FStringLen = 3 then
   begin
@@ -895,6 +912,12 @@ begin
   begin
     if TokenEqualStr(FOrigin + FRun - FStringLen, 'R') then
       FTokenID := pttR
+    else if TokenEqualStr(FOrigin + FRun - FStringLen, 'n') then
+      FTokenID := pttN
+    else if TokenEqualStr(FOrigin + FRun - FStringLen, 'd') then
+      FTokenID := pttD
+    else if TokenEqualStr(FOrigin + FRun - FStringLen, 'f') then
+      FTokenID := pttF
   end;
 end;
 
@@ -939,7 +962,7 @@ procedure TCnPDFParser.NameBeginProc;
 begin
   repeat
     StepRun;
-  until not (FOrigin[FRun] in ['a'..'z', 'A'..'Z', '_']); // 假设名字类似于标识符
+  until FOrigin[FRun] in CRLFS + WHITESPACES + DELIMETERS;
   FTokenID := pttName;
 end;
 
@@ -1050,6 +1073,8 @@ begin
   // TODO: 判断头俩字节是否是 UTF16，是则俩字节俩字节读直到单个碰到 ) 否则单个读直到读到 )
   repeat
     StepRun;
+    if FOrigin[FRun - 1] = '\' then
+      StepRun;
   until FOrigin[FRun] = ')';
   FTokenID := pttString;
 end;
