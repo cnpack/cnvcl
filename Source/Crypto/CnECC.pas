@@ -31,9 +31,11 @@ unit CnECC;
 *           概念：椭圆曲线的阶是曲线上的总点数（似乎不包括无限远点）
 *           基点的阶是基点标量乘多少等于无限远点。两者是倍数整除关系，可能相等
 * 开发平台：WinXP + Delphi 5.0
-* 兼容测试：暂未进行，注意部分辅助函数缺乏固定长度处理，待修正，但 ASN.1 包装无需指定固定长度
+* 兼容测试：暂未进行，注意部分辅助函数缺乏固定长度处理，待修正，但 ASN.1 包装可无需指定固定长度
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.12.16 V2.4
+* 修改记录：2024.02.07 V2.5
+*               ASN1 输出签名时允许指定固定字节长度，可避免不同的签名长度不同
+*           2023.12.16 V2.4
 *               修正 PKCS1 格式的 ECC PEM 格式解析问题，PKCS8 暂不支持
 *           2023.06.24 V2.3
 *               补上完整的 Fast Schoof 实现但验证未通过，不能使用
@@ -312,8 +314,9 @@ type
     function SetBase64(const Buf: AnsiString): Boolean;
     {* 从 Base64 字符串中加载，内部对半拆分。返回设置是否成功}
 
-    function ToAsn1Hex: string;
-    {* 将 R S 拼接包装为 ASN1 的 BER/DER 格式的十六进制字符串}
+    function ToAsn1Hex(FixedLen: Integer = 0): string;
+    {* 将 R S 拼接包装为 ASN1 的 BER/DER 格式的十六进制字符串
+      可指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而长度不一}
 
     function SetAsn1Hex(const Buf: AnsiString): Boolean;
     {* 从 ASN1 的 BER/DER 格式的十六进制字符串中加载 R S，返回加载是否成功}
@@ -8766,7 +8769,7 @@ begin
   end;
 end;
 
-function TCnEccSignature.ToAsn1Hex: string;
+function TCnEccSignature.ToAsn1Hex(FixedLen: Integer): string;
 var
   Writer: TCnBerWriter;
   Root: TCnBerWriteNode;
@@ -8779,8 +8782,11 @@ begin
     Writer := TCnBerWriter.Create;
 
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
-    AddBigNumberToWriter(Writer, FR, Root);
-    AddBigNumberToWriter(Writer, FS, Root);
+
+    // 如果不加 FixedLen 的要求，目测 ASN1 解析时如果因为有前导 0 导致位数不足也能通过
+    // 不过输出时容易给人以长度不一的困惑，因此这儿加上，允许外界指定固定长度
+    AddBigNumberToWriter(Writer, FR, Root, CN_BER_TAG_INTEGER, FixedLen);
+    AddBigNumberToWriter(Writer, FS, Root, CN_BER_TAG_INTEGER, FixedLen);
 
     Stream := TMemoryStream.Create;
     Writer.SaveToStream(Stream);

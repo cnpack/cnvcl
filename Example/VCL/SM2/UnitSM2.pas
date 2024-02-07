@@ -564,7 +564,7 @@ begin
     begin
       case TSm2ResFormat(cbbSM2SigFormat.ItemIndex) of
         rfHex: mmoSignResult.Lines.Text := SignRes.ToHex(SM2.BytesCount);
-        rfAsn1Hex: mmoSignResult.Lines.Text := SignRes.ToAsn1Hex;
+        rfAsn1Hex: mmoSignResult.Lines.Text := SignRes.ToAsn1Hex(SM2.BytesCount);
         rfBase64: mmoSignResult.Lines.Text := SignRes.ToBase64(SM2.BytesCount);
         rfAsn1Base64: mmoSignResult.Lines.Text := SignRes.ToAsn1Base64;
       end;
@@ -579,7 +579,7 @@ begin
     begin
       case TSm2ResFormat(cbbSM2SigFormat.ItemIndex) of
         rfHex: mmoSignResult.Lines.Text := SignRes.ToHex(SM2.BytesCount);
-        rfAsn1Hex: mmoSignResult.Lines.Text := SignRes.ToAsn1Hex;
+        rfAsn1Hex: mmoSignResult.Lines.Text := SignRes.ToAsn1Hex(SM2.BytesCount);
         rfBase64: mmoSignResult.Lines.Text := SignRes.ToBase64(SM2.BytesCount);
         rfAsn1Base64: mmoSignResult.Lines.Text := SignRes.ToAsn1Base64;
       end;

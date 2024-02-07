@@ -369,9 +369,11 @@ function CompareObjectIdentifier(Node: TCnBerReadNode; OIDAddr: Pointer;
 {* 比较一个 Node 中的数据是否等于一个指定的 OID}
 
 function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
-  Parent: TCnBerWriteNode; Tag: Integer = CN_BER_TAG_INTEGER): TCnBerWriteNode;
-{* 将一个大数的内容写入一个新增的 Ber 整型格式的节点，无需指定固定长度，
-  节点会根据最高位的实际情况决定是否加一个字节 0}
+  Parent: TCnBerWriteNode; Tag: Integer = CN_BER_TAG_INTEGER; FixedLen: Integer = 0): TCnBerWriteNode;
+{* 将一个大数的内容写入一个新增的 Ber 整型格式的节点，FixedLen 为 0 时无固定长度，
+   FixedLen 指定大数实际长度不足时使用固定长度，为 0 时则使用大数实际长度
+  如 FixedLen 为 0，节点会根据最高位的实际情况决定是否加一个字节 0
+  如 FixedLen 不为 0，节点会在 FixedLen 与大数实际长度的基础上强行加一个字节 0}
 
 procedure PutIndexedBigIntegerToBigNumber(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
 {* 将一个 Ber 整型格式的节点写入一个大数的内容}
@@ -412,16 +414,27 @@ begin
   end;
 end;
 
-// 如果整数最高位是 1，则需要前面补 0 避免与负数的表述混淆
-function CalcIntegerTLV(BigNumber: TCnBigNumber): Cardinal;
+// FixedLen 为 0 时，如果整数最高位是 1，则需要前面补 0 避免与负数的表述混淆
+// FixedLen 不为 0 时，如够长则固定补 0，否则按大数实际情况补 0
+function CalcIntegerTLV(BigNumber: TCnBigNumber; FixedLen: Integer = 0): Cardinal;
 begin
   Result := BigNumber.GetBytesCount;
-  if BigNumber.IsBitSet((Result * 8) - 1) then
-    Inc(Result);
+  if FixedLen = 0 then
+  begin
+    if BigNumber.IsBitSet((Result * 8) - 1) then // 根据最高位是否是 1 决定是否补 0
+      Inc(Result);
+  end
+  else
+  begin
+    if FixedLen >= Result then // 固定位，够长，前面补 0
+      Result := FixedLen + 1
+    else if BigNumber.IsBitSet((Result * 8) - 1) then // 固定位不够按实际长，前面按需补 0
+      Inc(Result);
+  end;
 end;
 
 function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
-  Parent: TCnBerWriteNode; Tag: Integer): TCnBerWriteNode;
+  Parent: TCnBerWriteNode; Tag: Integer; FixedLen: Integer): TCnBerWriteNode;
 var
   P: Pointer;
   C, D: Integer;
@@ -430,8 +443,8 @@ begin
   if (Writer = nil) or (Num = nil) then
     Exit;
 
-  // Integer 编码需要处理最高位
-  C := CalcIntegerTLV(Num);
+  // Integer 编码需要处理最高位以决定是否补一个 0
+  C := CalcIntegerTLV(Num, FixedLen);
   if C <= 0 then
     Exit;
 
