@@ -11,10 +11,12 @@ type
     btnGenSimple: TButton;
     dlgSave1: TSaveDialog;
     dlgOpen1: TOpenDialog;
-    btnParsePDF: TButton;
+    btnParsePDFToken: TButton;
     mmoPDFToken: TMemo;
+    btnParsePDFStructure: TButton;
     procedure btnGenSimpleClick(Sender: TObject);
-    procedure btnParsePDFClick(Sender: TObject);
+    procedure btnParsePDFTokenClick(Sender: TObject);
+    procedure btnParsePDFStructureClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -93,7 +95,7 @@ begin
   end;
 end;
 
-procedure TFormPDF.btnParsePDFClick(Sender: TObject);
+procedure TFormPDF.btnParsePDFTokenClick(Sender: TObject);
 var
   I: Integer;
   P: TCnPDFParser;
@@ -136,6 +138,21 @@ begin
       M.Free;
       P.Free;
     end;
+  end;
+end;
+
+procedure TFormPDF.btnParsePDFStructureClick(Sender: TObject);
+var
+  PDF: TCnPDFDocument;
+begin
+   dlgOpen1.Title := 'Open a PDF File';
+  if dlgOpen1.Execute then
+  begin
+    PDF := CnLoadPDFFile(dlgOpen1.FileName);
+
+    if (PDF <> nil) and dlgSave1.Execute then
+      PDF.SaveToFile(dlgSave1.FileName);
+    PDF.Free;
   end;
 end;
 

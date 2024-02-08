@@ -1,6 +1,6 @@
 object FormPDF: TFormPDF
-  Left = 192
-  Top = 107
+  Left = 193
+  Top = 108
   Width = 979
   Height = 563
   Caption = 'PDF'
@@ -22,14 +22,14 @@ object FormPDF: TFormPDF
     TabOrder = 0
     OnClick = btnGenSimpleClick
   end
-  object btnParsePDF: TButton
+  object btnParsePDFToken: TButton
     Left = 24
     Top = 16
-    Width = 75
+    Width = 105
     Height = 25
-    Caption = 'Parse PDF'
+    Caption = 'Parse PDF Tokens'
     TabOrder = 1
-    OnClick = btnParsePDFClick
+    OnClick = btnParsePDFTokenClick
   end
   object mmoPDFToken: TMemo
     Left = 24
@@ -39,12 +39,21 @@ object FormPDF: TFormPDF
     ScrollBars = ssVertical
     TabOrder = 2
   end
+  object btnParsePDFStructure: TButton
+    Left = 160
+    Top = 16
+    Width = 113
+    Height = 25
+    Caption = 'Parse PDF Structure'
+    TabOrder = 3
+    OnClick = btnParsePDFStructureClick
+  end
   object dlgSave1: TSaveDialog
     Left = 448
     Top = 8
   end
   object dlgOpen1: TOpenDialog
-    Left = 120
+    Left = 272
     Top = 16
   end
 end
