@@ -1440,10 +1440,10 @@ begin
         end;
       end;
     except
-      on E: ECnPDFEofException do // PDF 解析完毕正常返回
+      on E: ECnPDFEofException do // PDF 解析完毕的异常吞掉，正常返回
+      begin
         Exit;
-      else
-        raise;
+      end;
     end;
 
   finally
@@ -1735,6 +1735,8 @@ begin
     Num.Free;
   end;
 
+  if P.TokenID = pttLineBreak then
+    P.NextNoJunk;
   CheckExpectedToken(P, pttComment); // %%EOF
 end;
 
