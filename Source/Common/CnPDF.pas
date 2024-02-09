@@ -483,6 +483,8 @@ type
     procedure SortObjects;
     {* 将对象表按对象编号排序}
 
+    procedure CreateResources;
+
     function WriteToStream(Stream: TStream): Cardinal;
     {* 将内容输出至流}
 
@@ -1527,7 +1529,8 @@ begin
     Num.SetInteger(R)
   else
   begin
-    if TextToFloat(PChar(S), F, fvExtended) then
+    Val(S, F, E);
+    if E = 0 then
       Num.SetFloat(F)
     else
       ParseError(P, 'PDF Number Format Error');
@@ -2363,14 +2366,12 @@ end;
 function TCnPDFReferenceObject.WriteToStream(Stream: TStream): Cardinal;
 begin
   Result := 0;
-  if FReference <> nil then
-  begin
-    Inc(Result, WriteString(Stream, IntToStr(FID)));
-    Inc(Result, WriteSpace(Stream));
-    Inc(Result, WriteString(Stream, IntToStr(FGeneration)));
-    Inc(Result, WriteSpace(Stream));
-    Inc(Result, WriteString(Stream, 'R'));
-  end;
+
+  Inc(Result, WriteString(Stream, IntToStr(FID)));
+  Inc(Result, WriteSpace(Stream));
+  Inc(Result, WriteString(Stream, IntToStr(FGeneration)));
+  Inc(Result, WriteSpace(Stream));
+  Inc(Result, WriteString(Stream, 'R'));
 end;
 
 { TCnPDFBooleanObject }
@@ -2555,6 +2556,13 @@ begin
   inherited;
   FObjects := TCnPDFObjectManager.Create;
 
+  FPageList := TObjectList.Create(False);
+  FContentList := TObjectList.Create(False);
+  FResourceList := TObjectList.Create(False);
+end;
+
+procedure TCnPDFBody.CreateResources;
+begin
   FInfo := TCnPDFDictionaryObject.Create;
   FObjects.Add(FInfo);
   FCatalog := TCnPDFDictionaryObject.Create;
@@ -2567,10 +2575,6 @@ begin
 
   FPages.AddArray('Kids');
   FCatalog.AddObjectRef('Pages', FPages);
-
-  FPageList := TObjectList.Create(False);
-  FContentList := TObjectList.Create(False);
-  FResourceList := TObjectList.Create(False);
 end;
 
 destructor TCnPDFBody.Destroy;
@@ -2612,11 +2616,14 @@ var
   I: Integer;
   Arr: TCnPDFArrayObject;
 begin
-  FPages['Count'] := TCnPDFNumberObject.Create(FPageList.Count);
-  Arr := FPages['Kids'] as TCnPDFArrayObject;
+  if Pages <> nil then
+  begin
+    FPages['Count'] := TCnPDFNumberObject.Create(FPageList.Count);
+    Arr := FPages['Kids'] as TCnPDFArrayObject;
 
-  for I := 0 to FPageList.Count - 1 do
-    Arr.AddObjectRef(FPageList[I] as TCnPDFObject);
+    for I := 0 to FPageList.Count - 1 do
+      Arr.AddObjectRef(FPageList[I] as TCnPDFObject);
+  end;
 end;
 
 function TCnPDFBody.WriteToStream(Stream: TStream): Cardinal;
@@ -2628,7 +2635,7 @@ var
   Item: TCnPDFXRefItem;
 begin
   FXRefTable.Clear;
-  SortObjects;
+  //SortObjects;
 
   Result := 0;
   OldID := -1;
