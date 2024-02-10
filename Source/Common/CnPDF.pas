@@ -47,7 +47,9 @@ unit CnPDF;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.02.06 V1.0
+* 修改记录：2024.02.010 V1.2
+*               基本完成四个部分的对象与结构分析，待组织逻辑结构
+*           2024.02.06 V1.1
 *               基本完成词法分析，待组织语法树
 *           2024.01.28 V1.0
 *               创建单元
@@ -328,6 +330,8 @@ type
     function AddUnicodeString(const Name: string; const Value: string): TCnPDFDictPair;
 {$ENDIF}
 
+    function HasName(const Name: string): Boolean;
+    {* 是否有指定名称存在}
     procedure GetNames(Names: TStrings);
     {* 将所有名字塞 Names 里}
     property Count: Integer read GetCount;
@@ -595,8 +599,9 @@ type
     {* 读入一个字典，P 须指向 <<，运行后跳出 >>}
     procedure ReadArray(P: TCnPDFParser; AnArray: TCnPDFArrayObject);
     {* 读入一个数组，P 须指向 [，运行后跳出 ]}
-    procedure ReadNumber(P: TCnPDFParser; Num: TCnPDFNumberObject);
-    {* 读入一个数字，P 须指向 pttNumber，运行后跳出该 pttNumber}
+    procedure ReadNumber(P: TCnPDFParser; Num: TCnPDFNumberObject; OverCRLF: Boolean = True);
+    {* 读入一个数字，P 须指向 pttNumber，运行后跳出该 pttNumber
+      该方法新增 OverCRLF 参数因交叉引用表中需要}
     procedure ReadReference(P: TCnPDFParser; Ref: TCnPDFReferenceObject);
     {* 读入一个引用，P 须指向 pttNumber pttNumber pttR，运行后跳出该 pttR}
     procedure ReadName(P: TCnPDFParser; Name: TCnPDFNameObject);
@@ -1616,14 +1621,19 @@ begin
   P.NextNoJunkNoCRLF;
 end;
 
-procedure TCnPDFDocument.ReadNumber(P: TCnPDFParser; Num: TCnPDFNumberObject);
+procedure TCnPDFDocument.ReadNumber(P: TCnPDFParser; Num: TCnPDFNumberObject;
+  OverCRLF: Boolean);
 var
   S: AnsiString;
   R, E: Integer;
   F: Extended;
 begin
   S := P.Token;
-  P.NextNoJunkNoCRLF;
+
+  if OverCRLF then
+    P.NextNoJunkNoCRLF
+  else
+    P.NextNoJunk;
 
   Val(S, R, E);
   if E = 0 then
@@ -1836,7 +1846,7 @@ begin
   CheckExpectedToken(P, pttNumber);
   Num := TCnPDFNumberObject.Create;
   try
-    ReadNumber(P, Num);
+    ReadNumber(P, Num, False);
     FTrailer.XRefStart := Num.AsInteger;
   finally
     Num.Free;
@@ -1863,11 +1873,11 @@ begin
     begin
       // 先要俩 Number
       CheckExpectedToken(P, pttNumber);
-      ReadNumber(P, Num);
+      ReadNumber(P, Num, False);
       C1 := Num.AsInteger;
 
       CheckExpectedToken(P, pttNumber);
-      ReadNumber(P, Num);
+      ReadNumber(P, Num, False); // 注意不要越过回车换行
       C2 := Num.AsInteger;
 
       if P.TokenID in [pttN,pttF, pttD] then
@@ -1975,7 +1985,7 @@ begin
       FBody.Catalog := Obj as TCnPDFDictionaryObject;
   end;
 
-
+  // TODO: Pages Contents 等
 end;
 
 function TCnPDFDocument.FromReference(Ref: TCnPDFReferenceObject): TCnPDFObject;
@@ -2240,6 +2250,11 @@ begin
     Result := nil;
 end;
 
+function TCnPDFDictionaryObject.HasName(const Name: string): Boolean;
+begin
+  Result := IndexOfName(Name) >= 0;
+end;
+
 function TCnPDFDictionaryObject.IndexOfName(const Name: string): Integer;
 var
   I: Integer;
@@ -2282,7 +2297,7 @@ end;
 
 function TCnPDFDictionaryObject.ToString: string;
 begin
-  Result := '<<...>>';
+  Result := Format('<<...Count %d...>>', [Count]);
 end;
 
 function TCnPDFDictionaryObject.WriteToStream(Stream: TStream): Cardinal;
@@ -2428,7 +2443,7 @@ end;
 
 function TCnPDFArrayObject.ToString: string;
 begin
-  Result := '[...]';
+  Result := Format('[...Count %d...]', [Count]);
 end;
 
 function TCnPDFArrayObject.WriteToStream(Stream: TStream): Cardinal;
@@ -2774,8 +2789,8 @@ end;
 procedure TCnPDFBody.DumpToStrings(Strings: TStrings);
 var
   I: Integer;
-  Obj: TCnPDFObject;
-  S: string;
+  Obj, V: TCnPDFObject;
+  S, Info: string;
 begin
   Strings.Add('Body');
   Strings.Add('PDF Object Count: ' + IntToStr(FObjects.Count));
@@ -2786,8 +2801,20 @@ begin
     S := StringReplace(S, 'TCnPDF', '', [rfReplaceAll]);
     S := StringReplace(S, 'Object', '', [rfReplaceAll]);
 
-    Strings.Add(Format('#%d ID %d Gen %d %s Offset %d',
-      [I + 1, Obj.ID, Obj.Generation, S, Obj.Offset]));
+    if Obj is TCnPDFArrayObject then
+      Info := (Obj as TCnPDFArrayObject).ToString
+    else if Obj is TCnPDFDictionaryObject then
+    begin
+      Info := (Obj as TCnPDFDictionaryObject).ToString;
+      V := (Obj as TCnPDFDictionaryObject).Values['Type'];
+      if (V <> nil) and (V is TCnPDFNameObject) then
+        Info := Info + ' Type: ' + V.ToString;
+    end;
+    if Obj is TCnPDFStreamObject then
+      Info := Info + ' ' + (Obj as TCnPDFStreamObject).ToString;
+
+    Strings.Add(Format('#%d ID %d Gen %d %s Offset %d. %s',
+      [I + 1, Obj.ID, Obj.Generation, S, Obj.Offset, Info]));
   end;
 end;
 
