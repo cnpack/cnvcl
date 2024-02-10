@@ -31,7 +31,7 @@ object FormPDF: TFormPDF
     TabOrder = 1
     OnClick = btnParsePDFTokenClick
   end
-  object mmoPDFToken: TMemo
+  object mmoPDF: TMemo
     Left = 24
     Top = 56
     Width = 793

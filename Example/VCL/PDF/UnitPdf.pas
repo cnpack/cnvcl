@@ -12,7 +12,7 @@ type
     dlgSave1: TSaveDialog;
     dlgOpen1: TOpenDialog;
     btnParsePDFToken: TButton;
-    mmoPDFToken: TMemo;
+    mmoPDF: TMemo;
     btnParsePDFStructure: TButton;
     procedure btnGenSimpleClick(Sender: TObject);
     procedure btnParsePDFTokenClick(Sender: TObject);
@@ -110,8 +110,8 @@ begin
     M.LoadFromFile(dlgOpen1.FileName);
     P.SetOrigin(M.Memory, M.Size);
 
-    mmoPDFToken.Lines.Clear;
-    mmoPDFToken.Lines.BeginUpdate;
+    mmoPDF.Lines.Clear;
+    mmoPDF.Lines.BeginUpdate;
     I := 0;
     try
       while True do
@@ -130,11 +130,11 @@ begin
         S := Format('#%d Offset %d Length %d %-20.20s %s ', [I, P.RunPos - P.TokenLength, P.TokenLength,
           GetEnumName(TypeInfo(TCnPDFTokenType), Ord(P.TokenID)), C]);
 
-        mmoPDFToken.Lines.Add(S);
+        mmoPDF.Lines.Add(S);
         P.Next;
       end;
     finally
-      mmoPDFToken.Lines.EndUpdate;
+      mmoPDF.Lines.EndUpdate;
       M.Free;
       P.Free;
     end;
@@ -150,9 +150,21 @@ begin
   begin
     PDF := CnLoadPDFFile(dlgOpen1.FileName);
 
-    if (PDF <> nil) and dlgSave1.Execute then
-      PDF.SaveToFile(dlgSave1.FileName);
-    PDF.Free;
+    if PDF <> nil then
+    begin
+      mmoPDF.Lines.Clear;
+
+      mmoPDF.Lines.BeginUpdate;
+      PDF.Header.DumpToStrings(mmoPDF.Lines);
+      PDF.Body.DumpToStrings(mmoPDF.Lines);
+      PDF.XRefTable.DumpToStrings(mmoPDF.Lines);
+      PDF.Trailer.DumpToStrings(mmoPDF.Lines);
+      mmoPDF.Lines.EndUpdate;
+
+      if dlgSave1.Execute then
+        PDF.SaveToFile(dlgSave1.FileName);
+      PDF.Free;
+    end;
   end;
 end;
 
