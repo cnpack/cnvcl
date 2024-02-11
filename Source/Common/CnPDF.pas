@@ -340,6 +340,8 @@ type
     {* 是否有指定名称存在}
     procedure GetNames(Names: TStrings);
     {* 将所有名字塞 Names 里}
+    function GetType: string;
+    {* 封装的常用的获取名称是 'Type' 的名字的字符串值}
     property Count: Integer read GetCount;
     {* 字典内的元素数量}
     property Values[const Name: string]: TCnPDFObject read GetValue write SetValue; default;
@@ -361,6 +363,7 @@ type
     {* 输出 stream 及流及 endstream}
 
     function ToString: string; override;
+    procedure ToStrings(Strings: TStrings; Indent: Integer = 0); override;
 
     property Stream: TBytes read FStream write FStream;
     {* 包含的原始流内容}
@@ -513,18 +516,21 @@ type
   {* PDF 内容组织类}
   private
     FObjects: TCnPDFObjectManager;     // 所有对象都在这里管辖，其余都是引用
-    FPageList: TObjectList;            // 页面对象列表
-    FResourceList: TObjectList;        // 页面对象的资源列表，先都塞一块，一般是 Dictionary
-    FContentList: TObjectList;         // 页面对象的内容列表，先都塞一块，一般是 Stream
     FPages: TCnPDFDictionaryObject;    // 页面树对象
     FCatalog: TCnPDFDictionaryObject;  // 根目录对象，供 Trailer 中引用
     FInfo: TCnPDFDictionaryObject;     // 信息对象，供 Trailer 中引用
     FXRefTable: TCnPDFXRefTable;       // 交叉引用表的引用
     function GetPage(Index: Integer): TCnPDFDictionaryObject;
     function GetPageCount: Integer;
+    function GetContent(Index: Integer): TCnPDFStreamObject;
+    function GetContentCount: Integer;
+    function GetResource(Index: Integer): TCnPDFDictionaryObject;
+    function GetResourceCount: Integer;
   protected
-    procedure ArrangeIDs;
-    {* 给所有对象的 ID 顺序赋值}
+    FPageList: TObjectList;            // 页面对象列表
+    FResourceList: TObjectList;        // 页面对象的资源列表，先都塞一块，一般是 Dictionary
+    FContentList: TObjectList;         // 页面对象的内容列表，先都塞一块，一般是 Stream
+
     procedure SyncPages;
     {* 将页面内容引用赋值给 Pages 的 Kids}
   public
@@ -563,13 +569,31 @@ type
     property Page[Index: Integer]: TCnPDFDictionaryObject read GetPage;
     {* 多个页面对象，类型为字典，有 MediaBox（定义纸张大小）、Resources（字体资源等）、
       Parent（指向页面列表父节点），Contents（页面内容操作符）}
-    function AddPage: TCnPDFDictionaryObject;
-    {* 增加一页面}
 
+    property ContentCount: Integer read GetContentCount;
+    {* 内容对象数量，暂不区分页面}
+    property Content[Index: Integer]: TCnPDFStreamObject read GetContent;
+    {* 多个内容对象，类型为字典或流}
+
+    property ResourceCount: Integer read GetResourceCount;
+    {* 资源对象数量，暂不区分页面}
+    property Resource[Index: Integer]: TCnPDFDictionaryObject read GetResource;
+    {* 多个资源对象，类型为字典}
+
+    function AddPage: TCnPDFDictionaryObject;
+    {* 增加一空页面并返回该页面}
     function AddResource(Page: TCnPDFDictionaryObject): TCnPDFDictionaryObject;
     {* 给某页增加一个 Resource，Page 的 /Resources 指向或包括此对象}
     function AddContent(Page: TCnPDFDictionaryObject): TCnPDFStreamObject;
     {* 给某页增加一个 Content，Page 的 /Contents 指向或包括此对象}
+
+
+    procedure AddRawPage(APage: TCnPDFDictionaryObject);
+    {* 增加一外部指定页面作为引用}
+    procedure AddRawContent(AContent: TCnPDFStreamObject);
+    {* 增加一外部指定内容作为引用}
+    procedure AddRawResource(AResource: TCnPDFDictionaryObject);
+    {* 增加一外部指定内容作为引用}
   end;
 
 //==============================================================================
@@ -1997,7 +2021,10 @@ end;
 
 procedure TCnPDFDocument.ArrangeObjects;
 var
+  I: Integer;
   Obj: TCnPDFObject;
+  Arr: TCnPDFArrayObject;
+  Page: TCnPDFDictionaryObject;
 begin
   if FTrailer = nil then
     Exit;
@@ -2017,10 +2044,78 @@ begin
   begin
     Obj := FromReference(Obj as TCnPDFReferenceObject);
     if (Obj <> nil) and (Obj is TCnPDFDictionaryObject) then
+    begin
       FBody.Catalog := Obj as TCnPDFDictionaryObject;
+      if FBody.Catalog.GetType <> 'Catalog' then
+        raise ECnPDFException.Create('Catalog Type Error');
+    end;
   end;
 
-  // TODO: Pages Contents 等
+  // 找 Pages 对象
+  if FBody.Catalog <> nil then
+  begin
+    Obj := FBody.Catalog.Values['Pages'];
+    if (Obj <> nil) and (Obj is TCnPDFReferenceObject) then
+    begin
+      Obj := FromReference(Obj as TCnPDFReferenceObject);
+      if (Obj <> nil) and (Obj is TCnPDFDictionaryObject) then
+      begin
+        FBody.Pages := Obj as TCnPDFDictionaryObject;
+        if FBody.Pages.GetType <> 'Pages' then
+          raise ECnPDFException.Create('Pages Type Error');
+      end;
+    end;
+  end;
+
+  // 找各个 Page
+  if FBody.Pages <> nil then
+  begin
+    // 找 Page 数组
+    Obj := FBody.Pages.Values['Kids'];
+    if (Obj <> nil) and (Obj is TCnPDFArrayObject) then
+    begin
+      Arr := Obj as TCnPDFArrayObject;
+      if Arr.Count > 0 then
+      begin
+        for I := 0 to Arr.Count - 1 do
+        begin
+          Obj := Arr.Items[I];
+          if (Obj <> nil) and (Obj is TCnPDFReferenceObject) then
+          begin
+            Obj := FromReference(Obj as TCnPDFReferenceObject);
+            if (Obj <> nil) and (Obj is TCnPDFDictionaryObject) then
+              FBody.AddRawPage(Obj as TCnPDFDictionaryObject);
+          end;
+        end;
+      end;
+    end
+    else
+      raise ECnPDFException.CreateFmt('Error Object Type %s for Kids', [Obj.ClassName]);
+  end;
+
+  // 给每个 Page 找 Content 和 Resource 等
+  for I := 0 to FBody.PageCount - 1 do
+  begin
+    Page := FBody.Page[I];
+
+    // 找 Contents
+    Obj := Page.Values['Contents'];
+    if (Obj <> nil) and (Obj is TCnPDFReferenceObject) then
+    begin
+      Obj := FromReference(Obj as TCnPDFReferenceObject);
+      if (Obj <> nil) and (Obj is TCnPDFStreamObject) then
+        FBody.AddRawContent(Obj as TCnPDFStreamObject);
+    end
+    else
+      raise ECnPDFException.CreateFmt('Error Object Type %s for Contents', [Obj.ClassName]);
+
+    // 找 Resources
+    Obj := Page.Values['Resources'];
+    if (Obj <> nil) and (Obj is TCnPDFDictionaryObject) then
+      FBody.AddRawResource(Obj as TCnPDFDictionaryObject)
+    else
+      raise ECnPDFException.CreateFmt('Error Object Type %s for Resources', [Obj.ClassName]);
+  end;
 end;
 
 function TCnPDFDocument.FromReference(Ref: TCnPDFReferenceObject): TCnPDFObject;
@@ -2272,6 +2367,17 @@ end;
 function TCnPDFDictionaryObject.GetPair(Index: Integer): TCnPDFDictPair;
 begin
   Result := TCnPDFDictPair(FPairs[Index]);
+end;
+
+function TCnPDFDictionaryObject.GetType: string;
+var
+  V: TCnPDFObject;
+begin
+  V := Values['Type'];
+  if (V <> nil) and (V is TCnPDFNameObject) then
+    Result := (V as TCnPDFNameObject).Name
+  else
+    Result := '';
 end;
 
 function TCnPDFDictionaryObject.GetValue(const Name: string): TCnPDFObject;
@@ -2784,6 +2890,12 @@ begin
   Result := inherited ToString + S + ' Stream Size: ' + IntToStr(Length(FStream));
 end;
 
+procedure TCnPDFStreamObject.ToStrings(Strings: TStrings; Indent: Integer);
+begin
+  Strings.Add(ToString);
+  inherited ToStrings(Strings, Indent);
+end;
+
 function TCnPDFStreamObject.WriteToStream(Stream: TStream): Cardinal;
 begin
   Result := 0;
@@ -2822,19 +2934,26 @@ begin
   FPageList.Add(Result);
 end;
 
+procedure TCnPDFBody.AddRawContent(AContent: TCnPDFStreamObject);
+begin
+  FContentList.Add(AContent);
+end;
+
+procedure TCnPDFBody.AddRawPage(APage: TCnPDFDictionaryObject);
+begin
+  FPageList.Add(APage);
+end;
+
+procedure TCnPDFBody.AddRawResource(AResource: TCnPDFDictionaryObject);
+begin
+  FResourceList.Add(AResource);
+end;
+
 function TCnPDFBody.AddResource(Page: TCnPDFDictionaryObject): TCnPDFDictionaryObject;
 begin
   Result := TCnPDFDictionaryObject.Create;
   FObjects.Add(Result);
   Page['/Resources'] := TCnPDFReferenceObject.Create(Result);
-end;
-
-procedure TCnPDFBody.ArrangeIDs;
-var
-  I: Integer;
-begin
-  for I := 0 to FObjects.Count - 1 do
-    TCnPDFObject(FObjects[I]).ID := I + 1;
 end;
 
 constructor TCnPDFBody.Create;
@@ -2923,6 +3042,16 @@ begin
   end;
 end;
 
+function TCnPDFBody.GetContent(Index: Integer): TCnPDFStreamObject;
+begin
+  Result := TCnPDFStreamObject(FContentList[Index]);
+end;
+
+function TCnPDFBody.GetContentCount: Integer;
+begin
+  Result := FContentList.Count;
+end;
+
 function TCnPDFBody.GetPage(Index: Integer): TCnPDFDictionaryObject;
 begin
   Result := TCnPDFDictionaryObject(FPageList[Index]);
@@ -2940,6 +3069,16 @@ begin
   P1 := TCnPDFObject(Item1);
   P2 := TCnPDFObject(Item2);
   Result := P1.ID - P2.ID;
+end;
+
+function TCnPDFBody.GetResource(Index: Integer): TCnPDFDictionaryObject;
+begin
+  Result := TCnPDFDictionaryObject(FResourceList[Index]);
+end;
+
+function TCnPDFBody.GetResourceCount: Integer;
+begin
+  Result := FResourceList.Count;
 end;
 
 procedure TCnPDFBody.SortObjects;

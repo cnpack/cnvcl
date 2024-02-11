@@ -143,6 +143,7 @@ end;
 
 procedure TFormPDF.btnParsePDFStructureClick(Sender: TObject);
 var
+  I: Integer;
   PDF: TCnPDFDocument;
 begin
    dlgOpen1.Title := 'Open a PDF File';
@@ -161,8 +162,35 @@ begin
       PDF.Trailer.DumpToStrings(mmoPDF.Lines);
 
       mmoPDF.Lines.Add('');
+      mmoPDF.Lines.Add('==============================');
+      mmoPDF.Lines.Add('');
 
       // 输出 Info、Catalog、Pages 等对象的内容
+
+      mmoPDF.Lines.Add('--- Info ---') ;
+      if PDF.Body.Info <> nil then
+        PDF.Body.Info.ToStrings(mmoPDF.Lines);
+
+      mmoPDF.Lines.Add('--- Catalog ---') ;
+      if PDF.Body.Catalog <> nil then
+        PDF.Body.Catalog.ToStrings(mmoPDF.Lines);
+
+      mmoPDF.Lines.Add('--- Pages ---') ;
+      if PDF.Body.Pages <> nil then
+        PDF.Body.Pages.ToStrings(mmoPDF.Lines);
+
+      mmoPDF.Lines.Add('--- Page List ---') ;
+      for I := 0 to PDF.Body.PageCount - 1 do
+        PDF.Body.Page[I].ToStrings(mmoPDF.Lines);
+
+      mmoPDF.Lines.Add('--- Content List ---') ;
+      for I := 0 to PDF.Body.ContentCount - 1 do
+        PDF.Body.Content[I].ToStrings(mmoPDF.Lines);
+
+      mmoPDF.Lines.Add('--- Resource List ---') ;
+      for I := 0 to PDF.Body.ResourceCount - 1 do
+        PDF.Body.Resource[I].ToStrings(mmoPDF.Lines);
+
       mmoPDF.Lines.EndUpdate;
 
       if dlgSave1.Execute then
