@@ -100,6 +100,10 @@ type
     destructor Destroy; override;
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ELSE} virtual; {$ENDIF}
+    {* 输出成单行字符串}
+    procedure ToStrings(Strings: TStrings; Indent: Integer = 0); virtual;
+    {* 输出成多行字符串，默认添加单行。实际主要用于 Array 或 Dictionary 等子类}
+
     function WriteToStream(Stream: TStream): Cardinal; virtual; abstract;
 
     function Clone: TCnPDFObject;
@@ -259,6 +263,7 @@ type
     {* 输出[及每个对象及]}
 
     function ToString: string; override;
+    procedure ToStrings(Strings: TStrings; Indent: Integer = 0); override;
 
     procedure AddObject(Obj: TCnPDFObject);
     {* 添加一个对象，外部请勿释放此对象}
@@ -305,6 +310,7 @@ type
     {* 输出<<及每个Pair及>>}
 
     function ToString: string; override;
+    procedure ToStrings(Strings: TStrings; Indent: Integer = 0); override;
 
     function AddName(const Name: string): TCnPDFDictPair; overload;
     {* 添加一个名称，值由外界赋值，赋值后外部请勿释放此对象}
@@ -386,7 +392,10 @@ type
   TCnPDFPartBase = class
   public
     function WriteToStream(Stream: TStream): Cardinal; virtual; abstract;
-    procedure DumpToStrings(Strings: TStrings); virtual; abstract;
+    procedure DumpToStrings(Strings: TStrings; Verbose: Boolean = False;
+      Indent: Integer = 0); virtual; abstract;
+    {* 输出信息，Verbose 指示详细与否，内容少时可不处理。
+      Indent 是多行信息在 Verbose 为 True 时的缩进}
   end;
 
   TCnPDFHeader = class(TCnPDFPartBase)
@@ -402,7 +411,7 @@ type
 
     function WriteToStream(Stream: TStream): Cardinal; override;
     {* 将内容输出至流}
-    procedure DumpToStrings(Strings: TStrings); override;
+    procedure DumpToStrings(Strings: TStrings; Verbose: Boolean = False; Indent: Integer = 0); override;
     {* 输出概要总结信息供调试}
 
     property Version: string read FVersion write FVersion;
@@ -464,7 +473,7 @@ type
 
     function WriteToStream(Stream: TStream): Cardinal; override;
     {* 将内容输出至流}
-     procedure DumpToStrings(Strings: TStrings); override;
+     procedure DumpToStrings(Strings: TStrings; Verbose: Boolean = False; Indent: Integer = 0); override;
     {* 输出概要总结信息供调试}
 
     function AddSegment: TCnPDFXRefCollection;
@@ -488,7 +497,7 @@ type
 
     function WriteToStream(Stream: TStream): Cardinal; override;
     {* 将内容输出至流}
-     procedure DumpToStrings(Strings: TStrings); override;
+     procedure DumpToStrings(Strings: TStrings; Verbose: Boolean = False; Indent: Integer = 0); override;
     {* 输出概要总结信息供调试}
 
     property Dictionary: TCnPDFDictionaryObject read FDictionary;
@@ -529,7 +538,7 @@ type
 
     function WriteToStream(Stream: TStream): Cardinal; override;
     {* 将内容输出至流}
-     procedure DumpToStrings(Strings: TStrings); override;
+     procedure DumpToStrings(Strings: TStrings; Verbose: Boolean = False; Indent: Integer = 0); override;
     {* 输出概要总结信息供调试}
 
     procedure AddObject(Obj: TCnPDFObject);
@@ -727,6 +736,7 @@ procedure CnSavePDFFile(PDF: TCnPDFDocument; const FileName: string);
 implementation
 
 const
+  INDENTDELTA = 4;
   SPACE: AnsiChar = ' ';
   CRLF: array[0..1] of AnsiChar = (#13, #10);
 
@@ -845,7 +855,8 @@ begin
   inherited;
 end;
 
-procedure TCnPDFTrailer.DumpToStrings(Strings: TStrings);
+procedure TCnPDFTrailer.DumpToStrings(Strings: TStrings; Verbose: Boolean;
+  Indent: Integer);
 var
   I: Integer;
   V: TCnPDFObject;
@@ -947,7 +958,8 @@ begin
   inherited;
 end;
 
-procedure TCnPDFXRefTable.DumpToStrings(Strings: TStrings);
+procedure TCnPDFXRefTable.DumpToStrings(Strings: TStrings; Verbose: Boolean;
+  Indent: Integer);
 var
   I, J: Integer;
   Seg: TCnPDFXRefCollection;
@@ -1189,7 +1201,7 @@ procedure TCnPDFParser.NameBeginProc;
 begin
   repeat
     StepRun;
-  until FOrigin[FRun] in CRLFS + WHITESPACES + DELIMETERS;
+  until FOrigin[FRun] in CRLFS + WHITESPACES + DELIMETERS + ['/'];
   FTokenID := pttName;
 end;
 
@@ -1279,6 +1291,7 @@ begin
     end;
   until False;
 
+  // 注意 endstream 前面可能有多余的回车换行，需要根据 Length 字段值修正
   FTokenID := pttStreamData;
 end;
 
@@ -1381,7 +1394,8 @@ begin
   inherited;
 end;
 
-procedure TCnPDFHeader.DumpToStrings(Strings: TStrings);
+procedure TCnPDFHeader.DumpToStrings(Strings: TStrings; Verbose: Boolean;
+  Indent: Integer);
 begin
   Strings.Add('PDF Version ' + FVersion);
   Strings.Add('PDF First Comment ' + FComment);
@@ -1447,6 +1461,17 @@ end;
 function TCnPDFObject.ToString: string;
 begin
   raise ECnPDFException.Create('NO ToString for Base PDF Object');
+end;
+
+procedure TCnPDFObject.ToStrings(Strings: TStrings; Indent: Integer);
+begin
+  if Strings <> nil then
+  begin
+    if Indent = 0 then
+      Strings.Add(ToString)
+    else
+      Strings.Add(StringOfChar(' ', Indent) + ToString);
+  end;
 end;
 
 { TCnPDFDocument }
@@ -1778,8 +1803,10 @@ begin
   end;
 end;
 
-procedure TCnPDFDocument.ReadStream(P: TCnPDFParser;
-  Stream: TCnPDFStreamObject);
+procedure TCnPDFDocument.ReadStream(P: TCnPDFParser; Stream: TCnPDFStreamObject);
+var
+  V: TCnPDFObject;
+  L: Integer;
 begin
   if P.TokenID = pttStreamData then
   begin
@@ -1788,6 +1815,14 @@ begin
       Move(P.Token[1], Stream.Stream[0], P.TokenLength);
   end;
   P.NextNoJunk;
+
+  V := Stream.Values['Length'];
+  if (V <> nil) and (V is TCnPDFNumberObject) then
+  begin
+    L := (V as TCnPDFNumberObject).AsInteger;
+    if L < Length(Stream.Stream) then
+      SetLength(Stream.FStream, L);
+  end;
 
   CheckExpectedToken(P, pttEndStream);
   P.NextNoJunkNoCRLF;
@@ -2300,6 +2335,40 @@ begin
   Result := Format('<<...Count %d...>>', [Count]);
 end;
 
+procedure TCnPDFDictionaryObject.ToStrings(Strings: TStrings;
+  Indent: Integer);
+var
+  I: Integer;
+  S1, S2: string;
+  Pair: TCnPDFDictPair;
+begin
+  S1 := StringOfChar(' ', Indent);
+  Strings.Add(S1 + '<<');
+  if Count > 0 then
+  begin
+    S2 := StringOfChar(' ', Indent + INDENTDELTA);
+    for I := 0 to Count - 1 do
+    begin
+      Pair := Pairs[I];
+      if Pair.Value is TCnPDFDictionaryObject then
+      begin
+        Strings.Add(S2 + Pair.Name.Name + ': <<...Count ' + IntToStr((Pair.Value as TCnPDFDictionaryObject).Count) + '...>>');
+        (Pair.Value as TCnPDFDictionaryObject).ToStrings(Strings, Indent + INDENTDELTA);
+      end
+      else if Pair.Value is TCnPDFArrayObject then
+      begin
+        Strings.Add(S2 + Pair.Name.Name + ': [...Count ' + IntToStr((Pair.Value as TCnPDFArrayObject).Count) + '...]');
+        (Pair.Value as TCnPDFArrayObject).ToStrings(Strings, Indent + INDENTDELTA);
+      end
+      else if Pair.Value <> nil then
+        Strings.Add(S2 + Pair.Name.Name + ': ' + Pair.Value.ToString)
+      else
+        Strings.Add(S2 + Pair.Name.Name);
+    end;
+  end;
+  Strings.Add(S1 + '>>');
+end;
+
 function TCnPDFDictionaryObject.WriteToStream(Stream: TStream): Cardinal;
 var
   I: Integer;
@@ -2444,6 +2513,27 @@ end;
 function TCnPDFArrayObject.ToString: string;
 begin
   Result := Format('[...Count %d...]', [Count]);
+end;
+
+procedure TCnPDFArrayObject.ToStrings(Strings: TStrings; Indent: Integer);
+var
+  I: Integer;
+  S1, S2: string;
+  V: TCnPDFObject;
+begin
+  S1 := StringOfChar(' ', Indent);
+  Strings.Add(S1 + '[');
+  if Count > 0 then
+  begin
+    S2 := StringOfChar(' ', Indent + INDENTDELTA);
+    for I := 0 to Count - 1 do
+    begin
+      V := Items[I];
+      if V <> nil then
+        V.ToStrings(Strings, Indent + INDENTDELTA);
+    end;
+  end;
+  Strings.Add(S1 + ']');
 end;
 
 function TCnPDFArrayObject.WriteToStream(Stream: TStream): Cardinal;
@@ -2683,8 +2773,15 @@ begin
 end;
 
 function TCnPDFStreamObject.ToString: string;
+var
+  V: TCnPDFObject;
+  S: string;
 begin
-  Result := inherited ToString + ' Stream Size: ' + IntToStr(Length(FStream));
+  V := Values['Length'];
+  S := '';
+  if (V <> nil) and (V is TCnPDFNumberObject) then
+    S := ' Length: ' + IntToStr((V as TCnPDFNumberObject).AsInteger);
+  Result := inherited ToString + S + ' Stream Size: ' + IntToStr(Length(FStream));
 end;
 
 function TCnPDFStreamObject.WriteToStream(Stream: TStream): Cardinal;
@@ -2786,11 +2883,12 @@ begin
   inherited;
 end;
 
-procedure TCnPDFBody.DumpToStrings(Strings: TStrings);
+procedure TCnPDFBody.DumpToStrings(Strings: TStrings; Verbose: Boolean;
+  Indent: Integer);
 var
   I: Integer;
   Obj, V: TCnPDFObject;
-  S, Info: string;
+  S, Ext: string;
 begin
   Strings.Add('Body');
   Strings.Add('PDF Object Count: ' + IntToStr(FObjects.Count));
@@ -2802,19 +2900,26 @@ begin
     S := StringReplace(S, 'Object', '', [rfReplaceAll]);
 
     if Obj is TCnPDFArrayObject then
-      Info := (Obj as TCnPDFArrayObject).ToString
+      Ext := (Obj as TCnPDFArrayObject).ToString
     else if Obj is TCnPDFDictionaryObject then
     begin
-      Info := (Obj as TCnPDFDictionaryObject).ToString;
+      Ext := (Obj as TCnPDFDictionaryObject).ToString;
       V := (Obj as TCnPDFDictionaryObject).Values['Type'];
       if (V <> nil) and (V is TCnPDFNameObject) then
-        Info := Info + ' Type: ' + V.ToString;
+        Ext := Ext + ' Type: ' + V.ToString;
     end;
-    if Obj is TCnPDFStreamObject then
-      Info := Info + ' ' + (Obj as TCnPDFStreamObject).ToString;
 
     Strings.Add(Format('#%d ID %d Gen %d %s Offset %d. %s',
-      [I + 1, Obj.ID, Obj.Generation, S, Obj.Offset, Info]));
+      [I + 1, Obj.ID, Obj.Generation, S, Obj.Offset, Ext]));
+
+    // 补充输出 Array 和 Dictionary 的详情
+    if Verbose then
+    begin
+      if Obj is TCnPDFDictionaryObject then
+        (Obj as TCnPDFDictionaryObject).ToStrings(Strings, INDENTDELTA)
+      else if Obj is TCnPDFArrayObject then
+        (Obj as TCnPDFArrayObject).ToStrings(Strings, INDENTDELTA);
+    end;
   end;
 end;
 

@@ -156,9 +156,13 @@ begin
 
       mmoPDF.Lines.BeginUpdate;
       PDF.Header.DumpToStrings(mmoPDF.Lines);
-      PDF.Body.DumpToStrings(mmoPDF.Lines);
+      PDF.Body.DumpToStrings(mmoPDF.Lines, True);
       PDF.XRefTable.DumpToStrings(mmoPDF.Lines);
       PDF.Trailer.DumpToStrings(mmoPDF.Lines);
+
+      mmoPDF.Lines.Add('');
+
+      // 输出 Info、Catalog、Pages 等对象的内容
       mmoPDF.Lines.EndUpdate;
 
       if dlgSave1.Execute then
