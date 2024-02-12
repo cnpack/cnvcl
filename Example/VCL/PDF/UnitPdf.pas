@@ -41,8 +41,9 @@ var
   Stream: TCnPDFStreamObject;
   Resource: TCnPDFDictionaryObject;
   Arr: TCnPDFArrayObject;
-  Dict: TCnPDFDictionaryObject;
+  Dict, ResDict: TCnPDFDictionaryObject;
   Content: TCnPDFStreamObject;
+  ContData: TStringList;
 begin
   dlgOpen1.Title := 'Open a JPEG File';
   if not dlgOpen1.Execute then
@@ -53,6 +54,8 @@ begin
   begin
     PDF := TCnPDFDocument.Create;
     try
+      PDF.Body.CreateResources;
+
       PDF.Body.Info.AddAnsiString('Author', 'CnPack');
       PDF.Body.Info.AddAnsiString('Producer', 'CnPDF in CnVCL');
       PDF.Body.Info.AddAnsiString('Creator', 'CnPack PDF Demo');
@@ -76,17 +79,35 @@ begin
       Stream.SetJpegImage(dlgOpen1.FileName);
       PDF.Body.AddObject(Stream);
 
+      // 添加 ExtGState
+      Dict := TCnPDFDictionaryObject.Create;
+      Dict.AddName('Type', 'ExtGState');
+      Dict.AddFalse('AIS');
+      Dict.AddName('BM', 'Normal');
+      Dict.AddNumber('CA', 1);
+      Dict.AddNumber('ca', 1);
+      PDF.Body.AddObject(Dict);
+
       // 添加引用此图像的资源
       Resource := PDF.Body.AddResource(Page);
-      Arr := Resource.AddArray('ProcSet');
-      Arr.AddAnsiString('PDF');
-      Arr.AddAnsiString('ImageB');
 
-      Dict := Resource.AddDictionary('XObject');
-      //Dict.AddName('lm1', TCnPDFReferenceObject.Create(Stream));
+      // Dict 和 Stream 的 ID 要作为名字
+      ResDict := Resource.AddDictionary('ExtGState');
+      ResDict.AddObjectRef('GS' + IntToStr(Dict.ID), Dict);
+      ResDict := Resource.AddDictionary('XObject');
+      ResDict.AddObjectRef('IM' + IntToStr(Stream.ID), Stream);
 
       // 添加页面布局内容
       Content := PDF.Body.AddContent(Page);
+
+      // 咋布局呢，画个图先？
+      ContData := TStringList.Create;
+      ContData.Add('q');
+      ContData.Add('200 0 0 200 0 0 cm');
+      ContData.Add('/IM' + IntToStr(Stream.ID) + ' Do');
+      ContData.Add('Q');
+      Content.SetStrings(ContData);
+      ContData.Free;
 
       PDF.SaveToFile(dlgSave1.FileName);
     finally
