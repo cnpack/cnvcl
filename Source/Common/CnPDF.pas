@@ -28,6 +28,8 @@ unit CnPDF;
 *           解析：先线性进行词法分析，再解析出多个对象，再将对象整理成树
 *           生成：先构造固定的对象树，补充内容后写入流
 *
+*           封装了 CnJpegFilesToPDF 过程，将多个 JPEG 文件拼成一个 PDF 输出
+*
 *           文件尾的 Trailer 的 Root 指向 Catalog 对象，大体的树结构如下：
 *
 *           Catalog -> Pages -> Page1 -> Resource
@@ -47,7 +49,10 @@ unit CnPDF;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.02.010 V1.2
+* 修改记录：2024.02.012 V1.3
+*               TCnPDFDocument 能够初步分析并输出逻辑结构
+*               实现 CnJpegFilesToPDF 过程，将多个 JPEG 文件拼成一个 PDF 输出
+*           2024.02.10 V1.2
 *               基本完成四个部分的对象与结构分析，待组织逻辑结构
 *           2024.02.06 V1.1
 *               基本完成词法分析，待组织语法树
@@ -639,6 +644,7 @@ type
     procedure LoadFromStream(Stream: TStream);
     procedure SaveToStream(Stream: TStream);
 
+    procedure DumpToStrings(Strings: TStrings);
     // 从 Parse 中读入内容，并让 P 跳出至内容的下一个 Token
     procedure ReadDictionary(P: TCnPDFParser; Dict: TCnPDFDictionaryObject);
     {* 读入一个字典，P 须指向 <<，运行后跳出 >>}
@@ -768,6 +774,10 @@ function CnLoadPDFFile(const FileName: string): TCnPDFDocument;
 
 procedure CnSavePDFFile(PDF: TCnPDFDocument; const FileName: string);
 {* 将一个 PDFDocument 对象保存成 PDF 文件}
+
+procedure CnJpegFilesToPDF(JpegFiles: TStrings; const FileName: string);
+{* 将一批 JPG 文件拼成一个 PDF 文件，输出至指定文件名
+  PDF 页面内采用竖向的标准 A4 纸张尺寸并采用标准左右上下边距值}
 
 implementation
 
@@ -2201,6 +2211,47 @@ begin
   FTrailer.Dictionary.Values['Root'] := TCnPDFReferenceObject.Create(FBody.Catalog);
 end;
 
+procedure TCnPDFDocument.DumpToStrings(Strings: TStrings);
+var
+  I: Integer;
+begin
+  // 输出文件内的原始内容
+  FHeader.DumpToStrings(Strings);
+  FBody.DumpToStrings(Strings, True);
+  FXRefTable.DumpToStrings(Strings);
+  FTrailer.DumpToStrings(Strings);
+
+  Strings.Add('');
+  Strings.Add('==============================');
+  Strings.Add('');
+
+  // 输出 Info、Catalog、Pages 等分析后的对象的内容
+
+  Strings.Add('--- Info ---') ;
+  if FBody.Info <> nil then
+    FBody.Info.ToStrings(Strings);
+
+  Strings.Add('--- Catalog ---') ;
+  if FBody.Catalog <> nil then
+    FBody.Catalog.ToStrings(Strings);
+
+  Strings.Add('--- Pages ---') ;
+  if FBody.Pages <> nil then
+    FBody.Pages.ToStrings(Strings);
+
+  Strings.Add('--- Page List ---') ;
+  for I := 0 to FBody.PageCount - 1 do
+    FBody.Page[I].ToStrings(Strings);
+
+  Strings.Add('--- Content List ---') ;
+  for I := 0 to FBody.ContentCount - 1 do
+    FBody.Content[I].ToStrings(Strings);
+
+  Strings.Add('--- Resource List ---') ;
+  for I := 0 to FBody.ResourceCount - 1 do
+    FBody.Resource[I].ToStrings(Strings);
+end;
+
 { TCnPDFDictPair }
 
 procedure TCnPDFDictPair.Assign(Source: TPersistent);
@@ -3353,6 +3404,117 @@ procedure CnSavePDFFile(PDF: TCnPDFDocument; const FileName: string);
 begin
   if PDF <> nil then
     PDF.SaveToFile(FileName);
+end;
+
+procedure CnJpegFilesToPDF(JpegFiles: TStrings; const FileName: string);
+var
+  I: Integer;
+  PDF: TCnPDFDocument;
+  Page: TCnPDFDictionaryObject;
+  Box: TCnPDFArrayObject;
+  Stream: TCnPDFStreamObject;
+  Resource: TCnPDFDictionaryObject;
+  ExtGState, ResDict: TCnPDFDictionaryObject;
+  Content: TCnPDFStreamObject;
+  ContData: TStringList;
+  W, H: Integer;
+
+  procedure CalcImageSize(var ImageWidth, ImageHeight: Integer);
+  begin
+    // 页面宽 612，高 792，左右边距默认 90，上下边距默认 72
+    // 因而中间内容区的宽为：页面宽 - 左边距 - 右边距 = 612 - 90 - 90 = 432
+    // 高为：页面高 - 上边距 - 下边距 = 792 - 72 - 72 = 648
+    // 图像如有一边超出该长度则要等比例缩，缩完再看另一边是否超长，是则再缩
+
+    if ImageWidth > 432 then
+    begin
+      ImageHeight := Round(ImageHeight * 432.0 / ImageWidth);
+      ImageWidth := 432;
+    end;
+
+    if ImageHeight > 648 then
+    begin
+      ImageWidth := Round(ImageWidth * 648.0 / ImageHeight);
+      ImageHeight := 648;
+    end;
+  end;
+
+begin
+  PDF := TCnPDFDocument.Create;
+  ContData := TStringList.Create;
+
+  try
+    PDF.Body.CreateResources;
+    PDF.Body.Info.AddAnsiString('Author', 'CnPack');
+    PDF.Body.Info.AddAnsiString('Producer', 'CnPDF in CnVCL');
+    PDF.Body.Info.AddAnsiString('Creator', 'CnPack PDF Creator');
+    PDF.Body.Info.AddAnsiString('CreationDate', 'D:' + FormatDateTime('yyyyMMddhhmmss', Now) + '+8''00''');
+
+    PDF.Body.Info.AddWideString('Title', '图像标题');
+    PDF.Body.Info.AddWideString('Subject', '图像主题');
+    PDF.Body.Info.AddWideString('Keywords', '关键字、图像');
+    PDF.Body.Info.AddWideString('Company', 'CnPack开发组');
+    PDF.Body.Info.AddWideString('Comments', '文章注释');
+
+    // 添加 ExtGState 供多个页面共用
+    ExtGState := TCnPDFDictionaryObject.Create;
+    ExtGState.AddName('Type', 'ExtGState');
+    ExtGState.AddFalse('AIS');
+    ExtGState.AddName('BM', 'Normal');
+    ExtGState.AddNumber('CA', 1);
+    ExtGState.AddNumber('ca', 1);
+    PDF.Body.AddObject(ExtGState);
+
+    for I := 0 to JpegFiles.Count - 1 do
+    begin
+      // 新加一页
+      Page := PDF.Body.AddPage;
+
+      // 设置纸张大小，默认 A4。单位 Points 也就是 1/72 英寸，612 792 换算过来是 210 297 mm
+      Box := Page.AddArray('MediaBox');
+      Box.AddNumber(0);
+      Box.AddNumber(0);
+      Box.AddNumber(612);
+      Box.AddNumber(792);
+
+      // 添加图像内容
+      Stream := TCnPDFStreamObject.Create;
+      Stream.SetJpegImage(JpegFiles[I]);
+      PDF.Body.AddObject(Stream);
+
+      // 添加引用此图像的资源
+      Resource := PDF.Body.AddResource(Page);
+
+      // ExtGState 和 Stream 的 ID 要作为名字
+      ResDict := Resource.AddDictionary('ExtGState');
+      ResDict.AddObjectRef('GS' + IntToStr(ExtGState.ID), ExtGState);
+      ResDict := Resource.AddDictionary('XObject');
+      ResDict.AddObjectRef('IM' + IntToStr(Stream.ID), Stream);
+
+      // 添加页面布局内容
+      Content := PDF.Body.AddContent(Page);
+
+      // 计算页面布局里的图像大小及位置并绘制，
+      ContData.Clear;
+      ContData.Add('q');
+
+      W := TCnPDFNumberObject(Stream.Values['Width']).AsInteger;
+      H := TCnPDFNumberObject(Stream.Values['Height']).AsInteger;
+      CalcImageSize(W, H);
+
+      ContData.Add(Format('1 0 0 1 %d %d cm', [90, 792 - 72 - H]));
+      ContData.Add(Format('%d 0 0 %d 0 0 cm', [W, H]));
+
+      ContData.Add('/IM' + IntToStr(Stream.ID) + ' Do');
+      ContData.Add('Q');
+      Content.SetStrings(ContData);
+    end;
+
+    PDF.SaveToFile(FileName);
+  finally
+    ContData.Free;
+    PDF.Free;
+  end;
 end;
 
 end.

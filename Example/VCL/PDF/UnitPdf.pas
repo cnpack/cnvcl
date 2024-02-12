@@ -14,9 +14,14 @@ type
     btnParsePDFToken: TButton;
     mmoPDF: TMemo;
     btnParsePDFStructure: TButton;
+    btnImages: TButton;
+    btnAddJPG: TButton;
+    lstJpegs: TListBox;
     procedure btnGenSimpleClick(Sender: TObject);
     procedure btnParsePDFTokenClick(Sender: TObject);
     procedure btnParsePDFStructureClick(Sender: TObject);
+    procedure btnAddJPGClick(Sender: TObject);
+    procedure btnImagesClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -40,7 +45,6 @@ var
   Box: TCnPDFArrayObject;
   Stream: TCnPDFStreamObject;
   Resource: TCnPDFDictionaryObject;
-  Arr: TCnPDFArrayObject;
   Dict, ResDict: TCnPDFDictionaryObject;
   Content: TCnPDFStreamObject;
   ContData: TStringList;
@@ -103,6 +107,7 @@ begin
       // 咋布局呢，画个图先？
       ContData := TStringList.Create;
       ContData.Add('q');
+      ContData.Add('1 0 0 1 400 400 cm');
       ContData.Add('200 0 0 200 0 0 cm');
       ContData.Add('/IM' + IntToStr(Stream.ID) + ' Do');
       ContData.Add('Q');
@@ -164,7 +169,6 @@ end;
 
 procedure TFormPDF.btnParsePDFStructureClick(Sender: TObject);
 var
-  I: Integer;
   PDF: TCnPDFDocument;
 begin
    dlgOpen1.Title := 'Open a PDF File';
@@ -177,41 +181,7 @@ begin
       mmoPDF.Lines.Clear;
 
       mmoPDF.Lines.BeginUpdate;
-      PDF.Header.DumpToStrings(mmoPDF.Lines);
-      PDF.Body.DumpToStrings(mmoPDF.Lines, True);
-      PDF.XRefTable.DumpToStrings(mmoPDF.Lines);
-      PDF.Trailer.DumpToStrings(mmoPDF.Lines);
-
-      mmoPDF.Lines.Add('');
-      mmoPDF.Lines.Add('==============================');
-      mmoPDF.Lines.Add('');
-
-      // 输出 Info、Catalog、Pages 等对象的内容
-
-      mmoPDF.Lines.Add('--- Info ---') ;
-      if PDF.Body.Info <> nil then
-        PDF.Body.Info.ToStrings(mmoPDF.Lines);
-
-      mmoPDF.Lines.Add('--- Catalog ---') ;
-      if PDF.Body.Catalog <> nil then
-        PDF.Body.Catalog.ToStrings(mmoPDF.Lines);
-
-      mmoPDF.Lines.Add('--- Pages ---') ;
-      if PDF.Body.Pages <> nil then
-        PDF.Body.Pages.ToStrings(mmoPDF.Lines);
-
-      mmoPDF.Lines.Add('--- Page List ---') ;
-      for I := 0 to PDF.Body.PageCount - 1 do
-        PDF.Body.Page[I].ToStrings(mmoPDF.Lines);
-
-      mmoPDF.Lines.Add('--- Content List ---') ;
-      for I := 0 to PDF.Body.ContentCount - 1 do
-        PDF.Body.Content[I].ToStrings(mmoPDF.Lines);
-
-      mmoPDF.Lines.Add('--- Resource List ---') ;
-      for I := 0 to PDF.Body.ResourceCount - 1 do
-        PDF.Body.Resource[I].ToStrings(mmoPDF.Lines);
-
+      PDF.DumpToStrings(mmoPDF.Lines);
       mmoPDF.Lines.EndUpdate;
 
       if dlgSave1.Execute then
@@ -219,6 +189,20 @@ begin
       PDF.Free;
     end;
   end;
+end;
+
+procedure TFormPDF.btnAddJPGClick(Sender: TObject);
+begin
+  dlgOpen1.Title := 'Open JPEG File(s)';
+  if dlgOpen1.Execute then
+    lstJpegs.Items.AddStrings(dlgOpen1.Files);
+end;
+
+procedure TFormPDF.btnImagesClick(Sender: TObject);
+begin
+  dlgSave1.Title := 'Save to a PDF';
+  if dlgSave1.Execute then
+    CnJpegFilesToPDF(lstJpegs.Items, dlgSave1.FileName);
 end;
 
 end.
