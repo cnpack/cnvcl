@@ -627,6 +627,8 @@ type
     procedure XRefDictToXRefTable(Dict: TCnPDFDictionaryObject);
     procedure ArrangeObjects;
     {* 读入所有对象后从 Root 等处重新整理}
+
+    procedure SyncTrailer;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -2032,9 +2034,10 @@ end;
 
 procedure TCnPDFDocument.SaveToStream(Stream: TStream);
 begin
-  FHeader.WriteToStream(Stream);
-
+  SyncTrailer;
   FBody.SyncPages;
+
+  FHeader.WriteToStream(Stream);
   FBody.WriteToStream(Stream);
 
   FTrailer.XRefStart := Stream.Position;
@@ -2190,6 +2193,12 @@ begin
 
   if FTrailer.Dictionary.Count = 0 then // 先把 Info 等内容塞过去
     FTrailer.Dictionary.Assign(Dict);
+end;
+
+procedure TCnPDFDocument.SyncTrailer;
+begin
+  FTrailer.Dictionary.Values['Info'] := TCnPDFReferenceObject.Create(FBody.Info);
+  FTrailer.Dictionary.Values['Root'] := TCnPDFReferenceObject.Create(FBody.Catalog);
 end;
 
 { TCnPDFDictPair }
