@@ -268,6 +268,17 @@ function CnZipExtractTo(const FileName: string; const DirName: string;
   const Password: string = ''): Boolean;
 {* 将指定 Zip 文件解压缩到指定目录}
 
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+
+procedure CnZipCompressStream(InStream, OutZipStream: TStream;
+  CompressionLevel: TCompressionLevel = clDefault);
+{* 将 InStream 中的内容压缩并输出至 OutZipStream}
+
+procedure CnZipUncompressStream(InZipStream, OutStream: TStream);
+{* 将 InZipStream 中的压缩的内容解压缩并输出至 OutStream}
+
+{$ENDIF}
+
 implementation
 
 {$IFDEF DEBUGZIP}
@@ -603,6 +614,37 @@ begin
   if Stream.Write(Buffer, Count) <> Count then
     raise ECnZipException.CreateRes(@SZipErrorWrite);
 end;
+
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+
+procedure CnZipCompressStream(InStream, OutZipStream: TStream;
+  CompressionLevel: TCompressionLevel);
+var
+  Zip: TCompressionStream;
+begin
+  // 不能 Read 只能 Write，Write 时自动压缩并向创建时指定的关联流里写
+  Zip := TCompressionStream.Create(CompressionLevel, OutZipStream);
+  try
+    Zip.CopyFrom(InStream);
+  finally
+    Zip.Free;
+  end;
+end;
+
+procedure CnZipUncompressStream(InZipStream, OutStream: TStream);
+var
+  UnZip: TDecompressionStream;
+begin
+  // 不能 Write 只能 Read，Read 时读出的是关联流里解压缩了的内容
+  UnZip := TDecompressionStream.Create(InZipStream);
+  try
+    OutStream.CopyFrom(UnZip);
+  finally
+    UnZip.Free;
+  end;
+end;
+
+{$ENDIF}
 
 { TCnZipBase }
 
