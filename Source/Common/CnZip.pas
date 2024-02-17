@@ -29,7 +29,9 @@ unit CnZip;
 * 开发平台：PWinXP + Delphi 5
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.03.30 V1.4
+* 修改记录：2024.02.17 V1.5
+*                新增流压缩解压缩函数，注意需 SUPPORT_ZLIB_WINDOWBITS 才兼容标准 Deflate
+*           2022.03.30 V1.4
 *                支持删除 Zip 包中的指定文件
 *           2018.08.26 V1.3
 *                存储/Deflate 模式下支持 Zip 传统的密码压缩解压缩算法
@@ -268,17 +270,17 @@ function CnZipExtractTo(const FileName: string; const DirName: string;
   const Password: string = ''): Boolean;
 {* 将指定 Zip 文件解压缩到指定目录}
 
-{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
-
 procedure CnZipCompressStream(InStream, OutZipStream: TStream;
   CompressionLevel: TCompressionLevel = clDefault);
-{* 将 InStream 中的内容压缩并输出至 OutZipStream}
+{* 将 InStream 中的内容压缩并输出至 OutZipStream
+  注意，如果 Delphi 版本过低导致 CnPack.inc 中未定义 SUPPORT_ZLIB_WINDOWBITS
+  压缩出的内容可能和标准 Deflate 不兼容}
 
 procedure CnZipUncompressStream(InZipStream, OutStream: TStream);
 {* 将 InZipStream 中的压缩的内容解压缩并输出至 OutStream
-  注意会从 InZipStream 的 Position 读起，宜按需设为 0}
-
-{$ENDIF}
+  注意，如果 Delphi 版本过低导致 CnPack.inc 中未定义 SUPPORT_ZLIB_WINDOWBITS
+  则可能和标准 Deflate 不兼容，解压内容可能失败
+  另外，解压缩时会从 InZipStream 的 Position 读起，宜按需设为 0}
 
 implementation
 
@@ -618,7 +620,6 @@ begin
     raise ECnZipException.CreateRes(@SZipErrorWrite);
 end;
 
-{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
 
 procedure CnZipCompressStream(InStream, OutZipStream: TStream;
   CompressionLevel: TCompressionLevel);
@@ -642,12 +643,13 @@ begin
   UnZip := TDecompressionStream.Create(InZipStream);
   try
     OutStream.CopyFrom(UnZip, 0);
+    // 注意这里会用到 UnZip.Size，低版本 TDecompressionStream 类不支持内部的 Seek 到 soEnd 操作
+
+
   finally
     UnZip.Free;
   end;
 end;
-
-{$ENDIF}
 
 { TCnZipBase }
 

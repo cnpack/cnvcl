@@ -376,12 +376,15 @@ type
     procedure SetStrings(Strings: TStrings);
     {* 将指定 Strings 中的内容赋值给流}
 
-{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
     procedure Compress;
-    {* 将 FStream 明文内容压缩成标准 Zip 格式重新放入 FStream}
+    {* 将 FStream 明文内容压缩成标准 Zip 格式重新放入 FStream
+      注意似乎无论 Delphi 版本高低也就是无论是否定义 SUPPORT_ZLIB_WINDOWBITS
+      压缩出的流都能被 Acrobat Reader 解析从而正确显示内容}
+
     procedure Uncompress;
-    {* 将 FStream 中的标准 Zip 内容解压缩成明文重新放入 FStream}
-{$ENDIF}
+    {* 将 FStream 中的标准 Zip 内容解压缩成明文重新放入 FStream
+      注意如果 Delphi 版本过低导致 CnPack.inc 中未定义 SUPPORT_ZLIB_WINDOWBITS
+      则不兼容标准 Deflate，解压可能会失败，内部会捕捉异常并忽略}
 
     function ToString: string; override;
     procedure ToStrings(Strings: TStrings; Indent: Integer = 0); override;
@@ -2225,18 +2228,14 @@ begin
 end;
 
 procedure TCnPDFDocument.UncompressObjects;
-{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
 var
   I: Integer;
-{$ENDIF}
 begin
-{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
   for I := 0 to FBody.Objects.Count - 1 do
   begin
     if FBody.Objects[I] is TCnPDFStreamObject then
       (FBody.Objects[I] as TCnPDFStreamObject).Uncompress;
   end;
-{$ENDIF}
 end;
 
 procedure TCnPDFDocument.DumpToStrings(Strings: TStrings);
@@ -3044,8 +3043,6 @@ begin
   end;
 end;
 
-{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
-
 procedure TCnPDFStreamObject.Compress;
 var
   InS, OutS: TMemoryStream;
@@ -3095,16 +3092,18 @@ begin
     BytesToStream(FStream, InS);
     OutS := TMemoryStream.Create;
 
-    InS.Position := 0;
-    CnZipUncompressStream(InS, OutS);
-    FStream := StreamToBytes(OutS);
+    try
+      InS.Position := 0;
+      CnZipUncompressStream(InS, OutS);
+      FStream := StreamToBytes(OutS);
+    except
+      ;
+    end;
   finally
     OutS.Free;
     InS.Free;
   end;
 end;
-
-{$ENDIF}
 
 procedure TCnPDFStreamObject.SetStrings(Strings: TStrings);
 var
@@ -3599,9 +3598,7 @@ begin
       ContData.Add('Q');
       Content.SetStrings(ContData);
 
-{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
-      Content.Compress;
-{$ENDIF}
+      Content.Compress; // 使用 Deflate 压缩，低版本 Delphi 下似乎也兼容 Acrobat Reader 等阅读软件
     end;
 
     PDF.SaveToFile(FileName);
