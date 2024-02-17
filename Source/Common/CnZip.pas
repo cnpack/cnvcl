@@ -275,7 +275,8 @@ procedure CnZipCompressStream(InStream, OutZipStream: TStream;
 {* 将 InStream 中的内容压缩并输出至 OutZipStream}
 
 procedure CnZipUncompressStream(InZipStream, OutStream: TStream);
-{* 将 InZipStream 中的压缩的内容解压缩并输出至 OutStream}
+{* 将 InZipStream 中的压缩的内容解压缩并输出至 OutStream
+  注意会从 InZipStream 的 Position 读起，宜按需设为 0}
 
 {$ENDIF}
 
@@ -625,7 +626,7 @@ begin
   // 不能 Read 只能 Write，Write 时自动压缩并向创建时指定的关联流里写
   Zip := TCompressionStream.Create(CompressionLevel, OutZipStream);
   try
-    Zip.CopyFrom(InStream);
+    Zip.CopyFrom(InStream, 0);
   finally
     Zip.Free;
   end;
@@ -638,7 +639,7 @@ begin
   // 不能 Write 只能 Read，Read 时读出的是关联流里解压缩了的内容
   UnZip := TDecompressionStream.Create(InZipStream);
   try
-    OutStream.CopyFrom(UnZip);
+    OutStream.CopyFrom(UnZip, 0);
   finally
     UnZip.Free;
   end;

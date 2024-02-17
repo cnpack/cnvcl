@@ -376,6 +376,13 @@ type
     procedure SetStrings(Strings: TStrings);
     {* 将指定 Strings 中的内容赋值给流}
 
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+    procedure Compress;
+    {* 将 FStream 明文内容压缩成标准 Zip 格式重新放入 FStream}
+    procedure Uncompress;
+    {* 将 FStream 中的标准 Zip 内容解压缩成明文重新放入 FStream}
+{$ENDIF}
+
     function ToString: string; override;
     procedure ToStrings(Strings: TStrings; Indent: Integer = 0); override;
 
@@ -632,6 +639,8 @@ type
     procedure XRefDictToXRefTable(Dict: TCnPDFDictionaryObject);
     procedure ArrangeObjects;
     {* 读入所有对象后从 Root 等处重新整理}
+    procedure UncompressObjects;
+    {* 判断 Stream 内容并尽量解压缩}
 
     procedure SyncTrailer;
   public
@@ -780,6 +789,9 @@ procedure CnJpegFilesToPDF(JpegFiles: TStrings; const FileName: string);
   PDF 页面内采用竖向的标准 A4 纸张尺寸并采用标准左右上下边距值}
 
 implementation
+
+uses
+  CnZip;
 
 const
   INDENTDELTA = 4;
@@ -1664,6 +1676,7 @@ begin
     P.Free;
   end;
 
+  UncompressObjects;
   // 从 Trailer 里的字段整理内容
   ArrangeObjects;
 end;
@@ -2209,6 +2222,21 @@ procedure TCnPDFDocument.SyncTrailer;
 begin
   FTrailer.Dictionary.Values['Info'] := TCnPDFReferenceObject.Create(FBody.Info);
   FTrailer.Dictionary.Values['Root'] := TCnPDFReferenceObject.Create(FBody.Catalog);
+end;
+
+procedure TCnPDFDocument.UncompressObjects;
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+var
+  I: Integer;
+{$ENDIF}
+begin
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+  for I := 0 to FBody.Objects.Count - 1 do
+  begin
+    if FBody.Objects[I] is TCnPDFStreamObject then
+      (FBody.Objects[I] as TCnPDFStreamObject).Uncompress;
+  end;
+{$ENDIF}
 end;
 
 procedure TCnPDFDocument.DumpToStrings(Strings: TStrings);
@@ -3016,6 +3044,68 @@ begin
   end;
 end;
 
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+
+procedure TCnPDFStreamObject.Compress;
+var
+  InS, OutS: TMemoryStream;
+begin
+  if Length(FStream) <= 0 then
+    Exit;
+
+  Ins := nil;
+  OutS := nil;
+
+  try
+    InS := TMemoryStream.Create;
+    BytesToStream(FStream, InS);
+    OutS := TMemoryStream.Create;
+
+    CnZipCompressStream(InS, OutS);
+    FStream := StreamToBytes(OutS);
+
+    Values['Filter'] := TCnPDFNameObject.Create('FlateDecode');
+  finally
+    OutS.Free;
+    InS.Free;
+  end;
+end;
+
+procedure TCnPDFStreamObject.Uncompress;
+var
+  InS, OutS: TMemoryStream;
+  V: TCnPDFObject;
+begin
+  if Length(FStream) <= 0 then
+    Exit;
+
+  // 不是标准 Zip 压缩则不做
+  V := Values['Filter'];
+  if (V <> nil) and (V is TCnPDFNameObject) then
+  begin
+    if (V as TCnPDFNameObject).Name <> 'FlateDecode' then
+      Exit;
+  end;
+
+  Ins := nil;
+  OutS := nil;
+
+  try
+    InS := TMemoryStream.Create;
+    BytesToStream(FStream, InS);
+    OutS := TMemoryStream.Create;
+
+    InS.Position := 0;
+    CnZipUncompressStream(InS, OutS);
+    FStream := StreamToBytes(OutS);
+  finally
+    OutS.Free;
+    InS.Free;
+  end;
+end;
+
+{$ENDIF}
+
 procedure TCnPDFStreamObject.SetStrings(Strings: TStrings);
 var
   S: AnsiString;
@@ -3508,6 +3598,10 @@ begin
       ContData.Add('/IM' + IntToStr(Stream.ID) + ' Do');
       ContData.Add('Q');
       Content.SetStrings(ContData);
+
+{$IFDEF SUPPORT_ZLIB_WINDOWBITS}
+      Content.Compress;
+{$ENDIF}
     end;
 
     PDF.SaveToFile(FileName);
