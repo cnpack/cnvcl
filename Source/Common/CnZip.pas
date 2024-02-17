@@ -339,7 +339,9 @@ type
   private
     FStream: TStream;
   protected
-    function GetSize: Int64; // override;
+{$IFDEF COMPILER7_UP}
+    function GetSize: Int64; override;
+{$ENDIF}
   public
     constructor Create(Stream: TStream);
 
@@ -1142,10 +1144,12 @@ begin
   FStream := Stream;
 end;
 
+{$IFDEF COMPILER7_UP}
 function TCnStoredStream.GetSize: Int64;
 begin
   Result := FStream.Size;
 end;
+{$ENDIF}
 
 function TCnStoredStream.Read(var Buffer; Count: Integer): Longint;
 begin
