@@ -637,18 +637,45 @@ end;
 
 procedure CnZipUncompressStream(InZipStream, OutStream: TStream);
 var
+{$IFDEF ZLIB_STREAM_NOSIZE}
+  InpBuf, OutBuf: Pointer;
+  OutBytes, Cnt: Integer;
+{$ELSE}
   UnZip: TDecompressionStream;
+{$ENDIF}
 begin
+{$IFDEF ZLIB_STREAM_NOSIZE}
+  InpBuf := nil;
+  OutBuf := nil;
+
+  // 低版本 TDecompressionStream 类不支持内部的 Seek 到 soEnd 操作，无法获取解压后的 Size
+  // 只能全部读入内存后调 ZLIB 的 DecompressBuf 解压
+  Cnt := InZipStream.Size - InZipStream.Position;
+  if Cnt > 0 then
+  begin
+    try
+      GetMem(InpBuf, Cnt);
+      InZipStream.Read(InpBuf^, Cnt);
+      DecompressBuf(InpBuf, Cnt, 0, OutBuf, OutBytes);
+      OutStream.Write(OutBuf^, OutBytes);
+    finally
+      if InpBuf <> nil then
+        FreeMem(InpBuf);
+      if OutBuf <> nil then
+        FreeMem(OutBuf);
+    end;
+  end;
+{$ELSE}
   // 不能 Write 只能 Read，Read 时读出的是关联流里解压缩了的内容
   UnZip := TDecompressionStream.Create(InZipStream);
   try
     OutStream.CopyFrom(UnZip, 0);
-    // 注意这里会用到 UnZip.Size，低版本 TDecompressionStream 类不支持内部的 Seek 到 soEnd 操作
-
-
+    // 注意这里会用到 UnZip.Size，高版本 TDecompressionStream 类才可用
   finally
     UnZip.Free;
   end;
+{$ENDIF}
+  OutStream.Position := 0;
 end;
 
 { TCnZipBase }
