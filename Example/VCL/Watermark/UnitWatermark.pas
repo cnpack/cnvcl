@@ -34,6 +34,8 @@ const
 
 {$R *.DFM}
 
+{$R-}
+
 procedure TFormWatermark.FormCreate(Sender: TObject);
 begin
   FJpg := TJPEGImage.Create;

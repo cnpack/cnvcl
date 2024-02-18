@@ -3,7 +3,7 @@ object FormWatermark: TFormWatermark
   Top = 107
   Width = 979
   Height = 563
-  Caption = 'Watermark Test'
+  Caption = 'Watermark Test - NOT Ready'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
