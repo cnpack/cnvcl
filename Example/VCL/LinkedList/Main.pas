@@ -172,7 +172,7 @@ end;
 
 procedure TTestThread1.Execute;
 var
-  CurrIndex: DWORD;
+  CurrIndex: Integer;
   Iterator: ICnLinkedListIterator;
 begin
   CurrIndex := 0;
@@ -193,7 +193,7 @@ end;
 
 procedure TTestThread2.Execute;
 var
-  CurrIndex: DWORD;
+  CurrIndex: Integer;
   Iterator: ICnLinkedListIterator;
 begin
   CurrIndex := AList.Count - 1;

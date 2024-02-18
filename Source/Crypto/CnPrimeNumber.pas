@@ -2392,7 +2392,7 @@ end;
 function CnInt64IsPerfectPower(N: Int64): Boolean;
 var
   LG2, I: Integer;
-  A: Int64;
+  A, M: Int64;
 begin
   Result := False;
   if (N < 0) or (N = 2) or (N = 3) then
@@ -2410,13 +2410,23 @@ begin
     // 求 N 的 I 次方根的整数部分
     A := Trunc(Power(N, 1.0 / I));
     // 整数部分再求幂
-    A := Int64NonNegativPower(A, I);
+    M := Int64NonNegativPower(A, I);
 
     // 判断是否相等
-    if A = N then
+    if M = N then
     begin
       Result := True;
       Exit;
+    end
+    else // 如果整数部分偏小，譬如 9682651996416 的 1/8 次方，Power 函数可能返回 41.999 这种，Trunc 会判断错误，再加一再幂一下
+    begin
+      Inc(A);
+      M := Int64NonNegativPower(A, I);
+      if M = N then
+      begin
+        Result := True;
+        Exit;
+      end;
     end;
   end;
 end;

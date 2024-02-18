@@ -521,7 +521,6 @@ end;
 procedure Int128Negate(var N: TCnInt128);
 var
   C: Integer;
-  OldHi64: Int64;
 begin
   // 全部求反然后总体加一
   N.Lo64 := not N.Lo64;

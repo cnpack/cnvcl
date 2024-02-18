@@ -7107,7 +7107,7 @@ begin
   try
     for I := 2 to LG2 do
     begin
-      // 求 Num 的 I 次方根的整数部分
+      // 求 Num 的 I 次方根的整数部分，应该不会出现浮点数的 Power 1/I 次方那样整数部分偏小的问题
       BigNumberRoot(T, Num, I);
       // 整数部分再求幂
       BigNumberPower(T, T, I);

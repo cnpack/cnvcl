@@ -81,6 +81,7 @@ function TestBigNumberGetBitsCount: Boolean;
 function TestBigNumberShiftRightOne: Boolean;
 function TestBigNumberFermatCheckComposite: Boolean;
 function TestBigNumberIsProbablyPrime: Boolean;
+function TestBigNumberIsPerfectPower: Boolean;
 
 // ================================ Bits =======================================
 
@@ -264,6 +265,7 @@ function TestKDFSM2SM9: Boolean;
 
 function TestPrimeNumber1: Boolean;
 function TestPrimeNumber2: Boolean;
+function TestPrimeNumber3: Boolean;
 
 // ================================ 25519 ======================================
 
@@ -371,6 +373,7 @@ begin
   MyAssert(TestBigNumberShiftRightOne, 'TestBigNumberShiftRightOne');
   MyAssert(TestBigNumberFermatCheckComposite, 'TestBigNumberFermatCheckComposite');
   MyAssert(TestBigNumberIsProbablyPrime, 'TestBigNumberIsProbablyPrime');
+  MyAssert(TestBigNumberIsPerfectPower, 'TestBigNumberIsPerfectPower');
 
 // ================================ Bits =======================================
 
@@ -554,6 +557,7 @@ begin
 
   MyAssert(TestPrimeNumber1, 'TestPrimeNumber1');
   MyAssert(TestPrimeNumber2, 'TestPrimeNumber2');
+  MyAssert(TestPrimeNumber3, 'TestPrimeNumber3');
 
 // ================================ 25519 ======================================
 
@@ -1195,6 +1199,16 @@ begin
   A := BigNumberNew;
   A.SetHex('F8DDBF39D15FB5B8BACACDE02782B14C586C66DA2BD9685FCA4A192F7331A6537A20D1E34E475C2774D5382582E0E84D5D72BCFE78BBB54EF73D4B9B147A7001');
   Result := BigNumberIsProbablyPrime(A);
+  BigNumberFree(A);
+end;
+
+function TestBigNumberIsPerfectPower: Boolean;
+var
+  A: TCnBigNumber;
+begin
+  A := BigNumberNew;
+  A.SetDec('9682651996416');
+  Result := BigNumberIsPerfectPower(A);
   BigNumberFree(A);
 end;
 
@@ -3672,6 +3686,11 @@ begin
   R[0] := 2; R[1] := 3; R[2] := 2;
   C := ChineseRemainderTheoremInt64(R, F);
   Result := C = 23;
+end;
+
+function TestPrimeNumber3: Boolean;
+begin
+  Result := CnInt64IsPerfectPower(9682651996416);  // 42 的 8 次方，暂时通不过
 end;
 
 // ================================ 25519 ========================================
