@@ -122,6 +122,9 @@ cnpack\Source 目录内容说明：
   CnPackRegister.pas
     组件包注册单元
 
+  CnPDF.pas
+    一个简易的 PDF 文件解析及根据图像生成 PDF 文件的实现单元
+
   CnPE.pas
     PE 文件解析实现单元
 
@@ -191,7 +194,7 @@ cnpack\Source 目录内容说明：
   CnZip.pas
     Zip 压缩文件实现单元
 
-              66 文件
+              67 文件
 
 \Crypto - 加解密算法目录
 
