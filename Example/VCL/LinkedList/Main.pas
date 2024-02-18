@@ -22,9 +22,8 @@ type
     procedure Button1Click(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
-    { Private declarations }
+
   public
-    { Public declarations }
     procedure AddStr(const Value: string);
   end;
 
@@ -64,16 +63,18 @@ var
   Temp: string;
   CurrIndex: DWORD;
 begin
-  AList:= TCnLinkedList.Create;
+  AList := TCnLinkedList.Create;
 
   CurrIndex:= 0;
   for ChrLoop1 := '0' to '1' do
+  begin
     for ChrLoop2 := '0' to '9' do
       begin
         Temp:= '第' + FormatFloat('000', CurrIndex) + '项"' + ChrLoop1 + ChrLoop2 + '"';
-        AList.Add(StrNew(PAnsiChar(Temp)));
+        AList.Add(StrNew(PChar(Temp)));
         Inc(CurrIndex);
       end;
+  end;
 end;
 
 procedure TFrmMain.Button1Click(Sender: TObject);
@@ -93,11 +94,11 @@ procedure TFrmMain.Button2Click(Sender: TObject);
 var
   Ret:Integer;
 begin
-  Ret:=AList.Insert(10,StrNew(PAnsiChar('Added')));
+  Ret := AList.Insert(10, StrNew(PChar('Added')));
   if Ret > -1 then
     Button4.Click
   else// 遍历输出
-    Self.AddStr('Insert error!');
+    Self.AddStr('Insert Error!');
 end;
 
 procedure TFrmMain.Button3Click(Sender: TObject);
@@ -108,22 +109,22 @@ begin
   if Ret > -1 then
     Button4.Click
   else// 遍历输出
-    Self.AddStr('Delete error!');
+    Self.AddStr('Delete Error!');
 end;
 
 procedure TFrmMain.Button4Click(Sender: TObject);
 var
-i:integer;
+  I:integer;
 begin
 {$DEFINE FromHead}
 {$IFDEF FromHead}
 //从头遍历
   for I := 0 to AList.Count - 1 do
-    Self.AddStr(PAnsiChar(AList.Items[i]))
+    Self.AddStr(string(PChar(AList.Items[I])))
 {$ELSE}
   //从尾遍历
   for I := AList.Count - 1 downto 0 do
-    Self.AddStr(PAnsiChar(AList.Items[i]))
+    Self.AddStr(string(PChar(AList.Items[I])))
 {$ENDIF}
 end;
 
@@ -147,7 +148,7 @@ var
   Loop: DWORD;
 begin
   for Loop := AList.Count - 1 downto 0 do
-    StrDispose(AList.Items[Loop]);
+    StrDispose(PChar(AList.Items[Loop]));
   FreeAndNil(AList);
 end;
 
@@ -174,18 +175,18 @@ var
   CurrIndex: DWORD;
   Iterator: ICnLinkedListIterator;
 begin
-  CurrIndex:= 0;
+  CurrIndex := 0;
   Iterator:= AList.CreateIterator;
   Iterator.First;
   while not Iterator.Eof do
-    begin
-      AStr:= '线程 ' + Format('%8.8x', [GetCurrentThreadId]) + ' 读取的第' +
-        FormatFloat('000', CurrIndex) + '项为: ' + PAnsiChar(Iterator.GetCurrentItem);
-      Synchronize(AddStr);
-      AStr:= '';
-      Iterator.Next;
-      Inc(CurrIndex);
-    end;
+  begin
+    AStr := '线程 ' + Format('%8.8x', [GetCurrentThreadId]) + ' 读取的第' +
+      FormatFloat('000', CurrIndex) + '项为: ' + PChar(Iterator.GetCurrentItem);
+    Synchronize(AddStr);
+    AStr := '';
+    Iterator.Next;
+    Inc(CurrIndex);
+  end;
 end;
 
 { TTestThread2 }
@@ -195,18 +196,18 @@ var
   CurrIndex: DWORD;
   Iterator: ICnLinkedListIterator;
 begin
-  CurrIndex:= AList.Count - 1;
-  Iterator:= AList.CreateIterator;
+  CurrIndex := AList.Count - 1;
+  Iterator := AList.CreateIterator;
   Iterator.Last;
   while not Iterator.Bof do
-    begin
-      AStr:= '线程 ' + Format('%8.8x', [GetCurrentThreadId]) + ' 读取的第' +
-        FormatFloat('000', CurrIndex) + '项为: ' + PAnsiChar(Iterator.GetCurrentItem);
-      Synchronize(AddStr);
-      AStr:= '';
-      Iterator.Previous;
-      Dec(CurrIndex);
-    end;
+  begin
+    AStr := '线程 ' + Format('%8.8x', [GetCurrentThreadId]) + ' 读取的第' +
+      FormatFloat('000', CurrIndex) + '项为: ' + PChar(Iterator.GetCurrentItem);
+    Synchronize(AddStr);
+    AStr := '';
+    Iterator.Previous;
+    Dec(CurrIndex);
+  end;
 end;
 
 end.
