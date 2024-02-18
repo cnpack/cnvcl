@@ -46,6 +46,11 @@ unit CnPDF;
 *                   -> Named Destination
 *                   -> Interactive Form
 *
+*           压缩测试：
+*               外部 PDF，2007 或以下解，2009 或以上解，目前看起来均正常
+*               2007 或以下生成的 PDF，外部 Reader 打开正常，2007 或以下解正常，2009 或以上解正常
+*               2009 或以上生成的 PDF，外部 Reader 打开正常，2007 或以下解正常，2009 或以上解正常
+*
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -383,8 +388,7 @@ type
 
     procedure Uncompress;
     {* 将 FStream 中的标准 Zip 内容解压缩成明文重新放入 FStream
-      注意如果 Delphi 版本过低导致 CnPack.inc 中未定义 SUPPORT_ZLIB_WINDOWBITS
-      则不兼容标准 Deflate，解压可能会失败，内部会捕捉异常并忽略}
+      注意如果 Delphi 版本过低，内部解压时可能会出异常，暂无好办法}
 
     function ToString: string; override;
     procedure ToStrings(Strings: TStrings; Indent: Integer = 0); override;
@@ -1660,7 +1664,7 @@ begin
         X := M.Memory;
         Inc(X, FTrailer.XRefStart);
 
-        P.SetOrigin(X, M.Size - FTrailer.XRefStart);
+        P.SetOrigin(X, M.Size - Integer(FTrailer.XRefStart));
         if P.TokenID = pttNumber then
         begin
           Obj := ReadObject(P);
@@ -1679,7 +1683,9 @@ begin
     P.Free;
   end;
 
+  // 压缩 Content 的内容
   UncompressObjects;
+
   // 从 Trailer 里的字段整理内容
   ArrangeObjects;
 end;
