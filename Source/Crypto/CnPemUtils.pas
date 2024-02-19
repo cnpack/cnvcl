@@ -88,7 +88,7 @@ function SaveMemoryToPemStream(Stream: TStream; const Head, Tail: string;
 // ===================== PKCS1 / PKCS7 Padding 对齐处理函数 ====================
 
 function AddPKCS1Padding(PaddingType, BlockSize: Integer; Data: Pointer;
-  DataLen: Integer; outStream: TStream): Boolean;
+  DataLen: Integer; OutStream: TStream): Boolean;
 {* 将数据块补上填充内容写入 Stream 中，返回成功与否，内部会设置错误码。
    PaddingType 取 0、1、2，BlockLen 字节数如 128 等
    EB = 00 || BT || PS || 00 || D
@@ -141,7 +141,7 @@ procedure BytesRemovePKCS5Padding(var Data: TBytes);
 implementation
 
 const
-  PKCS1_PADDING_SIZE            = 11;
+  PKCS1_PADDING_SIZE            = 11; // 一个前导 00、一个类型字节、至少 8 字节内容填充，一个填充后的 00 结尾
   PKCS5_BLOCK_SIZE              = 8;
 
   ENC_HEAD_PROCTYPE = 'Proc-Type:';
@@ -172,7 +172,7 @@ begin
 end;
 
 function AddPKCS1Padding(PaddingType, BlockSize: Integer; Data: Pointer;
-  DataLen: Integer; outStream: TStream): Boolean;
+  DataLen: Integer; OutStream: TStream): Boolean;
 var
   I: Integer;
   B, F: Byte;
@@ -187,35 +187,35 @@ begin
 
 
   B := 0;
-  outStream.Write(B, 1);       // 写前导字节 00
+  OutStream.Write(B, 1);       // 写前导字节 00
   B := PaddingType;
   F := BlockSize - DataLen - 3; // 3 表示一个前导 00、一个类型字节、一个填充后的 00 结尾
 
   case PaddingType of
     CN_PKCS1_BLOCK_TYPE_PRIVATE_00:
       begin
-        outStream.Write(B, 1);
+        OutStream.Write(B, 1);
         B := 0;
         for I := 1 to F do
-          outStream.Write(B, 1);
+          OutStream.Write(B, 1);
       end;
     CN_PKCS1_BLOCK_TYPE_PRIVATE_FF:
       begin
-        outStream.Write(B, 1);
+        OutStream.Write(B, 1);
         B := $FF;
         for I := 1 to F do
-          outStream.Write(B, 1);
+          OutStream.Write(B, 1);
       end;
     CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM:
       begin
-        outStream.Write(B, 1);
+        OutStream.Write(B, 1);
         Randomize;
         for I := 1 to F do
         begin
           B := Trunc(Random(255));
           if B = 0 then
             Inc(B);
-          outStream.Write(B, 1);
+          OutStream.Write(B, 1);
         end;
       end;
   else
@@ -223,8 +223,8 @@ begin
   end;
 
   B := 0;
-  outStream.Write(B, 1);
-  outStream.Write(Data^, DataLen);
+  OutStream.Write(B, 1);
+  OutStream.Write(Data^, DataLen);
   Result := True;
 end;
 
