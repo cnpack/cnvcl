@@ -194,6 +194,8 @@ type
 
   TCnPDFStringObject = class(TCnPDFSimpleObject)
   {* PDF 文件中的字符串对象类}
+  private
+    FIsHex: Boolean;
   public
     constructor Create(const AnsiStr: AnsiString); overload;
 {$IFDEF COMPILER5}
@@ -207,6 +209,9 @@ type
 
     function WriteToStream(Stream: TStream): Cardinal; override;
     {* 输出一对小括号加上其内的字符串}
+
+    property IsHex: Boolean read FIsHex write FIsHex;
+    {* 内容是否是十六进制输出}
   end;
 
   TCnPDFReferenceObject = class(TCnPDFSimpleObject)
@@ -522,6 +527,8 @@ type
     FDictionary: TCnPDFDictionaryObject;
     FXRefStart: Cardinal;
     FComment: string;
+  protected
+    procedure GenerateID;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -798,9 +805,10 @@ procedure CnJpegFilesToPDF(JpegFiles: TStrings; const FileName: string);
 implementation
 
 uses
-  CnZip;
+  CnZip, CnRandom;
 
 const
+  IDLENGTH = 16;
   INDENTDELTA = 4;
   SPACE: AnsiChar = ' ';
   CRLF: array[0..1] of AnsiChar = (#13, #10);
@@ -947,6 +955,28 @@ begin
   end;
   Strings.Add('XRefStart ' + IntToStr(FXRefStart));
   Strings.Add(FComment);
+end;
+
+procedure TCnPDFTrailer.GenerateID;
+var
+  Arr: TCnPDFArrayObject;
+  V: TCnPDFStringObject;
+  S: AnsiString;
+begin
+  Arr := TCnPDFArrayObject.Create;
+  SetLength(S, IDLENGTH);
+
+  CnRandomFillBytes(@S[1], IDLENGTH);
+  V := TCnPDFStringObject.Create(S);
+  V.IsHex := True;
+  Arr.AddObject(V);
+
+  CnRandomFillBytes(@S[1], IDLENGTH);
+  V := TCnPDFStringObject.Create(S);
+  V.IsHex := True;
+  Arr.AddObject(V);
+
+  FDictionary.Values['ID'] := Arr;
 end;
 
 function TCnPDFTrailer.WriteToStream(Stream: TStream): Cardinal;
@@ -1944,7 +1974,8 @@ begin
   end;
 
   CheckExpectedToken(P, pttHexString);
-  Str.Content := AnsiToBytes(P.Token);
+  Str.Content := HexToBytes(P.Token);
+  Str.IsHex := True;
   P.NextNoJunk;
 
   CheckExpectedToken(P, pttHexStringEnd);
@@ -2985,11 +3016,23 @@ end;
 {$ENDIF}
 
 function TCnPDFStringObject.WriteToStream(Stream: TStream): Cardinal;
+var
+  S: string;
 begin
   Result := 0;
-  Inc(Result, WriteString(Stream, '('));
-  Inc(Result, WriteBytes(Stream, Content));
-  Inc(Result, WriteString(Stream, ')'));
+  if FIsHex then
+  begin
+    Inc(Result, WriteString(Stream, '<'));
+    S := BytesToHex(Content);
+    Inc(Result, WriteString(Stream, S));
+    Inc(Result, WriteString(Stream, '>'));
+  end
+  else
+  begin
+    Inc(Result, WriteString(Stream, '('));
+    Inc(Result, WriteBytes(Stream, Content));
+    Inc(Result, WriteString(Stream, ')'));
+  end;
 end;
 
 { TCnPDFStreamObject }
@@ -3607,6 +3650,7 @@ begin
       Content.Compress; // 使用 Deflate 压缩，低版本 Delphi 下似乎也兼容 Acrobat Reader 等阅读软件
     end;
 
+    PDF.Trailer.GenerateID;
     PDF.SaveToFile(FileName);
   finally
     ContData.Free;
