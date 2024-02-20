@@ -366,6 +366,7 @@ type
     chkSHA3_256Utf8: TCheckBox;
     chkSHA3_384Utf8: TCheckBox;
     chkSHA3_512Utf8: TCheckBox;
+    chkSHAKEUtf8: TCheckBox;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -2908,9 +2909,19 @@ var
 begin
   S := edtSHAKE.Text;
   if rbSHAKE128.Checked then
-    mmoSHAKE.Lines.Text := BytesToHex(SHAKE128String(S, udSHAKE.Position))
+  begin
+    if chkSHAKEUtf8.Checked then
+      mmoSHAKE.Lines.Text := BytesToHex(SHAKE128String(CnAnsiToUtf8(S), udSHAKE.Position))
+    else
+      mmoSHAKE.Lines.Text := BytesToHex(SHAKE128String(S, udSHAKE.Position));
+  end
   else
-    mmoSHAKE.Lines.Text := BytesToHex(SHAKE256String(S, udSHAKE.Position));
+  begin
+    if chkSHAKEUtf8.Checked then
+      mmoSHAKE.Lines.Text := BytesToHex(SHAKE256String(CnAnsiToUtf8(S), udSHAKE.Position))
+    else
+      mmoSHAKE.Lines.Text := BytesToHex(SHAKE256String(S, udSHAKE.Position));
+  end;
 end;
 
 procedure TFormCrypt.btnUSHAKEClick(Sender: TObject);

@@ -369,7 +369,7 @@ object FormCrypt: TFormCrypt
           Width = 377
           Height = 41
           BevelOuter = bvNone
-          TabOrder = 5
+          TabOrder = 6
           OnDblClick = ResultDblClick
         end
         object btnMd5File: TButton
@@ -378,7 +378,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File MD5'
-          TabOrder = 6
+          TabOrder = 7
           OnClick = btnMd5FileClick
         end
         object edtMD5HmacKey: TEdit
@@ -413,7 +413,7 @@ object FormCrypt: TFormCrypt
           Width = 49
           Height = 17
           Caption = 'UTF-8'
-          TabOrder = 7
+          TabOrder = 5
         end
       end
     end
@@ -767,7 +767,7 @@ object FormCrypt: TFormCrypt
           Width = 401
           Height = 41
           BevelOuter = bvNone
-          TabOrder = 5
+          TabOrder = 6
           OnDblClick = ResultDblClick
         end
         object btnFileSha1: TButton
@@ -776,7 +776,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File SHA1'
-          TabOrder = 6
+          TabOrder = 7
           OnClick = btnFileSha1Click
         end
         object edtSHA1HMacKey: TEdit
@@ -811,7 +811,7 @@ object FormCrypt: TFormCrypt
           Width = 49
           Height = 17
           Caption = 'UTF-8'
-          TabOrder = 7
+          TabOrder = 5
         end
       end
     end
@@ -873,7 +873,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File SM3'
-          TabOrder = 5
+          TabOrder = 6
           OnClick = btnFileSM3Click
         end
         object edtSM3HMacKey: TEdit
@@ -908,7 +908,7 @@ object FormCrypt: TFormCrypt
           Width = 49
           Height = 17
           Caption = 'UTF-8'
-          TabOrder = 6
+          TabOrder = 5
         end
       end
     end
@@ -995,7 +995,7 @@ object FormCrypt: TFormCrypt
           Top = 244
           Width = 169
           Height = 21
-          TabOrder = 12
+          TabOrder = 15
         end
         object btnSm4Dec: TButton
           Left = 72
@@ -1003,7 +1003,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'SM4 Decrypt'
-          TabOrder = 11
+          TabOrder = 13
           OnClick = btnSm4DecClick
         end
         object edtSm4Code: TEdit
@@ -1011,7 +1011,7 @@ object FormCrypt: TFormCrypt
           Top = 160
           Width = 169
           Height = 21
-          TabOrder = 9
+          TabOrder = 11
         end
         object rbSm4Ecb: TRadioButton
           Left = 168
@@ -1020,7 +1020,7 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = 'ECB'
           Checked = True
-          TabOrder = 4
+          TabOrder = 5
           TabStop = True
         end
         object rbSm4Cbc: TRadioButton
@@ -1029,7 +1029,7 @@ object FormCrypt: TFormCrypt
           Width = 57
           Height = 17
           Caption = 'CBC'
-          TabOrder = 5
+          TabOrder = 6
         end
         object edtSM4Iv: TEdit
           Left = 264
@@ -1045,7 +1045,7 @@ object FormCrypt: TFormCrypt
           Width = 97
           Height = 17
           Caption = 'Use TBytes'
-          TabOrder = 6
+          TabOrder = 7
         end
         object cbbSm4Padding: TComboBox
           Left = 320
@@ -1054,7 +1054,7 @@ object FormCrypt: TFormCrypt
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 10
+          TabOrder = 12
           Items.Strings = (
             'Zero'
             'PKCS7')
@@ -1065,7 +1065,7 @@ object FormCrypt: TFormCrypt
           Width = 57
           Height = 17
           Caption = 'CFB'
-          TabOrder = 7
+          TabOrder = 8
         end
         object rbSm4Ofb: TRadioButton
           Left = 232
@@ -1073,7 +1073,7 @@ object FormCrypt: TFormCrypt
           Width = 57
           Height = 17
           Caption = 'OFB'
-          TabOrder = 8
+          TabOrder = 9
         end
         object rbSm4Ctr: TRadioButton
           Left = 288
@@ -1081,7 +1081,7 @@ object FormCrypt: TFormCrypt
           Width = 57
           Height = 17
           Caption = 'CTR'
-          TabOrder = 13
+          TabOrder = 10
         end
         object btnSM4Utf8Enc: TButton
           Left = 496
@@ -1089,7 +1089,7 @@ object FormCrypt: TFormCrypt
           Width = 89
           Height = 25
           Caption = 'Utf8 Bytes Enc'
-          TabOrder = 14
+          TabOrder = 4
           OnClick = btnSM4Utf8EncClick
         end
         object btnSM4Utf8Dec: TButton
@@ -1098,7 +1098,7 @@ object FormCrypt: TFormCrypt
           Width = 89
           Height = 25
           Caption = 'Utf8 Bytes Dec'
-          TabOrder = 15
+          TabOrder = 14
           OnClick = btnSM4Utf8DecClick
         end
       end
@@ -1336,7 +1336,7 @@ object FormCrypt: TFormCrypt
           Width = 401
           Height = 41
           BevelOuter = bvNone
-          TabOrder = 5
+          TabOrder = 6
           OnDblClick = ResultDblClick
         end
         object btnSHA224File: TButton
@@ -1345,7 +1345,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File SHA224'
-          TabOrder = 6
+          TabOrder = 7
           OnClick = btnSHA224FileClick
         end
         object edtSHA224HmacKey: TEdit
@@ -1380,7 +1380,7 @@ object FormCrypt: TFormCrypt
           Width = 49
           Height = 17
           Caption = 'UTF-8'
-          TabOrder = 7
+          TabOrder = 5
         end
       end
     end
@@ -1432,7 +1432,7 @@ object FormCrypt: TFormCrypt
           Width = 401
           Height = 41
           BevelOuter = bvNone
-          TabOrder = 5
+          TabOrder = 6
           OnDblClick = ResultDblClick
         end
         object btnFileSHA256: TButton
@@ -1441,7 +1441,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File SHA256'
-          TabOrder = 6
+          TabOrder = 7
           OnClick = btnFileSHA256Click
         end
         object edtSHA256HmacKey: TEdit
@@ -1476,7 +1476,7 @@ object FormCrypt: TFormCrypt
           Width = 49
           Height = 17
           Caption = 'UTF-8'
-          TabOrder = 7
+          TabOrder = 5
         end
       end
     end
@@ -1538,7 +1538,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File SHA384'
-          TabOrder = 5
+          TabOrder = 6
           OnClick = btnSHA384FileClick
         end
         object edtSHA384HmacKey: TEdit
@@ -1573,7 +1573,7 @@ object FormCrypt: TFormCrypt
           Width = 49
           Height = 17
           Caption = 'UTF-8'
-          TabOrder = 6
+          TabOrder = 5
         end
       end
     end
@@ -1635,7 +1635,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File SHA512'
-          TabOrder = 5
+          TabOrder = 6
           OnClick = btnSHA512FileClick
         end
         object edtSHA512HmacKey: TEdit
@@ -1670,7 +1670,7 @@ object FormCrypt: TFormCrypt
           Width = 49
           Height = 17
           Caption = 'UTF-8'
-          TabOrder = 6
+          TabOrder = 5
         end
       end
     end
@@ -1722,7 +1722,7 @@ object FormCrypt: TFormCrypt
           Width = 401
           Height = 41
           BevelOuter = bvNone
-          TabOrder = 5
+          TabOrder = 6
           OnDblClick = ResultDblClick
         end
         object btnSHA3_224File: TButton
@@ -1731,7 +1731,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File SHA3_224'
-          TabOrder = 6
+          TabOrder = 7
           OnClick = btnSHA3_224FileClick
         end
         object edtSHA3_224HmacKey: TEdit
@@ -1766,7 +1766,7 @@ object FormCrypt: TFormCrypt
           Width = 49
           Height = 17
           Caption = 'UTF-8'
-          TabOrder = 7
+          TabOrder = 5
         end
       end
     end
@@ -1818,7 +1818,7 @@ object FormCrypt: TFormCrypt
           Width = 401
           Height = 41
           BevelOuter = bvNone
-          TabOrder = 5
+          TabOrder = 6
           OnDblClick = ResultDblClick
         end
         object btnFileSHA3_256: TButton
@@ -1827,7 +1827,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File SHA3_256'
-          TabOrder = 6
+          TabOrder = 7
           OnClick = btnFileSHA3_256Click
         end
         object edtSHA3_256HmacKey: TEdit
@@ -1862,7 +1862,7 @@ object FormCrypt: TFormCrypt
           Width = 49
           Height = 17
           Caption = 'UTF-8'
-          TabOrder = 7
+          TabOrder = 5
         end
       end
     end
@@ -1924,7 +1924,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File SHA3_384'
-          TabOrder = 5
+          TabOrder = 6
           OnClick = btnSHA3_384FileClick
         end
         object edtSHA3_384HmacKey: TEdit
@@ -1959,7 +1959,7 @@ object FormCrypt: TFormCrypt
           Width = 49
           Height = 17
           Caption = 'UTF-8'
-          TabOrder = 6
+          TabOrder = 5
         end
       end
     end
@@ -2021,7 +2021,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File SHA3_512'
-          TabOrder = 5
+          TabOrder = 6
           OnClick = btnSHA3_512FileClick
         end
         object edtSHA3_512HmacKey: TEdit
@@ -2056,7 +2056,7 @@ object FormCrypt: TFormCrypt
           Width = 49
           Height = 17
           Caption = 'UTF-8'
-          TabOrder = 6
+          TabOrder = 5
         end
       end
     end
@@ -2099,7 +2099,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'SHAKE'
-          TabOrder = 1
+          TabOrder = 3
           OnClick = btnSHAKEClick
         end
         object btnSHAKEFile: TButton
@@ -2108,7 +2108,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File SHAKE'
-          TabOrder = 3
+          TabOrder = 9
           OnClick = btnSHAKEFileClick
         end
         object btnUSHAKE: TButton
@@ -2117,7 +2117,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'Utf16 SHAKE'
-          TabOrder = 2
+          TabOrder = 4
           OnClick = btnUSHAKEClick
         end
         object rbSHAKE128: TRadioButton
@@ -2127,7 +2127,7 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = '128'
           Checked = True
-          TabOrder = 4
+          TabOrder = 5
           TabStop = True
         end
         object rbSHAKE256: TRadioButton
@@ -2136,14 +2136,14 @@ object FormCrypt: TFormCrypt
           Width = 113
           Height = 17
           Caption = '256'
-          TabOrder = 5
+          TabOrder = 6
         end
         object edtSHAKELength: TEdit
           Left = 296
           Top = 40
           Width = 65
           Height = 21
-          TabOrder = 6
+          TabOrder = 1
           Text = '200'
         end
         object udSHAKE: TUpDown
@@ -2155,7 +2155,7 @@ object FormCrypt: TFormCrypt
           Min = 1
           Max = 1000
           Position = 200
-          TabOrder = 7
+          TabOrder = 2
           Wrap = False
         end
         object mmoSHAKE: TMemo
@@ -2166,6 +2166,14 @@ object FormCrypt: TFormCrypt
           ReadOnly = True
           ScrollBars = ssVertical
           TabOrder = 8
+        end
+        object chkSHAKEUtf8: TCheckBox
+          Left = 16
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 7
         end
       end
     end
@@ -2584,7 +2592,7 @@ object FormCrypt: TFormCrypt
           Width = 113
           Height = 25
           Caption = 'ChaCha20 Data'
-          TabOrder = 3
+          TabOrder = 4
           OnClick = btnChaCha20DataClick
         end
         object btnHChaCha20SubKey: TButton
@@ -2593,7 +2601,7 @@ object FormCrypt: TFormCrypt
           Width = 113
           Height = 25
           Caption = 'HChaCha20 SubKey'
-          TabOrder = 4
+          TabOrder = 3
           OnClick = btnHChaCha20SubKeyClick
         end
         object btnXChaCha20Enc: TButton
@@ -2623,7 +2631,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'GHash Test'
-          TabOrder = 0
+          TabOrder = 4
           OnClick = btnGHashClick
         end
         object btnGMulBlock: TButton
@@ -2632,7 +2640,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'GMul Block'
-          TabOrder = 1
+          TabOrder = 0
           OnClick = btnGMulBlockClick
         end
         object btnGHash1: TButton
@@ -2641,7 +2649,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'GHash Test 2'
-          TabOrder = 2
+          TabOrder = 7
           OnClick = btnGHash1Click
         end
         object btnAES128GCMEnTest: TButton
@@ -2650,7 +2658,7 @@ object FormCrypt: TFormCrypt
           Width = 113
           Height = 25
           Caption = 'AES128/GCM Encrypt'
-          TabOrder = 3
+          TabOrder = 10
           OnClick = btnAES128GCMEnTestClick
         end
         object btnAES128GCMDeTest: TButton
@@ -2659,7 +2667,7 @@ object FormCrypt: TFormCrypt
           Width = 113
           Height = 25
           Caption = 'AES128/GCM Decrypt'
-          TabOrder = 4
+          TabOrder = 11
           OnClick = btnAES128GCMDeTestClick
         end
         object btnSM4GCM: TButton
@@ -2668,7 +2676,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'SM4 GCM'
-          TabOrder = 5
+          TabOrder = 2
           OnClick = btnSM4GCMClick
         end
         object btnAESCMAC: TButton
@@ -2677,7 +2685,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'AES CMAC'
-          TabOrder = 6
+          TabOrder = 1
           OnClick = btnAESCMACClick
         end
         object btnAESCCMEnc: TButton
@@ -2686,7 +2694,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'AES CCM Enc'
-          TabOrder = 7
+          TabOrder = 5
           OnClick = btnAESCCMEncClick
         end
         object btnAESCCMDec: TButton
@@ -2704,7 +2712,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'SM4 CCM'
-          TabOrder = 9
+          TabOrder = 6
           OnClick = btnSM4CCMClick
         end
         object btnAES192GCMEnTest: TButton
@@ -2713,7 +2721,7 @@ object FormCrypt: TFormCrypt
           Width = 113
           Height = 25
           Caption = 'AES192/GCM Encrypt'
-          TabOrder = 10
+          TabOrder = 13
           OnClick = btnAES192GCMEnTestClick
         end
         object btnAES192GCMDeTest: TButton
@@ -2722,7 +2730,7 @@ object FormCrypt: TFormCrypt
           Width = 113
           Height = 25
           Caption = 'AES192/GCM Decrypt'
-          TabOrder = 11
+          TabOrder = 14
           OnClick = btnAES192GCMDeTestClick
         end
         object btnAES256GCMEnTest: TButton
@@ -2731,7 +2739,7 @@ object FormCrypt: TFormCrypt
           Width = 113
           Height = 25
           Caption = 'AES256/GCM Encrypt'
-          TabOrder = 12
+          TabOrder = 15
           OnClick = btnAES256GCMEnTestClick
         end
         object btnAES256GCMDeTest: TButton
@@ -2740,7 +2748,7 @@ object FormCrypt: TFormCrypt
           Width = 113
           Height = 25
           Caption = 'AES256/GCM Decrypt'
-          TabOrder = 13
+          TabOrder = 16
           OnClick = btnAES256GCMDeTestClick
         end
         object btnAESGCMNoPaddingJava: TButton
@@ -2749,7 +2757,7 @@ object FormCrypt: TFormCrypt
           Width = 169
           Height = 25
           Caption = 'AES/GCM/NoPadding Enc/Dec'
-          TabOrder = 14
+          TabOrder = 3
           OnClick = btnAESGCMNoPaddingJavaClick
         end
         object btnChaCha20Poly1305Aead: TButton
@@ -2758,7 +2766,7 @@ object FormCrypt: TFormCrypt
           Width = 169
           Height = 25
           Caption = 'ChaCha20 Poly1305 AEAD Test'
-          TabOrder = 15
+          TabOrder = 9
           OnClick = btnChaCha20Poly1305AeadClick
         end
         object btnXChaCha20Poly1305Aead: TButton
@@ -2767,7 +2775,7 @@ object FormCrypt: TFormCrypt
           Width = 169
           Height = 25
           Caption = 'XChaCha20 Poly1305 AEAD Test'
-          TabOrder = 16
+          TabOrder = 12
           OnClick = btnXChaCha20Poly1305AeadClick
         end
       end
@@ -2811,7 +2819,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'FNV'
-          TabOrder = 1
+          TabOrder = 2
           OnClick = btnFNVClick
         end
         object pnlFNV: TPanel
@@ -2820,7 +2828,7 @@ object FormCrypt: TFormCrypt
           Width = 377
           Height = 73
           BevelOuter = bvNone
-          TabOrder = 2
+          TabOrder = 5
           OnDblClick = ResultDblClick
         end
         object btnFNVFile: TButton
@@ -2829,7 +2837,7 @@ object FormCrypt: TFormCrypt
           Width = 75
           Height = 25
           Caption = 'File FNV'
-          TabOrder = 3
+          TabOrder = 6
         end
         object cbbFNVType: TComboBox
           Left = 312
@@ -2838,7 +2846,7 @@ object FormCrypt: TFormCrypt
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 4
+          TabOrder = 1
           Items.Strings = (
             '32'
             '64'
@@ -2854,7 +2862,7 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = 'FNV-1'
           Checked = True
-          TabOrder = 5
+          TabOrder = 3
           TabStop = True
         end
         object rbFNV1a: TRadioButton
@@ -2863,7 +2871,7 @@ object FormCrypt: TFormCrypt
           Width = 73
           Height = 17
           Caption = 'FNV-1a'
-          TabOrder = 6
+          TabOrder = 4
         end
       end
     end
