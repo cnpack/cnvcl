@@ -29,12 +29,14 @@ type
     dlgSave1: TSaveDialog;
     btnOpenHuge: TButton;
     dlgOpen1: TOpenDialog;
+    btnJSONSort: TButton;
     procedure btnParseClick(Sender: TObject);
     procedure btnJSONConstruct1Click(Sender: TObject);
     procedure btnWriteClick(Sender: TObject);
     procedure btnComponentClick(Sender: TObject);
     procedure btnGenHugeClick(Sender: TObject);
     procedure btnOpenHugeClick(Sender: TObject);
+    procedure btnJSONSortClick(Sender: TObject);
   private
     procedure DumpJSONToTreeView(JSON: TCnJSONObject);
   public
@@ -240,6 +242,19 @@ begin
     end;
     T2 := CnGetTickCount;
     ShowMessage(Format('Create %d ms. Search %d Times using %d ms', [T1 - T, Cnt, T2 - T1]));
+  end;
+end;
+
+procedure TFormJSON.btnJSONSortClick(Sender: TObject);
+var
+  Obj: TCnJSONObject;
+begin
+  Obj := CnJSONParse(mmoOutput.Lines.Text);
+  try
+    Obj.Sort;
+    mmoOutput.Lines.Text := Obj.ToJSON;
+  finally
+    Obj.Free;
   end;
 end;
 

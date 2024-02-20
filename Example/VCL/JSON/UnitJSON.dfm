@@ -176,6 +176,15 @@ object FormJSON: TFormJSON
         TabOrder = 6
         OnClick = btnOpenHugeClick
       end
+      object btnJSONSort: TButton
+        Left = 360
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = 'Sort'
+        TabOrder = 7
+        OnClick = btnJSONSortClick
+      end
     end
   end
   object dlgSave1: TSaveDialog

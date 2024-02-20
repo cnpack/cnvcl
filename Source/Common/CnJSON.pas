@@ -239,6 +239,9 @@ type
     procedure Clear;
     {* 清除所有内容}
 
+    procedure Sort(Recursive: Boolean = True; CompareProc: TListSortCompare = nil);
+    {* 排序}
+
     // 以下方法组装用
     function AddPair(const Name: string; Value: TCnJSONValue): TCnJSONPair; overload;
     function AddPair(const Name: string; const Value: string): TCnJSONPair; overload;
@@ -1089,6 +1092,53 @@ end;
 function TCnJSONObject.IsObject: Boolean;
 begin
   Result := True;
+end;
+
+function ComparePair(Item1, Item2: Pointer): Integer;
+var
+  P1, P2: TCnJSONPair;
+begin
+  if (Item1 = nil) and (Item2 = nil) then
+    Result := 0
+  else if Item1 = nil then
+    Result := -1
+  else if Item2 = nil then
+    Result := 1
+  else
+  begin
+    P1 := TCnJSONPair(Item1);
+    P2 := TCnJSONPair(Item2);
+    Result := CompareStr(P1.Name.AsString, P2.Name.AsString);
+  end;
+end;
+
+procedure TCnJSONObject.Sort(Recursive: Boolean;
+  CompareProc: TListSortCompare);
+var
+  I, J: Integer;
+  Arr: TCnJSONArray;
+begin
+  if not Assigned(CompareProc) then
+    CompareProc := ComparePair;
+  FPairs.Sort(ComparePair);
+
+  if Recursive then // 下属子 Object 也排序
+  begin
+    for I := 0 to Count - 1 do
+    begin
+      if Values[I] is TCnJSONObject then
+        (Values[I] as TCnJSONObject).Sort(Recursive, CompareProc)
+      else if Values[I] is TCnJSONArray then
+      begin
+        Arr := Values[I] as TCnJSONArray;
+        for J := 0 to Arr.Count - 1 do
+        begin
+          if Arr.Values[J] is TCnJSONObject then
+            (Arr.Values[J] as TCnJSONObject).Sort(Recursive, CompareProc);
+        end;
+      end;
+    end;
+  end;
 end;
 
 function TCnJSONObject.ToJSON(UseFormat: Boolean; Indent: Integer): AnsiString;
