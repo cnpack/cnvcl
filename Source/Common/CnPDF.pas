@@ -231,6 +231,9 @@ type
     function WriteToStream(Stream: TStream): Cardinal; override;
     {* 输出数字 数字 R}
 
+    function IsReference(Obj: TCnPDFObject): Boolean;
+    {* 判断自己是否是指定外部对象的引用，通过比较 ID Generation 等参数判断}
+
     property Reference: TCnPDFObject read FReference write SetReference;
     {* 引用的对象}
   end;
@@ -295,6 +298,9 @@ type
     procedure AddUnicodeString(const Value: string);
 {$ENDIF}
 
+    function HasObjectRef(Obj: TCnPDFObject): Boolean;
+    {* 是否存在一对象的引用}
+
     property Count: Integer read GetCount;
     property Items[Index: Integer]: TCnPDFObject read GetItem write SetItem;
     {* 序号引用其元素}
@@ -353,6 +359,8 @@ type
     function AddUnicodeString(const Name: string; const Value: string): TCnPDFDictPair;
 {$ENDIF}
 
+    procedure DeleteName(const Name: string);
+    {* 删除指定名字及对应 Value 并释放}
     function HasName(const Name: string): Boolean;
     {* 是否有指定名称存在}
     procedure GetNames(Names: TStrings);
@@ -369,6 +377,7 @@ type
   {* PDF 文件中的流对象类，据说包含一字典一流}
   private
     FStream: TBytes;
+    FSupportCompress: Boolean;
   protected
     procedure SyncLength;
   public
@@ -387,7 +396,7 @@ type
     {* 将指定 Strings 中的内容赋值给流}
 
     procedure Compress;
-    {* 将 FStream 明文内容压缩成标准 Zip 格式重新放入 FStream
+    {* 将 FStream 明文内容压缩成标准 Zip 格式重新放入 FStream，请勿对其他已知编码的内容调用此压缩方法
       注意似乎无论 Delphi 版本高低也就是无论是否定义 SUPPORT_ZLIB_WINDOWBITS
       压缩出的流都能被 Acrobat Reader 解析从而正确显示内容}
 
@@ -398,18 +407,23 @@ type
     function ToString: string; override;
     procedure ToStrings(Strings: TStrings; Indent: Integer = 0); override;
 
+    property SupportCompress: Boolean read FSupportCompress write FSupportCompress;
+    {* 是否支持压缩。创建时由外界指定，解析 PDF 时根据字典内容的 Filter 是否 FlateDecode 指定}
     property Stream: TBytes read FStream write FStream;
-    {* 包含的原始流内容}
+    {* 包含的原始流内容，刚从 PDF 中解析出来时可能是压缩的}
   end;
 
   TCnPDFObjectManager = class(TObjectList)
   {* PDFDocument 类内部使用的管理每个独立对象的总类}
   private
-    FCurrentID: Integer;
+    FMaxID: Integer;
     function GetItem(Index: Integer): TCnPDFObject;
     procedure SetItem(Index: Integer; const Value: TCnPDFObject);
   public
     constructor Create;
+
+    procedure CalcMaxID;
+    {* 批量读入对象后，遍历统计出其最大 ID}
 
     function AddRaw(AObject: TCnPDFObject): Integer;
     {* 增加一外部对象供管理，内部不处理 ID，用于解析}
@@ -422,7 +436,7 @@ type
     {* 增加一外部对象供管理，内部会重设其 ID}
 
     property Items[Index: Integer]: TCnPDFObject read GetItem write SetItem; default;
-    property CurrentID: Integer read FCurrentID;
+    property MaxID: Integer read FMaxID;
   end;
 
   TCnPDFPartBase = class
@@ -1713,7 +1727,7 @@ begin
     P.Free;
   end;
 
-  // 压缩 Content 的内容
+  // 解开压缩 Content 的内容
   UncompressObjects;
 
   // 从 Trailer 里的字段整理内容
@@ -2106,7 +2120,7 @@ begin
   FTrailer.XRefStart := Stream.Position;
   FXRefTable.WriteToStream(Stream);
 
-  FTrailer.Dictionary.Values['Size'] := TCnPDFNumberObject.Create(FBody.Objects.CurrentID + 1);
+  FTrailer.Dictionary.Values['Size'] := TCnPDFNumberObject.Create(FBody.Objects.MaxID + 1);
   FTrailer.WriteToStream(Stream);
 end;
 
@@ -2144,6 +2158,7 @@ var
   Arr: TCnPDFArrayObject;
   Page: TCnPDFDictionaryObject;
 begin
+  FBody.Objects.CalcMaxID;
   if FTrailer = nil then
     Exit;
 
@@ -2260,8 +2275,10 @@ end;
 
 procedure TCnPDFDocument.SyncTrailer;
 begin
-  FTrailer.Dictionary.Values['Info'] := TCnPDFReferenceObject.Create(FBody.Info);
-  FTrailer.Dictionary.Values['Root'] := TCnPDFReferenceObject.Create(FBody.Catalog);
+  if FTrailer.Dictionary.Values['Info'] <> nil then
+    FTrailer.Dictionary.Values['Info'] := TCnPDFReferenceObject.Create(FBody.Info);
+  if FTrailer.Dictionary.Values['Root'] <> nil then
+    FTrailer.Dictionary.Values['Root'] := TCnPDFReferenceObject.Create(FBody.Catalog);
 end;
 
 procedure TCnPDFDocument.UncompressObjects;
@@ -2533,6 +2550,19 @@ constructor TCnPDFDictionaryObject.Create;
 begin
   inherited;
   FPairs := TObjectList.Create(True);
+end;
+
+procedure TCnPDFDictionaryObject.DeleteName(const Name: string);
+var
+  I: Integer;
+  Pair: TCnPDFDictPair;
+begin
+  for I := FPairs.Count - 1 downto 0 do
+  begin
+    Pair := TCnPDFDictPair(FPairs[I]);
+    if (Pair <> nil) and (Pair.Name.Name = Name) then
+      FPairs.Delete(I);
+  end;
 end;
 
 destructor TCnPDFDictionaryObject.Destroy;
@@ -2807,6 +2837,26 @@ begin
   Result := TCnPDFObject(FElements[Index]);
 end;
 
+function TCnPDFArrayObject.HasObjectRef(Obj: TCnPDFObject): Boolean;
+var
+  I: Integer;
+  Ref: TCnPDFReferenceObject;
+begin
+  for I := 0 to Count - 1 do
+  begin
+    if Items[I] is TCnPDFReferenceObject then
+    begin
+      Ref := Items[I] as TCnPDFReferenceObject;
+      if Ref.IsReference(Obj) then
+      begin
+        Result := True;
+        Exit;
+      end;
+    end;
+  end;
+  Result := False;
+end;
+
 procedure TCnPDFArrayObject.SetItem(Index: Integer;
   const Value: TCnPDFObject);
 begin
@@ -2918,6 +2968,16 @@ destructor TCnPDFReferenceObject.Destroy;
 begin
 
   inherited;
+end;
+
+function TCnPDFReferenceObject.IsReference(Obj: TCnPDFObject): Boolean;
+begin
+  Result := False;
+  if Obj <> nil then
+  begin
+    if (FID = Obj.ID) and (FGeneration = Obj.Generation) then
+      Result := True;
+  end;
 end;
 
 procedure TCnPDFReferenceObject.SetReference(const Value: TCnPDFObject);
@@ -3096,7 +3156,8 @@ procedure TCnPDFStreamObject.Compress;
 var
   InS, OutS: TMemoryStream;
 begin
-  if Length(FStream) <= 0 then
+  // 如果外界没指定支持压缩则不做
+  if not FSupportCompress or (Length(FStream) <= 0) then
     Exit;
 
   Ins := nil;
@@ -3129,9 +3190,13 @@ begin
   V := Values['Filter'];
   if (V <> nil) and (V is TCnPDFNameObject) then
   begin
-    if (V as TCnPDFNameObject).Name <> 'FlateDecode' then
+    if (V as TCnPDFNameObject).Name = 'FlateDecode' then
+      FSupportCompress := True
+    else
       Exit;
-  end;
+  end
+  else
+    Exit;
 
   Ins := nil;
   OutS := nil;
@@ -3145,6 +3210,8 @@ begin
       InS.Position := 0;
       CnZipUncompressStream(InS, OutS);
       FStream := StreamToBytes(OutS);
+
+      DeleteName('Filter'); // 解了就不需要这个 Filter 标记了
     except
       ;
     end;
@@ -3388,7 +3455,10 @@ begin
     Arr := FPages['Kids'] as TCnPDFArrayObject;
 
     for I := 0 to FPageList.Count - 1 do
-      Arr.AddObjectRef(FPageList[I] as TCnPDFObject);
+    begin
+      if not Arr.HasObjectRef(FPageList[I] as TCnPDFObject) then // 防止页面重复
+        Arr.AddObjectRef(FPageList[I] as TCnPDFObject);
+    end;
   end;
 end;
 
@@ -3439,13 +3509,27 @@ end;
 function TCnPDFObjectManager.Add(AObject: TCnPDFObject): Integer;
 begin
   Result := inherited Add(AObject);
-  Inc(FCurrentID);
-  AObject.ID := FCurrentID;
+  Inc(FMaxID);
+  AObject.ID := FMaxID;
 end;
 
 function TCnPDFObjectManager.AddRaw(AObject: TCnPDFObject): Integer;
 begin
   Result := inherited Add(AObject);
+end;
+
+procedure TCnPDFObjectManager.CalcMaxID;
+var
+  I: Integer;
+  Obj: TCnPDFObject;
+begin
+  FMaxID := 0;
+  for I := 0 to Count - 1 do
+  begin
+    Obj := Items[I];
+    if Obj.ID > FMaxID then
+      FMaxID := Obj.ID;
+  end;
 end;
 
 constructor TCnPDFObjectManager.Create;
@@ -3480,8 +3564,8 @@ procedure TCnPDFObjectManager.SetItem(Index: Integer;
   const Value: TCnPDFObject);
 begin
   inherited SetItem(Index, Value);
-  Inc(FCurrentID);
-  Value.ID := FCurrentID;
+  Inc(FMaxID);
+  Value.ID := FMaxID;
 end;
 
 { TCnPDFNumberObject }
@@ -3647,6 +3731,7 @@ begin
       ContData.Add('Q');
       Content.SetStrings(ContData);
 
+      Content.SupportCompress := True;
       Content.Compress; // 使用 Deflate 压缩，低版本 Delphi 下似乎也兼容 Acrobat Reader 等阅读软件
     end;
 

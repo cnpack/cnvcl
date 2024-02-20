@@ -620,7 +620,6 @@ begin
     raise ECnZipException.CreateRes(@SZipErrorWrite);
 end;
 
-
 procedure CnZipCompressStream(InStream, OutZipStream: TStream;
   CompressionLevel: TCompressionLevel);
 var
