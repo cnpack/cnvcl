@@ -76,6 +76,7 @@ object FormParseBer: TFormParseBer
     Top = 424
     Width = 75
     Height = 25
+    Anchors = [akLeft, akBottom]
     Caption = 'Write'
     TabOrder = 5
     OnClick = btnWriteClick

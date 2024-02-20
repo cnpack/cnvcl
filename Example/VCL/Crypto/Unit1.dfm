@@ -407,6 +407,14 @@ object FormCrypt: TFormCrypt
           TabOrder = 3
           OnClick = btnUMd5Click
         end
+        object chkMD5Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 7
+        end
       end
     end
     object tsBase64: TTabSheet
@@ -797,6 +805,14 @@ object FormCrypt: TFormCrypt
           TabOrder = 3
           OnClick = btnUSHA1Click
         end
+        object chkSHA1Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 7
+        end
       end
     end
     object tsSM3: TTabSheet
@@ -885,6 +901,14 @@ object FormCrypt: TFormCrypt
           Caption = 'Utf16 SM3'
           TabOrder = 3
           OnClick = btnUSM3Click
+        end
+        object chkSM3Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 6
         end
       end
     end
@@ -1350,6 +1374,14 @@ object FormCrypt: TFormCrypt
           TabOrder = 3
           OnClick = btnUSHA224Click
         end
+        object chkSHA224Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 7
+        end
       end
     end
     object tsSHA256: TTabSheet
@@ -1437,6 +1469,14 @@ object FormCrypt: TFormCrypt
           Caption = 'Utf16 SHA256'
           TabOrder = 3
           OnClick = btnUSHA256Click
+        end
+        object chkSHA256Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 7
         end
       end
     end
@@ -1527,6 +1567,14 @@ object FormCrypt: TFormCrypt
           TabOrder = 3
           OnClick = btnUSHA384Click
         end
+        object chkSHA384Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 6
+        end
       end
     end
     object tsSHA512: TTabSheet
@@ -1616,6 +1664,14 @@ object FormCrypt: TFormCrypt
           TabOrder = 3
           OnClick = btnUSHA512Click
         end
+        object chkSHA512Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 6
+        end
       end
     end
     object tsSHA3_224: TTabSheet
@@ -1704,6 +1760,14 @@ object FormCrypt: TFormCrypt
           TabOrder = 3
           OnClick = btnUSHA3_224Click
         end
+        object chkSHA3_224Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 7
+        end
       end
     end
     object tsSHA3_256: TTabSheet
@@ -1791,6 +1855,14 @@ object FormCrypt: TFormCrypt
           Caption = 'Utf16 SHA3_256'
           TabOrder = 3
           OnClick = btnUSHA3_256Click
+        end
+        object chkSHA3_256Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 7
         end
       end
     end
@@ -1881,6 +1953,14 @@ object FormCrypt: TFormCrypt
           TabOrder = 3
           OnClick = btnUSHA3_384Click
         end
+        object chkSHA3_384Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 6
+        end
       end
     end
     object tsSHA3_512: TTabSheet
@@ -1969,6 +2049,14 @@ object FormCrypt: TFormCrypt
           Caption = 'Utf16 SHA3_512'
           TabOrder = 3
           OnClick = btnUSHA3_512Click
+        end
+        object chkSHA3_512Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 6
         end
       end
     end
