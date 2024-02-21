@@ -424,6 +424,8 @@ type
 
     procedure CalcMaxID;
     {* 批量读入对象后，遍历统计出其最大 ID}
+    procedure CopyTo(DestObjects: TObjectList);
+    {* 把内容的引用都复制到另一列表中}
 
     function AddRaw(AObject: TCnPDFObject): Integer;
     {* 增加一外部对象供管理，内部不处理 ID，用于解析}
@@ -526,6 +528,9 @@ type
      procedure DumpToStrings(Strings: TStrings; Verbose: Boolean = False; Indent: Integer = 0); override;
     {* 输出概要总结信息供调试}
 
+    function FindByObject(Obj: TCnPDFObject): TCnPDFXRefItem;
+    {* 在各段以及各表中搜索指定 Obj 的 ID 与 Generation 对应的引用条目}
+
     function AddSegment: TCnPDFXRefCollection;
     {* 增加一个空段}
 
@@ -586,8 +591,8 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
-    procedure SortObjects;
-    {* 将对象表按对象编号排序}
+    procedure SortObjectRefs(PDFObjects: TObjectList);
+    {* 将外部新索引的对象表按对象编号排序，注意自身的原始顺序不变}
 
     procedure CreateResources;
 
@@ -1084,6 +1089,26 @@ begin
   end;
 end;
 
+function TCnPDFXRefTable.FindByObject(Obj: TCnPDFObject): TCnPDFXRefItem;
+var
+  I, J: Integer;
+  Seg: TCnPDFXRefCollection;
+begin
+  for I := 0 to SegmentCount - 1 do
+  begin
+    Seg := Segments[I];
+    for J := 0 to Seg.Count - 1 do
+    begin
+      if (Seg.ObjectIndex + J = Obj.ID) and (Seg.Items[J].ObjectGeneration = Obj.Generation) then
+      begin
+        Result := Seg.Items[J];
+        Exit;
+      end;
+    end;
+  end;
+  Result := nil;
+end;
+
 function TCnPDFXRefTable.GetSegmenet(Index: Integer): TCnPDFXRefCollection;
 begin
   Result := TCnPDFXRefCollection(FSegments[Index]);
@@ -1103,8 +1128,26 @@ end;
 function TCnPDFXRefTable.WriteToStream(Stream: TStream): Cardinal;
 var
   I: Integer;
+  Seg: TCnPDFXRefCollection;
+  Item: TCnPDFXRefItem;
 begin
   Result := WriteLine(Stream, XREF);
+
+  // 最头上的一个如果是 1 开始，插入一个 0 的
+  if GetSegmentCount > 0 then
+  begin
+    Seg := Segments[0];
+    if Seg.ObjectIndex = 1 then
+    begin
+      Seg.ObjectIndex := 0;
+
+      Item := TCnPDFXRefItem(Seg.Insert(0));
+      Item.ObjectGeneration := 65535;
+      Item.ObjectOffset := 0;
+      Item.ObjectXRefType := xrtFree;
+    end;
+  end;
+
   for I := 0 to SegmentCount - 1 do
     Inc(Result, Segments[I].WriteToStream(Stream));
 end;
@@ -2275,9 +2318,9 @@ end;
 
 procedure TCnPDFDocument.SyncTrailer;
 begin
-  if FTrailer.Dictionary.Values['Info'] <> nil then
+  if FTrailer.Dictionary.Values['Info'] = nil then
     FTrailer.Dictionary.Values['Info'] := TCnPDFReferenceObject.Create(FBody.Info);
-  if FTrailer.Dictionary.Values['Root'] <> nil then
+  if FTrailer.Dictionary.Values['Root'] = nil then
     FTrailer.Dictionary.Values['Root'] := TCnPDFReferenceObject.Create(FBody.Catalog);
 end;
 
@@ -3439,9 +3482,9 @@ begin
   Result := FResourceList.Count;
 end;
 
-procedure TCnPDFBody.SortObjects;
+procedure TCnPDFBody.SortObjectRefs(PDFObjects: TObjectList);
 begin
-  FObjects.Sort(PDFObjectCompare);
+  PDFObjects.Sort(PDFObjectCompare);
 end;
 
 procedure TCnPDFBody.SyncPages;
@@ -3469,38 +3512,55 @@ var
   Obj: TCnPDFObject;
   Collection: TCnPDFXRefCollection;
   Item: TCnPDFXRefItem;
+  Refs: TObjectList;
 begin
   FXRefTable.Clear;
-  //SortObjects;
+  Refs := TObjectList.Create(False);
+  try
+    FObjects.CopyTo(Refs);
+    SortObjectRefs(Refs); // 根据复制出的列表排序
 
-  Result := 0;
-  OldID := -1;
-  Collection := nil;
+    Result := 0;
+    OldID := -1;
+    Collection := nil;
 
-  for I := 0 to FObjects.Count - 1 do
-  begin
-    Obj := TCnPDFObject(FObjects[I]);
-    if Obj.ID > OldID + 1 then
+    for I := 0 to Refs.Count - 1 do
     begin
-      // 新起 Segment，起点 Index 为该 Obj.ID
-      Collection := FXRefTable.AddSegment;
-      Collection.ObjectIndex := Obj.ID;
-    end
-    else if Obj.ID = OldID + 1 then
-    begin
-      // 属于本 Segment
+      Obj := TCnPDFObject(Refs[I]);
+      if Obj.ID > OldID + 1 then
+      begin
+        // 新起 Segment，起点 Index 为该 Obj.ID
+        Collection := FXRefTable.AddSegment;
+        Collection.ObjectIndex := Obj.ID;
+      end
+      else if Obj.ID = OldID + 1 then
+      begin
+        // 属于本 Segment
+      end;
+
+      // 用旧 Collection 或新 Collection 新建 Item
+      Item := Collection.Add;
+      Item.ObjectGeneration := Obj.Generation;
+      Item.ObjectXRefType := Obj.XRefType;
+      Item.ObjectOffset := Stream.Position;
+
+      // 更新 ID
+      OldID := Obj.ID;
     end;
 
-    // 用旧 Collection 或新 Collection 新建 Item
-    Item := Collection.Add;
-    Item.ObjectGeneration := Obj.Generation;
-    Item.ObjectXRefType := Obj.XRefType;
-    Item.ObjectOffset := Stream.Position;
+    // 原始的内容则仍按顺序写，写时更新对应对象的偏移量
+    for I := 0 to FObjects.Count - 1 do
+    begin
+      Obj := FObjects[I];
 
-    // 更新 ID
-    OldID := Obj.ID;
+      Item := FXRefTable.FindByObject(Obj);
+      if Item <> nil then
+        Item.ObjectOffset := Stream.Position;
 
-    Inc(Result, Obj.WriteToStream(Stream));
+      Inc(Result, Obj.WriteToStream(Stream));
+    end;
+  finally
+    Refs.Free;
   end;
 end;
 
@@ -3530,6 +3590,15 @@ begin
     if Obj.ID > FMaxID then
       FMaxID := Obj.ID;
   end;
+end;
+
+procedure TCnPDFObjectManager.CopyTo(DestObjects: TObjectList);
+var
+  I: Integer;
+begin
+  DestObjects.Clear;
+  for I := 0 to Count - 1 do
+    DestObjects.Add(Items[I]);
 end;
 
 constructor TCnPDFObjectManager.Create;
