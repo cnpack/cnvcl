@@ -53,8 +53,10 @@ unit CnPDF;
 *
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
-* 本 地 化：该单元无需本地化处理
-* 修改记录：2024.02.012 V1.3
+* 本 地 化：该单元无需本地化处理  TCnImagesToPDFCreator
+* 修改记录：2024.02.22 V1.3
+*               实现 TCnImagesToPDFCreator 以在输出 JPEG 的 PDF 时支持页面边距等设置
+*           2024.02.012 V1.3
 *               TCnPDFDocument 能够初步分析并输出逻辑结构
 *               实现 CnJpegFilesToPDF 过程，将多个 JPEG 文件拼成一个 PDF 输出
 *           2024.02.10 V1.2
@@ -416,7 +418,7 @@ type
   TCnPDFObjectManager = class(TObjectList)
   {* PDFDocument 类内部使用的管理每个独立对象的总类}
   private
-    FMaxID: Integer;
+    FMaxID: Cardinal;
     function GetItem(Index: Integer): TCnPDFObject;
     procedure SetItem(Index: Integer; const Value: TCnPDFObject);
   public
@@ -438,7 +440,9 @@ type
     {* 增加一外部对象供管理，内部会重设其 ID}
 
     property Items[Index: Integer]: TCnPDFObject read GetItem write SetItem; default;
-    property MaxID: Integer read FMaxID;
+    {* 持有的 PDF 对象条目}
+    property MaxID: Cardinal read FMaxID;
+    {* 对象中的最大 ID}
   end;
 
   TCnPDFPartBase = class
@@ -811,6 +815,83 @@ type
     {* 当前 Token 的字节长度}
   end;
 
+  TCnImagesToPDFCreator = class
+  {* 用来把一批 JPEG 文件转换成一个 PDF 的工具类}
+  private
+    FFiles: TStringList;
+    FLeftMargin: Integer;
+    FTopMargin: Integer;
+    FRightMargin: Integer;
+    FPageHeight: Integer;
+    FBottomMargin: Integer;
+    FPageWidth: Integer;
+    FCreator: string;
+    FTitle: string;
+    FComments: string;
+    FKeywords: string;
+    FCompany: string;
+    FAuthor: string;
+    FSubject: string;
+    FProducer: string;
+    FCreationDate: TDateTime;
+    procedure SetBottomMargin(const Value: Integer);
+    procedure SetLeftMargin(const Value: Integer);
+    procedure SetPageHeight(const Value: Integer);
+    procedure SetPageWidth(const Value: Integer);
+    procedure SetRightMargin(const Value: Integer);
+    procedure SetTopMargin(const Value: Integer);
+  protected
+    procedure ValidatePage;
+    procedure CalcImageSize(var ImageWidth, ImageHeight: Integer);
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    procedure AddJpegFile(const JpegFile: string);
+    {* 增加一个 JPEG 文件}
+    procedure AddJpegFiles(const JpegFiles: TStrings);
+    {* 增加多个 JPEG 文件}
+    procedure RemoveJpegFile(const JpegFile: string);
+    {* 从实例中删除一个之前增加的 JPEG 文件，注意不会删除文件本身}
+    procedure Clear;
+    {* 清除所有增加的 JPEG 文件}
+
+    procedure SaveToPDF(const PDFFile: string);
+    {* 将添加的 JPEG 文件存成指定文件名的 PDF}
+
+    property PageHeight: Integer read FPageHeight write SetPageHeight;
+    {* 以点为单位的页面高度}
+    property PageWidth: Integer read FPageWidth write SetPageWidth;
+    {* 以点为单位的页面宽度}
+    property LeftMargin: Integer read FLeftMargin write SetLeftMargin;
+    {* 以点为单位的页面内容左边距}
+    property RightMargin: Integer read FRightMargin write SetRightMargin;
+    {* 以点为单位的页面内容右边距}
+    property TopMargin: Integer read FTopMargin write SetTopMargin;
+    {* 以点为单位的页面内容上边距}
+    property BottomMargin: Integer read FBottomMargin write SetBottomMargin;
+    {* 以点为单位的页面内容下边距}
+
+    property Author: string read FAuthor write FAuthor;
+    {* 作者}
+    property Producer: string read FProducer write FProducer;
+    {* 生产者}
+    property Creator: string read FCreator write FCreator;
+    {* 创作者}
+    property CreationDate: TDateTime read FCreationDate write FCreationDate;
+    {* 创作日期}
+    property Title: string read FTitle write FTitle;
+    {* 文档标题}
+    property Subject: string read FSubject write FSubject;
+    {* 文档主题}
+    property Keywords: string read FKeywords write FKeywords;
+    {* 文档关键字}
+    property Company: string read FCompany write FCompany;
+    {* 文档所属公司}
+    property Comments: string read FComments write FComments;
+    {* 其他注释}
+  end;
+
 function CnLoadPDFFile(const FileName: string): TCnPDFDocument;
 {* 解析一个 PDF 文件，返回一个新建的 PDFDocument 对象}
 
@@ -827,10 +908,18 @@ uses
   CnZip, CnRandom;
 
 const
-  IDLENGTH = 16;
-  INDENTDELTA = 4;
-  SPACE: AnsiChar = ' ';
-  CRLF: array[0..1] of AnsiChar = (#13, #10);
+  CN_PDF_A4PT_WIDTH = 612;        // A4 页面的默认宽度
+  CN_PDF_A4PT_HEIGHT = 792;       // A4 页面的默认高度
+  CN_PDF_A4PT_MARGIN_LEFT = 90;   // A4 页面的默认左边距
+  CN_PDF_A4PT_MARGIN_RIGHT = 90;  // A4 页面的默认右边距
+  CN_PDF_A4PT_MARGIN_TOP = 72;    // A4 页面的默认上边距
+  CN_PDF_A4PT_MARGIN_BOTTOM = 72; // A4 页面的默认下边距
+
+  IDLENGTH = 16;                  // PDF 文件的 ID 的长度
+  INDENTDELTA = 4;                // PDF 内容输出时的默认缩进
+
+  SPACE: AnsiChar = ' ';                       // 空格
+  CRLF: array[0..1] of AnsiChar = (#13, #10);  // 回车换行
 
   CRLFS: set of AnsiChar = [#13, #10];
   // PDF 规范中的空白字符中的回车换行
@@ -839,6 +928,7 @@ const
   DELIMETERS: set of AnsiChar = ['(', ')', '<', '>', '[', ']', '{', '}', '%'];
   // PDF 规范中的分隔字符
 
+  // 以下是 PDF 文中的固定字符串
   PDFHEADER: AnsiString = '%PDF-';
   OBJFMT: AnsiString = '%d %d obj';
   ENDOBJ: AnsiString = 'endobj';
@@ -849,6 +939,13 @@ const
   TRAILER: AnsiString = 'trailer';
   STARTXREF: AnsiString = 'startxref';
   EOF: AnsiString = '%%EOF';
+
+resourcestring
+  SCnErrorPDFImageFileNotFound = 'Image File NOT Found';
+  SCnErrorPDFNoFile = 'NO Image Files';
+  SCnErrorPDFPageSize = 'Invalid Page Size';
+  SCnErrorPDFPageMargin = 'Invalid Page Margin';
+  SCnErrorPDFPageSizeMargin = 'Invalid Page Size and Margin';
 
 function WriteSpace(Stream: TStream): Cardinal;
 begin
@@ -1099,7 +1196,7 @@ begin
     Seg := Segments[I];
     for J := 0 to Seg.Count - 1 do
     begin
-      if (Seg.ObjectIndex + J = Obj.ID) and (Seg.Items[J].ObjectGeneration = Obj.Generation) then
+      if (Seg.ObjectIndex + Cardinal(J) = Obj.ID) and (Seg.Items[J].ObjectGeneration = Obj.Generation) then
       begin
         Result := Seg.Items[J];
         Exit;
@@ -3699,7 +3796,107 @@ end;
 
 procedure CnJpegFilesToPDF(JpegFiles: TStrings; const FileName: string);
 var
+  Creator: TCnImagesToPDFCreator;
+begin
+  Creator := TCnImagesToPDFCreator.Create;
+  try
+    Creator.AddJpegFiles(JpegFiles);
+    Creator.SaveToPDF(FileName);
+  finally
+    Creator.Free;
+  end;
+end;
+
+{ TCnImagePDFCreator }
+
+procedure TCnImagesToPDFCreator.AddJpegFile(const JpegFile: string);
+begin
+  if FileExists(JpegFile) then
+    FFiles.Add(JpegFile)
+  else
+    raise ECnPDFException.Create(SCnErrorPDFImageFileNotFound);
+end;
+
+procedure TCnImagesToPDFCreator.AddJpegFiles(const JpegFiles: TStrings);
+var
   I: Integer;
+begin
+  for I := 0 to JpegFiles.Count - 1 do
+    AddJpegFile(JpegFiles[I]);
+end;
+
+procedure TCnImagesToPDFCreator.CalcImageSize(var ImageWidth, ImageHeight: Integer);
+var
+  W, H: Extended;
+begin
+  // 页面宽 612，高 792，左右边距默认 90，上下边距默认 72
+  // 因而中间内容区的宽为：页面宽 - 左边距 - 右边距 = 612 - 90 - 90 = 432
+  // 高为：页面高 - 上边距 - 下边距 = 792 - 72 - 72 = 648
+  // 图像如有一边超出该长度则要等比例缩，缩完再看另一边是否超长，是则再缩
+
+  W := FPageWidth - FLeftMargin - FRightMargin;     // 默认 432
+  H := FPageHeight - FTopMargin - FBottomMargin;    // 默认 648
+
+  if ImageWidth > W then
+  begin
+    ImageHeight := Round(ImageHeight * W / ImageWidth);
+    ImageWidth := Round(W);
+  end;
+
+  if ImageHeight > H then
+  begin
+    ImageWidth := Round(ImageWidth * H / ImageHeight);
+    ImageHeight := Round(H);
+  end;
+end;
+
+procedure TCnImagesToPDFCreator.Clear;
+begin
+  FFiles.Clear;
+end;
+
+constructor TCnImagesToPDFCreator.Create;
+begin
+  inherited;
+  FFiles := TStringList.Create;
+
+  FPageHeight := CN_PDF_A4PT_HEIGHT;
+  FPageWidth := CN_PDF_A4PT_WIDTH;
+  FLeftMargin := CN_PDF_A4PT_MARGIN_LEFT;
+  FRightMargin := CN_PDF_A4PT_MARGIN_RIGHT;
+  FTopMargin := CN_PDF_A4PT_MARGIN_TOP;
+  FBottomMargin := CN_PDF_A4PT_MARGIN_BOTTOM;
+
+  FAuthor := 'CnPack CnVCL';
+  FProducer := 'CnPack Team';
+  FCreator := 'CnPack Images PDF Creator';
+  FCreationDate := Now;
+
+  FTitle := '文档标题';
+  FKeywords := '文档关键字,图像关键字';
+  FSubject := '文档主题';
+  FCompany := 'CnPack开发组';
+  FComments := '本PDF文档由CnPack开发组CnVCL项目中的PDF解析库生成';
+end;
+
+destructor TCnImagesToPDFCreator.Destroy;
+begin
+  FFiles.Free;
+  inherited;
+end;
+
+procedure TCnImagesToPDFCreator.RemoveJpegFile(const JpegFile: string);
+var
+  Idx: Integer;
+begin
+  Idx := FFiles.IndexOf(JpegFile);
+  if Idx >= 0 then
+    FFiles.Delete(Idx);
+end;
+
+procedure TCnImagesToPDFCreator.SaveToPDF(const PDFFile: string);
+var
+  I, W, H: Integer;
   PDF: TCnPDFDocument;
   Page: TCnPDFDictionaryObject;
   Box: TCnPDFArrayObject;
@@ -3708,44 +3905,30 @@ var
   ExtGState, ResDict: TCnPDFDictionaryObject;
   Content: TCnPDFStreamObject;
   ContData: TStringList;
-  W, H: Integer;
-
-  procedure CalcImageSize(var ImageWidth, ImageHeight: Integer);
-  begin
-    // 页面宽 612，高 792，左右边距默认 90，上下边距默认 72
-    // 因而中间内容区的宽为：页面宽 - 左边距 - 右边距 = 612 - 90 - 90 = 432
-    // 高为：页面高 - 上边距 - 下边距 = 792 - 72 - 72 = 648
-    // 图像如有一边超出该长度则要等比例缩，缩完再看另一边是否超长，是则再缩
-
-    if ImageWidth > 432 then
-    begin
-      ImageHeight := Round(ImageHeight * 432.0 / ImageWidth);
-      ImageWidth := 432;
-    end;
-
-    if ImageHeight > 648 then
-    begin
-      ImageWidth := Round(ImageWidth * 648.0 / ImageHeight);
-      ImageHeight := 648;
-    end;
-  end;
-
 begin
-  PDF := TCnPDFDocument.Create;
-  ContData := TStringList.Create;
+  ValidatePage;
+  if FFiles.Count <= 0 then
+    raise ECnPDFException.Create(SCnErrorPDFNoFile);
+
+  PDF := nil;
+  ContData := nil;
 
   try
-    PDF.Body.CreateResources;
-    PDF.Body.Info.AddAnsiString('Author', 'CnPack');
-    PDF.Body.Info.AddAnsiString('Producer', 'CnPDF in CnVCL');
-    PDF.Body.Info.AddAnsiString('Creator', 'CnPack PDF Creator');
-    PDF.Body.Info.AddAnsiString('CreationDate', 'D:' + FormatDateTime('yyyyMMddhhmmss', Now) + '+8''00''');
+    PDF := TCnPDFDocument.Create;
+    ContData := TStringList.Create;
 
-    PDF.Body.Info.AddWideString('Title', '图像标题');
-    PDF.Body.Info.AddWideString('Subject', '图像主题');
-    PDF.Body.Info.AddWideString('Keywords', '关键字、图像');
-    PDF.Body.Info.AddWideString('Company', 'CnPack开发组');
-    PDF.Body.Info.AddWideString('Comments', '文章注释');
+    PDF.Body.CreateResources;
+
+    PDF.Body.Info.AddWideString('Author', FAuthor);
+    PDF.Body.Info.AddWideString('Producer', FProducer);
+    PDF.Body.Info.AddWideString('Creator', FCreator);
+    PDF.Body.Info.AddAnsiString('CreationDate', 'D:' + FormatDateTime('yyyyMMddhhmmss', FCreationDate) + '+8''00''');
+
+    PDF.Body.Info.AddWideString('Title', FTitle);
+    PDF.Body.Info.AddWideString('Subject', FSubject);
+    PDF.Body.Info.AddWideString('Keywords', FKeywords);
+    PDF.Body.Info.AddWideString('Company', FCompany);
+    PDF.Body.Info.AddWideString('Comments', FComments);
 
     // 添加 ExtGState 供多个页面共用
     ExtGState := TCnPDFDictionaryObject.Create;
@@ -3756,7 +3939,7 @@ begin
     ExtGState.AddNumber('ca', 1);
     PDF.Body.AddObject(ExtGState);
 
-    for I := 0 to JpegFiles.Count - 1 do
+    for I := 0 to FFiles.Count - 1 do
     begin
       // 新加一页
       Page := PDF.Body.AddPage;
@@ -3765,12 +3948,12 @@ begin
       Box := Page.AddArray('MediaBox');
       Box.AddNumber(0);
       Box.AddNumber(0);
-      Box.AddNumber(612);
-      Box.AddNumber(792);
+      Box.AddNumber(FPageWidth);
+      Box.AddNumber(FPageHeight);
 
       // 添加图像内容
       Stream := TCnPDFStreamObject.Create;
-      Stream.SetJpegImage(JpegFiles[I]);
+      Stream.SetJpegImage(FFiles[I]);
       PDF.Body.AddObject(Stream);
 
       // 添加引用此图像的资源
@@ -3793,7 +3976,8 @@ begin
       H := TCnPDFNumberObject(Stream.Values['Height']).AsInteger;
       CalcImageSize(W, H);
 
-      ContData.Add(Format('1 0 0 1 %d %d cm', [90, 792 - 72 - H]));
+      ContData.Add(Format('1 0 0 1 %d %d cm', [FLeftMargin,
+        FPageHeight - FTopMargin - H]));
       ContData.Add(Format('%d 0 0 %d 0 0 cm', [W, H]));
 
       ContData.Add('/IM' + IntToStr(Stream.ID) + ' Do');
@@ -3805,11 +3989,56 @@ begin
     end;
 
     PDF.Trailer.GenerateID;
-    PDF.SaveToFile(FileName);
+    PDF.SaveToFile(PDFFile);
   finally
     ContData.Free;
     PDF.Free;
   end;
+end;
+
+procedure TCnImagesToPDFCreator.SetBottomMargin(const Value: Integer);
+begin
+  FBottomMargin := Value;
+end;
+
+procedure TCnImagesToPDFCreator.SetLeftMargin(const Value: Integer);
+begin
+  FLeftMargin := Value;
+end;
+
+procedure TCnImagesToPDFCreator.SetPageHeight(const Value: Integer);
+begin
+  FPageHeight := Value;
+end;
+
+procedure TCnImagesToPDFCreator.SetPageWidth(const Value: Integer);
+begin
+  FPageWidth := Value;
+end;
+
+procedure TCnImagesToPDFCreator.SetRightMargin(const Value: Integer);
+begin
+  FRightMargin := Value;
+end;
+
+procedure TCnImagesToPDFCreator.SetTopMargin(const Value: Integer);
+begin
+  FTopMargin := Value;
+end;
+
+procedure TCnImagesToPDFCreator.ValidatePage;
+begin
+  // 检查页面尺寸是否合格
+  if (FPageWidth <= 0) or (FPageHeight <= 0) then
+    raise ECnPDFException.Create(SCnErrorPDFPageSize);
+
+  // 检查页边距是否合格
+  if (FLeftMargin < 0) or (FRightMargin < 0) or (FTopMargin < 0) or (FBottomMargin < 0) then
+    raise ECnPDFException.Create(SCnErrorPDFPageMargin);
+
+  // 检查页边距是否太大弄没了内容区
+  if ((FLeftMargin + FRightMargin) >= FPageWidth) or ((FTopMargin + FBottomMargin) > FPageHeight) then
+    raise ECnPDFException.Create(SCnErrorPDFPageSizeMargin);
 end;
 
 end.

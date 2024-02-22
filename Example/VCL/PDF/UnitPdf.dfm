@@ -1,6 +1,6 @@
 object FormPDF: TFormPDF
   Left = 193
-  Top = 108
+  Top = 109
   Width = 1130
   Height = 563
   Caption = 'PDF'
@@ -49,16 +49,16 @@ object FormPDF: TFormPDF
     OnClick = btnParsePDFStructureClick
   end
   object btnImages: TButton
-    Left = 824
+    Left = 912
     Top = 16
-    Width = 137
+    Width = 89
     Height = 25
     Caption = 'Images To PDF'
     TabOrder = 4
     OnClick = btnImagesClick
   end
   object btnAddJPG: TButton
-    Left = 1008
+    Left = 824
     Top = 16
     Width = 75
     Height = 25
@@ -73,6 +73,15 @@ object FormPDF: TFormPDF
     Height = 457
     ItemHeight = 13
     TabOrder = 6
+  end
+  object btnPDFCreator: TButton
+    Left = 1008
+    Top = 16
+    Width = 89
+    Height = 25
+    Caption = 'Using Creator'
+    TabOrder = 7
+    OnClick = btnPDFCreatorClick
   end
   object dlgSave1: TSaveDialog
     Left = 448

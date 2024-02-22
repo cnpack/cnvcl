@@ -17,11 +17,13 @@ type
     btnImages: TButton;
     btnAddJPG: TButton;
     lstJpegs: TListBox;
+    btnPDFCreator: TButton;
     procedure btnGenSimpleClick(Sender: TObject);
     procedure btnParsePDFTokenClick(Sender: TObject);
     procedure btnParsePDFStructureClick(Sender: TObject);
     procedure btnAddJPGClick(Sender: TObject);
     procedure btnImagesClick(Sender: TObject);
+    procedure btnPDFCreatorClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -203,6 +205,24 @@ begin
   dlgSave1.Title := 'Save to a PDF';
   if dlgSave1.Execute then
     CnJpegFilesToPDF(lstJpegs.Items, dlgSave1.FileName);
+end;
+
+procedure TFormPDF.btnPDFCreatorClick(Sender: TObject);
+var
+  Creator: TCnImagesToPDFCreator;
+begin
+  dlgSave1.Title := 'Save to a PDF';
+  if dlgSave1.Execute then
+  begin
+    Creator := TCnImagesToPDFCreator.Create;
+    Creator.AddJpegFiles(lstJpegs.Items);
+    Creator.TopMargin := 20;
+    Creator.LeftMargin := 20;
+    Creator.RightMargin := 20;
+    Creator.BottomMargin := 20;
+    Creator.SaveToPDF(dlgSave1.FileName);
+    Creator.Free;
+  end;
 end;
 
 end.
