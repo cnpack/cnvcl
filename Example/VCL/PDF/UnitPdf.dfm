@@ -83,6 +83,15 @@ object FormPDF: TFormPDF
     TabOrder = 7
     OnClick = btnPDFCreatorClick
   end
+  object btnExtractJPG: TButton
+    Left = 480
+    Top = 16
+    Width = 105
+    Height = 25
+    Caption = 'Extract JPG'
+    TabOrder = 8
+    OnClick = btnExtractJPGClick
+  end
   object dlgSave1: TSaveDialog
     Left = 448
     Top = 8

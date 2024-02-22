@@ -18,12 +18,14 @@ type
     btnAddJPG: TButton;
     lstJpegs: TListBox;
     btnPDFCreator: TButton;
+    btnExtractJPG: TButton;
     procedure btnGenSimpleClick(Sender: TObject);
     procedure btnParsePDFTokenClick(Sender: TObject);
     procedure btnParsePDFStructureClick(Sender: TObject);
     procedure btnAddJPGClick(Sender: TObject);
     procedure btnImagesClick(Sender: TObject);
     procedure btnPDFCreatorClick(Sender: TObject);
+    procedure btnExtractJPGClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -223,6 +225,12 @@ begin
     Creator.SaveToPDF(dlgSave1.FileName);
     Creator.Free;
   end;
+end;
+
+procedure TFormPDF.btnExtractJPGClick(Sender: TObject);
+begin
+  if dlgOpen1.Execute then
+    CnExtractJpegFilesFromPDF(dlgOpen1.FileName, ExtractFilePath(Application.ExeName));
 end;
 
 end.

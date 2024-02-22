@@ -29,6 +29,7 @@ unit CnPDF;
 *           生成：先构造固定的对象树，补充内容后写入流
 *
 *           封装了 CnJpegFilesToPDF 过程，将多个 JPEG 文件拼成一个 PDF 输出
+*           也实现了 TCnImagesToPDFCreator 以在输出 JPEG 的 PDF 时支持页面边距等设置
 *
 *           文件尾的 Trailer 的 Root 指向 Catalog 对象，大体的树结构如下：
 *
@@ -56,6 +57,7 @@ unit CnPDF;
 * 本 地 化：该单元无需本地化处理  TCnImagesToPDFCreator
 * 修改记录：2024.02.22 V1.3
 *               实现 TCnImagesToPDFCreator 以在输出 JPEG 的 PDF 时支持页面边距等设置
+*               增加从 PDF 中抽取 JPEG 文件的方法
 *           2024.02.012 V1.3
 *               TCnPDFDocument 能够初步分析并输出逻辑结构
 *               实现 CnJpegFilesToPDF 过程，将多个 JPEG 文件拼成一个 PDF 输出
@@ -901,6 +903,9 @@ procedure CnSavePDFFile(PDF: TCnPDFDocument; const FileName: string);
 procedure CnJpegFilesToPDF(JpegFiles: TStrings; const FileName: string);
 {* 将一批 JPG 文件拼成一个 PDF 文件，输出至指定文件名
   PDF 页面内采用竖向的标准 A4 纸张尺寸并采用标准左右上下边距值}
+
+procedure CnExtractJpegFilesFromPDF(const FileName, OutDirName: string);
+{* 打开指定 PDF 文件并将其内部的 JPG 图片解压至指定目录}
 
 implementation
 
@@ -3804,6 +3809,39 @@ begin
     Creator.SaveToPDF(FileName);
   finally
     Creator.Free;
+  end;
+end;
+
+procedure CnExtractJpegFilesFromPDF(const FileName, OutDirName: string);
+var
+  I: Integer;
+  PDF: TCnPDFDocument;
+  Stm: TCnPDFStreamObject;
+  F: TFileStream;
+begin
+  PDF := TCnPDFDocument.Create;
+  try
+    PDF.LoadFromFile(FileName);
+    for I := 0 to PDF.Body.Objects.Count - 1 do
+    begin
+      if PDF.Body.Objects[I] is TCnPDFStreamObject then
+      begin
+        Stm := PDF.Body.Objects[I] as TCnPDFStreamObject;
+        if (Stm.Values['Filter'] is TCnPDFNameObject) and
+          ((Stm.Values['Filter'] as TCnPDFNameObject).Name = 'DCTDecode') then
+        begin
+          F := TFileStream.Create(IncludeTrailingBackslash(OutDirName)
+            + IntToStr(I) + '.jpg', fmCreate);
+          try
+            BytesToStream(Stm.Stream, F);
+          finally
+            F.Free;
+          end
+        end;
+      end;
+    end;
+  finally
+    PDF.Free;
   end;
 end;
 
