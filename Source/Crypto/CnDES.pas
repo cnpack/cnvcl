@@ -117,19 +117,19 @@ procedure DESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
 function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0。等同于 DESEncryptECBStrToHex}
 
-function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;{$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+function DESDecryptStrFromHex(const HexStr, Key: AnsiString): AnsiString;{$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文。等同于 DESDecryptECBStrFromHex}
 
 function DESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
 {* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0}
 
-function DESDecryptECBStrFromHex(const StrHex, Key: AnsiString): AnsiString;
+function DESDecryptECBStrFromHex(const HexStr, Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文}
 
 function DESEncryptCBCStrToHex(const Str, Key, Iv: AnsiString): AnsiString;
 {* 传入明文与加密 Key 与 Iv，DES 加密返回转换成十六进制的密文，CBC 模式，明文末尾可能补 0}
 
-function DESDecryptCBCStrFromHex(const StrHex, Key, Iv: AnsiString): AnsiString;
+function DESDecryptCBCStrFromHex(const HexStr, Key, Iv: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key 与 Iv，DES CBC 解密返回明文}
 
 function DESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
@@ -223,19 +223,19 @@ procedure TripleDESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
 function TripleDESEncryptStrToHex(const Str, Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 传入明文与加密 Key，3DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0。等同于 TripleDESEncryptECBStrToHex}
 
-function TripleDESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+function TripleDESDecryptStrFromHex(const HexStr, Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 传入十六进制的密文与加密 Key，3DES ECB 解密返回明文。等同于 TripleDESDecryptECBStrFromHex}
 
 function TripleDESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
 {* 传入明文与加密 Key，3DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0}
 
-function TripleDESDecryptECBStrFromHex(const StrHex, Key: AnsiString): AnsiString;
+function TripleDESDecryptECBStrFromHex(const HexStr, Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key，3DES ECB 解密返回明文}
 
 function TripleDESEncryptCBCStrToHex(const Str, Key, Iv: AnsiString): AnsiString;
 {* 传入明文与加密 Key 与 Iv，3DES 加密返回转换成十六进制的密文，CBC 模式，明文末尾可能补 0}
 
-function TripleDESDecryptCBCStrFromHex(const StrHex, Key, Iv: AnsiString): AnsiString;
+function TripleDESDecryptCBCStrFromHex(const HexStr, Key, Iv: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key 与 Iv，3DES CBC 解密返回明文}
 
 function TripleDESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
@@ -775,9 +775,9 @@ begin
   Result := DESEncryptECBStrToHex(Str, Key);
 end;
 
-function DESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
+function DESDecryptStrFromHex(const HexStr, Key: AnsiString): AnsiString;
 begin
-  Result := DESDecryptECBStrFromHex(StrHex, Key);
+  Result := DESDecryptECBStrFromHex(HexStr, Key);
 end;
 
 function DESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
@@ -793,11 +793,11 @@ begin
   Result := AnsiStrToHex(TempResult);
 end;
 
-function DESDecryptECBStrFromHex(const StrHex, Key: AnsiString): AnsiString;
+function DESDecryptECBStrFromHex(const HexStr, Key: AnsiString): AnsiString;
 var
   Str: AnsiString;
 begin
-  Str := HexToAnsiStr(StrHex);
+  Str := HexToAnsiStr(HexStr);
   SetResultLengthUsingInput(Str, Result);
   DESDecryptECBStr(Key, Str, @(Result[1]));
 end;
@@ -815,11 +815,11 @@ begin
   Result := AnsiStrToHex(TempResult);
 end;
 
-function DESDecryptCBCStrFromHex(const StrHex, Key, Iv: AnsiString): AnsiString;
+function DESDecryptCBCStrFromHex(const HexStr, Key, Iv: AnsiString): AnsiString;
 var
   Str: AnsiString;
 begin
-  Str := HexToAnsiStr(StrHex);
+  Str := HexToAnsiStr(HexStr);
   SetResultLengthUsingInput(Str, Result);
   DESDecryptCBCStr(Key, PAnsiChar(Iv), Str, @(Result[1]));
 end;
@@ -1350,9 +1350,9 @@ begin
   Result := TripleDESEncryptECBStrToHex(Str, Key);
 end;
 
-function TripleDESDecryptStrFromHex(const StrHex, Key: AnsiString): AnsiString;
+function TripleDESDecryptStrFromHex(const HexStr, Key: AnsiString): AnsiString;
 begin
-  Result := TripleDESDecryptECBStrFromHex(StrHex, Key);
+  Result := TripleDESDecryptECBStrFromHex(HexStr, Key);
 end;
 
 function TripleDESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
@@ -1373,11 +1373,11 @@ begin
   end;
 end;
 
-function TripleDESDecryptECBStrFromHex(const StrHex, Key: AnsiString): AnsiString;
+function TripleDESDecryptECBStrFromHex(const HexStr, Key: AnsiString): AnsiString;
 var
   Str: AnsiString;
 begin
-  Str := HexToAnsiStr(StrHex);
+  Str := HexToAnsiStr(HexStr);
   SetResultLengthUsingInput(Str, Result);
   TripleDESDecryptECBStr(Key, Str, @(Result[1]));
 end;
@@ -1400,11 +1400,11 @@ begin
   end;
 end;
 
-function TripleDESDecryptCBCStrFromHex(const StrHex, Key, Iv: AnsiString): AnsiString;
+function TripleDESDecryptCBCStrFromHex(const HexStr, Key, Iv: AnsiString): AnsiString;
 var
   Str: AnsiString;
 begin
-  Str := HexToAnsiStr(StrHex);
+  Str := HexToAnsiStr(HexStr);
   SetResultLengthUsingInput(Str, Result);
   TripleDESDecryptCBCStr(Key, PAnsiChar(Iv), Str, @(Result[1]));
 end;
