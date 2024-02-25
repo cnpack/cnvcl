@@ -65,7 +65,7 @@ function RC4DecryptBytes(Key, Input: TBytes): TBytes;
 function RC4EncryptStrToHex(const Str, Key: AnsiString): AnsiString;
 {* 传入字符串形式的明文与密钥，RC4 加密返回转换成十六进制的密文}
 
-function DESDecryptECBStrFromHex(const HexStr, Key: AnsiString): AnsiString;
+function RC4DecryptStrFromHex(const HexStr, Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与字符串形式的密钥，RC4 解密返回明文}
 
 implementation
@@ -175,13 +175,33 @@ begin
 end;
 
 function RC4EncryptStrToHex(const Str, Key: AnsiString): AnsiString;
+var
+  Res: TBytes;
 begin
+  if (Length(Key) = 0) or (Length(Str) = 0) then
+  begin
+    Result := '';
+    Exit;
+  end;
 
+  SetLength(Res, Length(Str));
+  RC4(@Key[1], Length(Key), @Str[1], @Res[0], Length(Str));
+  Result := BytesToHex(Res);
 end;
 
-function DESDecryptECBStrFromHex(const HexStr, Key: AnsiString): AnsiString;
+function RC4DecryptStrFromHex(const HexStr, Key: AnsiString): AnsiString;
+var
+  Res: TBytes;
 begin
+  if (Length(Key) = 0) or (Length(HexStr) = 0) then
+  begin
+    Result := '';
+    Exit;
+  end;
 
+  Res := HexToBytes(HexStr);
+  RC4(@Key[1], Length(Key), @Res[0], @Res[0], Length(Res));
+  Result := BytesToAnsi(Res);
 end;
 
 end.

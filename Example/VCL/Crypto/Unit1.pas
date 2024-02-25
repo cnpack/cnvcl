@@ -367,6 +367,18 @@ type
     chkSHA3_384Utf8: TCheckBox;
     chkSHA3_512Utf8: TCheckBox;
     chkSHAKEUtf8: TCheckBox;
+    tsRC4: TTabSheet;
+    grpRC4: TGroupBox;
+    edtRC4From: TEdit;
+    lblRC4From: TLabel;
+    lblRC4Key: TLabel;
+    edtRC4Key: TEdit;
+    btnRC4Crypt: TButton;
+    lblRC4Code: TLabel;
+    edtRC4Code: TEdit;
+    btnRC4Decrypt: TButton;
+    lblRC4Origin: TLabel;
+    edtRC4Origin: TEdit;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -476,6 +488,8 @@ type
     procedure btnSHAKEFileClick(Sender: TObject);
     procedure btnSM4Utf8EncClick(Sender: TObject);
     procedure btnSM4Utf8DecClick(Sender: TObject);
+    procedure btnRC4CryptClick(Sender: TObject);
+    procedure btnRC4DecryptClick(Sender: TObject);
   private
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -491,7 +505,8 @@ implementation
 
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
-  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnAEAD, CnFNV, CnPemUtils, CnNative, CnCommon;
+  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnAEAD, CnFNV, CnRC4,
+  CnPemUtils, CnNative, CnCommon;
 
 {$R *.DFM}
 
@@ -3022,6 +3037,16 @@ begin
       BytesRemovePKCS7Padding(Res);
 
   edtSm4Dec.Text := CnUtf8ToAnsi(BytesToAnsi(Res));
+end;
+
+procedure TFormCrypt.btnRC4CryptClick(Sender: TObject);
+begin
+  edtRC4Code.Text := RC4EncryptStrToHex(edtRC4From.Text, edtRC4Key.Text);
+end;
+
+procedure TFormCrypt.btnRC4DecryptClick(Sender: TObject);
+begin
+  edtRC4Origin.Text := RC4DecryptStrFromHex(edtRC4Code.Text, edtRC4Key.Text);
 end;
 
 end.

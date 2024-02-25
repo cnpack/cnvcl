@@ -2875,6 +2875,95 @@ object FormCrypt: TFormCrypt
         end
       end
     end
+    object tsRC4: TTabSheet
+      Caption = 'RC4'
+      ImageIndex = 25
+      object grpRC4: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 689
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'RC4'
+        TabOrder = 0
+        object lblRC4From: TLabel
+          Left = 32
+          Top = 36
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblRC4Key: TLabel
+          Left = 32
+          Top = 72
+          Width = 22
+          Height = 13
+          Caption = 'Key:'
+        end
+        object lblRC4Code: TLabel
+          Left = 32
+          Top = 164
+          Width = 29
+          Height = 13
+          Caption = 'Code:'
+        end
+        object lblRC4Origin: TLabel
+          Left = 32
+          Top = 248
+          Width = 32
+          Height = 13
+          Caption = 'Origin:'
+        end
+        object edtRC4From: TEdit
+          Left = 80
+          Top = 32
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object edtRC4Key: TEdit
+          Left = 80
+          Top = 72
+          Width = 169
+          Height = 21
+          TabOrder = 1
+          Text = '123456'
+        end
+        object btnRC4Crypt: TButton
+          Left = 80
+          Top = 112
+          Width = 75
+          Height = 25
+          Caption = 'RC4 Crypt'
+          TabOrder = 2
+          OnClick = btnRC4CryptClick
+        end
+        object edtRC4Code: TEdit
+          Left = 80
+          Top = 160
+          Width = 169
+          Height = 21
+          TabOrder = 3
+        end
+        object btnRC4Decrypt: TButton
+          Left = 80
+          Top = 200
+          Width = 75
+          Height = 25
+          Caption = 'RC4 Decrypt'
+          TabOrder = 4
+          OnClick = btnRC4DecryptClick
+        end
+        object edtRC4Origin: TEdit
+          Left = 80
+          Top = 244
+          Width = 169
+          Height = 21
+          TabOrder = 5
+        end
+      end
+    end
   end
   object OpenDialog1: TOpenDialog
     Left = 220
