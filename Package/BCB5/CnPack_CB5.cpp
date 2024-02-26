@@ -40,6 +40,7 @@ USEUNIT("..\..\Source\Common\CnLockFree.pas");
 USEUNIT("..\..\Source\Common\CnMatrix.pas");
 USEUNIT("..\..\Source\Common\CnMath.pas");
 USEUNIT("..\..\Source\Common\CnMethodHook.pas");
+USEUNIT("..\..\Source\Common\CnPDF.pas");
 USEUNIT("..\..\Source\Common\CnPE.pas");
 USEUNIT("..\..\Source\Common\CnRopes.pas");
 USEUNIT("..\..\Source\Common\CnShellUtils.pas");
