@@ -38,7 +38,6 @@
       ..\..\Source\Common\CnMatrix.obj 
       ..\..\Source\Common\CnMath.obj 
       ..\..\Source\Common\CnMethodHook.obj 
-      ..\..\Source\Common\CnPDF.obj 
       ..\..\Source\Common\CnPE.obj 
       ..\..\Source\Common\CnMulticastEvent.obj 
       ..\..\Source\Common\CnRopes.obj 
@@ -328,7 +327,6 @@
       <FILE FILENAME="..\..\Source\Common\CnMatrix.pas" FORMNAME="" UNITNAME="CnMatrix" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMath.pas" FORMNAME="" UNITNAME="CnMath" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMethodHook.pas" FORMNAME="" UNITNAME="CnMethodHook" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Common\CnPDF.pas" FORMNAME="" UNITNAME="CnPDF" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnPE.pas" FORMNAME="" UNITNAME="CnPE" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMulticastEvent.pas" FORMNAME="" UNITNAME="CnMulticastEvent" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnObjAuto.pas" FORMNAME="" UNITNAME="CnObjAuto" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
