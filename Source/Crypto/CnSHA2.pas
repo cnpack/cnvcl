@@ -96,6 +96,34 @@ type
     Boolean) of object;
   {* 进度回调事件类型声明}
 
+function SHA224(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA224Digest;
+{* 对数据块进行 SHA224 计算
+ |<PRE>
+   Input: PAnsiChar      - 要计算的数据块的首地址
+   ByteLength: Cardinal  - 数据块的字节长度
+ |</PRE>}
+
+function SHA256(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA256Digest;
+{* 对数据块进行 SHA256 计算
+ |<PRE>
+   Input: PAnsiChar      - 要计算的数据块的首地址
+   ByteLength: Cardinal  - 数据块的字节长度
+ |</PRE>}
+
+function SHA384(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA384Digest;
+{* 对数据块进行 SHA384 计算
+ |<PRE>
+   Input: PAnsiChar      - 要计算的数据块的首地址
+   ByteLength: Cardinal  - 数据块的字节长度
+ |</PRE>}
+
+function SHA512(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA512Digest;
+{* 对数据块进行 SHA512 计算
+ |<PRE>
+   Input: PAnsiChar      - 要计算的数据块的首地址
+   ByteLength: Cardinal  - 数据块的字节长度
+ |</PRE>}
+
 function SHA224Buffer(const Buffer; Count: Cardinal): TCnSHA224Digest;
 {* 对数据块进行 SHA224 计算
  |<PRE>
@@ -1010,6 +1038,46 @@ begin
     Digest[I + 48] := (Context.State[6] shr (56 - I * 8)) and $000000FF;
     Digest[I + 56] := (Context.State[7] shr (56 - I * 8)) and $000000FF;
   end;
+end;
+
+// 对数据块进行 SHA224 计算
+function SHA224(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA224Digest;
+var
+  Context: TCnSHA224Context;
+begin
+  SHA224Init(Context);
+  SHA224Update(Context, Input, ByteLength);
+  SHA224Final(Context, Result);
+end;
+
+// 对数据块进行 SHA256 计算
+function SHA256(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA256Digest;
+var
+  Context: TCnSHA256Context;
+begin
+  SHA256Init(Context);
+  SHA256Update(Context, Input, ByteLength);
+  SHA256Final(Context, Result);
+end;
+
+// 对数据块进行 SHA384 计算
+function SHA384(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA384Digest;
+var
+  Context: TCnSHA384Context;
+begin
+  SHA384Init(Context);
+  SHA384Update(Context, Input, ByteLength);
+  SHA384Final(Context, Result);
+end;
+
+// 对数据块进行 SHA512 计算
+function SHA512(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA512Digest;
+var
+  Context: TCnSHA512Context;
+begin
+  SHA512Init(Context);
+  SHA512Update(Context, Input, ByteLength);
+  SHA512Final(Context, Result);
 end;
 
 // 对数据块进行 SHA224 计算

@@ -100,6 +100,13 @@ type
 // 用户 API 函数定义
 //----------------------------------------------------------------
 
+function MD5(Input: PAnsiChar; ByteLength: Cardinal): TCnMD5Digest;
+{* 对数据块进行 MD5 计算
+ |<PRE>
+   Input: PAnsiChar      - 要计算的数据块的首地址
+   ByteLength: Cardinal  - 数据块的字节长度
+ |</PRE>}
+
 function MD5Buffer(const Buffer; Count: Cardinal): TCnMD5Digest;
 {* 对数据块进行 MD5 计算
  |<PRE>
@@ -541,6 +548,16 @@ end;
 //----------------------------------------------------------------
 // 用户 API 函数实现
 //----------------------------------------------------------------
+
+// 对数据块进行 MD5 计算
+function MD5(Input: PAnsiChar; ByteLength: Cardinal): TCnMD5Digest;
+var
+  Context: TCnMD5Context;
+begin
+  MD5Init(Context);
+  MD5Update(Context, Input, ByteLength);
+  MD5Final(Context, Result);
+end;
 
 // 对数据块进行 MD5 计算
 function MD5Buffer(const Buffer; Count: Cardinal): TCnMD5Digest;

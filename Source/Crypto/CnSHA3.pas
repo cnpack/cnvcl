@@ -96,6 +96,34 @@ type
     Boolean) of object;
   {* SHA3 计算进度回调事件类型声明}
 
+function SHA3_224(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA3_224Digest;
+{* 对数据块进行 SHA3_224 位计算
+ |<PRE>
+   Input: PAnsiChar      - 要计算的数据块的首地址
+   ByteLength: Cardinal  - 数据块的字节长度
+ |</PRE>}
+
+function SHA3_256(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA3_256Digest;
+{* 对数据块进行 SHA3_256 位计算
+ |<PRE>
+   Input: PAnsiChar      - 要计算的数据块的首地址
+   ByteLength: Cardinal  - 数据块的字节长度
+ |</PRE>}
+
+function SHA3_384(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA3_384Digest;
+{* 对数据块进行 SHA3_384 位计算
+ |<PRE>
+   Input: PAnsiChar      - 要计算的数据块的首地址
+   ByteLength: Cardinal  - 数据块的字节长度
+ |</PRE>}
+
+function SHA3_512(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA3_512Digest;
+{* 对数据块进行 SHA3_512 位计算
+ |<PRE>
+   Input: PAnsiChar      - 要计算的数据块的首地址
+   ByteLength: Cardinal  - 数据块的字节长度
+ |</PRE>}
+
 function SHA3_224Buffer(const Buffer; Count: Cardinal): TCnSHA3_224Digest;
 {* 对数据块进行 SHA3_224 计算
  |<PRE>
@@ -1015,6 +1043,54 @@ end;
 procedure SHAKE256Final(var Context: TCnSHA3Context; out Digest: TBytes);
 begin
   SHA3Final(Context, Digest);
+end;
+
+// 对数据块进行 SHA3_224位计算
+function SHA3_224(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA3_224Digest;
+var
+  Context: TCnSHA3Context;
+  Res: TCnSHA3GeneralDigest;
+begin
+  SHA3Init(Context, stSHA3_224);
+  SHA3Update(Context, Input, ByteLength);
+  SHA3Final(Context, Res);
+  Move(Res[0], Result[0], SHA3_224_OUTPUT_LENGTH_BYTE);
+end;
+
+// 对数据块进行 SHA3_256位计算
+function SHA3_256(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA3_256Digest;
+var
+  Context: TCnSHA3Context;
+  Res: TCnSHA3GeneralDigest;
+begin
+  SHA3Init(Context, stSHA3_256);
+  SHA3Update(Context, Input, ByteLength);
+  SHA3Final(Context, Res);
+  Move(Res[0], Result[0], SHA3_256_OUTPUT_LENGTH_BYTE);
+end;
+
+// 对数据块进行 SHA3_384位计算
+function SHA3_384(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA3_384Digest;
+var
+  Context: TCnSHA3Context;
+  Res: TCnSHA3GeneralDigest;
+begin
+  SHA3Init(Context, stSHA3_384);
+  SHA3Update(Context, Input, ByteLength);
+  SHA3Final(Context, Res);
+  Move(Res[0], Result[0], SHA3_384_OUTPUT_LENGTH_BYTE);
+end;
+
+// 对数据块进行 SHA3_512位计算
+function SHA3_512(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA3_512Digest;
+var
+  Context: TCnSHA3Context;
+  Res: TCnSHA3GeneralDigest;
+begin
+  SHA3Init(Context, stSHA3_512);
+  SHA3Update(Context, Input, ByteLength);
+  SHA3Final(Context, Res);
+  Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
 
 // 对数据块进行 SHA3_224 计算

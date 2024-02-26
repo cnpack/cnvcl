@@ -67,6 +67,13 @@ type
     var Cancel: Boolean) of object;
   {* 进度回调事件类型声明}
 
+function SHA1(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA1Digest;
+{* 对数据块进行 SHA-1 计算
+ |<PRE>
+   Input: PAnsiChar      - 要计算的数据块的首地址
+   ByteLength: Cardinal  - 数据块的字节长度
+ |</PRE>}
+
 function SHA1Buffer(const Buffer; Count: Cardinal): TCnSHA1Digest;
 {* 对数据块进行 SHA1 计算
  |<PRE>
@@ -368,6 +375,16 @@ begin
   Context.Hash[3] := RB(Context.Hash[3]);
   Context.Hash[4] := RB(Context.Hash[4]);
   Move(Context.Hash, Digest, Sizeof(Digest));
+end;
+
+// 对数据块进行 SHA1 计算
+function SHA1(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA1Digest;
+var
+  Context: TCnSHA1Context;
+begin
+  SHA1Init(Context);
+  SHA1Update(Context, Input, ByteLength);
+  SHA1Final(Context, Result);
 end;
 
 // 对数据块进行 SHA1 计算
