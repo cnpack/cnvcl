@@ -399,6 +399,7 @@ type
     procedure SetStrings(Strings: TStrings);
     {* 将指定 Strings 中的内容赋值给流}
 
+{$IFNDEF NO_ZLIB}
     procedure Compress;
     {* 将 FStream 明文内容压缩成标准 Zip 格式重新放入 FStream，请勿对其他已知编码的内容调用此压缩方法
       注意似乎无论 Delphi 版本高低也就是无论是否定义 SUPPORT_ZLIB_WINDOWBITS
@@ -407,6 +408,7 @@ type
     procedure Uncompress;
     {* 将 FStream 中的标准 Zip 内容解压缩成明文重新放入 FStream
       注意如果 Delphi 版本过低，内部解压时可能会出异常，暂无好办法}
+{$ENDIF}
 
     function ToString: string; override;
     procedure ToStrings(Strings: TStrings; Indent: Integer = 0); override;
@@ -910,7 +912,7 @@ procedure CnExtractJpegFilesFromPDF(const FileName, OutDirName: string);
 implementation
 
 uses
-  CnZip, CnRandom;
+  {$IFNDEF NO_ZLIB} CnZip, {$ENDIF} CnRandom;
 
 const
   CN_PDF_A4PT_WIDTH = 612;        // A4 页面的默认宽度
@@ -2427,14 +2429,18 @@ begin
 end;
 
 procedure TCnPDFDocument.UncompressObjects;
+{$IFNDEF NO_ZLIB}
 var
   I: Integer;
+{$ENDIF}
 begin
+{$IFNDEF NO_ZLIB}
   for I := 0 to FBody.Objects.Count - 1 do
   begin
     if FBody.Objects[I] is TCnPDFStreamObject then
       (FBody.Objects[I] as TCnPDFStreamObject).Uncompress;
   end;
+{$ENDIF}
 end;
 
 procedure TCnPDFDocument.DumpToStrings(Strings: TStrings);
@@ -3297,6 +3303,8 @@ begin
   end;
 end;
 
+{$IFNDEF NO_ZLIB}
+
 procedure TCnPDFStreamObject.Compress;
 var
   InS, OutS: TMemoryStream;
@@ -3365,6 +3373,8 @@ begin
     InS.Free;
   end;
 end;
+
+{$ENDIF}
 
 procedure TCnPDFStreamObject.SetStrings(Strings: TStrings);
 var
@@ -4023,7 +4033,9 @@ begin
       Content.SetStrings(ContData);
 
       Content.SupportCompress := True;
+{$IFNDEF NO_ZLIB}
       Content.Compress; // 使用 Deflate 压缩，低版本 Delphi 下似乎也兼容 Acrobat Reader 等阅读软件
+{$ENDIF}
     end;
 
     PDF.Trailer.GenerateID;
