@@ -101,7 +101,7 @@ begin
   K := PByteArray(Key);
   for I := 0 to CN_RC4_MAX_KEY_BYTE_LENGTH - 1 do
   begin
-    J := J + K^[I mod KeyByteLength];
+    J := J + State.Permutation[I] + K^[I mod KeyByteLength];
     SwapByte(State.Permutation[I], State.Permutation[J]);
   end;
 end;
