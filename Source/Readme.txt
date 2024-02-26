@@ -282,6 +282,9 @@ cnpack\Source 目录内容说明：
   CnRandom.pas
     随机数生成单元
 
+  CnRC4.pas
+    RC4 算法实现单元
+
   CnRSA.pas
     RSA 算法实现单元
 
@@ -318,7 +321,7 @@ cnpack\Source 目录内容说明：
   CnZUC.pas
     祖冲之算法实现单元
 
-                共 41 文件
+                共 42 文件
 
 \DbReport －数据库组件与报表库目录
 

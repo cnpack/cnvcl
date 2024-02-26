@@ -83,6 +83,7 @@
       ..\..\Source\Crypto\CnPolynomial.obj 
       ..\..\Source\Crypto\CnPrimeNumber.obj 
       ..\..\Source\Crypto\CnRandom.obj 
+      ..\..\Source\Crypto\CnRC4.obj 
       ..\..\Source\Crypto\CnRSA.obj 
       ..\..\Source\Crypto\CnSecretSharing.obj 
       ..\..\Source\Crypto\CnSHA1.obj 
@@ -373,6 +374,7 @@
       <FILE FILENAME="..\..\Source\Crypto\CnPolynomial.pas" FORMNAME="" UNITNAME="CnPolynomial" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnPrimeNumber.pas" FORMNAME="" UNITNAME="CnPrimeNumber" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnRandom.pas" FORMNAME="" UNITNAME="CnRandom" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnRC4.pas" FORMNAME="" UNITNAME="CnRC4" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnRSA.pas" FORMNAME="" UNITNAME="CnRSA" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnSecretSharing.pas" FORMNAME="" UNITNAME="CnSecretSharing" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnSHA1.pas" FORMNAME="" UNITNAME="CnSHA1" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

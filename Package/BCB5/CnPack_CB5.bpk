@@ -81,6 +81,7 @@
       ..\..\Source\Crypto\CnPolynomial.obj 
       ..\..\Source\Crypto\CnPrimeNumber.obj 
       ..\..\Source\Crypto\CnRandom.obj 
+      ..\..\Source\Crypto\CnRC4.obj 
       ..\..\Source\Crypto\CnRSA.obj 
       ..\..\Source\Crypto\CnSecretSharing.obj 
       ..\..\Source\Crypto\CnSHA1.obj 

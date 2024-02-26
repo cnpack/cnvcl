@@ -129,6 +129,7 @@ contains
   CnPolynomial in '..\..\Source\Crypto\CnPolynomial.pas',
   CnPrimeNumber in '..\..\Source\Crypto\CnPrimeNumber.pas',
   CnRandom in '..\..\Source\Crypto\CnRandom.pas',
+  CnRC4 in '..\..\Source\Crypto\CnRC4.pas',
   CnRSA in '..\..\Source\Crypto\CnRSA.pas',
   CnSecretSharing in '..\..\Source\Crypto\CnSecretSharing.pas',
   CnSHA1 in '..\..\Source\Crypto\CnSHA1.pas',
