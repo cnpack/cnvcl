@@ -581,8 +581,8 @@ function NewBytesFromMemory(Data: Pointer; DataByteLen: Integer): TBytes;
 function CompareBytes(A, B: TBytes): Boolean;
 {* 比较两个字节数组内容是否相同}
 
-procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
-{* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，
+function MoveMost(const Source; var Dest; ByteLen, MostLen: Integer): Integer;
+{* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，返回实际移动的字节数
   如 ByteLen 小于 MostLen，则 Dest 填充 0，要求 Dest 容纳至少 MostLen}
 
 // ================ 以下是执行时间固定的无 if 判断的部分逻辑函数 ===============
@@ -1963,17 +1963,25 @@ begin
     Result := CompareMem(@A[0], @B[0], L);
 end;
 
-procedure MoveMost(const Source; var Dest; ByteLen, MostLen: Integer);
+function MoveMost(const Source; var Dest; ByteLen, MostLen: Integer): Integer;
 begin
-  if MostLen <= 0 then
+  if (MostLen <= 0) or (ByteLen <= 0) then
+  begin
+    Result := 0;
     Exit;
+  end;
 
   if ByteLen > MostLen then
     ByteLen := MostLen
-  else if ByteLen < MostLen then // TODO: 可优化为只填充不满的部分但后面有空再整
+  else if ByteLen < MostLen then
+  begin
     FillChar(Dest, MostLen, 0);
 
+    // TODO: 要变为 FillChar(Dest + ByteLen, MostLen - ByteLen, 0); 以只填充不满的部分
+  end;
+
   Move(Source, Dest, ByteLen);
+  Result := ByteLen;
 end;
 
 procedure ConstTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
