@@ -44,7 +44,7 @@ uses
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
-  CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128;
+  CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
@@ -212,6 +212,10 @@ function TestZUCEEA33: Boolean;
 function TestZUCEIA31: Boolean;
 function TestZUCEIA32: Boolean;
 function TestZUCEIA33: Boolean;
+
+// ================================ RC4 ========================================
+
+function TestRC4: Boolean;
 
 // ================================ TEA ========================================
 
@@ -503,6 +507,10 @@ begin
   MyAssert(TestZUCEIA31, 'TestZUCEIA31');
   MyAssert(TestZUCEIA32, 'TestZUCEIA32');
   MyAssert(TestZUCEIA33, 'TestZUCEIA33');
+
+// ================================ ZUC ========================================
+
+  MyAssert(TestRC4, 'TestRC4');
 
 // ================================ TEA ========================================
 
@@ -2616,6 +2624,25 @@ var
 begin
   ZUCEIA3(@Key[0], $A94059DA, $A, 1, @Msg[0], 577, Mac);
   Result := Mac = $FAE8FF0B;
+end;
+
+// ================================ RC4 ========================================
+
+function TestRC4: Boolean;
+var
+  S, K, D: AnsiString;
+begin
+  S := 'Sample Text';
+  K := '123456';
+
+  D := RC4EncryptStrToHex(S, K);
+  Result := D = '53991317485635C81A4F56';
+
+  if not Result then Exit;
+
+  D := RC4DecryptStrFromHex(D, K);
+
+  Result := D = S;
 end;
 
 // ================================ TEA ========================================
