@@ -578,8 +578,11 @@ function ConcatBytes(A, B: TBytes): TBytes;
 function NewBytesFromMemory(Data: Pointer; DataByteLen: Integer): TBytes;
 {* 新建一字节数组，并从一片内存区域复制内容过来。}
 
-function CompareBytes(A, B: TBytes): Boolean;
+function CompareBytes(A, B: TBytes): Boolean; overload;
 {* 比较两个字节数组内容是否相同}
+
+function CompareBytes(A, B: TBytes; MaxLength: Integer): Boolean; overload;
+{* 比较两个字节数组的最多前 MaxLength 个字节的内容是否相同}
 
 function MoveMost(const Source; var Dest; ByteLen, MostLen: Integer): Integer;
 {* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，返回实际移动的字节数
@@ -1961,6 +1964,29 @@ begin
     Result := True       // 如都是 0 视作相等
   else
     Result := CompareMem(@A[0], @B[0], L);
+end;
+
+function CompareBytes(A, B: TBytes; MaxLength: Integer): Boolean;
+var
+  LA, LB: Integer;
+begin
+  Result := False;
+
+  LA := Length(A);
+  LB := Length(B);
+
+  if LA > MaxLength then
+    LA := MaxLength;
+  if LB > MaxLength then
+    LB := MaxLength;
+
+  if LA <> LB then
+    Exit;
+
+  if LA = 0 then
+    Result := True
+  else
+    Result := CompareMem(@A[0], @B[0], LA);
 end;
 
 function MoveMost(const Source; var Dest; ByteLen, MostLen: Integer): Integer;
