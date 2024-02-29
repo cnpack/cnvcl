@@ -54,7 +54,7 @@ unit CnPDF;
 *
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
-* 本 地 化：该单元无需本地化处理  TCnImagesToPDFCreator
+* 本 地 化：该单元无需本地化处理
 * 修改记录：2024.02.22 V1.3
 *               实现 TCnImagesToPDFCreator 以在输出 JPEG 的 PDF 时支持页面边距等设置
 *               增加从 PDF 中抽取 JPEG 文件的方法
@@ -106,6 +106,7 @@ type
     FGeneration: Cardinal;
     FXRefType: TCnPDFXRefType;
     FOffset: Integer;
+    FParent: TCnPDFObject;
   protected
     function CheckWriteObjectStart(Stream: TStream): Cardinal;
     function CheckWriteObjectEnd(Stream: TStream): Cardinal;
@@ -131,6 +132,9 @@ type
     {* 对象交叉引用类型，一般为 normal}
     property Offset: Integer read FOffset write FOffset;
     {* 内容中的偏移量，解析而来}
+
+    property Parent: TCnPDFObject read FParent write FParent;
+    {* 父节点的引用。譬如数组元素的数组，以及字典的名称、值的字典，顶层对象可为 nil}
   end;
 
   TCnPDFObjectClass = class of TCnPDFObject;
@@ -242,13 +246,18 @@ type
     {* 引用的对象}
   end;
 
+  TCnPDFDictionaryObject = class;
+
   TCnPDFDictPair = class(TPersistent)
-  {* PDF 文件中的字典对象类中的名字对象对，持有名字与值两个对象}
+  {* PDF 文件中的字典对象类中的名字对象对，持有名字与值两个对象，不具有 Parent 机制}
   private
     FName: TCnPDFNameObject;
     FValue: TCnPDFObject;
+    FDictionary: TCnPDFDictionaryObject;
+    procedure SetValue(const Value: TCnPDFObject);
   public
-    constructor Create(const Name: string); virtual;
+    constructor Create(const Name: string; Dict: TCnPDFDictionaryObject); virtual;
+    {* 构造函数，会创建名称对象并设置其 Parent 为指定字典对象}
     destructor Destroy; override;
 
     procedure Assign(Source: TPersistent); override;
@@ -260,10 +269,12 @@ type
     function WriteToStream(Stream: TStream): Cardinal;
     {* 输出名字 值}
 
+    property Dictionary: TCnPDFDictionaryObject read FDictionary;
+    {* 所属字典的引用}
     property Name: TCnPDFNameObject read FName;
     {* 名字对象}
-    property Value: TCnPDFObject read FValue write FValue;
-    {* 值对象，可由外界设置，自身释放}
+    property Value: TCnPDFObject read FValue write SetValue;
+    {* 值对象，可由外界设置，自身析构时释放。注意平时 SetValue 时不会释放旧值}
   end;
 
   TCnPDFArrayObject = class(TCnPDFObject)
@@ -292,7 +303,7 @@ type
     procedure AddNumber(Value: Integer); overload;
     procedure AddNumber(Value: Int64); overload;
     procedure AddNumber(Value: Extended); overload;
-    procedure AddNul;
+    procedure AddNull;
     procedure AddTrue;
     procedure AddFalse;
     procedure AddObjectRef(Obj: TCnPDFObject);
@@ -321,6 +332,7 @@ type
   protected
     function IndexOfName(const Name: string): Integer;
     procedure AddPair(APair: TCnPDFDictPair);
+    {* 添加一个外部创建的 Pair，注意 Pair 的 Dictionary 需提前设置好属于本实例}
 
     function WriteDictionary(Stream: TStream): Cardinal;
 
@@ -581,6 +593,7 @@ type
     FPages: TCnPDFDictionaryObject;    // 页面树对象
     FCatalog: TCnPDFDictionaryObject;  // 根目录对象，供 Trailer 中引用
     FInfo: TCnPDFDictionaryObject;     // 信息对象，供 Trailer 中引用
+    FEncrypt: TCnPDFDictionaryObject;  // 加密对象，供 Trailer 中引用
     FXRefTable: TCnPDFXRefTable;       // 交叉引用表的引用
     function GetPage(Index: Integer): TCnPDFDictionaryObject;
     function GetPageCount: Integer;
@@ -617,12 +630,15 @@ type
     property XRefTable: TCnPDFXRefTable read FXRefTable write FXRefTable;
     {* 交叉引用表的引用，供写入各个对象的偏移等}
 
-    // 以下大概必须
+    // 以下并非都必须
     property Info: TCnPDFDictionaryObject read FInfo write FInfo;
     {* 信息对象，类型为字典}
 
     property Catalog: TCnPDFDictionaryObject read FCatalog write FCatalog;
     {* 根对象，类型为字典，其 /Pages 指向 Pages 对象}
+
+    property Encrypt: TCnPDFDictionaryObject read FEncrypt write FEncrypt;
+    {* 加密对象}
 
     property Pages: TCnPDFDictionaryObject read FPages write FPages;
     {* 页面列表，类型为字典，其 /Kids 指向各个页面}
@@ -671,6 +687,7 @@ type
     FBody: TCnPDFBody;
     FXRefTable: TCnPDFXRefTable;
     FTrailer: TCnPDFTrailer;
+    FEncrypted: Boolean;
     function FromReference(Ref: TCnPDFReferenceObject): TCnPDFObject;
   protected
     procedure ReadTrailer(P: TCnPDFParser);
@@ -718,6 +735,9 @@ type
     {* 读一个完整的间接对象，并设置至 Manager 中返回}
     function ReadObjectInner(P: TCnPDFParser): TCnPDFObject;
     {* 读间接对象内的部分或其他直接对象}
+
+    property Encrypted: Boolean read FEncrypted write FEncrypted;
+    {* 是否加密}
 
     property Header: TCnPDFHeader read FHeader;
     property Body: TCnPDFBody read FBody;
@@ -912,7 +932,7 @@ procedure CnExtractJpegFilesFromPDF(const FileName, OutDirName: string);
 implementation
 
 uses
-  {$IFNDEF NO_ZLIB} CnZip, {$ENDIF} CnRandom;
+  {$IFNDEF NO_ZLIB} CnZip, {$ENDIF} CnRandom, CnMD5, CnRC4;
 
 const
   CN_PDF_A4PT_WIDTH = 612;        // A4 页面的默认宽度
@@ -1874,11 +1894,12 @@ begin
     P.Free;
   end;
 
-  // 解开压缩 Content 的内容
-  UncompressObjects;
-
   // 从 Trailer 里的字段整理内容
   ArrangeObjects;
+
+  // 未加密情况下解开压缩 Content 的内容
+  if not FEncrypted then
+    UncompressObjects;
 end;
 
 procedure TCnPDFDocument.ReadArray(P: TCnPDFParser;
@@ -2309,6 +2330,18 @@ begin
   if FTrailer = nil then
     Exit;
 
+  // 读加密对象，可以不存在
+  Obj := FTrailer.Dictionary.Values['Encrypt'];
+  if (Obj <> nil) and (Obj is TCnPDFReferenceObject) then
+  begin
+    FEncrypted := True;
+    Obj := FromReference(Obj as TCnPDFReferenceObject);
+    if (Obj <> nil) and (Obj is TCnPDFDictionaryObject) then
+      FBody.Encrypt := Obj as TCnPDFDictionaryObject;
+  end
+  else
+    FEncrypted := False;
+
   // 找 Info 对象
   Obj := FTrailer.Dictionary.Values['Info'];
   if (Obj <> nil) and (Obj is TCnPDFReferenceObject) then
@@ -2458,6 +2491,14 @@ begin
   Strings.Add('');
 
   // 输出 Info、Catalog、Pages 等分析后的对象的内容
+  if FEncrypted then
+  begin
+    Strings.Add('Encrypted');
+    if FBody.Encrypt <> nil then
+      FBody.Encrypt.ToStrings(Strings);
+  end
+  else
+    Strings.Add('NOT Encrypted');
 
   Strings.Add('--- Info ---') ;
   if FBody.Info <> nil then
@@ -2493,7 +2534,7 @@ begin
     FName.Assign((Source as TCnPDFDictPair).Name); // Name 对象总是固定持有
 
     FreeAndNil(FValue);
-    FValue := (Source as TCnPDFDictPair).Value.Clone;
+    Value := (Source as TCnPDFDictPair).Value.Clone; // 内部会设 Parent
   end
   else
     inherited;
@@ -2508,14 +2549,17 @@ begin
     Arr := TCnPDFArrayObject.Create;
     if FValue <> nil then
       Arr.AddObject(FValue);
-    FValue := Arr;
+
+    Value := Arr; // 会保留 FValue 对象，且 Arr 的 Parent 设为所属的字典
   end;
 end;
 
-constructor TCnPDFDictPair.Create(const Name: string);
+constructor TCnPDFDictPair.Create(const Name: string; Dict: TCnPDFDictionaryObject);
 begin
   inherited Create;
   FName := TCnPDFNameObject.Create(Name);
+  FDictionary := Dict;
+  FName.Parent := FDictionary;
 end;
 
 destructor TCnPDFDictPair.Destroy;
@@ -2523,6 +2567,15 @@ begin
   FName.Free;
   FValue.Free; // 如果外界没设置，则为 nil，不影响
   inherited;
+end;
+
+procedure TCnPDFDictPair.SetValue(const Value: TCnPDFObject);
+begin
+  if FValue <> Value then // 注意不释放原有 Value
+  begin
+    FValue := Value;
+    FValue.Parent := FDictionary;
+  end;
 end;
 
 function TCnPDFDictPair.WriteToStream(Stream: TStream): Cardinal;
@@ -2581,14 +2634,14 @@ end;
 
 function TCnPDFDictionaryObject.AddName(const Name: string): TCnPDFDictPair;
 begin
-  Result := TCnPDFDictPair.Create(Name);
+  Result := TCnPDFDictPair.Create(Name, Self);
   AddPair(Result);
 end;
 
 function TCnPDFDictionaryObject.AddName(const Name1,
   Name2: string): TCnPDFDictPair;
 begin
-  Result := TCnPDFDictPair.Create(Name1);
+  Result := TCnPDFDictPair.Create(Name1, Self);
   Result.Value := TCnPDFNameObject.Create(Name2);
   AddPair(Result);
 end;
@@ -2683,7 +2736,7 @@ begin
     Dict := Source as TCnPDFDictionaryObject;
     for I := 0 to Dict.Count - 1 do
     begin
-      Pair := TCnPDFDictPair.Create('');
+      Pair := TCnPDFDictPair.Create('', Self);
       Pair.Assign(Dict.Pairs[I]);
       AddPair(Pair);
     end;
@@ -2888,7 +2941,7 @@ begin
   AddObject(TCnPDFBooleanObject.Create(False));
 end;
 
-procedure TCnPDFArrayObject.AddNul;
+procedure TCnPDFArrayObject.AddNull;
 begin
   AddObject(TCnPDFNullObject.Create);
 end;
@@ -2911,6 +2964,7 @@ end;
 procedure TCnPDFArrayObject.AddObject(Obj: TCnPDFObject);
 begin
   FElements.Add(Obj);
+  Obj.Parent := Self;
 end;
 
 procedure TCnPDFArrayObject.AddObjectRef(Obj: TCnPDFObject);
