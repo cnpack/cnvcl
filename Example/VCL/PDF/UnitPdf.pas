@@ -182,6 +182,7 @@ end;
 procedure TFormPDF.btnParsePDFStructureClick(Sender: TObject);
 var
   PDF: TCnPDFDocument;
+  Pass: AnsiString;
 begin
    dlgOpen1.Title := 'Open a PDF File';
   if dlgOpen1.Execute then
@@ -192,8 +193,12 @@ begin
     begin
       if PDF.Encrypted then
       begin
+        S := '123456';
+        if PDf.NeedPassword then
+          InputQuery('Enter Password', 'Enter Password:', S);
+
         try
-          PDF.Decrypt('123456');
+          PDF.Decrypt(S);
         except
           ;
         end;

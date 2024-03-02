@@ -2558,6 +2558,11 @@ begin
   if FEncrypted then
   begin
     Strings.Add('Encrypted');
+    if FDecrypted then
+      Strings.Add('Succesfully Decrypted')
+    else
+      Strings.Add('NOT Decrypted');
+
     if FBody.Encrypt <> nil then
       FBody.Encrypt.ToStrings(Strings);
   end
@@ -3750,7 +3755,7 @@ begin
         41: SB.Append('\)');
         92: SB.Append('\\');
       else
-        SB.Append(AnsiChar(FContent[I]));
+        SB.AppendAnsiChar(AnsiChar(FContent[I]));
       end;
     end;
     FContent := AnsiToBytes(SB.ToAnsiString);
@@ -3777,27 +3782,27 @@ begin
         Inc(I);
         if I = Length(FContent) then // \ 是最后一个字符，先输出再说
         begin
-          SB.Append(AnsiChar(FContent[I - 1]));
+          SB.AppendAnsiChar(AnsiChar(FContent[I - 1]));
           Break;
         end
         else
         begin
           case FContent[I] of // 被转义的字符 btnfr()\
-            98:  SB.Append(AnsiChar(8));
-            116: SB.Append(AnsiChar(9));
-            110: SB.Append(AnsiChar(10));
-            102: SB.Append(AnsiChar(12));
-            114: SB.Append(AnsiChar(13));
-            40:  SB.Append(AnsiChar(40));
-            41:  SB.Append(AnsiChar(41));
-            92:  SB.Append(AnsiChar(92));
+            98:  SB.AppendAnsiChar(AnsiChar(8));
+            116: SB.AppendAnsiChar(AnsiChar(9));
+            110: SB.AppendAnsiChar(AnsiChar(10));
+            102: SB.AppendAnsiChar(AnsiChar(12));
+            114: SB.AppendAnsiChar(AnsiChar(13));
+            40:  SB.AppendAnsiChar(AnsiChar(40));
+            41:  SB.AppendAnsiChar(AnsiChar(41));
+            92:  SB.AppendAnsiChar(AnsiChar(92));
           else
             raise ECnPDFException.CreateFmt(SCnErrorPDFEscapeCharNOTSupportFmt, [FContent[I]]);
           end;
         end;
       end
       else
-        SB.Append(AnsiChar(FContent[I]));
+        SB.AppendAnsiChar(AnsiChar(FContent[I]));
 
       Inc(I);
     end;
