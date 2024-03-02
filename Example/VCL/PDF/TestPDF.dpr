@@ -3,7 +3,8 @@ program TestPDF;
 uses
   Forms,
   UnitPdf in 'UnitPdf.pas' {FormPDF},
-  CnPDF in '..\..\..\Source\Common\CnPDF.pas';
+  CnPDF in '..\..\..\Source\Common\CnPDF.pas',
+  CnPDFCrypt in '..\..\..\Source\Crypto\CnPDFCrypt.pas';
 
 {$R *.res}
 

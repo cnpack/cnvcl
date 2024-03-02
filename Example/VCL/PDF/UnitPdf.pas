@@ -4,21 +4,29 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, TypInfo;
+  Dialogs, StdCtrls, TypInfo, ComCtrls;
 
 type
   TFormPDF = class(TForm)
-    btnGenSimple: TButton;
     dlgSave1: TSaveDialog;
     dlgOpen1: TOpenDialog;
+    pgc1: TPageControl;
+    tsParsePDF: TTabSheet;
     btnParsePDFToken: TButton;
     mmoPDF: TMemo;
     btnParsePDFStructure: TButton;
+    btnGenSimple: TButton;
+    btnExtractJPG: TButton;
+    tsGenPDF: TTabSheet;
+    btnPDFCreator: TButton;
     btnImages: TButton;
     btnAddJPG: TButton;
     lstJpegs: TListBox;
-    btnPDFCreator: TButton;
-    btnExtractJPG: TButton;
+    chkUsePass: TCheckBox;
+    lblOwnerPass: TLabel;
+    lblUserPass: TLabel;
+    edtOwnerPass: TEdit;
+    edtUserPass: TEdit;
     procedure btnGenSimpleClick(Sender: TObject);
     procedure btnParsePDFTokenClick(Sender: TObject);
     procedure btnParsePDFStructureClick(Sender: TObject);
@@ -38,7 +46,7 @@ var
 implementation
 
 uses
-  CnPDF;
+  CnPDF, CnPDFCrypt, CnNative;
 
 {$R *.dfm}
 
@@ -182,6 +190,14 @@ begin
 
     if PDF <> nil then
     begin
+      if PDF.Encrypted then
+      begin
+        try
+          PDF.Decrypt('123456');
+        except
+          ;
+        end;
+      end;
       mmoPDF.Lines.Clear;
 
       mmoPDF.Lines.BeginUpdate;
@@ -222,6 +238,15 @@ begin
     Creator.LeftMargin := 20;
     Creator.RightMargin := 20;
     Creator.BottomMargin := 20;
+
+    if chkUsePass.Checked then
+    begin
+      Creator.Encrypt := True;
+      Creator.Permission := Cardinal(-3904);
+      Creator.OwnerPassword := edtOwnerPass.Text;
+      Creator.UserPassword := edtUserPass.Text;
+    end;
+
     Creator.SaveToPDF(dlgSave1.FileName);
     Creator.Free;
   end;

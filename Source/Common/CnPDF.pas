@@ -55,7 +55,9 @@ unit CnPDF;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.02.22 V1.3
+* 修改记录：2024.03.02 V1.4
+*               PDF 文件的载入与保存初步支持权限密码与用户密码，内部使用 128RC4 加密，其他途径暂不支持
+*           2024.02.22 V1.3
 *               实现 TCnImagesToPDFCreator 以在输出 JPEG 的 PDF 时支持页面边距等设置
 *               增加从 PDF 中抽取 JPEG 文件的方法
 *           2024.02.012 V1.3
@@ -625,6 +627,7 @@ type
     {* 将外部新索引的对象表按对象编号排序，注意自身的原始顺序不变}
 
     procedure CreateResources;
+    procedure CreateEncrypt;
 
     function WriteToStream(Stream: TStream): Cardinal; override;
     {* 将内容输出至流}
@@ -698,6 +701,7 @@ type
     FTrailer: TCnPDFTrailer;
     FEncrypted: Boolean;
     FDecrypted: Boolean;
+    FPermission: Cardinal;
     function FromReference(Ref: TCnPDFReferenceObject): TCnPDFObject;
     procedure GetCryptIDGen(Obj: TCnPDFObject; out AID, AGen: Cardinal);
     function GetNeedPassword: Boolean;
@@ -766,12 +770,14 @@ type
     procedure Decrypt(const APass: Ansistring);
     {* 用密码对 PDF 文件进行解密，使用内部的 Encrypt 对象，一般在读入成功后调用}
 
-    property Encrypted: Boolean read FEncrypted;
+    property Encrypted: Boolean read FEncrypted write FEncrypted;
     {* 是否加密}
     property NeedPassword: Boolean read GetNeedPassword;
     {* 是否需要密码，打开文件后调用，加密且空密码验证不通过时返回 True}
     property Decrypted: Boolean read FDecrypted;
     {* 是否解密成功，值仅在 Encrypted 为 True 时有效}
+    property Permission: Cardinal read FPermission write FPermission;
+    {* 允许的权限集合}
 
     property Header: TCnPDFHeader read FHeader;
     property Body: TCnPDFBody read FBody;
@@ -892,6 +898,10 @@ type
     FSubject: string;
     FProducer: string;
     FCreationDate: TDateTime;
+    FOwnerPassword: AnsiString;
+    FUserPassword: AnsiString;
+    FEncrypt: Boolean;
+    FPermission: Cardinal;
     procedure SetBottomMargin(const Value: Integer);
     procedure SetLeftMargin(const Value: Integer);
     procedure SetPageHeight(const Value: Integer);
@@ -948,6 +958,16 @@ type
     {* 文档所属公司}
     property Comments: string read FComments write FComments;
     {* 其他注释}
+
+    // 加密相关，默认算法 128RC4
+    property Encrypt: Boolean read FEncrypt write FEncrypt;
+    {* 由外界指定是否加密}
+    property OwnerPassword: AnsiString read FOwnerPassword write FOwnerPassword;
+    {* 权限控制密码}
+    property UserPassword: AnsiString read FUserPassword write FUserPassword;
+    {* 用户打开密码}
+    property Permission: Cardinal read FPermission write FPermission;
+    {* 允许的权限集合}
   end;
 
 function CnLoadPDFFile(const FileName: string): TCnPDFDocument;
@@ -1011,6 +1031,7 @@ resourcestring
   SCnErrorPDFEncryptPassword = 'Invalid Password';
   SCnErrorPDFEncryptNOTSupport = 'Encrypt Method NOT Support';
   SCnErrorPDFEncryptNOTSupportFmt = 'Encrypt Filter %s NOT Support';
+  SCnErrorPDFEscapeCharNOTSupportFmt = 'Escape Char NOT Support %d';
 
 function WriteSpace(Stream: TStream): Cardinal;
 begin
@@ -1935,7 +1956,7 @@ begin
   // 从 Trailer 里的字段整理内容
   ArrangeObjects;
 
-  // 未加密或解密了的情况下解开压缩 Content 的内容
+  // 未加密或解密了的情况下解开压缩 Content 的内容，否则放到解密后再解压
   if not FEncrypted or FDecrypted then
     UncompressObjects;
 end;
@@ -2638,11 +2659,74 @@ begin
     Cryptor.Free;
   end;
   FDecrypted := True;
+
+  UncompressObjects; // 解密成功后，顺便解压
 end;
 
 procedure TCnPDFDocument.Encrypt(const OwnerPass, UserPass: Ansistring);
+var
+  I, Ver, Rev, KBL: Integer;
+  ID, O, U, Key: TBytes;
+  V: TCnPDFObject;
+  D: TCnPDFDictionaryObject;
+  Cryptor: TCnPDFDataCryptor;
 begin
-  // TODO: 计算密码并加密并设置 Encryt 字段
+  // 用 V4 R4 结合 CF 的 CTM V2 计算密码并加密，再设置 Encryt 字段
+  Ver := 4;
+  Rev := 4;
+  KBL := 128;
+
+  ID := nil;
+  V := FTrailer.Dictionary.Values['ID'];
+  if V is TCnPDFArrayObject then
+  begin
+    if (V as TCnPDFArrayObject).Count > 1 then
+    begin
+      V := (V as TCnPDFArrayObject).Items[0];
+      if V is TCnPDFStringObject then
+        ID := (V as TCnPDFStringObject).Content;  // 引用
+    end;
+  end;
+
+  O := CnPDFCalcOwnerCipher(OwnerPass, UserPass, Rev, KBl);
+  U := CnPDFCalcUserCipher(UserPass, Rev, O, FPermission, ID, KBL);
+
+  Key := CnPDFCalcEncryptKey(UserPass, Rev, O, FPermission, ID, KBL);
+
+  // 得到加密密钥 Key，准备加密所有的 String 与 Stream
+  Cryptor := TCnPDFDataCryptor.Create(cpem128RC4, Key, KBL);
+  try
+    for I := 0 to FBody.Objects.Count - 1 do
+      if FBody.Objects[I] <> FBody.Encrypt then // 不要加密 Encrypt 对象（如果存在的话）
+        EncryptObject(Cryptor, FBody.Objects[I], Key);
+  finally
+    Cryptor.Free;
+  end;
+
+  // 确保创建并组装 Encrypt 字典对象
+  FBody.CreateEncrypt;
+  FBody.Encrypt.Clear;
+
+  D := FBody.Encrypt.AddDictionary('CF');
+  D := D.AddDictionary('StdCF');
+  D.AddName('AuthEvent', 'DocOpen');
+  D.AddName('CFM', 'V2');
+  D.AddNumber('Length', KBL);
+
+  FBody.Encrypt.AddFalse('EncryptMetadata');
+  FBody.Encrypt.AddName('Filter', 'Standard');
+  FBody.Encrypt.AddNumber('Length', KBL);
+  FBody.Encrypt.AddNumber('P', Integer(FPermission));
+  FBody.Encrypt.AddNumber('V', Ver);
+  FBody.Encrypt.AddNumber('R', Rev);
+  FBody.Encrypt.AddName('StmF', 'StdCF');
+  FBody.Encrypt.AddName('StrF', 'StdCF');
+
+  // 两行密文可能有转义，内部已处理
+  FBody.Encrypt.AddAnsiString('O', BytesToAnsi(O));
+  FBody.Encrypt.AddAnsiString('U', BytesToAnsi(U));
+
+  FTrailer.Dictionary.Values['Encrypt'] := TCnPDFReferenceObject.Create(FBody.Encrypt);
 
   FEncrypted := True;
   FDecrypted := False;
@@ -2843,7 +2927,9 @@ var
   ID, Gen: Cardinal;
 begin
   GetCryptIDGen(Str, ID, Gen);
-  Cryptor.Encrypt(Str.FContent, ID, Gen);
+  Str.RemoveEscape;
+  Cryptor.Encrypt(Str.FContent, ID, Gen); // 加密前要去除转义，以原始内容加密，
+  Str.AddEscape; // 并针对密文进行转义
 end;
 
 procedure TCnPDFDocument.GetCryptIDGen(Obj: TCnPDFObject; out AID,
@@ -3579,6 +3665,7 @@ end;
 constructor TCnPDFStringObject.Create(const AnsiStr: AnsiString);
 begin
   inherited Create(AnsiStr);
+  AddEscape;
 end;
 
 {$IFDEF COMPILER5}
@@ -3643,41 +3730,80 @@ end;
 
 procedure TCnPDFStringObject.AddEscape;
 var
-  S: AnsiString;
+  I: Integer;
+  SB: TCnStringBuilder;
 begin
-  S := BytesToAnsi(FContent);
-  if S <> '' then
-  begin
-    S := StringReplace(S, '\', '\\', [rfReplaceAll]); // 这个必须先替换
-    S := StringReplace(S, ')', '\)', [rfReplaceAll]);
-    S := StringReplace(S, '(', '\(', [rfReplaceAll]);
-    S := StringReplace(S, #12, '\f', [rfReplaceAll]);
-    S := StringReplace(S, #8, '\b', [rfReplaceAll]);
-    S := StringReplace(S, #9, '\t', [rfReplaceAll]);
-    S := StringReplace(S, #13, '\r', [rfReplaceAll]);
-    S := StringReplace(S, #10, '\n', [rfReplaceAll]);
+  if Length(FContent) = 0 then
+    Exit;
 
-    FContent := AnsiToBytes(S);
+  SB := TCnStringBuilder.Create(True);
+  try
+    for I := 0 to Length(FContent) - 1 do
+    begin
+      case FContent[I] of
+        8:  SB.Append('\b');
+        9:  SB.Append('\t');
+        10: SB.Append('\n');
+        12: SB.Append('\f');
+        13: SB.Append('\r');
+        40: SB.Append('\(');
+        41: SB.Append('\)');
+        92: SB.Append('\\');
+      else
+        SB.Append(AnsiChar(FContent[I]));
+      end;
+    end;
+    FContent := AnsiToBytes(SB.ToAnsiString);
+  finally
+    SB.Free;
   end;
 end;
 
 procedure TCnPDFStringObject.RemoveEscape;
 var
-  S: AnsiString;
+  I: Integer;
+  SB: TCnStringBuilder;
 begin
-  S := BytesToAnsi(FContent);
-  if S <> '' then
-  begin
-    S := StringReplace(S, '\n', #10, [rfReplaceAll]);
-    S := StringReplace(S, '\r', #13, [rfReplaceAll]);
-    S := StringReplace(S, '\t', #9, [rfReplaceAll]);
-    S := StringReplace(S, '\b', #8, [rfReplaceAll]);
-    S := StringReplace(S, '\f', #12, [rfReplaceAll]);
-    S := StringReplace(S, '\(', '(', [rfReplaceAll]);
-    S := StringReplace(S, '\)', ')', [rfReplaceAll]);
-    S := StringReplace(S, '\\', '\', [rfReplaceAll]);
+  if Length(FContent) = 0 then
+    Exit;
 
-    FContent := AnsiToBytes(S);
+  I := 0;
+  SB := TCnStringBuilder.Create(True);
+  try
+    while I < Length(FContent) do
+    begin
+      if FContent[I] = 92 then // 碰到 \ 后面转义
+      begin
+        Inc(I);
+        if I = Length(FContent) then // \ 是最后一个字符，先输出再说
+        begin
+          SB.Append(AnsiChar(FContent[I - 1]));
+          Break;
+        end
+        else
+        begin
+          case FContent[I] of // 被转义的字符 btnfr()\
+            98:  SB.Append(AnsiChar(8));
+            116: SB.Append(AnsiChar(9));
+            110: SB.Append(AnsiChar(10));
+            102: SB.Append(AnsiChar(12));
+            114: SB.Append(AnsiChar(13));
+            40:  SB.Append(AnsiChar(40));
+            41:  SB.Append(AnsiChar(41));
+            92:  SB.Append(AnsiChar(92));
+          else
+            raise ECnPDFException.CreateFmt(SCnErrorPDFEscapeCharNOTSupportFmt, [FContent[I]]);
+          end;
+        end;
+      end
+      else
+        SB.Append(AnsiChar(FContent[I]));
+
+      Inc(I);
+    end;
+    FContent := AnsiToBytes(SB.ToAnsiString);
+  finally
+    SB.Free;
   end;
 end;
 
@@ -3924,6 +4050,15 @@ begin
   FPageList := TObjectList.Create(False);
   FContentList := TObjectList.Create(False);
   FResourceList := TObjectList.Create(False);
+end;
+
+procedure TCnPDFBody.CreateEncrypt;
+begin
+  if FEncrypt = nil then
+  begin
+    FEncrypt := TCnPDFDictionaryObject.Create;
+    FObjects.Add(FEncrypt);
+  end;
 end;
 
 procedure TCnPDFBody.CreateResources;
@@ -4486,6 +4621,12 @@ begin
     end;
 
     PDF.Trailer.GenerateID;
+
+    if FEncrypt then
+    begin
+      PDF.Permission := FPermission;
+      PDF.Encrypt(FOwnerPassword, FUserPassword);
+    end;
     PDF.SaveToFile(PDFFile);
   finally
     ContData.Free;
