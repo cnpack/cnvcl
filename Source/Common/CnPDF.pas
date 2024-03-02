@@ -75,7 +75,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs, TypInfo, jpeg, CnNative, CnStrings;
+  SysUtils, Classes, Contnrs, TypInfo, jpeg, CnNative, CnStrings, CnPDFCrypt;
 
 type
   ECnPDFException = class(Exception);
@@ -218,8 +218,15 @@ type
     function WriteToStream(Stream: TStream): Cardinal; override;
     {* 输出一对小括号加上其内的字符串}
 
+    function AsString: string;
+    {* 转换为 string}
     property IsHex: Boolean read FIsHex write FIsHex;
     {* 内容是否是十六进制输出}
+
+    procedure AddEscape;
+    {* 增加转义，注意不要重复调用}
+    procedure RemoveEscape;
+    {* 去除转义}
   end;
 
   TCnPDFReferenceObject = class(TCnPDFSimpleObject)
@@ -401,7 +408,9 @@ type
     destructor Destroy; override;
 
     procedure SetJpegImage(const JpegFileName: string);
-    {* 将一 JPEG 格式的文件放入本对象} 
+    {* 将一 JPEG 格式的文件放入本对象}
+    procedure SetJpegStream(JpegStream: TStream);
+    {* 将一 JPEG 格式的流放入本对象，注意流的 Position 须是 0}
 
     function WriteToStream(Stream: TStream): Cardinal; override;
     {* 输出 stream 及流及 endstream}
@@ -688,7 +697,10 @@ type
     FXRefTable: TCnPDFXRefTable;
     FTrailer: TCnPDFTrailer;
     FEncrypted: Boolean;
+    FDecrypted: Boolean;
     function FromReference(Ref: TCnPDFReferenceObject): TCnPDFObject;
+    procedure GetCryptIDGen(Obj: TCnPDFObject; out AID, AGen: Cardinal);
+    function GetNeedPassword: Boolean;
   protected
     procedure ReadTrailer(P: TCnPDFParser);
     procedure ReadTrailerStartXRef(P: TCnPDFParser);
@@ -701,6 +713,19 @@ type
     {* 判断 Stream 内容并尽量解压缩}
 
     procedure SyncTrailer;
+
+    function CheckUserPassword(const APass: AnsiString; out Key: TBytes): Boolean;
+    {* 检查用户输入的密码是否是用户密码，是则返回 True，并 Key 里返回密钥}
+    function CheckOwnerPassword(const APass: AnsiString; out Key: TBytes): Boolean;
+    {* 检查用户输入的密码是否是权限密码，是则返回 True，并 Key 里返回密钥}
+
+    procedure DecryptObject(Cryptor: TCnPDFDataCryptor; Obj: TCnPDFObject; Key: TBytes);
+    procedure DecryptString(Cryptor: TCnPDFDataCryptor; Str: TCnPDFStringObject; Key: TBytes);
+    procedure DecryptStream(Cryptor: TCnPDFDataCryptor; Stream: TCnPDFStreamObject; Key: TBytes);
+
+    procedure EncryptObject(Cryptor: TCnPDFDataCryptor; Obj: TCnPDFObject; Key: TBytes);
+    procedure EncryptString(Cryptor: TCnPDFDataCryptor; Str: TCnPDFStringObject; Key: TBytes);
+    procedure EncryptStream(Cryptor: TCnPDFDataCryptor; Stream: TCnPDFStreamObject; Key: TBytes);
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -736,8 +761,17 @@ type
     function ReadObjectInner(P: TCnPDFParser): TCnPDFObject;
     {* 读间接对象内的部分或其他直接对象}
 
-    property Encrypted: Boolean read FEncrypted write FEncrypted;
+    procedure Encrypt(const OwnerPass, UserPass: Ansistring);
+    {* 用权限密码与用户密码对 PDF 文件进行加密，并生成或重写 Encrypt 对象，一般在写入前调用}
+    procedure Decrypt(const APass: Ansistring);
+    {* 用密码对 PDF 文件进行解密，使用内部的 Encrypt 对象，一般在读入成功后调用}
+
+    property Encrypted: Boolean read FEncrypted;
     {* 是否加密}
+    property NeedPassword: Boolean read GetNeedPassword;
+    {* 是否需要密码，打开文件后调用，加密且空密码验证不通过时返回 True}
+    property Decrypted: Boolean read FDecrypted;
+    {* 是否解密成功，值仅在 Encrypted 为 True 时有效}
 
     property Header: TCnPDFHeader read FHeader;
     property Body: TCnPDFBody read FBody;
@@ -973,6 +1007,10 @@ resourcestring
   SCnErrorPDFPageSize = 'Invalid Page Size';
   SCnErrorPDFPageMargin = 'Invalid Page Margin';
   SCnErrorPDFPageSizeMargin = 'Invalid Page Size and Margin';
+  SCnErrorPDFEncryptParams = 'Invalid Encrypt Params';
+  SCnErrorPDFEncryptPassword = 'Invalid Password';
+  SCnErrorPDFEncryptNOTSupport = 'Encrypt Method NOT Support';
+  SCnErrorPDFEncryptNOTSupportFmt = 'Encrypt Filter %s NOT Support';
 
 function WriteSpace(Stream: TStream): Cardinal;
 begin
@@ -1897,8 +1935,8 @@ begin
   // 从 Trailer 里的字段整理内容
   ArrangeObjects;
 
-  // 未加密情况下解开压缩 Content 的内容
-  if not FEncrypted then
+  // 未加密或解密了的情况下解开压缩 Content 的内容
+  if not FEncrypted or FDecrypted then
     UncompressObjects;
 end;
 
@@ -2178,6 +2216,7 @@ begin
   CheckExpectedToken(P, pttString);
 
   Str.Content := AnsiToBytes(P.Token);
+  Str.RemoveEscape;
   P.NextNoJunk;
 
   CheckExpectedToken(P, pttStringEnd);
@@ -2335,12 +2374,16 @@ begin
   if (Obj <> nil) and (Obj is TCnPDFReferenceObject) then
   begin
     FEncrypted := True;
+    FDecrypted := False;
     Obj := FromReference(Obj as TCnPDFReferenceObject);
     if (Obj <> nil) and (Obj is TCnPDFDictionaryObject) then
       FBody.Encrypt := Obj as TCnPDFDictionaryObject;
   end
   else
+  begin
     FEncrypted := False;
+    FDecrypted := True;
+  end;
 
   // 找 Info 对象
   Obj := FTrailer.Dictionary.Values['Info'];
@@ -2523,6 +2566,304 @@ begin
   Strings.Add('--- Resource List ---') ;
   for I := 0 to FBody.ResourceCount - 1 do
     FBody.Resource[I].ToStrings(Strings);
+end;
+
+procedure TCnPDFDocument.Decrypt(const APass: Ansistring);
+var
+  I, Ver, Rev, KBL: Integer;
+  Key: TBytes;
+  Cryptor: TCnPDFDataCryptor;
+  V: TCnPDFObject;
+  EM: TCnPDFEncryptionMethod;
+  CFM: string;
+begin
+  if not FEncrypted or FDecrypted or (FBody.Encrypt = nil) then
+    Exit;
+
+  // 只支持标准处理器
+  V := FBody.Encrypt.Values['Filter'];
+  if V is TCnPDFNameObject then
+  begin
+    if (V as TCnPDFNameObject).Name <> 'Standard' then
+      raise ECnPDFCryptException.CreateFmt(SCnErrorPDFEncryptNOTSupportFmt,
+        [string((V as TCnPDFNameObject).Name)]);
+  end
+  else
+    raise ECnPDFCryptException.CreateFmt(SCnErrorPDFEncryptNOTSupportFmt, ['Unknown']);
+
+  // 尝试用户密码及空密码，注意这一步和 V 值无关
+  if not CheckUserPassword(APass, Key) then
+    if not CheckUserPassword('', Key) then
+      if not CheckOwnerPassword(APass, Key) then
+        raise ECnPDFException.Create(SCnErrorPDFEncryptPassword);
+
+  Rev := 0;
+  V := FBody.Encrypt.Values['R'];
+  if V is TCnPDFNumberObject then
+    Rev := (V as TCnPDFNumberObject).AsInteger;
+
+  KBL := 0;
+  V := FBody.Encrypt.Values['Length'];
+  if V is TCnPDFNumberObject then
+    KBL := (V as TCnPDFNumberObject).AsInteger;
+
+  Ver := 0;
+  V := FBody.Encrypt.Values['V'];
+  if V is TCnPDFNumberObject then
+    Ver := (V as TCnPDFNumberObject).AsInteger;
+
+  CFM := '';
+  V := FBody.Encrypt.Values['CF'];
+  if V is TCnPDFDictionaryObject then
+  begin
+    V := (V as TCnPDFDictionaryObject).Values['StdCF'];
+    if V is TCnPDFDictionaryObject then
+    begin
+      V := (V as TCnPDFDictionaryObject).Values['CFM'];
+      if V is TCnPDFNameObject then
+        CFM := string((V as TCnPDFNameObject).Name);
+    end;
+  end;
+
+  EM := CnPDFFindEncryptionMethod(Ver, Rev, KBL, CFM);
+  if EM = cpemNotSupport then
+    raise ECnPDFException.Create(SCnErrorPDFEncryptNOTSupport);
+
+  // 得到解密密钥 Key，准备解密所有的 String 与 Stream
+  Cryptor := TCnPDFDataCryptor.Create(EM, Key, KBL);
+  try
+    for I := 0 to FBody.Objects.Count - 1 do
+      DecryptObject(Cryptor, FBody.Objects[I], Key);
+  finally
+    Cryptor.Free;
+  end;
+  FDecrypted := True;
+end;
+
+procedure TCnPDFDocument.Encrypt(const OwnerPass, UserPass: Ansistring);
+begin
+  // TODO: 计算密码并加密并设置 Encryt 字段
+
+  FEncrypted := True;
+  FDecrypted := False;
+end;
+
+function TCnPDFDocument.CheckUserPassword(const APass: AnsiString;
+  out Key: TBytes): Boolean;
+var
+  OC, UC, ID: TBytes;
+  Per: Cardinal;
+  Rev, KBL: Integer;
+  V: TCnPDFObject;
+begin
+  Result := False;
+  Key := nil;
+
+  if not FEncrypted or FDecrypted or (FBody.Encrypt = nil) then
+    Exit;
+
+  OC := nil;
+  UC := nil;
+  ID := nil;
+  Per := 0;
+  Rev := 0;
+  KBL := 0;
+
+  // 从 Encrypt 字典中读出内容，与用户输入的密码运算，再和 U 比对
+  V := FBody.Encrypt.Values['P'];
+  if V is TCnPDFNumberObject then
+    Per := Cardinal((V as TCnPDFNumberObject).AsInteger);
+
+  V := FBody.Encrypt.Values['R'];
+  if V is TCnPDFNumberObject then
+    Rev := (V as TCnPDFNumberObject).AsInteger;
+
+  V := FBody.Encrypt.Values['Length'];
+  if V is TCnPDFNumberObject then
+    KBL := (V as TCnPDFNumberObject).AsInteger;
+
+  V := FBody.Encrypt.Values['O'];
+  if V is TCnPDFStringObject then
+    OC := (V as TCnPDFStringObject).Content;   // 引用
+
+  V := FBody.Encrypt.Values['U'];
+  if V is TCnPDFStringObject then
+    UC := (V as TCnPDFStringObject).Content;   // 引用
+
+  V := FTrailer.Dictionary.Values['ID'];
+  if V is TCnPDFArrayObject then
+  begin
+    if (V as TCnPDFArrayObject).Count > 1 then
+    begin
+      V := (V as TCnPDFArrayObject).Items[0];
+      if V is TCnPDFStringObject then
+        ID := (V as TCnPDFStringObject).Content;  // 引用
+    end;
+  end;
+
+  Key := CnPDFCheckUserPassword(APass, Rev, OC, UC, Per, ID, KBL);
+  Result := Length(Key) > 0;
+end;
+
+function TCnPDFDocument.CheckOwnerPassword(const APass: AnsiString;
+  out Key: TBytes): Boolean;
+var
+  OC, UC, ID: TBytes;
+  Per: Cardinal;
+  Rev, KBL: Integer;
+  V: TCnPDFObject;
+begin
+  Result := False;
+  Key := nil;
+
+  if not FEncrypted or FDecrypted or (FBody.Encrypt = nil) then
+    Exit;
+
+  OC := nil;
+  UC := nil;
+  ID := nil;
+  Per := 0;
+  Rev := 0;
+  KBL := 0;
+
+  // 从 Encrypt 字典中读出内容，与用户输入的密码运算，再和 O 比对
+  V := FBody.Encrypt.Values['P'];
+  if V is TCnPDFNumberObject then
+    Per := Cardinal((V as TCnPDFNumberObject).AsInteger);
+
+  V := FBody.Encrypt.Values['R'];
+  if V is TCnPDFNumberObject then
+    Rev := (V as TCnPDFNumberObject).AsInteger;
+
+  V := FBody.Encrypt.Values['Length'];
+  if V is TCnPDFNumberObject then
+    KBL := (V as TCnPDFNumberObject).AsInteger;
+
+  V := FBody.Encrypt.Values['O'];
+  if V is TCnPDFStringObject then
+    OC := (V as TCnPDFStringObject).Content;   // 引用
+
+  V := FBody.Encrypt.Values['U'];
+  if V is TCnPDFStringObject then
+    UC := (V as TCnPDFStringObject).Content;   // 引用
+
+  V := FTrailer.Dictionary.Values['ID'];
+  if V is TCnPDFArrayObject then
+  begin
+    if (V as TCnPDFArrayObject).Count > 1 then
+    begin
+      V := (V as TCnPDFArrayObject).Items[0];
+      if V is TCnPDFStringObject then
+        ID := (V as TCnPDFStringObject).Content;  // 引用
+    end;
+  end;
+
+  Key := CnPDFCheckOwnerPassword(APass, Rev, OC, UC, Per, ID, KBL);
+  Result := Length(Key) > 0;
+end;
+
+procedure TCnPDFDocument.DecryptObject(Cryptor: TCnPDFDataCryptor;
+  Obj: TCnPDFObject; Key: TBytes);
+var
+  I: Integer;
+begin
+  if (Obj = nil) or (Obj = FBody.Encrypt) then // 加密对象不解密，也不包括 Trailer 内的字典
+    Exit;
+
+  if Obj is TCnPDFStringObject then
+    DecryptString(Cryptor, (Obj as TCnPDFStringObject), Key)
+  else if Obj is TCnPDFStreamObject then
+    DecryptStream(Cryptor, (Obj as TCnPDFStreamObject), Key)
+  else if Obj is TCnPDFArrayObject then
+  begin
+    for I := 0 to (Obj as TCnPDFArrayObject).Count - 1 do
+      DecryptObject(Cryptor, (Obj as TCnPDFArrayObject).Items[I], Key);
+  end
+  else if Obj is TCnPDFDictionaryObject then
+  begin
+    for I := 0 to (Obj as TCnPDFDictionaryObject).Count - 1 do
+      DecryptObject(Cryptor, (Obj as TCnPDFDictionaryObject).Pairs[I].Value, Key);
+  end;
+end;
+
+procedure TCnPDFDocument.DecryptStream(Cryptor: TCnPDFDataCryptor;
+  Stream: TCnPDFStreamObject; Key: TBytes);
+var
+  ID, Gen: Cardinal;
+begin
+  GetCryptIDGen(Stream, ID, Gen);
+  Cryptor.Decrypt(Stream.FStream, ID, Gen);
+end;
+
+procedure TCnPDFDocument.DecryptString(Cryptor: TCnPDFDataCryptor;
+  Str: TCnPDFStringObject; Key: TBytes);
+var
+  ID, Gen: Cardinal;
+begin
+  GetCryptIDGen(Str, ID, Gen);
+  Cryptor.Decrypt(Str.FContent, ID, Gen);
+end;
+
+procedure TCnPDFDocument.EncryptObject(Cryptor: TCnPDFDataCryptor;
+  Obj: TCnPDFObject; Key: TBytes);
+var
+  I: Integer;
+begin
+  if (Obj = nil) or (Obj = FBody.Encrypt) then // 加密对象不加密，也不包括 Trailer 内的字典
+    Exit;
+
+  if Obj is TCnPDFStringObject then
+    EncryptString(Cryptor, (Obj as TCnPDFStringObject), Key)
+  else if Obj is TCnPDFStreamObject then
+    EncryptStream(Cryptor, (Obj as TCnPDFStreamObject), Key)
+  else if Obj is TCnPDFArrayObject then
+  begin
+    for I := 0 to (Obj as TCnPDFArrayObject).Count - 1 do
+      EncryptObject(Cryptor, (Obj as TCnPDFArrayObject).Items[I], Key);
+  end
+  else if Obj is TCnPDFDictionaryObject then
+  begin
+    for I := 0 to (Obj as TCnPDFDictionaryObject).Count - 1 do
+      EncryptObject(Cryptor, (Obj as TCnPDFDictionaryObject).Pairs[I].Value, Key);
+  end;
+end;
+
+procedure TCnPDFDocument.EncryptStream(Cryptor: TCnPDFDataCryptor;
+  Stream: TCnPDFStreamObject; Key: TBytes);
+var
+  ID, Gen: Cardinal;
+begin
+  GetCryptIDGen(Stream, ID, Gen);
+  Cryptor.Encrypt(Stream.FStream, ID, Gen);
+end;
+
+procedure TCnPDFDocument.EncryptString(Cryptor: TCnPDFDataCryptor;
+  Str: TCnPDFStringObject; Key: TBytes);
+var
+  ID, Gen: Cardinal;
+begin
+  GetCryptIDGen(Str, ID, Gen);
+  Cryptor.Encrypt(Str.FContent, ID, Gen);
+end;
+
+procedure TCnPDFDocument.GetCryptIDGen(Obj: TCnPDFObject; out AID,
+  AGen: Cardinal);
+begin
+  AID := Obj.ID;
+  AGen := Obj.Generation;
+
+  if (AID = 0) and (Obj.Parent <> nil) then
+  begin
+    AID := Obj.Parent.ID;
+    AGen := Obj.Parent.Generation;
+  end;
+end;
+
+function TCnPDFDocument.GetNeedPassword: Boolean;
+var
+  Key: TBytes;
+begin
+  Result := FEncrypted and not CheckUserPassword('', Key);
 end;
 
 { TCnPDFDictPair }
@@ -3300,6 +3641,51 @@ begin
   end;
 end;
 
+procedure TCnPDFStringObject.AddEscape;
+var
+  S: AnsiString;
+begin
+  S := BytesToAnsi(FContent);
+  if S <> '' then
+  begin
+    S := StringReplace(S, '\', '\\', [rfReplaceAll]); // 这个必须先替换
+    S := StringReplace(S, ')', '\)', [rfReplaceAll]);
+    S := StringReplace(S, '(', '\(', [rfReplaceAll]);
+    S := StringReplace(S, #12, '\f', [rfReplaceAll]);
+    S := StringReplace(S, #8, '\b', [rfReplaceAll]);
+    S := StringReplace(S, #9, '\t', [rfReplaceAll]);
+    S := StringReplace(S, #13, '\r', [rfReplaceAll]);
+    S := StringReplace(S, #10, '\n', [rfReplaceAll]);
+
+    FContent := AnsiToBytes(S);
+  end;
+end;
+
+procedure TCnPDFStringObject.RemoveEscape;
+var
+  S: AnsiString;
+begin
+  S := BytesToAnsi(FContent);
+  if S <> '' then
+  begin
+    S := StringReplace(S, '\n', #10, [rfReplaceAll]);
+    S := StringReplace(S, '\r', #13, [rfReplaceAll]);
+    S := StringReplace(S, '\t', #9, [rfReplaceAll]);
+    S := StringReplace(S, '\b', #8, [rfReplaceAll]);
+    S := StringReplace(S, '\f', #12, [rfReplaceAll]);
+    S := StringReplace(S, '\(', '(', [rfReplaceAll]);
+    S := StringReplace(S, '\)', ')', [rfReplaceAll]);
+    S := StringReplace(S, '\\', '\', [rfReplaceAll]);
+
+    FContent := AnsiToBytes(S);
+  end;
+end;
+
+function TCnPDFStringObject.AsString: string;
+begin
+  Result := string(BytesToAnsi(FContent));
+end;
+
 { TCnPDFStreamObject }
 
 constructor TCnPDFStreamObject.Create;
@@ -3319,38 +3705,45 @@ begin
   // TODO: 解压
 end;
 
-procedure TCnPDFStreamObject.SetJpegImage(const JpegFileName: string);
+procedure TCnPDFStreamObject.SetJpegStream(JpegStream: TStream);
 var
-  F: TFileStream;
   S: Int64;
   J: TJPEGImage;
 begin
+  Clear;
+
+  AddName('Type', 'XObject');
+  AddName('Subtype', 'Image');
+  AddNumber('BitsPerComponent', 8);
+  AddName('ColorSpace', 'DeviceRGB');
+  AddName('Filter', 'DCTDecode');
+
+  J := TJPEGImage.Create;
+  try
+    J.LoadFromStream(JpegStream);
+    AddNumber('Height', J.Height);
+    AddNumber('Width', J.Width);
+  finally
+    J.Free;
+  end;
+
+  S := JpegStream.Size;
+  JpegStream.Position := 0;
+  AddNumber('Length', S);
+  SetLength(FStream, S);
+
+  JpegStream.Read(FStream[0], S);
+end;
+
+procedure TCnPDFStreamObject.SetJpegImage(const JpegFileName: string);
+var
+  F: TFileStream;
+begin
   if FileExists(JpegFileName) then
   begin
-    Clear;
-
-    AddName('Type', 'XObject');
-    AddName('Subtype', 'Image');
-    AddNumber('BitsPerComponent', 8);
-    AddName('ColorSpace', 'DeviceRGB');
-    AddName('Filter', 'DCTDecode');
-
-    J := TJPEGImage.Create;
-    try
-      J.LoadFromFile(JpegFileName);
-      AddNumber('Height', J.Height);
-      AddNumber('Width', J.Width);
-    finally
-      J.Free;
-    end;
-
     F := TFileStream.Create(JpegFileName, fmOpenRead or fmShareDenyWrite);
     try
-      S := F.Size;
-      AddNumber('Length', S);
-      SetLength(FStream, S);
-
-      F.Read(FStream[0], S);
+      SetJpegStream(F);
     finally
       F.Free;
     end;

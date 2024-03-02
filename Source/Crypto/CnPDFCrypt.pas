@@ -24,7 +24,22 @@ unit CnPDFCrypt;
 * 软件名称：开发包基础库
 * 单元名称：PDF 简易解析生成单元
 * 单元作者：刘啸
-* 备    注：PDF 加解密机制的实现单元，从 CnPDF.pas 中独立出来，仅支持 Revision 2 3 4
+* 备    注：PDF 加解密机制的实现单元，从 CnPDF.pas 中独立出来，仅支持 Revision 2 3 4 5
+*
+*           Version 表示加密机制，0 无，1 为 40 位 RC4、2/3 为 40 到 128 位 RC4、4 看 Security Handler 里的 Crypt Filter
+*           Revision 用来指示 Security Handler 如何处理权限，2 无、3 有、4 不知道，并对各 Key 的运算有影响
+*
+*    需支持 Version  Revision     加密算法                Key 指定的 Length                    PDF 规范版本
+*           0        *            无
+*        *  1        2            RC4                     无需指定，固定 40 位                 1.1
+*        *  2        2            RC4                     可大于 40 位，推荐 128，无权限控制   1.4
+*        *  2        3            RC4                     可大于 40 位，推荐 128，有权限控制   1.4
+*           3        3            （未公开，不使用）                                           1.4
+*        *  4        4            依赖于 CF 等                                                 1.5
+*                       CFM V2    RC4                     128，在 CFM 中
+*                       CFM AESV2 AES128/CBC/PKCS5        128，在 CFM 中                       1.6
+*           5        5  CFM AESV3 AES256/CBC/PKCS5        256，在 CFM 中                       1.7
+*
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -43,6 +58,31 @@ uses
 type
   ECnPDFCryptException = class(Exception);
   {* PDF 加解密的异常}
+
+  TCnPDFEncryptionMethod = (cpemNotSupport, cpem40RC4, cpem128RC4, cpem128AES, cpem256AES);
+  {* 支持的四种加密模式}
+
+  TCnPDFDataCryptor = class
+  {* 加解密实现类，设置一次原始 Key，可反复对多个对象的字节流实施加解密}
+  private
+    FEncryptionMethod: TCnPDFEncryptionMethod;
+    FKeyByteLength: Integer; // 加密算法要求的长度，并非传入的 Key 字节数组长度
+    FKey: TBytes;            // 传入的 Key 经过追加内容后存放的地方，供 MD5 用
+    FLength: Integer;        // 传入的 Key 的原始长度
+  protected
+    procedure MakeKey(ID, Gen: Cardinal);
+  public
+    constructor Create(EncryptionMethod: TCnPDFEncryptionMethod;
+      AKey: TBytes; KeyBitLength: Integer); virtual;
+    destructor Destroy; override;
+
+    procedure Encrypt(var Data: TBytes; ID, Generation: Cardinal);
+    procedure Decrypt(var Data: TBytes; ID, Generation: Cardinal);
+  end;
+
+function CnPDFFindEncryptionMethod(Version, Revision, KeyBitLength: Integer;
+  const CFMValue: string = ''): TCnPDFEncryptionMethod;
+{* 根据 PDF 文件中 Encrypt 字段的 V R Length 值及 CTM 字段值判断使用哪种加密算法}
 
 function CnPDFCalcUserCipher(const UserPass: AnsiString; Revision: Integer;
   OwnerCipher: TBytes; Permission: Cardinal; ID: TBytes; KeyBitLength: Integer): TBytes;
@@ -104,7 +144,7 @@ function CnPDFCheckOwnerPassword(const OwnerPass: AnsiString; Revision: Integer;
 implementation
 
 uses
-  CnRandom, CnMD5, CnRC4;
+  CnRandom, CnMD5, CnRC4, CnAES;
 
 const
   CN_PDF_ENCRYPT_SIZE = 32;       // 32 字节对齐的 PDF 加密模式
@@ -120,7 +160,31 @@ const
 
 resourcestring
   SCnErrorPDFKeyLength = 'Invalid Key Length';
+  SCnErrorPDFDataLength = 'Invalid Data Length';
   SCnErrorPDFEncryptParams = 'Invalid Encrypt Params';
+  SCnErrorPDFInvalidKeyBitLengthFmt = 'Invalid Key Bit Length %d for Revision %d';
+
+function CnPDFFindEncryptionMethod(Version, Revision, KeyBitLength: Integer;
+  const CFMValue: string = ''): TCnPDFEncryptionMethod;
+begin
+  Result := cpemNotSupport;
+  case Version of
+    1:
+      if Revision = 2 then
+        Result := cpem40RC4;
+    2:
+      if Revision in [2, 3] then
+        Result := cpem128RC4;
+    4:
+      if Revision = 4 then
+      begin
+        if CFMValue = 'V2' then
+          Result := cpem128RC4
+        else if CFMValue = 'AESV2' then
+          Result := cpem128AES;
+      end;
+  end;
+end;
 
 function PaddingKey(const Password: AnsiString): TCnPDFPaddingKey;
 var
@@ -217,6 +281,7 @@ begin
   Move(Dig[0], Result[0], Length(Result));
 end;
 
+{* 生成与检验权限密码时都要计算密钥，抽出来作为公用}
 function CalcOwnerKey(const OwnerPass: AnsiString; Revision, KeyBitLength: Integer): TBytes;
 var
   I, KL: Integer;
@@ -377,6 +442,136 @@ begin
   // 验证通过则返回密钥，不通过则返回 nil
   Result := CnPDFCheckUserPassword(UP, Revision, OwnerCipher, UserCipher,
     Permission, ID, KeyBitLength);;
+end;
+
+{ TCnPDFDataCryptor }
+
+constructor TCnPDFDataCryptor.Create(EncryptionMethod: TCnPDFEncryptionMethod;
+  AKey: TBytes; KeyBitLength: Integer);
+var
+  L: Integer;
+begin
+  inherited Create;
+  FEncryptionMethod := EncryptionMethod;
+
+  FLength := Length(AKey);
+
+  if FEncryptionMethod = cpem40RC4 then
+    FKeyByteLength := 5
+  else
+    FKeyByteLength := KeyBitLength div 8;
+
+  if FEncryptionMethod in [cpem40RC4, cpem128RC4] then
+    L := FLength + 5
+  else
+    L := FLength + 9; // AES 额外加个四字节盐
+
+  SetLength(FKey, L);
+  if Length(AKey) > 0 then
+    Move(AKey[0], FKey[0], Length(AKey)); // 头部先放原始 Key
+
+  if not (FEncryptionMethod in [cpem40RC4, cpem128RC4]) then // AES 额外加个四字节盐
+  begin
+    FKey[L - 4] := $73;
+    FKey[L - 3] := $41;
+    FKey[L - 2] := $6C;
+    FKey[L - 1] := $54;
+  end;
+end;
+
+procedure TCnPDFDataCryptor.Decrypt(var Data: TBytes; ID, Generation: Cardinal);
+var
+  L: Integer;
+  Res, IV, K: TBytes;
+  Dig: TCnMD5Digest;
+begin
+  if Length(Data) = 0 then
+    Exit;
+
+  MakeKey(ID, Generation);
+  Dig := MD5(@FKey[0], Length(FKey));
+
+  if FEncryptionMethod = cpem40RC4 then // RC4 解密，密钥长度分别是 5+5 和 16
+    RC4Encrypt(@Dig[0], FKeyByteLength + 5, @Data[0], @Data[0], Length(Data))
+  else if FEncryptionMethod = cpem128RC4 then
+    RC4Encrypt(@Dig[0], SizeOf(TCnMD5Digest), @Data[0], @Data[0], Length(Data))
+  else // AES
+  begin
+    // 前 16 字节抽出来做 IV
+    if Length(Data) <= CN_AES_BLOCKSIZE then
+      raise ECnPDFCryptException.Create(SCnErrorPDFDataLength);
+
+    SetLength(IV, CN_AES_BLOCKSIZE);
+    Move(Data[0], IV[0], CN_AES_BLOCKSIZE);
+
+    // 16 字节后的是密文
+    SetLength(Res, Length(Data) - CN_AES_BLOCKSIZE);
+    Move(Data[CN_AES_BLOCKSIZE], Res[0], Length(Res));
+
+    L := FKeyByteLength + 5;
+    if L > 16 then
+      L := 16;
+    SetLength(K, L);
+    Move(Dig[0], K[0], L);
+
+    Res := AESDecryptCbcBytes(Res, K, IV, kbt128);
+    if Length(Res) > 0 then
+      Data := Res;
+  end;
+end;
+
+procedure TCnPDFDataCryptor.Encrypt(var Data: TBytes; ID, Generation: Cardinal);
+var
+  L: Integer;
+  Res, IV, K: TBytes;
+  Dig: TCnMD5Digest;
+begin
+  if Length(Data) = 0 then
+    Exit;
+
+  MakeKey(ID, Generation);
+  Dig := MD5(@FKey[0], Length(FKey));
+
+  if FEncryptionMethod = cpem40RC4 then // RC4 加密，密钥长度分别是 5+5 和 16
+    RC4Encrypt(@Dig[0], FKeyByteLength + 5, @Data[0], @Data[0], Length(Data))
+  else if FEncryptionMethod = cpem128RC4 then
+    RC4Encrypt(@Dig[0], SizeOf(TCnMD5Digest), @Data[0], @Data[0], Length(Data))
+  else // AES
+  begin
+    // 前 16 字节抽出来做 IV
+    if Length(Data) <= CN_AES_BLOCKSIZE then
+      raise ECnPDFCryptException.Create(SCnErrorPDFDataLength);
+
+    SetLength(IV, CN_AES_BLOCKSIZE);
+    Move(Data[0], IV[0], CN_AES_BLOCKSIZE);
+
+    // 16 字节后的是密文
+    SetLength(Res, Length(Data) - CN_AES_BLOCKSIZE);
+    Move(Data[CN_AES_BLOCKSIZE], Res[0], Length(Res));
+
+    L := FKeyByteLength + 5;
+    if L > 16 then
+      L := 16;
+    SetLength(K, L);
+    Move(Dig[0], K[0], L);
+
+    Res := AESEncryptCbcBytes(Res, K, IV, kbt128);
+    if Length(Res) > 0 then
+      Data := Res;
+  end;
+end;
+
+destructor TCnPDFDataCryptor.Destroy;
+begin
+  SetLength(FKey, 0);
+  inherited;
+end;
+
+procedure TCnPDFDataCryptor.MakeKey(ID, Gen: Cardinal);
+begin
+  // 低三位和低两位
+  Move(ID, FKey[FLength], 3);
+  Move(Gen, FKey[FLength + 3], 2);
 end;
 
 end.
