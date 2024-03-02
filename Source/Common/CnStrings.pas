@@ -2352,7 +2352,11 @@ var
 begin
   SetLength(S, 1);
   Move(Value, S[1], SizeOf(AnsiChar));
-  Result := Append(S);
+{$IFDEF UNICODE}
+  Result := AppendAnsi(S);
+{$ELSE}
+  Result := Append(S); // Unicode 下 S 转为 string 可能会变问号
+{$ENDIF}
 end;
 
 function TCnStringBuilder.AppendWideChar(const Value: WideChar): TCnStringBuilder;
@@ -2361,7 +2365,11 @@ var
 begin
   SetLength(S, 1);
   Move(Value, S[1], SizeOf(WideChar));
+{$IFDEF UNICODE}
   Result := Append(S);
+{$ELSE}
+  Result := AppendWide(S);
+{$ENDIF}
 end;
 
 end.
