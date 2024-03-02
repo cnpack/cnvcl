@@ -44,7 +44,7 @@ uses
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
-  CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4;
+  CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
@@ -227,6 +227,11 @@ function TestXXTea: Boolean;
 
 function TestFNV1: Boolean;
 function TestFNV1a: Boolean;
+
+// ================================ PDF ========================================
+
+function TestPDFOwnerPassword: Boolean;
+function TestPDFUserPassword: Boolean;
 
 // ================================ SM2 ========================================
 
@@ -522,6 +527,11 @@ begin
 
   MyAssert(TestFNV1, 'TestFNV1');
   MyAssert(TestFNV1a, 'TestFNV1a');
+
+// ================================ PDF ========================================
+
+  MyAssert(TestPDFOwnerPassword, 'TestPDFOwnerPassword');
+  MyAssert(TestPDFUserPassword, 'TestPDFUserPassword');
 
 // ================================ SM2 ========================================
 
@@ -2761,6 +2771,26 @@ begin
     and (DataToHex(@R512[0], SizeOf(TCnFNVHash512)) =   '000093BF8B221FDB9337A00C1232AFFB766F227EF3000000000000000000000000000000000000000000000011FF0EDB280FED4B9760B10B4FA20363B8261786')
     and (DataToHex(@R1024[0], SizeOf(TCnFNVHash1024)) = '3FA9D253E52AE80105B382C80A01E27A53D7BC1D201EFB47B38F4D6E465489CAD8F2E23BEDE6954C0B8699000000000000000000000000000000000000000000'
       + '00000000000000000000000000000000000253EB20F42A7228AF9022D9F35ECE5BB71E40FCD8717B80D164AB921709996E5C43B515A262332A46CD9B163889E1');
+end;
+
+// ================================ PDF ========================================
+
+function TestPDFOwnerPassword: Boolean;
+var
+  O: TBytes;
+begin
+  O := CnPDFCalcOwnerCipher('123456', '654321', 4, 128);
+  Result := BytesToHex(O) = 'C336FDBECB59F7B59C244B61B745F71AC5BA427B1B9102DA468E77127F1E69D6';
+end;
+
+function TestPDFUserPassword: Boolean;
+var
+  U, O: TBytes;
+begin
+  O := HexToBytes('C336FDBECB59F7B59C244B61B745F71AC5BA427B1B9102DA468E77127F1E69D6');
+  U := CnPDFCalcUserCipher('654321', 4, O, Cardinal(-3904), HexToBytes('04EDE6407FAD4026986F3452ECA1AC62'), 128);
+
+  Result := CompareBytes(U, HexToBytes('099B9F60D57F4972D94A9C179AD64D73'), 16);
 end;
 
 // ================================ SM2 ========================================

@@ -30,6 +30,7 @@ uses
   CnOTP in '..\..\..\Source\Crypto\CnOTP.pas',
   CnOTS in '..\..\..\Source\Crypto\CnOTS.pas',
   CnPaillier in '..\..\..\Source\Crypto\CnPaillier.pas',
+  CnPDFCrypt in '..\..\..\Source\Crypto\CnPDFCrypt.pas',
   CnPemUtils in '..\..\..\Source\Crypto\CnPemUtils.pas',
   CnPoly1305 in '..\..\..\Source\Crypto\CnPoly1305.pas',
   CnPolynomial in '..\..\..\Source\Crypto\CnPolynomial.pas',
