@@ -24,7 +24,7 @@ unit CnPDFCrypt;
 * 软件名称：开发包基础库
 * 单元名称：PDF 简易解析生成单元
 * 单元作者：刘啸
-* 备    注：PDF 加解密机制的实现单元，从 CnPDF.pas 中独立出来，仅支持 Revision 2 3 4 5
+* 备    注：PDF 加解密机制的实现单元，从 CnPDF.pas 中独立出来
 *
 *           Version 表示加密机制，0 无，1 为 40 位 RC4、2/3 为 40 到 128 位 RC4、4 看 Security Handler 里的 Crypt Filter
 *           Revision 用来指示 Security Handler 如何处理权限，2 无、3 有、4 不知道，并对各 Key 的运算有影响
@@ -32,7 +32,7 @@ unit CnPDFCrypt;
 *    需支持 Version  Revision     加密算法                Key 指定的 Length                    PDF 规范版本
 *           0        *            无
 *        *  1        2            RC4                     无需指定，固定 40 位                 1.1
-*        *  2        2            RC4                     可大于 40 位，推荐 128，无权限控制   1.4
+*        *  2        2            RC4                     可大于 40 位，推荐 128，无权限控制   1.4  此处不用
 *        *  2        3            RC4                     可大于 40 位，推荐 128，有权限控制   1.4
 *           3        3            （未公开，不使用）                                           1.4
 *        *  4        4            依赖于 CF 等                                                 1.5
@@ -40,10 +40,18 @@ unit CnPDFCrypt;
 *                       CFM AESV2 AES128/CBC/PKCS5        128，在 CFM 中                       1.6
 *           5        5  CFM AESV3 AES256/CBC/PKCS5        256，在 CFM 中                       1.7
 *
+*           加解密测试用例：
+*               非 Unicode 编译器读 128RC4 加密通过      非 Unicode 编译器写 128RC4 加密通过
+*               非 Unicode 编译器读 128AES 加密通过      非 Unicode 编译器写 128AES 加密通过
+*               Unicode 编译器读 128RC4 加密通过         Unicode 编译器写 128RC4 加密通过
+*               Unicode 编译器读 128AES 加密通过         Unicode 编译器写 128AES 加密通过
+*
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.03.02 V1.1
+* 修改记录：2024.03.02 V1.2
+*               实现 128AES 的加解密
+*           2024.03.02 V1.1
 *               实现 128RC4 的加解密
 *           2024.02.29 V1.0
 *               创建单元
@@ -61,8 +69,8 @@ type
   ECnPDFCryptException = class(Exception);
   {* PDF 加解密的异常}
 
-  TCnPDFEncryptionMethod = (cpemNotSupport, cpem40RC4, cpem128RC4, cpem128AES, cpem256AES);
-  {* 支持的四种加密模式}
+  TCnPDFEncryptionMethod = (cpemNotSupport, cpem40RC4, cpem128RC4, cpem128AES); //, cpem256AES);
+  {* 支持的几种加密模式，其中 40RC4 目前仍有问题}
 
   TCnPDFDataCryptor = class
   {* 加解密实现类，设置一次原始 Key，可反复对多个对象的字节流实施加解密}
@@ -86,12 +94,13 @@ function CnPDFFindEncryptionMethod(Version, Revision, KeyBitLength: Integer;
   const CFMValue: string = ''): TCnPDFEncryptionMethod;
 {* 根据 PDF 文件中 Encrypt 字段的 V R Length 值及 CTM 字段值判断使用哪种加密算法}
 
-function CnPDFCalcEncryptKey(const UserPass: AnsiString;
+function CnPDFCalcEncryptKey(const UserPass: AnsiString; Version,
   Revision: Integer; OwnerCipher: TBytes; Permission: Cardinal; ID: TBytes;
   KeyBitLength: Integer): TBytes;
 {* 生成 PDF 时调用，根据用户密码与 O 值等计算加密 Key，供加解密字符串与流内容
 
   UserPass: AnsiString              用户密码
+  Version: Integer                  加密版本号，只支持 1  2  3  4
   Revision: Integer                 加密修订版本号，只支持 2  3  4
   OwnerCipher: TBytes               PDF 文件中 Encrypt 节点的 O 字段值，一般 32 字节
   Permission: Cardinal              PDF 文件中 Encrypt 节点的 P 字段值，如是负值要强制转换成无符号 32 位
@@ -101,11 +110,12 @@ function CnPDFCalcEncryptKey(const UserPass: AnsiString;
   返回值 TBytes 为加解密的密钥字节数组
 }
 
-function CnPDFCalcUserCipher(const UserPass: AnsiString; Revision: Integer;
+function CnPDFCalcUserCipher(const UserPass: AnsiString; Version, Revision: Integer;
   OwnerCipher: TBytes; Permission: Cardinal; ID: TBytes; KeyBitLength: Integer): TBytes;
 {* 生成 PDF 时调用，根据用户密码等内容计算 U 值，内部包括计算加密 Key，可供与文档中的 U 值对比以确定是否是正确的用户密码
 
   UserPass: AnsiString              用户密码
+  Version: Integer                  加密版本号，只支持 1  2  3  4
   Revision: Integer                 加密修订版本号，只支持 2  3  4
   OwnerCipher: TBytes               PDF 文件中 Encrypt 节点的 O 字段值，一般 32 字节
   Permission: Cardinal              PDF 文件中 Encrypt 节点的 P 字段值，如是负值要强制转换成无符号 32 位
@@ -116,23 +126,25 @@ function CnPDFCalcUserCipher(const UserPass: AnsiString; Revision: Integer;
 }
 
 function CnPDFCalcOwnerCipher(const OwnerPass, UserPass: AnsiString;
-  Revision, KeyBitLength: Integer): TBytes;
+  Version, Revision, KeyBitLength: Integer): TBytes;
 {* 生成 PDF 时调用，根据权限密码与用户密码计算 O 值
 
   OwnerPass: AnsiString             权限密码
+  Version: Integer                  加密版本号，只支持 1  2  3  4
   Revision: Integer                 加密修订版本号，只支持 2  3  4
   KeyBitLength: Integer             PDF 文件中 Encrypt 节点的 Length 字段值，一般是 128，实际除以 8 得到字节数
 
   返回值 TBytes 为可放置至 PDF 文件中 Encrypt 节点的 O 字段值
 }
 
-function CnPDFCheckUserPassword(const UserPass: AnsiString; Revision: Integer;
+function CnPDFCheckUserPassword(const UserPass: AnsiString; Version, Revision: Integer;
   OwnerCipher, UserCipher: TBytes; Permission: Cardinal; ID: TBytes;
   KeyBitLength: Integer): TBytes;
 {* 解析 PDF 时调用，检查用户输入的 UserPass 是否是合法的用户密码，检查通过返回加密密钥，否则返回 nil
 
   UserPass: AnsiString              用户密码
-  Revision: Integer                 加密版本号，只支持 2  3  4
+  Version: Integer                  加密版本号，只支持 1  2  3  4
+  Revision: Integer                 加密修订版本号，只支持 2  3  4
   OwnerCipher: TBytes               PDF 文件中 Encrypt 节点的 O 字段值，一般 32 字节
   UserCipher: TBytes                PDF 文件中 Encrypt 节点的 U 字段值，一般 32 字节
   Permission: Cardinal              PDF 文件中 Encrypt 节点的 P 字段值，如是负值要强制转换成无符号 32 位
@@ -142,12 +154,13 @@ function CnPDFCheckUserPassword(const UserPass: AnsiString; Revision: Integer;
   返回值 TBytes 为加解密的密钥字节数组
 }
 
-function CnPDFCheckOwnerPassword(const OwnerPass: AnsiString; Revision: Integer;
+function CnPDFCheckOwnerPassword(const OwnerPass: AnsiString; Version, Revision: Integer;
   OwnerCipher, UserCipher: TBytes; Permission: Cardinal; ID: TBytes;
   KeyBitLength: Integer): TBytes;
 {* 解析 PDF 时调用，检查用户输入的 OwnerPass 是否是合法的权限密码，检查通过返回加密密钥，否则返回 nil
 
   UserPass: AnsiString              用户密码
+  Version: Integer                  加密版本号，只支持 1  2  3  4
   Revision: Integer                 加密修订版本号，只支持 2  3  4
   OwnerCipher: TBytes               PDF 文件中 Encrypt 节点的 O 字段值，一般 32 字节
   UserCipher: TBytes                PDF 文件中 Encrypt 节点的 U 字段值，一般 32 字节
@@ -161,7 +174,7 @@ function CnPDFCheckOwnerPassword(const OwnerPass: AnsiString; Revision: Integer;
 implementation
 
 uses
-  CnRandom, CnMD5, CnRC4, CnAES;
+  CnRandom, CnMD5, CnRC4, CnAES, CnPemUtils;
 
 const
   CN_PDF_ENCRYPT_SIZE = 32;       // 32 字节对齐的 PDF 加密模式
@@ -241,7 +254,7 @@ begin
   Move(PaddingKey[0], Result[1], SizeOf(TCnPDFPaddingKey));
 end;
 
-function CnPDFCalcEncryptKey(const UserPass: AnsiString;
+function CnPDFCalcEncryptKey(const UserPass: AnsiString; Version,
   Revision: Integer; OwnerCipher: TBytes; Permission: Cardinal; ID: TBytes;
   KeyBitLength: Integer): TBytes;
 var
@@ -251,7 +264,11 @@ var
   Dig: TCnMD5Digest;
   P: Cardinal;
 begin
-  KL := KeyBitLength div 8;
+  if Version <= 1 then
+    KL := 5
+  else
+    KL := KeyBitLength div 8;
+
   if (KL <= 0) or (KL > 16) then // 最多 16 字节
     raise ECnPDFCryptException.Create(SCnErrorPDFKeyLength);
 
@@ -289,7 +306,7 @@ begin
 end;
 
 {* 生成与检验权限密码时都要计算密钥，抽出来作为公用}
-function CalcOwnerKey(const OwnerPass: AnsiString; Revision, KeyBitLength: Integer): TBytes;
+function CalcOwnerKey(const OwnerPass: AnsiString; Version, Revision, KeyBitLength: Integer): TBytes;
 var
   I, KL: Integer;
   Dig: TCnMD5Digest;
@@ -300,14 +317,16 @@ begin
   // 特定对齐至 32 字节并做一次 MD5
   Dig := MD5(@OPK[0], SizeOf(TCnPDFPaddingKey));
 
-  // 对 MD5 结果再做 50 次 MD5
-  for I := 1 to 50 do
-    Dig := MD5(@Dig[0], SizeOf(TCnMD5Digest));
-
   if Revision <= 2 then
     KL := 5
   else
+  begin
     KL := KeyBitLength div 8;
+
+    // 对 MD5 结果再做 50 次 MD5
+    for I := 1 to 50 do
+      Dig := MD5(@Dig[0], SizeOf(TCnMD5Digest));
+  end;
 
   if (KL <= 0) or (KL > 16) then // 最多 16 字节
     raise ECnPDFCryptException.Create(SCnErrorPDFKeyLength);
@@ -318,13 +337,13 @@ begin
 end;
 
 function CnPDFCalcOwnerCipher(const OwnerPass, UserPass: AnsiString;
-  Revision, KeyBitLength: Integer): TBytes;
+  Version, Revision, KeyBitLength: Integer): TBytes;
 var
   I, J: Integer;
   UPK, XK: TCnPDFPaddingKey;
   RK: TBytes;
 begin
-  RK := CalcOwnerKey(OwnerPass, Revision, KeyBitLength);
+  RK := CalcOwnerKey(OwnerPass, Version, Revision, KeyBitLength);
 
   // 用户密码对齐特定 32 字节到 UPK 中
   UPK := PaddingKey(UserPass);
@@ -347,7 +366,7 @@ begin
   Move(UPK[0], Result[0], SizeOf(TCnPDFPaddingKey));
 end;
 
-function CnPDFCalcUserCipher(const UserPass: AnsiString; Revision: Integer;
+function CnPDFCalcUserCipher(const UserPass: AnsiString; Version, Revision: Integer;
   OwnerCipher: TBytes; Permission: Cardinal; ID: TBytes; KeyBitLength: Integer): TBytes;
 var
   I, J, KL: Integer;
@@ -356,7 +375,7 @@ var
   Dig: TCnMD5Digest;
   XK: TCnPDFPaddingKey;
 begin
-  Key := CnPDFCalcEncryptKey(UserPass, Revision, OwnerCipher, Permission, ID, KeyBitLength);
+  Key := CnPDFCalcEncryptKey(UserPass, Version, Revision, OwnerCipher, Permission, ID, KeyBitLength);
 
   if Revision = 2 then
   begin
@@ -392,7 +411,7 @@ begin
   end;
 end;
 
-function CnPDFCheckUserPassword(const UserPass: AnsiString; Revision: Integer;
+function CnPDFCheckUserPassword(const UserPass: AnsiString; Version, Revision: Integer;
   OwnerCipher, UserCipher: TBytes; Permission: Cardinal; ID: TBytes;
   KeyBitLength: Integer): TBytes;
 var
@@ -401,14 +420,14 @@ begin
   if (Length(OwnerCipher) = 0) or (Length(UserCipher) = 0) or (Length(ID) = 0) then
     raise ECnPDFCryptException.Create(SCnErrorPDFEncryptParams);
 
-  N := CnPDFCalcUserCipher(UserPass, Revision, OwnerCipher, Permission, ID, KeyBitLength);
+  N := CnPDFCalcUserCipher(UserPass, Version, Revision, OwnerCipher, Permission, ID, KeyBitLength);
   if CompareBytes(N, UserCipher, 16) then
-    Result := CnPDFCalcEncryptKey(UserPass, Revision, OwnerCipher, Permission, ID, KeyBitLength)
+    Result := CnPDFCalcEncryptKey(UserPass, Version, Revision, OwnerCipher, Permission, ID, KeyBitLength)
   else
     Result := nil;
 end;
 
-function CnPDFCheckOwnerPassword(const OwnerPass: AnsiString; Revision: Integer;
+function CnPDFCheckOwnerPassword(const OwnerPass: AnsiString; Version, Revision: Integer;
   OwnerCipher, UserCipher: TBytes; Permission: Cardinal; ID: TBytes;
   KeyBitLength: Integer): TBytes;
 var
@@ -420,7 +439,7 @@ begin
   if (Length(OwnerCipher) = 0) or (Length(UserCipher) = 0) or (Length(ID) = 0) then
     raise ECnPDFCryptException.Create(SCnErrorPDFEncryptParams);
 
-  RK := CalcOwnerKey(OwnerPass, Revision, KeyBitLength);
+  RK := CalcOwnerKey(OwnerPass, Version, Revision, KeyBitLength);
 
   if Revision = 2 then
   begin
@@ -447,7 +466,7 @@ begin
   UP := UnPaddingKey(OCP);
 
   // 验证通过则返回密钥，不通过则返回 nil
-  Result := CnPDFCheckUserPassword(UP, Revision, OwnerCipher, UserCipher,
+  Result := CnPDFCheckUserPassword(UP, Version, Revision, OwnerCipher, UserCipher,
     Permission, ID, KeyBitLength);;
 end;
 
@@ -522,8 +541,11 @@ begin
     Move(Dig[0], K[0], L);
 
     Res := AESDecryptCbcBytes(Res, K, IV, kbt128);
-    if Length(Res) > 0 then
+    if Length(Res) > 0 then // 解密后再解除 PKCS5 对齐
+    begin
+      BytesRemovePKCS7Padding(Res);
       Data := Res;
+    end;
   end;
 end;
 
@@ -545,16 +567,9 @@ begin
     RC4Encrypt(@Dig[0], SizeOf(TCnMD5Digest), @Data[0], @Data[0], Length(Data))
   else // AES
   begin
-    // 前 16 字节抽出来做 IV
-    if Length(Data) <= CN_AES_BLOCKSIZE then
-      raise ECnPDFCryptException.Create(SCnErrorPDFDataLength);
-
+    // 随机生成 16 字节做 IV
     SetLength(IV, CN_AES_BLOCKSIZE);
-    Move(Data[0], IV[0], CN_AES_BLOCKSIZE);
-
-    // 16 字节后的是密文
-    SetLength(Res, Length(Data) - CN_AES_BLOCKSIZE);
-    Move(Data[CN_AES_BLOCKSIZE], Res[0], Length(Res));
+    CnRandomFillBytes(@IV[0], CN_AES_BLOCKSIZE);
 
     L := FKeyByteLength + 5;
     if L > 16 then
@@ -562,7 +577,11 @@ begin
     SetLength(K, L);
     Move(Dig[0], K[0], L);
 
-    Res := AESEncryptCbcBytes(Res, K, IV, kbt128);
+    SetLength(Res, Length(Data));          // 要做 PKCS5 对齐
+    Move(Data[0], Res[0], Length(Data));
+    BytesAddPKCS7Padding(Res, CN_AES_BLOCKSIZE);
+
+    Res := AESEncryptCbcBytes(Res, K, IV, kbt128); // 再加密
     if Length(Res) > 0 then
       Data := ConcatBytes(IV, Res);
   end;

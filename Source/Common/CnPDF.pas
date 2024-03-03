@@ -55,8 +55,8 @@ unit CnPDF;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.03.02 V1.4
-*               PDF 文件的载入与保存初步支持权限密码与用户密码，内部使用 128RC4 加密，其他途径暂不支持
+* 修改记录：2024.03.03 V1.4
+*               PDF 文件的载入与保存初步支持权限密码与用户密码，内部使用 128RC4/128AES 加密，其他途径暂不支持
 *           2024.02.22 V1.3
 *               实现 TCnImagesToPDFCreator 以在输出 JPEG 的 PDF 时支持页面边距等设置
 *               增加从 PDF 中抽取 JPEG 文件的方法
@@ -78,6 +78,16 @@ interface
 
 uses
   SysUtils, Classes, Contnrs, TypInfo, jpeg, CnNative, CnStrings, CnPDFCrypt;
+
+const
+  CN_PDF_PERMISSION_PRINT       = 1 shl 2;   // 常规打印
+  CN_PDF_PERMISSION_MODIFY      = 1 shl 3;   // 修改内容
+  CN_PDF_PERMISSION_COPY        = 1 shl 4;   // 复制内容
+  CN_PDF_PERMISSION_ANNOTATIONS = 1 shl 5;   // 修改标记
+  CN_PDF_PERMISSION_INTERACTIVE = 1 shl 8;   // 填写表单
+  CN_PDF_PERMISSION_EXTRACT     = 1 shl 9;   // 抽取元素
+  CN_PDF_PERMISSION_ASSEMBLE    = 1 shl 10;  // 重编文档
+  CN_PDF_PERMISSION_PRINTHI     = 1 shl 11;  // 精细打印
 
 type
   ECnPDFException = class(Exception);
@@ -702,6 +712,7 @@ type
     FEncrypted: Boolean;
     FDecrypted: Boolean;
     FPermission: Cardinal;
+    FEncryptionMethod: TCnPDFEncryptionMethod;
     function FromReference(Ref: TCnPDFReferenceObject): TCnPDFObject;
     procedure GetCryptIDGen(Obj: TCnPDFObject; out AID, AGen: Cardinal);
     function GetNeedPassword: Boolean;
@@ -778,6 +789,8 @@ type
     {* 是否解密成功，值仅在 Encrypted 为 True 时有效}
     property Permission: Cardinal read FPermission write FPermission;
     {* 允许的权限集合}
+    property EncryptionMethod: TCnPDFEncryptionMethod read FEncryptionMethod write FEncryptionMethod;
+    {* 支持的加密模式}
 
     property Header: TCnPDFHeader read FHeader;
     property Body: TCnPDFBody read FBody;
@@ -902,6 +915,7 @@ type
     FUserPassword: AnsiString;
     FEncrypt: Boolean;
     FPermission: Cardinal;
+    FEncryptionMethod: TCnPDFEncryptionMethod;
     procedure SetBottomMargin(const Value: Integer);
     procedure SetLeftMargin(const Value: Integer);
     procedure SetPageHeight(const Value: Integer);
@@ -959,7 +973,7 @@ type
     property Comments: string read FComments write FComments;
     {* 其他注释}
 
-    // 加密相关，默认算法 128RC4
+    // 加密相关，支持 128RC4
     property Encrypt: Boolean read FEncrypt write FEncrypt;
     {* 由外界指定是否加密}
     property OwnerPassword: AnsiString read FOwnerPassword write FOwnerPassword;
@@ -968,6 +982,8 @@ type
     {* 用户打开密码}
     property Permission: Cardinal read FPermission write FPermission;
     {* 允许的权限集合}
+    property EncryptionMethod: TCnPDFEncryptionMethod read FEncryptionMethod write FEncryptionMethod;
+    {* 支持的加密模式}
   end;
 
 function CnLoadPDFFile(const FileName: string): TCnPDFDocument;
@@ -2475,13 +2491,27 @@ begin
   begin
     Page := FBody.Page[I];
 
-    // 找 Contents
+    // 找 Contents，可能是字典或数组
     Obj := Page.Values['Contents'];
     if (Obj <> nil) and (Obj is TCnPDFReferenceObject) then
     begin
       Obj := FromReference(Obj as TCnPDFReferenceObject);
       if (Obj <> nil) and (Obj is TCnPDFStreamObject) then
         FBody.AddRawContent(Obj as TCnPDFStreamObject);
+    end
+    else if (Obj <> nil) and (Obj is TCnPDFArrayObject) then
+    begin
+      Arr := Obj as TCnPDFArrayObject;
+      if Arr.Count > 0 then
+      begin
+        Obj := Arr.Items[0];
+        if (Obj <> nil) and (Obj is TCnPDFReferenceObject) then
+        begin
+          Obj := FromReference(Obj as TCnPDFReferenceObject);
+          if (Obj <> nil) and (Obj is TCnPDFStreamObject) then
+            FBody.AddRawContent(Obj as TCnPDFStreamObject);
+        end;
+      end
     end
     else if Obj <> nil then
       raise ECnPDFException.CreateFmt('Error Object Type %s for Contents', [Obj.ClassName]);
@@ -2600,7 +2630,6 @@ var
   Key: TBytes;
   Cryptor: TCnPDFDataCryptor;
   V: TCnPDFObject;
-  EM: TCnPDFEncryptionMethod;
   CFM: string;
 begin
   if not FEncrypted or FDecrypted or (FBody.Encrypt = nil) then
@@ -2651,12 +2680,13 @@ begin
     end;
   end;
 
-  EM := CnPDFFindEncryptionMethod(Ver, Rev, KBL, CFM);
-  if EM = cpemNotSupport then
+  // 读入后解密的场合，从文件内容各参数里获取加密算法种类
+  FEncryptionMethod := CnPDFFindEncryptionMethod(Ver, Rev, KBL, CFM);
+  if FEncryptionMethod = cpemNotSupport then
     raise ECnPDFException.Create(SCnErrorPDFEncryptNOTSupport);
 
   // 得到解密密钥 Key，准备解密所有的 String 与 Stream
-  Cryptor := TCnPDFDataCryptor.Create(EM, Key, KBL);
+  Cryptor := TCnPDFDataCryptor.Create(FEncryptionMethod, Key, KBL);
   try
     for I := 0 to FBody.Objects.Count - 1 do
       DecryptObject(Cryptor, FBody.Objects[I], Key);
@@ -2681,6 +2711,25 @@ begin
   Rev := 4;
   KBL := 128;
 
+  if FEncryptionMethod = cpem40RC4 then
+  begin
+    Ver := 1;
+    Rev := 2;
+    KBL := 0;
+  end;
+  if FEncryptionMethod = cpem128RC4 then
+  begin
+    Ver := 4;
+    Rev := 4;
+    KBL := 128;
+  end
+  else if FEncryptionMethod = cpem128AES then
+  begin
+    Ver := 4;
+    Rev := 4;
+    KBL := 128;
+  end;
+
   ID := nil;
   V := FTrailer.Dictionary.Values['ID'];
   if V is TCnPDFArrayObject then
@@ -2693,13 +2742,13 @@ begin
     end;
   end;
 
-  O := CnPDFCalcOwnerCipher(OwnerPass, UserPass, Rev, KBl);
-  U := CnPDFCalcUserCipher(UserPass, Rev, O, FPermission, ID, KBL);
+  O := CnPDFCalcOwnerCipher(OwnerPass, UserPass, Ver, Rev, KBL);
+  U := CnPDFCalcUserCipher(UserPass, Ver, Rev, O, FPermission, ID, KBL);
 
-  Key := CnPDFCalcEncryptKey(UserPass, Rev, O, FPermission, ID, KBL);
+  Key := CnPDFCalcEncryptKey(UserPass, Ver, Rev, O, FPermission, ID, KBL);
 
   // 得到加密密钥 Key，准备加密所有的 String 与 Stream
-  Cryptor := TCnPDFDataCryptor.Create(cpem128RC4, Key, KBL);
+  Cryptor := TCnPDFDataCryptor.Create(FEncryptionMethod, Key, KBL);
   try
     for I := 0 to FBody.Objects.Count - 1 do
       if FBody.Objects[I] <> FBody.Encrypt then // 不要加密 Encrypt 对象（如果存在的话）
@@ -2715,10 +2764,13 @@ begin
   D := FBody.Encrypt.AddDictionary('CF');
   D := D.AddDictionary('StdCF');
   D.AddName('AuthEvent', 'DocOpen');
-  D.AddName('CFM', 'V2');
+  if FEncryptionMethod = cpem128RC4 then
+    D.AddName('CFM', 'V2')
+  else if FEncryptionMethod = cpem128AES then
+    D.AddName('CFM', 'AESV2');
   D.AddNumber('Length', KBL);
 
-  FBody.Encrypt.AddFalse('EncryptMetadata');
+  FBody.Encrypt.AddTrue('EncryptMetadata');
   FBody.Encrypt.AddName('Filter', 'Standard');
   FBody.Encrypt.AddNumber('Length', KBL);
   FBody.Encrypt.AddNumber('P', Integer(FPermission));
@@ -2742,7 +2794,7 @@ function TCnPDFDocument.CheckUserPassword(const APass: AnsiString;
 var
   OC, UC, ID: TBytes;
   Per: Cardinal;
-  Rev, KBL: Integer;
+  Ver, Rev, KBL: Integer;
   V: TCnPDFObject;
 begin
   Result := False;
@@ -2755,6 +2807,7 @@ begin
   UC := nil;
   ID := nil;
   Per := 0;
+  Ver := 0;
   Rev := 0;
   KBL := 0;
 
@@ -2763,6 +2816,10 @@ begin
   if V is TCnPDFNumberObject then
     Per := Cardinal((V as TCnPDFNumberObject).AsInteger);
 
+  V := FBody.Encrypt.Values['V'];
+  if V is TCnPDFNumberObject then
+    Ver := (V as TCnPDFNumberObject).AsInteger;
+
   V := FBody.Encrypt.Values['R'];
   if V is TCnPDFNumberObject then
     Rev := (V as TCnPDFNumberObject).AsInteger;
@@ -2790,7 +2847,7 @@ begin
     end;
   end;
 
-  Key := CnPDFCheckUserPassword(APass, Rev, OC, UC, Per, ID, KBL);
+  Key := CnPDFCheckUserPassword(APass, Ver, Rev, OC, UC, Per, ID, KBL);
   Result := Length(Key) > 0;
 end;
 
@@ -2799,7 +2856,7 @@ function TCnPDFDocument.CheckOwnerPassword(const APass: AnsiString;
 var
   OC, UC, ID: TBytes;
   Per: Cardinal;
-  Rev, KBL: Integer;
+  Ver, Rev, KBL: Integer;
   V: TCnPDFObject;
 begin
   Result := False;
@@ -2812,6 +2869,7 @@ begin
   UC := nil;
   ID := nil;
   Per := 0;
+  Ver := 0;
   Rev := 0;
   KBL := 0;
 
@@ -2819,6 +2877,10 @@ begin
   V := FBody.Encrypt.Values['P'];
   if V is TCnPDFNumberObject then
     Per := Cardinal((V as TCnPDFNumberObject).AsInteger);
+
+  V := FBody.Encrypt.Values['V'];
+  if V is TCnPDFNumberObject then
+    Ver := (V as TCnPDFNumberObject).AsInteger;
 
   V := FBody.Encrypt.Values['R'];
   if V is TCnPDFNumberObject then
@@ -2847,7 +2909,7 @@ begin
     end;
   end;
 
-  Key := CnPDFCheckOwnerPassword(APass, Rev, OC, UC, Per, ID, KBL);
+  Key := CnPDFCheckOwnerPassword(APass, Ver, Rev, OC, UC, Per, ID, KBL);
   Result := Length(Key) > 0;
 end;
 
@@ -4627,9 +4689,10 @@ begin
 
     PDF.Trailer.GenerateID;
 
-    if FEncrypt then
+    if FEncrypt and (FEncryptionMethod <> cpemNotSupport) then
     begin
       PDF.Permission := FPermission;
+      PDF.EncryptionMethod := FEncryptionMethod;
       PDF.Encrypt(FOwnerPassword, FUserPassword);
     end;
     PDF.SaveToFile(PDFFile);
