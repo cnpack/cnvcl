@@ -203,6 +203,7 @@ begin
   end;
 end;
 
+// 将明文密码加特定数据补齐成 32 字节内容
 function PaddingKey(const Password: AnsiString): TCnPDFPaddingKey;
 var
   L: Integer;
@@ -218,27 +219,26 @@ begin
     Move(CN_PDF_ENCRYPT_PADDING[0], Result[0], SizeOf(TCnPDFPaddingKey));
 end;
 
+// 将补齐内容解开得到明文密码
 function UnPaddingKey(var PaddingKey: TCnPDFPaddingKey): AnsiString;
 var
-  I, Idx: Integer;
-  S, Pat: AnsiString;
+  I: Integer;
 begin
-  SetLength(S, SizeOf(TCnPDFPaddingKey));
-  Move(PaddingKey[0], S[1], SizeOf(TCnPDFPaddingKey)); // 待查找的完整内容
-
-  for I := 1 to SizeOf(TCnPDFPaddingKey) do
+  for I := 0 to SizeOf(TCnPDFPaddingKey) - 1 do
   begin
-    SetLength(Pat, I);
-    Move(CN_PDF_ENCRYPT_PADDING[0], Pat[1], Length(Pat));
-
-    Idx := AnsiPos(Pat, S);
-    if Idx = SizeOf(TCnPDFPaddingKey) - I then
+    if CompareMem(@PaddingKey[I], @CN_PDF_ENCRYPT_PADDING[0], SizeOf(TCnPDFPaddingKey) - I) then
     begin
-      Result := Copy(S, 1, Idx - 1);
+      SetLength(Result, I);
+      if Length(Result) > 0 then
+        Move(PaddingKey[0], Result[1], I);
+
       Exit;
     end;
   end;
-  Result := S;
+
+  // 都没搜着，使用原始的
+  SetLength(Result, SizeOf(TCnPDFPaddingKey));
+  Move(PaddingKey[0], Result[1], SizeOf(TCnPDFPaddingKey));
 end;
 
 function CnPDFCalcEncryptKey(const UserPass: AnsiString;
@@ -266,11 +266,12 @@ begin
 
   MD5Update(Ctx, @ID[0], Length(ID));
 
-  if Revision >= 4 then // 只处理 Metadata 不加密的情况
-  begin
-    P := $FFFFFFFF;
-    MD5Update(Ctx, @P, SizeOf(P));
-  end;
+// 只处理 Metadata 加密的情况，因而此处不按规范加 FFFFFFFF
+//  if Revision >= 4 then
+//  begin
+//    P := $FFFFFFFF;
+//    MD5Update(Ctx, @P, SizeOf(P));
+//  end;
 
   MD5Final(Ctx, Dig);
 
