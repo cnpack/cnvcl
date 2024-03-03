@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, TypInfo, ComCtrls;
+  Dialogs, StdCtrls, TypInfo, ComCtrls, ExtCtrls;
 
 type
   TFormPDF = class(TForm)
@@ -27,6 +27,7 @@ type
     lblUserPass: TLabel;
     edtOwnerPass: TEdit;
     edtUserPass: TEdit;
+    rgPDFCrypt: TRadioGroup;
     procedure btnGenSimpleClick(Sender: TObject);
     procedure btnParsePDFTokenClick(Sender: TObject);
     procedure btnParsePDFStructureClick(Sender: TObject);
@@ -193,12 +194,12 @@ begin
     begin
       if PDF.Encrypted then
       begin
-        S := '123456';
+        Pass := '123456';
         if PDf.NeedPassword then
-          InputQuery('Enter Password', 'Enter Password:', S);
+          InputQuery('Enter Password', 'Enter Password:', Pass);
 
         try
-          PDF.Decrypt(S);
+          PDF.Decrypt(Pass);
         except
           ;
         end;
@@ -247,9 +248,14 @@ begin
     if chkUsePass.Checked then
     begin
       Creator.Encrypt := True;
-      Creator.Permission := Cardinal(-3904);
+      if rgPDFCrypt.ItemIndex = 2 then
+        Creator.Permission := Cardinal(-3904)
+      else
+        Creator.Permission := Cardinal(-2880);
+
       Creator.OwnerPassword := edtOwnerPass.Text;
       Creator.UserPassword := edtUserPass.Text;
+      Creator.EncryptionMethod := TCnPDFEncryptionMethod(rgPDFCrypt.ItemIndex + 1);
     end;
 
     Creator.SaveToPDF(dlgSave1.FileName);

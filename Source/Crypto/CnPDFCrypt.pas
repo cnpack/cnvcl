@@ -41,8 +41,10 @@ unit CnPDFCrypt;
 *           5        5  CFM AESV3 AES256/CBC/PKCS5        256，在 CFM 中                       1.7
 *
 *           加解密测试用例：
+*               非 Unicode 编译器读 40RC4 加密通过       非 Unicode 编译器写 40RC4 加密通过
 *               非 Unicode 编译器读 128RC4 加密通过      非 Unicode 编译器写 128RC4 加密通过
 *               非 Unicode 编译器读 128AES 加密通过      非 Unicode 编译器写 128AES 加密通过
+*               Unicode 编译器读 40RC4 加密通过          Unicode 编译器写 40RC4 加密通过
 *               Unicode 编译器读 128RC4 加密通过         Unicode 编译器写 128RC4 加密通过
 *               Unicode 编译器读 128AES 加密通过         Unicode 编译器写 128AES 加密通过
 *
@@ -305,7 +307,22 @@ begin
   Move(Dig[0], Result[0], Length(Result));
 end;
 
-{* 生成与检验权限密码时都要计算密钥，抽出来作为公用}
+{* 40 位 RC4 情况下生成与检验权限密码时计算密钥的简易实现}
+procedure CalcOwnerKey40(const OwnerPass: AnsiString; Key: PAnsiChar);
+var
+  Dig: TCnMD5Digest;
+  OPK: TCnPDFPaddingKey;
+begin
+  OPK := PaddingKey(OwnerPass);
+
+  // 特定对齐至 32 字节并做一次 MD5
+  Dig := MD5(@OPK[0], SizeOf(TCnPDFPaddingKey));
+
+  // 直接复制前 5 字节
+  Move(Dig[0], Key^, 5);
+end;
+
+{* 生成与检验权限密码时都要计算密钥，抽出来作为公用。40 位 RC4 时可能有问题需要用 CalcOwnerKey40 代替}
 function CalcOwnerKey(const OwnerPass: AnsiString; Version, Revision, KeyBitLength: Integer): TBytes;
 var
   I, KL: Integer;
@@ -343,7 +360,13 @@ var
   UPK, XK: TCnPDFPaddingKey;
   RK: TBytes;
 begin
-  RK := CalcOwnerKey(OwnerPass, Version, Revision, KeyBitLength);
+  if (Version = 1) and (Revision = 2) then // 40 位 RC4 算法采用简化版
+  begin
+    SetLength(RK, 5);
+    CalcOwnerKey40(OwnerPass, @RK[0]);
+  end
+  else
+    RK := CalcOwnerKey(OwnerPass, Version, Revision, KeyBitLength);
 
   // 用户密码对齐特定 32 字节到 UPK 中
   UPK := PaddingKey(UserPass);
@@ -439,7 +462,13 @@ begin
   if (Length(OwnerCipher) = 0) or (Length(UserCipher) = 0) or (Length(ID) = 0) then
     raise ECnPDFCryptException.Create(SCnErrorPDFEncryptParams);
 
-  RK := CalcOwnerKey(OwnerPass, Version, Revision, KeyBitLength);
+  if (Version = 1) and (Revision = 2) then // 40 位 RC4 算法采用简化版
+  begin
+    SetLength(RK, 5);
+    CalcOwnerKey40(OwnerPass, @RK[0]);
+  end
+  else
+    RK := CalcOwnerKey(OwnerPass, Version, Revision, KeyBitLength);
 
   if Revision = 2 then
   begin
@@ -467,7 +496,7 @@ begin
 
   // 验证通过则返回密钥，不通过则返回 nil
   Result := CnPDFCheckUserPassword(UP, Version, Revision, OwnerCipher, UserCipher,
-    Permission, ID, KeyBitLength);;
+    Permission, ID, KeyBitLength);
 end;
 
 { TCnPDFDataCryptor }

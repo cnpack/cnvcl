@@ -1,6 +1,6 @@
 object FormPDF: TFormPDF
   Left = 193
-  Top = 109
+  Top = 89
   Width = 917
   Height = 647
   Caption = 'PDF'
@@ -142,6 +142,19 @@ object FormPDF: TFormPDF
         Height = 21
         TabOrder = 6
         Text = '654321'
+      end
+      object rgPDFCrypt: TRadioGroup
+        Left = 312
+        Top = 200
+        Width = 129
+        Height = 97
+        Caption = 'Encryption Method'
+        ItemIndex = 1
+        Items.Strings = (
+          '40 RC4'
+          '128 RC4'
+          '128 AES')
+        TabOrder = 7
       end
     end
   end

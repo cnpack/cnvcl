@@ -2716,8 +2716,8 @@ begin
     Ver := 1;
     Rev := 2;
     KBL := 0;
-  end;
-  if FEncryptionMethod = cpem128RC4 then
+  end
+  else if FEncryptionMethod = cpem128RC4 then
   begin
     Ver := 4;
     Rev := 4;
