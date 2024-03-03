@@ -386,7 +386,7 @@ end;
 
 procedure RemovePKCS5Padding(Stream: TMemoryStream);
 begin
-  RemovePKCS5Padding(Stream);
+  RemovePKCS7Padding(Stream);
 end;
 
 function StrAddPKCS5Padding(const Str: AnsiString): AnsiString;
