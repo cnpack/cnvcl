@@ -554,6 +554,9 @@ function HexToStream(const Hex: string; Stream: TStream): Integer;
 procedure ReverseBytes(Data: TBytes);
 {* 按字节顺序倒置一字节数组}
 
+function CloneBytes(Data: TBytes): TBytes;
+{* 复制一个新的字节数组}
+
 function StreamToBytes(Stream: TStream): TBytes;
 {* 从流从头读入全部内容至字节数组，返回创建的字节数组}
 
@@ -1852,6 +1855,17 @@ begin
     T := Data[I];
     Data[I] := Data[L - I - 1];
     Data[L - I - 1] := T;
+  end;
+end;
+
+function CloneBytes(Data: TBytes): TBytes;
+begin
+  if Length(Data) = 0 then
+    Result := nil
+  else
+  begin
+    SetLength(Result, Length(Data));
+    Move(Data[0], Result[0], Length(Data));
   end;
 end;
 
