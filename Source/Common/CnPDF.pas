@@ -79,19 +79,9 @@ interface
 uses
   SysUtils, Classes, Contnrs, TypInfo, jpeg, CnNative, CnStrings, CnPDFCrypt;
 
-const
-  CN_PDF_PERMISSION_PRINT       = 1 shl 2;   // 常规打印
-  CN_PDF_PERMISSION_MODIFY      = 1 shl 3;   // 修改内容
-  CN_PDF_PERMISSION_COPY        = 1 shl 4;   // 复制内容
-  CN_PDF_PERMISSION_ANNOTATIONS = 1 shl 5;   // 修改标记
-  CN_PDF_PERMISSION_INTERACTIVE = 1 shl 8;   // 填写表单
-  CN_PDF_PERMISSION_EXTRACT     = 1 shl 9;   // 抽取元素
-  CN_PDF_PERMISSION_ASSEMBLE    = 1 shl 10;  // 重编文档
-  CN_PDF_PERMISSION_PRINTHI     = 1 shl 11;  // 精细打印
-
 type
   ECnPDFException = class(Exception);
-  {* PDF 异常}
+  {* 常规 PDF 异常}
 
   ECnPDFEofException = class(Exception);
   {* 解析 PDF 时碰到内容尾}
@@ -336,6 +326,7 @@ type
     {* 是否存在一对象的引用}
 
     property Count: Integer read GetCount;
+    {* 数组中的元素数量}
     property Items[Index: Integer]: TCnPDFObject read GetItem write SetItem;
     {* 序号引用其元素}
   end;
@@ -364,6 +355,7 @@ type
     {* 赋值方法}
 
     procedure Clear;
+    {* 清空所有名称与值}
     function WriteToStream(Stream: TStream): Cardinal; override;
     {* 输出<<及每个Pair及>>}
 
@@ -713,6 +705,24 @@ type
     FDecrypted: Boolean;
     FPermission: Cardinal;
     FEncryptionMethod: TCnPDFEncryptionMethod;
+
+    function GetCanAnnotations: Boolean;
+    function GetCanAssemble: Boolean;
+    function GetCanCopy: Boolean;
+    function GetCanExtract: Boolean;
+    function GetCanInteractive: Boolean;
+    function GetCanModify: Boolean;
+    function GetCanPrint: Boolean;
+    function GetCanPrintHi: Boolean;
+    procedure SetCanAnnotations(const Value: Boolean);
+    procedure SetCanAssemble(const Value: Boolean);
+    procedure SetCanCopy(const Value: Boolean);
+    procedure SetCanExtract(const Value: Boolean);
+    procedure SetCanInteractive(const Value: Boolean);
+    procedure SetCanModify(const Value: Boolean);
+    procedure SetCanPrint(const Value: Boolean);
+    procedure SetCanPrintHi(const Value: Boolean);
+
     function FromReference(Ref: TCnPDFReferenceObject): TCnPDFObject;
     procedure GetCryptIDGen(Obj: TCnPDFObject; out AID, AGen: Cardinal);
     function GetNeedPassword: Boolean;
@@ -792,6 +802,17 @@ type
     property EncryptionMethod: TCnPDFEncryptionMethod read FEncryptionMethod write FEncryptionMethod;
     {* 支持的加密模式}
 
+    // 具体权限设置
+    property CanPrint: Boolean read GetCanPrint write SetCanPrint;
+    property CanModify: Boolean read GetCanModify write SetCanModify;
+    property CanCopy: Boolean read GetCanCopy write SetCanCopy;
+    property CanAnnotations: Boolean read GetCanAnnotations write SetCanAnnotations;
+    property CanInteractive: Boolean read GetCanInteractive write SetCanInteractive;
+    property CanExtract: Boolean read GetCanExtract write SetCanExtract;
+    property CanAssemble: Boolean read GetCanAssemble write SetCanAssemble;
+    property CanPrintHi: Boolean read GetCanPrintHi write SetCanPrintHi;
+
+    // 具体结构组成
     property Header: TCnPDFHeader read FHeader;
     property Body: TCnPDFBody read FBody;
     property XRefTable: TCnPDFXRefTable read FXRefTable;
@@ -1011,6 +1032,16 @@ const
   CN_PDF_A4PT_MARGIN_RIGHT = 90;  // A4 页面的默认右边距
   CN_PDF_A4PT_MARGIN_TOP = 72;    // A4 页面的默认上边距
   CN_PDF_A4PT_MARGIN_BOTTOM = 72; // A4 页面的默认下边距
+
+  // 权限相关掩码
+  CN_PDF_PERMISSION_PRINT       = 1 shl 2;   // 常规打印
+  CN_PDF_PERMISSION_MODIFY      = 1 shl 3;   // 修改内容
+  CN_PDF_PERMISSION_COPY        = 1 shl 4;   // 复制内容
+  CN_PDF_PERMISSION_ANNOTATIONS = 1 shl 5;   // 修改标记
+  CN_PDF_PERMISSION_INTERACTIVE = 1 shl 8;   // 填写表单
+  CN_PDF_PERMISSION_EXTRACT     = 1 shl 9;   // 抽取元素
+  CN_PDF_PERMISSION_ASSEMBLE    = 1 shl 10;  // 重编文档
+  CN_PDF_PERMISSION_PRINTHI     = 1 shl 11;  // 精细打印
 
   IDLENGTH = 16;                  // PDF 文件的 ID 的长度
   INDENTDELTA = 4;                // PDF 内容输出时的默认缩进
@@ -1843,8 +1874,7 @@ begin
   FTrailer := TCnPDFTrailer.Create;
 
   FBody.XRefTable := FXRefTable;
-//  FTrailer.Dictionary.AddObjectRef('Root', FBody.Catalog);
-//  FTrailer.Dictionary.AddObjectRef('Info', FBody.Info);
+  FPermission := $FFFFFFFC;
 end;
 
 destructor TCnPDFDocument.Destroy;
@@ -1854,6 +1884,46 @@ begin
   FBody.Free;
   FHeader.Free;
   inherited;
+end;
+
+function TCnPDFDocument.GetCanAnnotations: Boolean;
+begin
+  Result := (FPermission and CN_PDF_PERMISSION_ANNOTATIONS) <> 0;
+end;
+
+function TCnPDFDocument.GetCanAssemble: Boolean;
+begin
+  Result := (FPermission and CN_PDF_PERMISSION_ASSEMBLE) <> 0;
+end;
+
+function TCnPDFDocument.GetCanCopy: Boolean;
+begin
+  Result := (FPermission and CN_PDF_PERMISSION_COPY) <> 0;
+end;
+
+function TCnPDFDocument.GetCanExtract: Boolean;
+begin
+  Result := (FPermission and CN_PDF_PERMISSION_EXTRACT) <> 0;
+end;
+
+function TCnPDFDocument.GetCanInteractive: Boolean;
+begin
+  Result := (FPermission and CN_PDF_PERMISSION_INTERACTIVE) <> 0;
+end;
+
+function TCnPDFDocument.GetCanModify: Boolean;
+begin
+  Result := (FPermission and CN_PDF_PERMISSION_MODIFY) <> 0;
+end;
+
+function TCnPDFDocument.GetCanPrint: Boolean;
+begin
+  Result := (FPermission and CN_PDF_PERMISSION_PRINT) <> 0;
+end;
+
+function TCnPDFDocument.GetCanPrintHi: Boolean;
+begin
+  Result := (FPermission and CN_PDF_PERMISSION_PRINTHI) <> 0;
 end;
 
 procedure TCnPDFDocument.LoadFromFile(const FileName: string);
@@ -2341,33 +2411,6 @@ begin
   end;
 end;
 
-procedure TCnPDFDocument.SaveToFile(const FileName: string);
-var
-  F: TFileStream;
-begin
-  F := TFileStream.Create(FileName, fmCreate);
-  try
-    SaveToStream(F);
-  finally
-    F.Free;
-  end;
-end;
-
-procedure TCnPDFDocument.SaveToStream(Stream: TStream);
-begin
-  SyncTrailer;
-  FBody.SyncPages;
-
-  FHeader.WriteToStream(Stream);
-  FBody.WriteToStream(Stream);
-
-  FTrailer.XRefStart := Stream.Position;
-  FXRefTable.WriteToStream(Stream);
-
-  FTrailer.Dictionary.Values['Size'] := TCnPDFNumberObject.Create(FBody.Objects.MaxID + 1);
-  FTrailer.WriteToStream(Stream);
-end;
-
 procedure TCnPDFDocument.ReadReference(P: TCnPDFParser;
   Ref: TCnPDFReferenceObject);
 var
@@ -2395,6 +2438,97 @@ begin
   end;
 end;
 
+procedure TCnPDFDocument.SaveToFile(const FileName: string);
+var
+  F: TFileStream;
+begin
+  F := TFileStream.Create(FileName, fmCreate);
+  try
+    SaveToStream(F);
+  finally
+    F.Free;
+  end;
+end;
+
+procedure TCnPDFDocument.SaveToStream(Stream: TStream);
+begin
+  SyncTrailer;
+  FBody.SyncPages;
+
+  FHeader.WriteToStream(Stream);
+  FBody.WriteToStream(Stream);
+
+  FTrailer.XRefStart := Stream.Position;
+  FXRefTable.WriteToStream(Stream);
+
+  FTrailer.Dictionary.Values['Size'] := TCnPDFNumberObject.Create(FBody.Objects.MaxID + 1);
+  FTrailer.WriteToStream(Stream);
+end;
+
+procedure TCnPDFDocument.SetCanAnnotations(const Value: Boolean);
+begin
+  if Value then
+    FPermission := FPermission or CN_PDF_PERMISSION_ANNOTATIONS
+  else
+    FPermission := FPermission and not CN_PDF_PERMISSION_ANNOTATIONS;
+end;
+
+procedure TCnPDFDocument.SetCanAssemble(const Value: Boolean);
+begin
+  if Value then
+    FPermission := FPermission or CN_PDF_PERMISSION_ASSEMBLE
+  else
+    FPermission := FPermission and not CN_PDF_PERMISSION_ASSEMBLE;
+end;
+
+procedure TCnPDFDocument.SetCanCopy(const Value: Boolean);
+begin
+  if Value then
+    FPermission := FPermission or CN_PDF_PERMISSION_COPY
+  else
+    FPermission := FPermission and not CN_PDF_PERMISSION_COPY;
+end;
+
+procedure TCnPDFDocument.SetCanExtract(const Value: Boolean);
+begin
+  if Value then
+    FPermission := FPermission or CN_PDF_PERMISSION_EXTRACT
+  else
+    FPermission := FPermission and not CN_PDF_PERMISSION_EXTRACT;
+end;
+
+procedure TCnPDFDocument.SetCanInteractive(const Value: Boolean);
+begin
+  if Value then
+    FPermission := FPermission or CN_PDF_PERMISSION_INTERACTIVE
+  else
+    FPermission := FPermission and not CN_PDF_PERMISSION_INTERACTIVE;
+end;
+
+procedure TCnPDFDocument.SetCanModify(const Value: Boolean);
+begin
+  if Value then
+    FPermission := FPermission or CN_PDF_PERMISSION_MODIFY
+  else
+    FPermission := FPermission and not CN_PDF_PERMISSION_MODIFY;
+end;
+
+procedure TCnPDFDocument.SetCanPrint(const Value: Boolean);
+begin
+  if Value then
+    FPermission := FPermission or CN_PDF_PERMISSION_PRINT
+  else
+    FPermission := FPermission and not CN_PDF_PERMISSION_PRINT;
+end;
+
+procedure TCnPDFDocument.SetCanPrintHi(const Value: Boolean);
+begin
+  if Value then
+    FPermission := FPermission or CN_PDF_PERMISSION_PRINTHI
+  else
+    FPermission := FPermission and not CN_PDF_PERMISSION_PRINTHI;
+end;
+
 procedure TCnPDFDocument.ArrangeObjects;
 var
   I: Integer;
@@ -2414,7 +2548,14 @@ begin
     FDecrypted := False;
     Obj := FromReference(Obj as TCnPDFReferenceObject);
     if (Obj <> nil) and (Obj is TCnPDFDictionaryObject) then
+    begin
       FBody.Encrypt := Obj as TCnPDFDictionaryObject;
+
+      // 找到加密节点后，先读入一些必要的内容，如权限等
+      Obj := FBody.Encrypt['P'];
+      if (Obj <> nil) and (Obj is TCnPDFNumberObject) then
+        FPermission := Cardinal((Obj as TCnPDFNumberObject).AsInteger);
+    end;
   end
   else
   begin
@@ -2592,6 +2733,16 @@ begin
       Strings.Add('Succesfully Decrypted')
     else
       Strings.Add('NOT Decrypted');
+
+    Strings.Add('Permissions:');
+    if CanPrint then Strings.Add('  Can Print') else Strings.Add('  Can NOT Print');
+    if CanModify then Strings.Add('  Can Modify') else Strings.Add('  Can NOT Modify');
+    if CanCopy then Strings.Add('  Can Copy') else Strings.Add('  Can NOT Copy');
+    if CanAnnotations then Strings.Add('  Can Annotations') else Strings.Add('  Can NOT Annotations');
+    if CanInteractive then Strings.Add('  Can Interactive') else Strings.Add('  Can NOT Interactive');
+    if CanExtract then Strings.Add('  Can Extract') else Strings.Add('  Can NOT Extract');
+    if CanAssemble then Strings.Add('  Can Assemble') else Strings.Add('  Can NOT Assemble');
+    if CanPrintHi then Strings.Add('  Can Print Hi') else Strings.Add('  Can NOT Print Hi');
 
     if FBody.Encrypt <> nil then
       FBody.Encrypt.ToStrings(Strings);
