@@ -56,7 +56,7 @@ var
 implementation
 
 uses
-  CnPDF, CnPDFCrypt, CnNative;
+  CnPDF, CnPDFCrypt, CnNative; 
 
 {$R *.dfm}
 
@@ -192,7 +192,7 @@ end;
 procedure TFormPDF.btnParsePDFStructureClick(Sender: TObject);
 var
   PDF: TCnPDFDocument;
-  Pass: AnsiString;
+  Pass: string;
 begin
    dlgOpen1.Title := 'Open a PDF File';
   if dlgOpen1.Execute then
@@ -205,12 +205,15 @@ begin
       begin
         Pass := '123456';
         if PDf.NeedPassword then
-          InputQuery('Enter Password', 'Enter Password:', Pass);
-
-        try
-          PDF.Decrypt(Pass);
-        except
-          ;
+        begin
+          if InputQuery('Enter Password', 'Enter Password:', Pass) then
+          begin
+            try
+              PDF.Decrypt(Pass);
+            except
+              ;
+            end;
+          end;
         end;
       end;
       mmoPDF.Lines.Clear;
