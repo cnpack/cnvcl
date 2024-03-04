@@ -77,6 +77,7 @@
       ..\..\Source\Crypto\CnOTP.obj 
       ..\..\Source\Crypto\CnOTS.obj 
       ..\..\Source\Crypto\CnPaillier.obj 
+      ..\..\Source\Crypto\CnPDFCrypt.obj 
       ..\..\Source\Crypto\CnPemUtils.obj 
       ..\..\Source\Crypto\CnPolynomial.obj 
       ..\..\Source\Crypto\CnPrimeNumber.obj 
