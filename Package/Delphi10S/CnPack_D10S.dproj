@@ -126,6 +126,7 @@
         <DCCReference Include="..\..\Source\Common\CnObjAuto.pas"/>
         <DCCReference Include="..\..\Source\Common\CnPDF.pas"/>
         <DCCReference Include="..\..\Source\Common\CnPE.pas"/>
+        <DCCReference Include="..\..\Source\Common\CnQuantum.pas"/>
         <DCCReference Include="..\..\Source\Common\CnRopes.pas"/>
         <DCCReference Include="..\..\Source\Common\CnShellUtils.pas"/>
         <DCCReference Include="..\..\Source\Common\CnSingleton.pas"/>

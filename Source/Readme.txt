@@ -134,6 +134,9 @@ cnpack\Source 目录内容说明：
   CnPropSheetFrm.pas
     CnDebug用于显示对象属性的窗体单元
 
+  CnQuantum.pas
+    部分量子基础实现单元
+
   CnRopes.pas
     Ropes 数据结构实现单元
 
@@ -194,7 +197,7 @@ cnpack\Source 目录内容说明：
   CnZip.pas
     Zip 压缩文件实现单元
 
-              67 文件
+              68 文件
 
 \Crypto - 加解密算法目录
 
@@ -267,6 +270,9 @@ cnpack\Source 目录内容说明：
   CnPaillier.pas
     加法同态 Paillier 算法实现单元
 
+  CnPDFCrypt.pas
+    PDF 文件加解密实现单元
+
   CnPemUtils.pas
     PEM 格式处理工具单元
 
@@ -321,7 +327,7 @@ cnpack\Source 目录内容说明：
   CnZUC.pas
     祖冲之算法实现单元
 
-                共 42 文件
+                共 43 文件
 
 \DbReport －数据库组件与报表库目录
 

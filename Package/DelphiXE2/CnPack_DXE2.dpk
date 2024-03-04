@@ -85,6 +85,7 @@ contains
   CnObjAuto in '..\..\Source\Common\CnObjAuto.pas',
   CnPDF in '..\..\Source\Common\CnPDF.pas',
   CnPE in '..\..\Source\Common\CnPE.pas',
+  CnQuantum in '..\..\Source\Common\CnQuantum.pas',
   CnRopes in '..\..\Source\Common\CnRopes.pas',
   CnShellUtils in '..\..\Source\Common\CnShellUtils.pas',
   CnSingleton in '..\..\Source\Common\CnSingleton.pas',
