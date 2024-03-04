@@ -1,6 +1,6 @@
 object FormPDF: TFormPDF
-  Left = 193
-  Top = 89
+  Left = 235
+  Top = 105
   Width = 917
   Height = 647
   Caption = 'PDF'
@@ -155,6 +155,78 @@ object FormPDF: TFormPDF
           '128 RC4'
           '128 AES')
         TabOrder = 7
+      end
+      object grpPermission: TGroupBox
+        Left = 312
+        Top = 312
+        Width = 129
+        Height = 201
+        Caption = 'Permissions'
+        TabOrder = 8
+        object chkPrint: TCheckBox
+          Left = 16
+          Top = 24
+          Width = 97
+          Height = 17
+          Caption = 'Print'
+          TabOrder = 0
+        end
+        object chkCopy: TCheckBox
+          Left = 16
+          Top = 64
+          Width = 97
+          Height = 17
+          Caption = 'Copy'
+          TabOrder = 2
+        end
+        object chkModify: TCheckBox
+          Left = 16
+          Top = 44
+          Width = 97
+          Height = 17
+          Caption = 'Modify'
+          TabOrder = 1
+        end
+        object chkAnnotations: TCheckBox
+          Left = 16
+          Top = 84
+          Width = 97
+          Height = 17
+          Caption = 'Annotations'
+          TabOrder = 3
+        end
+        object chkInteractive: TCheckBox
+          Left = 16
+          Top = 104
+          Width = 97
+          Height = 17
+          Caption = 'Interactive'
+          TabOrder = 4
+        end
+        object chkExtract: TCheckBox
+          Left = 16
+          Top = 124
+          Width = 97
+          Height = 17
+          Caption = 'Extract'
+          TabOrder = 5
+        end
+        object chkAssemble: TCheckBox
+          Left = 16
+          Top = 144
+          Width = 97
+          Height = 17
+          Caption = 'Assemble'
+          TabOrder = 6
+        end
+        object chkPrintHi: TCheckBox
+          Left = 16
+          Top = 164
+          Width = 97
+          Height = 17
+          Caption = 'Print High'
+          TabOrder = 7
+        end
       end
     end
   end

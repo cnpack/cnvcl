@@ -56,7 +56,7 @@ unit CnPDF;
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2024.03.03 V1.4
-*               PDF 文件的载入与保存初步支持权限密码与用户密码，内部使用 128RC4/128AES 加密，其他途径暂不支持
+*               PDF 文件的载入与保存初步支持权限密码与用户密码，内部使用 40RC4/128RC4/128AES 加密，其他途径暂不支持
 *           2024.02.22 V1.3
 *               实现 TCnImagesToPDFCreator 以在输出 JPEG 的 PDF 时支持页面边距等设置
 *               增加从 PDF 中抽取 JPEG 文件的方法
@@ -798,19 +798,24 @@ type
     property Decrypted: Boolean read FDecrypted;
     {* 是否解密成功，值仅在 Encrypted 为 True 时有效}
     property Permission: Cardinal read FPermission write FPermission;
-    {* 允许的权限集合}
+    {* 允许的权限集合，作为保存的原始数据}
     property EncryptionMethod: TCnPDFEncryptionMethod read FEncryptionMethod write FEncryptionMethod;
     {* 支持的加密模式}
 
     // 具体权限设置
     property CanPrint: Boolean read GetCanPrint write SetCanPrint;
+    {* 打印}
     property CanModify: Boolean read GetCanModify write SetCanModify;
     property CanCopy: Boolean read GetCanCopy write SetCanCopy;
+    {* 内容复制}
     property CanAnnotations: Boolean read GetCanAnnotations write SetCanAnnotations;
     property CanInteractive: Boolean read GetCanInteractive write SetCanInteractive;
+    {* 填写表单域}
     property CanExtract: Boolean read GetCanExtract write SetCanExtract;
+    {* 页面提取}
     property CanAssemble: Boolean read GetCanAssemble write SetCanAssemble;
     property CanPrintHi: Boolean read GetCanPrintHi write SetCanPrintHi;
+    {* 高质量打印}
 
     // 具体结构组成
     property Header: TCnPDFHeader read FHeader;
@@ -935,8 +940,15 @@ type
     FOwnerPassword: AnsiString;
     FUserPassword: AnsiString;
     FEncrypt: Boolean;
-    FPermission: Cardinal;
     FEncryptionMethod: TCnPDFEncryptionMethod;
+    FCanInteractive: Boolean;
+    FCanAnnotations: Boolean;
+    FCanAssemble: Boolean;
+    FCanExtract: Boolean;
+    FCanPrintHi: Boolean;
+    FCanPrint: Boolean;
+    FCanCopy: Boolean;
+    FCanModify: Boolean;
     procedure SetBottomMargin(const Value: Integer);
     procedure SetLeftMargin(const Value: Integer);
     procedure SetPageHeight(const Value: Integer);
@@ -994,17 +1006,25 @@ type
     property Comments: string read FComments write FComments;
     {* 其他注释}
 
-    // 加密相关，支持 128RC4
+    // 加密相关
     property Encrypt: Boolean read FEncrypt write FEncrypt;
     {* 由外界指定是否加密}
     property OwnerPassword: AnsiString read FOwnerPassword write FOwnerPassword;
     {* 权限控制密码}
     property UserPassword: AnsiString read FUserPassword write FUserPassword;
     {* 用户打开密码}
-    property Permission: Cardinal read FPermission write FPermission;
-    {* 允许的权限集合}
     property EncryptionMethod: TCnPDFEncryptionMethod read FEncryptionMethod write FEncryptionMethod;
     {* 支持的加密模式}
+
+    // 具体权限设置
+    property CanPrint: Boolean read FCanPrint write FCanPrint;
+    property CanModify: Boolean read FCanModify write FCanModify;
+    property CanCopy: Boolean read FCanCopy write FCanCopy;
+    property CanAnnotations: Boolean read FCanAnnotations write FCanAnnotations;
+    property CanInteractive: Boolean read FCanInteractive write FCanInteractive;
+    property CanExtract: Boolean read FCanExtract write FCanExtract;
+    property CanAssemble: Boolean read FCanAssemble write FCanAssemble;
+    property CanPrintHi: Boolean read FCanPrintHi write FCanPrintHi;
   end;
 
 function CnLoadPDFFile(const FileName: string): TCnPDFDocument;
@@ -4842,7 +4862,15 @@ begin
 
     if FEncrypt and (FEncryptionMethod <> cpemNotSupport) then
     begin
-      PDF.Permission := FPermission;
+      PDF.CanPrint := FCanPrint;
+      PDF.CanModify := FCanModify;
+      PDF.CanCopy := FCanCopy;
+      PDF.CanAnnotations := FCanAnnotations;
+      PDF.CanInteractive := FCanInteractive;
+      PDF.CanExtract := FCanExtract;
+      PDF.CanAssemble := FCanAssemble;
+      PDF.CanPrintHi := FCanPrintHi;
+
       PDF.EncryptionMethod := FEncryptionMethod;
       PDF.Encrypt(FOwnerPassword, FUserPassword);
     end;

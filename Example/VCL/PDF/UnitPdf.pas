@@ -28,6 +28,15 @@ type
     edtOwnerPass: TEdit;
     edtUserPass: TEdit;
     rgPDFCrypt: TRadioGroup;
+    grpPermission: TGroupBox;
+    chkPrint: TCheckBox;
+    chkCopy: TCheckBox;
+    chkModify: TCheckBox;
+    chkAnnotations: TCheckBox;
+    chkInteractive: TCheckBox;
+    chkExtract: TCheckBox;
+    chkAssemble: TCheckBox;
+    chkPrintHi: TCheckBox;
     procedure btnGenSimpleClick(Sender: TObject);
     procedure btnParsePDFTokenClick(Sender: TObject);
     procedure btnParsePDFStructureClick(Sender: TObject);
@@ -248,10 +257,19 @@ begin
     if chkUsePass.Checked then
     begin
       Creator.Encrypt := True;
-      if rgPDFCrypt.ItemIndex = 2 then
-        Creator.Permission := Cardinal(-3904)
-      else
-        Creator.Permission := Cardinal(-2880);
+//      if rgPDFCrypt.ItemIndex = 2 then
+//        Creator.Permission := Cardinal(-3904)
+//      else
+//        Creator.Permission := Cardinal(-2880);
+
+      Creator.CanPrint := chkPrint.Checked;
+      Creator.CanModify := chkModify.Checked;
+      Creator.CanCopy := chkCopy.Checked;
+      Creator.CanAnnotations := chkAnnotations.Checked;
+      Creator.CanInteractive := chkInteractive.Checked;
+      Creator.CanExtract := chkExtract.Checked;
+      Creator.CanAssemble := chkAssemble.Checked;
+      Creator.CanPrintHi := chkPrintHi.Checked;
 
       Creator.OwnerPassword := edtOwnerPass.Text;
       Creator.UserPassword := edtUserPass.Text;
