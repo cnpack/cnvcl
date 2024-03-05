@@ -505,11 +505,11 @@ function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey: TCnEccPub
 {* 用 ECC 签发者公钥验证一 CRT 流的内容是否合乎签名}
 
 function CnCALoadCertificateFromFile(const FileName: string;
-  Certificate: TCnCertificate): Boolean;
+  Certificate: TCnCertificate; const Password: string = ''): Boolean;
 {* 解析 PEM 格式的 CRT 证书文件或原始的二进制 CER 文件，并将内容放入 TCnCertificate 对象中}
 
 function CnCALoadCertificateFromStream(Stream: TStream;
-  Certificate: TCnCertificate): Boolean;
+  Certificate: TCnCertificate; const Password: string = ''): Boolean;
 {* 解析 PEM 格式的 CRT 证书流或原始的二进制 CER 流，并将内容放入 TCnCertificate 对象中}
 
 function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string;
@@ -2022,20 +2022,20 @@ begin
 end;
 
 function CnCALoadCertificateFromFile(const FileName: string;
-  Certificate: TCnCertificate): Boolean;
+  Certificate: TCnCertificate; const Password: string): Boolean;
 var
   Stream: TStream;
 begin
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    Result := CnCALoadCertificateFromStream(Stream, Certificate);
+    Result := CnCALoadCertificateFromStream(Stream, Certificate, Password);
   finally
     Stream.Free;
   end;
 end;
 
 function CnCALoadCertificateFromStream(Stream: TStream;
-  Certificate: TCnCertificate): Boolean;
+  Certificate: TCnCertificate; const Password: string): Boolean;
 var
   Mem, HashStream: TMemoryStream;
   Reader: TCnBerReader;
@@ -2055,7 +2055,7 @@ begin
 
   try
     Mem := TMemoryStream.Create;
-    if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD, PEM_CERTIFICATE_TAIL, Mem) then
+    if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD, PEM_CERTIFICATE_TAIL, Mem, Password) then
       Mem.LoadFromStream(Stream); // 如果以 PEM 方式加载失败，则尝试以原始二进制方式加载
 
     Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, True);
