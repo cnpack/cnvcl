@@ -889,16 +889,16 @@ function CnSM9UserKeyExchangeBStep2(const AUserID, BUserID: AnsiString;
 {* 密钥交换第四步，可选。B 用 A、B 的 ID 以及第二步中的三个中间结果，根据 RA、RB
   计算出校验结果并与 InOptionalSA 比较，不通过则校验失败}
 
-// =================== SM9 具体实现函数：两种 Hash 算法 ========================
+// =================== SM9 具体实现函数：两种杂凑算法 ========================
 
 function CnSM9Hash1(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
   N: TCnBigNumber): Boolean;
-{* SM9 中规定的第一个密码函数，内部使用 SM3，256 位的散列函数
+{* SM9 中规定的第一个密码函数，内部使用 SM3，256 位的杂凑函数
   输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order}
 
 function CnSM9Hash2(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
   N: TCnBigNumber): Boolean;
-{* SM9 中规定的第二个密码函数，内部使用 SM3，256 位的散列函数
+{* SM9 中规定的第二个密码函数，内部使用 SM3，256 位的杂凑函数
   输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order}
 
 function SM9Mac(Key: Pointer; KeyByteLength: Integer; Z: Pointer; ZByteLength: Integer): TCnSM3Digest;
@@ -3993,14 +3993,14 @@ begin
     Stream.Write(BUserID[1], Length(BUserID));
     CnEccPointToStream(InRA, Stream, SM9.BytesCount);
     CnEccPointToStream(OutRB, Stream, SM9.BytesCount);
-    D := SM3(Stream.Memory, Stream.Size);  // 第一次 Hash
+    D := SM3(Stream.Memory, Stream.Size);  // 第一次杂凑
 
     Stream.Clear;
     B := CN_SM9_KEY_EXCHANGE_HASHID1;
     Stream.Write(B, 1);
     FP12ToStream(OutG1, Stream, SM9.BytesCount);
     Stream.Write(D[0], SizeOf(TCnSM3Digest));
-    OutOptionalSB := SM3(Stream.Memory, Stream.Size); // 第二次 Hash
+    OutOptionalSB := SM3(Stream.Memory, Stream.Size); // 第二次杂凑
 
     Result := True;
     _CnSetLastError(ECN_SM9_OK);
@@ -4072,14 +4072,14 @@ begin
     Stream.Write(BUserID[1], Length(BUserID));
     CnEccPointToStream(InRA, Stream, SM9.BytesCount);
     CnEccPointToStream(InRB, Stream, SM9.BytesCount);
-    D := SM3(Stream.Memory, Stream.Size); // 第一次 Hash
+    D := SM3(Stream.Memory, Stream.Size); // 第一次杂凑
 
     Stream.Clear;
     B := CN_SM9_KEY_EXCHANGE_HASHID1;
     Stream.Write(B, 1);
     FP12ToStream(G1, Stream, SM9.BytesCount);
     Stream.Write(D[0], SizeOf(TCnSM3Digest));
-    D := SM3(Stream.Memory, Stream.Size); // 第二次 Hash
+    D := SM3(Stream.Memory, Stream.Size); // 第二次杂凑
 
     if not CompareMem(@D[0], @InOptionalSB[0], SizeOf(TCnSM3Digest)) then
     begin
@@ -4107,14 +4107,14 @@ begin
     Stream.Write(BUserID[1], Length(BUserID));
     CnEccPointToStream(InRA, Stream, SM9.BytesCount);
     CnEccPointToStream(InRB, Stream, SM9.BytesCount);
-    D := SM3(Stream.Memory, Stream.Size); // 第一次 Hash
+    D := SM3(Stream.Memory, Stream.Size); // 第一次杂凑
 
     Stream.Clear;
     B := CN_SM9_KEY_EXCHANGE_HASHID2;
     Stream.Write(B, 1);
     FP12ToStream(G1, Stream, SM9.BytesCount);
     Stream.Write(D[0], SizeOf(TCnSM3Digest));
-    OutOptionalSA := SM3(Stream.Memory, Stream.Size); // 第二次 Hash
+    OutOptionalSA := SM3(Stream.Memory, Stream.Size); // 第二次杂凑
 
     Result := True;
     _CnSetLastError(ECN_SM9_OK);
@@ -4171,7 +4171,7 @@ begin
     FP12ToStream(InG1, Stream, SM9.BytesCount);
     Stream.Write(D[0], SizeOf(TCnSM3Digest));
 
-    // 第二次 Hash
+    // 第二次杂凑
     D := SM3(Stream.Memory, Stream.Size);
     Result := CompareMem(@D[0], @InOptionalSA[0], SizeOf(TCnSM3Digest));
 

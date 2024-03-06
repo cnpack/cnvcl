@@ -33,14 +33,14 @@ unit CnCertificateAuthority;
 *               openssl x509 -req -days 365 -in client.csr -signkey clientkey.pem -out selfsigned.crt
 *           或利用 openssl ca 命令，用根私钥与根证书签发其他的 CSR 生成 CRT 证书
 *
-*           证书 CRT 文件解析字段说明，散列算法以 sha256 为例：
+*           证书 CRT 文件解析字段说明，杂凑算法以 sha256 为例：
 *                    RSA 签 RSA                RSA 签 ECC                ECC 签 RSA           ECC 签 ECC
 * 靠近签发者的类型： sha256WithRSAEncryption   sha256WithRSAEncryption   ecdsaWithSHA256      ecdsaWithSHA256
 * 被签发者的类型：   rsaEncryption             ecPublicKey + 曲线类型    rsaEncryption        ecPublicKey + 曲线类型
 * 最下面的总类型：   sha256WithRSAEncryption   sha256WithRSAEncryption   ecdsaWithSHA256      ecdsaWithSHA256
-*           注意：签发者类型和总类型俩字段总是相同的，被签发者的类型不包括散列算法
+*           注意：签发者类型和总类型俩字段总是相同的，被签发者的类型不包括杂凑算法
 *
-*           逐级验证证书时，是拿父证书里的被签发者公钥来验证子证书的内容的 Hash 是否与子证书的签名内容是否对得上号
+*           逐级验证证书时，是拿父证书里的被签发者公钥来验证子证书的内容的杂凑值与子证书的签名内容是否对得上号
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -77,7 +77,8 @@ const
 type
   TCnCASignType = (ctMd5RSA, ctSha1RSA, ctSha256RSA, ctMd5Ecc, ctSha1Ecc,
     ctSha256Ecc, ctSM2withSM3);
-  {* 证书签名使用的散列签名算法，ctSha1RSA 表示先 Sha1 再 RSA，但 ctSM2withSM3 表示先 SM3 再 SM2}
+  {* 证书签名使用的杂凑签名算法，ctSha1RSA 表示先 Sha1 再 RSA，但 ctSM2withSM3 表示先 SM3 再 SM2}
+
   TCnCASignTypes = set of TCnCASignType;
 
   TCnCertificateBaseInfo = class(TPersistent)
@@ -151,19 +152,19 @@ type
     property EccCurveType: TCnEccCurveType read FEccCurveType write FEccCurveType;
     {* ECC 曲线类型，不支持自定义曲线}
     property CASignType: TCnCASignType read FCASignType write FCASignType;
-    {* 客户端使用的散列与签名算法}
+    {* 客户端使用的杂凑与签名算法}
     property SignValue: Pointer read FSignValue write FSignValue;
-    {* 散列后签名的结果，析构时需释放}
+    {* 杂凑后签名的结果，析构时需释放}
     property SignLength: Integer read FSignLength write FSignLength;
-    {* 散列后签名的结果长度}
+    {* 杂凑后签名的结果长度}
     property RSADigestType: TCnRSASignDigestType read FRSADigestType write FRSADigestType;
-    {* 客户端 RSA 散列使用的散列算法，应与 CASignType 意义相等}
+    {* 客户端 RSA 杂凑使用的杂凑算法，应与 CASignType 意义相等}
     property EccDigestType: TCnEccSignDigestType read FEccDigestType write FEccDigestType;
-    {* 客户端 Ecc 散列使用的散列算法，应与 CASignType 意义相等}
+    {* 客户端 Ecc 杂凑使用的杂凑算法，应与 CASignType 意义相等}
     property DigestValue: Pointer read FDigestValue write FDigestValue;
-    {* 散列值，中间结果，不直接存储于 CSR 文件中，析构时需释放}
+    {* 杂凑值，中间结果，不直接存储于 CSR 文件中，析构时需释放}
     property DigestLength: Integer read FDigestLength write FDigestLength;
-    {* 散列值的长度}
+    {* 杂凑值的长度}
   end;
 
   // 以上是证书请求的声明，以下是证书认证的声明
@@ -364,7 +365,7 @@ type
     property SerialNumber: string read FSerialNumber write FSerialNumber;
     {* 序列号，本来应该是整型，但当作字符串处理}
     property SubjectIsRSA: Boolean read FSubjectIsRSA write FSubjectIsRSA;
-    {* 被签发者是 RSA 还是 ECC，注意没有散列算法类型，散列算法由签发者决定}
+    {* 被签发者是 RSA 还是 ECC，注意没有杂凑算法类型，杂凑算法由签发者决定}
     property Subject: TCnCertificateSubjectInfo read FSubject write FSubject;
     {* 被签发者的基本信息}
     property SubjectRSAPublicKey: TCnRSAPublicKey read FSubjectRSAPublicKey write FSubjectRSAPublicKey;
@@ -424,19 +425,19 @@ type
     property BasicCertificate: TCnBasicCertificate read FBasicCertificate;
     {* 证书基本信息类，包括签发者与被签发者的信息}
     property CASignType: TCnCASignType read FCASignType write FCASignType;
-    {* 签发者使用的散列与签名算法}
+    {* 签发者使用的杂凑与签名算法}
     property SignValue: Pointer read FSignValue write FSignValue;
-    {* 散列后签名的结果}
+    {* 杂凑后签名的结果}
     property SignLength: Integer read FSignLength write FSignLength;
-    {* 散列后签名的结果长度}
+    {* 杂凑后签名的结果长度}
     property RSADigestType: TCnRSASignDigestType read FRSADigestType write FRSADigestType;
-    {* 客户端散列使用的散列算法，应与 CASignType 意义相等}
+    {* 客户端杂凑使用的杂凑算法，应与 CASignType 意义相等}
     property EccDigestType: TCnEccSignDigestType read FEccDigestType write FEccDigestType;
-    {* 客户端 Ecc 散列使用的散列算法，应与 CASignType 意义相等}
+    {* 客户端 Ecc 杂凑使用的杂凑算法，应与 CASignType 意义相等}
     property DigestValue: Pointer read FDigestValue write FDigestValue;
-    {* 散列值，中间结果，不直接存储于 CRT 文件中}
+    {* 杂凑值，中间结果，不直接存储于 CRT 文件中}
     property DigestLength: Integer read FDigestLength write FDigestLength;
-    {* 散列值的长度}
+    {* 杂凑值的长度}
   end;
 
 function CnCANewCertificateSignRequest(PrivateKey: TCnRSAPrivateKey; PublicKey:
@@ -444,14 +445,14 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnRSAPrivateKey; PublicKey:
   StateOrProvinceName: string; const LocalityName: string; const OrganizationName:
   string; const OrganizationalUnitName: string; const CommonName: string; const
   EmailAddress: string; CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
-{* 根据公私钥与一些 DN 信息以及指定散列算法生成 CSR 格式的 RSA 证书请求文件}
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 CSR 格式的 RSA 证书请求文件}
 
 function CnCANewCertificateSignRequest(PrivateKey: TCnEccPrivateKey; PublicKey:
   TCnEccPublicKey; CurveType: TCnEccCurveType; const OutCSRFile: string; const CountryName: string;
   const StateOrProvinceName: string; const LocalityName: string; const OrganizationName: string;
   const OrganizationalUnitName: string; const CommonName: string; const EmailAddress: string;
   CASignType: TCnCASignType = ctSha1Ecc): Boolean; overload;
-{* 根据公私钥与一些 DN 信息以及指定散列算法生成 CSR 格式的 ECC 证书请求文件}
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 CSR 格式的 ECC 证书请求文件}
 
 function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
   TCnRSAPublicKey; const OutCRTFile: string; const CountryName: string; const
@@ -459,14 +460,14 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
   string; const OrganizationalUnitName: string; const CommonName: string; const
   EmailAddress: string; const IntSerialNum: string; NotBefore, NotAfter: TDateTime;
   CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
-{* 根据公私钥与一些 DN 信息以及指定散列算法生成 RSA CRT 格式的自签名证书，目前只支持 v1 格式}
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 RSA CRT 格式的自签名证书，目前只支持 v1 格式}
 
 function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
   TCnEccPublicKey; CurveType: TCnEccCurveType; const OutCRTFile: string; const CountryName: string;
   const StateOrProvinceName: string; const LocalityName: string; const OrganizationName: string;
   const OrganizationalUnitName: string; const CommonName: string; const EmailAddress: string;
   const IntSerialNum: string; NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
-{* 根据公私钥与一些 DN 信息以及指定散列算法生成 ECC CRT 格式的自签名证书，目前只支持 v1 格式}
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，目前只支持 v1 格式}
 
 function CnCALoadCertificateSignRequestFromFile(const FileName: string;
   CertificateRequest: TCnCertificateRequest): Boolean;
@@ -528,10 +529,10 @@ function CnCASignCertificate(PrivateKey: TCnEccPrivateKey; CurveType: TCnEccCurv
 
 function AddCASignTypeOIDNodeToWriter(AWriter: TCnBerWriter; CASignType: TCnCASignType;
   AParent: TCnBerWriteNode): TCnBerWriteNode;
-{* 将一个散列算法的 OID 写入一个 Ber 节点}
+{* 将一个杂凑算法的 OID 写入一个 Ber 节点}
 
 function GetCASignNameFromSignType(Sign: TCnCASignType): string;
-{* 从证书的签名散列算法枚举值获取其名称}
+{* 从证书的签名杂凑算法枚举值获取其名称}
 
 implementation
 
@@ -668,7 +669,7 @@ begin
   end;
 end;
 
-// 根据指定数字摘要算法计算数据的二进制散列值并写入 Stream，Buffer 是指针
+// 根据指定数字摘要算法计算数据的二进制杂凑值并写入 Stream，Buffer 是指针
 function CalcDigestData(const Buffer; Count: Integer; CASignType: TCnCASignType;
   outStream: TStream): Boolean;
 var
@@ -805,7 +806,7 @@ begin
     ValueStream := TMemoryStream.Create;
     NodeToSign.SaveToStream(ValueStream);
 
-    // 计算其 Hash
+    // 计算其杂凑
     DigestStream := TMemoryStream.Create;
     CalcDigestData(ValueStream.Memory, ValueStream.Size, CASignType, DigestStream);
 
@@ -828,7 +829,7 @@ begin
       @OutBuf[0], PrivateKey) then
       Exit;
 
-    // 增加 Hash 算法说明
+    // 增加杂凑算法说明
     HashNode := AWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
     AddCASignTypeOIDNodeToWriter(AWriter, CASignType, HashNode);
     AWriter.AddNullNode(HashNode);
@@ -875,7 +876,7 @@ begin
       GetEccSignTypeFromCASignType(CASignType)) then
       Exit;
 
-    // 增加 Hash 算法说明
+    // 增加杂凑算法说明
     HashNode := AWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
     AddCASignTypeOIDNodeToWriter(AWriter, CASignType, HashNode);
     AWriter.AddNullNode(HashNode);
@@ -1129,7 +1130,7 @@ end;
   SEQUENCE
     OBJECT IDENTIFIER 1.2.840.113549.1.1.5  sha1WithRSAEncryption(PKCS #1) 或 sha256WithECDSA
     NULL
-  BIT STRING  如果是 RSA 则此节点是对齐加密后的 Hash 值；如果是 ECC 则是一个 SEQ 子节点下面再两个 INTEGER
+  BIT STRING  如果是 RSA 则此节点是对齐加密后的杂凑值；如果是 ECC 则是一个 SEQ 子节点下面再两个 INTEGER
 }
 function ExtractSignaturesByPublicKey(IsRSA: Boolean; RSAPublicKey: TCnRSAPublicKey;
   EccPublicKey: TCnEccPublicKey; HashNode, SignNode: TCnBerReadNode; out CASignType: TCnCASignType;
@@ -1171,9 +1172,9 @@ begin
   Inc(P);
   Move(P^, SignValue^, SignLength);
 
-  if IsRSA then // RSA 签名能解开得到原始 Hash 值，但 ECC 不行
+  if IsRSA then // RSA 签名能解开得到原始杂凑值，但 ECC 不行
   begin
-    // 解开 RSA 签名并去除 PKCS1 补齐的内容得到 DER 编码的 Hash 值与算法
+    // 解开 RSA 签名并去除 PKCS1 补齐的内容得到 DER 编码的杂凑值与算法
     SetLength(OutBuf, RSAPublicKey.BitsCount div 8);
     Reader := nil;
 
@@ -1192,7 +1193,7 @@ begin
         if RSADigestType = rsdtNone then
           Exit;
 
-        // 获取 Ber 解出的散列值
+        // 获取 Ber 解出的杂凑值
         Node := Reader.Items[4];
         FreeMemory(DigestValue);
         DigestLength := Node.BerDataLength;
@@ -1504,7 +1505,7 @@ begin
 
       if Result and not IsRSA then
       begin
-        // ECC 得自行计算其 Hash
+        // ECC 得自行计算其杂凑值
         HashStream := TMemoryStream.Create;
         P := Reader.Items[1].BerAddress;
         if not CalcDigestData(P, Reader.Items[1].BerLength, CertificateRequest.CASignType, HashStream) then
@@ -1574,7 +1575,7 @@ begin
 
       if CSR.IsRSA then
       begin
-        // 计算其 Hash
+        // 计算其杂凑值
         P := InfoRoot.BerAddress;
         CalcDigestData(P, InfoRoot.BerLength, CSR.CASignType, SignStream);
 
@@ -1582,7 +1583,7 @@ begin
         if SignStream.Size = CSR.DigestLength then
           Result := CompareMem(SignStream.Memory, CSR.DigestValue, SignStream.Size);
       end
-      else // ECC 直接验证数据块的签名与 Hash 值
+      else // ECC 直接验证数据块的签名与杂凑值
       begin
         SignStream.Write(CSR.SignValue^, CSR.SignLength);
         InfoStream := TMemoryStream.Create;
@@ -1651,17 +1652,17 @@ begin
     begin
       InfoRoot := Reader.Items[1];
 
-      // 计算其 Hash
+      // 计算其杂凑值
       SignStream := TMemoryStream.Create;
 
-      if CRT.IsRSA then // RSA 自签名证书的散列值是能从证书里解密出来的，对比计算值即可
+      if CRT.IsRSA then // RSA 自签名证书的杂凑值是能从证书里解密出来的，对比计算值即可
       begin
         P := InfoRoot.BerAddress;
         CalcDigestData(P, InfoRoot.BerLength, CRT.CASignType, SignStream);
         if SignStream.Size = CRT.DigestLength then
           Result := CompareMem(SignStream.Memory, CRT.DigestValue, SignStream.Size);
       end
-      else // ECC 自签名证书里没有散列值，字段里的散列值是我们计算出来的没有对比意义，需要按 ECC 的方式验证签名值
+      else // ECC 自签名证书里没有杂凑值，字段里的杂凑值是我们计算出来的没有对比意义，需要按 ECC 的方式验证签名值
       begin
         SignStream.Write(CRT.SignValue^, CRT.SignLength);
         InfoStream := TMemoryStream.Create;
@@ -1750,13 +1751,13 @@ begin
       SignAlgNode := Root.Items[1];
       SignValueNode := Root.Items[2];
 
-      // 计算其 Hash
+      // 计算其杂凑值
       InfoRoot := Reader.Items[1];
       SignStream := TMemoryStream.Create;
       P := InfoRoot.BerAddress;
       CalcDigestData(P, InfoRoot.BerLength, CRT.CASignType, SignStream);
 
-      // RSA 证书的散列值要用父公钥才能从证书里解密出来
+      // RSA 证书的杂凑值要用父公钥才能从证书里解密出来
       if not ExtractSignaturesByPublicKey(True, ParentPublicKey,
         nil, SignAlgNode, SignValueNode,
         CRT.FCASignType, CRT.FRSADigestType, CRT.FSignValue,
@@ -1815,7 +1816,7 @@ begin
     begin
       InfoRoot := Reader.Items[1];
 
-      // ECC 证书里没有散列值，字段里的散列值是我们计算出来的没有对比意义，需要按 ECC 的方式把原始数据塞进去验证签名值
+      // ECC 证书里没有杂凑值，字段里的杂凑值是我们计算出来的没有对比意义，需要按 ECC 的方式把原始数据塞进去验证签名值
       SignStream := TMemoryStream.Create;
       SignStream.Write(CRT.SignValue^, CRT.SignLength);
       InfoStream := TMemoryStream.Create;
@@ -2176,7 +2177,7 @@ begin
         Exit;
     end;
 
-    // RSA 自签名证书可以解开散列值，ECC 的没有
+    // RSA 自签名证书可以解开杂凑值，ECC 的没有
     if Certificate.IsSelfSigned then
     begin
       Result := ExtractSignaturesByPublicKey(IsRSA, Certificate.BasicCertificate.SubjectRSAPublicKey,
@@ -2186,7 +2187,7 @@ begin
 
       if Result and not IsRSA then
       begin
-        // ECC 得自行计算其 Hash
+        // ECC 得自行计算其杂凑值
         HashStream := TMemoryStream.Create;
         P := Reader.Items[1].BerAddress;
         if not CalcDigestData(P, Reader.Items[1].BerLength, Certificate.CASignType, HashStream) then
@@ -2203,7 +2204,7 @@ begin
     end
     else
     begin
-      // 解开签名。注意证书不带签发机构的公钥，因此这儿无法解密拿到真正散列值
+      // 解开签名。注意证书不带签发机构的公钥，因此这儿无法解密拿到真正杂凑值
       Result := ExtractSignaturesByPublicKey(IsRSA, nil, nil, SignAlgNode, SignValueNode, Certificate.FCASignType,
         DummyDigestType, Certificate.FSignValue, DummyPointer, Certificate.FSignLength,
         DummyInteger);

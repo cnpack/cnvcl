@@ -50,25 +50,25 @@ uses
 
 type
   TCnKeyDeriveHash = (ckdMd5, ckdSha256, ckdSha1);
-  {* CnGetDeriveKey 中使用的 Hash 途径}
+  {* CnGetDeriveKey 中使用的杂凑方法}
 
   TCnPBKDF1KeyHash = (cpdfMd2, cpdfMd5, cpdfSha1);
-  {* PBKDF1 规定的三种 Hash 途径，其中 MD2 我们不支持}
+  {* PBKDF1 规定的三种杂凑方法，其中 MD2 我们不支持}
 
   TCnPBKDF2KeyHash = (cpdfSha1Hmac, cpdfSha256Hmac);
-  {* PBKDF2 规定的两种 Hash 途径}
+  {* PBKDF2 规定的两种杂凑方法}
 
   ECnKDFException = class(Exception);
   {* KDF 相关异常}
 
 function CnGetDeriveKey(const Password, Salt: AnsiString; OutKey: PAnsiChar; KeyLength: Cardinal;
   KeyHash: TCnKeyDeriveHash = ckdMd5): Boolean;
-{* 类似于 Openssl 中的 BytesToKey，用密码和盐与指定的 Hash 算法生成加密 Key，
+{* 类似于 Openssl 中的 BytesToKey，用密码和盐与指定的杂凑算法生成加密 Key，
   目前的限制是 KeyLength 最多支持两轮 Hash，也就是 MD5 32 字节，SHA256 64 字节}
 
 function CnPBKDF1(const Password, Salt: AnsiString; Count, DerivedKeyByteLength: Integer;
   KeyHash: TCnPBKDF1KeyHash = cpdfMd5): AnsiString;
-{* Password Based KDF 1 实现，简单的固定 Hash 迭代，只支持 MD5 和 SHA1，参数与返回值均为 AnsiString
+{* Password Based KDF 1 实现，简单的固定杂凑迭代，只支持 MD5 和 SHA1，参数与返回值均为 AnsiString
    DerivedKeyByteLength 是所需的密钥字节数，长度固定}
 
 function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyByteLength: Integer;
@@ -78,7 +78,7 @@ function CnPBKDF2(const Password, Salt: AnsiString; Count, DerivedKeyByteLength:
 
 function CnPBKDF1Bytes(const Password, Salt: TBytes; Count, DerivedKeyByteLength: Integer;
   KeyHash: TCnPBKDF1KeyHash = cpdfMd5): TBytes;
-{* Password Based KDF 1 实现，简单的固定 Hash 迭代，只支持 MD5 和 SHA1，参数与返回值均为字节数组
+{* Password Based KDF 1 实现，简单的固定杂凑迭代，只支持 MD5 和 SHA1，参数与返回值均为字节数组
    DerivedKeyByteLength 是所需的密钥字节数，长度固定}
 
 function CnPBKDF2Bytes(const Password, Salt: TBytes; Count, DerivedKeyByteLength: Integer;

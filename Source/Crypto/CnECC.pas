@@ -835,33 +835,33 @@ function CnEccSavePublicKeyToPem(PemStream: TStream;
 
 // ========================= ECC 文件签名与验证实现 ============================
 // 流与文件分开实现是因为计算文件摘要时支持大文件，而 FileStream 低版本不支持
-// 注意 ECC 签名验证并不是像 RSA 那样解密后比对加密进去的 Hash 值
-// 而是比对中间结果的大数，Ecc 签名内容并不能在验签名时还原原始 Hash 值
+// 注意 ECC 签名验证并不是像 RSA 那样解密后比对加密进去的杂凑值
+// 而是比对中间结果的大数，ECC 签名内容并不能在验签名时还原原始杂凑值
 
 function CnEccSignFile(const InFileName, OutSignFileName: string; Ecc: TCnEcc;
   PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用私钥签名指定文件，Ecc 中需要预先指定曲线。
-   使用指定数字摘要算法对文件进行计算得到散列值，
-   原始的二进制散列值进行 BER 编码再 PKCS1 补齐再用私钥加密}
+   使用指定数字摘要算法对文件进行计算得到杂凑值，
+   原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐再用私钥加密}
 
 function CnEccSignFile(const InFileName, OutSignFileName: string; CurveType: TCnEccCurveType;
   PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用私钥签名指定文件，使用预定义曲线。
-   使用指定数字摘要算法对文件进行计算得到散列值，
-   原始的二进制散列值进行 BER 编码再 PKCS1 补齐再用私钥加密}
+   使用指定数字摘要算法对文件进行计算得到杂凑值，
+   原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐再用私钥加密}
 
 function CnEccVerifyFile(const InFileName, InSignFileName: string; Ecc: TCnEcc;
   PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到散列值，
-   并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到散列算法与散列值，
-   并比对两个二进制散列值是否相同，返回验证是否通过。
+{* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
+   并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
+   并比对两个二进制杂凑值是否相同，返回验证是否通过。
    Ecc 中需要预先指定曲线。}
 
 function CnEccVerifyFile(const InFileName, InSignFileName: string; CurveType: TCnEccCurveType;
   PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* 用预定义曲线与公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到散列值，
-   并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到散列算法与散列值，
-   并比对两个二进制散列值是否相同，返回验证是否通过}
+{* 用预定义曲线与公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
+   并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
+   并比对两个二进制杂凑值是否相同，返回验证是否通过}
 
 function CnEccRecoverPublicKeyFromFile(const InFileName, InSignFileName: string;
   Ecc: TCnEcc; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
@@ -933,7 +933,7 @@ function WriteEccPublicKeyToBitStringNode(Writer: TCnBerWriter;
 {* 将 ECC 公钥写入 BER 中的 BITSTRING 节点}
 
 function GetEccDigestNameFromSignDigestType(Digest: TCnEccSignDigestType): string;
-{* 从签名散列算法枚举值获取其名称}
+{* 从签名杂凑算法枚举值获取其名称}
 
 procedure CnInt64GenerateGaloisDivisionPolynomials(A, B, Prime: Int64; MaxDegree: Integer;
   PolynomialList: TObjectList);
@@ -4185,7 +4185,7 @@ end;
 
 // ============================ ECC 签名与验证 =================================
 
-// 根据指定数字摘要算法计算指定流的二进制散列值并写入 Stream
+// 根据指定数字摘要算法计算指定流的二进制杂凑值并写入 Stream
 function CalcDigestStream(InStream: TStream; SignType: TCnEccSignDigestType;
   outStream: TStream): Boolean;
 var
@@ -4223,7 +4223,7 @@ begin
   end;
 end;
 
-// 根据指定数字摘要算法计算文件的二进制散列值并写入 Stream
+// 根据指定数字摘要算法计算文件的二进制杂凑值并写入 Stream
 function CalcDigestFile(const FileName: string; SignType: TCnEccSignDigestType;
   outStream: TStream): Boolean;
 var
@@ -4410,7 +4410,7 @@ begin
 
   try
     Stream := TMemoryStream.Create;
-    if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的散列值
+    if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的杂凑值
       Exit;
 
     E := TCnBigNumber.Create;
@@ -4533,7 +4533,7 @@ begin
   try
     Stream := TMemoryStream.Create;
 
-    if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的散列值
+    if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的杂凑值
       Exit;
 
     E := TCnBigNumber.Create;
@@ -4594,7 +4594,7 @@ begin
   try
     Stream := TMemoryStream.Create;
 
-    if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的散列值
+    if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的杂凑值
       Exit;
 
     E := TCnBigNumber.Create;
@@ -4663,7 +4663,7 @@ begin
 
   try
     Stream := TMemoryStream.Create;
-    if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的散列值
+    if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的杂凑值
       Exit;
 
     E := TCnBigNumber.Create;
@@ -4723,7 +4723,7 @@ begin
 
   try
     Stream := TMemoryStream.Create;
-    if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的散列值
+    if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的杂凑值
       Exit;
 
     E := TCnBigNumber.Create;
@@ -4784,7 +4784,7 @@ begin
 
   try
     Stream := TMemoryStream.Create;
-    if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的散列值
+    if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的杂凑值
       Exit;
 
     E := TCnBigNumber.Create;

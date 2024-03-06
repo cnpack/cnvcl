@@ -239,7 +239,7 @@ function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPriva
   const Password: string = ''): Boolean; overload;
 {* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入
   自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释
-  KeyHashMethod: 对应 PEM 文件的加密 Hash 算法，默认 MD5（无法根据 PEM 文件内容自动判断）
+  KeyHashMethod: 对应 PEM 文件的加密杂凑算法，默认 MD5（无法根据 PEM 文件内容自动判断）
   Password: PEM 文件如加密，此处应传对应密码}
 
 function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
@@ -247,7 +247,7 @@ function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
   const Password: string = ''): Boolean; overload;
 {* 从 PEM 格式的流中加载公私钥数据，如某钥参数为空则不载入
   自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释
-  KeyHashMethod: 对应 PEM 文件的加密 Hash 算法，默认 MD5（无法根据 PEM 文件内容自动判断）
+  KeyHashMethod: 对应 PEM 文件的加密杂凑算法，默认 MD5（无法根据 PEM 文件内容自动判断）
   Password: PEM 文件如加密，此处应传对应密码，未加密可不传}
 
 function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
@@ -257,7 +257,7 @@ function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivate
   const Password: string = ''): Boolean; overload;
 {* 将公私钥写入 PEM 格式文件中，返回是否成功
   KeyEncryptMethod: 如 PEM 文件需加密，可用此参数指定加密方式，ckeNone 表示不加密，忽略后续参数
-  KeyHashMethod: 生成 Key 的 Hash 算法，默认 MD5
+  KeyHashMethod: 生成 Key 的杂凑算法，默认 MD5
   Password: PEM 文件的加密密码，未加密可不传}
 
 function CnRSASaveKeysToPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
@@ -267,7 +267,7 @@ function CnRSASaveKeysToPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
   const Password: string = ''): Boolean; overload;
 {* 将公私钥写入 PEM 格式流中，返回是否成功
   KeyEncryptMethod: 如 PEM 文件需加密，可用此参数指定加密方式，ckeNone 表示不加密，忽略后续参数
-  KeyHashMethod: 生成 Key 的 Hash 算法，默认 MD5
+  KeyHashMethod: 生成 Key 的杂凑算法，默认 MD5
   Password: PEM 文件的加密密码，未加密可不传}
 
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
@@ -369,7 +369,7 @@ function CnRSADecryptFile(const InFileName, OutFileName: string;
 
 // =========================== RSA 文件签名与验证实现 ==========================
 // 流与文件分开实现是因为计算文件摘要时支持大文件，而 FileStream 低版本不支持
-// 注意 RSA 签名是先 Hash 再拼一段数据用 RSA 私钥加密，验证时能解出 Hash 值
+// 注意 RSA 签名是先杂凑再拼一段数据用 RSA 私钥加密，验证时能解出杂凑值
 // 这点和 ECC 签名不同：ECC 签名并不解出 Hash 值，而是通过中间运算比对大数
 
 function CnRSASignFile(const InFileName, OutSignFileName: string;
@@ -382,7 +382,7 @@ function CnRSASignFile(const InFileName, OutSignFileName: string;
 function CnRSAVerifyFile(const InFileName, InSignFileName: string;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
 {* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
-   并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到散列算法与杂凑值，
+   并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
    并比对两个二进制杂凑值是否相同，返回验证是否通过}
 
 function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
@@ -449,7 +449,7 @@ function CnChameleonHashFindRandom(InOldData, InNewData: TCnBigNumber;
   InOldRandom, InSecretKey: TCnBigNumber; OutNewRandom: TCnBigNumber; Prime, Root: TCnBigNumber): Boolean;
 {* 基于普通离散对数的变色龙杂凑函数，根据 SecretKey 与新旧消息，生成能够生成相同杂凑的新随机值
   其中，Prime 和 Root 须与原始消息杂凑生成时相同。
-  可以利用 SecretKey 和 NewRandom 对 InNewData 调用 CnChameleonHashCalcDigest 生成相同的 Hash 值}
+  可以利用 SecretKey 和 NewRandom 对 InNewData 调用 CnChameleonHashCalcDigest 生成相同的杂凑值}
 
 // ================================= 其他辅助函数 ==============================
 
@@ -458,10 +458,10 @@ function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignD
 
 function AddDigestTypeOIDNodeToWriter(AWriter: TCnBerWriter; ASignType: TCnRSASignDigestType;
   AParent: TCnBerWriteNode): TCnBerWriteNode;
-{* 将一个散列算法的 OID 写入一个 Ber 节点}
+{* 将一个杂凑算法的 OID 写入一个 Ber 节点}
 
 function GetRSADigestNameFromSignDigestType(Digest: TCnRSASignDigestType): string;
-{* 从签名散列算法枚举值获取其名称}
+{* 从签名杂凑算法枚举值获取其名称}
 
 function GetLastCnRSAError: Integer;
 {* 获取本线程内最近一次 ErrorCode，当以上函数返回 False 时可调用此函数获取错误详情}
@@ -1918,7 +1918,7 @@ end;
 
 // RSA 文件签名与验证实现
 
-// 根据指定数字摘要算法计算指定流的二进制散列值并写入 Stream，如果出错内部会设置错误码
+// 根据指定数字摘要算法计算指定流的二进制杂凑值并写入 Stream，如果出错内部会设置错误码
 function CalcDigestStream(InStream: TStream; SignType: TCnRSASignDigestType;
   outStream: TStream): Boolean;
 var
@@ -1961,7 +1961,7 @@ begin
     _CnSetLastError(ECN_RSA_DIGEST_ERROR);
 end;
 
-// 根据指定数字摘要算法计算文件的二进制散列值并写入 Stream
+// 根据指定数字摘要算法计算文件的二进制杂凑值并写入 Stream
 function CalcDigestFile(const FileName: string; SignType: TCnRSASignDigestType;
   outStream: TStream): Boolean;
 var
@@ -2072,7 +2072,7 @@ begin
     end
     else // 有数字摘要
     begin
-      if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的散列值
+      if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的杂凑值
         Exit;
 
       BerStream := TMemoryStream.Create;
@@ -2195,10 +2195,10 @@ begin
           Exit;
         end;
 
-        if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的散列值
+        if not CalcDigestStream(InStream, SignType, Stream) then // 计算流的杂凑值
           Exit;
 
-        // 与 Ber 解出的散列值比较
+        // 与 Ber 解出的杂凑值比较
         Node := Reader.Items[4];
         Result := Stream.Size = Node.BerDataLength;
         if Result then
@@ -2294,7 +2294,7 @@ begin
     end
     else // 有数字摘要
     begin
-      if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的散列值
+      if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的杂凑值
         Exit;
 
       BerStream := TMemoryStream.Create;
@@ -2418,10 +2418,10 @@ begin
           Exit;
         end;
 
-        if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的散列值
+        if not CalcDigestFile(InFileName, SignType, Stream) then // 计算文件的杂凑值
           Exit;
 
-        // 与 Ber 解出的散列值比较
+        // 与 Ber 解出的杂凑值比较
         Node := Reader.Items[4];
         Result := Stream.Size = Node.BerDataLength;
         if Result then

@@ -912,7 +912,7 @@ begin
 
       M := PAnsiChar(EnData);
       Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);             // M 指向 C3
-      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对 Hash 是否相等
+      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对杂凑值是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
 
@@ -937,7 +937,7 @@ begin
 
       M := PAnsiChar(EnData);
       Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen + MLen);      // 指向 C3
-      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对 Hash 是否相等
+      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对杂凑值是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
 
@@ -2087,7 +2087,7 @@ end;
 
 // =============== SM2 椭圆曲线双方互相信任的简易协同签名算法 ==================
 {
-  A 生成随机数 ka，并计算点 ka*G 给 B，也把散列值 e 给 B
+  A 生成随机数 ka，并计算点 ka*G 给 B，也把杂凑值 e 给 B
 }
 function CnSM2CollaborativeSignAStep1(const UserID: AnsiString; PlainData: Pointer;
   DataLen: Integer; OutHashEToB: TCnBigNumber; OutQToB: TCnEccPoint; OutRandKA: TCnBigNumber;
@@ -2471,7 +2471,7 @@ begin
 
       M := PAnsiChar(EnData);
       Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);             // M 指向 C3
-      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对 Hash 是否相等
+      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对杂凑值是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
 
@@ -2496,7 +2496,7 @@ begin
 
       M := PAnsiChar(EnData);
       Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen + MLen);      // 指向 C3
-      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对 Hash 是否相等
+      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对杂凑值是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
 
