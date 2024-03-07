@@ -25,13 +25,15 @@ unit CnLangMgr;
 * 单元名称：多语管理器基础类单元
 * 单元作者：CnPack开发组 刘啸 (liuxiao@cnpack.org)
 * 备    注：该单元定义了多语管理器基础类
+*           注：对于 Frame，不做统一处理，按嵌入窗体的实例、站窗体的角度遍历处理，不走 TFrame.Hint 的形式
+*           问题：如果 Frame 实现的内部要统一翻译如何处理？
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2009.08.18 V1.5
 *               将字符串常量注册机制与多语管理器独立出来
 *           2009.07.15 V1.5
-*               修改资源字符串常量存储机制，直接保存在 PResStringRec的Identifier
+*               修改资源字符串常量存储机制，直接保存在 PResStringRec 的 Identifier
 *               中，由翻译时统一改动，不挂接以减少问题。
 *           2009.07.11 V1.4
 *               增加字符串常量的注册机制，注册了的字符串能在改变语言时被自动翻译
@@ -888,12 +890,14 @@ begin
         AList.Add(T);
       end;  // 列表为 nil 时不判断，不为 nil 时检测是否已包含
 
-      if not IsInList then            // 不处理某一 Form 有 Parent 的情况。2004.06.01 by Passion
+      if not IsInList then            // 不处理某一 Form 有 Parent 的情况。2004.06.01 by LiuXiao
       begin
         if (AComponent is TCustomForm) {and ((AComponent as TCustomForm).Parent = nil)} then
           TranslateRecurComponent(T, AList, BaseName)
         else
           TranslateRecurComponent(T, AList, BaseName + DefDelimeter + AComponent.Name);
+        // 注意：如果 AComponent 是 Frame 实例，T 是 Frame 上的组件实例
+        // 则翻译规则是 Frame 所在的 Parent 的类名加 Frame 名字加 T 的名字，不会出现 Frame 的类名
       end;
     end;
   end;
@@ -1114,7 +1118,7 @@ begin
       Exit;
     end;
 
-    IsForm := (AObject is TCustomForm) or (AObject is TCustomFrame);
+    IsForm := (AObject is TCustomForm); // or (AObject is TCustomFrame); 不能把 Frame 算进去。Frame 按实例化组件处理
     try
       Data := GetTypeData(AObject.Classinfo);
     except

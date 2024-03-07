@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, Buttons, ExtCtrls, Menus, CnLangTranslator, CnLangStorage,
   CnHashLangStorage, CnLangMgr, ComCtrls, CheckLst, ActnList, ToolWin,
-  CnClasses;
+  CnClasses, UnitFrame4;
 
 type
   TForm1 = class(TForm)
@@ -63,6 +63,7 @@ type
     mmoLangs: TMemo;
     Button4: TButton;
     Button3: TButton;
+    Frame4Instance: TFrame4;
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure chkStorageModeClick(Sender: TObject);

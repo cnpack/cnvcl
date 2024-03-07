@@ -352,6 +352,17 @@ object Form1: TForm1
     TabOrder = 23
     OnClick = Button3Click
   end
+  inline Frame4Instance: TFrame4
+    Left = 664
+    Top = 400
+    Width = 177
+    Height = 97
+    TabOrder = 24
+    inherited grpFrame: TGroupBox
+      Left = 0
+      Top = 0
+    end
+  end
   object lm1: TCnLangManager
     LanguageStorage = hfs1
     TranslationMode = tmByComponents
