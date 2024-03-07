@@ -25,8 +25,10 @@ unit CnLangMgr;
 * 单元名称：多语管理器基础类单元
 * 单元作者：CnPack开发组 刘啸 (liuxiao@cnpack.org)
 * 备    注：该单元定义了多语管理器基础类
-*           注：对于 Frame，不做统一处理，按嵌入窗体的实例、站窗体的角度遍历处理，不走 TFrame.Hint 的形式
-*           问题：如果 Frame 实现的内部要统一翻译如何处理？
+*           注：对于 Frame，默认不做统一处理，按嵌入窗体的实例、站窗体的角度遍历处理，
+*           不走 TFrame.Hint 的形式，也不能在 Frame 设计期上生成字符串
+*           如果 Frame 实现的内部要统一翻译，可手动调用 TranslateFrame 方法，
+*           且在 Frame 设计期上生成字符串，不支持 ByFile 模式，因为很难遍历所有 Frame 实例
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -205,10 +207,10 @@ type
     procedure SetTranslationMode(const Value: TCnTranslationMode);
   protected
     procedure TranslateRecurComponent(AComponent: TComponent;
-      AList: TList; const BaseName: TCnLangString); virtual;
+      AList: TList; const BaseName: TCnLangString; ManuallyTop: Boolean = False); virtual;
     {* 递归翻译一 Component 和其 Children }
     procedure TranslateRecurObject(AObject: TObject; AList: TList;
-      const BaseName: TCnLangString = ''); virtual;
+      const BaseName: TCnLangString = ''; ManuallyTop: Boolean = False); virtual;
     {* 递归翻译一 Object 和其属性中的 Object }
     function GetRecurOwner(AComponent: TComponent): TCnLangString;
     {* 回溯获得一 Component 的祖先标识字符串 }
@@ -227,12 +229,25 @@ type
     {* 增加语言改变时的事件通知 }
     procedure RemoveChangeNotifier(Notify: TNotifyEvent);
     {* 删除语言改变时的事件通知 }
-    procedure TranslateComponent(AComponent: TComponent; const BaseName: TCnLangString = '');
-    {* 翻译一个元件及其子对象和子属性 }
+
     procedure TranslateForm(AForm: TCustomForm);
     {* 翻译一个 Form 及其子对象和子属性 }
-    procedure TranslateObject(AObject: TObject; const BaseName: TCnLangString = '');
+    procedure TranslateComponent(AComponent: TComponent; const BaseName: TCnLangString = '';
+      ManuallyTop: Boolean = False);
+    {* 翻译一个元件及其子对象和子属性。
+      ManuallyTop 指手工翻译 Frame 时作为顶层处理，日常无需设置}
+    procedure TranslateObject(AObject: TObject; const BaseName: TCnLangString = '';
+      ManuallyTop: Boolean = False);
     {* 翻译一个对象及其子对象和子属性 }
+
+    procedure TranslateFrame(AFrame: TCustomFrame);
+    {* 手动翻译一个通用型 TFrame 对象。在 TranslateForm 涵盖不到 Frame 实例时执行
+      说明：TranslateForm 会遍历窗体上所有包括 Frame 实例在内的组件进行翻译，
+      使用“窗体容器类名.Frame名.Frame内组件名.组件属性名”的字符串，且设计期在窗体上也可生成符合该格式的字符串
+      但在某些场合，Frame 实例化后父容器不可控，无法调用 TranslateForm 翻译父容器，
+      则可在 Frame 实例化时或其他需要场合手动调用 TranslateFrame 翻译该实例
+      此时使用的是“Frame类名.Frame内组件名.组件属性名”的字符串，需要在 Frame 设计期上生成该格式的字符串}
+
     property AutoTranslate: Boolean read FAutoTranslate
       write FAutoTranslate default True;
     {* 是否在当前语言号改变后自动翻译所有已经存在的窗体和其他内容 }
@@ -438,22 +453,22 @@ end;
 
 procedure TCnBaseLangManager.AdjustNewLanguage(AID: LongWord);
 var
-  i: Integer;
+  I: Integer;
 begin
   if AID = 0 then
     AID := GetSystemDefaultLangID;
   if Assigned(FLanguageStorage) then
-    for i := 0 to FLanguageStorage.LanguageCount - 1 do
-      if FLanguageStorage.Languages.Items[i].LanguageID = AID then
+    for I := 0 to FLanguageStorage.LanguageCount - 1 do
+      if FLanguageStorage.Languages.Items[I].LanguageID = AID then
       begin
-        CurrentLanguageIndex := i;
+        CurrentLanguageIndex := I;
         Exit;
       end;
 end;
 
 constructor TCnBaseLangManager.Create(AOwner: TComponent);
 var
-  i: Integer;
+  I: Integer;
 begin
   inherited;
 
@@ -469,9 +484,9 @@ begin
 
   if (csDesigning in ComponentState) then
     for I := 0 to AOwner.ComponentCount - 1 do
-      if AOwner.Components[i] is TCnCustomLangFileStorage then
+      if AOwner.Components[I] is TCnCustomLangFileStorage then
       begin
-        LanguageStorage := AOwner.Components[i] as TCnCustomLangFileStorage;
+        LanguageStorage := AOwner.Components[I] as TCnCustomLangFileStorage;
         Exit;
       end;
 end;
@@ -786,12 +801,12 @@ end;
 
 destructor TCnCustomLangManager.Destroy;
 var
-  i: Integer;
+  I: Integer;
   P: Pointer;
 begin
-  for i := 0 to FNotifier.Count - 1 do
+  for I := 0 to FNotifier.Count - 1 do
   begin
-    P := FNotifier[i];
+    P := FNotifier[I];
     Dispose(P);
   end;
   FreeAndNil(FNotifier);
@@ -802,7 +817,7 @@ begin
 end;
 
 procedure TCnCustomLangManager.TranslateComponent(AComponent: TComponent;
-  const BaseName: TCnLangString);
+  const BaseName: TCnLangString; ManuallyTop: Boolean);
 var
   List: TList;
   ABaseName, Prefix: TCnLangString;
@@ -823,9 +838,9 @@ begin
     List.Add(AComponent); // 必须加入自身，防止被子控件引用而重复翻译
     try
       if AComponent.ComponentCount > 0 then
-        TranslateRecurComponent(AComponent, List, ABaseName)
+        TranslateRecurComponent(AComponent, List, ABaseName, ManuallyTop)
       else
-        TranslateRecurObject(AComponent, List, ABaseName);
+        TranslateRecurObject(AComponent, List, ABaseName, ManuallyTop);
     finally
       List.Free;
     end;
@@ -856,8 +871,8 @@ begin
   end;
 end;
 
-procedure TCnCustomLangManager.TranslateRecurComponent(
-  AComponent: TComponent;  AList: TList; const BaseName: TCnLangString);
+procedure TCnCustomLangManager.TranslateRecurComponent(AComponent: TComponent;
+  AList: TList; const BaseName: TCnLangString; ManuallyTop: Boolean);
 var
   I: Integer;
   T: TComponent;
@@ -877,7 +892,7 @@ begin
       Exit;
     end;
 
-    TranslateObject(AComponent, BaseName);
+    TranslateObject(AComponent, BaseName, ManuallyTop);
     // 使用 AList 避免子属性和父 Component 重复
     for I := 0 to AComponent.ComponentCount - 1 do
     begin
@@ -897,11 +912,11 @@ begin
 
       if not IsInList then            // 不处理某一 Form 有 Parent 的情况。2004.06.01 by LiuXiao
       begin
-        if (AComponent is TCustomForm) {and ((AComponent as TCustomForm).Parent = nil)} then
+        if (AComponent is TCustomForm) or ManuallyTop then // 手动翻译顶层 Frame 时需要走 TFrame 名，但不要再把 ManuallyTop 传入了
           TranslateRecurComponent(T, AList, BaseName)
         else
           TranslateRecurComponent(T, AList, BaseName + DefDelimeter + AComponent.Name);
-        // 注意：如果 AComponent 是 Frame 实例，T 是 Frame 上的组件实例
+        // 注意：如果全局翻译（非手动翻译 Frame）时 AComponent 是 Frame 实例，T 是 Frame 上的组件实例
         // 则翻译规则是 Frame 所在的 Parent 的类名加 Frame 名字加 T 的名字，不会出现 Frame 的类名
       end;
     end;
@@ -940,7 +955,7 @@ begin
 end;
 
 procedure TCnCustomLangManager.TranslateObject(AObject: TObject;
-  const BaseName: TCnLangString = '');
+  const BaseName: TCnLangString; ManuallyTop: Boolean);
 var
   AList: TList;
 begin
@@ -951,7 +966,7 @@ begin
   AList.Add(AObject); // 必须加入自身来防止被子属性引用而重复翻译
   try
     if DoTranslateObject(AObject) then
-      TranslateRecurObject(AObject, AList, BaseName);
+      TranslateRecurObject(AObject, AList, BaseName, ManuallyTop);
   finally
     AList.Free;
   end;
@@ -961,9 +976,9 @@ begin
 end;
 
 procedure TCnCustomLangManager.TranslateRecurObject(AObject: TObject;
-  AList: TList; const BaseName: TCnLangString);
+  AList: TList; const BaseName: TCnLangString; ManuallyTop: Boolean);
 var
-  i: Integer;
+  I: Integer;
   APropName, APropValue, TransStr, AStr: TCnLangString;
   APropType: TTypeKind;
   Data: PTypeData;
@@ -1011,9 +1026,9 @@ begin
     end
     else if (AObject is TCollection) then // TCollection 对象遍历其 Item
     begin
-      for i := 0 to (AObject as TCollection).Count - 1 do
+      for I := 0 to (AObject as TCollection).Count - 1 do
       begin
-        AItem := (AObject as TCollection).Items[i];
+        AItem := (AObject as TCollection).Items[I];
 
         IsInList := AList <> nil;
         if IsInList and (AList.IndexOf(AItem) = -1) then
@@ -1026,18 +1041,18 @@ begin
         begin
           if BaseName <> '' then
             TranslateRecurObject(AItem, AList, BaseName + DefDelimeter +
-              'Item' + InttoStr(i))
+              'Item' + InttoStr(I))
           else
-            TranslateRecurObject(AItem, AList, 'Item' + InttoStr(i));
+            TranslateRecurObject(AItem, AList, 'Item' + InttoStr(I));
         end;
       end;
     end
     // ListView 在需要时遍历其 Item
     else if FTranslateListItem and (AObject is TListView) then
     begin
-      for i := 0 to (AObject as TListView).Items.Count - 1 do
+      for I := 0 to (AObject as TListView).Items.Count - 1 do
       begin
-        AListItem := (AObject as TListView).Items[i];
+        AListItem := (AObject as TListView).Items[I];
 
         IsInList := AList <> nil;
         if IsInList and (AList.IndexOf(AListItem) = -1) then
@@ -1050,10 +1065,10 @@ begin
         begin
           if BaseName <> '' then
             TranslateRecurObject(AListItem, AList, BaseName + DefDelimeter +
-              TComponent(AObject).Name + DefDelimeter + 'ListItem' + InttoStr(i))
+              TComponent(AObject).Name + DefDelimeter + 'ListItem' + InttoStr(I))
           else
             TranslateRecurObject(AListItem, AList, TComponent(AObject).Name +
-              DefDelimeter + 'ListItem' + InttoStr(i));
+              DefDelimeter + 'ListItem' + InttoStr(I));
         end;
       end;
     end
@@ -1084,9 +1099,9 @@ begin
     // TreeView 在需要时遍历其 Item
     else if FTranslateTreeNode and (AObject is TTreeView) then
     begin
-      for i := 0 to (AObject as TTreeView).Items.Count - 1 do
+      for I := 0 to (AObject as TTreeView).Items.Count - 1 do
       begin
-        ATreeNode := (AObject as TTreeView).Items[i];
+        ATreeNode := (AObject as TTreeView).Items[I];
 
         IsInList := AList <> nil;
         if IsInList and (AList.IndexOf(ATreeNode) = -1) then
@@ -1099,10 +1114,10 @@ begin
         begin
           if BaseName <> '' then
             TranslateRecurObject(ATreeNode, AList, BaseName + DefDelimeter +
-              TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(i))
+              TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(I))
           else
             TranslateRecurObject(ATreeNode, AList, TComponent(AObject).Name +
-              DefDelimeter + 'TreeNode' + InttoStr(i));
+              DefDelimeter + 'TreeNode' + InttoStr(I));
         end;
       end;
     end
@@ -1190,14 +1205,14 @@ begin
         if not DoTranslateObjectProperty(AObject, APropName) then
           Continue;
 
-        if IsForm then
+        if IsForm or ManuallyTop then // 手动翻译 Frame 时要当顶层容器处理
           AStr := AObject.ClassName + DefDelimeter + APropName
         else if AObject is TComponent then
           AStr := TComponent(AObject).Name + DefDelimeter + APropName
         else
           AStr := APropName;
 
-        if (BaseName <> '') and not IsForm then
+        if (BaseName <> '') and not IsForm and not ManuallyTop then
           AStr := BaseName + DefDelimeter + AStr;
 
         TransStr := TranslateString(AStr);
@@ -1303,6 +1318,11 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TCnCustomLangManager.TranslateFrame(AFrame: TCustomFrame);
+begin
+  TranslateComponent(AFrame, AFrame.ClassName, True);
 end;
 
 procedure TCnCustomLangManager.SetCurrentLanguageIndex(
