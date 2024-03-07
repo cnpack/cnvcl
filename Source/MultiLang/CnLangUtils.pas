@@ -65,9 +65,9 @@ type
     {* 递归获得一 Object 属性以及其子属性对象的字串 }
   public
     constructor Create;
-    {* 取得一个窗体上所有字符串}
+    {* 构造方法}
     procedure GetFormStrings(AForm: TComponent; Strings: TStrings; SkipEmptyStr: Boolean = False);
-    {* 获得一 Form 上的所有字串 }
+    {* 获得一 Form 上的所有字串，如 AForm 是设计期的独立 TFrame，行为如何？}
     procedure GetComponentStrings(AComponent: TComponent; Strings: TStrings;
       const BaseName: string = ''; SkipEmptyStr: Boolean = False);
     {* 获得一 Component 的所有字串 }
@@ -115,23 +115,30 @@ function CnLanguages: TCnLanguages;
 implementation
 
 uses
-  {$IFDEF COMPILER6_UP}Variants, {$ENDIF}
+  {$IFDEF COMPILER6_UP} Variants, {$ENDIF}
+  {$IFDEF DEBUG_MULTILANG} CnDebug, {$ENDIF}
   Forms, Dialogs, Graphics, Menus, Grids, ComCtrls, Controls, ExtCtrls,
   ToolWin, ActnList, ImgList, TypInfo, StdCtrls, CnCommon, CnIniStrUtils,
   Clipbrd, CnLangMgr, CnClasses, CnLangConsts, CnLangStorage;
-  
+
 const
   THUNK_SIZE = 4096; // x86 页大小
-  
+
 var
   FLanguages: TCnLanguages;
   FTempLanguagesRef: TCnLanguages = nil;
+
+function IsTopDesignFrame(AFrame: TCustomFrame): Boolean;
+begin
+  Result := (AFrame.Parent = nil) or (AFrame.Parent.ClassNameIs('TWinControlForm'));
+  // 高低版本应都适用，TWinControlForm 是 Frame 的设计期容器
+end;
 
 function EnumLocalesCallback(LocaleID: PChar): Integer; stdcall;
 begin
   Result := FTempLanguagesRef.LocalesCallback(LocaleID);
 end;
-  
+
 { TCnLanguages }
 
 function GetLocaleDataW(ID: LCID; Flag: DWORD): string;
@@ -267,6 +274,9 @@ procedure TCnLangStringExtractor.GetComponentStrings(AComponent: TComponent;
 var
   AList: TList;
 begin
+{$IFDEF DEBUG_MULTILANG}
+  CnDebugger.LogEnter('GetComponentStrings: ' + BaseName + ' ' + AComponent.Name);
+{$ENDIF}
   if (Strings <> nil) and (AComponent.ComponentCount > 0) then
   begin
     AList := TList.Create;
@@ -281,6 +291,9 @@ begin
   end
   else
     GetObjectStrings(nil, AComponent, Strings, BaseName, SkipEmptyStr);
+{$IFDEF DEBUG_MULTILANG}
+  CnDebugger.LogLeave('GetComponentStrings: ' + BaseName + ' ' + AComponent.Name);
+{$ENDIF}
 end;
 
 procedure TCnLangStringExtractor.GetFormStrings(AForm: TComponent;
@@ -315,7 +328,8 @@ begin
     for I := 0 to AComponent.ComponentCount - 1 do
     begin
       T := AComponent.Components[I];
-      if AComponent is TCustomForm then
+      if (AComponent is TCustomForm) or // 是顶层 Form 或 顶层 Frame
+       ((AComponent is TCustomFrame) and IsTopDesignFrame(AComponent as TCustomFrame))  then
         GetRecurComponentStrings(AOwner, T, AList, Strings, BaseName, SkipEmptyStr)
       else
         GetRecurComponentStrings(AOwner, T, AList, Strings, BaseName + DefDelimeter + AComponent.Name, SkipEmptyStr);
@@ -327,7 +341,7 @@ procedure TCnLangStringExtractor.GetRecurObjectStrings(AOwner: TComponent;
   AObject: TObject; AList: TList; Strings: TStrings; const BaseName: string;
   SkipEmptyStr: Boolean);
 var
-  i: Integer;
+  I: Integer;
   APropName, APropValue, AStr: string;
   APropType: TTypeKind;
   Data: PTypeData;
@@ -335,7 +349,7 @@ var
   AItem: TCollectionItem;
   AListItem: TListItem;
   ATreeNode: TTreeNode;
-  IsForm: Boolean;
+  IsForm: Boolean; // 代表 IsTop
   NeedIgnoreAction: Boolean;
   ActionCaption, ActionHint: string;
   Info: PPropInfo;
@@ -348,18 +362,18 @@ begin
     try
       if AObject.ClassType = AObject.ClassParent then
         Exit;
-      
+
       if (AObject.ClassParent <> nil) and (AObject.ClassParent.ClassParent = AObject.ClassType) then
         Exit;
     except
       Exit;
     end;
-  
+
     if (AObject is TCnCustomLangStorage) or (AObject is TCnCustomLangStorage)
       or ((AObject is TComponent) and ((AObject as TComponent).Name = '')) then
         Exit;
 
-    if (AObject is TStrings) then  // Strings的对象直接加入其 Text 属性。
+    if (AObject is TStrings) then  // Strings 的对象直接加入其 Text 属性。
     begin
       if not (tfText in FFilterOptions) then
         Exit;
@@ -375,28 +389,28 @@ begin
     end
     else if (AObject is TCollection) then // TCollection 对象遍历其 Item
     begin
-      for i := 0 to (AObject as TCollection).Count - 1 do
+      for I := 0 to (AObject as TCollection).Count - 1 do
       begin
-        AItem := (AObject as TCollection).Items[i];
+        AItem := (AObject as TCollection).Items[I];
         if BaseName <> '' then
           GetRecurObjectStrings(AOwner, AItem, AList, Strings, BaseName + DefDelimeter
-            + 'Item' + InttoStr(i), SkipEmptyStr)
+            + 'Item' + InttoStr(I), SkipEmptyStr)
         else
-          GetRecurObjectStrings(AOwner, AItem, AList, Strings, 'Item' + InttoStr(i), SkipEmptyStr);
+          GetRecurObjectStrings(AOwner, AItem, AList, Strings, 'Item' + InttoStr(I), SkipEmptyStr);
       end;
     end
     // ListView 在需要时遍历其 Item
     else if CnLanguageManager.TranslateListItem and (AObject is TListView) then
     begin
-      for i := 0 to (AObject as TListView).Items.Count - 1 do
+      for I := 0 to (AObject as TListView).Items.Count - 1 do
       begin
-        AListItem := (AObject as TListView).Items[i];
+        AListItem := (AObject as TListView).Items[I];
         if BaseName <> '' then
           GetRecurObjectStrings(AOwner, AListItem, AList, Strings, BaseName + DefDelimeter
-            + TComponent(AObject).Name + DefDelimeter + 'ListItem' + InttoStr(i), SkipEmptyStr)
+            + TComponent(AObject).Name + DefDelimeter + 'ListItem' + InttoStr(I), SkipEmptyStr)
         else
           GetRecurObjectStrings(AOwner, AListItem, AList, Strings,
-            TComponent(AObject).Name + DefDelimeter + 'ListItem' + InttoStr(i), SkipEmptyStr);
+            TComponent(AObject).Name + DefDelimeter + 'ListItem' + InttoStr(I), SkipEmptyStr);
       end;
     end
     // 是 ListItem 时处理其 Caption 属性和 SubItems 属性
@@ -426,15 +440,15 @@ begin
     // TreeView 在需要时遍历其 Item
     else if CnLanguageManager.TranslateTreeNode and (AObject is TTreeView) then
     begin
-      for i := 0 to (AObject as TTreeView).Items.Count - 1 do
+      for I := 0 to (AObject as TTreeView).Items.Count - 1 do
       begin
-        ATreeNode := (AObject as TTreeView).Items[i];
+        ATreeNode := (AObject as TTreeView).Items[I];
         if BaseName <> '' then
           GetRecurObjectStrings(AOwner, ATreeNode, AList, Strings, BaseName + DefDelimeter
-            + TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(i), SkipEmptyStr)
+            + TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(I), SkipEmptyStr)
         else
           GetRecurObjectStrings(AOwner, ATreeNode, AList, Strings,
-            TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(i), SkipEmptyStr);
+            TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(I), SkipEmptyStr);
       end;
     end
     // 是 TreeNode 时处理其 Text 属性
@@ -452,8 +466,8 @@ begin
       Exit;
     end;
 
-    IsForm := (AObject is TCustomForm); // or (AObject is TCustomFrame);
-    // if IsForm then IsForm := (AObject as TWinControl).Parent = nil;
+    IsForm := (AObject is TCustomForm) or // 需要额外判断是否设计期顶层 Frame 的情形，以生成 TFrame1.Hint 的结果
+      ((AObject is TCustomFrame) and IsTopDesignFrame(AObject as TCustomFrame));
 
     try
       Data := GetTypeData(AObject.Classinfo);

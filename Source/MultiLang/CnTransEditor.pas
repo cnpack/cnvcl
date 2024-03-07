@@ -171,17 +171,17 @@ implementation
 
 procedure SetDesignPathFile(Storage: TCnCustomLangFileStorage);
 var
-  aPath, aFile: string;
+  APath, AFile: string;
 begin
   if Storage = nil then Exit;
 
-  aPath := CnOtaReplaceToActualPath(CnOtaGetOutputDir);
-  if aPath = '' then
-    aPath := _CnExtractFilePath(CnOtaGetFileNameOfCurrentModule);
-  (Storage as TCnCustomLangFileStorage).SetDesignLangPath(aPath);
+  APath := CnOtaReplaceToActualPath(CnOtaGetOutputDir);
+  if APath = '' then
+    APath := _CnExtractFilePath(CnOtaGetFileNameOfCurrentModule);
+  (Storage as TCnCustomLangFileStorage).SetDesignLangPath(APath);
 
-  aFile := _CnChangeFileExt(CnOtaGetCurrentProjectFileName, '');
-  (Storage as TCnCustomLangFileStorage).SetDesignLangFile(_CnExtractFileName(aFile));
+  AFile := _CnChangeFileExt(CnOtaGetCurrentProjectFileName, '');
+  (Storage as TCnCustomLangFileStorage).SetDesignLangFile(_CnExtractFileName(AFile));
 end;
 
 constructor TCnTranslatorEditor.Create(AComponent: TComponent;
@@ -206,7 +206,7 @@ procedure TCnTranslatorEditor.ExecFormTranslationManager;
 var
   ATranslator: TCnLangTranslator;
   Container: TComponent;
-  i: Integer;
+  I: Integer;
   List: TList;
 begin
   if CnLanguageManager = nil then
@@ -219,12 +219,12 @@ begin
   Container := ATranslator.Owner;
 
   List := TList.Create;
-  for i := 0 to Container.ComponentCount - 1 do
-    if Container.Components[i] is TCnCustomLangStorage then
+  for I := 0 to Container.ComponentCount - 1 do
+    if Container.Components[I] is TCnCustomLangStorage then
     begin
-      List.Add(Container.Components[i]);
-      if Container.Components[i] is TCnCustomLangFileStorage then
-        SetDesignPathFile(Container.Components[i] as TCnCustomLangFileStorage);
+      List.Add(Container.Components[I]);
+      if Container.Components[I] is TCnCustomLangFileStorage then
+        SetDesignPathFile(Container.Components[I] as TCnCustomLangFileStorage);
     end;
 
   if CnLanguageManager.LanguageStorage <> nil then
@@ -275,27 +275,27 @@ end;
 
 procedure TFrmTransEditor.LoadStorageFromList(List: TList);
 var
-  i, j: Integer;
+  I, J: Integer;
   ANode: TTreeNode;
 begin
   Self.tvStorages.Items.Clear;
-  for i := 0 to List.Count - 1 do
+  for I := 0 to List.Count - 1 do
   begin
     ANode := Self.tvStorages.Items.AddObject(nil,
-      TCnCustomLangStorage(List[i]).Name, List[i]);
-    for j := 0 to TCnCustomLangStorage(List[i]).LanguageCount - 1 do
+      TCnCustomLangStorage(List[I]).Name, List[I]);
+    for J := 0 to TCnCustomLangStorage(List[I]).LanguageCount - 1 do
       Self.tvStorages.Items.AddChildObject(ANode,
-        InttoStr(TCnCustomLangStorage(List[i]).Languages[j].LanguageID) + ' - ' +
-        TCnCustomLangStorage(List[i]).Languages[j].LanguageName,
-        TCnCustomLangStorage(List[i]).Languages[j]);
+        InttoStr(TCnCustomLangStorage(List[I]).Languages[J].LanguageID) + ' - ' +
+        TCnCustomLangStorage(List[I]).Languages[J].LanguageName,
+        TCnCustomLangStorage(List[I]).Languages[J]);
   end;
 
-  for i := 0 to Self.tvStorages.Items.Count - 1 do
+  for I := 0 to Self.tvStorages.Items.Count - 1 do
   begin
-    Self.tvStorages.Items[i].ImageIndex := Self.tvStorages.Items[i].Level;
-    Self.tvStorages.Items[i].SelectedIndex := Self.tvStorages.Items[i].Level;
-    if Self.tvStorages.Items[i].Level = 0 then
-      Self.tvStorages.Items[i].Expand(True);
+    Self.tvStorages.Items[I].ImageIndex := Self.tvStorages.Items[I].Level;
+    Self.tvStorages.Items[I].SelectedIndex := Self.tvStorages.Items[I].Level;
+    if Self.tvStorages.Items[I].Level = 0 then
+      Self.tvStorages.Items[I].Expand(True);
   end;
 end;
 
@@ -452,7 +452,7 @@ procedure TFrmTransEditor.StringGridDrawCell(Sender: TObject; ACol,
 var
   OutStr: string;
 begin
-  if (gdFixed in State)then
+  if gdFixed in State then
     with Sender as TStringGrid do
     begin
       OutStr := Cells[ACol, ARow];
@@ -505,18 +505,18 @@ end;
 
 procedure TFrmTransEditor.actCopyStrsExecute(Sender: TObject);
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 1 to Self.StringGrid.RowCount do
-    if Self.StringGrid.Cells[3, i] = '' then
-      Self.StringGrid.Cells[3, i] := Self.StringGrid.Cells[2, i];
+  for I := 1 to Self.StringGrid.RowCount do
+    if Self.StringGrid.Cells[3, I] = '' then
+      Self.StringGrid.Cells[3, I] := Self.StringGrid.Cells[2, I];
 end;
 
 procedure TFrmTransEditor.actUpdateStrsExecute(Sender: TObject);
 var
   List: TStringList;
   DestList: array[1..3] of TStringList;
-  i, Index: Integer;
+  I, Index: Integer;
   Item: TCnLanguageItem;
 begin
   { DONE : 获得所有字串列表，对于已经有翻译的，对应移动翻译字串。否则添加。 }
@@ -532,24 +532,24 @@ begin
       Self.Container := TWinControl(TCnLangTranslator(Self.TransEditor.Component).Owner);
 
   List := nil;
-  for i := Low(DestList) to High(DestList) do
-    DestList[i] := nil;
+  for I := Low(DestList) to High(DestList) do
+    DestList[I] := nil;
   TransEditor.Extractor.SetFilterOptions(FFormFilterOptions);
 
   try
     List := TStringList.Create;
     Self.TransEditor.Extractor.GetFormStrings(Self.Container, List);
 
-    for i := Low(DestList) to High(DestList) do
-      DestList[i] := TStringList.Create;
+    for I := Low(DestList) to High(DestList) do
+      DestList[I] := TStringList.Create;
 
-    for i := 1 to Self.StringGrid.RowCount - 1 do
+    for I := 1 to Self.StringGrid.RowCount - 1 do
     begin
-      if Self.StringGrid.Cells[1, i] <> '' then
+      if Self.StringGrid.Cells[1, I] <> '' then
       begin
-        DestList[1].Add(Self.StringGrid.Cells[1, i]);
-        DestList[2].Add(Self.StringGrid.Cells[2, i]);
-        DestList[3].Add(Self.StringGrid.Cells[3, i]);
+        DestList[1].Add(Self.StringGrid.Cells[1, I]);
+        DestList[2].Add(Self.StringGrid.Cells[2, I]);
+        DestList[3].Add(Self.StringGrid.Cells[3, I]);
       end;
     end;
 
@@ -564,32 +564,32 @@ begin
     Index := DestList[1].IndexOf(SystemNamePrefix + SCnDefaultFont);
     if Index > 0 then DestList[3][Index] := Item.DefaultFontStr;
 
-    for i := 0 to List.Count - 1 do
+    for I := 0 to List.Count - 1 do
     begin
-      Index := DestList[1].IndexOf(List.Names[i]);
+      Index := DestList[1].IndexOf(List.Names[I]);
       if Index > 0 then
       begin
-        DestList[2][Index] := List.Values[List.Names[i]];
+        DestList[2][Index] := List.Values[List.Names[I]];
       end
       else
       begin
-        DestList[1].Add(List.Names[i]);
-        DestList[2].Add(List.Values[List.Names[i]]);
+        DestList[1].Add(List.Names[I]);
+        DestList[2].Add(List.Values[List.Names[I]]);
         DestList[3].Add('');
       end;
     end;
 
     Self.StringGrid.RowCount := DestList[1].Count + 1;
-    for i := 0 to DestList[1].Count - 1 do
+    for I := 0 to DestList[1].Count - 1 do
     begin
-      Self.StringGrid.Cells[0, i + 1] := InttoStr(i + 1);
-      Self.StringGrid.Cells[1, i + 1] := DestList[1][i];
-      Self.StringGrid.Cells[2, i + 1] := DestList[2][i];
-      Self.StringGrid.Cells[3, i + 1] := DestList[3][i];
+      Self.StringGrid.Cells[0, I + 1] := InttoStr(I + 1);
+      Self.StringGrid.Cells[1, I + 1] := DestList[1][I];
+      Self.StringGrid.Cells[2, I + 1] := DestList[2][I];
+      Self.StringGrid.Cells[3, I + 1] := DestList[3][I];
     end;
   finally
-    for i := Low(DestList) to High(DestList) do
-      DestList[i].Free;
+    for I := Low(DestList) to High(DestList) do
+      DestList[I].Free;
     List.Free;
   end;
 end;
@@ -616,7 +616,7 @@ end;
 procedure TFrmTransEditor.actSaveCurItemExecute(Sender: TObject);
 var
   Storage: TCnCustomLangStorage;
-  i: Integer;
+  I: Integer;
 begin
   if (tvStorages.Selected = nil) or (tvStorages.Selected.Level <> 1) then
     Exit;
@@ -626,9 +626,9 @@ begin
     SetDesignPathFile(Storage as TCnCustomLangFileStorage);
 
   Storage.ClearCurrentLanguage;
-  for i := 1 to Self.StringGrid.RowCount - 1 do
-    if StringGrid.Cells[1, i] <> '' then
-      Storage.SetString(StringGrid.Cells[1, i], StringGrid.Cells[3, i]);
+  for I := 1 to Self.StringGrid.RowCount - 1 do
+    if StringGrid.Cells[1, I] <> '' then
+      Storage.SetString(StringGrid.Cells[1, I], StringGrid.Cells[3, I]);
   Storage.SaveCurrentLanguage;
 end;
 
@@ -665,16 +665,16 @@ end;
 
 procedure TFrmTransEditor.actDelLineExecute(Sender: TObject);
 var
-  i: Integer;
+  I: Integer;
 begin
   { DONE : 删除一行。 }
   with Self.StringGrid do
     if RowCount > 2 then
     begin
-      for i := Row to RowCount - 2 do
+      for I := Row to RowCount - 2 do
       begin
-        Rows[i].Text := Rows[i + 1].Text;
-        Cells[0, i] := InttoStr(i);
+        Rows[I].Text := Rows[I + 1].Text;
+        Cells[0, I] := InttoStr(I);
       end;
       RowCount := RowCount - 1;
     end
@@ -704,7 +704,7 @@ procedure TFrmTransEditor.actCollectFormExecute(Sender: TObject);
 var
   List: TStringList;
   Item: TCnLanguageItem;
-  i: Integer;
+  I: Integer;
   Project: IOTAProject;
   ModuleInfo: IOTAModuleInfo;
   FormEditor: IOTAFormEditor;
@@ -715,14 +715,14 @@ var
   var
     IModuleServices: IOTAModuleServices;
     IModule: IOTAModule;
-    i: Integer;
+    I: Integer;
   begin
     Result := nil;
     Supports(BorlandIDEServices, IOTAModuleServices, IModuleServices);
     if IModuleServices <> nil then
-      for i := 0 to IModuleServices.ModuleCount - 1 do
+      for I := 0 to IModuleServices.ModuleCount - 1 do
       begin
-        IModule := IModuleServices.Modules[i];
+        IModule := IModuleServices.Modules[I];
         if Supports(IModule, IOTAProjectGroup, Result) then
           Break;
       end;
@@ -777,16 +777,16 @@ var
 
   function CnOtaGetFormEditorFromModule(const Module: IOTAModule): IOTAFormEditor;
   var
-    i: Integer;
+    I: Integer;
     Editor: IOTAEditor;
     FormEditor: IOTAFormEditor;
   begin
     Result := nil;
     if not Assigned(Module) then
       Exit;
-    for i := 0 to Module.GetModuleFileCount - 1 do
+    for I := 0 to Module.GetModuleFileCount - 1 do
     begin
-      Editor := CnOtaGetFileEditorForModule(Module, i);
+      Editor := CnOtaGetFileEditorForModule(Module, I);
       if Supports(Editor, IOTAFormEditor, FormEditor) then
       begin
         Result := FormEditor;
@@ -831,9 +831,9 @@ begin
 
   Screen.Cursor := crHourGlass;
   try
-    for i := 0 to Project.GetModuleCount - 1 do
+    for I := 0 to Project.GetModuleCount - 1 do
     begin
-      ModuleInfo := Project.GetModule(i);
+      ModuleInfo := Project.GetModule(I);
       Opened := CnOtaIsFileOpen(ModuleInfo.FileName);
       if ModuleInfo.FormName = '' then Continue;
       try
@@ -872,7 +872,7 @@ end;
 procedure TFrmTransEditor.WriteNameValueStringsToGrid(List: TStrings;
   Item: TCnLanguageItem);
 var
-  i, EquPos: Integer;
+  I, EquPos: Integer;
   S: string;
 begin
   if (List = nil) or (Item = nil) then
@@ -890,28 +890,28 @@ begin
   Self.StringGrid.Cells[1, 5] := SystemNamePrefix + SCnDefaultFont;
   Self.StringGrid.Cells[3, 5] := Item.DefaultFontStr;
 
-  for i := 1 to 5 do
+  for I := 1 to 5 do
   begin
-    Self.StringGrid.Cells[0, i] := InttoStr(i);
-    Self.StringGrid.Cells[2, i] := '';
+    Self.StringGrid.Cells[0, I] := InttoStr(I);
+    Self.StringGrid.Cells[2, I] := '';
   end;
 
-  for i := 0 to List.Count - 1 do
+  for I := 0 to List.Count - 1 do
   begin
-    Self.StringGrid.Cells[0, i + 6] := InttoStr(i + 6);
+    Self.StringGrid.Cells[0, I + 6] := InttoStr(I + 6);
     S := List[I];
     EquPos := Pos('=', S);
     if EquPos > 0 then
     begin
-      Self.StringGrid.Cells[1, i + 6] := Copy(S, 1, EquPos - 1);
-      Self.StringGrid.Cells[2, i + 6] := Copy(S, EquPos + 1, MaxInt);
+      Self.StringGrid.Cells[1, I + 6] := Copy(S, 1, EquPos - 1);
+      Self.StringGrid.Cells[2, I + 6] := Copy(S, EquPos + 1, MaxInt);
     end
     else // 无等号
     begin
-      Self.StringGrid.Cells[1, i + 6] := S;
-      Self.StringGrid.Cells[2, i + 6] := '';
+      Self.StringGrid.Cells[1, I + 6] := S;
+      Self.StringGrid.Cells[2, I + 6] := '';
     end;
-    Self.StringGrid.Cells[3, i + 6] := '';
+    Self.StringGrid.Cells[3, I + 6] := '';
   end;
   Self.StringGrid.Cells[0, 0] := '';
 end;

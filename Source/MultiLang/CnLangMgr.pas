@@ -870,7 +870,12 @@ begin
   if AComponent <> nil then
   begin
     if AComponent.Tag = CN_MULTI_LANG_TAG_NOT_TRANSLATE then
+    begin
+{$IFDEF DEBUG_MULTILANG}
+      CnDebugger.LogLeave('TranslateRecurComponent: ' + BaseName + ' ' + AComponent.Name);
+{$ENDIF}
       Exit;
+    end;
 
     TranslateObject(AComponent, BaseName);
     // 使用 AList 避免子属性和父 Component 重复
