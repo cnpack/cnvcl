@@ -93,6 +93,7 @@
         </DelphiCompile>
         <DCCReference Include="vcl.dcp"/>
         <DCCReference Include="vclx.dcp"/>
+        <DCCReference Include="vclimg.dcp"/>
         <DCCReference Include="vcldb.dcp"/>
         <DCCReference Include="dsnap.dcp"/>
         <DCCReference Include="xmlrtl.dcp"/>

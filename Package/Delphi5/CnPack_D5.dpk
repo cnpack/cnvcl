@@ -31,6 +31,7 @@ package CnPack_D5;
 requires
   vcl50,
   Vclx50,
+  vcljpg50,
 {$IFNDEF PERSONAL_EDITION}
   Vcldb50,
   vclado50,

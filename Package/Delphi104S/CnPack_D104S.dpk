@@ -30,6 +30,7 @@ package CnPack_D104S;
 requires
   vcl,
   vclx,
+  vclimg,
   vcldb,
   dsnap,
   xmlrtl,

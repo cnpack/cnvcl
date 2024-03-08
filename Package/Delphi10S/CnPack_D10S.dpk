@@ -34,6 +34,7 @@ package CnPack_D10S;
 requires
   vcl,
   vclx,
+  vclimg,
   vcldb,
 {$IFDEF SUPPORT_ADO}
   adortl,

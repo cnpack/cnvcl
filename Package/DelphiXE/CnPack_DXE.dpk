@@ -32,6 +32,7 @@ package CnPack_DXE;
 requires
   vcl,
   vclx,
+  vclimg,
   vcldb,
 {$IFDEF SUPPORT_ADO}
   adortl,

@@ -31,6 +31,7 @@ package CnPack_D2006;
 requires
   vcl,
   vclx,
+  vcljpg,
 {$IFNDEF PERSONAL_EDITION}
   vcldb,
   adortl,

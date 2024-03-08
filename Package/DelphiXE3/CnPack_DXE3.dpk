@@ -34,6 +34,7 @@ package CnPack_DXE3;
 requires
   vcl,
   vclx,
+  vclimg,
   vcldb,
 {$IFDEF SUPPORT_ADO}
   adortl,

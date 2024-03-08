@@ -34,6 +34,7 @@ package CnPack_D102T;
 requires
   vcl,
   vclx,
+  vclimg,
   vcldb,
 {$IFDEF SUPPORT_ADO}
   adortl,

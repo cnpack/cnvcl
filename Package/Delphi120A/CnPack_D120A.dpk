@@ -32,6 +32,7 @@ package CnPack_D120A;
 requires
   vcl,
   vclx,
+  vclimg,
   vcldb,
   dsnap,
   xmlrtl,

@@ -32,6 +32,7 @@ package CnPack_D2010;
 requires
   vcl,
   vclx,
+  vclimg,
   vcldb,
   adortl,
   dsnap,

@@ -29,6 +29,7 @@ package CnPack_D7;
 requires
   vcl,
   vclx,
+  vcljpg,
   vcldb,
   adortl,
   dsnap,

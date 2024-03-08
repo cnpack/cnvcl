@@ -105,6 +105,7 @@
         </DelphiCompile>
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="vclx.dcp"/>
+        <DCCReference Include="vclimg.dcp"/>
         <DCCReference Include="vcl.dcp"/>
         <DCCReference Include="xmlrtl.dcp"/>
         <DCCReference Include="fmx.dcp"/>

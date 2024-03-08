@@ -32,6 +32,7 @@ package CnPack_D2007;
 requires
   vcl,
   vclx,
+  vcljpg,
 {$IFNDEF PERSONAL_EDITION}
   vcldb,
   adortl,
