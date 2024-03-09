@@ -275,9 +275,9 @@ type
 // 单实例接口对象基础类
 //==============================================================================
 
-{ TSingletonInterfacedObject }
+{ TCnSingletonInterfacedObject }
 
-  TSingletonInterfacedObject = class(TInterfacedObject)
+  TCnSingletonInterfacedObject = class(TInterfacedObject)
   protected
     function _AddRef: Integer; stdcall;
     function _Release: Integer; stdcall;
@@ -839,14 +839,14 @@ end;
 // 单实例接口对象基础类
 //==============================================================================
 
-{ TSingletonInterfacedObject }
+{ TCnSingletonInterfacedObject }
 
-function TSingletonInterfacedObject._AddRef: Integer; stdcall;
+function TCnSingletonInterfacedObject._AddRef: Integer; stdcall;
 begin
   Result := 1;
 end;
 
-function TSingletonInterfacedObject._Release: Integer; stdcall;
+function TCnSingletonInterfacedObject._Release: Integer; stdcall;
 begin
   Result := 1;
 end;
