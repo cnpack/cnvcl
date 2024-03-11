@@ -22,14 +22,14 @@ unit CnPDF;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：PDF 简易解析生成单元
+* 单元名称：PDF 简易解析与生成单元
 * 单元作者：刘啸
-* 备    注：简单的 PDF 格式处理单元
+* 备    注：简单的 PDF 格式处理单元，参考自《PDF Reference 1.7 6th Edition》，Adobe 2006 年版本
 *           解析：先线性进行词法分析，再解析出多个对象，再将对象整理成树
 *           生成：先构造固定的对象树，补充内容后写入流
 *
 *           封装了 CnJpegFilesToPDF 过程，将多个 JPEG 文件拼成一个 PDF 输出
-*           也实现了 TCnImagesToPDFCreator 以在输出 JPEG 的 PDF 时支持页面边距等设置
+*           也实现了 TCnImagesToPDFCreator 以在输出 JPEG 的 PDF 时支持页面边距以及加密等设置
 *
 *           文件尾的 Trailer 的 Root 指向 Catalog 对象，大体的树结构如下：
 *

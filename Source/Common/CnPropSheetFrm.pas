@@ -485,6 +485,8 @@ type
     FOnAfterEvaluateComponents: TNotifyEvent;
     FShowTree: Boolean;
     FSyncMode: Boolean;
+    FObjectExpr: string;
+    FInspectorClass: TCnObjectInspectorClass;
 
     procedure SetContentTypes(const Value: TCnPropContentTypes);
     procedure SetParentSheetForm(const Value: TCnPropSheetForm);
@@ -501,8 +503,6 @@ type
     procedure SaveATreeNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode; var Valid: Boolean);
 
     procedure MsgInspectObject(var Msg: TMessage); message CN_INSPECTOBJECT;
-    procedure DoEvaluateBegin; virtual;
-    procedure DoEvaluateEnd; virtual;
 
     // 事件转移导出到外面
     procedure AfterEvaluateComponents(Sender: TObject);
@@ -513,15 +513,22 @@ type
   protected
     procedure TileBkToImageBmp;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+
   public
     procedure SetPropListSize(const Value: Integer);
     procedure InspectObject(Data: Pointer);
     procedure Clear;
+    procedure DoEvaluateBegin; virtual;
+    procedure DoEvaluateEnd; virtual;
+
     property ObjectPointer: Pointer read FObjectPointer write FObjectPointer;
+    property ObjectExpr: string read FObjectExpr write FObjectExpr;
+
     property ContentTypes: TCnPropContentTypes read FContentTypes write SetContentTypes;
     property ParentSheetForm: TCnPropSheetForm read FParentSheetForm write SetParentSheetForm;
     property ShowTree: Boolean read FShowTree write SetShowTree;
     property SyncMode: Boolean read FSyncMode write FSyncMode;
+    property InspectorClass: TCnObjectInspectorClass read FInspectorClass write FInspectorClass;
 
     property OnEvaluateBegin: TNotifyEvent read FOnEvaluateBegin write FOnEvaluateBegin;
     property OnEvaluateEnd: TNotifyEvent read FOnEvaluateEnd write FOnEvaluateEnd;
@@ -680,9 +687,9 @@ begin
     end;
 end;
 
-function EvaluatePointer(Address: Pointer; Data: Pointer = nil;
-  AForm: TCnPropSheetForm = nil; SyncMode: Boolean = False;
-  AParentSheet: TCnPropSheetForm = nil): TCnPropSheetForm;
+function EvaluatePointer(Address: Pointer; Data: Pointer;
+  AForm: TCnPropSheetForm; SyncMode: Boolean;
+  AParentSheet: TCnPropSheetForm): TCnPropSheetForm;
 begin
   Result := nil;
   if Address = nil then Exit;
@@ -691,6 +698,7 @@ begin
     AForm := TCnPropSheetForm.Create(nil);
 
   AForm.ObjectPointer := Address;
+  AForm.ObjectExpr := '';
   AForm.Clear;
   AForm.ParentSheetForm := AParentSheet;
   AForm.SyncMode := SyncMode;
@@ -2892,12 +2900,14 @@ var
   end;
 
 begin
-  if ObjectInspectorClass = nil then
-    Exit;
-
   if FInspector = nil then
   begin
-    FInspector := TCnObjectInspector(ObjectInspectorClass.NewInstance);
+    if FInspectorClass = nil then // 外界未指定 InspectorClass 则用默认的，如也无则出错
+      FInspectorClass := ObjectInspectorClass;
+    if FInspectorClass = nil then
+      Exit;
+
+    FInspector := TCnObjectInspector(FInspectorClass.NewInstance);
     FInspector.Create(Data);
   end;
 
@@ -2907,8 +2917,15 @@ begin
   FInspector.OnAfterEvaluateControls := AfterEvaluateControls;
   FInspector.OnAfterEvaluateCollections := AfterEvaluateCollections;
   FInspector.OnAfterEvaluateHierarchy := AfterEvaluateHierarchy;
-  
-  FInspector.ObjectAddr := FObjectPointer;
+
+  if FObjectPointer <> nil then
+    FInspector.ObjectAddr := FObjectPointer
+  else if FObjectExpr <> '' then
+  begin
+    // 将 FObjectExpr 的字符串内容塞给 Inspector 实例的 ObjectAddr，Inspector 内部复制内容处理
+    FInspector.ObjectAddr := PChar(FObjectExpr);
+  end;
+
   FInspector.InspectObject;
 
   while not FInspector.InspectComplete do
