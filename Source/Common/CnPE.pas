@@ -51,7 +51,9 @@ unit CnPE;
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：Win32/Win64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.08.07
+* 修改记录：2024.03.12
+*               如果偏移量过大造成溢出变负值，则忽略此错误偏移量与对应行号
+*           2022.08.07
 *               创建单元,实现功能
 ================================================================================
 |</PRE>}
@@ -2008,8 +2010,11 @@ begin
               LM := PTDLineMappingEntry(TCnNativeUInt(MI) + SE^.BaseSrcLines[J]);
               for L := 0 to LM^.PairCount - 1 do
               begin
-                FOffsets.Add(Integer(LM^.Offsets[L]));
-                FLineNumbers.Add(Integer(PCnWord16Array(@LM^.Offsets[LM^.PairCount])^[L]));
+                if Integer(LM^.Offsets[L]) > 0 then // 不应该出现过大的甚至溢出到负值的偏移量，碰到则跳过
+                begin
+                  FOffsets.Add(Integer(LM^.Offsets[L]));
+                  FLineNumbers.Add(Integer(PCnWord16Array(@LM^.Offsets[LM^.PairCount])^[L]));
+                end;
               end;
             end;
 

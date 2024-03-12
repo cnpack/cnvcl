@@ -420,6 +420,15 @@ object FormPE: TFormPE
         TabOrder = 10
         OnClick = btnMapLineNumbersClick
       end
+      object btnManualAddr: TButton
+        Left = 1008
+        Top = 16
+        Width = 49
+        Height = 25
+        Caption = 'Manual'
+        TabOrder = 11
+        OnClick = btnManualAddrClick
+      end
     end
   end
   object btnLoad: TButton

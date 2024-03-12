@@ -680,11 +680,13 @@ var
 begin
   Result := pctProps;
   for I := Low(TCnPropContentType) to High(TCnPropContentType) do
+  begin
     if AStr = SCnPropContentType[I] then
     begin
       Result := I;
       Exit;
     end;
+  end;
 end;
 
 function EvaluatePointer(Address: Pointer; Data: Pointer;
@@ -1802,15 +1804,18 @@ begin
     ObjClassName := FObjectInstance.ClassName;
 
     Hies := TStringList.Create;
-    ATmpClass := ObjectInstance.ClassType;
-    Hies.Add(ATmpClass.ClassName);
-    while ATmpClass.ClassParent <> nil do
-    begin
-      ATmpClass := ATmpClass.ClassParent;
+    try
+      ATmpClass := ObjectInstance.ClassType;
       Hies.Add(ATmpClass.ClassName);
+      while ATmpClass.ClassParent <> nil do
+      begin
+        ATmpClass := ATmpClass.ClassParent;
+        Hies.Add(ATmpClass.ClassName);
+      end;
+      Hierarchy := Hies.Text;
+    finally
+      Hies.Free;
     end;
-    Hierarchy := Hies.Text;
-    Hies.Free;
 
     DoAfterEvaluateHierarchy;
 
@@ -2945,13 +2950,16 @@ begin
   else
     edtClassName.Text := 'Unknown Object';
 
+  if FObjectExpr <> '' then
+  begin
 {$IFDEF WIN64}
-  edtObj.Text := Format('%16.16x', [NativeInt(FInspector.ObjectAddr)]);
-  edtClassName.Text := Format('%s: $%16.16x', [edtClassName.Text, NativeInt(FInspector.ObjectAddr)]);
+    edtObj.Text := Format('%16.16x', [NativeInt(FInspector.ObjectAddr)]);
+    edtClassName.Text := Format('%s: $%16.16x', [edtClassName.Text, NativeInt(FInspector.ObjectAddr)]);
 {$ELSE}
-  edtObj.Text := Format('%8.8x', [Integer(FInspector.ObjectAddr)]);
-  edtClassName.Text := Format('%s: $%8.8x', [edtClassName.Text, Integer(FInspector.ObjectAddr)]);
+    edtObj.Text := Format('%8.8x', [Integer(FInspector.ObjectAddr)]);
+    edtClassName.Text := Format('%s: $%8.8x', [edtClassName.Text, Integer(FInspector.ObjectAddr)]);
 {$ENDIF}
+  end;
 
   for I := 0 to FInspector.PropCount - 1 do
   begin
@@ -3097,8 +3105,13 @@ begin
   UpdateHierarchys;
   ContentTypes := FInspector.ContentTypes;
 
-  btnLocate.Visible := (TObject(FInspector.ObjectAddr) is TGraphicControl) or
-    (TObject(FInspector.ObjectAddr) is TWinControl); 
+  if FObjectExpr <> '' then
+  begin
+    btnLocate.Visible := (TObject(FInspector.ObjectAddr) is TGraphicControl) or
+      (TObject(FInspector.ObjectAddr) is TWinControl);
+  end
+  else
+    btnLocate.Visible := False;
 end;
 
 procedure TCnPropSheetForm.SetContentTypes(const Value: TCnPropContentTypes);

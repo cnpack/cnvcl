@@ -58,6 +58,7 @@ type
     btnMapSourceModules: TButton;
     btnMapProc: TButton;
     btnMapLineNumbers: TButton;
+    btnManualAddr: TButton;
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnParsePEFileClick(Sender: TObject);
@@ -75,6 +76,7 @@ type
     procedure btnMapSourceModulesClick(Sender: TObject);
     procedure btnMapProcClick(Sender: TObject);
     procedure btnMapLineNumbersClick(Sender: TObject);
+    procedure btnManualAddrClick(Sender: TObject);
   private
     FPE: TCnPE;
     procedure DumpPE(PE: TCnPE);
@@ -413,7 +415,7 @@ var
   H: HMODULE;
   TD32: TCnModuleDebugInfoTD;
 begin
-  H := GetModuleHandle(nil);
+  H := HMODULE(cbbRunModule.Items.Objects[cbbRunModule.ItemIndex]);
   mmoNames.Clear;
   if H <> 0 then
   begin
@@ -435,7 +437,7 @@ var
   TD32: TCnModuleDebugInfoTD;
   SM: TCnTDSourceModule;
 begin
-  H := GetModuleHandle(nil);
+  H := HMODULE(cbbRunModule.Items.Objects[cbbRunModule.ItemIndex]);
   mmoNames.Clear;
   if H <> 0 then
   begin
@@ -467,7 +469,7 @@ var
   TD32: TCnModuleDebugInfoTD;
   PS: TCnTDProcedureSymbol;
 begin
-  H := GetModuleHandle(nil);
+  H := HMODULE(cbbRunModule.Items.Objects[cbbRunModule.ItemIndex]);
   mmoNames.Clear;
   if H <> 0 then
   begin
@@ -500,7 +502,7 @@ var
   H: HMODULE;
   TD32: TCnModuleDebugInfoTD;
 begin
-  H := GetModuleHandle(nil);
+  H := HMODULE(cbbRunModule.Items.Objects[cbbRunModule.ItemIndex]);
   mmoNames.Clear;
   if H <> 0 then
   begin
@@ -649,6 +651,40 @@ begin
     finally
       Map.Free;
     end;
+  end;
+end;
+
+procedure TFormPE.btnManualAddrClick(Sender: TObject);
+var
+  I, LN, OL, OP: Integer;
+  ML: TCnInProcessModuleList;
+  Info: TCnModuleDebugInfo;
+  MN, UN, PN: string;
+  CallerAddr: Pointer;
+begin
+  mmoStack.Lines.Clear;
+
+  // 一个针对 CnWizards 的 DLL 的实验地址：$04161D45 - $03F70000 + 实际加载基地址 $04590000 = $1F1D45 + $04590000 = $4781D45
+  CallerAddr := Pointer($4781D45);
+  ML := nil;
+  try
+    ML := TCnInProcessModuleList.Create;
+
+    Info := ML.GetDebugInfoFromAddress(CallerAddr);
+    if Info = nil then
+    begin
+      ML.CreateDebugInfoFromAddress(CallerAddr);
+      Info := ML.GetDebugInfoFromAddress(CallerAddr);
+    end;
+
+    if Info.GetDebugInfoFromAddr(CallerAddr, MN, UN, PN, LN, OL, OP) then
+      mmoStack.Lines.Add(Format('#%2.2d %p - Module: %s Unit: %s Procedure %s. Line %d, +%d +%x',
+        [I, CallerAddr, MN, UN, PN, LN, OL, OP]))
+    else
+      mmoStack.Lines.Add(Format('#%2.2d %p', [I, CallerAddr]));
+
+  finally
+    ML.Free;
   end;
 end;
 

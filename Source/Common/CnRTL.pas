@@ -114,6 +114,7 @@ type
     FCallerAddr: Pointer;
   public
     property CallerAddr: Pointer read FCallerAddr write FCallerAddr;
+    {* 运行期的虚拟地址}
   end;
 
   TCnStackInfoList = class(TObjectList)
