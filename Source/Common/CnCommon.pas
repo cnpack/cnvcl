@@ -1197,6 +1197,9 @@ function NtIsDeugged: Boolean;
 procedure KillProcessByFileName(const FileName: String);
 {* 根据文件名结束进程，不区分路径}
 
+function KillProcessByFullFileName(const FullFileName: string): Boolean;
+{* 根据完整文件名结束进程，区分路径}
+
 {$ENDIF}
 
 function IndexStr(const AText: string; AValues: array of string; IgCase: Boolean = True): Integer;
@@ -8274,12 +8277,12 @@ end;
 // 根据文件名结束进程，不区分路径
 procedure KillProcessByFileName(const FileName: String);
 var
-  ID:DWORD;
+  ID: DWORD;
   S, Tmp: string;
   Ret: Boolean;
   SnapshotHandle: THandle;
   PE32: TProcessEntry32;
-  hh: HWND;
+  H: HWND;
 begin
   S := LowerCase(FileName);
   SnapshotHandle := CreateToolHelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -8291,11 +8294,60 @@ begin
     if Pos(S, Tmp) > 0 then
     begin
       Id := PE32.th32ProcessID;
-      hh := OpenProcess(PROCESS_ALL_ACCESS, True,Id);
-      TerminateProcess(hh, 0);
+      H := OpenProcess(PROCESS_ALL_ACCESS, True, Id);
+      TerminateProcess(H, 0);
     end;
     Ret := Process32Next(SnapshotHandle,PE32);
   end;
+end;
+
+// 根据完整文件名结束进程，区分路径，32 Kill 32 通过
+function KillProcessByFullFileName(const FullFileName: string): Boolean;
+const
+  PROCESS_QUERY_INFORMATION = $0400;
+  PROCESS_TERMINATE = $0001;
+var
+  SnapshotHandle, PH: THandle;
+  ProcessEntry: TProcessEntry32;
+  TargetProcessPath: string;
+  ResultCode: Integer;
+begin
+  Result := False;
+  SnapshotHandle := CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if SnapshotHandle = INVALID_HANDLE_VALUE then
+    Exit;
+
+  ProcessEntry.dwSize := SizeOf(TProcessEntry32);
+  if not Process32First(SnapshotHandle, ProcessEntry) then
+  begin
+    CloseHandle(SnapshotHandle);
+    Exit;
+  end;
+
+  Result := False;
+  repeat
+    PH := OpenProcess(PROCESS_QUERY_INFORMATION or PROCESS_VM_READ or PROCESS_TERMINATE,
+      False, ProcessEntry.th32ProcessID);
+    if PH <> 0 then
+    begin
+      // 获取目标进程的完整路径
+      SetLength(TargetProcessPath, MAX_PATH);
+
+      if GetModuleFileNameEx(PH, 0, PChar(TargetProcessPath),
+        Length(TargetProcessPath)) > 0 then
+      begin
+        // 比较完整路径，相等则尝试结束进程
+        if StrComp(PChar(TargetProcessPath), PChar(FullFileName)) = 0 then
+          Result := TerminateProcess(PH, 0);
+      end
+      else
+      begin
+        CloseHandle(PH); // 无论是否获取成功都关闭 Handle
+      end;
+    end;
+  until not Process32Next(SnapshotHandle, ProcessEntry);
+
+  CloseHandle(SnapshotHandle);
 end;
 
 {$ENDIF}
