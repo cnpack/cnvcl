@@ -8310,7 +8310,6 @@ var
   SnapshotHandle, PH: THandle;
   ProcessEntry: TProcessEntry32;
   TargetProcessPath: string;
-  ResultCode: Integer;
 begin
   Result := False;
   SnapshotHandle := CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -8341,9 +8340,7 @@ begin
           Result := TerminateProcess(PH, 0);
       end
       else
-      begin
         CloseHandle(PH); // 无论是否获取成功都关闭 Handle
-      end;
     end;
   until not Process32Next(SnapshotHandle, ProcessEntry);
 
