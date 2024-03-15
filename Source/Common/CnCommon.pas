@@ -992,8 +992,17 @@ function CheckWin8: Boolean;
 function CheckWin10: Boolean;
 {* 检查是否 Windows 10 或以上系统}
 
+function CheckWin64: Boolean;
+{* 检查是否是 64 位 Windows}
+
 function CheckWow64: Boolean;
-{* 检查是否 64bit 系统 }
+{* 检查当前进程是否是 32 位进程跑在 64 位子系统里}
+
+function CheckProcess64(ProcessHandle: THandle = 0): Boolean;
+{* 检查指定进程是否 64 位，参数为进程句柄（并非进程号）。如传 0 ，则判断当前进程}
+
+function CheckProcessWow64(ProcessHandle: THandle): Boolean;
+{* 检查指定进程是否是 32 位进程跑在 64 位子系统里。参数为进程句柄（并非进程号）}
 
 function CheckXPManifest(var OSSupport, AppValid: Boolean): Boolean;
 {* 检查系统和当前进程是否支持 XP Manifest
@@ -1198,7 +1207,7 @@ procedure KillProcessByFileName(const FileName: String);
 {* 根据文件名结束进程，不区分路径}
 
 function KillProcessByFullFileName(const FullFileName: string): Boolean;
-{* 根据完整文件名结束进程，区分路径}
+{* 根据完整文件名结束进程，区分路径，支持 32 位进程与 64 位进程交叉结束}
 
 {$ENDIF}
 
@@ -7181,19 +7190,59 @@ begin
   Result := Win32MajorVersion >= 10;
 end;
 
-// 检查是否 64bit 系统
+// 检查是否是 64 位 Windows
+function CheckWin64: Boolean;
+type
+  TGetNativeSystemInfoProc = procedure(var lpSystemInfo: TSystemInfo); stdcall;
+const
+  PROCESSOR_ARCHITECTURE_AMD64 = 9;
+  PROCESSOR_ARCHITECTURE_IA64 = 6;
+var
+  Proc: TGetNativeSystemInfoProc;
+  Info: TSystemInfo;
+begin
+  Result := False;
+  Proc := TGetNativeSystemInfoProc(GetProcAddress(GetModuleHandle('kernel32'), 'GetNativeSystemInfo'));
+  if Assigned(Proc) then
+  begin
+    Proc(Info);
+    Result := (Info.wProcessorArchitecture = PROCESSOR_ARCHITECTURE_AMD64) or
+      (Info.wProcessorArchitecture = PROCESSOR_ARCHITECTURE_IA64);
+  end;
+end;
+
+// 检查当前进程是否是 32 位进程跑在 64 位子系统里
 function CheckWow64: Boolean;
+begin
+  Result := CheckProcess64(GetCurrentProcess);
+end;
+
+// 检查指定进程是否 64 位，参数为进程句柄（并非进程号）如传 0 ，则判断当前进程
+function CheckProcess64(ProcessHandle: THandle = 0): Boolean;
+begin
+  Result := False;
+  if not CheckWin64 then  // 32 位系统下只有 32 位进程
+    Exit;
+
+  if ProcessHandle = 0 then
+    ProcessHandle := GetCurrentProcess;
+
+  Result := not CheckProcessWow64(ProcessHandle); // 64 位下要判断是否 32 位跑 64 位子系统，是则 32
+end;
+
+// 检查指定进程是否是 32 位进程跑在 64 位子系统里。参数为进程句柄（并非进程号）
+function CheckProcessWow64(ProcessHandle: THandle): Boolean;
 type
   TIsWow64ProcessProc = function(Handle: THandle; var IsWow64: LongBool): LongBool stdcall;
 var
-  proc: TIsWow64ProcessProc;
+  Proc: TIsWow64ProcessProc;
   IsWow64: LongBool;
 begin
   Result := False;
-  proc := TIsWow64ProcessProc(GetProcAddress(GetModuleHandle('kernel32'), 'IsWow64Process'));
-  if Assigned(proc) then
+  Proc := TIsWow64ProcessProc(GetProcAddress(GetModuleHandle('kernel32'), 'IsWow64Process'));
+  if Assigned(Proc) then
   begin
-    if proc(GetCurrentProcess, IsWow64) then
+    if Proc(ProcessHandle, IsWow64) then
       Result := IsWow64;
   end;
 end;
@@ -8301,15 +8350,16 @@ begin
   end;
 end;
 
-// 根据完整文件名结束进程，区分路径，32 Kill 32 通过
+// 根据完整文件名结束进程，区分路径，32/64 交叉 Kill 32/64 通过
 function KillProcessByFullFileName(const FullFileName: string): Boolean;
-const
-  PROCESS_QUERY_INFORMATION = $0400;
-  PROCESS_TERMINATE = $0001;
+type
+  TGetProcessImageFileNameProc = function (hProcess: THandle; ImageFileName: PChar; nBufferLength: DWORD): BOOL; stdcall;
 var
-  SnapshotHandle, PH: THandle;
+  SnapshotHandle, PH, HPsApi: THandle;
   ProcessEntry: TProcessEntry32;
-  TargetProcessPath: string;
+  TargetProcessPath, TargetDosPath: string;
+  FullDevName, DriverName, DevName: string;
+  Proc: TGetProcessImageFileNameProc;
 begin
   Result := False;
   SnapshotHandle := CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -8324,26 +8374,79 @@ begin
   end;
 
   Result := False;
-  repeat
-    PH := OpenProcess(PROCESS_QUERY_INFORMATION or PROCESS_VM_READ or PROCESS_TERMINATE,
-      False, ProcessEntry.th32ProcessID);
-    if PH <> 0 then
-    begin
-      // 获取目标进程的完整路径
-      SetLength(TargetProcessPath, MAX_PATH);
+  Proc := nil;
+  HPsApi := 0;
+  FullDevName := '';
 
-      if GetModuleFileNameEx(PH, 0, PChar(TargetProcessPath),
-        Length(TargetProcessPath)) > 0 then
+  try
+    repeat
+      PH := OpenProcess(PROCESS_QUERY_INFORMATION or PROCESS_VM_READ or PROCESS_TERMINATE,
+        False, ProcessEntry.th32ProcessID);
+      if PH <> 0 then
       begin
-        // 比较完整路径，相等则尝试结束进程
-        if StrComp(PChar(TargetProcessPath), PChar(FullFileName)) = 0 then
-          Result := TerminateProcess(PH, 0);
-      end
-      else
-        CloseHandle(PH); // 无论是否获取成功都关闭 Handle
-    end;
-  until not Process32Next(SnapshotHandle, ProcessEntry);
+        // 获取目标进程的完整路径
+        SetLength(TargetProcessPath, MAX_PATH);
+        SetLength(TargetDosPath, MAX_PATH);
 
+        // 注意如果对方是 64 位，则要换 GetProcesslmageFileName
+        if CheckProcess64(PH) then
+        begin
+          if not Assigned(Proc) then
+          begin
+            HPsApi := LoadLibrary('PSAPI.dll');
+            if HPsApi > 32 then
+            begin
+{$IFDEF UNICODE}
+              Proc := TGetProcessImageFileNameProc(GetProcAddress(HPsApi, 'GetProcessImageFileNameW'));
+{$ELSE}
+              Proc := TGetProcessImageFileNameProc(GetProcAddress(HPsApi, 'GetProcessImageFileNameA'));
+{$ENDIF}
+            end;
+          end;
+
+          if Assigned(Proc) then
+          begin
+            if Proc(PH, PChar(TargetProcessPath), Length(TargetProcessPath)) then
+            begin
+              if FullDevName = '' then // 把原始逻辑盘的 C:\a.exe 这种转换为 \Device\Harddisk1\a.exe 这种
+              begin
+                if (Length(FullFileName) > 3) and (FullFileName[2] = ':') and (FullFileName[3] = '\') then
+                begin
+                  DriverName := Copy(FullFileName, 1, 2);
+                  TargetDosPath := Copy(FullFileName, 3, MaxInt);
+                  SetLength(DevName, MAX_PATH);
+                  if QueryDosDevice(PChar(DriverName), PChar(DevName), Length(DevName)) > 0 then
+                  begin
+                    SetLength(DevName, StrLen(PChar(DevName)));
+                    FullDevName := DevName + TargetDosPath;
+                  end;
+                end;
+              end;
+
+              // 此处的完整路径是 \Device\ 开头，不能和 FullFileName 直接比较
+              if StrComp(PChar(TargetProcessPath), PChar(FullDevName)) = 0 then
+                Result := TerminateProcess(PH, 0);
+            end;
+          end;
+          CloseHandle(PH); // 无论是否获取成功都关闭 Handle
+        end
+        else
+        begin
+          if GetModuleFileNameEx(PH, 0, PChar(TargetProcessPath), Length(TargetProcessPath)) > 0 then
+          begin
+            // 比较完整路径，相等则尝试结束进程
+            if StrComp(PChar(TargetProcessPath), PChar(FullFileName)) = 0 then
+              Result := TerminateProcess(PH, 0);
+          end;
+
+          CloseHandle(PH); // 无论是否获取成功都关闭 Handle
+        end;
+      end;
+    until not Process32Next(SnapshotHandle, ProcessEntry);
+  finally
+    if HPsApi > 32 then
+      FreeLibrary(HPsApi);
+  end;
   CloseHandle(SnapshotHandle);
 end;
 
