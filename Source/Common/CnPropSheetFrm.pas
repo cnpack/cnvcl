@@ -266,6 +266,7 @@ type
     FOnAfterEvaluateProperties: TNotifyEvent;
     FOnAfterEvaluateComponents: TNotifyEvent;
     FGraphics: TCnGraphicsObject;
+    FLazyInspect: Boolean;
     function GetEventCount: Integer;
     function GetPropCount: Integer;
     function GetInspectComplete: Boolean;
@@ -331,6 +332,7 @@ type
     property CollectionItemCount: Integer read GetCollectionItemCount;
     property MenuItemCount: Integer read GetMenuItemCount;
 
+    property LazyInspect: Boolean read FLazyInspect write FLazyInspect;
     property IsRefresh: Boolean read FIsRefresh write FIsRefresh;
     property InspectComplete: Boolean read GetInspectComplete
       write SetInspectComplete;
@@ -365,6 +367,9 @@ type
 
     procedure DoEvaluate; override;
   public
+    constructor Create(Data: Pointer); override;
+    destructor Destroy; override;
+
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     function ChangeFieldValue(const FieldName, Value: string;
       FieldObj: TCnFieldObject): Boolean; override;
@@ -456,8 +461,7 @@ type
     FContentTypes: TCnPropContentTypes;
     FPropListPtr: PPropList;
     FPropCount: Integer;
-    FObjectPointer: Pointer;
-    // 指向 Object 实例或 标识字符串
+    FObjectPointer: Pointer; // 指向 Object 实例
     FInspector: TCnObjectInspector;
     FInspectParam: Pointer;
     FCurrObj: TObject;
@@ -485,7 +489,7 @@ type
     FOnAfterEvaluateComponents: TNotifyEvent;
     FShowTree: Boolean;
     FSyncMode: Boolean;
-    FObjectExpr: string;
+    FObjectExpr: string; // Object 标识字符串
     FInspectorClass: TCnObjectInspectorClass;
 
     procedure SetContentTypes(const Value: TCnPropContentTypes);
@@ -522,13 +526,16 @@ type
     procedure DoEvaluateEnd; virtual;
 
     property ObjectPointer: Pointer read FObjectPointer write FObjectPointer;
+    {* 进程内待显示的对象实例，为 nil 表示不在进程内求值模式}
     property ObjectExpr: string read FObjectExpr write FObjectExpr;
+    {* 远程求值模式的对象字符串，为空时表示不在远程求值模式}
 
     property ContentTypes: TCnPropContentTypes read FContentTypes write SetContentTypes;
     property ParentSheetForm: TCnPropSheetForm read FParentSheetForm write SetParentSheetForm;
     property ShowTree: Boolean read FShowTree write SetShowTree;
     property SyncMode: Boolean read FSyncMode write FSyncMode;
     property InspectorClass: TCnObjectInspectorClass read FInspectorClass write FInspectorClass;
+    property InspectParam: Pointer read FInspectParam write FInspectParam;
 
     property OnEvaluateBegin: TNotifyEvent read FOnEvaluateBegin write FOnEvaluateBegin;
     property OnEvaluateEnd: TNotifyEvent read FOnEvaluateEnd write FOnEvaluateEnd;
@@ -566,6 +573,8 @@ implementation
 
 {$R *.DFM}
 
+uses
+  CnDebug;
 {$R CnPropSheet.res}
 
 type
@@ -709,8 +718,8 @@ begin
   begin
     AForm.DoEvaluateBegin;
     try
-      AForm.FInspectParam := Data;
-      AForm.InspectObject(AForm.FInspectParam);
+      AForm.InspectParam := Data;
+      AForm.InspectObject(AForm.InspectParam);
     finally
       AForm.DoEvaluateEnd;
       AForm.Show;  // After Evaluation. Show the form.
@@ -2790,6 +2799,18 @@ begin
       Exit;
   end;
   Result := True;
+end;
+
+constructor TCnLocalObjectInspector.Create(Data: Pointer);
+begin
+  inherited;
+
+end;
+
+destructor TCnLocalObjectInspector.Destroy;
+begin
+
+  inherited;
 end;
 
 { TCnPropSheetForm }
