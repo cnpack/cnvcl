@@ -148,6 +148,8 @@ type
     procedure SaveToStream(Stream: TStream);
     procedure SaveToFile(FileName: TFileName);
     procedure SaveToBuffer(var Buffer; Size: Integer);
+    procedure Clear;
+
     property SelBytes: TBytes read GetSelBytes;
     property MemoryStream: TMemoryStream read FMemoryStream;
     property BaseAddress: Integer read FBaseAddress write SetBaseAddress; // »ùµØÖ·
@@ -274,6 +276,16 @@ begin
   ScrlInfo.fMask := SIF_PAGE;
   ScrlInfo.nPage := FVisibleChars;
   SetScrollInfo(Handle, SB_HORZ, ScrlInfo, True);
+end;
+
+procedure TCnHexEditor.Clear;
+begin
+  FMemoryStream.Clear;
+  FSelLength := 0;
+  FSelStart := 0;
+  FColIndex := 0;
+  FRowIndex := 0;
+  DoChange;
 end;
 
 procedure TCnHexEditor.CMFontChanged(var Message: TMessage);
