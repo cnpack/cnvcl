@@ -835,7 +835,7 @@ object Form1: TForm1
         HotLink.FontEffect.Gradual.Style = gsBottomToTop
         HotLink.FontEffect.Gradual.StartColor = clBlue
         HotLink.FontEffect.Gradual.EndColor = 8388863
-        HotLink.URL = 'http://www.cnpack.org'
+        HotLink.URL = 'https://www.cnpack.org'
         HotLink.UnderLine = True
       end
       object SpeedButton1: TSpeedButton

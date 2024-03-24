@@ -38,7 +38,7 @@ object Form1: TForm1
     ItemHeight = 13
     TabOrder = 0
     Items.Strings = (
-      'http://www.cnpack.org/index.php?lang=en'
+      'https://www.cnpack.org/index.php?lang=en'
       'ftp://user:pass@ftp.anyhost.com/dir/filename.zip')
   end
   object btn1: TButton

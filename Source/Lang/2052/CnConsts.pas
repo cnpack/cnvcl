@@ -13,7 +13,7 @@
 {            您应该已经和开发包一起收到一份 CnPack 发布协议的副本。如果        }
 {        还没有，可访问我们的网站：                                            }
 {                                                                              }
-{            网站地址：http://www.cnpack.org                                   }
+{            网站地址：https://www.cnpack.org                                  }
 {            电子邮件：master@cnpack.org                                       }
 {                                                                              }
 {******************************************************************************}
@@ -82,17 +82,17 @@ var
 const
   // 开发包信息
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.1.2.5';
+  SCnPackVer = 'Ver 0.1.3.0';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
-  SCnPackUrl = 'http://www.cnpack.org';
-  SCnPackBbsUrl = 'http://bbs.cnpack.org';
+  SCnPackUrl = 'https://www.cnpack.org';
+  SCnPackBbsUrl = 'https://bbs.cnpack.org';
   SCnPackNewsUrl = 'news://news.cnpack.org';
-  SCnPackSourceUrl = 'http://github.com/cnpack';
+  SCnPackSourceUrl = 'https://github.com/cnpack';
   SCnPackEmail = 'master@cnpack.org';
   SCnPackBugEmail = 'bugs@cnpack.org';
   SCnPackSuggestionsEmail = 'suggestions@cnpack.org';
 
-  SCnPackDonationUrl = 'http://www.cnpack.org/foundation.php';
+  SCnPackDonationUrl = 'https://www.cnpack.org/foundation.php';
   SCnPackDonationUrlSF = 'http://sourceforge.net/donate/index.php?group_id=110999';
   SCnPackGroup = 'CnPack 开发组';
   SCnPackCopyright = '(C)Copyright 2001-2024 ' + SCnPackGroup;

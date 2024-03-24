@@ -21,7 +21,7 @@
 
     請訪問 CnPack 開發網站，以獲得最新的更新消息：
 
-    http://www.cnpack.org
+    https://www.cnpack.org
 
 ======================================================================
 2. 測試包內容
@@ -30,7 +30,7 @@
     該代碼包僅用於開發組內部測試，並未正式發佈，不推薦將其直接用於成品
 軟體中，如果您在使用中發現任何問題請與 CnPack 開發組聯繫：
 
-    http://www.cnpack.org
+    https://www.cnpack.org
     mailto:master@cnpack.org
 
     代碼包中包含以下幾個目錄：

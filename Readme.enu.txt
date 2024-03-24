@@ -21,7 +21,7 @@ License, and also, is protected by it.
 
     Welcome to CnPack website to get latest information.
 
-    http://www.cnpack.org
+    https://www.cnpack.org
 
 =====================================================
 2. Structure
@@ -31,7 +31,7 @@ License, and also, is protected by it.
 because it's not tested integrallty yet. If you meet any problem during
 development, please contact us:
 
-    http://www.cnpack.org
+    https://www.cnpack.org
     mailto:master@cnpack.org
 
     There are several directories in CnPack source codes:

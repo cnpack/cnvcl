@@ -13,7 +13,7 @@
 {            您应该已经和开发包一起收到一份 CnPack 发布协议的副本。如果        }
 {        还没有，可访问我们的网站：                                            }
 {                                                                              }
-{            网站地址：http://www.cnpack.org                                   }
+{            网站地址：https://www.cnpack.org                                  }
 {            电子邮件：master@cnpack.org                                       }
 {                                                                              }
 {******************************************************************************}
@@ -154,7 +154,7 @@ type
     property URL: string read FURL write FURL;
     {* 超链接内容或文件名，例如：
      |<PRE>
-       http://www.cnpack.org      - 网页
+       https://www.cnpack.org     - 网页
        mailto:zjy@cnpack.org      - 邮件地址
        mailto:zjy@cnpack.org?subject=你好 - 带邮件标题的邮件地址链接
        c:\tools\anyexe.exe      - 可执行文件

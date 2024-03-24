@@ -9,8 +9,8 @@ CnPack 开发组 2023 年工作总结
 
 二、CnPack 源码继续于 GitHub 上维护，并新增国内镜像 Gitee。
     地址：
-    http://github.com/cnpack
-    http://gitee.com/cnpack
+    https://github.com/cnpack
+    https://gitee.com/cnpack
 
 三、CnVcl 中基础库新增了简易的 JSON 解析实现，密码库中新增了位运算构建类、448 椭圆曲线的实现，一次性杂凑签名算法（OTS）初步实现，初步增加了基于格（Lattice）的密码的部分实现如 NTRU 等，增加 Linux 及其他平台的命令行式密码库测试用例集。并完善 Win32/Win64/MacOS/Linux 等的跨平台支持，完善密码库的 FMX 与 FPC 的支持。
 

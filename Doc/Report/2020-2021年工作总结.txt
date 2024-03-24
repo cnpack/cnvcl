@@ -7,7 +7,7 @@ CnPack 开发组 2020-2021 年工作总结
     每日构建版下载地址：
     https://www.cnpack.org/downbuilds.php
 
-二、CnPack 源码继续于 GitHub 上维护。地址：http://github.com/cnpack
+二、CnPack 源码继续于 GitHub 上维护。地址：https://github.com/cnpack
 
 三、CnVcl 中实现了较为完整的纯 Pascal 的密码学算法库，包括 RSA、椭圆曲线等，并支持国家商用密码算法 SM2/SM3/SM4/SM9 等。另将密码学算法实现部分独立至 Crypto 目录中。
 

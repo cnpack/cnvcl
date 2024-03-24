@@ -7,7 +7,7 @@ CnPack 开发组 2022 年工作总结
     每日构建版下载地址：
     https://www.cnpack.org/downbuilds.php
 
-二、CnPack 源码继续于 GitHub 上维护。地址：http://github.com/cnpack
+二、CnPack 源码继续于 GitHub 上维护。地址：https://github.com/cnpack
 
 三、CnVcl 中基础库新增了对 GB18030 编码的支持，密码库中新增了 25519 椭圆曲线的实现，AEAD CCM/GCM 模式、128 位长整型运算支持，并完善对 Win32/Win64/MacOS/Linux 等的跨平台支持。增加密码库的 FMX 与 FPC 的支持。网络库部分组件新增跨平台支持。
 

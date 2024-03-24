@@ -100,7 +100,7 @@ object MainForm: TMainForm
           Top = 240
           Width = 126
           Height = 12
-          Caption = 'http://www.cnpack.org'
+          Caption = 'https://www.cnpack.org'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlue
           Font.Height = -12

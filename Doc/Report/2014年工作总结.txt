@@ -9,7 +9,7 @@ CnPack开发组2014年工作总结
     或：
     http://code.google.com/p/cnpack/downloads/list?can=1
 
-二、CnPack 源码迁移至 GitHub，原有的 Google SVN 停用。新地址：http://github.com/cnpack
+二、CnPack 源码迁移至 GitHub，原有的 Google SVN 停用。新地址：https://github.com/cnpack
 
 三、CnPack 公益基金的帐户继续公开接受用户捐助，目前支持支付宝与腾讯财付通两种捐助方式。
 

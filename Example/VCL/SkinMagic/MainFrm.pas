@@ -103,7 +103,7 @@ end;
 procedure TMainForm.Button5Click(Sender: TObject);
 begin
   ShellExecute(0, 'open',
-    'http://www.cnpack.org', '', '', SW_NORMAL);
+    'https://www.cnpack.org', '', '', SW_NORMAL);
 end;
 
 procedure TMainForm.Button6Click(Sender: TObject);

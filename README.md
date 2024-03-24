@@ -12,8 +12,8 @@ _Source\Common\CnPack.inc_ and then:
 # About CnPack Team
 CnPack Team are Made up of Many Chinese Programmers and Delphi / C++ Builder Fans on Internet. Our products include CnPack IDE Wizards, CnPack VCL Components and CVSTracNT. etc. CnPack becomes Embarcadero Technology Partner in 2009.
 
-  * CnPack Website: http://www.cnpack.org
-  * CnPack BBS: http://bbs.cnpack.org
+  * CnPack Website: https://www.cnpack.org
+  * CnPack BBS: https://bbs.cnpack.org
   * Email: master@cnpack.org
 
 # Related Links
@@ -30,13 +30,13 @@ CnPack Team are Made up of Many Chinese Programmers and Delphi / C++ Builder Fan
 
     请访问 CnPack 开发网站，以获得最新的更新消息：
 
-    http://www.cnpack.org
+    https://www.cnpack.org
 
 ## 2. 测试包内容
 
     该代码包仅用于开发组内部测试，并未正式发布，不推荐将其直接用于成品软件中，如果您在使用中发现任何问题请与 CnPack 开发组联系：
 
-    http://www.cnpack.org
+    https://www.cnpack.org
     mailto:master@cnpack.org
 
     代码包中包含以下几个目录：
