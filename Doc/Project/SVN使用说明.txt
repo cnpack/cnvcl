@@ -31,7 +31,7 @@
 该文档描述了在 CnPack 的开发中使用 SVN 仓库服务的方法。
 要获得该文档的最新版本及相关内容，请访问 CnPack 开发网站：
 
-http://www.cnpack.org
+https://www.cnpack.org
 
 为减轻 CnPack 服务器负担并给全球朋友提供速度更快的访问方式，CnPack 的 CVS/CVSTrac 已搬迁至 Google Code 的 Hosting 并启用 SVN 服务，原有 CVS/CVSTrac 等从即日起停止使用，不过 CnPack 网站、论坛、邮件、FTP 等不受影响，仍使用 cnpack.org 的服务器。
 SVN 客户端工具，可以使用 SVN.exe 命令行，也可用 TotoriseSVN。

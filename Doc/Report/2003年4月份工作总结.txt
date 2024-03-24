@@ -17,8 +17,8 @@ CnPack开发组2003年四月份工作总结：
   3. 继续完善相关的文档，加强开发的规范性，增进成员内部交流。 
   4. 如果顺利，计划发布CnWizards外部测试版。 
 
-    开发网站：http://www.cnpack.org
-　　开发论坛：http://bbs.cnpack.org
+    开发网站：https://www.cnpack.org
+　　开发论坛：https://bbs.cnpack.org
 　　管理员信箱：master@cnpack.org
 
 项目CVS包：http://cnpack.cosoft.org.cn/download/cnpack_test.zip

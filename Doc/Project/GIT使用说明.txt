@@ -14,7 +14,7 @@
 该文档描述了在 CnPack 的开发中使用 GIT 仓库服务的方法。
 要获得该文档的最新版本及相关内容，请访问 CnPack 开发网站：
 
-http://www.cnpack.org
+https://www.cnpack.org
 
 由于 Google Code 关闭了 SVN 文件发布服务，并且访问不顺畅，我们已迁移至 GitHub。
 

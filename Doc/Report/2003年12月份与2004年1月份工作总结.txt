@@ -20,8 +20,8 @@ CnPack开发组2003年十二月份与2004年一月份工作总结：
 因为 CnPack 的服务器本月出现了一点故障，导致邮件列表、新闻组和 FTP 等有段时间暂时不能使用，目前已经基本修复。在此对带来的不便表示歉意。
 欢迎对我们提出有价值的意见和建议，同时祝关注 CnPack 成长的朋友们新年快乐！
 
-    开发网站：http://www.cnpack.org
-　　开发论坛：http://bbs.cnpack.org
+    开发网站：https://www.cnpack.org
+　　开发论坛：https://bbs.cnpack.org
 　　管理员信箱：master@cnpack.org
 
     项目CVS包：http://download.cnpack.org/CnPack.zip

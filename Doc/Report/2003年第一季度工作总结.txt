@@ -14,8 +14,8 @@
     3、完善相关的文档，加强开发的规范性，增进成员内部交流。
     4、如果 IDE 专家包发布顺利，考虑启动图像界面包的开发。
 
-    开发网站：http://www.cnpack.org
-    开发论坛：http://bbs.cnpack.org
+    开发网站：https://www.cnpack.org
+    开发论坛：https://bbs.cnpack.org
     管理员信箱：master@cnpack.org
 
     项目CVS包：http://cnpack.cosoft.org.cn/download/cnpack_test.zip
@@ -26,7 +26,7 @@
     共同进步！！
 
                 CnPack开发组  周劲羽
-                http://www.cnpack.org
+                https://www.cnpack.org
                    master@cnpack.org
                       2003-04-04
 

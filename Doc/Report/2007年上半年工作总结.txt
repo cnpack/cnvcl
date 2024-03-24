@@ -6,7 +6,7 @@ CnPack开发组2007年上半年度工作总结
 
     相关报道：
     http://osscontest.cosoft.org.cn/bjzp4.php
-    http://bbs.cnpack.org/viewthread.php?tid=1508&extra=page%3D1
+    https://bbs.cnpack.org/viewthread.php?tid=1508&extra=page%3D1
 
     InfoQ 对 CnPack 的采访：
     http://www.infoq.com/cn/news/2007/04/cnpack
@@ -14,11 +14,11 @@ CnPack开发组2007年上半年度工作总结
 二、CnPack IDE 专家包为 0.8.2 的发布做了大量工作，目前 0.8.2 的每日构建版以及新功能预览版中已经增加了对 Delphi 2007、Windows Vista 等的支持，增加了脚本专家、新式引用对话框等新功能，代码输入助手也增加了对 BDS 的支持；专家包源码中增加了一工具 CnCustBuild，可供高级用户对源码进行自定义编译，以获得只需要某些特定功能的自定义专家版本；用户报告的许多其它问题也得到了修正。
 
     每日构建版下载地址：
-    http://www.cnpack.org/downbuilds.php
+    https://www.cnpack.org/downbuilds.php
 
 三、CnPack 公益基金开通了淘宝帐户，可以以拍卖的方式接受用户捐助。
     链接：
-    http://www.cnpack.org/foundation.php
+    https://www.cnpack.org/foundation.php
 
 四、CnMISFrame 取得一定进展，但部分代码有问题，暂不能开放给用户下载使用。代码格式化专家开发已停滞。
 
@@ -34,8 +34,8 @@ CnPack开发组2007年上半年度工作总结
 
     同时，随着 CnPack 的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
 
-    CnPack 开发组网站：http://www.cnpack.org
-    CnPack 开发组论坛：http://bbs.cnpack.org
+    CnPack 开发组网站：https://www.cnpack.org
+    CnPack 开发组论坛：https://bbs.cnpack.org
     CnPack 开发组管理员信箱：master@cnpack.org
 
     CnPack 开发组内部邮件列表：bbs@cnpack.org
@@ -59,7 +59,7 @@ CnPack Working Report in the First Half of 2007
 
    Links(Chinese):
    http://osscontest.cosoft.org.cn/bjzp4.php
-   http://bbs.cnpack.org/viewthread.php?tid=1508&extra=page%3D1
+   https://bbs.cnpack.org/viewthread.php?tid=1508&extra=page%3D1
 
    (English):
    http://www.linux.com/article.pl?sid=07/04/23/1825214
@@ -89,8 +89,8 @@ CnPack Working Report in the First Half of 2007
 
 To our members: Be more initiative and active for communication and taking part in our work.
 
-    CnPack Website: http://www.cnpack.org
-    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Website: https://www.cnpack.org
+    CnPack BBS:     https://bbs.cnpack.org
     CnPack Email:   master@cnpack.org
 
     CnPack Mailing List: bbs@cnpack.org

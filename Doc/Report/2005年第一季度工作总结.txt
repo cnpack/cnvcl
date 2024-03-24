@@ -37,8 +37,8 @@ CnPack开发组2005年第一季度工作总结
 
     同时，随着CnPack的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
 
-    CnPack开发组网站：http://www.cnpack.org
-    CnPack开发组论坛：http://bbs.cnpack.org
+    CnPack开发组网站：https://www.cnpack.org
+    CnPack开发组论坛：https://bbs.cnpack.org
     CnPack开发组管理员信箱：master@cnpack.org
 
     CnPack开发组内部邮件列表：bbs@cnpack.org

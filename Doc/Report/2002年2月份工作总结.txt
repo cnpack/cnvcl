@@ -29,7 +29,7 @@
     6、公共过程函数库的整理以及VCL开发相关资料的收集整理工作。
     由于现在采用小组负责制，以上仅为最近已计划的工作，各开发小组的具体工作内容视情况而定。
 
-    CnPack现有大部分文档资料可在http://www.cnpack.org查阅和下载（临时主页）
+    CnPack现有大部分文档资料可在https://www.cnpack.org查阅和下载（临时主页）
     界面类当前设计资料和源码、演示可在http://cnpack.cosoft.org.cn/down/cnpack_test.zip下载
     还没有加入“共创软件联盟”的成员，请到http://cosoft.org.cn上注册，并将用户名发给小弟。
 

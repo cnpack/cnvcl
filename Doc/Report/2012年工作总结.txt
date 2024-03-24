@@ -5,16 +5,16 @@ CnPack开发组2012年工作总结
 一、CnPack IDE 专家包发布 1.0.0 正式版，增加对 RAD Studio XE 3 的支持。并增加了对 FMX 的支持以及其他改进。
 
     每日构建版下载地址：
-    http://www.cnpack.org/downbuilds.php
+    https://www.cnpack.org/downbuilds.php
     或：
     http://code.google.com/p/cnpack/downloads/list?can=1
 
 二、CnPack 公益基金的帐户继续公开接受用户捐助，目前支持支付宝与腾讯财付通两种捐助方式。
 
     链接：
-    http://www.cnpack.org/foundation.php
+    https://www.cnpack.org/foundation.php
     公开帐目：
-    http://www.cnpack.org/showdetail.php?id=529
+    https://www.cnpack.org/showdetail.php?id=529
 
 三、根据统计数据，CnPack IDE 专家包的每月活动用户数已超过五万。
 
@@ -30,8 +30,8 @@ CnPack开发组2012年工作总结
 
     同时，随着 CnPack 的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
 
-    CnPack 开发组网站：http://www.cnpack.org
-    CnPack 开发组论坛：http://bbs.cnpack.org
+    CnPack 开发组网站：https://www.cnpack.org
+    CnPack 开发组论坛：https://bbs.cnpack.org
     CnPack 开发组管理员信箱：master@cnpack.org
 
     CnPack 开发组内部 QQ 群：CnPack I: 359682（满），CnPack II: 16797125（满），
@@ -57,7 +57,7 @@ CnPack Working Report in 2012
 1. CnPack IDE Wizards 1.0.0 published. Support RAD Studio XE3. Support FMX Designer.
 
    Our nightly build version:
-   http://www.cnpack.org/downbuilds.php
+   https://www.cnpack.org/downbuilds.php
    Or:
    http://code.google.com/p/cnpack/downloads/list?can=1
 
@@ -76,8 +76,8 @@ CnPack Working Report in 2012
 
 To our members: Be more initiative and active for communication and taking part in our work.
 
-    CnPack Website: http://www.cnpack.org
-    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Website: https://www.cnpack.org
+    CnPack BBS:     https://bbs.cnpack.org
     CnPack Email:   master@cnpack.org
 
     CnPack QQ Group:     CnPack I: 359682;  CnPack II: 16797125

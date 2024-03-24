@@ -22,8 +22,8 @@ CnPack开发组2004年2月份与2004年3月份工作总结：
 CnPack 邮件列表所在的共创服务器前段时间恢复正常，欢迎关注 CnPack 的朋友加入邮件列表，另外，希望它继续保持正常。^_^
 欢迎对我们提出有价值的意见和建议，同时祝关注 CnPack 成长的朋友们快乐！
 
-    开发网站：http://www.cnpack.org
-　　开发论坛：http://bbs.cnpack.org
+    开发网站：https://www.cnpack.org
+　　开发论坛：https://bbs.cnpack.org
 　　管理员信箱：master@cnpack.org
 
     项目CVS包：http://download.cnpack.org/CnPack.zip

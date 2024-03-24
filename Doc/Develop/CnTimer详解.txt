@@ -2,7 +2,7 @@
                      浅谈定时器组件TTimer和高精度定时
                      ================================
                           CnPack开发组 周劲羽
-                   (http://www.cnpack.org  zjy@cnpack.org)
+                   (https://www.cnpack.org  zjy@cnpack.org)
                                2002.04.29
 
     用Delphi写程序的朋友对TTimer组件应该是比较熟悉的了，但也许很少有朋友对它有过深入的了解，这份文档打算简单地介绍一下Windows下定时器的一些有趣的东西，同时也作为CnPack中TCnTimer高精度定时器组件的介绍。

@@ -26,8 +26,8 @@ CnPack开发组2005年第三季度工作总结
 
     同时，随着CnPack的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
 
-    CnPack开发组网站：http://www.cnpack.org
-    CnPack开发组论坛：http://bbs.cnpack.org
+    CnPack开发组网站：https://www.cnpack.org
+    CnPack开发组论坛：https://bbs.cnpack.org
     CnPack开发组管理员信箱：master@cnpack.org
 
     CnPack开发组内部邮件列表：bbs@cnpack.org
@@ -73,8 +73,8 @@ CnPack Working Report in 3rd Quarter 2005
 
 To our members: Be more initiative and active for communication and taking part in our work.
 
-    CnPack Website: http://www.cnpack.org
-    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Website: https://www.cnpack.org
+    CnPack BBS:     https://bbs.cnpack.org
     CnPack Email:   master@cnpack.org
 
     CnPack Mailing List: bbs@cnpack.org

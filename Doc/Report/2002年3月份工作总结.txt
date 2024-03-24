@@ -27,7 +27,7 @@ CnPack开发组成员，您好！
     6、发布开发包代码、文档的详细编写规范。另外，对“帮助文件自动生成器”感兴趣的成员请查看http://cosoft.org.cn/pm/task.php?func=detailtask&project_task_id=48&group_id=165&group_project_id=75上的任务说明，该工作拟在开发前期着手进行，需要相关资料的请与yygw@yygw.net联系。
     7、成员们（特别是同一小组的成员）有时间可多多互相交流，不管有任何问题和意见都可与小弟联系。再申明一次，CnPack是大家共同的奋斗目标和财富，我相信我们所有的努力最终都会获得应有的回报：）不过有一点是不会变的：CnPack永远是自由软件，永远免费，除了商业利益，这世上还有很多东西值得我们去追求，不是吗？
 
-    CnPack现有大部分文档资料可在http://www.cnpack.org查阅和下载（临时主页）
+    CnPack现有大部分文档资料可在https://www.cnpack.org查阅和下载（临时主页）
     界面类当前设计资料和源码、演示可在http://cnpack.cosoft.org.cn/down/cnpack_test.zip下载
     还没有加入“共创软件联盟”的成员，请到http://cosoft.org.cn上注册，并将用户名发给小弟。
 

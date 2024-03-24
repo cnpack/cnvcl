@@ -7,7 +7,7 @@ CnPack开发组2010年上半年度工作总结
 二、CnPack IDE 专家包发布 0.9.6 正式版，不再支持Windows 98，并且增加RSS源阅读专家。另外界面语言正式增加对俄语和德语的支持，感谢 Yuri Petrov 与 Ralf Schroedter 两位外国朋友的热心帮助。
 
     每日构建版下载地址：
-    http://www.cnpack.org/downbuilds.php
+    https://www.cnpack.org/downbuilds.php
     或：
     http://code.google.com/p/cnpack/downloads/list?can=1
 
@@ -16,9 +16,9 @@ CnPack开发组2010年上半年度工作总结
 四、CnPack 公益基金的帐户继续公开接受用户捐助，目前支持支付宝与腾讯财付通两种捐助方式。
 
     链接：
-    http://www.cnpack.org/foundation.php
+    https://www.cnpack.org/foundation.php
     公开帐目：
-    http://www.cnpack.org/showdetail.php?id=529
+    https://www.cnpack.org/showdetail.php?id=529
 
     2010 年下半年 CnPack 开发组的计划如下：
 
@@ -32,8 +32,8 @@ CnPack开发组2010年上半年度工作总结
 
     同时，随着 CnPack 的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
 
-    CnPack 开发组网站：http://www.cnpack.org
-    CnPack 开发组论坛：http://bbs.cnpack.org
+    CnPack 开发组网站：https://www.cnpack.org
+    CnPack 开发组论坛：https://bbs.cnpack.org
     CnPack 开发组管理员信箱：master@cnpack.org
 
     CnPack 开发组内部邮件列表：bbs@cnpack.org
@@ -63,7 +63,7 @@ CnPack Working Report in the First Half of 2010
    RSS Feed Wizard also Added. Windows 98 NOT Supported anymore.
 
    Our nightly build version:
-   http://www.cnpack.org/downbuilds.php
+   https://www.cnpack.org/downbuilds.php
    Or:
    http://code.google.com/p/cnpack/downloads/list?can=1
 
@@ -84,8 +84,8 @@ CnPack Working Report in the First Half of 2010
 
 To our members: Be more initiative and active for communication and taking part in our work.
 
-    CnPack Website: http://www.cnpack.org
-    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Website: https://www.cnpack.org
+    CnPack BBS:     https://bbs.cnpack.org
     CnPack Email:   master@cnpack.org
 
     CnPack Mailing List: bbs@cnpack.org

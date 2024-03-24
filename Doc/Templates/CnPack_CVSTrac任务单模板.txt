@@ -22,7 +22,7 @@
 *任务来源：*
 
 （这里简单描述任务的来源，必填。）
-（例：“此问题由论坛上的朋友某某某报告，相关链接http://bbs.cnpack.org/viewthread.php?tid=1891&extra=page%3D1”）
+（例：“此问题由论坛上的朋友某某某报告，相关链接https://bbs.cnpack.org/viewthread.php?tid=1891&extra=page%3D1”）
 （例：“此建议由 QQ 群 V 中的朋友某某某提出。）
 
 *详细描述：*

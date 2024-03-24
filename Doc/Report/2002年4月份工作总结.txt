@@ -36,7 +36,7 @@
     7、因为5月份重点在管理和组织上，具体的代码编写方面，可能不会有大的变动，有时间我可能会继续移植一些个人作品，作为非正式的测试内容。数据库报表组的进度则由 铁男 和 心剑 兄把握。
     
 
-    CnPack现有大部分文档资料可在http://www.cnpack.org查阅和下载。
+    CnPack现有大部分文档资料可在https://www.cnpack.org查阅和下载。
     界面类当前设计资料和源码、演示可在http://cnpack.cosoft.org.cn/down/cnpack_test.zip下载。
     还没有加入“共创软件联盟”的成员，请到http://cosoft.org.cn上注册，并将用户名发给小弟。
 
@@ -44,7 +44,7 @@
     共同进步！！
 
                 CnPack开发组  周劲羽
-                http://www.cnpack.org
+                https://www.cnpack.org
                    master@cnpack.org
 					2002-05-05 
 

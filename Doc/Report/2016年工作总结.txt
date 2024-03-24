@@ -5,7 +5,7 @@ CnPack 开发组 2016 年工作总结
 一、CnPack IDE 专家包连续发布 1.1.0、1.1.1 版本，增加对 RAD Studio 10.1 Berlin 的支持，代码高亮重构以全面支持代码中的 Unicode 字符。
 
     每日构建版下载地址：
-    http://www.cnpack.org/downbuilds.php
+    https://www.cnpack.org/downbuilds.php
 
 二、CnPack 源码继续于 GitHub 上维护。地址：http://github.com/cnpack
 
@@ -14,9 +14,9 @@ CnPack 开发组 2016 年工作总结
 四、CnPack 公益基金的帐户继续公开接受用户捐助，目前支持支付宝与腾讯财付通两种捐助方式。
 
     链接：
-    http://www.cnpack.org/foundation.php
+    https://www.cnpack.org/foundation.php
     公开帐目：
-    http://www.cnpack.org/showdetail.php?id=529
+    https://www.cnpack.org/showdetail.php?id=529
 
     2017 年 CnPack 开发组的计划如下：
 
@@ -28,8 +28,8 @@ CnPack 开发组 2016 年工作总结
 
 四、继续进行 CnPack 开发组的团队建设与规模发展。
 
-    CnPack 开发组网站：http://www.cnpack.org
-    CnPack 开发组论坛：http://bbs.cnpack.org
+    CnPack 开发组网站：https://www.cnpack.org
+    CnPack 开发组论坛：https://bbs.cnpack.org
     CnPack 开发组管理员信箱：master@cnpack.org
 
     CnPack 开发组内部 QQ 群：CnPack I: 359682（满），CnPack II: 16797125（满），
@@ -55,7 +55,7 @@ CnPack Working Report in 2016
 1. CnPack IDE Wizards 1.1.0/1.1.1 published. Support RAD Studio 10.1 Berlin. Refactor Source Highlight to Support Unicode Source.
 
    Our nightly build version:
-   http://www.cnpack.org/downbuilds.php
+   https://www.cnpack.org/downbuilds.php
 
 2. CnPack Source Stays at GitHub. https://github.com/cnpack
 
@@ -72,8 +72,8 @@ CnPack Working Report in 2016
 
 3. Continue to build the CnPack Team.
 
-    CnPack Website: http://www.cnpack.org
-    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Website: https://www.cnpack.org
+    CnPack BBS:     https://bbs.cnpack.org
     CnPack Email:   master@cnpack.org
 
     CnPack QQ Group:     CnPack I: 359682;  CnPack II: 16797125

@@ -19,7 +19,7 @@
     2、继续推广论坛和邮件列表、完善开发网站，增强内部交流，提高开发组的活力和人气。
     3、开发组中有几位成员有意负责“网络通讯”、“专家”等组的设计，如果条件成熟可能会有新小组启动。
 
-    开发网站：http://www.cnpack.org
+    开发网站：https://www.cnpack.org
     开发论坛：http://bbs.6to23.com/1/default.asp?name=cnpack
     内部测试包：http://cnpack.cosoft.org.cn/down/cnpack_test.zip
     界面设计文档：http://cnpack.cosoft.org.cn/down/cnpack_graph_doc.zip
@@ -29,7 +29,7 @@
     共同进步！！
 
                 CnPack开发组  周劲羽
-                http://www.cnpack.org
+                https://www.cnpack.org
                    master@cnpack.org
                       2002-06-02 
 

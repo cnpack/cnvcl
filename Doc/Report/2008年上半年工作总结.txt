@@ -5,15 +5,15 @@ CnPack开发组2008年上半年度工作总结
 一、CnPack IDE 专家包已发布 0.8.2 与 0.8.3 正式版。而 0.8.4 的发布也在紧锣密鼓进展中。0.8.4 引人注目地增加了代码高亮画线的功能，并且支持 BDS/RAD Studio。目前 0.8.4 已发布了部分预览版，预计 2008 奥运期间发布正式版本。
 
     每日构建版下载地址：
-    http://www.cnpack.org/downbuilds.php
+    https://www.cnpack.org/downbuilds.php
 
 二、中国大地 5 月发生了举世震惊的汶川 8 级大地震，CnPack 公益基金谨代表 CnPack 开发组向北京红十字会以及中国红十字总会共捐款 1000 元，为灾民们献上一份微薄的心意。
     CnPack 公益基金的支付宝帐户继续公开接受用户捐助，但拍卖的方式已取消，另外增加了腾讯财付通的捐助方式。
 
     链接：
-    http://www.cnpack.org/foundation.php
+    https://www.cnpack.org/foundation.php
     公开帐目：
-    http://www.cnpack.org/showdetail.php?id=529
+    https://www.cnpack.org/showdetail.php?id=529
 
 三、Pascal 代码格式化功能继续进展中，已发布单独的测试程序供用户体验。
 
@@ -31,8 +31,8 @@ CnPack开发组2008年上半年度工作总结
 
     同时，随着 CnPack 的发展，我们对开发组的众多成员也提出了更高的要求，希望开发组成员加强交流，增强主动性，争取能够有更多的成员投入具体工作中来。
 
-    CnPack 开发组网站：http://www.cnpack.org
-    CnPack 开发组论坛：http://bbs.cnpack.org
+    CnPack 开发组网站：https://www.cnpack.org
+    CnPack 开发组论坛：https://bbs.cnpack.org
     CnPack 开发组管理员信箱：master@cnpack.org
 
     CnPack 开发组内部邮件列表：bbs@cnpack.org
@@ -58,7 +58,7 @@ CnPack Working Report in the First Half of 2008
 1. CnPack IDE Wizards 0.8.2 and 0.8.3 published. 0.8.4 is also coming. Now 0.8.4 preview is published. The main changes include Source Highlight Line and Support to BDS/RAD Studio. The stable version of 0.8.4 will publish during 2008 Olympic Games. ;-)
 
    Our nightly build version:
-   http://www.cnpack.org/downbuilds.php
+   https://www.cnpack.org/downbuilds.php
 
 2. CnPack Foundation Donates 1000 RMB for the Earthquake Disaster in SiChuan.
 
@@ -81,8 +81,8 @@ CnPack Working Report in the First Half of 2008
 
 To our members: Be more initiative and active for communication and taking part in our work.
 
-    CnPack Website: http://www.cnpack.org
-    CnPack BBS:     http://bbs.cnpack.org
+    CnPack Website: https://www.cnpack.org
+    CnPack BBS:     https://bbs.cnpack.org
     CnPack Email:   master@cnpack.org
 
     CnPack Mailing List: bbs@cnpack.org

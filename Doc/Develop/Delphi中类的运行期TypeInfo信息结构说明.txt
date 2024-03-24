@@ -6,7 +6,7 @@
 
 Delphi中类的运行期TypeInfo信息结构说明
 作者：刘啸
-CnPack开发组 http://www.cnpack.org
+CnPack开发组 https://www.cnpack.org
 关键字：RTTI, TypeInfo, TypeData, PropInfo
 
 一、引子

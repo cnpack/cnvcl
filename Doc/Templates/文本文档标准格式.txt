@@ -22,7 +22,7 @@
 
 要获得该文档的最新版本及相关内容，请访问 CnPack 开发网站：
 
-http://www.cnpack.org
+https://www.cnpack.org
 
 ======================================================================
 1. 文档说明
@@ -149,4 +149,4 @@ http://www.cnpack.org
 如果您对该文档有什么建议或不同意见，请与 CnPack 项目管理员联系：
 
 mailto:master@cnpack.org
-http://www.cnpack.org
+https://www.cnpack.org

@@ -24,7 +24,7 @@
     3、成员之间的交流有了很大的进步，但仍需努力。很多成员对项目设计和编写文档仍不够重视，特别是没有太多团队开发经验的成员。希望大家能有目的地锻练这些方面的能力，培养团队精神（有点象做广告哩^_^）。
     4、各小组的开发视情况而定，我非常希望能有更多成员参与到项目管理和系统设计中来，因为这是进行正式开发的基础。
 
-    开发网站：http://www.cnpack.org
+    开发网站：https://www.cnpack.org
     开发论坛：http://www.pcjingning.com/
     匿名FTP空间：ftp://cnpack.cosoft.org.cn
     项目邮件列表：cnpack-group@cosoft.org.cn
@@ -39,7 +39,7 @@
     共同进步！！
 
                 CnPack开发组  周劲羽
-                http://www.cnpack.org
+                https://www.cnpack.org
                    master@cnpack.org
                       2002-08-05 
 
