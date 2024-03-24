@@ -93,10 +93,10 @@ Object Ref                    |---------|   |
       | |TTypeData------------------------|
       | |ClassType: TClass;               |
       | |ParentInfo: PPTypeInfo;          |// 指向父类的ClassInfo
-      | |PropCount: SmallInt;             |
+      | |PropCount: SmallInt;             |// 本类及所有父类的总属性数
       | |UnitName: ShortStringBase;       |// 不定长
       | | |TPropData----------------------|
-      | | |PropCount: Word;               |
+      | | |PropCount: Word;               |// 本类的总属性数
       | | | |PropList(TPropInfo array)----|
       | | | | |1PropType: PPTypeInfo;     |
       | | | | |1GetProc: Pointer;         |
@@ -113,7 +113,7 @@ Object Ref                    |---------|   |
       | | | | |2Index: Integer;           |
       | | | | |2Default: Longint;         |
       | | | | |2NameIndex: SmallInt;      |
-      | | | | |2Name: ShortString;        |
+      | | | | |2Name: ShortString;        |// 不定长
       | | | | |...                        |
       | | | | |...                        |
 
@@ -207,5 +207,5 @@ end;
 
 五、总结
 
-本文是作者在写代码过程中的一些研究总结的结果，主要以D5/D7为准。其他版本IDE的VCL源码的相关部分和本文中的应该也没多大本质区别，欢迎一起讨论。
+本文是作者在写代码过程中的一些研究总结的结果，主要以D5/D7为准。其他版本IDE的VCL源码的相关部分和本文中的应该也没多大本质区别，譬如ShortStringBase均是string[255]，在Unicode版本的编译器下类名、单元名、属性名仍是AnsiString的形式，并不是双字节字符串。但64位编译器下，指针等字段的宽度就从4字节变成了8字节，这点要注意。其余事宜欢迎一起讨论。
 
