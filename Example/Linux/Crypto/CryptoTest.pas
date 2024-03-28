@@ -230,8 +230,9 @@ function TestFNV1a: Boolean;
 
 // ================================ PDF ========================================
 
-function TestPDFOwnerPassword: Boolean;
-function TestPDFUserPassword: Boolean;
+function TestPDFCalcOwnerPassword: Boolean;
+function TestPDFCalcUserPassword: Boolean;
+function TestPDFCheckOwnerPassword: Boolean;
 
 // ================================ SM2 ========================================
 
@@ -530,8 +531,9 @@ begin
 
 // ================================ PDF ========================================
 
-  MyAssert(TestPDFOwnerPassword, 'TestPDFOwnerPassword');
-  MyAssert(TestPDFUserPassword, 'TestPDFUserPassword');
+  MyAssert(TestPDFCalcOwnerPassword, 'TestPDFCalcOwnerPassword');
+  MyAssert(TestPDFCalcUserPassword, 'TestPDFCalcUserPassword');
+  MyAssert(TestPDFCheckOwnerPassword, 'TestPDFCheckOwnerPassword');
 
 // ================================ SM2 ========================================
 
@@ -2775,22 +2777,34 @@ end;
 
 // ================================ PDF ========================================
 
-function TestPDFOwnerPassword: Boolean;
+function TestPDFCalcOwnerPassword: Boolean;
 var
   O: TBytes;
 begin
-  O := CnPDFCalcOwnerCipher('123456', '654321', 4, 128);
+  O := CnPDFCalcOwnerCipher('123456', '654321', 4, 4, 128);
   Result := BytesToHex(O) = 'C336FDBECB59F7B59C244B61B745F71AC5BA427B1B9102DA468E77127F1E69D6';
 end;
 
-function TestPDFUserPassword: Boolean;
+function TestPDFCalcUserPassword: Boolean;
 var
   U, O: TBytes;
 begin
   O := HexToBytes('C336FDBECB59F7B59C244B61B745F71AC5BA427B1B9102DA468E77127F1E69D6');
-  U := CnPDFCalcUserCipher('654321', 4, O, Cardinal(-3904), HexToBytes('04EDE6407FAD4026986F3452ECA1AC62'), 128);
+  U := CnPDFCalcUserCipher('654321', 4, 4, O, Cardinal(-3904), HexToBytes('04EDE6407FAD4026986F3452ECA1AC62'), 128);
 
-  Result := CompareBytes(U, HexToBytes('099B9F60D57F4972D94A9C179AD64D73'), 16);
+  Result := CompareBytes(U, HexToBytes('873B7BBDD6A0A4BCE10C44E26BD20E4F'), 16);
+end;
+
+function TestPDFCheckOwnerPassword: Boolean;
+var
+  OC, UC, ID, Key: TBytes;
+begin
+  OC := HexToBytes('B6DC51AF84CDB5A22DD5FC390618A0F8E16CAB8AF14E67CCBA5F90837AAC898B');
+  UC := HexToBytes('66AE712E6DF1888690C8CCAFF51B460BAFEE54CC25933740AFCBC7E71EA4ED99');
+  ID := HexToBytes('446C6A93022D972DEC265D7B398D54A7');
+
+  Key := CnPDFCheckOwnerPassword('123456', 1, 2, OC, UC, Cardinal(-64), ID, 0);
+  Result := CompareBytes(Key, HexToBytes('FDE36836FF'), 16);
 end;
 
 // ================================ SM2 ========================================
