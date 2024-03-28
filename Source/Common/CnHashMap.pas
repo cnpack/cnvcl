@@ -172,6 +172,7 @@ type
     function GetNext(var AKey, AValue: WideString): Boolean; reintroduce; overload;
   end;
 
+{$IFNDEF FPC}
   TCnStrToPtrHashMap = class(TCnBaseHashMap)
   private
     function VariantHashCode(AKey: Variant): Integer; override;
@@ -181,6 +182,7 @@ type
     function Find(const AKey: string; var AValue: Pointer): Boolean; reintroduce; overload;
     function GetNext(var AKey: string; var AValue: Pointer): Boolean; reintroduce; overload;
   end;
+{$ENDIF}
 
   TCnStrToVariantHashMap = class(TCnBaseHashMap)
   private
@@ -819,7 +821,9 @@ begin
   Result := Abs(myHashCode);
 end;
 
-{ TCnShortStrToPtrHashMap }
+{$IFNDEF FPC}
+
+{ TCnStrToPtrHashMap }
 
 function TCnStrToPtrHashMap.VariantHashCode(AKey: Variant): Integer;
 var
@@ -867,6 +871,8 @@ begin
     AValue := Pointer(TCnNativeInt(vValue));
   end;
 end;
+
+{$ENDIF}
 
 { TCnStrToVariantHashMap }
 
