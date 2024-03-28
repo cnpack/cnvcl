@@ -194,7 +194,6 @@ resourcestring
   SCnErrorPDFKeyLength = 'Invalid Key Length';
   SCnErrorPDFDataLength = 'Invalid Data Length';
   SCnErrorPDFEncryptParams = 'Invalid Encrypt Params';
-  SCnErrorPDFInvalidKeyBitLengthFmt = 'Invalid Key Bit Length %d for Revision %d';
 
 function CnPDFFindEncryptionMethod(Version, Revision, KeyBitLength: Integer;
   const CFMValue: string = ''): TCnPDFEncryptionMethod;

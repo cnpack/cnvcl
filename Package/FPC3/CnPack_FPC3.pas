@@ -17,7 +17,8 @@ uses
   CnGraph, CnGraphUtils, CnHashMap, CnHashTable, CnLockFree, CnMath, CnMatrix, 
   CnRopes, CnSingleton, CnSingletonComp, CnSkipList, CnStrDiff, CnStream, 
   CnStrings, CnTree, CnTreeClasses, CnWideStrings, Cn25519, CnInt128, CnFNV, 
-  CnPoly1305, CnChaCha20, CnBits, CnLattice, CnVector, CnJSON;
+  CnPoly1305, CnChaCha20, CnBits, CnLattice, CnVector, CnJSON, CnRC4, 
+  CnPDFCrypt;
 
 implementation
 
