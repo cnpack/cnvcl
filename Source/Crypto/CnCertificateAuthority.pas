@@ -2371,7 +2371,7 @@ begin
   Result := AWriter.AddContainerNode(CN_BER_TAG_SET, DNRoot);
   Result := AWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, Result);
   AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, AOID, AOIDLen, Result);
-  AWriter.AddAnsiStringNode(BerTag, DN, Result);
+  AWriter.AddAnsiStringNode(BerTag, AnsiString(DN), Result);
 end;
 
 function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
@@ -2405,7 +2405,7 @@ begin
 
     // 版本忽略，写序列号
     SerialNum := TCnBigNumber.Create;
-    SerialNum.SetDec(IntSerialNum);
+    SerialNum.SetDec(AnsiString(IntSerialNum));
     SetLength(Buf, SerialNum.GetBytesCount);
     SerialNum.ToBinary(@Buf[0]);
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
@@ -2432,9 +2432,9 @@ begin
     // 写有效时间
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
     UTCTime.SetDateTime(NotAfter);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
 
     // 写被签发者
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME), CountryName);
@@ -2497,7 +2497,7 @@ begin
 
     // 版本忽略，写序列号
     SerialNum := TCnBigNumber.Create;
-    SerialNum.SetDec(IntSerialNum);
+    SerialNum.SetDec(AnsiString(IntSerialNum));
     SetLength(Buf, SerialNum.GetBytesCount);
     SerialNum.ToBinary(@Buf[0]);
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
@@ -2524,9 +2524,9 @@ begin
     // 写有效时间
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
     UTCTime.SetDateTime(NotAfter);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
 
     // 写被签发者
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME), CountryName);
@@ -2605,7 +2605,7 @@ begin
 
     // 版本忽略，写序列号
     SerialNum := TCnBigNumber.Create;
-    SerialNum.SetDec(IntSerialNum);
+    SerialNum.SetDec(AnsiString(IntSerialNum));
     SetLength(Buf, SerialNum.GetBytesCount);
     SerialNum.ToBinary(@Buf[0]);
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
@@ -2639,9 +2639,9 @@ begin
     // 写有效时间
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
     UTCTime.SetDateTime(NotAfter);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
 
     // 写被签发者
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0],
@@ -2731,7 +2731,7 @@ begin
 
     // 版本忽略，写序列号
     SerialNum := TCnBigNumber.Create;
-    SerialNum.SetDec(IntSerialNum);
+    SerialNum.SetDec(AnsiString(IntSerialNum));
     SetLength(Buf, SerialNum.GetBytesCount);
     SerialNum.ToBinary(@Buf[0]);
     Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
@@ -2765,9 +2765,9 @@ begin
     // 写有效时间
     UTCTime := TCnUTCTime.Create;
     UTCTime.SetDateTime(NotBefore);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
     UTCTime.SetDateTime(NotAfter);
-    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, UTCTime.UTCTimeString, ValidNode);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
 
     // 写被签发者
     AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0],

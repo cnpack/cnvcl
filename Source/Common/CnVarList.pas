@@ -76,8 +76,13 @@ type
     {* 获得列表某位置的变体的对应类型的字符串}
     function GetObject(Index: Integer): TObject;
     {* 获得列表某位置的对象实例，如果不是对象则返回 nil}
-    function ToString: WideString;
+{$IFDEF UNICODE}
+    function ToString: string; override;
     {* 将变体列表转换成字符串，允许嵌套}
+{$ELSE}
+    function ToString: WideString; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将变体列表转换成字符串，允许嵌套}
+{$ENDIF}
     function FromString(Text: WideString; var Error: string): Boolean;
     {* 从字符串中恢复变体列表，如格式不对则返回 False，出错信息在 Error 中}
     
@@ -590,10 +595,21 @@ begin
   end;
 end;
 
+{$IFDEF UNICODE}
+
+function TCnVarList.ToString: string;
+begin
+  Result := string(GetString(Self));
+end;
+
+{$ELSE}
+
 function TCnVarList.ToString: WideString;
 begin
   Result := GetString(Self);
 end;
+
+{$ENDIF}
 
 procedure CleanVarList;
 var

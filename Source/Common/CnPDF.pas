@@ -77,7 +77,9 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs, TypInfo, jpeg, CnNative, CnStrings, CnPDFCrypt;
+  SysUtils, Classes, Contnrs, TypInfo,
+  {$IFDEF SUPPORT_UNITNAME_DOT} Imaging.jpeg, {$ELSE} jpeg, {$ENDIF}
+  CnNative, CnStrings, CnPDFCrypt;
 
 type
   ECnPDFException = class(Exception);
@@ -1078,7 +1080,7 @@ const
 
   // 以下是 PDF 文中的固定字符串
   PDFHEADER: AnsiString = '%PDF-';
-  OBJFMT: AnsiString = '%d %d obj';
+  OBJFMT: string = '%d %d obj';
   ENDOBJ: AnsiString = 'endobj';
   XREF: AnsiString = 'xref';
   BEGINSTREAM: AnsiString = 'stream';
@@ -1254,7 +1256,7 @@ begin
   Inc(Result, WriteLine(Stream, TRAILER));
   Inc(Result, FDictionary.WriteToStream(Stream));
   Inc(Result, WriteLine(Stream, STARTXREF));
-  Inc(Result, WriteLine(Stream, IntToStr(FXRefStart)));
+  Inc(Result, WriteLine(Stream, AnsiString(IntToStr(FXRefStart))));
   Inc(Result, WriteLine(Stream, EOF));
 end;
 
@@ -1291,10 +1293,10 @@ function TCnPDFXRefCollection.WriteToStream(Stream: TStream): Cardinal;
 var
   I: Integer;
 begin
-  Result := WriteLine(Stream, Format('%d %d', [FObjectIndex, Count]));
+  Result := WriteLine(Stream, AnsiString(Format('%d %d', [FObjectIndex, Count])));
   for I := 0 to Count - 1 do
-    Inc(Result, WriteLine(Stream, Format('%10.10d %5.5d %s', [Items[I].ObjectOffset,
-      Items[I].ObjectGeneration, XRefTypeToString(Items[I].ObjectXRefType)])));
+    Inc(Result, WriteLine(Stream, AnsiString(Format('%10.10d %5.5d %s', [Items[I].ObjectOffset,
+      Items[I].ObjectGeneration, XRefTypeToString(Items[I].ObjectXRefType)]))));
 end;
 
 { TCnPDFXRefTable }
@@ -1812,8 +1814,8 @@ end;
 
 function TCnPDFHeader.WriteToStream(Stream: TStream): Cardinal;
 begin
-  Result := WriteLine(Stream, '%PDF-' + FVersion);
-  Inc(Result, WriteLine(Stream, '%' + FComment));
+  Result := WriteLine(Stream, AnsiString('%PDF-' + FVersion));
+  Inc(Result, WriteLine(Stream, AnsiString('%' + FComment)));
 end;
 
 { TCnPDFObject }
@@ -1829,7 +1831,7 @@ end;
 function TCnPDFObject.CheckWriteObjectStart(Stream: TStream): Cardinal;
 begin
   if ID > 0 then
-    Result := WriteLine(Stream, Format(OBJFMT, [ID, Generation]))
+    Result := WriteLine(Stream, AnsiString(Format(OBJFMT, [ID, Generation])))
   else
     Result := 0;
 end;
@@ -1985,7 +1987,7 @@ begin
         ParseError(P, 'PDF File Header Corrupt');
 
       Delete(S, 1, Length(PDFHEADER));
-      FHeader.Version := S;
+      FHeader.Version := string(S);
 
       // 如果有则处理第二个 Comment
       P.NextNoJunk;
@@ -1993,7 +1995,7 @@ begin
         P.NextNoJunk;
       if P.TokenID = pttComment then
       begin
-        FHeader.Comment := P.Token;
+        FHeader.Comment := string(P.Token);
         P.NextNoJunkNoCRLF;
       end;
 
@@ -2109,7 +2111,7 @@ begin
     begin
       CheckExpectedToken(P, pttName);
       ReadName(P, N);
-      Pair := Dict.AddName(N.Name);
+      Pair := Dict.AddName(string(N.Name));
 
       V := ReadObjectInner(P);
       Pair.Value := V;
@@ -2124,7 +2126,7 @@ end;
 
 procedure TCnPDFDocument.ReadName(P: TCnPDFParser; Name: TCnPDFNameObject);
 begin
-  Name.Content := AnsiToBytes(TrimToName(P.Token));
+  Name.Content := AnsiToBytes(AnsiString(TrimToName(string(P.Token))));
   P.NextNoJunkNoCRLF;
 end;
 
@@ -2142,12 +2144,12 @@ begin
   else
     P.NextNoJunk;
 
-  Val(S, R, E);
+  Val(string(S), R, E);
   if E = 0 then
     Num.SetInteger(R)
   else
   begin
-    Val(S, F, E);
+    Val(string(S), F, E);
     if E = 0 then
       Num.SetFloat(F)
     else
@@ -2321,7 +2323,7 @@ begin
   end;
 
   CheckExpectedToken(P, pttHexString);
-  Str.Content := HexToBytes(P.Token);
+  Str.Content := HexToBytes(string(P.Token));
   Str.IsHex := True;
   P.NextNoJunk;
 
@@ -2367,7 +2369,7 @@ begin
   if P.TokenID = pttLineBreak then
     P.NextNoJunk;
   CheckExpectedToken(P, pttComment); // %%EOF
-  FTrailer.Comment := P.Token;
+  FTrailer.Comment := string(P.Token);
 end;
 
 procedure TCnPDFDocument.ReadTrailer(P: TCnPDFParser);
@@ -3222,7 +3224,7 @@ end;
 constructor TCnPDFDictPair.Create(const Name: string; Dict: TCnPDFDictionaryObject);
 begin
   inherited Create;
-  FName := TCnPDFNameObject.Create(Name);
+  FName := TCnPDFNameObject.Create(AnsiString(Name));
   FDictionary := Dict;
   FName.Parent := FDictionary;
 end;
@@ -3307,7 +3309,7 @@ function TCnPDFDictionaryObject.AddName(const Name1,
   Name2: string): TCnPDFDictPair;
 begin
   Result := TCnPDFDictPair.Create(Name1, Self);
-  Result.Value := TCnPDFNameObject.Create(Name2);
+  Result.Value := TCnPDFNameObject.Create(AnsiString(Name2));
   AddPair(Result);
 end;
 
@@ -3429,7 +3431,7 @@ begin
   for I := FPairs.Count - 1 downto 0 do
   begin
     Pair := TCnPDFDictPair(FPairs[I]);
-    if (Pair <> nil) and (Pair.Name.Name = Name) then
+    if (Pair <> nil) and (Pair.Name.Name = AnsiString(Name)) then
       FPairs.Delete(I);
   end;
 end;
@@ -3451,7 +3453,7 @@ var
 begin
   Names.Clear;
   for I := 0 to FPairs.Count - 1 do
-    Names.Add(Pairs[I].Name.Name);
+    Names.Add(string(Pairs[I].Name.Name));
 end;
 
 function TCnPDFDictionaryObject.GetPair(Index: Integer): TCnPDFDictPair;
@@ -3465,7 +3467,7 @@ var
 begin
   V := Values['Type'];
   if (V <> nil) and (V is TCnPDFNameObject) then
-    Result := (V as TCnPDFNameObject).Name
+    Result := string((V as TCnPDFNameObject).Name)
   else
     Result := '';
 end;
@@ -3548,18 +3550,18 @@ begin
       Pair := Pairs[I];
       if Pair.Value is TCnPDFDictionaryObject then
       begin
-        Strings.Add(S2 + Pair.Name.Name + ': <<...Count ' + IntToStr((Pair.Value as TCnPDFDictionaryObject).Count) + '...>>');
+        Strings.Add(S2 + string(Pair.Name.Name) + ': <<...Count ' + IntToStr((Pair.Value as TCnPDFDictionaryObject).Count) + '...>>');
         (Pair.Value as TCnPDFDictionaryObject).ToStrings(Strings, Indent + INDENTDELTA);
       end
       else if Pair.Value is TCnPDFArrayObject then
       begin
-        Strings.Add(S2 + Pair.Name.Name + ': [...Count ' + IntToStr((Pair.Value as TCnPDFArrayObject).Count) + '...]');
+        Strings.Add(S2 + string(Pair.Name.Name) + ': [...Count ' + IntToStr((Pair.Value as TCnPDFArrayObject).Count) + '...]');
         (Pair.Value as TCnPDFArrayObject).ToStrings(Strings, Indent + INDENTDELTA);
       end
       else if Pair.Value <> nil then
-        Strings.Add(S2 + Pair.Name.Name + ': ' + Pair.Value.ToString)
+        Strings.Add(S2 + string(Pair.Name.Name) + ': ' + Pair.Value.ToString)
       else
-        Strings.Add(S2 + Pair.Name.Name);
+        Strings.Add(S2 + string(Pair.Name.Name));
     end;
   end;
   Strings.Add(S1 + '>>');
@@ -3874,9 +3876,9 @@ function TCnPDFReferenceObject.WriteToStream(Stream: TStream): Cardinal;
 begin
   Result := 0;
 
-  Inc(Result, WriteString(Stream, IntToStr(FID)));
+  Inc(Result, WriteString(Stream, AnsiString(IntToStr(FID))));
   Inc(Result, WriteSpace(Stream));
-  Inc(Result, WriteString(Stream, IntToStr(FGeneration)));
+  Inc(Result, WriteString(Stream, AnsiString(IntToStr(FGeneration))));
   Inc(Result, WriteSpace(Stream));
   Inc(Result, WriteString(Stream, 'R'));
 end;
@@ -3955,7 +3957,7 @@ begin
   begin
     Inc(Result, WriteString(Stream, '<'));
     S := BytesToHex(Content);
-    Inc(Result, WriteString(Stream, S));
+    Inc(Result, WriteString(Stream, AnsiString(S)));
     Inc(Result, WriteString(Stream, '>'));
   end
   else
@@ -4191,7 +4193,7 @@ procedure TCnPDFStreamObject.SetStrings(Strings: TStrings);
 var
   S: AnsiString;
 begin
-  S := Strings.Text;
+  S := AnsiString(Strings.Text);
   SetLength(FStream, Length(S));
   if Length(FStream) > 0 then
     Move(S[1], FStream[0], Length(FStream));
@@ -4585,7 +4587,7 @@ function TCnPDFNumberObject.AsFloat: Extended;
 var
   S: string;
 begin
-  S := BytesToAnsi(FContent);
+  S := string(BytesToAnsi(FContent));
   Result := StrToFloat(S);
 end;
 
@@ -4593,7 +4595,7 @@ function TCnPDFNumberObject.AsInteger: Integer;
 var
   S: string;
 begin
-  S := BytesToAnsi(FContent);
+  S := string(BytesToAnsi(FContent));
   Result := StrToInt(S);
 end;
 
@@ -4604,12 +4606,12 @@ end;
 
 procedure TCnPDFNumberObject.SetFloat(Value: Extended);
 begin
-  FContent := AnsiToBytes(FloatToStr(Value));
+  FContent := AnsiToBytes(AnsiString(FloatToStr(Value)));
 end;
 
 procedure TCnPDFNumberObject.SetInteger(Value: Integer);
 begin
-  FContent := AnsiToBytes(IntToStr(Value));
+  FContent := AnsiToBytes(AnsiString(IntToStr(Value)));
 end;
 
 function CnLoadPDFFile(const FileName: string): TCnPDFDocument;
@@ -4790,7 +4792,7 @@ begin
     PDF.Body.Info.AddWideString('Author', FAuthor);
     PDF.Body.Info.AddWideString('Producer', FProducer);
     PDF.Body.Info.AddWideString('Creator', FCreator);
-    PDF.Body.Info.AddAnsiString('CreationDate', 'D:' + FormatDateTime('yyyyMMddhhmmss', FCreationDate) + '+8''00''');
+    PDF.Body.Info.AddAnsiString('CreationDate', AnsiString('D:' + FormatDateTime('yyyyMMddhhmmss', FCreationDate) + '+8''00'''));
 
     PDF.Body.Info.AddWideString('Title', FTitle);
     PDF.Body.Info.AddWideString('Subject', FSubject);

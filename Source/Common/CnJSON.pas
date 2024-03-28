@@ -937,7 +937,7 @@ var
   V: TCnJSONNumber;
 begin
   V := TCnJSONNumber.Create;
-  V.Content := IntToStr(Value);
+  V.Content := AnsiString(IntToStr(Value));
   Result := AddPair(Name, V);
 end;
 
@@ -976,7 +976,7 @@ var
   V: TCnJSONNumber;
 begin
   V := TCnJSONNumber.Create;
-  V.Content := FloatToStr(Value);
+  V.Content := AnsiString(FloatToStr(Value));
   Result := AddPair(Name, V);
 end;
 
@@ -985,7 +985,7 @@ var
   V: TCnJSONNumber;
 begin
   V := TCnJSONNumber.Create;
-  V.Content := IntToStr(Value);
+  V.Content := AnsiString(IntToStr(Value));
   Result := AddPair(Name, V);
 end;
 
@@ -1215,7 +1215,7 @@ begin
   if not IsNumber then
     raise ECnJSONException.Create(SCnErrorJSONTypeMismatch);
 
-  Result := StrToFloat(FContent);
+  Result := StrToFloat(string(FContent));
 end;
 
 function TCnJSONValue.AsInt64: Int64;
@@ -1223,7 +1223,7 @@ begin
   if not IsNumber then
     raise ECnJSONException.Create(SCnErrorJSONTypeMismatch);
 
-  Result := StrToInt64(FContent);
+  Result := StrToInt64(string(FContent));
 end;
 
 function TCnJSONValue.AsInteger: Integer;
@@ -1231,7 +1231,7 @@ begin
   if not IsNumber then
     raise ECnJSONException.Create(SCnErrorJSONTypeMismatch);
 
-  Result := StrToInt(FContent);
+  Result := StrToInt(string(FContent));
 end;
 
 procedure TCnJSONValue.Assign(Source: TPersistent);
@@ -1246,7 +1246,7 @@ end;
 
 function TCnJSONValue.AsString: string;
 begin
-  Result := FContent; // 基类返回原始内容
+  Result := string(FContent); // 基类返回原始内容
 end;
 
 constructor TCnJSONValue.Create;
@@ -1362,7 +1362,7 @@ var
   V: TCnJSONNumber;
 begin
   V := TCnJSONNumber.Create;
-  V.Content := IntToStr(Value);
+  V.Content := AnsiString(IntToStr(Value));
   Result := AddValue(V);
 end;
 
@@ -1379,7 +1379,7 @@ var
   V: TCnJSONNumber;
 begin
   V := TCnJSONNumber.Create;
-  V.Content := FloatToStr(Value);
+  V.Content := AnsiString(FloatToStr(Value));
   Result := AddValue(V);
 end;
 

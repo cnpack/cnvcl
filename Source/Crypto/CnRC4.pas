@@ -186,7 +186,7 @@ begin
 
   SetLength(Res, Length(Str));
   RC4(@Key[1], Length(Key), @Str[1], @Res[0], Length(Str));
-  Result := BytesToHex(Res);
+  Result := AnsiString(BytesToHex(Res));
 end;
 
 function RC4DecryptStrFromHex(const HexStr, Key: AnsiString): AnsiString;
@@ -199,7 +199,7 @@ begin
     Exit;
   end;
 
-  Res := HexToBytes(HexStr);
+  Res := HexToBytes(string(HexStr));
   RC4(@Key[1], Length(Key), @Res[0], @Res[0], Length(Res));
   Result := BytesToAnsi(Res);
 end;
