@@ -482,7 +482,6 @@ resourcestring
   SCnErrorJSONPair = 'JSON Pair Value Conflict';
   SCnErrorJSONTypeMismatch = 'JSON Value Type Mismatch';
   SCnErrorJSONStringParse = 'JSON String Parse Error';
-  SCnErrorJSONReadProperty = 'JSON Error Read Property %s';
   SCnErrorJSONValueTypeNotImplementedFmt = 'NOT Implemented for this JSON Value Type %s';
 
 function JSONDateTimeToStr(Value: TDateTime): string;
@@ -2087,7 +2086,11 @@ var
 begin
   if PropInfo^.SetProc <> nil then // 只要可写
   begin
+{$IFDEF FPC}
+    PropType := PropInfo^.PropType;
+{$ELSE}
     PropType := PropInfo^.PropType^;
+{$ENDIF}
     case PropType^.Kind of
       tkInteger, tkChar, tkEnumeration, tkSet:
         ReadOrdProp;
@@ -2285,7 +2288,11 @@ var
 begin
   if PropInfo^.GetProc <> nil then // 只要可读
   begin
+{$IFDEF FPC}
+    PropType := PropInfo^.PropType;
+{$ELSE}
     PropType := PropInfo^.PropType^;
+{$ENDIF}
     case PropType^.Kind of
       tkInteger, tkChar, tkEnumeration, tkSet:
         WriteOrdProp;
