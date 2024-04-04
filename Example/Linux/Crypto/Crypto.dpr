@@ -69,6 +69,16 @@ uses
   CnTEA in '..\..\..\Source\Crypto\CnTEA.pas',
   CnVector in '..\..\..\Source\Crypto\CnVector.pas',
   CnZUC in '..\..\..\Source\Crypto\CnZUC.pas',
+  CnBigDecimal in '..\..\..\Source\Common\CnBigDecimal.pas',
+  CnBigRational in '..\..\..\Source\Common\CnBigRational.pas',
+  CnClasses in '..\..\..\Source\Common\CnClasses.pas',
+  CnConsts in '..\..\..\Source\Common\CnConsts.pas',
+  CnContainers in '..\..\..\Source\Common\CnContainers.pas',
+  CnFloat in '..\..\..\Source\Common\CnFloat.pas',
+  CnHashMap in '..\..\..\Source\Common\CnHashMap.pas',
+  CnMath in '..\..\..\Source\Common\CnMath.pas',
+  CnMatrix in '..\..\..\Source\Common\CnMatrix.pas',
+  CnTree in '..\..\..\Source\Common\CnTree.pas',
   CryptoTest in 'CryptoTest.pas';
 
 begin
