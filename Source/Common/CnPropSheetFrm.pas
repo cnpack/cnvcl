@@ -573,9 +573,10 @@ implementation
 
 {$R *.DFM}
 
+{$R CnPropSheet.res}
+
 uses
   CnDebug;
-{$R CnPropSheet.res}
 
 type
   PParamData = ^TParamData;
@@ -2971,7 +2972,7 @@ begin
   else
     edtClassName.Text := 'Unknown Object';
 
-  if FObjectExpr <> '' then
+  if FObjectExpr = '' then
   begin
 {$IFDEF WIN64}
     edtObj.Text := Format('%16.16x', [NativeInt(FInspector.ObjectAddr)]);
@@ -3126,7 +3127,7 @@ begin
   UpdateHierarchys;
   ContentTypes := FInspector.ContentTypes;
 
-  if FObjectExpr <> '' then
+  if FObjectExpr = '' then
   begin
     btnLocate.Visible := (TObject(FInspector.ObjectAddr) is TGraphicControl) or
       (TObject(FInspector.ObjectAddr) is TWinControl);
