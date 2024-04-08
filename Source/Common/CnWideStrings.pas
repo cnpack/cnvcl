@@ -117,7 +117,7 @@ type
     destructor Destroy; override;
     function Add(const S: WideString): Integer; virtual;
     procedure AddStrings(Strings: TCnWideStringList); virtual;
-    function AddObject(const S: string; AObject: TObject): Integer; virtual;
+    function AddObject(const S: WideString; AObject: TObject): Integer; virtual;
     procedure Assign(Source: TPersistent); override;
     procedure Clear; virtual;
     procedure Delete(Index: Integer); virtual; 
@@ -230,7 +230,7 @@ begin
   Insert(Count, S);
 end;
 
-function TCnWideStringList.AddObject(const S: string;
+function TCnWideStringList.AddObject(const S: WideString;
   AObject: TObject): Integer;
 begin
   Result := Add(S);
