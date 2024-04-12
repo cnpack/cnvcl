@@ -761,13 +761,15 @@ begin
 
       if (WC and $80) <> 0 then
       begin
-        if I >= SourceBytes then Exit;          // incomplete multibyte char
+        if I >= SourceBytes then                // 不完整
+          Exit;
 
-        if (WC and $F0) = $F0 then              // 四字节，单独处理，再步进三个字符，拼成字符值，再算成四字节的 UTF16 编码
+        if (WC and $F0) = $F0 then              // 四字节（未限定第四位必须是 0），单独处理，再步进三个字符，拼成字符值，再算成四字节的 UTF16 编码
         begin
-          if SourceBytes - I < 3 then Exit;     // 不够四字节则出错退出
+          if SourceBytes - I < 3 then           // 不够四字节则出错退出
+            Exit;
 
-          // WC 是第一个字节，取低三位，后面仨字节各取低六位，得到码点
+          // WC 是第一个字节，取低三位（未限定第四位必须是 0），后面仨字节各取低六位，得到码点
           WC := ((WC and $7) shl 18) + ((Cardinal(Source[I]) and $3F) shl 12)
             + ((Cardinal(Source[I + 1]) and $3F) shl 6) + (Cardinal(Source[I + 2]) and $3F);
 
@@ -784,13 +786,16 @@ begin
           begin
             C := Byte(Source[I]);
             Inc(I);
-            if (C and $C0) <> $80 then Exit;      // malformed trail byte or out of range char
-            if I >= SourceBytes then Exit;        // incomplete multibyte char
+            if (C and $C0) <> $80 then           // malformed trail byte or out of range char
+              Exit;
+            if I >= SourceBytes then             // incomplete multibyte char
+              Exit;
             WC := (WC shl 6) or (C and $3F);
           end;
           C := Byte(Source[I]);
           Inc(I);
-          if (C and $C0) <> $80 then Exit;       // malformed trail byte
+          if (C and $C0) <> $80 then             // malformed trail byte
+            Exit;
 
           Dest[Cnt] := WideChar((WC shl 6) or (C and $3F));
         end;
@@ -856,8 +861,9 @@ var
   Temp: AnsiString;
 begin
   Result := '';
-  if S = '' then Exit;
-  SetLength(Temp, Length(S) * 3); // 一个双字节字符最多 3 个 Utf8 字符
+  if S = '' then
+    Exit;
+  SetLength(Temp, Length(S) * 4); // 一个双字节字符最多 4 个 Utf8 字符
 
   L := InternalUnicodeToUtf8(PAnsiChar(Temp), Length(Temp) + 1, PWideChar(S), Length(S));
   if L > 0 then
@@ -873,7 +879,8 @@ var
   L: Integer;
 begin
   Result := '';
-  if S = '' then Exit;
+  if S = '' then
+    Exit;
   SetLength(Result, Length(S));
 
   L := InternalUtf8ToUnicode(PWideChar(Result), Length(Result) + 1, PAnsiChar(S), Length(S));
