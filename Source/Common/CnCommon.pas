@@ -1788,7 +1788,7 @@ begin
   if Len = 0 then
     Exit;
 
-  SetLength(Result, Len);
+  SetLength(Result, Len); // 不会比原文长，先设较长
   I := 0;
   J := 1;
   while I < Len do
@@ -1804,8 +1804,10 @@ begin
       ByteCount := 2
     else if B and $F0 = $E0 then // 1110 xxxx 10xxxxxx 10xxxxxx
       ByteCount := 3
+    else if B and $F8 = $F0 then // 1111 0xxx 10xxxxxx 10xxxxxx 10xxxxxx
+      ByteCount := 4
     else
-      raise Exception.Create('More than UTF16 NOT Support.');
+      raise Exception.Create('More than UTF32 NOT Support.');
 
     // 再计算出相应的宽字节字符
     case ByteCount of
@@ -1826,7 +1828,19 @@ begin
       end;
     end;
 
-    if WideCharIsWideLength(WideChar(W)) then
+    if ByteCount = 4 then
+    begin
+      // 四字节 UTF8，铁定转为俩 WideChar，也就是四个字符
+      Result[J] := AlterChar;
+      Inc(J);
+      Result[J] := AlterChar;
+      Inc(J);
+      Result[J] := AlterChar;
+      Inc(J);
+      Result[J] := AlterChar;
+      Inc(J);
+    end
+    else if WideCharIsWideLength(WideChar(W)) then // 3 字节 UTF8，判断实际宽度
     begin
       Result[J] := AlterChar;
       Inc(J);
@@ -1841,10 +1855,11 @@ begin
         Result[J] := AlterChar;
       Inc(J);
     end;
+
     Inc(I, ByteCount);
   end;
 
-  SetLength(Result, J);
+  SetLength(Result, J - 1); // Inc 的 J 是准备给下一个字符的，没了就减一
 end;
 
 // 封装的 PChar 转换函数，供 D2009 下与以前版本 IDE 下同时使用
