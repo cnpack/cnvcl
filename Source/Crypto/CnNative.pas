@@ -591,6 +591,20 @@ function MoveMost(const Source; var Dest; ByteLen, MostLen: Integer): Integer;
 {* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，返回实际移动的字节数
   如 ByteLen 小于 MostLen，则 Dest 填充 0，要求 Dest 容纳至少 MostLen}
 
+// =============================== 算术右移 ===================================
+
+function SarInt8(var V: Byte; ShiftCount: Integer): Byte;
+{* 将一单字节整数进行算术右移，也就是保留符号位的右移}
+
+function SarInt16(var V: Word; ShiftCount: Integer): Word;
+{* 将一双字节整数进行算术右移，也就是保留符号位的右移}
+
+function SarInt32(var V: Cardinal; ShiftCount: Integer): Cardinal;
+{* 将一四字节整数进行算术右移，也就是保留符号位的右移}
+
+function SarInt64(var V: TUInt64; ShiftCount: Integer): TUInt64;
+{* 将一八字节整数进行算术右移，也就是保留符号位的右移}
+
 // ================ 以下是执行时间固定的无 if 判断的部分逻辑函数 ===============
 
 procedure ConstTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
@@ -2022,6 +2036,36 @@ begin
 
   Move(Source, Dest, ByteLen);
   Result := ByteLen;
+end;
+
+// =============================== 算术右移 ===================================
+
+function SarInt8(var V: Byte; ShiftCount: Integer): Byte;
+begin
+  Result := V shr ShiftCount;
+  if (V and $80) <> 0 then
+    Result := Result or $80;
+end;
+
+function SarInt16(var V: Word; ShiftCount: Integer): Word;
+begin
+  Result := V shr ShiftCount;
+  if (V and $8000) <> 0 then
+    Result := Result or $8000;
+end;
+
+function SarInt32(var V: Cardinal; ShiftCount: Integer): Cardinal;
+begin
+  Result := V shr ShiftCount;
+  if (V and $80000000) <> 0 then
+    Result := Result or $80000000;
+end;
+
+function SarInt64(var V: TUInt64; ShiftCount: Integer): TUInt64;
+begin
+  Result := V shr ShiftCount;
+  if (V and $8000000000000000) <> 0 then
+    Result := Result or $8000000000000000;
 end;
 
 procedure ConstTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
