@@ -304,8 +304,10 @@ var
   I: Integer;
 begin
   for I := 0 to ActionList.ActionCount - 1 do
-    if GetActionHookObj(ActionList.Actions[I] as TAction) <> nil then
-      RemoveNotifiler(ActionList.Actions[I] as TAction);
+  begin
+    if GetActionHookObj(TAction(ActionList.Actions[I])) <> nil then
+      RemoveNotifiler(TAction(ActionList.Actions[I]));
+  end;
 end;
 
 procedure TCnActionListHook.UnHookActionList(AActionList: TActionList);
