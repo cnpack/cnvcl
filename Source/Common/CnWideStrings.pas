@@ -205,6 +205,9 @@ function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer
    等于 Copy(1, WideOffset) 后的子串转 Ansi 取 Length，但不用实际转 Ansi，以防止纯英文平台下丢字符
    VisualMode 为 True 时以粗略字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
 
+function CalcUtf8LengthFromWideString(Text: PWideChar): Integer;
+{* 计算宽字符串的 Utf8 长度，等于 Utf8Encode 后取 Length，但不实际转换}
+
 function CalcUtf8LengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
 {* 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Utf8 长度，WideOffset 从 1 开始。如果 WideOffset 是 0 则返回 0
    等于 Copy(1, WideOffset) 后的子串转 Utf8 取 Length，但不用实际转 Utf8，以节省开销。}
@@ -223,9 +226,6 @@ function CalcUtf8StringLengthFromWideOffset(Utf8Text: PAnsiChar; WideOffset: Int
 
 function CalcUtf8LengthFromWideChar(AChar: WideChar): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 计算一个 WideChar 转换成 Utf8 后的字符长度}
-
-function CalcUtf8LengthFromWideString(Text: PWideChar): Integer;
-{* 计算宽字符串的 Utf8 长度，等于 Utf8Encode 后取 Length，但不实际转换}
 
 function CalcUtf8LengthFromUtf8HeadChar(AChar: AnsiChar): Integer;
 {* 计算一个 Utf8 前导字符所代表的字符长度}
@@ -254,8 +254,6 @@ const
   CN_UTF16_4CHAR_SPLIT_MASK   = $3FF;
 
   CN_UTF16_EXT_BASE           = $10000;
-
-  CN_UTF16_ANSI_WIDE_CHAR_SEP = $900;
 
 { TCnWideStringList }
 
@@ -1139,6 +1137,8 @@ end;
 
 // 粗略判断一个 Unicode 宽字符是否占两个字符宽度
 function WideCharIsWideLength(const AWChar: WideChar): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+const
+  CN_UTF16_ANSI_WIDE_CHAR_SEP = $900;
 begin
   Result := Ord(AWChar) > CN_UTF16_ANSI_WIDE_CHAR_SEP; // 姑且认为比 $900 大的 Utf16 字符才占俩字节
 end;
@@ -1325,7 +1325,7 @@ begin
             Exit;
           Inc(Utf8Text);
         end;
-      else
+    else
         Exit;
     end;
   end;
