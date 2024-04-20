@@ -39,7 +39,7 @@ interface
 
 uses
   SysUtils, Windows, Classes, Messages, Controls, Graphics, StdCtrls, ExtCtrls,
-  Dialogs, SysConst, Forms, Clipbrd, CnNative, CnTextControl, CnCommon;
+  Dialogs, SysConst, Forms, Clipbrd, CnNative, CnTextControl, CnCommon, CnWideStrings;
 
 type
 {$IFDEF UNICODE}
