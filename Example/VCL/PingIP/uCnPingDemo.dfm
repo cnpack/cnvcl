@@ -1,11 +1,11 @@
-object frmCnPingDemo: TfrmCnPingDemo
+object FormPingDemo: TFormPingDemo
   Left = 318
   Top = 221
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'CnPing CnIP Demo'
-  ClientHeight = 268
-  ClientWidth = 389
+  ClientHeight = 438
+  ClientWidth = 604
   Color = clBtnFace
   Font.Charset = GB2312_CHARSET
   Font.Color = clWindowText
@@ -3290,8 +3290,8 @@ object frmCnPingDemo: TfrmCnPingDemo
   object Panel2: TPanel
     Left = 0
     Top = 0
-    Width = 389
-    Height = 82
+    Width = 604
+    Height = 153
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 0
@@ -3299,7 +3299,7 @@ object frmCnPingDemo: TfrmCnPingDemo
       Left = 7
       Top = 5
       Width = 370
-      Height = 73
+      Height = 132
       Caption = '…Ë÷√'
       TabOrder = 0
       object Label2: TLabel
@@ -3395,20 +3395,44 @@ object frmCnPingDemo: TfrmCnPingDemo
         OnClick = btnPingClick
       end
     end
+    object grpIPv6: TGroupBox
+      Left = 384
+      Top = 8
+      Width = 209
+      Height = 129
+      Caption = 'IPv6'
+      TabOrder = 1
+      object btnCalcv6: TCnBitBtn
+        Left = 17
+        Top = 19
+        Width = 74
+        Height = 20
+        Caption = '‘ÀÀ„◊™ªª'
+        Color = clBtnFace
+        DownBold = False
+        FlatBorder = False
+        HotTrackBold = False
+        NumGlyphs = 1
+        ParentColor = False
+        TabOrder = 0
+        TabStop = True
+        OnClick = btnCalcv6Click
+      end
+    end
   end
   object Panel3: TPanel
     Left = 0
-    Top = 82
-    Width = 389
-    Height = 164
+    Top = 153
+    Width = 604
+    Height = 263
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
     object pgcResult: TPageControl
       Left = 0
       Top = 0
-      Width = 389
-      Height = 164
+      Width = 604
+      Height = 263
       ActivePage = TabSheet4
       Align = alClient
       MultiLine = True
@@ -3421,8 +3445,8 @@ object frmCnPingDemo: TfrmCnPingDemo
         object redtPing: TRichEdit
           Left = 0
           Top = 0
-          Width = 381
-          Height = 137
+          Width = 596
+          Height = 236
           Align = alClient
           Font.Charset = GB2312_CHARSET
           Font.Color = clWindowText
@@ -3440,8 +3464,8 @@ object frmCnPingDemo: TfrmCnPingDemo
         object chklstResult: TCheckListBox
           Left = 0
           Top = 0
-          Width = 381
-          Height = 137
+          Width = 596
+          Height = 236
           Align = alClient
           ItemHeight = 12
           TabOrder = 0
@@ -3453,8 +3477,8 @@ object frmCnPingDemo: TfrmCnPingDemo
         object redtPingBuffer: TRichEdit
           Left = 0
           Top = 0
-          Width = 381
-          Height = 137
+          Width = 596
+          Height = 236
           Align = alClient
           ReadOnly = True
           TabOrder = 0
@@ -3466,8 +3490,8 @@ object frmCnPingDemo: TfrmCnPingDemo
         object redtIPInfo: TRichEdit
           Left = 0
           Top = 0
-          Width = 381
-          Height = 137
+          Width = 596
+          Height = 236
           Align = alClient
           ReadOnly = True
           TabOrder = 0
@@ -3477,8 +3501,8 @@ object frmCnPingDemo: TfrmCnPingDemo
   end
   object statDemo: TStatusBar
     Left = 0
-    Top = 246
-    Width = 389
+    Top = 416
+    Width = 604
     Height = 22
     Panels = <
       item

@@ -36,13 +36,13 @@ program CnPingDemo;
 
 uses
   Forms,
-  uCnPingDemo in 'uCnPingDemo.pas' {frmCnPingDemo};
+  uCnPingDemo in 'uCnPingDemo.pas' {FormPingDemo};
 
 {$R *.res}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TfrmCnPingDemo, frmCnPingDemo);
+  Application.CreateForm(TFormPingDemo, FormPingDemo);
   Application.Run;
 end.
 

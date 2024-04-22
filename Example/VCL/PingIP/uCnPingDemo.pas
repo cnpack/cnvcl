@@ -39,10 +39,10 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, Winsock, Buttons, Provider, ExtCtrls, ComCtrls, CheckLst,
-  CnPing, CnIP, CnButtons, CnEdit;
+  CnPing, CnIP, CnButtons, CnEdit, CnInt128;
 
 type
-  TfrmCnPingDemo = class(TForm)
+  TFormPingDemo = class(TForm)
     Label1: TLabel;
     Panel2: TPanel;
     GroupBox1: TGroupBox;
@@ -64,12 +64,15 @@ type
     redtIPInfo: TRichEdit;
     redtPingBuffer: TRichEdit;
     redtPing: TRichEdit;
+    grpIPv6: TGroupBox;
+    btnCalcv6: TCnBitBtn;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure btnPingClick(Sender: TObject);
     procedure btnPingOnceClick(Sender: TObject);
     procedure btnPingBufferClick(Sender: TObject);
     procedure btnIPInfoClick(Sender: TObject);
+    procedure btnCalcv6Click(Sender: TObject);
   private
     { Private declarations }
     Ping: TCnPing;
@@ -81,13 +84,13 @@ type
   end;
 
 var
-  frmCnPingDemo: TfrmCnPingDemo;
+  FormPingDemo: TFormPingDemo;
 
 implementation
 
 {$R *.dfm}
 
-procedure TfrmCnPingDemo.FormCreate(Sender: TObject);
+procedure TFormPingDemo.FormCreate(Sender: TObject);
 begin
   Ping := TCnPing.Create(Self); //初始化
   IP := TCnIP.Create(Self); //初始化
@@ -97,14 +100,14 @@ begin
   btnIPInfoClick(btnIPInfo);
 end;
 
-procedure TfrmCnPingDemo.FormClose(Sender: TObject;
+procedure TFormPingDemo.FormClose(Sender: TObject;
   var Action: TCloseAction);
 begin
   FreeAndNil(IP);
   FreeAndNil(Ping);
 end;
 
-procedure TfrmCnPingDemo.CheckIP(Sender: TButtonControl);
+procedure TFormPingDemo.CheckIP(Sender: TButtonControl);
 begin
   if IP.IPTypeCheck(edtStartIP.Text) = iptNone then
   begin
@@ -127,7 +130,7 @@ begin
   pgcResult.ActivePageIndex := Sender.Tag;
 end;
 
-procedure TfrmCnPingDemo.btnPingClick(Sender: TObject);
+procedure TFormPingDemo.btnPingClick(Sender: TObject);
 begin
   CheckIP(TButton(Sender));
   statDemo.Panels[0].Text := '测试Ping';
@@ -136,7 +139,7 @@ begin
   redtPing.Lines.Text := FResult;
 end;
 
-procedure TfrmCnPingDemo.btnPingOnceClick(Sender: TObject);
+procedure TFormPingDemo.btnPingOnceClick(Sender: TObject);
 var
   iIP: Cardinal;
   bOnLine: Boolean;
@@ -155,7 +158,7 @@ begin
   end;
 end;
 
-procedure TfrmCnPingDemo.btnPingBufferClick(Sender: TObject);
+procedure TFormPingDemo.btnPingBufferClick(Sender: TObject);
 var
   sData: string;
 begin
@@ -167,7 +170,7 @@ begin
   redtPingBuffer.Lines.Text := FResult;
 end;
 
-procedure TfrmCnPingDemo.btnIPInfoClick(Sender: TObject);
+procedure TFormPingDemo.btnIPInfoClick(Sender: TObject);
 const
   IPINFO = '计算机名称: %0:S' + #13#10
     + '本机IP地址: %1:S' + #13#10
@@ -179,7 +182,7 @@ const
   BOOL_STRS: array[False..True] of string = ('False', 'True');
 var
   I: Integer;
-  IpGroups: TIPGroup;
+  IpGroups: TCnIPGroup;
 begin
   CheckIP(TButton(Sender));
   IP.IPAddress := FLocalIP;
@@ -198,6 +201,27 @@ begin
     redtIPInfo.Lines.Add('Loopback ' + BOOL_STRS[IpGroups[I].Loopback]);
     redtIPInfo.Lines.Add('SupportBroadcast ' + BOOL_STRS[IpGroups[I].SupportBroadcast]);
   end;
+end;
+
+procedure TFormPingDemo.btnCalcv6Click(Sender: TObject);
+const
+  IPv61 = 'fd00:c2b6:b24b:be67:2827:688d:e6a1:6a3b';
+  IPv62 = '1::/64';
+  IPv63 = '::1234:5678/64';
+  IPv64 = '2001:0db8::8a2e:0370:7334/64';
+var
+  R: TCnUInt128;
+begin
+  redtIPInfo.Lines.Clear;
+
+  R := TCnIp.IPv6ToInt128(IPv61);
+  redtIPInfo.Lines.Add(TCnIp.Int128ToIPv6(R));
+  R := TCnIp.IPv6ToInt128(IPv62);
+  redtIPInfo.Lines.Add(TCnIp.Int128ToIPv6(R));
+  R := TCnIp.IPv6ToInt128(IPv63);
+  redtIPInfo.Lines.Add(TCnIp.Int128ToIPv6(R));
+  R := TCnIp.IPv6ToInt128(IPv64);
+  redtIPInfo.Lines.Add(TCnIp.Int128ToIPv6(R));
 end;
 
 end.
