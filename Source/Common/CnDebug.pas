@@ -238,9 +238,9 @@ type
   // ===================== 以上结构定义需要和 Viewer 共享 ======================
 
 {$IFDEF MSWINDOWS}
-  TCnCriticalSection = TRTLCriticalSection;
+  TCnDebugCriticalSection = TRTLCriticalSection;
 {$ELSE}
-  TCnCriticalSection = TCriticalSection;
+  TCnDebugCriticalSection = TCriticalSection;
 {$ENDIF}
 
   TCnFindComponentEvent = procedure(Sender: TObject; AComponent: TComponent;
@@ -290,7 +290,7 @@ type
     FTimes: TList;
     FFilter: TCnDebugFilter;
     FChannel: TCnDebugChannel;
-    FCSThrdId: TCnCriticalSection;
+    FCSThrdId: TCnDebugCriticalSection;
     FAutoStart: Boolean;
     FViewerAutoStartCalled: Boolean;
     // 内部变量，控制不朝 Viewer 输出
@@ -802,19 +802,19 @@ type
 
 var
   FCnDebugger: TCnDebugger = nil;
-  FCnDebuggerCriticalSection: TCnCriticalSection;
-  FStartCriticalSection: TCnCriticalSection; // 用于多线程内控制启动 CnDebugViewer
+  FCnDebuggerCriticalSection: TCnDebugCriticalSection;
+  FStartCriticalSection: TCnDebugCriticalSection; // 用于多线程内控制启动 CnDebugViewer
 
   FFixedCalling: Cardinal = 0;
 
   FUseLocalSession: Boolean = {$IFDEF LOCAL_SESSION}True{$ELSE}False{$ENDIF};
 
 {$IFDEF CAPTURE_STACK}
-  FInProcessCriticalSection: TCnCriticalSection;
+  FInProcessCriticalSection: TCnDebugCriticalSection;
   FInProcessModuleList: TCnInProcessModuleList = nil;
 {$ENDIF}
 
-procedure CnEnterCriticalSection(Section: TCnCriticalSection);
+procedure CnEnterCriticalSection(Section: TCnDebugCriticalSection);
 begin
 {$IFDEF MSWINDOWS}
   EnterCriticalSection(Section);
@@ -823,7 +823,7 @@ begin
 {$ENDIF}
 end;
 
-procedure CnLeaveCriticalSection(Section: TCnCriticalSection);
+procedure CnLeaveCriticalSection(Section: TCnDebugCriticalSection);
 begin
 {$IFDEF MSWINDOWS}
   LeaveCriticalSection(Section);
@@ -1432,7 +1432,7 @@ begin
 {$IFDEF MSWINDOWS}
   InitializeCriticalSection(FCSThrdId);
 {$ELSE}
-  FCSThrdId := TCnCriticalSection.Create;
+  FCSThrdId := TCnDebugCriticalSection.Create;
 {$ENDIF}
   CreateChannel;
 
@@ -5271,10 +5271,10 @@ initialization
   InitializeCriticalSection(FInProcessCriticalSection);
   {$ENDIF}
   {$ELSE}
-  FStartCriticalSection := TCnCriticalSection.Create;
-  FCnDebuggerCriticalSection := TCnCriticalSection.Create;
+  FStartCriticalSection := TCnDebugCriticalSection.Create;
+  FCnDebuggerCriticalSection := TCnDebugCriticalSection.Create;
   {$IFDEF CAPTURE_STACK}
-  FInProcessCriticalSection := TCnCriticalSection.Create;
+  FInProcessCriticalSection := TCnDebugCriticalSection.Create;
   {$ENDIF}
   {$ENDIF}
   FCnDebugger := TCnDebugger.Create;
