@@ -185,7 +185,9 @@ interface
 
 {$I CnPack.inc}
 
-{.$DEFINE DEBUG} //是否输出调试信息
+{$IFDEF DEBUG}
+  {.$UNDEF DEBUG} //是否输出调试信息
+{$ENDIF}
 
 uses
   SysUtils, Windows, Classes,
@@ -193,10 +195,13 @@ uses
 
 type
   TCnTaskDataObject = class
+  {* 抽象出的线程池里待跑的任务，可判断重复}
   public
     function Clone: TCnTaskDataObject; virtual; abstract;
+    {* 供子类实现复制自身用，必须实现}
     function Duplicate(DataObj: TCnTaskDataObject;
       const Processing: Boolean): Boolean; virtual;
+    {* 供子类判断重复用，如重复，可免跑}
     function Info: string; virtual;
   end;
 
@@ -227,7 +232,7 @@ type
     FCurState: TCnThreadState;
     FHThreadTerminated: THandle;
     FPool: TCnThreadPool;
-    FProcessingDataObject: TCnTaskDataObject;
+    FProcessingDataObject: TCnTaskDataObject; // 运行时在处理的任务对象，处理完后内部释放
 
     FCSProcessingDataObject: TObject; // Hide TCnCriticalSection;
 
@@ -237,6 +242,7 @@ type
     function Duplicate(DataObj: TCnTaskDataObject): Boolean; virtual;
     function Info: string; virtual;
     function IsDead: Boolean; virtual;
+    {* 对状态是否死掉了的判断，以备外部 Kill}
     function IsFinished: Boolean; virtual;
     function IsIdle: Boolean; virtual;
     function NewAverage(OldAvg, NewVal: Integer): Integer; virtual;
@@ -256,20 +262,21 @@ type
 
   TCnCheckDuplicate = (cdQueue, cdProcessing);
   TCnCheckDuplicates = set of TCnCheckDuplicate;
+  {* 添加的任务如重复，要如何处理？分别代表队列中重复则删除，运行期重复则删除}
 
   TCnThreadPoolGetInfo = procedure(Sender: TCnThreadPool;
     var InfoText: string) of object;
   TCnThreadPoolProcessRequest = procedure(Sender: TCnThreadPool;
-    aDataObj: TCnTaskDataObject; aThread: TCnPoolingThread) of object;
+    DataObj: TCnTaskDataObject; Thread: TCnPoolingThread) of object;
 
   TCnPoolEmptyKind = (ekQueueEmpty, ekTaskEmpty);
   TCnQueueEmpty = procedure(Sender: TCnThreadPool;
     EmptyKind: TCnPoolEmptyKind) of object;
 
   TCnThreadInPoolInitializing = procedure(Sender: TCnThreadPool;
-    aThread: TCnPoolingThread) of object;
+    Thread: TCnPoolingThread) of object;
   TCnThreadInPoolFinalizing = procedure(Sender: TCnThreadPool;
-    aThread: TCnPoolingThread) of object;
+    Thread: TCnPoolingThread) of object;
 
   TCnThreadPool = class(TCnComponent)
   private
@@ -291,7 +298,7 @@ type
     FThreadFinalizing: TCnThreadInPoolFinalizing;
     FProcessRequest: TCnThreadPoolProcessRequest;
     FQueueEmpty: TCnQueueEmpty;
-    FGetInfo: TCnThreadPoolGetInfo;
+    FOnGetInfo: TCnThreadPoolGetInfo;
 
     procedure SetAdjustInterval(const Value: DWORD);
 {$IFDEF DEBUG}
@@ -309,8 +316,11 @@ type
     function FinishedThreadsAreFull: Boolean; virtual;
     procedure CheckTaskEmpty;
     procedure GetRequest(var Request: TCnTaskDataObject);
+    {* 从待运行队列中拿一个任务对象，准备运行}
     procedure DecreaseThreads;
+    {* 减少一个运行线程}
     procedure IncreaseThreads;
+    {* 增加一个运行线程，待接单}
     procedure FreeFinishedThreads;
     procedure KillDeadThreads;
 
@@ -338,11 +348,12 @@ type
     function ThreadKillingInfo(const I: Integer): string;
     procedure DefaultGetInfo(Sender: TCnThreadPool; var InfoText: string);
 
-    function AddRequest(aDataObject: TCnTaskDataObject;
+    function AddRequest(DataObject: TCnTaskDataObject;
       CheckDuplicate: TCnCheckDuplicates = [cdQueue]): Boolean;
-    procedure AddRequests(aDataObjects: array of TCnTaskDataObject;
+    {* 外界添加待跑的任务数据，待线程池安排线程跑}
+    procedure AddRequests(DataObjects: array of TCnTaskDataObject;
       CheckDuplicate: TCnCheckDuplicates = [cdQueue]);
-    procedure RemoveRequest(aDataObject: TCnTaskDataObject);
+    procedure RemoveRequest(DataObject: TCnTaskDataObject);
 
     property TerminateWaitTime: DWORD read FTerminateWaitTime write FTerminateWaitTime;
     property QueuePackCount: Integer read FQueuePackCount write FQueuePackCount;
@@ -358,9 +369,10 @@ type
     property ThreadsMinCount: Integer read FThreadsMinCount write FThreadsMinCount default 0;
     property ThreadsMaxCount: Integer read FThreadsMaxCount write FThreadsMaxCount default 10;
 
-    property OnGetInfo: TCnThreadPoolGetInfo read FGetInfo write FGetInfo;
+    property OnGetInfo: TCnThreadPoolGetInfo read FOnGetInfo write FOnGetInfo;
     property OnProcessRequest: TCnThreadPoolProcessRequest read FProcessRequest
       write FProcessRequest;
+    {* 线程池中的线程将执行任务时调用，要在此事件中写实际处理的线程代码}
     property OnQueueEmpty: TCnQueueEmpty read FQueueEmpty write FQueueEmpty;
     property OnThreadInitializing: TCnThreadInPoolInitializing
       read FThreadInitializing write FThreadInitializing;
@@ -369,10 +381,12 @@ type
   end;
 
 {$IFDEF DEBUG}
+
   TLogWriteProc = procedure(const Str: string; const ID: Integer);
 
 var
   TraceLog: TLogWriteProc = nil;
+
 {$ENDIF}
 
 const
@@ -385,10 +399,7 @@ const
 implementation
 
 uses
-  Math;
-
-const
-  MaxInt64 = High(Int64);
+  {$IFDEF DEBUG} CnDebug, {$ENDIF} Math;
 
 type
   TCnCriticalSection = class
@@ -411,7 +422,8 @@ var
 
 procedure SimpleTrace(const Str: string; const ID: Integer);
 begin
-  OutputDebugString(PChar(IntToStr(ID) + ':' + Str))
+  CnDebugger.LogFmt('%d:%s', [ID, Str]);
+  // OutputDebugString(PChar(IntToStr(ID) + ':' + Str))
 end;
 
 {$ENDIF}
@@ -597,7 +609,8 @@ begin
   begin
     if not (FCurState in [ctsWaiting, ctsForReduce]) then
       InterlockedIncrement(FPool.FIdleThreadCount);
-    FCurState := ctsWaiting;
+
+    FCurState := ctsWaiting; // 标记运行线程是等待状态
     case WaitForMultipleObjects(Length(Handles), @Handles, False, INFINITE) of
       WAIT_OBJECT_0 + Ord(hidRequest):
         begin
@@ -610,14 +623,15 @@ begin
 
           if FCurState in [ctsWaiting, ctsForReduce] then
             InterlockedDecrement(FPool.FIdleThreadCount);
-          FCurState := ctsGetting;
+
+          FCurState := ctsGetting; // 标记线程正在准备拿运行任务
           FPool.GetRequest(FProcessingDataObject);
-          if FWorkCount < MaxInt64 then
+          if FWorkCount < High(Int64) then
             FWorkCount := FWorkCount + 1;
           FUProcessingStart := GetTickCount;
           FUStillWorking := FUProcessingStart;
 
-          FCurState := ctsProcessing;
+          FCurState := ctsProcessing; // 标记线程正在运行
           try
 {$IFDEF DEBUG}
             Trace('Processing: ' + FProcessingDataObject.Info);
@@ -640,7 +654,7 @@ begin
           FAverageProcessing :=
             NewAverage(FAverageProcessing, GetTickDiff(FUProcessingStart, GetTickCount));
 
-          FCurState := ctsProcessed;
+          FCurState := ctsProcessed; // 标记线程刚刚任务执行完毕
           FPool.CheckTaskEmpty;
           FUWaitingStart := GetTickCount;
         end;
@@ -664,7 +678,7 @@ begin
           if FCurState in [ctsWaiting, ctsForReduce] then
             InterlockedDecrement(FPool.FIdleThreadCount);
 
-          FCurState := ctsTerminating;
+          FCurState := ctsTerminating; // 标记线程准备结束了
           Break;
         end;
     end;
@@ -687,7 +701,7 @@ begin
   begin
     if TCnCriticalSection(FCSProcessingDataObject).TryEnter then
     try
-      Result := Result + '; ' + 'FProcessingDataObject=';
+      Result := Result + '; ' + 'FProcessingDataObject = ';
       if FProcessingDataObject = nil then
         Result := Result + 'nil'
       else
@@ -699,9 +713,9 @@ begin
   else
   begin
     if FProcessingDataObject = nil then
-      Result := Result + '; ' + 'FProcessingDataObject=nil'
+      Result := Result + '; FProcessingDataObject = nil'
     else
-      Result := Result + '; ' + 'FProcessingDataObject!=nil';
+      Result := Result + '; FProcessingDataObject <> nil';
   end
 end;
 
@@ -713,7 +727,7 @@ begin
     (GetTickDiff(FUStillWorking, GetTickCount) > FPool.ThreadDeadTimeout));
 {$IFDEF DEBUG}
   if Result then
-    Trace('Thread is dead, Info = ' + Info);
+    Trace('Thread is Dead, Info = ' + Info);
 {$ENDIF}
 end;
 
@@ -741,7 +755,7 @@ end;
 
 procedure TCnPoolingThread.StillWorking;
 begin
-  FUStillWorking := GetTickCount
+  FUStillWorking := GetTickCount;
 end;
 
 procedure TCnPoolingThread.Terminate(const Force: Boolean);
@@ -895,13 +909,13 @@ begin
   inherited;
 end;
 
-function TCnThreadPool.AddRequest(aDataObject: TCnTaskDataObject;
+function TCnThreadPool.AddRequest(DataObject: TCnTaskDataObject;
   CheckDuplicate: TCnCheckDuplicates): Boolean;
 var
   I: Integer;
 begin
 {$IFDEF DEBUG}
-  Trace('AddRequest:' + aDataObject.Info);
+  Trace('AddRequest:' + DataObject.Info);
 {$ENDIF}
 
   Result := False;
@@ -913,13 +927,13 @@ begin
       for I := 0 to FQueue.Count - 1 do
       begin
         if (FQueue[I] <> nil) and
-          aDataObject.Duplicate(TCnTaskDataObject(FQueue[I]), False) then
+          DataObject.Duplicate(TCnTaskDataObject(FQueue[I]), False) then
         begin
 {$IFDEF DEBUG}
           Trace('Duplicate:' + TCnTaskDataObject(FQueue[I]).Info);
 {$ENDIF}
 
-          FreeAndNil(aDataObject);
+          FreeAndNil(DataObject);
           Exit;
         end;
       end;
@@ -933,13 +947,13 @@ begin
       begin
         for I := 0 to FThreads.Count - 1 do
         begin
-          if TCnPoolingThread(FThreads[I]).Duplicate(aDataObject) then
+          if TCnPoolingThread(FThreads[I]).Duplicate(DataObject) then
           begin
 {$IFDEF DEBUG}
             Trace('Duplicate:' + TCnPoolingThread(FThreads[I]).FProcessingDataObject.Info);
 {$ENDIF}
-            FreeAndNil(aDataObject);
-            Exit
+            FreeAndNil(DataObject);
+            Exit;
           end;
         end;
       end;
@@ -947,7 +961,7 @@ begin
       TCnCriticalSection(FCSThreadManagment).Leave;
     end;
 
-    FQueue.Add(aDataObject);
+    FQueue.Add(DataObject);
     Inc(FTaskCount);
     ReleaseSemaphore(FHSemRequestCount, 1, nil);
 {$IFDEF DEBUG}
@@ -960,18 +974,17 @@ begin
   end;
 
 {$IFDEF DEBUG}
-  Trace('Added Request:' + aDataObject.Info);
+  Trace('Added Request:' + DataObject.Info);
 {$ENDIF}
 end;
 
-procedure TCnThreadPool.AddRequests(
-  aDataObjects: array of TCnTaskDataObject;
+procedure TCnThreadPool.AddRequests(DataObjects: array of TCnTaskDataObject;
   CheckDuplicate: TCnCheckDuplicates);
 var
   I: Integer;
 begin
-  for I := 0 to Length(aDataObjects) - 1 do
-    AddRequest(aDataObjects[I], CheckDuplicate);
+  for I := 0 to Length(DataObjects) - 1 do
+    AddRequest(DataObjects[I], CheckDuplicate);
 end;
 
 procedure TCnThreadPool.CheckTaskEmpty;
@@ -980,7 +993,7 @@ var
 begin
   TCnCriticalSection(FCSQueueManagment).Enter;
   try
-    if (FLastGetPoint < FQueue.Count) then
+    if FLastGetPoint < FQueue.Count then
       Exit;
 
     TCnCriticalSection(FCSThreadManagment).Enter;
@@ -1248,10 +1261,8 @@ begin
   if TCnCriticalSection(FCSThreadManagment).TryEnter then
   begin
     try
-      if Assigned(FGetInfo) then
-      begin
-        FGetInfo(Self, Result)
-      end
+      if Assigned(FOnGetInfo) then
+        FOnGetInfo(Self, Result)
       else
         DefaultGetInfo(Self, Result);
     finally
@@ -1260,7 +1271,7 @@ begin
   end
   else
   begin
-    Result := 'Too busy to get info.';
+    Result := 'Too Busy to Get Info.';
   end;
 end;
 
@@ -1270,7 +1281,8 @@ var
   LThread: TCnPoolingThread;
   LObjects: array of TCnTaskDataObject;
 begin
-  if FinishedThreadsAreFull then Exit;
+  if FinishedThreadsAreFull then
+    Exit;
 
   iLen := 0;
   SetLength(LObjects, iLen);
@@ -1344,13 +1356,13 @@ begin
     Result := 10;
 end;
 
-procedure TCnThreadPool.RemoveRequest(aDataObject: TCnTaskDataObject);
+procedure TCnThreadPool.RemoveRequest(DataObject: TCnTaskDataObject);
 begin
   TCnCriticalSection(FCSQueueManagment).Enter;
   try
-    FQueue.Remove(aDataObject);
+    FQueue.Remove(DataObject);
     Dec(FTaskCount);
-    FreeAndNil(aDataObject);
+    FreeAndNil(DataObject);
   finally
     TCnCriticalSection(FCSQueueManagment).Leave;
   end
@@ -1435,6 +1447,7 @@ procedure TCnThreadPool.Trace(const Str: string);
 begin
   TraceLog(Str, 0)
 end;
+
 {$ENDIF}
 
 var
@@ -1448,8 +1461,6 @@ initialization
 {$IFDEF DEBUG}
   TraceLog := SimpleTrace;
 {$ENDIF}
-
-finalization
 
 end.
 

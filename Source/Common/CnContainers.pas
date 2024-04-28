@@ -79,7 +79,7 @@ uses
 
 type
   TCnQueue = class(TObject)
-  {* 指针队列实现类}
+  {* 指针队列实现类，内部采用链表实现。可运行期创建时指定是否支持多线程互斥}
   private
     FMultiThread: Boolean;
     FHead: TObject;
@@ -89,28 +89,42 @@ type
     procedure FreeNode(Value: TObject);
     function GetSize: Integer;
   public
-    constructor Create(MultiThread: Boolean = False);
+    constructor Create(MultiThread: Boolean = False); virtual;
     destructor Destroy; override;
+
     procedure Push(Data: Pointer);
+    {* 队列尾挂上一指针}
     function Pop: Pointer;
+    {* 队列头弹出一指针，如队列空则返回 nil}
+
     property Size: Integer read GetSize;
+    {* 内部指针数}
   end;
 
   TCnObjectStack = class(TObject)
-  {* 对象栈实现类}
+  {* 对象栈实现类，可运行期创建时指定是否支持多线程互斥。
+    内部采用列表实现，仅对象引用，不持有对象}
   private
+    FMultiThread: Boolean;
+    FLock: TCriticalSection;
     FList: TList;
   public
-    constructor Create;
+    constructor Create(MultiThread: Boolean = False); virtual;
     destructor Destroy; override;
 
     function Count: Integer;
+    {* 栈内元素数量}
     function IsEmpty: Boolean;
+    {* 栈是否为空}
     procedure Clear;
+    {* 清除栈内所有元素}
 
     procedure Push(AObject: TObject);
+    {* 将一对象入栈}
     function Pop: TObject;
+    {* 出栈至一对象，如堆栈空则抛异常}
     function Peek: TObject;
+    {* 取栈顶对象，如堆栈空则抛异常}
   end;
 
   ECnRingBufferFullException = class(Exception);
@@ -120,7 +134,7 @@ type
   {* 循环队列缓冲区空时触发的异常}
 
   TCnObjectRingBuffer = class(TObject)
-  {* 循环队列缓冲区}
+  {* 对象的循环队列缓冲区}
   private
     FFullOverwrite: Boolean;
     FMultiThread: Boolean;
@@ -351,12 +365,12 @@ resourcestring
   SCnFullPushToFrontError = 'Ring Buffer Full. Can NOT Push To Front.';
 
 type
-  TCnNode = class
+  TCnQueueNode = class
   private
-    FNext: TCnNode;
+    FNext: TCnQueueNode;
     FData: Pointer;
   public
-    property Next: TCnNode read FNext write FNext;
+    property Next: TCnQueueNode read FNext write FNext;
     property Data: Pointer read FData write FData;
   end;
 
@@ -364,10 +378,10 @@ type
 
 procedure TCnQueue.FreeNode(Value: TObject);
 var
-  Tmp: TCnNode;
+  Tmp: TCnQueueNode;
 begin
-  Tmp := TCnNode(Value).Next;
-  TCnNode(Value).Free;
+  Tmp := TCnQueueNode(Value).Next;
+  TCnQueueNode(Value).Free;
   if Tmp = nil then
     Exit;
   FreeNode(Tmp);
@@ -375,6 +389,7 @@ end;
 
 constructor TCnQueue.Create(MultiThread: Boolean);
 begin
+  inherited Create;
   FMultiThread := MultiThread;
   FHead := nil;
   FTail := nil;
@@ -394,7 +409,7 @@ end;
 
 function TCnQueue.Pop: Pointer;
 var
-  Tmp: TCnNode;
+  Tmp: TCnQueueNode;
 begin
   if FMultiThread then
     FLock.Enter;
@@ -404,9 +419,9 @@ begin
     if FHead = nil then
       Exit;
 
-    Result := TCnNode(FHead).Data;
-    Tmp := TCnNode(FHead).Next;
-    TCnNode(FHead).Free;
+    Result := TCnQueueNode(FHead).Data;
+    Tmp := TCnQueueNode(FHead).Next;
+    TCnQueueNode(FHead).Free;
     FHead := Tmp;
     
     if Tmp = nil then
@@ -420,14 +435,14 @@ end;
 
 procedure TCnQueue.Push(Data: Pointer);
 var
-  Tmp: TCnNode;
+  Tmp: TCnQueueNode;
 begin
   if FMultiThread then
     FLock.Enter;
 
   try
     if Data = nil then Exit;
-    Tmp := TCnNode.Create;
+    Tmp := TCnQueueNode.Create;
     Tmp.Data := Data;
     Tmp.Next := nil;
     
@@ -438,8 +453,8 @@ begin
     end
     else
     begin
-      TCnNode(FTail).Next := Tmp;
-      FTail := Tmp
+      TCnQueueNode(FTail).Next := Tmp;
+      FTail := Tmp;
     end;
     
     FSize := FSize + 1;
@@ -466,13 +481,19 @@ begin
   Result := FList.Count;
 end;
 
-constructor TCnObjectStack.Create;
+constructor TCnObjectStack.Create(MultiThread: Boolean);
 begin
+  inherited Create;
   FList := TList.Create;
+  FMultiThread := MultiThread;
+  if FMultiThread then
+    FLock := TCriticalSection.Create;
 end;
 
 destructor TCnObjectStack.Destroy;
 begin
+  if FMultiThread then
+    FLock.Free;
   FList.Free;
   inherited;
 end;
@@ -489,13 +510,29 @@ end;
 
 function TCnObjectStack.Pop: TObject;
 begin
-  Result := TObject(FList[FList.Count - 1]);
-  FList.Delete(FList.Count - 1);
+  if FMultiThread then
+    FLock.Enter;
+
+  try
+    Result := TObject(FList[FList.Count - 1]);
+    FList.Delete(FList.Count - 1);
+  finally
+    if FMultiThread then
+      FLock.Leave;
+  end;
 end;
 
 procedure TCnObjectStack.Push(AObject: TObject);
 begin
-  FList.Add(AObject);
+  if FMultiThread then
+    FLock.Enter;
+
+  try
+    FList.Add(AObject);
+  finally
+    if FMultiThread then
+      FLock.Leave;
+  end;
 end;
 
 { TCnRingBuffer }
