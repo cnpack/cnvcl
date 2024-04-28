@@ -24,14 +24,14 @@ unit CnContainers;
 * 软件名称：开发包基础库
 * 单元名称：链表队列实现
 * 单元作者：小峰
-* 备    注：简单的链表队列类，从尾Push，从头Pop，参数可以是对象（被转换成指针）。
-*           操作时内部有互斥机制，无需在外部通过临界区互斥。操作例子：
+* 备    注：简单的链表队列类，从尾 Push，从头 Pop，参数可以是对象（被转换成指针）。
+*           操作时内部可在创建时设置互斥机制，无需在外部通过临界区互斥。操作例子：
 *           声明：
 *           var
-*             Q: TCnQueue;
+*             Q: TCnLinkedQueue;
 *
 *           创建：
-*             Q := TCnQueue.Create;
+*             Q := TCnLinkedQueue.Create;
 *            
 *           使用：
 *
@@ -54,7 +54,9 @@ unit CnContainers;
 * 开发平台：PWinXP + Delphi 7
 * 兼容测试：PWin2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2023.08.21 V1.4
+* 修改记录：2024.04.28 V1.4
+*               增加对象队列，更改链表队列类名
+*           2023.08.21 V1.4
 *               增加扩展精度浮点数列表
 *           2020.11.05 V1.3
 *               将大数池基类抽取至此处
@@ -78,7 +80,7 @@ uses
 {$DEFINE MULTI_THREAD} // 数学对象池支持多线程，性能略有下降，如不需要，注释此行即可
 
 type
-  TCnQueue = class(TObject)
+  TCnLinkedQueue = class(TObject)
   {* 指针队列实现类，内部采用链表实现。可运行期创建时指定是否支持多线程互斥}
   private
     FMultiThread: Boolean;
@@ -99,6 +101,30 @@ type
 
     property Size: Integer read GetSize;
     {* 内部指针数}
+  end;
+
+  TCnObjectQueue = class(TObject)
+  {* 对象队列实现类，可运行期创建时指定是否支持多线程互斥。
+    内部采用列表实现，仅对象引用，不持有对象}
+  private
+    FMultiThread: Boolean;
+    FLock: TCriticalSection;
+    FList: TList;
+  public
+    constructor Create(MultiThread: Boolean = False); virtual;
+    destructor Destroy; override;
+
+    function Count: Integer;
+    {* 队列内元素数量}
+    function IsEmpty: Boolean;
+    {* 队列是否为空}
+    procedure Clear;
+    {* 清除队列内所有元素}
+
+    procedure Push(AObject: TObject);
+    {* 将一对象入队列}
+    function Pop: TObject;
+    {* 出队列至一对象，如堆栈空则抛异常}
   end;
 
   TCnObjectStack = class(TObject)
@@ -376,7 +402,7 @@ type
 
 { TCnQueue }
 
-procedure TCnQueue.FreeNode(Value: TObject);
+procedure TCnLinkedQueue.FreeNode(Value: TObject);
 var
   Tmp: TCnQueueNode;
 begin
@@ -387,7 +413,7 @@ begin
   FreeNode(Tmp);
 end;
 
-constructor TCnQueue.Create(MultiThread: Boolean);
+constructor TCnLinkedQueue.Create(MultiThread: Boolean);
 begin
   inherited Create;
   FMultiThread := MultiThread;
@@ -398,7 +424,7 @@ begin
     FLock := TCriticalSection.Create;
 end;
 
-destructor TCnQueue.Destroy;
+destructor TCnLinkedQueue.Destroy;
 begin
   if FHead <> nil then
     FreeNode(FHead);
@@ -407,7 +433,7 @@ begin
   inherited;
 end;
 
-function TCnQueue.Pop: Pointer;
+function TCnLinkedQueue.Pop: Pointer;
 var
   Tmp: TCnQueueNode;
 begin
@@ -433,7 +459,7 @@ begin
   end;
 end;
 
-procedure TCnQueue.Push(Data: Pointer);
+procedure TCnLinkedQueue.Push(Data: Pointer);
 var
   Tmp: TCnQueueNode;
 begin
@@ -464,16 +490,93 @@ begin
   end;
 end;
 
-function TCnQueue.GetSize: Integer;
+function TCnLinkedQueue.GetSize: Integer;
 begin
   Result := FSize;
+end;
+
+{ TCnObjectQueue }
+
+procedure TCnObjectQueue.Clear;
+begin
+  if FMultiThread then
+    FLock.Enter;
+
+  try
+    FList.Clear;
+  finally
+    if FMultiThread then
+      FLock.Leave;
+  end;
+end;
+
+function TCnObjectQueue.Count: Integer;
+begin
+  Result := FList.Count;
+end;
+
+constructor TCnObjectQueue.Create(MultiThread: Boolean);
+begin
+  inherited Create;
+  FList := TList.Create;
+  FMultiThread := MultiThread;
+  if FMultiThread then
+    FLock := TCriticalSection.Create;
+end;
+
+destructor TCnObjectQueue.Destroy;
+begin
+  if FMultiThread then
+    FLock.Free;
+  FList.Free;
+  inherited;
+end;
+
+function TCnObjectQueue.IsEmpty: Boolean;
+begin
+  Result := FList.Count = 0;
+end;
+
+function TCnObjectQueue.Pop: TObject;
+begin
+  if FMultiThread then
+    FLock.Enter;
+
+  try
+    Result := TObject(FList[0]);
+    FList.Delete(0);
+  finally
+    if FMultiThread then
+      FLock.Leave;
+  end;
+end;
+
+procedure TCnObjectQueue.Push(AObject: TObject);
+begin
+  if FMultiThread then
+    FLock.Enter;
+
+  try
+    FList.Add(AObject);
+  finally
+    if FMultiThread then
+      FLock.Leave;
+  end;
 end;
 
 { TCnObjectStack }
 
 procedure TCnObjectStack.Clear;
 begin
-  FList.Clear;
+  if FMultiThread then
+    FLock.Enter;
+
+  try
+    FList.Clear;
+  finally
+    if FMultiThread then
+      FLock.Leave;
+  end;
 end;
 
 function TCnObjectStack.Count: Integer;
