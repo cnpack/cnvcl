@@ -284,8 +284,8 @@ type
     FCSThreadManagment: TObject; // Hide TCnCriticalSection;
 
     FQueue: TList;
-    FThreads: TList;
-    FThreadsKilling: TList;
+    FThreads: TList;             // 运行线程对象列表
+    FThreadsKilling: TList;      // 死线程对象列表
     FThreadsMinCount, FThreadsMaxCount: Integer;
     FThreadDeadTimeout: DWORD;
     FThreadClass: TCnPoolingThreadClass;
@@ -299,6 +299,7 @@ type
     FProcessRequest: TCnThreadPoolProcessRequest;
     FQueueEmpty: TCnQueueEmpty;
     FOnGetInfo: TCnThreadPoolGetInfo;
+    FForceTerminate: Boolean;
 
     procedure SetAdjustInterval(const Value: DWORD);
 {$IFDEF DEBUG}
@@ -369,6 +370,9 @@ type
     property ThreadsMinCount: Integer read FThreadsMinCount write FThreadsMinCount default 0;
     property ThreadsMaxCount: Integer read FThreadsMaxCount write FThreadsMaxCount default 10;
 
+    property ForceTerminate: Boolean read FForceTerminate write FForceTerminate;
+    {* 控制析构时是否强行停止线程}
+
     property OnGetInfo: TCnThreadPoolGetInfo read FOnGetInfo write FOnGetInfo;
     property OnProcessRequest: TCnThreadPoolProcessRequest read FProcessRequest
       write FProcessRequest;
@@ -422,7 +426,7 @@ var
 
 procedure SimpleTrace(const Str: string; const ID: Integer);
 begin
-  CnDebugger.LogFmt('%d:%s', [ID, Str]);
+  CnDebugger.LogFmt('$%x:%s', [ID, Str]);
   // OutputDebugString(PChar(IntToStr(ID) + ':' + Str))
 end;
 
@@ -445,7 +449,7 @@ end;
 constructor TCnCriticalSection.Create;
 begin
   inherited;
-  InitializeCriticalSection(FSection)
+  InitializeCriticalSection(FSection);
 end;
 
 destructor TCnCriticalSection.Destroy;
@@ -456,12 +460,12 @@ end;
 
 procedure TCnCriticalSection.Enter;
 begin
-  EnterCriticalSection(FSection)
+  EnterCriticalSection(FSection);
 end;
 
 procedure TCnCriticalSection.Leave;
 begin
-  LeaveCriticalSection(FSection)
+  LeaveCriticalSection(FSection);
 end;
 
 function TCnCriticalSection.TryEnter: Boolean;
@@ -474,10 +478,10 @@ begin
   if FOSIsWin9x then
   begin
     Enter;
-    Result := True
+    Result := True;
   end
   else
-    Result := TryEnter
+    Result := TryEnter;
 end;
 
 { TCnTaskDataObject }
@@ -485,12 +489,12 @@ end;
 function TCnTaskDataObject.Duplicate(DataObj: TCnTaskDataObject;
   const Processing: Boolean): Boolean;
 begin
-  Result := False
+  Result := False;
 end;
 
 function TCnTaskDataObject.Info: string;
 begin
-  Result := IntToHex(Cardinal(Self), 8)
+  Result := IntToHex(Cardinal(Self), 8);
 end;
 
 { TCnPoolingThread }
@@ -534,7 +538,7 @@ begin
 
   FreeAndNil(FProcessingDataObject);
   CloseHandle(FHThreadTerminated);
-  FCSProcessingDataObject.Free;
+  FreeAndNil(FCSProcessingDataObject);
   inherited;
 end;
 
@@ -769,7 +773,7 @@ begin
   if Force then
   begin
     ForceTerminate;
-    Free
+    Free;
   end
   else
     SetEvent(FHThreadTerminated)
@@ -857,36 +861,75 @@ begin
   try
     SetLength(Handles, FThreads.Count);
     N := 0;
+
+{$IFDEF DEBUG}
+    Trace('TCnThreadPool Destroy: To Terminate FThreads.');
+{$ENDIF}
+
+    // 针对每个线程，先等两秒结束时间
     for I := 0 to FThreads.Count - 1 do
     begin
       if FThreads[I] <> nil then
       begin
         Handles[N] := TCnPoolingThread(FThreads[I]).Handle;
-        TCnPoolingThread(FThreads[I]).Terminate(False);
+        TCnPoolingThread(FThreads[I]).Terminate(FForceTerminate);
+        // 如 FForceTerminate 为 True，内部会 Free
         Inc(N);
       end;
     end;
+
+{$IFDEF DEBUG}
+    Trace('TCnThreadPool Destroy: WaitFor FThreads Terminate.');
+{$ENDIF}
+
     WaitForMultipleObjects(N, @Handles[0], True, TerminateWaitTime);
 
-    for I := 0 to FThreads.Count - 1 do
+{$IFDEF DEBUG}
+    Trace('TCnThreadPool Destroy: Free FThreads Thread Instances.');
+{$ENDIF}
+
+    if not FForceTerminate then
     begin
-      {if FThreads[i] <> nil then
-        TCnPoolingThread(FThreads[i]).Terminate(True)
-      else}
-      TCnPoolingThread(FThreads[I]).Free;
+      // 非强制情况下，再次挨个释放工作线程，不管其是否结束（注意强制情况下已 Free）
+      for I := 0 to FThreads.Count - 1 do
+      begin
+        {if FThreads[i] <> nil then
+          TCnPoolingThread(FThreads[i]).Terminate(True)
+        else}
+        TCnPoolingThread(FThreads[I]).Free;
+      end;
     end;
 
+{$IFDEF DEBUG}
+    Trace('TCnThreadPool Destroy: Free FThreads List.');
+{$ENDIF}
+
+    // 释放线程列表
     FThreads.Free;
 
+{$IFDEF DEBUG}
+    Trace('TCnThreadPool Destroy: Free Finished Threads.');
+{$ENDIF}
+
+    // 释放完成了的死线程
     FreeFinishedThreads;
+
+{$IFDEF DEBUG}
+    Trace('TCnThreadPool Destroy: Free FThreadsKilling Thread Instances.');
+{$ENDIF}
+
+    // 释放其他死线程
     for I := 0 to FThreadsKilling.Count - 1 do
     begin
-      {if FThreadsKilling[i] <> nil then
-        TCnPoolingThread(FThreadsKilling[i]).Terminate(True)
+      {if FThreadsKilling[I] <> nil then
+        TCnPoolingThread(FThreadsKilling[I]).Terminate(True)
       else}
       TCnPoolingThread(FThreadsKilling[I]).Free;
     end;
 
+{$IFDEF DEBUG}
+    Trace('TCnThreadPool Destroy: Free FThreadsKilling List.');
+{$ENDIF}
     FThreadsKilling.Free;
   finally
     TCnCriticalSection(FCSThreadManagment).Leave;
@@ -1106,7 +1149,7 @@ begin
       if TCnPoolingThread(FThreadsKilling[I]).IsFinished then
       begin
         TCnPoolingThread(FThreadsKilling[I]).Free;
-        FThreadsKilling.Delete(I)
+        FThreadsKilling.Delete(I);
       end;
     end;
   finally
