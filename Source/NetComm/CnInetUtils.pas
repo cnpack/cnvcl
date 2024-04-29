@@ -24,12 +24,13 @@ unit CnInetUtils;
 * 软件名称：网络通讯组件包
 * 单元名称：使 WinInet 封装单元
 * 单元作者：周劲羽 (zjy@cnpack.org)
-* 备    注：定义了 TCnHTTP，使用 WinInet 来读取 HTTP 数据
+* 备    注：定义了 TCnHTTP/TCnFTP，使用 WinInet 来读取 HTTP 与 FTP 数据，该类的
+*           网络请求方法是顺序调用各 API 的阻塞式的，因此建议在线程中调用
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2023.02.22 V1.2
-*                EncodeURl 增加部分特殊字符的转换
+*                EncodeURL 增加部分特殊字符的转换
 *           2005.09.14 V1.1
 *                增加 UserAgent 和 Proxy 设置(由 illk 提供)
 *           2003.03.09 V1.0
@@ -42,7 +43,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, WinInet;
+  Windows, SysUtils, Classes, WinInet, CnNative;
 
 type
 
@@ -77,7 +78,7 @@ type
   TCnInet = class
   {* 使用 WinInet 读取 HTTP(S)/FTP 文件的类。}
   private
-    hSession: HINTERNET;
+    FHSession: HINTERNET;
     FAborted: Boolean;
     FGetDataFail: Boolean;
     FOnProgress: TCnInetProgressEvent;
@@ -108,12 +109,20 @@ type
     destructor Destroy; override;
     procedure Abort;
     {* 中断当前处理}
+
+    function GetBytes(const AURL: string; APost: TStrings = nil): TBytes;
+    {* 从 AURL 地址读取数据，如果成功，返回内容的原始字节数组，失败则返回空
+      返回空时可用 GetLastError 获取错误码}
     function GetStream(const AURL: string; Stream: TStream; APost: TStrings = nil): Boolean;
-    {* 从 AURL 地址读取数据到流 Stream，如果 APost 不为 nil 则执行 Post 调用}
+    {* 从 AURL 地址读取数据到流 Stream，如果 APost 不为 nil 则执行 Post 调用
+      返回是否成功，如失败，可用 GetLastError 获取错误码}
     function GetString(const AURL: string; APost: TStrings = nil): AnsiString;
-    {* 从 AURL 地址返回一个字符串，如果 APost 不为 nil 则执行 Post 调用}
+    {* 从 AURL 地址返回一个字符串，如果 APost 不为 nil 则执行 Post 调用
+      返回是否成功，如失败，可用 GetLastError 获取错误码}
     function GetFile(const AURL, FileName: string; APost: TStrings = nil): Boolean;
-    {* 从 AURL 地址读取数据保存到文件 FileName，如果 APost 不为 nil 则执行 Post 调用}
+    {* 从 AURL 地址读取数据保存到文件 FileName，如果 APost 不为 nil 则执行 Post 调用
+      返回是否成功，如失败，可用 GetLastError 获取错误码}
+
     property OnProgress: TCnInetProgressEvent read FOnProgress write FOnProgress;
     {* 数据进度事件}
     property Aborted: Boolean read FAborted;
@@ -124,7 +133,7 @@ type
     property Decoding: Boolean read FDecoding write FDecoding default True;
     {* 是否支持 gzip, deflate 解压}
     property UserAgent: string read FUserAgent write FUserAgent;
-    {* 设置UserAgent 浏览器识别标示}
+    {* 设置 UserAgent 浏览器识别标示}
     property ProxyMode: TCnInetProxyMode read FProxyMode write FProxyMode;
     {* 使用代理的方式}
     property ProxyServer: string read FProxyServer write FProxyServer;
@@ -175,7 +184,8 @@ var
 begin
   InStr := AnsiString(URL);
   OutStr := '';
-  for I := 1 to Length(InStr) do begin
+  for I := 1 to Length(InStr) do
+  begin
     if (InStr[I] in UnsafeChars) or (InStr[I] >= #$80) or (InStr[I] < #32) then
       OutStr := OutStr + '%' + AnsiString(IntToHex(Ord(InStr[I]), 2))
     else
@@ -238,10 +248,10 @@ end;
 
 procedure TCnInet.CloseInet;
 begin
-  if hSession <> nil then
+  if FHSession <> nil then
   begin
-    InternetCloseHandle(hSession);
-    hSession := nil;
+    InternetCloseHandle(FHSession);
+    FHSession := nil;
   end;
 end;
 
@@ -249,40 +259,40 @@ function TCnInet.InitInet: Boolean;
 var
   Flag: LongBool;
 begin
-  if hSession = nil then
+  if FHSession = nil then
   begin
     if (FProxyMode <> pmProxy) or (Length(FProxyServer) = 0) then
     begin
       if FProxyMode = pmDirect then
-        hSession := InternetOpen(PChar(FUserAgent), INTERNET_OPEN_TYPE_DIRECT,
+        FHSession := InternetOpen(PChar(FUserAgent), INTERNET_OPEN_TYPE_DIRECT,
           nil, nil, 0)
       else
-        hSession := InternetOpen(PChar(FUserAgent), INTERNET_OPEN_TYPE_PRECONFIG,
+        FHSession := InternetOpen(PChar(FUserAgent), INTERNET_OPEN_TYPE_PRECONFIG,
           nil, nil, 0);
     end
     else
     begin
-      hSession := InternetOpen(PChar(FUserAgent), INTERNET_OPEN_TYPE_PROXY,
+      FHSession := InternetOpen(PChar(FUserAgent), INTERNET_OPEN_TYPE_PROXY,
         PChar(FProxyServer), nil, 0);
       if Length(FProxyUserName) > 0 then
-        InternetSetOption(hSession, INTERNET_OPTION_PROXY_USERNAME, PChar(FProxyUserName), Length(FProxyUserName));
+        InternetSetOption(FHSession, INTERNET_OPTION_PROXY_USERNAME, PChar(FProxyUserName), Length(FProxyUserName));
       if Length(FProxyPassWord) > 0 then
-        InternetSetOption(hSession, INTERNET_OPTION_PROXY_PASSWORD, PChar(FProxyPassWord), Length(FProxyPassWord));
+        InternetSetOption(FHSession, INTERNET_OPTION_PROXY_PASSWORD, PChar(FProxyPassWord), Length(FProxyPassWord));
         
       if FConnectTimeOut <> 0 then
-        InternetSetOption(hSession, INTERNET_OPTION_CONNECT_TIMEOUT, @FConnectTimeOut, SizeOf(Cardinal));
+        InternetSetOption(FHSession, INTERNET_OPTION_CONNECT_TIMEOUT, @FConnectTimeOut, SizeOf(Cardinal));
       if FSendTimeOut <> 0 then
-        InternetSetOption(hSession, INTERNET_OPTION_SEND_TIMEOUT, @FSendTimeOut, SizeOf(Cardinal));
+        InternetSetOption(FHSession, INTERNET_OPTION_SEND_TIMEOUT, @FSendTimeOut, SizeOf(Cardinal));
       if FReceiveTimeOut <> 0 then
-        InternetSetOption(hSession, INTERNET_OPTION_RECEIVE_TIMEOUT, @FReceiveTimeOut, SizeOf(Cardinal));
+        InternetSetOption(FHSession, INTERNET_OPTION_RECEIVE_TIMEOUT, @FReceiveTimeOut, SizeOf(Cardinal));
     end;
     if FDecoding then
     begin
       Flag := True;
-      FDecodingValid := InternetSetOption(hSession, INTERNET_OPTION_HTTP_DECODING, PChar(@Flag), SizeOf(Flag));
+      FDecodingValid := InternetSetOption(FHSession, INTERNET_OPTION_HTTP_DECODING, PChar(@Flag), SizeOf(Flag));
     end;
   end;
-  Result := hSession <> nil;
+  Result := FHSession <> nil;
 end;
 
 procedure TCnInet.Abort;
@@ -346,6 +356,26 @@ begin
   end;
 end;
 
+function TCnInet.GetBytes(const AURL: string; APost: TStrings): TBytes;
+var
+  Stream: TMemoryStream;
+begin
+  SetLength(Result, 0);
+  Stream := TMemoryStream.Create;
+  try
+    if GetStream(AURL, Stream, APost) then
+    begin
+      if Stream.Size > 0 then
+      begin
+        SetLength(Result, Stream.Size);
+        Move(Stream.Memory^, Result[0], Stream.Size);
+      end;
+    end;
+  finally
+    Stream.Free;
+  end;
+end;
+
 function TCnInet.GetStream(const AURL: string; Stream: TStream; APost: TStrings = nil): Boolean;
 var
   Info: TCnURLInfo;
@@ -402,7 +432,7 @@ begin
   hConnect := nil;
   hFtp := nil;
   try
-    hConnect := InternetConnect(hSession, PChar(Info.Host),
+    hConnect := InternetConnect(FHSession, PChar(Info.Host),
       StrToIntDef(Info.Port, INTERNET_DEFAULT_FTP_PORT),
       PChar(Info.Username), PChar(Info.Password),
       INTERNET_SERVICE_FTP, 0, 0);
@@ -464,7 +494,7 @@ begin
     if FNoCookie then
       Flag := Flag + INTERNET_FLAG_NO_COOKIES;
 
-    hConnect := InternetConnect(hSession, PChar(Info.Host), Port, nil, nil,
+    hConnect := InternetConnect(FHSession, PChar(Info.Host), Port, nil, nil,
       INTERNET_SERVICE_HTTP, 0, 0);
     if (hConnect = nil) or FAborted then
       Exit;
