@@ -216,7 +216,8 @@ type
   member = string name-separator value
 }
   TCnJSONObject = class(TCnJSONValue)
-  {* 代表 JSON 中的对象值的类，也是 JSON 顶层类}
+  {* 代表 JSON 中的对象值的类，也是 JSON 顶层类。
+    管理下面挂的所有 Pair，从而间接管理所有下属的对象实例}
   private
     FPairs: TObjectList;
     FMap: TCnHashTable;
@@ -255,7 +256,7 @@ type
     {* 添加一个命名的空数组并返回该数组对象}
 
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
-    {* 生成 UTF8 格式的 JSON 字符串}
+    {* 生成 UTF8 格式的 JSON 字符串，Indent 表示起始缩进}
 
     // 以下方法解析用
     function IsObject: Boolean; override;
@@ -404,17 +405,18 @@ type
   end;
 
   TCnJSONReader = class
+  {* 从 JSON 中读入对象的辅助工具类，可不创建实例而直接调用 class 各方法}
   private
     // 以下系列，返回 False 表示 Name 在 JSON 中不存在，True 存在，Value 返回值
-    function ReadStringValue(Obj: TCnJSONObject; const Name: string; out Value: string): Boolean;
-    function ReadIntegerValue(Obj: TCnJSONObject; const Name: string; out Value: Integer): Boolean;
-    function ReadFloatValue(Obj: TCnJSONObject; const Name: string; out Value: Extended): Boolean;
-    function ReadBooleanValue(Obj: TCnJSONObject; const Name: string; out Value: Boolean): Boolean;
-    function ReadInt64Value(Obj: TCnJSONObject; const Name: string; out Value: Int64): Boolean;
+    class function ReadStringValue(Obj: TCnJSONObject; const Name: string; out Value: string): Boolean;
+    class function ReadIntegerValue(Obj: TCnJSONObject; const Name: string; out Value: Integer): Boolean;
+    class function ReadFloatValue(Obj: TCnJSONObject; const Name: string; out Value: Extended): Boolean;
+    class function ReadBooleanValue(Obj: TCnJSONObject; const Name: string; out Value: Boolean): Boolean;
+    class function ReadInt64Value(Obj: TCnJSONObject; const Name: string; out Value: Int64): Boolean;
 
-    procedure ReadProperty(Instance: TPersistent; PropInfo: PPropInfo; Obj: TCnJSONObject);
+    class procedure ReadProperty(Instance: TPersistent; PropInfo: PPropInfo; Obj: TCnJSONObject);
   public
-    procedure Read(Instance: TPersistent; Obj: TCnJSONObject);
+    class procedure Read(Instance: TPersistent; Obj: TCnJSONObject);
     {* 遍历 Instance 的各属性名并从 JSONObject 中读入对应属性值}
 
     class function FileToJSONObject(const FileName: string): TCnJSONObject;
@@ -428,17 +430,18 @@ type
   end;
 
   TCnJSONWriter = class
+  {* 将对象写入 JSON 的辅助工具类，可不创建实例而直接调用 class 各方法}
   private
-    procedure WriteStringValue(Obj: TCnJSONObject; const Name, Value: string);
-    procedure WriteIntegerValue(Obj: TCnJSONObject; const Name: string; Value: Integer);
-    procedure WriteFloatValue(Obj: TCnJSONObject; const Name: string; Value: Extended);
-    procedure WriteBooleanValue(Obj: TCnJSONObject; const Name: string; Value: Boolean);
-    procedure WriteInt64Value(Obj: TCnJSONObject; const Name: string; Value: Int64);
-    procedure WriteNullValue(Obj: TCnJSONObject; const Name: string);
+    class procedure WriteStringValue(Obj: TCnJSONObject; const Name, Value: string);
+    class procedure WriteIntegerValue(Obj: TCnJSONObject; const Name: string; Value: Integer);
+    class procedure WriteFloatValue(Obj: TCnJSONObject; const Name: string; Value: Extended);
+    class procedure WriteBooleanValue(Obj: TCnJSONObject; const Name: string; Value: Boolean);
+    class procedure WriteInt64Value(Obj: TCnJSONObject; const Name: string; Value: Int64);
+    class procedure WriteNullValue(Obj: TCnJSONObject; const Name: string);
 
-    procedure WriteProperty(Instance: TPersistent; PropInfo: PPropInfo; Obj: TCnJSONObject);
+    class procedure WriteProperty(Instance: TPersistent; PropInfo: PPropInfo; Obj: TCnJSONObject);
   public
-    procedure Write(Instance: TPersistent; Obj: TCnJSONObject);
+    class procedure Write(Instance: TPersistent; Obj: TCnJSONObject);
     {* 将 Instance 的各属性赋值给 JSONObject}
 
     class procedure JSONObjectToFile(Obj: TCnJSONObject; const FileName: string;
@@ -1860,7 +1863,7 @@ begin
   end;
 end;
 
-procedure TCnJSONReader.Read(Instance: TPersistent; Obj: TCnJSONObject);
+class procedure TCnJSONReader.Read(Instance: TPersistent; Obj: TCnJSONObject);
 var
   PropCount: Integer;
   PropList: PPropList;
@@ -1906,7 +1909,7 @@ begin
   end;
 end;
 
-function TCnJSONReader.ReadBooleanValue(Obj: TCnJSONObject;
+class function TCnJSONReader.ReadBooleanValue(Obj: TCnJSONObject;
   const Name: string; out Value: Boolean): Boolean;
 var
   V: TCnJSONValue;
@@ -1928,7 +1931,7 @@ begin
   end;
 end;
 
-function TCnJSONReader.ReadFloatValue(Obj: TCnJSONObject;
+class function TCnJSONReader.ReadFloatValue(Obj: TCnJSONObject;
   const Name: string; out Value: Extended): Boolean;
 var
   V: TCnJSONValue;
@@ -1945,7 +1948,7 @@ begin
   end;
 end;
 
-function TCnJSONReader.ReadInt64Value(Obj: TCnJSONObject;
+class function TCnJSONReader.ReadInt64Value(Obj: TCnJSONObject;
   const Name: string; out Value: Int64): Boolean;
 var
   V: TCnJSONValue;
@@ -1962,7 +1965,7 @@ begin
   end;
 end;
 
-function TCnJSONReader.ReadIntegerValue(Obj: TCnJSONObject;
+class function TCnJSONReader.ReadIntegerValue(Obj: TCnJSONObject;
   const Name: string; out Value: Integer): Boolean;
 var
   V: TCnJSONValue;
@@ -1979,7 +1982,7 @@ begin
   end;
 end;
 
-function TCnJSONReader.ReadStringValue(Obj: TCnJSONObject;
+class function TCnJSONReader.ReadStringValue(Obj: TCnJSONObject;
   const Name: string; out Value: string): Boolean;
 var
   V: TCnJSONValue;
@@ -1996,7 +1999,7 @@ begin
   end;
 end;
 
-procedure TCnJSONReader.ReadProperty(Instance: TPersistent;
+class procedure TCnJSONReader.ReadProperty(Instance: TPersistent;
   PropInfo: PPropInfo; Obj: TCnJSONObject);
 var
   PropType: PTypeInfo;
@@ -2148,24 +2151,19 @@ class function TCnJSONWriter.SaveToJSON(Instance: TPersistent;
   UseFormat: Boolean): AnsiString;
 var
   Obj: TCnJSONObject;
-  Writer: TCnJSONWriter;
 begin
   Obj := nil;
-  Writer := nil;
 
   try
     Obj := TCnJSONObject.Create;
-    Writer := TCnJSONWriter.Create;
-
-    Writer.Write(Instance, Obj);
+    TCnJSONWriter.Write(Instance, Obj);
     Result := Obj.ToJSON(UseFormat);
   finally
-    Writer.Free;
     Obj.Free;
   end;
 end;
 
-procedure TCnJSONWriter.Write(Instance: TPersistent; Obj: TCnJSONObject);
+class procedure TCnJSONWriter.Write(Instance: TPersistent; Obj: TCnJSONObject);
 var
   PropCount: Integer;
   PropList: PPropList;
@@ -2208,7 +2206,7 @@ begin
   end;
 end;
 
-procedure TCnJSONWriter.WriteProperty(Instance: TPersistent;
+class procedure TCnJSONWriter.WriteProperty(Instance: TPersistent;
   PropInfo: PPropInfo; Obj: TCnJSONObject);
 var
   PropType: PTypeInfo;
@@ -2308,37 +2306,37 @@ begin
   end;
 end;
 
-procedure TCnJSONWriter.WriteStringValue(Obj: TCnJSONObject; const Name,
+class procedure TCnJSONWriter.WriteStringValue(Obj: TCnJSONObject; const Name,
   Value: string);
 begin
   Obj.AddPair(Name, Value);
 end;
 
-procedure TCnJSONWriter.WriteBooleanValue(Obj: TCnJSONObject;
+class procedure TCnJSONWriter.WriteBooleanValue(Obj: TCnJSONObject;
   const Name: string; Value: Boolean);
 begin
   Obj.AddPair(Name, Value);
 end;
 
-procedure TCnJSONWriter.WriteFloatValue(Obj: TCnJSONObject;
+class procedure TCnJSONWriter.WriteFloatValue(Obj: TCnJSONObject;
   const Name: string; Value: Extended);
 begin
   Obj.AddPair(Name, Value);
 end;
 
-procedure TCnJSONWriter.WriteInt64Value(Obj: TCnJSONObject;
+class procedure TCnJSONWriter.WriteInt64Value(Obj: TCnJSONObject;
   const Name: string; Value: Int64);
 begin
   Obj.AddPair(Name, Value);
 end;
 
-procedure TCnJSONWriter.WriteIntegerValue(Obj: TCnJSONObject;
+class procedure TCnJSONWriter.WriteIntegerValue(Obj: TCnJSONObject;
   const Name: string; Value: Integer);
 begin
   Obj.AddPair(Name, Value);
 end;
 
-procedure TCnJSONWriter.WriteNullValue(Obj: TCnJSONObject;
+class procedure TCnJSONWriter.WriteNullValue(Obj: TCnJSONObject;
   const Name: string);
 begin
   Obj.AddPair(Name);
