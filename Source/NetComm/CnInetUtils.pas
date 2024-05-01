@@ -29,10 +29,12 @@ unit CnInetUtils;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2023.02.22 V1.2
+* 修改记录：2024.05.01 V1.3
+*                增加部分 Post 相关内容及默认忽略证书错误的选项
+*           2023.02.22 V1.2
 *                EncodeURL 增加部分特殊字符的转换
 *           2005.09.14 V1.1
-*                增加 UserAgent 和 Proxy 设置(由 illk 提供)
+*                增加 UserAgent 和 Proxy 设置（由 illk 提供）
 *           2003.03.09 V1.0
 *                创建单元
 ================================================================================
@@ -95,6 +97,7 @@ type
     FProxyMode: TCnInetProxyMode;
     FNoCookie: Boolean;
     FEncodeUrlPath: Boolean;
+    FIgnoreSSLError: Boolean;
     function ParseURL(URL: string; var Info: TCnURLInfo): Boolean;
   protected
     procedure DoProgress(TotalSize, CurrSize: Integer);
@@ -102,7 +105,8 @@ type
     procedure CloseInet;
     function GetStreamFromHandle(Handle: HINTERNET; TotalSize: Integer;
       Stream: TStream): Boolean;
-    function GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TStrings): Boolean;
+    function GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TStrings): Boolean; overload;
+    function GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TBytes): Boolean; overload;
     function GetFTPStream(Info: TCnURLInfo; Stream: TStream): Boolean;
   public
     constructor Create;
@@ -113,13 +117,26 @@ type
     function GetBytes(const AURL: string; APost: TStrings = nil): TBytes;
     {* 从 AURL 地址读取数据，如果成功，返回内容的原始字节数组，失败则返回空
       返回空时可用 GetLastError 获取错误码}
-    function GetStream(const AURL: string; Stream: TStream; APost: TStrings = nil): Boolean;
+
+    function GetStream(const AURL: string; Stream: TStream; APost: TStrings = nil): Boolean; overload;
     {* 从 AURL 地址读取数据到流 Stream，如果 APost 不为 nil 则执行 Post 调用
       返回是否成功，如失败，可用 GetLastError 获取错误码}
-    function GetString(const AURL: string; APost: TStrings = nil): AnsiString;
+    function GetStream(const AURL: string; Stream: TStream; APost: TBytes): Boolean; overload;
+    {* 从 AURL 地址读取数据到流 Stream，如果 APost 不为 nil 则执行 Post 调用
+      返回是否成功，如失败，可用 GetLastError 获取错误码}
+
+    function GetString(const AURL: string; APost: TStrings = nil): AnsiString; overload;
     {* 从 AURL 地址返回一个字符串，如果 APost 不为 nil 则执行 Post 调用
       返回是否成功，如失败，可用 GetLastError 获取错误码}
-    function GetFile(const AURL, FileName: string; APost: TStrings = nil): Boolean;
+    function GetString(const AURL: string; APost: TBytes): AnsiString; overload;
+    {* 从 AURL 地址返回一个字符串，如果 APost 不为 nil 则执行 Post 调用
+      返回是否成功，如失败，可用 GetLastError 获取错误码}
+
+    function GetFile(const AURL, FileName: string; APost: TStrings = nil): Boolean; overload;
+    {* 从 AURL 地址读取数据保存到文件 FileName，如果 APost 不为 nil 则执行 Post 调用
+      返回是否成功，如失败，可用 GetLastError 获取错误码}
+
+    function GetFile(const AURL, FileName: string; APost: TBytes): Boolean; overload;
     {* 从 AURL 地址读取数据保存到文件 FileName，如果 APost 不为 nil 则执行 Post 调用
       返回是否成功，如失败，可用 GetLastError 获取错误码}
 
@@ -148,6 +165,8 @@ type
     {* 是否不使用 Cookie，如果需要在 HttpRequestHeaders 中指定 Cookie，应设为 True}
     property EncodeUrlPath: Boolean read FEncodeUrlPath write FEncodeUrlPath default True;
     {* 是否自动为 Url 路径中的特殊字符编码}
+    property IgnoreSSLError: Boolean read FIgnoreSSLError write FIgnoreSSLError default True;
+    {* 是否忽略 SSL 及证书等的错误，默认忽略}
     property ConnectTimeOut: Cardinal read FConnectTimeOut write FConnectTimeOut;
     {* 连接超时}
     property SendTimeOut: Cardinal read FSendTimeOut write FSendTimeOut;
@@ -237,6 +256,7 @@ begin
   FUserAgent := 'CnPack Internet Utils';
   FHttpRequestHeaders := TStringList.Create;
   FProxyMode := pmIE;
+  FIgnoreSSLError := True;
 end;
 
 destructor TCnInet.Destroy;
@@ -376,7 +396,7 @@ begin
   end;
 end;
 
-function TCnInet.GetStream(const AURL: string; Stream: TStream; APost: TStrings = nil): Boolean;
+function TCnInet.GetStream(const AURL: string; Stream: TStream; APost: TStrings): Boolean;
 var
   Info: TCnURLInfo;
 begin
@@ -395,7 +415,30 @@ begin
 
   if FAborted then
     Result := False;
-    
+
+  FGetDataFail := not Result;
+end;
+
+function TCnInet.GetStream(const AURL: string; Stream: TStream; APost: TBytes): Boolean;
+var
+  Info: TCnURLInfo;
+begin
+  Result := False;
+  if not ParseURL(AURL, Info) then
+    Exit;
+
+  FAborted := False;
+  if not InitInet or FAborted then
+    Exit;
+
+  if SameText(Info.Protocol, 'http') or SameText(Info.Protocol, 'https') then
+    Result := GetHTTPStream(Info, Stream, APost)
+  else if SameText(Info.Protocol, 'ftp') then
+    Result := GetFTPStream(Info, Stream);
+
+  if FAborted then
+    Result := False;
+
   FGetDataFail := not Result;
 end;
 
@@ -470,7 +513,7 @@ var
   BufLen, Index: Cardinal;
   I: Integer;
   Port: Word;
-  Flag: Cardinal;
+  Flag, SecFlag, SecFlagLen: Cardinal;
   Verb, Opt: string;
   POpt: PChar;
   OptLen: Integer;
@@ -526,6 +569,18 @@ begin
     if (hRequest = nil) or FAborted then
       Exit;
 
+    if FIgnoreSSLError then
+    begin
+      // 忽略证书及吊销之类的错误
+      SecFlag := 0;
+      SecFlagLen := SizeOf(SecFlag);
+      if InternetQueryOption(hRequest, INTERNET_OPTION_SECURITY_FLAGS, @SecFlag, SecFlagLen) then
+      begin
+        SecFlag := SecFlag or SECURITY_FLAG_IGNORE_UNKNOWN_CA or SECURITY_FLAG_IGNORE_REVOCATION;
+        InternetSetOption(hRequest, INTERNET_OPTION_SECURITY_FLAGS, @SecFlag, SizeOf(SecFlag));
+      end;
+    end;
+
     if FDecoding and FDecodingValid then
       HttpAddRequestHeaders(hRequest, PChar(SAcceptEncoding),
         Length(SAcceptEncoding), HTTP_ADDREQ_FLAG_REPLACE or HTTP_ADDREQ_FLAG_ADD);
@@ -541,7 +596,105 @@ begin
       BufLen := SizeOf(SizeStr);
       Index := 0;
       HttpQueryInfo(hRequest, HTTP_QUERY_CONTENT_LENGTH, @SizeStr, BufLen, Index);
-        
+
+      if FAborted then Exit;
+
+      Result := GetStreamFromHandle(hRequest, StrToIntDef(SizeStr, -1), Stream);
+    end;
+  finally
+    if hRequest <> nil then InternetCloseHandle(hRequest);
+    if hConnect <> nil then InternetCloseHandle(hConnect);
+  end;
+end;
+
+function TCnInet.GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TBytes): Boolean;
+var
+  IsHttps: Boolean;
+  PathName: string;
+  hConnect, hRequest: HINTERNET;
+  SizeStr: array[0..63] of Char;
+  BufLen, Index: Cardinal;
+  I: Integer;
+  Port: Word;
+  Flag, SecFlag, SecFlagLen: Cardinal;
+  Verb: string;
+  POpt: PChar;
+  OptLen: Integer;
+begin
+  Result := False;
+  hConnect := nil;
+  hRequest := nil;
+  try
+    IsHttps := SameText(Info.Protocol, 'https');
+    if IsHttps then
+    begin
+      Port := StrToIntDef(Info.Port, INTERNET_DEFAULT_HTTPS_PORT);
+      Flag := INTERNET_FLAG_RELOAD or INTERNET_FLAG_SECURE or
+        INTERNET_FLAG_IGNORE_CERT_CN_INVALID or INTERNET_FLAG_IGNORE_CERT_DATE_INVALID;
+    end
+    else
+    begin
+      Port := StrToIntDef(Info.Port, INTERNET_DEFAULT_HTTP_PORT);
+      Flag := INTERNET_FLAG_RELOAD;
+    end;
+    if FNoCookie then
+      Flag := Flag + INTERNET_FLAG_NO_COOKIES;
+
+    hConnect := InternetConnect(FHSession, PChar(Info.Host), Port, nil, nil,
+      INTERNET_SERVICE_HTTP, 0, 0);
+    if (hConnect = nil) or FAborted then
+      Exit;
+
+    if Length(APost) > 0 then
+    begin
+      Verb := 'POST';
+
+      POpt := Pointer(@APost[0]);
+      OptLen := Length(APost);
+    end
+    else
+    begin
+      Verb := 'GET';
+      POpt := nil;
+      OptLen := 0;
+    end;
+
+    PathName := Info.PathName;
+    if EncodeUrlPath then
+      PathName := EncodeURL(PathName);
+    hRequest := HttpOpenRequest(hConnect, PChar(Verb), PChar(PathName),
+      HTTP_VERSION, nil, nil, Flag, 0);
+    if (hRequest = nil) or FAborted then
+      Exit;
+
+    if FIgnoreSSLError then
+    begin
+      // 忽略证书及吊销之类的错误
+      SecFlag := 0;
+      SecFlagLen := SizeOf(SecFlag);
+      if InternetQueryOption(hRequest, INTERNET_OPTION_SECURITY_FLAGS, @SecFlag, SecFlagLen) then
+      begin
+        SecFlag := SecFlag or SECURITY_FLAG_IGNORE_UNKNOWN_CA or SECURITY_FLAG_IGNORE_REVOCATION;
+        InternetSetOption(hRequest, INTERNET_OPTION_SECURITY_FLAGS, @SecFlag, SizeOf(SecFlag));
+      end;
+    end;
+
+    if FDecoding and FDecodingValid then
+      HttpAddRequestHeaders(hRequest, PChar(SAcceptEncoding),
+        Length(SAcceptEncoding), HTTP_ADDREQ_FLAG_REPLACE or HTTP_ADDREQ_FLAG_ADD);
+    for I := 0 to FHttpRequestHeaders.Count - 1 do
+      HttpAddRequestHeaders(hRequest, PChar(FHttpRequestHeaders[I]),
+        Length(FHttpRequestHeaders[I]), HTTP_ADDREQ_FLAG_REPLACE or HTTP_ADDREQ_FLAG_ADD);
+
+    if HttpSendRequest(hRequest, nil, 0, POpt, OptLen) then
+    begin
+      if FAborted then Exit;
+
+      FillChar(SizeStr, SizeOf(SizeStr), 0);
+      BufLen := SizeOf(SizeStr);
+      Index := 0;
+      HttpQueryInfo(hRequest, HTTP_QUERY_CONTENT_LENGTH, @SizeStr, BufLen, Index);
+
       if FAborted then Exit;
 
       Result := GetStreamFromHandle(hRequest, StrToIntDef(SizeStr, -1), Stream);
@@ -574,7 +727,46 @@ begin
   end;
 end;
 
+function TCnInet.GetString(const AURL: string; APost: TBytes): AnsiString;
+var
+  Stream: TMemoryStream;
+begin
+  try
+    Stream := TMemoryStream.Create;
+    try
+      if GetStream(AURL, Stream, APost) then
+      begin
+        SetLength(Result, Stream.Size);
+        Move(Stream.Memory^, PAnsiChar(Result)^, Stream.Size);
+      end
+      else
+        Result := '';
+    finally
+      Stream.Free;
+    end;
+  except
+    Result := '';
+  end;
+end;
+
 function TCnInet.GetFile(const AURL, FileName: string; APost: TStrings): Boolean;
+var
+  Stream: TFileStream;
+begin
+  try
+    Stream := TFileStream.Create(FileName, fmCreate or fmShareDenyWrite);
+    try
+      Stream.Size := 0;
+      Result := GetStream(AURL, Stream, APost);
+    finally
+      Stream.Free;
+    end;
+  except
+    Result := False;
+  end;
+end;
+
+function TCnInet.GetFile(const AURL, FileName: string; APost: TBytes): Boolean;
 var
   Stream: TFileStream;
 begin
