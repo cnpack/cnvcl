@@ -26,8 +26,9 @@ unit CnInetUtils;
 * 单元作者：周劲羽 (zjy@cnpack.org)
 * 备    注：定义了 TCnHTTP/TCnFTP，使用 WinInet 来读取 HTTP 与 FTP 数据，该类的
 *           网络请求方法是顺序调用各 API 的阻塞式的，因此建议在线程中调用
-*           ProxyServer 支持不指明协议的 127.0.0.1:80 方式，也支持指明协议的如
-*           socks5://127.0.0.1:1080 的方式，在 32 位、64 位、Unicode 版下通过。
+*           ProxyServer 支持不指明协议的 127.0.0.1:80 方式，但貌似不支持指明协议
+*           的如 socks5://127.0.0.1:1080 的方式，可能内部改为直连实现了。
+*           不指明协议的代理格式，在 32 位、64 位、Unicode 版下测试通过。
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式

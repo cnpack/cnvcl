@@ -25,7 +25,7 @@ unit CnSM4;
 * 单元名称：国产分组密码算法 SM4 单元
 * 单元作者：刘啸（liuxiao@cnpack.org)
 * 备    注：参考国密算法公开文档 SM4 Encryption alogrithm
-*           并参考移植 goldboar 的 C 代码*
+*           并参考移植 goldboar 的 C 代码
 *           本单元未处理对齐方式，默认只在末尾补 0，
 *           如需要 PKCS 之类的支持，，请在外部调用CnPemUtils 中的 PKCS 处理函数
 *           另外高版本 Delphi 中请尽量避免使用 AnsiString 参数版本的函数（十六进制除外），
