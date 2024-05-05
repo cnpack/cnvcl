@@ -77,8 +77,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs, TypInfo,
-  {$IFDEF SUPPORT_UNITNAME_DOT} Imaging.jpeg, {$ELSE} jpeg, {$ENDIF}
+  SysUtils, Classes, Contnrs, TypInfo, jpeg,
   CnNative, CnStrings, CnPDFCrypt;
 
 type
