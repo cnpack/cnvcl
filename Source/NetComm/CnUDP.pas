@@ -76,6 +76,9 @@ type
      Port       - 数据来源端口号
    |</PRE>}
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnUDP = class(TCnComponent)
   {* 使用非阻塞方式进行 UDP 通讯的类。支持广播、数据队列等。}
   private

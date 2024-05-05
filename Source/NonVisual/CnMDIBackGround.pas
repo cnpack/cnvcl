@@ -46,9 +46,11 @@ type
 
   TPaintImageEvent = procedure(Sender: TObject; ACanvas: TCanvas) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnMDIBackGround = class(TCnComponent)
   private
-    { Private declarations }
     OldWndProc: TFarProc;
     NewWndProc: Pointer;
 
@@ -72,7 +74,6 @@ type
     procedure SetDStyle(const Value: TCnBMPDisplayStyle);
     procedure SetMDIColor(const Value: TColor);
   protected
-    { Protected declarations }
     procedure HookWndProc(var AMsg: TMessage);
     procedure HookWnd;
     procedure UnHookWnd;
@@ -86,14 +87,12 @@ type
 
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
   public
-    { Public declarations }
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
     procedure DrawImage(ACanvas: TCanvas; AImage: TImage);
     procedure DrawLabel(ACanvas: TCanvas; ALabel: TLabel);
   published
-    { Published declarations }
     property Bitmap: TBitmap read FBitmap write SetBitmap;
     property BorderBottom: Integer read FBorderBottom write FBorderBottom;
     property BorderLeft: Integer read FBorderLeft write FBorderLeft;

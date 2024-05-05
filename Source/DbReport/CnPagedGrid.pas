@@ -50,6 +50,9 @@ type
   TOnPageChange = procedure(Sender: TObject; Page: Integer) of object; 
   {Class Inherit}
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnPagedGrid = class(TStringGrid)
   private
     {DataSource}

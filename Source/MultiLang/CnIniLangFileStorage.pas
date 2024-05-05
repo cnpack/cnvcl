@@ -82,6 +82,9 @@ type
     {* LanguagePath 改变时是否自动检测语言 }    
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnIniLangFileStorage = class(TCnCustomIniLangFileStorage)
   end;
 

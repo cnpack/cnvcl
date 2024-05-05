@@ -479,6 +479,9 @@ type
 
   TtransferType = (doNativeTransfer, doFileTransfer, doMemTransfer);
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnTwain = class(TComponent)
   private
     FAppID: TW_IDENTITY;

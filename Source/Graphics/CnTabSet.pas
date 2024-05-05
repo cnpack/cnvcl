@@ -51,6 +51,9 @@ type
   TCnTabSetTabHintEvent = procedure(Sender: TObject; Index: Integer;
     var HintStr: string) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnTabSet = class(TTabSet)
   private
     FDblClickClose: Boolean;

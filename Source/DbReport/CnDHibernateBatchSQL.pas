@@ -49,6 +49,9 @@ type
 
   TCnOnFinishOne = procedure(Sender: TObject; FinishedSQL: string) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnDHibernateBatchSQL = class(TComponent)
   private
     FConnection: TADOConnection;

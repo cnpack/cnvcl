@@ -354,6 +354,9 @@ type
   TOnRawKeyDown = procedure (Sender: TObject; Key: Word; FromKeyBoard: THandle) of object;
   TOnRawKeyUp = procedure (Sender: TObject; Key: Word; FromKeyBoard: THandle) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnRawKeyBoard = class(TComponent)
   private
     FHandle: THandle;

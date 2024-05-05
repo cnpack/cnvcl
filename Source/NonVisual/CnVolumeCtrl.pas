@@ -165,6 +165,9 @@ type
     property OnMuteChange: TCnMixMuteEvent read FOnMuteChange write FOnMuteChange;
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnVolumeCtrl = class(TCnCustomVolumeCtrl)
   {* 音量控制器组件}
   published

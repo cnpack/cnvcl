@@ -50,6 +50,9 @@ uses
   SysUtils, Classes, Windows, Graphics, Controls, ExtCtrls, Forms, Messages;
 
 type
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnLEDText = class(TGraphicControl)
   private
     FCellBorderColor: TColor;

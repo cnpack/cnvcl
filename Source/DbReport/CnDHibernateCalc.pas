@@ -78,6 +78,9 @@ type
     property Variables: TStrings read FVariables write SetVariables;
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnDHibernateCalculator = class(TComponent)
   private
     FFormula: string;

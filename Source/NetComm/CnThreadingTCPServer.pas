@@ -138,6 +138,9 @@ type
     {* 封装的供处理客户端使用的网络对象}
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnThreadingTCPServer = class(TCnComponent)
   {* 简单的多线程 TCP Server}
   private

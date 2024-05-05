@@ -95,6 +95,9 @@ type
 
   { TCnIp }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnIp = class(TCnComponent)
   private
     FIP: TCnIPInfo;

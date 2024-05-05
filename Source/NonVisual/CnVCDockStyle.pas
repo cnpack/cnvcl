@@ -77,6 +77,9 @@ type
   { VC分页服务器的选项类 }
   TCnVCTabServerOption = class(TCnBasicTabServerOption);
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnVCDockStyle = class(TCnAdvDockStyle)
   private
     FOldEachOtherDock: Boolean;

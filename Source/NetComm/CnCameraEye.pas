@@ -44,6 +44,9 @@ uses
   SysUtils, Classes, Controls, Windows, Messages;
 
 type
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnCameraEye = class(TComponent)
   private
     FDllHandle: THandle;

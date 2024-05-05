@@ -73,6 +73,9 @@ type
     property CodeLength: integer read FCodeLength write FCodeLength;
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnDHibernateIdGenerator = class(TCnIdGenerator)
   private
     FAbout: string;
@@ -88,6 +91,9 @@ type
 
   { TCnDHibernateQuery }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnDHibernateQuery = class(TADOQuery)
   private
     FIdGenerator: TCnIdGenerator;

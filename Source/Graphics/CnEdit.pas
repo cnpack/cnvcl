@@ -68,6 +68,9 @@ type
   TTextType = (NormalText, IntegerText, FloatText, IdentText); // 文本类型
   //           普通文本、  整数、       小数、     标识符
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnEdit = class(TEdit)
   private
     FButtonWidth: Integer;

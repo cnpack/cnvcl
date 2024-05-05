@@ -59,6 +59,9 @@ type
   TGetItemTextEvent = procedure(Sender: TObject; AOption: TCnOptionItem;
     var AText: string) of object; 
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnAOTreeView = class(TCustomTreeView)
   private
     FImageList: TImageList;

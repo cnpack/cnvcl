@@ -85,6 +85,9 @@ type
 
   THookActionListEvent = procedure(Sender: TObject; ActionList: TActionList) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnActionListHook = class(TCnComponent)
   private
     FActionListList: TList;

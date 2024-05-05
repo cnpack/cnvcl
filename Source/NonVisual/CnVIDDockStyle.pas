@@ -174,9 +174,12 @@ type
     property ShowTabImages: Boolean read GetShowTabImages write SetShowTabImages;
   end;
 
-  { 当TCnVIDConjoinServerOption的SystemInfo属性改变的时候触发这个事件 }
+  { 当 TCnVIDConjoinServerOption 的 SystemInfo 属性改变的时候触发这个事件 }
   TSystemInfoChange = procedure(Value: Boolean) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnVIDDockStyle = class(TCnAdvDockStyle)
   private
     FSystemInfoChange: TSystemInfoChange;

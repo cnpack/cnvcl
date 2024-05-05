@@ -22,7 +22,7 @@ unit CnADOUpdateSQLFrm;
 {* |<PRE>
 ================================================================================
 * 软件名称：CnPack组件包
-* 单元名称：CnADOUpdateSQL属性编辑器窗体
+* 单元名称：CnADOUpdateSQL 属性编辑器窗体
 * 单元作者：小夏
 * 备    注：
 * 开发平台：PWin2K SP3 + Delphi 7
@@ -84,7 +84,6 @@ type
     procedure mniSelectAll2Click(Sender: TObject);
     procedure mniClearAll2Click(Sender: TObject);    
   private
-    { Private declarations }
     FConnection: TADOConnection;
     FModifySQL: TStrings;
     FInsertSQL: TStrings;
@@ -100,7 +99,6 @@ type
     procedure SetInsertSQL(Value: TStrings);
     procedure SetDeleteSQL(Value: TStrings);
   public
-    { Public declarations }
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     property Connection: TADOConnection read GetConnection write SetConnection;
@@ -148,37 +146,37 @@ end;
 
 procedure TCnADOUpdateSQLForm.FormShow(Sender: TObject);
 var
-  i, j: Integer;
+  I, J: Integer;
 begin
   if FConnection <> nil then
   begin
     FConnection.GetTableNames(cbbTables.Items);
     if Trim(FModifySQL.Text) <> '' then
     begin
-      //从ModifySQL字符串中获取表名
+      // 从 ModifySQL 字符串中获取表名
       FTableName := {$IFDEF UNICODE}AnsiString{$ENDIF}(Trim(FModifySQL.Strings[0]));
       System.Delete(FTableName, 1, 7);
       FTableName := {$IFDEF UNICODE}AnsiString{$ENDIF}(Trim({$IFDEF UNICODE}String{$ENDIF}(FTableName)));
       cbbTables.ItemIndex := cbbTables.Items.IndexOf({$IFDEF UNICODE}String{$ENDIF}(FTableName));
 
-      //根据FTableName表名获取字段名
+      // 根据 FTableName 表名获取字段名
       FConnection.GetFieldNames({$IFDEF UNICODE}String{$ENDIF}(FTableName), lstKeyFields.Items);
       lstUpdateFields.Items.Text := lstKeyFields.Items.Text;
 
-      //根据FModifySQL来选中列表框字段
-      j := 0;
-      for i := 2 to FModifySQL.Count - 1 do
+      // 根据 FModifySQL 来选中列表框字段
+      J := 0;
+      for I := 2 to FModifySQL.Count - 1 do
       begin
-        if Trim(UpperCase(FModifySQL.Strings[i])) = 'WHERE' then
+        if Trim(UpperCase(FModifySQL.Strings[I])) = 'WHERE' then
         begin
-          j := i;
+          J := I;
           Break;
         end;
-        lstUpdateFields.Selected[lstUpdateFields.Items.IndexOf(Trim(Copy(FModifySQL.Strings[i], 1, Pos('=', FModifySQL.Strings[i]) - 1)))] := True;
+        lstUpdateFields.Selected[lstUpdateFields.Items.IndexOf(Trim(Copy(FModifySQL.Strings[I], 1, Pos('=', FModifySQL.Strings[I]) - 1)))] := True;
       end;
-      for i := j + 1 to FModifySQL.Count - 1 do
+      for I := J + 1 to FModifySQL.Count - 1 do
       begin
-        lstUpdateFields.Selected[lstUpdateFields.Items.IndexOf(Trim(Copy(FModifySQL.Strings[i], 1, Pos('=', FModifySQL.Strings[i]) - 1)))] := True;
+        lstUpdateFields.Selected[lstUpdateFields.Items.IndexOf(Trim(Copy(FModifySQL.Strings[I], 1, Pos('=', FModifySQL.Strings[I]) - 1)))] := True;
       end;
     end;
   end;
@@ -223,10 +221,10 @@ end;
 
 procedure TCnADOUpdateSQLForm.btnGenerateSQLClick(Sender: TObject);
 var
-  i, j: Integer;
+  I, J: Integer;
   sFieldName, sFieldNames, sValuesParams: AnsiString;
 begin
-  //必须选择主键（作为执行SQL语句的where条件）
+  // 必须选择主键（作为执行 SQL 语句的 where 条件）
   if lstKeyFields.SelCount = 0 then
   begin
     ClearValue;
@@ -234,14 +232,14 @@ begin
     Exit;
   end;
 
-  //必须选择要更新的字段
+  // 必须选择要更新的字段
   if lstUpdateFields.SelCount = 0 then
   begin
     MessageDlg('Please specify Update Fields.', mtInformation, [mbOK], 0);
     Exit;
   end;
 
-  //构造SQL语句
+  // 构造 SQL 语句
   FModifySQL.Clear;
   FInsertSQL.Clear;
   FDeleteSQL.Clear;
@@ -251,25 +249,26 @@ begin
   sFieldNames := '   (';
   sValuesParams := 'VALUES '#13#10'   (';
 
-  //构造字段名及字段参数
-  j := 0;
-  for i := 0 to lstUpdateFields.Items.Count - 1 do
+  // 构造字段名及字段参数
+  J := 0;
+  for I := 0 to lstUpdateFields.Items.Count - 1 do
   begin
-    if lstUpdateFields.Selected[i] then
+    if lstUpdateFields.Selected[I] then
     begin
-      sFieldName := {$IFDEF UNICODE}AnsiString{$ENDIF}(lstUpdateFields.Items.Strings[i]);
-      if (lstUpdateFields.SelCount - 1) <> j then //不是选中项的最后一项时
+      sFieldName := {$IFDEF UNICODE}AnsiString{$ENDIF}(lstUpdateFields.Items.Strings[I]);
+      if (lstUpdateFields.SelCount - 1) <> J then // 不是选中项的最后一项时
       begin
         FModifySQL.Add('    ' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' = :' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ',');
         sFieldNames := sFieldNames + sFieldName + ',';
         sValuesParams := sValuesParams + ':' + sFieldName + ',';
       end
-      else begin                                  //是选中项的最后一项时
+      else
+      begin                                  // 是选中项的最后一项时
         FModifySQL.Add('    ' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' = :' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName));
         sFieldNames := sFieldNames + sFieldName;
         sValuesParams := sValuesParams + ':' + sFieldName;
       end;
-      Inc(j);
+      Inc(J);
     end;
   end;
   FInsertSQL.Add({$IFDEF UNICODE}String{$ENDIF}(sFieldNames) + ')' + #13 + #10 + {$IFDEF UNICODE}String{$ENDIF}(sValuesParams) + ')');
@@ -277,14 +276,14 @@ begin
   FDeleteSQL.Add('DELETE FROM ' + cbbTables.Text);
   FDeleteSQL.Add(' WHERE ');
 
-  //构造Where条件的主键字段
-  j := 0;
-  for i := 0 to lstKeyFields.Items.Count - 1 do
+  // 构造 Where 条件的主键字段
+  J := 0;
+  for I := 0 to lstKeyFields.Items.Count - 1 do
   begin
-    if lstKeyFields.Selected[i] then
+    if lstKeyFields.Selected[I] then
     begin
-      sFieldName := {$IFDEF UNICODE}AnsiString{$ENDIF}(lstKeyFields.Items.Strings[i]);
-      if (lstKeyFields.SelCount - 1) <> j then //不是选中项的最后一项时
+      sFieldName := {$IFDEF UNICODE}AnsiString{$ENDIF}(lstKeyFields.Items.Strings[I]);
+      if (lstKeyFields.SelCount - 1) <> J then //不是选中项的最后一项时
       begin
         FModifySQL.Add('    ' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' = :OLD_' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' and ');
         FDeleteSQL.Add('    ' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' = :OLD_' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' and ');
@@ -293,7 +292,7 @@ begin
         FModifySQL.Add('    ' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' = :OLD_' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName));
         FDeleteSQL.Add('    ' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName) + ' = :OLD_' + {$IFDEF UNICODE}String{$ENDIF}(sFieldName));
       end;
-      Inc(j);
+      Inc(J);
     end;
   end;
 
@@ -329,9 +328,7 @@ end;
 procedure TCnADOUpdateSQLForm.PageControl1Change(Sender: TObject);
 begin
   if PageControl1.ActivePageIndex = 1 then
-  begin
     mmoSQLText.Lines.Text := FModifySQL.Text;
-  end;
 end;
 
 procedure TCnADOUpdateSQLForm.mniSelectAll1Click(Sender: TObject);

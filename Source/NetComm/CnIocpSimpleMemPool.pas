@@ -181,6 +181,9 @@ type
     {* 自定义在系统中释放内存的方法，默认实现采用 FreeMemory}
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnIocpSimpleMemPool = class(TCnCustomSimpleMemPool)
   published
     property MemorySize;

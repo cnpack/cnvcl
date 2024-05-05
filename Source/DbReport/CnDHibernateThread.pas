@@ -47,6 +47,9 @@ uses
 type
   TCnNotifyEventParams = procedure(Sender: TObject; params: ICnMap) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnDHibernateThread = class(TComponent)
   private
     FThreadCount: Integer;

@@ -175,6 +175,9 @@ type
 
   TCnDNSResponseEvent = procedure(Sender: TObject; Response: TCnDNSPacketObject) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnDNS = class(TCnComponent)
   {* DNS 收发包组件}
   private

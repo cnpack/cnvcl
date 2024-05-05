@@ -60,6 +60,9 @@ type
     注意不可超过原有的 DataSize。如将 DataSize 置 0，表示抛弃本次数据
     如果事件处理者设置了 NewBuf 和 NewDataSize，表示使用新起的一片数据，原始数据抛弃}
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnTCPForwarder = class(TCnThreadingTCPServer)
   {* TCP 端口转发组件，对每个客户端连接起两个线程}
   private

@@ -355,6 +355,9 @@ type
 
   TScriptLanguage = type string;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnActiveScriptSite = class(TCnComponent, IActiveScriptSite)
   private
     FUseSafeSubset: Boolean;
@@ -401,6 +404,9 @@ type
       False;
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnActiveScriptWindow = class(TCnActiveScriptSite, IActiveScriptSiteWindow)
   protected
     {IActiveSriptSiteWindow}

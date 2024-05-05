@@ -177,6 +177,9 @@ type
     property OnMouseLeave: TNotifyEvent read FOnMouseLeave write FOnMouseLeave;
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnButton = class(TCnCustomButton)
   published
     property Action;
@@ -237,6 +240,9 @@ type
     property OnStartDrag;
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnBitBtn = class(TCnCustomButton)
   published
     property Action;
@@ -301,6 +307,9 @@ type
     property OnStartDrag;
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnSpeedButton = class(TGraphicControl)
   private
     FGroupIndex: Integer;

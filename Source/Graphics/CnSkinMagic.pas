@@ -68,6 +68,9 @@ type
     {* 鼠标是否在当前控件中 }    
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnSkinMagic = class(TCnComponent)
   {* 运行期换皮肤组件，可不实例化而直接使用其类方法 }
   private

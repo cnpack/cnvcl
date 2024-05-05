@@ -46,14 +46,14 @@ uses
   StdCtrls, CnCalendar;
   
 type
-  TCnLunarDate = record //农历日期
+  TCnLunarDate = record // 农历日期
     Year: Integer;
     Month: Integer;
     Day: Integer;
-    IsLeap: Boolean; //闰月
+    IsLeap: Boolean;    // 闰月
   end;
 
-  TCnGanZhiDate = record //干支日期
+  TCnGanZhiDate = record // 干支日期
     Year: Integer;
     Month: Integer;
     Day: Integer;
@@ -73,9 +73,9 @@ type
     FTrailingTextColor: TColor;
     FSundayColor: TColor;
     FSaturdayColor: TColor;
-    FWeekTextColor: TColor;       //增加星期的字体颜色属性
-    FDaySelectColor: TColor;       //增加选择日期颜色属性
-    FDaySelectTextColor: TColor;       //增加选择日期字体颜色属性
+    FWeekTextColor: TColor;        // 增加星期的字体颜色属性
+    FDaySelectColor: TColor;       // 增加选择日期颜色属性
+    FDaySelectTextColor: TColor;   // 增加选择日期字体颜色属性
     procedure SetColor(Index: Integer; Value: TColor);
   public
     constructor Create(AOwner: TCnMonthCalendar);
@@ -89,25 +89,28 @@ type
     property SundayColor: TColor index 5 read FSundayColor write SetColor default clRed;
     property SaturdayColor: TColor index 6 read FSaturdayColor write SetColor default clMaroon;
     property WeekTextColor: TColor index 7 read FWeekTextColor write SetColor default clActiveCaption; 
-    //自己增加星期的字体颜色属性
+    // 自己增加星期的字体颜色属性
     property DaySelectColor: TColor index 8 read FDaySelectColor write SetColor default clActiveCaption;
-    //自己增加日期选择颜色属性
+    // 自己增加日期选择颜色属性
     property DaySelectTextColor: TColor index 9 read FDaySelectTextColor write SetColor default clWindowText; 
-    //自己增加日期选择字体颜色属性
+    // 自己增加日期选择字体颜色属性
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnMonthCalendar = class(TCustomControl)
   private
-    FDate: TDate; //月历当前指向的日期
+    FDate: TDate; // 月历当前指向的日期
     FViewDate: TDate;
     FCalColors: TCnCalColors;
     FYear: word;
     FMonth: word;
     FDay: word;
-    FFirstDate: TDate; //月历第一格日期
-    FTitleRect: TRect; //标题区
-    FWeekRect: TRect; //星期区
-    FDaysRect: TRect; //日期区
+    FFirstDate: TDate; // 月历第一格日期
+    FTitleRect: TRect; // 标题区
+    FWeekRect: TRect;  // 星期区
+    FDaysRect: TRect;  // 日期区
     FOldRect: TRect;
     FNeedUpdate: Boolean;
     FCellWidth: Integer;
@@ -119,14 +122,14 @@ type
     FDaySize: Integer;
     FLunarDaySize: Integer;
     FOnChange: TNotifyEvent;
-    lblPrevMonth: TLabel;                         //增加的动态建立一个Label
-    lblNextMonth: TLabel;                         //增加的动态建立一个Label
-    lblPrevYear: TLabel;                         //增加的动态建立一个Label
-    lblNextYear: TLabel;                         //增加的动态建立一个Label
+    lblPrevMonth: TLabel;                        // 增加的动态建立一个 Label
+    lblNextMonth: TLabel;                        // 增加的动态建立一个 Label
+    lblPrevYear: TLabel;                         // 增加的动态建立一个 Label
+    lblNextYear: TLabel;                         // 增加的动态建立一个 Label
     LBTextSize: Integer;
     FShowMonthButton: Boolean;
-    FShowYearButton: Boolean;                 //增加的动态建立一个label字体尺寸
-    procedure CalcRect; //计算各区以及字体大小
+    FShowYearButton: Boolean;                    // 增加的动态建立一个 Label 字体尺寸
+    procedure CalcRect; // 计算各区以及字体大小
     function CalcDayRect(ADate: TDate): TRect;
     procedure GetFirstDay;
     function GetMaxTextSize(S: string; W, H: Integer): Integer;
@@ -135,14 +138,13 @@ type
     procedure SetCalColors(Value: TCnCalColors);
     procedure SetCalStyle(Value: TCnCalStyle);
     procedure SetShowGanZhi(Value: Boolean);
-    procedure PrevMonthClick(Sender: TObject);  //增加的label单击事件
+    procedure PrevMonthClick(Sender: TObject);  // 增加的 Label 单击事件
     procedure NextMonthClick(Sender: TObject);
-    procedure PrevYearClick(Sender: TObject);  //增加的label单击事件
+    procedure PrevYearClick(Sender: TObject);   // 增加的 Label 单击事件
     procedure NextYearClick(Sender: TObject);
     procedure SetShowMonthButton(const Value: Boolean);
-    procedure SetShowYearButton(const Value: Boolean);  //增加的label单击事件
+    procedure SetShowYearButton(const Value: Boolean);  // 增加的 Label 单击事件
   protected
-    { Protected declarations }
     procedure CreateWnd; override;
     procedure Paint; override;
     procedure Resize; override;
@@ -157,15 +159,15 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    //算出农历, 传入公历日期, 返回农历日期
+    // 算出农历，传入公历日期，返回农历日期
     function ToLunar(TheDate: TDate): TCnLunarDate;
-    //求年柱，月柱，日柱TheDate为当天的公历日期)
+    // 求年柱，月柱，日柱 TheDate 为当天的公历日期)
     function GetGanZhi(TheDate: TDate): TCnGanZhiDate;
-    //取汉字日期
+    // 取汉字日期
     function FormatLunarDay(Day: Integer): string;
-    //汉字月份
+    // 汉字月份
     function FormatLunarMonth(Month: Integer; isLeap: Boolean): string;
-    //汉字年份
+    // 汉字年份
     function FormatLunarYear(Year: Integer): string;
     // 取得指定日期的节气
     function GetJieQi(TheDate: TDate): string;
@@ -184,7 +186,6 @@ type
     procedure FirstDayOfMonth;
     procedure LastDayOfMonth;
   published
-    { Published declarations }
     property Align;
     property Anchors;
     property BevelEdges;

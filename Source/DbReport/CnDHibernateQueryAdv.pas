@@ -49,6 +49,9 @@ uses
   CnDHibernatePodoList, CnDHibernateBase, TypInfo, CnDHibernateConsts, StrUtils, DBClient;
 
 type
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnDHibernateQueryAdvance = class(TClientDataSet)
   private
     FDHQuery: TCnDHibernateQuery;

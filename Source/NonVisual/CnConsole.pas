@@ -58,6 +58,9 @@ uses
       tbIntensity = $80;
 
 type
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnConsole = class(TCnComponent)
   private
     FConsoleTitle: string;

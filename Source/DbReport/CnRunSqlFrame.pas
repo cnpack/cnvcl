@@ -118,7 +118,6 @@ type
     procedure FrameResize(Sender: TObject);
     procedure CopyMenuClick(Sender: TObject);
   private
-    { Private declarations }
     OpenFile: string;
     //FindOptions: TSynSearchOptions;
     FindCount: integer;
@@ -148,7 +147,7 @@ type
     DataSourceList: TList;
     CustomShowGrid: boolean;
     RunEndProc: TRunSqlEvent;
-    { Public declarations }
+
     procedure GridResize(Sender: TObject);
     procedure Splitter1CanResize(Sender: TObject; var NewSize: Integer; var Accept: Boolean);
     procedure FreeRes;

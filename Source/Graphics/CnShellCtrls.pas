@@ -281,6 +281,9 @@ type
     property OnChange: TThreadMethod read FOnChange write SetOnChange;
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnShellChangeNotifier = class(TCnCustomShellChangeNotifier)
   published
     property NotifyFilters;
@@ -373,6 +376,9 @@ type
 
 { TCnShellTreeView }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnShellTreeView = class(TCnCustomShellTreeView)
   published
     property AutoContextMenus;
@@ -522,6 +528,9 @@ type
 
 { TCnShellListView }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnShellListView = class(TCnCustomShellListView)
   published
     property AutoContextMenus;

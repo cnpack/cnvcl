@@ -49,6 +49,9 @@ uses
 type
   TCnBlockKeyEvent = procedure(VirtualKey: Cardinal) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnKeyBlocker = class(TComponent)
   private
     FBlockCtrlAltDelete: Boolean;

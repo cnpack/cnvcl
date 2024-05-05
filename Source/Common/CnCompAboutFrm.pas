@@ -44,9 +44,9 @@ type
 
   TCnCompAboutForm = class(TForm)
   private
-    { Private declarations }
+
   public
-    { Public declarations }
+
   end;
 
   PCnAuthorInfo = ^TCnAuthorInfo;

@@ -41,6 +41,9 @@ uses
   SysUtils, Classes, Windows, Controls, Messages, ExtCtrls, Graphics;
 
 type
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnPanel = class(TPanel)
   private
     FBuffer: TBitmap;

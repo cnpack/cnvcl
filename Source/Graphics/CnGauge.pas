@@ -42,9 +42,11 @@ uses
   Windows, Messages, SysUtils, Classes, Controls, Graphics;
 
 type
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnGauge = class(TCustomControl)
   private
-    { Private declarations }
     FAutoResume: Boolean;  // 自动回绕
     FGradient:   Boolean;  // 使用渐变色
     FDrawFrame:  Boolean;  // 画边框

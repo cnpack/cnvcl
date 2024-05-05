@@ -77,7 +77,10 @@ uses
 type
   TCnOnImport = procedure of object;
 
-  TCnDHibernateImport = class(tcomponent)
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
+  TCnDHibernateImport = class(TComponent)
   private
     FColumnLine: integer;
     FSkipHead: integer;
@@ -91,9 +94,8 @@ type
     FAbout: string;
     function GetMap: TStrings;
     procedure SetMap(const Value: TStrings);
-    { Private declarations }
   protected
-    { Protected declarations }
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -149,13 +151,13 @@ end;
 
 function TCnDHibernateImport.Import: Integer;
 var
-  excel: OleVariant;
-  rowCnt: integer;
-  i, j: Integer;
+  Excel: OleVariant;
+  RowCnt: integer;
+  I, J: Integer;
   HMap: ICnMap;
-  n, v: string;
-  cell: string;
-  guid, g: string;
+  N, V: string;
+  Cell: string;
+  Guid, G: string;
   iv: string;
 begin
   Result := 0;
@@ -169,8 +171,8 @@ begin
   if FFileName = EmptyStr then
     raise TCnNoFileException.Create('No excel file found!');
   try
-    excel := CreateOleObject('excel.application');
-    excel.WorkBooks.Open(fFileName);
+    Excel := CreateOleObject('excel.application');
+    Excel.WorkBooks.Open(fFileName);
   except
     raise TCnNoExcelException.Create('Excel not installed!');
     Exit;
@@ -178,8 +180,8 @@ begin
   // get row count
   if FSheetName = Emptystr then
     raise TCnNoSheetNameException.Create('No sheet name found!');
-  rowCnt := excel.WorkSheets[FSheetName].UsedRange.Rows.Count;
-  excel.WorkSheets[FSheetName].Activate;
+  RowCnt := Excel.WorkSheets[FSheetName].UsedRange.Rows.Count;
+  Excel.WorkSheets[FSheetName].Activate;
 
   // create the adotable instance
   FADOTable := TADOTable.Create(nil);
@@ -195,66 +197,66 @@ begin
   // e.g.
   // InDate=GetDate()
   HMap := StringMapToHashMap(TStringList(FMap));
-  for i := FSkipHead + 1 to rowCnt do
+  for I := FSkipHead + 1 to RowCnt do
   begin
     FADOTable.Append;
-    for j := 0 to HMap.size - 1 do
+    for J := 0 to HMap.size - 1 do
     begin
-      n := HMap.gettable(j).hashName;
-      v := HMap.getTable(j).hashValue;
-      if StrToIntDef(v, -1) = -1 then
+      N := HMap.gettable(J).hashName;
+      V := HMap.getTable(J).hashValue;
+      if StrToIntDef(V, -1) = -1 then
       begin
         // expression
-        if v = 'GetDate()' then
+        if V = 'GetDate()' then
         begin
           // 取日期
-          FADOTable.FieldByName(n).Value := Now;
+          FADOTable.FieldByName(N).Value := Now;
         end
-        else if Pos('GUID', v) > 0 then
+        else if Pos('GUID', V) > 0 then
         begin
-          guid := GenerateGUID;
-          g := GuidRW(v, guid, i);
-          if g = 'w' then
-            FADOTable.FieldByName(n).Value := guid
+          Guid := GenerateGUID;
+          G := GuidRW(V, Guid, I);
+          if G = 'w' then
+            FADOTable.FieldByName(N).Value := Guid
           else
-            FADOTable.FieldByName(n).Value := g;
+            FADOTable.FieldByName(N).Value := G;
             // writeLog(table.TableName + ':' + guid + '-' + g);
         end
-        else if Pos('select', v) > 0 then
+        else if Pos('select', V) > 0 then
         begin
               // formula 字段属性
-          FADOTable.FieldByName(n).Value := GetFormulaValue(v, FADOTable);
+          FADOTable.FieldByName(N).Value := GetFormulaValue(V, FADOTable);
         end
-        else if (Pos('X-', v) > 0) and (Pos('if', v) <= 0) then
+        else if (Pos('X-', V) > 0) and (Pos('if', V) <= 0) then
         begin
                 // todo: 处理字段合并运算
-          FADOTable.FieldByName(n).Value := ExcelConvert(v, excel, i, HMap, FADOTable);
+          FADOTable.FieldByName(N).Value := ExcelConvert(V, Excel, I, HMap, FADOTable);
         end
-        else if pos('if', v) > 0 then
+        else if pos('if', V) > 0 then
         begin
                   // todo: 处理条件运算
-          FADOTable.FieldByName(n).Value := ExcelEventExpressions(v, excel, i, HMap, FADOTable);
+          FADOTable.FieldByName(N).Value := ExcelEventExpressions(V, Excel, I, HMap, FADOTable);
         end
         else
         begin
                   // 取表达式
           try
-            FADOTable.FieldByName(n).Value := GetExpressValue(v, FADOTable);
+            FADOTable.FieldByName(N).Value := GetExpressValue(V, FADOTable);
           except
                     // whether number?
-            if (LeftStr(v, 1) = '(') and (RightStr(v, 1) = ')') then
+            if (LeftStr(V, 1) = '(') and (RightStr(V, 1) = ')') then
             begin
-              iv := Copy(v, 2, Length(v) - 2);
+              iv := Copy(V, 2, Length(V) - 2);
               try
                 StrToInt(iv);
-                FADOTable.FieldByName(n).Value := StrToInt(iv);
+                FADOTable.FieldByName(N).Value := StrToInt(iv);
               except
                         // whether string
-                if LeftStr(v, 2) = '(''' then
-                  v := RightStr(v, Length(v) - 2);
-                if RightStr(v, 2) = ''')' then
-                  v := LeftStr(v, Length(v) - 2);
-                FADOTable.FieldByName(n).Value := v;
+                if LeftStr(V, 2) = '(''' then
+                  V := RightStr(V, Length(V) - 2);
+                if RightStr(V, 2) = ''')' then
+                  V := LeftStr(V, Length(V) - 2);
+                FADOTable.FieldByName(N).Value := V;
               end;
             end;
           end;
@@ -263,8 +265,8 @@ begin
       else
       begin
         // field
-        cell := excel.Cells[i, strToInt(v)].Value;
-        FADOTable.FieldByName(n).Value := Variant(cell);
+        Cell := Excel.Cells[I, strToInt(V)].Value;
+        FADOTable.FieldByName(N).Value := Variant(Cell);
       end;
     end;
     try
@@ -278,8 +280,8 @@ begin
   end;
   FADOTable.Close;
   FADOTable.Free;
-  excel.quit;
-  excel := Unassigned;
+  Excel.quit;
+  Excel := Unassigned;
 end;
 
 procedure TCnDHibernateImport.SetMap(const Value: TStrings);

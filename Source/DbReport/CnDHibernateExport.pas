@@ -48,7 +48,10 @@ uses
 type
   TCnOnExport = procedure of object;
 
-  TCnDHibernateExport = class(tcomponent)
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
+  TCnDHibernateExport = class(TComponent)
   private
     FSQL: string;
     FConnection: TAdoConnection;
@@ -58,9 +61,8 @@ type
     FAdoQuery: TADOQuery;
     FOnExport: TCnOnExport;
     FAbout: string; 
-    { Private declarations }
   protected
-    { Protected declarations }
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;

@@ -54,6 +54,9 @@ type
     property Connection: TADOConnection read GetConnection;
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnADOConPool = class(TCnCustomObjectPool)
   private
     FConnectionString: WideString;

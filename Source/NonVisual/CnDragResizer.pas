@@ -55,6 +55,9 @@ type
   TSizingEvent = procedure(Sender: TCnDragResizer; var NewLeft, NewTop, NewWidth,
     NewHeight: Integer) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnDragResizer = class(TComponent)
   protected
     FActive: Boolean;

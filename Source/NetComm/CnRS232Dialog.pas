@@ -119,7 +119,6 @@ type
     procedure ControlChanged(Sender: TObject);
     procedure cbShowHintClick(Sender: TObject);
   private
-    { Private declarations }
     FCommConfig: TCnRS232Config;
     FTimeouts: TCnRS232Timeouts;
     procedure SetCommConfig(const Value: TCnRS232Config);
@@ -129,7 +128,6 @@ type
     procedure ReadCommTimeouts;
     procedure WriteCommTimeouts;
   public
-    { Public declarations }
     property CommConfig: TCnRS232Config read FCommConfig write SetCommConfig;
     property CommTimeouts: TCnRS232Timeouts read FTimeouts write SetCommTimeouts;
   end;
@@ -146,6 +144,7 @@ type
      ckWin32:           - Win32标准风格
      ckExtended:        - 扩展对话框风格
    |</PRE>}
+
   TCnRS232DialogPages = set of (cpNormal, cpXonXoff, cpHardware, cpTimeouts);
   {* 串口设置对话框显示页面集合
    |<PRE>
@@ -154,6 +153,7 @@ type
      cpHardware:        - 硬件流量控制页面
      cpTimeouts:        - 超时设置页面
    |</PRE>}
+
   TCnRS232DialogShowHint = (csHint, csNoHint, csCheckHint, csCheckNoHint);
   {* 串口设置对话框工具提示信息显示方式
    |<PRE>
@@ -163,6 +163,9 @@ type
      csCheckNoHint:     - 由单选框决定，默认为不显示
    |</PRE>}
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnRS232Dialog = class(TCnComponent)
   {* RS232串口设置对话框组件。
    |<PRE>

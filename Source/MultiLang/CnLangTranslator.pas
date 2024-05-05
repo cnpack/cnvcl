@@ -55,6 +55,9 @@ type
     destructor Destroy; override;
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnLangTranslator = class(TCnCustomLangTranslator)
   end;
 

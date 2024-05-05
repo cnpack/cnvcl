@@ -60,6 +60,9 @@ type
   TCnStateChangeEvent = procedure (Sender: TObject; Node: TTreeNode;
     OldState, NewState: TCheckBoxState) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnCheckTreeView = class(TTreeView)
   private
     FStateImages: TImageList;

@@ -123,9 +123,11 @@ type
     Boolean) of object;
   TOnChange = procedure(Sender: TObject) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnWizardImage = class(TGraphicControl)
   private
-    { Private declarations }
     FItemIndex: Integer;
     FTopMargin: Integer;
     FHorizontalSpace: Integer;
@@ -184,21 +186,18 @@ type
     procedure AllocateRects;
     procedure FillBox(ACanvas: TCanvas; Index: Integer; Live: Boolean);
   protected
-    { Protected declarations }
     procedure Changed; overload;
     procedure Changed(Sender: TObject); overload;
     procedure Paint; override;
     procedure Click; override;
     property UpdateCount: Integer read FUpdateCount;
   public
-    { Public declarations }
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
     procedure BeginUpdate;
     procedure EndUpdate;
   published
-    { Published declarations }
     property Align;
     property Anchors;
     property Constraints;

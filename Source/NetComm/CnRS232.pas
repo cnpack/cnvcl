@@ -439,6 +439,9 @@ type
 
 { TCnRS232 }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnRS232 = class(TCnComponent)
   {* RS232 串口通讯组件。
    |<PRE>

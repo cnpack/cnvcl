@@ -278,6 +278,9 @@ type
   TCnThreadInPoolFinalizing = procedure(Sender: TCnThreadPool;
     Thread: TCnPoolingThread) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnThreadPool = class(TCnComponent)
   private
     FCSQueueManagment: TObject; // Hide TCnCriticalSection;

@@ -131,6 +131,9 @@ type
 
 { TWinampControl }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnWinampCtrl = class(TCnComponent)
   {* Winamp¿ØÖÆÆ÷×é¼þ}
   private

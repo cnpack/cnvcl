@@ -116,6 +116,9 @@ type
   ECnFilePackerException = class(Exception);
   {* 文件打包相关异常}
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnFilePacker = class(TCnComponent)
   {* 文件打包实现类}
   private

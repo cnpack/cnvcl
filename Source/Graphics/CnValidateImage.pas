@@ -41,6 +41,9 @@ uses
   SysUtils, Windows, Classes, Controls, Graphics, Forms, Messages, ExtCtrls;
 
 type
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnValidateImage = class(TPaintBox)
   private
     FPicture: TPicture;

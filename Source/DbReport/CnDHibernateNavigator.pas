@@ -55,6 +55,9 @@ type
 
   TCnOnBtnClick = procedure(Sender: TObject; Button: TCnDHibernateButtons) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnDHibernateNavigator = class(TCustomPanel)
   private
     FBtns: array[TCnDHibernateNavBtn] of TBitBtn;

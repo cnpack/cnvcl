@@ -91,7 +91,6 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
   private
-    { Private declarations }
     FMsg: string;
     Bmp: TBitmap;
     FMsgKind: TMsgKind;

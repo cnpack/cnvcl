@@ -59,9 +59,9 @@ type
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
   private
-    { Private declarations }
+
   public
-    { Public declarations }
+
   end;
 
 var

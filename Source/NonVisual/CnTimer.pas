@@ -100,6 +100,9 @@ type
 
 { TCnTimer }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnTimer = class(TCnComponent)
   {* 高精度定时器组件，使用方法类似 TTimer。}
   private
@@ -231,7 +234,10 @@ type
     Boolean) of object;
   {* 高精度定时器列表事件。Index 为产生事件的定时器子项序号，Handle 返回是否已处理，
      如果在事件中将 Handle 置为 true，将不产生该定时器子项事件}
-    
+
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnTimerList = class(TCnComponent)
   {* 高精度定时器列表组件，可以定义多个定时器。}
   private

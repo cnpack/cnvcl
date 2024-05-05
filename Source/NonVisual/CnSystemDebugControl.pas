@@ -141,6 +141,9 @@ type
   DBGKD_GET_VERSION64 = _DBGKD_GET_VERSION64;
   PDBGKD_GET_VERSION64 = ^_DBGKD_GET_VERSION64;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnSystemDebugControl = class(TComponent)
   private
     FKernelBase: Int64;

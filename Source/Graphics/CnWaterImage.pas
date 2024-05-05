@@ -57,6 +57,9 @@ type
 
   TCnRenderEvent = procedure (Sender: TObject; ABitmap: TBitmap) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnWaterImage = class(TGraphicControl)
   {* 水波效果图像控件 }
   private

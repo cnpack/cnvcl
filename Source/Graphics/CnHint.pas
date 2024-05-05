@@ -59,6 +59,9 @@ type
 
   THintMeasureRect = procedure(AHint: TCnHint; var Rect: TRect; Text: string) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnHint = class(TComponent)
   {* 控制所有 Hint 风格的控制组件}
   private
@@ -141,6 +144,9 @@ type
     property OnCancelHint: TNotifyEvent read FOnCancelHint write FOnCancelHint;
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnHintWindow = class(TComponent)
   {* 封装一 CnInternalHintWindow 的组件}
   private

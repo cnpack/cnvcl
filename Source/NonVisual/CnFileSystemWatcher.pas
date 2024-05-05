@@ -102,6 +102,9 @@ type
     property ChangeEvent : TFileDealMethod read FChangeEvent write FChangeEvent;
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnFileSystemWatcher = class(TCnComponent)
   private
     FActive: Boolean;

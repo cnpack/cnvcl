@@ -204,6 +204,9 @@ type
 
   TMenuPopupEvent = procedure (Sender: TObject; Menu: TPopupMenu) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnMenuHook = class(TCnComponent)
   private
     FMenuList: TObjectList;

@@ -82,6 +82,9 @@ type
 
   { TCnPing }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnPing = class(TCnComponent)
   {* 通过调用 ICMP.DLL 库中的函数来实现 Ping 功能。}
   private

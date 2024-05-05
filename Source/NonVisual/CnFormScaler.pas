@@ -67,9 +67,11 @@ uses
   CnConsts, CnClasses, CnCompConsts;
 
 type
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnFormScaler = class(TCnComponent)
   private
-    { Private declarations }
     FActive: Boolean;
     FScaled: Boolean;
     FDesignPPI: Integer;
@@ -117,7 +119,6 @@ type
     procedure UnHookFormWndProc;
     procedure SetFixFormConstrainsResizeBUG(const Value: Boolean);
   protected
-    { Protected declarations }
     procedure DefineProperties(Filer: TFiler); override;
     procedure Loaded; override;
     procedure Notification(AComponent: TComponent;
@@ -125,7 +126,6 @@ type
 
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;    
   public
-    { Public declarations }
     class function ScreenWorkRect: TRect;
     class function CaptionHeight(const bSmall: Boolean = False): Integer;
     class function NoClientHeight(F: TForm): Integer;
@@ -141,7 +141,6 @@ type
     procedure DoEffects;
     procedure ScaleDynamicControls;
   published
-    { Published declarations }
     property Active: Boolean read FActive write SetActive default True;
 
     property DesignPPI: Integer read GetDesignPPI write SetDesignPPI;
@@ -170,7 +169,7 @@ uses
 
 class function TCnFormScaler.ScreenWorkRect: TRect;
 begin
-  //Get work area
+  // Get work area
   {$IFDEF VCL_DOTNET}
   SystemParametersInfo(SPI_GETWORKAREA, 0, Result, 0);
   {$ELSE}
@@ -249,7 +248,7 @@ begin
     for I := 0 to F.ControlCount - 1 do
       DoWithControl(F.Controls[I]);
 
-    { //应该无需对窗体本身进行处理
+    { // 应该无需对窗体本身进行处理
     OldAnchors := F.Anchors;
     F.Anchors := [];
     F.Anchors := [akLeft, akTop, akRight, akBottom];
@@ -262,7 +261,7 @@ function TCnFormScaler.GetDesignTextHeight(Frm: TForm): Integer;
 var
   NewTH: Integer;
 begin
-  //Get Design-time TextHeight
+  // Get Design-time TextHeight
   if not Assigned(Frm) then
     Frm := FForm;
   NewTH := Frm.Canvas.TextHeight('0');
@@ -271,27 +270,27 @@ end;
 
 function TCnFormScaler.MultiPPI(const I: Integer; F: TForm): Integer;
 begin
-  //Calc New Size
+  // Calc New Size
   if not Assigned(F) then
     F := FForm;
 
-  //GetDesignTextHeight本身就是计算出来的结果,所以这么计算不因字体原因而影响
+  // GetDesignTextHeight本身就是计算出来的结果,所以这么计算不因字体原因而影响
   Result := MulDiv(I, F.Canvas.TextHeight('0'), GetDesignTextHeight(F));
-  { //分类处理虽然计算的快些，但是可能会不够精确
+  { // 分类处理虽然计算的快些，但是可能会不够精确
   if f = Owner then
-    //使用TextHeight不能正确处理字体变化过的情形
-    //Result := MulDiv(i, FForm.Canvas.TextHeight('0'), TextHeight)
+    // 使用TextHeight不能正确处理字体变化过的情形
+    // Result := MulDiv(i, FForm.Canvas.TextHeight('0'), TextHeight)
     Result := MulDiv(i, f.PixelsPerInch, FDesignPPI)
   else
-    //Result := MulDiv(i, f.PixelsPerInch, FDesignPPI);
-    //GetDesignTextHeight本身就是计算出来的结果,所以这么计算不因字体原因而影响
+    // Result := MulDiv(i, f.PixelsPerInch, FDesignPPI);
+    // GetDesignTextHeight本身就是计算出来的结果,所以这么计算不因字体原因而影响
     Result := MulDiv(i, f.Canvas.TextHeight('0'), GetDesignTextHeight(f));
   }
 end;
 
 constructor TCnFormScaler.Create(AOwner: TComponent);
 begin
-  //Must on TForm. TFrame not support yet.
+  // Must on TForm. TFrame not support yet.
 {$IFDEF DEBUG}
   CnDebugger.LogMsg('TCnFormScaler Create');
 {$ENDIF}
@@ -326,14 +325,14 @@ end;
 
 procedure TCnFormScaler.Loaded;
 begin
-  //Inplace OnCreate
+  // Inplace OnCreate
 {$IFDEF DEBUG}
   CnDebugger.LogMsg('TCnFormScaler Loaded');
 {$ENDIF}
   inherited Loaded;
   if csDesigning in ComponentState then
   begin
-    { //设计期获取这些值没有什么意义
+    { // 设计期获取这些值没有什么意义
     FDesignPPI := FForm.PixelsPerInch;
     FDesignClientWidth := FForm.ClientWidth;
     FDesignClientHeight := FForm.ClientHeight;
@@ -345,7 +344,7 @@ begin
   else
     DoEffects;
 
-  //HookFormWndProc;
+  // HookFormWndProc;
 end;
 
 procedure TCnFormScaler.DoEffects;
@@ -353,7 +352,7 @@ var
   PriorHeight, PriorWidth, iCaptionHeight: Integer;
   WorkRect: TRect;
 begin
-  //Change size
+  // Change size
 {$IFDEF DEBUG}
   CnDebugger.LogMsg('TCnFormScaler DoEffects');
 {$ENDIF}
@@ -376,7 +375,7 @@ begin
       (FDesignWidth <> 0) then
     begin
       iCaptionHeight := NoClientHeight(FForm);
-      //iCaptionHeight := CaptionHeight(BorderStyle in [bsToolWindow, bsSizeToolWin]) + Self.BorderWidth(FForm) * 2;
+      // iCaptionHeight := CaptionHeight(BorderStyle in [bsToolWindow, bsSizeToolWin]) + Self.BorderWidth(FForm) * 2;
       {
       MessageBox(0, PChar(
         IntToStr(FDesignClientWidth) + ',' +
@@ -404,10 +403,10 @@ begin
 
         ClientWidth := Min(MultiPPI(FDesignClientWidth, FForm), WorkRect.Right);
         ClientHeight := Min(MultiPPI(FDesignClientHeight, FForm), WorkRect.Bottom - iCaptionHeight);
-        //Delphi会自己调整ClientWidth的大小[因为需要Scaled的时，Width变化的时候会引起Height的变化]
+        // Delphi 会自己调整 ClientWidth的 大小（因为需要 Scaled 时，Width 变化的时候会引起 Height 的变化）
         ClientWidth := Min(MultiPPI(FDesignClientWidth, FForm), WorkRect.Right);
-        //Width := Min(MultiPPI(FDesignClientWidth, FForm) + Self.BorderWidth(FForm) * 2, WorkRect.Right);
-        //Height := Min(MultiPPI(FDesignClientHeight, FForm) + iCaptionHeight, WorkRect.Bottom - iCaptionHeight);
+        // Width := Min(MultiPPI(FDesignClientWidth, FForm) + Self.BorderWidth(FForm) * 2, WorkRect.Right);
+        // Height := Min(MultiPPI(FDesignClientHeight, FForm) + iCaptionHeight, WorkRect.Bottom - iCaptionHeight);
       end
       else
       begin
@@ -471,12 +470,12 @@ begin
     CnDebugger.LogMsg('TCnFormScaler EnableAlign');
 {$ENDIF}
     FScaled := True;
-  end; //end try and with
+  end;
 end;
 
 procedure TCnFormScaler.SetActive(const Value: boolean);
 begin
-  //when stored property Active is False, maybe cannot make it.
+  // when stored property Active is False, maybe cannot make it.
   FActive := Value;
 {$IFDEF DEBUG}
   if Value then
@@ -705,17 +704,17 @@ begin
       ctrl := TControl(FControlList.Items[i]);
       if (ctrl is TCustomForm) or (ctrl is TCustomFrame) then
       begin
-        //Do not scale form or frame
+        // Do not scale form or frame
       end
       else if ctrl is TWinControl then
       begin
         with TWinControl(ctrl) do
         begin
           ScaleBy(FForm.Canvas.TextHeight('0'), GetDesignTextHeight(FForm));
-          //不够精确
-          //ScaleBy(FForm.PixelsPerInch, DesignPPI);
-          //防止字体发生了变化
-          //ScaleBy(FForm.Canvas.TextHeight('0'), TextHeight);
+          // 不够精确
+          // ScaleBy(FForm.PixelsPerInch, DesignPPI);
+          // 防止字体发生了变化
+          // ScaleBy(FForm.Canvas.TextHeight('0'), TextHeight);
           Left := MultiPPI(Left, nil);
           Top := MultiPPI(Top, nil);
         end;
@@ -723,10 +722,10 @@ begin
       else with THackControl(ctrl) do
       begin
         ChangeScale(FForm.Canvas.TextHeight('0'), GetDesignTextHeight(FForm));
-        //不够精确
-        //ChangeScale(FForm.PixelsPerInch, DesignPPI);
-        //防止字体发生了变化
-        //ChangeScale(FForm.Canvas.TextHeight('0'), TextHeight);
+        // 不够精确
+        // ChangeScale(FForm.PixelsPerInch, DesignPPI);
+        // 防止字体发生了变化
+        // ChangeScale(FForm.Canvas.TextHeight('0'), TextHeight);
         Left := MultiPPI(Left, nil);
         Top := MultiPPI(Top, nil);
       end;
@@ -774,7 +773,7 @@ var
   Msg: TWMWindowPosChanging;
 begin
   Msg := TWMWindowPosChanging(Message);
-  //解决调整边界大小已经到了约束值之后的BUG
+  // 解决调整边界大小已经到了约束值之后的 BUG
   Windows.GetWindowRect(Msg.WindowPos.hwnd, aRect);
 
   if (Msg.WindowPos.flags and SWP_NOSIZE = 0) then

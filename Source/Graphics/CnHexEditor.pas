@@ -67,6 +67,9 @@ type
   TCnMouseObject = (moNone, moAddress, moHex, moChar);
 
 type
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnHexEditor = class(TCustomControl)
   private
     FFirstCmFontChanged: Boolean;

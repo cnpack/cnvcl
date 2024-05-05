@@ -98,9 +98,8 @@ type
 { TCnImage }
 
   TCnImage = class(TCnGraphicControl)
-  {* 用于测试CnPack图像类基础库的控件，功能类似于TImage}
+  {* 用于测试 CnPack 图像类基础库的控件，功能类似于 TImage}
   private
-    { Private declarations }
     FDrawStyle: TCnDrawMode;
     FBitmap: TCnBitmap;
     function GetSmoothFilter: Boolean;
@@ -110,18 +109,15 @@ type
     function GetFont: TCnFont;
     procedure SetFont(const Value: TCnFont);
   protected
-    { Protected declarations }
     procedure Paint; override;
     procedure SetTransparent(const Value: Boolean); override;
     function CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
     procedure OnChildChange(Sender: TObject); override;
   public
-    { Public declarations }
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     property Face;
   published
-    { Published declarations }
     property Align;
     property Anchors;
     property AutoSize;

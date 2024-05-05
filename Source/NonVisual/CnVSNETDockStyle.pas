@@ -264,6 +264,9 @@ type
   { TCnVSChannel 的类引用(类元) }
   TCnVSChannelClass = class of TCnVSChannel;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnVSNETDockStyle = class(TCnVIDDockStyle)
   private
     FCnChannelOption: TCnVSNETChannelOption;

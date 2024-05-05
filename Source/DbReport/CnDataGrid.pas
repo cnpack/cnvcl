@@ -55,30 +55,30 @@ type
   TCnDataRowList = class //数据行列表
   private
     FData: TList;
-    FFieldCount: integer;//字段数
+    FFieldCount: Integer;//字段数
     FFieldNames: Array of string;//用来保存字段名字
     function AllocRowData: PRowData;
     procedure FreeRowData(P: PRowData);
     function GetFieldName(Index: Integer): string;
-    procedure clear; //清除信息
+    procedure Clear; //清除信息
   protected
   public
     Constructor Create;
     destructor Destroy; override;
     property Data: TList read FData;
-    property FieldCount: integer read FFieldCount;
+    property FieldCount: Integer read FFieldCount;
     property FieldName[Index: Integer]: string read GetFieldName;
-    //使用给定的DataSet来填充行列表，Canceled指定用户是否取消了查询,普通的填充
-    Function FillRowListByNormal(DataSet: TCustomADODataSet;var Canceled: Boolean): boolean;
-    //使用微软的原生数据集进行绑定，全部交个OleDB自己去搞，速度要快些
-    function FillRowListByBinding(DataSet: TCustomADODataSet;Var Canceled: Boolean): boolean;
-    function FillRowList(DataSet: TCustomADoDataSet;Var Canceled: Boolean): boolean;
+    // 使用给定的 DataSet 来填充行列表，Canceled 指定用户是否取消了查询，普通的填充
+    Function FillRowListByNormal(DataSet: TCustomADODataSet;var Canceled: Boolean): Boolean;
+    // 使用微软的原生数据集进行绑定，全部交给 OleDB 自己去搞，速度要快些
+    function FillRowListByBinding(DataSet: TCustomADODataSet;Var Canceled: Boolean): Boolean;
+    function FillRowList(DataSet: TCustomADoDataSet;Var Canceled: Boolean): Boolean;
   end;
 
   TCnDataGrid = class(TDrawGrid)
   private
     FFlat: Boolean;
-    FBorderWidth: integer;
+    FBorderWidth: Integer;
     FOldTopRow: Integer;
     FDataSet: TCustomADODataSet;
     FSelectCellStr: string;
@@ -97,34 +97,29 @@ type
     function GetSelectionText: string;
     procedure AdjustColumns;
     procedure AdjustColumn(ACol: Integer);
-    { Private declarations }
   protected
-    { Protected declarations }
     procedure ChangeGridOrientation(RightToLeftOrientation: Boolean);
-    procedure DrawBorder; virtual;//用来处理网格边框
+    procedure DrawBorder; virtual; // 用来处理网格边框
     procedure Paint; override;
-    function IsActiveControl: Boolean; //是否是活动控件
+    function IsActiveControl: Boolean; // 是否是活动控件
     procedure TopLeftChanged; override;
     procedure DrawCell(ACol, ARow: Longint; ARect: TRect;
       AState: TGridDrawState); override;
-    function SelectCell(ACol, ARow: Longint): Boolean; override;//用来处理移动DataSet
+    function SelectCell(ACol, ARow: Longint): Boolean; override; //用来处理移动 DataSet
     procedure CreateParams(var Params: TCreateParams); override;
-    // 设置数据.
+    // 设置数据
     procedure SetData{(Data: TCnDataRowList)};
   public
-    { Public declarations }
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
     property SelectCellStr: string read FSelectCellStr;
 
-    // 数据行个数.
     property DataRowCount: Integer read GetDataRowCount;
-
-    // 选中的文本. 字段之间用TAB分隔, 行之间用CRLF分隔.
+    {* 数据行数}
     property SelectionText: string read GetSelectionText;
-
+    {* 选中的文本。字段之间用 TAB 分隔，行之间用 CRLF 分隔}
   published
-    { Published declarations }
     property Align;
     property Anchors;
     property BiDiMode;
@@ -287,39 +282,6 @@ begin
   inherited Destroy;
 end;
 
-{procedure TCnDataGrid.DoAfterScroll;
-var
-  tempbk,Bk: TBookmark;//用来保存用户移动之后的位置
-  iRow: integer;
-begin
-  if assigned(FAfterScroll) then //执行用户函数
-    FAfterScroll(FDataSet);
-  //这里会搞成死循环，还是加个行列表进来算了，郁闷
- { Bk := FDataSet.GetBookmark;
-  MoveFlag := true;
-  if MoveFlag then
-  begin
-    FDataSet.First;
-    iRow := 0;
-    while not FDataSet.Eof do
-    begin
-       tempBk := FDataSet.GetBookmark;
-       if tempBk <> Bk then  //比较两个的位置，如果不等则将行数加1
-         iRow := iRow + 1
-       else
-         break;
-       FDataSet.Next;
-    end;
-  end;
-end;}
-
-{procedure TCnDataGrid.DoBeforeScroll;
-begin
-  //MoveFlag := false;
-  if assigned(FBeforeScroll) then //执行用户函数
-    FBeforeScroll(FDataSet);
-end; }
-
 procedure TCnDataGrid.DrawBorder;
 var
   DC: HDC;
@@ -363,22 +325,22 @@ begin
   else if (ACol = 0) and (ARow > 0) and (FRows.Data.Count > 0) then
   begin
     // Indicator.
-    S := IntToStr(ARow); //写第一列中的数字
+    S := IntToStr(ARow); // 写第一列中的数字
   end
   else
   begin
-    J := ARow - 1; //因为前面多一个fixCol和一个FixRow，而i,j从0开始
+    J := ARow - 1; //因为前面多一个 FixCol 和一个 FixRow，而 I J 从 0 开始
     I := ACol - 1;
     if (J < 0) or (I < 0) or (J >= FRows.Data.Count) or (I >= FRows.FieldCount) then
     begin
       inherited;
       Exit;
     end;
-    S := GetString(I, J); //否则就得到对应位置上的值
+    S := GetString(I, J); // 否则就得到对应位置上的值
   end;
 
   DrawText(Canvas.Handle, PChar(S), Length(S), ARect,
-            DT_VCENTER or DT_SINGLELINE or DT_LEFT);//开始写字
+    DT_VCENTER or DT_SINGLELINE or DT_LEFT); // 开始写字
 end;
 
 function TCnDataGrid.GetDataRowCount: Integer;
@@ -403,7 +365,6 @@ begin
     S := S + #13#10;
   end;
   Result := S;
-
 end;
 
 function TCnDataGrid.GetString(ACol, ARow: Integer): string;
@@ -441,7 +402,6 @@ end;
 
 procedure TCnDataGrid.Paint;
 type
-//  TPointArray = array of TPoint;
   TIntArray = array of Integer;
 var
   LineColor: TColor;
@@ -459,7 +419,7 @@ var
   procedure DrawLines(DoHorz, DoVert: Boolean; Col, Row: Longint;
     const CellBounds: array of Integer; OnColor, OffColor: TColor);
 
-  { Cellbounds is 4 integers: StartX, StartY, StopX, StopY
+  { Cellbounds is 4 Integers: StartX, StartY, StopX, StopY
     Horizontal lines:  MajorIndex = 0
     Vertical lines:    MajorIndex = 1 }
 
@@ -759,7 +719,7 @@ end;
 
 procedure TCnDataGrid.SetDataSet(DataSet: TCustomADODataSet);
 var
-  Cancle: boolean;
+  Cancle: Boolean;
 begin
   if FDataSet <> DataSet then
   begin
@@ -835,11 +795,11 @@ begin
 end;
 
 function TCnDataRowList.FillRowListByNormal(DataSet: TCustomADODataSet;
-  var Canceled: Boolean): boolean;
+  var Canceled: Boolean): Boolean;
 var
   Value: OleVariant;
   P: PRowData;
-  i: integer;
+  i: Integer;
   function IsCanceled: Boolean;
   begin
     Result := Canceled;
@@ -870,7 +830,7 @@ begin
 end;
 
 function TCnDataRowList.FillRowListByBinding(DataSet: TCustomADODataSet;
-  var Canceled: Boolean): boolean;
+  var Canceled: Boolean): Boolean;
 var
   Binding: TADOBinding;
   I: Integer;
@@ -1004,7 +964,7 @@ begin
 end;
 
 function TCnDataRowList.FillRowList(DataSet: TCustomADoDataSet;
-  var Canceled: Boolean): boolean;
+  var Canceled: Boolean): Boolean;
 var
   I: Integer;
 //  Ver: Double;
@@ -1039,7 +999,7 @@ begin
 
 end;
 
-procedure TCnDataRowList.clear;
+procedure TCnDataRowList.Clear;
 var
   I: Integer;
   P: PRowData;

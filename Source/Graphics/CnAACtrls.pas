@@ -83,6 +83,9 @@ type
 
 { TAALabel }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnAALabel = class(TCnAAGraphicControl)
   {* 平滑特效字体标签控件，用于显示单行文本，在控件的 Effect 属性中定义了所有与
      特效显示相关的设置。
@@ -176,6 +179,9 @@ type
 
   TCnFadeStyle = (fsNone, fsIn, fsOut);
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnAALinkLabel = class(TCnAALabel)
   {* 平滑特效超链接标签控件，用于显示超链接，支持切换时的淡入淡出效果}
   private
@@ -256,6 +262,9 @@ type
 
 { TCnAAText }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnAAText = class(TCnAACustomText)
   {* 平滑特效文本控件，用于显示多行文本，通过使用标签，允许每行文本使用不同的
      对齐方式和字体特效。}
@@ -356,6 +365,9 @@ type
 
 { TCnAAScrollText }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnAAScrollText = class(TCnAACustomText)
   {* 平滑滚动文本控件，用于多行文本的动态滚动显示}
   private
@@ -439,6 +451,9 @@ type
   
 { TCnAAMarqueeText }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnAAMarqueeText = class(TCnAAGraphicControl)
    {* 平滑字幕文本控件，用于文本的水平滚动显示}
   private
@@ -546,6 +561,9 @@ type
 
 { TCnAAFadeText }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnAAFadeText = class(TCnAACustomText)
   {* 平滑特效渐隐文本控件，用于多行文本的淡入淡出切换显示}
   private

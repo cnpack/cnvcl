@@ -139,6 +139,9 @@ type
     {* 自定义加载文件事件 }
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnHashLangFileStorage = class(TCnCustomHashLangStorage)
   published
     property StorageMode;

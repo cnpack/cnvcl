@@ -45,6 +45,9 @@ type
   TButtonKind = (bkCustom, bkLookup, bkDropDown, bkAccept, bkReject,
     bkFolder, bkFind);
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnButtonEdit = class(TCustomMemo)
   private
     FButtonVisible: Boolean;

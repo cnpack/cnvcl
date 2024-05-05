@@ -76,7 +76,10 @@ type
     procedure RClick;
   end;
 
-  TCnTaskBar = Class(TComponent) 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
+  TCnTaskBar = class(TComponent)
   {* 任务栏操作组件}
   private
     FTrayBtnList, FTaskBtnList: TStringList;

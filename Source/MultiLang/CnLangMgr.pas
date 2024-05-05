@@ -280,6 +280,9 @@ type
     {* 翻译一对象的某个属性时的事件 }
   end;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnLangManager = class(TCnCustomLangManager)
   {* 具有窗体翻译能力的多语言管理器 }
   published

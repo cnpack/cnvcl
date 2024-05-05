@@ -57,6 +57,9 @@ type
   TOnSelectedColor = procedure(Sender: TObject; const Color: TColor) of object;
 
 type
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnColorGrid = class(TDrawGrid)
   private
     FAutoSize: Boolean;

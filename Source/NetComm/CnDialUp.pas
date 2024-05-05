@@ -149,6 +149,9 @@ type
 type
   TOnStatusEvent = procedure(Sender: TObject; MessageText: string; Error: Boolean) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnDialUp = class(TComponent)
   private
     FTimer: TTimer;

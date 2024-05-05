@@ -47,6 +47,9 @@ type
   TCnConnectionType = (ctConnection, ctDataSet, ctProvider);
   {* 通过哪种数据集连接}
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnADOUpdateSQL = class(TCnComponent)
   private
     FConnection: TADOConnection;

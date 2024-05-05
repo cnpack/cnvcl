@@ -24,14 +24,13 @@ unit CnModem;
 * 软件名称：网络通讯组件包
 * 单元名称：CnModem标准调制解调器组件单元
 * 单元作者：周劲羽 (zjy@cnpack.org)
-* 备    注：CnModem组件由CnRS232串口通讯组件派生而来
-*           提供利用AT命令通过串口直接操作调制解调器的功能
+* 备    注：CnModem 组件由 CnRS232 串口通讯组件派生而来
+*           提供利用 AT 命令通过串口直接操作调制解调器的功能
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2002.04.08 V1.0
-*                创建单元
-*                增加注释
+*                创建单元，增加注释
 ================================================================================
 |</PRE>}
 
@@ -53,11 +52,11 @@ type
 
   TDialResult = (drConnect, drOpenCommFail, drNoModem, drNoDialtone, drBusy,
     drNoAnswer, drNoCarrier, drTimeout, drUnknow);
-  {* Modem拨号结果类型
+  {* Modem 拨号结果类型
    |<PRE>
      drConnect:         - 连接成功
      drOpenCommFail:    - 打开串口失败
-     drNoModem:         - 没有检测到Modem
+     drNoModem:         - 没有检测到 Modem
      drNoDialtone:      - 无拨号音
      drBusy:            - 检测到忙信号
      drNoAnswer:        - 无应答信号
@@ -68,7 +67,7 @@ type
 
   TATResult = (arOk, arConnect, arRing, arNoCarrier, arError, arNoDialtone,
     arBusy, arNoAnswer, arTimeout, arUnknow);
-  {* AT命令执行结果类型
+  {* AT 命令执行结果类型
    |<PRE>
      arOk:              - 成功
      arConnect:         - 已连接
@@ -92,11 +91,11 @@ type
    |</PRE>}
 
   TRingEvent = procedure(Sender: TObject; var Answer: Boolean) of object;
-  {* 接收到振铃事件，变量参数Answer决定是否应答}
+  {* 接收到振铃事件，变量参数 Answer 决定是否应答}
   TConnectEvent = procedure(Sender: TObject; Rate: Integer) of object;
-  {* 已连接成功事件，参数Rate为连接速度}
+  {* 已连接成功事件，参数 Rate 为连接速度}
   TInvalidCommandEvent = procedure(Sender: TObject; const Command: string) of object;
-  {* 非法的AT命令事件，参数为出错的命令行}
+  {* 非法的 AT 命令事件，参数为出错的命令行}
   TModemState = (msUnknow, msOffline, msOnline, msOnlineCommand, msConnecting);
   {* 当前Modem状态类型
    |<PRE>
@@ -107,12 +106,15 @@ type
      msConnecting:      - 正在连接状态
    |</PRE>}
   TStateChangeEvent = procedure(Sender: TObject; State: TModemState) of object;
-  {* 当前Modem状态改变事件}
+  {* 当前 Modem 状态改变事件}
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnModem = class(TCnRS232)
   {* 标准调制解调器通讯组件
    |<PRE>
-     * 组件由TCnRS232派生而来，通过向串口发送AT命令来控制标准 Modem 通讯。
+     * 组件由 TCnRS232 派生而来，通过向串口发送AT命令来控制标准 Modem 通讯。
      * 使用时可直接调用 Dial 方法进行拨号连接，拨号完成返回执行结果。
      * 当 Modem 检测到振铃信号时，产生 OnRing 事件。
      * Hangup 方法可挂机拆除连接，通讯时如果连接中断，将产生 OnDisConnect 事件。
@@ -120,7 +122,6 @@ type
      * 只有当 Modem 处于在线状态时，收到数据才会产生 OnReceiveData 事件。
    |</PRE>}
   private
-    { Private declarations }
     FCheckDialtone: Boolean;
     FCheckBusy: Boolean;
     FAutoAnswer: Boolean;
@@ -151,7 +152,6 @@ type
     function SendATOk(AT: string; Delay: Cardinal = 200): Boolean;
     function StrToIntEx(const Str: string): Integer;
   protected
-    { Protected declarations }
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
 
     function CommOpened: Boolean;
@@ -168,19 +168,18 @@ type
     function Answer: TDialResult;
     property ModemState: TModemState read FModemState write SetModemState;
   public
-    { Public declarations }
     procedure Assign(Source: TPersistent); override;
     {* 对象赋值方式}
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function InitModem: Boolean;
-    {* 初始化Modem，一般不需要手工调用}
+    {* 初始化 Modem，一般不需要手工调用}
     function Dial(const Number: string): TDialResult;
     {* 拨号方法，参数为对方电话机号码}
     procedure WriteATCommand(const Command: string; Return: Boolean = True);
-    {* 写AT命令方法，允许用户手工向 Modem 发送AT命令。
+    {* 写 AT 命令方法，允许用户手工向 Modem 发送 AT 命令。
      |<PRE>
-       Command: string  - AT命令行
+       Command: string  - AT 命令行
        Return: Boolean  - 是否自动在命令行末尾增加回车，默认为是
      |</PRE>}
     procedure Hangup;
@@ -317,33 +316,33 @@ end;
 function TCnModem.StrToIntEx(const Str: string): Integer;
 var
   SInt: string;
-  i: Integer;
+  I: Integer;
 begin
   SInt := '';
-  for i := 1 to Length(Str) do
-    if {$IFDEF UNICODE}CharInSet(Str[i], ['0'..'9']){$ELSE}Str[i] in ['0'..'9']{$ENDIF} then // 仅取数字字符
-      SInt := SInt + Str[i];
+  for I := 1 to Length(Str) do
+    if {$IFDEF UNICODE}CharInSet(Str[I], ['0'..'9']){$ELSE}Str[I] in ['0'..'9']{$ENDIF} then // 仅取数字字符
+      SInt := SInt + Str[I];
   if SInt <> '' then
     Result := StrToInt(SInt)
   else
     Result := 0;
 end;
 
-// 发送AT命令到串口
+// 发送 AT 命令到串口
 procedure TCnModem.WriteATCommand(const Command: string; Return: Boolean);
 var
-  s: AnsiString;
+  S: AnsiString;
 begin
   if (csDesigning in ComponentState) or not CommOpened then
     Exit;
   if Return then
-    s := {$IFDEF UNICODE}AnsiString{$ENDIF}(Command) + #13
+    S := {$IFDEF UNICODE}AnsiString{$ENDIF}(Command) + #13
   else
-    s := {$IFDEF UNICODE}AnsiString{$ENDIF}(Command);
-  WriteCommData(PAnsiChar(s), Length(s));
+    S := {$IFDEF UNICODE}AnsiString{$ENDIF}(Command);
+  WriteCommData(PAnsiChar(S), Length(S));
 end;
 
-// 等待一条AT命令执行结果
+// 等待一条 AT 命令执行结果
 function TCnModem.WaitATResult(Delay: Cardinal): string;
 var
   Tick: Cardinal;
@@ -361,25 +360,25 @@ begin
   end;
 end;
 
-// 发送一条AT命令，返回是否成功
+// 发送一条 AT 命令，返回是否成功
 function TCnModem.SendATOk(AT: string; Delay: Cardinal): Boolean;
 var
-  i, j: Integer;
-  s: string;
+  I, J: Integer;
+  S: string;
 begin
   Result := False;
-  for i := 0 to 2 do
+  for I := 0 to 2 do
   begin
     WriteATCommand(AT);
-    for j := 0 to 2 do
+    for J := 0 to 2 do
     begin
-      s := Trim(UpperCase(WaitATResult(Delay)));
-      if Pos('OK', s) > 0 then
+      S := Trim(UpperCase(WaitATResult(Delay)));
+      if Pos('OK', S) > 0 then
       begin
         Result := True;
         Exit;
       end
-      else if Pos('ERROR', s) > 0 then
+      else if Pos('ERROR', S) > 0 then
       begin
         InvalidCommand(AT);
         Exit;
@@ -391,18 +390,18 @@ end;
 // 接收到数据
 procedure TCnModem.ReceiveData(Buffer: PAnsiChar; BufferLength: WORD);
 var
-  s: AnsiString;
+  S: AnsiString;
 begin
-  if FWaitATResult then       // 正在等待AT命令执行结果
+  if FWaitATResult then       // 正在等待 AT 命令执行结果
   begin
     FATResult := {$IFDEF UNICODE}String{$ENDIF}(Buffer);
     Exit;
   end;
-  s := Buffer;
-  s := {$IFDEF UNICODE}AnsiString{$ENDIF}(Trim(UpperCase({$IFDEF UNICODE}String{$ENDIF}(s))));
-  if (ModemState in [msOffline, msOnlineCommand, msConnecting]) and (s = 'RING') then
+  S := Buffer;
+  S := {$IFDEF UNICODE}AnsiString{$ENDIF}(Trim(UpperCase({$IFDEF UNICODE}String{$ENDIF}(S))));
+  if (ModemState in [msOffline, msOnlineCommand, msConnecting]) and (S = 'RING') then
     Ring                      // 振铃信号
-  else if (ModemState = msOnline) and (s = 'NO CARRIER') then
+  else if (ModemState = msOnline) and (S = 'NO CARRIER') then
     DisConnect                // 载波丢失
   else
     inherited;
@@ -411,7 +410,7 @@ end;
 // 拨号
 function TCnModem.Dial(const Number: string): TDialResult;
 var
-  s: string;
+  S: string;
 begin
   if not OpenComm then
   begin
@@ -423,23 +422,23 @@ begin
   begin
     WriteATCommand('ATD' + Number);
     ModemState := msConnecting;
-    s := Trim(UpperCase(WaitATResult(Round(WaitCarrierTime * 1000 * 1.2))));
-    if Pos('CONNECT', s) > 0 then
+    S := Trim(UpperCase(WaitATResult(Round(WaitCarrierTime * 1000 * 1.2))));
+    if Pos('CONNECT', S) > 0 then
     begin
       Result := drConnect;
-      FConnectRate := StrToIntEx(s);
+      FConnectRate := StrToIntEx(S);
       ModemState := msOnline;
       Exit;
     end;
-    if Pos('NO DIALTONE', s) > 0 then
+    if Pos('NO DIALTONE', S) > 0 then
       Result := drNoDialtone
-    else if Pos('BUSY', s) > 0 then
+    else if Pos('BUSY', S) > 0 then
       Result := drBusy
-    else if Pos('NO CARRIER', s) > 0 then
+    else if Pos('NO CARRIER', S) > 0 then
       Result := drNoCarrier
-    else if Pos('NO ANSWER', s) > 0 then
+    else if Pos('NO ANSWER', S) > 0 then
       Result := drNoAnswer
-    else if s = '' then
+    else if S = '' then
       Result := drTimeout
     else
       Result := drUnknow;
@@ -450,31 +449,31 @@ end;
 // 应答
 function TCnModem.Answer: TDialResult;
 var
-  s: string;
+  S: string;
 begin
   Result := drUnknow;
   if CommOpened and (ModemState = msOffline) then
   begin
     WriteATCommand('ATA');
     ModemState := msConnecting;
-    s := Trim(UpperCase(WaitATResult(Round(WaitCarrierTime * 1000 * 1.2))));
-    if Pos('CONNECT', s) > 0 then
+    S := Trim(UpperCase(WaitATResult(Round(WaitCarrierTime * 1000 * 1.2))));
+    if Pos('CONNECT', S) > 0 then
     begin
-      FConnectRate := StrToIntEx(s);
+      FConnectRate := StrToIntEx(S);
       ModemState := msOnline;
       Connect(FConnectRate);
       Result := drConnect;
       Exit;
     end;
-    if Pos('NO DIALTONE', s) > 0 then
+    if Pos('NO DIALTONE', S) > 0 then
       Result := drNoDialtone
-    else if Pos('BUSY', s) > 0 then
+    else if Pos('BUSY', S) > 0 then
       Result := drBusy
-    else if Pos('NO CARRIER', s) > 0 then
+    else if Pos('NO CARRIER', S) > 0 then
       Result := drNoCarrier
-    else if Pos('NO ANSWER', s) > 0 then
+    else if Pos('NO ANSWER', S) > 0 then
       Result := drNoAnswer
-    else if s = '' then
+    else if S = '' then
       Result := drTimeout
     else
       Result := drUnknow;
@@ -578,7 +577,7 @@ begin
     Answer;
 end;
 
-// 设置Modem状态
+// 设置 Modem 状态
 procedure TCnModem.SetModemState(const Value: TModemState);
 begin
   if FModemState <> Value then
@@ -682,7 +681,7 @@ const
   csWaitCarrierTime = 'WaitCarrierTime';
   csInitATCommand = 'InitATCommand';
 
-// 从INI中读参数
+// 从 INI 中读参数
 procedure TCnModem.ReadFromIni(Ini: TCustomIniFile;
   const Section: string);
 begin
@@ -701,7 +700,7 @@ begin
     FInitATCommand := '';
 end;
 
-// 写参数到INI
+// 写参数到 INI
 procedure TCnModem.WriteToIni(Ini: TCustomIniFile; const Section: string);
 begin
   inherited;

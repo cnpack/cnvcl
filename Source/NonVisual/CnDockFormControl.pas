@@ -679,6 +679,9 @@ type
   TFinishSetDockPanelSizeEvent = procedure(DockPanel: TCnDockPanel) of object;
 
   { 停靠服务端 }
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnDockServer = class(TCnDockBaseControl)
   private
     FDockPanelClass: TCnDockPanelClass;
@@ -803,6 +806,9 @@ type
   TFormHintEvent = procedure(HTFlag: Integer; var HintStr: string; var CanShow: Boolean) of object;
 
   { 停靠客户端 }
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnDockClient = class(TCnDockBaseControl)
   private
     FConjoinPanelClass: TCnConjoinPanelClass;

@@ -108,7 +108,6 @@ type
     procedure btnClearPicClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private
-    { Private declarations }
     FUpdating: Boolean;
     AALabel: TCnAALabel;
     procedure SetEffect(const Value: TCnAAEffect);
@@ -119,13 +118,15 @@ type
     procedure GetEffectFromControls;
     procedure UpdateEffect;
   public
-    { Public declarations }
     property Effect: TCnAAEffect read GetEffect write SetEffect;
     property TestFont: TFont read GetTestFont write SetTestFont;
   end;
 
 { TCnAAFontDialog }
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnAAFontDialog = class(TComponent)
   {* 平滑特效字体对话框组件，使用方法同普通对话框}
   private

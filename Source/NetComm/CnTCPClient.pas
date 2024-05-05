@@ -54,6 +54,9 @@ type
 
   TCnClientSocketErrorEvent = procedure (Sender: TObject; SocketError: Integer) of object;
 
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnTCPClient = class(TCnComponent)
   private
     FSocket: TSocket;

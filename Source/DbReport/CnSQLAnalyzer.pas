@@ -44,6 +44,9 @@ uses
   ComCtrls, CnRunSqlFrame, CnDBConsts, CnRunSqlUnit;
 
 type
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
   TCnSQLAnalyzer = class(TCustomPanel)
   private
     FrameRunSql: TCnFrameRunSql;
@@ -72,12 +75,9 @@ type
     function GetRunSucced: boolean;
     procedure SetOnRunSqlEnd(const Value: TRunSqlEvent);
     procedure SetSqlLines(const Value: TStrings);
-    { Private declarations }
   protected
-    { Protected declarations }
     procedure  Loaded; override;
   public
-    { Public declarations }
     Constructor Create(AOwner: TComponent);override;
     Destructor  Destroy;override;
     property    SqlText: string read GetSqlText write SetSqlText;
@@ -90,7 +90,6 @@ type
     property    FMsgList: TStrings read GetMsgList;
     property    RunSucced: boolean read GetRunSucced;
   published
-    { Published declarations }
     property Connection: TADOConnection read GetConnection write SetConnection;
     property ConnectionString: string read GetConnectionString write SetConnectionString;
     property EditorFont: TFont read GetEditorFont write SetEditorFont;
