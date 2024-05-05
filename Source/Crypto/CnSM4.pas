@@ -292,7 +292,7 @@ function SM4EncryptEcbBytesToHex(Key: TBytes; const Input: TBytes): AnsiString;
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
   Input    原始待加密内容，其长度如不是 16 倍数，计算时会被填充 0 至长度达到 16 的倍数
-  返回值   加密内容
+  返回值   加密内容，注意没有处理 PKCS7 之类的对齐，只做补 #0 对齐后加密
  |</PRE>}
 
 function SM4DecryptEcbBytesFromHex(Key: TBytes; const Input: AnsiString): TBytes;
@@ -300,7 +300,7 @@ function SM4DecryptEcbBytesFromHex(Key: TBytes; const Input: AnsiString): TBytes
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
   Input    十六进制密文，其解码后的长度如不是 16 倍数，计算时会被填充 0 至长度达到 16 的倍数
-  返回值   解密内容
+  返回值   解密内容，注意因为没有处理 PKCS7 之类的对齐，因此末尾可能多出 #0 来
  |</PRE>}
 
 function SM4EncryptCbcBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiString;
@@ -309,7 +309,7 @@ function SM4EncryptCbcBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiStri
   Key      16 字节密码，太长则截断，不足则补 0
   Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    原始待加密内容
-  返回值   加密内容
+  返回值   加密内容，注意没有处理 PKCS7 之类的对齐，只做补 #0 对齐后加密
  |</PRE>}
 
 function SM4DecryptCbcBytesFromHex(Key, Iv: TBytes; const Input: AnsiString): TBytes;
@@ -318,7 +318,7 @@ function SM4DecryptCbcBytesFromHex(Key, Iv: TBytes; const Input: AnsiString): TB
   Key      16 字节密码，太长则截断，不足则补 0
   Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    十六进制密文
-  返回值   解密内容
+  返回值   解密内容，注意因为没有处理 PKCS7 之类的对齐，因此末尾可能多出 #0 来
  |</PRE>}
 
 function SM4EncryptCfbBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiString;

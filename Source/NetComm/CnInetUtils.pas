@@ -26,6 +26,8 @@ unit CnInetUtils;
 * 单元作者：周劲羽 (zjy@cnpack.org)
 * 备    注：定义了 TCnHTTP/TCnFTP，使用 WinInet 来读取 HTTP 与 FTP 数据，该类的
 *           网络请求方法是顺序调用各 API 的阻塞式的，因此建议在线程中调用
+*           ProxyServer 支持不指明协议的 127.0.0.1:80 方式，也支持指明协议的如
+*           socks5://127.0.0.1:1080 的方式，在 32 位、64 位、Unicode 版下通过。
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -75,7 +77,7 @@ type
   end;
 
   TCnInetProxyMode = (pmDirect, pmIE, pmProxy);
-  {* 使用代理的方式：直连、IE设置、指定代理 }
+  {* 使用代理的方式：直连、IE 设置、指定代理 }
 
   TCnInet = class
   {* 使用 WinInet 读取 HTTP(S)/FTP 文件的类。}
@@ -89,7 +91,7 @@ type
     FDecodingValid: Boolean;
     FProxyServer: string;
     FProxyUserName: string;
-    FProxyPassWord: string;
+    FProxyPassword: string;
     FHttpRequestHeaders: TStringList;
     FSendTimeOut: Cardinal;
     FConnectTimeOut: Cardinal;
@@ -154,10 +156,11 @@ type
     property ProxyMode: TCnInetProxyMode read FProxyMode write FProxyMode;
     {* 使用代理的方式}
     property ProxyServer: string read FProxyServer write FProxyServer;
-    {* 代理服务器设置: [协议=][协议://]服务器[:端口] 如 127.0.0.1:8080}
+    {* 代理服务器设置: [协议=][协议://]服务器[:端口] 如 127.0.0.1:8080 代表 HTTP/HTTPS
+      或 socks5://10.0.2.2:1080 这种}
     property ProxyUserName: string read FProxyUserName write FProxyUserName;
     {* 代理服务器用户名}
-    property ProxyPassWord: string read FProxyPassWord write FProxyPassWord;
+    property ProxyPassword: string read FProxyPassword write FProxyPassword;
     {* 代理服务器用户密码}
     property HttpRequestHeaders: TStringList read FHttpRequestHeaders;
     {* 请求信息头}
@@ -168,11 +171,11 @@ type
     property IgnoreSSLError: Boolean read FIgnoreSSLError write FIgnoreSSLError default True;
     {* 是否忽略 SSL 及证书等的错误，默认忽略}
     property ConnectTimeOut: Cardinal read FConnectTimeOut write FConnectTimeOut;
-    {* 连接超时}
+    {* 连接超时毫秒数，0 代表使用系统默认}
     property SendTimeOut: Cardinal read FSendTimeOut write FSendTimeOut;
-    {* 发送超时}
+    {* 发送超时毫秒数，0 代表使用系统默认}
     property ReceiveTimeOut: Cardinal read FReceiveTimeOut write FReceiveTimeOut;
-    {* 接收超时}
+    {* 接收超时毫秒数，0 代表使用系统默认}
   end;
 
   TCnHTTP = class(TCnInet);
@@ -283,29 +286,31 @@ begin
   begin
     if (FProxyMode <> pmProxy) or (Length(FProxyServer) = 0) then
     begin
-      if FProxyMode = pmDirect then
+      if FProxyMode = pmDirect then // 直连
         FHSession := InternetOpen(PChar(FUserAgent), INTERNET_OPEN_TYPE_DIRECT,
           nil, nil, 0)
-      else
+      else // 系统设置
         FHSession := InternetOpen(PChar(FUserAgent), INTERNET_OPEN_TYPE_PRECONFIG,
           nil, nil, 0);
     end
-    else
+    else // 手动设置代理
     begin
       FHSession := InternetOpen(PChar(FUserAgent), INTERNET_OPEN_TYPE_PROXY,
         PChar(FProxyServer), nil, 0);
       if Length(FProxyUserName) > 0 then
         InternetSetOption(FHSession, INTERNET_OPTION_PROXY_USERNAME, PChar(FProxyUserName), Length(FProxyUserName));
-      if Length(FProxyPassWord) > 0 then
-        InternetSetOption(FHSession, INTERNET_OPTION_PROXY_PASSWORD, PChar(FProxyPassWord), Length(FProxyPassWord));
-        
-      if FConnectTimeOut <> 0 then
-        InternetSetOption(FHSession, INTERNET_OPTION_CONNECT_TIMEOUT, @FConnectTimeOut, SizeOf(Cardinal));
-      if FSendTimeOut <> 0 then
-        InternetSetOption(FHSession, INTERNET_OPTION_SEND_TIMEOUT, @FSendTimeOut, SizeOf(Cardinal));
-      if FReceiveTimeOut <> 0 then
-        InternetSetOption(FHSession, INTERNET_OPTION_RECEIVE_TIMEOUT, @FReceiveTimeOut, SizeOf(Cardinal));
+      if Length(FProxyPassword) > 0 then
+        InternetSetOption(FHSession, INTERNET_OPTION_PROXY_PASSWORD, PChar(FProxyPassword), Length(FProxyPassword));
     end;
+
+    // 设置各项超时毫秒数
+    if FConnectTimeOut <> 0 then
+      InternetSetOption(FHSession, INTERNET_OPTION_CONNECT_TIMEOUT, @FConnectTimeOut, SizeOf(Cardinal));
+    if FSendTimeOut <> 0 then
+      InternetSetOption(FHSession, INTERNET_OPTION_SEND_TIMEOUT, @FSendTimeOut, SizeOf(Cardinal));
+    if FReceiveTimeOut <> 0 then
+      InternetSetOption(FHSession, INTERNET_OPTION_RECEIVE_TIMEOUT, @FReceiveTimeOut, SizeOf(Cardinal));
+
     if FDecoding then
     begin
       Flag := True;
