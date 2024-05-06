@@ -24,7 +24,8 @@ unit CnTwain;
 * 软件名称：外接设备组件包
 * 单元名称：实现扫描仪图象采集单元
 * 单元作者：rarnu(rarnu@cnpack.org)
-* 备    注：爱普生扫描仪可用，使用EPSON V200 API，本单元仅是略做封装
+* 备    注：爱普生扫描仪可用，使用 EPSON V200 API，本单元仅是略做封装
+*           因无扫描仪可测试，不保证 Unicode 版编译器及 64 位下能跑
 * 开发平台：Windows2003 Server + Delphi2007 up2
 * 兼容测试：Windows2000/XP/2003/Vista + Delphi 7/2006/2007/2009
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -38,7 +39,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, Controls, Forms, Graphics;
+  Windows, Messages, SysUtils, Classes, Controls, Forms, Graphics,
+  CnConsts, CnNetConsts, CnClasses;
 
 const
   APP_PROTOCOLMAJOR = 4;
@@ -68,20 +70,20 @@ const
   TWCY_CHINA = 86;
   TWCY_HONGKONG = 852;
   TWCY_TAIWAN = 886;
-  TWLG_DAN = 0;   //Danish
-  TWLG_DUT = 1;   //Dutch
-  TWLG_ENG = 2;   //International English
-  TWLG_FCF = 3;   //French Canadian
-  TWLG_FIN = 4;   //Finnish
-  TWLG_FRN = 5;   //French
-  TWLG_GER = 6;   //German
-  TWLG_ICE = 7;   //Icelandic
-  TWLG_ITN = 8;   //Italian
-  TWLG_NOR = 9;   //Norwegian
-  TWLG_POR = 10;  //Portuguese
-  TWLG_SPA = 11;  //Spanish
-  TWLG_SWE = 12;  //Swedish
-  TWLG_USA = 13;  //U.S. English
+  TWLG_DAN = 0;   // Danish
+  TWLG_DUT = 1;   // Dutch
+  TWLG_ENG = 2;   // International English
+  TWLG_FCF = 3;   // French Canadian
+  TWLG_FIN = 4;   // Finnish
+  TWLG_FRN = 5;   // French
+  TWLG_GER = 6;   // German
+  TWLG_ICE = 7;   // Icelandic
+  TWLG_ITN = 8;   // Italian
+  TWLG_NOR = 9;   // Norwegian
+  TWLG_POR = 10;  // Portuguese
+  TWLG_SPA = 11;  // Spanish
+  TWLG_SWE = 12;  // Swedish
+  TWLG_USA = 13;  // U.S. English
   TWLG_USERLOCALE = $FFFF;
   TWLG_CHINESE = 37;
   TWLG_CHINESE_PRC = 39;  // People's Republic of China
@@ -482,7 +484,7 @@ type
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
 {$ENDIF}
-  TCnTwain = class(TComponent)
+  TCnTwain = class(TCnComponent)
   private
     FAppID: TW_IDENTITY;
     FdsID: TW_IDENTITY;
@@ -504,6 +506,7 @@ type
     procedure HookWin;
     procedure UnHookWin;
   protected
+    procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
     function SelectDS: TW_UINT16;
     procedure WndProc(var Message: TMessage);
     function ProcessTWMessage(var aMsg: TMessage; TwhWnd: THandle): Boolean;
@@ -524,33 +527,34 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
+    function Acquire(Show: Boolean): TW_UINT16;
     {* 连接并打开扫描仪 }
-    function Acquire(Show: Boolean): TW_UINT16; 
+    function GetDSInfo(var DsID: TW_IDENTITY): TW_UINT16;
     {* 获取 Device 信息}
-    function GetDSInfo(var DsID: TW_IDENTITY): TW_UINT16; 
+    function GetAppId(var DsID: TW_IDENTITY): TW_UINT16;
     {* 获取组件信息 }
-    function GetComponentInfo(var DsID: TW_IDENTITY): TW_UINT16; 
+    function SelectSource: TW_UINT16;
     {* 选择源，当计算机连接多个扫描仪时有效 }
-    function SelectSource: TW_UINT16; 
+    procedure Terminate;
     {* 断开并关闭扫描仪 }
-    procedure Terminate; 
+    property IsDSMOpen: Boolean read FIsDSMOpen;
     {* 判断 DSM 服务是否开启 }
-    property IsDSMOpen: Boolean read FIsDSMOpen; 
+    property IsDSOpen: Boolean read FIsDSOpen;
     {* 判断 Device 是否开启 }
-    property IsDSOpen: Boolean read FIsDSOpen; 
-    {* 判断 Device 是否可用 }
     property IsDSEnabled: Boolean read FIsDSEnabled;
+    {* 判断 Device 是否可用 }
   published
+    property AutoFeed: Boolean read FAutoFeed write FAutoFeed;
     {* 是否自动返回 }
-    property AutoFeed: Boolean read FAutoFeed write FAutoFeed; 
+    property TransferType: TtransferType read FTransferType write FTransferType;
     {* 数据传送类型 }
-    property TransferType: TtransferType read FTransferType write FTransferType; 
+    property OnCapture: TOnCapture read FOnCapture write FOnCapture;
     {* 捕获图像时触发事件 }
-    property OnCaptrue: TOnCapture read FOnCapture write FOnCapture; 
+    property OnErrorMessage: TOnTwMessage read FOnTwMessage write FOnTwMessage;
     {* 捕获错误信息时触发事件 }
-    property OnErrorMessage: TOnTwMessage read FOnTwMessage write FOnTwMessage; 
-    {* 请求文件名时触发事件 }
     property OnFileNameNeeded: TOnFileNameNeeded read FOnFileNameNeeded write FOnFileNameNeeded;
+    {* 请求文件名时触发事件 }
   end;
 
 implementation
@@ -1603,7 +1607,7 @@ begin
   end;
 end;
 
-function TCnTwain.GetComponentInfo(var DsID: TW_IDENTITY): TW_UINT16;
+function TCnTwain.GetAppId(var DsID: TW_IDENTITY): TW_UINT16;
 begin
   Result := TWRC_SUCCESS;
   DsID := FAppId;
@@ -1629,6 +1633,14 @@ begin
   DisableDS;
   CloseDS;
   CloseDSM;
+end;
+
+procedure TCnTwain.GetComponentInfo(var AName, Author, Email, Comment: string);
+begin
+  AName := SCnTwainName;
+  Author := SCnPack_rarnu;
+  Email := SCnPack_rarnuEmail;
+  Comment := SCnTwainComment;
 end;
 
 end.

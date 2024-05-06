@@ -21,11 +21,34 @@
 unit CnIocpSocketAdapter;
 {* |<PRE>
 ================================================================================
-* 软件名称：Windows完成端口封装单元
-* 单元名称：Windows完成端口封装实现单元
+* 软件名称：Windows 完成端口封装单元
+* 单元名称：Windows 完成端口封装实现单元
 * 单元作者：cnwinds
 *           菩提(cxmld@126.com)、Childe Ng、Liu Xiao 移植修改
 * 备    注：
+*           如果不指定并发线程数则使用（CPU 个数 * 2 + 2）作为默认并发线程个数。
+*
+*           create by cnwinds, 2007-3-1
+*
+*           Modify by cnwinds 2007-3-20
+*           + 增加面向非连接的套接口收发支持
+*
+*           Modify by cnwinds 2007-4-10
+*           * 修正了 Udp 的 10054 错误
+*
+*           Modify by cnwinds 2007-4-18
+*           + 为 ISocketIocpEvent 接口增加 GUID，使得接口之间可以导航
+*
+*           Modify by cnwinds 2007-4-19
+*           + 将接口分离成面向流和面向包的两种类型。用户使用更方便。
+*
+*           本类似乎还有些小问题,不知如何解决
+*           1.在测试程序中,关闭测试程序时, MEMO 中会快速闪过一些数据
+*           这些好像是错误信息,不知是怎么来的.
+*           2.在测试程序中,发送和接收是 0..100 有 101 次，并应有 202 条信息，
+*           实际没有这么多, 没有找到原因
+*           3.以上二个问题是原类就有的，所以移植后的组件也有此问题
+*
 * 开发平台：PWin2000Pro + Delphi 7.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -34,38 +57,13 @@ unit CnIocpSocketAdapter;
 ================================================================================
 |</PRE>}
 
-{
-  Windows完成端口封装单元。
-  如果不指定并发线程数则使用(CPU个数*2+2)作为默认并发线程个数。
-
-  create by cnwinds, 2007-3-1
-
-  Modify by cnwinds 2007-3-20
-  + 增加面向非连接的套接口收发支持
-
-  Modify by cnwinds 2007-4-10
-  * 修正了Udp的10054错误
-
-  Modify by cnwinds 2007-4-18
-  + 为ISocketIocpEvent接口增加GUID，使得接口之间可以导航
-
-  Modify by cnwinds 2007-4-19
-  + 将接口分离成面向流和面向包的两种类型。用户使用更方便。
-
-  本类似乎还有些小问题,不知如何解决
-  1.在测试程序中,关闭测试程序时, MEMO中会快速闪过一些数据
-  这些好像是错误信息,不知是怎么来的.
-  2.在测试程序中,发送和接收是0..100有101次,并应有202条信息,
-  实际没有这么多, 没有找到原因
-  3.以上二个问题是原类就有的,所以移植后的组件也有此问题
-}
-
 interface
 
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, WinSock, CnNative, CnIocpSimpleMemPool;
+  Windows, SysUtils, Classes, WinSock, CnNative, CnIocpSimpleMemPool,
+  CnConsts, CnNetConsts, CnClasses;
 
 const
   CN_MAX_WSABUF_COUNT = 8;
@@ -137,7 +135,7 @@ type
     Iocp: TCnIocpSocketAdapter;
     Param: Pointer;
     Buffer: array[0..CN_MAX_WSABUF_COUNT - 1] of WSABUF;
-// 用于TCP接收
+    // 用于 TCP 接收
     TransfferBuffer: array[0..CN_MAX_WSABUF_COUNT - 1] of WSABUF;
     BufCount: Cardinal;
     WantBytesCount: Cardinal;
@@ -163,13 +161,12 @@ type
   TCnIocpRecvFromEvent = procedure (Sender: TObject; Error, Transferred: Cardinal;
     Buffer: PWSABUF; BufCount: Cardinal; Param: Pointer; FromAddr: PPeerAddress) of object;
 
-
 { TCnIocpSocketAdapter }
 
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
 {$ENDIF}
-  TCnIocpSocketAdapter = class(TComponent)
+  TCnIocpSocketAdapter = class(TCnComponent)
   private
     FIocpHandle: THandle;
     FSocketIocpThreadArray: array of TSocketIocpThread;
@@ -183,7 +180,7 @@ type
     FMemoryPool: TCnIocpSimpleMemPool;
 
     function SolveConnectResetBug(SocketHandle: TSocket): DWord;
-    {* 修复UDP的BUG}
+    {* 修复 UDP 的 BUG}
 
     function GetThreadCount: Integer;
     {* 获取线程总数}
@@ -198,13 +195,14 @@ type
 
     function CreateOverlapped(Buffer: PWSABUF; BufCount: Cardinal;
       Param: Pointer): PSocketOverlapped; overload;
-    {* 申请TSocketOverlapped变量}
+    {* 申请 TSocketOverlapped 变量}
     procedure DestroyOverlapped(SocketOverlapped: PSocketOverlapped);
-    {* 释放TSocketOverlapped变量}
+    {* 释放 TSocketOverlapped 变量}
     procedure QueuedCompletionStatus(Milliseconds: Cardinal = INFINITE);
-    {* 完成端口完成之后的处理, 被线程调用}
+    {* 完成端口完成之后的处理，被线程调用}
     procedure SetMemoryPool(const Value: TCnIocpSimpleMemPool);
   protected
+    procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
     procedure DoSendEvent(Sender: TObject; Error, Transferred: Cardinal;
       Buffer: PWSABUF; BufCount: Cardinal; Param: Pointer);
     procedure DoRecvEvent(Sender: TObject; Error, Transferred: Cardinal;
@@ -404,7 +402,7 @@ var
   Val: Integer;
   Len: Integer;
 begin
-  // 注意：UDP在.net 2003以前的开发库中有产生10054的bug。需要修复。
+  // 注意：UDP 在 .net 2003 以前的开发库中有产生 10054 的 Bug。需要修复。
   Len := SizeOf(Val);
   if getsockopt(SocketHandle, SOL_SOCKET, SO_TYPE, @Val, Len) = 0 then
   begin
@@ -439,7 +437,7 @@ end;
 function TCnIocpSocketAdapter.CreateOverlapped(Buffer: PWSABUF; BufCount: Cardinal;
  Param: Pointer): PSocketOverlapped;
 begin
-  // 建立重叠IO内存块
+  // 建立重叠 IO 内存块
   InternalRentMemory(Pointer(Result));
   
   Result.SocketOverlappedType := sotUnknow;
@@ -460,7 +458,7 @@ end;
 
 procedure TCnIocpSocketAdapter.DestroyOverlapped(SocketOverlapped: PSocketOverlapped);
 begin
-  // 释放重叠IO内存块
+  // 释放重叠 IO 内存块
   SocketOverlapped.Iocp := nil;
   InternalReturnMemory(SocketOverlapped);
 end;
@@ -566,7 +564,7 @@ var
       Exit;
     end;
 
-    // 非TCP接收，直接调用回调事件让用户处理
+    // 非 TCP 接收，直接调用回调事件让用户处理
     if not ((SocketOverlapped.SocketType = SOCK_STREAM) and
        (SocketOverlapped.SocketOverlappedType = sotRecv)) then
     begin
@@ -575,7 +573,7 @@ var
     end;
 
   {
-    TCP在接收大块的数据时，返回的事件可能告知你接收了一部分数据，
+    TCP 在接收大块的数据时，返回的事件可能告知你接收了一部分数据，
     你需要继续请求后续的数据。这在用户端会造成一些麻烦。
     下面的代码让用户端只在收到了期望的所有数据后才得到事件回调。
   }
@@ -864,10 +862,12 @@ begin
     FMemoryPool.ReturnMemory(MemoryPtr);
 end;
 
-initialization
-  
-
-finalization
-  // nothing
+procedure TCnIocpSocketAdapter.GetComponentInfo(var AName, Author, Email, Comment: string);
+begin
+  AName := SCnIocpSocketAdapterName;
+  Author := SCnPack_cnwinds;
+  Email := SCnPack_cnwindsEmail;
+  Comment := SCnIocpSocketAdapterComment;
+end;
 
 end.

@@ -44,7 +44,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms;
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
+  CnConsts, CnGraphConsts, CnClasses;
 
 type
   TErrorIconAlignment = (iaTopLeft, iaTopRight, iaMiddleLeft, iaMiddleRight,
@@ -54,8 +55,6 @@ type
   TBlinkStyle = (bsAlwaysBlink, bsBlinkIfDifferentError, bsNeverBlink);
 
   TIconType = (EP_ERROR, EP_ERROR2, EP_INFO, EP_INFO2, EP_WARNING, EP_WARNING2, EP_OK, EP_CUSTOM);
-
-  //TCompareOperator = (TP_EQU, TP_UNEQU, TP_BIG, TP_LIT, TP_EBIG, TP_ELIT);
 
   PErrorStyle = ^TErrorStyle;
 
@@ -79,7 +78,7 @@ type
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
 {$ENDIF}
-  TCnErrorProvider = class(TComponent)
+  TCnErrorProvider = class(TCnComponent)
   private
     FOwner: TComponent;
     FIconAlignment: TErrorIconAlignment;
@@ -92,39 +91,42 @@ type
     procedure SetDoubleBuffer(const Value: Boolean);
     procedure SetClick(const Value: TErrorItemClick);
     procedure SetDBClick(const Value: TErrorItemDBClick);
-    function GetControlItems(index: Integer): TCnErrorProviderItem;
+    function GetControlItems(Index: Integer): TCnErrorProviderItem;
     function GetErrorItemCount: Integer;
     procedure SetSetError(const Value: TSetError);
   protected
+    procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    //产生指定组件的错误图示
+    // 产生指定组件的错误图示
     function SetError(const Control: TControl; ErrorText: string = ''):
       TCnErrorProviderItem; overload;
     function SetError(const Control: TControl; ErrorText: string;
       const IconAlignment: TErrorIconAlignment): TCnErrorProviderItem; overload;
     function SetError(const Control: TControl; ErrorText: string;
       const IconAlignment: TErrorIconAlignment; const BlinkStyle: TBlinkStyle): TCnErrorProviderItem; overload;
-    //清除所有ErrorItems
-    procedure Clear();
-    //清除对应组件的ErrorItem
-    procedure Dispose(AOwner: TControl);
-    //根据索引获取ErrorItem对象
-    property Items[index: Integer]: TCnErrorProviderItem read GetControlItems; Default;
-    property ErrorItmeCount: Integer read GetErrorItemCount;
-  published
-    //避免闪烁
-    property DoubleBuffer: Boolean read FDoubleBuffer write SetDoubleBuffer;
 
-    //一些事件
+    procedure Clear;
+    {* 清除所有 ErrorItems}
+    procedure Dispose(AOwner: TControl);
+    {* 清除对应组件的 ErrorItem}
+
+    property Items[Index: Integer]: TCnErrorProviderItem read GetControlItems; default;
+    {* 根据索引获取 ErrorItem 对象}
+    property ErrorItmeCount: Integer read GetErrorItemCount;
+    {* ErrorItem 数量}
+  published
+    property DoubleBuffer: Boolean read FDoubleBuffer write SetDoubleBuffer;
+    {* 是否双缓冲，是则可尽量避免闪烁}
     property OnClick: TErrorItemClick read FClick write SetClick;
+    {* 单击事件}
     property OnDBClick: TErrorItemDBClick read FDBClick write SetDBClick;
-    //调用SetError时触发，可以在这里进行一些统一的处理和调整
+    {* 双击事件}
     property OnSetError: TSetError read FSetError write SetSetError;
+    {* 调用SetError时触发，可以在这里进行一些统一的处理和调整}
   end;
 
-  //ErrorProviderItem
   TCnErrorProviderItem = class(TGraphicControl)
   private
     FEPOwner: TCnErrorProvider;
@@ -155,7 +157,7 @@ type
     procedure SetBlinkTime(const Value: Integer);
     function GetErrorStyle: TErrorStyle;
     procedure SetErrorStyle(const ES: TErrorStyle);
-    procedure SetSize();
+    procedure SetSize;
     procedure SetBlinkRate(const Value: Integer);
   protected
     procedure Paint; override;
@@ -166,7 +168,7 @@ type
     constructor Create(AOwner: TComponent; const Control: TControl;
       const EP: TCnErrorProvider = nil); reintroduce; virtual;
     destructor Destroy; override;
-    //快速设置属性
+    // 快速设置属性
     procedure SetItem(const IconAlignment: TErrorIconAlignment;
       const Padding: Integer; Control: TControl = nil); overload;
     procedure SetItem(const HintStr: string = '';
@@ -174,8 +176,9 @@ type
     procedure SetItem(const IconType: TIconType;
       const BlinkStyle: TBlinkStyle = bsBlinkIfDifferentError); overload;
 
-    //外观属性
-    procedure SetBlinkStyle(const BlinkStyle: TBlinkStyle = bsBlinkIfDifferentError; const BlinkRate: Integer = 5);
+    // 外观属性
+    procedure SetBlinkStyle(const BlinkStyle: TBlinkStyle = bsBlinkIfDifferentError;
+      const BlinkRate: Integer = 5);
     property ErrorStyle: TErrorStyle read GetErrorStyle write SetErrorStyle;
     property Canvas;
     property IconAlignment: TErrorIconAlignment read FIconAlignment write SetIconAlignment;
@@ -186,7 +189,8 @@ type
     property Padding: Integer read FPadding write SetPadding;
     property Control: TControl read GetControl;
     property ErrorIcon: TBitmap read GetErrorIcon write SetErrorIcon;
-    //一些事件
+
+    // 事件
     property OnClick;
     property OnDblClick;
     property OnMouseDown;
@@ -206,18 +210,18 @@ const
 
 procedure TCnErrorProvider.Clear;
 var
-  i, j: Integer;
-  obj: TCnErrorProviderItem;
+  I, J: Integer;
+  Obj: TCnErrorProviderItem;
 begin
-  i := FErrorProviderManager.Count;
-  if (i <> 0) then
-    for j := i - 1 downto 0 do
+  I := FErrorProviderManager.Count;
+  if (I <> 0) then
+    for J := I - 1 downto 0 do
     begin
-      obj := FErrorProviderManager[j];
-      if (Assigned(obj)) then
+      Obj := FErrorProviderManager[J];
+      if (Assigned(Obj)) then
       begin
-        obj.Free;
-        FErrorProviderManager.Delete(j);
+        Obj.Free;
+        FErrorProviderManager.Delete(J);
       end;
     end;
 end;
@@ -243,24 +247,30 @@ end;
 
 procedure TCnErrorProvider.Dispose(AOwner: TControl);
 var
-  i, j: Integer;
+  I, J: Integer;
 begin
-  i := FErrorProviderManager.Count;
-  if (i <> 0) then
-    for j := i - 1 downto 0 do
-      with TCnErrorProviderItem(FErrorProviderManager[j]) do
-        if (Control = AOwner) then
+  I := FErrorProviderManager.Count;
+  if (I <> 0) then
+  begin
+    for J := I - 1 downto 0 do
+    begin
+      with TCnErrorProviderItem(FErrorProviderManager[J]) do
+      begin
+        if Control = AOwner then
         begin
-          Free();
-          FErrorProviderManager.Delete(j);
+          Free;
+          FErrorProviderManager.Delete(J);
         end;
+      end;
+    end;
+  end;
 end;
 
-function TCnErrorProvider.GetControlItems(index: Integer): TCnErrorProviderItem;
+function TCnErrorProvider.GetControlItems(Index: Integer): TCnErrorProviderItem;
 begin
   Result := nil;
-  if (index < FErrorProviderManager.Count) then
-    Result := FErrorProviderManager[index];
+  if (Index < FErrorProviderManager.Count) then
+    Result := FErrorProviderManager[Index];
 end;
 
 function TCnErrorProvider.GetErrorItemCount: Integer;
@@ -288,7 +298,7 @@ end;
 function TCnErrorProvider.SetError(const Control: TControl; ErrorText: string): TCnErrorProviderItem;
 var
   Item: TCnErrorProviderItem;
-  i: Integer;
+  I: Integer;
   Owner: TWinControl;
   ES: TErrorStyle;
   eResult: Boolean;
@@ -303,10 +313,10 @@ begin
       Owner := TWinControl(FOwner)
     else if (Control.Parent is TWinControl) then
       Owner := Control.Parent;
-    for i := 0 to FErrorProviderManager.Count - 1 do
-      if (TCnErrorProviderItem(FErrorProviderManager[i]).Control = Control) then
+    for I := 0 to FErrorProviderManager.Count - 1 do
+      if (TCnErrorProviderItem(FErrorProviderManager[I]).Control = Control) then
       begin
-        Result := FErrorProviderManager[i];
+        Result := FErrorProviderManager[I];
         ES := Result.ErrorStyle;
         if (Assigned(FSetError)) then
           FSetError(Self, Control, ES, eResult);
@@ -351,7 +361,15 @@ end;
 procedure TCnErrorProvider.SetSetError(const Value: TSetError);
 begin
   FSetError := Value;
-end; 
+end;
+
+procedure TCnErrorProvider.GetComponentInfo(var AName, Author, Email, Comment: string);
+begin
+  AName := SCnErrorProviderName;
+  Author := SCnPack_Rain;
+  Email := SCnPack_RainEmail;
+  Comment := SCnErrorProviderComment;
+end;
 
 { TCnErrorProviderItem }
 
@@ -589,7 +607,7 @@ begin
         ;
       end;
       FIcon.Transparent := True;
-      SetSize();
+      SetSize;
     end;
   end;
 end;

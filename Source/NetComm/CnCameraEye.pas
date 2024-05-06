@@ -19,7 +19,6 @@
 {******************************************************************************}
 
 unit CnCameraEye;
-
 {* |<PRE>
 ================================================================================
 * 软件名称：外接设备组件包
@@ -41,13 +40,14 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Controls, Windows, Messages;
+  SysUtils, Classes, Controls, Windows, Messages, CnConsts, CnNetConsts,
+  CnClasses;
 
 type
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
 {$ENDIF}
-  TCnCameraEye = class(TComponent)
+  TCnCameraEye = class(TCnComponent)
   private
     FDllHandle: THandle;
     FDisplay: TWinControl;
@@ -56,9 +56,12 @@ type
     FOnStop: TNotifyEvent;
     FOnStopRecord: TNotifyEvent;
     procedure CheckRes(Res: LRESULT);
+  protected
+    procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
     procedure Start;
     {* 开始摄像}
     procedure Stop;
@@ -420,6 +423,14 @@ begin
     if Assigned(FOnStopRecord) then
       FOnStopRecord(Self);
   end;
+end;
+
+procedure TCnCameraEye.GetComponentInfo(var AName, Author, Email, Comment: string);
+begin
+  AName := SCnCameraEyeName;
+  Author := SCnPack_rarnu;
+  Email := SCnPack_rarnuEmail;
+  Comment := SCnCameraEyeComment;
 end;
 
 end.

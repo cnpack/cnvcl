@@ -86,6 +86,30 @@ resourcestring
   SCnDNSTooLong = 'Too Long String Length Byte and Out of Bound.';
   SCnDNSInvalidHeadByteFmt = 'Invalid String Head Byte %d at %d.';
 
+  // CnDialUp
+  SCnDialUpName = 'DialUp Component';
+  SCnDialUpComment = 'A Component for DialUp';
+
+  // CnCameraEye
+  SCnCameraEyeName = 'CameraEye Component';
+  SCnCameraEyeComment = 'A Component to Control CameraEye';
+
+  // CnIISCtrl
+  SCnIISCtrlName = 'Control IIS Server';
+  SCnIISCtrlComment = 'A Component to Control IIS Server';
+
+  // CnTwain
+  SCnTwainName = 'Twain Component';
+  SCnTwainComment = 'A Component to Control Twain Scanner';
+
+  // CnIocpSocketAdapter
+  SCnIocpSocketAdapterName = 'IOCP Socket Adapter Component';
+  SCnIocpSocketAdapterComment = 'IOCP Socket Adapter Component';
+
+  // CnIocpSimpleMemPool
+  SCnIocpSimpleMemPoolName = 'IOCP Simple MemPool Component';
+  SCnIocpSimpleMemPoolComment = 'IOCP Simple MemPool Component';
+
   // CnThreadingTCPServer
   SCnThreadingTCPServerName = 'CnThreadingTCPServer Component';
   SCnThreadingTCPServerComment = 'A Blocking Multi-Threading TCPServer Component';

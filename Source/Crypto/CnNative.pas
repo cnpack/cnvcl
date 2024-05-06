@@ -570,7 +570,7 @@ function BytesToAnsi(const Data: TBytes): AnsiString;
 {* 将字节数组的内容转换为 AnsiString，不处理编码}
 
 function BytesToString(const Data: TBytes): string;
-{* 将字节数组的内容转换为 string，内部逐个赋值，不处理编码}
+{* 将字节数组的内容转换为 string，内部逐个 Byte 赋值为 Char，不处理编码}
 
 function MemoryToString(Mem: Pointer; MemByteLen: Integer): string;
 {* 将内存块的内容转换为 string，内部逐个赋值，不处理编码}

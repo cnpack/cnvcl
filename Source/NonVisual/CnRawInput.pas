@@ -37,7 +37,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Windows, Messages, Classes, Forms;
+  SysUtils, Windows, Messages, Classes, Forms, CnClasses, CnConsts, CnCompConsts;
 
 const
   WM_INPUT = $00FF;
@@ -357,7 +357,7 @@ type
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
 {$ENDIF}
-  TCnRawKeyBoard = class(TComponent)
+  TCnRawKeyBoard = class(TCnComponent)
   private
     FHandle: THandle;
     FEnabled: Boolean;
@@ -368,14 +368,13 @@ type
     FOnRawKeyUp: TOnRawKeyUp;
     FBackground: Boolean;
     FKeyBoardCount: Integer;
-
     procedure RegisterRawInput;
     function GetKeyBoardCount: Integer;
     procedure SetEnabled(const Value: Boolean);
     procedure SetBackground(const Value: Boolean);
     function GetKeyBoardName(Index: Integer): string;
-
   protected
+    procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
     procedure WinProc(var Message: TMessage);
 
     procedure Loaded; override;
@@ -536,38 +535,6 @@ begin
     inherited;
 end;
 
-procedure GetRawInputAPIs;
-begin
-  if Win32Platform = VER_PLATFORM_WIN32_NT then
-  begin
-    User32DllHandle := GetModuleHandle('User32.DLL');
-    if User32DllHandle = 0 then
-    begin
-      User32DllHandle := LoadLibrary('User32.DLL');
-      User32NeedFree := User32DllHandle <> 0;
-    end;
-
-    if User32DllHandle <> 0 then
-    begin
-      @GetRawInputDeviceInfo        := GetProcAddress(User32DllHandle, 'GetRawInputDeviceInfoA');
-      @GetRawInputBuffer            := GetProcAddress(User32DllHandle, 'GetRawInputBuffer');
-      @GetRawInputData              := GetProcAddress(User32DllHandle, 'GetRawInputData');
-      @GetRawInputDeviceList        := GetProcAddress(User32DllHandle, 'GetRawInputDeviceList');
-      @RegisterRawInputDevices      := GetProcAddress(User32DllHandle, 'RegisterRawInputDevices');
-      @GetRegisteredRawInputDevices := GetProcAddress(User32DllHandle, 'GetRegisteredRawInputDevices');
-    end;
-  end;
-end;
-
-procedure FreeRawInputAPIs;
-begin
-  if User32NeedFree and (User32DllHandle <> 0) then
-  begin
-    FreeLibrary(User32DllHandle);
-    User32DllHandle := 0;
-  end;
-end;
-
 procedure TCnRawKeyBoard.UpdateKeyBoardsInfo;
 var
   C, Sl: Cardinal;
@@ -618,6 +585,46 @@ begin
     Result := FKeyBoardNames[I]
   else
     Result := '';
+end;
+
+procedure TCnRawKeyBoard.GetComponentInfo(var AName, Author, Email, Comment: string);
+begin
+  AName := SCnRawKeyBoardName;
+  Author := SCnPack_LiuXiao;
+  Email := SCnPack_LiuXiaoEmail;
+  Comment := SCnRawKeyBoardComment;
+end;
+
+procedure GetRawInputAPIs;
+begin
+  if Win32Platform = VER_PLATFORM_WIN32_NT then
+  begin
+    User32DllHandle := GetModuleHandle('User32.DLL');
+    if User32DllHandle = 0 then
+    begin
+      User32DllHandle := LoadLibrary('User32.DLL');
+      User32NeedFree := User32DllHandle <> 0;
+    end;
+
+    if User32DllHandle <> 0 then
+    begin
+      @GetRawInputDeviceInfo        := GetProcAddress(User32DllHandle, 'GetRawInputDeviceInfoA');
+      @GetRawInputBuffer            := GetProcAddress(User32DllHandle, 'GetRawInputBuffer');
+      @GetRawInputData              := GetProcAddress(User32DllHandle, 'GetRawInputData');
+      @GetRawInputDeviceList        := GetProcAddress(User32DllHandle, 'GetRawInputDeviceList');
+      @RegisterRawInputDevices      := GetProcAddress(User32DllHandle, 'RegisterRawInputDevices');
+      @GetRegisteredRawInputDevices := GetProcAddress(User32DllHandle, 'GetRegisteredRawInputDevices');
+    end;
+  end;
+end;
+
+procedure FreeRawInputAPIs;
+begin
+  if User32NeedFree and (User32DllHandle <> 0) then
+  begin
+    FreeLibrary(User32DllHandle);
+    User32DllHandle := 0;
+  end;
 end;
 
 initialization

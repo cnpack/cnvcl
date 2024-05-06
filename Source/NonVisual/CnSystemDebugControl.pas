@@ -39,62 +39,62 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Windows, Classes, CnCommon;
+  SysUtils, Windows, Classes, CnCommon, CnConsts, CnCompConsts, CnClasses;
 
 type
   _DEBUG_CONTROL_CODE = (
     SysDbgDummyZero,  // 0,
-    //以下5个在Windows NT各个版本上都有
+    //以下 5 个在 Windows NT 各个版本上都有
     SysDbgGetTraceInformation,   // 1,
     SysDbgSetInternalBreakpoint, // 2,
     SysDbgSetSpecialCall,        // 3,
     SysDbgClearSpecialCalls,     // 4,
     SysDbgQuerySpecialCalls,     // 5,
 
-    // 以下是NT 5.1 新增的
+    // 以下是 NT 5.1 新增的
     SysDbgDbgBreakPointWithStatus,  // 6,
 
-    //获取KdVersionBlock
+    // 获取 KdVersionBlock
     SysDbgSysGetVersion,  // 7,
 
-    //从内核空间拷贝到用户空间，或者从用户空间拷贝到用户空间
-    //但是不能从用户空间拷贝到内核空间
+    // 从内核空间拷贝到用户空间，或者从用户空间拷贝到用户空间
+    // 但是不能从用户空间拷贝到内核空间
     SysDbgCopyMemoryChunks_0,  // 8,
 
-    //从用户空间拷贝到内核空间，或者从用户空间拷贝到用户空间
-    //但是不能从内核空间拷贝到用户空间
+    // 从用户空间拷贝到内核空间，或者从用户空间拷贝到用户空间
+    // 但是不能从内核空间拷贝到用户空间
     SysDbgCopyMemoryChunks_1,  // 9,
   
-    //从物理地址拷贝到用户空间，不能写到内核空间
+    // 从物理地址拷贝到用户空间，不能写到内核空间
     SysDbgCopyMemoryChunks_2,  // 10,
   
-    //从用户空间拷贝到物理地址，不能读取内核空间
+    // 从用户空间拷贝到物理地址，不能读取内核空间
     SysDbgCopyMemoryChunks_3,  // 11,
   
-    //读写处理器相关控制块
+    // 读写处理器相关控制块
     SysDbgSysReadControlSpace,   // 12,
     SysDbgSysWriteControlSpace,  // 13,
 
-    //读写端口
+    // 读写端口
     SysDbgSysReadIoSpace,   // 14,
     SysDbgSysWriteIoSpace,  // 15,
 
-    //分别调用RDMSR和WRMSR
+    // 分别调用 RDMSR 和 WRMSR
     SysDbgSysReadMsr,   // 16,
     SysDbgSysWriteMsr,  // 17,
 
-    //读写总线数据
+    // 读写总线数据
     SysDbgSysReadBusData,     // 18,
     SysDbgSysWriteBusData,    // 19,
 
     SysDbgSysCheckLowMemory,  // 20,
 
-    // 以下是NT 5.2 新增的
-    //分别调用_KdEnableDebugger和_KdDisableDebugger
+    // 以下是 NT 5.2 新增的
+    // 分别调用 _KdEnableDebugger 和 _KdDisableDebugger
     SysDbgEnableDebugger,   // 21,
     SysDbgDisableDebugger,  // 22,
     
-    //获取和设置一些调试相关的变量
+    // 获取和设置一些调试相关的变量
     SysDbgGetAutoEnableOnEvent,  // 23,
     SysDbgSetAutoEnableOnEvent,  // 24,
     SysDbgGetPitchDebugger,      // 25,
@@ -108,7 +108,7 @@ type
     IoAddr: DWORD;
     Reserved1: DWORD;
     pBuffer: Pointer;
-    NumBYTEs: DWORD;
+    NumBytes: DWORD;
     Reserved4: DWORD;
     Reserved5: DWORD;
     Reserved6: DWORD;
@@ -144,7 +144,7 @@ type
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
 {$ENDIF}
-  TCnSystemDebugControl = class(TComponent)
+  TCnSystemDebugControl = class(TCnComponent)
   private
     FKernelBase: Int64;
 
@@ -156,6 +156,8 @@ type
     procedure SysGetVersion;
     {* 封装获取版本号的操作}
     function GetKernelBase: Cardinal;
+  protected
+    procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -260,14 +262,14 @@ end;
 
 function TCnSystemDebugControl.InPortB(Port: DWORD): Byte;
 var
-  Value: BYTE;
+  Value: Byte;
   Io: TIOStruct;
 begin
   Value := 0;
   Io.IoAddr := Port;
   Io.Reserved1 := 0;
   Io.pBuffer := Pointer(@Value);
-  Io.NumBYTEs := SizeOf(Byte);
+  Io.NumBytes := SizeOf(Byte);
   Io.Reserved4 := 1;
   Io.Reserved5 := 0;
   Io.Reserved6 := 1;
@@ -352,33 +354,6 @@ begin
   OutPortB(KBC_KEY_DATA, (ScanCode or $80)); // 写入按键信息，释放键
 end;
 
-function GetNtNativeAPIs: Boolean;
-begin
-  if (Win32Platform = VER_PLATFORM_WIN32_NT)
-    and (Win32MajorVersion >= 5) and (Win32MinorVersion >= 1) then
-  begin
-    // 不能用 GetModuleHandle，因为下文无法判定这个 Handle 咋来的，可能导致错误的 FreeLibrary
-    if NtDllHandle = 0 then
-      NtDllHandle := LoadLibrary('NTDLL.DLL');
-
-    if NtDllHandle <> 0 then
-    begin
-      @ZwSystemDebugControl := GetProcAddress(NtDllHandle, 'ZwSystemDebugControl');
-    end;
-  end;
-
-  Result := NtDllHandle <> 0;
-end;
-
-procedure FreeNtNativeAPIs;
-begin
-  if NtDllHandle <> 0 then
-  begin
-    FreeLibrary(NtDllHandle);
-    NtDllHandle := 0;
-  end;
-end;
-
 procedure TCnSystemDebugControl.InternalCopyMemory(
   Code: DEBUG_CONTROL_CODE; Address: Cardinal; Memory: Pointer;
   Length: Cardinal);
@@ -446,6 +421,42 @@ begin
   SetLength(Result, 512);
   for I := 0 to 511 do
     Result[I + 1] := Chr(InPortB($1F0));
+end;
+
+procedure TCnSystemDebugControl.GetComponentInfo(var AName, Author, Email, Comment: string);
+begin
+  AName := SCnSystemDebugControlName;
+  Author := SCnPack_LiuXiao;
+  Email := SCnPack_LiuXiaoEmail;
+  Comment := SCnSystemDebugControlComment;
+end;
+
+
+function GetNtNativeAPIs: Boolean;
+begin
+  if (Win32Platform = VER_PLATFORM_WIN32_NT)
+    and (Win32MajorVersion >= 5) and (Win32MinorVersion >= 1) then
+  begin
+    // 不能用 GetModuleHandle，因为下文无法判定这个 Handle 咋来的，可能导致错误的 FreeLibrary
+    if NtDllHandle = 0 then
+      NtDllHandle := LoadLibrary('NTDLL.DLL');
+
+    if NtDllHandle <> 0 then
+    begin
+      @ZwSystemDebugControl := GetProcAddress(NtDllHandle, 'ZwSystemDebugControl');
+    end;
+  end;
+
+  Result := NtDllHandle <> 0;
+end;
+
+procedure FreeNtNativeAPIs;
+begin
+  if NtDllHandle <> 0 then
+  begin
+    FreeLibrary(NtDllHandle);
+    NtDllHandle := 0;
+  end;
 end;
 
 initialization

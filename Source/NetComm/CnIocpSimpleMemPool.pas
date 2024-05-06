@@ -39,17 +39,17 @@ unit CnIocpSimpleMemPool;
 *     可能出现多个控件的内存块大小相同，这样将对应到同一个内存类型块（TCnMemoryTypeItem）
 *     出现这种情况多个控件将共用内存类型块（TCnMemoryTypeItem）中的内存块。阈值将取他们设置的最大值。
 *   已知问题：返还时需要遍历，效率较低
-TODO >>>
+* TODO >>>
 *   1.TCnIocpMemPool 类增加了一个方法：GetFreeMemoryType，获取一个空闲的内存类型
 *   2.TCnIocpMemPool 分配的内存大小是固定,最大值由每一次分配决定
-*   3.增加 TCnIocpSimpleMemPool来包装 TCnIocpMemPool的功能, 即租用内存和归还内存
+*   3.增加 TCnIocpSimpleMemPool 来包装 TCnIocpMemPool 的功能, 即租用内存和归还内存
 *   4.使用"租用"和"归还"是为了区别正常的"分配内存"和"释放内存"
 *   5.TCnIocpSimpleMemPool对应一个内存类型, 每个内存类型的类型值，自动获取
 *   6.二个自定义名词(可能名字起得不够好):"内存块"和"内存类型块"
 *     每个 TCnIocpSimpleMemPool 对应一个内存类型块, 它由多个"内存块"组成.每次用户
 *     租用就是得到一个整的"内存块", 大小由第一次租用时确定.
 *     TCnIocpMemPool包含了多个  "内存类型块", 即每注册一次时,就分配一个"内存类型块"
-TODO >>>
+* TODO <<<
 *
 * 开发平台：PWin2000Pro + Delphi 7.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
@@ -64,7 +64,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, SyncObjs, Windows, Controls;
+  SysUtils, Classes, SyncObjs, Windows, Controls, CnConsts, CnNetConsts, CnClasses;
 
 const
   SCnErrorNotRegister = '没有注册该内存类型(%d)!';
@@ -145,7 +145,7 @@ type
     {* 返还一块内存}
   end;
 
-  TCnCustomSimpleMemPool = class (TComponent)
+  TCnCustomSimpleMemPool = class (TCnComponent)
   private
     FMemorySize: Cardinal;
     FThreshold : Cardinal;
@@ -185,6 +185,8 @@ type
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
 {$ENDIF}
   TCnIocpSimpleMemPool = class(TCnCustomSimpleMemPool)
+  protected
+    procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
   published
     property MemorySize;
     {* 内存块的大小}
@@ -315,18 +317,18 @@ function TCnSimpleMemPoolMgr.RegisterMemoryType(MemorySize: Cardinal;
   CreateMemoryProc: TCreateMemoryEvent; FreeMemoryProc: TFreeMemoryEvent): PCnMemoryTypeItem;
 begin
   Result := FindMemoryTypeItem(MemorySize, CreateMemoryProc, FreeMemoryProc);
-  if Result = nil then                      //不存在,就创建
+  if Result = nil then                        // 不存在,就创建
   begin
     Result := RegisterMemoryTypeItem(MemorySize, CreateMemoryProc, FreeMemoryProc);
     FLock.Enter;
     try
-      FMemoryTypeList.Add(Result);            //并加入List中
+      FMemoryTypeList.Add(Result);            // 并加入 List 中
     finally
       FLock.Release;  
     end;
   end else
   begin
-    Inc(Result^.RefCount);                  //存在则增加引用计数
+    Inc(Result^.RefCount);                    // 存在则增加引用计数
   end;
 end;
 
@@ -374,13 +376,13 @@ begin
       if not BlockItem^.IsRent then      // 第 0 个内存块是否已租用
       begin
         MemoryTypeItem^.MemoryBlockList.Remove(BlockItem);
-        MemoryTypeItem^.MemoryBlockList.Add(BlockItem);  //将内存块重新放入到LIST的最后
-        MemoryPtr := BlockItem.MemoryBlockPtr;     //取得内存块的指针
-        Inc(BlockItem^.RentCount);                 //租用总数+1
-        BlockItem^.RentTime := GetTickCount;       //租用时间
-        BlockItem^.IsRent := True;                 //置租用标志
+        MemoryTypeItem^.MemoryBlockList.Add(BlockItem);  // 将内存块重新放入到LIST的最后
+        MemoryPtr := BlockItem.MemoryBlockPtr;     // 取得内存块的指针
+        Inc(BlockItem^.RentCount);                 // 租用总数 + 1
+        BlockItem^.RentTime := GetTickCount;       // 租用时间
+        BlockItem^.IsRent := True;                 // 置租用标志
 
-        //空闲内存块个数减一
+        // 空闲内存块个数减一
         Dec(MemoryTypeItem^.IdelCount);
 
         Exit;
@@ -408,19 +410,19 @@ var
   UsedCount: Cardinal;
   TotalCount: Cardinal;
 begin
-  //对内存块的调整不是强制性的，原则是在方便的时候调整一下内块的个数
+  // 对内存块的调整不是强制性的，原则是在方便的时候调整一下内块的个数
   MemoryTypeItem^.Lock.Enter;
   try
     ReleaseCount := 0;
-    //判断是否要删除内存块
+    // 判断是否要删除内存块
     TotalCount := MemoryTypeItem^.MemoryBlockList.Count;
     if TotalCount > MemoryTypeItem^.Threshold then
     begin
       UsedCount := TotalCount - MemoryTypeItem^.IdelCount;
       if UsedCount < MemoryTypeItem^.Threshold then
       begin
-        //计算要删除内存块的个数
-        //不表示一定要删除这么多个内存块，理想情况下会删除这么多内存块
+        // 计算要删除内存块的个数
+        // 不表示一定要删除这么多个内存块，理想情况下会删除这么多内存块
         ReleaseCount := TotalCount - MemoryTypeItem^.Threshold;
       end;
     end;
@@ -428,23 +430,23 @@ begin
     for I := MemoryTypeItem^.MemoryBlockList.Count - 1 downto 0 do
     begin
       BlockItem := PCnMemoryBlockItem(MemoryTypeItem^.MemoryBlockList[I]);
-      if MemoryPtr = BlockItem^.MemoryBlockPtr then         //查询内存块(比较地址相同)
+      if MemoryPtr = BlockItem^.MemoryBlockPtr then         // 查询内存块(比较地址相同)
       begin
         if BlockItem^.IsRent then
         begin
-          //归还内存块
+          // 归还内存块
           BlockItem^.RentTime := 0;
           BlockItem^.IsRent := False;
           MemoryTypeItem^.MemoryBlockList.Remove(BlockItem);
-          MemoryTypeItem^.MemoryBlockList.Insert(0, BlockItem);  //插入到第0个
-          //空闲内存块个数加一
+          MemoryTypeItem^.MemoryBlockList.Insert(0, BlockItem);  // 插入到第 0 个
+          // 空闲内存块个数加一
           Inc(MemoryTypeItem^.IdelCount);
           Exit;
         end 
         else
-          raise Exception.Create(SCnErrorBlockNotRent); //没有被租用异常 
+          raise Exception.Create(SCnErrorBlockNotRent); // 没有被租用异常
       end;
-      //释放内存块
+      // 释放内存块
       if (ReleaseCount <> 0) and (not BlockItem^.IsRent) then
       begin
         FreeMemoryBlockItem(MemoryTypeItem, BlockItem);
@@ -452,13 +454,13 @@ begin
         Dec(ReleaseCount);
       end;
     end;
-    raise Exception.Create(SCnErrorBlockUnknow);        //没有找到内存块抛出异常
+    raise Exception.Create(SCnErrorBlockUnknow);        // 没有找到内存块抛出异常
   finally
     MemoryTypeItem^.Lock.Release;
   end;
 end;
 
-{ TCnIocpSimpleMemPool }
+{ TCnCustomSimpleMemPool }
 
 constructor TCnCustomSimpleMemPool.Create(AOwner: TComponent);
 begin
@@ -550,6 +552,16 @@ begin
     DoUnregister;
     FOnFreeMemory := Value;
   end;
+end;
+
+{ TCnIocpSimpleMemPool }
+
+procedure TCnIocpSimpleMemPool.GetComponentInfo(var AName, Author, Email, Comment: string);
+begin
+  AName := SCnIocpSimpleMemPoolName;
+  Author := SCnPack_cnwinds;
+  Email := SCnPack_cnwindsEmail;
+  Comment := SCnIocpSimpleMemPoolComment;
 end;
 
 initialization

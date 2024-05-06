@@ -19,11 +19,10 @@
 {******************************************************************************}
 
 unit CnIISCtrl;
-
 {* |<PRE>
 ================================================================================
 * 软件名称：网络通讯组件包
-* 单元名称：实现IIS配置功能单元
+* 单元名称：实现 IIS 配置功能单元
 * 单元作者：rarnu(rarnu@cnpack.org)
 * 备    注：
 * 开发平台：Windows2003 Server + Delphi2007 up2
@@ -39,18 +38,19 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, ComObj, Windows;
+  SysUtils, Classes, ComObj, Windows, CnConsts, CnNetConsts, CnClasses;
 
 type
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
 {$ENDIF}
-  TCnIISCtrl = class(TComponent)
+  TCnIISCtrl = class(TCnComponent)
   private
     FOnDeleteVirtualDirApp: TNotifyEvent;
     FOnDeleteVirtualDir: TNotifyEvent;
     FOnCreateVirtualDir: TNotifyEvent;
   protected
+    procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
   public
     constructor Create(AOwner: TComponent); override;
     {* 检查是否存在 .NET FrameWork }
@@ -182,6 +182,14 @@ begin
   end;
   if Assigned(FOnDeleteVirtualDirApp) then
     FOnDeleteVirtualDirApp(Self);
+end;
+
+procedure TCnIISCtrl.GetComponentInfo(var AName, Author, Email, Comment: string);
+begin
+  AName := SCnIISCtrlName;
+  Author := SCnPack_rarnu;
+  Email := SCnPack_rarnuEmail;
+  Comment := SCnIISCtrlComment;
 end;
 
 end.
