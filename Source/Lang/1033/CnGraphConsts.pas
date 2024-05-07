@@ -37,6 +37,20 @@ interface
 
 {$I CnPack.inc}
 
+resourcestring
+
+  // CnErrorProvider
+  SCnErrorProviderName = 'Error Provider Component';
+  SCnErrorProviderComment = 'A Component to Show Error Flag';
+
+  // CnHint
+  SCnHintName = 'Hint Component';
+  SCnHintComment = 'An Encapsulated Hint Component';
+
+  // CnHintWindow
+  SCnHintWindowName = 'HintWindow Component';
+  SCnHintWindowComment = 'An Encapsulated HintWindow Component';
+
 var
   SCnAOCaptionColor: string = '&Color';
   SCnAOCaptionFont: string = '&Font';

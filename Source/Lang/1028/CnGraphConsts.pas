@@ -37,6 +37,20 @@ interface
 
 {$I CnPack.inc}
 
+resourcestring
+
+  // CnErrorProvider
+  SCnErrorProviderName = '錯誤提示組件';
+  SCnErrorProviderComment = '錯誤提示組件';
+
+  // CnHint
+  SCnHintName = 'Hint組件';
+  SCnHintComment = 'Hint組件';
+
+  // CnHintWindow
+  SCnHintWindowName = 'HintWindow組件';
+  SCnHintWindowComment = 'HintWindow組件';
+
 var
   SCnAOCaptionColor: string = '顏色(&C)';
   SCnAOCaptionFont: string = '字體(&F)';
