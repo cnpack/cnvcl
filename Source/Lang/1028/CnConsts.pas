@@ -118,6 +118,7 @@ resourcestring
 
   // 開發組成員信息請在後面添加，注意本地化處理
 var
+  SCnPack_Team: string = 'CnPack開發組';
   SCnPack_Zjy: string = '周勁羽';
   SCnPack_Shenloqi: string = '沈龍強(Chinbo)';
   SCnPack_xiaolv: string = '呂宏慶';
@@ -152,12 +153,15 @@ var
   SCnPack_ZiMin: string = '子旻';
   SCnPack_rarnu: string = 'rarnu';
   SCnPack_dejoy: string = 'dejoy';
+  SCnPack_Rain: string = 'Rain';
+  SCnPack_cnwinds: string = 'cnwinds';
 
   // CnCommon
   SUnknowError: string = '未知錯誤';
   SErrorCode: string = '錯誤代碼：';
 
 const
+  SCnPack_TeamEmail = 'master@cnpack.org';
   SCnPack_ZjyEmail = 'zjy@cnpack.org';
   SCnPack_ShenloqiEmail = 'Shenloqi@hotmail.com';
   SCnPack_xiaolvEmail = 'xiaolv888@etang.com';
@@ -192,6 +196,8 @@ const
   SCnPack_ZiMinEmail = '441414288@qq.com';
   SCnPack_rarnuEmail = 'rarnu@cnpack.org';
   SCnPack_dejoyEmail = 'dejoybbs@163.com';
+  SCnPack_RainEmail = SCnPack_TeamEmail;
+  SCnPack_cnwindsEmail = SCnPack_TeamEmail;
 
   // CnMemProf
   SCnPackMemMgr = '內存管理監視器';

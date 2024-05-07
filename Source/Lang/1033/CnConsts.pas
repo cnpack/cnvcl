@@ -114,6 +114,7 @@ resourcestring
 
   // CnPack Developers Added from Last.
 var
+  SCnPack_Team: string = 'CnPack Team';
   SCnPack_Zjy: string = 'Zhou JingYu';
   SCnPack_Shenloqi: string = 'Chinbo';
   SCnPack_xiaolv: string = 'xiaolv';
@@ -148,12 +149,15 @@ var
   SCnPack_ZiMin: string = 'ZiMin';
   SCnPack_rarnu: string = 'rarnu';
   SCnPack_dejoy: string = 'dejoy';
+  SCnPack_Rain: string = 'Rain';
+  SCnPack_cnwinds: string = 'cnwinds';
 
   // CnCommon
   SUnknowError: string = 'Unknow error';
   SErrorCode: string = 'Error code:';
 
 const
+  SCnPack_TeamEmail = 'master@cnpack.org';
   SCnPack_ZjyEmail = 'zjy@cnpack.org';
   SCnPack_ShenloqiEmail = 'Shenloqi@hotmail.com';
   SCnPack_xiaolvEmail = 'xiaolv888@etang.com';
@@ -188,6 +192,8 @@ const
   SCnPack_ZiMinEmail = '441414288@qq.com';
   SCnPack_rarnuEmail = 'rarnu@cnpack.org';
   SCnPack_dejoyEmail = 'dejoybbs@163.com';
+  SCnPack_RainEmail = SCnPack_TeamEmail;
+  SCnPack_cnwindsEmail = SCnPack_TeamEmail;
 
   // CnMemProf
   SCnPackMemMgr = 'CnMemProf';

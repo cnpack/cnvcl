@@ -86,6 +86,30 @@ resourcestring
   SCnDNSTooLong = '字符串長度超界';
   SCnDNSInvalidHeadByteFmt = '字符串長度 %d 位於 %d 處非法';
 
+  // CnDialUp
+  SCnDialUpName = '撥號組件';
+  SCnDialUpComment = '撥號組件';
+
+  // CnCameraEye
+  SCnCameraEyeName = '攝像頭組件';
+  SCnCameraEyeComment = '攝像頭組件';
+
+  // CnIISCtrl
+  SCnIISCtrlName = 'IIS控制組件';
+  SCnIISCtrlComment = 'IIS控制組件';
+
+  // CnTwain
+  SCnTwainName = '掃瞄儀組件';
+  SCnTwainComment = '掃瞄儀組件';
+
+  // CnIocpSocketAdapter
+  SCnIocpSocketAdapterName = '完成端口Socket適配器組件';
+  SCnIocpSocketAdapterComment = '完成端口Socket適配器組件';
+
+  // CnIocpSimpleMemPool
+  SCnIocpSimpleMemPoolName = '完成端口內存池組件';
+  SCnIocpSimpleMemPoolComment = '完成端口內存池組件';
+
   // CnThreadingTCPServer
   SCnThreadingTCPServerName = '多線程TCP服務器組件';
   SCnThreadingTCPServerComment = '阻塞式多線程TCP服務器組件';

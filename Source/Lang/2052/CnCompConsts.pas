@@ -148,6 +148,14 @@ resourcestring
   SCnFilePackerName = '文件目录打包组件';
   SCnFilePackerComment = '文件目录打包组件';
 
+  // CnRawKeyBoard
+  SCnRawKeyBoardName = '底层键盘组件';
+  SCnRawKeyBoardComment = '底层键盘组件';
+
+  // CnSystemDebugControl
+  SCnSystemDebugControlName = 'SystemDebugControl控制组件';
+  SCnSystemDebugControlComment = 'SystemDebugControl控制组件';
+
 implementation
 
 end.

@@ -148,6 +148,14 @@ resourcestring
   SCnFilePackerName = 'File Packer and Unpacker';
   SCnFilePackerComment = 'File Packer and Unpacker';
 
+  // CnRawKeyBoard
+  SCnRawKeyBoardName = 'Raw KeyBoard Component';
+  SCnRawKeyBoardComment = 'An Encapsulated Raw KeyBoard Component';
+
+  // CnSystemDebugControl
+  SCnSystemDebugControlName = 'SystemDebugControl Component';
+  SCnSystemDebugControlComment = 'An Encapsulated SystemDebugControl Component';
+
 implementation
 
 end.
