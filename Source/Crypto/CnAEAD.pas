@@ -38,6 +38,7 @@ unit CnAEAD;
 *          《Recommendation for Block Cipher Modes of Operation:
 *           The CCM Mode for Authentication and Confidentiality》
 *           以及 RFC 3610 的例子数据(AES-128)、RFC 8998 的例子数据 SM4-CCM
+*
 *           注意 CCM 有两个编译期的参数，摘要长度 CCM_M_LEN 和明文长度的字节长度 CCM_L_LEN
 *           NIST 800-38C 例子中是 4、8，RFC 3610 例子中是 8、2，RFC 8998 是 16、？
 *           俩参数不同是无法通过 CCM 正确加解密的。
@@ -45,10 +46,16 @@ unit CnAEAD;
 *           补充：Java 等语言中 AES/GCM/NoPadding 的加密方式具体使用 AES256-GCM，
 *           并会把 16 字节的 Tag 拼在密文后一起输出
 *
+*           Nonce、Iv 虽然也叫初始化向量，但内部并不是直接补齐截断使用 16 字节，
+*           而是根据长度直接 12 字节或 GHash 成 16 字节后取前 12 字节，再拼个四
+*           字节的计数器，这才作为传统 Iv 使用。
+*
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.07.31 V1.2
+* 修改记录：2024.05.09 V1.3
+*               加入两组 AES/SM4 GCM 到十六进制的加解密函数
+*           2022.07.31 V1.2
 *               加入 ChaCha20-Poly1305 和 XChaCha20-Poly1305 算法
 *           2022.10.22 V1.1
 *               修正 AES192/256 的 Key 可能被错误截断的问题，并增加 Tag 拼接在密文后的处理
@@ -376,6 +383,26 @@ function SM4CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; Non
   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
   以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
 
+// ======== 封装的 AES|SM4/GCM 十六进制字节数组加解密函数，无需 Padding ========
+
+function AESGCMEncryptToHex(Key, Iv, AD: TBytes; const Input: TBytes): string;
+{* 封装的常用加密函数。使用密码、初始化向量、额外数据对明文进行 AES-GCM 加密并转换
+  成十六进制字符串。算法采用 AES256，GCM 无需 Padding、验证 Tag 拼在字符串后部与
+  内部加密结果形成完整密文}
+
+function AESGCMDecryptFromHex(Key, Iv, AD: TBytes; const Input: string): TBytes;
+{* 封装的常用解密函数。使用密码、初始化向量、额外数据对十六进制密文进行 AES-GCM 解密
+  并验证 Tag，算法采用 AES256，GCM 无需 Padding，返回解密后的明文字节数组}
+
+function SM4GCMEncryptToHex(Key, Iv, AD: TBytes; const Input: TBytes): string;
+{* 封装的常用加密函数。使用密码、初始化向量、额外数据对明文进行 SM4-GCM 加密并转换
+  成十六进制字符串，算法采用 SM4，GCM 无需 Padding、验证 Tag 拼在字符串后部与内
+  部加密结果形成完整密文}
+
+function SM4GCMDecryptFromHex(Key, Iv, AD: TBytes; const Input: string): TBytes;
+{* 封装的常用解密函数。使用密码、初始化向量、额外数据对十六进制密文进行 SM4-GCM 解密
+  并验证 Tag，算法采用 SM4，GCM 无需 Padding，返回解密后的明文字节数组}
+
 // =================== ChaCha20_Poly1305 数据块加解密函数 ======================
 
 procedure ChaCha20Poly1305Encrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
@@ -428,7 +455,7 @@ function XChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Poin
   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
   以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
 
-// ================== XChaCha20_Poly1305 字节数组加解密函数 =====================
+// ================== XChaCha20_Poly1305 字节数组加解密函数 ====================
 
 function XChaCha20Poly1305EncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnPoly1305Digest): TBytes;
 {* 使用密码、临时数据、额外数据对明文进行 XChaCha20_Poly1305 加密，返回密文
@@ -1829,6 +1856,78 @@ function SM4CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; Non
 begin
   Result := CCMDecrypt(Key, KeyByteLength, Nonce, NonceByteLength, EnData, EnByteLength,
     AAD, AADByteLength, OutPlainData, InTag, aetSM4);
+end;
+
+// ======== 封装的 AES|SM4/GCM 十六进制字节数组加解密函数，无需 Padding ========
+
+function AESGCMEncryptToHex(Key, Iv, AD: TBytes; const Input: TBytes): string;
+var
+  OutTag: TCnGCM128Tag;
+  Res: TBytes;
+  L: Integer;
+begin
+  Res := AES256GCMEncryptBytes(Key, Iv, Input, AD, OutTag);
+  if Length(Res) > 0 then
+  begin
+    L := Length(Res);
+    SetLength(Res, L + SizeOf(TCnGCM128Tag));
+    Move(OutTag[0], Res[L], SizeOf(TCnGCM128Tag));
+    Result := BytesToHex(Res);
+  end
+  else
+    Result := '';
+end;
+
+function AESGCMDecryptFromHex(Key, Iv, AD: TBytes; const Input: string): TBytes;
+var
+  InTag: TCnGCM128Tag;
+  Res: TBytes;
+begin
+  Res := HexToBytes(Input);
+  if Length(Res) < SizeOf(TCnGCM128Tag) then // 太短说明没 Tag
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  Move(Res[Length(Res) - SizeOf(TCnGCM128Tag)], InTag[0], SizeOf(TCnGCM128Tag));
+  SetLength(Res, Length(Res) - SizeOf(TCnGCM128Tag));
+  Result := AES256GCMDecryptBytes(Key, Iv, Res, AD, InTag);
+end;
+
+function SM4GCMEncryptToHex(Key, Iv, AD: TBytes; const Input: TBytes): string;
+var
+  OutTag: TCnGCM128Tag;
+  Res: TBytes;
+  L: Integer;
+begin
+  Res := SM4GCMEncryptBytes(Key, Iv, Input, AD, OutTag);
+  if Length(Res) > 0 then
+  begin
+    L := Length(Res);
+    SetLength(Res, L + SizeOf(TCnGCM128Tag));
+    Move(OutTag[0], Res[L], SizeOf(TCnGCM128Tag));
+    Result := BytesToHex(Res);
+  end
+  else
+    Result := '';
+end;
+
+function SM4GCMDecryptFromHex(Key, Iv, AD: TBytes; const Input: AnsiString): TBytes;
+var
+  InTag: TCnGCM128Tag;
+  Res: TBytes;
+begin
+  Res := HexToBytes(Input);
+  if Length(Res) < SizeOf(TCnGCM128Tag) then // 太短说明没 Tag
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  Move(Res[Length(Res) - SizeOf(TCnGCM128Tag)], InTag[0], SizeOf(TCnGCM128Tag));
+  SetLength(Res, Length(Res) - SizeOf(TCnGCM128Tag));
+  Result := SM4GCMDecryptBytes(Key, Iv, Res, AD, InTag);
 end;
 
 // =================== ChaCha20_Poly1305 数据块加解密函数 ======================
