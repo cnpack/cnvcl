@@ -8,8 +8,8 @@ object CnAAFontDlg: TCnAAFontDlg
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -12
-  Font.Name = 'MS Sans Serif'
+  Font.Height = -11
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poDesktopCenter
@@ -62,7 +62,7 @@ object CnAAFontDlg: TCnAAFontDlg
       Caption = 'V. Offset:'
     end
     object spShadow: TShape
-      Left = 64
+      Left = 104
       Top = 37
       Width = 16
       Height = 16

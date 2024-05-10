@@ -8,8 +8,8 @@ object CnRS232Dlg: TCnRS232Dlg
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -12
-  Font.Name = 'MS Sans Serif'
+  Font.Height = -11
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poDesktopCenter

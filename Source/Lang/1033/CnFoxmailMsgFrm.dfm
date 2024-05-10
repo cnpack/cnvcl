@@ -6,10 +6,10 @@ object MsgForm: TMsgForm
   ClientHeight = 136
   ClientWidth = 153
   Color = clWhite
-  Font.Charset = GB2312_CHARSET
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -12
-  Font.Name = 'MS Sans Serif'
+  Font.Height = -11
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   OnClick = FormClick

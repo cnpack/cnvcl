@@ -49,13 +49,13 @@ resourcestring
   SCnHashLangStorageComment = 'Hash TXT Language Storage Component';
   SCnLangTranslatorName = 'Language Translator';
   SCnLangTranslatorComment = 'Language Translator and Translation Manager';
-  
+
   SCnMultiInstanceError = 'Only one %s Instance is allowed!';
 
   SCnLoadLangFileError = 'Can''t Load the language File: %s';
   SCnInvalidLanguageIDError = 'Invalid Language ID %d';
   SCnErrorInCheckingLanguage = 'Error when Checking Language. Please close DEP';
-  
+
   SCnMultiLangPaletteName = 'CnPack MultiLang';
   SCnFormTranslationManager = '&Translation Manager...';
   SCnEditLanguageStrings = 'Edit Language Items...';
@@ -65,7 +65,7 @@ resourcestring
   SCnErrorNoStorage = 'NO Language Storage, Please Create it First.';
   SCnLanguagePath = 'Select the Path to Store the Language File.';
   SCnCanNotCreateDir = 'Can NOT create Directories when Saving.';
-  
+
   // Translator UI Resource Strings
   SCnactAddLineCaption = 'Add Line';
   SCnactAddLineHint = 'Add a New Line at the List End';

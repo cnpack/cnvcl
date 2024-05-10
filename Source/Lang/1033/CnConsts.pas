@@ -192,7 +192,7 @@ const
   SCnPack_ZiMinEmail = '441414288@qq.com';
   SCnPack_rarnuEmail = 'rarnu@cnpack.org';
   SCnPack_dejoyEmail = 'dejoybbs@163.com';
-  SCnPack_RainEmail = SCnPack_TeamEmail;
+  SCnPack_RainEmail = SCnPack_TeamEmail;    // 该俩作者无 Email，用开发组邮箱代替
   SCnPack_cnwindsEmail = SCnPack_TeamEmail;
 
   // CnMemProf
