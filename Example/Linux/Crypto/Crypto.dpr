@@ -71,7 +71,6 @@ uses
   CnZUC in '..\..\..\Source\Crypto\CnZUC.pas',
   CnBigDecimal in '..\..\..\Source\Common\CnBigDecimal.pas',
   CnBigRational in '..\..\..\Source\Common\CnBigRational.pas',
-  CnClasses in '..\..\..\Source\Common\CnClasses.pas',
   CnConsts in '..\..\..\Source\Common\CnConsts.pas',
   CnContainers in '..\..\..\Source\Common\CnContainers.pas',
   CnFloat in '..\..\..\Source\Common\CnFloat.pas',
