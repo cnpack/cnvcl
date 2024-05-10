@@ -34,13 +34,11 @@ type
     procedure btn3Click(Sender: TObject);
     procedure FormShortCut(var Msg: TWMKey; var Handled: Boolean);
   private
-    { Private declarations }
     PoolSend: TCnThreadPool;
     RecivedCount: Integer;
     SendCount, ProcessCount: Integer;
     Sending: Boolean;
     iSendInterval: Integer;
-    csReciver: TCnCriticalSection;
     sReadLn: string;
 
     procedure SeparateHostAndPort(const s: string; var host: string;
@@ -49,7 +47,6 @@ type
     procedure ProcessRequest(Sender: TCnThreadPool;
       aDataObj: TCnTaskDataObject; aThread: TCnPoolingThread);
     public
-    { Public declarations }
   end;
 
 var
@@ -61,12 +58,12 @@ uses StrUtils, IdSocketHandle;
 
 {$R *.DFM}
 
-procedure Delay(const i: DWORD);
+procedure Delay(const I: DWORD);
 var
   t: DWORD;
 begin
   t := GetTickCount;
-  while (not Application.Terminated) and (GetTickCount - t < i) do
+  while (not Application.Terminated) and (GetTickCount - t < I) do
     Application.ProcessMessages
 end;
 
@@ -151,13 +148,13 @@ end;
 procedure TfrmTest.SeparateHostAndPort(const s: string;
   var host: string; var port: Integer);
 var
-  i: Integer;
+  I: Integer;
 begin
-  i := Pos(':', s);
-  if i > 0 then
+  I := Pos(':', s);
+  if I > 0 then
   begin
-    host := Copy(s, 1, i - 1);
-    port := StrToIntDef(Copy(s, i + 1, MaxInt), IdTCPServer1.DefaultPort)
+    host := Copy(s, 1, I - 1);
+    port := StrToIntDef(Copy(s, I + 1, MaxInt), IdTCPServer1.DefaultPort)
   end
   else
   begin
@@ -168,12 +165,12 @@ end;
 
 procedure TfrmTest.FormCreate(Sender: TObject);
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := 0 to ControlCount - 1 do
-    if Controls[i] is TMemo then
-      TMemo(Controls[i]).Clear;
-  csReciver := TCnCriticalSection.Create;
+  for I := 0 to ControlCount - 1 do
+    if Controls[I] is TMemo then
+      TMemo(Controls[I]).Clear;
+
   PoolSend := TCnThreadPool.CreateSpecial(Self, TSendThread);
   with PoolSend do
   begin
@@ -183,7 +180,7 @@ begin
     ThreadDeadTimeout := 10 * 1000;
     ThreadsMinCount := 0;
     ThreadsMaxCount := 50;
-    uTerminateWaitTime := 2 * 1000;
+    TerminateWaitTime := 2 * 1000;
   end;
   RecivedCount := 0;
   SendCount := 0;
@@ -200,7 +197,7 @@ end;
 
 procedure TfrmTest.edt1Change(Sender: TObject);
 var
-  i, port, newport: Integer;
+  I, port, newport: Integer;
   host, s: string;
 begin
   if not IdTCPServer1.Active then
@@ -210,10 +207,10 @@ begin
     edt1.Text := IntToStr(newport);
     SeparateHostAndPort(edt2.Text, host, port);
     s := host + ':' + IntToStr(newport);
-    for i := 0 to edt2.Items.Count - 1 do
+    for I := 0 to edt2.Items.Count - 1 do
     begin
-      SeparateHostAndPort(edt2.Items.Strings[i], host, port);
-      edt2.Items.Strings[i] := host + ':' + IntToStr(newport)
+      SeparateHostAndPort(edt2.Items.Strings[I], host, port);
+      edt2.Items.Strings[I] := host + ':' + IntToStr(newport)
     end;
     edt2.Text := s
   end
@@ -223,7 +220,7 @@ end;
 
 procedure TfrmTest.btn2Click(Sender: TObject);
 var
-  i: Integer;
+  I: Integer;
   host: string;
   port: Integer;
 begin
@@ -253,7 +250,7 @@ begin
           Delay(iSendInterval div 2)
         end;
       else
-        for i := 0 to iSendInterval div 50 - 1 do
+        for I := 0 to iSendInterval div 50 - 1 do
         begin
           Sleep(10);
           Delay(40)
@@ -322,7 +319,6 @@ end;
 procedure TfrmTest.FormDestroy(Sender: TObject);
 begin
   PoolSend.Free;
-  csReciver.Free;
 end;
 
 procedure TfrmTest.Updatemmo1;
