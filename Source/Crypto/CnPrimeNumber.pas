@@ -63,7 +63,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Math, CnNative, CnContainers, CnClasses;
+  SysUtils, Classes, Math, CnNative, CnContainers;
 
 const
   // 用 Miller Rabin 素数概率判断算法所进行的次数

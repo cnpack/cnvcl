@@ -112,7 +112,6 @@ type
     {* 注销内存类型块}
 
     function CreateMemoryBlockItem(MemoryTypeItem: PCnMemoryTypeItem): PCnMemoryBlockItem;
-    {* 传}
     procedure FreeMemoryBlockItem(MemoryTypeItem: PCnMemoryTypeItem;
       MemoryBlockItem: PCnMemoryBlockItem);
 
@@ -127,7 +126,7 @@ type
     function RegisterMemoryType(MemorySize: Cardinal;
                                 CreateMemoryProc: TCreateMemoryEvent;
                                 FreeMemoryProc: TFreeMemoryEvent): PCnMemoryTypeItem;
-    {* 注册内存类型块 参数:内存类型, 创建和释放方法指针
+    {* 注册内存类型块 参数：内存类型, 创建和释放方法指针
        两方法指针是事件通知，同时可以自定义分配内存与释放内存的方法}
 
     procedure UnregisterMemoryType(MemoryTypeItem: PCnMemoryTypeItem);
