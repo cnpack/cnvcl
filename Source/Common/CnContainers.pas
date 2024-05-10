@@ -77,7 +77,7 @@ interface
 
 uses
   SysUtils, Classes, Contnrs, SyncObjs, CnNative
-  {$IFDEF COMPILER6_UP}, RTLConsts, {$ELSE}, Consts {$ENDIF}
+  {$IFDEF COMPILER6_UP}, RTLConsts {$ELSE}, Consts {$ENDIF}
   {$IFDEF POSIX}, System.Generics.Collections {$ENDIF};
 
 {$DEFINE MULTI_THREAD} // 数学对象池支持多线程，性能略有下降，如不需要，注释此行即可
