@@ -1913,7 +1913,7 @@ begin
     Result := '';
 end;
 
-function SM4GCMDecryptFromHex(Key, Iv, AD: TBytes; const Input: AnsiString): TBytes;
+function SM4GCMDecryptFromHex(Key, Iv, AD: TBytes; const Input: string): TBytes;
 var
   InTag: TCnGCM128Tag;
   Res: TBytes;

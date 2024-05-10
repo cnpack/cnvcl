@@ -179,7 +179,7 @@ const
   BOOL_STRS: array[False..True] of string = ('False', 'True');
 var
   I: Integer;
-  IpGroups: TIPGroup;
+  IpGroups: TCnIPGroup;
 begin
   CheckIP(TButton(Sender));
   IP.IPAddress := FLocalIP;
