@@ -25,7 +25,7 @@ program Crypto;
 {$R *.res}
 
 uses
-  System.SysUtils,  // 低版本 Delphi 此处编译失败时需要去除 System. 前缀
+  SysUtils, 
   Cn25519 in '..\..\..\Source\Crypto\Cn25519.pas',
   CnAEAD in '..\..\..\Source\Crypto\CnAEAD.pas',
   CnAES in '..\..\..\Source\Crypto\CnAES.pas',
