@@ -41,6 +41,8 @@ interface
 
 {$I CnPack.inc}
 
+// 如需要启用和 TreeView 交互的功能，需在工程选项中定义 ENABLE_UIINTERACT
+
 // 用 ENABLE_FMX 来控制 FMX 环境下是否支持 FMX
 {$IFNDEF ENABLE_FMX}
   {$UNDEF SUPPORT_FMX}
@@ -141,18 +143,20 @@ type
     procedure ReplaceLeaf(ALeaf, AChild: TCnBinaryLeaf);
     {* 用 AChild 取代 ALeaf 所在的节点，ALeaf 剥离}
 
-{$IFDEF MSWINDOWS}
+{$IFDEF ENABLE_UIINTERACT}
+  {$IFDEF MSWINDOWS}
     procedure LoadFromATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode); override;
     {* 从一 VCL 的 TreeNode 节点载入其子节点，供递归调用，较基类增加了俩子节点的限制 }
     procedure SaveToATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode); override;
     {* 将节点本身以及子节点写入一 VCL 的 TreeNode，供递归调用 }
-{$ENDIF}
+  {$ENDIF}
 
-{$IFDEF SUPPORT_FMX}
+  {$IFDEF SUPPORT_FMX}
     procedure LoadFromATreeViewItem(ALeaf: TCnLeaf; AItem: TTreeViewItem); override;
     {* 从一 FMX 的 TreeViewItem 节点载入其子节点，供递归调用，较基类增加了俩子节点的限制 }
     procedure SaveToATreeViewItem(ALeaf: TCnLeaf; AItem: TTreeViewItem); override;
     {* 将节点本身以及子节点写入一 FMX 的 TreeViewItem，供递归调用 }
+  {$ENDIF}
 {$ENDIF}
   public
     constructor Create; overload;
@@ -169,7 +173,8 @@ type
     procedure DeleteRightChild(AParent: TCnBinaryLeaf);
     {* 删除指定节点的右子节点，也就是置 nil，但原有子节点不会释放}
 
-{$IFDEF MSWINDOWS}
+{$IFDEF ENABLE_UIINTERACT}
+  {$IFDEF MSWINDOWS}
     // 和 TreeView 的交互方法，注意 Root 不参与交互
     procedure LoadFromTreeView(ATreeView: ComCtrls.TTreeView; RootNode: TTreeNode = nil;
       RootLeaf: TCnBinaryLeaf = nil); {$IFDEF SUPPORT_FMX} overload; {$ENDIF}
@@ -182,9 +187,9 @@ type
     {* 将节点内容写入一 VCL 的 TreeView。 RootLeaf 的子节点被写入成 RootNode 所指明的
     节点的子节点，RootLeaf 为 nil 表示写入 Root 的所有子节点，其实也就是所有节
     点，RootNode 为 nil 表示写入的将成为 TreeView 的根 TreeNodes}
-{$ENDIF}
+  {$ENDIF}
 
-{$IFDEF SUPPORT_FMX}
+  {$IFDEF SUPPORT_FMX}
     procedure LoadFromTreeView(ATreeView: FMX.TreeView.TTreeView; RootItem: TTreeViewItem = nil;
       RootLeaf: TCnBinaryLeaf = nil); {$IFDEF MSWINDOWS} overload; {$ENDIF}
     {* 从一 FMX 的 TreeView 读入节点内容。RootNode 的子节点被读入成 RootLeaf 所指明的
@@ -196,6 +201,7 @@ type
     {* 将节点内容写入一 FMX 的 TreeView。 RootLeaf 的子节点被写入成 RootItem 所指明的
     节点的子节点，RootLeaf 为 nil 表示写入 Root 的所有子节点，其实也就是所有节
     点，RootNode 为 nil 表示写入的将成为 TreeView 的根 TreeNodes}
+  {$ENDIF}
 {$ENDIF}
 
     function IsFull: Boolean;
@@ -609,6 +615,7 @@ begin
 end;
 
 
+{$IFDEF ENABLE_UIINTERACT}
 {$IFDEF MSWINDOWS}
 
 procedure TCnBinaryTree.LoadFromATreeNode(ALeaf: TCnLeaf;
@@ -781,6 +788,7 @@ begin
   inherited SaveToTreeView(ATreeView, RootItem, RootLeaf);
 end;
 
+{$ENDIF}
 {$ENDIF}
 
 function TCnBinaryTree.GetCount: Integer;

@@ -62,15 +62,21 @@ interface
 
 {$I CnPack.inc}
 
+{.$DEFINE ENABLE_UIINTERACT}
+// 定义此条件，允许 Tree 数据结构与 TreeView 等界面控件交互
+// 默认不定义，免得加解密库增加不必要的引用
+
 // 用 ENABLE_FMX 来控制支持 FMX 的编译器里头是否使用 FMX，默认不使用，以避免编译出来的东西体积太大
 {$IFNDEF ENABLE_FMX}
   {$UNDEF SUPPORT_FMX}
 {$ENDIF}
 
 uses
-  SysUtils, Classes, Contnrs {$IFDEF MSWINDOWS}, ComCtrls {$ENDIF} // 如果 Windows 下编译错误找不到该单元，请在编译选项里加 Vcl 前缀
-  {$IFDEF SUPPORT_FMX}, FMX.TreeView {$ENDIF};
+  SysUtils, Classes, Contnrs {$IFDEF ENABLE_UIINTERACT}
+  {$IFDEF MSWINDOWS}, ComCtrls {$ENDIF} // 如果 Windows 下编译错误找不到该单元，请在编译选项里加 Vcl 前缀
+  {$IFDEF SUPPORT_FMX}, FMX.TreeView {$ENDIF}
   // If ComCtrls not found, please add 'Vcl' to 'Unit Scope Names' in Project Options.
+  {$ENDIF};
 
 type
 
@@ -199,6 +205,7 @@ type
 
   TCnLeafClass = class of TCnLeaf;
 
+{$IFDEF ENABLE_UIINTERACT}
 {$IFDEF MSWINDOWS}
   TCnTreeNodeEvent = procedure (ALeaf: TCnLeaf; ATreeNode: TTreeNode;
     var Valid: Boolean) of object;
@@ -207,6 +214,7 @@ type
 {$IFDEF SUPPORT_FMX}
   TCnTreeViewItemEvent = procedure (ALeaf: TCnLeaf; ATreeItem: TTreeViewItem;
     var Valid: Boolean) of object;
+{$ENDIF}
 {$ENDIF}
 
   TCnTree = class(TPersistent)
@@ -218,13 +226,15 @@ type
 
     FOnWidthFirstTravelLeaf: TNotifyEvent;
     FOnDepthFirstTravelLeaf: TNotifyEvent;
-{$IFDEF MSWINDOWS}
+{$IFDEF ENABLE_UIINTERACT}
+  {$IFDEF MSWINDOWS}
     FOnSaveANode: TCnTreeNodeEvent;
     FOnLoadANode: TCnTreeNodeEvent;
-{$ENDIF}
-{$IFDEF SUPPORT_FMX}
+  {$ENDIF}
+  {$IFDEF SUPPORT_FMX}
     FOnSaveAItem: TCnTreeViewItemEvent;
     FOnLoadAItem: TCnTreeViewItemEvent;
+  {$ENDIF}
 {$ENDIF}
     function GetMaxLevel: Integer;
     procedure AssignLeafAndChildren(Source, DestLeaf: TCnLeaf; DestTree: TCnTree);
@@ -243,14 +253,16 @@ type
     function CreateLeaf(ATree: TCnTree): TCnLeaf; virtual;
     procedure DoDepthFirstTravelLeaf(ALeaf: TCnLeaf); virtual;
     procedure DoWidthFirstTravelLeaf(ALeaf: TCnLeaf); virtual;
-{$IFDEF MSWINDOWS}
+{$IFDEF ENABLE_UIINTERACT}
+  {$IFDEF MSWINDOWS}
     function DoLoadFromATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode): Boolean; virtual;
     function DoSaveToATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode): Boolean; virtual;
-{$ENDIF}
+  {$ENDIF}
 
-{$IFDEF SUPPORT_FMX}
+  {$IFDEF SUPPORT_FMX}
     function DoLoadFromATreeViewItem(ALeaf: TCnLeaf; AItem: TTreeViewItem): Boolean;
     function DoSaveToATreeViewItem(ALeaf: TCnLeaf; AItem: TTreeViewItem): Boolean;
+  {$ENDIF}
 {$ENDIF}
 
     procedure ValidateComingLeaf(AParent, AChild: TCnLeaf); virtual;
@@ -261,18 +273,20 @@ type
     procedure UnRegisterLeaf(ALeaf: TCnLeaf);
     {* 仅供叶节点调用，取消此叶节点的登记 }
 
-{$IFDEF MSWINDOWS}
+{$IFDEF ENABLE_UIINTERACT}
+  {$IFDEF MSWINDOWS}
     procedure LoadFromATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode); virtual;
     {* 从一 TreeNode 节点载入其子节点，供递归调用 }
     procedure SaveToATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode); virtual;
     {* 将节点本身以及子节点写入一 TreeNode，供递归调用 }
-{$ENDIF}
+  {$ENDIF}
 
-{$IFDEF SUPPORT_FMX}
+  {$IFDEF SUPPORT_FMX}
     procedure LoadFromATreeViewItem(ALeaf: TCnLeaf; AItem: TTreeViewItem); virtual;
     {* 从一 TreeNode 节点载入其子节点，供递归调用 }
     procedure SaveToATreeViewItem(ALeaf: TCnLeaf; AItem: TTreeViewItem); virtual;
     {* 将节点本身以及子节点写入一 TreeNode，供递归调用 }
+  {$ENDIF}
 {$ENDIF}
   public
     constructor Create; overload;
@@ -311,7 +325,8 @@ type
     procedure Exchange(AbsoluteIndex1, AbsoluteIndex2: Integer); overload;
     {* 单纯根据索引交换俩节点位置 }
 
-{$IFDEF MSWINDOWS}
+{$IFDEF ENABLE_UIINTERACT}
+  {$IFDEF MSWINDOWS}
     // 和 TreeView 的交互方法，注意 Root 不参与交互
     procedure LoadFromTreeView(ATreeView: ComCtrls.TTreeView; RootNode: TTreeNode = nil;
       RootLeaf: TCnLeaf = nil); {$IFDEF SUPPORT_FMX} overload; {$ENDIF}
@@ -323,9 +338,9 @@ type
     {* 将节点内容写入一 VCL 的 TreeView。 RootLeaf 的子节点被写入成 RootNode 所指明的
     节点的子节点，RootLeaf 为 nil 表示写入 Root 的所有子节点，其实也就是所有节
     点，RootNode 为 nil 表示写入的将成为 TreeView 的根 TreeNodes}
-{$ENDIF}
+  {$ENDIF}
 
-{$IFDEF SUPPORT_FMX}
+  {$IFDEF SUPPORT_FMX}
     procedure LoadFromTreeView(ATreeView: FMX.TreeView.TTreeView; RootItem: TTreeViewItem = nil;
       RootLeaf: TCnLeaf = nil); {$IFDEF MSWINDOWS} overload; {$ENDIF}
     {* 从一 FMX 的 TreeView 读入节点内容。RootItem 的子节点被读入成 RootLeaf 所指明的
@@ -336,6 +351,7 @@ type
     {* 将节点内容写入一 FMX 的 TreeView。 RootLeaf 的子节点被写入成 RootItem 所指明的
     节点的子节点，RootLeaf 为 nil 表示写入 Root 的所有子节点，其实也就是所有节
     点，RootItem 为 nil 表示写入的将成为 TreeView 的根 TreeNodes}
+  {$ENDIF}
 {$ENDIF}
 
     // 流化方法
@@ -363,28 +379,34 @@ type
     {* 深度优先遍历时遍历到一个叶节点时的触发事件，Sender 是此节点 }
     property OnWidthFirstTravelLeaf: TNotifyEvent read FOnWidthFirstTravelLeaf write FOnWidthFirstTravelLeaf;
     {* 广度优先遍历时遍历到一个叶节点时的触发事件，Sender 是此节点 }
-{$IFDEF MSWINDOWS}
+
+{$IFDEF ENABLE_UIINTERACT}
+  {$IFDEF MSWINDOWS}
     property OnLoadANode: TCnTreeNodeEvent read FOnLoadANode write FOnLoadANode;
     {* 从 VCL 的 TreeView 中载入节点时针对每一个节点的触发事件 }
     property OnSaveANode: TCnTreeNodeEvent read FOnSaveANode write FOnSaveANode;
     {* 将节点存入 VCL 的 TreeView 时针对每一个节点的触发事件 }
-{$ENDIF}
-{$IFDEF SUPPORT_FMX}
+  {$ENDIF}
+  {$IFDEF SUPPORT_FMX}
     property OnLoadAItem: TCnTreeViewItemEvent read FOnLoadAItem write FOnLoadAItem;
     {* 从 VCL 的 TreeView 中载入节点时针对每一个节点的触发事件 }
     property OnSaveAItem: TCnTreeViewItemEvent read FOnSaveAItem write FOnSaveAItem;
     {* 将节点存入 VCL 的 TreeView 时针对每一个节点的触发事件 }
+  {$ENDIF}
 {$ENDIF}
   end;
 
+{$IFDEF ENABLE_UIINTERACT}
 {$IFDEF SUPPORT_FMX}
 
 function GetNextSiblingItem(Item: TTreeViewItem): TTreeViewItem;
 
 {$ENDIF}
+{$ENDIF}
 
 implementation
 
+{$IFDEF ENABLE_UIINTERACT}
 {$IFDEF SUPPORT_FMX}
 
 function GetNextSiblingItem(Item: TTreeViewItem): TTreeViewItem;
@@ -409,6 +431,7 @@ begin
   end;
 end;
 
+{$ENDIF}
 {$ENDIF}
 
 //==============================================================================
@@ -1096,6 +1119,7 @@ begin
   Result := FLeaves.Count;
 end;
 
+{$IFDEF ENABLE_UIINTERACT}
 {$IFDEF MSWINDOWS}
 
 procedure TCnTree.LoadFromTreeView(ATreeView: ComCtrls.TTreeView; RootNode: TTreeNode;
@@ -1288,6 +1312,7 @@ begin
 end;
 
 {$ENDIF}
+{$ENDIF}
 
 procedure TCnTree.LoadFromFile(Filer: ICnTreeFiler;
   const FileName: string);
@@ -1302,6 +1327,7 @@ begin
     Filer.SaveToFile(Self, FileName);
 end;
 
+{$IFDEF ENABLE_UIINTERACT}
 {$IFDEF MSWINDOWS}
 
 procedure TCnTree.LoadFromATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode);
@@ -1462,6 +1488,7 @@ begin
   end;
 end;
 
+{$ENDIF}
 {$ENDIF}
 
 procedure TCnTree.ValidateComingLeaf(AParent, AChild: TCnLeaf);

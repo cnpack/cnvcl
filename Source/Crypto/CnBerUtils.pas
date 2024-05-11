@@ -49,6 +49,8 @@ interface
 
 {$I CnPack.inc}
 
+// 如需要启用和 TreeView 交互的功能，需在工程选项中定义 ENABLE_UIINTERACT
+
 // 用 ENABLE_FMX 来控制 FMX 环境下是否支持 FMX，默认不支持，以避免编译出来的东西体积太大
 {$IFNDEF ENABLE_FMX}
   {$UNDEF SUPPORT_FMX}
@@ -56,10 +58,10 @@ interface
 
 uses
   SysUtils, Classes, TypInfo, CnNative, CnBigNumber, CnTree
-  {$IFDEF DEBUG}
+  {$IFDEF DEBUG} {$IFDEF ENABLE_UIINTERACT}
     {$IFDEF MSWINDOWS}, ComCtrls  {$ENDIF} // 如果 Windows 下编译错误找不到该单元，请在编译选项里加 Vcl 前缀
     {$IFDEF SUPPORT_FMX}, FMX.TreeView {$ENDIF}
-  {$ENDIF};
+  {$ENDIF} {$ENDIF};
   // If ComCtrls not found, please add 'Vcl' to 'Unit Scope Names' in Project Options.
 
 const
@@ -207,6 +209,7 @@ type
     FParseInnerString: Boolean;
     FCurrentIsBitString: Boolean;
 {$IFDEF DEBUG}
+{$IFDEF ENABLE_UIINTERACT}
   {$IFDEF MSWINDOWS}
     function GetOnSaveNode: TCnTreeNodeEvent;
     procedure SetOnSaveNode(const Value: TCnTreeNodeEvent);
@@ -215,6 +218,7 @@ type
     function GetOnSaveItem: TCnTreeViewItemEvent;
     procedure SetOnSaveItem(const Value: TCnTreeViewItemEvent);
   {$ENDIF}
+{$ENDIF}
 {$ENDIF}
     function GetTotalCount: Integer;
     function GetItems(Index: Integer): TCnBerReadNode;
@@ -236,6 +240,7 @@ type
     {* 某些节点的 Tag 并非 SEQUENCE/SET 等但内容却有子内容，需要外部手工调用此方法来实施二次解析}
 
 {$IFDEF DEBUG}
+{$IFDEF ENABLE_UIINTERACT}
   {$IFDEF MSWINDOWS}
     procedure DumpToTreeView(ATreeView: ComCtrls.TTreeView); {$IFDEF SUPPORT_FMX} overload; {$ENDIF}
     property OnSaveNode: TCnTreeNodeEvent read GetOnSaveNode write SetOnSaveNode;
@@ -244,6 +249,7 @@ type
     procedure DumpToTreeView(ATreeView: FMX.TreeView.TTreeView); {$IFDEF MSWINDOWS} overload; {$ENDIF}
     property OnSaveItem: TCnTreeViewItemEvent read GetOnSaveItem write SetOnSaveItem;
   {$ENDIF}
+{$ENDIF}
 {$ENDIF}
 
     property ParseInnerString: Boolean read FParseInnerString;
@@ -310,6 +316,7 @@ type
     FBerTree: TCnTree;
     function GetTotalSize: Integer;
 {$IFDEF DEBUG}
+{$IFDEF ENABLE_UIINTERACT}
   {$IFDEF MSWINDOWS}
     function GetOnSaveNode: TCnTreeNodeEvent;
     procedure SetOnSaveNode(const Value: TCnTreeNodeEvent);
@@ -318,6 +325,7 @@ type
     function GetOnSaveItem: TCnTreeViewItemEvent;
     procedure SetOnSaveItem(const Value: TCnTreeViewItemEvent);
   {$ENDIF}
+{$ENDIF}
 {$ENDIF}
   public
     constructor Create;
@@ -333,6 +341,7 @@ type
     {* 将 BER 内容保存至流}
 
 {$IFDEF DEBUG}
+{$IFDEF ENABLE_UIINTERACT}
   {$IFDEF MSWINDOWS}
     procedure DumpToTreeView(ATreeView: ComCtrls.TTreeView); {$IFDEF SUPPORT_FMX} overload; {$ENDIF}
     property OnSaveNode: TCnTreeNodeEvent read GetOnSaveNode write SetOnSaveNode;
@@ -341,6 +350,7 @@ type
     procedure DumpToTreeView(ATreeView: FMX.TreeView.TTreeView); {$IFDEF MSWINDOWS} overload; {$ENDIF}
     property OnSaveItem: TCnTreeViewItemEvent read GetOnSaveItem write SetOnSaveItem;
   {$ENDIF}
+{$ENDIF}
 {$ENDIF}
 
     function AddNullNode(Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
@@ -489,7 +499,7 @@ begin
 end;
 
 {$IFDEF DEBUG}
-
+{$IFDEF ENABLE_UIINTERACT}
 {$IFDEF MSWINDOWS}
 
 procedure TCnBerReader.DumpToTreeView(ATreeView: ComCtrls.TTreeView);
@@ -525,8 +535,9 @@ procedure TCnBerReader.SetOnSaveItem(const Value: TCnTreeViewItemEvent);
 begin
   FBerTree.OnSaveAItem := Value;
 end;
-{$ENDIF}
 
+{$ENDIF}
+{$ENDIF}
 {$ENDIF}
 
 function TCnBerReader.GetItems(Index: Integer): TCnBerReadNode;
@@ -1008,7 +1019,7 @@ begin
 end;
 
 {$IFDEF DEBUG}
-
+{$IFDEF ENABLE_UIINTERACT}
 {$IFDEF MSWINDOWS}
 
 procedure TCnBerWriter.DumpToTreeView(ATreeView: ComCtrls.TTreeView);
@@ -1046,7 +1057,7 @@ begin
 end;
 
 {$ENDIF}
-
+{$ENDIF}
 {$ENDIF}
 
 function TCnBerWriter.GetTotalSize: Integer;
