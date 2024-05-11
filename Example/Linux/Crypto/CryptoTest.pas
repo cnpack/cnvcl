@@ -37,7 +37,7 @@ unit CryptoTest;
 
 interface
 
-{$I CnPack.inc}
+// 注意为了保持测试用例纯净性，不能 {$I CnPack.inc}
 
 uses
   SysUtils, Classes,

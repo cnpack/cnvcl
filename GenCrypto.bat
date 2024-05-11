@@ -111,3 +111,79 @@ ECHO   CnZUC in '..\Source\CnZUC.pas';                                         >
 ECHO.                                                                          >> CnCrypto.dpk
 ECHO end.                                                                      >> CnCrypto.dpk
 ECHO.                                                                          >> CnCrypto.dpk
+CD ..
+MKDIR Test
+CD Test
+COPY ..\..\cnvcl\Example\Linux\Crypto\CryptoTest.pas .
+ECHO program Crypto;                                                            > Crypto.dpr
+ECHO.                                                                          >> Crypto.dpr
+ECHO {$APPTYPE CONSOLE}                                                        >> Crypto.dpr
+ECHO.                                                                          >> Crypto.dpr
+ECHO {$R *.res}                                                                >> Crypto.dpr
+ECHO.                                                                          >> Crypto.dpr
+ECHO uses                                                                      >> Crypto.dpr
+ECHO   SysUtils,                                                               >> Crypto.dpr
+ECHO   Cn25519 in '..\Source\Cn25519.pas',                                     >> Crypto.dpr
+ECHO   CnAEAD in '..\Source\CnAEAD.pas',                                       >> Crypto.dpr
+ECHO   CnAES in '..\Source\CnAES.pas',                                         >> Crypto.dpr
+ECHO   CnBase64 in '..\Source\CnBase64.pas',                                   >> Crypto.dpr
+ECHO   CnBerUtils in '..\Source\CnBerUtils.pas',                               >> Crypto.dpr
+ECHO   CnBigDecimal in '..\Source\CnBigDecimal.pas',                           >> Crypto.dpr
+ECHO   CnBigNumber in '..\Source\CnBigNumber.pas',                             >> Crypto.dpr
+ECHO   CnBigRational in '..\Source\CnBigRational.pas',                         >> Crypto.dpr
+ECHO   CnBits in '..\Source\CnBits.pas',                                       >> Crypto.dpr
+ECHO   CnCertificateAuthority in '..\Source\CnCertificateAuthority.pas',       >> Crypto.dpr
+ECHO   CnChaCha20 in '..\Source\CnChaCha20.pas',                               >> Crypto.dpr
+ECHO   CnClasses in '..\Source\CnClasses.pas',                                 >> Crypto.dpr
+ECHO   CnComplex in '..\Source\CnComplex.pas',                                 >> Crypto.dpr
+ECHO   CnConsts in '..\Source\CnConsts.pas',                                   >> Crypto.dpr
+ECHO   CnContainers in '..\Source\CnContainers.pas',                           >> Crypto.dpr
+ECHO   CnCRC32 in '..\Source\CnCRC32.pas',                                     >> Crypto.dpr
+ECHO   CnDES in '..\Source\CnDES.pas',                                         >> Crypto.dpr
+ECHO   CnDFT in '..\Source\CnDFT.pas',                                         >> Crypto.dpr
+ECHO   CnECC in '..\Source\CnECC.pas',                                         >> Crypto.dpr
+ECHO   CnFEC in '..\Source\CnFEC.pas',                                         >> Crypto.dpr
+ECHO   CnFloat in '..\Source\CnFloat.pas',                                     >> Crypto.dpr
+ECHO   CnFNV in '..\Source\CnFNV.pas',                                         >> Crypto.dpr
+ECHO   CnHashMap in '..\Source\CnHashMap.pas',                                 >> Crypto.dpr
+ECHO   CnInt128 in '..\Source\CnInt128.pas',                                   >> Crypto.dpr
+ECHO   CnKDF in '..\Source\CnKDF.pas',                                         >> Crypto.dpr
+ECHO   CnLattice in '..\Source\CnLattice.pas',                                 >> Crypto.dpr
+ECHO   CnMath in '..\Source\CnMath.pas',                                       >> Crypto.dpr
+ECHO   CnMatrix in '..\Source\CnMatrix.pas',                                   >> Crypto.dpr
+ECHO   CnMD5 in '..\Source\CnMD5.pas',                                         >> Crypto.dpr
+ECHO   CnNative in '..\Source\CnNative.pas',                                   >> Crypto.dpr
+ECHO   CnOTP in '..\Source\CnOTP.pas',                                         >> Crypto.dpr
+ECHO   CnOTS in '..\Source\CnOTS.pas',                                         >> Crypto.dpr
+ECHO   CnPaillier in '..\Source\CnPaillier.pas',                               >> Crypto.dpr
+ECHO   CnPDFCrypt in '..\Source\CnPDFCrypt.pas',                               >> Crypto.dpr
+ECHO   CnPemUtils in '..\Source\CnPemUtils.pas',                               >> Crypto.dpr
+ECHO   CnPoly1305 in '..\Source\CnPoly1305.pas',                               >> Crypto.dpr
+ECHO   CnPolynomial in '..\Source\CnPolynomial.pas',                           >> Crypto.dpr
+ECHO   CnPrimeNumber in '..\Source\CnPrimeNumber.pas',                         >> Crypto.dpr
+ECHO   CnRandom in '..\Source\CnRandom.pas',                                   >> Crypto.dpr
+ECHO   CnRC4 in '..\Source\CnRC4.pas',                                         >> Crypto.dpr
+ECHO   CnRSA in '..\Source\CnRSA.pas',                                         >> Crypto.dpr
+ECHO   CnSecretSharing in '..\Source\CnSecretSharing.pas',                     >> Crypto.dpr
+ECHO   CnSHA1 in '..\Source\CnSHA1.pas',                                       >> Crypto.dpr
+ECHO   CnSHA2 in '..\Source\CnSHA2.pas',                                       >> Crypto.dpr
+ECHO   CnSHA3 in '..\Source\CnSHA3.pas',                                       >> Crypto.dpr
+ECHO   CnSM2 in '..\Source\CnSM2.pas',                                         >> Crypto.dpr
+ECHO   CnSM3 in '..\Source\CnSM3.pas',                                         >> Crypto.dpr
+ECHO   CnSM4 in '..\Source\CnSM4.pas',                                         >> Crypto.dpr
+ECHO   CnSM9 in '..\Source\CnSM9.pas',                                         >> Crypto.dpr
+ECHO   CnTEA in '..\Source\CnTEA.pas',                                         >> Crypto.dpr
+ECHO   CnTree in '..\Source\CnTree.pas',                                       >> Crypto.dpr
+ECHO   CnVector in '..\Source\CnVector.pas',                                   >> Crypto.dpr
+ECHO   CnZUC in '..\Source\CnZUC.pas',                                         >> Crypto.dpr
+ECHO   CryptoTest in 'CryptoTest.pas';                                         >> Crypto.dpr
+ECHO.                                                                          >> Crypto.dpr
+ECHO begin                                                                     >> Crypto.dpr
+ECHO   try                                                                     >> Crypto.dpr
+ECHO     TestCrypto;                                                           >> Crypto.dpr
+ECHO   except                                                                  >> Crypto.dpr
+ECHO     on E: Exception do                                                    >> Crypto.dpr
+ECHO       Writeln(E.ClassName, ': ', E.Message);                              >> Crypto.dpr
+ECHO   end;                                                                    >> Crypto.dpr
+ECHO end.                                                                      >> Crypto.dpr
+ECHO.                                                                          >> Crypto.dpr
