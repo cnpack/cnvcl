@@ -396,6 +396,8 @@ const
 
   CN_TAG_SET_TIME: TCnBerTagSet = [CN_BER_TAG_UTCTIME, CN_BER_TAG_GENERALIZEDTIME];
 
+{$IFDEF DEBUG}
+
 function GetTagName(Tag: Integer): string;
 begin
   Result := 'Invalid';
@@ -406,6 +408,8 @@ begin
       Delete(Result, 1, 3);
   end;
 end;
+
+{$ENDIF}
 
 function CompareObjectIdentifier(Node: TCnBerReadNode; OIDAddr: Pointer;
   OIDSize: Integer): Boolean;
