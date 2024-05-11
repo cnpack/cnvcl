@@ -441,7 +441,7 @@ object FormGB18030: TFormGB18030
     Left = 944
     Top = 312
     Width = 201
-    Height = 185
+    Height = 249
     Caption = 'NITS && PUA'
     TabOrder = 6
     object btnGenGB18030PuaUtf16: TButton
@@ -479,6 +479,15 @@ object FormGB18030: TFormGB18030
       Caption = 'Generate GB18030 Unicode SMP '
       TabOrder = 3
       OnClick = btnGenGB18030UnicodeMapSMPClick
+    end
+    object btnGenUnicodePuaList: TButton
+      Left = 16
+      Top = 208
+      Width = 169
+      Height = 25
+      Caption = 'Generate Unicode PUAs'
+      TabOrder = 4
+      OnClick = btnGenUnicodePuaListClick
     end
   end
   object dlgSave1: TSaveDialog

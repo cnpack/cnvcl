@@ -62,6 +62,7 @@ type
     btnGenGB18030Utf16Pua: TButton;
     btnGenGB18030UnicodeMapBMP: TButton;
     btnGenGB18030UnicodeMapSMP: TButton;
+    btnGenUnicodePuaList: TButton;
     procedure btnCodePointFromUtf161Click(Sender: TObject);
     procedure btnCodePointFromUtf162Click(Sender: TObject);
     procedure btnUtf16CharLengthClick(Sender: TObject);
@@ -104,6 +105,7 @@ type
     procedure btnGenGB18030Utf16PuaClick(Sender: TObject);
     procedure btnGenGB18030UnicodeMapBMPClick(Sender: TObject);
     procedure btnGenGB18030UnicodeMapSMPClick(Sender: TObject);
+    procedure btnGenUnicodePuaListClick(Sender: TObject);
   private
     // 以 Windows API 的方式批量生成 256 个 Unicode 字符
     procedure GenUtf16Page(Page: Byte; Content: TCnWideStringList);
@@ -165,6 +167,8 @@ const
   FACE_UTF8: array[0..3] of Byte = ($F0, $9F, $98, $82); // 笑哭了的表情符的 UTF8-MB4 表示
 
   CP_GB18030 = 54936;
+
+{$I ..\..\..\Source\Common\Unicode_Pua.inc}
 
 procedure TFormGB18030.btnCodePointFromUtf161Click(Sender: TObject);
 var
@@ -2152,6 +2156,37 @@ begin
   end;
 
   dlgSave1.FileName := 'GB18030-2022MappingTableSMP_Cn.txt';
+  if dlgSave1.Execute then
+  begin
+    SL.SaveToFile(dlgSave1.FileName);
+    ShowMessage('Save to ' + dlgSave1.FileName);
+  end;
+  SL.Free;
+end;
+
+procedure TFormGB18030.btnGenUnicodePuaListClick(Sender: TObject);
+var
+  I, T: Integer;
+  SL: TCnWideStringList;
+  S, C1, C2: WideString;
+begin
+  SL := TCnWideStringList.Create;
+  for I := Low(CN_UNICODE_PUA_MAPPING) to High(CN_UNICODE_PUA_MAPPING) do
+  begin
+    T := GetUtf16CharFromCodePoint(CN_UNICODE_PUA_MAPPING[I], nil);
+    SetLength(C1, T);
+    GetUtf16CharFromCodePoint(CN_UNICODE_PUA_MAPPING[I], @C1[1]);
+
+    T := GetUtf16CharFromCodePoint(CN_UNICODE_UCS_MAPPING[I], nil);
+    SetLength(C2, T);
+    GetUtf16CharFromCodePoint(CN_UNICODE_UCS_MAPPING[I], @C2[1]);
+
+    S := Format('%x', [CN_UNICODE_PUA_MAPPING[I]]) + '  ' + Format('%x', [CN_UNICODE_UCS_MAPPING[I]]) + '  ' + C1 + C2;
+
+    SL.Add(S);
+  end;
+
+  dlgSave1.FileName := 'Unicode_PUA.txt';
   if dlgSave1.Execute then
   begin
     SL.SaveToFile(dlgSave1.FileName);
