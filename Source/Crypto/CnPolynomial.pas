@@ -1725,7 +1725,6 @@ resourcestring
   SCnErrorPolynomialDegreeTooLarge = 'Degree Too Large';
   SCnErrorPolynomialGCDMustOne = 'Modular Inverse Need GCD = 1';
   SCnErrorPolynomialGaloisInvalidDegree = 'Galois Division Polynomial Invalid Degree';
-  SCnErrorPolynomialNoGaloisInverse = 'NO Modular Inverse. Can NOT Galois Div';
 
 var
   FLocalInt64PolynomialPool: TCnInt64PolynomialPool = nil;

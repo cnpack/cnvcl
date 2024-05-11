@@ -248,19 +248,19 @@ function UInt128ToStr(var N: TCnUInt128): string;
 function StrToUInt128(const S: string): TCnUInt128;
 {* 将十进制字符串转换为 128 位无符号数}
 
+var
+  CnInt128Zero: TCnInt128 = (Lo64: 0; Hi64: 0);
+  CnInt128One: TCnInt128 = (Lo64:1; Hi64: 0);
+
+  CnUInt128Zero: TCnUInt128 = (Lo64: 0; Hi64: 0);
+  CnUInt128One: TCnUInt128 = (Lo64:1; Hi64: 0);
+
 implementation
 
 const
   SCnErrorInt128NegateOverflow = 'Int128 Negate Overflow';
   SCnErrorInt128MulOverflow = 'Int128 Mul Overflow';
   SCnErrorUint128MulOverflow = 'UInt128 Mul Overflow';
-
-var
-  FInt128Zero: TCnInt128 = (Lo64: 0; Hi64: 0);
-  FInt128One: TCnInt128 = (Lo64:1; Hi64: 0);
-
-  FUInt128Zero: TCnUInt128 = (Lo64: 0; Hi64: 0);
-  FUInt128One: TCnUInt128 = (Lo64:1; Hi64: 0);
 
 procedure Int128Set(var R: TCnInt128; Lo, Hi: Int64);
 begin

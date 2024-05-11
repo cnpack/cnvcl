@@ -1041,7 +1041,9 @@ uses
   CnPrimeNumber, CnBigDecimal, CnFloat, CnBase64;
 
 resourcestring
+{$IFDEF BN_DATA_USE_64}
   SCnErrorBigNumberInvalid64ModRange = 'Mod Word only Supports Unsigned Int32';
+{$ENDIF}
   SCnErrorBigNumberLogRange = 'Log Range Error';
   SCnErrorBigNumberLegendre = 'Legendre: A, P Must > 0';
   CnErrorBigNumberFloatExponentRange = 'Extended Float Exponent Range Error';

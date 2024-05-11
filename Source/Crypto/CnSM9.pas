@@ -913,8 +913,6 @@ resourcestring
   SCnErrorSM9AffinePointZError = 'Affine Point Z Must be 1';
   SCnErrorSM9ListIndexError = 'List Index Out of Bounds (%d)';
   SCnErrorSM9MacParams = 'Error Mac Params';
-  SCnErrorSM9SigMasterKeyZero = 'Signature Master Key Zero';
-  SCnErrorSM9EncMasterKeyZero = 'Encryption Master Key Zero';
 
 const
   CRLF = #13#10;

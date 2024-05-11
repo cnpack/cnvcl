@@ -432,6 +432,8 @@ begin
   Result := CRC8Calc(OrgCRC8, PAnsiChar(Data[0])^, Length(Data));
 end;
 
+{$IFNDEF MSWINDOWS}
+
 function InternalCRC8Stream(Stream: TStream; const BufSize: Cardinal;
   var CRC: Byte): Boolean;
 var
@@ -472,6 +474,8 @@ begin
     Stream.Position := SavePos;
   end;
 end;
+
+{$ENDIF}
 
 // 计算文件 CRC 值，参数分别为：文件名、CRC 值、起始地址、计算长度
 function FileCRC8(const FileName: string; var CRC: Byte; StartPos: Int64 = 0;
@@ -587,6 +591,8 @@ begin
   Result := CRC16Calc(OrgCRC16, PAnsiChar(Data[0])^, Length(Data));
 end;
 
+{$IFNDEF MSWINDOWS}
+
 function InternalCRC16Stream(Stream: TStream; const BufSize: Cardinal;
   var CRC: Word): Boolean;
 var
@@ -627,6 +633,8 @@ begin
     Stream.Position := SavePos;
   end;
 end;
+
+{$ENDIF}
 
 // 计算文件 CRC 值，参数分别为：文件名、CRC 值、起始地址、计算长度
 function FileCRC16(const FileName: string; var CRC: Word; StartPos: Int64 = 0;
@@ -741,6 +749,8 @@ begin
   Result := CRC32Calc(OrgCRC32, PAnsiChar(Data[0])^, Length(Data));
 end;
 
+{$IFNDEF MSWINDOWS}
+
 function InternalCRC32Stream(Stream: TStream; const BufSize: Cardinal;
   var CRC: Cardinal): Boolean;
 var
@@ -781,6 +791,8 @@ begin
     Stream.Position := SavePos;
   end;
 end;
+
+{$ENDIF}
 
 // 计算文件 CRC 值，参数分别为：文件名、CRC 值、起始地址、计算长度
 function FileCRC32(const FileName: string; var CRC: Cardinal; StartPos: Int64 = 0;
@@ -909,6 +921,8 @@ begin
   Result := CRC64Calc(OrgCRC64, PAnsiChar(Data[0])^, Length(Data));
 end;
 
+{$IFNDEF MSWINDOWS}
+
 function InternalCRC64Stream(Stream: TStream; const BufSize: Cardinal;
   var CRC: Int64): Boolean;
 var
@@ -949,6 +963,8 @@ begin
     Stream.Position := SavePos;
   end;
 end;
+
+{$ENDIF}
 
 // 计算文件 CRC64 值，参数分别为：文件名、CRC 值、起始地址、计算长度
 function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;

@@ -268,7 +268,6 @@ const
 
 resourcestring
   SCN_ERROR_EXTENDED_SIZE = 'Extended Size Error';
-  SCN_ERROR_MANTISSA_OVERFLOW = 'Extended Mantissa Overflow';
 
 type
   TExtendedRec10 = packed record

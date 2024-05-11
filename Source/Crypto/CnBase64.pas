@@ -143,12 +143,6 @@ implementation
 var
   FilterDecodeInput: Boolean = True;
 
-const
-  Base64TableLength = 64;
-  Base64Table: string[Base64TableLength] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  Base64TableURL: string[Base64TableLength] = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-  Pad = '=';
-
 //------------------------------------------------------------------------------
 // ±àÂëµÄ²Î¿¼±í
 //------------------------------------------------------------------------------
