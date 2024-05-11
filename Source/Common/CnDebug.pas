@@ -2093,8 +2093,10 @@ end;
 
 procedure TCnDebugger.LogSet(const ASet; ASetSize: Integer;
   SetElementTypInfo: PTypeInfo; const AMsg: string);
+{$IFDEF DEBUG}
 var
   SetVal: Integer;
+{$ENDIF}
 begin
 {$IFDEF DEBUG}
   if (ASetSize <= 0) or (ASetSize > SizeOf(Integer)) then
@@ -4555,8 +4557,10 @@ end;
 
 procedure TCnDebugger.LogAnsiCharSet(const ASet: TCnAnsiCharSet;
   const AMsg: string);
+{$IFDEF DEBUG}
 var
   SetVal: TCnAnsiCharSet;
+{$ENDIF}
 begin
 {$IFDEF DEBUG}
   SetVal := ASet;

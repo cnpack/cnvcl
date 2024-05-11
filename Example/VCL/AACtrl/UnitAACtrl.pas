@@ -46,7 +46,7 @@ var
 implementation
 
 uses
-  CnAAFont, cndebug;
+  CnAAFont;
 
 {$IFNDEF COMPILER6_UP}
 const
@@ -95,7 +95,7 @@ begin
 
     // 在 BMP 中心输出文本
     AAFont.TextOutput((Bmp.Width - W) div 2, (Bmp.Height - H) div 2, S, 100, 0, True);
-cndebugger.evaluateobject(Bmp,True);
+
     if chk32PaintAlpha.Checked then
     begin
       // 透明，先带透明度地复制目标背景到
