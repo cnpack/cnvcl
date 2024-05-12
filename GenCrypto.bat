@@ -2,7 +2,7 @@
 
 CD ..
 DEL /S /Q cncrypto
-RMDIR cncrypto
+RMDIR /Q cncrypto /S
 MKDIR cncrypto
 CD cncrypto
 COPY ..\cnvcl\License.chs.txt .\License.txt
@@ -23,7 +23,8 @@ COPY ..\..\cnvcl\Source\Crypto\*.pas .
 CD ..
 MKDIR Package
 CD Package
-ECHO package CnCrypto;                                                          > CnCrypto.dpk
+CALL :PRINTHEAD CnCrypto.dpk
+ECHO package CnCrypto;                                                         >> CnCrypto.dpk
 ECHO.                                                                          >> CnCrypto.dpk
 ECHO {$R *.res}                                                                >> CnCrypto.dpk
 ECHO {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}          >> CnCrypto.dpk
@@ -56,59 +57,7 @@ ECHO requires                                                                  >
 ECHO   vcl;                                                                    >> CnCrypto.dpk
 ECHO.                                                                          >> CnCrypto.dpk
 ECHO contains                                                                  >> CnCrypto.dpk
-ECHO   Cn25519 in '..\Source\Cn25519.pas',                                     >> CnCrypto.dpk
-ECHO   CnAEAD in '..\Source\CnAEAD.pas',                                       >> CnCrypto.dpk
-ECHO   CnAES in '..\Source\CnAES.pas',                                         >> CnCrypto.dpk
-ECHO   CnBase64 in '..\Source\CnBase64.pas',                                   >> CnCrypto.dpk
-ECHO   CnBerUtils in '..\Source\CnBerUtils.pas',                               >> CnCrypto.dpk
-ECHO   CnBigDecimal in '..\Source\CnBigDecimal.pas',                           >> CnCrypto.dpk
-ECHO   CnBigNumber in '..\Source\CnBigNumber.pas',                             >> CnCrypto.dpk
-ECHO   CnBigRational in '..\Source\CnBigRational.pas',                         >> CnCrypto.dpk
-ECHO   CnBits in '..\Source\CnBits.pas',                                       >> CnCrypto.dpk
-ECHO   CnCertificateAuthority in '..\Source\CnCertificateAuthority.pas',       >> CnCrypto.dpk
-ECHO   CnChaCha20 in '..\Source\CnChaCha20.pas',                               >> CnCrypto.dpk
-ECHO   CnClasses in '..\Source\CnClasses.pas',                                 >> CnCrypto.dpk
-ECHO   CnComplex in '..\Source\CnComplex.pas',                                 >> CnCrypto.dpk
-ECHO   CnConsts in '..\Source\CnConsts.pas',                                   >> CnCrypto.dpk
-ECHO   CnContainers in '..\Source\CnContainers.pas',                           >> CnCrypto.dpk
-ECHO   CnCRC32 in '..\Source\CnCRC32.pas',                                     >> CnCrypto.dpk
-ECHO   CnDES in '..\Source\CnDES.pas',                                         >> CnCrypto.dpk
-ECHO   CnDFT in '..\Source\CnDFT.pas',                                         >> CnCrypto.dpk
-ECHO   CnECC in '..\Source\CnECC.pas',                                         >> CnCrypto.dpk
-ECHO   CnFEC in '..\Source\CnFEC.pas',                                         >> CnCrypto.dpk
-ECHO   CnFloat in '..\Source\CnFloat.pas',                                     >> CnCrypto.dpk
-ECHO   CnFNV in '..\Source\CnFNV.pas',                                         >> CnCrypto.dpk
-ECHO   CnHashMap in '..\Source\CnHashMap.pas',                                 >> CnCrypto.dpk
-ECHO   CnInt128 in '..\Source\CnInt128.pas',                                   >> CnCrypto.dpk
-ECHO   CnKDF in '..\Source\CnKDF.pas',                                         >> CnCrypto.dpk
-ECHO   CnLattice in '..\Source\CnLattice.pas',                                 >> CnCrypto.dpk
-ECHO   CnMath in '..\Source\CnMath.pas',                                       >> CnCrypto.dpk
-ECHO   CnMatrix in '..\Source\CnMatrix.pas',                                   >> CnCrypto.dpk
-ECHO   CnMD5 in '..\Source\CnMD5.pas',                                         >> CnCrypto.dpk
-ECHO   CnNative in '..\Source\CnNative.pas',                                   >> CnCrypto.dpk
-ECHO   CnOTP in '..\Source\CnOTP.pas',                                         >> CnCrypto.dpk
-ECHO   CnOTS in '..\Source\CnOTS.pas',                                         >> CnCrypto.dpk
-ECHO   CnPaillier in '..\Source\CnPaillier.pas',                               >> CnCrypto.dpk
-ECHO   CnPDFCrypt in '..\Source\CnPDFCrypt.pas',                               >> CnCrypto.dpk
-ECHO   CnPemUtils in '..\Source\CnPemUtils.pas',                               >> CnCrypto.dpk
-ECHO   CnPoly1305 in '..\Source\CnPoly1305.pas',                               >> CnCrypto.dpk
-ECHO   CnPolynomial in '..\Source\CnPolynomial.pas',                           >> CnCrypto.dpk
-ECHO   CnPrimeNumber in '..\Source\CnPrimeNumber.pas',                         >> CnCrypto.dpk
-ECHO   CnRandom in '..\Source\CnRandom.pas',                                   >> CnCrypto.dpk
-ECHO   CnRC4 in '..\Source\CnRC4.pas',                                         >> CnCrypto.dpk
-ECHO   CnRSA in '..\Source\CnRSA.pas',                                         >> CnCrypto.dpk
-ECHO   CnSecretSharing in '..\Source\CnSecretSharing.pas',                     >> CnCrypto.dpk
-ECHO   CnSHA1 in '..\Source\CnSHA1.pas',                                       >> CnCrypto.dpk
-ECHO   CnSHA2 in '..\Source\CnSHA2.pas',                                       >> CnCrypto.dpk
-ECHO   CnSHA3 in '..\Source\CnSHA3.pas',                                       >> CnCrypto.dpk
-ECHO   CnSM2 in '..\Source\CnSM2.pas',                                         >> CnCrypto.dpk
-ECHO   CnSM3 in '..\Source\CnSM3.pas',                                         >> CnCrypto.dpk
-ECHO   CnSM4 in '..\Source\CnSM4.pas',                                         >> CnCrypto.dpk
-ECHO   CnSM9 in '..\Source\CnSM9.pas',                                         >> CnCrypto.dpk
-ECHO   CnTEA in '..\Source\CnTEA.pas',                                         >> CnCrypto.dpk
-ECHO   CnTree in '..\Source\CnTree.pas',                                       >> CnCrypto.dpk
-ECHO   CnVector in '..\Source\CnVector.pas',                                   >> CnCrypto.dpk
-ECHO   CnZUC in '..\Source\CnZUC.pas';                                         >> CnCrypto.dpk
+CALL :PRINTFILES CnCrypto.dpk ALLFILES
 ECHO.                                                                          >> CnCrypto.dpk
 ECHO end.                                                                      >> CnCrypto.dpk
 ECHO.                                                                          >> CnCrypto.dpk
@@ -116,7 +65,8 @@ CD ..
 MKDIR Test
 CD Test
 COPY ..\..\cnvcl\Example\Linux\Crypto\CryptoTest.pas .
-ECHO program Crypto;                                                            > Crypto.dpr
+CALL :PRINTHEAD Crypto.dpr
+ECHO program Crypto;                                                           >> Crypto.dpr
 ECHO.                                                                          >> Crypto.dpr
 ECHO {$APPTYPE CONSOLE}                                                        >> Crypto.dpr
 ECHO.                                                                          >> Crypto.dpr
@@ -124,59 +74,7 @@ ECHO {$R *.res}                                                                >
 ECHO.                                                                          >> Crypto.dpr
 ECHO uses                                                                      >> Crypto.dpr
 ECHO   SysUtils,                                                               >> Crypto.dpr
-ECHO   Cn25519 in '..\Source\Cn25519.pas',                                     >> Crypto.dpr
-ECHO   CnAEAD in '..\Source\CnAEAD.pas',                                       >> Crypto.dpr
-ECHO   CnAES in '..\Source\CnAES.pas',                                         >> Crypto.dpr
-ECHO   CnBase64 in '..\Source\CnBase64.pas',                                   >> Crypto.dpr
-ECHO   CnBerUtils in '..\Source\CnBerUtils.pas',                               >> Crypto.dpr
-ECHO   CnBigDecimal in '..\Source\CnBigDecimal.pas',                           >> Crypto.dpr
-ECHO   CnBigNumber in '..\Source\CnBigNumber.pas',                             >> Crypto.dpr
-ECHO   CnBigRational in '..\Source\CnBigRational.pas',                         >> Crypto.dpr
-ECHO   CnBits in '..\Source\CnBits.pas',                                       >> Crypto.dpr
-ECHO   CnCertificateAuthority in '..\Source\CnCertificateAuthority.pas',       >> Crypto.dpr
-ECHO   CnChaCha20 in '..\Source\CnChaCha20.pas',                               >> Crypto.dpr
-ECHO   CnClasses in '..\Source\CnClasses.pas',                                 >> Crypto.dpr
-ECHO   CnComplex in '..\Source\CnComplex.pas',                                 >> Crypto.dpr
-ECHO   CnConsts in '..\Source\CnConsts.pas',                                   >> Crypto.dpr
-ECHO   CnContainers in '..\Source\CnContainers.pas',                           >> Crypto.dpr
-ECHO   CnCRC32 in '..\Source\CnCRC32.pas',                                     >> Crypto.dpr
-ECHO   CnDES in '..\Source\CnDES.pas',                                         >> Crypto.dpr
-ECHO   CnDFT in '..\Source\CnDFT.pas',                                         >> Crypto.dpr
-ECHO   CnECC in '..\Source\CnECC.pas',                                         >> Crypto.dpr
-ECHO   CnFEC in '..\Source\CnFEC.pas',                                         >> Crypto.dpr
-ECHO   CnFloat in '..\Source\CnFloat.pas',                                     >> Crypto.dpr
-ECHO   CnFNV in '..\Source\CnFNV.pas',                                         >> Crypto.dpr
-ECHO   CnHashMap in '..\Source\CnHashMap.pas',                                 >> Crypto.dpr
-ECHO   CnInt128 in '..\Source\CnInt128.pas',                                   >> Crypto.dpr
-ECHO   CnKDF in '..\Source\CnKDF.pas',                                         >> Crypto.dpr
-ECHO   CnLattice in '..\Source\CnLattice.pas',                                 >> Crypto.dpr
-ECHO   CnMath in '..\Source\CnMath.pas',                                       >> Crypto.dpr
-ECHO   CnMatrix in '..\Source\CnMatrix.pas',                                   >> Crypto.dpr
-ECHO   CnMD5 in '..\Source\CnMD5.pas',                                         >> Crypto.dpr
-ECHO   CnNative in '..\Source\CnNative.pas',                                   >> Crypto.dpr
-ECHO   CnOTP in '..\Source\CnOTP.pas',                                         >> Crypto.dpr
-ECHO   CnOTS in '..\Source\CnOTS.pas',                                         >> Crypto.dpr
-ECHO   CnPaillier in '..\Source\CnPaillier.pas',                               >> Crypto.dpr
-ECHO   CnPDFCrypt in '..\Source\CnPDFCrypt.pas',                               >> Crypto.dpr
-ECHO   CnPemUtils in '..\Source\CnPemUtils.pas',                               >> Crypto.dpr
-ECHO   CnPoly1305 in '..\Source\CnPoly1305.pas',                               >> Crypto.dpr
-ECHO   CnPolynomial in '..\Source\CnPolynomial.pas',                           >> Crypto.dpr
-ECHO   CnPrimeNumber in '..\Source\CnPrimeNumber.pas',                         >> Crypto.dpr
-ECHO   CnRandom in '..\Source\CnRandom.pas',                                   >> Crypto.dpr
-ECHO   CnRC4 in '..\Source\CnRC4.pas',                                         >> Crypto.dpr
-ECHO   CnRSA in '..\Source\CnRSA.pas',                                         >> Crypto.dpr
-ECHO   CnSecretSharing in '..\Source\CnSecretSharing.pas',                     >> Crypto.dpr
-ECHO   CnSHA1 in '..\Source\CnSHA1.pas',                                       >> Crypto.dpr
-ECHO   CnSHA2 in '..\Source\CnSHA2.pas',                                       >> Crypto.dpr
-ECHO   CnSHA3 in '..\Source\CnSHA3.pas',                                       >> Crypto.dpr
-ECHO   CnSM2 in '..\Source\CnSM2.pas',                                         >> Crypto.dpr
-ECHO   CnSM3 in '..\Source\CnSM3.pas',                                         >> Crypto.dpr
-ECHO   CnSM4 in '..\Source\CnSM4.pas',                                         >> Crypto.dpr
-ECHO   CnSM9 in '..\Source\CnSM9.pas',                                         >> Crypto.dpr
-ECHO   CnTEA in '..\Source\CnTEA.pas',                                         >> Crypto.dpr
-ECHO   CnTree in '..\Source\CnTree.pas',                                       >> Crypto.dpr
-ECHO   CnVector in '..\Source\CnVector.pas',                                   >> Crypto.dpr
-ECHO   CnZUC in '..\Source\CnZUC.pas',                                         >> Crypto.dpr
+CALL :PRINTFILES Crypto.dpr
 ECHO   CryptoTest in 'CryptoTest.pas';                                         >> Crypto.dpr
 ECHO.                                                                          >> Crypto.dpr
 ECHO begin                                                                     >> Crypto.dpr
@@ -192,3 +90,92 @@ CD ..
 MKDIR Doc
 CD Doc
 COPY ..\..\cnvcl\Doc\Develop\CnRSA*.txt .
+CD ..
+GOTO END
+
+:PRINTHEAD
+ECHO {******************************************************************************}  > %1
+ECHO {                       CnPack For Delphi/C++Builder                           } >> %1
+ECHO {                     中国人自己的开放源码第三方开发包                         } >> %1
+ECHO {                   (C)Copyright 2001-2024 CnPack 开发组                       } >> %1
+ECHO {                   ------------------------------------                       } >> %1
+ECHO {                                                                              } >> %1
+ECHO {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        } >> %1
+ECHO {        改和重新发布这一程序。                                                } >> %1
+ECHO {                                                                              } >> %1
+ECHO {            发布这一开发包的目的是希望它有用，但没有任何担保。甚至没有        } >> %1
+ECHO {        适合特定目的而隐含的担保。更详细的情况请参阅 CnPack 发布协议。        } >> %1
+ECHO {                                                                              } >> %1
+ECHO {            您应该已经和开发包一起收到一份 CnPack 发布协议的副本。如果        } >> %1
+ECHO {        还没有，可访问我们的网站：                                            } >> %1
+ECHO {                                                                              } >> %1
+ECHO {            网站地址：https://www.cnpack.org                                  } >> %1
+ECHO {            电子邮件：master@cnpack.org                                       } >> %1
+ECHO {                                                                              } >> %1
+ECHO {******************************************************************************} >> %1
+ECHO.                                                                                 >> %1
+GOTO :EOF
+
+:PRINTFILES
+ECHO   Cn25519 in '..\Source\Cn25519.pas',                                     >> %1
+ECHO   CnAEAD in '..\Source\CnAEAD.pas',                                       >> %1
+ECHO   CnAES in '..\Source\CnAES.pas',                                         >> %1
+ECHO   CnBase64 in '..\Source\CnBase64.pas',                                   >> %1
+ECHO   CnBerUtils in '..\Source\CnBerUtils.pas',                               >> %1
+ECHO   CnBigDecimal in '..\Source\CnBigDecimal.pas',                           >> %1
+ECHO   CnBigNumber in '..\Source\CnBigNumber.pas',                             >> %1
+ECHO   CnBigRational in '..\Source\CnBigRational.pas',                         >> %1
+ECHO   CnBits in '..\Source\CnBits.pas',                                       >> %1
+ECHO   CnCertificateAuthority in '..\Source\CnCertificateAuthority.pas',       >> %1
+ECHO   CnChaCha20 in '..\Source\CnChaCha20.pas',                               >> %1
+ECHO   CnClasses in '..\Source\CnClasses.pas',                                 >> %1
+ECHO   CnComplex in '..\Source\CnComplex.pas',                                 >> %1
+ECHO   CnConsts in '..\Source\CnConsts.pas',                                   >> %1
+ECHO   CnContainers in '..\Source\CnContainers.pas',                           >> %1
+ECHO   CnCRC32 in '..\Source\CnCRC32.pas',                                     >> %1
+ECHO   CnDES in '..\Source\CnDES.pas',                                         >> %1
+ECHO   CnDFT in '..\Source\CnDFT.pas',                                         >> %1
+ECHO   CnECC in '..\Source\CnECC.pas',                                         >> %1
+ECHO   CnFEC in '..\Source\CnFEC.pas',                                         >> %1
+ECHO   CnFloat in '..\Source\CnFloat.pas',                                     >> %1
+ECHO   CnFNV in '..\Source\CnFNV.pas',                                         >> %1
+ECHO   CnHashMap in '..\Source\CnHashMap.pas',                                 >> %1
+ECHO   CnInt128 in '..\Source\CnInt128.pas',                                   >> %1
+ECHO   CnKDF in '..\Source\CnKDF.pas',                                         >> %1
+ECHO   CnLattice in '..\Source\CnLattice.pas',                                 >> %1
+ECHO   CnMath in '..\Source\CnMath.pas',                                       >> %1
+ECHO   CnMatrix in '..\Source\CnMatrix.pas',                                   >> %1
+ECHO   CnMD5 in '..\Source\CnMD5.pas',                                         >> %1
+ECHO   CnNative in '..\Source\CnNative.pas',                                   >> %1
+ECHO   CnOTP in '..\Source\CnOTP.pas',                                         >> %1
+ECHO   CnOTS in '..\Source\CnOTS.pas',                                         >> %1
+ECHO   CnPaillier in '..\Source\CnPaillier.pas',                               >> %1
+ECHO   CnPDFCrypt in '..\Source\CnPDFCrypt.pas',                               >> %1
+ECHO   CnPemUtils in '..\Source\CnPemUtils.pas',                               >> %1
+ECHO   CnPoly1305 in '..\Source\CnPoly1305.pas',                               >> %1
+ECHO   CnPolynomial in '..\Source\CnPolynomial.pas',                           >> %1
+ECHO   CnPrimeNumber in '..\Source\CnPrimeNumber.pas',                         >> %1
+ECHO   CnRandom in '..\Source\CnRandom.pas',                                   >> %1
+ECHO   CnRC4 in '..\Source\CnRC4.pas',                                         >> %1
+ECHO   CnRSA in '..\Source\CnRSA.pas',                                         >> %1
+ECHO   CnSecretSharing in '..\Source\CnSecretSharing.pas',                     >> %1
+ECHO   CnSHA1 in '..\Source\CnSHA1.pas',                                       >> %1
+ECHO   CnSHA2 in '..\Source\CnSHA2.pas',                                       >> %1
+ECHO   CnSHA3 in '..\Source\CnSHA3.pas',                                       >> %1
+ECHO   CnSM2 in '..\Source\CnSM2.pas',                                         >> %1
+ECHO   CnSM3 in '..\Source\CnSM3.pas',                                         >> %1
+ECHO   CnSM4 in '..\Source\CnSM4.pas',                                         >> %1
+ECHO   CnSM9 in '..\Source\CnSM9.pas',                                         >> %1
+ECHO   CnTEA in '..\Source\CnTEA.pas',                                         >> %1
+ECHO   CnTree in '..\Source\CnTree.pas',                                       >> %1
+ECHO   CnVector in '..\Source\CnVector.pas',                                   >> %1
+IF "%2" == "ALLFILES" (
+  ECHO   CnZUC in '..\Source\CnZUC.pas';                                         >> %1
+) ELSE (
+  ECHO   CnZUC in '..\Source\CnZUC.pas',                                         >> %1
+)
+GOTO :EOF
+
+:END
+ECHO CnCrypto is Ready!
+PAUSE
