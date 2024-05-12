@@ -5,6 +5,7 @@ DEL /S /Q cncrypto
 RMDIR cncrypto
 MKDIR cncrypto
 CD cncrypto
+COPY ..\cnvcl\License.chs.txt .\License.txt
 MKDIR Source
 CD Source
 COPY ..\..\cnvcl\Source\Common\CnPack.inc .
@@ -187,3 +188,7 @@ ECHO       Writeln(E.ClassName, ': ', E.Message);                              >
 ECHO   end;                                                                    >> Crypto.dpr
 ECHO end.                                                                      >> Crypto.dpr
 ECHO.                                                                          >> Crypto.dpr
+CD ..
+MKDIR Doc
+CD Doc
+COPY ..\..\cnvcl\Doc\Develop\CnRSA*.txt .
