@@ -1,0 +1,319 @@
+object FormNative: TFormNative
+  Left = 236
+  Top = 133
+  BorderStyle = Single
+  Caption = 'Test some Native Declarations and Methods - Run on D567 and can be verified in BDS.'
+  ClientHeight = 596
+  ClientWidth = 954
+  Position = ScreenCenter
+  OnCreate = FormCreate
+  object btnPower: TSpeedButton
+    Position.X = 472.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Width = 23.000000000000000000
+    Size.Height = 22.000000000000000000
+    Text = '^'
+    OnClick = btnPowerClick
+  end
+  object btnRoot: TSpeedButton
+    Position.X = 472.000000000000000000
+    Position.Y = 80.000000000000000000
+    Size.Width = 23.000000000000000000
+    Size.Height = 22.000000000000000000
+    Text = 'root'
+    OnClick = btnRootClick
+  end
+  object btnURoot: TSpeedButton
+    Position.X = 656.000000000000000000
+    Position.Y = 64.000000000000000000
+    Size.Width = 23.000000000000000000
+    Size.Height = 22.000000000000000000
+    Text = 'root'
+    OnClick = btnURootClick
+  end
+  object btnUInt64Div: TButton
+    Position.X = 16.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'UInt64 Div'
+    TabOrder = 0
+    OnClick = btnUInt64DivClick
+  end
+  object btnUInt64Mod: TButton
+    Position.X = 112.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'UInt64 Mod'
+    TabOrder = 1
+    OnClick = btnUInt64ModClick
+  end
+  object mmoRes: TMemo
+    TextSettings.WordWrap = True
+    Position.X = 16.000000000000000000
+    Position.Y = 104.000000000000000000
+    Size.Width = 846.000000000000000000
+    Size.Height = 473.000000000000000000
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    TextSettings.FontColor = claBlack
+    TextSettings.Font.Size = 9.000000000000000000
+    TextSettings.Font.Family = 'Courier New'
+    TabOrder = 2
+  end
+  object btnStrUInt64: TButton
+    Position.X = 224.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'StrToUInt64'
+    TabOrder = 3
+    OnClick = btnStrUInt64Click
+  end
+  object btnMul32: TButton
+    Position.X = 320.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 89.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'Mul U32 to Int64'
+    TabOrder = 4
+    OnClick = btnMul32Click
+  end
+  object btnHighLowBits: TButton
+    Position.X = 424.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'Test High Low Bits'
+    TabOrder = 5
+    OnClick = btnHighLowBitsClick
+  end
+  object btnInt64MulMod: TButton
+    Position.X = 536.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 97.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'Int64 MulMod'
+    TabOrder = 6
+    OnClick = btnInt64MulModClick
+  end
+  object btnUInt64Add: TButton
+    Position.X = 16.000000000000000000
+    Position.Y = 64.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'UInt64 Add'
+    TabOrder = 7
+    OnClick = btnUInt64AddClick
+  end
+  object btnUInt64Mul: TButton
+    Position.X = 112.000000000000000000
+    Position.Y = 64.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'UInt64 Mul'
+    TabOrder = 8
+    OnClick = btnUInt64MulClick
+  end
+  object btnGetGT2Power: TButton
+    Position.X = 224.000000000000000000
+    Position.Y = 64.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = '> 2^n 32'
+    TabOrder = 9
+    OnClick = btnGetGT2PowerClick
+  end
+  object btnGetGT2Power64: TButton
+    Position.X = 320.000000000000000000
+    Position.Y = 64.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = '> 2^n 64'
+    TabOrder = 10
+    OnClick = btnGetGT2Power64Click
+  end
+  object edtPower: TEdit
+    Position.X = 416.000000000000000000
+    Position.Y = 64.000000000000000000
+    Size.Width = 49.000000000000000000
+    Size.Height = 21.000000000000000000
+    TabOrder = 11
+    Text = '9'
+  end
+  object edtExponent: TEdit
+    Position.X = 504.000000000000000000
+    Position.Y = 64.000000000000000000
+    Size.Width = 49.000000000000000000
+    Size.Height = 21.000000000000000000
+    TabOrder = 12
+    Text = '10'
+  end
+  object edtUPower: TEdit
+    Position.X = 600.000000000000000000
+    Position.Y = 64.000000000000000000
+    Size.Width = 49.000000000000000000
+    Size.Height = 21.000000000000000000
+    TabOrder = 13
+    Text = '9'
+  end
+  object edtUExponent: TEdit
+    Position.X = 688.000000000000000000
+    Position.Y = 64.000000000000000000
+    Size.Width = 49.000000000000000000
+    Size.Height = 21.000000000000000000
+    TabOrder = 14
+    Text = '10'
+  end
+  object btnInt64AddMod: TButton
+    Position.X = 648.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'Int64 AddMod'
+    TabOrder = 15
+    OnClick = btnInt64AddModClick
+  end
+  object btnEndian: TButton
+    Position.X = 871.000000000000000000
+    Position.Y = 104.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Anchors = [akTop, akRight]
+    Text = 'Endian'
+    TabOrder = 16
+    OnClick = btnEndianClick
+  end
+  object chkSwap: TCheckBox
+    Position.X = 879.000000000000000000
+    Position.Y = 144.000000000000000000
+    Size.Width = 65.000000000000000000
+    Size.Height = 17.000000000000000000
+    Anchors = [akTop, akRight]
+    Text = 'Swap'
+    TabOrder = 17
+  end
+  object btnConstTimeCondSwap: TButton
+    Position.X = 871.000000000000000000
+    Position.Y = 168.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Anchors = [akTop, akRight]
+    Text = 'Const Time'
+    TabOrder = 18
+    OnClick = btnConstTimeCondSwapClick
+  end
+  object btnInt64DivMod: TButton
+    Position.X = 871.000000000000000000
+    Position.Y = 208.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Anchors = [akTop, akRight]
+    Text = 'Int64 Div Mod'
+    TabOrder = 19
+    OnClick = btnInt64DivModClick
+  end
+  object btnUInt64DivMod: TButton
+    Position.X = 871.000000000000000000
+    Position.Y = 248.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Anchors = [akTop, akRight]
+    Text = 'UInt64 Div Mod'
+    TabOrder = 20
+    OnClick = btnUInt64DivModClick
+  end
+  object btnInt128DivMod: TButton
+    Position.X = 871.000000000000000000
+    Position.Y = 288.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Anchors = [akTop, akRight]
+    Text = 'Int128 Div Mod'
+    TabOrder = 21
+    OnClick = btnInt128DivModClick
+  end
+  object btnUInt128DivMod: TButton
+    Position.X = 871.000000000000000000
+    Position.Y = 328.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Anchors = [akTop, akRight]
+    Text = 'UInt128 Div Mod'
+    TabOrder = 22
+    OnClick = btnUInt128DivModClick
+  end
+  object btnToBinTest: TButton
+    Position.X = 871.000000000000000000
+    Position.Y = 368.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Anchors = [akTop, akRight]
+    Text = 'To Binary Str'
+    TabOrder = 23
+    OnClick = btnToBinTestClick
+  end
+  object btnReverseBit: TButton
+    Position.X = 872.000000000000000000
+    Position.Y = 408.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'Reverse Bit'
+    TabOrder = 24
+    OnClick = btnReverseBitClick
+  end
+  object btn128Bit: TButton
+    Position.X = 872.000000000000000000
+    Position.Y = 448.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = '128 Bit Test'
+    TabOrder = 25
+    OnClick = btn128BitClick
+  end
+  object btnU12864DivMod: TButton
+    Position.X = 872.000000000000000000
+    Position.Y = 488.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'U128 64 D/M'
+    TabOrder = 26
+    OnClick = btnU12864DivModClick
+  end
+  object btn12864DivMod: TButton
+    Position.X = 871.000000000000000000
+    Position.Y = 528.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = '128 64 D/M'
+    TabOrder = 27
+    OnClick = btn12864DivModClick
+  end
+  object btnMemSort: TButton
+    Position.X = 872.000000000000000000
+    Position.Y = 568.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'Mem Sort'
+    TabOrder = 28
+    OnClick = btnMemSortClick
+  end
+  object btnUInt32ToStr: TButton
+    Position.X = 872.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'UInt32 ToStr'
+    TabOrder = 29
+    OnClick = btnUInt32ToStrClick
+  end
+  object btnInt16ToLE: TButton
+    Position.X = 872.000000000000000000
+    Position.Y = 72.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'Int16 To LE'
+    TabOrder = 30
+    OnClick = btnInt16ToLEClick
+  end
+end
