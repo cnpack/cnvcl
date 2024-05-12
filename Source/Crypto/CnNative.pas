@@ -697,6 +697,26 @@ function UnsignedAddWithLimitRadix(A, B, C: Cardinal; var R: Cardinal;
   结果确保在 L 和 H 的闭区间内，用户须确保 H 大于 L，不考虑溢出的情形
   该函数多用于字符分区间计算与映射，其中 C 一般是进位}
 
+// =========================== 循环移位函数 ====================================
+
+function RotateLeft16(A: Word; N: Integer): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+{* 针对 16 位整数进行循环左移 N 位}
+
+function RotateRight16(A: Word; N: Integer): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+{* 针对 16 位整数进行循环右移 N 位}
+
+function RotateLeft32(A: Cardinal; N: Integer): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+{* 针对 32 位整数进行循环左移 N 位}
+
+function RotateRight32(A: Cardinal; N: Integer): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+{* 针对 32 位整数进行循环右移 N 位}
+
+function RotateLeft64(A: TUInt64; N: Integer): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+{* 针对 64 位整数进行循环左移 N 位}
+
+function RotateRight64(A: TUInt64; N: Integer): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+{* 针对 64 位整数进行循环右移 N 位}
+
 {$IFDEF COMPILER5}
 
 function BoolToStr(Value: Boolean; UseBoolStrs: Boolean = False): string;
@@ -3620,6 +3640,37 @@ begin
 end;
 
 {$ENDIF}
+
+// =========================== 循环移位函数 ====================================
+
+function RotateLeft16(A: Word; N: Integer): Word;
+begin
+  Result := (A shl N) or (A shr (16 - N));
+end;
+
+function RotateRight16(A: Word; N: Integer): Word;
+begin
+  Result := (A shr N) or (A shl (16 - N));
+end;
+
+function RotateLeft32(A: Cardinal; N: Integer): Cardinal;
+begin
+  Result := (A shl N) or (A shr (32 - N));
+end;
+
+function RotateRight32(A: Cardinal; N: Integer): Cardinal;
+begin
+  Result := (A shr N) or (A shl (32 - N));
+end;
+
+function RotateLeft64(A: TUInt64; N: Integer): TUInt64;
+begin
+  Result := (A shl N) or (A shr (64 - N));
+end;
+function RotateRight64(A: TUInt64; N: Integer): TUInt64;
+begin
+  Result := (A shr N) or (A shl (64 - N));
+end;
 
 initialization
   FByteOrderIsBigEndian := CurrentByteOrderIsBigEndian;

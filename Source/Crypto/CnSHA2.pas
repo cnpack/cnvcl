@@ -536,42 +536,37 @@ const
     $3C9EBE0A15C9BEBC, $431D67C49C100D4C, $4CC5D4BECB3E42B6, $597F299CFC657E2A,
     $5FCB6FAB3AD6FAEC, $6C44198C4A475817);
 
-function ROTLeft256(A, B: Cardinal): Cardinal;
-begin
-  Result := (A shl B) or (A shr (32 - B));
-end;
-
-function ROTRight256(A, B: Cardinal): Cardinal;
+function ROTRight256(A, B: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (A shr B) or (A shl (32 - B));
 end;
 
-function ROTRight512(X: TUInt64; Y: Integer): TUInt64;
+function ROTRight512(X: TUInt64; Y: Integer): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (X shr Y) or (X shl (64 - Y));
 end;
 
-function SHR512(X: TUInt64; Y: Integer): TUInt64;
+function SHR512(X: TUInt64; Y: Integer): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (X and $FFFFFFFFFFFFFFFF) shr Y;
 end;
 
-function CH256(X, Y, Z: Cardinal): Cardinal;
+function CH256(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (X and Y) xor ((not X) and Z);
 end;
 
-function CH512(X, Y, Z: TUInt64): TUInt64;
+function CH512(X, Y, Z: TUInt64): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (((Y xor Z) and X) xor Z);
 end;
 
-function MAJ256(X, Y, Z: Cardinal): Cardinal;
+function MAJ256(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (X and Y) xor (X and Z) xor (Y and Z);
 end;
 
-function MAJ512(X, Y, Z: TUInt64): TUInt64;
+function MAJ512(X, Y, Z: TUInt64): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := ((X or Y) and Z) or (X and Y);
 end;

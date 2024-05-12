@@ -173,52 +173,22 @@ const
   HMAC_SHA1_BLOCK_SIZE_BYTE = 64;
   HMAC_SHA1_OUTPUT_LENGTH_BYTE = 20;
 
-function LRot16(X: Word; C: Integer): Word;
-begin
-  Result := X shl (C and 15) + X shr (16 - C and 15);
-end;
-
-function RRot16(X: Word; C: Integer): Word;
-begin
-  Result := X shr (C and 15) + X shl (16 - C and 15);
-end;
-
-function LRot32(X: Cardinal; C: Integer): Cardinal;
+function LRot32(X: Cardinal; C: Integer): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := X shl (C and 31) + X shr (32 - C and 31);
 end;
 
-function RRot32(X: Cardinal; C: Integer): Cardinal;
-begin
-  Result := X shr (C and 31) + X shl (32 - C and 31);
-end;
-
-procedure XorBlock(I1, I2, O1: PByteArray; Len: Integer);
-var
-  I: Integer;
-begin
-  for I := 0 to Len - 1 do
-    O1^[I] := I1^[I] xor I2^[I];
-end;
-
-procedure IncBlock(P: PByteArray; Len: Integer);
-begin
-  Inc(P^[Len - 1]);
-  if (P^[Len - 1] = 0) and (Len > 1) then
-    IncBlock(P, Len - 1);
-end;
-
-function F1(x, y, z: Cardinal): Cardinal;
+function F1(x, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := z xor (x and (y xor z));
 end;
 
-function F2(x, y, z: Cardinal): Cardinal;
+function F2(x, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := x xor y xor z;
 end;
 
-function F3(x, y, z: Cardinal): Cardinal;
+function F3(x, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (x and y) or (z and (x or y));
 end;
