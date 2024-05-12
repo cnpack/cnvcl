@@ -2009,41 +2009,6 @@ begin
     Result := True;
 end;
 
-function BigNumberCompareWords(var Num1: TCnBigNumber; var Num2: TCnBigNumber;
-  N: Integer): Integer;
-var
-  I: Integer;
-  A, B: TCnBigNumberElement;
-begin
-  A := PCnBigNumberElementArray(Num1.D)^[N - 1];
-  B := PCnBigNumberElementArray(Num2.D)^[N - 1];
-
-  if A <> B then
-  begin
-    if A > B then
-      Result := 1
-    else
-      Result := -1;
-    Exit;
-  end;
-
-  for I := N - 2 downto 0 do
-  begin
-    A := PCnBigNumberElementArray(Num1.D)^[I];
-    B := PCnBigNumberElementArray(Num2.D)^[I];
-
-    if A <> B then
-    begin
-      if A > B then
-        Result := 1
-      else
-        Result := -1;
-      Exit;
-    end;
-  end;
-  Result := 0;
-end;
-
 function BigNumberEqual(const Num1: TCnBigNumber; const Num2: TCnBigNumber): Boolean;
 begin
   Result := BigNumberCompare(Num1, Num2) = 0;
