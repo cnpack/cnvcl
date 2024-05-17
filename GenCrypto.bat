@@ -6,6 +6,7 @@ RMDIR /Q cncrypto /S
 MKDIR cncrypto
 CD cncrypto
 COPY ..\cnvcl\License.chs.txt .\License.txt
+COPY ..\cnvcl\Doc\Develop\CnCrypto_README.md .\README.md
 MKDIR Source
 CD Source
 COPY ..\..\cnvcl\Source\Common\CnPack.inc .
