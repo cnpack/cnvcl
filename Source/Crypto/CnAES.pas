@@ -39,6 +39,8 @@ unit CnAES;
 *           避免不可视字符出现乱码影响加解密结果。
 *
 *           补充：============= Java 中默认的 AES 对应此处的 AES256 ============
+*           另外，C++Builder 5/6 下对 overload 的函数大概率存在判断错误从而调用
+*           混乱的情形，故本单元不支持 C++Builder 5/6 下编译运行。
 *
 * 开发平台：Delphi5 + Win 7
 * 修改记录：2022.06.21 V1.1
@@ -96,12 +98,12 @@ type
 
 // Key Expansion Routines for Encryption
 
-procedure ExpandAESKeyForEncryption(const Key: TCnAESKey128;
-  var ExpandedKey: TCnAESExpandedKey128); overload;
-procedure ExpandAESKeyForEncryption(const Key: TCnAESKey192;
-  var ExpandedKey: TCnAESExpandedKey192); overload;
-procedure ExpandAESKeyForEncryption(const Key: TCnAESKey256;
-  var ExpandedKey: TCnAESExpandedKey256); overload;
+procedure ExpandAESKeyForEncryption128(const Key: TCnAESKey128;
+  var ExpandedKey: TCnAESExpandedKey128);
+procedure ExpandAESKeyForEncryption192(const Key: TCnAESKey192;
+  var ExpandedKey: TCnAESExpandedKey192);
+procedure ExpandAESKeyForEncryption256(const Key: TCnAESKey256;
+  var ExpandedKey: TCnAESExpandedKey256);
 
 // Block Encryption Routines 独立块加密，InBuf 和 OutBuf 可以是同一块区域
 
@@ -539,8 +541,8 @@ const
     $000000E1, $00000069, $00000014, $00000063, $00000055, $00000021, $0000000C, $0000007D
   );
 
-procedure ExpandAESKeyForEncryption(const Key: TCnAESKey128; var ExpandedKey:
-  TCnAESExpandedKey128); overload;
+procedure ExpandAESKeyForEncryption128(const Key: TCnAESKey128; var ExpandedKey:
+  TCnAESExpandedKey128);
 var
   I, J: Integer;
   T: Cardinal;
@@ -566,8 +568,8 @@ begin
   until I >= 40;
 end;
 
-procedure ExpandAESKeyForEncryption(const Key: TCnAESKey192; var ExpandedKey:
-  TCnAESExpandedKey192); overload;
+procedure ExpandAESKeyForEncryption192(const Key: TCnAESKey192; var ExpandedKey:
+  TCnAESExpandedKey192);
 var
   I, J: Integer;
   T: Cardinal;
@@ -597,8 +599,8 @@ begin
   until I >= 46;
 end;
 
-procedure ExpandAESKeyForEncryption(const Key: TCnAESKey256; var ExpandedKey:
-  TCnAESExpandedKey256); overload;
+procedure ExpandAESKeyForEncryption256(const Key: TCnAESKey256; var ExpandedKey:
+  TCnAESExpandedKey256);
 var
   I, J: Integer;
   T: Cardinal;
@@ -1370,7 +1372,7 @@ end;
 procedure ExpandAESKeyForDecryption(const Key: TCnAESKey128; var ExpandedKey:
   TCnAESExpandedKey128); overload;
 begin
-  ExpandAESKeyForEncryption(Key, ExpandedKey);
+  ExpandAESKeyForEncryption128(Key, ExpandedKey);
   ExpandAESKeyForDecryption(ExpandedKey);
 end;
 
@@ -1431,7 +1433,7 @@ end;
 procedure ExpandAESKeyForDecryption(const Key: TCnAESKey192; var ExpandedKey:
   TCnAESExpandedKey192); overload;
 begin
-  ExpandAESKeyForEncryption(Key, ExpandedKey);
+  ExpandAESKeyForEncryption192(Key, ExpandedKey);
   ExpandAESKeyForDecryption(ExpandedKey);
 end;
 
@@ -1492,7 +1494,7 @@ end;
 procedure ExpandAESKeyForDecryption(const Key: TCnAESKey256; var ExpandedKey:
   TCnAESExpandedKey256); overload;
 begin
-  ExpandAESKeyForEncryption(Key, ExpandedKey);
+  ExpandAESKeyForEncryption256(Key, ExpandedKey);
   ExpandAESKeyForDecryption(ExpandedKey);
 end;
 
@@ -2178,7 +2180,7 @@ procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey128;
 begin
-  ExpandAESKeyForEncryption(Key, ExpandedKey);
+  ExpandAESKeyForEncryption128(Key, ExpandedKey);
   EncryptAESStreamECB(Source, Count, ExpandedKey, Dest);
 end;
 
@@ -2187,7 +2189,7 @@ procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey192;
 begin
-  ExpandAESKeyForEncryption(Key, ExpandedKey);
+  ExpandAESKeyForEncryption192(Key, ExpandedKey);
   EncryptAESStreamECB(Source, Count, ExpandedKey, Dest);
 end;
 
@@ -2196,7 +2198,7 @@ procedure EncryptAESStreamECB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey256;
 begin
-  ExpandAESKeyForEncryption(Key, ExpandedKey);
+  ExpandAESKeyForEncryption256(Key, ExpandedKey);
   EncryptAESStreamECB(Source, Count, ExpandedKey, Dest);
 end;
 
@@ -2431,7 +2433,7 @@ procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey128;
 begin
-  ExpandAESKeyForEncryption(Key, ExpandedKey);
+  ExpandAESKeyForEncryption128(Key, ExpandedKey);
   EncryptAESStreamCBC(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -2488,7 +2490,7 @@ procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey192;
 begin
-  ExpandAESKeyForEncryption(Key, ExpandedKey);
+  ExpandAESKeyForEncryption192(Key, ExpandedKey);
   EncryptAESStreamCBC(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -2545,7 +2547,7 @@ procedure EncryptAESStreamCBC(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey256;
 begin
-  ExpandAESKeyForEncryption(Key, ExpandedKey);
+  ExpandAESKeyForEncryption256(Key, ExpandedKey);
   EncryptAESStreamCBC(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 

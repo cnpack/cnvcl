@@ -738,17 +738,17 @@ begin
     aetAES128:
       begin
         MoveMost(Key^, Key128[0], KeyByteLength, SizeOf(TCnAESKey128));
-        ExpandAESKeyForEncryption(Key128, Context.ExpandedKey128);
+        ExpandAESKeyForEncryption128(Key128, Context.ExpandedKey128);
       end;
     aetAES192:
       begin
         MoveMost(Key^, Key192[0], KeyByteLength, SizeOf(TCnAESKey192));
-        ExpandAESKeyForEncryption(Key192, Context.ExpandedKey192);
+        ExpandAESKeyForEncryption192(Key192, Context.ExpandedKey192);
       end;
     aetAES256:
       begin
         MoveMost(Key^, Key256[0], KeyByteLength, SizeOf(TCnAESKey256));
-        ExpandAESKeyForEncryption(Key256, Context.ExpandedKey256);
+        ExpandAESKeyForEncryption256(Key256, Context.ExpandedKey256);
       end;
     aetSM4:
       begin
