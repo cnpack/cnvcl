@@ -30,7 +30,9 @@ unit CnHexEditor;
 * 开发平台：PWinXP + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.01.12 V1.3
+* 修改记录：2024.05.18 V1.4
+*               按需暴露 StyleElements 属性供高版本 Delphi 使用
+*           2024.01.12 V1.3
 *               增加 SelBytes 属性以处理 Unicode 下 SelText 错乱的冲突
 *               增加 Ctrl+C 复制选中十六进制字符串的机制
 *           2012.09.26 V1.2
@@ -178,6 +180,9 @@ type
     property ParentFont;
     property ParentColor;
     property PopupMenu;
+{$IFDEF TCONTROL_HAS_STYLEELEMENTS}
+    property StyleElements;
+{$ENDIF}
     property TabOrder;
     property TabStop;
     property Visible;
