@@ -16,7 +16,7 @@ CnPack 开发包以开放源码（Open Source）的形式发布，遵守 CnPack 的许可协议，受 CnP
 - **非对称加密**：RSA、ECC 椭圆曲线（魏尔斯特拉斯曲线，包括 SM2）、25519/448 椭圆曲线（蒙哥马利及扭曲爱德华曲线）
 - **杂凑**：SM3、MD5、SHA1、SHA2/SHA3 系列（192、256、384、512）、SHAKE、CRC8/16/32/64、Poly1305、FNV、一次性杂凑签名算法 OTS
 - **其他密码学领域**：SM9、同态加密、协同加密、格密码、NTRU
-- **编码解码**：Base64、ASN.1（DER/BER）
+- **编码解码**：Base64、ASN.1（DER/BER）、Hamming 校验
 - **CA证书**：RSA/ECC 证书申请、签发与校验
 - **大数支持**：大整数、大有理数、大浮点数、一元大数多项式、二元大数多项式、一元大有理数分式
 - **运算支持**：素数运算、浮点复数运算、位运算、矩阵运算、离散傅立叶变换、128 位整型支持
@@ -46,7 +46,8 @@ CnPack 密码算法库不涉及 VCL/FMX 界面组件，仅是基础库的形式提供，因而可直接将 cnc
 
 另外 CnPack 密码算法库也提供了运行期包的形式，在任一版本 Delphi 中打开 cncrypto\Package\CnCrypto.dpk，即可编译成 BPL 使用。
 
-注：如果在 Delphi 5 下编译 BPL，需手工将 requires 语句中的 vcl 改为 vcl50。
+注一：如果在 Delphi 5 下编译 BPL，需手工将 requires 语句中的 vcl 改为 vcl50。
+注二：CnPack 密码算法库目前不能完整支持 C++Builder 5/6，如果需要在其下编译使用，目前已知的问题是 CnAES 的 192/256 算法运行有误，其他问题未严格完整测试，暂时未知。
 
 ## 测试用例
 
@@ -56,6 +57,6 @@ cncrypto\Test 目录下有一完整的命令行测试用例 CryptoTest.dpr，使用任一版本 Delphi
 
 CnPack 开发组由互联网上热爱 Delphi/C++Builder 程序开发的一群中国程序员自愿者自发组成，其目标是开发中国人自己的真正优秀的第三方免费开源产品。
 
-   网站：https://www.cnpack.org
-   邮件：master@cnpack.org
-   微信公众号：CnPack开发组
+- **网站**：https://www.cnpack.org
+- **邮件**：master@cnpack.org
+- **微信公众号**：CnPack开发组
