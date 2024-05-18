@@ -1,4 +1,4 @@
-# CnPack 密码算法库（CnPack Crypto Library）
+# CnPack 密码算法库
 
 ## 概述
 
@@ -38,7 +38,7 @@ CnPack 密码算法库对中国国家商用密码算法标准有着完整而强大的支持：
 
 ### 获取源码
 
-有两种途径可获取最新版的 CnPack 密码算法库。第一种途径是 CnPack 网站上下载或 git 上直接拉取。第二种途径是 CnPack 网站上下载或 git 上拉取下载最新的 CnVcl 源码包，在 Windows 系统中解压后运行 cnvcl\GenCrypto.bat，即可在 cnvcl 的同级目录下生成 cncrypto 目录，内有 CnPack 密码算法库所有源码。日常 CnPack 密码算法库也是自 CnVcl 中维护的。
+有两种途径可获取最新版的 CnPack 密码算法库。第一种途径是 CnPack 网站上下载或 gitee 上直接拉取。第二种途径是 CnPack 网站上下载或 github 上拉取下载最新的 CnVcl 源码包，在 Windows 系统中解压后运行 cnvcl\GenCrypto.bat，即可在 cnvcl 的同级目录下生成 cncrypto 目录，内有 CnPack 密码算法库所有源码。日常 CnPack 密码算法库也是自 CnVcl 中维护再同步的。
 
 ### 编译引入
 
