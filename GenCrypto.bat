@@ -66,6 +66,7 @@ CD ..
 MKDIR Test
 CD Test
 COPY ..\..\cnvcl\Example\Linux\Crypto\CryptoTest.pas .
+COPY ..\..\cnvcl\Example\Linux\Crypto\Crypto.res .
 CALL :PRINTHEAD Crypto.dpr
 ECHO program Crypto;                                                           >> Crypto.dpr
 ECHO.                                                                          >> Crypto.dpr
@@ -87,6 +88,98 @@ ECHO       Writeln(E.ClassName, ': ', E.Message);                              >
 ECHO   end;                                                                    >> Crypto.dpr
 ECHO end.                                                                      >> Crypto.dpr
 ECHO.                                                                          >> Crypto.dpr
+CALL :PRINTHEAD Crypto.lpr
+ECHO program Crypto;                                                           >> Crypto.lpr
+ECHO.                                                                          >> Crypto.lpr
+ECHO.{$MODE Delphi}                                                            >> Crypto.lpr
+ECHO.                                                                          >> Crypto.lpr
+ECHO {$APPTYPE CONSOLE}                                                        >> Crypto.lpr
+ECHO.                                                                          >> Crypto.lpr
+ECHO {$R *.res}                                                                >> Crypto.lpr
+ECHO.                                                                          >> Crypto.lpr
+ECHO uses                                                                      >> Crypto.lpr
+ECHO   SysUtils, Interfaces,                                                   >> Crypto.lpr
+CALL :PRINTFILES Crypto.lpr
+ECHO   CryptoTest in 'CryptoTest.pas';                                         >> Crypto.lpr
+ECHO.                                                                          >> Crypto.lpr
+ECHO begin                                                                     >> Crypto.lpr
+ECHO   try                                                                     >> Crypto.lpr
+ECHO     TestCrypto;                                                           >> Crypto.lpr
+ECHO   except                                                                  >> Crypto.lpr
+ECHO     on E: Exception do                                                    >> Crypto.lpr
+ECHO       Writeln(E.ClassName, ': ', E.Message);                              >> Crypto.lpr
+ECHO   end;                                                                    >> Crypto.lpr
+ECHO end.                                                                      >> Crypto.lpr
+ECHO.                                                                          >> Crypto.lpr
+ECHO ^<^?xml version="1.0" encoding="UTF-8"^?^>                                 > Crypto.lpi
+ECHO ^<CONFIG^>                                                                >> Crypto.lpi
+ECHO   ^<ProjectOptions^>                                                      >> Crypto.lpi
+ECHO     ^<Version Value="12"/^>                                               >> Crypto.lpi
+ECHO     ^<PathDelim Value="\"/^>                                              >> Crypto.lpi
+ECHO     ^<General^>                                                           >> Crypto.lpi
+ECHO       ^<Flags^>                                                           >> Crypto.lpi
+ECHO         ^<MainUnitHasCreateFormStatements Value="False"/^>                >> Crypto.lpi
+ECHO         ^<MainUnitHasScaledStatement Value="False"/^>                     >> Crypto.lpi
+ECHO       ^</Flags^>                                                          >> Crypto.lpi
+ECHO       ^<SessionStorage Value="InProjectDir"/^>                            >> Crypto.lpi
+ECHO       ^<Title Value="My Application"/^>                                   >> Crypto.lpi
+ECHO       ^<UseAppBundle Value="False"/^>                                     >> Crypto.lpi
+ECHO       ^<ResourceType Value="res"/^>                                       >> Crypto.lpi
+ECHO     ^</General^>                                                          >> Crypto.lpi
+ECHO     ^<BuildModes^>                                                        >> Crypto.lpi
+ECHO       ^<Item Name="Default" Default="True"/^>                             >> Crypto.lpi
+ECHO     ^</BuildModes^>                                                       >> Crypto.lpi
+ECHO     ^<PublishOptions^>                                                    >> Crypto.lpi
+ECHO       ^<Version Value="2"/^>                                              >> Crypto.lpi
+ECHO       ^<UseFileFilters Value="True"/^>                                    >> Crypto.lpi
+ECHO     ^</PublishOptions^>                                                   >> Crypto.lpi
+ECHO     ^<RunParams^>                                                         >> Crypto.lpi
+ECHO       ^<FormatVersion Value="2"/^>                                        >> Crypto.lpi
+ECHO     ^</RunParams^>                                                        >> Crypto.lpi
+ECHO     ^<RequiredPackages^>                                                  >> Crypto.lpi
+ECHO       ^<Item^>                                                            >> Crypto.lpi
+ECHO         ^<PackageName Value="LCL"/^>                                      >> Crypto.lpi
+ECHO       ^</Item^>                                                           >> Crypto.lpi
+ECHO     ^</RequiredPackages^>                                                 >> Crypto.lpi
+ECHO     ^<Units^>                                                             >> Crypto.lpi
+ECHO       ^<Unit^>                                                            >> Crypto.lpi
+ECHO         ^<Filename Value="Crypto.lpr"/^>                                  >> Crypto.lpi
+ECHO         ^<IsPartOfProject Value="True"/^>                                 >> Crypto.lpi
+ECHO       ^</Unit^>                                                           >> Crypto.lpi
+ECHO       ^<Unit^>                                                            >> Crypto.lpi
+ECHO         ^<Filename Value="CryptoTest.pas"/^>                              >> Crypto.lpi
+ECHO         ^<IsPartOfProject Value="True"/^>                                 >> Crypto.lpi
+ECHO       ^</Unit^>                                                           >> Crypto.lpi
+ECHO     ^</Units^>                                                            >> Crypto.lpi
+ECHO   ^</ProjectOptions^>                                                     >> Crypto.lpi
+ECHO   ^<CompilerOptions^>                                                     >> Crypto.lpi
+ECHO     ^<Version Value="11"/^>                                               >> Crypto.lpi
+ECHO     ^<PathDelim Value="\"/^>                                              >> Crypto.lpi
+ECHO     ^<Target^>                                                            >> Crypto.lpi
+ECHO       ^<Filename Value="Crypto"/^>                                        >> Crypto.lpi
+ECHO     ^</Target^>                                                           >> Crypto.lpi
+ECHO     ^<SearchPaths^>                                                       >> Crypto.lpi
+ECHO       ^<IncludeFiles Value="$(ProjOutDir)"/^>                             >> Crypto.lpi
+ECHO       ^<IncludeFiles Value="..\Source"/^>                                 >> Crypto.lpi
+ECHO       ^<Libraries Value="..\Source"/^>                                    >> Crypto.lpi
+ECHO       ^<OtherUnitFiles Value="..\Source"/^>                               >> Crypto.lpi
+ECHO       ^<UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/^>       >> Crypto.lpi
+ECHO     ^</SearchPaths^>                                                      >> Crypto.lpi
+ECHO   ^</CompilerOptions^>                                                    >> Crypto.lpi
+ECHO   ^<Debugging^>                                                           >> Crypto.lpi
+ECHO     ^<Exceptions^>                                                        >> Crypto.lpi
+ECHO       ^<Item^>                                                            >> Crypto.lpi
+ECHO         ^<Name Value="EAbort"/^>                                          >> Crypto.lpi
+ECHO       ^</Item^>                                                           >> Crypto.lpi
+ECHO       ^<Item^>                                                            >> Crypto.lpi
+ECHO         ^<Name Value="ECodetoolError"/^>                                  >> Crypto.lpi
+ECHO       ^</Item^>                                                           >> Crypto.lpi
+ECHO       ^<Item^>                                                            >> Crypto.lpi
+ECHO         ^<Name Value="EFOpenError"/^>                                     >> Crypto.lpi
+ECHO       ^</Item^>                                                           >> Crypto.lpi
+ECHO     ^</Exceptions^>                                                       >> Crypto.lpi
+ECHO   ^</Debugging^>                                                          >> Crypto.lpi
+ECHO ^</CONFIG^>                                                               >> Crypto.lpi
 CD ..
 MKDIR Doc
 CD Doc
@@ -171,9 +264,9 @@ ECHO   CnTEA in '..\Source\CnTEA.pas',                                         >
 ECHO   CnTree in '..\Source\CnTree.pas',                                       >> %1
 ECHO   CnVector in '..\Source\CnVector.pas',                                   >> %1
 IF "%2" == "ALLFILES" (
-  ECHO   CnZUC in '..\Source\CnZUC.pas';                                         >> %1
+  ECHO   CnZUC in '..\Source\CnZUC.pas';                                       >> %1
 ) ELSE (
-  ECHO   CnZUC in '..\Source\CnZUC.pas',                                         >> %1
+  ECHO   CnZUC in '..\Source\CnZUC.pas',                                       >> %1
 )
 GOTO :EOF
 
