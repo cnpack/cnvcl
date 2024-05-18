@@ -43,7 +43,7 @@ uses
   SysUtils, Classes,
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
-  CnPoly1305, CnTEA, CnZUC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
+  CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt;
 
 procedure TestCrypto;
@@ -227,6 +227,10 @@ function TestXXTea: Boolean;
 
 function TestFNV1: Boolean;
 function TestFNV1a: Boolean;
+
+// ================================ FEC ========================================
+
+function TestHamming: Boolean;
 
 // ================================ PDF ========================================
 
@@ -528,6 +532,10 @@ begin
 
   MyAssert(TestFNV1, 'TestFNV1');
   MyAssert(TestFNV1a, 'TestFNV1a');
+
+// ================================ FEC ========================================
+
+  MyAssert(TestHamming, 'TestHamming');
 
 // ================================ PDF ========================================
 
@@ -2775,6 +2783,48 @@ begin
       + '00000000000000000000000000000000000253EB20F42A7228AF9022D9F35ECE5BB71E40FCD8717B80D164AB921709996E5C43B515A262332A46CD9B163889E1');
 end;
 
+// ================================ FEC ========================================
+
+function TestHamming: Boolean;
+var
+  I: Integer;
+  IB, OB: TBits;
+  SI, SO: string;
+begin
+  IB := nil;
+  OB := nil;
+
+  try
+    IB := TBits.Create;
+    IB.Size := 128;
+
+    // 原始数据
+    for I := 0 to IB.Size - 1 do
+      IB.Bits[I] := I mod 2 = 0;
+
+    // 根据 IB 计算校验码
+    OB := TBits.Create;
+    CnCalcHammingCode(IB, OB, 8);
+
+    SO := BitsToString(OB);
+    Result := SO = '111101001010111101001010111101001010111101001010111101001010111101001010111101001010111101001010111101001010111101001010111101001010111101001010111101001010111101001010111101001010111101001010';
+    if not Result then Exit;
+
+    SI := BitsToString(IB);
+
+    // 模拟传输混乱的个别位翻转
+    IB[35] := not IB[35];
+    IB[79] := not IB[79];
+
+    // 再验证并纠错
+    CnVerifyHammingCode(OB, IB, 8);
+    Result := BitsToString(IB) = SI;
+  finally
+    OB.Free;
+    IB.Free;
+  end;
+end;
+
 // ================================ PDF ========================================
 
 function TestPDFCalcOwnerPassword: Boolean;
@@ -3487,16 +3537,13 @@ begin
   Pub := TCnRSAPublicKey.Create;
 
   Result := CnRSALoadKeysFromPem(Stream, Priv, Pub);
-
   if not Result then Exit;
 
   Result := CnRSAVerifyKeys(Priv, Pub);
-
   if not Result then Exit;
 
   Stream.Size := 0;
   Result := CnRSASaveKeysToPem(Stream, Priv, Pub);
-
   if not Result then Exit;
 
   Stream.Position := 0;
@@ -3537,12 +3584,10 @@ begin
   Pub := TCnRSAPublicKey.Create;
 
   Result := CnRSALoadPublicKeyFromPem(Stream, Pub);
-
   if not Result then Exit;
 
   Stream.Size := 0;
   Result := CnRSASavePublicKeyToPem(Stream, Pub, CnRSA.cktPKCS1);
-
   if not Result then Exit;
 
   Stream.Position := 0;
@@ -3604,16 +3649,13 @@ begin
   Pub := TCnRSAPublicKey.Create;
 
   Result := CnRSALoadKeysFromPem(Stream, Priv, Pub);
-
   if not Result then Exit;
 
   Result := CnRSAVerifyKeys(Priv, Pub);
-
   if not Result then Exit;
 
   Stream.Size := 0;
   Result := CnRSASaveKeysToPem(Stream, Priv, Pub, CnRSA.cktPKCS8);
-
   if not Result then Exit;
 
   Stream.Position := 0;
@@ -3654,12 +3696,10 @@ begin
   Pub := TCnRSAPublicKey.Create;
 
   Result := CnRSALoadPublicKeyFromPem(Stream, Pub);
-
   if not Result then Exit;
 
   Stream.Size := 0;
   Result := CnRSASavePublicKeyToPem(Stream, Pub);
-
   if not Result then Exit;
 
   Stream.Position := 0;
@@ -3685,7 +3725,6 @@ begin
   S := HexToBytes('123456');
   R := CnPBKDF1Bytes(P, S, 1000, 16, cpdfMd5);
   Result := DataToHex(@R[0], Length(R)) = '090583F4EA468E822CDC7A8C7C785E1B';
-
   if not Result then Exit;
 
   Pass := '123456';
@@ -3703,7 +3742,6 @@ begin
   S := HexToBytes('123456');
   R := CnPBKDF2Bytes(P, S, 1000, 32, cpdfSha256Hmac);
   Result := DataToHex(@R[0], Length(R)) = '87410D487A6414E9ADB9D078CBA7E28BFCB0C3767F1BD4C1A628010FF91DDD1A';
-
   if not Result then Exit;
 
   Pass := '123456';

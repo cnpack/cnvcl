@@ -24,7 +24,8 @@ unit CnFEC;
 * 软件名称：开发包基础库
 * 单元名称：前向纠错实现单元，目前包括 Hamming （汉明码）校验
 * 单元作者：刘啸（liuxiao@cnpack.org）
-* 备    注：该单元目前只处理二进制位
+* 备    注：该单元目前只处理一串二进制位的汉明码校验，以 CnCalcHammingCode 与
+*           CnVerifyHammingCode 两个函数为代表，注意校验码可以比原始码长不少。
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -91,13 +92,18 @@ type
   end;
 
 procedure CnCalcHammingCode(InBits, OutBits: TBits; BlockBitCount: Integer = 8);
-{* 根据一批 Bits 计算其 Hamming 码，默认分组 8 bit 也就是 1 字节}
+{* 根据一批 Bits 计算其 Hamming 码，默认分组 8 Bit 也就是 1 字节。
+  假设 InBits 是待发送内容，OutBits 是本函数根据 InBits 及分组长度计算出的校验码
+  计算完毕后，InBits 和 OutBits 共同发送至另一处，传输过程中 InBits 可能出错。
+  另一处使用 CnVerifyHammingCode 判断有无错误并纠错}
 
 procedure CnVerifyHammingCode(InBits, OutBits: TBits; BlockBitCount: Integer = 8);
-{* 根据 Hamming 编码过的 Bits 还原并校验其内容，默认分组 8 bit 也就是 1 字节}
+{* 根据 Hamming 编码过的 Bits 还原并校验其内容，默认分组 8 Bit 也就是 1 字节。
+  假设 InBits 是收到的可能出错了的内容，OutBits 是 CnCalcHammingCode 根据 InBits
+  及分组长度计算出的校验码。本函数校验两者内容并尽量纠错}
 
 function CnCalcHammingVerificationBitCountFromBlockBitCount(BlockBitCount: Integer): Integer;
-{* 根据 Hamming 分组的 bit 长度计算校验 bit 的长度}
+{* 根据 Hamming 分组的 Bit 长度计算校验 Bit 的长度}
 
 function CnGalois2Power8Rule: TCnCalculationRule;
 {* 返回全局的 GP(2^8) 的运算规则供外界调用}

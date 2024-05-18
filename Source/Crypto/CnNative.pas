@@ -580,6 +580,9 @@ function BytesToString(const Data: TBytes): string;
 function MemoryToString(Mem: Pointer; MemByteLen: Integer): string;
 {* 将内存块的内容转换为 string，内部逐个赋值，不处理编码}
 
+function BitsToString(Bits: TBits): string;
+{* 将位串对象转换为包含 0 和 1 的字符串}
+
 function ConcatBytes(A, B: TBytes): TBytes;
 {* 将 A B 两个字节数组顺序拼好返回一个新字节数组，A B 保持不变}
 
@@ -1967,6 +1970,25 @@ begin
   SetLength(Result, MemByteLen);
   for I := 1 to MemByteLen do
     Result[I] := Chr(P^[I - 1]);
+end;
+
+function BitsToString(Bits: TBits): string;
+var
+  I: Integer;
+begin
+  if (Bits = nil) or (Bits.Size = 0) then
+    Result := ''
+  else
+  begin
+    SetLength(Result, Bits.Size);
+    for I := 0 to Bits.Size - 1 do
+    begin
+      if Bits.Bits[I] then
+        Result[I + 1] := '1'
+      else
+        Result[I + 1] := '0';
+    end;
+  end;
 end;
 
 function ConcatBytes(A, B: TBytes): TBytes;

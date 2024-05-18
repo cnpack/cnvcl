@@ -129,11 +129,13 @@ begin
   V.ColCount := N;
 
   for I := 0 to N - 1 do
+  begin
     for J := 0 to N - 1 do
       if I = J then
         V.Value[I, J].SetOne
       else
         V.Value[I, J].SetZero;
+  end;
 
   for J := 0 to N - 1 do
     V.Value[N, J].SetOne;
