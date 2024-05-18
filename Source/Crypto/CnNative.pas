@@ -87,6 +87,11 @@ type
     这里统一一下供外界使用 PByte 时无需 uses Windows，以有利于跨平台}
 {$ENDIF}
 
+{$IFDEF BCB5OR6}
+  PInt64 = ^Int64;
+  {* C++Builder 5/6 的 sysmac.h 里没有 PInt64 的定义（有的 PUINT64 大小写不同，不算）}
+{$ENDIF}
+
 {$IFDEF SUPPORT_32_AND_64}
   TCnNativeInt     = NativeInt;
   TCnNativeUInt    = NativeUInt;
