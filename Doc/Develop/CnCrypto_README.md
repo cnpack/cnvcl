@@ -46,8 +46,7 @@ CnPack 密码算法库不涉及 VCL/FMX 界面组件，仅是基础库的形式提供，因而可直接将 cnc
 
 另外 CnPack 密码算法库也提供了运行期包的形式，在任一版本 Delphi 中打开 cncrypto\Package\CnCrypto.dpk，即可编译成 BPL 使用。
 
-注一：如果在 Delphi 5 下编译 BPL，需手工将 requires 语句中的 vcl 改为 vcl50。
-注二：CnPack 密码算法库目前不能完整支持 C++Builder 5/6，如果需要在其下编译使用，目前已知的问题是 CnAES 的 192/256 算法运行有误，其他问题未严格完整测试，暂时未知。
+注：如果在 Delphi 5 下编译 BPL，需手工将 requires 语句中的 vcl 改为 vcl50。
 
 ## 测试用例
 
