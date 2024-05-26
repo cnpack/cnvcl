@@ -763,9 +763,9 @@ procedure AEADEncryptBlock(var Context: TAEADContext; var InData, OutData: TCn12
   EncryptType: TAEADEncryptType);
 begin
   case EncryptType of
-    aetAES128: EncryptAES(TCnAESBuffer(InData), Context.ExpandedKey128, TCnAESBuffer(OutData));
-    aetAES192: EncryptAES(TCnAESBuffer(InData), Context.ExpandedKey192, TCnAESBuffer(OutData));
-    aetAES256: EncryptAES(TCnAESBuffer(InData), Context.ExpandedKey256, TCnAESBuffer(OutData));
+    aetAES128: EncryptAES128(TCnAESBuffer(InData), Context.ExpandedKey128, TCnAESBuffer(OutData));
+    aetAES192: EncryptAES192(TCnAESBuffer(InData), Context.ExpandedKey192, TCnAESBuffer(OutData));
+    aetAES256: EncryptAES256(TCnAESBuffer(InData), Context.ExpandedKey256, TCnAESBuffer(OutData));
     aetSM4:    SM4OneRound(@(Context.SM4Context.Sk[0]), @InData[0], @OutData[0]);
   end;
 end;

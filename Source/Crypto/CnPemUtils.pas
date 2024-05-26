@@ -511,7 +511,7 @@ begin
           Move(Keys[0], AESKey128[0], SizeOf(TCnAESKey128));
           Move(IvStr[1], AesIv[0], SizeOf(TCnAESBuffer));
 
-          EncryptAESStreamCBC(Stream, Stream.Size, AESKey128, AesIv, ES);
+          EncryptAES128StreamCBC(Stream, Stream.Size, AESKey128, AesIv, ES);
           Result := True;
         end;
       ckeAES192:
@@ -519,7 +519,7 @@ begin
           Move(Keys[0], AESKey192[0], SizeOf(TCnAESKey192));
           Move(IvStr[1], AesIv[0], SizeOf(TCnAESBuffer));
 
-          EncryptAESStreamCBC(Stream, Stream.Size, AESKey192, AesIv, ES);
+          EncryptAES192StreamCBC(Stream, Stream.Size, AESKey192, AesIv, ES);
           Result := True;
         end;
       ckeAES256:
@@ -527,7 +527,7 @@ begin
           Move(Keys[0], AESKey256[0], SizeOf(TCnAESKey256));
           Move(IvStr[1], AesIv[0], SizeOf(TCnAESBuffer));
 
-          EncryptAESStreamCBC(Stream, Stream.Size, AESKey256, AesIv, ES);
+          EncryptAES256StreamCBC(Stream, Stream.Size, AESKey256, AesIv, ES);
           Result := True;
         end;
     end;
@@ -597,7 +597,7 @@ begin
       Move(Keys[0], AESKey256[0], SizeOf(TCnAESKey256));
       Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
 
-      DecryptAESStreamCBC(DS, DS.Size, AESKey256, AesIv, Stream);
+      DecryptAES256StreamCBC(DS, DS.Size, AESKey256, AesIv, Stream);
       RemovePKCS7Padding(Stream);
       Result := True;
     end
@@ -607,7 +607,7 @@ begin
       Move(Keys[0], AESKey192[0], SizeOf(TCnAESKey192));
       Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
 
-      DecryptAESStreamCBC(DS, DS.Size, AESKey192, AesIv, Stream);
+      DecryptAES192StreamCBC(DS, DS.Size, AESKey192, AesIv, Stream);
       RemovePKCS7Padding(Stream);
       Result := True;
     end
@@ -617,7 +617,7 @@ begin
       Move(Keys[0], AESKey128[0], SizeOf(TCnAESKey128));
       Move(IvStr[1], AesIv[0], Min(SizeOf(TCnAESBuffer), Length(IvStr)));
 
-      DecryptAESStreamCBC(DS, DS.Size, AESKey128, AesIv, Stream);
+      DecryptAES128StreamCBC(DS, DS.Size, AESKey128, AesIv, Stream);
       RemovePKCS7Padding(Stream);
       Result := True;
     end

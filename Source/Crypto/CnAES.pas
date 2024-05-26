@@ -2578,7 +2578,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(TempIn, ExpandedKey, TempOut);
+    EncryptAES128(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -2590,7 +2590,7 @@ begin
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
-    EncryptAES(TempIn, ExpandedKey, TempOut);
+    EncryptAES128(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -2615,7 +2615,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(TempIn, ExpandedKey, TempOut);
+    EncryptAES192(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -2627,7 +2627,7 @@ begin
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
-    EncryptAES(TempIn, ExpandedKey, TempOut);
+    EncryptAES192(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -2652,7 +2652,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(TempIn, ExpandedKey, TempOut);
+    EncryptAES256(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -2664,7 +2664,7 @@ begin
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
-    EncryptAES(TempIn, ExpandedKey, TempOut);
+    EncryptAES256(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -2743,7 +2743,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
-    DecryptAES(TempIn, ExpandedKey, TempOut);
+    DecryptAES128(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -2780,7 +2780,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
-    DecryptAES(TempIn, ExpandedKey, TempOut);
+    DecryptAES192(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -2817,7 +2817,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
-    DecryptAES(TempIn, ExpandedKey, TempOut);
+    DecryptAES256(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -2904,7 +2904,7 @@ begin
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^; // 原始块内容与 IV 先异或
-    EncryptAES(TempIn, ExpandedKey, TempOut);                                       // 异或结果再加密
+    EncryptAES128(TempIn, ExpandedKey, TempOut);                                    // 异或结果再加密
     Done := Dest.Write(TempOut, SizeOf(TempOut));                                   // 加密内容写入结果
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -2921,7 +2921,7 @@ begin
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^;
-    EncryptAES(TempIn, ExpandedKey, TempOut);
+    EncryptAES128(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -2961,7 +2961,7 @@ begin
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^;
-    EncryptAES(TempIn, ExpandedKey, TempOut);
+    EncryptAES192(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -2978,7 +2978,7 @@ begin
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^;
-    EncryptAES(TempIn, ExpandedKey, TempOut);
+    EncryptAES192(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -3018,7 +3018,7 @@ begin
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^;
-    EncryptAES(TempIn, ExpandedKey, TempOut);
+    EncryptAES256(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -3035,7 +3035,7 @@ begin
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^;
-    EncryptAES(TempIn, ExpandedKey, TempOut);
+    EncryptAES256(TempIn, ExpandedKey, TempOut);
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -3121,7 +3121,7 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
     Vector2 := TempIn;
-    DecryptAES(TempIn, ExpandedKey, TempOut);
+    DecryptAES128(TempIn, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@Vector1[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@Vector1[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@Vector1[8])^;
@@ -3167,7 +3167,7 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
     Vector2 := TempIn;
-    DecryptAES(TempIn, ExpandedKey, TempOut);
+    DecryptAES192(TempIn, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@Vector1[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@Vector1[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@Vector1[8])^;
@@ -3213,7 +3213,7 @@ begin
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
     Vector2 := TempIn;
-    DecryptAES(TempIn, ExpandedKey, TempOut);         // 读出密文先解密
+    DecryptAES256(TempIn, ExpandedKey, TempOut);         // 读出密文先解密
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@Vector1[0])^;   // 解密后的内容和 Iv 异或得到明文
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@Vector1[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@Vector1[8])^;
@@ -3277,7 +3277,7 @@ procedure EncryptAES128StreamCFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey128;
 begin
-  ExpandAESKeyForDecryption(Key, ExpandedKey);  // 忘记为什么是 Decryption 了
+  ExpandAESKeyForDecryption128Expanded(Key, ExpandedKey);  // 忘记为什么是 Decryption 了
   EncryptAES128StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -3301,7 +3301,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);                                       // Key 先加密 Iv
+    EncryptAES128(Vector, ExpandedKey, TempOut);                                       // Key 先加密 Iv
     PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;  // 加密结果与明文异或
     PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
@@ -3317,7 +3317,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES128(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
@@ -3333,7 +3333,7 @@ procedure EncryptAES192StreamCFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey192;
 begin
-  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  ExpandAESKeyForDecryption192Expanded(Key, ExpandedKey);
   EncryptAES192StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -3357,7 +3357,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
@@ -3373,7 +3373,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
@@ -3389,7 +3389,7 @@ procedure EncryptAES256StreamCFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey256;
 begin
-  ExpandAESKeyForDecryption(Key, ExpandedKey);
+  ExpandAESKeyForDecryption256Expanded(Key, ExpandedKey);
   EncryptAES256StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -3413,7 +3413,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
@@ -3429,7 +3429,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
@@ -3518,7 +3518,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));       // 读出密文
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);         // Iv 先加密——注意是加密！不是解密！
+    EncryptAES128(Vector, ExpandedKey, TempOut);         // Iv 先加密——注意是加密！不是解密！
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
@@ -3534,7 +3534,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES128(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
@@ -3576,7 +3576,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
@@ -3592,7 +3592,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
@@ -3634,7 +3634,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
@@ -3650,7 +3650,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
@@ -3736,7 +3736,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);                                      // Key 先加密 Iv
+    EncryptAES128(Vector, ExpandedKey, TempOut);                                      // Key 先加密 Iv
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;  // 加密结果与明文异或
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
@@ -3752,7 +3752,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES128(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
@@ -3792,7 +3792,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
@@ -3808,7 +3808,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
@@ -3848,7 +3848,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
@@ -3864,7 +3864,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
@@ -3953,7 +3953,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));       // 读出密文
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);         // Iv 先加密——注意是加密！不是解密！
+    EncryptAES128(Vector, ExpandedKey, TempOut);       // Iv 先加密——注意是加密！不是解密！
     PCardinal(@TempIn[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
     PCardinal(@TempIn[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
@@ -3969,7 +3969,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES128(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
     PCardinal(@TempIn[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
@@ -4011,7 +4011,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
@@ -4027,7 +4027,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
@@ -4069,7 +4069,7 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
@@ -4085,7 +4085,7 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESReadError);
-    EncryptAES(Vector, ExpandedKey, TempOut);
+    EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
@@ -4453,19 +4453,19 @@ begin
       begin
         FillChar(AESKey128, SizeOf(AESKey128), 0);
         Move(PAnsiChar(Key)^, AESKey128, Min(SizeOf(AESKey128), Length(Key)));
-        DecryptAESStreamOFB(SS, SS.Size - SS.Position, AESKey128, Iv, DS);
+        DecryptAES128StreamOFB(SS, SS.Size - SS.Position, AESKey128, Iv, DS);
       end;
     kbt192:
       begin
         FillChar(AESKey192, SizeOf(AESKey192), 0);
         Move(PAnsiChar(Key)^, AESKey192, Min(SizeOf(AESKey192), Length(Key)));
-        DecryptAESStreamOFB(SS, SS.Size - SS.Position, AESKey192, Iv, DS);
+        DecryptAES192StreamOFB(SS, SS.Size - SS.Position, AESKey192, Iv, DS);
       end;
     kbt256:
       begin
         FillChar(AESKey256, SizeOf(AESKey256), 0);
         Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
-        DecryptAESStreamOFB(SS, SS.Size - SS.Position, AESKey256, Iv, DS);
+        DecryptAES256StreamOFB(SS, SS.Size - SS.Position, AESKey256, Iv, DS);
       end;
     end;
     SetLength(Result, DS.Size);
