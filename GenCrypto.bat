@@ -1,5 +1,5 @@
 @ECHO OFF
-
+REM 注意 Package 和 Test 下的工程都不需要 dof、cfg 等设置搜索路径，因为所需源码全在 Source 目录里
 CD ..
 DEL /S /Q cncrypto
 RMDIR /Q cncrypto /S
@@ -7,6 +7,8 @@ MKDIR cncrypto
 CD cncrypto
 COPY ..\cnvcl\License.chs.txt .\License.txt
 COPY ..\cnvcl\Doc\Develop\CnCrypto_README.md .\README.md
+COPY ..\cnvcl\CleanInplace.bat .\Clean.bat
+COPY ..\cnvcl\.gitignore .
 MKDIR Source
 CD Source
 COPY ..\..\cnvcl\Source\Common\CnPack.inc .
@@ -180,6 +182,215 @@ ECHO       ^</Item^>                                                           >
 ECHO     ^</Exceptions^>                                                       >> Crypto.lpi
 ECHO   ^</Debugging^>                                                          >> Crypto.lpi
 ECHO ^</CONFIG^>                                                               >> Crypto.lpi
+COPY ..\..\cnvcl\Example\Linux\Crypto\Crypto.cpp .
+ECHO USEUNIT("Crypto.cpp");                                                             > Crypto.bpf
+ECHO USEUNIT("..\Source\Cn25519.pas");                                                 >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnAEAD.pas");                                                  >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnAES.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnBase64.pas");                                                >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnBerUtils.pas");                                              >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnBigNumber.pas");                                             >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnBits.pas");                                                  >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnCertificateAuthority.pas");                                  >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnChaCha20.pas");                                              >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnComplex.pas");                                               >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnCRC32.pas");                                                 >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnDES.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnDFT.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnECC.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnFEC.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnFNV.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnInt128.pas");                                                >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnKDF.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnLattice.pas");                                               >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnMD5.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnNative.pas");                                                >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnOTP.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnOTS.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnPaillier.pas");                                              >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnPDFCrypt.pas");                                              >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnPemUtils.pas");                                              >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnPoly1305.pas");                                              >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnPolynomial.pas");                                            >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnPrimeNumber.pas");                                           >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnRandom.pas");                                                >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnRC4.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnRSA.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnSecretSharing.pas");                                         >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnSHA1.pas");                                                  >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnSHA2.pas");                                                  >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnSHA3.pas");                                                  >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnSM2.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnSM3.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnSM4.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnSM9.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnTEA.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnVector.pas");                                                >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnZUC.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnBigDecimal.pas");                                            >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnBigRational.pas");                                           >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnConsts.pas");                                                >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnContainers.pas");                                            >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnFloat.pas");                                                 >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnHashMap.pas");                                               >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnMath.pas");                                                  >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnMatrix.pas");                                                >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnTree.pas");                                                  >> Crypto.bpf
+ECHO USEUNIT("CryptoTest.pas");                                                               >> Crypto.bpf
+ECHO //---------------------------------------------------------------------------            >> Crypto.bpf
+ECHO This file is used by the project manager only and should be treated like project file    >> Crypto.bpf
+ECHO.                                                                                         >> Crypto.bpf
+ECHO.                                                                                         >> Crypto.bpf
+ECHO main                                                                                     >> Crypto.bpf
+ECHO ^<^?xml version='1.0' encoding='utf-8' ^?^>                                                    > Crypto.bpr
+ECHO ^<!-- C++Builder XML Project --^>                                                             >> Crypto.bpr
+ECHO ^<PROJECT^>                                                                                   >> Crypto.bpr
+ECHO   ^<MACROS^>                                                                                  >> Crypto.bpr
+ECHO     ^<VERSION value="BCB.05.03"/^>                                                            >> Crypto.bpr
+ECHO     ^<PROJECT value="Crypto.exe"/^>                                                           >> Crypto.bpr
+ECHO     ^<OBJFILES value=^"..\Source\Cn25519.obj ..\Source\CnAEAD.obj                >> Crypto.bpr
+ECHO       ..\Source\CnAES.obj ..\Source\CnBase64.obj                                 >> Crypto.bpr
+ECHO       ..\Source\CnBerUtils.obj                                                   >> Crypto.bpr
+ECHO       ..\Source\CnBigNumber.obj ..\Source\CnBits.obj                             >> Crypto.bpr
+ECHO       ..\Source\CnCertificateAuthority.obj                                       >> Crypto.bpr
+ECHO       ..\Source\CnChaCha20.obj ..\Source\CnComplex.obj                           >> Crypto.bpr
+ECHO       ..\Source\CnCRC32.obj ..\Source\CnDES.obj                                  >> Crypto.bpr
+ECHO       ..\Source\CnDFT.obj ..\Source\CnECC.obj                                    >> Crypto.bpr
+ECHO       ..\Source\CnFEC.obj ..\Source\CnFNV.obj                                    >> Crypto.bpr
+ECHO       ..\Source\CnInt128.obj ..\Source\CnKDF.obj                                 >> Crypto.bpr
+ECHO       ..\Source\CnLattice.obj ..\Source\CnMD5.obj                                >> Crypto.bpr
+ECHO       ..\Source\CnNative.obj ..\Source\CnOTP.obj                                 >> Crypto.bpr
+ECHO       ..\Source\CnOTS.obj ..\Source\CnPaillier.obj                               >> Crypto.bpr
+ECHO       ..\Source\CnPDFCrypt.obj                                                   >> Crypto.bpr
+ECHO       ..\Source\CnPemUtils.obj ..\Source\CnPoly1305.obj                          >> Crypto.bpr
+ECHO       ..\Source\CnPolynomial.obj                                                 >> Crypto.bpr
+ECHO       ..\Source\CnPrimeNumber.obj                                                >> Crypto.bpr
+ECHO       ..\Source\CnRandom.obj ..\Source\CnRC4.obj                                 >> Crypto.bpr
+ECHO       ..\Source\CnRSA.obj                                                        >> Crypto.bpr
+ECHO       ..\Source\CnSecretSharing.obj ..\Source\CnSHA1.obj                         >> Crypto.bpr
+ECHO       ..\Source\CnSHA2.obj ..\Source\CnSHA3.obj                                  >> Crypto.bpr
+ECHO       ..\Source\CnSM2.obj ..\Source\CnSM3.obj                                    >> Crypto.bpr
+ECHO       ..\Source\CnSM4.obj ..\Source\CnSM9.obj                                    >> Crypto.bpr
+ECHO       ..\Source\CnTEA.obj ..\Source\CnVector.obj                                 >> Crypto.bpr
+ECHO       ..\Source\CnZUC.obj ..\Source\CnBigDecimal.obj                             >> Crypto.bpr
+ECHO       ..\Source\CnBigRational.obj                                                >> Crypto.bpr
+ECHO       ..\Source\CnConsts.obj                                                     >> Crypto.bpr
+ECHO       ..\Source\CnContainers.obj ..\Source\CnFloat.obj                           >> Crypto.bpr
+ECHO       ..\Source\CnHashMap.obj ..\Source\CnMath.obj                               >> Crypto.bpr
+ECHO       ..\Source\CnMatrix.obj ..\Source\CnTree.obj                                >> Crypto.bpr
+ECHO       CryptoTest.obj Crypto.obj^"/^>                                                          >> Crypto.bpr
+ECHO     ^<RESFILES value=""/^>                                                                    >> Crypto.bpr
+ECHO     ^<IDLFILES value=""/^>                                                                    >> Crypto.bpr
+ECHO     ^<IDLGENFILES value=""/^>                                                                 >> Crypto.bpr
+ECHO     ^<DEFFILE value=""/^>                                                                     >> Crypto.bpr
+ECHO     ^<RESDEPEN value="$(RESFILES)"/^>                                                         >> Crypto.bpr
+ECHO     ^<LIBFILES value=""/^>                                                                    >> Crypto.bpr
+ECHO     ^<LIBRARIES value="Vcl50.lib"/^>                                                          >> Crypto.bpr
+ECHO     ^<SPARELIBS value="Vcl50.lib"/^>                                                          >> Crypto.bpr
+ECHO     ^<PACKAGES value=^"Vcl50.bpi Vclx50.bpi bcbsmp50.bpi Vcldb50.bpi vclado50.bpi ibsmp50.bpi >> Crypto.bpr
+ECHO       VCLBDE50.bpi vcldbx50.bpi Qrpt50.bpi TeeUI50.bpi TeeDB50.bpi Tee50.bpi                  >> Crypto.bpr
+ECHO       Dss50.bpi TeeQR50.bpi VCLIB50.bpi Vclmid50.bpi vclie50.bpi Inetdb50.bpi                 >> Crypto.bpr
+ECHO       Inet50.bpi NMFast50.bpi webmid50.bpi bcbie50.bpi dclocx50.bpi                           >> Crypto.bpr
+ECHO       bcb2kaxserver50.bpi^"/^>                                                                >> Crypto.bpr
+ECHO     ^<PATHCPP value=".;"/^>                                                                   >> Crypto.bpr
+ECHO     ^<PATHPAS value=".;..\..\..\Source\Crypto;..\..\..\Source\Common"/^>                      >> Crypto.bpr
+ECHO     ^<PATHRC value=".;"/^>                                                                    >> Crypto.bpr
+ECHO     ^<PATHASM value=".;"/^>                                                                   >> Crypto.bpr
+ECHO     ^<DEBUGLIBPATH value="$(BCB)\lib\debug"/^>                                                >> Crypto.bpr
+ECHO     ^<RELEASELIBPATH value="$(BCB)\lib\release"/^>                                            >> Crypto.bpr
+ECHO     ^<LINKER value="tlink32"/^>                                                               >> Crypto.bpr
+ECHO     ^<USERDEFINES value="_DEBUG"/^>                                                           >> Crypto.bpr
+ECHO     ^<SYSDEFINES value="NO_STRICT"/^>                                                         >> Crypto.bpr
+ECHO     ^<MAINSOURCE value="Crypto.bpf"/^>                                                        >> Crypto.bpr
+ECHO     ^<INCLUDEPATH value="..\..\..\Source\Common;..\..\..\Source\Crypto;$(BCB)\include;$(BCB)\include\vcl"/^>       >> Crypto.bpr
+ECHO     ^<LIBPATH value="..\..\..\Source\Common;..\..\..\Source\Crypto;$(BCB)\lib\obj;$(BCB)\lib"/^>                   >> Crypto.bpr
+ECHO     ^<WARNINGS value="-w-par"/^>                                                               >> Crypto.bpr
+ECHO   ^</MACROS^>                                                                                  >> Crypto.bpr
+ECHO   ^<OPTIONS^>                                                                                  >> Crypto.bpr
+ECHO     ^<IDLCFLAGS value=^"-I..\..\..\Source\Common -I..\..\..\Source\Crypto -I$(BCB)\include     >> Crypto.bpr
+ECHO       -I$(BCB)\include\vcl -src_suffix cpp -D_DEBUG -boa^"/^>                                  >> Crypto.bpr
+ECHO     ^<CFLAG1 value=^"-Od -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a8 -b- -k -y -v -vi- -tWC >> Crypto.bpr
+ECHO       -tWM -c^"/^>                                                                              >> Crypto.bpr
+ECHO     ^<PFLAGS value="-$YD -$W -$O- -v -JPHNE -M"/^>                                             >> Crypto.bpr
+ECHO     ^<RFLAGS value=""/^>                                                                       >> Crypto.bpr
+ECHO     ^<AFLAGS value="/mx /w2 /zd"/^>                                                            >> Crypto.bpr
+ECHO     ^<LFLAGS value="-D&quot;&quot; -ap -Tpe -x -Gn -v"/^>                                      >> Crypto.bpr
+ECHO   ^</OPTIONS^>                                                                                 >> Crypto.bpr
+ECHO   ^<LINKER^>                                                                                   >> Crypto.bpr
+ECHO     ^<ALLOBJ value="c0x32.obj sysinit.obj $(OBJFILES)"/^>                                      >> Crypto.bpr
+ECHO     ^<ALLRES value="$(RESFILES)"/^>                                                            >> Crypto.bpr
+ECHO     ^<ALLLIB value="$(LIBFILES) $(LIBRARIES) import32.lib cp32mt.lib"/^>                       >> Crypto.bpr
+ECHO   ^</LINKER^>                                                                                  >> Crypto.bpr
+ECHO   ^<IDEOPTIONS^>                                                                               >> Crypto.bpr
+ECHO [Version Info]                                                                                 >> Crypto.bpr
+ECHO IncludeVerInfo=0                                                                               >> Crypto.bpr
+ECHO AutoIncBuild=0                                                                                 >> Crypto.bpr
+ECHO MajorVer=1                                                                                     >> Crypto.bpr
+ECHO MinorVer=0                                                                                     >> Crypto.bpr
+ECHO Release=0                                                                                      >> Crypto.bpr
+ECHO Build=0                                                                                        >> Crypto.bpr
+ECHO Debug=0                                                                                        >> Crypto.bpr
+ECHO PreRelease=0                                                                                   >> Crypto.bpr
+ECHO Special=0                                                                                      >> Crypto.bpr
+ECHO Private=0                                                                                      >> Crypto.bpr
+ECHO DLL=0                                                                                          >> Crypto.bpr
+ECHO Locale=2052                                                                                    >> Crypto.bpr
+ECHO CodePage=936                                                                                   >> Crypto.bpr
+ECHO.                                                                                               >> Crypto.bpr
+ECHO [Version Info Keys]                                                                            >> Crypto.bpr
+ECHO CompanyName=                                                                                   >> Crypto.bpr
+ECHO FileDescription=                                                                               >> Crypto.bpr
+ECHO FileVersion=1.0.0.0                                                                            >> Crypto.bpr
+ECHO InternalName=                                                                                  >> Crypto.bpr
+ECHO LegalCopyright=                                                                                >> Crypto.bpr
+ECHO LegalTrademarks=                                                                               >> Crypto.bpr
+ECHO OriginalFilename=                                                                              >> Crypto.bpr
+ECHO ProductName=                                                                                   >> Crypto.bpr
+ECHO ProductVersion=1.0.0.0                                                                         >> Crypto.bpr
+ECHO Comments=                                                                                      >> Crypto.bpr
+ECHO.                                                                                               >> Crypto.bpr
+ECHO [HistoryLists\hlIncludePath]                                                                   >> Crypto.bpr
+ECHO Count=1                                                                                        >> Crypto.bpr
+ECHO Item0=$(BCB)\include;$(BCB)\include\vcl                                                        >> Crypto.bpr
+ECHO.                                                                                               >> Crypto.bpr
+ECHO [HistoryLists\hlLibraryPath]                                                                   >> Crypto.bpr
+ECHO Count=1                                                                                        >> Crypto.bpr
+ECHO Item0=$(BCB)\lib\obj;$(BCB)\lib                                                                >> Crypto.bpr
+ECHO.                                                                                               >> Crypto.bpr
+ECHO [HistoryLists\hlDebugSourcePath]                                                               >> Crypto.bpr
+ECHO Count=1                                                                                        >> Crypto.bpr
+ECHO Item0=$(BCB)\source\vcl                                                                        >> Crypto.bpr
+ECHO.                                                                                               >> Crypto.bpr
+ECHO [HistoryLists\hlConditionals]                                                                  >> Crypto.bpr
+ECHO Count=1                                                                                        >> Crypto.bpr
+ECHO Item0=_DEBUG                                                                                   >> Crypto.bpr
+ECHO.                                                                                               >> Crypto.bpr
+ECHO [Debugging]                                                                                    >> Crypto.bpr
+ECHO DebugSourceDirs=$(BCB)\source\vcl                                                              >> Crypto.bpr
+ECHO.                                                                                               >> Crypto.bpr
+ECHO [Parameters]                                                                                   >> Crypto.bpr
+ECHO RunParams=                                                                                     >> Crypto.bpr
+ECHO HostApplication=                                                                               >> Crypto.bpr
+ECHO RemoteHost=                                                                                    >> Crypto.bpr
+ECHO RemotePath=                                                                                    >> Crypto.bpr
+ECHO RemoteDebug=0                                                                                  >> Crypto.bpr
+ECHO.                                                                                               >> Crypto.bpr
+ECHO [Compiler]                                                                                     >> Crypto.bpr
+ECHO ShowInfoMsgs=0                                                                                 >> Crypto.bpr
+ECHO LinkDebugVcl=0                                                                                 >> Crypto.bpr
+ECHO LinkCGLIB=0                                                                                    >> Crypto.bpr
+ECHO.                                                                                               >> Crypto.bpr
+ECHO [CORBA]                                                                                        >> Crypto.bpr
+ECHO AddServerUnit=1                                                                                >> Crypto.bpr
+ECHO AddClientUnit=1                                                                                >> Crypto.bpr
+ECHO PrecompiledHeaders=1                                                                           >> Crypto.bpr
+ECHO.                                                                                               >> Crypto.bpr
+ECHO [Language]                                                                                     >> Crypto.bpr
+ECHO ActiveLang=                                                                                    >> Crypto.bpr
+ECHO ProjectLang=                                                                                   >> Crypto.bpr
+ECHO RootDir=                                                                                       >> Crypto.bpr
+ECHO   ^</IDEOPTIONS^>                                                                              >> Crypto.bpr
+ECHO ^</PROJECT^>                                                                                   >> Crypto.bpr
 CD ..
 MKDIR Doc
 CD Doc

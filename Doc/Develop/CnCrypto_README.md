@@ -2,7 +2,7 @@
 
 ## 概述
 
-CnPack 密码算法库（CnPack Crypto Library）源于 CnPack 开发组的开源项目 CnVcl 组件包（CnVcl Component Package），是一套以纯 Object Pascal 语言编写的开源加解密源码库，支持 Delphi 5 至最新版本的 RAD Studio 及 Lazarus/FPC，并支持 32 位与 64 位的 Windows、MacOS、Linux 等操作系统。
+CnPack 密码算法库（CnPack Crypto Library）源于 CnPack 开发组的开源项目 CnVcl 组件包（CnVcl Component Package），是一套以纯 Object Pascal 语言编写的开源加解密源码库，支持 Delphi 5 至最新版本的 RAD Studio，支持 C++Builder 5/6 及 Lazarus/FPC，并支持 32 位与 64 位的 Windows、MacOS、Linux 等操作系统。
 
 CnPack 密码算法库致力于提供强大的加解密算法支持与数据安全保障。它覆盖了国内外常见的加解密算法及中国国家商用密码算法，包括对称加密、非对称加密、杂凑（或名散列、摘要、哈希）等大类及众多其他基础与辅助功能。
 
@@ -50,7 +50,7 @@ CnPack 密码算法库不涉及 VCL/FMX 界面组件，仅是基础库的形式提供，因而可直接将 cnc
 
 ## 测试用例
 
-cncrypto\Test 目录下有一完整的命令行测试用例 CryptoTest.dpr，使用任一版本 Delphi 打开运行即可覆盖验证 CnPack 密码算法库的绝大多数功能，或用 Lazarus 打开 Crypto.lpi 同样可以运行。尾部两个用例耗时较长以小时计，跑时需有耐心。
+cncrypto\Test 目录下有一完整的命令行测试用例 CryptoTest.dpr，使用任一版本 Delphi 打开运行即可覆盖验证 CnPack 密码算法库的绝大多数功能，或用 C++Builder 5/6 打开 Crypto.bpr、或用 Lazarus 打开 Crypto.lpi，均同样可以运行。尾部两个用例耗时较长以小时计，跑时需有耐心。
 
 ## 关于我们
 
