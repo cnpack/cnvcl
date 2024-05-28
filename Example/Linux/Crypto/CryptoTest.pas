@@ -107,20 +107,35 @@ function TestBigNumberPolynomialGaloisPrimePowerModularInverse: Boolean;
 
 function TestSM4Standard1: Boolean;
 function TestSM4Standard2: Boolean;
+function TestSM4Ecb: Boolean;
+function TestSM4Cbc: Boolean;
+function TestSM4Cfb: Boolean;
+function TestSM4Ofb: Boolean;
 
 // ================================ DES ========================================
 
-function TestDESEcb1: Boolean;
+function TestDESEcb: Boolean;
+function TestDESCbc: Boolean;
 
 // ================================ 3DES =======================================
 
-function Test3DESEcb1: Boolean;
+function Test3DESEcb: Boolean;
+function Test3DESCbc: Boolean;
 
 // ================================ AES ========================================
 
 function TestAESEcb128: Boolean;
 function TestAESEcb192: Boolean;
 function TestAESEcb256: Boolean;
+function TestAESCbc128: Boolean;
+function TestAESCbc192: Boolean;
+function TestAESCbc256: Boolean;
+function TestAESCfb128: Boolean;
+function TestAESCfb192: Boolean;
+function TestAESCfb256: Boolean;
+function TestAESOfb128: Boolean;
+function TestAESOfb192: Boolean;
+function TestAESOfb256: Boolean;
 
 // ================================ CRC ========================================
 
@@ -413,20 +428,35 @@ begin
 
   MyAssert(TestSM4Standard1, 'TestSM4Standard1');
   MyAssert(TestSM4Standard2, 'TestSM4Standard2');
+  MyAssert(TestSM4Ecb, 'TestSM4Ecb');
+  MyAssert(TestSM4Cbc, 'TestSM4Cbc');
+  MyAssert(TestSM4Cfb, 'TestSM4Cfb');
+  MyAssert(TestSM4Ofb, 'TestSM4Ofb');
 
 // ================================ DES ========================================
 
-  MyAssert(TestDESEcb1, 'TestDESEcb1');
+  MyAssert(TestDESEcb, 'TestDESEcb');
+  MyAssert(TestDESCbc, 'TestDESCbc');
 
 // ================================ 3DES =======================================
 
-  MyAssert(Test3DESEcb1, 'Test3DESEcb1');
+  MyAssert(Test3DESEcb, 'Test3DESEcb');
+  MyAssert(Test3DESCbc, 'Test3DESCbc');
 
 // ================================ AES ========================================
 
   MyAssert(TestAESEcb128, 'TestAESEcb128');
   MyAssert(TestAESEcb192, 'TestAESEcb192');
   MyAssert(TestAESEcb256, 'TestAESEcb256');
+  MyAssert(TestAESCbc128, 'TestAESCbc128');
+  MyAssert(TestAESCbc192, 'TestAESCbc192');
+  MyAssert(TestAESCbc256, 'TestAESCbc256');
+  MyAssert(TestAESCfb128, 'TestAESCfb128');
+  MyAssert(TestAESCfb192, 'TestAESCfb192');
+  MyAssert(TestAESCfb256, 'TestAESCfb256');
+  MyAssert(TestAESOfb128, 'TestAESOfb128');
+  MyAssert(TestAESOfb192, 'TestAESOfb192');
+  MyAssert(TestAESOfb256, 'TestAESOfb256');
 
 // ================================ CRC ========================================
 
@@ -1456,9 +1486,77 @@ begin
   Result := BytesToHex(DataBytes) = '595298C7C6FD271F0402F804C33D3F66';
 end;
 
+function TestSM4Ecb: Boolean;
+var
+  S, Key, Res, Data: AnsiString;
+  Hex: string;
+begin
+  S := 'CnPack Ecb Test Data for SM4.';
+  Key := 'CnPack SM4 Key';
+  SetLength(Res, SM4GetOutputLengthFromInputLength(Length(S)));
+  SM4EncryptEcbStr(Key, S, @Res[1]);
+
+  Result := DataToHex(@Res[1], Length(Res)) = 'CA1C161B95B8388398676525C4310ACDC608AD6DE2C57380BD593C2D406F40CC';
+  if not Result then Exit;
+
+  SetLength(Data, SM4GetOutputLengthFromInputLength(Length(Res)));
+  SM4DecryptEcbStr(Key, Res, @Data[1]);
+
+  Data := Trim(Data);
+  Result := Data = S;
+end;
+
+function TestSM4Cbc: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('CnPack SM4 Key');
+  IvBytes := AnsiToBytes('SM4 Iv Of CnPack');
+  DataBytes := AnsiToBytes('CnPack Test Data for SM4 CBC.');
+  ResBytes := SM4EncryptCbcBytes(KeyBytes, IvBytes, DataBytes);
+
+  Result := BytesToHex(ResBytes) = 'FC752B7D3469AB7CE8F5FBA93452B4096901658D8669F43ECFF4A596B4CFC978';
+  if not Result then Exit;
+
+  ResBytes := SM4DecryptCbcBytes(KeyBytes, IvBytes, ResBytes);
+  Result := CompareBytes(ResBytes, DataBytes, Length(DataBytes)); // 后面有 #0 要忽略
+end;
+
+function TestSM4Cfb: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('CnPack SM4 Key');
+  IvBytes := AnsiToBytes('SM4 Iv Of CnPack');
+  DataBytes := AnsiToBytes('CnPack Test Data for SM4 CFB.');
+  ResBytes := SM4EncryptCfbBytes(KeyBytes, IvBytes, DataBytes);
+
+  Result := BytesToHex(ResBytes) = '5BB273541D5464D7407BABDA8855CE5A8A1CD46C47393C9594BB1E3885';
+  if not Result then Exit;
+
+  ResBytes := SM4DecryptCfbBytes(KeyBytes, IvBytes, ResBytes);
+  Result := CompareBytes(ResBytes, DataBytes);
+end;
+
+function TestSM4Ofb: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('SM4 Key CnPack');
+  IvBytes := AnsiToBytes('SM4 CnPack Iv');
+  DataBytes := AnsiToBytes('CnPack Test Data for SM4 OFB.');
+  ResBytes := SM4EncryptOfbBytes(KeyBytes, IvBytes, DataBytes);
+
+  Result := BytesToHex(ResBytes) = 'DC125402BEDEAC489E2430789D763498B536F81908A4F75279F2943476';
+  if not Result then Exit;
+
+  ResBytes := SM4DecryptOfbBytes(KeyBytes, IvBytes, ResBytes);
+  Result := CompareBytes(ResBytes, DataBytes);
+end;
+
 // ================================ DES ========================================
 
-function TestDESEcb1: Boolean;
+function TestDESEcb: Boolean;
 var
   S: string;
   KeyBytes, ResBytes, DataBytes: TBytes;
@@ -1470,9 +1568,25 @@ begin
   Result := BytesToHex(ResBytes) = '85E813540F0AB405';
 end;
 
+function TestDESCbc: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('Des Key');
+  IvBytes := AnsiToBytes('Des Iv');
+  DataBytes := AnsiToBytes('CnPack Test Data for DES CBC.');
+  ResBytes := DESEncryptCBCBytes(KeyBytes, IvBytes, DataBytes);
+
+  Result := BytesToHex(ResBytes) = '564AF4F43FF0F80C9C4BA18C2D2F6C1EBDA49AA749B26C3D06A2060CE6953A29';
+  if not Result then Exit;
+
+  ResBytes := DESDecryptCBCBytes(KeyBytes, IvBytes, ResBytes);
+  Result := CompareBytes(ResBytes, DataBytes, Length(DataBytes));
+end;
+
 // ================================ 3DES =======================================
 
-function Test3DESEcb1: Boolean;
+function Test3DESEcb: Boolean;
 var
   S: string;
   KeyBytes, ResBytes, DataBytes: TBytes;
@@ -1482,6 +1596,22 @@ begin
   KeyBytes := HexToBytes('9BBCDFF1AABBCCDD');
   ResBytes := TripleDESEncryptEcbBytes(KeyBytes, DataBytes);
   Result := BytesToHex(ResBytes) = '119102AA7D6000EE';
+end;
+
+function Test3DESCbc: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('3Des Key from CnPack');
+  IvBytes := AnsiToBytes('3Des Iv');
+  DataBytes := AnsiToBytes('CnPack Test Data for 3DES CBC.');
+  ResBytes := TripleDESEncryptCBCBytes(KeyBytes, IvBytes, DataBytes);
+
+  Result := BytesToHex(ResBytes) = 'E7C69043F789737DBDF122EFFB5BDBA149C0110F6E15CB63229339B95C750B8A';
+  if not Result then Exit;
+
+  ResBytes := TripleDESDecryptCBCBytes(KeyBytes, IvBytes, ResBytes);
+  Result := CompareBytes(ResBytes, DataBytes, Length(DataBytes));
 end;
 
 // ================================ AES ========================================
@@ -1520,6 +1650,150 @@ begin
   KeyBytes := HexToBytes('603DEB1015CA71BE2B73AEF0857D77811F352C073B6108D72D9810A30914DFF4');
   ResBytes := AESEncryptEcbBytes(DataBytes, KeyBytes, kbt256);
   Result := BytesToHex(ResBytes) = 'D71F96DEF80F6F19F80461CAEB8BE29F';
+end;
+
+function TestAESCbc128: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('CnPack AES Key');
+  IvBytes := AnsiToBytes('AES Iv Of CnPack');
+  DataBytes := AnsiToBytes('CnPack Test Data for AES CBC.');
+  ResBytes := AESEncryptCBCBytes(DataBytes, KeyBytes, IvBytes, kbt128);
+
+  Result := BytesToHex(ResBytes) = 'B3B163B21EBA050863BAC1A6FE39DD6EFF4D8EB5CBD60B5879FCE66558D2C69C';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCBCBytes(ResBytes, KeyBytes, IvBytes, kbt128);
+  Result := CompareBytes(ResBytes, DataBytes, Length(DataBytes));
+end;
+
+function TestAESCbc192: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('CnPack AES Key');
+  IvBytes := AnsiToBytes('AES Iv Of CnPack');
+  DataBytes := AnsiToBytes('CnPack Test Data for AES CBC.');
+  ResBytes := AESEncryptCBCBytes(DataBytes, KeyBytes, IvBytes, kbt192);
+
+  Result := BytesToHex(ResBytes) = '7EE29DFBD7973F49760C92BC312F561F33587105F050BCB8C4558E175AACE840';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCBCBytes(ResBytes, KeyBytes, IvBytes, kbt192);
+  Result := CompareBytes(ResBytes, DataBytes, Length(DataBytes));
+end;
+
+function TestAESCbc256: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('CnPack AES Key');
+  IvBytes := AnsiToBytes('AES Iv Of CnPack');
+  DataBytes := AnsiToBytes('CnPack Test Data for AES CBC.');
+  ResBytes := AESEncryptCBCBytes(DataBytes, KeyBytes, IvBytes, kbt256);
+
+  Result := BytesToHex(ResBytes) = '381D107404224569C3BC4CCAF71ECF312F188A12402241732A40EFAE69EA4587';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCBCBytes(ResBytes, KeyBytes, IvBytes, kbt256);
+  Result := CompareBytes(ResBytes, DataBytes, Length(DataBytes));
+end;
+
+function TestAESCfb128: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('CnPack AES Key');
+  IvBytes := AnsiToBytes('AES Iv Of CnPack');
+  DataBytes := AnsiToBytes('CnPack Test Data for AES CFB.');
+  ResBytes := AESEncryptCFBBytes(DataBytes, KeyBytes, IvBytes, kbt128);
+
+  Result := BytesToHex(ResBytes) = 'D5CA4EFC7C656E63718283DBF9217ABC877EF21D9507B32147172683FB';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCFBBytes(ResBytes, KeyBytes, IvBytes, kbt128);
+  Result := CompareBytes(ResBytes, DataBytes);
+end;
+
+function TestAESCfb192: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('CnPack AES Key');
+  IvBytes := AnsiToBytes('AES Iv Of CnPack');
+  DataBytes := AnsiToBytes('CnPack Test Data for AES CFB.');
+  ResBytes := AESEncryptCFBBytes(DataBytes, KeyBytes, IvBytes, kbt192);
+
+  Result := BytesToHex(ResBytes) = 'EAE9E836AFEED796377AD3A595C80FC43925777FADDC911CF3C094BCAB';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCFBBytes(ResBytes, KeyBytes, IvBytes, kbt192);
+  Result := CompareBytes(ResBytes, DataBytes);
+end;
+
+function TestAESCfb256: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('CnPack AES Key');
+  IvBytes := AnsiToBytes('AES Iv Of CnPack');
+  DataBytes := AnsiToBytes('CnPack Test Data for AES CFB.');
+  ResBytes := AESEncryptCFBBytes(DataBytes, KeyBytes, IvBytes, kbt256);
+
+  Result := BytesToHex(ResBytes) = 'E5271041F97C434528E4426FA2CA3CD96994806B9765911657ABA87B00';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCFBBytes(ResBytes, KeyBytes, IvBytes, kbt256);
+  Result := CompareBytes(ResBytes, DataBytes);
+end;
+
+function TestAESOfb128: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('CnPack AES Key');
+  IvBytes := AnsiToBytes('AES Iv Of CnPack');
+  DataBytes := AnsiToBytes('CnPack Test Data for AES OFB.');
+  ResBytes := AESEncryptOFBBytes(DataBytes, KeyBytes, IvBytes, kbt128);
+
+  Result := BytesToHex(ResBytes) = 'D5CA4EFC7C656E63718283DBF9217ABC5000A6506B556A87B173E6F37B';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptOFBBytes(ResBytes, KeyBytes, IvBytes, kbt128);
+  Result := CompareBytes(ResBytes, DataBytes);
+end;
+
+function TestAESOfb192: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('CnPack AES Key');
+  IvBytes := AnsiToBytes('AES Iv Of CnPack');
+  DataBytes := AnsiToBytes('CnPack Test Data for AES OFB.');
+  ResBytes := AESEncryptOFBBytes(DataBytes, KeyBytes, IvBytes, kbt192);
+
+  Result := BytesToHex(ResBytes) = 'EAE9E836AFEED796377AD3A595C80FC4B3BABCB7564945596F39082D59';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptOFBBytes(ResBytes, KeyBytes, IvBytes, kbt192);
+  Result := CompareBytes(ResBytes, DataBytes);
+end;
+
+function TestAESOfb256: Boolean;
+var
+  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('CnPack AES Key');
+  IvBytes := AnsiToBytes('AES Iv Of CnPack');
+  DataBytes := AnsiToBytes('CnPack Test Data for AES OFB.');
+  ResBytes := AESEncryptOFBBytes(DataBytes, KeyBytes, IvBytes, kbt256);
+
+  Result := BytesToHex(ResBytes) = 'E5271041F97C434528E4426FA2CA3CD9DF7CFF961FEDD3F139A4108A1E';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptOFBBytes(ResBytes, KeyBytes, IvBytes, kbt256);
+  Result := CompareBytes(ResBytes, DataBytes);
 end;
 
 // ================================ CRC ========================================

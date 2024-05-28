@@ -3278,7 +3278,7 @@ procedure EncryptAES128StreamCFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey128;
 begin
-  ExpandAESKeyForDecryption128Expanded(Key, ExpandedKey);  // 忘记为什么是 Decryption 了
+  ExpandAESKeyForEncryption128(Key, ExpandedKey);
   EncryptAES128StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -3334,7 +3334,7 @@ procedure EncryptAES192StreamCFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey192;
 begin
-  ExpandAESKeyForDecryption192Expanded(Key, ExpandedKey);
+  ExpandAESKeyForEncryption192(Key, ExpandedKey);
   EncryptAES192StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -3390,7 +3390,7 @@ procedure EncryptAES256StreamCFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey256;
 begin
-  ExpandAESKeyForDecryption256Expanded(Key, ExpandedKey);
+  ExpandAESKeyForEncryption256(Key, ExpandedKey);
   EncryptAES256StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -3492,7 +3492,7 @@ procedure DecryptAES128StreamCFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey128;
 begin
-  ExpandAESKeyForDecryption128Expanded(Key, ExpandedKey);
+  ExpandAESKeyForEncryption128(Key, ExpandedKey);
   DecryptAES128StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -3551,7 +3551,7 @@ procedure DecryptAES192StreamCFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey192;
 begin
-  ExpandAESKeyForDecryption192Expanded(Key, ExpandedKey);
+  ExpandAESKeyForEncryption192(Key, ExpandedKey);
   DecryptAES192StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -3609,7 +3609,7 @@ procedure DecryptAES256StreamCFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey256;
 begin
-  ExpandAESKeyForDecryption256Expanded(Key, ExpandedKey);
+  ExpandAESKeyForEncryption256(Key, ExpandedKey);
   DecryptAES256StreamCFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -3713,7 +3713,7 @@ procedure EncryptAES128StreamOFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey128;
 begin
-  ExpandAESKeyForDecryption128Expanded(Key, ExpandedKey);
+  ExpandAESKeyForEncryption128(Key, ExpandedKey);
   EncryptAES128StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -3769,7 +3769,7 @@ procedure EncryptAES192StreamOFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey192;
 begin
-  ExpandAESKeyForDecryption192Expanded(Key, ExpandedKey);
+  ExpandAESKeyForEncryption192(Key, ExpandedKey);
   EncryptAES192StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -3825,7 +3825,7 @@ procedure EncryptAES256StreamOFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey256;
 begin
-  ExpandAESKeyForDecryption256Expanded(Key, ExpandedKey);
+  ExpandAESKeyForEncryption256(Key, ExpandedKey);
   EncryptAES256StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -3927,7 +3927,7 @@ procedure DecryptAES128StreamOFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey128;
 begin
-  ExpandAESKeyForDecryption128Expanded(Key, ExpandedKey);
+  ExpandAESKeyForEncryption128(Key, ExpandedKey);
   DecryptAES128StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -3986,7 +3986,7 @@ procedure DecryptAES192StreamOFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey192;
 begin
-  ExpandAESKeyForDecryption192Expanded(Key, ExpandedKey);
+  ExpandAESKeyForEncryption192(Key, ExpandedKey);
   DecryptAES192StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -4044,7 +4044,7 @@ procedure DecryptAES256StreamOFB(Source: TStream; Count: Cardinal;
 var
   ExpandedKey: TCnAESExpandedKey256;
 begin
-  ExpandAESKeyForDecryption256Expanded(Key, ExpandedKey);
+  ExpandAESKeyForEncryption256(Key, ExpandedKey);
   DecryptAES256StreamOFBExpanded(Source, Count, ExpandedKey, InitVector, Dest);
 end;
 
@@ -4623,7 +4623,7 @@ begin
       end;
     kbt256:
       begin
-        FillChar(AESKey256, SizeOf(AESKey256), 0 );
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
         Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
         EncryptAES256StreamCBC(SS, 0, AESKey256, AESIv, DS);
       end;
@@ -4735,7 +4735,7 @@ begin
       end;
     kbt256:
       begin
-        FillChar(AESKey256, SizeOf(AESKey256), 0 );
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
         Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
         EncryptAES256StreamCFB(SS, 0, AESKey256, AESIv, DS);
       end;
@@ -4847,7 +4847,7 @@ begin
       end;
     kbt256:
       begin
-        FillChar(AESKey256, SizeOf(AESKey256), 0 );
+        FillChar(AESKey256, SizeOf(AESKey256), 0);
         Move(PAnsiChar(Key)^, AESKey256, Min(SizeOf(AESKey256), Length(Key)));
         EncryptAES256StreamOFB(SS, 0, AESKey256, AESIv, DS);
       end;
