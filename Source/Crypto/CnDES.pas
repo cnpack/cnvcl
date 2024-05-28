@@ -59,24 +59,27 @@ const
 
 type
   TCnDESKey = array[0..CN_DES_KEYSIZE - 1] of Byte;
-  {* DES 的加密 Key}
+  {* DES 的加密 Key，8 字节}
 
   TCnDESBuffer = array[0..CN_DES_BLOCKSIZE - 1] of Byte;
-  {* DES 的加密块}
+  {* DES 的加密块，8 字节}
 
   TCnDESIv  = array[0..CN_DES_BLOCKSIZE - 1] of Byte;
-  {* DES 的 CBC 的初始化向量}
+  {* DES 的 CBC 的初始化向量，8 字节}
 
   TCn3DESKey = array[0..CN_TRIPLE_DES_KEYSIZE - 1] of Byte;
-  {* 3DES 的密码}
+  {* 3DES 的密码长度，是 DES 的三倍，24 字节}
 
   TCn3DESBuffer = TCnDESBuffer;
-  {* 3DES 的加密块，等于 DES 的加密块}
+  {* 3DES 的加密块，等于 DES 的加密块，8 字节}
 
   TCn3DESIv = TCnDESIv;
-  {* 3DES 的 CBC 的初始化向量，等于 DES 的 CBC 的初始化向量}
+  {* 3DES 的 CBC 的初始化向量，等于 DES 的 CBC 的初始化向量，8 字节}
 
 // ================================= DES =======================================
+
+function DESGetOutputLengthFromInputLength(InputByteLength: Integer): Integer;
+{* 根据输入明文字节长度计算其块对齐的输出长度。如果非块整数倍则向上增长至块整数倍}
 
 procedure DESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 {* DES-ECB 封装好的针对 AnsiString 的加解密方法
@@ -99,7 +102,7 @@ procedure DESEncryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
 {* DES-CBC 封装好的针对 AnsiString 的加解密方法
  |<PRE>
   Key      8 字节密码，太长则截断，不足则补 #0
-  Iv       8 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       8 字节初始化向量
   Input    input string
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
@@ -109,7 +112,7 @@ procedure DESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
 {* DES-CBC 封装好的针对 AnsiString 的加解密方法
  |<PRE>
   Key      8 字节密码，太长则截断，不足则补 #0
-  Iv       8 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
+  Iv       8 字节初始化向量
   Input    input string
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
@@ -183,6 +186,9 @@ procedure DESDecryptStreamCBC(Source: TStream; Count: Cardinal;
 {* DES-CBC 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
 
 // =========================== 3-DES (Triple DES) ==============================
+
+function TripleDESGetOutputLengthFromInputLength(InputByteLength: Integer): Integer;
+{* 根据输入明文字节长度计算其块对齐的输出长度。如果非块整数倍则向上增长至块整数倍}
 
 procedure TripleDESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
 {* 3DES-ECB 封装好的针对 AnsiString 的加解密方法
@@ -625,6 +631,11 @@ begin
     for I := Len to NL - 1 do
       Input[I] := 0;
   end;
+end;
+
+function DESGetOutputLengthFromInputLength(InputByteLength: Integer): Integer;
+begin
+  Result := (((InputByteLength - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
 end;
 
 procedure DESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
@@ -1196,6 +1207,11 @@ begin
     K2[I] := Ord(Keys[I + CN_DES_KEYSIZE]);
     K3[I] := Ord(Keys[I + CN_DES_KEYSIZE * 2]);
   end;
+end;
+
+function TripleDESGetOutputLengthFromInputLength(InputByteLength: Integer): Integer;
+begin
+  Result := (((InputByteLength - 1) div CN_TRIPLE_DES_BLOCKSIZE) + 1) * CN_TRIPLE_DES_BLOCKSIZE;
 end;
 
 procedure TripleDESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);

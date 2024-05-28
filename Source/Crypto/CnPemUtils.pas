@@ -28,7 +28,9 @@ unit CnPemUtils;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.12.14 V1.5
+* 修改记录：2024.05.27 V1.6
+*               增加六个 ISO10126 对齐的处理函数
+*           2023.12.14 V1.5
 *               增加 SaveMemoryToPemStream 函数但未完整测试
 *           2022.03.09 V1.4
 *               增加六个 PKCS5 对齐的处理函数
@@ -114,6 +116,12 @@ function StrAddPKCS7Padding(const Str: AnsiString; BlockSize: Integer): AnsiStri
 function StrRemovePKCS7Padding(const Str: AnsiString): AnsiString;
 {* 去除 PKCS7 规定的字符串末尾填充“几个几”的填充数据}
 
+procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Integer);
+{* 给字节数组末尾加上 PKCS7 规定的填充“几个几”的填充数据}
+
+procedure BytesRemovePKCS7Padding(var Data: TBytes);
+{* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据}
+
 procedure AddPKCS5Padding(Stream: TMemoryStream);
 {* 给数据末尾加上 PKCS5 规定的填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
 
@@ -126,17 +134,32 @@ function StrAddPKCS5Padding(const Str: AnsiString): AnsiString;
 function StrRemovePKCS5Padding(const Str: AnsiString): AnsiString;
 {* 去除 PKCS5 规定的字符串末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
 
-procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Integer);
-{* 给字节数组末尾加上 PKCS7 规定的填充“几个几”的填充数据}
-
-procedure BytesRemovePKCS7Padding(var Data: TBytes);
-{* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据}
-
 procedure BytesAddPKCS5Padding(var Data: TBytes);
 {* 给字节数组末尾加上 PKCS5 规定的填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
 
 procedure BytesRemovePKCS5Padding(var Data: TBytes);
 {* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
+
+function GetISO10126PaddingByteLength(OrignalByteLen: Integer; BlockSize: Integer): Integer;
+{* 根据原始长度与块长度计算 ISO10126Padding 对齐后的长度}
+
+procedure AddISO10126Padding(Stream: TMemoryStream; BlockSize: Integer);
+{* 给数据末尾加上 ISO10126Padding 规定的填充“零和几”的填充数据}
+
+procedure RemoveISO10126Padding(Stream: TMemoryStream);
+{* 去除 ISO10126Padding 规定的末尾填充“零和几”的填充数据}
+
+function StrAddISO10126Padding(const Str: AnsiString; BlockSize: Integer): AnsiString;
+{* 给字符串末尾加上 ISO10126Padding 规定的填充“零和几”的填充数据}
+
+function StrRemoveISO10126Padding(const Str: AnsiString): AnsiString;
+{* 去除 ISO10126Padding 规定的字符串末尾填充“零和几”的填充数据}
+
+procedure BytesAddISO10126Padding(var Data: TBytes; BlockSize: Integer);
+{* 给字节数组末尾加上 ISO10126Padding 规定的填充“零和几”的填充数据}
+
+procedure BytesRemoveISO10126Padding(var Data: TBytes);
+{* 去除 ISO10126Padding 规定的字节数组末尾填充“零和几”的填充数据}
 
 implementation
 
@@ -359,8 +382,6 @@ begin
 
   for I := 1 to R do
     Result[L + I] := AnsiChar(R);
-
-  // Result := Str + AnsiString(StringOfChar(Chr(R), R));
 end;
 
 function StrRemovePKCS7Padding(const Str: AnsiString): AnsiString;
@@ -424,7 +445,7 @@ begin
   if L = 0 then
     Exit;
 
-  V := Ord(Data[L - 1]);  // 末是几表示加了几
+  V := Ord(Data[L - 1]);  // 末是几表示加了几个字节
 
   if V <= L then
     SetLength(Data, L - V);
@@ -438,6 +459,85 @@ end;
 procedure BytesRemovePKCS5Padding(var Data: TBytes);
 begin
   BytesRemovePKCS7Padding(Data);
+end;
+
+function GetISO10126PaddingByteLength(OrignalByteLen: Integer; BlockSize: Integer): Integer;
+begin
+  Result := GetPKCS7PaddingByteLength(OrignalByteLen, BlockSize); // 行为等同，可直接调用
+end;
+
+procedure AddISO10126Padding(Stream: TMemoryStream; BlockSize: Integer);
+var
+  R: Byte;
+  Buf: array[0..255] of Byte;
+begin
+  R := Stream.Size mod BlockSize;
+  R := BlockSize - R;
+  if R = 0 then
+    R := R + BlockSize;
+
+  FillChar(Buf[0], R, 0);
+  Buf[R - 1] := R;
+  Stream.Position := Stream.Size;
+  Stream.Write(Buf[0], R);
+end;
+
+procedure RemoveISO10126Padding(Stream: TMemoryStream);
+begin
+  RemovePKCS7Padding(Stream); // 行为等同，可直接调用
+end;
+
+function StrAddISO10126Padding(const Str: AnsiString; BlockSize: Integer): AnsiString;
+var
+  I, L: Integer;
+  R: Byte;
+begin
+  L := Length(Str);
+  R := L mod BlockSize;
+  R := BlockSize - R;
+  if R = 0 then
+    R := R + BlockSize;
+
+  SetLength(Result, L + R);
+  if L > 0 then
+    Move(Str[1], Result[1], L);
+
+  if R > 1 then
+  begin
+    for I := 1 to R - 1 do
+      Result[L + I] := #0;
+  end;
+  Result[L + R] := AnsiChar(R);
+end;
+
+function StrRemoveISO10126Padding(const Str: AnsiString): AnsiString;
+begin
+  Result := StrRemovePKCS7Padding(Str); // 行为等同，可直接调用
+end;
+
+procedure BytesAddISO10126Padding(var Data: TBytes; BlockSize: Integer);
+var
+  R: Byte;
+  L, I: Integer;
+begin
+  L := Length(Data);
+  R := L mod BlockSize;
+  R := BlockSize - R;
+  if R = 0 then
+    R := R + BlockSize;
+
+  SetLength(Data, L + R);
+  if R > 1 then
+  begin
+    for I := 0 to R - 2 do
+      Data[L + I] := 0;
+  end;
+  Data[L - 1 + R] := R;
+end;
+
+procedure BytesRemoveISO10126Padding(var Data: TBytes);
+begin
+  BytesRemovePKCS7Padding(Data); // 行为等同，可直接调用
 end;
 
 function EncryptPemStream(KeyHash: TCnKeyHashMethod; KeyEncrypt: TCnKeyEncryptMethod;

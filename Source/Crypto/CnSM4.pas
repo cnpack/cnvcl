@@ -30,6 +30,7 @@ unit CnSM4;
 *           如需要 PKCS 之类的支持，，请在外部调用CnPemUtils 中的 PKCS 处理函数
 *           另外高版本 Delphi 中请尽量避免使用 AnsiString 参数版本的函数（十六进制除外），
 *           避免不可视字符出现乱码影响加解密结果。
+*           另外注意 CFB/OFB 是异或明文密文的流模式，无需对齐到块
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6 + MaxOS 64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -86,6 +87,9 @@ type
     Mode: Integer;                                       {!<  encrypt/decrypt }
     Sk: array[0..CN_SM4_KEYSIZE * 2 - 1] of Cardinal;    {!<  SM4 subkeys     }
   end;
+
+function SM4GetOutputLengthFromInputLength(InputByteLength: Integer): Integer;
+{* 根据输入明文字节长度计算其块对齐的输出长度。如果非块整数倍则向上增长至块整数倍}
 
 procedure SM4Encrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; Len: Integer);
 {* 原始的 SM4 加密数据块，ECB 模式，将 Input 内的明文内容加密搁到 Output 中
@@ -1160,7 +1164,7 @@ begin
     Result := nil;
     Exit;
   end;
-  SetLength(Result, (((Len - 1) div 16) + 1) * 16);
+  SetLength(Result, Len); // 注意 CFB 是流模式，输出无需补足块
 
   Len := Length(Key);
   if Len < CN_SM4_KEYSIZE then // Key 长度小于 16 字节补 0
@@ -1203,7 +1207,7 @@ begin
     Result := nil;
     Exit;
   end;
-  SetLength(Result, (((Len - 1) div 16) + 1) * 16);
+  SetLength(Result, Len);  // 注意 OFB 是流模式，输出无需补足块
 
   Len := Length(Key);
   if Len < CN_SM4_KEYSIZE then // Key 长度小于 16 字节补 0
@@ -1959,6 +1963,11 @@ begin
     if Done < Count then
       raise EStreamError.Create(SCnErrorSM4WriteError);
   end;
+end;
+
+function SM4GetOutputLengthFromInputLength(InputByteLength: Integer): Integer;
+begin
+  Result := (((InputByteLength - 1) div CN_SM4_BLOCKSIZE) + 1) * CN_SM4_BLOCKSIZE;
 end;
 
 procedure SM4Encrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; Len: Integer);
