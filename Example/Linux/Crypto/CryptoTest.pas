@@ -40,7 +40,7 @@ interface
 // 注意为了保持测试用例纯净性，不能 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes,
+  SysUtils, Classes, {$IFDEF ANDROID} FMX.Types, {$ENDIF}
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
@@ -345,30 +345,39 @@ implementation
 const
   SCRLF = #13#10;
 
+procedure MyWriteln(const Text: string);
+begin
+{$IFDEF ANDROID}
+  Log.D(Text);
+{$ELSE}
+  Writeln(Text);
+{$ENDIF}
+end;
+
 procedure MyAssert(V: Boolean; const Msg: string);
 begin
-  Writeln(Msg + '...');
+  MyWriteln(Msg + '...');
   Assert(V);
 end;
 
 procedure TestCrypto;
 begin
 {$IFDEF CPU64BITS}
-  Writeln('*** CPU 64 Bits ***');
+  MyWriteln('*** CPU 64 Bits ***');
 {$ELSE}
-  Writeln('*** CPU 32 Bits ***');
+  MyWriteln('*** CPU 32 Bits ***');
 {$ENDIF}
 
 {$IFDEF CPUARM}
-  Writeln('*** ARM ***');
+  MyWriteln('*** ARM ***');
 {$ENDIF}
 
   if CurrentByteOrderIsBigEndian then
-    Writeln('=== Big Endian ===');
+    MyWriteln('=== Big Endian ===');
   if CurrentByteOrderIsLittleEndian then
-    Writeln('=== Little Endian ===');
+    MyWriteln('=== Little Endian ===');
 
-  Writeln('Crypto Test Start...');
+  MyWriteln('Crypto Test Start...');
 
 // ============================== Native =======================================
 
@@ -661,7 +670,7 @@ begin
 
 // ================================= END =======================================
 
-  Writeln('Crypto Test End.');
+  MyWriteln('Crypto Test End.');
 end;
 
 // ============================== Native =======================================
