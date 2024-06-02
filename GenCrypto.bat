@@ -22,6 +22,8 @@ COPY ..\..\cnvcl\Source\Common\CnHashMap.pas .
 COPY ..\..\cnvcl\Source\Common\CnMath.pas .
 COPY ..\..\cnvcl\Source\Common\CnMatrix.pas .
 COPY ..\..\cnvcl\Source\Common\CnTree.pas .
+COPY ..\..\cnvcl\Source\Common\CnStrings.pas .
+COPY ..\..\cnvcl\Source\Common\CnWideStrings.pas .
 COPY ..\..\cnvcl\Source\Crypto\*.pas .
 CD ..
 MKDIR Package
@@ -236,6 +238,8 @@ ECHO USEUNIT("..\Source\CnHashMap.pas");                                        
 ECHO USEUNIT("..\Source\CnMath.pas");                                                  >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnMatrix.pas");                                                >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnTree.pas");                                                  >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnStrings.pas");                                               >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnWideStrings.pas");                                           >> Crypto.bpf
 ECHO USEUNIT("CryptoTest.pas");                                                               >> Crypto.bpf
 ECHO //---------------------------------------------------------------------------            >> Crypto.bpf
 ECHO This file is used by the project manager only and should be treated like project file    >> Crypto.bpf
@@ -278,6 +282,7 @@ ECHO       ..\Source\CnConsts.obj                                               
 ECHO       ..\Source\CnContainers.obj ..\Source\CnFloat.obj                           >> Crypto.bpr
 ECHO       ..\Source\CnHashMap.obj ..\Source\CnMath.obj                               >> Crypto.bpr
 ECHO       ..\Source\CnMatrix.obj ..\Source\CnTree.obj                                >> Crypto.bpr
+ECHO       ..\Source\CnStrings.obj ..\Source\CnWideStrings.obj                        >> Crypto.bpr
 ECHO       CryptoTest.obj Crypto.obj^"/^>                                                          >> Crypto.bpr
 ECHO     ^<RESFILES value=""/^>                                                                    >> Crypto.bpr
 ECHO     ^<IDLFILES value=""/^>                                                                    >> Crypto.bpr
@@ -471,9 +476,11 @@ ECHO   CnSM2 in '..\Source\CnSM2.pas',                                         >
 ECHO   CnSM3 in '..\Source\CnSM3.pas',                                         >> %1
 ECHO   CnSM4 in '..\Source\CnSM4.pas',                                         >> %1
 ECHO   CnSM9 in '..\Source\CnSM9.pas',                                         >> %1
+ECHO   CnStrings in '..\Source\CnStrings.pas',                                 >> %1
 ECHO   CnTEA in '..\Source\CnTEA.pas',                                         >> %1
 ECHO   CnTree in '..\Source\CnTree.pas',                                       >> %1
 ECHO   CnVector in '..\Source\CnVector.pas',                                   >> %1
+ECHO   CnWideStrings in '..\Source\CnWideStrings.pas',                         >> %1
 IF "%2" == "ALLFILES" (
   ECHO   CnZUC in '..\Source\CnZUC.pas';                                       >> %1
 ) ELSE (

@@ -238,9 +238,6 @@ function ConvertUtf8ToAlterAnsi(Utf8Text: PAnsiChar; AlterChar: AnsiChar = ' '):
 
 implementation
 
-uses
-  CnGB18030;
-
 const
   SLineBreak = #13#10;
   SLineBreakLF = #10;
