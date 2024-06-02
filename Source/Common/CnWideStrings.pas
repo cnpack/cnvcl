@@ -141,14 +141,6 @@ type
     {* 增加的属性，控制 GetTextStr 时使用的换行是否是单个 #10 而不是常规的 #13#10}
   end;
 
-{ TCnWideMemIniFile }
-
-  TCnWideMemIniFile = class(TMemIniFile)
-  public
-    constructor Create(const AFileName: string);
-    procedure UpdateFile; override;
-  end;
-
 function CnUtf8EncodeWideString(const S: WideString): AnsiString;
 {* 对 WideString 进行 Utf8 编码得到 AnsiString，不做 Ansi 转换避免丢字符
   支持四字节 UTF16 字符与 UTF8-MB4}
@@ -635,47 +627,6 @@ end;
 procedure TCnWideStringList.Sort;
 begin
   CustomSort(StringListCompareStrings);
-end;
-
-{ TCnWideMemIniFile }
-
-constructor TCnWideMemIniFile.Create(const AFileName: string);
-var
-  WList: TCnWideStringList;
-  List: TStringList;
-begin
-  inherited Create(AFileName);
-  WList := nil;
-  List := nil;
-  try
-    WList := TCnWideStringList.Create;
-    WList.LoadFromFile(AFileName);
-    List := TStringList.Create;
-    List.Text := WList.Text;
-    SetStrings(List);
-  finally
-    WList.Free;
-    List.Free;
-  end;   
-end;
-
-procedure TCnWideMemIniFile.UpdateFile;
-var
-  WList: TCnWideStringList;
-  List: TStringList;
-begin
-  WList := nil;
-  List := nil;
-  try
-    List := TStringList.Create;
-    GetStrings(List);
-    WList := TCnWideStringList.Create;
-    WList.Text := List.Text;
-    WList.SaveToFile(FileName, wlfUtf8);
-  finally
-    WList.Free;
-    List.Free;
-  end;   
 end;
 
 // D5 下没有内置 UTF8/Ansi 转换函数，且低版本即使有也不支持 UTF8-MB4，因此写个替代品

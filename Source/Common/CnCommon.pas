@@ -1289,6 +1289,14 @@ function GetParentFont(AControl: TComponent): TFont;
 
 {$ENDIF}
 
+type
+  TCnWideMemIniFile = class(TMemIniFile)
+  {* 支持宽字符串存储的 Ini 类}
+  public
+    constructor Create(const AFileName: string);
+    procedure UpdateFile; override;
+  end;
+
 const
   InvalidFileNameChar: set of AnsiChar = ['\', '/', ':', '*', '?', '"', '<', '>', '|'];
 
@@ -8833,6 +8841,47 @@ begin
   begin
     Inc(Result);
     Inc(P);
+  end;
+end;
+
+{ TCnWideMemIniFile }
+
+constructor TCnWideMemIniFile.Create(const AFileName: string);
+var
+  WList: TCnWideStringList;
+  List: TStringList;
+begin
+  inherited Create(AFileName);
+  WList := nil;
+  List := nil;
+  try
+    WList := TCnWideStringList.Create;
+    WList.LoadFromFile(AFileName);
+    List := TStringList.Create;
+    List.Text := WList.Text;
+    SetStrings(List);
+  finally
+    WList.Free;
+    List.Free;
+  end;
+end;
+
+procedure TCnWideMemIniFile.UpdateFile;
+var
+  WList: TCnWideStringList;
+  List: TStringList;
+begin
+  WList := nil;
+  List := nil;
+  try
+    List := TStringList.Create;
+    GetStrings(List);
+    WList := TCnWideStringList.Create;
+    WList.Text := List.Text;
+    WList.SaveToFile(FileName, wlfUtf8);
+  finally
+    WList.Free;
+    List.Free;
   end;
 end;
 
