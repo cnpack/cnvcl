@@ -31,7 +31,7 @@ unit CryptoTest;
 *           OS: Win32、Win64、MacOS64、Linux64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2023.03.10 V1.0
-*               创建单元，实现功能
+*               创建单元，持续增加功能
 ================================================================================
 |</PRE>}
 
@@ -44,7 +44,8 @@ uses
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
-  CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt;
+  CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
+  CnStrings, CnWideStrings;
 
 procedure TestCrypto;
 {* 密码库总测试入口}
@@ -63,6 +64,10 @@ function TestConstTimeSelect: Boolean;
 function TestConstTimeEqual: Boolean;
 function TestConstTimeExpandBool: Boolean;
 function TestConstTimeBytes: Boolean;
+
+// ============================== Strings ======================================
+
+function TestUtf8: Boolean;
 
 // ============================== BigNumber ====================================
 
@@ -393,6 +398,10 @@ begin
   MyAssert(TestConstTimeEqual, 'TestConstTimeEqual');
   MyAssert(TestConstTimeExpandBool, 'TestConstTimeExpandBool');
   MyAssert(TestConstTimeBytes, 'TestConstTimeBytes');
+
+// ============================== Strings ======================================
+
+  MyAssert(TestUtf8, 'TestUtf8');
 
 // ============================== BigNumber ====================================
 
@@ -906,6 +915,30 @@ begin
 
   B[4] := $FF;
   Result := not ConstTimeBytesEqual(A, B);
+end;
+
+// ============================== Strings ======================================
+
+function TestUtf8: Boolean;
+const
+  UTF16_LE_HEXSTR = '03546300610074006D993DD802DE42D8B7DF'; // 有单字节、二字节、四字节笑哭了表情符、四字节汉字上土下口
+var
+  L: Integer;
+  W: WideString;
+  Utf8: AnsiString;
+
+begin
+  L := HexToData(UTF16_LE_HEXSTR); // 得到字节长度
+  SetLength(W, L div 2);           // 得到宽字符长度
+
+  HexToData(UTF16_LE_HEXSTR, @W[1]);
+  Utf8 := CnUtf8EncodeWideString(W);
+
+  Result := AnsiStrToHex(Utf8) = 'E59083636174E9A5ADF09F9882F0A0AEB7';
+  if not Result then Exit;
+
+  W := CnUtf8DecodeToWideString(Utf8);
+  Result := DataToHex(@W[1], Length(W) * SizeOf(WideChar)) = UTF16_LE_HEXSTR;
 end;
 
 // ============================== BigNumber ====================================

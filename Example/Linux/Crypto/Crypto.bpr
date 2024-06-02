@@ -34,6 +34,7 @@
       ..\..\..\Source\Common\CnContainers.obj ..\..\..\Source\Common\CnFloat.obj 
       ..\..\..\Source\Common\CnHashMap.obj ..\..\..\Source\Common\CnMath.obj 
       ..\..\..\Source\Common\CnMatrix.obj ..\..\..\Source\Common\CnTree.obj 
+      ..\..\..\Source\Common\CnStrings.obj ..\..\..\Source\Common\CnWideStrings.obj 
       CryptoTest.obj Crypto.obj"/>
     <RESFILES value=""/>
     <IDLFILES value=""/>

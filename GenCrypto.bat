@@ -59,7 +59,7 @@ ECHO {$DESCRIPTION 'CnPack Cryptography Package'}                              >
 ECHO {$IMPLICITBUILD OFF}                                                      >> CnCrypto.dpk
 ECHO.                                                                          >> CnCrypto.dpk
 ECHO requires                                                                  >> CnCrypto.dpk
-ECHO   vcl;                                                                    >> CnCrypto.dpk
+ECHO   vcl;   // If in Delphi 5 or C++Builder 5, please change to vcl50        >> CnCrypto.dpk
 ECHO.                                                                          >> CnCrypto.dpk
 ECHO contains                                                                  >> CnCrypto.dpk
 CALL :PRINTFILES CnCrypto.dpk ALLFILES

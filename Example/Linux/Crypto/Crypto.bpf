@@ -50,7 +50,9 @@ USEUNIT("..\..\..\Source\Common\CnFloat.pas");
 USEUNIT("..\..\..\Source\Common\CnHashMap.pas");
 USEUNIT("..\..\..\Source\Common\CnMath.pas");
 USEUNIT("..\..\..\Source\Common\CnMatrix.pas");
+USEUNIT("..\..\..\Source\Common\CnStrings.pas");
 USEUNIT("..\..\..\Source\Common\CnTree.pas");
+USEUNIT("..\..\..\Source\Common\CnWideStrings.pas");
 USEUNIT("CryptoTest.pas");
 //---------------------------------------------------------------------------
 This file is used by the project manager only and should be treated like the project file

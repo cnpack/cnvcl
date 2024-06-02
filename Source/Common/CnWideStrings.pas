@@ -416,7 +416,10 @@ end;
 function TCnWideStringList.IndexOf(const S: WideString): Integer;
 begin
   for Result := 0 to GetCount - 1 do
-    if WideCompareText(Get(Result), S) = 0 then Exit;
+  begin
+    if WideCompareText(Get(Result), S) = 0 then
+      Exit;
+  end;
   Result := -1;
 end;
 
@@ -429,7 +432,8 @@ begin
   begin
     S := Get(Result);
     P := Pos('=', S);
-    if (P <> 0) and (WideCompareText(Copy(S, 1, P - 1), Name) = 0) then Exit;
+    if (P <> 0) and (WideCompareText(Copy(S, 1, P - 1), Name) = 0) then
+      Exit;
   end;
   Result := -1;
 end;
@@ -625,7 +629,7 @@ end;
 function StringListCompareStrings(List: TCnWideStringList; Index1, Index2: Integer): Integer;
 begin
   Result := WideCompareText(PCnWideStringItem(List.FList[Index1])^.FString,
-                            PCnWideStringItem(List.FList[Index2])^.FString);
+    PCnWideStringItem(List.FList[Index2])^.FString);
 end;
 
 procedure TCnWideStringList.Sort;

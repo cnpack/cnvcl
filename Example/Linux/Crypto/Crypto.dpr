@@ -78,6 +78,8 @@ uses
   CnMath in '..\..\..\Source\Common\CnMath.pas',
   CnMatrix in '..\..\..\Source\Common\CnMatrix.pas',
   CnTree in '..\..\..\Source\Common\CnTree.pas',
+  CnStrings in '..\..\..\Source\Common\CnStrings.pas',
+  CnWideStrings in '..\..\..\Source\Common\CnWideStrings.pas',
   CryptoTest in 'CryptoTest.pas';
 
 begin
