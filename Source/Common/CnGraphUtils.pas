@@ -28,7 +28,9 @@ unit CnGraphUtils;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2021.09.28 V1.1
+* 修改记录：2024.06.09 V1.2
+*               加入几个高版本的 TPoint/TRect 封装函数
+*           2021.09.28 V1.1
 *               加入一个平滑拉伸绘制位图的函数，使用 GDI+
 *           2002.10.20 V1.0
 *               创建单元
@@ -152,6 +154,37 @@ function DrawBmpToIcon(Bmp: TBitmap; Icon: TIcon): Boolean;
 
 procedure StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True);
 {* 将位图 Src 拉伸绘制至 Dst，支持 GDI+ 时可以使用平滑拉伸}
+
+//==============================================================================
+// 高版本 Rect、Point 等函数的低版本实现
+//==============================================================================
+
+function CnCreatePoint(X, Y: Integer): TPoint;
+{* 根据 X、Y 坐标创建一个点}
+
+function CnGetRectWidth(const Rect: TRect): Integer;
+{* 返回 TRect 的宽度}
+
+function CnGetRectHeight(const Rect: TRect): Integer;
+{* 返回 TRect 的高度}
+
+function CnGetRectCenter(const Rect: TRect): TPoint;
+{* 返回 TRect 的中心点坐标}
+
+procedure CnRectInflate(var Rect: TRect; DX, DY: Integer);
+{* 缩小一个 TRect}
+
+procedure CnRectOffset(var Rect: TRect; DX, DY: Integer);
+{* 偏移一个 TRect}
+
+function CnRectContains(const Rect: TRect; const PT: TPoint): Boolean;
+{* 返回一 TRect 是否包含一个点，注意包含左上边，但不包含右下边}
+
+procedure CnSetRectLocation(var Rect: TRect; const X, Y: Integer); overload;
+{* 设置 TRect 的左上角坐标，参数为 X、Y 坐标}
+
+procedure CnSetRectLocation(var Rect: TRect; const P: TPoint); overload;
+{* 设置 TRect 的左上角坐标，参数为一个点}
 
 {$IFNDEF SUPPORT_GDIPLUS}
 
@@ -674,6 +707,64 @@ begin
     Dst.Canvas.Draw(0, 0, Src);
 {$ENDIF}
 end;
+
+function CnCreatePoint(X, Y: Integer): TPoint;
+begin
+  Result.X := X;
+  Result.Y := Y;
+end;
+
+function CnGetRectWidth(const Rect: TRect): Integer;
+begin
+  Result := Rect.Right - Rect.Left;
+end;
+
+function CnGetRectHeight(const Rect: TRect): Integer;
+begin
+  Result := Rect.Bottom - Rect.Top;
+end;
+
+function CnGetRectCenter(const Rect: TRect): TPoint;
+begin
+  Result.X := (Rect.Right - Rect.Left) div 2 + Rect.Left;
+  Result.Y := (Rect.Bottom - Rect.Top) div 2 + Rect.Top;
+end;
+
+procedure CnRectInflate(var Rect: TRect; DX, DY: Integer);
+begin
+  Rect.Left := Rect.Left - DX;
+  Rect.Right := Rect.Right + DX;
+  Rect.Top := Rect.Top - DY;
+  Rect.Bottom := Rect.Bottom + DY;
+end;
+
+procedure CnRectOffset(var Rect: TRect; DX, DY: Integer);
+begin
+  if @Rect <> nil then
+  begin
+    Inc(Rect.Left, DX);
+    Inc(Rect.Right, DX);
+    Inc(Rect.Top, DY);
+    Inc(Rect.Bottom, DY);
+  end;
+end;
+
+function CnRectContains(const Rect: TRect; const PT: TPoint): Boolean;
+begin
+  Result := (PT.X >= Rect.Left) and (PT.X < Rect.Right) and (PT.Y >= Rect.Top)
+    and (PT.Y < Rect.Bottom);
+end;
+
+procedure CnSetRectLocation(var Rect: TRect; const X, Y: Integer);
+begin
+  OffsetRect(Rect, X - Rect.Left, Y - Rect.Top);
+end;
+
+procedure CnSetRectLocation(var Rect: TRect; const P: TPoint);
+begin
+  CnSetRectLocation(Rect, P.X, P.Y);
+end;
+
 
 {$IFNDEF SUPPORT_GDIPLUS}
 

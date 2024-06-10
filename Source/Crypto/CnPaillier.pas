@@ -430,7 +430,7 @@ begin
   begin
     _CnSetLastError(ECN_PAILLIER_INVALID_INPUT);
     Exit;
-  end;;
+  end;
 
   T1 := nil;
   R := nil;

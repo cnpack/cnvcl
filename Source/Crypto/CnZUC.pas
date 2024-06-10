@@ -240,7 +240,7 @@ end;
 
 function L2(X: Cardinal): Cardinal;
 begin
-  Result := (X xor ROT(X, 8) xor ROT(X, 14) xor ROT(X, 22) xor ROT(X, 30));;
+  Result := (X xor ROT(X, 8) xor ROT(X, 14) xor ROT(X, 22) xor ROT(X, 30));
 end;
 
 function MakeDWord(A, B, C, D: Cardinal): Cardinal;
