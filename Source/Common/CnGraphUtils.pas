@@ -171,11 +171,23 @@ function CnGetRectHeight(const Rect: TRect): Integer;
 function CnGetRectCenter(const Rect: TRect): TPoint;
 {* 返回 TRect 的中心点坐标}
 
+function CnGetRectIsEmpty(const Rect: TRect): Boolean;
+{* 返回 TRect 是否为空}
+
+procedure CnSetRectWidth(var Rect: TRect; Value: Integer);
+{* 设置一 TRect 的宽度}
+
+procedure CnSetRectHeight(var Rect: TRect; Value: Integer);
+{* 设置一 TRect 的高度}
+
 procedure CnRectInflate(var Rect: TRect; DX, DY: Integer);
 {* 缩小一个 TRect}
 
 procedure CnRectOffset(var Rect: TRect; DX, DY: Integer);
 {* 偏移一个 TRect}
+
+procedure CnRectCopy(const Source: TRect; var Dest: TRect);
+{* 复制一个 Rect}
 
 function CnRectContains(const Rect: TRect; const PT: TPoint): Boolean;
 {* 返回一 TRect 是否包含一个点，注意包含左上边，但不包含右下边}
@@ -185,6 +197,9 @@ procedure CnSetRectLocation(var Rect: TRect; const X, Y: Integer); overload;
 
 procedure CnSetRectLocation(var Rect: TRect; const P: TPoint); overload;
 {* 设置 TRect 的左上角坐标，参数为一个点}
+
+procedure CnCanvasRoundRect(const Canvas: TCanvas; const Rect: TRect; CX, CY: Integer);
+{* 在 Canvas 上绘制圆角矩形}
 
 {$IFNDEF SUPPORT_GDIPLUS}
 
@@ -730,6 +745,21 @@ begin
   Result.Y := (Rect.Bottom - Rect.Top) div 2 + Rect.Top;
 end;
 
+function CnGetRectIsEmpty(const Rect: TRect): Boolean;
+begin
+  Result := (Rect.Right <= Rect.Left) or (Rect.Bottom <= Rect.Top);
+end;
+
+procedure CnSetRectWidth(var Rect: TRect; Value: Integer);
+begin
+  Rect.Right := Rect.Left + Value;
+end;
+
+procedure CnSetRectHeight(var Rect: TRect; Value: Integer);
+begin
+  Rect.Bottom := Rect.Top + Value;
+end;
+
 procedure CnRectInflate(var Rect: TRect; DX, DY: Integer);
 begin
   Rect.Left := Rect.Left - DX;
@@ -749,6 +779,17 @@ begin
   end;
 end;
 
+procedure CnRectCopy(const Source: TRect; var Dest: TRect);
+begin
+  if (@Source <> nil) and (@Dest <> nil) then
+  begin
+    Dest.Left := Source.Left;
+    Dest.Top := Source.Top;
+    Dest.Right := Source.Right;
+    Dest.Bottom := Source.Bottom;
+  end;
+end;
+
 function CnRectContains(const Rect: TRect; const PT: TPoint): Boolean;
 begin
   Result := (PT.X >= Rect.Left) and (PT.X < Rect.Right) and (PT.Y >= Rect.Top)
@@ -765,6 +806,11 @@ begin
   CnSetRectLocation(Rect, P.X, P.Y);
 end;
 
+procedure CnCanvasRoundRect(const Canvas: TCanvas; const Rect: TRect; CX, CY: Integer);
+begin
+  if Canvas <> nil then
+    Canvas.RoundRect(Rect.Left, Rect.Top, Rect.Right, Rect.Bottom, CX, CY);
+end;
 
 {$IFNDEF SUPPORT_GDIPLUS}
 
