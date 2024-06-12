@@ -3254,7 +3254,7 @@ begin
   
   // 2025.4.27 ~ 5.26 ÉÙÒ»Ìì
   if (AYear = 2025)
-    and (((AMonth = 4) and (ADay >= 7)) or ((AMonth = 5) and (ADay <= 26))) then
+    and (((AMonth = 4) and (ADay >= 27)) or ((AMonth = 5) and (ADay <= 26))) then
   begin
     Inc(LunDay);
     if LunDay > 30 then
