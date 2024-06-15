@@ -1048,6 +1048,9 @@ procedure ListboxHorizontalScrollbar(Listbox: TCustomListBox);
 procedure CloneMenuItem(Source, Dest: TMenuItem);
 {* 复制菜单项和其子项}
 
+function MemoGetCaretPos(Memo: TCustomMemo): TPoint;
+{* 封装的获取 Memo 光标位置的方法，修补了 XE3 或以下碰到大文件时出负值的问题}
+
 {$ENDIF}
 
 procedure SelectMemoOneLine(AMemo: TMemo; FromLine: Integer);
@@ -7151,6 +7154,35 @@ begin
       CloneMenuItem(Source.Items[I], Item);
     end;
   end;
+end;
+
+{$IFDEF MEMO_CARETPOS_BUG}
+type
+  TCnSelection = record
+    StartPos, EndPos: Integer;
+  end;
+{$ENDIF}
+
+// 封装的获取 Memo 光标位置的方法，修补了 XE3 或以下碰到大文件时出负值的问题
+function MemoGetCaretPos(Memo: TCustomMemo): TPoint;
+{$IFDEF MEMO_CARETPOS_BUG}
+var
+  Selection : TCnSelection;
+{$ENDIF}
+begin
+{$IFDEF MEMO_CARETPOS_BUG}
+  {$IFDEF SUPPORT_WIN64}
+  SendMessage(Memo.Handle, EM_GETSEL, NativeInt(@Selection.StartPos), NativeInt(@Selection.EndPos));
+  Result.Y := SendMessage(Memo.Handle, EM_LINEFROMCHAR, WPARAM(Selection.StartPos), 0);
+  Result.X := Selection.StartPos - SendMessage(Memo.Handle, EM_LINEINDEX, WPARAM(Result.Y), 0);
+  {$ELSE}
+  SendMessage(Memo.Handle, EM_GETSEL, LongWord(@Selection.StartPos), LongWord(@Selection.EndPos));
+  Result.Y := SendMessage(Memo.Handle, EM_LINEFROMCHAR, WPARAM(Selection.StartPos), 0);
+  Result.X := Selection.StartPos - SendMessage(Memo.Handle, EM_LINEINDEX, WPARAM(Result.Y), 0);
+  {$ENDIF}
+{$ELSE}
+  Result := Memo.CaretPos;
+{$ENDIF}
 end;
 
 {$ENDIF}
