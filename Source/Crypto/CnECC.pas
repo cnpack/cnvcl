@@ -24,12 +24,16 @@ unit CnECC;
 * 软件名称：开发包基础库
 * 单元名称：Weierstrass 椭圆曲线算法单元
 * 单元作者：刘啸
-* 备    注：目前实现了 Int64 范围内以及大数形式的形如 y^2 = x^3 + Ax + B mod p
-*           这类 Weierstrass 椭圆曲线的计算，x 和 y 限于有限素域。
-*           不包括 Montgomery 椭圆曲线 y^2 = x^3 + A*X^2 + x
-*           也没有扭曲 Edwards 椭圆曲线 au^2 + v^2 = 1 + d * u^2 * v^2
+* 备    注：本单元目前实现了 Int64 范围内以及大数形式的形如 y^2 = x^3 + Ax + B mod p
+*           这类 Weierstrass 椭圆曲线的计算如点乘、签名等，x 和 y 限于有限素域。
+*
+*           不包括 Montgomery 椭圆曲线 y^2 = x^3 + A*X^2 + x 也没有扭曲 Edwards 椭圆曲线 au^2 + v^2 = 1 + d * u^2 * v^2
+*
+*           椭圆曲线的公私钥允许从 PEM 或二进制等格式的文件或流中加载保存
+*
 *           概念：椭圆曲线的阶是曲线上的总点数（似乎不包括无限远点）
 *           基点的阶是基点标量乘多少等于无限远点。两者是倍数整除关系，可能相等
+*
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行，注意部分辅助函数缺乏固定长度处理，待修正，但 ASN.1 包装可无需指定固定长度
 * 本 地 化：该单元无需本地化处理
@@ -3916,6 +3920,8 @@ end;
       SEQUENCE (3 elem)
         INTEGER 1
         OCTET STRING (32 byte) 私钥
+        [0] (1 elem)               // 注意：本行与下面一行 OI 可选，因而代码中要兼容处理，同时上面一行可能有子内容
+          OBJECT IDENTIFIER 1.2.156.10197.1.301 sm2ECC (China GM Standards Committee)
         [1] (1 elem)
           BIT STRING (520 bit) 公钥
 
@@ -4017,7 +4023,13 @@ begin
                 PutIndexedBigIntegerToBigNumber(Reader.Items[8], PrivateKey);
 
               if PublicKey <> nil then
+              begin
                 Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[10], PublicKey);
+                if not Result then // 兼容处理，可能上面多出一个 OI 分支且多解析出私钥的子节点
+                  Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[12], PublicKey);
+                if not Result then
+                  Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[13], PublicKey);
+              end;
             end;
           end;
         end;
