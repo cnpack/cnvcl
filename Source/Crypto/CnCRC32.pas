@@ -174,7 +174,7 @@ function CRC64Calc(const OrgCRC64: Int64; const Data; ByteLength: Cardinal): Int
 {* 计算 CRC64 值
  |<PRE>
    OrgCRC64: Int64          - 起始 CRC64 值，默认应传 0，内部会求反变成 FFFFFFFFFFFFFFFF 以符合 CCITT 的要求
-   const Data               - 要计算的数据块
+   const Data               - 要计算的数据块，一般不传地址
    ByteLength: Cardinal     - 数据块长度
    Result: Int64            - 返回 CRC64 计算结果，已与 FFFFFFFFFFFFFFFF 异或过了以符合 CCITT 的要求
  |</PRE>}
