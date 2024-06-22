@@ -23,7 +23,7 @@ unit CnSM3;
 ================================================================================
 * 软件名称：开发包基础库
 * 单元名称：国产杂凑算法 SM3 实现单元
-* 单元作者：刘啸（liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组（master@cnpack.org)
 * 备    注：参考国密算法公开文档《SM3 Cryptographic Hash Algorith》
 *           http://www.oscca.gov.cn/UpFile/20101222141857786.pdf
 *           并参考移植 goldboar 的 C 代码

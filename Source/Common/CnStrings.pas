@@ -24,7 +24,7 @@ unit CnStrings;
 * 软件名称：CnPack 组件包
 * 单元名称：CnStrings 实现单元，包括 AnsiStringList 以及一个快速子串搜索算法
 *           基本支持 Win32/64 和 Posix
-* 单元作者：CnPack 开发组 刘啸 (liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 开发平台：PWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备    注：AnsiStringList 移植自 Delphi 7 的 StringList

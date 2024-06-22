@@ -23,7 +23,7 @@ unit CnFEC;
 ================================================================================
 * 软件名称：开发包基础库
 * 单元名称：前向纠错实现单元，目前包括 Hamming （汉明码）校验
-* 单元作者：刘啸（liuxiao@cnpack.org）
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：该单元目前只处理一串二进制位的汉明码校验，以 CnCalcHammingCode 与
 *           CnVerifyHammingCode 两个函数为代表，注意校验码可以比原始码长不少。
 * 开发平台：PWin7 + Delphi 5.0

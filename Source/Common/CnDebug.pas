@@ -23,7 +23,7 @@ unit CnDebug;
 ================================================================================
 * 软件名称：CnDebugger
 * 单元名称：CnDebug 调试信息输出接口单元
-* 单元作者：刘啸（liuxiao@cnpack.org）
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：该单元定义并实现了 CnDebugger 输出信息的接口内容，
 *           支持 Win32 和 Win64 以及 Unicode 与非 Unicode
 *           部分接口内容引用了 overseer 的 udbg 单元内容

@@ -23,7 +23,7 @@ unit CnOTAUtils;
 ================================================================================
 * 软件名称：CnPack 组件包
 * 单元名称：OTA 设计期工具单元，类似于 CnWizUtils
-* 单元作者：CnPack 开发组 刘啸 (liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组 CnPack 开发组 (master@cnpack.org)
 * 备    注：该单元实现了一些设计期的 OTA 相关函数
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7

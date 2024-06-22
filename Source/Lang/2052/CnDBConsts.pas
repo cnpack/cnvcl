@@ -24,7 +24,7 @@ unit CnDBConsts;
 * 软件名称：CnPack 组件包
 * 单元名称：数据库组件常量定义单元
 * 单元作者：不得闲 (appleak46@yahoo.com.cn)
-*           刘啸 (liuxiao@cnpack.org)
+*           CnPack 开发组 (master@cnpack.org)
 * 备    注：
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7

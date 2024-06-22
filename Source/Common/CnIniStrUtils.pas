@@ -23,7 +23,7 @@ unit CnIniStrUtils;
 ================================================================================
 * 软件名称：开发包基础库
 * 单元名称：扩展的 INI 访问的字符串处理单元
-* 单元作者：刘啸 (liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：从 CnIni 单元分离而来
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6

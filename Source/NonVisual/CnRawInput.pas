@@ -23,7 +23,7 @@ unit CnRawInput;
 ================================================================================
 * 软件名称：CnPack 组件包不可视组件
 * 单元名称：封装了 RawInput 实现键盘捕捉的组件单元
-* 单元作者：刘啸（liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组（master@cnpack.org)
 * 开发平台：PWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备    注：参考了网上部分 RawInput 的头文件以及其它分析文章

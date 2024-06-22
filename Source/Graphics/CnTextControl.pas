@@ -23,7 +23,7 @@ unit CnTextControl;
 ================================================================================
 * 软件名称：界面控件包
 * 单元名称：文本显示与编辑控件实现单元
-* 单元作者：刘啸 (liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：该单元当前仅为内部参考测试用
 * 相关说明：ScreenLineNumber（或 ScreenRow）: 控件内显示用的物理行号，最上面是 1，该概念不明显
 *           LineNumber（或 Row）: 滚动后的虚拟行号，1 开始，和 ScreenLineNumber 差个 FVertOffset

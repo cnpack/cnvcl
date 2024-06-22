@@ -34,7 +34,7 @@ unit CnBinaryDiffPatch;
 ================================================================================
 * 软件名称：开发包基础库
 * 单元名称：简易的二进制差分以及补丁算法单元
-* 单元作者：刘啸（liuxiao@cnpack.org）
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：该单元是简易的二进制差分以及补丁算法实现。
 *           大部分基于 Stefan Reuther 的 BDiff / BPatch C 代码翻译而来。
 * 开发平台：PWin7 + Delphi 5.0

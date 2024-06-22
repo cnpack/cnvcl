@@ -23,7 +23,7 @@ unit CryptoTest;
 ================================================================================
 * 软件名称：CnPack 密码库
 * 单元名称：CnPack 密码库批量测试单元
-* 单元作者：刘啸 (liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：测试失败的用例会通过 Assert 抛出异常
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：编译器：Delphi 5~2007 的非 Unicode、Delphi 2009 或以上的 Unicode、FPC 3.2 以上

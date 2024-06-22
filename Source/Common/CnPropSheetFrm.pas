@@ -23,7 +23,7 @@ unit CnPropSheetFrm;
 ================================================================================
 * 软件名称：CnPack 公用单元
 * 单元名称：对象 RTTI 信息显示窗体单元
-* 单元作者：刘啸（LiuXiao） liuxiao@cnpack.org
+* 单元作者：CnPack 开发组 master@cnpack.org
 * 备    注：部分类在遍历其属性并读属性值时其内部会发生改动，如高版本的 TPicture
 *           读 Bitmap/Icon/Metafile 属性时读什么内部就会强行转成什么导致原有数据丢失
 *           该类副作用遇到时要注意

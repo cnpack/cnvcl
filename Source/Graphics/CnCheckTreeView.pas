@@ -24,7 +24,7 @@ unit CnCheckTreeView;
 * 软件名称：界面组件包
 * 单元名称：带检查框的 TreeView 控件单元
 * 单元作者：周劲羽 (zjy@cnpack.org)
-*           刘啸（liuxiao@cnpack.org)
+*           CnPack 开发组（master@cnpack.org)
 * 备    注：使用 TreeNode 的 StateIndex 来保存检查框设置，用户请勿手动更改该值
 *           使用 OverlayIndex 来保存 Enable 设置，当 CanDisableNode 属性为 True
 *           时，用户请勿手动更改该值，另外 OnCustomDrawItem 事件用来绘制 Node 在

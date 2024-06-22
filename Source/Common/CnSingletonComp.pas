@@ -24,7 +24,7 @@ unit CnSingletonComp;
 * 软件名称：开发包基础库
 * 单元名称：单实例组件实现单元
 * 单元作者：Chinbo（Shenloqi）
-*           刘啸 (liuxiao@cnpack.org)
+*           CnPack 开发组 (master@cnpack.org)
 * 备    注：该单元定义了单实例组件基类，有互斥机制，可用于多线程，代码类似于
 *           实现单实例对象基类的 CnSingleton。
 *           注意 TCnSingletonComponent 并非 TCnSingleton 的子类。

@@ -23,7 +23,7 @@ unit CnTree;
 ================================================================================
 * 软件名称：CnPack 公共单元
 * 单元名称：实现单根无序树的基类单元
-* 单元作者：刘啸 (liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：该单元为 TCnTree 和 TCnLeaf 的单根无序树的实现单元，以及其子类
 *           二叉树 TCnBinaryTree/Leaf、字典搜索树 TCnTrieTree/Leaf。
 *           TCnTree/Leaf 类似于 TTreeNodes/Node 的关系，支持深度和广度优先遍历，

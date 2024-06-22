@@ -23,7 +23,7 @@ unit CnLangStorage;
 ================================================================================
 * 软件名称：CnPack 多语包
 * 单元名称：多语包存储组件基类单元
-* 单元作者：CnPack开发组 刘啸 (liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：该单元实现了多语包的存储抽象基类
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7

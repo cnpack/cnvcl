@@ -23,7 +23,7 @@ unit CnZUC;
 ================================================================================
 * 软件名称：开发包基础库
 * 单元名称：祖冲之算法实现单元
-* 单元作者：刘啸（liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组（master@cnpack.org)
 * 备    注：参考国密算法公开文档《祖冲之序列密码算法 ZUC stream cipher algorithm》
 *           与英文的《Specification of the 3GPP Confidentiality and Integrity
 *           Algorithms 128-EEA3 & 128-EIA3》仨文档，并参考移植其 C 实现代码，

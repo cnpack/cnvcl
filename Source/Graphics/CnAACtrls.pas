@@ -675,7 +675,7 @@ const
     'liwensong@hotmail.com'#13#10 +
     'http://member.netease.com/~lws'#13#10 +
     'Passion兄帮助制作控件图标'#13#10 +
-    'liuxiao@cnpack.org'#13#10#13#10 +
+    'master@cnpack.org'#13#10#13#10 +
 
   '<Title2>备注'#13#10 +
     '<Text1>该控件为免费控件'#13#10 +

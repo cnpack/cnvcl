@@ -24,7 +24,7 @@ unit CnGauge;
 * 软件名称：界面控件包
 * 单元名称：新风格进度条控件实现单元
 * 单元作者：顾中军 (iamdream@yeah.net)
-* 移    植：刘啸 (liuxiao@cnpack.org)
+* 移    植：CnPack 开发组 (master@cnpack.org)
 * 备    注：可以使用渐变色来显示进度；还可以使用图片。
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6

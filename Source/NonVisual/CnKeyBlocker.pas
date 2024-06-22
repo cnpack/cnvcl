@@ -24,7 +24,7 @@ unit CnKeyBlocker;
 * 软件名称：不可视工具组件包
 * 单元名称：通过键盘钩子屏蔽系统键的组件
 * 单元作者：匿名
-* 移    植：刘啸 (liuxiao@cnpack.org)
+* 移    植：CnPack 开发组 (master@cnpack.org)
 * 备    注：此组件通过实现键盘钩子来屏蔽某些系统键，但 Ctrl+Alt+Del 组合键可能
 *           因为系统自身处理原因而无法屏蔽。
 * 开发平台：PWinXP + Delphi 7.0 (Build 8.1)

@@ -23,7 +23,7 @@ unit CnTreeClasses;
 ================================================================================
 * 软件名称：CnPack 公共单元
 * 单元名称：实现二叉树、二叉排序树、红黑树、字典搜索树的类单元
-* 单元作者：刘啸 (liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：该单元为基于 TCnTree 和 TCnLeaf 的子类
 *           二叉树 TCnBinaryTree/Leaf、字典搜索树 TCnTrieTree/Leaf。
 *           TCnTree/Leaf 类似于 TTreeNodes/Node 的关系，支持深度和广度优先遍历，

@@ -23,7 +23,7 @@ unit CnTrayIcon;
 ================================================================================
 * 软件名称：不可视工具组件包
 * 单元名称：系统托盘 CnTrayIcon 单元
-* 单元作者：刘啸 liuxiao@cnpack.org
+* 单元作者：CnPack 开发组 master@cnpack.org
 * 备    注：在 Explorer 非法结束重启后能自动恢复图标的系统托盘组件单元
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6

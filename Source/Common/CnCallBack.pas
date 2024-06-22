@@ -24,7 +24,7 @@ unit CnCallBack;
 * 软件名称：CnPack 组件包
 * 单元名称：回调转换的工具单元，不支持 64 位
 * 单元作者：CnPack 开发组 savetime (savetime2k@yahoo.com)
-*           刘啸 (liuxiao@cnpack.org)
+*           CnPack 开发组 (master@cnpack.org)
 * 备    注：该单元是回调转换等的代码单元
 *           包装的代码部分在自行分配的可执行的内存空间，避免了 DEP 下出错。
 * 开发平台：PWin2000 + Delphi 5.0

@@ -23,7 +23,7 @@ unit CnBigDecimal;
 ================================================================================
 * 软件名称：开发包基础库
 * 单元名称：大浮点数算法单元
-* 单元作者：刘啸
+* 单元作者：CnPack 开发组
 * 备    注：TCnBigDecimal 与 TCnBigBinary 均用 CnBigNumber 表示有效数字，
 *           用 Integer 表示正负指数，所不同的是底分别为 10 和 2
 *           部分参考 Rudy Velthuis 的 BigDecimal 以及 Java 的 BigDecimal

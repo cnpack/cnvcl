@@ -23,7 +23,7 @@ unit CnGraph;
 ================================================================================
 * 软件名称：CnPack 公共单元
 * 单元名称：实现图的单元
-* 单元作者：刘啸 (liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：支持跨平台
 * 开发平台：Win 7 + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6

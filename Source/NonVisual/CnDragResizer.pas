@@ -24,7 +24,7 @@ unit CnDragResizer;
 * 软件名称：不可视工具组件包
 * 单元名称：DragResizer 组件实现单元
 * 单元作者：匿名
-* 移    植：刘啸 (liuxiao@cnpack.org)
+* 移    植：CnPack 开发组 (master@cnpack.org)
 * 备    注：能在运行期关联一可视化组件，使其具有拖动与改变大小的设计能力
 * 开发平台：PWinXP SP3 + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 C++Builder 5/6

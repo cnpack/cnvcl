@@ -166,7 +166,7 @@ const
   SCnPack_ShenloqiEmail = 'Shenloqi@hotmail.com';
   SCnPack_xiaolvEmail = 'xiaolv888@etang.com';
   SCnPack_FlierEmail = 'flier_lu@sina.com';
-  SCnPack_LiuXiaoEmail = 'liuxiao@cnpack.org';
+  SCnPack_LiuXiaoEmail = 'master@cnpack.org';
   SCnPack_PanYingEmail = 'panying@sina.com';
   SCnPack_HubdogEmail = 'hubdog@263.net';
   SCnPack_Wyb_starMail = 'wyb_star@sina.com';

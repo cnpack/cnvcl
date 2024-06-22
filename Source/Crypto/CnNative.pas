@@ -23,7 +23,7 @@ unit CnNative;
 ================================================================================
 * 软件名称：CnPack 组件包
 * 单元名称：32 位和 64 位的一些统一声明以及一堆基础实现
-* 单元作者：刘啸 (liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：Delphi XE 2 支持 32 和 64 以来，开放出的 NativeInt 和 NativeUInt 随
 *           当前是 32 位还是 64 而动态变化，影响到的是 Pointer、Reference等东西。
 *           考虑到兼容性，固定长度的 32 位 Cardinal/Integer 等和 Pointer 这些就

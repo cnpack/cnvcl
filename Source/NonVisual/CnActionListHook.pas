@@ -23,7 +23,7 @@ unit CnActionListHook;
 ================================================================================
 * 软件名称：CnWizards IDE 专家工具包
 * 单元名称：ActionList 挂接服务单元
-* 单元作者：刘啸（LiuXiao） liuxiao@cnpack.org;
+* 单元作者：CnPack 开发组 master@cnpack.org;
 * 备    注：该单元用来实现对 IDE 内部 ActionList 的挂接操作，用户必须先挂接一个
             ActionList，才能对其内部的 Action 进行挂接。当挂接管理器的 Active 为
             False 的时候，所有挂接的 Action 的事件都会暂时恢复。当 ActionList 或

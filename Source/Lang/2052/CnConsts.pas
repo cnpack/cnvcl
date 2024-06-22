@@ -123,7 +123,7 @@ var
   SCnPack_Shenloqi: string = '沈龙强(Chinbo)';
   SCnPack_xiaolv: string = '吕宏庆';
   SCnPack_Flier: string = 'Flier Lu';
-  SCnPack_LiuXiao: string = '刘啸(Passion)';
+  SCnPack_LiuXiao: string = 'CnPack 开发组(Passion)';
   SCnPack_PanYing: string = '潘鹰(Pan Ying)';
   SCnPack_Hubdog: string = '陈省(Hubdog)';
   SCnPack_Wyb_star: string = '王玉宝';
@@ -166,7 +166,7 @@ const
   SCnPack_ShenloqiEmail = 'Shenloqi@hotmail.com';
   SCnPack_xiaolvEmail = 'xiaolv888@etang.com';
   SCnPack_FlierEmail = 'flier_lu@sina.com';
-  SCnPack_LiuXiaoEmail = 'liuxiao@cnpack.org';
+  SCnPack_LiuXiaoEmail = 'master@cnpack.org';
   SCnPack_PanYingEmail = 'panying@sina.com';
   SCnPack_HubdogEmail = 'hubdog@263.net';
   SCnPack_Wyb_starMail = 'wyb_star@sina.com';

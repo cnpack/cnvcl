@@ -23,7 +23,7 @@ unit CnRTL;
 ================================================================================
 * 软件名称：CnDebugger 相关运行库
 * 单元名称：CnDebug 相关的运行期工具单元
-* 单元作者：刘啸（liuxiao@cnpack.org）
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：该单元实现了部分 CnDebugger 所需的 Module/Stack 相关内容
 *           部分内容引用了 JCL
 * 开发平台：PWin7 + Delphi 5

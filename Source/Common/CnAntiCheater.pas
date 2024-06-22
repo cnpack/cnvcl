@@ -23,7 +23,7 @@ unit CnAntiCheater;
 ================================================================================
 * 软件名称：开发包工具类库
 * 单元名称：给子类 published 的 Integer Get/Set 属性提供内容保护的基础类实现单元
-* 单元作者：刘啸 (liuxiao@cnpack.org)
+* 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：TCnAntiCheater 类在处理自身及其子类 published 的带 Get 和 Set 方法
             的 Integer 属性的时候会挂接这两个方法，在读写这些属性的过程中插入一
             自定义变换过程，从而达到内存中属性值和对外显示不一致的效果以躲开游戏
