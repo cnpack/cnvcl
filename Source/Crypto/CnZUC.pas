@@ -56,6 +56,9 @@ interface
 uses
   Classes, SysUtils {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative;
 
+const
+  CN_ZUC_KEYSIZE = 16;
+
 procedure ZUC(Key: PByte; IV: PByte; KeyStream: PCardinal; KeyStreamLen: Cardinal);
 {*
   祖冲之基础算法。根据输入的 16 字节密码和 16 字节初始化向量，
@@ -151,13 +154,13 @@ const
     $64, $BE, $85, $9B, $2F, $59, $8A, $D7, $B0, $25, $AC, $AF, $12, $03, $E2, $F2
   );
 
-  EK_D: array[0..15] of Cardinal = (
+  EK_D: array[0..CN_ZUC_KEYSIZE - 1] of Cardinal = (
     $44D7,  $26BC,  $626B,  $135E,  $5789,  $35E2,  $7135,  $09AF,
     $4D78,  $2F13,  $6BC4,  $1AF1,  $5E26,  $3C4D,  $789A,  $47AC
   );
 
 var
-  LFSR_S: array[0..15] of Cardinal = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  LFSR_S: array[0..CN_ZUC_KEYSIZE - 1] of Cardinal = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   F_R1: Cardinal = 0;
   F_R2: Cardinal = 0;
   BRC_X: array[0..3] of Cardinal = (0, 0, 0, 0);
@@ -285,7 +288,7 @@ var
   W, NC: Cardinal;
   I: Integer;
 begin
-  for I := 0 to 16 do
+  for I := 0 to CN_ZUC_KEYSIZE - 1 do
     LFSR_S[I] := MakeUInt31((PByte(TCnNativeInt(Key) + I))^, EK_D[I], (PByte(TCnNativeInt(IV) + I))^);
 
   F_R1 := 0;
@@ -328,7 +331,7 @@ end;
 function ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
   M: PCardinal; BitLen: Cardinal; C: PCardinal): Cardinal;
 var
-  IV: array[0..15] of Byte;
+  IV: array[0..CN_ZUC_KEYSIZE - 1] of Byte;
   I: Integer;
   L, LB, K: Cardinal;
   Z: PCardinal;
@@ -340,7 +343,7 @@ begin
     Exit;
 
   LB := L * 32 - BitLen;                       // 最后一块四字节的有效位数
-  Z := PCardinal(GetMemory(L));
+  Z := PCardinal(GetMemory(Result));
 
   try
     IV[0] := (Count shr 24) and $FF;
