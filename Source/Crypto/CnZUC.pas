@@ -25,11 +25,18 @@ unit CnZUC;
 * 单元名称：祖冲之算法实现单元
 * 单元作者：CnPack 开发组（master@cnpack.org)
 * 备    注：参考国密算法公开文档《祖冲之序列密码算法 ZUC stream cipher algorithm》
-*           与英文的《Specification of the 3GPP Confidentiality and Integrity
-*           Algorithms 128-EEA3 & 128-EIA3》仨文档，并参考移植其 C 实现代码，
+*           GM/T 0001.1-2012 GB/T33133.2-2021 与英文的
+*           《Specification of the 3GPP Confidentiality and Integrity
+*           Algorithms 128-EEA3 & 128-EIA3》仨文档，并参考移植其 C 实现代码。
+*
 *           注意 ZUCEEA3 加解密调用相同，也就是其他参数相同的情况下，传明文得到密文，传密文得到明文
-*           祖冲之算法面向四字节为单位的数据流，四字节内部的大小端未处理
-*           规范中要求数据均为大端，因而在小端 CPU 上需要颠倒四字节内部的内容，目前未实现
+*           祖冲之算法的机密性与完整性两个算法虽然支持任意位数的比特流，但需要将输入输出的内存区域
+*           可访问字节长度设为四字节的整数倍（也就是 ((BitLen + 31) div 32) 个 Cardinal），
+*           才能满足内部高效运算访问的要求，传参前分配内存长度时应注意。
+*
+*           四字节内部的大小端未处理。规范中要求数据均为大端，
+*           因而在小端 CPU 上需要颠倒四字节内部的内容，目前未实现
+*
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -51,30 +58,33 @@ uses
 
 procedure ZUC(Key: PByte; IV: PByte; KeyStream: PCardinal; KeyStreamLen: Cardinal);
 {*
-  祖冲之基础算法
+  祖冲之基础算法。根据输入的 16 字节密码和 16 字节初始化向量，
+  生成 KeyStreamLen 个四字节密码序列放至 KeyStream 所指的内存中
 
   Key 和 IV 为输入的 16 字节数据。
   KeyStream 为输出地址，长度应为 KeyStreamLen * SizeOf(Cardinal)
   KeyStreamLen 是要求计算的长度，以四字节为单位
 }
 
-procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
-  M: PCardinal; BitLen: Cardinal; C: PCardinal);
+function ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
+  M: PCardinal; BitLen: Cardinal; C: PCardinal): Cardinal;
 {*
   基于祖冲之算法的 128-EEA3 机密性保护算法。一个流加密系统，使用机密性密钥 CK 来加解密数据块
+  传入密码、负载、方向等参数，根据输入内容计算出输出内容。函数返回值为输出内容的字节长度。
 
   输入：
   参数         规模（比特数）    说明
-  Count        32                计数器
-  Bearer       5                 The bearer identity
+  Count        32                计数器，也即 4 字节
+  Bearer       5                 负载标识
   Direction    1                 传输方向
-  CK           128               机密性密钥
-  M            BitLen            输入比特流的内存块地址，长度需是四字节的倍数
-  BitLen       32                输入消息的 Bit 长度
+  CK           128               机密性密钥，也即 16 字节
+  M            BitLen            输入比特流的内存块地址，其实际可访问的比特长度需大于或等于 BitLen 且是四字节的倍数也就是 32 的整数倍，
+                                 （实际可访问的字节长度需是 4 的整数倍并乘以 8 后要大于等于 BitLen）以备函数内部四字节高效访问
+  BitLen       32                输入消息的 Bit 长度，可以是非字节整数倍
 
   输出：
   参数         规模（比特数）    说明
-  C            BitLen            放置输出比特流的内存块地址，能容纳的 Bit 长度必须大于或等于 BitLen，且是四字节的倍数
+  C            BitLen            放置输出比特流的内存块地址，能容纳的 Bit 长度必须大于或等于 BitLen，且是四字节的倍数也就是 32 的整数倍
 
   注意因为是流异或加密。传入如果是明文，加密一次便输出密文，如果传入密文，则调用一次会还原成明文
 }
@@ -83,19 +93,21 @@ procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: Cardinal;
   M: PCardinal; BitLen: Cardinal; out Mac: Cardinal);
 {*
   基于祖冲之算法的 128-EIA3 完整性保护算法，使用一个完整性密钥 IK 对给定的输入消息计算出一个 32 位的 MAC 值
+  传入密码、负载、方向等参数，根据输入内容计算出 MAC 值。
 
   输入：
   参数         规模（比特数）    说明
-  Count        32                计数器
-  Bearer       5                 The bearer identity
+  Count        32                计数器，也即 4 字节
+  Bearer       5                 负载标识
   DIRECTION    1                 传输方向
-  IK           128               完整性密钥
-  M            BitLen            输入比特流的内存地址，长度需是四字节的倍数
-  BitLen       32                输入比特流的长度
+  IK           128               完整性密钥，16 字节
+  M            BitLen            输入比特流的内存地址，其实际可访问的比特长度需大于或等于 BitLen 且是四字节的倍数也就是 32 的整数倍，
+                                （实际可访问的字节长度需是 4 的整数倍并乘以 8 后要大于等于 BitLen）以备函数内部四字节高效访问
+  BitLen       32                输入比特流的长度，可以是非字节整数倍
 
   输出：
   参数         规模（比特数）    说明
-  MAC          32                32 位 MAC 值
+  MAC          32                32 位 MAC 值，也即 4 字节
 }
 
 implementation
@@ -313,8 +325,8 @@ begin
   ZUCGenerateKeyStream(KeyStream, KeyStreamLen);
 end;
 
-procedure ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
-  M: PCardinal; BitLen: Cardinal; C: PCardinal);
+function ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
+  M: PCardinal; BitLen: Cardinal; C: PCardinal): Cardinal;
 var
   IV: array[0..15] of Byte;
   I: Integer;
@@ -322,44 +334,51 @@ var
   Z: PCardinal;
   PC, PM, PZ: PCnLongWord32Array;
 begin
-  L := (BitLen + 31) div 32;                   // 四字节为单位的长度，末块已补齐
+  L := (BitLen + 31) div 32;                   // 四字节为单位的长度，末块已补齐长度
+  Result := L * SizeOf(Cardinal);
+  if C = nil then                              // 返回值为输出的密文的字节数
+    Exit;
+
   LB := L * 32 - BitLen;                       // 最后一块四字节的有效位数
-  Z := PCardinal(GetMemory(L * SizeOf(Cardinal)));
+  Z := PCardinal(GetMemory(L));
 
-  IV[0] := (Count shr 24) and $FF;
-  IV[1] := (Count shr 16) and $FF;
-  IV[2] := (Count shr 8) and $FF;
-  IV[3] := Count and $FF;
+  try
+    IV[0] := (Count shr 24) and $FF;
+    IV[1] := (Count shr 16) and $FF;
+    IV[2] := (Count shr 8) and $FF;
+    IV[3] := Count and $FF;
 
-  IV[4] := ((Bearer shl 3) or ((Direction and 1) shl 2)) and $FC;
-  IV[5] := 0;
-  IV[6] := 0;
-  IV[7] := 0;
+    IV[4] := ((Bearer shl 3) or ((Direction and 1) shl 2)) and $FC;
+    IV[5] := 0;
+    IV[6] := 0;
+    IV[7] := 0;
 
-  IV[8] := IV[0];
-  IV[9] := IV[1];
-  IV[10] := IV[2];
-  IV[11] := IV[3];
-  IV[12] := IV[4];
-  IV[13] := IV[5];
-  IV[14] := IV[6];
-  IV[15] := IV[7];
+    IV[8] := IV[0];
+    IV[9] := IV[1];
+    IV[10] := IV[2];
+    IV[11] := IV[3];
+    IV[12] := IV[4];
+    IV[13] := IV[5];
+    IV[14] := IV[6];
+    IV[15] := IV[7];
 
-  ZUC(CK, @IV[0], Z, L);
+    ZUC(CK, @IV[0], Z, L);
 
-  PC := PCnLongWord32Array(C);
-  PM := PCnLongWord32Array(M);
-  PZ := PCnLongWord32Array(Z);
+    PC := PCnLongWord32Array(C);
+    PM := PCnLongWord32Array(M);
+    PZ := PCnLongWord32Array(Z);
 
-  for I := 0 to L - 1 do
-    PC^[I] := PM^[I] xor PZ^[I];
+    for I := 0 to L - 1 do
+      PC^[I] := PM^[I] xor PZ^[I];
 
-  if LB > 0 then // 最后一块不满四字节的话，最后一个 Cardinal 结果里超出有效 Bit 的部分应该填 0，也就是只保留低 Bit 的结果
-  begin
-    K := $100000000 - (1 shl LB); // FPC 下写一块会出 Internal Error，分开独立用个新变量 K，作为低 LB 位全 0 的 Mask
-    PC^[L - 1] := PC^[L - 1] and K;
+    if LB > 0 then // 最后一块不满四字节的话，最后一个 Cardinal 结果里超出有效 Bit 的部分应该填 0，也就是只保留低 Bit 的结果
+    begin
+      K := $100000000 - (1 shl LB); // FPC 下写一块会出 Internal Error，分开独立用个新变量 K，作为低 LB 位全 0 的 Mask
+      PC^[L - 1] := PC^[L - 1] and K;
+    end;
+  finally
+    FreeMemory(Z);
   end;
-  FreeMemory(Z);
 end;
 
 // 取内存块第 I 个 Bit 起的一个 DWORD，I 从 0 开始
@@ -422,17 +441,20 @@ begin
   L := (N + 31) div 32;
   Z := PCardinal(GetMemory(L * SizeOf(Cardinal)));
 
-  ZUC(IK, @IV[0], Z, L);
-  T := 0;
-  for I := 0 to BitLen - 1 do
-  begin
-    if GetBit(M, I) <> 0 then
-      T := T xor GetDWord(Z, I);
-  end;
-  T := T xor GetDWord(Z, BitLen);
+  try
+    ZUC(IK, @IV[0], Z, L);
+    T := 0;
+    for I := 0 to BitLen - 1 do
+    begin
+      if GetBit(M, I) <> 0 then
+        T := T xor GetDWord(Z, I);
+    end;
+    T := T xor GetDWord(Z, BitLen);
 
-  Mac := T xor PCardinal(TCnNativeInt(Z) + SizeOf(Cardinal) * (L - 1))^;
-  FreeMemory(Z);
+    Mac := T xor PCardinal(TCnNativeInt(Z) + SizeOf(Cardinal) * (L - 1))^;
+  finally
+    FreeMemory(Z);
+  end;
 end;
 
 end.
