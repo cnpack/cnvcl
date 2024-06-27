@@ -1777,7 +1777,7 @@ function BigNumberFromBytes(Buf: TBytes): TCnBigNumber;
 begin
   Result := nil;
   if (Buf <> nil) and (Length(Buf) > 0) then
-    Result := BigNumberFromBinary(@Buf[0], Length(Buf) - 1);
+    Result := BigNumberFromBinary(@Buf[0], Length(Buf));
 end;
 
 function BigNumberToBytes(const Num: TCnBigNumber): TBytes;
