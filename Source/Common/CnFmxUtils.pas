@@ -81,10 +81,16 @@ function CnFmxIsInheritedFromFrame(AObject: TObject): Boolean;
 {* 获取一个 Object 是否继承自 FMX.TFrame 类}
 
 function CnFmxGetControlRect(AControl: TComponent): TRect;
-{* 获取一个 FMX 的 Control 的 Rect，内部手工计算}
+{* 获取一个 FMX 的 Control 的基于其 Parent 的 Rect，内部手工计算}
 
 procedure CnFmxSetControlRect(AControl: TComponent; ARect: TRect);
-{* 设置一个 FMX 的 Control 的 Rect，内部手工计算}
+{* 设置一个 FMX 的 Control 的基于其 Parent 的 Rect，内部手工计算}
+
+function CnFmxGetControlScreenRect(AControl: TComponent): TRect;
+{* 获取一个 FMX 的 Control 的基于屏幕坐标的 Rect，内部手工计算}
+
+procedure CnFmxSetControlScreenRect(AControl: TComponent; ARect: TRect);
+{* 设置一个 FMX 的 Control 的基于屏幕坐标的 Rect，内部手工计算}
 
 function CnFmxGetControlPositionValue(AControl: TComponent;
   PosType: TCnFmxPosType): Integer;
@@ -239,7 +245,7 @@ var
   AParent: TFmxObject;
 begin
   // Local 与 Absolute 坐标的转换会出 AV，因此没法支持，暂时全使用相对坐标
-  // 也就是说只支持同一 Parent 下的
+  // 也就是说 Rect 是基于 Parent 下的而非屏幕的
   if (AControl <> nil) and AControl.InheritsFrom(TControl) then
   begin
     AParent := TControl(AControl).Parent;
@@ -280,6 +286,85 @@ begin
       // P2 := TControl(AParent).AbsoluteToLocal(P2);
       TControl(AControl).SetBounds(P1.X, P1.Y, P2.X - P1.X, P2.Y - P1.Y);
     end;
+  end;
+end;
+
+function CnFmxGetControlScreenRect(AControl: TComponent): TRect;
+var
+  AParent: TFmxObject;
+  R, PF: TPointF;
+begin
+  if (AControl <> nil) and (AControl.InheritsFrom(TControl)) then
+  begin
+    R.X := TControl(AControl).Position.X;
+    R.Y := TControl(AControl).Position.Y;
+
+    // 循环找到最顶层的相对坐标
+    AParent := TControl(AControl).Parent;
+    while (AParent <> nil) and (AParent is TControl) and not (AParent is TCommonCustomForm) do
+    begin
+      R.X := R.X + TControl(AParent).Position.X;
+      R.Y := R.Y + TControl(AParent).Position.Y;
+      AParent := TControl(AParent).Parent;
+    end;
+
+    // 再加上最顶层的左上角坐标，变成屏幕坐标
+    if (AParent <> nil) and (AParent is TCommonCustomForm) then
+    begin
+      PF.X := 0;
+      PF.Y := 0;
+      PF := TCommonCustomForm(AParent).ClientToScreen(PF);
+
+      R.X := R.X + PF.X;
+      R.Y := R.Y + PF.Y;
+    end;
+
+    Result.Left := Trunc(R.X);
+    Result.Top := Trunc(R.Y);
+    Result.Right := Result.Left + Trunc(TControl(AControl).Size.Width);
+    Result.Bottom := Result.Top + Trunc(TControl(AControl).Size.Height);
+  end;
+end;
+
+procedure CnFmxSetControlScreenRect(AControl: TComponent; ARect: TRect);
+var
+  AParent: TFmxObject;
+  R, PF: TPointF;
+  BRect: TRect;
+begin
+  if (AControl <> nil) and (AControl.InheritsFrom(TControl)) then
+  begin
+    R.X := 0; // 该 Control 在 Parent 左上角时的相对坐标
+    R.Y := 0;
+
+    // 循环找到最顶层的相对坐标
+    AParent := TControl(AControl).Parent;
+    while (AParent <> nil) and (AParent is TControl) and not (AParent is TCommonCustomForm) do
+    begin
+      R.X := R.X + TControl(AParent).Position.X;
+      R.Y := R.Y + TControl(AParent).Position.Y;
+      AParent := TControl(AParent).Parent;
+    end;
+
+    // 再加上最顶层的左上角坐标，变成屏幕坐标
+    if (AParent <> nil) and (AParent is TCommonCustomForm) then
+    begin
+      PF.X := 0;
+      PF.Y := 0;
+      PF := TCommonCustomForm(AParent).ClientToScreen(PF);
+
+      R.X := R.X + PF.X;
+      R.Y := R.Y + PF.Y;
+    end;
+
+    // 基于屏幕的 Rect，都减去 Control 的 Parent 的左上角在屏幕上的坐标，
+    // 就变成了基于 Control 的 Parent 的坐标
+    BRect.Left := Trunc(ARect.Left - R.X);
+    BRect.Top := Trunc(ARect.Top - R.Y);
+    BRect.Right := Trunc(ARect.Right - R.X);
+    BRect.Bottom := Trunc(ARect.Bottom - R.Y);
+
+    TControl(AControl).SetBounds(BRect.Left, BRect.Top, BRect.Width, BRect.Height);
   end;
 end;
 
