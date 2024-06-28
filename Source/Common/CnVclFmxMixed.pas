@@ -45,12 +45,11 @@ uses
 {$ENDIF};
 
 function GetControlScreenRect(AControl: TComponent): TRect;
-{* 返回控件在屏幕上的坐标区域，如果是 FMX，需要返回的是相对于最外层容器的坐标。但目前实现有 Bug，只能使用相对坐标。
+{* 返回控件在屏幕上的坐标区域。
   附加额外功能：如果 AControl 是不可视组件，返回该组件设计期左上角在容器中的位置，尺寸则固定写死 24}
 
 procedure SetControlScreenRect(AControl: TComponent; ARect: TRect);
-{* 设置控件在屏幕上的坐标区域，如果是 FMX，需要传入的是相对于最外层容器的坐标。但目前实现有 Bug，只能使用相对坐标。
-  注意：不支持不可视组件}
+{* 设置控件在屏幕上的坐标区域。注意：不支持不可视组件}
 
 function GetControlParent(AControl: TComponent): TComponent;
 {* 封装的获取 Conrol 的 Parent 的过程，封装了 FMX 的实现}
@@ -116,7 +115,7 @@ begin
   end;
 {$IFDEF SUPPORT_FMX}
   if CnFmxIsInheritedFromControl(AControl) then
-    Result := CnFmxGetControlRect(AControl);
+    Result := CnFmxGetControlScreenRect(AControl);
 {$ENDIF}
 end;
 
@@ -138,7 +137,7 @@ begin
   end;
 {$IFDEF SUPPORT_FMX}
   if CnFmxIsInheritedFromControl(AControl) then
-    CnFmxSetControlRect(AControl, ARect);
+    CnFmxSetControlScreenRect(AControl, ARect);
 {$ENDIF}
 end;
 
