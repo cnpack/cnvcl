@@ -321,8 +321,13 @@ begin
 
     Result.Left := Trunc(R.X);
     Result.Top := Trunc(R.Y);
+{$IFDEF FMX_CONTROL_HAS_SIZE}
     Result.Right := Result.Left + Trunc(TControl(AControl).Size.Width);
     Result.Bottom := Result.Top + Trunc(TControl(AControl).Size.Height);
+{$ELSE}
+    Result.Right := Result.Left + Trunc(TControl(AControl).Width);
+    Result.Bottom := Result.Top + Trunc(TControl(AControl).Height);
+{$ENDIF}
   end;
 end;
 
