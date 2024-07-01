@@ -23,7 +23,7 @@ unit CnJSON;
 ================================================================================
 * 软件名称：开发包基础库
 * 单元名称：JSON 解析与组装单元，适用于 DXE6 以下无 JSON 解析库的场合
-* 单元作者：CnPack 开发组 Liu Xiao
+* 单元作者：CnPack 开发组
 * 备    注：适合 UTF8 无注释格式，根据 RFC 7159 来处理
 *           注意未经严格全面测试，不适合替代 System.JSON
 *           仅在无 System.JSON 的低版本中充当 JSON 解析与组装用
@@ -49,7 +49,9 @@ unit CnJSON;
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.02.04 V1.3
+* 修改记录：2024.06.30 V1.4
+*                 浮点数与字符串转换不受某些逗号的系统区域设置的影响，均以点号小数点为准
+*           2024.02.04 V1.3
 *                 JSONObject 的 Key Value 对数量超过阈值时，内部用哈希表进行加速
 *           2024.02.03 V1.2
 *                 加入全局函数并修复空数组的问题
@@ -486,6 +488,13 @@ resourcestring
   SCnErrorJSONTypeMismatch = 'JSON Value Type Mismatch';
   SCnErrorJSONStringParse = 'JSON String Parse Error';
   SCnErrorJSONValueTypeNotImplementedFmt = 'NOT Implemented for this JSON Value Type %s';
+
+{$IFDEF SUPPORT_FORMAT_SETTINGS}
+
+var
+  JSONFormatSettings: TFormatSettings; // 控制 JSON 中的浮点数小数点为 . 号，不受一些 , 的 OS 语言地区影响
+
+{$ENDIF}
 
 function JSONDateTimeToStr(Value: TDateTime): string;
 begin
@@ -1217,7 +1226,7 @@ begin
   if not IsNumber then
     raise ECnJSONException.Create(SCnErrorJSONTypeMismatch);
 
-  Result := StrToFloat(string(FContent));
+  Result := StrToFloat(string(FContent) {$IFDEF SUPPORT_FORMAT_SETTINGS}, JSONFormatSettings {$ENDIF});
 end;
 
 function TCnJSONValue.AsInt64: Int64;
@@ -2342,4 +2351,10 @@ begin
   Obj.AddPair(Name);
 end;
 
+{$IFDEF SUPPORT_FORMAT_SETTINGS}
+
+initialization
+  JSONFormatSettings.DecimalSeparator := '.';
+
+{$ENDIF}
 end.
