@@ -331,6 +331,7 @@ var
   PropIdx: Integer;
   PropList: PPropList;
   PropInfo: PPropInfo;
+  AKind: TTypeKind;
 begin
   if Source is Dest.ClassType then
   begin
@@ -345,10 +346,12 @@ begin
       begin
         PropInfo := PropList^[PropIdx];
 {$IFDEF FPC}
-        case PropInfo^.PropType^.Kind of
+        AKind := PropInfo^.PropType^.Kind;
 {$ELSE}
-        case PropInfo^.PropType^^.Kind of
+        AKind := PropInfo^.PropType^^.Kind;
 {$ENDIF}
+
+        case AKind of
           tkInteger, tkChar, tkWChar, tkClass, tkEnumeration, tkSet:
             SetOrdProp(Dest, PropInfo, GetOrdProp(Source, PropInfo));
           tkFloat:

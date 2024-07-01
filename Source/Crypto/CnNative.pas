@@ -2621,7 +2621,7 @@ var
   Empty: Boolean;
 begin
   I := FirstIndex;
-  Dig := 0;    // To avoid warning
+  Dig := 0; 
   Result := 0;
 
   if S = '' then
@@ -2629,9 +2629,11 @@ begin
     Code := 1;
     Exit;
   end;
+
   while S[I] = Char(' ') do
     Inc(I);
   Sign := False;
+
   if S[I] =  Char('-') then
   begin
     Sign := True;
@@ -2649,17 +2651,19 @@ begin
     Inc(I);
     while True do
     begin
-      case   Char(S[I]) of
-       Char('0').. Char('9'): Dig := Ord(S[I]) -  Ord('0');
-       Char('A').. Char('F'): Dig := Ord(S[I]) - (Ord('A') - 10);
-       Char('a').. Char('f'): Dig := Ord(S[I]) - (Ord('a') - 10);
+      case Char(S[I]) of
+        Char('0').. Char('9'): Dig := Ord(S[I]) -  Ord('0');
+        Char('A').. Char('F'): Dig := Ord(S[I]) - (Ord('A') - 10);
+        Char('a').. Char('f'): Dig := Ord(S[I]) - (Ord('a') - 10);
       else
         Break;
       end;
+
       if Result > (CN_MAX_TUINT64 shr 4) then
         Break;
       if Sign and (Dig <> 0) then
         Break;
+
       Result := Result shl 4 + TUInt64(Dig);
       Inc(I);
       Empty := False;
@@ -2679,6 +2683,7 @@ begin
         Break;
       if Sign and (Dig <> 0) then
         Break;
+
       Result := Result * 10 + TUInt64(Dig);
       Inc(I);
       Empty := False;

@@ -68,7 +68,7 @@ interface
 
 uses
   Classes, SysUtils, {$IFNDEF COMPILER5} Variants, {$ENDIF} Contnrs, TypInfo,
-  CnNative, CnStrings, CnHashTable;
+  SysConst, CnNative, CnStrings, CnHashTable;
 
 type
   ECnJSONException = class(Exception);
@@ -987,7 +987,13 @@ var
   V: TCnJSONNumber;
 begin
   V := TCnJSONNumber.Create;
+{$IFDEF SUPPORT_FORMAT_SETTINGS}
+  V.Content := AnsiString(FloatToStr(Value, JSONFormatSettings));
+{$ELSE}
   V.Content := AnsiString(FloatToStr(Value));
+  // D 5 6 下不支持 TFormatSettings，可能因为区域设置将小数点整成了逗号，替换回来
+  V.Content := StringReplace(V.Content, ',', '.', [rfReplaceAll]);
+{$ENDIF}
   Result := AddPair(Name, V);
 end;
 
@@ -1222,11 +1228,22 @@ begin
 end;
 
 function TCnJSONValue.AsFloat: Extended;
+{$IFNDEF SUPPORT_FORMAT_SETTINGS}
+var
+  E: Integer;
+{$ENDIF}
 begin
   if not IsNumber then
     raise ECnJSONException.Create(SCnErrorJSONTypeMismatch);
 
-  Result := StrToFloat(string(FContent) {$IFDEF SUPPORT_FORMAT_SETTINGS}, JSONFormatSettings {$ENDIF});
+{$IFDEF SUPPORT_FORMAT_SETTINGS}
+  Result := StrToFloat(string(FContent), JSONFormatSettings);
+{$ELSE}
+  // D 5 6 没有 TFormatSettings
+  Val(string(FContent), Result, E);
+  if E <> 0 then
+    raise EConvertError.CreateFmt(SInvalidFloat, [FContent]);
+{$ENDIF}
 end;
 
 function TCnJSONValue.AsInt64: Int64;
@@ -1390,7 +1407,13 @@ var
   V: TCnJSONNumber;
 begin
   V := TCnJSONNumber.Create;
+{$IFDEF SUPPORT_FORMAT_SETTINGS}
+  V.Content := AnsiString(FloatToStr(Value, JSONFormatSettings));
+{$ELSE}
   V.Content := AnsiString(FloatToStr(Value));
+  // D 5 6 下不支持 TFormatSettings，可能因为区域设置将小数点整成了逗号，替换回来
+  V.Content := StringReplace(V.Content, ',', '.', [rfReplaceAll]);
+{$ENDIF}
   Result := AddValue(V);
 end;
 
