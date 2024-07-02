@@ -273,7 +273,7 @@ end;
 // 析构器
 destructor TCnControlHookObject.Destroy;
 var
-  i: Integer;
+  I: Integer;
 begin
   try                                  // 异常保护
     if Assigned(FControl) then
@@ -284,8 +284,8 @@ begin
       FControl := nil;
     end;
 
-    for i := 0 to Count - 1 do
-      Items[i].Free;
+    for I := 0 to Count - 1 do
+      Items[I].Free;
     FList.Free;
   except
     Application.HandleException(Self);
@@ -319,7 +319,7 @@ end;
 // 新的消息处理过程
 procedure TCnControlHookObject.WndProc(var Message: TMessage);
 var
-  i: Integer;
+  I: Integer;
   Handled: Boolean;
 begin
   try
@@ -327,16 +327,19 @@ begin
     try
       Handled := False;
       // 调用挂接消息前处理过程
-      for i := Count - 1 downto 0 do       // 后挂接的先处理
-        if Assigned(Items[i].FOwner) and Assigned(Items[i].FOwner.FOwner) and
-          Items[i].FOwner.FOwner.FActive and Items[i].DoBeforeMessage(FControl,
+      for I := Count - 1 downto 0 do       // 后挂接的先处理
+      begin
+        if Assigned(Items[I].FOwner) and Assigned(Items[I].FOwner.FOwner) and
+          Items[I].FOwner.FOwner.FActive and Items[I].DoBeforeMessage(FControl,
           Message) then
         begin
           Handled := True;
           Break;
         end;
+      end;
 
-      if Handled then Exit;
+      if Handled then
+        Exit;
 
       // 调用原处理过程
       if Assigned(FOldWndProc) then
@@ -345,11 +348,13 @@ begin
       // 调用挂接消息后处理过程
       if not FAutoFree then
       begin
-        for i := Count - 1 downto 0 do       // 后挂接的先处理
-          if Assigned(Items[i].FOwner) and Assigned(Items[i].FOwner.FOwner) and
-            Items[i].FOwner.FOwner.FActive and Items[i].DoAfterMessage(FControl,
+        for I := Count - 1 downto 0 do       // 后挂接的先处理
+        begin
+          if Assigned(Items[I].FOwner) and Assigned(Items[I].FOwner.FOwner) and
+            Items[I].FOwner.FOwner.FActive and Items[I].DoAfterMessage(FControl,
             Message) then
             Break;
+        end;
       end;
     finally
       Dec(FUpdateCount);
@@ -428,10 +433,10 @@ end;
 // 析构器
 destructor TCnControlHookMgr.Destroy;
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := Count - 1 downto 0 do
-    Items[i].DoFree;
+  for I := Count - 1 downto 0 do
+    Items[I].DoFree;
 
   FList.Free;
   inherited;
@@ -453,15 +458,17 @@ end;
 // 返回控件索引号
 function TCnControlHookMgr.IndexOf(Control: TControl): Integer;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := -1;
-  for i := 0 to Count - 1 do
-    if HookedControls[i] = Control then
+  for I := 0 to Count - 1 do
+  begin
+    if HookedControls[I] = Control then
     begin
-      Result := i;
+      Result := I;
       Exit;
     end;
+  end;
 end;
 
 // 挂接控件
@@ -650,15 +657,17 @@ end;
 // 查找子项
 function TCnControlHookCollection.IndexOf(Control: TControl): Integer;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := -1;
-  for i := 0 to Count - 1 do
-    if Items[i].FControl = Control then
+  for I := 0 to Count - 1 do
+  begin
+    if Items[I].FControl = Control then
     begin
-      Result := i;
+      Result := I;
       Exit;
     end;
+  end;
 end;
 
 // Items 数组属性读方法
@@ -699,11 +708,11 @@ end;
 // 运行期属性已装载
 procedure TCnControlHook.Loaded;
 var
-  i: Integer;
+  I: Integer;
 begin
   inherited;
-  for i := 0 to Items.Count - 1 do
-    Items.Items[i].Hook;
+  for I := 0 to Items.Count - 1 do
+    Items.Items[I].Hook;
 end;
 
 // 挂接指定控件，返回挂接项索引号，如果已挂接返回原挂接项索引号
@@ -734,7 +743,7 @@ end;
 // 产生事件方法
 //------------------------------------------------------------------------------
 
-// 产生AfterMessage事件
+// 产生 AfterMessage 事件
 function TCnControlHook.DoAfterMessage(Control: TControl;
   var Msg: TMessage): Boolean;
 begin
@@ -743,7 +752,7 @@ begin
     FAfterMessage(Self, Control, Msg, Result);
 end;
 
-// 产生BeforeMessage事件
+// 产生 BeforeMessage 事件
 function TCnControlHook.DoBeforeMessage(Control: TControl;
   var Msg: TMessage): Boolean;
 begin
