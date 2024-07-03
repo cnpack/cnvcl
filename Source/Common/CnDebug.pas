@@ -3877,8 +3877,42 @@ begin
     WM_EXITSIZEMOVE         : Result := Format('WM_EXITSIZEMOVE: %d/$%x', [AMessage, AMessage]);
     WM_DROPFILES            : Result := Format('WM_DROPFILES: %d/$%x', [AMessage, AMessage]);
     WM_MDIREFRESHMENU       : Result := Format('WM_MDIREFRESHMENU: %d/$%x', [AMessage, AMessage]);
+
+    $0238                   : Result := Format('WM_POINTERDEVICECHANGE: %d/$%x', [AMessage, AMessage]);
+    $0239                   : Result := Format('WM_POINTERDEVICEINRANGE: %d/$%x', [AMessage, AMessage]);
+    $023A                   : Result := Format('WM_POINTERDEVICEOUTOFRANGE: %d/$%x', [AMessage, AMessage]);
+    $0240                   : Result := Format('WM_TOUCH: %d/$%x', [AMessage, AMessage]);
+    $0241                   : Result := Format('WM_NCPOINTERUPDATE: %d/$%x', [AMessage, AMessage]);
+    $0242                   : Result := Format('WM_NCPOINTERDOWN: %d/$%x', [AMessage, AMessage]);
+    $0243                   : Result := Format('WM_NCPOINTERUP: %d/$%x', [AMessage, AMessage]);
+    $0245                   : Result := Format('WM_POINTERUPDATE: %d/$%x', [AMessage, AMessage]);
+    $0246                   : Result := Format('WM_POINTERDOWN: %d/$%x', [AMessage, AMessage]);
+    $0247                   : Result := Format('WM_POINTERUP: %d/$%x', [AMessage, AMessage]);
+    $0249                   : Result := Format('WM_POINTERENTER: %d/$%x', [AMessage, AMessage]);
+    $024A                   : Result := Format('WM_POINTERLEAVE: %d/$%x', [AMessage, AMessage]);
+    $024B                   : Result := Format('WM_POINTERACTIVATE: %d/$%x', [AMessage, AMessage]);
+    $024C                   : Result := Format('WM_POINTERCAPTURECHANGED: %d/$%x', [AMessage, AMessage]);
+    $024D                   : Result := Format('WM_TOUCHHITTESTING: %d/$%x', [AMessage, AMessage]);
+    $024E                   : Result := Format('WM_POINTERWHEEL: %d/$%x', [AMessage, AMessage]);
+    $024F                   : Result := Format('WM_POINTERHWHEEL: %d/$%x', [AMessage, AMessage]);
+    $0250                   : Result := Format('DM_POINTERHITTEST: %d/$%x', [AMessage, AMessage]);
+    $0251                   : Result := Format('WM_POINTERROUTEDTO: %d/$%x', [AMessage, AMessage]);
+    $0252                   : Result := Format('WM_POINTERROUTEDAWAY: %d/$%x', [AMessage, AMessage]);
+    $0253                   : Result := Format('WM_POINTERROUTEDRELEASED: %d/$%x', [AMessage, AMessage]);
+
     WM_MOUSEHOVER           : Result := Format('WM_MOUSEHOVER: %d/$%x', [AMessage, AMessage]);
     WM_MOUSELEAVE           : Result := Format('WM_MOUSELEAVE: %d/$%x', [AMessage, AMessage]);
+
+    $02A0                   : Result := Format('WM_NCMOUSEHOVER: %d/$%x', [AMessage, AMessage]);
+    $02A2                   : Result := Format('WM_NCMOUSELEAVE: %d/$%x', [AMessage, AMessage]);
+    $02B1                   : Result := Format('WM_WTSSESSION_CHANGE: %d/$%x', [AMessage, AMessage]);
+    $02C0                   : Result := Format('WM_TABLET_FIRST: %d/$%x', [AMessage, AMessage]);
+    $02DF                   : Result := Format('WM_TABLET_LAST: %d/$%x', [AMessage, AMessage]);
+    $02E0                   : Result := Format('WM_DPICHANGED: %d/$%x', [AMessage, AMessage]);
+    $02E2                   : Result := Format('WM_DPICHANGED_BEFOREPARENT: %d/$%x', [AMessage, AMessage]);
+    $02E3                   : Result := Format('WM_DPICHANGED_AFTERPARENT: %d/$%x', [AMessage, AMessage]);
+    $02E4                   : Result := Format('WM_GETDPISCALEDSIZE: %d/$%x', [AMessage, AMessage]);
+
     WM_CUT                  : Result := Format('WM_CUT: %d/$%x', [AMessage, AMessage]);
     WM_COPY                 : Result := Format('WM_COPY: %d/$%x', [AMessage, AMessage]);
     WM_PASTE                : Result := Format('WM_PASTE: %d/$%x', [AMessage, AMessage]);
