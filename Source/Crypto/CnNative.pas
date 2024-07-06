@@ -707,6 +707,9 @@ function UnsignedAddWithLimitRadix(A, B, C: Cardinal; var R: Cardinal;
 
 // =========================== 循环移位函数 ====================================
 
+// 注意这批函数的 N 应在 (0, A 最大位数) 开区间内，如 N 为 0 或 A 最大位数时返回值应仍为 A
+// N 超界时会求余（编译器行为，和仓颉等不同），如对 32 位 A，N 为 33 时返回值等于 N 为 1 时的返回值
+
 function RotateLeft16(A: Word; N: Integer): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 针对 16 位整数进行循环左移 N 位}
 

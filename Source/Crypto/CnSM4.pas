@@ -505,6 +505,7 @@ begin
   Result := (X and $FFFFFFFF) shl N;
 end;
 
+// 循环左移。注意 N 为 0 或 32 时返回值仍为 X，N 为 33 时返回值等于 N 为 1 时的返回值
 function ROTL(X: Cardinal; N: Integer): Cardinal;
 begin
   Result := SM4Shl(X, N) or (X shr (32 - N));

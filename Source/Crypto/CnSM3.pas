@@ -49,7 +49,7 @@ uses
 type
   TCnSM3Context = packed record
     Total: array[0..1] of Cardinal;     {!< number of bytes processed  }
-    State: array[0..8] of Cardinal;     {!< intermediate digest state  }
+    State: array[0..7] of Cardinal;     {!< intermediate digest state  }
     Buffer: array[0..63] of Byte;       {!< data block being processed }
     Ipad: array[0..63] of Byte;         {!< HMAC: inner padding        }
     Opad: array[0..63] of Byte;         {!< HMAC: outer padding        }
@@ -219,6 +219,7 @@ begin
   Result := (X and $FFFFFFFF) shl N;
 end;
 
+// 循环左移。注意 N 为 0 或 32 时返回值仍为 X，N 为 33 时返回值等于 N 为 1 时的返回值
 function ROTL(X: Cardinal; N: Integer): Cardinal;
 begin
   Result := SM3Shl(X, N) or (X shr (32 - N));
