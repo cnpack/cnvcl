@@ -152,13 +152,13 @@ procedure TestFp192CryptExample;
 var
   S: AnsiString;
   SM2: TCnSM2;
-  PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey;
+  PrivateKey: TCnSM2PrivateKey;
+  PublicKey: TCnSM2PublicKey;
   EnStream, DeStream: TMemoryStream;
 begin
   SM2 := TCnSM2.Create(ctSM2Example192);
-  PrivateKey := TCnEccPrivateKey.Create;
-  PublicKey := TCnEccPublicKey.Create;
+  PrivateKey := TCnSM2PrivateKey.Create;
+  PublicKey := TCnSM2PublicKey.Create;
 
   EnStream := TMemoryStream.Create;
   DeStream := TMemoryStream.Create;
@@ -190,13 +190,13 @@ end;
 procedure TestFp256SignExample;
 var
   SM2: TCnSM2;
-  PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey;
+  PrivateKey: TCnSM2PrivateKey;
+  PublicKey: TCnSM2PublicKey;
   Sig: TCnSM2Signature;
 begin
   SM2 := TCnSM2.Create(ctSM2Example256);
-  PrivateKey := TCnEccPrivateKey.Create;
-  PublicKey := TCnEccPublicKey.Create;
+  PrivateKey := TCnSM2PrivateKey.Create;
+  PublicKey := TCnSM2PublicKey.Create;
   Sig := TCnSM2Signature.Create;
 
   PublicKey.X.SetHex('0AE4C7798AA0F119471BEE11825BE46202BB79E2A5844495E97C04FF4DF2548A');
@@ -222,18 +222,18 @@ const
   KEY_LENGTH = 128 div 8;
 var
   SM2: TCnSM2;
-  APrivateKey, BPrivateKey: TCnEccPrivateKey;
-  APublicKey, BPublicKey: TCnEccPublicKey;
+  APrivateKey, BPrivateKey: TCnSM2PrivateKey;
+  APublicKey, BPublicKey: TCnSM2PublicKey;
   RandA, RandB: TCnBigNumber;
   OutRA, OutRB: TCnEccPoint;
   KA, KB: TBytes;
   OpSA, OpSB, OpS2: TCnSM3Digest;
 begin
   SM2 := TCnSM2.Create(ctSM2Example256);
-  APrivateKey := TCnEccPrivateKey.Create;
-  APublicKey := TCnEccPublicKey.Create;
-  BPrivateKey := TCnEccPrivateKey.Create;
-  BPublicKey := TCnEccPublicKey.Create;
+  APrivateKey := TCnSM2PrivateKey.Create;
+  APublicKey := TCnSM2PublicKey.Create;
+  BPrivateKey := TCnSM2PrivateKey.Create;
+  BPublicKey := TCnSM2PublicKey.Create;
   RandA := TCnBigNumber.Create;
   RandB := TCnBigNumber.Create;
 
@@ -299,7 +299,7 @@ procedure TFormSM2.btnSM2EncryptClick(Sender: TObject);
 var
   T: AnsiString;
   SM2: TCnSM2;
-  PublicKey: TCnEccPublicKey;
+  PublicKey: TCnSM2PublicKey;
   EnStream: TMemoryStream;
 begin
   if not CheckPublicKeyStr(edtSM2PublicKey) then
@@ -312,7 +312,7 @@ begin
   end;
 
   SM2 := TCnSM2.Create(ctSM2);
-  PublicKey := TCnEccPublicKey.Create;
+  PublicKey := TCnSM2PublicKey.Create;
 
   EnStream := TMemoryStream.Create;
 
@@ -400,8 +400,8 @@ end;
 procedure TFormSM2.btnSM2SignFileClick(Sender: TObject);
 var
   SM2: TCnSM2;
-  PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey;
+  PrivateKey: TCnSM2PrivateKey;
+  PublicKey: TCnSM2PublicKey;
   FileStream: TMemoryStream;
   SignRes: TCnSM2Signature;
 begin
@@ -412,10 +412,10 @@ begin
     Exit;
 
   SM2 := TCnSM2.Create(ctSM2);
-  PrivateKey := TCnEccPrivateKey.Create;
+  PrivateKey := TCnSM2PrivateKey.Create;
   PrivateKey.SetHex(edtSM2PrivateKey.Text);
 
-  PublicKey := TCnEccPublicKey.Create;
+  PublicKey := TCnSM2PublicKey.Create;
   PublicKey.SetHex(edtSM2PublicKey.Text);
 
   FileStream := TMemoryStream.Create;
@@ -470,7 +470,7 @@ end;
 procedure TFormSM2.btnSM2VerifyClick(Sender: TObject);
 var
   SM2: TCnSM2;
-  PublicKey: TCnEccPublicKey;
+  PublicKey: TCnSM2PublicKey;
   FileStream: TMemoryStream;
   SignRes: TCnSM2Signature;
 begin
@@ -481,7 +481,7 @@ begin
     Exit;
 
   SM2 := TCnSM2.Create(ctSM2);
-  PublicKey := TCnEccPublicKey.Create;
+  PublicKey := TCnSM2PublicKey.Create;
   PublicKey.SetHex(edtSM2PublicKey.Text);
 
   FileStream := TMemoryStream.Create;
@@ -506,16 +506,16 @@ end;
 
 procedure TFormSM2.btnSignFileClick(Sender: TObject);
 var
-  PrivateKey: TCnEccPrivateKey;
-  PublicKey: TCnEccPublicKey;
+  PrivateKey: TCnSM2PrivateKey;
+  PublicKey: TCnSM2PublicKey;
 begin
   if not CheckPublicKeyStr(edtSM2PublicKey) or not CheckPrivateKeyStr(edtSM2PrivateKey) then
     Exit;
 
-  PrivateKey := TCnEccPrivateKey.Create;
+  PrivateKey := TCnSM2PrivateKey.Create;
   PrivateKey.SetHex(edtSM2PrivateKey.Text);
 
-  PublicKey := TCnEccPublicKey.Create;
+  PublicKey := TCnSM2PublicKey.Create;
   PublicKey.SetHex(edtSM2PublicKey.Text);
 
   mmoSignResult.Lines.Text := CnSM2SignFile(edtSM2UserId.Text, edtSM2FileSign.Text, PrivateKey, PublicKey);
@@ -526,12 +526,12 @@ end;
 
 procedure TFormSM2.btnVerifyFileClick(Sender: TObject);
 var
-  PublicKey: TCnEccPublicKey;
+  PublicKey: TCnSM2PublicKey;
 begin
   if not CheckPublicKeyStr(edtSM2PublicKey) then
     Exit;
 
-  PublicKey := TCnEccPublicKey.Create;
+  PublicKey := TCnSM2PublicKey.Create;
   PublicKey.SetHex(edtSM2PublicKey.Text);
 
   if CnSM2VerifyFile(edtSM2UserId.Text, edtSM2FileSign.Text, mmoSignResult.Lines.Text, PublicKey) then
@@ -547,8 +547,8 @@ const
   KEY_LENGTH = 128 div 8;
 var
   SM2: TCnSM2;
-  APrivateKey, BPrivateKey: TCnEccPrivateKey;
-  APublicKey, BPublicKey: TCnEccPublicKey;
+  APrivateKey, BPrivateKey: TCnSM2PrivateKey;
+  APublicKey, BPublicKey: TCnSM2PublicKey;
   RandA, RandB: TCnBigNumber;
   OutRA, OutRB: TCnEccPoint;
   KA, KB: TBytes;
@@ -561,10 +561,10 @@ begin
     Exit;
 
   SM2 := TCnSM2.Create;
-  APrivateKey := TCnEccPrivateKey.Create;
-  APublicKey := TCnEccPublicKey.Create;
-  BPrivateKey := TCnEccPrivateKey.Create;
-  BPublicKey := TCnEccPublicKey.Create;
+  APrivateKey := TCnSM2PrivateKey.Create;
+  APublicKey := TCnSM2PublicKey.Create;
+  BPrivateKey := TCnSM2PrivateKey.Create;
+  BPublicKey := TCnSM2PublicKey.Create;
 
   RandA := TCnBigNumber.Create;
   RandB := TCnBigNumber.Create;
