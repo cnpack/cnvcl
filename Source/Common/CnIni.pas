@@ -120,7 +120,7 @@ type
     procedure WriteColor(const Section, Ident: string; Value: TColor);
     {* 写入颜色}
     function ReadFont(const Section, Ident: string; Font: TFont): TFont;
-    {* 读取字体}
+    {* 读取字体，将读到的字体属性设给 Font 参数，并将其返回}
     procedure WriteFont(const Section, Ident: string; Font: TFont);
     {* 写入字体}
     function ReadRect(const Section, Ident: string; const Default: TRect): TRect;

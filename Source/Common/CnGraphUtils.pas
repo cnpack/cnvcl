@@ -210,6 +210,9 @@ procedure CnShutDownGdiPlus;
 
 {$ENDIF}
 
+function FontEqual(A, B: TFont): Boolean;
+{* 比较俩字体对象的各属性是否相等}
+
 implementation
 
 {$IFNDEF SUPPORT_GDIPLUS}
@@ -723,6 +726,42 @@ begin
 {$ENDIF}
 end;
 
+function FontEqual(A, B: TFont): Boolean;
+begin
+  if (A = nil) and (B = nil) then
+  begin
+    Result := True;
+    Exit;
+  end
+  else if (A = nil) or (B = nil) then
+  begin
+    Result := False;
+    Exit
+  end
+  else
+  begin
+    Result := False;
+
+    if A.Name <> B.Name then
+      Exit;
+    if A.Size <> B.Size then
+      Exit;
+    if A.Style <> B.Style then
+      Exit;
+    if A.Color <> B.Color then
+      Exit;
+    if A.Height <> B.Height then
+      Exit;
+    if A.Charset <> B.Charset then
+      Exit;
+    if A.Pitch <> B.Pitch then
+      Exit;
+    if A.PixelsPerInch <> B.PixelsPerInch then
+      Exit;
+
+    Result := True;
+  end;
+end;
 function CnCreatePoint(X, Y: Integer): TPoint;
 begin
   Result.X := X;
