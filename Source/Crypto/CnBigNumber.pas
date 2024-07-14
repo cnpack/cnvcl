@@ -775,11 +775,11 @@ function BigNumberDiv(const Res: TCnBigNumber; const Remain: TCnBigNumber;
 {* 两大数对象相除，Num / Divisor，商放 Res 中，余数放 Remain 中，返回除法计算是否成功，
    Res 可以是 Num，Remain 可以是 nil 以不需要计算余数
    被除数与除数均以正数相除得到正的商和正的余数，之后的正负规则如下：
-   正被除数正除数得到正商和正余数，如  10005 /  100 =  100 ...  5
-   负被除数正除数得到负商和负余数，如 -10005 /  100 = -100 ... -5
-   正被除数负除数得到负商和正余数，如  10005 / -100 = -100 ...  5
-   负被除数负除数得到正商和负余数，如 -10005 / -100 =  100 ... -5
-   余数符号跟着被除数走，且余数绝对值会小于除数绝对值，不会出现余 95 这种情况}
+   正被除数正除数得到正商和正余数，如  1005 /  100 =  10 ...  5
+   负被除数正除数得到负商和负余数，如 -1005 /  100 = -10 ... -5
+   正被除数负除数得到负商和正余数，如  1005 / -100 = -10 ...  5
+   负被除数负除数得到正商和负余数，如 -1005 / -100 =  10 ... -5
+   余数符号跟着被除数走，余数绝对值会小于除数绝对值，且不会出现余 95 这种情况}
 
 function BigNumberRoundDiv(const Res: TCnBigNumber; const Num: TCnBigNumber;
   const Divisor: TCnBigNumber; out Rounding: Boolean): Boolean;
@@ -789,12 +789,17 @@ function BigNumberRoundDiv(const Res: TCnBigNumber; const Num: TCnBigNumber;
 
 function BigNumberMod(const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
-{* 两大数对象求余，Num mod Divisor，余数放 Remain 中，返回求余计算是否成功，Remain 可以是 Num}
+{* 两大数对象求余，Num mod Divisor，余数放 Remain 中，
+   余数正负规则等同于 BigNumberDiv，返回求余计算是否成功，Remain 可以是 Num}
 
 function BigNumberNonNegativeMod(const Remain: TCnBigNumber;
   const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
 {* 两大数对象非负求余，Num mod Divisor，余数放 Remain 中，0 <= Remain < |Divisor|
-   Remain 始终大于零，返回求余计算是否成功}
+   余数的正负规则等同于 BigNumberMod 后再通过加减 Divisor 以确保 Remain 始终大于零
+   与 BigNumberMod 不同的是
+   负被除数正除数先得到负商和负余数，负余数需加正除数，如 -1005 /  100 = ... 95
+   负被除数负除数先得到正商和负余数，负余数需减负除数，如 -1005 / -100 = ... 95
+   返回求余计算是否成功}
 
 function BigNumberMulWordNonNegativeMod(const Res: TCnBigNumber;
   const Num: TCnBigNumber; N: Integer; const Divisor: TCnBigNumber): Boolean;
