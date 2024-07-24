@@ -428,19 +428,19 @@ begin
   end;
 end;
 
-// FixedLen 为 0 时，如果整数最高位是 1，则需要前面补 0 避免与负数的表述混淆
-// FixedLen 不为 0 时，如够长则固定补 0，否则按大数实际情况补 0
+// FixedLen 小于或等于 0 时，如果整数最高位是 1，则需要前面补 0 避免与负数的表述混淆
+// FixedLen 大于 0 时，如够长，则固定补 0，否则按大数实际情况补 0
 function CalcIntegerTLV(BigNumber: TCnBigNumber; FixedLen: Integer = 0): Cardinal;
 begin
   Result := BigNumber.GetBytesCount;
-  if FixedLen = 0 then
+  if FixedLen <= 0 then
   begin
     if BigNumber.IsBitSet((Result * 8) - 1) then // 根据最高位是否是 1 决定是否补 0
       Inc(Result);
   end
   else
   begin
-    if FixedLen >= Result then // 固定位，够长，前面补 0
+    if Cardinal(FixedLen) >= Result then // 固定位，够长，前面补 0
       Result := FixedLen + 1
     else if BigNumber.IsBitSet((Result * 8) - 1) then // 固定位不够按实际长，前面按需补 0
       Inc(Result);

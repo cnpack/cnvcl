@@ -1533,7 +1533,6 @@ end;
 function TestSM4Ecb: Boolean;
 var
   S, Key, Res, Data: AnsiString;
-  Hex: string;
 begin
   S := 'CnPack Ecb Test Data for SM4.';
   Key := 'CnPack SM4 Key';
@@ -1607,7 +1606,7 @@ begin
   DataBytes := AnsiToBytes('CnPack Test Data for SM4 CTR.');
   ResBytes := SM4EncryptCtrBytes(KeyBytes, NonceBytes, DataBytes);
 
-  Result := BytesToHex(ResBytes) = '';
+  Result := BytesToHex(ResBytes) = 'D959215B46C7A3B5AAC8646939051E1D52EF59952C557B8787AC536047';
   if not Result then Exit;
 
   ResBytes := SM4DecryptCtrBytes(KeyBytes, NonceBytes, ResBytes);
