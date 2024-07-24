@@ -393,7 +393,7 @@ begin
 
   // 如果是 Base64URL 编码的结果去掉了尾部的 =，则需要根据长度是否是 4 的倍数而补上
   if (Length(Data) and $03) <> 0 then
-    Data := Data + StringOfChar('=', 4 - (Length(Data) and $03));
+    Data := Data + StringOfChar(AnsiChar('='), 4 - (Length(Data) and $03));
 
   SrcLen := Length(Data);
   DstLen := SrcLen * 3 div 4;
