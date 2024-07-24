@@ -116,6 +116,7 @@ function TestSM4Ecb: Boolean;
 function TestSM4Cbc: Boolean;
 function TestSM4Cfb: Boolean;
 function TestSM4Ofb: Boolean;
+function TestSM4Ctr: Boolean;
 
 // ================================ DES ========================================
 
@@ -450,6 +451,7 @@ begin
   MyAssert(TestSM4Cbc, 'TestSM4Cbc');
   MyAssert(TestSM4Cfb, 'TestSM4Cfb');
   MyAssert(TestSM4Ofb, 'TestSM4Ofb');
+  MyAssert(TestSM4Ctr, 'TestSM4Ctr');
 
 // ================================ DES ========================================
 
@@ -1593,6 +1595,22 @@ begin
   if not Result then Exit;
 
   ResBytes := SM4DecryptOfbBytes(KeyBytes, IvBytes, ResBytes);
+  Result := CompareBytes(ResBytes, DataBytes);
+end;
+
+function TestSM4Ctr: Boolean;
+var
+  KeyBytes, NonceBytes, ResBytes, DataBytes: TBytes;
+begin
+  KeyBytes := AnsiToBytes('SM4 Key CnPack');
+  NonceBytes := AnsiToBytes('SM4Nonce');
+  DataBytes := AnsiToBytes('CnPack Test Data for SM4 CTR.');
+  ResBytes := SM4EncryptCtrBytes(KeyBytes, NonceBytes, DataBytes);
+
+  Result := BytesToHex(ResBytes) = '';
+  if not Result then Exit;
+
+  ResBytes := SM4DecryptCtrBytes(KeyBytes, NonceBytes, ResBytes);
   Result := CompareBytes(ResBytes, DataBytes);
 end;
 

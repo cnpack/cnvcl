@@ -24,13 +24,16 @@ unit CnSM4;
 * 软件名称：开发包基础库
 * 单元名称：国产分组密码算法 SM4 单元
 * 单元作者：CnPack 开发组（master@cnpack.org)
-* 备    注：参考国密算法公开文档 SM4 Encryption alogrithm
-*           并参考移植 goldboar 的 C 代码
-*           本单元未处理对齐方式，默认只在末尾补 0，
-*           如需要 PKCS 之类的支持，，请在外部调用CnPemUtils 中的 PKCS 处理函数
+* 备    注：参考国密算法公开文档《SM4 Encryption alogrithm》，部分参考并移植 goldboar 的 C 代码
+*           
+*           本单元未处理对齐方式，默认只在末尾补 0，也即 ZeroPadding
+*           如需要 PKCS 之类的支持，请在外部调用CnPemUtils 中的 PKCS 处理函数
 *           另外高版本 Delphi 中请尽量避免使用 AnsiString 参数版本的函数（十六进制除外），
 *           避免不可视字符出现乱码影响加解密结果。
-*           另外注意 CFB/OFB 是异或明文密文的流模式，无需对齐到块
+*           注意 CFB/OFB/CTR 是异或明文密文的流模式，无需对齐到块
+*           另外，本单元中的 CTR 是 8 字节 Nonce 加 8 字节计数器作为内部 16 字节初始化向量的模式
+*           与有些其他场合用整个 16 字节 Iv 的后 4 或后 8 字节做计数器的不同，使用时需注意
+*
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6 + MaxOS 64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -181,7 +184,7 @@ procedure SM4DecryptOfbStr(Key: AnsiString; Iv: PAnsiChar;
 
 procedure SM4EncryptCtrStr(Key: AnsiString; Nonce: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* SM4-OFB 封装好的针对 AnsiString 的加密方法
+{* SM4-CTR 封装好的针对 AnsiString 的加密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 #0
   Nonce    不短于 8 字节的初始化向量，太长则超出部分忽略
@@ -191,7 +194,7 @@ procedure SM4EncryptCtrStr(Key: AnsiString; Nonce: PAnsiChar;
 
 procedure SM4DecryptCtrStr(Key: AnsiString; Nonce: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* SM4-OFB 封装好的针对 AnsiString 的解密方法
+{* SM4-CTR 封装好的针对 AnsiString 的解密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 #0
   Nonce    不短于 8 字节的初始化向量，太长则超出部分忽略
