@@ -32,6 +32,7 @@ USEUNIT("..\..\Source\Common\CnGB18030.pas");
 USEUNIT("..\..\Source\Common\CnGraphUtils.pas");
 USEUNIT("..\..\Source\Common\CnHardWareInfo.pas");
 USEUNIT("..\..\Source\Common\CnHashMap.pas");
+USEUNIT("..\..\Source\Common\CnHashTable.pas");
 USEUNIT("..\..\Source\Common\CnIni.pas");
 USEUNIT("..\..\Source\Common\CnIniCfg.pas");
 USEUNIT("..\..\Source\Common\CnIniStrUtils.pas");

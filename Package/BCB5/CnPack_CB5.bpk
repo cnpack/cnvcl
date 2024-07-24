@@ -28,6 +28,7 @@
       ..\..\Source\Common\CnGraphUtils.obj 
       ..\..\Source\Common\CnHardWareInfo.obj 
       ..\..\Source\Common\CnHashMap.obj 
+      ..\..\Source\Common\CnHashTable.obj 
       ..\..\Source\Common\CnIni.obj 
       ..\..\Source\Common\CnIniCfg.obj 
       ..\..\Source\Common\CnIniStrUtils.obj 
