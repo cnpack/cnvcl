@@ -63,6 +63,7 @@ contains
   CnGraphUtils in '..\..\Source\Common\CnGraphUtils.pas',
   CnHardWareInfo in '..\..\Source\Common\CnHardWareInfo.pas',
   CnHashMap in '..\..\Source\Common\CnHashMap.pas',
+  CnHashTable in '..\..\Source\Common\CnHashTable.pas',
   CnIni in '..\..\Source\Common\CnIni.pas',
   CnIniCfg in '..\..\Source\Common\CnIniCfg.pas',
   CnIniStrUtils in '..\..\Source\Common\CnIniStrUtils.pas',
