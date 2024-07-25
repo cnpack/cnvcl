@@ -37,7 +37,7 @@ unit CryptoTest;
 
 interface
 
-// 注意为了保持测试用例纯净性，不能 {$I CnPack.inc}
+// 注意为了保持测试用例的纯净性，不能 {$I CnPack.inc}
 
 uses
   SysUtils, Classes, {$IFDEF ANDROID} FMX.Types, {$ENDIF}
@@ -142,6 +142,9 @@ function TestAESCfb256: Boolean;
 function TestAESOfb128: Boolean;
 function TestAESOfb192: Boolean;
 function TestAESOfb256: Boolean;
+function TestAESCtr128: Boolean;
+function TestAESCtr192: Boolean;
+function TestAESCtr256: Boolean;
 
 // ================================ CRC ========================================
 
@@ -477,6 +480,9 @@ begin
   MyAssert(TestAESOfb128, 'TestAESOfb128');
   MyAssert(TestAESOfb192, 'TestAESOfb192');
   MyAssert(TestAESOfb256, 'TestAESOfb256');
+  MyAssert(TestAESCtr128, 'TestAESCtr128');
+  MyAssert(TestAESCtr192, 'TestAESCtr192');
+  MyAssert(TestAESCtr256, 'TestAESCtr256');
 
 // ================================ CRC ========================================
 
@@ -1718,12 +1724,12 @@ begin
   KeyBytes := AnsiToBytes('CnPack AES Key');
   IvBytes := AnsiToBytes('AES Iv Of CnPack');
   DataBytes := AnsiToBytes('CnPack Test Data for AES CBC.');
-  ResBytes := AESEncryptCBCBytes(DataBytes, KeyBytes, IvBytes, kbt128);
+  ResBytes := AESEncryptCbcBytes(DataBytes, KeyBytes, IvBytes, kbt128);
 
   Result := BytesToHex(ResBytes) = 'B3B163B21EBA050863BAC1A6FE39DD6EFF4D8EB5CBD60B5879FCE66558D2C69C';
   if not Result then Exit;
 
-  ResBytes := AESDecryptCBCBytes(ResBytes, KeyBytes, IvBytes, kbt128);
+  ResBytes := AESDecryptCbcBytes(ResBytes, KeyBytes, IvBytes, kbt128);
   Result := CompareBytes(ResBytes, DataBytes, Length(DataBytes));
 end;
 
@@ -1734,12 +1740,12 @@ begin
   KeyBytes := AnsiToBytes('CnPack AES Key');
   IvBytes := AnsiToBytes('AES Iv Of CnPack');
   DataBytes := AnsiToBytes('CnPack Test Data for AES CBC.');
-  ResBytes := AESEncryptCBCBytes(DataBytes, KeyBytes, IvBytes, kbt192);
+  ResBytes := AESEncryptCbcBytes(DataBytes, KeyBytes, IvBytes, kbt192);
 
   Result := BytesToHex(ResBytes) = '7EE29DFBD7973F49760C92BC312F561F33587105F050BCB8C4558E175AACE840';
   if not Result then Exit;
 
-  ResBytes := AESDecryptCBCBytes(ResBytes, KeyBytes, IvBytes, kbt192);
+  ResBytes := AESDecryptCbcBytes(ResBytes, KeyBytes, IvBytes, kbt192);
   Result := CompareBytes(ResBytes, DataBytes, Length(DataBytes));
 end;
 
@@ -1750,12 +1756,12 @@ begin
   KeyBytes := AnsiToBytes('CnPack AES Key');
   IvBytes := AnsiToBytes('AES Iv Of CnPack');
   DataBytes := AnsiToBytes('CnPack Test Data for AES CBC.');
-  ResBytes := AESEncryptCBCBytes(DataBytes, KeyBytes, IvBytes, kbt256);
+  ResBytes := AESEncryptCbcBytes(DataBytes, KeyBytes, IvBytes, kbt256);
 
   Result := BytesToHex(ResBytes) = '381D107404224569C3BC4CCAF71ECF312F188A12402241732A40EFAE69EA4587';
   if not Result then Exit;
 
-  ResBytes := AESDecryptCBCBytes(ResBytes, KeyBytes, IvBytes, kbt256);
+  ResBytes := AESDecryptCbcBytes(ResBytes, KeyBytes, IvBytes, kbt256);
   Result := CompareBytes(ResBytes, DataBytes, Length(DataBytes));
 end;
 
@@ -1766,12 +1772,12 @@ begin
   KeyBytes := AnsiToBytes('CnPack AES Key');
   IvBytes := AnsiToBytes('AES Iv Of CnPack');
   DataBytes := AnsiToBytes('CnPack Test Data for AES CFB.');
-  ResBytes := AESEncryptCFBBytes(DataBytes, KeyBytes, IvBytes, kbt128);
+  ResBytes := AESEncryptCfbBytes(DataBytes, KeyBytes, IvBytes, kbt128);
 
   Result := BytesToHex(ResBytes) = 'D5CA4EFC7C656E63718283DBF9217ABC877EF21D9507B32147172683FB';
   if not Result then Exit;
 
-  ResBytes := AESDecryptCFBBytes(ResBytes, KeyBytes, IvBytes, kbt128);
+  ResBytes := AESDecryptCfbBytes(ResBytes, KeyBytes, IvBytes, kbt128);
   Result := CompareBytes(ResBytes, DataBytes);
 end;
 
@@ -1782,12 +1788,12 @@ begin
   KeyBytes := AnsiToBytes('CnPack AES Key');
   IvBytes := AnsiToBytes('AES Iv Of CnPack');
   DataBytes := AnsiToBytes('CnPack Test Data for AES CFB.');
-  ResBytes := AESEncryptCFBBytes(DataBytes, KeyBytes, IvBytes, kbt192);
+  ResBytes := AESEncryptCfbBytes(DataBytes, KeyBytes, IvBytes, kbt192);
 
   Result := BytesToHex(ResBytes) = 'EAE9E836AFEED796377AD3A595C80FC43925777FADDC911CF3C094BCAB';
   if not Result then Exit;
 
-  ResBytes := AESDecryptCFBBytes(ResBytes, KeyBytes, IvBytes, kbt192);
+  ResBytes := AESDecryptCfbBytes(ResBytes, KeyBytes, IvBytes, kbt192);
   Result := CompareBytes(ResBytes, DataBytes);
 end;
 
@@ -1798,12 +1804,12 @@ begin
   KeyBytes := AnsiToBytes('CnPack AES Key');
   IvBytes := AnsiToBytes('AES Iv Of CnPack');
   DataBytes := AnsiToBytes('CnPack Test Data for AES CFB.');
-  ResBytes := AESEncryptCFBBytes(DataBytes, KeyBytes, IvBytes, kbt256);
+  ResBytes := AESEncryptCfbBytes(DataBytes, KeyBytes, IvBytes, kbt256);
 
   Result := BytesToHex(ResBytes) = 'E5271041F97C434528E4426FA2CA3CD96994806B9765911657ABA87B00';
   if not Result then Exit;
 
-  ResBytes := AESDecryptCFBBytes(ResBytes, KeyBytes, IvBytes, kbt256);
+  ResBytes := AESDecryptCfbBytes(ResBytes, KeyBytes, IvBytes, kbt256);
   Result := CompareBytes(ResBytes, DataBytes);
 end;
 
@@ -1814,12 +1820,12 @@ begin
   KeyBytes := AnsiToBytes('CnPack AES Key');
   IvBytes := AnsiToBytes('AES Iv Of CnPack');
   DataBytes := AnsiToBytes('CnPack Test Data for AES OFB.');
-  ResBytes := AESEncryptOFBBytes(DataBytes, KeyBytes, IvBytes, kbt128);
+  ResBytes := AESEncryptOfbBytes(DataBytes, KeyBytes, IvBytes, kbt128);
 
   Result := BytesToHex(ResBytes) = 'D5CA4EFC7C656E63718283DBF9217ABC5000A6506B556A87B173E6F37B';
   if not Result then Exit;
 
-  ResBytes := AESDecryptOFBBytes(ResBytes, KeyBytes, IvBytes, kbt128);
+  ResBytes := AESDecryptOfbBytes(ResBytes, KeyBytes, IvBytes, kbt128);
   Result := CompareBytes(ResBytes, DataBytes);
 end;
 
@@ -1830,12 +1836,12 @@ begin
   KeyBytes := AnsiToBytes('CnPack AES Key');
   IvBytes := AnsiToBytes('AES Iv Of CnPack');
   DataBytes := AnsiToBytes('CnPack Test Data for AES OFB.');
-  ResBytes := AESEncryptOFBBytes(DataBytes, KeyBytes, IvBytes, kbt192);
+  ResBytes := AESEncryptOfbBytes(DataBytes, KeyBytes, IvBytes, kbt192);
 
   Result := BytesToHex(ResBytes) = 'EAE9E836AFEED796377AD3A595C80FC4B3BABCB7564945596F39082D59';
   if not Result then Exit;
 
-  ResBytes := AESDecryptOFBBytes(ResBytes, KeyBytes, IvBytes, kbt192);
+  ResBytes := AESDecryptOfbBytes(ResBytes, KeyBytes, IvBytes, kbt192);
   Result := CompareBytes(ResBytes, DataBytes);
 end;
 
@@ -1846,13 +1852,154 @@ begin
   KeyBytes := AnsiToBytes('CnPack AES Key');
   IvBytes := AnsiToBytes('AES Iv Of CnPack');
   DataBytes := AnsiToBytes('CnPack Test Data for AES OFB.');
-  ResBytes := AESEncryptOFBBytes(DataBytes, KeyBytes, IvBytes, kbt256);
+  ResBytes := AESEncryptOfbBytes(DataBytes, KeyBytes, IvBytes, kbt256);
 
   Result := BytesToHex(ResBytes) = 'E5271041F97C434528E4426FA2CA3CD9DF7CFF961FEDD3F139A4108A1E';
   if not Result then Exit;
 
-  ResBytes := AESDecryptOFBBytes(ResBytes, KeyBytes, IvBytes, kbt256);
+  ResBytes := AESDecryptOfbBytes(ResBytes, KeyBytes, IvBytes, kbt256);
   Result := CompareBytes(ResBytes, DataBytes);
+end;
+
+function TestAESCtr128: Boolean;
+var
+  KeyBytes, NonceBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  // 来自 RFC 3686 的 TestVector 1
+  KeyBytes := HexToBytes('AE6852F8121067CC4BF7A5765577F39E');
+  NonceBytes := HexToBytes('00000030');
+  IvBytes := HexToBytes('0000000000000000');
+  DataBytes := HexToBytes('53696E676C6520626C6F636B206D7367');
+
+  ResBytes := AESEncryptCtrBytes(DataBytes, KeyBytes, NonceBytes, IvBytes, kbt128);
+  Result := BytesToHex(ResBytes) = 'E4095D4FB7A7B3792D6175A3261311B8';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCtrBytes(ResBytes, KeyBytes, NonceBytes, IvBytes, kbt128);
+  Result := CompareBytes(ResBytes, DataBytes);
+  if not Result then Exit;
+
+  // 来自 RFC 3686 的 TestVector 2
+  KeyBytes := HexToBytes('7E24067817FAE0D743D6CE1F32539163');
+  NonceBytes := HexToBytes('006CB6DB');
+  IvBytes := HexToBytes('C0543B59DA48D90B');
+  DataBytes := HexToBytes('000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F');
+
+  ResBytes := AESEncryptCtrBytes(DataBytes, KeyBytes, NonceBytes, IvBytes, kbt128);
+  Result := BytesToHex(ResBytes) = '5104A106168A72D9790D41EE8EDAD388EB2E1EFC46DA57C8FCE630DF9141BE28';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCtrBytes(ResBytes, KeyBytes, NonceBytes, IvBytes, kbt128);
+  Result := CompareBytes(ResBytes, DataBytes);
+  if not Result then Exit;
+
+  // 来自 RFC 3686 的 TestVector 3
+  KeyBytes := HexToBytes('7691BE035E5020A8AC6E618529F9A0DC');
+  NonceBytes := HexToBytes('00E0017B');
+  IvBytes := HexToBytes('27777F3F4A1786F0');
+  DataBytes := HexToBytes('000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F20212223');
+
+  ResBytes := AESEncryptCtrBytes(DataBytes, KeyBytes, NonceBytes, IvBytes, kbt128);
+  Result := BytesToHex(ResBytes) = 'C1CF48A89F2FFDD9CF4652E9EFDB72D74540A42BDE6D7836D59A5CEAAEF3105325B2072F';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCtrBytes(ResBytes, KeyBytes, NonceBytes, IvBytes, kbt128);
+  Result := CompareBytes(ResBytes, DataBytes);
+  if not Result then Exit;
+end;
+
+function TestAESCtr192: Boolean;
+var
+  KeyBytes, NonceBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  // 来自 RFC 3686 的 TestVector 4
+  KeyBytes := HexToBytes('16AF5B145FC9F579C175F93E3BFB0EED863D06CCFDB78515');
+  NonceBytes := HexToBytes('00000048');
+  IvBytes := HexToBytes('36733C147D6D93CB');
+  DataBytes := HexToBytes('53696E676C6520626C6F636B206D7367');
+
+  ResBytes := AESEncryptCtrBytes(DataBytes, KeyBytes, NonceBytes, IvBytes, kbt192);
+  Result := BytesToHex(ResBytes) = '4B55384FE259C9C84E7935A003CBE928';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCtrBytes(ResBytes, KeyBytes, NonceBytes, IvBytes, kbt192);
+  Result := CompareBytes(ResBytes, DataBytes);
+  if not Result then Exit;
+
+  // 来自 RFC 3686 的 TestVector 5
+  KeyBytes := HexToBytes('7C5CB2401B3DC33C19E7340819E0F69C678C3DB8E6F6A91A');
+  NonceBytes := HexToBytes('0096B03B');
+  IvBytes := HexToBytes('020C6EADC2CB500D');
+  DataBytes := HexToBytes('000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F');
+
+  ResBytes := AESEncryptCtrBytes(DataBytes, KeyBytes, NonceBytes, IvBytes, kbt192);
+  Result := BytesToHex(ResBytes) = '453243FC609B23327EDFAAFA7131CD9F8490701C5AD4A79CFC1FE0FF42F4FB00';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCtrBytes(ResBytes, KeyBytes, NonceBytes, IvBytes, kbt192);
+  Result := CompareBytes(ResBytes, DataBytes);
+  if not Result then Exit;
+
+  // 来自 RFC 3686 的 TestVector 6
+  KeyBytes := HexToBytes('02BF391EE8ECB159B959617B0965279BF59B60A786D3E0FE');
+  NonceBytes := HexToBytes('0007BDFD');
+  IvBytes := HexToBytes('5CBD60278DCC0912');
+  DataBytes := HexToBytes('000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F20212223');
+
+  ResBytes := AESEncryptCtrBytes(DataBytes, KeyBytes, NonceBytes, IvBytes, kbt192);
+  Result := BytesToHex(ResBytes) = '96893FC55E5C722F540B7DD1DDF7E758D288BC95C69165884536C811662F2188ABEE0935';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCtrBytes(ResBytes, KeyBytes, NonceBytes, IvBytes, kbt192);
+  Result := CompareBytes(ResBytes, DataBytes);
+  if not Result then Exit;
+end;
+
+function TestAESCtr256: Boolean;
+var
+  KeyBytes, NonceBytes, IvBytes, ResBytes, DataBytes: TBytes;
+begin
+  // 来自 RFC 3686 的 TestVector 7
+  KeyBytes := HexToBytes('776BEFF2851DB06F4C8A0542C8696F6C6A81AF1EEC96B4D37FC1D689E6C1C104');
+  NonceBytes := HexToBytes('00000060');
+  IvBytes := HexToBytes('DB5672C97AA8F0B2');
+  DataBytes := HexToBytes('53696E676C6520626C6F636B206D7367');
+
+  ResBytes := AESEncryptCtrBytes(DataBytes, KeyBytes, NonceBytes, IvBytes, kbt256);
+  Result := BytesToHex(ResBytes) = '145AD01DBF824EC7560863DC71E3E0C0';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCtrBytes(ResBytes, KeyBytes, NonceBytes, IvBytes, kbt256);
+  Result := CompareBytes(ResBytes, DataBytes);
+  if not Result then Exit;
+
+  // 来自 RFC 3686 的 TestVector 8
+  KeyBytes := HexToBytes('F6D66D6BD52D59BB0796365879EFF886C66DD51A5B6A99744B50590C87A23884');
+  NonceBytes := HexToBytes('00FAAC24');
+  IvBytes := HexToBytes('C1585EF15A43D875');
+  DataBytes := HexToBytes('000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F');
+
+  ResBytes := AESEncryptCtrBytes(DataBytes, KeyBytes, NonceBytes, IvBytes, kbt256);
+  Result := BytesToHex(ResBytes) = 'F05E231B3894612C49EE000B804EB2A9B8306B508F839D6A5530831D9344AF1C';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCtrBytes(ResBytes, KeyBytes, NonceBytes, IvBytes, kbt256);
+  Result := CompareBytes(ResBytes, DataBytes);
+  if not Result then Exit;
+
+  // 来自 RFC 3686 的 TestVector 9
+  KeyBytes := HexToBytes('FF7A617CE69148E4F1726E2F43581DE2AA62D9F805532EDFF1EED687FB54153D');
+  NonceBytes := HexToBytes('001CC5B7');
+  IvBytes := HexToBytes('51A51D70A1C11148');
+  DataBytes := HexToBytes('000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F20212223');
+
+  ResBytes := AESEncryptCtrBytes(DataBytes, KeyBytes, NonceBytes, IvBytes, kbt256);
+  Result := BytesToHex(ResBytes) = 'EB6C52821D0BBBF7CE7594462ACA4FAAB407DF866569FD07F48CC0B583D6071F1EC0E6B8';
+  if not Result then Exit;
+
+  ResBytes := AESDecryptCtrBytes(ResBytes, KeyBytes, NonceBytes, IvBytes, kbt256);
+  Result := CompareBytes(ResBytes, DataBytes);
+  if not Result then Exit;
 end;
 
 // ================================ CRC ========================================

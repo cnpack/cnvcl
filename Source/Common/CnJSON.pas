@@ -32,8 +32,8 @@ unit CnJSON;
 *           Key 是双引号字符串，Value 则可以是普通值、JSONObject 或 JSONArray，
 *           JSONArray 是一排 JSONValue
 *
-*           JSONValue 设有 Count 及 [Integer] 缺省索引作为是 JSONArray 时的子项，
-*           设有 Count 及 Values[String] 非缺省索引作为是 JSONObject 时的子项，String 参数为 Key
+*           JSONValue 设有 Count 及 [Integer] 非缺省索引作为是 JSONArray 时的子项，
+*           设有 Count 及 Values[String] 缺省索引作为是 JSONObject 时的子项，String 参数为 Key
 *           这样可以写 Obj['animals']['dog'].Values[0]['age'].AsInteger 的级联形式来访问
 *
 *           解析：

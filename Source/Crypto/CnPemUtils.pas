@@ -58,7 +58,7 @@ const
   CN_PKCS1_BLOCK_TYPE_PRIVATE_00       = 00;
   CN_PKCS1_BLOCK_TYPE_PRIVATE_FF       = 01;
   CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM    = 02;
-  {* PKCS1 对齐时的三类块类型字段}
+  {* PKCS1 对齐时的三类块类型字段，默认应分别用于 RSA 的私钥加密、私钥签名、公钥加密}
 
 type
   TCnKeyHashMethod = (ckhMd5, ckhSha256);
