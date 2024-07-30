@@ -49,7 +49,9 @@ unit CnJSON;
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.06.30 V1.4
+* 修改记录：2024.07.30 V1.5
+*                 加入 Clone 方法
+*           2024.06.30 V1.4
 *                 浮点数与字符串转换不受某些逗号的系统区域设置的影响，均以点号小数点为准
 *           2024.02.04 V1.3
 *                 JSONObject 的 Key Value 对数量超过阈值时，内部用哈希表进行加速
@@ -174,6 +176,9 @@ type
     procedure Assign(Source: TPersistent); override;
     {* 赋值函数}
 
+    function Clone: TCnJSONValue; virtual; abstract;
+    {* 复制一份自身，包括自身持有的所有对象}
+
     // 以下方法组装用
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
 
@@ -239,6 +244,9 @@ type
     procedure Assign(Source: TPersistent); override;
     {* 赋值函数}
 
+    function Clone: TCnJSONValue; override;
+    {* 复制一份对象自身，包括自身持有的所有对象}
+
     procedure Clear;
     {* 清除所有内容}
 
@@ -288,20 +296,25 @@ type
   {* 代表 JSON 中的字符串值的类}
   private
     FValue: string;
-    // 与 Content 同步的 string 格式内容
+    // 与 Content 同步的 string 格式内容，同时支持 Unicode 与 Ansi
     procedure SetValue(const Value: string);
 
     function JsonFormatToString(const Str: AnsiString): string;
     {* 把 JSON 中的内容解析转义后返回，包括去引号、解释转义等}
     function StringToJsonFormat(const Str: string): AnsiString;
-    {* 把字符串加上双引号与转义后返回为 JSON 格式，内部会做 UTF8 转换}
+    {* 把字符串加上双引号与转义后返回为 JSON 格式，内部会做 UTF8 转换
+      Str 为 string 类型，同时支持 Unicode 与 Ansi 下的 string}
   public
+    function Clone: TCnJSONValue; override;
+    {* 复制一份相同的字符串对象}
+
     function IsString: Boolean; override;
     function AsString: string; override;
     {* 根据 Content 值更新 Value 并返回}
 
     property Value: string read FValue write SetValue;
-    {* 组装时供外界写入值，内部同步更新 Content}
+    {* 组装时供外界写入值，内部同步更新 Content
+      同时支持 Unicode 与 Ansi 下的 string}
   end;
 
   TCnJSONNumber = class(TCnJSONValue)
@@ -310,6 +323,9 @@ type
 
   public
     function IsNumber: Boolean; override;
+
+    function Clone: TCnJSONValue; override;
+    {* 复制一份相同的数字对象}
   end;
 
   TCnJSONNull = class(TCnJSONValue)
@@ -319,6 +335,9 @@ type
   public
     constructor Create; override;
     function IsNull: Boolean; override;
+
+    function Clone: TCnJSONValue; override;
+    {* 复制一份 Null 对象}
   end;
 
   TCnJSONTrue = class(TCnJSONValue)
@@ -328,6 +347,9 @@ type
   public
     constructor Create; override;
     function IsTrue: Boolean; override;
+
+    function Clone: TCnJSONValue; override;
+    {* 复制一份 True 对象}
   end;
 
   TCnJSONFalse = class(TCnJSONValue)
@@ -337,6 +359,9 @@ type
   public
     constructor Create; override;
     function IsFalse: Boolean; override;
+
+    function Clone: TCnJSONValue; override;
+    {* 复制一份 False 对象}
   end;
 
 {
@@ -360,16 +385,28 @@ type
     procedure Assign(Source: TPersistent); override;
     {* 赋值函数}
 
+    function Clone: TCnJSONValue; override;
+    {* 复制一份相同的数组对象，包括数组里各个元素}
+
     procedure Clear;
     {* 清除所有内容}
 
     // 外部组装用
     function AddValue(Value: TCnJSONValue): TCnJSONArray; overload;
+    {* 增加一值对象到数组并持有，返回数组本身}
     function AddValue(const Value: string): TCnJSONArray; overload;
-    function AddValue(Value: Integer): TCnJSONArray; overload;
+    {* 增加一字符串到数组，返回数组本身}
+    function AddValue(Value: Int64): TCnJSONArray; overload;
+    {* 增加一整数到数组，返回数组本身}
     function AddValue(Value: Extended): TCnJSONArray; overload;
+    {* 增加一浮点数到数组，返回数组本身}
     function AddValue(Value: Boolean): TCnJSONArray; overload;
+    {* 增加一 Boolean 值到数组，返回数组本身}
     function AddValue: TCnJSONArray; overload;
+    {* 增加一空值到数组，返回数组本身}
+
+    function AddValues(Values: array of const): TCnJSONArray;
+    {* 增加一堆内容至数组，返回数组本身。如果内容中有 TCnJSONValue 实例，则持有之}
 
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
     {* 生成 UTF8 格式的 JSON 字符串}
@@ -466,6 +503,10 @@ function CnJSONConstruct(Obj: TCnJSONObject; UseFormat: Boolean = True; Indent: 
 function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject;
 {* 解析 UTF8 格式的 JSON 字符串为 JSON 对象}
 
+procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject);
+{* 将 FromObj 这个 JSONObject 的键值对合并至 ToObj 这个 JSONObject
+  不存在的键值对将复制后插入，存在的，则简单类型进行覆盖，数组类型拼接，对象类型合并}
+
 implementation
 
 {$IFNDEF UNICODE}
@@ -488,6 +529,7 @@ resourcestring
   SCnErrorJSONTypeMismatch = 'JSON Value Type Mismatch';
   SCnErrorJSONStringParse = 'JSON String Parse Error';
   SCnErrorJSONValueTypeNotImplementedFmt = 'NOT Implemented for this JSON Value Type %s';
+  SCnErrorJSONArrayConstsTypeFmt = 'JSON Const Type NOT Support %d';
 
 {$IFDEF SUPPORT_FORMAT_SETTINGS}
 
@@ -681,6 +723,11 @@ begin
     Result := Obj.ToJSON(UseFormat, Indent)
   else
     Result := '';
+end;
+
+procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject);
+begin
+
 end;
 
 { TCnJSONParser }
@@ -1031,6 +1078,12 @@ end;
 procedure TCnJSONObject.Clear;
 begin
   FPairs.Clear;
+end;
+
+function TCnJSONObject.Clone: TCnJSONValue;
+begin
+  Result := TCnJSONObject.Create;
+  Result.Assign(Self);
 end;
 
 constructor TCnJSONObject.Create;
@@ -1385,7 +1438,7 @@ begin
   Result := Self;
 end;
 
-function TCnJSONArray.AddValue(Value: Integer): TCnJSONArray;
+function TCnJSONArray.AddValue(Value: Int64): TCnJSONArray;
 var
   V: TCnJSONNumber;
 begin
@@ -1422,6 +1475,84 @@ begin
   Result := AddValue(TCnJSONNull.Create);
 end;
 
+function TCnJSONArray.AddValues(Values: array of const): TCnJSONArray;
+var
+  I: Integer;
+begin
+  for I := Low(Values) to High(Values) do
+  begin
+    case Values[I].VType of
+      vtInteger:
+        begin
+          AddValue(Values[I].VInteger);
+        end;
+      vtInt64:
+        begin
+          AddValue(Values[I].VInt64^);
+        end;
+      vtExtended:
+        begin
+          AddValue(Values[I].VExtended^);
+        end;
+      vtBoolean:
+        begin
+          AddValue(Values[I].VBoolean);
+        end;
+      vtObject:
+        begin
+          if Values[I].VObject = nil then
+            AddValue
+          else if Values[I].VObject is TCnJSONValue then
+            AddValue(Values[I].VObject as TCnJSONValue);
+        end;
+      vtPointer:
+        begin
+          if Values[I].VPointer = nil then // 指针类型只支持 nil 为 null
+            AddValue
+          else
+            raise ECnJSONException.CreateFmt(SCnErrorJSONArrayConstsTypeFmt, [Values[I].VType]);
+        end;
+      vtString:
+        begin
+          AddValue(string(Values[I].VString^));
+        end;
+      vtAnsiString:
+        begin
+          AddValue(string(PAnsiChar(Values[I].VAnsiString)));
+        end;
+      vtWideString:
+        begin
+          AddValue(string(PWideChar(Values[I].VWideString)));
+        end;
+      vtChar:
+        begin
+          AddValue(string(Values[I].VChar));  // 注意不随编译器变化，只是 AnsiChar
+        end;
+      vtWideChar:
+        begin
+          AddValue(string(Values[I].VWideChar));
+        end;
+      vtPChar:
+        begin
+          AddValue(string(Values[I].VPChar)); // 注意不随编译器变化，只是 PAnsiChar
+        end;
+      vtPWideChar:
+        begin
+          AddValue(string(Values[I].VPWideChar));
+        end;
+{$IFDEF UNICODE}
+      vtUnicodeString:
+        begin
+          AddValue(string(Values[I].VUnicodeString));
+        end;
+{$ENDIF}
+    else
+      raise ECnJSONException.CreateFmt(SCnErrorJSONArrayConstsTypeFmt, [Values[I].VType]);
+    end;
+  end;
+  Result := Self;
+end;
+
 procedure TCnJSONArray.Assign(Source: TPersistent);
 var
   I: Integer;
@@ -1451,6 +1582,12 @@ end;
 procedure TCnJSONArray.Clear;
 begin
   FValues.Clear;
+end;
+
+function TCnJSONArray.Clone: TCnJSONValue;
+begin
+  Result := TCnJSONArray.Create;
+  Result.Assign(Self);
 end;
 
 constructor TCnJSONArray.Create;
@@ -1592,6 +1729,12 @@ begin
     FUpdated := False;
   end;
   Result := FValue;
+end;
+
+function TCnJSONString.Clone: TCnJSONValue;
+begin
+  Result := TCnJSONString.Create;
+  Result.Assign(Self);
 end;
 
 function TCnJSONString.IsString: Boolean;
@@ -1788,12 +1931,23 @@ end;
 
 { TCnJSONNumber }
 
+function TCnJSONNumber.Clone: TCnJSONValue;
+begin
+  Result := TCnJSONNumber.Create;
+  Result.Assign(Self);
+end;
+
 function TCnJSONNumber.IsNumber: Boolean;
 begin
   Result := True;
 end;
 
 { TCnJSONNull }
+
+function TCnJSONNull.Clone: TCnJSONValue;
+begin
+  Result := TCnJSONNull.Create;
+end;
 
 constructor TCnJSONNull.Create;
 begin
@@ -1808,6 +1962,11 @@ end;
 
 { TCnJSONTrue }
 
+function TCnJSONTrue.Clone: TCnJSONValue;
+begin
+  Result := TCnJSONTrue.Create;
+end;
+
 constructor TCnJSONTrue.Create;
 begin
   inherited;
@@ -1820,6 +1979,11 @@ begin
 end;
 
 { TCnJSONFalse }
+
+function TCnJSONFalse.Clone: TCnJSONValue;
+begin
+  Result := TCnJSONFalse.Create;
+end;
 
 constructor TCnJSONFalse.Create;
 begin
