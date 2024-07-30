@@ -50,7 +50,7 @@ unit CnJSON;
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2024.07.30 V1.5
-*                 加入 Clone 方法
+*                 实现 Value 的 Clone 方法、数组的 AddValues 方法，合并 JSONObject 的过程
 *           2024.06.30 V1.4
 *                 浮点数与字符串转换不受某些逗号的系统区域设置的影响，均以点号小数点为准
 *           2024.02.04 V1.3
@@ -233,8 +233,10 @@ type
     {* 供内部解析时添加 Pair}
     function GetName(Index: Integer): TCnJSONString; override;
     function GetValueByName(const Name: string): TCnJSONValue; override;
+    procedure SetValueByName(const Name: string; const Value: TCnJSONValue);
     function GetCount: Integer; override;
     function GetValue(Index: Integer): TCnJSONValue; override;
+    procedure SetValue(Index: Integer; const Value: TCnJSONValue);
   public
     constructor Create; override;
     {* 构造函数}
@@ -270,6 +272,7 @@ type
 
     // 以下方法解析用
     function IsObject: Boolean; override;
+    {* 返回是否是 JSONObject}
 
     class function FromJSON(const JsonStr: AnsiString): TCnJSONObject;
     {* 解析 UTF8 格式的 JSON 字符串，返回新对象}
@@ -281,10 +284,12 @@ type
 
     property Names[Index: Integer]: TCnJSONString read GetName;
     {* 名称对象索引}
-    property Values[Index: Integer]: TCnJSONValue read GetValue;
-    {* 值对象索引，注意值可能是 TCnJSONValue 的不同子类实例}
-    property ValueByName[const Name: string]: TCnJSONValue read GetValueByName; default;
-    {* 根据名称获取值的实例}
+    property Values[Index: Integer]: TCnJSONValue read GetValue write SetValue;
+    {* 值对象索引，读方法可返回索引对应的值对象，注意值可能是 TCnJSONValue 的不同子类实例；
+      写方法可根据索引设置并管理其值对象，原有值对象如有则将释放}
+    property ValueByName[const Name: string]: TCnJSONValue read GetValueByName write SetValueByName; default;
+    {* 读方法可根据名称获取值对象，无该名称则返回 nil；
+      写方法可根据名称设置并管理其值对象，原有值对象如有则释放；无该名称则抛出异常}
   end;
 
   TCnJSONValueClass = class of TCnJSONValue;
@@ -422,6 +427,7 @@ type
   private
     FName: TCnJSONString;
     FValue: TCnJSONValue;
+    procedure SetValue(const Value: TCnJSONValue);
   protected
     function AddChild(AChild: TCnJSONBase): TCnJSONBase; override;
     {* 设置 AChild 作为其 Value}
@@ -439,7 +445,7 @@ type
 
     property Name: TCnJSONString read FName;
     {* 键名，自动创建并持有，自身负责释放}
-    property Value: TCnJSONValue read FValue write FValue;
+    property Value: TCnJSONValue read FValue write SetValue;
     {* 值，不自动创建，外部设置其引用，自身负责释放}
   end;
 
@@ -503,9 +509,11 @@ function CnJSONConstruct(Obj: TCnJSONObject; UseFormat: Boolean = True; Indent: 
 function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject;
 {* 解析 UTF8 格式的 JSON 字符串为 JSON 对象}
 
-procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject);
+procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject;
+  Replace: Boolean = False);
 {* 将 FromObj 这个 JSONObject 的键值对合并至 ToObj 这个 JSONObject
-  不存在的键值对将复制后插入，存在的，则简单类型进行覆盖，数组类型拼接，对象类型合并}
+  名字不存在的键值对将复制后插入；名字存在的，同为数组则直接拼接（元素不会判重）、同为对象则合并，
+  其他情况，Replace 为 False 则啥都不做，Replace 为 True，则复制后替换}
 
 implementation
 
@@ -527,6 +535,7 @@ resourcestring
   SCnErrorJSONValueFmt = 'JSON Value Error %s at Offset %d';
   SCnErrorJSONPair = 'JSON Pair Value Conflict';
   SCnErrorJSONTypeMismatch = 'JSON Value Type Mismatch';
+  SCnErrorJSONNameNotExistsFmt = 'JSON Name %s NOT Exist.';
   SCnErrorJSONStringParse = 'JSON String Parse Error';
   SCnErrorJSONValueTypeNotImplementedFmt = 'NOT Implemented for this JSON Value Type %s';
   SCnErrorJSONArrayConstsTypeFmt = 'JSON Const Type NOT Support %d';
@@ -725,9 +734,54 @@ begin
     Result := '';
 end;
 
-procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject);
+procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject;
+  Replace: Boolean);
+var
+  I, J: Integer;
+  V, D: TCnJSONValue;
+  N: string;
 begin
+  if (FromObj = nil) or (ToObj = nil) then
+    Exit;
 
+  if FromObj.Count = 0 then
+    Exit;
+
+  // 不存在的键值对将复制后插入，存在的，则简单类型进行覆盖，数组类型拼接，对象类型合并
+  for I := 0 to FromObj.Count - 1 do
+  begin
+    N := FromObj.Names[I].AsString;
+    if N = '' then
+      Continue;
+
+    D := ToObj.ValueByName[N];
+    V := FromObj.Values[I];
+    // N 是名称，V 是 From 的值，D 是 To 的值
+
+    if D = nil then
+    begin
+      // 如果 FromObj 里的这个 Name 在 ToObj 里不存在，则复制后插入 ToObj
+      ToObj.AddPair(N, V.Clone);
+    end
+    else
+    begin
+      // 同名的值存在，都是数组则拼接，都是对象则合并
+      if (V is TCnJSONArray) and (D is TCnJSONArray) then
+      begin
+        for J := 0 to TCnJSONArray(V).Count - 1 do
+          TCnJSONArray(D).AddValue(TCnJSONArray(V)[J].Clone);
+      end
+      else if (V is TCnJSONObject) and (D is TCnJSONObject) then
+      begin
+        CnJSONMergeObject(TCnJSONObject(V), TCnJSONObject(D), Replace);
+      end
+      else // 都不是，则按需替换，哪怕类型不对也强行替换
+      begin
+        if Replace then
+          ToObj.ValueByName[N] := V.Clone;
+      end;
+    end;
+  end;
 end;
 
 { TCnJSONParser }
@@ -1162,6 +1216,39 @@ end;
 function TCnJSONObject.IsObject: Boolean;
 begin
   Result := True;
+end;
+
+procedure TCnJSONObject.SetValue(Index: Integer; const Value: TCnJSONValue);
+begin
+  (FPairs[Index] as TCnJSONPair).Value := Value;
+end;
+
+procedure TCnJSONObject.SetValueByName(const Name: string; const Value: TCnJSONValue);
+var
+  I: Integer;
+  P: Pointer;
+begin
+  if FMap = nil then
+  begin
+    for I := 0 to FPairs.Count - 1 do
+    begin
+      if TCnJSONPair(FPairs[I]).Name.AsString = Name then
+      begin
+        TCnJSONPair(FPairs[I]).Value := Value;
+        Exit;
+      end;
+    end
+  end
+  else // 用散列来加速
+  begin
+    P := FMap.GetValues(Name);
+    if P <> nil then
+    begin
+      TCnJSONPair(P).Value := Value;
+      Exit;
+    end;
+  end;
+  raise ECnJSONException.CreateFmt(SCnErrorJSONNameNotExistsFmt, [Name]);
 end;
 
 function ComparePair(Item1, Item2: Pointer): Integer;
@@ -1703,6 +1790,14 @@ begin
   FValue.Free;
   FName.Free;
   inherited;
+end;
+
+procedure TCnJSONPair.SetValue(const Value: TCnJSONValue);
+begin
+  if FValue <> nil then // 如果已经有了 FValue 则释放掉
+    FreeAndNil(FValue);
+
+  FValue := Value;
 end;
 
 function TCnJSONPair.ToJSON(UseFormat: Boolean; Indent: Integer): AnsiString;

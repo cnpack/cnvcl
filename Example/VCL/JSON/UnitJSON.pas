@@ -30,6 +30,10 @@ type
     btnOpenHuge: TButton;
     dlgOpen1: TOpenDialog;
     btnJSONSort: TButton;
+    btnClone: TButton;
+    btnArray: TButton;
+    btnMerge: TButton;
+    chkReplaceName: TCheckBox;
     procedure btnParseClick(Sender: TObject);
     procedure btnJSONConstruct1Click(Sender: TObject);
     procedure btnWriteClick(Sender: TObject);
@@ -37,6 +41,9 @@ type
     procedure btnGenHugeClick(Sender: TObject);
     procedure btnOpenHugeClick(Sender: TObject);
     procedure btnJSONSortClick(Sender: TObject);
+    procedure btnCloneClick(Sender: TObject);
+    procedure btnArrayClick(Sender: TObject);
+    procedure btnMergeClick(Sender: TObject);
   private
     procedure DumpJSONToTreeView(JSON: TCnJSONObject);
   public
@@ -256,6 +263,116 @@ begin
   finally
     Obj.Free;
   end;
+end;
+
+procedure TFormJSON.btnCloneClick(Sender: TObject);
+var
+  Obj, Dst: TCnJSONObject;
+  S: AnsiString;
+begin
+  // ºº×Ö×ª UTF8
+{$IFDEF UNICODE}
+  S := Utf8Encode(mmoJSON.Lines.Text);
+{$ELSE}
+  S := CnUtf8EncodeWideString(WideString(mmoJSON.Lines.Text));
+{$ENDIF}
+
+  Obj := CnJSONParse(S);
+  Dst := Obj.Clone as TCnJSONObject;
+  S := Dst.ToJSON;
+
+{$IFDEF UNICODE}
+  mmoJSONReconstruct.Lines.Text := UTF8Decode(S);
+{$ELSE}
+  mmoJSONReconstruct.Lines.Text := AnsiString(CnUtf8DecodeToWideString(S));
+{$ENDIF}
+end;
+
+procedure TFormJSON.btnArrayClick(Sender: TObject);
+var
+  Obj: TCnJSONObject;
+  Arr: TCnJSONArray;
+  V1: Integer;
+  V2: Int64;
+  V3: Extended;
+  V4: Boolean;
+  V5: TObject;
+  V6: string;
+  V7: WideString;
+  V8: AnsiChar;
+  V9: WideChar;
+  V10: PAnsiChar;
+  V11: PWideChar;
+  S1: AnsiString;
+  S2: WideString;
+{$IFDEF UNICODE}
+  V12: string;
+{$ENDIF}
+begin
+  Obj := TCnJSONObject.Create;
+  Arr := Obj.AddArray('Array');
+
+  V1 := -123456;
+  V2 := 987654321098765434;
+  V3 := 1.59e-8;
+  V4 := False;
+  V5 := TCnJSONObject.Create;
+  V6 := 'a string';
+  V7 := 'a Wide String';
+  V8 := #13;
+  V9 := #$5403;  // '³Ô' µÄ UTF16 ±àÂë
+
+  S1 := 'a ³Ô·¹µÄ PAnsiChar';
+  S2 := 'A ºÈË®µÄ PWideChar';
+  V10 := PAnsiChar(S1);
+  V11 := PWideChar(S2);
+
+{$IFDEF UNICODE}
+  V12 := 'A Ë¯¾õµÄUnicode String';
+{$ENDIF}
+
+  Arr.AddValues([V1, V2, V3, V4, V5, V6, V7, nil, V8, V9, V10, V11 {$IFDEF UNICODE}, V12 {$ENDIF}]);
+
+{$IFDEF UNICODE}
+  mmoJSONReconstruct.Lines.Text := UTF8Decode(Obj.ToJSON);
+{$ELSE}
+  mmoJSONReconstruct.Lines.Text := AnsiString(CnUtf8DecodeToWideString(Obj.ToJSON));
+{$ENDIF}
+
+  Obj.Free;
+end;
+
+procedure TFormJSON.btnMergeClick(Sender: TObject);
+var
+  Obj1, Obj2: TCnJSONObject;
+  S1, S2: AnsiString;
+  S: string;
+begin
+  // ºº×Ö×ª UTF8
+  S := '{"animals":{"dog":[{"name":"Ru³Ô·¹fus","age":15,"height":1.63},{"na":"Ma\u996drty","agee":null,"die":true}]}}';
+{$IFDEF UNICODE}
+  S1 := Utf8Encode(mmoJSON.Lines.Text);
+  S2 := Utf8Encode(S);
+{$ELSE}
+  S1 := CnUtf8EncodeWideString(WideString(mmoJSON.Lines.Text));
+  S2 := CnUtf8EncodeWideString(WideString(S));
+{$ENDIF}
+
+  Obj1 := CnJSONParse(S1);
+
+  Obj2 := CnJSONParse(S2);
+
+  CnJSONMergeObject(Obj1, Obj2);
+
+  S2 := Obj2.ToJSON;
+{$IFDEF UNICODE}
+  mmoJSONReconstruct.Lines.Text := UTF8Decode(S2);
+{$ELSE}
+  mmoJSONReconstruct.Lines.Text := AnsiString(CnUtf8DecodeToWideString(S2));
+{$ENDIF}
+
+  Obj1.Free;
+  Obj2.Free;
 end;
 
 end.

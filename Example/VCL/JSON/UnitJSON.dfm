@@ -112,6 +112,41 @@ object FormJSON: TFormJSON
         ScrollBars = ssVertical
         TabOrder = 5
       end
+      object btnClone: TButton
+        Left = 456
+        Top = 80
+        Width = 75
+        Height = 25
+        Caption = 'Clone'
+        TabOrder = 6
+        OnClick = btnCloneClick
+      end
+      object btnArray: TButton
+        Left = 456
+        Top = 120
+        Width = 75
+        Height = 25
+        Caption = 'Array Test'
+        TabOrder = 7
+        OnClick = btnArrayClick
+      end
+      object btnMerge: TButton
+        Left = 456
+        Top = 176
+        Width = 75
+        Height = 25
+        Caption = 'Merge Test'
+        TabOrder = 8
+        OnClick = btnMergeClick
+      end
+      object chkReplaceName: TCheckBox
+        Left = 464
+        Top = 208
+        Width = 65
+        Height = 17
+        Caption = 'Replace'
+        TabOrder = 9
+      end
     end
     object tsJSONConstruct: TTabSheet
       Caption = 'JSON Construct'
