@@ -28,7 +28,9 @@ unit CnExcelUnit;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2003.xx.xx V1.0
+* 修改记录：2024.07.31 V1.1
+*               修正 D2007 下 Excel2000 与 ExcelXP 的编译问题
+*           2003.01.01 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -38,7 +40,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, OleServer, Variants, Excel2000, Clipbrd, Dialogs, Printers;
+  Classes, SysUtils, OleServer, Variants
+  {$IFDEF BDS2007}, ExcelXP {$ELSE}, Excel2000 {$ENDIF}, Clipbrd, Dialogs, Printers;
 
 const
   AddrsEachRange: Integer = 255 div 16;
