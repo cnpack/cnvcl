@@ -29,7 +29,9 @@ unit CnWideStrings;
 * 开发平台：WinXP SP3 + Delphi 5.0
 * 兼容测试：
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.11.25 V1.2
+* 修改记录：2024.08.01 V1.3
+*               允许外界指定宽字符的显示宽度计算回调，以满足部分自定义绘制情形
+*           2022.11.25 V1.2
 *               从 CnGB18030 中搬移过来部分 Unicode 处理函数
 *           2022.11.10 V1.1
 *               UTF8 编码解码支持 UTF8-MB4 与 UTF16 中的四字节字符
@@ -141,6 +143,8 @@ type
     {* 增加的属性，控制 GetTextStr 时使用的换行是否是单个 #10 而不是常规的 #13#10}
   end;
 
+  TCnWideCharDisplayWideLengthCalculator = function(AWChar: WideChar): Boolean;
+
 function CnUtf8EncodeWideString(const S: WideString): AnsiString;
 {* 对 WideString 进行 Utf8 编码得到 AnsiString，不做 Ansi 转换避免丢字符
   支持四字节 UTF16 字符与 UTF8-MB4}
@@ -186,16 +190,18 @@ function GetUtf16CharFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): Integ
   返回 1 或 2，分别表示处理的是二字节或四字节}
 
 function WideCharIsWideLength(const AWChar: WideChar): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 粗略判断一个 Unicode 宽字符是否占两个字符宽度}
+{* 粗略判断一个 Unicode 宽字符是否占两个字符宽度，默认的简陋实现}
 
-function CalcAnsiLengthFromWideString(Text: PWideChar; VisualMode: Boolean = True): Integer;
+function CalcAnsiLengthFromWideString(Text: PWideChar; VisualMode: Boolean = True;
+  Calculator: TCnWideCharDisplayWideLengthCalculator = nil): Integer;
 {* 计算 Unicode 宽字符串的 Ansi 长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符
-   VisualMode 为 True 时以粗略字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
+   VisualMode 为 True 时以传入的 Calculator 来计算字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
 
-function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer; VisualMode: Boolean = True): Integer;
+function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer;
+  VisualMode: Boolean = True; Calculator: TCnWideCharDisplayWideLengthCalculator = nil): Integer;
 {* 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Ansi 长度，WideOffset 从 1 开始。
    等于 Copy(1, WideOffset) 后的子串转 Ansi 取 Length，但不用实际转 Ansi，以防止纯英文平台下丢字符
-   VisualMode 为 True 时以粗略字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
+   VisualMode 为 True 时以传入的 Calculator 来计算字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
 
 function CalcUtf8LengthFromWideString(Text: PWideChar): Integer;
 {* 计算宽字符串的 Utf8 长度，等于 Utf8Encode 后取 Length，但不实际转换}
@@ -205,12 +211,13 @@ function CalcUtf8LengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer
    等于 Copy(1, WideOffset) 后的子串转 Utf8 取 Length，但不用实际转 Utf8，以节省开销。}
 
 function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
-  VisualMode: Boolean = True; AllowExceedEnd: Boolean = False): Integer;
+  VisualMode: Boolean = True; AllowExceedEnd: Boolean = False;
+  Calculator: TCnWideCharDisplayWideLengthCalculator = nil): Integer;
 {* 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串长度，AnsiOffset 从 1 开始。
    等于转 Ansi 后的 Copy(1, AnsiOffset) 再转换回 Unicode 再取 Length，但不用 Ansi/Unicode 互转，以防止纯英文平台下丢字符
    注意 Ansi 后的 Copy 可能会割裂双字节字符。
    AllowExceedEnd 为 False 时，计算到 #0 便会终止，不包括 #0。为 True 时，以补空格方式计算
-   VisualMode 为 True 时以粗略字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
+   VisualMode 为 True 时以传入的 Calculator 来计算字符宽度判断，为 False 时以纯粹大于 $FF 判断。}
 
 function CalcUtf8StringLengthFromWideOffset(Utf8Text: PAnsiChar; WideOffset: Integer): Integer;
 {* 计算 Utf8 字符串转换成 WideSting 后指定 Wide 子串长度对应的 Utf8 字符串长度，WideOffset 从 1 开始。
@@ -222,10 +229,12 @@ function CalcUtf8LengthFromWideChar(AChar: WideChar): Integer; {$IFDEF SUPPORT_I
 function CalcUtf8LengthFromUtf8HeadChar(AChar: AnsiChar): Integer;
 {* 计算一个 Utf8 前导字符所代表的字符长度}
 
-function ConvertUtf16ToAlterAnsi(WideText: PWideChar; AlterChar: AnsiChar = ' '): AnsiString;
+function ConvertUtf16ToAlterAnsi(WideText: PWideChar; AlterChar: AnsiChar = ' ';
+  Calculator: TCnWideCharDisplayWideLengthCalculator = nil): AnsiString;
 {* 手动将宽字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算}
 
-function ConvertUtf8ToAlterAnsi(Utf8Text: PAnsiChar; AlterChar: AnsiChar = ' '): AnsiString;
+function ConvertUtf8ToAlterAnsi(Utf8Text: PAnsiChar; AlterChar: AnsiChar = ' ';
+  Calculator: TCnWideCharDisplayWideLengthCalculator = nil): AnsiString;
 {* 手动将 Utf8 字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算}
 
 implementation
@@ -1087,25 +1096,32 @@ begin
   end;
 end;
 
-// 粗略判断一个 Unicode 宽字符是否占两个字符宽度
+// 粗略判断一个 Unicode 宽字符是否占两个字符宽度，默认的简陋实现
 function WideCharIsWideLength(const AWChar: WideChar): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 const
-  CN_UTF16_ANSI_WIDE_CHAR_SEP = $900;
+  CN_UTF16_ANSI_WIDE_CHAR_SEP = $1100;
+var
+  C: Integer;
 begin
-  Result := Ord(AWChar) > CN_UTF16_ANSI_WIDE_CHAR_SEP; // 姑且认为比 $900 大的 Utf16 字符才占俩字节
+  C := Ord(AWChar);
+  Result := C > CN_UTF16_ANSI_WIDE_CHAR_SEP; // 姑且认为比 $1100 大的 Utf16 字符绘制宽度才占俩字节
 end;
 
 // 计算 Unicode 宽字符串的 Ansi 长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符
-function CalcAnsiLengthFromWideString(Text: PWideChar; VisualMode: Boolean): Integer;
+function CalcAnsiLengthFromWideString(Text: PWideChar; VisualMode: Boolean;
+  Calculator: TCnWideCharDisplayWideLengthCalculator): Integer;
 begin
   Result := 0;
   if Text <> nil then
   begin
     if VisualMode then
     begin
+      if not Assigned(Calculator) then
+        Calculator := @WideCharIsWideLength;
+
       while Text^ <> #0 do
       begin
-        if WideCharIsWideLength(Text^) then
+        if Calculator(Text^) then
           Inc(Result, SizeOf(WideChar))
         else
           Inc(Result, SizeOf(AnsiChar));
@@ -1128,7 +1144,7 @@ end;
 
 // 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Ansi 长度，WideOffset 从 1 开始。
 function CalcAnsiLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer;
-  VisualMode: Boolean): Integer;
+  VisualMode: Boolean; Calculator: TCnWideCharDisplayWideLengthCalculator): Integer;
 var
   Idx: Integer;
 begin
@@ -1138,9 +1154,12 @@ begin
     Idx := 0;
     if VisualMode then
     begin
+      if not Assigned(Calculator) then
+        Calculator := @WideCharIsWideLength;
+
       while (Text^ <> #0) and (Idx < WideOffset) do // Idx 0 开始，WideOffset 1 开始，所以用 <
       begin
-        if WideCharIsWideLength(Text^) then
+        if Calculator(Text^) then
           Inc(Result, SizeOf(WideChar))
         else
           Inc(Result, SizeOf(AnsiChar));
@@ -1183,7 +1202,8 @@ end;
 
 // 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串长度，AnsiOffset 从 1 开始。
 function CalcWideStringLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
-  VisualMode: Boolean; AllowExceedEnd: Boolean): Integer;
+  VisualMode: Boolean; AllowExceedEnd: Boolean;
+  Calculator: TCnWideCharDisplayWideLengthCalculator): Integer;
 var
   Idx: Integer;
 begin
@@ -1193,9 +1213,12 @@ begin
     Idx := 0;
     if VisualMode then
     begin
+      if not Assigned(Calculator) then
+        Calculator := @WideCharIsWideLength;
+
       while (Text^ <> #0) and (Idx < AnsiOffset) do
       begin
-        if WideCharIsWideLength(Text^) then
+        if Calculator(Text^) then
           Inc(Idx, SizeOf(WideChar))
         else
           Inc(Idx, SizeOf(AnsiChar));
@@ -1334,7 +1357,8 @@ begin
 end;
 
 // 手动将宽字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算
-function ConvertUtf16ToAlterAnsi(WideText: PWideChar; AlterChar: AnsiChar = ' '): AnsiString;
+function ConvertUtf16ToAlterAnsi(WideText: PWideChar; AlterChar: AnsiChar;
+  Calculator: TCnWideCharDisplayWideLengthCalculator): AnsiString;
 var
   Len: Integer;
 begin
@@ -1357,10 +1381,14 @@ begin
   end;
 
   SetLength(Result, Len * SizeOf(WideChar));
+
+  if not Assigned(Calculator) then
+    Calculator := @WideCharIsWideLength;
+
   Len := 0;
   while WideText^ <> #0 do
   begin
-    if WideCharIsWideLength(WideText^) then
+    if Calculator(WideText^) then
     begin
       Inc(Len);
       Result[Len] := AlterChar;
@@ -1381,7 +1409,8 @@ begin
 end;
 
 // 手动将 Utf8 字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算
-function ConvertUtf8ToAlterAnsi(Utf8Text: PAnsiChar; AlterChar: AnsiChar = ' '): AnsiString;
+function ConvertUtf8ToAlterAnsi(Utf8Text: PAnsiChar; AlterChar: AnsiChar;
+  Calculator: TCnWideCharDisplayWideLengthCalculator): AnsiString;
 var
   I, J, Len, ByteCount: Integer;
   C: AnsiChar;
@@ -1399,6 +1428,10 @@ begin
   SetLength(Result, Len); // 不会比原文长，先设较长
   I := 0;
   J := 1;
+
+  if not Assigned(Calculator) then
+    Calculator := @WideCharIsWideLength;
+
   while I < Len do
   begin
     C := Utf8Text[I];
@@ -1448,7 +1481,7 @@ begin
       Result[J] := AlterChar;
       Inc(J);
     end
-    else if WideCharIsWideLength(WideChar(W)) then // 3 字节 UTF8，判断实际宽度
+    else if Calculator(WideChar(W)) then // 3 字节 UTF8，判断实际宽度
     begin
       Result[J] := AlterChar;
       Inc(J);
