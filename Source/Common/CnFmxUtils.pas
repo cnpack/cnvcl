@@ -128,7 +128,7 @@ function CnFmxGetControlPosition(AControl: TComponent): TSmallPoint;
 {* 返回 FMX Control 的位置}
 
 procedure CnFmxGetScreenFormsWithName(const Name: string; OutForms: TList);
-{* 遍历 Screen 的所有 Form 实例，将名称等于该名字的实例加入列表}
+{* 遍历 Screen 的所有 Form 实例，将名称等于该名字的实例加入列表，名字为空时全加}
 
 procedure CnFmxGetScreenFormsWithClassName(const ClsName: string; OutForms: TList);
 {* 遍历 Screen 的所有 Form 实例，将类名等于该名字的实例加入列表}
@@ -595,7 +595,7 @@ var
 begin
   for I := 0 to Screen.FormCount - 1 do
   begin
-    if Screen.Forms[I].Name = Name then
+    if (Name = '') or (Screen.Forms[I].Name = Name) then
       OutForms.Add(Screen.Forms[I]);
   end;
 end;

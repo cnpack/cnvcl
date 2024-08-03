@@ -231,7 +231,13 @@ type
     {* 删除语言改变时的事件通知 }
 
     procedure TranslateForm(AForm: TCustomForm);
-    {* 翻译一个 Form 及其子对象和子属性 }
+    {* 翻译一个 Form 及其子对象和子属性}
+
+{$IFDEF SUPPORT_FMX}
+    procedure TranslateFmxForm(AForm: TComponent);
+    {* 翻译一个 FMX 框架下的 Form 及其子对象和子属性}
+{$ENDIF}
+
     procedure TranslateComponent(AComponent: TComponent; const BaseName: TCnLangString = '';
       ManuallyTop: Boolean = False);
     {* 翻译一个元件及其子对象和子属性。
@@ -887,7 +893,10 @@ begin
 {$IFDEF DEBUG_MULTILANG}
   CnDebugger.LogEnter('TranslateRecurComponent: ' + BaseName + ' ' + AComponent.Name);
 {$ENDIF}
-  IsApplication := AComponent is TApplication;
+
+  IsApplication := (AComponent is TApplication)
+    {$IFDEF SUPPORT_FMX} or (AComponent = CnFmxGetFmxApplication) {$ENDIF};
+
   if AComponent <> nil then
   begin
     if AComponent.Tag = CN_MULTI_LANG_TAG_NOT_TRANSLATE then
@@ -903,8 +912,9 @@ begin
     for I := 0 to AComponent.ComponentCount - 1 do
     begin
       T := AComponent.Components[I];
-      if IsApplication and (T is TCustomForm) then
-        Continue; // 不翻译 Application 的下属 Form，留给 TranslateForm 等来处理
+      if IsApplication and (T is TCustomForm)
+        {$IFDEF SUPPORT_FMX} or CnFmxIsInheritedFromCommonCustomForm(T) {$ENDIF} then
+        Continue; // 不翻译 Application 的下属 Form，包括 FMX 的情形，留给 TranslateForm 等来处理
 
       if T.Tag = CN_MULTI_LANG_TAG_NOT_TRANSLATE then
         Continue;
@@ -918,7 +928,9 @@ begin
 
       if not IsInList then            // 不处理某一 Form 有 Parent 的情况。2004.06.01 by LiuXiao
       begin
-        if (AComponent is TCustomForm) or ManuallyTop then // 手动翻译顶层 Frame 时需要走 TFrame 名，但不要再把 ManuallyTop 传入了
+        if (AComponent is TCustomForm) or
+          {$IFDEF SUPPORT_FMX} CnFmxIsInheritedFromCommonCustomForm(T) or {$ENDIF}
+          ManuallyTop then // 手动翻译顶层 Frame 时需要走 TFrame 名，但不要再把 ManuallyTop 传入了
           TranslateRecurComponent(T, AList, BaseName)
         else
           TranslateRecurComponent(T, AList, BaseName + DefDelimeter + AComponent.Name);
@@ -959,6 +971,35 @@ begin
     LockWindowUpdate(0);
   end;
 end;
+
+{$IFDEF SUPPORT_FMX}
+
+procedure TCnCustomLangManager.TranslateFmxForm(AForm: TComponent);
+begin
+  if FUseDefaultFont and Assigned(FLanguageStorage) then
+  begin
+    with FLanguageStorage do
+    begin
+      if FontInited then
+      begin
+      {$IFDEF DEBUG_MULTILANG}
+        CnDebugger.LogMsg('LangManager: Fmx FontInited. ');
+      {$ENDIF}
+
+        // FMX 的窗体无字体设置
+//        if CurrentLanguageIndex <> -1 then
+//        begin
+//          AForm.Font.Name := DefaultFont.Name;
+//          AForm.Font.Size := DefaultFont.Size;
+//          AForm.Font.Charset := DefaultFont.Charset;
+//        end;
+      end;
+    end;
+  end;
+  TranslateComponent(AForm, AForm.ClassName);
+end;
+
+{$ENDIF}
 
 procedure TCnCustomLangManager.TranslateObject(AObject: TObject;
   const BaseName: TCnLangString; ManuallyTop: Boolean);
@@ -1144,7 +1185,9 @@ begin
       Exit;
     end;
 
-    IsForm := (AObject is TCustomForm); // or (AObject is TCustomFrame); 不能把 Frame 算进去。Frame 按实例化组件处理
+    IsForm := (AObject is TCustomForm)
+      {$IFDEF SUPPORT_FMX} or CnFmxIsInheritedFromCommonCustomForm(AObject) {$ENDIF}; // or (AObject is TCustomFrame); 不能把 Frame 算进去。Frame 按实例化组件处理
+
     try
       Data := GetTypeData(AObject.Classinfo);
     except
@@ -1337,6 +1380,9 @@ var
   I: Integer;
   Iterator: ICnLangStringIterator;
   AKey, AValue: TCnLangString;
+{$IFDEF SUPPORT_FMX}
+  FmxForms: TList;
+{$ENDIF}
 begin
   inherited;
 
@@ -1347,15 +1393,28 @@ begin
     if FTranslationMode = tmByComponents then
     begin
       if atForms in FAutoTransOptions then
+      begin
         for I := 0 to Screen.CustomFormCount - 1 do
           TranslateForm(Screen.CustomForms[I]);
+{$IFDEF SUPPORT_FMX}
+        FmxForms := TList.Create;
+        CnFmxGetScreenFormsWithName('', FmxForms);
+        for I := 0 to FmxForms.Count - 1 do
+          TranslateFmxForm(TComponent(FmxForms[I]));
+{$ENDIF}
+      end;
 
       if atDataModules in FAutoTransOptions then
         for I := 0 to Screen.DataModuleCount - 1 do
           TranslateComponent(Screen.DataModules[I]);
 
       if atApplication in FAutoTransOptions then
+      begin
         TranslateComponent(Application);
+{$IFDEF SUPPORT_FMX}
+        TranslateComponent(CnFmxGetFmxApplication);
+{$ENDIF}
+      end;
     end
     else // 基于翻译条目
     begin
@@ -1449,11 +1508,14 @@ end;
 
 function TCnCustomLangManager.GetRecurOwner(AComponent: TComponent): TCnLangString;
 begin
-  if (AComponent is TCustomForm) or (AComponent is TDataModule) then
+  // 均加入 FMX 顶层窗体的判断
+  if (AComponent is TCustomForm) or (AComponent is TDataModule)
+{$IFDEF SUPPORT_FMX} or CnFmxIsInheritedFromCommonCustomForm(AComponent) {$ENDIF} then
     Result := AComponent.ClassName
   else if AComponent.Owner <> nil then
   begin
-    if AComponent.Owner is TCustomForm then
+    if (AComponent.Owner is TCustomForm)
+      {$IFDEF SUPPORT_FMX} or CnFmxIsInheritedFromCommonCustomForm(AComponent.Owner){$ENDIF} then
       Result := AComponent.Owner.ClassName
     else
       Result := GetRecurOwner(AComponent.Owner) + DefDelimeter + AComponent.Owner.Name;
