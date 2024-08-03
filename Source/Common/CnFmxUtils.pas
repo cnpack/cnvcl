@@ -127,6 +127,15 @@ procedure CnFmxMoveSubControl(FromControl, ToControl: TComponent);
 function CnFmxGetControlPosition(AControl: TComponent): TSmallPoint;
 {* 返回 FMX Control 的位置}
 
+procedure CnFmxGetScreenFormsWithName(const Name: string; OutForms: TList);
+{* 遍历 Screen 的所有 Form 实例，将名称等于该名字的实例加入列表}
+
+procedure CnFmxGetScreenFormsWithClassName(const ClsName: string; OutForms: TList);
+{* 遍历 Screen 的所有 Form 实例，将类名等于该名字的实例加入列表}
+
+function CnFmxGetFmxApplication: TComponent;
+{* 返回 FMX 框架里的 Application 实例}
+
 implementation
 
 const
@@ -578,6 +587,33 @@ begin
     Result.x := Trunc(TControl(AControl).Position.X);
     Result.y := Trunc(TControl(AControl).Position.Y);
   end;
+end;
+
+procedure CnFmxGetScreenFormsWithName(const Name: string; OutForms: TList);
+var
+  I: Integer;
+begin
+  for I := 0 to Screen.FormCount - 1 do
+  begin
+    if Screen.Forms[I].Name = Name then
+      OutForms.Add(Screen.Forms[I]);
+  end;
+end;
+
+procedure CnFmxGetScreenFormsWithClassName(const ClsName: string; OutForms: TList);
+var
+  I: Integer;
+begin
+  for I := 0 to Screen.FormCount - 1 do
+  begin
+    if Screen.Forms[I].ClassNameIs(ClsName) then
+      OutForms.Add(Screen.Forms[I]);
+  end;
+end;
+
+function CnFmxGetFmxApplication: TComponent;
+begin
+  Result := Application;
 end;
 
 procedure CreateFmxSetFixArray;

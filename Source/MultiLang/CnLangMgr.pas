@@ -359,9 +359,8 @@ procedure TranslateReggedStrings;
 implementation
 
 uses
-{$IFDEF DEBUG_MULTILANG}
-  CnDebug,
-{$ENDIF}
+  {$IFDEF DEBUG_MULTILANG} CnDebug, {$ENDIF}
+  {$IFDEF SUPPORT_FMX} CnFmxUtils, {$ENDIF}
   CnLangConsts;
 
 type
@@ -486,12 +485,16 @@ begin
   FAutoTranslateStrings := True;
 
   if (csDesigning in ComponentState) then
+  begin
     for I := 0 to AOwner.ComponentCount - 1 do
+    begin
       if AOwner.Components[I] is TCnCustomLangFileStorage then
       begin
         LanguageStorage := AOwner.Components[I] as TCnCustomLangFileStorage;
         Exit;
       end;
+    end;
+  end;
 end;
 
 destructor TCnBaseLangManager.Destroy;
@@ -1490,6 +1493,11 @@ begin
       for I := 0 to Screen.CustomFormCount - 1 do
         if Screen.CustomForms[I].ClassNameIs(Prefix) then
           FOldTransForms.Add(Screen.CustomForms[I]);
+
+{$IFDEF SUPPORT_FMX}
+      // 也遍历 FMX 窗体中符合条件的窗体
+      CnFmxGetScreenFormsWithClassName(Prefix, FOldTransForms);
+{$ENDIF}
     end;
 
     for I := 0 to FOldTransForms.Count - 1 do
@@ -1515,8 +1523,16 @@ begin
   end;
 
   if atApplication in FAutoTransOptions then
+  begin
     if Prefix = 'Application' then
+    begin
       SetValueByTransName(Application, Key, Value);
+{$IFDEF SUPPORT_FMX}
+      // 也处理 FMX 的 Application
+      SetValueByTransName(CnFmxGetFmxApplication, Key, Value);
+{$ENDIF}
+    end;
+  end;
 end;
 
 procedure FreeLanguageManagers;
