@@ -42,10 +42,6 @@ uses
   CnLangMgr;
 
 type
-  
-  ETranslatorError = class (Exception)
-  end;
-
   TCnCustomLangTranslator = class (TCnComponent)
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;

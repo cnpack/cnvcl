@@ -58,7 +58,7 @@ uses
   FileCtrl,
   CnLangConsts, CnLangTranslator, CnLangMgr, CnLangCollection, CnLangStorage,
   CnIniLangFileStorage, CnIniStrUtils, CnCommon, ToolsApi, ComObj, CnOTAUtils,
-  CnClasses, CnTransFilter, CnLangUtils;
+  CnClasses, CnTransFilter, CnLangUtils, System.ImageList, System.Actions;
 
 type
 
@@ -220,20 +220,24 @@ begin
 
   List := TList.Create;
   for I := 0 to Container.ComponentCount - 1 do
+  begin
     if Container.Components[I] is TCnCustomLangStorage then
     begin
       List.Add(Container.Components[I]);
       if Container.Components[I] is TCnCustomLangFileStorage then
         SetDesignPathFile(Container.Components[I] as TCnCustomLangFileStorage);
     end;
+  end;
 
   if CnLanguageManager.LanguageStorage <> nil then
+  begin
     if List.IndexOf(CnLanguageManager.LanguageStorage) < 0 then
     begin
       List.Add(CnLanguageManager.LanguageStorage);
       if CnLanguageManager.LanguageStorage is TCnCustomLangFileStorage then
         SetDesignPathFile(CnLanguageManager.LanguageStorage as TCnCustomLangFileStorage);
     end;
+  end;
 
   if List.Count = 0 then
   begin
@@ -453,6 +457,7 @@ var
   OutStr: string;
 begin
   if gdFixed in State then
+  begin
     with Sender as TStringGrid do
     begin
       OutStr := Cells[ACol, ARow];
@@ -462,6 +467,7 @@ begin
         Canvas.TextWidth(OutStr)) shr 1), Rect.Top + ((Rect.Bottom - Rect.top
         - Canvas.TextHeight(OutStr)) shr 1), OutStr);
     end;
+  end;
 
   if ACol = 0 then
   begin
@@ -526,10 +532,12 @@ begin
   Item := TCnLanguageItem(Self.tvStorages.Selected.Data);
 
   if Self.Container = nil then
+  begin
     if (Self.TransEditor = nil) then
       Exit
     else
       Self.Container := TWinControl(TCnLangTranslator(Self.TransEditor.Component).Owner);
+  end;
 
   List := nil;
   for I := Low(DestList) to High(DestList) do
@@ -539,7 +547,7 @@ begin
   try
     List := TStringList.Create;
     Self.TransEditor.Extractor.GetFormStrings(Self.Container, List);
-
+    // 此句照理应支持 FMX 的 Form
     for I := Low(DestList) to High(DestList) do
       DestList[I] := TStringList.Create;
 
@@ -627,8 +635,10 @@ begin
 
   Storage.ClearCurrentLanguage;
   for I := 1 to Self.StringGrid.RowCount - 1 do
+  begin
     if StringGrid.Cells[1, I] <> '' then
       Storage.SetString(StringGrid.Cells[1, I], StringGrid.Cells[3, I]);
+  end;
   Storage.SaveCurrentLanguage;
 end;
 
@@ -667,8 +677,9 @@ procedure TFrmTransEditor.actDelLineExecute(Sender: TObject);
 var
   I: Integer;
 begin
-  { DONE : 删除一行。 }
+  { 删除一行。 }
   with Self.StringGrid do
+  begin
     if RowCount > 2 then
     begin
       for I := Row to RowCount - 2 do
@@ -680,11 +691,12 @@ begin
     end
     else if RowCount = 2 then
       Rows[1].Text := '1';
+  end;
 end;
 
 procedure TFrmTransEditor.pnlTransResize(Sender: TObject);
 begin
-  { DONE : 处理Resize事件，改变Grid列宽。 }
+  { 处理 Resize 事件，改变 Grid 列宽。 }
   Self.StringGrid.ColWidths[1] := (Self.StringGrid.Width - 30 - 24) * 7 div 27 + 1;
   Self.StringGrid.ColWidths[2] := (Self.StringGrid.Width - 30 - 24) * 10 div 27;
   Self.StringGrid.ColWidths[3] := (Self.StringGrid.Width - 30 - 24) * 10 div 27;
@@ -762,7 +774,9 @@ var
   function CnOtaGetFileEditorForModule(Module: IOTAModule; Index: Integer): IOTAEditor;
   begin
     Result := nil;
-    if not Assigned(Module) then Exit;
+    if not Assigned(Module) then
+      Exit;
+
     try
       // BCB 5 下为一个简单的单元调用 GetModuleFileEditor(1) 会出错
       {$IFDEF BCB5}
@@ -784,6 +798,7 @@ var
     Result := nil;
     if not Assigned(Module) then
       Exit;
+
     for I := 0 to Module.GetModuleFileCount - 1 do
     begin
       Editor := CnOtaGetFileEditorForModule(Module, I);
@@ -801,7 +816,8 @@ var
     NTAComponent: INTAComponent;
   begin
     Result := nil;
-    if not Assigned(Editor) then Exit;
+    if not Assigned(Editor) then
+      Exit;
 
     try
       Component := Editor.GetRootComponent;
@@ -867,7 +883,6 @@ begin
     Screen.Cursor := crDefault;
   end;
 end;
-
 
 procedure TFrmTransEditor.WriteNameValueStringsToGrid(List: TStrings;
   Item: TCnLanguageItem);
@@ -936,10 +951,12 @@ var
         Result := False;
         Exit;
       end;   
-  end;  
+  end;
+
 begin
   Screen.Cursor := crHourGlass;
   BlankRow := -1; // BlankRow 始终记录第一个空行或无效行
+
   try
     for I := 5 to Self.StringGrid.RowCount - 1 do
     begin

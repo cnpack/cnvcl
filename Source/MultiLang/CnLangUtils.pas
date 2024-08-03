@@ -67,7 +67,8 @@ type
     constructor Create;
     {* 构造方法}
     procedure GetFormStrings(AForm: TComponent; Strings: TStrings; SkipEmptyStr: Boolean = False);
-    {* 获得一 Form 上的所有字串，如 AForm 是设计期的独立 TFrame，行为如何？}
+    {* 获得一 Form 上的所有字串，支持 VCL 和 FMX 的 Form
+      如 AForm 是设计期的独立 TFrame，行为如何？}
     procedure GetComponentStrings(AComponent: TComponent; Strings: TStrings;
       const BaseName: string = ''; SkipEmptyStr: Boolean = False);
     {* 获得一 Component 的所有字串 }
@@ -117,6 +118,7 @@ implementation
 uses
   {$IFDEF COMPILER6_UP} Variants, {$ENDIF}
   {$IFDEF DEBUG_MULTILANG} CnDebug, {$ENDIF}
+  {$IFDEF SUPPORT_FMX} CnFmxUtils, {$ENDIF}
   Forms, Dialogs, Graphics, Menus, Grids, ComCtrls, Controls, ExtCtrls,
   ToolWin, ActnList, ImgList, TypInfo, StdCtrls, CnCommon, CnIniStrUtils,
   Clipbrd, CnLangMgr, CnClasses, CnLangConsts, CnLangStorage;
@@ -328,7 +330,10 @@ begin
     for I := 0 to AComponent.ComponentCount - 1 do
     begin
       T := AComponent.Components[I];
-      if (AComponent is TCustomForm) or // 是顶层 Form 或 顶层 Frame
+      if (AComponent is TCustomForm) or // 是顶层 VCL Form 或 顶层 Frame
+{$IFDEF SUPPORT_FMX}
+        CnFmxIsInheritedFromCommonCustomForm(AComponent) or // 还要加上 FMX 的顶层 FORM 判断
+{$ENDIF}
        ((AComponent is TCustomFrame) and IsTopDesignFrame(AComponent as TCustomFrame))  then
         GetRecurComponentStrings(AOwner, T, AList, Strings, BaseName, SkipEmptyStr)
       else
@@ -467,6 +472,9 @@ begin
     end;
 
     IsForm := (AObject is TCustomForm) or // 需要额外判断是否设计期顶层 Frame 的情形，以生成 TFrame1.Hint 的结果
+{$IFDEF SUPPORT_FMX}
+      CnFmxIsInheritedFromCommonCustomForm(AObject) or // 还要加上 FMX 的顶层 FORM 判断
+{$ENDIF}
       ((AObject is TCustomFrame) and IsTopDesignFrame(AObject as TCustomFrame));
 
     try
