@@ -1,0 +1,496 @@
+object Form1: TForm1
+  Left = 101
+  Top = 72
+  Caption = #22810#35821#27979#35797#31243#24207' - '#24403#21069#26080#24050#36873#25321#35821#35328#65292#31243#24207#26174#31034#30340#26159#31243#24207#30340#21407#22987#23383#31526#20018
+  ClientHeight = 682
+  ClientWidth = 892
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Left = 101
+  Top = 72
+  DesignerMasterStyle = 0
+  object Label1: TLabel
+    Position.X = 24.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 66.000000000000000000
+    Size.Height = 12.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Label1 '#26631#39064
+  end
+  object SpeedButton1: TSpeedButton
+    Position.X = 496.000000000000000000
+    Position.Y = 168.000000000000000000
+    Size.Width = 23.000000000000000000
+    Size.Height = 22.000000000000000000
+    Size.PlatformDefault = False
+    Text = #24555
+  end
+  object lblLangs: TLabel
+    Position.X = 248.000000000000000000
+    Position.Y = 524.000000000000000000
+    Size.Width = 72.000000000000000000
+    Size.Height = 12.000000000000000000
+    Size.PlatformDefault = False
+    Text = #24050#23433#35013#35821#35328#65306
+  end
+  object Edit1: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 1
+    Text = 'Edit '#25991#23383
+    Position.X = 144.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 20.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object Memo1: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    Lines.Strings = (
+      'Memo1 '#23383#31526#20018
+      #23383#31526#20018#31532#20108#34892)
+    TextSettings.WordWrap = True
+    Position.X = 24.000000000000000000
+    Position.Y = 88.000000000000000000
+    Size.Width = 241.000000000000000000
+    Size.Height = 137.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Viewport.Width = 237.000000000000000000
+    Viewport.Height = 133.000000000000000000
+  end
+  object Button1: TButton
+    Position.X = 288.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 137.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = 'Button '#25171#24320#25991#20214
+  end
+  object CheckBox1: TCheckBox
+    Position.X = 288.000000000000000000
+    Position.Y = 96.000000000000000000
+    Size.Width = 137.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 6
+    Text = 'CheckBox '#22797#36873#26694#26631#39064
+  end
+  object RadioButton1: TRadioButton
+    Position.X = 288.000000000000000000
+    Position.Y = 136.000000000000000000
+    Size.Width = 137.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 7
+    Text = 'RadioButton1 '#21333#36873#38062
+  end
+  object GroupBox1: TGroupBox
+    Position.X = 464.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 185.000000000000000000
+    Size.Height = 105.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'GroupBox1 '#26631#39064
+    TabOrder = 3
+  end
+  object Panel1: TPanel
+    Position.X = 288.000000000000000000
+    Position.Y = 184.000000000000000000
+    Size.Width = 185.000000000000000000
+    Size.Height = 41.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 10
+  end
+  object BitBtn1: TButton
+    Position.X = 496.000000000000000000
+    Position.Y = 200.000000000000000000
+    Size.Width = 153.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 11
+    Text = #22270#29255#25353#38062
+  end
+  object ComboBox1: TComboEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 8
+    ItemHeight = 12.000000000000000000
+    Items.Strings = (
+      #19979#25289#26694#31532#19968#39033
+      #19979#25289#26694#31532#20108#39033
+      #19979#25289#26694#31532#19977#39033)
+    ItemIndex = -1
+    Position.X = 672.000000000000000000
+    Position.Y = 168.000000000000000000
+    Size.Width = 161.000000000000000000
+    Size.Height = 20.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object ListBox1: TListBox
+    Position.X = 672.000000000000000000
+    Position.Y = 200.000000000000000000
+    Size.Width = 161.000000000000000000
+    Size.Height = 97.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 12
+    DisableFocusEffect = True
+    ItemHeight = 12.000000000000000000
+    Items.Strings = (
+      #21015#34920#26694#31532#19968#39033
+      #21015#34920#26694#31532#20108#39033
+      #21015#34920#26694#31532#19977#39033)
+    DefaultItemStyles.ItemStyle = ''
+    DefaultItemStyles.GroupHeaderStyle = ''
+    DefaultItemStyles.GroupFooterStyle = ''
+    Viewport.Width = 157.000000000000000000
+    Viewport.Height = 93.000000000000000000
+  end
+  object CheckListBox1: TListBox
+    Position.X = 496.000000000000000000
+    Position.Y = 240.000000000000000000
+    Size.Width = 153.000000000000000000
+    Size.Height = 57.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 13
+    DisableFocusEffect = True
+    ItemHeight = 12.000000000000000000
+    Items.Strings = (
+      #22797#36873#21015#34920#26694#31532#19968#39033
+      #22797#36873#21015#34920#26694#31532#20108#39033)
+    DefaultItemStyles.ItemStyle = ''
+    DefaultItemStyles.GroupHeaderStyle = ''
+    DefaultItemStyles.GroupFooterStyle = ''
+    ShowCheckboxes = True
+    Viewport.Width = 149.000000000000000000
+    Viewport.Height = 53.000000000000000000
+  end
+  object StatusBar1: TStatusBar
+    Position.Y = 663.000000000000000000
+    ShowSizeGrip = True
+    Size.Width = 892.000000000000000000
+    Size.Height = 19.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object PageControl1: TTabControl
+    Position.X = 24.000000000000000000
+    Position.Y = 328.000000000000000000
+    Size.Width = 289.000000000000000000
+    Size.Height = 145.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 15
+    TabPosition = Top
+    Sizes = (
+      289s
+      117s
+      289s
+      117s)
+    object TabSheet1: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 123.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'TabSheet1 '#31532#19968#39029
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object ListView1: TListView
+        ItemAppearanceClassName = 'TListItemAppearance'
+        ItemEditAppearanceClassName = 'TListItemShowCheckAppearance'
+        HeaderAppearanceClassName = 'TListHeaderObjects'
+        FooterAppearanceClassName = 'TListHeaderObjects'
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 249.000000000000000000
+        Size.Height = 81.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+      end
+    end
+    object TabSheet2: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 1
+      Size.Width = 123.000000000000000000
+      Size.Height = 28.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'TabSheet2 '#31532#20108#39029
+      ExplicitSize.cx = 50.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+    end
+  end
+  object ToolBar1: TGridLayout
+    ItemHeight = 20.000000000000000000
+    ItemWidth = 91.000000000000000000
+    Orientation = Horizontal
+    Size.Width = 884.000000000000000000
+    Size.Height = 29.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object ToolButton1: TSpeedButton
+      ImageIndex = 0
+      Size.Width = 91.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = #31532#19968#20010#24037#20855#25353#38062
+    end
+    object ToolButton2: TSpeedButton
+      ImageIndex = 1
+      Position.X = 91.000000000000000000
+      Size.Width = 91.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = #31532#20108#20010#24037#20855#25353#38062
+    end
+    object ToolButton3: TSpeedButton
+      Position.X = 182.000000000000000000
+      Size.Width = 91.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'ToolButton3'
+    end
+    object ToolButton4: TSpeedButton
+      Action = Action1
+      Enabled = True
+      ImageIndex = -1
+      Position.X = 273.000000000000000000
+      Size.Width = 91.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object ToolButton5: TSpeedButton
+      Action = Action2
+      Enabled = True
+      ImageIndex = -1
+      Position.X = 364.000000000000000000
+      Size.Width = 91.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+    end
+  end
+  object TreeView1: TTreeView
+    Position.X = 336.000000000000000000
+    Position.Y = 320.000000000000000000
+    Size.Width = 241.000000000000000000
+    Size.Height = 153.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 17
+    Viewport.Width = 237.000000000000000000
+    Viewport.Height = 149.000000000000000000
+    object TTreeViewItem1: TTreeViewItem
+      IsChecked = False
+      IsExpanded = False
+      IsSelected = False
+      ImageIndex = 0
+      TabOrder = 0
+      Text = #31532#19968#20010
+    end
+    object TTreeViewItem2: TTreeViewItem
+      IsChecked = False
+      IsExpanded = False
+      IsSelected = False
+      ImageIndex = 0
+      TabOrder = 1
+      Text = #31532#20108#20010
+      object TTreeViewItem3: TTreeViewItem
+        IsChecked = False
+        IsExpanded = False
+        IsSelected = False
+        ImageIndex = 0
+        TabOrder = 0
+        Text = #31532#20108#28857#20116#20010
+        object TTreeViewItem4: TTreeViewItem
+          IsChecked = False
+          IsExpanded = False
+          IsSelected = False
+          ImageIndex = 0
+          TabOrder = 0
+          Text = #31532#20108#28857#20108#20116#20010
+        end
+      end
+    end
+    object TTreeViewItem5: TTreeViewItem
+      IsChecked = False
+      IsExpanded = False
+      IsSelected = False
+      ImageIndex = 0
+      TabOrder = 2
+      Text = #31532#19977#20010
+      object TTreeViewItem6: TTreeViewItem
+        IsChecked = False
+        IsExpanded = False
+        IsSelected = False
+        ImageIndex = 0
+        TabOrder = 0
+        Text = #31532#19977#28857#20116#20010
+      end
+    end
+  end
+  object Button2: TButton
+    Position.X = 712.000000000000000000
+    Position.Y = 520.000000000000000000
+    Size.Width = 139.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 18
+    Text = #36816#34892#26399' AutoDetect '#27979#35797
+    OnClick = Button2Click
+  end
+  object btn1: TButton
+    Position.X = 16.000000000000000000
+    Position.Y = 528.000000000000000000
+    Size.Width = 201.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 19
+    Text = #20999#25442#35821#35328
+    OnClick = btn1Click
+  end
+  object chkStorageMode: TCheckBox
+    Position.X = 16.000000000000000000
+    Position.Y = 572.000000000000000000
+    Size.Width = 161.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 20
+    Text = #22810#35821#23384#20648#27169#24335#65306#22522#20110#25991#20214
+    OnClick = chkStorageModeClick
+  end
+  object mmoLangs: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    TextSettings.WordWrap = True
+    Position.X = 336.000000000000000000
+    Position.Y = 520.000000000000000000
+    Size.Width = 361.000000000000000000
+    Size.Height = 73.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 21
+    Viewport.Width = 357.000000000000000000
+    Viewport.Height = 69.000000000000000000
+  end
+  object Button4: TButton
+    Position.X = 616.000000000000000000
+    Position.Y = 320.000000000000000000
+    Size.Width = 217.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 22
+    Text = #21019#24314#21478#19968#20010#31383#20307
+    OnClick = Button4Click
+  end
+  object Button3: TButton
+    Position.X = 616.000000000000000000
+    Position.Y = 360.000000000000000000
+    Size.Width = 217.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 23
+    Text = #26174#31034#21478#19968#20010#24050#21019#24314#30340#31383#20307
+    OnClick = Button3Click
+  end
+  object MainMenu1: TMainMenu
+    Left = 56
+    Top = 64
+    object N1: TMenuItem
+      Text = #25991#20214
+      object N3: TMenuItem
+        Locked = True
+        Text = #33756#21333#27979#35797#19968
+      end
+      object N4: TMenuItem
+        Locked = True
+        Text = #33756#21333#27979#35797#20108
+      end
+    end
+    object N2: TMenuItem
+      Text = #24110#21161
+      object N5: TMenuItem
+        Locked = True
+        Text = #33756#21333#27979#35797#19977
+      end
+    end
+  end
+  object PopupMenu1: TPopupMenu
+    Left = 120
+    Top = 64
+    object N6: TMenuItem
+      Text = #24377#20986#33756#21333#27979#35797#19968
+    end
+    object N7: TMenuItem
+      Text = '-'
+    end
+    object N8: TMenuItem
+      Text = #24377#20986#33756#21333#27979#35797#20108
+    end
+  end
+  object OpenDialog1: TOpenDialog
+    Left = 416
+    Top = 48
+  end
+  object ActionList1: TActionList
+    Left = 528
+    Top = 88
+    object Action1: TAction
+      Text = 'Action1 '#27979#35797#19968
+    end
+    object Action2: TAction
+      Text = 'Action2 '#27979#35797#20108
+    end
+  end
+  object hfs1: TCnHashLangFileStorage
+    StorageMode = smByFile
+    Languages = <
+      item
+        Abbreviation = 'CHS'
+        LanguageID = 2052
+        LanguageName = #20013#25991'('#31616#20307#65292#20013#22269')'
+        LanguageFileName = 'CHS'
+        LanguageDirName = '2052'
+        DefaultFont.Charset = DEFAULT_CHARSET
+        DefaultFont.Color = clWindowText
+        DefaultFont.Height = -11
+        DefaultFont.Name = 'Tahoma'
+        DefaultFont.Style = []
+      end
+      item
+        Abbreviation = 'ENU'
+        LanguageID = 1033
+        LanguageName = #33521#35821'('#32654#22269')'
+        LanguageFileName = 'ENU'
+        LanguageDirName = '1033'
+        DefaultFont.Charset = DEFAULT_CHARSET
+        DefaultFont.Color = clWindowText
+        DefaultFont.Height = -11
+        DefaultFont.Name = 'Tahoma'
+        DefaultFont.Style = []
+      end>
+    ListLength = 1024
+    IncSize = 2
+    Left = 192
+    Top = 280
+  end
+  object lm1: TCnLangManager
+    LanguageStorage = hfs1
+    TranslationMode = tmByComponents
+    AutoTransOptions = [atApplication, atForms, atDataModules]
+    Left = 240
+    Top = 280
+  end
+  object lt1: TCnLangTranslator
+    Left = 288
+    Top = 280
+  end
+end

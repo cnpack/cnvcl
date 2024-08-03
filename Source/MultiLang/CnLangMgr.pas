@@ -929,7 +929,7 @@ begin
       if not IsInList then            // 不处理某一 Form 有 Parent 的情况。2004.06.01 by LiuXiao
       begin
         if (AComponent is TCustomForm) or
-          {$IFDEF SUPPORT_FMX} CnFmxIsInheritedFromCommonCustomForm(T) or {$ENDIF}
+          {$IFDEF SUPPORT_FMX} CnFmxIsInheritedFromCommonCustomForm(AComponent) or {$ENDIF}
           ManuallyTop then // 手动翻译顶层 Frame 时需要走 TFrame 名，但不要再把 ManuallyTop 传入了
           TranslateRecurComponent(T, AList, BaseName)
         else
@@ -1398,9 +1398,13 @@ begin
           TranslateForm(Screen.CustomForms[I]);
 {$IFDEF SUPPORT_FMX}
         FmxForms := TList.Create;
-        CnFmxGetScreenFormsWithName('', FmxForms);
-        for I := 0 to FmxForms.Count - 1 do
-          TranslateFmxForm(TComponent(FmxForms[I]));
+        try
+          CnFmxGetScreenFormsWithName('', FmxForms);
+          for I := 0 to FmxForms.Count - 1 do
+            TranslateFmxForm(TComponent(FmxForms[I]));
+        finally
+          FmxForms.Free;
+        end;
 {$ENDIF}
       end;
 

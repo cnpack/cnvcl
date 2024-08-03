@@ -1,0 +1,21 @@
+object Form3: TForm3
+  Left = 358
+  Top = 364
+  Caption = #21478#22806#19968#20010#24050#32463#21019#24314#30340#31383#20307
+  ClientHeight = 240
+  ClientWidth = 456
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  Left = 358
+  Top = 364
+  DesignerMasterStyle = 0
+  object lbl1: TLabel
+    Position.X = 80.000000000000000000
+    Position.Y = 80.000000000000000000
+    Size.Width = 281.000000000000000000
+    Size.Height = 13.000000000000000000
+    Size.PlatformDefault = False
+    Text = #36825#20010#31383#20307#20063#23601#19968#20010#27979#35797#30340' Label'
+  end
+end
