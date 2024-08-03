@@ -1372,7 +1372,6 @@ begin
   if (Text <> nil) and (AnsiOffset > 0) then
   begin
     Idx := 0;
-
     while (Text^ <> #0) and (Idx < AnsiOffset) do
     begin
       if Ord(Text^) > $FF then
@@ -1382,10 +1381,10 @@ begin
       Inc(Text);
       Inc(Result);
     end;
-  end;
 
-  if AllowExceedEnd and (Text^ = #0) and (Idx < AnsiOffset) then
-    Inc(Result, AnsiOffset - Idx);
+    if AllowExceedEnd and (Text^ = #0) and (Idx < AnsiOffset) then
+      Inc(Result, AnsiOffset - Idx);
+  end;
 end;
 
 function CalcWideStringDisplayLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
