@@ -22,10 +22,11 @@ unit CnPDFCrypt;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：PDF 简易解析生成单元
-* 单元作者：CnPack 开发组
-* 备    注：PDF 加解密机制的实现单元，从 CnPDF.pas 中独立出来
+* 单元名称：PDF 加解密机制实现单元
+* 单元作者：CnPack 开发组 (master@cnpack.org)
+* 备    注：本单元实现了 PDF 文件的加解密机制，从 CnPDF.pas 中独立出来。
 *
+*           PDF 文件的加解密相关概念：
 *           Version 表示加密机制，0 无，1 为 40 位 RC4、2/3 为 40 到 128 位 RC4、4 看 Security Handler 里的 Crypt Filter
 *           Revision 用来指示 Security Handler 如何处理权限，2 无、3 有、4 不知道，并对各 Key 的运算有影响
 *

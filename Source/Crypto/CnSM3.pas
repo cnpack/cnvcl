@@ -22,11 +22,13 @@ unit CnSM3;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：国产杂凑算法 SM3 实现单元
+* 单元名称：国家商用密码 SM3 杂凑算法实现单元
 * 单元作者：CnPack 开发组（master@cnpack.org)
-* 备    注：参考国密算法公开文档《SM3 Cryptographic Hash Algorith》
+*           参考并部分移植了 goldboar 的 C 代码
+* 备    注：本单元实现了国家商用密码 SM3 杂凑算法及对应的 HMAC 算法。
+*           参考国密算法公开文档《SM3 Cryptographic Hash Algorith》
 *           http://www.oscca.gov.cn/UpFile/20101222141857786.pdf
-*           并参考移植 goldboar 的 C 代码
+*
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式

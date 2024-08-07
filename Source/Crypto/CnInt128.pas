@@ -24,7 +24,7 @@ unit CnInt128;
 * 软件名称：CnPack 组件包
 * 单元名称：128 位有无符号整数的运算实现
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 备    注：实现基本四则运算功能，待完整测试
+* 备    注：本单元以 TCnInt128 与 TCnUInt128 结构实现了 128 位整数的基本四则运算。
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 XE 2
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -1199,4 +1199,3 @@ end;
 {$WARNINGS ON}
 
 end.
-

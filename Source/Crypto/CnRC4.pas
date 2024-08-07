@@ -24,7 +24,7 @@ unit CnRC4;
 * 软件名称：开发包基础库
 * 单元名称：RC4 流加解密算法实现单元
 * 单元作者：CnPack 开发组（master@cnpack.org)
-* 备    注：
+* 备    注：本单元实现了 RC4 流加解密算法。
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式

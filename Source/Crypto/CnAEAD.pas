@@ -26,14 +26,17 @@ unit CnAEAD;
 * 单元作者：CnPack 开发组
 * 备    注：AEAD 是关联数据认证加密的简称。可以用密码、关联数据与初始化向量等对
 *           数据进行加密与生成验证内容，解密时如果验证内容通不过则失败。
-*           注：字节串转换为大整数时相当于大端表达法，且大下标指向高位地址
-*           目前实现了 GHash128（似乎也叫 GMAC）以及 CMAC，并基于两者实现了
+*
+*           目前本单元实现了 GHash128（也叫 GMAC）以及 CMAC，并基于两者实现了
 *           AES128/192/256/SM4 的 GCM/CCM（但 CCM 里的 CMAC 和单纯的 CMAC 还不同）
+*
 *           GCM 参考文档《The Galois/Counter Mode of Operation (GCM)》以及
 *           《NIST Special Publication 800-38D》以及 RFC 8998 的例子数据
+*
 *           CMAC 参考文档 NIST Special Publication 800-38B:
 *           《Recommendation for Block Cipher Modes of Operation:
 *           The CMAC Mode for Authentication》 以及 RFC 4993 的例子数据(AES-128)
+*
 *           CCM 参考文档 NIST Special Publication 800-38C:
 *          《Recommendation for Block Cipher Modes of Operation:
 *           The CCM Mode for Authentication and Confidentiality》
@@ -41,14 +44,16 @@ unit CnAEAD;
 *
 *           注意 CCM 有两个编译期的参数，摘要长度 CCM_M_LEN 和明文长度的字节长度 CCM_L_LEN
 *           NIST 800-38C 例子中是 4、8，RFC 3610 例子中是 8、2，RFC 8998 是 16、？
-*           俩参数不同是无法通过 CCM 正确加解密的。
+*           如果不同端的俩参数不同，则无法通过 CCM 正确加解密。
 *
 *           补充：Java 等语言中 AES/GCM/NoPadding 的加密方式具体使用 AES256-GCM，
 *           并会把 16 字节的 Tag 拼在密文后一起输出
 *
-*           Nonce、Iv 虽然也叫初始化向量，但内部并不是直接补齐截断使用 16 字节，
+*           本单元中的 Nonce、Iv 虽然也叫初始化向量，但内部并不是直接补齐截断使用 16 字节，
 *           而是根据长度直接 12 字节或 GHash 成 16 字节后取前 12 字节，再拼个四
 *           字节的计数器，这才作为传统 Iv 使用。
+*
+*           注：字节串转换为大整数时相当于大端表达法，且越大的下标指向越高位的地址
 *
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6

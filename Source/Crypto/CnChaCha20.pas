@@ -23,11 +23,14 @@ unit CnChaCha20;
 ================================================================================
 * 软件名称：开发包基础库
 * 单元名称：ChaCha20 流密码算法实现单元
-* 单元作者：CnPack 开发组（master@cnpack.org)
-* 备    注：根据 RFC 7539 实现 ChaCha20 和草案实现 XChaCha20，其中 Nonce 类似于初始化向量
-*           ChaCha20 块运算；输入 32 字节 Key、12 字节 Nonce、4 字节 Counter，输出 64 字节内容
+* 单元作者：CnPack 开发组 (master@cnpack.org)
+* 备    注：本单元实现了 ChaCha20 系列流密码加解密算法，其中 ChaCha20 依据 RFC 7539 实现，
+*           XChaCha20 依据草案实现。算法中的 Nonce 类似于初始化向量。
+*
+*           ChaCha20 块运算：输入 32 字节 Key、12 字节 Nonce、4 字节 Counter，输出 64 字节内容
 *           ChaCha20 流运算：输入 32 字节 Key、12 字节 Nonce、4 字节 Counter，任意长度明/密文
 *                    输出相同长度密/明文，内部 Counter 初始值默认使用 1
+*
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -100,11 +103,11 @@ procedure HChaCha20SubKey(var Key: TCnChaChaKey; var Nonce: TCnHChaChaNonce;
 
 function ChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Data: TBytes): TBytes;
-{* 对字节数组进行 ChaCha20 加密，内部使用的计数器为 1}
+{* 对字节数组进行 ChaCha20 加密，内部使用的计数器初始值默认为 1}
 
 function ChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   EnData: TBytes): TBytes;
-{* 对字节数组进行 ChaCha20 解密，内部使用的计数器为 1}
+{* 对字节数组进行 ChaCha20 解密，内部使用的计数器初始值默认为 1}
 
 function ChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
@@ -118,20 +121,20 @@ function ChaCha20DecryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
 
 function XChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
   Data: TBytes): TBytes;
-{* 对字节数组进行 XChaCha20 加密，内部使用的计数器为 1}
+{* 对字节数组进行 XChaCha20 加密，内部使用的计数器初始值默认为 1}
 
 function XChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
   EnData: TBytes): TBytes;
-{* 对字节数组进行 XChaCha20 解密，内部使用的计数器为 1}
+{* 对字节数组进行 XChaCha20 解密，内部使用的计数器初始值默认为 1}
 
 function XChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
-{* 对 Data 所指的 DataByteLength 长度的数据块进行 XChaCha20 加密，内部使用的计数器为 1
+{* 对 Data 所指的 DataByteLength 长度的数据块进行 XChaCha20 加密，内部使用的计数器初始值默认为 1
   密文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
 
 function XChaCha20DecryptData(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
   EnData: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
-{* 对 Data 所指的 DataByteLength 长度的密文数据块进行 XChaCha20 解密，内部使用的计数器为 1
+{* 对 Data 所指的 DataByteLength 长度的密文数据块进行 XChaCha20 解密，内部使用的计数器初始值默认为 1
   明文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
 
 implementation
@@ -142,7 +145,7 @@ const
   CHACHA20_CONST2 = $79622D32;
   CHACHA20_CONST3 = $6B206574;
 
-procedure ROT(var X: Cardinal; N: BYTE);
+procedure ROT(var X: Cardinal; N: BYTE); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   X := (X shl N) or (X shr (32 - N));
 end;

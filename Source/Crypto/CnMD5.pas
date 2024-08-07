@@ -19,8 +19,6 @@
 {******************************************************************************}
 
 {******************************************************************************}
-{        该单元基于Ronald L. Rivest的MD5.pas改写，以下是MD5.pas的声明：        }
-{ -----------------------------------------------------------------------------}
 {                                                                              }
 {                                 MD5 Message-Digest for Delphi 4              }
 {                                                                              }
@@ -49,9 +47,10 @@ unit CnMD5;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：MD5 算法单元
+* 单元名称：MD5 杂凑算法实现单元
 * 单元作者：何清（QSoft） hq.com@263.net; http://qsoft.51.net
-* 备    注：
+*           基于 Ronald L. Rivest 的 MD5.pas 改写，保留原始声明
+* 备    注：本单元实现了 MD5 杂凑算法及对应的 HMAC 算法。
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -220,57 +219,57 @@ var
     $00, $00, $00, $00, $00, $00, $00, $00
   );
 
-function F(x, y, z: Cardinal): Cardinal;
+function F(X, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := (x and y) or ((not x) and z);
+  Result := (X and y) or ((not X) and z);
 end;
 
-function G(x, y, z: Cardinal): Cardinal;
+function G(X, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := (x and z) or (y and (not z));
+  Result := (X and z) or (y and (not z));
 end;
 
-function H(x, y, z: Cardinal): Cardinal;
+function H(X, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := x xor y xor z;
+  Result := X xor y xor z;
 end;
 
-function I(x, y, z: Cardinal): Cardinal;
+function I(X, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := y xor (x or (not z));
+  Result := y xor (X or (not z));
 end;
 
-procedure ROT(var x: Cardinal; n: BYTE);
+procedure ROT(var X: Cardinal; N: BYTE); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  x := (x shl n) or (x shr (32 - n));
+  X := (X shl N) or (X shr (32 - N));
 end;
 
-procedure FF(var a: Cardinal; b, c, d, x: Cardinal; s: BYTE; ac: Cardinal);
+procedure FF(var A: Cardinal; B, C, D, X: Cardinal; S: BYTE; AC: Cardinal);
 begin
-  Inc(a, F(b, c, d) + x + ac);
-  ROT(a, s);
-  Inc(a, b);
+  Inc(A, F(B, C, D) + X + AC);
+  ROT(A, S);
+  Inc(A, B);
 end;
 
-procedure GG(var a: Cardinal; b, c, d, x: Cardinal; s: BYTE; ac: Cardinal);
+procedure GG(var A: Cardinal; B, C, D, X: Cardinal; S: BYTE; AC: Cardinal);
 begin
-  Inc(a, G(b, c, d) + x + ac);
-  ROT(a, s);
-  Inc(a, b);
+  Inc(A, G(B, C, D) + X + AC);
+  ROT(A, S);
+  Inc(A, B);
 end;
 
-procedure HH(var a: Cardinal; b, c, d, x: Cardinal; s: BYTE; ac: Cardinal);
+procedure HH(var A: Cardinal; B, C, D, X: Cardinal; S: BYTE; AC: Cardinal);
 begin
-  Inc(a, H(b, c, d) + x + ac);
-  ROT(a, s);
-  Inc(a, b);
+  Inc(A, H(B, C, D) + X + AC);
+  ROT(A, S);
+  Inc(A, B);
 end;
 
-procedure II(var a: Cardinal; b, c, d, x: Cardinal; s: BYTE; ac: Cardinal);
+procedure II(var A: Cardinal; B, C, D, X: Cardinal; S: BYTE; AC: Cardinal);
 begin
-  Inc(a, I(b, c, d) + x + ac);
-  ROT(a, s);
-  Inc(a, b);
+  Inc(A, I(B, C, D) + X + AC);
+  ROT(A, S);
+  Inc(A, B);
 end;
 
 // Encode Count bytes at Source into (Count / 4) DWORDs at Target
@@ -322,82 +321,82 @@ end;
 // Transform State according to first 64 bytes at Buffer
 procedure Transform(Buffer: Pointer; var State: TCnMD5State);
 var
-  a, b, c, d: Cardinal;
+  A, B, C, D: Cardinal;
   Block: TCnMD5Block;
 begin
   Encode(Buffer, @Block, 64);
-  a := State[0];
-  b := State[1];
-  c := State[2];
-  d := State[3];
-  FF (a, b, c, d, Block[ 0],  7, $d76aa478);
-  FF (d, a, b, c, Block[ 1], 12, $e8c7b756);
-  FF (c, d, a, b, Block[ 2], 17, $242070db);
-  FF (b, c, d, a, Block[ 3], 22, $c1bdceee);
-  FF (a, b, c, d, Block[ 4],  7, $f57c0faf);
-  FF (d, a, b, c, Block[ 5], 12, $4787c62a);
-  FF (c, d, a, b, Block[ 6], 17, $a8304613);
-  FF (b, c, d, a, Block[ 7], 22, $fd469501);
-  FF (a, b, c, d, Block[ 8],  7, $698098d8);
-  FF (d, a, b, c, Block[ 9], 12, $8b44f7af);
-  FF (c, d, a, b, Block[10], 17, $ffff5bb1);
-  FF (b, c, d, a, Block[11], 22, $895cd7be);
-  FF (a, b, c, d, Block[12],  7, $6b901122);
-  FF (d, a, b, c, Block[13], 12, $fd987193);
-  FF (c, d, a, b, Block[14], 17, $a679438e);
-  FF (b, c, d, a, Block[15], 22, $49b40821);
-  GG (a, b, c, d, Block[ 1],  5, $f61e2562);
-  GG (d, a, b, c, Block[ 6],  9, $c040b340);
-  GG (c, d, a, b, Block[11], 14, $265e5a51);
-  GG (b, c, d, a, Block[ 0], 20, $e9b6c7aa);
-  GG (a, b, c, d, Block[ 5],  5, $d62f105d);
-  GG (d, a, b, c, Block[10],  9,  $2441453);
-  GG (c, d, a, b, Block[15], 14, $d8a1e681);
-  GG (b, c, d, a, Block[ 4], 20, $e7d3fbc8);
-  GG (a, b, c, d, Block[ 9],  5, $21e1cde6);
-  GG (d, a, b, c, Block[14],  9, $c33707d6);
-  GG (c, d, a, b, Block[ 3], 14, $f4d50d87);
-  GG (b, c, d, a, Block[ 8], 20, $455a14ed);
-  GG (a, b, c, d, Block[13],  5, $a9e3e905);
-  GG (d, a, b, c, Block[ 2],  9, $fcefa3f8);
-  GG (c, d, a, b, Block[ 7], 14, $676f02d9);
-  GG (b, c, d, a, Block[12], 20, $8d2a4c8a);
-  HH (a, b, c, d, Block[ 5],  4, $fffa3942);
-  HH (d, a, b, c, Block[ 8], 11, $8771f681);
-  HH (c, d, a, b, Block[11], 16, $6d9d6122);
-  HH (b, c, d, a, Block[14], 23, $fde5380c);
-  HH (a, b, c, d, Block[ 1],  4, $a4beea44);
-  HH (d, a, b, c, Block[ 4], 11, $4bdecfa9);
-  HH (c, d, a, b, Block[ 7], 16, $f6bb4b60);
-  HH (b, c, d, a, Block[10], 23, $bebfbc70);
-  HH (a, b, c, d, Block[13],  4, $289b7ec6);
-  HH (d, a, b, c, Block[ 0], 11, $eaa127fa);
-  HH (c, d, a, b, Block[ 3], 16, $d4ef3085);
-  HH (b, c, d, a, Block[ 6], 23,  $4881d05);
-  HH (a, b, c, d, Block[ 9],  4, $d9d4d039);
-  HH (d, a, b, c, Block[12], 11, $e6db99e5);
-  HH (c, d, a, b, Block[15], 16, $1fa27cf8);
-  HH (b, c, d, a, Block[ 2], 23, $c4ac5665);
-  II (a, b, c, d, Block[ 0],  6, $f4292244);
-  II (d, a, b, c, Block[ 7], 10, $432aff97);
-  II (c, d, a, b, Block[14], 15, $ab9423a7);
-  II (b, c, d, a, Block[ 5], 21, $fc93a039);
-  II (a, b, c, d, Block[12],  6, $655b59c3);
-  II (d, a, b, c, Block[ 3], 10, $8f0ccc92);
-  II (c, d, a, b, Block[10], 15, $ffeff47d);
-  II (b, c, d, a, Block[ 1], 21, $85845dd1);
-  II (a, b, c, d, Block[ 8],  6, $6fa87e4f);
-  II (d, a, b, c, Block[15], 10, $fe2ce6e0);
-  II (c, d, a, b, Block[ 6], 15, $a3014314);
-  II (b, c, d, a, Block[13], 21, $4e0811a1);
-  II (a, b, c, d, Block[ 4],  6, $f7537e82);
-  II (d, a, b, c, Block[11], 10, $bd3af235);
-  II (c, d, a, b, Block[ 2], 15, $2ad7d2bb);
-  II (b, c, d, a, Block[ 9], 21, $eb86d391);
-  Inc(State[0], a);
-  Inc(State[1], b);
-  Inc(State[2], c);
-  Inc(State[3], d);
+  A := State[0];
+  B := State[1];
+  C := State[2];
+  D := State[3];
+  FF (A, B, C, D, Block[ 0],  7, $d76aa478);
+  FF (D, A, B, C, Block[ 1], 12, $e8c7b756);
+  FF (C, D, A, B, Block[ 2], 17, $242070db);
+  FF (B, C, D, A, Block[ 3], 22, $c1bdceee);
+  FF (A, B, C, D, Block[ 4],  7, $f57c0faf);
+  FF (D, A, B, C, Block[ 5], 12, $4787c62a);
+  FF (C, D, A, B, Block[ 6], 17, $a8304613);
+  FF (B, C, D, A, Block[ 7], 22, $fd469501);
+  FF (A, B, C, D, Block[ 8],  7, $698098d8);
+  FF (D, A, B, C, Block[ 9], 12, $8b44f7af);
+  FF (C, D, A, B, Block[10], 17, $ffff5bb1);
+  FF (B, C, D, A, Block[11], 22, $895cd7be);
+  FF (A, B, C, D, Block[12],  7, $6b901122);
+  FF (D, A, B, C, Block[13], 12, $fd987193);
+  FF (C, D, A, B, Block[14], 17, $a679438e);
+  FF (B, C, D, A, Block[15], 22, $49b40821);
+  GG (A, B, C, D, Block[ 1],  5, $f61e2562);
+  GG (D, A, B, C, Block[ 6],  9, $c040b340);
+  GG (C, D, A, B, Block[11], 14, $265e5a51);
+  GG (B, C, D, A, Block[ 0], 20, $e9b6c7aa);
+  GG (A, B, C, D, Block[ 5],  5, $d62f105d);
+  GG (D, A, B, C, Block[10],  9,  $2441453);
+  GG (C, D, A, B, Block[15], 14, $d8a1e681);
+  GG (B, C, D, A, Block[ 4], 20, $e7d3fbc8);
+  GG (A, B, C, D, Block[ 9],  5, $21e1cde6);
+  GG (D, A, B, C, Block[14],  9, $c33707d6);
+  GG (C, D, A, B, Block[ 3], 14, $f4d50d87);
+  GG (B, C, D, A, Block[ 8], 20, $455a14ed);
+  GG (A, B, C, D, Block[13],  5, $a9e3e905);
+  GG (D, A, B, C, Block[ 2],  9, $fcefa3f8);
+  GG (C, D, A, B, Block[ 7], 14, $676f02d9);
+  GG (B, C, D, A, Block[12], 20, $8d2a4c8a);
+  HH (A, B, C, D, Block[ 5],  4, $fffa3942);
+  HH (D, A, B, C, Block[ 8], 11, $8771f681);
+  HH (C, D, A, B, Block[11], 16, $6d9d6122);
+  HH (B, C, D, A, Block[14], 23, $fde5380c);
+  HH (A, B, C, D, Block[ 1],  4, $a4beea44);
+  HH (D, A, B, C, Block[ 4], 11, $4bdecfa9);
+  HH (C, D, A, B, Block[ 7], 16, $f6bb4b60);
+  HH (B, C, D, A, Block[10], 23, $bebfbc70);
+  HH (A, B, C, D, Block[13],  4, $289b7ec6);
+  HH (D, A, B, C, Block[ 0], 11, $eaa127fa);
+  HH (C, D, A, B, Block[ 3], 16, $d4ef3085);
+  HH (B, C, D, A, Block[ 6], 23,  $4881d05);
+  HH (A, B, C, D, Block[ 9],  4, $d9d4d039);
+  HH (D, A, B, C, Block[12], 11, $e6db99e5);
+  HH (C, D, A, B, Block[15], 16, $1fa27cf8);
+  HH (B, C, D, A, Block[ 2], 23, $c4ac5665);
+  II (A, B, C, D, Block[ 0],  6, $f4292244);
+  II (D, A, B, C, Block[ 7], 10, $432aff97);
+  II (C, D, A, B, Block[14], 15, $ab9423a7);
+  II (B, C, D, A, Block[ 5], 21, $fc93a039);
+  II (A, B, C, D, Block[12],  6, $655b59c3);
+  II (D, A, B, C, Block[ 3], 10, $8f0ccc92);
+  II (C, D, A, B, Block[10], 15, $ffeff47d);
+  II (B, C, D, A, Block[ 1], 21, $85845dd1);
+  II (A, B, C, D, Block[ 8],  6, $6fa87e4f);
+  II (D, A, B, C, Block[15], 10, $fe2ce6e0);
+  II (C, D, A, B, Block[ 6], 15, $a3014314);
+  II (B, C, D, A, Block[13], 21, $4e0811a1);
+  II (A, B, C, D, Block[ 4],  6, $f7537e82);
+  II (D, A, B, C, Block[11], 10, $bd3af235);
+  II (C, D, A, B, Block[ 2], 15, $2ad7d2bb);
+  II (B, C, D, A, Block[ 9], 21, $eb86d391);
+  Inc(State[0], A);
+  Inc(State[1], B);
+  Inc(State[2], C);
+  Inc(State[3], D);
 end;
 
 // Initialize given Context
@@ -544,10 +543,6 @@ begin
     Stream.Position := SavePos;
   end;
 end;
-
-//----------------------------------------------------------------
-// 用户 API 函数实现
-//----------------------------------------------------------------
 
 // 对数据块进行 MD5 计算
 function MD5(Input: PAnsiChar; ByteLength: Cardinal): TCnMD5Digest;
