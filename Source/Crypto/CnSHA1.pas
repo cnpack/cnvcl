@@ -107,11 +107,23 @@ function SHA1StringW(const Str: WideString): TCnSHA1Digest;
    Str: WideString       - 要计算的字符串
  |</PRE>}
 
-function SHA1UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA1Digest;
+{$IFDEF UNICODE}
+
+function SHA1UnicodeString(const Str: string): TCnSHA1Digest;
 {* 对 UnicodeString 类型数据进行直接的 SHA1 计算，不进行转换
  |<PRE>
-   Str: UnicodeString/WideString       - 要计算的宽字符串
+   Str: UnicodeString       - 要计算的宽字符串
  |</PRE>}
+
+{$ELSE}
+
+function SHA1UnicodeString(const Str: WideString): TCnSHA1Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA1 计算，不进行转换
+ |<PRE>
+   Str: WideString       - 要计算的宽字符串
+ |</PRE>}
+
+{$ENDIF}
 
 function SHA1File(const FileName: string;
   CallBack: TCnSHA1CalcProgressFunc = nil): TCnSHA1Digest;
@@ -406,7 +418,11 @@ begin
   SHA1Final(Context, Result);
 end;
 
-function SHA1UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA1Digest;
+{$IFDEF UNICODE}
+function SHA1UnicodeString(const Str: string): TCnSHA1Digest;
+{$ELSE}
+function SHA1UnicodeString(const Str: WideString): TCnSHA1Digest;
+{$ENDIF}
 var
   Context: TCnSHA1Context;
 begin

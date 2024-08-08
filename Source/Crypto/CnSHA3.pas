@@ -251,47 +251,95 @@ function SHAKE256String(const Str: string; DigestByteLength: Cardinal = CN_SHAKE
    DigestByteLength: Cardinal - 所需杂凑的字节长度
  |</PRE>}
 
-function SHA3_224UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA3_224Digest;
+{$IFDEF UNICODE}
+
+function SHA3_224UnicodeString(const Str: string): TCnSHA3_224Digest;
 {* 对 UnicodeString 类型数据进行直接的 SHA3_224 计算，不进行转换
  |<PRE>
-   Str: UnicodeString/WideString       - 要计算的宽字符串
+   Str: UnicodeString       - 要计算的宽字符串
  |</PRE>}
 
-function SHA3_256UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA3_256Digest;
+function SHA3_256UnicodeString(const Str: string): TCnSHA3_256Digest;
 {* 对 UnicodeString 类型数据进行直接的 SHA3_256 计算，不进行转换
  |<PRE>
-   Str: UnicodeString/WideString       - 要计算的宽字符串
+   Str: UnicodeString       - 要计算的宽字符串
  |</PRE>}
 
-function SHA3_384UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA3_384Digest;
+function SHA3_384UnicodeString(const Str: string): TCnSHA3_384Digest;
 {* 对 UnicodeString 类型数据进行直接的 SHA3_384 计算，不进行转换
  |<PRE>
-   Str: UnicodeString/WideString       - 要计算的宽字符串
+   Str: UnicodeString       - 要计算的宽字符串
  |</PRE>}
 
-function SHA3_512UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA3_512Digest;
+function SHA3_512UnicodeString(const Str: string): TCnSHA3_512Digest;
 {* 对 UnicodeString 类型数据进行直接的 SHA3_512 计算，不进行转换
  |<PRE>
-   Str: UnicodeString/WideString       - 要计算的宽字符串
+   Str: UnicodeString       - 要计算的宽字符串
  |</PRE>}
 
-function SHAKE128UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF};
+function SHAKE128UnicodeString(const Str: string;
   DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对 UnicodeString 类型数据进行杂凑长度可变的直接 SHAKE128 计算，不进行转换，
    返回长度为 DigestByteLength 的字节数组作为杂凑结果
  |<PRE>
-   Str: UnicodeString/WideString       - 要计算的宽字符串
+   Str: UnicodeString                  - 要计算的宽字符串
    DigestByteLength: Cardinal          - 所需杂凑的字节长度
  |</PRE>}
 
-function SHAKE256UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF};
+function SHAKE256UnicodeString(const Str: string;
   DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对 UnicodeString 类型数据进行杂凑长度可变的直接 SHAKE256 计算，不进行转换，
    返回长度为 DigestByteLength 的字节数组作为杂凑结果
  |<PRE>
-   Str: UnicodeString/WideString       - 要计算的宽字符串
+   Str: UnicodeString                  - 要计算的宽字符串
    DigestByteLength: Cardinal          - 所需杂凑的字节长度
  |</PRE>}
+
+{$ELSE}
+
+function SHA3_224UnicodeString(const Str: WideString): TCnSHA3_224Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA3_224 计算，不进行转换
+ |<PRE>
+   Str: WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHA3_256UnicodeString(const Str: WideString): TCnSHA3_256Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA3_256 计算，不进行转换
+ |<PRE>
+   Str: WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHA3_384UnicodeString(const Str: WideString): TCnSHA3_384Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA3_384 计算，不进行转换
+ |<PRE>
+   Str: WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHA3_512UnicodeString(const Str: WideString): TCnSHA3_512Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA3_512 计算，不进行转换
+ |<PRE>
+   Str: WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHAKE128UnicodeString(const Str: WideString;
+  DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH): TBytes;
+{* 对 UnicodeString 类型数据进行杂凑长度可变的直接 SHAKE128 计算，不进行转换，
+   返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   Str: WideString                     - 要计算的宽字符串
+   DigestByteLength: Cardinal          - 所需杂凑的字节长度
+ |</PRE>}
+
+function SHAKE256UnicodeString(const Str: WideString;
+  DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH): TBytes;
+{* 对 UnicodeString 类型数据进行杂凑长度可变的直接 SHAKE256 计算，不进行转换，
+   返回长度为 DigestByteLength 的字节数组作为杂凑结果
+ |<PRE>
+   Str: WideString                     - 要计算的宽字符串
+   DigestByteLength: Cardinal          - 所需杂凑的字节长度
+ |</PRE>}
+
+{$ENDIF}
 
 function SHA3_224StringA(const Str: AnsiString): TCnSHA3_224Digest;
 {* 对 AnsiString 类型数据进行 SHA3_224 计算
@@ -1285,7 +1333,11 @@ begin
 end;
 
 // 对 UnicodeString 类型数据进行直接的 SHA3_224 计算，不进行转换
-function SHA3_224UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA3_224Digest;
+{$IFDEF UNICODE}
+function SHA3_224UnicodeString(const Str: string): TCnSHA3_224Digest;
+{$ELSE}
+function SHA3_224UnicodeString(const Str: WideString): TCnSHA3_224Digest;
+{$ENDIF}
 var
   Context: TCnSHA3Context;
   Res: TCnSHA3GeneralDigest;
@@ -1297,7 +1349,11 @@ begin
 end;
 
 // 对 UnicodeString 类型数据进行直接的 SHA3_256 计算，不进行转换
-function SHA3_256UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA3_256Digest;
+{$IFDEF UNICODE}
+function SHA3_256UnicodeString(const Str: string): TCnSHA3_256Digest;
+{$ELSE}
+function SHA3_256UnicodeString(const Str: WideString): TCnSHA3_256Digest;
+{$ENDIF}
 var
   Context: TCnSHA3Context;
   Res: TCnSHA3GeneralDigest;
@@ -1309,7 +1365,11 @@ begin
 end;
 
 // 对 UnicodeString 类型数据进行直接的 SHA3_384 计算，不进行转换
-function SHA3_384UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA3_384Digest;
+{$IFDEF UNICODE}
+function SHA3_384UnicodeString(const Str: string): TCnSHA3_384Digest;
+{$ELSE}
+function SHA3_384UnicodeString(const Str: WideString): TCnSHA3_384Digest;
+{$ENDIF}
 var
   Context: TCnSHA3Context;
   Res: TCnSHA3GeneralDigest;
@@ -1321,7 +1381,11 @@ begin
 end;
 
 // 对 UnicodeString 类型数据进行直接的 SHA3_512 计算，不进行转换
-function SHA3_512UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA3_512Digest;
+{$IFDEF UNICODE}
+function SHA3_512UnicodeString(const Str: string): TCnSHA3_512Digest;
+{$ELSE}
+function SHA3_512UnicodeString(const Str: WideString): TCnSHA3_512Digest;
+{$ENDIF}
 var
   Context: TCnSHA3Context;
   Res: TCnSHA3GeneralDigest;
@@ -1333,8 +1397,11 @@ begin
 end;
 
 // 对 UnicodeString 类型数据进行直接的 SHAKE128 计算，不进行转换
-function SHAKE128UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF};
-  DigestByteLength: Cardinal): TBytes;
+{$IFDEF UNICODE}
+function SHAKE128UnicodeString(const Str: string; DigestByteLength: Cardinal): TBytes;
+{$ELSE}
+function SHAKE128UnicodeString(const Str: WideString; DigestByteLength: Cardinal): TBytes;
+{$ENDIF}
 var
   Context: TCnSHA3Context;
 begin
@@ -1344,8 +1411,11 @@ begin
 end;
 
 // 对 UnicodeString 类型数据进行直接的 SHAKE256 计算，不进行转换
-function SHAKE256UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF};
-  DigestByteLength: Cardinal): TBytes;
+{$IFDEF UNICODE}
+function SHAKE256UnicodeString(const Str: string; DigestByteLength: Cardinal): TBytes;
+{$ELSE}
+function SHAKE256UnicodeString(const Str: WideString; DigestByteLength: Cardinal): TBytes;
+{$ENDIF}
 var
   Context: TCnSHA3Context;
 begin

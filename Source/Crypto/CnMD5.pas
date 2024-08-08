@@ -138,11 +138,23 @@ function MD5StringW(const Str: WideString): TCnMD5Digest;
    Str: WideString       - 要计算的宽字符串
  |</PRE>}
 
-function MD5UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnMD5Digest;
+{$IFDEF UNICODE}
+
+function MD5UnicodeString(const Str: string): TCnMD5Digest;
 {* 对 UnicodeString 类型数据进行直接的 MD5 计算，不进行转换
  |<PRE>
-   Str: UnicodeString/WideString       - 要计算的宽字符串
+   Str: UnicodeString       - 要计算的宽字符串
  |</PRE>}
+
+{$ELSE}
+
+function MD5UnicodeString(const Str: WideString ): TCnMD5Digest;
+{* 对 UnicodeString 类型数据进行直接的 MD5 计算，不进行转换
+ |<PRE>
+   Str: WideString       - 要计算的宽字符串
+ |</PRE>}
+
+{$ENDIF}
 
 function MD5File(const FileName: string;
   CallBack: TCnMD5CalcProgressFunc = nil): TCnMD5Digest;
@@ -603,7 +615,11 @@ begin
 end;
 
 // 对 UnicodeString 类型数据进行直接的 MD5 计算，不进行转换
-function MD5UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnMD5Digest;
+{$IFDEF UNICODE}
+function MD5UnicodeString(const Str: string): TCnMD5Digest;
+{$ELSE}
+function MD5UnicodeString(const Str: WideString): TCnMD5Digest;
+{$ENDIF}
 var
   Context: TCnMD5Context;
 begin

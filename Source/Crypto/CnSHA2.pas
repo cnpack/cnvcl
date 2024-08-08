@@ -206,29 +206,59 @@ function SHA512String(const Str: string): TCnSHA512Digest;
    Str: string       - 要计算的字符串
  |</PRE>}
 
-function SHA224UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA224Digest;
+{$IFDEF UNICODE}
+
+function SHA224UnicodeString(const Str: string): TCnSHA224Digest;
 {* 对 UnicodeString 类型数据进行直接的 SHA224 计算，不进行转换
  |<PRE>
-   Str: UnicodeString/WideString       - 要计算的宽字符串
+   Str: UnicodeString       - 要计算的宽字符串
  |</PRE>}
 
-function SHA256UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA256Digest;
+function SHA256UnicodeString(const Str: string): TCnSHA256Digest;
 {* 对 UnicodeString 类型数据进行直接的 SHA256 计算，不进行转换
  |<PRE>
-   Str: UnicodeString/WideString       - 要计算的宽字符串
+   Str: UnicodeString       - 要计算的宽字符串
  |</PRE>}
 
-function SHA384UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA384Digest;
+function SHA384UnicodeString(const Str: string): TCnSHA384Digest;
 {* 对 UnicodeString 类型数据进行直接的 SHA384 计算，不进行转换
  |<PRE>
-   Str: UnicodeString/WideString       - 要计算的宽字符串
+   Str: UnicodeString       - 要计算的宽字符串
  |</PRE>}
 
-function SHA512UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA512Digest;
+function SHA512UnicodeString(const Str: string): TCnSHA512Digest;
 {* 对 UnicodeString 类型数据进行直接的 SHA512 计算，不进行转换
  |<PRE>
-   Str: UnicodeString/WideString       - 要计算的宽字符串
+   Str: UnicodeString       - 要计算的宽字符串
  |</PRE>}
+
+{$ELSE}
+
+function SHA224UnicodeString(const Str: WideString): TCnSHA224Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA224 计算，不进行转换
+ |<PRE>
+   Str: WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHA256UnicodeString(const Str: WideString): TCnSHA256Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA256 计算，不进行转换
+ |<PRE>
+   Str: WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHA384UnicodeString(const Str: WideString): TCnSHA384Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA384 计算，不进行转换
+ |<PRE>
+   Str: WideString       - 要计算的宽字符串
+ |</PRE>}
+
+function SHA512UnicodeString(const Str: WideString): TCnSHA512Digest;
+{* 对 UnicodeString 类型数据进行直接的 SHA512 计算，不进行转换
+ |<PRE>
+   Str: WideString       - 要计算的宽字符串
+ |</PRE>}
+
+{$ENDIF}
 
 function SHA224StringA(const Str: AnsiString): TCnSHA224Digest;
 {* 对 AnsiString 类型数据进行 SHA224 计算
@@ -1194,7 +1224,11 @@ begin
 end;
 
 // 对 UnicodeString 类型数据进行直接的 SHA224 计算，不进行转换
-function SHA224UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA224Digest;
+{$IFDEF UNICODE}
+function SHA224UnicodeString(const Str: string): TCnSHA224Digest;
+{$ELSE}
+function SHA224UnicodeString(const Str: WideString): TCnSHA224Digest;
+{$ENDIF}
 var
   Context: TCnSHA224Context;
 begin
@@ -1204,7 +1238,11 @@ begin
 end;
 
 // 对 UnicodeString 类型数据进行直接的 SHA256 计算，不进行转换
-function SHA256UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA256Digest;
+{$IFDEF UNICODE}
+function SHA256UnicodeString(const Str: string): TCnSHA256Digest;
+{$ELSE}
+function SHA256UnicodeString(const Str: WideString): TCnSHA256Digest;
+{$ENDIF}
 var
   Context: TCnSHA256Context;
 begin
@@ -1214,7 +1252,11 @@ begin
 end;  
 
 // 对 UnicodeString 类型数据进行直接的 SHA384 计算，不进行转换
-function SHA384UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA384Digest;
+{$IFDEF UNICODE}
+function SHA384UnicodeString(const Str: string): TCnSHA384Digest;
+{$ELSE}
+function SHA384UnicodeString(const Str: WideString): TCnSHA384Digest;
+{$ENDIF}
 var
   Context: TCnSHA384Context;
 begin
@@ -1224,7 +1266,11 @@ begin
 end;  
 
 // 对 UnicodeString 类型数据进行直接的 SHA512 计算，不进行转换
-function SHA512UnicodeString(const Str: {$IFDEF UNICODE} string {$ELSE} WideString {$ENDIF}): TCnSHA512Digest;
+{$IFDEF UNICODE}
+function SHA512UnicodeString(const Str: string): TCnSHA512Digest;
+{$ELSE}
+function SHA512UnicodeString(const Str: WideString): TCnSHA512Digest;
+{$ENDIF}
 var
   Context: TCnSHA512Context;
 begin
