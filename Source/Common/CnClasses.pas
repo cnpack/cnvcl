@@ -342,9 +342,13 @@ begin
     try
       GetPropList(Source.ClassInfo, tkProperties - [tkArray, tkRecord,
         tkInterface], @PropList^[0]);
+
       for PropIdx := 0 to Count - 1 do
       begin
         PropInfo := PropList^[PropIdx];
+        if PropInfo^.SetProc = nil then // 不能写就算了
+          Continue;
+
 {$IFDEF FPC}
         AKind := PropInfo^.PropType^.Kind;
 {$ELSE}
