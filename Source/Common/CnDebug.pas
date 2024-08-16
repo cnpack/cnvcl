@@ -5313,9 +5313,10 @@ end;
 
 procedure TCnMapFileChannel.UpdateFlush;
 begin
-  if AutoFlush then
+  if FAutoFlush then
   begin
-    FQueueFlush := CreateEvent(nil, False, False, PChar(SCnDebugFlushEventName));
+    if FQueueFlush = 0 then
+      FQueueFlush := CreateEvent(nil, False, False, PChar(SCnDebugFlushEventName));
   end
   else if FQueueFlush <> 0 then
   begin
