@@ -395,6 +395,9 @@ begin
   Perform(WM_VSCROLL, MakeWParam(SB_PAGEUP, 0), 0);
 end;
 
+{$WARNINGS OFF}
+
+// 屏蔽 B 在 Delphi 5 下的误报编译告警
 procedure TCnHexEditor.KeyDown(var Key: Word; Shift: TShiftState);
 var
   CaretPoint: TPoint;
@@ -558,6 +561,8 @@ begin
       end;
   end;
 end;
+
+{$WARNINGS ON}
 
 function TCnHexEditor.LineViewText(mLineIndex: Integer): string;
 const
