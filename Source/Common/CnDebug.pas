@@ -31,7 +31,9 @@ unit CnDebug;
 * 开发平台：PWin2000Pro + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.12.03
+* 修改记录：2024.08.30
+*               修正 x64 下输出时钟周期不准确的问题，去除无用函数
+*           2022.12.03
 *               支持 FMX，但在 MACOS 下只支持文件输出的方式
 *           2022.08.18
 *               用 CnPE 取代 JCL 的行号获取功能，待测试
@@ -833,11 +835,6 @@ begin
 end;
 
 {$IFNDEF MACOS}
-
-function GetEBP: Pointer;
-asm
-        MOV     EAX, EBP
-end;
 
 // RDTSC 指令可读出 CPU 时钟周期数放在 EDX:EAX 的 64 位数据中，32 与 64 位下均可用
 // 但返回值 64 位下直接用 RAX 返回会漏掉 EDX 的高位，因而需要将 EDX 左移 32 位后拼到 RAX 高 32 位
