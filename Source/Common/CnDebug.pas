@@ -805,7 +805,7 @@ var
   FCnDebuggerCriticalSection: TCnDebugCriticalSection;
   FStartCriticalSection: TCnDebugCriticalSection; // 用于多线程内控制启动 CnDebugViewer
 
-  FFixedCalling: Cardinal = 0;
+  FFixedCalling: Int64 = 0;
 
   FUseLocalSession: Boolean = {$IFDEF LOCAL_SESSION}True{$ELSE}False{$ENDIF};
 
@@ -839,10 +839,18 @@ asm
         MOV     EAX, EBP
 end;
 
+// RDTSC 指令可读出 CPU 时钟周期数放在 EDX:EAX 的 64 位数据中，32 与 64 位下均可用
+// 但返回值 64 位下直接用 RAX 返回会漏掉 EDX 的高位，因而需要将 EDX 左移 32 位后拼到 RAX 高 32 位
 function GetCPUPeriod: Int64; assembler;
 asm
+{$IFNDEF CPUX64}
   DB 0FH;
   DB 031H;
+{$ELSE}
+  RDTSC;
+  SHL RDX, 32
+  OR  RAX, RDX
+{$ENDIF}
 end;
 
 {$ENDIF}
