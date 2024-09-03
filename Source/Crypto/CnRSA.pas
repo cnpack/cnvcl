@@ -107,22 +107,34 @@ uses
 
 const
   // 以下 OID 都预先写死，不动态计算编码了
-  CN_OID_RSAENCRYPTION_PKCS1: array[0..8] of Byte = ( // 1.2.840.113549.1.1.1
+  CN_OID_RSAENCRYPTION_PKCS1: array[0..8] of Byte = ( // $2A = 40 * 1 + 2
     $2A, $86, $48, $86, $F7, $0D, $01, $01, $01
-  );  // $2A = 40 * 1 + 2
+  );
+  {* RSA PKCS1 的 OID 编码，实际值为 1.2.840.113549.1.1.1}
 
   // 错误码
-  ECN_RSA_OK                           = ECN_OK; // 没错
-  ECN_RSA_ERROR_BASE                   = ECN_CUSTOM_ERROR_BASE + $100; // RSA 错误码基准
+  ECN_RSA_OK                           = ECN_OK;
+  {* RSA 系列错误码：无错误，值为 0}
 
-  ECN_RSA_INVALID_INPUT                = ECN_RSA_ERROR_BASE + 1; // 输入为空或长度不对
-  ECN_RSA_INVALID_BITS                 = ECN_RSA_ERROR_BASE + 2; // 密钥位数不对
-  ECN_RSA_BIGNUMBER_ERROR              = ECN_RSA_ERROR_BASE + 3; // 大数运算错误
-  ECN_RSA_BER_ERROR                    = ECN_RSA_ERROR_BASE + 4; // BER 格式编码错误
-  ECN_RSA_PADDING_ERROR                = ECN_RSA_ERROR_BASE + 5; // PADDING 对齐错误
-  ECN_RSA_DIGEST_ERROR                 = ECN_RSA_ERROR_BASE + 6; // 数字摘要错误
-  ECN_RSA_PEM_FORMAT_ERROR             = ECN_RSA_ERROR_BASE + 7; // PEM 格式错误
-  ECN_RSA_PEM_CRYPT_ERROR              = ECN_RSA_ERROR_BASE + 8; // PEM 加解密错误
+  ECN_RSA_ERROR_BASE                   = ECN_CUSTOM_ERROR_BASE + $100;
+  {* RSA 系列错误码的基准起始值，为 ECN_CUSTOM_ERROR_BASE 加上 $100}
+
+  ECN_RSA_INVALID_INPUT                = ECN_RSA_ERROR_BASE + 1;
+  {* RSA 错误码之输入为空或长度错误}
+  ECN_RSA_INVALID_BITS                 = ECN_RSA_ERROR_BASE + 2;
+  {* RSA 错误码之密钥位数错误}
+  ECN_RSA_BIGNUMBER_ERROR              = ECN_RSA_ERROR_BASE + 3;
+  {* RSA 错误码之大数运算错误}
+  ECN_RSA_BER_ERROR                    = ECN_RSA_ERROR_BASE + 4;
+  {* RSA 错误码之 BER 格式编码错误}
+  ECN_RSA_PADDING_ERROR                = ECN_RSA_ERROR_BASE + 5;
+  {* RSA 错误码之 PADDING 对齐错误}
+  ECN_RSA_DIGEST_ERROR                 = ECN_RSA_ERROR_BASE + 6;
+  {* RSA 错误码之数字摘要错误}
+  ECN_RSA_PEM_FORMAT_ERROR             = ECN_RSA_ERROR_BASE + 7;
+  {* RSA 错误码之 PEM 格式错误}
+  ECN_RSA_PEM_CRYPT_ERROR              = ECN_RSA_ERROR_BASE + 8;
+  {* RSA 错误码之 PEM 加解密错误}
 
 type
   TCnRSASignDigestType = (rsdtNone, rsdtMD5, rsdtSHA1, rsdtSHA256, rsdtSM3);

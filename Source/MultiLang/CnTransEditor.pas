@@ -58,7 +58,7 @@ uses
   FileCtrl,
   CnLangConsts, CnLangTranslator, CnLangMgr, CnLangCollection, CnLangStorage,
   CnIniLangFileStorage, CnIniStrUtils, CnCommon, ToolsApi, ComObj, CnOTAUtils,
-  CnClasses, CnTransFilter, CnLangUtils, System.ImageList, System.Actions;
+  CnClasses, CnTransFilter, CnLangUtils;
 
 type
 
