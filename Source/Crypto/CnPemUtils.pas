@@ -68,29 +68,29 @@ type
 
 // ======================= PEM 文件读写函数，支持加解密 ========================
 
-function LoadPemFileToMemory(const FileName, ExpectHead, ExpectTail: string;
-  MemoryStream: TMemoryStream; const Password: string = '';
+function LoadPemFileToMemory(const FileName: string; const ExpectHead: string;
+  const ExpectTail: string; MemoryStream: TMemoryStream; const Password: string = '';
   KeyHashMethod: TCnKeyHashMethod = ckhMd5): Boolean;
 {* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并解密进行 Base64 解码}
 
-function LoadPemStreamToMemory(Stream: TStream; const ExpectHead, ExpectTail: string;
-  MemoryStream: TMemoryStream; const Password: string = '';
+function LoadPemStreamToMemory(Stream: TStream; const ExpectHead: string;
+  const ExpectTail: string; MemoryStream: TMemoryStream; const Password: string = '';
   KeyHashMethod: TCnKeyHashMethod = ckhMd5): Boolean;
 {* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并解密进行 Base64 解码}
 
-function SaveMemoryToPemFile(const FileName, Head, Tail: string;
+function SaveMemoryToPemFile(const FileName: string; const Head: string; const Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''; Append: Boolean = False): Boolean;
 {* 将 Stream 的内容进行 Base64 编码后加密分行并补上文件头尾再写入文件，Append 为 True 时表示追加}
 
-function SaveMemoryToPemStream(Stream: TStream; const Head, Tail: string;
+function SaveMemoryToPemStream(Stream: TStream; const Head: string; const Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''; Append: Boolean = False): Boolean;
 {* 将 Stream 的内容进行 Base64 编码后加密分行并补上头尾再写入流，Append 为 True 时表示追加}
 
 // ===================== PKCS1 / PKCS7 Padding 对齐处理函数 ====================
 
-function AddPKCS1Padding(PaddingType, BlockSize: Integer; Data: Pointer;
+function AddPKCS1Padding(PaddingType: Integer; BlockSize: Integer; Data: Pointer;
   DataLen: Integer; OutStream: TStream): Boolean;
 {* 将数据块补上填充内容写入 Stream 中，返回成功与否，内部会设置错误码。
    PaddingType 取 0、1、2，BlockLen 字节数如 128 等

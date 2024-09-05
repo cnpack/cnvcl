@@ -86,8 +86,11 @@ function Poly1305Data(Data: Pointer; DataByteLength: Cardinal;
 function Poly1305Print(const Digest: TCnPoly1305Digest): string;
 {* 以十六进制格式输出 Poly1305 计算值}
 
-function Poly1305Match(const D1, D2: TCnPoly1305Digest): Boolean;
+function Poly1305Match(const D1: TCnPoly1305Digest; const D2: TCnPoly1305Digest): Boolean;
 {* 比较两个 Poly1305 计算值是否相等}
+
+function Poly1305DigestToStr(const Digest: TCnPoly1305Digest): string;
+{* Poly1305 计算值转 string}
 
 procedure Poly1305Init(out Context: TCnPoly1305Context; Key: TCnPoly1305Key);
 {* 初始化一轮 Poly1305 计算上下文，内部创建 Context 准备计算 Poly1305 结果}
@@ -208,6 +211,11 @@ end;
 function Poly1305Match(const D1, D2: TCnPoly1305Digest): Boolean;
 begin
   Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnPoly1305Digest));
+end;
+
+function Poly1305DigestToStr(const Digest: TCnPoly1305Digest): string;
+begin
+  Result := MemoryToString(@Digest[0], SizeOf(TCnPoly1305Digest));
 end;
 
 { TCnPoly1305Context }

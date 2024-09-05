@@ -65,13 +65,13 @@ type
 
 // ========================= Int128 计算函数 ===================================
 
-procedure Int128Set(var R: TCnInt128; Lo, Hi: Int64); overload;
+procedure Int128Set(var R: TCnInt128; Lo: Int64; Hi: Int64); overload;
 {* 分别设置 128 位有符号数的高低 64 位原始值，不额外处理正负号}
 
 procedure Int128Set(var R: TCnInt128; Lo: Int64); overload;
 {* 设置 128 位有符号数的低 64 位值，高位根据正负情况置全 0 或全 F}
 
-procedure Int128Copy(var D, S: TCnInt128);
+procedure Int128Copy(var D: TCnInt128; var S: TCnInt128);
 {* 复制 128 位有符号数}
 
 function Int128IsZero(var N: TCnInt128): Boolean;
@@ -80,28 +80,28 @@ function Int128IsZero(var N: TCnInt128): Boolean;
 procedure Int128SetZero(var N: TCnInt128);
 {* 将一 128 位有符号数置 0}
 
-procedure Int128Add(var R, A, B: TCnInt128); overload;
+procedure Int128Add(var R: TCnInt128; var A: TCnInt128; var B: TCnInt128); overload;
 {* 128 位有符号数相加，不考虑溢出的情况。R、A、B 可以相同。A B 使用补码无需分开考虑正负值}
 
-procedure Int128Add(var R, A: TCnInt128; V: Int64); overload;
+procedure Int128Add(var R: TCnInt128; var A: TCnInt128; V: Int64); overload;
 {* 给一 128 位有符号数加上一个 64 位有符号数。考虑了 V 为负值的情况}
 
-procedure Int128Sub(var R, A, B: TCnInt128); overload;
+procedure Int128Sub(var R: TCnInt128; var A: TCnInt128; var B: TCnInt128); overload;
 {* 128 位有符号数相减，不考虑溢出的情况。R、A、B 可以相同}
 
-procedure Int128Sub(var R, A: TCnInt128; V: Int64); overload;
+procedure Int128Sub(var R: TCnInt128; var A: TCnInt128; V: Int64); overload;
 {* 给一 128 位有符号数减去一个 64 位有符号数。考虑了 V 为负值的情况}
 
-procedure Int128Mul(var R, A, B: TCnInt128);
+procedure Int128Mul(var R: TCnInt128; var A: TCnInt128; var B: TCnInt128);
 {* 128 位有符号数相乘，有溢出则抛异常（暂时未实现 UInt128 的 ResHi 参数机制）。R、A、B 可以相同}
 
-procedure Int128DivMod(var A, B, R, M: TCnInt128);
+procedure Int128DivMod(var A: TCnInt128; var B: TCnInt128; var R: TCnInt128; var M: TCnInt128);
 {* 128 位有符号数整除求余，A / B = R ... M 其中 A、B、R、M 可以复用但 R M 不能相同}
 
-procedure Int128Div(var R, A, B: TCnInt128);
+procedure Int128Div(var R: TCnInt128; var A: TCnInt128; var B: TCnInt128);
 {* 128 位有符号数整除，R = A div B。R、A、B 可以相同}
 
-procedure Int128Mod(var R, A, B: TCnInt128);
+procedure Int128Mod(var R: TCnInt128; var A: TCnInt128; var B: TCnInt128);
 {* 128 位有符号数求余，R = A mod B。R、A、B 可以相同}
 
 procedure Int128ShiftLeft(var N: TCnInt128; S: Integer);
@@ -110,13 +110,13 @@ procedure Int128ShiftLeft(var N: TCnInt128; S: Integer);
 procedure Int128ShiftRight(var N: TCnInt128; S: Integer);
 {* 128 位有符号数按位右移 S 位，如 S 为负，表示左移}
 
-procedure Int128And(var R, A, B: TCnInt128);
+procedure Int128And(var R: TCnInt128; var A: TCnInt128; var B: TCnInt128);
 {* 两个 128 位有符号数按位与}
 
-procedure Int128Or(var R, A, B: TCnInt128);
+procedure Int128Or(var R: TCnInt128; var A: TCnInt128; var B: TCnInt128);
 {* 两个 128 位有符号数按位或}
 
-procedure Int128Xor(var R, A, B: TCnInt128);
+procedure Int128Xor(var R: TCnInt128; var A: TCnInt128; var B: TCnInt128);
 {* 两个 128 位有符号数按位异或}
 
 procedure Int128Negate(var N: TCnInt128);
@@ -137,13 +137,13 @@ function Int128IsBitSet(var N: TCnInt128; Bit: Integer): Boolean;
 function Int128IsNegative(var N: TCnInt128): Boolean;
 {* 判断一 128 位有符号数是否是负数}
 
-function Int128Equal(var A, B: TCnInt128): Boolean; overload;
+function Int128Equal(var A: TCnInt128; var B: TCnInt128): Boolean; overload;
 {* 判断两个 128 位有符号数是否相等}
 
 function Int128Equal(var A: TCnInt128; B: Int64): Boolean; overload;
 {* 判断一个 128 位有符号数与一个 Int64 是否相等}
 
-function Int128Compare(var A, B: TCnInt128): Integer;
+function Int128Compare(var A: TCnInt128; var B: TCnInt128): Integer;
 {* 比较两个 128 位有符号数，大于等于小于分别返回 1、0、-1}
 
 function Int128ToHex(var N: TCnInt128): string;
@@ -160,13 +160,13 @@ function StrToInt128(const S: string): TCnInt128;
 
 // ======================== UInt128 计算函数 ===================================
 
-procedure UInt128Set(var R: TCnUInt128; Lo, Hi: TUInt64); overload;
+procedure UInt128Set(var R: TCnUInt128; Lo: TUInt64; Hi: TUInt64); overload;
 {* 分别设置 128 位无符号数的高低 64 位值}
 
 procedure UInt128Set(var R: TCnUInt128; Lo: TUInt64); overload;
 {* 设置 128 位无符号数的低 64 位值，高位置 0}
 
-procedure UInt128Copy(var D, S: TCnUInt128);
+procedure UInt128Copy(var D: TCnUInt128; var S: TCnUInt128);
 {* 复制 128 位无符号数}
 
 function UInt128IsZero(var N: TCnUInt128): Boolean;
@@ -178,23 +178,23 @@ procedure UInt128SetZero(var N: TCnUInt128);
 procedure UInt128Add(var R: TCnUInt128; V: TUInt64); overload;
 {* 给一 128 位无符号数加上一个 64 位无符号数}
 
-procedure UInt128Add(var R, A, B: TCnUInt128); overload;
+procedure UInt128Add(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128); overload;
 {* 128 位无符号数相加，不考虑溢出的情况。R、A、B 可以相同}
 
-procedure UInt128Sub(var R, A, B: TCnUInt128);
+procedure UInt128Sub(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128);
 {* 128 位无符号数相减，不考虑溢出的情况。R、A、B 可以相同}
 
-procedure UInt128Mul(var R, A, B: TCnUInt128; ResHi: PCnUInt128 = nil);
+procedure UInt128Mul(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128; ResHi: PCnUInt128 = nil);
 {* 128 位无符号数相乘，有溢出则超过 128 位的放 ResHi 中
   如传 nil 且溢出则抛异常。R、A、B 可以相同}
 
-procedure UInt128DivMod(var A, B, R, M: TCnUInt128);
+procedure UInt128DivMod(var A: TCnUInt128; var B: TCnUInt128; var R: TCnUInt128; var M: TCnUInt128);
 {* 128 位无符号数整除求余，A / B = R ... M。A、B、R、M 可以复用但 R M 不能相同}
 
-procedure UInt128Div(var R, A, B: TCnUInt128);
+procedure UInt128Div(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128);
 {* 128 位无符号数整除，R = A div B。R、A、B 可以相同}
 
-procedure UInt128Mod(var R, A, B: TCnUInt128);
+procedure UInt128Mod(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128);
 {* 128 位无符号数求余，R = A mod B。R、A、B 可以相同}
 
 procedure UInt128ShiftLeft(var N: TCnUInt128; S: Integer);
@@ -203,13 +203,13 @@ procedure UInt128ShiftLeft(var N: TCnUInt128; S: Integer);
 procedure UInt128ShiftRight(var N: TCnUInt128; S: Integer);
 {* 128 位无符号数按位右移 S 位，如 S 为负，表示左移}
 
-procedure UInt128And(var R, A, B: TCnUInt128);
+procedure UInt128And(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128);
 {* 两个 128 位无符号数按位与}
 
-procedure UInt128Or(var R, A, B: TCnUInt128);
+procedure UInt128Or(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128);
 {* 两个 128 位无符号数按位或}
 
-procedure UInt128Xor(var R, A, B: TCnUInt128);
+procedure UInt128Xor(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128);
 {* 两个 128 位无符号数按位异或}
 
 procedure UInt128Not(var N: TCnUInt128);
@@ -224,16 +224,16 @@ procedure UInt128ClearBit(var N: TCnUInt128; Bit: Integer);
 function UInt128IsBitSet(var N: TCnUInt128; Bit: Integer): Boolean;
 {* 返回一 128 位无符号数的某一位是否是 0，Bit 从 0 到 127}
 
-function UInt128Equal(var A, B: TCnUInt128): Boolean; overload;
+function UInt128Equal(var A: TCnUInt128; var B: TCnUInt128): Boolean; overload;
 {* 判断两个 128 位无符号数是否相等}
 
 function UInt128Equal(var A: TCnUInt128; B: TUInt64): Boolean; overload;
 {* 判断一个 128 位无符号数与一个 Int64/UInt64 是否相等}
 
-function UInt128Compare(var A, B: TCnUInt128): Integer;
+function UInt128Compare(var A: TCnUInt128; var B: TCnUInt128): Integer;
 {* 比较两个 128 位无符号数，大于等于小于分别返回 1、0、-1}
 
-function IsUInt128AddOverflow(var A, B: TCnUInt128): Boolean;
+function IsUInt128AddOverflow(var A: TCnUInt128; var B: TCnUInt128): Boolean;
 {* 判断两个 64 位无符号数相加是否溢出 128 位无符号上限}
 
 function UInt128ToHex(var N: TCnUInt128): string;

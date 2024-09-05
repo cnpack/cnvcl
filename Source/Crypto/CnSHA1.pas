@@ -159,14 +159,14 @@ function SHA1Print(const Digest: TCnSHA1Digest): string;
    Digest: TSHA1Digest  - 指定的 SHA1 计算值
  |</PRE>}
 
-function SHA1Match(const D1, D2: TCnSHA1Digest): Boolean;
+function SHA1Match(const D1: TCnSHA1Digest; const D2: TCnSHA1Digest): Boolean;
 {* 比较两个 SHA1 计算值是否相等
  |<PRE>
    D1: TSHA1Digest   - 需要比较的 SHA1 计算值
    D2: TSHA1Digest   - 需要比较的 SHA1 计算值
  |</PRE>}
 
-function SHA1DigestToStr(Digest: TCnSHA1Digest): string;
+function SHA1DigestToStr(const Digest: TCnSHA1Digest): string;
 {* SHA1 计算值转 string
  |<PRE>
    Digest: TSHA1Digest   - 需要转换的 SHA1 计算值
@@ -602,7 +602,7 @@ begin
 end;
 
 // SHA1 计算值转 string
-function SHA1DigestToStr(Digest: TCnSHA1Digest): string;
+function SHA1DigestToStr(const Digest: TCnSHA1Digest): string;
 begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnSHA1Digest));
 end;

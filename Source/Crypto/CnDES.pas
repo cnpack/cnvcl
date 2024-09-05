@@ -120,22 +120,23 @@ procedure DESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
 
-function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+function DESEncryptStrToHex(const Str: AnsiString; const Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0。等同于 DESEncryptECBStrToHex}
 
-function DESDecryptStrFromHex(const HexStr, Key: AnsiString): AnsiString;{$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+function DESDecryptStrFromHex(const HexStr: AnsiString; const Key: AnsiString): AnsiString;{$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文。等同于 DESDecryptECBStrFromHex}
 
-function DESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
+function DESEncryptECBStrToHex(const Str: AnsiString; const Key: AnsiString): AnsiString;
 {* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0}
 
-function DESDecryptECBStrFromHex(const HexStr, Key: AnsiString): AnsiString;
+function DESDecryptECBStrFromHex(const HexStr: AnsiString; const Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文}
 
-function DESEncryptCBCStrToHex(const Str, Key, Iv: AnsiString): AnsiString;
+function DESEncryptCBCStrToHex(const Str: AnsiString; const Key: AnsiString; const Iv: AnsiString): AnsiString;
 {* 传入明文与加密 Key 与 Iv，DES 加密返回转换成十六进制的密文，CBC 模式，明文末尾可能补 0}
 
-function DESDecryptCBCStrFromHex(const HexStr, Key, Iv: AnsiString): AnsiString;
+function DESDecryptCBCStrFromHex(const HexStr: AnsiString; const Key: AnsiString;
+  const Iv: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key 与 Iv，DES CBC 解密返回明文}
 
 function DESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
@@ -154,7 +155,7 @@ function DESDecryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
   返回值   明文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
 
-function DESEncryptCBCBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
+function DESEncryptCBCBytes(Key: TBytes; Iv: TBytes; Input: TBytes): TBytes;
 {* DES-CBC 封装好的针对 TBytes 的加解密方法
  |<PRE>
   Key      8 字节密码，太长则截断，不足则补 #0
@@ -163,7 +164,7 @@ function DESEncryptCBCBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
   返回值   密文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
 
-function DESDecryptCBCBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function DESDecryptCBCBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
 {* DES-CBC 封装好的针对 TBytes 的加解密方法
  |<PRE>
   Key      8 字节密码，太长则截断，不足则补 0
@@ -229,22 +230,22 @@ procedure TripleDESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
   Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
 
-function TripleDESEncryptStrToHex(const Str, Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+function TripleDESEncryptStrToHex(const Str: AnsiString; const Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 传入明文与加密 Key，3DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0。等同于 TripleDESEncryptECBStrToHex}
 
-function TripleDESDecryptStrFromHex(const HexStr, Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+function TripleDESDecryptStrFromHex(const HexStr: AnsiString; const Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 传入十六进制的密文与加密 Key，3DES ECB 解密返回明文。等同于 TripleDESDecryptECBStrFromHex}
 
-function TripleDESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
+function TripleDESEncryptECBStrToHex(const Str: AnsiString; const Key: AnsiString): AnsiString;
 {* 传入明文与加密 Key，3DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0}
 
-function TripleDESDecryptECBStrFromHex(const HexStr, Key: AnsiString): AnsiString;
+function TripleDESDecryptECBStrFromHex(const HexStr: AnsiString; const Key: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key，3DES ECB 解密返回明文}
 
-function TripleDESEncryptCBCStrToHex(const Str, Key, Iv: AnsiString): AnsiString;
+function TripleDESEncryptCBCStrToHex(const Str: AnsiString; const Key: AnsiString; const Iv: AnsiString): AnsiString;
 {* 传入明文与加密 Key 与 Iv，3DES 加密返回转换成十六进制的密文，CBC 模式，明文末尾可能补 0}
 
-function TripleDESDecryptCBCStrFromHex(const HexStr, Key, Iv: AnsiString): AnsiString;
+function TripleDESDecryptCBCStrFromHex(const HexStr: AnsiString; const Key: AnsiString; const Iv: AnsiString): AnsiString;
 {* 传入十六进制的密文与加密 Key 与 Iv，3DES CBC 解密返回明文}
 
 function TripleDESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
@@ -263,7 +264,7 @@ function TripleDESDecryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
   返回值   明文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
 
-function TripleDESEncryptCBCBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
+function TripleDESEncryptCBCBytes(Key: TBytes; Iv: TBytes; Input: TBytes): TBytes;
 {* 3DES-CBC 封装好的针对 TBytes 的加解密方法
  |<PRE>
   Key      8 字节密码，太长则截断，不足则补 #0
@@ -272,7 +273,7 @@ function TripleDESEncryptCBCBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
   返回值   密文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
  |</PRE>}
 
-function TripleDESDecryptCBCBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function TripleDESDecryptCBCBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
 {* 3DES-CBC 封装好的针对 TBytes 的加解密方法
  |<PRE>
   Key      8 字节密码，太长则截断，不足则补 0

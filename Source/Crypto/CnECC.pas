@@ -685,7 +685,7 @@ type
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
 {* 将一个 TCnInt64EccPoint 点坐标转换为字符串}
 
-function CnInt64EccSchoof(A, B, Q: Int64): Int64;
+function CnInt64EccSchoof(A: Int64; B: Int64; Q: Int64): Int64;
 {* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，
    Q 最大支持 Sqrt(2 * Max UInt64)，略大于 Max UInt32
    Schoof 算法有两个版本，思想一样，但运算过程不同，
@@ -707,23 +707,24 @@ function CnEcc3PointToString(const P: TCnEcc3Point): string;
 function CnEcc3PointToHex(const P: TCnEcc3Point): string;
 {* 将一个 TCnEcc3Point 点坐标转换为十六进制字符串}
 
-function CnAffineEcc3PointEqual(P1, P2: TCnEcc3Point; Prime: TCnBigNumber = nil): Boolean;
+function CnAffineEcc3PointEqual(P1: TCnEcc3Point; P2: TCnEcc3Point; Prime: TCnBigNumber = nil): Boolean;
 {* 判断两个 TCnEcc3Point 点是否相等，如 Prime 为 nil 则只判断值，不做 Z 的除法
   否则根据射影坐标点计算判断}
 
-function CnEccSchoof(Res, A, B, Q: TCnBigNumber): Boolean;
+function CnEccSchoof(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber; Q: TCnBigNumber): Boolean;
 {* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数}
 
-function CnEccSchoof2(Res, A, B, Q: TCnBigNumber): Boolean;
+function CnEccSchoof2(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber; Q: TCnBigNumber): Boolean;
 {* 用 Wikipedia 上的改进型 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数
   运算速度较上面的原始版本无明显提升}
 
-function CnEccFastSchoof(Res, A, B, Q: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+function CnEccFastSchoof(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber;
+  Q: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 用增强型 GCD 的 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数
   TODO: P16 计算基本通过。P19X, P19Y 计算验证未通过，不能投入实际使用}
 
-function CnInt64EccGenerateParams(var FiniteFieldSize, CoefficientA, CoefficientB,
-  GX, GY, Order: Int64): Boolean;
+function CnInt64EccGenerateParams(var FiniteFieldSize: Int64; var CoefficientA: Int64;
+  var CoefficientB: Int64; var GX: Int64; var GY: Int64; var Order: Int64): Boolean;
 {* 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数，难以完整实现，只能先生成系数很小的}
 
 function CnInt64EccDiffieHellmanGenerateOutKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCnInt64PrivateKey;
@@ -736,16 +737,16 @@ function CnInt64EccDiffieHellmanComputeKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCn
 {* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点
    其中 SecretKey = SelfPrivateKey * OtherPublicKey}
 
-function CnInt64EccPointsEqual(var P1, P2: TCnInt64EccPoint): Boolean;
+function CnInt64EccPointsEqual(var P1: TCnInt64EccPoint; var P2: TCnInt64EccPoint): Boolean;
 {* 判断两个 TCnInt64EccPoint 点是否相等}
 
-function CnEccPointsEqual(P1, P2: TCnEccPoint): Boolean;
+function CnEccPointsEqual(P1: TCnEccPoint; P2: TCnEccPoint): Boolean;
 {* 判断两个 TCnEccPoint 点是否相等}
 
 function CnPolynomialEccPointToString(P: TCnPolynomialEccPoint): string;
 {* 将一个 TCnPolynomialEccPoint 点坐标转换为字符串}
 
-function CnPolynomialEccPointsEqual(P1, P2: TCnPolynomialEccPoint): Boolean;
+function CnPolynomialEccPointsEqual(P1: TCnPolynomialEccPoint; P2: TCnPolynomialEccPoint): Boolean;
 {* 判断两个 TCnPolynomialEccPoint 点是否相等}
 
 function CnEccDiffieHellmanGenerateOutKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
@@ -842,38 +843,38 @@ function CnEccSavePublicKeyToPem(PemStream: TStream;
 // 注意 ECC 签名验证并不是像 RSA 那样解密后比对加密进去的杂凑值
 // 而是比对中间结果的大数，ECC 签名内容并不能在验签名时还原原始杂凑值
 
-function CnEccSignFile(const InFileName, OutSignFileName: string; Ecc: TCnEcc;
+function CnEccSignFile(const InFileName: string; const OutSignFileName: string; Ecc: TCnEcc;
   PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用私钥签名指定文件，Ecc 中需要预先指定曲线。
    使用指定数字摘要算法对文件进行计算得到杂凑值，
    原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐再用私钥加密}
 
-function CnEccSignFile(const InFileName, OutSignFileName: string; CurveType: TCnEccCurveType;
+function CnEccSignFile(const InFileName: string; const OutSignFileName: string; CurveType: TCnEccCurveType;
   PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用私钥签名指定文件，使用预定义曲线。
    使用指定数字摘要算法对文件进行计算得到杂凑值，
    原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐再用私钥加密}
 
-function CnEccVerifyFile(const InFileName, InSignFileName: string; Ecc: TCnEcc;
+function CnEccVerifyFile(const InFileName: string; const InSignFileName: string; Ecc: TCnEcc;
   PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
    并比对两个二进制杂凑值是否相同，返回验证是否通过。
    Ecc 中需要预先指定曲线。}
 
-function CnEccVerifyFile(const InFileName, InSignFileName: string; CurveType: TCnEccCurveType;
+function CnEccVerifyFile(const InFileName: string; const InSignFileName: string; CurveType: TCnEccCurveType;
   PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用预定义曲线与公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
    并比对两个二进制杂凑值是否相同，返回验证是否通过}
 
-function CnEccRecoverPublicKeyFromFile(const InFileName, InSignFileName: string;
-  Ecc: TCnEcc; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
+function CnEccRecoverPublicKeyFromFile(const InFileName: string; const InSignFileName: string;
+  Ecc: TCnEcc; OutPublicKey1: TCnEccPublicKey; OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 从指定文件及其签名文件中还原椭圆曲线公钥值，有一奇一偶两个。Ecc 中需要预先指定曲线。}
 
-function CnEccRecoverPublicKeyFromFile(const InFileName, InSignFileName: string;
-  CurveType: TCnEccCurveType; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
+function CnEccRecoverPublicKeyFromFile(const InFileName: string; const InSignFileName: string;
+  CurveType: TCnEccCurveType; OutPublicKey1: TCnEccPublicKey; OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用预定义曲线从指定文件及其签名文件中还原椭圆曲线公钥值，有一奇一偶两个}
 
@@ -898,13 +899,13 @@ function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
 {* 用预定义曲线与公钥与签名值验证指定内存流}
 
 function CnEccRecoverPublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
-  Ecc: TCnEcc; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
+  Ecc: TCnEcc; OutPublicKey1: TCnEccPublicKey; OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 从指定内存流及其内存流签名中还原椭圆曲线公钥值，有一奇一偶两个
   Ecc 中需要预先指定曲线。}
 
 function CnEccRecoverPublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
-  CurveType: TCnEccCurveType; OutPublicKey1, OutPublicKey2: TCnEccPublicKey;
+  CurveType: TCnEccCurveType; OutPublicKey1: TCnEccPublicKey; OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用预定义曲线从指定内存流及其内存流签名中还原椭圆曲线公钥值，有一奇一偶两个
   Ecc 中需要预先指定曲线。}
@@ -914,7 +915,8 @@ function CnEccRecoverPublicKeyFromStream(InStream: TMemoryStream; InSignStream: 
 function CnInt64PolynomialEccPointToString(const P: TCnInt64PolynomialEccPoint): string;
 {* 将一个 TCnInt64PolynomialEccPoint 点坐标转换为多项式字符串}
 
-function CnInt64PolynomialEccPointsEqual(P1, P2: TCnInt64PolynomialEccPoint): Boolean;
+function CnInt64PolynomialEccPointsEqual(P1: TCnInt64PolynomialEccPoint;
+  P2: TCnInt64PolynomialEccPoint): Boolean;
 {* 判断两个多项式点是否相等}
 
 // ============================= 其他辅助函数 ==================================
@@ -939,13 +941,14 @@ function WriteEccPublicKeyToBitStringNode(Writer: TCnBerWriter;
 function GetEccDigestNameFromSignDigestType(Digest: TCnEccSignDigestType): string;
 {* 从签名杂凑算法枚举值获取其名称}
 
-procedure CnInt64GenerateGaloisDivisionPolynomials(A, B, Prime: Int64; MaxDegree: Integer;
-  PolynomialList: TObjectList);
+procedure CnInt64GenerateGaloisDivisionPolynomials(A: Int64; B: Int64; Prime: Int64;
+  MaxDegree: Integer; PolynomialList: TObjectList);
 {* 批量生成 0 到 MaxDegree 阶的可除多项式，要确保和 Int64PolynomialGaloisCalcDivisionPolynomial
    的递归实现完全相同}
 
-procedure Int64RationalMultiplePointX(Res, PX: TCnInt64RationalPolynomial; K: Integer;
-  A, B, APrime: Int64; DivisionPolynomialList: TObjectList; APrimitive: TCnInt64Polynomial = nil);
+procedure Int64RationalMultiplePointX(Res: TCnInt64RationalPolynomial; PX: TCnInt64RationalPolynomial;
+  K: Integer; A: Int64; B: Int64; APrime: Int64; DivisionPolynomialList: TObjectList;
+  APrimitive: TCnInt64Polynomial = nil);
 {* 用可除多项式直接算到 K 次倍点的坐标，范围是 Int64。
    DivisionPolynomialList 必须是 CnInt64GenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime
    的可除多项式列表。计算原理如下：
@@ -953,8 +956,9 @@ procedure Int64RationalMultiplePointX(Res, PX: TCnInt64RationalPolynomial; K: In
    那么 (f(x), g(x) * y) * K 用可除多项式计算出的结果可以代入写作(F(f(x))，G(f(x)) * g(x) * y)
    本函数返回 F(f(x))}
 
-procedure Int64RationalMultiplePointY(Res, PX, PY: TCnInt64RationalPolynomial; K: Integer;
-  A, B, APrime: Int64; DivisionPolynomialList: TObjectList; APrimitive: TCnInt64Polynomial = nil);
+procedure Int64RationalMultiplePointY(Res: TCnInt64RationalPolynomial; PX: TCnInt64RationalPolynomial;
+  PY: TCnInt64RationalPolynomial; K: Integer; A: Int64; B: Int64; APrime: Int64;
+  DivisionPolynomialList: TObjectList; APrimitive: TCnInt64Polynomial = nil);
 {* 用可除多项式直接算到 K 次倍点的坐标，范围是 Int64。
    DivisionPolynomialList 必须是 CnInt64GenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime
    的可除多项式列表。计算原理如下：
@@ -962,13 +966,14 @@ procedure Int64RationalMultiplePointY(Res, PX, PY: TCnInt64RationalPolynomial; K
    那么 (f(x), g(x) * y) * K 用可除多项式计算出的结果可以代入写作(F(f(x))，G(f(x)) * g(x) * y)
    本函数返回 G(f(x)) * g(x)}
 
-procedure CnGenerateGaloisDivisionPolynomials(A, B, Prime: TCnBigNumber; MaxDegree: Integer;
-  PolynomialList: TObjectList);
+procedure CnGenerateGaloisDivisionPolynomials(A: TCnBigNumber; B: TCnBigNumber; Prime: TCnBigNumber;
+  MaxDegree: Integer; PolynomialList: TObjectList);
 {* 批量生成 0 到 MaxDegree 阶的可除多项式，要确保和 BigNumberPolynomialGaloisCalcDivisionPolynomial
    的递归实现完全相同}
 
-procedure RationalMultiplePointX(Res, PX: TCnBigNumberRationalPolynomial; K: Integer;
-  A, B, APrime: TCnBigNumber; DivisionPolynomialList: TObjectList; APrimitive: TCnBigNumberPolynomial = nil);
+procedure RationalMultiplePointX(Res: TCnBigNumberRationalPolynomial; PX: TCnBigNumberRationalPolynomial;
+  K: Integer; A: TCnBigNumber; B: TCnBigNumber; APrime: TCnBigNumber;
+  DivisionPolynomialList: TObjectList; APrimitive: TCnBigNumberPolynomial = nil);
 {* 用可除多项式直接算到 K 次倍点的坐标，范围是大整数。
    DivisionPolynomialList 必须是 CnInt64GenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime
    的可除多项式列表。计算原理如下：
@@ -976,8 +981,9 @@ procedure RationalMultiplePointX(Res, PX: TCnBigNumberRationalPolynomial; K: Int
    那么 (f(x), g(x) * y) * K 用可除多项式计算出的结果可以代入写作(F(f(x))，G(f(x)) * g(x) * y)
    本函数返回 F(f(x))}
 
-procedure RationalMultiplePointY(Res, PX, PY: TCnBigNumberRationalPolynomial; K: Integer;
-  A, B, APrime: TCnBigNumber; DivisionPolynomialList: TObjectList; APrimitive: TCnBigNumberPolynomial = nil);
+procedure RationalMultiplePointY(Res: TCnBigNumberRationalPolynomial; PX: TCnBigNumberRationalPolynomial;
+  PY: TCnBigNumberRationalPolynomial; K: Integer; A: TCnBigNumber; B: TCnBigNumber; APrime: TCnBigNumber;
+  DivisionPolynomialList: TObjectList; APrimitive: TCnBigNumberPolynomial = nil);
 {* 用可除多项式直接算到 K 次倍点的坐标，范围是大整数。
    DivisionPolynomialList 必须是 CnGenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime
    的可除多项式列表。计算原理如下：

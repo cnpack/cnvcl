@@ -164,11 +164,17 @@ function SM3Print(const Digest: TCnSM3Digest): string;
    Digest: TSM3Digest  - 指定的 SM3 计算值
  |</PRE>}
 
-function SM3Match(const D1, D2: TCnSM3Digest): Boolean;
+function SM3Match(const D1: TCnSM3Digest; const D2: TCnSM3Digest): Boolean;
 {* 比较两个 SM3 计算值是否相等
  |<PRE>
    D1: TSM3Digest   - 需要比较的 SM3 计算值
    D2: TSM3Digest   - 需要比较的 SM3 计算值
+ |</PRE>}
+
+function SM3DigestToStr(const Digest: TCnSM3Digest): string;
+{* SM3 计算值转 string
+ |<PRE>
+   Digest: TCnSM3Digest   - 需要转换的 SM3 计算值
  |</PRE>}
 
 implementation
@@ -741,6 +747,11 @@ end;
 function SM3Match(const D1, D2: TCnSM3Digest): Boolean;
 begin
   Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnSM3Digest));
+end;
+
+function SM3DigestToStr(const Digest: TCnSM3Digest): string;
+begin
+  Result := MemoryToString(@Digest[0], SizeOf(TCnSM3Digest));
 end;
 
 end.

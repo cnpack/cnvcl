@@ -559,42 +559,42 @@ function SHAKE256Print(const Digest: TBytes): string;
    Digest: TBytes  - 指定的 SHAKE128 计算值
  |</PRE>}
 
-function SHA3_224Match(const D1, D2: TCnSHA3_224Digest): Boolean;
+function SHA3_224Match(const D1: TCnSHA3_224Digest; const D2: TCnSHA3_224Digest): Boolean;
 {* 比较两个 SHA3_224 计算值是否相等
  |<PRE>
    D1: TSHA3_224Digest   - 需要比较的 SHA3_224 计算值
    D2: TSHA3_224Digest   - 需要比较的 SHA3_224 计算值
  |</PRE>}
 
-function SHA3_256Match(const D1, D2: TCnSHA3_256Digest): Boolean;
+function SHA3_256Match(const D1: TCnSHA3_256Digest; const D2: TCnSHA3_256Digest): Boolean;
 {* 比较两个 SHA3_256 计算值是否相等
  |<PRE>
    D1: TSHA3_256Digest   - 需要比较的 SHA3_256 计算值
    D2: TSHA3_256Digest   - 需要比较的 SHA3_256 计算值
  |</PRE>}
 
-function SHA3_384Match(const D1, D2: TCnSHA3_384Digest): Boolean;
+function SHA3_384Match(const D1: TCnSHA3_384Digest; const D2: TCnSHA3_384Digest): Boolean;
 {* 比较两个 SHA3_384 计算值是否相等
  |<PRE>
    D1: TSHA3_384Digest   - 需要比较的 SHA3_384 计算值
    D2: TSHA3_384Digest   - 需要比较的 SHA3_384 计算值
  |</PRE>}
 
-function SHA3_512Match(const D1, D2: TCnSHA3_512Digest): Boolean;
+function SHA3_512Match(const D1: TCnSHA3_512Digest; const D2: TCnSHA3_512Digest): Boolean;
 {* 比较两个 SHA3_512 计算值是否相等
  |<PRE>
    D1: TSHA3_512Digest   - 需要比较的 SHA3_512 计算值
    D2: TSHA3_512Digest   - 需要比较的 SHA3_512 计算值
  |</PRE>}
 
-function SHAKE128Match(const D1, D2: TBytes): Boolean;
+function SHAKE128Match(const D1: TBytes; const D2: TBytes): Boolean;
 {* 比较两个 SHAKE128 计算值是否相等
  |<PRE>
    D1: TBytes            - 需要比较的 SHAKE128 计算值
    D2: TBytes            - 需要比较的 SHAKE128 计算值
  |</PRE>}
 
-function SHAKE256Match(const D1, D2: TBytes): Boolean;
+function SHAKE256Match(const D1: TBytes; const D2: TBytes): Boolean;
 {* 比较两个 SHAKE256 计算值是否相等
  |<PRE>
    D1: TBytes            - 需要比较的 SHAKE256 计算值

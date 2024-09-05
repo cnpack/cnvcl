@@ -70,7 +70,7 @@ procedure ZUC(Key: PByte; IV: PByte; KeyStream: PCardinal; KeyStreamLen: Cardina
   KeyStreamLen 是要求计算的长度，以四字节为单位
 }
 
-function ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
+function ZUCEEA3(CK: PByte; Count: Cardinal; Bearer: Cardinal; Direction: Cardinal;
   M: PCardinal; BitLen: Cardinal; C: PCardinal): Cardinal;
 {*
   基于祖冲之算法的 128-EEA3 机密性保护算法。一个流加密系统，使用机密性密钥 CK 来加解密数据块
@@ -93,7 +93,7 @@ function ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
   注意因为是流异或加密。传入如果是明文，加密一次便输出密文，如果传入密文，则调用一次会还原成明文
 }
 
-procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: Cardinal;
+procedure ZUCEIA3(IK: PByte; Count: Cardinal; Bearer: Cardinal; Direction: Cardinal;
   M: PCardinal; BitLen: Cardinal; out Mac: Cardinal);
 {*
   基于祖冲之算法的 128-EIA3 完整性保护算法，使用一个完整性密钥 IK 对给定的输入消息计算出一个 32 位的 MAC 值

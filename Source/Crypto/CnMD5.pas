@@ -178,14 +178,14 @@ function MD5Print(const Digest: TCnMD5Digest): string;
    Digest: TMD5Digest  - 指定的 MD5 计算值
  |</PRE>}
 
-function MD5Match(const D1, D2: TCnMD5Digest): Boolean;
+function MD5Match(const D1: TCnMD5Digest; const D2: TCnMD5Digest): Boolean;
 {* 比较两个 MD5 计算值是否相等
  |<PRE>
    D1: TMD5Digest   - 需要比较的 MD5 计算值
    D2: TMD5Digest   - 需要比较的 MD5 计算值
  |</PRE>}
 
-function MD5DigestToStr(Digest: TCnMD5Digest): string;
+function MD5DigestToStr(const Digest: TCnMD5Digest): string;
 {* MD5 计算值转 string
  |<PRE>
    Digest: TMD5Digest   - 需要转换的 MD5 计算值
@@ -745,7 +745,7 @@ begin
 end;
 
 // MD5 计算值转 string
-function MD5DigestToStr(Digest: TCnMD5Digest): string;
+function MD5DigestToStr(const Digest: TCnMD5Digest): string;
 begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnMD5Digest));
 end;

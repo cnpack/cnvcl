@@ -69,24 +69,24 @@ function CnINTT(Data: PInt64Array; Len: Integer): Boolean;
 {* 快速数论逆变换，将点值向量 int 64 数组转换为多项式的系数 int 64 数组，
   注意要确保 Len 为 2 的整数次幂，并且 Data 各系数必须大于 0 且小于 CN_P}
 
-function CnDCT(Data, Res: PExtendedArray; Len: Integer): Boolean;
+function CnDCT(Data: PExtendedArray; Res: PExtendedArray; Len: Integer): Boolean;
 {* 一维 DCT 变换（离散余弦），将 Data 所指的浮点数组做一次一维离散余弦变换，
   结果放入 Res 所指的浮点数组中，要求数组长度均为 Len，返回变换是否成功}
 
-function CnIDCT(Data, Res: PExtendedArray; Len: Integer): Boolean;
+function CnIDCT(Data: PExtendedArray; Res: PExtendedArray; Len: Integer): Boolean;
 {* 一维逆 DCT 变换（离散余弦），将 Data 所指的浮点数组做一次一维逆离散余弦变换，
   结果放入 Res 所指的浮点数组中，要求数组长度均为 Len，返回逆变换是否成功}
 
 function CnGenerateDCT2Matrix(M: TCnFloatMatrix; N: Integer): Boolean;
 {* 生成 N 阶二维 DCT 变换矩阵，该矩阵为方阵}
 
-function CnDCT2(Data, Res: TCnFloatMatrix; DCTM: TCnFloatMatrix = nil;
+function CnDCT2(Data: TCnFloatMatrix; Res: TCnFloatMatrix; DCTM: TCnFloatMatrix = nil;
   DCTMT: TCnFloatMatrix = nil; T: TCnFloatMatrix = nil): Boolean;
 {* 二维 DCT 变换（离散余弦），将 Data 所指的浮点矩阵做一次二维离散余弦变换，
   结果放入 Res 所指的浮点矩阵中，要求各矩阵均为方阵且尺寸相等，
   DCTM/DCTMT 可以为预计算的变换矩阵与其转置矩阵，T 为临时计算矩阵，返回变换是否成功}
 
-function CnIDCT2(Data, Res: TCnFloatMatrix; DCTM: TCnFloatMatrix = nil;
+function CnIDCT2(Data: TCnFloatMatrix; Res: TCnFloatMatrix; DCTM: TCnFloatMatrix = nil;
   DCTMT: TCnFloatMatrix = nil; T: TCnFloatMatrix = nil): Boolean;
 {* 二维逆 DCT 变换（离散余弦），将 Data 所指的浮点矩阵做一次二维逆离散余弦变换，
   结果放入 Res 所指的浮点矩阵中，要求各矩阵均为方阵且尺寸相等，

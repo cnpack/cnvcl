@@ -93,11 +93,11 @@ type
     procedure Decrypt(var Data: TBytes; ID, Generation: Cardinal);
   end;
 
-function CnPDFFindEncryptionMethod(Version, Revision, KeyBitLength: Integer;
-  const CFMValue: string = ''): TCnPDFEncryptionMethod;
+function CnPDFFindEncryptionMethod(Version: Integer; Revision: Integer;
+  KeyBitLength: Integer; const CFMValue: string = ''): TCnPDFEncryptionMethod;
 {* 根据 PDF 文件中 Encrypt 字段的 V R Length 值及 CTM 字段值判断使用哪种加密算法}
 
-function CnPDFCalcEncryptKey(const UserPass: AnsiString; Version,
+function CnPDFCalcEncryptKey(const UserPass: AnsiString; Version: Integer;
   Revision: Integer; OwnerCipher: TBytes; Permission: Cardinal; ID: TBytes;
   KeyBitLength: Integer): TBytes;
 {* 生成 PDF 时调用，根据用户密码与 O 值等计算加密 Key，供加解密字符串与流内容
@@ -113,7 +113,7 @@ function CnPDFCalcEncryptKey(const UserPass: AnsiString; Version,
   返回值 TBytes 为加解密的密钥字节数组
 }
 
-function CnPDFCalcUserCipher(const UserPass: AnsiString; Version, Revision: Integer;
+function CnPDFCalcUserCipher(const UserPass: AnsiString; Version: Integer; Revision: Integer;
   OwnerCipher: TBytes; Permission: Cardinal; ID: TBytes; KeyBitLength: Integer): TBytes;
 {* 生成 PDF 时调用，根据用户密码等内容计算 U 值，内部包括计算加密 Key，可供与文档中的 U 值对比以确定是否是正确的用户密码
 
@@ -128,8 +128,8 @@ function CnPDFCalcUserCipher(const UserPass: AnsiString; Version, Revision: Inte
   返回值 TBytes 为可放置至 PDF 文件中 Encrypt 节点的 U 字段值，或与原始 U 值比较以确定用户密码是否正确
 }
 
-function CnPDFCalcOwnerCipher(const OwnerPass, UserPass: AnsiString;
-  Version, Revision, KeyBitLength: Integer): TBytes;
+function CnPDFCalcOwnerCipher(const OwnerPass: AnsiString; const UserPass: AnsiString;
+  Version: Integer; Revision: Integer; KeyBitLength: Integer): TBytes;
 {* 生成 PDF 时调用，根据权限密码与用户密码计算 O 值
 
   OwnerPass: AnsiString             权限密码
@@ -140,9 +140,9 @@ function CnPDFCalcOwnerCipher(const OwnerPass, UserPass: AnsiString;
   返回值 TBytes 为可放置至 PDF 文件中 Encrypt 节点的 O 字段值
 }
 
-function CnPDFCheckUserPassword(const UserPass: AnsiString; Version, Revision: Integer;
-  OwnerCipher, UserCipher: TBytes; Permission: Cardinal; ID: TBytes;
-  KeyBitLength: Integer): TBytes;
+function CnPDFCheckUserPassword(const UserPass: AnsiString; Version: Integer;
+  Revision: Integer; OwnerCipher: TBytes; UserCipher: TBytes; Permission: Cardinal;
+  ID: TBytes; KeyBitLength: Integer): TBytes;
 {* 解析 PDF 时调用，检查用户输入的 UserPass 是否是合法的用户密码，检查通过返回加密密钥，否则返回 nil
 
   UserPass: AnsiString              用户密码
@@ -157,9 +157,9 @@ function CnPDFCheckUserPassword(const UserPass: AnsiString; Version, Revision: I
   返回值 TBytes 为加解密的密钥字节数组
 }
 
-function CnPDFCheckOwnerPassword(const OwnerPass: AnsiString; Version, Revision: Integer;
-  OwnerCipher, UserCipher: TBytes; Permission: Cardinal; ID: TBytes;
-  KeyBitLength: Integer): TBytes;
+function CnPDFCheckOwnerPassword(const OwnerPass: AnsiString; Version: Integer;
+  Revision: Integer; OwnerCipher: TBytes; UserCipher: TBytes; Permission: Cardinal;
+  ID: TBytes; KeyBitLength: Integer): TBytes;
 {* 解析 PDF 时调用，检查用户输入的 OwnerPass 是否是合法的权限密码，检查通过返回加密密钥，否则返回 nil
 
   UserPass: AnsiString              用户密码

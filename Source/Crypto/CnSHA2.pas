@@ -444,53 +444,53 @@ function SHA512Print(const Digest: TCnSHA512Digest): string;
    Digest: TSHA512Digest  - 指定的 SHA512 计算值
  |</PRE>}
 
-function SHA224Match(const D1, D2: TCnSHA224Digest): Boolean;
+function SHA224Match(const D1: TCnSHA224Digest; const D2: TCnSHA224Digest): Boolean;
 {* 比较两个 SHA224 计算值是否相等
  |<PRE>
    D1: TSHA224Digest   - 需要比较的 SHA224 计算值
    D2: TSHA224Digest   - 需要比较的 SHA224 计算值
  |</PRE>}
 
-function SHA256Match(const D1, D2: TCnSHA256Digest): Boolean;
+function SHA256Match(const D1: TCnSHA256Digest; const D2: TCnSHA256Digest): Boolean;
 {* 比较两个 SHA256 计算值是否相等
  |<PRE>
    D1: TSHA256Digest   - 需要比较的 SHA256 计算值
    D2: TSHA256Digest   - 需要比较的 SHA256 计算值
  |</PRE>}
 
-function SHA384Match(const D1, D2: TCnSHA384Digest): Boolean;
+function SHA384Match(const D1: TCnSHA384Digest; const D2: TCnSHA384Digest): Boolean;
 {* 比较两个 SHA384 计算值是否相等
  |<PRE>
    D1: TSHA384Digest   - 需要比较的 SHA384 计算值
    D2: TSHA384Digest   - 需要比较的 SHA384 计算值
  |</PRE>}
 
-function SHA512Match(const D1, D2: TCnSHA512Digest): Boolean;
+function SHA512Match(const D1: TCnSHA512Digest; const D2: TCnSHA512Digest): Boolean;
 {* 比较两个 SHA512 计算值是否相等
  |<PRE>
    D1: TSHA512Digest   - 需要比较的 SHA512 计算值
    D2: TSHA512Digest   - 需要比较的 SHA512 计算值
  |</PRE>}
 
-function SHA224DigestToStr(Digest: TCnSHA224Digest): string;
+function SHA224DigestToStr(const Digest: TCnSHA224Digest): string;
 {* SHA224 计算值转 string
  |<PRE>
    Digest: TSHA224Digest   - 需要转换的 SHA224 计算值
  |</PRE>}
 
-function SHA256DigestToStr(Digest: TCnSHA256Digest): string;
+function SHA256DigestToStr(const Digest: TCnSHA256Digest): string;
 {* SHA256 计算值转 string
  |<PRE>
    Digest: TSHA256Digest   - 需要转换的 SHA256 计算值
  |</PRE>}
 
-function SHA384DigestToStr(Digest: TCnSHA384Digest): string;
+function SHA384DigestToStr(const Digest: TCnSHA384Digest): string;
 {* SHA384 计算值转 string
  |<PRE>
    Digest: TSHA384Digest   - 需要转换的 SHA384 计算值
  |</PRE>}
 
-function SHA512DigestToStr(Digest: TCnSHA512Digest): string;
+function SHA512DigestToStr(const Digest: TCnSHA512Digest): string;
 {* SHA512 计算值转 string
  |<PRE>
    Digest: TSHA512Digest   - 需要转换的 SHA512 计算值
@@ -1804,25 +1804,25 @@ begin
 end;
 
 // SHA224 计算值转 string
-function SHA224DigestToStr(Digest: TCnSHA224Digest): string;
+function SHA224DigestToStr(const Digest: TCnSHA224Digest): string;
 begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnSHA224Digest));
 end;
 
 // SHA256 计算值转 string
-function SHA256DigestToStr(Digest: TCnSHA256Digest): string;
+function SHA256DigestToStr(const Digest: TCnSHA256Digest): string;
 begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnSHA256Digest));
 end;
 
 // SHA384 计算值转 string
-function SHA384DigestToStr(Digest: TCnSHA384Digest): string;
+function SHA384DigestToStr(const Digest: TCnSHA384Digest): string;
 begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnSHA384Digest));
 end;
 
 // SHA512 计算值转 string
-function SHA512DigestToStr(Digest: TCnSHA512Digest): string;
+function SHA512DigestToStr(const Digest: TCnSHA512Digest): string;
 begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnSHA512Digest));
 end;

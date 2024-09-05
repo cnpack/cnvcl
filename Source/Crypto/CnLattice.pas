@@ -146,14 +146,14 @@ type
   end;
 
 procedure NTRUDataToInt64Polynomial(const Res: TCnInt64Polynomial; Data: Pointer;
-  ByteLength: Integer; N, Modulus: Int64; CheckSum: Boolean = True);
+  ByteLength: Integer; N: Int64; Modulus: Int64; CheckSum: Boolean = True);
 {* 根据 NTRU 的规范将数据内容转换为模数的多项式供加解密，如数据超长会抛异常
    以 Q 的二进制位数为单位劈分数据，如 CheckSum 为 True，则取前 N - 1 个系数，小端转换为
    多项式的 0 次到 N - 2 次项系数，N - 1 次系数则是各系数和 mod Q 再取负，适合于明文转换
    如 CheckSum 为 False，则取前 N 个系数，小端转换为多项式的 0 次到 N - 1 次项系数，适合于密文转换
    返回转换是否成功}
 
-function NTRUInt64PolynomialToData(const P: TCnInt64Polynomial; N, Modulus: Int64;
+function NTRUInt64PolynomialToData(const P: TCnInt64Polynomial; N: Int64; Modulus: Int64;
   Data: Pointer; CheckSum: Boolean = True): Integer;
 {* 根据 NTRU 的规范将模数的多项式转换为数据内容并放于 Data 所指的内存中，返回放置的内存长度
    如 CheckSum 为 True，只取 0 到 N - 1 次共 N - 2 个系数，适合于明文转换
@@ -161,12 +161,12 @@ function NTRUInt64PolynomialToData(const P: TCnInt64Polynomial; N, Modulus: Int6
    先将多项式系数 mod 到 0 到 Q - 1 的范围，每个值放入以 Q 的二进制位数为单位的数据块
    再拼起来补 0 凑足整数字节。如果 Data 传 nil，则返回所需的内存长度}
 
-function Int64GaussianLatticeReduction(const V1, V2: TCnInt64Vector;
-  const X, Y: TCnInt64Vector): Boolean;
+function Int64GaussianLatticeReduction(const V1: TCnInt64Vector; const V2: TCnInt64Vector;
+  const X: TCnInt64Vector; const Y: TCnInt64Vector): Boolean;
 {* 对两个二维 Int64 向量做整数格上的近似高斯格基约减以求解二维 SVP 问题，返回是否成功}
 
-function BigNumberGaussianLatticeReduction(const V1, V2: TCnBigNumberVector;
-  const X, Y: TCnBigNumberVector): Boolean;
+function BigNumberGaussianLatticeReduction(const V1: TCnBigNumberVector; const V2: TCnBigNumberVector;
+  const X: TCnBigNumberVector; const Y: TCnBigNumberVector): Boolean;
 {* 对两个二维大整数向量做整数格上的近似高斯格基约减以求解二维 SVP 问题，返回是否成功
    用的虽然是格拉姆-施密特的正交化思想，但结果并不是正交的}
 

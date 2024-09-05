@@ -125,7 +125,7 @@ type
   TCnCCM128Tag = array[0..CN_CCM_M_LEN - 1] of Byte;
   {* CCM 的计算结果}
 
-procedure GMulBlock128(var X, Y: TCn128BitsBuffer; var R: TCn128BitsBuffer);
+procedure GMulBlock128(var X: TCn128BitsBuffer; var Y: TCn128BitsBuffer; var R: TCn128BitsBuffer);
 {* 实现 GHash 中的伽罗华域 (2^128) 上的块乘法操作。基本测试通过，也符合交换律
   注意 2 次幂有限域乘法里的加法是模 2 加也就是异或（也等同于模 2 减）
   同时还要模一个模多项式 GHASH_POLY，其中的单次减同样也即异或}
@@ -135,7 +135,7 @@ procedure GHash128(var HashKey: TCnGHash128Key; Data: Pointer; DataByteLength: I
 {* 以指定 HashKey 与附加数据 AAD，对一块数据进行 GHash 计算得到 Tag 摘要，
   对应文档中的 GHash(H, A C)}
 
-function GHash128Bytes(var HashKey: TCnGHash128Key; Data, AAD: TBytes): TCnGHash128Tag;
+function GHash128Bytes(var HashKey: TCnGHash128Key; Data: TBytes; AAD: TBytes): TCnGHash128Tag;
 {* 字节数组方式进行 GHash 计算，内部调用 GHash128}
 
 // 以下三个函数用于外部持续对数据进行零散的 GHash128 计算，GHash128Update 可多次被调用
@@ -154,19 +154,23 @@ procedure GHash128Finish(var Ctx: TCnGHash128Context; var Output: TCnGHash128Tag
 
 // ======================= AES/SM4-GCM 字节数组加密函数 ========================
 
-function AES128GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnGCM128Tag): TBytes;
+function AES128GCMEncryptBytes(Key: TBytes; Iv: TBytes; PlainData: TBytes; AAD: TBytes;
+  var OutTag: TCnGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对明文进行 AES-128-GCM 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
-function AES192GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnGCM128Tag): TBytes;
+function AES192GCMEncryptBytes(Key: TBytes; Iv: TBytes; PlainData: TBytes; AAD: TBytes;
+  var OutTag: TCnGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对明文进行 AES-192-GCM 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
-function AES256GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnGCM128Tag): TBytes;
+function AES256GCMEncryptBytes(Key: TBytes; Iv: TBytes; PlainData: TBytes; AAD: TBytes;
+  var OutTag: TCnGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对明文进行 AES-256-GCM 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
-function SM4GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnGCM128Tag): TBytes;
+function SM4GCMEncryptBytes(Key: TBytes; Iv: TBytes; PlainData: TBytes; AAD: TBytes;
+  var OutTag: TCnGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对明文进行 SM4-GCM 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
@@ -208,19 +212,23 @@ procedure AESGCMNoPaddingEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Po
 
 // ======================= AES/SM4-GCM 字节数组解密函数 ========================
 
-function AES128GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnGCM128Tag): TBytes;
+function AES128GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对密文进行 AES-128-GCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
-function AES192GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnGCM128Tag): TBytes;
+function AES192GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对密文进行 AES-192-GCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
-function AES256GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnGCM128Tag): TBytes;
+function AES256GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对密文进行 AES-256-GCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
-function SM4GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnGCM128Tag): TBytes;
+function SM4GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnGCM128Tag): TBytes;
 {* 使用密码、初始化向量、额外数据对密文进行 SM4-GCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
@@ -262,16 +270,16 @@ function AESGCMNoPaddingDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Poi
 
 // ======================= AES/SM4-CMAC 字节数组杂凑函数 =======================
 
-function AES128CMAC128Bytes(Key, Data: TBytes): TCnCMAC128Tag;
+function AES128CMAC128Bytes(Key: TBytes; Data: TBytes): TCnCMAC128Tag;
 {* 以指定的 Key 对数据进行 AES-128-CMAC 计算，返回计算出的 Tag，参数均为字节数组}
 
-function AES192CMAC128Bytes(Key, Data: TBytes): TCnCMAC128Tag;
+function AES192CMAC128Bytes(Key: TBytes; Data: TBytes): TCnCMAC128Tag;
 {* 以指定的 Key 对数据进行 AES-192-CMAC 计算，返回计算出的 Tag，参数均为字节数组}
 
-function AES256CMAC128Bytes(Key, Data: TBytes): TCnCMAC128Tag;
+function AES256CMAC128Bytes(Key: TBytes; Data: TBytes): TCnCMAC128Tag;
 {* 以指定的 Key 对数据进行 AES-256-CMAC 计算，返回计算出的 Tag，参数均为字节数组}
 
-function SM4CMAC128Bytes(Key, Data: TBytes): TCnCMAC128Tag;
+function SM4CMAC128Bytes(Key: TBytes; Data: TBytes): TCnCMAC128Tag;
 {* 以指定的 Key 对数据进行 SM4-CMAC 计算，返回计算出的 Tag，参数均为字节数组}
 
 // ======================== AES/SM4-CMAC 数据块杂凑函数 ========================
@@ -294,37 +302,45 @@ function SM4CMAC128(Key: Pointer; KeyByteLength: Integer; Data: Pointer;
 
 // ======================= AES/SM4-CCM 字节数组加密函数 ========================
 
-function AES128CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCnCCM128Tag): TBytes;
+function AES128CCMEncryptBytes(Key: TBytes; Nonce: TBytes; PlainData: TBytes; AAD: TBytes;
+  var OutTag: TCnCCM128Tag): TBytes;
 {* 使用密码、临时数据、额外数据对明文进行 AES-128-CCM 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
-function AES192CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCnCCM128Tag): TBytes;
+function AES192CCMEncryptBytes(Key: TBytes; Nonce: TBytes; PlainData: TBytes; AAD: TBytes;
+  var OutTag: TCnCCM128Tag): TBytes;
 {* 使用密码、临时数据、额外数据对明文进行 AES-192-CCM 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
-function AES256CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCnCCM128Tag): TBytes;
+function AES256CCMEncryptBytes(Key: TBytes; Nonce: TBytes; PlainData: TBytes; AAD: TBytes;
+  var OutTag: TCnCCM128Tag): TBytes;
 {* 使用密码、临时数据、额外数据对明文进行 AES-256-CCM 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
-function SM4CCMEncryptBytes(Key, Nonce, PlainData, AAD: TBytes; var OutTag: TCnCCM128Tag): TBytes;
+function SM4CCMEncryptBytes(Key: TBytes; Nonce: TBytes; PlainData: TBytes; AAD: TBytes;
+  var OutTag: TCnCCM128Tag): TBytes;
 {* 使用密码、临时数据、额外数据对明文进行 SM4-CCM 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
 // ======================= AES/SM4-CCM 字节数组解密函数 ========================
 
-function AES128CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag): TBytes;
+function AES128CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnCCM128Tag): TBytes;
 {* 使用密码、临时数据、额外数据对密文进行 AES-128-CCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
-function AES192CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag): TBytes;
+function AES192CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnCCM128Tag): TBytes;
 {* 使用密码、临时数据、额外数据对密文进行 AES-192-CCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
-function AES256CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag): TBytes;
+function AES256CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnCCM128Tag): TBytes;
 {* 使用密码、临时数据、额外数据对密文进行 AES-256-CCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
-function SM4CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag): TBytes;
+function SM4CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBytes;
+  var InTag: TCnCCM128Tag): TBytes;
 {* 使用密码、临时数据、额外数据对密文进行 SM4-CCM 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
@@ -390,21 +406,21 @@ function SM4CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; Non
 
 // ======== 封装的 AES|SM4/GCM 十六进制字节数组加解密函数，无需 Padding ========
 
-function AESGCMEncryptToHex(Key, Iv, AD: TBytes; const Input: TBytes): string;
+function AESGCMEncryptToHex(Key: TBytes; Iv: TBytes; AD: TBytes; const Input: TBytes): string;
 {* 封装的常用加密函数。使用密码、初始化向量、额外数据对明文进行 AES-GCM 加密并转换
   成十六进制字符串。算法采用 AES256，GCM 无需 Padding、验证 Tag 拼在字符串后部与
   内部加密结果形成完整密文}
 
-function AESGCMDecryptFromHex(Key, Iv, AD: TBytes; const Input: string): TBytes;
+function AESGCMDecryptFromHex(Key: TBytes; Iv: TBytes; AD: TBytes; const Input: string): TBytes;
 {* 封装的常用解密函数。使用密码、初始化向量、额外数据对十六进制密文进行 AES-GCM 解密
   并验证 Tag，算法采用 AES256，GCM 无需 Padding，返回解密后的明文字节数组}
 
-function SM4GCMEncryptToHex(Key, Iv, AD: TBytes; const Input: TBytes): string;
+function SM4GCMEncryptToHex(Key: TBytes; Iv: TBytes; AD: TBytes; const Input: TBytes): string;
 {* 封装的常用加密函数。使用密码、初始化向量、额外数据对明文进行 SM4-GCM 加密并转换
   成十六进制字符串，算法采用 SM4，GCM 无需 Padding、验证 Tag 拼在字符串后部与内
   部加密结果形成完整密文}
 
-function SM4GCMDecryptFromHex(Key, Iv, AD: TBytes; const Input: string): TBytes;
+function SM4GCMDecryptFromHex(Key: TBytes; Iv: TBytes; AD: TBytes; const Input: string): TBytes;
 {* 封装的常用解密函数。使用密码、初始化向量、额外数据对十六进制密文进行 SM4-GCM 解密
   并验证 Tag，算法采用 SM4，GCM 无需 Padding，返回解密后的明文字节数组}
 
@@ -431,19 +447,21 @@ function ChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Point
 
 // ================== ChaCha20_Poly1305 字节数组加解密函数 =====================
 
-function ChaCha20Poly1305EncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnPoly1305Digest): TBytes;
+function ChaCha20Poly1305EncryptBytes(Key: TBytes; Iv: TBytes; PlainData: TBytes;
+  AAD: TBytes; var OutTag: TCnPoly1305Digest): TBytes;
 {* 使用密码、临时数据、额外数据对明文进行 ChaCha20_Poly1305 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
-function ChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
+function ChaCha20Poly1305DecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes;
+  AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
 {* 使用密码、初始化向量、额外数据对密文进行 ChaCha20_Poly1305 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 
 // =================== XChaCha20_Poly1305 数据块加解密函数 =====================
 
-procedure XChaCha20Poly1305Encrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
-  OutEnData: Pointer; var OutTag: TCnPoly1305Digest);
+procedure XChaCha20Poly1305Encrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer;
+  IvByteLength: Integer; PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer;
+  AADByteLength: Integer; OutEnData: Pointer; var OutTag: TCnPoly1305Digest);
 {* 使用密码、初始化向量、额外数据对明文进行 XChaCha20_Poly1305 加密，返回密文至 OutEnData 所指的区域中
   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证
@@ -451,9 +469,9 @@ procedure XChaCha20Poly1305Encrypt(Key: Pointer; KeyByteLength: Integer; Iv: Poi
   Iv 要求为 24 字节否则也截断或补 0（另一种说法是 8 字节然而要额外加个 4 字节固定数据，这里未采用）
   输出的 Tag 为 16 字节}
 
-function XChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
-  EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
-  OutPlainData: Pointer; var InTag: TCnPoly1305Digest): Boolean;
+function XChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer;
+  IvByteLength: Integer; EnData: Pointer; EnByteLength: Integer; AAD: Pointer;
+  AADByteLength: Integer; OutPlainData: Pointer; var InTag: TCnPoly1305Digest): Boolean;
 {* 使用密码、初始化向量、额外数据对密文进行 XChaCha20_Poly1305 解密并验证，
   其中，KeyByteLength 要求为 32 字节否则会截断或补 0，
   Iv 要求为 24 字节否则也截断或补 0（另一种说法是 8 字节然而要额外加个 4 字节固定数据，这里未采用）
@@ -462,11 +480,13 @@ function XChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Poin
 
 // ================== XChaCha20_Poly1305 字节数组加解密函数 ====================
 
-function XChaCha20Poly1305EncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnPoly1305Digest): TBytes;
+function XChaCha20Poly1305EncryptBytes(Key: TBytes; Iv: TBytes; PlainData: TBytes;
+  AAD: TBytes; var OutTag: TCnPoly1305Digest): TBytes;
 {* 使用密码、临时数据、额外数据对明文进行 XChaCha20_Poly1305 加密，返回密文
   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
 
-function XChaCha20Poly1305DecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
+function XChaCha20Poly1305DecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes;
+  AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
 {* 使用密码、初始化向量、额外数据对密文进行 XChaCha20_Poly1305 解密并验证，成功则返回明文
   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
 

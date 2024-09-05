@@ -458,7 +458,7 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
   TCnRSAPublicKey; const OutCRTFile: string; const CountryName: string; const
   StateOrProvinceName: string; const LocalityName: string; const OrganizationName:
   string; const OrganizationalUnitName: string; const CommonName: string; const
-  EmailAddress: string; const IntSerialNum: string; NotBefore, NotAfter: TDateTime;
+  EmailAddress: string; const IntSerialNum: string; NotBefore: TDateTime; NotAfter: TDateTime;
   CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 RSA CRT 格式的自签名证书，目前只支持 v1 格式}
 
@@ -466,7 +466,8 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
   TCnEccPublicKey; CurveType: TCnEccCurveType; const OutCRTFile: string; const CountryName: string;
   const StateOrProvinceName: string; const LocalityName: string; const OrganizationName: string;
   const OrganizationalUnitName: string; const CommonName: string; const EmailAddress: string;
-  const IntSerialNum: string; NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
+  const IntSerialNum: string; NotBefore: TDateTime; NotAfter: TDateTime;
+  CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
 {* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，目前只支持 v1 格式}
 
 function CnCALoadCertificateSignRequestFromFile(const FileName: string;
@@ -515,13 +516,13 @@ function CnCALoadCertificateFromStream(Stream: TStream;
 
 function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string;
   const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
-  NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
+  NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
 {* 用 RSA CRT 证书内容与对应私钥签署证书请求，生成被签发证书，目前只支持 v1 格式
    兼容客户端证书请求是 ECC/RSA 的情形}
 
 function CnCASignCertificate(PrivateKey: TCnEccPrivateKey; CurveType: TCnEccCurveType;
   const CRTFile: string; const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
-  NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1Ecc): Boolean; overload;
+  NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1Ecc): Boolean; overload;
 {* 用 ECC CRT 证书内容与对应私钥签署证书请求，生成被签发证书，目前只支持 v1 格式
   兼容客户端证书请求是 ECC/RSA 的情形}
 
