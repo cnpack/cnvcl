@@ -183,7 +183,7 @@ procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
   注：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1}
 
 procedure ExtractFloatQuadruple(const Value: Extended; out SignNegative: Boolean;
-  out Exponent: Integer; out MantissaLo, MantissaHi: TUInt64);
+  out Exponent: Integer; out MantissaLo: TUInt64; out MantissaHi: TUInt64);
 {* 从十六字节精度浮点数中解出符号位、指数、有效数字，只在 Extended 为 16 字节
   且格式是 IEEE 754-2008 里的四倍精度浮点时有效（目前 Delphi 不支持该格式）
   注：指数为真实指数；有效数字 112 位，分为高低两部分}
@@ -202,7 +202,7 @@ procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
   以及 16 字节截断为 10 字节的 Extended 格式}
 
 procedure CombineFloatQuadruple(SignNegative: Boolean; Exponent: Integer;
-  MantissaLo, MantissaHi: TUInt64; var Value: Extended);
+  MantissaLo: TUInt64; MantissaHi: TUInt64; var Value: Extended);
 {* 把符号位、指数、有效数字拼成扩展精度浮点数，只在 Extended 为 16 字节
   且格式是 IEEE 754-2008 里的四倍精度浮点时有效（目前 Delphi 不支持该格式）}
 
@@ -249,13 +249,13 @@ function ExtendedIsNan(const AValue: Extended): Boolean;
 { FloatDecimalToBinExtended, FloatDecimalToOctExtended，FloatDecimalToHexExtended
   均调用了 FloatDecimalToBinaryExtended 过程，FloatDecimalToBinaryExtended 不公开。}
 
-function FloatDecimalToBinExtended(fIn: Extended; DecimalExp,
+function FloatDecimalToBinExtended(fIn: Extended; DecimalExp: Boolean;
   AlwaysUseExponent: Boolean): AnsiString; // Convert to binary
 
-function FloatDecimalToOctExtended(fIn: Extended; DecimalExp,
+function FloatDecimalToOctExtended(fIn: Extended; DecimalExp: Boolean;
   AlwaysUseExponent: Boolean): AnsiString; // Convert to octal
 
-function FloatDecimalToHexExtended(fIn: Extended; DecimalExp,
+function FloatDecimalToHexExtended(fIn: Extended; DecimalExp: Boolean;
   AlwaysUseExponent: Boolean): AnsiString; // Convert to hexdecimal
 
 {$ENDIF}

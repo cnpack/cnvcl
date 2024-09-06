@@ -252,7 +252,7 @@ function BigDecimalToDouble(const Num: TCnBigDecimal): Double;
 function BigDecimalToExtended(const Num: TCnBigDecimal): Extended;
 {* 大浮点数对象转换为扩展精度浮点数}
 
-function BigDecimalCompare(const Num1, Num2: TCnBigDecimal): Integer; overload;
+function BigDecimalCompare(const Num1: TCnBigDecimal; const Num2: TCnBigDecimal): Integer; overload;
 {* 比较两个大浮点数对象}
 
 function BigDecimalCompare(const Num1: TCnBigDecimal; Num2: Int64): Integer; overload;
@@ -261,7 +261,7 @@ function BigDecimalCompare(const Num1: TCnBigDecimal; Num2: Int64): Integer; ove
 function BigDecimalCompare(const Num1: TCnBigDecimal; Num2: Extended): Integer; overload;
 {* 比较大浮点数对象与浮点数}
 
-procedure BigDecimalCopy(const Dest, Source: TCnBigDecimal);
+procedure BigDecimalCopy(const Dest: TCnBigDecimal; const Source: TCnBigDecimal);
 {* 大浮点数赋值}
 
 function BigDecimalGetPrecision(const Num: TCnBigDecimal): Integer;
@@ -364,7 +364,7 @@ function BigBinaryToDouble(const Num: TCnBigBinary): Double;
 function BigBinaryToExtended(const Num: TCnBigBinary): Extended;
 {* 大二进制浮点数对象转换为扩展精度浮点数}
 
-function BigBinaryCompare(const Num1, Num2: TCnBigBinary): Integer; overload;
+function BigBinaryCompare(const Num1: TCnBigBinary; const Num2: TCnBigBinary): Integer; overload;
 {* 比较两个大二进制浮点数对象}
 
 function BigBinaryCompare(const Num1: TCnBigBinary; Num2: Int64): Integer; overload;
@@ -373,7 +373,7 @@ function BigBinaryCompare(const Num1: TCnBigBinary; Num2: Int64): Integer; overl
 function BigBinaryCompare(const Num1: TCnBigBinary; Num2: Extended): Integer; overload;
 {* 比较大二进制浮点数对象与浮点数}
 
-procedure BigBinaryCopy(const Dest, Source: TCnBigBinary);
+procedure BigBinaryCopy(const Dest: TCnBigBinary; const Source: TCnBigBinary);
 {* 大二进制浮点数赋值}
 
 function BigBinaryGetHighScale(const Num: TCnBigBinary): Integer;

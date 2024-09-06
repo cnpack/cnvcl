@@ -140,25 +140,25 @@ type
 
 // ============================= 大有理数运算方法 ==============================
 
-procedure BigRationalNumberAdd(Res: TCnBigRational; Num1, Num2: TCnBigRational);
+procedure BigRationalNumberAdd(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
 {* 大有理数加法，三数可以相等}
 
-procedure BigRationalNumberSub(Res: TCnBigRational; Num1, Num2: TCnBigRational);
+procedure BigRationalNumberSub(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
 {* 大有理数减法，三数可以相等}
 
-procedure BigRationalNumberMul(Res: TCnBigRational; Num1, Num2: TCnBigRational);
+procedure BigRationalNumberMul(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
 {* 大有理数乘法，三数可以相等}
 
-procedure BigRationalNumberDiv(Res: TCnBigRational; Num1, Num2: TCnBigRational);
+procedure BigRationalNumberDiv(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
 {* 大有理数除法，三数可以相等}
 
-function BigRationalNumberCompare(Num1, Num2: TCnBigRational): Integer; overload;
+function BigRationalNumberCompare(Num1: TCnBigRational; Num2: TCnBigRational): Integer; overload;
 {* 大有理数比较，> = < 分别返回 1 0 -1}
 
 function BigRationalNumberCompare(Num1: TCnBigRational; Num2: Int64): Integer; overload;
 {^ 大有理数与整数比较，> = < 分别返回 1 0 -1}
 
-procedure ReduceBigNumber(X, Y: TCnBigNumber);
+procedure ReduceBigNumber(X: TCnBigNumber; Y: TCnBigNumber);
 {* 尽量比例缩小，也就是约分}
 
 var

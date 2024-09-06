@@ -1656,7 +1656,7 @@ procedure BigNumberBiPolynomialExtractXByY(const Res: TCnBigNumberPolynomial;
 // ================== 二元大整系数多项式式在有限域上的模运算 ===================
 
 function BigNumberBiPolynomialGaloisEqual(const A: TCnBigNumberBiPolynomial;
-  B: TCnBigNumberBiPolynomial; Prime: TCnBigNumber): Boolean;
+  const B: TCnBigNumberBiPolynomial; Prime: TCnBigNumber): Boolean;
 {* 两个二元大整系数多项式在模 Prime 的条件下是否相等}
 
 procedure BigNumberBiPolynomialGaloisNegate(const P: TCnBigNumberBiPolynomial; Prime: TCnBigNumber);
