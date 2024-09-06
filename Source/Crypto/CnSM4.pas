@@ -223,7 +223,7 @@ function SM4DecryptEcbBytes(Key: TBytes; const Input: TBytes): TBytes;
   返回值   解密内容
  |</PRE>}
 
-function SM4EncryptCbcBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function SM4EncryptCbcBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
 {* SM4-CBC 封装好的针对 TBytes 的加密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -232,7 +232,7 @@ function SM4EncryptCbcBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
   返回值   加密内容
  |</PRE>}
 
-function SM4DecryptCbcBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function SM4DecryptCbcBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
 {* SM4-CBC 封装好的针对 TBytes 的解密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -241,7 +241,7 @@ function SM4DecryptCbcBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
   返回值   解密内容
  |</PRE>}
 
-function SM4EncryptCfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function SM4EncryptCfbBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
 {* SM4-CFB 封装好的针对 TBytes 的加密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -250,7 +250,7 @@ function SM4EncryptCfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
   返回值   加密内容
  |</PRE>}
 
-function SM4DecryptCfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function SM4DecryptCfbBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
 {* SM4-CFB 封装好的针对 TBytes 的解密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -259,7 +259,7 @@ function SM4DecryptCfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
   返回值   解密内容
  |</PRE>}
 
-function SM4EncryptOfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function SM4EncryptOfbBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
 {* SM4-OFB 封装好的针对 TBytes 的加密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -268,7 +268,7 @@ function SM4EncryptOfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
   返回值   加密内容
  |</PRE>}
 
-function SM4DecryptOfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function SM4DecryptOfbBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
 {* SM4-OFB 封装好的针对 TBytes 的解密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -277,7 +277,7 @@ function SM4DecryptOfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
   返回值   解密内容
  |</PRE>}
 
-function SM4EncryptCtrBytes(Key, Nonce: TBytes; const Input: TBytes): TBytes;
+function SM4EncryptCtrBytes(Key: TBytes; Nonce: TBytes; const Input: TBytes): TBytes;
 {* SM4-CTR 封装好的针对 TBytes 的加密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -286,7 +286,7 @@ function SM4EncryptCtrBytes(Key, Nonce: TBytes; const Input: TBytes): TBytes;
   返回值   加密内容
  |</PRE>}
 
-function SM4DecryptCtrBytes(Key, Nonce: TBytes; const Input: TBytes): TBytes;
+function SM4DecryptCtrBytes(Key: TBytes; Nonce: TBytes; const Input: TBytes): TBytes;
 {* SM4-CTR 封装好的针对 TBytes 的解密方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -313,7 +313,7 @@ function SM4DecryptEcbBytesFromHex(Key: TBytes; const Input: AnsiString): TBytes
   返回值   解密内容，注意因为没有处理 PKCS7 之类的对齐，因此末尾可能多出 #0 来
  |</PRE>}
 
-function SM4EncryptCbcBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiString;
+function SM4EncryptCbcBytesToHex(Key: TBytes; Iv: TBytes; const Input: TBytes): AnsiString;
 {* SM4-CBC 封装好的针对 TBytes 的加密并转换成十六进制字符串的方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -322,7 +322,7 @@ function SM4EncryptCbcBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiStri
   返回值   加密内容，注意没有处理 PKCS7 之类的对齐，只做补 #0 对齐后加密
  |</PRE>}
 
-function SM4DecryptCbcBytesFromHex(Key, Iv: TBytes; const Input: AnsiString): TBytes;
+function SM4DecryptCbcBytesFromHex(Key: TBytes; Iv: TBytes; const Input: AnsiString): TBytes;
 {* SM4-CBC 封装好的针对十六进制字符串解密成 TBytes 的方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -331,7 +331,7 @@ function SM4DecryptCbcBytesFromHex(Key, Iv: TBytes; const Input: AnsiString): TB
   返回值   解密内容，注意因为没有处理 PKCS7 之类的对齐，因此末尾可能多出 #0 来
  |</PRE>}
 
-function SM4EncryptCfbBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiString;
+function SM4EncryptCfbBytesToHex(Key: TBytes; Iv: TBytes; const Input: TBytes): AnsiString;
 {* SM4-CFB 封装好的针对 TBytes 的加密并转换成十六进制字符串的方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -340,7 +340,7 @@ function SM4EncryptCfbBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiStri
   返回值   加密内容
  |</PRE>}
 
-function SM4DecryptCfbBytesFromHex(Key, Iv: TBytes; const Input: AnsiString): TBytes;
+function SM4DecryptCfbBytesFromHex(Key: TBytes; Iv: TBytes; const Input: AnsiString): TBytes;
 {* SM4-CFB 封装好的针对十六进制字符串解密成 TBytes 的方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -349,7 +349,7 @@ function SM4DecryptCfbBytesFromHex(Key, Iv: TBytes; const Input: AnsiString): TB
   返回值   解密内容
  |</PRE>}
 
-function SM4EncryptOfbBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiString;
+function SM4EncryptOfbBytesToHex(Key: TBytes; Iv: TBytes; const Input: TBytes): AnsiString;
 {* SM4-OFB 封装好的针对 TBytes 的加密并转换成十六进制字符串的方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -358,7 +358,7 @@ function SM4EncryptOfbBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiStri
   返回值   加密内容
  |</PRE>}
 
-function SM4DecryptOfbBytesFromHex(Key, Iv: TBytes; const Input: AnsiString): TBytes;
+function SM4DecryptOfbBytesFromHex(Key: TBytes; Iv: TBytes; const Input: AnsiString): TBytes;
 {* SM4-OFB 封装好的针对十六进制字符串解密成 TBytes 的方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -367,7 +367,7 @@ function SM4DecryptOfbBytesFromHex(Key, Iv: TBytes; const Input: AnsiString): TB
   返回值   解密内容
  |</PRE>}
 
-function SM4EncryptCtrBytesToHex(Key, Nonce: TBytes; const Input: TBytes): AnsiString;
+function SM4EncryptCtrBytesToHex(Key: TBytes; Nonce: TBytes; const Input: TBytes): AnsiString;
 {* SM4-CTR 封装好的针对 TBytes 的加密并转换成十六进制字符串的方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
@@ -376,7 +376,7 @@ function SM4EncryptCtrBytesToHex(Key, Nonce: TBytes; const Input: TBytes): AnsiS
   返回值   加密内容
  |</PRE>}
 
-function SM4DecryptCtrBytesFromHex(Key, Nonce: TBytes; const Input: AnsiString): TBytes;
+function SM4DecryptCtrBytesFromHex(Key: TBytes; Nonce: TBytes; const Input: AnsiString): TBytes;
 {* SM4-CTR 封装好的针对十六进制字符串解密成 TBytes 的方法
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0

@@ -364,19 +364,19 @@ function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
 {* 用私钥对数据块进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中，并返回数据长度
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
-function CnRSAEncryptFile(const InFileName, OutFileName: string;
+function CnRSAEncryptFile(const InFileName: string; const OutFileName: string;
   PublicKey: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
 {* 用公钥对文件进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，结果存输出文件中}
 
-function CnRSAEncryptFile(const InFileName, OutFileName: string;
+function CnRSAEncryptFile(const InFileName: string; const OutFileName: string;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
 {* 用私钥对文件进行加密，加密前使用 PKCS1 填充，结果存输出文件中}
 
-function CnRSADecryptFile(const InFileName, OutFileName: string;
+function CnRSADecryptFile(const InFileName: string; const OutFileName: string;
   PublicKey: TCnRSAPublicKey): Boolean; overload;
 {* 用公钥对文件进行解密，并解开其 PKCS1 填充，结果存输出文件中，注意不支持 OAEP 填充}
 
-function CnRSADecryptFile(const InFileName, OutFileName: string;
+function CnRSADecryptFile(const InFileName: string; const OutFileName: string;
   PrivateKey: TCnRSAPrivateKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
 {* 用私钥对文件进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果存输出文件中}
 
@@ -385,14 +385,14 @@ function CnRSADecryptFile(const InFileName, OutFileName: string;
 // 注意 RSA 签名是先杂凑再拼一段数据用 RSA 私钥加密，验证时能解出杂凑值
 // 这点和 ECC 签名不同：ECC 签名并不解出 Hash 值，而是通过中间运算比对大数
 
-function CnRSASignFile(const InFileName, OutSignFileName: string;
+function CnRSASignFile(const InFileName: string; const OutSignFileName: string;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
 {* 用私钥签名指定文件，返回签名是否成功。
    未指定数字摘要算法时等于将源文件用 PKCS1 Private_FF 补齐后加密
    当指定了数字摘要算法时，使用指定数字摘要算法对文件进行计算得到杂凑值，
    原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐再用私钥加密}
 
-function CnRSAVerifyFile(const InFileName, InSignFileName: string;
+function CnRSAVerifyFile(const InFileName: string; const InSignFileName: string;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
 {* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
@@ -430,18 +430,18 @@ function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutLen: Integer; EnData: PBy
 // ================ Diffie-Hellman 离散对数密钥交换算法 ========================
 
 function CnDiffieHellmanGeneratePrimeRootByBitsCount(BitsCount: Integer;
-  Prime, MinRoot: TCnBigNumber): Boolean;
+  Prime: TCnBigNumber; MinRoot: TCnBigNumber): Boolean;
 {* 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，实际等同于变色龙杂凑函数
   涉及到因素分解因此较慢。原根也就是该素域的生成元，也就是各次幂求余能遍历素数以下所有值。}
 
-function CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey: TCnBigNumber;
-  const OutPublicKey: TCnBigNumber): Boolean;
+function CnDiffieHellmanGenerateOutKey(Prime: TCnBigNumber; Root: TCnBigNumber;
+  SelfPrivateKey: TCnBigNumber; const OutPublicKey: TCnBigNumber): Boolean;
 {* 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥
    其中 OutPublicKey = (Root ^ SelfPrivateKey) mod Prime
    要保证安全，可以使用 CnSecretSharing 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2}
 
-function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBigNumber;
-  const SecretKey: TCnBigNumber): Boolean;
+function CnDiffieHellmanComputeKey(Prime: TCnBigNumber; SelfPrivateKey: TCnBigNumber;
+  OtherPublicKey: TCnBigNumber; const SecretKey: TCnBigNumber): Boolean;
 {* 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
    其中 SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime
    要保证安全，可以使用 CnSecretSharing 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2}
@@ -449,17 +449,18 @@ function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBig
 // ====================== 基于离散对数的变色龙杂凑函数 =========================
 
 function CnChameleonHashGeneratePrimeRootByBitsCount(BitsCount: Integer;
-  Prime, MinRoot: TCnBigNumber): Boolean;
+  Prime: TCnBigNumber; MinRoot: TCnBigNumber): Boolean;
 {* 生成基于离散对数的变色龙杂凑函数所需的素数与其最小原根，实际等同于 Diffie-Hellman，
   涉及到因素分解因此较慢。原根也就是该素域的生成元，也就是各次幂求余能遍历素数以下所有值。}
 
 function CnChameleonHashCalcDigest(InData: TCnBigNumber; InRandom: TCnBigNumber;
-  InSecretKey: TCnBigNumber; OutHash: TCnBigNumber; Prime, Root: TCnBigNumber): Boolean;
+  InSecretKey: TCnBigNumber; OutHash: TCnBigNumber; Prime: TCnBigNumber; Root: TCnBigNumber): Boolean;
 {* 基于普通离散对数的变色龙杂凑函数，根据一随机值与一 SecretKey，生成指定消息的杂凑
   其中，Prime 和 Root 可由上面 CnDiffieHellmanGeneratePrimeRootByBitsCount 生成}
 
-function CnChameleonHashFindRandom(InOldData, InNewData: TCnBigNumber;
-  InOldRandom, InSecretKey: TCnBigNumber; OutNewRandom: TCnBigNumber; Prime, Root: TCnBigNumber): Boolean;
+function CnChameleonHashFindRandom(InOldData: TCnBigNumber; InNewData: TCnBigNumber;
+  InOldRandom: TCnBigNumber; InSecretKey: TCnBigNumber; OutNewRandom: TCnBigNumber;
+  Prime: TCnBigNumber; Root: TCnBigNumber): Boolean;
 {* 基于普通离散对数的变色龙杂凑函数，根据 SecretKey 与新旧消息，生成能够生成相同杂凑的新随机值
   其中，Prime 和 Root 须与原始消息杂凑生成时相同。
   可以利用 SecretKey 和 NewRandom 对 InNewData 调用 CnChameleonHashCalcDigest 生成相同的杂凑值}
@@ -2565,7 +2566,8 @@ end;
 
 // 基于普通离散对数的变色龙杂凑函数，根据 SecretKey 与新旧消息，生成能够生成相同杂凑的新随机值
 function CnChameleonHashFindRandom(InOldData, InNewData: TCnBigNumber;
-  InOldRandom, InSecretKey: TCnBigNumber; OutNewRandom: TCnBigNumber; Prime, Root: TCnBigNumber): Boolean;
+  InOldRandom, InSecretKey: TCnBigNumber; OutNewRandom: TCnBigNumber;
+  Prime, Root: TCnBigNumber): Boolean;
 var
   M, SK: TCnBigNumber;
 begin

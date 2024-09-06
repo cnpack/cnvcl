@@ -695,22 +695,22 @@ function CnUInt32IsPrime(N: Cardinal): Boolean;
 function CnInt64IsPrime(N: TUInt64): Boolean;
 {* 概率性判断一 64 位无符号整数是否是素数}
 
-function AddMod(A, B, C: TUInt64): TUInt64;
+function AddMod(A: TUInt64; B: TUInt64; C: TUInt64): TUInt64;
 {* 想办法计算全是正值的 (A + B) mod C，不能直接算，容易溢出}
 
-function MultipleMod(A, B, C: TUInt64): TUInt64;
+function MultipleMod(A: TUInt64; B: TUInt64; C: TUInt64): TUInt64;
 {* 快速计算全是正值的 (A * B) mod C，不能直接算，容易溢出}
 
-function Int64AddMod(A, B, C: Int64): Int64;
+function Int64AddMod(A: TUInt64; B: TUInt64; C: Int64): Int64;
 {* 封装的 Int64 的支持 A、B 为负数的 (A + B) mod C，但 C 仍要求正数否则结果不靠谱}
 
-function Int64MultipleMod(A, B, C: Int64): Int64;
+function Int64MultipleMod(A: TUInt64; B: TUInt64; C: Int64): Int64;
 {* 封装的 Int64 的支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱}
 
-function MontgomeryPowerMod(A, B, C: TUInt64): TUInt64;
+function MontgomeryPowerMod(A: TUInt64; B: TUInt64; C: TUInt64): TUInt64;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
-function PowerPowerMod(A, B, C, N: TUInt64): TUInt64;
+function PowerPowerMod(A: TUInt64; B: TUInt64; C: TUInt64; N: TUInt64): TUInt64;
 {* 快速计算 A ^ (B ^ C) mod N，更不能直接算，更容易溢出}
 
 function CnGenerateUInt32Prime(HighBitSet: Boolean = False): Cardinal;
@@ -727,13 +727,13 @@ function CnGenerateInt64Prime2: Int64;
 
 {$IFDEF SUPPORT_UINT64}
 
-function AddMod64(A, B, C: UInt64): UInt64;
+function AddMod64(A: UInt64; B: UInt64; C: UInt64): UInt64;
 {* 想办法计算 (A + B) mod C，不能直接算，容易溢出}
 
-function MultipleMod64(A, B, C: UInt64): UInt64;
+function MultipleMod64(A: UInt64; B: UInt64; C: UInt64): UInt64;
 {* 快速计算 (A * B) mod C，不能直接算，容易溢出}
 
-function MontgomeryPowerMod64(A, B, C: UInt64): UInt64;
+function MontgomeryPowerMod64(A: UInt64; B: UInt64; C: UInt64): UInt64;
 {* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
 
 {$ENDIF}
@@ -748,22 +748,22 @@ function CnGenerateUInt64Prime: NativeUInt;
 
 {$ENDIF}
 
-function CnUInt32GreatestCommonDivisor(A, B: Cardinal): Cardinal;
+function CnUInt32GreatestCommonDivisor(A: Cardinal; B: Cardinal): Cardinal;
 {* 求两个 32 位无符号数的最大公约数}
 
-function CnInt64GreatestCommonDivisor(A, B: TUInt64): TUInt64;
+function CnInt64GreatestCommonDivisor(A: TUInt64; B: TUInt64): TUInt64;
 {* 求两个 64 位无符号数的最大公约数}
 
-function CnInt64GreatestCommonDivisor2(A, B: Int64): Int64;
+function CnInt64GreatestCommonDivisor2(A: Int64; B: Int64): Int64;
 {* 求两个 64 位有符号数的最大公约数}
 
-function CnUInt32LeastCommonMultiple(A, B: Cardinal): Cardinal;
+function CnUInt32LeastCommonMultiple(A: Cardinal; B: Cardinal): Cardinal;
 {* 求两个 32 位无符号数的最小公倍数，不考虑溢出的情况}
 
-function CnInt64LeastCommonMultiple(A, B: TUInt64): TUInt64;
+function CnInt64LeastCommonMultiple(A: TUInt64; B: TUInt64): TUInt64;
 {* 求两个 64 位无符号数的最小公倍数，不考虑溢出的情况}
 
-function CnInt64LeastCommonMultiple2(A, B: Int64): Int64;
+function CnInt64LeastCommonMultiple2(A: Int64; B: Int64): Int64;
 {* 求两个 64 位有符号数的最小公倍数，不考虑溢出的情况}
 
 procedure CnGenerateUInt32DiffieHellmanPrimeMaxRoot(out Prime: Cardinal; out MaxRoot: Cardinal);
@@ -828,56 +828,57 @@ function CnInt64NegativeModularInverse2(X: Int64; Modulus: Int64): Int64;
 {* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值
    X、Modulus 必须互素，如不互素则负模逆元不存在，返回 0}
 
-function CnUInt32ExtendedEuclideanGcd(A, B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
+function CnUInt32ExtendedEuclideanGcd(A: Cardinal; B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，调用者需自行保证 A B 互素
    否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
 
-procedure CnUInt32ExtendedEuclideanGcd2(A, B: Cardinal; out X: Cardinal; out Y: Cardinal);
+procedure CnUInt32ExtendedEuclideanGcd2(A: Cardinal; B: Cardinal; out X: Cardinal; out Y: Cardinal);
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，调用者需自行保证 A B 互素
    否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
 
-function CnInt64ExtendedEuclideanGcd(A, B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
+function CnInt64ExtendedEuclideanGcd(A: TUInt64; B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，范围为 UInt64，调用者需自行保证 A B 互素
    否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
 
-function CnInt64ExtendedEuclideanGcd1(A, B: Int64; out X: Int64; out Y: Int64): Int64;
+function CnInt64ExtendedEuclideanGcd1(A: Int64; B: Int64; out X: Int64; out Y: Int64): Int64;
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，范围为 Int64，调用者需自行保证 A B 互素
    否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
 
-procedure CnInt64ExtendedEuclideanGcd2(A, B: TUInt64; out X: TUInt64; out Y: TUInt64);
+procedure CnInt64ExtendedEuclideanGcd2(A: TUInt64; B: TUInt64; out X: TUInt64; out Y: TUInt64);
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，范围为 UInt64，调用者需自行保证 A B 互素
    否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
 
-function CnInt64MontgomeryReduction(T, RExp, N, NNegInv: TUInt64): TUInt64;
+function CnInt64MontgomeryReduction(T: TUInt64; RExp: TUInt64; N: TUInt64; NNegInv: TUInt64): TUInt64;
 {* 蒙哥马利约简法快速计算 T * R^-1 mod N 其中要求 R 是刚好比 N 大的 2 整数次幂
   参数 RExp 为指数，比如 R 为 2^31 时，RExp 值传 31，
   NNegInv 是预先计算好的 N 对 R 的负模逆元（不是针对指数的），T 不能为负且小于 N * R}
 
-function CnInt64MontgomeryMulMod(A, B, RExp, R2ModN, N, NNegInv: TUInt64): TUInt64;
+function CnInt64MontgomeryMulMod(A: TUInt64; B: TUInt64; RExp: TUInt64; R2ModN: TUInt64;
+  N: TUInt64; NNegInv: TUInt64): TUInt64;
 {* 蒙哥马利法快速计算 A * B mod N，范围是 UInt64，其中要求 R 是刚好比 N 大的 2 整数次幂，RExp 为其指数
    R2ModN 是预先计算好的 R^2 mod N 的值，NNegInv 是预先计算好的 N 对 R 的负模逆元
    比起 MultipleMod 实现，有一定提速作用}
 
-function CnInt64Legendre(A, P: Int64): Integer;
+function CnInt64Legendre(A: Int64; P: Int64): Integer;
 {* 计算勒让德符号 (A / P) 的值，范围为 Int64}
 
-procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
+procedure CnLucasSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int64; out V: Int64);
 {* 计算 IEEE P1363 的规范中说明的 Lucas 序列，范围为 Int64
    递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
    V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
 
-function CnInt64SquareRoot(X, P: Int64): Int64;
+function CnInt64SquareRoot(X: Int64; P: Int64): Int64;
 {* 计算平方剩余，也就是返回 Result^2 mod P = X，范围为 Int64，0 与负值暂不支持}
 
-function ChineseRemainderTheoremInt64(Remainers, Factors: array of TUInt64): TUInt64; overload;
+function ChineseRemainderTheoremInt64(Remainers: array of TUInt64; Factors: array of TUInt64): TUInt64; overload;
 {* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，只支持 UInt64
   也就是说不支持负余数。调用者须确保 Factors 均为正且两两互素，Remainers 均为正或 0}
 
-function ChineseRemainderTheoremInt64(Remainers, Factors: TCnInt64List): Int64; overload;
+function ChineseRemainderTheoremInt64(Remainers: TCnInt64List; Factors: TCnInt64List): Int64; overload;
 {* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，只支持 Int64
   也就是说支持负余数。调用者须确保 Factors 均为正且两两互素}
 
-function CnInt64BigStepGiantStep(A, B, M: Int64): Int64;
+function CnInt64BigStepGiantStep(A: Int64; B: Int64; M: Int64): Int64;
 {* 大步小步算法求离散对数问题 A^X mod M = B 的解 X，要求 A 和 M 互素}
 
 function CnInt64IsPerfectPower(N: Int64): Boolean;

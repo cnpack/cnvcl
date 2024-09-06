@@ -463,10 +463,10 @@ function FP2SetU(FP2: TCnFP2): Boolean;
 function FP2SetBigNumber(const FP2: TCnFP2; const Num: TCnBigNumber): Boolean;
 {* 将一二次扩域大整系数元素对象设置为某一个大数}
 
-function FP2SetBigNumbers(const FP2: TCnFP2; const Num0, Num1: TCnBigNumber): Boolean;
+function FP2SetBigNumbers(const FP2: TCnFP2; const Num0: TCnBigNumber; const Num1: TCnBigNumber): Boolean;
 {* 将一二次扩域大整系数元素对象设置为两个大数值}
 
-function FP2SetHex(const FP2: TCnFP2; const S0, S1: string): Boolean;
+function FP2SetHex(const FP2: TCnFP2; const S0: string; const S1: string): Boolean;
 {* 将一二次扩域大整系数元素对象设置为两个十六进制字符串}
 
 function FP2ToString(const FP2: TCnFP2): string;
@@ -475,31 +475,31 @@ function FP2ToString(const FP2: TCnFP2): string;
 procedure FP2SetWord(const FP2: TCnFP2; Value: Cardinal);
 {* 将一二次扩域大整系数元素对象设置为一个 Cardinal}
 
-procedure FP2SetWords(const FP2: TCnFP2; Value0, Value1: Cardinal);
+procedure FP2SetWords(const FP2: TCnFP2; Value0: Cardinal; Value1: Cardinal);
 {* 将一二次扩域大整系数元素对象设置为两个 Cardinal}
 
-function FP2Equal(const F1, F2: TCnFP2): Boolean;
+function FP2Equal(const F1: TCnFP2; const F2: TCnFP2): Boolean;
 {* 判断两个二次扩域大整系数元素对象值是否相等}
 
-function FP2Copy(const Dst, Src: TCnFP2): TCnFP2;
+function FP2Copy(const Dst: TCnFP2; const Src: TCnFP2): TCnFP2;
 {* 将一二次扩域大整系数元素对象值复制到另一个二次扩域大整系数元素对象中}
 
 procedure FP2Negate(const Res: TCnFP2; const F: TCnFP2; Prime: TCnBigNumber);
 {* 将一二次扩域大整系数元素对象值有限域中求负}
 
-procedure FP2Add(const Res: TCnFP2; const F1, F2: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Add(const Res: TCnFP2; const F1: TCnFP2; const F2: TCnFP2; Prime: TCnBigNumber);
 {* 有限域中二次扩域大整系数元素加法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
 
-procedure FP2Sub(const Res: TCnFP2; const F1, F2: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Sub(const Res: TCnFP2; const F1: TCnFP2; const F2: TCnFP2; Prime: TCnBigNumber);
 {* 有限域中二次扩域大整系数元素减法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
 
-procedure FP2Mul(const Res: TCnFP2; const F1, F2: TCnFP2; Prime: TCnBigNumber); overload;
+procedure FP2Mul(const Res: TCnFP2; const F1: TCnFP2; const F2: TCnFP2; Prime: TCnBigNumber); overload;
 {* 有限域中二次扩域大整系数元素乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
 
 procedure FP2Mul3(const Res: TCnFP2; const F: TCnFP2; Prime: TCnBigNumber);
 {* 有限域中二次扩域大整系数元素对象乘以 3，Prime 为域素数，Res 可以是 F}
 
-procedure FP2MulU(const Res: TCnFP2; const F1, F2: TCnFP2; Prime: TCnBigNumber);
+procedure FP2MulU(const Res: TCnFP2; const F1: TCnFP2; const F2: TCnFP2; Prime: TCnBigNumber);
 {* 有限域中二次扩域大整系数元素 U 乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
 
 procedure FP2Mul(const Res: TCnFP2; const F: TCnFP2; Num: TCnBigNumber; Prime: TCnBigNumber); overload;
@@ -508,7 +508,7 @@ procedure FP2Mul(const Res: TCnFP2; const F: TCnFP2; Num: TCnBigNumber; Prime: T
 procedure FP2Inverse(const Res: TCnFP2; const F: TCnFP2; Prime: TCnBigNumber);
 {* 有限域中二次扩域大整系数元素求模反，Prime 为域素数，Res 可以是 F}
 
-procedure FP2Div(const Res: TCnFP2; const F1, F2: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Div(const Res: TCnFP2; const F1: TCnFP2; const F2: TCnFP2; Prime: TCnBigNumber);
 {* 有限域中二次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
 
 function FP2ToStream(FP2: TCnFP2; Stream: TStream; FixedLen: Integer = 0): Integer;
@@ -543,16 +543,17 @@ procedure FP4SetV(FP4: TCnFP4);
 procedure FP4SetBigNumber(const FP4: TCnFP4; const Num: TCnBigNumber);
 {* 将一四次扩域大整系数元素对象设置为某一个大数}
 
-procedure FP4SetBigNumbers(const FP4: TCnFP4; const Num0, Num1: TCnBigNumber);
+procedure FP4SetBigNumbers(const FP4: TCnFP4; const Num0: TCnBigNumber; const Num1: TCnBigNumber);
 {* 将一四次扩域大整系数元素对象设置为两个大数值}
 
 procedure FP4SetFP2(const FP4: TCnFP4; const FP2: TCnFP2);
 {* 将一四次扩域大整系数元素对象设置为一个二次扩域大整系数元素}
 
-procedure FP4Set2FP2S(const FP4: TCnFP4; const FP20, FP21: TCnFP2);
+procedure FP4Set2FP2S(const FP4: TCnFP4; const FP20: TCnFP2; const FP21: TCnFP2);
 {* 将一四次扩域大整系数元素对象设置为两个二次扩域大整系数元素}
 
-procedure FP4SetHex(const FP4: TCnFP4; const S0, S1, S2, S3: string);
+procedure FP4SetHex(const FP4: TCnFP4; const S0: string; const S1: string;
+  const S2: string; const S3: string);
 {* 将一四次扩域大整系数元素对象设置为四个十六进制字符串}
 
 function FP4ToString(const FP4: TCnFP4): string;
@@ -561,37 +562,38 @@ function FP4ToString(const FP4: TCnFP4): string;
 procedure FP4SetWord(const FP4: TCnFP4; Value: Cardinal);
 {* 将一四次扩域大整系数元素对象设置为一个 Cardinal}
 
-procedure FP4SetWords(const FP4: TCnFP4; Value0, Value1, Value2, Value3: Cardinal);
+procedure FP4SetWords(const FP4: TCnFP4; Value0: Cardinal; Value1: Cardinal;
+  Value2: Cardinal; Value3: Cardinal);
 {* 将一四次扩域大整系数元素对象设置为四个 Cardinal}
 
-function FP4Equal(const F1, F2: TCnFP4): Boolean;
+function FP4Equal(const F1: TCnFP4; const F2: TCnFP4): Boolean;
 {* 判断两个四次扩域大整系数元素对象值是否相等}
 
-function FP4Copy(const Dst, Src: TCnFP4): TCnFP4;
+function FP4Copy(const Dst: TCnFP4; const Src: TCnFP4): TCnFP4;
 {* 将一四次扩域大整系数元素对象值复制到另一个四次扩域大整系数元素对象中}
 
 procedure FP4Negate(const Res: TCnFP4; const F: TCnFP4; Prime: TCnBigNumber);
 {* 将一四次扩域大整系数元素对象值有限域中求负}
 
-procedure FP4Add(const Res: TCnFP4; const F1, F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Add(const Res: TCnFP4; const F1: TCnFP4; const F2: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素加法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
 
-procedure FP4Sub(const Res: TCnFP4; const F1, F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Sub(const Res: TCnFP4; const F1: TCnFP4; const F2: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素减法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
 
-procedure FP4Mul(const Res: TCnFP4; const F1, F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Mul(const Res: TCnFP4; const F1: TCnFP4; const F2: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
 
 procedure FP4Mul3(const Res: TCnFP4; const F: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素对象乘以 3，Prime 为域素数，Res 可以是 F}
 
-procedure FP4MulV(const Res: TCnFP4; const F1, F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4MulV(const Res: TCnFP4; const F1: TCnFP4; const F2: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素 V 乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
 
 procedure FP4Inverse(const Res: TCnFP4; const F: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素求模反，Prime 为域素数，Res 可以是 F}
 
-procedure FP4Div(const Res: TCnFP4; const F1, F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Div(const Res: TCnFP4; const F1: TCnFP4; const F2: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
 
 function FP4ToStream(FP4: TCnFP4; Stream: TStream; FixedLen: Integer = 0): Integer;
@@ -632,20 +634,24 @@ procedure FP12SetWSqr(FP12: TCnFP12);
 procedure FP12SetBigNumber(const FP12: TCnFP12; const Num: TCnBigNumber);
 {* 将一十二次扩域大整系数元素对象设置为某一个大数}
 
-procedure FP12SetBigNumbers(const FP12: TCnFP12; const Num0, Num1, Num2: TCnBigNumber);
+procedure FP12SetBigNumbers(const FP12: TCnFP12; const Num0: TCnBigNumber;
+  const Num1: TCnBigNumber; const Num2: TCnBigNumber);
 {* 将一十二次扩域大整系数元素对象设置为三个大数值}
 
 procedure FP12SetFP4(const FP12: TCnFP12; const FP4: TCnFP4);
 {* 将一十二次扩域大整系数元素对象设置为一个四次扩域大整系数元素}
 
-procedure FP12Set3FP4S(const FP12: TCnFP12; const FP40, FP41, FP42: TCnFP4);
+procedure FP12Set3FP4S(const FP12: TCnFP12; const FP40: TCnFP4; const FP41: TCnFP4;
+  const FP42: TCnFP4);
 {* 将一十二次扩域大整系数元素对象设置为三个四次扩域大整系数元素}
 
 procedure FP12SetFP2(const FP12: TCnFP12; const FP2: TCnFP2);
 {* 将一十二次扩域大整系数元素对象设置为一个二次扩域大整系数元素}
 
-procedure FP12SetHex(const FP12: TCnFP12; const S0, S1, S2, S3, S4, S5, S6, S7, S8,
-  S9, S10, S11: string);
+procedure FP12SetHex(const FP12: TCnFP12; const S0: string; const S1: string;
+  const S2: string; const S3: string; const S4: string; const S5: string;
+  const S6: string; const S7: string; const S8: string; const S9: string;
+  const S10: string; const S11: string);
 {* 将一十二次扩域大整系数元素对象设置为十二个十六进制字符串}
 
 function FP12ToString(const FP12: TCnFP12): string;
@@ -654,26 +660,28 @@ function FP12ToString(const FP12: TCnFP12): string;
 procedure FP12SetWord(const FP12: TCnFP12; Value: Cardinal);
 {* 将一十二次扩域大整系数元素对象设置为一个 Cardinal}
 
-procedure FP12SetWords(const FP12: TCnFP12; Value0, Value1, Value2, Value3, Value4,
-  Value5, Value6, Value7, Value8, Value9, Value10, Value11: Cardinal);
+procedure FP12SetWords(const FP12: TCnFP12; Value0: Cardinal; Value1: Cardinal;
+  Value2: Cardinal; Value3: Cardinal; Value4: Cardinal; Value5: Cardinal;
+  Value6: Cardinal; Value7: Cardinal; Value8: Cardinal; Value9: Cardinal;
+  Value10: Cardinal; Value11: Cardinal);
 {* 将一十二次扩域大整系数元素对象设置为十二个 Cardinal}
 
-function FP12Equal(const F1, F2: TCnFP12): Boolean;
+function FP12Equal(const F1: TCnFP12; const F2: TCnFP12): Boolean;
 {* 判断两个十二次扩域大整系数元素对象值是否相等}
 
-function FP12Copy(const Dst, Src: TCnFP12): TCnFP12;
+function FP12Copy(const Dst: TCnFP12; const Src: TCnFP12): TCnFP12;
 {* 将一十二次扩域大整系数元素对象值复制到另一个十二次扩域大整系数元素对象中}
 
 procedure FP12Negate(const Res: TCnFP12; const F: TCnFP12; Prime: TCnBigNumber);
 {* 将一十二次扩域大整系数元素对象值有限域中求负}
 
-procedure FP12Add(const Res: TCnFP12; const F1, F2: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Add(const Res: TCnFP12; const F1: TCnFP12; const F2: TCnFP12; Prime: TCnBigNumber);
 {* 有限域中十二次扩域大整系数元素加法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
 
-procedure FP12Sub(const Res: TCnFP12; const F1, F2: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Sub(const Res: TCnFP12; const F1: TCnFP12; const F2: TCnFP12; Prime: TCnBigNumber);
 {* 有限域中十二次扩域大整系数元素减法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
 
-procedure FP12Mul(const Res: TCnFP12; const F1, F2: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Mul(const Res: TCnFP12; const F1: TCnFP12; const F2: TCnFP12; Prime: TCnBigNumber);
 {* 有限域中十二次扩域大整系数元素乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
 
 procedure FP12Mul3(const Res: TCnFP12; const F: TCnFP12; Prime: TCnBigNumber);
@@ -682,7 +690,7 @@ procedure FP12Mul3(const Res: TCnFP12; const F: TCnFP12; Prime: TCnBigNumber);
 procedure FP12Inverse(const Res: TCnFP12; const F: TCnFP12; Prime: TCnBigNumber);
 {* 有限域中十二次扩域大整系数元素求模反，Prime 为域素数，Res 可以是 F}
 
-procedure FP12Div(const Res: TCnFP12; const F1, F2: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Div(const Res: TCnFP12; const F1: TCnFP12; const F2: TCnFP12; Prime: TCnBigNumber);
 {* 有限域中十二次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
 
 procedure FP12Power(const Res: TCnFP12; const F: TCnFP12; Exponent: TCnBigNumber; Prime: TCnBigNumber);
@@ -705,10 +713,10 @@ procedure FP2AffinePointSetZero(P: TCnFP2AffinePoint);
 function FP2AffinePointToString(const P: TCnFP2AffinePoint): string;
 {* 将一仿射坐标系里的三元点对象转换为字符串}
 
-function FP2AffinePointEqual(const P1, P2: TCnFP2AffinePoint): Boolean;
+function FP2AffinePointEqual(const P1: TCnFP2AffinePoint; const P2: TCnFP2AffinePoint): Boolean;
 {* 判断两个仿射坐标系里的三元点对象值是否相等}
 
-function FP2AffinePointCopy(const Dst, Src: TCnFP2AffinePoint): TCnFP2AffinePoint;
+function FP2AffinePointCopy(const Dst: TCnFP2AffinePoint; const Src: TCnFP2AffinePoint): TCnFP2AffinePoint;
 {* 将一仿射坐标系里的三元点对象值复制到另一个仿射坐标系里的三元点对象中}
 
 function FP2AffinePointIsAtInfinity(const P: TCnFP2AffinePoint): Boolean;
@@ -717,26 +725,27 @@ function FP2AffinePointIsAtInfinity(const P: TCnFP2AffinePoint): Boolean;
 procedure FP2AffinePointSetToInfinity(const P: TCnFP2AffinePoint);
 {* 将一仿射坐标系里的三元点对象坐标设为无限远}
 
-procedure FP2AffinePointGetCoordinates(const P: TCnFP2AffinePoint; const FP2X, FP2Y: TCnFP2);
+procedure FP2AffinePointGetCoordinates(const P: TCnFP2AffinePoint; const FP2X: TCnFP2; const FP2Y: TCnFP2);
 {* 获取一仿射坐标系里的三元点对象的 XY 坐标值，内部采用复制，只支持 Z 为 1 的情形}
 
-procedure FP2AffinePointSetCoordinates(const P: TCnFP2AffinePoint; const FP2X, FP2Y: TCnFP2);
+procedure FP2AffinePointSetCoordinates(const P: TCnFP2AffinePoint; const FP2X: TCnFP2; const FP2Y: TCnFP2);
 {* 设置一仿射坐标系里的三元点对象的 XY 坐标值，内部采用复制}
 
 procedure FP2AffinePointSetCoordinatesHex(const P: TCnFP2AffinePoint;
-  const SX0, SX1, SY0, SY1: string);
+  const SX0: string; const SX1: string; const SY0: string; const SY1: string);
 {* 设置一仿射坐标系里的三元点对象的 XY 坐标值，使用十六进制字符串}
 
 procedure FP2AffinePointSetCoordinatesBigNumbers(const P: TCnFP2AffinePoint;
-  const X0, X1, Y0, Y1: TCnBigNumber);
+  const X0: TCnBigNumber; const X1: TCnBigNumber; const Y0: TCnBigNumber;
+  const Y1: TCnBigNumber);
 {* 设置一仿射坐标系里的三元点对象的 XY 坐标值，使用大数对象，内部采用复制}
 
 procedure FP2AffinePointGetJacobianCoordinates(const P: TCnFP2AffinePoint;
-  const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber);
+  const FP12X: TCnFP12; const FP12Y: TCnFP12; Prime: TCnBigNumber);
 {* 获取一仿射坐标系里的三元点对象的雅可比 XY 坐标值，内部采用复制}
 
 procedure FP2AffinePointSetJacobianCoordinates(const P: TCnFP2AffinePoint;
-  const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber);
+  const FP12X: TCnFP12; const FP12Y: TCnFP12; Prime: TCnBigNumber);
 {* 设置一仿射坐标系里的三元点对象的雅可比 XY 坐标值，内部采用复制}
 
 function FP2AffinePointIsOnCurve(const P: TCnFP2AffinePoint; Prime: TCnBigNumber): Boolean;
@@ -750,13 +759,13 @@ procedure FP2AffinePointDouble(const Res: TCnFP2AffinePoint; const P: TCnFP2Affi
   Prime: TCnBigNumber);
 {* 一个仿射坐标系里的三元点对象的椭圆曲线倍点法，Res 可以是 P}
 
-procedure FP2AffinePointAdd(const Res: TCnFP2AffinePoint; const P, Q: TCnFP2AffinePoint;
-  Prime: TCnBigNumber);
+procedure FP2AffinePointAdd(const Res: TCnFP2AffinePoint; const P: TCnFP2AffinePoint;
+  const Q: TCnFP2AffinePoint; Prime: TCnBigNumber);
 {* 两个仿射坐标系里的三元点对象的椭圆曲线加法，Res 可以是 P 或 Q，P 可以是 Q，
   注意内部还是将 Z 当成 1，仍然是求反的普通操作}
 
-procedure FP2AffinePointSub(const Res: TCnFP2AffinePoint; const P, Q: TCnFP2AffinePoint;
-  Prime: TCnBigNumber);
+procedure FP2AffinePointSub(const Res: TCnFP2AffinePoint; const P: TCnFP2AffinePoint;
+  const Q: TCnFP2AffinePoint; Prime: TCnBigNumber);
 {* 两个仿射坐标系里的三元点对象的椭圆曲线减法，Res 可以是 P 或 Q，P 可以是 Q}
 
 procedure FP2AffinePointMul(const Res: TCnFP2AffinePoint; const P: TCnFP2AffinePoint;
@@ -780,8 +789,8 @@ procedure FP2PointToFP2AffinePoint(FP2AP: TCnFP2AffinePoint; FP2P: TCnFP2Point);
 
 // ============================ 双线性对计算函数 ===============================
 
-procedure Rate(const F: TCnFP12; const Q: TCnFP2AffinePoint; const XP, YP: TCnBigNumber;
-  const A: TCnBigNumber; const K: TCnBigNumber; Prime: TCnBigNumber);
+procedure Rate(const F: TCnFP12; const Q: TCnFP2AffinePoint; const XP: TCnBigNumber;
+  const YP: TCnBigNumber; const A: TCnBigNumber; const K: TCnBigNumber; Prime: TCnBigNumber);
 {* 计算 R-ate 对。输出是一个 FP12 值，输入是一个 BN 曲线上的点的坐标 XP、YP，
   一个 FP2 上的 XYZ 仿射坐标点，一个指数 K、一个循环次数 A}
 
@@ -841,7 +850,7 @@ function CnSM9UserReceiveKeyEncapsulation(const DestUserID: AnsiString;
 
 function CnSM9UserEncryptData(const DestUserID: AnsiString;
   EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey; PlainData: Pointer;
-  DataLen: Integer; K1ByteLength, K2ByteLength: Integer; OutStream: TStream;
+  DataLen: Integer; K1ByteLength: Integer; K2ByteLength: Integer; OutStream: TStream;
   EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
 {* 使用加密主公钥与目标用户的 ID 加密数据并写入流，返回加密是否成功，
   EncryptionMode 是 SM4 时 K1Length 参数值忽略，内部固定为 16 字节，
@@ -870,26 +879,26 @@ function CnSM9UserKeyExchangeAStep1(const BUserID: AnsiString; KeyByteLength: In
 {* 密钥交换第一步，A 用 B 的 ID 以及加密主公钥生成一个椭圆曲线点 RA 给 B
   同时记录中间计算结果 OutRandA，需要外部传入保存其值，在第三步中使用}
 
-function CnSM9UserKeyExchangeBStep1(const AUserID, BUserID: AnsiString;
+function CnSM9UserKeyExchangeBStep1(const AUserID: AnsiString; const BUserID: AnsiString;
   KeyByteLength: Integer; KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
   KeyExchangeBUserKey: TCnSM9KeyExchangeUserPrivateKey; InRA: TCnEccPoint;
   OutRB: TCnEccPoint; out KeyB: TBytes; out OutOptionalSB: TCnSM3Digest;
-  OutG1, OutG2, OutG3: TCnFP12; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
+  OutG1: TCnFP12; OutG2: TCnFP12; OutG3: TCnFP12; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
 {* 密钥交换第二步，B 用 A、B 的 ID 以及加密主公钥与自己的私钥，根据所密钥长度与 RA
   生成协商密钥 KeyB。另外生成另一个椭圆曲线点 RB 再加上一个可选的校验结果 SB 给 A
   同时记录 OutG1, OutG2, OutG3 三个中间计算结果，需要外部传入保存其值，在第四步中使用}
 
-function CnSM9UserKeyExchangeAStep2(const AUserID, BUserID: AnsiString; KeyByteLength: Integer;
-  KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
+function CnSM9UserKeyExchangeAStep2(const AUserID: AnsiString; const BUserID: AnsiString;
+  KeyByteLength: Integer; KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
   KeyExchangeAUserKey: TCnSM9KeyExchangeUserPrivateKey; InRandA: TCnBigNumber;
-  InRA, InRB: TCnEccPoint; InOptionalSB: TCnSM3Digest; out KeyA: TBytes;
+  InRA: TCnEccPoint; InRB: TCnEccPoint; InOptionalSB: TCnSM3Digest; out KeyA: TBytes;
   out OutOptionalSA: TCnSM3Digest; SM9: TCnSM9 = nil): Boolean;
 {* 密钥交换第三步，A 用 B 的 ID 以及加密主公钥与自己的私钥，根据所密钥长度与 RA、RB
   生成协商密钥 KeyA，以及一个可选的校验结果 SA 给 B，此处 KeyA 应当等于 KeyB}
 
-function CnSM9UserKeyExchangeBStep2(const AUserID, BUserID: AnsiString;
-  InRA, InRB: TCnEccPoint; InOptionalSA: TCnSM3Digest; InG1, InG2, InG3: TCnFP12;
-  SM9: TCnSM9 = nil): Boolean;
+function CnSM9UserKeyExchangeBStep2(const AUserID: AnsiString; const BUserID: AnsiString;
+  InRA: TCnEccPoint; InRB: TCnEccPoint; InOptionalSA: TCnSM3Digest; InG1: TCnFP12;
+  InG2: TCnFP12; InG3: TCnFP12; SM9: TCnSM9 = nil): Boolean;
 {* 密钥交换第四步，可选。B 用 A、B 的 ID 以及第二步中的三个中间结果，根据 RA、RB
   计算出校验结果并与 InOptionalSA 比较，不通过则校验失败}
 

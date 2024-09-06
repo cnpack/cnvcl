@@ -206,21 +206,21 @@ const
   但乘除运算则无法直接完成，这里封装了两个调用 System 库中的 _lludiv 与 _llumod
   函数，实现以 Int64 表示的 UInt64 数据的 div 与 mod 功能。
 }
-function UInt64Mod(A, B: TUInt64): TUInt64;
+function UInt64Mod(A: TUInt64; B: TUInt64): TUInt64;
 {* 两个 UInt64 求余}
 
-function UInt64Div(A, B: TUInt64): TUInt64;
+function UInt64Div(A: TUInt64; B: TUInt64): TUInt64;
 {* 两个 UInt64 整除}
 
-function UInt64Mul(A, B: Cardinal): TUInt64;
+function UInt64Mul(A: Cardinal; B: Cardinal): TUInt64;
 {* 无符号 32 位整数不溢出的相乘，在不支持 UInt64 的平台上，结果以 UInt64 的形式放在 Int64 里，
   如果结果直接使用 Int64 计算则有可能溢出}
 
-procedure UInt64AddUInt64(A, B: TUInt64; var ResLo, ResHi: TUInt64);
+procedure UInt64AddUInt64(A: TUInt64; B: TUInt64; var ResLo: TUInt64; var ResHi: TUInt64);
 {* 两个无符号 64 位整数相加，处理溢出的情况，结果放 ResLo 与 ResHi 中
   注：内部实现按算法来看较为复杂，实际上如果溢出，ResHi 必然是 1，直接判断溢出并将其设 1 即可}
 
-procedure UInt64MulUInt64(A, B: TUInt64; var ResLo, ResHi: TUInt64);
+procedure UInt64MulUInt64(A: TUInt64; B: TUInt64; var ResLo: TUInt64; var ResHi: TUInt64);
 {* 两个无符号 64 位整数相乘，结果放 ResLo 与 ResHi 中，64 位下用汇编实现，提速约一倍以上}
 
 function UInt64ToHex(N: TUInt64): string;
@@ -232,7 +232,7 @@ function UInt64ToStr(N: TUInt64): string;
 function StrToUInt64(const S: string): TUInt64;
 {* 将字符串转换为 UInt64}
 
-function UInt64Compare(A, B: TUInt64): Integer;
+function UInt64Compare(A: TUInt64; B: TUInt64): Integer;
 {* 比较两个 UInt64 值，分别根据 > = < 返回 1、0、-1}
 
 function UInt64Sqrt(N: TUInt64): TUInt64;
@@ -277,7 +277,7 @@ function GetUInt16LowBits(B: Word): Integer;
 function GetUInt8LowBits(B: Byte): Integer;
 {* 返回 Byte 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1}
 
-function Int64Mod(M, N: Int64): Int64;
+function Int64Mod(M: Int64; N: Int64): Int64;
 {* 封装的 Int64 Mod，M 碰到负值时取反求模再模减，但 N 仍要求正数否则结果不靠谱}
 
 function IsUInt32PowerOf2(N: Cardinal): Boolean;
@@ -292,35 +292,35 @@ function GetUInt32PowerOf2GreaterEqual(N: Cardinal): Cardinal;
 function GetUInt64PowerOf2GreaterEqual(N: TUInt64): TUInt64;
 {* 得到一比指定 64 位无符号整数数大或等的 2 的整数次幂，如溢出则返回 0}
 
-function IsInt32AddOverflow(A, B: Integer): Boolean;
+function IsInt32AddOverflow(A: Integer; B: Integer): Boolean;
 {* 判断两个 32 位有符号数相加是否溢出 32 位有符号上限}
 
-function IsUInt32AddOverflow(A, B: Cardinal): Boolean;
+function IsUInt32AddOverflow(A: Cardinal; B: Cardinal): Boolean;
 {* 判断两个 32 位无符号数相加是否溢出 32 位无符号上限}
 
-function IsInt64AddOverflow(A, B: Int64): Boolean;
+function IsInt64AddOverflow(A: Int64; B: Int64): Boolean;
 {* 判断两个 64 位有符号数相加是否溢出 64 位有符号上限}
 
-function IsUInt64AddOverflow(A, B: TUInt64): Boolean;
+function IsUInt64AddOverflow(A: TUInt64; B: TUInt64): Boolean;
 {* 判断两个 64 位无符号数相加是否溢出 64 位无符号上限}
 
-procedure UInt64Add(var R: TUInt64; A, B: TUInt64; out Carry: Integer);
+procedure UInt64Add(var R: TUInt64; A: TUInt64; B: TUInt64; out Carry: Integer);
 {* 两个 64 位无符号数相加，A + B => R，如果有溢出，则溢出的 1 搁进位标记里，否则清零}
 
-procedure UInt64Sub(var R: TUInt64; A, B: TUInt64; out Carry: Integer);
+procedure UInt64Sub(var R: TUInt64; A: TUInt64; B: TUInt64; out Carry: Integer);
 {* 两个 64 位无符号数相减，A - B => R，如果不够减有借位，则借的 1 搁借位标记里，否则清零}
 
-function IsInt32MulOverflow(A, B: Integer): Boolean;
+function IsInt32MulOverflow(A: Integer; B: Integer): Boolean;
 {* 判断两个 32 位有符号数相乘是否溢出 32 位有符号上限}
 
-function IsUInt32MulOverflow(A, B: Cardinal): Boolean;
+function IsUInt32MulOverflow(A: Cardinal; B: Cardinal): Boolean;
 {* 判断两个 32 位无符号数相乘是否溢出 32 位无符号上限}
 
-function IsUInt32MulOverflowInt64(A, B: Cardinal; out R: TUInt64): Boolean;
+function IsUInt32MulOverflowInt64(A: Cardinal; B: Cardinal; out R: TUInt64): Boolean;
 {* 判断两个 32 位无符号数相乘是否溢出 64 位有符号数，如未溢出也即返回 False 时，R 中直接返回结果
   如溢出也即返回 True，外界需要重新调用 UInt64Mul 才能实施相乘}
 
-function IsInt64MulOverflow(A, B: Int64): Boolean;
+function IsInt64MulOverflow(A: Int64; B: Int64): Boolean;
 {* 判断两个 64 位有符号数相乘是否溢出 64 位有符号上限}
 
 function PointerToInteger(P: Pointer): Integer;
@@ -329,16 +329,16 @@ function PointerToInteger(P: Pointer): Integer;
 function IntegerToPointer(I: Integer): Pointer;
 {* 整型转换成指针类型，支持 32/64 位}
 
-function Int64NonNegativeAddMod(A, B, N: Int64): Int64;
+function Int64NonNegativeAddMod(A: Int64; B: Int64; N: Int64): Int64;
 {* 求 Int64 范围内俩加数的和求余，处理溢出的情况，要求 N 大于 0}
 
-function UInt64NonNegativeAddMod(A, B, N: TUInt64): TUInt64;
+function UInt64NonNegativeAddMod(A: TUInt64; B: TUInt64; N: TUInt64): TUInt64;
 {* 求 UInt64 范围内俩加数的和求余，处理溢出的情况，要求 N 大于 0}
 
-function Int64NonNegativeMulMod(A, B, N: Int64): Int64;
+function Int64NonNegativeMulMod(A: Int64; B: Int64; N: Int64): Int64;
 {* Int64 范围内的相乘求余，不能直接计算，容易溢出。要求 N 大于 0}
 
-function UInt64NonNegativeMulMod(A, B, N: TUInt64): TUInt64;
+function UInt64NonNegativeMulMod(A: TUInt64; B: TUInt64; N: TUInt64): TUInt64;
 {* UInt64 范围内的相乘求余，不能直接计算，容易溢出。}
 
 function Int64NonNegativeMod(N: Int64; P: Int64): Int64;
@@ -460,22 +460,22 @@ function ReverseBitsInInt64(V: Int64): Int64;
 procedure ReverseMemoryWithBits(AMem: Pointer; MemByteLen: Integer);
 {* 按字节顺序倒置一块内存块，并且每个字节也倒过来}
 
-procedure MemoryAnd(AMem, BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
+procedure MemoryAnd(AMem: Pointer; BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
 {* 两块长度相同的内存 AMem 和 BMem 按位与，结果放 ResMem 中，三者可相同}
 
-procedure MemoryOr(AMem, BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
+procedure MemoryOr(AMem: Pointer; BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
 {* 两块长度相同的内存 AMem 和 BMem 按位或，结果放 ResMem 中，三者可相同}
 
-procedure MemoryXor(AMem, BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
+procedure MemoryXor(AMem: Pointer; BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
 {* 两块长度相同的内存 AMem 和 BMem 按位异或，结果放 ResMem 中，三者可相同}
 
 procedure MemoryNot(AMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
 {* 一块内存 AMem 取反，结果放 ResMem 中，两者可相同}
 
-procedure MemoryShiftLeft(AMem, BMem: Pointer; MemByteLen: Integer; BitCount: Integer);
+procedure MemoryShiftLeft(AMem: Pointer; BMem: Pointer; MemByteLen: Integer; BitCount: Integer);
 {* AMem 整块内存左移 BitCount 位至 BMem，往内存地址低位移，空位补 0，两者可相等}
 
-procedure MemoryShiftRight(AMem, BMem: Pointer; MemByteLen: Integer; BitCount: Integer);
+procedure MemoryShiftRight(AMem: Pointer; BMem: Pointer; MemByteLen: Integer; BitCount: Integer);
 {* AMem 整块内存右移 BitCount 位至 BMem，往内存地址高位移，空位补 0，两者可相等}
 
 function MemoryIsBitSet(AMem: Pointer; N: Integer): Boolean;
@@ -490,10 +490,10 @@ procedure MemoryClearBit(AMem: Pointer; N: Integer);
 function MemoryToBinStr(AMem: Pointer; MemByteLen: Integer; Sep: Boolean = False): string;
 {* 将一块内存内容从低到高字节顺序输出为二进制字符串，Sep 表示是否空格分隔}
 
-procedure MemorySwap(AMem, BMem: Pointer; MemByteLen: Integer);
+procedure MemorySwap(AMem: Pointer; BMem: Pointer; MemByteLen: Integer);
 {* 交换两块相同长度的内存块的内容，如两者是相同的内存块则什么都不做}
 
-function MemoryCompare(AMem, BMem: Pointer; MemByteLen: Integer): Integer;
+function MemoryCompare(AMem: Pointer; BMem: Pointer; MemByteLen: Integer): Integer;
 {* 以无符号数的方式比较两块内存，返回 1、0、-1，如两者是相同的内存块则直接返回 0}
 
 procedure MemoryQuickSort(Mem: Pointer; ElementByteSize: Integer;
@@ -587,19 +587,19 @@ function MemoryToString(Mem: Pointer; MemByteLen: Integer): string;
 function BitsToString(Bits: TBits): string;
 {* 将位串对象转换为包含 0 和 1 的字符串}
 
-function ConcatBytes(A, B: TBytes): TBytes;
+function ConcatBytes(A: TBytes; B: TBytes): TBytes;
 {* 将 A B 两个字节数组顺序拼好返回一个新字节数组，A B 保持不变}
 
 function NewBytesFromMemory(Data: Pointer; DataByteLen: Integer): TBytes;
 {* 新建一字节数组，并从一片内存区域复制内容过来。}
 
-function CompareBytes(A, B: TBytes): Boolean; overload;
+function CompareBytes(A: TBytes; B: TBytes): Boolean; overload;
 {* 比较两个字节数组内容是否相同}
 
-function CompareBytes(A, B: TBytes; MaxLength: Integer): Boolean; overload;
+function CompareBytes(A: TBytes; B: TBytes; MaxLength: Integer): Boolean; overload;
 {* 比较两个字节数组的最多前 MaxLength 个字节的内容是否相同}
 
-function MoveMost(const Source; var Dest; ByteLen, MostLen: Integer): Integer;
+function MoveMost(const Source; var Dest; ByteLen: Integer; MostLen: Integer): Integer;
 {* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，返回实际移动的字节数
   如 ByteLen 小于 MostLen，则 Dest 填充 0，要求 Dest 容纳至少 MostLen}
 
@@ -619,31 +619,31 @@ function SarInt64(var V: TUInt64; ShiftCount: Integer): TUInt64;
 
 // ================ 以下是执行时间固定的无 if 判断的部分逻辑函数 ===============
 
-procedure ConstTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
+procedure ConstTimeConditionalSwap8(CanSwap: Boolean; var A: Byte; var B: Byte);
 {* 针对两个字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
 
-procedure ConstTimeConditionalSwap16(CanSwap: Boolean; var A, B: Word);
+procedure ConstTimeConditionalSwap16(CanSwap: Boolean; var A: Word; var B: Word);
 {* 针对两个双字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
 
-procedure ConstTimeConditionalSwap32(CanSwap: Boolean; var A, B: Cardinal);
+procedure ConstTimeConditionalSwap32(CanSwap: Boolean; var A: Cardinal; var B: Cardinal);
 {* 针对两个四字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
 
-procedure ConstTimeConditionalSwap64(CanSwap: Boolean; var A, B: TUInt64);
+procedure ConstTimeConditionalSwap64(CanSwap: Boolean; var A: TUInt64; var B: TUInt64);
 {* 针对两个八字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
 
-function ConstTimeEqual8(A, B: Byte): Boolean;
+function ConstTimeEqual8(A: Byte; B: Byte): Boolean;
 {* 针对俩单字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True}
 
-function ConstTimeEqual16(A, B: Word): Boolean;
+function ConstTimeEqual16(A: Word; B: Word): Boolean;
 {* 针对俩双字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True}
 
-function ConstTimeEqual32(A, B: Cardinal): Boolean;
+function ConstTimeEqual32(A: Cardinal; B: Cardinal): Boolean;
 {* 针对俩四字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True}
 
-function ConstTimeEqual64(A, B: TUInt64): Boolean;
+function ConstTimeEqual64(A: TUInt64; B: TUInt64): Boolean;
 {* 针对俩八字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True}
 
-function ConstTimeBytesEqual(A, B: TBytes): Boolean;
+function ConstTimeBytesEqual(A: TBytes; B: TBytes): Boolean;
 {* 针对俩相同长度的字节数组的执行时间固定的比较，内容相同时返回 True}
 
 function ConstTimeExpandBoolean8(V: Boolean): Byte;
@@ -658,16 +658,16 @@ function ConstTimeExpandBoolean32(V: Boolean): Cardinal;
 function ConstTimeExpandBoolean64(V: Boolean): TUInt64;
 {* 根据 V 的值返回八字节全 1 或全 0}
 
-function ConstTimeConditionalSelect8(Condition: Boolean; A, B: Byte): Byte;
+function ConstTimeConditionalSelect8(Condition: Boolean; A: Byte; B: Byte): Byte;
 {* 针对两个字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B}
 
-function ConstTimeConditionalSelect16(Condition: Boolean; A, B: Word): Word;
+function ConstTimeConditionalSelect16(Condition: Boolean; A: Word; B: Word): Word;
 {* 针对两个双字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B}
 
-function ConstTimeConditionalSelect32(Condition: Boolean; A, B: Cardinal): Cardinal;
+function ConstTimeConditionalSelect32(Condition: Boolean; A: Cardinal; B: Cardinal): Cardinal;
 {* 针对两个四字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B}
 
-function ConstTimeConditionalSelect64(Condition: Boolean; A, B: TUInt64): TUInt64;
+function ConstTimeConditionalSelect64(Condition: Boolean; A: TUInt64; B: TUInt64): TUInt64;
 {* 针对两个八字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B}
 
 // ================ 以上是执行时间固定的无 if 判断的部分逻辑函数 ===============
@@ -676,35 +676,39 @@ function ConstTimeConditionalSelect64(Condition: Boolean; A, B: TUInt64): TUInt6
 
 // 这四个函数因为用了 Intel 汇编，因而只支持 32 位和 64 位的 Intel CPU，照理应该用条件：CPUX86 或 CPUX64
 
-procedure Int64DivInt32Mod(A: Int64; B: Integer; var DivRes, ModRes: Integer);
+procedure Int64DivInt32Mod(A: Int64; B: Integer;
+  var DivRes: Integer; var ModRes: Integer);
 {* 64 位有符号数除以 32 位有符号数，商放 DivRes，余数放 ModRes
   调用者须自行保证商在 32 位范围内，否则会抛溢出异常}
 
-procedure UInt64DivUInt32Mod(A: TUInt64; B: Cardinal; var DivRes, ModRes: Cardinal);
+procedure UInt64DivUInt32Mod(A: TUInt64; B: Cardinal;
+  var DivRes: Cardinal; var ModRes: Cardinal);
 {* 64 位无符号数除以 32 位无符号数，商放 DivRes，余数放 ModRes
   调用者须自行保证商在 32 位范围内，否则会抛溢出异常}
 
-procedure Int128DivInt64Mod(ALo, AHi: Int64; B: Int64; var DivRes, ModRes: Int64);
+procedure Int128DivInt64Mod(ALo: Int64; AHi: Int64; B: Int64;
+  var DivRes: Int64; var ModRes: Int64);
 {* 128 位有符号数除以 64 位有符号数，商放 DivRes，余数放 ModRes
   调用者须自行保证商在 64 位范围内，否则会抛溢出异常}
 
-procedure UInt128DivUInt64Mod(ALo, AHi: TUInt64; B: TUInt64; var DivRes, ModRes: TUInt64);
+procedure UInt128DivUInt64Mod(ALo: TUInt64; AHi: TUInt64; B: TUInt64;
+  var DivRes: TUInt64; var ModRes: TUInt64);
 {* 128 位无符号数除以 64 位无符号数，商放 DivRes，余数放 ModRes
   调用者须自行保证商在 64 位范围内，否则会抛溢出异常}
 
 {$ENDIF}
 
-function IsUInt128BitSet(Lo, Hi: TUInt64; N: Integer): Boolean;
+function IsUInt128BitSet(Lo: TUInt64; Hi: TUInt64; N: Integer): Boolean;
 {* 针对两个 Int64 拼成的 128 位数字，返回第 N 位是否为 1，N 从 0 到 127}
 
-procedure SetUInt128Bit(var Lo, Hi: TUInt64; N: Integer);
+procedure SetUInt128Bit(var Lo: TUInt64; var Hi: TUInt64; N: Integer);
 {* 针对两个 Int64 拼成的 128 位数字，设置第 N 位为 1，N 从 0 到 127}
 
-procedure ClearUInt128Bit(var Lo, Hi: TUInt64; N: Integer);
+procedure ClearUInt128Bit(var Lo: TUInt64; var Hi: TUInt64; N: Integer);
 {* 针对两个 Int64 拼成的 128 位数字，清掉第 N 位，N 从 0 到 127}
 
-function UnsignedAddWithLimitRadix(A, B, C: Cardinal; var R: Cardinal;
-  L, H: Cardinal): Cardinal;
+function UnsignedAddWithLimitRadix(A: Cardinal; B: Cardinal; C: Cardinal;
+  var R: Cardinal; L: Cardinal; H: Cardinal): Cardinal;
 {* 计算非正常进制的无符号加法，A + B + C，结果放 R 中，返回进位值
   结果确保在 L 和 H 的闭区间内，用户须确保 H 大于 L，不考虑溢出的情形
   该函数多用于字符分区间计算与映射，其中 C 一般是进位}

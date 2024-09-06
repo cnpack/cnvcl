@@ -230,38 +230,38 @@ type
 
 // ====================== Shamir 门限方案实现秘密共享 ==========================
 
-function CnInt64ShamirSplit(Secret: Int64; ShareCount, Threshold: Integer;
+function CnInt64ShamirSplit(Secret: Int64; ShareCount: Integer; Threshold: Integer;
   OutShares: TCnInt64List; var Prime: Int64): Boolean;
 {* 用 Shamir 门限方案实现 Int64 的秘密共享。将一 Int64 值拆分为 ShareCount 个 Int64 值
   只需要其中 Threshold 个值及其顺序就能还原 Secret，返回是否拆分成功。
   拆分值放 OutShares 中，对应顺序值为其下标 + 1（如第 0 项对应 1）
   相关素数可以在 Prime 中指定，如为 0，则生成符合要求的素数值返回}
 
-function CnInt64ShamirReconstruct(Prime: Int64; InOrders, InShares: TCnInt64List;
-  out Secret: Int64): Boolean;
+function CnInt64ShamirReconstruct(Prime: Int64; InOrders: TCnInt64List;
+  InShares: TCnInt64List; out Secret: Int64): Boolean;
 {* 用 Shamir 门限方案实现 Int64 的秘密共享。将 Threshold 个拆分后的 Int64 值与其对应序号并结合
   大素数重组成 Secret，返回是否重组成功。成功则秘密值放 Secret 中返回}
 
-function CnShamirSplit(Secret: TCnBigNumber; ShareCount, Threshold: Integer;
-  OutOrders, OutShares: TCnBigNumberList; Prime: TCnBigNumber): Boolean;
+function CnShamirSplit(Secret: TCnBigNumber; ShareCount: Integer; Threshold: Integer;
+  OutOrders: TCnBigNumberList; OutShares: TCnBigNumberList; Prime: TCnBigNumber): Boolean;
 {* 用 Shamir 门限方案实现大数范围内的秘密共享。将一大数 Secret 拆分为 ShareCount 个大数值
   只需要其中 Threshold 个值及其顺序就能还原 Secret，返回是否拆分成功。
   拆分顺序放 InOrders 中（其内容是 1 2 3 4 ……），拆分值放 OutShares 中
   如 Prime 值不为 0 且大于 Secret 的话，调用者需自行保证 Prime 为素数}
 
-function CnShamirReconstruct(Prime: TCnBigNumber; InOrders, InShares: TCnBigNumberList;
-  OutSecret: TCnBigNumber): Boolean;
+function CnShamirReconstruct(Prime: TCnBigNumber; InOrders: TCnBigNumberList;
+  InShares: TCnBigNumberList; OutSecret: TCnBigNumber): Boolean;
 {* 用 Shamir 门限方案实现大数范围内的秘密共享。将 Threshold 个拆分后的大数值与其对应序号并结合
   大素数重组成 Secret，返回是否重组成功。成功则秘密值放 Secret 中返回}
 
 // =============== Feldman's VSS 扩展 Shamir 门限方案实现秘密共享 ==============
 
-function CnInt64FeldmanVssGeneratePrime(out Prime, Generator: Int64): Boolean;
+function CnInt64FeldmanVssGeneratePrime(out Prime: Int64; out Generator: Int64): Boolean;
 {* 生成 Feldman VSS 所需的素数和生成元，返回是否生成成功。（注意不同于 DH 的要求）
    其中素数（大）减一的一半也是素数（小），生成元的小素数幂模大素数值为 1}
 
-function CnInt64FeldmanVssSplit(Secret: Int64; ShareCount, Threshold: Integer;
-  OutShares, OutCommitments: TCnInt64List; var Prime, Generator: Int64): Boolean;
+function CnInt64FeldmanVssSplit(Secret: Int64; ShareCount: Integer; Threshold: Integer;
+  OutShares: TCnInt64List; OutCommitments: TCnInt64List; var Prime: Int64; var Generator: Int64): Boolean;
 {* Feldman 扩展的 Shamir 门限方案实现 Int64 的秘密共享。
   将一 Int64 值拆分为 ShareCount 个 Int64 值，并生成验证值（Commitment）
   只需要其中 Threshold 个值及其顺序就能还原 Secret，返回是否拆分成功。
@@ -270,19 +270,20 @@ function CnInt64FeldmanVssSplit(Secret: Int64; ShareCount, Threshold: Integer;
   相关素数可以在 Prime 中指定，如为 0，则生成符合要求的素数值返回
   注意内部封装的 Shamir 使用的素数是 (Prime - 1) / 2，并非 Prime}
 
-function CnInt64FeldmanVssVerify(Prime, Generator: Int64; InOrder, InShare: Int64;
-  Commitments: TCnInt64List): Boolean;
+function CnInt64FeldmanVssVerify(Prime: Int64; Generator: Int64; InOrder: Int64;
+  InShare: Int64; Commitments: TCnInt64List): Boolean;
 {* Feldman 扩展的 Shamir 门限方案实现 Int64 的秘密共享，返回验证是否通过。
   用公开的验证值来验证某序号的秘密分片是否合法}
 
-function CnInt64FeldmanVssReconstruct(Prime, Generator: Int64; InOrders, InShares,
-  Commitments: TCnInt64List; out Secret: Int64; Verify: Boolean = True): Boolean;
+function CnInt64FeldmanVssReconstruct(Prime: Int64; Generator: Int64; InOrders: TCnInt64List;
+  InShares: TCnInt64List; Commitments: TCnInt64List; out Secret: Int64; Verify: Boolean = True): Boolean;
 {* Feldman 扩展的 Shamir 门限方案实现 Int64 的秘密共享。Verify 表示重组前是否验证
   将 Threshold 个拆分后的 Int64 值与其对应序号并结合大素数重组成 Secret，
   返回是否重组成功，成功则秘密值放 Secret 中返回。}
 
-function CnFeldmanVssSplit(Secret: TCnBigNumber; ShareCount, Threshold: Integer;
-  OutOrders, OutShares, OutCommitments: TCnBigNumberList; Prime, Generator: TCnBigNumber): Boolean;
+function CnFeldmanVssSplit(Secret: TCnBigNumber; ShareCount: Integer; Threshold: Integer;
+  OutOrders: TCnBigNumberList; OutShares: TCnBigNumberList; OutCommitments: TCnBigNumberList;
+  Prime: TCnBigNumber; Generator: TCnBigNumber): Boolean;
 {* Feldman 扩展的 Shamir 门限方案实现大数范围内的秘密共享，
   将 Threshold 个拆分后的大数值与其对应序号并结合，并生成验证值（Commitment），返回拆分是否成功
   拆分出的值可通过 CnFeldmanVssVerify 用公开的验证值来验证其是否合法
@@ -290,13 +291,14 @@ function CnFeldmanVssSplit(Secret: TCnBigNumber; ShareCount, Threshold: Integer;
   生成元均为 2，注意素数须比 Secret 大，且内部封装的 Shamir 使用的素数是 (Prime - 1) / 2，并非 Prime
   拆分后，Orders 与 Shares 一一对应各自分配给秘密持有方，Commitments 和 Prime、Generator 则全部公开}
 
-function CnFeldmanVssVerify(Prime, Generator: TCnBigNumber; InOrder, InShare: TCnBigNumber;
-  Commitments: TCnBigNumberList): Boolean;
+function CnFeldmanVssVerify(Prime: TCnBigNumber; Generator: TCnBigNumber; InOrder: TCnBigNumber;
+  InShare: TCnBigNumber; Commitments: TCnBigNumberList): Boolean;
 {* Feldman 扩展的 Shamir 门限方案实现大数范围内的秘密共享分片数据验证，返回验证是否通过。
   用公开的验证值以及 Prime、Generator 来验证某序号的秘密分片是否合法}
 
-function CnFeldmanVssReconstruct(Prime, Generator: TCnBigNumber; InOrders, InShares,
-  Commitments: TCnBigNumberList; OutSecret: TCnBigNumber; Verify: Boolean = True): Boolean;
+function CnFeldmanVssReconstruct(Prime: TCnBigNumber; Generator: TCnBigNumber;
+  InOrders: TCnBigNumberList; InShares: TCnBigNumberList; Commitments: TCnBigNumberList;
+  OutSecret: TCnBigNumber; Verify: Boolean = True): Boolean;
 {* Feldman 扩展的 Shamir 门限方案实现大数范围内的秘密共享。Verify 表示重组前是否验证
   将 Threshold 个拆分后的大数值与其对应序号并结合大素数重组成 Secret，返回是否重组成功。
   成功则秘密值放 Secret 中返回}
