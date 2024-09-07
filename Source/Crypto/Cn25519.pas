@@ -324,7 +324,9 @@ type
 
     procedure MontgomeryLadderField64PointXDouble(var Dbl: TCn25519Field64EccPoint; var P: TCn25519Field64EccPoint);
     {* 多项式形式的蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用，Dbl 可以是 P}
-    procedure MontgomeryLadderField64PointXAdd(var Sum, P, Q, PMinusQ: TCn25519Field64EccPoint);
+    procedure MontgomeryLadderField64PointXAdd(var Sum: TCn25519Field64EccPoint;
+      var P: TCn25519Field64EccPoint; var Q: TCn25519Field64EccPoint;
+      var PMinusQ: TCn25519Field64EccPoint);
     {* 多项式形式的蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值}
 
     procedure MontgomeryLadderField64MultiplePoint(K: Int64; var Point: TCn25519Field64EccPoint); overload;
@@ -395,10 +397,10 @@ type
 
     // ================= 扩展扭曲爱德华坐标（四元）点加速算法 ==================
 
-    procedure ExtendedPointAddPoint(P, Q, Sum: TCnEcc4Point); virtual;
+    procedure ExtendedPointAddPoint(P: TCnEcc4Point; Q: TCnEcc4Point; Sum: TCnEcc4Point); virtual;
     {* 使用扩展扭曲爱德华坐标（四元）的快速点加法计算 P + Q，值放入 Sum 中，Diff 可以是 P、Q 之一，P、Q 可以相同
        该算法来源于 RFC 8032，且要求该扭曲爱德华曲线的 A 得为 -1，因而 Ed25519 曲线符合而 Ed448 曲线不符合}
-    procedure ExtendedPointSubPoint(P, Q, Diff: TCnEcc4Point);
+    procedure ExtendedPointSubPoint(P: TCnEcc4Point; Q: TCnEcc4Point; Diff: TCnEcc4Point);
     {* 使用扩展扭曲爱德华坐标（四元）计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure ExtendedPointInverse(P: TCnEcc4Point);
     {* 使用扩展扭曲爱德华坐标（四元）计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
@@ -412,9 +414,11 @@ type
 
     // ============= 扩展扭曲爱德华坐标（四元）点的多项式加速算法 ==============
 
-    function ExtendedField64PointAddPoint(var P, Q, Sum: TCn25519Field64Ecc4Point): Boolean;
+    function ExtendedField64PointAddPoint(var P: TCn25519Field64Ecc4Point;
+      var Q: TCn25519Field64Ecc4Point; var Sum: TCn25519Field64Ecc4Point): Boolean;
     {* 使用扩展扭曲爱德华坐标（四元）有限域多项式的快速点加法计算 P + Q，值放入 Sum 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
-    function ExtendedField64PointSubPoint(var P, Q, Diff: TCn25519Field64Ecc4Point): Boolean;
+    function ExtendedField64PointSubPoint(var P: TCn25519Field64Ecc4Point;
+      var Q: TCn25519Field64Ecc4Point; var Diff: TCn25519Field64Ecc4Point): Boolean;
     {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure ExtendedField64PointInverse(var P: TCn25519Field64Ecc4Point);
     {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
@@ -599,10 +603,10 @@ type
 
     // ================ 扩展非扭曲爱德华坐标（三元）点加速算法 =================
 
-    procedure AffinePointAddPoint(P, Q, Sum: TCnEcc3Point);
+    procedure AffinePointAddPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Sum: TCnEcc3Point);
     {* 使用扩展非扭曲爱德华坐标（三元）的快速点加法计算 P + Q，值放入 Sum 中，Diff 可以是 P、Q 之一，P、Q 可以相同
        该算法来源于 RFC 8032，且要求该非扭曲爱德华曲线的 A 得为 1，Ed448 曲线恰好符合}
-    procedure AffinePointSubPoint(P, Q, Diff: TCnEcc3Point);
+    procedure AffinePointSubPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Diff: TCnEcc3Point);
     {* 使用扩展非扭曲爱德华坐标（三元）计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure AffinePointInverse(P: TCnEcc3Point);
     {* 使用扩展非扭曲爱德华坐标（三元）计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}

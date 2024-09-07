@@ -451,7 +451,7 @@ type
       {$IFNDEF CPU64BITS}; Key132, Key232: TObject {$ENDIF}): Boolean; override;
     procedure DoFreeNode(Node: TCnHashNode); override;
   public
-    constructor Create(AOwnsKey, AOwnsValue: Boolean); reintroduce; virtual;
+    constructor Create(AOwnsKey: Boolean; AOwnsValue: Boolean); reintroduce; virtual;
     {* AOwnsKey 为 True 时，Key 作为持有处理，节点删除时会释放这个 Key 对象
       AOwnsValue 为 True 时，Value 也作为持有处理，节点删除时会释放这个 Value 对象
       注意：设为 True 时，Key 和 Value 不允许传 Object 外的内容}
