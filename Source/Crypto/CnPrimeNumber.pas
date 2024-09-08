@@ -701,10 +701,10 @@ function AddMod(A: TUInt64; B: TUInt64; C: TUInt64): TUInt64;
 function MultipleMod(A: TUInt64; B: TUInt64; C: TUInt64): TUInt64;
 {* 快速计算全是正值的 (A * B) mod C，不能直接算，容易溢出}
 
-function Int64AddMod(A: TUInt64; B: TUInt64; C: Int64): Int64;
+function Int64AddMod(A: Int64; B: Int64; C: Int64): Int64;
 {* 封装的 Int64 的支持 A、B 为负数的 (A + B) mod C，但 C 仍要求正数否则结果不靠谱}
 
-function Int64MultipleMod(A: TUInt64; B: TUInt64; C: Int64): Int64;
+function Int64MultipleMod(A: Int64; B: Int64; C: Int64): Int64;
 {* 封装的 Int64 的支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱}
 
 function MontgomeryPowerMod(A: TUInt64; B: TUInt64; C: TUInt64): TUInt64;
