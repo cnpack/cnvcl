@@ -121,6 +121,16 @@ CD Doc
 COPY ..\..\cnvcl\Doc\Develop\CnPack多语组件帮助文档.doc .
 COPY ..\..\cnvcl\Doc\Design\MultiLang\CnPack多语组件包概要设计说明书.doc .
 CD ..
+MKDIR Example
+CD Example
+MKDIR VCL\MultiLang\
+CD VCL\MultiLang\
+COPY ..\..\..\..\cnvcl\Example\VCL\Multilang\ .
+CD ..\..\
+MKDIR FMX\MultiLang\
+CD FMX\MultiLang\
+COPY ..\..\..\..\cnvcl\Example\FMX\Multilang\ .
+CD ..\..\..
 GOTO END
 
 :PRINTHEAD
