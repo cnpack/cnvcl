@@ -128,16 +128,26 @@ const
   CN_SM9_KEY_EXCHANGE_HASHID2 = $83;
 
   // 错误码
-  ECN_SM9_OK                           = ECN_OK; // 没错
-  ECN_SM9_ERROR_BASE                   = ECN_CUSTOM_ERROR_BASE + $600; // SM9 错误码基准
+  ECN_SM9_OK                           = ECN_OK;
+  {* SM9 系列错误码：无错误，值为 0}
 
-  ECN_SM9_INVALID_INPUT                = ECN_SM9_ERROR_BASE + 1; // 输入为空或长度不对
-  ECN_SM9_RANDOM_ERROR                 = ECN_SM9_ERROR_BASE + 2; // 随机数相关错误
-  ECN_SM9_BIGNUMBER_ERROR              = ECN_SM9_ERROR_BASE + 3; // 大数运算错误
-  ECN_SM9_ENCRYPT_MASTERKEY_ZERO_ERROR = ECN_SM9_ERROR_BASE + 4; // 加密时主公钥为 0
-  ECN_SM9_SIGN_MASTERKEY_ZERO_ERROR    = ECN_SM9_ERROR_BASE + 5; // 签名时主公钥为 0
-  ECN_SM9_HASH_ERROR                   = ECN_SM9_ERROR_BASE + 6; // 杂凑错误
-  ECN_SM9_KDF_ERROR                    = ECN_SM9_ERROR_BASE + 7; // 密钥派生错误
+  ECN_SM9_ERROR_BASE                   = ECN_CUSTOM_ERROR_BASE + $600; // SM9 错误码基准
+  {* SM9 系列错误码的基准起始值，为 ECN_CUSTOM_ERROR_BASE 加上 $600}
+
+  ECN_SM9_INVALID_INPUT                = ECN_SM9_ERROR_BASE + 1;
+  {* SM9 错误码之输入为空或长度错误}
+  ECN_SM9_RANDOM_ERROR                 = ECN_SM9_ERROR_BASE + 2;
+  {* SM9 错误码之随机数相关错误}
+  ECN_SM9_BIGNUMBER_ERROR              = ECN_SM9_ERROR_BASE + 3;
+  {* SM9 错误码之大数运算错误}
+  ECN_SM9_ENCRYPT_MASTERKEY_ZERO_ERROR = ECN_SM9_ERROR_BASE + 4;
+  {* SM9 错误码之加密时主公钥为 0}
+  ECN_SM9_SIGN_MASTERKEY_ZERO_ERROR    = ECN_SM9_ERROR_BASE + 5;
+  {* SM9 错误码之签名时主公钥为 0}
+  ECN_SM9_HASH_ERROR                   = ECN_SM9_ERROR_BASE + 6;
+  {* SM9 错误码之杂凑错误}
+  ECN_SM9_KDF_ERROR                    = ECN_SM9_ERROR_BASE + 7;
+  {* SM9 错误码之密钥派生错误}
 
 type
   ECnSM9Exception = class(Exception);

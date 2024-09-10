@@ -90,14 +90,22 @@ const
   {* 最小的 SM2 加密结果长度，两个坐标加一个 SM3 摘要长度，共 96 字节}
 
   // 错误码
-  ECN_SM2_OK                           = ECN_OK; // 没错
-  ECN_SM2_ERROR_BASE                   = ECN_CUSTOM_ERROR_BASE + $200; // SM2 错误码基准
+  ECN_SM2_OK                           = ECN_OK;
+  {* SM2 系列错误码：无错误，值为 0}
 
-  ECN_SM2_INVALID_INPUT                = ECN_SM2_ERROR_BASE + 1; // 输入为空或长度不对
-  ECN_SM2_RANDOM_ERROR                 = ECN_SM2_ERROR_BASE + 2; // 随机数相关错误
-  ECN_SM2_BIGNUMBER_ERROR              = ECN_SM2_ERROR_BASE + 3; // 大数运算错误
-  ECN_SM2_DECRYPT_INFINITE_ERROR       = ECN_SM2_ERROR_BASE + 4; // 解密时碰上无穷远点
-  ECN_SM2_KEYEXCHANGE_INFINITE_ERROR   = ECN_SM2_ERROR_BASE + 5; // 密钥交换碰上无穷远点
+  ECN_SM2_ERROR_BASE                   = ECN_CUSTOM_ERROR_BASE + $200;
+  {* SM2 系列错误码的基准起始值，为 ECN_CUSTOM_ERROR_BASE 加上 $200}
+
+  ECN_SM2_INVALID_INPUT                = ECN_SM2_ERROR_BASE + 1;
+  {* SM2 错误码之输入为空或长度错误}
+  ECN_SM2_RANDOM_ERROR                 = ECN_SM2_ERROR_BASE + 2;
+  {* SM2 错误码之随机数相关错误}
+  ECN_SM2_BIGNUMBER_ERROR              = ECN_SM2_ERROR_BASE + 3;
+  {* SM2 错误码之大数运算错误}
+  ECN_SM2_DECRYPT_INFINITE_ERROR       = ECN_SM2_ERROR_BASE + 4;
+  {* SM2 错误码之解密时碰上无穷远点}
+  ECN_SM2_KEYEXCHANGE_INFINITE_ERROR   = ECN_SM2_ERROR_BASE + 5;
+  {* SM2 错误码之密钥交换碰上无穷远点}
 
 type
   TCnSM2PrivateKey = TCnEccPrivateKey;

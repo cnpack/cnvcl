@@ -55,13 +55,20 @@ const
   {* Shamir 算法的素数默认位数}
 
   // 错误码
-  ECN_SECRET_OK                        = ECN_OK; // 没错
-  ECN_SECRET_ERROR_BASE                = ECN_CUSTOM_ERROR_BASE + $400; // Secret Sharing 错误码基准
+  ECN_SECRET_OK                        = ECN_OK;
+  {* 秘密共享系列错误码：无错误，值为 0}
 
-  ECN_SECRET_INVALID_INPUT             = ECN_SECRET_ERROR_BASE + 1;    // 输入为空或长度不对
-  ECN_SECRET_RANDOM_ERROR              = ECN_SECRET_ERROR_BASE + 2;    // 随机数相关错误
-  ECN_SECRET_FELDMAN_CHECKERROR        = ECN_SECRET_ERROR_BASE + 3;    // Feldman VSS 检查错误
-  ECN_SECRET_PRIME_ERROR               = ECN_SECRET_ERROR_BASE + 4;    // 素数错误
+  ECN_SECRET_ERROR_BASE                = ECN_CUSTOM_ERROR_BASE + $400;
+  {* 秘密共享系列错误码的基准起始值，为 ECN_CUSTOM_ERROR_BASE 加上 $400}
+
+  ECN_SECRET_INVALID_INPUT             = ECN_SECRET_ERROR_BASE + 1;
+  {* 秘密共享错误码之输入为空或长度错误}
+  ECN_SECRET_RANDOM_ERROR              = ECN_SECRET_ERROR_BASE + 2;
+  {* 秘密共享错误码之随机数相关错误}
+  ECN_SECRET_FELDMAN_CHECKERROR        = ECN_SECRET_ERROR_BASE + 3;
+  {* 秘密共享错误码之 Feldman VSS 检查错误}
+  ECN_SECRET_PRIME_ERROR               = ECN_SECRET_ERROR_BASE + 4;
+  {* 秘密共享错误码之素数相关错误}
 
 //==============================================================================
 //

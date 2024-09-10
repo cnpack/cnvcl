@@ -52,13 +52,19 @@ uses
 
 const
   CN_PAILLIER_DEFAULT_PRIMEBITS = 2048;
+  {* Paillier 算法的默认素数位数}
 
   // 错误码
-  ECN_PAILLIER_OK                      = ECN_OK; // 没错
-  ECN_PAILLIER_ERROR_BASE              = ECN_CUSTOM_ERROR_BASE + $300; // Paillier 错误码基准
+  ECN_PAILLIER_OK                      = ECN_OK;
+  {* Paillier 系列错误码：无错误，值为 0}
 
-  ECN_PAILLIER_INVALID_INPUT           = ECN_PAILLIER_ERROR_BASE + 1;  // 输入为空或值不对
-  ECN_PAILLIER_RANDOM_ERROR            = ECN_PAILLIER_ERROR_BASE + 2;  // 随机数相关错误
+  ECN_PAILLIER_ERROR_BASE              = ECN_CUSTOM_ERROR_BASE + $300;
+  {* Paillier 系列错误码的基准起始值，为 ECN_CUSTOM_ERROR_BASE 加上 $300}
+
+  ECN_PAILLIER_INVALID_INPUT           = ECN_PAILLIER_ERROR_BASE + 1;
+  {* Paillier 错误码之输入为空或长度错误}
+  ECN_PAILLIER_RANDOM_ERROR            = ECN_PAILLIER_ERROR_BASE + 2;
+  {* Paillier 错误码之随机数相关错误}
 
 type
   TCnInt64PaillierPrivateKey = packed record
