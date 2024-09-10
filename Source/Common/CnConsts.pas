@@ -74,6 +74,7 @@ var
   SCnMsgDlgNo: string = '&No';
   SCnMsgDlgYesToAll: string = 'Yes to &All';
   SCnMsgDlgNoToAll: string = 'No to A&ll';
+  SCnVersion: string = 'Version';
 
 const
   // CnPack Information
