@@ -79,7 +79,7 @@ var
   SCnMsgDlgYesToAll: string = '全是(&A)';
   SCnMsgDlgNoToAll: string = '全否(&l)';
   SCnVersion: string = '版本';
-  SCnNeedAdmin: string = '可能需要管理员权限';
+  SCnNeedAdmin: string = '可能需要管理员权限。';
 
 const
   // 开发包信息
