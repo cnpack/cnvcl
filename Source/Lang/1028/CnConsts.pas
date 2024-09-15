@@ -78,11 +78,13 @@ var
   SCnMsgDlgNo: string = '否(&N)';
   SCnMsgDlgYesToAll: string = '全是(&A)';
   SCnMsgDlgNoToAll: string = '全否(&l)';
+  SCnVersion: string = '版本';
+  SCnNeedAdmin: string = '可能需要管理員權限';
 
 const
   // 開發包信息
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.1.3.1';
+  SCnPackVer = 'Ver 0.1.5.0';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'https://www.cnpack.org';
   SCnPackBbsUrl = 'https://bbs.cnpack.org';

@@ -75,11 +75,12 @@ var
   SCnMsgDlgYesToAll: string = 'Yes to &All';
   SCnMsgDlgNoToAll: string = 'No to A&ll';
   SCnVersion: string = 'Version';
+  SCnNeedAdmin: string = 'Maybe Need Administrator';
 
 const
   // CnPack Information
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.1.3.1';
+  SCnPackVer = 'Ver 0.1.5.0';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'https://www.cnpack.org';
   SCnPackBbsUrl = 'https://bbs.cnpack.org';
