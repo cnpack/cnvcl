@@ -225,7 +225,7 @@ implementation
 
 const
   LunarStrs: array[0..10] of string =
-  ('日', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十');
+    ('日', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十');
 
 constructor TCnMonthCalendar.Create(AOwner: TComponent);
 
@@ -526,6 +526,8 @@ begin
 end;
 
 procedure TCnMonthCalendar.CalcRect;
+var
+  E: Single;
 begin
   Canvas.Font.Assign(Font);
   FCellWidth := ClientRect.Right div 7;
@@ -560,19 +562,26 @@ begin
   lblPrevMonth.Left := 40;
   lblPrevMonth.Top := Round((FTitleRect.Bottom - lblPrevMonth.Height) / 2);
 
-  lblNextMonth.Font.Size := LBTextSize;
-  lblNextMonth.Font.Color := FCalColors.TitleTextColor;
-  lblNextMonth.Left := FTitleRect.Right - 30 - Round(LBTextSize * 1.2);
-  lblNextMonth.Top := lblPrevMonth.Top;
+  // 直接设置的 Left Top 等会被 DPI 换算，而绘图时的像素数不会
+{$IFDEF IDE_SUPPORT_HDPI}
+  E := CurrentPPI / Windows.USER_DEFAULT_SCREEN_DPI;
+{$ELSE}
+  E := 1;
+{$ENDIF}
 
   lblPrevYear.Font.Size := LBTextSize;
   lblPrevYear.Font.Color := FCalColors.TitleTextColor;
   lblPrevYear.Left := 10;
   lblPrevYear.Top := Round((FTitleRect.Bottom - lblPrevYear.Height) / 2);
 
+  lblNextMonth.Font.Size := LBTextSize;
+  lblNextMonth.Font.Color := FCalColors.TitleTextColor;
+  lblNextMonth.Left := Trunc((FTitleRect.Right - 30 - Round(LBTextSize * 1.2)) / E);
+  lblNextMonth.Top := lblPrevMonth.Top;
+
   lblNextYear.Font.Size := LBTextSize;
   lblNextYear.Font.Color := FCalColors.TitleTextColor;
-  lblNextYear.Left := FTitleRect.Right - 10 - Round(LBTextSize * 1.2);
+  lblNextYear.Left := Trunc((FTitleRect.Right - 10 - Round(LBTextSize * 1.2)) / E);
   lblNextYear.Top := lblPrevYear.Top;
 end;
 
