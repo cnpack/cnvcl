@@ -305,15 +305,15 @@ const
   CN_ZIP_CRYPT_HEAD_SIZE = 12;
 
 resourcestring
-  SZipErrorRead = 'Error Reading Zip File';
-  SZipErrorWrite = 'Error Writing Zip File';
-  SZipInvalidLocalHeader   = 'Invalid Zip Local Header';
-  SZipInvalidCentralHeader = 'Invalid Zip Central Header';
-  SFileNotFound = 'Error Finding File';
-  SZipNotSupport = 'Zip Compression Method NOT Support';
-  SZipInvalidPassword = 'Invalid Password';
-  SZipNotImplemented = 'Feature NOT Implemented';
-  SZipUtf8NotSupport = 'UTF8 NOT Support';
+  SCnZipErrorRead = 'Error Reading Zip File';
+  SCnZipErrorWrite = 'Error Writing Zip File';
+  SCnZipInvalidLocalHeader   = 'Invalid Zip Local Header';
+  SCnZipInvalidCentralHeader = 'Invalid Zip Central Header';
+  SCnFileNotFound = 'Error Finding File';
+  SCnZipNotSupportFmt = 'Zip Compression Method NOT Support';
+  SCnZipInvalidPassword = 'Invalid Password';
+  SCnZipNotImplemented = 'Feature NOT Implemented';
+  SCnZipUtf8NotSupport = 'UTF8 NOT Support';
 
 var
   FZipCompressionHandlers: TClassList = nil;
@@ -611,13 +611,13 @@ end;
 procedure VerifyRead(Stream: TStream; var Buffer; Count: Integer);
 begin
   if Stream.Read(Buffer, Count) <> Count then
-    raise ECnZipException.CreateRes(@SZipErrorRead);
+    raise ECnZipException.CreateRes(@SCnZipErrorRead);
 end;
 
 procedure VerifyWrite(Stream: TStream; var Buffer; Count: Integer);
 begin
   if Stream.Write(Buffer, Count) <> Count then
-    raise ECnZipException.CreateRes(@SZipErrorWrite);
+    raise ECnZipException.CreateRes(@SCnZipErrorWrite);
 end;
 
 procedure CnZipCompressStream(InStream, OutZipStream: TStream;
@@ -797,7 +797,7 @@ var
   Sig: Cardinal;
 begin
   if (Index < 0) or (Index > FileCount) then
-    raise ECnZipException.CreateRes(@SFileNotFound);
+    raise ECnZipException.CreateRes(@SCnFileNotFound);
 
   LocalHeader^.MadeByVersion := 0;
   SetLength(LocalHeader^.FileComment, 0);
@@ -810,7 +810,7 @@ begin
   FInStream.Position := FileInfo[Index].LocalHeaderOffset + FStartFileData;
   FInStream.Read(Sig, Sizeof(Sig));
   if Sig <> CN_SIGNATURE_LOCALHEADER then
-    raise ECnZipException.CreateRes(@SZipInvalidLocalHeader);
+    raise ECnZipException.CreateRes(@SCnZipInvalidLocalHeader);
 
   FInStream.Read(LocalHeader^.RequiredVersion,    Sizeof(Word));
   FInStream.Read(LocalHeader^.Flag,               Sizeof(Word));
@@ -881,7 +881,7 @@ var
 begin
   CompressionStream := PrepareStream(Index, @LocalHeader);
   if CompressionStream = nil then
-    raise ECnZipException.CreateRes(@SZipNotSupport);
+    raise ECnZipException.CreateResFmt(@SCnZipNotSupportFmt, [LocalHeader.CompressionMethod]);
 
   try
     AFileName := RawToString(FileInfo[Index].FileName);
@@ -956,7 +956,7 @@ begin
     Exit;
 
   if not SearchEndOfCentralHeader(FInStream, @EndHeader) then
-    raise ECnZipException.CreateRes(@SZipErrorRead);
+    raise ECnZipException.CreateRes(@SCnZipErrorRead);
 
   FInStream.Position := EndHeader.CentralDirOffset;
   FEndFileData := EndHeader.CentralDirOffset;
@@ -965,7 +965,7 @@ begin
   begin
     FInStream.Read(Signature, Sizeof(Signature));
     if Signature <> CN_SIGNATURE_CENTRALHEADER then
-      raise ECnZipException.CreateRes(@SZipInvalidCentralHeader);
+      raise ECnZipException.CreateRes(@SCnZipInvalidCentralHeader);
 
     New(Header);
     try
@@ -1259,7 +1259,7 @@ begin
     Exit;
 
   if not SupportCompressionMethod(Compression) then
-    raise ECnZipException.CreateRes(@SZipNotSupport);
+    raise ECnZipException.CreateRes(@SCnZipNotSupport);
 
   New(LocalHeader);
   FillChar(LocalHeader^, SizeOf(LocalHeader^), 0);
@@ -1567,7 +1567,7 @@ begin
   end;
 
   if H[CN_ZIP_CRYPT_HEAD_SIZE - 1] <> (FZipHeader^.CRC32 shr 24) then
-    raise ECnZipException.CreateRes(@SZipInvalidPassword);
+    raise ECnZipException.CreateRes(@SCnZipInvalidPassword);
 end;
 
 destructor TCnDecryptStoredStream.Destroy;
@@ -1593,12 +1593,12 @@ end;
 
 function TCnDecryptStoredStream.Seek(Offset: Longint; Origin: Word): Longint;
 begin
-  raise ECnZipException.CreateRes(@SZipNotImplemented);
+  raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
 function TCnDecryptStoredStream.Write(const Buffer; Count: Integer): Integer;
 begin
-  raise ECnZipException.CreateRes(@SZipNotImplemented);
+  raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
 { TCnEnryptStoredStream }
@@ -1635,13 +1635,13 @@ end;
 
 function TCnEncryptStoredStream.Read(var Buffer; Count: Integer): Integer;
 begin
-  raise ECnZipException.CreateRes(@SZipNotImplemented);
+  raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
 function TCnEncryptStoredStream.Seek(Offset: Integer;
   Origin: Word): Longint;
 begin
-  raise ECnZipException.CreateRes(@SZipNotImplemented);
+  raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
 function TCnEncryptStoredStream.Write(const Buffer; Count: Integer): Integer;
@@ -1735,13 +1735,13 @@ end;
 function TCnEncryptZipCompressStream.Read(var Buffer;
   Count: Integer): Integer;
 begin
-  raise ECnZipException.CreateRes(@SZipNotImplemented);
+  raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
 function TCnEncryptZipCompressStream.Seek(Offset: Integer;
   Origin: Word): Longint;
 begin
-  raise ECnZipException.CreateRes(@SZipNotImplemented);
+  raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
 function TCnEncryptZipCompressStream.Write(const Buffer;
@@ -1779,7 +1779,7 @@ begin
   end;
 
   if H[CN_ZIP_CRYPT_HEAD_SIZE - 1] <> (FZipHeader^.CRC32 shr 24) then
-    raise ECnZipException.CreateRes(@SZipInvalidPassword);
+    raise ECnZipException.CreateRes(@SCnZipInvalidPassword);
 
   // 先从 FInStream 密文流中读出内容到 FDecrypted 并解密得到压缩后内容
   FDecrypted := TMemoryStream.Create;
@@ -1817,13 +1817,13 @@ end;
 function TCnDecryptZipCompressStream.Seek(Offset: Integer;
   Origin: Word): Longint;
 begin
-  raise ECnZipException.CreateRes(@SZipNotImplemented);
+  raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
 function TCnDecryptZipCompressStream.Write(const Buffer;
   Count: Integer): Integer;
 begin
-  raise ECnZipException.CreateRes(@SZipNotImplemented);
+  raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
 initialization
