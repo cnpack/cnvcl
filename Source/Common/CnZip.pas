@@ -310,7 +310,7 @@ resourcestring
   SCnZipInvalidLocalHeader   = 'Invalid Zip Local Header';
   SCnZipInvalidCentralHeader = 'Invalid Zip Central Header';
   SCnFileNotFound = 'Error Finding File';
-  SCnZipNotSupportFmt = 'Zip Compression Method NOT Support';
+  SCnZipNotSupportFmt = 'Zip Compression Method NOT Support %d';
   SCnZipInvalidPassword = 'Invalid Password';
   SCnZipNotImplemented = 'Feature NOT Implemented';
   SCnZipUtf8NotSupport = 'UTF8 NOT Support';
@@ -1259,7 +1259,7 @@ begin
     Exit;
 
   if not SupportCompressionMethod(Compression) then
-    raise ECnZipException.CreateRes(@SCnZipNotSupport);
+    raise ECnZipException.CreateResFmt(@SCnZipNotSupportFmt, [Ord(Compression)]);
 
   New(LocalHeader);
   FillChar(LocalHeader^, SizeOf(LocalHeader^), 0);
