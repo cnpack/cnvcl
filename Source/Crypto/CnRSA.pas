@@ -219,28 +219,28 @@ type
 function CnInt64RSAGenerateKeys(out PrimeKey1: Cardinal; out PrimeKey2: Cardinal;
   out PrivKeyProduct: TUInt64; out PrivKeyExponent: TUInt64;
   out PubKeyProduct: TUInt64; out PubKeyExponent: TUInt64; HighBitSet: Boolean = True): Boolean;
-{* 生成 RSA 算法所需的公私钥，素数均不大于 Cardinal，Keys 均不大于 UInt64
+{* 生成 RSA 算法所需的一对公私钥，素数均不大于 Cardinal，Keys 均不大于 UInt64
    HighBitSet 为 True 时要求素数最高位为 1，且乘积是 64 Bit}
 
 function CnInt64RSAEncrypt(Data: TUInt64; PrivKeyProduct: TUInt64;
   PrivKeyExponent: TUInt64; out Res: TUInt64): Boolean;
-{* 利用上面生成的私钥对数据进行加密，返回加密是否成功}
+{* 利用 RSA 私钥对数据 Data 进行加密，加密结果写入 Res。返回加密是否成功}
 
 function CnInt64RSADecrypt(Res: TUInt64; PubKeyProduct: TUInt64;
   PubKeyExponent: TUInt64; out Data: TUInt64): Boolean;
-{* 利用上面生成的公钥对数据进行解密，返回解密是否成功}
+{* 利用 RSA 公钥对数据 Res 进行解密，解密结果写入 Data。返回解密是否成功}
 
 // 大数范围内的 RSA 加解密实现
 
 function CnRSAGenerateKeysByPrimeBits(PrimeBits: Integer; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean = False): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-{* 生成 RSA 算法所需的公私钥，PrimeBits 是素数的二进制位数，其余参数均为生成。
+{* 生成 RSA 算法所需的一对公私钥，PrimeBits 是素数的二进制位数，其余参数均为生成。
    PrimeBits 取值为 512/1024/2048等，注意目前不是乘积的范围。内部缺乏安全判断。不推荐使用。
    PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537}
 
 function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean = False): Boolean;
-{* 生成 RSA 算法所需的公私钥，ModulusBits 是素数乘积的二进制位数，其余参数均为生成。
+{* 生成 RSA 算法所需的一对公私钥，ModulusBits 是素数乘积的二进制位数，其余参数均为生成。
    ModulusBits 取值为 512/1024/2048等。内部有安全判断。
    PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537}
 
@@ -250,7 +250,7 @@ function CnRSAVerifyKeys(PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKe
 function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
-{* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入
+{* 从 PEM 格式的文件中加载一对 RSA 公私钥数据，如某钥参数为空则不载入
   自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释
   KeyHashMethod: 对应 PEM 文件的加密杂凑算法，默认 MD5（无法根据 PEM 文件内容自动判断）
   Password: PEM 文件如加密，此处应传对应密码}
@@ -258,7 +258,7 @@ function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPriva
 function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
-{* 从 PEM 格式的流中加载公私钥数据，如某钥参数为空则不载入
+{* 从 PEM 格式的流中加载一对 RSA 公私钥数据，如某钥参数为空则不载入
   自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释
   KeyHashMethod: 对应 PEM 文件的加密杂凑算法，默认 MD5（无法根据 PEM 文件内容自动判断）
   Password: PEM 文件如加密，此处应传对应密码，未加密可不传}
@@ -268,7 +268,7 @@ function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivate
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
-{* 将公私钥写入 PEM 格式文件中，返回是否成功
+{* 将一对 RSA 公私钥写入 PEM 格式的文件中，返回是否成功
   KeyEncryptMethod: 如 PEM 文件需加密，可用此参数指定加密方式，ckeNone 表示不加密，忽略后续参数
   KeyHashMethod: 生成 Key 的杂凑算法，默认 MD5
   Password: PEM 文件的加密密码，未加密可不传}
@@ -278,7 +278,7 @@ function CnRSASaveKeysToPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
-{* 将公私钥写入 PEM 格式流中，返回是否成功
+{* 将一对 RSA 公私钥写入 PEM 格式的流中，返回是否成功
   KeyEncryptMethod: 如 PEM 文件需加密，可用此参数指定加密方式，ckeNone 表示不加密，忽略后续参数
   KeyHashMethod: 生成 Key 的杂凑算法，默认 MD5
   Password: PEM 文件的加密密码，未加密可不传}
@@ -286,40 +286,40 @@ function CnRSASaveKeysToPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
-{* 从 PEM 格式文件中加载公钥数据，返回是否成功}
+{* 从 PEM 格式的文件中加载 RSA 公钥数据，返回是否成功}
 
 function CnRSALoadPublicKeyFromPem(const PemStream: TStream;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
-{* 从 PEM 格式流中加载公钥数据，返回是否成功}
+{* 从 PEM 格式的流中加载 RSA 公钥数据，返回是否成功}
 
 function CnRSASavePublicKeyToPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS8;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   const Password: string = ''): Boolean; overload;
-{* 将公钥写入 PEM 格式文件中，返回是否成功}
+{* 将 RSA 公钥写入 PEM 格式的文件中，返回是否成功}
 
 function CnRSASavePublicKeyToPem(PemStream: TStream;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS8;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   const Password: string = ''): Boolean; overload;
-{* 将公钥写入 PEM 格式流中，返回是否成功}
+{* 将 RSA 公钥写入 PEM 格式的流中，返回是否成功}
 
 function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Res: TCnBigNumber): Boolean; overload;
-{* 利用上面生成的私钥对数据进行加密，返回加密是否成功}
+{* 使用 RSA 私钥对数据 Data 进行加密，加密结果写入 Res。返回加密是否成功}
 
 function CnRSAEncrypt(Data: TCnBigNumber; PublicKey: TCnRSAPublicKey;
   Res: TCnBigNumber): Boolean; overload;
-{* 利用上面生成的公钥对数据进行加密，返回加密是否成功}
+{* 利用 RSA 公钥对数据 Data 进行加密，加密结果写入 Res。返回加密是否成功}
 
 function CnRSADecrypt(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Data: TCnBigNumber): Boolean; overload;
-{* 利用上面生成的私钥对数据进行解密，返回解密是否成功}
+{* 利用 RSA 私钥对数据 Res 进行解密，解密结果写入 Data。返回解密是否成功}
 
 function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
   Data: TCnBigNumber): Boolean; overload;
-{* 利用上面生成的公钥对数据进行解密，返回解密是否成功}
+{* 利用 RSA 公钥对数据 Res 进行解密，解密结果写入 Data。返回解密是否成功}
 
 // ======================== RSA 数据与文件加解密实现 ===========================
 
@@ -381,38 +381,40 @@ function CnRSADecryptFile(const InFileName: string; const OutFileName: string;
 {* 用私钥对文件进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果存输出文件中}
 
 // =========================== RSA 文件签名与验证实现 ==========================
+//
 // 流与文件分开实现是因为计算文件摘要时支持大文件，而 FileStream 低版本不支持
+//
 // 注意 RSA 签名是先杂凑再拼一段数据用 RSA 私钥加密，验证时能解出杂凑值
 // 这点和 ECC 签名不同：ECC 签名并不解出 Hash 值，而是通过中间运算比对大数
 
 function CnRSASignFile(const InFileName: string; const OutSignFileName: string;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用私钥签名指定文件，返回签名是否成功。
+{* 用 RSA 私钥签名指定文件，签名结果直接存储至 OutSignFileName 文件中，返回签名是否成功。
    未指定数字摘要算法时等于将源文件用 PKCS1 Private_FF 补齐后加密
    当指定了数字摘要算法时，使用指定数字摘要算法对文件进行计算得到杂凑值，
    原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐再用私钥加密}
 
 function CnRSAVerifyFile(const InFileName: string; const InSignFileName: string;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
+{* 用 RSA 公钥与签名值文件验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
    并比对两个二进制杂凑值是否相同，返回验证是否通过}
 
 function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用私钥签名指定内存流，返回签名是否成功}
+{* 用 RSA 私钥签名指定内存流，签名值写入 OutSignStream 中，返回签名是否成功}
 
 function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用公钥与签名值验证指定内存流，返回验证是否通过}
+{* 用 RSA 公钥与签名值内存流验证指定内存流，返回验证是否通过}
 
 function CnRSASignBytes(InData: TBytes; PrivateKey: TCnRSAPrivateKey;
   SignType: TCnRSASignDigestType = rsdtMD5): TBytes;
-{* 用私钥签名字节数组，返回签名值的字节数组，如签名失败则返回空}
+{* 用 RSA 私钥签名字节数组，返回签名值的字节数组，如签名失败则返回空}
 
 function CnRSAVerifyBytes(InData: TBytes; InSignBytes: TBytes;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用公钥与签名字节数组验证指定字节数组，返回验证是否通过}
+{* 用 RSA 公钥与签名字节数组验证指定字节数组，返回验证是否通过}
 
 // OAEP Padding 的生成与验证算法
 
@@ -2337,12 +2339,13 @@ begin
 
     if RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res) then
     begin
-      SetLength(ResBuf, Res.GetBytesCount);
-      Res.ToBinary(@ResBuf[0]); // TODO: FixedLen?
+      // 注意 Res 可能存在前导 0，所以此处必须以 PrivateKey.GetBytesCount 为准，才能确保不漏前导 0
+      SetLength(ResBuf, PrivateKey.GetBytesCount);
+      Res.ToBinary(@ResBuf[0], PrivateKey.GetBytesCount);
 
       // 保存用私钥加密后的内容至文件
       Stream.Clear;
-      Stream.Write(ResBuf[0], Res.GetBytesCount);
+      Stream.Write(ResBuf[0], PrivateKey.GetBytesCount);
       Stream.SaveToFile(OutSignFileName);
 
       Result := True;
