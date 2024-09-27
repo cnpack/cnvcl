@@ -350,12 +350,12 @@ procedure TranslateWideStrArray(var StrArray: array of WideString; const IDStr: 
 type
   PCnString = ^string;
 
-procedure RegisterTranslateString(const StringAddr: PCnString; const IDStr: TCnLangString);
-procedure RegisterTranslateStringA(const StringAddr: PAnsiString; const IDStr: TCnLangString);
-procedure RegisterTranslateStringW(const StringAddr: PWideString; const IDStr: TCnLangString);
+procedure RegisterTranslateString(StringAddr: PCnString; const IDStr: TCnLangString);
+procedure RegisterTranslateStringA(StringAddr: PAnsiString; const IDStr: TCnLangString);
+procedure RegisterTranslateStringW(StringAddr: PWideString; const IDStr: TCnLangString);
 {* 注册一字符串，传入地址与名称，可在语言改变时被自动翻译，无需手工调 Translate}
 
-procedure RegisterTranslateResourceString(const ResStringAddr: Pointer; const IDStr: TCnLangString);
+procedure RegisterTranslateResourceString(ResStringAddr: Pointer; const IDStr: TCnLangString);
 {* 注册一资源字符串，传入地址与名称，可在语言改变时被自动翻译}
 
 procedure TranslateReggedStrings;
@@ -1625,8 +1625,8 @@ begin
   Comment := SCnLangMgrComment;
 end;
 
-procedure RegisterTranslateResourceString(
-  const ResStringAddr: Pointer; const IDStr: TCnLangString);
+procedure RegisterTranslateResourceString(ResStringAddr: Pointer;
+  const IDStr: TCnLangString);
 var
   AObj: TCnResourceStringObj;
 begin
@@ -1639,7 +1639,7 @@ begin
   end;
 end;
 
-procedure DoRegisterTranslateString(const StringAddr: Pointer; const IDStr: TCnLangString; AType: TCnStrObjType);
+procedure DoRegisterTranslateString(StringAddr: Pointer; const IDStr: TCnLangString; AType: TCnStrObjType);
 var
   AObj: TCnStringObj;
 begin
@@ -1653,17 +1653,17 @@ begin
   end;
 end;
 
-procedure RegisterTranslateString(const StringAddr: PCnString; const IDStr: TCnLangString);
+procedure RegisterTranslateString(StringAddr: PCnString; const IDStr: TCnLangString);
 begin
   DoRegisterTranslateString(StringAddr, IDStr, csotString);
 end;
 
-procedure RegisterTranslateStringA(const StringAddr: PAnsiString; const IDStr: TCnLangString);
+procedure RegisterTranslateStringA(StringAddr: PAnsiString; const IDStr: TCnLangString);
 begin
   DoRegisterTranslateString(StringAddr, IDStr, csotAnsi);
 end;
 
-procedure RegisterTranslateStringW(const StringAddr: PWideString; const IDStr: TCnLangString);
+procedure RegisterTranslateStringW(StringAddr: PWideString; const IDStr: TCnLangString);
 begin
   DoRegisterTranslateString(StringAddr, IDStr, csotWide);
 end;

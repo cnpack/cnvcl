@@ -953,7 +953,7 @@ procedure SetTaskBarVisible(Visible: Boolean);
 procedure SetDesktopVisible(Visible: Boolean);
 {* 设置桌面是否可见}
 
-function CnSetWindowAlphaBlend(Hwnd: THandle; Alpha: Byte): Boolean;
+function CnSetWindowAlphaBlend(Hwnd: THandle; AlphaBlendValue: Byte): Boolean;
 {* 设置窗体 Alpha 透明值}
 
 function ForceForegroundWindow(HWND: HWND): Boolean;
@@ -6636,7 +6636,7 @@ begin
 end;
 
 // 设置窗体 Alpha 透明值
-function CnSetWindowAlphaBlend(Hwnd: THandle; Alpha: Byte): Boolean;
+function CnSetWindowAlphaBlend(Hwnd: THandle; AlphaBlendValue: Byte): Boolean;
 const
   WS_EX_LAYERED = $00080000;
   LWA_ALPHA = $00000002;
@@ -6648,7 +6648,7 @@ begin
     AStyle := GetWindowLong(Hwnd, GWL_EXSTYLE);
     if (AStyle and WS_EX_LAYERED) = 0 then
       SetWindowLong(Hwnd, GWL_EXSTYLE, AStyle or WS_EX_LAYERED);
-    Result := SetLayeredWindowAttributesProc(Hwnd, 0, Alpha, LWA_ALPHA);
+    Result := SetLayeredWindowAttributesProc(Hwnd, 0, AlphaBlendValue, LWA_ALPHA);
   end
   else
     Result := False;
