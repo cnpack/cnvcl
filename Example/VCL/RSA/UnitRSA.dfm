@@ -619,6 +619,19 @@ object FormRSA: TFormRSA
             'MD5'
             'SHA256')
         end
+        object btnBNVerifyKeys: TButton
+          Left = 896
+          Top = 208
+          Width = 57
+          Height = 21
+          Hint = 'Verify Loaded RSA Private and Public Keys'
+          Anchors = [akTop, akRight]
+          Caption = 'Verify Keys'
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 19
+          OnClick = btnBNVerifyKeysClick
+        end
       end
       object pgc2: TPageControl
         Left = 16
@@ -827,7 +840,7 @@ object FormRSA: TFormRSA
             Caption = 'Signature File:'
           end
           object lblSigMethod: TLabel
-            Left = 670
+            Left = 668
             Top = 42
             Width = 94
             Height = 13
@@ -837,13 +850,13 @@ object FormRSA: TFormRSA
           object edtSignFile: TEdit
             Left = 88
             Top = 8
-            Width = 743
+            Width = 741
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             TabOrder = 0
           end
           object btnSignBrowse: TButton
-            Left = 838
+            Left = 836
             Top = 8
             Width = 75
             Height = 21
@@ -864,14 +877,14 @@ object FormRSA: TFormRSA
           object edtSigFile: TEdit
             Left = 88
             Top = 72
-            Width = 743
+            Width = 741
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             ReadOnly = True
             TabOrder = 3
           end
           object btnSignatureBrowse: TButton
-            Left = 838
+            Left = 836
             Top = 72
             Width = 75
             Height = 21
@@ -900,7 +913,7 @@ object FormRSA: TFormRSA
             OnClick = btnPubVerifyClick
           end
           object cbbSig: TComboBox
-            Left = 774
+            Left = 772
             Top = 40
             Width = 65
             Height = 21

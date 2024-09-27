@@ -203,6 +203,7 @@ type
     lblCHNewNumber: TLabel;
     edtCHNewNum: TEdit;
     btnCHVerify: TButton;
+    btnBNVerifyKeys: TButton;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -251,6 +252,7 @@ type
     procedure btnCalcCHClick(Sender: TObject);
     procedure btnFindRandomClick(Sender: TObject);
     procedure btnCHVerifyClick(Sender: TObject);
+    procedure btnBNVerifyKeysClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -1072,6 +1074,14 @@ begin
   Hash.Free;
   SecKey.Free;
   Rand.Free;
+end;
+
+procedure TFormRSA.btnBNVerifyKeysClick(Sender: TObject);
+begin
+  if CnRSAVerifyKeys(FPrivateKey, FPublicKey) then
+    ShowMessage('Verify Keys OK')
+  else
+    ShowMessage('Verify Keys Fail');
 end;
 
 end.
