@@ -31,7 +31,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.12.14 V2.7
+* 修改记录：2024.09.27 V2.8
+*               修正私钥返回位数可能错误的问题
+*           2023.12.14 V2.7
 *               增加验证公私钥的机制，并完善从文件和流中加载与保存
 *           2023.02.16 V2.6
 *               实现大数形式的基于离散对数的变色龙杂凑算法
@@ -1577,7 +1579,7 @@ end;
 
 function TCnRSAPrivateKey.GetBytesCount: Integer;
 begin
-  Result := FPrivKeyExponent.GetBytesCount;
+  Result := FPrivKeyProduct.GetBytesCount;
 end;
 
 { TCnRSAPublicKey }
@@ -2390,8 +2392,8 @@ begin
 
     if RSACrypt(Data, PublicKey.PubKeyProduct, PublicKey.PubKeyExponent, Res) then
     begin
-      SetLength(ResBuf, Res.GetBytesCount);
-      Res.ToBinary(@ResBuf[0]); // TODO: FixedLen?
+      SetLength(ResBuf, PublicKey.GetBytesCount);
+      Res.ToBinary(@ResBuf[0], PublicKey.GetBytesCount);
 
       // 从 Res 中解出 PKCS1 对齐的内容放入 BerBuf 中
       SetLength(BerBuf, Length(ResBuf));

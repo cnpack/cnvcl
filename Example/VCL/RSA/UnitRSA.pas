@@ -696,7 +696,9 @@ begin
       ShowMessage('RSA Public Key Encrypt File Success.');
       if Trim(edtFile2.Text) = '' then
         edtFile2.Text := dlgSaveFile.FileName;
-    end;
+    end
+    else
+      ShowMessage('RSA Public Key Encrypt File Fail.');
   end;
 end;
 
@@ -710,8 +712,11 @@ begin
       R := CnRSADecryptFile(edtFile2.Text, dlgSaveFile.FileName, FPrivateKey, cpmOAEP)
     else
       R := CnRSADecryptFile(edtFile2.Text, dlgSaveFile.FileName, FPrivateKey);
+
     if R then
-      ShowMessage('RSA Private Key Decrypt File Success.');
+      ShowMessage('RSA Private Key Decrypt File Success.')
+    else
+      ShowMessage('RSA Private Key Decrypt File Fail.');
   end;
 end;
 
@@ -720,7 +725,9 @@ begin
   if dlgSaveFile.Execute then
   begin
     if CnRSADecryptFile(edtFile2.Text, dlgSaveFile.FileName, FPublicKey) then
-      ShowMessage('RSA Public Key Decrypt File Success.');
+      ShowMessage('RSA Public Key Decrypt File Success.')
+    else
+      ShowMessage('RSA Public Key Decrypt File Fail.')
   end;
 end;
 
@@ -745,7 +752,9 @@ begin
     begin
       ShowMessage('RSA Private Key Sign File Success.');
       edtSigFile.Text := dlgSaveFile.FileName;
-    end;
+    end
+    else
+      ShowMessage('RSA Private Key Sign File Fail.');
   end;
 end;
 
