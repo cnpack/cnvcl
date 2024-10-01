@@ -403,6 +403,9 @@ COPY ..\..\cnvcl\Doc\Develop\CnRSA*.txt .
 CD ..
 MKDIR Example
 CD Example
+MKDIR VCL
+MKDIR FMX
+MKDIR FPC
 CALL :COPYEXAMPLE 25519
 CALL :COPYEXAMPLE BerParse
 CALL :COPYEXAMPLE BigDecimal
@@ -514,21 +517,33 @@ IF "%2" == "ALLFILES" (
 GOTO :EOF
 
 :COPYEXAMPLE
-CD VCL
-MKDIR %1
-CD %1
-COPY ..\..\..\..\cnvcl\Example\VCL\%1\* .
-CD ..\..
-CD FMX
-MKDIR %1
-CD %1
-COPY ..\..\..\..\cnvcl\Example\FMX\%1\* .
-CD ..\..
-CD FPC
-MKDIR %1
-CD %1
-COPY ..\..\..\..\cnvcl\Example\FPC\%1\* .
-CD ..\..
+IF EXIST ..\..\cnvcl\Example\VCL\%1 (
+  CD VCL
+  MKDIR %1
+  CD %1
+  COPY ..\..\..\..\cnvcl\Example\VCL\%1\* .
+  CD ..\..
+) ELSE (
+  ECHO VCL\%1 NOT Exists
+)
+IF EXIST ..\..\cnvcl\Example\FMX\%1 (
+  CD FMX
+  MKDIR %1
+  CD %1
+  COPY ..\..\..\..\cnvcl\Example\FMX\%1\* .
+  CD ..\..
+) ELSE (
+  ECHO FMX\%1 NOT Exists
+)
+IF EXIST ..\..\cnvcl\Example\FPC\%1 (
+  CD FPC
+  MKDIR %1
+  CD %1
+  COPY ..\..\..\..\cnvcl\Example\FPC\%1\* .
+  CD ..\..
+) ELSE (
+  ECHO FPC\%1 NOT Exists
+)
 GOTO :EOF
 
 :END
