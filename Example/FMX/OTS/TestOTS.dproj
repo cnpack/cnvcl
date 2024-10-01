@@ -3,7 +3,7 @@
         <ProjectGuid>{2D08EB11-4B8D-431D-8AD8-9ED58A4F949F}</ProjectGuid>
         <ProjectVersion>18.7</ProjectVersion>
         <FrameworkType>FMX</FrameworkType>
-        <MainSource>OneTimePassword.dpr</MainSource>
+        <MainSource>TestOTS.dpr</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
@@ -78,7 +78,7 @@
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
-        <SanitizedProjectName>OneTimePassword</SanitizedProjectName>
+        <SanitizedProjectName>TestOTS</SanitizedProjectName>
         <DCC_UnitSearchPath>..\..\..\Source\Common;..\..\..\Source\Crypto;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_OSX32)'!=''">
@@ -150,8 +150,8 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="UnitOneTimePassword.pas">
-            <Form>FormOneTimePassword</Form>
+        <DCCReference Include="UnitTestOTS.pas">
+            <Form>FormTestOTS</Form>
             <FormType>fmx</FormType>
         </DCCReference>
         <BuildConfiguration Include="Release">
@@ -172,7 +172,7 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">OneTimePassword.dpr</Source>
+                    <Source Name="MainSource">TestOTS.dpr</Source>
                 </Source>
             </Delphi.Personality>
             <Deployment Version="3">
@@ -191,9 +191,9 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="Win32\Debug\OneTimePassword.exe" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="Win32\Debug\TestOTS.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
-                        <RemoteName>OneTimePassword.exe</RemoteName>
+                        <RemoteName>TestOTS.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
@@ -544,7 +544,7 @@
                         <Operation>1</Operation>
                     </Platform>
                     <Platform Name="iOSDevice64">
-                        <Operation>1</Operation>
+               ainSour  <Operation>1</Operation>
                     </Platform>
                     <Platform Name="iOSSimulator">
                         <Operation>1</Operation>

@@ -1,0 +1,689 @@
+object FormOTS: TFormOTS
+  Left = 192
+  Top = 107
+  Width = 1004
+  Height = 578
+  Caption = 'One Time Signature'
+  OnCreate = FormCreate
+  object pgc1: TTabControl
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 971.000000000000000000
+    Size.Height = 524.000000000000000000
+    ActiveTab = tsSM3OTS
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    TabOrder = 0
+    Sizes = (
+      971s
+      524s
+      971s
+      524s
+      971s
+      524s
+      971s
+      524s
+      971s
+      524s
+      971s
+      524s)
+    object tsSM3OTS: TTabItem
+      Text = 'SM3 OTS'
+      object lblSM3OTSMessage: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 46.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'Message:'
+      end
+      object lblSM3OTSPrivate: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 36.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Private:'
+      end
+      object lblSM3OTSPublic: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 32.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Public:'
+      end
+      object lblSM3OTSVerifyKey: TLabel
+        Position.X = 674.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 55.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akRight, akBottom]
+        Text = 'Verification:'
+      end
+      object lblSM3OTSSignature: TLabel
+        Position.X = 402.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 48.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akRight, akBottom]
+        Text = 'Signature:'
+      end
+      object btnGenSM3OTSKeys: TButton
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 177.000000000000000000
+        Size.Height = 25.000000000000000000
+        Text = 'Generate SM3 OTS Keys'
+        TabOrder = 0
+        OnClick = btnGenSM3OTSKeysClick
+      end
+      object mmoSM3OTSPrivateKey: TMemo
+        Position.X = 80.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 859.000000000000000000
+        Size.Height = 129.000000000000000000
+        Anchors = [akLeft, akTop, akRight]
+        ShowScrollBars = True
+        TabOrder = 1
+        TextSettings.WordWrap = False
+      end
+      object mmoSM3OTSPublicKey: TMemo
+        Position.X = 80.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 859.000000000000000000
+        Size.Height = 129.000000000000000000
+        Anchors = [akLeft, akTop, akRight]
+        ShowScrollBars = True
+        TabOrder = 2
+        TextSettings.WordWrap = False
+      end
+      object mmoSM3OTSMessage: TMemo
+        TextSettings.WordWrap = True
+        Position.X = 80.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 81.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Lines.Strings = (
+          'Test message for SM3 OTS.')
+        TabOrder = 3
+      end
+      object btnSM3OTSSign: TButton
+        Position.X = 80.000000000000000000
+        Position.Y = 419.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 25.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'SM3 OTS Sign'
+        TabOrder = 4
+        OnClick = btnSM3OTSSignClick
+      end
+      object btnSM3OTSVerify: TButton
+        Position.X = 80.000000000000000000
+        Position.Y = 451.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 25.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'SM3 OTS Verify'
+        TabOrder = 5
+        OnClick = btnSM3OTSVerifyClick
+      end
+      object mmoSM3OTSVerificationKey: TMemo
+        Position.X = 674.000000000000000000
+        Position.Y = 347.000000000000000000
+        Size.Width = 265.000000000000000000
+        Size.Height = 128.000000000000000000
+        Anchors = [akRight, akBottom]
+        ShowScrollBars = True
+        TabOrder = 6
+        TextSettings.WordWrap = False
+      end
+      object mmoSM3OTSSignature: TMemo
+        Position.X = 402.000000000000000000
+        Position.Y = 347.000000000000000000
+        Size.Width = 265.000000000000000000
+        Size.Height = 128.000000000000000000
+        Anchors = [akRight, akBottom]
+        ShowScrollBars = True
+        TabOrder = 7
+        TextSettings.WordWrap = False
+      end
+    end
+    object tsSHA256OTS: TTabItem
+      Text = 'SHA256 OTS'
+      ImageIndex = 1
+      object lblSHA256OTSMessage: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 46.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'Message:'
+      end
+      object lblSHA256OTSPrivate: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 36.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Private:'
+      end
+      object lblSHA256OTSPublic: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 32.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Public:'
+      end
+      object lblSHA256OTSVerifyKey: TLabel
+        Position.X = 674.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 55.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akRight, akBottom]
+        Text = 'Verification:'
+      end
+      object lblSHA256OTSSignature: TLabel
+        Position.X = 402.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 48.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akRight, akBottom]
+        Text = 'Signature:'
+      end
+      object btnGenSHA256OTSKeys: TButton
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 177.000000000000000000
+        Size.Height = 25.000000000000000000
+        Text = 'Generate SHA256 OTS Keys'
+        TabOrder = 0
+        OnClick = btnGenSHA256OTSKeysClick
+      end
+      object mmoSHA256OTSPrivateKey: TMemo
+        Position.X = 80.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 859.000000000000000000
+        Size.Height = 129.000000000000000000
+        Anchors = [akLeft, akTop, akRight]
+        ShowScrollBars = True
+        TabOrder = 1
+        TextSettings.WordWrap = False
+      end
+      object mmoSHA256OTSPublicKey: TMemo
+        Position.X = 80.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 859.000000000000000000
+        Size.Height = 129.000000000000000000
+        Anchors = [akLeft, akTop, akRight]
+        ShowScrollBars = True
+        TabOrder = 2
+        TextSettings.WordWrap = False
+      end
+      object mmoSHA256OTSMessage: TMemo
+        TextSettings.WordWrap = True
+        Position.X = 80.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 81.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Lines.Strings = (
+          'Test message for SHA256 OTS.')
+        TabOrder = 3
+      end
+      object btnSHA256OTSSign: TButton
+        Position.X = 80.000000000000000000
+        Position.Y = 419.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 25.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'SHA256 OTS Sign'
+        TabOrder = 4
+        OnClick = btnSHA256OTSSignClick
+      end
+      object btnSHA256OTSVerify: TButton
+        Position.X = 80.000000000000000000
+        Position.Y = 451.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 25.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'SHA256 OTS Verify'
+        TabOrder = 5
+        OnClick = btnSHA256OTSVerifyClick
+      end
+      object mmoSHA256OTSVerificationKey: TMemo
+        Position.X = 674.000000000000000000
+        Position.Y = 347.000000000000000000
+        Size.Width = 265.000000000000000000
+        Size.Height = 128.000000000000000000
+        Anchors = [akRight, akBottom]
+        ShowScrollBars = True
+        TabOrder = 6
+        TextSettings.WordWrap = False
+      end
+      object mmoSHA256OTSSignature: TMemo
+        Position.X = 402.000000000000000000
+        Position.Y = 347.000000000000000000
+        Size.Width = 265.000000000000000000
+        Size.Height = 128.000000000000000000
+        Anchors = [akRight, akBottom]
+        ShowScrollBars = True
+        TabOrder = 7
+        TextSettings.WordWrap = False
+      end
+    end
+    object tsSM3MOTS: TTabItem
+      Text = 'SM3 M-OTS'
+      ImageIndex = 2
+      object lblSM3MOTSMessage: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 46.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'Message:'
+      end
+      object lblSM3MOTSPrivate: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 36.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Private:'
+      end
+      object lblSM3MOTSPublic: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 32.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Public:'
+      end
+      object lblSM3MOTSSignature: TLabel
+        Position.X = 402.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 48.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akRight, akBottom]
+        Text = 'Signature:'
+      end
+      object btnGenSM3MOTSKeys: TButton
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 177.000000000000000000
+        Size.Height = 25.000000000000000000
+        Text = 'Generate SM3 MOTS Keys'
+        TabOrder = 0
+        OnClick = btnGenSM3MOTSKeysClick
+      end
+      object mmoSM3MOTSPrivateKey: TMemo
+        Position.X = 80.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 859.000000000000000000
+        Size.Height = 129.000000000000000000
+        Anchors = [akLeft, akTop, akRight]
+        ShowScrollBars = True
+        TabOrder = 1
+        TextSettings.WordWrap = False
+      end
+      object mmoSM3MOTSPublicKey: TMemo
+        Position.X = 80.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 859.000000000000000000
+        Size.Height = 129.000000000000000000
+        Anchors = [akLeft, akTop, akRight]
+        ShowScrollBars = True
+        TabOrder = 2
+        TextSettings.WordWrap = False
+      end
+      object mmoSM3MOTSMessage: TMemo
+        TextSettings.WordWrap = True
+        Position.X = 80.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 81.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Lines.Strings = (
+          'Test message for SM3 MOTS.')
+        TabOrder = 3
+      end
+      object btnSM3MOTSSign: TButton
+        Position.X = 80.000000000000000000
+        Position.Y = 419.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 25.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'SM3 MOTS Sign'
+        TabOrder = 4
+        OnClick = btnSM3MOTSSignClick
+      end
+      object btnSM3MOTSVerify: TButton
+        Position.X = 80.000000000000000000
+        Position.Y = 451.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 25.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'SM3 MOTS Verify'
+        TabOrder = 5
+        OnClick = btnSM3MOTSVerifyClick
+      end
+      object mmoSM3MOTSSignature: TMemo
+        Position.X = 402.000000000000000000
+        Position.Y = 347.000000000000000000
+        Size.Width = 535.000000000000000000
+        Size.Height = 128.000000000000000000
+        Anchors = [akRight, akBottom]
+        ShowScrollBars = True
+        TabOrder = 6
+        TextSettings.WordWrap = False
+      end
+    end
+    object tsSHA256MOTS: TTabItem
+      Text = 'SHA256 M-OTS'
+      ImageIndex = 3
+      object lblSHA256MOTSMessage: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 46.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'Message:'
+      end
+      object lblSHA256MOTSPrivate: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 36.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Private:'
+      end
+      object lblSHA256MOTSPublic: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 32.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Public:'
+      end
+      object lblSHA256MOTSSignature: TLabel
+        Position.X = 402.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 48.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akRight, akBottom]
+        Text = 'Signature:'
+      end
+      object btnGenSHA256MOTSKeys: TButton
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 177.000000000000000000
+        Size.Height = 25.000000000000000000
+        Text = 'Generate SHA256 MOTS Keys'
+        TabOrder = 0
+        OnClick = btnGenSHA256MOTSKeysClick
+      end
+      object mmoSHA256MOTSPrivateKey: TMemo
+        Position.X = 80.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 859.000000000000000000
+        Size.Height = 129.000000000000000000
+        Anchors = [akLeft, akTop, akRight]
+        ShowScrollBars = True
+        TabOrder = 1
+        TextSettings.WordWrap = False
+      end
+      object mmoSHA256MOTSPublicKey: TMemo
+        Position.X = 80.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 859.000000000000000000
+        Size.Height = 129.000000000000000000
+        Anchors = [akLeft, akTop, akRight]
+        ShowScrollBars = True
+        TabOrder = 2
+        TextSettings.WordWrap = False
+      end
+      object mmoSHA256MOTSMessage: TMemo
+        TextSettings.WordWrap = True
+        Position.X = 80.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 81.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Lines.Strings = (
+          'Test message for SHA256 MOTS.')
+        TabOrder = 3
+      end
+      object btnSHA256MOTSSign: TButton
+        Position.X = 80.000000000000000000
+        Position.Y = 419.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 25.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'SHA256 MOTS Sign'
+        TabOrder = 4
+        OnClick = btnSHA256MOTSSignClick
+      end
+      object btnSHA256MOTSVerify: TButton
+        Position.X = 80.000000000000000000
+        Position.Y = 451.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 25.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'SHA256 MOTS Verify'
+        TabOrder = 5
+        OnClick = btnSHA256MOTSVerifyClick
+      end
+      object mmoSHA256MOTSSignature: TMemo
+        Position.X = 402.000000000000000000
+        Position.Y = 347.000000000000000000
+        Size.Width = 535.000000000000000000
+        Size.Height = 128.000000000000000000
+        Anchors = [akRight, akBottom]
+        ShowScrollBars = True
+        TabOrder = 6
+        TextSettings.WordWrap = False
+      end
+    end
+    object tsSM3WOTS: TTabItem
+      Text = 'SM3 W-OTS'
+      ImageIndex = 4
+      object lblSM3WOTSMessage: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 46.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'Message:'
+      end
+      object lblSM3WOTSPrivate: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 36.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Private:'
+      end
+      object lblSM3WOTSPublic: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 32.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Public:'
+      end
+      object lblSM3WOTSSignature: TLabel
+        Position.X = 402.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 48.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akRight, akBottom]
+        Text = 'Signature:'
+      end
+      object btnGenSM3WOTSKeys: TButton
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 177.000000000000000000
+        Size.Height = 25.000000000000000000
+        Text = 'Generate SM3 WOTS Keys'
+        TabOrder = 0
+        OnClick = btnGenSM3WOTSKeysClick
+      end
+      object mmoSM3WOTSPrivateKey: TMemo
+        Position.X = 80.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 859.000000000000000000
+        Size.Height = 129.000000000000000000
+        Anchors = [akLeft, akTop, akRight]
+        ShowScrollBars = True
+        TabOrder = 1
+        TextSettings.WordWrap = False
+      end
+      object mmoSM3WOTSPublicKey: TMemo
+        Position.X = 80.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 859.000000000000000000
+        Size.Height = 129.000000000000000000
+        Anchors = [akLeft, akTop, akRight]
+        ShowScrollBars = True
+        TabOrder = 2
+        TextSettings.WordWrap = False
+      end
+      object mmoSM3WOTSMessage: TMemo
+        TextSettings.WordWrap = True
+        Position.X = 80.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 81.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Lines.Strings = (
+          'Test message for SM3 WOTS.')
+        TabOrder = 3
+      end
+      object btnSM3WOTSSign: TButton
+        Position.X = 80.000000000000000000
+        Position.Y = 419.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 25.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'SM3 WOTS Sign'
+        TabOrder = 4
+        OnClick = btnSM3WOTSSignClick
+      end
+      object btnSM3WOTSVerify: TButton
+        Position.X = 80.000000000000000000
+        Position.Y = 451.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 25.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'SM3 WOTS Verify'
+        TabOrder = 5
+        OnClick = btnSM3WOTSVerifyClick
+      end
+      object mmoSM3WOTSSignature: TMemo
+        Position.X = 402.000000000000000000
+        Position.Y = 347.000000000000000000
+        Size.Width = 535.000000000000000000
+        Size.Height = 128.000000000000000000
+        Anchors = [akRight, akBottom]
+        ShowScrollBars = True
+        TabOrder = 6
+        TextSettings.WordWrap = False
+      end
+    end
+    object tsSHA256WOTS: TTabItem
+      Text = 'SHA256 W-OTS'
+      ImageIndex = 5
+      object lblSHA256WOTSMessage: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 46.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'Message:'
+      end
+      object lblSHA256WOTSPrivate: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 36.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Private:'
+      end
+      object lblSHA256WOTSPublic: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 32.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Public:'
+      end
+      object lblSHA256WOTSSignature: TLabel
+        Position.X = 402.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 48.000000000000000000
+        Size.Height = 13.000000000000000000
+        Anchors = [akRight, akBottom]
+        Text = 'Signature:'
+      end
+      object btnGenSHA256WOTSKeys: TButton
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 177.000000000000000000
+        Size.Height = 25.000000000000000000
+        Text = 'Generate SHA256 WOTS Keys'
+        TabOrder = 0
+        OnClick = btnGenSHA256WOTSKeysClick
+      end
+      object mmoSHA256WOTSPrivateKey: TMemo
+        Position.X = 80.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 859.000000000000000000
+        Size.Height = 129.000000000000000000
+        Anchors = [akLeft, akTop, akRight]
+        ShowScrollBars = True
+        TabOrder = 1
+        TextSettings.WordWrap = False
+      end
+      object mmoSHA256WOTSPublicKey: TMemo
+        Position.X = 80.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 859.000000000000000000
+        Size.Height = 129.000000000000000000
+        Anchors = [akLeft, akTop, akRight]
+        ShowScrollBars = True
+        TabOrder = 2
+        TextSettings.WordWrap = False
+      end
+      object mmoSHA256WOTSMessage: TMemo
+        TextSettings.WordWrap = True
+        Position.X = 80.000000000000000000
+        Position.Y = 323.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 81.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Lines.Strings = (
+          'Test message for SHA256 WOTS.')
+        TabOrder = 3
+      end
+      object btnSHA256WOTSSign: TButton
+        Position.X = 80.000000000000000000
+        Position.Y = 419.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 25.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'SHA256 WOTS Sign'
+        TabOrder = 4
+        OnClick = btnSHA256WOTSSignClick
+      end
+      object btnSHA256WOTSVerify: TButton
+        Position.X = 80.000000000000000000
+        Position.Y = 451.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 25.000000000000000000
+        Anchors = [akLeft, akBottom]
+        Text = 'SHA256 WOTS Verify'
+        TabOrder = 5
+        OnClick = btnSHA256WOTSVerifyClick
+      end
+      object mmoSHA256WOTSSignature: TMemo
+        Position.X = 402.000000000000000000
+        Position.Y = 347.000000000000000000
+        Size.Width = 535.000000000000000000
+        Size.Height = 128.000000000000000000
+        Anchors = [akRight, akBottom]
+        ShowScrollBars = True
+        TabOrder = 6
+        TextSettings.WordWrap = False
+      end
+    end
+  end
+end
