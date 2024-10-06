@@ -1,8 +1,8 @@
 object CnPropSheetForm: TCnPropSheetForm
   Left = 432
   Top = 96
-  ClientWidth = 399
-  ClientHeight = 524
+  Width = 459
+  Height = 602
   BorderStyle = bsSizeToolWin
   Caption = 'CnDebug Inspector'
   Color = clBtnFace
@@ -24,7 +24,7 @@ object CnPropSheetForm: TCnPropSheetForm
     Left = 0
     Top = 0
     Width = 100
-    Height = 497
+    Height = 575
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 1
@@ -91,7 +91,7 @@ object CnPropSheetForm: TCnPropSheetForm
       Left = 0
       Top = 30
       Width = 100
-      Height = 446
+      Height = 524
       Align = alClient
       HideSelection = False
       Indent = 19
@@ -101,7 +101,7 @@ object CnPropSheetForm: TCnPropSheetForm
     end
     object tsTree: TTabSet
       Left = 0
-      Top = 476
+      Top = 554
       Width = 100
       Height = 21
       Align = alBottom
@@ -120,15 +120,15 @@ object CnPropSheetForm: TCnPropSheetForm
   object pnlRight: TPanel
     Left = 100
     Top = 0
-    Width = 291
-    Height = 497
+    Width = 351
+    Height = 575
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object pnlTop: TPanel
       Left = 0
       Top = 0
-      Width = 291
+      Width = 351
       Height = 30
       Align = alTop
       BevelOuter = bvNone
@@ -172,7 +172,7 @@ object CnPropSheetForm: TCnPropSheetForm
         OnClick = btnRefreshClick
       end
       object btnTop: TSpeedButton
-        Left = 454
+        Left = 506
         Top = 5
         Width = 20
         Height = 21
@@ -289,8 +289,8 @@ object CnPropSheetForm: TCnPropSheetForm
     end
     object tsSwitch: TTabSet
       Left = 0
-      Top = 476
-      Width = 291
+      Top = 554
+      Width = 351
       Height = 21
       Align = alBottom
       Font.Charset = ANSI_CHARSET
@@ -313,8 +313,8 @@ object CnPropSheetForm: TCnPropSheetForm
     object pnlMain: TPanel
       Left = 0
       Top = 30
-      Width = 291
-      Height = 446
+      Width = 351
+      Height = 524
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 2
@@ -599,8 +599,8 @@ object CnPropSheetForm: TCnPropSheetForm
       object pnlHierarchy: TPanel
         Left = 0
         Top = 0
-        Width = 291
-        Height = 446
+        Width = 351
+        Height = 524
         Align = alClient
         BevelInner = bvLowered
         BevelOuter = bvNone
@@ -610,8 +610,8 @@ object CnPropSheetForm: TCnPropSheetForm
       object pnlGraphic: TPanel
         Left = 0
         Top = 0
-        Width = 291
-        Height = 446
+        Width = 351
+        Height = 524
         Align = alClient
         BevelInner = bvLowered
         BevelOuter = bvNone
@@ -620,8 +620,8 @@ object CnPropSheetForm: TCnPropSheetForm
         Visible = False
         object pnlGraphicInfo: TPanel
           Left = 1
-          Top = 404
-          Width = 289
+          Top = 482
+          Width = 349
           Height = 41
           Align = alBottom
           BevelOuter = bvNone
@@ -642,15 +642,15 @@ object CnPropSheetForm: TCnPropSheetForm
         object bxGraphic: TScrollBox
           Left = 1
           Top = 1
-          Width = 289
-          Height = 403
+          Width = 349
+          Height = 481
           Align = alClient
           BorderStyle = bsNone
           TabOrder = 1
           object pbGraphic: TPaintBox
             Left = 0
             Top = 0
-            Width = 387
+            Width = 439
             Height = 400
             Anchors = [akLeft, akTop, akRight]
             OnMouseMove = pbGraphicMouseMove

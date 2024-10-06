@@ -651,7 +651,7 @@ var
   CnFormLeft: Integer = 50;
   CnFormTop: Integer = 50;
   Closing: Boolean = False;
-  CnPnlTreeWidth: Integer = 250;
+  CnPnlTreeWidth: Integer = 400;
 
 // 根据 set 值与 set 的类型获得 set 的字符串，TypInfo 参数必须是枚举的类型，
 // 而不能是 set of 后的类型，如无 TypInfo，则返回数值
