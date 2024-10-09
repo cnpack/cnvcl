@@ -91,15 +91,15 @@ function SaveMemoryToPemStream(Stream: TStream; const Head: string; const Tail: 
 // ===================== PKCS1 / PKCS7 Padding 对齐处理函数 ====================
 
 function AddPKCS1Padding(PaddingType: Integer; BlockSize: Integer; Data: Pointer;
-  DataLen: Integer; OutStream: TStream): Boolean;
+  DataByteLen: Integer; OutStream: TStream): Boolean;
 {* 将数据块补上填充内容写入 Stream 中，返回成功与否，内部会设置错误码。
    PaddingType 取 0、1、2，BlockLen 字节数如 128 等
    EB = 00 || BT || PS || 00 || D
    其中 00 是前导规定字节，BT 是 1 字节的 PaddingType，0 1 2 分别代表 00 FF 随机
    PS 是填充的多字节内容，再 00 是规定的结尾字节}
 
-function RemovePKCS1Padding(InData: Pointer; InDataLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer): Boolean;
+function RemovePKCS1Padding(InData: Pointer; InDataByteLen: Integer; OutBuf: Pointer;
+  out OutByteLen: Integer): Boolean;
 {* 去掉 PKCS1 的 Padding，返回成功与否。OutBuf 所指区域的可用长度需调用者自行保证
   如成功，OutLen 返回原文数据长度}
 
@@ -197,43 +197,40 @@ begin
 end;
 
 function AddPKCS1Padding(PaddingType, BlockSize: Integer; Data: Pointer;
-  DataLen: Integer; OutStream: TStream): Boolean;
+  DataByteLen: Integer; OutStream: TStream): Boolean;
 var
   I: Integer;
   B, F: Byte;
 begin
   Result := False;
-  if (Data = nil) or (DataLen <= 0) then
+  if (Data = nil) or (DataByteLen <= 0) then
     Exit;
 
   // 不足以填充
-  if DataLen > BlockSize - PKCS1_PADDING_SIZE then
+  if DataByteLen > BlockSize - PKCS1_PADDING_SIZE then
     Exit;
-
 
   B := 0;
   OutStream.Write(B, 1);       // 写前导字节 00
   B := PaddingType;
-  F := BlockSize - DataLen - 3; // 3 表示一个前导 00、一个类型字节、一个填充后的 00 结尾
+  F := BlockSize - DataByteLen - 3; // 3 表示一个前导 00、一个类型字节、一个填充后的 00 结尾
 
+  OutStream.Write(B, 1);
   case PaddingType of
     CN_PKCS1_BLOCK_TYPE_PRIVATE_00:
       begin
-        OutStream.Write(B, 1);
         B := 0;
         for I := 1 to F do
           OutStream.Write(B, 1);
       end;
     CN_PKCS1_BLOCK_TYPE_PRIVATE_FF:
       begin
-        OutStream.Write(B, 1);
         B := $FF;
         for I := 1 to F do
           OutStream.Write(B, 1);
       end;
     CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM:
       begin
-        OutStream.Write(B, 1);
         Randomize;
         for I := 1 to F do
         begin
@@ -249,25 +246,25 @@ begin
 
   B := 0;
   OutStream.Write(B, 1);
-  OutStream.Write(Data^, DataLen);
+  OutStream.Write(Data^, DataByteLen);
   Result := True;
 end;
 
-function RemovePKCS1Padding(InData: Pointer; InDataLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer): Boolean;
+function RemovePKCS1Padding(InData: Pointer; InDataByteLen: Integer; OutBuf: Pointer;
+  out OutByteLen: Integer): Boolean;
 var
   P: PAnsiChar;
   I, J, Start: Integer;
 begin
   Result := False;
-  OutLen := 0;
+  OutByteLen := 0;
   I := 0;
 
   P := PAnsiChar(InData);
   while P[I] = #0 do // 首字符不一定是 #0，可能已经被去掉了
     Inc(I);
 
-  if I >= InDataLen then
+  if I >= InDataByteLen then
     Exit;
 
   Start := 0;
@@ -276,7 +273,7 @@ begin
       begin
         // 从 P[I + 1] 开始寻找非 00 便是
         J := I + 1;
-        while J < InDataLen do
+        while J < InDataByteLen do
         begin
           if P[J] <> #0 then
           begin
@@ -291,7 +288,7 @@ begin
       begin
         // 从 P[I + 1] 开始寻找到第一个 00 后的便是
         J := I + 1;
-        while J < InDataLen do
+        while J < InDataByteLen do
         begin
           if P[J] = #0 then
           begin
@@ -308,8 +305,8 @@ begin
 
   if Start > 0 then
   begin
-    Move(P[Start], OutBuf^, InDataLen - Start);
-    OutLen := InDataLen - Start;
+    Move(P[Start], OutBuf^, InDataByteLen - Start);
+    OutByteLen := InDataByteLen - Start;
     Result := True;
   end;
 end;

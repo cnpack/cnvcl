@@ -206,7 +206,7 @@ type
   private
     FBerTree: TCnTree;
     FData: PByte;
-    FDataLen: Cardinal;
+    FDataByteLen: Cardinal;
     FParseInnerString: Boolean;
     FCurrentIsBitString: Boolean;
 {$IFDEF DEBUG}
@@ -223,7 +223,7 @@ type
 {$ENDIF}
     function GetTotalCount: Integer;
     function GetItems(Index: Integer): TCnBerReadNode;
-    function ParseArea(Parent: TCnLeaf; AData: PByteArray; ADataLen: Cardinal;
+    function ParseArea(Parent: TCnLeaf; AData: PByteArray; ADataByteLen: Cardinal;
       AStartOffset: Cardinal; var IsEnd: Boolean; IsTop: Boolean = True): Cardinal;
     {* 解析一段数据为一个或多个节点，该数据里的所有 ASN.1 节点均序次挂在 Parent 节点下，
       返回这个 Area 的总长度。IsTop 表示是 Parent 是 Root 顶级节点，以处理长度问题。
@@ -232,7 +232,7 @@ type
   protected
 
   public
-    constructor Create(Data: PByte; DataLen: Cardinal; AParseInnerString: Boolean = False);
+    constructor Create(Data: PByte; DataByteLen: Cardinal; AParseInnerString: Boolean = False);
     destructor Destroy; override;
 
     procedure ParseToTree;
@@ -295,7 +295,7 @@ type
     function GetNodeLength: Integer;
     {* 如果是基本类型就返回自身长度，如果是容器则自己头加各子节点长度}
 
-    procedure FillBasicNode(ATag: Integer; AData: PByte; DataLen: Integer);
+    procedure FillBasicNode(ATag: Integer; AData: PByte; ADataByteLen: Integer);
     {* 外界创建此基本节点后用此方法填充基本数据，Container 节点不用，
        注意原始 BitString 不支持头字节，暂不需要自己填充}
 
@@ -356,7 +356,7 @@ type
 
     function AddNullNode(Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
     {* 添加一个 Null 节点}
-    function AddBasicNode(ATag: Integer; AData: PByte; DataLen: Integer;
+    function AddBasicNode(ATag: Integer; AData: PByte; ADataByteLen: Integer;
       Parent: TCnBerWriteNode = nil): TCnBerWriteNode; overload;
     {* 添加一个基本类型的节点，内容从 AData 复制长度为 DataLen 的而来}
     function AddBasicNode(ATag: Integer; AStream: TStream;
@@ -488,11 +488,11 @@ end;
 
 { TCnBerReader }
 
-constructor TCnBerReader.Create(Data: PByte; DataLen: Cardinal;
+constructor TCnBerReader.Create(Data: PByte; DataByteLen: Cardinal;
   AParseInnerString: Boolean);
 begin
   FData := Data;
-  FDataLen := DataLen;
+  FDataByteLen := DataByteLen;
   FParseInnerString := AParseInnerString;
   FBerTree := TCnTree.Create(TCnBerReadNode);
 end;
@@ -556,7 +556,7 @@ begin
 end;
 
 function TCnBerReader.ParseArea(Parent: TCnLeaf; AData: PByteArray;
-  ADataLen: Cardinal; AStartOffset: Cardinal; var IsEnd: Boolean; IsTop: Boolean): Cardinal;
+  ADataByteLen: Cardinal; AStartOffset: Cardinal; var IsEnd: Boolean; IsTop: Boolean): Cardinal;
 var
   Run, Start: Cardinal;
   Tag, DataLen, DataOffset, LenLen, Delta, SubLen: Integer;
@@ -565,11 +565,11 @@ var
   ALeaf: TCnBerReadNode;
 begin
   Run := 0;  // Run 是基于 AData 起始处的偏移量
-  Result := ADataLen;
-  OutLenIsZero := ADataLen = 0;
+  Result := ADataByteLen;
+  OutLenIsZero := ADataByteLen = 0;
   MyEnd := False;
 
-  while (ADataLen = 0) or (Run < ADataLen) do // ADataLen 如果等于 0 表示是不定长节点
+  while (ADataByteLen = 0) or (Run < ADataByteLen) do // ADataLen 如果等于 0 表示是不定长节点
   begin
     B := AData^[Run];
 
@@ -583,13 +583,13 @@ begin
     Tag := B and CN_BER_TAG_VALUE_MASK;
 
     Inc(Run);
-    if (Run >= ADataLen) and (ADataLen > 0) then
+    if (Run >= ADataByteLen) and (ADataByteLen > 0) then
       raise Exception.CreateFmt('Data Corruption when Processing Tag (Base %d), %d > %d.',
-        [AStartOffset, Run, ADataLen]);
+        [AStartOffset, Run, ADataByteLen]);
 
     // Run 指向长度，如果 Tag 和长度都是 0，表示不定长内容的终结，不新建节点
     // 注意 ADataLen 可能因为是顶层节点，长度由外部传入，
-    if (IsTop or (ADataLen = 0)) and (B = 0) and (AData^[Run] = 0) then
+    if (IsTop or (ADataByteLen = 0)) and (B = 0) and (AData^[Run] = 0) then
     begin
       if OutLenIsZero then // 加 Tag 和 0 长度俩字节
         Inc(Result, 2);
@@ -618,7 +618,7 @@ begin
       Inc(Run);   // Run 指向具体长度，如果 LenLen 为 0，则 Run 指向下一个 Area 开头
 
       // AData[Run] 到 AData[Run + LenLen - 1] 是长度
-      if (ADataLen > 0) and (Run + Cardinal(LenLen) - 1 >= ADataLen) then
+      if (ADataByteLen > 0) and (Run + Cardinal(LenLen) - 1 >= ADataByteLen) then
         raise Exception.CreateFmt('Data Corruption when Processing Tag (Base %d) at %d Got Len %d.',
           [AStartOffset, Run, LenLen]);
 
@@ -709,7 +709,7 @@ procedure TCnBerReader.ParseToTree;
 var
   MyEnd: Boolean;
 begin
-  ParseArea(FBerTree.Root, PByteArray(FData), FDataLen, 0, MyEnd);
+  ParseArea(FBerTree.Root, PByteArray(FData), FDataByteLen, 0, MyEnd);
 end;
 
 procedure TCnBerReader.ManualParseNodeData(RootNode: TCnBerReadNode);
@@ -980,14 +980,14 @@ end;
 { TCnBerWriter }
 
 function TCnBerWriter.AddBasicNode(ATag: Integer; AData: PByte;
-  DataLen: Integer; Parent: TCnBerWriteNode): TCnBerWriteNode;
+  ADataByteLen: Integer; Parent: TCnBerWriteNode): TCnBerWriteNode;
 begin
   if Parent = nil then
     Parent := FBerTree.Root as TCnBerWriteNode;
 
   Result := FBerTree.AddChild(Parent) as TCnBerWriteNode;
   Result.FIsContainer := False;
-  Result.FillBasicNode(ATag, AData, DataLen);
+  Result.FillBasicNode(ATag, AData, ADataByteLen);
 end;
 
 function TCnBerWriter.AddContainerNode(ATag: Integer;
@@ -1308,7 +1308,7 @@ begin
 end;
 
 procedure TCnBerWriteNode.FillBasicNode(ATag: Integer; AData: PByte;
-  DataLen: Integer);
+  ADataByteLen: Integer);
 var
   B: Byte;
 begin
@@ -1317,12 +1317,12 @@ begin
     Exit;
 
   FData := AData;
-  FDataLength := DataLen;
-  FillHeadCalcLen(ATag, DataLen);
+  FDataLength := ADataByteLen;
+  FillHeadCalcLen(ATag, ADataByteLen);
 
   FMem.Clear;
   FMem.Write(FHead[0], FHeadLen);
-  if DataLen > 0 then
+  if ADataByteLen > 0 then
   begin
     // 纯 BitString 需要补一个前导字节，头长度已经在 FillHeadCalcLen 内补上了
     if ATag = CN_BER_TAG_BIT_STRING then
@@ -1330,7 +1330,7 @@ begin
       B := 0;
       FMem.Write(B, 1);
     end;
-    FMem.Write(Data^, DataLen);
+    FMem.Write(Data^, ADataByteLen);
   end;
 end;
 

@@ -821,11 +821,11 @@ function CnSM9KGCGenerateSignatureUserKey(SignatureMasterPrivateKey:
 
 function CnSM9UserSignData(SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey;
   SignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey; PlainData: Pointer;
-  DataLen: Integer; OutSignature: TCnSM9Signature; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
+  DataByteLen: Integer; OutSignature: TCnSM9Signature; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
 {* 利用用户签名私钥与用户 ID 对数据进行签名，返回成功与否，签名值放在 OutSignature 中
   注意因有用户私钥存在，用户 ID 无需参与签名}
 
-function CnSM9UserVerifyData(const AUserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+function CnSM9UserVerifyData(const AUserID: AnsiString; PlainData: Pointer; DataByteLen: Integer;
   InSignature: TCnSM9Signature; SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey;
   SM9: TCnSM9 = nil): Boolean;
 {* 利用公开的签名公钥与用户 ID 对数据与签名进行验证，返回验证签名成功与否
@@ -860,7 +860,7 @@ function CnSM9UserReceiveKeyEncapsulation(const DestUserID: AnsiString;
 
 function CnSM9UserEncryptData(const DestUserID: AnsiString;
   EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey; PlainData: Pointer;
-  DataLen: Integer; K1ByteLength: Integer; K2ByteLength: Integer; OutStream: TStream;
+  DataByteLen: Integer; K1ByteLength: Integer; K2ByteLength: Integer; OutStream: TStream;
   EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
 {* 使用加密主公钥与目标用户的 ID 加密数据并写入流，返回加密是否成功，
   EncryptionMode 是 SM4 时 K1Length 参数值忽略，内部固定为 16 字节，
@@ -868,7 +868,7 @@ function CnSM9UserEncryptData(const DestUserID: AnsiString;
 
 function CnSM9UserDecryptData(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; EnData: Pointer;
-  DataLen: Integer; K2ByteLength: Integer; OutStream: TStream;
+  DataByteLen: Integer; K2ByteLength: Integer; OutStream: TStream;
   EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil): Boolean;
 {* 使用用户加密私钥解密数据并写入流，返回解密是否成功}
 
@@ -914,12 +914,12 @@ function CnSM9UserKeyExchangeBStep2(const AUserID: AnsiString; const BUserID: An
 
 // =================== SM9 具体实现函数：两种杂凑算法 ========================
 
-function CnSM9Hash1(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
+function CnSM9Hash1(const Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
   N: TCnBigNumber): Boolean;
 {* SM9 中规定的第一个密码函数，内部使用 SM3，256 位的杂凑函数
   输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order}
 
-function CnSM9Hash2(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
+function CnSM9Hash2(const Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
   N: TCnBigNumber): Boolean;
 {* SM9 中规定的第二个密码函数，内部使用 SM3，256 位的杂凑函数
   输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order}
@@ -3125,7 +3125,7 @@ end;
 
 function CnSM9UserSignData(SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey;
   SignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey; PlainData: Pointer;
-  DataLen: Integer; OutSignature: TCnSM9Signature; SM9: TCnSM9; const RandHex: string): Boolean;
+  DataByteLen: Integer; OutSignature: TCnSM9Signature; SM9: TCnSM9; const RandHex: string): Boolean;
 var
   C: Boolean;
   G: TCnFP12;
@@ -3181,7 +3181,7 @@ begin
       FP12Power(G, G, R, SM9.FiniteFieldSize);
 
       Stream.Clear;
-      Stream.Write(PlainData^, DataLen);
+      Stream.Write(PlainData^, DataByteLen);
       FP12ToStream(G, Stream, SM9.BytesCount);
 
       if not CnSM9Hash2(OutSignature.H, Stream.Memory, Stream.Size, SM9.Order) then
@@ -3213,7 +3213,7 @@ begin
   end;
 end;
 
-function CnSM9UserVerifyData(const AUserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+function CnSM9UserVerifyData(const AUserID: AnsiString; PlainData: Pointer; DataByteLen: Integer;
   InSignature: TCnSM9Signature; SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey;
   SM9: TCnSM9): Boolean;
 var
@@ -3282,7 +3282,7 @@ begin
     FP12Mul(W, W, G, SM9.FiniteFieldSize);
 
     Stream := TMemoryStream.Create;
-    Stream.Write(PlainData^, DataLen);
+    Stream.Write(PlainData^, DataByteLen);
     FP12ToStream(W, Stream, SM9.BytesCount);
 
     // 再次拼上原文与 FP12 计算 Hash2 并比对
@@ -3524,7 +3524,7 @@ end;
 }
 function CnSM9UserEncryptData(const DestUserID: AnsiString;
   EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey; PlainData: Pointer;
-  DataLen: Integer; K1ByteLength, K2ByteLength: Integer; OutStream: TStream;
+  DataByteLen: Integer; K1ByteLength, K2ByteLength: Integer; OutStream: TStream;
   EncryptionMode: TCnSM9EncrytionMode; SM9: TCnSM9; const RandHex: string): Boolean;
 var
   C: Boolean;
@@ -3540,7 +3540,7 @@ var
   Mac: TCnSM3Digest;
 begin
   Result := False;
-  if (DestUserID = '') or (PlainData = nil) or (DataLen <= 0) or (K1ByteLength <= 0)
+  if (DestUserID = '') or (PlainData = nil) or (DataByteLen <= 0) or (K1ByteLength <= 0)
     or (K2ByteLength <= 0) then
   begin
     _CnSetLastError(ECN_SM9_INVALID_INPUT);
@@ -3614,8 +3614,8 @@ begin
       KLen := K1ByteLength + K2ByteLength;
       KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
 
-      SetLength(P2, DataLen);
-      Move(PlainData^, P2[0], DataLen);
+      SetLength(P2, DataByteLen);
+      Move(PlainData^, P2[0], DataByteLen);
       BytesAddPKCS7Padding(P2, CN_SM4_BLOCKSIZE); // 复制原始数据并在尾部加上几个几的 PKCS7 对齐
 
       SetLength(C2, Length(P2));
@@ -3625,14 +3625,14 @@ begin
     end
     else if EncryptionMode = semKDF then
     begin
-      KLen := DataLen + K2ByteLength;
+      KLen := DataByteLen + K2ByteLength;
       KDFKey := CnSM9KDF(Stream.Memory, Stream.Size, KLen);
 
       // KDFKey 的 1 到 DataLen 与明文异或得到 C2，注意 KDFKey 的下标从 1 开始
       PD := PByteArray(PlainData);
-      SetLength(C2, DataLen);
+      SetLength(C2, DataByteLen);
 
-      for I := 0 to DataLen - 1 do
+      for I := 0 to DataByteLen - 1 do
         C2[I] := Byte(KDFKey[I + 1]) xor PD^[I];
     end;
 
@@ -3660,7 +3660,7 @@ end;
 
 function CnSM9UserDecryptData(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; EnData: Pointer;
-  DataLen: Integer; K2ByteLength: Integer; OutStream: TStream;
+  DataByteLen: Integer; K2ByteLength: Integer; OutStream: TStream;
   EncryptionMode: TCnSM9EncrytionMode; SM9: TCnSM9): Boolean;
 var
   C: Boolean;
@@ -3676,7 +3676,7 @@ var
   C2: TBytes;
 begin
   Result := False;
-  if (EnData = nil) or (K2ByteLength <= 0) or (DataLen <= 0) then
+  if (EnData = nil) or (K2ByteLength <= 0) or (DataByteLen <= 0) then
   begin
     _CnSetLastError(ECN_SM9_INVALID_INPUT);
     Exit;
@@ -3686,7 +3686,7 @@ begin
   if C then
     SM9 := TCnSM9.Create;
 
-  if DataLen <= (SM9.BitsCount div 4) + SizeOf(TCnSM3Digest) then
+  if DataByteLen <= (SM9.BitsCount div 4) + SizeOf(TCnSM3Digest) then
   begin
     _CnSetLastError(ECN_SM9_INVALID_INPUT);
     if C then
@@ -3721,7 +3721,7 @@ begin
     Inc(PC, SizeOf(TCnSM3Digest));  // PC 现在指向密文 C2
 
     P := PByteArray(PC);
-    MLen := DataLen - SM9.BitsCount div 4 - SizeOf(TCnSM3Digest); // MLen 密文长度
+    MLen := DataByteLen - SM9.BitsCount div 4 - SizeOf(TCnSM3Digest); // MLen 密文长度
 
     AP := TCnFP2AffinePoint.Create;
     FP2PointToFP2AffinePoint(AP, EncryptionUserKey);
@@ -4210,7 +4210,7 @@ begin
   end;
 end;
 
-function SM9Hash(const Res: TCnBigNumber; Prefix: Byte; Data: Pointer; DataLen: Integer;
+function SM9Hash(const Res: TCnBigNumber; Prefix: Byte; Data: Pointer; DataByteLen: Integer;
   N: TCnBigNumber): Boolean;
 var
   CT, SCT, HLen: Cardinal;
@@ -4221,7 +4221,7 @@ var
   BH, BN: TCnBigNumber;
 begin
   Result := False;
-  if (Data = nil) or (DataLen <= 0) then
+  if (Data = nil) or (DataByteLen <= 0) then
     Exit;
 
   DArr := nil;
@@ -4243,16 +4243,16 @@ begin
 
     // CeilLen = 2，FloorLen = 1
 
-    SetLength(DArr, DataLen + SizeOf(Byte) + SizeOf(Cardinal)); // 1 Byte Prefix + 4 Byte Cardinal CT
+    SetLength(DArr, DataByteLen + SizeOf(Byte) + SizeOf(Cardinal)); // 1 Byte Prefix + 4 Byte Cardinal CT
     DArr[0] := Prefix;
-    Move(Data^, DArr[1], DataLen);
+    Move(Data^, DArr[1], DataByteLen);
 
     SetLength(Ha, HLen div 8);
 
     for I := 1 to CeilLen do
     begin
       SCT := UInt32HostToNetwork(CT);  // 虽然文档中没说，但要倒序一下
-      Move(SCT, DArr[DataLen + 1], SizeOf(Cardinal));
+      Move(SCT, DArr[DataByteLen + 1], SizeOf(Cardinal));
       SM3D := SM3(@DArr[0], Length(DArr));
 
       if (I = CeilLen) and not IsInt then
@@ -4282,16 +4282,16 @@ begin
   end;
 end;
 
-function CnSM9Hash1(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
+function CnSM9Hash1(const Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
   N: TCnBigNumber): Boolean;
 begin
-  Result := SM9Hash(Res, CN_SM9_HASH_PREFIX_1, Data, DataLen, N);
+  Result := SM9Hash(Res, CN_SM9_HASH_PREFIX_1, Data, DataByteLen, N);
 end;
 
-function CnSM9Hash2(const Res: TCnBigNumber; Data: Pointer; DataLen: Integer;
+function CnSM9Hash2(const Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
   N: TCnBigNumber): Boolean;
 begin
-  Result := SM9Hash(Res, CN_SM9_HASH_PREFIX_2, Data, DataLen, N);
+  Result := SM9Hash(Res, CN_SM9_HASH_PREFIX_2, Data, DataByteLen, N);
 end;
 
 function SM9Mac(Key: Pointer; KeyByteLength: Integer; Z: Pointer; ZByteLength: Integer): TCnSM3Digest;

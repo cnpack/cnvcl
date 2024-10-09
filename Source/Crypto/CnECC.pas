@@ -924,7 +924,7 @@ function CnInt64PolynomialEccPointsEqual(P1: TCnInt64PolynomialEccPoint;
 function CheckEccPublicKey(Ecc: TCnEcc; PublicKey: TCnEccPublicKey): Boolean;
 {* 检验给定曲线的 PublicKey 是否合法}
 
-function GetCurveTypeFromOID(Data: PAnsiChar; DataLen: Cardinal): TCnEccCurveType;
+function GetCurveTypeFromOID(Data: PAnsiChar; DataByteLen: Cardinal): TCnEccCurveType;
 {* 通过 BER 中的原始 OID 数据（包括头）获取对应的曲线类型}
 
 function GetOIDFromCurveType(Curve: TCnEccCurveType; out OIDAddr: Pointer): Integer;
@@ -3702,13 +3702,13 @@ begin
   end;
 end;
 
-function GetCurveTypeFromOID(Data: PAnsiChar; DataLen: Cardinal): TCnEccCurveType;
+function GetCurveTypeFromOID(Data: PAnsiChar; DataByteLen: Cardinal): TCnEccCurveType;
 var
   P: PByte;
   L: Byte;
 begin
   Result := ctCustomized;
-  if (Data = nil) or (DataLen < 3) then
+  if (Data = nil) or (DataByteLen < 3) then
     Exit;
 
   P := PByte(Data);

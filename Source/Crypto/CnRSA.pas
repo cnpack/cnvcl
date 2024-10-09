@@ -325,42 +325,42 @@ function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
 
 // ======================== RSA 数据与文件加解密实现 ===========================
 
-function CnRSAEncryptRawData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSAEncryptRawData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
 {* 用公钥对数据块进行加密，无填充，结果放 OutBuf 中，
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
-function CnRSAEncryptRawData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSAEncryptRawData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
 {* 用私钥对数据块进行加密，无填充，结果放 OutBuf 中，
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
-function CnRSADecryptRawData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
 {* 用公钥对数据块进行无填充解密，结果放 OutBuf 中，并返回数据长度
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
-function CnRSADecryptRawData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
 {* 用私钥对数据块进行无填充解密结果放 OutBuf 中，并返回数据长度
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
-function CnRSAEncryptData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSAEncryptData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   PublicKey: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
 {* 用公钥对数据块进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中，
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
-function CnRSAEncryptData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSAEncryptData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
 {* 用私钥对数据块进行加密，加密前使用 PKCS1 填充，结果放 OutBuf 中，
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
-function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
 {* 用公钥对数据块进行解密，并解开 PKCS1 填充，结果放 OutBuf 中，并返回数据长度
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
-function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PrivateKey: TCnRSAPrivateKey;
   PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
 {* 用私钥对数据块进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中，并返回数据长度
@@ -421,12 +421,12 @@ function CnRSAVerifyBytes(InData: TBytes; InSignBytes: TBytes;
 // OAEP Padding 的生成与验证算法
 
 function AddOaepSha1MgfPadding(ToBuf: PByte; ToLen: Integer; PlainData: PByte;
-  DataLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
+  DataByteLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
 {* 对 Data 里 DataLen 的数据进行 OAEP 填充，内容放到 ToBuf 的 ToLen 里，返回填充是否成功。
   默认使用 SHA1 对 DigestBuf 内容进行杂凑，ToLen 一般是 RSA 的密钥的积的字节数}
 
 function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutLen: Integer; EnData: PByte;
-  DataLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
+  DataByteLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
 {* 对 EnData 里 DataLen 的数据进行 OAEP 检验并去除填充，内容放到 ToBuf 的 OutLen 里，返回检查是否成功。
   ToBuf 能容纳的实际长度不能太短，如成功，OutLen 返回明文数据长度
   默认使用 SHA1 对 DigestBuf 内容进行杂凑，DataLen 要求是 RSA 的密钥的积的字节数}
@@ -1627,16 +1627,16 @@ end;
 
 { RSA 加密解密运算}
 
-function RSACryptRawData(Data: Pointer; DataLen: Integer; OutBuf: Pointer;
+function RSACryptRawData(Data: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; Exponent, Product: TCnBigNumber): Boolean;
 var
   D, R: TCnBigNumber;
 begin
   Result := False;
-  if (Data <> nil) and (DataLen > 0) then
+  if (Data <> nil) and (DataByteLen > 0) then
   begin
     R := TCnBigNumber.Create;
-    D := TCnBigNumber.FromBinary(PAnsiChar(Data), DataLen);
+    D := TCnBigNumber.FromBinary(PAnsiChar(Data), DataByteLen);
 
     if RSACrypt(D, Product, Exponent, R) then
     begin
@@ -1651,37 +1651,37 @@ begin
     _CnSetLastError(ECN_RSA_INVALID_INPUT);
 end;
 
-function CnRSAEncryptRawData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSAEncryptRawData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean;
 begin
-  Result := RSACryptRawData(PlainData, DataLen, OutBuf, OutLen,
+  Result := RSACryptRawData(PlainData, DataByteLen, OutBuf, OutLen,
     PublicKey.PubKeyExponent, PublicKey.PubKeyProduct);
 end;
 
-function CnRSAEncryptRawData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSAEncryptRawData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean;
 begin
-  Result := RSACryptRawData(PlainData, DataLen, OutBuf, OutLen,
+  Result := RSACryptRawData(PlainData, DataByteLen, OutBuf, OutLen,
     PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct);
 end;
 
-function CnRSADecryptRawData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean;
 begin
-  Result := RSACryptRawData(EnData, DataLen, OutBuf, OutLen,
+  Result := RSACryptRawData(EnData, DataByteLen, OutBuf, OutLen,
     PublicKey.PubKeyExponent, PublicKey.PubKeyProduct);
 end;
 
-function CnRSADecryptRawData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean;
 begin
-  Result := RSACryptRawData(EnData, DataLen, OutBuf, OutLen,
+  Result := RSACryptRawData(EnData, DataByteLen, OutBuf, OutLen,
     PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct);
 end;
 
 // 将一片内存区域按指定的 Padding 模式与类型填充后进行 RSA 加解密计算
 function RSAPaddingCrypt(PaddingType, BlockSize: Integer; PlainData: Pointer;
-  DataLen: Integer; OutBuf: Pointer; Exponent, Product: TCnBigNumber;
+  DataByteLen: Integer; OutBuf: Pointer; Exponent, Product: TCnBigNumber;
   PaddingMode: TCnRSAPaddingMode): Boolean;
 var
   Stream: TMemoryStream;
@@ -1696,7 +1696,7 @@ begin
     Stream := TMemoryStream.Create;
     if PaddingMode = cpmPKCS1 then
     begin
-      if not AddPKCS1Padding(PaddingType, BlockSize, PlainData, DataLen, Stream) then
+      if not AddPKCS1Padding(PaddingType, BlockSize, PlainData, DataByteLen, Stream) then
       begin
         _CnSetLastError(ECN_RSA_PADDING_ERROR);
         Exit;
@@ -1706,7 +1706,7 @@ begin
     begin
       // OAEP 公钥加密，仅公钥的控制在调用者
       Stream.Size := Product.GetBytesCount;
-      if not AddOaepSha1MgfPadding(Stream.Memory, Stream.Size, PlainData, DataLen) then
+      if not AddOaepSha1MgfPadding(Stream.Memory, Stream.Size, PlainData, DataByteLen) then
       begin
         _CnSetLastError(ECN_RSA_PADDING_ERROR);
         Exit;
@@ -1729,18 +1729,18 @@ begin
   end;
 end;
 
-function CnRSAEncryptData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSAEncryptData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   PublicKey: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode): Boolean;
 begin
   Result := RSAPaddingCrypt(CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM, PublicKey.BitsCount div 8,
-    PlainData, DataLen, OutBuf, PublicKey.PubKeyExponent, PublicKey.PubKeyProduct, PaddingMode);
+    PlainData, DataByteLen, OutBuf, PublicKey.PubKeyExponent, PublicKey.PubKeyProduct, PaddingMode);
 end;
 
-function CnRSAEncryptData(PlainData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSAEncryptData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   PrivateKey: TCnRSAPrivateKey): Boolean;
 begin
   Result := RSAPaddingCrypt(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.BitsCount div 8,
-    PlainData, DataLen, OutBuf, PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct, cpmPKCS1);
+    PlainData, DataByteLen, OutBuf, PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct, cpmPKCS1);
   // 私钥加密只支持 PKCS1 对齐方式，不支持 OAEP 对齐方式
 end;
 
@@ -1801,7 +1801,7 @@ begin
 end;
 
 // 将一片内存区域进行 RSA 加解密计算后按其展现的 Padding 方式解出原始数据
-function RSADecryptPadding(BlockSize: Integer; EnData: Pointer; DataLen: Integer;
+function RSADecryptPadding(BlockSize: Integer; EnData: Pointer; DataByteLen: Integer;
   OutBuf: Pointer; out OutLen: Integer; Exponent, Product: TCnBigNumber;
   PaddingMode: TCnRSAPaddingMode): Boolean;
 var
@@ -1816,7 +1816,7 @@ begin
 
   try
     Res := TCnBigNumber.Create;
-    Data := TCnBigNumber.FromBinary(PAnsiChar(EnData), DataLen);
+    Data := TCnBigNumber.FromBinary(PAnsiChar(EnData), DataByteLen);
     if not RSACrypt(Data, Product, Exponent, Res) then
       Exit;
 
@@ -1847,18 +1847,18 @@ begin
   end;
 end;
 
-function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean;
 begin
-  Result := RSADecryptPadding(PublicKey.GetBytesCount, EnData, DataLen,
+  Result := RSADecryptPadding(PublicKey.GetBytesCount, EnData, DataByteLen,
     OutBuf, OutLen, PublicKey.PubKeyExponent, PublicKey.PubKeyProduct, cpmPKCS1);
   // 公钥解密只支持 PKCS1，不支持 OAEP
 end;
 
-function CnRSADecryptData(EnData: Pointer; DataLen: Integer; OutBuf: Pointer;
+function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PrivateKey: TCnRSAPrivateKey; PaddingMode: TCnRSAPaddingMode): Boolean;
 begin
-  Result := RSADecryptPadding(PrivateKey.GetBytesCount, EnData, DataLen,
+  Result := RSADecryptPadding(PrivateKey.GetBytesCount, EnData, DataByteLen,
     OutBuf, OutLen, PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct, PaddingMode);
 end;
 
@@ -2666,7 +2666,7 @@ begin
 end;
 
 function AddOaepSha1MgfPadding(ToBuf: PByte; ToLen: Integer; PlainData: PByte;
-  DataLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
+  DataByteLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
 var
   EmLen, MdLen, I: Integer;
   SeedMask: TCnSHA1Digest;
@@ -2678,7 +2678,7 @@ begin
 
   MdLen := SizeOf(TCnSHA1Digest);
 
-  if (DataLen > EmLen - 2 * MdLen - 1) or (EmLen < 2 * MdLen + 1) then
+  if (DataByteLen > EmLen - 2 * MdLen - 1) or (EmLen < 2 * MdLen + 1) then
   begin
     _CnSetLastError(ECN_RSA_PADDING_ERROR);
     Exit;
@@ -2695,11 +2695,11 @@ begin
   Move(SeedMask[0], DB^, MdLen);
 
   // To 区 DB 的前 20 字节先留着，后面到尾巴先填满 0
-  FillChar(PByte(TCnNativeInt(DB) + MdLen)^, EmLen - DataLen - 2 * MdLen - 1, 0);
-  DB^[EmLen - DataLen - MdLen - 1] := 1;
+  FillChar(PByte(TCnNativeInt(DB) + MdLen)^, EmLen - DataByteLen - 2 * MdLen - 1, 0);
+  DB^[EmLen - DataByteLen - MdLen - 1] := 1;
 
   // 明文搁后面
-  Move(PlainData^, PByte(TCnNativeInt(DB) + EmLen - DataLen - MdLen)^, DataLen);
+  Move(PlainData^, PByte(TCnNativeInt(DB) + EmLen - DataByteLen - MdLen)^, DataByteLen);
 
   // To[1] 开始的 20 个字节 Rand 一下
   if not CnRandomFillBytes(PAnsiChar(Seed), MdLen) then
@@ -2736,7 +2736,7 @@ begin
 end;
 
 function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutLen: Integer; EnData: PByte;
-  DataLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
+  DataByteLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
 var
   I, MdLen, DBLen, MStart: Integer;
   MaskedDB, MaskedSeed: PByteArray;
@@ -2757,7 +2757,7 @@ begin
   end;
 
   MdLen := SizeOf(TCnSHA1Digest);
-  DBLen := DataLen - MdLen - 1;
+  DBLen := DataByteLen - MdLen - 1;
   if DBLen <= 0 then
   begin
     _CnSetLastError(ECN_RSA_PADDING_ERROR);

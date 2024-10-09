@@ -677,12 +677,12 @@ procedure CnProcess25519ScalarNumber(Num: TCnBigNumber);
 
 // ===================== Ed25519 椭圆曲线数字签名验证算法 ======================
 
-function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEd25519PrivateKey;
+function CnEd25519SignData(PlainData: Pointer; DataByteLen: Integer; PrivateKey: TCnEd25519PrivateKey;
   PublicKey: TCnEd25519PublicKey; OutSignature: TCnEd25519Signature; Ed25519: TCnEd25519 = nil): Boolean;
 {* Ed25519 用公私钥对数据块进行签名，不支持 Ed25519ctx 与 Ed25519ph，返回签名是否成功，
    为了提升效率需调用者自行保证公私钥匹配否则签名无效}
 
-function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd25519Signature;
+function CnEd25519VerifyData(PlainData: Pointer; DataByteLen: Integer; InSignature: TCnEd25519Signature;
   PublicKey: TCnEd25519PublicKey; Ed25519: TCnEd25519 = nil): Boolean;
 {* Ed25519 用公钥对数据块与签名进行验证，不支持 Ed25519ctx 与 Ed25519ph，返回验证是否成功}
 
@@ -866,12 +866,12 @@ function CnCurve448KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
 
 // ===================== Ed448 椭圆曲线数字签名验证算法 ======================
 
-function CnEd448SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEd448PrivateKey;
+function CnEd448SignData(PlainData: Pointer; DataByteLen: Integer; PrivateKey: TCnEd448PrivateKey;
   PublicKey: TCnEd448PublicKey; OutSignature: TCnEd448Signature;
   const UserContext: TBytes = nil; Ed448: TCnEd448 = nil): Boolean;
 {* Ed448 用公私钥对数据块进行签名，返回签名是否成功，为了提升效率需调用者自行保证公私钥匹配否则签名无效}
 
-function CnEd448VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd448Signature;
+function CnEd448VerifyData(PlainData: Pointer; DataByteLen: Integer; InSignature: TCnEd448Signature;
   PublicKey: TCnEd448PublicKey; const UserContext: TBytes = nil; Ed448: TCnEd448 = nil): Boolean;
 {* Ed448 用公钥对数据块与签名进行验证，返回验证是否成功}
 
@@ -1329,7 +1329,7 @@ begin
   BigNumberKeepLowBits(Num, (CN_448_EDWARDS_BLOCK_BYTESIZE - 1) * 8);   // 最高字节置 0
 end;
 
-function CnEd448SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEd448PrivateKey;
+function CnEd448SignData(PlainData: Pointer; DataByteLen: Integer; PrivateKey: TCnEd448PrivateKey;
   PublicKey: TCnEd448PublicKey; OutSignature: TCnEd448Signature;
   const UserContext: TBytes; Ed448: TCnEd448): Boolean;
 var
@@ -1342,7 +1342,7 @@ var
   D: TBytes;
 begin
   Result := False;
-  if (PlainData = nil) or (DataLen <= 0) or (PrivateKey = nil) or (PublicKey = nil)
+  if (PlainData = nil) or (DataByteLen <= 0) or (PrivateKey = nil) or (PublicKey = nil)
     or (OutSignature = nil) then
     Exit;
 
@@ -1379,7 +1379,7 @@ begin
       Stream.Write(UserContext[0], E);   // "SigEd448" || octet(F) || octet(OLEN(C)) || C
 
     BigNumberWriteBinaryToStream(HP, Stream, CN_448_EDWARDS_BLOCK_BYTESIZE);
-    Stream.Write(PlainData^, DataLen);
+    Stream.Write(PlainData^, DataByteLen);
 
     // 计算出 114 字节的 SHAKE256 值作为 r 乘数，准备乘以基点作为 R 点
     D := SHAKE256Buffer(Stream.Memory, Stream.Size, SizeOf(TCnSHAKE256Digest));
@@ -1417,7 +1417,7 @@ begin
     Stream.Write(Data[0], SizeOf(TCnEd448Data));
 
     // 写明文，拼凑完毕
-    Stream.Write(PlainData^, DataLen);
+    Stream.Write(PlainData^, DataByteLen);
 
     // 再次杂凑
     D := SHAKE256Buffer(Stream.Memory, Stream.Size, SizeOf(TCnSHAKE256Digest));
@@ -1447,7 +1447,7 @@ begin
   end;
 end;
 
-function CnEd448VerifyData(PlainData: Pointer; DataLen: Integer; InSignature: TCnEd448Signature;
+function CnEd448VerifyData(PlainData: Pointer; DataByteLen: Integer; InSignature: TCnEd448Signature;
   PublicKey: TCnEd448PublicKey; const UserContext: TBytes; Ed448: TCnEd448): Boolean;
 var
   Is448Nil: Boolean;
@@ -1460,7 +1460,7 @@ var
   E: Byte;
 begin
   Result := False;
-  if (PlainData = nil) or (DataLen <= 0) or (PublicKey = nil) or (InSignature = nil) then
+  if (PlainData = nil) or (DataByteLen <= 0) or (PublicKey = nil) or (InSignature = nil) then
     Exit;
 
   L := nil;
@@ -1500,7 +1500,7 @@ begin
 
     CnEd448PointToData(PublicKey, Data);
     Stream.Write(Data[0], SizeOf(TCnEd448Data));        // 拼公钥点 A
-    Stream.Write(PlainData^, DataLen);                  // 拼明文
+    Stream.Write(PlainData^, DataByteLen);                  // 拼明文
 
     D := SHAKE256Buffer(Stream.Memory, Stream.Size, SizeOf(TCnSHAKE256Digest));
     if Length(D) <> SizeOf(TCnSHAKE256Digest) then      // 计算 Hash 作为 k '值
@@ -3472,7 +3472,7 @@ begin
   CnEd25519DataToBigNumber(TCnEd25519Data(Data), N); // 实现与 Ed25519 等同
 end;
 
-function CnEd25519SignData(PlainData: Pointer; DataLen: Integer; PrivateKey: TCnEd25519PrivateKey;
+function CnEd25519SignData(PlainData: Pointer; DataByteLen: Integer; PrivateKey: TCnEd25519PrivateKey;
   PublicKey: TCnEd25519PublicKey; OutSignature: TCnEd25519Signature; Ed25519: TCnEd25519): Boolean;
 var
   Is25519Nil: Boolean;
@@ -3482,7 +3482,7 @@ var
   Data: TCnEd25519Data;
 begin
   Result := False;
-  if (PlainData = nil) or (DataLen <= 0) or (PrivateKey = nil) or (PublicKey = nil)
+  if (PlainData = nil) or (DataByteLen <= 0) or (PrivateKey = nil) or (PublicKey = nil)
     or (OutSignature = nil) then
     Exit;
 
@@ -3509,7 +3509,7 @@ begin
     // 且 PH 函数为原始函数，因而大大简化了
     Stream := TMemoryStream.Create;
     BigNumberWriteBinaryToStream(HP, Stream, CN_25519_BLOCK_BYTESIZE);
-    Stream.Write(PlainData^, DataLen);
+    Stream.Write(PlainData^, DataByteLen);
 
     // 计算出 64 字节的 SHA512 值作为 r 乘数，准备乘以基点作为 R 点
     Dig := SHA512Buffer(Stream.Memory, Stream.Size);
@@ -3535,7 +3535,7 @@ begin
     Stream.Write(Data[0], SizeOf(TCnEd25519Data));
 
     // 写明文，拼凑完毕
-    Stream.Write(PlainData^, DataLen);
+    Stream.Write(PlainData^, DataByteLen);
 
     // 再次杂凑 R||PublicKey||明文
     Dig := SHA512Buffer(Stream.Memory, Stream.Size);
@@ -3562,7 +3562,7 @@ begin
   end;
 end;
 
-function CnEd25519VerifyData(PlainData: Pointer; DataLen: Integer;
+function CnEd25519VerifyData(PlainData: Pointer; DataByteLen: Integer;
   InSignature: TCnEd25519Signature; PublicKey: TCnEd25519PublicKey; Ed25519: TCnEd25519): Boolean;
 var
   Is25519Nil: Boolean;
@@ -3573,7 +3573,7 @@ var
   Dig: TCnSHA512Digest;
 begin
   Result := False;
-  if (PlainData = nil) or (DataLen <= 0) or (PublicKey = nil) or (InSignature = nil) then
+  if (PlainData = nil) or (DataByteLen <= 0) or (PublicKey = nil) or (InSignature = nil) then
     Exit;
 
   L := nil;
@@ -3604,7 +3604,7 @@ begin
 
     CnEd25519PointToData(PublicKey, Data);
     Stream.Write(Data[0], SizeOf(TCnEd25519Data));        // 拼公钥点
-    Stream.Write(PlainData^, DataLen);                    // 拼明文
+    Stream.Write(PlainData^, DataByteLen);                    // 拼明文
 
     Dig := SHA512Buffer(Stream.Memory, Stream.Size);      // 计算 Hash 作为值
     ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));      // 需要倒转一次

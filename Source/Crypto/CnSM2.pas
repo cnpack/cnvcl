@@ -151,7 +151,7 @@ function CnSM2CheckKeys(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey
 
 // ========================= SM2 椭圆曲线加解密算法 ============================
 
-function CnSM2EncryptData(PlainData: Pointer; DataLen: Integer; OutStream:
+function CnSM2EncryptData(PlainData: Pointer; DataByteLen: Integer; OutStream:
   TStream; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
   IncludePrefixByte: Boolean = True; const RandHex: string = ''): Boolean; overload;
@@ -170,7 +170,7 @@ function CnSM2EncryptData(PlainData: TBytes; PublicKey: TCnSM2PublicKey; SM2: TC
    IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括
    返回密文字节数组，如果加密失败则返回空}
 
-function CnSM2DecryptData(EnData: Pointer; DataLen: Integer; OutStream: TStream;
+function CnSM2DecryptData(EnData: Pointer; DataByteLen: Integer; OutStream: TStream;
   PrivateKey: TCnSM2PrivateKey; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean; overload;
 {* 用私钥对数据块进行解密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
@@ -216,7 +216,7 @@ function CnSM2CryptFromAsn1(Asn1Stream: TStream; OutStream: TStream; SM2: TCnSM2
 
 // ====================== SM2 椭圆曲线数字签名验证算法 =========================
 
-function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataByteLen: Integer;
   OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil;
   SM2: TCnSM2 = nil; const RandHex: string = ''): Boolean; overload;
 {* 私钥对数据块签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法第2部分:数字签名算法》
@@ -230,7 +230,7 @@ function CnSM2SignData(const UserID: AnsiString; PlainData: TBytes;
   中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要。返回签名是否成功
   说明：PublicKey 可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名}
 
-function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataByteLen: Integer;
   InSignature: TCnSM2Signature; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean; overload;
 {* 公钥验证数据块的签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法
    第2部分:数字签名算法》中的运算规则来}
@@ -320,7 +320,7 @@ function CnSM2CollaborativeGenerateKeyBStep1(PrivateKeyB: TCnSM2CollaborativePri
 // =============== SM2 椭圆曲线双方互相信任的简易协同签名算法 ==================
 
 function CnSM2CollaborativeSignAStep1(const UserID: AnsiString; PlainData: Pointer;
-  DataLen: Integer; OutHashEToB: TCnBigNumber; OutQToB: TCnEccPoint; OutRandKA: TCnBigNumber;
+  DataByteLen: Integer; OutHashEToB: TCnBigNumber; OutQToB: TCnEccPoint; OutRandKA: TCnBigNumber;
   PrivateKeyA: TCnSM2CollaborativePrivateKey; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的双方协同签名，A 第一步根据原始数据签出中间值 E 和 Q，发送给 B，返回该步签名是否成功
   注意 OutRandK 不要发给 B！，另外，注意该步 PrivateKeyA 未使用}
@@ -339,7 +339,7 @@ function CnSM2CollaborativeSignAStep2(InRandKA: TCnBigNumber; InRFromB: TCnBigNu
 
 // =============== SM2 椭圆曲线双方互相信任的简易协同解密算法 ==================
 
-function CnSM2CollaborativeDecryptAStep1(EnData: Pointer; DataLen: Integer;
+function CnSM2CollaborativeDecryptAStep1(EnData: Pointer; DataByteLen: Integer;
   OutTToB: TCnEccPoint; PrivateKeyA: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的双方协同解密，A 第一步根据密文解出中间值 T，发送给 B，返回该步解密是否成功}
@@ -349,7 +349,7 @@ function CnSM2CollaborativeDecryptBStep1(InTFromA: TCnEccPoint; OutTToA: TCnEccP
 {* 基于 SM2 椭圆曲线的双方协同解密，B 第二步根据 A 解出的中间值 T，生成另一个中间值 T 发送回 A，
   返回该步解密是否成功}
 
-function CnSM2CollaborativeDecryptAStep2(EnData: Pointer; DataLen: Integer;
+function CnSM2CollaborativeDecryptAStep2(EnData: Pointer; DataByteLen: Integer;
   InTFromB: TCnEccPoint; OutStream: TStream; PrivateKeyA: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
 {* 基于 SM2 椭圆曲线的双方协同解密，A 第三步根据 B 解出的中间值 T 算出最终解密结果写入 Stream，
@@ -385,7 +385,7 @@ function CnSM2Collaborative3GenerateKeyCStep1(PrivateKeyC: TCnSM2CollaborativePr
 // =========== SM2 椭圆曲线三方或更多方互相信任的简易协同签名算法 ==============
 
 function CnSM2Collaborative3SignAStep1(const UserID: AnsiString; PlainData: Pointer;
-  DataLen: Integer; OutHashEToBC: TCnBigNumber; OutQToB: TCnEccPoint; OutRandKA: TCnBigNumber;
+  DataByteLen: Integer; OutHashEToBC: TCnBigNumber; OutQToB: TCnEccPoint; OutRandKA: TCnBigNumber;
   PrivateKeyA: TCnSM2CollaborativePrivateKey; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的三方协同签名，A 第一步根据原始数据签出中间值 E 和 Qa，发送给 B，返回该步签名是否成功
   - OutHashEToBC 要发给下一步 B 以及下下步 C，对应 InHashEFromA
@@ -440,7 +440,7 @@ function CnSM2Collaborative3SignAStep2(InRandKA: TCnBigNumber; InRFromC: TCnBigN
 {
   原理较签名简单多了，A B C 各自用自身的私钥分量叠加乘一个点，C 乘完后返回给 A 解密即可，无需再次过 B
 }
-function CnSM2Collaborative3DecryptAStep1(EnData: Pointer; DataLen: Integer;
+function CnSM2Collaborative3DecryptAStep1(EnData: Pointer; DataByteLen: Integer;
   OutTToB: TCnEccPoint; PrivateKeyA: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的三方协同解密，A 第一步根据密文解出中间值 T，发送给 B，返回该步解密是否成功}
@@ -454,7 +454,7 @@ function CnSM2Collaborative3DecryptCStep1(InTFromB: TCnEccPoint; OutTToA: TCnEcc
 {* 基于 SM2 椭圆曲线的双方协同解密，C 第三步根据 B 解出的中间值 T，生成最终值 T 发送回 A，（注意不用过 B 了）
   返回该步解密是否成功}
 
-function CnSM2Collaborative3DecryptAStep2(EnData: Pointer; DataLen: Integer;
+function CnSM2Collaborative3DecryptAStep2(EnData: Pointer; DataByteLen: Integer;
   InTFromC: TCnEccPoint; OutStream: TStream; PrivateKeyA: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
 {* 基于 SM2 椭圆曲线的双方协同解密，A 第四步根据 C 解出的中间值 T 算出最终解密结果写入 Stream，
@@ -697,7 +697,7 @@ end;
 
   密文为：C1‖C3‖C2             // 总长 MLen + 97 字节
 }
-function CnSM2EncryptData(PlainData: Pointer; DataLen: Integer; OutStream:
+function CnSM2EncryptData(PlainData: Pointer; DataByteLen: Integer; OutStream:
   TStream; PublicKey: TCnSM2PublicKey; SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType;
   IncludePrefixByte: Boolean; const RandHex: string): Boolean;
 var
@@ -712,7 +712,7 @@ var
   SM2IsNil: Boolean;
 begin
   Result := False;
-  if (PlainData = nil) or (DataLen <= 0) or (OutStream = nil) or (PublicKey = nil) then
+  if (PlainData = nil) or (DataByteLen <= 0) or (OutStream = nil) or (PublicKey = nil) then
   begin
     _CnSetLastError(ECN_SM2_INVALID_INPUT);
     Exit;
@@ -776,26 +776,26 @@ begin
     SetLength(KDFB, CN_SM2_FINITEFIELD_BYTESIZE * 2);
     P2.X.ToBinary(@KDFB[0], CN_SM2_FINITEFIELD_BYTESIZE);
     P2.Y.ToBinary(@KDFB[CN_SM2_FINITEFIELD_BYTESIZE], CN_SM2_FINITEFIELD_BYTESIZE);
-    T := CnSM2KDFBytes(KDFB, DataLen);
+    T := CnSM2KDFBytes(KDFB, DataByteLen);
 
     M := PAnsiChar(PlainData);
-    for I := 1 to DataLen do
+    for I := 1 to DataByteLen do
       T[I - 1] := Byte(T[I - 1]) xor Byte(M[I - 1]); // T 里是 C2，但先不能写
 
-    SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + DataLen);
+    SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + DataByteLen);
     P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
-    Move(M[0], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], DataLen);
-    P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + DataLen + 1], CN_SM2_FINITEFIELD_BYTESIZE); // 拼成算 C3 的
+    Move(M[0], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], DataByteLen);
+    P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + DataByteLen + 1], CN_SM2_FINITEFIELD_BYTESIZE); // 拼成算 C3 的
     Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
 
     if SequenceType = cstC1C3C2 then
     begin
       OutStream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));      // 写入 C3
-      OutStream.Write(T[0], DataLen);                        // 写入 C2
+      OutStream.Write(T[0], DataByteLen);                        // 写入 C2
     end
     else
     begin
-      OutStream.Write(T[0], DataLen);                        // 写入 C2
+      OutStream.Write(T[0], DataByteLen);                        // 写入 C2
       OutStream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));      // 写入 C3
     end;
 
@@ -841,7 +841,7 @@ end;
 
   还可对比 SM3(x2‖M‖y2) Hash 是否与 C3 相等
 }
-function CnSM2DecryptData(EnData: Pointer; DataLen: Integer; OutStream: TStream;
+function CnSM2DecryptData(EnData: Pointer; DataByteLen: Integer; OutStream: TStream;
   PrivateKey: TCnSM2PrivateKey; SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType): Boolean;
 var
   MLen: Integer;
@@ -855,7 +855,7 @@ var
   Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
-  if (EnData = nil) or (DataLen <= 0) or (OutStream = nil) or (PrivateKey = nil) then
+  if (EnData = nil) or (DataByteLen <= 0) or (OutStream = nil) or (PrivateKey = nil) then
   begin
     _CnSetLastError(ECN_SM2_INVALID_INPUT);
     Exit;
@@ -868,7 +868,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    MLen := DataLen - CN_SM2_MIN_ENCRYPT_BYTESIZE;
+    MLen := DataByteLen - CN_SM2_MIN_ENCRYPT_BYTESIZE;
     if MLen <= 0 then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -1262,7 +1262,7 @@ begin
 end;
 
 // 根据 Za 与数据再次计算杂凑值 e
-function CalcSM2SignatureHash(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+function CalcSM2SignatureHash(const UserID: AnsiString; PlainData: Pointer; DataByteLen: Integer;
   PublicKey: TCnSM2PublicKey; SM2: TCnSM2): TCnSM3Digest;
 var
   Stream: TMemoryStream;
@@ -1272,7 +1272,7 @@ begin
   try
     Sm3Dig := CalcSM2UserHash(UserID, PublicKey, SM2);
     Stream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));
-    Stream.Write(PlainData^, DataLen);
+    Stream.Write(PlainData^, DataByteLen);
 
     Result := SM3(PAnsiChar(Stream.Memory), Stream.Size);  // 再次算出杂凑值 e
   finally
@@ -1291,7 +1291,7 @@ end;
   输出签名 s <= ((1 + PrivateKey)^-1 * (k - r * PrivateKey)) mod n
 
 }
-function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataByteLen: Integer;
   OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
   SM2: TCnSM2; const RandHex: string): Boolean;
 var
@@ -1303,7 +1303,7 @@ var
   Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
-  if (PlainData = nil) or (DataLen <= 0) or (OutSignature = nil) or
+  if (PlainData = nil) or (DataByteLen <= 0) or (OutSignature = nil) or
     (PrivateKey = nil) then
   begin
     _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -1328,7 +1328,7 @@ begin
       SM2.MultiplePoint(PrivateKey, PublicKey);
     end;
 
-    Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataLen, PublicKey, SM2); // 杂凑值 e
+    Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataByteLen, PublicKey, SM2); // 杂凑值 e
 
     P := TCnEccPoint.Create;
     E := TCnBigNumber.Create;
@@ -1435,7 +1435,7 @@ end;
 
   该 P 点的 x 值和 e 运算得到 r
 }
-function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataLen: Integer;
+function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataByteLen: Integer;
   InSignature: TCnSM2Signature; PublicKey: TCnSM2PublicKey; SM2: TCnSM2): Boolean;
 var
   K, R, E: TCnBigNumber;
@@ -1444,7 +1444,7 @@ var
   Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
-  if (PlainData = nil) or (DataLen <= 0) or (InSignature = nil) or (PublicKey = nil) then
+  if (PlainData = nil) or (DataByteLen <= 0) or (InSignature = nil) or (PublicKey = nil) then
   begin
     _CnSetLastError(ECN_SM2_INVALID_INPUT);
     Exit;
@@ -1473,7 +1473,7 @@ begin
       Exit;
     end;
 
-    Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataLen, PublicKey, SM2); // 杂凑值 e
+    Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataByteLen, PublicKey, SM2); // 杂凑值 e
 
     P := TCnEccPoint.Create;
     Q := TCnEccPoint.Create;
@@ -2103,7 +2103,7 @@ end;
   A 生成随机数 ka，并计算点 ka*G 给 B，也把杂凑值 e 给 B
 }
 function CnSM2CollaborativeSignAStep1(const UserID: AnsiString; PlainData: Pointer;
-  DataLen: Integer; OutHashEToB: TCnBigNumber; OutQToB: TCnEccPoint; OutRandKA: TCnBigNumber;
+  DataByteLen: Integer; OutHashEToB: TCnBigNumber; OutQToB: TCnEccPoint; OutRandKA: TCnBigNumber;
   PrivateKeyA: TCnSM2CollaborativePrivateKey; PublicKey: TCnSM2PublicKey; SM2: TCnSM2): Boolean;
 var
   Sm3Dig: TCnSM3Digest;
@@ -2123,7 +2123,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataLen, PublicKey, SM2); // 杂凑值 e 要给 B
+    Sm3Dig := CalcSM2SignatureHash(UserID, PlainData, DataByteLen, PublicKey, SM2); // 杂凑值 e 要给 B
     OutHashEToB.SetBinary(@Sm3Dig[0], SizeOf(TCnSM3Digest));
 
     if not BigNumberRandRange(OutRandKA, SM2.Order) then
@@ -2305,7 +2305,7 @@ end;
 
 // =============== SM2 椭圆曲线双方互相信任的简易协同解密算法 ==================
 
-function CnSM2CollaborativeDecryptAStep1(EnData: Pointer; DataLen: Integer;
+function CnSM2CollaborativeDecryptAStep1(EnData: Pointer; DataByteLen: Integer;
   OutTToB: TCnEccPoint; PrivateKeyA: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2): Boolean;
 var
@@ -2314,7 +2314,7 @@ var
   SM2IsNil: Boolean;
 begin
   Result := False;
-  if (EnData = nil) or (DataLen <= 0) or (PrivateKeyA = nil)
+  if (EnData = nil) or (DataByteLen <= 0) or (PrivateKeyA = nil)
     or (OutTToB = nil) then
   begin
     _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -2327,7 +2327,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    MLen := DataLen - CN_SM2_MIN_ENCRYPT_BYTESIZE;
+    MLen := DataByteLen - CN_SM2_MIN_ENCRYPT_BYTESIZE;
     if MLen <= 0 then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -2396,7 +2396,7 @@ begin
   end;
 end;
 
-function CnSM2CollaborativeDecryptAStep2(EnData: Pointer; DataLen: Integer;
+function CnSM2CollaborativeDecryptAStep2(EnData: Pointer; DataByteLen: Integer;
   InTFromB: TCnEccPoint; OutStream: TStream; PrivateKeyA: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType): Boolean;
 var
@@ -2411,7 +2411,7 @@ var
   SM2IsNil: Boolean;
 begin
   Result := False;
-  if (EnData = nil) or (DataLen <= 0) or (PrivateKeyA = nil)
+  if (EnData = nil) or (DataByteLen <= 0) or (PrivateKeyA = nil)
     or (InTFromB = nil) or (OutStream = nil) then
   begin
     _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -2424,7 +2424,7 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    MLen := DataLen - CN_SM2_MIN_ENCRYPT_BYTESIZE;
+    MLen := DataByteLen - CN_SM2_MIN_ENCRYPT_BYTESIZE;
     if MLen <= 0 then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
@@ -2650,10 +2650,10 @@ end;
   e => B
 }
 function CnSM2Collaborative3SignAStep1(const UserID: AnsiString; PlainData: Pointer;
-  DataLen: Integer; OutHashEToBC: TCnBigNumber; OutQToB: TCnEccPoint; OutRandKA: TCnBigNumber;
+  DataByteLen: Integer; OutHashEToBC: TCnBigNumber; OutQToB: TCnEccPoint; OutRandKA: TCnBigNumber;
   PrivateKeyA: TCnSM2CollaborativePrivateKey; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
 begin
-  Result := CnSM2CollaborativeSignAStep1(UserID, PlainData, DataLen, OutHashEToBC,
+  Result := CnSM2CollaborativeSignAStep1(UserID, PlainData, DataByteLen, OutHashEToBC,
     OutQToB, OutRandKA, PrivateKeyA, PublicKey, SM2);
 end;
 
@@ -2904,11 +2904,11 @@ end;
 
 // =========== SM2 椭圆曲线三方或更多方互相信任的简易协同解密算法 ==============
 
-function CnSM2Collaborative3DecryptAStep1(EnData: Pointer; DataLen: Integer;
+function CnSM2Collaborative3DecryptAStep1(EnData: Pointer; DataByteLen: Integer;
   OutTToB: TCnEccPoint; PrivateKeyA: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil): Boolean;
 begin
-  Result := CnSM2CollaborativeDecryptAStep1(EnData, DataLen, OutTToB, PrivateKeyA, SM2);
+  Result := CnSM2CollaborativeDecryptAStep1(EnData, DataByteLen, OutTToB, PrivateKeyA, SM2);
 end;
 
 function CnSM2Collaborative3DecryptBStep1(InTFromA: TCnEccPoint; OutTToC: TCnEccPoint;
@@ -2923,11 +2923,11 @@ begin
   Result := CnSM2CollaborativeDecryptBStep1(InTFromB, OutTToA, PrivateKeyC, SM2);
 end;
 
-function CnSM2Collaborative3DecryptAStep2(EnData: Pointer; DataLen: Integer;
+function CnSM2Collaborative3DecryptAStep2(EnData: Pointer; DataByteLen: Integer;
   InTFromC: TCnEccPoint; OutStream: TStream; PrivateKeyA: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
 begin
-  Result := CnSM2CollaborativeDecryptAStep2(EnData, DataLen, InTFromC, OutStream,
+  Result := CnSM2CollaborativeDecryptAStep2(EnData, DataByteLen, InTFromC, OutStream,
     PrivateKeyA, SM2, SequenceType);
 end;
 

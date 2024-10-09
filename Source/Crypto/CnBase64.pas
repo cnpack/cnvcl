@@ -83,11 +83,12 @@ function Base64Encode(const InputData: AnsiString; var OutputData: string;
   URL: Boolean                 - True 则使用 Base64URL 编码，False 则使用标准 Base64 编码，默认 False
 |</PRE>}
 
-function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string;
+function Base64Encode(InputData: Pointer; DataByteLen: Integer; var OutputData: string;
   URL: Boolean = False): Integer; overload;
 {* 对数据进行 Base64 编码或 Base64URL 编码，如编码成功返回 ECN_BASE64_OK
 |<PRE>
-  InputData: AnsiString        - 要编码的数据
+  InputData: Pointer           - 要编码的数据的地址
+  DataByteLen: Integer         - 数据的字节长度
   var OutputData: AnsiString   - 编码后的数据
   URL: Boolean                 - True 则使用 Base64URL 编码，False 则使用标准 Base64 编码，默认 False
 |</PRE>}
@@ -201,30 +202,30 @@ begin
 end;
 
 // 以下为 wr960204 改进的快速 Base64 编解码算法
-function Base64Encode(InputData: Pointer; DataLen: Integer; var OutputData: string;
+function Base64Encode(InputData: Pointer; DataByteLen: Integer; var OutputData: string;
   URL: Boolean): Integer;
 var
   Times, I: Integer;
   X1, X2, X3, x4: AnsiChar;
   XT: Byte;
 begin
-  if (InputData = nil) or (DataLen <= 0) then
+  if (InputData = nil) or (DataByteLen <= 0) then
   begin
     Result := ECN_BASE64_LENGTH;
     Exit;
   end;
 
-  if DataLen mod 3 = 0 then
-    Times := DataLen div 3
+  if DataByteLen mod 3 = 0 then
+    Times := DataByteLen div 3
   else
-    Times := DataLen div 3 + 1;
+    Times := DataByteLen div 3 + 1;
   SetLength(OutputData, Times * 4);   //一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
 
   if URL then
   begin
     for I := 0 to Times - 1 do
     begin
-      if DataLen >= (3 + I * 3) then
+      if DataByteLen >= (3 + I * 3) then
       begin
         X1 := EnCodeTabURL[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
         XT := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
@@ -236,7 +237,7 @@ begin
         XT := (Ord(PAnsiChar(InputData)[2 + I * 3]) and 63);
         x4 := EnCodeTabURL[XT];
       end
-      else if DataLen >= (2 + I * 3) then
+      else if DataByteLen >= (2 + I * 3) then
       begin
         X1 := EnCodeTabURL[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
         XT := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
@@ -264,7 +265,7 @@ begin
   begin
     for I := 0 to Times - 1 do
     begin
-      if DataLen >= (3 + I * 3) then
+      if DataByteLen >= (3 + I * 3) then
       begin
         X1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
         XT := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
@@ -276,7 +277,7 @@ begin
         XT := (Ord(PAnsiChar(InputData)[2 + I * 3]) and 63);
         x4 := EnCodeTab[XT];
       end
-      else if DataLen >= (2 + I * 3) then
+      else if DataByteLen >= (2 + I * 3) then
       begin
         X1 := EnCodeTab[(Ord(PAnsiChar(InputData)[I * 3]) shr 2)];
         XT := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
