@@ -40,7 +40,9 @@ unit CnBigNumber;
 *           注意 D5/D6/CB5/CB6 下可能遇上编译器 Bug 无法修复，
 *           譬如写 Int64(AInt64Var) 这样的强制类型转换时。
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.01.12 V2.6
+* 修改记录：2024.10.10 V2.7
+*               部分函数加入的参数检测，以在调用时参数引用重复时抛异常
+*           2023.01.12 V2.6
 *               64 位模式下增加用 64 位存储计算的模式，测试中，默认禁用
 *           2022.06.04 V2.5
 *               增加负模逆元与蒙哥马利约简以及基于此实现的快速模乘算法
@@ -1071,7 +1073,8 @@ resourcestring
 {$ENDIF}
   SCnErrorBigNumberLogRange = 'Log Range Error';
   SCnErrorBigNumberLegendre = 'Legendre: A, P Must > 0';
-  CnErrorBigNumberFloatExponentRange = 'Extended Float Exponent Range Error';
+  SCnErrorBigNumberFloatExponentRange = 'Extended Float Exponent Range Error';
+  SCnErrorBigNumberParamDupRef = 'Duplicated References for BigNumber Parameters';
 
 const
   Hex: string = '0123456789ABCDEF';
@@ -4114,7 +4117,7 @@ begin
     E := B - 1;
 
     if E > CN_EXTENDED_MAX_EXPONENT then
-      raise ERangeError.Create(CnErrorBigNumberFloatExponentRange);
+      raise ERangeError.Create(SCnErrorBigNumberFloatExponentRange);
 
     if B <= 64 then
     begin
@@ -5311,6 +5314,9 @@ var
   AA, BB: TCnBigNumber;
 begin
   Result := False;
+  if  Res = C then
+    raise Exception.Create(SCnErrorBigNumberParamDupRef);
+
   AA := nil;
   BB := nil;
 
@@ -5374,6 +5380,9 @@ begin
     if not BigNumberMul(Res, A, B) then
       Exit;
   end;
+
+  if Res = C then
+    raise Exception.Create(SCnErrorBigNumberParamDupRef);
 
   if not BigNumberNonNegativeMod(Res, Res, C) then
     Exit;
@@ -5522,6 +5531,9 @@ var
 
 begin
   Result := False;
+  if (Res = A) or (Res = B) or (Res = C) then
+    raise Exception.Create(SCnErrorBigNumberParamDupRef);
+
   Bits := BigNumberGetBitsCount(B);
 
   if Bits = 0 then
@@ -5640,6 +5652,9 @@ begin
     Exit;
   end;
 
+  if (Res = A) or (Res = B) or (Res = C) then
+    raise Exception.Create(SCnErrorBigNumberParamDupRef);
+
   AA := nil;
   BB := nil;
   T := nil;
@@ -5693,6 +5708,9 @@ begin
     Result := BigNumberPowerMod(Res, A, B, N)
   else
   begin
+    if (Res = A) or (Res = B) or (Res = C) or (Res = N) then
+      raise Exception.Create(SCnErrorBigNumberParamDupRef);
+
     I := FLocalBigNumberPool.Obtain;
     try
       Result := False;
@@ -6237,8 +6255,10 @@ var
   X1, Y: TCnBigNumber;
 begin
   Result := False;
-  Neg := False;
+  if (Res = X) or (Res = Modulus) then
+    raise Exception.Create(SCnErrorBigNumberParamDupRef);
 
+  Neg := False;
   X1 := nil;
   Y := nil;
 
@@ -6286,6 +6306,9 @@ function BigNumberPrimeModularInverse(const Res: TCnBigNumber; X, Modulus: TCnBi
 var
   P: TCnBigNumber;
 begin
+  if (Res = X) or (Res = Modulus) then
+    raise Exception.Create(SCnErrorBigNumberParamDupRef);
+
   // 由费马小定理知 x^(p-1) = 1 mod p，所以 x 的逆元是 x^(p-2) mod p
   P := FLocalBigNumberPool.Obtain;
   try
