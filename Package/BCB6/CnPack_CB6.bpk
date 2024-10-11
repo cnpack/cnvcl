@@ -69,6 +69,7 @@
       ..\..\Source\Crypto\CnCRC32.obj 
       ..\..\Source\Crypto\CnDES.obj 
       ..\..\Source\Crypto\CnDFT.obj 
+      ..\..\Source\Crypto\CnDSA.obj 
       ..\..\Source\Crypto\CnECC.obj 
       ..\..\Source\Crypto\CnFEC.obj 
       ..\..\Source\Crypto\CnFNV.obj 
@@ -362,6 +363,7 @@
       <FILE FILENAME="..\..\Source\Crypto\CnCRC32.pas" FORMNAME="" UNITNAME="CnCRC32" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnDES.pas" FORMNAME="" UNITNAME="CnDES" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnDFT.pas" FORMNAME="" UNITNAME="CnDFT" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnDSA.pas" FORMNAME="" UNITNAME="CnDSA" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnECC.pas" FORMNAME="" UNITNAME="CnECC" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnFEC.pas" FORMNAME="" UNITNAME="CnFEC" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnFNV.pas" FORMNAME="" UNITNAME="CnFNV" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

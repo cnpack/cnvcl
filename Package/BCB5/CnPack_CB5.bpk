@@ -68,6 +68,7 @@
       ..\..\Source\Crypto\CnCRC32.obj 
       ..\..\Source\Crypto\CnDES.obj 
       ..\..\Source\Crypto\CnDFT.obj 
+      ..\..\Source\Crypto\CnDSA.obj 
       ..\..\Source\Crypto\CnECC.obj 
       ..\..\Source\Crypto\CnFEC.obj 
       ..\..\Source\Crypto\CnFNV.obj 

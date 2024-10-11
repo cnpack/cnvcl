@@ -237,6 +237,9 @@ cnpack\Source 目录内容说明：
   CnDFT.pas
     离散傅立叶变换实现单元
 
+  CnDSA.pas
+    DSA 签名验证算法实现单元
+
   CnECC.pas
     椭圆曲线加密算法实现单元
 

@@ -115,6 +115,7 @@ contains
   CnCRC32 in '..\..\Source\Crypto\CnCRC32.pas',
   CnDES in '..\..\Source\Crypto\CnDES.pas',
   CnDFT in '..\..\Source\Crypto\CnDFT.pas',
+  CnDSA in '..\..\Source\Crypto\CnDSA.pas',
   CnECC in '..\..\Source\Crypto\CnECC.pas',
   CnFEC in '..\..\Source\Crypto\CnFEC.pas',
   CnFNV in '..\..\Source\Crypto\CnFNV.pas',

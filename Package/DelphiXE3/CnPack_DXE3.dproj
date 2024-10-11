@@ -167,6 +167,7 @@
         <DCCReference Include="..\..\Source\Crypto\CnCRC32.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnDES.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnDFT.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnDSA.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnECC.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnFEC.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnFNV.pas"/>
