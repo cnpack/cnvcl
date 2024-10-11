@@ -199,6 +199,7 @@ ECHO USEUNIT("..\Source\CnComplex.pas");                                        
 ECHO USEUNIT("..\Source\CnCRC32.pas");                                                 >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnDES.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnDFT.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnDSA.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnECC.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnFEC.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnFNV.pas");                                                   >> Crypto.bpf
@@ -259,13 +260,13 @@ ECHO       ..\Source\CnBigNumber.obj ..\Source\CnBits.obj                       
 ECHO       ..\Source\CnCertificateAuthority.obj                                       >> Crypto.bpr
 ECHO       ..\Source\CnChaCha20.obj ..\Source\CnComplex.obj                           >> Crypto.bpr
 ECHO       ..\Source\CnCRC32.obj ..\Source\CnDES.obj                                  >> Crypto.bpr
-ECHO       ..\Source\CnDFT.obj ..\Source\CnECC.obj                                    >> Crypto.bpr
-ECHO       ..\Source\CnFEC.obj ..\Source\CnFNV.obj                                    >> Crypto.bpr
-ECHO       ..\Source\CnInt128.obj ..\Source\CnKDF.obj                                 >> Crypto.bpr
-ECHO       ..\Source\CnLattice.obj ..\Source\CnMD5.obj                                >> Crypto.bpr
-ECHO       ..\Source\CnNative.obj ..\Source\CnOTP.obj                                 >> Crypto.bpr
-ECHO       ..\Source\CnOTS.obj ..\Source\CnPaillier.obj                               >> Crypto.bpr
-ECHO       ..\Source\CnPDFCrypt.obj                                                   >> Crypto.bpr
+ECHO       ..\Source\CnDFT.obj ..\Source\CnDSA.obj                                    >> Crypto.bpr
+ECHO       ..\Source\CnECC.obj ..\Source\CnFEC.obj                                    >> Crypto.bpr
+ECHO       ..\Source\CnFNV.obj ..\Source\CnInt128.obj                                 >> Crypto.bpr
+ECHO       ..\Source\CnKDF.obj ..\Source\CnLattice.obj                                >> Crypto.bpr
+ECHO       ..\Source\CnMD5.obj ..\Source\CnNative.obj                                 >> Crypto.bpr
+ECHO       ..\Source\CnOTP.obj ..\Source\CnOTS.obj                                    >> Crypto.bpr
+ECHO       ..\Source\CnPaillier.obj ..\Source\CnPDFCrypt.obj                          >> Crypto.bpr
 ECHO       ..\Source\CnPemUtils.obj ..\Source\CnPoly1305.obj                          >> Crypto.bpr
 ECHO       ..\Source\CnPolynomial.obj                                                 >> Crypto.bpr
 ECHO       ..\Source\CnPrimeNumber.obj                                                >> Crypto.bpr
@@ -415,6 +416,7 @@ CALL :COPYEXAMPLE CertificateAuthority
 CALL :COPYEXAMPLE Complex
 CALL :COPYEXAMPLE Crypto
 CALL :COPYEXAMPLE DFT
+CALL :COPYEXAMPLE DSA
 CALL :COPYEXAMPLE ECC
 CALL :COPYEXAMPLE Float
 CALL :COPYEXAMPLE Int128
@@ -473,6 +475,7 @@ ECHO   CnContainers in '..\Source\CnContainers.pas',                           >
 ECHO   CnCRC32 in '..\Source\CnCRC32.pas',                                     >> %1
 ECHO   CnDES in '..\Source\CnDES.pas',                                         >> %1
 ECHO   CnDFT in '..\Source\CnDFT.pas',                                         >> %1
+ECHO   CnDSA in '..\Source\CnDSA.pas',                                         >> %1
 ECHO   CnECC in '..\Source\CnECC.pas',                                         >> %1
 ECHO   CnFEC in '..\Source\CnFEC.pas',                                         >> %1
 ECHO   CnFloat in '..\Source\CnFloat.pas',                                     >> %1
