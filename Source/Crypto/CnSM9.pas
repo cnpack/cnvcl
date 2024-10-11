@@ -1182,6 +1182,7 @@ begin
   if F[0].IsZero then
   begin
     if not Res[0].SetZero then Exit;
+    K := nil;
 
     // r1 = -((2 * a1)^-1) */
     BigNumberAdd(Res[1], F[1], F[1]);
