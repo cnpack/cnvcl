@@ -1182,11 +1182,19 @@ begin
   if F[0].IsZero then
   begin
     if not Res[0].SetZero then Exit;
+
     // r1 = -((2 * a1)^-1) */
     BigNumberAdd(Res[1], F[1], F[1]);
-    BigNumberModularInverse(Res[1], Res[1], Prime);
-    BigNumberNonNegativeMod(Res[1], Res[1], Prime);
-    BigNumberSub(Res[1], Prime, Res[1]);
+    try
+      K := FLocalBigNumberPool.Obtain;
+      BigNumberModularInverse(K, Res[1], Prime);
+      BigNumberCopy(Res[1], K);
+
+      BigNumberNonNegativeMod(Res[1], Res[1], Prime);
+      BigNumberSub(Res[1], Prime, Res[1]);
+    finally
+      FLocalBigNumberPool.Recycle(K);
+    end;
   end
   else if F[1].IsZero then
   begin
@@ -1210,7 +1218,8 @@ begin
       T.MulWord(2);
       BigNumberMul(K, F[0], F[0]);
       BigNumberAdd(K, T, K);
-      BigNumberModularInverse(K, K, Prime);
+      BigNumberModularInverse(T, K, Prime);
+      BigNumberCopy(K, T);
 
       BigNumberMul(Res[0], F[0], K);
       BigNumberNonNegativeMod(Res[0], Res[0], Prime);
@@ -1470,7 +1479,8 @@ begin
     FP2MulU(K, F[1], F[1], Prime);
     FP2Mul(R0, F[0], F[0], Prime);
     FP2Sub(K, K, R0, Prime);
-    FP2Inverse(K, K, Prime);
+    FP2Inverse(R0, K, Prime);
+    FP2Copy(K, R0);
 
     FP2Mul(R0, F[0], K, Prime);
     FP2Negate(R0, R0, Prime);
@@ -3102,13 +3112,13 @@ begin
     end;
 
     // 计算 T2 = PrivateKey / T1
-    if not BigNumberModularInverse(T1, T1, SM9.Order) then
+    if not BigNumberModularInverse(T2, T1, SM9.Order) then
     begin
       _CnSetLastError(ECN_SM9_BIGNUMBER_ERROR);
       Exit;
     end;
 
-    BigNumberDirectMulMod(T2, SignatureMasterPrivateKey, T1, SM9.Order);
+    BigNumberDirectMulMod(T2, SignatureMasterPrivateKey, T2, SM9.Order);
 
     OutSignatureUserPrivateKey.Assign(SM9.Generator);
     SM9.MultiplePoint(T2, OutSignatureUserPrivateKey); // 这里才是有限域 SM9 的 P
@@ -3335,7 +3345,7 @@ function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterPrivateKey: TCnSm9Enc
 var
   C: Boolean;
   S: AnsiString;
-  T1: TCnBigNumber;
+  T1, T2: TCnBigNumber;
   AP: TCnFP2AffinePoint;
 begin
   Result := False;
@@ -3344,6 +3354,7 @@ begin
     SM9 := TCnSM9.Create;
 
   T1 := nil;
+  T2 := nil;
   AP := nil;
 
   try
@@ -3364,11 +3375,13 @@ begin
       Exit;
     end;
 
-    if not BigNumberModularInverse(T1, T1, SM9.Order) then
+    T2 := TCnBigNumber.Create;
+    if not BigNumberModularInverse(T2, T1, SM9.Order) then
     begin
       _CnSetLastError(ECN_SM9_BIGNUMBER_ERROR);
       Exit;
     end;
+    BigNumberCopy(T1, T2);
 
     BigNumberDirectMulMod(T1, T1, EncryptionMasterPrivateKey, SM9.Order);
 
@@ -3381,6 +3394,7 @@ begin
     _CnSetLastError(ECN_SM9_OK);
   finally
     AP.Free;
+    T2.Free;
     T1.Free;
     if C then
       SM9.Free;
@@ -3813,7 +3827,7 @@ function CnSM9KGCGenerateKeyExchangeUserKey(KeyExchangeMasterPrivateKey:
 var
   C: Boolean;
   S: AnsiString;
-  T1: TCnBigNumber;
+  T1, T2: TCnBigNumber;
   AP: TCnFP2AffinePoint;
 begin
   Result := False;
@@ -3822,6 +3836,7 @@ begin
     SM9 := TCnSM9.Create;
 
   T1 := nil;
+  T2 := nil;
   AP := nil;
 
   try
@@ -3842,11 +3857,14 @@ begin
       Exit;
     end;
 
-    if not BigNumberModularInverse(T1, T1, SM9.Order) then
+    T2 := TCnBigNumber.Create;
+    if not BigNumberModularInverse(T2, T1, SM9.Order) then
     begin
       _CnSetLastError(ECN_SM9_BIGNUMBER_ERROR);
       Exit;
     end;
+    BigNumberCopy(T1, T2);
+
     BigNumberDirectMulMod(T1, T1, KeyExchangeMasterPrivateKey, SM9.Order);
 
     AP := TCnFP2AffinePoint.Create;
@@ -3858,6 +3876,7 @@ begin
     _CnSetLastError(ECN_SM9_OK);
   finally
     AP.Free;
+    T2.Free;
     T1.Free;
     if C then
       SM9.Free;
