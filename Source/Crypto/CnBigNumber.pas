@@ -5699,7 +5699,7 @@ end;
 
 function BigNumberPowerPowerMod(const Res: TCnBigNumber; A, B, C, N: TCnBigNumber): Boolean;
 var
-  I: TCnBigNumber;
+  I, T: TCnBigNumber;
 begin
   // A^(B^C) = A^(B*B*B*B...) ¹² C ¸ö = ((A^B)^B)^B)^B ¹² C ²ã B
   if C.IsZero then
@@ -5711,21 +5711,28 @@ begin
     if (Res = A) or (Res = B) or (Res = C) or (Res = N) then
       raise Exception.Create(SCnErrorBigNumberParamDupRef);
 
-    I := FLocalBigNumberPool.Obtain;
+    I := nil;
+    T := nil;
+
     try
       Result := False;
+
+      I := FLocalBigNumberPool.Obtain;
       I.SetZero;
       if BigNumberCopy(Res, A) = nil then
         Exit;
 
+      T := FLocalBigNumberPool.Obtain;
       while BigNumberCompare(I, C) < 0 do
       begin
-        if not BigNumberPowerMod(Res, Res, B, N) then
+        if not BigNumberPowerMod(T, Res, B, N) then
           Exit;
+        BigNumberCopy(Res, T);
 
         I.AddWord(1);
       end;
     finally
+      FLocalBigNumberPool.Recycle(T);
       FLocalBigNumberPool.Recycle(I);
     end;
     Result := True;
