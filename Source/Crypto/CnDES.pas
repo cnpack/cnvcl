@@ -31,7 +31,9 @@ unit CnDES;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.08.13 V1.5
+* 修改记录：2024.10.12 V1.6
+*               修正 3DES 下部分越界的问题，优化对 Key 和 Iv 的对齐处理
+*           2022.08.13 V1.5
 *               对空内容加密返回空
 *           2021.02.07 V1.4
 *               增加对 TBytes 的支持
@@ -608,20 +610,6 @@ begin
     Str := Str + Chr(0);
 end;
 
-// 将 Key 补 #0 凑成 8 字节
-procedure MakeKeyBytesAlign(var Key: TBytes);
-var
-  I, Len: Integer;
-begin
-  Len := Length(Key);
-  if Len < CN_DES_KEYSIZE then
-  begin
-    SetLength(Key, CN_DES_KEYSIZE);
-    for I := Len to CN_DES_KEYSIZE - 1 do
-      Key[I] := 0;
-  end;
-end;
-
 // 将字节数组补 0 凑成 8 的倍数，注意空数组不补
 procedure MakeInputBytesAlign(var Input: TBytes);
 var
@@ -852,10 +840,10 @@ begin
     Exit;
   end;
 
-  MakeKeyBytesAlign(Key);
   MakeInputBytesAlign(Input);
 
-  Move(Key[0], KeyByte[0], SizeOf(TCnDESKey));
+  FillChar(KeyByte[0], SizeOf(TCnDESKey), 0);
+  MoveMost(Key[0], KeyByte[0], Length(Key), SizeOf(TCnDESKey));
   MakeKey(KeyByte, SubKey);
 
   SetLength(Result, (((Length(Input) - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE);
@@ -880,8 +868,8 @@ begin
     Exit;
   end;
 
-  MakeKeyBytesAlign(Key);
-  Move(Key[0], KeyByte[0], SizeOf(TCnDESKey));
+  FillChar(KeyByte[0], SizeOf(TCnDESKey), 0);
+  MoveMost(Key[0], KeyByte[0], Length(Key), SizeOf(TCnDESKey));
   MakeKey(KeyByte, SubKey);
 
   SetLength(Result, (((Length(Input) - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE);
@@ -907,14 +895,14 @@ begin
     Exit;
   end;
 
-  MakeKeyBytesAlign(Key);
-  MakeKeyBytesAlign(Iv);
-
   MakeInputBytesAlign(Input);
 
-  Move(Key[0], KeyByte[0], SizeOf(TCnDESKey));
+  FillChar(KeyByte[0], SizeOf(TCnDESKey), 0);
+  MoveMost(Key[0], KeyByte[0], Length(Key), SizeOf(TCnDESKey));
   MakeKey(KeyByte, SubKey);
-  Move(Iv[0], Vector[0], SizeOf(TCnDESIv));
+
+  FillChar(Vector[0], SizeOf(TCnDESIv), 0);
+  MoveMost(Iv[0], Vector[0], Length(Iv), SizeOf(TCnDESIv));
 
   SetLength(Result, (((Length(Input) - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE);
   for I := 0 to Length(Input) div CN_DES_BLOCKSIZE - 1 do
@@ -948,12 +936,12 @@ begin
     Exit;
   end;
 
-  MakeKeyBytesAlign(Key);
-  Move(Key[0], KeyByte[0], SizeOf(TCnDESKey));
-
+  FillChar(KeyByte[0], SizeOf(TCnDESKey), 0);
+  MoveMost(Key[0], KeyByte[0], Length(Key), SizeOf(TCnDESKey));
   MakeKey(KeyByte, SubKey);
-  MakeKeyBytesAlign(Iv);
-  Move(Iv[0], Vector[0], SizeOf(TCnDESIv));
+
+  FillChar(Vector[0], SizeOf(TCnDESIv), 0);
+  MoveMost(Iv[0], Vector[0], Length(Iv), SizeOf(TCnDESIv));
 
   SetLength(Result, (((Length(Input) - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE);
   for I := 0 to Length(Input) div CN_DES_BLOCKSIZE - 1 do
@@ -1340,7 +1328,8 @@ begin
   MakeKey(K2, SubKey2);
   MakeKey(K3, SubKey3);
 
-  Move(Iv^, Vector[0], SizeOf(TCnDESIv));
+  FillChar(Vector[0], SizeOf(TCnDESIv), 0);
+  MoveMost(Iv^, Vector[0], StrLen(Iv), SizeOf(TCnDESIv));
 
   for I := 0 to Length(Input) div CN_DES_BLOCKSIZE - 1 do
   begin
@@ -1513,7 +1502,8 @@ begin
   MakeKey(K3, SubKey3);
 
   MakeInputBytesAlign(Input);
-  Move(Iv[0], Vector[0], SizeOf(TCnDESIv));
+  FillChar(Vector[0], SizeOf(TCnDESIv), 0);
+  MoveMost(Iv[0], Vector[0], Length(Iv), SizeOf(TCnDESIv));
 
   SetLength(Result, (((Length(Input) - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE);
   for I := 0 to Length(Input) div CN_DES_BLOCKSIZE - 1 do
@@ -1555,7 +1545,8 @@ begin
   MakeKey(K2, SubKey2);
   MakeKey(K3, SubKey3);
 
-  Move(Iv[0], Vector[0], SizeOf(TCnDESIv));
+  FillChar(Vector[0], SizeOf(TCnDESIv), 0);
+  MoveMost(Iv[0], Vector[0], Length(Iv), SizeOf(TCnDESIv));
 
   SetLength(Result, (((Length(Input) - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE);
   for I := 0 to Length(Input) div CN_DES_BLOCKSIZE - 1 do
