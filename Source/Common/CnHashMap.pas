@@ -21,14 +21,18 @@
 unit CnHashMap;
 {* |<PRE>
 ================================================================================
-* 软件名称：CnPack
+* 软件名称：CnPack 基础库
 * 单元名称：CnHashMap 实现单元
 * 单元作者：Pan Ying
-* 备    注：该单元为 CnHashMap 的实现单元。
+* 备    注：该单元为 CnHashMap 的杂凑表（或叫散列表、哈希表）实现单元，
+*           以唯一的 Key 来索引 Value。包括多个不同用途的实现类。
+*           注意不同的 Key 可能 Hash 出相同的位置，因而一个位置上要支持多个 Value 保存。
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：v0.96   2021/1/2  by Liu Xiao
+* 修改记录：v1.0   20241019
+*               重构部分内容并更改注释为汉字
+*           v0.96   2021/1/2  by Liu Xiao
 *               Add new class TCnHashMap for Int64 and Integer/TObject
 *           v0.96   2004/2/7  by beta
 *               Add new class TCnStrToPtrHashMap
@@ -58,55 +62,51 @@ const
 
   CN_HASH_MAP_MAX_CAPACITY = 1 shl 30;
 
+  CN_HASH_MAP_REC_EMPTY = -2;
+
+  CN_HASH_MAP_REC_DELETED = -1;
+
+  CN_HASH_MAP_REC_DEFAULT_INCR = 2;
+
+  CN_HASH_MAP_REC_DEFAULT_LISTLENGTH = 8;
+
 type
   ECnHashException = class(Exception);
+  {* HashMap 相关异常}
 
-  {     When an EOutOfMemory exception throw,means there is not enough
-  Memory to keep the map,just maybe need more memory.}
-
-
-  {    This Record is used as the internal method to store data,
-    it use variant so can support int,string,object and so on.}
   TCnHashMapRec = record
+  {* TCnBaseHashMap 的内部线性存储结构，以 Variant 为主}
     Key: Variant;
-    HashCode: Integer;
-            //when -2 ,as nothing;when -1, as deleted;
+    HashCode: Integer; // CH_HASH_MAP_REC_EMPTY -2  或 CN_HASH_MAP_REC_DELETED -1
     Value: Variant;
   end;
 
-  {Some type used to calculate the int hash code}
-  TCnHashCodeType = (CnHashMove, CnHashMod);
+  TCnHashCodeType = (hctHashMove, hctHashMod);
+  {* 整型杂凑值计算分类}
 
-  {Your can define your own function to calculate hash code,
-    but sure it need less than the list Length}
   TCnCustomHashCodeMethod = function(AKey: Variant; AListLength, ATotalRec: Integer): Integer;
+  {* 自定义杂凑函数类型}
 
-  {    This is the loew level hash map ,all others' ancestor.
-     Some method just abstract.'}
   TCnBaseHashMap = class(TPersistent)
+  {* Key 索引的 HashMap 基类，一个 Key 只允许对应一个 Value。
+    内部用 Variant 以支持子类的多种类型，并采用数组循环找空闲存储}
   private
     FIncr: Integer;
-            //how much space should be alloc when full
     FSize: Integer;
-            //how many data stored.
     FCurPos: Integer;
-            //enum point
     FLengthBit: Integer;
-
     FHashCodeMethod: TCnHashCodeType;
     FUseCustomHash: Boolean;
     FOnCustomHashCode: TCnCustomHashCodeMethod;
-            //the type
 
     procedure SetIncr(Value: Integer);
     procedure CreateList(Length: Integer);
 
     function VariantHashCode(AKey: Variant): Integer; virtual;
-            //ATTENTION: override in every inherit
+    {* 子类须额外实现杂凑计算}
     function IntHashCode(AKey: Integer): Integer;
 
     procedure DeleteValue(AValue: Variant); virtual;
-            //this procedure used to delete no use value,may be needed override
 
     function Search(AKey: Variant): Integer;
     procedure SetHashCodeMethod(const Value: TCnHashCodeType);
@@ -114,9 +114,9 @@ type
     procedure SetOnCustomHashCode(const Value: TCnCustomHashCodeMethod);
   protected
     FList: array of TCnHashMapRec;
-            //store the map
+    {* 内部线性存储数组}
     procedure ReSizeList(NewLength: Integer);
-            //use to change the internal list's size
+    {* 内部改变容量并重新排列所有内容}
 
     procedure AddInternal(AKey, AValue: Variant);
     function DeleteInternal(AKey: Variant): Boolean;
@@ -126,32 +126,42 @@ type
 
     function HasHashCode(AKey: Variant): Integer;
   public
-    constructor Create(AListLength: Integer = 8; AIncr: Integer = 2);
+    constructor Create(AListLength: Integer = CN_HASH_MAP_REC_DEFAULT_LISTLENGTH;
+      AIncr: Integer = CN_HASH_MAP_REC_DEFAULT_INCR);
     destructor Destroy; override;
 
     procedure Add(AKey, AValue: Variant); overload; virtual;
+    {* 添加 Key 与 Value 对，如存在 Key 则覆盖}
     function Delete(AKey: Variant): Boolean; overload; virtual;
+    {* 删除指定 Key 及其 Value}
     function Find(AKey: Variant; var AValue: Variant): Boolean; overload; virtual;
+    {* 根据 Key 查找对应 Value，如存在则返回 True，Value 存于 AValue 中。不存在则返回 False}
 
     procedure Refresh;
-            //use if many data has been deleted,takes a long time
+    {* 压缩碎片，用于删除内容较多时的压缩，较为耗时}
 
-    //use to list all key and value
     procedure StartEnum;
+    {* 开始遍历，内部重置遍历计数，注意不支持多线程交叉遍历}
     function GetNext(var AKey, AValue: Variant): Boolean; overload; virtual;
-            //return false when all hava been listed
+    {* 遍历取 Key 和 Value，返回 False 时表示遍历结束}
 
     property Incr: Integer read FIncr write SetIncr;
+    {* 满时扩容的一次扩容长度}
     property Size: Integer read FSize;
+    {* 已存储的有效内容数量}
+
     property HashCodeMethod: TCnHashCodeType read FHashCodeMethod write SetHashCodeMethod;
+    {* 整型杂凑的计算类型，默认求余方式}
     property UseCustomHash: Boolean read FUseCustomHash write SetUseCustomHash;
+    {* 是否使用自定义杂凑函数}
     property OnCustomHashCode: TCnCustomHashCodeMethod read FOnCustomHashCode write SetOnCustomHashCode;
+    {* 自定义杂凑函数实现事件}
   end;
 
   TCnStrToStrHashMap = class(TCnBaseHashMap)
+  {* 索引为字符串、值也为字符串的 HashMap}
   private
     function VariantHashCode(AKey: Variant): Integer; override;
-
   public
     procedure Add(const AKey, AValue: string); reintroduce; overload;
     function Delete(const AKey: string): Boolean; reintroduce; overload;
@@ -161,9 +171,9 @@ type
   end;
 
   TCnWideStrToWideStrHashMap = class(TCnBaseHashMap)
+  {* 索引为宽字符串、值也为宽字符串的 HashMap}
   private
     function VariantHashCode(AKey: Variant): Integer; override;
-
   public
     procedure Add(const AKey, AValue: WideString); reintroduce; overload;
     function Delete(const AKey: WideString): Boolean; reintroduce; overload;
@@ -173,7 +183,9 @@ type
   end;
 
 {$IFNDEF FPC}
+
   TCnStrToPtrHashMap = class(TCnBaseHashMap)
+  {* 索引为字符串、值为指针或对象的 HashMap}
   private
     function VariantHashCode(AKey: Variant): Integer; override;
   public
@@ -182,9 +194,11 @@ type
     function Find(const AKey: string; var AValue: Pointer): Boolean; reintroduce; overload;
     function GetNext(var AKey: string; var AValue: Pointer): Boolean; reintroduce; overload;
   end;
+
 {$ENDIF}
 
   TCnStrToVariantHashMap = class(TCnBaseHashMap)
+  {* 索引为字符串、值为变体类型的 HashMap}
   private
     function VariantHashCode(AKey: Variant): Integer; override;
   public
@@ -258,8 +272,8 @@ type
   end;
 
   TCnHashMap = class(TObject)
-  {* 参考 JDK 1.7 实现的 Object 对 Object 的简易 HashMap，不使用 Variant 以提高性能
-    要同时支持 32 位和 64 位，索引用 Integer，Key 要支持 Int32/64、TObject }
+  {* 参考 JDK 1.7 实现的 Object 对 Object 的简易 HashMap，不使用 Variant 以提高性能，内部链表处理冲突
+    要同时支持 32 位和 64 位，索引用 Integer，Key 支持 Int32/64、TObject 但不支持 string}
   private
     FTable: TCnHashNodeArray; // Hash 数组用来存放链头，长度是：大于 FCapacity 的 2 次幂 * SizeOf(TObject)
     FLoadFactor: Real;
@@ -336,8 +350,9 @@ type
 implementation
 
 resourcestring
-  SCnHashInValidFactor = 'Invalid Hash Map Load Factor';
+  SCnHashInvalidFactor = 'Invalid Hash Map Load Factor';
   SCnHashConcurrentError = 'Modified by Others when Iteratoring';
+  SCnHashInvalidListSize = 'Invalid New List Size';
 
 type
   PObject = ^TObject;
@@ -371,50 +386,53 @@ end;
 procedure TCnBaseHashMap.AddInternal(AKey, AValue: Variant);
 var
   I, J: Integer;
-  Pos, DeletedPos: Integer;
+  IndexPos, DeletedPos: Integer;
 begin
-  //if smaller,then enlarge the size
+  // 尺寸满了则扩容
   if Size >= Length(FList) then
     ReSizeList(Size * Incr);
 
-  //calculate hash code
+  // 计算杂凑值
   I := HasHashCode(AKey);
   DeletedPos := -1;
-  Pos := I;
+  IndexPos := I;
 
-  for J := Low(FList) to High(FList) do
+  for J := Low(FList) to High(FList) do //
   begin
-    Pos := (I + J) mod Length(FList);
+    // 从 Hash 出来的 I 对长度求余拿到插入位置，往后循环找
+    IndexPos := (I + J) mod Length(FList);
 
-    if FList[Pos].HashCode = -2 then
+    if FList[IndexPos].HashCode = CN_HASH_MAP_REC_EMPTY then  // 如果该位置空，那么该位置可用
       Break
-    else if (FList[Pos].HashCode = I) and (FList[Pos].Key = AKey) then
-      Break;
+    else if (FList[IndexPos].HashCode = I) and (FList[IndexPos].Key = AKey) then
+      Break;                               // 如果该位置已有本 Key，那么该位置也可用
 
-    if (DeletedPos < 0) and (FList[Pos].HashCode = -1) then
-      DeletedPos := Pos;
+    if (DeletedPos < 0) and (FList[IndexPos].HashCode = CN_HASH_MAP_REC_DELETED) then
+      DeletedPos := IndexPos;              // 如果该位置已删除，那也记下来备用
   end;
 
-  if (FList[Pos].HashCode = -2) or
-    ((FList[Pos].HashCode = I) and (FList[Pos].Key = AKey)) then //new record
+  // 如果空或已有相同 Key，则优先用本空
+  if (FList[IndexPos].HashCode = CN_HASH_MAP_REC_EMPTY) or
+    ((FList[IndexPos].HashCode = I) and (FList[IndexPos].Key = AKey)) then
   begin
-    if (FList[Pos].HashCode = I) and (FList[Pos].Key = AKey) then
-      DeleteValue(FList[Pos].Value)
+    // 有相同 Key 的，先删，后面替换进去，Size 不变
+    if (FList[IndexPos].HashCode = I) and (FList[IndexPos].Key = AKey) then
+      DeleteValue(FList[IndexPos].Value)
     else
-      Inc(FSize);
+      Inc(FSize); // 没相同 Key 的表示新增，Size 要加一
 
-    FList[Pos].Key := AKey;
-    FList[Pos].HashCode := I;
+    FList[IndexPos].Key := AKey;
+    FList[IndexPos].HashCode := I;
 
-    FList[Pos].Value := AValue;
+    FList[IndexPos].Value := AValue;
   end
-  else if DeletedPos >= 0 then
+  else if DeletedPos >= 0 then // 如果有可用的已删除的位置，也用，Size 也加一
   begin
-    Pos := DeletedPos;
+    IndexPos := DeletedPos;
 
-    FList[Pos].Key := AKey;
-    FList[Pos].HashCode := I;
-    FList[Pos].Value := AValue;
+    FList[IndexPos].Key := AKey;
+    FList[IndexPos].HashCode := I;
+    FList[IndexPos].Value := AValue;
 
     Inc(FSize);
   end;
@@ -424,13 +442,8 @@ constructor TCnBaseHashMap.Create(AListLength, AIncr: Integer);
 begin
   inherited Create;
 
-  // set All the Initial value first here.
-  FIncr := 15;
-  FSize := 0;
-
   Incr := AIncr;
-
-  FHashCodeMethod := CnHashMod;
+  FHashCodeMethod := hctHashMod;
 
   FOnCustomHashCode := nil;
   FUseCustomHash := False;
@@ -440,21 +453,20 @@ end;
 
 procedure TCnBaseHashMap.CreateList(Length: Integer);
 var
-  I: Integer;
-  nTemp: Integer;
+  I, T: Integer;
 begin
   FSize := 0;
   SetLength(FList, Length);
 
   for I := Low(FList) to High(FList) do
-    FList[I].HashCode := -2; //just think -2 is space
+    FList[I].HashCode := CN_HASH_MAP_REC_EMPTY;
 
   FLengthBit := 1;
-  nTemp := 2;
+  T := 2;
 
-  while nTemp < Length do
+  while T < Length do
   begin
-    nTemp := nTemp * 2;
+    T := T * 2;
 
     Inc(FLengthBit);
   end;
@@ -467,18 +479,18 @@ end;
 
 function TCnBaseHashMap.DeleteInternal(AKey: Variant): Boolean;
 var
-  Pos: Integer;
+  P: Integer;
 begin
-  Pos := Search(AKey);
+  P := Search(AKey);
 
-  if Pos = -1 then
+  if P = -1 then
     Result := False
   else
   begin
-    FList[Pos].HashCode := -1; //deleted
-    DeleteValue(FList[Pos].Value);
+    FList[P].HashCode := CN_HASH_MAP_REC_DELETED;
+    DeleteValue(FList[P].Value);
 
-    dec(FSize);
+    Dec(FSize);
 
     Result := True;
   end;
@@ -498,7 +510,6 @@ begin
       DeleteValue(FList[I].Value);
 
   SetLength(FList, 0);
-
   inherited;
 end;
 
@@ -518,7 +529,6 @@ begin
   else
   begin
     AValue := FList[Pos].Value;
-
     Result := True;
   end;
 end;
@@ -559,31 +569,27 @@ end;
 
 function TCnBaseHashMap.IntHashCode(AKey: Integer): Integer;
 var
-  nTemp, nTemp2, nTemp3: Integer;
+  T, T2, T3: Integer;
 begin
-  {ATTENTION: New Hash Code Method add here}
-  case (HashCodeMethod) of
-    CnHashMove:
+  case HashCodeMethod of
+    hctHashMove:
       begin
-        nTemp := Abs(AKey);
-        nTemp2 := 0;
-        nTemp3 := 1 shl FLengthBit;
+        T := Abs(AKey);
+        T2 := 0;
+        T3 := 1 shl FLengthBit;
 
-        while (nTemp > 0) do
+        while (T > 0) do
         begin
-          Inc(nTemp2, nTemp mod nTemp3);
-
-          nTemp := nTemp shr FLengthBit;
+          Inc(T2, T mod T3);
+          T := T shr FLengthBit;
         end;
 
-        Result := nTemp2;
+        Result := T2;
       end;
-
-    CnHashMod:
+    hctHashMod:
       Result := AKey mod Length(FList);
-
   else
-    // we treat as the Mod Method
+    // 默认以 mod 为准
     Result := AKey mod Length(FList);
   end;
 
@@ -592,18 +598,20 @@ end;
 
 procedure TCnBaseHashMap.Refresh;
 var
-  nNewLen: Integer;
+  NL: Integer;
 begin
-  nNewLen := Length(FList);
+  NL := Length(FList);
 
-  while nNewLen > Size do nNewLen := nNewLen div Incr;
+  while NL > Size do
+    NL := NL div Incr;
 
-  if nNewLen <= 0 then
-    nNewLen := Incr;
+  if NL <= 0 then
+    NL := Incr;
 
-  while nNewLen <= Size do nNewLen := nNewLen * Incr;
+  while NL <= Size do
+    NL := NL * Incr;
 
-  ReSizeList(nNewLen);
+  ReSizeList(NL);
 end;
 
 procedure TCnBaseHashMap.ReSizeList(NewLength: Integer);
@@ -611,13 +619,9 @@ var
   TempList: array of TCnHashMapRec;
   I: Integer;
 begin
-  // this is a protected procedure,not directly called outside
-
-  // first we check the NewLength is valid
   if (NewLength < Size) then
-    raise ECnHashException.Create('New list size is not valid');
+    raise ECnHashException.Create(SCnHashInvalidListSize);
 
-  // then we do the actual act,this will take a long time if list is long
   SetLength(TempList, Length(FList));
 
   try
@@ -637,22 +641,23 @@ end;
 function TCnBaseHashMap.Search(AKey: Variant): Integer;
 var
   I, J: Integer;
-  Pos: Integer;
+  P: Integer;
 begin
   Result := -1;
 
-  // calculate hash code first
+  // 搜索时先计算杂凑值
   I := HasHashCode(AKey);
 
+  // 并从位置上往后找
   for J := Low(FList) to High(FList) do
   begin
-    Pos := (I + J) mod Length(FList);
+    P := (I + J) mod Length(FList);
 
-    if FList[Pos].HashCode = -2 then
+    if FList[P].HashCode = -2 then
       Break
-    else if (FList[Pos].HashCode = I) and (FList[Pos].Key = AKey) then
+    else if (FList[P].HashCode = I) and (FList[P].Key = AKey) then
     begin
-      Result := Pos;
+      Result := P;
       Break;
     end;
   end;
@@ -662,7 +667,7 @@ procedure TCnBaseHashMap.SetHashCodeMethod(const Value: TCnHashCodeType);
 begin
   if (FHashCodeMethod <> Value) then
   begin
-    // we should refresh this list,because hash code has been changed also
+    // 改变则全部重排
     FHashCodeMethod := Value;
     Refresh;
   end;
@@ -671,7 +676,7 @@ end;
 procedure TCnBaseHashMap.SetIncr(Value: Integer);
 begin
   if Value <= 1 then
-    raise ECnHashException.Create('Incr should be lagerer than 1')
+    raise ECnHashException.Create('Incr should be Greater than 1')
   else if Value <> FIncr then
     FIncr := Value;
 end;
@@ -716,8 +721,7 @@ end;
 
 function TCnBaseHashMap.VariantHashCode(AKey: Variant): Integer;
 begin
-  // here is just a example
-  // You should change it when it's a string or an object
+  // 杂凑默认实现。如果是 string 或 object，得在子类里重新实现
   Result := Integer(AKey);
 end;
 
@@ -759,16 +763,16 @@ end;
 
 function TCnStrToStrHashMap.VariantHashCode(AKey: Variant): Integer;
 var
-  myHashCode, I: Integer;
+  C, I: Integer;
   HashString: string;
 begin
-  myHashCode := 0;
+  C := 0;
   HashString := AKey;
 
   for I := 1 to Length(HashString) do
-    myHashCode := myHashCode shl 5 + ord(HashString[I]) + myHashCode;
+    C := C shl 5 + ord(HashString[I]) + C;
 
-  Result := Abs(myHashCode);
+  Result := Abs(C);
 end;
 
 { TCnWideStrToWideStrHashMap }
@@ -809,16 +813,16 @@ end;
 
 function TCnWideStrToWideStrHashMap.VariantHashCode(AKey: Variant): Integer;
 var
-  myHashCode, I: Integer;
+  C, I: Integer;
   HashString: WideString;
 begin
-  myHashCode := 0;
+  C := 0;
   HashString := AKey;
 
   for I := 1 to Length(HashString) do
-    myHashCode := myHashCode shl 5 + ord(HashString[I]) + myHashCode;
+    C := C shl 5 + ord(HashString[I]) + C;
 
-  Result := Abs(myHashCode);
+  Result := Abs(C);
 end;
 
 {$IFNDEF FPC}
@@ -827,16 +831,16 @@ end;
 
 function TCnStrToPtrHashMap.VariantHashCode(AKey: Variant): Integer;
 var
-  iHashCode, I: Integer;
-  HashString: string;
+  C, I: Integer;
+  S: string;
 begin
-  iHashCode := 0;
-  HashString := AKey;
+  C := 0;
+  S := AKey;
 
-  for I := 1 to Length(HashString) do
-    iHashCode := iHashCode shl 5 + Ord(HashString[I]) + iHashCode;
+  for I := 1 to Length(S) do
+    C := C shl 5 + Ord(S[I]) + C;
 
-  Result := Abs(iHashCode);
+  Result := Abs(C);
 end;
 
 procedure TCnStrToPtrHashMap.Add(const AKey: string; AValue: Pointer);
@@ -905,16 +909,16 @@ end;
 
 function TCnStrToVariantHashMap.VariantHashCode(AKey: Variant): Integer;
 var
-  iHashCode, I: Integer;
-  HashString: string;
+  C, I: Integer;
+  S: string;
 begin
-  iHashCode := 0;
-  HashString := AKey;
+  C := 0;
+  S := AKey;
 
-  for I := 1 to Length(HashString) do
-    iHashCode := iHashCode shl 5 + Ord(HashString[I]) + iHashCode;
+  for I := 1 to Length(S) do
+    C := C shl 5 + Ord(S[I]) + C;
 
-  Result := Abs(iHashCode);
+  Result := Abs(C);
 end;
 
 //------------------------------------------------------------------------------
@@ -994,7 +998,7 @@ begin
     ACapacity := CN_HASH_MAP_DEFAULT_CAPACITY;
   FLoadFactor := ALoadFactor;
   if (FLoadFactor <= 0.0) or (FLoadFactor >= 1.0) then
-    raise ECnHashException.Create(SCnHashInValidFactor);
+    raise ECnHashException.Create(SCnHashInvalidFactor);
 
   FCapacity := GetUInt32PowerOf2GreaterEqual(ACapacity);
   if FCapacity = 0 then
