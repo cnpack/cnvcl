@@ -3,8 +3,9 @@ unit Unit1;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
-  FMX.StdCtrls,  FMX.ExtCtrls, UnitFrame4, FMX.ActnList, FMX.ComboEdit, FMX.Edit, FMX.Layouts, FMX.ListBox, FMX.ListView, FMX.Memo, FMX.Menus, FMX.TabControl, FMX.TreeView, FMX.Types, System.Types, System.UITypes,
+  {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  FMX.StdCtrls,  FMX.ExtCtrls, UnitFrame4, FMX.ActnList, FMX.ComboEdit, FMX.Edit, FMX.Layouts, FMX.ListBox, FMX.ListView,
+  FMX.Memo, FMX.Menus, FMX.TabControl, FMX.TreeView, FMX.Types, System.Types, System.UITypes,
   FMX.ListView.Types, FMX.ListView.Appearances, FMX.ListView.Adapters.Base,
   System.Actions, FMX.ScrollBox, FMX.Controls.Presentation, CnLangTranslator,
   CnLangMgr, CnClasses, CnLangStorage, CnHashLangStorage;

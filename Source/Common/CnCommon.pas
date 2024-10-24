@@ -1321,14 +1321,6 @@ function _CnExtractFilePath(const FileName: string): string;
 function _CnChangeFileExt(const FileName, Extension: string): string;
 {* 对ChangeFileExt的封装，防止Delphi XE3的TStringHelper.LastDelimiter引入的不兼容}
 
-function CnUtf8ToAnsi(const Text: AnsiString): AnsiString;
-function CnUtf8ToAnsi2(const Text: string): string;
-{* Ansi 版的转换 Utf8 到 Ansi 字符串，以解决 D2009 下 Utf8ToAnsi 是 UString 的问题 }
-
-function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
-function CnAnsiToUtf82(const Text: string): string;
-{* Ansi 版的转换 Ansi 到 Utf8 字符串，以解决 D2009 下 AnsiToUtf8 是 UString 的问题 }
-
 function WideStringReplace(const S, OldPattern, NewPattern: Widestring): Widestring;
 {* WideString 的全部替换实现，区分大小写}
 
@@ -1575,59 +1567,6 @@ begin
 
     SearchStr := Copy(SearchStr, Offset + Length(Patt), MaxInt);
   end;
-end;
-
-// Ansi 版的转换 Utf8 到 Ansi 字符串，以解决 D2009 下 Utf8ToAnsi 是 UString 的问题
-function CnUtf8ToAnsi(const Text: AnsiString): AnsiString;
-begin
-{$IFDEF UNICODE}
-  Result := AnsiString(UTF8ToUnicodeString(PAnsiChar(Text)));
-{$ELSE}
-  {$IFDEF COMPILER6_UP}
-  Result := Utf8ToAnsi(Text);
-  {$ELSE}
-  Result := AnsiString(CnUtf8DecodeToWideString(Text));
-  {$ENDIF}
-{$ENDIF}
-end;
-
-function CnUtf8ToAnsi2(const Text: string): string;
-begin
-{$IFDEF UNICODE}
-  Result := UTF8ToUnicodeString(PAnsiChar(AnsiString(Text)));
-{$ELSE}
-  {$IFDEF COMPILER6_UP}
-  Result := Utf8ToAnsi(Text);
-  {$ELSE}
-  Result := AnsiString(CnUtf8DecodeToWideString(Text));
-  {$ENDIF}
-{$ENDIF}
-end;
-
-function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
-begin
-{$IFDEF UNICODE}
-  Result := AnsiString(Utf8Encode(Text)); // 返回值不可改为 UTF8String 类型，否则此处转换无效
-{$ELSE}
-  {$IFDEF COMPILER6_UP}
-  Result := AnsiToUtf8(Text);
-  {$ELSE}
-  Result := CnUtf8EncodeWideString(WideString(Text));
-  {$ENDIF}
-{$ENDIF}
-end;
-
-function CnAnsiToUtf82(const Text: string): string;
-begin
-{$IFDEF UNICODE}
-  Result := string(Utf8Encode(Text));
-{$ELSE}
-  {$IFDEF COMPILER6_UP}
-  Result := AnsiToUtf8(Text);
-  {$ELSE}
-  Result := CnUtf8EncodeWideString(WideString(Text));
-  {$ENDIF}
-{$ENDIF}
 end;
 
 function AnsiTrim(const S: AnsiString): AnsiString;

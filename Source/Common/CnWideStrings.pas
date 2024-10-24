@@ -278,6 +278,14 @@ function ConvertUtf8ToAlterDisplayAnsi(Utf8Text: PAnsiChar; AlterChar: AnsiChar 
 {* 手动将 Utf8 字符串转换成显示用的 Ansi，把其中的宽字符按 Calculator 的判断替换成一个或两个 AlterChar，
   不传时采用默认判断。用于纯英文环境下的字符显示宽度计算，但不支持四字节字符}
 
+function CnUtf8ToAnsi(const Text: AnsiString): AnsiString;
+function CnUtf8ToAnsi2(const Text: string): string;
+{* Ansi 版的转换 Utf8 到 Ansi 字符串及 string，以解决 Unicode 版本下 Utf8ToAnsi 是 UnicodeString 的问题 }
+
+function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
+function CnAnsiToUtf82(const Text: string): string;
+{* Ansi 版的转换 Ansi 到 Utf8 字符串，以解决 Unicode 版本下 AnsiToUtf8 是 UnicodeString 的问题 }
+
 implementation
 
 const
@@ -1560,6 +1568,58 @@ begin
   end;
 
   SetLength(Result, J - 1); // Inc 的 J 是准备给下一个字符的，没了就减一
+end;
+
+function CnUtf8ToAnsi(const Text: AnsiString): AnsiString;
+begin
+{$IFDEF UNICODE}
+  Result := AnsiString(UTF8ToUnicodeString(PAnsiChar(Text)));
+{$ELSE}
+  {$IFDEF COMPILER6_UP}
+  Result := Utf8ToAnsi(Text);
+  {$ELSE}
+  Result := AnsiString(CnUtf8DecodeToWideString(Text));
+  {$ENDIF}
+{$ENDIF}
+end;
+
+function CnUtf8ToAnsi2(const Text: string): string;
+begin
+{$IFDEF UNICODE}
+  Result := UTF8ToUnicodeString(PAnsiChar(AnsiString(Text)));
+{$ELSE}
+  {$IFDEF COMPILER6_UP}
+  Result := Utf8ToAnsi(Text);
+  {$ELSE}
+  Result := AnsiString(CnUtf8DecodeToWideString(Text));
+  {$ENDIF}
+{$ENDIF}
+end;
+
+function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
+begin
+{$IFDEF UNICODE}
+  Result := AnsiString(Utf8Encode(Text)); // 返回值不可改为 UTF8String 类型，否则此处转换无效
+{$ELSE}
+  {$IFDEF COMPILER6_UP}
+  Result := AnsiToUtf8(Text);
+  {$ELSE}
+  Result := CnUtf8EncodeWideString(WideString(Text));
+  {$ENDIF}
+{$ENDIF}
+end;
+
+function CnAnsiToUtf82(const Text: string): string;
+begin
+{$IFDEF UNICODE}
+  Result := string(Utf8Encode(Text));
+{$ELSE}
+  {$IFDEF COMPILER6_UP}
+  Result := AnsiToUtf8(Text);
+  {$ELSE}
+  Result := CnUtf8EncodeWideString(WideString(Text));
+  {$ENDIF}
+{$ENDIF}
 end;
 
 end.

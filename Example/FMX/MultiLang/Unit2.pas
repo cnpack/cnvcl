@@ -3,7 +3,7 @@ unit Unit2;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
   FMX.StdCtrls, CnLangMgr, FMX.Types, System.Types, System.UITypes,
   FMX.Controls.Presentation;
 

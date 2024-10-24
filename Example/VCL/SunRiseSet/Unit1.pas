@@ -43,7 +43,7 @@ implementation
 procedure TForm1.btn1Click(Sender: TObject);
 var
   RiseTime, TransitTime, SetTime: TDateTime;
-  SunType: TSunRiseSetType;
+  SunType: TCnSunRiseSetType;
 
   procedure SetTimeText(AEdit: TEdit; ATime: TDateTime);
   begin
@@ -58,7 +58,7 @@ begin
   SetTimeText(edt4, RiseTime);
   SetTimeText(edt5, TransitTime);
   SetTimeText(edt6, SetTime);
-  edt7.Text := GetEnumName(TypeInfo(TSunRiseSetType), Ord(SunType));
+  edt7.Text := GetEnumName(TypeInfo(TCnSunRiseSetType), Ord(SunType));
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
