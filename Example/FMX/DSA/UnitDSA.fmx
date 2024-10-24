@@ -1,0 +1,235 @@
+object FormDSA: TFormDSA
+  Left = 192
+  Top = 109
+  BorderStyle = Single
+  Caption = 'DSA Demo'
+  ClientHeight = 519
+  ClientWidth = 917
+  Position = ScreenCenter
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  object pgcDSA: TTabControl
+    Position.X = 16.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 881.000000000000000000
+    Size.Height = 481.000000000000000000
+    ActiveTab = tsDSA
+    TabOrder = 0
+    Sizes = (
+      881s
+      481s)
+    object tsDSA: TTabItem
+      Text = 'BigNumber DSA'
+      ImageIndex = 1
+      object lblDSAP: TLabel
+        Position.X = 16.000000000000000000
+        Position.Y = 60.000000000000000000
+        Size.Width = 10.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'P:'
+      end
+      object lblDSAQ: TLabel
+        Position.X = 16.000000000000000000
+        Position.Y = 92.000000000000000000
+        Size.Width = 11.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Q:'
+      end
+      object lblDSAG: TLabel
+        Position.X = 16.000000000000000000
+        Position.Y = 124.000000000000000000
+        Size.Width = 11.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'G:'
+      end
+      object lblDSAPriv: TLabel
+        Position.X = 16.000000000000000000
+        Position.Y = 220.000000000000000000
+        Size.Width = 36.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Private:'
+      end
+      object lblDSAPub: TLabel
+        Position.X = 16.000000000000000000
+        Position.Y = 252.000000000000000000
+        Size.Width = 22.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Pub:'
+      end
+      object lblDSAHash: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 308.000000000000000000
+        Size.Width = 47.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Utf8 Text:'
+      end
+      object lblDSASignS: TLabel
+        Position.X = 16.000000000000000000
+        Position.Y = 372.000000000000000000
+        Size.Width = 34.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Sign S:'
+      end
+      object lblDSASignR: TLabel
+        Position.X = 16.000000000000000000
+        Position.Y = 340.000000000000000000
+        Size.Width = 35.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Sign R:'
+      end
+      object lblDSAHashType: TLabel
+        Position.X = 328.000000000000000000
+        Position.Y = 308.000000000000000000
+        Size.Width = 28.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'Hash:'
+      end
+      object lblPrimeType: TLabel
+        Position.X = 216.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 52.000000000000000000
+        Size.Height = 13.000000000000000000
+        Text = 'DSA Type:'
+      end
+      object btnGenDSAParam: TButton
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 25.000000000000000000
+        Text = 'Generate DSA Parameters'
+        TabOrder = 0
+        OnClick = btnGenDSAParamClick
+      end
+      object edtDSAP: TEdit
+        Position.X = 56.000000000000000000
+        Position.Y = 56.000000000000000000
+        Size.Width = 801.000000000000000000
+        Size.Height = 21.000000000000000000
+        TabOrder = 3
+      end
+      object edtDSAQ: TEdit
+        Position.X = 56.000000000000000000
+        Position.Y = 88.000000000000000000
+        Size.Width = 801.000000000000000000
+        Size.Height = 21.000000000000000000
+        TabOrder = 4
+      end
+      object edtDSAG: TEdit
+        Position.X = 56.000000000000000000
+        Position.Y = 120.000000000000000000
+        Size.Width = 801.000000000000000000
+        Size.Height = 21.000000000000000000
+        TabOrder = 5
+      end
+      object btnVerifyDSAParam: TButton
+        Position.X = 696.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 25.000000000000000000
+        Text = 'Verify DSA Parameters'
+        TabOrder = 1
+        OnClick = btnVerifyDSAParamClick
+      end
+      object btnGenDSAKeys: TButton
+        Position.X = 16.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 25.000000000000000000
+        Text = 'Generate DSA Keys'
+        TabOrder = 6
+        OnClick = btnGenDSAKeysClick
+      end
+      object btnVerifyDSAKeys: TButton
+        Position.X = 696.000000000000000000
+        Position.Y = 176.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 25.000000000000000000
+        Text = 'Verify DSA Keys'
+        TabOrder = 7
+        OnClick = btnVerifyDSAKeysClick
+      end
+      object edtDSAPriv: TEdit
+        Position.X = 56.000000000000000000
+        Position.Y = 216.000000000000000000
+        Size.Width = 801.000000000000000000
+        Size.Height = 21.000000000000000000
+        TabOrder = 8
+      end
+      object edtDSAPub: TEdit
+        Position.X = 56.000000000000000000
+        Position.Y = 248.000000000000000000
+        Size.Width = 801.000000000000000000
+        Size.Height = 21.000000000000000000
+        TabOrder = 9
+      end
+      object edtDSAText: TEdit
+        Position.X = 56.000000000000000000
+        Position.Y = 304.000000000000000000
+        Size.Width = 257.000000000000000000
+        Size.Height = 21.000000000000000000
+        TabOrder = 12
+        Text = '6871AF087F975FF64048028880C0365C505506FF'
+      end
+      object btnDSASignHash: TButton
+        Position.X = 520.000000000000000000
+        Position.Y = 302.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 25.000000000000000000
+        Text = 'DSA Sign Data'
+        TabOrder = 10
+        OnClick = btnDSASignHashClick
+      end
+      object btnDSAVerifyHash: TButton
+        Position.X = 696.000000000000000000
+        Position.Y = 302.000000000000000000
+        Size.Width = 161.000000000000000000
+        Size.Height = 25.000000000000000000
+        Text = 'DSA Verify Data'
+        TabOrder = 11
+        OnClick = btnDSAVerifyHashClick
+      end
+      object edtDSASignS: TEdit
+        Position.X = 56.000000000000000000
+        Position.Y = 368.000000000000000000
+        Size.Width = 801.000000000000000000
+        Size.Height = 21.000000000000000000
+        TabOrder = 15
+      end
+      object edtDSASignR: TEdit
+        Position.X = 56.000000000000000000
+        Position.Y = 336.000000000000000000
+        Size.Width = 801.000000000000000000
+        Size.Height = 21.000000000000000000
+        TabOrder = 14
+      end
+      object cbbDSAHashType: TComboEdit
+        Position.X = 368.000000000000000000
+        Position.Y = 304.000000000000000000
+        Size.Width = 121.000000000000000000
+        Size.Height = 21.000000000000000000
+        ItemHeight = 13
+        TabOrder = 13
+        Items.Strings = (
+          'Auto'
+          'MD5'
+          'SHA1'
+          'SHA224'
+          'SHA256'
+          'SM3')
+      end
+      object cbbDSAType: TComboEdit
+        Position.X = 280.000000000000000000
+        Position.Y = 20.000000000000000000
+        Size.Width = 121.000000000000000000
+        Size.Height = 21.000000000000000000
+        ItemHeight = 13
+        TabOrder = 2
+        Items.Strings = (
+          '1024-160'
+          '2048-224'
+          '2048-256'
+          '3072-256')
+      end
+    end
+  end
+end
