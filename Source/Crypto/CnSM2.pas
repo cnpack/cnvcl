@@ -791,11 +791,11 @@ begin
     if SequenceType = cstC1C3C2 then
     begin
       OutStream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));      // 写入 C3
-      OutStream.Write(T[0], DataByteLen);                        // 写入 C2
+      OutStream.Write(T[0], DataByteLen);                    // 写入 C2
     end
     else
     begin
-      OutStream.Write(T[0], DataByteLen);                        // 写入 C2
+      OutStream.Write(T[0], DataByteLen);                    // 写入 C2
       OutStream.Write(Sm3Dig[0], SizeOf(TCnSM3Digest));      // 写入 C3
     end;
 
