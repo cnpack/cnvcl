@@ -353,6 +353,7 @@ resourcestring
   SCnHashInvalidFactor = 'Invalid Hash Map Load Factor';
   SCnHashConcurrentError = 'Modified by Others when Iteratoring';
   SCnHashInvalidListSize = 'Invalid New List Size';
+  SCnHashInvalidIncr = 'Incr Should be Greater than 1';
 
 type
   PObject = ^TObject;
@@ -397,7 +398,7 @@ begin
   DeletedPos := -1;
   IndexPos := I;
 
-  for J := Low(FList) to High(FList) do //
+  for J := Low(FList) to High(FList) do
   begin
     // 从 Hash 出来的 I 对长度求余拿到插入位置，往后循环找
     IndexPos := (I + J) mod Length(FList);
@@ -467,7 +468,6 @@ begin
   while T < Length do
   begin
     T := T * 2;
-
     Inc(FLengthBit);
   end;
 end;
@@ -491,14 +491,13 @@ begin
     DeleteValue(FList[P].Value);
 
     Dec(FSize);
-
     Result := True;
   end;
 end;
 
 procedure TCnBaseHashMap.DeleteValue(AValue: Variant);
 begin
-  //just donothing here;
+  // 基类啥都不干
 end;
 
 destructor TCnBaseHashMap.Destroy;
@@ -506,8 +505,10 @@ var
   I: Integer;
 begin
   for I := Low(FList) to High(FList) do
+  begin
     if FList[I].HashCode >= 0 then
       DeleteValue(FList[I].Value);
+  end;
 
   SetLength(FList, 0);
   inherited;
@@ -619,7 +620,7 @@ var
   TempList: array of TCnHashMapRec;
   I: Integer;
 begin
-  if (NewLength < Size) then
+  if NewLength < Size then
     raise ECnHashException.Create(SCnHashInvalidListSize);
 
   SetLength(TempList, Length(FList));
@@ -631,8 +632,10 @@ begin
     CreateList(NewLength);
 
     for I := Low(TempList) to High(TempList) do
+    begin
       if TempList[I].HashCode >= 0 then
         AddInternal(TempList[I].Key, TempList[I].Value);
+    end;
   finally
     SetLength(TempList, 0);
   end;
@@ -676,13 +679,12 @@ end;
 procedure TCnBaseHashMap.SetIncr(Value: Integer);
 begin
   if Value <= 1 then
-    raise ECnHashException.Create('Incr should be Greater than 1')
+    raise ECnHashException.Create(SCnHashInvalidIncr)
   else if Value <> FIncr then
     FIncr := Value;
 end;
 
-procedure TCnBaseHashMap.SetOnCustomHashCode(
-  const Value: TCnCustomHashCodeMethod);
+procedure TCnBaseHashMap.SetOnCustomHashCode(const Value: TCnCustomHashCodeMethod);
 begin
   if Assigned(Value) then
   begin
