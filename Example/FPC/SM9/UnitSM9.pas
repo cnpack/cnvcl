@@ -5,7 +5,7 @@ unit UnitSM9;
 interface
 
 uses
-  LCLIntf, LCLType, LMessages, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  LCLIntf, LCLType, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnBigNumber, ExtCtrls, CnSM9, CnECC, CnSM3;
 
 type

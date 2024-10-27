@@ -5,7 +5,7 @@ unit Unit25519;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, Clipbrd, CnBigNumber, CnECC, Cn25519, ExtCtrls, CnNative;
 
 type

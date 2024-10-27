@@ -5,8 +5,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  LCLIntf, LCLType, LMessages, {$IFDEF MSWINDOWS} Windows, {$ENDIF} Messages, SysUtils,
-  Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, CnNative, ExtCtrls, Buttons;
+  LCLIntf, LCLType, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, ExtCtrls, Buttons, CnNative;
 
 type
   TFormNative = class(TForm)

@@ -5,7 +5,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  LCLIntf, LCLType, LMessages, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  LCLIntf, LCLType, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, CnBigNumber, Spin, ExtCtrls, ComCtrls, Types, CnConsts;
 
 type

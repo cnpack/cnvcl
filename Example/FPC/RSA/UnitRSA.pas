@@ -5,7 +5,7 @@ unit UnitRSA;
 interface
 
 uses
-  LCLIntf, LCLType, LMessages, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  LCLIntf, LCLType, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNative, CnPrimeNumber,
   ImgList, Buttons, Types, CnPemUtils, CnConsts;
 

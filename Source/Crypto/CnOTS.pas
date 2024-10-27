@@ -132,7 +132,8 @@ procedure CnOTSSM3SignData(Data: Pointer; DataByteLen: Integer;
 function CnOTSSM3VerifyData(Data: Pointer; DataByteLen: Integer;
   Signature: TCnOTSSM3Signature; PublicKey: TCnOTSSM3PublicKey;
   VerifyKey: TCnOTSSM3VerificationKey): Boolean;
-{* 根据明文、公布的验证密钥与公钥验证指定内存块数据的签名是否正确，返回验证是否成功}
+{* 根据明文、公布的验证密钥与公钥验证指定内存块数据的签名是否正确，返回验证是否成功。
+  注意规范中 Signature 未参与验证，仅使用 VerifyKey 就行}
 
 procedure CnOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnOTSSM3PrivateKey;
   PublicKey: TCnOTSSM3PublicKey; var OutSignature: TCnOTSSM3Signature;
@@ -144,7 +145,8 @@ procedure CnOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnOTSSM3PrivateKey;
 
 function CnOTSSM3VerifyBytes(Data: TBytes; Signature: TCnOTSSM3Signature;
   PublicKey: TCnOTSSM3PublicKey; VerifyKey: TCnOTSSM3VerificationKey): Boolean;
-{* 根据明文、公布的验证密钥与公钥验证字节数组的签名是否正确，返回验证是否成功}
+{* 根据明文、公布的验证密钥与公钥验证字节数组的签名是否正确，返回验证是否成功。
+  注意规范中 Signature 未参与验证，仅使用 VerifyKey 就行}
 
 // =============== Lamport 发明的常规 OTS，结合 SHA256 杂凑算法 ================
 

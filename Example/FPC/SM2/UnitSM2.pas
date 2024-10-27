@@ -5,7 +5,7 @@ unit UnitSM2;
 interface
 
 uses
-  LCLIntf, LCLType, LMessages, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  LCLIntf, LCLType, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ComCtrls, CnSM2, CnECC, StdCtrls, CnSM3, CnBigNumber, ExtCtrls;
 
 type

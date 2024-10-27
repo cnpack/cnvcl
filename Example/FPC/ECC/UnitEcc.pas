@@ -5,7 +5,7 @@ unit UnitEcc;
 interface
 
 uses
-  LCLIntf, LCLType, LMessages, Messages, SysUtils, Classes, Graphics, Controls,
+  LCLIntf, LCLType, SysUtils, Classes, Graphics, Controls,
   Forms, Dialogs, StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, Types, CnConsts,
   TypInfo, CnPrimeNumber, CnBigNumber, CnNative,
   CnPemUtils, CnPolynomial;

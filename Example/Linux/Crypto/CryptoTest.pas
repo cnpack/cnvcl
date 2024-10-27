@@ -45,7 +45,7 @@ uses
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
-  CnDSA, CnStrings, CnWideStrings;
+  CnDSA, CnWideStrings;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
