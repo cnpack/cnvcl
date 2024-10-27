@@ -60,7 +60,7 @@ interface
 // Delphi 默认 UTF16-LE，如果要处理 UTF16-BE 字符串，需要定义 UTF16_BE
 
 uses
-  {$IFDEF MSWINDOWS} Windows, {$ENDIF} SysUtils, Classes, IniFiles, CnNative;
+  {$IFDEF MSWINDOWS} Windows, {$ENDIF} SysUtils, Classes, CnNative;
 
 const
   CN_INVALID_CODEPOINT = $FFFFFFFF;

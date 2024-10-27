@@ -3,7 +3,7 @@ unit UnitDSA;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ComCtrls, StdCtrls, ExtCtrls, CnNative, CnDSA, CnBigNumber, CnWideStrings;
 
 type
@@ -63,7 +63,7 @@ var
 
 implementation
 
-{$R *.DFM}
+{$R *.lfm}
 
 procedure TFormDSA.btnGenDSAParamClick(Sender: TObject);
 begin
