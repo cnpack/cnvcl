@@ -110,7 +110,7 @@ uses
 }
 
 type
-  TQuadruple = packed record
+  TCnQuadruple = packed record
   {* Delphi 中无四倍精度类型，用结构及其指针代替}
     Lo: TUInt64;
     Hi0: Cardinal;
@@ -118,16 +118,16 @@ type
       True:  (Hi1: Cardinal);
       False: (W0, W1: Word);   // 小端机器上，符号和指数都在这个 W1 里
   end;
-  PQuadruple = ^TQuadruple;
+  PCnQuadruple = ^TCnQuadruple;
 
-  TOctuple = packed record
+  TCnOctuple = packed record
   {* Delphi 中无八倍精度类型，用两个 Int64 及其指针代替}
     F0: Int64;
     F1: Int64;
     F2: Int64;
     F3: Int64;
   end;
-  POctuple = ^TOctuple;
+  PCnOctuple = ^TCnOctuple;
 
   ECnFloatSizeError = class(Exception);
 
@@ -994,12 +994,12 @@ begin
   if SizeOf(Extended) <> CN_EXTENDED_SIZE_16 then
     raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
 
-  SignNegative := (PQuadruple(@Value)^.W1 and CN_SIGN_QUADRUPLE_MASK) <> 0;
-  Exponent := (PQuadruple(@Value)^.W1 and CN_EXPONENT_QUADRUPLE_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
+  SignNegative := (PCnQuadruple(@Value)^.W1 and CN_SIGN_QUADRUPLE_MASK) <> 0;
+  Exponent := (PCnQuadruple(@Value)^.W1 and CN_EXPONENT_QUADRUPLE_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
 
   // Extract 16 Bytes to Mantissas
-  MantissaLo := PQuadruple(@Value)^.Lo;
-  MantissaHi := TUInt64(PQuadruple(@Value)^.Hi0) or (TUInt64(PQuadruple(@Value)^.W0) shl 32) or (TUInt64(1) shl 48); // 高位再加个 1
+  MantissaLo := PCnQuadruple(@Value)^.Lo;
+  MantissaHi := TUInt64(PCnQuadruple(@Value)^.Hi0) or (TUInt64(PCnQuadruple(@Value)^.W0) shl 32) or (TUInt64(1) shl 48); // 高位再加个 1
 end;
 
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
@@ -1066,16 +1066,16 @@ begin
     raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
 
   MantissaHi := MantissaHi and not (TUInt64(1) shl 48); // 去掉 112 位上的 1，如果有的话
-  PQuadruple(@Value)^.Lo := MantissaLo;
-  PQuadruple(@Value)^.Hi0 := Cardinal(MantissaHi and $FFFFFFFF);
-  PQuadruple(@Value)^.Hi1 := (MantissaHi shr 32) and CN_SIGNIFICAND_QUADRUPLE_MASK;
+  PCnQuadruple(@Value)^.Lo := MantissaLo;
+  PCnQuadruple(@Value)^.Hi0 := Cardinal(MantissaHi and $FFFFFFFF);
+  PCnQuadruple(@Value)^.Hi1 := (MantissaHi shr 32) and CN_SIGNIFICAND_QUADRUPLE_MASK;
 
   Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
-  PQuadruple(@Value)^.W1 := Exponent and CN_EXPONENT_QUADRUPLE_MASK;
+  PCnQuadruple(@Value)^.W1 := Exponent and CN_EXPONENT_QUADRUPLE_MASK;
   if SignNegative then
-    PQuadruple(@Value)^.Hi1 := PQuadruple(@Value)^.Hi1 or CN_SIGN_QUADRUPLE_MASK
+    PCnQuadruple(@Value)^.Hi1 := PCnQuadruple(@Value)^.Hi1 or CN_SIGN_QUADRUPLE_MASK
   else
-    PQuadruple(@Value)^.Hi1 := PQuadruple(@Value)^.Hi1 and not CN_SIGN_QUADRUPLE_MASK;
+    PCnQuadruple(@Value)^.Hi1 := PCnQuadruple(@Value)^.Hi1 and not CN_SIGN_QUADRUPLE_MASK;
 end;
 
 // 将 UInt64 设为浮点数
