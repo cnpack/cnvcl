@@ -3,8 +3,8 @@ unit UnitDSA;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
-   FMX.StdCtrls, FMX.ExtCtrls, CnNative, CnDSA, CnBigNumber, CnCommon, FMX.ComboEdit, FMX.Edit, FMX.TabControl, FMX.Types, System.Types, System.UITypes;
+  {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  FMX.StdCtrls, FMX.ExtCtrls, CnNative, CnDSA, CnBigNumber, FMX.ComboEdit, FMX.Edit, FMX.TabControl, FMX.Types, System.Types, System.UITypes;
 
 type
   TFormDSA = class(TForm)
