@@ -182,8 +182,6 @@ type
     function GetNext(var AKey, AValue: WideString): Boolean; reintroduce; overload;
   end;
 
-{$IFNDEF FPC}
-
   TCnStrToPtrHashMap = class(TCnBaseHashMap)
   {* 索引为字符串、值为指针或对象的 HashMap}
   private
@@ -194,8 +192,6 @@ type
     function Find(const AKey: string; var AValue: Pointer): Boolean; reintroduce; overload;
     function GetNext(var AKey: string; var AValue: Pointer): Boolean; reintroduce; overload;
   end;
-
-{$ENDIF}
 
   TCnStrToVariantHashMap = class(TCnBaseHashMap)
   {* 索引为字符串、值为变体类型的 HashMap}
@@ -827,8 +823,6 @@ begin
   Result := Abs(C);
 end;
 
-{$IFNDEF FPC}
-
 { TCnStrToPtrHashMap }
 
 function TCnStrToPtrHashMap.VariantHashCode(AKey: Variant): Integer;
@@ -862,7 +856,18 @@ begin
   Result := FindInternal(Variant(AKey), vValue);
 
   if Result then
+  begin
+{$IFDEF FPC}
+  // 将 Variant 转换成 NativeInt 需要 FPC 3.3.1 或以上才支持，不得不此处分开写。
+  {$IFDEF CPU64BITS}
+    AValue := Pointer(Int64(vValue));
+  {$ELSE}
+    AValue := Pointer(Integer(vValue));
+  {$ENDIF}
+{$ELSE}
     AValue := Pointer(TCnNativeInt(vValue));
+{$ENDIF}
+  end;
 end;
 
 function TCnStrToPtrHashMap.GetNext(var AKey: string; var AValue: Pointer): Boolean;
@@ -874,11 +879,18 @@ begin
   if Result then
   begin
     AKey := vKey;
+{$IFDEF FPC}
+  // 将 Variant 转换成 NativeInt 需要 FPC 3.3.1 或以上才支持，不得不此处分开写。
+  {$IFDEF CPU64BITS}
+    AValue := Pointer(Int64(vValue));
+  {$ELSE}
+    AValue := Pointer(Integer(vValue));
+  {$ENDIF}
+{$ELSE}
     AValue := Pointer(TCnNativeInt(vValue));
+{$ENDIF}
   end;
 end;
-
-{$ENDIF}
 
 { TCnStrToVariantHashMap }
 
