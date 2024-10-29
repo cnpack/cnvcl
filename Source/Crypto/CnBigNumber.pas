@@ -180,6 +180,9 @@ type
     function IsOdd: Boolean;
     {* 返回大数是否为奇数}
 
+    function IsEven: Boolean;
+    {* 返回大数是否为偶数}
+
     function GetBitsCount: Integer;
     {* 返回大数有多少个有效 Bits 位}
 
@@ -492,8 +495,11 @@ function BigNumberIsNegOne(const Num: TCnBigNumber): Boolean;
 function BigNumberSetOne(const Num: TCnBigNumber): Boolean;
 {* 将一个大数对象里的大数设置为 1}
 
-function BigNumberIsOdd(const Num: TCnBigNumber): Boolean;
+function BigNumberIsOdd(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 返回一个大数对象里的大数是否为奇数}
+
+function BigNumberIsEven(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+{* 返回一个大数对象里的大数是否为偶数}
 
 function BigNumberGetBitsCount(const Num: TCnBigNumber): Integer;
 {* 返回一个大数对象里的大数有多少个有效 Bits}
@@ -907,11 +913,12 @@ function BigNumberLogN(const Num: TCnBigNumber): Extended;
 
 function BigNumberFermatCheckComposite(const A: TCnBigNumber; const B: TCnBigNumber;
   const C: TCnBigNumber; T: Integer): Boolean;
-{* Miller-Rabin 算法中的单次费尔马测试，返回 True 表示 B 不是素数，
+{* Miller-Rabin 算法中的单次费马测试，返回 True 表示 B 不是素数，
   注意 A B C 并非任意选择，B 是待测试的素数，A 是随机数，C 是 B - 1 右移 T 位后得到的第一个奇数}
 
 function BigNumberIsProbablyPrime(const Num: TCnBigNumber; TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
-{* 概率性判断一个大数是否素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢}
+{* 概率性判断一个大数是否素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
+  注意不能采用简单的费马小定理判断或 Solovay-Strassen 概率性素性检测，因为对 Carmichael 数无效}
 
 function BigNumberGeneratePrime(const Num: TCnBigNumber; BytesCount: Integer;
   TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
@@ -1198,6 +1205,14 @@ end;
 function BigNumberIsOdd(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   if (Num.Top > 0) and ((PCnBigNumberElementArray(Num.D)^[0] and 1) <> 0) then
+    Result := True
+  else
+    Result := False;
+end;
+
+function BigNumberIsEven(const Num: TCnBigNumber): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  if (Num.Top = 0) or ((PCnBigNumberElementArray(Num.D)^[0] and 1) = 0) then
     Result := True
   else
     Result := False;
@@ -7888,6 +7903,11 @@ end;
 function TCnBigNumber.IsOdd: Boolean;
 begin
   Result := BigNumberIsOdd(Self);
+end;
+
+function TCnBigNumber.IsEven: Boolean;
+begin
+  Result := BigNumberIsEven(Self);
 end;
 
 function TCnBigNumber.IsOne: Boolean;
