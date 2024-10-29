@@ -87,6 +87,7 @@ function TestBigNumberShiftRightOne: Boolean;
 function TestBigNumberFermatCheckComposite: Boolean;
 function TestBigNumberIsProbablyPrime: Boolean;
 function TestBigNumberIsPerfectPower: Boolean;
+function TestBigNumberJacobiSymbol: Boolean;
 
 // ================================ Bits =======================================
 
@@ -432,6 +433,7 @@ begin
   MyAssert(TestBigNumberFermatCheckComposite, 'TestBigNumberFermatCheckComposite');
   MyAssert(TestBigNumberIsProbablyPrime, 'TestBigNumberIsProbablyPrime');
   MyAssert(TestBigNumberIsPerfectPower, 'TestBigNumberIsPerfectPower');
+  MyAssert(TestBigNumberJacobiSymbol, 'TestBigNumberJacobiSymbol');
 
 // ================================ Bits =======================================
 
@@ -1331,6 +1333,41 @@ begin
   A := BigNumberNew;
   A.SetDec('9682651996416');
   Result := BigNumberIsPerfectPower(A);
+  BigNumberFree(A);
+end;
+
+function TestBigNumberJacobiSymbol: Boolean;
+var
+  A, N: TCnBigNumber;
+begin
+  A := BigNumberNew;
+  N := BigNumberNew;
+
+  A.SetDec('3');
+  N.SetDec('11');
+
+  Result := BigNumberJacobiSymbol(A, N) = 1;
+  if not Result then Exit;
+
+  A.SetDec('59');
+  N.SetDec('139');
+
+  Result := BigNumberJacobiSymbol(A, N) = -1;
+  if not Result then Exit;
+
+  A.SetDec('8273190');
+  N.SetDec('7143391235');
+
+  Result := BigNumberJacobiSymbol(A, N) = 0;
+  if not Result then Exit;
+
+  A.SetDec('9237512893489267120909234987561230233241');
+  N.SetDec('119872354839100272484348735687564378089401882467674327932479');
+
+  Result := BigNumberJacobiSymbol(A, N) = -1;
+  if not Result then Exit;
+
+  BigNumberFree(N);
   BigNumberFree(A);
 end;
 
