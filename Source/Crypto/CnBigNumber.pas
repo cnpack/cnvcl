@@ -697,6 +697,12 @@ function BigNumberCopyHigh(const Dst: TCnBigNumber; const Src: TCnBigNumber;
   WordCount: Integer): TCnBigNumber;
 {* 复制一个大数对象的高 WordCount 个 LongWord，成功返回 Dst}
 
+function BigNumberGetLow32(const Num: TCnBigNumber): Cardinal;
+{* 取出一个大数的低 32 位，不处理符号}
+
+function BigNumberGetLow64(const Num: TCnBigNumber): TUInt64;
+{* 取出一个大数的低 64 位，不处理符号}
+
 procedure BigNumberSwap(const Num1: TCnBigNumber; const Num2: TCnBigNumber);
 {* 交换两个大数对象的内容}
 
@@ -973,7 +979,7 @@ procedure BigNumberModularInverseWord(const Res: TCnBigNumber;
    调用者须自行保证 X、Modulus 互素，且 Res 不能是 X 或 Modulus}
 
 function BigNumberLegendre(A: TCnBigNumber; P: TCnBigNumber): Integer;
-{* 用二次互反律递归计算勒让德符号 ( A / P) 的值，较快}
+{* 用二次互反律递归计算勒让德符号 ( A / P) 的值，较快。调用者需自行保证 P 为奇素数}
 
 function BigNumberLegendre2(A: TCnBigNumber; P: TCnBigNumber): Integer; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 用欧拉判别法计算勒让德符号 ( A / P) 的值，较慢，不推荐使用}
@@ -988,6 +994,9 @@ function BigNumberLucas(const Res: TCnBigNumber; A: TCnBigNumber; P: TCnBigNumbe
 
 function BigNumberSquareRootModPrime(const Res: TCnBigNumber; A: TCnBigNumber; Prime: TCnBigNumber): Boolean;
 {* 总入口函数，求 X^2 mod P = A 的解，返回是否求解成功，如成功，Res 是其中一个正值的解}
+
+// function BigNumberJacobiSymbol(A: TCnBigNumber; N: TCnBigNumber): Integer;
+{* 计算雅可比符号，其中 N 必须是正奇数，A 必须是非负整数。如果 N 是奇素数则等同于勒让德符号}
 
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 {* 找出大数的质因数列表}
@@ -1073,6 +1082,7 @@ resourcestring
 {$ENDIF}
   SCnErrorBigNumberLogRange = 'Log Range Error';
   SCnErrorBigNumberLegendre = 'Legendre: A, P Must > 0';
+  SCnErrorBigNumberJacobiSymbol = 'Jacobi Symbol: A, N Must > 0';
   SCnErrorBigNumberFloatExponentRange = 'Extended Float Exponent Range Error';
   SCnErrorBigNumberParamDupRef = 'Duplicated References for BigNumber Parameters';
 
@@ -2389,6 +2399,20 @@ begin
     Dst.Top := WordCount;
     Dst.Neg := Src.Neg;
   end;
+end;
+
+function BigNumberGetLow32(const Num: TCnBigNumber): Cardinal;
+begin
+  Result := 0;
+  if Num.DMax > 0 then
+    Result := Cardinal(Num.D^);
+end;
+
+function BigNumberGetLow64(const Num: TCnBigNumber): TUInt64;
+begin
+  Result := 0;
+  if Num.DMax > 0 then
+    Result := TUInt64(Num.D^);
 end;
 
 procedure BigNumberSwap(const Num1: TCnBigNumber; const Num2: TCnBigNumber);
@@ -6637,8 +6661,8 @@ begin
     U := FLocalBigNumberPool.Obtain;
     BigNumberCopy(U, Prime);
 
-    // TODO: 优化为直接取低 4 位或 8 位
-    Rem := BigNumberModWord(Prime, 4);  // 64 位模式下 BigNumberModWord 不支持除数大于 UInt32，这里 4 符合要求
+    // Mod 4 或 8 优化为直接取低 2 位或 3 位
+    Rem := BigNumberGetLow32(Prime) and 3;
     if Rem = 3 then
     begin
       PrimeType := pt4U3;
@@ -6646,15 +6670,11 @@ begin
     end
     else
     begin
-      Rem := BigNumberModWord(Prime, 8); // 64 位模式下 BigNumberModWord 不支持除数大于 UInt32，这里 4 符合要求
+      Rem := BigNumberGetLow32(Prime) and 7;
       if Rem = 1 then
-      begin
-        PrimeType := pt8U1;
-      end
+        PrimeType := pt8U1
       else if Rem = 5 then
-      begin
-        PrimeType := pt8U5;
-      end
+        PrimeType := pt8U5
       else
         Exit;
       BigNumberDivWord(U, 8);
@@ -6744,6 +6764,11 @@ begin
     FLocalBigNumberPool.Recycle(U);
   end;
 end;
+
+//function BigNumberJacobiSymbol(A: TCnBigNumber; N: TCnBigNumber): Integer;
+//begin
+//
+//end;
 
 procedure BigNumberPollardRho(X: TCnBigNumber; C: TCnBigNumber; Res: TCnBigNumber);
 var

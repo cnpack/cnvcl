@@ -860,7 +860,7 @@ function CnInt64MontgomeryMulMod(A: TUInt64; B: TUInt64; RExp: TUInt64; R2ModN: 
    比起 MultipleMod 实现，有一定提速作用}
 
 function CnInt64Legendre(A: Int64; P: Int64): Integer;
-{* 计算勒让德符号 (A / P) 的值，范围为 Int64}
+{* 计算勒让德符号 (A / P) 的值，范围为 Int64，调用者自行保证 P 为奇素数}
 
 procedure CnLucasSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int64; out V: Int64);
 {* 计算 IEEE P1363 的规范中说明的 Lucas 序列，范围为 Int64
@@ -2314,7 +2314,7 @@ begin
   end
   else if A = 2 then // (2, N) = (-1)^((N^2 - 1)/8)
   begin
-    N := N mod 8;
+    N := N and 7; // mod 8;
     if (N = 1) or (N = 7) then
       Result := 1
     else
@@ -2331,10 +2331,10 @@ begin
   while A <> 0 do
   begin
     // A 比 N 小，除二约成奇数
+    R := N and 7; // mod 8
     while (A and 1) = 0 do
     begin
       A := A shr 1;
-      R := N mod 8;
       if (R = 3) or (R = 5) then
         Result := -Result;
     end;
@@ -2343,7 +2343,7 @@ begin
     N := T;
 
     // 二次互反
-    if ((A mod 4) = 3) and ((N mod 4) = 3) then
+    if ((A and 3) = 3) and ((N and 3) = 3) then // mod 4
       Result := -Result;
 
     // 换位，完成本轮二次互反，准备下一轮
