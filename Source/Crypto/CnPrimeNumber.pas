@@ -870,6 +870,9 @@ procedure CnLucasSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int6
 function CnInt64SquareRoot(X: Int64; P: Int64): Int64;
 {* 计算平方剩余，也就是返回 Result^2 mod P = X，范围为 Int64，0 与负值暂不支持}
 
+function CnInt64JacobiSymbol(A: Int64; N: Int64): Int64;
+{* 计算雅可比符号 (A / N)，其中 N 必须是正奇数，A 必须是正整数。如果 N 是奇素数则等同于勒让德符号}
+
 function ChineseRemainderTheoremInt64(Remainers: array of TUInt64; Factors: array of TUInt64): TUInt64; overload;
 {* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，只支持 UInt64
   也就是说不支持负余数。调用者须确保 Factors 均为正且两两互素，Remainers 均为正或 0}
@@ -913,6 +916,7 @@ uses
 resourcestring
   SCnErrorInvalidKForLucasSequence = 'Invalid K for Lucas Sequence';
   SCnErrorInvalidPrime = 'Invalid Prime';
+  SCnErrorInvalidParam = 'Invalid Parameter';
 
 // 从 CN_PRIME_NUMBERS_SQRT_UINT32 数组中随机挑选一个素数
 function CnPickRandomSmallPrime: Integer;
@@ -2068,6 +2072,9 @@ end;
 // 计算勒让德符号 ( A / P) 的值
 function CnInt64Legendre(A, P: Int64): Integer;
 begin
+  if (A <= 0) or (P <= 0) then
+    raise ECnPrimeException.Create(SCnErrorInvalidParam);
+
   // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
   if A mod P = 0 then
     Result := 0
@@ -2281,6 +2288,70 @@ begin
       end;
     end;
   end;
+end;
+
+function CnInt64JacobiSymbol(A: Int64; N: Int64): Int64;
+var
+  R, T: Int64;
+begin
+  if (A < -1) or (N <= 0) or ((N and 1) = 0) then         // 负数，及 N 偶数不支持
+    raise ECnPrimeException.Create(SCnErrorInvalidParam);
+
+  if (A = 0) or (A = 1) then // (0, N) = 0   (1, N) = 1
+  begin
+    Result := A;
+    Exit;
+  end
+  else if A = -1 then // (-1, N) = (-1)^((N - 1)/2)
+  begin
+    Dec(N);
+    N := N shr 1;
+    if (N and 1) = 0 then
+      Result := 1
+    else
+      Result := -1;
+    Exit;
+  end
+  else if A = 2 then // (2, N) = (-1)^((N^2 - 1)/8)
+  begin
+    N := N mod 8;
+    if (N = 1) or (N = 7) then
+      Result := 1
+    else
+      Result := -1;
+    Exit;
+
+    // 所以 n mod 8 得到 1、7 时为 1，3、5 时为 -1，注意奇数平方减一一定能被 8 整除
+  end
+  else if A > N then
+    A := A mod N;
+
+  // 再利用同余及二次互反律循环简化计算，并通过除二让 A 变成奇数且 A、N 互素，因为 (A, N) = (A/2, N) * (2, N)
+  Result := 1;
+  while A <> 0 do
+  begin
+    // A 比 N 小，除二约成奇数
+    while (A and 1) = 0 do
+    begin
+      A := A shr 1;
+      R := N mod 8;
+      if (R = 3) or (R = 5) then
+        Result := -Result;
+    end;
+    T := A;
+    A := N;
+    N := T;
+
+    // 二次互反
+    if ((A mod 4) = 3) and ((N mod 4) = 3) then
+      Result := -Result;
+
+    // 换位，完成本轮二次互反，准备下一轮
+    A := A mod N;
+  end;
+
+  if N <> 1 then // N 不为 1 说明不互素
+    Result := 0;
 end;
 
 function ChineseRemainderTheoremInt64(Remainers, Factors: array of TUInt64): TUInt64;

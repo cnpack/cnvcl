@@ -975,10 +975,10 @@ procedure BigNumberModularInverseWord(const Res: TCnBigNumber;
 function BigNumberLegendre(A: TCnBigNumber; P: TCnBigNumber): Integer;
 {* 用二次互反律递归计算勒让德符号 ( A / P) 的值，较快}
 
-function BigNumberLegendre2(A: TCnBigNumber; P: TCnBigNumber): Integer;
-{* 用欧拉判别法计算勒让德符号 ( A / P) 的值，较慢}
+function BigNumberLegendre2(A: TCnBigNumber; P: TCnBigNumber): Integer; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+{* 用欧拉判别法计算勒让德符号 ( A / P) 的值，较慢，不推荐使用}
 
-function BigNumberTonelliShanks(const Res: TCnBigNumber; A: TCnBigNumber; P: TCnBigNumber): Boolean;
+function BigNumberTonelliShanks(const Res: TCnBigNumber; A: TCnBigNumber; P: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 使用 Tonelli-Shanks 算法进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解
    调用者需自行保证 P 为奇素数或奇素数的整数次方，该方法略慢，不推荐使用}
 
