@@ -910,6 +910,10 @@ implementation
 uses
   CnHashMap, CnPolynomial, CnBigNumber, CnRandom;
 
+resourcestring
+  SCnErrorInvalidKForLucasSequence = 'Invalid K for Lucas Sequence';
+  SCnErrorInvalidPrime = 'Invalid Prime';
+
 // 从 CN_PRIME_NUMBERS_SQRT_UINT32 数组中随机挑选一个素数
 function CnPickRandomSmallPrime: Integer;
 var
@@ -2082,7 +2086,7 @@ var
   V0, V1, Q0, Q1: Int64;
 begin
   if K < 0 then
-    raise Exception.Create('Invalid K for Lucas Sequence');
+    raise ECnPrimeException.Create(SCnErrorInvalidKForLucasSequence);
 
   if K = 0 then
   begin
@@ -2132,7 +2136,7 @@ var
   V0, V1, Q0, Q1: Int64;
 begin
   if K < 0 then
-    raise Exception.Create('Invalid K for Lucas Sequence');
+    raise ECnPrimeException.Create(SCnErrorInvalidKForLucasSequence);
 
   // V0 = 2, V1 = P, and Vk = P * Vk-1 - Q * Vk-2   for k >= 2
 
@@ -2243,7 +2247,7 @@ begin
       U := P div 8;
     end
     else
-      raise Exception.Create('Invalid Prime');
+      raise ECnPrimeException.Create(SCnErrorInvalidPrime);
   end;
 
   case Pt of
