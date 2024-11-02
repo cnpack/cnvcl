@@ -1001,14 +1001,14 @@ begin
   begin
     BigNumberWordExpand(T, 8);
     T.Top := 8;
-    PCnBigNumberElementArray(T.D)^[0] := $0F73D4B9F147A700;
-    PCnBigNumberElementArray(T.D)^[1] := $05D72BCFF78BBB54;
-    PCnBigNumberElementArray(T.D)^[2] := $074D5382782E0E84;
-    PCnBigNumberElementArray(T.D)^[3] := $07A20D1E34E475C2;
-    PCnBigNumberElementArray(T.D)^[4] := $0CA4A192F7331A65;
-    PCnBigNumberElementArray(T.D)^[5] := $0586C66DE2BD9685;
-    PCnBigNumberElementArray(T.D)^[6] := $0BACACDE82782B14;
-    PCnBigNumberElementArray(T.D)^[7] := $0F8DDBF39D15FB5B;
+    PCnBigNumberElementArray(T.D)^[0] := TCnBigNumberElement($0F73D4B9F147A700);
+    PCnBigNumberElementArray(T.D)^[1] := TCnBigNumberElement($05D72BCFF78BBB54);
+    PCnBigNumberElementArray(T.D)^[2] := TCnBigNumberElement($074D5382782E0E84);
+    PCnBigNumberElementArray(T.D)^[3] := TCnBigNumberElement($07A20D1E34E475C2);
+    PCnBigNumberElementArray(T.D)^[4] := TCnBigNumberElement($0CA4A192F7331A65);
+    PCnBigNumberElementArray(T.D)^[5] := TCnBigNumberElement($0586C66DE2BD9685);
+    PCnBigNumberElementArray(T.D)^[6] := TCnBigNumberElement($0BACACDE82782B14);
+    PCnBigNumberElementArray(T.D)^[7] := TCnBigNumberElement($0F8DDBF39D15FB5B);
 
     Result := T.ToHex() = '0F8DDBF39D15FB5B0BACACDE82782B140586C66DE2BD96850CA4A192F7331A6507A20D1E34E475C2074D5382782E0E8405D72BCFF78BBB540F73D4B9F147A700';
   end
