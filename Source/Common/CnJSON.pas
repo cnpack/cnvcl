@@ -2098,7 +2098,7 @@ var
   F: TFileStream;
 begin
   // 如有 UTF8Bom 则原始读入，无则直接读入，不处理 UTF16 格式也就碰到 UTF 16 会出错
-  F := TFileStream.Create(FileName, fmOpenRead);
+  F := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
     if F.Size > 0 then
     begin
