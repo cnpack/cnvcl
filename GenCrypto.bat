@@ -1,4 +1,5 @@
 @ECHO OFF
+SETLOCAL ENABLEDELAYEDEXPANSION
 REM 注意 Package 和 Test 下的工程都不需要 dof、cfg 等设置搜索路径，因为所需源码全在 Source 目录里
 CD ..
 DEL /S /Q cncrypto
@@ -431,6 +432,15 @@ CALL :COPYEXAMPLE RSA
 CALL :COPYEXAMPLE SecretSharing
 CALL :COPYEXAMPLE SM2
 CALL :COPYEXAMPLE SM9
+CD VCL
+CALL :REPLACEPROJECT
+CD ..
+CD FMX
+CALL :REPLACEPROJECT
+CD ..
+CD FPC
+CALL :REPLACEPROJECT
+CD ..
 GOTO END
 
 :PRINTHEAD
@@ -547,6 +557,46 @@ IF EXIST ..\..\cnvcl\Example\FPC\%1 (
 ) ELSE (
   ECHO FPC\%1 NOT Exists
 )
+GOTO :EOF
+
+:REPLACEPROJECT
+FOR /D %%D IN (.\*) DO (
+  CD %%D
+  FOR %%F IN (.\*.dpr) DO (
+    CALL :REPONEPROJ %%F
+  )
+  FOR %%F IN (.\*.cfg) DO (
+    CALL :REPONEPROJ %%F
+  )
+  FOR %%F IN (.\*.dof) DO (
+    CALL :REPONEPROJ %%F
+  )
+  FOR %%F IN (.\*.lpr) DO (
+    CALL :REPONEPROJ %%F
+  )
+  FOR %%F IN (.\*.lps) DO (
+    CALL :REPONEPROJ %%F
+  )
+  CD ..
+)
+GOTO :EOF
+
+:REPONEPROJ
+  ECHO %1
+  SET FIND0=..\..\..\Source\Common;..\..\..\Source\Crypto
+  SET REP0=..\..\..\Source
+  SET FIND1=..\..\..\Source\Crypto
+  SET REP1=..\..\..\Source
+  SET FIND2=..\..\..\Source\Common
+  SET REP2=..\..\..\Source
+  FOR /F "DELIMS=" %%A IN ('TYPE "%1"') DO (
+    SET LINE=%%A
+    SET LINE=!LINE:%FIND0%=%REP0%!
+    SET LINE=!LINE:%FIND1%=%REP1%!
+    SET LINE=!LINE:%FIND2%=%REP2%!
+    ECHO !LINE!>>%1.txt
+  )
+  MOVE /Y %1.txt %1
 GOTO :EOF
 
 :END
