@@ -5,7 +5,7 @@ program TestLockFree;
 uses
   Forms, Interfaces,
   UnitLockFree in 'UnitLockFree.pas' {FormLockFree},
-  CnLockFree in '..\..\Source\Common\CnLockFree.pas';
+  CnLockFree in '..\..\..\Source\Common\CnLockFree.pas';
 
 {$R *.res}
 

@@ -5,7 +5,7 @@ program SM9Test;
 uses
   Forms, Interfaces,
   UnitSM9 in 'UnitSM9.pas' {FormSM9},
-  CnSM9 in '..\..\Source\Crypto\CnSM9.pas';
+  CnSM9 in '..\..\..\Source\Crypto\CnSM9.pas';
 
 {$R *.res}
 
