@@ -405,9 +405,8 @@ COPY ..\..\cnvcl\Doc\Develop\CnRSA*.txt .
 CD ..
 MKDIR Example
 CD Example
-MKDIR VCL
-MKDIR FMX
-MKDIR FPC
+MKDIR Delphi
+MKDIR Lazarus
 CALL :COPYEXAMPLE 25519
 CALL :COPYEXAMPLE BerParse
 CALL :COPYEXAMPLE BigDecimal
@@ -432,13 +431,10 @@ CALL :COPYEXAMPLE RSA
 CALL :COPYEXAMPLE SecretSharing
 CALL :COPYEXAMPLE SM2
 CALL :COPYEXAMPLE SM9
-CD VCL
+CD Delphi
 CALL :REPLACEPROJECT
 CD ..
-CD FMX
-CALL :REPLACEPROJECT
-CD ..
-CD FPC
+CD Lazarus
 CALL :REPLACEPROJECT
 CD ..
 GOTO END
@@ -531,7 +527,7 @@ GOTO :EOF
 
 :COPYEXAMPLE
 IF EXIST ..\..\cnvcl\Example\VCL\%1 (
-  CD VCL
+  CD Delphi
   MKDIR %1
   CD %1
   COPY ..\..\..\..\cnvcl\Example\VCL\%1\* .
@@ -539,17 +535,8 @@ IF EXIST ..\..\cnvcl\Example\VCL\%1 (
 ) ELSE (
   ECHO VCL\%1 NOT Exists
 )
-IF EXIST ..\..\cnvcl\Example\FMX\%1 (
-  CD FMX
-  MKDIR %1
-  CD %1
-  COPY ..\..\..\..\cnvcl\Example\FMX\%1\* .
-  CD ..\..
-) ELSE (
-  ECHO FMX\%1 NOT Exists
-)
 IF EXIST ..\..\cnvcl\Example\FPC\%1 (
-  CD FPC
+  CD Lazarus
   MKDIR %1
   CD %1
   COPY ..\..\..\..\cnvcl\Example\FPC\%1\* .
