@@ -1,9 +1,9 @@
 object FormBigNumber: TFormBigNumber
   Left = 121
   Top = 8
+  Width = 1254
+  Height = 713
   Caption = 'Big Number Test'
-  ClientHeight = 686
-  ClientWidth = 1230
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -154,6 +154,7 @@ object FormBigNumber: TFormBigNumber
         Top = 12
         Width = 93
         Height = 21
+        ItemHeight = 13
         TabOrder = 5
         Text = '4096'
         Items.Strings = (
@@ -792,6 +793,15 @@ object FormBigNumber: TFormBigNumber
         Caption = 'Batch Test'
         TabOrder = 77
         OnClick = btnBatchClick
+      end
+      object btnMersenne: TButton
+        Left = 1040
+        Top = 344
+        Width = 129
+        Height = 25
+        Caption = 'Is Mersenne Prime'
+        TabOrder = 78
+        OnClick = btnMersenneClick
       end
     end
     object tsSparseBigNumberList: TTabSheet

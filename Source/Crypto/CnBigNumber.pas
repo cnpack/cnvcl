@@ -40,7 +40,9 @@ unit CnBigNumber;
 *           注意 D5/D6/CB5/CB6 下可能遇上编译器 Bug 无法修复，
 *           譬如写 Int64(AInt64Var) 这样的强制类型转换时。
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.10.10 V2.7
+* 修改记录：2024.11.05 V2.8
+*               加入雅可比符号的计算及梅森素数的判定
+*           2024.10.10 V2.7
 *               部分函数加入的参数检测，以在调用时参数引用重复时抛异常
 *           2023.01.12 V2.6
 *               64 位模式下增加用 64 位存储计算的模式，测试中，默认禁用
@@ -812,8 +814,8 @@ function BigNumberRoundDiv(const Res: TCnBigNumber; const Num: TCnBigNumber;
    注意入的方向始终是绝对值大的方向，与 Round 函数基本保持一致，但忽略其四舍六入五成双的规则，逢五必入
    返回除法计算是否成功，Rounding 参数返回真实结果的舍入情况，True 表示入，False 表示舍}
 
-function BigNumberMod(const Remain: TCnBigNumber;
-  const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
+function BigNumberMod(const Remain: TCnBigNumber; const Num: TCnBigNumber;
+  const Divisor: TCnBigNumber): Boolean;
 {* 两大数对象求余，Num mod Divisor，余数放 Remain 中，
    余数正负规则等同于 BigNumberDiv，返回求余计算是否成功，Remain 可以是 Num}
 
@@ -1041,6 +1043,9 @@ procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Intege
 
 function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
 {* 用 AKS 算法判断某正整数是否是素数，判断 9223372036854775783 约需 15 秒}
+
+function BigNumberIsMersennePrime(E: Integer): Boolean;
+{* 用 Lucas-Lehmer 定理检查 2 的 E 次方减一是否是梅森素数，E 达到 20 多时跑起来就开始慢了}
 
 function BigNumberNonAdjanceFormWidth(N: TCnBigNumber; Width: Integer = 1): TShortInts;
 {* 返回大数的 Width 宽度（也就是 2^Width 进制）的 NAF 非零值不相邻形式，Width 为 1 时为普通 NAF 形式
@@ -4957,8 +4962,8 @@ begin
   end;
 end;
 
-function BigNumberMod(const Remain: TCnBigNumber;
-  const Num: TCnBigNumber; const Divisor: TCnBigNumber): Boolean;
+function BigNumberMod(const Remain: TCnBigNumber; const Num: TCnBigNumber;
+  const Divisor: TCnBigNumber): Boolean;
 var
   Res: TCnBigNumber;
 begin
@@ -7415,6 +7420,51 @@ begin
     FLocalBigNumberPool.Recycle(C);
     FLocalBigNumberPool.Recycle(Q);
     FLocalBigNumberPool.Recycle(BK);
+  end;
+end;
+
+function BigNumberIsMersennePrime(E: Integer): Boolean;
+var
+  I: Integer;
+  K, M: TCnBigNumber;
+begin
+  Result := False;
+  if E < 2 then
+    Exit;
+
+  if E = 2 then // 3 是
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  K := nil;
+  M := nil;
+
+  try
+    K := FLocalBigNumberPool.Obtain;
+
+    // 计算 Lucas-Lehmer 序列
+    K.SetWord(4);
+    for I := 1 to E - 2 do
+    begin
+      // 每一轮平方减 2
+      BigNumberSqr(K, K); // 注意 E 太大时这里特耗时耗内存
+      K.SubWord(2);
+    end;
+
+    // 并计算梅森数
+    M := FLocalBigNumberPool.Obtain;
+    M.SetOne;
+    M.ShiftLeft(E);
+    M.SubWord(1);
+
+    // 判断是否整除
+    BigNumberMod(K, K, M);
+    Result := K.IsZero;
+  finally
+    FLocalBigNumberPool.Recycle(M);
+    FLocalBigNumberPool.Recycle(K);
   end;
 end;
 

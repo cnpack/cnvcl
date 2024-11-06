@@ -88,6 +88,7 @@ function TestBigNumberFermatCheckComposite: Boolean;
 function TestBigNumberIsProbablyPrime: Boolean;
 function TestBigNumberIsPerfectPower: Boolean;
 function TestBigNumberJacobiSymbol: Boolean;
+function TestBigNumberMersennePrime: Boolean;
 
 // ================================ Bits =======================================
 
@@ -434,6 +435,7 @@ begin
   MyAssert(TestBigNumberIsProbablyPrime, 'TestBigNumberIsProbablyPrime');
   MyAssert(TestBigNumberIsPerfectPower, 'TestBigNumberIsPerfectPower');
   MyAssert(TestBigNumberJacobiSymbol, 'TestBigNumberJacobiSymbol');
+  MyAssert(TestBigNumberMersennePrime, 'TestBigNumberMersennePrime');
 
 // ================================ Bits =======================================
 
@@ -1369,6 +1371,22 @@ begin
 
   BigNumberFree(N);
   BigNumberFree(A);
+end;
+
+function TestBigNumberMersennePrime: Boolean;
+begin
+  // 这些是梅森素数
+  Result := BigNumberIsMersennePrime(2) and BigNumberIsMersennePrime(3) and
+    BigNumberIsMersennePrime(5) and BigNumberIsMersennePrime(7) and
+    BigNumberIsMersennePrime(13) and BigNumberIsMersennePrime(17) and
+    BigNumberIsMersennePrime(19);
+
+  if not Result then Exit;
+
+  // 这些梅森不是素数
+  Result := not BigNumberIsMersennePrime(4) and not BigNumberIsMersennePrime(8)
+    and not BigNumberIsMersennePrime(11) and not BigNumberIsMersennePrime(15)
+    and not BigNumberIsMersennePrime(18) and not BigNumberIsMersennePrime(21);;
 end;
 
 // ================================ Bits =======================================

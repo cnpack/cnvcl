@@ -106,6 +106,7 @@ type
     btnBSGS: TButton;
     btnBase64: TButton;
     btnBatch: TButton;
+    btnMersenne: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -180,6 +181,7 @@ type
     procedure btnBSGSClick(Sender: TObject);
     procedure btnBase64Click(Sender: TObject);
     procedure btnBatchClick(Sender: TObject);
+    procedure btnMersenneClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -558,7 +560,7 @@ var
 begin
   AWord := StrToInt(edtWord.Text);
   Rem := BigNumberModWord(Num1, AWord);
-  ShowNumbers;  
+  ShowNumbers;
   if rbHex.Checked then
     ShowMessage(IntToHex(Rem, 8))
   else
@@ -1537,6 +1539,22 @@ begin
   Assert(TestBigNumberFermatCheckComposite, 'TestBigNumberFermatCheckComposite');
   Assert(TestBigNumberIsProbablyPrime, 'TestBigNumberIsProbablyPrime');
   Assert(TestBigNumberExpandWord, 'TestBigNumberExpandWord');
+end;
+
+procedure TFormBigNumber.btnMersenneClick(Sender: TObject);
+var
+  S: string;
+  E: Integer;
+begin
+  S := '19';
+  if CnInputQuery('Hint', 'Enter a Dec Number for 2^.', S) then
+  begin
+    E := StrToInt(S);
+    if BigNumberIsMersennePrime(E) then
+      ShowMessage('2^' + IntToStr(E) + ' - 1 is a MersennePrime')
+    else
+      ShowMessage('2^' + IntToStr(E) + ' - 1 is NOT a MersennePrime');
+  end;
 end;
 
 end.
