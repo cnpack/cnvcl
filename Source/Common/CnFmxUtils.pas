@@ -374,10 +374,14 @@ begin
     // 基于屏幕的 Rect，都减去 Control 的 Parent 的左上角在屏幕上的坐标，
     // 就变成了基于 Control 的 Parent 的坐标
     BRect.Left := Trunc(ARect.Left - R.X);
-    BRect.Top := Trunc(ARect.Top - R.Y);
     BRect.Right := Trunc(ARect.Right - R.X);
+{$IFDEF IDE_SUPPORT_HDPI}
+    BRect.Top := Round(ARect.Top - R.Y); // 不知道咋的要这么写
+    BRect.Bottom := Round(ARect.Bottom - R.Y);
+{$ELSE}
+    BRect.Top := Trunc(ARect.Top - R.Y);
     BRect.Bottom := Trunc(ARect.Bottom - R.Y);
-
+{$ENDIF}
     TControl(AControl).SetBounds(BRect.Left, BRect.Top, BRect.Width, BRect.Height);
   end;
 end;
