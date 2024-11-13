@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, CnBigNumber, Spin, ExtCtrls, CnCommon, ComCtrls, CnNative;
+  StdCtrls, CnBigNumber, Spin, ExtCtrls, ComCtrls, CnNative;
 
 type
   TFormBigNumber = class(TForm)
@@ -654,7 +654,7 @@ var
   S: string;
   B: TCnBigNumber;
 begin
-  if not CnInputQuery('Hint', 'Enter a Dec Number. If Cancel, will Use Num1.', S) then
+  if not InputQuery('Hint', 'Enter a Dec Number. If Cancel, will Use Num1.', S) then
   begin
     if BigNumberIsProbablyPrime(Num1) then
       ShowMessage('Num1 is Prime, maybe.')
@@ -696,7 +696,7 @@ var
   N: TCnBigNumber;
   B1, B2, B3, B4: Boolean;
 begin
-  if CnInputQuery('Hint', 'Enter a Dec Number.', S) then
+  if InputQuery('Hint', 'Enter a Dec Number.', S) then
   begin
     N := TCnBigNumber.FromDec(S);
     B1 := BigNumberIsInt32(N);
@@ -725,7 +725,7 @@ var
 begin
   if rbHex.Checked then
   begin
-    if CnInputQuery('Hint', 'Enter a Hex Number.', S) then
+    if InputQuery('Hint', 'Enter a Hex Number.', S) then
     begin
       Num1.SetHex(S);
       ShowNumbers;
@@ -735,7 +735,7 @@ begin
   end
   else
   begin
-    if CnInputQuery('Hint', 'Enter a Dec Number.', S) then
+    if InputQuery('Hint', 'Enter a Dec Number.', S) then
     begin
       Num1.SetDec(S);
       ShowNumbers;
@@ -751,7 +751,7 @@ var
 begin
   if rbHex.Checked then
   begin
-    if CnInputQuery('Hint', 'Enter a Hex Number.', S) then
+    if InputQuery('Hint', 'Enter a Hex Number.', S) then
     begin
       Num2.SetHex(S);
       ShowNumbers;
@@ -761,7 +761,7 @@ begin
   end
   else
   begin
-    if CnInputQuery('Hint', 'Enter a Dec Number.', S) then
+    if InputQuery('Hint', 'Enter a Dec Number.', S) then
     begin
       Num2.SetDec(S);
       ShowNumbers;
@@ -1547,7 +1547,7 @@ var
   E: Integer;
 begin
   S := '19';
-  if CnInputQuery('Hint', 'Enter a Dec Number for 2^.', S) then
+  if InputQuery('Hint', 'Enter a Dec Number for 2^.', S) then
   begin
     E := StrToInt(S);
     if BigNumberIsMersennePrime(E) then

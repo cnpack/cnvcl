@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, TeEngine, Series, TeeProcs,
-  Chart, TypInfo, CnPrimeNumber, CnBigNumber, CnNative, CnCommon, CnPemUtils, CnPolynomial;
+  Chart, TypInfo, CnPrimeNumber, CnBigNumber, CnNative, CnPemUtils, CnPolynomial;
 
 type
   TFormEcc = class(TForm)
@@ -2097,7 +2097,7 @@ var
 begin
   if dlgOpen1.Execute then
   begin
-    S := CnInputBox('Password', 'Enter Password if the PEM is Encrypted.', '');
+    S := InputBox('Password', 'Enter Password if the PEM is Encrypted.', '');
 
     if CnEccLoadKeysFromPem(dlgOpen1.FileName, FPrivateKey, FPublicKey, FCurveType, ckhMd5, S) then
     begin
@@ -2362,7 +2362,7 @@ begin
   P := TCnEccPoint.Create;
   P.Assign(FBNEcc.Generator);
   K := TCnBigNumber.Create;
-  K.SetDec(CnInputBox('Enter', 'Enter a Multiple Count', '10'));
+  K.SetDec(InputBox('Enter', 'Enter a Multiple Count', '10'));
   if rbBNAddNormal.Checked then
     FBNEcc.MultiplePoint(K, P)
   else
@@ -2432,7 +2432,7 @@ begin
 
   Q.X := X;
   Q.Y := Y;
-  Ecc.MultiplePoint(StrToInt(CnInputBox('Enter', 'Enter a Multiple Count', '23')), Q);
+  Ecc.MultiplePoint(StrToInt(InputBox('Enter', 'Enter a Multiple Count', '23')), Q);
 
   if (Q.X = 0) and (Q.Y = 0) then
     mmoGenECCPoints.Lines.Add(Format('*** (%d,%d)***', [Q.X, Q.Y]))

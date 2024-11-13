@@ -697,15 +697,6 @@ function RMBFloatToChinese(ARMBCash: Real): string;
 function EvalSimpleExpression(const Value: string): Double;
 {* 计算四则运算与乘方的表达式值}
 
-function FastInverseSqrt(X: Single): Single;
-{* 快速计算开根号的倒数}
-
-function FastSqrt(N: LongWord): LongWord;
-{* 逐位确定法快速计算整数的平方根的整数部分}
-
-function FastSqrt64(N: Int64): Int64;
-{* 逐位确定法快速计算整数的平方根的整数部分}
-
 {$IFDEF MSWINDOWS}
 
 function StrToRegRoot(const S: string): HKEY;
@@ -5180,63 +5171,6 @@ begin
     FreeAndNil(Consts);
     FreeAndNil(Opers);
   end;
-end;
-
-// 快速计算开根号的倒数
-function FastInverseSqrt(X: Single): Single;
-var
-  xHalf: Single;
-  I: Integer;
-begin
-  xHalf := 0.5 * X;
-  I := (PInteger(@X))^;
-  I := $5f375a86 - (I shr 1);
-  X := (PSingle(@I))^;
-  X := X *(1.5 - xHalf * X * X);
-  X := X *(1.5 - xHalf * X * X);
-  Result := X;
-end;
-
-// 逐位确定法快速计算整数的平方根的整数部分
-function FastSqrt(N: LongWord): LongWord;
-var
-  T, B: LongWord;
-  Sft: LongWord;
-begin
-  Result := 0;
-  B := $8000;
-  Sft := 15;
-  repeat
-    T := ((Result shl 1)+ B) shl Sft;
-    Dec(Sft);
-    if N >= T then
-    begin
-      Result := Result + B;
-      N := N - T;
-    end;
-    B := B shr 1;
-  until B = 0;
-end;
-
-// 逐位确定法快速计算整数的平方根的整数部分
-function FastSqrt64(N: Int64): Int64;
-var
-  T, B: Int64;
-  Sft: Int64;
-begin
-  Result := 0;
-  B := $80000000;
-  Sft := 31;
-  repeat
-    T := ((Result shl 1)+ B) shl Sft;
-    Dec(Sft);
-    if N >= T then
-    begin
-      Result := Result + B;
-      N := N - T;
-    end;
-    B := B shr 1;
-  until B = 0;
 end;
 
 {$IFDEF MSWINDOWS}

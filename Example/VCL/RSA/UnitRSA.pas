@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNative, CnPrimeNumber,
-  ImgList, Buttons, CnCommon, CnPemUtils;
+  ImgList, Buttons, CnPemUtils, CnMath;
 
 type
   TFormRSA = class(TForm)
@@ -488,7 +488,7 @@ var
 begin
   if dlgOpenPEM.Execute then
   begin
-    Password := CnInputBox('Password', 'Enter Password here if the PEM has Password', '');
+    Password := InputBox('Password', 'Enter Password here if the PEM has Password', '');
     if CnRSALoadKeysFromPem(dlgOpenPEM.FileName, FPrivateKey, FPublicKey,
       TCnKeyHashMethod(cbbLoadKeyHash.ItemIndex), Password) then
     begin
@@ -530,7 +530,7 @@ begin
   if dlgSavePEM.Execute then
   begin
     if cbbSaveCrypt.ItemIndex > 0 then
-      Password := CnInputBox('Password', 'Enter Password here for Encryption', '');
+      Password := InputBox('Password', 'Enter Password here for Encryption', '');
 
     if CnRSASaveKeysToPem(dlgSavePEM.FileName, FPrivateKey, FPublicKey,
       TCnRSAKeyType(cbbSaveFormat.ItemIndex), TCnKeyEncryptMethod(cbbSaveCrypt.ItemIndex),

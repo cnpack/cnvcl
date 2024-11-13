@@ -506,7 +506,7 @@ implementation
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
   CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnAEAD, CnFNV, CnRC4,
-  CnPemUtils, CnNative, CnCommon, CnWideStrings;
+  CnPemUtils, CnNative, CnWideStrings;
 
 {$R *.DFM}
 
@@ -534,7 +534,7 @@ begin
 {$IFDEF UNICODE}
   Result := TEncoding.Default.GetBytes(Str);
 {$ELSE}
-  Result := StrToBytes(Str); // 包括 FPC
+  Result := AnsiToBytes(Str); // 包括 FPC
 {$ENDIF}
 end;
 
@@ -543,7 +543,7 @@ begin
 {$IFDEF UNICODE}
   Result := TEncoding.Default.GetString(Bytes);
 {$ELSE}
-  Result := BytesToStr(Bytes); // 包括 FPC
+  Result := BytesToAnsi(Bytes); // 包括 FPC
 {$ENDIF}
 end;
 
@@ -785,10 +785,10 @@ begin
 
   if chkBase64ShowHex.Checked then
   begin
-    if chkBase64UseTBytes.Checked and (Res <> nil) then
-      CnShowHexData(@Res[0], Length(Res))
+    if chkBase64UseTBytes.Checked and (Res <> nil) then // if want to see Hex, please uncomment and uses CnCommon
+      // CnShowHexData(@Res[0], Length(Res))
     else if S <> '' then
-      CnShowHexData(@S[1], Length(S));
+      // CnShowHexData(@S[1], Length(S));
   end;
 end;
 
@@ -2785,7 +2785,7 @@ var
 begin
   T := TCnFNVType(cbbFNVType.ItemIndex);
   S := edtFNV.Text;
-  B := StrToBytes(S);
+  B := AnsiToBytes(S);
 
   if rbFNV1.Checked then
   begin
