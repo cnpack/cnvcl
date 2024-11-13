@@ -57,14 +57,14 @@ type
     FRowCount: Integer;
     procedure SetColCount(const Value: Integer);
     procedure SetRowCount(const Value: Integer);
-    function GetValue(Row, Col: Integer): Int64;
+    function GetValue(Row: Integer; Col: Integer): Int64;
     function GetZigZagValue(Index: Integer): Int64;
     procedure SetZigZagValue(Index: Integer; const Value: Int64);
   protected
-    procedure SetValue(Row, Col: Integer; const AValue: Int64); virtual;
+    procedure SetValue(Row: Integer; Col: Integer; const AValue: Int64); virtual;
 
-    function Add3(X, Y, Z: Int64): Int64; virtual;
-    function Mul3(X, Y, Z: Int64): Int64; virtual;
+    function Add3(X: Int64; Y: Int64; Z: Int64): Int64; virtual;
+    function Mul3(X: Int64; Y: Int64; Z: Int64): Int64; virtual;
     function NegativeOnePower(N: Integer): Integer; virtual;
     procedure AssignTo(Dest: TPersistent); override;
   public
@@ -72,10 +72,10 @@ type
     destructor Destroy; override;
 
     // 供子类重载实现自定义的加减乘除操作，基类因为是整数，没有除操作
-    function OperationAdd(X, Y: Int64): Int64; virtual;
-    function OperationSub(X, Y: Int64): Int64; virtual;
-    function OperationMul(X, Y: Int64): Int64; virtual;
-    function OperationDiv(X, Y: Int64): Int64; virtual;
+    function OperationAdd(X: Int64; Y: Int64): Int64; virtual;
+    function OperationSub(X: Int64; Y: Int64): Int64; virtual;
+    function OperationMul(X: Int64; Y: Int64): Int64; virtual;
+    function OperationDiv(X: Int64; Y: Int64): Int64; virtual;
 
     procedure Mul(Factor: Int64);
     {* 矩阵各元素乘以一个常数}
@@ -133,14 +133,14 @@ type
     FRowCount: Integer;
     procedure SetColCount(const Value: Integer);
     procedure SetRowCount(const Value: Integer);
-    function GetValue(Row, Col: Integer): Extended;
+    function GetValue(Row: Integer; Col: Integer): Extended;
     function GetZigZagValue(Index: Integer): Extended;
     procedure SetZigZagValue(Index: Integer; const Value: Extended);
   protected
-    procedure SetValue(Row, Col: Integer; const AValue: Extended); virtual;
+    procedure SetValue(Row: Integer; Col: Integer; const AValue: Extended); virtual;
 
-    function Add3(X, Y, Z: Extended): Extended; virtual;
-    function Mul3(X, Y, Z: Extended): Extended; virtual;
+    function Add3(X: Extended; Y: Extended; Z: Extended): Extended; virtual;
+    function Mul3(X: Extended; Y: Extended; Z: Extended): Extended; virtual;
     function NegativeOnePower(N: Integer): Integer; virtual;
     procedure AssignTo(Dest: TPersistent); override;
   public
@@ -148,10 +148,10 @@ type
     destructor Destroy; override;
 
     // 供子类重载实现自定义的加减乘除操作
-    function OperationAdd(X, Y: Extended): Extended; virtual;
-    function OperationSub(X, Y: Extended): Extended; virtual;
-    function OperationMul(X, Y: Extended): Extended; virtual;
-    function OperationDiv(X, Y: Extended): Extended; virtual;
+    function OperationAdd(X: Extended; Y: Extended): Extended; virtual;
+    function OperationSub(X: Extended; Y: Extended): Extended; virtual;
+    function OperationMul(X: Extended; Y: Extended): Extended; virtual;
+    function OperationDiv(X: Extended; Y: Extended): Extended; virtual;
 
     procedure Mul(Factor: Extended);
     {* 矩阵各元素乘以一个常数}
@@ -254,7 +254,7 @@ type
 
     procedure SetIntValue(Value: Int64);
     {* 值设为一个整数}
-    procedure SetValue(ANominator, ADenominator: Int64);
+    procedure SetValue(ANominator: Int64; ADenominator: Int64);
     {* 值设为一个分数}
     procedure SetString(const Value: string);
     {* 值设为一个字符串，可以是纯数字，或带 / 的分数}
@@ -279,10 +279,10 @@ type
     procedure SetColCount(const Value: Integer);
     procedure SetRowCount(const Value: Integer);
   protected
-    function GetValueObject(Row, Col: Integer): TObject;
-    procedure SetValueObject(Row, Col: Integer; const Value: TObject); // 一组 TObjectList
+    function GetValueObject(Row: Integer; Col: Integer): TObject;
+    procedure SetValueObject(Row: Integer; Col: Integer; const Value: TObject); // 一组 TObjectList
   public
-    constructor Create(ARow, ACol: Integer); virtual;
+    constructor Create(ARow: Integer; ACol: Integer); virtual;
     destructor Destroy; override;
 
     procedure DeleteRow(Row: Integer);
@@ -304,8 +304,8 @@ type
     FMatrix: TCn2DObjectList;
     procedure SetColCount(const Value: Integer);
     procedure SetRowCount(const Value: Integer);
-    procedure SetValue(Row, Col: Integer; const Value: TCnRationalNumber);
-    function GetValue(Row, Col: Integer): TCnRationalNumber;
+    procedure SetValue(Row: Integer; Col: Integer; const Value: TCnRationalNumber);
+    function GetValue(Row: Integer; Col: Integer): TCnRationalNumber;
     function GetColCount: Integer;
     function GetRowCount: Integer;
     function GetZigZagValue(Index: Integer): TCnRationalNumber;
@@ -374,61 +374,65 @@ type
 
 // ============================ 整数矩阵运算方法 ===============================
 
-procedure CnMatrixMul(Matrix1, Matrix2: TCnIntMatrix; MulResult: TCnIntMatrix); overload;
+procedure CnMatrixMul(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix; MulResult: TCnIntMatrix); overload;
 {* 两个矩阵相乘，结果放 MulResult 矩阵中，要求 Matrix1 列数与 Martrix2 行数相等。
   MulResult 不能是 Matrix1 或 Matrix2}
 
 procedure CnMatrixPower(Matrix: TCnIntMatrix; K: Integer; PowerResult: TCnIntMatrix); overload;
 {* 求方阵 K 次幂，结果放 PowerResult 矩阵中，PowerResult 不能是 Matrix}
 
-procedure CnMatrixAdd(Matrix1, Matrix2: TCnIntMatrix; AddResult: TCnIntMatrix); overload;
+procedure CnMatrixAdd(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix; AddResult: TCnIntMatrix); overload;
 {* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
   AddResult 可以是 Matrix1 或 Matrix2 或其他}
 
-procedure CnMatrixHadamardProduct(Matrix1, Matrix2: TCnIntMatrix; ProductResult: TCnIntMatrix); overload;
+procedure CnMatrixHadamardProduct(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix; ProductResult: TCnIntMatrix); overload;
 {* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
   ProductResult 可以是 Matrix1 或 Matrix2 或其他}
 
-procedure CnMatrixTranspose(Matrix1, Matrix2: TCnIntMatrix); overload;
+procedure CnMatrixTranspose(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix); overload;
 {* 转置矩阵，将第一个矩阵转置至第二个，Matrix1、Matrix2 可以相等}
 
-procedure CnMatrixMinor(Matrix: TCnIntMatrix; Row, Col: Integer; MinorResult: TCnIntMatrix); overload;
+procedure CnMatrixMinor(Matrix: TCnIntMatrix; Row: Integer; Col: Integer;
+  MinorResult: TCnIntMatrix); overload;
 {* 求矩阵的余子式，也即去除指定行列后剩下的矩阵}
 
-procedure CnMatrixAdjoint(Matrix1, Matrix2: TCnIntMatrix); overload;
+procedure CnMatrixAdjoint(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix); overload;
 {* 求方阵的伴随阵}
 
-procedure CnMatrixInverse(Matrix1, Matrix2: TCnIntMatrix); overload;
+procedure CnMatrixInverse(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix); overload;
 {* 求方阵的逆矩阵，也就是伴随阵除以行列式，注意 TCnIntMatrix 不直接支持逆矩阵，
   因为除可能导致非整数，需要改用有理数矩阵来表示，或子类伽罗华矩阵}
 
 // =========================== 浮点数矩阵运算方法 ==============================
 
-procedure CnMatrixMul(Matrix1, Matrix2: TCnFloatMatrix; MulResult: TCnFloatMatrix); overload;
+procedure CnMatrixMul(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix; MulResult: TCnFloatMatrix); overload;
 {* 两个矩阵相乘，结果放 MulResult 矩阵中，要求 Matrix1 列数与 Martrix2 行数相等。
   MulResult 不能是 Matrix1 或 Matrix2}
 
 procedure CnMatrixPower(Matrix: TCnFloatMatrix; K: Integer; PowerResult: TCnFloatMatrix); overload;
 {* 求方阵 K 次幂，结果放 PowerResult 矩阵中，PowerResult 不能是 Matrix}
 
-procedure CnMatrixAdd(Matrix1, Matrix2: TCnFloatMatrix; AddResult: TCnFloatMatrix); overload;
+procedure CnMatrixAdd(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix;
+  AddResult: TCnFloatMatrix); overload;
 {* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
   AddResult 可以是 Matrix1 或 Matrix2 或其他}
 
-procedure CnMatrixHadamardProduct(Matrix1, Matrix2: TCnFloatMatrix; ProductResult: TCnFloatMatrix); overload;
+procedure CnMatrixHadamardProduct(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix;
+  ProductResult: TCnFloatMatrix); overload;
 {* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
   ProductResult 可以是 Matrix1 或 Matrix2 或其他}
 
-procedure CnMatrixTranspose(Matrix1, Matrix2: TCnFloatMatrix); overload;
+procedure CnMatrixTranspose(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix); overload;
 {* 转置矩阵，将第一个矩阵转置至第二个，Matrix1、Matrix2 可以相等}
 
-procedure CnMatrixMinor(Matrix: TCnFloatMatrix; Row, Col: Integer; MinorResult: TCnFloatMatrix); overload;
+procedure CnMatrixMinor(Matrix: TCnFloatMatrix; Row: Integer; Col: Integer;
+  MinorResult: TCnFloatMatrix); overload;
 {* 求矩阵的余子式，也即去除指定行列后剩下的矩阵}
 
-procedure CnMatrixAdjoint(Matrix1, Matrix2: TCnFloatMatrix); overload;
+procedure CnMatrixAdjoint(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix); overload;
 {* 求方阵的伴随阵}
 
-procedure CnMatrixInverse(Matrix1, Matrix2: TCnFloatMatrix); overload;
+procedure CnMatrixInverse(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix); overload;
 {* 求方阵的逆矩阵，也就是伴随阵除以行列式}
 
 // =========================== 有理数矩阵运算方法 ==============================
@@ -436,63 +440,69 @@ procedure CnMatrixInverse(Matrix1, Matrix2: TCnFloatMatrix); overload;
 procedure CnIntToRationalMatrix(Int: TCnIntMatrix; Rational: TCnRationalMatrix);
 {* 将一个整数矩阵转换为有理数矩阵}
 
-procedure CnMatrixMul(Matrix1, Matrix2: TCnRationalMatrix; MulResult: TCnRationalMatrix); overload;
+procedure CnMatrixMul(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix;
+  MulResult: TCnRationalMatrix); overload;
 {* 两个矩阵相乘，结果放 MulResult 矩阵中，要求 Matrix1 列数与 Martrix2 行数相等。
   MulResult 不能是 Matrix1 或 Matrix2}
 
 procedure CnMatrixPower(Matrix: TCnRationalMatrix; K: Integer; PowerResult: TCnRationalMatrix); overload;
 {* 求方阵 K 次幂，结果放 PowerResult 矩阵中，PowerResult 不能是 Matrix}
 
-procedure CnMatrixAdd(Matrix1, Matrix2: TCnRationalMatrix; AddResult: TCnRationalMatrix); overload;
+procedure CnMatrixAdd(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix;
+  AddResult: TCnRationalMatrix); overload;
 {* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
   AddResult 可以是 Matrix1 或 Matrix2 或其他}
 
-procedure CnMatrixHadamardProduct(Matrix1, Matrix2: TCnRationalMatrix; ProductResult: TCnRationalMatrix); overload;
+procedure CnMatrixHadamardProduct(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix;
+  ProductResult: TCnRationalMatrix); overload;
 {* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
   ProductResult 可以是 Matrix1 或 Matrix2 或其他}
 
-procedure CnMatrixTranspose(Matrix1, Matrix2: TCnRationalMatrix); overload;
+procedure CnMatrixTranspose(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix); overload;
 {* 转置矩阵，将第一个矩阵转置至第二个，Matrix1、Matrix2 可以相等}
 
-procedure CnMatrixMinor(Matrix: TCnRationalMatrix; Row, Col: Integer; MinorResult: TCnRationalMatrix); overload;
+procedure CnMatrixMinor(Matrix: TCnRationalMatrix; Row: Integer; Col: Integer;
+  MinorResult: TCnRationalMatrix); overload;
 {* 求矩阵的余子式，也即去除指定行列后剩下的矩阵}
 
-procedure CnMatrixAdjoint(Matrix1, Matrix2: TCnRationalMatrix); overload;
+procedure CnMatrixAdjoint(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix); overload;
 {* 求方阵的伴随阵}
 
-procedure CnMatrixInverse(Matrix1, Matrix2: TCnRationalMatrix); overload;
+procedure CnMatrixInverse(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix); overload;
 {* 求方阵的逆矩阵，也就是伴随阵除以行列式，需要有理数矩阵来表示}
 
 // ============================== 有理数运算方法 ===============================
 
-procedure CnRationalNumberAdd(Number1, Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberAdd(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
+  RationalResult: TCnRationalNumber);
 {* 有理数加法，三数可以相等}
 
-procedure CnRationalNumberAdd3(Number1, Number2, Number3: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberAdd3(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
+  Number3: TCnRationalNumber; RationalResult: TCnRationalNumber);
 {* 有理数三个数加法，结果不能是加数}
 
-procedure CnRationalNumberSub(Number1, Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberSub(Number1: TCnRationalNumber; Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
 {* 有理数减法，三数可以相等}
 
-procedure CnRationalNumberMul(Number1, Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberMul(Number1: TCnRationalNumber; Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
 {* 有理数乘法，三数可以相等}
 
-procedure CnRationalNumberMul3(Number1, Number2, Number3: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberMul3(Number1: TCnRationalNumber; Number2: TCnRationalNumber; Number3: TCnRationalNumber; RationalResult: TCnRationalNumber);
 {* 有理数三个数乘法，结果不能是乘数}
 
-procedure CnRationalNumberDiv(Number1, Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberDiv(Number1: TCnRationalNumber; Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
 {* 有理数除法，三数可以相等}
 
-function CnRationalNumberCompare(Number1, Number2: TCnRationalNumber): Integer;
+function CnRationalNumberCompare(Number1: TCnRationalNumber; Number2: TCnRationalNumber): Integer;
 {* 比较两个有理数，> = < 分别返回1 0 -1}
 
-procedure CnReduceInt64(var X, Y: Int64);
+procedure CnReduceInt64(var X: Int64; var Y: Int64);
 {* 尽量比例缩小，也就是约分}
 
-function RowColToZigZag(ARow, ACol: Integer; N: Integer): Integer;
+function RowColToZigZag(ARow: Integer; ACol: Integer; N: Integer): Integer;
 {* 将 N 阶方阵中的行列值转换为左上角斜排的索引值，均 0 开始}
 
-procedure ZigZagToRowCol(Index: Integer; out ARow, ACol: Integer; N: Integer);
+procedure ZigZagToRowCol(Index: Integer; out ARow: Integer; out ACol: Integer; N: Integer);
 {* 将 N 阶方阵中的左上角斜排的索引值转换为行列值，均 0 开始}
 
 implementation

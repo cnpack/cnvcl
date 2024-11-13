@@ -103,7 +103,7 @@ function XavierGourdonEuler(BlockSize: Integer = 1000): string;
 function FloatAlmostZero(F: Extended): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 判断一浮点数是否离 0 足够近}
 
-function FloatEqual(A, B: Extended): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function FloatEqual(A: Extended; B: Extended): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 封装的两个浮点数是否相等的判断}
 
 function NormalizeAngle(Angle: Extended): Extended;
@@ -485,7 +485,7 @@ begin
   Result := CnAbs(F) < SCN_FLOAT_GAP;
 end;
 
-function FloatEqual(A, B: Extended): Boolean;
+function FloatEqual(A: Extended; B: Extended): Boolean;
 begin
   Result := FloatAlmostZero(A - B);
 end;

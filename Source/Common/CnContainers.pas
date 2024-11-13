@@ -272,7 +272,7 @@ type
     procedure DeleteLow(ACount: Integer);
     {* 新增方法，删除 ACount 个最低端元素，如果 Count 不够则删除 Count 个}
     class procedure Error(const Msg: string; Data: Integer); virtual;
-    procedure Exchange(Index1, Index2: Integer);
+    procedure Exchange(Index1: Integer; Index2: Integer);
     function Expand: TCnInt64List;
     function First: Int64;
     function IndexOf(Item: Int64): Integer;
@@ -280,7 +280,7 @@ type
     procedure InsertBatch(Index: Integer; ACount: Integer);
     {* 新增方法，在某位置批量插入全 0 值 ACount 个}
     function Last: Int64;
-    procedure Move(CurIndex, NewIndex: Integer);
+    procedure Move(CurIndex: Integer; NewIndex: Integer);
     function Remove(Item: Int64): Integer;
 
     property Capacity: Integer read FCapacity write SetCapacity;
@@ -320,14 +320,14 @@ type
     procedure Delete(Index: Integer);
     class procedure Error(const Msg: string; Data: Integer); overload; virtual;
     class procedure Error(Msg: PResStringRec; Data: Integer); overload;
-    procedure Exchange(Index1, Index2: Integer);
+    procedure Exchange(Index1: Integer; Index2: Integer);
     function Expand: TCnUInt32List;
     function Extract(Item: Cardinal): Cardinal;
     function First: Cardinal;
     function IndexOf(Item: Cardinal): Integer;
     procedure Insert(Index: Integer; Item: Cardinal);
     function Last: Cardinal;
-    procedure Move(CurIndex, NewIndex: Integer);
+    procedure Move(CurIndex: Integer; NewIndex: Integer);
     function Remove(Item: Cardinal): Integer;
     property Capacity: Integer read FCapacity write SetCapacity;
     property Count: Integer read FCount write SetCount;
@@ -368,7 +368,7 @@ type
     procedure Delete(Index: TUInt64);
     class procedure Error(const Msg: string; Data: Integer); overload; virtual;
     class procedure Error(Msg: PResStringRec; Data: Integer); overload;
-    procedure Exchange(Index1, Index2: TUInt64);
+    procedure Exchange(Index1: TUInt64; Index2: TUInt64);
     function Expand: TCnUInt64List;
     function Extract(Item: TUInt64): TUInt64;
     function First: TUInt64;
@@ -410,7 +410,7 @@ type
     procedure DeleteLow(ACount: Integer);
     {* 新增方法，删除 ACount 个最低端元素，如果 Count 不够则删除 Count 个}
     class procedure Error(const Msg: string; Data: Integer); virtual;
-    procedure Exchange(Index1, Index2: Integer);
+    procedure Exchange(Index1: Integer; Index2: Integer);
     function Expand: TCnExtendedList;
     function First: Extended;
     function IndexOf(Item: Extended): Integer;
@@ -418,7 +418,7 @@ type
     procedure InsertBatch(Index: Integer; ACount: Integer);
     {* 新增方法，在某位置批量插入全 0 值 ACount 个}
     function Last: Extended;
-    procedure Move(CurIndex, NewIndex: Integer);
+    procedure Move(CurIndex: Integer; NewIndex: Integer);
     function Remove(Item: Extended): Integer;
 
     property Capacity: Integer read FCapacity write SetCapacity;
@@ -450,7 +450,7 @@ type
     procedure DeleteLow(ACount: Integer);
     {* 新增方法，删除 ACount 个最低端元素，如果 Count 不够则删除 Count 个}
     class procedure Error(const Msg: string; Data: Integer); virtual;
-    procedure Exchange(Index1, Index2: Integer);
+    procedure Exchange(Index1: Integer; Index2: Integer);
     function Expand: TCnRefObjectList;
     function First: TObject;
     function IndexOf(Item: TObject): Integer;
@@ -458,7 +458,7 @@ type
     procedure InsertBatch(Index: Integer; ACount: Integer);
     {* 新增方法，在某位置批量插入全 0 值 ACount 个}
     function Last: TObject;
-    procedure Move(CurIndex, NewIndex: Integer);
+    procedure Move(CurIndex: Integer; NewIndex: Integer);
     function Remove(Item: TObject): Integer;
 
     property Capacity: Integer read FCapacity write SetCapacity;
@@ -477,13 +477,13 @@ type
 
 {$ENDIF}
 
-procedure CnIntegerListCopy(Dst, Src: TCnIntegerList);
+procedure CnIntegerListCopy(Dst: TCnIntegerList; Src: TCnIntegerList);
 {* 复制 TCnIntegerList}
 
-procedure CnInt64ListCopy(Dst, Src: TCnInt64List);
+procedure CnInt64ListCopy(Dst: TCnInt64List; Src: TCnInt64List);
 {* 复制 TCnInt64List}
 
-procedure CnRefObjectListCopy(Dst, Src: TCnRefObjectList);
+procedure CnRefObjectListCopy(Dst: TCnRefObjectList; Src: TCnRefObjectList);
 {* 复制 TCnRefObjectList}
 
 implementation
@@ -1027,7 +1027,7 @@ begin
   raise EListError.CreateFmt(Msg, [Data]);
 end;
 
-procedure TCnInt64List.Exchange(Index1, Index2: Integer);
+procedure TCnInt64List.Exchange(Index1: Integer; Index2: Integer);
 var
   Item: Int64;
 begin
@@ -1223,7 +1223,7 @@ begin
   raise EListError.CreateFmt(Msg, [Data])
 end;
 
-procedure TCnUInt32List.Exchange(Index1, Index2: Integer);
+procedure TCnUInt32List.Exchange(Index1: Integer; Index2: Integer);
 var
   Item: Cardinal;
 begin
@@ -1420,7 +1420,7 @@ begin
   raise EListError.CreateFmt(Msg, [Data])
 end;
 
-procedure TCnUInt64List.Exchange(Index1, Index2: TUInt64);
+procedure TCnUInt64List.Exchange(Index1: TUInt64; Index2: TUInt64);
 var
   Item: TUInt64;
 begin
@@ -1622,7 +1622,7 @@ begin
   raise EListError.CreateFmt(Msg, [Data]);
 end;
 
-procedure TCnExtendedList.Exchange(Index1, Index2: Integer);
+procedure TCnExtendedList.Exchange(Index1: Integer; Index2: Integer);
 var
   Item: Extended;
 begin
@@ -1710,7 +1710,7 @@ begin
   Result := Get(FCount - 1);
 end;
 
-procedure TCnExtendedList.Move(CurIndex, NewIndex: Integer);
+procedure TCnExtendedList.Move(CurIndex: Integer; NewIndex: Integer);
 var
   Item: Extended;
 begin
@@ -1823,7 +1823,7 @@ begin
   raise EListError.CreateFmt(Msg, [Data]);
 end;
 
-procedure TCnRefObjectList.Exchange(Index1, Index2: Integer);
+procedure TCnRefObjectList.Exchange(Index1: Integer; Index2: Integer);
 var
   Item: TObject;
 begin
@@ -1969,7 +1969,7 @@ begin
   FCount := NewCount;
 end;
 
-procedure CnIntegerListCopy(Dst, Src: TCnIntegerList);
+procedure CnIntegerListCopy(Dst: TCnIntegerList; Src: TCnIntegerList);
 begin
   if (Src <> nil) and (Dst <> nil) and (Src <> Dst) then
   begin
@@ -1985,7 +1985,7 @@ begin
   end;
 end;
 
-procedure CnInt64ListCopy(Dst, Src: TCnInt64List);
+procedure CnInt64ListCopy(Dst: TCnInt64List; Src: TCnInt64List);
 begin
   if (Src <> nil) and (Dst <> nil) and (Src <> Dst) then
   begin
@@ -1995,7 +1995,7 @@ begin
   end;
 end;
 
-procedure CnRefObjectListCopy(Dst, Src: TCnRefObjectList);
+procedure CnRefObjectListCopy(Dst: TCnRefObjectList; Src: TCnRefObjectList);
 begin
   if (Src <> nil) and (Dst <> nil) and (Src <> Dst) then
   begin

@@ -237,7 +237,7 @@ type
   {$ENDIF}
 {$ENDIF}
     function GetMaxLevel: Integer;
-    procedure AssignLeafAndChildren(Source, DestLeaf: TCnLeaf; DestTree: TCnTree);
+    procedure AssignLeafAndChildren(Source: TCnLeaf; DestLeaf: TCnLeaf; DestTree: TCnTree);
   protected
     FRoot: TCnLeaf;  
     function DefaultLeafClass: TCnLeafClass; virtual;
@@ -316,13 +316,13 @@ type
     function Add(ASibing: TCnLeaf): TCnLeaf;
     {* 给指定的节点增加一同级的最后节点 }
 
-    procedure ExchangeWithChild(Leaf1, Leaf2: TCnLeaf); overload;
+    procedure ExchangeWithChild(Leaf1: TCnLeaf; Leaf2: TCnLeaf); overload;
     {* 交换俩节点位置，带子节点们一起交换 }
-    procedure ExchangeWithChild(AbsoluteIndex1, AbsoluteIndex2: Integer); overload;
+    procedure ExchangeWithChild(AbsoluteIndex1: Integer; AbsoluteIndex2: Integer); overload;
     {* 交换俩节点位置，带子节点们一起交换 }
-    procedure Exchange(Leaf1, Leaf2: TCnLeaf); overload;
+    procedure Exchange(Leaf1: TCnLeaf; Leaf2: TCnLeaf); overload;
     {* 单纯交换俩节点位置 }
-    procedure Exchange(AbsoluteIndex1, AbsoluteIndex2: Integer); overload;
+    procedure Exchange(AbsoluteIndex1: Integer; AbsoluteIndex2: Integer); overload;
     {* 单纯根据索引交换俩节点位置 }
 
 {$IFDEF ENABLE_UIINTERACT}
@@ -1044,7 +1044,7 @@ begin
   end;
 end;
 
-procedure TCnTree.Exchange(Leaf1, Leaf2: TCnLeaf); 
+procedure TCnTree.Exchange(Leaf1, Leaf2: TCnLeaf);
 var
   Parent2: TCnLeaf;
   I, Index2: Integer;

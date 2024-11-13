@@ -107,9 +107,9 @@ type
     {* 值设为一个整数}
     procedure SetIntValue(Value: TCnBigNumber); overload;
     {* 值设为一个整数}
-    procedure SetValue(ANominator, ADenominator: TCnBigNumber); overload;
+    procedure SetValue(ANominator: TCnBigNumber; ADenominator: TCnBigNumber); overload;
     {* 值设为一个分数}
-    procedure SetValue(const ANominator, ADenominator: string); overload;
+    procedure SetValue(const ANominator: string; const ADenominator: string); overload;
     {* 值设为一个分数，数字用字符串的方式输入}
     procedure SetString(const Value: string);
     {* 值设为一个字符串，可以是纯数字，或带 / 的分数，或小数}
@@ -657,15 +657,13 @@ begin
   end;
 end;
 
-procedure TCnBigRational.SetValue(ANominator,
-  ADenominator: TCnBigNumber);
+procedure TCnBigRational.SetValue(ANominator, ADenominator: TCnBigNumber);
 begin
   BigNumberCopy(FNominator, ANominator);
   BigNumberCopy(FDenominator, ADenominator);
 end;
 
-procedure TCnBigRational.SetValue(const ANominator,
-  ADenominator: string);
+procedure TCnBigRational.SetValue(const ANominator, ADenominator: string);
 begin
   FNominator.SetDec(AnsiString(ANominator));
   FDenominator.SetDec(AnsiString(ADenominator));

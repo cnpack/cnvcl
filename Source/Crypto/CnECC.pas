@@ -621,9 +621,9 @@ type
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、扩域次数，G 点坐标多项式、G 点的阶数、本原多项式
        参数均复制内容入对象内部，不持有参数的对象引用}
 
-    constructor Create(const A: TCnBigNumber; B: TCnBigNumber; FieldPrime: TCnBigNumber;
+    constructor Create(A: TCnBigNumber; B: TCnBigNumber; FieldPrime: TCnBigNumber;
       Ext: Integer; GX: TCnBigNumberPolynomial; GY: TCnBigNumberPolynomial;
-      const AnOrder: TCnBigNumber; PrimitivePolynomial: TCnBigNumberPolynomial); overload;
+      AnOrder: TCnBigNumber; PrimitivePolynomial: TCnBigNumberPolynomial); overload;
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、扩域次数，G 点坐标多项式、G 点的阶数、本原多项式
        参数均复制内容入对象内部，不持有参数的对象引用}
 
@@ -6503,8 +6503,8 @@ end;
 
 { TCnPolynomialEcc }
 
-constructor TCnPolynomialEcc.Create(const A, B, FieldPrime: TCnBigNumber;
-  Ext: Integer; GX, GY: TCnBigNumberPolynomial; const AnOrder: TCnBigNumber;
+constructor TCnPolynomialEcc.Create(A, B, FieldPrime: TCnBigNumber;
+  Ext: Integer; GX, GY: TCnBigNumberPolynomial; AnOrder: TCnBigNumber;
   PrimitivePolynomial: TCnBigNumberPolynomial);
 begin
   inherited Create;
