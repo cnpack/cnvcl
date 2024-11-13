@@ -83,14 +83,14 @@ type
     FKey: TBytes;            // 传入的 Key 经过追加内容后存放的地方，供 MD5 用
     FLength: Integer;        // 传入的 Key 的原始长度
   protected
-    procedure MakeKey(ID, Gen: Cardinal);
+    procedure MakeKey(ID: Cardinal; Gen: Cardinal);
   public
     constructor Create(EncryptionMethod: TCnPDFEncryptionMethod;
       AKey: TBytes; KeyBitLength: Integer); virtual;
     destructor Destroy; override;
 
-    procedure Encrypt(var Data: TBytes; ID, Generation: Cardinal);
-    procedure Decrypt(var Data: TBytes; ID, Generation: Cardinal);
+    procedure Encrypt(var Data: TBytes; ID: Cardinal; Generation: Cardinal);
+    procedure Decrypt(var Data: TBytes; ID: Cardinal; Generation: Cardinal);
   end;
 
 function CnPDFFindEncryptionMethod(Version: Integer; Revision: Integer;

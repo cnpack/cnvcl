@@ -104,8 +104,8 @@ type
     FPrime: Integer;
     FRing: TCnInt64Polynomial;
   protected
-    procedure RandPolynomial(const P: TCnInt64Polynomial; MaxDegree, OneCount,
-      MinusOneCount: Integer); overload;
+    procedure RandPolynomial(const P: TCnInt64Polynomial; MaxDegree: Integer;
+      OneCount: Integer; MinusOneCount: Integer); overload;
     {* 随机生成最高次数是 MaxDegree 的多项式，有 OneCount 个 1，MinusOneCount 个 -1，其余是 0}
     procedure RandPolynomial(const P: TCnInt64Polynomial; MaxDegree: Integer); overload;
     {* 随机生成最高次数是 MaxDegree 的多项式，内部系数 1 0 -1 随机，注意与 FPrime 无关}

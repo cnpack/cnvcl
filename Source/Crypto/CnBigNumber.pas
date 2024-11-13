@@ -457,8 +457,8 @@ type
     FOwnsValue: Boolean;
   protected
     function HashCodeFromObject(Obj: TObject): Integer; override;
-    function KeyEqual(Key1, Key2: TObject
-      {$IFNDEF CPU64BITS}; Key132, Key232: TObject {$ENDIF}): Boolean; override;
+    function KeyEqual(Key1: TObject; Key2: TObject
+      {$IFNDEF CPU64BITS}; Key132: TObject; Key232: TObject {$ENDIF}): Boolean; override;
     procedure DoFreeNode(Node: TCnHashNode); override;
   public
     constructor Create(AOwnsKey: Boolean; AOwnsValue: Boolean); reintroduce; virtual;
@@ -8610,8 +8610,8 @@ begin
     Result := inherited HashCodeFromObject(Obj)
 end;
 
-function TCnBigNumberHashMap.KeyEqual(Key1, Key2: TObject
-  {$IFNDEF CPU64BITS}; Key132, Key232: TObject {$ENDIF}): Boolean;
+function TCnBigNumberHashMap.KeyEqual(Key1: TObject; Key2: TObject
+  {$IFNDEF CPU64BITS}; Key132: TObject; Key232: TObject {$ENDIF}): Boolean;
 begin
   Result := BigNumberEqual(TCnBigNumber(Key1), TCnBigNumber(Key2));
 end;

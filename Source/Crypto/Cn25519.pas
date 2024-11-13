@@ -82,17 +82,17 @@ uses
 
 const
   CN_25519_BLOCK_BYTESIZE = 32;
-  {* 25519 曲线相关算法的数据块大小}
+  {* 25519 曲线相关算法的数据块大小，单位是字节}
 
   CN_448_CURVE_BLOCK_BYTESIZE = 56;
-  {* 蒙哥马利 448 曲线相关算法的数据块大小，用于密钥协商等}
+  {* 蒙哥马利 448 曲线相关算法的数据块大小，单位是字节，用于密钥协商等}
 
   CN_448_EDWARDS_BLOCK_BYTESIZE = 57;
-  {* 扭曲爱德华 448 曲线相关算法的数据块大小，用于签名验证等}
+  {* 扭曲爱德华 448 曲线相关算法的数据块大小，单位是字节，用于签名验证等}
 
 type
   TCn25519Field64 = array[0..4] of TUInt64;
-  {* 用多项式拆项法表示一个 2^255-19 范围内的有限域元素，f0 + 2*51*f1 + 2^102*f2 + 2^153*f3 + 2^204*f4}
+  {* 用多项式拆项法表示一个 2^255-19 范围内的有限域元素，f0 + (2^51)*f1 + (2^102)*f2 + (2^153)*f3 + (2^204)*f4}
 
   TCn25519Field64EccPoint = packed record
   {* 用多项式拆项法表示的 25519 椭圆曲线上的点（包括纯 X 射影点，Z 用 Y 代替）
@@ -118,11 +118,26 @@ type
     procedure SetT(const Value: TCnBigNumber);
   public
     constructor Create; override;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
+    {* 从其他对象赋值而来。
 
+       参数：
+         Source: TPersistent                  - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
     function ToString: string; override; // 基类有 ToString
+    {* 转换为字符串。
+
+       参数：
+        （无）
+
+       返回值：string                         - 转换而来的字符串值
+    }
 
     property T: TCnBigNumber read FT write SetT;
     {* 中间结果 T}
@@ -138,18 +153,20 @@ type
     FGenerator: TCnEccPoint;
     FCoFactor: Integer;
 
-    function CalcXFromY(InY, OutX: TCnBigNumber; XOdd: Boolean): Boolean;
+    function CalcXFromY(InY: TCnBigNumber; OutX: TCnBigNumber; XOdd: Boolean): Boolean;
     {* 从 Y 值对方程 x^2 = (Y^2 - 1) / (D*Y^2 - A) mod P 求解，传入 Y 和 X 是否奇偶的标记，返回求解是否成功}
   public
     constructor Create; overload; virtual;
     {* 普通构造函数，未初始化参数}
-    constructor Create(const A, D, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1); overload;
+    constructor Create(const A: AnsiString; const D: AnsiString; const FieldPrime: AnsiString;
+      const GX: AnsiString; const GY: AnsiString; const Order: AnsiString; H: Integer = 1); overload;
     {* 构造函数，传入方程的 A, D 参数、有限域上界 p、G 点坐标、G 点的阶数，需要十六进制字符串}
 
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure Load(const A, D, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1); virtual;
+    procedure Load(const A: AnsiString; const D: AnsiString; const FieldPrime: AnsiString;
+      const GX: AnsiString; const GY: AnsiString; const Order: AnsiString; H: Integer = 1); virtual;
     {* 加载曲线参数，注意字符串参数是十六进制格式}
 
     procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
@@ -157,11 +174,11 @@ type
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload; virtual;
     {* 计算某点 P 的 k * P 值，值重新放入 P，内部实现等同于 CnECC 中同名方法}
 
-    procedure PointAddPoint(P, Q, Sum: TCnEccPoint);
+    procedure PointAddPoint(P: TCnEccPoint; Q: TCnEccPoint; Sum: TCnEccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同
       此处的加法的几何意义相当于单位圆上的与正 Y 轴的夹角角度相加法则，
       中性点(0, 1)，等同于 Weierstrass 曲线中的无穷远点}
-    procedure PointSubPoint(P, Q, Diff: TCnEccPoint);
+    procedure PointSubPoint(P: TCnEccPoint; Q: TCnEccPoint; Diff: TCnEccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure PointInverse(P: TCnEccPoint);
     {* 计算 P 点的逆元 -P，值重新放入 P，也就是 X 值取负}
@@ -208,21 +225,19 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1); virtual;
+    procedure Load(const A: AnsiString; const B: AnsiString; const FieldPrime: AnsiString;
+      const GX: AnsiString; const GY: AnsiString; const Order: AnsiString; H: Integer = 1); virtual;
     {* 加载曲线参数，注意字符串参数是十六进制格式}
-
-    //procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey); virtual;
-    {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
 
     procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
     {* 计算某点 P 的 k * P 值，值重新放入 Point}
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload; virtual;
     {* 计算某点 P 的 k * P 值，值重新放入 Point，内部实现等同于 CnECC 中同名方法}
 
-    procedure PointAddPoint(P, Q, Sum: TCnEccPoint);
+    procedure PointAddPoint(P: TCnEccPoint; Q: TCnEccPoint; Sum: TCnEccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同
       此处的加法的几何意义类似于 Weierstrass 椭圆曲线上的连线或切线交点再取负，同样存在无穷远点(0, 0)}
-    procedure PointSubPoint(P, Q, Diff: TCnEccPoint);
+    procedure PointSubPoint(P: TCnEccPoint; Q: TCnEccPoint; Diff: TCnEccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure PointInverse(P: TCnEccPoint);
     {* 计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
@@ -231,10 +246,10 @@ type
 
     // ============ 蒙哥马利阶梯算法中的仅 X 的射影坐标点加速算法 ==============
 
-    procedure PointToXAffinePoint(DestPoint, SourcePoint: TCnEccPoint);
+    procedure PointToXAffinePoint(DestPoint: TCnEccPoint; SourcePoint: TCnEccPoint);
     {* 将包含 X Y 的椭圆曲线点转换为射影坐标 X Y Z 并只保留 X Z 供蒙哥马利阶梯算法使用，
       其实就是 Y 置 1，SourcePoint 和 DestPoint 可以相同}
-    procedure XAffinePointToPoint(DestPoint, SourcePoint: TCnEccPoint);
+    procedure XAffinePointToPoint(DestPoint: TCnEccPoint; SourcePoint: TCnEccPoint);
     {* 将只含 X Z(Y 代替 Z) 的射影坐标点转换为普通曲线点，其实就是求解 Y 并替换 Z，
       SourcePoint 和 DestPoint 可以相同}
 
@@ -244,7 +259,8 @@ type
 
     procedure MontgomeryLadderPointXDouble(Dbl: TCnEccPoint; P: TCnEccPoint);
     {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用，Dbl 可以是 P}
-    procedure MontgomeryLadderPointXAdd(Sum, P, Q, PMinusQ: TCnEccPoint);
+    procedure MontgomeryLadderPointXAdd(Sum: TCnEccPoint; P: TCnEccPoint;
+      Q: TCnEccPoint; PMinusQ: TCnEccPoint);
     {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值}
 
     procedure MontgomeryLadderMultiplePoint(K: Int64; Point: TCnEccPoint); overload;
@@ -1014,7 +1030,6 @@ var
   FPrime448: TCnBigNumber = nil;
   FEd448SignPrefix: AnsiString = 'SigEd448';
 
-
   // 仨常量
   F25519Field64Zero: TCn25519Field64 = (0, 0, 0, 0, 0);
   F25519Field64One: TCn25519Field64 = (1, 0, 0, 0, 0);
@@ -1068,8 +1083,8 @@ begin
   T1 := nil;
   T2 := nil;
   T3 := nil;
-  TX := nil;
   Prime := nil;
+  TX := nil;
 
   try
     T1 := FBigNumberPool.Obtain;
@@ -1139,8 +1154,8 @@ begin
 
     BigNumberCopy(DestPoint.X, TX);                           // 再设置 X
   finally
-    FBigNumberPool.Recycle(Prime);
     FBigNumberPool.Recycle(TX);
+    FBigNumberPool.Recycle(Prime);
     FBigNumberPool.Recycle(T3);
     FBigNumberPool.Recycle(T2);
     FBigNumberPool.Recycle(T1);
@@ -1740,8 +1755,9 @@ end;
 
 { TCnTwistedEdwardsCurve }
 
-constructor TCnTwistedEdwardsCurve.Create(const A, D, FieldPrime, GX, GY,
-  Order: AnsiString; H: Integer);
+constructor TCnTwistedEdwardsCurve.Create(const A: AnsiString; const D: AnsiString;
+  const FieldPrime: AnsiString; const GX: AnsiString; const GY: AnsiString;
+  const Order: AnsiString; H: Integer);
 begin
   Create;
   Load(A, D, FieldPrime, GX, GY, Order, H);
@@ -1811,8 +1827,9 @@ begin
   end;
 end;
 
-procedure TCnTwistedEdwardsCurve.Load(const A, D, FieldPrime, GX, GY,
-  Order: AnsiString; H: Integer);
+procedure TCnTwistedEdwardsCurve.Load(const A: AnsiString; const D: AnsiString;
+  const FieldPrime: AnsiString; const GX: AnsiString; const GY: AnsiString;
+  const Order: AnsiString; H: Integer);
 begin
   FCoefficientA.SetHex(A);
   FCoefficientD.SetHex(D);
@@ -1881,7 +1898,8 @@ begin
   end;
 end;
 
-procedure TCnTwistedEdwardsCurve.PointAddPoint(P, Q, Sum: TCnEccPoint);
+procedure TCnTwistedEdwardsCurve.PointAddPoint(P: TCnEccPoint; Q: TCnEccPoint;
+  Sum: TCnEccPoint);
 var
   X, Y, T, D1, D2, N1, N2: TCnBigNumber;
 begin
@@ -1950,7 +1968,8 @@ begin
   BigNumberSub(P.X, FFiniteFieldSize, P.X);
 end;
 
-procedure TCnTwistedEdwardsCurve.PointSubPoint(P, Q, Diff: TCnEccPoint);
+procedure TCnTwistedEdwardsCurve.PointSubPoint(P: TCnEccPoint; Q: TCnEccPoint;
+  Diff: TCnEccPoint);
 var
   Inv: TCnEccPoint;
 begin
@@ -1970,7 +1989,7 @@ begin
   P.Y.SetOne;
 end;
 
-function TCnTwistedEdwardsCurve.CalcXFromY(InY, OutX: TCnBigNumber;
+function TCnTwistedEdwardsCurve.CalcXFromY(InY: TCnBigNumber; OutX: TCnBigNumber;
   XOdd: Boolean): Boolean;
 var
   T, Y, Inv: TCnBigNumber;
@@ -2041,17 +2060,6 @@ begin
   inherited;
 end;
 
-//procedure TCnMontgomeryCurve.GenerateKeys(PrivateKey: TCnEccPrivateKey;
-//  PublicKey: TCnEccPublicKey);
-//begin
-//  BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
-//  if PrivateKey.IsZero then                         // 万一真拿到 0，就加 1
-//    PrivateKey.SetOne;
-//
-//  PublicKey.Assign(FGenerator);
-//  MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
-//end;
-
 function TCnMontgomeryCurve.IsPointOnCurve(P: TCnEccPoint): Boolean;
 var
   X, Y, T: TCnBigNumber;
@@ -2088,8 +2096,9 @@ begin
   end;
 end;
 
-procedure TCnMontgomeryCurve.Load(const A, B, FieldPrime, GX, GY,
-  Order: AnsiString; H: Integer);
+procedure TCnMontgomeryCurve.Load(const A: AnsiString; const B: AnsiString;
+  const FieldPrime: AnsiString; const GX: AnsiString; const GY: AnsiString;
+  const Order: AnsiString; H: Integer);
 begin
   FCoefficientA.SetHex(A);
   FCoefficientB.SetHex(B);
@@ -2099,7 +2108,7 @@ begin
   FOrder.SetHex(Order);
   FCoFactor := H;
 
-  // 提前计算 (A+2)/4 以备蒙哥马利阶梯算法中使用
+  // 提前计算 (A + 2) / 4 以备蒙哥马利阶梯算法中使用
   CheckLadderConst;
 end;
 

@@ -170,9 +170,9 @@ type
     procedure SetOne;
     procedure SetU;
     procedure SetBigNumber(const Num: TCnBigNumber);
-    procedure SetHex(const S0, S1: string);
+    procedure SetHex(const S0: string; const S1: string);
     procedure SetWord(Value: Cardinal);
-    procedure SetWords(Value0, Value1: Cardinal);
+    procedure SetWords(Value0: Cardinal; Value1: Cardinal);
 
     property Items[Index: Integer]: TCnBigNumber read GetItems; default;
   end;
@@ -205,7 +205,7 @@ type
     procedure SetV;
     procedure SetBigNumber(const Num: TCnBigNumber);
     procedure SetBigNumbers(const Num0, Num1: TCnBigNumber);
-    procedure SetHex(const S0, S1, S2, S3: string);
+    procedure SetHex(const S0: string; const S1: string; const S2: string; const S3: string);
     procedure SetWord(Value: Cardinal);
     procedure SetWords(Value0, Value1, Value2, Value3: Cardinal);
 
@@ -243,11 +243,14 @@ type
     procedure SetWSqr;
     procedure SetBigNumber(const Num: TCnBigNumber);
     procedure SetBigNumbers(const Num0, Num1, Num2: TCnBigNumber);
-    procedure SetHex(const S0, S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11: string);
+    procedure SetHex(const S0: string; const S1: string; const S2: string; const S3: string;
+      const S4: string; const S5: string; const S6: string; const S7: string;
+      const S8: string; const S9: string; const S10: string; const S11: string);
       
     procedure SetWord(Value: Cardinal);
-    procedure SetWords(Value0, Value1, Value2, Value3, Value4, Value5, Value6,
-      Value7, Value8, Value9, Value10, Value11: Cardinal);
+    procedure SetWords(Value0: Cardinal; Value1: Cardinal; Value2: Cardinal; Value3: Cardinal;
+      Value4: Cardinal; Value5: Cardinal; Value6: Cardinal; Value7: Cardinal;
+      Value8: Cardinal; Value9: Cardinal; Value10: Cardinal; Value11: Cardinal);
 
     property Items[Index: Integer]: TCnFP4 read GetItems; default;
   end;

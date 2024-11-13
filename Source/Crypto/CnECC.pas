@@ -145,18 +145,18 @@ type
     function GetDelta: Int64;
   protected
     // Tonelli-Shanks 模素数二次剩余求解，返回 False 表示失败，调用者需自行保证 P 为素数
-    function TonelliShanks(X, P: Int64; out Y: Int64): Boolean;
+    function TonelliShanks(X: Int64; P: Int64; out Y: Int64): Boolean;
     // Lucas 序列模素数二次剩余求解，返回 False 表示失败，只针对 P 为 8*u + 1 的形式
-    function Lucas(X, P: Int64; out Y: Int64): Boolean;
+    function Lucas(X: Int64; P: Int64; out Y: Int64): Boolean;
   public
-    constructor Create(A, B, FieldPrime, GX, GY, Order: Int64);
+    constructor Create(A: Int64; B: Int64; FieldPrime: Int64; GX: Int64; GY: Int64; Order: Int64);
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数}
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure AffinePointAddPoint(var P, Q: TCnInt64Ecc3Point; var Sum: TCnInt64Ecc3Point);
+    procedure AffinePointAddPoint(var P: TCnInt64Ecc3Point; var Q: TCnInt64Ecc3Point; var Sum: TCnInt64Ecc3Point);
     {* 使用仿射坐标系进行点加，避免取模拟元导致的开销}
-    procedure JacobianPointAddPoint(var P, Q: TCnInt64Ecc3Point; var Sum: TCnInt64Ecc3Point);
+    procedure JacobianPointAddPoint(var P: TCnInt64Ecc3Point; var Q: TCnInt64Ecc3Point; var Sum: TCnInt64Ecc3Point);
     {* 使用雅可比坐标系进行点加，避免取模拟元导致的开销}
 
     procedure AffineMultiplePoint(K: Int64; var Point: TCnInt64Ecc3Point);
@@ -166,9 +166,9 @@ type
 
     procedure MultiplePoint(K: Int64; var Point: TCnInt64EccPoint);
     {* 计算某点 P 的 k * P 值，值重新放入 P}
-    procedure PointAddPoint(var P, Q, Sum: TCnInt64EccPoint);
+    procedure PointAddPoint(var P: TCnInt64EccPoint; var Q: TCnInt64EccPoint; var Sum: TCnInt64EccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
-    procedure PointSubPoint(var P, Q, Diff: TCnInt64EccPoint);
+    procedure PointSubPoint(var P: TCnInt64EccPoint; var Q: TCnInt64EccPoint; var Diff: TCnInt64EccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure PointInverse(var P: TCnInt64EccPoint);
     {* 计算 P 点的逆元 -P，值重新放入 P}
@@ -190,10 +190,10 @@ type
     procedure GenerateKeys(out PrivateKey: TCnInt64PrivateKey; out PublicKey: TCnInt64PublicKey);
     {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
     procedure Encrypt(var PlainPoint: TCnInt64EccPoint; PublicKey: TCnInt64PublicKey;
-      var OutDataPoint1, OutDataPoint2: TCnInt64EccPoint; RandomKey: Int64 = 0);
+      var OutDataPoint1: TCnInt64EccPoint; var OutDataPoint2: TCnInt64EccPoint; RandomKey: Int64 = 0);
     {* 公钥加密明文点 M，得到两个点的输出密文，内部包含了随机值 r，也就是 C1 = M + rK; C2 = r * G
       如果传入的 RandomKey 是 0，则内部随机生成}
-    procedure Decrypt(var DataPoint1, DataPoint2: TCnInt64EccPoint;
+    procedure Decrypt(var DataPoint1: TCnInt64EccPoint; var DataPoint2: TCnInt64EccPoint;
       PrivateKey: TCnInt64PrivateKey; var OutPlainPoint: TCnInt64EccPoint);
     {* 私钥解密密文点，也就是计算 C1 - k * C2 就得到了原文点 M}
 
@@ -225,7 +225,7 @@ type
     procedure SetY(const Value: TCnBigNumber);
   public
     constructor Create; overload;
-    constructor Create(const XDec, YDec: AnsiString); overload;
+    constructor Create(const XDec: AnsiString; const YDec: AnsiString); overload;
 
     destructor Destroy; override;
 
@@ -361,23 +361,25 @@ type
   public
     constructor Create; overload; virtual;
     constructor Create(Predefined: TCnEccCurveType); overload;
-    constructor Create(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1); overload;
+    constructor Create(const A: AnsiString; const B: AnsiString; const FieldPrime: AnsiString;
+      const GX: AnsiString; const GY: AnsiString; const Order: AnsiString; H: Integer = 1); overload;
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数，需要十六进制字符串}
     destructor Destroy; override;
     {* 析构函数}
 
     procedure Load(Predefined: TCnEccCurveType); overload; virtual;
-    procedure Load(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1); overload; virtual;
+    procedure Load(const A: AnsiString; const B: AnsiString; const FieldPrime: AnsiString;
+      const GX: AnsiString; const GY: AnsiString; const Order: AnsiString; H: Integer = 1); overload; virtual;
     {* 加载曲线参数，注意字符串参数是十六进制格式}
 
-    procedure AffinePointAddPoint(P, Q, Sum: TCnEcc3Point);
+    procedure AffinePointAddPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Sum: TCnEcc3Point);
     {* 使用仿射坐标系进行点加，避免取模拟元导致的开销}
-    procedure AffinePointSubPoint(P, Q, Diff: TCnEcc3Point);
+    procedure AffinePointSubPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Diff: TCnEcc3Point);
     {* 使用仿射坐标系进行点减，避免取模拟元导致的开销}
 
-    procedure JacobianPointAddPoint(P, Q, Sum: TCnEcc3Point);
+    procedure JacobianPointAddPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Sum: TCnEcc3Point);
     {* 使用雅可比坐标系进行点加，避免取模拟元导致的开销}
-    procedure JacobianPointSubPoint(P, Q, Diff: TCnEcc3Point);
+    procedure JacobianPointSubPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Diff: TCnEcc3Point);
     {* 使用雅可比坐标系进行点减，避免取模拟元导致的开销}
 
     procedure AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point); virtual;
@@ -392,9 +394,9 @@ type
 
     procedure NormalMultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
     {* 计算某点 P 的 k * P 值，值重新放入 P}
-    procedure PointAddPoint(P, Q, Sum: TCnEccPoint);
+    procedure PointAddPoint(P: TCnEccPoint; Q: TCnEccPoint; Sum: TCnEccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同，内部普通实现}
-    procedure PointSubPoint(P, Q, Diff: TCnEccPoint);
+    procedure PointSubPoint(P: TCnEccPoint; Q: TCnEccPoint; Diff: TCnEccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure PointInverse(P: TCnEccPoint);
     {* 计算 P 点的逆元 -P，值重新放入 P}
@@ -414,9 +416,9 @@ type
     procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey);
     {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
     procedure Encrypt(PlainPoint: TCnEccPoint; PublicKey: TCnEccPublicKey;
-      OutDataPoint1, OutDataPoint2: TCnEccPoint);
+      OutDataPoint1: TCnEccPoint; OutDataPoint2: TCnEccPoint);
     {* 公钥加密明文点 M，得到两个点的输出密文，内部包含了随机值 r，也就是 C1 = M + rK; C2 = r * G}
-    procedure Decrypt(DataPoint1, DataPoint2: TCnEccPoint;
+    procedure Decrypt(DataPoint1: TCnEccPoint; DataPoint2: TCnEccPoint;
       PrivateKey: TCnEccPrivateKey; OutPlainPoint: TCnEccPoint);
     {* 私钥解密密文点，也就是计算 C1 - k * C2 就得到了原文点 M}
 
@@ -444,13 +446,12 @@ type
   TCnEcc2Matrix = class(TCn2DObjectList)
   {* 容纳 TCnEccPoint 的二维数组对象}
   private
-    function GetValueObject(Row, Col: Integer): TCnEccPoint;
-    procedure SetValueObject(Row, Col: Integer; const Value: TCnEccPoint);
-
+    function GetValueObject(Row: Integer; Col: Integer): TCnEccPoint;
+    procedure SetValueObject(Row: Integer; Col: Integer; const Value: TCnEccPoint);
   protected
 
   public
-    constructor Create(ARow, ACol: Integer); override;
+    constructor Create(ARow: Integer; ACol: Integer); override;
 
     property ValueObject[Row, Col: Integer]: TCnEccPoint read GetValueObject write SetValueObject; default;
     {* 二维数组值}
@@ -459,13 +460,12 @@ type
   TCnEcc3Matrix = class(TCn2DObjectList)
   {* 容纳 TCnEcc3Point 的二维数组对象}
   private
-    function GetValueObject(Row, Col: Integer): TCnEcc3Point;
-    procedure SetValueObject(Row, Col: Integer; const Value: TCnEcc3Point);
-
+    function GetValueObject(Row: Integer; Col: Integer): TCnEcc3Point;
+    procedure SetValueObject(Row: Integer; Col: Integer; const Value: TCnEcc3Point);
   protected
 
   public
-    constructor Create(ARow, ACol: Integer); override;
+    constructor Create(ARow: Integer; ACol: Integer); override;
 
     property ValueObject[Row, Col: Integer]: TCnEcc3Point read GetValueObject write SetValueObject; default;
     {* 二维数组值}
@@ -480,7 +480,8 @@ type
     procedure SetY(const Value: TCnInt64Polynomial);
   public
     constructor Create; overload;
-    constructor Create(const XLowToHighCoefficients, YLowToHighCoefficients: array of const); overload;
+    constructor Create(const XLowToHighCoefficients: array of const;
+      const YLowToHighCoefficients: array of const); overload;
 
     destructor Destroy; override;
 
@@ -509,17 +510,19 @@ type
   protected
 
   public
-    constructor Create(A, B, FieldPrime: Int64; Ext: Integer; GX, GY: array of const;
-      Order: Int64; PrimitivePolynomial: array of const);
+    constructor Create(A: Int64; B: Int64; FieldPrime: Int64; Ext: Integer; GX: array of const;
+      GY: array of const; Order: Int64; PrimitivePolynomial: array of const);
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、扩域次数，G 点坐标多项式、G 点的阶数、本原多项式}
     destructor Destroy; override;
     {* 析构函数}
 
     procedure MultiplePoint(K: Int64; Point: TCnInt64PolynomialEccPoint);
     {* 计算某点 P 的 k * P 值，值重新放入 P}
-    procedure PointAddPoint(P, Q, Sum: TCnInt64PolynomialEccPoint);
+    procedure PointAddPoint(P: TCnInt64PolynomialEccPoint; Q: TCnInt64PolynomialEccPoint;
+      Sum: TCnInt64PolynomialEccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
-    procedure PointSubPoint(P, Q, Diff: TCnInt64PolynomialEccPoint);
+    procedure PointSubPoint(P: TCnInt64PolynomialEccPoint; Q: TCnInt64PolynomialEccPoint;
+      Diff: TCnInt64PolynomialEccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure PointInverse(P: TCnInt64PolynomialEccPoint);
     {* 计算 P 点的逆元 -P，值重新放入 P}
@@ -529,29 +532,30 @@ type
     function DivisionPolynomial(Degree: Integer; outDivisionPolynomial: TCnInt64Polynomial): Boolean;
     {* 递归计算第 Degree 个可除多项式，返回计算是否成功，注意次数一多就容易慢}
 
-    class function IsPointOnCurve2(PX, PY: TCnInt64Polynomial; A, B, APrime: Int64;
-      APrimitive: TCnInt64Polynomial): Boolean;
+    class function IsPointOnCurve2(PX: TCnInt64Polynomial; PY: TCnInt64Polynomial;
+      A: Int64; B: Int64; APrime: Int64; APrimitive: TCnInt64Polynomial): Boolean;
     {* 供外界直接调用的判断（PX, PY）点是否在本曲线上，
        椭圆曲线参数直接指定 A、B、素域上界与本原多项式，无需基点和阶以及扩域次数}
 
-    class procedure RationalPointAddPoint(PX, PY, QX, QY: TCnInt64RationalPolynomial;
-      SX, SY: TCnInt64RationalPolynomial; A, B, APrime: Int64; APrimitive: TCnInt64Polynomial = nil);
+    class procedure RationalPointAddPoint(PX: TCnInt64RationalPolynomial; PY: TCnInt64RationalPolynomial;
+      QX: TCnInt64RationalPolynomial; QY: TCnInt64RationalPolynomial; SX: TCnInt64RationalPolynomial;
+      SY: TCnInt64RationalPolynomial; A: Int64; B: Int64; APrime: Int64; APrimitive: TCnInt64Polynomial = nil);
     {* 供外界直接调用的点加方法，将点（PX, PY * y) 和点（QX, QY * y）相加，结果放到（SX, SY * y）点中
        注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出
        PX、PY、QX、QY、SX、SY 均为分子分母为纯 x 多项式的分式，SX、SY 不能是 PX、PY、QX、QY
        另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差
        Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数，初步验证通过}
 
-    class procedure RationalMultiplePoint(K: Integer; MX, MY: TCnInt64RationalPolynomial;
-      A, B, APrime: Int64; APrimitive: TCnInt64Polynomial = nil);
+    class procedure RationalMultiplePoint(K: Integer; MX: TCnInt64RationalPolynomial; MY: TCnInt64RationalPolynomial;
+      A: Int64; B: Int64; APrime: Int64; APrimitive: TCnInt64Polynomial = nil);
     {* 供外界直接调用的多倍点方法，使用可除多项式直接计算点（x, 1 * y) 的 k * P 值，值放入 MX, MY * y
        注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出
        如果 MX 与 MY 可为 nil 表示不计算 X 或 Y，只计算不为 nil 的。
        另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差
        Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数}
 
-    class function IsRationalPointOnCurve(PX, PY: TCnInt64RationalPolynomial;
-      A, B, APrime: Int64; APrimitive: TCnInt64Polynomial = nil): Boolean;
+    class function IsRationalPointOnCurve(PX: TCnInt64RationalPolynomial; PY: TCnInt64RationalPolynomial;
+      A: Int64; B: Int64; APrime: Int64; APrimitive: TCnInt64Polynomial = nil): Boolean;
     {* 供外界直接调用的无本原多项式的判断（PX, PY * y）点是否在本曲线上，
        椭圆曲线参数直接指定 A、B、素域上界与，无需本原多项式、基点和阶以及扩域次数
        注意所有内容包括斜率等内容均用分式表示，即使有本原多项式存在，除法也不转换为乘法}
@@ -581,7 +585,8 @@ type
     procedure SetY(const Value: TCnBigNumberPolynomial);
   public
     constructor Create; overload;
-    constructor Create(const XLowToHighCoefficients, YLowToHighCoefficients: array of const); overload;
+    constructor Create(const XLowToHighCoefficients: array of const;
+      const YLowToHighCoefficients: array of const); overload;
 
     destructor Destroy; override;
 
@@ -610,12 +615,14 @@ type
   protected
 
   public
-    constructor Create(const A, B, FieldPrime: AnsiString; Ext: Integer; GX, GY: TCnBigNumberPolynomial;
+    constructor Create(const A: AnsiString; const B: AnsiString; const FieldPrime: AnsiString;
+      Ext: Integer; GX: TCnBigNumberPolynomial; GY: TCnBigNumberPolynomial;
       const Order: AnsiString; PrimitivePolynomial: TCnBigNumberPolynomial); overload;
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、扩域次数，G 点坐标多项式、G 点的阶数、本原多项式
        参数均复制内容入对象内部，不持有参数的对象引用}
 
-    constructor Create(const A, B, FieldPrime: TCnBigNumber; Ext: Integer; GX, GY: TCnBigNumberPolynomial;
+    constructor Create(const A: TCnBigNumber; B: TCnBigNumber; FieldPrime: TCnBigNumber;
+      Ext: Integer; GX: TCnBigNumberPolynomial; GY: TCnBigNumberPolynomial;
       const AnOrder: TCnBigNumber; PrimitivePolynomial: TCnBigNumberPolynomial); overload;
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、扩域次数，G 点坐标多项式、G 点的阶数、本原多项式
        参数均复制内容入对象内部，不持有参数的对象引用}
@@ -627,9 +634,11 @@ type
     {* 计算某点 P 的 k * P 值，值重新放入 P}
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnPolynomialEccPoint); overload;
     {* 计算某点 P 的 k * P 值，值重新放入 P}
-    procedure PointAddPoint(P, Q, Sum: TCnPolynomialEccPoint);
+    procedure PointAddPoint(P: TCnPolynomialEccPoint; Q: TCnPolynomialEccPoint;
+      Sum: TCnPolynomialEccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
-    procedure PointSubPoint(P, Q, Diff: TCnPolynomialEccPoint);
+    procedure PointSubPoint(P: TCnPolynomialEccPoint; Q: TCnPolynomialEccPoint;
+      Diff: TCnPolynomialEccPoint);
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
     procedure PointInverse(P: TCnPolynomialEccPoint);
     {* 计算 P 点的逆元 -P，值重新放入 P}
@@ -639,29 +648,31 @@ type
     function DivisionPolynomial(Degree: Integer; outDivisionPolynomial: TCnBigNumberPolynomial): Boolean;
     {* 递归计算第 Degree 个可除多项式，返回计算是否成功，注意次数一多就容易慢}
 
-    class function IsPointOnCurve2(PX, PY: TCnBigNumberPolynomial; A, B, APrime: TCnBigNumber;
-      APrimitive: TCnBigNumberPolynomial): Boolean;
+    class function IsPointOnCurve2(PX: TCnBigNumberPolynomial; PY: TCnBigNumberPolynomial;
+      A: TCnBigNumber; B: TCnBigNumber; APrime: TCnBigNumber; APrimitive: TCnBigNumberPolynomial): Boolean;
     {* 供外界直接调用的判断（PX, PY）点是否在本曲线上，
        椭圆曲线参数直接指定 A、B、素域上界与本原多项式，无需基点和阶以及扩域次数}
 
-    class procedure RationalPointAddPoint(PX, PY, QX, QY: TCnBigNumberRationalPolynomial;
-      SX, SY: TCnBigNumberRationalPolynomial; A, B, APrime: TCnBigNumber; APrimitive: TCnBigNumberPolynomial = nil);
+    class procedure RationalPointAddPoint(PX: TCnBigNumberRationalPolynomial; PY: TCnBigNumberRationalPolynomial;
+      QX: TCnBigNumberRationalPolynomial; QY: TCnBigNumberRationalPolynomial; SX: TCnBigNumberRationalPolynomial;
+      SY: TCnBigNumberRationalPolynomial; A: TCnBigNumber; B: TCnBigNumber; APrime: TCnBigNumber; APrimitive: TCnBigNumberPolynomial = nil);
     {* 供外界直接调用的点加方法，将点（PX, PY * y) 和点（QX, QY * y）相加，结果放到（SX, SY * y）点中
        注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出
        PX、PY、QX、QY、SX、SY均为分子分母为纯 x 多项式的分式，SX、SY 不能是 PX、PY、QX、QY
        另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差
        Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数，初步验证通过}
 
-    class procedure RationalMultiplePoint(K: Integer; MX, MY: TCnBigNumberRationalPolynomial;
-      A, B, APrime: TCnBigNumber; APrimitive: TCnBigNumberPolynomial = nil); overload;
+    class procedure RationalMultiplePoint(K: Integer; MX: TCnBigNumberRationalPolynomial;
+      MY: TCnBigNumberRationalPolynomial; A: TCnBigNumber; B: TCnBigNumber; APrime: TCnBigNumber;
+      APrimitive: TCnBigNumberPolynomial = nil); overload;
     {* 供外界直接调用的多倍点方法，使用可除多项式直接计算点（x, 1 * y) 的 k * P 值，值放入 MX, MY * y
        注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出
        PX、PY、QX、QY、SX、SY均为分子分母为纯 x 多项式的分式，，SX、SY 不能是 PX、PY、QX、QY
        另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差
        Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数}
 
-    class function IsRationalPointOnCurve(PX, PY: TCnBigNumberRationalPolynomial;
-      A, B, APrime: TCnBigNumber): Boolean;
+    class function IsRationalPointOnCurve(PX: TCnBigNumberRationalPolynomial;
+      PY: TCnBigNumberRationalPolynomial; A: TCnBigNumber; B: TCnBigNumber; APrime: TCnBigNumber): Boolean;
     {* 供外界直接调用的无本原多项式的判断（PX, PY * y）点是否在本曲线上，
        椭圆曲线参数直接指定 A、B、素域上界与，无需本原多项式、基点和阶以及扩域次数
        注意在无本原多项式的情况下，除法无法转换为乘法，所有内容包括斜率等内容需要用分式表示}
@@ -1720,8 +1731,7 @@ begin
   end;
 end;
 
-procedure TCnInt64Ecc.JacobianPointAddPoint(var P, Q,
-  Sum: TCnInt64Ecc3Point);
+procedure TCnInt64Ecc.JacobianPointAddPoint(var P, Q, Sum: TCnInt64Ecc3Point);
 var
   T, D1, D2, D3, D4, D5, D6, D7, D8, D9: Int64;
 begin
@@ -5023,8 +5033,7 @@ begin
     Degree, outDivisionPolynomial, FFiniteFieldSize);
 end;
 
-function TCnInt64PolynomialEcc.IsPointOnCurve(
-  P: TCnInt64PolynomialEccPoint): Boolean;
+function TCnInt64PolynomialEcc.IsPointOnCurve(P: TCnInt64PolynomialEccPoint): Boolean;
 var
   X, Y: TCnInt64Polynomial;
 begin

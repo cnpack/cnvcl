@@ -117,7 +117,7 @@ type
     {* 清空自身后从内存区域读入全部内容，返回读入的字节长度}
     function WriteTo(AMem: Pointer): Integer;
     {* 将全部内容写入指定内存区域，返回写入的字节长度，如 AMem 传 nil 则返回所需的长度}
-    function Copy(Index, Count: Integer): Cardinal;
+    function Copy(Index: Integer; Count: Integer): Cardinal;
     {* 从指定 Index 处复制 Count 个位放入结果中，Count 超长无法容纳则抛异常}
 
     property Bit[Index: Integer]: Boolean read GetBit write SetBit;
@@ -270,7 +270,7 @@ begin
   ByteCapacity := BIT_BUILDER_DEFAULT_CAPACITY;
 end;
 
-function TCnBitBuilder.Copy(Index, Count: Integer): Cardinal;
+function TCnBitBuilder.Copy(Index: Integer; Count: Integer): Cardinal;
 var
   I: Integer;
 begin

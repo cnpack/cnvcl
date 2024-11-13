@@ -56,10 +56,10 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
-    function Add(X, Y: Int64): Int64; virtual;
-    function Subtract(X, Y: Int64): Int64; virtual;
-    function Multiply(X, Y: Int64): Int64; virtual;
-    function Divide(X, Y: Int64): Int64; virtual;
+    function Add(X: Int64; Y: Int64): Int64; virtual;
+    function Subtract(X: Int64; Y: Int64): Int64; virtual;
+    function Multiply(X: Int64; Y: Int64): Int64; virtual;
+    function Divide(X: Int64; Y: Int64): Int64; virtual;
   end;
 
   TCnGalois2Power8Rule = class(TCnCalculationRule)
@@ -71,23 +71,23 @@ type
     constructor Create; override;
     destructor Destroy; override;
 
-    function Add(X, Y: Int64): Int64; override;
-    function Subtract(X, Y: Int64): Int64; override;
-    function Multiply(X, Y: Int64): Int64; override;
-    function Divide(X, Y: Int64): Int64; override;
+    function Add(X: Int64; Y: Int64): Int64; override;
+    function Subtract(X: Int64; Y: Int64): Int64; override;
+    function Multiply(X: Int64; Y: Int64): Int64; override;
+    function Divide(X: Int64; Y: Int64): Int64; override;
   end;
 
   TCnGalois2Power8Matrix = class(TCnIntMatrix)
   {* 伽罗华域 GP(2^8) 里的多项式矩阵}
   protected
-    procedure SetValue(Row, Col: Integer; const AValue: Int64); override;
+    procedure SetValue(Row: Integer; Col: Integer; const AValue: Int64); override;
     function NegativeOnePower(N: Integer): Integer; override;
     // 行列式计算中的加减替换动作因为加减均为异或，因此恒定返回 1
   public
-    function OperationAdd(X, Y: Int64): Int64; override;
-    function OperationSub(X, Y: Int64): Int64; override;
-    function OperationMul(X, Y: Int64): Int64; override;
-    function OperationDiv(X, Y: Int64): Int64; override;
+    function OperationAdd(X: Int64; Y: Int64): Int64; override;
+    function OperationSub(X: Int64; Y: Int64): Int64; override;
+    function OperationMul(X: Int64; Y: Int64): Int64; override;
+    function OperationDiv(X: Int64; Y: Int64): Int64; override;
 
     function Determinant: Int64; override;
     procedure Divide(Factor: Int64); override;

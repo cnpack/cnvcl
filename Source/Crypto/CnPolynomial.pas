@@ -510,7 +510,7 @@ function Int64PolynomialGaloisGetValue(const F: TCnInt64Polynomial; X: Int64; Pr
 {* 在 Prime 次方阶有限域上进行一元整系数多项式求值，也就是计算 F(x)，返回计算结果}
 
 function Int64PolynomialGaloisCalcDivisionPolynomial(A: Int64; B: Int64; Degree: Int64;
-  outDivisionPolynomial: TCnInt64Polynomial; Prime: Int64): Boolean;
+  OutDivisionPolynomial: TCnInt64Polynomial; Prime: Int64): Boolean;
 {* 递归计算指定椭圆曲线在 Prime 次方阶有限域上的 N 阶可除多项式，返回是否计算成功
    注意 Degree 是奇数时，可除多项式是纯 x 的多项式，偶数时，是（x 的多项式）* y 的形式，
    本结果只给出 x 的多项式部分。
@@ -948,14 +948,14 @@ function BigNumberPolynomialGaloisGetValue(Res: TCnBigNumber;
 {* 在 Prime 次方阶有限域上进行一元大整系数多项式求值，也就是计算 F(x)，返回计算是否成功}
 
 function BigNumberPolynomialGaloisCalcDivisionPolynomial(A: Integer; B: Integer;
-  Degree: Integer; outDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean; overload;
+  Degree: Integer; OutDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean; overload;
 {* 递归计算指定椭圆曲线在 Prime 次方阶有限域上的 N 阶可除多项式，返回是否计算成功
    注意 Degree 是奇数时，可除多项式是纯 x 的多项式，偶数时，是（x 的多项式）* y 的形式，
    本结果只给出 x 的多项式部分，也就是 f 的形式（偶数时已经除了 y），不是 Ψ的形式。
    其中 A B 是 32 位有符号整数}
 
 function BigNumberPolynomialGaloisCalcDivisionPolynomial(A: TCnBigNumber; B: TCnBigNumber;
-  Degree: Integer; outDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean; overload;
+  Degree: Integer; OutDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean; overload;
 {* 递归计算指定椭圆曲线在 Prime 次方阶有限域上的 N 阶可除多项式，返回是否计算成功
    注意 Degree 是奇数时，可除多项式是纯 x 的多项式，偶数时，是（x 的多项式）* y 的形式，
    本结果只给出 x 的多项式部分。
@@ -1149,15 +1149,15 @@ type
   {* 二元整系数多项式，内部实现非稀疏，因此一大就容易爆内存}
   private
     FXs: TObjectList; // 元素为 TCnInt64List，存储该 X 次幂的每一个不同的 Y 次幂的系数
-    procedure EnsureDegrees(XDegree, YDegree: Integer);
+    procedure EnsureDegrees(XDegree: Integer; YDegree: Integer);
     {* 确保 XDegree, YDegree 的元素存在}
     function GetMaxXDegree: Integer;
     function GetMaxYDegree: Integer;
     procedure SetMaxXDegree(const Value: Integer);
     procedure SetMaxYDegree(const Value: Integer);
     function GetYFactorsList(Index: Integer): TCnInt64List;
-    function GetSafeValue(XDegree, YDegree: Integer): Int64;
-    procedure SetSafeValue(XDegree, YDegree: Integer; const Value: Int64);
+    function GetSafeValue(XDegree: Integer; YDegree: Integer): Int64;
+    procedure SetSafeValue(XDegree: Integer; YDegree: Integer; const Value: Int64);
   protected
     function CompactYDegree(YList: TCnInt64List): Boolean;
     {* 去除一个 Y 系数高次零项，如全 0 则返回 True}
@@ -1176,7 +1176,7 @@ type
     {* 针对特定次数的 X，一次批量设置 Y 从低到高的系数}
     procedure SetXCoefficents(YDegree: Integer; LowToHighXCoefficients: array of const);
     {* 针对特定次数的 Y，一次批量设置 X 从低到高的系数}
-    procedure SetXYCoefficent(XDegree, YDegree: Integer; ACoefficient: Int64);
+    procedure SetXYCoefficent(XDegree: Integer; YDegree: Integer; ACoefficient: Int64);
     {* 针对特定次数的 X 和 Y，设置其系数}
 
     procedure CorrectTop;
@@ -1445,16 +1445,16 @@ type
   {* 二元大整系数多项式，内部采取稀疏方式，稍微少占点内存}
   private
     FXs: TCnRefObjectList; // 元素为 TCnSparseBigNumberList，存储该 X 次幂的每一个不同的 Y 次幂的系数
-    procedure EnsureDegrees(XDegree, YDegree: Integer);
+    procedure EnsureDegrees(XDegree: Integer; YDegree: Integer);
     {* 确保 XDegree, YDegree 的元素存在}
     function GetMaxXDegree: Integer;
     function GetMaxYDegree: Integer;
     procedure SetMaxXDegree(const Value: Integer);
     procedure SetMaxYDegree(const Value: Integer);
     function GetYFactorsList(Index: Integer): TCnSparseBigNumberList;
-    function GetSafeValue(XDegree, YDegree: Integer): TCnBigNumber;
-    procedure SetSafeValue(XDegree, YDegree: Integer; const Value: TCnBigNumber);
-    function GetReadonlyValue(XDegree, YDegree: Integer): TCnBigNumber;
+    function GetSafeValue(XDegree: Integer; YDegree: Integer): TCnBigNumber;
+    procedure SetSafeValue(XDegree: Integer; YDegree: Integer; const Value: TCnBigNumber);
+    function GetReadonlyValue(XDegree: Integer; YDegree: Integer): TCnBigNumber;
   protected
     function CompactYDegree(YList: TCnSparseBigNumberList): Boolean;
     {* 去除一个 Y 系数高次零项，如是 nil 或有内容但全 0 则返回 True}
@@ -1475,7 +1475,7 @@ type
     {* 针对特定次数的 X，一次批量设置 Y 从低到高的系数}
     procedure SetXCoefficents(YDegree: Integer; LowToHighXCoefficients: array of const);
     {* 针对特定次数的 Y，一次批量设置 X 从低到高的系数}
-    procedure SetXYCoefficent(XDegree, YDegree: Integer; ACoefficient: TCnBigNumber);
+    procedure SetXYCoefficent(XDegree: Integer; YDegree: Integer; ACoefficient: TCnBigNumber);
     {* 针对特定次数的 X 和 Y，设置其系数}
 
     procedure CorrectTop;
@@ -3551,7 +3551,7 @@ end;
 
 }
 function Int64PolynomialGaloisCalcDivisionPolynomial(A, B: Int64; Degree: Int64;
-  outDivisionPolynomial: TCnInt64Polynomial; Prime: Int64): Boolean;
+  OutDivisionPolynomial: TCnInt64Polynomial; Prime: Int64): Boolean;
 var
   N: Integer;
   MI, T1, T2: Int64;
@@ -3561,42 +3561,42 @@ begin
     raise ECnPolynomialException.Create(SCnErrorPolynomialGaloisInvalidDegree)
   else if Degree = 0 then
   begin
-    outDivisionPolynomial.SetCoefficents([0]);  // f0(X) = 0
+    OutDivisionPolynomial.SetCoefficents([0]);  // f0(X) = 0
     Result := True;
   end
   else if Degree = 1 then
   begin
-    outDivisionPolynomial.SetCoefficents([1]);  // f1(X) = 1
+    OutDivisionPolynomial.SetCoefficents([1]);  // f1(X) = 1
     Result := True;
   end
   else if Degree = 2 then
   begin
-    outDivisionPolynomial.SetCoefficents([2]);  // f2(X) = 2
+    OutDivisionPolynomial.SetCoefficents([2]);  // f2(X) = 2
     Result := True;
   end
   else if Degree = 3 then   // f3(X) = 3 X4 + 6 a X2 + 12 b X - a^2
   begin
-    outDivisionPolynomial.MaxDegree := 4;
-    outDivisionPolynomial[4] := 3;
-    outDivisionPolynomial[3] := 0;
-    outDivisionPolynomial[2] := Int64NonNegativeMulMod(6, A, Prime);
-    outDivisionPolynomial[1] := Int64NonNegativeMulMod(12, B, Prime);
-    outDivisionPolynomial[0] := Int64NonNegativeMulMod(-A, A, Prime);
+    OutDivisionPolynomial.MaxDegree := 4;
+    OutDivisionPolynomial[4] := 3;
+    OutDivisionPolynomial[3] := 0;
+    OutDivisionPolynomial[2] := Int64NonNegativeMulMod(6, A, Prime);
+    OutDivisionPolynomial[1] := Int64NonNegativeMulMod(12, B, Prime);
+    OutDivisionPolynomial[0] := Int64NonNegativeMulMod(-A, A, Prime);
 
     Result := True;
   end
   else if Degree = 4 then // f4(X) = 4 X6 + 20 a X4 + 80 b X3 - 20 a2X2 - 16 a b X - 4 a3 - 32 b^2
   begin
-    outDivisionPolynomial.MaxDegree := 6;
-    outDivisionPolynomial[6] := 4;
-    outDivisionPolynomial[5] := 0;
-    outDivisionPolynomial[4] := Int64NonNegativeMulMod(20, A, Prime);
-    outDivisionPolynomial[3] := Int64NonNegativeMulMod(80, B, Prime);
-    outDivisionPolynomial[2] := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-20, A, Prime), A, Prime);
-    outDivisionPolynomial[1] := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-16, A, Prime), B, Prime);
+    OutDivisionPolynomial.MaxDegree := 6;
+    OutDivisionPolynomial[6] := 4;
+    OutDivisionPolynomial[5] := 0;
+    OutDivisionPolynomial[4] := Int64NonNegativeMulMod(20, A, Prime);
+    OutDivisionPolynomial[3] := Int64NonNegativeMulMod(80, B, Prime);
+    OutDivisionPolynomial[2] := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-20, A, Prime), A, Prime);
+    OutDivisionPolynomial[1] := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-16, A, Prime), B, Prime);
     T1 := Int64NonNegativeMulMod(Int64NonNegativeMulMod(Int64NonNegativeMulMod(-4, A, Prime), A, Prime), A, Prime);
     T2 := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-32, B, Prime), B, Prime);
-    outDivisionPolynomial[0] := Int64NonNegativeMod(T1 + T2, Prime); // TODO: 暂未处理相加溢出的取模
+    OutDivisionPolynomial[0] := Int64NonNegativeMod(T1 + T2, Prime); // TODO: 暂未处理相加溢出的取模
 
     Result := True;
   end
@@ -3631,9 +3631,9 @@ begin
         Int64PolynomialGaloisSub(D1, D1, D2, Prime);   // D1 得到 fn+2 * fn-1^2 - fn-2 * fn+1^2
 
         Int64PolynomialGaloisCalcDivisionPolynomial(A, B, N, D2, Prime);    // D2 得到 fn
-        Int64PolynomialGaloisMul(outDivisionPolynomial, D2, D1, Prime);     // 相乘得到 f2n
+        Int64PolynomialGaloisMul(OutDivisionPolynomial, D2, D1, Prime);     // 相乘得到 f2n
         MI := CnInt64ModularInverse(2, Prime);
-        Int64PolynomialGaloisMulWord(outDivisionPolynomial, MI, Prime);     // 再除以 2
+        Int64PolynomialGaloisMulWord(OutDivisionPolynomial, MI, Prime);     // 再除以 2
       end
       else // Degree 是奇数
       begin
@@ -3657,21 +3657,21 @@ begin
           Int64PolynomialGaloisMul(D1, D1, D2, Prime);  // D1 得到 fn+2 * fn^3
 
           Int64PolynomialGaloisCalcDivisionPolynomial(A, B, N - 1, D2, Prime);
-          Int64PolynomialGaloisMul(D2, D2, Y4, Prime);     // D2 得到 fn-1 * Y^4
+          Int64PolynomialGaloisMul(D2, D2, Y4, Prime);  // D2 得到 fn-1 * Y^4
 
-          Int64PolynomialGaloisMul(D2, D2, D3, Prime);     // D2 得到 fn+1^3 * fn-1 * Y^4
-          Int64PolynomialGaloisSub(outDivisionPolynomial, D1, D2, Prime);
+          Int64PolynomialGaloisMul(D2, D2, D3, Prime);  // D2 得到 fn+1^3 * fn-1 * Y^4
+          Int64PolynomialGaloisSub(OutDivisionPolynomial, D1, D2, Prime);
         end
         else // N 是偶数，计算 (x^3 + Ax + B)^2 * fn+2 * fn^3 - fn-1 * fn+1^3
         begin
           Int64PolynomialGaloisMul(D1, D1, D2, Prime);
-          Int64PolynomialGaloisMul(D1, D1, Y4, Prime);   // D1 得到 Y^4 * fn+2 * fn^3
+          Int64PolynomialGaloisMul(D1, D1, Y4, Prime);  // D1 得到 Y^4 * fn+2 * fn^3
 
           Int64PolynomialGaloisCalcDivisionPolynomial(A, B, N - 1, D2, Prime);  // D2 得到 fn-1
 
           Int64PolynomialGaloisMul(D2, D2, D3, Prime);  // D2 得到 fn-1 * fn+1^3
 
-          Int64PolynomialGaloisSub(outDivisionPolynomial, D1, D2, Prime);
+          Int64PolynomialGaloisSub(OutDivisionPolynomial, D1, D2, Prime);
         end;
       end;
     finally
@@ -6427,7 +6427,7 @@ begin
 end;
 
 function BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B: Integer; Degree: Integer;
-  outDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean; overload;
+  OutDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean; overload;
 var
   NA, NB: TCnBigNumber;
 begin
@@ -6438,7 +6438,7 @@ begin
     NA.SetInteger(A);
     NB.SetInteger(B);
     Result := BigNumberPolynomialGaloisCalcDivisionPolynomial(NA, NB, Degree,
-      outDivisionPolynomial, Prime);
+      OutDivisionPolynomial, Prime);
   finally
     FLocalBigNumberPool.Recycle(NB);
     FLocalBigNumberPool.Recycle(NA);
@@ -6446,7 +6446,7 @@ begin
 end;
 
 function BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B: TCnBigNumber; Degree: Integer;
-  outDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
+  OutDivisionPolynomial: TCnBigNumberPolynomial; Prime: TCnBigNumber): Boolean;
 var
   N: Integer;
   T, MI: TCnBigNumber;
@@ -6456,32 +6456,32 @@ begin
     raise ECnPolynomialException.Create('Galois Division Polynomial Invalid Degree')
   else if Degree = 0 then
   begin
-    outDivisionPolynomial.SetCoefficents([0]);  // f0(X) = 0
+    OutDivisionPolynomial.SetCoefficents([0]);  // f0(X) = 0
     Result := True;
   end
   else if Degree = 1 then
   begin
-    outDivisionPolynomial.SetCoefficents([1]);  // f1(X) = 1
+    OutDivisionPolynomial.SetCoefficents([1]);  // f1(X) = 1
     Result := True;
   end
   else if Degree = 2 then
   begin
-    outDivisionPolynomial.SetCoefficents([2]);  // f2(X) = 2
+    OutDivisionPolynomial.SetCoefficents([2]);  // f2(X) = 2
     Result := True;
   end
   else if Degree = 3 then   // f3(X) = 3 X4 + 6 a X2 + 12 b X - a^2
   begin
-    outDivisionPolynomial.MaxDegree := 4;
-    outDivisionPolynomial[4].SetWord(3);
-    outDivisionPolynomial[3].SetWord(0);
-    BigNumberMulWordNonNegativeMod(outDivisionPolynomial[2], A, 6, Prime);
-    BigNumberMulWordNonNegativeMod(outDivisionPolynomial[1], B, 12, Prime);
+    OutDivisionPolynomial.MaxDegree := 4;
+    OutDivisionPolynomial[4].SetWord(3);
+    OutDivisionPolynomial[3].SetWord(0);
+    BigNumberMulWordNonNegativeMod(OutDivisionPolynomial[2], A, 6, Prime);
+    BigNumberMulWordNonNegativeMod(OutDivisionPolynomial[1], B, 12, Prime);
 
     T := FLocalBigNumberPool.Obtain;
     try
       BigNumberCopy(T, A);
       T.Negate;
-      BigNumberDirectMulMod(outDivisionPolynomial[0], T, A, Prime);
+      BigNumberDirectMulMod(OutDivisionPolynomial[0], T, A, Prime);
     finally
       FLocalBigNumberPool.Recycle(T);
     end;
@@ -6489,27 +6489,27 @@ begin
   end
   else if Degree = 4 then // f4(X) = 4 X6 + 20 a X4 + 80 b X3 - 20 a2X2 - 16 a b X - 4 a3 - 32 b^2
   begin
-    outDivisionPolynomial.MaxDegree := 6;
-    outDivisionPolynomial[6].SetWord(4);
-    outDivisionPolynomial[5].SetWord(0);
-    BigNumberMulWordNonNegativeMod(outDivisionPolynomial[4], A, 20, Prime);
-    BigNumberMulWordNonNegativeMod(outDivisionPolynomial[3], B, 80, Prime);
+    OutDivisionPolynomial.MaxDegree := 6;
+    OutDivisionPolynomial[6].SetWord(4);
+    OutDivisionPolynomial[5].SetWord(0);
+    BigNumberMulWordNonNegativeMod(OutDivisionPolynomial[4], A, 20, Prime);
+    BigNumberMulWordNonNegativeMod(OutDivisionPolynomial[3], B, 80, Prime);
 
     T := FLocalBigNumberPool.Obtain;
     try
       BigNumberMulWordNonNegativeMod(T, A, -20, Prime);
-      BigNumberDirectMulMod(outDivisionPolynomial[2], T, A, Prime);
+      BigNumberDirectMulMod(OutDivisionPolynomial[2], T, A, Prime);
       BigNumberMulWordNonNegativeMod(T, A, -16, Prime);
-      BigNumberDirectMulMod(outDivisionPolynomial[1], T, B, Prime);
+      BigNumberDirectMulMod(OutDivisionPolynomial[1], T, B, Prime);
 
       BigNumberMulWordNonNegativeMod(T, A, -4, Prime);
       BigNumberDirectMulMod(T, T, A, Prime);
-      BigNumberDirectMulMod(outDivisionPolynomial[0], T, A, Prime);
+      BigNumberDirectMulMod(OutDivisionPolynomial[0], T, A, Prime);
 
       BigNumberMulWordNonNegativeMod(T, B, -32, Prime);
       BigNumberDirectMulMod(T, T, B, Prime);
-      BigNumberAdd(outDivisionPolynomial[0], outDivisionPolynomial[0], T);
-      BigNumberNonNegativeMod(outDivisionPolynomial[0], outDivisionPolynomial[0], Prime);
+      BigNumberAdd(OutDivisionPolynomial[0], OutDivisionPolynomial[0], T);
+      BigNumberNonNegativeMod(OutDivisionPolynomial[0], OutDivisionPolynomial[0], Prime);
     finally
       FLocalBigNumberPool.Recycle(T);
     end;
@@ -6547,11 +6547,11 @@ begin
         BigNumberPolynomialGaloisSub(D1, D1, D2, Prime);   // D1 得到 fn+2 * fn-1^2 - fn-2 * fn+1^2
 
         BigNumberPolynomialGaloisCalcDivisionPolynomial(A, B, N, D2, Prime);    // D2 得到 fn
-        BigNumberPolynomialGaloisMul(outDivisionPolynomial, D2, D1, Prime);     // 相乘得到 f2n
+        BigNumberPolynomialGaloisMul(OutDivisionPolynomial, D2, D1, Prime);     // 相乘得到 f2n
 
         MI := FLocalBigNumberPool.Obtain;
         BigNumberModularInverseWord(MI, 2, Prime);
-        BigNumberPolynomialGaloisMulBigNumber(outDivisionPolynomial, MI, Prime);     // 再除以 2
+        BigNumberPolynomialGaloisMulBigNumber(OutDivisionPolynomial, MI, Prime);     // 再除以 2
       end
       else // Degree 是奇数
       begin
@@ -6583,7 +6583,7 @@ begin
           BigNumberPolynomialGaloisMul(D2, D2, Y4, Prime);     // D2 得到 fn-1 * Y^4
 
           BigNumberPolynomialGaloisMul(D2, D2, D3, Prime);     // D2 得到 fn+1^3 * fn-1 * Y^4
-          BigNumberPolynomialGaloisSub(outDivisionPolynomial, D1, D2, Prime);
+          BigNumberPolynomialGaloisSub(OutDivisionPolynomial, D1, D2, Prime);
         end
         else // N 是偶数，计算 (x^3 + Ax + B)^2 * fn+2 * fn^3 - fn-1 * fn+1^3
         begin
@@ -6594,7 +6594,7 @@ begin
 
           BigNumberPolynomialGaloisMul(D2, D2, D3, Prime);  // D2 得到 fn-1 * fn+1^3
 
-          BigNumberPolynomialGaloisSub(outDivisionPolynomial, D1, D2, Prime);
+          BigNumberPolynomialGaloisSub(OutDivisionPolynomial, D1, D2, Prime);
         end;
       end;
     finally

@@ -277,7 +277,7 @@ type
     function GetItems(AIndex: Integer): TCnBerWriteNode;
     procedure SetItems(AIndex: Integer; const Value: TCnBerWriteNode);
 
-    procedure FillHeadCalcLen(ATag, ADataLen: Integer); // 计算并填充 FHead 与 FHeadLen
+    procedure FillHeadCalcLen(ATag: Integer; ADataLen: Integer); // 计算并填充 FHead 与 FHeadLen
   public
     constructor Create(ATree: TCnTree); override;
     destructor Destroy; override;
@@ -1152,7 +1152,7 @@ end;
 
 { TCnBerWriteNode }
 
-procedure TCnBerWriteNode.FillHeadCalcLen(ATag, ADataLen: Integer);
+procedure TCnBerWriteNode.FillHeadCalcLen(ATag: Integer; ADataLen: Integer);
 var
   LenLen: Cardinal;
   B: Byte;
