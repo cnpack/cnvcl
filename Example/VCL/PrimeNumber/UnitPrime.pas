@@ -153,7 +153,7 @@ var
 implementation
 
 uses
-  CnPrimeNumber, CnClasses, CnPolynomial, CnContainers;
+  CnPrimeNumber, CnPolynomial, CnContainers;
 
 {$R *.DFM}
 

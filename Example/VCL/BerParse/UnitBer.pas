@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, CnTree, CnBase64, CnClasses, Menus;
+  StdCtrls, ComCtrls, CnTree, CnBase64, CnContainers, Menus;
 
 {
   测试的 bin 文件用 openssl 生成的 rsa key 经 base64 解码而来

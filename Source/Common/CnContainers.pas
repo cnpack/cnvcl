@@ -477,6 +477,31 @@ type
 
 {$ENDIF}
 
+  TCnBytesObject = class
+  {* 封装了字节数组的对象}
+  private
+    FData: TBytes;
+  public
+    constructor Create(AMem: Pointer = nil; MemByteSize: Integer = 0); virtual;
+    destructor Destroy; override;
+
+    property Data: TBytes read FData write FData;
+  end;
+
+  TCnBytesPair = class
+  {* 封装了俩字节数组的对象}
+  private
+    FKey: TBytes;
+    FValue: TBytes;
+  public
+    constructor Create(AKeyMem: Pointer = nil; KeyMemByteSize: Integer = 0;
+      AValueMem: Pointer = nil; ValueMemByteSize: Integer = 0); virtual;
+    destructor Destroy; override;
+
+    property Key: TBytes read FKey write FKey;
+    property Value: TBytes read FValue write FValue;
+  end;
+
 procedure CnIntegerListCopy(Dst: TCnIntegerList; Src: TCnIntegerList);
 {* 复制 TCnIntegerList}
 
@@ -2034,5 +2059,50 @@ begin
 end;
 
 {$ENDIF}
+
+{ TCnBytesObject }
+
+constructor TCnBytesObject.Create(AMem: Pointer; MemByteSize: Integer);
+begin
+  inherited Create;
+  if (AMem <> nil) and (MemByteSize > 0) then
+  begin
+    SetLength(FData, MemByteSize);
+    Move(AMem^, FData[0], MemByteSize);
+  end;
+end;
+
+destructor TCnBytesObject.Destroy;
+begin
+  SetLength(FData, 0);
+  inherited;
+end;
+
+{ TCnBytesPair }
+
+constructor TCnBytesPair.Create(AKeyMem: Pointer; KeyMemByteSize: Integer;
+  AValueMem: Pointer; ValueMemByteSize: Integer);
+begin
+  inherited Create;
+
+  if (AKeyMem <> nil) and (KeyMemByteSize > 0) then
+  begin
+    SetLength(FKey, KeyMemByteSize);
+    Move(AKeyMem^, FKey[0], KeyMemByteSize);
+  end;
+
+  if (AValueMem <> nil) and (ValueMemByteSize > 0) then
+  begin
+    SetLength(FValue, ValueMemByteSize);
+    Move(AValueMem^, FValue[0], ValueMemByteSize);
+  end;
+end;
+
+destructor TCnBytesPair.Destroy;
+begin
+  SetLength(FKey, 0);
+  SetLength(FValue, 0);
+  inherited;
+end;
 
 end.

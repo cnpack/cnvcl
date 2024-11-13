@@ -15,7 +15,6 @@ CD Source
 COPY ..\..\cnvcl\Source\Common\CnPack.inc .
 COPY ..\..\cnvcl\Source\Common\CnBigDecimal.pas .
 COPY ..\..\cnvcl\Source\Common\CnBigRational.pas .
-COPY ..\..\cnvcl\Source\Common\CnClasses.pas .
 COPY ..\..\cnvcl\Source\Common\CnConsts.pas .
 COPY ..\..\cnvcl\Source\Common\CnContainers.pas .
 COPY ..\..\cnvcl\Source\Common\CnFloat.pas .
@@ -474,7 +473,6 @@ ECHO   CnBigRational in '..\Source\CnBigRational.pas',                         >
 ECHO   CnBits in '..\Source\CnBits.pas',                                       >> %1
 ECHO   CnCertificateAuthority in '..\Source\CnCertificateAuthority.pas',       >> %1
 ECHO   CnChaCha20 in '..\Source\CnChaCha20.pas',                               >> %1
-ECHO   CnClasses in '..\Source\CnClasses.pas',                                 >> %1
 ECHO   CnComplex in '..\Source\CnComplex.pas',                                 >> %1
 ECHO   CnConsts in '..\Source\CnConsts.pas',                                   >> %1
 ECHO   CnContainers in '..\Source\CnContainers.pas',                           >> %1
