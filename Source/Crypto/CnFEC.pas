@@ -80,25 +80,127 @@ type
     {* 析构函数}
 
     function Add(X: Int64; Y: Int64): Int64; override;
+    {* 伽罗华域 GP(2^8) 里的多项式加法。
+
+       参数：
+         X: Int64                         - 加数一
+         Y: Int64                         - 加数二
+
+       返回值：Int64                      - 和
+    }
+
     function Subtract(X: Int64; Y: Int64): Int64; override;
+    {* 伽罗华域 GP(2^8) 里的多项式减法。
+
+       参数：
+         X: Int64                         - 被减数
+         Y: Int64                         - 减数
+
+       返回值：Int64                      - 差
+    }
+
     function Multiply(X: Int64; Y: Int64): Int64; override;
+    {* 伽罗华域 GP(2^8) 里的多项式乘法。
+
+       参数：
+         X: Int64                         - 乘数一
+         Y: Int64                         - 乘数二
+
+       返回值：Int64                      - 积
+    }
+
     function Divide(X: Int64; Y: Int64): Int64; override;
+    {* 伽罗华域 GP(2^8) 里的多项式除法。
+
+       参数：
+         X: Int64                         - 被除数
+         Y: Int64                         - 除数
+
+       返回值：Int64                      - 商
+    }
   end;
 
   TCnGalois2Power8Matrix = class(TCnIntMatrix)
   {* 伽罗华域 GP(2^8) 里的多项式矩阵}
   protected
     procedure SetValue(Row: Integer; Col: Integer; const AValue: Int64); override;
+    {* 设置指定行列的元素。
+
+       参数：
+         Row: Integer                     - 指定行位置
+         Col: Integer                     - 指定列位置
+         const AValue: Int64              - 待设置的值
+
+       返回值：（无）
+    }
+
     function NegativeOnePower(N: Integer): Integer; override;
-    // 行列式计算中的加减替换动作因为加减均为异或，因此恒定返回 1
+    {* 计算 -1 的 N 次方。因为行列式计算中的加减替换动作因为加减均为异或，所以此处恒定返回 1。
+
+       参数：
+         N: Integer                       - 指数
+
+       返回值：Integer                    - 返回 1
+    }
+
   public
     function OperationAdd(X: Int64; Y: Int64): Int64; override;
+    {* 伽罗华域 GP(2^8) 里的多项式矩阵内的加法。
+
+       参数：
+         X: Int64                         - 加数一
+         Y: Int64                         - 加数二
+
+       返回值：Int64                      - 和
+    }
+
     function OperationSub(X: Int64; Y: Int64): Int64; override;
+    {* 伽罗华域 GP(2^8) 里的多项式矩阵内的减法。
+
+       参数：
+         X: Int64                         - 被减数
+         Y: Int64                         - 减数
+
+       返回值：Int64                      - 差
+    }
+
     function OperationMul(X: Int64; Y: Int64): Int64; override;
+    {* 伽罗华域 GP(2^8) 里的多项式矩阵内的乘法。
+
+       参数：
+         X: Int64                         - 乘数
+         Y: Int64                         - 乘数
+
+       返回值：Int64                      - 积
+    }
+
     function OperationDiv(X: Int64; Y: Int64): Int64; override;
+    {* 伽罗华域 GP(2^8) 里的多项式矩阵内的除法。
+
+       参数：
+         X: Int64                         - 被除数
+         Y: Int64                         - 除数
+
+       返回值：Int64                      - 商
+    }
 
     function Determinant: Int64; override;
+    {* 求方阵行列式值。
+
+       参数：
+         （无）
+
+       返回值：Int64                      - 返回的行列式值
+    }
+
     procedure Divide(Factor: Int64); override;
+    {* 矩阵各元素除以一个常数。
+
+       参数：
+         Factor: Int64                    - 除以的常数
+
+       返回值：（无）
+    }
   end;
 
 procedure CnCalcHammingCode(InBits: TBits; OutBits: TBits; BlockBitCount: Integer = 8);

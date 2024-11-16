@@ -63,6 +63,7 @@ const
 
 type
   ECnOneTimePasswordException = class(Exception);
+  {* 动态口令相关异常}
 
   TCnOnePasswordType = (copSM3, copSM4);
   {* 动态口令中间计算函数有 SM3 和 SM4 两种}
@@ -80,19 +81,47 @@ type
     procedure SetPeriod(const Value: Integer);
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure SetSeedKey(Key: Pointer; KeyByteLength: Integer);
-    {* 设置种子密钥 K}
+    {* 设置种子密钥 K。
+
+       参数：
+         Key: Pointer                     - 种子密钥的内存地址
+         KeyByteLength: Integer           - 种子密钥的字节长度
+
+       返回值：（无）
+    }
 
     procedure SetChallengeCode(Code: Pointer; CodeByteLength: Integer);
-    {* 设置挑战种子 Q}
+    {* 设置挑战种子 Q。
+
+       参数：
+         Code: Pointer                    - 挑战种子的内存地址
+         CodeByteLength: Integer          - 挑战种子的字节长度
+
+       返回值：（无）
+    }
 
     procedure SetCounter(Counter: Integer);
-    {* 设置事件因子 C}
+    {* 设置事件因子 C。
+
+       参数：
+         Counter: Integer                 - 事件因子
+
+       返回值：（无）
+    }
 
     function OneTimePassword: string;
-    {* 根据各种数据计算动态口令，返回数字组成的字符串}
+    {* 根据各种数据计算动态口令，返回数字组成的字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回动态口令
+    }
 
     property PasswordType: TCnOnePasswordType read FPasswordType write FPasswordType;
     {* 动态口令中间计算函数类型}
@@ -113,15 +142,37 @@ type
     procedure SetDigits(const Value: Integer);
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure SetSeedKey(Key: Pointer; KeyByteLength: Integer);
-    {* 设置种子 K}
+    {* 设置种子密钥 K。
+
+       参数：
+         Key: Pointer                     - 种子密钥的内存地址
+         KeyByteLength: Integer           - 种子密钥的字节长度
+
+       返回值：（无）
+    }
+
     procedure SetCounter(Value: Int64);
-    {* 设置计数器初始值}
+    {* 设置计数器初始值。
+
+       参数：
+         Value: Int64                     - 计数器初始值
+
+       返回值：（无）
+    }
 
     function OneTimePassword: string;
-    {* 根据各种数据计算动态口令，返回数字组成的字符串}
+    {* 根据各种数据计算动态口令，返回数字组成的字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回动态口令
+    }
 
     property Digits: Integer read FDigits write SetDigits;
     {* 口令位数，默认 6}
@@ -130,7 +181,7 @@ type
   TCnTOTPPasswordType = (tptSHA1, tptSHA256, tptSHA512);
   {* TOTP 的杂凑允许三种算法}
 
-  TCnTOTPGenerator = class(TObject)
+  TCnTOTPGenerator = class
   {* 符合 RFC 6238 的 TOTP 动态口令计算器}
   private
     FSeedKey: TBytes;
@@ -141,13 +192,28 @@ type
     procedure SetPeriod(const Value: Integer);
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure SetSeedKey(Key: Pointer; KeyByteLength: Integer);
-    {* 设置种子 K}
+    {* 设置种子密钥 K。
+
+       参数：
+         Key: Pointer                     - 种子密钥的内存地址
+         KeyByteLength: Integer           - 种子密钥的字节长度
+
+       返回值：（无）
+    }
 
     function OneTimePassword: string;
-    {* 根据各种数据计算动态口令，返回数字组成的字符串}
+    {* 根据各种数据计算动态口令，返回数字组成的字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回动态口令
+    }
 
     property PasswordType: TCnTOTPPasswordType read FPasswordType write FPasswordType;
     {* TOTP 杂凑类型}

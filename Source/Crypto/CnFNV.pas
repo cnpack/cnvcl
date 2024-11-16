@@ -66,76 +66,232 @@ type
 // 以上是 FNV 的结果类型，均以大端表示
 
 function FNV1Hash32(Data: TBytes): TCnFNVHash32; overload;
-{* 求字节数组的 FNV-1 杂凑结果，结果长度 32 位}
+{* 求字节数组的 FNV-1 杂凑结果，结果长度 32 位。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnFNVHash32                   - 返回的 32 位 FNV-1 杂凑值
+}
 
 function FNV1Hash64(Data: TBytes): TCnFNVHash64; overload;
-{* 求字节数组的 FNV-1 杂凑结果，结果长度 64 位}
+{* 求字节数组的 FNV-1 杂凑结果，结果长度 64 位。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnFNVHash64                   - 返回的 64 位 FNV-1 杂凑值
+}
 
 function FNV1Hash128(Data: TBytes): TCnFNVHash128; overload;
-{* 求字节数组的 FNV-1 杂凑结果，结果长度 128 位}
+{* 求字节数组的 FNV-1 杂凑结果，结果长度 128 位。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnFNVHash128                  - 返回的 128 位 FNV-1 杂凑值
+}
 
 function FNV1Hash256(Data: TBytes): TCnFNVHash256; overload;
-{* 求字节数组的 FNV-1 杂凑结果，结果长度 256 位}
+{* 求字节数组的 FNV-1 杂凑结果，结果长度 256 位。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnFNVHash256                  - 返回的 256 位 FNV-1 杂凑值
+}
 
 function FNV1Hash512(Data: TBytes): TCnFNVHash512; overload;
-{* 求字节数组的 FNV-1 杂凑结果，结果长度 512 位}
+{* 求字节数组的 FNV-1 杂凑结果，结果长度 512 位。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnFNVHash512                  - 返回的 512 位 FNV-1 杂凑值
+}
 
 function FNV1Hash1024(Data: TBytes): TCnFNVHash1024; overload;
-{* 求字节数组的 FNV-1 杂凑结果，结果长度 1024 位}
+{* 求字节数组的 FNV-1 杂凑结果，结果长度 1024 位。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnFNVHash1024                 - 返回的 1024 位 FNV-1 杂凑值
+}
 
 function FNV1aHash32(Data: TBytes): TCnFNVHash32; overload;
-{* 求字节数组的 FNV-1a 杂凑结果，结果长度 32 位}
+{* 求字节数组的 FNV-1a 杂凑结果，结果长度 32 位。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnFNVHash32                   - 返回的 32 位 FNV-1a 杂凑值
+}
 
 function FNV1aHash64(Data: TBytes): TCnFNVHash64; overload;
-{* 求字节数组的 FNV-1a 杂凑结果，结果长度 64 位}
+{* 求字节数组的 FNV-1a 杂凑结果，结果长度 64 位。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnFNVHash64                   - 返回的 64 位 FNV-1a 杂凑值
+}
 
 function FNV1aHash128(Data: TBytes): TCnFNVHash128; overload;
-{* 求字节数组的 FNV-1a 杂凑结果，结果长度 128 位}
+{* 求字节数组的 FNV-1a 杂凑结果，结果长度 128 位。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnFNVHash128                  - 返回的 128 位 FNV-1a 杂凑值
+}
 
 function FNV1aHash256(Data: TBytes): TCnFNVHash256; overload;
-{* 求字节数组的 FNV-1a 杂凑结果，结果长度 256 位}
+{* 求字节数组的 FNV-1a 杂凑结果，结果长度 256 位。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnFNVHash256                  - 返回的 256 位 FNV-1a 杂凑值
+}
 
 function FNV1aHash512(Data: TBytes): TCnFNVHash512; overload;
-{* 求字节数组的 FNV-1a 杂凑结果，结果长度 512 位}
+{* 求字节数组的 FNV-1a 杂凑结果，结果长度 512 位。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnFNVHash512                  - 返回的 512 位 FNV-1a 杂凑值
+}
 
 function FNV1aHash1024(Data: TBytes): TCnFNVHash1024; overload;
-{* 求字节数组的 FNV-1a 杂凑结果，结果长度 1024 位}
+{* 求字节数组的 FNV-1a 杂凑结果，结果长度 1024 位。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnFNVHash1024                 - 返回的 1024 位 FNV-1a 杂凑值
+}
 
 function FNV1Hash32(Data: Pointer; DataByteLen: Integer): TCnFNVHash32; overload;
-{* 求数据块的 FNV-1 杂凑结果，结果长度 32 位}
+{* 求数据块的 FNV-1 杂凑结果，结果长度 32 位。
+
+   参数：
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+
+   返回值：TCnFNVHash32                   - 返回的 32 位 FNV-1 杂凑值
+}
 
 function FNV1Hash64(Data: Pointer; DataByteLen: Integer): TCnFNVHash64; overload;
-{* 求数据块的 FNV-1 杂凑结果，结果长度 64 位}
+{* 求数据块的 FNV-1 杂凑结果，结果长度 64 位。
+
+   参数：
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+
+   返回值：TCnFNVHash64                   - 返回的 64 位 FNV-1 杂凑值
+}
 
 function FNV1Hash128(Data: Pointer; DataByteLen: Integer): TCnFNVHash128; overload;
-{* 求数据块的 FNV-1 杂凑结果，结果长度 128 位}
+{* 求数据块的 FNV-1 杂凑结果，结果长度 128 位。
+
+   参数：
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+
+   返回值：TCnFNVHash128                  - 返回的 128 位 FNV-1 杂凑值
+}
 
 function FNV1Hash256(Data: Pointer; DataByteLen: Integer): TCnFNVHash256; overload;
-{* 求数据块的 FNV-1 杂凑结果，结果长度 256 位}
+{* 求数据块的 FNV-1 杂凑结果，结果长度 256 位。
+
+   参数：
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+
+   返回值：TCnFNVHash256                  - 返回的 256 位 FNV-1 杂凑值
+}
 
 function FNV1Hash512(Data: Pointer; DataByteLen: Integer): TCnFNVHash512; overload;
-{* 求数据块的 FNV-1 杂凑结果，结果长度 512 位}
+{* 求数据块的 FNV-1 杂凑结果，结果长度 512 位。
+
+   参数：
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+
+   返回值：TCnFNVHash512                  - 返回的 512 位 FNV-1 杂凑值
+}
 
 function FNV1Hash1024(Data: Pointer; DataByteLen: Integer): TCnFNVHash1024; overload;
-{* 求数据块的 FNV-1 杂凑结果，结果长度 1024 位}
+{* 求数据块的 FNV-1 杂凑结果，结果长度 1024 位。
+
+   参数：
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+
+   返回值：TCnFNVHash1024                 - 返回的 1024 位 FNV-1 杂凑值
+}
 
 function FNV1aHash32(Data: Pointer; DataByteLen: Integer): TCnFNVHash32; overload;
-{* 求数据块的 FNV-1a 杂凑结果，结果长度 32 位}
+{* 求数据块的 FNV-1a 杂凑结果，结果长度 32 位。
+
+   参数：
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+
+   返回值：TCnFNVHash32                   - 返回的 32 位 FNV-1a 杂凑值
+}
 
 function FNV1aHash64(Data: Pointer; DataByteLen: Integer): TCnFNVHash64; overload;
-{* 求数据块的 FNV-1a 杂凑结果，结果长度 64 位}
+{* 求数据块的 FNV-1a 杂凑结果，结果长度 64 位。
+
+   参数：
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+
+   返回值：TCnFNVHash64                   - 返回的 64 位 FNV-1a 杂凑值
+}
 
 function FNV1aHash128(Data: Pointer; DataByteLen: Integer): TCnFNVHash128; overload;
-{* 求数据块的 FNV-1a 杂凑结果，结果长度 128 位}
+{* 求数据块的 FNV-1a 杂凑结果，结果长度 128 位。
+
+   参数：
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+
+   返回值：TCnFNVHash128                  - 返回的 128 位 FNV-1a 杂凑值
+}
 
 function FNV1aHash256(Data: Pointer; DataByteLen: Integer): TCnFNVHash256; overload;
-{* 求数据块的 FNV-1a 杂凑结果，结果长度 256 位}
+{* 求数据块的 FNV-1a 杂凑结果，结果长度 256 位。
+
+   参数：
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+
+   返回值：TCnFNVHash256                  - 返回的 256 位 FNV-1a 杂凑值
+}
 
 function FNV1aHash512(Data: Pointer; DataByteLen: Integer): TCnFNVHash512; overload;
-{* 求数据块的 FNV-1a 杂凑结果，结果长度 512 位}
+{* 求数据块的 FNV-1a 杂凑结果，结果长度 512 位。
+
+   参数：
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+
+   返回值：TCnFNVHash512                  - 返回的 512 位 FNV-1a 杂凑值
+}
 
 function FNV1aHash1024(Data: Pointer; DataByteLen: Integer): TCnFNVHash1024; overload;
-{* 求数据块的 FNV-1a 杂凑结果，结果长度 1024 位}
+{* 求数据块的 FNV-1a 杂凑结果，结果长度 1024 位。
+
+   参数：
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+
+   返回值：TCnFNVHash1024                 - 返回的 1024 位 FNV-1a 杂凑值
+}
 
 implementation
 
