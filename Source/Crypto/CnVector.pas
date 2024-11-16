@@ -26,6 +26,7 @@ unit CnVector;
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：本单元实现了 Int64 及大整数范围内的向量相关计算。
 *           约定下标 0 代表向量行表达式最左边或列表达式最上面的维度的数据。
+*           另外，没有向量叉乘也就是外积的实现，因为外积从三维向量朝高维推广较困难。
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -50,13 +51,24 @@ type
   private
     function GetDimension: Integer;
     procedure SetDimension(const Value: Integer);
-
   public
     constructor Create(ADimension: Integer = 1); virtual;
-    {* 构造函数，参数是向量维度}
+    {* 构造函数，参数是向量维度。
+
+       参数：
+         ADimension: Integer              - 向量维度
+
+       返回值：TCnInt64Vector             - 返回创建的对象
+    }
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 将 Int64 向量转成字符串}
+    {* 将 Int64 向量转成字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回向量字符串
+    }
 
     property Dimension: Integer read GetDimension write SetDimension;
     {* 向量维度}
@@ -67,16 +79,27 @@ type
   private
     function GetDimension: Integer;
     procedure SetDimension(const Value: Integer);
-
   public
     constructor Create(ADimension: Integer = 1); virtual;
-    {* 构造函数，参数是向量维度}
+    {* 构造函数，参数是向量维度。
+
+       参数：
+         ADimension: Integer              - 向量维度
+
+       返回值：TCnBigNumberVector         - 返回创建的对象
+    }
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 将大整数向量转成字符串}
+    {* 将大整数向量转成字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回向量字符串
+    }
 
     property Dimension: Integer read GetDimension write SetDimension;
-    {* 向量维度，设置后能自动创建大数对象}
+    {* 向量维度，设置后内部能自动创建大数对象}
   end;
 
   TCnBigNumberVectorPool = class(TCnMathObjectPool)
@@ -85,81 +108,250 @@ type
     function CreateObject: TObject; override;
   public
     function Obtain: TCnBigNumberVector; reintroduce;
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还。
+
+       参数：
+         （无）
+
+       返回值：TCnBigNumberVector         - 返回池中的大整数向量对象
+    }
+
     procedure Recycle(Num: TCnBigNumberVector); reintroduce;
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Num: TCnBigNumberVector          - 待归还至池中的对象
+
+       返回值：（无）
+    }
   end;
 
 // ======================== Int64 整数向量计算函数 =============================
 
-function Int64VectorToString(const V: TCnInt64Vector): string;
-{* 将 Int64 向量转换为字符串形式供输出}
+function Int64VectorToString(V: TCnInt64Vector): string;
+{* 将 Int64 向量转换为字符串形式供输出。
 
-function Int64VectorModule(const V: TCnInt64Vector): Extended;
-{* 返回 Int64 向量长度（模长），也即各项平方和的平方根}
+   参数：
+     V: TCnInt64Vector                    - 待转换的向量
 
-function Int64VectorModuleSquare(const V: TCnInt64Vector): Int64;
-{* 返回 Int64 向量长度（模长）的平方，也即各项平方的和}
+   返回值：string                         - 返回向量的字符串形式
+}
 
-procedure Int64VectorCopy(const Dst: TCnInt64Vector; const Src: TCnInt64Vector);
-{* 复制 Int64 向量的内容}
+function Int64VectorModule(V: TCnInt64Vector): Extended;
+{* 返回 Int64 向量长度（模长），也即各项平方和的平方根。
 
-procedure Int64VectorSwap(const A: TCnInt64Vector; const B: TCnInt64Vector);
-{* 交换俩 Int64 向量的内容，要求两个向量同维}
+   参数：
+     V: TCnInt64Vector                    - 待计算的向量
 
-function Int64VectorEqual(const A: TCnInt64Vector; const B: TCnInt64Vector): Boolean;
-{* 判断俩 Int64 向量是否相等}
+   返回值：Extended                       - 返回向量的模长
+}
 
-procedure Int64VectorNegate(const Res: TCnInt64Vector; const A: TCnInt64Vector);
-{* 求 Int64 向量的反向量，Res 和 A 可以是同一个对象}
+function Int64VectorModuleSquare(V: TCnInt64Vector): Int64;
+{* 返回 Int64 向量长度（模长）的平方，也即各项平方的和。
 
-procedure Int64VectorAdd(const Res: TCnInt64Vector; const A: TCnInt64Vector;
-  const B: TCnInt64Vector);
-{* 俩 Int64 向量的加法，和向量返回各维度对应和。Res 和 A B 可以是同一个对象}
+   参数：
+     V: TCnInt64Vector                    - 待计算的向量
 
-procedure Int64VectorSub(const Res: TCnInt64Vector; const A: TCnInt64Vector;
-  const B: TCnInt64Vector);
-{* 俩 Int64 向量的减法，差向量返回各维度对应差。Res 和 A B 可以是同一个对象}
+   返回值：Int64                          - 返回向量的模长的平方
+}
 
-procedure Int64VectorMul(const Res: TCnInt64Vector; const A: TCnInt64Vector; N: Int64);
-{* Int64 向量和数的标量乘法。Res 和 A 可以是同一个对象}
+procedure Int64VectorCopy(Dst: TCnInt64Vector; Src: TCnInt64Vector);
+{* 复制 Int64 向量的内容。
 
-function Int64VectorDotProduct(const A: TCnInt64Vector; const B: TCnInt64Vector): Int64;
-{* 俩 Int64 向量的标量乘法也就是点乘，返回各维度对应乘积之和。A 和 B 可以是同一个对象}
+   参数：
+     Dst: TCnInt64Vector                  - 目标向量
+     Src: TCnInt64Vector                  - 源向量
+
+   返回值：（无）
+}
+
+procedure Int64VectorSwap(A: TCnInt64Vector; B: TCnInt64Vector);
+{* 交换俩 Int64 向量的内容，要求两个向量同维。
+
+   参数：
+     A: TCnInt64Vector                    - 待交换的向量一
+     B: TCnInt64Vector                    - 待交换的向量二
+
+   返回值：（无）
+}
+
+function Int64VectorEqual(A: TCnInt64Vector; B: TCnInt64Vector): Boolean;
+{* 判断俩 Int64 向量是否相等。
+
+   参数：
+     A: TCnInt64Vector                    - 待比较的向量一
+     B: TCnInt64Vector                    - 待比较的向量二
+
+   返回值：Boolean                        - 返回向量内容是否相等
+}
+
+procedure Int64VectorNegate(Res: TCnInt64Vector; A: TCnInt64Vector);
+{* 求 Int64 向量的反向量，Res 和 A 可以是同一个对象。
+
+   参数：
+     Res: TCnInt64Vector                  - 结果反向量
+     A: TCnInt64Vector                    - 原向量
+
+   返回值：（无）
+}
+
+procedure Int64VectorAdd(Res: TCnInt64Vector; A: TCnInt64Vector; B: TCnInt64Vector);
+{* 俩 Int64 向量的加法，和向量返回各维度对应和。Res 和 A、B 可以是同一个对象。
+
+   参数：
+     Res: TCnInt64Vector                  - 向量和
+     A: TCnInt64Vector                    - 向量加数一
+     B: TCnInt64Vector                    - 向量加数二
+
+   返回值：（无）
+}
+
+procedure Int64VectorSub(Res: TCnInt64Vector; A: TCnInt64Vector; B: TCnInt64Vector);
+{* 俩 Int64 向量的减法，差向量返回各维度对应差。Res 和 A、B 可以是同一个对象。
+
+   参数：
+     Res: TCnInt64Vector                  - 向量差
+     A: TCnInt64Vector                    - 向量被减数
+     B: TCnInt64Vector                    - 向量减数
+
+   返回值：（无）
+}
+
+procedure Int64VectorMul(Res: TCnInt64Vector; A: TCnInt64Vector; N: Int64);
+{* Int64 向量和数的标量乘法，也即每个维度乘以该数。Res 和 A 可以是同一个对象。
+
+   参数：
+     Res: TCnInt64Vector                  - 向量与数的标量乘结果
+     A: TCnInt64Vector                    - 待标量乘的向量
+     N: Int64                             - 乘数
+
+   返回值：（无）
+}
+
+function Int64VectorDotProduct(A: TCnInt64Vector; B: TCnInt64Vector): Int64;
+{* 俩 Int64 向量的标量乘法也就是点乘或者叫内积，返回各维度对应乘积之和。A 和 B 可以是同一个对象。
+
+   参数：
+     A: TCnInt64Vector                    - 点乘向量一
+     B: TCnInt64Vector                    - 点乘向量二
+
+   返回值：Int64                          - 返回点乘结果
+}
 
 // ========================= 大整数向量计算函数 ================================
 
-procedure BigNumberVectorModule(const Res: TCnBigNumber; const V: TCnBigNumberVector);
-{* 返回大整数向量长度（模长），也即各项平方和的平方根，数字取整}
+function BigNumberVectorToString(V: TCnBigNumberVector): string;
+{* 将大整数向量转换为字符串形式供输出。
 
-procedure BigNumberVectorModuleSquare(const Res: TCnBigNumber; const V: TCnBigNumberVector);
-{* 返回大整数向量长度（模长）的平方，也即各项平方的和}
+   参数：
+     V: TCnBigNumberVector                - 待转换的向量
 
-procedure BigNumberVectorCopy(const Dst: TCnBigNumberVector; const Src: TCnBigNumberVector);
-{* 复制大整数向量的内容}
+   返回值：string                         - 返回向量的字符串形式
+}
 
-procedure BigNumberVectorSwap(const A: TCnBigNumberVector; const B: TCnBigNumberVector);
-{* 交换俩大整数向量的内容}
+procedure BigNumberVectorModule(Res: TCnBigNumber; V: TCnBigNumberVector);
+{* 返回大整数向量长度（模长），也即各项平方和的平方根，数字取整。
 
-function BigNumberVectorEqual(const A: TCnBigNumberVector; const B: TCnBigNumberVector): Boolean;
-{* 判断俩大整数向量是否相等}
+   参数：
+     Res: TCnBigNumber                    - 待计算的向量
+     V: TCnBigNumberVector                - 向量的模长，数字取整
 
-procedure BigNumberVectorNegate(const Res: TCnBigNumberVector; const A: TCnBigNumberVector);
-{* 求大整数向量的反向量，Res 和 A 可以是同一个对象}
+   返回值：（无）
+}
 
-procedure BigNumberVectorAdd(const Res: TCnBigNumberVector; const A: TCnBigNumberVector;
-  const B: TCnBigNumberVector);
-{* 俩大整数向量的加法，和向量返回各维度对应和。Res 和 A B 可以是同一个对象}
+procedure BigNumberVectorModuleSquare(Res: TCnBigNumber; V: TCnBigNumberVector);
+{* 返回大整数向量长度（模长）的平方，也即各项平方的和。
 
-procedure BigNumberVectorSub(const Res: TCnBigNumberVector; const A: TCnBigNumberVector;
-  const B: TCnBigNumberVector);
-{* 俩大整数向量的减法，差向量返回各维度对应差。Res 和 A B 可以是同一个对象}
+   参数：
+     Res: TCnBigNumber                    - 待计算的向量
+     V: TCnBigNumberVector                - 向量的模长的平方，数字取整
 
-procedure BigNumberVectorMul(const Res: TCnBigNumberVector; const A: TCnBigNumberVector;
-  const N: TCnBigNumber);
-{* 大整数向量与数的标量乘法。Res 和 A 可以是同一个对象}
+   返回值：（无）
+}
 
-procedure BigNumberVectorDotProduct(const Res: TCnBigNumber; A: TCnBigNumberVector;
-  const B: TCnBigNumberVector);
-{* 俩大整数向量的标量乘法也就是点乘，返回各维度对应乘积之和。A 和 B 可以是同一个对象}
+procedure BigNumberVectorCopy(Dst: TCnBigNumberVector; Src: TCnBigNumberVector);
+{* 复制大整数向量的内容。
+
+   参数：
+     Dst: TCnBigNumberVector              - 目标向量
+     Src: TCnBigNumberVector              - 源向量
+
+   返回值：（无）
+}
+
+procedure BigNumberVectorSwap(A: TCnBigNumberVector; B: TCnBigNumberVector);
+{* 交换俩大整数向量的内容。
+
+   参数：
+     A: TCnBigNumberVector                - 待交换的向量一
+     B: TCnBigNumberVector                - 待交换的向量二
+
+   返回值：（无）
+}
+
+function BigNumberVectorEqual(A: TCnBigNumberVector; B: TCnBigNumberVector): Boolean;
+{* 判断俩大整数向量是否相等。
+
+   参数：
+     A: TCnBigNumberVector                - 待比较的向量一
+     B: TCnBigNumberVector                - 待比较的向量二
+
+   返回值：Boolean                        - 返回向量内容是否相等
+}
+
+procedure BigNumberVectorNegate(Res: TCnBigNumberVector; A: TCnBigNumberVector);
+{* 求大整数向量的反向量，Res 和 A 可以是同一个对象。
+
+   参数：
+     Res: TCnBigNumberVector              - 结果反向量
+     A: TCnBigNumberVector                - 原向量
+
+   返回值：（无）
+}
+
+procedure BigNumberVectorAdd(Res: TCnBigNumberVector; A: TCnBigNumberVector; B: TCnBigNumberVector);
+{* 俩大整数向量的加法，和向量返回各维度对应和。Res 和 A、B 可以是同一个对象。
+
+   参数：
+     Res: TCnBigNumberVector              - 向量和
+     A: TCnBigNumberVector                - 向量加数一
+     B: TCnBigNumberVector                - 向量加数二
+
+   返回值：（无）
+}
+
+procedure BigNumberVectorSub(Res: TCnBigNumberVector; A: TCnBigNumberVector; B: TCnBigNumberVector);
+{* 俩大整数向量的减法，差向量返回各维度对应差。Res 和 A、B 可以是同一个对象。
+
+   参数：
+     Res: TCnBigNumberVector              - 向量差
+     A: TCnBigNumberVector                - 向量被减数
+     B: TCnBigNumberVector                - 向量减数
+
+   返回值：（无）
+}
+
+procedure BigNumberVectorMul(Res: TCnBigNumberVector; A: TCnBigNumberVector; N: TCnBigNumber);
+{* 大整数向量与数的标量乘法，也即每个维度乘以该数。Res 和 A 可以是同一个对象。
+
+   参数：
+     Res: TCnBigNumberVector              - 向量与数的标量乘结果
+     A: TCnBigNumberVector                - 待标量乘的向量
+     N: TCnBigNumber                      - 乘数
+
+   返回值：（无）
+}
+
+procedure BigNumberVectorDotProduct(Res: TCnBigNumber; A: TCnBigNumberVector; B: TCnBigNumberVector);
+{* 俩大整数向量的标量乘法也就是点乘，返回各维度对应乘积之和。A 和 B 可以是同一个对象。
+
+   参数：
+     Res: TCnBigNumber                    - 点乘结果
+     A: TCnBigNumberVector                - 点乘向量一
+     B: TCnBigNumberVector                - 点乘向量二
+
+   返回值：（无）
+}
 
 implementation
 
@@ -170,13 +362,13 @@ resourcestring
 var
   FBigNumberPool: TCnBigNumberPool = nil;
 
-procedure CheckInt64VectorDimensionEqual(const A, B: TCnInt64Vector);
+procedure CheckInt64VectorDimensionEqual(A, B: TCnInt64Vector);
 begin
   if A.Dimension <> B.Dimension then
     raise ECnVectorException.Create(SCnErrorVectorDimensionNotEqual);
 end;
 
-function Int64VectorToString(const V: TCnInt64Vector): string;
+function Int64VectorToString(V: TCnInt64Vector): string;
 var
   I: Integer;
 begin
@@ -191,7 +383,7 @@ begin
   Result := Result + ')';
 end;
 
-function Int64VectorModule(const V: TCnInt64Vector): Extended;
+function Int64VectorModule(V: TCnInt64Vector): Extended;
 var
   T: Extended;
 begin
@@ -199,7 +391,7 @@ begin
   Result := Sqrt(T);
 end;
 
-function Int64VectorModuleSquare(const V: TCnInt64Vector): Int64;
+function Int64VectorModuleSquare(V: TCnInt64Vector): Int64;
 var
   I: Integer;
 begin
@@ -208,7 +400,7 @@ begin
     Result := Result + V[I] * V[I];
 end;
 
-procedure Int64VectorCopy(const Dst: TCnInt64Vector; const Src: TCnInt64Vector);
+procedure Int64VectorCopy(Dst: TCnInt64Vector; Src: TCnInt64Vector);
 var
   I: Integer;
 begin
@@ -220,7 +412,7 @@ begin
   end;
 end;
 
-procedure Int64VectorSwap(const A: TCnInt64Vector; const B: TCnInt64Vector);
+procedure Int64VectorSwap(A: TCnInt64Vector; B: TCnInt64Vector);
 var
   I: Integer;
   T: Int64;
@@ -238,7 +430,7 @@ begin
   end;
 end;
 
-function Int64VectorEqual(const A: TCnInt64Vector; const B: TCnInt64Vector): Boolean;
+function Int64VectorEqual(A: TCnInt64Vector; B: TCnInt64Vector): Boolean;
 var
   I: Integer;
 begin
@@ -256,7 +448,7 @@ begin
   end;
 end;
 
-procedure Int64VectorNegate(const Res: TCnInt64Vector; const A: TCnInt64Vector);
+procedure Int64VectorNegate(Res: TCnInt64Vector; A: TCnInt64Vector);
 var
   I: Integer;
 begin
@@ -265,8 +457,7 @@ begin
     Res[I] := -A[I];
 end;
 
-procedure Int64VectorAdd(const Res: TCnInt64Vector; const A: TCnInt64Vector;
-  const B: TCnInt64Vector);
+procedure Int64VectorAdd(Res: TCnInt64Vector; A: TCnInt64Vector; B: TCnInt64Vector);
 var
   I: Integer;
 begin
@@ -277,8 +468,7 @@ begin
     Res[I] := A[I] + B[I];
 end;
 
-procedure Int64VectorSub(const Res: TCnInt64Vector; const A: TCnInt64Vector;
-  const B: TCnInt64Vector);
+procedure Int64VectorSub(Res: TCnInt64Vector; A: TCnInt64Vector; B: TCnInt64Vector);
 var
   I: Integer;
 begin
@@ -289,7 +479,7 @@ begin
     Res[I] := A[I] - B[I];
 end;
 
-procedure Int64VectorMul(const Res: TCnInt64Vector; const A: TCnInt64Vector; N: Int64);
+procedure Int64VectorMul(Res: TCnInt64Vector; A: TCnInt64Vector; N: Int64);
 var
   I: Integer;
 begin
@@ -298,7 +488,7 @@ begin
     Res[I] := A[I] * N;
 end;
 
-function Int64VectorDotProduct(const A: TCnInt64Vector; const B: TCnInt64Vector): Int64;
+function Int64VectorDotProduct(A: TCnInt64Vector; B: TCnInt64Vector): Int64;
 var
   I: Integer;
 begin
@@ -365,13 +555,13 @@ begin
   end;
 end;
 
-procedure CheckBigNumberVectorDimensionEqual(const A, B: TCnBigNumberVector);
+procedure CheckBigNumberVectorDimensionEqual(A, B: TCnBigNumberVector);
 begin
   if A.Dimension <> B.Dimension then
     raise ECnVectorException.Create(SCnErrorVectorDimensionNotEqual);
 end;
 
-function BigNumberVectorToString(const V: TCnBigNumberVector): string;
+function BigNumberVectorToString(V: TCnBigNumberVector): string;
 var
   I: Integer;
 begin
@@ -386,13 +576,13 @@ begin
   Result := Result + ')';
 end;
 
-procedure BigNumberVectorModule(const Res: TCnBigNumber; const V: TCnBigNumberVector);
+procedure BigNumberVectorModule(Res: TCnBigNumber; V: TCnBigNumberVector);
 begin
   BigNumberVectorModuleSquare(Res, V);
   BigNumberSqrt(Res, Res);
 end;
 
-procedure BigNumberVectorModuleSquare(const Res: TCnBigNumber; const V: TCnBigNumberVector);
+procedure BigNumberVectorModuleSquare(Res: TCnBigNumber; V: TCnBigNumberVector);
 var
   I: Integer;
   T: TCnBigNumber;
@@ -410,7 +600,7 @@ begin
   end;
 end;
 
-procedure BigNumberVectorCopy(const Dst: TCnBigNumberVector; const Src: TCnBigNumberVector);
+procedure BigNumberVectorCopy(Dst: TCnBigNumberVector; Src: TCnBigNumberVector);
 var
   I: Integer;
 begin
@@ -422,7 +612,7 @@ begin
   end;
 end;
 
-procedure BigNumberVectorSwap(const A: TCnBigNumberVector; const B: TCnBigNumberVector);
+procedure BigNumberVectorSwap(A: TCnBigNumberVector; B: TCnBigNumberVector);
 var
   I: Integer;
 begin
@@ -435,7 +625,7 @@ begin
   end;
 end;
 
-function BigNumberVectorEqual(const A: TCnBigNumberVector; const B: TCnBigNumberVector): Boolean;
+function BigNumberVectorEqual(A: TCnBigNumberVector; B: TCnBigNumberVector): Boolean;
 var
   I: Integer;
 begin
@@ -453,7 +643,7 @@ begin
   end;
 end;
 
-procedure BigNumberVectorNegate(const Res: TCnBigNumberVector; const A: TCnBigNumberVector);
+procedure BigNumberVectorNegate(Res: TCnBigNumberVector; A: TCnBigNumberVector);
 var
   I: Integer;
 begin
@@ -462,8 +652,7 @@ begin
     Res[I].Negate;
 end;
 
-procedure BigNumberVectorAdd(const Res: TCnBigNumberVector; const A: TCnBigNumberVector;
-  const B: TCnBigNumberVector);
+procedure BigNumberVectorAdd(Res: TCnBigNumberVector; A: TCnBigNumberVector; B: TCnBigNumberVector);
 var
   I: Integer;
 begin
@@ -474,8 +663,7 @@ begin
     BigNumberAdd(Res[I], A[I], B[I]);
 end;
 
-procedure BigNumberVectorSub(const Res: TCnBigNumberVector; const A: TCnBigNumberVector;
-  const B: TCnBigNumberVector);
+procedure BigNumberVectorSub(Res: TCnBigNumberVector; A: TCnBigNumberVector; B: TCnBigNumberVector);
 var
   I: Integer;
 begin
@@ -486,8 +674,7 @@ begin
     BigNumberSub(Res[I], A[I], B[I]);
 end;
 
-procedure BigNumberVectorMul(const Res: TCnBigNumberVector; const A: TCnBigNumberVector;
-  const N: TCnBigNumber);
+procedure BigNumberVectorMul(Res: TCnBigNumberVector; A: TCnBigNumberVector; N: TCnBigNumber);
 var
   I: Integer;
 begin
@@ -496,8 +683,7 @@ begin
     BigNumberMul(Res[I], A[I], N);
 end;
 
-procedure BigNumberVectorDotProduct(const Res: TCnBigNumber; A: TCnBigNumberVector;
-  const B: TCnBigNumberVector);
+procedure BigNumberVectorDotProduct(Res: TCnBigNumber; A: TCnBigNumberVector; B: TCnBigNumberVector);
 var
   I: Integer;
   T: TCnBigNumber;

@@ -60,58 +60,54 @@ uses
 const
   CN_ZUC_KEYSIZE = 16;
 
-procedure ZUC(Key: PByte; IV: PByte; KeyStream: PCardinal; KeyStreamLen: Cardinal);
-{*
-  祖冲之基础算法。根据输入的 16 字节密码和 16 字节初始化向量，
-  生成 KeyStreamLen 个四字节密码序列放至 KeyStream 所指的内存中
+procedure ZUC(Key: PByte; Iv: PByte; KeyStream: PCardinal; KeyStreamLen: Cardinal);
+{* 祖冲之基础算法。根据输入的 16 字节密码和 16 字节初始化向量，
+   生成 KeyStreamLen 个四字节密码序列放至 KeyStream 所指的内存中
 
-  Key 和 IV 为输入的 16 字节数据。
-  KeyStream 为输出地址，长度应为 KeyStreamLen * SizeOf(Cardinal)
-  KeyStreamLen 是要求计算的长度，以四字节为单位
+   参数：
+     Key: PByte                           - 16 字节密码的内存地址
+     Iv: PByte                            - 16 字节初始化向量的内存地址
+     KeyStream: PCardinal                 - 待处理的数据块地址，长度应为 KeyStreamLen * SizeOf(Cardinal)
+     KeyStreamLen: Cardinal               - 需计算的长度，单位为四字节
+
+   返回值：（无）
 }
 
 function ZUCEEA3(CK: PByte; Count: Cardinal; Bearer: Cardinal; Direction: Cardinal;
   M: PCardinal; BitLen: Cardinal; C: PCardinal): Cardinal;
-{*
-  基于祖冲之算法的 128-EEA3 机密性保护算法。一个流加密系统，使用机密性密钥 CK 来加解密数据块
-  传入密码、负载、方向等参数，根据输入内容计算出输出内容。函数返回值为输出内容的字节长度。
+{* 基于祖冲之算法的 128-EEA3 机密性保护算法。一个流加密系统，使用机密性密钥 CK 来加解密数据块。
+   传入密码、负载、方向等参数，根据输入内容计算出输出内容。函数返回值为输出内容的字节长度。
+   注意因为是流异或加密。传入如果是明文，加密一次便输出密文，如果传入密文，则调用一次会还原成明文。
 
-  输入：
-  参数         规模（比特数）    说明
-  Count        32                计数器，也即 4 字节
-  Bearer       5                 负载标识
-  Direction    1                 传输方向
-  CK           128               机密性密钥，也即 16 字节
-  M            BitLen            输入比特流的内存块地址，其实际可访问的比特长度需大于或等于 BitLen 且是四字节的倍数也就是 32 的整数倍，
-                                 （实际可访问的字节长度需是 4 的整数倍并乘以 8 后要大于等于 BitLen）以备函数内部四字节高效访问
-  BitLen       32                输入消息的 Bit 长度，可以是非字节整数倍
+   参数：
+     CK: PByte                            - 16 字节机密性密钥的内存地址
+     Count: Cardinal                      - 4 字节计数器
+     Bearer: Cardinal                     - 4 字节负载标识，有效内容 5 位
+     Direction: Cardinal                  - 4 字节传输方向，有效内容 1 位
+     M: PCardinal                         - 输入比特流的内存块地址，其实际可访问的比特长度需大于或等于 BitLen 且是四字节的倍数也就是 32 的整数倍，
+                                           （实际可访问的字节长度需是 4 的整数倍并乘以 8 后要大于等于 BitLen）以备函数内部四字节高效访问
+     BitLen: Cardinal                     - 输入比特流的位长度，可以是非字节整数倍
+     C: PCardinal                         - 待存储输出比特流的内存块地址，能容纳的位长度必须大于或等于 BitLen，且是四字节的倍数也就是 32 的整数倍
 
-  输出：
-  参数         规模（比特数）    说明
-  C            BitLen            放置输出比特流的内存块地址，能容纳的 Bit 长度必须大于或等于 BitLen，且是四字节的倍数也就是 32 的整数倍
-
-  注意因为是流异或加密。传入如果是明文，加密一次便输出密文，如果传入密文，则调用一次会还原成明文
+   返回值：Cardinal                       - 返回输出内容的字节长度
 }
 
 procedure ZUCEIA3(IK: PByte; Count: Cardinal; Bearer: Cardinal; Direction: Cardinal;
   M: PCardinal; BitLen: Cardinal; out Mac: Cardinal);
-{*
-  基于祖冲之算法的 128-EIA3 完整性保护算法，使用一个完整性密钥 IK 对给定的输入消息计算出一个 32 位的 MAC 值
-  传入密码、负载、方向等参数，根据输入内容计算出 MAC 值。
+{* 基于祖冲之算法的 128-EIA3 完整性保护算法，使用一个完整性密钥 IK 对给定的输入消息计算出一个 32 位的 MAC 值。
+   传入密码、负载、方向等参数，根据输入内容计算出 MAC 值。
 
-  输入：
-  参数         规模（比特数）    说明
-  Count        32                计数器，也即 4 字节
-  Bearer       5                 负载标识
-  DIRECTION    1                 传输方向
-  IK           128               完整性密钥，16 字节
-  M            BitLen            输入比特流的内存地址，其实际可访问的比特长度需大于或等于 BitLen 且是四字节的倍数也就是 32 的整数倍，
-                                （实际可访问的字节长度需是 4 的整数倍并乘以 8 后要大于等于 BitLen）以备函数内部四字节高效访问
-  BitLen       32                输入比特流的长度，可以是非字节整数倍
+   参数：
+     IK: PByte                            - 16 字节完整性密钥的内存地址
+     Count: Cardinal                      - 4 字节计数器
+     Bearer: Cardinal                     - 4 字节负载标识，有效内容 5 位
+     Direction: Cardinal                  - 4 字节传输方向，有效内容 1 位
+     M: PCardinal                         - 输入比特流的内存地址，其实际可访问的比特长度需大于或等于 BitLen 且是四字节的倍数也就是 32 的整数倍，
+                                           （实际可访问的字节长度需是 4 的整数倍并乘以 8 后要大于等于 BitLen）以备函数内部四字节高效访问
+     BitLen: Cardinal                     - 输入比特流的位长度，可以是非字节整数倍
+     out Mac: Cardinal                    - 输出 4 字节 MAC 值，也即 32 位
 
-  输出：
-  参数         规模（比特数）    说明
-  MAC          32                32 位 MAC 值，也即 4 字节
+   返回值：（无）
 }
 
 implementation
@@ -284,13 +280,13 @@ begin
   Result := (A shl 23) or (B shl 8) or C;
 end;
 
-procedure ZUCInitialization(Key: PByte; IV: PByte);
+procedure ZUCInitialization(Key: PByte; Iv: PByte);
 var
   W, NC: Cardinal;
   I: Integer;
 begin
   for I := 0 to CN_ZUC_KEYSIZE - 1 do
-    LFSR_S[I] := MakeUInt31((PByte(TCnNativeInt(Key) + I))^, EK_D[I], (PByte(TCnNativeInt(IV) + I))^);
+    LFSR_S[I] := MakeUInt31((PByte(TCnNativeInt(Key) + I))^, EK_D[I], (PByte(TCnNativeInt(Iv) + I))^);
 
   F_R1 := 0;
   F_R2 := 0;
@@ -323,16 +319,16 @@ begin
   end;
 end;
 
-procedure ZUC(Key: PByte; IV: PByte; KeyStream: PCardinal; KeyStreamLen: Cardinal);
+procedure ZUC(Key: PByte; Iv: PByte; KeyStream: PCardinal; KeyStreamLen: Cardinal);
 begin
-  ZUCInitialization(Key, IV);
+  ZUCInitialization(Key, Iv);
   ZUCGenerateKeyStream(KeyStream, KeyStreamLen);
 end;
 
 function ZUCEEA3(CK: PByte; Count, Bearer, Direction: Cardinal;
   M: PCardinal; BitLen: Cardinal; C: PCardinal): Cardinal;
 var
-  IV: array[0..CN_ZUC_KEYSIZE - 1] of Byte;
+  Iv: array[0..CN_ZUC_KEYSIZE - 1] of Byte;
   I: Integer;
   L, LB, K: Cardinal;
   Z: PCardinal;
@@ -347,26 +343,26 @@ begin
   Z := PCardinal(GetMemory(Result));
 
   try
-    IV[0] := (Count shr 24) and $FF;
-    IV[1] := (Count shr 16) and $FF;
-    IV[2] := (Count shr 8) and $FF;
-    IV[3] := Count and $FF;
+    Iv[0] := (Count shr 24) and $FF;
+    Iv[1] := (Count shr 16) and $FF;
+    Iv[2] := (Count shr 8) and $FF;
+    Iv[3] := Count and $FF;
 
-    IV[4] := ((Bearer shl 3) or ((Direction and 1) shl 2)) and $FC;
-    IV[5] := 0;
-    IV[6] := 0;
-    IV[7] := 0;
+    Iv[4] := ((Bearer shl 3) or ((Direction and 1) shl 2)) and $FC;
+    Iv[5] := 0;
+    Iv[6] := 0;
+    Iv[7] := 0;
 
-    IV[8] := IV[0];
-    IV[9] := IV[1];
-    IV[10] := IV[2];
-    IV[11] := IV[3];
-    IV[12] := IV[4];
-    IV[13] := IV[5];
-    IV[14] := IV[6];
-    IV[15] := IV[7];
+    Iv[8] := Iv[0];
+    Iv[9] := Iv[1];
+    Iv[10] := Iv[2];
+    Iv[11] := Iv[3];
+    Iv[12] := Iv[4];
+    Iv[13] := Iv[5];
+    Iv[14] := Iv[6];
+    Iv[15] := Iv[7];
 
-    ZUC(CK, @IV[0], Z, L);
+    ZUC(CK, @Iv[0], Z, L);
 
     PC := PCnLongWord32Array(C);
     PM := PCnLongWord32Array(M);
@@ -416,37 +412,37 @@ end;
 procedure ZUCEIA3(IK: PByte; Count, Bearer, Direction: Cardinal;
   M: PCardinal; BitLen: Cardinal; out Mac: Cardinal);
 var
-  IV: array[0..15] of Byte;
+  Iv: array[0..15] of Byte;
   T: Cardinal;
   I, N, L: Integer;
   Z: PCardinal;
 begin
-  IV[0] := (Count shr 24) and $FF;
-  IV[1] := (Count shr 16) and $FF;
-  IV[2] := (Count shr 8) and $FF;
-  IV[3] := Count and $FF;
+  Iv[0] := (Count shr 24) and $FF;
+  Iv[1] := (Count shr 16) and $FF;
+  Iv[2] := (Count shr 8) and $FF;
+  Iv[3] := Count and $FF;
 
-  IV[4] := (Bearer shl 3) and $F8;
-  IV[5] := 0;
-  IV[6] := 0;
-  IV[7] := 0;
+  Iv[4] := (Bearer shl 3) and $F8;
+  Iv[5] := 0;
+  Iv[6] := 0;
+  Iv[7] := 0;
 
-  IV[8] := ((Count shr 24) and $FF) xor ((Direction and 1) shl 7);
-  IV[9] := (Count shr 16) and $FF;
-  IV[10] := (Count shr 8) and $FF;
-  IV[11] := Count and $FF;
+  Iv[8] := ((Count shr 24) and $FF) xor ((Direction and 1) shl 7);
+  Iv[9] := (Count shr 16) and $FF;
+  Iv[10] := (Count shr 8) and $FF;
+  Iv[11] := Count and $FF;
 
-  IV[12] := IV[4];
-  IV[13] := IV[5];
-  IV[14] := IV[6] xor ((Direction and 1) shl 7);
-  IV[15] := IV[7];
+  Iv[12] := Iv[4];
+  Iv[13] := Iv[5];
+  Iv[14] := Iv[6] xor ((Direction and 1) shl 7);
+  Iv[15] := Iv[7];
 
   N := BitLen + 64;
   L := (N + 31) div 32;
   Z := PCardinal(GetMemory(L * SizeOf(Cardinal)));
 
   try
-    ZUC(IK, @IV[0], Z, L);
+    ZUC(IK, @Iv[0], Z, L);
     T := 0;
     for I := 0 to BitLen - 1 do
     begin

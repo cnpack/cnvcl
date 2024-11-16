@@ -223,11 +223,16 @@ type
     {* 子类必须重载的创建具体对象的方法}
   public
     constructor Create; reintroduce;
+    {* 构造函数，不通过 TObjectList 持有对象}
 
     destructor Destroy; override;
+    {* 析构函数，显式释放内部对象}
 
     function Obtain: TObject;
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还}
+
     procedure Recycle(Num: TObject);
+    {* 将一个对象归还至对象池}
   end;
 
 //==============================================================================
