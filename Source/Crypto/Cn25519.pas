@@ -130,6 +130,7 @@ type
 
        返回值：（无）
     }
+
     function ToString: string; override; // 基类有 ToString
     {* 转换为字符串。
 
@@ -160,35 +161,118 @@ type
     {* 普通构造函数，未初始化参数}
     constructor Create(const A: AnsiString; const D: AnsiString; const FieldPrime: AnsiString;
       const GX: AnsiString; const GY: AnsiString; const Order: AnsiString; H: Integer = 1); overload;
-    {* 构造函数，传入方程的 A, D 参数、有限域上界 p、G 点坐标、G 点的阶数，需要十六进制字符串}
+    {* 构造函数，传入方程的 A, D 参数、有限域上界 p、G 点坐标、G 点的阶数及辅助因子，需要十六进制字符串。
+
+       参数：
+         const A: AnsiString                  - 扭曲爱德华曲线方程的 a 参数的十六进制字符串形式
+         const D: AnsiString                  - 扭曲爱德华曲线方程的 d 参数的十六进制字符串形式
+         const FieldPrime: AnsiString         - 扭曲爱德华曲线方程所在的有限域上界的十六进制字符串形式
+         const GX: AnsiString                 - 扭曲爱德华曲线方程的 G 点的 X 坐标的十六进制字符串形式
+         const GY: AnsiString                 - 扭曲爱德华曲线方程的 G 点的 Y 坐标的十六进制字符串形式
+         const Order: AnsiString              - 扭曲爱德华曲线方程的 G 点的阶的十六进制字符串形式
+         H: Integer                           - 扭曲爱德华曲线方程的辅助因子
+
+       返回值：（无）
+    }
 
     destructor Destroy; override;
     {* 析构函数}
 
     procedure Load(const A: AnsiString; const D: AnsiString; const FieldPrime: AnsiString;
       const GX: AnsiString; const GY: AnsiString; const Order: AnsiString; H: Integer = 1); virtual;
-    {* 加载曲线参数，注意字符串参数是十六进制格式}
+    {* 加载曲线参数，各参数意义同 Create 方法，注意字符串参数也是十六进制格式。
 
-    procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
-    {* 计算某点 P 的 k * P 值，值重新放入 P}
-    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload; virtual;
-    {* 计算某点 P 的 k * P 值，值重新放入 P，内部实现等同于 CnECC 中同名方法}
+       参数：
+         const A: AnsiString                  - 扭曲爱德华曲线方程的 a 参数的十六进制字符串形式
+         const D: AnsiString                  - 扭曲爱德华曲线方程的 d 参数的十六进制字符串形式
+         const FieldPrime: AnsiString         - 扭曲爱德华曲线方程所在的有限域上界的十六进制字符串形式
+         const GX: AnsiString                 - 扭曲爱德华曲线方程的 G 点的 X 坐标的十六进制字符串形式
+         const GY: AnsiString                 - 扭曲爱德华曲线方程的 G 点的 Y 坐标的十六进制字符串形式
+         const Order: AnsiString              - 扭曲爱德华曲线方程的 G 点的阶的十六进制字符串形式
+         H: Integer                           - 扭曲爱德华曲线方程的辅助因子
+
+       返回值：（无）
+    }
+
+    procedure MultiplePoint(K: Int64; P: TCnEccPoint); overload;
+    {* 计算某点 P 的 k * P 值，值重新放入该点。
+
+       参数：
+         K: Int64                             - 乘数
+         P: TCnEccPoint                       - 被乘的坐标点
+
+       返回值：（无）
+    }
+
+    procedure MultiplePoint(K: TCnBigNumber; P: TCnEccPoint); overload; virtual;
+    {* 计算某点 P 的 k * P 值，值重新放入该点，内部实现等同于 CnECC 中同名方法。
+
+       参数：
+         K: TCnBigNumber                      - 乘数，形式为大数
+         P: TCnEccPoint                       - 被乘的坐标点
+
+       返回值：（无）
+    }
 
     procedure PointAddPoint(P: TCnEccPoint; Q: TCnEccPoint; Sum: TCnEccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同
-      此处的加法的几何意义相当于单位圆上的与正 Y 轴的夹角角度相加法则，
-      中性点(0, 1)，等同于 Weierstrass 曲线中的无穷远点}
+       此处的加法的几何意义相当于单位圆上的与正 Y 轴的夹角角度相加法则，
+       中性点(0, 1)，等同于 Weierstrass 曲线中的无穷远点。
+
+       参数：
+         P: TCnEccPoint                       - 第一个加数的点坐标
+         Q: TCnEccPoint                       - 第二个加数的点坐标
+         Sum: TCnEccPoint                     - 输出的和的点坐标
+
+       返回值：（无）
+    }
+
     procedure PointSubPoint(P: TCnEccPoint; Q: TCnEccPoint; Diff: TCnEccPoint);
-    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
+
+       参数：
+         P: TCnEccPoint                       - 被减数的点坐标
+         Q: TCnEccPoint                       - 减数的点坐标
+         Diff: TCnEccPoint                    - 输出的差的点坐标
+
+       返回值：（无）
+    }
+
     procedure PointInverse(P: TCnEccPoint);
-    {* 计算 P 点的逆元 -P，值重新放入 P，也就是 X 值取负}
+    {* 计算 P 点的逆元 -P，值重新放入 P，也就是 X 值取负。
+
+       参数：
+         P: TCnEccPoint                       - 需取逆元的坐标点
+
+       返回值：（无）
+    }
+
     function IsPointOnCurve(P: TCnEccPoint): Boolean;
-    {* 判断 P 点是否在本曲线上}
+    {* 判断 P 点是否在本曲线上。
+
+       参数：
+         P: TCnEccPoint                       - 用于判断的坐标点
+
+       返回值：Boolean                        - 是否在本曲线上
+    }
 
     function IsNeutualPoint(P: TCnEccPoint): Boolean;
-    {* 判断点是否是中性点，也就是判断 X = 0 且 Y = 1，与 Weierstrass 的无限远点全 0 不同}
+    {* 判断点是否是中性点，也就是判断 X = 0 且 Y = 1，与 Weierstrass 的无限远点全 0 不同。
+
+       参数：
+         P: TCnEccPoint                       - 用于判断的点坐标
+
+       返回值：Boolean                        - 是否是中性点
+    }
+
     procedure SetNeutualPoint(P: TCnEccPoint);
-    {* 将点设为中性点，也就是 X := 0 且 Y := 1}
+    {* 将点设为中性点，也就是 X := 0 且 Y := 1。
+
+       参数：
+         P: TCnEccPoint                       - 用于设置的点坐标
+
+       返回值：（无）
+    }
 
     property Generator: TCnEccPoint read FGenerator;
     {* 基点坐标 G}
@@ -219,54 +303,177 @@ type
   public
     constructor Create; overload; virtual;
     {* 普通构造函数，未初始化参数}
-    constructor Create(const A, B, FieldPrime, GX, GY, Order: AnsiString; H: Integer = 1); overload;
-    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数，需要十六进制字符串}
+    constructor Create(const A: AnsiString; const B: AnsiString; const FieldPrime: AnsiString;
+      const GX: AnsiString; const GY: AnsiString; const Order: AnsiString; H: Integer = 1); overload;
+    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数及辅助因子，需要十六进制字符串。
+
+       参数：
+         const A: AnsiString                  - 蒙哥马利曲线方程的 a 参数的十六进制字符串形式
+         const B: AnsiString                  - 蒙哥马利曲线方程的 b 参数的十六进制字符串形式
+         const FieldPrime: AnsiString         - 蒙哥马利曲线方程所在的有限域上界的十六进制字符串形式
+         const GX: AnsiString                 - 蒙哥马利曲线方程的 G 点的 X 坐标的十六进制字符串形式
+         const GY: AnsiString                 - 蒙哥马利曲线方程的 G 点的 Y 坐标的十六进制字符串形式
+         const Order: AnsiString              - 蒙哥马利曲线方程的 G 点的阶的十六进制字符串形式
+         H: Integer                           - 蒙哥马利曲线方程的辅助因子
+
+       返回值：（无）
+    }
 
     destructor Destroy; override;
     {* 析构函数}
 
     procedure Load(const A: AnsiString; const B: AnsiString; const FieldPrime: AnsiString;
       const GX: AnsiString; const GY: AnsiString; const Order: AnsiString; H: Integer = 1); virtual;
-    {* 加载曲线参数，注意字符串参数是十六进制格式}
+    {* 加载曲线参数，各参数意义同 Create 方法，注意字符串参数也是十六进制格式。
 
-    procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
-    {* 计算某点 P 的 k * P 值，值重新放入 Point}
-    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload; virtual;
-    {* 计算某点 P 的 k * P 值，值重新放入 Point，内部实现等同于 CnECC 中同名方法}
+       参数：
+         const A: AnsiString                  - 蒙哥马利曲线方程的 a 参数的十六进制字符串形式
+         const B: AnsiString                  - 蒙哥马利曲线方程的 b 参数的十六进制字符串形式
+         const FieldPrime: AnsiString         - 蒙哥马利曲线方程所在的有限域上界的十六进制字符串形式
+         const GX: AnsiString                 - 蒙哥马利曲线方程的 G 点的 X 坐标的十六进制字符串形式
+         const GY: AnsiString                 - 蒙哥马利曲线方程的 G 点的 Y 坐标的十六进制字符串形式
+         const Order: AnsiString              - 蒙哥马利曲线方程的 G 点的阶的十六进制字符串形式
+         H: Integer                           - 蒙哥马利曲线方程的辅助因子
+
+       返回值：（无）
+    }
+
+    procedure MultiplePoint(K: Int64; P: TCnEccPoint); overload;
+    {* 计算某点 P 的 k * P 值，值重新放入该点。
+
+       参数：
+         K: Int64                             - 乘数
+         P: TCnEccPoint                       - 被乘的坐标点
+
+       返回值：（无）
+    }
+
+    procedure MultiplePoint(K: TCnBigNumber; P: TCnEccPoint); overload; virtual;
+    {* 计算某点 P 的 k * P 值，值重新放入该点，内部实现等同于 CnECC 中同名方法。
+
+       参数：
+         K: TCnBigNumber                      - 乘数，形式为大数
+         P: TCnEccPoint                       - 被乘的坐标点
+
+       返回值：（无）
+    }
 
     procedure PointAddPoint(P: TCnEccPoint; Q: TCnEccPoint; Sum: TCnEccPoint);
     {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同
-      此处的加法的几何意义类似于 Weierstrass 椭圆曲线上的连线或切线交点再取负，同样存在无穷远点(0, 0)}
+       此处的加法的几何意义类似于 Weierstrass 椭圆曲线上的连线或切线交点再取负，同样存在无穷远点(0, 0)。
+
+       参数：
+         P: TCnEccPoint                       - 第一个加数的点坐标
+         Q: TCnEccPoint                       - 第二个加数的点坐标
+         Sum: TCnEccPoint                     - 输出的和的点坐标
+
+       返回值：（无）
+    }
     procedure PointSubPoint(P: TCnEccPoint; Q: TCnEccPoint; Diff: TCnEccPoint);
-    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
+
+       参数：
+         P: TCnEccPoint                       - 被减数的点坐标
+         Q: TCnEccPoint                       - 减数的点坐标
+         Diff: TCnEccPoint                    - 输出的差的点坐标
+
+       返回值：（无）
+    }
+
     procedure PointInverse(P: TCnEccPoint);
-    {* 计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
+    {* 计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负。
+
+       参数：
+         P: TCnEccPoint                       - 需取逆元的坐标点
+
+       返回值：（无）
+    }
+
     function IsPointOnCurve(P: TCnEccPoint): Boolean;
-    {* 判断 P 点是否在本曲线上}
+    {* 判断 P 点是否在本曲线上。
+
+       参数：
+         P: TCnEccPoint                       - 用于判断的坐标点
+
+       返回值：Boolean                        - 是否在本曲线上
+    }
 
     // ============ 蒙哥马利阶梯算法中的仅 X 的射影坐标点加速算法 ==============
 
     procedure PointToXAffinePoint(DestPoint: TCnEccPoint; SourcePoint: TCnEccPoint);
     {* 将包含 X Y 的椭圆曲线点转换为射影坐标 X Y Z 并只保留 X Z 供蒙哥马利阶梯算法使用，
-      其实就是 Y 置 1，SourcePoint 和 DestPoint 可以相同}
+       其实就是 Y 置 1，SourcePoint 和 DestPoint 可以相同。
+
+       参数：
+         DestPoint: TCnEccPoint               - 转换后的目标坐标点
+         SourcePoint: TCnEccPoint             - 待转换的源坐标点
+
+       返回值：（无）
+    }
+
     procedure XAffinePointToPoint(DestPoint: TCnEccPoint; SourcePoint: TCnEccPoint);
-    {* 将只含 X Z(Y 代替 Z) 的射影坐标点转换为普通曲线点，其实就是求解 Y 并替换 Z，
-      SourcePoint 和 DestPoint 可以相同}
+    {* 将只含 X Z（内部以 Y 代替 Z）的射影坐标点转换为普通曲线点，其实就是求解 Y 并替换 Z，
+       SourcePoint 和 DestPoint 可以相同。
+
+       参数：
+         DestPoint: TCnEccPoint               - 转换后的目标坐标点
+         SourcePoint: TCnEccPoint             - 待转换的源坐标点
+
+       返回值：（无）
+    }
 
     procedure XAffinePointInverse(P: TCnEccPoint);
     {* 计算仅 X 的射影坐标点 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负
-      实际内部因为没有 Y，啥都不需做}
+       实际内部因为没有 Y，啥都不需做。
+
+       参数：
+         P: TCnEccPoint                       - 需取逆元的坐标点
+
+       返回值：（无）
+    }
 
     procedure MontgomeryLadderPointXDouble(Dbl: TCnEccPoint; P: TCnEccPoint);
-    {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用，Dbl 可以是 P}
+    {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用，Dbl 可以是 P。
+
+       参数：
+         Dbl: TCnEccPoint                     - 输出的二倍点的坐标
+         P: TCnEccPoint                       - 需进行二倍点运算的点坐标
+
+       返回值：（无）
+    }
+
     procedure MontgomeryLadderPointXAdd(Sum: TCnEccPoint; P: TCnEccPoint;
       Q: TCnEccPoint; PMinusQ: TCnEccPoint);
-    {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值}
+    {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值。
 
-    procedure MontgomeryLadderMultiplePoint(K: Int64; Point: TCnEccPoint); overload;
-    {* 用蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
-    procedure MontgomeryLadderMultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload;
-    {* 用蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
+       参数：
+         Sum: TCnEccPoint                     - 输出的和的点坐标
+         P: TCnEccPoint                       - 第一个加数的点坐标
+         Q: TCnEccPoint                       - 第二个加数的点坐标
+         PMinusQ: TCnEccPoint                 - 差点的点坐标
+
+       返回值：（无）
+    }
+
+    procedure MontgomeryLadderMultiplePoint(K: Int64; P: TCnEccPoint); overload;
+    {* 用蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入该点。
+
+       参数：
+         K: Int64                             - 乘数
+         P: TCnEccPoint                       - 被乘的坐标点
+
+       返回值：（无）
+    }
+
+    procedure MontgomeryLadderMultiplePoint(K: TCnBigNumber; P: TCnEccPoint); overload;
+    {* 用蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入该点。
+
+       参数：
+         K: TCnBigNumber                      - 乘数，形式是大数
+         P: TCnEccPoint                       - 被乘的坐标点
+
+       返回值：（无）
+    }
 
     property Generator: TCnEccPoint read FGenerator;
     {* 基点坐标 G}
@@ -289,33 +496,81 @@ type
   {* Curve25519 私钥，也是基点乘数}
   public
     procedure SaveToData(var Data: TCnCurve25519Data);
-    {* 将私钥内容转换成 32 字节的小端字节顺序内容供存储与传输}
+    {* 将私钥内容转换成 32 字节的小端字节顺序内容供存储与传输。
+
+       参数：
+         var Data: TCnCurve25519Data          - 转换而来的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     procedure LoadFromData(Data: TCnCurve25519Data);
-    {* 从 32 字节的小端字节顺序内容中加载私钥}
+    {* 从 32 字节的小端字节顺序内容中加载私钥。
+
+       参数：
+         Data: TCnCurve25519Data              - 待加载的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     function SaveToHex(UseUpperCase: Boolean = True): string;
-    {* 转换为 64 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+    {* 转换为 64 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致。
+
+       参数：
+         UseUpperCase: Boolean                - 十六进制字符串中是否使用大写字母
+
+       返回值：string                         - 转换后的 64 字节的小端字节顺序的十六进制字符串
+    }
 
     procedure LoadFromHex(const Hex: string);
-    {* 从 64 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
+    {* 从 64 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致。
+
+       参数：
+         const Hex: string                    - 待加载的十六进制字符串
+
+       返回值：（无）
+    }
   end;
 
   TCnCurve25519PublicKey = class(TCnEccPublicKey)
   {* Curve25519 公钥，是对应私钥乘以基点得到的坐标}
   public
     procedure SaveToData(var Data: TCnCurve25519Data);
-    {* 公钥内容转换成 32 字节的小端字节顺序内容供存储与传输}
+    {* 公钥内容转换成 32 字节的小端字节顺序内容供存储与传输。
+
+       参数：
+         var Data: TCnCurve25519Data          - 转换而来的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     procedure LoadFromData(Data: TCnCurve25519Data);
-    {* 从 32 字节的小端字节顺序内容中加载公钥，注意只加载 Y 且没有求解 X}
+    {* 从 32 字节的小端字节顺序内容中加载公钥，注意只加载 Y 且没有求解 X。
+
+       参数：
+         Data: TCnCurve25519Data              - 待加载的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     function SaveToHex(UseUpperCase: Boolean = True): string;
-    {* 转换为 64 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+    {* 转换为 64 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致。
+
+       参数：
+         UseUpperCase: Boolean                - 十六进制字符串中是否使用大写字母
+
+       返回值：string                         - 转换后的 64 字节的小端字节顺序的十六进制字符串
+    }
 
     procedure LoadFromHex(const Hex: string);
     {* 从 64 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致
-      同样注意只加载 Y 且没有求解 X}
+       同样注意只加载 Y 且没有求解 X。
+
+       参数：
+         const Hex: string                    - 待加载的十六进制字符串
+
+       返回值：（无）
+    }
   end;
 
   TCnCurve25519 = class(TCnMontgomeryCurve)
@@ -324,31 +579,92 @@ type
     constructor Create; override;
     {* 构造函数，内部初始化蒙哥马利 25519 曲线的参数}
 
-    procedure GenerateKeys(PrivateKey: TCnCurve25519PrivateKey; PublicKey: TCnCurve25519PublicKey);
-    {* 生成一对 Curve25519 椭圆曲线的公私钥，其中私钥的高低位有特殊处理}
+    function GenerateKeys(PrivateKey: TCnCurve25519PrivateKey; PublicKey: TCnCurve25519PublicKey): Boolean;
+    {* 生成一对 Curve25519 椭圆曲线的公私钥，其中私钥的高低位有特殊处理。
 
-    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); override;
-    {* 计算某点 P 的 k * P 值，值重新放入 Point，Point 中允许只存 X 信息
-       内部实现使用 64 位多项式拆项的蒙哥马利阶梯算法}
+       参数：
+         PrivateKey: TCnCurve25519PrivateKey  - 生成的 Curve25519 椭圆曲线的私钥
+         PublicKey: TCnCurve25519PublicKey    - 生成的 Curve25519 椭圆曲线的公钥
+
+       返回值：Boolean                        - 生成是否成功
+    }
+
+    procedure MultiplePoint(K: TCnBigNumber; P: TCnEccPoint); override;
+    {* 计算某点 P 的 k * P 值，值重新放入该点，P 中允许只存 X 信息
+       内部实现使用 64 位多项式拆项的蒙哥马利阶梯算法。
+
+       参数：
+         K: TCnBigNumber                      - 乘数，形式是大数
+         P: TCnEccPoint                       - 被乘的坐标点
+
+       返回值：（无）
+    }
 
     // ======= 蒙哥马利阶梯算法中的仅 X 的射影坐标点 2^51 多项式加速算法 =======
 
     procedure PointToField64XAffinePoint(var DestPoint: TCn25519Field64EccPoint; SourcePoint: TCnEccPoint);
-    {* 将包含 X Y 的椭圆曲线点转换为射影坐标 X Y Z 并只保留 X Z 并转换为多项式点，供蒙哥马利阶梯算法使用}
+    {* 将包含 X Y 的椭圆曲线点转换为射影坐标 X Y Z 并只保留 X Z 并转换为多项式点，供蒙哥马利阶梯算法使用。
+
+       参数：
+         var DestPoint: TCn25519Field64EccPoint  - 目标射影坐标点
+         SourcePoint: TCnEccPoint                - 源坐标点
+
+       返回值：（无）
+    }
+
     procedure Field64XAffinePointToPoint(DestPoint: TCnEccPoint; var SourcePoint: TCn25519Field64EccPoint);
-    {* 将多项式形式的只含 X Z(Y 代替 Z) 的射影坐标点转换为普通曲线点}
+    {* 将多项式形式的只含 X Z(Y 代替 Z) 的射影坐标点转换为普通曲线点。
+
+       参数：
+         DestPoint: TCnEccPoint                   - 目标坐标点
+         var SourcePoint: TCn25519Field64EccPoint - 源射影坐标点
+
+       返回值：（无）
+    }
 
     procedure MontgomeryLadderField64PointXDouble(var Dbl: TCn25519Field64EccPoint; var P: TCn25519Field64EccPoint);
-    {* 多项式形式的蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用，Dbl 可以是 P}
+    {* 多项式形式的蒙哥马利阶梯算法中的仅 X 的射影坐标点的二倍点运算，Y 内部作 Z 用，Dbl 可以是 P。
+
+       参数：
+         var Dbl: TCn25519Field64EccPoint     - 输出的二倍点的坐标
+         var P: TCn25519Field64EccPoint       - 需进行二倍点运算的点坐标
+
+       返回值：（无）
+    }
+
     procedure MontgomeryLadderField64PointXAdd(var Sum: TCn25519Field64EccPoint;
       var P: TCn25519Field64EccPoint; var Q: TCn25519Field64EccPoint;
       var PMinusQ: TCn25519Field64EccPoint);
-    {* 多项式形式的蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值}
+    {* 多项式形式的蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值。
 
-    procedure MontgomeryLadderField64MultiplePoint(K: Int64; var Point: TCn25519Field64EccPoint); overload;
-    {* 用多项式形式的蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
-    procedure MontgomeryLadderField64MultiplePoint(K: TCnBigNumber; var Point: TCn25519Field64EccPoint); overload;
-    {* 用多项式形式的蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入 Point}
+       参数：
+         var Sum: TCn25519Field64EccPoint     - 输出的和的点坐标
+         var P: TCn25519Field64EccPoint       - 第一个加数的点坐标
+         var Q: TCn25519Field64EccPoint       - 第二个加数的点坐标
+         var PMinusQ: TCn25519Field64EccPoint - 差点的点坐标
+
+       返回值：（无）
+    }
+
+    procedure MontgomeryLadderField64MultiplePoint(K: Int64; var P: TCn25519Field64EccPoint); overload;
+    {* 用多项式形式的蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入该点。
+
+       参数：
+         K: Int64                             - 乘数
+         var P: TCn25519Field64EccPoint       - 被乘的坐标点
+
+       返回值：（无）
+    }
+
+    procedure MontgomeryLadderField64MultiplePoint(K: TCnBigNumber; var P: TCn25519Field64EccPoint); overload;
+    {* 用多项式形式的蒙哥马利阶梯算法计算仅 X 的射影坐标点的 K 倍点，值重新放入该点。
+
+       参数：
+         K: TCnBigNumber                      - 乘数，形式为大数
+         var P: TCn25519Field64EccPoint       - 被乘的坐标点
+
+       返回值：（无）
+    }
   end;
 
   TCnEd25519Data = array[0..CN_25519_BLOCK_BYTESIZE - 1] of Byte;
@@ -361,32 +677,80 @@ type
   {* Ed25519 私钥，注意它不是基点乘数，杂凑后的部分内容变换后才是}
   public
     procedure SaveToData(var Data: TCnEd25519Data);
-    {* 将私钥内容转换成 32 字节的小端字节顺序内容供存储与传输}
+    {* 将私钥内容转换成 32 字节的小端字节顺序内容供存储与传输。
+
+       参数：
+         var Data: TCnEd25519Data             - 转换而来的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     procedure LoadFromData(Data: TCnEd25519Data);
-    {* 从 32 字节的小端字节顺序内容中加载私钥}
+    {* 从 32 字节的小端字节顺序内容中加载私钥。
+
+       参数：
+         Data: TCnEd25519Data                 - 待加载的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     function SaveToHex(UseUpperCase: Boolean = True): string;
-    {* 转换为 64 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+    {* 转换为 64 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致。
+
+       参数：
+         UseUpperCase: Boolean                - 十六进制字符串中是否使用大写字母
+
+       返回值：string                         - 转换后的 64 字节的小端字节顺序的十六进制字符串
+    }
 
     procedure LoadFromHex(const Hex: string);
-    {* 从 64 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
+    {* 从 64 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致。
+
+       参数：
+         const Hex: string                    - 待加载的十六进制字符串
+
+       返回值：（无）
+    }
   end;
 
   TCnEd25519PublicKey = class(TCnEccPublicKey)
   {* Ed25519 公钥，注意它不是私钥直接乘以基点而来，而是私钥杂凑后的部分内容变换后乘基点}
   public
     procedure SaveToData(var Data: TCnEd25519Data);
-    {* 公钥内容转换成 32 字节的小端字节顺序内容供存储与传输}
+    {* 公钥内容转换成 32 字节的小端字节顺序内容供存储与传输。
+
+       参数：
+         var Data: TCnEd25519Data             - 转换而来的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     procedure LoadFromData(Data: TCnEd25519Data);
-    {* 从 32 字节的小端字节顺序内容中加载公钥}
+    {* 从 32 字节的小端字节顺序内容中加载公钥。
+
+       参数：
+         Data: TCnEd25519Data                 - 待加载的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     function SaveToHex(UseUpperCase: Boolean = True): string;
-    {* 转换为 64 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+    {* 转换为 64 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致。
+
+       参数：
+         UseUpperCase: Boolean                - 十六进制字符串中是否使用大写字母
+
+       返回值：string                         - 转换后的 64 字节的小端字节顺序的十六进制字符串
+    }
 
     procedure LoadFromHex(const Hex: string);
-    {* 从 64 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
+    {* 从 64 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致。
+
+       参数：
+         const Hex: string                    - 待加载的十六进制字符串
+
+       返回值：（无）
+    }
   end;
 
   TCnEd25519 = class(TCnTwistedEdwardsCurve)
@@ -396,55 +760,189 @@ type
     {* 构造函数}
 
     function GenerateKeys(PrivateKey: TCnEd25519PrivateKey; PublicKey: TCnEd25519PublicKey): Boolean;
-    {* 生成一对 Ed25519 椭圆曲线的公私钥，其中公钥的基点乘数根据 SHA512 运算而来}
+    {* 生成一对 Ed25519 椭圆曲线的公私钥，其中公钥的基点乘数根据 SHA512 运算而来。
+
+       参数：
+         PrivateKey: TCnEd25519PrivateKey     - 生成的 Ed25519 椭圆曲线的私钥
+         PublicKey: TCnEd25519PublicKey       - 生成的 Ed25519 椭圆曲线的公钥
+
+       返回值：Boolean                        - 生成是否成功
+    }
 
     procedure PlainToPoint(Plain: TCnEd25519Data; OutPoint: TCnEccPoint);
-    {* 将 32 字节值转换为坐标点，涉及到求解。也用于从 32 字节格式的公钥中恢复完整的坐标点公钥}
-    procedure PointToPlain(Point: TCnEccPoint; var OutPlain: TCnEd25519Data);
-    {* 将点坐标转换成 32 字节值，拼 Y 并放 X 正负一位}
+    {* 将 32 字节值转换为坐标点，涉及到求解。也用于从 32 字节格式的公钥中恢复完整的坐标点公钥。
 
-    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); override;
-    {* 重载父类的普通点乘，内部改用扩展四元快速乘}
+       参数：
+         Plain: TCnEd25519Data                - 待转换的 32 字节值
+         OutPoint: TCnEccPoint                - 转换而来的坐标点
+
+       返回值：（无）
+    }
+
+    procedure PointToPlain(Point: TCnEccPoint; var OutPlain: TCnEd25519Data);
+    {* 将点坐标转换成 32 字节值，拼 Y 并放 X 正负一位。
+
+       参数：
+         Point: TCnEccPoint                   - 待转换的坐标点
+         var OutPlain: TCnEd25519Data         - 转换而来的 32 字节值
+
+       返回值：（无）
+    }
+
+    procedure MultiplePoint(K: TCnBigNumber; P: TCnEccPoint); override;
+    {* 重载父类的普通点乘，内部改用扩展四元快速乘。
+
+       参数：
+         K: TCnBigNumber                      - 乘数，形式是大数
+         P: TCnEccPoint                       - 被乘的坐标点
+
+       返回值：（无）
+    }
 
     function IsNeutualExtendedPoint(P: TCnEcc4Point): Boolean;
-    {* 判断点是否是中性点，也就是判断 X = 0 且 Y = Z <> 0 且 T = 0，与 Weierstrass 的无限远点全 0 不同}
+    {* 判断点是否是中性点，也就是判断 X = 0 且 Y = Z <> 0 且 T = 0，与 Weierstrass 的无限远点全 0 不同。
+
+       参数：
+         P: TCnEcc4Point                      - 用于判断的点坐标
+
+       返回值：Boolean                        - 是否是中性点
+    }
+
     procedure SetNeutualExtendedPoint(P: TCnEcc4Point);
-    {* 将点设为中性点，也就是 X := 0 且 Y := 1 且 Z := 1 且 T := 0}
+    {* 将点设为中性点，也就是 X := 0 且 Y := 1 且 Z := 1 且 T := 0。
+
+       参数：
+         P: TCnEcc4Point                      - 待设置的点坐标
+
+       返回值：（无）
+    }
 
     // ================= 扩展扭曲爱德华坐标（四元）点加速算法 ==================
 
     procedure ExtendedPointAddPoint(P: TCnEcc4Point; Q: TCnEcc4Point; Sum: TCnEcc4Point); virtual;
-    {* 使用扩展扭曲爱德华坐标（四元）的快速点加法计算 P + Q，值放入 Sum 中，Diff 可以是 P、Q 之一，P、Q 可以相同
-       该算法来源于 RFC 8032，且要求该扭曲爱德华曲线的 A 得为 -1，因而 Ed25519 曲线符合而 Ed448 曲线不符合}
-    procedure ExtendedPointSubPoint(P: TCnEcc4Point; Q: TCnEcc4Point; Diff: TCnEcc4Point);
-    {* 使用扩展扭曲爱德华坐标（四元）计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
-    procedure ExtendedPointInverse(P: TCnEcc4Point);
-    {* 使用扩展扭曲爱德华坐标（四元）计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
-    function IsExtendedPointOnCurve(P: TCnEcc4Point): Boolean;
-    {* 判断扩展扭曲爱德华坐标（四元） P 点是否在本曲线上}
+    {* 使用扩展扭曲爱德华坐标（四元）的快速点加法计算 P + Q，值放入 Sum 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
+       该算法来源于 RFC 8032，且要求该扭曲爱德华曲线的 A 得为 -1，因而 Ed25519 曲线符合而 Ed448 曲线不符合。
 
-    procedure ExtendedMultiplePoint(K: Int64; Point: TCnEcc4Point); overload;
-    {* 计算某点 P 的 k * P 值，值重新放入 P}
-    procedure ExtendedMultiplePoint(K: TCnBigNumber; Point: TCnEcc4Point); overload;
-    {* 计算某点 P 的 k * P 值，值重新放入 P，速度比普通标量乘快十倍以上}
+       参数：
+         P: TCnEcc4Point                      - 第一个加数的点坐标
+         Q: TCnEcc4Point                      - 第二个加数的点坐标
+         Sum: TCnEcc4Point                    - 输出的和的点坐标
+
+       返回值：（无）
+    }
+
+    procedure ExtendedPointSubPoint(P: TCnEcc4Point; Q: TCnEcc4Point; Diff: TCnEcc4Point);
+    {* 使用扩展扭曲爱德华坐标（四元）计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
+
+       参数：
+         P: TCnEcc4Point                      - 被减数的点坐标
+         Q: TCnEcc4Point                      - 减数的点坐标
+         Diff: TCnEcc4Point                   - 输出的差的点坐标
+
+       返回值：（无）
+    }
+
+    procedure ExtendedPointInverse(P: TCnEcc4Point);
+    {* 使用扩展扭曲爱德华坐标（四元）计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负。
+
+       参数：
+         P: TCnEcc4Point                      - 需取逆元的坐标点
+
+       返回值：（无）
+    }
+
+    function IsExtendedPointOnCurve(P: TCnEcc4Point): Boolean;
+    {* 判断扩展扭曲爱德华坐标（四元） P 点是否在本曲线上。
+
+       参数：
+         P: TCnEcc4Point                      - 用于判断的坐标点
+
+       返回值：Boolean                        - 是否在本曲线上
+    }
+
+    procedure ExtendedMultiplePoint(K: Int64; P: TCnEcc4Point); overload;
+    {* 计算某点 P 的 k * P 值，值重新放入该点。
+
+       参数：
+         K: Int64                             - 乘数
+         P: TCnEcc4Point                      - 被乘的坐标点
+
+       返回值：（无）
+    }
+
+    procedure ExtendedMultiplePoint(K: TCnBigNumber; P: TCnEcc4Point); overload;
+    {* 计算某点 P 的 k * P 值，值重新放入该点，速度比普通标量乘快十倍以上。
+
+       参数：
+         K: TCnBigNumber                      - 乘数，形式为大数
+         P: TCnEcc4Point                      - 被乘的坐标点
+
+       返回值：（无）
+    }
 
     // ============= 扩展扭曲爱德华坐标（四元）点的多项式加速算法 ==============
 
-    function ExtendedField64PointAddPoint(var P: TCn25519Field64Ecc4Point;
-      var Q: TCn25519Field64Ecc4Point; var Sum: TCn25519Field64Ecc4Point): Boolean;
-    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式的快速点加法计算 P + Q，值放入 Sum 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
-    function ExtendedField64PointSubPoint(var P: TCn25519Field64Ecc4Point;
-      var Q: TCn25519Field64Ecc4Point; var Diff: TCn25519Field64Ecc4Point): Boolean;
-    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
-    procedure ExtendedField64PointInverse(var P: TCn25519Field64Ecc4Point);
-    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
-    function IsExtendedField64PointOnCurve(var P: TCn25519Field64Ecc4Point): Boolean;
-    {* 判断扩展扭曲爱德华坐标（四元）有限域多项式 P 点是否在本曲线上}
+    procedure ExtendedField64PointAddPoint(var P: TCn25519Field64Ecc4Point;
+      var Q: TCn25519Field64Ecc4Point; var Sum: TCn25519Field64Ecc4Point);
+    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式的快速点加法计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同。
 
-    procedure ExtendedField64MultiplePoint(K: Int64; var Point: TCn25519Field64Ecc4Point); overload;
-    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算某点 P 的 k * P 值，值重新放入 P}
-    procedure ExtendedField64MultiplePoint(K: TCnBigNumber; var Point: TCn25519Field64Ecc4Point); overload;
-    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算某点 P 的 k * P 值，值重新放入 P}
+       参数：
+         var P: TCn25519Field64Ecc4Point      - 第一个加数的点坐标
+         var Q: TCn25519Field64Ecc4Point      - 第二个加数的点坐标
+         var Sum: TCn25519Field64Ecc4Point    - 输出的和的点坐标
+
+       返回值：（无）
+    }
+
+    procedure ExtendedField64PointSubPoint(var P: TCn25519Field64Ecc4Point;
+      var Q: TCn25519Field64Ecc4Point; var Diff: TCn25519Field64Ecc4Point);
+    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
+
+       参数：
+         var P: TCn25519Field64Ecc4Point      - 被减数的点坐标
+         var Q: TCn25519Field64Ecc4Point      - 减数的点坐标
+         var Diff: TCn25519Field64Ecc4Point   - 输出的差的点坐标
+
+       返回值：（无）
+    }
+
+    procedure ExtendedField64PointInverse(var P: TCn25519Field64Ecc4Point);
+    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负。
+
+       参数：
+         var P: TCn25519Field64Ecc4Point      - 需取逆元的坐标点
+
+       返回值：（无）
+    }
+
+    function IsExtendedField64PointOnCurve(var P: TCn25519Field64Ecc4Point): Boolean;
+    {* 判断扩展扭曲爱德华坐标（四元）有限域多项式 P 点是否在本曲线上。
+
+       参数：
+         var P: TCn25519Field64Ecc4Point      - 用于判断的坐标点
+
+       返回值：Boolean                        - 是否在本曲线上
+    }
+
+    procedure ExtendedField64MultiplePoint(K: Int64; var P: TCn25519Field64Ecc4Point); overload;
+    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算某点 P 的 k * P 值，值重新放入该点。
+
+       参数：
+         K: Int64                             - 乘数
+         var P: TCn25519Field64Ecc4Point      - 被乘的坐标点
+
+       返回值：（无）
+    }
+
+    procedure ExtendedField64MultiplePoint(K: TCnBigNumber; var P: TCn25519Field64Ecc4Point); overload;
+    {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算某点 P 的 k * P 值，值重新放入该点。
+
+       参数：
+         K: TCnBigNumber                      - 乘数，形式为大数
+         var P: TCn25519Field64Ecc4Point      - 被乘的坐标点
+
+       返回值：（无）
+    }
   end;
 
   TCnEd25519Signature = class(TPersistent)
@@ -459,19 +957,49 @@ type
     {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
-    {* 对象间赋值}
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent                  - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
 
     procedure SaveToData(var Sig: TCnEd25519SignatureData);
-    {* 内容转换成 64 字节小端顺序签名内容供存储与传输}
+    {* 内容转换成 64 字节小端顺序签名内容供存储与传输。
+
+       参数：
+         var Sig: TCnEd25519SignatureData     - 转换而来的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     procedure LoadFromData(Sig: TCnEd25519SignatureData);
-    {* 从 64 字节小端顺序签名内容中加载签名}
+    {* 从 64 字节小端顺序签名内容中加载签名。
+
+       参数：
+         Sig: TCnEd25519SignatureData         - 待加载的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     function SaveToHex(UseUpperCase: Boolean = True): string;
-    {* 转换为 128 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+    {* 转换为 128 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致。
+
+       参数：
+         UseUpperCase: Boolean                - 十六进制字符串中是否使用大写字母
+
+       返回值：string                         - 转换后的 128 字节的小端字节顺序的十六进制字符串
+    }
 
     procedure LoadFromHex(const Hex: string);
-    {* 从 128 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
+    {* 从 128 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致。
+
+       参数：
+         const Hex: string                    - 待加载的十六进制字符串
+
+       返回值：（无）
+    }
 
     property R: TCnEccPoint read FR;
     {* 签名点 R}
@@ -486,32 +1014,80 @@ type
   {* Curve448 私钥，也是基点乘数}
   public
     procedure SaveToData(var Data: TCnCurve448Data);
-    {* 将私钥内容转换成 56 字节的小端字节顺序内容供存储与传输}
+    {* 将私钥内容转换成 56 字节的小端字节顺序内容供存储与传输。
+
+       参数：
+         var Data: TCnCurve448Data            - 转换而来的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     procedure LoadFromData(Data: TCnCurve448Data);
-    {* 从 56 字节的小端字节顺序内容中加载私钥}
+    {* 从 56 字节的小端字节顺序内容中加载私钥。
+
+       参数：
+         Data: TCnCurve448Data                - 待加载的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     function SaveToHex(UseUpperCase: Boolean = True): string;
-    {* 转换为 112 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+    {* 转换为 112 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致。
+
+       参数：
+         UseUpperCase: Boolean                - 十六进制字符串中是否使用大写字母
+
+       返回值：string                         - 转换后的 112 字节的小端字节顺序的十六进制字符串
+    }
 
     procedure LoadFromHex(const Hex: string);
-    {* 从 112 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
+    {* 从 112 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致。
+
+       参数：
+         const Hex: string                    - 待加载的十六进制字符串
+
+       返回值：（无）
+    }
   end;
 
   TCnCurve448PublicKey = class(TCnEccPublicKey)
   {* Curve448 公钥，是对应私钥乘以基点得到的坐标}
   public
     procedure SaveToData(var Data: TCnCurve448Data);
-    {* 公钥内容转换成 56 字节的小端字节顺序内容供存储与传输}
+    {* 公钥内容转换成 56 字节的小端字节顺序内容供存储与传输。
+
+       参数：
+         var Data: TCnCurve448Data            - 转换而来的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     procedure LoadFromData(Data: TCnCurve448Data);
-    {* 从 56 字节的小端字节顺序内容中加载公钥}
+    {* 从 56 字节的小端字节顺序内容中加载公钥。
+
+       参数：
+         Data: TCnCurve448Data                - 待加载的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     function SaveToHex(UseUpperCase: Boolean = True): string;
-    {* 转换为 112 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+    {* 转换为 112 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致。
+
+       参数：
+         UseUpperCase: Boolean                - 十六进制字符串中是否使用大写字母
+
+       返回值：string                         - 转换后的 112 字节的小端字节顺序的十六进制字符串
+    }
 
     procedure LoadFromHex(const Hex: string);
-    {* 从 112 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
+    {* 从 112 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致。
+
+       参数：
+         const Hex: string                    - 待加载的十六进制字符串
+
+       返回值：（无）
+    }
   end;
 
   TCnCurve448 = class(TCnMontgomeryCurve)
@@ -520,12 +1096,26 @@ type
     constructor Create; override;
     {* 构造函数，内部初始化蒙哥马利 448 曲线的参数}
 
-    procedure GenerateKeys(PrivateKey: TCnCurve448PrivateKey; PublicKey: TCnCurve448PublicKey);
-    {* 生成一对 Curve448 椭圆曲线的公私钥，其中私钥的高低位有特殊处理}
+    function GenerateKeys(PrivateKey: TCnCurve448PrivateKey; PublicKey: TCnCurve448PublicKey): Boolean;
+    {* 生成一对 Curve448 椭圆曲线的公私钥，其中私钥的高低位有特殊处理。
 
-    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); override;
-    {* 计算某点 P 的 k * P 值，值重新放入 Point，Point 中允许只存 X 信息
-       注意 448 不适用 2^51 的多项式加速算法，内部实现仅 X 的射影点的蒙哥马利阶梯算法}
+       参数：
+         PrivateKey: TCnCurve448PrivateKey    - 生成的 Curve448 椭圆曲线的私钥
+         PublicKey: TCnCurve448PublicKey      - 生成的 Curve448 椭圆曲线的公钥
+
+       返回值：Boolean                        - 生成是否成功
+    }
+
+    procedure MultiplePoint(K: TCnBigNumber; P: TCnEccPoint); override;
+    {* 计算某点 P 的 k * P 值，值重新放入该点。P 中允许只存 X 信息
+       注意 448 不适用 2^51 的多项式加速算法，内部实现仅 X 的射影点的蒙哥马利阶梯算法。
+
+       参数：
+         K: TCnBigNumber                      - 乘数，形式是大数
+         P: TCnEccPoint                       - 被乘的坐标点
+
+       返回值：（无）
+    }
   end;
 
   TCnEd448Data = array[0..CN_448_EDWARDS_BLOCK_BYTESIZE - 1] of Byte;
@@ -544,18 +1134,49 @@ type
     destructor Destroy; override;
 
     procedure Assign(Source: TPersistent); override;
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent                  - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
 
     procedure SaveToData(var Sig: TCnEd448SignatureData);
-    {* 内容转换成 114 字节签名内容供存储与传输}
+    {* 内容转换成 114 字节签名内容供存储与传输。
+
+       参数：
+         var Sig: TCnEd448SignatureData       - 转换而来的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     procedure LoadFromData(Sig: TCnEd448SignatureData);
-    {* 从 114 字节签名内容中加载签名}
+    {* 从 114 字节签名内容中加载签名。
+
+       参数：
+         Sig: TCnEd448SignatureData           - 待加载的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     function SaveToHex(UseUpperCase: Boolean = True): string;
-    {* 转换为 228 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+    {* 转换为 228 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致。
+
+       参数：
+         UseUpperCase: Boolean                - 十六进制字符串中是否使用大写字母
+
+       返回值：string                         - 转换后的 228 字节的小端字节顺序的十六进制字符串
+    }
 
     procedure LoadFromHex(const Hex: string);
-    {* 从 228 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
+    {* 从 228 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致。
+
+       参数：
+         const Hex: string                    - 待加载的十六进制字符串
+
+       返回值：（无）
+    }
 
     property R: TCnEccPoint read FR;
     {* 签名点 R}
@@ -567,32 +1188,80 @@ type
   {* Ed448 私钥，注意它不是基点乘数，杂凑后的部分内容变换后才是}
   public
     procedure SaveToData(var Data: TCnEd448Data);
-    {* 将私钥内容转换成 57 字节的小端字节顺序内容供存储与传输}
+    {* 将私钥内容转换成 57 字节的小端字节顺序内容供存储与传输。
+
+       参数：
+         var Data: TCnEd448Data               - 转换而来的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     procedure LoadFromData(Data: TCnEd448Data);
-    {* 从 57 字节的小端字节顺序内容中加载私钥}
+    {* 从 57 字节的小端字节顺序内容中加载私钥。
+
+       参数：
+         Sig: TCnEd448Data                    - 待加载的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     function SaveToHex(UseUpperCase: Boolean = True): string;
-    {* 转换为 114 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+    {* 转换为 114 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致。
+
+       参数：
+         UseUpperCase: Boolean                - 十六进制字符串中是否使用大写字母
+
+       返回值：string                         - 转换后的 114 字节的小端字节顺序的十六进制字符串
+    }
 
     procedure LoadFromHex(const Hex: string);
-    {* 从 114 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
+    {* 从 114 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致。
+
+       参数：
+         const Hex: string                    - 待加载的十六进制字符串
+
+       返回值：（无）
+    }
   end;
 
   TCnEd448PublicKey = class(TCnEccPublicKey)
   {* Ed448 公钥，注意它不是私钥直接乘以基点而来，而是私钥杂凑后的部分内容变换后乘基点}
   public
     procedure SaveToData(var Data: TCnEd448Data);
-    {* 私钥内容转换成 57 字节的小端字节顺序内容供存储与传输}
+    {* 私钥内容转换成 57 字节的小端字节顺序内容供存储与传输。
+
+       参数：
+         var Data: TCnEd448Data               - 转换而来的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     procedure LoadFromData(Data: TCnEd448Data);
-    {* 从 57 字节的小端字节顺序内容中加载私钥}
+    {* 从 57 字节的小端字节顺序内容中加载私钥。
+
+       参数：
+         Sig: TCnEd448Data                    - 待加载的小端字节顺序内容
+
+       返回值：（无）
+    }
 
     function SaveToHex(UseUpperCase: Boolean = True): string;
-    {* 转换为 114 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致}
+    {* 转换为 114 字节的小端字节顺序的十六进制字符串，与 RFC 中的一致。
+
+       参数：
+         UseUpperCase: Boolean                - 十六进制字符串中是否使用大写字母
+
+       返回值：string                         - 转换后的 114 字节的小端字节顺序的十六进制字符串
+    }
 
     procedure LoadFromHex(const Hex: string);
-    {* 从 114 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致}
+    {* 从 114 字节的小端字节顺序的十六进制字符串中加载，与 RFC 中的一致。
+
+       参数：
+         const Hex: string                    - 待加载的十六进制字符串
+
+       返回值：（无）
+    }
   end;
 
   TCnEd448 = class(TCnTwistedEdwardsCurve)
@@ -602,58 +1271,182 @@ type
     {* 构造函数，内部初始化非扭曲爱德华 448 曲线的参数}
 
     function GenerateKeys(PrivateKey: TCnEd448PrivateKey; PublicKey: TCnEd448PublicKey): Boolean;
-    {* 生成一对 Ed448 椭圆曲线的公私钥，其中公钥的基点乘数根据 SHAKE256 运算而来}
+    {* 生成一对 Ed448 椭圆曲线的公私钥，其中公钥的基点乘数根据 SHAKE256 运算而来。
+
+       参数：
+         PrivateKey: TCnEd448PrivateKey       - 生成的 Ed448 椭圆曲线的私钥
+         PublicKey: TCnEd448PublicKey         - 生成的 Ed448 椭圆曲线的公钥
+
+       返回值：Boolean                        - 生成是否成功
+    }
 
     procedure PlainToPoint(Plain: TCnEd448Data; OutPoint: TCnEccPoint);
-    {* 将 57 字节值转换为坐标点，涉及到求解。也用于从 57 字节格式的公钥中恢复完整的坐标点公钥}
-    procedure PointToPlain(Point: TCnEccPoint; var OutPlain: TCnEd448Data);
-    {* 将点坐标转换成 57 字节值，拼 Y 并放 X 正负一位}
+    {* 将 57 字节值转换为坐标点，涉及到求解。也用于从 57 字节格式的公钥中恢复完整的坐标点公钥。
 
-    procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); override;
-    {* 重载父类的普通点乘，内部改用扩展三元快速乘}
+       参数：
+         Plain: TCnEd448Data                  - 待转换的 57 字节值
+         OutPoint: TCnEccPoint                - 转换而来的坐标点
+
+       返回值：（无）
+    }
+
+    procedure PointToPlain(Point: TCnEccPoint; var OutPlain: TCnEd448Data);
+    {* 将坐标点转换成 57 字节值，拼 Y 并放 X 正负一位。
+
+       参数：
+         Point: TCnEccPoint                   - 待转换的坐标点
+         var OutPlain: TCnEd448Data           - 转换而来的 57 字节值
+
+       返回值：（无）
+    }
+
+    procedure MultiplePoint(K: TCnBigNumber; P: TCnEccPoint); override;
+    {* 重载父类的普通点乘，内部改用扩展三元快速乘。
+
+       参数：
+         K: TCnBigNumber                      - 乘数，形式是大数
+         P: TCnEccPoint                       - 被乘的坐标点
+
+       返回值：（无）
+    }
 
     function IsNeutualAffinePoint(P: TCnEcc3Point): Boolean;
-    {* 判断点是否是三元中性点，也就是判断 X = 0 且 Y = Z <> 0，与 Weierstrass 的无限远点全 0 不同}
+    {* 判断点是否是三元中性点，也就是判断 X = 0 且 Y = Z <> 0，与 Weierstrass 的无限远点全 0 不同。
+
+       参数：
+         P: TCnEcc3Point                      - 用于判断的坐标点
+
+       返回值：Boolean                        - 是否是中性点
+    }
+
     procedure SetNeutualAffinePoint(P: TCnEcc3Point);
-    {* 将点设为三元中性点，也就是 X := 0 且 Y := 1 且 Z := 1}
+    {* 将点设为三元中性点，也就是 X := 0 且 Y := 1 且 Z := 1。
+
+       参数：
+         P: TCnEcc3Point                      - 待设置的坐标点
+
+       返回值：（无）
+    }
 
     // ================ 扩展非扭曲爱德华坐标（三元）点加速算法 =================
 
     procedure AffinePointAddPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Sum: TCnEcc3Point);
-    {* 使用扩展非扭曲爱德华坐标（三元）的快速点加法计算 P + Q，值放入 Sum 中，Diff 可以是 P、Q 之一，P、Q 可以相同
-       该算法来源于 RFC 8032，且要求该非扭曲爱德华曲线的 A 得为 1，Ed448 曲线恰好符合}
-    procedure AffinePointSubPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Diff: TCnEcc3Point);
-    {* 使用扩展非扭曲爱德华坐标（三元）计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
-    procedure AffinePointInverse(P: TCnEcc3Point);
-    {* 使用扩展非扭曲爱德华坐标（三元）计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负}
-    function IsAffinePointOnCurve(P: TCnEcc3Point): Boolean;
-    {* 判断扩展非扭曲爱德华坐标（三元） P 点是否在本曲线上}
+    {* 使用扩展非扭曲爱德华坐标（三元）的快速点加法计算 P + Q，值放入 Sum 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
+       该算法来源于 RFC 8032，且要求该非扭曲爱德华曲线的 A 必须为 1，Ed448 曲线恰好符合。
 
-    procedure AffineMultiplePoint(K: Int64; Point: TCnEcc3Point); overload;
-    {* 计算某点 P 的 k * P 值，值重新放入 P}
-    procedure AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point); overload;
-    {* 计算某点 P 的 k * P 值，值重新放入 P，速度比普通标量乘快不少}
+       参数：
+         P: TCnEcc3Point                      - 第一个加数的点坐标
+         Q: TCnEcc3Point                      - 第二个加数的点坐标
+         Sum: TCnEcc3Point                    - 输出的和的点坐标
+
+       返回值：（无）
+    }
+
+    procedure AffinePointSubPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Diff: TCnEcc3Point);
+    {* 使用扩展非扭曲爱德华坐标（三元）计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
+
+       参数：
+         P: TCnEcc3Point                      - 被减数的点坐标
+         Q: TCnEcc3Point                      - 减数的点坐标
+         Diff: TCnEcc3Point                   - 输出的差的点坐标
+
+       返回值：（无）
+    }
+
+    procedure AffinePointInverse(P: TCnEcc3Point);
+    {* 使用扩展非扭曲爱德华坐标（三元）计算 P 点的逆元 -P，值重新放入 P，也就是 Y 值取负。
+
+       参数：
+         P: TCnEcc3Point                      - 需取逆元的坐标点
+
+       返回值：（无）
+    }
+
+    function IsAffinePointOnCurve(P: TCnEcc3Point): Boolean;
+    {* 判断扩展非扭曲爱德华坐标（三元） P 点是否在本曲线上。
+
+       参数：
+         P: TCnEcc3Point                      - 用于判断的坐标点
+
+       返回值：Boolean                        - 是否在本曲线上
+    }
+
+    procedure AffineMultiplePoint(K: Int64; P: TCnEcc3Point); overload;
+    {* 计算某点 P 的 k * P 值，值重新放入该点。
+
+       参数：
+         K: Int64                             - 乘数
+         P: TCnEcc3Point                      - 被乘的坐标点
+
+       返回值：（无）
+    }
+
+    procedure AffineMultiplePoint(K: TCnBigNumber; P: TCnEcc3Point); overload;
+    {* 计算某点 P 的 k * P 值，值重新放入该点，速度比普通标量乘快不少。
+
+       参数：
+         K: TCnBigNumber                      - 乘数，形式是大数
+         P: TCnEcc3Point                      - 被乘的坐标点
+
+       返回值：（无）
+    }
   end;
 
 // ========================= 椭圆曲线坐标点转换函数 ============================
 
-function CnEcc4PointToString(const P: TCnEcc4Point): string;
-{* 将一个 TCnEcc4Point 点坐标转换为十进制字符串}
+function CnEcc4PointToString(P: TCnEcc4Point): string;
+{* 将一个 TCnEcc4Point 点坐标转换为十进制字符串。
 
-function CnEcc4PointToHex(const P: TCnEcc4Point): string;
-{* 将一个 TCnEcc4Point 点坐标转换为十六进制字符串}
+   参数：
+     P: TCnEcc4Point                      - 待转换的坐标点
 
-function CnEcc4PointEqual(const P: TCnEcc4Point; const Q: TCnEcc4Point;
+   返回值：string                         - 十进制字符串形式的转换结果
+}
+
+function CnEcc4PointToHex(P: TCnEcc4Point): string;
+{* 将一个 TCnEcc4Point 点坐标转换为十六进制字符串。
+
+   参数：
+     P: TCnEcc4Point                      - 待转换的坐标点
+
+   返回值：string                         - 十六进制字符串形式的转换结果
+}
+
+function CnEcc4PointEqual(P: TCnEcc4Point; Q: TCnEcc4Point;
   Prime: TCnBigNumber): Boolean;
-{* 判断两个 TCnEcc4Point 是否同一个点}
+{* 判断两个 TCnEcc4Point 是否同一个点。
+
+   参数：
+     P: TCnEcc4Point                      - 待比较的坐标点一
+     Q: TCnEcc4Point                      - 待比较的坐标点二
+     Prime: TCnBigNumber                  - 有限域上界
+
+   返回值：Boolean                        - 返回是否同一个点
+}
 
 function CnEccPointToEcc4Point(DestPoint: TCnEcc4Point; SourcePoint: TCnEccPoint;
   Prime: TCnBigNumber): Boolean;
-{* 大数范围内的普通坐标到扩展仿射坐标的点转换}
+{* 大数范围内的普通坐标到扩展仿射坐标的点转换。
+
+   参数：
+     DestPoint: TCnEcc4Point              - 目标扩展仿射坐标点
+     SourcePoint: TCnEccPoint             - 源坐标点
+     Prime: TCnBigNumber                  - 有限域上界
+
+   返回值：Boolean                        - 返回转换是否成功
+}
 
 function CnEcc4PointToEccPoint(DestPoint: TCnEccPoint; SourcePoint: TCnEcc4Point;
   Prime: TCnBigNumber): Boolean;
-{* 大数范围内的扩展仿射坐标到普通坐标的点转换}
+{* 大数范围内的扩展仿射坐标到普通坐标的点转换。
+
+   参数：
+     DestPoint: TCnEccPoint               - 目标坐标点
+     SourcePoint: TCnEcc4Point            - 源扩展仿射坐标点
+     Prime: TCnBigNumber                  - 有限域上界
+
+   返回值：Boolean                        - 返回转换是否成功
+}
 
 // ========================= 25519 椭圆曲线辅助函数 ============================
 
@@ -695,35 +1488,92 @@ procedure CnProcess25519ScalarNumber(Num: TCnBigNumber);
 
 function CnEd25519SignData(PlainData: Pointer; DataByteLen: Integer; PrivateKey: TCnEd25519PrivateKey;
   PublicKey: TCnEd25519PublicKey; OutSignature: TCnEd25519Signature; Ed25519: TCnEd25519 = nil): Boolean;
-{* Ed25519 用公私钥对数据块进行签名，不支持 Ed25519ctx 与 Ed25519ph，返回签名是否成功，
-   为了提升效率需调用者自行保证公私钥匹配否则签名无效}
+{* 用 Ed25519 公私钥对数据块进行签名，不支持 Ed25519ctx 与 Ed25519ph，返回签名是否成功，
+   为了提升效率需调用者自行保证公私钥匹配否则签名无效。
+
+   参数：
+     PlainData: Pointer                   - 待签名的数据块的内存地址
+     DataByteLen: Integer                 - 待签名的数据块的字节长度
+     PrivateKey: TCnEd25519PrivateKey     - Ed25519 私钥
+     PublicKey: TCnEd25519PublicKey       - Ed25519 公钥
+     OutSignature: TCnEd25519Signature    - 输出的签名值
+     Ed25519: TCnEd25519                  - Ed25519 实例
+
+   返回值：Boolean                        - 返回签名是否成功
+}
 
 function CnEd25519VerifyData(PlainData: Pointer; DataByteLen: Integer; InSignature: TCnEd25519Signature;
   PublicKey: TCnEd25519PublicKey; Ed25519: TCnEd25519 = nil): Boolean;
-{* Ed25519 用公钥对数据块与签名进行验证，不支持 Ed25519ctx 与 Ed25519ph，返回验证是否成功}
+{* 用 Ed25519 公钥对数据块与签名进行验证，不支持 Ed25519ctx 与 Ed25519ph，返回验证是否成功。
+
+   参数：
+     PlainData: Pointer                   - 待验证的数据块的内存地址
+     DataByteLen: Integer                 - 待验证的数据块的字节长度
+     InSignature: TCnEd25519Signature     - 待验证的签名值
+     PublicKey: TCnEd25519PublicKey       - Ed25519 公钥
+     Ed25519: TCnEd25519                  - Ed25519 实例
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 function CnEd25519SignFile(const FileName: string; PrivateKey: TCnEd25519PrivateKey;
   PublicKey: TCnEd25519PublicKey; OutSignatureStream: TStream; Ed25519: TCnEd25519 = nil): Boolean;
-{* Ed25519 用公私钥对文件进行签名，不支持 Ed25519ctx 与 Ed25519ph，
-   签名值 64 字节写入 OutSignatureStream 中，返回签名是否成功}
+{* 用 Ed25519 公私钥对文件进行签名，不支持 Ed25519ctx 与 Ed25519ph，
+   签名值 64 字节写入 OutSignatureStream 中，返回签名是否成功。
+
+   参数：
+     const FileName: string               - 待签名的文件
+     PrivateKey: TCnEd25519PrivateKey     - Ed25519 私钥
+     PublicKey: TCnEd25519PublicKey       - Ed25519 公钥
+     OutSignatureStream: TStream          - 输出的签名值
+     Ed25519: TCnEd25519                  - Ed25519 实例
+
+   返回值：Boolean                        - 返回签名是否成功
+}
 
 function CnEd25519VerifyFile(const FileName: string; InSignatureStream: TStream;
   PublicKey: TCnEd25519PublicKey; Ed25519: TCnEd25519 = nil): Boolean;
-{* Ed25519 用公钥对文件与签名进行验证，不支持 Ed25519ctx 与 Ed25519ph，
-   InSignatureStream 内部须是 64 字节签名值，返回验证是否成功}
+{* 用 Ed25519 公钥对文件与签名进行验证，不支持 Ed25519ctx 与 Ed25519ph，
+   InSignatureStream 内部须是 64 字节签名值，返回验证是否成功。
+
+   参数：
+     const FileName: string               - 待验证的文件
+     InSignatureStream: TStream           - 待验证的签名值
+     PublicKey: TCnEd25519PublicKey       - Ed25519 公钥
+     Ed25519: TCnEd25519                  - Ed25519 实例
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 // =============== Curve25519 椭圆曲线 Diffie-Hellman 密钥交换  ================
 
 function CnCurve25519KeyExchangeStep1(SelfPrivateKey: TCnEccPrivateKey;
   OutPointToAnother: TCnEccPoint; Curve25519: TCnCurve25519 = nil): Boolean;
 {* 基于 Curve25519 的 Diffie-Hellman 密钥交换算法，A 与 B 均先调用此方法，
-  根据各自私钥生成点坐标，该点坐标需发给对方。返回生成是否成功}
+   根据各自私钥生成点坐标，该点坐标需发给对方。返回生成是否成功。
+
+   参数：
+     SelfPrivateKey: TCnEccPrivateKey     - 调用者自身的 Curve25519 私钥
+     OutPointToAnother: TCnEccPoint       - 生成的坐标点，需输出给对方
+     Curve25519: TCnCurve25519            - Curve25519 实例
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnCurve25519KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
   InPointFromAnother: TCnEccPoint; OutKey: TCnEccPoint; Curve25519: TCnCurve25519 = nil): Boolean;
 {* 基于 Curve25519 的 Diffie-Hellman 密钥交换算法，A 与 B 收到对方的 Point 坐标后再调用此方法，
-  根据各自私钥生成一共同的点坐标，该点坐标便为共享密钥，可再通过派生进一步复杂化。
-  返回生成是否成功}
+   根据各自私钥生成一共同的点坐标，该点坐标便为共享密钥，可再通过派生进一步复杂化。
+   返回生成是否成功。
+
+   参数：
+     SelfPrivateKey: TCnEccPrivateKey     - 调用者自身的 Curve25519 私钥
+     InPointFromAnother: TCnEccPoint      - 从第一步中拿到的对方生成的坐标点
+     OutKey: TCnEccPoint                  - 输出的共享密钥
+     Curve25519: TCnCurve25519            - Curve25519 实例
+
+   返回值：Boolean                        - 返回共享密钥是否生成成功
+}
 
 // ============================== 多项式加速算法 ===============================
 
@@ -872,43 +1722,120 @@ procedure CnProcessEd448ScalarNumber(Num: TCnBigNumber);
 function CnCurve448KeyExchangeStep1(SelfPrivateKey: TCnEccPrivateKey;
   OutPointToAnother: TCnEccPoint; Curve448: TCnCurve448 = nil): Boolean;
 {* 基于 Curve448 的 Diffie-Hellman 密钥交换算法，A 与 B 均先调用此方法，
-  根据各自私钥生成点坐标，该点坐标需发给对方。返回生成是否成功}
+   根据各自私钥生成坐标点，该坐标点需发给对方。返回生成是否成功。
+
+   参数：
+     SelfPrivateKey: TCnEccPrivateKey     - 调用者自身的 Curve448 私钥
+     OutPointToAnother: TCnEccPoint       - 生成的坐标点，需输出给对方
+     Curve448: TCnCurve448                - Curve448 实例
+
+   返回值：Boolean                        - 返回坐标点是否生成成功
+}
 
 function CnCurve448KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
   InPointFromAnother: TCnEccPoint; OutKey: TCnEccPoint; Curve448: TCnCurve448 = nil): Boolean;
 {* 基于 Curve448 的 Diffie-Hellman 密钥交换算法，A 与 B 收到对方的 Point 坐标后再调用此方法，
-  根据各自私钥生成一共同的点坐标，该点坐标便为共享密钥，可再通过派生进一步复杂化。
-  返回生成是否成功}
+   根据各自私钥生成一共同的点坐标，该点坐标便为共享密钥，可再通过派生进一步复杂化。
+   返回生成是否成功。
+
+   参数：
+     SelfPrivateKey: TCnEccPrivateKey     - 调用者自身的 Curve448 私钥
+     InPointFromAnother: TCnEccPoint      - 从第一步中拿到的对方生成的坐标点
+     OutKey: TCnEccPoint                  - 输出的共享密钥
+     Curve448: TCnCurve448                - Curve448 实例
+
+   返回值：Boolean                        - 返回共享密钥是否生成成功
+}
 
 // ===================== Ed448 椭圆曲线数字签名验证算法 ======================
 
 function CnEd448SignData(PlainData: Pointer; DataByteLen: Integer; PrivateKey: TCnEd448PrivateKey;
   PublicKey: TCnEd448PublicKey; OutSignature: TCnEd448Signature;
   const UserContext: TBytes = nil; Ed448: TCnEd448 = nil): Boolean;
-{* Ed448 用公私钥对数据块进行签名，返回签名是否成功，为了提升效率需调用者自行保证公私钥匹配否则签名无效}
+{* Ed448 用公私钥对数据块进行签名，返回签名是否成功，为了提升效率需调用者自行保证公私钥匹配否则签名无效。
+
+   参数：
+     PlainData: Pointer                   - 待签名的数据块的内存地址
+     DataByteLen: Integer                 - 待签名的数据块的字节长度
+     PrivateKey: TCnEd448PrivateKey       - Ed448 私钥
+     PublicKey: TCnEd448PublicKey         - Ed448 公钥
+     OutSignature: TCnEd448Signature      - 输出的签名值
+     const UserContext: TBytes            - 用户名之类的签名上下文内容
+     Ed448: TCnEd448                      - Ed448 实例
+
+   返回值：Boolean                        - 返回签名是否成功
+}
 
 function CnEd448VerifyData(PlainData: Pointer; DataByteLen: Integer; InSignature: TCnEd448Signature;
   PublicKey: TCnEd448PublicKey; const UserContext: TBytes = nil; Ed448: TCnEd448 = nil): Boolean;
-{* Ed448 用公钥对数据块与签名进行验证，返回验证是否成功}
+{* Ed448 用公钥对数据块与签名进行验证，返回验证是否成功。
+
+   参数：
+     PlainData: Pointer                   - 待验证的数据块的内存地址
+     DataByteLen: Integer                 - 待验证的数据块的字节长度
+     InSignature: TCnEd448Signature       - 待验证的签名值
+     PublicKey: TCnEd448PublicKey         - Ed448 公钥
+     const UserContext: TBytes            - 用户名之类的签名上下文内容，需与签名时相同
+     Ed448: TCnEd448                      - Ed448 实例
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 function CnEd448SignFile(const FileName: string; PrivateKey: TCnEd448PrivateKey;
   PublicKey: TCnEd448PublicKey; OutSignatureStream: TStream;
   const UserContext: TBytes = nil; Ed448: TCnEd448 = nil): Boolean;
-{* Ed448 用公私钥对文件进行签名，签名值 114 字节写入 OutSignatureStream 中，返回签名是否成功}
+{* 用 Ed448 公私钥对文件进行签名，签名值 114 字节写入 OutSignatureStream 中，返回签名是否成功。
+
+   参数：
+     const FileName: string               - 被签名的文件
+     PrivateKey: TCnEd448PrivateKey       - Ed448 私钥
+     PublicKey: TCnEd448PublicKey         - Ed448 公钥
+     OutSignatureStream: TStream          - 输出的签名内容流
+     const UserContext: TBytes            - 用户名之类的签名上下文内容
+     Ed448: TCnEd448                      - Ed448 实例
+
+   返回值：Boolean                        - 返回签名是否成功
+}
 
 function CnEd448VerifyFile(const FileName: string; InSignatureStream: TStream;
   PublicKey: TCnEd448PublicKey; const UserContext: TBytes = nil; Ed448: TCnEd448 = nil): Boolean;
-{* Ed448 用公钥对文件与签名进行验证，InSignatureStream 内部须是 114 字节签名值，返回验证是否成功}
+{* 用 Ed448 公钥对文件与签名进行验证，InSignatureStream 内部须是 114 字节签名值，返回验证是否成功。
+
+   参数：
+     const FileName: string               - 被验证的文件
+     InSignatureStream: TStream           - 签名内容流
+     PublicKey: TCnEd448PublicKey         - Ed448 公钥
+     const UserContext: TBytes            - 用户名之类的签名上下文内容，需与签名时相同
+     Ed448: TCnEd448                      - Ed448 实例
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 // ======================= Ed25519/448 私钥额外计算函数 ========================
 
-procedure CnCalcKeysFromEd25519PrivateKey(const InPrivateKey: TCnBigNumber;
+procedure CnCalcKeysFromEd25519PrivateKey(InPrivateKey: TCnBigNumber;
   OutMulFactor: TCnBigNumber; OutHashPrefix: TCnBigNumber);
-{* 根据随机私钥也叫 Secret Key 生成公钥与 Ed25519 签名使用的 Hash 种子}
+{* 根据 Ed 25519 的随机私钥也叫 Secret Key 生成公钥与 Ed25519 签名使用的杂凑前缀。
 
-procedure CnCalcKeysFromEd448PrivateKey(const InPrivateKey: TCnBigNumber;
+   参数：
+     InPrivateKey: TCnBigNumber           - 输入的 Ed25519 私钥
+     OutMulFactor: TCnBigNumber           - 输出的私钥乘数
+     OutHashPrefix: TCnBigNumber          - 输出的杂凑种子
+
+   返回值：（无）
+}
+
+procedure CnCalcKeysFromEd448PrivateKey(InPrivateKey: TCnBigNumber;
   OutMulFactor: TCnBigNumber; OutHashPrefix: TCnBigNumber);
-{* 根据随机私钥也叫 Secret Key 生成公钥与 Ed448 签名使用的 Hash 种子}
+{* 根据 Ed448 的随机私钥也叫 Secret Key 生成公钥与 Ed448 签名使用的杂凑前缀。
+
+   参数：
+     InPrivateKey: TCnBigNumber           - 输入的 Ed448 私钥
+     OutMulFactor: TCnBigNumber           - 输出的私钥乘数
+     OutHashPrefix: TCnBigNumber          - 输出的杂凑种子
+
+   返回值：（无）
+}
 
 implementation
 
@@ -1704,7 +2631,7 @@ begin
 end;
 
 // 根据随机私钥，生成公钥与 Ed25519 签名使用的 Hash 种子
-procedure CnCalcKeysFromEd25519PrivateKey(const InPrivateKey: TCnBigNumber;
+procedure CnCalcKeysFromEd25519PrivateKey(InPrivateKey: TCnBigNumber;
   OutMulFactor, OutHashPrefix: TCnBigNumber);
 var
   Dig: TCnSHA512Digest;
@@ -1729,7 +2656,7 @@ begin
 end;
 
 // 根据随机私钥，生成公钥与 Ed448 签名使用的 Hash 种子
-procedure CnCalcKeysFromEd448PrivateKey(const InPrivateKey: TCnBigNumber;
+procedure CnCalcKeysFromEd448PrivateKey(InPrivateKey: TCnBigNumber;
   OutMulFactor, OutHashPrefix: TCnBigNumber);
 var
   Dig: TCnSHAKE256Digest;
@@ -1840,20 +2767,20 @@ begin
   FCoFactor := H;
 end;
 
-procedure TCnTwistedEdwardsCurve.MultiplePoint(K: Int64; Point: TCnEccPoint);
+procedure TCnTwistedEdwardsCurve.MultiplePoint(K: Int64; P: TCnEccPoint);
 var
   BK: TCnBigNumber;
 begin
   BK := FBigNumberPool.Obtain;
   try
     BK.SetInt64(K);
-    MultiplePoint(BK, Point);
+    MultiplePoint(BK, P);
   finally
     FBigNumberPool.Recycle(BK);
   end;
 end;
 
-procedure TCnTwistedEdwardsCurve.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+procedure TCnTwistedEdwardsCurve.MultiplePoint(K: TCnBigNumber; P: TCnEccPoint);
 var
   I: Integer;
   E, R: TCnEccPoint;
@@ -1861,12 +2788,12 @@ begin
   if BigNumberIsNegative(K) then
   begin
     BigNumberSetNegative(K, False);
-    PointInverse(Point);
+    PointInverse(P);
   end;
 
   if BigNumberIsZero(K) then
   begin
-    SetNeutualPoint(Point);
+    SetNeutualPoint(P);
     Exit;
   end
   else if BigNumberIsOne(K) then // 乘 1 无需动
@@ -1880,8 +2807,8 @@ begin
     E := TCnEccPoint.Create;
 
     SetNeutualPoint(R); // R 被创建时默认为 (0, 0)，但此处必须为中性点 (0, 1)
-    E.X := Point.X;
-    E.Y := Point.Y;
+    E.X := P.X;
+    E.Y := P.Y;
 
     for I := 0 to BigNumberGetBitsCount(K) - 1 do
     begin
@@ -1890,8 +2817,8 @@ begin
       PointAddPoint(E, E, E);
     end;
 
-    Point.X := R.X;
-    Point.Y := R.Y;
+    P.X := R.X;
+    P.Y := R.Y;
   finally
     E.Free;
     R.Free;
@@ -2112,21 +3039,21 @@ begin
   CheckLadderConst;
 end;
 
-procedure TCnMontgomeryCurve.MultiplePoint(K: Int64; Point: TCnEccPoint);
+procedure TCnMontgomeryCurve.MultiplePoint(K: Int64; P: TCnEccPoint);
 var
   BK: TCnBigNumber;
 begin
   BK := FBigNumberPool.Obtain;
   try
     BK.SetInt64(K);
-    MultiplePoint(BK, Point);
+    MultiplePoint(BK, P);
   finally
     FBigNumberPool.Recycle(BK);
   end;
 end;
 
 procedure TCnMontgomeryCurve.MontgomeryLadderMultiplePoint(K: TCnBigNumber;
-  Point: TCnEccPoint);
+  P: TCnEccPoint);
 var
   I, C: Integer;
   X0, X1: TCnEccPoint;
@@ -2134,12 +3061,12 @@ begin
   if BigNumberIsNegative(K) then
   begin
     BigNumberSetNegative(K, False);
-    XAffinePointInverse(Point);
+    XAffinePointInverse(P);
   end;
 
   if BigNumberIsZero(K) then 
   begin
-    Point.SetZero;
+    P.SetZero;
     Exit;
   end
   else if BigNumberIsOne(K) then // 乘 1 无需动
@@ -2152,20 +3079,20 @@ begin
     X0 := TCnEccPoint.Create;
     X1 := TCnEccPoint.Create;
 
-    X1.Assign(Point);
-    MontgomeryLadderPointXDouble(X0, Point);
+    X1.Assign(P);
+    MontgomeryLadderPointXDouble(X0, P);
 
     C := K.GetBitsCount;
     for I := C - 2 downto 0 do // 内部先不考虑 Time Constant 执行时间固定的要求
     begin
       ConditionalSwapPoint(K.IsBitSet(I + 1) <> K.IsBitSet(I), X0, X1); // 换
 
-      MontgomeryLadderPointXAdd(X1, X0, X1, Point);
+      MontgomeryLadderPointXAdd(X1, X0, X1, P);
       MontgomeryLadderPointXDouble(X0, X0);
     end;
 
     ConditionalSwapPoint(K.IsBitSet(0), X0, X1);
-    Point.Assign(X0);
+    P.Assign(X0);
   finally
     X1.Free;
     X0.Free;
@@ -2250,8 +3177,7 @@ begin
   end;
 end;
 
-procedure TCnMontgomeryCurve.MultiplePoint(K: TCnBigNumber;
-  Point: TCnEccPoint);
+procedure TCnMontgomeryCurve.MultiplePoint(K: TCnBigNumber; P: TCnEccPoint);
 var
   I: Integer;
   E, R: TCnEccPoint;
@@ -2259,12 +3185,12 @@ begin
   if BigNumberIsNegative(K) then
   begin
     BigNumberSetNegative(K, False);
-    PointInverse(Point);
+    PointInverse(P);
   end;
 
   if BigNumberIsZero(K) then
   begin
-    Point.SetZero;
+    P.SetZero;
     Exit;
   end
   else if BigNumberIsOne(K) then // 乘 1 无需动
@@ -2278,8 +3204,8 @@ begin
     E := TCnEccPoint.Create;
 
     // R 被创建时默认为无穷远点
-    E.X := Point.X;
-    E.Y := Point.Y;
+    E.X := P.X;
+    E.Y := P.Y;
 
     for I := 0 to BigNumberGetBitsCount(K) - 1 do
     begin
@@ -2288,8 +3214,8 @@ begin
       PointAddPoint(E, E, E);
     end;
 
-    Point.X := R.X;
-    Point.Y := R.Y;
+    P.X := R.X;
+    P.Y := R.Y;
   finally
     E.Free;
     R.Free;
@@ -2449,15 +3375,14 @@ begin
   end;
 end;
 
-procedure TCnMontgomeryCurve.MontgomeryLadderMultiplePoint(K: Int64;
-  Point: TCnEccPoint);
+procedure TCnMontgomeryCurve.MontgomeryLadderMultiplePoint(K: Int64; P: TCnEccPoint);
 var
   BK: TCnBigNumber;
 begin
   BK := FBigNumberPool.Obtain;
   try
     BK.SetInt64(K);
-    MontgomeryLadderMultiplePoint(BK, Point);
+    MontgomeryLadderMultiplePoint(BK, P);
   finally
     FBigNumberPool.Recycle(BK);
   end;
@@ -2601,26 +3526,30 @@ begin
     SCN_25519_MONT_GY, SCN_25519_ORDER, SCN_25519_COFACTOR);
 end;
 
-procedure TCnCurve25519.GenerateKeys(PrivateKey: TCnCurve25519PrivateKey;
-  PublicKey: TCnCurve25519PublicKey);
+function TCnCurve25519.GenerateKeys(PrivateKey: TCnCurve25519PrivateKey;
+  PublicKey: TCnCurve25519PublicKey): Boolean;
 begin
-  BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
-  if PrivateKey.IsZero then                         // 万一真拿到 0，就设为 4
+  Result := False;
+  if not BigNumberRandRange(PrivateKey, FOrder) then  // 比 0 大但比基点阶小的随机数
+    Exit;
+
+  if PrivateKey.IsZero then                           // 万一真拿到 0，就设为 4
     PrivateKey.SetWord(4);
 
-  CnProcess25519ScalarNumber(PrivateKey);           // 按 RFC 规定处理私钥
+  CnProcess25519ScalarNumber(PrivateKey);             // 按 RFC 规定处理私钥
 
   PublicKey.Assign(FGenerator);
-  MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
+  MultiplePoint(PrivateKey, PublicKey);               // 基点乘 PrivateKey 次
+  Result := True;
 end;
 
-procedure TCnCurve25519.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+procedure TCnCurve25519.MultiplePoint(K: TCnBigNumber; P: TCnEccPoint);
 var
   M: TCn25519Field64EccPoint;
 begin
-  PointToField64XAffinePoint(M, Point);
+  PointToField64XAffinePoint(M, P);
   MontgomeryLadderField64MultiplePoint(K, M);
-  Field64XAffinePointToPoint(Point, M);
+  Field64XAffinePointToPoint(P, M);
 end;
 
 procedure TCnCurve25519.PointToField64XAffinePoint(
@@ -2662,45 +3591,45 @@ begin
 end;
 
 procedure TCnCurve25519.MontgomeryLadderField64MultiplePoint(
-  K: TCnBigNumber; var Point: TCn25519Field64EccPoint);
+  K: TCnBigNumber; var P: TCn25519Field64EccPoint);
 var
   I, C: Integer;
   X0, X1: TCn25519Field64EccPoint;
 begin
   if BigNumberIsZero(K) then // 不考虑 K 为负值的情况
   begin
-    Cn25519Field64Zero(Point.X);
-    Cn25519Field64Zero(Point.Y);
+    Cn25519Field64Zero(P.X);
+    Cn25519Field64Zero(P.Y);
     Exit;
   end
   else if BigNumberIsOne(K) then // 乘 1 无需动
     Exit;
 
-  Cn25519Field64EccPointCopy(X1, Point);
-  MontgomeryLadderField64PointXDouble(X0, Point);
+  Cn25519Field64EccPointCopy(X1, P);
+  MontgomeryLadderField64PointXDouble(X0, P);
 
   C := K.GetBitsCount;
   for I := C - 2 downto 0 do // 内部先不考虑 Time Constant 执行时间固定的要求
   begin
     ConditionalSwapField64Point(K.IsBitSet(I + 1) <> K.IsBitSet(I), X0, X1); // 换
 
-    MontgomeryLadderField64PointXAdd(X1, X0, X1, Point);
+    MontgomeryLadderField64PointXAdd(X1, X0, X1, P);
     MontgomeryLadderField64PointXDouble(X0, X0);
   end;
 
   ConditionalSwapField64Point(K.IsBitSet(0), X0, X1);
-  Cn25519Field64EccPointCopy(Point, X0);
+  Cn25519Field64EccPointCopy(P, X0);
 end;
 
 procedure TCnCurve25519.MontgomeryLadderField64MultiplePoint(K: Int64;
-  var Point: TCn25519Field64EccPoint);
+  var P: TCn25519Field64EccPoint);
 var
   BK: TCnBigNumber;
 begin
   BK := FBigNumberPool.Obtain;
   try
     BK.SetInt64(K);
-    MontgomeryLadderField64MultiplePoint(BK, Point);
+    MontgomeryLadderField64MultiplePoint(BK, P);
   finally
     FBigNumberPool.Recycle(BK);
   end;
@@ -2762,21 +3691,21 @@ begin
 end;
 
 procedure TCnEd25519.ExtendedField64MultiplePoint(K: Int64;
-  var Point: TCn25519Field64Ecc4Point);
+  var P: TCn25519Field64Ecc4Point);
 var
   BK: TCnBigNumber;
 begin
   BK := FBigNumberPool.Obtain;
   try
     BK.SetInt64(K);
-    ExtendedField64MultiplePoint(BK, Point);
+    ExtendedField64MultiplePoint(BK, P);
   finally
     FBigNumberPool.Recycle(BK);
   end;
 end;
 
 procedure TCnEd25519.ExtendedField64MultiplePoint(K: TCnBigNumber;
-  var Point: TCn25519Field64Ecc4Point);
+  var P: TCn25519Field64Ecc4Point);
 var
   I: Integer;
   E, R: TCn25519Field64Ecc4Point;
@@ -2784,12 +3713,12 @@ begin
   if BigNumberIsNegative(K) then
   begin
     BigNumberSetNegative(K, False);
-    ExtendedField64PointInverse(Point);
+    ExtendedField64PointInverse(P);
   end;
 
   if BigNumberIsZero(K) then
   begin
-    Cn25519Field64Ecc4PointNeutual(Point);
+    Cn25519Field64Ecc4PointNeutual(P);
     Exit;
   end
   else if BigNumberIsOne(K) then // 乘 1 无需动
@@ -2797,7 +3726,7 @@ begin
 
   // R 要是中性点
   Cn25519Field64Ecc4PointNeutual(R);
-  Cn25519Field64Ecc4PointCopy(E, Point);
+  Cn25519Field64Ecc4PointCopy(E, P);
 
   for I := 0 to BigNumberGetBitsCount(K) - 1 do
   begin
@@ -2806,11 +3735,11 @@ begin
     ExtendedField64PointAddPoint(E, E, E);
   end;
 
-  Cn25519Field64Ecc4PointCopy(Point, R);
+  Cn25519Field64Ecc4PointCopy(P, R);
 end;
 
-function TCnEd25519.ExtendedField64PointAddPoint(var P, Q,
-  Sum: TCn25519Field64Ecc4Point): Boolean;
+procedure TCnEd25519.ExtendedField64PointAddPoint(var P, Q,
+  Sum: TCn25519Field64Ecc4Point);
 var
   A, B, C, D, E, F, G, H: TCn25519Field64;
   CoD: TCn25519Field64;
@@ -2837,8 +3766,6 @@ begin
     Cn25519Field64Mul(Sum.Y, G, H);   // Y3 = G*H
     Cn25519Field64Mul(Sum.T, E, H);   // T3 = E*H
     Cn25519Field64Mul(Sum.Z, F, G);   // Z3 = F*G
-
-    Result := True;
   end
   else
   begin
@@ -2868,8 +3795,6 @@ begin
     Cn25519Field64Mul(Sum.Y, G, H);   // Y3 = G*H
     Cn25519Field64Mul(Sum.T, E, H);   // T3 = E*H
     Cn25519Field64Mul(Sum.Z, F, G);   // Z3 = F*G
-
-    Result := True;
   end;
 end;
 
@@ -2901,14 +3826,14 @@ begin
   end;
 end;
 
-function TCnEd25519.ExtendedField64PointSubPoint(var P, Q,
-  Diff: TCn25519Field64Ecc4Point): Boolean;
+procedure TCnEd25519.ExtendedField64PointSubPoint(var P, Q,
+  Diff: TCn25519Field64Ecc4Point);
 var
   Inv: TCn25519Field64Ecc4Point;
 begin
   Cn25519Field64Ecc4PointCopy(Inv, Q);
   ExtendedField64PointInverse(Inv);
-  Result := ExtendedField64PointAddPoint(P, Inv, Diff);
+  ExtendedField64PointAddPoint(P, Inv, Diff);
 end;
 
 function TCnEd25519.IsExtendedField64PointOnCurve(
@@ -2950,13 +3875,13 @@ begin
   end;
 end;
 
-procedure TCnEd25519.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+procedure TCnEd25519.MultiplePoint(K: TCnBigNumber; P: TCnEccPoint);
 var
   P4: TCn25519Field64Ecc4Point;
 begin
-  CnEccPointToField64Ecc4Point(P4, Point);
+  CnEccPointToField64Ecc4Point(P4, P);
   ExtendedField64MultiplePoint(K, P4);
-  CnField64Ecc4PointToEccPoint(Point, P4);
+  CnField64Ecc4PointToEccPoint(P, P4);
 end;
 
 function TCnEd25519.IsNeutualExtendedPoint(P: TCnEcc4Point): Boolean;
@@ -2973,21 +3898,20 @@ begin
   P.T.SetZero;
 end;
 
-procedure TCnEd25519.ExtendedMultiplePoint(K: Int64; Point: TCnEcc4Point);
+procedure TCnEd25519.ExtendedMultiplePoint(K: Int64; P: TCnEcc4Point);
 var
   BK: TCnBigNumber;
 begin
   BK := FBigNumberPool.Obtain;
   try
     BK.SetInt64(K);
-    ExtendedMultiplePoint(BK, Point);
+    ExtendedMultiplePoint(BK, P);
   finally
     FBigNumberPool.Recycle(BK);
   end;
 end;
 
-procedure TCnEd25519.ExtendedMultiplePoint(K: TCnBigNumber;
-  Point: TCnEcc4Point);
+procedure TCnEd25519.ExtendedMultiplePoint(K: TCnBigNumber; P: TCnEcc4Point);
 var
   I: Integer;
   E, R: TCnEcc4Point;
@@ -2995,12 +3919,12 @@ begin
   if BigNumberIsNegative(K) then
   begin
     BigNumberSetNegative(K, False);
-    ExtendedPointInverse(Point);
+    ExtendedPointInverse(P);
   end;
 
   if BigNumberIsZero(K) then
   begin
-    SetNeutualExtendedPoint(Point);
+    SetNeutualExtendedPoint(P);
     Exit;
   end
   else if BigNumberIsOne(K) then // 乘 1 无需动
@@ -3016,10 +3940,10 @@ begin
     // R 要是中性点
     SetNeutualExtendedPoint(R);
 
-    E.X := Point.X;
-    E.Y := Point.Y;
-    E.Z := Point.Z;
-    E.T := Point.T;
+    E.X := P.X;
+    E.Y := P.Y;
+    E.Z := P.Z;
+    E.T := P.T;
 
     for I := 0 to BigNumberGetBitsCount(K) - 1 do
     begin
@@ -3028,9 +3952,9 @@ begin
       ExtendedPointAddPoint(E, E, E);
     end;
 
-    Point.X := R.X;
-    Point.Y := R.Y;
-    Point.Z := R.Z;
+    P.X := R.X;
+    P.Y := R.Y;
+    P.Z := R.Z;
   finally
     R.Free;
     E.Free;
@@ -3214,17 +4138,17 @@ begin
   CnEd25519PointToData(Point, OutPlain);
 end;
 
-function CnEcc4PointToString(const P: TCnEcc4Point): string;
+function CnEcc4PointToString(P: TCnEcc4Point): string;
 begin
   Result := Format('%s,%s,%s,%s', [P.X.ToDec, P.Y.ToDec, P.Z.ToDec, P.T.ToDec]);
 end;
 
-function CnEcc4PointToHex(const P: TCnEcc4Point): string;
+function CnEcc4PointToHex(P: TCnEcc4Point): string;
 begin
   Result := Format('%s,%s,%s,%s', [P.X.ToHex, P.Y.ToHex, P.Z.ToHex, P.T.ToHex]);
 end;
 
-function CnEcc4PointEqual(const P, Q: TCnEcc4Point; Prime: TCnBigNumber): Boolean;
+function CnEcc4PointEqual(P: TCnEcc4Point; Q: TCnEcc4Point; Prime: TCnBigNumber): Boolean;
 var
   T1, T2: TCnBigNumber;
 begin
@@ -4493,30 +5417,34 @@ begin
     SCN_448_MONT_GY, SCN_448_ORDER, SCN_448_COFACTOR);
 end;
 
-procedure TCnCurve448.GenerateKeys(PrivateKey: TCnCurve448PrivateKey;
-  PublicKey: TCnCurve448PublicKey);
+function TCnCurve448.GenerateKeys(PrivateKey: TCnCurve448PrivateKey;
+  PublicKey: TCnCurve448PublicKey): Boolean;
 begin
-  BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
-  if PrivateKey.IsZero then                         // 万一真拿到 0，就设为 8
+  Result := False;
+  if not BigNumberRandRange(PrivateKey, FOrder) then  // 比 0 大但比基点阶小的随机数
+    Exit;
+
+  if PrivateKey.IsZero then                           // 万一真拿到 0，就设为 8
     PrivateKey.SetWord(8);
 
-  CnProcessCurve448ScalarNumber(PrivateKey);        // 按 RFC 规定处理私钥
+  CnProcessCurve448ScalarNumber(PrivateKey);          // 按 RFC 规定处理私钥
 
   PublicKey.Assign(FGenerator);
-  MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次;
+  MultiplePoint(PrivateKey, PublicKey);               // 基点乘 PrivateKey 次
+  Result := True;
 end;
 
-procedure TCnCurve448.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+procedure TCnCurve448.MultiplePoint(K: TCnBigNumber; P: TCnEccPoint);
 var
-  P: TCnEccPoint;
+  T: TCnEccPoint;
 begin
-  P := TCnEccPoint.Create;   // 注意 448 不适用 2^51 的多项式加速算法
+  T := TCnEccPoint.Create;   // 注意 448 不适用 2^51 的多项式加速算法
   try
-    PointToXAffinePoint(P, Point);
-    MontgomeryLadderMultiplePoint(K, P);
-    XAffinePointToPoint(Point, P);
+    PointToXAffinePoint(T, P);
+    MontgomeryLadderMultiplePoint(K, T);
+    XAffinePointToPoint(P, T);
   finally
-    P.Free;
+    T.Free;
   end;
 end;
 
@@ -4591,20 +5519,20 @@ end;
 
 { TCnEd448 }
 
-procedure TCnEd448.AffineMultiplePoint(K: Int64; Point: TCnEcc3Point);
+procedure TCnEd448.AffineMultiplePoint(K: Int64; P: TCnEcc3Point);
 var
   BK: TCnBigNumber;
 begin
   BK := FBigNumberPool.Obtain;
   try
     BK.SetInt64(K);
-    AffineMultiplePoint(BK, Point);
+    AffineMultiplePoint(BK, P);
   finally
     FBigNumberPool.Recycle(BK);
   end;
 end;
 
-procedure TCnEd448.AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
+procedure TCnEd448.AffineMultiplePoint(K: TCnBigNumber; P: TCnEcc3Point);
 var
   I, C: Integer;
   E, R: TCnEcc3Point;
@@ -4612,12 +5540,12 @@ begin
   if BigNumberIsNegative(K) then
   begin
     BigNumberSetNegative(K, False);
-    AffinePointInverse(Point);
+    AffinePointInverse(P);
   end;
 
   if BigNumberIsZero(K) then
   begin
-    SetNeutualAffinePoint(Point);
+    SetNeutualAffinePoint(P);
     Exit;
   end
   else if BigNumberIsOne(K) then // 乘 1 无需动
@@ -4633,9 +5561,9 @@ begin
     // R 要是中性点
     SetNeutualAffinePoint(R);
 
-    E.X := Point.X;
-    E.Y := Point.Y;
-    E.Z := Point.Z;
+    E.X := P.X;
+    E.Y := P.Y;
+    E.Z := P.Z;
 
     C := BigNumberGetBitsCount(K);
     for I := 0 to C - 1 do
@@ -4647,9 +5575,9 @@ begin
         AffinePointAddPoint(E, E, E);
     end;
 
-    Point.X := R.X;
-    Point.Y := R.Y;
-    Point.Z := R.Z;
+    P.X := R.X;
+    P.Y := R.Y;
+    P.Z := R.Z;
   finally
     R.Free;
     E.Free;
@@ -4844,15 +5772,15 @@ begin
     and BigNumberEqual(P.Y, P.Z);
 end;
 
-procedure TCnEd448.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
+procedure TCnEd448.MultiplePoint(K: TCnBigNumber; P: TCnEccPoint);
 var
   P3: TCnEcc3Point;
 begin
   P3 := TCnEcc3Point.Create;
   try
-    CnEccPointToEcc3Point(Point, P3);
+    CnEccPointToEcc3Point(P, P3);
     AffineMultiplePoint(K, P3);
-    CnAffinePointToEccPoint(P3, Point, FPrime448);
+    CnAffinePointToEccPoint(P3, P, FPrime448);
   finally
     P3.Free;
   end;
