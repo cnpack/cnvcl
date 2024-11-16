@@ -30,9 +30,9 @@ unit CnPaillier;
 *           得到的结果是原始俩明文相加（加法同态），是协同密钥体制的基础。
 *
 *           概念：某整数针对 N 的阶，是该整数最小次方模 N 为 1 的那个次方数
-*           阶必然能够整除和 N 互质的数量（欧拉函数），求阶可枚举欧拉函数的质因数。
+*           阶必然能够整除和 N 互素的数量（欧拉函数），求阶可枚举欧拉函数的素因数。
 *           如果阶等于 N 的欧拉函数，则说明该整数一路乘方模 N 下去能够覆盖 N 下
-*           的所有互质内容，这个阶就是原根。
+*           的所有互素内容，这个阶就是原根。
 
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
@@ -92,8 +92,18 @@ type
     FLambda: TCnBigNumber;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
+
     procedure Assign(Source: TPersistent); override;
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent                  - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
 
     property P: TCnBigNumber read FP;
     {* 大素数一}
@@ -113,8 +123,18 @@ type
     FN2: TCnBigNumber;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
+
     procedure Assign(Source: TPersistent); override;
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent                  - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
 
     property N: TCnBigNumber read FN;
     {* 俩素数乘积}
@@ -126,44 +146,129 @@ type
 
 function CnGenerateInt64PaillierKeys(var PrivateKey: TCnInt64PaillierPrivateKey;
   var PublicKey: TCnInt64PaillierPublicKey): Boolean;
-{* 随机生成一对 Int64 范围内的 Paillier 公私钥，返回生成是否成功}
+{* 随机生成一对 Int64 范围内的 Paillier 公私钥，返回生成是否成功。
+
+   参数：
+     var PrivateKey: TCnInt64PaillierPrivateKey - 生成的 Paillier 私钥
+     var PublicKey: TCnInt64PaillierPublicKey   - 生成的 Paillier 公钥
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnInt64PaillierEncrypt(var PublicKey: TCnInt64PaillierPublicKey;
   Data: Int64; out Res: Int64; RandFactor: Int64 = 0): Boolean;
 {* Int64 范围内的 Paillier 公钥加密明文数据得到密文，返回加密是否成功。
-  允许外部传入随机数，0 表示内部生成}
+   允许外部传入随机数，0 表示内部生成。
+
+   参数：
+     var PublicKey: TCnInt64PaillierPublicKey   - Paillier 公钥
+     Data: Int64                                - 待加密的明文数据
+     out Res: Int64                             - 输出的密文
+     RandFactor: Int64                          - 随机数
+
+   返回值：Boolean                        - 返回加密是否成功
+}
 
 function CnInt64PaillierDecrypt(var PrivateKey: TCnInt64PaillierPrivateKey;
   var PublicKey: TCnInt64PaillierPublicKey; EnData: Int64; out Res: Int64): Boolean;
-{* Int64 范围内的 Paillier 私钥解密密文数据得到明文，返回解密是否成功}
+{* Int64 范围内的 Paillier 私钥解密密文数据得到明文，返回解密是否成功。
+
+   参数：
+     var PrivateKey: TCnInt64PaillierPrivateKey - Paillier 私钥
+     var PublicKey: TCnInt64PaillierPublicKey   - Paillier 公钥
+     EnData: Int64                              - 待解密的密文数据
+     out Res: Int64                             - 输出的明文
+
+   返回值：Boolean                        - 返回解密是否成功
+}
 
 function CnInt64PaillierAddPlain(Data1: Int64; Data2: Int64;
   var PublicKey: TCnInt64PaillierPublicKey): Int64;
-{* Int64 范围内 Paillier 加法同态的明文加法，内部是模 N 加}
+{* Int64 范围内 Paillier 加法同态的明文加法，内部是模 N 加。
+
+   参数：
+     Data1: Int64                               - 明文加数一
+     Data2: Int64                               - 明文加数二
+     var PublicKey: TCnInt64PaillierPublicKey   - Paillier 公钥
+
+   返回值：Int64                          - 返回和
+}
 
 function CnInt64PaillierAddCipher(EnData1: Int64; EnData2: Int64;
   var PublicKey: TCnInt64PaillierPublicKey): Int64;
-{* Int64 范围内 Paillier 加法同态的密文加法，内部是模 N^2 乘}
+{* Int64 范围内 Paillier 加法同态的密文加法，内部是模 N^2 乘。
+
+   参数：
+     EnData1: Int64                             - 密文乘数一
+     EnData2: Int64                             - 密文乘数二
+     var PublicKey: TCnInt64PaillierPublicKey   - Paillier 公钥
+
+   返回值：Int64                          - 返回积
+}
 
 function CnGeneratePaillierKeys(PrivateKey: TCnPaillierPrivateKey;
   PublicKey: TCnPaillierPublicKey; PrimeBits: Integer = CN_PAILLIER_DEFAULT_PRIMEBITS): Boolean;
-{* 随机生成一对大数范围内的 Paillier 公私钥，返回生成是否成功}
+{* 随机生成一对大数范围内的 Paillier 公私钥，返回生成是否成功。
+
+   参数：
+     PrivateKey: TCnPaillierPrivateKey    - 生成的 Paillier 私钥
+     PublicKey: TCnPaillierPublicKey      - 生成的 Paillier 公钥
+     PrimeBits: Integer                   - 素数位数
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnPaillierEncrypt(PublicKey: TCnPaillierPublicKey;
   Data: TCnBigNumber; Res: TCnBigNumber; RandFactor: TCnBigNumber = nil): Boolean;
-{* 大数范围内的 Paillier 公钥加密明文数据得到密文，返回加密是否成功}
+{* 大数范围内的 Paillier 公钥加密明文数据得到密文，返回加密是否成功。
+
+   参数：
+     PublicKey: TCnPaillierPublicKey      - Paillier 公钥
+     Data: TCnBigNumber                   - 待加密的明文大数
+     Res: TCnBigNumber                    - 输出的密文大数
+     RandFactor: TCnBigNumber             - 随机数
+
+   返回值：Boolean                        - 返回加密是否成功
+}
 
 function CnPaillierDecrypt(PrivateKey: TCnPaillierPrivateKey;
   PublicKey: TCnPaillierPublicKey; EnData: TCnBigNumber; Res: TCnBigNumber): Boolean;
-{* 大数范围内的 Paillier 私钥解密密文数据得到明文，返回解密是否成功}
+{* 大数范围内的 Paillier 私钥解密密文数据得到明文，返回解密是否成功。
 
-function CnPaillierAddPlain(const Res: TCnBigNumber; Data1: TCnBigNumber; Data2: TCnBigNumber;
-  PublicKey: TCnPaillierPublicKey): Boolean;
-{* 大数范围内 Paillier 加法同态的明文加法，内部是模 N 加}
+   参数：
+     PrivateKey: TCnPaillierPrivateKey    - Paillier 私钥
+     PublicKey: TCnPaillierPublicKey      - Paillier 公钥
+     EnData: TCnBigNumber                 - 待解密的密文大数
+     Res: TCnBigNumber                    - 输出的明文大数
 
-function CnPaillierAddCipher(const Res: TCnBigNumber; EnData1: TCnBigNumber; EnData2: TCnBigNumber;
+   返回值：Boolean                        - 返回解密是否成功
+}
+
+function CnPaillierAddPlain(Res: TCnBigNumber; Data1: TCnBigNumber; Data2: TCnBigNumber;
   PublicKey: TCnPaillierPublicKey): Boolean;
-{* 大数范围内 Paillier 加法同态的密文加法，内部是模 N^2 乘}
+{* 大数范围内 Paillier 加法同态的明文加法，内部是模 N 加。
+
+   参数：
+     Res: TCnBigNumber                    - 返回和
+     Data1: TCnBigNumber                  - 明文加数一
+     Data2: TCnBigNumber                  - 明文加数二
+     PublicKey: TCnPaillierPublicKey      - Paillier 公钥
+
+   返回值：Boolean                        - 返回运算是否成功
+}
+
+function CnPaillierAddCipher(Res: TCnBigNumber; EnData1: TCnBigNumber; EnData2: TCnBigNumber;
+  PublicKey: TCnPaillierPublicKey): Boolean;
+{* 大数范围内 Paillier 加法同态的密文加法，内部是模 N^2 乘。
+
+   参数：
+     Res: TCnBigNumber                    - 返回积
+     EnData1: TCnBigNumber                - 密文乘数一
+     EnData2: TCnBigNumber                - 密文乘数二
+     PublicKey: TCnPaillierPublicKey      - Paillier 公钥
+
+   返回值：Boolean                        - 返回运算是否成功
+}
 
 implementation
 
@@ -560,13 +665,13 @@ begin
   end;
 end;
 
-function CnPaillierAddPlain(const Res: TCnBigNumber; Data1, Data2: TCnBigNumber;
+function CnPaillierAddPlain(Res: TCnBigNumber; Data1, Data2: TCnBigNumber;
   PublicKey: TCnPaillierPublicKey): Boolean;
 begin
   Result := BigNumberAddMod(Res, Data1, Data2, PublicKey.N);
 end;
 
-function CnPaillierAddCipher(const Res: TCnBigNumber; EnData1, EnData2: TCnBigNumber;
+function CnPaillierAddCipher(Res: TCnBigNumber; EnData1, EnData2: TCnBigNumber;
   PublicKey: TCnPaillierPublicKey): Boolean;
 begin
   Result := BigNumberDirectMulMod(Res, EnData1, EnData2, PublicKey.N2);

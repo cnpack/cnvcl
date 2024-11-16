@@ -65,51 +65,146 @@ type
 function CnGetDeriveKey(const Password: AnsiString; const Salt: AnsiString;
   OutKey: PAnsiChar; KeyLength: Cardinal; KeyHash: TCnKeyDeriveHash = ckdMd5): Boolean;
 {* 类似于 Openssl 中的 BytesToKey，用密码和盐与指定的杂凑算法生成加密 Key，
-  目前的限制是 KeyLength 最多支持两轮 Hash，也就是 MD5 32 字节，SHA256 64 字节}
+   目前的限制是 KeyLength 最多支持两轮 Hash，也就是 MD5 32 字节，SHA256 64 字节。
+
+   参数：
+     const Password: AnsiString           - 明文密码
+     const Salt: AnsiString               - 盐值
+     OutKey: PAnsiChar                    - 输出密钥的数据块地址
+     KeyLength: Cardinal                  - 输出密钥的数据块字节长度
+     KeyHash: TCnKeyDeriveHash            - 杂凑算法
+
+   返回值：Boolean                        - 返回是否生成成功
+}
 
 function CnPBKDF1(const Password: AnsiString; const Salt: AnsiString; Count: Integer;
   DerivedKeyByteLength: Integer; KeyHash: TCnPBKDF1KeyHash = cpdfMd5): AnsiString;
 {* Password Based KDF 1 实现，简单的固定杂凑迭代，只支持 MD5 和 SHA1，参数与返回值均为 AnsiString
-   DerivedKeyByteLength 是所需的密钥字节数，长度固定}
+   DerivedKeyByteLength 是所需的密钥字节数，长度固定。
+
+   参数：
+     const Password: AnsiString           - 明文密码
+     const Salt: AnsiString               - 盐值
+     Count: Integer                       - 运算轮数
+     DerivedKeyByteLength: Integer        - 待生成的密钥的字节长度
+     KeyHash: TCnPBKDF1KeyHash            - 杂凑算法
+
+   返回值：AnsiString                     - 返回生成的密钥
+}
 
 function CnPBKDF2(const Password: AnsiString; const Salt: AnsiString; Count: Integer;
   DerivedKeyByteLength: Integer; KeyHash: TCnPBKDF2KeyHash = cpdfSha1Hmac): AnsiString;
 {* Password Based KDF 2 实现，基于 HMAC-SHA1 或 HMAC-SHA256，参数与返回值均为 AnsiString
-   DerivedKeyByteLength 是所需的密钥字节数，长度可变，允许超长}
+   DerivedKeyByteLength 是所需的密钥字节数，长度可变，允许超长。
+
+   参数：
+     const Password: AnsiString           - 明文密码
+     const Salt: AnsiString               - 盐值
+     Count: Integer                       - 运算轮数
+     DerivedKeyByteLength: Integer        - 待生成的密钥的字节长度
+     KeyHash: TCnPBKDF2KeyHash            - 杂凑算法
+
+   返回值：AnsiString                     - 返回生成的密钥
+}
 
 function CnPBKDF1Bytes(const Password: TBytes; const Salt: TBytes; Count: Integer;
   DerivedKeyByteLength: Integer; KeyHash: TCnPBKDF1KeyHash = cpdfMd5): TBytes;
 {* Password Based KDF 1 实现，简单的固定杂凑迭代，只支持 MD5 和 SHA1，参数与返回值均为字节数组
-   DerivedKeyByteLength 是所需的密钥字节数，长度固定}
+   DerivedKeyByteLength 是所需的密钥字节数，长度固定。
+
+   参数：
+     const Password: TBytes               - 明文密码
+     const Salt: TBytes                   - 盐值
+     Count: Integer                       - 运算轮数
+     DerivedKeyByteLength: Integer        - 待生成的密钥的字节长度
+     KeyHash: TCnPBKDF1KeyHash            - 杂凑算法
+
+   返回值：TBytes                         - 返回生成的密钥
+}
 
 function CnPBKDF2Bytes(const Password: TBytes; const Salt: TBytes; Count: Integer;
   DerivedKeyByteLength: Integer; KeyHash: TCnPBKDF2KeyHash = cpdfSha1Hmac): TBytes;
 {* Password Based KDF 2 实现，基于 HMAC-SHA1 或 HMAC-SHA256，参数与返回值均为字节数组
-   DerivedKeyByteLength 是所需的密钥字节数，长度可变，允许超长}
+   DerivedKeyByteLength 是所需的密钥字节数，长度可变，允许超长。
+
+   参数：
+     const Password: TBytes               - 明文密码
+     const Salt: TBytes                   - 盐值
+     Count: Integer                       - 运算轮数
+     DerivedKeyByteLength: Integer        - 待生成的密钥的字节长度
+     KeyHash: TCnPBKDF2KeyHash            - 杂凑算法
+
+   返回值：TBytes                         - 返回生成的密钥
+}
 
 // ============ SM2/SM9 中规定的同一种密钥派生函数的六种封装实现 ===============
 
 function CnSM2KDF(const Data: AnsiString; DerivedKeyByteLength: Integer): AnsiString;
 {* SM2 椭圆曲线公钥密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，
-  返回 AnsiString，同时似乎也是没有 SharedInfo 的 ANSI-X9.63-KDF}
+   返回 AnsiString，同时似乎也是没有 SharedInfo 的 ANSI-X9.63-KDF。
+
+   参数：
+     const Data: AnsiString               - 用来生成密码的原始数据，可以是明文密码
+     DerivedKeyByteLength: Integer        - 待生成的密钥的字节长度
+
+   返回值：AnsiString                     - 返回生成的密钥
+}
 
 function CnSM9KDF(Data: Pointer; DataByteLen: Integer; DerivedKeyByteLength: Integer): AnsiString;
 {* SM9 标识密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，
-  返回 AnsiString，同时似乎也是没有 SharedInfo 的 ANSI-X9.63-KDF}
+   返回 AnsiString，同时似乎也是没有 SharedInfo 的 ANSI-X9.63-KDF。
+
+   参数：
+     Data: Pointer                        - 用来生成密码的原始数据块地址
+     DataByteLen: Integer                 - 用来生成密码的原始数据的字节长度
+     DerivedKeyByteLength: Integer        - 待生成的密钥的字节长度
+
+   返回值：AnsiString                     - 返回生成的密钥
+}
 
 function CnSM2KDFBytes(const Data: TBytes; DerivedKeyByteLength: Integer): TBytes;
-{* 参数为字节数组形式的 SM2 椭圆曲线公钥密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，返回字节数组}
+{* 参数为字节数组形式的 SM2 椭圆曲线公钥密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，返回字节数组。
+
+   参数：
+     const Data: TBytes                   - 用来生成密码的原始数据的字节数组
+     DerivedKeyByteLength: Integer        - 待生成的密钥的字节长度
+
+   返回值：TBytes                         - 返回生成的密钥
+}
 
 function CnSM9KDFBytes(Data: Pointer; DataByteLen: Integer; DerivedKeyByteLength: Integer): TBytes;
-{* 参数为内存块形式的 SM9 标识密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，返回字节数组}
+{* 参数为内存块形式的 SM9 标识密码算法中规定的密钥派生函数，DerivedKeyLength 是所需的密钥字节数，返回字节数组。
+
+   参数：
+     Data: Pointer                        - 用来生成密码的原始数据块地址
+     DataByteLen: Integer                 - 用来生成密码的原始数据的字节长度
+     DerivedKeyByteLength: Integer        - 待生成的密钥的字节长度
+
+   返回值：TBytes                         - 返回生成的密钥
+}
 
 function CnSM2SM9KDF(Data: TBytes; DerivedKeyByteLength: Integer): TBytes; overload;
 {* 参数为字节数组形式的 SM2 椭圆曲线公钥密码算法与 SM9 标识密码算法中规定的密钥派生函数，
-   DerivedKeyLength 是所需的密钥字节数，返回派生的密钥字节数组}
+   DerivedKeyLength 是所需的密钥字节数，返回派生的密钥字节数组。
+
+   参数：
+     Data: TBytes                         - 用来生成密码的原始数据的字节数组
+     DerivedKeyByteLength: Integer        - 待生成的密钥的字节长度
+
+   返回值：TBytes                         - 返回生成的密钥
+}
 
 function CnSM2SM9KDF(Data: Pointer; DataByteLen: Integer; DerivedKeyByteLength: Integer): TBytes; overload;
 {* 参数为内存块形式的 SM2 椭圆曲线公钥密码算法与 SM9 标识密码算法中规定的密钥派生函数，
-   DerivedKeyLength 是所需的密钥字节数，返回派生的密钥字节数组}
+   DerivedKeyLength 是所需的密钥字节数，返回派生的密钥字节数组。
+
+   参数：
+     Data: Pointer                        - 用来生成密码的原始数据块地址
+     DataByteLen: Integer                 - 用来生成密码的原始数据的字节长度
+     DerivedKeyByteLength: Integer        - 待生成的密钥的字节长度
+
+   返回值：TBytes                         - 返回生成的密钥
+}
 
 implementation
 

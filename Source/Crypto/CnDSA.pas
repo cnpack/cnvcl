@@ -56,9 +56,18 @@ type
     FG: TCnBigNumber;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent                  - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
 
     property P: TCnBigNumber read FP;
     property Q: TCnBigNumber read FQ;
@@ -78,9 +87,18 @@ type
     FR: TCnBigNumber;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent                  - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
 
     property R: TCnBigNumber read FR;
     {* 签名 R 值}
@@ -91,42 +109,113 @@ type
 function CnDSAGenerateParameter(OutParameter: TCnDSADomainParameter;
   PrimeType: TCnDSAPrimeType = dptBit1024160): Boolean;
 {* 生成 DSA 域参数，包括有限域素数 P，子群的阶 Q，及生成元 G，返回生成是否成功。
-  PrimeType 参数可指定特定的 P 和 Q 的位数}
+   PrimeType 参数可指定特定的 P 和 Q 的位数。
+
+   参数：
+     OutParameter: TCnDSADomainParameter  - DSA 域参数
+     PrimeType: TCnDSAPrimeType           - 指定的素数位长度
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnDSAVerifyParameter(DSAParameter: TCnDSADomainParameter): Boolean;
-{* 校验 DSA 域参数是否合法，包括判断有限域素数 P，子群的阶 Q，及生成元 G 等，返回是否合法}
+{* 校验 DSA 域参数是否合法，包括判断有限域素数 P，子群的阶 Q，及生成元 G 等，返回是否合法。
+
+   参数：
+     DSAParameter: TCnDSADomainParameter  - 待校验的 DSA 域参数
+
+   返回值：Boolean                        - 返回是否合法
+}
 
 function CnDSAGenerateKeys(DSAParameter: TCnDSADomainParameter;
   OutPrivateKey: TCnDSAPrivateKey; OutPublicKey: TCnDSAPublicKey): Boolean;
-{* 在指定的 DSA 域参数下，生成一对 DSA 公私钥，返回生成是否成功}
+{* 在指定的 DSA 域参数下，生成一对 DSA 公私钥，返回生成是否成功。
+
+   参数：
+     DSAParameter: TCnDSADomainParameter  - DSA 域参数
+     OutPrivateKey: TCnDSAPrivateKey      - 生成的 DSA 私钥
+     OutPublicKey: TCnDSAPublicKey        - 生成的 DSA 公钥
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnDSAVerifyKeys(DSAParameter: TCnDSADomainParameter;
   PrivateKey: TCnDSAPrivateKey; PublicKey: TCnDSAPublicKey): Boolean;
-{* 在指定的 DSA 域参数下校验一对 DSA 公私钥，返回校验是否成功}
+{* 在指定的 DSA 域参数下校验一对 DSA 公私钥，返回校验是否成功。
+
+   参数：
+     DSAParameter: TCnDSADomainParameter  - DSA 域参数
+     PrivateKey: TCnDSAPrivateKey         - 待校验的 DSA 私钥
+     PublicKey: TCnDSAPublicKey           - 待校验的 DSA 公钥
+
+   返回值：Boolean                        - 返回校验是否成功
+}
 
 function CnDSASignData(Data: Pointer; DataByteLen: Integer;
   DSAParameter: TCnDSADomainParameter; PrivateKey: TCnDSAPrivateKey;
   OutSignature: TCnDSASignature; HashType: TCnDSAHashType = dhtAuto): Boolean;
-{* 在指定的 DSA 域参数下，用指定 DSA 私钥及杂凑算法，对内存块数据进行签名
-  返回签名是否成功。杂凑算法类型如不传，默认 dhtAuto，表示根据 DSA 域参数中的 Q 的位数自动匹配}
+{* 在指定的 DSA 域参数下，用指定 DSA 私钥及杂凑算法，对内存块数据进行签名。
+   返回签名是否成功。杂凑算法类型如不传，默认 dhtAuto，表示根据 DSA 域参数中的 Q 的位数自动匹配。
+
+   参数：
+     Data: Pointer                        - 待签名的数据块地址
+     DataByteLen: Integer                 - 待签名的数据块字节长度
+     DSAParameter: TCnDSADomainParameter  - DSA 域参数
+     PrivateKey: TCnDSAPrivateKey         - DSA 私钥
+     OutSignature: TCnDSASignature        - 输出的 DSA 签名值
+     HashType: TCnDSAHashType             - 杂凑算法
+
+   返回值：Boolean                        - 返回签名是否成功
+}
 
 function CnDSAVerifyData(Data: Pointer; DataByteLen: Integer;
   DSAParameter: TCnDSADomainParameter; PublicKey: TCnDSAPublicKey;
   Signature: TCnDSASignature; HashType: TCnDSAHashType = dhtAuto): Boolean;
-{* 在指定的 DSA 域参数下，用指定 DSA 公钥及杂凑算法，对内存块数据进行签名验证
-  返回验证是否成功。杂凑算法类型如不传，默认 dhtAuto，表示根据 DSA 域参数中的 Q 的位数自动匹配}
+{* 在指定的 DSA 域参数下，用指定 DSA 公钥及杂凑算法，对内存块数据进行签名验证。
+   返回验证是否成功。杂凑算法类型如不传，默认 dhtAuto，表示根据 DSA 域参数中的 Q 的位数自动匹配。
+
+   参数：
+     Data: Pointer                        - 待验证的数据块地址
+     DataByteLen: Integer                 - 待验证的数据块字节长度
+     DSAParameter: TCnDSADomainParameter  - DSA 域参数
+     PublicKey: TCnDSAPublicKey           - DSA 公钥
+     Signature: TCnDSASignature           - 待验证的 DSA 签名值
+     HashType: TCnDSAHashType             - 杂凑算法
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 function CnDSASignBytes(Data: TBytes; DSAParameter: TCnDSADomainParameter;
   PrivateKey: TCnDSAPrivateKey; OutSignature: TCnDSASignature;
   HashType: TCnDSAHashType = dhtAuto): Boolean;
-{* 在指定的 DSA 域参数下，用指定 DSA 私钥及杂凑算法，对字节数组进行签名
-  返回签名是否成功。杂凑算法类型如不传，默认 dhtAuto，表示根据 DSA 域参数中的 Q 的位数自动匹配}
+{* 在指定的 DSA 域参数下，用指定 DSA 私钥及杂凑算法，对字节数组进行签名。
+   返回签名是否成功。杂凑算法类型如不传，默认 dhtAuto，表示根据 DSA 域参数中的 Q 的位数自动匹配。
+
+   参数：
+     Data: TBytes                         - 待签名的字节数组
+     DSAParameter: TCnDSADomainParameter  - DSA 域参数
+     PrivateKey: TCnDSAPrivateKey         - DSA 私钥
+     OutSignature: TCnDSASignature        - 输出的 DSA 签名值
+     HashType: TCnDSAHashType             - 杂凑算法
+
+   返回值：Boolean                        - 返回签名是否成功
+}
 
 function CnDSAVerifyBytes(Data: TBytes; DSAParameter: TCnDSADomainParameter;
   PublicKey: TCnDSAPublicKey; Signature: TCnDSASignature;
   HashType: TCnDSAHashType = dhtAuto): Boolean;
-{* 在指定的 DSA 域参数下，用指定 DSA 公钥及杂凑算法，对字节数组进行签名验证
-  返回验证是否成功。杂凑算法类型如不传，默认 dhtAuto，表示根据 DSA 域参数中的 Q 的位数自动匹配}
+{* 在指定的 DSA 域参数下，用指定 DSA 公钥及杂凑算法，对字节数组进行签名验证。
+   返回验证是否成功。杂凑算法类型如不传，默认 dhtAuto，表示根据 DSA 域参数中的 Q 的位数自动匹配。
+
+   参数：
+     Data: TBytes                         - 待验证的字节数组
+     DSAParameter: TCnDSADomainParameter  - DSA 域参数
+     PublicKey: TCnDSAPublicKey           - DSA 公钥
+     Signature: TCnDSASignature           - 待验证的 DSA 签名值
+     HashType: TCnDSAHashType             - 杂凑算法
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 implementation
 

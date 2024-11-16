@@ -166,81 +166,228 @@ const
   CN_EXTENDED_MIN_EXPONENT                = -16383;
   CN_EXTENDED_MAX_EXPONENT                = 16383;
 
-procedure ExtractFloatSingle(const Value: Single; out SignNegative: Boolean;
+procedure ExtractFloatSingle(Value: Single; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: Cardinal);
-{* 从单精度浮点数中解出符号位、指数、有效数字
-  注：指数为真实指数；有效数字为低 24 位，其中原始的为 0~22 位，第 23 位为补上去的 1}
+{* 从单精度浮点数中解出符号位、指数、有效数字。
+   注：指数为真实指数；有效数字为低 24 位，其中原始的为 0~22 位，第 23 位为补上去的 1。
 
-procedure ExtractFloatDouble(const Value: Double; out SignNegative: Boolean;
+   参数：
+     Value: Single                        - 待解开的单精度浮点数
+     out SignNegative: Boolean            - 符号位，True 为负
+     out Exponent: Integer                - 指数
+     out Mantissa: Cardinal               - 有效数字
+
+   返回值：（无）
+}
+
+procedure ExtractFloatDouble(Value: Double; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
-{* 从双精度浮点数中解出符号位、指数、有效数字
-  注：指数为真实指数；有效数字为低 53 位，其中原始的为 0~51 位，第 52 位为补上去的 1}
+{* 从双精度浮点数中解出符号位、指数、有效数字。
+   注：指数为真实指数；有效数字为低 53 位，其中原始的为 0~51 位，第 52 位为补上去的 1。
 
-procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
+   参数：
+     Value: Double                        - 待解开的双精度浮点数
+     out SignNegative: Boolean            - 符号位，True 为负
+     out Exponent: Integer                - 指数
+     out Mantissa: TUInt64                - 有效数字
+
+   返回值：（无）
+}
+
+procedure ExtractFloatExtended(Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
 {* 从扩展精度浮点数中解出符号位、指数、有效数字，支持 10 字节、
-  以及 16 字节截断为 10 字节的 Extended 格式
-  注：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1}
+   以及 16 字节截断为 10 字节的 Extended 格式。
+   注：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1。
 
-procedure ExtractFloatQuadruple(const Value: Extended; out SignNegative: Boolean;
+   参数：
+     Value: Extended                      - 待解开的扩展精度浮点数
+     out SignNegative: Boolean            - 符号位，True 为负
+     out Exponent: Integer                - 指数
+     out Mantissa: TUInt64                - 有效数字
+
+   返回值：（无）
+}
+
+procedure ExtractFloatQuadruple(Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out MantissaLo: TUInt64; out MantissaHi: TUInt64);
 {* 从十六字节精度浮点数中解出符号位、指数、有效数字，只在 Extended 为 16 字节
-  且格式是 IEEE 754-2008 里的四倍精度浮点时有效（目前 Delphi 不支持该格式）
-  注：指数为真实指数；有效数字 112 位，分为高低两部分}
+   且格式是 IEEE 754-2008 里的四倍精度浮点时有效（目前 Delphi 不支持该格式）
+   注：指数为真实指数；有效数字 112 位，分为高低两部分。
+
+   参数：
+     Value: Extended                      - 待解开的十六字节精度浮点数
+     out SignNegative: Boolean            - 符号位，True 为负
+     out Exponent: Integer                - 指数
+     out MantissaLo: TUInt64              - 有效数字低 64 位
+     out MantissaHi: TUInt64              - 有效数字高 64 位
+
+   返回值：（无）
+}
 
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
   Mantissa: Cardinal; var Value: Single);
-{* 把符号位、指数、有效数字拼成单精度浮点数}
+{* 把符号位、指数、有效数字拼成单精度浮点数。
+
+   参数：
+     SignNegative: Boolean                - 符号位，True 为负
+     Exponent: Integer                    - 指数
+     Mantissa: Cardinal                   - 有效数字
+     var Value: Single                    - 返回组合的单精度浮点数
+
+   返回值：（无）
+}
 
 procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Double);
-{* 把符号位、指数、有效数字拼成双精度浮点数}
+{* 把符号位、指数、有效数字拼成双精度浮点数。
+
+   参数：
+     SignNegative: Boolean                - 符号位，True 为负
+     Exponent: Integer                    - 指数
+     Mantissa: TUInt64                    - 有效数字
+     var Value: Double                    - 返回组合的双精度浮点数
+
+   返回值：（无）
+}
 
 procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Extended);
 {* 把符号位、指数、有效数字拼成扩展精度浮点数，支持 10 字节、
-  以及 16 字节截断为 10 字节的 Extended 格式}
+   以及 16 字节截断为 10 字节的 Extended 格式。
+
+   参数：
+     SignNegative: Boolean                - 符号位，True 为负
+     Exponent: Integer                    - 指数
+     Mantissa: TUInt64                    - 有效数字
+     var Value: Extended                  - 返回组合的扩展精度浮点数
+
+   返回值：（无）
+
+}
 
 procedure CombineFloatQuadruple(SignNegative: Boolean; Exponent: Integer;
   MantissaLo: TUInt64; MantissaHi: TUInt64; var Value: Extended);
 {* 把符号位、指数、有效数字拼成扩展精度浮点数，只在 Extended 为 16 字节
-  且格式是 IEEE 754-2008 里的四倍精度浮点时有效（目前 Delphi 不支持该格式）}
+   且格式是 IEEE 754-2008 里的四倍精度浮点时有效（目前 Delphi 不支持该格式）。
+
+   参数：
+     SignNegative: Boolean                - 符号位，True 为负
+     Exponent: Integer                    - 指数
+     MantissaLo: TUInt64                  - 有效数字低 64 位
+     MantissaHi: TUInt64                  - 有效数字高 64 位
+     var Value: Extended                  - 返回组合的十六字节精度浮点数
+
+   返回值：（无）
+}
 
 function UInt64ToSingle(U: TUInt64): Single;
-{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Single，仨函数实现相同}
+{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Single，仨函数实现相同。
+
+   参数：
+     U: TUInt64                           - 待赋值的 64 位无符号整型值
+
+   返回值：Single                         - 返回的单精度浮点数
+}
 
 function UInt64ToDouble(U: TUInt64): Double;
-{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Double，仨函数实现相同}
+{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Double，仨函数实现相同。
+
+   参数：
+     U: TUInt64                           - 待赋值的 64 位无符号整型值
+
+   返回值：Double                         - 返回的双精度浮点数
+}
 
 function UInt64ToExtended(U: TUInt64): Extended;
-{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Extended，仨函数实现相同}
+{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Extended，仨函数实现相同。
+
+   参数：
+     U: TUInt64                           - 待赋值的 64 位无符号整型值
+
+   返回值：Extended                       - 返回的扩展精度浮点数
+}
 
 function SingleToUInt64(F: Single): TUInt64;
-{* 把 Single 赋值给用 Int64 有符号整型模拟的 64 位无符号整型}
+{* 把 Single 赋值给用 Int64 有符号整型模拟的 64 位无符号整型，仨函数实现相同。
+
+   参数：
+     F: Single                            - 待赋值的单精度浮点数
+
+   返回值：TUInt64                        - 返回的 64 位无符号整型值
+}
 
 function DoubleToUInt64(F: Double): TUInt64;
-{* 把 Double 赋值给用 Int64 有符号整型模拟的 64 位无符号整型}
+{* 把 Double 赋值给用 Int64 有符号整型模拟的 64 位无符号整型，仨函数实现相同。
+
+   参数：
+     F: Double                            - 待赋值的双精度浮点数
+
+   返回值：TUInt64                        - 返回的 64 位无符号整型值
+}
 
 function ExtendedToUInt64(F: Extended): TUInt64;
-{* 把 Extended 赋值给用 Int64 有符号整型模拟的 64 位无符号整型}
+{* 把 Extended 赋值给用 Int64 有符号整型模拟的 64 位无符号整型，仨函数实现相同。
 
-function SingleIsInfinite(const AValue: Single): Boolean;
-{* 单精度浮点数是否无穷大}
+   参数：
+     F: Extended                          - 待赋值的双精度浮点数
 
-function DoubleIsInfinite(const AValue: Double): Boolean;
-{* 双精度浮点数是否无穷大}
+   返回值：TUInt64                        - 返回的 64 位无符号整型值
+}
 
-function ExtendedIsInfinite(const AValue: Extended): Boolean;
-{* 扩展精度浮点数是否无穷大}
+function SingleIsInfinite(AValue: Single): Boolean;
+{* 单精度浮点数是否无穷大。
 
-function SingleIsNan(const AValue: Single): Boolean;
-{* 单精度浮点数是否非实数}
+   参数：
+     AValue: Single                       - 待判断的单精度浮点数
 
-function DoubleIsNan(const AValue: Double): Boolean;
-{* 双精度浮点数是否非实数}
+   返回值：Boolean                        - 返回是否无穷大
+}
 
-function ExtendedIsNan(const AValue: Extended): Boolean;
-{* 扩展精度浮点数是否非实数}
+function DoubleIsInfinite(AValue: Double): Boolean;
+{* 双精度浮点数是否无穷大。
+
+   参数：
+     AValue: Double                       - 待判断的双精度浮点数
+
+   返回值：Boolean                        - 返回是否无穷大
+}
+
+function ExtendedIsInfinite(AValue: Extended): Boolean;
+{* 扩展精度浮点数是否无穷大。
+
+   参数：
+     AValue: Extended                     - 待判断的扩展精度浮点数
+
+   返回值：Boolean                        - 返回是否无穷大
+}
+
+function SingleIsNan(AValue: Single): Boolean;
+{* 单精度浮点数是否非实数。
+
+   参数：
+     AValue: Single                       - 待判断的单精度浮点数
+
+   返回值：Boolean                        - 返回是否非实数
+}
+
+function DoubleIsNan(AValue: Double): Boolean;
+{* 双精度浮点数是否非实数。
+
+   参数：
+     AValue: Double                       - 待判断的双精度浮点数
+
+   返回值：Boolean                        - 返回是否非实数
+}
+
+function ExtendedIsNan(AValue: Extended): Boolean;
+{* 扩展精度浮点数是否非实数。
+
+   参数：
+     AValue: Extended                     - 待判断的扩展精度浮点数
+
+   返回值：Boolean                        - 返回是否非实数
+}
 
 // FPC、Windows 64/Linux 64 等平台以及 Delphi 5、6 不支持以下三个函数
 {$IFDEF WIN32}
@@ -955,7 +1102,7 @@ end;
 {$ENDIF}
 {$ENDIF}
 
-procedure ExtractFloatSingle(const Value: Single; out SignNegative: Boolean;
+procedure ExtractFloatSingle(Value: Single; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: Cardinal);
 begin
   SignNegative := (PCardinal(@Value)^ and CN_SIGN_SINGLE_MASK) <> 0;
@@ -964,7 +1111,7 @@ begin
   Mantissa := Mantissa or (1 shl 23); // 高位再加个 1
 end;
 
-procedure ExtractFloatDouble(const Value: Double; out SignNegative: Boolean;
+procedure ExtractFloatDouble(Value: Double; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
 begin
   SignNegative := (PUInt64(@Value)^ and CN_SIGN_DOUBLE_MASK) <> 0;
@@ -973,7 +1120,7 @@ begin
   Mantissa := Mantissa or (TUInt64(1) shl 52); // 高位再加个 1
 end;
 
-procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
+procedure ExtractFloatExtended(Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
 begin
   if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
@@ -988,7 +1135,7 @@ begin
     raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
 end;
 
-procedure ExtractFloatQuadruple(const Value: Extended; out SignNegative: Boolean;
+procedure ExtractFloatQuadruple(Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out MantissaLo, MantissaHi: TUInt64);
 begin
   if SizeOf(Extended) <> CN_EXTENDED_SIZE_16 then
@@ -1158,19 +1305,19 @@ begin
   Result := UTrunc(F);
 end;
 
-function SingleIsInfinite(const AValue: Single): Boolean;
+function SingleIsInfinite(AValue: Single): Boolean;
 begin
   Result := ((PCardinal(@AValue)^ and $7F800000) = $7F800000) and
             ((PCardinal(@AValue)^ and $007FFFFF) = $00000000);
 end;
 
-function DoubleIsInfinite(const AValue: Double): Boolean;
+function DoubleIsInfinite(AValue: Double): Boolean;
 begin
   Result := ((PUInt64(@AValue)^ and $7FF0000000000000) = $7FF0000000000000) and
             ((PUInt64(@AValue)^ and $000FFFFFFFFFFFFF) = $0000000000000000);
 end;
 
-function ExtendedIsInfinite(const AValue: Extended): Boolean;
+function ExtendedIsInfinite(AValue: Extended): Boolean;
 begin
   if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
     Result := ((PExtendedRec10(@AValue)^.ExpSign and $7FFF) = $7FFF) and
@@ -1181,19 +1328,19 @@ begin
     raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
 end;
 
-function SingleIsNan(const AValue: Single): Boolean;
+function SingleIsNan(AValue: Single): Boolean;
 begin
   Result := ((PCardinal(@AValue)^ and $7F800000)  = $7F800000) and
             ((PCardinal(@AValue)^ and $007FFFFF) <> $00000000);
 end;
 
-function DoubleIsNan(const AValue: Double): Boolean;
+function DoubleIsNan(AValue: Double): Boolean;
 begin
   Result := ((PUInt64(@AValue)^ and $7FF0000000000000)  = $7FF0000000000000) and
             ((PUInt64(@AValue)^ and $000FFFFFFFFFFFFF) <> $0000000000000000);
 end;
 
-function ExtendedIsNan(const AValue: Extended): Boolean;
+function ExtendedIsNan(AValue: Extended): Boolean;
 begin
   if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
     Result := ((PExtendedRec10(@AValue)^.ExpSign and $7FFF)  = $7FFF) and
