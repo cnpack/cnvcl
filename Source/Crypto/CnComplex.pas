@@ -64,90 +64,263 @@ type
   {* 指向复数结构数组的指针}
 
 function ComplexNumberIsZero(var Complex: TCnComplexNumber): Boolean;
-{* 返回复数是否为 0}
+{* 返回复数是否为 0。
+
+   参数：
+     var Complex: TCnComplexNumber        - 待判断的复数
+
+   返回值：Boolean                        - 返回是否等于 0
+}
 
 procedure ComplexNumberSetZero(var Complex: TCnComplexNumber);
-{* 复数置 0}
+{* 复数置 0。
+
+   参数：
+     var Complex: TCnComplexNumber        - 待设置的复数
+
+   返回值：（无）
+}
 
 procedure ComplexNumberSetValue(var Complex: TCnComplexNumber;
   AR: Extended; AI: Extended); overload;
-{* 复数赋值}
+{* 复数赋值。
+
+   参数：
+     var Complex: TCnComplexNumber        - 待赋值的复数
+     AR: Extended                         - 复数的实部
+     AI: Extended                         - 复数的虚部
+
+   返回值：（无）
+}
 
 procedure ComplexNumberSetValue(var Complex: TCnComplexNumber;
   const AR: string; const AI: string); overload;
-{* 复数赋值}
+{* 复数赋值。
+
+   参数：
+     var Complex: TCnComplexNumber        - 待赋值的复数
+     const AR: string                     - 实部的浮点字符串形式
+     const AI: string                     - 虚部的浮点字符串形式
+
+   返回值：（无）
+}
 
 function ComplexNumberToString(var Complex: TCnComplexNumber): string;
-{* 复数转换为字符串}
+{* 复数转换为形如 a + bi 的字符串，实部虚部若有 0 则对应省略。
+
+   参数：
+     var Complex: TCnComplexNumber        - 待转换的复数
+
+   返回值：string                         - 返回复数的字符串形式
+}
 
 function ComplexNumberEqual(var Complex1: TCnComplexNumber; var Complex2: TCnComplexNumber): Boolean;
-{* 判断两个复数结构是否相等}
+{* 判断两个复数值是否相等。
+
+   参数：
+     var Complex1: TCnComplexNumber       - 待比较的复数一
+     var Complex2: TCnComplexNumber       - 待比较的复数二
+
+   返回值：Boolean                        - 返回两个复数值是否相等
+}
 
 procedure ComplexNumberSwap(var Complex1: TCnComplexNumber; var Complex2: TCnComplexNumber);
-{* 交换两个复数值}
+{* 交换两个复数的值。
+
+   参数：
+     var Complex1: TCnComplexNumber       - 待交换的复数一
+     var Complex2: TCnComplexNumber       - 待交换的复数二
+
+   返回值：（无）
+}
 
 procedure ComplexNumberCopy(var Dst: TCnComplexNumber; var Src: TCnComplexNumber);
-{* 复数复制值}
+{* 复制复数的值。
+
+   参数：
+     var Dst: TCnComplexNumber            - 目标复数
+     var Src: TCnComplexNumber            - 源复数
+
+   返回值：（无）
+}
 
 procedure ComplexNumberAdd(var Res: TCnComplexNumber;
   var Complex1: TCnComplexNumber; var Complex2: TCnComplexNumber); overload;
-{* 复数加法，Complex1 和 Complex2 可以是同一个结构，Res 可以是 Complex1 或 Complex2}
+{* 复数加法，Complex1 和 Complex2 可以是同一个结构，Res 可以是 Complex1 或 Complex2。
+
+   参数：
+     var Res: TCnComplexNumber            - 复数和
+     var Complex1: TCnComplexNumber       - 复数加数一
+     var Complex2: TCnComplexNumber       - 复数加数二
+
+   返回值：（无）
+}
 
 procedure ComplexNumberSub(var Res: TCnComplexNumber;
   var Complex1: TCnComplexNumber; var Complex2: TCnComplexNumber); overload;
-{* 复数减法，Complex1 和 Complex2 可以是同一个结构，Res 可以是 Complex1 或 Complex2}
+{* 复数减法，Complex1 和 Complex2 可以是同一个结构，Res 可以是 Complex1 或 Complex2。
+
+   参数：
+     var Res: TCnComplexNumber            - 复数差
+     var Complex1: TCnComplexNumber       - 复数被减数
+     var Complex2: TCnComplexNumber       - 复数减数
+
+   返回值：（无）
+}
 
 procedure ComplexNumberMul(var Res: TCnComplexNumber;
   var Complex1: TCnComplexNumber; var Complex2: TCnComplexNumber); overload;
-{* 复数乘法，Complex1 和 Complex2 可以是同一个结构，Res 可以是 Complex1 或 Complex2}
+{* 复数乘法，Complex1 和 Complex2 可以是同一个结构，Res 可以是 Complex1 或 Complex2。
+
+   参数：
+     var Res: TCnComplexNumber            - 复数积
+     var Complex1: TCnComplexNumber       - 复数乘数一
+     var Complex2: TCnComplexNumber       - 复数乘数二
+
+   返回值：（无）
+}
 
 procedure ComplexNumberDiv(var Res: TCnComplexNumber;
   var Complex1: TCnComplexNumber; var Complex2: TCnComplexNumber); overload;
-{* 复数除法，Complex1 和 Complex2 可以是同一个结构，Res 可以是 Complex1 或 Complex2}
+{* 复数除法，Complex1 和 Complex2 可以是同一个结构，Res 可以是 Complex1 或 Complex2。
+
+   参数：
+     var Res: TCnComplexNumber            - 复数商
+     var Complex1: TCnComplexNumber       - 复数被除数
+     var Complex2: TCnComplexNumber       - 复数除数
+
+   返回值：（无）
+}
 
 procedure ComplexNumberAdd(var Res: TCnComplexNumber;
   var Complex: TCnComplexNumber; Value: Extended); overload;
-{* 复数与浮点数的加法，Complex 和 Res 可以是同一个结构}
+{* 复数与浮点数的加法，Complex 和 Res 可以是同一个结构。
+
+   参数：
+     var Res: TCnComplexNumber            - 复数和
+     var Complex: TCnComplexNumber        - 复数加数
+     Value: Extended                      - 浮点数加数
+
+   返回值：（无）
+}
 
 procedure ComplexNumberSub(var Res: TCnComplexNumber;
   var Complex: TCnComplexNumber; Value: Extended); overload;
-{* 复数与浮点数的减法，Complex 和 Res 可以是同一个结构}
+{* 复数与浮点数的减法，Complex 和 Res 可以是同一个结构。
+
+   参数：
+     var Res: TCnComplexNumber            - 复数差
+     var Complex: TCnComplexNumber        - 复数被减数
+     Value: Extended                      - 浮点数减数
+
+   返回值：（无）
+}
 
 procedure ComplexNumberMul(var Res: TCnComplexNumber;
   var Complex: TCnComplexNumber; Value: Extended); overload;
-{* 复数与浮点数的乘法，Complex 和 Res 可以是同一个结构}
+{* 复数与浮点数的乘法，Complex 和 Res 可以是同一个结构。
+
+   参数：
+     var Res: TCnComplexNumber            - 复数积
+     var Complex: TCnComplexNumber        - 复数乘数
+     Value: Extended                      - 浮点数乘数
+
+   返回值：（无）
+}
 
 procedure ComplexNumberDiv(var Res: TCnComplexNumber;
   var Complex: TCnComplexNumber; Value: Extended); overload;
-{* 复数与浮点数的除法，Complex 和 Res 可以是同一个结构}
+{* 复数与浮点数的除法，Complex 和 Res 可以是同一个结构。
+
+   参数：
+     var Res: TCnComplexNumber            - 复数商
+     var Complex: TCnComplexNumber        - 复数被除数
+     Value: Extended                      - 浮点除数
+
+   返回值：（无）
+}
 
 procedure ComplexNumberSqrt(var Res: TCnComplexNumber; var Complex: TCnComplexNumber);
-{* 求复数的平方根，只返回其中一个，如果需要另一个，实部虚部各取负就行}
+{* 求复数的平方根，只返回其中一个，如果需要另一个，实部虚部各取负就行。
+
+   参数：
+     var Res: TCnComplexNumber            - 复数平方根结果
+     var Complex: TCnComplexNumber        - 待求平方根的复数
+
+   返回值：（无）
+}
 
 procedure ComplexConjugate(var Res: TCnComplexNumber; var Complex: TCnComplexNumber);
-{* 获得共轭复数，Res 可以是 Complex}
+{* 获得共轭复数，Res 可以是 Complex。
+
+   参数：
+     var Res: TCnComplexNumber            - 复数的共轭结果
+     var Complex: TCnComplexNumber        - 待求共轭的复数
+
+   返回值：（无）
+}
 
 function ComplexIsPureReal(var Complex: TCnComplexNumber): Boolean;
-{* 复数是否纯实数，也就是判断虚部是否为 0}
+{* 复数是否纯实数，也就是判断虚部是否为 0。
+
+   参数：
+     var Complex: TCnComplexNumber        - 待判断的复数
+
+   返回值：Boolean                        - 返回是否纯实数
+}
 
 function ComplexIsPureImaginary(var Complex: TCnComplexNumber): Boolean;
-{* 复数是否纯虚数，也就是判断实部是否为 0 且虚部不为 0}
+{* 复数是否纯虚数，也就是判断实部是否为 0 且虚部不为 0。
+
+   参数：
+     var Complex: TCnComplexNumber        - 待判断的复数
+
+   返回值：Boolean                        - 返回是否纯虚数
+}
 
 function ComplexNumberAbsolute(var Complex: TCnComplexNumber): Extended;
-{* 返回复数的绝对值，也即距复平面原点的距离}
+{* 返回复数的绝对值，也即距复平面原点的距离。
+
+   参数：
+     var Complex: TCnComplexNumber        - 待计算的复数
+
+   返回值：Extended                       - 返回复数的绝对值
+
+}
 
 function ComplexNumberArgument(var Complex: TCnComplexNumber): Extended;
-{* 返回复数的辐角主值，也即与复平面正 X 轴的夹角，范围在 0 到 2π}
+{* 返回复数的辐角主值，也即与复平面正 X 轴的夹角，范围在 0 到 2π。
+
+   参数：
+     var Complex: TCnComplexNumber        - 待计算的复数
+
+   返回值：Extended                       - 返回复数的辐角主值，单位为弧度
+}
 
 procedure ComplexNumberSetAbsoluteArgument(var Complex: TCnComplexNumber;
   AnAbsolute: Extended; AnArgument: Extended);
-{* 设置一复数的绝对值与辐角值}
+{* 设置一复数的绝对值与辐角值。
+
+   参数：
+     var Complex: TCnComplexNumber        - 待设置的复数
+     AnAbsolute: Extended                 - 待设置的绝对值
+     AnArgument: Extended                 - 待设置的辐角值
+
+   返回值：（无）
+}
 
 var
   CnComplexZero: TCnComplexNumber;
+  {* 复数 0}
+
   CnComplexOne: TCnComplexNumber;
+  {* 复数 1}
+
   CnComplexOneI: TCnComplexNumber;
+  {* 复数 i}
+
   CnComplexNegOneI: TCnComplexNumber;
+  {* 复数 -i}
 
 implementation
 

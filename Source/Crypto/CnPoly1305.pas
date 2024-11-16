@@ -74,36 +74,101 @@ type
   end;
 
 function Poly1305Buffer(const Buffer; Count: Cardinal; Key: TCnPoly1305Key): TCnPoly1305Digest;
-{* 对数据块进行 Poly1305 计算，Buffer 一般传个地址}
+{* 对数据块进行 Poly1305 计算，Buffer 一般传个地址。
+
+   参数：
+     const Buffer                         - 待计算的数据块地址
+     Count: Cardinal                      - 待计算的数据块的字节长度
+     Key: TCnPoly1305Key                  - 密码
+
+   返回值：TCnPoly1305Digest              - 返回计算的 Poly 1305 杂凑值
+}
 
 function Poly1305Bytes(Data: TBytes; Key: TBytes): TCnPoly1305Digest;
-{* 计算字节数组的 Poly1305 杂凑值}
+{* 计算字节数组的 Poly1305 杂凑值。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+     Key: TBytes                          - 密码字节数组
+
+   返回值：TCnPoly1305Digest              - 返回计算的 Poly 1305 杂凑值
+}
 
 function Poly1305Data(Data: Pointer; DataByteLength: Cardinal;
   Key: TCnPoly1305Key): TCnPoly1305Digest;
-{* 计算数据块的 Poly1305 杂凑值}
+{* 计算数据块的 Poly1305 杂凑值。
+
+   参数：
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLength: Cardinal             - 待计算的数据块字节长度
+     Key: TCnPoly1305Key                  - 密码
+
+   返回值：TCnPoly1305Digest              - 返回计算的 Poly 1305 杂凑值
+}
 
 function Poly1305Print(const Digest: TCnPoly1305Digest): string;
-{* 以十六进制格式输出 Poly1305 计算值}
+{* 以十六进制格式输出 Poly1305 计算值。
+
+   参数：
+     const Digest: TCnPoly1305Digest      - Poly1305 杂凑值
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 function Poly1305Match(const D1: TCnPoly1305Digest; const D2: TCnPoly1305Digest): Boolean;
-{* 比较两个 Poly1305 计算值是否相等}
+{* 比较两个 Poly1305 计算值是否相等。
+
+   参数：
+     const D1: TCnPoly1305Digest          - 待比较的 Poly1305 杂凑值一
+     const D2: TCnPoly1305Digest          - 待比较的 Poly1305 杂凑值二
+
+   返回值：Boolean                        - 返回两个 Poly 1305 杂凑值是否相等
+}
 
 function Poly1305DigestToStr(const Digest: TCnPoly1305Digest): string;
-{* Poly1305 计算值转 string}
+{* Poly1305 计算值转 string。
+
+   参数：
+     const Digest: TCnPoly1305Digest      - 待转换的 Poly1305 杂凑值
+
+   返回值：string                         - 返回转换后的字符串内容，不处理编码
+}
 
 procedure Poly1305Init(out Context: TCnPoly1305Context; Key: TCnPoly1305Key);
-{* 初始化一轮 Poly1305 计算上下文，内部创建 Context 准备计算 Poly1305 结果}
+{* 初始化一轮 Poly1305 计算上下文，内部创建 Context 准备计算 Poly1305 结果。
+
+   参数：
+     out Context: TCnPoly1305Context      - 初始化的 Poly1305 上下文结构
+     Key: TCnPoly1305Key                  - 密码
+
+   返回值：（无）
+}
 
 procedure Poly1305Update(Context: TCnPoly1305Context; Input: PAnsiChar;
   ByteLength: Cardinal; ZeroPadding: Boolean = False);
 {* 以初始化后的上下文对一块数据进行 Poly1305 计算。
-  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
-  但该 Update 的行为在碰见末尾非整块时会强行计算，不会像其他杂凑一样暂存等下一轮或 Final
-  ZeroPadding 控制末尾块非 16 整时是否补 0}
+   可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
+   但该 Update 的行为在碰见末尾非整块时会强行计算，不会像其他杂凑一样暂存等下一轮或 Final。
+   ZeroPadding 控制末尾块非 16 整时是否补 0。
+
+   参数：
+     Context: TCnPoly1305Context          - Poly1305 上下文结构
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度，非 16 字节整块时会强行计算
+     ZeroPadding: Boolean                 - 末尾块非 16 字节整时是否末尾补 0
+
+   返回值：（无）
+}
 
 procedure Poly1305Final(var Context: TCnPoly1305Context; var Digest: TCnPoly1305Digest);
-{* 结束本轮计算，将 Poly130 结果返回至 Digest 中并释放 Context}
+{* 结束本轮计算，将 Poly130 结果返回至 Digest 中并释放 Context。
+
+   参数：
+     var Context: TCnPoly1305Context      - Poly1305 上下文结构
+     var Digest: TCnPoly1305Digest        - 返回的 Poly1305 杂凑值
+
+   返回值：（无）
+}
 
 implementation
 
