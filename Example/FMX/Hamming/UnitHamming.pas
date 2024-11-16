@@ -48,7 +48,7 @@ begin
   CnCalcHammingCode(InBits, OutBits, 8);
   CnDebugger.TraceBits(OutBits);
   OutBits.Bits[35] := not OutBits.Bits[35];
-  CnVerifyHammingCode(OutBits, InBits, 8);
+  CnVerifyHammingCode(InBits, OutBits, 8);
 
   CnDebugger.TraceBits(InBits);
 

@@ -3366,7 +3366,7 @@ begin
     IB[79] := not IB[79];
 
     // 再验证并纠错
-    CnVerifyHammingCode(OB, IB, 8);
+    CnVerifyHammingCode(IB, OB, 8);
     Result := BitsToString(IB) = SI;
   finally
     OB.Free;

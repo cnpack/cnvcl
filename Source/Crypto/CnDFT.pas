@@ -50,47 +50,132 @@ uses
   SysUtils, Classes, CnNative, CnComplex, CnMatrix;
 
 procedure ButterflyChangeComplex(CA: PCnComplexArray; Len: Integer);
-{* 蝴蝶变换，调整复数数组内部元素的顺序以便奇偶分治}
+{* 蝴蝶变换，调整复数数组内部元素的顺序以便奇偶分治。
+
+   参数：
+     CA: PCnComplexArray                  - 指向待进行蝴蝶变换的复数数组
+     Len: Integer                         - 数组里的复数个数
+
+   返回值：（无）
+}
 
 procedure ButterflyChangeInt64(IA: PInt64Array; Len: Integer);
-{* 蝴蝶变换，调整 Int64 数组内部元素的顺序以便奇偶分治}
+{* 蝴蝶变换，调整 Int64 数组内部元素的顺序以便奇偶分治。
+
+   参数：
+     IA: PInt64Array                      - 指向待进行蝴蝶变换的 Int64 数组
+     Len: Integer                         - 数组里的 Int64 个数
+
+   返回值：（无）
+}
 
 function CnFFT(Data: PCnComplexArray; Len: Integer): Boolean;
-{* 快速傅立叶变换，将多项式的系数复数数组转换为点值向量复数数组，要确保 Len 为 2 的整数次幂}
+{* 快速傅立叶变换，将多项式的系数复数数组转换为点值向量复数数组，要确保 Len 为 2 的整数次幂。
+
+   参数：
+     Data: PCnComplexArray                - 指向待进行快速傅立叶变换的复数数组
+     Len: Integer                         - 数组里的复数个数，必须是 2 的整数次幂
+
+   返回值：Boolean                        - 返回变换是否成功
+}
 
 function CnIFFT(Data: PCnComplexArray; Len: Integer): Boolean;
-{* 快速傅立叶逆变换，将点值向量复数数组转换为多项式的系数复数数组，要确保 Len 为 2 的整数次幂}
+{* 快速傅立叶逆变换，将点值向量复数数组转换为多项式的系数复数数组，要确保 Len 为 2 的整数次幂。
+
+   参数：
+     Data: PCnComplexArray                - 指向待进行快速傅立叶逆变换的复数数组
+     Len: Integer                         - 数组里的复数个数，必须是 2 的整数次幂
+
+   返回值：Boolean                        - 返回逆变换是否成功
+}
 
 function CnNTT(Data: PInt64Array; Len: Integer): Boolean;
 {* 快速数论变换，将多项式的系数 int 64 数组转换为点值向量 int64 数组，
-  注意要确保 Len 为 2 的整数次幂，并且 Data 各系数必须大于 0 且小于 CN_P}
+   注意要确保 Len 为 2 的整数次幂，并且 Data 各系数必须大于 0 且小于 CN_P。
+
+   参数：
+     Data: PInt64Array                    - 指向待进行快速数论变换的 Int64 数组
+     Len: Integer                         - 数组里的 Int64 个数，，必须是 2 的整数次幂
+
+   返回值：Boolean                        - 返回变换是否成功
+}
 
 function CnINTT(Data: PInt64Array; Len: Integer): Boolean;
 {* 快速数论逆变换，将点值向量 int 64 数组转换为多项式的系数 int 64 数组，
-  注意要确保 Len 为 2 的整数次幂，并且 Data 各系数必须大于 0 且小于 CN_P}
+   注意要确保 Len 为 2 的整数次幂，并且 Data 各系数必须大于 0 且小于 CN_P。
+
+   参数：
+     Data: PInt64Array                    - 指向待进行快速数论逆变换的 Int64 数组
+     Len: Integer                         - 数组里的 Int64 个数，，必须是 2 的整数次幂
+
+   返回值：Boolean                        - 返回逆变换是否成功
+}
 
 function CnDCT(Data: PExtendedArray; Res: PExtendedArray; Len: Integer): Boolean;
 {* 一维 DCT 变换（离散余弦），将 Data 所指的浮点数组做一次一维离散余弦变换，
-  结果放入 Res 所指的浮点数组中，要求数组长度均为 Len，返回变换是否成功}
+   结果放入 Res 所指的浮点数组中，要求数组长度均为 Len，返回变换是否成功。
+
+   参数：
+     Data: PExtendedArray                 - 指向待进行一维 DCT 变换的浮点数组
+     Res: PExtendedArray                  - 指向变换结果的浮点数组
+     Len: Integer                         - 数组里的浮点数个数
+
+   返回值：Boolean                        - 返回变换是否成功
+}
 
 function CnIDCT(Data: PExtendedArray; Res: PExtendedArray; Len: Integer): Boolean;
 {* 一维逆 DCT 变换（离散余弦），将 Data 所指的浮点数组做一次一维逆离散余弦变换，
-  结果放入 Res 所指的浮点数组中，要求数组长度均为 Len，返回逆变换是否成功}
+   结果放入 Res 所指的浮点数组中，要求数组长度均为 Len，返回逆变换是否成功。
+
+   参数：
+     Data: PExtendedArray                 - 指向待进行一维逆 DCT 变换的浮点数组
+     Res: PExtendedArray                  - 指向逆变换结果的浮点数组
+     Len: Integer                         - 数组里的浮点数个数
+
+   返回值：Boolean                        - 返回逆变换是否成功
+}
 
 function CnGenerateDCT2Matrix(M: TCnFloatMatrix; N: Integer): Boolean;
-{* 生成 N 阶二维 DCT 变换矩阵，该矩阵为方阵}
+{* 生成 N 阶二维 DCT 变换矩阵，该矩阵为方阵。
+
+   参数：
+     M: TCnFloatMatrix                    - 待生成的二维 DCT 变换矩阵
+     N: Integer                           - 矩阵的阶
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnDCT2(Data: TCnFloatMatrix; Res: TCnFloatMatrix; DCTM: TCnFloatMatrix = nil;
   DCTMT: TCnFloatMatrix = nil; T: TCnFloatMatrix = nil): Boolean;
-{* 二维 DCT 变换（离散余弦），将 Data 所指的浮点矩阵做一次二维离散余弦变换，
-  结果放入 Res 所指的浮点矩阵中，要求各矩阵均为方阵且尺寸相等，
-  DCTM/DCTMT 可以为预计算的变换矩阵与其转置矩阵，T 为临时计算矩阵，返回变换是否成功}
+{* 二维 DCT 变换（离散余弦），将 Data 所代表的浮点矩阵做一次二维离散余弦变换，
+   结果放入 Res 所代表的浮点矩阵中，要求各矩阵均为方阵且尺寸相等，
+   DCTM/DCTMT 可以为预计算的变换矩阵与其转置矩阵，T 为临时计算矩阵，返回变换是否成功。
+
+   参数：
+     Data: TCnFloatMatrix                 - 待进行二维 DCT 变换的浮点矩阵
+     Res: TCnFloatMatrix                  - 结果矩阵
+     DCTM: TCnFloatMatrix                 - 预计算的变换矩阵
+     DCTMT: TCnFloatMatrix                - 预计算的变换矩阵的转置矩阵
+     T: TCnFloatMatrix                    - 临时计算矩阵
+
+   返回值：Boolean                        - 返回变换是否成功
+}
 
 function CnIDCT2(Data: TCnFloatMatrix; Res: TCnFloatMatrix; DCTM: TCnFloatMatrix = nil;
   DCTMT: TCnFloatMatrix = nil; T: TCnFloatMatrix = nil): Boolean;
-{* 二维逆 DCT 变换（离散余弦），将 Data 所指的浮点矩阵做一次二维逆离散余弦变换，
-  结果放入 Res 所指的浮点矩阵中，要求各矩阵均为方阵且尺寸相等，
-  DCTM/DCTMT 可以为预计算的变换矩阵与其转置矩阵，T 为临时计算矩阵，返回变换是否成功}
+{* 二维逆 DCT 变换（离散余弦），将 Data 所代表的浮点矩阵做一次二维逆离散余弦变换，
+   结果放入 Res 所代表的浮点矩阵中，要求各矩阵均为方阵且尺寸相等，
+   DCTM/DCTMT 可以为预计算的变换矩阵与其转置矩阵，T 为临时计算矩阵，返回逆变换是否成功。
+
+   参数：
+     Data: TCnFloatMatrix                 - 待进行二维逆 DCT 变换的浮点矩阵
+     Res: TCnFloatMatrix                  - 结果矩阵
+     DCTM: TCnFloatMatrix                 - 预计算的变换矩阵
+     DCTMT: TCnFloatMatrix                - 预计算的变换矩阵的转置矩阵
+     T: TCnFloatMatrix                    - 临时计算矩阵
+
+   返回值：Boolean                        - 返回逆变换是否成功
+}
 
 implementation
 
@@ -384,6 +469,7 @@ begin
         M.Value[I, J] := M.Value[I, J] * A2;
     end;
   end;
+  Result := True;
 end;
 
 function CnDCT2(Data, Res: TCnFloatMatrix; DCTM: TCnFloatMatrix;

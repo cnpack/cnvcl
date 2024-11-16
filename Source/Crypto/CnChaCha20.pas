@@ -27,8 +27,8 @@ unit CnChaCha20;
 * 备    注：本单元实现了 ChaCha20 系列流密码加解密算法，其中 ChaCha20 依据 RFC 7539 实现，
 *           XChaCha20 依据草案实现。算法中的 Nonce 类似于初始化向量。
 *
-*           ChaCha20 块运算：输入 32 字节 Key、12 字节 Nonce、4 字节 Counter，输出 64 字节内容
-*           ChaCha20 流运算：输入 32 字节 Key、12 字节 Nonce、4 字节 Counter，任意长度明/密文
+*           ChaCha20 块运算：输入 32 字节 Key、12 字节 Nonce、4 字节 Counter，输出 64 字节内容。
+*           ChaCha20 流运算：输入 32 字节 Key、12 字节 Nonce、4 字节 Counter，任意长度明/密文。
 *                    输出相同长度密/明文，内部 Counter 初始值默认使用 1
 *
 * 开发平台：Windows 7 + Delphi 5.0
@@ -94,48 +94,137 @@ type
 
 procedure ChaCha20Block(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Counter: TCnChaChaCounter; var OutState: TCnChaChaState);
-{* 进行一次块运算，包括 20 轮的子运算，外部指定 12 字节的 Nonce 与一个四字节计数器}
+{* 进行一次 ChaCha20 块运算，包括 20 轮的子运算，外部指定 12 字节的 Nonce 与一个四字节计数器。
+
+   参数：
+     var Key: TCnChaChaKey                - ChaCha20 密码
+     var Nonce: TCnChaChaNonce            - 一次性随机数据 Nonce
+     Counter: TCnChaChaCounter            - 计数器
+     var OutState: TCnChaChaState         - 状态块
+
+   返回值：（无）
+}
 
 procedure HChaCha20SubKey(var Key: TCnChaChaKey; var Nonce: TCnHChaChaNonce;
   var OutSubKey: TCnHChaChaSubKey);
 {* 进行一次 HChaCha20 块运算，包括 20 轮的子运算，输出 SubKey，
-  外部指定 16 字节的 Nonce，实际上是 Nonce 前四字节作为计数器，后 12 字节为 ChaCha20 的 Nonce}
+   外部指定 16 字节的 Nonce，实际上是 Nonce 前四字节作为计数器，后 12 字节为 ChaCha20 的 Nonce。
+
+   参数：
+     var Key: TCnChaChaKey                - HChaCha20 密码
+     var Nonce: TCnHChaChaNonce           - 一次性随机数据 Nonce
+     var OutSubKey: TCnHChaChaSubKey      - 子状态块
+
+   返回值：（无）
+}
 
 function ChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Data: TBytes): TBytes;
-{* 对字节数组进行 ChaCha20 加密，内部使用的计数器初始值默认为 1}
+{* 对字节数组进行 ChaCha20 加密，内部使用的计数器初始值默认为 1。
+
+   参数：
+     var Key: TCnChaChaKey                - ChaCha20 密码
+     var Nonce: TCnChaChaNonce            - 一次性随机数据 Nonce
+     Data: TBytes                         - 待加密的明文字节数组
+
+   返回值：TBytes                         - 返回密文字节数组
+}
 
 function ChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   EnData: TBytes): TBytes;
-{* 对字节数组进行 ChaCha20 解密，内部使用的计数器初始值默认为 1}
+{* 对字节数组进行 ChaCha20 解密，内部使用的计数器初始值默认为 1。
+
+   参数：
+     var Key: TCnChaChaKey                - ChaCha20 密码
+     var Nonce: TCnChaChaNonce            - 一次性随机数据 Nonce
+     EnData: TBytes                       - 待解密的密文字节数组
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 function ChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
-{* 对 Data 所指的 DataByteLength 长度的数据块进行 ChaCha20 加密，内部使用的计数器为 1
-  密文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
+{* 对 Data 所指的 DataByteLength 长度的数据块进行 ChaCha20 加密，内部使用的计数器为 1。
+   密文放 Output 所指的内存，要求长度至少能容纳 DataByteLength。
+
+   参数：
+     var Key: TCnChaChaKey                - ChaCha20 密码
+     var Nonce: TCnChaChaNonce            - 一次性随机数据 Nonce
+     Data: Pointer                        - 待加密的明文数据块地址
+     DataByteLength: Integer              - 待加密的明文数据块字节长度
+     Output: Pointer                      - 密文输出区域的地址
+
+   返回值：Boolean                        - 返回加密是否成功
+}
 
 function ChaCha20DecryptData(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
   EnData: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
-{* 对 Data 所指的 DataByteLength 长度的密文数据块进行 ChaCha20 解密，内部使用的计数器为 1
-  明文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
+{* 对 Data 所指的 DataByteLength 长度的密文数据块进行 ChaCha20 解密，内部使用的计数器为 1。
+   明文放 Output 所指的内存，要求长度至少能容纳 DataByteLength。
+
+   参数：
+     var Key: TCnChaChaKey                - ChaCha20 密码
+     var Nonce: TCnChaChaNonce            - 一次性随机数据 Nonce
+     EnData: Pointer                      - 待解密的密文数据块地址
+     DataByteLength: Integer              - 待解密的密文数据块字节长度
+     Output: Pointer                      - 明文输出区域的地址
+
+   返回值：Boolean                        - 返回解密是否成功
+}
 
 function XChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
   Data: TBytes): TBytes;
-{* 对字节数组进行 XChaCha20 加密，内部使用的计数器初始值默认为 1}
+{* 对字节数组进行 XChaCha20 加密，内部使用的计数器初始值默认为 1。
+
+   参数：
+     var Key: TCnChaChaKey                - XChaCha20 密码
+     var Nonce: TCnXChaChaNonce           - 一次性随机数据 Nonce
+     Data: TBytes                         - 待加密的明文字节数组
+
+   返回值：TBytes                         - 返回密文字节数组
+}
 
 function XChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
   EnData: TBytes): TBytes;
-{* 对字节数组进行 XChaCha20 解密，内部使用的计数器初始值默认为 1}
+{* 对字节数组进行 XChaCha20 解密，内部使用的计数器初始值默认为 1。
+
+   参数：
+     var Key: TCnChaChaKey                - XChaCha20 密码
+     var Nonce: TCnXChaChaNonce           - 一次性随机数据 Nonce
+     EnData: TBytes                       - 待解密的密文字节数组
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 function XChaCha20EncryptData(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
   Data: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
-{* 对 Data 所指的 DataByteLength 长度的数据块进行 XChaCha20 加密，内部使用的计数器初始值默认为 1
-  密文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
+{* 对 Data 所指的 DataByteLength 长度的数据块进行 XChaCha20 加密，内部使用的计数器初始值默认为 1。
+   密文放 Output 所指的内存，要求长度至少能容纳 DataByteLength。
+
+   参数：
+     var Key: TCnChaChaKey                - XChaCha20 密码
+     var Nonce: TCnXChaChaNonce           - 一次性随机数据 Nonce
+     Data: Pointer                        - 待加密的明文数据块地址
+     DataByteLength: Integer              - 待加密的明文数据块字节长度
+     Output: Pointer                      - 密文输出区域的地址
+
+   返回值：Boolean                        - 返回加密是否成功
+}
 
 function XChaCha20DecryptData(var Key: TCnChaChaKey; var Nonce: TCnXChaChaNonce;
   EnData: Pointer; DataByteLength: Integer; Output: Pointer): Boolean;
-{* 对 Data 所指的 DataByteLength 长度的密文数据块进行 XChaCha20 解密，内部使用的计数器初始值默认为 1
-  明文放 Output 所指的内存，要求长度至少能容纳 DataByteLength}
+{* 对 Data 所指的 DataByteLength 长度的密文数据块进行 XChaCha20 解密，内部使用的计数器初始值默认为 1。
+   明文放 Output 所指的内存，要求长度至少能容纳 DataByteLength。
+
+   参数：
+     var Key: TCnChaChaKey                - XChaCha20 密码
+     var Nonce: TCnXChaChaNonce           - 一次性随机数据 Nonce
+     EnData: Pointer                      - 待解密的密文数据块地址
+     DataByteLength: Integer              - 待解密的密文数据块字节长度
+     Output: Pointer                      - 明文输出区域的地址
+
+   返回值：Boolean                        - 返回解密是否成功
+}
 
 implementation
 

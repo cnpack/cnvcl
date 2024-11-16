@@ -31,7 +31,9 @@ unit CnFEC;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2019.06.20 V1.1
+* 修改记录：2023.11.16 V1.2
+*               调整校验的参数顺序
+*           2019.06.20 V1.1
 *               实现伽罗华 2^8 矩阵的运算
 *           2019.05.28 V1.0
 *               创建单元，实现功能
@@ -47,14 +49,18 @@ uses
 
 type
   ECnHammingException = class(Exception);
+  {* 汉明码前向校验相关异常}
 
   ECnCalculationRuleException = class(Exception);
+  {* 前向纠错相关异常}
 
   TCnCalculationRule = class
   {* 四则运算规则，子类可重载实现有限域运算规则}
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     function Add(X: Int64; Y: Int64): Int64; virtual;
     function Subtract(X: Int64; Y: Int64): Int64; virtual;
@@ -69,7 +75,9 @@ type
     FValueToExp: array[0..255] of Integer;
   public
     constructor Create; override;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     function Add(X: Int64; Y: Int64): Int64; override;
     function Subtract(X: Int64; Y: Int64): Int64; override;
@@ -95,26 +103,66 @@ type
 
 procedure CnCalcHammingCode(InBits: TBits; OutBits: TBits; BlockBitCount: Integer = 8);
 {* 根据一批 Bits 计算其 Hamming 码，默认分组 8 Bit 也就是 1 字节。
-  假设 InBits 是待发送内容，OutBits 是本函数根据 InBits 及分组长度计算出的校验码
-  计算完毕后，InBits 和 OutBits 共同发送至另一处，传输过程中 InBits 可能出错。
-  另一处使用 CnVerifyHammingCode 判断有无错误并纠错}
+   假设 InBits 是待发送内容，OutBits 是本函数根据 InBits 及分组长度计算出的校验码，
+   计算完毕后，InBits 和 OutBits 共同发送至另一处，传输过程中 InBits 可能出错。
+   另一处使用 CnVerifyHammingCode 判断有无错误并纠错。
+
+   参数：
+     InBits: TBits                        - 原始待生成校验码的内容
+     OutBits: TBits                       - 生成的校验码
+     BlockBitCount: Integer               - 块的位长度
+
+   返回值：（无）
+}
 
 procedure CnVerifyHammingCode(InBits: TBits; OutBits: TBits; BlockBitCount: Integer = 8);
 {* 根据 Hamming 编码过的 Bits 还原并校验其内容，默认分组 8 Bit 也就是 1 字节。
-  假设 InBits 是收到的可能出错了的内容，OutBits 是 CnCalcHammingCode 根据 InBits
-  及分组长度计算出的校验码。本函数校验两者内容并尽量纠错}
+   假设 InBits 是收到的可能出错了的内容，OutBits 是 CnCalcHammingCode 根据 InBits
+   及分组长度计算出的校验码。本函数校验两者内容并尽量纠错。
+
+   参数：
+     InBits: TBits                        - 传输来的待校验的位内容，纠错所生成的内容也在其中
+     OutBits: TBits                       - 传输来的待校验的校验码
+     BlockBitCount: Integer               - 块的位长度
+
+   返回值：（无）
+}
 
 function CnCalcHammingVerificationBitCountFromBlockBitCount(BlockBitCount: Integer): Integer;
-{* 根据 Hamming 分组的 Bit 长度计算校验 Bit 的长度}
+{* 根据 Hamming 分组的 Bit 长度计算校验 Bit 的长度。
+
+   参数：
+     BlockBitCount: Integer               - 汉明码的分组位长度
+
+   返回值：Integer                        - 返回计算的汉明码校验位长度
+}
 
 function CnGalois2Power8Rule: TCnCalculationRule;
-{* 返回全局的 GP(2^8) 的运算规则供外界调用}
+{* 返回全局的 GP(2^8) 的运算规则供外界调用。
+
+   参数：
+     （无）
+
+   返回值：TCnCalculationRule             - 返回的全局 GP(2^8) 的运算规则实例
+}
 
 implementation
 
+resourcestring
+  SCnErrorHammingBlockBitCount = 'Error Hamming BlockBitCount: %d';
+  SCnErrorInBitsCalculateHamming = 'Error InBits Calculate Hamming.';
+  SCnErrorPaddingSizeForBlockBit = 'Error Padding Size %d for Block Bit Count %d.';
+  SCnErrorInBitsVerifyHamming = 'Error InBits Verify Hamming.';
+  SCnErrorPaddingSizeForVerifyBit = 'Error Padding Size %d for Verify Bit Count %d.';
+  SCnErrorOutOfRangeForGalois28 = 'Out of Range for Galois 2^8: %d';
+  SCnErrorOutOfRangeForGalois281 = 'Out of Range for Galois 2^8: %d, %d';
+
 const
-  GALOIS2POWER8_LIMIT = 255;  // 伽罗华域 2^8 的最大范围
-  GALOIS2POWER8_IRREDUCIBLE_POLYNOMIAL = $12D; // 伽罗华域 2^8 使用的不可约多项式之一，供取模用
+  GALOIS2POWER8_LIMIT = 255;
+  // 伽罗华域 2^8 的最大范围
+
+  GALOIS2POWER8_IRREDUCIBLE_POLYNOMIAL = $12D;
+  // 伽罗华域 2^8 使用的不可约多项式之一，供取模用
 
 var
   FGalois2Power8Rule: TCnCalculationRule = nil;
@@ -143,7 +191,7 @@ begin
   else if BlockBitCount in [58..120] then
     Result := 7
   else
-    raise ECnHammingException.CreateFmt('Error Hamming BlockBitCount: %d', [BlockBitCount]);
+    raise ECnHammingException.CreateFmt(SCnErrorHammingBlockBitCount, [BlockBitCount]);
 end;
 
 procedure CnCalcHammingCode(InBits, OutBits: TBits; BlockBitCount: Integer = 8);
@@ -198,10 +246,10 @@ begin
   VerificationBitCount := CnCalcHammingVerificationBitCountFromBlockBitCount(BlockBitCount);
 
   if (InBits = nil) or (InBits.Size <= 0) then
-    raise ECnHammingException.Create('Error InBits Calculate Hamming.');
+    raise ECnHammingException.Create(SCnErrorInBitsCalculateHamming);
 
   if InBits.Size mod BlockBitCount <> 0 then
-    raise ECnHammingException.CreateFmt('Error Padding Size %d for Block Bit Count %d.', [InBits.Size, BlockBitCount]);
+    raise ECnHammingException.CreateFmt(SCnErrorPaddingSizeForBlockBit, [InBits.Size, BlockBitCount]);
 
   OutBits.Size := (InBits.Size div BlockBitCount) * (BlockBitCount + VerificationBitCount);
   OffsetIn := 0;
@@ -240,7 +288,7 @@ var
       for OutIdx := 1 to BlockBitCount + VerificationBitCount do
       begin
         if (OutIdx and (1 shl BitIdx)) <> 0 then
-          Ver := Ver xor InBits.Bits[InStartOffset + OutIdx - 1];
+          Ver := Ver xor OutBits.Bits[InStartOffset + OutIdx - 1];
       end;
 
       if Ver then  // 有错误，拼纠错位置
@@ -252,8 +300,8 @@ var
     // 纠错一位码
     if ErrIdx <> 0 then
     begin
-      InBits.Bits[InStartOffset + ErrIdx - 1] := not
-        InBits.Bits[InStartOffset + ErrIdx - 1];
+      OutBits.Bits[InStartOffset + ErrIdx - 1] := not
+        OutBits.Bits[InStartOffset + ErrIdx - 1];
     end;
 
     InIdx := 0;
@@ -264,7 +312,7 @@ var
       while InIdx in VERIFICATION_BITS do
         Inc(InIdx);
 
-      OutBits.Bits[OutStartOffset + OutIdx] := InBits.Bits[InStartOffset + InIdx];
+      InBits.Bits[OutStartOffset + OutIdx] := OutBits.Bits[InStartOffset + InIdx];
       Inc(InIdx);
       Inc(OutIdx);
     end;
@@ -273,17 +321,17 @@ var
 begin
   VerificationBitCount := CnCalcHammingVerificationBitCountFromBlockBitCount(BlockBitCount);
 
-  if (InBits = nil) or (InBits.Size <= 0) then
-    raise ECnHammingException.Create('Error InBits Verify Hamming.');
+  if (OutBits = nil) or (OutBits.Size <= 0) then
+    raise ECnHammingException.Create(SCnErrorInBitsVerifyHamming);
 
-  if InBits.Size mod (BlockBitCount + VerificationBitCount) <> 0 then
-    raise ECnHammingException.CreateFmt('Error Padding Size %d for Verify Bit Count %d.', [InBits.Size, VerificationBitCount]);
+  if OutBits.Size mod (BlockBitCount + VerificationBitCount) <> 0 then
+    raise ECnHammingException.CreateFmt(SCnErrorPaddingSizeForVerifyBit, [OutBits.Size, VerificationBitCount]);
 
-  OutBits.Size := (InBits.Size div (VerificationBitCount + BlockBitCount)) * BlockBitCount;
+  InBits.Size := (OutBits.Size div (VerificationBitCount + BlockBitCount)) * BlockBitCount;
   OffsetIn := 0;
   OffsetOut := 0;
 
-  while OffsetIn < InBits.Size - 1 do
+  while OffsetIn < OutBits.Size - 1 do
   begin
     VerifyHammingBlock(OffsetIn, OffsetOut);
     Inc(OffsetIn, BlockBitCount + VerificationBitCount);
@@ -329,14 +377,14 @@ end;
 procedure CheckGalois2Power8Value(X: Int64); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   if (X < 0) or (X > GALOIS2POWER8_LIMIT) then
-    raise ECnCalculationRuleException.CreateFmt('Out of Range for Galois 2^8: %d', [X]);
+    raise ECnCalculationRuleException.CreateFmt(SCnErrorOutOfRangeForGalois28, [X]);
 end;
 
 procedure CheckGalois2Power8Values(X, Y: Int64); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   if (X < 0) or (X > GALOIS2POWER8_LIMIT) or
     (Y < 0) or (Y > GALOIS2POWER8_LIMIT) then
-    raise ECnCalculationRuleException.CreateFmt('Out of Range for Galois 2^8: %d, %d', [X, Y]);
+    raise ECnCalculationRuleException.CreateFmt(SCnErrorOutOfRangeForGalois281, [X, Y]);
 end;
 
 function TCnGalois2Power8Rule.Add(X, Y: Int64): Int64;
