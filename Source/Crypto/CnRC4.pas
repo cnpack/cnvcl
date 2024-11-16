@@ -46,27 +46,75 @@ const
 
 procedure RC4Encrypt(Key: Pointer; KeyByteLength: Integer; Input: Pointer;
   Output: Pointer; ByteLength: Integer);
-{* 对 Input 所指的长度为 ByteLength 的明文数据块，使用 Key 所指的长度 KeyByteLength 的
-  RC4 密钥进行加密，密文内容放 Output 所指的数据区，该区要求长度至少也为 ByteLength
-  Input Output 可以指向同一块内存，这样 Output 的内容将覆盖原有 Input 的内容}
+{* 对 Input 所指的字节长度为 ByteLength 的明文数据块，使用 Key 所指的字节长度 KeyByteLength 的
+   RC4 密钥进行加密，密文内容放 Output 所指的数据区，该区要求字节长度至少也为 ByteLength。
+   Input Output 可以指向同一块内存，这样 Output 的内容将覆盖原有 Input 的内容。
+
+   参数：
+     Key: Pointer                         - 密钥的内存地址
+     KeyByteLength: Integer               - 密钥的字节长度
+     Input: Pointer                       - 待加密的明文数据块地址
+     Output: Pointer                      - 待输出的密文数据块地址
+     ByteLength: Integer                  - 待加密的明文数据块的字节长度
+
+   返回值：（无）
+}
 
 procedure RC4Decrypt(Key: Pointer; KeyByteLength: Integer; Input: Pointer;
   Output: Pointer; ByteLength: Integer);
-{* 对 Input 所指的长度为 ByteLength 的密文数据块，使用 Key 所指的长度 KeyByteLength 的
-  RC4 密钥进行解密，明文内容放 Output 所指的数据区，该区要求长度至少也为 ByteLength
-  Input Output 可以指向同一块内存，这样 Output 的内容将覆盖原有 Input 的内容}
+{* 对 Input 所指的字节长度为 ByteLength 的密文数据块，使用 Key 所指的字节长度 KeyByteLength 的
+   RC4 密钥进行解密，明文内容放 Output 所指的数据区，该区要求字节长度至少也为 ByteLength。
+   Input Output 可以指向同一块内存，这样 Output 的内容将覆盖原有 Input 的内容。
+
+   参数：
+     Key: Pointer                         - 密钥的内存地址
+     KeyByteLength: Integer               - 密钥的字节长度
+     Input: Pointer                       - 待解密的密文数据块地址
+     Output: Pointer                      - 待输出的明文数据块地址
+     ByteLength: Integer                  - 待解密的密文数据块的字节长度
+
+   返回值：（无）
+}
 
 function RC4EncryptBytes(Key: TBytes; Input: TBytes): TBytes;
-{* RC4 加密字节数组，返回密文字节数组}
+{* RC4 加密字节数组，返回密文字节数组。
+
+   参数：
+     Key: TBytes                          - 密码字节数组
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：TBytes                         - 返回密文字节数组
+}
 
 function RC4DecryptBytes(Key: TBytes; Input: TBytes): TBytes;
-{* RC4 解密字节数组，返回明文字节数组}
+{* RC4 解密字节数组，返回明文字节数组。
+
+   参数：
+     Key: TBytes                          - 密码字节数组
+     Input: TBytes                        - 待解密的密文字节数组
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 function RC4EncryptStrToHex(const Str: AnsiString; const Key: AnsiString): AnsiString;
-{* 传入字符串形式的明文与密钥，RC4 加密返回转换成十六进制的密文}
+{* 传入字符串形式的明文与密钥，RC4 加密返回转换成十六进制的密文。
+
+   参数：
+     const Str: AnsiString                - 待加密的原始单字节字符串，内部不处理编码
+     const Key: AnsiString                - 密码字符串
+
+   返回值：AnsiString                     - 返回加密后的十六进制密文
+}
 
 function RC4DecryptStrFromHex(const HexStr: AnsiString; const Key: AnsiString): AnsiString;
-{* 传入十六进制的密文与字符串形式的密钥，RC4 解密返回明文}
+{* 传入十六进制的密文与字符串形式的密钥，RC4 解密返回明文。
+
+   参数：
+     const HexStr: AnsiString             - 待解密的十六进制密文
+     const Key: AnsiString                - 密码字符串
+
+   返回值：AnsiString                     - 返回解密后的单字节字符串明文，内部不处理编码
+}
 
 implementation
 

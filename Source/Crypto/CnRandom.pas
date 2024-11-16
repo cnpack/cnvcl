@@ -51,39 +51,109 @@ type
   ECnRandomAPIError = class(Exception);
 
 function RandomUInt64: TUInt64;
-{* 返回 UInt64 范围内的随机数，在不支持 UInt64 的平台上用 Int64 代替}
+{* 返回 UInt64 范围内的随机数，在不支持 UInt64 的平台上用 Int64 代替。
+
+   参数：
+     （无）
+
+   返回值：TUInt64                        - 返回 UInt64 范围内的随机数
+}
 
 function RandomUInt64LessThan(HighValue: TUInt64): TUInt64;
-{* 返回大于等于 0 且小于指定 UInt64 值的随机数}
+{* 返回大于等于 0 且小于指定 UInt64 值的随机数。
+
+   参数：
+     HighValue: TUInt64                   - 指定 UInt64 的随机数上限
+
+   返回值：TUInt64                        - 返回大于等于 0 且小于指定 HighValue 的随机数
+}
 
 function RandomInt64: Int64;
-{* 返回大于等于 0 且小于 Int64 上限的随机数}
+{* 返回大于等于 0 且小于 Int64 上限的随机数。
+
+   参数：
+     （无）
+
+   返回值：Int64                          - 返回大于等于 0 且小于 Int64 上限的随机数
+}
 
 function RandomInt64LessThan(HighValue: Int64): Int64;
-{* 返回大于等于 0 且小于指定 Int64 值的随机数}
+{* 返回大于等于 0 且小于指定 Int64 值的随机数，调用者需自行保证 HighValue 大于 0。
+
+   参数：
+     HighValue: Int64                     - 指定 Int64 的随机数上限
+
+   返回值：Int64                          - 返回大于等于 0 且小于指定 HighValue 的随机数
+}
 
 function RandomUInt32: Cardinal;
-{* 返回 UInt32 范围内的随机数}
+{* 返回 UInt32 范围内的随机数。
+
+   参数：
+     （无）
+
+   返回值：Cardinal                       - 返回 UInt32 范围内的随机数
+}
 
 function RandomUInt32LessThan(HighValue: Cardinal): Cardinal;
-{* 返回大于等于 0 且小于指定 UInt32 值的随机数}
+{* 返回大于等于 0 且小于指定 UInt32 值的随机数。
+
+   参数：
+     HighValue: Cardinal                  - 指定 UInt32 的随机数上限
+
+   返回值：Cardinal                       - 返回大于等于 0 且小于指定 HighValue 的随机数
+}
 
 function RandomInt32: Integer;
-{* 返回大于等于 0 且小于 Int32 上限的随机数}
+{* 返回大于等于 0 且小于 Int32 上限的随机数。
+
+   参数：
+     （无）
+
+   返回值：Integer                        - 返回大于等于 0 且小于 Int32 上限的随机数
+}
 
 function RandomInt32LessThan(HighValue: Integer): Integer;
-{* 返回大于等于 0 且小于指定 Int32 的随机数}
+{* 返回大于等于 0 且小于指定 Int32 的随机数，调用者需自行保证 HighValue 大于 0。
+
+   参数：
+     HighValue: Integer                   - 指定 Int32 的随机数上限
+
+   返回值：Integer                        - 返回大于等于 0 且小于指定 HighValue 的随机数
+}
 
 function CnKnuthShuffle(ArrayBase: Pointer; ElementByteSize: Integer;
   ElementCount: Integer): Boolean;
-{* 高德纳洗牌算法，将 ArrayBase 所指的元素尺寸为 ElementSize 的 ElementCount 个元素均匀洗牌}
+{* 高德纳洗牌算法，将 ArrayBase 所指的元素尺寸为 ElementSize 的 ElementCount 个元素均匀洗牌。
 
-function CnRandomFillBytes(Buf: PAnsiChar; Len: Integer): Boolean;
-{* 使用 Windows API 或 /dev/random 设备实现区块随机填充，内部单次初始化随机数引擎并释放}
+   参数：
+     ArrayBase: Pointer                   - 待洗牌的内存块地址
+     ElementByteSize: Integer             - 待洗牌的每个内存元素也就是每一张牌的字节大小
+     ElementCount: Integer                - 内存元素也就是牌的数量
 
-function CnRandomFillBytes2(Buf: PAnsiChar; Len: Integer): Boolean;
+   返回值：Boolean                        - 返回洗牌是否成功
+}
+
+function CnRandomFillBytes(Buf: PAnsiChar; BufByteLen: Integer): Boolean;
+{* 使用 Windows API 或 /dev/random 设备实现区块随机填充，内部单次初始化随机数引擎并释放。
+
+   参数：
+     Buf: PAnsiChar                       - 待填充的内存块地址
+     BufByteLen: Integer                  - 待填充的内存块的字节长度
+
+   返回值：Boolean                        - 返回随机填充是否成功
+}
+
+function CnRandomFillBytes2(Buf: PAnsiChar; BufByteLen: Integer): Boolean;
 {* 使用 Windows API 或 /dev/urandom 设备实现区块随机填充，
-  Windows 下使用已预先初始化好的引擎以提速}
+   Windows 下使用已预先初始化好的引擎以提速。
+
+   参数：
+     Buf: PAnsiChar                       - 待填充的内存块地址
+     BufByteLen: Integer                  - 待填充的内存块的字节长度
+
+   返回值：Boolean                        - 返回随机填充是否成功
+}
 
 implementation
 
@@ -119,7 +189,7 @@ const
 
 {$ENDIF}
 
-function CnRandomFillBytes(Buf: PAnsiChar; Len: Integer): Boolean;
+function CnRandomFillBytes(Buf: PAnsiChar; BufByteLen: Integer): Boolean;
 var
 {$IFDEF MSWINDOWS}
   HProv: THandle;
@@ -152,7 +222,7 @@ begin
   if HProv <> 0 then
   begin
     try
-      Result := CryptGenRandom(HProv, Len, Buf);
+      Result := CryptGenRandom(HProv, BufByteLen, Buf);
       if not Result then
         raise ECnRandomAPIError.CreateFmt('Error CryptGenRandom $%8.8x', [GetLastError]);
     finally
@@ -164,27 +234,27 @@ begin
   F := nil;
   try
     F := TFileStream.Create(DEV_FILE, fmOpenRead);
-    Result := F.Read(Buf^, Len) = Len;
+    Result := F.Read(Buf^, BufByteLen) = BufByteLen;
   finally
     F.Free;
   end;
 {$ENDIF}
 end;
 
-function CnRandomFillBytes2(Buf: PAnsiChar; Len: Integer): Boolean;
+function CnRandomFillBytes2(Buf: PAnsiChar; BufByteLen: Integer): Boolean;
 {$IFNDEF MSWINDOWS}
 var
   F: TFileStream;
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
-  Result := CryptGenRandom(FHProv, Len, Buf);
+  Result := CryptGenRandom(FHProv, BufByteLen, Buf);
 {$ELSE}
   // MacOS/Linux 下的随机填充实现，采用读取 /dev/urandom 内容的方式，不阻塞
   F := nil;
   try
     F := TFileStream.Create(DEV_FILE, fmOpenRead);
-    Result := F.Read(Buf^, Len) = Len;
+    Result := F.Read(Buf^, BufByteLen) = BufByteLen;
   finally
     F.Free;
   end;

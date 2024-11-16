@@ -46,45 +46,99 @@ uses
 
 const
   CN_TEA_ROUND_COUNT = 32;
+  {* TEA 算法的默认加解密轮数}
 
 type
   ECnTeaException = class(Exception);
+  {* TEA 算法相关异常}
 
   TCnTeaKey = array[0..3] of Cardinal;
-  {* TEA 算法的密钥格式，四个 32Bit 数}
+  {* TEA 算法的密钥格式，四个 32 Bit 数}
 
   TCnTeaData = array[0..1] of Cardinal;
-  {* TEA 算法的数据格式，二个 32Bit 数}
+  {* TEA 算法的数据格式，二个 32 Bit 数}
 
   TCnXXTeaData = array[0..16383] of Cardinal;
-  {* XXTEA 算法支持更长的 32Bit 数组}
+  {* XXTEA 算法支持更长的 32 Bit 数组}
 
   PCnXXTeaData = ^TCnXXTeaData;
-  {* XXTEA 算法的 32Bit 数组指针}
+  {* XXTEA 算法的 32 Bit 数组指针}
 
 procedure CnTeaEncrypt(Key: TCnTeaKey; var Data: TCnTeaData;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
-{* TEA 加密，128 Bits 密钥加密 64 Bits 明文为密文}
+{* TEA 加密，128 Bits 密钥加密 64 Bits 明文为密文，密文重新放回 Data 中。
+
+   参数：
+     Key: TCnTeaKey                       - TEA 密码
+     var Data: TCnTeaData                 - TEA 明文，加密成密文
+     RoundCount: Integer                  - 加密轮数
+
+   返回值：（无）
+}
 
 procedure CnTeaDecrypt(Key: TCnTeaKey; var Data: TCnTeaData;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
-{* TEA 解密，128 Bits 密钥解密 64 Bits 密文为明文}
+{* TEA 解密，128 Bits 密钥解密 64 Bits 密文为明文。
+
+   参数：
+     Key: TCnTeaKey                       - TEA 密码
+     var Data: TCnTeaData                 - TEA 密文，解密成明文
+     RoundCount: Integer                  - 解密轮数
+
+   返回值：（无）
+}
 
 procedure CnXTeaEncrypt(Key: TCnTeaKey; var Data: TCnTeaData;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
-{* XTEA 加密，128 Bits 密钥加密 64 Bits 明文为密文}
+{* XTEA 加密，128 Bits 密钥加密 64 Bits 明文为密文。
+
+   参数：
+     Key: TCnTeaKey                       - XTEA 密码
+     var Data: TCnTeaData                 - XTEA 明文，加密成密文
+     RoundCount: Integer                  - 加密轮数
+
+   返回值：（无）
+}
 
 procedure CnXTeaDecrypt(Key: TCnTeaKey; var Data: TCnTeaData;
   RoundCount: Integer = CN_TEA_ROUND_COUNT);
-{* XTEA 解密，128 Bits 密钥解密 64 Bits 密文为明文}
+{* XTEA 解密，128 Bits 密钥解密 64 Bits 密文为明文。
+
+   参数：
+     Key: TCnTeaKey                       - XTEA 密码
+     var Data: TCnTeaData                 - XTEA 密文，解密成明文
+     RoundCount: Integer                  - 解密轮数
+
+   返回值：（无）
+}
 
 procedure CnXXTeaEncrypt(Key: TCnTeaKey; Data: PCnXXTeaData; DataLongWordLength: Integer);
-{* XXTEA 加密，128 Bits 密钥加密 4 字节整数倍长度的明文内容为密文}
+{* XXTEA 加密，128 Bits 密钥加密 4 字节整数倍长度的明文内容为密文。
+
+   参数：
+     Key: TCnTeaKey                       - XXTEA 密码
+     Data: PCnXXTeaData                   - XXTEA 明文地址，加密成密文
+     DataLongWordLength: Integer          - 明文长度，单位为四字节
+
+   返回值：（无）
+}
 
 procedure CnXXTeaDecrypt(Key: TCnTeaKey; Data: PCnXXTeaData; DataLongWordLength: Integer);
-{* XXTEA 解密，128 Bits 密钥解密 4 字节整数倍长度的密文内容为明文}
+{* XXTEA 解密，128 Bits 密钥解密 4 字节整数倍长度的密文内容为明文。
+
+   参数：
+     Key: TCnTeaKey                       - XXTEA 密码
+     Data: PCnXXTeaData                   - XXTEA 密文地址，解密成明文
+     DataLongWordLength: Integer          - 密文长度，单位为四字节
+
+   返回值：（无）
+}
 
 implementation
+
+resourcestring
+  SCnErrorTeaRoundCount = 'Error RoundCount.';
+  SCnErrorTeaData = 'Error Tea Data.';
 
 const
   CN_TEA_DELTA = $9E3779B9;
@@ -97,7 +151,7 @@ var
   I: Integer;
 begin
   if RoundCount <= 0 then
-    raise ECnTeaException.Create('Error RoundCount.');
+    raise ECnTeaException.Create(SCnErrorTeaRoundCount);
 
   D := CN_TEA_DELTA;
   S := 0;
@@ -117,7 +171,7 @@ var
   I: Integer;
 begin
   if RoundCount <= 0 then
-    raise ECnTeaException.Create('Error RountCount.');
+    raise ECnTeaException.Create(SCnErrorTeaRoundCount);
 
   D := CN_TEA_DELTA;
   if RoundCount >= CN_TEA_ROUND_COUNT then // 32 轮要移动 5 位，16 轮要 4 位
@@ -141,7 +195,7 @@ var
   I: Integer;
 begin
   if RoundCount <= 0 then
-    raise ECnTeaException.Create('Error RountCount.');
+    raise ECnTeaException.Create(SCnErrorTeaRoundCount);
 
   D := CN_TEA_DELTA;
   S := 0;
@@ -161,7 +215,7 @@ var
   I: Integer;
 begin
   if RoundCount <= 0 then
-    raise ECnTeaException.Create('Error RountCount.');
+    raise ECnTeaException.Create(SCnErrorTeaRoundCount);
 
   D := CN_TEA_DELTA;
   S := D * Cardinal(RoundCount);
@@ -210,7 +264,7 @@ var
   Q: Integer;
 begin
   if DataLongWordLength <= 0 then
-    raise ECnTeaException.Create('Error Tea Data.');
+    raise ECnTeaException.Create(SCnErrorTeaData);
 
   Q := 6 + 52 div DataLongWordLength;
   Z := Data^[DataLongWordLength - 1];
@@ -243,7 +297,7 @@ var
   Q: Integer;
 begin
   if DataLongWordLength <= 0 then
-    raise ECnTeaException.Create('Error Tea Data.');
+    raise ECnTeaException.Create(SCnErrorTeaData);
 
   Q := 6 + 52 div DataLongWordLength;
   Y := Data^[0];
