@@ -1,5 +1,4 @@
 @ECHO OFF
-SETLOCAL ENABLEDELAYEDEXPANSION
 REM 注意 Package 和 Test 下的工程都不需要 dof、cfg 等设置搜索路径，因为所需源码全在 Source 目录里
 CD ..
 DEL /S /Q cncrypto
@@ -402,6 +401,7 @@ MKDIR Doc
 CD Doc
 COPY ..\..\cnvcl\Doc\Develop\CnRSA*.txt .
 CD ..
+SETLOCAL ENABLEDELAYEDEXPANSION
 MKDIR Example
 CD Example
 MKDIR Delphi
