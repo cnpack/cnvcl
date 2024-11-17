@@ -65,6 +65,15 @@ interface
 uses
   SysUtils, Classes, CnNative, CnConsts;
 
+const
+  ECN_BASE64_OK                        = ECN_OK; // 转换成功
+  {* Base64 系列错误码：无错误，值为 0}
+  ECN_BASE64_ERROR_BASE                = ECN_CUSTOM_ERROR_BASE + $500;
+  {* Base64 系列错误码的基准起始值，为 ECN_CUSTOM_ERROR_BASE 加上 $500}
+
+  ECN_BASE64_LENGTH                    = ECN_BASE64_ERROR_BASE + 1;
+  {* Base64 错误码之数据长度非法}
+
 function Base64Encode(InputData: TStream; var OutputData: string;
   URL: Boolean = False): Integer; overload;
 {* 对流进行 Base64 编码或 Base64URL 编码，如编码成功返回 ECN_BASE64_OK。
@@ -162,15 +171,6 @@ function Base64Decode(const InputData: string; out OutputData: TBytes;
 
    返回值：Integer                        - 返回解码是否成功，成功则返回 ECN_BASE64_OK
 }
-
-const
-  ECN_BASE64_OK                        = ECN_OK; // 转换成功
-  {* Base64 系列错误码：无错误，值为 0}
-  ECN_BASE64_ERROR_BASE                = ECN_CUSTOM_ERROR_BASE + $500;
-  {* Base64 系列错误码的基准起始值，为 ECN_CUSTOM_ERROR_BASE 加上 $500}
-
-  ECN_BASE64_LENGTH                    = ECN_BASE64_ERROR_BASE + 1;
-  {* Base64 错误码之数据长度非法}
 
 implementation
 

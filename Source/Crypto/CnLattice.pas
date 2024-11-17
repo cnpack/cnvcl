@@ -63,10 +63,18 @@ type
     procedure SetFG(const Value: TCnInt64Polynomial);
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 显示 F 和 G 的字符串}
+    {* 显示 F 和 G 的字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
 
     property F: TCnInt64Polynomial read FF write SetFF;
     {* 私钥多项式 F，随机生成时要求有 D+1 个 1，D 个 -1，其他是 0}
@@ -85,10 +93,18 @@ type
     procedure SetFH(const Value: TCnInt64Polynomial);
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 显示 H 的字符串}
+    {* 显示 H 的字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
 
     property H: TCnInt64Polynomial read FH write SetFH;
     {* 公钥多项式}
@@ -104,34 +120,104 @@ type
     FPrime: Integer;
     FRing: TCnInt64Polynomial;
   protected
-    procedure RandPolynomial(const P: TCnInt64Polynomial; MaxDegree: Integer;
+    procedure RandPolynomial(P: TCnInt64Polynomial; MaxDegree: Integer;
       OneCount: Integer; MinusOneCount: Integer); overload;
-    {* 随机生成最高次数是 MaxDegree 的多项式，有 OneCount 个 1，MinusOneCount 个 -1，其余是 0}
-    procedure RandPolynomial(const P: TCnInt64Polynomial; MaxDegree: Integer); overload;
-    {* 随机生成最高次数是 MaxDegree 的多项式，内部系数 1 0 -1 随机，注意与 FPrime 无关}
+    {* 随机生成最高次数是 MaxDegree 的多项式，有 OneCount 个 1，MinusOneCount 个 -1，其余是 0。
+
+       参数：
+         P: TCnInt64Polynomial            - 生成的结果多项式
+         MaxDegree: Integer               - 最高次数
+         OneCount: Integer                - 1 的个数
+         MinusOneCount: Integer           - -1 的个数
+
+       返回值：（无）
+    }
+
+    procedure RandPolynomial(P: TCnInt64Polynomial; MaxDegree: Integer); overload;
+    {* 随机生成最高次数是 MaxDegree 的多项式，内部系数 1 0 -1 随机，注意与 FPrime 无关。
+
+       参数：
+         P: TCnInt64Polynomial            - 生成的结果多项式
+         MaxDegree: Integer               - 最高次数
+
+       返回值：（无）
+    }
+
   public
     constructor Create(NTRUType: TCnNTRUParamType = cnptClassic); virtual;
-    {* 构造函数，指定 NTRU 参数类型}
+    {* 构造函数，指定 NTRU 参数类型。
+
+       参数：
+         NTRUType: TCnNTRUParamType       - NTRU 参数类型
+
+       返回值：TCnNTRU                    - 对象实例
+    }
+
     destructor Destroy; override;
-    {* 析构函数，指定 NTRU 参数类型}
+    {* 析构函数}
 
     procedure Load(Predefined: TCnNTRUParamType);
-    {* 加载预定类型的 NTUR 参数}
+    {* 加载预定类型的 NTRU 参数。
+
+       参数：
+         Predefined: TCnNTRUParamType     - NTRU 参数类型
+
+       返回值：（无）
+    }
 
     procedure GenerateKeys(PrivateKey: TCnNTRUPrivateKey; PublicKey: TCnNTRUPublicKey);
-    {* 生成一对公私钥}
+    {* 生成一对公私钥。
+
+       参数：
+         PrivateKey: TCnNTRUPrivateKey    - 生成的 NTRU 私钥
+         PublicKey: TCnNTRUPublicKey      - 生成的 NTRU 公钥
+
+       返回值：（无）
+    }
 
     procedure Encrypt(PublicKey: TCnNTRUPublicKey; PlainData: TCnInt64Polynomial;
       OutEnData: TCnInt64Polynomial);
-    {* 用公钥加密明文多项式得到密文多项式，两者次数最高 N - 1，因为环是 X^N - 1}
+    {* 用公钥加密明文多项式得到密文多项式，两者次数最高 N - 1，因为环是 X^N - 1。
+
+       参数：
+         PublicKey: TCnNTRUPublicKey      - NTRU 公钥
+         PlainData: TCnInt64Polynomial    - 待加密的明文多项式
+         OutEnData: TCnInt64Polynomial    - 输出的密文多项式
+
+       返回值：（无）
+    }
+
     procedure Decrypt(PrivateKey: TCnNTRUPrivateKey; EnData: TCnInt64Polynomial;
       OutPlainData: TCnInt64Polynomial);
-    {* 用私钥解密密文多项式得到明文多项式，两者次数最高 N - 1，因为环是 X^N - 1}
+    {* 用私钥解密密文多项式得到明文多项式，两者次数最高 N - 1，因为环是 X^N - 1。
+
+       参数：
+         PrivateKey: TCnNTRUPrivateKey    - NTRU 私钥
+         EnData: TCnInt64Polynomial       - 待解密的密文多项式
+         OutPlainData: TCnInt64Polynomial - 输出的明文多项式
+
+       返回值：（无）
+    }
 
     function EncryptBytes(PublicKey: TCnNTRUPublicKey; Data: TBytes): TBytes;
-    {* 用公钥加密明文字节数组，返回加密结果，注意明文会被补 #0 到规定长度}
+    {* 用公钥加密明文字节数组，返回加密结果，注意明文会被补 #0 到规定长度。
+
+       参数：
+         PublicKey: TCnNTRUPublicKey      - NTRU 公钥
+         Data: TBytes                     - 待加密的明文字节数组
+
+       返回值：TBytes                     - 返回密文字节数组
+    }
+
     function DecryptBytes(PrivateKey: TCnNTRUPrivateKey; EnData: TBytes): TBytes;
-    {* 用私钥解密密文字节数组，返回解密结果，注意明文会被补 #0 到规定长度}
+    {* 用私钥解密密文字节数组，返回解密结果，注意明文会被补 #0 到规定长度。
+
+       参数：
+         PrivateKey: TCnNTRUPrivateKey    - NTRU 私钥
+         EnData: TBytes                   - 待解密的密文字节数组
+
+       返回值：TBytes                     - 返回明文字节数组
+    }
 
     property Ring: TCnInt64Polynomial read FRing;
     {* 多项式环}
@@ -145,30 +231,69 @@ type
     {* 大素数幂模的幂指数，底为 2，模为 2^QExponent}
   end;
 
-procedure NTRUDataToInt64Polynomial(const Res: TCnInt64Polynomial; Data: Pointer;
+procedure NTRUDataToInt64Polynomial(Res: TCnInt64Polynomial; Data: Pointer;
   ByteLength: Integer; N: Int64; Modulus: Int64; CheckSum: Boolean = True);
-{* 根据 NTRU 的规范将数据内容转换为模数的多项式供加解密，如数据超长会抛异常
+{* 根据 NTRU 的规范将数据内容转换为模数的多项式供加解密，如数据超长会抛异常。
    以 Q 的二进制位数为单位劈分数据，如 CheckSum 为 True，则取前 N - 1 个系数，小端转换为
-   多项式的 0 次到 N - 2 次项系数，N - 1 次系数则是各系数和 mod Q 再取负，适合于明文转换
-   如 CheckSum 为 False，则取前 N 个系数，小端转换为多项式的 0 次到 N - 1 次项系数，适合于密文转换
-   返回转换是否成功}
+   多项式的 0 次到 N - 2 次项系数，N - 1 次系数则是各系数和 mod Q 再取负，适合于明文转换。
+   如 CheckSum 为 False，则取前 N 个系数，小端转换为多项式的 0 次到 N - 1 次项系数，适合于密文转换。
+   返回转换是否成功。
 
-function NTRUInt64PolynomialToData(const P: TCnInt64Polynomial; N: Int64; Modulus: Int64;
+   参数：
+     Res: TCnInt64Polynomial              - 输出的结果多项式
+     Data: Pointer                        - 待转换的数据块地址
+     ByteLength: Integer                  - 待转换的数据块字节长度
+     N: Int64                             - 多项式位数
+     Modulus: Int64                       - 模数
+     CheckSum: Boolean                    - 取系数校验的方式
+
+   返回值：（无）
+}                                                                              
+
+function NTRUInt64PolynomialToData(P: TCnInt64Polynomial; N: Int64; Modulus: Int64;
   Data: Pointer; CheckSum: Boolean = True): Integer;
-{* 根据 NTRU 的规范将模数的多项式转换为数据内容并放于 Data 所指的内存中，返回放置的内存长度
-   如 CheckSum 为 True，只取 0 到 N - 1 次共 N - 2 个系数，适合于明文转换
-   如 CheckSum 为 False 则取 0 到 N 次共 N - 1 个系数，适合于密文转换
-   先将多项式系数 mod 到 0 到 Q - 1 的范围，每个值放入以 Q 的二进制位数为单位的数据块
-   再拼起来补 0 凑足整数字节。如果 Data 传 nil，则返回所需的内存长度}
+{* 根据 NTRU 的规范将模数的多项式转换为数据内容并放于 Data 所指的内存中，返回放置的内存长度。
+   如 CheckSum 为 True，只取 0 到 N - 1 次共 N - 2 个系数，适合于明文转换。
+   如 CheckSum 为 False 则取 0 到 N 次共 N - 1 个系数，适合于密文转换。
+   先将多项式系数 mod 到 0 到 Q - 1 的范围，每个值放入以 Q 的二进制位数为单位的数据块，
+   再拼起来补 0 凑足整数字节。如果 Data 传 nil，则返回所需的内存长度。
 
-function Int64GaussianLatticeReduction(const V1: TCnInt64Vector; const V2: TCnInt64Vector;
-  const X: TCnInt64Vector; const Y: TCnInt64Vector): Boolean;
-{* 对两个二维 Int64 向量做整数格上的近似高斯格基约减以求解二维 SVP 问题，返回是否成功}
+   参数：
+     P: TCnInt64Polynomial                - 待转换的多项式
+     N: Int64                             - 多项式位数
+     Modulus: Int64                       - 模数
+     Data: Pointer                        - 待放置内容的区域地址
+     CheckSum: Boolean                    - 取系数校验的方式
 
-function BigNumberGaussianLatticeReduction(const V1: TCnBigNumberVector; const V2: TCnBigNumberVector;
-  const X: TCnBigNumberVector; const Y: TCnBigNumberVector): Boolean;
-{* 对两个二维大整数向量做整数格上的近似高斯格基约减以求解二维 SVP 问题，返回是否成功
-   用的虽然是格拉姆-施密特的正交化思想，但结果并不是正交的}
+   返回值：Integer                        - 如果 Data 传 nil，则返回所需的内存长度。其他情况返回放置的内存长度。
+}
+
+function Int64GaussianLatticeReduction(V1: TCnInt64Vector; V2: TCnInt64Vector;
+  X: TCnInt64Vector; Y: TCnInt64Vector): Boolean;
+{* 对两个二维 Int64 向量做整数格上的近似高斯格基约减以求解二维 SVP 问题，返回是否成功。
+
+   参数：
+     V1: TCnInt64Vector                   - 待约减的二维向量一
+     V2: TCnInt64Vector                   - 待约减的二维向量二
+     X: TCnInt64Vector                    - 约减的二维向量结果一
+     Y: TCnInt64Vector                    - 约减的二维向量结果二
+
+   返回值：Boolean                        - 返回约减是否成功
+}
+
+function BigNumberGaussianLatticeReduction(V1: TCnBigNumberVector; V2: TCnBigNumberVector;
+  X: TCnBigNumberVector; Y: TCnBigNumberVector): Boolean;
+{* 对两个二维大整数向量做整数格上的近似高斯格基约减以求解二维 SVP 问题，返回是否成功。
+   用的虽然是格拉姆-施密特的正交化思想，但结果并不是正交的。
+
+   参数：
+     V1: TCnBigNumberVector               - 待约减的二维大整数向量一
+     V2: TCnBigNumberVector               - 待约减的二维大整数向量二
+     X: TCnBigNumberVector                - 约减的二维大整数向量结果一
+     Y: TCnBigNumberVector                - 约减的二维大整数向量结果二
+
+   返回值：Boolean                        - 返回约减是否成功
+}
 
 implementation
 
@@ -200,8 +325,8 @@ var
   FInt64PolynomialPool: TCnInt64PolynomialPool = nil;
   FBigNumberVectorPool: TCnBigNumberVectorPool = nil;
 
-function Int64GaussianLatticeReduction(const V1, V2: TCnInt64Vector;
-  const X, Y: TCnInt64Vector): Boolean;
+function Int64GaussianLatticeReduction(V1: TCnInt64Vector; V2: TCnInt64Vector;
+  X: TCnInt64Vector; Y: TCnInt64Vector): Boolean;
 var
   U1, U2, T: TCnInt64Vector;
   M: Int64;
@@ -249,8 +374,8 @@ begin
   end;
 end;
 
-function BigNumberGaussianLatticeReduction(const V1, V2: TCnBigNumberVector;
-  const X, Y: TCnBigNumberVector): Boolean;
+function BigNumberGaussianLatticeReduction(V1: TCnBigNumberVector; V2: TCnBigNumberVector;
+  X: TCnBigNumberVector; Y: TCnBigNumberVector): Boolean;
 var
   U1, U2, T: TCnBigNumberVector;
   M, M1, M2: TCnBigNumber;
@@ -314,7 +439,7 @@ begin
   end;
 end;
 
-procedure NTRUDataToInt64Polynomial(const Res: TCnInt64Polynomial; Data: Pointer;
+procedure NTRUDataToInt64Polynomial(Res: TCnInt64Polynomial; Data: Pointer;
   ByteLength: Integer; N, Modulus: Int64; CheckSum: Boolean);
 var
   I, Blk, C: Integer;
@@ -361,7 +486,7 @@ begin
   end;
 end;
 
-function NTRUInt64PolynomialToData(const P: TCnInt64Polynomial; N, Modulus: Int64;
+function NTRUInt64PolynomialToData(P: TCnInt64Polynomial; N, Modulus: Int64;
   Data: Pointer; CheckSum: Boolean): Integer;
 var
   I, Blk, C: Integer;
@@ -627,7 +752,7 @@ begin
   FRing[0] := -1;
 end;
 
-procedure TCnNTRU.RandPolynomial(const P: TCnInt64Polynomial; MaxDegree,
+procedure TCnNTRU.RandPolynomial(P: TCnInt64Polynomial; MaxDegree,
   OneCount, MinusOneCount: Integer);
 var
   F: array of Integer;
@@ -655,7 +780,7 @@ begin
   SetLength(F, 0);
 end;
 
-procedure TCnNTRU.RandPolynomial(const P: TCnInt64Polynomial; MaxDegree: Integer);
+procedure TCnNTRU.RandPolynomial(P: TCnInt64Polynomial; MaxDegree: Integer);
 var
   I: Integer;
 begin
