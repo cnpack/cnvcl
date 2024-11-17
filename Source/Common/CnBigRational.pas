@@ -52,7 +52,9 @@ type
     procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     function IsInt: Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
     {* 是否整数，也就是判断分母是否是正负 1}
@@ -135,31 +137,86 @@ type
     function CreateObject: TObject; override;
   public
     function Obtain: TCnBigRational; reintroduce;
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还}
     procedure Recycle(Num: TCnBigRational); reintroduce;
+    {* 将一个对象归还至对象池}
   end;
 
 // ============================= 大有理数运算方法 ==============================
 
 procedure BigRationalNumberAdd(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
-{* 大有理数加法，三数可以相等}
+{* 大有理数加法，三数可以相等。
+
+   参数：
+     Res: TCnBigRational                  - 大有理数和
+     Num1: TCnBigRational                 - 大有理数加数一
+     Num2: TCnBigRational                 - 大有理数加数二
+
+   返回值：（无）
+}
 
 procedure BigRationalNumberSub(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
-{* 大有理数减法，三数可以相等}
+{* 大有理数减法，三数可以相等。
+
+   参数：
+     Res: TCnBigRational                  - 大有理数差
+     Num1: TCnBigRational                 - 大有理数被减数
+     Num2: TCnBigRational                 - 大有理数减数
+
+   返回值：（无）
+}
 
 procedure BigRationalNumberMul(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
-{* 大有理数乘法，三数可以相等}
+{* 大有理数乘法，三数可以相等。
+
+   参数：
+     Res: TCnBigRational                  - 大有理数积
+     Num1: TCnBigRational                 - 大有理数乘数一
+     Num2: TCnBigRational                 - 大有理数乘数二
+
+   返回值：（无）
+}
 
 procedure BigRationalNumberDiv(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
-{* 大有理数除法，三数可以相等}
+{* 大有理数除法，三数可以相等。
+
+   参数：
+     Res: TCnBigRational                  - 大有理数商
+     Num1: TCnBigRational                 - 大有理数被除数
+     Num2: TCnBigRational                 - 大有理数除数
+
+   返回值：（无）
+}
 
 function BigRationalNumberCompare(Num1: TCnBigRational; Num2: TCnBigRational): Integer; overload;
-{* 大有理数比较，> = < 分别返回 1 0 -1}
+{* 大有理数比较，> = < 分别返回 1 0 -1。
+
+   参数：
+     Num1: TCnBigRational                 - 待比较的大有理数一
+     Num2: TCnBigRational                 - 待比较的大有理数二
+
+   返回值：Integer                        - 大于、等于、小于分别返回 1 0 -1
+}
 
 function BigRationalNumberCompare(Num1: TCnBigRational; Num2: Int64): Integer; overload;
-{^ 大有理数与整数比较，> = < 分别返回 1 0 -1}
+{^ 大有理数与整数比较，> = < 分别返回 1 0 -1。
+
+   参数：
+     Num1: TCnBigRational                 - 待比较的大有理数
+     Num2: TCnBigRational                 - 待比较的整数
+
+   返回值：Integer                        - 大于、等于、小于分别返回 1 0 -1
+}
 
 procedure ReduceBigNumber(X: TCnBigNumber; Y: TCnBigNumber);
-{* 尽量比例缩小，也就是约分}
+{* 尽量比例缩小，也就是约分。
+
+   参数：
+     X: TCnBigNumber                      - 待约分的大数值一
+     Y: TCnBigNumber                      - 待约分的大数值二
+
+   返回值：（无）
+}
 
 var
   CnBigRationalNumberOne: TCnBigRational = nil;

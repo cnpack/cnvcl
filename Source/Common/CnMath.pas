@@ -45,13 +45,31 @@ const
   CN_FLOAT_DEFAULT_DIGIT = 10;
 
 function CnAbs(F: Extended): Extended; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 计算绝对值}
+{* 计算浮点数的绝对值。
+
+   参数：
+     F: Extended                          - 待计算的浮点数
+
+   返回值：Extended                       - 返回的绝对值
+}
 
 function CnFloor(F: Extended): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 向数轴负方向取整}
+{* 浮点数向数轴负方向取整。
+
+   参数：
+     F: Extended                          - 待取整的浮点数
+
+   返回值：Integer                        - 返回的取整值
+}
 
 function CnCeil(F: Extended): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 向数轴正方向取整}
+{* 浮点数向数轴正方向取整。
+
+   参数：
+     F: Extended                          - 待取整的浮点数
+
+   返回值：Integer                        - 返回的取整值
+}
 
 {
   计算连分数：
@@ -68,67 +86,195 @@ function CnCeil(F: Extended): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 // function Int64ContinuedFraction
 
 function Int64Sqrt(N: Int64): Extended;
-{* 计算 Int64 的平方根，使用牛顿迭代 Xn+1 = (Xn + N/Xn)/2}
+{* 计算 Int64 的平方根，使用牛顿迭代 Xn+1 = (Xn + N/Xn)/2
+
+   参数：
+     N: Int64                             - 待计算平方根的整数
+
+   返回值：Extended                       - 返回平方根
+}
 
 function FloatSqrt(F: Extended): Extended;
-{* 计算扩展精度浮点数的平方根，使用牛顿迭代 Xn+1 = (Xn + N/Xn)/2}
+{* 计算扩展精度浮点数的平方根，使用牛顿迭代 Xn+1 = (Xn + N/Xn)/2
+
+   参数：
+     F: Extended                          - 待计算平方根的浮点数
+
+   返回值：Extended                       - 返回平方根
+}
 
 function Int64LogN(N: Int64): Extended;
-{* 计算 Int64 的自然对数，使用反双曲函数展开}
+{* 计算 Int64 的自然对数，使用反双曲函数展开。
+
+   参数：
+     N: Int64                             - 待计算自然对数的整数
+
+   返回值：Extended                       - 返回自然对数
+}
 
 function FloatLogN(F: Extended): Extended;
-{* 计算扩展精度浮点数的自然对数，使用反双曲函数展开}
+{* 计算扩展精度浮点数的自然对数，使用反双曲函数展开。
+
+   参数：
+     F: Extended                          - 待计算自然对数的浮点数
+
+   返回值：Extended                       - 返回自然对数
+}
 
 function Int64Log10(N: Int64): Extended;
-{* 计算 Int64 的常用对数，直接使用自然对数换算}
+{* 计算 Int64 的常用对数，直接使用自然对数换算。
+
+   参数：
+     N: Int64                             - 待计算常用对数的整数
+
+   返回值：Extended                       - 返回常用对数
+}
 
 function FloatLog10(F: Extended): Extended;
-{* 计算扩展精度浮点数的常用对数，直接使用自然对数换算}
+{* 计算扩展精度浮点数的常用对数，直接使用自然对数换算。
+
+   参数：
+     F: Extended                          - 待计算常用对数的浮点数
+
+   返回值：Extended                       - 返回常用对数
+}
 
 function Int64Log2(N: Int64): Extended;
-{* 计算 Int64 的 2 为底的对数，直接使用自然对数换算}
+{* 计算 Int64 的 2 为底的对数，直接使用自然对数换算。
+
+   参数：
+     N: Int64                             - 待计算的 2 为底的对数的整数
+
+   返回值：Extended                       - 返回 2 为底的对数
+}
 
 function FloatLog2(F: Extended): Extended;
-{* 计算扩展精度浮点数的 2 为底的对数，直接使用自然对数换算}
+{* 计算扩展精度浮点数的 2 为底的对数，直接使用自然对数换算。
+
+   参数：
+     F: Extended                          - 待计算的 2 为底的对数的浮点数
+
+   返回值：Extended                       - 返回 2 为底的对数
+}
 
 function FloatGaussLegendrePi(RoundCount: Integer = 3): string;
-{* 扩展精度范围内用高斯勒让德公式计算 Pi，3 轮便已抵达扩展精度极限}
+{* 扩展精度范围内用高斯勒让德公式计算 Pi，3 轮便已抵达扩展精度极限。
+
+   参数：
+     RoundCount: Integer                  - 计算轮数
+
+   返回值：string                         - 返回的 Pi 值字符串
+}
 
 function GaussLegendrePi(RoundCount: Integer = 8): string;
-{* 大浮点数用高斯勒让德公式计算 Pi，8 次迭代精度就到了 100 多位，12 轮耗时 5 秒}
+{* 大浮点数用高斯勒让德公式计算 Pi，8 次迭代精度就到了 100 多位，12 轮耗时 5 秒。
+
+   参数：
+     RoundCount: Integer                  - 计算轮数
+
+   返回值：string                         - 返回的 Pi 值字符串
+}
 
 function XavierGourdonEuler(BlockSize: Integer = 1000): string;
-{* 用 Xavier Gourdon 法计算欧拉常数 e 的值，参数为计算轮数}
+{* 用 Xavier Gourdon 法计算欧拉常数 e 的值，参数为计算轮数。
+
+   参数：
+     BlockSize: Integer                   - 计算轮数
+
+   返回值：string                         - 返回的 e 值字符串
+}
 
 function FloatAlmostZero(F: Extended): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 判断一浮点数是否离 0 足够近}
+{* 判断一浮点数是否离 0 足够近。
+
+   参数：
+     F: Extended                          - 待判断的浮点数
+
+   返回值：Boolean                        - 是否离 0 足够近
+}
 
 function FloatEqual(A: Extended; B: Extended): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 封装的两个浮点数是否相等的判断}
+{* 封装的两个浮点数是否相等的判断。
+
+   参数：
+     A: Extended                          - 待判断的浮点数一
+     B: Extended                          - 待判断的浮点数二
+
+   返回值：Boolean                        - 返回是否近似相等
+}
 
 function NormalizeAngle(Angle: Extended): Extended;
-{* 将角度变至 [0, 2π) 范围内}
+{* 将角度变至 [0, 2π) 范围内，也即归一化。
+
+   参数：
+     Angle: Extended                      - 待归一化的角度值
+
+   返回值：Extended                       - 返回归一化后的角度
+}
 
 function FloatToHex(Value: Extended; MaxDigit: Integer = CN_FLOAT_DEFAULT_DIGIT): string;
-{* 浮点数转换为十六进制字符串，包括整数部分与小数部分，MaxDigit 指明除不尽时最多保留小数点后多少位}
+{* 浮点数转换为十六进制字符串，包括整数部分与小数部分，MaxDigit 指明除不尽时最多保留小数点后多少位。
+
+   参数：
+     Value: Extended                      - 待转换的浮点数
+     MaxDigit: Integer                    - 指明除不尽时最多保留小数点后多少位
+
+   返回值：string                         - 返回表示该浮点数的十六进制字符串
+}
 
 function HexToFloat(const Hex: string): Extended;
-{* 十六进制字符串转换成浮点数，支持带小数点的小数}
+{* 十六进制字符串转换成浮点数，支持带小数点的小数。
+
+   参数：
+     const Hex: string                    - 待转换的十六进制字符串，支持带小数点
+
+   返回值：Extended                       - 返回的浮点数
+}
 
 function CnIntAbs(N: Integer): Integer;
-{* 取得整型的绝对值}
+{* 计算整数的绝对值。
+
+   参数：
+     N: Integer                           - 待计算绝对值的整数
+
+   返回值：Integer                        - 返回绝对值
+}
 
 function CnInt64Abs(N: Int64): Int64;
-{* 取得 Int64 的绝对值}
+{* 计算 Int64 的绝对值。
+
+   参数：
+     N: Int64                             - 待计算绝对值的整数
+
+   返回值：Integer                        - 返回绝对值
+}
 
 function FastInverseSqrt(X: Single): Single;
-{* 快速计算开根号的倒数}
+{* 快速计算开根号的倒数。
 
-function FastSqrt(N: LongWord): LongWord;
-{* 逐位确定法快速计算整数的平方根的整数部分}
+   参数：
+     X: Single                            - 待计算的单精度浮点数
+
+   返回值：Single                         - 返回计算结果
+}
+
+function FastSqrt(N: Cardinal): Cardinal;
+{* 逐位确定法快速计算整数的平方根的整数部分。
+
+   参数：
+     N: Cardinal                          - 待计算的整数
+
+   返回值：Cardinal                       - 返回平方根的整数部分
+}
 
 function FastSqrt64(N: Int64): Int64;
-{* 逐位确定法快速计算整数的平方根的整数部分}
+{* 逐位确定法快速计算整数的平方根的整数部分。
+
+   参数：
+     N: Int64                             - 待计算的整数
+
+   返回值：Int64                          - 返回平方根的整数部分
+}
 
 implementation
 
@@ -671,10 +817,10 @@ begin
 end;
 
 // 逐位确定法快速计算整数的平方根的整数部分
-function FastSqrt(N: LongWord): LongWord;
+function FastSqrt(N: Cardinal): Cardinal;
 var
-  T, B: LongWord;
-  Sft: LongWord;
+  T, B: Cardinal;
+  Sft: Cardinal;
 begin
   Result := 0;
   B := $8000;
