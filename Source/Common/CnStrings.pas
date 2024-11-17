@@ -57,8 +57,9 @@ const
   SCN_BOM_UTF16_BE: array[0..1] of Byte = ($FE, $FF);
 
 type
-  // 匹配模式，开头匹配，中间匹配，全范围模糊匹配
+  //
   TCnMatchMode = (mmStart, mmAnywhere, mmFuzzy);
+  {* 字符串匹配模式：开头匹配，中间匹配，全范围模糊匹配}
 
   TCnAnsiStrings = class;
   
@@ -71,6 +72,7 @@ type
   TCnAnsiStringsDefined = set of (sdDelimiter, sdQuoteChar, sdNameValueSeparator);
 
   TCnAnsiStrings = class(TPersistent)
+  {* Ansi 版的 TStrings，适用于 Unicode 版编译器下提供 Ansi 版的 TStrings 功能}
   private
     FDefined: TCnAnsiStringsDefined;
     FDelimiter: AnsiChar;
@@ -171,6 +173,7 @@ type
   TCnAnsiStringListSortCompare = function(List: TCnAnsiStringList; Index1, Index2: Integer): Integer;
 
   TCnAnsiStringList = class(TCnAnsiStrings)
+  {* Ansi 版的 TStringList，适用于 Unicode 版编译器下提供 Ansi 版的 TStringList 功能}
   private
     FList: PCnAnsiStringItemList;
     FCount: Integer;
@@ -244,6 +247,7 @@ type
   end;
 
   TCnHashedAnsiStringList = class(TCnAnsiStringList)
+  {* Ansi 版的 THashedStringList，适用于 Unicode 版编译器下提供 Ansi 版的 THashedStringList 功能}
   private
     FValueHash: TCnAnsiStringHash;
     FNameHash: TCnAnsiStringHash;
@@ -260,8 +264,8 @@ type
   end;
 
   TCnStringBuilder = class
-  {* 输出形式灵活的 StringBuilder，暂时只支持添加，不支持删除
-    非 Unicode 版本支持 string 和 WideString，Unicode 版本支持 AnsiString 和 string}
+  {* 输出形式灵活的 StringBuilder，暂时只支持添加，不支持删除。
+     非 Unicode 版本支持 string 和 WideString，Unicode 版本支持 AnsiString 和 string}
   private
     FModeIsFromOut: Boolean;
     FOutMode: Boolean;
@@ -360,37 +364,92 @@ type
 
 {$IFNDEF COMPILER7_UP}
 
-function PosEx(const SubStr, S: string; Offset: Cardinal = 1): Integer;
-{* D5/6 BCB5/6 中无 StrUtils 单元的此函数，移植其 PosEx 函数放这里}
+function PosEx(const SubStr: string; const S: string; Offset: Cardinal = 1): Integer;
+{* D5/6 BCB5/6 中无 StrUtils 单元的此函数，移植其 PosEx 函数放这里，使用请参考 PosEx 函数}
 
 {$ENDIF}
 
-function FastPosition(const Str, Pattern: PChar; FromIndex: Integer = 0): Integer;
-{* 快速搜索子串，返回 Pattern 在 Str 中的第一次出现的索引号，无则返回 -1}
+function FastPosition(const Str: PChar; const Pattern: PChar; FromIndex: Integer = 0): Integer;
+{* 快速搜索子串，返回 Pattern 在 Str 中的第一次出现的索引号，无则返回 -1。
+
+   参数：
+     const Str: PChar                     - 待搜索的完整字符串
+     const Pattern: PChar                 - 待匹配的子串
+     FromIndex: Integer                   - 从何处开始搜索
+
+   返回值：Integer                        - 返回匹配的第一次出现的索引号，无则返回 -1
+}
 
 function FuzzyMatchStr(const Pattern: string; const Str: string; MatchedIndexes: TList = nil;
   CaseSensitive: Boolean = False): Boolean;
-{* 模糊匹配子串，MatchedIndexes 中返回 Str 中匹配的下标号}
+{* 模糊匹配子串，MatchedIndexes 中返回 Str 中匹配的下标号。
+
+   参数：
+     const Pattern: string                - 待匹配的子串
+     const Str: string                    - 待搜索的完整字符串
+     MatchedIndexes: TList                - 返回字符串中各字符匹配的下标号
+     CaseSensitive: Boolean               - 控制是否区分大小写
+
+   返回值：Boolean                        - 返回是否有模糊匹配的内容
+}
 
 function FuzzyMatchStrWithScore(const Pattern: string; const Str: string; out Score: Integer;
   MatchedIndexes: TList = nil; CaseSensitive: Boolean = False): Boolean;
-{* 模糊匹配子串，Score 返回匹配程度，MatchedIndexes 中返回 Str 中匹配的下标号，注意 Score 的比较只有子串以及大小写一致时才有意义}
+{* 模糊匹配子串，Score 返回匹配程度，MatchedIndexes 中返回 Str 中匹配的下标号，
+   注意 Score 的比较只有子串以及大小写一致时才有意义。
 
-function CnStringReplace(const S, OldPattern, NewPattern: string;
-  Flags: TCnReplaceFlags): string;
-{* 支持整字匹配的字符串替换，在 Unicode 或非 Unicode 编译器下都有效}
+   参数：
+     const Pattern: string                - 待匹配的子串
+     const Str: string                    - 待搜索的完整字符串
+     out Score: Integer                   - 返回匹配程度评分
+     MatchedIndexes: TList                - 返回字符串中各字符匹配的下标号
+     CaseSensitive: Boolean               - 控制是否区分大小写
+
+   返回值：Boolean                        - 返回是否有模糊匹配的内容
+}
+
+function CnStringReplace(const S: string; const OldPattern: string;
+  const NewPattern: string; Flags: TCnReplaceFlags): string;
+{* 支持整字匹配的字符串替换，在 Unicode 或非 Unicode 编译器下都有效。
+
+   参数：
+     const S: string                      - 待替换的字符串
+     const OldPattern: string             - 待替换的字符串内容
+     const NewPattern: string             - 替换的字符串新内容
+     Flags: TCnReplaceFlags               - 替换标记，支持整字匹配
+
+   返回值：string                         - 返回字符串替换结果
+}
 
 {$IFDEF UNICODE}
 
-function CnStringReplaceA(const S, OldPattern, NewPattern: AnsiString;
-  Flags: TCnReplaceFlags): AnsiString;
-{* 支持整字匹配的 Ansi 字符串替换，在 Unicode 编译器下有效}
+function CnStringReplaceA(const S: AnsiString; const OldPattern: AnsiString;
+  const NewPattern: AnsiString; Flags: TCnReplaceFlags): AnsiString;
+{* 支持整字匹配的 Ansi 字符串替换，在 Unicode 编译器下有效。
+
+   参数：
+     const S: AnsiString                  - 待替换的单字节字符串
+     const OldPattern: AnsiString         - 待替换的单字节字符串内容
+     const NewPattern: AnsiString         - 替换的单字节字符串新内容
+     Flags: TCnReplaceFlags               - 替换标记，支持整字匹配
+
+   返回值：AnsiString                     - 返回单字节字符串替换结果
+}
 
 {$ELSE}
 
-function CnStringReplaceW(const S, OldPattern, NewPattern: WideString;
-  Flags: TCnReplaceFlags): WideString;
-{* 支持整字匹配的 Wide 字符串替换，在非 Unicode 编译器下有效}
+function CnStringReplaceW(const S: WideString; const OldPattern: WideString;
+  const NewPattern: WideString; Flags: TCnReplaceFlags): WideString;
+{* 支持整字匹配的 Wide 字符串替换，在非 Unicode 编译器下有效。
+
+   参数：
+     const S: WideString                  - 待替换的宽字符串
+     const OldPattern: WideString         - 待替换的宽字符串内容
+     const NewPattern: WideString         - 替换的宽字符串新内容
+     Flags: TCnReplaceFlags               - 替换标记，支持整字匹配
+
+   返回值：WideString                     - 返回宽字符串替换结果
+}
 
 {$ENDIF}
 

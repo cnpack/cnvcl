@@ -79,82 +79,134 @@ type
   {* 加解密实现类，设置一次原始 Key，可反复对多个对象的字节流实施加解密}
   private
     FEncryptionMethod: TCnPDFEncryptionMethod;
-    FKeyByteLength: Integer; // 加密算法要求的长度，并非传入的 Key 字节数组长度
+    FKeyByteLength: Integer; // 加密算法要求的密钥字节长度，并非传入的 Key 字节数组长度
     FKey: TBytes;            // 传入的 Key 经过追加内容后存放的地方，供 MD5 用
     FLength: Integer;        // 传入的 Key 的原始长度
   protected
     procedure MakeKey(ID: Cardinal; Gen: Cardinal);
+    {* 根据 ID 与 Gen 拼凑一个内部 Key。
+
+       参数：
+         ID: Cardinal                     - 待拼凑的 ID
+         Gen: Cardinal                    - 待拼凑的 Gen
+
+       返回值：（无）
+    }
   public
     constructor Create(EncryptionMethod: TCnPDFEncryptionMethod;
       AKey: TBytes; KeyBitLength: Integer); virtual;
+    {* 构造函数。
+
+       参数：
+         EncryptionMethod: TCnPDFEncryptionMethod         - 加密类型
+         AKey: TBytes                                     - 密钥
+         KeyBitLength: Integer                            - 密钥的位数，注意并非密钥字节或位长度
+
+       返回值：                                           - 对象实例
+    }
+
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Encrypt(var Data: TBytes; ID: Cardinal; Generation: Cardinal);
+    {* 根据指定 ID 和 Generation 加密字节数组 Data，结果重新放入 Data 中
+
+       参数：
+         var Data: TBytes                 - 待加密的字节数组，密文重新放入该字节数组
+         ID: Cardinal                     - 指定 ID
+         Generation: Cardinal             - 指定 Generation
+
+       返回值：（无）
+    }
+
     procedure Decrypt(var Data: TBytes; ID: Cardinal; Generation: Cardinal);
+    {* 根据指定 ID 和 Generation 解密字节数组 Data，结果重新放入 Data 中
+
+       参数：
+         var Data: TBytes                 - 待解密的字节数组，明文重新放入该字节数组
+         ID: Cardinal                     - 指定 ID
+         Generation: Cardinal             - 指定 Generation
+
+       返回值：（无）
+    }
   end;
 
 function CnPDFFindEncryptionMethod(Version: Integer; Revision: Integer;
   KeyBitLength: Integer; const CFMValue: string = ''): TCnPDFEncryptionMethod;
-{* 根据 PDF 文件中 Encrypt 字段的 V R Length 值及 CTM 字段值判断使用哪种加密算法}
+{* 根据 PDF 文件中 Encrypt 字段的 V R Length 值及 CTM 字段值判断使用哪种加密算法。
+
+   参数：
+     Version: Integer                     - PDF 版本号
+     Revision: Integer                    - PDF 修订版本号
+     KeyBitLength: Integer                - PDF 密钥位数
+     const CFMValue: string               - CTM 字段值
+
+   返回值：TCnPDFEncryptionMethod         - 返回的加密算法类型
+}
 
 function CnPDFCalcEncryptKey(const UserPass: AnsiString; Version: Integer;
   Revision: Integer; OwnerCipher: TBytes; Permission: Cardinal; ID: TBytes;
   KeyBitLength: Integer): TBytes;
-{* 生成 PDF 时调用，根据用户密码与 O 值等计算加密 Key，供加解密字符串与流内容
+{* 生成 PDF 时调用，根据用户密码与 O 值等计算加密 Key，供加解密字符串与流内容。
 
-  UserPass: AnsiString              用户密码
-  Version: Integer                  加密版本号，只支持 1  2  3  4
-  Revision: Integer                 加密修订版本号，只支持 2  3  4
-  OwnerCipher: TBytes               PDF 文件中 Encrypt 节点的 O 字段值，一般 32 字节
-  Permission: Cardinal              PDF 文件中 Encrypt 节点的 P 字段值，如是负值要强制转换成无符号 32 位
-  ID: TBytes                        PDF 文件中 Trailer 部分的 ID 数组的第一个字符串值
-  KeyBitLength: Integer             PDF 文件中 Encrypt 节点的 Length 字段值，一般是 128，实际除以 8 得到字节数
+   参数：
+     const UserPass: AnsiString           - 用户密码
+     Version: Integer                     - 加密版本号，只支持 1  2  3  4
+     Revision: Integer                    - 加密修订版本号，只支持 2  3  4
+     OwnerCipher: TBytes                  - PDF 文件中 Encrypt 节点的 O 字段值，一般 32 字节
+     Permission: Cardinal                 - PDF 文件中 Encrypt 节点的 P 字段值，如是负值要强制转换成无符号 32 位
+     ID: TBytes                           - PDF 文件中 Trailer 部分的 ID 数组的第一个字符串值
+     KeyBitLength: Integer                - PDF 文件中 Encrypt 节点的 Length 字段值，一般是 128，实际除以 8 得到字节数
 
-  返回值 TBytes 为加解密的密钥字节数组
+   返回值：TBytes                         - 返回用来加解密的密钥字节数组
 }
 
 function CnPDFCalcUserCipher(const UserPass: AnsiString; Version: Integer; Revision: Integer;
   OwnerCipher: TBytes; Permission: Cardinal; ID: TBytes; KeyBitLength: Integer): TBytes;
-{* 生成 PDF 时调用，根据用户密码等内容计算 U 值，内部包括计算加密 Key，可供与文档中的 U 值对比以确定是否是正确的用户密码
+{* 生成 PDF 时调用，根据用户密码等内容计算 U 值，内部包括计算加密 Key，可供与文档中的 U 值对比以确定是否是正确的用户密码。
 
-  UserPass: AnsiString              用户密码
-  Version: Integer                  加密版本号，只支持 1  2  3  4
-  Revision: Integer                 加密修订版本号，只支持 2  3  4
-  OwnerCipher: TBytes               PDF 文件中 Encrypt 节点的 O 字段值，一般 32 字节
-  Permission: Cardinal              PDF 文件中 Encrypt 节点的 P 字段值，如是负值要强制转换成无符号 32 位
-  ID: TBytes                        PDF 文件中 Trailer 部分的 ID 数组的第一个字符串值
-  KeyBitLength: Integer             PDF 文件中 Encrypt 节点的 Length 字段值，一般是 128，实际除以 8 得到字节数
+   参数：
+     const UserPass: AnsiString           - 用户密码
+     Version: Integer                     - 加密版本号，只支持 1  2  3  4
+     Revision: Integer                    - 加密修订版本号，只支持 2  3  4
+     OwnerCipher: TBytes                  - PDF 文件中 Encrypt 节点的 O 字段值，一般 32 字节
+     Permission: Cardinal                 - PDF 文件中 Encrypt 节点的 P 字段值，如是负值要强制转换成无符号 32 位
+     ID: TBytes                           - PDF 文件中 Trailer 部分的 ID 数组的第一个字符串值
+     KeyBitLength: Integer                - PDF 文件中 Encrypt 节点的 Length 字段值，一般是 128，实际除以 8 得到字节数
 
-  返回值 TBytes 为可放置至 PDF 文件中 Encrypt 节点的 U 字段值，或与原始 U 值比较以确定用户密码是否正确
+   返回值：TBytes                         - 返回可放置至 PDF 文件中 Encrypt 节点的 U 字段值，或与原始 U 值比较以确定用户密码是否正确
 }
 
 function CnPDFCalcOwnerCipher(const OwnerPass: AnsiString; const UserPass: AnsiString;
   Version: Integer; Revision: Integer; KeyBitLength: Integer): TBytes;
-{* 生成 PDF 时调用，根据权限密码与用户密码计算 O 值
+{* 生成 PDF 时调用，根据权限密码与用户密码计算 O 值。
 
-  OwnerPass: AnsiString             权限密码
-  Version: Integer                  加密版本号，只支持 1  2  3  4
-  Revision: Integer                 加密修订版本号，只支持 2  3  4
-  KeyBitLength: Integer             PDF 文件中 Encrypt 节点的 Length 字段值，一般是 128，实际除以 8 得到字节数
+   参数：
+     const OwnerPass: AnsiString          - 权限密码
+     const UserPass: AnsiString           - 用户密码
+     Version: Integer                     - 加密版本号，只支持 1  2  3  4
+     Revision: Integer                    - 加密修订版本号，只支持 2  3  4
+     KeyBitLength: Integer                - PDF 文件中 Encrypt 节点的 Length 字段值，一般是 128，实际除以 8 得到字节数
 
-  返回值 TBytes 为可放置至 PDF 文件中 Encrypt 节点的 O 字段值
+   返回值：TBytes                         - 返回可放置至 PDF 文件中 Encrypt 节点的 O 字段值
 }
 
 function CnPDFCheckUserPassword(const UserPass: AnsiString; Version: Integer;
   Revision: Integer; OwnerCipher: TBytes; UserCipher: TBytes; Permission: Cardinal;
   ID: TBytes; KeyBitLength: Integer): TBytes;
-{* 解析 PDF 时调用，检查用户输入的 UserPass 是否是合法的用户密码，检查通过返回加密密钥，否则返回 nil
+{* 解析 PDF 时调用，检查用户输入的 UserPass 是否是合法的用户密码，检查通过返回加密密钥，否则返回 nil。
 
-  UserPass: AnsiString              用户密码
-  Version: Integer                  加密版本号，只支持 1  2  3  4
-  Revision: Integer                 加密修订版本号，只支持 2  3  4
-  OwnerCipher: TBytes               PDF 文件中 Encrypt 节点的 O 字段值，一般 32 字节
-  UserCipher: TBytes                PDF 文件中 Encrypt 节点的 U 字段值，一般 32 字节
-  Permission: Cardinal              PDF 文件中 Encrypt 节点的 P 字段值，如是负值要强制转换成无符号 32 位
-  ID: TBytes                        PDF 文件中 Trailer 部分的 ID 数组的第一个字符串值
-  KeyBitLength: Integer             PDF 文件中 Encrypt 节点的 Length 字段值，一般是 128，实际除以 8 得到字节数
+   参数：
+     const UserPass: AnsiString           - 用户密码
+     Version: Integer                     - 加密版本号，只支持 1  2  3  4
+     Revision: Integer                    - 加密修订版本号，只支持 2  3  4
+     OwnerCipher: TBytes                  - PDF 文件中 Encrypt 节点的 O 字段值，一般 32 字节
+     UserCipher: TBytes                   - PDF 文件中 Encrypt 节点的 U 字段值，一般 32 字节
+     Permission: Cardinal                 - PDF 文件中 Encrypt 节点的 P 字段值，如是负值要强制转换成无符号 32 位
+     ID: TBytes                           - PDF 文件中 Trailer 部分的 ID 数组的第一个字符串值
+     KeyBitLength: Integer                - PDF 文件中 Encrypt 节点的 Length 字段值，一般是 128，实际除以 8 得到字节数
 
-  返回值 TBytes 为加解密的密钥字节数组
+   返回值：TBytes                         - 加解密的密钥字节数组
 }
 
 function CnPDFCheckOwnerPassword(const OwnerPass: AnsiString; Version: Integer;
@@ -162,16 +214,17 @@ function CnPDFCheckOwnerPassword(const OwnerPass: AnsiString; Version: Integer;
   ID: TBytes; KeyBitLength: Integer): TBytes;
 {* 解析 PDF 时调用，检查用户输入的 OwnerPass 是否是合法的权限密码，检查通过返回加密密钥，否则返回 nil
 
-  UserPass: AnsiString              用户密码
-  Version: Integer                  加密版本号，只支持 1  2  3  4
-  Revision: Integer                 加密修订版本号，只支持 2  3  4
-  OwnerCipher: TBytes               PDF 文件中 Encrypt 节点的 O 字段值，一般 32 字节
-  UserCipher: TBytes                PDF 文件中 Encrypt 节点的 U 字段值，一般 32 字节
-  Permission: Cardinal              PDF 文件中 Encrypt 节点的 P 字段值，如是负值要强制转换成无符号 32 位
-  ID: TBytes                        PDF 文件中 Trailer 部分的 ID 数组的第一个字符串值
-  KeyBitLength: Integer             PDF 文件中 Encrypt 节点的 Length 字段值，一般是 128，实际除以 8 得到字节数
+   参数：
+     const OwnerPass: AnsiString          - 权限密码
+     Version: Integer                     - 加密版本号，只支持 1  2  3  4
+     Revision: Integer                    - 加密修订版本号，只支持 2  3  4
+     OwnerCipher: TBytes                  - PDF 文件中 Encrypt 节点的 O 字段值，一般 32 字节
+     UserCipher: TBytes                   - PDF 文件中 Encrypt 节点的 U 字段值，一般 32 字节
+     Permission: Cardinal                 - PDF 文件中 Encrypt 节点的 P 字段值，如是负值要强制转换成无符号 32 位
+     ID: TBytes                           - PDF 文件中 Trailer 部分的 ID 数组的第一个字符串值
+     KeyBitLength: Integer                - PDF 文件中 Encrypt 节点的 Length 字段值，一般是 128，实际除以 8 得到字节数
 
-  返回值 TBytes 为加解密的密钥字节数组
+   返回值：TBytes                         - 返回加解密的密钥字节数组
 }
 
 implementation
@@ -537,7 +590,7 @@ end;
 procedure TCnPDFDataCryptor.Decrypt(var Data: TBytes; ID, Generation: Cardinal);
 var
   L: Integer;
-  Res, IV, K: TBytes;
+  Res, Iv, K: TBytes;
   Dig: TCnMD5Digest;
 begin
   if Length(Data) = 0 then
@@ -552,12 +605,12 @@ begin
     RC4Encrypt(@Dig[0], SizeOf(TCnMD5Digest), @Data[0], @Data[0], Length(Data))
   else // AES
   begin
-    // 前 16 字节抽出来做 IV
+    // 前 16 字节抽出来做 Iv
     if Length(Data) <= CN_AES_BLOCKSIZE then
       raise ECnPDFCryptException.Create(SCnErrorPDFDataLength);
 
-    SetLength(IV, CN_AES_BLOCKSIZE);
-    Move(Data[0], IV[0], CN_AES_BLOCKSIZE);
+    SetLength(Iv, CN_AES_BLOCKSIZE);
+    Move(Data[0], Iv[0], CN_AES_BLOCKSIZE);
 
     // 16 字节后的是密文
     SetLength(Res, Length(Data) - CN_AES_BLOCKSIZE);
@@ -569,7 +622,7 @@ begin
     SetLength(K, L);
     Move(Dig[0], K[0], L);
 
-    Res := AESDecryptCbcBytes(Res, K, IV, kbt128);
+    Res := AESDecryptCbcBytes(Res, K, Iv, kbt128);
     if Length(Res) > 0 then // 解密后再解除 PKCS5 对齐
     begin
       BytesRemovePKCS7Padding(Res);
@@ -581,7 +634,7 @@ end;
 procedure TCnPDFDataCryptor.Encrypt(var Data: TBytes; ID, Generation: Cardinal);
 var
   L: Integer;
-  Res, IV, K: TBytes;
+  Res, Iv, K: TBytes;
   Dig: TCnMD5Digest;
 begin
   if Length(Data) = 0 then
@@ -596,9 +649,9 @@ begin
     RC4Encrypt(@Dig[0], SizeOf(TCnMD5Digest), @Data[0], @Data[0], Length(Data))
   else // AES
   begin
-    // 随机生成 16 字节做 IV
-    SetLength(IV, CN_AES_BLOCKSIZE);
-    CnRandomFillBytes(@IV[0], CN_AES_BLOCKSIZE);
+    // 随机生成 16 字节做 Iv
+    SetLength(Iv, CN_AES_BLOCKSIZE);
+    CnRandomFillBytes(@Iv[0], CN_AES_BLOCKSIZE);
 
     L := FKeyByteLength + 5;
     if L > 16 then
@@ -610,9 +663,9 @@ begin
     Move(Data[0], Res[0], Length(Data));
     BytesAddPKCS7Padding(Res, CN_AES_BLOCKSIZE);
 
-    Res := AESEncryptCbcBytes(Res, K, IV, kbt128); // 再加密
+    Res := AESEncryptCbcBytes(Res, K, Iv, kbt128); // 再加密
     if Length(Res) > 0 then
-      Data := ConcatBytes(IV, Res);
+      Data := ConcatBytes(Iv, Res);
   end;
 end;
 

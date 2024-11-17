@@ -71,97 +71,291 @@ type
 function LoadPemFileToMemory(const FileName: string; const ExpectHead: string;
   const ExpectTail: string; MemoryStream: TMemoryStream; const Password: string = '';
   KeyHashMethod: TCnKeyHashMethod = ckhMd5): Boolean;
-{* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并解密进行 Base64 解码}
+{* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并解密进行 Base64 解码。
+
+   参数：
+     const FileName: string               - 待读入的文件名
+     const ExpectHead: string             - 期望的头部
+     const ExpectTail: string             - 期望的尾部
+     MemoryStream: TMemoryStream          - 输出的内存流
+     const Password: string               - 如果文件被加密，需在此提供密码
+     KeyHashMethod: TCnKeyHashMethod      - 文件加密使用的杂凑类型
+
+   返回值：Boolean                        - 返回读入是否成功
+}
 
 function LoadPemStreamToMemory(Stream: TStream; const ExpectHead: string;
   const ExpectTail: string; MemoryStream: TMemoryStream; const Password: string = '';
   KeyHashMethod: TCnKeyHashMethod = ckhMd5): Boolean;
-{* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并解密进行 Base64 解码}
+{* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并解密进行 Base64 解码。
+
+   参数：
+     Stream: TStream                      - 待读入的流
+     const ExpectHead: string             - 期望的头部
+     const ExpectTail: string             - 期望的尾部
+     MemoryStream: TMemoryStream          - 输出的内存流
+     const Password: string               - 如果流被加密，需在此提供密码
+     KeyHashMethod: TCnKeyHashMethod      - 流加密使用的杂凑类型
+
+   返回值：Boolean                        - 返回读入是否成功
+}
 
 function SaveMemoryToPemFile(const FileName: string; const Head: string; const Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''; Append: Boolean = False): Boolean;
-{* 将 Stream 的内容进行 Base64 编码后加密分行并补上文件头尾再写入文件，Append 为 True 时表示追加}
+{* 将 Stream 的内容进行 Base64 编码后加密分行并补上文件头尾再写入文件，Append 为 True 时表示追加。
+
+   参数：
+     const FileName: string                               - 待写入的文件名
+     const Head: string                                   - 写入的头部
+     const Tail: string                                   - 写入的尾部
+     MemoryStream: TMemoryStream                          - 待写入的内容
+     KeyEncryptMethod: TCnKeyEncryptMethod                - 设置加密类型，默认不加密
+     KeyHashMethod: TCnKeyHashMethod                      - 设置杂凑类型
+     const Password: string                               - 设置密码，无需加密则传空
+     Append: Boolean                                      - 是否以追加的方式写入
+
+   返回值：Boolean                                        - 返回是否写入成功
+}
 
 function SaveMemoryToPemStream(Stream: TStream; const Head: string; const Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''; Append: Boolean = False): Boolean;
-{* 将 Stream 的内容进行 Base64 编码后加密分行并补上头尾再写入流，Append 为 True 时表示追加}
+{* 将 Stream 的内容进行 Base64 编码后加密分行并补上头尾再写入流，Append 为 True 时表示追加。
+
+   参数：
+     Stream: TStream                                      - 待写入的流
+     const Head: string                                   - 写入的头部
+     const Tail: string                                   - 写入的尾部
+     MemoryStream: TMemoryStream                          - 待写入的内容
+     KeyEncryptMethod: TCnKeyEncryptMethod                - 设置加密类型，默认不加密
+     KeyHashMethod: TCnKeyHashMethod                      - 设置杂凑类型，默认不杂凑
+     const Password: string                               - 设置密码，无需加密则传空
+     Append: Boolean                                      - 是否以追加的方式写入
+
+   返回值：Boolean                                        - 返回是否写入成功
+}
 
 // ===================== PKCS1 / PKCS7 Padding 对齐处理函数 ====================
 
 function AddPKCS1Padding(PaddingType: Integer; BlockSize: Integer; Data: Pointer;
   DataByteLen: Integer; OutStream: TStream): Boolean;
 {* 将数据块补上填充内容写入 Stream 中，返回成功与否，内部会设置错误码。
-   PaddingType 取 0、1、2，BlockLen 字节数如 128 等
+   PaddingType 取 0、1、2，BlockLen 字节数如 128 等。格式形如
    EB = 00 || BT || PS || 00 || D
-   其中 00 是前导规定字节，BT 是 1 字节的 PaddingType，0 1 2 分别代表 00 FF 随机
-   PS 是填充的多字节内容，再 00 是规定的结尾字节}
+   其中 00 是前导规定字节，BT 是 1 字节的 PaddingType，0 1 2 分别代表 00 FF 随机，
+   PS 是填充的多字节内容，再 00 是规定的结尾字节。
+
+   参数：
+     PaddingType: Integer                 - 对齐类型，取 0 1 2
+     BlockSize: Integer                   - 对齐块的字节长度
+     Data: Pointer                        - 待对齐数据块的地址
+     DataByteLen: Integer                 - 待对齐数据块的字节长度
+     OutStream: TStream                   - 输出流
+
+   返回值：Boolean                        - 返回对齐内容是否增加成功
+}
 
 function RemovePKCS1Padding(InData: Pointer; InDataByteLen: Integer; OutBuf: Pointer;
   out OutByteLen: Integer): Boolean;
-{* 去掉 PKCS1 的 Padding，返回成功与否。OutBuf 所指区域的可用长度需调用者自行保证
-  如成功，OutLen 返回原文数据长度}
+{* 去除数据块的 PKCS1 的 Padding，返回成功与否。OutBuf 所指区域的可用长度需调用者自行保证。
+   如成功，OutLen 返回原文数据长度。
+
+   参数：
+     InData: Pointer                      - 待去除对齐的数据块的地址
+     InDataByteLen: Integer               - 待去除对齐的数据块的字节长度
+     OutBuf: Pointer                      - 输出的容纳去除内容的区域，其长度必须足够
+     out OutByteLen: Integer              - 返回去除对齐后的数据长度
+
+   返回值：Boolean                        - 返回对齐内容是否去除成功
+}
 
 function GetPKCS7PaddingByteLength(OrignalByteLen: Integer; BlockSize: Integer): Integer;
-{* 根据原始长度与块长度计算 PKCS7 对齐后的长度}
+{* 根据原始长度与块长度计算 PKCS7 对齐后的长度。
+
+   参数：
+     OrignalByteLen: Integer              - 原始数据字节长度
+     BlockSize: Integer                   - PKCS7 块字节长度
+
+   返回值：Integer                        - 返回 PKCS7 对齐后的总字节长度
+}
 
 procedure AddPKCS7Padding(Stream: TMemoryStream; BlockSize: Integer);
-{* 给数据末尾加上 PKCS7 规定的填充“几个几”的填充数据}
+{* 给数据末尾加上 PKCS7 规定的填充“几个几”的填充数据。
+
+   参数：
+     Stream: TMemoryStream                - 待对齐的内存流内容，对齐内容将追加写入流尾部
+     BlockSize: Integer                   - PKCS7 块字节长度
+
+   返回值：（无）
+}
 
 procedure RemovePKCS7Padding(Stream: TMemoryStream);
-{* 去除 PKCS7 规定的末尾填充“几个几”的填充数据}
+{* 去除 PKCS7 规定的末尾填充“几个几”的填充数据。
+
+   参数：
+     Stream: TMemoryStream                - 待去除对齐的内存流
+
+   返回值：（无）}
 
 function StrAddPKCS7Padding(const Str: AnsiString; BlockSize: Integer): AnsiString;
-{* 给字符串末尾加上 PKCS7 规定的填充“几个几”的填充数据}
+{* 给字符串末尾加上 PKCS7 规定的填充“几个几”的填充数据。
+
+   参数：
+     const Str: AnsiString                - 待对齐的字符串
+     BlockSize: Integer                   - PKCS7 块字节长度
+
+   返回值：AnsiString                     - 返回对齐后的字符串
+}
 
 function StrRemovePKCS7Padding(const Str: AnsiString): AnsiString;
-{* 去除 PKCS7 规定的字符串末尾填充“几个几”的填充数据}
+{* 去除 PKCS7 规定的字符串末尾填充“几个几”的填充数据。
+
+   参数：
+     const Str: AnsiString                - 待去除对齐的字符串
+
+   返回值：AnsiString                     - 返回去除对齐后的字符串
+}
 
 procedure BytesAddPKCS7Padding(var Data: TBytes; BlockSize: Integer);
-{* 给字节数组末尾加上 PKCS7 规定的填充“几个几”的填充数据}
+{* 给字节数组末尾加上 PKCS7 规定的填充“几个几”的填充数据。
+
+   参数：
+     var Data: TBytes                     - 待对齐的字节数组，对齐内容将追加在尾部
+     BlockSize: Integer                   - PKCS7 块字节长度
+
+   返回值：（无）
+}
 
 procedure BytesRemovePKCS7Padding(var Data: TBytes);
-{* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据}
+{* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据。
+
+   参数：
+     var Data: TBytes                     - 待去除对齐的字节数组
+
+   返回值：（无）
+}
 
 procedure AddPKCS5Padding(Stream: TMemoryStream);
-{* 给数据末尾加上 PKCS5 规定的填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
+{* 给数据末尾加上 PKCS5 规定的填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节。
+
+   参数：
+     Stream: TMemoryStream                - 待对齐的内存流，对齐内容将追加在尾部
+
+   返回值：（无）
+}
 
 procedure RemovePKCS5Padding(Stream: TMemoryStream);
-{* 去除 PKCS7 规定的末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
+{* 去除 PKCS7 规定的末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节。
+
+   参数：
+     Stream: TMemoryStream                - 待去除对齐的内存流
+
+   返回值：（无）
+}
 
 function StrAddPKCS5Padding(const Str: AnsiString): AnsiString;
-{* 给字符串末尾加上 PKCS5 规定的填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
+{* 给字符串末尾加上 PKCS5 规定的填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节。
+
+   参数：
+     const Str: AnsiString                - 待对齐的字符串
+
+   返回值：AnsiString                     - 返回对齐后的字符串
+}
 
 function StrRemovePKCS5Padding(const Str: AnsiString): AnsiString;
-{* 去除 PKCS5 规定的字符串末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
+{* 去除 PKCS5 规定的字符串末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节。
+
+   参数：
+     const Str: AnsiString                - 待去除对齐的字符串
+
+   返回值：AnsiString                     - 返回去除对齐后的字符串
+}
 
 procedure BytesAddPKCS5Padding(var Data: TBytes);
-{* 给字节数组末尾加上 PKCS5 规定的填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
+{* 给字节数组末尾加上 PKCS5 规定的填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节。
+
+   参数：
+     var Data: TBytes                     - 待对齐的字节数组，对齐内容将追加在尾部
+
+   返回值：（无）
+}
 
 procedure BytesRemovePKCS5Padding(var Data: TBytes);
-{* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节}
+{* 去除 PKCS7 规定的字节数组末尾填充“几个几”的填充数据，遵循 PKCS7 规范但块大小固定为 8 字节。
+
+   参数：
+     var Data: TBytes                     - 待去除对齐的字节数组
+
+   返回值：（无）
+}
 
 function GetISO10126PaddingByteLength(OrignalByteLen: Integer; BlockSize: Integer): Integer;
-{* 根据原始长度与块长度计算 ISO10126Padding 对齐后的长度}
+{* 根据原始长度与块长度计算 ISO10126Padding 对齐后的长度。
+
+   参数：
+     OrignalByteLen: Integer              - 原始数据字节长度
+     BlockSize: Integer                   - ISO10126 块字节长度
+
+   返回值：Integer                        - 返回 PKCS7 对齐后的总字节长度
+}
 
 procedure AddISO10126Padding(Stream: TMemoryStream; BlockSize: Integer);
-{* 给数据末尾加上 ISO10126Padding 规定的填充“零和几”的填充数据}
+{* 给数据末尾加上 ISO10126Padding 规定的填充“零和几”的填充数据。
+
+   参数：
+     Stream: TMemoryStream                - 待对齐的内存流，对齐内容将追加在尾部
+     BlockSize: Integer                   - ISO10126 块字节长度
+
+   返回值：（无）
+}
 
 procedure RemoveISO10126Padding(Stream: TMemoryStream);
-{* 去除 ISO10126Padding 规定的末尾填充“零和几”的填充数据}
+{* 去除 ISO10126Padding 规定的末尾填充“零和几”的填充数据。
+
+   参数：
+     Stream: TMemoryStream                - 待去除对齐的内存流
+
+   返回值：（无）
+}
 
 function StrAddISO10126Padding(const Str: AnsiString; BlockSize: Integer): AnsiString;
-{* 给字符串末尾加上 ISO10126Padding 规定的填充“零和几”的填充数据}
+{* 给字符串末尾加上 ISO10126Padding 规定的填充“零和几”的填充数据。
+
+   参数：
+     const Str: AnsiString                - 待对齐的字符串
+     BlockSize: Integer                   - ISO10126 块字节大小
+
+   返回值：AnsiString                     - 返回对齐后的字符串
+}
 
 function StrRemoveISO10126Padding(const Str: AnsiString): AnsiString;
-{* 去除 ISO10126Padding 规定的字符串末尾填充“零和几”的填充数据}
+{* 去除 ISO10126Padding 规定的字符串末尾填充“零和几”的填充数据。
+
+   参数：
+     const Str: AnsiString                - 待去除对齐的字符串
+
+   返回值：AnsiString                     - 返回去除对齐后的字符串
+}
 
 procedure BytesAddISO10126Padding(var Data: TBytes; BlockSize: Integer);
-{* 给字节数组末尾加上 ISO10126Padding 规定的填充“零和几”的填充数据}
+{* 给字节数组末尾加上 ISO10126Padding 规定的填充“零和几”的填充数据。
+
+   参数：
+     var Data: TBytes                     - 待对齐的字节数组，对齐内容将追加在尾部
+     BlockSize: Integer                   - ISO10126 块字节长度
+
+   返回值：（无）
+}
 
 procedure BytesRemoveISO10126Padding(var Data: TBytes);
-{* 去除 ISO10126Padding 规定的字节数组末尾填充“零和几”的填充数据}
+{* 去除 ISO10126Padding 规定的字节数组末尾填充“零和几”的填充数据。
+
+   参数：
+     var Data: TBytes                     - 待去除对齐的字节数组
+
+   返回值：（无）
+}
 
 implementation
 
