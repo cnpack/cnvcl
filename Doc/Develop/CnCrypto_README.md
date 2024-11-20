@@ -52,6 +52,10 @@ CnPack 密码算法库不涉及 VCL/FMX 界面组件，仅是基础库的形式提供，因而可直接将 cnc
 
 cncrypto\Test 目录下有一完整的命令行测试用例 CryptoTest.dpr，使用任一版本 Delphi 打开运行即可覆盖验证 CnPack 密码算法库的绝大多数功能，或用 C++Builder 5/6 打开 Crypto.bpr、或用 Lazarus 打开 Crypto.lpi，均同样可以运行。尾部两个用例耗时较长以小时计，跑时需有耐心。
 
+## 演示例子
+
+cncrypto\Example 目录下有 Delphi 和 Lazarus 两个目录，其中各个子目录下分别是 Delphi 下以及 Lazarus 下的各类算法的演示示例，可使用对应 IDE 打开以了解各类算法库的调用方式。
+
 ## 关于我们
 
 CnPack 开发组由互联网上热爱 Delphi/C++Builder 程序开发的一群中国程序员自愿者自发组成，其目标是开发中国人自己的真正优秀的第三方免费开源产品。
