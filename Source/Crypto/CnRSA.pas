@@ -31,7 +31,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.09.27 V2.8
+* 修改记录：2024.11.23 V2.9
+*               增加一批针对字节数组的加解密函数
+*           2024.09.27 V2.8
 *               修正私钥返回位数可能错误的问题
 *           2023.12.14 V2.7
 *               增加验证公私钥的机制，并完善从文件和流中加载与保存
@@ -345,26 +347,52 @@ function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Poin
 {* 用私钥对数据块进行无填充解密结果放 OutBuf 中，并返回数据长度
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
+function CnRSAEncryptRawBytes(PlainData: TBytes; PublicKey: TCnRSAPublicKey): TBytes; overload;
+{* 用公钥对字节数组进行加密，返回加密的字节数组}
+
+function CnRSAEncryptRawBytes(PlainData: TBytes; PrivateKey: TCnRSAPrivateKey): TBytes; overload;
+{* 用私钥对字节数组进行加密，返回加密的字节数组}
+
+function CnRSADecryptRawBytes(EnData: TBytes; PublicKey: TCnRSAPublicKey): TBytes; overload;
+{* 用公钥对字节数组进行无填充解密，返回解密的字节数组}
+
+function CnRSADecryptRawBytes(EnData: TBytes; PrivateKey: TCnRSAPrivateKey): TBytes; overload;
+{* 用私钥对字节数组进行无填充解密，返回解密的字节数组}
+
 function CnRSAEncryptData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   PublicKey: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
 {* 用公钥对数据块进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中，
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节，因为有填充，返回长度固定为密钥长度}
 
 function CnRSAEncryptData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
 {* 用私钥对数据块进行加密，加密前使用 PKCS1 填充，结果放 OutBuf 中，
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节，因为有填充，返回长度固定为密钥长度}
 
 function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
-{* 用公钥对数据块进行解密，并解开 PKCS1 填充，结果放 OutBuf 中，并返回数据长度
+{* 用公钥对数据块进行解密，并解开 PKCS1 填充，结果放 OutBuf 中，并返回数据长度。
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
 
 function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PrivateKey: TCnRSAPrivateKey;
   PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
-{* 用私钥对数据块进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中，并返回数据长度
+{* 用私钥对数据块进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中，并返回数据长度。
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
+
+function CnRSAEncryptBytes(PlainData: TBytes; PublicKey: TCnRSAPublicKey;
+  PaddingMode: TCnRSAPaddingMode = cpmPKCS1): TBytes; overload;
+{* 用公钥对字节数组进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，返回加密的字节数组}
+
+function CnRSAEncryptBytes(PlainData: TBytes; PrivateKey: TCnRSAPrivateKey): TBytes; overload;
+{* 用私钥对字节数组进行加密，加密前使用 PKCS1 填充，返回加密的字节数组}
+
+function CnRSADecryptBytes(EnData: TBytes; PublicKey: TCnRSAPublicKey): TBytes; overload;
+{* 用公钥对字节数组进行解密，并解开 PKCS1 填充，返回解密的字节数组}
+
+function CnRSADecryptBytes(EnData: TBytes; PrivateKey: TCnRSAPrivateKey;
+  PaddingMode: TCnRSAPaddingMode = cpmPKCS1): TBytes; overload;
+{* 用私钥对字节数组进行解密，并解开其 PKCS1 填充或 OAEP 填充，返回解密的字节数组}
 
 function CnRSAEncryptFile(const InFileName: string; const OutFileName: string;
   PublicKey: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
@@ -1679,6 +1707,82 @@ begin
     PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct);
 end;
 
+function CnRSAEncryptRawBytes(PlainData: TBytes; PublicKey: TCnRSAPublicKey): TBytes;
+var
+  OutLen: Integer;
+begin
+  if (Length(PlainData) = 0) or (PublicKey.GetBytesCount <= 0) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Result := nil;
+  end
+  else
+  begin
+    SetLength(Result, PublicKey.GetBytesCount);
+    if CnRSAEncryptRawData(@PlainData[0], Length(PlainData), @Result[0], OutLen, PublicKey) then
+      SetLength(Result, OutLen)
+    else
+      SetLength(Result, 0);
+  end;
+end;
+
+function CnRSAEncryptRawBytes(PlainData: TBytes; PrivateKey: TCnRSAPrivateKey): TBytes;
+var
+  OutLen: Integer;
+begin
+  if (Length(PlainData) = 0) or (PrivateKey.GetBytesCount <= 0) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Result := nil;
+  end
+  else
+  begin
+    SetLength(Result, PrivateKey.GetBytesCount);
+    if CnRSAEncryptRawData(@PlainData[0], Length(PlainData), @Result[0], OutLen, PrivateKey) then
+      SetLength(Result, OutLen)
+    else
+      SetLength(Result, 0);
+  end;
+end;
+
+function CnRSADecryptRawBytes(EnData: TBytes; PublicKey: TCnRSAPublicKey): TBytes;
+var
+  OutLen: Integer;
+begin
+  if (Length(EnData) = 0) or (PublicKey.GetBytesCount <= 0) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Result := nil;
+  end
+  else
+  begin
+    SetLength(Result, PublicKey.GetBytesCount);
+    if CnRSAEncryptRawData(@EnData[0], Length(EnData), @Result[0], OutLen, PublicKey) then
+      SetLength(Result, OutLen)
+    else
+      SetLength(Result, 0);
+  end;
+end;
+
+function CnRSADecryptRawBytes(EnData: TBytes; PrivateKey: TCnRSAPrivateKey): TBytes;
+var
+  OutLen: Integer;
+begin
+  if (Length(EnData) = 0) or (PrivateKey.GetBytesCount <= 0) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Result := nil;
+  end
+  else
+  begin
+    SetLength(Result, PrivateKey.GetBytesCount);
+    if CnRSAEncryptRawData(@EnData[0], Length(EnData), @Result[0], OutLen, PrivateKey) then
+      SetLength(Result, OutLen)
+    else
+      SetLength(Result, 0);
+  end;
+end;
+
 // 将一片内存区域按指定的 Padding 模式与类型填充后进行 RSA 加解密计算
 function RSAPaddingCrypt(PaddingType, BlockSize: Integer; PlainData: Pointer;
   DataByteLen: Integer; OutBuf: Pointer; Exponent, Product: TCnBigNumber;
@@ -1860,6 +1964,76 @@ function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer
 begin
   Result := RSADecryptPadding(PrivateKey.GetBytesCount, EnData, DataByteLen,
     OutBuf, OutLen, PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct, PaddingMode);
+end;
+
+function CnRSAEncryptBytes(PlainData: TBytes; PublicKey: TCnRSAPublicKey;
+  PaddingMode: TCnRSAPaddingMode): TBytes;
+begin
+  if (Length(PlainData) = 0) or (PublicKey.GetBytesCount <= 0) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Result := nil;
+  end
+  else
+  begin
+    SetLength(Result, PublicKey.GetBytesCount);
+    if not CnRSAEncryptData(@PlainData[0], Length(PlainData), @Result[0], PublicKey, PaddingMode) then
+      SetLength(Result, 0);
+  end;
+end;
+
+function CnRSAEncryptBytes(PlainData: TBytes; PrivateKey: TCnRSAPrivateKey): TBytes;
+begin
+  if (Length(PlainData) = 0) or (PrivateKey.GetBytesCount <= 0) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Result := nil;
+  end
+  else
+  begin
+    SetLength(Result, PrivateKey.GetBytesCount);
+    if not CnRSAEncryptData(@PlainData[0], Length(PlainData), @Result[0], PrivateKey) then
+      SetLength(Result, 0);
+  end;
+end;
+
+function CnRSADecryptBytes(EnData: TBytes; PublicKey: TCnRSAPublicKey): TBytes;
+var
+  OutLen: Integer;
+begin
+  if (Length(EnData) = 0) or (PublicKey.GetBytesCount <= 0) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Result := nil;
+  end
+  else
+  begin
+    SetLength(Result, PublicKey.GetBytesCount);
+    if CnRSADecryptData(@EnData[0], Length(EnData), @Result[0], OutLen, PublicKey) then
+      SetLength(Result, OutLen)
+    else
+      SetLength(Result, 0);
+  end;
+end;
+
+function CnRSADecryptBytes(EnData: TBytes; PrivateKey: TCnRSAPrivateKey;
+  PaddingMode: TCnRSAPaddingMode): TBytes;
+var
+  OutLen: Integer;
+begin
+  if (Length(EnData) = 0) or (PrivateKey.GetBytesCount <= 0) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Result := nil;
+  end
+  else
+  begin
+    SetLength(Result, PrivateKey.GetBytesCount);
+    if CnRSADecryptData(@EnData[0], Length(EnData), @Result[0], OutLen, PrivateKey) then
+      SetLength(Result, OutLen)
+    else
+      SetLength(Result, 0);
+  end;
 end;
 
 function CnRSADecryptFile(const InFileName, OutFileName: string;

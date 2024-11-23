@@ -115,6 +115,15 @@ type
   {* SM2 的公钥就是普通椭圆曲线的公钥，可以用 ECC 中的相应 Load/Save 函数处理}
   public
     procedure SetHex(const Buf: AnsiString); reintroduce;
+    {* 从十六进制字符串中加载点坐标，内部有 02 03 04 前缀的处理，
+       如果无 02 03 04 前缀则对半劈开分别赋值给 X 和 Y
+       如果前缀是 02 或 03，说明内容只有 X 坐标，此时内部用 SM2 参数创建实例并计算 Y 坐标。
+
+       参数：
+         const Buf: AnsiString            - 十六进制字符串
+
+       返回值：（无）
+    }
   end;
 
   TCnSM2 = class(TCnEcc)
@@ -124,14 +133,21 @@ type
     {* 构造函数}
 
     procedure AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point); override;
-    {* 使用预计算的仿射坐标点进行加速}
+    {* 使用预计算的仿射坐标点进行坐标点乘法加速。
+
+       参数：
+         K: TCnBigNumber                  - 乘数，形式为大数
+         Point: TCnEcc3Point              - 待计算的坐标点
+
+       返回值：（无）
+    }
   end;
 
   TCnSM2Signature = class(TCnEccSignature);
   {* SM2 椭圆曲线签名的内容就是普通椭圆曲线的签名的内容（注意与 ECC 的算法与文件格式不同）}
 
   TCnSM2CryptSequenceType = (cstC1C3C2, cstC1C2C3);
-  {* SM2 加密数据时的拼接方式，国标上是 C1C3C2，但经常有 C1C2C3 的版本，故此做兼容}
+  {* SM2 加密数据时的拼接方式，国标上是 C1C3C2，但经常有想当然的 C1C2C3 版本，故此本单元做兼容}
 
   TCnSM2CollaborativePrivateKey = TCnSM2PrivateKey;
   {* SM2 协同私钥就是普通椭圆曲线的私钥，但有至少两个}
@@ -143,11 +159,27 @@ type
 
 function CnSM2GenerateKeys(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
   SM2: TCnSM2 = nil): Boolean;
-{* 生成一对 SM2 公私钥}
+{* 生成一对 SM2 公私钥。
+
+   参数：
+     PrivateKey: TCnSM2PrivateKey         - 待生成的 SM2 私钥
+     PublicKey: TCnSM2PublicKey           - 待生成的 SM2 公钥
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnSM2CheckKeys(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
   SM2: TCnSM2 = nil): Boolean;
-{* 检验一对 SM2 公私钥是否合法}
+{* 检验一对 SM2 公私钥是否合法。
+
+   参数：
+     PrivateKey: TCnSM2PrivateKey         - 待检验的 SM2 私钥
+     PublicKey: TCnSM2PublicKey           - 待检验的 SM2 公钥
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                        - 返回检验是否合法
+}
 
 // ========================= SM2 椭圆曲线加解密算法 ============================
 
@@ -156,55 +188,142 @@ function CnSM2EncryptData(PlainData: Pointer; DataByteLen: Integer; OutStream:
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
   IncludePrefixByte: Boolean = True; const RandHex: string = ''): Boolean; overload;
 {* 用公钥对数据块进行加密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
-   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则
-   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
-   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括
-   返回加密是否成功，加密结果写入 OutStream 中}
+   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则。
+   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3，
+   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括。
+   返回加密是否成功，加密结果写入 OutStream 中。
+
+   参数：
+     PlainData: Pointer                                   - 待加密的明文数据块地址
+     DataByteLen: Integer                                 - 待加密的明文数据块字节长度
+     OutStream: TStream                                   - 输出的密文流
+     PublicKey: TCnSM2PublicKey                           - 加密用的 SM2 公钥
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+     SequenceType: TCnSM2CryptSequenceType                - 输出密文的内部拼接顺序，默认国标的 C1C3C2
+     IncludePrefixByte: Boolean                           - 是否包括 C1 的前导字节 $04，默认包括
+     const RandHex: string                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
+
+   返回值：Boolean                                        - 返回加密是否成功
+}
 
 function CnSM2EncryptData(PlainData: TBytes; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
   IncludePrefixByte: Boolean = True; const RandHex: string = ''): TBytes; overload;
 {* 用公钥对字节数组进行加密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
-   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则
-   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
-   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括
-   返回密文字节数组，如果加密失败则返回空}
+   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则。
+   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3，
+   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括。
+   返回密文字节数组，如果加密失败则返回空。
+
+   参数：
+     PlainData: TBytes                                    - 待加密的明文字节数组
+     PublicKey: TCnSM2PublicKey                           - 加密用的 SM2 公钥
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+     SequenceType: TCnSM2CryptSequenceType                - 输出密文的内部拼接顺序，默认国标的 C1C3C2
+     IncludePrefixByte: Boolean                           - 输出密文中是否要包括 C1 的前导字节 $04，默认包括
+     const RandHex: string                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
+
+   返回值：TBytes                                         - 如果成功则返回密文字节数组，失败则返回空
+}
 
 function CnSM2DecryptData(EnData: Pointer; DataByteLen: Integer; OutStream: TStream;
   PrivateKey: TCnSM2PrivateKey; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean; overload;
 {* 用私钥对数据块进行解密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
-   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则
-   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
-   无需 IncludePrefixByte 参数，内部自动处理
-   返回解密是否成功，解出的明文写入 OutStream 中}
+   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则。
+   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3。
+   无需 IncludePrefixByte 参数，内部自动处理。
+   返回解密是否成功，解出的明文写入 OutStream 中。
+
+   参数：
+     EnData: Pointer                                      - 待解密的密文数据块地址
+     DataByteLen: Integer                                 - 待解密的密文数据块字节长度
+     OutStream: TStream                                   - 输出的明文流
+     PrivateKey: TCnSM2PrivateKey                         - 解密用的 SM2 私钥
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+     SequenceType: TCnSM2CryptSequenceType                - 内部拼接顺序，默认国标的 C1C3C2，需和密文的实际情况一致
+
+   返回值：Boolean                                        - 返回解密是否成功
+}
 
 function CnSM2DecryptData(EnData: TBytes; PrivateKey: TCnSM2PrivateKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): TBytes; overload;
 {* 用私钥对数据块进行解密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
-   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则
-   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
-   无需 IncludePrefixByte 参数，内部自动处理
-   返回解密后的明文字节数组，如果解密失败则返回空}
+   第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则。
+   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3。
+   无需 IncludePrefixByte 参数，内部自动处理。
+   返回解密后的明文字节数组，如果解密失败则返回空。
+
+   参数：
+     EnData: TBytes                                       - 待解密的密文字节数组
+     PrivateKey: TCnSM2PrivateKey                         - 解密用的 SM2 私钥
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+     SequenceType: TCnSM2CryptSequenceType                - 内部拼接顺序，默认国标的 C1C3C2，需和密文的实际情况一致
+
+   返回值：TBytes                                         - 如果成功则返回明文字节数组，失败则返回空
+}
 
 function CnSM2EncryptFile(const InFile: string; const OutFile: string; PublicKey: TCnSM2PublicKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
   IncludePrefixByte: Boolean = True; const RandHex: string = ''): Boolean;
-{* 用公钥加密 InFile 文件内容，加密结果存 OutFile 里，返回是否加密成功
-   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3
-   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括}
+{* 用公钥加密 InFile 文件内容，加密结果存 OutFile 里，返回是否加密成功。
+   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3。
+   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括。
+
+   参数：
+     const InFile: string                                 - 待加密的明文原始文件名
+     const OutFile: string                                - 密文输出的目标文件名
+     PublicKey: TCnSM2PublicKey                           - 加密用的 SM2 公钥
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+     SequenceType: TCnSM2CryptSequenceType                - 输出密文的内部拼接顺序，默认国标的 C1C3C2
+     IncludePrefixByte: Boolean                           - 输出密文中是否要包括 C1 的前导字节 $04，默认包括
+     const RandHex: string                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
+
+   返回值：Boolean                                        - 返回加密是否成功
+}
 
 function CnSM2DecryptFile(const InFile: string; const OutFile: string; PrivateKey: TCnSM2PrivateKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
-{* 用私钥解密 InFile 文件内容，解密结果存 OutFile 里，返回是否解密成功}
+{* 用私钥解密 InFile 文件内容，解密结果存 OutFile 里，返回是否解密成功。
+   SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3。
+   无需 IncludePrefixByte 参数，内部自动处理。
+
+   参数：
+     const InFile: string                                 - 待解密的密文文件名
+     const OutFile: string                                - 明文输出的目标文件名
+     PrivateKey: TCnSM2PrivateKey                         - 解密用的 SM2 私钥
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+     SequenceType: TCnSM2CryptSequenceType                - 内部拼接顺序，默认国标的 C1C3C2，需和密文的实际情况一致
+
+   返回值：Boolean                                        - 返回解密是否成功
+}
 
 function CnSM2CryptToAsn1(EnData: TBytes; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2; IncludePrefixByte: Boolean = True): TBytes; overload;
-{* 将 EnData 中字节数组形式的原始加密内容转换为 ASN1/BER 格式的字节数组}
+{* 将 EnData 中字节数组形式的原始加密内容转换为 ASN1/BER 格式的字节数组。
+
+   参数：
+     EnData: TBytes                                       - 待转换的密文字节数组
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+     SequenceType: TCnSM2CryptSequenceType                - 密文的内部拼接顺序，默认国标的 C1C3C2
+     IncludePrefixByte: Boolean                           - 密文中是否包括 C1 的前导字节 $04，默认包括
+
+   返回值：TBytes                                         - 返回转换后的字节数组
+}
 
 function CnSM2CryptToAsn1(EnStream: TStream; OutStream: TStream; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2; IncludePrefixByte: Boolean = True): Boolean; overload;
-{* 将 EnStream 中流格式的原始加密内容转换为 ASN1/BER 格式并写入 OutStream 流中}
+{* 将 EnStream 中流格式的原始加密内容转换为 ASN1/BER 格式并写入 OutStream 流中。
+
+   参数：
+     EnStream: TStream                                    - 待转换的密文流
+     OutStream: TStream                                   - 转换后的目标流
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+     SequenceType: TCnSM2CryptSequenceType                - 密文的内部拼接顺序，默认国标的 C1C3C2
+     IncludePrefixByte: Boolean                           - 密文中是否包括 C1 的前导字节 $04，默认包括
+
+   返回值：Boolean                                        - 返回转换是否成功
+}
 
 function CnSM2CryptFromAsn1(Asn1Data: TBytes; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2; IncludePrefixByte: Boolean = True): TBytes; overload;
@@ -767,7 +886,7 @@ begin
     OutStream.Write(Buf[0], CN_SM2_FINITEFIELD_BYTESIZE);
     SetLength(Buf, CN_SM2_FINITEFIELD_BYTESIZE);
     P1.Y.ToBinary(@Buf[0], CN_SM2_FINITEFIELD_BYTESIZE);
-    OutStream.Write(Buf[0], CN_SM2_FINITEFIELD_BYTESIZE); // 拼成 C1
+    OutStream.Write(Buf[0], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成 C1
 
     P2 := TCnEccPoint.Create;
     P2.Assign(PublicKey);
@@ -780,13 +899,13 @@ begin
 
     M := PAnsiChar(PlainData);
     for I := 1 to DataByteLen do
-      T[I - 1] := Byte(T[I - 1]) xor Byte(M[I - 1]); // T 里是 C2，但先不能写
+      T[I - 1] := Byte(T[I - 1]) xor Byte(M[I - 1]);         // T 里是 C2，但先不能写
 
     SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + DataByteLen);
     P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
     Move(M[0], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], DataByteLen);
     P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + DataByteLen + 1], CN_SM2_FINITEFIELD_BYTESIZE); // 拼成算 C3 的
-    Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
+    Sm3Dig := SM3(@C3H[1], Length(C3H));                     // 算出 C3
 
     if SequenceType = cstC1C3C2 then
     begin
@@ -915,16 +1034,16 @@ begin
       M := PAnsiChar(EnData);
       Inc(M, SizeOf(TCnSM3Digest) + CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen); // 跳过 C3 指向 C2
       for I := 1 to MLen do
-        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1])); // 和 KDF 做异或，在 MP 里得到明文
+        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1]));  // 和 KDF 做异或，在 MP 里得到明文
 
       SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
       P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
       Move(MP[1], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], MLen);
       P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + MLen + 1], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成算 C3 的
-      Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
+      Sm3Dig := SM3(@C3H[1], Length(C3H));                     // 算出 C3
 
       M := PAnsiChar(EnData);
-      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);             // M 指向 C3
+      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);     // M 指向 C3
       if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对杂凑值是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
@@ -937,16 +1056,16 @@ begin
     begin
       SetLength(MP, MLen);
       M := PAnsiChar(EnData);
-      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);  // 指向 C2
+      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);     // 指向 C2
 
       for I := 1 to MLen do
-        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1])); // 和 KDF 做异或，在 MP 里得到明文
+        MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1]));  // 和 KDF 做异或，在 MP 里得到明文
 
       SetLength(C3H, CN_SM2_FINITEFIELD_BYTESIZE * 2 + MLen);
       P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
       Move(MP[1], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], MLen);
       P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + MLen + 1], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成算 C3 的
-      Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
+      Sm3Dig := SM3(@C3H[1], Length(C3H));                     // 算出 C3
 
       M := PAnsiChar(EnData);
       Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen + MLen);      // 指向 C3
@@ -1082,11 +1201,11 @@ begin
     begin
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, SizeOf(TCnSM3Digest)); // 写 C3 校验
       P := Pointer(TCnNativeInt(P) + SizeOf(TCnSM3Digest));
-      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, MLen);               // 写 C2 密文
+      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, MLen);                 // 写 C2 密文
     end
     else
     begin
-      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, MLen);               // 写 C2 密文
+      Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, MLen);                 // 写 C2 密文
       P := Pointer(TCnNativeInt(P) + MLen);
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, SizeOf(TCnSM3Digest)); // 写 C3 校验
     end;

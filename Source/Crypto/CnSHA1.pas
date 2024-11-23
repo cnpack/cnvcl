@@ -54,8 +54,10 @@ uses
 type
   PCnSHA1Digest = ^TCnSHA1Digest;
   TCnSHA1Digest = array[0..19] of Byte;
+  {* SHA1 杂凑结果，20 字节}
 
   TCnSHA1Context = record
+  {* SHA1 的上下文结构}
     Hash: array[0..4] of Cardinal;
     Hi, Lo: Cardinal;
     Buffer: array[0..63] of Byte;
@@ -66,14 +68,17 @@ type
 
   TCnSHA1CalcProgressFunc = procedure (ATotal, AProgress: Int64;
     var Cancel: Boolean) of object;
-  {* 进度回调事件类型声明}
+  {* SHA1 杂凑进度回调事件类型声明}
 
 function SHA1(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA1Digest;
-{* 对数据块进行 SHA-1 计算
- |<PRE>
-   Input: PAnsiChar      - 要计算的数据块的首地址
-   ByteLength: Cardinal  - 数据块的字节长度
- |</PRE>}
+{* 对数据块进行 SHA1 计算。
+
+   参数：
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+
+   返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
+}
 
 function SHA1Buffer(const Buffer; Count: Cardinal): TCnSHA1Digest;
 {* 对数据块进行 SHA1 计算
