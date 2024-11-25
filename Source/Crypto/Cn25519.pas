@@ -1522,7 +1522,7 @@ function CnEd25519SignFile(const FileName: string; PrivateKey: TCnEd25519Private
    签名值 64 字节写入 OutSignatureStream 中，返回签名是否成功。
 
    参数：
-     const FileName: string               - 待签名的文件
+     const FileName: string               - 待签名的文件名
      PrivateKey: TCnEd25519PrivateKey     - Ed25519 私钥
      PublicKey: TCnEd25519PublicKey       - Ed25519 公钥
      OutSignatureStream: TStream          - 输出的签名值
@@ -1537,7 +1537,7 @@ function CnEd25519VerifyFile(const FileName: string; InSignatureStream: TStream;
    InSignatureStream 内部须是 64 字节签名值，返回验证是否成功。
 
    参数：
-     const FileName: string               - 待验证的文件
+     const FileName: string               - 待验证的文件名
      InSignatureStream: TStream           - 待验证的签名值
      PublicKey: TCnEd25519PublicKey       - Ed25519 公钥
      Ed25519: TCnEd25519                  - Ed25519 实例
@@ -1787,7 +1787,7 @@ function CnEd448SignFile(const FileName: string; PrivateKey: TCnEd448PrivateKey;
 {* 用 Ed448 公私钥对文件进行签名，签名值 114 字节写入 OutSignatureStream 中，返回签名是否成功。
 
    参数：
-     const FileName: string               - 被签名的文件
+     const FileName: string               - 被签名的文件名
      PrivateKey: TCnEd448PrivateKey       - Ed448 私钥
      PublicKey: TCnEd448PublicKey         - Ed448 公钥
      OutSignatureStream: TStream          - 输出的签名内容流
@@ -1802,7 +1802,7 @@ function CnEd448VerifyFile(const FileName: string; InSignatureStream: TStream;
 {* 用 Ed448 公钥对文件与签名进行验证，InSignatureStream 内部须是 114 字节签名值，返回验证是否成功。
 
    参数：
-     const FileName: string               - 被验证的文件
+     const FileName: string               - 被验证的文件名
      InSignatureStream: TStream           - 签名内容流
      PublicKey: TCnEd448PublicKey         - Ed448 公钥
      const UserContext: TBytes            - 用户名之类的签名上下文内容，需与签名时相同

@@ -1190,7 +1190,7 @@ begin
       // 读 PKCS#1 格式的公钥
       Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size);
       Reader.ParseToTree;
-      if Reader.TotalCount >= 3 then
+      if Reader.TotalCount in [3, 4] then // 大于等于 5 的话不像 PKCS1 格式
       begin
         // 1 和 2 整成公钥
         if PublicKey <> nil then

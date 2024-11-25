@@ -327,11 +327,30 @@ function CnSM2CryptToAsn1(EnStream: TStream; OutStream: TStream; SM2: TCnSM2 = n
 
 function CnSM2CryptFromAsn1(Asn1Data: TBytes; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2; IncludePrefixByte: Boolean = True): TBytes; overload;
-{* 将 Asn1Data 中 ASN1/BER 格式的字节数组形式的加密内容转换为原始字节数组}
+{* 将 Asn1Data 中 ASN1/BER 格式的字节数组形式的加密内容转换为原始字节数组
+
+   参数：
+     Asn1Data: TBytes                                     - 待转换的 ASN1 格式的密文字节数组
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+     SequenceType: TCnSM2CryptSequenceType                - 内部拼接顺序，默认国标的 C1C3C2，需和 ASN1 格式的密文字节数组的实际情况一致
+     IncludePrefixByte: Boolean                           - 输出的字节数组中是否包括 C1 的前导字节 $04，默认包括
+
+   返回值：TBytes                                         - 返回转换后的字节数组
+}
 
 function CnSM2CryptFromAsn1(Asn1Stream: TStream; OutStream: TStream; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2; IncludePrefixByte: Boolean = True): Boolean; overload;
-{* 将 Asn1Stream 中 ASN1/BER 格式流的加密内容转换为原始加密内容并写入 OutStream 流中}
+{* 将 Asn1Stream 中 ASN1/BER 格式流的加密内容转换为原始加密内容并写入 OutStream 流中
+
+   参数：
+     Asn1Stream: TStream                                  - 待转换的 ASN1 格式的密文流
+     OutStream: TStream                                   - 输出的原始密文流
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+     SequenceType: TCnSM2CryptSequenceType                - 内部拼接顺序，默认国标的 C1C3C2，需和 ASN1 格式的密文流的实际情况一致
+     IncludePrefixByte: Boolean                           - 输出的流中是否包括 C1 的前导字节 $04，默认包括
+
+   返回值：Boolean                                        - 返回转换是否成功
+}
 
 // ====================== SM2 椭圆曲线数字签名验证算法 =========================
 
@@ -339,36 +358,98 @@ function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataByteLen
   OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil;
   SM2: TCnSM2 = nil; const RandHex: string = ''): Boolean; overload;
 {* 私钥对数据块签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法第2部分:数字签名算法》
-  中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要。返回签名是否成功
-  说明：PublicKey 可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名}
+   中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要。返回签名是否成功。
+
+   参数：
+     const UserID: AnsiString             - 用来签名的用户标识
+     PlainData: Pointer                   - 待签名的明文数据块地址
+     DataByteLen: Integer                 - 待签名的明文数据块字节长度
+     OutSignature: TCnSM2Signature        - 输出的签名值
+     PrivateKey: TCnSM2PrivateKey         - 用来签名的 SM2 私钥
+     PublicKey: TCnSM2PublicKey           - 用来签名的 SM2 公钥，可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+     const RandHex: string                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
+
+   返回值：Boolean                        - 返回签名是否成功
+}
 
 function CnSM2SignData(const UserID: AnsiString; PlainData: TBytes;
   OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil;
   SM2: TCnSM2 = nil; const RandHex: string = ''): Boolean; overload;
 {* 私钥对字节数组签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法第2部分:数字签名算法》
-  中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要。返回签名是否成功
-  说明：PublicKey 可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名}
+   中的运算规则，要附上签名者与曲线信息以及公钥的数字摘要。返回签名是否成功。
+
+   参数：
+     const UserID: AnsiString             - 用来签名的用户标识
+     PlainData: TBytes                    - 待签名的明文字节数组
+     OutSignature: TCnSM2Signature        - 输出的签名值
+     PrivateKey: TCnSM2PrivateKey         - 用来签名的 SM2 私钥
+     PublicKey: TCnSM2PublicKey           - 用来签名的 SM2 公钥，可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+     const RandHex: string                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
+
+   返回值：Boolean                        - 返回签名是否成功
+}
 
 function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataByteLen: Integer;
   InSignature: TCnSM2Signature; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean; overload;
 {* 公钥验证数据块的签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法
-   第2部分:数字签名算法》中的运算规则来}
+   第2部分:数字签名算法》中的运算规则来
+
+   参数：
+     const UserID: AnsiString             - 用来验证签名的用户标识，需和签名的用户标识保持一致
+     PlainData: Pointer                   - 待验证的明文数据块地址
+     DataByteLen: Integer                 - 待验证的明文数据块字节长度
+     InSignature: TCnSM2Signature         - 待验证的签名值
+     PublicKey: TCnSM2PublicKey           - 用来验证的 SM2 公钥
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 function CnSM2VerifyData(const UserID: AnsiString; PlainData: TBytes;
   InSignature: TCnSM2Signature; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean; overload;
 {* 公钥验证字节数组的签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法
-   第2部分:数字签名算法》中的运算规则来}
+   第2部分:数字签名算法》中的运算规则来
+
+   参数：
+     const UserID: AnsiString             - 用来验证签名的用户标识，需和签名的用户标识保持一致
+     PlainData: TBytes                    - 待验证的明文字节数组
+     InSignature: TCnSM2Signature         - 待验证的签名值
+     PublicKey: TCnSM2PublicKey           - 用来验证的 SM2 公钥
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 function CnSM2SignFile(const UserID: AnsiString; const FileName: string;
   PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil; SM2: TCnSM2 = nil): string;
-{* 封装的私钥对文件签名操作，返回签名值的十六进制字符串，注意内部操作是将文件全部加载入内存
-  如签名出错则返回空值
-  说明：PublicKey 可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名}
+{* 封装的私钥对文件签名操作，返回签名值的十六进制字符串，注意内部操作是将文件全部加载入内存，
+  如签名出错则返回空字符串。
+
+   参数：
+     const UserID: AnsiString             - 用来签名的用户标识
+     const FileName: string               - 待签名的文件名
+     PrivateKey: TCnSM2PrivateKey         - 用来签名的 SM2 私钥
+     PublicKey: TCnSM2PublicKey           - 用来签名的 SM2 公钥，可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+
+   返回值：string                         - 返回签名值的十六进制字符串
+}
 
 function CnSM2VerifyFile(const UserID: AnsiString; const FileName: string;
   const InHexSignature: string; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
-{* 封装的公钥验证数据块的签名，参数是签名值的十六进制字符串，注意内部操作是将文件全部加载入内存
-  验证通过返回 True，不通过或出错返回 False}
+{* 封装的公钥验证数据块的签名，参数是签名值的十六进制字符串，注意内部操作是将文件全部加载入内存。
+
+   参数：
+     const UserID: AnsiString             - 用来验证签名的用户标识，需和签名的用户标识保持一致
+     const FileName: string               - 待签名的文件名
+     const InHexSignature: string         - 待验证的十六进制的签名值
+     PublicKey: TCnSM2PublicKey           - 用来验证的 SM2 公钥
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 // ======================== SM2 椭圆曲线密钥交换算法 ===========================
 
@@ -378,17 +459,48 @@ function CnSM2VerifyFile(const UserID: AnsiString; const FileName: string;
 function CnSM2KeyExchangeAStep1(const AUserID: AnsiString; const BUserID: AnsiString;
   KeyByteLength: Integer; APrivateKey: TCnSM2PrivateKey; APublicKey: TCnSM2PublicKey;
   BPublicKey: TCnSM2PublicKey; OutARand: TCnBigNumber; OutRA: TCnEccPoint; SM2: TCnSM2 = nil): Boolean;
-{* 基于 SM2 的密钥交换协议，第一步 A 用户生成随机点 RA，供发给 B
-  输入：A B 的用户名，所需密码长度、自己的私钥、双方的公钥
-  输出：随机值 OutARand；生成的随机点 RA（发给 B）}
+{* 基于 SM2 的密钥交换协议，第一步 A 用户生成随机点 RA，供发给 B。
+   输入：A B 的用户名，所需密码长度、自己的私钥、双方的公钥。
+   输出：随机值 OutARand；生成的随机点 RA（发给 B）
+
+   参数：
+     const AUserID: AnsiString            - A 方的用户标识
+     const BUserID: AnsiString            - B 方的用户标识
+     KeyByteLength: Integer               - 需要交换的密钥字节长度
+     APrivateKey: TCnSM2PrivateKey        - A 方的 SM2 私钥
+     APublicKey: TCnSM2PublicKey          - A 方的 SM2 公钥
+     BPublicKey: TCnSM2PublicKey          - B 方的 SM2 私钥
+     OutARand: TCnBigNumber               - 生成的中间结果随机数，需在本次交换会话中保留，不能传输给 B 方
+     OutRA: TCnEccPoint                   - 生成的中间结果坐标点 R，需在本次交换会话中保留，并需传输给 B 方
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnSM2KeyExchangeBStep1(const AUserID: AnsiString; const BUserID: AnsiString;
   KeyByteLength: Integer; BPrivateKey: TCnSM2PrivateKey; APublicKey: TCnSM2PublicKey;
   BPublicKey: TCnSM2PublicKey; InRA: TCnEccPoint; out OutKeyB: TBytes; OutRB: TCnEccPoint;
   out OutOptionalSB: TCnSM3Digest; out OutOptionalS2: TCnSM3Digest; SM2: TCnSM2 = nil): Boolean;
-{* 基于 SM2 的密钥交换协议，第二步 B 用户收到 A 的数据，计算 Kb，并把可选的验证结果返回 A
-  输入：A B 的用户名，所需密码长度、自己的私钥、双方的公钥、A 传来的 RA
-  输出：计算成功的共享密钥 Kb、生成的随机点 RB（发给 A）、可选的校验杂凑 SB（发给 A 验证），可选的校验杂凑 S2}
+{* 基于 SM2 的密钥交换协议，第二步 B 用户收到 A 的数据，计算 Kb，并把可选的验证结果返回 A。
+   输入：A B 的用户名，所需密码长度、自己的私钥、双方的公钥、A 传来的 RA。
+   输出：计算成功的共享密钥 Kb、生成的随机点 RB（发给 A）、可选的校验杂凑 SB（发给 A 验证），可选的校验杂凑 S2。
+
+   参数：
+     const AUserID: AnsiString            - A 方的用户标识
+     const BUserID: AnsiString            - B 方的用户标识
+     KeyByteLength: Integer               - 需要交换的密钥字节长度
+     BPrivateKey: TCnSM2PrivateKey        - B 方的 SM2 私钥
+     APublicKey: TCnSM2PublicKey          - A 方的 SM2 公钥
+     BPublicKey: TCnSM2PublicKey          - B 方的 SM2 私钥
+     InRA: TCnEccPoint                    - 由 A 方生成并传输而来的坐标点 R
+     out OutKeyB: TBytes                  - B 方交换输出的密钥字节数组，值应等于下面的 OutKeyA
+     OutRB: TCnEccPoint                   - 生成的中间结果坐标点 R，需传输回 A 方
+     out OutOptionalSB: TCnSM3Digest      - 生成的校验杂凑值 S，可传输给 A 方供验证
+     out OutOptionalS2: TCnSM3Digest      - 生成的校验杂凑值 S2，需在本次交换会话中保留，不能传输给 A 方
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                        - 返回交换是否成功
+}
 
 function CnSM2KeyExchangeAStep2(const AUserID: AnsiString; const BUserID: AnsiString;
   KeyByteLength: Integer; APrivateKey: TCnSM2PrivateKey; APublicKey: TCnSM2PublicKey;
@@ -396,28 +508,79 @@ function CnSM2KeyExchangeAStep2(const AUserID: AnsiString; const BUserID: AnsiSt
   out OutKeyA: TBytes; InOptionalSB: TCnSM3Digest; out OutOptionalSA: TCnSM3Digest; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 的密钥交换协议，第三步 A 用户收到 B 的数据计算 Ka，并把可选的验证结果返回 B，初步协商好 Ka = Kb
   输入：A B 的用户名，所需密码长度、自己的私钥、双方的公钥、B 传来的 RB 与可选的 SB，自己的点 RA、自己的随机值 MyARand
-  输出：计算成功的共享密钥 Ka、可选的校验杂凑 SA（发给 B 验证）}
+  输出：计算成功的共享密钥 Ka、可选的校验杂凑 SA（发给 B 验证）。
+
+   参数：
+     const AUserID: AnsiString            - A 方的用户标识
+     const BUserID: AnsiString            - B 方的用户标识
+     KeyByteLength: Integer               - 需要交换的密钥字节长度
+     APrivateKey: TCnSM2PrivateKey        - A 方的 SM2 私钥
+     APublicKey: TCnSM2PublicKey          - A 方的 SM2 公钥
+     BPublicKey: TCnSM2PublicKey          - B 方的 SM2 公钥
+     MyRA: TCnEccPoint                    - A 方第一次调用时生成的中间结果坐标点 R
+     InRB: TCnEccPoint                    - 由 B 方生成并传输而来的中间结果坐标点 R
+     MyARand: TCnBigNumber                - A 方第一次调用时生成的中间结果随机数
+     out OutKeyA: TBytes                  - A 方交换输出的密钥字节数组，值应等于下面的 OutKeyB
+     InOptionalSB: TCnSM3Digest           - 由 B 方生成并传输而来的校验杂凑值 S 供验证
+     out OutOptionalSA: TCnSM3Digest      - 生成的校验杂凑值 S
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                        - 返回交换是否成功
+}
 
 function CnSM2KeyExchangeBStep2(const AUserID: AnsiString; const BUserID: AnsiString;
   KeyByteLength: Integer; BPrivateKey: TCnSM2PrivateKey; APublicKey: TCnSM2PublicKey;
   BPublicKey: TCnSM2PublicKey; InOptionalSA: TCnSM3Digest; MyOptionalS2: TCnSM3Digest;
   SM2: TCnSM2 = nil): Boolean;
-{* 基于 SM2 的密钥交换协议，第四步 B 用户收到 A 的数据计算结果校验，协商完毕，此步可选
-  实质上只对比 B 第二步生成的 S2 与 A 第三步发来的 SA，其余参数均不使用}
+{* 基于 SM2 的密钥交换协议，第四步 B 用户收到 A 的数据计算结果校验，协商完毕，此步可选。
+   实质上只对比 B 第二步生成的 S2 与 A 第三步发来的 SA，其余参数均不使用。
+
+   参数：
+     const AUserID: AnsiString            - A 方的用户标识
+     const BUserID: AnsiString            - B 方的用户标识
+     KeyByteLength: Integer               - 需要交换的密钥字节长度
+     BPrivateKey: TCnSM2PrivateKey        - B 方的 SM2 私钥
+     APublicKey: TCnSM2PublicKey          - A 方的 SM2 公钥
+     BPublicKey: TCnSM2PublicKey          - B 方的 SM2 公钥
+     InOptionalSA: TCnSM3Digest           - 由 A 方生成并传输而来的校验杂凑值 S 供验证
+     MyOptionalS2: TCnSM3Digest           - B 方第二次调用时生成的校验杂凑值供与 S 对比
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                        - 返回校验是否成功
+}
 
 // =============== 基于 SM2/SM3 的非交互式 Schnorr 零知识证明 ==================
 
 function CnSM2SchnorrProve(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
   OutR: TCnEccPoint; OutZ: TCnBigNumber; SM2: TCnSM2 = nil): Boolean;
-{* 基于 SM2/SM3 的非交互式 Schnorr 零知识证明步骤一，由私钥拥有者调用
-  私钥拥有者生成 R 和 Z，返回生成是否成功
-  该函数用于 SM2 私钥拥有者证明自己拥有对应公钥的私钥而无需公开该私钥}
+{* 基于 SM2/SM3 的非交互式 Schnorr 零知识证明步骤一，由私钥拥有者调用。
+  私钥拥有者生成 R 和 Z，返回生成是否成功。
+  该函数用于 SM2 私钥拥有者证明自己拥有对应公钥的私钥而无需公开该私钥。
+
+   参数：
+     PrivateKey: TCnSM2PrivateKey         - 进行 Schnorr 零知识证明的 SM2 私钥
+     PublicKey: TCnSM2PublicKey           - 进行 Schnorr 零知识证明的 SM2 公钥
+     OutR: TCnEccPoint                    - SM2 私钥拥有者生成的 R 坐标点
+     OutZ: TCnBigNumber                   - SM2 私钥拥有者生成的 Z 大数值
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnSM2SchnorrCheck(PublicKey: TCnSM2PublicKey; InR: TCnEccPoint;
   InZ: TCnBigNumber; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2/SM3 的非交互式 Schnorr 零知识证明步骤二，由拿到公钥者验证
-  验证对方发来的 R 和 Z，如果成功，说明对方拥有该公钥对应的私钥
-  该函数用于验证对方是否拥有某 SM2 公钥对应的私钥}
+   验证对方发来的 R 和 Z，如果成功，说明对方拥有该公钥对应的私钥
+   该函数用于验证对方是否拥有某 SM2 公钥对应的私钥
+
+   参数：
+     PublicKey: TCnSM2PublicKey           - 用来验证 Schnorr 零知识证明的 SM2 公钥
+     InR: TCnEccPoint                     - Schnorr 零知识证明中生成的 R 坐标点
+     InZ: TCnBigNumber                    - Schnorr 零知识证明中生成的 Z 大数值
+     SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                        - 返回验证是否成功
+}
 
 // ========== SM2 椭圆曲线双方互相信任的简易协同算法之协同密钥生成 =============
 
@@ -428,13 +591,29 @@ function CnSM2SchnorrCheck(PublicKey: TCnSM2PublicKey; InR: TCnEccPoint;
 function CnSM2CollaborativeGenerateKeyAStep1(PrivateKeyA: TCnSM2CollaborativePrivateKey;
   OutPointToB: TCnEccPoint; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的双方协同算法，A 第一步生成自己的私钥分量 PrivateKeyA，并产出中间结果 OutPointToB，
-  该点值需要传输至 B，返回是否生成成功}
+   该点值需要传输至 B，返回是否生成成功。
+
+   参数：
+     PrivateKeyA: TCnSM2CollaborativePrivateKey           - 双方协同模式下 A 方生成的 SM2 私钥分量，A 方需保密
+     OutPointToB: TCnEccPoint                             - 双方协同模式下生成的中间结果坐标点，需传输给 B 方
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回生成是否成功
+}
 
 function CnSM2CollaborativeGenerateKeyBStep1(PrivateKeyB: TCnSM2CollaborativePrivateKey;
   InPointFromA: TCnEccPoint; PublicKey: TCnSM2CollaborativePublicKey; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的双方协同算法，B 第二步生成自己的私钥分量 PrivateKeyB，并根据 A 传来的中间结果 InPointFromA，
-  生成公用的公钥 PublicKey，返回是否生成成功
-  公钥 PublicKey 后面需要传给 A 并公布出去}
+   生成公用的公钥 PublicKey，返回是否生成成功。公钥 PublicKey 后面需要传给 A 并公布出去。
+
+   参数：
+     PrivateKeyB: TCnSM2CollaborativePrivateKey           - 双方协同模式下 B 方生成的 SM2 私钥分量，B 方需保密
+     InPointFromA: TCnEccPoint                            - 双方协同模式下由 A 方生成并传输而来的中间结果坐标点
+     PublicKey: TCnSM2CollaborativePublicKey              - 双方协同模式下生成的共同的 SM2 公钥，可公布并传输给 A 方
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回生成是否成功
+}
 
 // =============== SM2 椭圆曲线双方互相信任的简易协同签名算法 ==================
 
@@ -442,38 +621,107 @@ function CnSM2CollaborativeSignAStep1(const UserID: AnsiString; PlainData: Point
   DataByteLen: Integer; OutHashEToB: TCnBigNumber; OutQToB: TCnEccPoint; OutRandKA: TCnBigNumber;
   PrivateKeyA: TCnSM2CollaborativePrivateKey; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的双方协同签名，A 第一步根据原始数据签出中间值 E 和 Q，发送给 B，返回该步签名是否成功
-  注意 OutRandK 不要发给 B！，另外，注意该步 PrivateKeyA 未使用}
+   注意 OutRandK 不要发给 B！另外，注意该步 PrivateKeyA 未使用。
+
+   参数：
+     const UserID: AnsiString                             - 双方协同模式下用来签名的共同的用户标识
+     PlainData: Pointer                                   - 待签名的明文数据块地址
+     DataByteLen: Integer                                 - 待签名的明文数据块字节长度
+     OutHashEToB: TCnBigNumber                            - 双方协同模式下 A 方输出的中间值 E 大数值，需传输给 B 方
+     OutQToB: TCnEccPoint                                 - 双方协同模式下 A 方输出的中间值 Q 坐标点，需传输给 B 方
+     OutRandKA: TCnBigNumber                              - 双方协同模式下 A 方输出的中间随机值 K，A 方需保密
+     PrivateKeyA: TCnSM2CollaborativePrivateKey           - 双方协同模式下 A 方的 SM2 私钥分量，该步内部暂未使用
+     PublicKey: TCnSM2PublicKey                           - 双方协同模式下共同的 SM2 公钥
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回该 A 方的第一步签名是否成功
+}
 
 function CnSM2CollaborativeSignBStep1(InHashEFromA: TCnBigNumber; InQFromA: TCnEccPoint;
   OutRToA: TCnBigNumber; OutS1ToA: TCnBigNumber; OutS2ToA: TCnBigNumber;
   PrivateKeyB: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的双方协同签名，B 第二步根据 A 签出的中间值 E 和 Q，
-  结合 PrivateKeyB 生成 R S1 S2 发送回 A，返回该步签名是否成功}
+   结合 PrivateKeyB 生成 R S1 S2 发送回 A，返回该步签名是否成功。
+
+   参数：
+     InHashEFromA: TCnBigNumber                           - 双方协同模式下由 A 方在第一步生成并传输而来的 E 大数值
+     InQFromA: TCnEccPoint                                - 双方协同模式下由 A 方在第一步生成并传输而来的 Q 坐标点
+     OutRToA: TCnBigNumber                                - 双方协同模式下 B 方生成的中间值 R 大数值，需传输回 A 方
+     OutS1ToA: TCnBigNumber                               - 双方协同模式下 B 方生成的中间值 S1 大数值，需传输回 A 方
+     OutS2ToA: TCnBigNumber                               - 双方协同模式下 B 方生成的中间值 S2 大数值，需传输回 A 方
+     PrivateKeyB: TCnSM2CollaborativePrivateKey           - 双方协同模式下 B 方的 SM2 私钥分量
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回该 B 方的第二步签名是否成功
+}
 
 function CnSM2CollaborativeSignAStep2(InRandKA: TCnBigNumber; InRFromB: TCnBigNumber;
   InS1FromB: TCnBigNumber; InS2FromB: TCnBigNumber; OutSignature: TCnSM2Signature;
   PrivateKeyA: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的双方协同签名，A 第三步根据 A 第一步的 OutRandK 随机值与 B 签出的中间值 R S1 S2，
-  结合 PrivateKeyA 生成最终签名，返回该步签名是否成功}
+   结合 PrivateKeyA 生成最终签名，返回该步签名是否成功。
+
+   参数：
+     InRandKA: TCnBigNumber                               - A 方第一步签名中生成的中间随机值 K
+     InRFromB: TCnBigNumber                               - 双方协同模式下由 B 方在第二步生成并传输回来的 R 大数值
+     InS1FromB: TCnBigNumber                              - 双方协同模式下由 B 方在第二步生成并传输回来的 S1 大数值
+     InS2FromB: TCnBigNumber                              - 双方协同模式下由 B 方在第二步生成并传输回来的 S2 大数值
+     OutSignature: TCnSM2Signature                        - 输出的最终签名值
+     PrivateKeyA: TCnSM2CollaborativePrivateKey           - 双方协同模式下 A 方的 SM2 私钥分量
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回该 A 方的第三步也就是最终步签名是否成功
+}
 
 // =============== SM2 椭圆曲线双方互相信任的简易协同解密算法 ==================
 
 function CnSM2CollaborativeDecryptAStep1(EnData: Pointer; DataByteLen: Integer;
   OutTToB: TCnEccPoint; PrivateKeyA: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil): Boolean;
-{* 基于 SM2 椭圆曲线的双方协同解密，A 第一步根据密文解出中间值 T，发送给 B，返回该步解密是否成功}
+{* 基于 SM2 椭圆曲线的双方协同解密，A 第一步根据密文解出中间值 T，发送给 B，返回该步解密是否成功。
+
+   参数：
+     EnData: Pointer                                      - 待解密的密文数据块地址
+     DataByteLen: Integer                                 - 待解密的密文数据块字节长度
+     OutTToB: TCnEccPoint                                 - 双方协同模式下 A 方生成的中间结果坐标点 T，需传输给 B 方
+     PrivateKeyA: TCnSM2CollaborativePrivateKey           - 双方协同模式下 A 方的 SM2 私钥分量
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回 A 方的第一步解密是否成功
+}
 
 function CnSM2CollaborativeDecryptBStep1(InTFromA: TCnEccPoint; OutTToA: TCnEccPoint;
   PrivateKeyB: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的双方协同解密，B 第二步根据 A 解出的中间值 T，生成另一个中间值 T 发送回 A，
-  返回该步解密是否成功}
+   返回该步解密是否成功。
+
+   参数：
+     InTFromA: TCnEccPoint                                - 双方协同模式下由 A 方生成并传输而来的中间结果坐标点 T
+     OutTToA: TCnEccPoint                                 - 双方协同模式下 B 方生成的中间结果坐标点 T，需传输回 A 方
+     PrivateKeyB: TCnSM2CollaborativePrivateKey           - 双方协同模式下 B 方的 SM2 私钥分量
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回 B 方的第二步解密是否成功
+}
 
 function CnSM2CollaborativeDecryptAStep2(EnData: Pointer; DataByteLen: Integer;
   InTFromB: TCnEccPoint; OutStream: TStream; PrivateKeyA: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
 {* 基于 SM2 椭圆曲线的双方协同解密，A 第三步根据 B 解出的中间值 T 算出最终解密结果写入 Stream，
   返回该步最终解密是否成功
-  注意密文与 SequenceType 须保持和 AStep1 中的完全一致}
+  注意密文与 SequenceType 须保持和 AStep1 中的完全一致
+
+   参数：
+     EnData: Pointer                                      - 待解密的密文数据块地址
+     DataByteLen: Integer                                 - 待解密的密文数据块字节长度
+     InTFromB: TCnEccPoint                                - 双方协同模式下由 B 方生成并传输而来的中间结果坐标点 T
+     OutStream: TStream                                   - 输出的明文流
+     PrivateKeyA: TCnSM2CollaborativePrivateKey           - 双方协同模式下 A 方的 SM2 私钥分量
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+     SequenceType: TCnSM2CryptSequenceType                - 内部拼接顺序，默认国标的 C1C3C2，需和密文的实际情况一致
+
+   返回值：Boolean                                        - 返回 A 方的第三步也就是最终步的解密是否成功
+}
 
 // ======== SM2 椭圆曲线三方或更多方互相信任的简易协同算法之协同密钥生成 =======
 {
@@ -486,73 +734,146 @@ function CnSM2CollaborativeDecryptAStep2(EnData: Pointer; DataByteLen: Integer;
 function CnSM2Collaborative3GenerateKeyAStep1(PrivateKeyA: TCnSM2CollaborativePrivateKey;
   OutPointToB: TCnEccPoint; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的三方协同算法，A 第一步生成自己的私钥分量 PrivateKeyA，并产出中间结果 OutPointToB，
-  该点值需要传输至 B，返回是否生成成功}
+   该点值需要传输至 B，返回是否生成成功。
+
+   参数：
+     PrivateKeyA: TCnSM2CollaborativePrivateKey           - 多方协同模式下 A 方生成的 SM2 私钥分量
+     OutPointToB: TCnEccPoint                             - 多方协同模式下 A 方生成的中间结果坐标点，需传输给 B 方
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回生成是否成功
+}
 
 function CnSM2Collaborative3GenerateKeyBStep1(PrivateKeyB: TCnSM2CollaborativePrivateKey;
   InPointFromA: TCnEccPoint; OutPointToC: TCnEccPoint; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的三方协同算法，B 第二步生成自己的私钥分量 PrivateKeyB，并根据 A 传来的中间结果 InPointFromA，
-  生成中间结果 OutPointToC，该点值需要传输至 C。返回是否生成成功。
-  如果更多方，C 也需调用本方法生成给 D 的，以此类推}
+   生成中间结果 OutPointToC，该点值需要传输至 C。返回是否生成成功。
+   如果更多方，C 也需调用本方法生成给 D 的，以此类推。
+
+   参数：
+     PrivateKeyB: TCnSM2CollaborativePrivateKey           - 多方协同模式下 B 方或其他中间方生成的 SM2 私钥分量
+     InPointFromA: TCnEccPoint                            - 多方协同模式下由 A 方或上一方生成并传输而来的中间结果坐标点
+     OutPointToC: TCnEccPoint                             - 多方协同模式下 B 方或其他中间方生成的中间结果坐标点，需要传输给下一方
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回生成是否成功
+}
 
 function CnSM2Collaborative3GenerateKeyCStep1(PrivateKeyC: TCnSM2CollaborativePrivateKey;
   InPointFromB: TCnEccPoint; PublicKey: TCnSM2CollaborativePublicKey; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的三方协同算法，C 第三步生成自己的私钥分量 PrivateKeyC，并根据 B 传来的中间结果 InPointFromB，
-  生成公用的公钥 PublicKey，返回是否生成成功。
-  如果更多方，本方法是最后一位调用的。
-  公钥 PublicKey 后面需要传给 A、B 并公布出去}
+   生成公用的公钥 PublicKey，返回是否生成成功。如果更多方，本方法是最后一位调用的。
+   公钥 PublicKey 后面需要传给 A、B 并公布出去。
+
+   参数：
+     PrivateKeyC: TCnSM2CollaborativePrivateKey           - 多方协同模式下 C 方或最后一方生成的 SM2 私钥分量
+     InPointFromB: TCnEccPoint                            - 多方协同模式下由 B 方或上一方生成并传输而来的中间结果坐标点
+     PublicKey: TCnSM2CollaborativePublicKey              - 多方协同模式下 C 方或最后一方生成的 SM2 公钥，可公布并传输给 A B 及每一方
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回生成是否成功
+}
 
 // =========== SM2 椭圆曲线三方或更多方互相信任的简易协同签名算法 ==============
+{
+  核心过程是 A -> B (-> B') -> C (-> B') -> B  -> A，箭头左边为上一方，右边为下一方
+}
 
 function CnSM2Collaborative3SignAStep1(const UserID: AnsiString; PlainData: Pointer;
   DataByteLen: Integer; OutHashEToBC: TCnBigNumber; OutQToB: TCnEccPoint; OutRandKA: TCnBigNumber;
   PrivateKeyA: TCnSM2CollaborativePrivateKey; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean;
-{* 基于 SM2 椭圆曲线的三方协同签名，A 第一步根据原始数据签出中间值 E 和 Qa，发送给 B，返回该步签名是否成功
-  - OutHashEToBC 要发给下一步 B 以及下下步 C，对应 InHashEFromA
-  - OutQToB 要发给下一步 B，对应 InQFromA
-  注意 OutRandKA 要保存待第五步调用，不要发出去！}
+{* 基于 SM2 椭圆曲线的三方协同签名，A 第一步根据原始数据签出中间值 E 和 Qa，发送给 B，返回该步签名是否成功。
+   OutHashEToBC 要发给下一步 B 以及下下步 C，对应 InHashEFromA，OutQToB 要发给下一步 B，对应 InQFromA。
+   注意 OutRandKA 要保存待第五步调用，不要发出去！
+
+   参数：
+     const UserID: AnsiString                             - 多方协同模式下用来签名的共同的用户标识
+     PlainData: Pointer                                   - 待签名的明文数据块地址
+     DataByteLen: Integer                                 - 待签名的明文数据块字节长度
+     OutHashEToBC: TCnBigNumber                           - 多方协同模式下 A 方生成的杂凑值，需要传输给后面的每一方
+     OutQToB: TCnEccPoint                                 - 多方协同模式下 A 方生成的中间结果坐标点 Q，需要传输给 B 方
+     OutRandKA: TCnBigNumber                              - 多方协同模式下 A 方生成的中间随机值 K，A 方需保密
+     PrivateKeyA: TCnSM2CollaborativePrivateKey           - 多方协同模式下 A 方的 SM2 私钥分量
+     PublicKey: TCnSM2PublicKey                           - 多方协同模式下的 SM2 公钥
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回生成是否成功
+}
 
 function CnSM2Collaborative3SignBStep1(InHashEFromA: TCnBigNumber; InQFromA: TCnEccPoint;
   OutQToC: TCnEccPoint; OutRandKB: TCnBigNumber; PrivateKeyB: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil): Boolean;
-{* 基于 SM2 椭圆曲线的三方协同签名，B 第二步根据 A 第一步签出的中间值 E 和 Qa，生成 Qb 与 E 一起发给 C，返回该步签名是否成功
-  - InHashEFromA 来源于上一步的 OutHashEToBC
-  - InQFromA 来源于上一步的 OutQToB
-  - OutQToC 要发给下一步 C，对应 InQFromB
-  注意 OutRandKB 要保存待第四步调用，不要发出去！}
+{* 基于 SM2 椭圆曲线的三方协同签名，B 第二步根据 A 第一步签出的中间值 E 和 Qa，生成 Qb 与 E 一起发给 C，返回该步签名是否成功。
+   InHashEFromA 来源于上一步的 OutHashEToBC，InQFromA 来源于上一步的 OutQToB，OutQToC 要发给下一步 C，对应 InQFromB。
+   注意 OutRandKB 要保存待第四步调用，不要发出去！
+
+   参数：
+     InHashEFromA: TCnBigNumber                           - 多方协同模式下由 A 方生成并传输而来的杂凑值
+     InQFromA: TCnEccPoint                                - 多方协同模式下由 A 方或上一方生成并传输而来的中间结果坐标点 Q
+     OutQToC: TCnEccPoint                                 - 多方协同模式下 B 方生成的中间结果坐标点 Q，需传输给 C 方或下一方
+     OutRandKB: TCnBigNumber                              - 多方协同模式下 B 方生成的中间随机值 K，B 方需保密
+     PrivateKeyB: TCnSM2CollaborativePrivateKey           - 多方协同模式下 B 方的 SM2 私钥分量
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回生成是否成功
+}
 
 function CnSM2Collaborative3SignCStep1(InHashEFromA: TCnBigNumber; InQFromB: TCnEccPoint;
   OutRToBA: TCnBigNumber; OutS1ToB: TCnBigNumber; OutS2ToB: TCnBigNumber;
   PrivateKeyC: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的三方协同签名，C 第三步根据 B 第二步签出的中间值 E 和 Qb，生成 R S1 S2 发送回 B，返回该步签名是否成功
-  - InHashEFromA 来源于上一步的 OutHashEToBC
-  - InQFromB 来源于上一步的 OutQToC
-  - OutRToBA 要发给下一步 B 以及下下步 A，对应 InRFromC
-  - OutS1ToB 要发给下一步 B，对应 InS1FromC
-  - OutS2ToB 要发给下一步 B，对应 InS2FromC
+   InHashEFromA 来源于上一步的 OutHashEToBC，InQFromB 来源于上一步的 OutQToC，OutRToBA 要发给下一步 B 以及下下步 A，对应 InRFromC。
+   OutS1ToB 要发给下一步 B，对应 InS1FromC，OutS2ToB 要发给下一步 B，对应 InS2FromC。
+
+   参数：
+     InHashEFromA: TCnBigNumber                           - 多方协同模式下由 A 方生成并传输而来的杂凑值
+     InQFromB: TCnEccPoint                                - 多方协同模式下由 B 方或上一方生成并传输而来的中间结果坐标点 Q
+     OutRToBA: TCnBigNumber                               - 多方协同模式下 C 方或最后一方生成的中间值 R，需传输给前面各方
+     OutS1ToB: TCnBigNumber                               - 多方协同模式下 C 方或最后一方生成的中间签名值 S1，需传输给上一方
+     OutS2ToB: TCnBigNumber                               - 多方协同模式下 C 方或最后一方生成的中间签名值 S2，需传输给上一方
+     PrivateKeyC: TCnSM2CollaborativePrivateKey           - 多方协同模式下 C 方或最后一方的 SM2 私钥分量
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回生成是否成功
 }
 
 function CnSM2Collaborative3SignBStep2(InRandKB: TCnBigNumber; InRFromC: TCnBigNumber;
   InS1FromC: TCnBigNumber; InS2FromC: TCnBigNumber; OutS1ToA: TCnBigNumber;
   OutS2ToA: TCnBigNumber; PrivateKeyB: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的三方协同签名，B 第四步根据 C 第三步签出的中间值生成新的 S1 S2 与 R 发给 A，返回该步签名是否成功
-  - InRandKB 是第二步中的 OutRandKB
-  - InRFromC 来源于上一步的 OutRToBA
-  - InS1FromC 来源于上一步的 OutS1ToB
-  - InS2FromC 来源于上一步的 OutS2ToB
-  - OutS1ToA 要发给下一步 C，对应 InS1FromB
-  - OutS2ToA 要发给下一步 C，对应 InS2FromB
-  }
+   InRandKB 是第二步中的 OutRandKB，InRFromC 来源于上一步的 OutRToBA，InS1FromC 来源于上一步的 OutS1ToB，
+   InS2FromC 来源于上一步的 OutS2ToB，OutS1ToA 要发给下一步 A，对应 InS1FromB，OutS2ToA 要发给下一步 A，对应 InS2FromB。
+
+   参数：
+     InRandKB: TCnBigNumber                               - 多方协同模式下由 B 方在前一步中生成的中间随机值 K
+     InRFromC: TCnBigNumber                               - 多方协同模式下由 C 方或最后一方生成并传输而来的中间值 R
+     InS1FromC: TCnBigNumber                              - 多方协同模式下由 C 方或最后一方生成并传输而来的中间签名值 S1
+     InS2FromC: TCnBigNumber                              - 多方协同模式下由 C 方或最后一方生成并传输而来的中间签名值 S2
+     OutS1ToA: TCnBigNumber                               - 多方协同模式下生成的中间签名值 S1，需传输给 A 方或下一方
+     OutS2ToA: TCnBigNumber                               - 多方协同模式下生成的中间签名值 S2，需传输给 A 方或下一方
+     PrivateKeyB: TCnSM2CollaborativePrivateKey           - 多方协同模式下 B 方的 SM2 私钥分量
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回生成是否成功
+}
 
 function CnSM2Collaborative3SignAStep2(InRandKA: TCnBigNumber; InRFromC: TCnBigNumber;
   InS1FromB: TCnBigNumber; InS2FromB: TCnBigNumber; OutSignature: TCnSM2Signature;
   PrivateKeyA: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
 {* 基于 SM2 椭圆曲线的三方协同签名，A 第五步根据 OutRandKA 随机值与 B 第四步的签出的中间值 S1 S2 与原始 R，
-  生成最终签名，返回该步签名是否成功
-  - InRandKA 是第二步中的 OutRandKA
-  - InRFromC 来源于上上步的 OutRToBA
-  - InS1FromB 来源于上一步的 OutS1ToA
-  - InS2FromB 来源于上一步的 OutS2ToA
-  最终签名值在 OutSignature 中
+   生成最终签名，返回该步签名是否成功。InRandKA 是第一步中的 OutRandKA，InRFromC 来源于上上步的 OutRToBA。
+   InS1FromB 来源于上一步的 OutS1ToA，InS2FromB 来源于上一步的 OutS2ToA，最终签名值在 OutSignature 中。
+
+   参数：
+     InRandKA: TCnBigNumber                               - 多方协同模式下由 A 方在第一步中生成的中间随机值 K
+     InRFromC: TCnBigNumber                               - 多方协同模式下由 C 方或最后一方生成并传输而来的中间随机值 R
+     InS1FromB: TCnBigNumber                              - 多方协同模式下由 B 方或上一方生成并传输而来的中间签名值 S1
+     InS2FromB: TCnBigNumber                              - 多方协同模式下由 B 方或上一方生成并传输而来的中间签名值 S2
+     OutSignature: TCnSM2Signature                        - 输出的最终签名值
+     PrivateKeyA: TCnSM2CollaborativePrivateKey           - 多方协同模式下 A 方的 SM2 私钥分量
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回签名是否成功
 }
 
 // =========== SM2 椭圆曲线三方或更多方互相信任的简易协同解密算法 ==============
@@ -562,23 +883,62 @@ function CnSM2Collaborative3SignAStep2(InRandKA: TCnBigNumber; InRFromC: TCnBigN
 function CnSM2Collaborative3DecryptAStep1(EnData: Pointer; DataByteLen: Integer;
   OutTToB: TCnEccPoint; PrivateKeyA: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil): Boolean;
-{* 基于 SM2 椭圆曲线的三方协同解密，A 第一步根据密文解出中间值 T，发送给 B，返回该步解密是否成功}
+{* 基于 SM2 椭圆曲线的三方协同解密，A 第一步根据密文解出中间值 T，发送给 B，返回该步解密是否成功。
+
+   参数：
+     EnData: Pointer                                      - 待解密的密文数据块地址
+     DataByteLen: Integer                                 - 待解密的密文数据块字节长度
+     OutTToB: TCnEccPoint                                 - 多方协同模式下 A 方生成的中间结果坐标点 T，需要传输给 B 方
+     PrivateKeyA: TCnSM2CollaborativePrivateKey           - 多方协同模式下 A 方的 SM2 私钥分量
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回计算是否成功
+}
 
 function CnSM2Collaborative3DecryptBStep1(InTFromA: TCnEccPoint; OutTToC: TCnEccPoint;
   PrivateKeyB: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
-{* 基于 SM2 椭圆曲线的三方协同解密，B 第二步根据 A 发来的中间值 T 算出自己的中间值 T，发送给 C，返回该步解密是否成功}
+{* 基于 SM2 椭圆曲线的三方协同解密，B 第二步根据 A 发来的中间值 T 算出自己的中间值 T，发送给 C，返回该步解密是否成功。
+
+   参数：
+     InTFromA: TCnEccPoint                                - 多方协同模式下由 A 方生成并传输而来的中间结果坐标点 T
+     OutTToC: TCnEccPoint                                 - 多方协同模式下 B 方生成的中间结果坐标点 T，需要传输给 C 或下一方
+     PrivateKeyB: TCnSM2CollaborativePrivateKey           - 多方协同模式下 B 方的 SM2 私钥分量
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回计算是否成功
+}
 
 function CnSM2Collaborative3DecryptCStep1(InTFromB: TCnEccPoint; OutTToA: TCnEccPoint;
   PrivateKeyC: TCnSM2CollaborativePrivateKey; SM2: TCnSM2 = nil): Boolean;
-{* 基于 SM2 椭圆曲线的双方协同解密，C 第三步根据 B 解出的中间值 T，生成最终值 T 发送回 A，（注意不用过 B 了）
-  返回该步解密是否成功}
+{* 基于 SM2 椭圆曲线的双方协同解密，C 第三步根据 B 解出的中间值 T，生成最终值 T 发送回 A，（注意不用过 B 了），
+   返回该步解密是否成功。
+
+   参数：
+     InTFromB: TCnEccPoint                                - 多方协同模式下由 B 方或上一方生成并传输而来的中间结果坐标点 T
+     OutTToA: TCnEccPoint                                 - 多方协同模式下 C 方生成的中间结果坐标点 T，需要传输给 A
+     PrivateKeyC: TCnSM2CollaborativePrivateKey           - 多方协同模式下 C 方的 SM2 私钥分量
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+
+   返回值：Boolean                                        - 返回计算是否成功
+}
 
 function CnSM2Collaborative3DecryptAStep2(EnData: Pointer; DataByteLen: Integer;
   InTFromC: TCnEccPoint; OutStream: TStream; PrivateKeyA: TCnSM2CollaborativePrivateKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): Boolean;
 {* 基于 SM2 椭圆曲线的双方协同解密，A 第四步根据 C 解出的中间值 T 算出最终解密结果写入 Stream，
-  返回该步最终解密是否成功
-  注意密文与 SequenceType 须保持和 AStep1 中的完全一致}
+   返回该步最终解密是否成功。注意密文与 SequenceType 须保持和 AStep1 中的完全一致。
+
+   参数：
+     EnData: Pointer                                      - 待解密的密文数据块地址
+     DataByteLen: Integer                                 - 待解密的密文数据块字节长度
+     InTFromC: TCnEccPoint                                - 多方协同模式下由 C 方生成并传输而来的中间结果坐标点 T
+     OutStream: TStream                                   - 输出的明文流
+     PrivateKeyA: TCnSM2CollaborativePrivateKey           - 多方协同模式下 A 方的 SM2 私钥分量
+     SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
+     SequenceType: TCnSM2CryptSequenceType                - 内部拼接顺序，默认国标的 C1C3C2，需和密文的实际情况一致
+
+   返回值：Boolean                                        - 返回解密是否成功
+}
 
 implementation
 
