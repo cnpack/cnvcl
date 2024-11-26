@@ -157,7 +157,7 @@ function Base64Decode(const InputData: AnsiString; OutputData: Pointer;
      DataByteLen: Integer                 - 输出内存区的字节长度，应至少为 1 + (Length(InputData) * 3 / 4)
      FixZero: Boolean                     - 是否去除解码结果尾部的 #0
 
-   返回值：Integer                        - 如 OutputData 传 nil，返回所需的解码区的字节长度。其他情况返回解码是否成功，成功则返回 ECN_BASE64_OK；
+   返回值：Integer                        - 如 OutputData 传 nil，返回所需的解码区的字节长度。其他情况返回解码是否成功，成功则返回 ECN_BASE64_OK
 }
 
 function Base64Decode(const InputData: string; out OutputData: TBytes;
@@ -240,7 +240,7 @@ function Base64Encode(InputData: Pointer; DataByteLen: Integer; var OutputData: 
   URL: Boolean): Integer;
 var
   Times, I: Integer;
-  X1, X2, X3, x4: AnsiChar;
+  X1, X2, X3, X4: AnsiChar;
   XT: Byte;
 begin
   if (InputData = nil) or (DataByteLen <= 0) then
@@ -253,7 +253,8 @@ begin
     Times := DataByteLen div 3
   else
     Times := DataByteLen div 3 + 1;
-  SetLength(OutputData, Times * 4);   //一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
+  SetLength(OutputData, Times * 4);   // 一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
+  FillChar(OutputData[1], Length(OutputData) * SizeOf(Char), 0);
 
   if URL then
   begin
@@ -269,7 +270,7 @@ begin
         XT := XT or (Ord(PAnsiChar(InputData)[2 + I * 3]) shr 6);
         X3 := EnCodeTabURL[XT];
         XT := (Ord(PAnsiChar(InputData)[2 + I * 3]) and 63);
-        x4 := EnCodeTabURL[XT];
+        X4 := EnCodeTabURL[XT];
       end
       else if DataByteLen >= (2 + I * 3) then
       begin
@@ -279,7 +280,7 @@ begin
         X2 := EnCodeTabURL[XT];
         XT := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
         X3 := EnCodeTabURL[XT ];
-        x4 := '=';
+        X4 := '=';
       end
       else
       begin
@@ -287,7 +288,7 @@ begin
         XT := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
         X2 := EnCodeTabURL[XT];
         X3 := '=';
-        x4 := '=';
+        X4 := '=';
       end;
       OutputData[I shl 2 + 1] := Char(X1);
       OutputData[I shl 2 + 2] := Char(X2);
@@ -309,7 +310,7 @@ begin
         XT := XT or (Ord(PAnsiChar(InputData)[2 + I * 3]) shr 6);
         X3 := EnCodeTab[XT];
         XT := (Ord(PAnsiChar(InputData)[2 + I * 3]) and 63);
-        x4 := EnCodeTab[XT];
+        X4 := EnCodeTab[XT];
       end
       else if DataByteLen >= (2 + I * 3) then
       begin
@@ -319,7 +320,7 @@ begin
         X2 := EnCodeTab[XT];
         XT := (Ord(PAnsiChar(InputData)[1 + I * 3]) shl 2) and 60;
         X3 := EnCodeTab[XT ];
-        x4 := '=';
+        X4 := '=';
       end
       else
       begin
@@ -327,7 +328,7 @@ begin
         XT := (Ord(PAnsiChar(InputData)[I * 3]) shl 4) and 48;
         X2 := EnCodeTab[XT];
         X3 := '=';
-        x4 := '=';
+        X4 := '=';
       end;
       OutputData[I shl 2 + 1] := Char(X1);
       OutputData[I shl 2 + 2] := Char(X2);
