@@ -300,6 +300,7 @@ function TestRSAPrivPubPkcs1: Boolean;
 function TestRSAPubPkcs1: Boolean;
 function TestRSAPrivPubPkcs8: Boolean;
 function TestRSAPubPkcs8: Boolean;
+function TestChameleonHash: Boolean;
 
 // ================================ KDF ========================================
 
@@ -647,6 +648,7 @@ begin
   MyAssert(TestRSAPubPkcs1, 'TestRSAPubPkcs1');
   MyAssert(TestRSAPrivPubPkcs8, 'TestRSAPrivPubPkcs8');
   MyAssert(TestRSAPubPkcs8, 'TestRSAPubPkcs8');
+  MyAssert(TestChameleonHash, 'TestChameleonHash');
 
 // ================================ KDF ========================================
 
@@ -4369,6 +4371,56 @@ begin
   Sl.Free;
   Pub.Free;
   Stream.Free;
+end;
+
+function TestChameleonHash: Boolean;
+var
+  Num, Prime, Root, Hash, SecKey, Rand, NewNum, NewRand, NewHash: TCnBigNumber;
+begin
+  Num := TCnBigNumber.Create;
+  Prime := TCnBigNumber.Create;
+  Root := TCnBigNumber.Create;
+  Hash := TCnBigNumber.Create;
+  SecKey := TCnBigNumber.Create;
+  Rand := TCnBigNumber.Create;
+  NewNum := TCnBigNumber.Create;
+  NewRand := TCnBigNumber.Create;
+  NewHash := TCnBigNumber.Create;
+
+  try
+    Num.SetDec('73618513111136280958052434894378447995623');
+    Prime.SetDec('276970540154943142069819073642413600499');
+    Root.SetDec('2');
+    SecKey.SetDec('7934806187680192847293875645476892163274087655');
+    Rand.SetDec('87341342568764456767764521100906219000756');
+
+    Result := CnChameleonHashCalcDigest(Num, Rand, SecKey, Hash, Prime, Root);
+    if not Result then Exit;
+
+    Result := Hash.ToDec = '205504075662966566109157397043723549962';
+    if not Result then Exit;
+
+    NewNum.SetDec('961397411368986421346864224325900985312468');
+    Result := CnChameleonHashFindRandom(Num, NewNum, Rand, SecKey, NewRand, Prime, Root);
+    if not Result then Exit;
+
+    Result := NewRand.ToDec = '50644656753223154550407161304306599524';
+    if not Result then Exit;
+
+    Result := CnChameleonHashCalcDigest(NewNum, NewRand, SecKey, NewHash, Prime, Root);
+    if not Result then Exit;
+
+    Result := BigNumberEqual(Hash, NewHash);
+  finally
+    Num.Free;
+    Prime.Free;
+    Root.Free;
+    Hash.Free;
+    SecKey.Free;
+    Rand.Free;
+    NewNum.Free;
+    NewHash.Free;
+  end;
 end;
 
 // ================================ KDF ========================================
