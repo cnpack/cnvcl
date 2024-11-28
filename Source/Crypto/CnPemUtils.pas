@@ -1060,7 +1060,11 @@ begin
 
           // To De Base64 S
           MemoryStream.Clear;
+{$IFDEF UNICODE}
           Result := (ECN_BASE64_OK = Base64Decode(AnsiString(S), MemoryStream, False));
+{$ELSE}
+          Result := (ECN_BASE64_OK = Base64Decode(S, MemoryStream, False));
+{$ENDIF}
         end;
       end;
     finally

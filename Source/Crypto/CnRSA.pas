@@ -174,7 +174,14 @@ type
     destructor Destroy; override;
 
     procedure Assign(Source: TPersistent); override;
-    {* 从另一私钥对象赋值}
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent              - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
+
     procedure Clear;
     {* 清空值}
 
@@ -204,7 +211,14 @@ type
     destructor Destroy; override;
 
     procedure Assign(Source: TPersistent); override;
-    {* 从另一公钥对象赋值}
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent              - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
+
     procedure Clear;
     {* 清空值}
 
@@ -221,18 +235,48 @@ type
 // UInt64 范围内的 RSA 加解密实现
 
 function CnInt64RSAGenerateKeys(out PrimeKey1: Cardinal; out PrimeKey2: Cardinal;
-  out PrivKeyProduct: TUInt64; out PrivKeyExponent: TUInt64;
-  out PubKeyProduct: TUInt64; out PubKeyExponent: TUInt64; HighBitSet: Boolean = True): Boolean;
-{* 生成 RSA 算法所需的一对公私钥，素数均不大于 Cardinal，Keys 均不大于 UInt64
-   HighBitSet 为 True 时要求素数最高位为 1，且乘积是 64 Bit}
+  out PrivKeyProduct: TUInt64; out PrivKeyExponent: TUInt64; out PubKeyProduct: TUInt64;
+  out PubKeyExponent: TUInt64; HighBitSet: Boolean = True): Boolean;
+{* 生成 RSA 算法所需的一对公私钥，素数均不大于 Cardinal，Keys 均不大于 UInt64，
+   HighBitSet 为 True 时要求素数最高位为 1，且乘积是 64 Bit。
+
+   参数：
+     out PrimeKey1: Cardinal              - 生成的素数一
+     out PrimeKey2: Cardinal              - 生成的素数二
+     out PrivKeyProduct: TUInt64          - 生成的私钥的素数积
+     out PrivKeyExponent: TUInt64         - 生成的私钥指数
+     out PubKeyProduct: TUInt64           - 生成的公钥的素数积
+     out PubKeyExponent: TUInt64          - 生成的公钥指数，固定使用 65537
+     HighBitSet: Boolean                  - 是否要求素数最高位为 1
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnInt64RSAEncrypt(Data: TUInt64; PrivKeyProduct: TUInt64;
   PrivKeyExponent: TUInt64; out Res: TUInt64): Boolean;
-{* 利用 RSA 私钥对数据 Data 进行加密，加密结果写入 Res。返回加密是否成功}
+{* 利用 RSA 私钥对数据 Data 进行加密，加密结果写入 Res。返回加密是否成功。
+
+   参数：
+     Data: TUInt64                        - 待加密的数据
+     PrivKeyProduct: TUInt64              - RSA 私钥的素数积
+     PrivKeyExponent: TUInt64             - RSA 私钥指数
+     out Res: TUInt64                     - 输出的加密结果
+
+   返回值：Boolean                        - 返回加密是否成功
+}
 
 function CnInt64RSADecrypt(Res: TUInt64; PubKeyProduct: TUInt64;
   PubKeyExponent: TUInt64; out Data: TUInt64): Boolean;
-{* 利用 RSA 公钥对数据 Res 进行解密，解密结果写入 Data。返回解密是否成功}
+{* 利用 RSA 公钥对数据 Res 进行解密，解密结果写入 Data。返回解密是否成功
+
+   参数：
+     Res: TUInt64                         - 待解密的数据
+     PubKeyProduct: TUInt64               - RSA 公钥素数积
+     PubKeyExponent: TUInt64              - RSA 公钥指数
+     out Data: TUInt64                    - 输出的解密结果
+
+   返回值：Boolean                        - 返回解密是否成功
+}
 
 // 大数范围内的 RSA 加解密实现
 
@@ -240,175 +284,476 @@ function CnRSAGenerateKeysByPrimeBits(PrimeBits: Integer; PrivateKey: TCnRSAPriv
   PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean = False): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 生成 RSA 算法所需的一对公私钥，PrimeBits 是素数的二进制位数，其余参数均为生成。
    PrimeBits 取值为 512/1024/2048等，注意目前不是乘积的范围。内部缺乏安全判断。不推荐使用。
-   PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537}
+   PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537
+
+   参数：
+     PrimeBits: Integer                   - 需生成的素数的位数
+     PrivateKey: TCnRSAPrivateKey         - 生成的 RSA 私钥
+     PublicKey: TCnRSAPublicKey           - 生成的 RSA 公钥
+     PublicKeyUse3: Boolean               - 公钥是否使用 3，否则 65537，默认后者
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean = False): Boolean;
 {* 生成 RSA 算法所需的一对公私钥，ModulusBits 是素数乘积的二进制位数，其余参数均为生成。
    ModulusBits 取值为 512/1024/2048等。内部有安全判断。
-   PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537}
+   PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537
+
+   参数：
+     ModulusBits: Integer                 - 需生成的素数乘积位数
+     PrivateKey: TCnRSAPrivateKey         - 生成的 RSA 私钥
+     PublicKey: TCnRSAPublicKey           - 生成的 RSA 公钥
+     PublicKeyUse3: Boolean               - 公钥是否使用 3，否则 65537，默认后者
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnRSAVerifyKeys(PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKey): Boolean;
-{* 验证一对 RSA 公私钥是否配套}
+{* 验证一对 RSA 公私钥是否配套。
+
+   参数：
+     PrivateKey: TCnRSAPrivateKey         - 待验证的 RSA 私钥
+     PublicKey: TCnRSAPublicKey           - 待验证的 RSA 公钥
+
+   返回值：Boolean                        - 返回验证是否成功
+}
 
 function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
-{* 从 PEM 格式的文件中加载一对 RSA 公私钥数据，如某钥参数为空则不载入
-  自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释
-  KeyHashMethod: 对应 PEM 文件的加密杂凑算法，默认 MD5（无法根据 PEM 文件内容自动判断）
-  Password: PEM 文件如加密，此处应传对应密码}
+{* 从 PEM 格式的文件中加载一对 RSA 公私钥数据，如某钥参数为空则不载入。
+   自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释。
+
+   参数：
+     const PemFileName: string            - 待加载的 PEM 文件名
+     PrivateKey: TCnRSAPrivateKey         - 加载后的内容存入该 RSA 私钥
+     PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
+     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 文件内容自动判断
+     const Password: string               - PEM 文件如加密，此处应传对应的密码
+
+   返回值：Boolean                        - 返回加载是否成功
+}
 
 function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
-{* 从 PEM 格式的流中加载一对 RSA 公私钥数据，如某钥参数为空则不载入
-  自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释
-  KeyHashMethod: 对应 PEM 文件的加密杂凑算法，默认 MD5（无法根据 PEM 文件内容自动判断）
-  Password: PEM 文件如加密，此处应传对应密码，未加密可不传}
+{* 从 PEM 格式的流中加载一对 RSA 公私钥数据，如某钥参数为空则不载入。
+   自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释。
+
+   参数：
+     PemStream: TStream                   - 待加载的 PEM 格式的流
+     PrivateKey: TCnRSAPrivateKey         - 加载后的内容存入该 RSA 私钥
+     PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
+     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 文件内容自动判断
+     const Password: string               - PEM 流如加密，此处应传对应的密码
+
+   返回值：Boolean                        - 返回加载是否成功
+}
 
 function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS1;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
-{* 将一对 RSA 公私钥写入 PEM 格式的文件中，返回是否成功
-  KeyEncryptMethod: 如 PEM 文件需加密，可用此参数指定加密方式，ckeNone 表示不加密，忽略后续参数
-  KeyHashMethod: 生成 Key 的杂凑算法，默认 MD5
-  Password: PEM 文件的加密密码，未加密可不传}
+{* 将一对 RSA 公私钥写入 PEM 格式的文件中，返回是否成功。
+
+   参数：
+     const PemFileName: string                            - 待保存的 PEM 文件名
+     PrivateKey: TCnRSAPrivateKey                         - 待保存的 RSA 私钥
+     PublicKey: TCnRSAPublicKey                           - 待保存的 RSA 公钥
+     KeyType: TCnRSAKeyType                               - 待保存的 RSA 公私钥的 PEM 格式，默认 PKCS1
+     KeyEncryptMethod: TCnKeyEncryptMethod                - 保存的 PEM 文件的加密模式，默认不加密，并忽略后面两个参数
+     KeyHashMethod: TCnKeyHashMethod                      - 保存的 PEM 文件如需加密，此处设置其加密杂凑算法，默认 MD5
+     const Password: string                               - 保存的 PEM 文件如需加密，此处应传加密密码，如不加密则无需传
+
+   返回值：Boolean                                        - 返回保存是否成功
+}
 
 function CnRSASaveKeysToPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS1;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
-{* 将一对 RSA 公私钥写入 PEM 格式的流中，返回是否成功
-  KeyEncryptMethod: 如 PEM 文件需加密，可用此参数指定加密方式，ckeNone 表示不加密，忽略后续参数
-  KeyHashMethod: 生成 Key 的杂凑算法，默认 MD5
-  Password: PEM 文件的加密密码，未加密可不传}
+{* 将一对 RSA 公私钥写入 PEM 格式的流中，返回是否成功。
+
+   参数：
+     PemStream: TStream                                   - 待保存的 PEM 流
+     PrivateKey: TCnRSAPrivateKey                         - 待保存的 RSA 私钥
+     PublicKey: TCnRSAPublicKey                           - 待保存的 RSA 公钥
+     KeyType: TCnRSAKeyType                               - 待保存的 RSA 公私钥的 PEM 格式，默认 PKCS1
+     KeyEncryptMethod: TCnKeyEncryptMethod                - 保存的 PEM 流的加密模式，默认不加密，并忽略后面两个参数
+     KeyHashMethod: TCnKeyHashMethod                      - 保存的 PEM 流如加密，此处设置其加密杂凑算法，默认 MD5
+     const Password: string                               - 保存的 PEM 流如需加密，此处应传加密密码，如不加密则无需传
+
+   返回值：Boolean                                        - 返回保存是否成功
+}
 
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
-{* 从 PEM 格式的文件中加载 RSA 公钥数据，返回是否成功}
+{* 从 PEM 格式的文件中加载 RSA 公钥数据，返回是否成功。
+
+   参数：
+     const PemFileName: string            - 待加载的 PEM 文件名
+     PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
+     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 文件内容自动判断
+     const Password: string               - PEM 文件如加密，此处应传对应密码
+
+   返回值：Boolean                        - 返回加载是否成功
+}
 
 function CnRSALoadPublicKeyFromPem(const PemStream: TStream;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
-{* 从 PEM 格式的流中加载 RSA 公钥数据，返回是否成功}
+{* 从 PEM 格式的流中加载 RSA 公钥数据，返回是否成功。
+
+   参数：
+     const PemStream: TStream             - 待加载的 PEM 格式的流
+     PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
+     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 文件内容自动判断
+     const Password: string               - PEM 文件如加密，此处应传对应密码
+
+   返回值：Boolean                        - 返回加载是否成功
+}
 
 function CnRSASavePublicKeyToPem(const PemFileName: string;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS8;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   const Password: string = ''): Boolean; overload;
-{* 将 RSA 公钥写入 PEM 格式的文件中，返回是否成功}
+{* 将 RSA 公钥写入 PEM 格式的文件中，返回是否成功。
+
+   参数：
+     const PemFileName: string                            - 待保存的 PEM 文件名
+     PublicKey: TCnRSAPublicKey                           - 待保存的 RSA 公钥
+     KeyType: TCnRSAKeyType                               - 待保存的 RSA 公钥的 PEM 格式，默认 PKCS1
+     KeyEncryptMethod: TCnKeyEncryptMethod                - 保存的 PEM 文件的加密模式，默认不加密，并忽略后面的参数
+     const Password: string                               - 保存的 PEM 文件如需加密，此处应传加密密码，如不加密则无需传
+
+   返回值：Boolean                                        - 返回保存是否成功
+}
 
 function CnRSASavePublicKeyToPem(PemStream: TStream;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS8;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   const Password: string = ''): Boolean; overload;
-{* 将 RSA 公钥写入 PEM 格式的流中，返回是否成功}
+{* 将 RSA 公钥写入 PEM 格式的流中，返回是否成功。
+
+   参数：
+     PemStream: TStream                                   - 待保存的 PEM 流
+     PublicKey: TCnRSAPublicKey                           - 待保存的 RSA 公钥
+     KeyType: TCnRSAKeyType                               - 待保存的 RSA 公钥的 PEM 格式，默认 PKCS1
+     KeyEncryptMethod: TCnKeyEncryptMethod                - 保存的 PEM 流的加密模式，默认不加密，并忽略后面的参数
+     const Password: string                               - 保存的 PEM 流如需加密，此处应传加密密码，如不加密则无需传
+
+   返回值：Boolean                                        - 返回保存是否成功
+}
 
 function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Res: TCnBigNumber): Boolean; overload;
-{* 使用 RSA 私钥对数据 Data 进行加密，加密结果写入 Res。返回加密是否成功}
+{* 使用 RSA 私钥对数据 Data 进行加密，加密结果写入 Res。返回加密是否成功。
+
+   参数：
+     Data: TCnBigNumber                   - 待加密的大数数据
+     PrivateKey: TCnRSAPrivateKey         - RSA 私钥
+     Res: TCnBigNumber                    - 输出的加密后的大数数据
+
+   返回值：Boolean                        - 返回加密是否成功
+}
 
 function CnRSAEncrypt(Data: TCnBigNumber; PublicKey: TCnRSAPublicKey;
   Res: TCnBigNumber): Boolean; overload;
-{* 利用 RSA 公钥对数据 Data 进行加密，加密结果写入 Res。返回加密是否成功}
+{* 利用 RSA 公钥对数据 Data 进行加密，加密结果写入 Res。返回加密是否成功。
+
+   参数：
+     Data: TCnBigNumber                   - 待加密的大数数据
+     PublicKey: TCnRSAPublicKey           - RSA 公钥
+     Res: TCnBigNumber                    - 输出的加密后的大数数据
+
+   返回值：Boolean                        - 返回加密是否成功
+}
 
 function CnRSADecrypt(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Data: TCnBigNumber): Boolean; overload;
-{* 利用 RSA 私钥对数据 Res 进行解密，解密结果写入 Data。返回解密是否成功}
+{* 利用 RSA 私钥对数据 Res 进行解密，解密结果写入 Data。返回解密是否成功。
+
+   参数：
+     Res: TCnBigNumber                    - 输出的解密后的大数数据
+     PrivateKey: TCnRSAPrivateKey         - RSA 私钥
+     Data: TCnBigNumber                   - 待解密的大数数据
+
+   返回值：Boolean                        - 返回解密是否成功
+}
 
 function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
   Data: TCnBigNumber): Boolean; overload;
-{* 利用 RSA 公钥对数据 Res 进行解密，解密结果写入 Data。返回解密是否成功}
+{* 利用 RSA 公钥对数据 Res 进行解密，解密结果写入 Data。返回解密是否成功
+
+   参数：
+     Res: TCnBigNumber                    - 输出的解密后的大数数据
+     PublicKey: TCnRSAPublicKey           - RSA 公钥
+     Data: TCnBigNumber                   - 待解密的大数数据
+
+   返回值：Boolean                        - 返回解密是否成功
+}
 
 // ======================== RSA 数据与文件加解密实现 ===========================
 
 function CnRSAEncryptRawData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
 {* 用公钥对数据块进行加密，无填充，结果放 OutBuf 中，
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
+
+   参数：
+     PlainData: Pointer                   -
+     DataByteLen: Integer                 -
+     OutBuf: Pointer                      -
+     out OutLen: Integer                  -
+     PublicKey: TCnRSAPublicKey           -
+
+   返回值：Boolean                        -
+}
 
 function CnRSAEncryptRawData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
 {* 用私钥对数据块进行加密，无填充，结果放 OutBuf 中，
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
+
+   参数：
+     PlainData: Pointer                   -
+     DataByteLen: Integer                 -
+     OutBuf: Pointer                      -
+     out OutLen: Integer                  -
+     PrivateKey: TCnRSAPrivateKey         -
+
+   返回值：Boolean                        -
+}
 
 function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
 {* 用公钥对数据块进行无填充解密，结果放 OutBuf 中，并返回数据长度
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
+
+   参数：
+     EnData: Pointer                      -
+     DataByteLen: Integer                 -
+     OutBuf: Pointer                      -
+     out OutLen: Integer                  -
+     PublicKey: TCnRSAPublicKey           -
+
+   返回值：Boolean                        -
+}
 
 function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
 {* 用私钥对数据块进行无填充解密结果放 OutBuf 中，并返回数据长度
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
+
+   参数：
+     EnData: Pointer                      -
+     DataByteLen: Integer                 -
+     OutBuf: Pointer                      -
+     out OutLen: Integer                  -
+     PrivateKey: TCnRSAPrivateKey         -
+
+   返回值：Boolean                        -
+}
 
 function CnRSAEncryptRawBytes(PlainData: TBytes; PublicKey: TCnRSAPublicKey): TBytes; overload;
-{* 用公钥对字节数组进行加密，返回加密的字节数组}
+{* 用公钥对字节数组进行加密，返回加密的字节数组
+
+   参数：
+     PlainData: TBytes                    -
+     PublicKey: TCnRSAPublicKey           -
+
+   返回值：TBytes                         -
+}
 
 function CnRSAEncryptRawBytes(PlainData: TBytes; PrivateKey: TCnRSAPrivateKey): TBytes; overload;
-{* 用私钥对字节数组进行加密，返回加密的字节数组}
+{* 用私钥对字节数组进行加密，返回加密的字节数组
+
+   参数：
+     PlainData: TBytes                    -
+     PrivateKey: TCnRSAPrivateKey         -
+
+   返回值：TBytes                         -
+}
 
 function CnRSADecryptRawBytes(EnData: TBytes; PublicKey: TCnRSAPublicKey): TBytes; overload;
-{* 用公钥对字节数组进行无填充解密，返回解密的字节数组}
+{* 用公钥对字节数组进行无填充解密，返回解密的字节数组
+
+   参数：
+     EnData: TBytes                       -
+     PublicKey: TCnRSAPublicKey           -
+
+   返回值：TBytes                         -
+}
 
 function CnRSADecryptRawBytes(EnData: TBytes; PrivateKey: TCnRSAPrivateKey): TBytes; overload;
-{* 用私钥对字节数组进行无填充解密，返回解密的字节数组}
+{* 用私钥对字节数组进行无填充解密，返回解密的字节数组
+
+   参数：
+     EnData: TBytes                       -
+     PrivateKey: TCnRSAPrivateKey         -
+
+   返回值：TBytes                         -
+}
 
 function CnRSAEncryptData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   PublicKey: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
 {* 用公钥对数据块进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中，
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节，因为有填充，返回长度固定为密钥长度}
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节，因为有填充，返回长度固定为密钥长度
+
+   参数：
+     PlainData: Pointer                   -
+     DataByteLen: Integer                 -
+     OutBuf: Pointer                      -
+     PublicKey: TCnRSAPublicKey           -
+     PaddingMode: TCnRSAPaddingMode       -
+
+   返回值：Boolean                        -
+}
 
 function CnRSAEncryptData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
 {* 用私钥对数据块进行加密，加密前使用 PKCS1 填充，结果放 OutBuf 中，
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节，因为有填充，返回长度固定为密钥长度}
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节，因为有填充，返回长度固定为密钥长度
+
+   参数：
+     PlainData: Pointer                   -
+     DataByteLen: Integer                 -
+     OutBuf: Pointer                      -
+     PrivateKey: TCnRSAPrivateKey         -
+
+   返回值：Boolean                        -
+}
 
 function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
 {* 用公钥对数据块进行解密，并解开 PKCS1 填充，结果放 OutBuf 中，并返回数据长度。
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
+
+   参数：
+     EnData: Pointer                      -
+     DataByteLen: Integer                 -
+     OutBuf: Pointer                      -
+     out OutLen: Integer                  -
+     PublicKey: TCnRSAPublicKey           -
+
+   返回值：Boolean                        -
+}
 
 function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutLen: Integer; PrivateKey: TCnRSAPrivateKey;
   PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
 {* 用私钥对数据块进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中，并返回数据长度。
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节}
+  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
+
+   参数：
+     EnData: Pointer                      -
+     DataByteLen: Integer                 -
+     OutBuf: Pointer                      -
+     out OutLen: Integer                  -
+     PrivateKey: TCnRSAPrivateKey         -
+     PaddingMode: TCnRSAPaddingMode       -
+
+   返回值：Boolean                        -
+}
 
 function CnRSAEncryptBytes(PlainData: TBytes; PublicKey: TCnRSAPublicKey;
   PaddingMode: TCnRSAPaddingMode = cpmPKCS1): TBytes; overload;
-{* 用公钥对字节数组进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，返回加密的字节数组}
+{* 用公钥对字节数组进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，返回加密的字节数组
+
+   参数：
+     PlainData: TBytes                    -
+     PublicKey: TCnRSAPublicKey           -
+     PaddingMode: TCnRSAPaddingMode       -
+
+   返回值：TBytes                         -
+}
 
 function CnRSAEncryptBytes(PlainData: TBytes; PrivateKey: TCnRSAPrivateKey): TBytes; overload;
-{* 用私钥对字节数组进行加密，加密前使用 PKCS1 填充，返回加密的字节数组}
+{* 用私钥对字节数组进行加密，加密前使用 PKCS1 填充，返回加密的字节数组
+
+   参数：
+     PlainData: TBytes                    -
+     PrivateKey: TCnRSAPrivateKey         -
+
+   返回值：TBytes                         -
+}
 
 function CnRSADecryptBytes(EnData: TBytes; PublicKey: TCnRSAPublicKey): TBytes; overload;
-{* 用公钥对字节数组进行解密，并解开 PKCS1 填充，返回解密的字节数组}
+{* 用公钥对字节数组进行解密，并解开 PKCS1 填充，返回解密的字节数组
+
+   参数：
+     EnData: TBytes                       -
+     PublicKey: TCnRSAPublicKey           -
+
+   返回值：TBytes                         -
+}
 
 function CnRSADecryptBytes(EnData: TBytes; PrivateKey: TCnRSAPrivateKey;
   PaddingMode: TCnRSAPaddingMode = cpmPKCS1): TBytes; overload;
-{* 用私钥对字节数组进行解密，并解开其 PKCS1 填充或 OAEP 填充，返回解密的字节数组}
+{* 用私钥对字节数组进行解密，并解开其 PKCS1 填充或 OAEP 填充，返回解密的字节数组
+
+   参数：
+     EnData: TBytes                       -
+     PrivateKey: TCnRSAPrivateKey         -
+     PaddingMode: TCnRSAPaddingMode       -
+
+   返回值：TBytes                         -
+}
 
 function CnRSAEncryptFile(const InFileName: string; const OutFileName: string;
   PublicKey: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
-{* 用公钥对文件进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，结果存输出文件中}
+{* 用公钥对文件进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，结果存输出文件中
+
+   参数：
+     const InFileName: string             -
+     const OutFileName: string            -
+     PublicKey: TCnRSAPublicKey           -
+     PaddingMode: TCnRSAPaddingMode       -
+
+   返回值：Boolean                        -
+}
 
 function CnRSAEncryptFile(const InFileName: string; const OutFileName: string;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
-{* 用私钥对文件进行加密，加密前使用 PKCS1 填充，结果存输出文件中}
+{* 用私钥对文件进行加密，加密前使用 PKCS1 填充，结果存输出文件中
+
+   参数：
+     const InFileName: string             -
+     const OutFileName: string            -
+     PrivateKey: TCnRSAPrivateKey         -
+
+   返回值：Boolean                        -
+}
 
 function CnRSADecryptFile(const InFileName: string; const OutFileName: string;
   PublicKey: TCnRSAPublicKey): Boolean; overload;
-{* 用公钥对文件进行解密，并解开其 PKCS1 填充，结果存输出文件中，注意不支持 OAEP 填充}
+{* 用公钥对文件进行解密，并解开其 PKCS1 填充，结果存输出文件中，注意不支持 OAEP 填充
+
+   参数：
+     const InFileName: string             -
+     const OutFileName: string            -
+     PublicKey: TCnRSAPublicKey           -
+
+   返回值：Boolean                        -
+}
 
 function CnRSADecryptFile(const InFileName: string; const OutFileName: string;
   PrivateKey: TCnRSAPrivateKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
-{* 用私钥对文件进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果存输出文件中}
+{* 用私钥对文件进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果存输出文件中
+
+   参数：
+     const InFileName: string             -
+     const OutFileName: string            -
+     PrivateKey: TCnRSAPrivateKey         -
+     PaddingMode: TCnRSAPaddingMode       -
+
+   返回值：Boolean                        -
+}
 
 // =========================== RSA 文件签名与验证实现 ==========================
 //
@@ -420,97 +765,256 @@ function CnRSADecryptFile(const InFileName: string; const OutFileName: string;
 function CnRSASignFile(const InFileName: string; const OutSignFileName: string;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
 {* 用 RSA 私钥签名指定文件，签名结果直接存储至 OutSignFileName 文件中，返回签名是否成功。
-   未指定数字摘要算法时等于将源文件用 PKCS1 Private_FF 补齐后加密
+   未指定数字摘要算法时，等于将源文件用 PKCS1 Private_FF 补齐后加密。
    当指定了数字摘要算法时，使用指定数字摘要算法对文件进行计算得到杂凑值，
-   原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐再用私钥加密}
+   再将原始的二进制杂凑值进行 BER 编码，再 PKCS1 补齐再用私钥加密。
+
+   参数：
+     const InFileName: string             -
+     const OutSignFileName: string        -
+     PrivateKey: TCnRSAPrivateKey         -
+     SignType: TCnRSASignDigestType       -
+
+   返回值：Boolean                        -
+}
 
 function CnRSAVerifyFile(const InFileName: string; const InSignFileName: string;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
 {* 用 RSA 公钥与签名值文件验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
-   并比对两个二进制杂凑值是否相同，返回验证是否通过}
+   并比对两个二进制杂凑值是否相同，返回验证是否通过
+
+   参数：
+     const InFileName: string             -
+     const InSignFileName: string         -
+     PublicKey: TCnRSAPublicKey           -
+     SignType: TCnRSASignDigestType       -
+
+   返回值：Boolean                        -
+}
 
 function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用 RSA 私钥签名指定内存流，签名值写入 OutSignStream 中，返回签名是否成功}
+{* 用 RSA 私钥签名指定内存流，签名值写入 OutSignStream 中，返回签名是否成功
+
+   参数：
+     InStream: TMemoryStream              -
+     OutSignStream: TMemoryStream         -
+     PrivateKey: TCnRSAPrivateKey         -
+     SignType: TCnRSASignDigestType       -
+
+   返回值：Boolean                        -
+}
 
 function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用 RSA 公钥与签名值内存流验证指定内存流，返回验证是否通过}
+{* 用 RSA 公钥与签名值内存流验证指定内存流，返回验证是否通过
+
+   参数：
+     InStream: TMemoryStream              -
+     InSignStream: TMemoryStream          -
+     PublicKey: TCnRSAPublicKey           -
+     SignType: TCnRSASignDigestType       -
+
+   返回值：Boolean                        -
+}
 
 function CnRSASignBytes(InData: TBytes; PrivateKey: TCnRSAPrivateKey;
   SignType: TCnRSASignDigestType = rsdtMD5): TBytes;
-{* 用 RSA 私钥签名字节数组，返回签名值的字节数组，如签名失败则返回空}
+{* 用 RSA 私钥签名字节数组，返回签名值的字节数组，如签名失败则返回空
+
+   参数：
+     InData: TBytes                       -
+     PrivateKey: TCnRSAPrivateKey         -
+     SignType: TCnRSASignDigestType       -
+
+   返回值：TBytes                         -
+}
 
 function CnRSAVerifyBytes(InData: TBytes; InSignBytes: TBytes;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用 RSA 公钥与签名字节数组验证指定字节数组，返回验证是否通过}
+{* 用 RSA 公钥与签名字节数组验证指定字节数组，返回验证是否通过
+
+   参数：
+     InData: TBytes                       -
+     InSignBytes: TBytes                  -
+     PublicKey: TCnRSAPublicKey           -
+     SignType: TCnRSASignDigestType       -
+
+   返回值：Boolean                        -
+}
 
 // OAEP Padding 的生成与验证算法
 
 function AddOaepSha1MgfPadding(ToBuf: PByte; ToLen: Integer; PlainData: PByte;
   DataByteLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
 {* 对 Data 里 DataLen 的数据进行 OAEP 填充，内容放到 ToBuf 的 ToLen 里，返回填充是否成功。
-  默认使用 SHA1 对 DigestBuf 内容进行杂凑，ToLen 一般是 RSA 的密钥的积的字节数}
+  默认使用 SHA1 对 DigestBuf 内容进行杂凑，ToLen 一般是 RSA 的密钥的积的字节数
+
+   参数：
+     ToBuf: PByte                         -
+     ToLen: Integer                       -
+     PlainData: PByte                     -
+     DataByteLen: Integer                 -
+     DigestParam: PByte                   -
+     ParamLen: Integer                    -
+
+   返回值：Boolean                        -
+}
 
 function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutLen: Integer; EnData: PByte;
   DataByteLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
 {* 对 EnData 里 DataLen 的数据进行 OAEP 检验并去除填充，内容放到 ToBuf 的 OutLen 里，返回检查是否成功。
   ToBuf 能容纳的实际长度不能太短，如成功，OutLen 返回明文数据长度
-  默认使用 SHA1 对 DigestBuf 内容进行杂凑，DataLen 要求是 RSA 的密钥的积的字节数}
+  默认使用 SHA1 对 DigestBuf 内容进行杂凑，DataLen 要求是 RSA 的密钥的积的字节数
+
+   参数：
+     ToBuf: PByte                         -
+     out OutLen: Integer                  -
+     EnData: PByte                        -
+     DataByteLen: Integer                 -
+     DigestParam: PByte                   -
+     ParamLen: Integer                    -
+
+   返回值：Boolean                        -
+}
 
 // ================ Diffie-Hellman 离散对数密钥交换算法 ========================
 
 function CnDiffieHellmanGeneratePrimeRootByBitsCount(BitsCount: Integer;
   Prime: TCnBigNumber; MinRoot: TCnBigNumber): Boolean;
 {* 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，实际等同于变色龙杂凑函数
-  涉及到因素分解因此较慢。原根也就是该素域的生成元，也就是各次幂求余能遍历素数以下所有值。}
+  涉及到因素分解因此较慢。原根也就是该素域的生成元，也就是各次幂求余能遍历素数以下所有值。
+
+   参数：
+     BitsCount: Integer                   -
+     Prime: TCnBigNumber                  -
+     MinRoot: TCnBigNumber                -
+
+   返回值：Boolean                        -
+}
 
 function CnDiffieHellmanGenerateOutKey(Prime: TCnBigNumber; Root: TCnBigNumber;
   SelfPrivateKey: TCnBigNumber; const OutPublicKey: TCnBigNumber): Boolean;
 {* 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥
    其中 OutPublicKey = (Root ^ SelfPrivateKey) mod Prime
-   要保证安全，可以使用 CnSecretSharing 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2}
+   要保证安全，可以使用 CnSecretSharing 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2
+
+   参数：
+     Prime: TCnBigNumber                  -
+     Root: TCnBigNumber                   -
+     SelfPrivateKey: TCnBigNumber         -
+     const OutPublicKey: TCnBigNumber     -
+
+   返回值：Boolean                        -
+}
 
 function CnDiffieHellmanComputeKey(Prime: TCnBigNumber; SelfPrivateKey: TCnBigNumber;
   OtherPublicKey: TCnBigNumber; const SecretKey: TCnBigNumber): Boolean;
 {* 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
    其中 SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime
-   要保证安全，可以使用 CnSecretSharing 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2}
+   要保证安全，可以使用 CnSecretSharing 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2
+
+   参数：
+     Prime: TCnBigNumber                  -
+     SelfPrivateKey: TCnBigNumber         -
+     OtherPublicKey: TCnBigNumber         -
+     const SecretKey: TCnBigNumber        -
+
+   返回值：Boolean                        -
+}
 
 // ====================== 基于离散对数的变色龙杂凑函数 =========================
 
 function CnChameleonHashGeneratePrimeRootByBitsCount(BitsCount: Integer;
   Prime: TCnBigNumber; MinRoot: TCnBigNumber): Boolean;
 {* 生成基于离散对数的变色龙杂凑函数所需的素数与其最小原根，实际等同于 Diffie-Hellman，
-  涉及到因素分解因此较慢。原根也就是该素域的生成元，也就是各次幂求余能遍历素数以下所有值。}
+   涉及到因素分解因此较慢。原根也就是该素域的生成元，也就是各次幂求余能遍历素数以下所有值。
+
+   参数：
+     BitsCount: Integer                   - 所需生成的素数的位数
+     Prime: TCnBigNumber                  - 生成的用于变色龙杂凑的素数
+     MinRoot: TCnBigNumber                - 生成的用于变色龙杂凑的最小原根
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnChameleonHashCalcDigest(InData: TCnBigNumber; InRandom: TCnBigNumber;
   InSecretKey: TCnBigNumber; OutHash: TCnBigNumber; Prime: TCnBigNumber; Root: TCnBigNumber): Boolean;
-{* 基于普通离散对数的变色龙杂凑函数，根据一随机值与一 SecretKey，生成指定消息的杂凑
-  其中，Prime 和 Root 可由上面 CnDiffieHellmanGeneratePrimeRootByBitsCount 生成}
+{* 基于普通离散对数的变色龙杂凑函数，根据一随机值与一 SecretKey，生成指定消息的杂凑。
+   其中，Prime 和 Root 可由上面 CnDiffieHellmanGeneratePrimeRootByBitsCount 生成。
+
+   参数：
+     InData: TCnBigNumber                 - 待计算杂凑的数据
+     InRandom: TCnBigNumber               - 参与计算的随机值
+     InSecretKey: TCnBigNumber            - 参与计算的 SecretKey
+     OutHash: TCnBigNumber                - 生成的变色龙杂凑值
+     Prime: TCnBigNumber                  - 变色龙杂凑的素数
+     Root: TCnBigNumber                   - 变色龙杂凑的原根
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnChameleonHashFindRandom(InOldData: TCnBigNumber; InNewData: TCnBigNumber;
   InOldRandom: TCnBigNumber; InSecretKey: TCnBigNumber; OutNewRandom: TCnBigNumber;
   Prime: TCnBigNumber; Root: TCnBigNumber): Boolean;
 {* 基于普通离散对数的变色龙杂凑函数，根据 SecretKey 与新旧消息，生成能够生成相同杂凑的新随机值
-  其中，Prime 和 Root 须与原始消息杂凑生成时相同。
-  可以利用 SecretKey 和 NewRandom 对 InNewData 调用 CnChameleonHashCalcDigest 生成相同的杂凑值}
+   其中，Prime 和 Root 须与原始消息杂凑生成时相同。
+   可以利用 SecretKey 和 NewRandom 对 InNewData 调用 CnChameleonHashCalcDigest 生成相同的杂凑值
+
+   参数：
+     InOldData: TCnBigNumber              - 计算过杂凑的旧数据
+     InNewData: TCnBigNumber              - 待计算杂凑的新数据
+     InOldRandom: TCnBigNumber            - 计算旧数据时的随机值
+     InSecretKey: TCnBigNumber            - 计算旧数据时的 SecretKey
+     OutNewRandom: TCnBigNumber           - 计算出的新随机值
+     Prime: TCnBigNumber                  - 变色龙杂凑的素数
+     Root: TCnBigNumber                   - 变色龙杂凑的原根
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 // ================================= 其他辅助函数 ==============================
 
-function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
-{* 从 BER 解析出的 OID 获取其对应的杂凑摘要类型}
+function GetDigestSignTypeFromBerOID(OID: Pointer; OidByteLen: Integer): TCnRSASignDigestType;
+{* 从 BER 解析出的 OID 获取其对应的 RSA 签名杂凑摘要类型枚举值。
+
+   参数：
+     OID: Pointer                         - OID 所在的数据块地址
+     OidLen: Integer                      - OID 所在的数据块的字节长度
+
+   返回值：TCnRSASignDigestType           - 返回该 OID 对应的 RSA 签名杂凑摘要类型枚举值
+}
 
 function AddDigestTypeOIDNodeToWriter(AWriter: TCnBerWriter; ASignType: TCnRSASignDigestType;
   AParent: TCnBerWriteNode): TCnBerWriteNode;
-{* 将一个杂凑算法的 OID 写入一个 Ber 节点}
+{* 将一个 RSA 签名杂凑摘要类型枚举值的 OID 添加到一个 Ber 节点的子节点中。
+
+   参数：
+     AWriter: TCnBerWriter                - 写入时使用的 BerWriter 实例
+     ASignType: TCnRSASignDigestType      - 待写入的 RSA 签名杂凑摘要类型枚举值
+     AParent: TCnBerWriteNode             - 待添加的 Ber 父节点
+
+   返回值：TCnBerWriteNode                - 返回添加的 Ber 子节点
+}
 
 function GetRSADigestNameFromSignDigestType(Digest: TCnRSASignDigestType): string;
-{* 从签名杂凑算法枚举值获取其名称}
+{* 从签名杂凑算法枚举值获取其名称。
+
+   参数：
+     Digest: TCnRSASignDigestType         - 待获取的 RSA 签名杂凑摘要类型枚举值
+
+   返回值：string                         - 返回 RSA 签名杂凑摘要类型名称
+}
 
 function GetLastCnRSAError: Integer;
-{* 获取本线程内最近一次 ErrorCode，当以上函数返回 False 时可调用此函数获取错误详情}
+{* 获取本线程内最近一次 ErrorCode，当以上函数返回 False 时可调用此函数获取错误详情。
+
+   参数：
+     （无）
+
+   返回值：Integer                        - 返回 RSA 相关错误码
+}
 
 implementation
 
@@ -2769,14 +3273,14 @@ begin
   end;
 end;
 
-function GetDigestSignTypeFromBerOID(OID: Pointer; OidLen: Integer): TCnRSASignDigestType;
+function GetDigestSignTypeFromBerOID(OID: Pointer; OidByteLen: Integer): TCnRSASignDigestType;
 begin
   Result := rsdtNone;
-  if (OidLen = SizeOf(OID_SIGN_MD5)) and CompareMem(OID, @OID_SIGN_MD5[0], OidLen) then
+  if (OidByteLen = SizeOf(OID_SIGN_MD5)) and CompareMem(OID, @OID_SIGN_MD5[0], OidByteLen) then
     Result := rsdtMD5
-  else if (OidLen = SizeOf(OID_SIGN_SHA1)) and CompareMem(OID, @OID_SIGN_SHA1[0], OidLen) then
+  else if (OidByteLen = SizeOf(OID_SIGN_SHA1)) and CompareMem(OID, @OID_SIGN_SHA1[0], OidByteLen) then
     Result := rsdtSHA1
-  else if (OidLen = SizeOf(OID_SIGN_SHA256)) and CompareMem(OID, @OID_SIGN_SHA256[0], OidLen) then
+  else if (OidByteLen = SizeOf(OID_SIGN_SHA256)) and CompareMem(OID, @OID_SIGN_SHA256[0], OidByteLen) then
     Result := rsdtSHA256;
 end;
 

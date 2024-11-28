@@ -123,36 +123,36 @@ function Base64Encode(InputData: TBytes; var OutputData: string;
    返回值：Integer                        - 返回编码是否成功，成功则返回 ECN_BASE64_OK
 }
 
-function Base64Decode(const InputData: AnsiString; OutputData: TStream;
+function Base64Decode(const InputData: string; OutputData: TStream;
   FixZero: Boolean = True): Integer; overload;
 {* 对字符串进行 Base64 解码（包括 Base64URL 解码），结果写入流。如解码成功返回 ECN_BASE64_OK。
 
    参数：
-     const InputData: AnsiString          - 待解码的字符串
+     const InputData: string              - 待解码的字符串
      OutputData: TStream                  - 解码后的输出流
      FixZero: Boolean                     - 是否去除解码结果尾部的 #0
 
    返回值：Integer                        - 返回解码是否成功，成功则返回 ECN_BASE64_OK
 }
 
-function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString;
+function Base64Decode(const InputData: string; var OutputData: AnsiString;
   FixZero: Boolean = True): Integer; overload;
 {* 对字符串进行 Base64 解码（包括 Base64URL 解码），结果写入字符串。如解码成功返回 ECN_BASE64_OK。
 
    参数：
-     const InputData: AnsiString          - 待解码的字符串
+     const InputData: string              - 待解码的字符串
      var OutputData: AnsiString           - 解码后的输出字符串
      FixZero: Boolean                     - 是否去除解码结果尾部的 #0
 
    返回值：Integer                        - 返回解码是否成功，成功则返回 ECN_BASE64_OK
 }
 
-function Base64Decode(const InputData: AnsiString; OutputData: Pointer;
+function Base64Decode(const InputData: string; OutputData: Pointer;
   DataByteLen: Integer; FixZero: Boolean = True): Integer; overload;
 {* 对字符串进行 Base64 解码（包括 Base64URL 解码），结果写入内存区。如解码成功返回 ECN_BASE64_OK。
 
    参数：
-     const InputData: AnsiString          - 待解码的字符串
+     const InputData: string              - 待解码的字符串
      OutputData: Pointer                  - 解码后的输出内存区地址
      DataByteLen: Integer                 - 输出内存区的字节长度，应至少为 1 + (Length(InputData) * 3 / 4)
      FixZero: Boolean                     - 是否去除解码结果尾部的 #0
@@ -371,11 +371,11 @@ begin
     Result := ECN_BASE64_LENGTH;
 end;
 
-function Base64Decode(const InputData: AnsiString; OutputData: TStream; FixZero: Boolean): Integer;
+function Base64Decode(const InputData: string; OutputData: TStream; FixZero: Boolean): Integer;
 var
   Data: TBytes;
 begin
-  Result := Base64Decode(string(InputData), Data, FixZero);
+  Result := Base64Decode(InputData, Data, FixZero);
   if (Result = ECN_BASE64_OK) and (Length(Data) > 0) then
   begin
     OutputData.Size := Length(Data);
@@ -395,22 +395,25 @@ var
   function FilterLine(const Source: AnsiString): AnsiString;
   var
     P, PP: PAnsiChar;
-    I: Integer;
+    I, FL: Integer;
   begin
-    SrcLen := Length(Source);
-    GetMem(P, Srclen);                   // 一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
-    PP := P;
-    FillChar(P^, Srclen, 0);
-    for I := 1 to SrcLen do
+    FL := Length(Source);
+    if FL > 0 then
     begin
-      if Source[I] in ['0'..'9', 'A'..'Z', 'a'..'z', '+', '/', '=', '-', '_'] then
+      GetMem(P, FL);                   // 一次分配整块内存,避免一次次字符串相加,一次次释放分配内存
+      PP := P;
+      FillChar(P^, FL, 0);
+      for I := 1 to FL do
       begin
-        PP^ := Source[I];
-        Inc(PP);
+        if Source[I] in ['0'..'9', 'A'..'Z', 'a'..'z', '+', '/', '=', '-', '_'] then
+        begin
+          PP^ := Source[I];
+          Inc(PP);
+        end;
       end;
+      SetString(Result, P, PP - P);        // 截取有效部分
+      FreeMem(P);
     end;
-    SetString(Result, P, PP - P);        // 截取有效部分
-    FreeMem(P, SrcLen);
   end;
 
 begin
@@ -421,10 +424,23 @@ begin
   end;
   OutPutData := nil;
 
+  // 在 D5 下不知道怎么的不能用 AnsiString(InputData)，可能会出内存错误，于是区分开来
   if FilterDecodeInput then
-    Data := FilterLine(AnsiString(InputData))
+  begin
+{$IFDEF UNICODE}
+    Data := FilterLine(AnsiString(InputData));
+{$ELSE}
+    Data := FilterLine(InputData);
+{$ENDIF}
+  end
   else
+  begin
+{$IFDEF UNICODE}
     Data := AnsiString(InputData);
+{$ELSE}
+    Data := InputData;
+{$ENDIF}
+  end;
 
   // 如果是 Base64URL 编码的结果去掉了尾部的 =，则需要根据长度是否是 4 的倍数而补上
   if (Length(Data) and $03) <> 0 then
@@ -492,11 +508,11 @@ begin
   Result := ECN_BASE64_OK;
 end;
 
-function Base64Decode(const InputData: AnsiString; var OutputData: AnsiString; FixZero: Boolean): Integer;
+function Base64Decode(const InputData: string; var OutputData: AnsiString; FixZero: Boolean): Integer;
 var
   Data: TBytes;
 begin
-  Result := Base64Decode(string(InputData), Data, FixZero);
+  Result := Base64Decode(InputData, Data, FixZero);
   if (Result = ECN_BASE64_OK) and (Length(Data) > 0) then
   begin
     SetLength(OutputData, Length(Data));
@@ -504,12 +520,12 @@ begin
   end;
 end;
 
-function Base64Decode(const InputData: AnsiString; OutputData: Pointer;
+function Base64Decode(const InputData: string; OutputData: Pointer;
   DataByteLen: Integer; FixZero: Boolean): Integer;
 var
   Data: TBytes;
 begin
-  Result := Base64Decode(string(InputData), Data, FixZero);
+  Result := Base64Decode(InputData, Data, FixZero);
   if (Result = ECN_BASE64_OK) and (Length(Data) > 0) then
   begin
     if OutputData = nil then
