@@ -142,7 +142,7 @@ const
 
 type
   TCnRSASignDigestType = (rsdtNone, rsdtMD5, rsdtSHA1, rsdtSHA256, rsdtSM3);
-  {* RSA 签名所支持的数字摘要算法，可无摘要}
+  {* RSA 签名所支持的杂凑摘要类型，可无摘要}
 
   TCnRSAKeyType = (cktPKCS1, cktPKCS8);
   {* RSA 密钥文件格式。注意它和 CnECC 中的 TCnEccKeyType 名字重复，使用时要注意}
@@ -501,37 +501,37 @@ function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
 // ======================== RSA 数据与文件加解密实现 ===========================
 
 function CnRSAEncryptRawData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
+  out OutByteLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
 {* 用公钥对数据块进行加密，无填充，结果放 OutBuf 中，
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
+   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节。
 
    参数：
      PlainData: Pointer                   -
      DataByteLen: Integer                 -
      OutBuf: Pointer                      -
-     out OutLen: Integer                  -
+     out OutByteLen: Integer              -
      PublicKey: TCnRSAPublicKey           -
 
    返回值：Boolean                        -
 }
 
 function CnRSAEncryptRawData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
+  out OutByteLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
 {* 用私钥对数据块进行加密，无填充，结果放 OutBuf 中，
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
+   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节。
 
    参数：
      PlainData: Pointer                   -
      DataByteLen: Integer                 -
      OutBuf: Pointer                      -
-     out OutLen: Integer                  -
+     out OutByteLen: Integer              -
      PrivateKey: TCnRSAPrivateKey         -
 
    返回值：Boolean                        -
 }
 
 function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
+  out OutByteLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
 {* 用公钥对数据块进行无填充解密，结果放 OutBuf 中，并返回数据长度
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
 
@@ -539,14 +539,14 @@ function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Poin
      EnData: Pointer                      -
      DataByteLen: Integer                 -
      OutBuf: Pointer                      -
-     out OutLen: Integer                  -
+     out OutByteLen: Integer              -
      PublicKey: TCnRSAPublicKey           -
 
    返回值：Boolean                        -
 }
 
 function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
+  out OutByteLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
 {* 用私钥对数据块进行无填充解密结果放 OutBuf 中，并返回数据长度
   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
 
@@ -554,243 +554,241 @@ function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Poin
      EnData: Pointer                      -
      DataByteLen: Integer                 -
      OutBuf: Pointer                      -
-     out OutLen: Integer                  -
+     out OutByteLen: Integer              -
      PrivateKey: TCnRSAPrivateKey         -
 
    返回值：Boolean                        -
 }
 
 function CnRSAEncryptRawBytes(PlainData: TBytes; PublicKey: TCnRSAPublicKey): TBytes; overload;
-{* 用公钥对字节数组进行加密，返回加密的字节数组
+{* 用公钥对字节数组进行无填充加密，返回加密的字节数组。
 
    参数：
-     PlainData: TBytes                    -
-     PublicKey: TCnRSAPublicKey           -
+     PlainData: TBytes                    - 待加密的明文字节数组
+     PublicKey: TCnRSAPublicKey           - 用于加密的 RSA 公钥
 
-   返回值：TBytes                         -
+   返回值：TBytes                         - 返回密文字节数组
 }
 
 function CnRSAEncryptRawBytes(PlainData: TBytes; PrivateKey: TCnRSAPrivateKey): TBytes; overload;
-{* 用私钥对字节数组进行加密，返回加密的字节数组
+{* 用私钥对字节数组进行无填充加密，返回加密的字节数组。
 
    参数：
-     PlainData: TBytes                    -
-     PrivateKey: TCnRSAPrivateKey         -
+     PlainData: TBytes                    - 待加密的明文字节数组
+     PrivateKey: TCnRSAPrivateKey         - 用于加密的 RSA 私钥
 
-   返回值：TBytes                         -
+   返回值：TBytes                         - 返回密文字节数组
 }
 
 function CnRSADecryptRawBytes(EnData: TBytes; PublicKey: TCnRSAPublicKey): TBytes; overload;
-{* 用公钥对字节数组进行无填充解密，返回解密的字节数组
+{* 用公钥对字节数组进行无填充解密，返回解密的字节数组。
 
    参数：
-     EnData: TBytes                       -
-     PublicKey: TCnRSAPublicKey           -
+     EnData: TBytes                       - 待解密的密文字节数组
+     PublicKey: TCnRSAPublicKey           - 用于解密的 RSA 公钥
 
-   返回值：TBytes                         -
+   返回值：TBytes                         - 返回明文字节数组
 }
 
 function CnRSADecryptRawBytes(EnData: TBytes; PrivateKey: TCnRSAPrivateKey): TBytes; overload;
-{* 用私钥对字节数组进行无填充解密，返回解密的字节数组
+{* 用私钥对字节数组进行无填充解密，返回解密的字节数组。
 
    参数：
-     EnData: TBytes                       -
-     PrivateKey: TCnRSAPrivateKey         -
+     EnData: TBytes                       - 待解密的密文字节数组
+     PrivateKey: TCnRSAPrivateKey         - 用于解密的 RSA 私钥
 
-   返回值：TBytes                         -
+   返回值：TBytes                         - 返回明文字节数组
 }
 
 function CnRSAEncryptData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   PublicKey: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
-{* 用公钥对数据块进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中，
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节，因为有填充，返回长度固定为密钥长度
+{* 用公钥对数据块进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中。
+   因为有填充，返回的密文字节长度固定为密钥素数积的字节长度。
 
    参数：
-     PlainData: Pointer                   -
-     DataByteLen: Integer                 -
-     OutBuf: Pointer                      -
-     PublicKey: TCnRSAPublicKey           -
-     PaddingMode: TCnRSAPaddingMode       -
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     DataByteLen: Integer                 - 待加密的明文数据块字节长度
+     OutBuf: Pointer                      - 容纳返回的密文数据的数据块的地址，其字节长度不能短于密钥素数积的字节长度
+     PublicKey: TCnRSAPublicKey           - 用于加密的 RSA 公钥
+     PaddingMode: TCnRSAPaddingMode       - 指定对齐模式
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回加密是否成功
 }
 
 function CnRSAEncryptData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
-{* 用私钥对数据块进行加密，加密前使用 PKCS1 填充，结果放 OutBuf 中，
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节，因为有填充，返回长度固定为密钥长度
+{* 用私钥对数据块进行加密，加密前使用 PKCS1 填充，结果放 OutBuf 中。
+   因为有填充，返回的密文字节长度固定为密钥素数积的字节长度。
 
    参数：
-     PlainData: Pointer                   -
-     DataByteLen: Integer                 -
-     OutBuf: Pointer                      -
-     PrivateKey: TCnRSAPrivateKey         -
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     DataByteLen: Integer                 - 待加密的明文数据块字节长度
+     OutBuf: Pointer                      - 容纳返回的密文数据的数据块的地址，其字节长度不能短于密钥素数积的字节长度
+     PrivateKey: TCnRSAPrivateKey         - 用于加密的 RSA 私钥
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回加密是否成功
 }
 
 function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
-{* 用公钥对数据块进行解密，并解开 PKCS1 填充，结果放 OutBuf 中，并返回数据长度。
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
+  out OutByteLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
+{* 用公钥对数据块进行解密，并解开 PKCS1 填充，结果放 OutBuf 中，并返回明文数据字节长度。
 
    参数：
-     EnData: Pointer                      -
-     DataByteLen: Integer                 -
-     OutBuf: Pointer                      -
-     out OutLen: Integer                  -
-     PublicKey: TCnRSAPublicKey           -
+     EnData: Pointer                      - 待解密的密文数据块地址
+     DataByteLen: Integer                 - 待解密的密文数据块字节长度
+     OutBuf: Pointer                      - 容纳返回的明文数据的数据块的地址，其字节长度不能短于密钥素数积的字节长度
+     out OutByteLen: Integer              - 返回的明文实际字节长度
+     PublicKey: TCnRSAPublicKey           - 用于解密的 RSA 公钥
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回解密是否成功
 }
 
 function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey;
+  out OutByteLen: Integer; PrivateKey: TCnRSAPrivateKey;
   PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
-{* 用私钥对数据块进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中，并返回数据长度。
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
+{* 用私钥对数据块进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中，并返回明文数据字节长度。
 
    参数：
-     EnData: Pointer                      -
-     DataByteLen: Integer                 -
-     OutBuf: Pointer                      -
-     out OutLen: Integer                  -
-     PrivateKey: TCnRSAPrivateKey         -
-     PaddingMode: TCnRSAPaddingMode       -
+     EnData: Pointer                      - 待加密的明文数据块地址
+     DataByteLen: Integer                 - 待加密的明文数据块字节长度
+     OutBuf: Pointer                      - 容纳返回的明文数据的数据块的地址，其字节长度不能短于密钥素数积的字节长度
+     out OutByteLen: Integer              - 返回的明文实际字节长度
+     PrivateKey: TCnRSAPrivateKey         - 用于加密的 RSA 私钥
+     PaddingMode: TCnRSAPaddingMode       - 指定对齐模式，需和密文的实际情况一致
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回解密是否成功
 }
 
 function CnRSAEncryptBytes(PlainData: TBytes; PublicKey: TCnRSAPublicKey;
   PaddingMode: TCnRSAPaddingMode = cpmPKCS1): TBytes; overload;
-{* 用公钥对字节数组进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，返回加密的字节数组
+{* 用公钥对字节数组进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，返回加密的字节数组。
 
    参数：
-     PlainData: TBytes                    -
-     PublicKey: TCnRSAPublicKey           -
-     PaddingMode: TCnRSAPaddingMode       -
+     PlainData: TBytes                    - 待加密的明文字节数组
+     PublicKey: TCnRSAPublicKey           - 用于加密的 RSA 公钥
+     PaddingMode: TCnRSAPaddingMode       - 指定对齐模式
 
-   返回值：TBytes                         -
+   返回值：TBytes                         - 返回密文字节数组
 }
 
 function CnRSAEncryptBytes(PlainData: TBytes; PrivateKey: TCnRSAPrivateKey): TBytes; overload;
-{* 用私钥对字节数组进行加密，加密前使用 PKCS1 填充，返回加密的字节数组
+{* 用私钥对字节数组进行加密，加密前使用 PKCS1 填充，返回加密的字节数组。
 
    参数：
-     PlainData: TBytes                    -
-     PrivateKey: TCnRSAPrivateKey         -
+     PlainData: TBytes                    - 待加密的明文字节数组
+     PrivateKey: TCnRSAPrivateKey         - 用于加密的 RSA 私钥
 
-   返回值：TBytes                         -
+   返回值：TBytes                         - 返回密文字节数组
 }
 
 function CnRSADecryptBytes(EnData: TBytes; PublicKey: TCnRSAPublicKey): TBytes; overload;
-{* 用公钥对字节数组进行解密，并解开 PKCS1 填充，返回解密的字节数组
+{* 用公钥对字节数组进行解密，并解开 PKCS1 填充，返回解密的字节数组。
 
    参数：
-     EnData: TBytes                       -
-     PublicKey: TCnRSAPublicKey           -
+     EnData: TBytes                       - 待解密的密文字节数组
+     PublicKey: TCnRSAPublicKey           - 用于解密的 RSA 公钥
 
-   返回值：TBytes                         -
+   返回值：TBytes                         - 返回明文字节数组
 }
 
 function CnRSADecryptBytes(EnData: TBytes; PrivateKey: TCnRSAPrivateKey;
   PaddingMode: TCnRSAPaddingMode = cpmPKCS1): TBytes; overload;
-{* 用私钥对字节数组进行解密，并解开其 PKCS1 填充或 OAEP 填充，返回解密的字节数组
+{* 用私钥对字节数组进行解密，并解开其 PKCS1 填充或 OAEP 填充，返回解密的字节数组。
 
    参数：
-     EnData: TBytes                       -
-     PrivateKey: TCnRSAPrivateKey         -
-     PaddingMode: TCnRSAPaddingMode       -
+     EnData: TBytes                       - 待解密的密文字节数组
+     PrivateKey: TCnRSAPrivateKey         - 用于解密的 RSA 私钥
+     PaddingMode: TCnRSAPaddingMode       - 指定对齐模式，需和密文文件的实际情况一致
 
-   返回值：TBytes                         -
+   返回值：TBytes                         - 返回明文字节数组
 }
 
 function CnRSAEncryptFile(const InFileName: string; const OutFileName: string;
   PublicKey: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
-{* 用公钥对文件进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，结果存输出文件中
+{* 用公钥对文件进行加密，加密前可指定使用 PKCS1 填充或 OAEP 填充，结果存输出文件中。
 
    参数：
-     const InFileName: string             -
-     const OutFileName: string            -
-     PublicKey: TCnRSAPublicKey           -
-     PaddingMode: TCnRSAPaddingMode       -
+     const InFileName: string             - 待加密的明文文件名
+     const OutFileName: string            - 加密后输出的密文文件名
+     PublicKey: TCnRSAPublicKey           - 用于加密的 RSA 公钥
+     PaddingMode: TCnRSAPaddingMode       - 指定对齐模式
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回加密是否成功
 }
 
 function CnRSAEncryptFile(const InFileName: string; const OutFileName: string;
   PrivateKey: TCnRSAPrivateKey): Boolean; overload;
-{* 用私钥对文件进行加密，加密前使用 PKCS1 填充，结果存输出文件中
+{* 用私钥对文件进行加密，加密前使用 PKCS1 填充，结果存输出文件中。
 
    参数：
-     const InFileName: string             -
-     const OutFileName: string            -
-     PrivateKey: TCnRSAPrivateKey         -
+     const InFileName: string             - 待加密的明文文件名
+     const OutFileName: string            - 加密后输出的密文文件名
+     PrivateKey: TCnRSAPrivateKey         - 用于加密的 RSA 私钥
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回加密是否成功
 }
 
 function CnRSADecryptFile(const InFileName: string; const OutFileName: string;
   PublicKey: TCnRSAPublicKey): Boolean; overload;
-{* 用公钥对文件进行解密，并解开其 PKCS1 填充，结果存输出文件中，注意不支持 OAEP 填充
+{* 用公钥对文件进行解密，并解开其 PKCS1 填充，结果存输出文件中，注意不支持 OAEP 填充。
 
    参数：
-     const InFileName: string             -
-     const OutFileName: string            -
-     PublicKey: TCnRSAPublicKey           -
+     const InFileName: string             - 待解密的密文文件名
+     const OutFileName: string            - 解密后输出的明文文件名
+     PublicKey: TCnRSAPublicKey           - 用于解密的 RSA 公钥
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回解密是否成功
 }
 
 function CnRSADecryptFile(const InFileName: string; const OutFileName: string;
   PrivateKey: TCnRSAPrivateKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean; overload;
-{* 用私钥对文件进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果存输出文件中
+{* 用私钥对文件进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果存输出文件中。
 
    参数：
-     const InFileName: string             -
-     const OutFileName: string            -
-     PrivateKey: TCnRSAPrivateKey         -
-     PaddingMode: TCnRSAPaddingMode       -
+     const InFileName: string             - 待解密的密文文件名
+     const OutFileName: string            - 解密后输出的明文文件名
+     PrivateKey: TCnRSAPrivateKey         - 用于解密的 RSA 私钥
+     PaddingMode: TCnRSAPaddingMode       - 指定对齐模式，需和密文文件的实际情况一致
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回解密是否成功
 }
 
 // =========================== RSA 文件签名与验证实现 ==========================
 //
 // 流与文件分开实现是因为计算文件摘要时支持大文件，而 FileStream 低版本不支持
 //
-// 注意 RSA 签名是先杂凑再拼一段数据用 RSA 私钥加密，验证时能解出杂凑值
-// 这点和 ECC 签名不同：ECC 签名并不解出 Hash 值，而是通过中间运算比对大数
+// 注意 RSA 签名是先杂凑再拼一段数据用 RSA 私钥加密，验证时能解出杂凑值，
+// 这点和 ECC 签名不同：ECC 签名并不解出 Hash 值，而是通过中间运算比对大数。
 
 function CnRSASignFile(const InFileName: string; const OutSignFileName: string;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
 {* 用 RSA 私钥签名指定文件，签名结果直接存储至 OutSignFileName 文件中，返回签名是否成功。
-   未指定数字摘要算法时，等于将源文件用 PKCS1 Private_FF 补齐后加密。
-   当指定了数字摘要算法时，使用指定数字摘要算法对文件进行计算得到杂凑值，
+   未指定签名杂凑摘要类型时，等于将源文件用 PKCS1 Private_FF 补齐后加密。
+   当指定了签名杂凑摘要类型时，使用指定签名杂凑摘要算法对文件进行计算得到杂凑值，
    再将原始的二进制杂凑值进行 BER 编码，再 PKCS1 补齐再用私钥加密。
 
    参数：
-     const InFileName: string             -
-     const OutSignFileName: string        -
-     PrivateKey: TCnRSAPrivateKey         -
-     SignType: TCnRSASignDigestType       -
+     const InFileName: string             - 待签名的文件名
+     const OutSignFileName: string        - 签名内容的输出文件名
+     PrivateKey: TCnRSAPrivateKey         - 用于签名的 RSA 私钥
+     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回签名是否成功
 }
 
 function CnRSAVerifyFile(const InFileName: string; const InSignFileName: string;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用 RSA 公钥与签名值文件验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
+{* 用 RSA 公钥与签名值文件验证指定文件，也即用指定签名杂凑摘要算法对文件进行计算得到杂凑值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
-   并比对两个二进制杂凑值是否相同，返回验证是否通过
+   并比对两个二进制杂凑值是否相同，返回验证是否通过。
 
    参数：
-     const InFileName: string             -
-     const InSignFileName: string         -
-     PublicKey: TCnRSAPublicKey           -
-     SignType: TCnRSASignDigestType       -
+     const InFileName: string             - 待验证签名的文件名
+     const InSignFileName: string         - 签名内容的文件名
+     PublicKey: TCnRSAPublicKey           - 用于验证签名的 RSA 公钥
+     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回验证签名是否成功
 }
 
 function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
@@ -798,12 +796,12 @@ function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
 {* 用 RSA 私钥签名指定内存流，签名值写入 OutSignStream 中，返回签名是否成功
 
    参数：
-     InStream: TMemoryStream              -
-     OutSignStream: TMemoryStream         -
-     PrivateKey: TCnRSAPrivateKey         -
-     SignType: TCnRSASignDigestType       -
+     InStream: TMemoryStream              - 待签名的内存流
+     OutSignStream: TMemoryStream         - 输出的签名内容内存流
+     PrivateKey: TCnRSAPrivateKey         - 用于签名的 RSA 私钥
+     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回签名是否成功
 }
 
 function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
@@ -811,117 +809,117 @@ function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
 {* 用 RSA 公钥与签名值内存流验证指定内存流，返回验证是否通过
 
    参数：
-     InStream: TMemoryStream              -
-     InSignStream: TMemoryStream          -
-     PublicKey: TCnRSAPublicKey           -
-     SignType: TCnRSASignDigestType       -
+     InStream: TMemoryStream              - 待验证签名的内存流
+     InSignStream: TMemoryStream          - 签名内容内存流
+     PublicKey: TCnRSAPublicKey           - 用于验证签名的 RSA 公钥
+     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回验证签名是否成功
 }
 
 function CnRSASignBytes(InData: TBytes; PrivateKey: TCnRSAPrivateKey;
   SignType: TCnRSASignDigestType = rsdtMD5): TBytes;
-{* 用 RSA 私钥签名字节数组，返回签名值的字节数组，如签名失败则返回空
+{* 用 RSA 私钥签名字节数组，返回签名值的字节数组，如签名失败则返回空。
 
    参数：
-     InData: TBytes                       -
-     PrivateKey: TCnRSAPrivateKey         -
-     SignType: TCnRSASignDigestType       -
+     InData: TBytes                       - 待签名的字节数组
+     PrivateKey: TCnRSAPrivateKey         - 用于签名的 RSA 私钥
+     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
 
-   返回值：TBytes                         -
+   返回值：TBytes                         - 返回签名内容的字节数组，失败则返回空
 }
 
 function CnRSAVerifyBytes(InData: TBytes; InSignBytes: TBytes;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用 RSA 公钥与签名字节数组验证指定字节数组，返回验证是否通过
+{* 用 RSA 公钥与签名字节数组验证指定字节数组，返回验证是否通过。
 
    参数：
-     InData: TBytes                       -
-     InSignBytes: TBytes                  -
-     PublicKey: TCnRSAPublicKey           -
-     SignType: TCnRSASignDigestType       -
+     InData: TBytes                       - 待验证签名的字节数组
+     InSignBytes: TBytes                  - 签名内容字节数组
+     PublicKey: TCnRSAPublicKey           - 用于验证签名的 RSA 公钥
+     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回验证签名是否成功
 }
 
 // OAEP Padding 的生成与验证算法
 
-function AddOaepSha1MgfPadding(ToBuf: PByte; ToLen: Integer; PlainData: PByte;
-  DataByteLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
-{* 对 Data 里 DataLen 的数据进行 OAEP 填充，内容放到 ToBuf 的 ToLen 里，返回填充是否成功。
-  默认使用 SHA1 对 DigestBuf 内容进行杂凑，ToLen 一般是 RSA 的密钥的积的字节数
+function AddOaepSha1MgfPadding(ToBuf: PByte; ToByteLen: Integer; PlainData: PByte;
+  DataByteLen: Integer; DigestParam: PByte = nil; ParamByteLen: Integer = 0): Boolean;
+{* 对 Data 里 DataLen 的数据进行 OAEP 填充，内容放到 ToBuf 的 ToByteLen 里，返回填充是否成功。
+   默认使用 SHA1 对 DigestBuf 内容进行杂凑，ToByteLen 一般是 RSA 的素数积的字节数。
 
    参数：
-     ToBuf: PByte                         -
-     ToLen: Integer                       -
-     PlainData: PByte                     -
-     DataByteLen: Integer                 -
-     DigestParam: PByte                   -
-     ParamLen: Integer                    -
+     ToBuf: PByte                         - 待容纳填充后的数据的数据块地址
+     ToByteLen: Integer                   - 待容纳填充后的数据的数据块字节长度，需足够大
+     PlainData: PByte                     - 待进行 OAEP 填充的数据块地址
+     DataByteLen: Integer                 - 待进行 OAEP 填充的数据块字节长度
+     DigestParam: PByte                   - 额外进行杂凑拼接的数据块地址
+     ParamByteLen: Integer                - 额外进行杂凑拼接的数据块字节长度
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回填充是否成功
 }
 
-function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutLen: Integer; EnData: PByte;
-  DataByteLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
-{* 对 EnData 里 DataLen 的数据进行 OAEP 检验并去除填充，内容放到 ToBuf 的 OutLen 里，返回检查是否成功。
-  ToBuf 能容纳的实际长度不能太短，如成功，OutLen 返回明文数据长度
-  默认使用 SHA1 对 DigestBuf 内容进行杂凑，DataLen 要求是 RSA 的密钥的积的字节数
+function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutByteLen: Integer; EnData: PByte;
+  DataByteLen: Integer; DigestParam: PByte = nil; ParamByteLen: Integer = 0): Boolean;
+{* 对 EnData 里 DataLen 的数据进行 OAEP 检验并去除填充，内容放到 ToBuf 的 OutByteLen 里，返回检查是否成功。
+   ToBuf 能容纳的实际长度不能太短，如成功，OutByteLen 返回明文数据长度
+   默认使用 SHA1 对 DigestBuf 内容进行杂凑，DataByteLen 要求是 RSA 的密钥的积的字节数。
 
    参数：
-     ToBuf: PByte                         -
-     out OutLen: Integer                  -
-     EnData: PByte                        -
-     DataByteLen: Integer                 -
-     DigestParam: PByte                   -
-     ParamLen: Integer                    -
+     ToBuf: PByte                         - 容纳返回的明文数据的数据块的地址
+     out OutByteLen: Integer              - 如去除填充成功，返回明文数据长度
+     EnData: PByte                        - 待进行 OAEP 验证的数据块地址
+     DataByteLen: Integer                 - 待进行 OAEP 验证的数据块字节长度
+     DigestParam: PByte                   - 额外进行杂凑拼接的数据块地址
+     ParamByteLen: Integer                - 额外进行杂凑拼接的数据块字节长度
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回去除填充是否成功
 }
 
 // ================ Diffie-Hellman 离散对数密钥交换算法 ========================
 
 function CnDiffieHellmanGeneratePrimeRootByBitsCount(BitsCount: Integer;
   Prime: TCnBigNumber; MinRoot: TCnBigNumber): Boolean;
-{* 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，实际等同于变色龙杂凑函数
+{* 生成 Diffie-Hellman 密钥协商算法所需的素数与其最小原根，实际等同于变色龙杂凑函数。
   涉及到因素分解因此较慢。原根也就是该素域的生成元，也就是各次幂求余能遍历素数以下所有值。
 
    参数：
-     BitsCount: Integer                   -
-     Prime: TCnBigNumber                  -
-     MinRoot: TCnBigNumber                -
+     BitsCount: Integer                   - 所需生成的素数的位数
+     Prime: TCnBigNumber                  - 生成的用于 Diffie-Hellman 密钥协商的素数
+     MinRoot: TCnBigNumber                - 生成的用于 Diffie-Hellman 密钥协商的最小原根
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回生成是否成功
 }
 
 function CnDiffieHellmanGenerateOutKey(Prime: TCnBigNumber; Root: TCnBigNumber;
-  SelfPrivateKey: TCnBigNumber; const OutPublicKey: TCnBigNumber): Boolean;
-{* 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥
-   其中 OutPublicKey = (Root ^ SelfPrivateKey) mod Prime
-   要保证安全，可以使用 CnSecretSharing 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2
+  SelfPrivateKey: TCnBigNumber; OutPublicKey: TCnBigNumber): Boolean;
+{* 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥，需要双方各自调用。
+   其中 OutPublicKey = (Root ^ SelfPrivateKey) mod Prime。
+   要保证安全，可以使用 CnSecretSharing 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2。
 
    参数：
-     Prime: TCnBigNumber                  -
-     Root: TCnBigNumber                   -
-     SelfPrivateKey: TCnBigNumber         -
-     const OutPublicKey: TCnBigNumber     -
+     Prime: TCnBigNumber                  - Diffie-Hellman 密钥协商的素数
+     Root: TCnBigNumber                   - Diffie-Hellman 密钥协商的原根
+     SelfPrivateKey: TCnBigNumber         - 自身选择的随机私钥
+     OutPublicKey: TCnBigNumber           - 生成的输出公钥，需传输给对方
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回生成是否成功
 }
 
 function CnDiffieHellmanComputeKey(Prime: TCnBigNumber; SelfPrivateKey: TCnBigNumber;
-  OtherPublicKey: TCnBigNumber; const SecretKey: TCnBigNumber): Boolean;
-{* 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
-   其中 SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime
+  OtherPublicKey: TCnBigNumber; SecretKey: TCnBigNumber): Boolean;
+{* 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成协商的密钥，需要双方各自调用。
+   其中 SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime。
    要保证安全，可以使用 CnSecretSharing 单元中定义的 CN_PRIME_FFDHE_* 素数，对应原根均为 2
 
    参数：
-     Prime: TCnBigNumber                  -
-     SelfPrivateKey: TCnBigNumber         -
-     OtherPublicKey: TCnBigNumber         -
-     const SecretKey: TCnBigNumber        -
+     Prime: TCnBigNumber                  - Diffie-Hellman 密钥协商的素数
+     SelfPrivateKey: TCnBigNumber         - 自身选择的随机私钥
+     OtherPublicKey: TCnBigNumber         - 从对方处传输而来的公钥
+     SecretKey: TCnBigNumber              - 生成的协商密钥
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回生成是否成功
 }
 
 // ====================== 基于离散对数的变色龙杂凑函数 =========================
@@ -2160,7 +2158,7 @@ end;
 { RSA 加密解密运算}
 
 function RSACryptRawData(Data: Pointer; DataByteLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; Exponent, Product: TCnBigNumber): Boolean;
+  out OutByteLen: Integer; Exponent, Product: TCnBigNumber): Boolean;
 var
   D, R: TCnBigNumber;
 begin
@@ -2173,7 +2171,7 @@ begin
     if RSACrypt(D, Product, Exponent, R) then
     begin
       R.ToBinary(OutBuf); // TODO: Fixed Len?
-      OutLen := R.GetBytesCount;
+      OutByteLen := R.GetBytesCount;
 
       Result := True;
       _CnSetLastError(ECN_RSA_OK);
@@ -2184,30 +2182,30 @@ begin
 end;
 
 function CnRSAEncryptRawData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean;
+  out OutByteLen: Integer; PublicKey: TCnRSAPublicKey): Boolean;
 begin
-  Result := RSACryptRawData(PlainData, DataByteLen, OutBuf, OutLen,
+  Result := RSACryptRawData(PlainData, DataByteLen, OutBuf, OutByteLen,
     PublicKey.PubKeyExponent, PublicKey.PubKeyProduct);
 end;
 
 function CnRSAEncryptRawData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean;
+  out OutByteLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean;
 begin
-  Result := RSACryptRawData(PlainData, DataByteLen, OutBuf, OutLen,
+  Result := RSACryptRawData(PlainData, DataByteLen, OutBuf, OutByteLen,
     PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct);
 end;
 
 function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean;
+  out OutByteLen: Integer; PublicKey: TCnRSAPublicKey): Boolean;
 begin
-  Result := RSACryptRawData(EnData, DataByteLen, OutBuf, OutLen,
+  Result := RSACryptRawData(EnData, DataByteLen, OutBuf, OutByteLen,
     PublicKey.PubKeyExponent, PublicKey.PubKeyProduct);
 end;
 
 function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean;
+  out OutByteLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean;
 begin
-  Result := RSACryptRawData(EnData, DataByteLen, OutBuf, OutLen,
+  Result := RSACryptRawData(EnData, DataByteLen, OutBuf, OutByteLen,
     PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct);
 end;
 
@@ -2456,18 +2454,18 @@ begin
 end;
 
 function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PublicKey: TCnRSAPublicKey): Boolean;
+  out OutByteLen: Integer; PublicKey: TCnRSAPublicKey): Boolean;
 begin
   Result := RSADecryptPadding(PublicKey.GetBytesCount, EnData, DataByteLen,
-    OutBuf, OutLen, PublicKey.PubKeyExponent, PublicKey.PubKeyProduct, cpmPKCS1);
+    OutBuf, OutByteLen, PublicKey.PubKeyExponent, PublicKey.PubKeyProduct, cpmPKCS1);
   // 公钥解密只支持 PKCS1，不支持 OAEP
 end;
 
 function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
-  out OutLen: Integer; PrivateKey: TCnRSAPrivateKey; PaddingMode: TCnRSAPaddingMode): Boolean;
+  out OutByteLen: Integer; PrivateKey: TCnRSAPrivateKey; PaddingMode: TCnRSAPaddingMode): Boolean;
 begin
   Result := RSADecryptPadding(PrivateKey.GetBytesCount, EnData, DataByteLen,
-    OutBuf, OutLen, PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct, PaddingMode);
+    OutBuf, OutByteLen, PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct, PaddingMode);
 end;
 
 function CnRSAEncryptBytes(PlainData: TBytes; PublicKey: TCnRSAPublicKey;
@@ -3205,7 +3203,7 @@ end;
 
 // 根据自身选择的随机数 PrivateKey 生成 Diffie-Hellman 密钥协商的输出公钥
 function CnDiffieHellmanGenerateOutKey(Prime, Root, SelfPrivateKey: TCnBigNumber;
-  const OutPublicKey: TCnBigNumber): Boolean;
+  OutPublicKey: TCnBigNumber): Boolean;
 begin
   // OutPublicKey = (Root ^ SelfPrivateKey) mod Prime
   Result := BigNumberMontgomeryPowerMod(OutPublicKey, Root, SelfPrivateKey, Prime);
@@ -3213,7 +3211,7 @@ end;
 
 // 根据对方发送的 Diffie-Hellman 密钥协商的输出公钥计算生成公认的密钥
 function CnDiffieHellmanComputeKey(Prime, SelfPrivateKey, OtherPublicKey: TCnBigNumber;
-  const SecretKey: TCnBigNumber): Boolean;
+  SecretKey: TCnBigNumber): Boolean;
 begin
   // SecretKey = (OtherPublicKey ^ SelfPrivateKey) mod Prime
   Result := BigNumberMontgomeryPowerMod(SecretKey, OtherPublicKey, SelfPrivateKey, Prime);
@@ -3343,8 +3341,8 @@ begin
   Result := True;
 end;
 
-function AddOaepSha1MgfPadding(ToBuf: PByte; ToLen: Integer; PlainData: PByte;
-  DataByteLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
+function AddOaepSha1MgfPadding(ToBuf: PByte; ToByteLen: Integer; PlainData: PByte;
+  DataByteLen: Integer; DigestParam: PByte; ParamByteLen: Integer): Boolean;
 var
   EmLen, MdLen, I: Integer;
   SeedMask: TCnSHA1Digest;
@@ -3352,7 +3350,7 @@ var
   DBMask: TBytes;
 begin
   Result := False;
-  EmLen:= ToLen - 1;
+  EmLen:= ToByteLen - 1;
 
   MdLen := SizeOf(TCnSHA1Digest);
 
@@ -3369,7 +3367,7 @@ begin
   // 00 | 20 位 Seed | DB
   // 其中 DB := ParamHash || PS || 0x01 || Data，长度是 EmLen - MdLen
   // 后面要 XOR 一次称为 MaskDB
-  SeedMask := SHA1Buffer(DigestParam, ParamLen);
+  SeedMask := SHA1Buffer(DigestParam, ParamByteLen);
   Move(SeedMask[0], DB^, MdLen);
 
   // To 区 DB 的前 20 字节先留着，后面到尾巴先填满 0
@@ -3413,8 +3411,8 @@ begin
   // 最后加密消息 = 00 || maskedSeed || maskedDB
 end;
 
-function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutLen: Integer; EnData: PByte;
-  DataByteLen: Integer; DigestParam: PByte = nil; ParamLen: Integer = 0): Boolean;
+function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutByteLen: Integer; EnData: PByte;
+  DataByteLen: Integer; DigestParam: PByte; ParamByteLen: Integer): Boolean;
 var
   I, MdLen, DBLen, MStart: Integer;
   MaskedDB, MaskedSeed: PByteArray;
@@ -3446,7 +3444,7 @@ begin
   MaskedSeed := PByteArray(TCnNativeInt(EnData) + 1);
   MaskedDB := PByteArray(TCnNativeInt(EnData) + MdLen + 1);
 
-  ParamHash := SHA1Buffer(DigestParam, ParamLen);
+  ParamHash := SHA1Buffer(DigestParam, ParamByteLen);
 
   // 把 MaskedDB 先算出来
   if not Pkcs1Sha1MGF(@MaskedDB[0], DBLen, @Seed[0], MdLen) then
@@ -3507,7 +3505,7 @@ begin
 //      end;
 
       Move(DB[MStart], ToBuf^, DBLen - MStart);
-      OutLen := DBLen - MStart; // 返回明文数据长度
+      OutByteLen := DBLen - MStart; // 返回明文数据长度
       Result := True;
     end;
   finally
