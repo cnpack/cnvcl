@@ -31,7 +31,12 @@ unit CnDES;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.10.12 V1.6
+* 修改记录：2024.11.30 V1.7
+*               删除命名不规范的 DESEncryptStrToHex 和 DESDecryptStrToHex，
+*               删除命名不规范的 TripleDESEncryptStrToHex 和 TripleDESDecryptStrToHex，
+*               改用 ECB 版本替代。
+*               优化 PAnsiChar 形式的 Iv 的处理
+*           2024.10.12 V1.6
 *               修正 3DES 下部分越界的问题，优化对 Key 和 Iv 的对齐处理
 *           2022.08.13 V1.5
 *               对空内容加密返回空
@@ -57,10 +62,16 @@ uses
 
 const
   CN_DES_KEYSIZE = 8;
+  {* DES 的密码长度，8 字节}
+
   CN_DES_BLOCKSIZE = 8;
+  {* DES 的加密块长度，8 字节}
 
   CN_TRIPLE_DES_KEYSIZE = CN_DES_KEYSIZE * 3;
+  {* 3DES 的密码长度，是 DES 的三倍，24 字节}
+
   CN_TRIPLE_DES_BLOCKSIZE = CN_DES_BLOCKSIZE;
+  {* 3DES 的加密块长度，仍是 8 字节}
 
 type
   TCnDESKey = array[0..CN_DES_KEYSIZE - 1] of Byte;
@@ -84,221 +95,407 @@ type
 // ================================= DES =======================================
 
 function DESGetOutputLengthFromInputLength(InputByteLength: Integer): Integer;
-{* 根据输入明文字节长度计算其块对齐的输出长度。如果非块整数倍则向上增长至块整数倍}
+{* 根据输入明文字节长度计算 DES 块对齐的输出长度。如果非块整数倍则向上增长至块整数倍。
+
+   参数：
+     InputByteLength: Integer             - 输入的明文字节长度
+
+   返回值：Integer                        - 返回 DES 块对齐后的长度
+}
 
 procedure DESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
-{* DES-ECB 封装好的针对 AnsiString 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 #0
-  Input    input 字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
-  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对 AnsiString 的 DES 加密，块间使用 ECB 模式。
+
+   参数：
+     Key: AnsiString                      - 8 字节 DES 密码，太长则截断，不足则补 #0
+     const Input: AnsiString              - 待加密的字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
+     Output: PAnsiChar                    - 密文输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+
+   返回值：（无）
+}
 
 procedure DESDecryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
-{* DES-ECB 封装好的针对 AnsiString 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 #0
-  Input    input 字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
-  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对 AnsiString 的 DES 解密，块间使用 ECB 模式。
 
-procedure DESEncryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
-  const Input: AnsiString; Output: PAnsiChar);
-{* DES-CBC 封装好的针对 AnsiString 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 #0
-  Iv       8 字节初始化向量
-  Input    input string
-  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+   参数：
+     Key: AnsiString                      - 8 字节 DES 密码，太长则截断，不足则补 #0
+     const Input: AnsiString              - 待解密的字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
+     Output: PAnsiChar                    - 明文输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
 
-procedure DESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
-  const Input: AnsiString; Output: PAnsiChar);
-{* DES-CBC 封装好的针对 AnsiString 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 #0
-  Iv       8 字节初始化向量
-  Input    input string
-  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+   返回值：（无）
+}
 
-function DESEncryptStrToHex(const Str: AnsiString; const Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-{* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0。等同于 DESEncryptECBStrToHex}
+procedure DESEncryptCBCStr(Key: AnsiString; Iv: PAnsiChar; const Input: AnsiString;
+  Output: PAnsiChar);
+{* 针对 AnsiString 的 DES 加密，块间使用 CBC 模式。
 
-function DESDecryptStrFromHex(const HexStr: AnsiString; const Key: AnsiString): AnsiString;{$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-{* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文。等同于 DESDecryptECBStrFromHex}
+   参数：
+     Key: AnsiString                      - 8 字节 DES 密码，太长则截断，不足则补 #0
+     Iv: PAnsiChar                        - 8 字节初始化向量，注意有效内容必须大于或等于 8 字节
+     const Input: AnsiString              - 待加密的明文字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
+     Output: PAnsiChar                    - 密文输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+
+   返回值：（无）
+}
+
+procedure DESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar; const Input: AnsiString;
+  Output: PAnsiChar);
+{* 针对 AnsiString 的 DES 解密，块间使用 CBC 模式。
+
+   参数：
+     Key: AnsiString                      - 8 字节 DES 密码，太长则截断，不足则补 #0
+     Iv: PAnsiChar                        - 8 字节初始化向量，注意有效内容必须大于或等于 8 字节
+     const Input: AnsiString              - 待解密的密文字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
+     Output: PAnsiChar                    - 明文输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+
+   返回值：（无）
+}
 
 function DESEncryptECBStrToHex(const Str: AnsiString; const Key: AnsiString): AnsiString;
-{* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0}
+{* 传入明文与加密 Key，DES 加密返回转换成十六进制的密文，块间使用 ECB 模式，明文末尾可能补 #0。
+
+   参数：
+     const Str: AnsiString                - 待加密的明文字符串
+     const Key: AnsiString                - 8 字节 DES 密码，太长则截断，不足则补 #0
+
+   返回值：AnsiString                     - 返回加密后的十六进制密文字符串
+}
 
 function DESDecryptECBStrFromHex(const HexStr: AnsiString; const Key: AnsiString): AnsiString;
-{* 传入十六进制的密文与加密 Key，DES ECB 解密返回明文}
+{* 传入十六进制的密文与加密 Key，DES 解密返回明文，块间使用 ECB 模式。
+
+   参数：
+     const HexStr: AnsiString             - 待解密的十六进制密文字符串
+     const Key: AnsiString                - 8 字节 DES 密码，太长则截断，不足则补 #0
+
+   返回值：AnsiString                     - 返回解密后的明文字符串
+}
 
 function DESEncryptCBCStrToHex(const Str: AnsiString; const Key: AnsiString; const Iv: AnsiString): AnsiString;
-{* 传入明文与加密 Key 与 Iv，DES 加密返回转换成十六进制的密文，CBC 模式，明文末尾可能补 0}
+{* 传入明文与加密 Key 与 Iv，DES 加密返回转换成十六进制的密文，块间使用 CBC 模式，明文末尾可能补 #0。
+
+   参数：
+     const Str: AnsiString                - 待加密的明文字符串
+     const Key: AnsiString                - 8 字节 DES 密码，太长则截断，不足则补 #0
+     const Iv: AnsiString                 - 8 字节初始化向量
+
+   返回值：AnsiString                     - 返回加密后的十六进制密文字符串
+}
 
 function DESDecryptCBCStrFromHex(const HexStr: AnsiString; const Key: AnsiString;
   const Iv: AnsiString): AnsiString;
-{* 传入十六进制的密文与加密 Key 与 Iv，DES CBC 解密返回明文}
+{* 传入十六进制的密文与加密 Key 与 Iv，DES 解密返回明文，块间使用 ECB 模式。
+
+   参数：
+     const HexStr: AnsiString             - 待解密的十六进制密文字符串
+     const Key: AnsiString                - 8 字节 DES 密码，太长则截断，不足则补 #0
+     const Iv: AnsiString                 - 8 字节初始化向量
+
+   返回值：AnsiString                     - 返回解密后的明文字符串
+}
 
 function DESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
-{* DES-ECB 封装好的针对 TBytes 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 0
-  Input    输入内容，其长度如不是 8 倍数，计算时会被填充 0 至长度达到 8 的倍数
-  返回值   密文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对字节数组的 DES 加密，块间使用 ECB 模式。
+
+   参数：
+     Key: TBytes                          - 8 字节 DES 密码，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组，其长度如不是 8 倍数，计算时会被填充 0 至长度达到 8 的倍数
+
+   返回值：TBytes                         - 返回加密后的密文字节数组
+}
 
 function DESDecryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
-{* DES-ECB 封装好的针对 TBytes 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 0
-  Input    待解密密文
-  返回值   明文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对字节数组的 DES 解密，块间使用 ECB 模式。
+
+   参数：
+     Key: TBytes                          - 8 字节 DES 密码，太长则截断，不足则补 0
+     const Input: TBytes                  - 待解密的密文字节数组，其长度如不是 8 倍数，计算时会被填充 0 至长度达到 8 的倍数
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
 
 function DESEncryptCBCBytes(Key: TBytes; Iv: TBytes; Input: TBytes): TBytes;
-{* DES-CBC 封装好的针对 TBytes 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 #0
-  Iv       8 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
-  Input    输入内容，其长度如不是 8 倍数，计算时会被填充 0 至长度达到 8 的倍数
-  返回值   密文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对字节数组的 DES 加密，块间使用 CBC 模式。
+
+   参数：
+     Key: TBytes                          - 8 字节 DES 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 8 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：TBytes                         - 返回加密后的密文字节数组
+}
 
 function DESDecryptCBCBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
-{* DES-CBC 封装好的针对 TBytes 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 0
-  Iv       8 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
-  Input    待解密密文
-  返回值   明文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对字节数组的 DES 解密，块间使用 CBC 模式。
+
+   参数：
+     Key: TBytes                          - 8 字节 DES 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 8 字节初始化向量，太长则截断，不足则补 0
+     const Input: TBytes                  - 待解密的密文字节数组
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
 
 procedure DESEncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnDESKey; Dest: TStream); overload;
-{* DES-ECB 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 DES 加密，块间使用 ECB 模式。
+   Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待加密的明文流
+     Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
+     const Key: TCnDESKey                 - 8 字节 DES 密码
+     Dest: TStream                        - 输出的密文流
+
+   返回值：（无）
+}
 
 procedure DESDecryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnDESKey; Dest: TStream); overload;
-{* DES-ECB 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 DES 解密，块间使用 ECB 模式。
+   Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待解密的密文流
+     Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
+     const Key: TCnDESKey                 - 8 字节 DES 密码
+     Dest: TStream                        - 输出的明文流
+
+   返回值：（无）
+}
 
 procedure DESEncryptStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TCnDESKey; const InitVector: TCnDESIv; Dest: TStream); overload;
-{* DES-CBC 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 DES 加密，块间使用 CBC 模式。
+   Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待加密的明文流
+     Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头解密整个流
+     const Key: TCnDESKey                 - 8 字节 DES 密码
+     const InitVector: TCnDESIv           - 8 字节初始化向量
+     Dest: TStream                        - 输出的密文流
+
+   返回值：（无）
+}
 
 procedure DESDecryptStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TCnDESKey; const InitVector: TCnDESIv; Dest: TStream); overload;
-{* DES-CBC 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 DES 加密，块间使用 CBC 模式。
+   Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待解密的密文流
+     Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
+     const Key: TCnDESKey                 - 8 字节 DES 密码
+     const InitVector: TCnDESIv           - 8 字节初始化向量
+     Dest: TStream                        - 输出的明文流
+
+   返回值：（无）
+}
 
 // =========================== 3-DES (Triple DES) ==============================
 
 function TripleDESGetOutputLengthFromInputLength(InputByteLength: Integer): Integer;
-{* 根据输入明文字节长度计算其块对齐的输出长度。如果非块整数倍则向上增长至块整数倍}
+{* 根据输入明文字节长度计算其块对齐的输出长度。如果非块整数倍则向上增长至块整数倍
+
+   参数：
+     InputByteLength: Integer             - 输入的明文字节长度
+
+   返回值：Integer                        - 返回 3DES 块对齐后的字节长度
+}
 
 procedure TripleDESEncryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
-{* 3DES-ECB 封装好的针对 AnsiString 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 #0
-  Input    input 字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
-  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对 AnsiString 的 3DES 加密，块间使用 ECB 模式。
+
+   参数：
+     Key: AnsiString                      - 24字节 3DES 密码，太长则截断，不足则补 #0
+     const Input: AnsiString              - 待加密的字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
+     Output: PAnsiChar                    - 密文输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+
+   返回值：（无）
+}
 
 procedure TripleDESDecryptECBStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
-{* 3DES-ECB 封装好的针对 AnsiString 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 #0
-  Input    input 字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
-  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对 AnsiString 的 3DES 解密，块间使用 ECB 模式。
+
+   参数：
+     Key: AnsiString                      - 24 字节 3DES 密码，太长则截断，不足则补 #0
+     const Input: AnsiString              - 待解密的字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
+     Output: PAnsiChar                    - 明文输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+
+   返回值：（无）
+}
 
 procedure TripleDESEncryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* 3DES-CBC 封装好的针对 AnsiString 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 #0
-  Iv       8 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
-  Input    input string
-  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对 AnsiString 的 3DES 加密，块间使用 CBC 模式。
+
+   参数：
+     Key: AnsiString                      - 24 字节 3DES 密码，太长则截断，不足则补 #0
+     Iv: PAnsiChar                        - 8 字节初始化向量，注意有效内容必须大于或等于 8 字节
+     const Input: AnsiString              - 待加密的明文字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
+     Output: PAnsiChar                    - 密文输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
+
+   返回值：（无）
+}
 
 procedure TripleDESDecryptCBCStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* 3DES-CBC 封装好的针对 AnsiString 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 #0
-  Iv       8 字节初始化向量，运算过程中会改变，因此调用者需要保存原始数据
-  Input    input string
-  Output   output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对 AnsiString 的 3DES 解密，块间使用 CBC 模式。
 
-function TripleDESEncryptStrToHex(const Str: AnsiString; const Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-{* 传入明文与加密 Key，3DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0。等同于 TripleDESEncryptECBStrToHex}
+   参数：
+     Key: AnsiString                      - 24 字节 3DES 密码，太长则截断，不足则补 #0
+     Iv: PAnsiChar                        - 8 字节初始化向量，注意有效内容必须大于或等于 8 字节
+     const Input: AnsiString              - 待解密的密文字符串，其长度如不是 8 倍数，计算时会被填充 #0 至长度达到 8 的倍数
+     Output: PAnsiChar                    - 明文输出区，其长度必须大于或等于 (((Length(Input) - 1) div 8) + 1) * 8
 
-function TripleDESDecryptStrFromHex(const HexStr: AnsiString; const Key: AnsiString): AnsiString; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-{* 传入十六进制的密文与加密 Key，3DES ECB 解密返回明文。等同于 TripleDESDecryptECBStrFromHex}
+   返回值：（无）
+}
 
 function TripleDESEncryptECBStrToHex(const Str: AnsiString; const Key: AnsiString): AnsiString;
-{* 传入明文与加密 Key，3DES 加密返回转换成十六进制的密文，ECB 模式，明文末尾可能补 0}
+{* 传入明文与加密 Key，3DES 加密返回转换成十六进制的密文，块间使用 ECB 模式，明文末尾可能补 #0。
+
+   参数：
+     const Str: AnsiString                - 待加密的明文字符串
+     const Key: AnsiString                - 24 字节 3DES 密码，太长则截断，不足则补 #0
+
+   返回值：AnsiString                     - 返回加密后的十六进制密文字符串
+}
 
 function TripleDESDecryptECBStrFromHex(const HexStr: AnsiString; const Key: AnsiString): AnsiString;
-{* 传入十六进制的密文与加密 Key，3DES ECB 解密返回明文}
+{* 传入十六进制的密文与加密 Key，3DES 解密返回明文，块间使用 ECB 模式。
 
-function TripleDESEncryptCBCStrToHex(const Str: AnsiString; const Key: AnsiString; const Iv: AnsiString): AnsiString;
-{* 传入明文与加密 Key 与 Iv，3DES 加密返回转换成十六进制的密文，CBC 模式，明文末尾可能补 0}
+   参数：
+     const HexStr: AnsiString             - 待解密的十六进制密文字符串
+     const Key: AnsiString                - 24 字节 3DES 密码，太长则截断，不足则补 #0
 
-function TripleDESDecryptCBCStrFromHex(const HexStr: AnsiString; const Key: AnsiString; const Iv: AnsiString): AnsiString;
-{* 传入十六进制的密文与加密 Key 与 Iv，3DES CBC 解密返回明文}
+   返回值：AnsiString                     - 返回解密后的明文字符串
+}
+
+function TripleDESEncryptCBCStrToHex(const Str: AnsiString; const Key: AnsiString;
+  const Iv: AnsiString): AnsiString;
+{* 传入明文与加密 Key 与 Iv，3DES 加密返回转换成十六进制的密文，块间使用 CBC 模式，明文末尾可能补 #0。
+
+   参数：
+     const Str: AnsiString                - 待加密的明文字符串
+     const Key: AnsiString                - 24 字节 3DES 密码，太长则截断，不足则补 #0
+     const Iv: AnsiString                 - 8 字节初始化向量
+
+   返回值：AnsiString                     - 返回加密后的十六进制密文字符串
+}
+
+function TripleDESDecryptCBCStrFromHex(const HexStr: AnsiString;
+  const Key: AnsiString; const Iv: AnsiString): AnsiString;
+{* 传入十六进制的密文与加密 Key 与 Iv，3DES 解密返回明文，块间使用 CBC 模式。
+
+   参数：
+     const HexStr: AnsiString             - 待解密的十六进制密文字符串
+     const Key: AnsiString                - 24 字节 3DES 密码，太长则截断，不足则补 #0
+     const Iv: AnsiString                 - 8 字节初始化向量
+
+   返回值：AnsiString                     - 返回解密后的明文字符串
+}
 
 function TripleDESEncryptECBBytes(Key: TBytes; Input: TBytes): TBytes;
-{* 3DES-ECB 封装好的针对 TBytes 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 0
-  Input    输入内容，其长度如不是 8 倍数，计算时会被填充 0 至长度达到 8 的倍数
-  返回值   密文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对字节数组的 3DES 加密，块间使用 ECB 模式。
+
+   参数：
+     Key: TBytes                          - 24 字节 3DES 密码，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组，其长度如不是 8 倍数，计算时会被填充 0 至长度达到 8 的倍数
+
+   返回值：TBytes                         - 返回加密后的密文字节数组
+}
 
 function TripleDESDecryptECBBytes(Key: TBytes; const Input: TBytes): TBytes;
-{* 3DES-ECB 封装好的针对 TBytes 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 0
-  Input    待解密密文
-  返回值   明文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对字节数组的 3DES 解密，块间使用 ECB 模式。
+
+   参数：
+     Key: TBytes                          - 24 字节 3DES 密码，太长则截断，不足则补 0
+     const Input: TBytes                  - 待解密的密文字节数组，其长度如不是 8 倍数，计算时会被填充 0 至长度达到 8 的倍数
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
 
 function TripleDESEncryptCBCBytes(Key: TBytes; Iv: TBytes; Input: TBytes): TBytes;
-{* 3DES-CBC 封装好的针对 TBytes 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 #0
-  Iv       8 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
-  Input    输入内容，其长度如不是 8 倍数，计算时会被填充 0 至长度达到 8 的倍数
-  返回值   密文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对字节数组的 3DES 加密，块间使用 CBC 模式。
+
+   参数：
+     Key: TBytes                          - 24 字节 3DES 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 8 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：TBytes                         - 返回加密后的密文字节数组
+}
 
 function TripleDESDecryptCBCBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
-{* 3DES-CBC 封装好的针对 TBytes 的加解密方法
- |<PRE>
-  Key      8 字节密码，太长则截断，不足则补 0
-  Iv       8 字节初始化向量，太长则截断，不足则补 0，运算过程中会改变，因此调用者需要保存原始数据
-  Input    待解密密文
-  返回值   明文，其长度被设置为 (((Length(Input) - 1) div 8) + 1) * 8
- |</PRE>}
+{* 针对字节数组的 3DES 解密，块间使用 CBC 模式。
+
+   参数：
+     Key: TBytes                          - 24 字节 3DES 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 8 字节初始化向量，太长则截断，不足则补 0
+     const Input: TBytes                  - 待解密的密文字节数组
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
 
 procedure TripleDESEncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCn3DESKey; Dest: TStream); overload;
-{* 3DES-ECB 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 3DES 加密，块间使用 ECB 模式。
+   Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待加密的明文流
+     Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
+     const Key: TCnDESKey                 - 24 字节 3DES 密码
+     Dest: TStream                        - 输出的密文流
+
+   返回值：（无）
+}
 
 procedure TripleDESDecryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCn3DESKey; Dest: TStream); overload;
-{* 3DES-ECB 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 3DES 解密，块间使用 ECB 模式。
+   Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待解密的密文流
+     Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
+     const Key: TCnDESKey                 - 24 字节 3DES 密码
+     Dest: TStream                        - 输出的明文流
+
+   返回值：（无）
+}
 
 procedure TripleDESEncryptStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TCn3DESKey; const InitVector: TCnDESIv; Dest: TStream); overload;
-{* 3DES-CBC 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 3DES 加密，块间使用 CBC 模式。
+   Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待加密的明文流
+     Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头解密整个流
+     const Key: TCn3DESKey                - 24 字节 3DES 密码
+     const InitVector: TCnDESIv           - 8 字节初始化向量
+     Dest: TStream                        - 输出的密文流
+
+   返回值：（无）
+}
 
 procedure TripleDESDecryptStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TCn3DESKey; const InitVector: TCnDESIv; Dest: TStream); overload;
-{* 3DES-CBC 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 3DES 解密，块间使用 CBC 模式。
+   Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待解密的密文流
+     Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
+     const Key: TCn3DESKey                - 24 字节 3DES 密码
+     const InitVector: TCnDESIv           - 8 字节初始化向量
+     Dest: TStream                        - 输出的明文流
+
+   返回值：（无）
+}
 
 implementation
 
@@ -771,16 +968,6 @@ begin
   else
     Len := (((Len - 1) div CN_DES_BLOCKSIZE) + 1) * CN_DES_BLOCKSIZE;
   SetLength(Res, Len);
-end;
-
-function DESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
-begin
-  Result := DESEncryptECBStrToHex(Str, Key);
-end;
-
-function DESDecryptStrFromHex(const HexStr, Key: AnsiString): AnsiString;
-begin
-  Result := DESDecryptECBStrFromHex(HexStr, Key);
 end;
 
 function DESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
@@ -1328,8 +1515,7 @@ begin
   MakeKey(K2, SubKey2);
   MakeKey(K3, SubKey3);
 
-  FillChar(Vector[0], SizeOf(TCnDESIv), 0);
-  MoveMost(Iv^, Vector[0], StrLen(Iv), SizeOf(TCnDESIv));
+  Move(Iv^, Vector[0], SizeOf(TCnDESIv));
 
   for I := 0 to Length(Input) div CN_DES_BLOCKSIZE - 1 do
   begin
@@ -1354,15 +1540,15 @@ begin
   // 末尾补的 0 由外部判断删除
 end;
 
-function TripleDESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
-begin
-  Result := TripleDESEncryptECBStrToHex(Str, Key);
-end;
-
-function TripleDESDecryptStrFromHex(const HexStr, Key: AnsiString): AnsiString;
-begin
-  Result := TripleDESDecryptECBStrFromHex(HexStr, Key);
-end;
+//function TripleDESEncryptStrToHex(const Str, Key: AnsiString): AnsiString;
+//begin
+//  Result := TripleDESEncryptECBStrToHex(Str, Key);
+//end;
+//
+//function TripleDESDecryptStrFromHex(const HexStr, Key: AnsiString): AnsiString;
+//begin
+//  Result := TripleDESDecryptECBStrFromHex(HexStr, Key);
+//end;
 
 function TripleDESEncryptECBStrToHex(const Str, Key: AnsiString): AnsiString;
 var
