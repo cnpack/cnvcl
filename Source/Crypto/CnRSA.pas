@@ -502,62 +502,58 @@ function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
 
 function CnRSAEncryptRawData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutByteLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
-{* 用公钥对数据块进行加密，无填充，结果放 OutBuf 中，
-   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节。
+{* 用公钥对数据块进行加密，无填充，结果放 OutBuf 中，并返回密文数据字节长度。
 
    参数：
-     PlainData: Pointer                   -
-     DataByteLen: Integer                 -
-     OutBuf: Pointer                      -
-     out OutByteLen: Integer              -
-     PublicKey: TCnRSAPublicKey           -
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     DataByteLen: Integer                 - 待加密的明文数据块字节长度
+     OutBuf: Pointer                      - 容纳返回的密文数据的数据块的地址，其字节长度不能短于密钥素数积的字节长度
+     out OutByteLen: Integer              - 返回的密文实际字节长度
+     PublicKey: TCnRSAPublicKey           - 用于加密的 RSA 公钥
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回加密是否成功
 }
 
 function CnRSAEncryptRawData(PlainData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutByteLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
-{* 用私钥对数据块进行加密，无填充，结果放 OutBuf 中，
-   OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节。
+{* 用私钥对数据块进行加密，无填充，结果放 OutBuf 中，并返回密文数据字节长度。
 
    参数：
-     PlainData: Pointer                   -
-     DataByteLen: Integer                 -
-     OutBuf: Pointer                      -
-     out OutByteLen: Integer              -
-     PrivateKey: TCnRSAPrivateKey         -
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     DataByteLen: Integer                 - 待加密的明文数据块字节长度
+     OutBuf: Pointer                      - 容纳返回的密文数据的数据块的地址，其字节长度不能短于密钥素数积的字节长度
+     out OutByteLen: Integer              - 返回的密文实际字节长度
+     PrivateKey: TCnRSAPrivateKey         - 用于加密的 RSA 私钥
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回加密是否成功
 }
 
 function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutByteLen: Integer; PublicKey: TCnRSAPublicKey): Boolean; overload;
-{* 用公钥对数据块进行无填充解密，结果放 OutBuf 中，并返回数据长度
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
+{* 用公钥对数据块进行无填充解密，结果放 OutBuf 中，并返回明文数据字节长度。
 
    参数：
-     EnData: Pointer                      -
-     DataByteLen: Integer                 -
-     OutBuf: Pointer                      -
-     out OutByteLen: Integer              -
-     PublicKey: TCnRSAPublicKey           -
+     EnData: Pointer                      - 待解密的密文数据块地址
+     DataByteLen: Integer                 - 待解密的密文数据块字节长度
+     OutBuf: Pointer                      - 容纳返回的明文数据的数据块的地址，其字节长度不能短于密钥素数积的字节长度
+     out OutByteLen: Integer              - 返回的明文实际字节长度
+     PublicKey: TCnRSAPublicKey           - 用于解密的 RSA 公钥
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回解密是否成功
 }
 
 function CnRSADecryptRawData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutByteLen: Integer; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
-{* 用私钥对数据块进行无填充解密结果放 OutBuf 中，并返回数据长度
-  OutBuf 长度不能短于密钥长度，1024 Bit 的 则 128 字节
+{* 用私钥对数据块进行无填充解密结果放 OutBuf 中，并返回明文数据字节长度。
 
    参数：
-     EnData: Pointer                      -
-     DataByteLen: Integer                 -
-     OutBuf: Pointer                      -
-     out OutByteLen: Integer              -
-     PrivateKey: TCnRSAPrivateKey         -
+     EnData: Pointer                      - 待解密的密文数据块地址
+     DataByteLen: Integer                 - 待解密的密文数据块字节长度
+     OutBuf: Pointer                      - 容纳返回的明文数据的数据块的地址，其字节长度不能短于密钥素数积的字节长度
+     out OutByteLen: Integer              - 返回的明文实际字节长度
+     PrivateKey: TCnRSAPrivateKey         - 用于解密的 RSA 私钥
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回解密是否成功
 }
 
 function CnRSAEncryptRawBytes(PlainData: TBytes; PublicKey: TCnRSAPublicKey): TBytes; overload;

@@ -81,106 +81,175 @@ function SHA1(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA1Digest;
 }
 
 function SHA1Buffer(const Buffer; Count: Cardinal): TCnSHA1Digest;
-{* 对数据块进行 SHA1 计算
- |<PRE>
-   const Buffer     - 要计算的数据块，一般传个地址
-   Count: Cardinal  - 数据块长度
- |</PRE>}
+{* 对数据块进行 SHA1 计算。
+
+   参数：
+     const Buffer                         - 待计算的数据块地址
+     Count: Cardinal                      - 待计算的数据块字节长度
+
+   返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
+}
 
 function SHA1Bytes(Data: TBytes): TCnSHA1Digest;
-{* 对 TBytes 进行 SHA1 计算
- |<PRE>
-   Data     - 要计算的字节数组
- |</PRE>}
+{* 对字节数组进行 SHA1 计算。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
+}
 
 function SHA1String(const Str: string): TCnSHA1Digest;
-{* 对 String 类型数据进行 SHA1 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
-   代码中会将其转换成 AnsiString 进行计算
- |<PRE>
-   Str: string       - 要计算的字符串
- |</PRE>}
+{* 对 String 类型数据进行 SHA1 计算。注意 D2009 或以上版本的 string 为 UnicodeString，
+   代码中会将其强行转换成 AnsiString 进行计算。
+
+   参数：
+     const Str: string                    - 待计算的字符串
+
+   返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
+}
 
 function SHA1StringA(const Str: AnsiString): TCnSHA1Digest;
-{* 对 AnsiString 类型数据进行 SHA1 计算
- |<PRE>
-   Str: AnsiString       - 要计算的字符串
- |</PRE>}
+{* 对 AnsiString 类型字符串进行 SHA1 计算，直接计算内部内容，无编码处理。
+
+   参数：
+     const Str: AnsiString                - 待计算的字符串
+
+   返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
+}
 
 function SHA1StringW(const Str: WideString): TCnSHA1Digest;
-{* 对 WideString 类型数据进行 SHA1 计算，计算前会调用 WideCharToMultyByte 进行转换
- |<PRE>
-   Str: WideString       - 要计算的字符串
- |</PRE>}
+{* 对 WideString 类型字符串进行转换并进行 SHA1 计算。
+   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   其他平台会直接转换为 AnsiString 类型，再进行计算。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
+}
 
 {$IFDEF UNICODE}
 
 function SHA1UnicodeString(const Str: string): TCnSHA1Digest;
-{* 对 UnicodeString 类型数据进行直接的 SHA1 计算，不进行转换
- |<PRE>
-   Str: UnicodeString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 SHA1 计算，直接计算内部 UTF16 内容，不进行转换。
+
+   参数：
+     const Str: string                    - 待计算的宽字符串
+
+   返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
+}
 
 {$ELSE}
 
 function SHA1UnicodeString(const Str: WideString): TCnSHA1Digest;
-{* 对 UnicodeString 类型数据进行直接的 SHA1 计算，不进行转换
- |<PRE>
-   Str: WideString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 SHA1 计算，直接计算内部 UTF16 内容，不进行转换。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
+}
 
 {$ENDIF}
 
 function SHA1File(const FileName: string;
   CallBack: TCnSHA1CalcProgressFunc = nil): TCnSHA1Digest;
-{* 对指定文件内容进行 SHA1 计算
- |<PRE>
-   FileName: string  - 要计算的文件名
-   CallBack: TSHA1CalcProgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定文件内容进行 SHA1 计算。
+
+   参数：
+     const FileName: string               - 待计算的文件名
+     CallBack: TCnSHA1CalcProgressFunc    - 计算进度回调函数，默认为空
+
+   返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
+}
 
 function SHA1Stream(Stream: TStream;
   CallBack: TCnSHA1CalcProgressFunc = nil): TCnSHA1Digest;
-{* 对指定流数据进行 SHA1 计算
- |<PRE>
-   Stream: TStream  - 要计算的流内容
-   CallBack: TSHA1CalcProgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定流数据进行 SHA1 计算。
+
+   参数：
+     Stream: TStream                      - 待计算的流内容
+     CallBack: TCnSHA1CalcProgressFunc    - 计算进度回调函数，默认为空
+
+   返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
+}
 
 // 以下三个函数用于外部持续对数据进行零散的 SHA1 计算，SHA1Update 可多次被调用
 
 procedure SHA1Init(var Context: TCnSHA1Context);
-{* 初始化一轮 SHA1 计算上下文，准备计算 SHA1 结果}
+{* 初始化一轮 SHA1 计算上下文，准备计算 SHA1 结果。
+
+   参数：
+     var Context: TCnSHA1Context          - 待初始化的 SHA1 上下文
+
+   返回值：（无）
+}
 
 procedure SHA1Update(var Context: TCnSHA1Context; Input: PAnsiChar; ByteLength: Integer);
 {* 以初始化后的上下文对一块数据进行 SHA1 计算。
-  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
+   可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
+
+   参数：
+     var Context: TCnSHA1Context          - SHA1 上下文
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Integer                  - 待计算的数据块的字节长度
+
+   返回值：（无）
+}
 
 procedure SHA1Final(var Context: TCnSHA1Context; var Digest: TCnSHA1Digest);
-{* 结束本轮计算，将 SHA1 结果返回至 Digest 中}
+{* 结束本轮计算，将 SHA1 结果返回至 Digest 中。
+
+   参数：
+     var Context: TCnSHA1Context          - SHA1 上下文
+     var Digest: TCnSHA1Digest            - 返回的 SHA1 杂凑值
+
+   返回值：（无）
+}
 
 function SHA1Print(const Digest: TCnSHA1Digest): string;
-{* 以十六进制格式输出 SHA1 计算值
- |<PRE>
-   Digest: TSHA1Digest  - 指定的 SHA1 计算值
- |</PRE>}
+{* 以十六进制格式输出 SHA1 杂凑值。
+
+   参数：
+     const Digest: TCnSHA1Digest          - 指定的 SHA1 杂凑值
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 function SHA1Match(const D1: TCnSHA1Digest; const D2: TCnSHA1Digest): Boolean;
-{* 比较两个 SHA1 计算值是否相等
- |<PRE>
-   D1: TSHA1Digest   - 需要比较的 SHA1 计算值
-   D2: TSHA1Digest   - 需要比较的 SHA1 计算值
- |</PRE>}
+{* 比较两个 SHA1 杂凑值是否相等。
+
+   参数：
+     const D1: TCnSHA1Digest              - 待比较的 SHA1 杂凑值一
+     const D2: TCnSHA1Digest              - 待比较的 SHA1 杂凑值二
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 function SHA1DigestToStr(const Digest: TCnSHA1Digest): string;
-{* SHA1 计算值转 string
- |<PRE>
-   Digest: TSHA1Digest   - 需要转换的 SHA1 计算值
- |</PRE>}
+{* SHA1 杂凑值内容直接转 string，每字节对应一字符。
 
-procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+   参数：
+     const Digest: TCnSHA1Digest          - 待转换的 SHA1 杂凑值
+
+   返回值：string                         - 返回的字符串
+}
+
+procedure SHA1Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA1Digest);
+{* 基于 SHA1 的 HMAC（Hash-based Message Authentication Code）计算，
+   在普通数据的计算上加入密钥的概念，也叫加盐。
 
-{* Hash-based Message Authentication Code (based on SHA1) }
+   参数：
+     Key: PAnsiChar                       - 待参与 SHA1 计算的密钥数据块地址
+     KeyByteLength: Integer               - 待参与 SHA1 计算的密钥数据块字节长度
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+     var Output: TCnSHA1Digest            - 返回的 SHA1 杂凑值
+
+   返回值：（无）
+}
 
 implementation
 
@@ -586,13 +655,13 @@ begin
   end;
 end;
 
-// 以十六进制格式输出 SHA1 计算值
+// 以十六进制格式输出 SHA1 杂凑值
 function SHA1Print(const Digest: TCnSHA1Digest): string;
 begin
   Result := DataToHex(@Digest[0], SizeOf(TCnSHA1Digest));
 end;
 
-// 比较两个 SHA1 计算值是否相等
+// 比较两个 SHA1 杂凑值是否相等
 function SHA1Match(const D1, D2: TCnSHA1Digest): Boolean;
 var
   I: Integer;
@@ -606,7 +675,7 @@ begin
   end;
 end;
 
-// SHA1 计算值转 string
+// SHA1 杂凑值转 string
 function SHA1DigestToStr(const Digest: TCnSHA1Digest): string;
 begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnSHA1Digest));
@@ -655,12 +724,12 @@ begin
   SHA1Final(Ctx, Output);
 end;
 
-procedure SHA1Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+procedure SHA1Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA1Digest);
 var
   Ctx: TCnSHA1Context;
 begin
-  SHA1HmacInit(Ctx, Key, KeyLength);
+  SHA1HmacInit(Ctx, Key, KeyByteLength);
   SHA1HmacUpdate(Ctx, Input, ByteLength);
   SHA1HmacFinal(Ctx, Output);
 end;

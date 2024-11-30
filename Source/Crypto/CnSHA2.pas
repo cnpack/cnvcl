@@ -58,21 +58,22 @@ type
 
   PCnSHA224Digest = ^TCnSHA224Digest;
   TCnSHA224Digest = array[0..27] of Byte;
-  {* SHA224 杂凑结果类型}
+  {* SHA224 杂凑结果，28 字节}
 
   PCnSHA256Digest = ^TCnSHA256Digest;
   TCnSHA256Digest = array[0..31] of Byte;
-  {* SHA256 杂凑结果类型}
+  {* SHA256 杂凑结果，32 字节}
 
   PCnSHA384Digest = ^TCnSHA384Digest;
   TCnSHA384Digest = array[0..47] of Byte;
-  {* SHA384 杂凑结果类型}
+  {* SHA384 杂凑结果，48 字节}
 
   PCnSHA512Digest = ^TCnSHA512Digest;
   TCnSHA512Digest = array[0..63] of Byte;
-  {* SHA512 杂凑结果类型}
+  {* SHA512 杂凑结果，64 字节}
 
   TCnSHA256Context = packed record
+  {* SHA256 的上下文结构}
     DataLen: Cardinal;
     Data: array[0..63] of Byte;
     BitLen: Int64;
@@ -82,8 +83,10 @@ type
   end;
 
   TCnSHA224Context = TCnSHA256Context;
+  {* SHA224 的上下文结构}
 
   TCnSHA512Context = packed record
+  {* SHA512 的上下文结构}
     DataLen: Cardinal;
     Data: array[0..127] of Byte;
     TotalLen: Int64;
@@ -93,422 +96,717 @@ type
   end;
 
   TCnSHA384Context = TCnSHA512Context;
+  {* SHA512 的上下文结构}
 
   TCnSHACalcProgressFunc = procedure(ATotal, AProgress: Int64; var Cancel:
     Boolean) of object;
-  {* 进度回调事件类型声明}
+  {* 各类 SHA2 系列杂凑进度回调事件类型声明}
 
 function SHA224(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA224Digest;
-{* 对数据块进行 SHA224 计算
- |<PRE>
-   Input: PAnsiChar      - 要计算的数据块的首地址
-   ByteLength: Cardinal  - 数据块的字节长度
- |</PRE>}
+{* 对数据块进行 SHA224 计算。
+
+   参数：
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+
+   返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
+}
 
 function SHA256(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA256Digest;
-{* 对数据块进行 SHA256 计算
- |<PRE>
-   Input: PAnsiChar      - 要计算的数据块的首地址
-   ByteLength: Cardinal  - 数据块的字节长度
- |</PRE>}
+{* 对数据块进行 SHA256 计算。
+
+   参数：
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+
+   返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
+}
 
 function SHA384(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA384Digest;
-{* 对数据块进行 SHA384 计算
- |<PRE>
-   Input: PAnsiChar      - 要计算的数据块的首地址
-   ByteLength: Cardinal  - 数据块的字节长度
- |</PRE>}
+{* 对数据块进行 SHA384 计算。
+
+   参数：
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+
+   返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
+}
 
 function SHA512(Input: PAnsiChar; ByteLength: Cardinal): TCnSHA512Digest;
-{* 对数据块进行 SHA512 计算
- |<PRE>
-   Input: PAnsiChar      - 要计算的数据块的首地址
-   ByteLength: Cardinal  - 数据块的字节长度
- |</PRE>}
+{* 对数据块进行 SHA512 计算。
+
+   参数：
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+
+   返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
+}
 
 function SHA224Buffer(const Buffer; Count: Cardinal): TCnSHA224Digest;
-{* 对数据块进行 SHA224 计算
- |<PRE>
-   const Buffer     - 要计算的数据块，一般传个地址
-   Count: LongWord  - 数据块长度
- |</PRE>}
+{* 对数据块进行 SHA224 计算。
+
+   参数：
+     const Buffer                         - 待计算的数据块地址
+     Count: Cardinal                      - 待计算的数据块字节长度
+
+   返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
+}
 
 function SHA256Buffer(const Buffer; Count: Cardinal): TCnSHA256Digest;
-{* 对数据块进行 SHA256 计算
- |<PRE>
-   const Buffer     - 要计算的数据块，一般传个地址
-   Count: LongWord  - 数据块长度
- |</PRE>}
+{* 对数据块进行 SHA256 计算。
+
+   参数：
+     const Buffer                         - 待计算的数据块地址
+     Count: Cardinal                      -
+
+   返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
+}
 
 function SHA384Buffer(const Buffer; Count: Cardinal): TCnSHA384Digest;
-{* 对数据块进行 SHA384 计算
- |<PRE>
-   const Buffer     - 要计算的数据块，一般传个地址
-   Count: LongWord  - 数据块长度
- |</PRE>}
+{* 对数据块进行 SHA384 计算。
+
+   参数：
+     const Buffer                         - 待计算的数据块地址
+     Count: Cardinal                      -
+
+   返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
+}
 
 function SHA512Buffer(const Buffer; Count: Cardinal): TCnSHA512Digest;
-{* 对数据块进行 SHA512 计算
- |<PRE>
-   const Buffer     - 要计算的数据块，一般传个地址
-   Count: LongWord  - 数据块长度
- |</PRE>}
+{* 对数据块进行 SHA512 计算。
+
+   参数：
+     const Buffer                         - 待计算的数据块地址
+     Count: Cardinal                      -
+
+   返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
+}
 
 function SHA224Bytes(Data: TBytes): TCnSHA224Digest;
-{* 对字节数组进行 SHA224 计算
- |<PRE>
-   Data     - 要计算的字节数组
- |</PRE>}
+{* 对字节数组进行 SHA224 计算。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
+}
 
 function SHA256Bytes(Data: TBytes): TCnSHA256Digest;
-{* 对字节数组进行 SHA256 计算
- |<PRE>
-   Data     - 要计算的字节数组
- |</PRE>}
+{* 对字节数组进行 SHA256 计算。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
+}
 
 function SHA384Bytes(Data: TBytes): TCnSHA384Digest;
-{* 对字节数组进行 SHA384 计算
- |<PRE>
-   Data     - 要计算的字节数组
- |</PRE>}
+{* 对字节数组进行 SHA384 计算。
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
+}
 
 function SHA512Bytes(Data: TBytes): TCnSHA512Digest;
-{* 对字节数组进行 SHA512 计算
- |<PRE>
-   Data     - 要计算的字节数组
- |</PRE>}
+{* 对字节数组进行 SHA512 计算。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
+}
 
 function SHA224String(const Str: string): TCnSHA224Digest;
 {* 对 String 类型数据进行 SHA224 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
-   代码中会将其转换成 AnsiString 进行计算
- |<PRE>
-   Str: string       - 要计算的字符串
- |</PRE>}
+   代码中会将其强行转换成 AnsiString 进行计算。
+
+   参数：
+     const Str: string                    - 待计算的字符串
+
+   返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
+}
 
 function SHA256String(const Str: string): TCnSHA256Digest;
 {* 对 String 类型数据进行 SHA256 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
-   代码中会将其转换成 AnsiString 进行计算
- |<PRE>
-   Str: string       - 要计算的字符串
- |</PRE>}
+   代码中会将其强行转换成 AnsiString 进行计算。
+
+   参数：
+     const Str: string                    - 待计算的字符串
+
+   返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
+}
 
 function SHA384String(const Str: string): TCnSHA384Digest;
 {* 对 String 类型数据进行 SHA384 计算，注意 D2009或以上版本的string 为 UnicodeString，
-   代码中会将其转换成 AnsiString 进行计算
- |<PRE>
-   Str: string       - 要计算的字符串
- |</PRE>}
+   代码中会将其强行转换成 AnsiString 进行计算。
+
+   参数：
+     const Str: string                    - 待计算的字符串
+
+   返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
+}
 
 function SHA512String(const Str: string): TCnSHA512Digest;
 {* 对 String 类型数据进行 SHA512 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
-   代码中会将其转换成 AnsiString 进行计算
- |<PRE>
-   Str: string       - 要计算的字符串
- |</PRE>}
+   代码中会将其强行转换成 AnsiString 进行计算。
+
+   参数：
+     const Str: string                    - 待计算的字符串
+
+   返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
+}
+
+
+function SHA224StringA(const Str: AnsiString): TCnSHA224Digest;
+{* 对 AnsiString 类型数据进行 SHA224 计算。
+
+   参数：
+     const Str: AnsiString                -
+
+   返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
+}
+
+function SHA224StringW(const Str: WideString): TCnSHA224Digest;
+{* 对 WideString 类型数据进行 SHA224 计算。
+   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   其他平台会直接转换为 AnsiString 类型，再进行计算。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
+}
+
+function SHA256StringA(const Str: AnsiString): TCnSHA256Digest;
+{* 对 AnsiString 类型数据进行 SHA256 计算。
+
+   参数：
+     const Str: AnsiString                -
+
+   返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
+}
+
+function SHA256StringW(const Str: WideString): TCnSHA256Digest;
+{* 对 WideString 类型数据进行 SHA256 计算。
+   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   其他平台会直接转换为 AnsiString 类型，再进行计算。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
+}
+
+function SHA384StringA(const Str: AnsiString): TCnSHA384Digest;
+{* 对 AnsiString 类型数据进行 SHA384 计算。
+
+   参数：
+     const Str: AnsiString                -
+
+   返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
+}
+
+function SHA384StringW(const Str: WideString): TCnSHA384Digest;
+{* 对 WideString 类型数据进行 SHA384 计算。
+   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   其他平台会直接转换为 AnsiString 类型，再进行计算。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
+}
+
+function SHA512StringA(const Str: AnsiString): TCnSHA512Digest;
+{* 对 AnsiString 类型数据进行 SHA512 计算。
+
+   参数：
+     const Str: AnsiString                -
+
+   返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
+}
+
+function SHA512StringW(const Str: WideString): TCnSHA512Digest;
+{* 对 WideString 类型数据进行 SHA512 计算。
+   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   其他平台会直接转换为 AnsiString 类型，再进行计算。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
+}
 
 {$IFDEF UNICODE}
 
 function SHA224UnicodeString(const Str: string): TCnSHA224Digest;
-{* 对 UnicodeString 类型数据进行直接的 SHA224 计算，不进行转换
- |<PRE>
-   Str: UnicodeString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 SHA224 计算，直接计算内部 UTF16 内容，不进行转换。
+
+   参数：
+     const Str: string                    - 待计算的宽字符串
+
+   返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
+}
 
 function SHA256UnicodeString(const Str: string): TCnSHA256Digest;
-{* 对 UnicodeString 类型数据进行直接的 SHA256 计算，不进行转换
- |<PRE>
-   Str: UnicodeString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 SHA256 计算，直接计算内部 UTF16 内容，不进行转换。
+
+   参数：
+     const Str: string                    - 待计算的宽字符串
+
+   返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
+}
 
 function SHA384UnicodeString(const Str: string): TCnSHA384Digest;
-{* 对 UnicodeString 类型数据进行直接的 SHA384 计算，不进行转换
- |<PRE>
-   Str: UnicodeString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 SHA384 计算，直接计算内部 UTF16 内容，不进行转换。
+
+   参数：
+     const Str: string                    - 待计算的宽字符串
+
+   返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
+}
 
 function SHA512UnicodeString(const Str: string): TCnSHA512Digest;
-{* 对 UnicodeString 类型数据进行直接的 SHA512 计算，不进行转换
- |<PRE>
-   Str: UnicodeString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 SHA512 计算，直接计算内部 UTF16 内容，不进行转换。
+
+   参数：
+     const Str: string                    - 待计算的宽字符串
+
+   返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
+}
 
 {$ELSE}
 
 function SHA224UnicodeString(const Str: WideString): TCnSHA224Digest;
-{* 对 UnicodeString 类型数据进行直接的 SHA224 计算，不进行转换
- |<PRE>
-   Str: WideString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 SHA224 计算，直接计算内部 UTF16 内容，不进行转换。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
+}
 
 function SHA256UnicodeString(const Str: WideString): TCnSHA256Digest;
-{* 对 UnicodeString 类型数据进行直接的 SHA256 计算，不进行转换
- |<PRE>
-   Str: WideString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 SHA256 计算，直接计算内部 UTF16 内容，不进行转换。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
+}
 
 function SHA384UnicodeString(const Str: WideString): TCnSHA384Digest;
-{* 对 UnicodeString 类型数据进行直接的 SHA384 计算，不进行转换
- |<PRE>
-   Str: WideString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 SHA384 计算，直接计算内部 UTF16 内容，不进行转换。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
+}
 
 function SHA512UnicodeString(const Str: WideString): TCnSHA512Digest;
-{* 对 UnicodeString 类型数据进行直接的 SHA512 计算，不进行转换
- |<PRE>
-   Str: WideString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 SHA512 计算，直接计算内部 UTF16 内容，不进行转换。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
+}
 
 {$ENDIF}
 
-function SHA224StringA(const Str: AnsiString): TCnSHA224Digest;
-{* 对 AnsiString 类型数据进行 SHA224 计算
- |<PRE>
-   Str: AnsiString       - 要计算的字符串
- |</PRE>}
-
-function SHA224StringW(const Str: WideString): TCnSHA224Digest;
-{* 对 WideString 类型数据进行 SHA224 计算，计算前会调用 WideCharToMultyByte 进行转换
- |<PRE>
-   Str: WideString       - 要计算的字符串
- |</PRE>}
-
-function SHA256StringA(const Str: AnsiString): TCnSHA256Digest;
-{* 对 AnsiString 类型数据进行 SHA256 计算
- |<PRE>
-   Str: AnsiString       - 要计算的字符串
- |</PRE>}
-
-function SHA256StringW(const Str: WideString): TCnSHA256Digest;
-{* 对 WideString 类型数据进行 SHA256 计算，计算前会调用 WideCharToMultyByte 进行转换
- |<PRE>
-   Str: WideString       - 要计算的字符串
- |</PRE>}
-
-function SHA384StringA(const Str: AnsiString): TCnSHA384Digest;
-{* 对 AnsiString 类型数据进行 SHA384 计算
- |<PRE>
-   Str: AnsiString       - 要计算的字符串
- |</PRE>}
-
-function SHA384StringW(const Str: WideString): TCnSHA384Digest;
-{* 对 WideString 类型数据进行 SHA384 计算，计算前会调用 WideCharToMultyByte 进行转换
- |<PRE>
-   Str: WideString       - 要计算的字符串
- |</PRE>}
-
-function SHA512StringA(const Str: AnsiString): TCnSHA512Digest;
-{* 对 AnsiString 类型数据进行 SHA512 计算
-|<PRE>
- Str: AnsiString       - 要计算的字符串
-|</PRE>}
-
-function SHA512StringW(const Str: WideString): TCnSHA512Digest;
-{* 对 WideString 类型数据进行 SHA512 计算，计算前会调用 WideCharToMultyByte 进行转换
-|<PRE>
- Str: WideString       - 要计算的字符串
-|</PRE>}
-
 function SHA224File(const FileName: string; CallBack: TCnSHACalcProgressFunc =
   nil): TCnSHA224Digest;
-{* 对指定文件内容进行 SHA256 计算
- |<PRE>
-   FileName: string  - 要计算的文件名
-   CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定文件内容进行 SHA256 计算。
+
+   参数：
+     const FileName: string               - 待计算的文件名
+     CallBack: TCnSHACalcProgressFunc     - 进度回调函数，默认为空
+
+   返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
+}
 
 function SHA224Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc = nil):
   TCnSHA224Digest;
-{* 对指定流数据进行 SHA224 计算
- |<PRE>
-   Stream: TStream  - 要计算的流内容
-   CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定流数据进行 SHA224 计算。
+
+   参数：
+     Stream: TStream                      - 待计算的流内容
+     CallBack: TCnSHACalcProgressFunc     - 进度回调函数，默认为空
+
+   返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
+}
 
 function SHA256File(const FileName: string; CallBack: TCnSHACalcProgressFunc =
   nil): TCnSHA256Digest;
-{* 对指定文件内容进行 SHA256 计算
- |<PRE>
-   FileName: string  - 要计算的文件名
-   CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定文件内容进行 SHA256 计算。
+
+   参数：
+     const FileName: string               - 待计算的文件名
+     CallBack: TCnSHACalcProgressFunc     - 进度回调函数，默认为空
+
+   返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
+}
 
 function SHA256Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc = nil):
   TCnSHA256Digest;
-{* 对指定流数据进行 SHA256 计算
- |<PRE>
-   Stream: TStream  - 要计算的流内容
-   CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定流数据进行 SHA256 计算。
+
+   参数：
+     Stream: TStream                      - 待计算的流内容
+     CallBack: TCnSHACalcProgressFunc     - 进度回调函数，默认为空
+
+   返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
+}
 
 function SHA384File(const FileName: string; CallBack: TCnSHACalcProgressFunc =
   nil): TCnSHA384Digest;
-{* 对指定文件内容进行 SHA384 计算
- |<PRE>
-   FileName: string  - 要计算的文件名
-   CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定文件内容进行 SHA384 计算。
+
+   参数：
+     const FileName: string               - 待计算的文件名
+     CallBack: TCnSHACalcProgressFunc     - 进度回调函数，默认为空
+
+   返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
+}
 
 function SHA384Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc = nil):
   TCnSHA384Digest;
-{* 对指定流数据进行 SHA384 计算
- |<PRE>
-   Stream: TStream  - 要计算的流内容
-   CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定流数据进行 SHA384 计算。
+
+   参数：
+     Stream: TStream                      - 待计算的流内容
+     CallBack: TCnSHACalcProgressFunc     - 进度回调函数，默认为空
+
+   返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
+}
 
 function SHA512File(const FileName: string; CallBack: TCnSHACalcProgressFunc =
   nil): TCnSHA512Digest;
-{* 对指定文件内容进行 SHA512 计算
- |<PRE>
-   FileName: string  - 要计算的文件名
-   CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定文件内容进行 SHA512 计算。
+
+   参数：
+     const FileName: string               - 待计算的文件名
+     CallBack: TCnSHACalcProgressFunc     - 进度回调函数，默认为空
+
+   返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
+}
 
 function SHA512Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc = nil):
   TCnSHA512Digest;
-{* 对指定流数据进行 SHA512 计算
- |<PRE>
-   Stream: TStream  - 要计算的流内容
-   CallBack: TSHACalcProgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定流数据进行 SHA512 计算。
+
+   参数：
+     Stream: TStream                      - 待计算的流内容
+     CallBack: TCnSHACalcProgressFunc     - 进度回调函数，默认为空
+
+   返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
+}
 
 // 以下三个函数用于外部持续对数据进行零散的 SHA224 计算，SHA224Update 可多次被调用
 
 procedure SHA224Init(var Context: TCnSHA224Context);
-{* 初始化一轮 SHA224 计算上下文，准备计算 SHA224 结果}
+{* 初始化一轮 SHA224 计算上下文，准备计算 SHA224 结果。
+
+   参数：
+     var Context: TCnSHA224Context        - 待初始化的 SHA224 上下文
+
+   返回值：（无）
+}
 
 procedure SHA224Update(var Context: TCnSHA224Context; Input: PAnsiChar; ByteLength: Cardinal);
 {* 以初始化后的上下文对一块数据进行 SHA224 计算。
-  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
+   可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
+
+   参数：
+     var Context: TCnSHA224Context        - SHA224 上下文
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块的字节长度
+
+   返回值：（无）
+}
 
 procedure SHA224Final(var Context: TCnSHA224Context; var Digest: TCnSHA224Digest);
-{* 结束本轮计算，将 SHA224 结果返回至 Digest 中}
+{* 结束本轮计算，将 SHA224 结果返回至 Digest 中。
+
+   参数：
+     var Context: TCnSHA224Context        - SHA224 上下文
+     var Digest: TCnSHA224Digest          - 返回的 SHA224 杂凑值
+
+   返回值：（无）
+}
 
 // 以下三个函数用于外部持续对数据进行零散的 SHA256 计算，SHA256Update 可多次被调用
 
 procedure SHA256Init(var Context: TCnSHA256Context);
-{* 初始化一轮 SHA256 计算上下文，准备计算 SHA256 结果}
+{* 初始化一轮 SHA256 计算上下文，准备计算 SHA256 结果。
+
+   参数：
+     var Context: TCnSHA256Context        - 待初始化的 SHA256 上下文
+
+   返回值：（无）
+}
 
 procedure SHA256Update(var Context: TCnSHA256Context; Input: PAnsiChar; ByteLength: Cardinal);
 {* 以初始化后的上下文对一块数据进行 SHA256 计算。
-  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
+   可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
+
+   参数：
+     var Context: TCnSHA256Context        - SHA256 上下文
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块的字节长度
+
+   返回值：（无）
+}
 
 procedure SHA256Final(var Context: TCnSHA256Context; var Digest: TCnSHA256Digest);
-{* 结束本轮计算，将 SHA256 结果返回至 Digest 中}
+{* 结束本轮计算，将 SHA256 结果返回至 Digest 中。
+
+   参数：
+     var Context: TCnSHA256Context        - SHA256 上下文
+     var Digest: TCnSHA256Digest          - 返回的 SHA256 杂凑值
+
+   返回值：（无）
+}
 
 // 以下三个函数用于外部持续对数据进行零散的 SHA384 计算，SHA384Update 可多次被调用
 
 procedure SHA384Init(var Context: TCnSHA384Context);
-{* 初始化一轮 SHA384 计算上下文，准备计算 SHA384 结果}
+{* 初始化一轮 SHA384 计算上下文，准备计算 SHA384 结果。
+
+   参数：
+     var Context: TCnSHA384Context        - 待初始化的 SHA384 上下文
+
+   返回值：（无）
+}
 
 procedure SHA384Update(var Context: TCnSHA384Context; Input: PAnsiChar; ByteLength: Cardinal);
 {* 以初始化后的上下文对一块数据进行 SHA384 计算。
-  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
+   可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
+
+   参数：
+     var Context: TCnSHA384Context        - SHA384 上下文
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块的字节长度
+
+   返回值：（无）
+}
 
 procedure SHA384Final(var Context: TCnSHA384Context; var Digest: TCnSHA384Digest);
-{* 结束本轮计算，将 SHA384 结果返回至 Digest 中}
+{* 结束本轮计算，将 SHA384 结果返回至 Digest 中。
+
+   参数：
+     var Context: TCnSHA384Context        - SHA384 上下文
+     var Digest: TCnSHA384Digest          - 返回的 SHA384 杂凑值
+
+   返回值：（无）
+}
 
 // 以下三个函数用于外部持续对数据进行零散的 SHA512 计算，SHA512Update 可多次被调用
 
 procedure SHA512Init(var Context: TCnSHA512Context);
-{* 初始化一轮 SHA512 计算上下文，准备计算 SHA512 结果}
+{* 初始化一轮 SHA512 计算上下文，准备计算 SHA512 结果。
+
+   参数：
+     var Context: TCnSHA512Context        - 待初始化的 SHA512 上下文
+
+   返回值：（无）
+}
 
 procedure SHA512Update(var Context: TCnSHA512Context; Input: PAnsiChar; ByteLength: Cardinal);
 {* 以初始化后的上下文对一块数据进行 SHA512 计算。
-  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
+   可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
+
+   参数：
+     var Context: TCnSHA512Context        - SHA512 上下文
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块的字节长度
+
+   返回值：（无）
+}
 
 procedure SHA512Final(var Context: TCnSHA512Context; var Digest: TCnSHA512Digest);
-{* 结束本轮计算，将 SHA512 结果返回至 Digest 中}
+{* 结束本轮计算，将 SHA512 结果返回至 Digest 中
+
+   参数：
+     var Context: TCnSHA512Context        - SHA512 上下文
+     var Digest: TCnSHA512Digest          - 返回的 SHA512 杂凑值
+
+   返回值：（无）
+}
 
 function SHA224Print(const Digest: TCnSHA224Digest): string;
-{* 以十六进制格式输出 SHA224 计算值
- |<PRE>
-   Digest: TSHA224Digest  - 指定的 SHA224 计算值
- |</PRE>}
+{* 以十六进制格式输出 SHA224 杂凑值。
+
+   参数：
+     const Digest: TCnSHA224Digest        - 指定的 SHA224 杂凑值
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 function SHA256Print(const Digest: TCnSHA256Digest): string;
-{* 以十六进制格式输出 SHA256 计算值
- |<PRE>
-   Digest: TSHA256Digest  - 指定的 SHA256 计算值
- |</PRE>}
+{* 以十六进制格式输出 SHA256 杂凑值。
+
+   参数：
+     const Digest: TCnSHA256Digest        - 指定的 SHA256 杂凑值
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 function SHA384Print(const Digest: TCnSHA384Digest): string;
-{* 以十六进制格式输出 SHA384 计算值
- |<PRE>
-   Digest: TSHA384Digest  - 指定的 SHA384 计算值
- |</PRE>}
+{* 以十六进制格式输出 SHA384 杂凑值。
+
+   参数：
+     const Digest: TCnSHA384Digest        - 指定的 SHA384 杂凑值
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 function SHA512Print(const Digest: TCnSHA512Digest): string;
-{* 以十六进制格式输出 SHA512 计算值
- |<PRE>
-   Digest: TSHA512Digest  - 指定的 SHA512 计算值
- |</PRE>}
+{* 以十六进制格式输出 SHA512 杂凑值。
+
+   参数：
+     const Digest: TCnSHA512Digest        - 指定的 SHA512 杂凑值
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 function SHA224Match(const D1: TCnSHA224Digest; const D2: TCnSHA224Digest): Boolean;
-{* 比较两个 SHA224 计算值是否相等
- |<PRE>
-   D1: TSHA224Digest   - 需要比较的 SHA224 计算值
-   D2: TSHA224Digest   - 需要比较的 SHA224 计算值
- |</PRE>}
+{* 比较两个 SHA224 杂凑值是否相等。
+
+   参数：
+     const D1: TCnSHA224Digest            - 待比较的 SHA224 杂凑值一
+     const D2: TCnSHA224Digest            - 待比较的 SHA224 杂凑值二
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 function SHA256Match(const D1: TCnSHA256Digest; const D2: TCnSHA256Digest): Boolean;
-{* 比较两个 SHA256 计算值是否相等
- |<PRE>
-   D1: TSHA256Digest   - 需要比较的 SHA256 计算值
-   D2: TSHA256Digest   - 需要比较的 SHA256 计算值
- |</PRE>}
+{* 比较两个 SHA256 杂凑值是否相等。
+
+   参数：
+     const D1: TCnSHA256Digest            - 待比较的 SHA256 杂凑值一
+     const D2: TCnSHA256Digest            - 待比较的 SHA256 杂凑值二
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 function SHA384Match(const D1: TCnSHA384Digest; const D2: TCnSHA384Digest): Boolean;
-{* 比较两个 SHA384 计算值是否相等
- |<PRE>
-   D1: TSHA384Digest   - 需要比较的 SHA384 计算值
-   D2: TSHA384Digest   - 需要比较的 SHA384 计算值
- |</PRE>}
+{* 比较两个 SHA384 杂凑值是否相等。
+
+   参数：
+     const D1: TCnSHA384Digest            - 待比较的 SHA384 杂凑值一
+     const D2: TCnSHA384Digest            - 待比较的 SHA384 杂凑值二
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 function SHA512Match(const D1: TCnSHA512Digest; const D2: TCnSHA512Digest): Boolean;
-{* 比较两个 SHA512 计算值是否相等
- |<PRE>
-   D1: TSHA512Digest   - 需要比较的 SHA512 计算值
-   D2: TSHA512Digest   - 需要比较的 SHA512 计算值
- |</PRE>}
+{* 比较两个 SHA512 杂凑值是否相等。
+
+   参数：
+     const D1: TCnSHA512Digest            - 待比较的 SHA512 杂凑值一
+     const D2: TCnSHA512Digest            - 待比较的 SHA512 杂凑值二
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 function SHA224DigestToStr(const Digest: TCnSHA224Digest): string;
-{* SHA224 计算值转 string
- |<PRE>
-   Digest: TSHA224Digest   - 需要转换的 SHA224 计算值
- |</PRE>}
+{* SHA224 杂凑值内容直接转 string，每字节对应一字符。
+
+   参数：
+     const Digest: TCnSHA224Digest        - 待转换的 SHA224 杂凑值
+
+   返回值：string                         - 返回的字符串
+}
 
 function SHA256DigestToStr(const Digest: TCnSHA256Digest): string;
-{* SHA256 计算值转 string
- |<PRE>
-   Digest: TSHA256Digest   - 需要转换的 SHA256 计算值
- |</PRE>}
+{* SHA256 杂凑值内容直接转 string，每字节对应一字符。
+
+   参数：
+     const Digest: TCnSHA256Digest        - 待转换的 SHA256 杂凑值
+
+   返回值：string                         - 返回的字符串
+}
 
 function SHA384DigestToStr(const Digest: TCnSHA384Digest): string;
-{* SHA384 计算值转 string
- |<PRE>
-   Digest: TSHA384Digest   - 需要转换的 SHA384 计算值
- |</PRE>}
+{* SHA384 杂凑值内容直接转 string，每字节对应一字符。
+
+   参数：
+     const Digest: TCnSHA384Digest        - 待转换的 SHA384 杂凑值
+
+   返回值：string                         - 返回的字符串
+}
 
 function SHA512DigestToStr(const Digest: TCnSHA512Digest): string;
-{* SHA512 计算值转 string
- |<PRE>
-   Digest: TSHA512Digest   - 需要转换的 SHA512 计算值
- |</PRE>}
+{* SHA512 杂凑值内容直接转 string，每字节对应一字符。
 
-procedure SHA224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+   参数：
+     const Digest: TCnSHA512Digest        - 待转换的 SHA512 杂凑值
+
+   返回值：string                         - 返回的字符串
+}
+
+procedure SHA224Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA224Digest);
+{* 基于 SHA224 的 HMAC（Hash-based Message Authentication Code）计算，
+   在普通数据的计算上加入密钥的概念，也叫加盐。
 
-procedure SHA256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+   参数：
+     Key: PAnsiChar                       - 待参与 SHA224 计算的密钥数据块地址
+     KeyByteLength: Integer               - 待参与 SHA224 计算的密钥数据块字节长度
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+     var Output: TCnSHA224Digest          - 返回的 SHA224 杂凑值
+
+   返回值：（无）
+}
+
+procedure SHA256Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA256Digest);
+{* 基于 SHA256 的 HMAC（Hash-based Message Authentication Code）计算，
+   在普通数据的计算上加入密钥的概念，也叫加盐。
 
-procedure SHA384Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+   参数：
+     Key: PAnsiChar                       - 待参与 SHA256 计算的密钥数据块地址
+     KeyByteLength: Integer               - 待参与 SHA256 计算的密钥数据块字节长度
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+     var Output: TCnSHA256Digest          - 返回的 SHA256 杂凑值
+
+   返回值：（无）
+}
+
+procedure SHA384Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA384Digest);
+{* 基于 SHA384 的 HMAC（Hash-based Message Authentication Code）计算，
+   在普通数据的计算上加入密钥的概念，也叫加盐。
 
-procedure SHA512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+   参数：
+     Key: PAnsiChar                       - 待参与 SHA384 计算的密钥数据块地址
+     KeyByteLength: Integer               - 待参与 SHA384 计算的密钥数据块字节长度
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+     var Output: TCnSHA384Digest          - 返回的 SHA384 杂凑值
+
+   返回值：（无）
+}
+
+procedure SHA512Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA512Digest);
+{* 基于 SHA512 的 HMAC（Hash-based Message Authentication Code）计算，
+   在普通数据的计算上加入密钥的概念，也叫加盐。
 
-{* Hash-based Message Authentication Code (based on SHA224/256/384/512) }
+   参数：
+     Key: PAnsiChar                       - 待参与 SHA512 计算的密钥数据块地址
+     KeyByteLength: Integer               - 待参与 SHA512 计算的密钥数据块字节长度
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+     var Output: TCnSHA512Digest          - 返回的 SHA512 杂凑值
+
+   返回值：（无）
+}
 
 implementation
 
@@ -1723,31 +2021,31 @@ begin
   Move(Dig[0], Result[0], SizeOf(TCnSHA512Digest));
 end;
 
-// 以十六进制格式输出 SHA224 计算值
+// 以十六进制格式输出 SHA224 杂凑值
 function SHA224Print(const Digest: TCnSHA224Digest): string;
 begin
   Result := DataToHex(@Digest[0], SizeOf(TCnSHA224Digest));
 end;
 
-// 以十六进制格式输出 SHA256 计算值
+// 以十六进制格式输出 SHA256 杂凑值
 function SHA256Print(const Digest: TCnSHA256Digest): string;
 begin
   Result := DataToHex(@Digest[0], SizeOf(TCnSHA256Digest));
 end;
 
-// 以十六进制格式输出 SHA384 计算值
+// 以十六进制格式输出 SHA384 杂凑值
 function SHA384Print(const Digest: TCnSHA384Digest): string;
 begin
   Result := DataToHex(@Digest[0], SizeOf(TCnSHA384Digest));
 end;
 
-// 以十六进制格式输出 SHA512 计算值
+// 以十六进制格式输出 SHA512 杂凑值
 function SHA512Print(const Digest: TCnSHA512Digest): string;
 begin
   Result := DataToHex(@Digest[0], SizeOf(TCnSHA512Digest));
 end;
 
-// 比较两个 SHA224 计算值是否相等
+// 比较两个 SHA224 杂凑值是否相等
 function SHA224Match(const D1, D2: TCnSHA224Digest): Boolean;
 var
   I: Integer;
@@ -1761,7 +2059,7 @@ begin
   end;
 end;
 
-// 比较两个 SHA256 计算值是否相等
+// 比较两个 SHA256 杂凑值是否相等
 function SHA256Match(const D1, D2: TCnSHA256Digest): Boolean;
 var
   I: Integer;
@@ -1775,7 +2073,7 @@ begin
   end;
 end;
 
-// 比较两个 SHA384 计算值是否相等
+// 比较两个 SHA384 杂凑值是否相等
 function SHA384Match(const D1, D2: TCnSHA384Digest): Boolean;
 var
   I: Integer;
@@ -1789,7 +2087,7 @@ begin
   end;
 end;
 
-// 比较两个 SHA512 计算值是否相等
+// 比较两个 SHA512 杂凑值是否相等
 function SHA512Match(const D1, D2: TCnSHA512Digest): Boolean;
 var
   I: Integer;
@@ -1803,25 +2101,25 @@ begin
   end;
 end;
 
-// SHA224 计算值转 string
+// SHA224 杂凑值转 string
 function SHA224DigestToStr(const Digest: TCnSHA224Digest): string;
 begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnSHA224Digest));
 end;
 
-// SHA256 计算值转 string
+// SHA256 杂凑值转 string
 function SHA256DigestToStr(const Digest: TCnSHA256Digest): string;
 begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnSHA256Digest));
 end;
 
-// SHA384 计算值转 string
+// SHA384 杂凑值转 string
 function SHA384DigestToStr(const Digest: TCnSHA384Digest): string;
 begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnSHA384Digest));
 end;
 
-// SHA512 计算值转 string
+// SHA512 杂凑值转 string
 function SHA512DigestToStr(const Digest: TCnSHA512Digest): string;
 begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnSHA512Digest));
@@ -1915,22 +2213,22 @@ begin
   SHA256Final(Context, Output);
 end;
 
-procedure SHA224Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+procedure SHA224Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA224Digest);
 var
   Context: TCnSHA224Context;
 begin
-  SHA224HmacInit(Context, Key, KeyLength);
+  SHA224HmacInit(Context, Key, KeyByteLength);
   SHA224HmacUpdate(Context, Input, ByteLength);
   SHA224HmacFinal(Context, Output);
 end;
 
-procedure SHA256Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+procedure SHA256Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA256Digest);
 var
   Context: TCnSHA256Context;
 begin
-  SHA256HmacInit(Context, Key, KeyLength);
+  SHA256HmacInit(Context, Key, KeyByteLength);
   SHA256HmacUpdate(Context, Input, ByteLength);
   SHA256HmacFinal(Context, Output);
 end;
@@ -1979,12 +2277,12 @@ begin
   SHA384Final(Context, Output);
 end;
 
-procedure SHA384Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+procedure SHA384Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA384Digest);
 var
   Context: TCnSHA384Context;
 begin
-  SHA384HmacInit(Context, Key, KeyLength);
+  SHA384HmacInit(Context, Key, KeyByteLength);
   SHA384HmacUpdate(Context, Input, ByteLength);
   SHA384HmacFinal(Context, Output);
 end;
@@ -2033,12 +2331,12 @@ begin
   SHA512Final(Context, Output);
 end;
 
-procedure SHA512Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+procedure SHA512Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA512Digest);
 var
   Context: TCnSHA512Context;
 begin
-  SHA512HmacInit(Context, Key, KeyLength);
+  SHA512HmacInit(Context, Key, KeyByteLength);
   SHA512HmacUpdate(Context, Input, ByteLength);
   SHA512HmacFinal(Context, Output);
 end;

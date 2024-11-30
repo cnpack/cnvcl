@@ -790,7 +790,7 @@ type
     }
 
     procedure MultiplePoint(K: TCnBigNumber; P: TCnEccPoint); override;
-    {* 重载父类的普通点乘，内部改用扩展四元快速乘。
+    {* 重载父类的普通点乘，内部改用扩展四元快速乘法。
 
        参数：
          K: TCnBigNumber                      - 乘数，形式是大数
@@ -1451,38 +1451,115 @@ function CnEcc4PointToEccPoint(DestPoint: TCnEccPoint; SourcePoint: TCnEcc4Point
 // ========================= 25519 椭圆曲线辅助函数 ============================
 
 procedure CnCurve25519PointToEd25519Point(DestPoint: TCnEccPoint; SourcePoint: TCnEccPoint);
-{* 将 Curve25519 的坐标点转换为 Ed25519 的坐标点，Source 和 Dest 可以相同}
+{* 将 Curve25519 的坐标点转换为 Ed25519 的坐标点，Source 和 Dest 可以相同。
+
+   参数：
+     DestPoint: TCnEccPoint               - 目标 Ed25519 坐标点
+     SourcePoint: TCnEccPoint             - 源 Curve25519 坐标点
+
+   返回值：（无）
+}
 
 procedure CnEd25519PointToCurve25519Point(DestPoint: TCnEccPoint; SourcePoint: TCnEccPoint);
-{* 将 Ed25519 的坐标点转换为 Curve25519 的坐标点，Source 和 Dest 可以相同}
+{* 将 Ed25519 的坐标点转换为 Curve25519 的坐标点，Source 和 Dest 可以相同。
+
+   参数：
+     DestPoint: TCnEccPoint               - 目标 Curve25519 坐标点
+     SourcePoint: TCnEccPoint             - 源 Ed25519 坐标点
+
+   返回值：（无）
+}
 
 procedure CnCurve25519PointToData(P: TCnEccPoint; var Data: TCnCurve25519Data);
-{* 按 25519 标准将椭圆曲线点转换为压缩方式的 32 字节数组，存 X 值}
+{* 按 Curve25519 标准将椭圆曲线点转换为压缩方式的 32 字节数组，存 X 值。
+
+   参数：
+     P: TCnEccPoint                       - 待转换的 Curve25519 坐标点
+     var Data: TCnCurve25519Data          - 转换而来的结果数组
+
+   返回值：（无）
+}
 
 procedure CnCurve25519DataToPoint(Data: TCnCurve25519Data; P: TCnEccPoint);
-{* 按 25519 标准将 32 字节数组转换为椭圆曲线点压缩方式，P 中返回对应 X 值，无需求 Y}
+{* 按 Curve25519 标准将 32 字节数组转换为椭圆曲线点压缩方式，P 中返回对应 X 值，无需求 Y。
+
+   参数：
+     Data: TCnCurve25519Data              - 待转换的数组
+     P: TCnEccPoint                       - 转换而来的 Curve25519 坐标点
+
+   返回值：（无）
+}
 
 procedure CnEd25519PointToData(P: TCnEccPoint; var Data: TCnEd25519Data);
-{* 按 25519 标准将椭圆曲线点转换为压缩方式的 32 字节数组，存 Y 值与 X 的奇偶性}
+{* 按 Ed25519 标准将椭圆曲线点转换为压缩方式的 32 字节数组，存 Y 值与 X 的奇偶性
+
+   参数：
+     P: TCnEccPoint                       - 待转换的 Ed25519 坐标点
+     var Data: TCnEd25519Data             - 转换而来的结果数组
+
+   返回值：（无）
+}
 
 procedure CnEd25519DataToPoint(Data: TCnEd25519Data; P: TCnEccPoint; out XOdd: Boolean);
-{* 按 25519 标准将 32 字节数组转换为椭圆曲线点压缩方式
-  P 中返回对应 Y 值，以及 XOdd 中返回对应的 X 值是否是奇数，需要外界自行解 X}
+{* 按 Ed25519 标准将 32 字节数组转换为椭圆曲线点压缩方式。
+  P 中返回对应 Y 值，以及 XOdd 中返回对应的 X 值是否是奇数，需要外界自行解 X
+
+   参数：
+     Data: TCnEd25519Data                 - 待转换的数组
+     P: TCnEccPoint                       - 转换而来的 Ed25519 坐标点
+     out XOdd: Boolean                    - 返回对应的 X 值是否为奇数
+
+   返回值：（无）
+}
 
 procedure CnEd25519BigNumberToData(N: TCnBigNumber; var Data: TCnEd25519Data);
-{* 按 25519 标准将乘数转换为 32 字节数组，返回转换是否成功}
+{* 按 Ed25519 标准将乘数转换为 32 字节数组。
+
+   参数：
+     N: TCnBigNumber                      - 待转换的大数
+     var Data: TCnEd25519Data             - 转换而来的结果数组
+
+   返回值：（无）
+}
 
 procedure CnEd25519DataToBigNumber(Data: TCnEd25519Data; N: TCnBigNumber);
-{* 按 25519 标准将 32 字节数组转换为乘数，返回转换是否成功}
+{* 按 Ed25519 标准将 32 字节数组转换为乘数。
+
+   参数：
+     Data: TCnEd25519Data                 - 待转换的数组
+     N: TCnBigNumber                      - 转换而来的大数
+
+   返回值：（无）
+}
 
 procedure CnCurve25519BigNumberToData(N: TCnBigNumber; var Data: TCnCurve25519Data);
-{* 按 25519 标准将乘数转换为 32 字节数组，返回转换是否成功}
+{* 按 Curve25519 标准将乘数转换为 32 字节数组。
+
+   参数：
+     N: TCnBigNumber                      - 待转换的大数
+     var Data: TCnCurve25519Data          - 转换而来的结果数组
+
+   返回值：（无）
+}
 
 procedure CnCurve25519DataToBigNumber(Data: TCnCurve25519Data; N: TCnBigNumber);
-{* 按 25519 标准将 32 字节数组转换为乘数，返回转换是否成功}
+{* 按 Curve25519 标准将 32 字节数组转换为乘数。
+
+   参数：
+     Data: TCnCurve25519Data              - 待转换的数组
+     N: TCnBigNumber                      - 转换而来的大数
+
+   返回值：（无）
+}
 
 procedure CnProcess25519ScalarNumber(Num: TCnBigNumber);
-{* 按 RFC 规定处理 25519 的随机数或私钥}
+{* 按 RFC 规定处理 25519 的随机数或私钥
+
+   参数：
+     Num: TCnBigNumber                    - 待处理的随机数或私钥，形式是大数
+
+   返回值：（无）
+}
 
 // ===================== Ed25519 椭圆曲线数字签名验证算法 ======================
 
@@ -1577,145 +1654,434 @@ function CnCurve25519KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
 
 // ============================== 多项式加速算法 ===============================
 
-procedure Cn25519BigNumberToField64(var Field: TCn25519Field64; const Num: TCnBigNumber);
-{* 将一个大数转换为 2^255-19 有限域范围内的 64 位多项式系数}
+procedure Cn25519BigNumberToField64(var Field: TCn25519Field64; Num: TCnBigNumber);
+{* 将一个大数转换为 2^255-19 有限域范围内的 64 位多项式系数。
 
-procedure Cn25519Field64ToBigNumber(const Res: TCnBigNumber; var Field: TCn25519Field64);
-{* 将一个大数转换为 2^255-19 有限域范围内的 64 位多项式系数}
+   参数：
+     var Field: TCn25519Field64           - 转换而来的 64 位多项式系数
+     Num: TCnBigNumber                    - 待转换的大数
+
+   返回值：（无）
+}
+
+procedure Cn25519Field64ToBigNumber(Res: TCnBigNumber; var Field: TCn25519Field64);
+{* 将一个大数转换为 2^255-19 有限域范围内的 64 位多项式系数。
+
+   参数：
+     Res: TCnBigNumber                    - 转换而来的大数
+     var Field: TCn25519Field64           - 待转换的 64 位多项式系数
+                                                          
+   返回值：（无）
+}
 
 procedure Cn25519Field64Reduce(var Field: TCn25519Field64);
 {* 将一个 64 位多项式系数在 2^255-19 有限域范围内正规化，
-  也就是把每个系数确保比 2^51 小，大的部分进位到下一个，总值如超出有限域上界也会自动求模}
+   也就是把每个系数确保比 2^51 小，大的部分进位到下一个，总值如超出有限域上界也会自动求模。
+
+   参数：
+     var Field: TCn25519Field64           - 待正规化的 64 位多项式系数
+
+   返回值：（无）
+}
 
 function Cn25519Field64ToHex(var Field: TCn25519Field64): string;
-{* 将一个 64 位多项式系数转换为十六进制字符串}
+{* 将一个 64 位多项式系数转换为十六进制字符串。
+
+   参数：
+     var Field: TCn25519Field64           - 待转换的 64 位多项式系数
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 procedure Cn25519Field64Copy(var Dest: TCn25519Field64; var Source: TCn25519Field64);
-{* 复制一个 2^255-19 有限域范围内的 64 位多项式系数}
+{* 复制一个 2^255-19 有限域范围内的 64 位多项式系数。
+
+   参数：
+     var Dest: TCn25519Field64            - 目标 64 位多项式系数
+     var Source: TCn25519Field64          - 源 64 位多项式系数
+
+   返回值：（无）
+}
 
 function Cn25519Field64Equal(var A: TCn25519Field64; var B: TCn25519Field64): Boolean;
-{* 判断两个 2^255-19 有限域范围内的 64 位多项式系数是否相等}
+{* 判断两个 2^255-19 有限域范围内的 64 位多项式系数是否相等。
+
+   参数：
+     var A: TCn25519Field64               - 待比较的 64 位多项式系数一
+     var B: TCn25519Field64               - 待比较的 64 位多项式系数二
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 procedure Cn25519Field64Swap(var A: TCn25519Field64; var B: TCn25519Field64);
-{* 交换两个 2^255-19 有限域范围内的 64 位多项式系数}
+{* 交换两个 2^255-19 有限域范围内的 64 位多项式系数。
+
+   参数：
+     var A: TCn25519Field64               - 待交换的 64 位多项式系数一
+     var B: TCn25519Field64               - 待交换的 64 位多项式系数二
+
+   返回值：（无）
+}
 
 procedure Cn25519Field64Zero(var Field: TCn25519Field64);
-{* 将一个 2^255-19 有限域范围内的 64 位多项式系数置为 0}
+{* 将一个 2^255-19 有限域范围内的 64 位多项式系数置为 0。
+
+   参数：
+     var Field: TCn25519Field64           - 待置 0 的 64 位多项式系数
+
+   返回值：（无）
+}
 
 procedure Cn25519Field64One(var Field: TCn25519Field64);
-{* 将一个 2^255-19 有限域范围内的 64 位多项式系数置为 1}
+{* 将一个 2^255-19 有限域范围内的 64 位多项式系数置为 1。
+
+   参数：
+     var Field: TCn25519Field64           - 待置 1 的 64 位多项式系数
+
+   返回值：（无）
+}
 
 procedure Cn25519Field64NegOne(var Field: TCn25519Field64);
-{* 将一个 2^255-19 有限域范围内的 64 位多项式系数置为 -1}
+{* 将一个 2^255-19 有限域范围内的 64 位多项式系数置为 -1。
+
+   参数：
+     var Field: TCn25519Field64           - 待置 -1 的 64 位多项式系数
+
+   返回值：（无）
+}
 
 procedure Cn25519Field64Negate(var Field: TCn25519Field64);
-{* 将一个 2^255-19 有限域范围内的 64 位多项式系数置为相反数}
+{* 将一个 2^255-19 有限域范围内的 64 位多项式系数置为相反数。
+
+   参数：
+     var Field: TCn25519Field64           - 待取反的 64 位多项式系数
+
+   返回值：（无）
+}
 
 procedure Cn25519Field64Add(var Res: TCn25519Field64; var A: TCn25519Field64; var B: TCn25519Field64);
-{* 两个 2^255-19 有限域范围内的 64 位多项式系数相加，A + B => Res，Res 可以是 A 或 B，A、B 可以是同一个}
+{* 两个 2^255-19 有限域范围内的 64 位多项式系数相加，A + B => Res，Res 可以是 A 或 B，A、B 可以是同一个。
+
+   参数：
+     var Res: TCn25519Field64             - 64 位多项式系数和
+     var A: TCn25519Field64               - 64 位多项式系数加数一
+     var B: TCn25519Field64               - 64 位多项式系数加数二
+
+   返回值：（无）
+}
 
 procedure Cn25519Field64Sub(var Res: TCn25519Field64; var A: TCn25519Field64; var B: TCn25519Field64);
-{* 两个 2^255-19 有限域范围内的 64 位多项式系数相减，A - B => Res，Res 可以是 A 或 B，A、B 可以是同一个}
+{* 两个 2^255-19 有限域范围内的 64 位多项式系数相减，A - B => Res，Res 可以是 A 或 B，A、B 可以是同一个。
+
+   参数：
+     var Res: TCn25519Field64             - 64 位多项式系数差
+     var A: TCn25519Field64               - 64 位多项式系数被减数
+     var B: TCn25519Field64               - 64 位多项式系数减数
+
+   返回值：（无）
+}
 
 procedure Cn25519Field64Mul(var Res: TCn25519Field64; var A: TCn25519Field64; var B: TCn25519Field64);
-{* 两个 2^255-19 有限域范围内的 64 位多项式系数相乘，A * B => Res，Res 可以是 A 或 B，A、B 可以是同一个}
+{* 两个 2^255-19 有限域范围内的 64 位多项式系数相乘，A * B => Res，Res 可以是 A 或 B，A、B 可以是同一个。
+
+   参数：
+     var Res: TCn25519Field64             - 64 位多项式系数积
+     var A: TCn25519Field64               - 64 位多项式系数乘数一
+     var B: TCn25519Field64               - 64 位多项式系数乘数二
+
+   返回值：（无）
+}
 
 procedure Cn25519Field64Power(var Res: TCn25519Field64; var A: TCn25519Field64; K: Cardinal); overload;
-{* 计算一个 2^255-19 有限域范围内的 64 位多项式的 K 次方值，A^K) => Res，Res 可以是 A}
+{* 计算一个 2^255-19 有限域范围内的 64 位多项式的 K 次方值，A^K) => Res，Res 可以是 A。
+
+   参数：
+     var Res: TCn25519Field64             - 64 位多项式系数乘方结果
+     var A: TCn25519Field64               - 待计算乘方的 64 位多项式系数
+     K: Cardinal                          - 指数
+
+   返回值：（无）
+}
 
 procedure Cn25519Field64Power(var Res: TCn25519Field64; var A: TCn25519Field64; K: TCnBigNumber); overload;
-{* 计算一个 2^255-19 有限域范围内的 64 位多项式的 K 次方值，A^K) => Res，Res 可以是 A}
+{* 计算一个 2^255-19 有限域范围内的 64 位多项式的 K 次方值，A^K  => Res，Res 可以是 A。
+
+   参数：
+     var Res: TCn25519Field64             - 64 位多项式系数乘方结果
+     var A: TCn25519Field64               - 待计算乘方的 64 位多项式系数
+     K: TCnBigNumber                      - 指数，形式是大数
+
+   返回值：（无）
+}
 
 procedure Cn25519Field64Power2K(var Res: TCn25519Field64; var A: TCn25519Field64; K: Cardinal);
-{* 计算一个 2^255-19 有限域范围内的 64 位多项式的 2^K 次方值，A^(2^K) => Res，Res 可以是 A}
+{* 计算一个 2^255-19 有限域范围内的 64 位多项式的 2^K 次方值，A^(2^K) => Res，Res 可以是 A。
+
+   参数：
+     var Res: TCn25519Field64             - 64 位多项式系数乘方结果
+     var A: TCn25519Field64               - 待计算 2 幂次方的 64 位多项式系数
+     K: Cardinal                          - 2 的指数
+
+   返回值：（无）
+}
 
 procedure Cn25519Field64ModularInverse(var Res: TCn25519Field64; var A: TCn25519Field64);
-{* 计算一个 2^255-19 有限域范围内的 64 位多项式的模逆元，A * Res mod P = 1，Res 可以是 A}
+{* 计算一个 2^255-19 有限域范围内的 64 位多项式的模逆元，A * Res mod P = 1，Res 可以是 A。
+
+   参数：
+     var Res: TCn25519Field64             - 64 位多项式系数模逆元结果
+     var A: TCn25519Field64               - 待计算模逆元的 64 位多项式系数
+
+   返回值：（无）
+}
 
 // =========================== 多项式点处理函数 ================================
 
 procedure Cn25519Field64EccPointZero(var Point: TCn25519Field64EccPoint);
-{* 将一多项式拆项法表示的 25519 椭圆曲线上的点置 0}
+{* 将一多项式拆项法表示的 25519 椭圆曲线上的点置 0。
+
+   参数：
+     var Point: TCn25519Field64EccPoint   - 待置 0 的多项式拆项坐标点
+
+   返回值：（无）
+}
 
 procedure Cn25519Field64EccPointCopy(var DestPoint: TCn25519Field64EccPoint;
   var SourcePoint: TCn25519Field64EccPoint);
-{* 复制多项式拆项法表示的 25519 椭圆曲线上的点}
+{* 复制多项式拆项法表示的 25519 椭圆曲线上的点。
+
+   参数：
+     var DestPoint: TCn25519Field64EccPoint               - 目标多项式拆项坐标点
+     var SourcePoint: TCn25519Field64EccPoint             - 源多项式拆项坐标点
+
+   返回值：（无）
+}
 
 function Cn25519Field64EccPointToHex(var Point: TCn25519Field64EccPoint): string;
-{* 将一多项式拆项法表示的 25519 椭圆曲线上的点转换为十六进制字符串}
+{* 将一多项式拆项法表示的 25519 椭圆曲线上的点转换为十六进制字符串
+
+   参数：
+     var Point: TCn25519Field64EccPoint   - 待转换的多项式拆项坐标点
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 function Cn25519Field64EccPointEqual(var A: TCn25519Field64EccPoint; var B: TCn25519Field64EccPoint): Boolean;
-{* 判断两个多项式拆项法表示的 25519 椭圆曲线上的点是否相等}
+{* 判断两个多项式拆项法表示的 25519 椭圆曲线上的点是否相等
+
+   参数：
+     var A: TCn25519Field64EccPoint       - 待比较的多项式拆项坐标点一
+     var B: TCn25519Field64EccPoint       - 待比较的多项式拆项坐标点二
+
+   返回值：Boolean                        -
+}
 
 procedure Cn25519Field64Ecc4PointNeutual(var Point: TCn25519Field64Ecc4Point);
-{* 将一多项式拆项法表示的 25519 椭圆曲线上的四元扩展点置为中性点}
+{* 将一多项式拆项法表示的 25519 椭圆曲线上的四元扩展点置为中性点。
+
+   参数：
+     var Point: TCn25519Field64Ecc4Point  - 待置为中性点的多项式拆项四元扩展点
+
+   返回值：（无）
+}
 
 procedure Cn25519Field64Ecc4PointCopy(var DestPoint: TCn25519Field64Ecc4Point;
   var SourcePoint: TCn25519Field64Ecc4Point);
-{* 复制多项式拆项法表示的 25519 椭圆曲线上的四元扩展点}
+{* 复制多项式拆项法表示的 25519 椭圆曲线上的四元扩展点。
+
+   参数：
+     var DestPoint: TCn25519Field64Ecc4Point              - 目标多项式拆项四元扩展点
+     var SourcePoint: TCn25519Field64Ecc4Point            - 源多项式拆项四元扩展点
+
+   返回值：（无）
+}
 
 function Cn25519Field64Ecc4PointToHex(var Point: TCn25519Field64Ecc4Point): string;
-{* 将一多项式拆项法表示的 25519 椭圆曲线上的四元扩展点转换为十六进制字符串}
+{* 将一多项式拆项法表示的 25519 椭圆曲线上的四元扩展点转换为十六进制字符串。
+
+   参数：
+     var Point: TCn25519Field64Ecc4Point  - 待转换的多项式拆项四元扩展点
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 function Cn25519Field64Ecc4PointEqual(var A: TCn25519Field64Ecc4Point;
   var B: TCn25519Field64Ecc4Point): Boolean;
-{* 判断两个多项式拆项法表示的 25519 椭圆曲线上的点是否相等}
+{* 判断两个多项式拆项法表示的 25519 椭圆曲线上的点是否相等。
+
+   参数：
+     var A: TCn25519Field64Ecc4Point      - 待比较的多项式拆项四元扩展点一
+     var B: TCn25519Field64Ecc4Point      - 待比较的多项式拆项四元扩展点二
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 function CnEccPointToField64Ecc4Point(var DestPoint: TCn25519Field64Ecc4Point;
   SourcePoint: TCnEccPoint): Boolean;
-{* 大数范围内的普通坐标到扩展仿射多项式坐标的点转换}
+{* 大数范围内的普通坐标到扩展仿射多项式坐标的点转换。
+
+   参数：
+     var DestPoint: TCn25519Field64Ecc4Point              - 扩展仿射多项式坐标点结果
+     SourcePoint: TCnEccPoint                             - 待转换的普通坐标点
+
+   返回值：Boolean                                        - 返回转换是否成功
+}
 
 function CnField64Ecc4PointToEccPoint(DestPoint: TCnEccPoint;
   var SourcePoint: TCn25519Field64Ecc4Point): Boolean;
-{* 大数范围内的扩展仿射多项式坐标到普通坐标的点转换}
+{* 大数范围内的扩展仿射多项式坐标到普通坐标的点转换。
+
+   参数：
+     DestPoint: TCnEccPoint                               - 普通坐标点转换结果
+     var SourcePoint: TCn25519Field64Ecc4Point            - 待转换的仿射多项式坐标点
+
+   返回值：Boolean                                        - 返回转换是否成功
+}
 
 function CnEcc4PointToField64Ecc4Point(var DestPoint: TCn25519Field64Ecc4Point;
   SourcePoint: TCnEcc4Point): Boolean;
-{* 大数范围内的扩展仿射坐标到扩展仿射多项式坐标的点转换}
+{* 大数范围内的扩展仿射坐标到扩展仿射多项式坐标的点转换。
+
+   参数：
+     var DestPoint: TCn25519Field64Ecc4Point              - 扩展仿射多项式坐标点转换结果
+     SourcePoint: TCnEcc4Point                            - 待转换的扩展仿射坐标点
+
+   返回值：Boolean                                        - 返回转换是否成功
+}
 
 function CnField64Ecc4PointToEcc4Point(DestPoint: TCnEcc4Point;
   var SourcePoint: TCn25519Field64Ecc4Point): Boolean;
-{* 大数范围内的扩展仿射多项式坐标到扩展仿射坐标的点转换}
+{* 大数范围内的扩展仿射多项式坐标到扩展仿射坐标的点转换。
+
+   参数：
+     DestPoint: TCnEcc4Point                              - 扩展仿射坐标点转换结果
+     var SourcePoint: TCn25519Field64Ecc4Point            - 待转换的扩展仿射多项式坐标点
+
+   返回值：Boolean                                        - 返回转换是否成功
+}
 
 // ========================== 448 椭圆曲线辅助函数 =============================
 
 procedure CnCurve448PointToEd448Point(DestPoint: TCnEccPoint; SourcePoint: TCnEccPoint);
-{* 将 Curve448 的坐标点转换为 Ed448 的坐标点，Source 和 Dest 可以相同
-   注意该方法未验证成功}
+{* 将 Curve448 的坐标点转换为 Ed448 的坐标点，Source 和 Dest 可以相同。
+   注意该方法未验证成功
+
+   参数：
+     DestPoint: TCnEccPoint               - Ed448 的坐标点转换结果
+     SourcePoint: TCnEccPoint             - 待转换的 Curve448 坐标点
+
+   返回值：（无）
+}
 
 procedure CnEd448PointToCurve448Point(DestPoint: TCnEccPoint; SourcePoint: TCnEccPoint);
-{* 将 Ed448 的坐标点转换为 Curve448 的坐标点，Source 和 Dest 可以相同}
+{* 将 Ed448 的坐标点转换为 Curve448 的坐标点，Source 和 Dest 可以相同。
+
+   参数：
+     DestPoint: TCnEccPoint               - Curve448 的坐标点转换结果
+     SourcePoint: TCnEccPoint             - 待转换的 Ed448 坐标点
+
+   返回值：（无）
+}
 
 procedure CnCurve448PointToData(P: TCnEccPoint; var Data: TCnCurve448Data);
-{* 按蒙哥马利 448 标准将椭圆曲线点转换为压缩方式的 56 字节数组，存 X 值}
+{* 按蒙哥马利 448 标准将椭圆曲线点转换为压缩方式的 56 字节数组，存 X 值。
+
+   参数：
+     P: TCnEccPoint                       - 待转换的坐标点
+     var Data: TCnCurve448Data            - 按蒙哥马利 448 标准转换后的压缩方式的 56 字节数组结果
+
+   返回值：（无）
+}
 
 procedure CnCurve448DataToPoint(Data: TCnCurve448Data; P: TCnEccPoint);
-{* 按蒙哥马利 448 标准将 56 字节数组转换为椭圆曲线点压缩方式，P 中返回对应 X 值，无需计算 Y}
+{* 按蒙哥马利 448 标准将 56 字节数组转换为椭圆曲线点压缩方式，P 中返回对应 X 值，无需计算 Y。
+
+   参数：
+     Data: TCnCurve448Data                - 待转换的 56 字节数组
+     P: TCnEccPoint                       - 按蒙哥马利 448 标准转换后的坐标点
+
+   返回值：（无）
+}
 
 procedure CnEd448PointToData(P: TCnEccPoint; var Data: TCnEd448Data);
-{* 按扭曲爱德华 448 标准将椭圆曲线点转换为压缩方式的 57 字节数组，存 Y 值与 X 的奇偶性}
+{* 按扭曲爱德华 448 标准将椭圆曲线点转换为压缩方式的 57 字节数组，存 Y 值与 X 的奇偶性
+
+   参数：
+     P: TCnEccPoint                       - 待转换的坐标点
+     var Data: TCnEd448Data               - 按扭曲爱德华 448 标准转换后的压缩方式的 57 字节数组结果
+
+   返回值：（无）
+}
 
 procedure CnEd448DataToPoint(Data: TCnEd448Data; P: TCnEccPoint; out XOdd: Boolean);
-{* 按扭曲爱德华 448 标准将 57 字节数组转换为椭圆曲线点压缩方式
-  P 中返回对应 Y 值，以及 XOdd 中返回对应的 X 值是否是奇数，需要外界自行解 X}
+{* 按扭曲爱德华 448 标准将 57 字节数组转换为椭圆曲线点压缩方式。
+   P 中返回对应 Y 值，以及 XOdd 中返回对应的 X 值是否是奇数，需要外界自行解 X
+
+   参数：
+     Data: TCnEd448Data                   - 待转换的 57 字节数组
+     P: TCnEccPoint                       - 按扭曲爱德华 448 标准转换后的坐标点
+     out XOdd: Boolean                    - 返回该坐标点的 X 值是否为奇数
+
+   返回值：（无）
+}
 
 procedure CnEd448BigNumberToData(N: TCnBigNumber; var Data: TCnEd448Data);
-{* 按扭曲爱德华 448 标准将乘数转换为 57 字节数组，返回转换是否成功}
+{* 按扭曲爱德华 448 标准将乘数转换为 57 字节数组，返回转换是否成功
+
+   参数：
+     N: TCnBigNumber                      - 待转换的乘数
+     var Data: TCnEd448Data               - 按扭曲爱德华 448 标准转换后的 57 字节数组
+
+   返回值：（无）
+}
 
 procedure CnEd448DataToBigNumber(Data: TCnEd448Data; N: TCnBigNumber);
-{* 按扭曲爱德华 448 标准将 57 字节数组转换为乘数，返回转换是否成功}
+{* 按扭曲爱德华 448 标准将 57 字节数组转换为乘数，返回转换是否成功
+
+   参数：
+     Data: TCnEd448Data                   - 待转换的 57 字节数组
+     N: TCnBigNumber                      - 按扭曲爱德华 448 标准转换后的乘数
+
+   返回值：（无）
+}
 
 procedure CnCurve448BigNumberToData(N: TCnBigNumber; var Data: TCnCurve448Data);
-{* 按蒙哥马利 448 标准将乘数转换为 56 字节数组，返回转换是否成功}
+{* 按蒙哥马利 448 标准将乘数转换为 56 字节数组，返回转换是否成功
+
+   参数：
+     N: TCnBigNumber                      - 待转换的乘数
+     var Data: TCnCurve448Data            - 按蒙哥马利 448 标准转换后的 56 字节数组
+
+   返回值：（无）
+}
 
 procedure CnCurve448DataToBigNumber(Data: TCnCurve448Data; N: TCnBigNumber);
-{* 按蒙哥马利 448 标准将 56 字节数组转换为乘数，返回转换是否成功}
+{* 按蒙哥马利 448 标准将 56 字节数组转换为乘数，返回转换是否成功
+
+   参数：
+     Data: TCnCurve448Data                - 待转换的 56 字节数组
+     N: TCnBigNumber                      - 按蒙哥马利 448 标准转换后的乘数
+
+   返回值：（无）
+}
 
 procedure CnProcessCurve448ScalarNumber(Num: TCnBigNumber);
-{* 按 RFC 规定处理蒙哥马利 448 的随机数或私钥}
+{* 按 RFC 规定处理蒙哥马利 448 的随机数或私钥
+
+   参数：
+     Num: TCnBigNumber                    - 待处理的 Curve448 随机数
+
+   返回值：（无）
+}
 
 procedure CnProcessEd448ScalarNumber(Num: TCnBigNumber);
-{* 按 RFC 规定处理扭曲爱德华 448 的随机数或私钥}
+{* 按 RFC 规定处理扭曲爱德华 448 的随机数或私钥
+
+   参数：
+     Num: TCnBigNumber                    - 待处理的 Ed448 随机数
+
+   返回值：（无）
+}
 
 // ================ Curve448 椭圆曲线 Diffie-Hellman 密钥交换  =================
 
@@ -4310,9 +4676,9 @@ begin
   if P = nil then
     Exit;
 
-  FillChar(Data[0], SizeOf(TCnEd25519Data), 0);
-  P.X.ToBinary(@Data[0], SizeOf(TCnEd25519Data));
-  ReverseMemory(@Data[0], SizeOf(TCnEd25519Data));
+  FillChar(Data[0], SizeOf(TCnCurve25519Data), 0);
+  P.X.ToBinary(@Data[0], SizeOf(TCnCurve25519Data));
+  ReverseMemory(@Data[0], SizeOf(TCnCurve25519Data));
   // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
 end;
 
@@ -4792,7 +5158,7 @@ begin
   Result := DataToHex(@D[0], SizeOf(D), UseUpperCase);
 end;
 
-procedure Cn25519BigNumberToField64(var Field: TCn25519Field64; const Num: TCnBigNumber);
+procedure Cn25519BigNumberToField64(var Field: TCn25519Field64; Num: TCnBigNumber);
 var
   D: TCn25519Field64;
 begin
@@ -4815,7 +5181,7 @@ begin
   Field[4] := D[3] shr 12;                             // D3 的高 52 位（64 减 12）
 end;
 
-procedure Cn25519Field64ToBigNumber(const Res: TCnBigNumber; var Field: TCn25519Field64);
+procedure Cn25519Field64ToBigNumber(Res: TCnBigNumber; var Field: TCn25519Field64);
 var
   B0, B1, B2, B3, B4: TCnBigNumber;
 begin

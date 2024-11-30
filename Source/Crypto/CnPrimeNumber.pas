@@ -46,7 +46,7 @@ unit CnPrimeNumber;
 *           2018.08.30 V1.5
 *               修正 Random 精度不够导致 Int64 生成素数末尾可能连续出现 $FF 的问题
 *               增加 UInt32/64 生成 Diffie-Hellman 密钥交换算法的素数与原根的函数，
-*               增加辗转相除法求最大公约数以及 PollardRho 算法分解质因数以及求欧拉
+*               增加辗转相除法求最大公约数以及 PollardRho 算法分解素数因子以及求欧拉
 *               函数的方法。
 *           2018.06.05 V1.4
 *               将 Int64 支持扩展至 UInt64 并扩展 AddMod、MultipleMode 等方法
@@ -687,226 +687,680 @@ type
   {* 素数类型，mod 4 余 3、mod 8 余 5、mod 8 余 1，用于二次剩余模素数求解}
 
 function CnPickRandomSmallPrime: Integer;
-{* 从 CN_PRIME_NUMBERS_SQRT_UINT32 数组中随机挑选一个素数}
+{* 从 CN_PRIME_NUMBERS_SQRT_UINT32 数组中随机挑选一个素数。
+
+   参数：
+     （无）
+
+   返回值：Integer                        - 返回随机挑选的素数
+}
 
 function CnUInt32IsPrime(N: Cardinal): Boolean;
-{* 快速判断一 32 位无符号整数是否是素数}
+{* 快速判断一 32 位无符号整数是否是素数。
+
+   参数：
+     N: Cardinal                          - 待判断的 32 位无符号数
+
+   返回值：Boolean                        - 返回是否是素数
+}
 
 function CnInt64IsPrime(N: TUInt64): Boolean;
-{* 概率性判断一 64 位无符号整数是否是素数}
+{* 概率性判断一 64 位无符号整数是否是素数。
+
+   参数：
+     N: TUInt64                           - 待判断的 64 位无符号数
+
+   返回值：Boolean                        - 返回是否是素数
+}
 
 function AddMod(A: TUInt64; B: TUInt64; C: TUInt64): TUInt64;
-{* 想办法计算全是正值的 (A + B) mod C，不能直接算，容易溢出}
+{* 想办法计算全是正值的 (A + B) mod C，不能直接算，容易溢出。
+
+   参数：
+     A: TUInt64                           - 加数一
+     B: TUInt64                           - 加数二
+     C: TUInt64                           - 模数
+
+   返回值：TUInt64                        - 返回模加结果
+}
 
 function MultipleMod(A: TUInt64; B: TUInt64; C: TUInt64): TUInt64;
-{* 快速计算全是正值的 (A * B) mod C，不能直接算，容易溢出}
+{* 快速计算全是正值的 (A * B) mod C，不能直接算，容易溢出。
+
+   参数：
+     A: TUInt64                           - 乘数一
+     B: TUInt64                           - 乘数二
+     C: TUInt64                           - 模数
+
+   返回值：TUInt64                        - 返回模乘结果
+}
 
 function Int64AddMod(A: Int64; B: Int64; C: Int64): Int64;
-{* 封装的 Int64 的支持 A、B 为负数的 (A + B) mod C，但 C 仍要求正数否则结果不靠谱}
+{* 封装的 Int64 的支持 A、B 为负数的 (A + B) mod C，但 C 仍要求正数，否则结果不可靠。
+
+   参数：
+     A: Int64                             - 加数一
+     B: Int64                             - 加数二
+     C: Int64                             - 模数
+
+   返回值：Int64                          - 返回模加结果
+}
 
 function Int64MultipleMod(A: Int64; B: Int64; C: Int64): Int64;
-{* 封装的 Int64 的支持 A、B 为负数的乘积取模，但 C 仍要求正数否则结果不靠谱}
+{* 封装的 Int64 的支持 A、B 为负数的 (A * B) mod C，但 C 仍要求正数，否则结果不可靠。
+
+   参数：
+     A: Int64                             - 乘数一
+     B: Int64                             - 乘数二
+     C: Int64                             - 模数
+
+   返回值：Int64                          - 返回模乘结果
+}
 
 function MontgomeryPowerMod(A: TUInt64; B: TUInt64; C: TUInt64): TUInt64;
-{* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
+{* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出。
+
+   参数：
+     A: TUInt64                           - 底数
+     B: TUInt64                           - 指数
+     C: TUInt64                           - 模数
+
+   返回值：TUInt64                        - 返回幂模结果
+}
 
 function PowerPowerMod(A: TUInt64; B: TUInt64; C: TUInt64; N: TUInt64): TUInt64;
-{* 快速计算 A ^ (B ^ C) mod N，更不能直接算，更容易溢出}
+{* 快速计算 A ^ (B ^ C) mod N，更不能直接算，更容易溢出。
+
+   参数：
+     A: TUInt64                           - 底数
+     B: TUInt64                           - 指数的底数
+     C: TUInt64                           - 指数的底数的指数
+     N: TUInt64                           - 模数
+
+   返回值：TUInt64                        - 返回幂幂模结果
+}
 
 function CnGenerateUInt32Prime(HighBitSet: Boolean = False): Cardinal;
-{* 生成一个随机的 32 位无符号素数，HighBitSet 指明最高位是否必须为 1}
+{* 生成一个随机的 32 位无符号素数，HighBitSet 指明最高位是否必须为 1
+
+   参数：
+     HighBitSet: Boolean                  - 最高位是否必须为 1
+
+   返回值：Cardinal                       - 返回生成的素数
+}
 
 function CnGenerateInt32Prime: Integer;
-{* 生成一个随机的 32 位无符号素数}
+{* 生成一个随机的 32 位有符号素数。
+
+   参数：
+     （无）
+
+   返回值：Integer                        - 返回生成的素数
+}
 
 function CnGenerateInt64Prime(HighBitSet: Boolean = False): TUInt64;
-{* 生成一个随机的 64 位无符号素数但允许用有符号的 Int64 表示，HighBitSet 指明最高位是否必须为 1}
+{* 生成一个随机的 64 位无符号素数但允许用有符号的 Int64 表示，HighBitSet 指明最高位是否必须为 1。
+
+   参数：
+     HighBitSet: Boolean                  - 最高位是否必须为 1
+
+   返回值：TUInt64                        - 返回生成的素数
+}
 
 function CnGenerateInt64Prime2: Int64;
-{* 生成一个随机的 64 位有符号素数}
+{* 生成一个随机的 64 位有符号素数。
+
+   参数：
+     （无）
+
+   返回值：Int64                          - 返回生成的素数
+}
 
 {$IFDEF SUPPORT_UINT64}
 
 function AddMod64(A: UInt64; B: UInt64; C: UInt64): UInt64;
-{* 想办法计算 (A + B) mod C，不能直接算，容易溢出}
+{* 想办法计算 (A + B) mod C，不能直接算，容易溢出。
+
+   参数：
+     A: UInt64                            - 加数一
+     B: UInt64                            - 加数二
+     C: UInt64                            - 模数
+
+   返回值：UInt64                         - 返回模加结果
+}
 
 function MultipleMod64(A: UInt64; B: UInt64; C: UInt64): UInt64;
-{* 快速计算 (A * B) mod C，不能直接算，容易溢出}
+{* 快速计算 (A * B) mod C，不能直接算，容易溢出。
+
+   参数：
+     A: UInt64                            - 乘数一
+     B: UInt64                            - 乘数二
+     C: UInt64                            - 模数
+
+   返回值：UInt64                         - 返回模乘结果
+}
 
 function MontgomeryPowerMod64(A: UInt64; B: UInt64; C: UInt64): UInt64;
-{* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出}
+{* 蒙哥马利法快速计算 (A ^ B) mod C，不能直接算，容易溢出
+
+   参数：
+     A: UInt64                            - 底数
+     B: UInt64                            - 指数
+     C: UInt64                            - 模数
+
+   返回值：UInt64                         - 返回幂模结果
+}
 
 {$ENDIF}
 
 {$IFDEF CPU64BITS}
 
 function CnUInt64IsPrime(N: NativeUInt): Boolean;
-{* 概率性判断一 64 位无符号整数是否是素数}
+{* 概率性判断一 64 位无符号整数是否是素数。
+
+   参数：
+     N: NativeUInt                        - 待判断的 64 位无符号数
+
+   返回值：Boolean                        - 返回是否是素数
+}
 
 function CnGenerateUInt64Prime: NativeUInt;
-{* 生成一个随机的 64 位无符号素数}
+{* 生成一个随机的 64 位无符号素数。
+
+   参数：
+     （无）
+
+   返回值：NativeUInt                     - 返回生成的素数
+}
 
 {$ENDIF}
 
 function CnUInt32GreatestCommonDivisor(A: Cardinal; B: Cardinal): Cardinal;
-{* 求两个 32 位无符号数的最大公约数}
+{* 求两个 32 位无符号数的最大公约数。
+
+   参数：
+     A: Cardinal                          - 32 位无符号整数一
+     B: Cardinal                          - 32 位无符号整数二
+
+   返回值：Cardinal                       - 返回最大公约数
+}
 
 function CnInt64GreatestCommonDivisor(A: TUInt64; B: TUInt64): TUInt64;
-{* 求两个 64 位无符号数的最大公约数}
+{* 求两个 64 位无符号数的最大公约数。
+
+   参数：
+     A: TUInt64                           - 64 位无符号整数一
+     B: TUInt64                           - 64 位无符号整数二
+
+   返回值：TUInt64                        - 返回最大公约数
+}
 
 function CnInt64GreatestCommonDivisor2(A: Int64; B: Int64): Int64;
-{* 求两个 64 位有符号数的最大公约数}
+{* 求两个 64 位有符号数的最大公约数。
+
+   参数：
+     A: Int64                             - 64 位有符号整数一
+     B: Int64                             - 64 位有符号整数二
+
+   返回值：Int64                          - 返回最大公约数
+}
 
 function CnUInt32LeastCommonMultiple(A: Cardinal; B: Cardinal): Cardinal;
-{* 求两个 32 位无符号数的最小公倍数，不考虑溢出的情况}
+{* 求两个 32 位无符号数的最小公倍数，不考虑溢出的情况。
+
+   参数：
+     A: Cardinal                          - 32 位无符号整数一
+     B: Cardinal                          - 32 位无符号整数二
+
+   返回值：Cardinal                       - 返回最小公倍数
+}
 
 function CnInt64LeastCommonMultiple(A: TUInt64; B: TUInt64): TUInt64;
-{* 求两个 64 位无符号数的最小公倍数，不考虑溢出的情况}
+{* 求两个 64 位无符号数的最小公倍数，不考虑溢出的情况
+
+   参数：
+     A: TUInt64                           - 64 位无符号整数一
+     B: TUInt64                           - 64 位无符号整数二
+
+   返回值：TUInt64                        - 返回最小公倍数
+}
 
 function CnInt64LeastCommonMultiple2(A: Int64; B: Int64): Int64;
-{* 求两个 64 位有符号数的最小公倍数，不考虑溢出的情况}
+{* 求两个 64 位有符号数的最小公倍数，不考虑溢出的情况
+
+   参数：
+     A: Int64                             - 64 位有符号整数一
+     B: Int64                             - 64 位有符号整数一
+
+   返回值：Int64                          - 返回最小公倍数
+}
 
 procedure CnGenerateUInt32DiffieHellmanPrimeMaxRoot(out Prime: Cardinal; out MaxRoot: Cardinal);
-{* 生成 Diffie-Hellman 算法所需的素数与其最大原根，满足 q = (p - 1) / 2 的 q 也是素数，范围为 UInt32}
+{* 生成 Diffie-Hellman 算法所需的素数与其最大原根，满足 q = (p - 1) / 2 的 q 也是素数，范围为 UInt32
+
+   参数：
+     out Prime: Cardinal                  - 生成的 32 位无符号 Diffie-Hellman 算法所需的素数
+     out MaxRoot: Cardinal                - 生成的 32 位无符号 Diffie-Hellman 算法所需的最大原根
+
+   返回值：（无）
+}
 
 procedure CnGenerateInt64DiffieHellmanPrimeMaxRoot(out Prime: TUInt64; out MaxRoot: TUInt64);
-{* 生成 Diffie-Hellman 算法所需的素数与其最大原根，满足 q = (p - 1) / 2 的 q 也是素数，范围为 UInt64}
+{* 生成 Diffie-Hellman 算法所需的素数与其最大原根，满足 q = (p - 1) / 2 的 q 也是素数，范围为 UInt64
+
+   参数：
+     out Prime: TUInt64                   - 生成的 64 位无符号 Diffie-Hellman 算法所需的素数
+     out MaxRoot: TUInt64                 - 生成的 64 位无符号 Diffie-Hellman 算法所需的最大原根
+
+   返回值：（无）
+}
 
 procedure CnGenerateUInt32DiffieHellmanPrimeRoots(out Prime: Cardinal; OutRoots: TCnUInt32List);
-{* 生成 Diffie-Hellman 算法所需的素数与其所有原根，满足 q = (p - 1) / 2 的 q 也是素数，范围为 UInt32，耗时极长}
+{* 生成 Diffie-Hellman 算法所需的素数与其所有原根，满足 q = (p - 1) / 2 的 q 也是素数，范围为 UInt32，耗时极长。
+
+   参数：
+     out Prime: Cardinal                  - 生成的 32 位无符号 Diffie-Hellman 算法所需的素数
+     OutRoots: TCnUInt32List              - 生成的 32 位无符号 Diffie-Hellman 算法的所有原根
+
+   返回值：（无）
+}
 
 procedure CnGenerateInt64DiffieHellmanPrimeRoots(out Prime: TUInt64; OutRoots: TCnUInt64List);
-{* 生成 Diffie-Hellman 算法所需的素数与其所有原根，满足 q = (p - 1) / 2 的 q 也是素数，范围为 UInt64，耗时极长}
+{* 生成 Diffie-Hellman 算法所需的素数与其所有原根，满足 q = (p - 1) / 2 的 q 也是素数，范围为 UInt64，耗时极长。
+
+   参数：
+     out Prime: TUInt64                   - 生成的 64 位无符号 Diffie-Hellman 算法所需的素数
+     OutRoots: TCnUInt64List              - 生成的 64 位无符号 Diffie-Hellman 算法的所有原根
+
+   返回值：（无）
+}
 
 function CnGenerateUInt32DiffieHellmanPrimeMinRoot(out Prime: Cardinal;
   out MinRoot: Cardinal): Boolean;
-{* 生成 Diffie-Hellman 算法所需的素数 p 与其生成元，范围为 UInt32，返回生成是否成功。
-  满足 q = (p - 1) / 2 的 q 也是素数。
-  内部使用 MinRoot^2 mod p <> 1 且 MinRoot^q mod p <> 1 来做快速判断}
+{* 生成 Diffie-Hellman 算法所需的素数 p 与其生成元也就是最小原根，范围为 UInt32，返回生成是否成功。
+   满足 q = (p - 1) / 2 的 q 也是素数。
+   内部使用 MinRoot^2 mod p <> 1 且 MinRoot^q mod p <> 1 来做快速判断。
+
+   参数：
+     out Prime: Cardinal                  - 生成的 32 位无符号 Diffie-Hellman 算法所需的素数
+     out MinRoot: Cardinal                - 生成的 32 位无符号 Diffie-Hellman 算法所需的最小原根
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnGenerateInt64DiffieHellmanPrimeMinRoot(out Prime: TUInt64;
   out MinRoot: TUInt64): Boolean;
-{* 生成 Diffie-Hellman 算法所需的素数 p 与其生成元，范围为 UInt64，返回生成是否成功。
-  满足 q = (p - 1) / 2 的 q 也是素数
-  内部使用 MinRoot^2 mod p <> 1 且 MinRoot^q mod p <> 1 来做快速判断}
+{* 生成 Diffie-Hellman 算法所需的素数 p 与其生成元也就是最小原根，范围为 UInt64，返回生成是否成功。
+   满足 q = (p - 1) / 2 的 q 也是素数。
+   内部使用 MinRoot^2 mod p <> 1 且 MinRoot^q mod p <> 1 来做快速判断。
+
+   参数：
+     out Prime: TUInt64                   - 生成的 64 位无符号 Diffie-Hellman 算法所需的素数
+     out MinRoot: TUInt64                 - 生成的 64 位无符号 Diffie-Hellman 算法所需的最小原根
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnIsUInt32PrimitiveRoot(Num: Cardinal; Root: Cardinal): Boolean;
-{* 检验 Root 是否为 Num 的原根，范围为 UInt32}
+{* 检验 Root 是否为 Num 的原根，范围为 UInt32。
+
+   参数：
+     Num: Cardinal                        - 待检验的 32 位无符号数
+     Root: Cardinal                       - 待检验的 32 位无符号原根
+
+   返回值：Boolean                        - 返回是否是原根
+}
 
 function CnIsInt64PrimitiveRoot(Num: TUInt64; Root: TUInt64): Boolean;
-{* 检验 Root 是否为 Num 的原根，范围为 UInt64}
+{* 检验 Root 是否为 Num 的原根，范围为 UInt64。
+
+   参数：
+     Num: TUInt64                         - 待检验的 64 位无符号数
+     Root: TUInt64                        - 待检验的 64 位无符号原根
+
+   返回值：Boolean                        - 返回是否是原根
+}
 
 procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
-{* 求一 32 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中}
+{* 求一 32 位无符号数的全部素数因子，可重复不排序，结果放 Factors 列表中。
+
+   参数：
+     Num: Cardinal                        - 待分解的 32 位无符号数
+     Factors: TCnUInt32List               - 返回全部素数因子
+
+   返回值：（无）
+}
 
 procedure CnInt64FindFactors(Num: TUInt64; Factors: TCnUInt64List);
-{* 求一 64 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中}
+{* 求一 64 位无符号数的全部素数因子，可重复不排序，结果放 Factors 列表中。
+
+   参数：
+     Num: TUInt64                         - 待分解的 64 位无符号数
+     Factors: TCnUInt64List               - 返回全部素数因子
+
+   返回值：（无）
+}
 
 function CnEulerUInt32(Num: Cardinal): Cardinal;
-{* 求不大于一 32 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数}
+{* 求不大于一 32 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数。
+
+   参数：
+     Num: Cardinal                        - 待求值的 32 位无符号数
+
+   返回值：Cardinal                       - 返回欧拉函数值
+}
 
 function CnEulerInt64(Num: TUInt64): TUInt64;
-{* 求不大于一 64 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数}
+{* 求不大于一 64 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数。
+
+   参数：
+     Num: TUInt64                         - 待求值的 64 位无符号数
+
+   返回值：TUInt64                        - 返回欧拉函数值
+}
 
 function CnUInt32ModularInverse(X: Cardinal; Modulus: Cardinal): Cardinal;
-{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt32
-   X、Modulus 必须互素，如不互素则模逆元不存在，返回 0}
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt32。
+   X、Modulus 必须互素，如不互素则模逆元不存在，返回 0。
+
+   参数：
+     X: Cardinal                          - 待求模逆元的 32 位无符号数
+     Modulus: Cardinal                    - 模数
+
+   返回值：Cardinal                       - 返回模逆元，不存在则返回 0
+}
 
 function CnInt64ModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
-{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt64
-   X、Modulus 必须互素，如不互素则模逆元不存在，返回 0}
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 UInt64。
+   X、Modulus 必须互素，如不互素则模逆元不存在，返回 0。
+
+   参数：
+     X: TUInt64                           - 待求模逆元的 64 位无符号数
+     Modulus: TUInt64                     - 模数
+
+   返回值：TUInt64                        - 返回模逆元，不存在则返回 0
+}
 
 function CnInt64ModularInverse2(X: Int64; Modulus: Int64): Int64;
-{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值
-   X、Modulus 必须互素，如不互素则模逆元不存在，返回 0}
+{* 求 X 针对 M 的模反元素也就是模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值。
+   X、Modulus 必须互素，如不互素则模逆元不存在，返回 0。
+
+   参数：
+     X: Int64                             - 待求模逆元的 64 位有符号数
+     Modulus: Int64                       - 模数
+
+   返回值：Int64                          - 返回模逆元，不存在则返回 0
+}
 
 function CnInt64NegativeModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
-{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = -1，范围为 UInt64
-   X、Modulus 必须互素，如不互素则负模逆元不存在，返回 0}
+{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = -1，范围为 UInt64。
+   X、Modulus 必须互素，如不互素则负模逆元不存在，返回 0。
+
+   参数：
+     X: TUInt64                           - 待求负模逆元的 64 位无符号数
+     Modulus: TUInt64                     - 模数
+
+   返回值：TUInt64                        - 返回负模逆元，不存在则返回 0
+}
 
 function CnInt64NegativeModularInverse2(X: Int64; Modulus: Int64): Int64;
-{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = 1，范围为 Int64，也就是支持负值
-   X、Modulus 必须互素，如不互素则负模逆元不存在，返回 0}
+{* 求 X 针对 M 的负模反元素也就是负模逆元 Y，满足 (X * Y) mod M = -1，范围为 Int64，也就是支持负值。
+   X、Modulus 必须互素，如不互素则负模逆元不存在，返回 0。
+
+   参数：
+     X: Int64                             - 待求负模逆元的 64 位有符号数
+     Modulus: Int64                       - 模数
+
+   返回值：Int64                          - 返回负模逆元，不存在则返回 0
+}
 
 function CnUInt32ExtendedEuclideanGcd(A: Cardinal; B: Cardinal; out X: Cardinal; out Y: Cardinal): Cardinal;
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，调用者需自行保证 A B 互素
-   否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，调用者需自行保证 A B 互素。
+   否则得出的解满足方程右边等于 A B 的最大公约数而不是 1。如果得出 X 小于 0，可加上 B。
+
+   参数：
+     A: Cardinal                          - 二元一次不定方程系数 A
+     B: Cardinal                          - 二元一次不定方程系数 B
+     out X: Cardinal                      - 求出的 X 解
+     out Y: Cardinal                      - 求出的 Y 解
+
+   返回值：Cardinal                       - 返回递归调用的中间结果，无明显意义
+}
 
 procedure CnUInt32ExtendedEuclideanGcd2(A: Cardinal; B: Cardinal; out X: Cardinal; out Y: Cardinal);
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，调用者需自行保证 A B 互素
-   否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，调用者需自行保证 A B 互素。
+   否则得出的解满足方程右边等于 A B 的最大公约数而不是 1。如果得出 X 小于 0，可加上 B。
+
+   参数：
+     A: Cardinal                          - 二元一次不定方程系数 A
+     B: Cardinal                          - 二元一次不定方程系数 B
+     out X: Cardinal                      - 求出的 X 解
+     out Y: Cardinal                      - 求出的 Y 解
+
+   返回值：（无）
+}
 
 function CnInt64ExtendedEuclideanGcd(A: TUInt64; B: TUInt64; out X: TUInt64; out Y: TUInt64): TUInt64;
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，范围为 UInt64，调用者需自行保证 A B 互素
-   否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，范围为 UInt64，调用者需自行保证 A B 互素。
+   否则得出的解满足方程右边等于 A B 的最大公约数而不是 1。如果得出 X 小于 0，可加上 B。
+
+   参数：
+     A: TUInt64                           - 二元一次不定方程系数 A
+     B: TUInt64                           - 二元一次不定方程系数 B
+     out X: TUInt64                       - 求出的 X 解
+     out Y: TUInt64                       - 求出的 Y 解
+
+   返回值：TUInt64                        - 返回递归调用的中间结果，无明显意义
+}
 
 function CnInt64ExtendedEuclideanGcd1(A: Int64; B: Int64; out X: Int64; out Y: Int64): Int64;
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解，范围为 Int64，调用者需自行保证 A B 互素
-   否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
+   否则得出的解满足方程右边等于 A B 的最大公约数而不是 1。如果得出 X 小于 0，可加上 B。
+
+   参数：
+     A: Int64                             - 二元一次不定方程系数 A
+     B: Int64                             - 二元一次不定方程系数 B
+     out X: Int64                         - 求出的 X 解
+     out Y: Int64                         - 求出的 Y 解
+
+   返回值：Int64                          - 返回递归调用的中间结果，无明显意义
+}
 
 procedure CnInt64ExtendedEuclideanGcd2(A: TUInt64; B: TUInt64; out X: TUInt64; out Y: TUInt64);
 {* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解，范围为 UInt64，调用者需自行保证 A B 互素
-   否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B}
+   否则得出的解满足方程右边等于 A B 的最大公约数，如果得出 X 小于 0，可加上 B。
+
+   参数：
+     A: TUInt64                           - 二元一次不定方程系数 A
+     B: TUInt64                           - 二元一次不定方程系数 B
+     out X: TUInt64                       - 求出的 X 解
+     out Y: TUInt64                       - 求出的 Y 解
+
+   返回值：（无）
+}
 
 function CnInt64MontgomeryReduction(T: TUInt64; RExp: TUInt64; N: TUInt64; NNegInv: TUInt64): TUInt64;
-{* 蒙哥马利约简法快速计算 T * R^-1 mod N 其中要求 R 是刚好比 N 大的 2 整数次幂
-  参数 RExp 为指数，比如 R 为 2^31 时，RExp 值传 31，
-  NNegInv 是预先计算好的 N 对 R 的负模逆元（不是针对指数的），T 不能为负且小于 N * R}
+{* 蒙哥马利约简法快速计算 T * R^-1 mod N 其中要求 R 是刚好比 N 大的 2 整数次幂。
+   参数 RExp 为指数，比如 R 为 2^31 时，RExp 值传 31，
+   NNegInv 是预先计算好的 N 对 R 的负模逆元（不是针对指数的），T 不能为负且小于 N * R。
+
+   参数：
+     T: TUInt64                           - 待计算的 T 值
+     RExp: TUInt64                        - 参与计算的 R 的指数
+     N: TUInt64                           - 模数
+     NNegInv: TUInt64                     - 预先计算好的 N 对 R 的负模逆元
+
+   返回值：TUInt64                        - 返回计算结果
+}
 
 function CnInt64MontgomeryMulMod(A: TUInt64; B: TUInt64; RExp: TUInt64; R2ModN: TUInt64;
   N: TUInt64; NNegInv: TUInt64): TUInt64;
-{* 蒙哥马利法快速计算 A * B mod N，范围是 UInt64，其中要求 R 是刚好比 N 大的 2 整数次幂，RExp 为其指数
-   R2ModN 是预先计算好的 R^2 mod N 的值，NNegInv 是预先计算好的 N 对 R 的负模逆元
-   比起 MultipleMod 实现，有一定提速作用}
+{* 蒙哥马利法快速计算 A * B mod N，范围是 UInt64，其中要求 R 是刚好比 N 大的 2 整数次幂，RExp 为其指数。
+   R2ModN 是预先计算好的 R^2 mod N 的值，NNegInv 是预先计算好的 N 对 R 的负模逆元。
+   比起 MultipleMod 实现，有一定提速作用。
+
+   参数：
+     A: TUInt64                           - 乘数一
+     B: TUInt64                           - 乘数二
+     RExp: TUInt64                        - 参与计算的 R 的指数
+     R2ModN: TUInt64                      - 预先计算好的 R^2 mod N 的值
+     N: TUInt64                           - 模数
+     NNegInv: TUInt64                     - 预先计算好的 N 对 R 的负模逆元
+
+   返回值：TUInt64                        - 返回计算结果
+}
 
 function CnInt64Legendre(A: Int64; P: Int64): Integer;
-{* 计算勒让德符号 (A / P) 的值，范围为 Int64，调用者自行保证 P 为奇素数}
+{* 计算勒让德符号 (A / P) 的值，范围为 Int64，调用者自行保证 P 为奇素数
+
+   参数：
+     A: Int64                             - 勒让德符号中的 A
+     P: Int64                             - 勒让德符号中的 P
+
+   返回值：Integer                        - 返回勒让德符号
+}
 
 procedure CnLucasSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int64; out V: Int64);
-{* 计算 IEEE P1363 的规范中说明的 Lucas 序列，范围为 Int64
-   递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
-   V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N }
+{* 计算 IEEE P1363 的规范中说明的 Lucas 序列，范围为 Int64。
+   递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2。
+   V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N。
+
+   参数：
+     X: Int64                             - Lucas 序列的 X 值
+     Y: Int64                             - Lucas 序列的 Y 值
+     K: Int64                             - Lucas 序列的第 K 个
+     N: Int64                             - 模数
+     out Q: Int64                         - 返回的 Lucas 序列的 Q 值
+     out V: Int64                         - 返回的 Lucas 序列的 V 值
+
+   返回值：（无）
+}
 
 function CnInt64SquareRoot(X: Int64; P: Int64): Int64;
-{* 计算平方剩余，也就是返回 Result^2 mod P = X，范围为 Int64，0 与负值暂不支持}
+{* 计算平方剩余，也就是返回 Result^2 mod P = X，范围为 Int64，0 与负值暂不支持。
+
+   参数：
+     X: Int64                             - 待计算平方剩余的 X
+     P: Int64                             - 模数
+
+   返回值：Int64                          - 返回平方剩余值
+}
 
 function CnInt64JacobiSymbol(A: Int64; N: Int64): Int64;
-{* 计算雅可比符号 (A / N)，其中 N 必须是正奇数，A 必须是正整数。如果 N 是奇素数则等同于勒让德符号}
+{* 计算雅可比符号 (A / N)，其中 N 必须是正奇数，A 必须是正整数。如果 N 是奇素数则等同于勒让德符号。
+
+   参数：
+     A: Int64                             - 雅可比符号中的 A
+     N: Int64                             - 雅可比符号中的 N
+
+   返回值：Int64                          - 返回雅可比符号
+}
 
 function ChineseRemainderTheoremInt64(Remainers: array of TUInt64; Factors: array of TUInt64): TUInt64; overload;
-{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，只支持 UInt64
-  也就是说不支持负余数。调用者须确保 Factors 均为正且两两互素，Remainers 均为正或 0}
+{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，只支持 UInt64。
+   也就是说不支持负余数。调用者须确保 Factors 均为正且两两互素，Remainers 均为正或 0。
+
+   参数：
+     Remainers: array of TUInt64          - 一元线性同余方程组的余数列表，要求不为负数
+     Factors: array of TUInt64            - 一元线性同余方程组的除数列表，要求两两互素
+
+   返回值：TUInt64                        - 返回求得的最小解
+}
 
 function ChineseRemainderTheoremInt64(Remainers: TCnInt64List; Factors: TCnInt64List): Int64; overload;
 {* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，只支持 Int64
-  也就是说支持负余数。调用者须确保 Factors 均为正且两两互素}
+   也就是说支持负余数。调用者须确保 Factors 均为正且两两互素
+
+   参数：
+     Remainers: TCnInt64List              - 一元线性同余方程组的余数列表
+     Factors: TCnInt64List                - 一元线性同余方程组的除数列表，要求两两互素
+
+   返回值：Int64                          - 返回求得的最小解
+}
 
 function CnInt64BigStepGiantStep(A: Int64; B: Int64; M: Int64): Int64;
-{* 大步小步算法求离散对数问题 A^X mod M = B 的解 X，要求 A 和 M 互素}
+{* 大步小步算法求离散对数问题 A^X mod M = B 的解 X，要求 A 和 M 互素
+
+   参数：
+     A: Int64                             - 离散对数问题的 A
+     B: Int64                             - 离散对数问题的 B
+     M: Int64                             - 模数
+
+   返回值：Int64                          - 返回结果指数
+}
 
 function CnInt64IsPerfectPower(N: Int64): Boolean;
-{* 判断整数 N 是否是完全幂，也就是是否是某整数的整数次幂，要求 N > 0}
+{* 判断整数 N 是否是完全幂，也就是是否是某整数的整数次幂，要求 N > 0
+
+   参数：
+     N: Int64                             - 待判断的 64 位有符号数
+
+   返回值：Boolean                        - 返回是否完全幂
+}
 
 procedure CnInt64FillCombinatorialNumbers(List: TCnInt64List; N: Integer);
 {* 计算组合数 C(m, N) 放至 Int64 数组中，其中 m 从 0 到 N，
-  N 为 61 时逼近 Int64 上限，62 溢出}
+   N 为 61 时逼近 Int64 上限，62 溢出。
 
-procedure CnUInt64FillCombinatorialNumbers(List: TCnInt64List; N: Integer);
+   参数：
+     List: TCnInt64List                   - 返回从 0 到 N 的组合数值
+     N: Integer                           - 待计算的组合数上限 N
+
+   返回值：（无）
+}
+
+procedure CnUInt64FillCombinatorialNumbers(List: TCnUInt64List; N: Integer);
 {* 计算组合数 C(m, N) 并以 UInt64 格式放至 Int64 数组中，
-  其中 m 从 0 到 N，N 为 62 时逼近 UInt64 上限，63 溢出}
+   其中 m 从 0 到 N，N 为 62 时逼近 UInt64 上限，63 溢出。
+
+   参数：
+     List: TCnUInt64List                  - 返回从 0 到 N 的组合数值
+     N: Integer                           - 待计算的组合数上限 N
+
+   返回值：（无）
+}
 
 procedure CnInt64FillCombinatorialNumbersMod(List: TCnInt64List; N: Integer; P: Int64);
-{* 计算组合数 C(m, N) mod P 放至 Int64 数组中，其中 m 从 0 到 N，如果 P 不是素数导致内部不互素，则相应值会被置 0}
+{* 计算组合数 C(m, N) mod P 放至 Int64 数组中，其中 m 从 0 到 N，如果 P 不是素数导致内部不互素，则相应值会被置 0。
 
-procedure CnUInt64FillCombinatorialNumbersMod(List: TCnInt64List; N: Integer; P: TUInt64);
-{* 计算组合数 C(m, N) mod P 放至 Int64 数组中，其中 m 从 0 到 N，如果 P 不是素数导致内部不互素，则相应值会被置 0}
+   参数：
+     List: TCnInt64List                   - 返回从 0 到 N 的组合数模值
+     N: Integer                           - 待计算的组合数上限 N
+     P: Int64                             - 模数
+
+   返回值：（无）
+}
+
+procedure CnUInt64FillCombinatorialNumbersMod(List: TCnUInt64List; N: Integer; P: TUInt64);
+{* 计算组合数 C(m, N) mod P 放至 UInt64 数组中，其中 m 从 0 到 N，如果 P 不是素数导致内部不互素，则相应值会被置 0。
+
+   参数：
+     List: TCnUInt64List                  - 返回从 0 到 N 的组合数模值
+     N: Integer                           - 待计算的组合数上限 N
+     P: TUInt64                           - 模数
+
+   返回值：（无）
+}
 
 function CnInt64AKSIsPrime(N: Int64): Boolean;
-{* 用 AKS 算法判断某正整数是否是素数，判断 9223372036854775783 约需 10 秒钟}
+{* 用 AKS 算法判断某正整数是否是素数，判断 9223372036854775783 约需 10 秒钟。
+
+   参数：
+     N: Int64                             - 待判断的 64 位有符号整数
+
+   返回值：Boolean                        - 返回是否是素数
+}
 
 function CnUInt64Shor(N: TUInt64; Base: TUInt64 = 3): TUInt64;
-{* 模拟秀尔算法做 UInt64 范围内的 N 的质因素分解，如果是合数则返回一个因数，失败返回 1
-  注意 Base 的取值很重要，如不合适哪怕 N 为合数也会分解失败，且无必然合适的 Base 值}
+{* 模拟秀尔算法做 UInt64 范围内的 N 的质因素分解，如果是合数则返回一个因数，失败返回 1。
+   注意 Base 的取值很重要，如不合适哪怕 N 为合数也会分解失败，且无必然合适的 Base 值。
+
+   参数：
+     N: TUInt64                           - 待分解的 64 位无符号整数
+     Base: TUInt64                        - 秀尔算法中的基值
+
+   返回值：TUInt64                        - 待分解整数如是合数且分解成功的话则返回其中一个因数，失败则返回 1
+}
 
 implementation
 
@@ -1213,7 +1667,7 @@ begin
   until CnUInt32IsPrime(Result);
 end;
 
-// 生成一个随机的 32 位无符号素数
+// 生成一个随机的 32 位有符号素数
 function CnGenerateInt32Prime: Integer;
 begin
   Randomize;
@@ -1790,7 +2244,7 @@ begin
   end;
 end;
 
-// 求一 32 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中
+// 求一 32 位无符号数的全部素数因子，可重复不排序，结果放 Factors 列表中
 procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
 var
   P, C: Cardinal;
@@ -1812,7 +2266,7 @@ begin
   CnUInt32FindFactors(Num div P, Factors);
 end;
 
-// 求一 64 位无符号数的全部质因数，可重复不排序，结果放 Factors 列表中
+// 求一 64 位无符号数的全部素数因子，可重复不排序，结果放 Factors 列表中
 procedure CnInt64FindFactors(Num: TUInt64; Factors: TCnUInt64List);
 var
   P, C: TUInt64;
@@ -1840,7 +2294,7 @@ var
   F: TCnUInt32List;
   I: Integer;
 begin
-  // 先求 Num 的不重复的质因数，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
+  // 先求 Num 的不重复的素数因子，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
   F := TCnUInt32List.Create;
   F.IgnoreDuplicated := True;
 
@@ -1863,7 +2317,7 @@ var
   F: TCnUInt64List;
   I: Integer;
 begin
-  // 先求 Num 的不重复的质因数，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
+  // 先求 Num 的不重复的素数因子，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
   F := TCnUInt64List.Create;
   F.IgnoreDuplicated := True;
 
@@ -2537,7 +2991,7 @@ begin
   end;
 end;
 
-procedure CnUInt64FillCombinatorialNumbers(List: TCnInt64List; N: Integer);
+procedure CnUInt64FillCombinatorialNumbers(List: TCnUInt64List; N: Integer);
 var
   M: Integer;
   C, MC: TUInt64;
@@ -2594,7 +3048,7 @@ begin
   end;
 end;
 
-procedure CnUInt64FillCombinatorialNumbersMod(List: TCnInt64List; N: Integer; P: TUInt64);
+procedure CnUInt64FillCombinatorialNumbersMod(List: TCnUInt64List; N: Integer; P: TUInt64);
 var
   M: Integer;
   C, MC: TUInt64;

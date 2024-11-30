@@ -49,7 +49,12 @@ uses
   Classes, SysUtils, CnNative {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
+  PCnSM3Digest = ^TCnSM3Digest;
+  TCnSM3Digest = array[0..31] of Byte;
+  {* SM3 杂凑结果，32 字节}
+
   TCnSM3Context = packed record
+  {* SM3 的上下文结构}
     Total: array[0..1] of Cardinal;     {!< number of bytes processed  }
     State: array[0..7] of Cardinal;     {!< intermediate digest state  }
     Buffer: array[0..63] of Byte;       {!< data block being processed }
@@ -58,124 +63,189 @@ type
   end;
   PCnSM3Context = ^TCnSM3Context;
 
-  PCnSM3Digest = ^TCnSM3Digest;
-  TCnSM3Digest = array[0..31] of Byte;
-
   TCnSM3CalcProgressFunc = procedure (ATotal, AProgress: Int64;
     var Cancel: Boolean) of object;
-
-// 以下三个函数用于外部持续对数据进行零散的 SM3 计算，SM3Update 可多次被调用
-
-procedure SM3Init(var Context: TCnSM3Context);
-{* 初始化一轮 SM3 计算上下文，准备计算 SM3 结果}
-
-procedure SM3Update(var Context: TCnSM3Context; Input: PAnsiChar; ByteLength: Cardinal);
-{* 以初始化后的上下文对一块数据进行 SM3 计算。
-  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
-
-procedure SM3Final(var Context: TCnSM3Context; var Digest: TCnSM3Digest);
-{* 结束本轮计算，将 SM3 结果返回至 Digest 中}
+  {* SM3 杂凑进度回调事件类型声明}
 
 function SM3(Input: PAnsiChar; ByteLength: Cardinal): TCnSM3Digest;
-{* 对数据块进行 SM3 计算
- |<PRE>
-   Input: PAnsiChar      - 要计算的数据块
-   ByteLength: Cardinal  - 数据块的字节长度
- |</PRE>}
+{* 对数据块进行 SM3 计算。
 
-//procedure SM3HmacStarts(var Ctx: TSM3Context; Key: PAnsiChar; KeyLength: Integer);
-//
-//procedure SM3HmacUpdate(var Ctx: TSM3Context; Input: PAnsiChar; Length: Cardinal);
-//
-//procedure SM3HmacFinish(var Ctx: TSM3Context; var Output: TSM3Digest);
+   参数：
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
 
-procedure SM3Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  ByteLength: Cardinal; var Output: TCnSM3Digest);
+   返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
 
-{* Hash-based Message Authentication Code (based on SM3) }
+ }
 
 function SM3Buffer(const Buffer; Count: Cardinal): TCnSM3Digest;
-{* 对数据块进行 SM3 计算
- |<PRE>
-   const Buffer     - 要计算的数据块，一般传个地址
-   Count: Cardinal  - 数据块长度
- |</PRE>}
+{* 对数据块进行 SM3 计算。
+
+   参数：
+     const Buffer                         - 待计算的数据块地址
+     Count: Cardinal                      - 待计算的数据块字节长度
+
+   返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
+}
 
 function SM3Bytes(Data: TBytes): TCnSM3Digest;
-{* 对 TBytes 进行 SM3 计算
- |<PRE>
-   Data     - 要计算的字节数组
- |</PRE>}
+{* 对字节数组进行 SM3 计算。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
+}
 
 function SM3String(const Str: string): TCnSM3Digest;
 {* 对 String 类型数据进行 SM3 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
-   代码中会将其转换成 AnsiString 进行计算
- |<PRE>
-   Str: string       - 要计算的字符串
- |</PRE>}
+   代码中会将其强行转换成 AnsiString 进行计算。
+
+   参数：
+     const Str: string                    - 待计算的字符串
+
+   返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
+}
 
 function SM3StringA(const Str: AnsiString): TCnSM3Digest;
-{* 对 AnsiString 类型数据进行 SM3 计算
- |<PRE>
-   Str: AnsiString       - 要计算的字符串
- |</PRE>}
+{* 对 AnsiString 类型数据进行 SM3 计算。
+
+   参数：
+     const Str: AnsiString                - 待计算的字符串
+
+   返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
+}
 
 function SM3StringW(const Str: WideString): TCnSM3Digest;
-{* 对 WideString 类型数据进行 SM3 计算，内部转换为 AnsiString
- |<PRE>
-   Str: WideString       - 要计算的字符串
- |</PRE>}
+{* 对 WideString 类型字符串进行转换并进行 SM3 计算。
+   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   其他平台会直接转换为 AnsiString 类型，再进行计算。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
+}
 
 {$IFDEF UNICODE}
 
 function SM3UnicodeString(const Str: string): TCnSM3Digest;
-{* 对 UnicodeString 类型数据进行直接的 SM3 计算，不进行转换
- |<PRE>
-   Str: UnicodeString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 SM3 计算，直接计算内部 UTF16 内容，不进行转换。
+
+   参数：
+     const Str: string                    - 待计算的宽字符串
+
+   返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
+}
 
 {$ELSE}
 
 function SM3UnicodeString(const Str: WideString): TCnSM3Digest;
-{* 对 UnicodeString 类型数据进行直接的 SM3 计算，不进行转换
- |<PRE>
-   Str: WideString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 SM3 计算，直接计算内部 UTF16 内容，不进行转换。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
+}
 
 {$ENDIF}
 
 function SM3File(const FileName: string; CallBack: TCnSM3CalcProgressFunc = nil): TCnSM3Digest;
-{* 对指定文件内容进行 SM3 计算
- |<PRE>
-   FileName: string  - 要计算的文件名
-   CallBack: TSM3PgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定文件内容进行 SM3 计算。
+
+   参数：
+     const FileName: string               - 待计算的文件名
+     CallBack: TCnSM3CalcProgressFunc     - 进度回调函数，默认为空
+
+   返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
+}
 
 function SM3Stream(Stream: TStream; CallBack: TCnSM3CalcProgressFunc = nil): TCnSM3Digest;
-{* 对指定流数据进行 SM3 计算
- |<PRE>
-   Stream: TStream  - 要计算的流内容
-   CallBack: TSM3CalcProgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定流数据进行 SM3 计算。
+
+   参数：
+     Stream: TStream                      - 待计算的流内容
+     CallBack: TCnSM3CalcProgressFunc     - 进度回调函数，默认为空
+
+   返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
+}
+
+// 以下三个函数用于外部持续对数据进行零散的 SM3 计算，SM3Update 可多次被调用
+
+procedure SM3Init(var Context: TCnSM3Context);
+{* 初始化一轮 SM3 计算上下文，准备计算 SM3 结果
+
+   参数：
+     var Context: TCnSM3Context           - 待初始化的 SM3 上下文
+
+   返回值：（无）
+}
+
+procedure SM3Update(var Context: TCnSM3Context; Input: PAnsiChar; ByteLength: Cardinal);
+{* 以初始化后的上下文对一块数据进行 SM3 计算。
+   可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
+
+   参数：
+     var Context: TCnSM3Context           - SM3 上下文
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块的字节长度
+
+   返回值：（无）
+}
+
+procedure SM3Final(var Context: TCnSM3Context; var Digest: TCnSM3Digest);
+{* 结束本轮计算，将 SM3 结果返回至 Digest 中
+
+   参数：
+     var Context: TCnSM3Context           - SM3 上下文
+     var Digest: TCnSM3Digest             - 返回的 SM3 杂凑值
+
+   返回值：（无）
+}
 
 function SM3Print(const Digest: TCnSM3Digest): string;
-{* 以十六进制格式输出 SM3 计算值
- |<PRE>
-   Digest: TSM3Digest  - 指定的 SM3 计算值
- |</PRE>}
+{* 以十六进制格式输出 SM3 杂凑值。
+
+   参数：
+     const Digest: TCnSM3Digest           - 指定的 SM3 杂凑值
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 function SM3Match(const D1: TCnSM3Digest; const D2: TCnSM3Digest): Boolean;
-{* 比较两个 SM3 计算值是否相等
- |<PRE>
-   D1: TSM3Digest   - 需要比较的 SM3 计算值
-   D2: TSM3Digest   - 需要比较的 SM3 计算值
- |</PRE>}
+{* 比较两个 SM3 杂凑值是否相等。
+
+   参数：
+     const D1: TCnSM3Digest               - 待比较的 SM3 杂凑值一
+     const D2: TCnSM3Digest               - 待比较的 SM3 杂凑值二
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 function SM3DigestToStr(const Digest: TCnSM3Digest): string;
-{* SM3 计算值转 string
- |<PRE>
-   Digest: TCnSM3Digest   - 需要转换的 SM3 计算值
- |</PRE>}
+{* SM3 杂凑值内容直接转 string，每字节对应一字符。
+
+   参数：
+     const Digest: TCnSM3Digest           - 待转换的 SM3 杂凑值
+
+   返回值：string                         - 返回的字符串
+}
+
+procedure SM3Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
+  ByteLength: Cardinal; var Output: TCnSM3Digest);
+{* 基于 SM3 的 HMAC（Hash-based Message Authentication Code）计算，
+   在普通数据的计算上加入密钥的概念，也叫加盐。
+
+   参数：
+     Key: PAnsiChar                       - 待参与 SM3 计算的密钥数据块地址
+     KeyByteLength: Integer               - 待参与 SM3 计算的密钥数据块字节长度
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+     var Output: TCnSM3Digest             - 返回的 SM3 杂凑值
+
+   返回值：（无）
+}
 
 implementation
 
@@ -518,12 +588,12 @@ begin
   SM3Final(Ctx, Output);
 end;
 
-procedure SM3Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+procedure SM3Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSM3Digest);
 var
   Ctx: TCnSM3Context;
 begin
-  SM3HmacStarts(Ctx, Key, KeyLength);
+  SM3HmacStarts(Ctx, Key, KeyByteLength);
   SM3HmacUpdate(Ctx, Input, ByteLength);
   SM3HmacFinish(Ctx, Output);
 end;

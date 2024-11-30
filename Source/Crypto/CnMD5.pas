@@ -76,14 +76,17 @@ uses
 
 type
   PMD5Digest = ^TCnMD5Digest;
+  TCnMD5Digest = array[0..15] of Byte;
+  {* MD5 杂凑结果，16 字节}
 
   TCnMD5Count = array[0..1] of Cardinal;
   TCnMD5State = array[0..3] of Cardinal;
   TCnMD5Block = array[0..15] of Cardinal;
-  TCnMD5Digest = array[0..15] of Byte;
+
   TCnMD5Buffer = array[0..63] of Byte;
 
   TCnMD5Context = record
+  {* MD5 的上下文结构}
     State   : TCnMD5State;
     Count   : TCnMD5Count;
     Buffer  : TCnMD5Buffer;
@@ -100,112 +103,187 @@ type
 //----------------------------------------------------------------
 
 function MD5(Input: PAnsiChar; ByteLength: Cardinal): TCnMD5Digest;
-{* 对数据块进行 MD5 计算
- |<PRE>
-   Input: PAnsiChar      - 要计算的数据块的首地址
-   ByteLength: Cardinal  - 数据块的字节长度
- |</PRE>}
+{* 对数据块进行 MD5 计算。
+
+   参数：
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+
+   返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
+}
 
 function MD5Buffer(const Buffer; Count: Cardinal): TCnMD5Digest;
-{* 对数据块进行 MD5 计算
- |<PRE>
-   const Buffer     - 要计算的数据块，一般传个地址
-   Count: Cardinal  - 数据块长度
- |</PRE>}
+{* 对数据块进行 MD5 计算。
+
+   参数：
+     const Buffer                         - 待计算的数据块地址
+     Count: Cardinal                      - 待计算的数据块字节长度
+
+   返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
+}
 
 function MD5Bytes(Data: TBytes): TCnMD5Digest;
-{* 对 TBytes 进行 MD5 计算
- |<PRE>
-   Data     - 要计算的字节数组
- |</PRE>}
+{* 对字节数组进行 MD5 计算。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
+}
 
 function MD5String(const Str: string): TCnMD5Digest;
 {* 对 String 类型数据进行 MD5 计算。注意 D2009 或以上版本的 string 为 UnicodeString，
-   代码中会将其转换成 AnsiString 进行计算
- |<PRE>
-   Str: string       - 要计算的字符串
- |</PRE>}
+   代码中会将其强行转换成 AnsiString 进行计算。
+
+
+   参数：
+     const Str: string                    - 待计算的字符串
+
+   返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
+}
 
 function MD5StringA(const Str: AnsiString): TCnMD5Digest;
-{* 对 AnsiString 类型数据进行 MD5 计算
- |<PRE>
-   Str: AnsiString       - 要计算的字符串
- |</PRE>}
+{* 对 AnsiString 类型数据进行 MD5 计算，直接计算内部内容，无编码处理。
+
+   参数：
+     const Str: AnsiString                - 待计算的字符串
+
+   返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
+}
 
 function MD5StringW(const Str: WideString): TCnMD5Digest;
-{* 对 WideString 类型数据进行 MD5 计算，计算前会调用 WideCharToMultyByte 进行转换
- |<PRE>
-   Str: WideString       - 要计算的宽字符串
- |</PRE>}
+{* 对 WideString 类型字符串进行转换并进行 MD5 计算。
+   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   其他平台会直接转换为 AnsiString 类型，再进行计算。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
+}
 
 {$IFDEF UNICODE}
 
 function MD5UnicodeString(const Str: string): TCnMD5Digest;
-{* 对 UnicodeString 类型数据进行直接的 MD5 计算，不进行转换
- |<PRE>
-   Str: UnicodeString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 MD5 计算，直接计算内部 UTF16 内容，不进行转换。
+
+   参数：
+     const Str: string                    - 待计算的宽字符串
+
+   返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
+}
 
 {$ELSE}
 
 function MD5UnicodeString(const Str: WideString ): TCnMD5Digest;
-{* 对 UnicodeString 类型数据进行直接的 MD5 计算，不进行转换
- |<PRE>
-   Str: WideString       - 要计算的宽字符串
- |</PRE>}
+{* 对 UnicodeString 类型数据进行直接的 MD5 计算，直接计算内部 UTF16 内容，不进行转换。
+
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+
+   返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
+}
 
 {$ENDIF}
 
 function MD5File(const FileName: string;
   CallBack: TCnMD5CalcProgressFunc = nil): TCnMD5Digest;
-{* 对指定文件内容进行 MD5 计算
- |<PRE>
-   FileName: string  - 要计算的文件名
-   CallBack: TMD5CalcProgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定文件内容进行 MD5 计算。
+
+   参数：
+     const FileName: string               - 待计算的文件名
+     CallBack: TCnMD5CalcProgressFunc     - 进度回调函数，默认为空
+
+   返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
+}
 
 function MD5Stream(Stream: TStream;
   CallBack: TCnMD5CalcProgressFunc = nil): TCnMD5Digest;
-{* 对指定流数据进行 MD5 计算
- |<PRE>
-   Stream: TStream  - 要计算的流内容
-   CallBack: TMD5CalcProgressFunc - 进度回调函数，默认为空
- |</PRE>}
+{* 对指定流数据进行 MD5 计算。
 
-function MD5Print(const Digest: TCnMD5Digest): string;
-{* 以十六进制格式输出 MD5 计算值
- |<PRE>
-   Digest: TMD5Digest  - 指定的 MD5 计算值
- |</PRE>}
+   参数：
+     Stream: TStream                      - 待计算的流内容
+     CallBack: TCnMD5CalcProgressFunc     - 进度回调函数，默认为空
 
-function MD5Match(const D1: TCnMD5Digest; const D2: TCnMD5Digest): Boolean;
-{* 比较两个 MD5 计算值是否相等
- |<PRE>
-   D1: TMD5Digest   - 需要比较的 MD5 计算值
-   D2: TMD5Digest   - 需要比较的 MD5 计算值
- |</PRE>}
-
-function MD5DigestToStr(const Digest: TCnMD5Digest): string;
-{* MD5 计算值转 string
- |<PRE>
-   Digest: TMD5Digest   - 需要转换的 MD5 计算值
- |</PRE>}
-
-procedure MD5Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
-  ByteLength: Cardinal; var Output: TCnMD5Digest);
-{* Hash-based Message Authentication Code (based on MD5)}
+   返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
+}
 
 // 以下三个函数用于外部持续对数据进行零散的 MD5 计算，MD5Update 可多次被调用
 
 procedure MD5Init(var Context: TCnMD5Context);
-{* 初始化一轮 MD5 计算上下文，准备计算 MD5 结果}
+{* 初始化一轮 MD5 计算上下文，准备计算 MD5 结果。
+
+   参数：
+     var Context: TCnMD5Context           - 待初始化的 MD5 上下文
+
+   返回值：（无）
+}
 
 procedure MD5Update(var Context: TCnMD5Context; Input: PAnsiChar; ByteLength: Cardinal);
 {* 以初始化后的上下文对一块数据进行 MD5 计算。
-  可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中}
+   可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
+
+   参数：
+     var Context: TCnMD5Context           - MD5 上下文
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块的字节长度
+
+   返回值：（无）
+}
 
 procedure MD5Final(var Context: TCnMD5Context; var Digest: TCnMD5Digest);
-{* 结束本轮计算，将 MD5 结果返回至 Digest 中}
+{* 结束本轮计算，将 MD5 结果返回至 Digest 中。
+
+   参数：
+     var Context: TCnMD5Context           - MD5 上下文
+     var Digest: TCnMD5Digest             - 返回的 MD5 杂凑值
+
+   返回值：（无）
+}
+
+function MD5Print(const Digest: TCnMD5Digest): string;
+{* 以十六进制格式输出 MD5 杂凑值。
+
+   参数：
+     const Digest: TCnMD5Digest           - 指定的 MD5 杂凑值
+
+   返回值：string                         - 返回十六进制字符串
+}
+
+function MD5Match(const D1: TCnMD5Digest; const D2: TCnMD5Digest): Boolean;
+{* 比较两个 MD5 杂凑值是否相等。
+
+   参数：
+     const D1: TCnMD5Digest               - 待比较的 MD5 杂凑值一
+     const D2: TCnMD5Digest               - 待比较的 MD5 杂凑值二
+
+   返回值：Boolean                        - 返回是否相等
+}
+
+function MD5DigestToStr(const Digest: TCnMD5Digest): string;
+{* MD5 杂凑值内容直接转 string，每字节对应一字符。
+
+   参数：
+     const Digest: TCnMD5Digest           - 待转换的 MD5 杂凑值
+
+   返回值：string                         - 返回的字符串
+}
+
+procedure MD5Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
+  ByteLength: Cardinal; var Output: TCnMD5Digest);
+{* 基于 MD5 的 HMAC（Hash-based Message Authentication Code）计算，
+   在普通数据的计算上加入密钥的概念，也叫加盐。
+
+   参数：
+     Key: PAnsiChar                       - 待参与 MD5 计算的密钥数据块地址
+     KeyByteLength: Integer               - 待参与 MD5 计算的密钥数据块字节长度
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+     var Output: TCnMD5Digest             - 返回的 MD5 杂凑值
+
+   返回值：（无）
+}
 
 implementation
 
@@ -732,19 +810,19 @@ begin
   InternalMD5Stream(Stream, 4096 * 1024, Result, CallBack);
 end;
 
-// 以十六进制格式输出 MD5 计算值
+// 以十六进制格式输出 MD5 杂凑值
 function MD5Print(const Digest: TCnMD5Digest): string;
 begin
   Result := DataToHex(@Digest[0], SizeOf(TCnMD5Digest));
 end;
 
-// 比较两个 MD5 计算值是否相等
+// 比较两个 MD5 杂凑值是否相等
 function MD5Match(const D1, D2: TCnMD5Digest): Boolean;
 begin
   Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnMD5Digest));
 end;
 
-// MD5 计算值转 string
+// MD5 杂凑值转 string
 function MD5DigestToStr(const Digest: TCnMD5Digest): string;
 begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnMD5Digest));
@@ -793,12 +871,12 @@ begin
   MD5Final(Ctx, Output);
 end;
 
-procedure MD5Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
+procedure MD5Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnMD5Digest);
 var
   Ctx: TCnMD5Context;
 begin
-  MD5HmacInit(Ctx, Key, KeyLength);
+  MD5HmacInit(Ctx, Key, KeyByteLength);
   MD5HmacUpdate(Ctx, Input, ByteLength);
   MD5HmacFinal(Ctx, Output);
 end;
