@@ -699,7 +699,7 @@ function CnUInt32IsPrime(N: Cardinal): Boolean;
 {* 快速判断一 32 位无符号整数是否是素数。
 
    参数：
-     N: Cardinal                          - 待判断的 32 位无符号数
+     N: Cardinal                          - 待判断的 32 位无符号整数
 
    返回值：Boolean                        - 返回是否是素数
 }
@@ -708,7 +708,7 @@ function CnInt64IsPrime(N: TUInt64): Boolean;
 {* 概率性判断一 64 位无符号整数是否是素数。
 
    参数：
-     N: TUInt64                           - 待判断的 64 位无符号数
+     N: TUInt64                           - 待判断的 64 位无符号整数
 
    返回值：Boolean                        - 返回是否是素数
 }
@@ -859,7 +859,7 @@ function CnUInt64IsPrime(N: NativeUInt): Boolean;
 {* 概率性判断一 64 位无符号整数是否是素数。
 
    参数：
-     N: NativeUInt                        - 待判断的 64 位无符号数
+     N: NativeUInt                        - 待判断的 64 位无符号整数
 
    返回值：Boolean                        - 返回是否是素数
 }
@@ -876,7 +876,7 @@ function CnGenerateUInt64Prime: NativeUInt;
 {$ENDIF}
 
 function CnUInt32GreatestCommonDivisor(A: Cardinal; B: Cardinal): Cardinal;
-{* 求两个 32 位无符号数的最大公约数。
+{* 求两个 32 位无符号整数的最大公约数。
 
    参数：
      A: Cardinal                          - 32 位无符号整数一
@@ -886,7 +886,7 @@ function CnUInt32GreatestCommonDivisor(A: Cardinal; B: Cardinal): Cardinal;
 }
 
 function CnInt64GreatestCommonDivisor(A: TUInt64; B: TUInt64): TUInt64;
-{* 求两个 64 位无符号数的最大公约数。
+{* 求两个 64 位无符号整数的最大公约数。
 
    参数：
      A: TUInt64                           - 64 位无符号整数一
@@ -896,7 +896,7 @@ function CnInt64GreatestCommonDivisor(A: TUInt64; B: TUInt64): TUInt64;
 }
 
 function CnInt64GreatestCommonDivisor2(A: Int64; B: Int64): Int64;
-{* 求两个 64 位有符号数的最大公约数。
+{* 求两个 64 位有符号整数的最大公约数。
 
    参数：
      A: Int64                             - 64 位有符号整数一
@@ -906,7 +906,7 @@ function CnInt64GreatestCommonDivisor2(A: Int64; B: Int64): Int64;
 }
 
 function CnUInt32LeastCommonMultiple(A: Cardinal; B: Cardinal): Cardinal;
-{* 求两个 32 位无符号数的最小公倍数，不考虑溢出的情况。
+{* 求两个 32 位无符号整数的最小公倍数，不考虑溢出的情况。
 
    参数：
      A: Cardinal                          - 32 位无符号整数一
@@ -916,7 +916,7 @@ function CnUInt32LeastCommonMultiple(A: Cardinal; B: Cardinal): Cardinal;
 }
 
 function CnInt64LeastCommonMultiple(A: TUInt64; B: TUInt64): TUInt64;
-{* 求两个 64 位无符号数的最小公倍数，不考虑溢出的情况
+{* 求两个 64 位无符号整数的最小公倍数，不考虑溢出的情况
 
    参数：
      A: TUInt64                           - 64 位无符号整数一
@@ -926,7 +926,7 @@ function CnInt64LeastCommonMultiple(A: TUInt64; B: TUInt64): TUInt64;
 }
 
 function CnInt64LeastCommonMultiple2(A: Int64; B: Int64): Int64;
-{* 求两个 64 位有符号数的最小公倍数，不考虑溢出的情况
+{* 求两个 64 位有符号整数的最小公倍数，不考虑溢出的情况
 
    参数：
      A: Int64                             - 64 位有符号整数一
@@ -1005,7 +1005,7 @@ function CnIsUInt32PrimitiveRoot(Num: Cardinal; Root: Cardinal): Boolean;
 {* 检验 Root 是否为 Num 的原根，范围为 UInt32。
 
    参数：
-     Num: Cardinal                        - 待检验的 32 位无符号数
+     Num: Cardinal                        - 待检验的 32 位无符号整数
      Root: Cardinal                       - 待检验的 32 位无符号原根
 
    返回值：Boolean                        - 返回是否是原根
@@ -1015,46 +1015,46 @@ function CnIsInt64PrimitiveRoot(Num: TUInt64; Root: TUInt64): Boolean;
 {* 检验 Root 是否为 Num 的原根，范围为 UInt64。
 
    参数：
-     Num: TUInt64                         - 待检验的 64 位无符号数
+     Num: TUInt64                         - 待检验的 64 位无符号整数
      Root: TUInt64                        - 待检验的 64 位无符号原根
 
    返回值：Boolean                        - 返回是否是原根
 }
 
 procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
-{* 求一 32 位无符号数的全部素数因子，可重复不排序，结果放 Factors 列表中。
+{* 求一 32 位无符号整数的全部素数因子，可重复不排序，结果放 Factors 列表中。
 
    参数：
-     Num: Cardinal                        - 待分解的 32 位无符号数
+     Num: Cardinal                        - 待分解的 32 位无符号整数
      Factors: TCnUInt32List               - 返回全部素数因子
 
    返回值：（无）
 }
 
 procedure CnInt64FindFactors(Num: TUInt64; Factors: TCnUInt64List);
-{* 求一 64 位无符号数的全部素数因子，可重复不排序，结果放 Factors 列表中。
+{* 求一 64 位无符号整数的全部素数因子，可重复不排序，结果放 Factors 列表中。
 
    参数：
-     Num: TUInt64                         - 待分解的 64 位无符号数
+     Num: TUInt64                         - 待分解的 64 位无符号整数
      Factors: TCnUInt64List               - 返回全部素数因子
 
    返回值：（无）
 }
 
 function CnEulerUInt32(Num: Cardinal): Cardinal;
-{* 求不大于一 32 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数。
+{* 求不大于一 32 位无符号整数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数。
 
    参数：
-     Num: Cardinal                        - 待求值的 32 位无符号数
+     Num: Cardinal                        - 待求值的 32 位无符号整数
 
    返回值：Cardinal                       - 返回欧拉函数值
 }
 
 function CnEulerInt64(Num: TUInt64): TUInt64;
-{* 求不大于一 64 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数。
+{* 求不大于一 64 位无符号整数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数。
 
    参数：
-     Num: TUInt64                         - 待求值的 64 位无符号数
+     Num: TUInt64                         - 待求值的 64 位无符号整数
 
    返回值：TUInt64                        - 返回欧拉函数值
 }
@@ -1064,7 +1064,7 @@ function CnUInt32ModularInverse(X: Cardinal; Modulus: Cardinal): Cardinal;
    X、Modulus 必须互素，如不互素则模逆元不存在，返回 0。
 
    参数：
-     X: Cardinal                          - 待求模逆元的 32 位无符号数
+     X: Cardinal                          - 待求模逆元的 32 位无符号整数
      Modulus: Cardinal                    - 模数
 
    返回值：Cardinal                       - 返回模逆元，不存在则返回 0
@@ -1075,7 +1075,7 @@ function CnInt64ModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
    X、Modulus 必须互素，如不互素则模逆元不存在，返回 0。
 
    参数：
-     X: TUInt64                           - 待求模逆元的 64 位无符号数
+     X: TUInt64                           - 待求模逆元的 64 位无符号整数
      Modulus: TUInt64                     - 模数
 
    返回值：TUInt64                        - 返回模逆元，不存在则返回 0
@@ -1086,7 +1086,7 @@ function CnInt64ModularInverse2(X: Int64; Modulus: Int64): Int64;
    X、Modulus 必须互素，如不互素则模逆元不存在，返回 0。
 
    参数：
-     X: Int64                             - 待求模逆元的 64 位有符号数
+     X: Int64                             - 待求模逆元的 64 位有符号整数
      Modulus: Int64                       - 模数
 
    返回值：Int64                          - 返回模逆元，不存在则返回 0
@@ -1097,7 +1097,7 @@ function CnInt64NegativeModularInverse(X: TUInt64; Modulus: TUInt64): TUInt64;
    X、Modulus 必须互素，如不互素则负模逆元不存在，返回 0。
 
    参数：
-     X: TUInt64                           - 待求负模逆元的 64 位无符号数
+     X: TUInt64                           - 待求负模逆元的 64 位无符号整数
      Modulus: TUInt64                     - 模数
 
    返回值：TUInt64                        - 返回负模逆元，不存在则返回 0
@@ -1108,7 +1108,7 @@ function CnInt64NegativeModularInverse2(X: Int64; Modulus: Int64): Int64;
    X、Modulus 必须互素，如不互素则负模逆元不存在，返回 0。
 
    参数：
-     X: Int64                             - 待求负模逆元的 64 位有符号数
+     X: Int64                             - 待求负模逆元的 64 位有符号整数
      Modulus: Int64                       - 模数
 
    返回值：Int64                          - 返回负模逆元，不存在则返回 0
@@ -1293,7 +1293,7 @@ function CnInt64IsPerfectPower(N: Int64): Boolean;
 {* 判断整数 N 是否是完全幂，也就是是否是某整数的整数次幂，要求 N > 0。
 
    参数：
-     N: Int64                             - 待判断的 64 位有符号数
+     N: Int64                             - 待判断的 64 位有符号整数
 
    返回值：Boolean                        - 返回是否完全幂
 }
@@ -2118,7 +2118,7 @@ begin
   end;
 end;
 
-// 求两个 32 位无符号数的最大公约数
+// 求两个 32 位无符号整数的最大公约数
 function CnUInt32GreatestCommonDivisor(A, B: Cardinal): Cardinal;
 begin
   if B = 0 then
@@ -2127,7 +2127,7 @@ begin
     Result := CnUInt32GreatestCommonDivisor(B, A mod B);
 end;
 
-// 求两个 64 位无符号数的最大公约数
+// 求两个 64 位无符号整数的最大公约数
 function CnInt64GreatestCommonDivisor(A, B: TUInt64): TUInt64;
 begin
   if B = 0 then
@@ -2136,7 +2136,7 @@ begin
     Result := CnInt64GreatestCommonDivisor(B, UInt64Mod(A, B));
 end;
 
-// 求两个 64 位有符号数的最大公约数
+// 求两个 64 位有符号整数的最大公约数
 function CnInt64GreatestCommonDivisor2(A, B: Int64): Int64;
 begin
   if A < 0 then
@@ -2244,7 +2244,7 @@ begin
   end;
 end;
 
-// 求一 32 位无符号数的全部素数因子，可重复不排序，结果放 Factors 列表中
+// 求一 32 位无符号整数的全部素数因子，可重复不排序，结果放 Factors 列表中
 procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
 var
   P, C: Cardinal;
@@ -2266,7 +2266,7 @@ begin
   CnUInt32FindFactors(Num div P, Factors);
 end;
 
-// 求一 64 位无符号数的全部素数因子，可重复不排序，结果放 Factors 列表中
+// 求一 64 位无符号整数的全部素数因子，可重复不排序，结果放 Factors 列表中
 procedure CnInt64FindFactors(Num: TUInt64; Factors: TCnUInt64List);
 var
   P, C: TUInt64;
@@ -2288,7 +2288,7 @@ begin
   CnInt64FindFactors(UInt64Div(Num, P), Factors);
 end;
 
-// 求不大于一 32 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数
+// 求不大于一 32 位无符号整数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数
 function CnEulerUInt32(Num: Cardinal): Cardinal;
 var
   F: TCnUInt32List;
@@ -2311,7 +2311,7 @@ begin
   end;
 end;
 
-// 求不大于一 64 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数
+// 求不大于一 64 位无符号整数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数
 function CnEulerInt64(Num: TUInt64): TUInt64;
 var
   F: TCnUInt64List;

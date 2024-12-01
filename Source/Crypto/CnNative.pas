@@ -43,7 +43,7 @@ unit CnNative;
 * 修改记录：2023.08.14 V2.4
 *               补上几个时间固定的函数并改名
 *           2022.11.11 V2.3
-*               补上几个无符号数的字节顺序调换函数
+*               补上几个无符号整数的字节顺序调换函数
 *           2022.07.23 V2.2
 *               增加几个内存位运算函数与二进制转换字符串函数，并改名为 CnNative
 *           2022.06.08 V2.1
@@ -61,7 +61,7 @@ unit CnNative;
 *           2020.09.06 V1.5
 *               加入求 UInt64 整数平方根的函数
 *           2020.07.01 V1.5
-*               加入判断 32 位与 64 位有无符号数相加是否溢出的函数
+*               加入判断 32 位与 64 位有无符号整数相加是否溢出的函数
 *           2020.06.20 V1.4
 *               加入 32 位与 64 位获取最高与最低的 1 位位置的函数
 *           2020.01.01 V1.3
@@ -207,468 +207,1481 @@ const
   函数，实现以 Int64 表示的 UInt64 数据的 div 与 mod 功能。
 }
 function UInt64Mod(A: TUInt64; B: TUInt64): TUInt64;
-{* 两个 UInt64 求余}
+{* 两个 64 位无符号整数求余。
+
+   参数：
+     A: TUInt64                           - 被除数
+     B: TUInt64                           - 除数
+
+   返回值：TUInt64                        - 余数
+}
 
 function UInt64Div(A: TUInt64; B: TUInt64): TUInt64;
-{* 两个 UInt64 整除}
+{* 两个 64 位无符号整数整除。
+
+   参数：
+     A: TUInt64                           - 被除数
+     B: TUInt64                           - 除数
+
+   返回值：TUInt64                        - 整商
+}
 
 function UInt64Mul(A: Cardinal; B: Cardinal): TUInt64;
-{* 无符号 32 位整数不溢出的相乘，在不支持 UInt64 的平台上，结果以 UInt64 的形式放在 Int64 里，
-  如果结果直接使用 Int64 计算则有可能溢出}
+{* 两个 32 位无符号整数不溢出的相乘。在不支持 UInt64 的平台上，结果以 UInt64 的形式放在 Int64 里，
+   如果结果直接使用 Int64 计算则有可能溢出。
+
+   参数：
+     A: Cardinal                          - 乘数一
+     B: Cardinal                          - 乘数二
+
+   返回值：TUInt64                        - 积
+}
 
 procedure UInt64AddUInt64(A: TUInt64; B: TUInt64; var ResLo: TUInt64; var ResHi: TUInt64);
-{* 两个无符号 64 位整数相加，处理溢出的情况，结果放 ResLo 与 ResHi 中
-  注：内部实现按算法来看较为复杂，实际上如果溢出，ResHi 必然是 1，直接判断溢出并将其设 1 即可}
+{* 两个 64 位无符号整数相加，处理溢出的情况，结果放 ResLo 与 ResHi 中。
+   注：内部实现按算法来看较为复杂，实际上如果溢出，ResHi 必然是 1，直接判断溢出并将其设 1 即可
+
+   参数：
+     A: TUInt64                           - 乘数一
+     B: TUInt64                           - 乘数二
+     var ResLo: TUInt64                   - 和低位
+     var ResHi: TUInt64                   - 和高位
+
+   返回值：（无）
+}
 
 procedure UInt64MulUInt64(A: TUInt64; B: TUInt64; var ResLo: TUInt64; var ResHi: TUInt64);
-{* 两个无符号 64 位整数相乘，结果放 ResLo 与 ResHi 中，64 位下用汇编实现，提速约一倍以上}
+{* 两个64 位无符号整数相乘，结果放 ResLo 与 ResHi 中。Win 64 位下用汇编实现，提速约一倍以上。
+
+   参数：
+     A: TUInt64                           - 乘数一
+     B: TUInt64                           - 乘数二
+     var ResLo: TUInt64                   - 积低位
+     var ResHi: TUInt64                   - 积高位
+
+   返回值：（无）
+}
 
 function UInt64ToHex(N: TUInt64): string;
-{* 将 UInt64 转换为十六进制字符串}
+{* 将 64 位无符号整数转换为十六进制字符串。
+
+   参数：
+     N: TUInt64                           - 待转换的值
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 function UInt64ToStr(N: TUInt64): string;
-{* 将 UInt64 转换为字符串}
+{* 将 64 位无符号整数转换为十进制字符串。
+
+   参数：
+     N: TUInt64                           - 待转换的值
+
+   返回值：string                         - 返回十进制字符串
+}
 
 function StrToUInt64(const S: string): TUInt64;
-{* 将字符串转换为 UInt64}
+{* 将字符串转换为 64 位无符号整数。
+
+   参数：
+     const S: string                      - 待转换的字符串
+
+   返回值：TUInt64                        - 返回转换结果
+}
 
 function UInt64Compare(A: TUInt64; B: TUInt64): Integer;
-{* 比较两个 UInt64 值，分别根据 > = < 返回 1、0、-1}
+{* 比较两个 64 位无符号整数值，分别根据比较的结果是大于、等于还是小于来返回 1、0、-1。
+
+   参数：
+     A: TUInt64                           - 待比较的数一
+     B: TUInt64                           - 待比较的数二
+
+   返回值：Integer                        - 返回比较结果
+}
 
 function UInt64Sqrt(N: TUInt64): TUInt64;
-{* 求 UInt64 的平方根的整数部分}
+{* 求 64 位无符号整数的平方根的整数部分。
+
+   参数：
+     N: TUInt64                           - 待求平方根的数
+
+   返回值：TUInt64                        - 返回平方根的整数部分
+}
 
 function UInt32IsNegative(N: Cardinal): Boolean;
-{* 该 Cardinal 被当成 Integer 时是否小于 0}
+{* 判断 32 位无符号整数被当成 32 位有符号整数时是否小于 0。
+
+   参数：
+     N: Cardinal                          - 待判断的值
+
+   返回值：Boolean                        - 返回是否小于 0
+}
 
 function UInt64IsNegative(N: TUInt64): Boolean;
-{* 该 UInt64 被当成 Int64 时是否小于 0}
+{* 判断 64 位无符号整数被当成 64 位有符号整数时是否小于 0。
+
+   参数：
+     N: TUInt64                           - 待判断的值
+
+   返回值：Boolean                        - 返回是否小于 0
+}
 
 procedure UInt64SetBit(var B: TUInt64; Index: Integer);
-{* 给 UInt64 的某一位置 1，位 Index 从 0 开始}
+{* 给 64 位整数的某一位置 1，位 Index 从 0 开始到 63。
+
+   参数：
+     var B: TUInt64                       - 待置位的值
+     Index: Integer                       - 待置 1 的位序号
+
+   返回值：（无）
+}
 
 procedure UInt64ClearBit(var B: TUInt64; Index: Integer);
-{* 给 UInt64 的某一位置 0，位 Index 从 0 开始}
+{* 给 64 位整数的某一位置 0，位 Index 从 0 开始到 63。
+
+   参数：
+     var B: TUInt64                       - 待置位的值
+     Index: Integer                       - 待置 0 的位序号
+
+   返回值：（无）
+}
 
 function GetUInt64BitSet(B: TUInt64; Index: Integer): Boolean;
-{* 返回 UInt64 的某一位是否是 1，位 Index 从 0 开始}
+{* 返回 64 位整数的某一位是否是 1，位 Index 从 0 开始到 63。
+
+   参数：
+     B: TUInt64                           - 待判断的值
+     Index: Integer                       - 待判断的位序号
+
+   返回值：Boolean                        - 返回该位是否是 1
+}
 
 function GetUInt64HighBits(B: TUInt64): Integer;
-{* 返回 UInt64 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1}
+{* 返回 64 位整数的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1。
+
+   参数：
+     B: TUInt64                           - 待判断的值
+
+   返回值：Integer                        - 返回 1 的最高位序号
+}
 
 function GetUInt32HighBits(B: Cardinal): Integer;
-{* 返回 Cardinal 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1}
+{* 返回 32 位整数的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1。
+
+   参数：
+     B: Cardinal                          - 待判断的值
+
+   返回值：Integer                        - 返回 1 的最高位序号
+}
 
 function GetUInt16HighBits(B: Word): Integer;
-{* 返回 Word 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1}
+{* 返回 16 位整数的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1。
+
+   参数：
+     B: Word                              - 待判断的值
+
+   返回值：Integer                        - 返回 1 的最高位序号
+}
 
 function GetUInt8HighBits(B: Byte): Integer;
-{* 返回 Byte 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1}
+{* 返回 8 位整数的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1。
+
+   参数：
+     B: Byte                              - 待判断的值
+
+   返回值：Integer                        - 返回 1 的最高位序号
+}
 
 function GetUInt64LowBits(B: TUInt64): Integer;
-{* 返回 Int64 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1}
+{* 返回 64 位整数的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1。
+
+   参数：
+     B: TUInt64                           - 待判断的值
+
+   返回值：Integer                        - 返回 1 的最低位序号
+}
 
 function GetUInt32LowBits(B: Cardinal): Integer;
-{* 返回 Cardinal 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1}
+{* 返回 32 位整数的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1。
+
+   参数：
+     B: Cardinal                          - 待判断的值
+
+   返回值：Integer                        - 返回 1 的最低位序号
+}
 
 function GetUInt16LowBits(B: Word): Integer;
-{* 返回 Word 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1}
+{* 返回 16 位整数的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1。
+
+   参数：
+     B: Word                              - 待判断的值
+
+   返回值：Integer                        - 返回 1 的最低位序号
+}
 
 function GetUInt8LowBits(B: Byte): Integer;
-{* 返回 Byte 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1}
+{* 返回 8 位整数的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1。
+
+   参数：
+     B: Byte                              - 待判断的值
+
+   返回值：Integer                        - 返回 1 的最低位序号
+}
 
 function Int64Mod(M: Int64; N: Int64): Int64;
-{* 封装的 Int64 Mod，M 碰到负值时取反求模再模减，但 N 仍要求正数否则结果不靠谱}
+{* 封装的 Int64 Mod，M 碰到负值时取反求模再模减，但 N 仍要求正数否则结果不靠谱。
+
+   参数：
+     M: Int64                             - 被除数
+     N: Int64                             - 除数
+
+   返回值：Int64                          - 余数
+}
 
 function IsUInt32PowerOf2(N: Cardinal): Boolean;
-{* 判断一 32 位无符号整数是否 2 的整数次幂}
+{* 判断一 32 位无符号整数是否 2 的整数次幂。
+
+   参数：
+     N: Cardinal                          - 待判断的值
+
+   返回值：Boolean                        - 返回是否是 2 的整数次幂
+}
 
 function IsUInt64PowerOf2(N: TUInt64): Boolean;
-{* 判断一 64 位无符号整数是否 2 的整数次幂}
+{* 判断一 64 位无符号整数是否 2 的整数次幂。
+
+   参数：
+     N: TUInt64                           - 待判断的值
+
+   返回值：Boolean                        - 返回是否是 2 的整数次幂
+}
 
 function GetUInt32PowerOf2GreaterEqual(N: Cardinal): Cardinal;
-{* 得到一比指定 32 位无符号整数数大或等的 2 的整数次幂，如溢出则返回 0}
+{* 得到一比指定 32 位无符号整数大或等的 2 的整数次幂，如溢出则返回 0
+
+   参数：
+     N: Cardinal                          - 待计算的值
+
+   返回值：Cardinal                       - 返回符合条件的 2 的整数次幂或 0
+}
 
 function GetUInt64PowerOf2GreaterEqual(N: TUInt64): TUInt64;
-{* 得到一比指定 64 位无符号整数数大或等的 2 的整数次幂，如溢出则返回 0}
+{* 得到一比指定 64 位无符号整数大或等的 2 的整数次幂，如溢出则返回 0
+
+   参数：
+     N: TUInt64                           - 待计算的值
+
+   返回值：TUInt64                        - 返回符合条件的 2 的整数次幂或 0
+}
 
 function IsInt32AddOverflow(A: Integer; B: Integer): Boolean;
-{* 判断两个 32 位有符号数相加是否溢出 32 位有符号上限}
+{* 判断两个 32 位有符号整数相加是否溢出 32 位有符号整数上限。
+
+   参数：
+     A: Integer                           - 加数一
+     B: Integer                           - 加数二
+
+   返回值：Boolean                        - 返回相加是否会溢出
+}
 
 function IsUInt32AddOverflow(A: Cardinal; B: Cardinal): Boolean;
-{* 判断两个 32 位无符号数相加是否溢出 32 位无符号上限}
+{* 判断两个 32 位无符号整数相加是否溢出 32 位无符号整数上限。
+
+   参数：
+     A: Cardinal                          - 加数一
+     B: Cardinal                          - 加数二
+
+   返回值：Boolean                        - 返回相加是否会溢出
+}
 
 function IsInt64AddOverflow(A: Int64; B: Int64): Boolean;
-{* 判断两个 64 位有符号数相加是否溢出 64 位有符号上限}
+{* 判断两个 64 位有符号整数相加是否溢出 64 位有符号整数上限。
+
+   参数：
+     A: Int64                             - 加数一
+     B: Int64                             - 加数二
+
+   返回值：Boolean                        - 返回相加是否会溢出
+}
 
 function IsUInt64AddOverflow(A: TUInt64; B: TUInt64): Boolean;
-{* 判断两个 64 位无符号数相加是否溢出 64 位无符号上限}
+{* 判断两个 64 位无符号整数相加是否溢出 64 位无符号整数上限。
+
+   参数：
+     A: TUInt64                           - 加数一
+     B: TUInt64                           - 加数二
+
+   返回值：Boolean                        - 返回相加是否会溢出
+}
 
 procedure UInt64Add(var R: TUInt64; A: TUInt64; B: TUInt64; out Carry: Integer);
-{* 两个 64 位无符号数相加，A + B => R，如果有溢出，则溢出的 1 搁进位标记里，否则清零}
+{* 两个 64 位无符号整数相加，A + B => R，如果有溢出，则溢出的 1 置进位标记里，否则进位标记清零。
+
+   参数：
+     var R: TUInt64                       - 和
+     A: TUInt64                           - 加数一
+     B: TUInt64                           - 加数二
+     out Carry: Integer                   - 进位标记
+
+   返回值：（无）
+}
 
 procedure UInt64Sub(var R: TUInt64; A: TUInt64; B: TUInt64; out Carry: Integer);
-{* 两个 64 位无符号数相减，A - B => R，如果不够减有借位，则借的 1 搁借位标记里，否则清零}
+{* 两个 64 位无符号整数相减，A - B => R，如果不够减有借位，则借的 1 置借位标记里，否则借位标记清零。
+
+   参数：
+     var R: TUInt64                       - 差
+     A: TUInt64                           - 被减数
+     B: TUInt64                           - 减数
+     out Carry: Integer                   - 借位标记
+
+   返回值：（无）
+}
 
 function IsInt32MulOverflow(A: Integer; B: Integer): Boolean;
-{* 判断两个 32 位有符号数相乘是否溢出 32 位有符号上限}
+{* 判断两个 32 位有符号整数相乘是否溢出 32 位有符号整数上限。
+
+   参数：
+     A: Integer                           - 乘数一
+     B: Integer                           - 乘数二
+
+   返回值：Boolean                        - 返回是否溢出
+}
 
 function IsUInt32MulOverflow(A: Cardinal; B: Cardinal): Boolean;
-{* 判断两个 32 位无符号数相乘是否溢出 32 位无符号上限}
+{* 判断两个 32 位无符号整数相乘是否溢出 32 位无符号整数上限
+
+   参数：
+     A: Cardinal                          - 乘数一
+     B: Cardinal                          - 乘数二
+
+   返回值：Boolean                        - 返回是否溢出
+}
 
 function IsUInt32MulOverflowInt64(A: Cardinal; B: Cardinal; out R: TUInt64): Boolean;
-{* 判断两个 32 位无符号数相乘是否溢出 64 位有符号数，如未溢出也即返回 False 时，R 中直接返回结果
-  如溢出也即返回 True，外界需要重新调用 UInt64Mul 才能实施相乘}
+{* 判断两个 32 位无符号整数相乘是否溢出 64 位有符号整数上限，如未溢出也即返回 False 时，R 中直接返回结果。
+   如溢出也即返回 True，外界需要重新调用 UInt64Mul 才能实施相乘。
+
+   参数：
+     A: Cardinal                          - 乘数一
+     B: Cardinal                          - 乘数二
+     out R: TUInt64                       - 未溢出时返回积
+
+   返回值：Boolean                        - 返回是否溢出
+}
 
 function IsInt64MulOverflow(A: Int64; B: Int64): Boolean;
-{* 判断两个 64 位有符号数相乘是否溢出 64 位有符号上限}
+{* 判断两个 64 位有符号整数相乘是否溢出 64 位有符号整数上限。
+
+   参数：
+     A: Int64                             - 乘数一
+     B: Int64                             - 乘数二
+
+   返回值：Boolean                        - 返回是否溢出
+}
 
 function PointerToInteger(P: Pointer): Integer;
-{* 指针类型转换成整型，支持 32/64 位，注意 64 位下可能会丢超出 32 位的内容}
+{* 指针类型转换成整型，支持 32/64 位。注意 64 位下可能会丢超出 32 位的内容。
+
+   参数：
+     P: Pointer                           - 待转换的指针
+
+   返回值：Integer                        - 返回转换的整数
+}
 
 function IntegerToPointer(I: Integer): Pointer;
-{* 整型转换成指针类型，支持 32/64 位}
+{* 整型转换成指针类型，支持 32/64 位。
+
+   参数：
+     I: Integer                           - 待转换的整型
+
+   返回值：Pointer                        - 返回转换的指针
+}
 
 function Int64NonNegativeAddMod(A: Int64; B: Int64; N: Int64): Int64;
-{* 求 Int64 范围内俩加数的和求余，处理溢出的情况，要求 N 大于 0}
+{* 求 Int64 范围内俩加数的和求余，处理溢出的情况，要求 N 大于 0。
+
+   参数：
+     A: Int64                             -
+     B: Int64                             -
+     N: Int64                             -
+
+   返回值：Int64                          -
+}
 
 function UInt64NonNegativeAddMod(A: TUInt64; B: TUInt64; N: TUInt64): TUInt64;
-{* 求 UInt64 范围内俩加数的和求余，处理溢出的情况，要求 N 大于 0}
+{* 求 UInt64 范围内俩加数的和求余，处理溢出的情况，要求 N 大于 0。
+
+   参数：
+     A: TUInt64                           -
+     B: TUInt64                           -
+     N: TUInt64                           -
+
+   返回值：TUInt64                        -
+}
 
 function Int64NonNegativeMulMod(A: Int64; B: Int64; N: Int64): Int64;
-{* Int64 范围内的相乘求余，不能直接计算，容易溢出。要求 N 大于 0}
+{* Int64 范围内的相乘求余，不能直接计算，容易溢出。要求 N 大于 0
+
+   参数：
+     A: Int64                             -
+     B: Int64                             -
+     N: Int64                             -
+
+   返回值：Int64                          -
+}
 
 function UInt64NonNegativeMulMod(A: TUInt64; B: TUInt64; N: TUInt64): TUInt64;
-{* UInt64 范围内的相乘求余，不能直接计算，容易溢出。}
+{* UInt64 范围内的相乘求余，不能直接计算，容易溢出。
+
+   参数：
+     A: TUInt64                           -
+     B: TUInt64                           -
+     N: TUInt64                           -
+
+   返回值：TUInt64                        -
+}
 
 function Int64NonNegativeMod(N: Int64; P: Int64): Int64;
-{* 封装的 Int64 非负求余函数，也就是余数为负时，加个除数变正，调用者需保证 P 大于 0}
+{* 封装的 Int64 非负求余函数，也就是余数为负时，加个除数变正，调用者需保证 P 大于 0
+
+   参数：
+     N: Int64                             -
+     P: Int64                             -
+
+   返回值：Int64                          -
+}
 
 function Int64NonNegativPower(N: Int64; Exp: Integer): Int64;
-{* Int64 的非负整数指数幂，不考虑溢出的情况}
+{* Int64 的非负整数指数幂，不考虑溢出的情况
+
+   参数：
+     N: Int64                             -
+     Exp: Integer                         -
+
+   返回值：Int64                          -
+}
 
 function Int64NonNegativeRoot(N: Int64; Exp: Integer): Int64;
-{* 求 Int64 的非负整数次方根的整数部分，不考虑溢出的情况}
+{* 求 Int64 的非负整数次方根的整数部分，不考虑溢出的情况
+
+   参数：
+     N: Int64                             -
+     Exp: Integer                         -
+
+   返回值：Int64                          -
+}
 
 function UInt64NonNegativPower(N: TUInt64; Exp: Integer): TUInt64;
-{* UInt64 的非负整数指数幂，不考虑溢出的情况}
+{* UInt64 的非负整数指数幂，不考虑溢出的情况
+
+   参数：
+     N: TUInt64                           -
+     Exp: Integer                         -
+
+   返回值：TUInt64                        -
+}
 
 function UInt64NonNegativeRoot(N: TUInt64; Exp: Integer): TUInt64;
-{* 求 UInt64 的非负整数次方根的整数部分，不考虑溢出的情况}
+{* 求 UInt64 的非负整数次方根的整数部分，不考虑溢出的情况
+
+   参数：
+     N: TUInt64                           -
+     Exp: Integer                         -
+
+   返回值：TUInt64                        -
+}
 
 function CurrentByteOrderIsBigEndian: Boolean;
-{* 返回当前运行期环境是否是大端，也就是是否将整数中的高序字节存储在较低的起始地址，符合从左到右的阅读习惯，如部分指定的 ARM 和 MIPS}
+{* 返回当前运行期环境是否是大端，也就是是否将整数中的高序字节存储在较低的起始地址，符合从左到右的阅读习惯，如部分指定的 ARM 和 MIPS
+
+   参数：
+     （无）
+
+   返回值：Boolean                        -
+}
 
 function CurrentByteOrderIsLittleEndian: Boolean;
-{* 返回当前运行期环境是否是小端，也就是是否将整数中的高序字节存储在较高的起始地址，如 x86 与部分默认 arm}
+{* 返回当前运行期环境是否是小端，也就是是否将整数中的高序字节存储在较高的起始地址，如 x86 与部分默认 arm
+
+   参数：
+     （无）
+
+   返回值：Boolean                        -
+}
 
 function Int64ToBigEndian(Value: Int64): Int64;
-{* 确保 Int64 值为大端，在小端环境中会进行转换}
+{* 确保 Int64 值为大端，在小端环境中会进行转换
+
+   参数：
+     Value: Int64                         -
+
+   返回值：Int64                          -
+}
 
 function Int32ToBigEndian(Value: Integer): Integer;
-{* 确保 Int32 值为大端，在小端环境中会进行转换}
+{* 确保 Int32 值为大端，在小端环境中会进行转换
+
+   参数：
+     Value: Integer                       -
+
+   返回值：Integer                        -
+}
 
 function Int16ToBigEndian(Value: SmallInt): SmallInt;
-{* 确保 Int16 值为大端，在小端环境中会进行转换}
+{* 确保 Int16 值为大端，在小端环境中会进行转换
+
+   参数：
+     Value: SmallInt                      -
+
+   返回值：SmallInt                       -
+}
 
 function Int64ToLittleEndian(Value: Int64): Int64;
-{* 确保 Int64 值为小端，在大端环境中会进行转换}
+{* 确保 Int64 值为小端，在大端环境中会进行转换
+
+   参数：
+     Value: Int64                         -
+
+   返回值：Int64                          -
+}
 
 function Int32ToLittleEndian(Value: Integer): Integer;
-{* 确保 Int32 值为小端，在大端环境中会进行转换}
+{* 确保 Int32 值为小端，在大端环境中会进行转换
+
+   参数：
+     Value: Integer                       -
+
+   返回值：Integer                        -
+}
 
 function Int16ToLittleEndian(Value: SmallInt): SmallInt;
-{* 确保 Int16 值为小端，在大端环境中会进行转换}
+{* 确保 Int16 值为小端，在大端环境中会进行转换
+
+   参数：
+     Value: SmallInt                      -
+
+   返回值：SmallInt                       -
+}
 
 function UInt64ToBigEndian(Value: TUInt64): TUInt64;
-{* 确保 UInt64 值为大端，在小端环境中会进行转换}
+{* 确保 UInt64 值为大端，在小端环境中会进行转换
+
+   参数：
+     Value: TUInt64                       -
+
+   返回值：TUInt64                        -
+}
 
 function UInt32ToBigEndian(Value: Cardinal): Cardinal;
-{* 确保 UInt32 值为大端，在小端环境中会进行转换}
+{* 确保 UInt32 值为大端，在小端环境中会进行转换
+
+   参数：
+     Value: Cardinal                      -
+
+   返回值：Cardinal                       -
+}
 
 function UInt16ToBigEndian(Value: Word): Word;
-{* 确保 UInt16 值为大端，在小端环境中会进行转换}
+{* 确保 UInt16 值为大端，在小端环境中会进行转换
+
+   参数：
+     Value: Word                          -
+
+   返回值：Word                           -
+}
 
 function UInt64ToLittleEndian(Value: TUInt64): TUInt64;
-{* 确保 UInt64 值为小端，在大端环境中会进行转换}
+{* 确保 UInt64 值为小端，在大端环境中会进行转换
+
+   参数：
+     Value: TUInt64                       -
+
+   返回值：TUInt64                        -
+}
 
 function UInt32ToLittleEndian(Value: Cardinal): Cardinal;
-{* 确保 UInt32 值为小端，在大端环境中会进行转换}
+{* 确保 UInt32 值为小端，在大端环境中会进行转换
+
+   参数：
+     Value: Cardinal                      -
+
+   返回值：Cardinal                       -
+}
 
 function UInt16ToLittleEndian(Value: Word): Word;
-{* 确保 UInt16 值为小端，在大端环境中会进行转换}
+{* 确保 UInt16 值为小端，在大端环境中会进行转换
+
+   参数：
+     Value: Word                          -
+
+   返回值：Word                           -
+}
 
 function Int64HostToNetwork(Value: Int64): Int64;
-{* 将 Int64 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+{* 将 Int64 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换
+
+   参数：
+     Value: Int64                         -
+
+   返回值：Int64                          -
+}
 
 function Int32HostToNetwork(Value: Integer): Integer;
-{* 将 Int32 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+{* 将 Int32 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换
+
+   参数：
+     Value: Integer                       -
+
+   返回值：Integer                        -
+}
 
 function Int16HostToNetwork(Value: SmallInt): SmallInt;
-{* 将 Int16 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+{* 将 Int16 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换
+
+   参数：
+     Value: SmallInt                      -
+
+   返回值：SmallInt                       -
+}
 
 function Int64NetworkToHost(Value: Int64): Int64;
-{* 将 Int64 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
+{* 将 Int64 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换
+
+   参数：
+     Value: Int64                         -
+
+   返回值：Int64                          -
+}
 
 function Int32NetworkToHost(Value: Integer): Integer;
-{* 将 Int32值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
+{* 将 Int32 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换
+
+   参数：
+     Value: Integer                       -
+
+   返回值：Integer                        -
+}
 
 function Int16NetworkToHost(Value: SmallInt): SmallInt;
-{* 将 Int16 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
+{* 将 Int16 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换
+
+   参数：
+     Value: SmallInt                      -
+
+   返回值：SmallInt                       -
+}
 
 function UInt64HostToNetwork(Value: TUInt64): TUInt64;
-{* 将 UInt64 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+{* 将 UInt64 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换
+
+   参数：
+     Value: TUInt64                       -
+
+   返回值：TUInt64                        -
+}
 
 function UInt32HostToNetwork(Value: Cardinal): Cardinal;
-{* 将 UInt32 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+{* 将 UInt32 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换
+
+   参数：
+     Value: Cardinal                      -
+
+   返回值：Cardinal                       -
+}
 
 function UInt16HostToNetwork(Value: Word): Word;
-{* 将 UInt16 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换}
+{* 将 UInt16 值从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换
+
+   参数：
+     Value: Word                          -
+
+   返回值：Word                           -
+}
 
 function UInt64NetworkToHost(Value: TUInt64): TUInt64;
-{* 将 UInt64 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
+{* 将 UInt64 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换
+
+   参数：
+     Value: TUInt64                       -
+
+   返回值：TUInt64                        -
+}
 
 function UInt32NetworkToHost(Value: Cardinal): Cardinal;
-{* 将 UInt32值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
+{* 将 UInt32值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换
+
+   参数：
+     Value: Cardinal                      -
+
+   返回值：Cardinal                       -
+}
 
 function UInt16NetworkToHost(Value: Word): Word;
-{* 将 UInt16 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换}
+{* 将 UInt16 值从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换
+
+   参数：
+     Value: Word                          -
+
+   返回值：Word                           -
+}
 
 procedure MemoryNetworkToHost(AMem: Pointer; MemByteLen: Integer);
 {* 将一片内存区域从网络字节顺序转换为主机字节顺序，在小端环境中会进行转换，
-  该方法应用场合较少，大多二/四/八字节转换已经足够}
+  该方法应用场合较少，大多二/四/八字节转换已经足够
+
+   参数：
+     AMem: Pointer                        -
+     MemByteLen: Integer                  -
+
+   返回值：（无）
+}
 
 procedure MemoryHostToNetwork(AMem: Pointer; MemByteLen: Integer);
 {* 将一片内存区域从主机字节顺序转换为网络字节顺序，在小端环境中会进行转换，
-  该方法应用场合较少，大多二/四/八字节转换已经足够}
+   该方法应用场合较少，大多二/四/八字节转换已经足够。
+
+   参数：
+     AMem: Pointer                        -
+     MemByteLen: Integer                  -
+
+   返回值：（无）
+}
 
 procedure ReverseMemory(AMem: Pointer; MemByteLen: Integer);
-{* 按字节顺序倒置一块内存块，字节内部不变}
+{* 按字节顺序倒置一块内存块，字节内部不变
+
+   参数：
+     AMem: Pointer                        -
+     MemByteLen: Integer                  -
+
+   返回值：（无）
+}
 
 function ReverseBitsInInt8(V: Byte): Byte;
-{* 倒置一字节内部的位的内容}
+{* 倒置一字节内部的位的内容
+
+   参数：
+     V: Byte                              -
+
+   返回值：Byte                           -
+}
 
 function ReverseBitsInInt16(V: Word): Word;
-{* 倒置二字节及其内部位的内容}
+{* 倒置二字节及其内部位的内容
+
+   参数：
+     V: Word                              -
+
+   返回值：Word                           -
+}
 
 function ReverseBitsInInt32(V: Cardinal): Cardinal;
-{* 倒置四字节及其内部位的内容}
+{* 倒置四字节及其内部位的内容
+
+   参数：
+     V: Cardinal                          -
+
+   返回值：Cardinal                       -
+}
 
 function ReverseBitsInInt64(V: Int64): Int64;
-{* 倒置八字节及其内部位的内容}
+{* 倒置八字节及其内部位的内容
+
+   参数：
+     V: Int64                             -
+
+   返回值：Int64                          -
+}
 
 procedure ReverseMemoryWithBits(AMem: Pointer; MemByteLen: Integer);
-{* 按字节顺序倒置一块内存块，并且每个字节也倒过来}
+{* 按字节顺序倒置一块内存块，并且每个字节也倒过来
+
+   参数：
+     AMem: Pointer                        -
+     MemByteLen: Integer                  -
+
+   返回值：（无）
+}
 
 procedure MemoryAnd(AMem: Pointer; BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
-{* 两块长度相同的内存 AMem 和 BMem 按位与，结果放 ResMem 中，三者可相同}
+{* 两块长度相同的内存 AMem 和 BMem 按位与，结果放 ResMem 中，三者可相同
+
+   参数：
+     AMem: Pointer                        -
+     BMem: Pointer                        -
+     MemByteLen: Integer                  -
+     ResMem: Pointer                      -
+
+   返回值：（无）
+}
 
 procedure MemoryOr(AMem: Pointer; BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
-{* 两块长度相同的内存 AMem 和 BMem 按位或，结果放 ResMem 中，三者可相同}
+{* 两块长度相同的内存 AMem 和 BMem 按位或，结果放 ResMem 中，三者可相同
+
+   参数：
+     AMem: Pointer                        -
+     BMem: Pointer                        -
+     MemByteLen: Integer                  -
+     ResMem: Pointer                      -
+
+   返回值：（无）
+}
 
 procedure MemoryXor(AMem: Pointer; BMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
-{* 两块长度相同的内存 AMem 和 BMem 按位异或，结果放 ResMem 中，三者可相同}
+{* 两块长度相同的内存 AMem 和 BMem 按位异或，结果放 ResMem 中，三者可相同
+
+   参数：
+     AMem: Pointer                        -
+     BMem: Pointer                        -
+     MemByteLen: Integer                  -
+     ResMem: Pointer                      -
+
+   返回值：（无）
+}
 
 procedure MemoryNot(AMem: Pointer; MemByteLen: Integer; ResMem: Pointer);
-{* 一块内存 AMem 取反，结果放 ResMem 中，两者可相同}
+{* 一块内存 AMem 取反，结果放 ResMem 中，两者可相同
+
+   参数：
+     AMem: Pointer                        -
+     MemByteLen: Integer                  -
+     ResMem: Pointer                      -
+
+   返回值：（无）
+}
 
 procedure MemoryShiftLeft(AMem: Pointer; BMem: Pointer; MemByteLen: Integer; BitCount: Integer);
-{* AMem 整块内存左移 BitCount 位至 BMem，往内存地址低位移，空位补 0，两者可相等}
+{* AMem 整块内存左移 BitCount 位至 BMem，往内存地址低位移，空位补 0，两者可相等
+
+   参数：
+     AMem: Pointer                        -
+     BMem: Pointer                        -
+     MemByteLen: Integer                  -
+     BitCount: Integer                    -
+
+   返回值：（无）
+}
 
 procedure MemoryShiftRight(AMem: Pointer; BMem: Pointer; MemByteLen: Integer; BitCount: Integer);
-{* AMem 整块内存右移 BitCount 位至 BMem，往内存地址高位移，空位补 0，两者可相等}
+{* AMem 整块内存右移 BitCount 位至 BMem，往内存地址高位移，空位补 0，两者可相等
+
+   参数：
+     AMem: Pointer                        -
+     BMem: Pointer                        -
+     MemByteLen: Integer                  -
+     BitCount: Integer                    -
+
+   返回值：（无）
+}
 
 function MemoryIsBitSet(AMem: Pointer; N: Integer): Boolean;
-{* 返回内存块某 Bit 位是否置 1，内存地址低位是 0，字节内还是右边为 0}
+{* 返回内存块某 Bit 位是否置 1，内存地址低位是 0，字节内还是右边为 0
+
+   参数：
+     AMem: Pointer                        -
+     N: Integer                           -
+
+   返回值：Boolean                        -
+}
 
 procedure MemorySetBit(AMem: Pointer; N: Integer);
-{* 给内存块某 Bit 位置 1，内存地址低位是 0，字节内还是右边为 0}
+{* 给内存块某 Bit 位置 1，内存地址低位是 0，字节内还是右边为 0
+
+   参数：
+     AMem: Pointer                        -
+     N: Integer                           -
+
+   返回值：（无）
+}
 
 procedure MemoryClearBit(AMem: Pointer; N: Integer);
-{* 给内存块某 Bit 位置 0，内存地址低位是 0，字节内还是右边为 0}
+{* 给内存块某 Bit 位置 0，内存地址低位是 0，字节内还是右边为 0
+
+   参数：
+     AMem: Pointer                        -
+     N: Integer                           -
+
+   返回值：（无）
+}
 
 function MemoryToBinStr(AMem: Pointer; MemByteLen: Integer; Sep: Boolean = False): string;
-{* 将一块内存内容从低到高字节顺序输出为二进制字符串，Sep 表示是否空格分隔}
+{* 将一块内存内容从低到高字节顺序输出为二进制字符串，Sep 表示是否空格分隔
+
+   参数：
+     AMem: Pointer                        -
+     MemByteLen: Integer                  -
+     Sep: Boolean                         -
+
+   返回值：string                         -
+}
 
 procedure MemorySwap(AMem: Pointer; BMem: Pointer; MemByteLen: Integer);
-{* 交换两块相同长度的内存块的内容，如两者是相同的内存块则什么都不做}
+{* 交换两块相同长度的内存块的内容，如两者是相同的内存块则什么都不做
+
+   参数：
+     AMem: Pointer                        -
+     BMem: Pointer                        -
+     MemByteLen: Integer                  -
+
+   返回值：（无）
+}
 
 function MemoryCompare(AMem: Pointer; BMem: Pointer; MemByteLen: Integer): Integer;
-{* 以无符号数的方式比较两块内存，返回 1、0、-1，如两者是相同的内存块则直接返回 0}
+{* 以无符号整数的方式比较两块内存，返回 1、0、-1，如两者是相同的内存块则直接返回 0
+
+   参数：
+     AMem: Pointer                        -
+     BMem: Pointer                        -
+     MemByteLen: Integer                  -
+
+   返回值：Integer                        -
+}
 
 procedure MemoryQuickSort(Mem: Pointer; ElementByteSize: Integer;
   ElementCount: Integer; CompareProc: TCnMemSortCompareProc = nil);
-{* 针对固定大小的元素的数组进行排序}
+{* 针对固定大小的元素的数组进行排序
+
+   参数：
+     Mem: Pointer                         -
+     ElementByteSize: Integer             -
+     ElementCount: Integer                -
+     CompareProc: TCnMemSortCompareProc   -
+
+   返回值：（无）
+}
 
 function UInt8ToBinStr(V: Byte): string;
-{* 将一无符号字节转换为二进制字符串}
+{* 将一无符号字节转换为二进制字符串
+
+   参数：
+     V: Byte                              -
+
+   返回值：string                         -
+}
 
 function UInt16ToBinStr(V: Word): string;
-{* 将一无符号字转换为二进制字符串}
+{* 将一无符号字转换为二进制字符串
+
+   参数：
+     V: Word                              -
+
+   返回值：string                         -
+}
 
 function UInt32ToBinStr(V: Cardinal): string;
-{* 将一四字节无符号整数转换为二进制字符串}
+{* 将一四字节无符号整数转换为二进制字符串
+
+   参数：
+     V: Cardinal                          -
+
+   返回值：string                         -
+}
 
 function UInt32ToStr(V: Cardinal): string;
-{* 将一四字节无符号整数转换为字符串}
+{* 将一四字节无符号整数转换为字符串
+
+   参数：
+     V: Cardinal                          -
+
+   返回值：string                         -
+}
 
 function UInt64ToBinStr(V: TUInt64): string;
-{* 将一无符号 64 字节整数转换为二进制字符串}
+{* 将一无符号 64 字节整数转换为二进制字符串
+
+   参数：
+     V: TUInt64                           -
+
+   返回值：string                         -
+}
 
 function HexToInt(const Hex: string): Integer; overload;
-{* 将一十六进制字符串转换为整型，适合较短尤其是 2 字符的字符串}
+{* 将一十六进制字符串转换为整型，适合较短尤其是 2 字符的字符串
+
+   参数：
+     const Hex: string                    -
+
+   返回值：Integer                        -
+}
 
 function HexToInt(Hex: PChar; CharLen: Integer): Integer; overload;
-{* 将一十六进制字符串指针所指的内容转换为整型，适合较短尤其是 2 字符的字符串}
+{* 将一十六进制字符串指针所指的内容转换为整型，适合较短尤其是 2 字符的字符串
+
+   参数：
+     Hex: PChar                           -
+     CharLen: Integer                     -
+
+   返回值：Integer                        -
+}
 
 function IsHexString(const Hex: string): Boolean;
-{* 判断一字符串是否合法的十六进制字符串，不区分大小写}
+{* 判断一字符串是否合法的十六进制字符串，不区分大小写
+
+   参数：
+     const Hex: string                    -
+
+   返回值：Boolean                        -
+}
 
 function DataToHex(InData: Pointer; ByteLength: Integer; UseUpperCase: Boolean = True): string;
 {* 内存块转换为十六进制字符串，内存低位的内容出现在字符串左方，相当于网络字节顺序，
-  UseUpperCase 控制输出内容的大小写}
+  UseUpperCase 控制输出内容的大小写
+
+   参数：
+     InData: Pointer                      -
+     ByteLength: Integer                  -
+     UseUpperCase: Boolean                -
+
+   返回值：string                         -
+}
 
 function HexToData(const Hex: string; OutData: Pointer = nil): Integer;
 {* 十六进制字符串转换为内存块，字符串左方的内容出现在内存低位，相当于网络字节顺序，
   十六进制字符串长度为奇或转换失败时抛出异常。返回转换成功的字节数
   注意 OutData 应该指向足够容纳转换内容的区域，长度至少为 Length(Hex) div 2
-  如果传 nil，则只返回所需的字节长度，不进行正式转换}
+  如果传 nil，则只返回所需的字节长度，不进行正式转换
+
+   参数：
+     const Hex: string                    -
+     OutData: Pointer                     -
+
+   返回值：Integer                        -
+}
 
 function StringToHex(const Data: string; UseUpperCase: Boolean = True): string;
-{* 字符串转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
+{* 字符串转换为十六进制字符串，UseUpperCase 控制输出内容的大小写
+
+   参数：
+     const Data: string                   -
+     UseUpperCase: Boolean                -
+
+   返回值：string                         -
+}
 
 function HexToString(const Hex: string): string;
-{* 十六进制字符串转换为字符串，十六进制字符串长度为奇或转换失败时抛出异常}
+{* 十六进制字符串转换为字符串，十六进制字符串长度为奇或转换失败时抛出异常
+
+   参数：
+     const Hex: string                    -
+
+   返回值：string                         -
+}
 
 function HexToAnsiStr(const Hex: AnsiString): AnsiString;
-{* 十六进制字符串转换为字符串，十六进制字符串长度为奇或转换失败时抛出异常}
+{* 十六进制字符串转换为字符串，十六进制字符串长度为奇或转换失败时抛出异常
+
+   参数：
+     const Hex: AnsiString                -
+
+   返回值：AnsiString                     -
+}
 
 function AnsiStrToHex(const Data: AnsiString; UseUpperCase: Boolean = True): AnsiString;
-{* AnsiString 转换为十六进制字符串，UseUpperCase 控制输出内容的大小写}
+{* AnsiString 转换为十六进制字符串，UseUpperCase 控制输出内容的大小写
+
+   参数：
+     const Data: AnsiString               -
+     UseUpperCase: Boolean                -
+
+   返回值：AnsiString                     -
+}
 
 function BytesToHex(Data: TBytes; UseUpperCase: Boolean = True): string;
 {* 字节数组转换为十六进制字符串，下标低位的内容出现在字符串左方，相当于网络字节顺序，
-  UseUpperCase 控制输出内容的大小写}
+  UseUpperCase 控制输出内容的大小写
+
+   参数：
+     Data: TBytes                         -
+     UseUpperCase: Boolean                -
+
+   返回值：string                         -
+}
 
 function HexToBytes(const Hex: string): TBytes;
 {* 十六进制字符串转换为字节数组，字符串左边的内容出现在下标低位，相当于网络字节顺序，
-  字符串长度为奇或转换失败时抛出异常}
+  字符串长度为奇或转换失败时抛出异常
+
+   参数：
+     const Hex: string                    -
+
+   返回值：TBytes                         -
+}
 
 function StreamToHex(Stream: TStream; UseUpperCase: Boolean = True): string;
-{* 将流中的全部内容从头转换为十六进制字符串}
+{* 将流中的全部内容从头转换为十六进制字符串
+
+   参数：
+     Stream: TStream                      -
+     UseUpperCase: Boolean                -
+
+   返回值：string                         -
+}
 
 function HexToStream(const Hex: string; Stream: TStream): Integer;
-{* 将十六进制字符串内容转换后写入流中，返回写入的字节数}
+{* 将十六进制字符串内容转换后写入流中，返回写入的字节数
+
+   参数：
+     const Hex: string                    -
+     Stream: TStream                      -
+
+   返回值：Integer                        -
+}
 
 procedure ReverseBytes(Data: TBytes);
-{* 按字节顺序倒置一字节数组}
+{* 按字节顺序倒置一字节数组
+
+   参数：
+     Data: TBytes                         -
+
+   返回值：（无）
+}
 
 function CloneBytes(Data: TBytes): TBytes;
-{* 复制一个新的字节数组}
+{* 复制一个新的字节数组
+
+   参数：
+     Data: TBytes                         -
+
+   返回值：TBytes                         -
+}
 
 function StreamToBytes(Stream: TStream): TBytes;
-{* 从流从头读入全部内容至字节数组，返回创建的字节数组}
+{* 从流从头读入全部内容至字节数组，返回创建的字节数组
+
+   参数：
+     Stream: TStream                      -
+
+   返回值：TBytes                         -
+}
 
 function BytesToStream(Data: TBytes; OutStream: TStream): Integer;
-{* 字节数组写入整个流，返回写入字节数}
+{* 字节数组写入整个流，返回写入字节数
+
+   参数：
+     Data: TBytes                         -
+     OutStream: TStream                   -
+
+   返回值：Integer                        -
+}
 
 function AnsiToBytes(const Str: AnsiString): TBytes;
-{* 将 AnsiString 的内容转换为字节数组，不处理编码}
+{* 将 AnsiString 的内容转换为字节数组，不处理编码
+
+   参数：
+     const Str: AnsiString                -
+
+   返回值：TBytes                         -
+}
 
 function BytesToAnsi(const Data: TBytes): AnsiString;
-{* 将字节数组的内容转换为 AnsiString，不处理编码}
+{* 将字节数组的内容转换为 AnsiString，不处理编码
+
+   参数：
+     const Data: TBytes                   -
+
+   返回值：AnsiString                     -
+}
 
 function BytesToString(const Data: TBytes): string;
-{* 将字节数组的内容转换为 string，内部逐个 Byte 赋值为 Char，不处理编码}
+{* 将字节数组的内容转换为 string，内部逐个 Byte 赋值为 Char，不处理编码
+
+   参数：
+     const Data: TBytes                   -
+
+   返回值：string                         -
+}
 
 function MemoryToString(Mem: Pointer; MemByteLen: Integer): string;
-{* 将内存块的内容转换为 string，内部逐个赋值，不处理编码}
+{* 将内存块的内容转换为 string，内部逐个赋值，不处理编码
+
+   参数：
+     Mem: Pointer                         -
+     MemByteLen: Integer                  -
+
+   返回值：string                         -
+}
 
 function BitsToString(Bits: TBits): string;
-{* 将位串对象转换为包含 0 和 1 的字符串}
+{* 将位串对象转换为包含 0 和 1 的字符串
+
+   参数：
+     Bits: TBits                          -
+
+   返回值：string                         -
+}
 
 function ConcatBytes(A: TBytes; B: TBytes): TBytes;
-{* 将 A B 两个字节数组顺序拼好返回一个新字节数组，A B 保持不变}
+{* 将 A B 两个字节数组顺序拼好返回一个新字节数组，A B 保持不变
+
+   参数：
+     A: TBytes                            -
+     B: TBytes                            -
+
+   返回值：TBytes                         -
+}
 
 function NewBytesFromMemory(Data: Pointer; DataByteLen: Integer): TBytes;
-{* 新建一字节数组，并从一片内存区域复制内容过来。}
+{* 新建一字节数组，并从一片内存区域复制内容过来。
+
+   参数：
+     Data: Pointer                        -
+     DataByteLen: Integer                 -
+
+   返回值：TBytes                         -
+}
 
 function CompareBytes(A: TBytes; B: TBytes): Boolean; overload;
-{* 比较两个字节数组内容是否相同}
+{* 比较两个字节数组内容是否相同
+
+   参数：
+     A: TBytes                            -
+     B: TBytes                            -
+
+   返回值：Boolean                        -
+}
 
 function CompareBytes(A: TBytes; B: TBytes; MaxLength: Integer): Boolean; overload;
-{* 比较两个字节数组的最多前 MaxLength 个字节的内容是否相同}
+{* 比较两个字节数组的最多前 MaxLength 个字节的内容是否相同
+
+   参数：
+     A: TBytes                            -
+     B: TBytes                            -
+     MaxLength: Integer                   -
+
+   返回值：Boolean                        -
+}
 
 function MoveMost(const Source; var Dest; ByteLen: Integer; MostLen: Integer): Integer;
 {* 从 Source 移动 ByteLen 且不超过 MostLen 个字节到 Dest 中，返回实际移动的字节数
-  如 ByteLen 小于 MostLen，则 Dest 填充 0，要求 Dest 容纳至少 MostLen}
+  如 ByteLen 小于 MostLen，则 Dest 填充 0，要求 Dest 容纳至少 MostLen
+
+   参数：
+     const Source                         -
+     var Dest                             -
+     ByteLen: Integer                     -
+     MostLen: Integer                     -
+
+   返回值：Integer                        -
+}
 
 // =============================== 算术右移 ===================================
 
 function SarInt8(var V: Byte; ShiftCount: Integer): Byte;
-{* 将一单字节整数进行算术右移，也就是保留符号位的右移}
+{* 将一单字节整数进行算术右移，也就是保留符号位的右移
+
+   参数：
+     var V: Byte                          -
+     ShiftCount: Integer                  -
+
+   返回值：Byte                           -
+}
 
 function SarInt16(var V: Word; ShiftCount: Integer): Word;
-{* 将一双字节整数进行算术右移，也就是保留符号位的右移}
+{* 将一双字节整数进行算术右移，也就是保留符号位的右移
+
+   参数：
+     var V: Word                          -
+     ShiftCount: Integer                  -
+
+   返回值：Word                           -
+}
 
 function SarInt32(var V: Cardinal; ShiftCount: Integer): Cardinal;
-{* 将一四字节整数进行算术右移，也就是保留符号位的右移}
+{* 将一四字节整数进行算术右移，也就是保留符号位的右移
+
+   参数：
+     var V: Cardinal                      -
+     ShiftCount: Integer                  -
+
+   返回值：Cardinal                       -
+}
 
 function SarInt64(var V: TUInt64; ShiftCount: Integer): TUInt64;
-{* 将一八字节整数进行算术右移，也就是保留符号位的右移}
+{* 将一八字节整数进行算术右移，也就是保留符号位的右移
+
+   参数：
+     var V: TUInt64                       -
+     ShiftCount: Integer                  -
+
+   返回值：TUInt64                        -
+}
 
 // ================ 以下是执行时间固定的无 if 判断的部分逻辑函数 ===============
 
 procedure ConstTimeConditionalSwap8(CanSwap: Boolean; var A: Byte; var B: Byte);
-{* 针对两个字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
+{* 针对两个字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换
+
+   参数：
+     CanSwap: Boolean                     -
+     var A: Byte                          -
+     var B: Byte                          -
+
+   返回值：（无）
+}
 
 procedure ConstTimeConditionalSwap16(CanSwap: Boolean; var A: Word; var B: Word);
-{* 针对两个双字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
+{* 针对两个双字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换
+
+   参数：
+     CanSwap: Boolean                     -
+     var A: Word                          -
+     var B: Word                          -
+
+   返回值：（无）
+}
 
 procedure ConstTimeConditionalSwap32(CanSwap: Boolean; var A: Cardinal; var B: Cardinal);
-{* 针对两个四字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
+{* 针对两个四字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换
+
+   参数：
+     CanSwap: Boolean                     -
+     var A: Cardinal                      -
+     var B: Cardinal                      -
+
+   返回值：（无）
+}
 
 procedure ConstTimeConditionalSwap64(CanSwap: Boolean; var A: TUInt64; var B: TUInt64);
-{* 针对两个八字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换}
+{* 针对两个八字节变量的执行时间固定的条件交换，CanSwap 为 True 时才实施 A B 交换
+
+   参数：
+     CanSwap: Boolean                     -
+     var A: TUInt64                       -
+     var B: TUInt64                       -
+
+   返回值：（无）
+}
 
 function ConstTimeEqual8(A: Byte; B: Byte): Boolean;
-{* 针对俩单字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True}
+{* 针对俩单字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True
+
+   参数：
+     A: Byte                              -
+     B: Byte                              -
+
+   返回值：Boolean                        -
+}
 
 function ConstTimeEqual16(A: Word; B: Word): Boolean;
-{* 针对俩双字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True}
+{* 针对俩双字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True
+
+   参数：
+     A: Word                              -
+     B: Word                              -
+
+   返回值：Boolean                        -
+}
 
 function ConstTimeEqual32(A: Cardinal; B: Cardinal): Boolean;
-{* 针对俩四字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True}
+{* 针对俩四字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True
+
+   参数：
+     A: Cardinal                          -
+     B: Cardinal                          -
+
+   返回值：Boolean                        -
+}
 
 function ConstTimeEqual64(A: TUInt64; B: TUInt64): Boolean;
-{* 针对俩八字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True}
+{* 针对俩八字节的执行时间固定的比较，避免 CPU 指令跳转预测导致的执行时间差异，内容相同时返回 True
+
+   参数：
+     A: TUInt64                           -
+     B: TUInt64                           -
+
+   返回值：Boolean                        -
+}
 
 function ConstTimeBytesEqual(A: TBytes; B: TBytes): Boolean;
-{* 针对俩相同长度的字节数组的执行时间固定的比较，内容相同时返回 True}
+{* 针对俩相同长度的字节数组的执行时间固定的比较，内容相同时返回 True
+
+   参数：
+     A: TBytes                            -
+     B: TBytes                            -
+
+   返回值：Boolean                        -
+}
 
 function ConstTimeExpandBoolean8(V: Boolean): Byte;
-{* 根据 V 的值返回一字节全 1 或全 0}
+{* 根据 V 的值返回一字节全 1 或全 0
+
+   参数：
+     V: Boolean                           -
+
+   返回值：Byte                           -
+}
 
 function ConstTimeExpandBoolean16(V: Boolean): Word;
-{* 根据 V 的值返回俩字节全 1 或全 0}
+{* 根据 V 的值返回俩字节全 1 或全 0
+
+   参数：
+     V: Boolean                           -
+
+   返回值：Word                           -
+}
 
 function ConstTimeExpandBoolean32(V: Boolean): Cardinal;
-{* 根据 V 的值返回四字节全 1 或全 0}
+{* 根据 V 的值返回四字节全 1 或全 0
+
+   参数：
+     V: Boolean                           -
+
+   返回值：Cardinal                       -
+}
 
 function ConstTimeExpandBoolean64(V: Boolean): TUInt64;
-{* 根据 V 的值返回八字节全 1 或全 0}
+{* 根据 V 的值返回八字节全 1 或全 0
+
+   参数：
+     V: Boolean                           -
+
+   返回值：TUInt64                        -
+}
 
 function ConstTimeConditionalSelect8(Condition: Boolean; A: Byte; B: Byte): Byte;
-{* 针对两个字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B}
+{* 针对两个字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B
+
+   参数：
+     Condition: Boolean                   -
+     A: Byte                              -
+     B: Byte                              -
+
+   返回值：Byte                           -
+}
 
 function ConstTimeConditionalSelect16(Condition: Boolean; A: Word; B: Word): Word;
-{* 针对两个双字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B}
+{* 针对两个双字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B
+
+   参数：
+     Condition: Boolean                   -
+     A: Word                              -
+     B: Word                              -
+
+   返回值：Word                           -
+}
 
 function ConstTimeConditionalSelect32(Condition: Boolean; A: Cardinal; B: Cardinal): Cardinal;
-{* 针对两个四字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B}
+{* 针对两个四字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B
+
+   参数：
+     Condition: Boolean                   -
+     A: Cardinal                          -
+     B: Cardinal                          -
+
+   返回值：Cardinal                       -
+}
 
 function ConstTimeConditionalSelect64(Condition: Boolean; A: TUInt64; B: TUInt64): TUInt64;
-{* 针对两个八字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B}
+{* 针对两个八字节变量执行时间固定的判断选择，Condtion 为 True 时返回 A，否则返回 B
+
+   参数：
+     Condition: Boolean                   -
+     A: TUInt64                           -
+     B: TUInt64                           -
+
+   返回值：TUInt64                        -
+}
 
 // ================ 以上是执行时间固定的无 if 判断的部分逻辑函数 ===============
 
@@ -678,40 +1691,113 @@ function ConstTimeConditionalSelect64(Condition: Boolean; A: TUInt64; B: TUInt64
 
 procedure Int64DivInt32Mod(A: Int64; B: Integer;
   var DivRes: Integer; var ModRes: Integer);
-{* 64 位有符号数除以 32 位有符号数，商放 DivRes，余数放 ModRes
-  调用者须自行保证商在 32 位范围内，否则会抛溢出异常}
+{* 64 位有符号整数除以 32 位有符号整数，商放 DivRes，余数放 ModRes
+  调用者须自行保证商在 32 位范围内，否则会抛溢出异常
+
+   参数：
+     A: Int64                             -
+     B: Integer                           -
+     var DivRes: Integer                  -
+     var ModRes: Integer                  -
+
+   返回值：（无）
+}
 
 procedure UInt64DivUInt32Mod(A: TUInt64; B: Cardinal;
   var DivRes: Cardinal; var ModRes: Cardinal);
-{* 64 位无符号数除以 32 位无符号数，商放 DivRes，余数放 ModRes
-  调用者须自行保证商在 32 位范围内，否则会抛溢出异常}
+{* 64 位无符号整数除以 32 位无符号整数，商放 DivRes，余数放 ModRes
+  调用者须自行保证商在 32 位范围内，否则会抛溢出异常
+
+   参数：
+     A: TUInt64                           -
+     B: Cardinal                          -
+     var DivRes: Cardinal                 -
+     var ModRes: Cardinal                 -
+
+   返回值：（无）
+}
 
 procedure Int128DivInt64Mod(ALo: Int64; AHi: Int64; B: Int64;
   var DivRes: Int64; var ModRes: Int64);
-{* 128 位有符号数除以 64 位有符号数，商放 DivRes，余数放 ModRes
-  调用者须自行保证商在 64 位范围内，否则会抛溢出异常}
+{* 128 位有符号整数除以 64 位有符号整数，商放 DivRes，余数放 ModRes
+  调用者须自行保证商在 64 位范围内，否则会抛溢出异常
+
+   参数：
+     ALo: Int64                           -
+     AHi: Int64                           -
+     B: Int64                             -
+     var DivRes: Int64                    -
+     var ModRes: Int64                    -
+
+   返回值：（无）
+}
 
 procedure UInt128DivUInt64Mod(ALo: TUInt64; AHi: TUInt64; B: TUInt64;
   var DivRes: TUInt64; var ModRes: TUInt64);
-{* 128 位无符号数除以 64 位无符号数，商放 DivRes，余数放 ModRes
-  调用者须自行保证商在 64 位范围内，否则会抛溢出异常}
+{* 128 位无符号整数除以 64 位无符号整数，商放 DivRes，余数放 ModRes
+  调用者须自行保证商在 64 位范围内，否则会抛溢出异常
+
+   参数：
+     ALo: TUInt64                         -
+     AHi: TUInt64                         -
+     B: TUInt64                           -
+     var DivRes: TUInt64                  -
+     var ModRes: TUInt64                  -
+
+   返回值：（无）
+}
 
 {$ENDIF}
 
 function IsUInt128BitSet(Lo: TUInt64; Hi: TUInt64; N: Integer): Boolean;
-{* 针对两个 Int64 拼成的 128 位数字，返回第 N 位是否为 1，N 从 0 到 127}
+{* 针对两个 Int64 拼成的 128 位数字，返回第 N 位是否为 1，N 从 0 到 127
+
+   参数：
+     Lo: TUInt64                          -
+     Hi: TUInt64                          -
+     N: Integer                           -
+
+   返回值：Boolean                        -
+}
 
 procedure SetUInt128Bit(var Lo: TUInt64; var Hi: TUInt64; N: Integer);
-{* 针对两个 Int64 拼成的 128 位数字，设置第 N 位为 1，N 从 0 到 127}
+{* 针对两个 Int64 拼成的 128 位数字，设置第 N 位为 1，N 从 0 到 127
+
+   参数：
+     var Lo: TUInt64                      -
+     var Hi: TUInt64                      -
+     N: Integer                           -
+
+   返回值：（无）
+}
 
 procedure ClearUInt128Bit(var Lo: TUInt64; var Hi: TUInt64; N: Integer);
-{* 针对两个 Int64 拼成的 128 位数字，清掉第 N 位，N 从 0 到 127}
+{* 针对两个 Int64 拼成的 128 位数字，清掉第 N 位，N 从 0 到 127
+
+   参数：
+     var Lo: TUInt64                      -
+     var Hi: TUInt64                      -
+     N: Integer                           -
+
+   返回值：（无）
+}
 
 function UnsignedAddWithLimitRadix(A: Cardinal; B: Cardinal; C: Cardinal;
   var R: Cardinal; L: Cardinal; H: Cardinal): Cardinal;
 {* 计算非正常进制的无符号加法，A + B + C，结果放 R 中，返回进位值
   结果确保在 L 和 H 的闭区间内，用户须确保 H 大于 L，不考虑溢出的情形
-  该函数多用于字符分区间计算与映射，其中 C 一般是进位}
+  该函数多用于字符分区间计算与映射，其中 C 一般是进位
+
+   参数：
+     A: Cardinal                          -
+     B: Cardinal                          -
+     C: Cardinal                          -
+     var R: Cardinal                      -
+     L: Cardinal                          -
+     H: Cardinal                          -
+
+   返回值：Cardinal                       -
+}
 
 // =========================== 循环移位函数 ====================================
 
@@ -719,27 +1805,76 @@ function UnsignedAddWithLimitRadix(A: Cardinal; B: Cardinal; C: Cardinal;
 // N 超界时会求余（编译器行为，和仓颉等不同），如对 32 位 A，N 为 33 时返回值等于 N 为 1 时的返回值
 
 function RotateLeft16(A: Word; N: Integer): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 针对 16 位整数进行循环左移 N 位}
+{* 针对 16 位整数进行循环左移 N 位
+
+   参数：
+     A: Word                              -
+     N: Integer                           -
+
+   返回值：Word                           -
+}
 
 function RotateRight16(A: Word; N: Integer): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 针对 16 位整数进行循环右移 N 位}
+{* 针对 16 位整数进行循环右移 N 位
+
+   参数：
+     A: Word                              -
+     N: Integer                           -
+
+   返回值：Word                           -
+}
 
 function RotateLeft32(A: Cardinal; N: Integer): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 针对 32 位整数进行循环左移 N 位}
+{* 针对 32 位整数进行循环左移 N 位
+
+   参数：
+     A: Cardinal                          -
+     N: Integer                           -
+
+   返回值：Cardinal                       -
+}
 
 function RotateRight32(A: Cardinal; N: Integer): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 针对 32 位整数进行循环右移 N 位}
+{* 针对 32 位整数进行循环右移 N 位
+
+   参数：
+     A: Cardinal                          -
+     N: Integer                           -
+
+   返回值：Cardinal                       -
+}
 
 function RotateLeft64(A: TUInt64; N: Integer): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 针对 64 位整数进行循环左移 N 位}
+{* 针对 64 位整数进行循环左移 N 位
+
+   参数：
+     A: TUInt64                           -
+     N: Integer                           -
+
+   返回值：TUInt64                        -
+}
 
 function RotateRight64(A: TUInt64; N: Integer): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 针对 64 位整数进行循环右移 N 位}
+{* 针对 64 位整数进行循环右移 N 位
+
+   参数：
+     A: TUInt64                           -
+     N: Integer                           -
+
+   返回值：TUInt64                        -
+}
 
 {$IFDEF COMPILER5}
 
 function BoolToStr(Value: Boolean; UseBoolStrs: Boolean = False): string;
-{* Delphi 5 下没有该函数，补上}
+{* Delphi 5 下没有该 BoolToStr 函数，补上。
+
+   参数：
+     Value: Boolean                       -
+     UseBoolStrs: Boolean                 -
+
+   返回值：string                         -
+}
 
 {$ENDIF}
 
@@ -3164,7 +4299,7 @@ begin
   Inc(Result);
 end;
 
-// 判断两个 32 位有符号数相加是否溢出 32 位有符号上限
+// 判断两个 32 位有符号整数相加是否溢出 32 位有符号整数上限
 function IsInt32AddOverflow(A, B: Integer): Boolean;
 var
   C: Integer;
@@ -3174,13 +4309,13 @@ begin
     ((A < 0) and (B < 0) and (C > 0));
 end;
 
-// 判断两个 32 位无符号数相加是否溢出 32 位无符号上限
+// 判断两个 32 位无符号整数相加是否溢出 32 位无符号整数上限
 function IsUInt32AddOverflow(A, B: Cardinal): Boolean;
 begin
   Result := (A + B) < A; // 无符号相加，结果只要小于任一个数就说明溢出了
 end;
 
-// 判断两个 64 位有符号数相加是否溢出 64 位有符号上限
+// 判断两个 64 位有符号整数相加是否溢出 64 位有符号整数上限
 function IsInt64AddOverflow(A, B: Int64): Boolean;
 var
   C: Int64;
@@ -3190,13 +4325,13 @@ begin
     ((A < 0) and (B < 0) and (C > 0));
 end;
 
-// 判断两个 64 位无符号数相加是否溢出 64 位无符号上限
+// 判断两个 64 位无符号整数相加是否溢出 64 位无符号整数上限
 function IsUInt64AddOverflow(A, B: TUInt64): Boolean;
 begin
   Result := UInt64Compare(A + B, A) < 0; // 无符号相加，结果只要小于任一个数就说明溢出了
 end;
 
-// 两个 64 位无符号数相加，A + B => R，如果有溢出，则溢出的 1 搁进位标记里，否则清零
+// 两个 64 位无符号整数相加，A + B => R，如果有溢出，则溢出的 1 搁进位标记里，否则清零
 procedure UInt64Add(var R: TUInt64; A, B: TUInt64; out Carry: Integer);
 begin
   R := A + B;
@@ -3206,7 +4341,7 @@ begin
     Carry := 0;
 end;
 
-// 两个 64 位无符号数相减，A - B => R，如果不够减有借位，则借的 1 搁借位标记里，否则清零
+// 两个 64 位无符号整数相减，A - B => R，如果不够减有借位，则借的 1 搁借位标记里，否则清零
 procedure UInt64Sub(var R: TUInt64; A, B: TUInt64; out Carry: Integer);
 begin
   R := A - B;
@@ -3216,7 +4351,7 @@ begin
     Carry := 0;
 end;
 
-// 判断两个 32 位有符号数相乘是否溢出 32 位有符号上限
+// 判断两个 32 位有符号整数相乘是否溢出 32 位有符号整数上限
 function IsInt32MulOverflow(A, B: Integer): Boolean;
 var
   T: Integer;
@@ -3225,7 +4360,7 @@ begin
   Result := (B <> 0) and ((T div B) <> A);
 end;
 
-// 判断两个 32 位无符号数相乘是否溢出 32 位无符号上限
+// 判断两个 32 位无符号整数相乘是否溢出 32 位无符号整数上限
 function IsUInt32MulOverflow(A, B: Cardinal): Boolean;
 var
   T: TUInt64;
@@ -3234,7 +4369,7 @@ begin
   Result := (T = Cardinal(T));
 end;
 
-// 判断两个 32 位无符号数相乘是否溢出 64 位有符号数，如未溢出也即返回 False 时，R 中直接返回结果
+// 判断两个 32 位无符号整数相乘是否溢出 64 位有符号整数，如未溢出也即返回 False 时，R 中直接返回结果
 function IsUInt32MulOverflowInt64(A, B: Cardinal; out R: TUInt64): Boolean;
 var
   T: Int64;
@@ -3245,7 +4380,7 @@ begin
     R := TUInt64(T);
 end;
 
-// 判断两个 64 位有符号数相乘是否溢出 64 位有符号上限
+// 判断两个 64 位有符号整数相乘是否溢出 64 位有符号整数上限
 function IsInt64MulOverflow(A, B: Int64): Boolean;
 var
   T: Int64;
