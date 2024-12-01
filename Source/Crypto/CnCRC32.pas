@@ -63,72 +63,136 @@ uses
 //------------------------------------------------------------------------------
 
 function CalcCRC8Byte(OrgCRC8: Byte; B: Byte): Byte;
-{* CRC8 计算单个字节，供特殊需求使用}
+{* CRC8 计算单个字节，供特殊需求使用。
 
-function CRC8Calc(const OrgCRC8: Byte; const Data; ByteLength: Cardinal): Byte;
-{* 计算 CRC8 值
- |<PRE>
-   OrgCRC8: Byte            - 起始 CRC8 值，默认可传 0
-   const Data               - 要计算的数据块，一般不传地址，传变量本身
-   ByteLength: Cardinal     - 数据块长度
-   Result: Byte             - 返回 CRC8 计算结果
- |</PRE>}
+   参数：
+     OrgCRC8: Byte                        - 原始的 CRC8 值
+     B: Byte                              - 单字节值
 
-function StrCRC8(const OrgCRC8: Byte; const Text: string): Byte;
-{* 计算字符串的 CRC8 值 }
+   返回值：Byte                           - 返回计算结果
+}
 
-function StrCRC8A(const OrgCRC8: Byte; const Text: AnsiString): Byte;
-{* 计算 AnsiString 字符串的 CRC8 值 }
+function CRC8Calc(OrgCRC8: Byte; const Data; ByteLength: Cardinal): Byte;
+{* 计算数据块的 CRC8 值。
 
-function BytesCRC8(const OrgCRC8: Byte; Data: TBytes): Byte;
-{* 计算字节数组的 CRC8 值}
+   参数：
+     OrgCRC8: Byte                        - 原始的 CRC8 值，默认可传 0
+     const Data                           - 待计算的数据块，一般不传地址，传变量本身
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+
+   返回值：Byte                           - 返回 CRC8 计算结果
+}
+
+function StrCRC8(OrgCRC8: Byte; const Text: string): Byte;
+{* 计算字符串的 CRC8 值。直接计算其内部内容，不进行转换。
+
+   参数：
+     OrgCRC8: Byte                        - 原始的 CRC8 值
+     const Text: string                   - 待计算的字符串
+
+   返回值：Byte                           - 返回 CRC8 计算结果
+}
+
+function StrCRC8A(OrgCRC8: Byte; const Text: AnsiString): Byte;
+{* 计算 AnsiString 类型数据的 CRC8 值。直接计算其内部内容，不进行转换。
+
+   参数：
+     OrgCRC8: Byte                        - 原始的 CRC8 值
+     const Text: AnsiString               - 待计算的字符串
+
+   返回值：Byte                           - 返回 CRC8 计算结果
+}
+
+function BytesCRC8(OrgCRC8: Byte; Data: TBytes): Byte;
+{* 计算字节数组的 CRC8 值。
+
+   参数：
+     OrgCRC8: Byte                        - 原始的 CRC8 值
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：Byte                           - 返回 CRC8 计算结果
+}
 
 function FileCRC8(const Filename: string; var CRC: Byte; StartPos: Int64 = 0;
   ByteLength: Int64 = 0): Boolean;
-{* 计算文件 CRC8 值，支持超过 4G 的大文件
- |<PRE>
-   const FileName: string   - 目标文件名
-   var CRC: Byte            - CRC8 值，变量参数，传入原始值，默认可为 0，输出计算值
-   StartPos: Int64 = 0      - 文件起始位置，默认从头开始
-   ByteLength: Int64 = 0    - 计算长度，为零默认为整个文件
-   Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回 False
- |</PRE>}
+{* 计算文件的 CRC8 值，支持超过 4G 的大文件。
+
+   参数：
+     const Filename: string               - 待计算的文件名
+     var CRC: Byte                        - 原始 CRC8 值，默认可传 0，输出计算结果
+     StartPos: Int64                      - 文件起始偏移量，默认为 0，代表从头开始
+     ByteLength: Int64                    - 文件内容计算长度，默认为 0，代表整个文件
+
+   返回值：Boolean                        - 返回计算是否成功
+}
 
 //------------------------------------------------------------------------------
 // CRC16 系列函数（CCITT），初始值 $FFFF，结果异或值 $0000，多项式为 x16+x12+x5+1
 //------------------------------------------------------------------------------
 
 function CalcCRC16Byte(OrgCRC16: Word; B: Byte): Word;
-{* CRC16 计算单个字节，供特殊需求使用}
+{* CRC16 计算单个字节，供特殊需求使用。
 
-function CRC16Calc(const OrgCRC16: Word; const Data; ByteLength: Cardinal): Word;
-{* 计算 CRC16 值
- |<PRE>
-   OrgCRC16: WORD           - 起始 CRC16 值，默认应传 0，内部会求反变成 FFFF 以符合 CCITT 的要求
-   const Data               - 要计算的数据块，一般不传地址
-   ByteLength: Cardinal     - 数据块长度
-   Result: WORD             - 返回 CRC16 计算结果
- |</PRE>}
+   参数：
+     OrgCRC16: Word                       - 原始的 CRC16 值
+     B: Byte                              - 单字节值
 
-function StrCRC16(const OrgCRC16: Word; const Text: string): Word;
-{* 计算字符串的 CRC16 值}
+   返回值：Word                           - 返回 CRC16 计算结果
+}
 
-function StrCRC16A(const OrgCRC16: Word; const Text: AnsiString): Word;
-{* 计算 AnsiString 字符串的 CRC16 值}
+function CRC16Calc(OrgCRC16: Word; const Data; ByteLength: Cardinal): Word;
+{* 计算数据块的 CRC16 值。
 
-function BytesCRC16(const OrgCRC16: Word; Data: TBytes): Word;
-{* 计算字节数组的 CRC16 值}
+   参数：
+     OrgCRC16: Word                       - 原始的 CRC16 值，默认应传 0，内部会求反变成 FFFF 以符合 CCITT 的要求
+     const Data                           - 待计算的数据块，一般不传地址，传变量本身
+     ByteLength: Cardinal                 - 待计算的数据块的字节长度
+
+   返回值：Word                           - 返回 CRC16 计算结果
+}
+
+function StrCRC16(OrgCRC16: Word; const Text: string): Word;
+{* 计算字符串的 CRC16 值。直接计算其内部内容，不进行转换。
+
+   参数：
+     OrgCRC16: Word                       - 原始的 CRC16 值
+     const Text: string                   - 待计算的字符串
+
+   返回值：Word                           - 返回 CRC16 计算结果
+}
+
+function StrCRC16A(OrgCRC16: Word; const Text: AnsiString): Word;
+{* 计算 AnsiString 类型数据的 CRC16 值。直接计算其内部内容，不进行转换。
+
+   参数：
+     OrgCRC16: Word                       - 原始的 CRC16 值
+     const Text: AnsiString               - 待计算的字符串
+
+   返回值：Word                           - 返回 CRC16 计算结果
+}
+
+function BytesCRC16(OrgCRC16: Word; Data: TBytes): Word;
+{* 计算字节数组的 CRC16 值。
+
+   参数：
+     OrgCRC16: Word                       - 原始的 CRC16 值
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：Word                           - 返回 CRC16 计算结果
+}
 
 function FileCRC16(const FileName: string; var CRC: Word; StartPos: Int64 = 0;
   ByteLength: Int64 = 0): Boolean;
-{* 计算文件 CRC16 值，支持超过 4G 的大文件
- |<PRE>
-   const FileName: string   - 目标文件名
-   var CRC: Cardinal        - CRC16 值，变量参数，传入原始值，默认可为 0，输出计算值
-   StartPos: Int64 = 0      - 文件起始位置，默认从头开始
-   ByteLength: Int64 = 0    - 计算长度，为零默认为整个文件
-   Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回 False
- |</PRE>}
+{* 计算文件的 CRC16 值，支持超过 4G 的大文件。
+
+   参数：
+     const FileName: string               - 待计算的文件名
+     var CRC: Word                        - 原始 CRC16 值，默认可传 0，输出计算结果
+     StartPos: Int64                      - 文件起始偏移量，默认为 0，代表从头开始
+     ByteLength: Int64                    - 文件内容计算长度，默认为 0，代表整个文件
+
+   返回值：Boolean                        - 返回计算是否成功
+}
 
 //------------------------------------------------------------------------------
 // CRC32 系列函数，初始值 $FFFFFFFF，结果异或值 $FFFFFFFF
@@ -136,36 +200,68 @@ function FileCRC16(const FileName: string; var CRC: Word; StartPos: Int64 = 0;
 //------------------------------------------------------------------------------
 
 function CalcCRC32Byte(OrgCRC32: Cardinal; B: Byte): Cardinal;
-{* CRC32 计算单个字节，供特殊需求使用}
+{* CRC32 计算单个字节，供特殊需求使用。
 
-function CRC32Calc(const OrgCRC32: Cardinal; const Data; ByteLength: Cardinal): Cardinal;
-{* 计算 CRC32 值
- |<PRE>
-   OrgCRC32: Cardinal       - 起始 CRC32 值，默认应传 0，内部会求反变成 FFFFFFFF 以符合 CCITT 的要求
-   const Data               - 要计算的数据块，一般不传地址
-   ByteLength: Cardinal     - 数据块长度
-   Result: Cardinal         - 返回 CRC32 计算结果，已与 FFFFFFFF 异或过了以符合 CCITT 的要求
- |</PRE>}
+   参数：
+     OrgCRC32: Cardinal                   - 原始的 CRC32 值
+     B: Byte                              - 单字节值
 
-function StrCRC32(const OrgCRC32: Cardinal; const Text: string): Cardinal;
-{* 计算字符串的 CRC32 值}
+   返回值：Cardinal                       - 返回 CRC32 计算结果
+}
 
-function StrCRC32A(const OrgCRC32: Cardinal; const Text: AnsiString): Cardinal;
-{* 计算 AnsiString 字符串的 CRC32 值}
+function CRC32Calc(OrgCRC32: Cardinal; const Data; ByteLength: Cardinal): Cardinal;
+{* 计算数据块的 CRC32 值。
 
-function BytesCRC32(const OrgCRC32: Cardinal; Data: TBytes): Cardinal;
-{* 计算字节数组的 CRC32 值}
+   参数：
+     OrgCRC32: Cardinal                   - 原始的 CRC32 值，默认应传 0，内部会求反变成 FFFFFFFF 以符合 CCITT 的要求
+     const Data                           - 待计算的数据块，一般不传地址，传变量本身
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+
+   返回值：Cardinal                       - 返回 CRC32 计算结果，已与 FFFFFFFF 异或过了以符合 CCITT 的要求
+}
+
+function StrCRC32(OrgCRC32: Cardinal; const Text: string): Cardinal;
+{* 计算字符串的 CRC32 值。直接计算其内部内容，不进行转换。
+
+   参数：
+     OrgCRC32: Cardinal                   - 原始的 CRC32 值
+     const Text: string                   - 待计算的字符串
+
+   返回值：Cardinal                       - 返回 CRC32 计算结果
+}
+
+function StrCRC32A(OrgCRC32: Cardinal; const Text: AnsiString): Cardinal;
+{* 计算 AnsiString 类型数据的 CRC32 值。直接计算其内部内容，不进行转换。
+
+   参数：
+     OrgCRC32: Cardinal                   - 原始的 CRC32 值
+     const Text: AnsiString               - 待计算的字符串
+
+   返回值：Cardinal                       - 返回 CRC32 计算结果
+}
+
+function BytesCRC32(OrgCRC32: Cardinal; Data: TBytes): Cardinal;
+{* 计算字节数组的 CRC32 值。
+
+   参数：
+     OrgCRC32: Cardinal                   - 原始的 CRC32 值
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：Cardinal                       - 返回 CRC32 计算结果
+}
 
 function FileCRC32(const FileName: string; var CRC: Cardinal; StartPos: Int64 = 0;
   ByteLength: Int64 = 0): Boolean;
-{* 计算文件 CRC32 值，支持超过 4G 的大文件
- |<PRE>
-   const FileName: string   - 目标文件名
-   var CRC: Cardinal        - CRC32 值，变量参数，传入原始值，默认可为 0，输出计算值
-   StartPos: Int64 = 0      - 文件起始位置，默认从头开始
-   ByteLength: Int64 = 0    - 计算长度，为零默认为整个文件
-   Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回 False
- |</PRE>}
+{* 计算文件的 CRC32 值，支持超过 4G 的大文件。
+
+   参数：
+     const FileName: string               - 待计算的文件名
+     var CRC: Cardinal                    - 原始 CRC32 值，默认可传 0，输出计算结果
+     StartPos: Int64                      - 文件起始偏移量，默认为 0，代表从头开始
+     ByteLength: Int64                    - 文件内容计算长度，默认为 0，代表整个文件
+
+   返回值：Boolean                        - 返回计算是否成功
+}
 
 //------------------------------------------------------------------------------
 // CRC64 系列函数（ECMA），初始值 $FFFFFFFFFFFFFFFF，结果异或值 $FFFFFFFFFFFFFFFF
@@ -174,48 +270,87 @@ function FileCRC32(const FileName: string; var CRC: Cardinal; StartPos: Int64 = 
 // x32+x31+x29+x27+x24+x23+x22+x21+x19+x17+x13+x12+x10+x9+x7+x4+x+1
 //------------------------------------------------------------------------------
 
-function CRC64Calc(const OrgCRC64: Int64; const Data; ByteLength: Cardinal): Int64;
-{* 计算 CRC64 值
- |<PRE>
-   OrgCRC64: Int64          - 起始 CRC64 值，默认应传 0，内部会求反变成 FFFFFFFFFFFFFFFF 以符合 CCITT 的要求
-   const Data               - 要计算的数据块，一般不传地址
-   ByteLength: Cardinal     - 数据块长度
-   Result: Int64            - 返回 CRC64 计算结果，已与 FFFFFFFFFFFFFFFF 异或过了以符合 CCITT 的要求
- |</PRE>}
+function CRC64Calc(OrgCRC64: Int64; const Data; ByteLength: Cardinal): Int64;
+{* 计算数据块的 CRC64 值。
 
-function StrCRC64(const OrgCRC64: Int64; const Text: string): Int64;
-{* 计算字符串的 CRC64 值 }
+   参数：
+     OrgCRC64: Int64                      - 原始的 CRC64 值，默认应传 0，内部会求反变成 FFFFFFFFFFFFFFFF 以符合 CCITT 的要求
+     const Data                           - 待计算的数据块，一般不传地址，传变量本身
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
 
-function StrCRC64A(const OrgCRC64: Int64; const Text: AnsiString): Int64;
-{* 计算 AnsiString 字符串的 CRC64 值 }
+   返回值：Int64                          - 返回 CRC64 计算结果，已与 FFFFFFFFFFFFFFFF 异或过了以符合 CCITT 的要求
+}
 
-function BytesCRC64(const OrgCRC64: Cardinal; Data: TBytes): Cardinal;
-{* 计算字节数组的 CRC64 值}
+function StrCRC64(OrgCRC64: Int64; const Text: string): Int64;
+{* 计算字符串的 CRC64 值。直接计算其内部内容，不进行转换。
+
+   参数：
+     OrgCRC64: Int64                      - 原始的 CRC64 值
+     const Text: string                   - 待计算的字符串
+
+   返回值：Int64                          - 返回 CRC64 计算结果
+}
+
+function StrCRC64A(OrgCRC64: Int64; const Text: AnsiString): Int64;
+{* 计算 AnsiString 类型数据的 CRC64 值。直接计算其内部内容，不进行转换。
+
+   参数：
+     OrgCRC64: Int64                      - 原始的 CRC64 值
+     const Text: AnsiString               - 待计算的字符串
+
+   返回值：Int64                          - 返回 CRC64 计算结果
+}
+
+function BytesCRC64(OrgCRC64: Int64; Data: TBytes): Int64;
+{* 计算字节数组的 CRC64 值。
+
+   参数：
+     OrgCRC64: Int64                      - 原始的 CRC64 值
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：Int64                          - 返回 CRC64 计算结果
+}
 
 function FileCRC64(const FileName: string; var CRC: Int64; StartPos: Int64 = 0;
   ByteLength: Int64 = 0): Boolean;
-{* 计算文件 CRC64 值，支持超过 4G 的大文件
- |<PRE>
-   const FileName: string   - 目标文件名
-   var CRC: Int64           - CRC64 值，变量参数，传入原始值，默认可为 0，输出计算值
-   StartPos: Int64 = 0      - 文件起始位置，默认从头开始
-   ByteLength: Int64 = 0    - 计算长度，为零默认为整个文件
-   Result: Boolean          - 返回成功标志，文件打开失败或指定长度无效时返回 False
- |</PRE>}
+{* 计算文件的 CRC64 值，支持超过 4G 的大文件。
+
+   参数：
+     const FileName: string               - 待计算的文件名
+     var CRC: Int64                       - 原始 CRC64 值，默认可传 0，输出计算结果
+     StartPos: Int64                      - 文件起始偏移量，默认为 0，代表从头开始
+     ByteLength: Int64                    - 文件内容计算长度，默认为 0，代表整个文件
+
+   返回值：Boolean                        - 返回计算是否成功
+}
 
 function CRC32Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal): Cardinal;
-{* 计算数据块的 CRC32Hmac 值.
-  Key 为密码地址，KeyLength 为密码字节长度，超过 4 字节时将其计算成 4 字节 CRC32 值
-  Input 为数据块地址，ByteLength 为数据块字节长度}
+{* 基于 CRC32 的 HMAC（Hash-based Message Authentication Code）计算，
+   在普通数据的计算上加入密钥的概念，也叫加盐。
+
+   参数：
+     Key: PAnsiChar                       - 待参与 CRC32 计算的密钥数据块地址
+     KeyLength: Integer                   - 待参与 CRC32 计算的密钥数据块字节长度，如超过 4 字节，则会先进行一轮 CRC32 计算，将 4 字节结果作为密钥
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+
+   返回值：Cardinal                       - 返回 CRC32 计算结果
+}
 
 function CRC64Hmac(Key: PAnsiChar; KeyLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal): Int64;
-{* 计算数据块的 CRC64Hmac 值。
-  Key 为密码地址，KeyLength 为密码字节长度，超过 4 字节时将其计算成 8 字节 CRC64 值并取前 4 字节
-  Input 为数据块地址，ByteLength 为数据块字节长度}
+{* 基于 CRC64 的 HMAC（Hash-based Message Authentication Code）计算，
+   在普通数据的计算上加入密钥的概念，也叫加盐。
 
-{* Hash-based Message Authentication Code (based on CRC32/CRC64) }
+   参数：
+     Key: PAnsiChar                       - 待参与 CRC64 计算的密钥数据块地址
+     KeyLength: Integer                   - 待参与 CRC64 计算的密钥数据块字节长度，如超过 4 字节，则会先进行一轮 CRC64 计算，将 8 字节结果的前 4 字节作为密钥
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+
+   返回值：Int64                          - 返回 CRC64 计算结果
+}
 
 implementation
 
@@ -413,25 +548,25 @@ begin
 end;
 
 // 计算 CRC8 值
-function CRC8Calc(const OrgCRC8: Byte; const Data; ByteLength: Cardinal): Byte;
+function CRC8Calc(OrgCRC8: Byte; const Data; ByteLength: Cardinal): Byte;
 begin
   Result := DoCRC8Calc(OrgCRC8, Data, ByteLength); // CRC8 初始值为 0，无需求反
 end;
 
 // 计算字符串的 CRC8 值
-function StrCRC8(const OrgCRC8: Byte; const Text: string): Byte;
+function StrCRC8(OrgCRC8: Byte; const Text: string): Byte;
 begin
   Result := CRC8Calc(OrgCRC8, PChar(Text)^, Length(Text) * SizeOf(Char));
 end;
 
 // 计算 AnsiString 字符串的 CRC8 值
-function StrCRC8A(const OrgCRC8: Byte; const Text: AnsiString): Byte;
+function StrCRC8A(OrgCRC8: Byte; const Text: AnsiString): Byte;
 begin
   Result := CRC8Calc(OrgCRC8, PAnsiChar(Text)^, Length(Text));
 end;
 
 // 计算 TBytes 的 CRC8 值
-function BytesCRC8(const OrgCRC8: Byte; Data: TBytes): Byte;
+function BytesCRC8(OrgCRC8: Byte; Data: TBytes): Byte;
 begin
   Result := CRC8Calc(OrgCRC8, PAnsiChar(Data[0])^, Length(Data));
 end;
@@ -571,26 +706,26 @@ begin
 end;
 
 // 计算 CRC16 值
-function CRC16Calc(const OrgCRC16: Word; const Data; ByteLength: Cardinal): Word;
+function CRC16Calc(OrgCRC16: Word; const Data; ByteLength: Cardinal): Word;
 begin
   Result := not OrgCRC16;   // 该 CRC16 初始值为 FFFF
   Result := DoCRC16Calc(Result, Data, ByteLength);
 end;
 
 // 计算字符串的 CRC16 值
-function StrCRC16(const OrgCRC16: Word; const Text: string): Word;
+function StrCRC16(OrgCRC16: Word; const Text: string): Word;
 begin
   Result := CRC16Calc(OrgCRC16, PChar(Text)^, Length(Text) * SizeOf(Char));
 end;
 
 // 计算 AnsiString 字符串的 CRC16 值
-function StrCRC16A(const OrgCRC16: Word; const Text: AnsiString): Word;
+function StrCRC16A(OrgCRC16: Word; const Text: AnsiString): Word;
 begin
   Result := CRC16Calc(OrgCRC16, PAnsiChar(Text)^, Length(Text));
 end;
 
 // 计算 TBytes 的 CRC16 值
-function BytesCRC16(const OrgCRC16: Word; Data: TBytes): Word;
+function BytesCRC16(OrgCRC16: Word; Data: TBytes): Word;
 begin
   Result := CRC16Calc(OrgCRC16, PAnsiChar(Data[0])^, Length(Data));
 end;
@@ -709,7 +844,7 @@ begin
 end;
 
 // 计算 CRC32 值
-function DoCRC32Calc(const OrgCRC32: Cardinal; const Data; Len: Cardinal): Cardinal;
+function DoCRC32Calc(OrgCRC32: Cardinal; const Data; Len: Cardinal): Cardinal;
 var
   P: PByte;
 begin
@@ -728,7 +863,7 @@ begin
 end;
 
 // 计算 CRC32 值
-function CRC32Calc(const OrgCRC32: Cardinal; const Data; ByteLength: Cardinal): Cardinal;
+function CRC32Calc(OrgCRC32: Cardinal; const Data; ByteLength: Cardinal): Cardinal;
 begin
   Result := not OrgCRC32;   // 该 CRC32 算法起始值 FFFFFFFF
   Result := DoCRC32Calc(Result, Data, ByteLength);
@@ -736,19 +871,19 @@ begin
 end;
 
 // 计算字符串的 CRC32 值
-function StrCRC32(const OrgCRC32: Cardinal; const Text: string): Cardinal;
+function StrCRC32(OrgCRC32: Cardinal; const Text: string): Cardinal;
 begin
   Result := CRC32Calc(OrgCRC32, PChar(Text)^, Length(Text) * SizeOf(Char));
 end;
 
 // 计算 AnsiString 字符串的 CRC32 值
-function StrCRC32A(const OrgCRC32: Cardinal; const Text: AnsiString): Cardinal;
+function StrCRC32A(OrgCRC32: Cardinal; const Text: AnsiString): Cardinal;
 begin
   Result := CRC32Calc(OrgCRC32, PAnsiChar(Text)^, Length(Text));
 end;
 
 // 计算 TBytes 的 CRC32 值
-function BytesCRC32(const OrgCRC32: Cardinal; Data: TBytes): Cardinal;
+function BytesCRC32(OrgCRC32: Cardinal; Data: TBytes): Cardinal;
 begin
   Result := CRC32Calc(OrgCRC32, PAnsiChar(Data[0])^, Length(Data));
 end;
@@ -900,7 +1035,7 @@ begin
 end;
 
 // 计算 CRC64 值
-function CRC64Calc(const OrgCRC64: Int64; const Data; ByteLength: Cardinal): Int64;
+function CRC64Calc(OrgCRC64: Int64; const Data; ByteLength: Cardinal): Int64;
 begin
   Result := not OrgCRC64;   // 该 CRC64 算法起始值 FFFFFFFFFFFFFFFF
   Result := DoCRC64Calc(Result, Data, ByteLength);
@@ -908,19 +1043,19 @@ begin
 end;
 
 // 计算字符串的 CRC64 值
-function StrCRC64(const OrgCRC64: Int64; const Text: string): Int64;
+function StrCRC64(OrgCRC64: Int64; const Text: string): Int64;
 begin
   Result := CRC64Calc(OrgCRC64, PChar(Text)^, Length(Text) * SizeOf(Char));
 end;
 
 // 计算 AnsiString 字符串的 CRC64 值
-function StrCRC64A(const OrgCRC64: Int64; const Text: AnsiString): Int64;
+function StrCRC64A(OrgCRC64: Int64; const Text: AnsiString): Int64;
 begin
   Result := CRC64Calc(OrgCRC64, PAnsiChar(Text)^, Length(Text));
 end;
 
 // 计算 TBytes 的 CRC64 值
-function BytesCRC64(const OrgCRC64: Cardinal; Data: TBytes): Cardinal;
+function BytesCRC64(OrgCRC64: Int64; Data: TBytes): Int64;
 begin
   Result := CRC64Calc(OrgCRC64, PAnsiChar(Data[0])^, Length(Data));
 end;
