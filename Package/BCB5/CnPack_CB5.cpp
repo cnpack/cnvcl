@@ -76,7 +76,7 @@ USEUNIT("..\..\Source\Crypto\CnMD5.pas");
 USEUNIT("..\..\Source\Crypto\CnNative.pas");
 USEUNIT("..\..\Source\Crypto\CnPemUtils.pas");
 USEUNIT("..\..\Source\Crypto\CnPolynomial.pas");
-USEUNIT("..\..\Source\Crypto\CnPrimeNumber.pas");
+USEUNIT("..\..\Source\Crypto\CnPrime.pas");
 USEUNIT("..\..\Source\Crypto\CnRandom.pas");
 USEUNIT("..\..\Source\Crypto\CnRC4.pas");
 USEUNIT("..\..\Source\Crypto\CnRSA.pas");

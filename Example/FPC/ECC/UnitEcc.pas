@@ -7,7 +7,7 @@ interface
 uses
   LCLIntf, LCLType, SysUtils, Classes, Graphics, Controls,
   Forms, Dialogs, StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, Types, CnConsts,
-  TypInfo, CnPrimeNumber, CnBigNumber, CnNative,
+  TypInfo, CnPrime, CnBigNumber, CnNative,
   CnPemUtils, CnPolynomial;
 
 type

@@ -134,7 +134,7 @@ var
 implementation
 
 uses
-  CnPrimeNumber, CnClasses, CnPolynomial, CnContainers;
+  CnPrime, CnClasses, CnPolynomial, CnContainers;
 
 {$R *.fmx}
 

@@ -180,7 +180,7 @@ function CnIDCT2(Data: TCnFloatMatrix; Res: TCnFloatMatrix; DCTM: TCnFloatMatrix
 implementation
 
 uses
-  CnPrimeNumber;
+  CnPrime;
 
 const
   Pi = 3.1415926535897932384626;

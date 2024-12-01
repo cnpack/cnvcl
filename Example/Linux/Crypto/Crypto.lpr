@@ -53,7 +53,7 @@ uses
   CnPemUtils in '..\..\..\Source\Crypto\CnPemUtils.pas',
   CnPoly1305 in '..\..\..\Source\Crypto\CnPoly1305.pas',
   CnPolynomial in '..\..\..\Source\Crypto\CnPolynomial.pas',
-  CnPrimeNumber in '..\..\..\Source\Crypto\CnPrimeNumber.pas',
+  CnPrime in '..\..\..\Source\Crypto\CnPrime.pas',
   CnRandom in '..\..\..\Source\Crypto\CnRandom.pas',
   CnRSA in '..\..\..\Source\Crypto\CnRSA.pas',
   CnSecretSharing in '..\..\..\Source\Crypto\CnSecretSharing.pas',

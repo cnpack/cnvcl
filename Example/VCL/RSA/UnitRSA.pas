@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNative, CnPrimeNumber,
+  StdCtrls, ComCtrls, ExtCtrls, CnBigNumber, CnRSA, CnNative, CnPrime,
   ImgList, Buttons, CnPemUtils, CnMath;
 
 type

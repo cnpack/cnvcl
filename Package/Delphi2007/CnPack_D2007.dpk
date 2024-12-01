@@ -126,7 +126,7 @@ contains
   CnPDFCrypt in '..\..\Source\Crypto\CnPDFCrypt.pas',
   CnPemUtils in '..\..\Source\Crypto\CnPemUtils.pas',
   CnPolynomial in '..\..\Source\Crypto\CnPolynomial.pas',
-  CnPrimeNumber in '..\..\Source\Crypto\CnPrimeNumber.pas',
+  CnPrime in '..\..\Source\Crypto\CnPrime.pas',
   CnRandom in '..\..\Source\Crypto\CnRandom.pas',
   CnRC4 in '..\..\Source\Crypto\CnRC4.pas',
   CnRSA in '..\..\Source\Crypto\CnRSA.pas',

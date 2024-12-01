@@ -49,7 +49,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Crypto\CnPrimeNumber.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\CnPrime.pas"/>
         <EditorIndex Value="10"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>

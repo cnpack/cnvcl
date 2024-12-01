@@ -5,7 +5,7 @@ program Prime;
 uses
   Forms, Interfaces,
   UnitPrime in 'UnitPrime.pas' {FormPrime},
-  CnPrimeNumber in '..\..\..\Source\Crypto\CnPrimeNumber.pas';
+  CnPrime in '..\..\..\Source\Crypto\CnPrime.pas';
 
 {$R *.res}
 

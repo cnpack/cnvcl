@@ -285,7 +285,7 @@ cnpack\Source 目录内容说明：
   CnPolynomial.pas
     多项式运算单元
 
-  CnPrimeNumber.pas
+  CnPrime.pas
     素数运算单元
 
   CnRandom.pas

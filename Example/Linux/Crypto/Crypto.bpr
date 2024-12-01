@@ -20,7 +20,7 @@
       ..\..\..\Source\Crypto\CnPDFCrypt.obj 
       ..\..\..\Source\Crypto\CnPemUtils.obj ..\..\..\Source\Crypto\CnPoly1305.obj 
       ..\..\..\Source\Crypto\CnPolynomial.obj 
-      ..\..\..\Source\Crypto\CnPrimeNumber.obj 
+      ..\..\..\Source\Crypto\CnPrime.obj 
       ..\..\..\Source\Crypto\CnRandom.obj ..\..\..\Source\Crypto\CnRC4.obj 
       ..\..\..\Source\Crypto\CnRSA.obj 
       ..\..\..\Source\Crypto\CnSecretSharing.obj ..\..\..\Source\Crypto\CnSHA1.obj 

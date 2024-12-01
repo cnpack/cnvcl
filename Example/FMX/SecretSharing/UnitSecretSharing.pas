@@ -278,7 +278,7 @@ end;
 
 procedure TFormSecretSharing.btnFeldmanCheckParam2Click(Sender: TObject);
 begin
-  // RFC 7919 中定义的大素数 P 与生成元 2 并不符合 CnPrimeNumber 中的要求
+  // RFC 7919 中定义的大素数 P 与生成元 2 并不符合 CnPrime 中的要求
 
   // 对于 P = 11, Q = 5 的情况，2 符合本原根 2^5 mod 11 <> 1 的要求
   // 3 符合生成元的 3^5 mod 11 = 1 的要求 ，

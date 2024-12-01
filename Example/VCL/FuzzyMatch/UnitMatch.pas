@@ -1181,7 +1181,7 @@ const
       'CnPack.inc',
       'CnPack.pas',
       'CnPackRegister.pas',
-      'CnPrimeNumber.pas',
+      'CnPrime.pas',
       'CnPropEditors.pas',
       'CnPropSheetFrm.dfm',
       'CnPropSheetFrm.pas',

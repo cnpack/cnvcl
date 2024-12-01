@@ -1089,7 +1089,7 @@ var
 implementation
 
 uses
-  CnPrimeNumber, CnBigDecimal, CnFloat, CnBase64;
+  CnPrime, CnBigDecimal, CnFloat, CnBase64;
 
 resourcestring
 {$IFDEF BN_DATA_USE_64}

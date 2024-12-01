@@ -4,7 +4,7 @@ interface
 
 uses
   {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
-  FMX.StdCtrls, FMX.ExtCtrls, CnBigNumber, CnRSA, CnNative, CnPrimeNumber,
+  FMX.StdCtrls, FMX.ExtCtrls, CnBigNumber, CnRSA, CnNative, CnPrime,
   CnCommon, CnPemUtils, FMX.ComboEdit, FMX.Edit, FMX.ImgList, FMX.Memo, FMX.TabControl, FMX.Types,
   System.ImageList, FMX.ScrollBox, FMX.Controls.Presentation;
 

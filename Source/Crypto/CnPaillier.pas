@@ -273,7 +273,7 @@ function CnPaillierAddCipher(Res: TCnBigNumber; EnData1: TCnBigNumber; EnData2: 
 implementation
 
 uses
-  CnPrimeNumber, CnRandom;
+  CnPrime, CnRandom;
 
 function CnGenerateInt64PaillierKeys(var PrivateKey: TCnInt64PaillierPrivateKey;
   var PublicKey: TCnInt64PaillierPublicKey): Boolean;

@@ -75,7 +75,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Crypto\CnPrimeNumber.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\CnPrime.pas"/>
         <EditorIndex Value="5"/>
         <TopLine Value="1519"/>
         <CursorPos X="22" Y="1530"/>
@@ -120,7 +120,7 @@
         <Caret Line="138" Column="16" TopLine="127"/>
       </Position>
       <Position>
-        <Filename Value="..\..\..\Source\Crypto\CnPrimeNumber.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\CnPrime.pas"/>
         <Caret Line="1530" Column="22" TopLine="1519"/>
       </Position>
       <Position>

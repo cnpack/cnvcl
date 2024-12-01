@@ -84,8 +84,8 @@
         <UnitName Value="CnPolynomial"/>
       </Item17>
       <Item18>
-        <Filename Value="../../Source/Crypto/CnPrimeNumber.pas"/>
-        <UnitName Value="CnPrimeNumber"/>
+        <Filename Value="../../Source/Crypto/CnPrime.pas"/>
+        <UnitName Value="CnPrime"/>
       </Item18>
       <Item19>
         <Filename Value="../../Source/Crypto/CnRandom.pas"/>

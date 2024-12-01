@@ -136,7 +136,7 @@
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Crypto\CnPrimeNumber.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\CnPrime.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>

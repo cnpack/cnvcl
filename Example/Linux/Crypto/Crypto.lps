@@ -249,7 +249,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Crypto\CnPrimeNumber.pas"/>
+        <Filename Value="..\..\..\Source\Crypto\CnPrime.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <WindowIndex Value="-1"/>

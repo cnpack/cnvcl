@@ -125,7 +125,7 @@ var
 implementation
 
 uses
-  CnPrimeNumber, CnNative;
+  CnPrime, CnNative;
 
 {$R *.DFM}
 

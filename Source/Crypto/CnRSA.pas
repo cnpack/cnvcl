@@ -94,7 +94,7 @@ unit CnRSA;
 *           2017.04.05 V1.1
 *               实现大数的 RSA 密钥生成与加解密
 *           2017.04.03 V1.0
-*               创建单元，Int64 范围内的 RSA 从 CnPrimeNumber 中独立出来
+*               创建单元，Int64 范围内的 RSA 从 CnPrime 中独立出来
 ================================================================================
 |</PRE>}
 
@@ -106,7 +106,7 @@ interface
 // 定义此条件，使用 CRT 进行计算加速。1024 位的私钥运算能够将耗时降低至三分之一
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnConsts, CnPrimeNumber,
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnConsts, CnPrime,
   CnBigNumber, CnBerUtils, CnPemUtils, CnNative, CnMD5, CnSHA1, CnSHA2, CnSM3;
 
 const

@@ -43,7 +43,7 @@ uses
   SysUtils, Classes, {$IFDEF ANDROID} FMX.Types, {$ENDIF}
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
-  CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrimeNumber, Cn25519, CnPaillier, CnSecretSharing,
+  CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
   CnDSA, CnWideStrings;
 
