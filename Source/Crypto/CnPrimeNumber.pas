@@ -1211,7 +1211,7 @@ function CnInt64MontgomeryMulMod(A: TUInt64; B: TUInt64; RExp: TUInt64; R2ModN: 
 }
 
 function CnInt64Legendre(A: Int64; P: Int64): Integer;
-{* 计算勒让德符号 (A / P) 的值，范围为 Int64，调用者自行保证 P 为奇素数
+{* 计算勒让德符号 (A / P) 的值，范围为 Int64，调用者需自行保证 P 为奇素数。
 
    参数：
      A: Int64                             - 勒让德符号中的 A
@@ -1268,8 +1268,8 @@ function ChineseRemainderTheoremInt64(Remainers: array of TUInt64; Factors: arra
 }
 
 function ChineseRemainderTheoremInt64(Remainers: TCnInt64List; Factors: TCnInt64List): Int64; overload;
-{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，只支持 Int64
-   也就是说支持负余数。调用者须确保 Factors 均为正且两两互素
+{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，只支持 Int64。
+   也就是说支持负余数。调用者须确保 Factors 均为正且两两互素。
 
    参数：
      Remainers: TCnInt64List              - 一元线性同余方程组的余数列表
@@ -1279,7 +1279,7 @@ function ChineseRemainderTheoremInt64(Remainers: TCnInt64List; Factors: TCnInt64
 }
 
 function CnInt64BigStepGiantStep(A: Int64; B: Int64; M: Int64): Int64;
-{* 大步小步算法求离散对数问题 A^X mod M = B 的解 X，要求 A 和 M 互素
+{* 大步小步算法求离散对数问题 A^X mod M = B 的解 X，要求 A 和 M 互素。
 
    参数：
      A: Int64                             - 离散对数问题的 A
@@ -1290,7 +1290,7 @@ function CnInt64BigStepGiantStep(A: Int64; B: Int64; M: Int64): Int64;
 }
 
 function CnInt64IsPerfectPower(N: Int64): Boolean;
-{* 判断整数 N 是否是完全幂，也就是是否是某整数的整数次幂，要求 N > 0
+{* 判断整数 N 是否是完全幂，也就是是否是某整数的整数次幂，要求 N > 0。
 
    参数：
      N: Int64                             - 待判断的 64 位有符号数

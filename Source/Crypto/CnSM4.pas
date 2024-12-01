@@ -40,7 +40,9 @@ unit CnSM4;
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6 + MaxOS 64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.07.21 V1.7
+* 修改记录：2024.12.01 V1.8
+*               去掉部分不必要的 const 参数修饰并调整注释
+*           2022.07.21 V1.7
 *               加入 CTR 模式的支持
 *           2022.06.21 V1.6
 *               加入几个字节数组到十六进制字符串之间的加解密函数
@@ -78,366 +80,649 @@ const
 
 type
   TCnSM4Key    = array[0..CN_SM4_KEYSIZE - 1] of Byte;
-  {* SM4 的加密 Key}
+  {* SM4 的加密 Key，16 字节}
 
   TCnSM4Buffer = array[0..CN_SM4_BLOCKSIZE - 1] of Byte;
-  {* SM4 的加密块}
+  {* SM4 的加密块，16 字节}
 
   TCnSM4Iv     = array[0..CN_SM4_BLOCKSIZE - 1] of Byte;
-  {* SM4 的 CBC/CFB/OFB 等的初始化向量}
+  {* SM4 的 CBC/CFB/OFB 等的初始化向量，16 字节}
 
   TCnSM4Nonce  = array[0..CN_SM4_NONCESIZE - 1] of Byte;
-  {* SM4 的 CTR 模式下的初始化向量，与一个八字节计数器拼在一起作为真正的 Iv}
+  {* SM4 的 CTR 模式下的初始化向量 8 字节，与一个 8 字节计数器拼在一起作为真正的 16 字节 Iv}
 
   TCnSM4Context = packed record
+  {* SM4 的上下文结构}
     Mode: Integer;                                       {!<  encrypt/decrypt }
     Sk: array[0..CN_SM4_KEYSIZE * 2 - 1] of Cardinal;    {!<  SM4 subkeys     }
   end;
 
 function SM4GetOutputLengthFromInputLength(InputByteLength: Integer): Integer;
-{* 根据输入明文字节长度计算其块对齐的输出长度。如果非块整数倍则向上增长至块整数倍}
+{* 根据输入明文字节长度计算其块对齐的输出长度。如果非块整数倍则向上增长至块整数倍。
 
-procedure SM4Encrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; Len: Integer);
-{* 原始的 SM4 加密数据块，ECB 模式，将 Input 内的明文内容加密搁到 Output 中
-  调用者自行保证 Key 指向内容至少 16 字节，Input 和 Output 指向内容长相等并且都为 Len 字节
-  且 Len 必须被 16 整除}
+   参数：
+     InputByteLength: Integer             - 输入的明文字节长度
 
-procedure SM4Decrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; Len: Integer);
+   返回值：Integer                        - 返回 SM4 块对齐后的长度
+}
+
+procedure SM4Encrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; ByteLen: Integer);
+{* 原始的 SM4 加密数据块，块间使用 ECB 模式。将 Input 内的明文内容加密放入 Output 中，
+   调用者自行保证 Key 指向内容至少 16 字节，Input 和 Output 指向内容长相等并且都为 ByteLen 字节
+   且 ByteLen 必须被 16 整除。
+
+   参数：
+     Key: PAnsiChar                       - 16 字节 SM4 密码
+     Input: PAnsiChar                     - 待加密的数据块地址
+     Output: PAnsiChar                    - 密文输出数据块地址
+     ByteLen: Integer                     - 加解密数据块的字节长度
+
+   返回值：（无）
+}
+
+procedure SM4Decrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; ByteLen: Integer);
 {* 原始的 SM4 解密数据块，ECB 模式，将 Input 内的密文内容解密搁到 Output 中
-  调用者自行保证 Key 指向内容至少需 16 字节，Input 和 Output 指向内容长相等并且都为 Len 字节
-  且 Len 必须被 16 整除}
+  调用者自行保证 Key 指向内容至少需 16 字节，Input 和 Output 指向内容长相等并且都为 ByteLen 字节
+  且 ByteLen 必须被 16 整除
+
+   参数：
+     Key: PAnsiChar                       - 16 字节 SM4 密码
+     Input: PAnsiChar                     - 待解密的数据块地址
+     Output: PAnsiChar                    - 明文输出数据块地址
+     ByteLen: Integer                     - 加解密数据块的字节长度
+
+   返回值：（无）
+}
 
 // ============== 明文字符串与密文十六进制字符串之间的加解密 ===================
 
 procedure SM4EncryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
-{* SM4-ECB 封装好的针对 AnsiString 的加密方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 #0
-  Input    原始待加密字符串，其长度如不是 16 倍数，计算时会被填充 #0 至长度达到 16 的倍数
-  Output   Output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
- |</PRE>}
+{* 针对 AnsiString 的 SM4 加密，块间使用 ECB 模式。
+
+   参数：
+     Key: AnsiString                      - 16 字节 SM4 密码，太长则截断，不足则补 #0
+     const Input: AnsiString              - 待加密的明文字符串，其长度如不是 16 的倍数，计算时会被填充 #0 至长度达到 16 的倍数
+     Output: PAnsiChar                    - 密文输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
+
+   返回值：（无）
+}
 
 procedure SM4DecryptEcbStr(Key: AnsiString; const Input: AnsiString; Output: PAnsiChar);
-{* SM4-ECB 封装好的针对 AnsiString 的解密方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 #0
-  Input    原始待解密字符串，其长度如不是 16 倍数，计算时会被填充 #0 至长度达到 16 的倍数
-  Output   Output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
- |</PRE>}
+{* 针对 AnsiString 的 SM4 解密，块间使用 ECB 模式。
+
+   参数：
+     Key: AnsiString                      - 16 字节 SM4 密码，太长则截断，不足则补 #0
+     const Input: AnsiString              - 待解密的密文字符串，其长度如不是 16 的倍数，计算时会被填充 #0 至长度达到 16 的倍数
+     Output: PAnsiChar                    - 明文输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
+
+   返回值：（无）
+}
 
 procedure SM4EncryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* SM4-CBC 封装好的针对 AnsiString 的加密方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 #0
-  Iv       不短于 16 字节的初始化向量，太长则超出部分忽略
-  Input    原始待加密字符串
-  Output   Output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
- |</PRE>}
+{* 针对 AnsiString 的 SM4 加密，块间使用 CBC 模式。
+
+   参数：
+     Key: AnsiString                      - 16 字节 SM4 密码，太长则截断，不足则补 #0
+     Iv: PAnsiChar                        - 16 字节初始化向量，注意有效内容必须大于或等于 16 字节
+     const Input: AnsiString              - 待加密的明文字符串，其长度如不是 16 的倍数，计算时会被填充 #0 至长度达到 16 的倍数
+     Output: PAnsiChar                    - 密文输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
+
+   返回值：（无）
+}
 
 procedure SM4DecryptCbcStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* SM4-CBC 封装好的针对 AnsiString 的解密方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 #0
-  Iv       不短于 16 字节的初始化向量，太长则超出部分忽略
-  Input    原始待解密字符串
-  Output   Output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
- |</PRE>}
+{* 针对 AnsiString 的 SM4 解密，块间使用 CBC 模式。
+
+   参数：
+     Key: AnsiString                      - 16 字节 SM4 密码，太长则截断，不足则补 #0
+     Iv: PAnsiChar                        - 16 字节初始化向量，注意有效内容必须大于或等于 16 字节
+     const Input: AnsiString              - 待解密的密文字符串，其长度如不是 16 的倍数，计算时会被填充 #0 至长度达到 16 的倍数
+     Output: PAnsiChar                    - 密文输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
+
+   返回值：（无）
+}
 
 procedure SM4EncryptCfbStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* SM4-CFB 封装好的针对 AnsiString 的加密方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 #0
-  Iv       不短于 16 字节的初始化向量，太长则超出部分忽略
-  Input    原始待加密字符串
-  Output   Output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
- |</PRE>}
+{* 针对 AnsiString 的 SM4 加密，块间使用 CFB 模式。
+
+   参数：
+     Key: AnsiString                      - 16 字节 SM4 密码，太长则截断，不足则补 #0
+     Iv: PAnsiChar                        - 16 字节初始化向量，注意有效内容必须大于或等于 16 字节
+     const Input: AnsiString              - 待加密的明文字符串
+     Output: PAnsiChar                    - 密文输出区，其长度必须大于或等于 Length(Input)
+
+   返回值：（无）
+}
 
 procedure SM4DecryptCfbStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* SM4-CFB 封装好的针对 AnsiString 的解密方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 #0
-  Iv       不短于 16 字节的初始化向量，太长则超出部分忽略
-  Input    原始待解密字符串
-  Output   Output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
- |</PRE>}
+{* 针对 AnsiString 的 SM4 解密，块间使用 CFB 模式。
+
+   参数：
+     Key: AnsiString                      - 16 字节 SM4 密码，太长则截断，不足则补 #0
+     Iv: PAnsiChar                        - 16 字节初始化向量，注意有效内容必须大于或等于 16 字节
+     const Input: AnsiString              - 待解密的密文字符串
+     Output: PAnsiChar                    - 密文输出区，其长度必须大于或等于 Length(Input)
+
+   返回值：（无）
+}
 
 procedure SM4EncryptOfbStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* SM4-OFB 封装好的针对 AnsiString 的加密方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 #0
-  Iv       不短于 16 字节的初始化向量，太长则超出部分忽略
-  Input    原始待加密字符串
-  Output   Output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
- |</PRE>}
+{* 针对 AnsiString 的 SM4 加密，块间使用 OFB 模式。
+
+   参数：
+     Key: AnsiString                      - 16 字节 SM4 密码，太长则截断，不足则补 #0
+     Iv: PAnsiChar                        - 16 字节初始化向量，注意有效内容必须大于或等于 16 字节
+     const Input: AnsiString              - 待加密的明文字符串
+     Output: PAnsiChar                    - 密文输出区，其长度必须大于或等于 Length(Input)
+
+   返回值：（无）
+}
 
 procedure SM4DecryptOfbStr(Key: AnsiString; Iv: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* SM4-OFB 封装好的针对 AnsiString 的解密方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 #0
-  Iv       不短于 16 字节的初始化向量，太长则超出部分忽略
-  Input    原始待解密字符串
-  Output   Output 输出区，其长度必须大于或等于 (((Length(Input) - 1) div 16) + 1) * 16
- |</PRE>}
+{* 针对 AnsiString 的 SM4 解密，块间使用 OFB 模式。
+
+   参数：
+     Key: AnsiString                      - 16 字节 SM4 密码，太长则截断，不足则补 #0
+     Iv: PAnsiChar                        - 16 字节初始化向量，注意有效内容必须大于或等于 16 字节
+     const Input: AnsiString              - 待解密的密文字符串
+     Output: PAnsiChar                    - 明文输出区，其长度必须大于或等于 Length(Input)
+
+   返回值：（无）
+}
 
 procedure SM4EncryptCtrStr(Key: AnsiString; Nonce: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* SM4-CTR 封装好的针对 AnsiString 的加密方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 #0
-  Nonce    不短于 8 字节的初始化向量，太长则超出部分忽略
-  Input    原始待加密字符串
-  Output   Output 输出区，其长度必须大于或等于 Length(Input)
- |</PRE>}
+{* 针对 AnsiString 的 SM4 加密，块间使用 CTR 模式。
+
+   参数：
+     Key: AnsiString                      - 16 字节 SM4 密码，太长则截断，不足则补 #0
+     Nonce: PAnsiChar                     - 8 字节初始化向量，注意有效内容必须大于或等于 8 字节
+     const Input: AnsiString              - 待加密的明文字符串
+     Output: PAnsiChar                    - 密文输出区，其长度必须大于或等于 Length(Input)
+
+   返回值：（无）
+}
 
 procedure SM4DecryptCtrStr(Key: AnsiString; Nonce: PAnsiChar;
   const Input: AnsiString; Output: PAnsiChar);
-{* SM4-CTR 封装好的针对 AnsiString 的解密方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 #0
-  Nonce    不短于 8 字节的初始化向量，太长则超出部分忽略
-  Input    原始待解密字符串
-  Output   Output 输出区，其长度必须大于或等于 Length(Input)
- |</PRE>}
+{* 针对 AnsiString 的 SM4 解密，块间使用 CTR 模式。
+
+   参数：
+     Key: AnsiString                      - 16 字节 SM4 密码，太长则截断，不足则补 #0
+     Nonce: PAnsiChar                     - 8 字节初始化向量，注意有效内容必须大于或等于 8 字节
+     const Input: AnsiString              - 待解密的密文字符串
+     Output: PAnsiChar                    - 明文输出区，其长度必须大于或等于 Length(Input)
+
+   返回值：（无）
+}
 
 // ================= 明文字节数组与密文字节数组之间的加解密 ====================
 
-function SM4EncryptEcbBytes(Key: TBytes; const Input: TBytes): TBytes;
-{* SM4-ECB 封装好的针对 TBytes 的加密方法
+function SM4EncryptEcbBytes(Key: TBytes; Input: TBytes): TBytes;
+{* 针对字节数组的 SM4 加密，块间使用 ECB 模式。
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
   Input    原始待加密内容，其长度如不是 16 倍数，计算时会被填充 0 至长度达到 16 的倍数
   返回值   加密内容
- |</PRE>}
+ |</PRE>
 
-function SM4DecryptEcbBytes(Key: TBytes; const Input: TBytes): TBytes;
-{* SM4-ECB 封装好的针对 TBytes 的解密方法
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：TBytes                         - 返回加密后的密文字节数组
+}
+
+function SM4DecryptEcbBytes(Key: TBytes; Input: TBytes): TBytes;
+{* 针对字节数组的 SM4 解密，块间使用 ECB 模式。
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
   Input    原始待加密内容，其长度如不是 16 倍数，计算时会被填充 0 至长度达到 16 的倍数
   返回值   解密内容
- |</PRE>}
+ |</PRE>
 
-function SM4EncryptCbcBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
-{* SM4-CBC 封装好的针对 TBytes 的加密方法
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Input: TBytes                        - 待解密的密文字节数组
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
+
+function SM4EncryptCbcBytes(Key: TBytes; Iv: TBytes; Input: TBytes): TBytes;
+{* 针对字节数组的 SM4 加密，块间使用 CBC 模式。
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
   Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    原始待加密内容
   返回值   加密内容
- |</PRE>}
+ |</PRE>
 
-function SM4DecryptCbcBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
-{* SM4-CBC 封装好的针对 TBytes 的解密方法
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 16 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：TBytes                         - 返回加密后的密文字节数组
+}
+
+function SM4DecryptCbcBytes(Key: TBytes; Iv: TBytes; Input: TBytes): TBytes;
+{* 针对字节数组的 SM4 解密，块间使用 CBC 模式。
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
   Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    input 密文
   返回值   解密内容
- |</PRE>}
+ |</PRE>
 
-function SM4EncryptCfbBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
-{* SM4-CFB 封装好的针对 TBytes 的加密方法
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 16 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待解密的密文字节数组
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
+
+function SM4EncryptCfbBytes(Key: TBytes; Iv: TBytes; Input: TBytes): TBytes;
+{* 针对字节数组的 SM4 加密，块间使用 CFB 模式。
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
   Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    原始待加密内容
   返回值   加密内容
- |</PRE>}
+ |</PRE>
 
-function SM4DecryptCfbBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
-{* SM4-CFB 封装好的针对 TBytes 的解密方法
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 16 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：TBytes                         - 返回加密后的密文字节数组
+}
+
+function SM4DecryptCfbBytes(Key: TBytes; Iv: TBytes; Input: TBytes): TBytes;
+{* 针对字节数组的 SM4 解密，块间使用 CFB 模式。
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
   Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    input 密文
   返回值   解密内容
- |</PRE>}
+ |</PRE>
 
-function SM4EncryptOfbBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
-{* SM4-OFB 封装好的针对 TBytes 的加密方法
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 16 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待解密的密文字节数组
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
+
+function SM4EncryptOfbBytes(Key: TBytes; Iv: TBytes; Input: TBytes): TBytes;
+{* 针对字节数组的 SM4 加密，块间使用 OFB 模式。
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
   Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    原始待加密内容
   返回值   加密内容
- |</PRE>}
+ |</PRE>
 
-function SM4DecryptOfbBytes(Key: TBytes; Iv: TBytes; const Input: TBytes): TBytes;
-{* SM4-OFB 封装好的针对 TBytes 的解密方法
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 16 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：TBytes                         - 返回加密后的密文字节数组
+}
+
+function SM4DecryptOfbBytes(Key: TBytes; Iv: TBytes; Input: TBytes): TBytes;
+{* 针对字节数组的 SM4 解密，块间使用 OFB 模式。
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
   Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
   Input    input 密文
   返回值   解密内容
- |</PRE>}
+ |</PRE>
 
-function SM4EncryptCtrBytes(Key: TBytes; Nonce: TBytes; const Input: TBytes): TBytes;
-{* SM4-CTR 封装好的针对 TBytes 的加密方法
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 16 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待解密的密文字节数组
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
+
+function SM4EncryptCtrBytes(Key: TBytes; Nonce: TBytes; Input: TBytes): TBytes;
+{* 针对字节数组的 SM4 加密，块间使用 CTR 模式。
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
   Nonce    8 字节初始化向量，太长则超出部分忽略，不足则在 Nonce 后补 0
   Input    原始待加密内容
   返回值   加密内容
- |</PRE>}
+ |</PRE>
 
-function SM4DecryptCtrBytes(Key: TBytes; Nonce: TBytes; const Input: TBytes): TBytes;
-{* SM4-CTR 封装好的针对 TBytes 的解密方法
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Nonce: TBytes                        - 8 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：TBytes                         - 返回加密后的密文字节数组
+}
+
+function SM4DecryptCtrBytes(Key: TBytes; Nonce: TBytes; Input: TBytes): TBytes;
+{* 针对字节数组的 SM4 解密，块间使用 CTR 模式。
  |<PRE>
   Key      16 字节密码，太长则截断，不足则补 0
   Nonce    8 字节初始化向量，太长则超出部分忽略，不足则在 Nonce 后补 0
   Input    input 密文
   返回值   解密内容
- |</PRE>}
+ |</PRE>
+
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Nonce: TBytes                        - 8 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待解密的密文字节数组
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
 
 // ============== 明文字节数组与密文十六进制字符串之间的加解密 =================
 
-function SM4EncryptEcbBytesToHex(Key: TBytes; const Input: TBytes): AnsiString;
-{* SM4-ECB 封装好的针对 TBytes 的加密并转换成十六进制字符串的方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 0
-  Input    原始待加密内容，其长度如不是 16 倍数，计算时会被填充 0 至长度达到 16 的倍数
-  返回值   加密内容，注意没有处理 PKCS7 之类的对齐，只做补 #0 对齐后加密
- |</PRE>}
+function SM4EncryptEcbBytesToHex(Key: TBytes; Input: TBytes): AnsiString;
+{* 传入明文与加密 Key，SM4 加密返回转换成十六进制的密文，块间使用 ECB 模式。
+
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：AnsiString                     - 返回加密后的十六进制密文字符串
+}
 
 function SM4DecryptEcbBytesFromHex(Key: TBytes; const Input: AnsiString): TBytes;
-{* SM4-ECB 封装好的针对十六进制字符串解密成 TBytes 的方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 0
-  Input    十六进制密文，其解码后的长度如不是 16 倍数，计算时会被填充 0 至长度达到 16 的倍数
-  返回值   解密内容，注意因为没有处理 PKCS7 之类的对齐，因此末尾可能多出 #0 来
- |</PRE>}
+{* 传入十六进制的密文与加密 Key，SM4 解密返回明文，块间使用 ECB 模式。
 
-function SM4EncryptCbcBytesToHex(Key: TBytes; Iv: TBytes; const Input: TBytes): AnsiString;
-{* SM4-CBC 封装好的针对 TBytes 的加密并转换成十六进制字符串的方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 0
-  Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
-  Input    原始待加密内容
-  返回值   加密内容，注意没有处理 PKCS7 之类的对齐，只做补 #0 对齐后加密
- |</PRE>}
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     const Input: AnsiString              - 待解密的十六进制密文字符串
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
+
+function SM4EncryptCbcBytesToHex(Key: TBytes; Iv: TBytes; Input: TBytes): AnsiString;
+{* 传入明文与加密 Key 与 Iv，SM4 加密返回转换成十六进制的密文，块间使用 CBC 模式。
+
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 16 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：AnsiString                     - 返回加密后的十六进制密文字符串
+}
 
 function SM4DecryptCbcBytesFromHex(Key: TBytes; Iv: TBytes; const Input: AnsiString): TBytes;
-{* SM4-CBC 封装好的针对十六进制字符串解密成 TBytes 的方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 0
-  Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
-  Input    十六进制密文
-  返回值   解密内容，注意因为没有处理 PKCS7 之类的对齐，因此末尾可能多出 #0 来
- |</PRE>}
+{* 传入十六进制的密文与加密 Key 与 Iv，SM4 解密返回明文，块间使用 CBC 模式。
 
-function SM4EncryptCfbBytesToHex(Key: TBytes; Iv: TBytes; const Input: TBytes): AnsiString;
-{* SM4-CFB 封装好的针对 TBytes 的加密并转换成十六进制字符串的方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 0
-  Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
-  Input    原始待加密内容
-  返回值   加密内容
- |</PRE>}
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 16 字节初始化向量，太长则截断，不足则补 0
+     const Input: AnsiString              - 待解密的十六进制密文字符串
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
+
+function SM4EncryptCfbBytesToHex(Key: TBytes; Iv: TBytes; Input: TBytes): AnsiString;
+{* 传入明文与加密 Key 与 Iv，SM4 加密返回转换成十六进制的密文，块间使用 CFB 模式。
+
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 16 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：AnsiString                     - 返回加密后的十六进制密文字符串
+}
 
 function SM4DecryptCfbBytesFromHex(Key: TBytes; Iv: TBytes; const Input: AnsiString): TBytes;
-{* SM4-CFB 封装好的针对十六进制字符串解密成 TBytes 的方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 0
-  Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
-  Input    十六进制密文
-  返回值   解密内容
- |</PRE>}
+{* 传入十六进制的密文与加密 Key 与 Iv，SM4 解密返回明文，块间使用 CFB 模式。
 
-function SM4EncryptOfbBytesToHex(Key: TBytes; Iv: TBytes; const Input: TBytes): AnsiString;
-{* SM4-OFB 封装好的针对 TBytes 的加密并转换成十六进制字符串的方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 0
-  Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
-  Input    原始待加密内容
-  返回值   加密内容
- |</PRE>}
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 16 字节初始化向量，太长则截断，不足则补 0
+     const Input: AnsiString              - 待解密的十六进制密文字符串
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
+
+function SM4EncryptOfbBytesToHex(Key: TBytes; Iv: TBytes; Input: TBytes): AnsiString;
+{* 传入明文与加密 Key 与 Iv，SM4 加密返回转换成十六进制的密文，块间使用 OFB 模式。
+
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 16 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：AnsiString                     - 返回加密后的十六进制密文字符串
+}
 
 function SM4DecryptOfbBytesFromHex(Key: TBytes; Iv: TBytes; const Input: AnsiString): TBytes;
-{* SM4-OFB 封装好的针对十六进制字符串解密成 TBytes 的方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 0
-  Iv       16 字节初始化向量，太长则超出部分忽略，不足则在 Iv 后补 0
-  Input    十六进制密文
-  返回值   解密内容
- |</PRE>}
+{* 传入十六进制的密文与加密 Key 与 Iv，SM4 解密返回明文，块间使用 OFB 模式。
 
-function SM4EncryptCtrBytesToHex(Key: TBytes; Nonce: TBytes; const Input: TBytes): AnsiString;
-{* SM4-CTR 封装好的针对 TBytes 的加密并转换成十六进制字符串的方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 0
-  Nonce    8 字节初始化向量，太长则超出部分忽略，不足则在 Nonce 后补 0
-  Input    原始待加密内容
-  返回值   加密内容
- |</PRE>}
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Iv: TBytes                           - 16 字节初始化向量，太长则截断，不足则补 0
+     const Input: AnsiString              - 待解密的十六进制密文字符串
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
+
+function SM4EncryptCtrBytesToHex(Key: TBytes; Nonce: TBytes; Input: TBytes): AnsiString;
+{* 传入明文与加密 Key 与 Nonce，SM4 加密返回转换成十六进制的密文，块间使用 CTR 模式。
+
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Nonce: TBytes                        - 8 字节初始化向量，太长则截断，不足则补 0
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：AnsiString                     - 返回加密后的十六进制密文字符串
+}
 
 function SM4DecryptCtrBytesFromHex(Key: TBytes; Nonce: TBytes; const Input: AnsiString): TBytes;
-{* SM4-CTR 封装好的针对十六进制字符串解密成 TBytes 的方法
- |<PRE>
-  Key      16 字节密码，太长则截断，不足则补 0
-  Nonce    8 字节初始化向量，太长则超出部分忽略，不足则在 Nonce 后补 0
-  Input    十六进制密文
-  返回值   解密内容
- |</PRE>}
+{* 传入十六进制的密文与加密 Key 与 Nonce，SM4 解密返回明文，块间使用 CTR 模式。
+
+   参数：
+     Key: TBytes                          - 16 字节 SM4 密码，太长则截断，不足则补 0
+     Nonce: TBytes                        - 8 字节初始化向量，太长则截断，不足则补 0
+     const Input: AnsiString              - 待解密的十六进制密文字符串
+
+   返回值：TBytes                         - 返回解密后的明文字节数组
+}
 
 // ======================= 明文流与密文流之间的加解密 ==========================
 
 procedure SM4EncryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnSM4Key; Dest: TStream); overload;
-{* SM4-ECB 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 SM4 加密，块间使用 ECB 模式。
+   Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待加密的明文流
+     Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
+     const Key: TCnSM4Key                 - 16 字节 SM4 密码
+     Dest: TStream                        - 输出的密文流
+
+   返回值：（无）
+}
 
 procedure SM4DecryptStreamECB(Source: TStream; Count: Cardinal;
   const Key: TCnSM4Key; Dest: TStream); overload;
-{* SM4-ECB 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 SM4 解密，块间使用 ECB 模式。
+   Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待解密的密文流
+     Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
+     const Key: TCnSM4Key                 - 16 字节 SM4 密码
+     Dest: TStream                        - 输出的明文流
+
+   返回值：（无）
+}
 
 procedure SM4EncryptStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TCnSM4Key; const InitVector: TCnSM4Iv; Dest: TStream);
-{* SM4-CBC 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 SM4 加密，块间使用 CBC 模式。
+   Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待加密的明文流
+     Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
+     const Key: TCnSM4Key                 - 16 字节 SM4 密码
+     const InitVector: TCnSM4Iv           - 16 字节初始化向量
+     Dest: TStream                        - 输出的密文流
+
+   返回值：（无）
+}
 
 procedure SM4DecryptStreamCBC(Source: TStream; Count: Cardinal;
   const Key: TCnSM4Key; const InitVector: TCnSM4Iv; Dest: TStream);
-{* SM4-CBC 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 SM4 解密，块间使用 CBC 模式。
+   Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待解密的密文流
+     Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
+     const Key: TCnSM4Key                 - 16 字节 SM4 密码
+     const InitVector: TCnSM4Iv           - 16 字节初始化向量
+     Dest: TStream                        - 输出的明文流
+
+   返回值：（无）
+}
 
 procedure SM4EncryptStreamCFB(Source: TStream; Count: Cardinal;
   const Key: TCnSM4Key; const InitVector: TCnSM4Iv; Dest: TStream);
-{* SM4-CFB 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 SM4 加密，块间使用 CFB 模式。
+   Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待加密的明文流
+     Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
+     const Key: TCnSM4Key                 - 16 字节 SM4 密码
+     const InitVector: TCnSM4Iv           - 16 字节初始化向量
+     Dest: TStream                        - 输出的密文流
+
+   返回值：（无）
+}
 
 procedure SM4DecryptStreamCFB(Source: TStream; Count: Cardinal;
   const Key: TCnSM4Key; const InitVector: TCnSM4Iv; Dest: TStream);
-{* SM4-CFB 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 SM4 解密，块间使用 CFB 模式。
+   Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待解密的密文流
+     Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
+     const Key: TCnSM4Key                 - 16 字节 SM4 密码
+     const InitVector: TCnSM4Iv           - 16 字节初始化向量
+     Dest: TStream                        - 输出的明文流
+
+   返回值：（无）
+}
 
 procedure SM4EncryptStreamOFB(Source: TStream; Count: Cardinal;
   const Key: TCnSM4Key; const InitVector: TCnSM4Iv; Dest: TStream);
-{* SM4-OFB 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 SM4 加密，块间使用 OFB 模式。
+   Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待加密的明文流
+     Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
+     const Key: TCnSM4Key                 - 16 字节 SM4 密码
+     const InitVector: TCnSM4Iv           - 16 字节初始化向量
+     Dest: TStream                        - 输出的密文流
+
+   返回值：（无）
+}
 
 procedure SM4DecryptStreamOFB(Source: TStream; Count: Cardinal;
   const Key: TCnSM4Key; const InitVector: TCnSM4Iv; Dest: TStream);
-{* SM4-OFB 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+{* 针对流的 SM4 解密，块间使用 OFB 模式。
+   Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待解密的密文流
+     Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
+     const Key: TCnSM4Key                 - 16 字节 SM4 密码
+     const InitVector: TCnSM4Iv           - 16 字节初始化向量
+     Dest: TStream                        - 输出的明文流
+
+   返回值：（无）
+}
 
 procedure SM4EncryptStreamCTR(Source: TStream; Count: Cardinal;
-  const Key: TCnSM4Key; const InitVector: TCnSM4Nonce; Dest: TStream);
-{* SM4-CTR 流加密，Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数}
+  const Key: TCnSM4Key; const InitNonce: TCnSM4Nonce; Dest: TStream);
+{* 针对流的 SM4 加密，块间使用 CTR 模式。
+   Count 为 0 表示从头加密整个流，否则只加密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待加密的明文流
+     Count: Cardinal                      - 从流当前位置起的待加密的字节长度，如为 0，表示从头加密整个流
+     const Key: TCnSM4Key                 - 16 字节 SM4 密码
+     const InitNonce: TCnSM4Nonce         - 8 字节初始化向量
+     Dest: TStream                        - 输出的密文流
+
+   返回值：（无）
+}
 
 procedure SM4DecryptStreamCTR(Source: TStream; Count: Cardinal;
-  const Key: TCnSM4Key; const InitVector: TCnSM4Nonce; Dest: TStream);
-{* SM4-CTR 流解密，Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数}
+  const Key: TCnSM4Key; const InitNonce: TCnSM4Nonce; Dest: TStream);
+{* 针对流的 SM4 解密，块间使用 CTR 模式。
+   Count 为 0 表示从头解密整个流，否则只解密 Stream 当前位置起 Count 的字节数。
+
+   参数：
+     Source: TStream                      - 待解密的密文流
+     Count: Cardinal                      - 从流当前位置起的待解密的字节长度，如为 0，表示从头解密整个流
+     const Key: TCnSM4Key                 - 16 字节 SM4 密码
+     const InitNonce: TCnSM4Nonce         - 8 字节初始化向量
+     Dest: TStream                        - 输出的明文流
+
+   返回值：（无）
+}
 
 // 以下仨函数为底层加密函数，开放出来供外部挨块加密使用
 
 procedure SM4SetKeyEnc(var Ctx: TCnSM4Context; Key: PAnsiChar);
-{* 将 16 字节 Key 塞进 Context 并设置为加密模式}
+{* 将 16 字节 Key 塞进 SM4 上下文并设置为加密模式。
+
+   参数：
+     var Ctx: TCnSM4Context               - 待设置的 SM4 上下文
+     Key: PAnsiChar                       - 16 字节 SM4 密码
+
+   返回值：（无）
+}
 
 procedure SM4SetKeyDec(var Ctx: TCnSM4Context; Key: PAnsiChar);
-{* 将 16 字节 Key 塞进 Context 并设置为解密模式}
+{* 将 16 字节 Key 塞进 SM4 上下文并设置为解密模式。
+
+   参数：
+     var Ctx: TCnSM4Context               - 待设置的 SM4 上下文
+     Key: PAnsiChar                       - 16 字节 SM4 密码
+
+   返回值：（无）
+}
 
 procedure SM4OneRound(SK: PCardinal; Input: PAnsiChar; Output: PAnsiChar);
-{* 加解密一个块，内容从 Input 至 Output，长度 16 字节，两者可以是同一个区域
-  SK是 TSM4Context 的 Sk，加还是解由其决定}
+{* 加解密一个块，内容从 Input 至 Output，长度 16 字节，两者可以是同一个区域。
+   SK是 TSM4Context 的 Sk，加密还是解密由其决定。
+
+   参数：
+     SK: PCardinal                        - SM4 的 SubKey
+     Input: PAnsiChar                     - 待处理的数据块地址，长度至少 16 字节
+     Output: PAnsiChar                    - 处理完毕的输出数据块地址，长度至少 16 字节
+
+   返回值：（无）
+}
 
 implementation
 
@@ -1120,6 +1405,7 @@ function SM4CryptCbcBytes(Mode: Integer; Key, Iv: TBytes;
   const Input: TBytes): TBytes;
 var
   Ctx: TCnSM4Context;
+  LocalIv: TCnSM4Iv;
   I, Len: Integer;
 begin
   Len := Length(Input);
@@ -1139,23 +1425,17 @@ begin
   end;
   // 长度大于 16 字节时 SM4SetKeyEnc 会自动忽略后面的部分
 
-  Len := Length(Iv);
-  if Len < CN_SM4_BLOCKSIZE then // Iv 长度小于 16 字节补 0
-  begin
-    SetLength(Iv, CN_SM4_BLOCKSIZE);
-    for I := Len to CN_SM4_BLOCKSIZE - 1 do
-      Iv[I] := 0;
-  end;
+  MoveMost(Iv[0], LocalIv[0], Length(Iv), SizeOf(TCnSM4Iv));
 
   if Mode = SM4_ENCRYPT then
   begin
     SM4SetKeyEnc(Ctx, @(Key[0]));
-    SM4CryptCbc(Ctx, SM4_ENCRYPT, Length(Input), @(Iv[0]), @(Input[0]), @(Result[0]));
+    SM4CryptCbc(Ctx, SM4_ENCRYPT, Length(Input), @(LocalIv[0]), @(Input[0]), @(Result[0]));
   end
   else if Mode = SM4_DECRYPT then
   begin
     SM4SetKeyDec(Ctx, @(Key[0]));
-    SM4CryptCbc(Ctx, SM4_DECRYPT, Length(Input), @(Iv[0]), @(Input[0]), @(Result[0]));
+    SM4CryptCbc(Ctx, SM4_DECRYPT, Length(Input), @(LocalIv[0]), @(Input[0]), @(Result[0]));
   end;
 end;
 
@@ -1163,6 +1443,7 @@ function SM4CryptCfbBytes(Mode: Integer; Key, Iv: TBytes;
   const Input: TBytes): TBytes;
 var
   Ctx: TCnSM4Context;
+  LocalIv: TCnSM4Iv;
   I, Len: Integer;
 begin
   Len := Length(Input);
@@ -1182,23 +1463,17 @@ begin
   end;
   // 长度大于 16 字节时 SM4SetKeyEnc 会自动忽略后面的部分
 
-  Len := Length(Iv);
-  if Len < CN_SM4_BLOCKSIZE then // Iv 长度小于 16 字节补 0
-  begin
-    SetLength(Iv, CN_SM4_BLOCKSIZE);
-    for I := Len to CN_SM4_BLOCKSIZE - 1 do
-      Iv[I] := 0;
-  end;
+  MoveMost(Iv[0], LocalIv[0], Length(Iv), SizeOf(TCnSM4Iv));
 
   if Mode = SM4_ENCRYPT then
   begin
     SM4SetKeyEnc(Ctx, @(Key[0]));
-    SM4CryptCfb(Ctx, SM4_ENCRYPT, Length(Input), @(Iv[0]), @(Input[0]), @(Result[0]));
+    SM4CryptCfb(Ctx, SM4_ENCRYPT, Length(Input), @(LocalIv[0]), @(Input[0]), @(Result[0]));
   end
   else if Mode = SM4_DECRYPT then
   begin
     SM4SetKeyEnc(Ctx, @(Key[0])); // 注意 CFB 的解密也用的是加密！
-    SM4CryptCfb(Ctx, SM4_DECRYPT, Length(Input), @(Iv[0]), @(Input[0]), @(Result[0]));
+    SM4CryptCfb(Ctx, SM4_DECRYPT, Length(Input), @(LocalIv[0]), @(Input[0]), @(Result[0]));
   end;
 end;
 
@@ -1206,6 +1481,7 @@ function SM4CryptOfbBytes(Mode: Integer; Key, Iv: TBytes;
   const Input: TBytes): TBytes;
 var
   Ctx: TCnSM4Context;
+  LocalIv: TCnSM4Iv;
   I, Len: Integer;
 begin
   Len := Length(Input);
@@ -1225,23 +1501,17 @@ begin
   end;
   // 长度大于 16 字节时 SM4SetKeyEnc 会自动忽略后面的部分
 
-  Len := Length(Iv);
-  if Len < CN_SM4_BLOCKSIZE then // Iv 长度小于 16 字节补 0
-  begin
-    SetLength(Iv, CN_SM4_BLOCKSIZE);
-    for I := Len to CN_SM4_BLOCKSIZE - 1 do
-      Iv[I] := 0;
-  end;
+  MoveMost(Iv[0], LocalIv[0], Length(Iv), SizeOf(TCnSM4Iv));
 
   if Mode = SM4_ENCRYPT then
   begin
     SM4SetKeyEnc(Ctx, @(Key[0]));
-    SM4CryptOfb(Ctx, SM4_ENCRYPT, Length(Input), @(Iv[0]), @(Input[0]), @(Result[0]));
+    SM4CryptOfb(Ctx, SM4_ENCRYPT, Length(Input), @(LocalIv[0]), @(Input[0]), @(Result[0]));
   end
   else if Mode = SM4_DECRYPT then
   begin
     SM4SetKeyEnc(Ctx, @(Key[0])); // 注意 OFB 的解密也用的是加密！
-    SM4CryptOfb(Ctx, SM4_DECRYPT, Length(Input), @(Iv[0]), @(Input[0]), @(Result[0]));
+    SM4CryptOfb(Ctx, SM4_DECRYPT, Length(Input), @(LocalIv[0]), @(Input[0]), @(Result[0]));
   end;
 end;
 
@@ -1249,6 +1519,7 @@ function SM4CryptCtrBytes(Mode: Integer; Key, Nonce: TBytes;
   const Input: TBytes): TBytes;
 var
   Ctx: TCnSM4Context;
+  LocalNonce: TCnSM4Nonce;
   I, Len: Integer;
 begin
   Len := Length(Input);
@@ -1268,77 +1539,71 @@ begin
   end;
   // 长度大于 16 字节时 SM4SetKeyEnc 会自动忽略后面的部分
 
-  Len := Length(Nonce);
-  if Len < CN_SM4_NONCESIZE then // Nonce 长度小于 16 字节补 0
-  begin
-    SetLength(Nonce, CN_SM4_NONCESIZE);
-    for I := Len to CN_SM4_NONCESIZE - 1 do
-      Nonce[I] := 0;
-  end;
+  MoveMost(Nonce[0], LocalNonce[0], Length(Nonce), SizeOf(TCnSM4Nonce));
 
   if Mode = SM4_ENCRYPT then
   begin
     SM4SetKeyEnc(Ctx, @(Key[0]));
-    SM4CryptCtr(Ctx, SM4_ENCRYPT, Length(Input), @(Nonce[0]), @(Input[0]), @(Result[0]));
+    SM4CryptCtr(Ctx, SM4_ENCRYPT, Length(Input), @(LocalNonce[0]), @(Input[0]), @(Result[0]));
   end
   else if Mode = SM4_DECRYPT then
   begin
     SM4SetKeyEnc(Ctx, @(Key[0])); // 注意 CTR 的解密也用的是加密！
-    SM4CryptCtr(Ctx, SM4_DECRYPT, Length(Input), @(Nonce[0]), @(Input[0]), @(Result[0]));
+    SM4CryptCtr(Ctx, SM4_DECRYPT, Length(Input), @(LocalNonce[0]), @(Input[0]), @(Result[0]));
   end;
 end;
 
-function SM4EncryptEcbBytes(Key: TBytes; const Input: TBytes): TBytes;
+function SM4EncryptEcbBytes(Key: TBytes; Input: TBytes): TBytes;
 begin
   Result := SM4CryptEcbBytes(SM4_ENCRYPT, Key, Input);
 end;
 
-function SM4DecryptEcbBytes(Key: TBytes; const Input: TBytes): TBytes;
+function SM4DecryptEcbBytes(Key: TBytes; Input: TBytes): TBytes;
 begin
   Result := SM4CryptEcbBytes(SM4_DECRYPT, Key, Input);
 end;
 
-function SM4EncryptCbcBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function SM4EncryptCbcBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
 begin
   Result := SM4CryptCbcBytes(SM4_ENCRYPT, Key, Iv, Input);
 end;
 
-function SM4DecryptCbcBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function SM4DecryptCbcBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
 begin
   Result := SM4CryptCbcBytes(SM4_DECRYPT, Key, Iv, Input);
 end;
 
-function SM4EncryptCfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function SM4EncryptCfbBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
 begin
   Result := SM4CryptCfbBytes(SM4_ENCRYPT, Key, Iv, Input);
 end;
 
-function SM4DecryptCfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function SM4DecryptCfbBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
 begin
   Result := SM4CryptCfbBytes(SM4_DECRYPT, Key, Iv, Input);
 end;
 
-function SM4EncryptOfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function SM4EncryptOfbBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
 begin
   Result := SM4CryptOfbBytes(SM4_ENCRYPT, Key, Iv, Input);
 end;
 
-function SM4DecryptOfbBytes(Key, Iv: TBytes; const Input: TBytes): TBytes;
+function SM4DecryptOfbBytes(Key, Iv: TBytes; Input: TBytes): TBytes;
 begin
   Result := SM4CryptOfbBytes(SM4_DECRYPT, Key, Iv, Input);
 end;
 
-function SM4EncryptCtrBytes(Key, Nonce: TBytes; const Input: TBytes): TBytes;
+function SM4EncryptCtrBytes(Key, Nonce: TBytes; Input: TBytes): TBytes;
 begin
   Result := SM4CryptCtrBytes(SM4_ENCRYPT, Key, Nonce, Input);
 end;
 
-function SM4DecryptCtrBytes(Key, Nonce: TBytes; const Input: TBytes): TBytes;
+function SM4DecryptCtrBytes(Key, Nonce: TBytes; Input: TBytes): TBytes;
 begin
   Result := SM4CryptCtrBytes(SM4_DECRYPT, Key, Nonce, Input);
 end;
 
-function SM4EncryptEcbBytesToHex(Key: TBytes; const Input: TBytes): AnsiString;
+function SM4EncryptEcbBytesToHex(Key: TBytes; Input: TBytes): AnsiString;
 begin
   Result := AnsiString(BytesToHex(SM4EncryptEcbBytes(Key, Input)));
 end;
@@ -1348,7 +1613,7 @@ begin
   Result := SM4DecryptEcbBytes(Key, HexToBytes(string(Input)));
 end;
 
-function SM4EncryptCbcBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiString;
+function SM4EncryptCbcBytesToHex(Key, Iv: TBytes; Input: TBytes): AnsiString;
 begin
   Result := AnsiString(BytesToHex(SM4EncryptCbcBytes(Key, Iv, Input)));
 end;
@@ -1358,7 +1623,7 @@ begin
   Result := SM4DecryptCbcBytes(Key, Iv, HexToBytes(string(Input)));
 end;
 
-function SM4EncryptCfbBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiString;
+function SM4EncryptCfbBytesToHex(Key, Iv: TBytes; Input: TBytes): AnsiString;
 begin
   Result := AnsiString(BytesToHex(SM4EncryptCfbBytes(Key, Iv, Input)));
 end;
@@ -1368,7 +1633,7 @@ begin
   Result := SM4DecryptCfbBytes(Key, Iv, HexToBytes(string(Input)));
 end;
 
-function SM4EncryptOfbBytesToHex(Key, Iv: TBytes; const Input: TBytes): AnsiString;
+function SM4EncryptOfbBytesToHex(Key, Iv: TBytes; Input: TBytes): AnsiString;
 begin
   Result := AnsiString(BytesToHex(SM4EncryptOfbBytes(Key, Iv, Input)));
 end;
@@ -1378,7 +1643,7 @@ begin
   Result := SM4DecryptOfbBytes(Key, Iv, HexToBytes(string(Input)));
 end;
 
-function SM4EncryptCtrBytesToHex(Key, Nonce: TBytes; const Input: TBytes): AnsiString;
+function SM4EncryptCtrBytesToHex(Key, Nonce: TBytes; Input: TBytes): AnsiString;
 begin
   Result := AnsiString(BytesToHex(SM4EncryptCtrBytes(Key, Nonce, Input)));
 end;
@@ -1827,7 +2092,7 @@ begin
 end;
 
 procedure SM4EncryptStreamCTR(Source: TStream; Count: Cardinal;
-  const Key: TCnSM4Key; const InitVector: TCnSM4Nonce; Dest: TStream);
+  const Key: TCnSM4Key; const InitNonce: TCnSM4Nonce; Dest: TStream);
 var
   TempIn, TempOut: TCnSM4Buffer;
   Vector: TCnSM4Iv;
@@ -1857,7 +2122,7 @@ begin
 
     // Nonce 和计数器拼成 Iv
     T := Int64HostToNetwork(Cnt);
-    Move(InitVector[0], Vector[0], SizeOf(TCnSM4Nonce));
+    Move(InitNonce[0], Vector[0], SizeOf(TCnSM4Nonce));
     Move(T, Vector[SizeOf(TCnSM4Nonce)], SizeOf(Int64));
 
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));     // Key 先加密 Iv
@@ -1883,7 +2148,7 @@ begin
 
     // Nonce 和计数器拼成 Iv
     T := Int64HostToNetwork(Cnt);
-    Move(InitVector[0], Vector[0], SizeOf(TCnSM4Nonce));
+    Move(InitNonce[0], Vector[0], SizeOf(TCnSM4Nonce));
     Move(T, Vector[SizeOf(TCnSM4Nonce)], SizeOf(Int64));
 
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));
@@ -1900,7 +2165,7 @@ begin
 end;
 
 procedure SM4DecryptStreamCTR(Source: TStream; Count: Cardinal;
-  const Key: TCnSM4Key; const InitVector: TCnSM4Nonce; Dest: TStream);
+  const Key: TCnSM4Key; const InitNonce: TCnSM4Nonce; Dest: TStream);
 var
   TempIn, TempOut: TCnSM4Buffer;
   Vector: TCnSM4Iv;
@@ -1930,7 +2195,7 @@ begin
 
     // Nonce 和计数器拼成 Iv
     T := Int64HostToNetwork(Cnt);
-    Move(InitVector[0], Vector[0], SizeOf(TCnSM4Nonce));
+    Move(InitNonce[0], Vector[0], SizeOf(TCnSM4Nonce));
     Move(T, Vector[SizeOf(TCnSM4Nonce)], SizeOf(Int64));
 
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));     // Key 先加密 Iv
@@ -1956,7 +2221,7 @@ begin
 
     // Nonce 和计数器拼成 Iv
     T := Int64HostToNetwork(Cnt);
-    Move(InitVector[0], Vector[0], SizeOf(TCnSM4Nonce));
+    Move(InitNonce[0], Vector[0], SizeOf(TCnSM4Nonce));
     Move(T, Vector[SizeOf(TCnSM4Nonce)], SizeOf(Int64));
 
     SM4OneRound(@(Ctx.Sk[0]), @(Vector[0]), @(TempOut[0]));
@@ -1977,20 +2242,20 @@ begin
   Result := (((InputByteLength - 1) div CN_SM4_BLOCKSIZE) + 1) * CN_SM4_BLOCKSIZE;
 end;
 
-procedure SM4Encrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; Len: Integer);
+procedure SM4Encrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; ByteLen: Integer);
 var
   Ctx: TCnSM4Context;
 begin
   SM4SetKeyEnc(Ctx, Key);
-  SM4CryptEcb(Ctx, SM4_ENCRYPT, Len, Input, Output);
+  SM4CryptEcb(Ctx, SM4_ENCRYPT, ByteLen, Input, Output);
 end;
 
-procedure SM4Decrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; Len: Integer);
+procedure SM4Decrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; ByteLen: Integer);
 var
   Ctx: TCnSM4Context;
 begin
   SM4SetKeyDec(Ctx, Key);
-  SM4CryptEcb(Ctx, SM4_DECRYPT, Len, Input, Output);
+  SM4CryptEcb(Ctx, SM4_DECRYPT, ByteLen, Input, Output);
 end;
 
 end.
