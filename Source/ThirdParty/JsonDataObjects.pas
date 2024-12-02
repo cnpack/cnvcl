@@ -47,6 +47,10 @@ unit JsonDataObjects;
   {$IFEND}
 {$ENDIF VER200}
 
+{$IF CompilerVersion >= 35.0} // 11 Alexandria or newer
+  {$DEFINE MEMORYSTREAM_CAPACITY_NATIVEINT} // Delphi 11 TMemoryStream Capacity is NativeInt instead of Longint
+{$IFEND}
+
 {$IFDEF NEXTGEN}
   {$IF CompilerVersion >= 31.0} // 10.1 Berlin or newer
     {$DEFINE SUPPORTS_UTF8STRING} // Delphi 10.1 Berlin supports UTF8String for mobile compilers
@@ -1024,7 +1028,11 @@ type
   private
     FDataString: UTF8String;
   protected
+{$IFDEF MEMORYSTREAM_CAPACITY_NATIVEINT}
+    function Realloc(var NewCapacity: NativeInt): Pointer; override;
+{$ELSE}
     function Realloc(var NewCapacity: Longint): Pointer; override;
+{$ENDIF}
   public
     constructor Create;
     property DataString: UTF8String read FDataString;
@@ -1035,7 +1043,11 @@ type
   private
     FBytes: TBytes;
   protected
+{$IFDEF MEMORYSTREAM_CAPACITY_NATIVEINT}
+    function Realloc(var NewCapacity: NativeInt): Pointer; override;
+{$ELSE}
     function Realloc(var NewCapacity: Longint): Pointer; override;
+{$ENDIF}
   public
     constructor Create;
     property Bytes: TBytes read FBytes;
@@ -7799,7 +7811,11 @@ begin
   SetPointer(nil, 0);
 end;
 
+{$IFDEF MEMORYSTREAM_CAPACITY_NATIVEINT}
+function TJsonUTF8StringStream.Realloc(var NewCapacity: NativeInt): Pointer;
+{$ELSE}
 function TJsonUTF8StringStream.Realloc(var NewCapacity: Longint): Pointer;
+{$ENDIF}
 var
   L: Longint;
 begin
@@ -7837,7 +7853,11 @@ begin
   SetPointer(nil, 0);
 end;
 
+{$IFDEF MEMORYSTREAM_CAPACITY_NATIVEINT}
+function TJsonBytesStream.Realloc(var NewCapacity: NativeInt): Pointer;
+{$ELSE}
 function TJsonBytesStream.Realloc(var NewCapacity: Longint): Pointer;
+{$ENDIF}
 var
   L: Longint;
 begin
