@@ -103,7 +103,7 @@ type
     }
 
     procedure AppendBit(Value: Boolean);
-    {* 增加一位。
+    {* 增加一位至本对象。
 
        参数：
          Value: Boolean                   - 该位是否置 1
@@ -122,7 +122,7 @@ type
     }
 
     procedure AppendWordRange(Value: Word; MaxRange: Integer);
-    {* 增加一个双字节中的 0 到 MaxRange 位。
+    {* 增加一个双字节中的 0 到 MaxRange 位至本对象。
 
        参数：
          Value: Word                      - 待增加的双字节值
@@ -132,7 +132,7 @@ type
     }
 
     procedure AppendDWordRange(Value: Cardinal; MaxRange: Integer);
-    {* 增加一个四字节中的 0 到 MaxRange 位。
+    {* 增加一个四字节中的 0 到 MaxRange 位至本对象。
 
        参数：
          Value: Cardinal                  - 待增加的四字节值
@@ -142,7 +142,7 @@ type
     }
 
     procedure AppendByte(Value: Byte; Full: Boolean = True);
-    {* 增加一个字节，Full 表示是 8 位都加上去还是忽略高位的所有 0。
+    {* 增加一个字节至本对象，Full 表示是 8 位都加上去还是忽略高位的所有 0。
 
        参数：
          Value: Byte                      - 待增加的字节值
@@ -152,7 +152,7 @@ type
     }
 
     procedure AppendWord(Value: Word; Full: Boolean = True);
-    {* 增加一个双字节，Full 表示是 16 位都加上去还是忽略高位的所有 0。
+    {* 增加一个双字节至本对象，Full 表示是 16 位都加上去还是忽略高位的所有 0。
 
        参数：
          Value: Word                      - 待增加的双字节值
@@ -162,7 +162,7 @@ type
     }
 
     procedure AppendDWord(Value: Cardinal; Full: Boolean = True);
-    {* 增加一个四字节，Full 表示是 32 位都加上去还是忽略高位的所有 0。
+    {* 增加一个四字节至本对象，Full 表示是 32 位都加上去还是忽略高位的所有 0。
 
        参数：
          Value: Cardinal                  - 待增加的四字节值
@@ -172,7 +172,7 @@ type
     }
 
     procedure AppendBytes(Value: TBytes);
-    {* 增加一个字节数组。
+    {* 增加一个字节数组至本对象。
 
        参数：
          Value: TBytes                    - 待增加的字节数组
@@ -181,7 +181,7 @@ type
     }
 
     procedure AppendData(Data: Pointer; DataByteLen: Integer);
-    {* 增加一个数据块。
+    {* 增加一个数据块至本对象。
 
        参数：
          Data: Pointer                    - 待增加的数据块地址

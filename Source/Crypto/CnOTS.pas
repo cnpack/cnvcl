@@ -119,161 +119,421 @@ type
 
 function CnOTSSM3GenerateKeys(var PrivateKey: TCnOTSSM3PrivateKey;
   var PublicKey: TCnOTSSM3PublicKey): Boolean;
-{* 生成一对基于 SM3 杂凑算法的一次性杂凑签名公私钥，返回生成是否成功}
+{* 生成一对基于 SM3 杂凑算法的 OTS 一次性杂凑签名公私钥，返回生成是否成功。
+
+   参数：
+     var PrivateKey: TCnOTSSM3PrivateKey  - 生成的基于 SM3 的一次性杂凑签名私钥
+     var PublicKey: TCnOTSSM3PublicKey    - 生成的基于 SM3 的一次性杂凑签名公钥
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 procedure CnOTSSM3SignData(Data: Pointer; DataByteLen: Integer;
   PrivateKey: TCnOTSSM3PrivateKey; PublicKey: TCnOTSSM3PublicKey;
   var OutSignature: TCnOTSSM3Signature; var OutVerifyKey: TCnOTSSM3VerificationKey);
-{* 根据公私钥生成指定内存块数据的一次性杂凑签名及验证这个签名的密钥。
-  平时公布明文、签名值与公钥，有验证需求时，给验证方公布验证密钥。
-  验证密钥实际上是私钥的一部分，因此验证密钥公布后等同于只能验证这一次，
-  不能再用这批私钥给别的消息签名了，这正是一次性签名的含义}
+{* 根据公私钥生成指定数据块的 OTS 一次性杂凑签名及验证这个签名的密钥。
+   平时公布明文、签名值与公钥，有验证需求时，给验证方公布验证密钥。
+   验证密钥实际上是私钥的一部分，因此验证密钥公布后等同于只能验证这一次，
+   不能再用这批私钥给别的消息签名了，这正是一次性签名的含义。
+
+   参数：
+     Data: Pointer                                        - 待签名的明文数据块地址
+     DataByteLen: Integer                                 - 待签名的明文数据块字节长度
+     PrivateKey: TCnOTSSM3PrivateKey                      - 用来签名的基于 SM3 的一次性杂凑签名私钥
+     PublicKey: TCnOTSSM3PublicKey                        - 用来签名的基于 SM3 的一次性杂凑签名公钥
+     var OutSignature: TCnOTSSM3Signature                 - 输出的签名值
+     var OutVerifyKey: TCnOTSSM3VerificationKey           - 输出的验证密钥
+
+   返回值：（无）
+}
 
 function CnOTSSM3VerifyData(Data: Pointer; DataByteLen: Integer;
   Signature: TCnOTSSM3Signature; PublicKey: TCnOTSSM3PublicKey;
   VerifyKey: TCnOTSSM3VerificationKey): Boolean;
-{* 根据明文、公布的验证密钥与公钥验证指定内存块数据的签名是否正确，返回验证是否成功。
-  注意规范中 Signature 未参与验证，仅使用 VerifyKey 就行}
+{* 根据明文、公布的验证密钥与公钥验证指定数据块的 OTS 签名是否正确，返回验证是否成功。
+   注意规范中 Signature 未参与验证，仅使用 VerifyKey 就行。
+
+   参数：
+     Data: Pointer                        - 待验证的明文数据块地址
+     DataByteLen: Integer                 - 待验证的明文数据块字节长度
+     Signature: TCnOTSSM3Signature        - 待验证的签名值
+     PublicKey: TCnOTSSM3PublicKey        - 用来验证的基于 SM3 的一次性杂凑签名公钥
+     VerifyKey: TCnOTSSM3VerificationKey  - 用来验证的验证密钥
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 procedure CnOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnOTSSM3PrivateKey;
   PublicKey: TCnOTSSM3PublicKey; var OutSignature: TCnOTSSM3Signature;
   var OutVerifyKey: TCnOTSSM3VerificationKey);
-{* 根据公私钥生成字节数组的一次性杂凑签名及验证这个签名的密钥。
-  平时公布明文、签名值与公钥，有验证需求时，给验证方公布验证密钥。
-  验证密钥实际上是私钥的一部分，因此验证密钥公布后等同于只能验证这一次，
-  不能再用这批私钥给别的消息签名了，这正是一次性签名的含义}
+{* 根据公私钥生成字节数组的 OTS 一次性杂凑签名及验证这个签名的密钥。
+   平时公布明文、签名值与公钥，有验证需求时，给验证方公布验证密钥。
+   验证密钥实际上是私钥的一部分，因此验证密钥公布后等同于只能验证这一次，
+   不能再用这批私钥给别的消息签名了，这正是一次性签名的含义。
+
+   参数：
+     Data: TBytes                                         - 待签名的明文字节数组
+     PrivateKey: TCnOTSSM3PrivateKey                      - 用来签名的基于 SM3 的一次性杂凑签名私钥
+     PublicKey: TCnOTSSM3PublicKey                        - 用来签名的基于 SM3 的一次性杂凑签名公钥
+     var OutSignature: TCnOTSSM3Signature                 - 输出的签名值
+     var OutVerifyKey: TCnOTSSM3VerificationKey           - 输出的验证密钥
+
+   返回值：（无）
+}
 
 function CnOTSSM3VerifyBytes(Data: TBytes; Signature: TCnOTSSM3Signature;
   PublicKey: TCnOTSSM3PublicKey; VerifyKey: TCnOTSSM3VerificationKey): Boolean;
-{* 根据明文、公布的验证密钥与公钥验证字节数组的签名是否正确，返回验证是否成功。
-  注意规范中 Signature 未参与验证，仅使用 VerifyKey 就行}
+{* 根据明文、公布的验证密钥与公钥验证字节数组的 OTS 签名是否正确，返回验证是否成功。
+   注意规范中 Signature 未参与验证，仅使用 VerifyKey 就行。
+
+   参数：
+     Data: TBytes                         - 待验证的明文字节数组
+     Signature: TCnOTSSM3Signature        - 待验证的签名值
+     PublicKey: TCnOTSSM3PublicKey        - 用来验证的基于 SM3 的一次性杂凑签名公钥
+     VerifyKey: TCnOTSSM3VerificationKey  - 用来验证的验证密钥
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 // =============== Lamport 发明的常规 OTS，结合 SHA256 杂凑算法 ================
 
 function CnOTSSHA256GenerateKeys(var PrivateKey: TCnOTSSHA256PrivateKey;
   var PublicKey: TCnOTSSHA256PublicKey): Boolean;
-{* 生成一对基于 SHA256 杂凑算法的一次性杂凑签名公私钥，返回生成是否成功}
+{* 生成一对基于 SHA256 杂凑算法的 OTS 一次性杂凑签名公私钥，返回生成是否成功。
+
+   参数：
+     var PrivateKey: TCnOTSSHA256PrivateKey               - 生成的基于 SHA256 的一次性杂凑签名私钥
+     var PublicKey: TCnOTSSHA256PublicKey                 - 生成的基于 SHA256 的一次性杂凑签名公钥
+
+   返回值：Boolean                                        - 返回生成是否成功
+}
 
 procedure CnOTSSHA256SignData(Data: Pointer; DataByteLen: Integer;
   PrivateKey: TCnOTSSHA256PrivateKey; PublicKey: TCnOTSSHA256PublicKey;
   var OutSignature: TCnOTSSHA256Signature; var OutVerifyKey: TCnOTSSHA256VerificationKey);
-{* 根据公私钥生成指定内存块数据的一次性杂凑签名及验证这个签名的密钥。
-  平时公布明文、签名值与公钥，有验证需求时，给验证方公布验证密钥。
-  验证密钥实际上是私钥的一部分，因此验证密钥公布后等同于只能验证这一次，
-  不能再用这批私钥给别的消息签名了，这正是一次性签名的含义}
+{* 根据公私钥生成指定数据块的 OTS 一次性杂凑签名及验证这个签名的密钥。
+   平时公布明文、签名值与公钥，有验证需求时，给验证方公布验证密钥。
+   验证密钥实际上是私钥的一部分，因此验证密钥公布后等同于只能验证这一次，
+   不能再用这批私钥给别的消息签名了，这正是一次性签名的含义。
+
+   参数：
+     Data: Pointer                                        - 待签名的明文数据块地址
+     DataByteLen: Integer                                 - 待签名的明文数据块字节长度
+     PrivateKey: TCnOTSSHA256PrivateKey                   - 用来签名的基于 SHA256 的一次性杂凑签名私钥
+     PublicKey: TCnOTSSHA256PublicKey                     - 用来签名的基于 SHA256 的一次性杂凑签名公钥
+     var OutSignature: TCnOTSSHA256Signature              - 输出的签名值
+     var OutVerifyKey: TCnOTSSHA256VerificationKey        - 输出的验证密钥
+
+   返回值：（无）
+}
 
 function CnOTSSHA256VerifyData(Data: Pointer; DataByteLen: Integer;
   Signature: TCnOTSSHA256Signature; PublicKey: TCnOTSSHA256PublicKey;
   VerifyKey: TCnOTSSHA256VerificationKey): Boolean;
-{* 根据明文、公布的验证密钥与公钥验证指定内存块数据的签名是否正确，返回验证是否成功}
+{* 根据明文、公布的验证密钥与公钥验证指定数据块的 OTS 签名是否正确，返回验证是否成功。
+   注意规范中 Signature 未参与验证，仅使用 VerifyKey 就行。
+
+   参数：
+     Data: Pointer                                        - 待验证的明文数据块地址
+     DataByteLen: Integer                                 - 待验证的明文数据块字节长度
+     Signature: TCnOTSSHA256Signature                     - 待验证的签名值
+     PublicKey: TCnOTSSHA256PublicKey                     - 用来验证的基于 SHA256 的一次性杂凑签名公钥
+     VerifyKey: TCnOTSSHA256VerificationKey               - 用来验证的验证密钥
+
+   返回值：Boolean                                        - 返回验证签名是否成功
+}
 
 procedure CnOTSSHA256SignBytes(Data: TBytes; PrivateKey: TCnOTSSHA256PrivateKey;
   PublicKey: TCnOTSSHA256PublicKey; var OutSignature: TCnOTSSHA256Signature;
   var OutVerifyKey: TCnOTSSHA256VerificationKey);
-{* 根据公私钥生成字节数组的一次性杂凑签名及验证这个签名的密钥。
-  平时公布明文、签名值与公钥，有验证需求时，给验证方公布验证密钥。
-  验证密钥实际上是私钥的一部分，因此验证密钥公布后等同于只能验证这一次，
-  不能再用这批私钥给别的消息签名了，这正是一次性签名的含义}
+{* 根据公私钥生成字节数组的 OTS 一次性杂凑签名及验证这个签名的密钥。
+   平时公布明文、签名值与公钥，有验证需求时，给验证方公布验证密钥。
+   验证密钥实际上是私钥的一部分，因此验证密钥公布后等同于只能验证这一次，
+   不能再用这批私钥给别的消息签名了，这正是一次性签名的含义。
+
+   参数：
+     Data: TBytes                                         - 待签名的明文字节数组
+     PrivateKey: TCnOTSSHA256PrivateKey                   - 用来签名的基于 SHA256 的一次性杂凑签名私钥
+     PublicKey: TCnOTSSHA256PublicKey                     - 用来签名的基于 SHA256 的一次性杂凑签名公钥
+     var OutSignature: TCnOTSSHA256Signature              - 输出的签名值
+     var OutVerifyKey: TCnOTSSHA256VerificationKey        - 输出的验证密钥
+
+   返回值：（无）
+}
 
 function CnOTSSHA256VerifyBytes(Data: TBytes; Signature: TCnOTSSHA256Signature;
   PublicKey: TCnOTSSHA256PublicKey; VerifyKey: TCnOTSSHA256VerificationKey): Boolean;
-{* 根据明文、公布的验证密钥与公钥验证字节数组的签名是否正确，返回验证是否成功}
+{* 根据明文、公布的验证密钥与公钥验证字节数组的 OTS 签名是否正确，返回验证是否成功
+   注意规范中 Signature 未参与验证，仅使用 VerifyKey 就行。
+
+   参数：
+     Data: TBytes                                         - 待验证的明文字节数组
+     Signature: TCnOTSSHA256Signature                     - 待验证的签名值
+     PublicKey: TCnOTSSHA256PublicKey                     - 用来验证的基于 SHA256 的一次性杂凑签名公钥
+     VerifyKey: TCnOTSSHA256VerificationKey               - 用来验证的验证密钥
+
+   返回值：Boolean                                        - 返回验证签名是否成功
+}
 
 // ========== Merkle 改进的 M-OTS，校验 0 的个数，结合 SM3 杂凑算法 ============
 
 function CnMOTSSM3GenerateKeys(var PrivateKey: TCnMOTSSM3PrivateKey;
   var PublicKey: TCnMOTSSM3PublicKey): Boolean;
-{* 生成一对基于 SM3 杂凑算法的 M-OTS 签名公私钥，返回生成是否成功}
+{* 生成一对基于 SM3 杂凑算法的 M-OTS 公私钥，返回生成是否成功
+
+   参数：
+     var PrivateKey: TCnMOTSSM3PrivateKey - 基于 SM3 杂凑算法的 M-OTS 私钥
+     var PublicKey: TCnMOTSSM3PublicKey   - 基于 SM3 杂凑算法的 M-OTS 公钥
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 procedure CnMOTSSM3SignData(Data: Pointer; DataByteLen: Integer;
   PrivateKey: TCnMOTSSM3PrivateKey; var OutSignature: TCnMOTSSM3Signature);
-{* 根据私钥生成指定内存块数据的一次性杂凑签名。
-  平时公布明文、签名值与公钥，有验证需求时，给验证方公布私钥}
+{* 根据私钥生成指定数据块的 M-OTS 一次性杂凑签名。
+   平时公布明文、签名值与公钥，有验证需求时，给验证方公布私钥。
+
+   参数：
+     Data: Pointer                                        - 待签名的明文数据块地址
+     DataByteLen: Integer                                 - 待签名的明文数据块字节长度
+     PrivateKey: TCnMOTSSM3PrivateKey                     - 用来签名的基于 SM3 的 M-OTS 私钥
+     var OutSignature: TCnMOTSSM3Signature                - 输出的签名值
+
+   返回值：（无）
+}
 
 function CnMOTSSM3VerifyData(Data: Pointer; DataByteLen: Integer;
   Signature: TCnMOTSSM3Signature; PublicKey: TCnMOTSSM3PublicKey): Boolean;
-{* 根据明文与公钥验证指定内存块数据的签名是否正确，返回验证是否成功}
+{* 根据明文与公钥验证指定数据块的 M-OTS 签名是否正确，返回验证是否成功。
+
+   参数：
+     Data: Pointer                        - 待验证的明文数据块地址
+     DataByteLen: Integer                 - 待验证的明文数据块字节长度
+     Signature: TCnMOTSSM3Signature       - 待验证的签名值
+     PublicKey: TCnMOTSSM3PublicKey       - 用来验证的基于 SM3 的 M-OTS 公钥
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 procedure CnMOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnMOTSSM3PrivateKey;
   var OutSignature: TCnMOTSSM3Signature);
-{* 根据私钥生成字节数组的一次性杂凑签名。
-  平时公布明文、签名值与公钥，有验证需求时，给验证方公布私钥}
+{* 根据私钥生成字节数组的 M-OTS 一次性杂凑签名。
+   平时公布明文、签名值与公钥，有验证需求时，给验证方公布私钥。
+
+   参数：
+     Data: TBytes                                         - 待签名的明文字节数组
+     PrivateKey: TCnMOTSSM3PrivateKey                     - 用来签名的基于 SM3 的 M-OTS 私钥
+     var OutSignature: TCnMOTSSM3Signature                - 输出的签名值
+
+   返回值：（无）
+}
 
 function CnMOTSSM3VerifyBytes(Data: TBytes; Signature: TCnMOTSSM3Signature;
   PublicKey: TCnMOTSSM3PublicKey): Boolean;
-{* 根据明文与公钥验证字节数组的签名是否正确，返回验证是否成功}
+{* 根据明文与公钥验证字节数组的 M-OTS 签名是否正确，返回验证是否成功。
+
+   参数：
+     Data: TBytes                         - 待验证的明文字节数组
+     Signature: TCnMOTSSM3Signature       - 待验证的签名值
+     PublicKey: TCnMOTSSM3PublicKey       - 用来验证的基于 SM3 的 M-OTS 公钥
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 // ========== Merkle 改进的 M-OTS，校验 0 的个数，结合 SHA256 杂凑算法 ============
 
 function CnMOTSSHA256GenerateKeys(var PrivateKey: TCnMOTSSHA256PrivateKey;
   var PublicKey: TCnMOTSSHA256PublicKey): Boolean;
-{* 生成一对基于 SHA256 杂凑算法的 M-OTS 签名公私钥，返回生成是否成功}
+{* 生成一对基于 SHA256 杂凑算法的 M-OTS 签名公私钥，返回生成是否成功。
+
+   参数：
+     var PrivateKey: TCnMOTSSHA256PrivateKey              - 基于 SHA256 杂凑算法的 M-OTS 私钥
+     var PublicKey: TCnMOTSSHA256PublicKey                - 基于 SHA256 杂凑算法的 M-OTS 公钥
+
+   返回值：Boolean                                        - 返回生成是否成功
+}
 
 procedure CnMOTSSHA256SignData(Data: Pointer; DataByteLen: Integer;
   PrivateKey: TCnMOTSSHA256PrivateKey; var OutSignature: TCnMOTSSHA256Signature);
-{* 根据私钥生成指定内存块数据的一次性杂凑签名。
-  平时公布明文、签名值与公钥，有验证需求时，给验证方公布私钥}
+{* 根据私钥生成指定数据块的 M-OTS 一次性杂凑签名。
+   平时公布明文、签名值与公钥，有验证需求时，给验证方公布私钥。
+
+   参数：
+     Data: Pointer                                        - 待签名的明文数据块地址
+     DataByteLen: Integer                                 - 待签名的明文数据块字节长度
+     PrivateKey: TCnMOTSSHA256PrivateKey                  - 用来签名的基于 SHA256 杂凑算法的 M-OTS 私钥
+     var OutSignature: TCnMOTSSHA256Signature             - 输出的签名值
+
+   返回值：（无）
+}
 
 function CnMOTSSHA256VerifyData(Data: Pointer; DataByteLen: Integer;
   Signature: TCnMOTSSHA256Signature; PublicKey: TCnMOTSSHA256PublicKey): Boolean;
-{* 根据明文与公钥验证指定内存块数据的签名是否正确，返回验证是否成功}
+{* 根据明文与公钥验证指定数据块的 M-OTS 签名是否正确，返回验证是否成功
+
+   参数：
+     Data: Pointer                        - 待验证的明文数据块地址
+     DataByteLen: Integer                 - 待验证的明文数据块字节长度
+     Signature: TCnMOTSSHA256Signature    - 待验证的签名值
+     PublicKey: TCnMOTSSHA256PublicKey    - 用来验证的基于 SHA256 杂凑算法的 M-OTS 公钥
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 procedure CnMOTSSHA256SignBytes(Data: TBytes; PrivateKey: TCnMOTSSHA256PrivateKey;
   var OutSignature: TCnMOTSSHA256Signature);
-{* 根据私钥生成字节数组的一次性杂凑签名。
-  平时公布明文、签名值与公钥，有验证需求时，给验证方公布私钥}
+{* 根据私钥生成字节数组的 M-OTS 一次性杂凑签名。
+   平时公布明文、签名值与公钥，有验证需求时，给验证方公布私钥。
+
+   参数：
+     Data: TBytes                                         - 待签名的明文字节数组
+     PrivateKey: TCnMOTSSHA256PrivateKey                  - 用来签名的基于 SHA256 杂凑算法的 M-OTS 私钥
+     var OutSignature: TCnMOTSSHA256Signature             - 输出的签名值
+
+   返回值：（无）
+}
 
 function CnMOTSSHA256VerifyBytes(Data: TBytes; Signature: TCnMOTSSHA256Signature;
   PublicKey: TCnMOTSSHA256PublicKey): Boolean;
-{* 根据明文与公钥验证字节数组的签名是否正确，返回验证是否成功}
+{* 根据明文与公钥验证字节数组的 M-OTS 签名是否正确，返回验证是否成功。
+
+   参数：
+     Data: TBytes                         - 待验证的明文字节数组
+     Signature: TCnMOTSSHA256Signature    - 待验证的签名值
+     PublicKey: TCnMOTSSHA256PublicKey    - 用来验证的基于 SHA256 杂凑算法的 M-OTS 公钥
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 // ===== Winternitz 改进的 W-OTS，取 n = 8 也即 1 字节，结合 SM3 杂凑算法 ======
 
 function CnWOTSSM3GenerateKeys(var PrivateKey: TCnWOTSSM3PrivateKey;
   var PublicKey: TCnWOTSSM3PublicKey): Boolean;
-{* 生成一对基于 SM3 杂凑算法的 W-OTS 一次性杂凑签名公私钥，返回生成是否成功}
+{* 生成一对基于 SM3 杂凑算法的 W-OTS 一次性杂凑签名公私钥，返回生成是否成功。
+
+   参数：
+     var PrivateKey: TCnWOTSSM3PrivateKey - 基于 SM3 杂凑算法的 W-OTS 私钥
+     var PublicKey: TCnWOTSSM3PublicKey   - 基于 SM3 杂凑算法的 W-OTS 公钥
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 procedure CnWOTSSM3SignData(Data: Pointer; DataByteLen: Integer;
   PrivateKey: TCnWOTSSM3PrivateKey; var OutSignature: TCnWOTSSM3Signature);
-{* 根据私钥生成指定内存块数据的一次性杂凑签名及验证这个签名的密钥。
-  平时公布明文、签名值，有验证需求时，给验证方公布公钥}
+{* 根据私钥生成指定数据块的 W-OTS 一次性杂凑签名及验证这个签名的密钥。
+   平时公布明文、签名值，有验证需求时，给验证方公布公钥。
+
+   参数：
+     Data: Pointer                                        - 待签名的明文数据块地址
+     DataByteLen: Integer                                 - 待签名的明文数据块字节长度
+     PrivateKey: TCnWOTSSM3PrivateKey                     - 用来签名的基于 SM3 杂凑算法的 W-OTS 私钥
+     var OutSignature: TCnWOTSSM3Signature                - 输出的签名值
+
+   返回值：（无）
+}
 
 function CnWOTSSM3VerifyData(Data: Pointer; DataByteLen: Integer;
   Signature: TCnWOTSSM3Signature; PublicKey: TCnWOTSSM3PublicKey): Boolean;
-{* 根据明文、公布的公钥验证指定内存块数据的签名是否正确，返回验证是否成功}
+{* 根据明文、公布的公钥验证指定数据块的 W-OTS 签名是否正确，返回验证是否成功。
+
+   参数：
+     Data: Pointer                        - 待验证的明文数据块地址
+     DataByteLen: Integer                 - 待验证的明文数据块字节长度
+     Signature: TCnWOTSSM3Signature       - 待验证的签名值
+     PublicKey: TCnWOTSSM3PublicKey       - 用来验证的基于 SM3 杂凑算法的 W-OTS 公钥
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 procedure CnWOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnWOTSSM3PrivateKey;
   var OutSignature: TCnWOTSSM3Signature);
-{* 根据私钥生成字节数组的一次性杂凑签名及验证这个签名的密钥。
-  平时公布明文、签名值，有验证需求时，给验证方公布公钥}
+{* 根据私钥生成字节数组的 W-OTS 一次性杂凑签名及验证这个签名的密钥。
+   平时公布明文、签名值，有验证需求时，给验证方公布公钥。
+
+   参数：
+     Data: TBytes                                         - 待签名的明文字节数组
+     PrivateKey: TCnWOTSSM3PrivateKey                     - 用来签名的基于 SM3 杂凑算法的 W-OTS 私钥
+     var OutSignature: TCnWOTSSM3Signature                - 输出的签名值
+
+   返回值：（无）
+}
 
 function CnWOTSSM3VerifyBytes(Data: TBytes; Signature: TCnWOTSSM3Signature;
   PublicKey: TCnWOTSSM3PublicKey): Boolean;
-{* 根据明文、公布的公钥验证指定内存块数据的签名是否正确，返回验证是否成功}
+{* 根据明文、公布的公钥验证指定数据块的 W-OTS 签名是否正确，返回验证是否成功。
+
+   参数：
+     Data: TBytes                         - 待验证的明文字节数组
+     Signature: TCnWOTSSM3Signature       - 待验证的签名值
+     PublicKey: TCnWOTSSM3PublicKey       - 用来验证的基于 SM3 杂凑算法的 W-OTS 公钥
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 // ==== Winternitz 改进的 W-OTS，取 n = 8 也即 1 字节，结合 SHA256 杂凑算法 ====
 
 function CnWOTSSHA256GenerateKeys(var PrivateKey: TCnWOTSSHA256PrivateKey;
   var PublicKey: TCnWOTSSHA256PublicKey): Boolean;
-{* 生成一对基于 SHA256 杂凑算法的 W-OTS 一次性杂凑签名公私钥，返回生成是否成功}
+{* 生成一对基于 SHA256 杂凑算法的 W-OTS 一次性杂凑签名公私钥，返回生成是否成功。
+
+   参数：
+     var PrivateKey: TCnWOTSSHA256PrivateKey              - 基于 SHA256 杂凑算法的 W-OTS 私钥
+     var PublicKey: TCnWOTSSHA256PublicKey                - 基于 SHA256 杂凑算法的 W-OTS 公钥
+
+   返回值：Boolean                                        - 返回生成是否成功
+}
 
 procedure CnWOTSSHA256SignData(Data: Pointer; DataByteLen: Integer;
   PrivateKey: TCnWOTSSHA256PrivateKey; var OutSignature: TCnWOTSSHA256Signature);
-{* 根据私钥生成指定内存块数据的一次性杂凑签名及验证这个签名的密钥。
-  平时公布明文、签名值，有验证需求时，给验证方公布公钥}
+{* 根据私钥生成指定数据块的 W-OTS 一次性杂凑签名及验证这个签名的密钥。
+   平时公布明文、签名值，有验证需求时，给验证方公布公钥。
+
+   参数：
+     Data: Pointer                                        - 待签名的明文数据块地址
+     DataByteLen: Integer                                 - 待签名的明文数据块字节长度
+     PrivateKey: TCnWOTSSHA256PrivateKey                  - 用来签名的基于 SHA256 杂凑算法的 W-OTS 私钥
+     var OutSignature: TCnWOTSSHA256Signature             - 输出的签名值
+
+   返回值：（无）
+}
 
 function CnWOTSSHA256VerifyData(Data: Pointer; DataByteLen: Integer;
   Signature: TCnWOTSSHA256Signature; PublicKey: TCnWOTSSHA256PublicKey): Boolean;
-{* 根据明文、公布的公钥验证指定内存块数据的签名是否正确，返回验证是否成功}
+{* 根据明文、公布的公钥验证指定数据块的 W-OTS 签名是否正确，返回验证是否成功。
+
+   参数：
+     Data: Pointer                        - 待验证的明文数据块地址
+     DataByteLen: Integer                 - 待验证的明文数据块字节长度
+     Signature: TCnWOTSSHA256Signature    - 用来验证的基于 SHA256 杂凑算法的 W-OTS 公钥
+     PublicKey: TCnWOTSSHA256PublicKey    - 待验证的签名值
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 procedure CnWOTSSHA256SignBytes(Data: TBytes; PrivateKey: TCnWOTSSHA256PrivateKey;
   var OutSignature: TCnWOTSSHA256Signature);
-{* 根据私钥生成字节数组的一次性杂凑签名及验证这个签名的密钥。
-  平时公布明文、签名值，有验证需求时，给验证方公布公钥}
+{* 根据私钥生成字节数组的 W-OTS 一次性杂凑签名及验证这个签名的密钥。
+   平时公布明文、签名值，有验证需求时，给验证方公布公钥。
+
+   参数：
+     Data: TBytes                                         - 待签名的明文字节数组
+     PrivateKey: TCnWOTSSHA256PrivateKey                  - 用来签名的基于 SHA256 杂凑算法的 W-OTS 私钥
+     var OutSignature: TCnWOTSSHA256Signature             - 输出的签名值
+
+   返回值：（无）
+}
 
 function CnWOTSSHA256VerifyBytes(Data: TBytes; Signature: TCnWOTSSHA256Signature;
   PublicKey: TCnWOTSSHA256PublicKey): Boolean;
-{* 根据明文、公布的公钥验证指定内存块数据的签名是否正确，返回验证是否成功}
+{* 根据明文、公布的公钥验证指定数据块的 W-OTS 签名是否正确，返回验证是否成功。
+
+   参数：
+     Data: TBytes                         - 待验证的明文字节数组
+     Signature: TCnWOTSSHA256Signature    - 待验证的签名值
+     PublicKey: TCnWOTSSHA256PublicKey    - 用来验证的基于 SHA256 杂凑算法的 W-OTS 公钥
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 implementation
 
