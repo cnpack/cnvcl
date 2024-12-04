@@ -25,7 +25,7 @@ unit CnWideStrings;
 * 单元名称：WideStrings 单元，支持 Win32/64 和 Posix
 * 单元作者：CnPack 开发组
 * 备    注：该单元实现了简化的 TCnWideStringList 类与部分 Unicode 字符处理函数，
-*           以及扩展的 UTF8 到 UTF16 的编解码函数，支持 UTF16 中的四字节字符与 UTF8-MB4
+*           以及扩展的 UTF-8 到 UTF-16 的编解码函数，支持 UTF-16 中的四字节字符与 UTF8-MB4
 *
 *           另外，本单元在处理 Ansi 字符串和 Utf16 宽字符串互转时，涉及
 *           一个宽字符的字节数量、所占光标列宽、所占显示宽度倍数三个概念
@@ -45,7 +45,7 @@ unit CnWideStrings;
 *           2022.11.25 V1.2
 *               从 CnGB18030 中搬移过来部分 Unicode 处理函数
 *           2022.11.10 V1.1
-*               UTF8 编码解码支持 UTF8-MB4 与 UTF16 中的四字节字符
+*               UTF-8 编码解码支持 UTF8-MB4 与 UTF-16 中的四字节字符
 *           2010.01.16 by ZhouJingyu
 *               初始化提交
 ================================================================================
@@ -150,78 +150,193 @@ type
     property Values[const Name: WideString]: WideString read GetValue write SetValue;
     property Strings[Index: Integer]: WideString read Get write Put; default;
     property Text: WideString read GetTextStr write SetTextStr;
+
     property UseSingleLF: Boolean read FUseSingleLF write FUseSingleLF;
-    {* 增加的属性，控制 GetTextStr 时使用的换行是否是单个 #10 而不是常规的 #13#10}
+    {* 控制 GetTextStr 时使用的换行是否是单个 #10 而不是常规的 #13#10}
   end;
 
   TCnWideCharDisplayWideLengthCalculator = function(AWChar: WideChar): Boolean;
+  {* 针对宽字符的显示宽度计算回调函数类型，不同的 Delphi IDE 编辑器中需要不同的实现}
 
 function CnUtf8EncodeWideString(const S: WideString): AnsiString;
-{* 对 WideString 进行 Utf8 编码得到 AnsiString，不做 Ansi 转换避免丢字符
-  支持四字节 UTF16 字符与 UTF8-MB4}
+{* 对 WideString 进行 UTF-8 编码得到 AnsiString，不做 Ansi 转换避免丢字符，
+   支持四字节 UTF-16 字符与 UTF8-MB4。
+
+   参数：
+     const S: WideString                  - 待转换的宽字符串
+
+   返回值：AnsiString                     - 返回 UTF-8 字符串
+}
 
 function CnUtf8DecodeToWideString(const S: AnsiString): WideString;
-{* 对 AnsiString 的 Utf8 解码得到 WideString，不做 Ansi 转换避免丢字符
-  支持四字节 UTF16 字符与 UTF8-MB4}
+{* 对 AnsiString 的 UTF-8 解码得到 WideString，不做 Ansi 转换避免丢字符，
+   支持四字节 UTF-16 字符与 UTF8-MB4。
+
+   参数：
+     const S: AnsiString                  - 待转换的 UTF-8 字符串
+
+   返回值：WideString                     - 返回的宽字符串
+}
 
 function GetUtf16HighByte(Rec: PCn2CharRec): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 得到一个 UTF 16 双字节字符的高位字节值}
+{* 得到一个 UTF-16 双字节字符的高位字节值。
+
+   参数：
+     Rec: PCn2CharRec                     - 待获取的双字节字符结构指针
+
+   返回值：Byte                           - 返回高位字节值
+}
 
 function GetUtf16LowByte(Rec: PCn2CharRec): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 得到一个 UTF 16 双字节字符的低位字节值}
+{* 得到一个 UTF-16 双字节字符的低位字节值。
+
+   参数：
+     Rec: PCn2CharRec                     - 待获取的双字节字符结构指针
+
+   返回值：Byte                           - 返回低位字节值
+}
 
 procedure SetUtf16HighByte(B: Byte; Rec: PCn2CharRec); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 设置一个 UTF 16 双字节字符的高位字节值}
+{* 设置一个 UTF-16 双字节字符的高位字节值。
+
+   参数：
+     B: Byte                              - 待设置的高位字节值
+     Rec: PCn2CharRec                     - 待设置的双字节字符结构指针
+
+   返回值：（无）
+}
 
 procedure SetUtf16LowByte(B: Byte; Rec: PCn2CharRec); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 设置一个 UTF 16 双字节字符的低位字节值}
+{* 设置一个 UTF-16 双字节字符的低位字节值
+
+   参数：
+     B: Byte                              - 待设置的低位字节值
+     Rec: PCn2CharRec                     - 待设置的双字节字符结构指针
+
+   返回值：（无）
+}
 
 function GetCharLengthFromUtf8(Utf8Str: PAnsiChar): Integer;
-{* 计算一 UTF8（可能是 UTF8-MB4）字符串的字符数}
+{* 计算一 UTF-8（可能是 UTF8-MB4）字符串的字符数。
+
+   参数：
+     Utf8Str: PAnsiChar                   - 待计算的 UTF-8 字符串地址
+
+   返回值：Integer                        - 返回该字符串的字符数
+}
 
 function GetCharLengthFromUtf16(Utf16Str: PWideChar): Integer;
-{* 计算一 UTF16（可能混合 Unicode 扩展平面里的四字节字符）字符串的字符数}
+{* 计算一 UTF-16（可能混合 Unicode 扩展平面里的四字节字符）字符串的字符数。
+
+   参数：
+     Utf16Str: PWideChar                  - 待计算的 UTF-16 字符串地址
+
+   返回值：Integer                        - 返回该字符串的字符数
+}
 
 function GetByteWidthFromUtf8(Utf8Str: PAnsiChar): Integer;
-{* 计算一 UTF8（可能是 UTF8-MB4）字符串的当前字符占多少字节}
+{* 计算一 UTF-8（可能是 UTF8-MB4）字符串的当前字符占多少字节。
+
+   参数：
+     Utf8Str: PAnsiChar                   - 待计算的 UTF-8 字符串地址
+
+   返回值：Integer                        - 返回该字符串的字节数
+}
 
 function GetByteWidthFromUtf16(Utf16Str: PWideChar): Integer;
-{* 计算一 UTF16（可能混合 Unicode 扩展平面里的四字节字符）字符串的当前字符占多少字节}
+{* 计算一 UTF-16（可能混合 Unicode 扩展平面里的四字节字符）字符串的当前字符占多少字节。
+
+   参数：
+     Utf16Str: PWideChar                  - 待计算的 UTF-16 字符串地址
+
+   返回值：Integer                        - 返回该字符串的字节数
+}
 
 function GetCodePointFromUtf16Char(Utf16Str: PWideChar): TCnCodePoint;
-{* 计算一个 Utf16 字符的编码值（也叫代码位置），注意 Utf16Str 可能指向一个双字节字符，也可能指向一个四字节字符}
+{* 计算一个 UTF-16 字符的编码值（也叫代码位置），注意 Utf16Str 可能指向一个双字节字符，也可能指向一个四字节字符
+
+   参数：
+     Utf16Str: PWideChar                  - 待计算的 UTF-16 字符地址
+
+   返回值：TCnCodePoint                   - 返回该字符的编码值
+}
 
 function GetCodePointFromUtf164Char(PtrTo4Char: Pointer): TCnCodePoint;
-{* 计算一个四字节 Utf16 字符的编码值（也叫代码位置）}
+{* 计算一个四字节 UTF-16 字符的编码值（也叫代码位置）。
+
+   参数：
+     PtrTo4Char: Pointer                  - 待计算的四字节 UTF-16 字符地址
+
+   返回值：TCnCodePoint                   - 返回该字符的编码值
+}
 
 function GetUtf16CharFromCodePoint(CP: TCnCodePoint; PtrToChars: Pointer): Integer;
 {* 计算一个 Unicode 编码值的二字节或四字节表示，如果 PtrToChars 指向的位置不为空，
-  则将结果放在 PtrToChars 所指的二字节或四字节区域，如果码点非法，则返回 1 并设 PtrToChars 为 #0#0
-  调用者在 CP 超过 $FFFF 时须保证 PtrToChars 所指的区域至少四字节，反之二字节即可
-  返回 1 或 2，分别表示处理的是二字节或四字节}
+   则将结果放在 PtrToChars 所指的二字节或四字节区域，如果码点非法，则返回 1 并设 PtrToChars 为 #0#0。
+   调用者在 CP 超过 $FFFF 时须保证 PtrToChars 所指的区域至少四字节，反之二字节即可。
+   返回 1 或 2，分别表示处理的是二字节或四字节。
+
+   参数：
+     CP: TCnCodePoint                     - 待计算的 Unicode 编码值
+     PtrToChars: Pointer                  - 如果非 nil，则放置转换后的结果
+
+   返回值：Integer                        - 返回 1 代表该字符占二字节，返回 2 代表四字节
+}
 
 // =============================================================================
 //
-// 以下函数涉及宽字符串与 UTF8 转换时的计算，逻辑比较固定
+// 以下函数涉及宽字符串与 UTF-8 转换时的计算，逻辑比较固定
 //
 // =============================================================================
 
 function CalcUtf8LengthFromWideString(Text: PWideChar): Integer;
-{* 计算宽字符串的 Utf8 长度，等于 Utf8Encode 后取 Length，但不实际转换}
+{* 计算宽字符串的 UTF-8 长度，等于 Utf8Encode 后取 Length，但不进行实际转换。
+
+   参数：
+     Text: PWideChar                      - 待计算的宽字符串地址
+
+   返回值：Integer                        - 返回 UTF-8 字节长度
+}
 
 function CalcUtf8LengthFromWideChar(AChar: WideChar): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 计算一个 WideChar 转换成 Utf8 后的字符长度}
+{* 计算一个 WideChar 转换成 UTF-8 后的字符长度。
+
+   参数：
+     AChar: WideChar                      - 待计算的宽字符
+
+   返回值：Integer                        - 返回 UTF-8 字节长度
+}
 
 function CalcUtf8LengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
-{* 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Utf8 长度，WideOffset 从 1 开始。如果 WideOffset 是 0 则返回 0
-   等于 Copy(1, WideOffset) 后的子串转 Utf8 取 Length，但不用实际转 Utf8，以节省开销。}
+{* 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 UTF-8 长度，WideOffset 从 1 开始。如果 WideOffset 是 0 则返回 0。
+   等于 Copy(1, WideOffset) 后的子串转 UTF-8 取 Length，但不进行实际转换。
+
+   参数：
+     Text: PWideChar                      - 待计算的宽字符串地址
+     WideOffset: Integer                  - 以宽字符为单位的偏移量
+
+   返回值：Integer                        - 返回该宽字符串从 1 到 WideOffset 的子串的 UTF-8 长度
+}
 
 function CalcUtf8LengthFromUtf8HeadChar(AChar: AnsiChar): Integer;
-{* 计算一个 Utf8 前导字符所代表的字符长度}
+{* 计算一个 UTF-8 前导字符所代表的字符长度。
+
+   参数：
+     AChar: AnsiChar                      - 待计算的 UTF-8 字符
+
+   返回值：Integer                        - 返回字符长度
+}
 
 function CalcUtf8StringLengthFromWideOffset(Utf8Text: PAnsiChar; WideOffset: Integer): Integer;
-{* 计算 Utf8 字符串转换成 WideSting 后指定 Wide 子串长度对应的 Utf8 字符串长度，WideOffset 从 1 开始。
-   等于转 WideString 后 Copy(1, WideOffset) 再转回 Utf8 再取 Length，但不用 Utf8/WideString 互转，以避免额外的编码问题}
+{* 计算 UTF-8 字符串转换成 WideSting 后指定 Wide 子串长度对应的 UTF-8 字符串长度，WideOffset 从 1 开始。
+   等于转 WideString 后 Copy(1, WideOffset) 再转回 UTF-8 再取 Length，但不用 UTF-8/WideString 互转，以避免额外的编码问题。
+
+   参数：
+     Utf8Text: PAnsiChar                  - 待计算的 UTF-8 字符串地址
+     WideOffset: Integer                  - 以宽字符为单位的偏移量
+
+   返回值：Integer                        - 返回该 UTF-8 字符串转换成 WideSting 后指定从 1 到 WideOffset 子串所对应的 UTF-8 字符串长度
+}
 
 // =============================================================================
 //
@@ -230,35 +345,78 @@ function CalcUtf8StringLengthFromWideOffset(Utf8Text: PAnsiChar; WideOffset: Int
 // =============================================================================
 
 function WideCharIsWideLength(const AWChar: WideChar): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-{* 粗略判断一个 Unicode 宽字符是否占两个字符宽度，默认的简陋实现，与 IDE 版本及行为无关}
+{* 粗略判断一个 Unicode 宽字符是否占两个字符宽度，默认的简陋实现，与 IDE 版本及行为无关。
+   是以下函数中的 TCnWideCharDisplayWideLengthCalculator 参数的默认实现。
+
+   参数：
+     const AWChar: WideChar               - 待判断的宽字符
+
+   返回值：Boolean                        - 返回是否占两个字符宽度
+}
 
 function CalcAnsiByteLengthFromWideString(Text: PWideChar): Integer;
-{* 计算 Unicode 宽字符串的 Ansi 字节长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符
-   大于 $FF 的 UTF16 字符当作 2 字节，否则为 1 字节。}
+{* 计算 Unicode 宽字符串的 Ansi 字节长度，等于转 Ansi 后的 Length，但不用转 Ansi，以防止纯英文平台下丢字符。
+   大于 $FF 的 UTF-16 字符当作 2 字节，否则为 1 字节。
+
+   参数：
+     Text: PWideChar                      - 待计算的宽字符串地址
+
+   返回值：Integer                        - 返回转换后的 Ansi 字符串长度
+}
 
 function CalcAnsiDisplayLengthFromWideString(Text: PWideChar;
   Calculator: TCnWideCharDisplayWideLengthCalculator = nil): Integer;
-{* 计算 Unicode 宽字符串的 Ansi 显示长度，等于转 Ansi 后的显示 Length，但不用转 Ansi，以防止纯英文平台下丢字符
-   以传入的 Calculator 来计算显示的字符宽度，不传时采用默认判断。}
+{* 计算 Unicode 宽字符串的 Ansi 显示长度，等于转 Ansi 后的显示 Length，但不用转 Ansi，以防止纯英文平台下丢字符。
+   以传入的 Calculator 来计算显示的字符宽度，不传时采用默认判断。
+
+   参数：
+     Text: PWideChar                                      - 待计算的宽字符串地址
+     Calculator: TCnWideCharDisplayWideLengthCalculator   - 针对宽字符的显示宽度计算回调函数，不同的 Delphi IDE 编辑器中有不同的特殊规则
+
+   返回值：Integer                                        - 返回转换后的 Ansi 字符串显示长度
+}
 
 function CalcAnsiByteLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
 {* 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Ansi 字节长度，WideOffset 从 1 开始。
-   等于 Copy(1, WideOffset) 后的子串转 Ansi 字节取 Length，但不用实际转 Ansi，以防止纯英文平台下丢字符
-   大于 $FF 的 UTF16 字符当作 2 字节，否则为 1 字节。}
+   等于 Copy(1, WideOffset) 后的子串转 Ansi 字节取 Length，但不用实际转 Ansi，以防止纯英文平台下丢字符。
+   大于 $FF 的 UTF-16 字符当作 2 字节，否则为 1 字节。
+
+   参数：
+     Text: PWideChar                      - 待计算的宽字符串地址
+     WideOffset: Integer                  - 以宽字符为单位的偏移量
+
+   返回值：Integer                        - 返回该宽字符串从 1 到 WideOffset 子串的 Ansi 字节长度
+}
 
 function CalcAnsiDisplayLengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer;
   Calculator: TCnWideCharDisplayWideLengthCalculator = nil): Integer;
 {* 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Ansi 显示长度，WideOffset 从 1 开始。
    等于 Copy(1, WideOffset) 后的子串转 Ansi 取 Length，但不用实际转 Ansi，以防止纯英文平台下丢字符
-   以传入的 Calculator 来计算显示的字符宽度，不传时采用默认判断。}
+   以传入的 Calculator 来计算显示的字符宽度，不传时采用默认判断。
+
+   参数：
+     Text: PWideChar                                      - 待计算的宽字符串地址
+     WideOffset: Integer                                  - 针对字符的宽度计算回调，不同的 Delphi IDE 编辑器中有不同的特殊规则
+     Calculator: TCnWideCharDisplayWideLengthCalculator   - 针对宽字符的显示宽度计算回调函数，不同的 Delphi IDE 编辑器中有不同的特殊规则
+
+   返回值：Integer                                        - 返回该宽字符串从 1 到 WideOffset 子串的 Ansi 显示长度
+}
 
 function CalcWideStringByteLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
   AllowExceedEnd: Boolean = False): Integer;
 {* 计算 Unicode 宽字符串指定 Ansi 子串长度对应的 Unicode 子串的字节长度，AnsiOffset 从 1 开始。
    等于内容转 Ansi 后的 Copy(1, AnsiOffset) 再转换回 Unicode 再取 Length，但不用 Ansi/Unicode 互转，以防止纯英文平台下丢字符
    注意 Ansi 后的 Copy 可能会割裂双字节字符。
-   AllowExceedEnd 为 False 时，计算到 #0 便会终止，不包括 #0。为 True 时，以补空格方式计算
-   大于 $FF 的 UTF16 字符当作 2 字节，否则为 1 字节。}
+   AllowExceedEnd 为 False 时，计算到 #0 便会终止，不包括 #0。为 True 时，以补空格方式计算。
+   大于 $FF 的 UTF-16 字符当作 2 字节，否则为 1 字节。
+
+   参数：
+     Text: PWideChar                      - 待计算的宽字符串地址
+     AnsiOffset: Integer                  - 以单字节字符为单位的偏移量
+     AllowExceedEnd: Boolean              - 是否遇到 #0 时终止
+
+   返回值：Integer                        - 返回该宽字符串转换为 Ansi 后从 1 到 AnsiOffset 子串长度对应的 Unicode 字符串的字节长度
+}
 
 function CalcWideStringDisplayLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: Integer;
   AllowExceedEnd: Boolean = False; Calculator: TCnWideCharDisplayWideLengthCalculator = nil): Integer;
@@ -266,25 +424,78 @@ function CalcWideStringDisplayLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: 
    等于显示转 Ansi 后的 Copy(1, AnsiOffset) 再转换回 Unicode 再取 Length，但不用 Ansi/Unicode 互转，以防止纯英文平台下丢字符
    注意 Ansi 后的 Copy 可能会割裂双字节字符。
    AllowExceedEnd 为 False 时，计算到 #0 便会终止，不包括 #0。为 True 时，以补空格方式计算
-   以传入的 Calculator 来计算显示的字符宽度，不传时采用默认判断。}
+   以传入的 Calculator 来计算显示的字符宽度，不传时采用默认判断。
+
+   参数：
+     Text: PWideChar                                      - 待计算的宽字符串地址
+     AnsiOffset: Integer                                  - 以单字节字符为单位的偏移量
+     AllowExceedEnd: Boolean                              - 是否遇到 #0 时终止
+     Calculator: TCnWideCharDisplayWideLengthCalculator   - 针对宽字符的显示宽度计算回调函数，不同的 Delphi IDE 编辑器中有不同的特殊规则
+
+   返回值：Integer                                        - 返回该宽字符串转换为 Ansi 后从 1 到 AnsiOffset 子串长度对应的 Unicode 字符串的显示长度
+}
 
 function ConvertUtf16ToAlterDisplayAnsi(WideText: PWideChar; AlterChar: AnsiChar = ' ';
   Calculator: TCnWideCharDisplayWideLengthCalculator = nil): AnsiString;
 {* 手动将宽字符串转换成显示用的 Ansi，把其中的宽字符按 Calculator 的判断替换成一个或两个 AlterChar，
-  不传时采用默认判断。用于纯英文环境下的字符显示宽度计算，但不支持四字节字符}
+   不传时采用默认判断。用于纯英文环境下的字符显示宽度计算，但不支持四字节字符。
+
+   参数：
+     WideText: PWideChar                                  - 待转换的宽字符串地址
+     AlterChar: AnsiChar                                  - 替换字符
+     Calculator: TCnWideCharDisplayWideLengthCalculator   - 针对宽字符的显示宽度计算回调函数，不同的 Delphi IDE 编辑器中有不同的特殊规则
+
+   返回值：AnsiString                                     - 返回转换后的字符串
+}
 
 function ConvertUtf8ToAlterDisplayAnsi(Utf8Text: PAnsiChar; AlterChar: AnsiChar = ' ';
   Calculator: TCnWideCharDisplayWideLengthCalculator = nil): AnsiString;
-{* 手动将 Utf8 字符串转换成显示用的 Ansi，把其中的宽字符按 Calculator 的判断替换成一个或两个 AlterChar，
-  不传时采用默认判断。用于纯英文环境下的字符显示宽度计算，但不支持四字节字符}
+{* 手动将 UTF-8 字符串转换成显示用的 Ansi，把其中的宽字符按 Calculator 的判断替换成一个或两个 AlterChar，
+   不传时采用默认判断。用于纯英文环境下的字符显示宽度计算，但不支持四字节字符。
+
+   参数：
+     Utf8Text: PAnsiChar                                  - 待转换的 UTF-8 字符串地址
+     AlterChar: AnsiChar                                  - 替换字符
+     Calculator: TCnWideCharDisplayWideLengthCalculator   - 针对宽字符的显示宽度计算回调函数，不同的 Delphi IDE 编辑器中有不同的特殊规则
+
+   返回值：AnsiString                                     - 返回转换后的字符串
+}
 
 function CnUtf8ToAnsi(const Text: AnsiString): AnsiString;
+{* Ansi 版的转换 UTF-8 到 Ansi 字符串，以解决 Unicode 版本下 Utf8ToAnsi 是 UnicodeString 的问题。
+
+   参数：
+     const Text: AnsiString               - 待转换的 UTF-8 字符串
+
+   返回值：AnsiString                     - 返回转换后的字符串
+}
+
 function CnUtf8ToAnsi2(const Text: string): string;
-{* Ansi 版的转换 Utf8 到 Ansi 字符串及 string，以解决 Unicode 版本下 Utf8ToAnsi 是 UnicodeString 的问题 }
+{* Ansi 版的转换 UTF-8 到 string，以解决 Unicode 版本下 Utf8ToAnsi 是 UnicodeString 的问题。
+
+   参数：
+     const Text: string                   - 待转换的 UTF-8 字符串
+
+   返回值：string                         - 返回转换后的字符串
+}
 
 function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
+{* Ansi 版的转换 Ansi 字符串到 UTF-8 字符串，以解决 Unicode 版本下 AnsiToUtf8 是 UnicodeString 的问题。
+
+   参数：
+     const Text: AnsiString               - 待转换的 Ansi 字符串
+
+   返回值：AnsiString                     - 返回转换后的 UTF-8 字符串
+}
+
 function CnAnsiToUtf82(const Text: string): string;
-{* Ansi 版的转换 Ansi 到 Utf8 字符串，以解决 Unicode 版本下 AnsiToUtf8 是 UnicodeString 的问题 }
+{* Ansi 版的转换 Ansi 字符串到 UTF-8 字符串，以解决 Unicode 版本下 AnsiToUtf8 是 UnicodeString 的问题。
+
+   参数：
+     const Text: string                   - 待转换的 Ansi 字符串
+
+   返回值：string                         - 返回转换后的 UTF-8 字符串
+}
 
 implementation
 
@@ -690,7 +901,7 @@ begin
   CustomSort(StringListCompareStrings);
 end;
 
-// D5 下没有内置 UTF8/Ansi 转换函数，且低版本即使有也不支持 UTF8-MB4，因此写个替代品
+// D5 下没有内置 UTF-8/Ansi 转换函数，且低版本即使有也不支持 UTF8-MB4，因此写个替代品
 // 为调用者简明起见，SourceChars 传双字节宽字符个数即可
 function InternalUnicodeToUtf8(Dest: PAnsiChar; MaxDestBytes: Cardinal;
   Source: PWideChar; SourceChars: Cardinal): Cardinal;
@@ -820,7 +1031,7 @@ begin
         if I >= SourceBytes then                // 不完整
           Exit;
 
-        if (WC and $F0) = $F0 then              // 四字节（未限定第四位必须是 0），单独处理，再步进三个字符，拼成字符值，再算成四字节的 UTF16 编码
+        if (WC and $F0) = $F0 then              // 四字节（未限定第四位必须是 0），单独处理，再步进三个字符，拼成字符值，再算成四字节的 UTF-16 编码
         begin
           if SourceBytes - I < 3 then           // 不够四字节则出错退出
             Exit;
@@ -829,7 +1040,7 @@ begin
           WC := ((WC and $7) shl 18) + ((Cardinal(Source[I]) and $3F) shl 12)
             + ((Cardinal(Source[I + 1]) and $3F) shl 6) + (Cardinal(Source[I + 2]) and $3F);
 
-          // 根据码点生成 UTF16 字符，并步进 Cnt
+          // 根据码点生成 UTF-16 字符，并步进 Cnt
           K := GetUtf16CharFromCodePoint(WC, @(Dest[Cnt]));
           if K = 2 then // 生成了四字节字符，先步进一个 WideChar，下一个放 if 后步进
             Inc(Cnt);
@@ -887,7 +1098,7 @@ begin
             if I >= SourceBytes then
               Exit;                             // incomplete multibyte char
 
-            Inc(Cnt);                           // 四字节的 UTF8，应对应 UTF16 中的两个 WideChar，这里额外加一
+            Inc(Cnt);                           // 四字节的 UTF8，应对应 UTF-16 中的两个 WideChar，这里额外加一
           end;
 
           C := Byte(Source[I]);                 // 读四个中的第三个字节，或三个中的第二个字节
@@ -910,7 +1121,7 @@ begin
   Result := Cnt + 1;
 end;
 
-// 对 WideString 进行 Utf8 编码得到 AnsiString，不做 Ansi 转换避免丢字符
+// 对 WideString 进行 UTF-8 编码得到 AnsiString，不做 Ansi 转换避免丢字符
 function CnUtf8EncodeWideString(const S: WideString): AnsiString;
 var
   L: Integer;
@@ -919,7 +1130,7 @@ begin
   Result := '';
   if S = '' then
     Exit;
-  SetLength(Temp, Length(S) * 4); // 一个双字节字符最多 4 个 Utf8 字符
+  SetLength(Temp, Length(S) * 4); // 一个双字节字符最多 4 个 UTF-8 字符
 
   L := InternalUnicodeToUtf8(PAnsiChar(Temp), Length(Temp) + 1, PWideChar(S), Length(S));
   if L > 0 then
@@ -929,7 +1140,7 @@ begin
   Result := Temp;
 end;
 
-// 对 AnsiString 的 Utf8 解码得到 WideString，不做 Ansi 转换避免丢字符
+// 对 AnsiString 的 UTF-8 解码得到 WideString，不做 Ansi 转换避免丢字符
 function CnUtf8DecodeToWideString(const S: AnsiString): WideString;
 var
   L: Integer;
@@ -1148,7 +1359,7 @@ begin
   end;
 end;
 
-// 计算宽字符串的 Utf8 长度，等于 Utf8Encode 后取 Length，但不实际转换
+// 计算宽字符串的 UTF-8 长度，等于 Utf8Encode 后取 Length，但不实际转换
 function CalcUtf8LengthFromWideString(Text: PWideChar): Integer;
 begin
   Result := 0;
@@ -1162,7 +1373,7 @@ begin
   end;
 end;
 
-// 计算一个 WideChar 转换成 Utf8 后的字符长度
+// 计算一个 WideChar 转换成 UTF-8 后的字符长度
 function CalcUtf8LengthFromWideChar(AChar: WideChar): Integer;
 var
   V: Cardinal;
@@ -1180,7 +1391,7 @@ begin
     Result := 0;
 end;
 
-// 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 Utf8 长度，WideOffset 从 1 开始。
+// 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 UTF-8 长度，WideOffset 从 1 开始。
 function CalcUtf8LengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
 var
   Idx: Integer;
@@ -1198,7 +1409,7 @@ begin
   end;
 end;
 
-// 计算一个 Utf8 前导字符所代表的字符长度
+// 计算一个 UTF-8 前导字符所代表的字符长度
 function CalcUtf8LengthFromUtf8HeadChar(AChar: AnsiChar): Integer;
 var
   B: Byte;
@@ -1216,8 +1427,8 @@ begin
     raise Exception.Create(SCnErrorInvalidUtf8CharLength);
 end;
 
-// 计算 Utf8 字符串转换成 WideSting 后指定 Wide 子串长度对应的 Utf8 字符串长度，WideOffset 从 1 开始。
-// 等于转 WideString 后 Copy(1, WideOffset) 再转回 Utf8 再取 Length，但不用 Utf8/WideString 互转，以避免额外的编码问题
+// 计算 UTF-8 字符串转换成 WideSting 后指定 Wide 子串长度对应的 UTF-8 字符串长度，WideOffset 从 1 开始。
+// 等于转 WideString 后 Copy(1, WideOffset) 再转回 UTF-8 再取 Length，但不用 UTF-8/WideString 互转，以避免额外的编码问题
 function CalcUtf8StringLengthFromWideOffset(Utf8Text: PAnsiChar;
   WideOffset: Integer): Integer;
 var
@@ -1474,7 +1685,7 @@ begin
   SetLength(Result, Len);
 end;
 
-// 手动将 Utf8 字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算
+// 手动将 UTF-8 字符串转换成 Ansi，把其中的宽字符都替换成两个 AlterChar，用于纯英文环境下的字符宽度计算
 function ConvertUtf8ToAlterDisplayAnsi(Utf8Text: PAnsiChar; AlterChar: AnsiChar;
   Calculator: TCnWideCharDisplayWideLengthCalculator): AnsiString;
 var
