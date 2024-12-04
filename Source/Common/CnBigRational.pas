@@ -57,13 +57,41 @@ type
     {* 析构函数}
 
     function IsInt: Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-    {* 是否整数，也就是判断分母是否是正负 1}
+    {* 是否整数，也就是判断分母是否是正负 1。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否整数
+    }
+
     function IsZero: Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-    {* 是否为 0}
+    {* 是否为 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 0
+    }
+
     function IsOne: Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-    {* 是否为 1}
+    {* 是否为 1
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 1
+    }
+
     function IsNegative: Boolean;
-    {* 是否为负值}
+    {* 是否为负值。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为负值
+    }
+
     procedure Neg;
     {* 变成相反数}
     procedure Reciprocal;
@@ -74,56 +102,216 @@ type
     {* 设为 1}
 
     function EqualInt(Value: Cardinal): Boolean; overload;
-    {* 是否与另一值相等}
+    {* 是否与另一整数相等。
+
+       参数：
+         Value: Cardinal                  - 待判断的整数
+
+       返回值：Boolean                    - 返回是否相等
+    }
+
     function EqualInt(Value: TCnBigNumber): Boolean; overload;
-    {* 是否与另一值相等}
+    {* 是否与另一大整数相等
+
+       参数：
+         Value: TCnBigNumber              - 待判断大整数
+
+       返回值：Boolean                    -
+    }
+
     function Equal(Value: TCnBigRational): Boolean;
-    {* 是否与另一值相等}
+    {* 是否与另一大有理数相等
+
+       参数：
+         Value: TCnBigRational            - 待判断的大有理数
+
+       返回值：Boolean                    - 返回是否相等
+    }
 
     procedure Add(Value: Int64); overload;
-    {* 加上一个整数}
+    {* 加上一个整数。
+
+       参数：
+         Value: Int64                     - 加数
+
+       返回值：（无）
+    }
+
     procedure Sub(Value: Int64); overload;
-    {* 减去一个整数}
+    {* 减去一个整数。
+
+       参数：
+         Value: Int64                     - 被减数
+
+       返回值：（无）
+    }
+
     procedure Mul(Value: Int64); overload;
-    {* 乘以一个整数}
+    {* 乘以一个整数。
+
+       参数：
+         Value: Int64                     - 乘数
+
+       返回值：（无）
+   }
+
     procedure Divide(Value: Int64); overload;
-    {* 除以一个整数}
+    {* 除以一个整数。
+
+       参数：
+         Value: Int64                     - 除数
+
+       返回值：（无）
+    }
+
     procedure Add(Value: TCnBigNumber); overload;
-    {* 加上一个整数}
+    {* 加上一个大整数。
+
+       参数：
+         Value: TCnBigNumber              - 加数
+
+       返回值：（无）
+    }
+
     procedure Sub(Value: TCnBigNumber); overload;
-    {* 减去一个整数}
+    {* 减去一个大整数。
+
+       参数：
+         Value: TCnBigNumber              - 被减数
+
+       返回值：（无）
+    }
+
     procedure Mul(Value: TCnBigNumber); overload;
-    {* 乘以一个整数}
+    {* 乘以一个大整数。
+
+       参数：
+         Value: TCnBigNumber              - 乘数
+
+       返回值：（无）
+    }
+
     procedure Divide(Value: TCnBigNumber); overload;
-    {* 除以一个整数}
+    {* 除以一个大整数。
+
+       参数：
+         Value: TCnBigNumber              - 除数
+
+       返回值：（无）
+    }
+
     procedure Add(Value: TCnBigRational); overload;
-    {* 加上一个有理数}
+    {* 加上一个大有理数。
+
+       参数：
+         Value: TCnBigRational            - 加数
+
+       返回值：（无）
+    }
+
     procedure Sub(Value: TCnBigRational); overload;
-    {* 减去一个有理数}
+    {* 减去一个大有理数。
+
+       参数：
+         Value: TCnBigRational            - 减数
+
+       返回值：（无）
+    }
+
     procedure Mul(Value: TCnBigRational); overload;
-    {* 乘以一个有理数}
+    {* 乘以一个大有理数。
+
+       参数：
+         Value: TCnBigRational            - 乘数
+
+       返回值：（无）
+    }
+
     procedure Divide(Value: TCnBigRational); overload;
-    {* 除以一个有理数}
+    {* 除以一个大有理数。
+
+       参数：
+         Value: TCnBigRational            - 除数
+
+       返回值：（无）
+    }
 
     procedure SetIntValue(Value: Cardinal); overload;
-    {* 值设为一个整数}
+    {* 值设为一个整数。
+
+       参数：
+         Value: Cardinal                  - 待设置的整数
+
+       返回值：（无）
+    }
+
     procedure SetIntValue(Value: TCnBigNumber); overload;
-    {* 值设为一个整数}
+    {* 值设为一个大整数。
+
+       参数：
+         Value: TCnBigNumber              - 待设置的大整数
+
+       返回值：（无）
+    }
+
     procedure SetValue(ANominator: TCnBigNumber; ADenominator: TCnBigNumber); overload;
-    {* 值设为一个分数}
+    {* 值设为一个分数。
+
+       参数：
+         ANominator: TCnBigNumber         - 分子，形式为大数
+         ADenominator: TCnBigNumber       - 分母，形式为大数
+
+       返回值：（无）
+    }
+
     procedure SetValue(const ANominator: string; const ADenominator: string); overload;
-    {* 值设为一个分数，数字用字符串的方式输入}
+    {* 值设为一个分数，数字用字符串的方式输入。
+
+       参数：
+         const ANominator: string         - 分子字符串
+         const ADenominator: string       - 分母字符串
+
+       返回值：（无）
+    }
+
     procedure SetString(const Value: string);
-    {* 值设为一个字符串，可以是纯数字，或带 / 的分数，或小数}
+    {* 值设为一个字符串，可以是纯数字，或带 / 的分数，或小数。
+
+       参数：
+         const Value: string              - 待设置的字符串
+
+       返回值：（无）
+    }
+
     procedure SetFloat(AFloat: Extended);
-    {* 值设为一个浮点数，把浮点数的有效数字和指数拆开处理}
+    {* 值设为一个浮点数，把浮点数的有效数字和指数拆开处理。
+
+       参数：
+         AFloat: Extended                 - 待设置的浮点数
+
+       返回值：（无）
+    }
+
     procedure Reduce;
     {* 尽量约分}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 输出成字符串}
+    {* 输出成字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回的字符串
+    }
+
     function ToDec(Digits: Integer = 20): string;
-    {* 输出成小数，默认留小数点后 20 位精度}
+    {* 输出成小数，默认留小数点后 20 位精度。
+
+       参数：
+         Digits: Integer                  - 待保留的小数点后的精度位数
+
+       返回值：string                     - 返回的字符串
+    }
 
     property Nominator: TCnBigNumber read FNominator;
     {* 分子}
@@ -137,9 +325,22 @@ type
     function CreateObject: TObject; override;
   public
     function Obtain: TCnBigRational; reintroduce;
-    {* 从对象池获取一个对象，不用时需调用 Recycle 归还}
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还。
+
+       参数：
+         （无）
+
+       返回值：TCnBigRational             - 返回的大有理数对象
+    }
+
     procedure Recycle(Num: TCnBigRational); reintroduce;
-    {* 将一个对象归还至对象池}
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Num: TCnBigRational              - 待归还的大有理数对象
+
+       返回值：（无）
+    }
   end;
 
 // ============================= 大有理数运算方法 ==============================
