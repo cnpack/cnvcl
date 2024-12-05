@@ -30,7 +30,9 @@ unit CnBigDecimal;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.12.05 V1.3
+* 修改记录：2024.12.05 V1.3
+*               去掉一批无用的 const 声明并调整注释
+*           2021.12.05 V1.3
 *               增加与 TCnBigRational 互相转换的函数以及求平方根的函数
 *           2021.09.05 V1.2
 *               增加一批 TCnBigBinary 操作函数
@@ -50,30 +52,43 @@ uses
   CnNative, CnFloat, CnContainers, CnBigRational, CnBigNumber;
 
 const
-  CN_BIG_DECIMAL_DEFAULT_PRECISION = 12;         // 大浮点数乘除法的小数点后的默认精度
-  CN_BIG_BINARY_DEFAULT_PRECISION  = 32;         // 大二进制浮点数小数点后的默认精度
+  CN_BIG_DECIMAL_DEFAULT_PRECISION = 12;
+  {* 大十进制浮点数乘除法的小数点后的默认精度}
 
-  CN_BIG_DECIMAL_DEFAULT_DIGITS    = 20;         // 大浮点数转换为小数时默认保留的位数
-  CN_SQRT_DEFAULT_ROUND_COUNT      = 10;         // 大浮点数求平方根时默认迭代的次数
+  CN_BIG_BINARY_DEFAULT_PRECISION  = 32;
+  {* 大二进制浮点数小数点后的默认精度}
+
+  CN_BIG_DECIMAL_DEFAULT_DIGITS    = 20;
+  {* 大十进制浮点数转换为小数时默认保留的位数}
+
+  CN_SQRT_DEFAULT_ROUND_COUNT      = 10;
+  {* 大十进制浮点数求平方根时默认迭代的次数}
 
 type
   ECnBigDecimalException = class(Exception);
+  {* 大十进制浮点数相关异常}
 
   TCnBigRoundMode = (
-  {* 大浮点数取整的模式，十进制包括六种，不处理四舍六入五成单的特殊需求，二进制包括前五种
-    注意：四舍五入的入只有入至绝对值大的情况，没有正负无穷的情况，因为舍动作必然是往绝对值小的数取}
-    drAwayFromZero,            // 往绝对值大的数取
-    drTowardsZero,             // 往绝对值小的数取，等于只留整数部分的 Trunc
-    drCeilingToInfinite,       // 往正无穷大取
-    drFloorToNegInfinite,      // 往负无穷大取
-    drRound,                   // 四舍五入（二进制模式下是 0 舍 1 入）、入至绝对值大的数
-    dr465RoundEven             // 四舍六入五成双（不支持二进制模式）、入至绝对值大的数
+  {* 大十进制浮点数取整的模式，十进制包括六种，不处理四舍六入五成单的特殊需求，二进制包括前五种
+     注意：四舍五入的入只有入至绝对值大的情况，没有正负无穷的情况，因为舍动作必然是往绝对值小的数取}
+    drAwayFromZero,
+    {* 往绝对值大的数取}
+    drTowardsZero,
+    {* 往绝对值小的数取，等于只留整数部分的 Trunc}
+    drCeilingToInfinite,
+    {* 往正无穷大取}
+    drFloorToNegInfinite,
+    {* 往负无穷大取}
+    drRound,
+    {* 四舍五入（二进制模式下是 0 舍 1 入）、入至绝对值大的数}
+    dr465RoundEven
+    {* 四舍六入五成双（不支持二进制模式）、入至绝对值大的数}
   );
 
   TCnBigDecimal = class
-  {* 大浮点数实现类，用 CnBigNumber 保存有效数字，用 Integer 保存指数也就是小数点位置
-    FScale 代表小数点离有效数字最右边的位置，往左为正，往右为负，
-    正时简而言之就是小数点后有 FScale 位，负时简而言之还要加 -FScale 个 0}
+  {* 大十进制浮点数实现类，用 CnBigNumber 保存有效数字，用 Integer 保存指数也就是小数点位置
+     FScale 代表小数点离有效数字最右边的位置，往左为正，往右为负，
+     正时简而言之就是小数点后有 FScale 位，负时简而言之还要加 -FScale 个 0}
   private
     FValue: TCnBigNumber;
     FScale: Integer;                 // 精确值为 FValue / (10^FScale)
@@ -88,64 +103,187 @@ type
     procedure SetOne;
     {* 设置成 1}
     procedure SetNegative(Neg: Boolean);
-    {* 设置是否负数}
+    {* 设置是否负数。
+
+       参数：
+         Neg: Boolean                     - 设置是否负数
+
+       返回值：（无）
+    }
+
     procedure Negate;
-    {* 负号设置反}
+    {* 设置为相反数}
 
     function SetWord(W: Cardinal): Boolean;
-    {* 设置为一个 UInt32}
+    {* 设置为一个 32 位无符号整数。
+
+       参数：
+         W: Cardinal                      - 待设置的 32 位无符号整数
+
+       返回值：Boolean                    - 返回设置是否成功
+    }
+
     function SetInt64(W: Int64): Boolean;
-    {* 设置为一个 Int64}
+    {* 设置为一个 64 位有符号整数。
+
+       参数：
+         W: Int64                         - 待设置的 64 位有符号整数
+
+       返回值：Boolean                    - 返回设置是否成功
+    }
+
     function SetDec(const Buf: string): Boolean;
-    {* 设置字符串值}
+    {* 设置为字符串值。
+
+       参数：
+         const Buf: string                - 待设置的字符串值
+
+       返回值：Boolean                    - 返回设置是否成功
+    }
+
     procedure SetSingle(Value: Single);
-    {* 单精度浮点值}
+    {* 设置为单精度浮点值。
+
+       参数：
+         Value: Single                    - 待设置的单精度浮点值
+
+       返回值：（无）
+    }
+
     procedure SetDouble(Value: Double);
-    {* 双精度浮点值}
+    {* 设置为双精度浮点值。
+
+       参数：
+         Value: Double                    - 待设置的双精度浮点值
+
+       返回值：（无）
+    }
+
     procedure SetExtended(Value: Extended);
-    {* 扩展精度浮点值}
+    {* 设置为扩展精度浮点值。
+
+       参数：
+         Value: Extended                  - 待设置的扩展精度浮点值
+
+       返回值：（无）
+    }
 
     procedure AddWord(W: Cardinal);
-    {* 加上一个 UInt32}
+    {* 加上一个整数。
+
+       参数：
+         W: Cardinal                      - 加数
+
+       返回值：（无）
+    }
+
     procedure SubWord(W: Cardinal);
-    {* 减去一个 UInt32}
+    {* 减去一个整数。
+
+       参数：
+         W: Cardinal                      - 减数
+
+       返回值：（无）
+    }
+
     procedure MulWord(W: Cardinal);
-    {* 乘以一个 UInt32}
+    {* 乘以一个整数。
+
+       参数：
+         W: Cardinal                      - 乘数
+
+       返回值：（无）
+    }
+
     procedure DivWord(W: Cardinal; DivPrecision: Integer = 0);
-    {* 除以一个 UInt32。DivPrecision 表示除法精度最多保留小数点后几位，0 表示按默认设置来}
+    {* 除以一个整数。DivPrecision 表示除法精度最多保留小数点后几位，0 表示按默认设置来。
+
+       参数：
+         W: Cardinal                      - 除数
+         DivPrecision: Integer            - 保留小数点后多少位，0 表示按默认精度处理
+
+       返回值：（无）
+    }
 
     function IsNegative: Boolean;
-    {* 是否负数}
+    {* 是否负数。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否负数
+    }
+
     function IsZero: Boolean;
-    {* 是否是 0}
+    {* 是否为 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 0
+    }
+
     function IsOne: Boolean;
-    {* 是否是 1，只判断值是 1 且指数是 0}
+    {* 是否为 1，只判断值是 1 且指数是 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 1
+    }
 
     procedure RoundTo(Precision: Integer; RoundMode: TCnBigRoundMode = dr465RoundEven);
-    {* 取整至指定小数位数，如原来小数位数就少则不动}
+    {* 舍入至指定小数位数，如原来小数位数少于 Precision 则不动。
+
+       参数：
+         Precision: Integer               - 指定小数位数
+         RoundMode: TCnBigRoundMode       - 舍入的规则
+
+       返回值：（无）
+    }
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 将大浮点数转成字符串}
+    {* 将大十进制浮点数转成字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回转换的字符串
+    }
 
     property DecString: string read GetDecString;
     property DebugDump: string read GetDebugDump;
   end;
 
   TCnBigDecimalPool = class(TCnMathObjectPool)
-  {* 大浮点数池实现类，允许使用到大浮点数的地方自行创建大浮点数池}
+  {* 大十进制浮点数池实现类，允许使用到大十进制浮点数的地方自行创建大十进制浮点数池}
   protected
     function CreateObject: TObject; override;
   public
     function Obtain: TCnBigDecimal;
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Num: TCnBigDecimal               - 待归还至池中的对象
+
+       返回值：（无）
+    }
     procedure Recycle(Num: TCnBigDecimal);
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Num: TCnBigDecimal               - 待归还至池中的对象
+
+       返回值：（无）
+    }
   end;
 
   ECnBigBinaryException = class(Exception);
 
   TCnBigBinary = class
   {* 大二进制浮点数实现类，用 CnBigNumber 保存有效数字，用 Integer 保存基于 2 的指数
-    FScale 代表二进制模式下小数点离有效数字最右边的位置，往左为正，往右为负，
-    正时简而言之就是二进制模式下小数点后有 FScale 位，负时简而言之还要加 -FScale 个 0}
+     FScale 代表二进制模式下小数点离有效数字最右边的位置，往左为正，往右为负，
+     正时简而言之就是二进制模式下小数点后有 FScale 位，负时简而言之还要加 -FScale 个 0}
   private
     FValue: TCnBigNumber;
     FScale: Integer;                 // 精确值为 FValue / (2^FScale)，默认 FScale 为 0，也就是除以 1，等于不除
@@ -160,270 +298,828 @@ type
     procedure SetOne;
     {* 设置成 1}
     procedure SetNegative(Neg: Boolean);
-    {* 设置是否负数}
+    {* 设置是否负数。
+
+       参数：
+         Neg: Boolean                     - 设置是否负数
+
+       返回值：（无）
+    }
+
     procedure Negate;
-    {* 负号设置反}
+    {* 设置为相反数}
 
     function SetWord(W: Cardinal): Boolean;
-    {* 设置为一个 UInt32}
+    {* 设置为一个 32 位无符号整数。
+
+       参数：
+         W: Cardinal                      - 待设置的 32 位无符号整数
+
+       返回值：Boolean                    - 返回设置是否成功
+    }
+
     function SetInt64(W: Int64): Boolean;
-    {* 设置为一个 Int64}
+    {* 设置为一个 64 位有符号整数。
+
+       参数：
+         W: Int64                         - 待设置的 64 位有符号整数
+
+       返回值：Boolean                    - 返回设置是否成功
+    }
+
     function SetDec(const Buf: string): Boolean;
-    {* 设置字符串值}
+    {* 设置字符串值。
+
+       参数：
+         const Buf: string                - 待设置的字符串值
+
+       返回值：Boolean                    - 返回设置是否成功
+    }
+
     procedure SetSingle(Value: Single);
-    {* 单精度浮点值}
+    {* 设置为单精度浮点值。
+
+       参数：
+         Value: Single                    - 待设置的单精度浮点值
+
+       返回值：（无）
+    }
+
     procedure SetDouble(Value: Double);
-    {* 双精度浮点值}
+    {* 设置为双精度浮点值。
+
+       参数：
+         Value: Double                    - 待设置的双精度浮点值
+
+       返回值：（无）
+    }
+
     procedure SetExtended(Value: Extended);
-    {* 扩展精度浮点值}
+    {* 设置为扩展精度浮点值。
+
+       参数：
+         Value: Extended                  - 待设置的扩展精度浮点值
+
+       返回值：（无）
+    }
+
     procedure SetBigNumber(Value: TCnBigNumber);
-    {* 大整数值}
+    {* 设置为大整数值。
+
+       参数：
+         Value: TCnBigNumber              - 待设置的大整数值
+
+       返回值：（无）
+    }
 
     procedure AddWord(W: Cardinal);
-    {* 加上一个 UInt32}
+    {* 加上一个整数。
+
+       参数：
+         W: Cardinal                      - 加数
+
+       返回值：（无）
+    }
+
     procedure SubWord(W: Cardinal);
-    {* 减去一个 UInt32}
+    {* 减去一个整数。
+
+       参数：
+         W: Cardinal                      - 减数
+
+       返回值：（无）
+    }
+
     procedure MulWord(W: Cardinal);
-    {* 乘以一个 UInt32}
+    {* 乘以一个整数。
+
+       参数：
+         W: Cardinal                      - 乘数
+
+       返回值：（无）
+    }
+
     procedure DivWord(W: Cardinal; DivPrecision: Integer = 0);
-    {* 除以一个 UInt32。DivPrecision 表示除法精度最多保留小数点后几位，0 表示按默认设置来}
+    {* 除以一个整数。DivPrecision 表示除法精度最多保留小数点后几位，0 表示按默认设置来。
+
+       参数：
+         W: Cardinal                      - 除数
+         DivPrecision: Integer            - 保留小数点后多少位，0 表示按默认精度处理
+
+       返回值：（无）
+    }
 
     procedure ShiftLeft(N: Integer);
-    {* 左移 N 位}
+    {* 左移 N 位。
+
+       参数：
+         N: Integer                       - 待左移的位数
+
+       返回值：（无）
+    }
+
     procedure ShiftRight(N: Integer);
-    {* 右移 N 位}
+    {* 右移 N 位。
+
+       参数：
+         N: Integer                       - 待右移的位数
+
+       返回值：（无）
+    }
 
     procedure Power(N: Integer);
-    {* 求幂}
+    {* 求幂。
+
+       参数：
+         N: Integer                       - 幂指数
+
+       返回值：（无）
+    }
 
     function IsNegative: Boolean;
-    {* 是否负数}
+    {* 是否负数。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否负数
+    }
+
     function IsZero: Boolean;
-    {* 是否是 0}
+    {* 是否为 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 是否为 0
+    }
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 将大浮点数转成字符串}
+    {* 将大十进制浮点数转换为字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回转换的字符串
+    }
 
     property DecString: string read GetDecString;
     property DebugDump: string read GetDebugDump;
   end;
 
   TCnBigBinaryPool = class(TCnMathObjectPool)
-  {* 大浮点数池实现类，允许使用到大浮点数的地方自行创建大浮点数池}
+  {* 大二进制浮点数池实现类，允许使用到大二进制浮点数的地方自行创建大二进制浮点数池}
   protected
     function CreateObject: TObject; override;
   public
     function Obtain: TCnBigBinary; reintroduce;
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还。
+
+       参数：
+         （无）
+
+       返回值：TCnBigBinary               - 返回池中的大二进制浮点数对象
+    }
+
     procedure Recycle(Num: TCnBigBinary); reintroduce;
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Num: TCnBigBinary                - 待归还至池中的对象
+
+       返回值：（无）
+    }
   end;
 
-// ======================== 大浮点数操作函数 ===================================
+// ====================== 大十进制浮点数操作函数 ===============================
 
-procedure BigDecimalClear(const Num: TCnBigDecimal);
-{* 清空一个大浮点数，实质上是 Value 与 Scale 都塞 0}
+procedure BigDecimalClear(Num: TCnBigDecimal);
+{* 清空一个大十进制浮点数对象，实质上是 Value 与 Scale 都设置为 0。
 
-function BigDecimalSetDec(const Buf: string; const Res: TCnBigDecimal): Boolean;
-{* 为大浮点数对象设置字符串值}
+   参数：
+     Num: TCnBigDecimal                   - 待清空的大十进制浮点数
 
-function BigDecimalSetWord(W: Cardinal; const Res: TCnBigDecimal): Boolean;
-{* 为大浮点数对象设置整数值}
+   返回值：（无）
+}
 
-function BigDecimalSetInt64(W: Int64; const Res: TCnBigDecimal): Boolean;
-{* 为大浮点数对象设置 Int64 整数值}
+function BigDecimalSetDec(const Buf: string; Res: TCnBigDecimal): Boolean;
+{* 为大十进制浮点数对象设置字符串值。
 
-function BigDecimalSetSingle(const Value: Single; const Res: TCnBigDecimal): Boolean;
-{* 为大浮点数对象设置单精度浮点值}
+   参数：
+     const Buf: string                    - 待设置的字符串
+     Res: TCnBigDecimal                   - 待设置的大十进制浮点数
 
-function BigDecimalSetDouble(const Value: Double; const Res: TCnBigDecimal): Boolean;
-{* 为大浮点数对象设置双精度浮点值}
+   返回值：Boolean                        - 返回设置是否成功
+}
 
-function BigDecimalSetExtended(const Value: Extended; const Res: TCnBigDecimal): Boolean;
-{* 为大浮点数对象设置扩展精度浮点值}
+function BigDecimalSetWord(W: Cardinal; Res: TCnBigDecimal): Boolean;
+{* 为大十进制浮点数对象设置 32 位无符号整数值。
 
-function BigDecimalToString(const Num: TCnBigDecimal): string;
-{* 大浮点数对象转换为字符串}
+   参数：
+     W: Cardinal                          - 待设置的 32 位无符号整数值
+     Res: TCnBigDecimal                   - 待设置的大十进制浮点数
 
-function BigDecimalToSingle(const Num: TCnBigDecimal): Single;
-{* 大浮点数对象转换为单精度浮点数}
+   返回值：Boolean                        - 返回设置是否成功
+}
 
-function BigDecimalToDouble(const Num: TCnBigDecimal): Double;
-{* 大浮点数对象转换为双精度浮点数}
+function BigDecimalSetInt64(W: Int64; Res: TCnBigDecimal): Boolean;
+{* 为大十进制浮点数对象设置 64 位有符号整数值。
 
-function BigDecimalToExtended(const Num: TCnBigDecimal): Extended;
-{* 大浮点数对象转换为扩展精度浮点数}
+   参数：
+     W: Int64                             - 待设置的 64 位有符号整数值
+     Res: TCnBigDecimal                   - 待设置的大十进制浮点数
 
-function BigDecimalCompare(const Num1: TCnBigDecimal; const Num2: TCnBigDecimal): Integer; overload;
-{* 比较两个大浮点数对象}
+   返回值：Boolean                        -
+}
 
-function BigDecimalCompare(const Num1: TCnBigDecimal; Num2: Int64): Integer; overload;
-{* 比较大浮点数对象与整数}
+function BigDecimalSetSingle(Value: Single; Res: TCnBigDecimal): Boolean;
+{* 为大十进制浮点数对象设置单精度浮点值。
 
-function BigDecimalCompare(const Num1: TCnBigDecimal; Num2: Extended): Integer; overload;
-{* 比较大浮点数对象与浮点数}
+   参数：
+     Value: Single                        - 待设置的单精度浮点值
+     Res: TCnBigDecimal                   - 待设置的大十进制浮点数
 
-procedure BigDecimalCopy(const Dest: TCnBigDecimal; const Source: TCnBigDecimal);
-{* 大浮点数赋值}
+   返回值：Boolean                        - 返回设置是否成功
+}
 
-function BigDecimalGetPrecision(const Num: TCnBigDecimal): Integer;
-{* 计算大浮点数的十进制位数，也即有效数字长度}
+function BigDecimalSetDouble(Value: Double; Res: TCnBigDecimal): Boolean;
+{* 为大十进制浮点数对象设置双精度浮点值。
 
-function BigDecimalGetIntDecimalCount(const Num: TCnBigDecimal;
+   参数：
+     Value: Double                        - 待设置的双精度浮点值
+     Res: TCnBigDecimal                   - 待设置的大十进制浮点数
+
+   返回值：Boolean                        - 返回设置是否成功
+}
+
+function BigDecimalSetExtended(Value: Extended; Res: TCnBigDecimal): Boolean;
+{* 为大十进制浮点数对象设置扩展精度浮点值。
+
+   参数：
+     Value: Extended                      - 待设置的扩展精度浮点值
+     Res: TCnBigDecimal                   - 待设置的大十进制浮点数
+
+   返回值：Boolean                        - 返回设置是否成功
+}
+
+function BigDecimalToString(Num: TCnBigDecimal): string;
+{* 大十进制浮点数对象转换为字符串。
+
+   参数：
+     Num: TCnBigDecimal                   - 待转换的大十进制浮点数
+
+   返回值：string                         - 返回转换的字符串
+}
+
+function BigDecimalToSingle(Num: TCnBigDecimal): Single;
+{* 大十进制浮点数对象转换为单精度浮点数。
+
+   参数：
+     Num: TCnBigDecimal                   - 待转换的大十进制浮点数
+
+   返回值：Single                         - 返回单精度浮点值
+}
+
+function BigDecimalToDouble(Num: TCnBigDecimal): Double;
+{* 大十进制浮点数对象转换为双精度浮点数。
+
+   参数：
+     Num: TCnBigDecimal                   - 待转换的大十进制浮点数
+
+   返回值：Double                         - 返回双精度浮点值
+}
+
+function BigDecimalToExtended(Num: TCnBigDecimal): Extended;
+{* 大十进制浮点数对象转换为扩展精度浮点数。
+
+   参数：
+     Num: TCnBigDecimal                   - 待转换的大十进制浮点数
+
+   返回值：Extended                       - 返回扩展精度浮点值
+}
+
+function BigDecimalCompare(Num1: TCnBigDecimal; Num2: TCnBigDecimal): Integer; overload;
+{* 比较两个大十进制浮点数对象，分别根据比较的结果是大于、等于还是小于来返回 1、0、-1。
+
+   参数：
+     Num1: TCnBigDecimal                  - 待比较的大十进制浮点数一
+     Num2: TCnBigDecimal                  - 待比较的大十进制浮点数二
+
+   返回值：Integer                        - 返回比较结果
+}
+
+function BigDecimalCompare(Num1: TCnBigDecimal; Num2: Int64): Integer; overload;
+{* 比较大十进制浮点数对象与整数，分别根据比较的结果是大于、等于还是小于来返回 1、0、-1。
+
+   参数：
+     Num1: TCnBigDecimal                  - 待比较的大十进制浮点数
+     Num2: Int64                          - 待比较的整数
+
+   返回值：Integer                        - 返回比较结果
+}
+
+function BigDecimalCompare(Num1: TCnBigDecimal; Num2: Extended): Integer; overload;
+{* 比较大十进制浮点数对象与浮点数，分别根据比较的结果是大于、等于还是小于来返回 1、0、-1。
+
+   参数：
+     Num1: TCnBigDecimal                  - 待比较的大十进制浮点数
+     Num2: Extended                       - 待比较的浮点数
+
+   返回值：Integer                        - 返回比较结果
+}
+
+procedure BigDecimalCopy(Dest: TCnBigDecimal; Source: TCnBigDecimal);
+{* 大十进制浮点数赋值。
+
+   参数：
+     Dest: TCnBigDecimal                  - 目标大十进制浮点数
+     Source: TCnBigDecimal                - 源大十进制浮点数
+
+   返回值：（无）
+}
+
+function BigDecimalGetPrecision(Num: TCnBigDecimal): Integer;
+{* 计算大十进制浮点数的十进制位数，也即有效数字长度。
+
+   参数：
+     Num: TCnBigDecimal                   - 待计算的大十进制浮点数
+
+   返回值：Integer                        - 返回有效数字长度
+}
+
+function BigDecimalGetIntDecimalCount(Num: TCnBigDecimal;
   out IntCount: Integer; out DecimalCount: Integer): Boolean;
-{* 计算大浮点数的整数部分长度与小数部分长度}
+{* 计算大十进制浮点数的整数部分长度与小数部分长度。
 
-function BigDecimalGetHighScale(const Num: TCnBigDecimal): Integer;
-{* 计算大浮点数的最高有效数字位是小数点后第几位，如果返回小于 0，则求负后表示是小数点前第几位}
+   参数：
+     Num: TCnBigDecimal                   - 待计算的大十进制浮点数
+     out IntCount: Integer                - 返回整数部分长度
+     out DecimalCount: Integer            - 返回小数部分长度
 
-function BigDecimalAdd(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
-  const Num2: TCnBigDecimal): Boolean;
-{* 大浮点数加，Res 可以是 Num1 或 Num2，Num1 可以是 Num2}
+   返回值：Boolean                        - 返回计算是否成功
+}
 
-function BigDecimalSub(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
-  const Num2: TCnBigDecimal): Boolean;
-{* 大浮点数减，Res 可以是 Num1 或 Num2，Num1 可以是 Num2}
+function BigDecimalGetHighScale(Num: TCnBigDecimal): Integer;
+{* 计算大十进制浮点数的最高有效数字位是小数点后第几位，如果返回小于 0，则求负后表示是小数点前第几位。
 
-function BigDecimalMul(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
-  const Num2: TCnBigDecimal; MulPrecision: Integer = 0): Boolean;
-{* 大浮点数乘，Res 可以是 Num1 或 Num2，Num1 可以是 Num2，
-  MulPrecision 表示乘法最多保留小数点后几位，0 表示全保留}
+   参数：
+     Num: TCnBigDecimal                   - 待计算的大十进制浮点数
 
-function BigDecimalDiv(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
-  const Num2: TCnBigDecimal; DivPrecision: Integer = 0): Boolean;
-{* 大浮点数除，Res 可以是 Num1 或 Num2，Num1 可以是 Num2，
-  DivPrecision 表示除法精度最多保留小数点后几位，0 表示按默认设置来}
+   返回值：Integer                        - 返回最高有效数字位离小数点的位数距离
+}
 
-function BigDecimalSqrt(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+function BigDecimalAdd(Res: TCnBigDecimal; Num1: TCnBigDecimal;
+  Num2: TCnBigDecimal): Boolean;
+{* 大十进制浮点数加，Res 可以是 Num1 或 Num2，Num1 可以是 Num2。
+
+   参数：
+     Res: TCnBigDecimal                   - 大十进制浮点数和
+     Num1: TCnBigDecimal                  - 大十进制浮点数加数一
+     Num2: TCnBigDecimal                  - 大十进制浮点数加数二
+
+   返回值：Boolean                        - 返回相加是否成功
+}
+
+function BigDecimalSub(Res: TCnBigDecimal; Num1: TCnBigDecimal;
+  Num2: TCnBigDecimal): Boolean;
+{* 大十进制浮点数减，Res 可以是 Num1 或 Num2，Num1 可以是 Num2。
+
+   参数：
+     Res: TCnBigDecimal                   - 大十进制浮点数差
+     Num1: TCnBigDecimal                  - 大十进制浮点数被减数
+     Num2: TCnBigDecimal                  - 大十进制浮点数减数
+
+   返回值：Boolean                        - 返回相减是否成功
+}
+
+function BigDecimalMul(Res: TCnBigDecimal; Num1: TCnBigDecimal;
+  Num2: TCnBigDecimal; MulPrecision: Integer = 0): Boolean;
+{* 大十进制浮点数乘，Res 可以是 Num1 或 Num2，Num1 可以是 Num2，
+   MulPrecision 表示乘法最多保留小数点后几位，0 表示全部保留。
+
+   参数：
+     Res: TCnBigDecimal                   - 大十进制浮点数积
+     Num1: TCnBigDecimal                  - 大十进制浮点数乘数一
+     Num2: TCnBigDecimal                  - 大十进制浮点数乘数二
+     MulPrecision: Integer                - 保留小数点后几位，0 表示全部保留
+
+   返回值：Boolean                        - 返回相乘是否成功
+}
+
+function BigDecimalDiv(Res: TCnBigDecimal; Num1: TCnBigDecimal;
+  Num2: TCnBigDecimal; DivPrecision: Integer = 0): Boolean;
+{* 大十进制浮点数除，Res 可以是 Num1 或 Num2，Num1 可以是 Num2，
+   DivPrecision 表示除法精度最多保留小数点后几位，0 表示按默认设置来。
+
+   参数：
+     Res: TCnBigDecimal                   - 大十进制浮点数商
+     Num1: TCnBigDecimal                  - 大十进制浮点数被除数
+     Num2: TCnBigDecimal                  - 大十进制浮点数除数
+     DivPrecision: Integer                - 保留小数点后几位，0 表示按默认设置来
+
+   返回值：Boolean                        - 返回相除是否成功
+}
+
+function BigDecimalSqrt(Res: TCnBigDecimal; Num: TCnBigDecimal;
   SqrtPrecision: Integer = 0): Boolean;
-{* 大浮点数开平方根，Res 可以是 Num。
-  SqrtPrecision 表示开平方根精度最多保留小数点后几位，0 表示按默认设置来}
+{* 大十进制浮点数开平方根，Res 可以是 Num。
+   SqrtPrecision 表示开平方根精度最多保留小数点后几位，0 表示按默认设置来。
 
-procedure BigDecimalSqrt2(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+   参数：
+     Res: TCnBigDecimal                   - 大十进制浮点数平方根
+     Num: TCnBigDecimal                   - 待计算的大十进制浮点数
+     SqrtPrecision: Integer               - 保留小数点后几位，0 表示按默认设置来
+
+   返回值：Boolean                        - 返回开方是否成功
+}
+
+procedure BigDecimalSqrt2(Res: TCnBigDecimal; Num: TCnBigDecimal;
   RoundCount: Integer = CN_SQRT_DEFAULT_ROUND_COUNT);
-{* 大浮点数开平方根，Res 可以是 Num，小数点后准确几位不易控制因而此处未实现
-  内部使用大有理数保持精度，RoundCount 表示内部迭代次数，0 表示按默认设置来，
-  注意迭代次数如太多会导致大有理数运算较慢}
+{* 大十进制浮点数开平方根，Res 可以是 Num，小数点后准确几位不易控制因而此处未实现。
+   内部使用大有理数保持精度，RoundCount 表示内部迭代次数，0 表示按默认设置来。
+   注意迭代次数如太多会导致大有理数运算较慢。
 
-function BigDecimalChangeToScale(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+   参数：
+     Res: TCnBigDecimal                   - 大十进制浮点数平方根
+     Num: TCnBigDecimal                   - 待计算的大十进制浮点数
+     RoundCount: Integer                  - 内部迭代次数，默认 10 次
+
+   返回值：（无）
+}
+
+function BigDecimalChangeToScale(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Scale: Integer; RoundMode: TCnBigRoundMode = drTowardsZero): Boolean;
-{* 将大浮点数在值不咋变的前提下转换到指定 Scale，也就是小数点后 Scale 位，可能产生舍入，按指定模式来
-  如果 Scale 为负，代表舍入到整 10 次方。Res 可以是 Num}
+{* 将大十进制浮点数在值不咋变的前提下转换到指定 Scale，也就是小数点后 Scale 位，可能产生舍入，按指定模式来。
+   如果 Scale 为负，代表舍入到整 10 次方。Res 可以是 Num。
 
-function BigDecimalRoundToDigits(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+   参数：
+     Res: TCnBigDecimal                   - 返回转换后的大十进制浮点数
+     Num: TCnBigDecimal                   - 待转换的大十进制浮点数
+     Scale: Integer                       - 小数点后 Scale 位
+     RoundMode: TCnBigRoundMode           - 舍入的规则
+
+   返回值：Boolean                        - 返回舍入是否成功
+}
+
+function BigDecimalRoundToDigits(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Digits: Integer; RoundMode: TCnBigRoundMode = drTowardsZero): Boolean;
-{* 将大浮点数在值不咋变的前提下按指定模式舍入到指定小数点后 Digits 位，
-  如果本身精度不够 Digits 位则不变。Res 可以是 Num}
+{* 将大十进制浮点数在值不咋变的前提下按指定模式舍入到指定小数点后 Digits 位，
+   如果本身精度不够 Digits 位则不变。Res 可以是 Num。
 
-function BigDecimalTrunc(const Res: TCnBigDecimal; const Num: TCnBigDecimal): Boolean;
-{* 将大浮点数 Trunc 到只剩整数。Res 可以是 Num}
+   参数：
+     Res: TCnBigDecimal                   - 返回舍入后的大十进制浮点数
+     Num: TCnBigDecimal                   - 待舍入的大十进制浮点数
+     Digits: Integer                      - 保留小数点后几位
+     RoundMode: TCnBigRoundMode           - 舍入的规则
 
-procedure BigDecimalToBigRational(const Res: TCnBigRational; const Num: TCnBigDecimal);
-{* 大浮点数转换为大有理数}
+   返回值：Boolean                        - 返回舍入是否成功
+}
 
-procedure BigRationalToBigDecimal(const Res: TCnBigDecimal; const Num: TCnBigRational;
+function BigDecimalTrunc(Res: TCnBigDecimal; Num: TCnBigDecimal): Boolean;
+{* 将大十进制浮点数 Trunc 到只剩整数。Res 可以是 Num。
+
+   参数：
+     Res: TCnBigDecimal                   - 返回的大十进制浮点数
+     Num: TCnBigDecimal                   - 待处理的大十进制浮点数
+
+   返回值：Boolean                        - 返回处理是否成功
+}
+
+procedure BigDecimalToBigRational(Res: TCnBigRational; Num: TCnBigDecimal);
+{* 大十进制浮点数转换为大有理数。
+
+   参数：
+     Res: TCnBigRational                  - 返回转换的大有理数
+     Num: TCnBigDecimal                   - 待转换的大十进制浮点数
+
+   返回值：（无）
+}
+
+procedure BigRationalToBigDecimal(Res: TCnBigDecimal; Num: TCnBigRational;
   Digits: Integer = 20);
-{* 大有理数转换为大浮点数，可能有精度损失，默认保留小数点后 20 位}
+{* 大有理数转换为大十进制浮点数，可能有精度损失，默认保留小数点后 20 位。
 
-function BigDecimalDebugDump(const Num: TCnBigDecimal): string;
-{* 打印大浮点数内部信息}
+   参数：
+     Res: TCnBigDecimal                   - 返回转换的大十进制浮点数
+     Num: TCnBigRational                  - 待转换的大有理数
+     Digits: Integer                      - 保留小数点后几位，默认 20
+
+   返回值：（无）
+}
+
+function BigDecimalDebugDump(Num: TCnBigDecimal): string;
+{* 打印大十进制浮点数内部信息。
+
+   参数：
+     Num: TCnBigDecimal                   - 待打印的大十进制浮点数
+
+   返回值：string                         - 返回内部信息字符串
+}
 
 // ========================== 大二进制浮点数操作函数 ===========================
 
-procedure BigBinaryClear(const Num: TCnBigBinary);
-{* 清空一个大二进制浮点数，实质上是 Value 与 Scale 都塞 0}
+procedure BigBinaryClear(Num: TCnBigBinary);
+{* 清空一个大二进制浮点数对象，实质上是 Value 与 Scale 都设置为 0。
 
-function BigBinarySetDec(const Buf: string; const Res: TCnBigBinary): Boolean;
-{* 为大二进制浮点数对象设置字符串值}
+   参数：
+     Num: TCnBigBinary                    - 待清空的大二进制浮点数
 
-function BigBinarySetWord(W: Cardinal; const Res: TCnBigBinary): Boolean;
-{* 为大二进制浮点数对象设置整数值}
+   返回值：（无）
+}
 
-function BigBinarySetInt64(W: Int64; const Res: TCnBigBinary): Boolean;
-{* 为大二进制浮点数对象设置 Int64 整数值}
+function BigBinarySetDec(const Buf: string; Res: TCnBigBinary): Boolean;
+{* 为大二进制浮点数对象设置字符串值。
 
-function BigBinarySetSingle(const Value: Single; const Res: TCnBigBinary): Boolean;
-{* 为大二进制浮点数对象设置单精度浮点值}
+   参数：
+     const Buf: string                    - 待设置的字符串
+     Res: TCnBigBinary                    - 待设置的大二进制浮点数
 
-function BigBinarySetDouble(const Value: Double; const Res: TCnBigBinary): Boolean;
-{* 为大二进制浮点数对象设置双精度浮点值}
+   返回值：Boolean                        - 返回设置是否成功
+}
 
-function BigBinarySetExtended(const Value: Extended; const Res: TCnBigBinary): Boolean;
-{* 为大二进制浮点数对象设置扩展精度浮点值}
+function BigBinarySetWord(W: Cardinal; Res: TCnBigBinary): Boolean;
+{* 为大二进制浮点数对象设置整数值。
 
-function BigBinarySetBigNumber(const Num: TCnBigNumber; const Res: TCnBigBinary): Boolean;
-{* 为大二进制浮点数对象设置大数值}
+   参数：
+     W: Cardinal                          - 待设置的 32 位无符号整数值
+     Res: TCnBigBinary                    - 待设置的大二进制浮点数
 
-function BigBinaryToString(const Num: TCnBigBinary): string;
-{* 大二进制浮点数对象转换为字符串}
+   返回值：Boolean                        - 返回设置是否成功
+}
 
-function BigBinaryToSingle(const Num: TCnBigBinary): Single;
-{* 大二进制浮点数对象转换为单精度浮点数}
+function BigBinarySetInt64(W: Int64; Res: TCnBigBinary): Boolean;
+{* 为大二进制浮点数对象设置 Int64 整数值。
 
-function BigBinaryToDouble(const Num: TCnBigBinary): Double;
-{* 大二进制浮点数对象转换为双精度浮点数}
+   参数：
+     W: Int64                             - 待设置的 64 位有符号整数值
+     Res: TCnBigBinary                    - 待设置的大二进制浮点数
 
-function BigBinaryToExtended(const Num: TCnBigBinary): Extended;
-{* 大二进制浮点数对象转换为扩展精度浮点数}
+   返回值：Boolean                        - 返回设置是否成功
+}
 
-function BigBinaryCompare(const Num1: TCnBigBinary; const Num2: TCnBigBinary): Integer; overload;
-{* 比较两个大二进制浮点数对象}
+function BigBinarySetSingle(Value: Single; Res: TCnBigBinary): Boolean;
+{* 为大二进制浮点数对象设置单精度浮点值。
 
-function BigBinaryCompare(const Num1: TCnBigBinary; Num2: Int64): Integer; overload;
-{* 比较大二进制浮点数对象与整数}
+   参数：
+     Value: Single                        - 待设置的单精度浮点值
+     Res: TCnBigBinary                    - 待设置的大二进制浮点数
 
-function BigBinaryCompare(const Num1: TCnBigBinary; Num2: Extended): Integer; overload;
-{* 比较大二进制浮点数对象与浮点数}
+   返回值：Boolean                        - 返回设置是否成功
+}
 
-procedure BigBinaryCopy(const Dest: TCnBigBinary; const Source: TCnBigBinary);
-{* 大二进制浮点数赋值}
+function BigBinarySetDouble(Value: Double; Res: TCnBigBinary): Boolean;
+{* 为大二进制浮点数对象设置双精度浮点值。
 
-function BigBinaryGetHighScale(const Num: TCnBigBinary): Integer;
-{* 计算大二进制浮点数的最高有效数字位是小数点后第几位，如果返回小于 0，则求负后表示是小数点前第几位}
+   参数：
+     Value: Double                        - 待设置的双精度浮点值
+     Res: TCnBigBinary                    - 待设置的大二进制浮点数
 
-function BigBinaryAdd(const Res: TCnBigBinary; const Num1: TCnBigBinary;
-  const Num2: TCnBigBinary): Boolean;
-{* 大二进制浮点数加，Res 可以是 Num1 或 Num2，Num1 可以是 Num2}
+   返回值：Boolean                        - 返回设置是否成功
+}
 
-function BigBinarySub(const Res: TCnBigBinary; const Num1: TCnBigBinary;
-  const Num2: TCnBigBinary): Boolean;
-{* 大二进制浮点数减，Res 可以是 Num1 或 Num2，Num1 可以是 Num2}
+function BigBinarySetExtended(Value: Extended; Res: TCnBigBinary): Boolean;
+{* 为大二进制浮点数对象设置扩展精度浮点值。
 
-function BigBinaryMul(const Res: TCnBigBinary; const Num1: TCnBigBinary;
-  const Num2: TCnBigBinary; MulPrecision: Integer = 0): Boolean;
+   参数：
+     Value: Extended                      - 待设置的扩展精度浮点值
+     Res: TCnBigBinary                    - 待设置的大二进制浮点数
+
+   返回值：Boolean                        - 返回设置是否成功
+}
+
+function BigBinarySetBigNumber(Num: TCnBigNumber; Res: TCnBigBinary): Boolean;
+{* 为大二进制浮点数对象设置大数值。
+
+   参数：
+     Num: TCnBigNumber                    -
+     Res: TCnBigBinary                    - 待设置的大二进制浮点数
+
+   返回值：Boolean                        - 返回设置是否成功
+}
+
+function BigBinaryToString(Num: TCnBigBinary): string;
+{* 大二进制浮点数对象转换为字符串。
+
+   参数：
+     Num: TCnBigBinary                    - 待转换的大二进制浮点数
+
+   返回值：string                         - 返回转换的字符串
+}
+
+function BigBinaryToSingle(Num: TCnBigBinary): Single;
+{* 大二进制浮点数对象转换为单精度浮点数。
+
+   参数：
+     Num: TCnBigBinary                    - 待转换的大二进制浮点数
+
+   返回值：Single                         - 返回单精度浮点值
+}
+
+function BigBinaryToDouble(Num: TCnBigBinary): Double;
+{* 大二进制浮点数对象转换为双精度浮点数。
+
+   参数：
+     Num: TCnBigBinary                    - 待转换的大二进制浮点数
+
+   返回值：Double                         - 返回双精度浮点值
+}
+
+function BigBinaryToExtended(Num: TCnBigBinary): Extended;
+{* 大二进制浮点数对象转换为扩展精度浮点数。
+
+   参数：
+     Num: TCnBigBinary                    - 待转换的大二进制浮点数
+
+   返回值：Extended                       - 返回扩展精度浮点值
+}
+
+function BigBinaryCompare(Num1: TCnBigBinary; Num2: TCnBigBinary): Integer; overload;
+{* 比较两个大二进制浮点数对象，分别根据比较的结果是大于、等于还是小于来返回 1、0、-1。
+
+   参数：
+     Num1: TCnBigBinary                   - 待比较的大二进制浮点数一
+     Num2: TCnBigBinary                   - 待比较的大二进制浮点数二
+
+   返回值：Integer                        - 返回比较结果
+}
+
+function BigBinaryCompare(Num1: TCnBigBinary; Num2: Int64): Integer; overload;
+{* 比较大二进制浮点数对象与整数，分别根据比较的结果是大于、等于还是小于来返回 1、0、-1。
+
+   参数：
+     Num1: TCnBigBinary                   - 待比较的大二进制浮点数
+     Num2: Int64                          - 待比较的整数
+
+   返回值：Integer                        - 返回比较结果
+}
+
+function BigBinaryCompare(Num1: TCnBigBinary; Num2: Extended): Integer; overload;
+{* 比较大二进制浮点数对象与浮点数，分别根据比较的结果是大于、等于还是小于来返回 1、0、-1。
+
+   参数：
+     Num1: TCnBigBinary                   - 待比较的大二进制浮点数
+     Num2: Extended                       - 待比较的浮点数
+
+   返回值：Integer                        - 返回比较结果
+}
+
+procedure BigBinaryCopy(Dest: TCnBigBinary; Source: TCnBigBinary);
+{* 大二进制浮点数赋值
+
+   参数：
+     Dest: TCnBigBinary                   - 目标大二进制浮点数
+     Source: TCnBigBinary                 - 源大二进制浮点数
+
+   返回值：（无）
+}
+
+function BigBinaryGetHighScale(Num: TCnBigBinary): Integer;
+{* 计算大二进制浮点数的最高有效数字位是小数点后第几位，如果返回小于 0，则求负后表示是小数点前第几位
+
+   参数：
+     Num: TCnBigBinary                    - 待计算的大二进制浮点数
+
+   返回值：Integer                        - 返回最高有效数字位离小数点的位数距离
+}
+
+function BigBinaryAdd(Res: TCnBigBinary; Num1: TCnBigBinary;
+  Num2: TCnBigBinary): Boolean;
+{* 大二进制浮点数加，Res 可以是 Num1 或 Num2，Num1 可以是 Num2。
+
+   参数：
+     Res: TCnBigBinary                    - 大二进制浮点数和
+     Num1: TCnBigBinary                   - 大二进制浮点数加数一
+     Num2: TCnBigBinary                   - 大二进制浮点数加数二
+
+   返回值：Boolean                        - 返回相加是否成功
+}
+
+function BigBinarySub(Res: TCnBigBinary; Num1: TCnBigBinary;
+  Num2: TCnBigBinary): Boolean;
+{* 大二进制浮点数减，Res 可以是 Num1 或 Num2，Num1 可以是 Num2。
+
+   参数：
+     Res: TCnBigBinary                    - 大二进制浮点数差
+     Num1: TCnBigBinary                   - 大二进制浮点数被减数
+     Num2: TCnBigBinary                   - 大二进制浮点数减数
+
+   返回值：Boolean                        - 返回相减是否成功
+}
+
+function BigBinaryMul(Res: TCnBigBinary; Num1: TCnBigBinary;
+  Num2: TCnBigBinary; MulPrecision: Integer = 0): Boolean;
 {* 大二进制浮点数乘，Res 可以是 Num1 或 Num2，Num1 可以是 Num2，
-  MulPrecision 表示乘法最多保留小数点后几位，0 表示全保留}
+   MulPrecision 表示乘法最多保留小数点后几位，0 表示全部保留。
 
-function BigBinaryDiv(const Res: TCnBigBinary; const Num1: TCnBigBinary;
-  const Num2: TCnBigBinary; DivPrecision: Integer = 0): Boolean;
+   参数：
+     Res: TCnBigBinary                    - 大二进制浮点数积
+     Num1: TCnBigBinary                   - 大二进制浮点数乘数一
+     Num2: TCnBigBinary                   - 大二进制浮点数乘数二
+     MulPrecision: Integer                - 保留小数点后几位，0 表示全部保留
+
+   返回值：Boolean                        - 返回相乘是否成功
+}
+
+function BigBinaryDiv(Res: TCnBigBinary; Num1: TCnBigBinary;
+  Num2: TCnBigBinary; DivPrecision: Integer = 0): Boolean;
 {* 大二进制浮点数除，Res 可以是 Num1 或 Num2，Num1 可以是 Num2，
-  DivPrecision 表示除法精度最多保留小数点后几位，0 表示按默认设置来}
+   DivPrecision 表示除法精度最多保留小数点后几位，0 表示按默认设置来。
 
-procedure BigBinaryShiftLeft(const Res: TCnBigBinary; const N: Integer);
-{* 大二进制浮点数左移，内部直接调整 FScale}
+   参数：
+     Res: TCnBigBinary                    - 大二进制浮点数商
+     Num1: TCnBigBinary                   - 大二进制浮点数被除数
+     Num2: TCnBigBinary                   - 大二进制浮点数除数
+     DivPrecision: Integer                - 保留小数点后几位，0 表示按默认设置来
 
-procedure BigBinaryShiftRight(const Res: TCnBigBinary; const N: Integer);
-{* 大二进制浮点数右移，内部直接调整 FScale}
+   返回值：Boolean                        - 返回相除是否成功
+}
 
-function BigBinaryPower(const Res: TCnBigBinary; const N: Integer): Boolean;
-{* 大二进制求幂，只支持非负整数幂}
+procedure BigBinaryShiftLeft(Res: TCnBigBinary; N: Integer);
+{* 大二进制浮点数左移，内部直接调整 FScale
 
-function BigBinaryChangeToScale(const Res: TCnBigBinary; const Num: TCnBigBinary;
+   参数：
+     Res: TCnBigBinary                    - 待左移的大二进制浮点数
+     N: Integer                           - 左移位数
+
+   返回值：（无）
+}
+
+procedure BigBinaryShiftRight(Res: TCnBigBinary; N: Integer);
+{* 大二进制浮点数右移，内部直接调整 FScale。
+
+   参数：
+     Res: TCnBigBinary                    - 待右移的大二进制浮点数
+     N: Integer                           - 右移位数
+
+   返回值：（无）
+}
+
+function BigBinaryPower(Res: TCnBigBinary; N: Integer): Boolean;
+{* 大二进制浮点数求幂，只支持非负整数幂。
+
+   参数：
+     Res: TCnBigBinary                    - 待求幂的大二进制浮点数
+     N: Integer                           - 幂指数，只支持非负整数
+
+   返回值：Boolean                        - 返回求幂是否成功
+}
+
+function BigBinaryChangeToScale(Res: TCnBigBinary; Num: TCnBigBinary;
   Scale: Integer; RoundMode: TCnBigRoundMode = drTowardsZero): Boolean;
 {* 将大二进制浮点数在值不咋变的前提下转换到指定 Scale，也就是小数点后 Scale 位，可能产生舍入，按指定模式进行。
-  如果 Scale 为负，代表舍入到整 2 次方。Res 可以是 Num}
+   如果 Scale 为负，代表舍入到整 2 次方。Res 可以是 Num。
 
-function BigBinaryRoundToDigits(const Res: TCnBigBinary; const Num: TCnBigBinary;
+   参数：
+     Res: TCnBigBinary                    - 返回转换后的大二进制浮点数
+     Num: TCnBigBinary                    - 待转换的大二进制浮点数
+     Scale: Integer                       - 小数点后 Scale 位
+     RoundMode: TCnBigRoundMode           - 舍入的规则
+
+   返回值：Boolean                        - 返回舍入是否成功
+}
+
+function BigBinaryRoundToDigits(Res: TCnBigBinary; Num: TCnBigBinary;
   Digits: Integer; RoundMode: TCnBigRoundMode = drTowardsZero): Boolean;
 {* 将大二进制浮点数在值不咋变的前提下按指定模式舍入到指定小数点后 Digits 二进制位，
-  如果本身精度不够 Digits 位则不变。Res 可以是 Num}
+   如果本身精度不够 Digits 位则不变。Res 可以是 Num。
 
-function BigBinaryTrunc(const Res: TCnBigBinary; const Num: TCnBigBinary): Boolean;
-{* 将大二进制浮点数 Trunc 到只剩整数。Res 可以是 Num}
+   参数：
+     Res: TCnBigBinary                    - 返回舍入后的大二进制浮点数
+     Num: TCnBigBinary                    - 待舍入的大二进制浮点数
+     Digits: Integer                      - 保留小数点后几个二进制位
+     RoundMode: TCnBigRoundMode           - 舍入的规则
 
-function BigBinaryTruncTo(const Res: TCnBigNumber; const Num: TCnBigBinary): Boolean;
-{* 将大二进制浮点数 Trunc 到只剩整数并放大数中。}
+   返回值：Boolean                        - 返回舍入是否成功
+}
 
-function BigBinaryDebugDump(const Num: TCnBigBinary): string;
-{* 打印大二进制浮点数内部信息}
+function BigBinaryTrunc(Res: TCnBigBinary; Num: TCnBigBinary): Boolean;
+{* 将大二进制浮点数 Trunc 到只剩整数。Res 可以是 Num。
+
+   参数：
+     Res: TCnBigBinary                    - 返回的大二进制浮点数
+     Num: TCnBigBinary                    - 待处理的大二进制浮点数
+
+   返回值：Boolean                        - 返回处理是否成功
+}
+
+function BigBinaryTruncTo(Res: TCnBigNumber; Num: TCnBigBinary): Boolean;
+{* 将大二进制浮点数 Trunc 到只剩整数并放置于大数中。
+
+   参数：
+     Res: TCnBigNumber                    - 返回的大整数
+     Num: TCnBigBinary                    - 待处理的大二进制浮点数
+
+   返回值：Boolean                        - 返回处理是否成功
+}
+
+function BigBinaryDebugDump(Num: TCnBigBinary): string;
+{* 打印大二进制浮点数内部信息。
+
+   参数：
+     Num: TCnBigBinary                    - 待打印的大二进制浮点数
+
+   返回值：string                         - 返回内部信息字符串
+}
 
 var
   CnBigDecimalOne: TCnBigDecimal = nil;     // 表示 1 的常量
@@ -611,7 +1307,7 @@ begin
   Num.MulWord(SCN_POWER_TENS32[R]);  // 补上乘剩下的
 end;
 
-procedure BigDecimalClear(const Num: TCnBigDecimal);
+procedure BigDecimalClear(Num: TCnBigDecimal);
 begin
   if Num <> nil then
   begin
@@ -620,7 +1316,7 @@ begin
   end;
 end;
 
-function BigDecimalSetDec(const Buf: string; const Res: TCnBigDecimal): Boolean;
+function BigDecimalSetDec(const Buf: string; Res: TCnBigDecimal): Boolean;
 var
   Neg, ENeg: Boolean;
   E, DC: Integer;
@@ -715,14 +1411,14 @@ begin
   Result := True;
 end;
 
-function BigDecimalSetWord(W: Cardinal; const Res: TCnBigDecimal): Boolean;
+function BigDecimalSetWord(W: Cardinal; Res: TCnBigDecimal): Boolean;
 begin
   Res.FValue.SetWord(W);
   Res.FScale := 0;
   Result := True;
 end;
 
-function BigDecimalSetInt64(W: Int64; const Res: TCnBigDecimal): Boolean;
+function BigDecimalSetInt64(W: Int64; Res: TCnBigDecimal): Boolean;
 begin
   Res.FValue.SetInt64(W);
   Res.FScale := 0;
@@ -730,7 +1426,7 @@ begin
 end;
 
 function InternalBigDecimalSetFloat(Neg: Boolean; IntExponent: Integer; IntMantissa: TUInt64;
-  const Res: TCnBigDecimal): Boolean;
+  Res: TCnBigDecimal): Boolean;
 var
   C: Integer;
 begin
@@ -759,7 +1455,7 @@ begin
   Result := True;
 end;
 
-function BigDecimalSetSingle(const Value: Single; const Res: TCnBigDecimal): Boolean;
+function BigDecimalSetSingle(Value: Single; Res: TCnBigDecimal): Boolean;
 var
   N: Boolean;
   E: Integer;
@@ -781,7 +1477,7 @@ begin
   Result := InternalBigDecimalSetFloat(N, E - CN_SINGLE_SIGNIFICAND_BITLENGTH, TUInt64(S), Res);
 end;
 
-function BigDecimalSetDouble(const Value: Double; const Res: TCnBigDecimal): Boolean;
+function BigDecimalSetDouble(Value: Double; Res: TCnBigDecimal): Boolean;
 var
   N: Boolean;
   E: Integer;
@@ -803,7 +1499,7 @@ begin
   Result := InternalBigDecimalSetFloat(N, E - CN_DOUBLE_SIGNIFICAND_BITLENGTH, S, Res);
 end;
 
-function BigDecimalSetExtended(const Value: Extended; const Res: TCnBigDecimal): Boolean;
+function BigDecimalSetExtended(Value: Extended; Res: TCnBigDecimal): Boolean;
 var
   N: Boolean;
   E: Integer;
@@ -825,7 +1521,7 @@ begin
   Result := InternalBigDecimalSetFloat(N, E - CN_EXTENDED_SIGNIFICAND_BITLENGTH, S, Res);
 end;
 
-function BigDecimalToString(const Num: TCnBigDecimal): string;
+function BigDecimalToString(Num: TCnBigDecimal): string;
 var
   C: Char;
   S: string;
@@ -864,8 +1560,8 @@ begin
     Result := C + Result;
 end;
 
-// 通过巨大的变换让大浮点数的原始值等于 Value / 2^Scale，并且有效数字满足特定位数 
-function InternalBigDecimalConvertToBitsCount(const Num: TCnBigDecimal; BitsCount: Integer): Boolean;
+// 通过巨大的变换让大十进制浮点数的原始值等于 Value / 2^Scale，并且有效数字满足特定位数 
+function InternalBigDecimalConvertToBitsCount(Num: TCnBigDecimal; BitsCount: Integer): Boolean;
 var
   C, D: Integer;
   Di, R: TCnBigNumber;
@@ -926,7 +1622,7 @@ begin
   end;
 end;
 
-function BigDecimalToSingle(const Num: TCnBigDecimal): Single;
+function BigDecimalToSingle(Num: TCnBigDecimal): Single;
 var
   T: TCnBigDecimal;
   E: Integer;
@@ -947,7 +1643,7 @@ begin
   end;
 end;
 
-function BigDecimalToDouble(const Num: TCnBigDecimal): Double;
+function BigDecimalToDouble(Num: TCnBigDecimal): Double;
 var
   T: TCnBigDecimal;
   E: Integer;
@@ -968,7 +1664,7 @@ begin
   end;
 end;
 
-function BigDecimalToExtended(const Num: TCnBigDecimal): Extended;
+function BigDecimalToExtended(Num: TCnBigDecimal): Extended;
 var
   T: TCnBigDecimal;
   E: Integer;
@@ -989,7 +1685,7 @@ begin
   end;
 end;
 
-function BigDecimalCompare(const Num1, Num2: TCnBigDecimal): Integer;
+function BigDecimalCompare(Num1, Num2: TCnBigDecimal): Integer;
 var
   T: TCnBigNumber;
   L: Integer;
@@ -1043,7 +1739,7 @@ begin
   end;
 end;
 
-function BigDecimalCompare(const Num1: TCnBigDecimal; Num2: Int64): Integer;
+function BigDecimalCompare(Num1: TCnBigDecimal; Num2: Int64): Integer;
 var
   T: TCnBigDecimal;
 begin
@@ -1066,7 +1762,7 @@ begin
   end;
 end;
 
-function BigDecimalCompare(const Num1: TCnBigDecimal; Num2: Extended): Integer;
+function BigDecimalCompare(Num1: TCnBigDecimal; Num2: Extended): Integer;
 var
   T: TCnBigDecimal;
 begin
@@ -1079,7 +1775,7 @@ begin
   end;
 end;
 
-procedure BigDecimalCopy(const Dest, Source: TCnBigDecimal);
+procedure BigDecimalCopy(Dest: TCnBigDecimal; Source: TCnBigDecimal);
 begin
   if (Source <> nil) and (Dest <> nil) and (Source <> Dest) then
   begin
@@ -1088,14 +1784,14 @@ begin
   end;
 end;
 
-function BigDecimalGetPrecision(const Num: TCnBigDecimal): Integer;
+function BigDecimalGetPrecision(Num: TCnBigDecimal): Integer;
 begin
   Result := 0;
   if Num <> nil then
     Result := BigNumberGetTenPrecision(Num.FValue); // 得到十进制整数位数
 end;
 
-function BigDecimalGetIntDecimalCount(const Num: TCnBigDecimal;
+function BigDecimalGetIntDecimalCount(Num: TCnBigDecimal;
   out IntCount: Integer; out DecimalCount: Integer): Boolean;
 var
   P: Integer;
@@ -1121,7 +1817,7 @@ begin
   end;
 end;
 
-function BigDecimalGetHighScale(const Num: TCnBigDecimal): Integer;
+function BigDecimalGetHighScale(Num: TCnBigDecimal): Integer;
 begin
   Result := 0;
   if Num <> nil then
@@ -1134,8 +1830,8 @@ begin
   end;
 end;
 
-function BigDecimalAdd(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
-  const Num2: TCnBigDecimal): Boolean;
+function BigDecimalAdd(Res: TCnBigDecimal; Num1: TCnBigDecimal;
+  Num2: TCnBigDecimal): Boolean;
 var
   T: TCnBigNumber;
   L: Integer;
@@ -1189,8 +1885,8 @@ begin
   end;
 end;
 
-function BigDecimalSub(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
-  const Num2: TCnBigDecimal): Boolean;
+function BigDecimalSub(Res: TCnBigDecimal; Num1: TCnBigDecimal;
+  Num2: TCnBigDecimal): Boolean;
 var
   T: TCnBigNumber;
   L: Integer;
@@ -1245,8 +1941,8 @@ begin
   end;
 end;
 
-function BigDecimalMul(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
-  const Num2: TCnBigDecimal; MulPrecision: Integer): Boolean;
+function BigDecimalMul(Res: TCnBigDecimal; Num1: TCnBigDecimal;
+  Num2: TCnBigDecimal; MulPrecision: Integer): Boolean;
 begin
   if Num1.FValue.IsZero or Num2.FValue.IsZero then
   begin
@@ -1263,8 +1959,8 @@ begin
   end;
 end;
 
-function BigDecimalDiv(const Res: TCnBigDecimal; const Num1: TCnBigDecimal;
-  const Num2: TCnBigDecimal; DivPrecision: Integer): Boolean;
+function BigDecimalDiv(Res: TCnBigDecimal; Num1: TCnBigDecimal;
+  Num2: TCnBigDecimal; DivPrecision: Integer): Boolean;
 var
   S: Boolean;
   M, TS: Integer;
@@ -1320,7 +2016,7 @@ begin
   end;
 end;
 
-procedure BigDecimalSqrt2(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+procedure BigDecimalSqrt2(Res: TCnBigDecimal; Num: TCnBigDecimal;
   RoundCount: Integer);
 var
   I: Integer;
@@ -1374,7 +2070,7 @@ begin
   end;
 end;
 
-function BigDecimalSqrt(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+function BigDecimalSqrt(Res: TCnBigDecimal; Num: TCnBigDecimal;
   SqrtPrecision: Integer = 0): Boolean;
 var
   X0, R, T, D, G: TCnBigDecimal;
@@ -1451,7 +2147,7 @@ begin
   end;
 end;
 
-function BigDecimalChangeToScale(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+function BigDecimalChangeToScale(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Scale: Integer; RoundMode: TCnBigRoundMode): Boolean;
 var
   DS: Integer;
@@ -1500,7 +2196,7 @@ begin
   end;
 end;
 
-function BigDecimalRoundToDigits(const Res: TCnBigDecimal; const Num: TCnBigDecimal;
+function BigDecimalRoundToDigits(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Digits: Integer; RoundMode: TCnBigRoundMode = drTowardsZero): Boolean;
 var
   DS: Integer;
@@ -1543,7 +2239,7 @@ begin
   end;
 end;
 
-function BigDecimalTrunc(const Res: TCnBigDecimal; const Num: TCnBigDecimal): Boolean;
+function BigDecimalTrunc(Res: TCnBigDecimal; Num: TCnBigDecimal): Boolean;
 begin
   if Num.FScale <= 0 then // 无小数部分
   begin
@@ -1557,7 +2253,7 @@ begin
   end;
 end;
 
-procedure BigDecimalToBigRational(const Res: TCnBigRational; const Num: TCnBigDecimal);
+procedure BigDecimalToBigRational(Res: TCnBigRational; Num: TCnBigDecimal);
 var
   T: TCnBigNumber;
 begin
@@ -1587,7 +2283,7 @@ begin
   end;
 end;
 
-procedure BigRationalToBigDecimal(const Res: TCnBigDecimal; const Num: TCnBigRational;
+procedure BigRationalToBigDecimal(Res: TCnBigDecimal; Num: TCnBigRational;
   Digits: Integer = 20);
 var
   S: string;
@@ -1600,7 +2296,7 @@ begin
   end;
 end;
 
-function BigDecimalDebugDump(const Num: TCnBigDecimal): string;
+function BigDecimalDebugDump(Num: TCnBigDecimal): string;
 begin
   Result := '10 Scale: ' + IntToStr(Num.FScale) + '. ' + BigNumberDebugDump(Num.FValue);
 end;
@@ -1769,7 +2465,7 @@ begin
   inherited Recycle(Num);
 end;
 
-procedure BigBinaryClear(const Num: TCnBigBinary);
+procedure BigBinaryClear(Num: TCnBigBinary);
 begin
   if Num <> nil then
   begin
@@ -1778,7 +2474,7 @@ begin
   end;
 end;
 
-function BigBinarySetDec(const Buf: string; const Res: TCnBigBinary): Boolean;
+function BigBinarySetDec(const Buf: string; Res: TCnBigBinary): Boolean;
 var
   Neg, ENeg: Boolean;
   E, DC, DMax, I: Integer;
@@ -1956,14 +2652,14 @@ begin
   Result := True;
 end;
 
-function BigBinarySetWord(W: Cardinal; const Res: TCnBigBinary): Boolean;
+function BigBinarySetWord(W: Cardinal; Res: TCnBigBinary): Boolean;
 begin
   Res.FValue.SetWord(W);
   Res.FScale := 0;
   Result := True;
 end;
 
-function BigBinarySetInt64(W: Int64; const Res: TCnBigBinary): Boolean;
+function BigBinarySetInt64(W: Int64; Res: TCnBigBinary): Boolean;
 begin
   Res.FValue.SetInt64(W);
   Res.FScale := 0;
@@ -1971,7 +2667,7 @@ begin
 end;
 
 function InternalBigBinarySetFloat(Neg: Boolean; IntExponent: Integer; IntMantissa: TUInt64;
-  const Res: TCnBigBinary): Boolean;
+  Res: TCnBigBinary): Boolean;
 var
   C: Integer;
 begin
@@ -1999,7 +2695,7 @@ begin
   Result := True;
 end;
 
-function BigBinarySetSingle(const Value: Single; const Res: TCnBigBinary): Boolean;
+function BigBinarySetSingle(Value: Single; Res: TCnBigBinary): Boolean;
 var
   N: Boolean;
   E: Integer;
@@ -2021,7 +2717,7 @@ begin
   Result := InternalBigBinarySetFloat(N, E - 23, TUInt64(S), Res);
 end;
 
-function BigBinarySetDouble(const Value: Double; const Res: TCnBigBinary): Boolean;
+function BigBinarySetDouble(Value: Double; Res: TCnBigBinary): Boolean;
 var
   N: Boolean;
   E: Integer;
@@ -2043,7 +2739,7 @@ begin
   Result := InternalBigBinarySetFloat(N, E - 52, S, Res);
 end;
 
-function BigBinarySetExtended(const Value: Extended; const Res: TCnBigBinary): Boolean;
+function BigBinarySetExtended(Value: Extended; Res: TCnBigBinary): Boolean;
 var
   N: Boolean;
   E: Integer;
@@ -2065,13 +2761,13 @@ begin
   Result := InternalBigBinarySetFloat(N, E - 63, S, Res);
 end;
 
-function BigBinarySetBigNumber(const Num: TCnBigNumber; const Res: TCnBigBinary): Boolean;
+function BigBinarySetBigNumber(Num: TCnBigNumber; Res: TCnBigBinary): Boolean;
 begin
   Res.FScale := 0;
   Result := BigNumberCopy(Res.FValue, Num) <> nil;
 end;
 
-function BigBinaryToString(const Num: TCnBigBinary): string;
+function BigBinaryToString(Num: TCnBigBinary): string;
 var
   T, P10, S: TCnBigNumber;
   I: Integer;
@@ -2141,7 +2837,7 @@ begin
   end;
 end;
 
-function BigBinaryCompare(const Num1, Num2: TCnBigBinary): Integer; overload;
+function BigBinaryCompare(Num1, Num2: TCnBigBinary): Integer; overload;
 var
   T: TCnBigNumber;
   L: Integer;
@@ -2195,7 +2891,7 @@ begin
   end;
 end;
 
-function BigBinaryCompare(const Num1: TCnBigBinary; Num2: Int64): Integer; overload;
+function BigBinaryCompare(Num1: TCnBigBinary; Num2: Int64): Integer; overload;
 var
   T: TCnBigBinary;
 begin
@@ -2219,7 +2915,7 @@ begin
 end;
 
 // 通过值基本不变的变换让大二进制浮点数的有效数字满足特定位数，超长时截断，不够时乘 2 的整数次方补全，并同时都调整 FScale
-function InternalBigBinaryChangeToBitsCount(const Num: TCnBigBinary; BitsCount: Integer): Boolean;
+function InternalBigBinaryChangeToBitsCount(Num: TCnBigBinary; BitsCount: Integer): Boolean;
 var
   C, D: Integer;
 begin
@@ -2242,7 +2938,7 @@ begin
   end;
 end;
 
-function BigBinaryToSingle(const Num: TCnBigBinary): Single;
+function BigBinaryToSingle(Num: TCnBigBinary): Single;
 var
   T: TCnBigBinary;
   E: Integer;
@@ -2263,7 +2959,7 @@ begin
   end;
 end;
 
-function BigBinaryToDouble(const Num: TCnBigBinary): Double;
+function BigBinaryToDouble(Num: TCnBigBinary): Double;
 var
   T: TCnBigBinary;
   E: Integer;
@@ -2284,7 +2980,7 @@ begin
   end;
 end;
 
-function BigBinaryToExtended(const Num: TCnBigBinary): Extended;
+function BigBinaryToExtended(Num: TCnBigBinary): Extended;
 var
   T: TCnBigBinary;
   E: Integer;
@@ -2305,7 +3001,7 @@ begin
   end;
 end;
 
-function BigBinaryCompare(const Num1: TCnBigBinary; Num2: Extended): Integer; overload;
+function BigBinaryCompare(Num1: TCnBigBinary; Num2: Extended): Integer; overload;
 var
   T: TCnBigBinary;
 begin
@@ -2318,7 +3014,7 @@ begin
   end;
 end;
 
-procedure BigBinaryCopy(const Dest, Source: TCnBigBinary);
+procedure BigBinaryCopy(Dest: TCnBigBinary; Source: TCnBigBinary);
 begin
   if (Source <> nil) and (Dest <> nil) and (Source <> Dest) then
   begin
@@ -2327,7 +3023,7 @@ begin
   end;
 end;
 
-function BigBinaryGetHighScale(const Num: TCnBigBinary): Integer;
+function BigBinaryGetHighScale(Num: TCnBigBinary): Integer;
 begin
   Result := 0;
   if Num <> nil then
@@ -2340,8 +3036,8 @@ begin
   end;
 end;
 
-function BigBinaryAdd(const Res: TCnBigBinary; const Num1: TCnBigBinary;
-  const Num2: TCnBigBinary): Boolean;
+function BigBinaryAdd(Res: TCnBigBinary; Num1: TCnBigBinary;
+  Num2: TCnBigBinary): Boolean;
 var
   T: TCnBigNumber;
   L: Integer;
@@ -2395,8 +3091,8 @@ begin
   end;
 end;
 
-function BigBinarySub(const Res: TCnBigBinary; const Num1: TCnBigBinary;
-  const Num2: TCnBigBinary): Boolean;
+function BigBinarySub(Res: TCnBigBinary; Num1: TCnBigBinary;
+  Num2: TCnBigBinary): Boolean;
 var
   T: TCnBigNumber;
   L: Integer;
@@ -2451,8 +3147,8 @@ begin
   end;
 end;
 
-function BigBinaryMul(const Res: TCnBigBinary; const Num1: TCnBigBinary;
-  const Num2: TCnBigBinary; MulPrecision: Integer = 0): Boolean;
+function BigBinaryMul(Res: TCnBigBinary; Num1: TCnBigBinary;
+  Num2: TCnBigBinary; MulPrecision: Integer = 0): Boolean;
 begin
   if Num1.FValue.IsZero or Num2.FValue.IsZero then
   begin
@@ -2469,8 +3165,8 @@ begin
   end;
 end;
 
-function BigBinaryDiv(const Res: TCnBigBinary; const Num1: TCnBigBinary;
-  const Num2: TCnBigBinary; DivPrecision: Integer = 0): Boolean;
+function BigBinaryDiv(Res: TCnBigBinary; Num1: TCnBigBinary; Num2: TCnBigBinary;
+  DivPrecision: Integer = 0): Boolean;
 var
   S: Boolean;
   M, TS: Integer;
@@ -2526,17 +3222,17 @@ begin
   end;
 end;
 
-procedure BigBinaryShiftLeft(const Res: TCnBigBinary; const N: Integer);
+procedure BigBinaryShiftLeft(Res: TCnBigBinary; N: Integer);
 begin
   Dec(Res.FScale, N);
 end;
 
-procedure BigBinaryShiftRight(const Res: TCnBigBinary; const N: Integer);
+procedure BigBinaryShiftRight(Res: TCnBigBinary; N: Integer);
 begin
   Inc(Res.FScale, N);
 end;
 
-function BigBinaryPower(const Res: TCnBigBinary; const N: Integer): Boolean;
+function BigBinaryPower(Res: TCnBigBinary; N: Integer): Boolean;
 begin
   Result := False;
   if N = 0 then
@@ -2584,7 +3280,7 @@ begin
   end;
 end;
 
-function BigBinaryChangeToScale(const Res: TCnBigBinary; const Num: TCnBigBinary;
+function BigBinaryChangeToScale(Res: TCnBigBinary; Num: TCnBigBinary;
   Scale: Integer; RoundMode: TCnBigRoundMode = drTowardsZero): Boolean;
 var
   DS: Integer;
@@ -2620,7 +3316,7 @@ begin
   end;
 end;
 
-function BigBinaryRoundToDigits(const Res: TCnBigBinary; const Num: TCnBigBinary;
+function BigBinaryRoundToDigits(Res: TCnBigBinary; Num: TCnBigBinary;
   Digits: Integer; RoundMode: TCnBigRoundMode = drTowardsZero): Boolean;
 var
   DS: Integer;
@@ -2650,7 +3346,7 @@ begin
   end;
 end;
 
-function BigBinaryTrunc(const Res: TCnBigBinary; const Num: TCnBigBinary): Boolean;
+function BigBinaryTrunc(Res: TCnBigBinary; Num: TCnBigBinary): Boolean;
 begin
   if Num.FScale <= 0 then // 无小数部分
   begin
@@ -2664,7 +3360,7 @@ begin
   end;
 end;
 
-function BigBinaryTruncTo(const Res: TCnBigNumber; const Num: TCnBigBinary): Boolean;
+function BigBinaryTruncTo(Res: TCnBigNumber; Num: TCnBigBinary): Boolean;
 var
   T: TCnBigBinary;
 begin
@@ -2688,7 +3384,7 @@ begin
   end;
 end;
 
-function BigBinaryDebugDump(const Num: TCnBigBinary): string;
+function BigBinaryDebugDump(Num: TCnBigBinary): string;
 begin
   Result := '2 Scale: ' + IntToStr(Num.FScale) + '. ' + BigNumberDebugDump(Num.FValue);
 end;

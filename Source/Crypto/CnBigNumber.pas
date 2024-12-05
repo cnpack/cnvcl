@@ -383,7 +383,22 @@ type
     function CreateObject: TObject; override;
   public
     function Obtain: TCnBigNumber; reintroduce;
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还。
+
+       参数：
+         （无）
+
+       返回值：TCnBigNumber               - 返回的大数对象
+    }
+
     procedure Recycle(Num: TCnBigNumber); reintroduce;
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Num: TCnBigNumber                - 待归还的大数对象
+
+       返回值：（无）
+    }
   end;
 
   TCnExponentBigNumberPair = class(TObject)
