@@ -1884,6 +1884,11 @@ implementation
 uses
   CnFloat;
 
+resourcestring
+  SCnErrorNotAHexPChar = 'Error: NOT a Hex PChar: %c';
+  SCnErrorLengthNotHex = 'Error Length %d: NOT a Hex String';
+  SCnErrorLengthNotHexAnsi = 'Error Length %d: NOT a Hex AnsiString';
+
 var
   FByteOrderIsBigEndian: Boolean = False;
 
@@ -2738,7 +2743,7 @@ begin
     else if (C >= 'a') and (C <= 'f') then
       Res := Res * 16 + Ord(C) - Ord('a') + 10
     else
-      raise Exception.CreateFmt('Error: not a Hex PChar: %c', [C]);
+      raise Exception.CreateFmt(SCnErrorNotAHexPChar, [C]);
   end;
   Result := Res;
 end;
@@ -2809,7 +2814,7 @@ var
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
-    raise Exception.CreateFmt('Error Length %d: not a Hex String', [L]);
+    raise Exception.CreateFmt(SCnErrorLengthNotHex, [L]);
 
   if OutData = nil then
   begin
@@ -2867,7 +2872,7 @@ var
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
-    raise Exception.CreateFmt('Error Length %d: not a Hex String', [L]);
+    raise Exception.CreateFmt(SCnErrorLengthNotHex, [L]);
 
   SetLength(Result, L div 2);
   H := PChar(Hex);
@@ -2882,7 +2887,7 @@ var
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
-    raise Exception.CreateFmt('Error Length %d: not a Hex AnsiString', [L]);
+    raise Exception.CreateFmt(SCnErrorLengthNotHexAnsi, [L]);
 
   SetLength(Result, L div 2);
   for I := 1 to L div 2 do
@@ -2967,7 +2972,7 @@ var
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
-    raise Exception.CreateFmt('Error Length %d: not a Hex String', [L]);
+    raise Exception.CreateFmt(SCnErrorLengthNotHex, [L]);
 
   SetLength(Result, L div 2);
   H := PChar(Hex);
@@ -3019,7 +3024,7 @@ begin
   Result := 0;
   L := Length(Hex);
   if (L mod 2) <> 0 then
-    raise Exception.CreateFmt('Error Length %d: not a Hex String', [L]);
+    raise Exception.CreateFmt(SCnErrorLengthNotHex, [L]);
 
   H := PChar(Hex);
   for I := 1 to L div 2 do

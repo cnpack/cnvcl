@@ -466,6 +466,7 @@ type
 
   public
     constructor Create(ARow: Integer; ACol: Integer); override;
+    {* 构造函数}
 
     property ValueObject[Row, Col: Integer]: TCnEcc3Point read GetValueObject write SetValueObject; default;
     {* 二维数组值}

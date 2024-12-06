@@ -102,8 +102,7 @@ interface
 
 {$I CnPack.inc}
 
-{$DEFINE CN_RSA_USE_CRT}
-// 定义此条件，使用 CRT 进行计算加速。1024 位的私钥运算能够将耗时降低至三分之一
+// 私钥如使用 CRT 进行计算加速，1024 位的私钥运算能够将耗时降低至三分之一
 
 uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnConsts, CnPrime,
@@ -154,24 +153,28 @@ type
   TCnRSAPrivateKey = class(TPersistent)
   {* RSA 私钥}
   private
+    FUseCRT: Boolean;
     FPrimeKey1: TCnBigNumber;
     FPrimeKey2: TCnBigNumber;
     FPrivKeyProduct: TCnBigNumber;
     FPrivKeyExponent: TCnBigNumber;
-{$IFDEF CN_RSA_USE_CRT}
     FDP1: TCnBigNumber;  // CRT 加速的三个中间变量
     FDQ1: TCnBigNumber;
     FQInv: TCnBigNumber;
-{$ENDIF}
     function GetBitsCount: Integer;
     function GetBytesCount: Integer;
   protected
-{$IFDEF CN_RSA_USE_CRT}
     procedure UpdateCRT;
-{$ENDIF}
   public
-    constructor Create; virtual;
+    constructor Create(CRT: Boolean = True); virtual;
+    {* 构造函数。
+
+       参数：
+         CRT: Boolean                     - 是否使用 CRT 进行运算加速，默认使用
+    }
+
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
     {* 从其他对象赋值而来。
@@ -197,6 +200,8 @@ type
     {* 密钥的位数，也即素数乘积 n 的有效位数}
     property BytesCount: Integer read GetBytesCount;
     {* 密钥的字节数，等于素数乘积 n 的有效位数除以 8}
+    property UseCRT: Boolean read FUseCRT;
+    {* 是否使用 CRT 进行运算加速}
   end;
 
   TCnRSAPublicKey = class(TPersistent)
@@ -1223,9 +1228,7 @@ begin
          BigNumberAdd(PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyExponent, R);
 
       // TODO: d 不能太小，不满足时得 Continue
-{$IFDEF CN_RSA_USE_CRT}
       PrivateKey.UpdateCRT;
-{$ENDIF}
     finally
       One.Free;
       S2.Free;
@@ -1344,9 +1347,7 @@ begin
       if BigNumberCompare(PrivateKey.PrivKeyExponent, MinD) <= 0 then
         Continue;
 
-{$IFDEF CN_RSA_USE_CRT}
       PrivateKey.UpdateCRT;
-{$ENDIF}
       Suc := True;
     end;
   finally
@@ -1539,9 +1540,8 @@ begin
           PutIndexedBigIntegerToBigNumber(Reader.Items[10], PrivateKey.PrivKeyExponent);
           PutIndexedBigIntegerToBigNumber(Reader.Items[11], PrivateKey.PrimeKey1);
           PutIndexedBigIntegerToBigNumber(Reader.Items[12], PrivateKey.PrimeKey2);
-{$IFDEF CN_RSA_USE_CRT}
+
           PrivateKey.UpdateCRT;
-{$ENDIF}
         end;
 
         Result := True;
@@ -1572,9 +1572,8 @@ begin
             PutIndexedBigIntegerToBigNumber(Reader.Items[4], PrivateKey.PrivKeyExponent);
             PutIndexedBigIntegerToBigNumber(Reader.Items[5], PrivateKey.PrimeKey1);
             PutIndexedBigIntegerToBigNumber(Reader.Items[6], PrivateKey.PrimeKey2);
-{$IFDEF CN_RSA_USE_CRT}
+
             PrivateKey.UpdateCRT;
-{$ENDIF}
           end;
 
           Result := True;
@@ -1959,50 +1958,49 @@ end;
 // 利用私钥对数据进行解密，返回解密是否成功
 function CnRSADecrypt(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Data: TCnBigNumber): Boolean;
-{$IFDEF CN_RSA_USE_CRT}
 var
   M1, M2: TCnBigNumber;
-{$ENDIF}
 begin
-{$IFDEF CN_RSA_USE_CRT}
-  M1 := nil;
-  M2 := nil;
+  if PrivateKey.UseCRT then
+  begin
+    M1 := nil;
+    M2 := nil;
 
-  // m1 = c^dP mod p
-  // m2 = c^dQ mod q
-  // h = qInv.(m1 - m2) mod p
-  // m = m2 + h.q
-
-  try
-    M1 := TCnBigNumber.Create;
-    BigNumberMontgomeryPowerMod(M1, Data, PrivateKey.FDP1, PrivateKey.FPrimeKey1);
     // m1 = c^dP mod p
-
-    M2 := TCnBigNumber.Create;
-    BigNumberMontgomeryPowerMod(M2, Data, PrivateKey.FDQ1, PrivateKey.FPrimeKey2);
     // m2 = c^dQ mod q
+    // h = qInv.(m1 - m2) mod p
+    // m = m2 + h.q
 
-    // 以下复用 m1
-    BigNumberSubMod(M1, M1, M2, PrivateKey.FPrimeKey1);
-    // m1 := m1 - m2 mod p
+    try
+      M1 := TCnBigNumber.Create;
+      BigNumberMontgomeryPowerMod(M1, Data, PrivateKey.FDP1, PrivateKey.FPrimeKey1);
+      // m1 = c^dP mod p
 
-    BigNumberDirectMulMod(M1, PrivateKey.FQInv, M1, PrivateKey.FPrimeKey1);
-    // m1 := qInv * m1 mod p
+      M2 := TCnBigNumber.Create;
+      BigNumberMontgomeryPowerMod(M2, Data, PrivateKey.FDQ1, PrivateKey.FPrimeKey2);
+      // m2 = c^dQ mod q
 
-    BigNumberMul(M1, M1, PrivateKey.FPrimeKey2);
-    // m1 := m1 * q
+      // 以下复用 m1
+      BigNumberSubMod(M1, M1, M2, PrivateKey.FPrimeKey1);
+      // m1 := m1 - m2 mod p
 
-    BigNumberAdd(Res, M2, M1);
-    // m = m2 + m1
+      BigNumberDirectMulMod(M1, PrivateKey.FQInv, M1, PrivateKey.FPrimeKey1);
+      // m1 := qInv * m1 mod p
 
-    Result := True;
-  finally
-    M2.Free;
-    M1.Free;
-  end;
-{$ELSE}
-  Result := RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res);
-{$ENDIF}
+      BigNumberMul(M1, M1, PrivateKey.FPrimeKey2);
+      // m1 := m1 * q
+
+      BigNumberAdd(Res, M2, M1);
+      // m = m2 + m1
+
+      Result := True;
+    finally
+      M2.Free;
+      M1.Free;
+    end;
+  end
+  else
+    Result := RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res);
 end;
 
 // 利用公钥对数据进行解密，返回解密是否成功
@@ -2022,11 +2020,14 @@ begin
     BigNumberCopy(FPrimeKey2, (Source as TCnRSAPrivateKey).PrimeKey2);
     BigNumberCopy(FPrivKeyProduct, (Source as TCnRSAPrivateKey).PrivKeyProduct);
     BigNumberCopy(FPrivKeyExponent, (Source as TCnRSAPrivateKey).PrivKeyExponent);
-{$IFDEF CN_RSA_USE_CRT}
-    BigNumberCopy(FDP1, (Source as TCnRSAPrivateKey).FDP1);
-    BigNumberCopy(FDQ1, (Source as TCnRSAPrivateKey).FDQ1);
-    BigNumberCopy(FQInv, (Source as TCnRSAPrivateKey).FQInv);
-{$ENDIF}
+
+    // 都用 CRT 加速时复制这仨才有意义
+    if FUseCRT and (Source as TCnRSAPrivateKey).UseCRT then
+    begin
+      BigNumberCopy(FDP1, (Source as TCnRSAPrivateKey).FDP1);
+      BigNumberCopy(FDQ1, (Source as TCnRSAPrivateKey).FDQ1);
+      BigNumberCopy(FQInv, (Source as TCnRSAPrivateKey).FQInv);
+    end;
   end
   else
     inherited;
@@ -2040,12 +2041,13 @@ begin
   FPrivKeyExponent.Clear;
 end;
 
-{$IFDEF CN_RSA_USE_CRT}
-
 procedure TCnRSAPrivateKey.UpdateCRT;
 var
   T: TCnBigNumber;
 begin
+  if not FUseCRT then
+    Exit;
+
   T := TCnBigNumber.Create;
   try
     if BigNumberCompare(FPrimeKey1, FPrimeKey2) < 0 then // 确保 p > q
@@ -2068,29 +2070,33 @@ begin
   end;
 end;
 
-{$ENDIF}
-
-constructor TCnRSAPrivateKey.Create;
+constructor TCnRSAPrivateKey.Create(CRT: Boolean);
 begin
-  inherited;
+  inherited Create;
+  FUseCRT := CRT;
+
   FPrimeKey1 := TCnBigNumber.Create;
   FPrimeKey2 := TCnBigNumber.Create;
   FPrivKeyProduct := TCnBigNumber.Create;
   FPrivKeyExponent := TCnBigNumber.Create;
-{$IFDEF CN_RSA_USE_CRT}
-  FDP1 := TCnBigNumber.Create;
-  FDQ1 := TCnBigNumber.Create;
-  FQInv := TCnBigNumber.Create;
-{$ENDIF}
+
+  if FUseCRT then
+  begin
+    FDP1 := TCnBigNumber.Create;
+    FDQ1 := TCnBigNumber.Create;
+    FQInv := TCnBigNumber.Create;
+  end;
 end;
 
 destructor TCnRSAPrivateKey.Destroy;
 begin
-{$IFDEF CN_RSA_USE_CRT}
-  FQInv.Free;
-  FDQ1.Free;
-  FDP1.Free;
-{$ENDIF}
+  if FUseCRT then
+  begin
+    FQInv.Free;
+    FDQ1.Free;
+    FDP1.Free;
+  end;
+
   FPrivKeyExponent.Free;
   FPrivKeyProduct.Free;
   FPrimeKey2.Free;
