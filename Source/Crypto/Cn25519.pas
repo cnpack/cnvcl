@@ -5419,22 +5419,22 @@ begin
   // Æ´½á¹û
   UInt128Copy(T, C0);
   UInt128ShiftRight(T, 51);
-  UInt128Add(C1, T.Lo64);
+  UInt128Add(C1, C1, T.Lo64);
   Res[0] := C0.Lo64 and SCN_LOW51_MASK;
 
   UInt128Copy(T, C1);
   UInt128ShiftRight(T, 51);
-  UInt128Add(C2, T.Lo64);
+  UInt128Add(C2, C2, T.Lo64);
   Res[1] := C1.Lo64 and SCN_LOW51_MASK;
 
   UInt128Copy(T, C2);
   UInt128ShiftRight(T, 51);
-  UInt128Add(C3, T.Lo64);
+  UInt128Add(C3, C3, T.Lo64);
   Res[2] := C2.Lo64 and SCN_LOW51_MASK;
 
   UInt128Copy(T, C3);
   UInt128ShiftRight(T, 51);
-  UInt128Add(C4, T.Lo64);
+  UInt128Add(C4, C4, T.Lo64);
   Res[3] := C3.Lo64 and SCN_LOW51_MASK;
 
   UInt128Copy(T, C4);

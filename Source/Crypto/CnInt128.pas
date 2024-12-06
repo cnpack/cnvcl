@@ -301,7 +301,7 @@ function Int128IsBitSet(var N: TCnInt128; Bit: Integer): Boolean;
      var N: TCnInt128                     - 待计算的 128 位有符号整数
      Bit: Integer                         - 位索引号
 
-   返回值：Boolean                        - 返回是否为 1
+   返回值：Boolean                        - 返回该位是否为 1
 }
 
 function Int128IsNegative(var N: TCnInt128): Boolean;
@@ -382,307 +382,312 @@ function StrToInt128(const S: string): TCnInt128;
 // ======================== UInt128 计算函数 ===================================
 
 procedure UInt128Set(var R: TCnUInt128; Lo: TUInt64; Hi: TUInt64); overload;
-{* 分别设置 128 位无符号整数的高低 64 位值
+{* 分别设置 128 位无符号整数的高低 64 位值。
 
    参数：
-     var R: TCnUInt128                    -
-     Lo: TUInt64                          -
-     Hi: TUInt64                          -
+     var R: TCnUInt128                    - 待设置的 128 位无符号整数
+     Lo: TUInt64                          - 低 64 位值
+     Hi: TUInt64                          - 高 64 位值
 
    返回值：（无）
 }
 
 procedure UInt128Set(var R: TCnUInt128; Lo: TUInt64); overload;
-{* 设置 128 位无符号整数的低 64 位值，高位置 0
+{* 设置 128 位无符号整数的低 64 位值，高位置 0。
 
    参数：
-     var R: TCnUInt128                    -
-     Lo: TUInt64                          -
+     var R: TCnUInt128                    - 待设置的 128 位无符号整数
+     Lo: TUInt64                          - 低 64 位值
 
    返回值：（无）
 }
 
 procedure UInt128Copy(var D: TCnUInt128; var S: TCnUInt128);
-{* 复制 128 位无符号整数
+{* 复制 128 位无符号整数。
 
    参数：
-     var D: TCnUInt128                    -
-     var S: TCnUInt128                    -
+     var D: TCnUInt128                    - 目的 128 位无符号整数
+     var S: TCnUInt128                    - 源 128 位无符号整数
 
    返回值：（无）
 }
 
 function UInt128IsZero(var N: TCnUInt128): Boolean;
-{* 判断 一 128 位无符号整数是否是 0
+{* 判断 一 128 位无符号整数是否是 0。
 
    参数：
-     var N: TCnUInt128                    -
+     var N: TCnUInt128                    - 待判断的 128 位无符号整数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否是 0
 }
 
 procedure UInt128SetZero(var N: TCnUInt128);
-{* 将一 128 位无符号整数置 0
+{* 将一 128 位无符号整数置 0。
 
    参数：
-     var N: TCnUInt128                    -
+     var N: TCnUInt128                    - 待设置的 128 位无符号整数
 
    返回值：（无）
 }
 
-procedure UInt128Add(var R: TCnUInt128; V: TUInt64); overload;
-{* 给一 128 位无符号整数加上一个 64 位无符号数
+procedure UInt128Add(var R: TCnUInt128; var A: TCnUInt128; V: TUInt64); overload;
+{* 给一 128 位无符号整数加上一个 64 位无符号整数。
 
    参数：
-     var R: TCnUInt128                    -
-     V: TUInt64                           -
+     var R: TCnUInt128                    - 和
+     var A: TCnUInt128                    - 加数一
+     V: TUInt64                           - 加数二
 
    返回值：（无）
 }
 
 procedure UInt128Add(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128); overload;
-{* 128 位无符号整数相加，不考虑溢出的情况。R、A、B 可以相同
+{* 128 位无符号整数相加，不考虑溢出的情况。R、A、B 可以相同。
 
    参数：
-     var R: TCnUInt128                    -
-     var A: TCnUInt128                    -
-     var B: TCnUInt128                    -
+     var R: TCnUInt128                    - 和
+     var A: TCnUInt128                    - 加数一
+     var B: TCnUInt128                    - 加数二
 
    返回值：（无）
 }
 
 procedure UInt128Sub(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128);
-{* 128 位无符号整数相减，不考虑溢出的情况。R、A、B 可以相同
+{* 128 位无符号整数相减，不考虑溢出的情况。R、A、B 可以相同。
 
    参数：
-     var R: TCnUInt128                    -
-     var A: TCnUInt128                    -
-     var B: TCnUInt128                    -
+     var R: TCnUInt128                    - 差
+     var A: TCnUInt128                    - 被减数
+     var B: TCnUInt128                    - 减数
 
    返回值：（无）
 }
 
 procedure UInt128Mul(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128; ResHi: PCnUInt128 = nil);
-{* 128 位无符号整数相乘，有溢出则超过 128 位的放 ResHi 中
-  如传 nil 且溢出则抛异常。R、A、B 可以相同
+{* 128 位无符号整数相乘，有溢出则超过 128 位的放 ResHi 中。
+   ResHi 如传 nil 且溢出则抛异常。R、A、B 可以相同。
 
    参数：
-     var R: TCnUInt128                    -
-     var A: TCnUInt128                    -
-     var B: TCnUInt128                    -
-     ResHi: PCnUInt128                    -
+     var R: TCnUInt128                    - 积
+     var A: TCnUInt128                    - 乘数一
+     var B: TCnUInt128                    - 乘数二
+     ResHi: PCnUInt128                    - 溢出位存放地址，如为 nil，碰到溢出则抛异常
 
    返回值：（无）
 }
 
 procedure UInt128DivMod(var A: TCnUInt128; var B: TCnUInt128; var R: TCnUInt128; var M: TCnUInt128);
-{* 128 位无符号整数整除求余，A / B = R ... M。A、B、R、M 可以复用但 R M 不能相同
+{* 128 位无符号整数整除求余，A / B = R ... M。A、B、R、M 可以复用但 R M 不能相同。
 
    参数：
-     var A: TCnUInt128                    -
-     var B: TCnUInt128                    -
-     var R: TCnUInt128                    -
-     var M: TCnUInt128                    -
+     var A: TCnUInt128                    - 被除数
+     var B: TCnUInt128                    - 除数
+     var R: TCnUInt128                    - 商
+     var M: TCnUInt128                    - 余数
 
    返回值：（无）
 }
 
 procedure UInt128Div(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128);
-{* 128 位无符号整数整除，R = A div B。R、A、B 可以相同
+{* 128 位无符号整数整除，R = A div B。R、A、B 可以相同。
 
    参数：
-     var R: TCnUInt128                    -
-     var A: TCnUInt128                    -
-     var B: TCnUInt128                    -
+     var R: TCnUInt128                    - 商
+     var A: TCnUInt128                    - 被除数
+     var B: TCnUInt128                    - 除数
 
    返回值：（无）
 }
 
 procedure UInt128Mod(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128);
-{* 128 位无符号整数求余，R = A mod B。R、A、B 可以相同
+{* 128 位无符号整数求余，R = A mod B。R、A、B 可以相同。
 
    参数：
-     var R: TCnUInt128                    -
-     var A: TCnUInt128                    -
-     var B: TCnUInt128                    -
+     var R: TCnUInt128                    - 余数
+     var A: TCnUInt128                    - 被除数
+     var B: TCnUInt128                    - 除数
 
    返回值：（无）
 }
 
 procedure UInt128ShiftLeft(var N: TCnUInt128; S: Integer);
-{* 128 位无符号整数按位左移 S 位，如 S 为负，表示右移
+{* 128 位无符号整数按位左移 S 位，如 S 为负，表示右移。
 
    参数：
-     var N: TCnUInt128                    -
-     S: Integer                           -
+     var N: TCnUInt128                    - 待移位的 128 位无符号整数
+     S: Integer                           - 左移位数
 
    返回值：（无）
 }
 
 procedure UInt128ShiftRight(var N: TCnUInt128; S: Integer);
-{* 128 位无符号整数按位右移 S 位，如 S 为负，表示左移
+{* 128 位无符号整数按位右移 S 位，如 S 为负，表示左移。
 
    参数：
-     var N: TCnUInt128                    -
-     S: Integer                           -
+     var N: TCnUInt128                    - 待移位的 128 位无符号整数
+     S: Integer                           - 右移位数
 
    返回值：（无）
 }
 
 procedure UInt128And(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128);
-{* 两个 128 位无符号整数按位与
+{* 两个 128 位无符号整数按位与。
 
    参数：
-     var R: TCnUInt128                    -
-     var A: TCnUInt128                    -
-     var B: TCnUInt128                    -
+     var R: TCnUInt128                    - 按位与结果
+     var A: TCnUInt128                    - 参与按位与的运算参数一
+     var B: TCnUInt128                    - 参与按位与的运算参数二
 
    返回值：（无）
 }
 
 procedure UInt128Or(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128);
-{* 两个 128 位无符号整数按位或
+{* 两个 128 位无符号整数按位或。
 
    参数：
-     var R: TCnUInt128                    -
-     var A: TCnUInt128                    -
-     var B: TCnUInt128                    -
+     var R: TCnUInt128                    - 按位或结果
+     var A: TCnUInt128                    - 参与按位异或的运算参数一
+     var B: TCnUInt128                    - 参与按位异或的运算参数二
 
    返回值：（无）
 }
 
 procedure UInt128Xor(var R: TCnUInt128; var A: TCnUInt128; var B: TCnUInt128);
-{* 两个 128 位无符号整数按位异或
+{* 两个 128 位无符号整数按位异或。
 
    参数：
-     var R: TCnUInt128                    -
-     var A: TCnUInt128                    -
-     var B: TCnUInt128                    -
+     var R: TCnUInt128                    - 按位异或结果
+     var A: TCnUInt128                    - 参与按位异或的运算参数一
+     var B: TCnUInt128                    - 参与按位异或的运算参数二
 
    返回值：（无）
 }
 
 procedure UInt128Not(var N: TCnUInt128);
-{* 128 位无符号整数求反
+{* 128 位无符号整数求反。
 
    参数：
-     var N: TCnUInt128                    -
+     var N: TCnUInt128                    - 待求反的 128 位无符号整数
 
    返回值：（无）
 }
 
 procedure UInt128SetBit(var N: TCnUInt128; Bit: Integer);
-{* 将一 128 位无符号整数的某一位置 1，Bit 从 0 到 127
+{* 将一 128 位无符号整数的某一位置 1，Bit 从 0 到 127。
 
    参数：
-     var N: TCnUInt128                    -
-     Bit: Integer                         -
+     var N: TCnUInt128                    - 待置位的 128 位无符号整数
+     Bit: Integer                         - 位索引号
 
    返回值：（无）
 }
 
 procedure UInt128ClearBit(var N: TCnUInt128; Bit: Integer);
-{* 将一 128 位无符号整数的某一位置 0，Bit 从 0 到 127
+{* 将一 128 位无符号整数的某一位置 0，Bit 从 0 到 127。
 
    参数：
-     var N: TCnUInt128                    -
-     Bit: Integer                         -
+     var N: TCnUInt128                    - 待置位的 128 位无符号整数
+     Bit: Integer                         - 位索引号
 
    返回值：（无）
 }
 
 function UInt128IsBitSet(var N: TCnUInt128; Bit: Integer): Boolean;
-{* 返回一 128 位无符号整数的某一位是否是 0，Bit 从 0 到 127
+{* 返回一 128 位无符号整数的某一位是否是 0，Bit 从 0 到 127。
 
    参数：
-     var N: TCnUInt128                    -
-     Bit: Integer                         -
+     var N: TCnUInt128                    - 待计算的 128 位无符号整数
+     Bit: Integer                         - 位索引号
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回该位是否为 1
 }
 
 function UInt128Equal(var A: TCnUInt128; var B: TCnUInt128): Boolean; overload;
-{* 判断两个 128 位无符号整数是否相等
+{* 判断两个 128 位无符号整数是否相等。
 
    参数：
-     var A: TCnUInt128                    -
-     var B: TCnUInt128                    -
+     var A: TCnUInt128                    - 待判断的 128 位无符号整数一
+     var B: TCnUInt128                    - 待判断的 128 位无符号整数二
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相等
 }
 
 function UInt128Equal(var A: TCnUInt128; B: TUInt64): Boolean; overload;
-{* 判断一个 128 位无符号整数与一个 Int64/UInt64 是否相等
+{* 判断一个 128 位无符号整数与一个 Int64/UInt64 是否相等。
 
    参数：
-     var A: TCnUInt128                    -
-     B: TUInt64                           -
+     var A: TCnUInt128                    - 待判断的 128 位无符号整数
+     B: TUInt64                           - 待判断的 64 位整数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相等
 }
 
 function UInt128Compare(var A: TCnUInt128; var B: TCnUInt128): Integer;
-{* 比较两个 128 位无符号整数，大于等于小于分别返回 1、0、-1
+{* 比较两个 128 位无符号整数，分别根据比较的结果是大于、等于还是小于来返回 1、0、-1。
 
    参数：
-     var A: TCnUInt128                    -
-     var B: TCnUInt128                    -
+     var A: TCnUInt128                    - 待比较的 128 位无符号整数一
+     var B: TCnUInt128                    - 待比较的 128 位无符号整数二
 
-   返回值：Integer                        -
+   返回值：Integer                        - 返回比较结果
 }
 
 function IsUInt128AddOverflow(var A: TCnUInt128; var B: TCnUInt128): Boolean;
-{* 判断两个 64 位无符号数相加是否溢出 128 位无符号上限
+{* 判断两个 64 位无符号数相加是否溢出 128 位无符号上限。
 
    参数：
-     var A: TCnUInt128                    -
-     var B: TCnUInt128                    -
+     var A: TCnUInt128                    - 加数一
+     var B: TCnUInt128                    - 加数二
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否溢出
 }
 
 function UInt128ToHex(var N: TCnUInt128): string;
-{* 将 128 位无符号整数转换为十六进制字符串
+{* 将 128 位无符号整数转换为十六进制字符串。
 
    参数：
-     var N: TCnUInt128                    -
+     var N: TCnUInt128                    - 待转换的 128 位无符号整数
 
-   返回值：string                         -
+   返回值：string                         - 返回十六进制字符串
 }
 
 function HexToUInt128(const S: string): TCnUInt128;
-{* 将十进制字符串转换为 128 位无符号整数
+{* 将十六进制字符串转换为 128 位无符号整数。
 
    参数：
-     const S: string                      -
+     const S: string                      - 待转换的十六进制字符串
 
-   返回值：TCnUInt128                     -
+   返回值：TCnUInt128                     - 返回 128 位无符号整数
 }
 
 function UInt128ToStr(var N: TCnUInt128): string;
-{* 将 128 位无符号整数转换为十进制字符串
+{* 将 128 位无符号整数转换为十进制字符串。
 
    参数：
-     var N: TCnUInt128                    -
+     var N: TCnUInt128                    - 待转换的 128 位无符号整数
 
-   返回值：string                         -
+   返回值：string                         - 返回十进制字符串
 }
 
 function StrToUInt128(const S: string): TCnUInt128;
-{* 将十进制字符串转换为 128 位无符号整数
+{* 将十进制字符串转换为 128 位无符号整数。
 
    参数：
-     const S: string                      -
+     const S: string                      - 待转换的十进制字符串
 
-   返回值：TCnUInt128                     -
+   返回值：TCnUInt128                     - 返回 128 位无符号整数
 }
 
 var
   CnInt128Zero: TCnInt128 = (Lo64: 0; Hi64: 0);
+  {* 代表 0 的 128 位有符号整数常量}
   CnInt128One: TCnInt128 = (Lo64:1; Hi64: 0);
+  {* 代表 1 的 128 位有符号整数常量}
 
   CnUInt128Zero: TCnUInt128 = (Lo64: 0; Hi64: 0);
+  {* 代表 0 的 128 位无符号整数常量}
   CnUInt128One: TCnUInt128 = (Lo64:1; Hi64: 0);
+  {* 代表 0 的 128 位无符号整数常量}
 
 implementation
 
@@ -1224,11 +1229,11 @@ begin
   R.Hi64 := A.Hi64 + B.Hi64 + C;
 end;
 
-procedure UInt128Add(var R: TCnUInt128; V: TUInt64);
+procedure UInt128Add(var R: TCnUInt128; var A: TCnUInt128; V: TUInt64);
 var
   C: Integer;
 begin
-  UInt64Add(R.Lo64, R.Lo64, V, C);
+  UInt64Add(R.Lo64, A.Lo64, V, C);
   R.Hi64 := R.Hi64 + C;
 end;
 

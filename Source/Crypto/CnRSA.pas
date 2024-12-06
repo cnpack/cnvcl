@@ -102,7 +102,8 @@ interface
 
 {$I CnPack.inc}
 
-// 私钥如使用 CRT 进行计算加速，1024 位的私钥运算能够将耗时降低至三分之一
+// 私钥加解密如使用 CRT 进行计算加速，1024 位的私钥运算能够将耗时降低至三分之一
+// 但仅在部分场合使用
 
 uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnConsts, CnPrime,
@@ -163,14 +164,12 @@ type
     FQInv: TCnBigNumber;
     function GetBitsCount: Integer;
     function GetBytesCount: Integer;
-  protected
-    procedure UpdateCRT;
   public
-    constructor Create(CRT: Boolean = True); virtual;
+    constructor Create(CRT: Boolean = False); virtual;
     {* 构造函数。
 
        参数：
-         CRT: Boolean                     - 是否使用 CRT 进行运算加速，默认使用
+         CRT: Boolean                     - 是否使用 CRT 在特定场合进行私钥加密运算加速，默认不使用
     }
 
     destructor Destroy; override;
@@ -187,6 +186,8 @@ type
 
     procedure Clear;
     {* 清空值}
+    procedure UpdateCRT;
+    {* 使用 CRT 加速时供外部的调用以在私钥数据更新时同步更新内部 CRT 数据}
 
     property PrimeKey1: TCnBigNumber read FPrimeKey1 write FPrimeKey1;
     {* 大素数 1，p，要求比 q 大}
@@ -458,6 +459,7 @@ function CnRSASavePublicKeyToPem(PemStream: TStream;
 function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Res: TCnBigNumber): Boolean; overload;
 {* 使用 RSA 私钥对数据 Data 进行加密，加密结果写入 Res。返回加密是否成功。
+   该方法内部会根据私钥的 CRT 设置决定是否启用 CRT 加速。
 
    参数：
      Data: TCnBigNumber                   - 待加密的大数数据
@@ -482,6 +484,7 @@ function CnRSAEncrypt(Data: TCnBigNumber; PublicKey: TCnRSAPublicKey;
 function CnRSADecrypt(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Data: TCnBigNumber): Boolean; overload;
 {* 利用 RSA 私钥对数据 Res 进行解密，解密结果写入 Data。返回解密是否成功。
+   该方法内部会根据私钥的 CRT 设置决定是否启用 CRT 加速。
 
    参数：
      Res: TCnBigNumber                    - 输出的解密后的大数数据
@@ -1952,7 +1955,7 @@ end;
 function CnRSAEncrypt(Data: TCnBigNumber; PublicKey: TCnRSAPublicKey;
   Res: TCnBigNumber): Boolean;
 begin
-  Result := RSACrypt(Res, PublicKey.PubKeyProduct, PublicKey.PubKeyExponent, Data);
+  Result := RSACrypt(Data, PublicKey.PubKeyProduct, PublicKey.PubKeyExponent, Res);
 end;
 
 // 利用私钥对数据进行解密，返回解密是否成功
