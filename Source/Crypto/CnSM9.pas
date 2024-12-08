@@ -473,55 +473,55 @@ procedure FP2SetOne(FP2: TCnFP2);
 function FP2SetU(FP2: TCnFP2): Boolean;
 {* 将一二次扩域大整系数元素对象设为 U，也就是 [0] 为 0，[1] 为 1}
 
-function FP2SetBigNumber(const FP2: TCnFP2; const Num: TCnBigNumber): Boolean;
+function FP2SetBigNumber(FP2: TCnFP2; Num: TCnBigNumber): Boolean;
 {* 将一二次扩域大整系数元素对象设置为某一个大数}
 
-function FP2SetBigNumbers(const FP2: TCnFP2; const Num0: TCnBigNumber; const Num1: TCnBigNumber): Boolean;
+function FP2SetBigNumbers(FP2: TCnFP2; Num0: TCnBigNumber; Num1: TCnBigNumber): Boolean;
 {* 将一二次扩域大整系数元素对象设置为两个大数值}
 
-function FP2SetHex(const FP2: TCnFP2; const S0: string; const S1: string): Boolean;
+function FP2SetHex(FP2: TCnFP2; const S0: string; const S1: string): Boolean;
 {* 将一二次扩域大整系数元素对象设置为两个十六进制字符串}
 
-function FP2ToString(const FP2: TCnFP2): string;
+function FP2ToString(FP2: TCnFP2): string;
 {* 将一二次扩域大整系数元素对象转换为字符串}
 
-procedure FP2SetWord(const FP2: TCnFP2; Value: Cardinal);
+procedure FP2SetWord(FP2: TCnFP2; Value: Cardinal);
 {* 将一二次扩域大整系数元素对象设置为一个 Cardinal}
 
-procedure FP2SetWords(const FP2: TCnFP2; Value0: Cardinal; Value1: Cardinal);
+procedure FP2SetWords(FP2: TCnFP2; Value0: Cardinal; Value1: Cardinal);
 {* 将一二次扩域大整系数元素对象设置为两个 Cardinal}
 
-function FP2Equal(const F1: TCnFP2; const F2: TCnFP2): Boolean;
+function FP2Equal(F1: TCnFP2; F2: TCnFP2): Boolean;
 {* 判断两个二次扩域大整系数元素对象值是否相等}
 
-function FP2Copy(const Dst: TCnFP2; const Src: TCnFP2): TCnFP2;
+function FP2Copy(Dst: TCnFP2; Src: TCnFP2): TCnFP2;
 {* 将一二次扩域大整系数元素对象值复制到另一个二次扩域大整系数元素对象中}
 
-procedure FP2Negate(const Res: TCnFP2; const F: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Negate(Res: TCnFP2; F: TCnFP2; Prime: TCnBigNumber);
 {* 将一二次扩域大整系数元素对象值有限域中求负}
 
-procedure FP2Add(const Res: TCnFP2; const F1: TCnFP2; const F2: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Add(Res: TCnFP2; F1: TCnFP2; F2: TCnFP2; Prime: TCnBigNumber);
 {* 有限域中二次扩域大整系数元素加法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
 
-procedure FP2Sub(const Res: TCnFP2; const F1: TCnFP2; const F2: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Sub(Res: TCnFP2; F1: TCnFP2; F2: TCnFP2; Prime: TCnBigNumber);
 {* 有限域中二次扩域大整系数元素减法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
 
-procedure FP2Mul(const Res: TCnFP2; const F1: TCnFP2; const F2: TCnFP2; Prime: TCnBigNumber); overload;
+procedure FP2Mul(Res: TCnFP2; F1: TCnFP2; F2: TCnFP2; Prime: TCnBigNumber); overload;
 {* 有限域中二次扩域大整系数元素乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
 
-procedure FP2Mul3(const Res: TCnFP2; const F: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Mul3(Res: TCnFP2; F: TCnFP2; Prime: TCnBigNumber);
 {* 有限域中二次扩域大整系数元素对象乘以 3，Prime 为域素数，Res 可以是 F}
 
-procedure FP2MulU(const Res: TCnFP2; const F1: TCnFP2; const F2: TCnFP2; Prime: TCnBigNumber);
+procedure FP2MulU(Res: TCnFP2; F1: TCnFP2; F2: TCnFP2; Prime: TCnBigNumber);
 {* 有限域中二次扩域大整系数元素 U 乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
 
-procedure FP2Mul(const Res: TCnFP2; const F: TCnFP2; Num: TCnBigNumber; Prime: TCnBigNumber); overload;
+procedure FP2Mul(Res: TCnFP2; F: TCnFP2; Num: TCnBigNumber; Prime: TCnBigNumber); overload;
 {* 有限域中二次扩域大整系数元素与大数的乘法，Prime 为域素数，Res 可以是 F，但 Num 不能是 Res 或 F 中的内容}
 
-procedure FP2Inverse(const Res: TCnFP2; const F: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Inverse(Res: TCnFP2; F: TCnFP2; Prime: TCnBigNumber);
 {* 有限域中二次扩域大整系数元素求模反，Prime 为域素数，Res 可以是 F}
 
-procedure FP2Div(const Res: TCnFP2; const F1: TCnFP2; const F2: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Div(Res: TCnFP2; F1: TCnFP2; F2: TCnFP2; Prime: TCnBigNumber);
 {* 有限域中二次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
 
 function FP2ToStream(FP2: TCnFP2; Stream: TStream; FixedLen: Integer = 0): Integer;
@@ -553,60 +553,60 @@ procedure FP4SetU(FP4: TCnFP4);
 procedure FP4SetV(FP4: TCnFP4);
 {* 将一四次扩域大整系数元素对象设为 V，也就是 [0] 为 0，[1] 为 1}
 
-procedure FP4SetBigNumber(const FP4: TCnFP4; const Num: TCnBigNumber);
+procedure FP4SetBigNumber(FP4: TCnFP4; Num: TCnBigNumber);
 {* 将一四次扩域大整系数元素对象设置为某一个大数}
 
-procedure FP4SetBigNumbers(const FP4: TCnFP4; const Num0: TCnBigNumber; const Num1: TCnBigNumber);
+procedure FP4SetBigNumbers(FP4: TCnFP4; Num0: TCnBigNumber; Num1: TCnBigNumber);
 {* 将一四次扩域大整系数元素对象设置为两个大数值}
 
-procedure FP4SetFP2(const FP4: TCnFP4; const FP2: TCnFP2);
+procedure FP4SetFP2(FP4: TCnFP4; FP2: TCnFP2);
 {* 将一四次扩域大整系数元素对象设置为一个二次扩域大整系数元素}
 
-procedure FP4Set2FP2S(const FP4: TCnFP4; const FP20: TCnFP2; const FP21: TCnFP2);
+procedure FP4Set2FP2S(FP4: TCnFP4; FP20: TCnFP2; FP21: TCnFP2);
 {* 将一四次扩域大整系数元素对象设置为两个二次扩域大整系数元素}
 
-procedure FP4SetHex(const FP4: TCnFP4; const S0: string; const S1: string;
+procedure FP4SetHex(FP4: TCnFP4; const S0: string; const S1: string;
   const S2: string; const S3: string);
 {* 将一四次扩域大整系数元素对象设置为四个十六进制字符串}
 
-function FP4ToString(const FP4: TCnFP4): string;
+function FP4ToString(FP4: TCnFP4): string;
 {* 将一四次扩域大整系数元素对象转换为字符串}
 
-procedure FP4SetWord(const FP4: TCnFP4; Value: Cardinal);
+procedure FP4SetWord(FP4: TCnFP4; Value: Cardinal);
 {* 将一四次扩域大整系数元素对象设置为一个 Cardinal}
 
-procedure FP4SetWords(const FP4: TCnFP4; Value0: Cardinal; Value1: Cardinal;
+procedure FP4SetWords(FP4: TCnFP4; Value0: Cardinal; Value1: Cardinal;
   Value2: Cardinal; Value3: Cardinal);
 {* 将一四次扩域大整系数元素对象设置为四个 Cardinal}
 
-function FP4Equal(const F1: TCnFP4; const F2: TCnFP4): Boolean;
+function FP4Equal(F1: TCnFP4; F2: TCnFP4): Boolean;
 {* 判断两个四次扩域大整系数元素对象值是否相等}
 
-function FP4Copy(const Dst: TCnFP4; const Src: TCnFP4): TCnFP4;
+function FP4Copy(Dst: TCnFP4; Src: TCnFP4): TCnFP4;
 {* 将一四次扩域大整系数元素对象值复制到另一个四次扩域大整系数元素对象中}
 
-procedure FP4Negate(const Res: TCnFP4; const F: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Negate(Res: TCnFP4; F: TCnFP4; Prime: TCnBigNumber);
 {* 将一四次扩域大整系数元素对象值有限域中求负}
 
-procedure FP4Add(const Res: TCnFP4; const F1: TCnFP4; const F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Add(Res: TCnFP4; F1: TCnFP4; F2: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素加法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
 
-procedure FP4Sub(const Res: TCnFP4; const F1: TCnFP4; const F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Sub(Res: TCnFP4; F1: TCnFP4; F2: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素减法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
 
-procedure FP4Mul(const Res: TCnFP4; const F1: TCnFP4; const F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Mul(Res: TCnFP4; F1: TCnFP4; F2: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
 
-procedure FP4Mul3(const Res: TCnFP4; const F: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Mul3(Res: TCnFP4; F: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素对象乘以 3，Prime 为域素数，Res 可以是 F}
 
-procedure FP4MulV(const Res: TCnFP4; const F1: TCnFP4; const F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4MulV(Res: TCnFP4; F1: TCnFP4; F2: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素 V 乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
 
-procedure FP4Inverse(const Res: TCnFP4; const F: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Inverse(Res: TCnFP4; F: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素求模反，Prime 为域素数，Res 可以是 F}
 
-procedure FP4Div(const Res: TCnFP4; const F1: TCnFP4; const F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Div(Res: TCnFP4; F1: TCnFP4; F2: TCnFP4; Prime: TCnBigNumber);
 {* 有限域中四次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
 
 function FP4ToStream(FP4: TCnFP4; Stream: TStream; FixedLen: Integer = 0): Integer;
@@ -644,69 +644,68 @@ procedure FP12SetW(FP12: TCnFP12);
 procedure FP12SetWSqr(FP12: TCnFP12);
 {* 将一十二次扩域大整系数元素对象设为 W^2，也就是仨 FP4 分别 0、0、1}
 
-procedure FP12SetBigNumber(const FP12: TCnFP12; const Num: TCnBigNumber);
+procedure FP12SetBigNumber(FP12: TCnFP12; Num: TCnBigNumber);
 {* 将一十二次扩域大整系数元素对象设置为某一个大数}
 
-procedure FP12SetBigNumbers(const FP12: TCnFP12; const Num0: TCnBigNumber;
-  const Num1: TCnBigNumber; const Num2: TCnBigNumber);
+procedure FP12SetBigNumbers(FP12: TCnFP12; Num0: TCnBigNumber;
+  Num1: TCnBigNumber; Num2: TCnBigNumber);
 {* 将一十二次扩域大整系数元素对象设置为三个大数值}
 
-procedure FP12SetFP4(const FP12: TCnFP12; const FP4: TCnFP4);
+procedure FP12SetFP4(FP12: TCnFP12; FP4: TCnFP4);
 {* 将一十二次扩域大整系数元素对象设置为一个四次扩域大整系数元素}
 
-procedure FP12Set3FP4S(const FP12: TCnFP12; const FP40: TCnFP4; const FP41: TCnFP4;
-  const FP42: TCnFP4);
+procedure FP12Set3FP4S(FP12: TCnFP12; FP40: TCnFP4; FP41: TCnFP4; FP42: TCnFP4);
 {* 将一十二次扩域大整系数元素对象设置为三个四次扩域大整系数元素}
 
-procedure FP12SetFP2(const FP12: TCnFP12; const FP2: TCnFP2);
+procedure FP12SetFP2(FP12: TCnFP12; FP2: TCnFP2);
 {* 将一十二次扩域大整系数元素对象设置为一个二次扩域大整系数元素}
 
-procedure FP12SetHex(const FP12: TCnFP12; const S0: string; const S1: string;
+procedure FP12SetHex(FP12: TCnFP12; const S0: string; const S1: string;
   const S2: string; const S3: string; const S4: string; const S5: string;
   const S6: string; const S7: string; const S8: string; const S9: string;
   const S10: string; const S11: string);
 {* 将一十二次扩域大整系数元素对象设置为十二个十六进制字符串}
 
-function FP12ToString(const FP12: TCnFP12): string;
+function FP12ToString(FP12: TCnFP12): string;
 {* 将一十二次扩域大整系数元素对象转换为字符串}
 
-procedure FP12SetWord(const FP12: TCnFP12; Value: Cardinal);
+procedure FP12SetWord(FP12: TCnFP12; Value: Cardinal);
 {* 将一十二次扩域大整系数元素对象设置为一个 Cardinal}
 
-procedure FP12SetWords(const FP12: TCnFP12; Value0: Cardinal; Value1: Cardinal;
+procedure FP12SetWords(FP12: TCnFP12; Value0: Cardinal; Value1: Cardinal;
   Value2: Cardinal; Value3: Cardinal; Value4: Cardinal; Value5: Cardinal;
   Value6: Cardinal; Value7: Cardinal; Value8: Cardinal; Value9: Cardinal;
   Value10: Cardinal; Value11: Cardinal);
 {* 将一十二次扩域大整系数元素对象设置为十二个 Cardinal}
 
-function FP12Equal(const F1: TCnFP12; const F2: TCnFP12): Boolean;
+function FP12Equal(F1: TCnFP12; F2: TCnFP12): Boolean;
 {* 判断两个十二次扩域大整系数元素对象值是否相等}
 
-function FP12Copy(const Dst: TCnFP12; const Src: TCnFP12): TCnFP12;
+function FP12Copy(Dst: TCnFP12; Src: TCnFP12): TCnFP12;
 {* 将一十二次扩域大整系数元素对象值复制到另一个十二次扩域大整系数元素对象中}
 
-procedure FP12Negate(const Res: TCnFP12; const F: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Negate(Res: TCnFP12; F: TCnFP12; Prime: TCnBigNumber);
 {* 将一十二次扩域大整系数元素对象值有限域中求负}
 
-procedure FP12Add(const Res: TCnFP12; const F1: TCnFP12; const F2: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Add(Res: TCnFP12; F1: TCnFP12; F2: TCnFP12; Prime: TCnBigNumber);
 {* 有限域中十二次扩域大整系数元素加法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
 
-procedure FP12Sub(const Res: TCnFP12; const F1: TCnFP12; const F2: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Sub(Res: TCnFP12; F1: TCnFP12; F2: TCnFP12; Prime: TCnBigNumber);
 {* 有限域中十二次扩域大整系数元素减法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
 
-procedure FP12Mul(const Res: TCnFP12; const F1: TCnFP12; const F2: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Mul(Res: TCnFP12; F1: TCnFP12; F2: TCnFP12; Prime: TCnBigNumber);
 {* 有限域中十二次扩域大整系数元素乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
 
-procedure FP12Mul3(const Res: TCnFP12; const F: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Mul3(Res: TCnFP12; F: TCnFP12; Prime: TCnBigNumber);
 {* 有限域中十二次扩域大整系数元素对象乘以 3，Prime 为域素数，Res 可以是 F}
 
-procedure FP12Inverse(const Res: TCnFP12; const F: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Inverse(Res: TCnFP12; F: TCnFP12; Prime: TCnBigNumber);
 {* 有限域中十二次扩域大整系数元素求模反，Prime 为域素数，Res 可以是 F}
 
-procedure FP12Div(const Res: TCnFP12; const F1: TCnFP12; const F2: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Div(Res: TCnFP12; F1: TCnFP12; F2: TCnFP12; Prime: TCnBigNumber);
 {* 有限域中十二次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
 
-procedure FP12Power(const Res: TCnFP12; const F: TCnFP12; Exponent: TCnBigNumber; Prime: TCnBigNumber);
+procedure FP12Power(Res: TCnFP12; F: TCnFP12; Exponent: TCnBigNumber; Prime: TCnBigNumber);
 {* 有限域中十二次扩域大整系数元素乘方，Prime 为域素数，Res 可以是 F}
 
 function FP12ToStream(FP12: TCnFP12; Stream: TStream; FixedLen: Integer = 0): Integer;
@@ -723,74 +722,73 @@ procedure AffinePointFree(P: TCnFP2AffinePoint);
 procedure FP2AffinePointSetZero(P: TCnFP2AffinePoint);
 {* 将一个仿射坐标系里的三元点坐标设置为全 0}
 
-function FP2AffinePointToString(const P: TCnFP2AffinePoint): string;
+function FP2AffinePointToString(P: TCnFP2AffinePoint): string;
 {* 将一仿射坐标系里的三元点对象转换为字符串}
 
-function FP2AffinePointEqual(const P1: TCnFP2AffinePoint; const P2: TCnFP2AffinePoint): Boolean;
+function FP2AffinePointEqual(P1: TCnFP2AffinePoint; P2: TCnFP2AffinePoint): Boolean;
 {* 判断两个仿射坐标系里的三元点对象值是否相等}
 
-function FP2AffinePointCopy(const Dst: TCnFP2AffinePoint; const Src: TCnFP2AffinePoint): TCnFP2AffinePoint;
+function FP2AffinePointCopy(Dst: TCnFP2AffinePoint; Src: TCnFP2AffinePoint): TCnFP2AffinePoint;
 {* 将一仿射坐标系里的三元点对象值复制到另一个仿射坐标系里的三元点对象中}
 
-function FP2AffinePointIsAtInfinity(const P: TCnFP2AffinePoint): Boolean;
+function FP2AffinePointIsAtInfinity(P: TCnFP2AffinePoint): Boolean;
 {* 判断一仿射坐标系里的三元点对象是否位于无限远处}
 
-procedure FP2AffinePointSetToInfinity(const P: TCnFP2AffinePoint);
+procedure FP2AffinePointSetToInfinity(P: TCnFP2AffinePoint);
 {* 将一仿射坐标系里的三元点对象坐标设为无限远}
 
-procedure FP2AffinePointGetCoordinates(const P: TCnFP2AffinePoint; const FP2X: TCnFP2; const FP2Y: TCnFP2);
+procedure FP2AffinePointGetCoordinates(P: TCnFP2AffinePoint; FP2X: TCnFP2; FP2Y: TCnFP2);
 {* 获取一仿射坐标系里的三元点对象的 XY 坐标值，内部采用复制，只支持 Z 为 1 的情形}
 
-procedure FP2AffinePointSetCoordinates(const P: TCnFP2AffinePoint; const FP2X: TCnFP2; const FP2Y: TCnFP2);
+procedure FP2AffinePointSetCoordinates(P: TCnFP2AffinePoint; FP2X: TCnFP2; FP2Y: TCnFP2);
 {* 设置一仿射坐标系里的三元点对象的 XY 坐标值，内部采用复制}
 
-procedure FP2AffinePointSetCoordinatesHex(const P: TCnFP2AffinePoint;
+procedure FP2AffinePointSetCoordinatesHex(P: TCnFP2AffinePoint;
   const SX0: string; const SX1: string; const SY0: string; const SY1: string);
 {* 设置一仿射坐标系里的三元点对象的 XY 坐标值，使用十六进制字符串}
 
-procedure FP2AffinePointSetCoordinatesBigNumbers(const P: TCnFP2AffinePoint;
-  const X0: TCnBigNumber; const X1: TCnBigNumber; const Y0: TCnBigNumber;
-  const Y1: TCnBigNumber);
+procedure FP2AffinePointSetCoordinatesBigNumbers(P: TCnFP2AffinePoint;
+  X0: TCnBigNumber; X1: TCnBigNumber; Y0: TCnBigNumber; Y1: TCnBigNumber);
 {* 设置一仿射坐标系里的三元点对象的 XY 坐标值，使用大数对象，内部采用复制}
 
-procedure FP2AffinePointGetJacobianCoordinates(const P: TCnFP2AffinePoint;
-  const FP12X: TCnFP12; const FP12Y: TCnFP12; Prime: TCnBigNumber);
+procedure FP2AffinePointGetJacobianCoordinates(P: TCnFP2AffinePoint;
+  FP12X: TCnFP12; FP12Y: TCnFP12; Prime: TCnBigNumber);
 {* 获取一仿射坐标系里的三元点对象的雅可比 XY 坐标值，内部采用复制}
 
-procedure FP2AffinePointSetJacobianCoordinates(const P: TCnFP2AffinePoint;
-  const FP12X: TCnFP12; const FP12Y: TCnFP12; Prime: TCnBigNumber);
+procedure FP2AffinePointSetJacobianCoordinates(P: TCnFP2AffinePoint;
+  FP12X: TCnFP12; FP12Y: TCnFP12; Prime: TCnBigNumber);
 {* 设置一仿射坐标系里的三元点对象的雅可比 XY 坐标值，内部采用复制}
 
-function FP2AffinePointIsOnCurve(const P: TCnFP2AffinePoint; Prime: TCnBigNumber): Boolean;
+function FP2AffinePointIsOnCurve(P: TCnFP2AffinePoint; Prime: TCnBigNumber): Boolean;
 {* 判断一仿射坐标系里的三元点对象是否在椭圆曲线 y^2 = x^3 + 5 上}
 
-procedure FP2AffinePointNegate(const Res: TCnFP2AffinePoint; const P: TCnFP2AffinePoint;
+procedure FP2AffinePointNegate(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
   Prime: TCnBigNumber);
 {* 一个仿射坐标系里的三元点对象的椭圆曲线求反，Res 可以是 P}
 
-procedure FP2AffinePointDouble(const Res: TCnFP2AffinePoint; const P: TCnFP2AffinePoint;
+procedure FP2AffinePointDouble(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
   Prime: TCnBigNumber);
 {* 一个仿射坐标系里的三元点对象的椭圆曲线倍点法，Res 可以是 P}
 
-procedure FP2AffinePointAdd(const Res: TCnFP2AffinePoint; const P: TCnFP2AffinePoint;
-  const Q: TCnFP2AffinePoint; Prime: TCnBigNumber);
+procedure FP2AffinePointAdd(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
+  Q: TCnFP2AffinePoint; Prime: TCnBigNumber);
 {* 两个仿射坐标系里的三元点对象的椭圆曲线加法，Res 可以是 P 或 Q，P 可以是 Q，
   注意内部还是将 Z 当成 1，仍然是求反的普通操作}
 
-procedure FP2AffinePointSub(const Res: TCnFP2AffinePoint; const P: TCnFP2AffinePoint;
-  const Q: TCnFP2AffinePoint; Prime: TCnBigNumber);
+procedure FP2AffinePointSub(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
+  Q: TCnFP2AffinePoint; Prime: TCnBigNumber);
 {* 两个仿射坐标系里的三元点对象的椭圆曲线减法，Res 可以是 P 或 Q，P 可以是 Q}
 
-procedure FP2AffinePointMul(const Res: TCnFP2AffinePoint; const P: TCnFP2AffinePoint;
+procedure FP2AffinePointMul(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
   Num: TCnBigNumber; Prime: TCnBigNumber);
 {* 一个仿射坐标系里的三元点对象的椭圆曲线 N 倍点法，Res 可以是 P}
 
-procedure FP2AffinePointFrobenius(const Res: TCnFP2AffinePoint; const P: TCnFP2AffinePoint;
+procedure FP2AffinePointFrobenius(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
   Prime: TCnBigNumber);
 {* 计算一个仿射坐标系里的三元点对象的弗罗贝尼乌斯自同态值，Res 可以是 P
   其实就是 P 的 Prime 次方的结果 mod Prime}
 
-function FP2PointToString(const P: TCnFP2Point): string;
+function FP2PointToString(P: TCnFP2Point): string;
 {* 将一仿射坐标系里的二元点 FP2 对象转换为字符串}
 
 procedure FP2AffinePointToFP2Point(FP2P: TCnFP2Point; FP2AP: TCnFP2AffinePoint;
@@ -802,12 +800,12 @@ procedure FP2PointToFP2AffinePoint(FP2AP: TCnFP2AffinePoint; FP2P: TCnFP2Point);
 
 // ============================ 双线性对计算函数 ===============================
 
-procedure Rate(const F: TCnFP12; const Q: TCnFP2AffinePoint; const XP: TCnBigNumber;
-  const YP: TCnBigNumber; const A: TCnBigNumber; const K: TCnBigNumber; Prime: TCnBigNumber);
+procedure Rate(F: TCnFP12; Q: TCnFP2AffinePoint; XP: TCnBigNumber;
+  YP: TCnBigNumber; A: TCnBigNumber; K: TCnBigNumber; Prime: TCnBigNumber);
 {* 计算 R-ate 对。输出是一个 FP12 值，输入是一个 BN 曲线上的点的坐标 XP、YP，
   一个 FP2 上的 XYZ 仿射坐标点，一个指数 K、一个循环次数 A}
 
-procedure SM9RatePairing(const F: TCnFP12; const Q: TCnFP2AffinePoint; const P: TCnEccPoint);
+procedure SM9RatePairing(F: TCnFP12; Q: TCnFP2AffinePoint; P: TCnEccPoint);
 {* 根据 SM9 指定的 BN 曲线的参数以及指定点计算 R-ate 对，输入为一个 BN 曲线上的点
   一个 FP2 上的 XYZ 仿射坐标点，输出为一个 FP12 值}
 
@@ -917,12 +915,12 @@ function CnSM9UserKeyExchangeBStep2(const AUserID: AnsiString; const BUserID: An
 
 // =================== SM9 具体实现函数：两种杂凑算法 ========================
 
-function CnSM9Hash1(const Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
+function CnSM9Hash1(Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
   N: TCnBigNumber): Boolean;
 {* SM9 中规定的第一个密码函数，内部使用 SM3，256 位的杂凑函数
   输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order}
 
-function CnSM9Hash2(const Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
+function CnSM9Hash2(Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
   N: TCnBigNumber): Boolean;
 {* SM9 中规定的第二个密码函数，内部使用 SM3，256 位的杂凑函数
   输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order}
@@ -1014,7 +1012,7 @@ begin
   Result := True;
 end;
 
-function FP2SetBigNumber(const FP2: TCnFP2; const Num: TCnBigNumber): Boolean;
+function FP2SetBigNumber(FP2: TCnFP2; Num: TCnBigNumber): Boolean;
 begin
   Result := False;
   if BigNumberCopy(FP2[0], Num) = nil then Exit;
@@ -1022,7 +1020,7 @@ begin
   Result := True;
 end;
 
-function FP2SetBigNumbers(const FP2: TCnFP2; const Num0, Num1: TCnBigNumber): Boolean;
+function FP2SetBigNumbers(FP2: TCnFP2; Num0, Num1: TCnBigNumber): Boolean;
 begin
   Result := False;
   if BigNumberCopy(FP2[0], Num0) = nil then Exit;
@@ -1030,7 +1028,7 @@ begin
   Result := True;
 end;
 
-function FP2SetHex(const FP2: TCnFP2; const S0, S1: string): Boolean;
+function FP2SetHex(FP2: TCnFP2; const S0, S1: string): Boolean;
 begin
   Result := False;
   if not FP2[0].SetHex(AnsiString(S0)) then Exit;
@@ -1038,29 +1036,29 @@ begin
   Result := True;
 end;
 
-function FP2ToString(const FP2: TCnFP2): string;
+function FP2ToString(FP2: TCnFP2): string;
 begin
   Result := FP2[1].ToHex + ',' + FP2[0].ToHex;
 end;
 
-procedure FP2SetWord(const FP2: TCnFP2; Value: Cardinal);
+procedure FP2SetWord(FP2: TCnFP2; Value: Cardinal);
 begin
   FP2[0].SetWord(Value);
   FP2[1].SetZero;
 end;
 
-procedure FP2SetWords(const FP2: TCnFP2; Value0, Value1: Cardinal);
+procedure FP2SetWords(FP2: TCnFP2; Value0, Value1: Cardinal);
 begin
   FP2[0].SetWord(Value0);
   FP2[1].SetWord(Value1);
 end;
 
-function FP2Equal(const F1, F2: TCnFP2): Boolean;
+function FP2Equal(F1, F2: TCnFP2): Boolean;
 begin
   Result := BigNumberEqual(F1[0], F2[0]) and BigNumberEqual(F1[1], F2[1]);
 end;
 
-function FP2Copy(const Dst, Src: TCnFP2): TCnFP2;
+function FP2Copy(Dst, Src: TCnFP2): TCnFP2;
 begin
   Result := nil;
   if BigNumberCopy(Dst[0], Src[0]) = nil then Exit;
@@ -1068,7 +1066,7 @@ begin
   Result := Dst;
 end;
 
-procedure FP2Negate(const Res: TCnFP2; const F: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Negate(Res: TCnFP2; F: TCnFP2; Prime: TCnBigNumber);
 begin
   BigNumberSub(Res[0], Prime, F[0]);
   BigNumberSub(Res[1], Prime, F[1]);
@@ -1076,7 +1074,7 @@ begin
   BigNumberNonNegativeMod(Res[1], Res[1], Prime);
 end;
 
-procedure FP2Add(const Res: TCnFP2; const F1, F2: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Add(Res: TCnFP2; F1, F2: TCnFP2; Prime: TCnBigNumber);
 begin
   BigNumberAdd(Res[0], F1[0], F2[0]);
   BigNumberAdd(Res[1], F1[1], F2[1]);
@@ -1084,7 +1082,7 @@ begin
   BigNumberNonNegativeMod(Res[1], Res[1], Prime);
 end;
 
-procedure FP2Sub(const Res: TCnFP2; const F1, F2: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Sub(Res: TCnFP2; F1, F2: TCnFP2; Prime: TCnBigNumber);
 begin
   BigNumberSub(Res[0], F1[0], F2[0]);
   BigNumberSub(Res[1], F1[1], F2[1]);
@@ -1092,7 +1090,7 @@ begin
   BigNumberNonNegativeMod(Res[1], Res[1], Prime);
 end;
 
-procedure FP2Mul(const Res: TCnFP2; const F1, F2: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Mul(Res: TCnFP2; F1, F2: TCnFP2; Prime: TCnBigNumber);
 var
   T0, T1, R0: TCnBigNumber;
 begin
@@ -1126,7 +1124,7 @@ begin
   end;
 end;
 
-procedure FP2Mul3(const Res: TCnFP2; const F: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Mul3(Res: TCnFP2; F: TCnFP2; Prime: TCnBigNumber);
 var
   T: TCnFP2;
 begin
@@ -1139,7 +1137,7 @@ begin
   end;
 end;
 
-procedure FP2MulU(const Res: TCnFP2; const F1, F2: TCnFP2; Prime: TCnBigNumber);
+procedure FP2MulU(Res: TCnFP2; F1, F2: TCnFP2; Prime: TCnBigNumber);
 var
   T0, T1: TCnBigNumber;
 begin
@@ -1170,7 +1168,7 @@ begin
   end;
 end;
 
-procedure FP2Mul(const Res: TCnFP2; const F: TCnFP2; Num: TCnBigNumber; Prime: TCnBigNumber);
+procedure FP2Mul(Res: TCnFP2; F: TCnFP2; Num: TCnBigNumber; Prime: TCnBigNumber);
 begin
   BigNumberMul(Res[0], F[0], Num);
   BigNumberMul(Res[1], F[1], Num);
@@ -1178,7 +1176,7 @@ begin
   BigNumberNonNegativeMod(Res[1], Res[1], Prime);
 end;
 
-procedure FP2Inverse(const Res: TCnFP2; const F: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Inverse(Res: TCnFP2; F: TCnFP2; Prime: TCnBigNumber);
 var
   K, T: TCnBigNumber;
 begin
@@ -1238,7 +1236,7 @@ begin
   end;
 end;
 
-procedure FP2Div(const Res: TCnFP2; const F1, F2: TCnFP2; Prime: TCnBigNumber);
+procedure FP2Div(Res: TCnFP2; F1, F2: TCnFP2; Prime: TCnBigNumber);
 var
   Inv: TCnFP2;
 begin
@@ -1311,59 +1309,59 @@ begin
   FP4[1].SetOne;
 end;
 
-procedure FP4SetBigNumber(const FP4: TCnFP4; const Num: TCnBigNumber);
+procedure FP4SetBigNumber(FP4: TCnFP4; Num: TCnBigNumber);
 begin
   FP4[1].SetZero;
   FP4[0].SetBigNumber(Num);
 end;
 
-procedure FP4SetBigNumbers(const FP4: TCnFP4; const Num0, Num1: TCnBigNumber);
+procedure FP4SetBigNumbers(FP4: TCnFP4; Num0, Num1: TCnBigNumber);
 begin
   FP4[0].SetBigNumber(Num0);
   FP4[1].SetBigNumber(Num1);
 end;
 
-procedure FP4SetFP2(const FP4: TCnFP4; const FP2: TCnFP2);
+procedure FP4SetFP2(FP4: TCnFP4; FP2: TCnFP2);
 begin
   FP4[1].SetZero;
   FP2Copy(FP4[0], FP2);
 end;
 
-procedure FP4Set2FP2S(const FP4: TCnFP4; const FP20, FP21: TCnFP2);
+procedure FP4Set2FP2S(FP4: TCnFP4; FP20, FP21: TCnFP2);
 begin
   FP2Copy(FP4[0], FP20);
   FP2Copy(FP4[1], FP21);
 end;
 
-procedure FP4SetHex(const FP4: TCnFP4; const S0, S1, S2, S3: string);
+procedure FP4SetHex(FP4: TCnFP4; const S0, S1, S2, S3: string);
 begin
   FP4[1].SetHex(S2, S3);
   FP4[0].SetHex(S0, S1);
 end;
 
-function FP4ToString(const FP4: TCnFP4): string;
+function FP4ToString(FP4: TCnFP4): string;
 begin
   Result := FP4[1].ToString + CRLF + FP4[0].ToString;
 end;
 
-procedure FP4SetWord(const FP4: TCnFP4; Value: Cardinal);
+procedure FP4SetWord(FP4: TCnFP4; Value: Cardinal);
 begin
   FP4[1].SetZero;
   FP4[0].SetWord(Value);
 end;
 
-procedure FP4SetWords(const FP4: TCnFP4; Value0, Value1, Value2, Value3: Cardinal);
+procedure FP4SetWords(FP4: TCnFP4; Value0, Value1, Value2, Value3: Cardinal);
 begin
   FP4[0].SetWords(Value0, Value1);
   FP4[1].SetWords(Value2, Value3);
 end;
 
-function FP4Equal(const F1, F2: TCnFP4): Boolean;
+function FP4Equal(F1, F2: TCnFP4): Boolean;
 begin
   Result := FP2Equal(F1[0], F2[0]) and FP2Equal(F1[1], F2[1]);
 end;
 
-function FP4Copy(const Dst, Src: TCnFP4): TCnFP4;
+function FP4Copy(Dst, Src: TCnFP4): TCnFP4;
 begin
   Result := nil;
   if FP2Copy(Dst[0], Src[0]) = nil then Exit;
@@ -1371,25 +1369,25 @@ begin
   Result := Dst;
 end;
 
-procedure FP4Negate(const Res: TCnFP4; const F: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Negate(Res: TCnFP4; F: TCnFP4; Prime: TCnBigNumber);
 begin
   FP2Negate(Res[0], F[0], Prime);
   FP2Negate(Res[1], F[1], Prime);
 end;
 
-procedure FP4Add(const Res: TCnFP4; const F1, F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Add(Res: TCnFP4; F1, F2: TCnFP4; Prime: TCnBigNumber);
 begin
   FP2Add(Res[0], F1[0], F2[0], Prime);
   FP2Add(Res[1], F1[1], F2[1], Prime);
 end;
 
-procedure FP4Sub(const Res: TCnFP4; const F1, F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Sub(Res: TCnFP4; F1, F2: TCnFP4; Prime: TCnBigNumber);
 begin
   FP2Sub(Res[0], F1[0], F2[0], Prime);
   FP2Sub(Res[1], F1[1], F2[1], Prime);
 end;
 
-procedure FP4Mul(const Res: TCnFP4; const F1, F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Mul(Res: TCnFP4; F1, F2: TCnFP4; Prime: TCnBigNumber);
 var
   T, R0, R1: TCnFP2;
 begin
@@ -1420,7 +1418,7 @@ begin
   end;
 end;
 
-procedure FP4Mul3(const Res: TCnFP4; const F: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Mul3(Res: TCnFP4; F: TCnFP4; Prime: TCnBigNumber);
 var
   T: TCnFP4;
 begin
@@ -1433,7 +1431,7 @@ begin
   end;
 end;
 
-procedure FP4MulV(const Res: TCnFP4; const F1, F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4MulV(Res: TCnFP4; F1, F2: TCnFP4; Prime: TCnBigNumber);
 var
   T, R0, R1: TCnFP2;
 begin
@@ -1464,7 +1462,7 @@ begin
   end;
 end;
 
-procedure FP4Inverse(const Res: TCnFP4; const F: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Inverse(Res: TCnFP4; F: TCnFP4; Prime: TCnBigNumber);
 var
   R0, R1, K: TCnFP2;
 begin
@@ -1500,7 +1498,7 @@ begin
   end;
 end;
 
-procedure FP4Div(const Res: TCnFP4; const F1, F2: TCnFP4; Prime: TCnBigNumber);
+procedure FP4Div(Res: TCnFP4; F1, F2: TCnFP4; Prime: TCnBigNumber);
 var
   Inv: TCnFP4;
 begin
@@ -1590,42 +1588,42 @@ begin
   FP12[2].SetOne;
 end;
 
-procedure FP12SetBigNumber(const FP12: TCnFP12; const Num: TCnBigNumber);
+procedure FP12SetBigNumber(FP12: TCnFP12; Num: TCnBigNumber);
 begin
   FP12[0].SetBigNumber(Num);
   FP12[1].SetZero;
   FP12[2].SetZero;
 end;
 
-procedure FP12SetBigNumbers(const FP12: TCnFP12; const Num0, Num1, Num2: TCnBigNumber);
+procedure FP12SetBigNumbers(FP12: TCnFP12; Num0, Num1, Num2: TCnBigNumber);
 begin
   FP12[0].SetBigNumber(Num0);
   FP12[1].SetBigNumber(Num1);
   FP12[2].SetBigNumber(Num2);
 end;
 
-procedure FP12SetFP4(const FP12: TCnFP12; const FP4: TCnFP4);
+procedure FP12SetFP4(FP12: TCnFP12; FP4: TCnFP4);
 begin
   FP4Copy(FP12[0], FP4);
   FP12[1].SetZero;
   FP12[2].SetZero;
 end;
 
-procedure FP12Set3FP4S(const FP12: TCnFP12; const FP40, FP41, FP42: TCnFP4);
+procedure FP12Set3FP4S(FP12: TCnFP12; FP40, FP41, FP42: TCnFP4);
 begin
   FP4Copy(FP12[0], FP40);
   FP4Copy(FP12[1], FP41);
   FP4Copy(FP12[2], FP42);
 end;
 
-procedure FP12SetFP2(const FP12: TCnFP12; const FP2: TCnFP2);
+procedure FP12SetFP2(FP12: TCnFP12; FP2: TCnFP2);
 begin
   FP4SetFP2(FP12[0], FP2);
   FP12[1].SetZero;
   FP12[2].SetZero;
 end;
 
-procedure FP12SetHex(const FP12: TCnFP12; const S0, S1, S2, S3, S4, S5, S6, S7, S8,
+procedure FP12SetHex(FP12: TCnFP12; const S0, S1, S2, S3, S4, S5, S6, S7, S8,
   S9, S10, S11: string);
 begin
   FP12[0].SetHex(S0, S1, S2, S3);
@@ -1633,19 +1631,19 @@ begin
   FP12[2].SetHex(S8, S9, S10, S11);
 end;
 
-function FP12ToString(const FP12: TCnFP12): string;
+function FP12ToString(FP12: TCnFP12): string;
 begin
   Result := FP12[2].ToString + CRLF + FP12[1].ToString + CRLF + FP12[0].ToString;
 end;
 
-procedure FP12SetWord(const FP12: TCnFP12; Value: Cardinal);
+procedure FP12SetWord(FP12: TCnFP12; Value: Cardinal);
 begin
   FP4SetWord(FP12[0], Value);
   FP12[1].SetZero;
   FP12[2].SetZero;
 end;
 
-procedure FP12SetWords(const FP12: TCnFP12; Value0, Value1, Value2, Value3, Value4,
+procedure FP12SetWords(FP12: TCnFP12; Value0, Value1, Value2, Value3, Value4,
   Value5, Value6, Value7, Value8, Value9, Value10, Value11: Cardinal);
 begin
   FP12[0].SetWords(Value0, Value1, Value2, Value3);
@@ -1653,12 +1651,12 @@ begin
   FP12[2].SetWords(Value8, Value9, Value10, Value11);
 end;
 
-function FP12Equal(const F1, F2: TCnFP12): Boolean;
+function FP12Equal(F1, F2: TCnFP12): Boolean;
 begin
   Result := FP4Equal(F1[0], F2[0]) and FP4Equal(F1[1], F2[1]) and FP4Equal(F1[2], F2[2]);
 end;
 
-function FP12Copy(const Dst, Src: TCnFP12): TCnFP12;
+function FP12Copy(Dst, Src: TCnFP12): TCnFP12;
 begin
   Result := nil;
   if FP4Copy(Dst[0], Src[0]) = nil then Exit;
@@ -1667,28 +1665,28 @@ begin
   Result := Dst;
 end;
 
-procedure FP12Negate(const Res: TCnFP12; const F: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Negate(Res: TCnFP12; F: TCnFP12; Prime: TCnBigNumber);
 begin
   FP4Negate(Res[0], F[0], Prime);
   FP4Negate(Res[1], F[1], Prime);
   FP4Negate(Res[2], F[2], Prime);
 end;
 
-procedure FP12Add(const Res: TCnFP12; const F1, F2: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Add(Res: TCnFP12; F1, F2: TCnFP12; Prime: TCnBigNumber);
 begin
   FP4Add(Res[0], F1[0], F2[0], Prime);
   FP4Add(Res[1], F1[1], F2[1], Prime);
   FP4Add(Res[2], F1[2], F2[2], Prime);
 end;
 
-procedure FP12Sub(const Res: TCnFP12; const F1, F2: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Sub(Res: TCnFP12; F1, F2: TCnFP12; Prime: TCnBigNumber);
 begin
   FP4Sub(Res[0], F1[0], F2[0], Prime);
   FP4Sub(Res[1], F1[1], F2[1], Prime);
   FP4Sub(Res[2], F1[2], F2[2], Prime);
 end;
 
-procedure FP12Mul(const Res: TCnFP12; const F1, F2: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Mul(Res: TCnFP12; F1, F2: TCnFP12; Prime: TCnBigNumber);
 var
   T, R0, R1, R2: TCnFP4;
 begin
@@ -1735,7 +1733,7 @@ begin
   end;
 end;
 
-procedure FP12Mul3(const Res: TCnFP12; const F: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Mul3(Res: TCnFP12; F: TCnFP12; Prime: TCnBigNumber);
 var
   T: TCnFP12;
 begin
@@ -1748,7 +1746,7 @@ begin
   end;
 end;
 
-procedure FP12Inverse(const Res: TCnFP12; const F: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Inverse(Res: TCnFP12; F: TCnFP12; Prime: TCnBigNumber);
 var
   K, T, T0, T1, T2, T3: TCnFP4;
 begin
@@ -1842,7 +1840,7 @@ begin
   end;
 end;
 
-procedure FP12Div(const Res: TCnFP12; const F1, F2: TCnFP12; Prime: TCnBigNumber);
+procedure FP12Div(Res: TCnFP12; F1, F2: TCnFP12; Prime: TCnBigNumber);
 var
   Inv: TCnFP12;
 begin
@@ -1863,7 +1861,7 @@ begin
   end;
 end;
 
-procedure FP12Power(const Res: TCnFP12; const F: TCnFP12; Exponent: TCnBigNumber;
+procedure FP12Power(Res: TCnFP12; F: TCnFP12; Exponent: TCnBigNumber;
   Prime: TCnBigNumber);
 var
   I, N: Integer;
@@ -1929,17 +1927,17 @@ begin
   P.Z.SetZero;
 end;
 
-function FP2AffinePointToString(const P: TCnFP2AffinePoint): string;
+function FP2AffinePointToString(P: TCnFP2AffinePoint): string;
 begin
   Result := 'X: ' + P.X.ToString + CRLF + 'Y: ' + P.Y.ToString + CRLF + 'Z: ' + P.Z.ToString;
 end;
 
-function FP2AffinePointEqual(const P1, P2: TCnFP2AffinePoint): Boolean;
+function FP2AffinePointEqual(P1, P2: TCnFP2AffinePoint): Boolean;
 begin
   Result := FP2Equal(P1.X, P2.X) and FP2Equal(P1.Y, P2.Y) and FP2Equal(P1.Z, P2.Z);
 end;
 
-function FP2AffinePointCopy(const Dst, Src: TCnFP2AffinePoint): TCnFP2AffinePoint;
+function FP2AffinePointCopy(Dst, Src: TCnFP2AffinePoint): TCnFP2AffinePoint;
 begin
   Result := nil;
   if FP2Copy(Dst.X, Src.X) = nil then Exit;
@@ -1948,19 +1946,19 @@ begin
   Result := Dst;
 end;
 
-function FP2AffinePointIsAtInfinity(const P: TCnFP2AffinePoint): Boolean;
+function FP2AffinePointIsAtInfinity(P: TCnFP2AffinePoint): Boolean;
 begin
   Result := FP2IsZero(P.X) and FP2IsOne(P.Y) and FP2IsZero(P.Z);
 end;
 
-procedure FP2AffinePointSetToInfinity(const P: TCnFP2AffinePoint);
+procedure FP2AffinePointSetToInfinity(P: TCnFP2AffinePoint);
 begin
   P.X.SetZero;
   P.Y.SetOne;
   P.Z.SetZero;
 end;
 
-procedure FP2AffinePointGetCoordinates(const P: TCnFP2AffinePoint; const FP2X, FP2Y: TCnFP2);
+procedure FP2AffinePointGetCoordinates(P: TCnFP2AffinePoint; FP2X, FP2Y: TCnFP2);
 begin
   if P.Z.IsOne then
   begin
@@ -1971,14 +1969,14 @@ begin
     raise ECnSM9Exception.Create(SCnErrorSM9AffinePointZError);
 end;
 
-procedure FP2AffinePointSetCoordinates(const P: TCnFP2AffinePoint; const FP2X, FP2Y: TCnFP2);
+procedure FP2AffinePointSetCoordinates(P: TCnFP2AffinePoint; FP2X, FP2Y: TCnFP2);
 begin
   FP2Copy(P.X, FP2X);
   FP2Copy(P.Y, FP2Y);
   FP2SetOne(P.Z);
 end;
 
-procedure FP2AffinePointSetCoordinatesHex(const P: TCnFP2AffinePoint;
+procedure FP2AffinePointSetCoordinatesHex(P: TCnFP2AffinePoint;
   const SX0, SX1, SY0, SY1: string);
 begin
   FP2SetHex(P.X, SX0, SX1);
@@ -1986,16 +1984,16 @@ begin
   FP2SetOne(P.Z);
 end;
 
-procedure FP2AffinePointSetCoordinatesBigNumbers(const P: TCnFP2AffinePoint;
-  const X0, X1, Y0, Y1: TCnBigNumber);
+procedure FP2AffinePointSetCoordinatesBigNumbers(P: TCnFP2AffinePoint;
+  X0, X1, Y0, Y1: TCnBigNumber);
 begin
   FP2SetBigNumbers(P.X, X0, X1);
   FP2SetBigNumbers(P.Y, X1, Y1);
   FP2SetOne(P.Z);
 end;
 
-procedure FP2AffinePointGetJacobianCoordinates(const P: TCnFP2AffinePoint;
-  const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber);
+procedure FP2AffinePointGetJacobianCoordinates(P: TCnFP2AffinePoint;
+  FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber);
 var
   X, Y: TCnFP2;
   W: TCnFP12;
@@ -2029,8 +2027,8 @@ begin
   end;
 end;
 
-procedure FP2AffinePointSetJacobianCoordinates(const P: TCnFP2AffinePoint;
-  const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber);
+procedure FP2AffinePointSetJacobianCoordinates(P: TCnFP2AffinePoint;
+  FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber);
 var
   TX, TY: TCnFP12;
 begin
@@ -2053,7 +2051,7 @@ begin
   end;
 end;
 
-function FP2AffinePointIsOnCurve(const P: TCnFP2AffinePoint; Prime: TCnBigNumber): Boolean;
+function FP2AffinePointIsOnCurve(P: TCnFP2AffinePoint; Prime: TCnBigNumber): Boolean;
 var
   X, Y, B, T: TCnFP2;
 begin
@@ -2090,7 +2088,7 @@ begin
   end;
 end;
 
-procedure FP2AffinePointNegate(const Res: TCnFP2AffinePoint; const P: TCnFP2AffinePoint;
+procedure FP2AffinePointNegate(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
   Prime: TCnBigNumber);
 begin
   FP2Copy(Res.X, P.X);
@@ -2098,7 +2096,7 @@ begin
   FP2Copy(Res.Z, P.Z);
 end;
 
-procedure FP2AffinePointDouble(const Res: TCnFP2AffinePoint; const P: TCnFP2AffinePoint;
+procedure FP2AffinePointDouble(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
   Prime: TCnBigNumber);
 var
   L, T, X1, Y1, X2, Y2: TCnFP2;
@@ -2154,7 +2152,7 @@ begin
   end;
 end;
 
-procedure FP2AffinePointAdd(const Res: TCnFP2AffinePoint; const P, Q: TCnFP2AffinePoint;
+procedure FP2AffinePointAdd(Res: TCnFP2AffinePoint; P, Q: TCnFP2AffinePoint;
   Prime: TCnBigNumber);
 var
   X1, Y1, X2, Y2, X3, Y3, L, T: TCnFP2;
@@ -2226,7 +2224,7 @@ begin
   end;
 end;
 
-procedure FP2AffinePointSub(const Res: TCnFP2AffinePoint; const P, Q: TCnFP2AffinePoint;
+procedure FP2AffinePointSub(Res: TCnFP2AffinePoint; P, Q: TCnFP2AffinePoint;
   Prime: TCnBigNumber);
 var
   T: TCnFP2AffinePoint;
@@ -2240,7 +2238,7 @@ begin
   end;
 end;
 
-procedure FP2AffinePointMul(const Res: TCnFP2AffinePoint; const P: TCnFP2AffinePoint;
+procedure FP2AffinePointMul(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
   Num: TCnBigNumber; Prime: TCnBigNumber);
 var
   I, N: Integer;
@@ -2276,8 +2274,8 @@ begin
   end;
 end;
 
-procedure FP2AffinePointFrobenius(const Res: TCnFP2AffinePoint;
-  const P: TCnFP2AffinePoint; Prime: TCnBigNumber);
+procedure FP2AffinePointFrobenius(Res: TCnFP2AffinePoint;
+  P: TCnFP2AffinePoint; Prime: TCnBigNumber);
 var
   X, Y: TCnFP12;
 begin
@@ -2298,7 +2296,7 @@ begin
   end;
 end;
 
-function FP2PointToString(const P: TCnFP2Point): string;
+function FP2PointToString(P: TCnFP2Point): string;
 begin
   Result := 'X: ' + P.X.ToString + CRLF + 'Y: ' + P.Y.ToString;
 end;
@@ -2336,8 +2334,8 @@ end;
 // ============================ 双线性对计算函数 ===============================
 
 // 求一点切线
-procedure Tangent(const Res: TCnFP12; const T: TCnFP2AffinePoint;
-  const XP, YP: TCnBigNumber; Prime: TCnBigNumber);
+procedure Tangent(Res: TCnFP12; T: TCnFP2AffinePoint;
+  XP, YP: TCnBigNumber; Prime: TCnBigNumber);
 var
   X, Y, XT, YT, L, Q: TCnFP12;
 begin
@@ -2384,8 +2382,8 @@ begin
 end;
 
 // 求两点割线
-procedure Secant(const Res: TCnFP12; const T, Q: TCnFP2AffinePoint;
-  const XP, YP: TCnBigNumber; Prime: TCnBigNumber);
+procedure Secant(Res: TCnFP12; T, Q: TCnFP2AffinePoint;
+  XP, YP: TCnBigNumber; Prime: TCnBigNumber);
 var
   X, Y, L, M, XT, YT, XQ, YQ: TCnFP12;
 begin
@@ -2437,7 +2435,7 @@ begin
   end;
 end;
 
-procedure FP12FastExp1(const Res: TCnFP12; const F: TCnFP12; Prime: TCnBigNumber);
+procedure FP12FastExp1(Res: TCnFP12; F: TCnFP12; Prime: TCnBigNumber);
 begin
   FP2Copy(Res[0][0], F[0][0]);
   FP2Negate(Res[0][1], F[0][1], Prime);
@@ -2447,7 +2445,7 @@ begin
   FP2Negate(Res[2][1], F[2][1], Prime);
 end;
 
-procedure FP12FastExp2(const Res: TCnFP12; const F: TCnFP12; Prime: TCnBigNumber);
+procedure FP12FastExp2(Res: TCnFP12; F: TCnFP12; Prime: TCnBigNumber);
 begin
   FP2Copy(Res[0][0], F[0][0]);
   FP2Negate(Res[0][1], F[0][1], Prime);
@@ -2457,7 +2455,7 @@ begin
   FP2Mul(Res[2][1], F[2][1], FFP12FastExpPW23, Prime);
 end;
 
-procedure FinalFastExp(const Res: TCnFP12; const F: TCnFP12; const K: TCnBigNumber;
+procedure FinalFastExp(Res: TCnFP12; F: TCnFP12; K: TCnBigNumber;
   Prime: TCnBigNumber);
 var
   I, N: Integer;
@@ -2496,8 +2494,8 @@ begin
   end;
 end;
 
-procedure Rate(const F: TCnFP12; const Q: TCnFP2AffinePoint; const XP, YP: TCnBigNumber;
-  const A: TCnBigNumber; const K: TCnBigNumber; Prime: TCnBigNumber);
+procedure Rate(F: TCnFP12; Q: TCnFP2AffinePoint; XP, YP: TCnBigNumber;
+  A: TCnBigNumber; K: TCnBigNumber; Prime: TCnBigNumber);
 var
   I, N: Integer;
   T, Q1, Q2: TCnFP2AffinePoint;
@@ -2559,7 +2557,7 @@ begin
   end;
 end;
 
-procedure SM9RatePairing(const F: TCnFP12; const Q: TCnFP2AffinePoint; const P: TCnEccPoint);
+procedure SM9RatePairing(F: TCnFP12; Q: TCnFP2AffinePoint; P: TCnEccPoint);
 var
   XP, YP: TCnBigNumber; // P 点坐标的引用
   AQ: TCnFP2AffinePoint;   // Q 点坐标的引用
@@ -4305,13 +4303,13 @@ begin
   end;
 end;
 
-function CnSM9Hash1(const Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
+function CnSM9Hash1(Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
   N: TCnBigNumber): Boolean;
 begin
   Result := SM9Hash(Res, CN_SM9_HASH_PREFIX_1, Data, DataByteLen, N);
 end;
 
-function CnSM9Hash2(const Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
+function CnSM9Hash2(Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
   N: TCnBigNumber): Boolean;
 begin
   Result := SM9Hash(Res, CN_SM9_HASH_PREFIX_2, Data, DataByteLen, N);
