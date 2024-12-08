@@ -51,8 +51,8 @@ procedure RC4Encrypt(Key: Pointer; KeyByteLength: Integer; Input: Pointer;
    Input Output 可以指向同一块内存，这样 Output 的内容将覆盖原有 Input 的内容。
 
    参数：
-     Key: Pointer                         - 密钥的内存地址
-     KeyByteLength: Integer               - 密钥的字节长度
+     Key: Pointer                         - 加密密钥的内存地址
+     KeyByteLength: Integer               - 加密密钥的字节长度
      Input: Pointer                       - 待加密的明文数据块地址
      Output: Pointer                      - 待输出的密文数据块地址
      ByteLength: Integer                  - 待加密的明文数据块的字节长度
@@ -67,8 +67,8 @@ procedure RC4Decrypt(Key: Pointer; KeyByteLength: Integer; Input: Pointer;
    Input Output 可以指向同一块内存，这样 Output 的内容将覆盖原有 Input 的内容。
 
    参数：
-     Key: Pointer                         - 密钥的内存地址
-     KeyByteLength: Integer               - 密钥的字节长度
+     Key: Pointer                         - 解密密钥的内存地址
+     KeyByteLength: Integer               - 解密密钥的字节长度
      Input: Pointer                       - 待解密的密文数据块地址
      Output: Pointer                      - 待输出的明文数据块地址
      ByteLength: Integer                  - 待解密的密文数据块的字节长度
@@ -80,7 +80,7 @@ function RC4EncryptBytes(Key: TBytes; Input: TBytes): TBytes;
 {* RC4 加密字节数组，返回密文字节数组。
 
    参数：
-     Key: TBytes                          - 密码字节数组
+     Key: TBytes                          - 加密密钥字节数组
      Input: TBytes                        - 待加密的明文字节数组
 
    返回值：TBytes                         - 返回密文字节数组
@@ -90,7 +90,7 @@ function RC4DecryptBytes(Key: TBytes; Input: TBytes): TBytes;
 {* RC4 解密字节数组，返回明文字节数组。
 
    参数：
-     Key: TBytes                          - 密码字节数组
+     Key: TBytes                          - 解密密钥字节数组
      Input: TBytes                        - 待解密的密文字节数组
 
    返回值：TBytes                         - 返回明文字节数组
@@ -101,7 +101,7 @@ function RC4EncryptStrToHex(const Str: AnsiString; const Key: AnsiString): AnsiS
 
    参数：
      const Str: AnsiString                - 待加密的原始单字节字符串，内部不处理编码
-     const Key: AnsiString                - 密码字符串
+     const Key: AnsiString                - 加密密钥字符串
 
    返回值：AnsiString                     - 返回加密后的十六进制密文
 }
@@ -111,7 +111,7 @@ function RC4DecryptStrFromHex(const HexStr: AnsiString; const Key: AnsiString): 
 
    参数：
      const HexStr: AnsiString             - 待解密的十六进制密文
-     const Key: AnsiString                - 密码字符串
+     const Key: AnsiString                - 解密密钥字符串
 
    返回值：AnsiString                     - 返回解密后的单字节字符串明文，内部不处理编码
 }

@@ -24,7 +24,7 @@ unit CnAEAD;
 * 软件名称：开发包基础库
 * 单元名称：各类 AEAD 实现单元
 * 单元作者：CnPack 开发组
-* 备    注：AEAD 是关联数据认证加密的简称。可以用密码、关联数据与初始化向量等对
+* 备    注：AEAD 是关联数据认证加密的简称。可以用密钥、关联数据与初始化向量等对
 *           数据进行加密与生成验证内容，解密时如果验证内容通不过则失败。
 *
 *           目前本单元实现了 GHash128（也叫 GMAC）以及 CMAC，并基于两者实现了
@@ -126,17 +126,44 @@ type
   {* CCM 的计算结果}
 
 procedure GMulBlock128(var X: TCn128BitsBuffer; var Y: TCn128BitsBuffer; var R: TCn128BitsBuffer);
-{* 实现 GHash 中的伽罗华域 (2^128) 上的块乘法操作。基本测试通过，也符合交换律
-  注意 2 次幂有限域乘法里的加法是模 2 加也就是异或（也等同于模 2 减）
-  同时还要模一个模多项式 GHASH_POLY，其中的单次减同样也即异或}
+{* 实现 GHash 中的伽罗华域 (2^128) 上的块乘法操作。基本测试通过，也符合交换律。
+   注意 2 次幂有限域乘法里的加法是模 2 加也就是异或（也等同于模 2 减），
+   同时还要模一个模多项式 GHASH_POLY，其中的单次减同样也即异或。
+
+   参数：
+     var X: TCn128BitsBuffer              - 乘数一
+     var Y: TCn128BitsBuffer              - 乘数二
+     var R: TCn128BitsBuffer              - 积
+
+   返回值：（无）
+}
 
 procedure GHash128(var HashKey: TCnGHash128Key; Data: Pointer; DataByteLength: Integer;
   AAD: Pointer; AADByteLength: Integer; var OutTag: TCnGHash128Tag);
 {* 以指定 HashKey 与附加数据 AAD，对一块数据进行 GHash 计算得到 Tag 摘要，
-  对应文档中的 GHash(H, A C)}
+   对应文档中的 GHash(H, A C)。
+
+   参数：
+     var HashKey: TCnGHash128Key          - 用于计算的密钥
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLength: Integer              - 待计算的数据块字节长度
+     AAD: Pointer                         - 待计算的附加数据块地址
+     AADByteLength: Integer               - 待计算的附加数据块字节长度
+     var OutTag: TCnGHash128Tag           - 返回计算结果 Tag
+
+   返回值：（无）
+}
 
 function GHash128Bytes(var HashKey: TCnGHash128Key; Data: TBytes; AAD: TBytes): TCnGHash128Tag;
-{* 字节数组方式进行 GHash 计算，内部调用 GHash128}
+{* 字节数组方式进行 GHash 计算，内部调用 GHash128。
+
+   参数：
+     var HashKey: TCnGHash128Key          - 用于计算的密钥
+     Data: TBytes                         - 待计算的字节数组
+     AAD: TBytes                          - 待计算的附加数据字节数组
+
+   返回值：TCnGHash128Tag                 - 返回计算结果 Tag
+}
 
 // 以下三个函数用于外部持续对数据进行零散的 GHash128 计算，GHash128Update 可多次被调用
 // 注意 GHash128Update 中 Data 需要尽量传整块，如不整块，末尾会补 0 计算，
@@ -144,351 +171,1002 @@ function GHash128Bytes(var HashKey: TCnGHash128Key; Data: TBytes; AAD: TBytes): 
 
 procedure GHash128Start(var Ctx: TCnGHash128Context; var HashKey: TCnGHash128Key;
   AAD: Pointer; AADByteLength: Integer);
-{* 开始 GHash128 的第一步，初始化后全部计算好 AAD 内容}
+{* 开始 GHash128 的第一步，初始化后全部计算好 AAD 内容。
+
+   参数：
+     var Ctx: TCnGHash128Context          - 待初始化的上下文结构
+     var HashKey: TCnGHash128Key          - 用于计算的密钥
+     AAD: Pointer                         - 待计算的附加数据块地址
+     AADByteLength: Integer               - 待计算的附加数据块字节长度
+
+   返回值：（无）
+}
 
 procedure GHash128Update(var Ctx: TCnGHash128Context; Data: Pointer; DataByteLength: Integer);
-{* 对一块数据进行 GHash128，结果与计算长度均记录在 Ctx 中，可以多次调用}
+{* 对一块数据进行 GHash128，结果与计算长度均记录在 Ctx 中，可以多次调用。
+   注意需要尽量传整块，如不整块，末尾会补 0 完成本次计算，而不是类似于其他杂凑函数那样留存着等下一轮凑足后再计算。
+
+   参数：
+     var Ctx: TCnGHash128Context          - 上下文结构
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLength: Integer              - 待计算的数据块字节长度
+
+   返回值：（无）
+}
 
 procedure GHash128Finish(var Ctx: TCnGHash128Context; var Output: TCnGHash128Tag);
-{* GHash128 结束，补算长度，并返回结果}
+{* GHash128 结束，补算长度，并返回结果。
+
+   参数：
+     var Ctx: TCnGHash128Context          - 上下文结构
+     var Output: TCnGHash128Tag           - 返回计算结果 Tag
+
+   返回值：（无）
+}
 
 // ======================= AES/SM4-GCM 字节数组加密函数 ========================
 
 function AES128GCMEncryptBytes(Key: TBytes; Iv: TBytes; PlainData: TBytes; AAD: TBytes;
   var OutTag: TCnGCM128Tag): TBytes;
-{* 使用密码、初始化向量、额外数据对明文进行 AES-128-GCM 加密，返回密文
-  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、初始化向量、附加数据对明文进行 AES-128-GCM 加密，返回密文。
+   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: TBytes                          - 加密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     PlainData: TBytes                    - 待加密的明文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var OutTag: TCnGCM128Tag             - 返回计算结果 Tag
+
+   返回值：TBytes                         - 返回密文字节数组
+}
 
 function AES192GCMEncryptBytes(Key: TBytes; Iv: TBytes; PlainData: TBytes; AAD: TBytes;
   var OutTag: TCnGCM128Tag): TBytes;
-{* 使用密码、初始化向量、额外数据对明文进行 AES-192-GCM 加密，返回密文
-  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、初始化向量、附加数据对明文进行 AES-192-GCM 加密，返回密文。
+   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: TBytes                          - 加密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     PlainData: TBytes                    - 待加密的明文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var OutTag: TCnGCM128Tag             - 返回计算结果 Tag
+
+   返回值：TBytes                         - 返回密文字节数组
+}
 
 function AES256GCMEncryptBytes(Key: TBytes; Iv: TBytes; PlainData: TBytes; AAD: TBytes;
   var OutTag: TCnGCM128Tag): TBytes;
-{* 使用密码、初始化向量、额外数据对明文进行 AES-256-GCM 加密，返回密文
-  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、初始化向量、附加数据对明文进行 AES-256-GCM 加密，返回密文。
+   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: TBytes                          - 加密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     PlainData: TBytes                    - 待加密的明文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var OutTag: TCnGCM128Tag             - 返回计算结果 Tag
+
+   返回值：TBytes                         - 返回密文字节数组
+}
 
 function SM4GCMEncryptBytes(Key: TBytes; Iv: TBytes; PlainData: TBytes; AAD: TBytes;
   var OutTag: TCnGCM128Tag): TBytes;
-{* 使用密码、初始化向量、额外数据对明文进行 SM4-GCM 加密，返回密文
-  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、初始化向量、附加数据对明文进行 SM4-GCM 加密，返回密文。
+   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: TBytes                          - 加密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     PlainData: TBytes                    - 待加密的明文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var OutTag: TCnGCM128Tag             - 返回计算结果 Tag
+
+   返回值：TBytes                         - 返回密文字节数组
+}
 
 // ======================== AES/SM4-GCM 数据块加密函数 =========================
 
 procedure AES128GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TCnGCM128Tag);
-{* 使用密码、初始化向量、额外数据对明文进行 AES-128-GCM 加密，返回密文至 OutEnData 所指的区域中
-  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
-  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、初始化向量、附加数据对明文进行 AES-128-GCM 加密，返回密文至 OutEnData 所指的区域中。
+   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果。
+   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: Pointer                         - 加密密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Iv: Pointer                          - 初始化向量数据块地址
+     IvByteLength: Integer                - 初始化向量数据块字节长度
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     PlainByteLength: Integer             - 待加密的明文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutEnData: Pointer                   - 输出密文的存放地址
+     var OutTag: TCnGCM128Tag             - 返回计算结果 Tag
+
+   返回值：（无）
+}
 
 procedure AES192GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TCnGCM128Tag);
-{* 使用密码、初始化向量、额外数据对明文进行 AES-192-GCM 加密，返回密文至 OutEnData 所指的区域中
-  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
-  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、初始化向量、附加数据对明文进行 AES-192-GCM 加密，返回密文至 OutEnData 所指的区域中。
+   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果。
+   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: Pointer                         - 加密密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Iv: Pointer                          - 初始化向量数据块地址
+     IvByteLength: Integer                - 初始化向量数据块字节长度
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     PlainByteLength: Integer             - 待加密的明文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutEnData: Pointer                   - 输出密文的存放地址
+     var OutTag: TCnGCM128Tag             - 返回计算结果 Tag
+
+   返回值：（无）
+}
 
 procedure AES256GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TCnGCM128Tag);
-{* 使用密码、初始化向量、额外数据对明文进行 AES-256-GCM 加密，返回密文至 OutEnData 所指的区域中
-  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
-  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、初始化向量、附加数据对明文进行 AES-256-GCM 加密，返回密文至 OutEnData 所指的区域中。
+   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果。
+   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: Pointer                         - 加密密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Iv: Pointer                          - 初始化向量数据块地址
+     IvByteLength: Integer                - 初始化向量数据块字节长度
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     PlainByteLength: Integer             - 待加密的明文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutEnData: Pointer                   - 输出密文的存放地址
+     var OutTag: TCnGCM128Tag             - 返回计算结果 Tag
+
+   返回值：（无）
+}
 
 procedure SM4GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TCnGCM128Tag);
-{* 使用密码、初始化向量、额外数据对明文进行 SM4-GCM 加密，返回密文至 OutEnData 所指的区域中
-  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
-  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、初始化向量、附加数据对明文进行 SM4-GCM 加密，返回密文至 OutEnData 所指的区域中。
+   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果。
+   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: Pointer                         - 加密密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Iv: Pointer                          - 初始化向量数据块地址
+     IvByteLength: Integer                - 初始化向量数据块字节长度
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     PlainByteLength: Integer             - 待加密的明文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutEnData: Pointer                   - 输出密文的存放地址
+     var OutTag: TCnGCM128Tag             - 返回计算结果 Tag
+
+   返回值：（无）
+}
 
 procedure AESGCMNoPaddingEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer;
   NonceByteLength: Integer; PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer;
   AADByteLength: Integer; OutEnData: Pointer);
 {* 符合 Java/Kotlin/OpenSSL 等规范的 AES/GCM/NoPadding 加密函数，内部使用 AES256。
-  其中 Nonce 即初始化向量。Tag 被直接拼在密文后，因而要求 OutEnData 所指的区域比 PlainByteLength 长出至少 16 字节}
+   其中 Nonce 即初始化向量。Tag 被直接拼在密文后，因而要求 OutEnData 所指的区域比 PlainByteLength 长出至少 16 字节。
+
+   参数：
+     Key: Pointer                         - 加密密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Nonce: Pointer                       - 临时数据块地址
+     NonceByteLength: Integer             - 临时数据块字节长度
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     PlainByteLength: Integer             - 待加密的明文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutEnData: Pointer                   - 输出密文的存放地址
+
+   返回值：（无）
+}
 
 // ======================= AES/SM4-GCM 字节数组解密函数 ========================
 
 function AES128GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes;
   var InTag: TCnGCM128Tag): TBytes;
-{* 使用密码、初始化向量、额外数据对密文进行 AES-128-GCM 解密并验证，成功则返回明文
-  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+{* 使用密钥、初始化向量、附加数据对密文进行 AES-128-GCM 解密并验证，成功则返回明文。
+   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnGCM128Tag              - 待验证的 Tag
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 function AES192GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes;
   var InTag: TCnGCM128Tag): TBytes;
-{* 使用密码、初始化向量、额外数据对密文进行 AES-192-GCM 解密并验证，成功则返回明文
-  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+{* 使用密钥、初始化向量、附加数据对密文进行 AES-192-GCM 解密并验证，成功则返回明文。
+   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnGCM128Tag              - 待验证的 Tag
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 function AES256GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes;
   var InTag: TCnGCM128Tag): TBytes;
-{* 使用密码、初始化向量、额外数据对密文进行 AES-256-GCM 解密并验证，成功则返回明文
-  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+{* 使用密钥、初始化向量、附加数据对密文进行 AES-256-GCM 解密并验证，成功则返回明文。
+   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnGCM128Tag              - 待验证的 Tag
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 function SM4GCMDecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes; AAD: TBytes;
   var InTag: TCnGCM128Tag): TBytes;
-{* 使用密码、初始化向量、额外数据对密文进行 SM4-GCM 解密并验证，成功则返回明文
-  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+{* 使用密钥、初始化向量、附加数据对密文进行 SM4-GCM 解密并验证，成功则返回明文。
+   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnGCM128Tag              - 待验证的 Tag
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 // ======================== AES/SM4-GCM 数据块解密函数 =========================
 
 function AES128GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
   EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TCnGCM128Tag): Boolean;
-{* 使用密码、初始化向量、额外数据对密文进行 AES-128-GCM 解密并验证，
-  成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
-  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+{* 使用密钥、初始化向量、附加数据对密文进行 AES-128-GCM 解密并验证，
+   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
+   以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False。
+
+   参数：
+     Key: Pointer                         - 解密密钥数据块地址
+     KeyByteLength: Integer               - 解密密钥数据块字节长度
+     Iv: Pointer                          - 初始化向量数据块地址
+     IvByteLength: Integer                - 初始化向量数据块字节长度
+     EnData: Pointer                      - 待解密的密文数据块地址
+     EnByteLength: Integer                - 待解密的密文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutPlainData: Pointer                - 输出明文的存放地址
+     var InTag: TCnGCM128Tag              - 待验证的 Tag
+
+   返回值：Boolean                        - 返回解密与验证是否成功
+}
 
 function AES192GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
   EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TCnGCM128Tag): Boolean;
-{* 使用密码、初始化向量、额外数据对密文进行 AES-192-GCM 解密并验证，
-  成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
-  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+{* 使用密钥、初始化向量、附加数据对密文进行 AES-192-GCM 解密并验证，
+   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
+   以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False。
+
+   参数：
+     Key: Pointer                         - 解密密钥数据块地址
+     KeyByteLength: Integer               - 解密密钥数据块字节长度
+     Iv: Pointer                          - 初始化向量数据块地址
+     IvByteLength: Integer                - 初始化向量数据块字节长度
+     EnData: Pointer                      - 待解密的密文数据块地址
+     EnByteLength: Integer                - 待解密的密文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutPlainData: Pointer                - 输出明文的存放地址
+     var InTag: TCnGCM128Tag              - 待验证的 Tag
+
+   返回值：Boolean                        - 返回解密与验证是否成功
+}
 
 function AES256GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
   EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TCnGCM128Tag): Boolean;
-{* 使用密码、初始化向量、额外数据对密文进行 AES-256-GCM 解密并验证，
-  成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
-  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+{* 使用密钥、初始化向量、附加数据对密文进行 AES-256-GCM 解密并验证，
+   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
+   以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False。
+
+   参数：
+     Key: Pointer                         - 解密密钥数据块地址
+     KeyByteLength: Integer               - 解密密钥数据块字节长度
+     Iv: Pointer                          - 初始化向量数据块地址
+     IvByteLength: Integer                - 初始化向量数据块字节长度
+     EnData: Pointer                      - 待解密的密文数据块地址
+     EnByteLength: Integer                - 待解密的密文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutPlainData: Pointer                - 输出明文的存放地址
+     var InTag: TCnGCM128Tag              - 待验证的 Tag
+
+   返回值：Boolean                        - 返回解密与验证是否成功
+}
 
 function SM4GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
   EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TCnGCM128Tag): Boolean;
-{* 使用密码、初始化向量、额外数据对密文进行 SM4-GCM 解密并验证，
-  成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
-  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+{* 使用密钥、初始化向量、附加数据对密文进行 SM4-GCM 解密并验证，
+   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
+   以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False。
+
+   参数：
+     Key: Pointer                         - 解密密钥数据块地址
+     KeyByteLength: Integer               - 解密密钥数据块字节长度
+     Iv: Pointer                          - 初始化向量数据块地址
+     IvByteLength: Integer                - 初始化向量数据块字节长度
+     EnData: Pointer                      - 待解密的密文数据块地址
+     EnByteLength: Integer                - 待解密的密文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutPlainData: Pointer                - 输出明文的存放地址
+     var InTag: TCnGCM128Tag              - 待验证的 Tag
+
+   返回值：Boolean                        - 返回解密与验证是否成功
+}
 
 function AESGCMNoPaddingDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer;
   NonceByteLength: Integer; EnData: Pointer; EnByteLength: Integer; AAD: Pointer;
   AADByteLength: Integer; OutPlainData: Pointer): Boolean;
 {* 符合 Java/Kotlin/OpenSSL 等规范的 AES/GCM/NoPadding 解密函数，内部使用 AES256。
-  其中 Nonce 即初始化向量。另外要求 Tag 被直接拼在密文后，也就是将密文后 16 字节当成 Tag 进行解密后的比对}
+   其中 Nonce 即初始化向量。另外要求 Tag 被直接拼在密文后，也就是将密文后 16 字节当成 Tag 进行解密后的比对。
+
+   参数：
+     Key: Pointer                         - 解密密钥数据块地址
+     KeyByteLength: Integer               - 解密密钥数据块字节长度
+     Nonce: Pointer                       - 临时数据块地址
+     NonceByteLength: Integer             - 临时数据块字节长度
+     EnData: Pointer                      - 待解密的密文数据块地址
+     EnByteLength: Integer                - 待解密的密文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutPlainData: Pointer                - 输出明文的存放地址
+
+   返回值：Boolean                        - 返回解密与验证是否成功
+}
 
 // ======================= AES/SM4-CMAC 字节数组杂凑函数 =======================
 
 function AES128CMAC128Bytes(Key: TBytes; Data: TBytes): TCnCMAC128Tag;
-{* 以指定的 Key 对数据进行 AES-128-CMAC 计算，返回计算出的 Tag，参数均为字节数组}
+{* 以指定的 Key 对数据进行 AES-128-CMAC 计算，返回计算出的 Tag，参数均为字节数组。
+
+   参数：
+     Key: TBytes                          - 密钥字节数组
+     Data: TBytes                         - 明文字节数组
+
+   返回值：TCnCMAC128Tag                  -
+}
 
 function AES192CMAC128Bytes(Key: TBytes; Data: TBytes): TCnCMAC128Tag;
-{* 以指定的 Key 对数据进行 AES-192-CMAC 计算，返回计算出的 Tag，参数均为字节数组}
+{* 以指定的 Key 对数据进行 AES-192-CMAC 计算，返回计算出的 Tag，参数均为字节数组
+
+   参数：
+     Key: TBytes                          - 密钥字节数组
+     Data: TBytes                         - 明文字节数组
+
+   返回值：TCnCMAC128Tag                  -
+}
 
 function AES256CMAC128Bytes(Key: TBytes; Data: TBytes): TCnCMAC128Tag;
-{* 以指定的 Key 对数据进行 AES-256-CMAC 计算，返回计算出的 Tag，参数均为字节数组}
+{* 以指定的 Key 对数据进行 AES-256-CMAC 计算，返回计算出的 Tag，参数均为字节数组
+
+   参数：
+     Key: TBytes                          - 密钥字节数组
+     Data: TBytes                         -
+
+   返回值：TCnCMAC128Tag                  -
+}
 
 function SM4CMAC128Bytes(Key: TBytes; Data: TBytes): TCnCMAC128Tag;
-{* 以指定的 Key 对数据进行 SM4-CMAC 计算，返回计算出的 Tag，参数均为字节数组}
+{* 以指定的 Key 对数据进行 SM4-CMAC 计算，返回计算出的 Tag，参数均为字节数组
+
+   参数：
+     Key: TBytes                          - 密钥字节数组
+     Data: TBytes                         -
+
+   返回值：TCnCMAC128Tag                  -
+}
 
 // ======================== AES/SM4-CMAC 数据块杂凑函数 ========================
 
 function AES128CMAC128(Key: Pointer; KeyByteLength: Integer; Data: Pointer;
   DataByteLength: Integer): TCnCMAC128Tag;
-{* 以指定的 Key 对数据进行 AES-128-CMAC 计算，返回计算出的 Tag，参数均为内存块}
+{* 以指定的 Key 对数据进行 AES-128-CMAC 计算，返回计算出的 Tag，参数均为内存块。
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLength: Integer              - 待计算的数据块字节长度
+
+   返回值：TCnCMAC128Tag                  -
+}
 
 function AES192CMAC128(Key: Pointer; KeyByteLength: Integer; Data: Pointer;
   DataByteLength: Integer): TCnCMAC128Tag;
-{* 以指定的 Key 对数据进行 AES-192-CMAC 计算，返回计算出的 Tag，参数均为字节数组}
+{* 以指定的 Key 对数据进行 AES-192-CMAC 计算，返回计算出的 Tag，参数均为内存块。
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLength: Integer              - 待计算的数据块字节长度
+
+   返回值：TCnCMAC128Tag                  -
+}
 
 function AES256CMAC128(Key: Pointer; KeyByteLength: Integer; Data: Pointer;
   DataByteLength: Integer): TCnCMAC128Tag;
-{* 以指定的 Key 对数据进行 AES-256-CMAC 计算，返回计算出的 Tag，参数均为字节数组}
+{* 以指定的 Key 对数据进行 AES-256-CMAC 计算，返回计算出的 Tag，参数均为内存块。
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLength: Integer              - 待计算的数据块字节长度
+
+   返回值：TCnCMAC128Tag                  - 返回计算结果 Tag
+}
 
 function SM4CMAC128(Key: Pointer; KeyByteLength: Integer; Data: Pointer;
   DataByteLength: Integer): TCnCMAC128Tag;
-{* 以指定的 Key 对数据进行 SM4-CMAC 计算，返回计算出的 Tag，参数均为字节数组}
+{* 以指定的 Key 对数据进行 SM4-CMAC 计算，返回计算出的 Tag，参数均为内存块。
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLength: Integer              - 待计算的数据块字节长度
+
+   返回值：TCnCMAC128Tag                  - 返回计算结果 Tag
+}
 
 // ======================= AES/SM4-CCM 字节数组加密函数 ========================
 
 function AES128CCMEncryptBytes(Key: TBytes; Nonce: TBytes; PlainData: TBytes; AAD: TBytes;
   var OutTag: TCnCCM128Tag): TBytes;
-{* 使用密码、临时数据、额外数据对明文进行 AES-128-CCM 加密，返回密文
-  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、临时数据、附加数据对明文进行 AES-128-CCM 加密，返回密文。
+   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: TBytes                          - 加密密钥字节数组
+     Nonce: TBytes                        - 临时数据字节数组
+     PlainData: TBytes                    - 待加密的明文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var OutTag: TCnCCM128Tag             - 返回计算结果 Tag
+
+   返回值：TBytes                         - 返回密文字节数组
+}
 
 function AES192CCMEncryptBytes(Key: TBytes; Nonce: TBytes; PlainData: TBytes; AAD: TBytes;
   var OutTag: TCnCCM128Tag): TBytes;
-{* 使用密码、临时数据、额外数据对明文进行 AES-192-CCM 加密，返回密文
-  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、临时数据、附加数据对明文进行 AES-192-CCM 加密，返回密文。
+   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: TBytes                          - 加密密钥字节数组
+     Nonce: TBytes                        - 临时数据字节数组
+     PlainData: TBytes                    - 待加密的明文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var OutTag: TCnCCM128Tag             - 返回计算结果 Tag
+
+   返回值：TBytes                         - 返回密文字节数组
+}
 
 function AES256CCMEncryptBytes(Key: TBytes; Nonce: TBytes; PlainData: TBytes; AAD: TBytes;
   var OutTag: TCnCCM128Tag): TBytes;
-{* 使用密码、临时数据、额外数据对明文进行 AES-256-CCM 加密，返回密文
-  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、临时数据、附加数据对明文进行 AES-256-CCM 加密，返回密文。
+   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: TBytes                          - 加密密钥字节数组
+     Nonce: TBytes                        - 临时数据字节数组
+     PlainData: TBytes                    - 待加密的明文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var OutTag: TCnCCM128Tag             - 返回计算结果 Tag
+
+   返回值：TBytes                         - 返回密文字节数组
+}
 
 function SM4CCMEncryptBytes(Key: TBytes; Nonce: TBytes; PlainData: TBytes; AAD: TBytes;
   var OutTag: TCnCCM128Tag): TBytes;
-{* 使用密码、临时数据、额外数据对明文进行 SM4-CCM 加密，返回密文
-  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、临时数据、附加数据对明文进行 SM4-CCM 加密，返回密文。
+   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: TBytes                          - 加密密钥字节数组
+     Nonce: TBytes                        - 临时数据字节数组
+     PlainData: TBytes                    - 待加密的明文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var OutTag: TCnCCM128Tag             - 返回计算结果 Tag
+
+   返回值：TBytes                         - 返回密文字节数组
+}
 
 // ======================= AES/SM4-CCM 字节数组解密函数 ========================
 
 function AES128CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBytes;
   var InTag: TCnCCM128Tag): TBytes;
-{* 使用密码、临时数据、额外数据对密文进行 AES-128-CCM 解密并验证，成功则返回明文
-  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+{* 使用密钥、临时数据、附加数据对密文进行 AES-128-CCM 解密并验证，成功则返回明文。
+   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Nonce: TBytes                        - 临时数据字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnCCM128Tag              - 待验证的 Tag
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 function AES192CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBytes;
   var InTag: TCnCCM128Tag): TBytes;
-{* 使用密码、临时数据、额外数据对密文进行 AES-192-CCM 解密并验证，成功则返回明文
-  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+{* 使用密钥、临时数据、附加数据对密文进行 AES-192-CCM 解密并验证，成功则返回明文。
+   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Nonce: TBytes                        - 临时数据字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnCCM128Tag              - 待验证的 Tag
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 function AES256CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBytes;
   var InTag: TCnCCM128Tag): TBytes;
-{* 使用密码、临时数据、额外数据对密文进行 AES-256-CCM 解密并验证，成功则返回明文
-  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+{* 使用密钥、临时数据、附加数据对密文进行 AES-256-CCM 解密并验证，成功则返回明文。
+   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Nonce: TBytes                        - 临时数据字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnCCM128Tag              - 待验证的 Tag
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 function SM4CCMDecryptBytes(Key: TBytes; Nonce: TBytes; EnData: TBytes; AAD: TBytes;
   var InTag: TCnCCM128Tag): TBytes;
-{* 使用密码、临时数据、额外数据对密文进行 SM4-CCM 解密并验证，成功则返回明文
-  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+{* 使用密钥、临时数据、附加数据对密文进行 SM4-CCM 解密并验证，成功则返回明文。
+   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Nonce: TBytes                        - 临时数据字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnCCM128Tag              - 待验证的 Tag
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 // ======================== AES/SM4-CCM 数据块加密函数 =========================
 
 procedure AES128CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TCnCCM128Tag);
-{* 使用密码、临时数据、额外数据对明文进行 AES-128-CCM 加密，返回密文至 OutEnData 所指的区域中
-  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
-  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、临时数据、附加数据对明文进行 AES-128-CCM 加密，返回密文至 OutEnData 所指的区域中。
+   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果。
+   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Nonce: Pointer                       - 临时数据块地址
+     NonceByteLength: Integer             - 临时数据块字节长度
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     PlainByteLength: Integer             - 待加密的明文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutEnData: Pointer                   - 输出密文的存放地址
+     var OutTag: TCnCCM128Tag             - 返回计算结果 Tag
+
+   返回值：（无）
+}
 
 procedure AES192CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TCnCCM128Tag);
-{* 使用密码、临时数据、额外数据对明文进行 AES-192-CCM 加密，返回密文至 OutEnData 所指的区域中
-  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
-  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、临时数据、附加数据对明文进行 AES-192-CCM 加密，返回密文至 OutEnData 所指的区域中。
+   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果。
+   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Nonce: Pointer                       - 初始化向量数据块地址
+     NonceByteLength: Integer             - 初始化向量数据块字节长度
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     PlainByteLength: Integer             - 待加密的明文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutEnData: Pointer                   - 输出密文的存放地址
+     var OutTag: TCnCCM128Tag             - 返回计算结果 Tag
+
+   返回值：（无）
+}
 
 procedure AES256CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TCnCCM128Tag);
-{* 使用密码、临时数据、额外数据对明文进行 AES-256-CCM 加密，返回密文至 OutEnData 所指的区域中
-  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
-  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、临时数据、附加数据对明文进行 AES-256-CCM 加密，返回密文至 OutEnData 所指的区域中。
+   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果。
+   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Nonce: Pointer                       - 临时数据块地址
+     NonceByteLength: Integer             - 临时数据块字节长度
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     PlainByteLength: Integer             - 待加密的明文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutEnData: Pointer                   - 输出密文的存放地址
+     var OutTag: TCnCCM128Tag             - 返回计算结果 Tag
+
+   返回值：（无）
+}
 
 procedure SM4CCMEncrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TCnCCM128Tag);
-{* 使用密码、临时数据、额外数据对明文进行 SM4-CCM 加密，返回密文至 OutEnData 所指的区域中
-  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
-  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、临时数据、附加数据对明文进行 SM4-CCM 加密，返回密文至 OutEnData 所指的区域中。
+   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果。
+   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Nonce: Pointer                       - 临时数据块地址
+     NonceByteLength: Integer             - 临时数据块字节长度
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     PlainByteLength: Integer             - 待加密的明文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutEnData: Pointer                   - 输出密文的存放地址
+     var OutTag: TCnCCM128Tag             - 返回计算结果 Tag
+
+   返回值：（无）
+}
 
 // ======================== AES/SM4-CCM 数据块解密函数 =========================
 
 function AES128CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
   EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TCnCCM128Tag): Boolean;
-{* 使用密码、临时数据、额外数据对密文进行 AES-128-CCM 解密并验证，
+{* 使用密钥、临时数据、附加数据对密文进行 AES-128-CCM 解密并验证，
   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
-  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Nonce: Pointer                       - 临时数据块地址
+     NonceByteLength: Integer             - 临时数据块字节长度
+     EnData: Pointer                      - 待解密的密文数据块地址
+     EnByteLength: Integer                - 待解密的密文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutPlainData: Pointer                - 输出明文的存放地址
+     var InTag: TCnCCM128Tag              - 待验证的 Tag
+
+   返回值：Boolean                        - 返回解密与验证是否成功
+}
 
 function AES192CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
   EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TCnCCM128Tag): Boolean;
-{* 使用密码、临时数据、额外数据对密文进行 AES-192-CCM 解密并验证，
+{* 使用密钥、临时数据、附加数据对密文进行 AES-192-CCM 解密并验证，
   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
-  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Nonce: Pointer                       - 临时数据块地址
+     NonceByteLength: Integer             - 临时数据块字节长度
+     EnData: Pointer                      - 待解密的密文数据块地址
+     EnByteLength: Integer                - 待解密的密文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutPlainData: Pointer                - 输出明文的存放地址
+     var InTag: TCnCCM128Tag              - 待验证的 Tag
+
+   返回值：Boolean                        - 返回解密与验证是否成功
+}
 
 function AES256CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
   EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TCnCCM128Tag): Boolean;
-{* 使用密码、临时数据、额外数据对密文进行 AES-256-CCM 解密并验证，
+{* 使用密钥、临时数据、附加数据对密文进行 AES-256-CCM 解密并验证，
   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
-  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Nonce: Pointer                       - 临时数据块地址
+     NonceByteLength: Integer             - 临时数据块字节长度
+     EnData: Pointer                      - 待解密的密文数据块地址
+     EnByteLength: Integer                - 待解密的密文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutPlainData: Pointer                - 输出明文的存放地址
+     var InTag: TCnCCM128Tag              - 待验证的 Tag
+
+   返回值：Boolean                        - 返回解密与验证是否成功
+}
 
 function SM4CCMDecrypt(Key: Pointer; KeyByteLength: Integer; Nonce: Pointer; NonceByteLength: Integer;
   EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TCnCCM128Tag): Boolean;
-{* 使用密码、临时数据、额外数据对密文进行 SM4-CCM 解密并验证，
+{* 使用密钥、临时数据、附加数据对密文进行 SM4-CCM 解密并验证，
   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
-  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Nonce: Pointer                       - 临时数据块地址
+     NonceByteLength: Integer             - 临时数据块字节长度
+     EnData: Pointer                      - 待解密的密文数据块地址
+     EnByteLength: Integer                - 待解密的密文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutPlainData: Pointer                - 输出明文的存放地址
+     var InTag: TCnCCM128Tag              - 待验证的 Tag
+
+   返回值：Boolean                        - 返回解密与验证是否成功
+}
 
 // ======== 封装的 AES|SM4/GCM 十六进制字节数组加解密函数，无需 Padding ========
 
-function AESGCMEncryptToHex(Key: TBytes; Iv: TBytes; AD: TBytes; const Input: TBytes): string;
-{* 封装的常用加密函数。使用密码、初始化向量、额外数据对明文进行 AES-GCM 加密并转换
-  成十六进制字符串。算法采用 AES256，GCM 无需 Padding、验证 Tag 拼在字符串后部与
-  内部加密结果形成完整密文}
+function AESGCMEncryptToHex(Key: TBytes; Iv: TBytes; AD: TBytes; Input: TBytes): string;
+{* 封装的常用加密函数。使用密钥、初始化向量、附加数据对明文进行 AES-GCM 加密并转换成十六进制字符串。
+   算法采用 AES256，GCM 无需 Padding、验证 Tag 拼在字符串后部与内部加密结果形成完整密文。
+
+   参数：
+     Key: TBytes                          - 加密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     AD: TBytes                           - 附加数据字节数组
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：string                         - 返回十六进制密文
+}
 
 function AESGCMDecryptFromHex(Key: TBytes; Iv: TBytes; AD: TBytes; const Input: string): TBytes;
-{* 封装的常用解密函数。使用密码、初始化向量、额外数据对十六进制密文进行 AES-GCM 解密
-  并验证 Tag，算法采用 AES256，GCM 无需 Padding，返回解密后的明文字节数组}
+{* 封装的常用解密函数。使用密钥、初始化向量、附加数据对十六进制密文进行 AES-GCM 解密并验证 Tag。
+   算法采用 AES256，GCM 无需 Padding，返回解密后的明文字节数组。
 
-function SM4GCMEncryptToHex(Key: TBytes; Iv: TBytes; AD: TBytes; const Input: TBytes): string;
-{* 封装的常用加密函数。使用密码、初始化向量、额外数据对明文进行 SM4-GCM 加密并转换
-  成十六进制字符串，算法采用 SM4，GCM 无需 Padding、验证 Tag 拼在字符串后部与内
-  部加密结果形成完整密文}
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     AD: TBytes                           - 附加数据字节数组
+     Input: string                        - 待解密的十六进制密文
+
+   返回值：TBytes                         - 返回明文字节数组
+}
+
+function SM4GCMEncryptToHex(Key: TBytes; Iv: TBytes; AD: TBytes; Input: TBytes): string;
+{* 封装的常用加密函数。使用密钥、初始化向量、附加数据对明文进行 SM4-GCM 加密并转换成十六进制字符串，
+   算法采用 SM4，GCM 无需 Padding、验证 Tag 拼在字符串后部与内部加密结果形成完整密文。
+
+   参数：
+     Key: TBytes                          - 加密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     AD: TBytes                           - 附加数据字节数组
+     Input: TBytes                        - 待加密的明文字节数组
+
+   返回值：string                         - 返回十六进制密文
+}
 
 function SM4GCMDecryptFromHex(Key: TBytes; Iv: TBytes; AD: TBytes; const Input: string): TBytes;
-{* 封装的常用解密函数。使用密码、初始化向量、额外数据对十六进制密文进行 SM4-GCM 解密
-  并验证 Tag，算法采用 SM4，GCM 无需 Padding，返回解密后的明文字节数组}
+{* 封装的常用解密函数。使用密钥、初始化向量、附加数据对十六进制密文进行 SM4-GCM 解密并验证 Tag，
+   算法采用 SM4，GCM 无需 Padding，返回解密后的明文字节数组。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     AD: TBytes                           - 附加数据字节数组
+     const Input: string                  - 待解密的十六进制密文
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 // =================== ChaCha20_Poly1305 数据块加解密函数 ======================
 
 procedure ChaCha20Poly1305Encrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutEnData: Pointer; var OutTag: TCnPoly1305Digest);
-{* 使用密码、初始化向量、额外数据对明文进行 ChaCha20_Poly1305 加密，返回密文至 OutEnData 所指的区域中
-  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
-  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证
-  其中，KeyByteLength 要求为 32 字节否则会截断或补 0，
-  Iv 要求为 12 字节否则也截断或补 0（另一种说法是 8 字节然而要额外加个 4 字节固定数据，这里未采用）
-  输出的 Tag 为 16 字节}
+{* 使用密钥、初始化向量、附加数据对明文进行 ChaCha20_Poly1305 加密，返回密文至 OutEnData 所指的区域中。
+   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果。
+   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证。
+   其中，KeyByteLength 要求为 32 字节否则会截断或补 0，
+   Iv 要求为 12 字节否则也截断或补 0（另一种说法是 8 字节然而要额外加个 4 字节固定数据，这里未采用）。
+   输出的 Tag 为 16 字节。
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Iv: Pointer                          - 初始化向量数据块地址
+     IvByteLength: Integer                - 初始化向量数据块字节长度
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     PlainByteLength: Integer             - 待加密的明文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutEnData: Pointer                   - 输出密文的存放地址
+     var OutTag: TCnPoly1305Digest        - 返回计算结果 Tag
+
+   返回值：（无）
+}
 
 function ChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
   EnData: Pointer; EnByteLength: Integer; AAD: Pointer; AADByteLength: Integer;
   OutPlainData: Pointer; var InTag: TCnPoly1305Digest): Boolean;
-{* 使用密码、初始化向量、额外数据对密文进行 ChaCha20_Poly1305 解密并验证，
+{* 使用密钥、初始化向量、附加数据对密文进行 ChaCha20_Poly1305 解密并验证，
   其中，KeyByteLength 要求为 32 字节否则会截断或补 0，
   Iv 要求为 12 字节否则也截断或补 0（另一种说法是 8 字节然而要额外加个 4 字节固定数据，这里未采用）
   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
-  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Iv: Pointer                          - 初始化向量数据块地址
+     IvByteLength: Integer                - 初始化向量数据块字节长度
+     EnData: Pointer                      - 待解密的密文数据块地址
+     EnByteLength: Integer                - 待解密的密文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutPlainData: Pointer                - 输出明文的存放地址
+     var InTag: TCnPoly1305Digest         - 待验证的 Tag
+
+   返回值：Boolean                        - 返回解密与验证是否成功
+}
 
 // ================== ChaCha20_Poly1305 字节数组加解密函数 =====================
 
 function ChaCha20Poly1305EncryptBytes(Key: TBytes; Iv: TBytes; PlainData: TBytes;
   AAD: TBytes; var OutTag: TCnPoly1305Digest): TBytes;
-{* 使用密码、临时数据、额外数据对明文进行 ChaCha20_Poly1305 加密，返回密文
-  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、临时数据、附加数据对明文进行 ChaCha20_Poly1305 加密，返回密文
+  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证
+
+   参数：
+     Key: TBytes                          - 加密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     PlainData: TBytes                    - 待加密的明文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var OutTag: TCnPoly1305Digest        - 返回计算结果 Tag
+
+   返回值：TBytes                         - 返回密文字节数组
+}
 
 function ChaCha20Poly1305DecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes;
   AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
-{* 使用密码、初始化向量、额外数据对密文进行 ChaCha20_Poly1305 解密并验证，成功则返回明文
-  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+{* 使用密钥、初始化向量、附加数据对密文进行 ChaCha20_Poly1305 解密并验证，成功则返回明文。
+   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnPoly1305Digest         - 待验证的 Tag
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 // =================== XChaCha20_Poly1305 数据块加解密函数 =====================
 
 procedure XChaCha20Poly1305Encrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer;
   IvByteLength: Integer; PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer;
   AADByteLength: Integer; OutEnData: Pointer; var OutTag: TCnPoly1305Digest);
-{* 使用密码、初始化向量、额外数据对明文进行 XChaCha20_Poly1305 加密，返回密文至 OutEnData 所指的区域中
-  OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果
-  以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证
-  其中，KeyByteLength 要求为 32 字节否则会截断或补 0，
-  Iv 要求为 24 字节否则也截断或补 0（另一种说法是 8 字节然而要额外加个 4 字节固定数据，这里未采用）
-  输出的 Tag 为 16 字节}
+{* 使用密钥、初始化向量、附加数据对明文进行 XChaCha20_Poly1305 加密，返回密文至 OutEnData 所指的区域中。
+   OutEnData 所指的区域长度须至少为 PlainByteLength，否则可能引发越界等严重后果。
+   以上参数均为内存块并指定字节长度的形式，并在 OutTag 中返回认证数据供解密验证。
+   其中，KeyByteLength 要求为 32 字节否则会截断或补 0，
+   Iv 要求为 24 字节否则也截断或补 0（另一种说法是 8 字节然而要额外加个 4 字节固定数据，这里未采用）。
+   输出的 Tag 为 16 字节。
+
+   参数：
+     Key: Pointer                         - 加密密钥数据块地址
+     KeyByteLength: Integer               - 加密密钥数据块字节长度
+     Iv: Pointer                          - 初始化向量数据块地址
+     IvByteLength: Integer                - 初始化向量数据块字节长度
+     PlainData: Pointer                   - 待加密的明文数据块地址
+     PlainByteLength: Integer             - 待加密的明文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutEnData: Pointer                   - 输出密文的存放地址
+     var OutTag: TCnPoly1305Digest        - 返回计算结果 Tag
+
+   返回值：（无）
+}
 
 function XChaCha20Poly1305Decrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer;
   IvByteLength: Integer; EnData: Pointer; EnByteLength: Integer; AAD: Pointer;
   AADByteLength: Integer; OutPlainData: Pointer; var InTag: TCnPoly1305Digest): Boolean;
-{* 使用密码、初始化向量、额外数据对密文进行 XChaCha20_Poly1305 解密并验证，
-  其中，KeyByteLength 要求为 32 字节否则会截断或补 0，
-  Iv 要求为 24 字节否则也截断或补 0（另一种说法是 8 字节然而要额外加个 4 字节固定数据，这里未采用）
-  成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
-  以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False}
+{* 使用密钥、初始化向量、附加数据对密文进行 XChaCha20_Poly1305 解密并验证，
+   其中，KeyByteLength 要求为 32 字节否则会截断或补 0，
+   Iv 要求为 24 字节否则也截断或补 0（另一种说法是 8 字节然而要额外加个 4 字节固定数据，这里未采用）。
+   成功则返回 True 并将明文返回至 OutPlainData 所指的区域中，
+   以上参数均为内存块并指定字节长度的形式，并验证 InTag 是否合法，不合法返回 False。
+
+   参数：
+     Key: Pointer                         - 解密密钥数据块地址
+     KeyByteLength: Integer               - 解密密钥数据块字节长度
+     Iv: Pointer                          - 初始化向量数据块地址
+     IvByteLength: Integer                - 初始化向量数据块字节长度
+     EnData: Pointer                      - 待解密的密文数据块地址
+     EnByteLength: Integer                - 待解密的密文数据块字节长度
+     AAD: Pointer                         - 附加数据块地址
+     AADByteLength: Integer               - 附加数据块字节长度
+     OutPlainData: Pointer                - 输出明文的存放地址
+     var InTag: TCnPoly1305Digest         - 待验证的 Tag
+
+   返回值：Boolean                        - 返回解密与验证是否成功
+}
 
 // ================== XChaCha20_Poly1305 字节数组加解密函数 ====================
 
 function XChaCha20Poly1305EncryptBytes(Key: TBytes; Iv: TBytes; PlainData: TBytes;
   AAD: TBytes; var OutTag: TCnPoly1305Digest): TBytes;
-{* 使用密码、临时数据、额外数据对明文进行 XChaCha20_Poly1305 加密，返回密文
-  以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证}
+{* 使用密钥、临时数据、附加数据对明文进行 XChaCha20_Poly1305 加密，返回密文。
+   以上参数与返回值均为字节数组，并在 OutTag 中返回认证数据供解密验证。
+
+   参数：
+     Key: TBytes                          - 加密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     PlainData: TBytes                    - 待加密的明文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var OutTag: TCnPoly1305Digest        - 返回计算结果 Tag
+
+   返回值：TBytes                         - 返回密文字节数组
+}
 
 function XChaCha20Poly1305DecryptBytes(Key: TBytes; Iv: TBytes; EnData: TBytes;
   AAD: TBytes; var InTag: TCnPoly1305Digest): TBytes;
-{* 使用密码、初始化向量、额外数据对密文进行 XChaCha20_Poly1305 解密并验证，成功则返回明文
-  以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil}
+{* 使用密钥、初始化向量、附加数据对密文进行 XChaCha20_Poly1305 解密并验证，成功则返回明文。
+   以上参数与返回值均为字节数组，并验证 InTag 是否合法，不合法返回 nil。
+
+   参数：
+     Key: TBytes                          - 解密密钥字节数组
+     Iv: TBytes                           - 初始化向量字节数组
+     EnData: TBytes                       - 待解密的密文字节数组
+     AAD: TBytes                          - 附加数据字节数组
+     var InTag: TCnPoly1305Digest         - 待验证的 Tag
+
+   返回值：TBytes                         - 返回明文字节数组
+}
 
 implementation
 
@@ -795,7 +1473,7 @@ begin
   end;
 end;
 
-// 根据 Key、Iv、明文和额外数据，计算 GCM 加密密文与认证结果
+// 根据 Key、Iv、明文和附加数据，计算 GCM 加密密文与认证结果
 procedure GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
   PlainData: Pointer; PlainByteLength: Integer; AAD: Pointer;
   AADByteLength: Integer; EnData: Pointer; var OutTag: TCnGCM128Tag;
@@ -895,7 +1573,7 @@ begin
   MemoryXor(@OutTag[0], @Y0[0], SizeOf(TCnGHash128Tag), @OutTag[0]);
 end;
 
-// 根据 Key、Iv、明文和额外数据，计算 GCM 加密密文与认证结果
+// 根据 Key、Iv、明文和附加数据，计算 GCM 加密密文与认证结果
 function GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLength: Integer;
   EnData: Pointer; EnByteLength: Integer; AAD: Pointer;
   AADByteLength: Integer; PlainData: Pointer; var InTag: TCnGCM128Tag;
@@ -1885,7 +2563,7 @@ end;
 
 // ======== 封装的 AES|SM4/GCM 十六进制字节数组加解密函数，无需 Padding ========
 
-function AESGCMEncryptToHex(Key, Iv, AD: TBytes; const Input: TBytes): string;
+function AESGCMEncryptToHex(Key, Iv, AD: TBytes; Input: TBytes): string;
 var
   OutTag: TCnGCM128Tag;
   Res: TBytes;
@@ -1920,7 +2598,7 @@ begin
   Result := AES256GCMDecryptBytes(Key, Iv, Res, AD, InTag);
 end;
 
-function SM4GCMEncryptToHex(Key, Iv, AD: TBytes; const Input: TBytes): string;
+function SM4GCMEncryptToHex(Key, Iv, AD: TBytes; Input: TBytes): string;
 var
   OutTag: TCnGCM128Tag;
   Res: TBytes;
