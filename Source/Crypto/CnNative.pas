@@ -83,6 +83,9 @@ uses
   Classes, SysUtils, SysConst, Math {$IFDEF COMPILER5}, Windows {$ENDIF};
                                     // D5 下需要引用 Windows 中的 PByte
 type
+  ECnNativeException = class(Exception);
+  {* Native 相关异常}
+
 {$IFDEF COMPILER5}
   PCardinal = ^Cardinal;
   {* D5 下 System 单元中未定义，定义上}
@@ -2429,7 +2432,7 @@ var
   V: Byte;
 begin
   if (Mem = nil) or (N < 0) then
-    raise Exception.Create(SRangeError);
+    raise ERangeError.Create(SRangeError);
 
   A := N div 8;
   B := N mod 8;
@@ -2446,7 +2449,7 @@ var
   V: Byte;
 begin
   if (Mem = nil) or (N < 0) then
-    raise Exception.Create(SRangeError);
+    raise ERangeError.Create(SRangeError);
 
   A := N div 8;
   B := N mod 8;
@@ -2463,7 +2466,7 @@ var
   V: Byte;
 begin
   if (Mem = nil) or (N < 0) then
-    raise Exception.Create(SRangeError);
+    raise ERangeError.Create(SRangeError);
 
   A := N div 8;
   B := N mod 8;
@@ -2743,7 +2746,7 @@ begin
     else if (C >= 'a') and (C <= 'f') then
       Res := Res * 16 + Ord(C) - Ord('a') + 10
     else
-      raise Exception.CreateFmt(SCnErrorNotAHexPChar, [C]);
+      raise ECnNativeException.CreateFmt(SCnErrorNotAHexPChar, [C]);
   end;
   Result := Res;
 end;
@@ -2814,7 +2817,7 @@ var
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
-    raise Exception.CreateFmt(SCnErrorLengthNotHex, [L]);
+    raise ECnNativeException.CreateFmt(SCnErrorLengthNotHex, [L]);
 
   if OutData = nil then
   begin
@@ -2872,7 +2875,7 @@ var
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
-    raise Exception.CreateFmt(SCnErrorLengthNotHex, [L]);
+    raise ECnNativeException.CreateFmt(SCnErrorLengthNotHex, [L]);
 
   SetLength(Result, L div 2);
   H := PChar(Hex);
@@ -2887,7 +2890,7 @@ var
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
-    raise Exception.CreateFmt(SCnErrorLengthNotHexAnsi, [L]);
+    raise ECnNativeException.CreateFmt(SCnErrorLengthNotHexAnsi, [L]);
 
   SetLength(Result, L div 2);
   for I := 1 to L div 2 do
@@ -2972,7 +2975,7 @@ var
 begin
   L := Length(Hex);
   if (L mod 2) <> 0 then
-    raise Exception.CreateFmt(SCnErrorLengthNotHex, [L]);
+    raise ECnNativeException.CreateFmt(SCnErrorLengthNotHex, [L]);
 
   SetLength(Result, L div 2);
   H := PChar(Hex);
@@ -3024,7 +3027,7 @@ begin
   Result := 0;
   L := Length(Hex);
   if (L mod 2) <> 0 then
-    raise Exception.CreateFmt(SCnErrorLengthNotHex, [L]);
+    raise ECnNativeException.CreateFmt(SCnErrorLengthNotHex, [L]);
 
   H := PChar(Hex);
   for I := 1 to L div 2 do
@@ -3567,7 +3570,7 @@ begin
   begin
     // 有高位有低位咋办？先判断是否会溢出，如果 AHi >= B，则表示商要超 64 位，溢出
     if UInt64Compare(AHi, B) >= 0 then
-      raise Exception.Create(SIntOverflow);
+      raise EIntOverflow.Create(SIntOverflow);
 
     Q := 0;
     R := 0;

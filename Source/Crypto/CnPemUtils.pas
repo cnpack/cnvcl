@@ -26,6 +26,7 @@ unit CnPemUtils;
 * 单元作者：CnPack 开发组
 * 备    注：本单元实现了 PEM 格式的读取与保存，包括加解密机制。
 *           另外也实现了 PKCS1/PKCS5/PKCS7/ISO10126 等对齐处理机制。
+*           注：不支持 PKCS12 规范的证书及密钥包装格式
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -57,14 +58,20 @@ uses
 
 const
   CN_PKCS1_BLOCK_TYPE_PRIVATE_00       = 00;
+  {* PKCS1 对齐时的块类型字段值一，默认应用于 RSA 的私钥加密场合}
+
   CN_PKCS1_BLOCK_TYPE_PRIVATE_FF       = 01;
+  {* PKCS1 对齐时的块类型字段值二，默认应用于 RSA 的私钥签名场合}
+
   CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM    = 02;
-  {* PKCS1 对齐时的三类块类型字段，默认应分别用于 RSA 的私钥加密、私钥签名、公钥加密}
+  {* PKCS1 对齐时的块类型字段值三，默认应用于 RSA 的公钥加密场合}
 
 type
   TCnKeyHashMethod = (ckhMd5, ckhSha256);
+  {* PEM 格式支持的杂凑类型}
 
   TCnKeyEncryptMethod = (ckeNone, ckeDES, cke3DES, ckeAES128, ckeAES192, ckeAES256);
+  {* PEM 格式支持的加密类型}
 
 // ======================= PEM 文件读写函数，支持加解密 ========================
 

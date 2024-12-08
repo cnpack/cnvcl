@@ -41,6 +41,8 @@ unit CnCertificateAuthority;
 *           注意：签发者类型和总类型俩字段总是相同的，被签发者的类型不包括杂凑算法
 *
 *           逐级验证证书时，是拿父证书里的被签发者公钥来验证子证书的内容的杂凑值与子证书的签名内容是否对得上号
+*           注：不支持 PKCS12 规范的证书及密钥包装格式
+*
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -75,11 +77,15 @@ const
   CN_CRT_BASIC_VERSION_3      = 2;
 
 type
+  ECnCAException = class(Exception);
+  {* 证书相关异常}
+
   TCnCASignType = (ctMd5RSA, ctSha1RSA, ctSha256RSA, ctMd5Ecc, ctSha1Ecc,
     ctSha256Ecc, ctSM2withSM3);
   {* 证书签名使用的杂凑签名算法，ctSha1RSA 表示先 Sha1 再 RSA，但 ctSM2withSM3 表示先 SM3 再 SM2}
 
   TCnCASignTypes = set of TCnCASignType;
+  {* 证书签名使用的杂凑签名算法集合}
 
   TCnCertificateBaseInfo = class(TPersistent)
   {* 描述证书中包含的普通字段信息}
@@ -93,7 +99,16 @@ type
     FStateOrProvinceName: string;
   public
     procedure Assign(Source: TPersistent); override;
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent              - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
+
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 转换为字符串}
   published
     property CountryName: string read FCountryName write FCountryName;
     {* 国家名}
@@ -135,10 +150,12 @@ type
     procedure SetRSAPublicKey(const Value: TCnRSAPublicKey);
     procedure SetEccPublicKey(const Value: TCnEccPublicKey); // 签名 Length 为 Key 的 Bit 数如 2048 Bit。
   public
-    constructor Create;
+    constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
-
+    {* 析构函数}
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 转换为字符串}
 
     property IsRSA: Boolean read FIsRSA write FIsRSA;
     {* 类型是 RSA 还是 ECC}
@@ -282,9 +299,12 @@ type
     FBasicConstraintsCA: Boolean;
     FBasicConstraintsPathLen: Integer;
   public
-    constructor Create;
+    constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 转换为字符串}
 
     property KeyUsage: TCnCerKeyUsages read FKeyUsage write FKeyUsage;
     property ExtendedKeyUsage: TCnExtendedKeyUsages read FExtendedKeyUsage write FExtendedKeyUsage;
@@ -353,10 +373,12 @@ type
     FSubjectEccCurveType: TCnEccCurveType;
     FSubjectIsRSA: Boolean;
   public
-    constructor Create;
+    constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
-
+    {* 析构函数}
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 转换为字符串}
 
     property Version: Integer read FVersion write FVersion;
     {* 版本号，值 0、1、2 表示版本号为 v1、v2、v3，默认 v1 时可省略
@@ -412,10 +434,12 @@ type
     FEccDigestType: TCnEccSignDigestType;
     function GetIsSelfSigned: Boolean;
   public
-    constructor Create;
+    constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
-
+    {* 析构函数}
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 转换为字符串}
 
     property IsSelfSigned: Boolean read GetIsSelfSigned;
     {* 是否自签名证书，使用签发者与被签发者信息是否相同来判断}
@@ -539,6 +563,11 @@ implementation
 
 uses
   CnNative;
+
+resourcestring
+  SCnErrorNotSelfSignCanNotVerify = 'NOT Self-Sign. Can NOT Verify.';
+  SCnErrorNotRsaCanNotVerify = 'NOT RSA. Can NOT Verify using RSA Key.';
+  SCnErrorNotEccCanNotVerify = 'NOT ECC. Can NOT Verify.';
 
 const
   // PKCS#10
@@ -1638,7 +1667,7 @@ begin
       Exit;
 
     if not CRT.IsSelfSigned then
-      raise Exception.Create('NOT Self-Sign. Can NOT Verify.');
+      raise ECnCAException.Create(SCnErrorNotSelfSignCanNotVerify);
 
     MemStream := TMemoryStream.Create;
     Stream.Position := 0;
@@ -1735,7 +1764,7 @@ begin
       Exit;
 
     if not CRT.IsRSA then
-      raise Exception.Create('NOT RSA. Can NOT Verify using RSA Key.');
+      raise ECnCAException.Create(SCnErrorNotRsaCanNotVerify);
 
     MemStream := TMemoryStream.Create;
     Stream.Position := 0;
@@ -1802,7 +1831,7 @@ begin
       Exit;
 
     if CRT.IsRSA then
-      raise Exception.Create('NOT ECC. Can NOT Verify.');
+      raise ECnCAException.Create(SCnErrorNotEccCanNotVerify);
 
     MemStream := TMemoryStream.Create;
     Stream.Position := 0;

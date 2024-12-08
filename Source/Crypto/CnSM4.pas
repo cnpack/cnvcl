@@ -79,6 +79,9 @@ const
   {* SM4 的 CTR 模式下的准初始化向量长度 8 字节}
 
 type
+  ECnSM4Exception = class(Exception);
+  {* SM4 相关异常}
+
   TCnSM4Key    = array[0..CN_SM4_KEYSIZE - 1] of Byte;
   {* SM4 的加密 Key，16 字节}
 
@@ -1662,7 +1665,7 @@ begin
   if Count = 0 then
     Exit;
   if (Count mod SizeOf(TCnSM4Buffer)) > 0 then
-    raise Exception.Create(SCnErrorSM4InvalidInBufSize);
+    raise ECnSM4Exception.Create(SCnErrorSM4InvalidInBufSize);
 
   SM4SetKeyDec(Ctx, @(Key[0]));
   while Count >= SizeOf(TCnSM4Buffer) do
@@ -1763,7 +1766,7 @@ begin
   if Count = 0 then
     Exit;
   if (Count mod SizeOf(TCnSM4Buffer)) > 0 then
-    raise Exception.Create(SCnErrorSM4InvalidInBufSize);
+    raise ECnSM4Exception.Create(SCnErrorSM4InvalidInBufSize);
 
   Vector1 := InitVector;
   SM4SetKeyDec(Ctx, @(Key[0]));

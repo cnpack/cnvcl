@@ -74,6 +74,9 @@ const
   {* 3DES 的加密块长度，仍是 8 字节}
 
 type
+  ECnDESException = class(Exception);
+  {* DES 相关异常}
+
   TCnDESKey = array[0..CN_DES_KEYSIZE - 1] of Byte;
   {* DES 的加密 Key，8 字节}
 
@@ -1217,7 +1220,7 @@ begin
   if Count = 0 then
     Exit;
   if (Count mod SizeOf(TCnDESBuffer)) > 0 then
-    raise Exception.Create(SCnErrorDESInvalidInBufSize);
+    raise ECnDESException.Create(SCnErrorDESInvalidInBufSize);
 
   MakeKey(Key, SubKey);
   while Count >= SizeOf(TCnDESBuffer) do
@@ -1314,7 +1317,7 @@ begin
   if Count = 0 then
     Exit;
   if (Count mod SizeOf(TCnDESBuffer)) > 0 then
-    raise Exception.Create(SCnErrorDESInvalidInBufSize);
+    raise ECnDESException.Create(SCnErrorDESInvalidInBufSize);
 
   Vector1 := InitVector;
   MakeKey(Key, SubKey);
@@ -1823,7 +1826,7 @@ begin
   if Count = 0 then
     Exit;
   if (Count mod SizeOf(TCnDESBuffer)) > 0 then
-    raise Exception.Create(SCnErrorDESInvalidInBufSize);
+    raise ECnDESException.Create(SCnErrorDESInvalidInBufSize);
 
   Make3DESKeys(Key, K1, K2, K3);
   MakeKey(K1, SubKey1);
@@ -1935,7 +1938,7 @@ begin
   if Count = 0 then
     Exit;
   if (Count mod SizeOf(TCnDESBuffer)) > 0 then
-    raise Exception.Create(SCnErrorDESInvalidInBufSize);
+    raise ECnDESException.Create(SCnErrorDESInvalidInBufSize);
 
   Vector1 := InitVector;
   Make3DESKeys(Key, K1, K2, K3);

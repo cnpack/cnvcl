@@ -214,7 +214,9 @@ type
     function GetBytesCount: Integer;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
     {* 从其他对象赋值而来。

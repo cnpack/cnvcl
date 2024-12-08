@@ -62,70 +62,80 @@ uses
   CnConsts, CnContainers, CnNative, CnBigNumber, CnECC, CnSM3;
 
 const
-  // 一个参数 T，不知道叫啥，但 SM9 所选择的 BN 曲线里，
-  // 基域特征、阶和弗罗贝尼乌斯自同态映射的迹均是 T 的指定的多项式表达式
   CN_SM9_T = '600000000058F98A';
+  {* 一个参数 T，不知道叫啥，但 SM9 所选择的 BN 曲线里，
+     基域特征、阶和弗罗贝尼乌斯自同态映射的迹均是 T 的指定的多项式表达式}
 
-  // SM9 椭圆曲线方程的 A 系数值
   CN_SM9_ECC_A = 0;
+  {* SM9 椭圆曲线方程的 A 系数值}
 
-  // SM9 椭圆曲线方程的 B 系数值
   CN_SM9_ECC_B = 5;
+  {* SM9 椭圆曲线方程的 B 系数值}
 
-  // SM9 椭圆曲线的素数域，也叫基域特征，在这里等于 36t^4 + 36t^3 + 24t^2 + 6t + 1：
   CN_SM9_FINITE_FIELD = 'B640000002A3A6F1D603AB4FF58EC74521F2934B1A7AEEDBE56F9B27E351457D';
+  {* SM9 椭圆曲线的素数域，也叫基域特征，在这里等于 36T^4 + 36T^3 + 24T^2 + 6T + 1}
 
-  // SM9 椭圆曲线的阶，也就是总点数，在这里等于 36t^4 + 36t^3 + 18t^2 + 6t + 1：
-  // （貌似叫 N，要乘以 cf 才能叫 Order，但这里 cf = 1，所以 N 和 Order 等价）
   CN_SM9_ORDER = 'B640000002A3A6F1D603AB4FF58EC74449F2934B18EA8BEEE56EE19CD69ECF25';
+  {* SM9 椭圆曲线的阶，也就是总点数，在这里等于 36T^4 + 36T^3 + 18T^2 + 6T + 1
+     （貌似叫 N，要乘以 cf 才能叫 Order，但这里 cf = 1，所以 N 和 Order 等价）}
 
-  // SM9 椭圆曲线的余因子，乘以 N 就得到阶
   CN_SM9_CF = 1;
+  {* SM9 椭圆曲线的余因子，乘以 N 就得到阶}
 
-  // SM9 椭圆曲线的嵌入次数，也就是 Prime 的最小嵌入次数次方对 Order 求模为 1
   CN_SM9_K = 12;
+  {* SM9 椭圆曲线的嵌入次数，也就是 Prime 的最小嵌入次数次方对 Order 求模为 1}
 
-  // 弗罗贝尼乌斯自同态映射的迹，也就是 Hasse 定理中的 阶=q+1-trace 中的 trace
-  // 在 SM9 椭圆曲线中等于 6t^2 + 1
   CN_SM9_FROBENIUS_TRACE = 'D8000000019062ED0000B98B0CB27659';
+  {* 弗罗贝尼乌斯自同态映射的迹，也就是 Hasse 定理中的 阶=q+1-trace 中的 trace
+     在 SM9 椭圆曲线中等于 6T^2 + 1}
 
-  // G1 生成元的单坐标
   CN_SM9_G1_P1X = '93DE051D62BF718FF5ED0704487D01D6E1E4086909DC3280E8C4E4817C66DDDD';
+  {* G1 生成元的单坐标 X}
   CN_SM9_G1_P1Y = '21FE8DDA4F21E607631065125C395BBC1C1C00CBFA6024350C464CD70A3EA616';
+  {* G1 生成元的单坐标 Y}
 
-  // G2 生成元的双坐标
   CN_SM9_G2_P2X0 = '3722755292130B08D2AAB97FD34EC120EE265948D19C17ABF9B7213BAF82D65B';
+  {* G2 生成元的双坐标 X0}
   CN_SM9_G2_P2X1 = '85AEF3D078640C98597B6027B441A01FF1DD2C190F5E93C454806C11D8806141';
+  {* G2 生成元的双坐标 X1}
   CN_SM9_G2_P2Y0 = 'A7CF28D519BE3DA65F3170153D278FF247EFBA98A71A08116215BBA5C999A7C7';
+  {* G2 生成元的双坐标 Y0}
   CN_SM9_G2_P2Y1 = '17509B092E845C1266BA0D262CBEE6ED0736A96FA347C8BD856DC76B84EBEB96';
+  {* G2 生成元的双坐标 Y1}
 
-  // R-ate 对的计算参数，其实就是 6T + 2
   CN_SM9_6T_PLUS_2 = '02400000000215D93E';
+  {* R-ate 对的计算参数，其实就是 6T + 2}
 
   CN_SM9_FAST_EXP_P3 = '5C5E452404034E2AF12FCAD3B31FE2B0D62CD8FB7B497A0ADC53E586930846F1' +
     'BA4CADE09029E4717C0CA02D9B0D8649A5782C82FDB6B0A10DA3D71BCDB13FE5E0D49DE3AA8A4748' +
     '83687EE0C6D9188C44BF9D0FA74DDFB7A9B2ADA593152855';
+  {* 一个 SM9 快速计算参数}
 
   CN_SM9_FAST_EXP_PW20 = 'F300000002A3A6F2780272354F8B78F4D5FC11967BE65334';
+  {* 一个 SM9 快速计算参数}
   CN_SM9_FAST_EXP_PW21 = 'B640000002A3A6F0E303AB4FF2EB2052A9F02115CAEF75E70F738991676AF249';
+  {* 一个 SM9 快速计算参数}
   CN_SM9_FAST_EXP_PW22 = 'F300000002A3A6F2780272354F8B78F4D5FC11967BE65333';
+  {* 一个 SM9 快速计算参数}
   CN_SM9_FAST_EXP_PW23 = 'B640000002A3A6F0E303AB4FF2EB2052A9F02115CAEF75E70F738991676AF24A';
+  {* 一个 SM9 快速计算参数}
 
-  // 签名私钥生成函数识别符
   CN_SM9_SIGNATURE_USER_HID = 1;
+  {* 签名私钥生成函数识别符}
 
-  // 密钥交换时的加密私钥生成函数识别符
   CN_SM9_KEY_EXCHANGE_USER_HID = 2;
+  {* 密钥交换时的加密私钥生成函数识别符}
 
-  // 密钥封装的加密私钥生成函数识别符
   CN_SM9_KEY_ENCAPSULATION_USER_HID = 3;
+  {* 密钥封装的加密私钥生成函数识别符}
 
-  // 加密时的加密私钥生成函数识别符
   CN_SM9_ENCRYPTION_USER_HID = 3;
+  {* 加密时的加密私钥生成函数识别符}
 
-  // 密钥交换前后步骤中的两个前缀
   CN_SM9_KEY_EXCHANGE_HASHID1 = $82;
+  {* 密钥交换前后步骤中的两个前缀之一}
   CN_SM9_KEY_EXCHANGE_HASHID2 = $83;
+  {* 密钥交换前后步骤中的两个前缀之二}
 
   // 错误码
   ECN_SM9_OK                           = ECN_OK;
@@ -161,20 +171,33 @@ type
     function GetItems(Index: Integer): TCnBigNumber;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 转换为字符串}
     function IsZero: Boolean;
+    {* 是否为 0}
     function IsOne: Boolean;
+    {* 是否为 1}
     procedure SetZero;
+    {* 设置为 0}
     procedure SetOne;
+    {* 设置为 1}
     procedure SetU;
+    {* 设置为 U 值}
     procedure SetBigNumber(const Num: TCnBigNumber);
+    {* 设置为一大数}
     procedure SetHex(const S0: string; const S1: string);
+    {* 设置为两个十六进制字符串}
     procedure SetWord(Value: Cardinal);
+    {* 设置为单个整数}
     procedure SetWords(Value0: Cardinal; Value1: Cardinal);
+    {* 设置为两个整数}
 
     property Items[Index: Integer]: TCnBigNumber read GetItems; default;
+    {* 条目索引}
   end;
 
   TCnFP2Pool = class(TCnMathObjectPool)
@@ -183,7 +206,22 @@ type
     function CreateObject: TObject; override;
   public
     function Obtain: TCnFP2; reintroduce;
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还。
+
+       参数：
+         （无）
+
+       返回值：TCnFP2                     - 返回的二次扩域大整系数对象
+    }
+
     procedure Recycle(Num: TCnFP2); reintroduce;
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Num: TCnFP2                      - 待归还的二次扩域大整系数对象
+
+       返回值：（无）
+    }
   end;
 
   TCnFP4 = class
@@ -194,22 +232,37 @@ type
     function GetItems(Index: Integer): TCnFP2;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 转换为字符串}
     function IsZero: Boolean;
+    {* 是否为 0}
     function IsOne: Boolean;
+    {* 是否为 1}
     procedure SetZero;
+    {* 设置为 0}
     procedure SetOne;
+    {* 设置为 1}
     procedure SetU;
+    {* 设置为 U 值}
     procedure SetV;
+    {* 设置为 V 值}
     procedure SetBigNumber(const Num: TCnBigNumber);
+    {* 设置为单个大数}
     procedure SetBigNumbers(const Num0, Num1: TCnBigNumber);
+    {* 设置为两个个大数}
     procedure SetHex(const S0: string; const S1: string; const S2: string; const S3: string);
+    {* 设置为四个十六进制字符串}
     procedure SetWord(Value: Cardinal);
+    {* 设置为单个整数}
     procedure SetWords(Value0, Value1, Value2, Value3: Cardinal);
+    {* 设置为四个整数}
 
     property Items[Index: Integer]: TCnFP2 read GetItems; default;
+    {* 条目索引}
   end;
 
   TCnFP4Pool = class(TCnMathObjectPool)
@@ -218,7 +271,22 @@ type
     function CreateObject: TObject; override;
   public
     function Obtain: TCnFP4; reintroduce;
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还。
+
+       参数：
+         （无）
+
+       返回值：TCnFP4                     - 返回的四次扩域大整系数对象
+    }
+
     procedure Recycle(Num: TCnFP4); reintroduce;
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Num: TCnFP4                      - 待归还的四次扩域大整系数对象
+
+       返回值：（无）
+    }
   end;
 
   TCnFP12 = class
@@ -230,54 +298,99 @@ type
     function GetItems(Index: Integer): TCnFP4;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 转换为字符串}
     function IsZero: Boolean;
+    {* 是否为 0}
     function IsOne: Boolean;
+    {* 是否为 1}
     procedure SetZero;
+    {* 设置为 0}
     procedure SetOne;
+    {* 设置为 1}
     procedure SetU;
+    {* 设置为 U 值}
     procedure SetV;
+    {* 设置为 V 值}
     procedure SetW;
+    {* 设置为 W 值}
     procedure SetWSqr;
+    {* 设置为 W 平方值}
     procedure SetBigNumber(const Num: TCnBigNumber);
+    {* 设置为单个大数}
     procedure SetBigNumbers(const Num0, Num1, Num2: TCnBigNumber);
+    {* 设置为三个大数}
     procedure SetHex(const S0: string; const S1: string; const S2: string; const S3: string;
       const S4: string; const S5: string; const S6: string; const S7: string;
       const S8: string; const S9: string; const S10: string; const S11: string);
+    {* 设置为十二个十六进制字符串}
       
     procedure SetWord(Value: Cardinal);
+    {* 设置为单个整数}
     procedure SetWords(Value0: Cardinal; Value1: Cardinal; Value2: Cardinal; Value3: Cardinal;
       Value4: Cardinal; Value5: Cardinal; Value6: Cardinal; Value7: Cardinal;
       Value8: Cardinal; Value9: Cardinal; Value10: Cardinal; Value11: Cardinal);
+    {* 设置为十二个整数}
 
     property Items[Index: Integer]: TCnFP4 read GetItems; default;
+    {* 条目索引}
   end;
 
   TCnFP12Pool = class(TCnMathObjectPool)
-  {* 十二次扩域大整系数元素池实现类，允许使用到四次扩域大整系数元素的地方自行创建池}
+  {* 十二次扩域大整系数元素池实现类，允许使用到十二次扩域大整系数元素的地方自行创建池}
   protected
     function CreateObject: TObject; override;
   public
     function Obtain: TCnFP12; reintroduce;
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还。
+
+       参数：
+         （无）
+
+       返回值：TCnFP12                     - 返回的十二次扩域大整系数对象
+    }
+
     procedure Recycle(Num: TCnFP12); reintroduce;
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Num: TCnFP12                     - 待归还的十二次扩域大整系数对象
+
+       返回值：（无）
+    }
   end;
 
   TCnFP2Point = class(TPersistent)
-  {* 普通坐标系里的 FP2 平面点，由两个坐标 X Y组成，这里不直接参与计算，均转换成仿射坐标系计算}
+  {* 普通坐标系里的 FP2 平面点，由两个坐标 X Y 组成，这里不直接参与计算，均转换成仿射坐标系计算}
   private
     FX: TCnFP2;
     FY: TCnFP2;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
+
     procedure Assign(Source: TPersistent); override;
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent              - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 转换为字符串}
+
     property X: TCnFP2 read FX;
+    {* X 坐标}
     property Y: TCnFP2 read FY;
+    {* Y 坐标}
   end;
 
   TCnFP2AffinePoint = class
@@ -288,7 +401,9 @@ type
     FZ: TCnFP2;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
     {* 转换为字符串}
@@ -314,8 +429,11 @@ type
     {* 判断是否在椭圆曲线 y^2 = x^3 + 5 上}
 
     property X: TCnFP2 read FX;
+    {* X 坐标}
     property Y: TCnFP2 read FY;
+    {* Y 坐标}
     property Z: TCnFP2 read FZ;
+    {* Z 坐标}
   end;
 
   TCnFP2AffinePointPool = class(TCnMathObjectPool)
@@ -324,7 +442,22 @@ type
     function CreateObject: TObject; override;
   public
     function Obtain: TCnFP2AffinePoint; reintroduce;
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还。
+
+       参数：
+         （无）
+
+       返回值：TCnFP2AffinePoint          - 返回的仿射坐标点对象
+    }
+
     procedure Recycle(Num: TCnFP2AffinePoint); reintroduce;
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Num: TCnFP2AffinePoint           - 待归还的仿射坐标点对象
+
+       返回值：（无）
+    }
   end;
 
 // ============================ SM9 具体实现类 =================================
@@ -342,10 +475,14 @@ type
     FPublicKey: TCnSM9SignatureMasterPublicKey;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     property PrivateKey: TCnSM9SignatureMasterPrivateKey read FPrivateKey;
+    {* 签名主密钥中的私钥}
     property PublicKey: TCnSM9SignatureMasterPublicKey read FPublicKey;
+    {* 签名主密钥中的公钥}
   end;
 
   TCnSM9SignatureUserPrivateKey = class(TCnEccPoint);
@@ -359,12 +496,17 @@ type
     FS: TCnEccPoint;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 转换为字符串}
 
     property H: TCnBigNumber read FH;
+    {* 签名大数 H}
     property S: TCnEccPoint read FS;
+    {* 签名坐标点 S}
   end;
 
   TCnSM9EncryptionMasterPrivateKey = class(TCnBigNumber);
@@ -380,10 +522,14 @@ type
     FPublicKey: TCnSM9EncryptionMasterPublicKey;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     property PrivateKey: TCnSM9EncryptionMasterPrivateKey read FPrivateKey;
+    {* 密钥封装与加解密的主密钥的私钥}
     property PublicKey: TCnSM9EncryptionMasterPublicKey read FPublicKey;
+    {* 密钥封装与加解密的主密钥的公钥}
   end;
 
   TCnSM9EncryptionUserPrivateKey = class(TCnFP2Point);
@@ -401,9 +547,12 @@ type
     FCode: TCnSM9KeyEncapsulationCode;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 转换为字符串}
 
     property KeyByteLength: Integer read FKeyLength;
     {* 密文的字节长度}
@@ -432,22 +581,28 @@ type
     FPublicKey: TCnSM9KeyExchangeMasterPublicKey;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     property PrivateKey: TCnSM9KeyExchangeMasterPrivateKey read FPrivateKey;
+    {* 密钥交换的加密主密钥的私钥}
     property PublicKey: TCnSM9KeyExchangeMasterPublicKey read FPublicKey;
+    {* 密钥交换的加密主密钥的公钥}
   end;
 
   TCnSM9 = class(TCnEcc)
   {* SM9 内容封装类，本身也是一个椭圆曲线子类}
   private
     FGenerator2: TCnFP2Point;
-
   public
     constructor Create; reintroduce;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     property Generator2: TCnFP2Point read FGenerator2;
+    {* G2 生成元}
   end;
 
 // ====================== 二次扩域大整系数元素运算函数 =========================

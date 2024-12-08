@@ -72,7 +72,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnNative {$IFDEF MSWINDOWS}, Windows {$ENDIF};
+  Classes, SysUtils, CnConsts, CnNative {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 type
   PMD5Digest = ^TCnMD5Digest;
@@ -783,7 +783,7 @@ begin
             end
             else
             begin
-              raise Exception.Create('MapViewOfFile Failed. ' + IntToStr(GetLastError));
+              raise Exception.Create(SCnErrorMapViewOfFile + IntToStr(GetLastError));
             end;
           finally
             CloseHandle(MapHandle);
@@ -792,7 +792,7 @@ begin
         else
         begin
           if not FileIsZeroSize then
-            raise Exception.Create('CreateFileMapping Failed. ' + IntToStr(GetLastError));
+            raise Exception.Create(SCnErrorCreateFileMapping + IntToStr(GetLastError));
         end;
       finally
         CloseHandle(FileHandle);

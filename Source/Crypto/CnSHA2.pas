@@ -50,7 +50,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative;
+  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative, CnConsts;
 
 type
   PCnSHAGeneralDigest = ^TCnSHAGeneralDigest;
@@ -1960,7 +1960,7 @@ begin
             end
             else
             begin
-              raise Exception.Create('MapViewOfFile Failed. ' + IntToStr(GetLastError));
+              raise Exception.Create(SCnErrorMapViewOfFile + IntToStr(GetLastError));
             end;
           finally
             CloseHandle(MapHandle);
@@ -1969,7 +1969,7 @@ begin
         else
         begin
           if not FileIsZeroSize then
-            raise Exception.Create('CreateFileMapping Failed. ' + IntToStr(GetLastError));
+            raise Exception.Create(SCnErrorCreateFileMapping + IntToStr(GetLastError));
         end;
       finally
         CloseHandle(FileHandle);

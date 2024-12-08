@@ -106,6 +106,9 @@ const
   CN_BER_TAG_BMPSTRING                      = $1E;
 
 type
+  ECnBerException = class(Exception);
+  {* BER 相关异常}
+
   TCnBerTagRange = CN_BER_TAG_BOOLEAN..CN_BER_TAG_BMPSTRING;
   TCnBerTagSet = set of TCnBerTagRange;
 
@@ -755,6 +758,21 @@ procedure PutIndexedBigIntegerToBigNumber(Node: TCnBerReadNode; BigNumber: TCnBi
 
 implementation
 
+resourcestring
+  SCnErrorDataCorruptionTagBase = 'Data Corruption when Processing Tag (Base %d), %d > %d.';
+  SCnErrorDataCorruptionTagBaseLen = 'Data Corruption when Processing Tag (Base %d) at %d Got Len %d.';
+  SCnErrorLengthTooLongOrIncorrect = 'Length Too Long or Incorrect (Base %d) %d.';
+  SCnErrorOffsetLenTag = 'Offset %d. Len %d. Tag %d (%s). DataLen %d';
+  SCnErrorBerTagTypeMismatchForBytesize = 'Ber Tag Type Mismatch for ByteSize: ';
+  SCnErrorInvalidBytesize = 'Invalid ByteSize: ';
+  SCnErrorDataLengthOverflow = 'Data Length %d Overflow for Required %d.';
+  SCnErrorBerTagTypeMismatch = 'Ber Tag Type Mismatch for Int64: ';
+  SCnErrorBerTagTypeMismatchForString = 'Ber Tag Type Mismatch for String: ';
+  SCnErrorBerTagTypeMismatchForBignumber = 'Ber Tag Type Mismatch for BigNumber.';
+  SCnErrorBerTagTypeMismatchForBoolean = 'Ber Tag Type Mismatch for Boolean: ';
+  SCnErrorBerTagTypeMismatchForCommonInteger = 'Ber Tag Type Mismatch for Common Integer.';
+  SCnErrorDataLengthOverflowForCommonInteger = 'Data Length %d Overflow for Common Integer.';
+
 const
   CN_TAG_SET_STRING: TCnBerTagSet = [CN_BER_TAG_UFT8STRING, CN_BER_TAG_NUMERICSTRING,
     CN_BER_TAG_PRINTABLESTRING, CN_BER_TAG_IA5STRING, CN_BER_TAG_TELETEXSTRING];
@@ -948,7 +966,7 @@ begin
 
     Inc(Run);
     if (Run >= ADataByteLen) and (ADataByteLen > 0) then
-      raise Exception.CreateFmt('Data Corruption when Processing Tag (Base %d), %d > %d.',
+      raise ECnBerException.CreateFmt(SCnErrorDataCorruptionTagBase,
         [AStartOffset, Run, ADataByteLen]);
 
     // Run 指向长度，如果 Tag 和长度都是 0，表示不定长内容的终结，不新建节点
@@ -983,7 +1001,7 @@ begin
 
       // AData[Run] 到 AData[Run + LenLen - 1] 是长度
       if (ADataByteLen > 0) and (Run + Cardinal(LenLen) - 1 >= ADataByteLen) then
-        raise Exception.CreateFmt('Data Corruption when Processing Tag (Base %d) at %d Got Len %d.',
+        raise ECnBerException.CreateFmt(SCnErrorDataCorruptionTagBaseLen,
           [AStartOffset, Run, LenLen]);
 
       DataLen := 0;
@@ -992,7 +1010,7 @@ begin
       else if LenLen = SizeOf(Word) then
         DataLen := (Cardinal(AData^[Run]) shl 8) or Cardinal(AData^[Run + 1])
       else if LenLen > SizeOf(Word) then  // TODO: LenLen = 0 时是不定长编码，BER 中支持，以 00 00 结尾
-        raise Exception.CreateFmt('Length Too Long or Incorrect (Base %d) %d.', [AStartOffset, LenLen]);
+        raise ECnBerException.CreateFmt(SCnErrorLengthTooLongOrIncorrect, [AStartOffset, LenLen]);
 
       DataOffset := AStartOffset + Run + Cardinal(LenLen);
       if LenLen > 0 then
@@ -1019,7 +1037,7 @@ begin
       Inc(Result, ALeaf.BerLength);
 
 {$IFDEF DEBUG}
-    ALeaf.Text := Format('Offset %d. Len %d. Tag %d (%s). DataLen %d', [ALeaf.BerOffset,
+    ALeaf.Text := Format(SCnErrorOffsetLenTag, [ALeaf.BerOffset,
       ALeaf.BerLength, ALeaf.BerTag, GetTagName(ALeaf.BerTag), ALeaf.BerDataLength]);
 {$ENDIF}
 
@@ -1098,13 +1116,13 @@ var
   IntValue: Integer;
 begin
   if FBerTag <> CN_BER_TAG_INTEGER then
-    raise Exception.Create('Ber Tag Type Mismatch for ByteSize: ' + IntToStr(ByteSize));
+    raise ECnBerException.Create(SCnErrorBerTagTypeMismatchForBytesize + IntToStr(ByteSize));
 
   if not (ByteSize in [SizeOf(Byte)..SizeOf(Cardinal)]) then
-    raise Exception.Create('Invalid ByteSize: ' + IntToStr(ByteSize));
+    raise ECnBerException.Create(SCnErrorInvalidBytesize + IntToStr(ByteSize));
 
   if FBerDataLength > ByteSize then
-    raise Exception.CreateFmt('Data Length %d Overflow for Required %d.',
+    raise ECnBerException.CreateFmt(SCnErrorDataLengthOverflow,
       [FBerDataLength, ByteSize]);
 
   IntValue := 0;
@@ -1121,10 +1139,10 @@ end;
 function TCnBerReadNode.AsInt64: Int64;
 begin
   if FBerTag <> CN_BER_TAG_INTEGER then
-    raise Exception.Create('Ber Tag Type Mismatch for Int64: ' + IntToStr(FBerTag));
+    raise ECnBerException.Create(SCnErrorBerTagTypeMismatch + IntToStr(FBerTag));
 
   if FBerDataLength > SizeOf(Int64) then
-    raise Exception.CreateFmt('Data Length %d Overflow for Required %d.',
+    raise ECnBerException.CreateFmt(SCnErrorDataLengthOverflow,
       [FBerDataLength, SizeOf(Int64)]);
 
   Result := 0;
@@ -1251,7 +1269,7 @@ var
   P: Pointer;
 begin
   if (TagSet <> []) and not (FBerTag in TagSet) then
-    raise Exception.Create('Ber Tag Type Mismatch for String: ' + IntToStr(FBerTag));
+    raise ECnBerException.Create(SCnErrorBerTagTypeMismatchForString + IntToStr(FBerTag));
 
   Result := '';
   P := GetBerDataAddress;
@@ -1285,7 +1303,7 @@ end;
 procedure TCnBerReadNode.AsBigNumber(OutNum: TCnBigNumber);
 begin
   if FBerTag <> CN_BER_TAG_INTEGER then
-    raise Exception.Create('Ber Tag Type Mismatch for BigNumber.');
+    raise ECnBerException.Create(SCnErrorBerTagTypeMismatchForBignumber);
 
   OutNum.SetBinary(GetBerDataAddress, FBerDataLength);
 end;
@@ -1303,7 +1321,7 @@ var
   B: Byte;
 begin
   if (FBerTag <> CN_BER_TAG_BOOLEAN) and (FBerDataLength <> 1) then
-    raise Exception.Create('Ber Tag Type Mismatch for Boolean: ' + IntToStr(FBerTag));
+    raise ECnBerException.Create(SCnErrorBerTagTypeMismatchForBoolean + IntToStr(FBerTag));
 
   CopyDataTo(@B);
   Result := B <> 0;
@@ -1324,10 +1342,10 @@ var
   IntValue: Integer;
 begin
   if FBerTag <> CN_BER_TAG_INTEGER then
-    raise Exception.Create('Ber Tag Type Mismatch for Common Integer.');
+    raise ECnBerException.Create(SCnErrorBerTagTypeMismatchForCommonInteger);
 
   if FBerDataLength > SizeOf(Cardinal) then
-    raise Exception.CreateFmt('Data Length %d Overflow for Common Integer.',
+    raise ECnBerException.CreateFmt(SCnErrorDataLengthOverflowForCommonInteger,
       [FBerDataLength]);
 
   IntValue := 0;
