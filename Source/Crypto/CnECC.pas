@@ -660,7 +660,7 @@ type
        参数：
          Predefined: TCnEccCurveType      - 待加载的椭圆曲线参数类型
 
-       返回值：（无）
+       返回值：TCnEcc                     - 返回创建的对象实例
     }
 
     constructor Create(const A: AnsiString; const B: AnsiString; const FieldPrime: AnsiString;
@@ -948,7 +948,7 @@ type
          ARow: Integer                    - 行数
          ACol: Integer                    - 列数
 
-       返回值：                           - 返回对象实例
+       返回值：TCnEcc2Matrix              - 返回创建的对象实例
     }
 
     property ValueObject[Row, Col: Integer]: TCnEccPoint read GetValueObject write SetValueObject; default;
@@ -970,7 +970,7 @@ type
          ARow: Integer                    - 行数
          ACol: Integer                    - 列数
 
-       返回值：                           - 返回对象实例
+       返回值：TCnEcc3Matrix              - 返回创建的对象实例
     }
 
     property ValueObject[Row, Col: Integer]: TCnEcc3Point read GetValueObject write SetValueObject; default;
@@ -1338,7 +1338,7 @@ type
          AnOrder: TCnBigNumber                            - 魏尔斯特拉斯椭圆曲线方程的 G 点的阶
          PrimitivePolynomial: TCnBigNumberPolynomial      - 本原多项式
 
-       返回值：（无）
+       返回值：TCnPolynomialEcc                           - 返回创建的对象实例
     }
 
     destructor Destroy; override;

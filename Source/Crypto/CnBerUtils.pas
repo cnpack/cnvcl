@@ -138,51 +138,232 @@ type
     function GetBerAddress: Pointer;
   public
     procedure CopyDataTo(DestBuf: Pointer);
-    {* 将数据复制至缓冲区，缓冲区尺寸至少需要 BerDataLength 大}
+    {* 将数据复制至缓冲区，缓冲区尺寸至少需要 BerDataLength 字节大小。
+
+       参数：
+         DestBuf: Pointer                 - 容纳待输出内容的数据块地址
+
+       返回值：（无）
+    }
+
     procedure CopyHeadTo(DestBuf: Pointer);
-    {* 将节点头部也就是 TL 内容复制至缓冲区，缓冲区尺寸至少需要 BerLength - BerDataLength 大}
+    {* 将节点头部也就是 TL 内容复制至缓冲区，缓冲区尺寸至少需要 BerLength - BerDataLength 字节大小。
+
+       参数：
+         DestBuf: Pointer                 - 容纳待输出内容的数据块地址
+
+       返回值：（无）
+    }
+
     procedure CopyTLVTo(DestBuf: Pointer);
-    {* 将节点全部内容复制至缓冲区，缓冲区尺寸至少需要 BerLength 大}
+    {* 将节点全部内容复制至缓冲区，缓冲区尺寸至少需要 BerLength 字节大小。
+
+       参数：
+         DestBuf: Pointer                 - 容纳待输出内容的数据块地址
+
+       返回值：（无）
+    }
 
     function AsBoolean: Boolean;
+    {* 返回布尔值。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回布尔值
+    }
     function AsShortInt: ShortInt;
+    {* 返回 8 位有符号整数。
+
+       参数：
+         （无）
+
+       返回值：ShortInt                   - 返回 8 位有符号整数
+    }
+
     function AsByte: Byte;
+    {* 返回 8 位无符号整数。
+
+       参数：
+         （无）
+
+       返回值：Byte                       - 返回 8 位无符号整数
+    }
+
     function AsSmallInt: SmallInt;
+    {* 返回 8 位有符号整数。
+
+       参数：
+         （无）
+
+       返回值：SmallInt                   - 返回 16 位有符号整数
+    }
+
     function AsWord: Word;
+    {* 返回 16 位无符号整数。
+
+       参数：
+         （无）
+
+       返回值：Word                       - 返回 16 位无符号整数
+    }
+
     function AsInteger: Integer;
+    {* 返回 32 位有符号整数。
+
+       参数：
+         （无）
+
+       返回值：Integer                    - 返回 32 位有符号整数
+    }
+
     function AsCardinal: Cardinal;
+    {* 返回 32 位无符号整数。
+
+       参数：
+         （无）
+
+       返回值：Cardinal                   - 返回 32 位无符号整数
+    }
+
     function AsInt64: Int64;
+    {* 返回 64 位有符号整数。
+
+       参数：
+         （无）
+
+       返回值：Int64                      - 返回 64 位有符号整数
+    }
+
     // 注意以上整型返回的方法，调用时应当与 BerDataLength 对应，否则倒序时会出错
 
     function AsCommonInteger: Integer;
-    {* 该方法按 BerDataLength 的实际值返回整型并按实际倒序，BerDataLength 超出 Integer 时出错}
+    {* 该方法按 BerDataLength 的实际值返回整型并按实际倒序，BerDataLength 超出 Integer 时出错。
+
+       参数：
+         （无）
+
+       返回值：Integer                    - 返回整型值
+    }
 
     procedure AsBigNumber(OutNum: TCnBigNumber);
-    {* 按尺寸返回整型值或大数}
+    {* 按尺寸返回整型大数。
+
+       参数：
+         OutNum: TCnBigNumber             - 容纳返回整数的大数
+
+       返回值：（无）
+    }
 
     function AsRawString: string;
-    {* 直接返回字符串，不限制类型}
+    {* 直接返回字符串，不限制类型。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
+
     function AsAnsiString: AnsiString;
-    {* 返回 Ansi 字符串}
+    {* 返回单字节字符串。
+
+       参数：
+         （无）
+
+       返回值：AnsiString                 - 返回单字节字符串
+    }
+
     function AsString: string;
-    {* 返回字符串，限制为几种字符串类型}
+    {* 返回字符串，限制为几种字符串类型。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
+
     function AsPrintableString: string;
-    {* 返回可打印字符串}
+    {* 返回可打印字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回可打印字符串
+    }
+
     function AsIA5String: string;
-    {* 返回纯 ASCII 码的字符串}
+    {* 返回纯 ASCII 码的字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回纯 ASCII 码字符串
+    }
 
     function AsDateTime: TDateTime;
-    {* 返回 UTCTime 或 GeneralizedTime}
+    {* 返回 UTCTime 或 GeneralizedTime。
+
+       参数：
+         （无）
+
+       返回值：TDateTime                  - 返回日期时间
+    }
 
     function IsNull: Boolean;
+    {* 返回是否为 Null。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 Null
+    }
+
     function IsString: Boolean;
+    {* 返回是否为字符串。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为字符串
+    }
     function IsInteger: Boolean;
+    {* 返回是否为整数。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为整数
+    }
+
     function IsDateTime: Boolean;
+    {* 返回是否为日期时间。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为日期时间
+    }
 
     function GetNextSibling: TCnBerReadNode;
+    {* 返回下一个同级节点。
+
+       参数：
+         （无）
+
+       返回值：TCnBerReadNode             - 返回下一个同级节点
+    }
+
     function GetPrevSibling: TCnBerReadNode;
+    {* 返回上一个同级节点。
+
+       参数：
+         （无）
+
+       返回值：TCnBerReadNode             - 返回上一个同级节点
+    }
 
     property Items[AIndex: Integer]: TCnBerReadNode read GetItems write SetItems; default;
+    {* 条目索引}
 
     property BerOffset: Integer read FBerOffset write FBerOffset;
     {* 该节点对应的 ASN.1 内容编码在整体中的偏移}
@@ -233,21 +414,54 @@ type
 
   public
     constructor Create(Data: PByte; DataByteLen: Cardinal; AParseInnerString: Boolean = False);
+    {* 构造函数
+
+       参数：
+         Data: PByte                      - 待解析的数据区地址
+         DataByteLen: Cardinal            - 待解析的数据区字节长度
+         AParseInnerString: Boolean       - 是否解析内嵌字符串
+
+       返回值：TCnBerReader               - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure ParseToTree;
     {* 创建后需要调用此方法实施解析}
     procedure ManualParseNodeData(RootNode: TCnBerReadNode);
-    {* 某些节点的 Tag 并非 SEQUENCE/SET 等但内容却有子内容，需要外部手工调用此方法来实施二次解析}
+    {* 某些节点的 Tag 并非 SEQUENCE/SET 等但内容却有子内容，需要外部手工调用此方法来实施二次解析。
+
+       参数：
+         RootNode: TCnBerReadNode         - 待手工解析的节点
+
+       返回值：（无）
+    }
 
 {$IFDEF DEBUG}
 {$IFDEF ENABLE_UIINTERACT}
   {$IFDEF MSWINDOWS}
     procedure DumpToTreeView(ATreeView: ComCtrls.TTreeView); {$IFDEF SUPPORT_FMX} overload; {$ENDIF}
+    {* 将内容输出至界面上的 VCL 树控件中。
+
+       参数：
+         ATreeView: ComCtrls.TTreeView    - 待输出内容的 VCL 树控件实例
+
+       返回值：（无）
+    }
+
     property OnSaveNode: TCnTreeNodeEvent read GetOnSaveNode write SetOnSaveNode;
   {$ENDIF}
   {$IFDEF SUPPORT_FMX}
     procedure DumpToTreeView(ATreeView: FMX.TreeView.TTreeView); {$IFDEF MSWINDOWS} overload; {$ENDIF}
+    {* 将内容输出至界面上的 FMX 树控件中。
+
+       参数：
+         ATreeView: FMX.TreeView.TTreeView                - 待输出内容的 FMX 树控件实例
+
+       返回值：（无）
+    }
+
     property OnSaveItem: TCnTreeViewItemEvent read GetOnSaveItem write SetOnSaveItem;
   {$ENDIF}
 {$ENDIF}
@@ -264,7 +478,7 @@ type
   TCnBerWriteNode = class(TCnLeaf)
   {* 描述一用于编码并写入的 ASN.1 节点}
   private
-    FMem: TMemoryStream; // 容纳基本类型节点的所有内容，不只是数据区
+    FMem: TMemoryStream;        // 容纳基本类型节点的所有内容，不只是数据区
     FHead: array[0..5] of Byte; // 容纳数据区之前的头内容，包括 Tag、Len 等
     FHeadLen: Integer;
     FIsContainer: Boolean;
@@ -277,27 +491,63 @@ type
     function GetItems(AIndex: Integer): TCnBerWriteNode;
     procedure SetItems(AIndex: Integer; const Value: TCnBerWriteNode);
 
-    procedure FillHeadCalcLen(ATag: Integer; ADataLen: Integer); // 计算并填充 FHead 与 FHeadLen
+    procedure FillHeadCalcLen(ATag: Integer; ADataLen: Integer);
+    // 计算并填充 FHead 与 FHeadLen
   public
     constructor Create(ATree: TCnTree); override;
+    {* 构造函数
+
+       参数：
+         ATree: TCnTree                   - 指定所属树
+
+       返回值：TCnBerWriteNode            - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
+    {* 析构函数}
 
     function SaveToStream(Stream: TStream): Integer;
-    {* 如果是基本类型就将自己写入流并返回写入长度，
-       如果是容器则挨个让子节点写出来，然后加自己头来拼成流并拼各子节点的返回长度。
-       返回值为本节点包括子节点的所有内容长度}
+    {* 如果是基本类型就将自己写入流并返回写入字节长度，
+       如果是容器则挨个让子节点写出来，然后加自己头来拼成流并拼各子节点的返回字节长度。
+       返回值为本节点包括子节点的所有内容的写入字节字节长度。
+
+       参数：
+         Stream: TStream                  - 写入的流
+
+       返回值：Integer                    - 本节点包括子节点的所有内容的写入字节长度
+    }
 
     function SaveValueToStream(Stream: TStream): Integer;
-    {* 如果是基本类型就将自己除了 Tag 与长度之外后面的数据内容写入流并返回写入长度。
+    {* 如果是基本类型就将自己除了 Tag 与长度之外后面的数据内容写入流并返回写入字节长度。
        如果是容器则挨个让子节点写出来后返回。
-       返回值为子节点所有内容长度但不包括自己的 Tag 与长度}
+       返回值为子节点所有内容长度但不包括自己的 Tag 与长度。
+
+       参数：
+         Stream: TStream                  - 写入的流
+
+       返回值：Integer                    - 返回子节点所有内容的写入字节长度
+    }
 
     function GetNodeLength: Integer;
-    {* 如果是基本类型就返回自身长度，如果是容器则自己头加各子节点长度}
+    {* 如果是基本类型就返回自身字节长度，如果是容器则自己头加各子节点的字节长度。
+
+       参数：
+         （无）
+
+       返回值：Integer                    - 返回字节长度
+    }
 
     procedure FillBasicNode(ATag: Integer; AData: PByte; ADataByteLen: Integer);
     {* 外界创建此基本节点后用此方法填充基本数据，Container 节点不用，
-       注意原始 BitString 不支持头字节，暂不需要自己填充}
+       注意原始 BitString 不支持头字节，暂不需要自己填充。
+
+       参数：
+         ATag: Integer                    - 用于填充的 Tag
+         AData: PByte                     - 用于填充的数据块地址
+         ADataByteLen: Integer            - 用于填充的数据块字节长度
+
+       返回值：（无）
+    }
 
     property Items[AIndex: Integer]: TCnBerWriteNode read GetItems write SetItems;
 
@@ -330,64 +580,178 @@ type
 {$ENDIF}
   public
     constructor Create;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure SaveTo(DestBuf: Pointer);
-    {* 将 BER 内容保存至 DestBuf 所指的内存区，内存区大小至少需要 GetTotalSize}
+    {* 将 BER 内容保存至 DestBuf 所指的内存区，内存区大小至少需要 GetTotalSize
+
+       参数：
+         DestBuf: Pointer                 - 容纳待输出内容的数据块地址
+
+       返回值：（无）
+    }
 
     procedure SaveToFile(const FileName: string);
-    {* 将 BER 内容保存至指定文件}
+    {* 将 BER 内容保存至指定文件。
+
+       参数：
+         const FileName: string           - 保存的文件名
+
+       返回值：（无）
+    }
 
     procedure SaveToStream(Stream: TStream);
-    {* 将 BER 内容保存至流}
+    {* 将 BER 内容保存至流。
+
+       参数：
+         Stream: TStream                  - 保存的流
+
+       返回值：（无）
+    }
 
 {$IFDEF DEBUG}
 {$IFDEF ENABLE_UIINTERACT}
   {$IFDEF MSWINDOWS}
     procedure DumpToTreeView(ATreeView: ComCtrls.TTreeView); {$IFDEF SUPPORT_FMX} overload; {$ENDIF}
+    {* 将内容输出至界面上的 VCL 树控件中。
+
+       参数：
+         ATreeView: ComCtrls.TTreeView    - 待输出内容的 VCL 树控件实例
+
+       返回值：（无）
+    }
+
     property OnSaveNode: TCnTreeNodeEvent read GetOnSaveNode write SetOnSaveNode;
   {$ENDIF}
   {$IFDEF SUPPORT_FMX}
     procedure DumpToTreeView(ATreeView: FMX.TreeView.TTreeView); {$IFDEF MSWINDOWS} overload; {$ENDIF}
+    {* 将内容输出至界面上的 FMX 树控件中。
+
+       参数：
+         ATreeView: FMX.TreeView.TTreeView                - 待输出内容的 FMX 树控件实例
+
+       返回值：（无）
+    }
+
     property OnSaveItem: TCnTreeViewItemEvent read GetOnSaveItem write SetOnSaveItem;
   {$ENDIF}
 {$ENDIF}
 {$ENDIF}
 
     function AddNullNode(Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
-    {* 添加一个 Null 节点}
+    {* 新增一个 Null 节点。
+
+       参数：
+         Parent: TCnBerWriteNode          - 待新增节点的父节点，如为 nil 表示新增至根节点下
+
+       返回值：TCnBerWriteNode            - 返回新增的节点
+    }
+
     function AddBasicNode(ATag: Integer; AData: PByte; ADataByteLen: Integer;
       Parent: TCnBerWriteNode = nil): TCnBerWriteNode; overload;
-    {* 添加一个基本类型的节点，内容从 AData 复制长度为 DataLen 的而来}
+    {* 新增一个基本类型的节点，内容从 AData 复制长度为 DataLen 的而来
+
+       参数：
+         ATag: Integer                    - 待新增节点的 Tag
+         AData: PByte                     - 待新增的数据块地址
+         ADataByteLen: Integer            - 待新增的数据块字节长度
+         Parent: TCnBerWriteNode          - 待新增节点的父节点，如为 nil 表示新增至根节点下
+
+       返回值：TCnBerWriteNode            - 返回新增的节点
+    }
+
     function AddBasicNode(ATag: Integer; AStream: TStream;
       Parent: TCnBerWriteNode = nil): TCnBerWriteNode; overload;
-    {* 添加一个基本类型的节点，内容从指定流复制而来}
+    {* 新增一个基本类型的节点，内容从指定流复制而来。
+
+       参数：
+         ATag: Integer                    - 待新增节点的 Tag
+         AStream: TStream                 - 待新增的流内容
+         Parent: TCnBerWriteNode          - 待新增节点的父节点，如为 nil 表示新增至根节点下
+
+       返回值：TCnBerWriteNode            - 返回新增的节点
+    }
+
     function AddAnsiStringNode(ATag: Integer; const AStr: AnsiString;
       Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
-    {* 添加一个字符串型的 Node，内容从指定 AnsiString 复制而来}
+    {* 新增一个字符串型的 Node，内容从指定 AnsiString 复制而来。
+
+       参数：
+         ATag: Integer                    - 待新增节点的 Tag
+         const AStr: AnsiString           - 待新增的字符串
+         Parent: TCnBerWriteNode          - 待新增节点的父节点，如为 nil 表示新增至根节点下
+
+       返回值：TCnBerWriteNode            - 返回新增的节点
+    }
+
     function AddContainerNode(ATag: Integer; Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
-    {* 添加一个容器类型的节点，此节点可以作为上面 BasicNode 的 Parent}
+    {* 新增一个容器类型的节点，此节点可以作为上面 BasicNode 的 Parent。
+
+       参数：
+         ATag: Integer                    - 待新增节点的 Tag
+         Parent: TCnBerWriteNode          - 待新增节点的父节点，如为 nil 表示新增至根节点下
+
+       返回值：TCnBerWriteNode            - 返回新增的节点
+    }
+
     function AddRawNode(RawTag: Integer; RawLV: PByte; LVLen: Integer;
       Parent: TCnBerWriteNode = nil): TCnBerWriteNode;
-    {* 添加一个原始节点，此节点的 Tag 值直接由 RawTag 指定，
-       后面的长度内容等不计算了，直接由 RawLV 与 LVLen 的区域指定}
+    {* 新增一个原始节点，此节点的 Tag 值直接由 RawTag 指定，
+       后面的长度内容等不计算了，直接由 RawLV 与 LVLen 的区域指定。
+
+       参数：
+         RawTag: Integer                  -
+         RawLV: PByte                     -
+         LVLen: Integer                   -
+         Parent: TCnBerWriteNode          - 待新增节点的父节点，如为 nil 表示新增至根节点下
+
+       返回值：TCnBerWriteNode            - 返回新增的节点
+    }
+
     property TotalSize: Integer read GetTotalSize;
     {* 整棵树的总尺寸，字节为单位}
   end;
 
 function CompareObjectIdentifier(Node: TCnBerReadNode; OIDAddr: Pointer;
   OIDSize: Integer): Boolean;
-{* 比较一个 Node 中的数据是否等于一个指定的 OID}
+{* 比较一个节点中的数据是否等于一个指定的 OID。
+
+   参数：
+     Node: TCnBerReadNode                 - 待比较的节点
+     OIDAddr: Pointer                     - OID 数据块地址
+     OIDSize: Integer                     - OID 数据块字节长度
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
   Parent: TCnBerWriteNode; Tag: Integer = CN_BER_TAG_INTEGER; FixedLen: Integer = 0): TCnBerWriteNode;
 {* 将一个大数的内容写入一个新增的 Ber 整型格式的节点，FixedLen 为 0 时无固定长度，
-   FixedLen 指定大数实际长度不足时使用固定长度，为 0 时则使用大数实际长度
-  如 FixedLen 为 0，节点会根据最高位的实际情况决定是否加一个字节 0
-  如 FixedLen 不为 0，节点会在 FixedLen 与大数实际长度的基础上强行加一个字节 0}
+   FixedLen 指定大数实际长度不足时使用固定长度，为 0 时则使用大数实际长度。
+   如 FixedLen 为 0，节点会根据最高位的实际情况决定是否加一个字节 0
+   如 FixedLen 不为 0，节点会在 FixedLen 与大数实际长度的基础上强行加一个字节 0
+
+   参数：
+     Writer: TCnBerWriter                 - BER 写入的工具类实例
+     Num: TCnBigNumber                    - 待写入的大数
+     Parent: TCnBerWriteNode              - 待新增的节点的父节点
+     Tag: Integer                         - 指定写入的 Tag
+     FixedLen: Integer                    - 写入固定字节长度，0 表示使用大数实际长度
+
+   返回值：TCnBerWriteNode                - 返回新增的节点
+}
 
 procedure PutIndexedBigIntegerToBigNumber(Node: TCnBerReadNode; BigNumber: TCnBigNumber);
-{* 将一个 Ber 整型格式的节点写入一个大数的内容}
+{* 将一个 Ber 整型格式的节点内容写到一个大数中。
+
+   参数：
+     Node: TCnBerReadNode                 - 待写入的节点
+     BigNumber: TCnBigNumber              - 待写入的大数
+
+   返回值：（无）
+}
 
 implementation
 
