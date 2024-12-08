@@ -57,7 +57,6 @@ const
   SCN_BOM_UTF16_BE: array[0..1] of Byte = ($FE, $FF);
 
 type
-  //
   TCnMatchMode = (mmStart, mmAnywhere, mmFuzzy);
   {* 字符串匹配模式：开头匹配，中间匹配，全范围模糊匹配}
 
@@ -287,12 +286,25 @@ type
     {* 根据 CharLength 的要求来扩展内部存储为 CharLength * 2，如 CharLength 太短则固定扩展 Capacity 的 0.5 倍}
 
     function AppendString(const Value: string): TCnStringBuilder;
-    {* 将 string 添加到 FData，无论是否 Unicode 环境。由调用者根据 AnsiMode 控制}
+    {* 将 string 添加到 FData，无论是否 Unicode 环境。由调用者根据 AnsiMode 控制。
+
+       参数：
+         const Value: string              - 待添加的字符串
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
   public
     constructor Create; overload;
     {* 构造函数，内部实现默认 string}
+
     constructor Create(IsAnsi: Boolean); overload;
-    {* 可指定内部是 Ansi 还是 Wide 的构造函数}
+    {* 可指定内部是 Ansi 还是 Wide 的构造函数。
+
+       参数：
+         IsAnsi: Boolean                  - 指明内部是否使用 Ansi 模式
+
+       返回值：（无）
+    }
 
     destructor Destroy; override;
     {* 析构函数}
@@ -302,54 +314,271 @@ type
 
 {$IFDEF UNICODE}
     function AppendAnsi(const Value: AnsiString): TCnStringBuilder;
-    {* 将 AnsiString 添加到 Unicode 环境下的 FAnsiData。由调用者根据 AnsiMode 控制}
+    {* 将 AnsiString 添加到 Unicode 环境下的 FAnsiData。由调用者根据 AnsiMode 控制。
+
+       参数：
+         const Value: AnsiString          - 待添加的单字节字符串
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
 {$ELSE}
     function AppendWide(const Value: WideString): TCnStringBuilder;
-    {* 将 WideString 添加到非 Unicode 环境中的 FWideData，由调用者根据 AnsiMode 控制}
+    {* 将 WideString 添加到非 Unicode 环境中的 FWideData，由调用者根据 AnsiMode 控制。
+
+       参数：
+         const Value: WideString          - 待添加的宽字符串
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
 {$ENDIF}
 
     function Append(const Value: string): TCnStringBuilder; overload;
-    {* 添加通用字符串，是所有其他参数类型 Append 的总入口，内部根据当前编译器以及 AnsiMode 决定用何种实现来拼}
+    {* 添加通用字符串，是所有其他参数类型 Append 的总入口，内部根据当前编译器以及 AnsiMode 决定用何种实现来拼接。
 
-    function Append(const Value: Boolean): TCnStringBuilder; overload;
-    function Append(const Value: Byte): TCnStringBuilder; overload;
-    function AppendChar(const Value: Char): TCnStringBuilder;
-    function AppendAnsiChar(const Value: AnsiChar): TCnStringBuilder;
-    function AppendWideChar(const Value: WideChar): TCnStringBuilder;
-    // Char 和单字符 String 是混淆的，因而改名，不用 overload
-    function AppendCurrency(const Value: Currency): TCnStringBuilder; overload;
-    // Currency 低版本 Delphi 中和 Double 是混淆的，因而改名，不用 overload
-    function Append(const Value: Double): TCnStringBuilder; overload;
-    function Append(const Value: SmallInt): TCnStringBuilder; overload;
-    function Append(const Value: Integer): TCnStringBuilder; overload;
-    function Append(const Value: Int64): TCnStringBuilder; overload;
-    function Append(const Value: TObject): TCnStringBuilder; overload;
-    function Append(const Value: ShortInt): TCnStringBuilder; overload;
-    function Append(const Value: Single): TCnStringBuilder; overload;
+       参数：
+         const Value: string              - 待添加的字符串
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function Append(Value: Boolean): TCnStringBuilder; overload;
+    {* 添加一布尔值。
+
+       参数：
+         Value: Boolean                   - 待添加的布尔值
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function AppendChar(Value: Char): TCnStringBuilder;
+    {* 添加一字符。注意 Char 和单字符 String 是等同的，因而必须改名，不能和 Append 用 overload。
+
+       参数：
+         Value: Char                      - 待添加的字符
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function AppendAnsiChar(Value: AnsiChar): TCnStringBuilder;
+    {* 添加一单字节字符。
+
+       参数：
+         Value: AnsiChar                  - 待添加的单字节字符
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function AppendWideChar(Value: WideChar): TCnStringBuilder;
+    {* 添加一宽字符。
+
+       参数：
+         Value: WideChar                  - 待添加的宽字符
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+
+    function AppendCurrency(Value: Currency): TCnStringBuilder;
+    {* 添加一 Currency 值，注意 Currency 在低版本 Delphi 中和 Double 是等同的，
+       因而必须改名，不能和 Append 用 overload。
+
+       参数：
+         Value: Currency                  - 待添加的 Currency 值
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+
+    function Append(Value: Single): TCnStringBuilder; overload;
+    {* 添加一单精度浮点数。
+
+       参数：
+         Value: Single                    - 待添加的单精度浮点数
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function Append(Value: Double): TCnStringBuilder; overload;
+    {* 添加一双精度浮点数。
+
+       参数：
+         Value: Double                    - 待添加的双精度浮点数
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function Append(Value: ShortInt): TCnStringBuilder; overload;
+    {* 添加一 8 位有符号整数。
+
+       参数：
+         Value: ShortInt                  - 待添加的 8 位有符号整数
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function Append(Value: SmallInt): TCnStringBuilder; overload;
+    {* 添加一 16 位有符号整数。
+
+       参数：
+         Value: SmallInt                  - 待添加的 16 位有符号整数
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function Append(Value: Integer): TCnStringBuilder; overload;
+    {* 添加一 32 位有符号整数。
+
+       参数：
+         Value: Integer                   - 待添加的 32 位有符号整数
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function Append(Value: Int64): TCnStringBuilder; overload;
+    {* 添加一 64 位有符号整数。
+
+       参数：
+         Value: Int64                     - 待添加的 64 位有符号整数
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function Append(Value: Byte): TCnStringBuilder; overload;
+    {* 添加一 8 位无符号整数。
+
+       参数：
+         Value: Byte                      - 待添加的 8 位无符号整数
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function Append(Value: Word): TCnStringBuilder; overload;
+    {* 添加一 16 位无符号整数。
+
+       参数：
+         Value: Word                      - 待添加的 16 位无符号整数
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function Append(Value: Cardinal): TCnStringBuilder; overload;
+    {* 添加一 32 位无符号整数。
+
+       参数：
+         Value: Cardinal                  - 待添加的 32 位无符号整数
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
 {$IFDEF SUPPORT_UINT64}
-    function Append(const Value: UInt64): TCnStringBuilder; overload;
+    function Append(Value: UInt64): TCnStringBuilder; overload;
+    {* 添加一 64 位无符号整数。
+
+       参数：
+         Value: UInt64                    - 待添加的 64 位无符号整数
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
 {$ENDIF}
-    function Append(const Value: Word): TCnStringBuilder; overload;
-    function Append(const Value: Cardinal): TCnStringBuilder; overload;
-    function Append(const Value: PAnsiChar): TCnStringBuilder; overload;
-    function Append(const Value: Char; RepeatCount: Integer): TCnStringBuilder; overload;
+
+    function Append(Value: TObject): TCnStringBuilder; overload;
+    {* 添加一对象。
+
+       参数：
+         Value: TObject                   - 待添加的对象，内部使用其 ToString，无则使用对象十六进制地址
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function Append(Value: PAnsiChar): TCnStringBuilder; overload;
+    {* 添加一单字节字符串。
+
+       参数：
+         Value: PAnsiChar                 - 待添加的单字节字符串地址
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
+    function Append(Value: Char; RepeatCount: Integer): TCnStringBuilder; overload;
+    {* 添加一重复数量的相同字符。
+
+       参数：
+         Value: Char                      - 待添加的字符
+         RepeatCount: Integer             - 字符数量
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
     function Append(const Value: string; StartIndex: Integer; Count: Integer): TCnStringBuilder; overload;
+    {* 添加一字符串的子串。
+
+       参数：
+         const Value: string              - 待添加的字符串
+         StartIndex: Integer              - 起始位置
+         Count: Integer                   - 字符数量
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
     function Append(const AFormat: string; const Args: array of const): TCnStringBuilder; overload;
+    {* 添加一格式化字符串。
+
+       参数：
+         const AFormat: string            - 格式字符串
+         const Args: array of const       - 格式参数列表
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
 
     function AppendLine: TCnStringBuilder; overload;
+    {* 添加一空行。
+
+       参数：
+         （无）
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
+
     function AppendLine(const Value: string): TCnStringBuilder; overload;
+    {* 添加一字符串并加上回车换行
+
+       参数：
+         const Value: string              - 待添加的字符串
+
+       返回值：TCnStringBuilder           - 返回本对象供进一步添加调用
+    }
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 返回内容的 string 形式，无论是否 Unicode 环境，只要 AnsiMode 与编译器的 Unicode 支持一致
-      换句话说非 Unicode 环境中 AnsiMode 为 True 时才返回 AnsiString，
-      Unicode 环境中 AnsiMode 为 False 时才返回 UnicodeString，其余情况返回空}
+    {* 返回内容的 string 形式，无论是否 Unicode 环境，只要 AnsiMode 与编译器的 Unicode 支持一致。
+       换句话说非 Unicode 环境中 AnsiMode 为 True 时才返回 AnsiString，
+       Unicode 环境中 AnsiMode 为 False 时才返回 UnicodeString，其余情况返回空。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回内容的字符串形式
+    }
 
     function ToAnsiString: AnsiString;
     {* 强行返回内容的 AnsiString 形式，无论 AnsiMode 如何。
-      可在 Unicode 环境中使用，如在非 Unicode 环境中使用，等同于 ToString}
+       可在 Unicode 环境中使用，如在非 Unicode 环境中使用，等同于 ToString。
+
+       参数：
+         （无）
+
+       返回值：AnsiString                 - 返回内容的单字节字符串形式
+    }
+
     function ToWideString: WideString;
     {* 强行返回内容的 WideString 形式，无论 AnsiMode 如何。
-      可在非 Unicode 环境中使用，如在 Unicode 环境中使用，等同于 ToString}
+       可在非 Unicode 环境中使用，如在 Unicode 环境中使用，等同于 ToString。
+
+       参数：
+         （无）
+
+       返回值：WideString                 - 返回内容的宽字符串形式
+    }
 
     property CharCapacity: Integer read GetCharCapacity write SetCharCapacity;
     {* 以字符为单位的内部缓冲区的容量}
@@ -365,7 +594,15 @@ type
 {$IFNDEF COMPILER7_UP}
 
 function PosEx(const SubStr: string; const S: string; Offset: Cardinal = 1): Integer;
-{* D5/6 BCB5/6 中无 StrUtils 单元的此函数，移植其 PosEx 函数放这里，使用请参考 PosEx 函数}
+{* D5/6 BCB5/6 中无 StrUtils 单元的此函数，移植其 PosEx 函数放这里，使用请参考 PosEx 函数。
+
+   参数：
+     const SubStr: string                 - 待查找的子串
+     const S: string                      - 原字符串
+     Offset: Cardinal                     - 查找的起始偏移量
+
+   返回值：Integer                        - 返回从起始偏移量起第一次出现子串的位置
+}
 
 {$ENDIF}
 
@@ -2281,41 +2518,41 @@ begin
 {$ENDIF}
 end;
 
-function TCnStringBuilder.Append(const Value: Integer): TCnStringBuilder;
+function TCnStringBuilder.Append(Value: Integer): TCnStringBuilder;
 begin
   Result := Append(IntToStr(Value));
 end;
 
-function TCnStringBuilder.Append(const Value: SmallInt): TCnStringBuilder;
+function TCnStringBuilder.Append(Value: SmallInt): TCnStringBuilder;
 begin
   Result := Append(IntToStr(Value));
 end;
 
-function TCnStringBuilder.Append(const Value: TObject): TCnStringBuilder;
+function TCnStringBuilder.Append(Value: TObject): TCnStringBuilder;
 begin
 {$IFDEF OBJECT_HAS_TOSTRING}
   Result := Append(Value.ToString);
 {$ELSE}
-  Result := Append(IntToHex(Integer(Value), 2));
+  Result := Append(IntToHex(TCnNativeInt(Value), 2));
 {$ENDIF}
 end;
 
-function TCnStringBuilder.Append(const Value: Int64): TCnStringBuilder;
+function TCnStringBuilder.Append(Value: Int64): TCnStringBuilder;
 begin
   Result := Append(IntToStr(Value));
 end;
 
-function TCnStringBuilder.Append(const Value: Double): TCnStringBuilder;
+function TCnStringBuilder.Append(Value: Double): TCnStringBuilder;
 begin
   Result := Append(FloatToStr(Value));
 end;
 
-function TCnStringBuilder.Append(const Value: Byte): TCnStringBuilder;
+function TCnStringBuilder.Append(Value: Byte): TCnStringBuilder;
 begin
   Result := Append(IntToStr(Value));
 end;
 
-function TCnStringBuilder.Append(const Value: Boolean): TCnStringBuilder;
+function TCnStringBuilder.Append(Value: Boolean): TCnStringBuilder;
 begin
   if Value then
     Result := Append('True')
@@ -2323,12 +2560,12 @@ begin
     Result := Append('False');
 end;
 
-function TCnStringBuilder.AppendCurrency(const Value: Currency): TCnStringBuilder;
+function TCnStringBuilder.AppendCurrency(Value: Currency): TCnStringBuilder;
 begin
   Result := Append(CurrToStr(Value));
 end;
 
-function TCnStringBuilder.AppendChar(const Value: Char): TCnStringBuilder;
+function TCnStringBuilder.AppendChar(Value: Char): TCnStringBuilder;
 var
   S: string;
 begin
@@ -2337,18 +2574,18 @@ begin
   Result := Append(S);
 end;
 
-function TCnStringBuilder.Append(const Value: ShortInt): TCnStringBuilder;
+function TCnStringBuilder.Append(Value: ShortInt): TCnStringBuilder;
 begin
   Result := Append(IntToStr(Value));
 end;
 
-function TCnStringBuilder.Append(const Value: Char;
+function TCnStringBuilder.Append(Value: Char;
   RepeatCount: Integer): TCnStringBuilder;
 begin
   Result := Append(StringOfChar(Value, RepeatCount));
 end;
 
-function TCnStringBuilder.Append(const Value: PAnsiChar): TCnStringBuilder;
+function TCnStringBuilder.Append(Value: PAnsiChar): TCnStringBuilder;
 begin
   Result := Append(string(Value));
 end;
@@ -2359,26 +2596,26 @@ begin
   Result := Append(Copy(Value, StartIndex, Count));
 end;
 
-function TCnStringBuilder.Append(const Value: Cardinal): TCnStringBuilder;
+function TCnStringBuilder.Append(Value: Cardinal): TCnStringBuilder;
 begin
   Result := Append(UInt32ToStr(Value));
 end;
 
 {$IFDEF SUPPORT_UINT64}
 
-function TCnStringBuilder.Append(const Value: UInt64): TCnStringBuilder;
+function TCnStringBuilder.Append(Value: UInt64): TCnStringBuilder;
 begin
   Result := Append(UInt64ToStr(Value));
 end;
 
 {$ENDIF}
 
-function TCnStringBuilder.Append(const Value: Single): TCnStringBuilder;
+function TCnStringBuilder.Append(Value: Single): TCnStringBuilder;
 begin
   Result := Append(FloatToStr(Value));
 end;
 
-function TCnStringBuilder.Append(const Value: Word): TCnStringBuilder;
+function TCnStringBuilder.Append(Value: Word): TCnStringBuilder;
 begin
   Result := Append(IntToStr(Value));
 end;
@@ -2405,7 +2642,7 @@ begin
   Result := Append(Format(AFormat, Args));
 end;
 
-function TCnStringBuilder.AppendAnsiChar(const Value: AnsiChar): TCnStringBuilder;
+function TCnStringBuilder.AppendAnsiChar(Value: AnsiChar): TCnStringBuilder;
 var
   S: AnsiString;
 begin
@@ -2418,7 +2655,7 @@ begin
 {$ENDIF}
 end;
 
-function TCnStringBuilder.AppendWideChar(const Value: WideChar): TCnStringBuilder;
+function TCnStringBuilder.AppendWideChar(Value: WideChar): TCnStringBuilder;
 var
   S: WideString;
 begin

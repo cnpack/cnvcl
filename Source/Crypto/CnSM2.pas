@@ -115,7 +115,7 @@ type
   {* SM2 的公钥就是普通椭圆曲线的公钥，可以用 ECC 中的相应 Load/Save 函数处理}
   public
     procedure SetHex(const Buf: AnsiString); reintroduce;
-    {* 从十六进制字符串中加载点坐标，内部有 02 03 04 前缀的处理，
+    {* 从十六进制字符串中加载坐标点，内部有 02 03 04 前缀的处理，
        如果无 02 03 04 前缀则对半劈开分别赋值给 X 和 Y
        如果前缀是 02 或 03，说明内容只有 X 坐标，此时内部用 SM2 参数创建实例并计算 Y 坐标。
 
@@ -443,7 +443,7 @@ function CnSM2VerifyFile(const UserID: AnsiString; const FileName: string;
 
    参数：
      const UserID: AnsiString             - 用来验证签名的用户标识，需和签名的用户标识保持一致
-     const FileName: string               - 待签名的文件名
+     const FileName: string               - 待验证的文件名
      const InHexSignature: string         - 待验证的十六进制的签名值
      PublicKey: TCnSM2PublicKey           - 用来验证的 SM2 公钥
      SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空

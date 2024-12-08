@@ -100,19 +100,21 @@ uses
   CnPolynomial, CnPemUtils, CnBerUtils, CnMD5, CnSHA1, CnSHA2, CnSM3;
 
 const
-  // ecPublicKey 的 OID
+
   CN_OID_EC_PUBLIC_KEY: array [0..6] of Byte = (               // 1.2.840.10045.2.1
     $2A, $86, $48, $CE, $3D, $02, $01
   );
+  {* ecPublicKey 的 OID}
 
 type
   TCnEccSignDigestType = (esdtMD5, esdtSHA1, esdtSHA256, esdtSM3);
   {* ECC 签名所支持的数字摘要算法，不支持无摘要的方式}
 
   ECnEccException = class(Exception);
+  {* 椭圆曲线相关异常}
 
   TCnInt64EccPoint = packed record
-  {* Int64 范围内的椭圆曲线上的点描述结构}
+  {* Int64 范围内的椭圆曲线上的坐标点描述结构}
     X: Int64;
     Y: Int64;
   end;
@@ -125,7 +127,7 @@ type
   end;
 
   TCnInt64PublicKey = TCnInt64EccPoint;
-  {* Int64 范围内的椭圆曲线的公钥，G 点计算 k 次后的点坐标}
+  {* Int64 范围内的椭圆曲线的公钥，G 点计算 k 次后的坐标点}
 
   TCnInt64PrivateKey = Int64;
   {* Int64 范围内的椭圆曲线的私钥，计算次数 k 次}
@@ -140,62 +142,212 @@ type
     FOrder: Int64;
     FSizeUFactor: Int64;
     FSizePrimeType: TCnPrimeType;
-    F2Inverse: Int64;               // 2 针对 FFiniteFieldSize 的模反，供雅可比坐标计算
+    F2Inverse: Int64;               // 2 针对 FFiniteFieldSize 的模逆元，供雅可比坐标计算
     function GetJInvariance: Int64;
     function GetDelta: Int64;
   protected
-    // Tonelli-Shanks 模素数二次剩余求解，返回 False 表示失败，调用者需自行保证 P 为素数
     function TonelliShanks(X: Int64; P: Int64; out Y: Int64): Boolean;
-    // Lucas 序列模素数二次剩余求解，返回 False 表示失败，只针对 P 为 8*u + 1 的形式
+    {* Tonelli-Shanks 模素数二次剩余求解，返回 False 表示失败，调用者需自行保证 P 为素数}
+
     function Lucas(X: Int64; P: Int64; out Y: Int64): Boolean;
+    {* Lucas 序列模素数二次剩余求解，返回 False 表示失败，只针对 P 为 8*u + 1 的形式}
   public
     constructor Create(A: Int64; B: Int64; FieldPrime: Int64; GX: Int64; GY: Int64; Order: Int64);
-    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数}
+    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数。
+
+       参数：
+         A: Int64                         - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         B: Int64                         - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         FieldPrime: Int64                - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+         GX: Int64                        - 魏尔斯特拉斯椭圆曲线方程的 G 点的 X 坐标
+         GY: Int64                        - 魏尔斯特拉斯椭圆曲线方程的 G 点的 Y 坐标
+         Order: Int64                     - 魏尔斯特拉斯椭圆曲线方程的 G 点的阶
+
+       返回值：（无）
+    }
+
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure AffinePointAddPoint(var P: TCnInt64Ecc3Point; var Q: TCnInt64Ecc3Point; var Sum: TCnInt64Ecc3Point);
-    {* 使用仿射坐标系进行点加，避免取模拟元导致的开销}
-    procedure JacobianPointAddPoint(var P: TCnInt64Ecc3Point; var Q: TCnInt64Ecc3Point; var Sum: TCnInt64Ecc3Point);
-    {* 使用雅可比坐标系进行点加，避免取模拟元导致的开销}
+    procedure AffinePointAddPoint(var P: TCnInt64Ecc3Point;
+      var Q: TCnInt64Ecc3Point; var Sum: TCnInt64Ecc3Point);
+    {* 使用仿射坐标系进行点加，避免取模逆元导致的开销。
+
+       参数：
+         var P: TCnInt64Ecc3Point         - 第一个加数的点坐标
+         var Q: TCnInt64Ecc3Point         - 第二个加数的点坐标
+         var Sum: TCnInt64Ecc3Point       - 输出的和的点坐标
+
+       返回值：（无）
+    }
+
+    procedure JacobianPointAddPoint(var P: TCnInt64Ecc3Point;
+      var Q: TCnInt64Ecc3Point; var Sum: TCnInt64Ecc3Point);
+    {* 使用雅可比坐标系进行点加，避免取模逆元导致的开销。
+
+       参数：
+         var P: TCnInt64Ecc3Point         - 第一个加数的点坐标
+         var Q: TCnInt64Ecc3Point         - 第二个加数的点坐标
+         var Sum: TCnInt64Ecc3Point       - 输出的和的点坐标
+
+       返回值：（无）
+    }
 
     procedure AffineMultiplePoint(K: Int64; var Point: TCnInt64Ecc3Point);
-    {* 使用仿射坐标系进行点乘，避免取模导致的开销}
+    {* 使用仿射坐标系进行点乘，避免取模导致的开销。
+
+       参数：
+         K: Int64                         - 乘数
+         var Point: TCnInt64Ecc3Point     - 被乘的坐标点
+
+       返回值：（无）
+    }
+
     procedure JacobianMultiplePoint(K: Int64; var Point: TCnInt64Ecc3Point);
-    {* 使用雅可比坐标系进行点乘，避免取模导致的开销}
+    {* 使用雅可比坐标系进行点乘，避免取模导致的开销。
+
+       参数：
+         K: Int64                         - 乘数
+         var Point: TCnInt64Ecc3Point     - 被乘的坐标点
+
+       返回值：（无）
+    }
 
     procedure MultiplePoint(K: Int64; var Point: TCnInt64EccPoint);
-    {* 计算某点 P 的 k * P 值，值重新放入 P}
+    {* 计算某点 P 的 k * P 值，值重新放入 P。
+
+       参数：
+         K: Int64                         - 乘数
+         var Point: TCnInt64EccPoint      - 被乘的坐标点
+
+       返回值：（无）
+    }
+
     procedure PointAddPoint(var P: TCnInt64EccPoint; var Q: TCnInt64EccPoint; var Sum: TCnInt64EccPoint);
-    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
+    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同。
+
+       参数：
+         var P: TCnInt64EccPoint          - 第一个加数的点坐标
+         var Q: TCnInt64EccPoint          - 第二个加数的点坐标
+         var Sum: TCnInt64EccPoint        - 输出的和的点坐标
+
+       返回值：（无）
+    }
+
     procedure PointSubPoint(var P: TCnInt64EccPoint; var Q: TCnInt64EccPoint; var Diff: TCnInt64EccPoint);
-    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
+
+       参数：
+         var P: TCnInt64EccPoint          - 被减数的点坐标
+         var Q: TCnInt64EccPoint          - 减数的点坐标
+         var Diff: TCnInt64EccPoint       - 输出的差的点坐标
+
+       返回值：（无）
+    }
+
     procedure PointInverse(var P: TCnInt64EccPoint);
-    {* 计算 P 点的逆元 -P，值重新放入 P}
+    {* 计算 P 点的加法逆元 -P，值重新放入 P。
+
+       参数：
+         var P: TCnInt64EccPoint          - 待取逆元的坐标点
+
+       返回值：（无）
+    }
+
     procedure AffinePointInverse(var P: TCnInt64Ecc3Point);
-    {* 计算以仿射坐标表示的 P 点的逆元 -P，值重新放入 P}
+    {* 计算以仿射坐标表示的 P 点的加法逆元 -P，值重新放入 P。
+
+       参数：
+         var P: TCnInt64Ecc3Point         - 待取逆元的坐标点
+
+       返回值：（无）
+    }
+
     procedure JacobianPointInverse(var P: TCnInt64Ecc3Point);
-    {* 计算以雅可比坐标表示的 P 点的逆元 -P，值重新放入 P}
+    {* 计算以雅可比坐标表示的 P 点的加法逆元 -P，值重新放入 P。
+
+       参数：
+         var P: TCnInt64Ecc3Point         - 待取逆元的坐标点
+
+       返回值：（无）
+    }
 
     function IsPointOnCurve(var P: TCnInt64EccPoint): Boolean;
-    {* 判断 P 点是否在本曲线上}
+    {* 判断 P 点是否在本曲线上。
+
+       参数：
+         var P: TCnInt64EccPoint          - 待判断的坐标点
+
+       返回值：Boolean                    - 返回是否在曲线上
+    }
 
     function DivisionPolynomial(Degree: Integer; outDivisionPolynomial: TCnInt64Polynomial): Boolean;
-    {* 递归计算第 Degree 个可除多项式，返回计算是否成功}
+    {* 递归计算第 Degree 个可除多项式，返回计算是否成功。
+
+       参数：
+         Degree: Integer                                  - 可除多项式的序号
+         outDivisionPolynomial: TCnInt64Polynomial        - 返回的可除多项式
+
+       返回值：Boolean                                    - 返回计算是否成功
+    }
 
     function PlainToPoint(Plain: Int64; var OutPoint: TCnInt64EccPoint): Boolean;
-    {* 将要加密的明文数值包装成一个待加密的点，也就是以明文为 X 求方程的 Y
-       注意 Plain 为 0 时直接对应至零点，即使椭圆曲线上有 (0, 非零 Y)形式的合法点存在}
+    {* 将要加密的明文数值包装成一个待加密的点，也就是以明文为 X 求方程的 Y。
+       注意 Plain 为 0 时直接对应至零点，即使椭圆曲线上有（0, 非零 Y）形式的合法点存在。
+
+       参数：
+         Plain: Int64                     - 待加密的明文数
+         var OutPoint: TCnInt64EccPoint   - 输出的明文坐标点
+
+       返回值：Boolean                    - 返回求解是否成功
+    }
+
+    function PointToPlain(var Point: TCnInt64EccPoint): Int64;
+    {* 将解密出的明文点解开成一个明文数值，也就是将点的 X 值取出。
+
+       参数：
+         Point: TCnInt64EccPoint          - 待解开的明文坐标点
+
+       返回值：Int64                      - 返回明文数值
+    }
 
     procedure GenerateKeys(out PrivateKey: TCnInt64PrivateKey; out PublicKey: TCnInt64PublicKey);
-    {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
+    {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K。
+
+       参数：
+         out PrivateKey: TCnInt64PrivateKey               - 生成的椭圆曲线的私钥
+         out PublicKey: TCnInt64PublicKey                 - 生成的椭圆曲线的公钥
+
+       返回值：（无）
+    }
+
     procedure Encrypt(var PlainPoint: TCnInt64EccPoint; PublicKey: TCnInt64PublicKey;
       var OutDataPoint1: TCnInt64EccPoint; var OutDataPoint2: TCnInt64EccPoint; RandomKey: Int64 = 0);
-    {* 公钥加密明文点 M，得到两个点的输出密文，内部包含了随机值 r，也就是 C1 = M + rK; C2 = r * G
-      如果传入的 RandomKey 是 0，则内部随机生成}
+    {* 公钥加密明文点 M，得到两个点的输出密文，内部包含了随机值 r，也就是 C1 = M + rK; C2 = r * G。
+       如果传入的 RandomKey 是 0，则内部随机生成。
+
+       参数：
+         var PlainPoint: TCnInt64EccPoint                 - 待加密的明文坐标点
+         PublicKey: TCnInt64PublicKey                     - 用于加密的椭圆曲线公钥
+         var OutDataPoint1: TCnInt64EccPoint              - 输出密文坐标点一
+         var OutDataPoint2: TCnInt64EccPoint              - 输出密文坐标点二
+         RandomKey: Int64                                 - 随机数
+
+       返回值：（无）
+    }
+
     procedure Decrypt(var DataPoint1: TCnInt64EccPoint; var DataPoint2: TCnInt64EccPoint;
       PrivateKey: TCnInt64PrivateKey; var OutPlainPoint: TCnInt64EccPoint);
-    {* 私钥解密密文点，也就是计算 C1 - k * C2 就得到了原文点 M}
+    {* 私钥解密密文点，也就是计算 C1 - k * C2 就得到了原文点 M。
+
+       参数：
+         var DataPoint1: TCnInt64EccPoint                 - 待解密的密文坐标点一
+         var DataPoint2: TCnInt64EccPoint                 - 待解密的密文坐标点二
+         PrivateKey: TCnInt64PrivateKey                   - 用于解密的椭圆曲线私钥
+         var OutPlainPoint: TCnInt64EccPoint              - 输出明文坐标点
+
+       返回值：（无）
+    }
 
     property Generator: TCnInt64EccPoint read FGenerator;
     {* 基点坐标 G}
@@ -225,34 +377,91 @@ type
     procedure SetY(const Value: TCnBigNumber);
   public
     constructor Create; overload;
+    {* 构造函数}
     constructor Create(const XDec: AnsiString; const YDec: AnsiString); overload;
+    {* 构造函数
+
+       参数：
+         const XDec: AnsiString           - X 坐标的十进制字符串
+         const YDec: AnsiString           - Y 坐标的十进制字符串
+
+       返回值：TCnEccPoint                - 返回创建的对象实例
+    }
 
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent              - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
+
     function IsZero: Boolean;
-    {* 是否为无穷远点也即 0 点}
+    {* 是否为无穷远点也即 0 点。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否无穷远点
+    }
+
     procedure SetZero;
     {* 设为无穷远点也即 0 点}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 转换为字符串，简单输出用逗号分隔的十六进制 X 和 Y 坐标值}
+    {* 转换为字符串，简单输出用逗号分隔的十六进制 X 和 Y 坐标值。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回十六进制字符串
+    }
 
     procedure SetHex(const Buf: AnsiString; Ecc: TCnEcc = nil);
     {* 从十六进制字符串中加载点坐标，内部有 02 03 04 前缀的处理，
-      如果无 02 03 04 前缀则对半劈开分别赋值给 X 和 Y
-      如果前缀是 02 或 03，说明内容只有 X 坐标，此时需传入 Ecc 曲线实例来计算 Y 坐标}
+       如果无 02 03 04 前缀则对半劈开分别赋值给 X 和 Y，
+       如果前缀是 02 或 03，说明内容只有 X 坐标，此时需传入椭圆曲线实例来计算 Y 坐标。
+
+       参数：
+         const Buf: AnsiString            - 待加载的十六进制字符串
+         Ecc: TCnEcc                      - 需计算 Y 坐标时所需的椭圆曲线实例
+
+       返回值：（无）
+    }
 
     function ToHex(FixedLen: Integer = 0): string;
-    {* 输出成带 03 或 04 前缀的十六进制字符串，如果只有 X 值，使用 03 前缀}
+    {* 输出成带 03 或 04 前缀的十六进制字符串，如果只有 X 值，使用 03 前缀
+
+       参数：
+         FixedLen: Integer                - 指定数据的固定字节长度，不足则高位补 0
+
+       返回值：string                     - 返回
+    }
 
     procedure SetBase64(const Buf: AnsiString; Ecc: TCnEcc = nil);
     {* 从 Base64 字符串中加载点坐标，内部有 02 03 04 前缀的处理，
-      如果无 02 03 04 前缀则对半劈开分别赋值给 X 和 Y
-      如果前缀是 02 或 03，说明内容只有 X 坐标，此时需传入 Ecc 曲线实例来计算 Y 坐标}
+       如果无 02 03 04 前缀则对半劈开分别赋值给 X 和 Y，
+       如果前缀是 02 或 03，说明内容只有 X 坐标，此时需传入 Ecc 曲线实例来计算 Y 坐标。
+
+       参数：
+         const Buf: AnsiString            - 待加载的 Base64 字符串
+         Ecc: TCnEcc                      - 需计算 Y 坐标时所需的椭圆曲线实例
+
+       返回值：（无）
+    }
 
     function ToBase64(FixedLen: Integer = 0): string;
-    {* 输出成带 03 或 04 前缀的 Base64 字符串，如果只有 X 值，使用 03 前缀}
+    {* 输出成带 03 或 04 前缀的 Base64 字符串，如果只有 X 值，使用 03 前缀。
+
+       参数：
+         FixedLen: Integer                - 指定数据的固定字节长度，不足则高位补 0
+
+       返回值：string                     - 返回 Base64 字符串
+    }
 
     property X: TCnBigNumber read FX write SetX;
     {* 椭圆曲线点的 X 坐标}
@@ -271,21 +480,46 @@ type
     procedure SetZ(const Value: TCnBigNumber);
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent              - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
 
     function IsZero: Boolean;
-    {* 是否为无穷远点也即 0 点}
+    {* 是否为无穷远点也即 0 点。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否无穷远点
+    }
+
     procedure SetZero;
     {* 设为无穷远点也即 0 点}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ELSE} virtual; {$ENDIF}
+    {* 转换为字符串，简单输出用逗号分隔的十六进制 X、Y、Z 坐标值。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回十六进制字符串
+    }
 
     property X: TCnBigNumber read FX write SetX;
+    {* X 坐标}
     property Y: TCnBigNumber read FY write SetY;
+    {* Y 坐标}
     property Z: TCnBigNumber read FZ write SetZ;
-    {* Z 如果为 0 则表示是无穷远点}
+    {* Z 坐标。如果为 0 则表示是无穷远点}
   end;
 
   TCnEccPublicKey = class(TCnEccPoint);
@@ -301,35 +535,94 @@ type
     FS: TCnBigNumber;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent              - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
 
     function ToHex(FixedLen: Integer = 0): string;
     {* 转换为十六进制字符串，内部 R S 简单拼接，注意需要从十六进制中恢复时
-      宜指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而出错}
+       宜指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而出错。
+
+
+       参数：
+         FixedLen: Integer                - 指定数据的固定字节长度，不足则高位补 0
+
+       返回值：string                     - 返回十六进制字符串
+    }
+
     procedure SetHex(const Buf: AnsiString);
-    {* 从十六进制字符串中加载，内部对半拆分}
+    {* 从十六进制字符串中加载，内部对半拆分。
+
+       参数：
+         const Buf: AnsiString            - 待加载的十六进制字符串
+
+       返回值：（无）
+    }
 
     function ToBase64(FixedLen: Integer = 0): string;
     {* 转换为 Base64 字符串，内部 R S 简单拼接后转换，
-      宜指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而被截断}
+       宜指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而出错。
+
+       参数：
+         FixedLen: Integer                - 指定数据的固定字节长度，不足则高位补 0
+
+       返回值：string                     -
+    }
 
     function SetBase64(const Buf: AnsiString): Boolean;
-    {* 从 Base64 字符串中加载，内部对半拆分。返回设置是否成功}
+    {* 从 Base64 字符串中加载，内部对半拆分。返回加载是否成功。
+
+       参数：
+         const Buf: AnsiString            - 待加载的 Base64 字符串
+
+       返回值：Boolean                    - 返回加载是否成功
+    }
 
     function ToAsn1Hex(FixedLen: Integer = 0): string;
-    {* 将 R S 拼接包装为 ASN1 的 BER/DER 格式的十六进制字符串
-      可指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而长度不一}
+    {* 将 R S 拼接包装为 ASN1 的 BER/DER 格式的十六进制字符串，
+       可指定 FixedLen 为对应椭圆曲线的 BytesCount，避免存在前导 0 字节而出错。
+
+       参数：
+         FixedLen: Integer                - 指定数据的固定字节长度，不足则高位补 0
+
+       返回值：string                     - 返回十六进制字符串
+    }
 
     function SetAsn1Hex(const Buf: AnsiString): Boolean;
-    {* 从 ASN1 的 BER/DER 格式的十六进制字符串中加载 R S，返回加载是否成功}
+    {* 从 ASN1 的 BER/DER 格式的十六进制字符串中加载 R S，返回加载是否成功。
+
+       参数：
+         const Buf: AnsiString            - 待加载的 ASN1 的十六进制字符串
+
+       返回值：Boolean                    - 返回加载是否成功
+    }
 
     function ToAsn1Base64: string;
-    {* 将 R S 拼接包装为 ASN1 的 BER/DER 格式的内容后再 Base64 编码}
+    {* 将 R S 拼接包装为 ASN1 的 BER/DER 格式的内容后再 Base64 编码。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回 ASN1 格式的 Base64 字符串
+    }
 
     function SetAsn1Base64(const Buf: AnsiString): Boolean;
-    {* 从 ASN1 的 BER/DER 格式的 Base64 字符串中加载 R S，返回加载是否成功}
+    {* 从 ASN1 的 BER/DER 格式的 Base64 字符串中加载 R S，返回加载是否成功。
+
+       参数：
+         const Buf: AnsiString            - 待加载的 ASN1 格式的 Base64 字符串
+
+       返回值：Boolean                    - 返回加载是否成功
+    }
 
     property R: TCnBigNumber read FR;
     {* 签名 R 值}
@@ -340,7 +633,7 @@ type
   TCnEccCurveType = (ctCustomized, ctSM2, ctSM2Example192, ctSM2Example256,
     ctRfc4754ECDSAExample256, ctSecp224r1, ctSecp224k1, ctSecp256k1, ctPrime256v1,
     ctWapiPrime192v1, ctSM9Bn256v1, ctSecp384r1, ctSecp521r1);
-  {* 支持的椭圆曲线类型}
+  {* 本单元支持的椭圆曲线类型}
 
   TCnEcc = class
   {* 描述一有限素域 p 也就是 0 到 p - 1 上的椭圆曲线 y^2 = x^3 + Ax + B mod p}
@@ -360,67 +653,264 @@ type
     procedure CalcX3AddAXAddB(X: TCnBigNumber); // 计算 X^3 + A*X + B，结果放入 X
   public
     constructor Create; overload; virtual;
+    {* 构造函数}
     constructor Create(Predefined: TCnEccCurveType); overload;
+    {* 构造函数。
+
+       参数：
+         Predefined: TCnEccCurveType      - 待加载的椭圆曲线参数类型
+
+       返回值：（无）
+    }
+
     constructor Create(const A: AnsiString; const B: AnsiString; const FieldPrime: AnsiString;
       const GX: AnsiString; const GY: AnsiString; const Order: AnsiString; H: Integer = 1); overload;
-    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数，需要十六进制字符串}
+    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数等，除辅助因子外需要十六进制字符串。
+
+       参数：
+         const A: AnsiString              - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         const B: AnsiString              - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         const FieldPrime: AnsiString     - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+         const GX: AnsiString             - 魏尔斯特拉斯椭圆曲线方程的 G 点的 X 坐标
+         const GY: AnsiString             - 魏尔斯特拉斯椭圆曲线方程的 G 点的 Y 坐标
+         const Order: AnsiString          - 魏尔斯特拉斯椭圆曲线方程的 G 点的阶
+         H: Integer                       - 魏尔斯特拉斯椭圆曲线方程的辅助因子
+
+       返回值：TCnEcc                     - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
     {* 析构函数}
 
     procedure Load(Predefined: TCnEccCurveType); overload; virtual;
+    {* 加载椭圆曲线参数。
+
+       参数：
+         Predefined: TCnEccCurveType      - 待加载的椭圆曲线参数类型
+
+       返回值：（无）
+    }
+
     procedure Load(const A: AnsiString; const B: AnsiString; const FieldPrime: AnsiString;
       const GX: AnsiString; const GY: AnsiString; const Order: AnsiString; H: Integer = 1); overload; virtual;
-    {* 加载曲线参数，注意字符串参数是十六进制格式}
+    {* 加载椭圆曲线参数，传入方程的 A, B 参数、有限域上界 p、G 点坐标、G 点的阶数等，除辅助因子外均需要十六进制字符串。
+
+       参数：
+         const A: AnsiString              - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         const B: AnsiString              - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         const FieldPrime: AnsiString     - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+         const GX: AnsiString             - 魏尔斯特拉斯椭圆曲线方程的 G 点的 X 坐标
+         const GY: AnsiString             - 魏尔斯特拉斯椭圆曲线方程的 G 点的 Y 坐标
+         const Order: AnsiString          - 魏尔斯特拉斯椭圆曲线方程的阶
+         H: Integer                       - 魏尔斯特拉斯椭圆曲线方程的辅助因子
+
+       返回值：（无）
+    }
 
     procedure AffinePointAddPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Sum: TCnEcc3Point);
-    {* 使用仿射坐标系进行点加，避免取模拟元导致的开销}
+    {* 使用仿射坐标系进行点加，避免取模逆元导致的开销。
+
+       参数：
+         P: TCnEcc3Point                  - 第一个加数的点坐标
+         Q: TCnEcc3Point                  - 第二个加数的点坐标
+         Sum: TCnEcc3Point                - 输出的和的点坐标
+
+       返回值：（无）
+    }
     procedure AffinePointSubPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Diff: TCnEcc3Point);
-    {* 使用仿射坐标系进行点减，避免取模拟元导致的开销}
+    {* 使用仿射坐标系进行点减，避免取模逆元导致的开销。
+
+       参数：
+         P: TCnEcc3Point                  - 被减数的点坐标
+         Q: TCnEcc3Point                  - 减数的点坐标
+         Diff: TCnEcc3Point               - 输出的差的点坐标
+
+       返回值：（无）
+    }
 
     procedure JacobianPointAddPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Sum: TCnEcc3Point);
-    {* 使用雅可比坐标系进行点加，避免取模拟元导致的开销}
+    {* 使用雅可比坐标系进行点加，避免取模逆元导致的开销
+
+       参数：
+         P: TCnEcc3Point                  - 第一个加数的点坐标
+         Q: TCnEcc3Point                  - 第二个加数的点坐标
+         Sum: TCnEcc3Point                - 输出的和的点坐标
+
+       返回值：（无）
+    }
+
     procedure JacobianPointSubPoint(P: TCnEcc3Point; Q: TCnEcc3Point; Diff: TCnEcc3Point);
-    {* 使用雅可比坐标系进行点减，避免取模拟元导致的开销}
+    {* 使用雅可比坐标系进行点减，避免取模逆元导致的开销
+
+       参数：
+         P: TCnEcc3Point                  - 被减数的点坐标
+         Q: TCnEcc3Point                  - 减数的点坐标
+         Diff: TCnEcc3Point               - 输出的差的点坐标
+
+       返回值：（无）
+    }
 
     procedure AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point); virtual;
-    {* 使用仿射坐标系进行点乘，避免取模拟元导致的开销}
+    {* 使用仿射坐标系进行点乘，避免取模逆元导致的开销。
+
+       参数：
+         K: TCnBigNumber                  - 乘数，形式为大数
+         Point: TCnEcc3Point              - 被乘的坐标点
+
+       返回值：（无）
+    }
     procedure JacobianMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point); virtual;
-    {* 使用雅可比坐标系进行点乘，避免取模拟元导致的开销}
+    {* 使用雅可比坐标系进行点乘，避免取模逆元导致的开销。
+
+       参数：
+         K: TCnBigNumber                  - 乘数，形式为大数
+         Point: TCnEcc3Point              - 被乘的坐标点
+
+       返回值：（无）
+    }
 
     procedure MultiplePoint(K: Int64; Point: TCnEccPoint); overload;
-    {* 计算某点 P 的 k * P 值，值重新放入 P}
+    {* 计算某点 P 的 k * P 值，值重新放入 P。
+
+       参数：
+         K: Int64                         - 乘数
+         Point: TCnEccPoint               - 被乘的坐标点
+
+       返回值：（无）
+    }
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint); overload;
-    {* 计算某点 P 的 k * P 值，值重新放入 P，内部用仿射坐标点乘进行加速}
+    {* 计算某点 P 的 k * P 值，值重新放入 P，内部用仿射坐标点乘进行加速。
+
+       参数：
+         K: TCnBigNumber                  - 乘数，形式为大数
+         Point: TCnEccPoint               - 被乘的坐标点
+
+       返回值：（无）
+    }
 
     procedure NormalMultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
-    {* 计算某点 P 的 k * P 值，值重新放入 P}
+    {* 计算某点 P 的 k * P 值，值重新放入 P。
+
+       参数：
+         K: TCnBigNumber                  - 乘数，形式为大数
+         Point: TCnEccPoint               - 被乘的坐标点
+
+       返回值：（无）
+    }
+
     procedure PointAddPoint(P: TCnEccPoint; Q: TCnEccPoint; Sum: TCnEccPoint);
-    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同，内部普通实现}
+    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同，内部普通实现
+
+       参数：
+         P: TCnEccPoint                   - 第一个加数的点坐标
+         Q: TCnEccPoint                   - 第二个加数的点坐标
+         Sum: TCnEccPoint                 - 输出的和的点坐标
+
+       返回值：（无）
+    }
+
     procedure PointSubPoint(P: TCnEccPoint; Q: TCnEccPoint; Diff: TCnEccPoint);
-    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同
+
+       参数：
+         P: TCnEccPoint                   - 被减数的点坐标
+         Q: TCnEccPoint                   - 减数的点坐标
+         Diff: TCnEccPoint                - 输出的差的点坐标
+
+       返回值：（无）
+    }
+
     procedure PointInverse(P: TCnEccPoint);
-    {* 计算 P 点的逆元 -P，值重新放入 P}
+    {* 计算 P 点的加法逆元 -P，值重新放入 P。
+
+       参数：
+         P: TCnEccPoint                   - 待取逆元的坐标点
+
+       返回值：（无）
+    }
+
     procedure AffinePointInverse(P: TCnEcc3Point);
-    {* 计算以仿射坐标表示的 P 点的逆元 -P，值重新放入 P}
+    {* 计算以仿射坐标表示的 P 点的加法逆元 -P，值重新放入 P。
+
+       参数：
+         P: TCnEcc3Point                  - 待取逆元的坐标点
+
+       返回值：（无）
+    }
+
     procedure JacobianPointInverse(P: TCnEcc3Point);
-    {* 计算以雅可比坐标表示的 P 点的逆元 -P，值重新放入 P}
+    {* 计算以雅可比坐标表示的 P 点的加法逆元 -P，值重新放入 P。
+
+       参数：
+         P: TCnEcc3Point                  - 待取逆元的多项式坐标点
+
+       返回值：（无）
+    }
     function IsPointOnCurve(P: TCnEccPoint): Boolean;
-    {* 判断 P 点是否在本曲线上}
+    {* 判断 P 点是否在本曲线上。
+
+       参数：
+         P: TCnEccPoint                   - 待判断的坐标点
+
+       返回值：Boolean                    - 返回是否在曲线上
+    }
 
     function PlainToPoint(Plain: TCnBigNumber; OutPoint: TCnEccPoint): Boolean;
-    {* 将要加密的明文数值包装成一个待加密的点，也就是以明文为 X 求方程的 Y
-       注意 Plain 为 0 时直接对应至零点，即使椭圆曲线上有 (0, 非零 Y)形式的合法点存在}
+    {* 将要加密的明文数值包装成一个待加密的点，也就是以明文为 X 求方程的 Y。
+       注意 Plain 为 0 时直接对应至零点，即使椭圆曲线上有（0, 非零 Y）形式的合法点存在。
+
+       参数：
+         Plain: TCnBigNumber              - 待加密的明文数
+         OutPoint: TCnEccPoint            - 输出的明文坐标点
+
+       返回值：Boolean                    - 返回求解是否成功
+    }
+
     function PointToPlain(Point: TCnEccPoint; OutPlain: TCnBigNumber): Boolean;
-    {* 将解密出的明文点解开成一个明文数值，也就是将点的 X 值取出}
+    {* 将解密出的明文点解开成一个明文数值，也就是将点的 X 值取出。
+
+       参数：
+         Point: TCnEccPoint               - 待解开的明文坐标点
+         OutPlain: TCnBigNumber           - 返回明文数值
+
+       返回值：Boolean                    - 返回解开是否成功
+    }
 
     procedure GenerateKeys(PrivateKey: TCnEccPrivateKey; PublicKey: TCnEccPublicKey);
-    {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K}
+    {* 生成一对该椭圆曲线的公私钥，私钥是运算次数 k，公钥是基点 G 经过 k 次乘法后得到的点坐标 K。
+
+       参数：
+         PrivateKey: TCnEccPrivateKey     - 生成的椭圆曲线的私钥
+         PublicKey: TCnEccPublicKey       - 生成的椭圆曲线的公钥
+
+       返回值：（无）
+    }
+
     procedure Encrypt(PlainPoint: TCnEccPoint; PublicKey: TCnEccPublicKey;
       OutDataPoint1: TCnEccPoint; OutDataPoint2: TCnEccPoint);
-    {* 公钥加密明文点 M，得到两个点的输出密文，内部包含了随机值 r，也就是 C1 = M + rK; C2 = r * G}
+    {* 公钥加密明文点 M，得到两个点的输出密文，内部包含了随机值 r，也就是 C1 = M + rK; C2 = r * G。
+
+       参数：
+         PlainPoint: TCnEccPoint          - 待加密的明文坐标点
+         PublicKey: TCnEccPublicKey       - 用于加密的椭圆曲线公钥
+         OutDataPoint1: TCnEccPoint       - 输出密文坐标点一
+         OutDataPoint2: TCnEccPoint       - 输出密文坐标点二
+
+       返回值：（无）
+    }
+
     procedure Decrypt(DataPoint1: TCnEccPoint; DataPoint2: TCnEccPoint;
       PrivateKey: TCnEccPrivateKey; OutPlainPoint: TCnEccPoint);
-    {* 私钥解密密文点，也就是计算 C1 - k * C2 就得到了原文点 M}
+    {* 私钥解密密文点，也就是计算 C1 - k * C2 就得到了原文点 M。
+
+       参数：
+         DataPoint1: TCnEccPoint          - 待解密的密文坐标点一
+         DataPoint2: TCnEccPoint          - 待解密的密文坐标点二
+         PrivateKey: TCnEccPrivateKey     - 用于解密的椭圆曲线私钥
+         OutPlainPoint: TCnEccPoint       - 输出明文坐标点
+
+       返回值：（无）
+    }
 
     property Generator: TCnEccPoint read FGenerator;
     {* 基点坐标 G}
@@ -452,6 +942,14 @@ type
 
   public
     constructor Create(ARow: Integer; ACol: Integer); override;
+    {* 构造函数。
+
+       参数：
+         ARow: Integer                    - 行数
+         ACol: Integer                    - 列数
+
+       返回值：                           - 返回对象实例
+    }
 
     property ValueObject[Row, Col: Integer]: TCnEccPoint read GetValueObject write SetValueObject; default;
     {* 二维数组值}
@@ -466,7 +964,14 @@ type
 
   public
     constructor Create(ARow: Integer; ACol: Integer); override;
-    {* 构造函数}
+    {* 构造函数。
+
+       参数：
+         ARow: Integer                    - 行数
+         ACol: Integer                    - 列数
+
+       返回值：                           - 返回对象实例
+    }
 
     property ValueObject[Row, Col: Integer]: TCnEcc3Point read GetValueObject write SetValueObject; default;
     {* 二维数组值}
@@ -481,24 +986,60 @@ type
     procedure SetY(const Value: TCnInt64Polynomial);
   public
     constructor Create; overload;
+    {* 构造函数}
+
     constructor Create(const XLowToHighCoefficients: array of const;
       const YLowToHighCoefficients: array of const); overload;
+    {* 构造函数。
+
+       参数：
+         const XLowToHighCoefficients: array of const     - X 系数数组，从低次到高次
+         const YLowToHighCoefficients: array of const     - Y 系数数组，从低次到高次
+
+       返回值：TCnInt64PolynomialEccPoint                 - 返回创建的对象实例
+    }
 
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent              - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
+
     function IsZero: Boolean;
+    {* 是否为无穷远点也即 0 点。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否无穷远点
+    }
+
     procedure SetZero;
+    {* 设为无穷远点也即 0 点}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 将多项式转成字符串}
+    {* 将多项式转成字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
 
     property X: TCnInt64Polynomial read FX write SetX;
+    {* X 坐标多项式}
     property Y: TCnInt64Polynomial read FY write SetY;
+    {* Y 坐标多项式}
   end;
 
   TCnInt64PolynomialEcc = class
-  {* 描述一有限扩域 p 也就是 0 到 p - 1 上 n 次方内的椭圆曲线 y^2 = x^3 + Ax + B mod p，参数均在 Int64 范围内}
+  {* 描述一有限扩域 p 也就是 0 到 p - 1 上 n 次方内的多项式椭圆曲线 y^2 = x^3 + Ax + B mod p，参数均在 Int64 范围内}
   private
     FGenerator: TCnInt64PolynomialEccPoint;
     FCoefficientA: Int64;
@@ -513,53 +1054,164 @@ type
   public
     constructor Create(A: Int64; B: Int64; FieldPrime: Int64; Ext: Integer; GX: array of const;
       GY: array of const; Order: Int64; PrimitivePolynomial: array of const);
-    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、扩域次数，G 点坐标多项式、G 点的阶数、本原多项式}
+    {* 构造函数，传入方程的 A, B 参数、有限域上界 p、扩域次数，G 点坐标多项式、G 点的阶数、本原多项式
+
+       参数：
+         A: Int64                                         - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         B: Int64                                         - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         FieldPrime: Int64                                - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+         Ext: Integer                                     - 有限域的扩域次数
+         GX: array of const                               - 魏尔斯特拉斯椭圆曲线方程的 G 点的 X 坐标系数
+         GY: array of const                               - 魏尔斯特拉斯椭圆曲线方程的 G 点的 Y 坐标系数
+         Order: Int64                                     - 魏尔斯特拉斯椭圆曲线方程的 G 点的阶
+         const PrimitivePolynomial: array of const        - 本原多项式系数
+
+       返回值：TCnInt64PolynomialEcc                      - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
     {* 析构函数}
 
     procedure MultiplePoint(K: Int64; Point: TCnInt64PolynomialEccPoint);
-    {* 计算某点 P 的 k * P 值，值重新放入 P}
+    {* 计算某点 P 的 k * P 值，值重新放入 P。
+
+       参数：
+         K: Int64                                         - 乘数
+         Point: TCnInt64PolynomialEccPoint                - 被乘的多项式坐标点
+
+       返回值：（无）
+    }
+
     procedure PointAddPoint(P: TCnInt64PolynomialEccPoint; Q: TCnInt64PolynomialEccPoint;
       Sum: TCnInt64PolynomialEccPoint);
-    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
+    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同。
+
+       参数：
+         P: TCnInt64PolynomialEccPoint    - 第一个加数的多项式坐标点
+         Q: TCnInt64PolynomialEccPoint    - 第二个加数的多项式坐标点
+         Sum: TCnInt64PolynomialEccPoint  - 输出的和的多项式坐标点
+
+       返回值：（无）
+    }
+
     procedure PointSubPoint(P: TCnInt64PolynomialEccPoint; Q: TCnInt64PolynomialEccPoint;
       Diff: TCnInt64PolynomialEccPoint);
-    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
+
+       参数：
+         P: TCnInt64PolynomialEccPoint    - 被减数的多项式坐标点
+         Q: TCnInt64PolynomialEccPoint    - 减数的多项式坐标点
+         Diff: TCnInt64PolynomialEccPoint - 输出的差的多项式坐标点
+
+       返回值：（无）
+    }
+
     procedure PointInverse(P: TCnInt64PolynomialEccPoint);
-    {* 计算 P 点的逆元 -P，值重新放入 P}
+    {* 计算 P 点的加法逆元 -P，值重新放入 P。
+
+       参数：
+         P: TCnInt64PolynomialEccPoint    - 待取逆元的多项式坐标点
+
+       返回值：（无）
+    }
+
     function IsPointOnCurve(P: TCnInt64PolynomialEccPoint): Boolean;
-    {* 判断 P 点是否在本曲线上}
+    {* 判断 P 点是否在本曲线上。
+
+       参数：
+         P: TCnInt64PolynomialEccPoint    - 待判断的多项式坐标点
+
+       返回值：Boolean                    - 返回是否在曲线上
+    }
 
     function DivisionPolynomial(Degree: Integer; outDivisionPolynomial: TCnInt64Polynomial): Boolean;
-    {* 递归计算第 Degree 个可除多项式，返回计算是否成功，注意次数一多就容易慢}
+    {* 递归计算第 Degree 个可除多项式，返回计算是否成功，注意次数一多就容易慢。
+
+       参数：
+         Degree: Integer                                  - 可除多项式的序号
+         outDivisionPolynomial: TCnInt64Polynomial        - 返回的可除多项式
+
+       返回值：Boolean                                    - 返回计算是否成功
+    }
 
     class function IsPointOnCurve2(PX: TCnInt64Polynomial; PY: TCnInt64Polynomial;
       A: Int64; B: Int64; APrime: Int64; APrimitive: TCnInt64Polynomial): Boolean;
     {* 供外界直接调用的判断（PX, PY）点是否在本曲线上，
-       椭圆曲线参数直接指定 A、B、素域上界与本原多项式，无需基点和阶以及扩域次数}
+       椭圆曲线参数直接指定 A、B、素域上界与本原多项式，无需基点和阶以及扩域次数。
 
-    class procedure RationalPointAddPoint(PX: TCnInt64RationalPolynomial; PY: TCnInt64RationalPolynomial;
-      QX: TCnInt64RationalPolynomial; QY: TCnInt64RationalPolynomial; SX: TCnInt64RationalPolynomial;
-      SY: TCnInt64RationalPolynomial; A: Int64; B: Int64; APrime: Int64; APrimitive: TCnInt64Polynomial = nil);
-    {* 供外界直接调用的点加方法，将点（PX, PY * y) 和点（QX, QY * y）相加，结果放到（SX, SY * y）点中
-       注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出
-       PX、PY、QX、QY、SX、SY 均为分子分母为纯 x 多项式的分式，SX、SY 不能是 PX、PY、QX、QY
-       另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差
-       Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数，初步验证通过}
+       参数：
+         PX: TCnInt64Polynomial           - 待判断的多项式坐标点的 X 坐标多项式
+         PY: TCnInt64Polynomial           - 待判断的多项式坐标点的 Y 坐标多项式
+         A: Int64                         - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         B: Int64                         - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         APrime: Int64                    - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+         APrimitive: TCnInt64Polynomial   - 本原多项式
+
+       返回值：Boolean                    - 返回计算是否成功
+    }
+
+    class procedure RationalPointAddPoint(PX: TCnInt64RationalPolynomial;
+      PY: TCnInt64RationalPolynomial; QX: TCnInt64RationalPolynomial;
+      QY: TCnInt64RationalPolynomial; SX: TCnInt64RationalPolynomial;
+      SY: TCnInt64RationalPolynomial; A: Int64; B: Int64; APrime: Int64;
+      APrimitive: TCnInt64Polynomial = nil);
+    {* 供外界直接调用的点加方法，将点（PX, PY * y) 和点（QX, QY * y）相加，结果放到（SX, SY * y）点中。
+       注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出。
+       PX、PY、QX、QY、SX、SY 均为分子分母为纯 x 多项式的分式，SX、SY 不能是 PX、PY、QX、QY。
+       另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差。
+       Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数，初步验证通过。
+
+       参数：
+         PX: TCnInt64RationalPolynomial   - 有理分式坐标点加数一的 X 坐标有理分式
+         PY: TCnInt64RationalPolynomial   - 有理分式坐标点加数一的 Y 坐标有理分式
+         QX: TCnInt64RationalPolynomial   - 有理分式坐标点加数二的 X 坐标有理分式
+         QY: TCnInt64RationalPolynomial   - 有理分式坐标点加数二的 Y 坐标有理分式
+         SX: TCnInt64RationalPolynomial   - 和的有理分多项式坐标点的 X 坐标有理分式
+         SY: TCnInt64RationalPolynomial   - 和的有理分多项式坐标点的 Y 坐标有理分式
+         A: Int64                         - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         B: Int64                         - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         APrime: Int64                    - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+         APrimitive: TCnInt64Polynomial   - 本原多项式
+
+       返回值：（无）
+    }
 
     class procedure RationalMultiplePoint(K: Integer; MX: TCnInt64RationalPolynomial; MY: TCnInt64RationalPolynomial;
       A: Int64; B: Int64; APrime: Int64; APrimitive: TCnInt64Polynomial = nil);
-    {* 供外界直接调用的多倍点方法，使用可除多项式直接计算点（x, 1 * y) 的 k * P 值，值放入 MX, MY * y
-       注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出
+    {* 供外界直接调用的多倍点方法，使用可除多项式直接计算点（x, 1 * y) 的 k * P 值，值放入 MX, MY * y。
+       注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出。
        如果 MX 与 MY 可为 nil 表示不计算 X 或 Y，只计算不为 nil 的。
-       另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差
-       Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数}
+       另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差。
+       Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数。
+
+       参数：
+         K: Integer                       - 乘数
+         MX: TCnInt64RationalPolynomial   - 有理分式坐标点乘数的 X 坐标有理分式
+         MY: TCnInt64RationalPolynomial   - 有理分式坐标点乘数的 Y 坐标有理分式
+         A: Int64                         - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         B: Int64                         - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         APrime: Int64                    - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+         APrimitive: TCnInt64Polynomial   - 本原多项式
+
+       返回值：（无）
+    }
 
     class function IsRationalPointOnCurve(PX: TCnInt64RationalPolynomial; PY: TCnInt64RationalPolynomial;
       A: Int64; B: Int64; APrime: Int64; APrimitive: TCnInt64Polynomial = nil): Boolean;
     {* 供外界直接调用的无本原多项式的判断（PX, PY * y）点是否在本曲线上，
-       椭圆曲线参数直接指定 A、B、素域上界与，无需本原多项式、基点和阶以及扩域次数
-       注意所有内容包括斜率等内容均用分式表示，即使有本原多项式存在，除法也不转换为乘法}
+       椭圆曲线参数直接指定 A、B、素域上界与，无需本原多项式、基点和阶以及扩域次数。
+       注意所有内容包括斜率等内容均用分式表示，即使有本原多项式存在，除法也不转换为乘法。
+
+       参数：
+         PX: TCnInt64RationalPolynomial   - 待判断的有理分式坐标点的 X 坐标有理分式
+         PY: TCnInt64RationalPolynomial   - 待判断的有理分式坐标点的 Y 坐标有理分式
+         A: Int64                         - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         B: Int64                         - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         APrime: Int64                    - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+         APrimitive: TCnInt64Polynomial   - 本原多项式
+
+       返回值：Boolean                    - 返回是否在曲线上
+    }
 
     property Generator: TCnInt64PolynomialEccPoint read FGenerator;
     {* 基点坐标 G}
@@ -586,24 +1238,59 @@ type
     procedure SetY(const Value: TCnBigNumberPolynomial);
   public
     constructor Create; overload;
+    {* 构造函数}
     constructor Create(const XLowToHighCoefficients: array of const;
       const YLowToHighCoefficients: array of const); overload;
+    {* 构造函数
+
+       参数：
+         const XLowToHighCoefficients: array of const     - X 系数数组，从低次到高次
+         const YLowToHighCoefficients: array of const     - Y 系数数组，从低次到高次
+
+       返回值：TCnPolynomialEccPoint                      - 返回创建的对象实例
+    }
 
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
+    {* 从其他对象赋值而来。
+
+       参数：
+         Source: TPersistent              - 欲从之赋值的源对象
+
+       返回值：（无）
+    }
+
     function IsZero: Boolean;
+    {* 是否为无穷远点也即 0 点。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否无穷远点
+    }
+
     procedure SetZero;
+    {* 设为无穷远点也即 0 点}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 将多项式转成字符串}
+    {* 将多项式转成字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
 
     property X: TCnBigNumberPolynomial read FX write SetX;
+    {* X 坐标多项式}
     property Y: TCnBigNumberPolynomial read FY write SetY;
+    {* Y 坐标多项式}
   end;
 
   TCnPolynomialEcc = class
-  {* 描述一有限扩域 p 也就是 0 到 p - 1 上 n 次方内的椭圆曲线 y^2 = x^3 + Ax + B mod p，参数均以大数表示}
+  {* 描述一有限扩域 p 也就是 0 到 p - 1 上 n 次方内的多项式椭圆曲线 y^2 = x^3 + Ax + B mod p，参数均以大数表示}
   private
     FGenerator: TCnPolynomialEccPoint;
     FCoefficientA: TCnBigNumber;
@@ -620,63 +1307,193 @@ type
       Ext: Integer; GX: TCnBigNumberPolynomial; GY: TCnBigNumberPolynomial;
       const Order: AnsiString; PrimitivePolynomial: TCnBigNumberPolynomial); overload;
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、扩域次数，G 点坐标多项式、G 点的阶数、本原多项式
-       参数均复制内容入对象内部，不持有参数的对象引用}
+       参数均复制内容入对象内部，不持有参数的对象引用。字符串参数均需十六进制字符串。
+
+       参数：
+         const A: AnsiString                              - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         const B: AnsiString                              - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         const FieldPrime: AnsiString                     - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+         Ext: Integer                                     - 有限域的扩域次数
+         GX: TCnBigNumberPolynomial                       - 魏尔斯特拉斯椭圆曲线方程的 G 点的 X 坐标
+         GY: TCnBigNumberPolynomial                       - 魏尔斯特拉斯椭圆曲线方程的 G 点的 Y 坐标
+         const Order: AnsiString                          - 魏尔斯特拉斯椭圆曲线方程的 G 点的阶
+         PrimitivePolynomial: TCnBigNumberPolynomial      - 本原多项式
+
+       返回值：TCnPolynomialEcc                           - 返回创建的对象实例
+    }
 
     constructor Create(A: TCnBigNumber; B: TCnBigNumber; FieldPrime: TCnBigNumber;
       Ext: Integer; GX: TCnBigNumberPolynomial; GY: TCnBigNumberPolynomial;
       AnOrder: TCnBigNumber; PrimitivePolynomial: TCnBigNumberPolynomial); overload;
     {* 构造函数，传入方程的 A, B 参数、有限域上界 p、扩域次数，G 点坐标多项式、G 点的阶数、本原多项式
-       参数均复制内容入对象内部，不持有参数的对象引用}
+       参数均复制内容入对象内部，不持有参数的对象引用。
+
+       参数：
+         A: TCnBigNumber                                  - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         B: TCnBigNumber                                  - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         FieldPrime: TCnBigNumber                         - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+         Ext: Integer                                     - 有限域的扩域次数
+         GX: TCnBigNumberPolynomial                       - 魏尔斯特拉斯椭圆曲线方程的 G 点的 X 坐标
+         GY: TCnBigNumberPolynomial                       - 魏尔斯特拉斯椭圆曲线方程的 G 点的 Y 坐标
+         AnOrder: TCnBigNumber                            - 魏尔斯特拉斯椭圆曲线方程的 G 点的阶
+         PrimitivePolynomial: TCnBigNumberPolynomial      - 本原多项式
+
+       返回值：（无）
+    }
 
     destructor Destroy; override;
     {* 析构函数}
 
     procedure MultiplePoint(K: Int64; Point: TCnPolynomialEccPoint); overload;
-    {* 计算某点 P 的 k * P 值，值重新放入 P}
+    {* 计算某点 P 的 k * P 值，值重新放入 P。
+
+       参数：
+         K: Int64                         - 乘数
+         Point: TCnPolynomialEccPoint     - 被乘的坐标点
+
+       返回值：（无）
+    }
+
     procedure MultiplePoint(K: TCnBigNumber; Point: TCnPolynomialEccPoint); overload;
-    {* 计算某点 P 的 k * P 值，值重新放入 P}
+    {* 计算某点 P 的 k * P 值，值重新放入 P
+
+       参数：
+         K: TCnBigNumber                  - 乘数，形式为大数
+         Point: TCnPolynomialEccPoint     - 被乘的坐标点
+
+       返回值：（无）
+    }
+
     procedure PointAddPoint(P: TCnPolynomialEccPoint; Q: TCnPolynomialEccPoint;
       Sum: TCnPolynomialEccPoint);
-    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同}
+    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同。
+
+       参数：
+         P: TCnPolynomialEccPoint         - 第一个加数的多项式坐标点
+         Q: TCnPolynomialEccPoint         - 第二个加数的多项式坐标点
+         Sum: TCnPolynomialEccPoint       - 输出的和的多项式坐标点
+
+       返回值：（无）
+    }
+
     procedure PointSubPoint(P: TCnPolynomialEccPoint; Q: TCnPolynomialEccPoint;
       Diff: TCnPolynomialEccPoint);
-    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同}
+    {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同
+
+       参数：
+         P: TCnPolynomialEccPoint         - 被减数的多项式坐标点
+         Q: TCnPolynomialEccPoint         - 减数的多项式坐标点
+         Diff: TCnPolynomialEccPoint      - 输出的差的多项式坐标点
+
+       返回值：（无）
+    }
+
     procedure PointInverse(P: TCnPolynomialEccPoint);
-    {* 计算 P 点的逆元 -P，值重新放入 P}
+    {* 计算 P 点的加法逆元 -P，值重新放入 P。
+
+       参数：
+         P: TCnPolynomialEccPoint         - 待取逆元的多项式坐标点
+
+       返回值：（无）
+    }
+
     function IsPointOnCurve(P: TCnPolynomialEccPoint): Boolean;
-    {* 判断 P 点是否在本曲线上}
+    {* 判断 P 点是否在本曲线上。
+
+       参数：
+         P: TCnPolynomialEccPoint         - 待判断的多项式坐标点
+
+       返回值：Boolean                    - 返回是否在曲线上
+    }
 
     function DivisionPolynomial(Degree: Integer; outDivisionPolynomial: TCnBigNumberPolynomial): Boolean;
-    {* 递归计算第 Degree 个可除多项式，返回计算是否成功，注意次数一多就容易慢}
+    {* 递归计算第 Degree 个可除多项式，返回计算是否成功，注意次数一多就容易慢。
+
+       参数：
+         Degree: Integer                                  - 可除多项式的序号
+         outDivisionPolynomial: TCnBigNumberPolynomial    - 返回的可除多项式
+
+       返回值：Boolean                                    - 返回计算是否成功
+    }
 
     class function IsPointOnCurve2(PX: TCnBigNumberPolynomial; PY: TCnBigNumberPolynomial;
       A: TCnBigNumber; B: TCnBigNumber; APrime: TCnBigNumber; APrimitive: TCnBigNumberPolynomial): Boolean;
     {* 供外界直接调用的判断（PX, PY）点是否在本曲线上，
-       椭圆曲线参数直接指定 A、B、素域上界与本原多项式，无需基点和阶以及扩域次数}
+       椭圆曲线参数直接指定 A、B、素域上界与本原多项式，无需基点和阶以及扩域次数。
 
-    class procedure RationalPointAddPoint(PX: TCnBigNumberRationalPolynomial; PY: TCnBigNumberRationalPolynomial;
-      QX: TCnBigNumberRationalPolynomial; QY: TCnBigNumberRationalPolynomial; SX: TCnBigNumberRationalPolynomial;
-      SY: TCnBigNumberRationalPolynomial; A: TCnBigNumber; B: TCnBigNumber; APrime: TCnBigNumber; APrimitive: TCnBigNumberPolynomial = nil);
-    {* 供外界直接调用的点加方法，将点（PX, PY * y) 和点（QX, QY * y）相加，结果放到（SX, SY * y）点中
-       注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出
-       PX、PY、QX、QY、SX、SY均为分子分母为纯 x 多项式的分式，SX、SY 不能是 PX、PY、QX、QY
-       另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差
-       Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数，初步验证通过}
+       参数：
+         PX: TCnBigNumberPolynomial                       - 待判断的多项式坐标点的 X 坐标多项式
+         PY: TCnBigNumberPolynomial                       - 待判断的多项式坐标点的 Y 坐标多项式
+         A: TCnBigNumber                                  - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         B: TCnBigNumber                                  - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         APrime: TCnBigNumber                             - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+         APrimitive: TCnBigNumberPolynomial               - 本原多项式
+
+       返回值：Boolean                                    - 返回计算是否成功
+    }
+
+    class procedure RationalPointAddPoint(PX: TCnBigNumberRationalPolynomial;
+      PY: TCnBigNumberRationalPolynomial; QX: TCnBigNumberRationalPolynomial;
+      QY: TCnBigNumberRationalPolynomial; SX: TCnBigNumberRationalPolynomial;
+      SY: TCnBigNumberRationalPolynomial; A: TCnBigNumber; B: TCnBigNumber;
+      APrime: TCnBigNumber; APrimitive: TCnBigNumberPolynomial = nil);
+    {* 供外界直接调用的点加方法，将点（PX, PY * y) 和点（QX, QY * y）相加，结果放到（SX, SY * y）点中。
+       注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出。
+       PX、PY、QX、QY、SX、SY均为分子分母为纯 x 多项式的分式，SX、SY 不能是 PX、PY、QX、QY。
+       另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差。
+       Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数，初步验证通过。
+
+       参数：
+         PX: TCnBigNumberRationalPolynomial               - 有理分式坐标点加数一的 X 坐标有理分式
+         PY: TCnBigNumberRationalPolynomial               - 有理分式坐标点加数一的 Y 坐标有理分式
+         QX: TCnBigNumberRationalPolynomial               - 有理分式坐标点加数二的 X 坐标有理分式
+         QY: TCnBigNumberRationalPolynomial               - 有理分式坐标点加数二的 Y 坐标有理分式
+         SX: TCnBigNumberRationalPolynomial               - 和的有理分多项式坐标点的 X 坐标有理分式
+         SY: TCnBigNumberRationalPolynomial               - 和的有理分多项式坐标点的 Y 坐标有理分式
+         A: TCnBigNumber                                  - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         B: TCnBigNumber                                  - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         APrime: TCnBigNumber                             - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+         APrimitive: TCnBigNumberPolynomial               - 本原多项式
+
+       返回值：（无）
+    }
 
     class procedure RationalMultiplePoint(K: Integer; MX: TCnBigNumberRationalPolynomial;
       MY: TCnBigNumberRationalPolynomial; A: TCnBigNumber; B: TCnBigNumber; APrime: TCnBigNumber;
       APrimitive: TCnBigNumberPolynomial = nil); overload;
     {* 供外界直接调用的多倍点方法，使用可除多项式直接计算点（x, 1 * y) 的 k * P 值，值放入 MX, MY * y
-       注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出
-       PX、PY、QX、QY、SX、SY均为分子分母为纯 x 多项式的分式，，SX、SY 不能是 PX、PY、QX、QY
-       另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差
-       Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数}
+       注意本方法中并不把除法转换为乘法，所有内容包括斜率等内容需要用分式表示，结果也以分式形式输出。
+       PX、PY、QX、QY、SX、SY均为分子分母为纯 x 多项式的分式，，SX、SY 不能是 PX、PY、QX、QY。
+       另外该方法一般不用于计算后代入具体数值求值，因为计算时无法直接判断值是否相等导致斜率计算与实际值有偏差。
+       Schoof 算法中，本原多项式为指定阶数的可除多项式，以构造多项式环来降低运算次数。
+
+       参数：
+         K: Integer                                       - 乘数
+         MX: TCnBigNumberRationalPolynomial               - 有理分式坐标点乘数的 X 坐标有理分式
+         MY: TCnBigNumberRationalPolynomial               - 有理分式坐标点乘数的 Y 坐标有理分式
+         A: TCnBigNumber                                  - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         B: TCnBigNumber                                  - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         APrime: TCnBigNumber                             - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+         APrimitive: TCnBigNumberPolynomial               - 本原多项式
+
+       返回值：（无）
+    }
 
     class function IsRationalPointOnCurve(PX: TCnBigNumberRationalPolynomial;
       PY: TCnBigNumberRationalPolynomial; A: TCnBigNumber; B: TCnBigNumber; APrime: TCnBigNumber): Boolean;
     {* 供外界直接调用的无本原多项式的判断（PX, PY * y）点是否在本曲线上，
-       椭圆曲线参数直接指定 A、B、素域上界与，无需本原多项式、基点和阶以及扩域次数
-       注意在无本原多项式的情况下，除法无法转换为乘法，所有内容包括斜率等内容需要用分式表示}
+       椭圆曲线参数直接指定 A、B、素域上界与，无需本原多项式、基点和阶以及扩域次数。
+       注意在无本原多项式的情况下，除法无法转换为乘法，所有内容包括斜率等内容需要用分式表示。
+
+       参数：
+         PX: TCnBigNumberRationalPolynomial               - 待判断的有理分式坐标点的 X 坐标有理分式
+         PY: TCnBigNumberRationalPolynomial               - 待判断的有理分式坐标点的 Y 坐标有理分式
+         A: TCnBigNumber                                  - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+         B: TCnBigNumber                                  - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+         APrime: TCnBigNumber                             - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+
+       返回值：Boolean                                    - 返回是否在曲线上
+    }
 
     property Generator: TCnPolynomialEccPoint read FGenerator;
     {* 基点坐标 G}
@@ -695,313 +1512,884 @@ type
   end;
 
 function CnInt64EccPointToString(var P: TCnInt64EccPoint): string;
-{* 将一个 TCnInt64EccPoint 点坐标转换为字符串}
+{* 将一个 TCnInt64EccPoint 坐标点转换为字符串。
+
+   参数：
+     var P: TCnInt64EccPoint              - 待转换的坐标点
+
+   返回值：string                         - 返回字符串
+}
 
 function CnInt64EccSchoof(A: Int64; B: Int64; Q: Int64): Int64;
 {* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，
-   Q 最大支持 Sqrt(2 * Max UInt64)，略大于 Max UInt32
+   Q 最大支持 Sqrt(2 * Max UInt64)，略大于 Max UInt32。
    Schoof 算法有两个版本，思想一样，但运算过程不同，
-   一个是利用点的多项分式在素数域以及基于可除多项式环上进行完整循环运算，比较慢
-   一个是判断时多用各种分子的最大公因式以减少数据量}
+   一个是利用点的多项分式在素数域以及基于可除多项式环上进行完整循环运算，比较慢。
+   一个是判断时多用各种分子的最大公因式以减少数据量。
 
-function CnEccPointToString(const P: TCnEccPoint): string;
-{* 将一个 TCnEccPoint 点坐标转换为十进制字符串}
+   参数：
+     A: Int64                             - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+     B: Int64                             - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+     Q: Int64                             - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
 
-function CnEccPointToHex(const P: TCnEccPoint): string;
-{* 将一个 TCnEccPoint 点坐标转换为十六进制字符串}
+   返回值：Int64                          - 返回点总数
+}
+
+function CnEccPointToString(P: TCnEccPoint): string;
+{* 将一个 TCnEccPoint 点坐标转换为十进制字符串。
+
+   参数：
+     P: TCnEccPoint                       - 待转换的坐标点
+
+   返回值：string                         - 返回十进制字符串
+}
+
+function CnEccPointToHex(P: TCnEccPoint): string;
+{* 将一个 TCnEccPoint 点坐标转换为十六进制字符串。
+
+   参数：
+     P: TCnEccPoint                       - 待转换的坐标点
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 function CnInt64Ecc3PointToString(var P: TCnInt64Ecc3Point): string;
-{* 将一个 TCnInt64Ecc3Point 点坐标转换为字符串}
+{* 将一个 TCnInt64Ecc3Point 点坐标转换为字符串。
 
-function CnEcc3PointToString(const P: TCnEcc3Point): string;
-{* 将一个 TCnEcc3Point 点坐标转换为十进制字符串}
+   参数：
+     var P: TCnInt64Ecc3Point             - 待转换的坐标点
 
-function CnEcc3PointToHex(const P: TCnEcc3Point): string;
-{* 将一个 TCnEcc3Point 点坐标转换为十六进制字符串}
+   返回值：string                         - 返回字符串
+}
+
+function CnEcc3PointToString(P: TCnEcc3Point): string;
+{* 将一个 TCnEcc3Point 点坐标转换为十进制字符串。
+
+   参数：
+     P: TCnEcc3Point                      - 待转换的坐标点
+
+   返回值：string                         - 返回十进制字符串
+}
+
+function CnEcc3PointToHex(P: TCnEcc3Point): string;
+{* 将一个 TCnEcc3Point 点坐标转换为十六进制字符串。
+
+   参数：
+     P: TCnEcc3Point                      - 待转换的坐标点
+
+   返回值：string                         - 返回十六进制字符串
+}
 
 function CnAffineEcc3PointEqual(P1: TCnEcc3Point; P2: TCnEcc3Point; Prime: TCnBigNumber = nil): Boolean;
-{* 判断两个 TCnEcc3Point 点是否相等，如 Prime 为 nil 则只判断值，不做 Z 的除法
-  否则根据射影坐标点计算判断}
+{* 判断两个 TCnEcc3Point 点是否相等，如 Prime 为 nil 则只判断值，不做 Z 的除法，
+   否则根据射影坐标点计算判断。
+
+   参数：
+     P1: TCnEcc3Point                     - 待比较的坐标点一
+     P2: TCnEcc3Point                     - 待比较的坐标点二
+     Prime: TCnBigNumber                  - 有限域上界
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 function CnEccSchoof(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber; Q: TCnBigNumber): Boolean;
-{* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数}
+{* 用 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数。
+
+   参数：
+     Res: TCnBigNumber                    - 返回点总数
+     A: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+     B: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+     Q: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+
+   返回值：Boolean                        - 返回计算是否成功
+}
 
 function CnEccSchoof2(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber; Q: TCnBigNumber): Boolean;
-{* 用 Wikipedia 上的改进型 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数
-  运算速度较上面的原始版本无明显提升}
+{* 用 Wikipedia 上的改进型 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数。
+   运算速度较上面的原始版本无明显提升。
+
+   参数：
+     Res: TCnBigNumber                    - 返回点总数
+     A: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+     B: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+     Q: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+
+   返回值：Boolean                        - 返回计算是否成功
+}
 
 function CnEccFastSchoof(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber;
   Q: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-{* 用增强型 GCD 的 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数
-  TODO: P16 计算基本通过。P19X, P19Y 计算验证未通过，不能投入实际使用}
+{* 用增强型 GCD 的 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数。
+   TODO: P16 计算基本通过。P19X, P19Y 计算验证未通过，不能投入实际使用。
 
-function CnInt64EccGenerateParams(var FiniteFieldSize: Int64; var CoefficientA: Int64;
-  var CoefficientB: Int64; var GX: Int64; var GY: Int64; var Order: Int64): Boolean;
-{* 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数，难以完整实现，只能先生成系数很小的}
+   参数：
+     Res: TCnBigNumber                    - 返回点总数
+     A: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+     B: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+     Q: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程所在的有限域上界
+
+   返回值：Boolean                        - 返回计算是否成功
+}
+
+function CnInt64EccGenerateParams(out FiniteFieldSize: Int64; out CoefficientA: Int64;
+  out CoefficientB: Int64; out GX: Int64; out GY: Int64; out Order: Int64): Boolean;
+{* 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数，难以完整实现，只能先生成系数很小的。
+
+   参数：
+     out FiniteFieldSize: Int64           - 生成的魏尔斯特拉斯椭圆曲线方程的有限域上界
+     out CoefficientA: Int64              - 生成的魏尔斯特拉斯椭圆曲线方程的 a 参数
+     out CoefficientB: Int64              - 生成的魏尔斯特拉斯椭圆曲线方程的 a 参数
+     out GX: Int64                        - 生成的魏尔斯特拉斯椭圆曲线方程的 G 点的 X 坐标
+     out GY: Int64                        - 生成的魏尔斯特拉斯椭圆曲线方程的 G 点的 Y 坐标
+     out Order: Int64                     - 生成的魏尔斯特拉斯椭圆曲线方程的 G 点的阶
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnInt64EccDiffieHellmanGenerateOutKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCnInt64PrivateKey;
   out PublicKey: TCnInt64PublicKey): Boolean;
-{* 根据自身选择的随机数 PrivateKey 生成 ECDH 密钥协商的输出公钥点
-   其中 OutPublicKey = SelfPrivateKey * G}
+{* 根据自身选择的随机数 PrivateKey 生成 ECDH 密钥协商的输出公钥坐标点，双方均需调用。
+   其中 OutPublicKey = SelfPrivateKey * G。
+
+   参数：
+     Ecc: TCnInt64Ecc                     - 密钥协商所需的椭圆曲线实例
+     SelfPrivateKey: TCnInt64PrivateKey   - 自身的椭圆曲线私钥
+     out PublicKey: TCnInt64PublicKey     - 输出的椭圆曲线公钥坐标点，需传输至对方
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnInt64EccDiffieHellmanComputeKey(Ecc: TCnInt64Ecc; SelfPrivateKey: TCnInt64PrivateKey;
   var OtherPublicKey: TCnInt64PublicKey; var SharedSecretKey: TCnInt64PublicKey): Boolean;
-{* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点
-   其中 SecretKey = SelfPrivateKey * OtherPublicKey}
+{* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公共密钥坐标点，双方均需调用。
+   其中 SecretKey = SelfPrivateKey * OtherPublicKey。
+
+   参数：
+     Ecc: TCnInt64Ecc                                     - 密钥协商所需的椭圆曲线实例
+     SelfPrivateKey: TCnInt64PrivateKey                   - 自身的椭圆曲线私钥
+     var OtherPublicKey: TCnInt64PublicKey                - 由对方生成并传输而来的椭圆曲线公钥
+     var SharedSecretKey: TCnInt64PublicKey               - 协商输出的公共密钥坐标点
+
+   返回值：Boolean                                        - 返回协商是否成功
+}
 
 function CnInt64EccPointsEqual(var P1: TCnInt64EccPoint; var P2: TCnInt64EccPoint): Boolean;
-{* 判断两个 TCnInt64EccPoint 点是否相等}
+{* 判断两个 TCnInt64EccPoint 点是否相等。
+
+   参数：
+     var P1: TCnInt64EccPoint             - 待比较的坐标点一
+     var P2: TCnInt64EccPoint             - 待比较的坐标点二
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 function CnEccPointsEqual(P1: TCnEccPoint; P2: TCnEccPoint): Boolean;
-{* 判断两个 TCnEccPoint 点是否相等}
+{* 判断两个 TCnEccPoint 点是否相等。
+
+   参数：
+     P1: TCnEccPoint                      - 待比较的坐标点一
+     P2: TCnEccPoint                      - 待比较的坐标点二
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 function CnPolynomialEccPointToString(P: TCnPolynomialEccPoint): string;
-{* 将一个 TCnPolynomialEccPoint 点坐标转换为字符串}
+{* 将一个 TCnPolynomialEccPoint 多项式坐标点转换为字符串。
+
+   参数：
+     P: TCnPolynomialEccPoint             - 待转换的多项式坐标点
+
+   返回值：string                         - 返回字符串
+}
 
 function CnPolynomialEccPointsEqual(P1: TCnPolynomialEccPoint; P2: TCnPolynomialEccPoint): Boolean;
-{* 判断两个 TCnPolynomialEccPoint 点是否相等}
+{* 判断两个 TCnPolynomialEccPoint 多项式坐标点是否相等。
+
+   参数：
+     P1: TCnPolynomialEccPoint            - 待比较的多项式坐标点一
+     P2: TCnPolynomialEccPoint            - 待比较的多项式坐标点二
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 function CnEccDiffieHellmanGenerateOutKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey): Boolean;
-{* 根据自身选择的随机数 PrivateKey 生成 ECDH 密钥协商的输出公钥点
-   其中 PublicKey = SelfPrivateKey * G}
+{* 根据自身选择的随机数 PrivateKey 生成 ECDH 密钥协商的输出公钥坐标点，双方均需调用。
+   其中 PublicKey = SelfPrivateKey * G。
+
+   参数：
+     Ecc: TCnEcc                          - 密钥协商所需的椭圆曲线实例
+     SelfPrivateKey: TCnEccPrivateKey     - 自身的椭圆曲线私钥
+     PublicKey: TCnEccPublicKey           - 输出的椭圆曲线公钥坐标点，需传输至对方
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnEccDiffieHellmanComputeKey(Ecc: TCnEcc; SelfPrivateKey: TCnEccPrivateKey;
   OtherPublicKey: TCnEccPublicKey; SharedSecretKey: TCnEccPublicKey): Boolean;
-{* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公认的密钥点，一般拿点的 X 坐标来做密钥
-   其中 SecretKey = SelfPrivateKey * OtherPublicKey}
+{* 根据对方发送的 ECDH 密钥协商的输出公钥计算生成公共密钥坐标点，一般拿点的 X 坐标来做密钥，双方均需调用。
+   其中 SecretKey = SelfPrivateKey * OtherPublicKey
+
+   参数：
+     Ecc: TCnEcc                          - 密钥协商所需的椭圆曲线实例
+     SelfPrivateKey: TCnEccPrivateKey     - 自身的椭圆曲线私钥
+     OtherPublicKey: TCnEccPublicKey      - 由对方生成并传输而来的椭圆曲线公钥
+     SharedSecretKey: TCnEccPublicKey     - 协商输出的公共密钥坐标点
+
+   返回值：Boolean                        - 返回协商是否成功
+}
 
 function CnInt64EccPointToEcc3Point(var P: TCnInt64EccPoint; var P3: TCnInt64Ecc3Point): Boolean;
-{* Int64 范围内的普通坐标到仿射或雅可比坐标的点转换，等同于 CnInt64EccPointToAffinePoint 和 CnInt64EccPointToJacobianPoint}
+{* Int64 范围内的普通坐标点到仿射或雅可比坐标点的转换，等同于 CnInt64EccPointToAffinePoint 和 CnInt64EccPointToJacobianPoint。
+
+   参数：
+     var P: TCnInt64EccPoint              - 待转换的普通坐标点
+     var P3: TCnInt64Ecc3Point            - 输出的仿射坐标点或雅可比坐标点
+
+   返回值：Boolean                        - 返回转换是否成功
+}
 
 function CnInt64AffinePointToEccPoint(var P3: TCnInt64Ecc3Point;
   var P: TCnInt64EccPoint; Prime: Int64): Boolean;
-{* Int64 范围内的仿射坐标到普通坐标的点转换}
+{* Int64 范围内的仿射坐标点到普通坐标点的转换。
+
+   参数：
+     var P3: TCnInt64Ecc3Point            - 待转换的仿射坐标点
+     var P: TCnInt64EccPoint              - 输出的普通坐标点
+     Prime: Int64                         - 有限域上界
+
+   返回值：Boolean                        - 返回转换是否成功
+}
 
 function CnInt64JacobianPointToEccPoint(var P3: TCnInt64Ecc3Point;
   var P: TCnInt64EccPoint; Prime: Int64): Boolean;
-{* Int64 范围内的雅可比坐标到普通坐标的点转换}
+{* Int64 范围内的雅可比坐标点到普通坐标点的转换。
+
+   参数：
+     var P3: TCnInt64Ecc3Point            - 待转换的雅可比坐标点
+     var P: TCnInt64EccPoint              - 输出的普通坐标点
+     Prime: Int64                         - 有限域上界
+
+   返回值：Boolean                        - 返回转换是否成功
+}
 
 function CnEccPointToEcc3Point(P: TCnEccPoint; P3: TCnEcc3Point): Boolean;
-{* 大数范围内的普通坐标到仿射或雅可比坐标的点转换，等同于 CnEccPointToAffinePoint 和 CnEccPointToJacobianPoint}
+{* 大数范围内的普通坐标点到仿射或雅可比坐标点的转换，等同于 CnEccPointToAffinePoint 和 CnEccPointToJacobianPoint。
+
+   参数：
+     P: TCnEccPoint                       - 待转换的普通坐标点
+     P3: TCnEcc3Point                     - 输出的仿射坐标点或雅可比坐标点
+
+   返回值：Boolean                        - 返回转换是否成功
+}
 
 function CnAffinePointToEccPoint(P3: TCnEcc3Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
-{* 大数范围内的仿射坐标到普通坐标的点转换}
+{* 大数范围内的仿射坐标点到普通坐标点的转换。
+
+   参数：
+     P3: TCnEcc3Point                     - 待转换的仿射坐标点
+     P: TCnEccPoint                       - 输出的普通坐标点
+     Prime: TCnBigNumber                  - 有限域上界
+
+   返回值：Boolean                        - 返回转换是否成功
+}
 
 function CnJacobianPointToEccPoint(P3: TCnEcc3Point; P: TCnEccPoint; Prime: TCnBigNumber): Boolean;
-{* 大数范围内的雅可比坐标到普通坐标的点转换}
+{* 大数范围内的雅可比坐标点到普通坐标点的转换。
+
+   参数：
+     P3: TCnEcc3Point                     - 待转换的雅可比坐标点
+     P: TCnEccPoint                       - 输出的普通坐标点
+     Prime: TCnBigNumber                  - 有限域上界
+
+   返回值：Boolean                        - 返回转换是否成功
+}
 
 function CnEccPointToStream(P: TCnEccPoint; Stream: TStream; FixedLen: Integer = 0): Integer;
-{* 将一椭圆曲线点的内容写入流，返回写入长度
-  FixedLen 表示椭圆曲线点内大数内容不够 FixedLen 长度时高位补足 0
-  以保证 Stream 中输出固定 FixedLen 的长度，内部大数长度超过 FixedLen 时按大数实际长度写}
+{* 将一椭圆曲线坐标点的内容写入流，返回写入长度。
+   FixedLen 表示椭圆曲线点内大数内容不够 FixedLen 字节长度时高位补足 0，
+   以保证 Stream 中输出固定 FixedLen 的长度，内部大数长度超过 FixedLen 时按大数实际长度写。
+
+   参数：
+     P: TCnEccPoint                       - 待写入的椭圆曲线坐标点
+     Stream: TStream                      - 待写入的流
+     FixedLen: Integer                    - 指定数据的固定字节长度，不足则高位补 0
+
+   返回值：Integer                        - 返回写入的实际字节数
+}
 
 function CnEccVerifyKeys(Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey): Boolean; overload;
-{* 校验某曲线的公私钥是否配对}
+{* 校验某椭圆曲线的公私钥是否配对。
+
+   参数：
+     Ecc: TCnEcc                          - 用于校验的椭圆曲线实例
+     PrivateKey: TCnEccPrivateKey         - 待校验的椭圆曲线私钥
+     PublicKey: TCnEccPublicKey           - 待校验的椭圆曲线公钥
+
+   返回值：Boolean                        - 返回校验是否成功
+}
 
 function CnEccVerifyKeys(CurveType: TCnEccCurveType; PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey): Boolean; overload;
-{* 校验某曲线的公私钥是否配对}
+{* 校验某椭圆曲线的公私钥是否配对。
+
+   参数：
+     CurveType: TCnEccCurveType           - 待校验的椭圆曲线类型
+     PrivateKey: TCnEccPrivateKey         - 待校验的椭圆曲线私钥
+     PublicKey: TCnEccPublicKey           - 待校验的椭圆曲线公钥
+
+   返回值：Boolean                        - 返回校验是否成功
+}
 
 // ======================= 椭圆曲线密钥 PEM 读写实现 ===========================
 
 function CnEccLoadKeysFromPem(const PemFileName: string; PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey; out CurveType: TCnEccCurveType;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean; overload;
-{* 从 PEM 格式文件中加载公私钥数据，如某钥参数为空则不载入}
+{* 从 PEM 格式的文件中加载公私钥数据，如某钥参数为空则不载入。
+
+   参数：
+     const PemFileName: string            - 待加载的 PEM 文件名
+     PrivateKey: TCnEccPrivateKey         - 加载后的内容存入该椭圆曲线私钥
+     PublicKey: TCnEccPublicKey           - 加载后的内容存入该椭圆曲线公钥
+     out CurveType: TCnEccCurveType       - 加载后的椭圆曲线类型
+     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
+     const Password: string               - PEM 文件如加密，此处应传对应的密码
+
+   返回值：Boolean                        - 返回加载是否成功
+}
 
 function CnEccLoadKeysFromPem(PemStream: TStream; PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey; out CurveType: TCnEccCurveType;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean; overload;
-{* 从 PEM 格式流中加载公私钥数据，如某钥参数为空则不载入}
+{* 从 PEM 格式的流中加载公私钥数据，如某钥参数为空则不载入。
+
+   参数：
+     PemStream: TStream                   - 待加载的 PEM 格式的流
+     PrivateKey: TCnEccPrivateKey         - 加载后的内容存入该椭圆曲线私钥
+     PublicKey: TCnEccPublicKey           - 加载后的内容存入该椭圆曲线公钥
+     out CurveType: TCnEccCurveType       - 加载后的椭圆曲线类型
+     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
+     const Password: string               - PEM 流如加密，此处应传对应的密码
+
+   返回值：Boolean                        - 返回加载是否成功
+}
 
 function CnEccSaveKeysToPem(const PemFileName: string; PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType; KeyType: TCnEccKeyType = cktPKCS1;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean; overload;
-{* 将公私钥写入 PEM 格式文件中，返回是否成功}
+{* 将公私钥写入 PEM 格式的文件中，返回是否成功。
+
+   参数：
+     const PemFileName: string                            - 待保存的 PEM 文件名
+     PrivateKey: TCnEccPrivateKey                         - 待保存的椭圆曲线私钥
+     PublicKey: TCnEccPublicKey                           - 待保存的椭圆曲线公钥
+     CurveType: TCnEccCurveType                           - 待保存的椭圆曲线类型
+     KeyType: TCnEccKeyType                               - 保存的 PEM 格式类型，默认 PKCS1
+     KeyEncryptMethod: TCnKeyEncryptMethod                - 保存的 PEM 文件的加密模式，默认不加密，并忽略后面的参数
+     KeyHashMethod: TCnKeyHashMethod                      - 保存的 PEM 文件的杂凑模式，默认 MD5
+     const Password: string                               - 保存的 PEM 文件如需加密，此处应传加密密码，如不加密则无需传
+
+   返回值：Boolean                                        - 返回保存是否成功
+}
 
 function CnEccSaveKeysToPem(PemStream: TStream; PrivateKey: TCnEccPrivateKey;
   PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType; KeyType: TCnEccKeyType = cktPKCS1;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean; overload;
-{* 将公私钥写入 PEM 格式流中，返回是否成功}
+{* 将公私钥写入 PEM 格式的流中，返回是否成功。
+
+   参数：
+     PemStream: TStream                                   - 待保存的 PEM 格式的流
+     PrivateKey: TCnEccPrivateKey                         - 待保存的椭圆曲线私钥
+     PublicKey: TCnEccPublicKey                           - 待保存的椭圆曲线公钥
+     CurveType: TCnEccCurveType                           - 待保存的椭圆曲线类型
+     KeyType: TCnEccKeyType                               - 保存的 PEM 格式类型，默认 PKCS1
+     KeyEncryptMethod: TCnKeyEncryptMethod                - 保存的 PEM 流的加密模式，默认不加密，并忽略后面的参数
+     KeyHashMethod: TCnKeyHashMethod                      - 保存的 PEM 流的杂凑模式，默认 MD5
+     const Password: string                               - 保存的 PEM 流如需加密，此处应传加密密码，如不加密则无需传
+
+   返回值：Boolean                                        - 返回保存是否成功
+}
 
 function CnEccLoadPublicKeyFromPem(const PemFileName: string;
   PublicKey: TCnEccPublicKey; out CurveType: TCnEccCurveType;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean; overload;
-{* 从 PEM 格式文件中加载公钥数据，返回是否成功}
+{* 从 PEM 格式的文件中加载公钥数据，返回是否成功。
+
+   参数：
+     const PemFileName: string            - 待加载的 PEM 文件名
+     PublicKey: TCnEccPublicKey           - 加载后的内容存入该椭圆曲线公钥
+     out CurveType: TCnEccCurveType       - 加载后的椭圆曲线类型
+     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
+     const Password: string               - PEM 文件如加密，此处应传对应的密码
+
+   返回值：Boolean                        - 返回加载是否成功
+}
 
 function CnEccLoadPublicKeyFromPem(PemStream: TStream;
   PublicKey: TCnEccPublicKey; out CurveType: TCnEccCurveType;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean; overload;
-{* 从 PEM 格式流中加载公钥数据，返回是否成功}
+{* 从 PEM 格式的流中加载公钥数据，返回是否成功。
+
+   参数：
+     PemStream: TStream                   - 待加载的 PEM 格式的流
+     PublicKey: TCnEccPublicKey           - 加载后的内容存入该椭圆曲线公钥
+     out CurveType: TCnEccCurveType       - 加载后的椭圆曲线类型
+     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
+     const Password: string               - PEM 流如加密，此处应传对应的密码
+
+   返回值：Boolean                        - 返回加载是否成功
+}
 
 function CnEccSavePublicKeyToPem(const PemFileName: string;
   PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType;
   KeyType: TCnEccKeyType = cktPKCS1; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean; overload;
-{* 将公钥写入 PEM 格式文件中，返回是否成功}
+{* 将公钥写入 PEM 格式的文件中，返回是否成功。
+
+   参数：
+     const PemFileName: string                            - 待保存的 PEM 文件名
+     PublicKey: TCnEccPublicKey                           - 待保存的椭圆曲线公钥
+     CurveType: TCnEccCurveType                           - 待保存的椭圆曲线类型
+     KeyType: TCnEccKeyType                               - 保存的 PEM 格式类型，默认 PKCS1
+     KeyEncryptMethod: TCnKeyEncryptMethod                - 保存的 PEM 文件的加密模式，默认不加密，并忽略后面的参数
+     KeyHashMethod: TCnKeyHashMethod                      - 保存的 PEM 文件的杂凑模式，默认 MD5
+     const Password: string                               - 保存的 PEM 文件如需加密，此处应传加密密码，如不加密则无需传
+
+   返回值：Boolean                                        - 返回保存是否成功
+}
 
 function CnEccSavePublicKeyToPem(PemStream: TStream;
   PublicKey: TCnEccPublicKey; CurveType: TCnEccCurveType;
   KeyType: TCnEccKeyType = cktPKCS1; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''): Boolean; overload;
-{* 将公钥写入 PEM 格式流中，返回是否成功}
+{* 将公钥写入 PEM 格式的流中，返回是否成功。
+
+   参数：
+     PemStream: TStream                                   - 待保存的 PEM 格式的流
+     PublicKey: TCnEccPublicKey                           - 待保存的椭圆曲线公钥
+     CurveType: TCnEccCurveType                           - 待保存的椭圆曲线类型
+     KeyType: TCnEccKeyType                               - 保存的 PEM 格式类型，默认 PKCS1
+     KeyEncryptMethod: TCnKeyEncryptMethod                - 保存的 PEM 流的加密模式，默认不加密，并忽略后面的参数
+     KeyHashMethod: TCnKeyHashMethod                      - 保存的 PEM 流的杂凑模式，默认 MD5
+     const Password: string                               - 保存的 PEM 流如需加密，此处应传加密密码，如不加密则无需传
+
+   返回值：Boolean                                        - 返回保存是否成功
+}
 
 // ========================= ECC 文件签名与验证实现 ============================
+//
 // 流与文件分开实现是因为计算文件摘要时支持大文件，而 FileStream 低版本不支持
 // 注意 ECC 签名验证并不是像 RSA 那样解密后比对加密进去的杂凑值
 // 而是比对中间结果的大数，ECC 签名内容并不能在验签名时还原原始杂凑值
+//
+// =============================================================================
 
 function CnEccSignFile(const InFileName: string; const OutSignFileName: string; Ecc: TCnEcc;
   PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用私钥签名指定文件，Ecc 中需要预先指定曲线。
-   使用指定数字摘要算法对文件进行计算得到杂凑值，
-   原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐再用私钥加密}
+   使用指定数字摘要算法对文件进行计算得到杂凑值，再将原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐，再用私钥加密。
+
+   参数：
+     const InFileName: string             - 待签名的文件名
+     const OutSignFileName: string        - 签名内容保存至此文件名
+     Ecc: TCnEcc                          - 用于签名的椭圆曲线实例
+     PrivateKey: TCnEccPrivateKey         - 用来签名的椭圆曲线私钥
+     SignType: TCnEccSignDigestType       - 签名的杂凑类型
+
+   返回值：Boolean                        - 返回签名是否成功
+}
 
 function CnEccSignFile(const InFileName: string; const OutSignFileName: string; CurveType: TCnEccCurveType;
   PrivateKey: TCnEccPrivateKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用私钥签名指定文件，使用预定义曲线。
-   使用指定数字摘要算法对文件进行计算得到杂凑值，
-   原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐再用私钥加密}
+   使用指定数字摘要算法对文件进行计算得到杂凑值，再将原始的二进制杂凑值进行 BER 编码再 PKCS1 补齐，再用私钥加密。
+
+   参数：
+     const InFileName: string             - 待签名的文件名
+     const OutSignFileName: string        - 签名内容保存至此文件名
+     CurveType: TCnEccCurveType           - 用于签名的椭圆曲线类型
+     PrivateKey: TCnEccPrivateKey         - 用来签名的椭圆曲线私钥
+     SignType: TCnEccSignDigestType       - 签名的杂凑类型
+
+   返回值：Boolean                        - 返回签名是否成功
+}
 
 function CnEccVerifyFile(const InFileName: string; const InSignFileName: string; Ecc: TCnEcc;
   PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
    并比对两个二进制杂凑值是否相同，返回验证是否通过。
-   Ecc 中需要预先指定曲线。}
+   Ecc 中需要预先指定曲线。
+
+   参数：
+     const InFileName: string             - 待验证的文件名
+     const InSignFileName: string         - 待验证的签名文件
+     Ecc: TCnEcc                          - 用于验证的椭圆曲线实例
+     PublicKey: TCnEccPublicKey           - 用来验证的椭圆曲线公钥
+     SignType: TCnEccSignDigestType       - 签名的杂凑类型，需和签名文件保持一致
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 function CnEccVerifyFile(const InFileName: string; const InSignFileName: string; CurveType: TCnEccCurveType;
   PublicKey: TCnEccPublicKey; SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
 {* 用预定义曲线与公钥与签名值验证指定文件，也即用指定数字摘要算法对文件进行计算得到杂凑值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
-   并比对两个二进制杂凑值是否相同，返回验证是否通过}
+   并比对两个二进制杂凑值是否相同，返回验证是否通过
+
+   参数：
+     const InFileName: string             - 待验证的文件名
+     const InSignFileName: string         - 待验证的签名文件
+     CurveType: TCnEccCurveType           - 用于验证的椭圆曲线类型
+     PublicKey: TCnEccPublicKey           - 用来验证的椭圆曲线公钥
+     SignType: TCnEccSignDigestType       - 签名的杂凑类型，需和签名文件保持一致
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 function CnEccRecoverPublicKeyFromFile(const InFileName: string; const InSignFileName: string;
   Ecc: TCnEcc; OutPublicKey1: TCnEccPublicKey; OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* 从指定文件及其签名文件中还原椭圆曲线公钥值，有一奇一偶两个。Ecc 中需要预先指定曲线。}
+{* 从指定文件及其签名文件中还原椭圆曲线公钥值，有一奇一偶两个。Ecc 中需要预先指定曲线。
+
+   参数：
+     const InFileName: string             - 已签名的明文文件名
+     const InSignFileName: string         - 签名文件
+     Ecc: TCnEcc                          - 用于还原的椭圆曲线实例
+     OutPublicKey1: TCnEccPublicKey       - 还原的椭圆曲线公钥一
+     OutPublicKey2: TCnEccPublicKey       - 还原的椭圆曲线公钥二
+     SignType: TCnEccSignDigestType       - 签名的杂凑类型，需和签名文件保持一致
+
+   返回值：Boolean                        - 返回还原是否成功
+}
 
 function CnEccRecoverPublicKeyFromFile(const InFileName: string; const InSignFileName: string;
   CurveType: TCnEccCurveType; OutPublicKey1: TCnEccPublicKey; OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* 用预定义曲线从指定文件及其签名文件中还原椭圆曲线公钥值，有一奇一偶两个}
+{* 用预定义曲线从指定文件及其签名文件中还原椭圆曲线公钥值，有一奇一偶两个。
+
+   参数：
+     const InFileName: string             - 已签名的明文文件名
+     const InSignFileName: string         - 签名文件
+     CurveType: TCnEccCurveType           - 用于还原的椭圆曲线类型
+     OutPublicKey1: TCnEccPublicKey       - 还原的椭圆曲线公钥一
+     OutPublicKey2: TCnEccPublicKey       - 还原的椭圆曲线公钥二
+     SignType: TCnEccSignDigestType       - 签名的杂凑类型，需和签名文件保持一致
+
+   返回值：Boolean                        - 返回还原是否成功
+}
 
 function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   Ecc: TCnEcc; PrivateKey: TCnEccPrivateKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* 用私钥签名指定内存流，Ecc 中需要预先指定曲线，签名格式是 ASN1/BER 包装的 R S}
+{* 用私钥签名指定内存流，Ecc 中需要预先指定曲线，签名格式是 ASN1/BER 包装的 R S。
+
+   参数：
+     InStream: TMemoryStream              - 待签名的内存流
+     OutSignStream: TMemoryStream         - 输出的签名内容内存流
+     Ecc: TCnEcc                          - 用于签名的椭圆曲线实例
+     PrivateKey: TCnEccPrivateKey         - 用来签名的椭圆曲线私钥
+     SignType: TCnEccSignDigestType       - 签名的杂凑类型
+
+   返回值：Boolean                        - 返回签名是否成功
+}
 
 function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   CurveType: TCnEccCurveType; PrivateKey: TCnEccPrivateKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* 用预定义曲线与私钥签名指定内存流，签名格式是 ASN1/BER 包装的 R S}
+{* 用预定义曲线与私钥签名指定内存流，签名格式是 ASN1/BER 包装的 R S。
+
+   参数：
+     InStream: TMemoryStream              - 待签名的内存流
+     OutSignStream: TMemoryStream         - 输出的签名内容内存流
+     CurveType: TCnEccCurveType           - 用于签名的椭圆曲线类型
+     PrivateKey: TCnEccPrivateKey         - 用来签名的椭圆曲线私钥
+     SignType: TCnEccSignDigestType       - 签名的杂凑类型
+
+   返回值：Boolean                        - 返回签名是否成功
+}
 
 function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   Ecc: TCnEcc; PublicKey: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* 用公钥与签名值验证指定内存流，Ecc 中需要预先指定曲线}
+{* 用公钥与签名值验证指定内存流，Ecc 中需要预先指定曲线。
+
+   参数：
+     InStream: TMemoryStream              - 待验证的内存流
+     InSignStream: TMemoryStream          - 签名内容内存流
+     Ecc: TCnEcc                          - 用于验证的椭圆曲线实例
+     PublicKey: TCnEccPublicKey           - 用来验证的椭圆曲线公钥
+     SignType: TCnEccSignDigestType       - 签名的杂凑类型，需和签名内容保持一致
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   CurveType: TCnEccCurveType; PublicKey: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* 用预定义曲线与公钥与签名值验证指定内存流}
+{* 用预定义曲线与公钥与签名值验证指定内存流。
+
+   参数：
+     InStream: TMemoryStream              - 待验证的内存流
+     InSignStream: TMemoryStream          - 签名内容内存流
+     CurveType: TCnEccCurveType           - 用于验证的椭圆曲线类型
+     PublicKey: TCnEccPublicKey           - 用来验证的椭圆曲线公钥
+     SignType: TCnEccSignDigestType       - 签名的杂凑类型，需和签名内容保持一致
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
 
 function CnEccRecoverPublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   Ecc: TCnEcc; OutPublicKey1: TCnEccPublicKey; OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* 从指定内存流及其内存流签名中还原椭圆曲线公钥值，有一奇一偶两个
-  Ecc 中需要预先指定曲线。}
+{* 从指定内存流及其内存流签名中还原椭圆曲线公钥值，有一奇一偶两个。
+   Ecc 中需要预先指定曲线。
+
+   参数：
+     InStream: TMemoryStream              - 已签名的明文流
+     InSignStream: TMemoryStream          - 签名流
+     Ecc: TCnEcc                          - 用于还原的椭圆曲线实例
+     OutPublicKey1: TCnEccPublicKey       - 还原的椭圆曲线公钥一
+     OutPublicKey2: TCnEccPublicKey       - 还原的椭圆曲线公钥二
+     SignType: TCnEccSignDigestType       - 签名的杂凑类型，需和签名内容保持一致
+
+   返回值：Boolean                        - 返回还原是否成功
+}
 
 function CnEccRecoverPublicKeyFromStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   CurveType: TCnEccCurveType; OutPublicKey1: TCnEccPublicKey; OutPublicKey2: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* 用预定义曲线从指定内存流及其内存流签名中还原椭圆曲线公钥值，有一奇一偶两个
-  Ecc 中需要预先指定曲线。}
+{* 用预定义曲线从指定内存流及其内存流签名中还原椭圆曲线公钥值，有一奇一偶两个。
+   Ecc 中需要预先指定曲线。
+
+   参数：
+     InStream: TMemoryStream              - 已签名的明文流
+     InSignStream: TMemoryStream          - 签名内容流
+     CurveType: TCnEccCurveType           - 用于还原的椭圆曲线类型
+     OutPublicKey1: TCnEccPublicKey       - 还原的椭圆曲线公钥一
+     OutPublicKey2: TCnEccPublicKey       - 还原的椭圆曲线公钥二
+     SignType: TCnEccSignDigestType       - 签名的杂凑类型，需和签名内容保持一致
+
+   返回值：Boolean                        - 返回还原是否成功
+}
 
 // ===================== 基于有限扩域的多项式椭圆曲线运算 ======================
 
-function CnInt64PolynomialEccPointToString(const P: TCnInt64PolynomialEccPoint): string;
-{* 将一个 TCnInt64PolynomialEccPoint 点坐标转换为多项式字符串}
+function CnInt64PolynomialEccPointToString(P: TCnInt64PolynomialEccPoint): string;
+{* 将一个 Int64 多项式坐标点转换为多项式字符串。
+
+   参数：
+     const P: TCnInt64PolynomialEccPoint  - 待转换的多项式坐标点
+
+   返回值：string                         - 返回字符串
+}
 
 function CnInt64PolynomialEccPointsEqual(P1: TCnInt64PolynomialEccPoint;
   P2: TCnInt64PolynomialEccPoint): Boolean;
-{* 判断两个多项式点是否相等}
+{* 判断两个 Int64 多项式坐标点是否相等。
+
+   参数：
+     P1: TCnInt64PolynomialEccPoint       - 待比较的多项式坐标点一
+     P2: TCnInt64PolynomialEccPoint       - 待比较的多项式坐标点二
+
+   返回值：Boolean                        - 返回是否相等
+}
 
 // ============================= 其他辅助函数 ==================================
 
 function CheckEccPublicKey(Ecc: TCnEcc; PublicKey: TCnEccPublicKey): Boolean;
-{* 检验给定曲线的 PublicKey 是否合法}
+{* 检验给定曲线的 PublicKey 是否合法。
+
+   参数：
+     Ecc: TCnEcc                          - 用于校验的椭圆曲线实例
+     PublicKey: TCnEccPublicKey           - 待校验的椭圆曲线公钥
+
+   返回值：Boolean                        - 返回校验是否成功
+}
 
 function GetCurveTypeFromOID(Data: PAnsiChar; DataByteLen: Cardinal): TCnEccCurveType;
-{* 通过 BER 中的原始 OID 数据（包括头）获取对应的曲线类型}
+{* 通过 BER 中的原始 OID 数据（包括头）获取对应的椭圆曲线类型。
+
+   参数：
+     Data: PAnsiChar                      - 原始 OID 数据块地址
+     DataByteLen: Cardinal                - 原始 OID 数据块字节长度
+
+   返回值：TCnEccCurveType                - 返回椭圆曲线类型
+}
 
 function GetOIDFromCurveType(Curve: TCnEccCurveType; out OIDAddr: Pointer): Integer;
-{* 根据曲线类型返回其 OID 地址与长度，外界使用后无需释放}
+{* 根据椭圆曲线类型返回其 OID 地址与长度，外界使用后无需释放。
+
+   参数：
+     Curve: TCnEccCurveType               - 椭圆曲线类型
+     out OIDAddr: Pointer                 - 返回的 OID 数据块地址，如无则返回 nil
+
+   返回值：Integer                        - 返回的 OID 数据块字节长度，如无则返回 0
+}
 
 function ReadEccPublicKeyFromBitStringNode(BitStringNode: TCnBerReadNode;
   PublicKey: TCnEccPublicKey): Boolean;
-{* 读取 BER 节点 BITSTRING 中的 ECC 公钥，返回是否成功}
+{* 读取 BER 节点 BITSTRING 中的 ECC 公钥，返回是否成功。
+
+   参数：
+     BitStringNode: TCnBerReadNode        - 待读取的 BER 节点
+     PublicKey: TCnEccPublicKey           - 读出的椭圆曲线公钥
+
+   返回值：Boolean                        - 返回读取是否成功
+}
 
 function WriteEccPublicKeyToBitStringNode(Writer: TCnBerWriter;
   ParentNode: TCnBerWriteNode; PublicKey: TCnEccPublicKey): Boolean;
-{* 将 ECC 公钥写入 BER 中的 BITSTRING 节点}
+{* 将 ECC 公钥写入 BER 中的 BITSTRING 节点。
+
+   参数：
+     Writer: TCnBerWriter                 - BER 写入对象实例
+     ParentNode: TCnBerWriteNode          - 待写入的 BER 父节点
+     PublicKey: TCnEccPublicKey           - 待写入的椭圆曲线公钥
+
+   返回值：Boolean                        - 返回写入是否成功
+}
 
 function GetEccDigestNameFromSignDigestType(Digest: TCnEccSignDigestType): string;
-{* 从签名杂凑算法枚举值获取其名称}
+{* 从签名杂凑算法类型的枚举值获取其名称。
 
-procedure CnInt64GenerateGaloisDivisionPolynomials(A: Int64; B: Int64; Prime: Int64;
+   参数：
+     Digest: TCnEccSignDigestType         - 签名杂凑算法类型
+
+   返回值：string                         - 返回签名杂凑算法名称
+}
+
+procedure CnInt64GenerateGaloisDivisionPolynomials(A: Int64; B: Int64; APrime: Int64;
   MaxDegree: Integer; PolynomialList: TObjectList);
 {* 批量生成 0 到 MaxDegree 阶的可除多项式，要确保和 Int64PolynomialGaloisCalcDivisionPolynomial
-   的递归实现完全相同}
+   的递归实现完全相同。
+
+   参数：
+     A: Int64                             - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+     B: Int64                             - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+     APrime: Int64                        - 魏尔斯特拉斯椭圆曲线方程的有限域上界
+     MaxDegree: Integer                   - 待计算的可除多项式的最高阶数
+     PolynomialList: TObjectList          - 容纳可除多项式对象的列表
+
+   返回值：（无）
+}
 
 procedure Int64RationalMultiplePointX(Res: TCnInt64RationalPolynomial; PX: TCnInt64RationalPolynomial;
   K: Integer; A: Int64; B: Int64; APrime: Int64; DivisionPolynomialList: TObjectList;
   APrimitive: TCnInt64Polynomial = nil);
-{* 用可除多项式直接算到 K 次倍点的坐标，范围是 Int64。
-   DivisionPolynomialList 必须是 CnInt64GenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime
-   的可除多项式列表。计算原理如下：
-   (x, y) * K 用可除多项式计算出的结果可以写作 (F(x), G(x) * y)
-   那么 (f(x), g(x) * y) * K 用可除多项式计算出的结果可以代入写作(F(f(x))，G(f(x)) * g(x) * y)
-   本函数返回 F(f(x))}
+{* 用可除多项式直接算到 K 次倍点的坐标点的 X 坐标，范围是 Int64。
+   DivisionPolynomialList 必须是 CnInt64GenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime 的可除多项式列表。
+
+   计算原理如下：
+   (x, y) * K 用可除多项式计算出的结果可以写作 (F(x), G(x) * y)，
+   那么 (f(x), g(x) * y) * K 用可除多项式计算出的结果可以代入写作(F(f(x))，G(f(x)) * g(x) * y)，
+   本函数返回 F(f(x))。
+
+   参数：
+     Res: TCnInt64RationalPolynomial      - 返回有理分式坐标点的 K 倍点的 X 坐标有理分式计算结果
+     PX: TCnInt64RationalPolynomial       - 待计算的有理分式坐标点的 X 坐标有理分式
+     K: Integer                           - 乘数
+     A: Int64                             - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+     B: Int64                             - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+     APrime: Int64                        - 魏尔斯特拉斯椭圆曲线方程的有限域上界
+     DivisionPolynomialList: TObjectList  - 预先生成的可除多项式对象的列表
+     APrimitive: TCnInt64Polynomial       - 本原多项式
+
+   返回值：（无）
+}
 
 procedure Int64RationalMultiplePointY(Res: TCnInt64RationalPolynomial; PX: TCnInt64RationalPolynomial;
   PY: TCnInt64RationalPolynomial; K: Integer; A: Int64; B: Int64; APrime: Int64;
   DivisionPolynomialList: TObjectList; APrimitive: TCnInt64Polynomial = nil);
-{* 用可除多项式直接算到 K 次倍点的坐标，范围是 Int64。
-   DivisionPolynomialList 必须是 CnInt64GenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime
-   的可除多项式列表。计算原理如下：
-   (x, y) * K 用可除多项式计算出的结果可以写作 (F(x), G(x) * y)
-   那么 (f(x), g(x) * y) * K 用可除多项式计算出的结果可以代入写作(F(f(x))，G(f(x)) * g(x) * y)
-   本函数返回 G(f(x)) * g(x)}
+{* 用可除多项式直接算到 K 次倍点的坐标点的 Y 坐标，范围是 Int64。
+   DivisionPolynomialList 必须是 CnInt64GenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime 的可除多项式列表。
 
-procedure CnGenerateGaloisDivisionPolynomials(A: TCnBigNumber; B: TCnBigNumber; Prime: TCnBigNumber;
+   计算原理如下：
+   (x, y) * K 用可除多项式计算出的结果可以写作 (F(x), G(x) * y)，
+   那么 (f(x), g(x) * y) * K 用可除多项式计算出的结果可以代入写作(F(f(x))，G(f(x)) * g(x) * y)，
+   本函数返回 G(f(x)) * g(x)。
+
+   参数：
+     Res: TCnInt64RationalPolynomial      - 返回有理分式坐标点的 K 倍点的 Y 坐标有理分式计算结果
+     PX: TCnInt64RationalPolynomial       - 待计算的有理分式坐标点的 X 坐标有理分式
+     PY: TCnInt64RationalPolynomial       - 待计算的有理分式坐标点的 Y 坐标有理分式
+     K: Integer                           - 乘数
+     A: Int64                             - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+     B: Int64                             - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+     APrime: Int64                        - 魏尔斯特拉斯椭圆曲线方程的有限域上界
+     DivisionPolynomialList: TObjectList  - 预先生成的可除多项式对象的列表
+     APrimitive: TCnInt64Polynomial       - 本原多项式
+
+   返回值：（无）
+}
+
+procedure CnGenerateGaloisDivisionPolynomials(A: TCnBigNumber; B: TCnBigNumber; APrime: TCnBigNumber;
   MaxDegree: Integer; PolynomialList: TObjectList);
 {* 批量生成 0 到 MaxDegree 阶的可除多项式，要确保和 BigNumberPolynomialGaloisCalcDivisionPolynomial
-   的递归实现完全相同}
+   的递归实现完全相同
+
+   参数：
+     A: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+     B: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+     APrime: TCnBigNumber                 - 魏尔斯特拉斯椭圆曲线方程的有限域上界
+     MaxDegree: Integer                   - 待计算的可除多项式的最高阶数
+     PolynomialList: TObjectList          - 容纳可除多项式对象的列表
+
+   返回值：（无）
+}
 
 procedure RationalMultiplePointX(Res: TCnBigNumberRationalPolynomial; PX: TCnBigNumberRationalPolynomial;
   K: Integer; A: TCnBigNumber; B: TCnBigNumber; APrime: TCnBigNumber;
   DivisionPolynomialList: TObjectList; APrimitive: TCnBigNumberPolynomial = nil);
-{* 用可除多项式直接算到 K 次倍点的坐标，范围是大整数。
-   DivisionPolynomialList 必须是 CnInt64GenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime
-   的可除多项式列表。计算原理如下：
-   (x, y) * K 用可除多项式计算出的结果可以写作 (F(x), G(x) * y)
-   那么 (f(x), g(x) * y) * K 用可除多项式计算出的结果可以代入写作(F(f(x))，G(f(x)) * g(x) * y)
-   本函数返回 F(f(x))}
+{* 用可除多项式直接计算 K 次倍点的坐标点的 X 坐标，范围是大整数。
+   DivisionPolynomialList 必须是 CnGenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime 的可除多项式列表。
+
+   计算原理如下：
+   (x, y) * K 用可除多项式计算出的结果可以写作 (F(x), G(x) * y)，
+   那么 (f(x), g(x) * y) * K 用可除多项式计算出的结果可以代入写作(F(f(x))，G(f(x)) * g(x) * y)，
+   本函数返回 F(f(x))。
+
+   参数：
+     Res: TCnBigNumberRationalPolynomial  - 返回有理分式坐标点的 K 倍点的 X 坐标有理分式计算结果
+     PX: TCnBigNumberRationalPolynomial   - 待计算的有理分式坐标点的 X 坐标有理分式
+     K: Integer                           - 乘数
+     A: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+     B: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+     APrime: TCnBigNumber                 - 魏尔斯特拉斯椭圆曲线方程的有限域上界
+     DivisionPolynomialList: TObjectList  - 预先生成的可除多项式对象的列表
+     APrimitive: TCnBigNumberPolynomial   - 本原多项式
+
+   返回值：（无）
+}
 
 procedure RationalMultiplePointY(Res: TCnBigNumberRationalPolynomial; PX: TCnBigNumberRationalPolynomial;
   PY: TCnBigNumberRationalPolynomial; K: Integer; A: TCnBigNumber; B: TCnBigNumber; APrime: TCnBigNumber;
   DivisionPolynomialList: TObjectList; APrimitive: TCnBigNumberPolynomial = nil);
-{* 用可除多项式直接算到 K 次倍点的坐标，范围是大整数。
-   DivisionPolynomialList 必须是 CnGenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime
-   的可除多项式列表。计算原理如下：
-   (x, y) * K 用可除多项式计算出的结果可以写作 (F(x), G(x) * y)
-   那么 (f(x), g(x) * y) * K 用可除多项式计算出的结果可以代入写作(F(f(x))，G(f(x)) * g(x) * y)
-   本函数返回 G(f(x)) * g(x)}
+{* 用可除多项式直接计算 K 次倍点的坐标点的 Y 坐标，范围是大整数。
+   DivisionPolynomialList 必须是 CnGenerateGaloisDivisionPolynomials 生成的相同 A、B、Prime 的可除多项式列表。
+
+   计算原理如下：
+   (x, y) * K 用可除多项式计算出的结果可以写作 (F(x), G(x) * y)，
+   那么 (f(x), g(x) * y) * K 用可除多项式计算出的结果可以代入写作(F(f(x))，G(f(x)) * g(x) * y)，
+   本函数返回 G(f(x)) * g(x)
+
+   参数：
+     Res: TCnBigNumberRationalPolynomial  - 返回有理分式坐标点的 K 倍点的 X 坐标有理分式计算结果
+     PX: TCnBigNumberRationalPolynomial   - 待计算的有理分式坐标点的 X 坐标有理分式
+     PY: TCnBigNumberRationalPolynomial   - 待计算的有理分式坐标点的 Y 坐标有理分式
+     K: Integer                           - 乘数
+     A: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程的 a 参数
+     B: TCnBigNumber                      - 魏尔斯特拉斯椭圆曲线方程的 b 参数
+     APrime: TCnBigNumber                 - 魏尔斯特拉斯椭圆曲线方程的有限域上界
+     DivisionPolynomialList: TObjectList  - 预先生成的可除多项式对象的列表
+     APrimitive: TCnBigNumberPolynomial   - 本原多项式
+
+   返回值：（无）
+}
 
 implementation
 
@@ -1206,13 +2594,13 @@ begin
 end;
 
 // 将一个 TCnEccPoint 点坐标转换为十进制字符串
-function CnEccPointToString(const P: TCnEccPoint): string;
+function CnEccPointToString(P: TCnEccPoint): string;
 begin
   Result := Format('%s,%s', [P.X.ToDec, P.Y.ToDec]);
 end;
 
 // 将一个 TCnEccPoint 点坐标转换为十六进制字符串
-function CnEccPointToHex(const P: TCnEccPoint): string;
+function CnEccPointToHex(P: TCnEccPoint): string;
 begin
   Result := Format('%s,%s', [P.X.ToHex, P.Y.ToHex]);
 end;
@@ -1224,13 +2612,13 @@ begin
 end;
 
 // 将一个 TCnEcc3Point 点坐标转换为十进制字符串
-function CnEcc3PointToString(const P: TCnEcc3Point): string;
+function CnEcc3PointToString(P: TCnEcc3Point): string;
 begin
   Result := Format('%s,%s,%s', [P.X.ToDec, P.Y.ToDec, P.Z.ToDec]);
 end;
 
 // 将一个 TCnEcc3Point 点坐标转换为十六进制字符串}
-function CnEcc3PointToHex(const P: TCnEcc3Point): string;
+function CnEcc3PointToHex(P: TCnEcc3Point): string;
 begin
   Result := Format('%s,%s,%s', [P.X.ToHex, P.Y.ToHex, P.Z.ToHex]);
 end;
@@ -1317,7 +2705,7 @@ begin
 end;
 
 // 生成椭圆曲线 y^2 = x^3 + Ax + B mod p 的各个参数，难以实现
-function CnInt64EccGenerateParams(var FiniteFieldSize, CoefficientA, CoefficientB,
+function CnInt64EccGenerateParams(out FiniteFieldSize, CoefficientA, CoefficientB,
   GX, GY, Order: Int64): Boolean;
 var
   I: Integer;
@@ -1358,20 +2746,23 @@ begin
 
   // 然后随机找一个 X 求 Y
   Ecc64 := TCnInt64Ecc.Create(CoefficientA, CoefficientB, FiniteFieldSize, 0, 0, FiniteFieldSize);
-  repeat
-    P.X := Trunc(Random * (FiniteFieldSize - 1)) + 1;
-    for I := 0 to FiniteFieldSize - 1 do
-    begin
-      P.Y := I;
-      if Ecc64.IsPointOnCurve(P) then
+  try
+    repeat
+      P.X := Trunc(Random * (FiniteFieldSize - 1)) + 1;
+      for I := 0 to FiniteFieldSize - 1 do
       begin
-        GX := P.X;
-        GY := P.Y;
-        Break;
+        P.Y := I;
+        if Ecc64.IsPointOnCurve(P) then
+        begin
+          GX := P.X;
+          GY := P.Y;
+          Break;
+        end;
       end;
-    end;
-  until (GX > 0) and (GY > 0);
-  Ecc64.Free;
+    until (GX > 0) and (GY > 0);
+  finally
+    Ecc64.Free;
+  end;
 
   Order := N;
   Result := True;
@@ -2272,6 +3663,11 @@ begin
     - 432 * FCoefficientB * FCoefficientB;
 end;
 
+function TCnInt64Ecc.PointToPlain(var Point: TCnInt64EccPoint): Int64;
+begin
+  Result := Point.X;
+end;
+
 { TCnEccPoint }
 
 procedure TCnEccPoint.Assign(Source: TPersistent);
@@ -2586,6 +3982,9 @@ var
   X, Y: TCnBigNumber;
 begin
   Result := False;
+  if P = nil then
+    Exit;
+
   X := nil;
   Y := nil;
 
@@ -3538,8 +4937,7 @@ begin
   end;
 end;
 
-function TCnEcc.PointToPlain(Point: TCnEccPoint;
-  OutPlain: TCnBigNumber): Boolean;
+function TCnEcc.PointToPlain(Point: TCnEccPoint; OutPlain: TCnBigNumber): Boolean;
 begin
   Result := False;
   if (Point <> nil) and (OutPlain <> nil) and IsPointOnCurve(Point) then
@@ -4931,8 +6329,8 @@ begin
   FY := TCnInt64Polynomial.Create;
 end;
 
-constructor TCnInt64PolynomialEccPoint.Create(
-  const XLowToHighCoefficients, YLowToHighCoefficients: array of const);
+constructor TCnInt64PolynomialEccPoint.Create(const XLowToHighCoefficients,
+  YLowToHighCoefficients: array of const);
 begin
   Create;
   FX.SetCoefficents(XLowToHighCoefficients);
@@ -4976,7 +6374,7 @@ begin
   Result := CnInt64PolynomialEccPointToString(Self);
 end;
 
-function CnInt64PolynomialEccPointToString(const P: TCnInt64PolynomialEccPoint): string;
+function CnInt64PolynomialEccPointToString(P: TCnInt64PolynomialEccPoint): string;
 begin
   Result := Format('%s; %s', [P.X.ToString, P.Y.ToString]);
 end;
@@ -5040,42 +6438,41 @@ var
 begin
   // 计算 (Y^2 - X^3 - A*X - B) mod primitive （多项式系数运算要 mod p）是否等于 0 多项式
   Result := False;
-  if P <> nil then
-  begin
-    X := nil;
-    Y := nil;
+  if P = nil then
+    Exit;
 
-    try
-      X := FEccInt64PolynomialPool.Obtain;
-      Y := FEccInt64PolynomialPool.Obtain;
+  X := nil;
+  Y := nil;
 
-      Int64PolynomialCopy(Y, P.Y);
-      Int64PolynomialGaloisMul(Y, Y, Y, FFiniteFieldSize, FPrimitive);
+  try
+    X := FEccInt64PolynomialPool.Obtain;
+    Y := FEccInt64PolynomialPool.Obtain;
 
-      Int64PolynomialCopy(X, P.X);
-      Int64PolynomialGaloisPower(X, X, 3, FFiniteFieldSize, FPrimitive);
+    Int64PolynomialCopy(Y, P.Y);
+    Int64PolynomialGaloisMul(Y, Y, Y, FFiniteFieldSize, FPrimitive);
 
-      Int64PolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);  // Y := Y^2 - X^3 mod
+    Int64PolynomialCopy(X, P.X);
+    Int64PolynomialGaloisPower(X, X, 3, FFiniteFieldSize, FPrimitive);
 
-      Int64PolynomialCopy(X, P.X);
-      Int64PolynomialMulWord(X, FCoefficientA);
-      Int64PolynomialAddWord(X, FCoefficientB);
-      Int64PolynomialNonNegativeModWord(X, FFiniteFieldSize);  // X := A*X + B mod
+    Int64PolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);  // Y := Y^2 - X^3 mod
 
-      Int64PolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);
-      Int64PolynomialGaloisMod(Y, Y, FPrimitive, FFiniteFieldSize);
+    Int64PolynomialCopy(X, P.X);
+    Int64PolynomialMulWord(X, FCoefficientA);
+    Int64PolynomialAddWord(X, FCoefficientB);
+    Int64PolynomialNonNegativeModWord(X, FFiniteFieldSize);  // X := A*X + B mod
 
-      Result := Y.IsZero;
-    finally
-      FEccInt64PolynomialPool.Recycle(Y);
-      FEccInt64PolynomialPool.Recycle(X);
-    end;
+    Int64PolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);
+    Int64PolynomialGaloisMod(Y, Y, FPrimitive, FFiniteFieldSize);
+
+    Result := Y.IsZero;
+  finally
+    FEccInt64PolynomialPool.Recycle(Y);
+    FEccInt64PolynomialPool.Recycle(X);
   end;
 end;
 
-class function TCnInt64PolynomialEcc.IsPointOnCurve2(PX,
-  PY: TCnInt64Polynomial; A, B, APrime: Int64;
-  APrimitive: TCnInt64Polynomial): Boolean;
+class function TCnInt64PolynomialEcc.IsPointOnCurve2(PX, PY: TCnInt64Polynomial;
+  A, B, APrime: Int64; APrimitive: TCnInt64Polynomial): Boolean;
 var
   X, Y: TCnInt64Polynomial;
 begin
@@ -5679,7 +7076,7 @@ begin
   end;
 end;
 
-procedure CnInt64GenerateGaloisDivisionPolynomials(A, B, Prime: Int64; MaxDegree: Integer;
+procedure CnInt64GenerateGaloisDivisionPolynomials(A, B, APrime: Int64; MaxDegree: Integer;
   PolynomialList: TObjectList);
 var
   I, N: Integer;
@@ -5721,9 +7118,9 @@ var
       Result.MaxDegree := 4;
       Result[4] := 3;
       Result[3] := 0;
-      Result[2] := Int64NonNegativeMulMod(6, A, Prime);
-      Result[1] := Int64NonNegativeMulMod(12, B, Prime);
-      Result[0] := Int64NonNegativeMulMod(-A, A, Prime);
+      Result[2] := Int64NonNegativeMulMod(6, A, APrime);
+      Result[1] := Int64NonNegativeMulMod(12, B, APrime);
+      Result[0] := Int64NonNegativeMulMod(-A, A, APrime);
 
       PolynomialList[3] := Result;
     end
@@ -5733,13 +7130,13 @@ var
       Result.MaxDegree := 6;
       Result[6] := 4;
       Result[5] := 0;
-      Result[4] := Int64NonNegativeMulMod(20, A, Prime);
-      Result[3] := Int64NonNegativeMulMod(80, B, Prime);
-      Result[2] := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-20, A, Prime), A, Prime);
-      Result[1] := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-16, A, Prime), B, Prime);
-      T1 := Int64NonNegativeMulMod(Int64NonNegativeMulMod(Int64NonNegativeMulMod(-4, A, Prime), A, Prime), A, Prime);
-      T2 := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-32, B, Prime), B, Prime);
-      Result[0] := Int64NonNegativeMod(T1 + T2, Prime); // TODO: 暂未处理相加溢出的取模
+      Result[4] := Int64NonNegativeMulMod(20, A, APrime);
+      Result[3] := Int64NonNegativeMulMod(80, B, APrime);
+      Result[2] := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-20, A, APrime), A, APrime);
+      Result[1] := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-16, A, APrime), B, APrime);
+      T1 := Int64NonNegativeMulMod(Int64NonNegativeMulMod(Int64NonNegativeMulMod(-4, A, APrime), A, APrime), A, APrime);
+      T2 := Int64NonNegativeMulMod(Int64NonNegativeMulMod(-32, B, APrime), B, APrime);
+      Result[0] := Int64NonNegativeMod(T1 + T2, APrime); // TODO: 暂未处理相加溢出的取模
 
       PolynomialList[4] := Result;
     end
@@ -5760,26 +7157,26 @@ var
           F2 := GetInt64GaloisDivisionPolynomial(N - 1); // F2 得到 Fn-1
 
           D2 := FEccInt64PolynomialPool.Obtain;
-          Int64PolynomialGaloisMul(D2, F2, F2, Prime);   // D2 得到 Fn-1 ^ 2
+          Int64PolynomialGaloisMul(D2, F2, F2, APrime);   // D2 得到 Fn-1 ^ 2
 
           D1 := FEccInt64PolynomialPool.Obtain;
-          Int64PolynomialGaloisMul(D1, F1, D2, Prime);   // D1 得到 Fn+2 * Fn-1 ^ 2
+          Int64PolynomialGaloisMul(D1, F1, D2, APrime);   // D1 得到 Fn+2 * Fn-1 ^ 2
 
           F3 := GetInt64GaloisDivisionPolynomial(N - 2);  // F3 得到 Fn-2
           F4 := GetInt64GaloisDivisionPolynomial(N + 1);  // F4 得到 Fn+1
 
-          Int64PolynomialGaloisMul(D2, F4, F4, Prime);   // D2 得到 Fn+1 ^ 2
-          Int64PolynomialGaloisMul(D2, D2, F3, Prime);   // D2 得到 Fn-2 * Fn+1 ^ 2
+          Int64PolynomialGaloisMul(D2, F4, F4, APrime);   // D2 得到 Fn+1 ^ 2
+          Int64PolynomialGaloisMul(D2, D2, F3, APrime);   // D2 得到 Fn-2 * Fn+1 ^ 2
 
-          Int64PolynomialGaloisSub(D1, D1, D2, Prime);   // D1 得到 Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2
+          Int64PolynomialGaloisSub(D1, D1, D2, APrime);   // D1 得到 Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2
 
           F5 := GetInt64GaloisDivisionPolynomial(N);     // F5 得到 Fn
 
           Result := TCnInt64Polynomial.Create;
-          Int64PolynomialGaloisMul(Result, F5, D1, Prime);           // 相乘得到 Fn * (Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2)
+          Int64PolynomialGaloisMul(Result, F5, D1, APrime);           // 相乘得到 Fn * (Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2)
 
-          MI := CnInt64ModularInverse(2, Prime);
-          Int64PolynomialGaloisMulWord(Result, MI, Prime);           // 再除以 2
+          MI := CnInt64ModularInverse(2, APrime);
+          Int64PolynomialGaloisMulWord(Result, MI, APrime);           // 再除以 2
 
           PolynomialList[Degree] := Result;
         end
@@ -5787,45 +7184,45 @@ var
         begin
           Y4 := FEccInt64PolynomialPool.Obtain;
           Y4.SetCoefficents([B, A, 0, 1]);
-          Int64PolynomialGaloisMul(Y4, Y4, Y4, Prime);
+          Int64PolynomialGaloisMul(Y4, Y4, Y4, APrime);
 
           F1 := GetInt64GaloisDivisionPolynomial(N + 2); // F1 得到 Fn+2
 
           D2 := FEccInt64PolynomialPool.Obtain;
           F2 := GetInt64GaloisDivisionPolynomial(N);     // F2 得到 Fn
-          Int64PolynomialGaloisPower(D2, F2, 3, Prime);  // D2 得到 Fn^3
+          Int64PolynomialGaloisPower(D2, F2, 3, APrime);  // D2 得到 Fn^3
 
           D3 := FEccInt64PolynomialPool.Obtain;
           F3 := GetInt64GaloisDivisionPolynomial(N + 1); // F3 得到 Fn+1
-          Int64PolynomialGaloisPower(D3, F3, 3, Prime);  // D3 得到 Fn+1 ^ 3
+          Int64PolynomialGaloisPower(D3, F3, 3, APrime);  // D3 得到 Fn+1 ^ 3
 
           if (N and 1) <> 0 then // N 是奇数
           begin
             D1 := FEccInt64PolynomialPool.Obtain;
-            Int64PolynomialGaloisMul(D1, F1, D2, Prime);     // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
+            Int64PolynomialGaloisMul(D1, F1, D2, APrime);     // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
 
             F4 := GetInt64GaloisDivisionPolynomial(N - 1);
-            Int64PolynomialGaloisMul(D2, F4, Y4, Prime);     // D2 得到 Fn-1 * Y^2
+            Int64PolynomialGaloisMul(D2, F4, Y4, APrime);     // D2 得到 Fn-1 * Y^2
 
-            Int64PolynomialGaloisMul(D2, D2, D3, Prime);     // D2 得到 Fn+1 ^ 3 * Fn-1(Y)
+            Int64PolynomialGaloisMul(D2, D2, D3, APrime);     // D2 得到 Fn+1 ^ 3 * Fn-1(Y)
 
             Result := TCnInt64Polynomial.Create;
-            Int64PolynomialGaloisSub(Result, D1, D2, Prime); // D1 - D2
+            Int64PolynomialGaloisSub(Result, D1, D2, APrime); // D1 - D2
 
             PolynomialList[Degree] := Result;
           end
           else // N 是偶数
           begin
             D1 := FEccInt64PolynomialPool.Obtain;
-            Int64PolynomialGaloisMul(D1, F1, D2, Prime);     // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
-            Int64PolynomialGaloisMul(D1, D1, Y4, Prime);     // D1 得到 Y * Fn+2 * Fn ^ 3
+            Int64PolynomialGaloisMul(D1, F1, D2, APrime);     // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
+            Int64PolynomialGaloisMul(D1, D1, Y4, APrime);     // D1 得到 Y * Fn+2 * Fn ^ 3
 
             F4 := GetInt64GaloisDivisionPolynomial(N - 1);   // F4 得到 Fn-1
 
-            Int64PolynomialGaloisMul(D2, F4, D3, Prime);     // D2 得到 Fn+1 ^ 3 * Fn-1
+            Int64PolynomialGaloisMul(D2, F4, D3, APrime);     // D2 得到 Fn+1 ^ 3 * Fn-1
 
             Result := TCnInt64Polynomial.Create;
-            Int64PolynomialGaloisSub(Result, D1, D2, Prime); // D1 - D2
+            Int64PolynomialGaloisSub(Result, D1, D2, APrime); // D1 - D2
 
             PolynomialList[Degree] := Result;
           end;
@@ -5848,7 +7245,7 @@ begin
     GetInt64GaloisDivisionPolynomial(I);
 end;
 
-procedure CnGenerateGaloisDivisionPolynomials(A, B, Prime: TCnBigNumber; MaxDegree: Integer;
+procedure CnGenerateGaloisDivisionPolynomials(A, B, APrime: TCnBigNumber; MaxDegree: Integer;
   PolynomialList: TObjectList);
 var
   I: Integer;
@@ -5891,14 +7288,14 @@ var
       Result.MaxDegree := 4;
       Result[4].SetWord(3);
       Result[3].SetWord(0);
-      BigNumberMulWordNonNegativeMod(Result[2], A, 6, Prime);
-      BigNumberMulWordNonNegativeMod(Result[1], B, 12, Prime);
+      BigNumberMulWordNonNegativeMod(Result[2], A, 6, APrime);
+      BigNumberMulWordNonNegativeMod(Result[1], B, 12, APrime);
 
       T := FEccBigNumberPool.Obtain;
       try
         BigNumberCopy(T, A);
         T.Negate;
-        BigNumberDirectMulMod(Result[0], T, A, Prime);
+        BigNumberDirectMulMod(Result[0], T, A, APrime);
       finally
         FEccBigNumberPool.Recycle(T);
       end;
@@ -5910,24 +7307,24 @@ var
       Result.MaxDegree := 6;
       Result[6].SetWord(4);
       Result[5].SetWord(0);
-      BigNumberMulWordNonNegativeMod(Result[4], A, 20, Prime);
-      BigNumberMulWordNonNegativeMod(Result[3], B, 80, Prime);
+      BigNumberMulWordNonNegativeMod(Result[4], A, 20, APrime);
+      BigNumberMulWordNonNegativeMod(Result[3], B, 80, APrime);
 
       T := FEccBigNumberPool.Obtain;
       try
-        BigNumberMulWordNonNegativeMod(T, A, -20, Prime);
-        BigNumberDirectMulMod(Result[2], T, A, Prime);
-        BigNumberMulWordNonNegativeMod(T, A, -16, Prime);
-        BigNumberDirectMulMod(Result[1], T, B, Prime);
+        BigNumberMulWordNonNegativeMod(T, A, -20, APrime);
+        BigNumberDirectMulMod(Result[2], T, A, APrime);
+        BigNumberMulWordNonNegativeMod(T, A, -16, APrime);
+        BigNumberDirectMulMod(Result[1], T, B, APrime);
 
-        BigNumberMulWordNonNegativeMod(T, A, -4, Prime);
-        BigNumberDirectMulMod(T, T, A, Prime);
-        BigNumberDirectMulMod(Result[0], T, A, Prime);
+        BigNumberMulWordNonNegativeMod(T, A, -4, APrime);
+        BigNumberDirectMulMod(T, T, A, APrime);
+        BigNumberDirectMulMod(Result[0], T, A, APrime);
 
-        BigNumberMulWordNonNegativeMod(T, B, -32, Prime);
-        BigNumberDirectMulMod(T, T, B, Prime);
+        BigNumberMulWordNonNegativeMod(T, B, -32, APrime);
+        BigNumberDirectMulMod(T, T, B, APrime);
         BigNumberAdd(Result[0], Result[0], T);
-        BigNumberNonNegativeMod(Result[0], Result[0], Prime);
+        BigNumberNonNegativeMod(Result[0], Result[0], APrime);
       finally
         FEccBigNumberPool.Recycle(T);
       end;
@@ -5951,27 +7348,27 @@ var
           F2 := GetGaloisDivisionPolynomial(N - 1); // F2 得到 Fn-1
 
           D2 := FEccPolynomialPool.Obtain;
-          BigNumberPolynomialGaloisMul(D2, F2, F2, Prime);   // D2 得到 Fn-1 ^ 2
+          BigNumberPolynomialGaloisMul(D2, F2, F2, APrime);   // D2 得到 Fn-1 ^ 2
 
           D1 := FEccPolynomialPool.Obtain;
-          BigNumberPolynomialGaloisMul(D1, F1, D2, Prime);   // D1 得到 Fn+2 * Fn-1 ^ 2
+          BigNumberPolynomialGaloisMul(D1, F1, D2, APrime);   // D1 得到 Fn+2 * Fn-1 ^ 2
 
           F3 := GetGaloisDivisionPolynomial(N - 2);  // F3 得到 Fn-2
           F4 := GetGaloisDivisionPolynomial(N + 1);  // F4 得到 Fn+1
 
-          BigNumberPolynomialGaloisMul(D2, F4, F4, Prime);   // D2 得到 Fn+1 ^ 2
-          BigNumberPolynomialGaloisMul(D2, D2, F3, Prime);   // D2 得到 Fn-2 * Fn+1 ^ 2
+          BigNumberPolynomialGaloisMul(D2, F4, F4, APrime);   // D2 得到 Fn+1 ^ 2
+          BigNumberPolynomialGaloisMul(D2, D2, F3, APrime);   // D2 得到 Fn-2 * Fn+1 ^ 2
 
-          BigNumberPolynomialGaloisSub(D1, D1, D2, Prime);   // D1 得到 Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2
+          BigNumberPolynomialGaloisSub(D1, D1, D2, APrime);   // D1 得到 Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2
 
           F5 := GetGaloisDivisionPolynomial(N);     // F5 得到 Fn
 
           Result := TCnBigNumberPolynomial.Create;
-          BigNumberPolynomialGaloisMul(Result, F5, D1, Prime);           // 相乘得到 Fn * (Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2)
+          BigNumberPolynomialGaloisMul(Result, F5, D1, APrime);           // 相乘得到 Fn * (Fn+2 * Fn-1 ^ 2 - Fn-2 * Fn+1 ^ 2)
 
           MI := FEccBigNumberPool.Obtain;
-          BigNumberModularInverseWord(MI, 2, Prime);
-          BigNumberPolynomialGaloisMulBigNumber(Result, MI, Prime);           // 再除以 2
+          BigNumberModularInverseWord(MI, 2, APrime);
+          BigNumberPolynomialGaloisMulBigNumber(Result, MI, APrime);           // 再除以 2
 
           PolynomialList[Degree] := Result;
         end
@@ -5984,45 +7381,45 @@ var
           Y4[2].SetZero;
           Y4[3].SetOne;
 
-          BigNumberPolynomialGaloisMul(Y4, Y4, Y4, Prime);
+          BigNumberPolynomialGaloisMul(Y4, Y4, Y4, APrime);
 
           F1 := GetGaloisDivisionPolynomial(N + 2); // F1 得到 Fn+2
 
           D2 := FEccPolynomialPool.Obtain;
           F2 := GetGaloisDivisionPolynomial(N);     // F2 得到 Fn
-          BigNumberPolynomialGaloisPower(D2, F2, 3, Prime);  // D2 得到 Fn^3
+          BigNumberPolynomialGaloisPower(D2, F2, 3, APrime);  // D2 得到 Fn^3
 
           D3 := FEccPolynomialPool.Obtain;
           F3 := GetGaloisDivisionPolynomial(N + 1); // F3 得到 Fn+1
-          BigNumberPolynomialGaloisPower(D3, F3, 3, Prime);  // D3 得到 Fn+1 ^ 3
+          BigNumberPolynomialGaloisPower(D3, F3, 3, APrime);  // D3 得到 Fn+1 ^ 3
 
           if (N and 1) <> 0 then // N 是奇数
           begin
             D1 := FEccPolynomialPool.Obtain;
-            BigNumberPolynomialGaloisMul(D1, F1, D2, Prime);     // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
+            BigNumberPolynomialGaloisMul(D1, F1, D2, APrime);     // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
 
             F4 := GetGaloisDivisionPolynomial(N - 1);
-            BigNumberPolynomialGaloisMul(D2, F4, Y4, Prime);     // D2 得到 Fn-1 * Y^2
+            BigNumberPolynomialGaloisMul(D2, F4, Y4, APrime);     // D2 得到 Fn-1 * Y^2
 
-            BigNumberPolynomialGaloisMul(D2, D2, D3, Prime);     // D2 得到 Fn+1 ^ 3 * Fn-1(Y)
+            BigNumberPolynomialGaloisMul(D2, D2, D3, APrime);     // D2 得到 Fn+1 ^ 3 * Fn-1(Y)
 
             Result := TCnBigNumberPolynomial.Create;
-            BigNumberPolynomialGaloisSub(Result, D1, D2, Prime); // D1 - D2
+            BigNumberPolynomialGaloisSub(Result, D1, D2, APrime); // D1 - D2
 
             PolynomialList[Degree] := Result;
           end
           else // N 是偶数
           begin
             D1 := FEccPolynomialPool.Obtain;
-            BigNumberPolynomialGaloisMul(D1, F1, D2, Prime);     // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
-            BigNumberPolynomialGaloisMul(D1, D1, Y4, Prime);     // D1 得到 Y * Fn+2 * Fn ^ 3
+            BigNumberPolynomialGaloisMul(D1, F1, D2, APrime);     // D1 得到 Fn+2 * Fn ^ 3，并释放 D2
+            BigNumberPolynomialGaloisMul(D1, D1, Y4, APrime);     // D1 得到 Y * Fn+2 * Fn ^ 3
 
             F4 := GetGaloisDivisionPolynomial(N - 1);   // F4 得到 Fn-1
 
-            BigNumberPolynomialGaloisMul(D2, F4, D3, Prime);     // D2 得到 Fn+1 ^ 3 * Fn-1
+            BigNumberPolynomialGaloisMul(D2, F4, D3, APrime);     // D2 得到 Fn+1 ^ 3 * Fn-1
 
             Result := TCnBigNumberPolynomial.Create;
-            BigNumberPolynomialGaloisSub(Result, D1, D2, Prime); // D1 - D2
+            BigNumberPolynomialGaloisSub(Result, D1, D2, APrime); // D1 - D2
 
             PolynomialList[Degree] := Result;
           end;
@@ -6586,43 +7983,42 @@ begin
     Degree, outDivisionPolynomial, FFiniteFieldSize);
 end;
 
-function TCnPolynomialEcc.IsPointOnCurve(
-  P: TCnPolynomialEccPoint): Boolean;
+function TCnPolynomialEcc.IsPointOnCurve(P: TCnPolynomialEccPoint): Boolean;
 var
   X, Y: TCnBigNumberPolynomial;
 begin
   // 计算 (Y^2 - X^3 - A*X - B) mod primitive （多项式系数运算要 mod p）是否等于 0 多项式
   Result := False;
-  if P <> nil then
-  begin
-    X := nil;
-    Y := nil;
+  if P = nil then
+    Exit;
 
-    try
-      X := FEccPolynomialPool.Obtain;
-      Y := FEccPolynomialPool.Obtain;
+  X := nil;
+  Y := nil;
 
-      BigNumberPolynomialCopy(Y, P.Y);
-      BigNumberPolynomialGaloisMul(Y, Y, Y, FFiniteFieldSize, FPrimitive);
+  try
+    X := FEccPolynomialPool.Obtain;
+    Y := FEccPolynomialPool.Obtain;
 
-      BigNumberPolynomialCopy(X, P.X);
-      BigNumberPolynomialGaloisPower(X, X, 3, FFiniteFieldSize, FPrimitive);
+    BigNumberPolynomialCopy(Y, P.Y);
+    BigNumberPolynomialGaloisMul(Y, Y, Y, FFiniteFieldSize, FPrimitive);
 
-      BigNumberPolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);   // Y := Y^2 - X^3 mod
+    BigNumberPolynomialCopy(X, P.X);
+    BigNumberPolynomialGaloisPower(X, X, 3, FFiniteFieldSize, FPrimitive);
 
-      BigNumberPolynomialCopy(X, P.X);
-      BigNumberPolynomialMulBigNumber(X, FCoefficientA);
-      BigNumberPolynomialAddBigNumber(X, FCoefficientB);
-      BigNumberPolynomialNonNegativeModBigNumber(X, FFiniteFieldSize);  // X := A*X + B  mod
+    BigNumberPolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);   // Y := Y^2 - X^3 mod
 
-      BigNumberPolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);
-      BigNumberPolynomialGaloisMod(Y, Y, FPrimitive, FFiniteFieldSize);
+    BigNumberPolynomialCopy(X, P.X);
+    BigNumberPolynomialMulBigNumber(X, FCoefficientA);
+    BigNumberPolynomialAddBigNumber(X, FCoefficientB);
+    BigNumberPolynomialNonNegativeModBigNumber(X, FFiniteFieldSize);  // X := A*X + B  mod
 
-      Result := Y.IsZero;
-    finally
-      FEccPolynomialPool.Recycle(Y);
-      FEccPolynomialPool.Recycle(X);
-    end;
+    BigNumberPolynomialGaloisSub(Y, Y, X, FFiniteFieldSize, FPrimitive);
+    BigNumberPolynomialGaloisMod(Y, Y, FPrimitive, FFiniteFieldSize);
+
+    Result := Y.IsZero;
+  finally
+    FEccPolynomialPool.Recycle(Y);
+    FEccPolynomialPool.Recycle(X);
   end;
 end;
 

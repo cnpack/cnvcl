@@ -336,7 +336,7 @@ function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPriva
      const PemFileName: string            - 待加载的 PEM 文件名
      PrivateKey: TCnRSAPrivateKey         - 加载后的内容存入该 RSA 私钥
      PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
-     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 文件内容自动判断
+     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 自动判断
      const Password: string               - PEM 文件如加密，此处应传对应的密码
 
    返回值：Boolean                        - 返回加载是否成功
@@ -352,7 +352,7 @@ function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
      PemStream: TStream                   - 待加载的 PEM 格式的流
      PrivateKey: TCnRSAPrivateKey         - 加载后的内容存入该 RSA 私钥
      PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
-     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 文件内容自动判断
+     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
      const Password: string               - PEM 流如加密，此处应传对应的密码
 
    返回值：Boolean                        - 返回加载是否成功
@@ -385,7 +385,7 @@ function CnRSASaveKeysToPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
 {* 将一对 RSA 公私钥写入 PEM 格式的流中，返回是否成功。
 
    参数：
-     PemStream: TStream                                   - 待保存的 PEM 流
+     PemStream: TStream                                   - 待保存的 PEM 格式的流
      PrivateKey: TCnRSAPrivateKey                         - 待保存的 RSA 私钥
      PublicKey: TCnRSAPublicKey                           - 待保存的 RSA 公钥
      KeyType: TCnRSAKeyType                               - 待保存的 RSA 公私钥的 PEM 格式，默认 PKCS1
@@ -404,7 +404,7 @@ function CnRSALoadPublicKeyFromPem(const PemFileName: string;
    参数：
      const PemFileName: string            - 待加载的 PEM 文件名
      PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
-     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 文件内容自动判断
+     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
      const Password: string               - PEM 文件如加密，此处应传对应密码
 
    返回值：Boolean                        - 返回加载是否成功
@@ -418,8 +418,8 @@ function CnRSALoadPublicKeyFromPem(const PemStream: TStream;
    参数：
      const PemStream: TStream             - 待加载的 PEM 格式的流
      PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
-     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 文件内容自动判断
-     const Password: string               - PEM 文件如加密，此处应传对应密码
+     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
+     const Password: string               - PEM 流如加密，此处应传对应密码
 
    返回值：Boolean                        - 返回加载是否成功
 }
@@ -447,7 +447,7 @@ function CnRSASavePublicKeyToPem(PemStream: TStream;
 {* 将 RSA 公钥写入 PEM 格式的流中，返回是否成功。
 
    参数：
-     PemStream: TStream                                   - 待保存的 PEM 流
+     PemStream: TStream                                   - 待保存的 PEM 格式的流
      PublicKey: TCnRSAPublicKey                           - 待保存的 RSA 公钥
      KeyType: TCnRSAKeyType                               - 待保存的 RSA 公钥的 PEM 格式，默认 PKCS1
      KeyEncryptMethod: TCnKeyEncryptMethod                - 保存的 PEM 流的加密模式，默认不加密，并忽略后面的参数
@@ -463,7 +463,7 @@ function CnRSAEncrypt(Data: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
 
    参数：
      Data: TCnBigNumber                   - 待加密的大数数据
-     PrivateKey: TCnRSAPrivateKey         - RSA 私钥
+     PrivateKey: TCnRSAPrivateKey         - 用于加密的 RSA 私钥
      Res: TCnBigNumber                    - 输出的加密后的大数数据
 
    返回值：Boolean                        - 返回加密是否成功
@@ -475,7 +475,7 @@ function CnRSAEncrypt(Data: TCnBigNumber; PublicKey: TCnRSAPublicKey;
 
    参数：
      Data: TCnBigNumber                   - 待加密的大数数据
-     PublicKey: TCnRSAPublicKey           - RSA 公钥
+     PublicKey: TCnRSAPublicKey           - 用于加密的 RSA 公钥
      Res: TCnBigNumber                    - 输出的加密后的大数数据
 
    返回值：Boolean                        - 返回加密是否成功
@@ -488,7 +488,7 @@ function CnRSADecrypt(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
 
    参数：
      Res: TCnBigNumber                    - 输出的解密后的大数数据
-     PrivateKey: TCnRSAPrivateKey         - RSA 私钥
+     PrivateKey: TCnRSAPrivateKey         - 用于解密的 RSA 私钥
      Data: TCnBigNumber                   - 待解密的大数数据
 
    返回值：Boolean                        - 返回解密是否成功
@@ -500,7 +500,7 @@ function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
 
    参数：
      Res: TCnBigNumber                    - 输出的解密后的大数数据
-     PublicKey: TCnRSAPublicKey           - RSA 公钥
+     PublicKey: TCnRSAPublicKey           - 用于解密的 RSA 公钥
      Data: TCnBigNumber                   - 待解密的大数数据
 
    返回值：Boolean                        - 返回解密是否成功

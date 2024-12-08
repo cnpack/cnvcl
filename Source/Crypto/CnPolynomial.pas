@@ -84,6 +84,7 @@ type
     constructor Create(LowToHighCoefficients: array of const); overload;
     {* 构造函数，参数为从低到高的系数，注意系数初始化时大于 MaxInt32/MaxInt64 的会被当成 Integer/Int64 而变负}
     constructor Create; overload;
+    {* 构造函数}
     destructor Destroy; override;
 
     procedure SetCoefficents(LowToHighCoefficients: array of const);

@@ -96,14 +96,14 @@ type
 
   TCn25519Field64EccPoint = packed record
   {* 用多项式拆项法表示的 25519 椭圆曲线上的点（包括纯 X 射影点，Z 用 Y 代替）
-    用于提速计算，不适用其他域的椭圆曲线}
+     用于提速计算，不适用其他域的椭圆曲线}
     X: TCn25519Field64;
     Y: TCn25519Field64;
   end;
 
   TCn25519Field64Ecc4Point = packed record
   {* 用多项式拆项法表示的 25519 椭圆曲线上的四元扩展点
-    用于提速计算，不适用其他域的椭圆曲线}
+     用于提速计算，不适用其他域的椭圆曲线}
     X: TCn25519Field64;
     Y: TCn25519Field64;
     Z: TCn25519Field64;
@@ -220,9 +220,9 @@ type
        中性点(0, 1)，等同于 Weierstrass 曲线中的无穷远点。
 
        参数：
-         P: TCnEccPoint                       - 第一个加数的点坐标
-         Q: TCnEccPoint                       - 第二个加数的点坐标
-         Sum: TCnEccPoint                     - 输出的和的点坐标
+         P: TCnEccPoint                       - 第一个加数的坐标点
+         Q: TCnEccPoint                       - 第二个加数的坐标点
+         Sum: TCnEccPoint                     - 输出的和的坐标点
 
        返回值：（无）
     }
@@ -231,9 +231,9 @@ type
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
 
        参数：
-         P: TCnEccPoint                       - 被减数的点坐标
-         Q: TCnEccPoint                       - 减数的点坐标
-         Diff: TCnEccPoint                    - 输出的差的点坐标
+         P: TCnEccPoint                       - 被减数的坐标点
+         Q: TCnEccPoint                       - 减数的坐标点
+         Diff: TCnEccPoint                    - 输出的差的坐标点
 
        返回值：（无）
     }
@@ -260,7 +260,7 @@ type
     {* 判断点是否是中性点，也就是判断 X = 0 且 Y = 1，与 Weierstrass 的无限远点全 0 不同。
 
        参数：
-         P: TCnEccPoint                       - 用于判断的点坐标
+         P: TCnEccPoint                       - 用于判断的坐标点
 
        返回值：Boolean                        - 是否是中性点
     }
@@ -269,7 +269,7 @@ type
     {* 将点设为中性点，也就是 X := 0 且 Y := 1。
 
        参数：
-         P: TCnEccPoint                       - 用于设置的点坐标
+         P: TCnEccPoint                       - 用于设置的坐标点
 
        返回值：（无）
     }
@@ -363,9 +363,9 @@ type
        此处的加法的几何意义类似于 Weierstrass 椭圆曲线上的连线或切线交点再取负，同样存在无穷远点(0, 0)。
 
        参数：
-         P: TCnEccPoint                       - 第一个加数的点坐标
-         Q: TCnEccPoint                       - 第二个加数的点坐标
-         Sum: TCnEccPoint                     - 输出的和的点坐标
+         P: TCnEccPoint                       - 第一个加数的坐标点
+         Q: TCnEccPoint                       - 第二个加数的坐标点
+         Sum: TCnEccPoint                     - 输出的和的坐标点
 
        返回值：（无）
     }
@@ -373,9 +373,9 @@ type
     {* 计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
 
        参数：
-         P: TCnEccPoint                       - 被减数的点坐标
-         Q: TCnEccPoint                       - 减数的点坐标
-         Diff: TCnEccPoint                    - 输出的差的点坐标
+         P: TCnEccPoint                       - 被减数的坐标点
+         Q: TCnEccPoint                       - 减数的坐标点
+         Diff: TCnEccPoint                    - 输出的差的坐标点
 
        返回值：（无）
     }
@@ -437,7 +437,7 @@ type
 
        参数：
          Dbl: TCnEccPoint                     - 输出的二倍点的坐标
-         P: TCnEccPoint                       - 需进行二倍点运算的点坐标
+         P: TCnEccPoint                       - 需进行二倍点运算的坐标点
 
        返回值：（无）
     }
@@ -447,10 +447,10 @@ type
     {* 蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值。
 
        参数：
-         Sum: TCnEccPoint                     - 输出的和的点坐标
-         P: TCnEccPoint                       - 第一个加数的点坐标
-         Q: TCnEccPoint                       - 第二个加数的点坐标
-         PMinusQ: TCnEccPoint                 - 差点的点坐标
+         Sum: TCnEccPoint                     - 输出的和的坐标点
+         P: TCnEccPoint                       - 第一个加数的坐标点
+         Q: TCnEccPoint                       - 第二个加数的坐标点
+         PMinusQ: TCnEccPoint                 - 差点的坐标点
 
        返回值：（无）
     }
@@ -627,7 +627,7 @@ type
 
        参数：
          var Dbl: TCn25519Field64EccPoint     - 输出的二倍点的坐标
-         var P: TCn25519Field64EccPoint       - 需进行二倍点运算的点坐标
+         var P: TCn25519Field64EccPoint       - 需进行二倍点运算的坐标点
 
        返回值：（无）
     }
@@ -638,10 +638,10 @@ type
     {* 多项式形式的蒙哥马利阶梯算法中的仅 X 的射影坐标点的点加运算，Y 内部作 Z 用，除了需要两个点值外还需要一个差点值。
 
        参数：
-         var Sum: TCn25519Field64EccPoint     - 输出的和的点坐标
-         var P: TCn25519Field64EccPoint       - 第一个加数的点坐标
-         var Q: TCn25519Field64EccPoint       - 第二个加数的点坐标
-         var PMinusQ: TCn25519Field64EccPoint - 差点的点坐标
+         var Sum: TCn25519Field64EccPoint     - 输出的和的坐标点
+         var P: TCn25519Field64EccPoint       - 第一个加数的坐标点
+         var Q: TCn25519Field64EccPoint       - 第二个加数的坐标点
+         var PMinusQ: TCn25519Field64EccPoint - 差点的坐标点
 
        返回值：（无）
     }
@@ -803,7 +803,7 @@ type
     {* 判断点是否是中性点，也就是判断 X = 0 且 Y = Z <> 0 且 T = 0，与 Weierstrass 的无限远点全 0 不同。
 
        参数：
-         P: TCnEcc4Point                      - 用于判断的点坐标
+         P: TCnEcc4Point                      - 用于判断的坐标点
 
        返回值：Boolean                        - 是否是中性点
     }
@@ -812,7 +812,7 @@ type
     {* 将点设为中性点，也就是 X := 0 且 Y := 1 且 Z := 1 且 T := 0。
 
        参数：
-         P: TCnEcc4Point                      - 待设置的点坐标
+         P: TCnEcc4Point                      - 待设置的坐标点
 
        返回值：（无）
     }
@@ -824,9 +824,9 @@ type
        该算法来源于 RFC 8032，且要求该扭曲爱德华曲线的 A 得为 -1，因而 Ed25519 曲线符合而 Ed448 曲线不符合。
 
        参数：
-         P: TCnEcc4Point                      - 第一个加数的点坐标
-         Q: TCnEcc4Point                      - 第二个加数的点坐标
-         Sum: TCnEcc4Point                    - 输出的和的点坐标
+         P: TCnEcc4Point                      - 第一个加数的坐标点
+         Q: TCnEcc4Point                      - 第二个加数的坐标点
+         Sum: TCnEcc4Point                    - 输出的和的坐标点
 
        返回值：（无）
     }
@@ -835,9 +835,9 @@ type
     {* 使用扩展扭曲爱德华坐标（四元）计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
 
        参数：
-         P: TCnEcc4Point                      - 被减数的点坐标
-         Q: TCnEcc4Point                      - 减数的点坐标
-         Diff: TCnEcc4Point                   - 输出的差的点坐标
+         P: TCnEcc4Point                      - 被减数的坐标点
+         Q: TCnEcc4Point                      - 减数的坐标点
+         Diff: TCnEcc4Point                   - 输出的差的坐标点
 
        返回值：（无）
     }
@@ -887,9 +887,9 @@ type
     {* 使用扩展扭曲爱德华坐标（四元）有限域多项式的快速点加法计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同。
 
        参数：
-         var P: TCn25519Field64Ecc4Point      - 第一个加数的点坐标
-         var Q: TCn25519Field64Ecc4Point      - 第二个加数的点坐标
-         var Sum: TCn25519Field64Ecc4Point    - 输出的和的点坐标
+         var P: TCn25519Field64Ecc4Point      - 第一个加数的坐标点
+         var Q: TCn25519Field64Ecc4Point      - 第二个加数的坐标点
+         var Sum: TCn25519Field64Ecc4Point    - 输出的和的坐标点
 
        返回值：（无）
     }
@@ -899,9 +899,9 @@ type
     {* 使用扩展扭曲爱德华坐标（四元）有限域多项式计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
 
        参数：
-         var P: TCn25519Field64Ecc4Point      - 被减数的点坐标
-         var Q: TCn25519Field64Ecc4Point      - 减数的点坐标
-         var Diff: TCn25519Field64Ecc4Point   - 输出的差的点坐标
+         var P: TCn25519Field64Ecc4Point      - 被减数的坐标点
+         var Q: TCn25519Field64Ecc4Point      - 减数的坐标点
+         var Diff: TCn25519Field64Ecc4Point   - 输出的差的坐标点
 
        返回值：（无）
     }
@@ -1335,9 +1335,9 @@ type
        该算法来源于 RFC 8032，且要求该非扭曲爱德华曲线的 A 必须为 1，Ed448 曲线恰好符合。
 
        参数：
-         P: TCnEcc3Point                      - 第一个加数的点坐标
-         Q: TCnEcc3Point                      - 第二个加数的点坐标
-         Sum: TCnEcc3Point                    - 输出的和的点坐标
+         P: TCnEcc3Point                      - 第一个加数的坐标点
+         Q: TCnEcc3Point                      - 第二个加数的坐标点
+         Sum: TCnEcc3Point                    - 输出的和的坐标点
 
        返回值：（无）
     }
@@ -1346,9 +1346,9 @@ type
     {* 使用扩展非扭曲爱德华坐标（三元）计算 P - Q，值放入 Diff 中，Diff 可以是 P、Q 之一，P、Q 可以相同。
 
        参数：
-         P: TCnEcc3Point                      - 被减数的点坐标
-         Q: TCnEcc3Point                      - 减数的点坐标
-         Diff: TCnEcc3Point                   - 输出的差的点坐标
+         P: TCnEcc3Point                      - 被减数的坐标点
+         Q: TCnEcc3Point                      - 减数的坐标点
+         Diff: TCnEcc3Point                   - 输出的差的坐标点
 
        返回值：（无）
     }
@@ -1640,7 +1640,7 @@ function CnCurve25519KeyExchangeStep1(SelfPrivateKey: TCnEccPrivateKey;
 function CnCurve25519KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
   InPointFromAnother: TCnEccPoint; OutKey: TCnEccPoint; Curve25519: TCnCurve25519 = nil): Boolean;
 {* 基于 Curve25519 的 Diffie-Hellman 密钥交换算法，A 与 B 收到对方的 Point 坐标后再调用此方法，
-   根据各自私钥生成一共同的点坐标，该点坐标便为共享密钥，可再通过派生进一步复杂化。
+   根据各自私钥生成一共同的坐标点，该坐标点便为共享密钥，可再通过派生进一步复杂化。
    返回生成是否成功。
 
    参数：
@@ -2101,7 +2101,7 @@ function CnCurve448KeyExchangeStep1(SelfPrivateKey: TCnEccPrivateKey;
 function CnCurve448KeyExchangeStep2(SelfPrivateKey: TCnEccPrivateKey;
   InPointFromAnother: TCnEccPoint; OutKey: TCnEccPoint; Curve448: TCnCurve448 = nil): Boolean;
 {* 基于 Curve448 的 Diffie-Hellman 密钥交换算法，A 与 B 收到对方的 Point 坐标后再调用此方法，
-   根据各自私钥生成一共同的点坐标，该点坐标便为共享密钥，可再通过派生进一步复杂化。
+   根据各自私钥生成一共同的坐标点，该坐标点便为共享密钥，可再通过派生进一步复杂化。
    返回生成是否成功。
 
    参数：
