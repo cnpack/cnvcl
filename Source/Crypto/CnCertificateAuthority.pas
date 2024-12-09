@@ -108,7 +108,14 @@ type
     }
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 转换为字符串}
+    {* 转换为字符串
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回证书字段字符串
+    }
+
   published
     property CountryName: string read FCountryName write FCountryName;
     {* 国家名}
@@ -148,14 +155,21 @@ type
     FEccDigestType: TCnEccSignDigestType;
     procedure SetCertificateRequestInfo(const Value: TCnCertificateRequestInfo);
     procedure SetRSAPublicKey(const Value: TCnRSAPublicKey);
-    procedure SetEccPublicKey(const Value: TCnEccPublicKey); // 签名 Length 为 Key 的 Bit 数如 2048 Bit。
+    procedure SetEccPublicKey(const Value: TCnEccPublicKey);
+    // 签名 Length 为 Key 的 Bit 数如 2048 Bit。
   public
     constructor Create; virtual;
     {* 构造函数}
     destructor Destroy; override;
     {* 析构函数}
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 转换为字符串}
+    {* 转换为字符串
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回证书请求字符串
+    }
 
     property IsRSA: Boolean read FIsRSA write FIsRSA;
     {* 类型是 RSA 还是 ECC}
@@ -223,12 +237,19 @@ type
     FGenerationQualifier: string;
   public
     property SerialNumber: string read FSerialNumber write FSerialNumber;
+    {* 序列号}
     property Title: string read FTitle write FTitle;
+    {* 标题}
     property SurName: string read FSurName write FSurName;
+    {* 姓}
     property GivenName: string read FGivenName write FGivenName;
+    {* 名}
     property Initials: string read FInitials write FInitials;
+    {* 首字母}
     property Pseudonym: string read FPseudonym write FPseudonym;
+    {* 化名}
     property GenerationQualifier: string read FGenerationQualifier write FGenerationQualifier;
+    {* 世代信息}
   end;
 
   TCnCertificateSubjectInfo = class(TCnCertificateNameInfo);
@@ -246,7 +267,9 @@ type
     procedure SetUTCTimeString(const Value: string);
   public
     property DateTime: TDateTime read FDateTime write SetDateTime;
+    {* 日期时间类型}
     property UTCTimeString: string read FUTCTimeString write SetUTCTimeString;
+    {* UTC 日期时间}
   end;
 
 {
@@ -262,11 +285,15 @@ type
   TCnCerKeyUsage = (kuDigitalSignature, kuContentCommitment, kuKeyEncipherment,
     kuDataEncipherment, kuKeyAgreement, kuKeyCertSign, kuCRLSign, kuEncipherOnly,
     kuDecipherOnly);
+  {* 密钥用法}
   TCnCerKeyUsages = set of TCnCerKeyUsage;
+  {* 密钥用法集合}
 
   TCnExtendedKeyUsage = (ekuServerAuth, ekuClientAuth, ekuCodeSigning, ekuEmailProtection,
     ekuTimeStamping, ekuOCSPSigning);
+  {* 扩展密钥用法}
   TCnExtendedKeyUsages = set of TCnExtendedKeyUsage;
+  {* 扩展密钥用法集合}
 
 {
   标准扩展包括以下内容：
@@ -304,17 +331,32 @@ type
     destructor Destroy; override;
     {* 析构函数}
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 转换为字符串}
+    {* 转换为字符串
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回证书标准扩展字符串
+    }
 
     property KeyUsage: TCnCerKeyUsages read FKeyUsage write FKeyUsage;
+    {* 限定的可执行操作}
     property ExtendedKeyUsage: TCnExtendedKeyUsages read FExtendedKeyUsage write FExtendedKeyUsage;
+    {* 扩展的限定可执行操作}
     property BasicConstraintsCA: Boolean read FBasicConstraintsCA write FBasicConstraintsCA;
+    {* 能否用于签发其他证书}
     property BasicConstraintsPathLen: Integer read FBasicConstraintsPathLen write FBasicConstraintsPathLen;
+    {* 能用于签发其他证书时限制下级证书的路径长度}
     property SubjectAltName: TStrings read FSubjectAltName;
+    {* 被签发主体替代名称}
     property IssuerAltName: TStrings read FIssuerAltName;
+    {* 签发者替代名称}
     property CRLDistributionPoints: TStrings read FCRLDistributionPoints;
+    {* 证书吊销列表分发点}
     property AuthorityKeyIdentifier: AnsiString read FAuthorityKeyIdentifier write FAuthorityKeyIdentifier;
+    {* 标识颁发证书的证书颁发机构的公钥}
     property SubjectKeyIdentifier: AnsiString read FSubjectKeyIdentifier write FSubjectKeyIdentifier;
+    {* 唯一标识证书中包含的公钥的杂凑值}
   end;
 
 {
@@ -324,15 +366,24 @@ type
 }
 
   TCnCertificatePrivateInternetExtensions = class(TObject)
+  {* 证书私有互联网扩展}
   private
     FAuthorityInformationAccessCaIssuers: string;
     FAuthorityInformationAccessOcsp: string;
   public
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 转换为字符串
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回证书私有互联网扩展字符串
+    }
 
     property AuthorityInformationAccessOcsp: string read FAuthorityInformationAccessOcsp
       write FAuthorityInformationAccessOcsp;
     {* 上级签发证书 Ocsp 的 URL}
+
     property AuthorityInformationAccessCaIssuers: string read FAuthorityInformationAccessCaIssuers
       write FAuthorityInformationAccessCaIssuers;
     {* 上级签发机构证书访问 URL}
@@ -378,12 +429,18 @@ type
     destructor Destroy; override;
     {* 析构函数}
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 转换为字符串}
+    {* 转换为字符串
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回证书基本信息字符串
+    }
 
     property Version: Integer read FVersion write FVersion;
     {* 版本号，值 0、1、2 表示版本号为 v1、v2、v3，默认 v1 时可省略
-      有 extensions 时必须是 v3，无 extensions 但有 UniqueIdentifier 时 v2
-      建议生成版本 v3 的}
+       有 extensions 时必须是 v3，无 extensions 但有 UniqueIdentifier 时 v2
+       建议生成版本 v3 的}
     property SerialNumber: string read FSerialNumber write FSerialNumber;
     {* 序列号，本来应该是整型，但当作字符串处理}
     property SubjectIsRSA: Boolean read FSubjectIsRSA write FSubjectIsRSA;
@@ -439,7 +496,13 @@ type
     destructor Destroy; override;
     {* 析构函数}
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 转换为字符串}
+    {* 转换为字符串
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回证书字符串
+    }
 
     property IsSelfSigned: Boolean read GetIsSelfSigned;
     {* 是否自签名证书，使用签发者与被签发者信息是否相同来判断}
@@ -469,14 +532,47 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnRSAPrivateKey; PublicKey:
   StateOrProvinceName: string; const LocalityName: string; const OrganizationName:
   string; const OrganizationalUnitName: string; const CommonName: string; const
   EmailAddress: string; CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
-{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 CSR 格式的 RSA 证书请求文件}
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 CSR 格式的 RSA 证书请求文件。
+
+   参数：
+     PrivateKey: TCnRSAPrivateKey         - 用于生成证书请求文件的 RSA 私钥
+     PublicKey: TCnRSAPublicKey           - 用于生成证书请求文件的 RSA 公钥
+     const OutCSRFile: string             - 输出的证书请求文件名
+     const CountryName: string            - 国家名
+     const StateOrProvinceName: string    - 州名或省名
+     const LocalityName: string           - 地区名或城市名
+     const OrganizationName: string       - 组织名
+     const OrganizationalUnitName: string - 组织单位名
+     const CommonName: string             - 域名
+     const EmailAddress: string           - 电子邮件地址
+     CASignType: TCnCASignType            - 签名杂凑算法类型
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnCANewCertificateSignRequest(PrivateKey: TCnEccPrivateKey; PublicKey:
   TCnEccPublicKey; CurveType: TCnEccCurveType; const OutCSRFile: string; const CountryName: string;
   const StateOrProvinceName: string; const LocalityName: string; const OrganizationName: string;
   const OrganizationalUnitName: string; const CommonName: string; const EmailAddress: string;
   CASignType: TCnCASignType = ctSha1Ecc): Boolean; overload;
-{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 CSR 格式的 ECC 证书请求文件}
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 CSR 格式的 ECC 证书请求文件。
+
+   参数：
+     PrivateKey: TCnEccPrivateKey         - 用于生成证书请求文件的 ECC 私钥
+     PublicKey: TCnEccPublicKey           - 用于生成证书请求文件的 ECC 公钥
+     CurveType: TCnEccCurveType           - 用于生成证书请求文件的椭圆曲线类型
+     const OutCSRFile: string             - 输出的证书请求文件名
+     const CountryName: string            - 国家名
+     const StateOrProvinceName: string    - 州名或省名
+     const LocalityName: string           - 地区名或城市名
+     const OrganizationName: string       - 组织名
+     const OrganizationalUnitName: string - 组织单位名
+     const CommonName: string             - 域名
+     const EmailAddress: string           - 电子邮件地址
+     CASignType: TCnCASignType            - 签名杂凑算法类型
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
   TCnRSAPublicKey; const OutCRTFile: string; const CountryName: string; const
@@ -484,7 +580,26 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
   string; const OrganizationalUnitName: string; const CommonName: string; const
   EmailAddress: string; const IntSerialNum: string; NotBefore: TDateTime; NotAfter: TDateTime;
   CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
-{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 RSA CRT 格式的自签名证书，目前只支持 v1 格式}
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 RSA CRT 格式的自签名证书，目前只支持 v1 格式。
+
+   参数：
+     PrivateKey: TCnRSAPrivateKey         - 用于生成自签名证书的 RSA 私钥
+     PublicKey: TCnRSAPublicKey           - 用于生成自签名证书的 RSA 公钥
+     const OutCRTFile: string             - 输出的证书文件名
+     const CountryName: string            - 国家名
+     const StateOrProvinceName: string    - 州名或省名
+     const LocalityName: string           - 地区名或城市名
+     const OrganizationName: string       - 组织名
+     const OrganizationalUnitName: string - 组织单位名
+     const CommonName: string             - 域名
+     const EmailAddress: string           - 电子邮件地址
+     const IntSerialNum: string           - 序列号
+     NotBefore: TDateTime                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                  - 证书有效期结束的日期时间
+     CASignType: TCnCASignType            - 签名杂凑算法类型
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
   TCnEccPublicKey; CurveType: TCnEccCurveType; const OutCRTFile: string; const CountryName: string;
@@ -492,72 +607,217 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
   const OrganizationalUnitName: string; const CommonName: string; const EmailAddress: string;
   const IntSerialNum: string; NotBefore: TDateTime; NotAfter: TDateTime;
   CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
-{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，目前只支持 v1 格式}
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，目前只支持 v1 格式。
+
+   参数：
+     PrivateKey: TCnEccPrivateKey         - 用于生成自签名证书的 ECC 私钥
+     PublicKey: TCnEccPublicKey           - 用于生成自签名证书的 ECC 公钥
+     CurveType: TCnEccCurveType           - 用于生成自签名证书的椭圆曲线类型
+     const OutCRTFile: string             - 输出的证书文件名
+     const CountryName: string            - 国家名
+     const StateOrProvinceName: string    - 州名或省名
+     const LocalityName: string           - 地区名或城市名
+     const OrganizationName: string       - 组织名
+     const OrganizationalUnitName: string - 组织单位名
+     const CommonName: string             - 域名
+     const EmailAddress: string           - 电子邮件地址
+     const IntSerialNum: string           - 序列号
+     NotBefore: TDateTime                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                  - 证书有效期结束的日期时间
+     CASignType: TCnCASignType            - 签名杂凑算法类型
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnCALoadCertificateSignRequestFromFile(const FileName: string;
   CertificateRequest: TCnCertificateRequest): Boolean;
-{* 解析 PEM 格式的 CSR 文件并将内容放入 TCnCertificateRequest 对象中}
+{* 解析 PEM 格式的 CSR 文件并将内容加载入 TCnCertificateRequest 对象中。
+
+   参数：
+     const FileName: string                               - 待解析的 PEM 文件名
+     CertificateRequest: TCnCertificateRequest            - 加载的证书请求对象
+
+   返回值：Boolean                                        - 返回加载是否成功
+}
 
 function CnCALoadCertificateSignRequestFromStream(Stream: TStream;
   CertificateRequest: TCnCertificateRequest): Boolean;
-{* 解析 PEM 格式的 CSR 文件并将内容放入 TCnCertificateRequest 对象中}
+{* 解析 PEM 格式的 CSR 流并将内容加载入 TCnCertificateRequest 对象中。
+
+   参数：
+     Stream: TStream                                      - 待解析的 PEM 流
+     CertificateRequest: TCnCertificateRequest            - 加载的证书请求对象
+
+   返回值：Boolean                                        - 返回加载是否成功
+}
 
 function CnCAVerifyCertificateSignRequestFile(const FileName: string): Boolean;
-{* 验证一 CSR 文件的内容是否合乎签名}
+{* 验证一 CSR 文件的内容是否合乎签名。
+
+   参数：
+     const FileName: string               - 待验证的证书请求文件
+
+   返回值：Boolean                        - 返回是否合乎签名
+}
 
 function CnCAVerifyCertificateSignRequestStream(Stream: TStream): Boolean;
-{* 验证一 CSR 流的内容是否合乎签名}
+{* 验证一 CSR 流的内容是否合乎签名。
+
+   参数：
+     Stream: TStream                      - 待验证的证书请求流
+
+   返回值：Boolean                        - 返回是否合乎签名
+}
 
 function CnCAVerifySelfSignedCertificateFile(const FileName: string): Boolean;
-{* 验证一自签名的 CRT 文件的内容是否合乎签名}
+{* 验证一自签名的 CRT 文件的内容是否合乎签名。
+
+   参数：
+     const FileName: string               - 待验证的自签名证书文件
+
+   返回值：Boolean                        - 返回是否合乎签名
+}
 
 function CnCAVerifySelfSignedCertificateStream(Stream: TStream): Boolean;
-{* 验证一自签名的 CRT 流的内容是否合乎签名}
+{* 验证一自签名的 CRT 流的内容是否合乎签名。
+
+   参数：
+     Stream: TStream                      - 待验证的自签名证书流
+
+   返回值：Boolean                        - 返回是否合乎签名
+}
 
 function CnCAVerifyCertificateFile(const FileName: string;
   ParentPublicKey: TCnRSAPublicKey): Boolean; overload;
-{* 用 RSA 签发者公钥验证一 CRT 文件的内容是否合乎签名}
+{* 用 RSA 签发者公钥验证一 CRT 文件的内容是否合乎签名。
+
+   参数：
+     const FileName: string               - 待验证的证书文件
+     ParentPublicKey: TCnRSAPublicKey     - 用于验证的 RSA 签发者公钥
+
+   返回值：Boolean                        - 返回是否合乎签名
+}
 
 function CnCAVerifyCertificateFile(const FileName: string; ParentPublicKey: TCnEccPublicKey;
   ParentCurveType: TCnEccCurveType): Boolean; overload;
-{* 用 ECC 签发者公钥验证一 CRT 文件的内容是否合乎签名}
+{* 用 ECC 签发者公钥验证一 CRT 文件的内容是否合乎签名。
+
+   参数：
+     const FileName: string               - 待验证的证书文件
+     ParentPublicKey: TCnEccPublicKey     - 用于验证的 ECC 签发者公钥
+     ParentCurveType: TCnEccCurveType     - 用于验证的签发者的椭圆曲线类型
+
+   返回值：Boolean                        - 返回是否合乎签名
+}
 
 function CnCAVerifyCertificateStream(Stream: TStream;
   ParentPublicKey: TCnRSAPublicKey): Boolean; overload;
-{* 用 RSA 签发者公钥验证一 CRT 流的内容是否合乎签名}
+{* 用 RSA 签发者公钥验证一 CRT 流的内容是否合乎签名。
+
+   参数：
+     Stream: TStream                      - 待验证的证书流
+     ParentPublicKey: TCnRSAPublicKey     - 用于验证的 RSA 签发者公钥
+
+   返回值：Boolean                        - 返回是否合乎签名
+}
 
 function CnCAVerifyCertificateStream(Stream: TStream; ParentPublicKey: TCnEccPublicKey;
   ParentCurveType: TCnEccCurveType): Boolean; overload;
-{* 用 ECC 签发者公钥验证一 CRT 流的内容是否合乎签名}
+{* 用 ECC 签发者公钥验证一 CRT 流的内容是否合乎签名。
+
+   参数：
+     Stream: TStream                      - 待验证的证书流
+     ParentPublicKey: TCnEccPublicKey     - 用于验证的 ECC 签发者公钥
+     ParentCurveType: TCnEccCurveType     - 用于验证的签发者的椭圆曲线类型
+
+   返回值：Boolean                        - 返回是否合乎签名
+}
 
 function CnCALoadCertificateFromFile(const FileName: string;
   Certificate: TCnCertificate; const Password: string = ''): Boolean;
-{* 解析 PEM 格式的 CRT 证书文件或原始的二进制 CER 文件，并将内容放入 TCnCertificate 对象中}
+{* 解析 PEM 格式的 CRT 证书文件或原始的二进制 CER 文件，并将内容放入 TCnCertificate 对象中。
+
+   参数：
+     const FileName: string               - 待解析的文件名
+     Certificate: TCnCertificate          - 加载的证书对象
+     const Password: string               - 证书如加密，此处提供对应密码
+
+   返回值：Boolean                        - 返回加载是否成功
+}
 
 function CnCALoadCertificateFromStream(Stream: TStream;
   Certificate: TCnCertificate; const Password: string = ''): Boolean;
-{* 解析 PEM 格式的 CRT 证书流或原始的二进制 CER 流，并将内容放入 TCnCertificate 对象中}
+{* 解析 PEM 格式的 CRT 证书流或原始的二进制 CER 流，并将内容放入 TCnCertificate 对象中。
+
+   参数：
+     Stream: TStream                      - 待解析的流
+     Certificate: TCnCertificate          - 加载的证书对象
+     const Password: string               - 证书如加密，此处提供对应密码
+
+   返回值：Boolean                        - 返回加载是否成功
+}
 
 function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string;
   const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
   NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
-{* 用 RSA CRT 证书内容与对应私钥签署证书请求，生成被签发证书，目前只支持 v1 格式
-   兼容客户端证书请求是 ECC/RSA 的情形}
+{* 用 RSA CRT 证书内容与对应私钥签署证书请求，生成被签发证书，目前只支持 v1 格式，
+   兼容客户端证书请求是 ECC/RSA 的情形。
+
+   参数：
+     PrivateKey: TCnRSAPrivateKey         - 用于签发证书的上级 RSA 私钥
+     const CRTFile: string                - 用于签发的上级证书
+     const CSRFile: string                - 待签发的证书请求文件
+     const OutCRTFile: string             - 输出的签发证书
+     const IntSerialNum: string           - 序列号
+     NotBefore: TDateTime                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                  - 证书有效期结束的日期时间
+     CASignType: TCnCASignType            - 签名杂凑算法类型
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 function CnCASignCertificate(PrivateKey: TCnEccPrivateKey; CurveType: TCnEccCurveType;
   const CRTFile: string; const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
   NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1Ecc): Boolean; overload;
-{* 用 ECC CRT 证书内容与对应私钥签署证书请求，生成被签发证书，目前只支持 v1 格式
-  兼容客户端证书请求是 ECC/RSA 的情形}
+{* 用 ECC CRT 证书内容与对应私钥签署证书请求，生成被签发证书，目前只支持 v1 格式，
+   兼容客户端证书请求是 ECC/RSA 的情形。
+
+   参数：
+     PrivateKey: TCnEccPrivateKey         - 用于签发证书的上级 ECC 私钥
+     CurveType: TCnEccCurveType           - 用于签发证书的上级椭圆曲线类型
+     const CRTFile: string                - 用于签发的上级证书
+     const CSRFile: string                - 待签发的证书请求文件
+     const OutCRTFile: string             - 输出的签发证书
+     const IntSerialNum: string           - 序列号
+     NotBefore: TDateTime                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                  - 证书有效期结束的日期时间
+     CASignType: TCnCASignType            - 签名杂凑算法类型
+
+   返回值：Boolean                        - 返回生成是否成功
+}
 
 // =============================== 其他辅助函数 ================================
 
 function AddCASignTypeOIDNodeToWriter(AWriter: TCnBerWriter; CASignType: TCnCASignType;
   AParent: TCnBerWriteNode): TCnBerWriteNode;
-{* 将一个杂凑算法的 OID 写入一个 Ber 节点}
+{* 将一个杂凑算法的 OID 写入一个 BER 节点的子节点。
+
+   参数：
+     AWriter: TCnBerWriter                - BER 写入对象的实例
+     CASignType: TCnCASignType            - 证书的签名杂凑算法
+     AParent: TCnBerWriteNode             - 待写入节点的父节点
+
+   返回值：TCnBerWriteNode                - 返回新增的节点
+}
 
 function GetCASignNameFromSignType(Sign: TCnCASignType): string;
-{* 从证书的签名杂凑算法枚举值获取其名称}
+{* 从证书的签名杂凑算法枚举值获取其名称。
+
+   参数：
+     Sign: TCnCASignType                  - 证书的签名杂凑算法
+
+   返回值：string                         - 返回证书的签名杂凑算法
+}
 
 implementation
 
