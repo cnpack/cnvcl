@@ -223,6 +223,10 @@ const
   SCommaString = ',';
   SPeriodString = '.';
 
+resourcestring
+  SCnErrorMapViewOfFile = 'MapViewOfFile Failed. ';
+  SCnErrorCreateFileMapping = 'CreateFileMapping Failed. ';
+
 function CnGetLastError: Integer;
 
 procedure _CnSetLastError(Err: Integer);

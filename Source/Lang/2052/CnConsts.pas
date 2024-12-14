@@ -227,6 +227,10 @@ const
   SCommaString = '£¬';
   SPeriodString = '¡£';
 
+resourcestring
+  SCnErrorMapViewOfFile = 'MapViewOfFile Ê§°Ü ';
+  SCnErrorCreateFileMapping = 'CreateFileMapping Ê§°Ü ';
+
 function CnGetLastError: Integer;
 
 procedure _CnSetLastError(Err: Integer);
