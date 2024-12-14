@@ -414,17 +414,17 @@ type
     procedure SetToInfinity;
     {* 坐标设为无限远}
     procedure GetCoordinatesFP2(const FP2X, FP2Y: TCnFP2);
-    {* 获取 XY 坐标值，内部采用复制}
+    {* 获取 X、Y 坐标值，内部采用复制}
     procedure SetCoordinatesFP2(const FP2X, FP2Y: TCnFP2);
-    {* 设置 XY 坐标值，内部采用复制}
+    {* 设置 X、Y 坐标值，内部采用复制}
     procedure SetCoordinatesHex(const SX0, SX1, SY0, SY1: string);
-    {* 设置 XY 坐标值，使用十六进制字符串}
+    {* 设置 X、Y 坐标值，使用十六进制字符串}
     procedure SetCoordinatesBigNumbers(const X0, X1, Y0, Y1: TCnBigNumber);
-    {* 设置 XY 坐标值，使用大数对象，内部采用复制}
+    {* 设置 X、Y 坐标值，使用大数对象，内部采用复制}
     procedure GetJacobianCoordinatesFP12(const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber);
-    {* 获取扩展 XY 坐标值，内部采用复制}
+    {* 获取扩展 X、Y 坐标值，内部采用复制}
     procedure SetJacobianCoordinatesFP12(const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber);
-    {* 设置扩展 XY 坐标值，内部采用复制}
+    {* 设置扩展 X、Y 坐标值，内部采用复制}
     function IsOnCurve(Prime: TCnBigNumber): Boolean;
     {* 判断是否在椭圆曲线 y^2 = x^3 + 5 上}
 
@@ -534,7 +534,7 @@ type
 
   TCnSM9EncryptionUserPrivateKey = class(TCnFP2Point);
   {* SM9 中的用户加密私钥，用于密钥封装或加解密，由 KGC 密钥管理中心根据用户标识生成，无对应公钥
-    或者说，用户解密时用的公钥就是用户标识与加密主公钥}
+     或者说，用户解密时用的公钥就是用户标识与加密主公钥}
 
   TCnSM9KeyEncapsulationCode = class(TCnEccPoint);
   {* 密钥封装传输的内容}
