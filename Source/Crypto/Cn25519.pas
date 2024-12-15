@@ -172,7 +172,7 @@ type
          const Order: AnsiString              - 扭曲爱德华曲线方程的 G 点的阶的十六进制字符串形式
          H: Integer                           - 扭曲爱德华曲线方程的辅助因子
 
-       返回值：（无）
+       返回值：TCnTwistedEdwardsCurve         - 返回创建的对象实例
     }
 
     destructor Destroy; override;
@@ -316,7 +316,7 @@ type
          const Order: AnsiString              - 蒙哥马利曲线方程的 G 点的阶的十六进制字符串形式
          H: Integer                           - 蒙哥马利曲线方程的辅助因子
 
-       返回值：（无）
+       返回值：TCnMontgomeryCurve             - 返回创建的对象实例
     }
 
     destructor Destroy; override;
@@ -1131,7 +1131,9 @@ type
     FS: TCnBigNumber;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Assign(Source: TPersistent); override;
     {* 从其他对象赋值而来。

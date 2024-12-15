@@ -170,6 +170,8 @@ type
 
        参数：
          CRT: Boolean                     - 是否使用 CRT 在特定场合进行私钥加密运算加速，默认不使用
+
+       返回：TCnRSAPrivateKey             - 返回创建的对象实例
     }
 
     destructor Destroy; override;

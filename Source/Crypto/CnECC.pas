@@ -163,7 +163,7 @@ type
          GY: Int64                        - 魏尔斯特拉斯椭圆曲线方程的 G 点的 Y 坐标
          Order: Int64                     - 魏尔斯特拉斯椭圆曲线方程的 G 点的阶
 
-       返回值：（无）
+       返回值：TCnInt64Ecc                - 返回创建的对象实例
     }
 
     destructor Destroy; override;
