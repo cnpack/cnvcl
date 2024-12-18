@@ -281,7 +281,7 @@ type
        参数：
          W: Cardinal                      - 待赋值的 32 位无符号整数
 
-       返回值：Boolean                    - 返回赋值是否成功
+       返回值：Boolean                    - 返回是否赋值成功
     }
 
     function GetInteger: Integer;
@@ -299,7 +299,7 @@ type
        参数：
          W: Integer                       - 待赋值的 32 位有符号整数
 
-       返回值：Boolean                    - 返回赋值是否成功
+       返回值：Boolean                    - 返回是否赋值成功
     }
 
     function GetInt64: Int64;
@@ -317,7 +317,7 @@ type
        参数：
          W: Int64                         - 待赋值的 64 位有符号整数
 
-       返回值：Boolean                    - 返回赋值是否成功
+       返回值：Boolean                    - 返回是否赋值成功
     }
 
 {$IFDEF SUPPORT_UINT64}
@@ -337,7 +337,7 @@ type
        参数：
          W: UInt64                        - 待赋值的 64 位无符号整数
 
-       返回值：Boolean                    - 返回赋值是否成功
+       返回值：Boolean                    - 返回是否赋值成功
     }
 
 {$ENDIF}
@@ -523,7 +523,7 @@ type
          Buf: PAnsiChar                   - 待赋值的数据块地址
          ByteLen: Integer                 - 待赋值的数据块字节长度
 
-       返回值：Boolean                    - 返回赋值是否成功
+       返回值：Boolean                    - 返回是否赋值成功
     }
 
     class function FromBinary(Buf: PAnsiChar; ByteLen: Integer): TCnBigNumber;
@@ -587,7 +587,7 @@ type
        参数：
          const Buf: AnsiString            - 待赋值的十六进制字符串
 
-       返回值：Boolean                    - 返回赋值是否成功
+       返回值：Boolean                    - 返回是否赋值成功
     }
 
     class function FromHex(const Buf: AnsiString): TCnBigNumber;
@@ -614,7 +614,7 @@ type
        参数：
          const Buf: AnsiString            - 待赋值的 Base64 字符串
 
-       返回值：Boolean                    - 返回赋值是否成功
+       返回值：Boolean                    - 返回是否赋值成功
     }
 
     class function FromBase64(const Buf: AnsiString): TCnBigNumber;
@@ -641,7 +641,7 @@ type
        参数：
          const Buf: AnsiString            - 待赋值的十六进制字符串
 
-       返回值：Boolean                    - 返回赋值是否成功
+       返回值：Boolean                    - 返回是否赋值成功
     }
 
     class function FromDec(const Buf: AnsiString): TCnBigNumber;
@@ -659,7 +659,7 @@ type
        参数：
          F: Extended                      - 待赋值的浮点数
 
-       返回值：Boolean                    - 返回赋值是否成功
+       返回值：Boolean                    - 返回是否赋值成功
     }
 
     class function FromFloat(F: Extended): TCnBigNumber;
@@ -1250,7 +1250,7 @@ function BigNumberDivWord(Num: TCnBigNumber; W: TCnBigNumberElement): TCnBigNumb
 }
 
 procedure BigNumberAndWord(Num: TCnBigNumber; W: TCnBigNumberElement);
-{* 大数与一个 UInt32/UInt64 元素做按位与，结果仍放 Num 中，返回按位与是否成功。
+{* 大数与一个 UInt32/UInt64 元素做按位与，结果仍放 Num 中。
 
    参数：
      Num: TCnBigNumber                    - 待计算的大数对象
@@ -1260,7 +1260,7 @@ procedure BigNumberAndWord(Num: TCnBigNumber; W: TCnBigNumberElement);
 }
 
 procedure BigNumberOrWord(Num: TCnBigNumber; W: TCnBigNumberElement);
-{* 大数与一个 UInt32/UInt64 元素做按位或，结果仍放 Num 中，返回按位或是否成功。
+{* 大数与一个 UInt32/UInt64 元素做按位或，结果仍放 Num 中。
 
    参数：
      Num: TCnBigNumber                    - 待计算的大数对象
@@ -1270,7 +1270,7 @@ procedure BigNumberOrWord(Num: TCnBigNumber; W: TCnBigNumberElement);
 }
 
 procedure BigNumberXorWord(Num: TCnBigNumber; W: TCnBigNumberElement);
-{* 大数与一个 UInt32/UInt64 元素做按位异或，结果仍放 Num 中，返回按位异或是否成功。
+{* 大数与一个 UInt32/UInt64 元素做按位异或，结果仍放 Num 中。
 
    参数：
      Num: TCnBigNumber                    - 待计算的大数对象
@@ -1441,946 +1441,949 @@ function BigNumberSetBinary(Buf: PAnsiChar; ByteLen: Integer; Res: TCnBigNumber)
    参数：
      Buf: PAnsiChar                       - 待赋值的数据块地址
      ByteLen: Integer                     - 待赋值的数据块字节长度
-     Res: TCnBigNumber                    - 待赋值的大数对象
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
 
-   返回值：Boolean                        - 返回赋值是否成功
+   返回值：Boolean                        - 返回是否赋值成功
 }
 
 function BigNumberToBase64(Num: TCnBigNumber): string;
-{* 将一个大数对象转成 Base64 字符串，不处理正负号
+{* 将一个大数对象转成 Base64 字符串，不处理正负号。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待转换的大数对象
 
-   返回值：string                         -
+   返回值：string                         - 返回 Base64 字符串
 }
 
 function BigNumberSetBase64(const Buf: AnsiString; Res: TCnBigNumber): Boolean;
-{* 将一串 Base64 字符串赋值给指定大数对象，不处理正负号
+{* 将一串 Base64 字符串赋值给指定大数对象，不处理正负号。
 
    参数：
-     const Buf: AnsiString                -
-     Res: TCnBigNumber                    -
+     const Buf: AnsiString                - 待转换的 Base64 字符串
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否赋值成功
 }
 
 function BigNumberFromBase64(const Buf: AnsiString): TCnBigNumber;
-{* 将一串 Base64 字符串转换为大数对象，不处理正负号。其结果不用时必须用 BigNumberFree 释放
+{* 根据一串 Base64 字符串产生一个新的大数对象，不处理正负号。其结果不用时必须用 BigNumberFree 释放
 
    参数：
-     const Buf: AnsiString                -
+     const Buf: AnsiString                - 待使用的 Base64 字符串
 
-   返回值：TCnBigNumber                   -
+   返回值：TCnBigNumber                   - 返回新建的大数对象
 }
 
 function BigNumberToString(Num: TCnBigNumber): string;
-{* 将一个大数对象转成普通可读的十六进制字符串，负以 - 表示
+{* 将一个大数对象转成普通可读的十六进制字符串，负以 - 表示。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待转换的大数对象
 
-   返回值：string                         -
+   返回值：string                         - 返回十六进制字符串
 }
 
 function BigNumberToHex(Num: TCnBigNumber; FixedLen: Integer = 0): string;
-{* 将一个大数对象转成十六进制字符串，负以 - 表示
-  FixedLen 表示大数内容不够 FixedLen 字节长度时高位补足 0 以保证结果中输出固定 FixedLen 字节的长度（不包括负号）
-  内部大数长度超过 FixedLen 时按大数实际长度写。注意 FixedLen 不是十六进制字符串长度
+{* 将一个大数对象转成十六进制字符串，负以 - 表示。
+   FixedLen 表示大数内容不够 FixedLen 字节长度时高位补足 0 以保证结果中输出固定 FixedLen 字节的长度（不包括负号）。
+   内部大数长度超过 FixedLen 时按大数实际长度写。注意 FixedLen 不是十六进制字符串长度。
 
    参数：
-     Num: TCnBigNumber                    -
-     FixedLen: Integer                    -
+     Num: TCnBigNumber                    - 待转换的大数对象
+     FixedLen: Integer                    - 指定大数实际字节长度不足时使用的固定字节长度并字符串前面补 00，为 0 时则使用大数实际字节长度
 
-   返回值：string                         -
+   返回值：string                         - 返回十六进制字符串
 }
 
 function BigNumberSetHex(const Buf: AnsiString; Res: TCnBigNumber): Boolean;
-{* 将一串十六进制字符串赋值给指定大数对象，负以 - 表示，内部不能包括回车换行
-  注意由于通常字符串的左边表示高位，而大数内部高位在高地址方向，因而内部有个倒序过程
+{* 将一串十六进制字符串赋值给指定大数对象，负以 - 表示，内部不能包括回车换行。
+   注意由于通常字符串的左边表示高位，而大数内部高位在高地址方向，因而内部有个倒序过程。
 
    参数：
-     const Buf: AnsiString                -
-     Res: TCnBigNumber                    -
+     const Buf: AnsiString                - 待赋值的十六进制字符串
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否赋值成功
 }
 
 function BigNumberFromHex(const Buf: AnsiString): TCnBigNumber;
 {* 将一串十六进制字符串转换为大数对象，负以 - 表示。其结果不用时必须用 BigNumberFree 释放
 
    参数：
-     const Buf: AnsiString                -
+     const Buf: AnsiString                - 待使用的十六进制字符串
 
-   返回值：TCnBigNumber                   -
+   返回值：TCnBigNumber                   - 返回新建的大数对象
 }
 
 function BigNumberToDec(Num: TCnBigNumber): AnsiString;
-{* 将一个大数对象转成十进制字符串，负以 - 表示
+{* 将一个大数对象转成十进制字符串，负以 - 表示。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待转换的大数对象
 
-   返回值：AnsiString                     -
+   返回值：AnsiString                     - 返回十进制字符串
 }
 
 function BigNumberSetDec(const Buf: AnsiString; Res: TCnBigNumber): Boolean;
-{* 将一串十进制字符串赋值给指定大数对象，负以 - 表示，内部不能包括回车换行
+{* 将一串十进制字符串赋值给指定大数对象，负以 - 表示，内部不能包括回车换行。
 
    参数：
-     const Buf: AnsiString                -
-     Res: TCnBigNumber                    -
+     const Buf: AnsiString                - 待赋值的十进制字符串
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否赋值成功
 }
 
 function BigNumberFromDec(const Buf: AnsiString): TCnBigNumber;
-{* 将一串十进制字符串转换为大数对象，负以 - 表示。其结果不用时必须用 BigNumberFree 释放
+{* 将一串十进制字符串转换为大数对象，负以 - 表示。其结果不用时必须用 BigNumberFree 释放。
 
    参数：
-     const Buf: AnsiString                -
+     const Buf: AnsiString                - 待使用的十进制字符串
 
-   返回值：TCnBigNumber                   -
+   返回值：TCnBigNumber                   - 返回新建的大数对象
 }
 
 function BigNumberSetFloat(F: Extended; Res: TCnBigNumber): Boolean;
-{* 将浮点数设置给大数对象，忽略小数部分
+{* 将浮点数设置给大数对象，忽略小数部分。
 
    参数：
-     F: Extended                          -
-     Res: TCnBigNumber                    -
+     F: Extended                          - 待赋值的浮点数
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否赋值成功
 }
 
 function BigNumberGetFloat(Num: TCnBigNumber): Extended;
-{* 将大数转换为浮点数，超标时本应抛出异常但目前暂未处理
+{* 将大数转换为浮点数，超标时本应抛出异常但目前暂未处理。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待转换的大数对象
 
-   返回值：Extended                       -
+   返回值：Extended                       - 返回浮点数
 }
 
 function BigNumberFromFloat(F: Extended): TCnBigNumber;
-{* 将浮点数转换为新建的大数对象，其结果不用时必须用 BigNumberFree 释放
+{* 将浮点数转换为新建的大数对象，其结果不用时必须用 BigNumberFree 释放。
 
    参数：
-     F: Extended                          -
+     F: Extended                          - 待使用的浮点数
 
-   返回值：TCnBigNumber                   -
+   返回值：TCnBigNumber                   - 返回新建的大数对象
 }
 
 function BigNumberEqual(Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
-{* 比较两个大数对象是否相等，相等返回 True，不等返回 False
+{* 比较两个大数对象是否相等，相等返回 True，不等返回 False。
 
    参数：
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Num1: TCnBigNumber                   - 待比较的大数对象一
+     Num2: TCnBigNumber                   - 待比较的大数对象二
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相等
 }
 
 function BigNumberCompare(Num1: TCnBigNumber; Num2: TCnBigNumber): Integer;
-{* 带符号比较两个大数对象，前者大于等于小于后者分别返回 1、0、-1
+{* 带符号比较两个大数对象，前者大于、等于、小于后者时分别返回 1、0、-1。
 
    参数：
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Num1: TCnBigNumber                   - 待比较的大数对象一
+     Num2: TCnBigNumber                   - 待比较的大数对象二
 
-   返回值：Integer                        -
+   返回值：Integer                        - 返回比较结果
 }
 
 function BigNumberCompareInteger(Num1: TCnBigNumber; Num2: Integer): Integer;
-{* 带符号比较一个大数对象与一个整数，前者大于等于小于后者分别返回 1、0、-1
+{* 带符号比较一个大数对象与一个整数，前者大于、等于、小于后者时分别返回 1、0、-1。
 
    参数：
-     Num1: TCnBigNumber                   -
-     Num2: Integer                        -
+     Num1: TCnBigNumber                   - 待比较的大数对象
+     Num2: Integer                        - 待比较的整数
 
-   返回值：Integer                        -
+   返回值：Integer                        - 返回比较结果
 }
 
 function BigNumberUnsignedCompare(Num1: TCnBigNumber; Num2: TCnBigNumber): Integer;
-{* 无符号比较两个大数对象，前者大于等于小于后者分别返回 1、0、-1
+{* 无符号比较两个大数对象，也就是比较绝对值。前者大于、等于、小于后者时分别返回 1、0、-1。
 
    参数：
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Num1: TCnBigNumber                   - 待比较的大数对象一
+     Num2: TCnBigNumber                   - 待比较的大数对象二
 
-   返回值：Integer                        -
+   返回值：Integer                        - 返回比较结果
 }
 
 function BigNumberDuplicate(Num: TCnBigNumber): TCnBigNumber;
-{* 创建并复制一个大数对象，返回此新大数对象，需要用 BigNumberFree 来释放
+{* 创建并复制一个大数对象，返回此新大数对象，需要用 BigNumberFree 来释放。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待复制的大数对象
 
-   返回值：TCnBigNumber                   -
+   返回值：TCnBigNumber                   - 返回新建的大数对象
 }
 
 function BigNumberCopy(Dst: TCnBigNumber; Src: TCnBigNumber): TCnBigNumber;
-{* 复制一个大数对象，成功返回 Dst
+{* 复制一个大数对象，成功返回 Dst 对象。
 
    参数：
-     Dst: TCnBigNumber                    -
-     Src: TCnBigNumber                    -
+     Dst: TCnBigNumber                    - 目标大数对象
+     Src: TCnBigNumber                    - 源大数对象
 
-   返回值：TCnBigNumber                   -
+   返回值：TCnBigNumber                   - 复制成功则返回目标大数对象，失败返回 nil
 }
 
 function BigNumberCopyLow(Dst: TCnBigNumber; Src: TCnBigNumber;
   WordCount: Integer): TCnBigNumber;
-{* 复制一个大数对象的低 WordCount 个 LongWord，成功返回 Dst
+{* 复制一个大数对象的低 WordCount 个 UInt32/UInt64 元素，成功返回 Dst。
 
    参数：
-     Dst: TCnBigNumber                    -
-     Src: TCnBigNumber                    -
-     WordCount: Integer                   -
+     Dst: TCnBigNumber                    - 目标大数对象
+     Src: TCnBigNumber                    - 源大数对象
+     WordCount: Integer                   - 待复制的低位元素数
 
-   返回值：TCnBigNumber                   -
+   返回值：TCnBigNumber                   - 复制成功则返回目标大数对象，失败返回 nil
 }
 
 function BigNumberCopyHigh(Dst: TCnBigNumber; Src: TCnBigNumber;
   WordCount: Integer): TCnBigNumber;
-{* 复制一个大数对象的高 WordCount 个 LongWord，成功返回 Dst
+{* 复制一个大数对象的高 WordCount 个 UInt32/UInt64 元素，成功返回 Dst。
 
    参数：
-     Dst: TCnBigNumber                    -
-     Src: TCnBigNumber                    -
-     WordCount: Integer                   -
+     Dst: TCnBigNumber                    - 目标大数对象
+     Src: TCnBigNumber                    - 源大数对象
+     WordCount: Integer                   - 待复制的高位元素数
 
-   返回值：TCnBigNumber                   -
+   返回值：TCnBigNumber                   - 复制成功则返回目标大数对象，失败返回 nil
 }
 
 function BigNumberGetLow32(Num: TCnBigNumber): Cardinal;
-{* 取出一个大数的低 32 位，不处理符号
+{* 取出一个大数的低 32 位，不处理符号。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待处理的大数对象
 
-   返回值：Cardinal                       -
+   返回值：Cardinal                       - 返回低 32 位无符号整数
 }
 
 function BigNumberGetLow64(Num: TCnBigNumber): TUInt64;
-{* 取出一个大数的低 64 位，不处理符号
+{* 取出一个大数的低 64 位，不处理符号。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待处理的大数对象
 
-   返回值：TUInt64                        -
+   返回值：TUInt64                        - 返回低 64 位无符号整数
 }
 
 procedure BigNumberSwap(Num1: TCnBigNumber; Num2: TCnBigNumber);
-{* 交换两个大数对象的内容
+{* 交换两个大数对象的内容。
 
    参数：
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Num1: TCnBigNumber                   - 待交换的大数对象一
+     Num2: TCnBigNumber                   - 待交换的大数对象二
 
    返回值：（无）
 }
 
 procedure BigNumberSwapBit(Num: TCnBigNumber; BitIndex1: Integer; BitIndex2: Integer);
-{* 交换大数中两个指定 Bit 位的内容，BitIndex 均以 0 开始
+{* 交换大数中两个指定 Bit 位的内容，BitIndex 均以 0 开始。
 
    参数：
-     Num: TCnBigNumber                    -
-     BitIndex1: Integer                   -
-     BitIndex2: Integer                   -
+     Num: TCnBigNumber                    - 待交换的大数对象
+     BitIndex1: Integer                   - 待交换的位索引一
+     BitIndex2: Integer                   - 待交换的位索引二
 
    返回值：（无）
 }
 
 function BigNumberRandBytes(Num: TCnBigNumber; BytesCount: Integer): Boolean;
-{* 产生固定字节长度的随机大数，不保证最高位置 1，甚至最高字节都不保证非 0
+{* 产生固定字节长度的随机大数，不保证最高位置 1，甚至最高字节都不保证非 0。
 
    参数：
-     Num: TCnBigNumber                    -
-     BytesCount: Integer                  -
+     Num: TCnBigNumber                    - 待容纳随机数的大数对象
+     BytesCount: Integer                  - 字节长度
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回生成是否成功
 }
 
 function BigNumberRandBits(Num: TCnBigNumber; BitsCount: Integer): Boolean;
-{* 产生固定位长度的随机大数，不保证最高位置 1，甚至最高字节都不保证非 0
+{* 产生固定位长度的随机大数，不保证最高位置 1，甚至最高字节都不保证非 0。
 
    参数：
-     Num: TCnBigNumber                    -
-     BitsCount: Integer                   -
+     Num: TCnBigNumber                    - 待容纳随机数的大数对象
+     BitsCount: Integer                   - 位长度
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回生成是否成功
 }
 
 function BigNumberRandRange(Num: TCnBigNumber; Range: TCnBigNumber): Boolean;
-{* 产生 [0, Range) 之间的随机大数
+{* 产生 [0, Range) 之间的随机大数。
 
    参数：
-     Num: TCnBigNumber                    -
-     Range: TCnBigNumber                  -
+     Num: TCnBigNumber                    - 待容纳随机数的大数对象
+     Range: TCnBigNumber                  - 随机数上限，不会等于该数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回生成是否成功
 }
 
 function BigNumberAnd(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
-{* 两个大数对象按位与，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2
+{* 两个大数对象按位与，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num1: TCnBigNumber                   - 待按位与的大数对象一
+     Num2: TCnBigNumber                   - 待按位与的大数对象二
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否按位与成功
 }
 
 function BigNumberOr(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
-{* 两个大数对象按位或，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2
+{* 两个大数对象按位或，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num1: TCnBigNumber                   - 待按位或的大数对象一
+     Num2: TCnBigNumber                   - 待按位或的大数对象二
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否按位或成功
 }
 
 function BigNumberXor(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
-{* 两个大数对象按位异或，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2
+{* 两个大数对象按位异或，结果放至 Res 中，返回运算是否成功。Res 可以是 Num1 或 Num2。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num1: TCnBigNumber                   - 待按位异或的大数对象一
+     Num2: TCnBigNumber                   - 待按位异或的大数对象二
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否按位异或成功
 }
 
 function BigNumberUnsignedAdd(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
-{* 两个大数对象无符号相加，结果放至 Res 中，返回相加是否成功。Res 可以是 Num1 或 Num2
+{* 两个大数对象无符号相加，结果放至 Res 中，返回相加是否成功。Res 可以是 Num1 或 Num2。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Res: TCnBigNumber                    - 用来容纳和的大数对象
+     Num1: TCnBigNumber                   - 加数一
+     Num2: TCnBigNumber                   - 加数二
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相加成功
 }
 
 function BigNumberUnsignedSub(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
 {* 两个大数对象无符号相减，Num1 减 Num2，结果放至 Res 中，
-  返回相减是否成功，如 Num1 < Num2 则失败
+   返回相减是否成功，如 Num1 < Num2 则失败。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Res: TCnBigNumber                    - 用来容纳差的大数对象
+     Num1: TCnBigNumber                   - 被减数，绝对值必须大于等于减数
+     Num2: TCnBigNumber                   - 减数，绝对值必须小于等于被减数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相减成功
 }
 
 function BigNumberAdd(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
-{* 两个大数对象带符号相加，结果放至 Res 中，返回相加是否成功，Num1 可以是 Num2，Res 可以是 Num1 或 Num2
+{* 两个大数对象带符号相加，结果放至 Res 中，返回相加是否成功，Num1 可以是 Num2，Res 可以是 Num1 或 Num2。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Res: TCnBigNumber                    - 用来容纳和的大数对象
+     Num1: TCnBigNumber                   - 加数一
+     Num2: TCnBigNumber                   - 加数二
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相加成功
 }
 
 function BigNumberSub(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
-{* 两个大数对象带符号相减，结果放至 Res 中，返回相减是否成功，Num1 可以是 Num2，Res 可以是 Num1 或 Num2
+{* 两个大数对象带符号相减，结果放至 Res 中，返回相减是否成功，Num1 可以是 Num2，Res 可以是 Num1 或 Num2。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Res: TCnBigNumber                    - 用来容纳差的大数对象
+     Num1: TCnBigNumber                   - 被减数
+     Num2: TCnBigNumber                   - 减数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相减成功
 }
 
 function BigNumberShiftLeftOne(Res: TCnBigNumber; Num: TCnBigNumber): Boolean;
-{* 将一大数对象左移一位，结果放至 Res 中，返回左移是否成功，Res 可以是 Num
+{* 将一大数对象左移一位，结果放至 Res 中，返回左移是否成功，Res 可以是 Num。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num: TCnBigNumber                    - 待左移的大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回左移是否成功
 }
 
 function BigNumberShiftRightOne(Res: TCnBigNumber; Num: TCnBigNumber): Boolean;
-{* 将一大数对象右移一位，结果放至 Res 中，返回右移是否成功，Res 可以是 Num
+{* 将一大数对象右移一位，结果放至 Res 中，返回右移是否成功，Res 可以是 Num。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num: TCnBigNumber                    - 待右移的大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回右移是否成功
 }
 
 function BigNumberShiftLeft(Res: TCnBigNumber; Num: TCnBigNumber;
   N: Integer): Boolean;
-{* 将一大数对象左移 N 位，结果放至 Res 中，返回左移是否成功，Res 可以是 Num
+{* 将一大数对象左移 N 位，结果放至 Res 中，返回左移是否成功，Res 可以是 Num。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
-     N: Integer                           -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num: TCnBigNumber                    - 待左移的大数对象
+     N: Integer                           - 左移位数，为负时代表右移
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回左移是否成功
 }
 
 function BigNumberShiftRight(Res: TCnBigNumber; Num: TCnBigNumber;
   N: Integer): Boolean;
-{* 将一大数对象右移 N 位，结果放至 Res 中，返回右移是否成功，Res 可以是 Num
+{* 将一大数对象右移 N 位，结果放至 Res 中，返回右移是否成功，Res 可以是 Num。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
-     N: Integer                           -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num: TCnBigNumber                    - 待右移的大数对象
+     N: Integer                           - 右移位数，为负时代表左移
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回右移是否成功
 }
 
 function BigNumberSqr(Res: TCnBigNumber; Num: TCnBigNumber): Boolean;
-{* 计算一大数对象的平方，结果放 Res 中，返回平方计算是否成功，Res 可以是 Num
+{* 计算一大数对象的平方，结果放 Res 中，返回平方计算是否成功，Res 可以是 Num。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num: TCnBigNumber                    - 待计算的大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberSqrt(Res: TCnBigNumber; Num: TCnBigNumber): Boolean;
-{* 计算一大数对象的平方根的整数部分，结果放 Res 中，返回平方计算是否成功，Res 可以是 Num
+{* 计算一大数对象的平方根的整数部分，结果放 Res 中，返回平方计算是否成功，Res 可以是 Num。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num: TCnBigNumber                    - 待计算的大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberRoot(Res: TCnBigNumber; Num: TCnBigNumber;
   Exponent: Integer): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-{* 计算一大数对象的 Exp 次方根的整数部分，结果放 Res 中，返回根计算是否成功
-  要求 Num 不能为负，Exponent 不能为 0 或负
-  注：FIXME: 因为大数无法进行浮点计算，目前整数运算有偏差，结果偏大，不推荐使用！
+{* 计算一大数对象的 Exp 次方根的整数部分，结果放 Res 中，返回根计算是否成功。
+   要求 Num 不能为负，Exponent 不能为 0 或负。
+   注：FIXME: 因为大数无法进行浮点计算，目前整数运算有偏差，结果偏大，不推荐使用！
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
-     Exponent: Integer                    -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num: TCnBigNumber                    - 待计算的大数对象
+     Exponent: Integer                    - 次方根数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberMul(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
-{* 计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功，Res 可以是 Num1 或 Num2
+{* 计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功，Res 可以是 Num1 或 Num2。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Res: TCnBigNumber                    - 用来容纳积的大数对象
+     Num1: TCnBigNumber                   - 乘数一
+     Num2: TCnBigNumber                   - 乘数二
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相乘成功
 }
 
 function BigNumberMulKaratsuba(Res: TCnBigNumber; Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
-{* 用 Karatsuba 算法计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功，Res 可以是 Num1 或 Num2
-  注：好像也没见快到哪里去
+{* 用 Karatsuba 算法计算两大数对象的乘积，结果放 Res 中，返回乘积计算是否成功，Res 可以是 Num1 或 Num2。
+   注：好像也没见快到哪里去。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Res: TCnBigNumber                    - 用来容纳积的大数对象
+     Num1: TCnBigNumber                   - 乘数一
+     Num2: TCnBigNumber                   - 乘数二
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相乘成功
 }
 
 function BigNumberMulFloat(Res: TCnBigNumber; Num: TCnBigNumber; F: Extended): Boolean;
-{* 计算大数对象与浮点数的乘积，结果取整后放 Res 中，返回乘积计算是否成功，Res 可以是 Num
+{* 计算大数对象与浮点数的乘积，结果取整后放 Res 中，返回乘积计算是否成功，Res 可以是 Num。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
-     F: Extended                          -
+     Res: TCnBigNumber                    - 用来容纳积的大数对象
+     Num: TCnBigNumber                    - 大数对象乘数
+     F: Extended                          - 浮点数乘数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相乘成功
 }
 
 function BigNumberDiv(Res: TCnBigNumber; Remain: TCnBigNumber; Num: TCnBigNumber;
   Divisor: TCnBigNumber): Boolean;
 {* 两大数对象相除，Num / Divisor，商放 Res 中，余数放 Remain 中，返回除法计算是否成功，
-   Res 可以是 Num，Remain 可以是 nil 以不需要计算余数
-   被除数与除数均以正数相除得到正的商和正的余数，之后的正负规则如下：
+   Res 可以是 Num，Remain 可以是 nil 以不需要计算余数。
+   被除数与除数均以正数相除得到正的商和正的余数，之后的正负规则举例如下：
    正被除数正除数得到正商和正余数，如  1005 /  100 =  10 ...  5
    负被除数正除数得到负商和负余数，如 -1005 /  100 = -10 ... -5
    正被除数负除数得到负商和正余数，如  1005 / -100 = -10 ...  5
    负被除数负除数得到正商和负余数，如 -1005 / -100 =  10 ... -5
-   余数符号跟着被除数走，余数绝对值会小于除数绝对值，且不会出现余 95 这种情况
+   余数符号跟着被除数走，余数绝对值会小于除数绝对值，且不会出现余 95 这种情况。
 
    参数：
-     Res: TCnBigNumber                    -
-     Remain: TCnBigNumber                 -
-     Num: TCnBigNumber                    -
-     Divisor: TCnBigNumber                -
+     Res: TCnBigNumber                    - 用来容纳商的大数对象
+     Remain: TCnBigNumber                 - 用来容纳余数的大数对象，可为 nil
+     Num: TCnBigNumber                    - 被除数
+     Divisor: TCnBigNumber                - 除数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相除成功
 }
 
 function BigNumberRoundDiv(Res: TCnBigNumber; Num: TCnBigNumber;
   Divisor: TCnBigNumber; out Rounding: Boolean): Boolean;
 {* 两大数对象相除，Num / Divisor，商四舍五入放 Res 中，Res 可以是 Num，
-   注意入的方向始终是绝对值大的方向，与 Round 函数基本保持一致，但忽略其四舍六入五成双的规则，逢五必入
-   返回除法计算是否成功，Rounding 参数返回真实结果的舍入情况，True 表示入，False 表示舍
+   注意入的方向始终是绝对值大的方向，与 Round 函数基本保持一致，但忽略其四舍六入五成双的规则，逢五必入。
+   返回除法计算是否成功，Rounding 参数返回真实结果的舍入情况，True 表示入，False 表示舍。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
-     Divisor: TCnBigNumber                -
-     out Rounding: Boolean                -
+     Res: TCnBigNumber                    - 用来容纳商的大数对象
+     Num: TCnBigNumber                    - 被除数
+     Divisor: TCnBigNumber                - 除数
+     out Rounding: Boolean                - 返回真实结果的舍入情况，True 表示入，False 表示舍
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相除成功
 }
 
 function BigNumberMod(Remain: TCnBigNumber; Num: TCnBigNumber; Divisor: TCnBigNumber): Boolean;
-{* 两大数对象求余，Num mod Divisor，余数放 Remain 中，
-   余数正负规则等同于 BigNumberDiv，返回求余计算是否成功，Remain 可以是 Num
+{* 两大数对象求余，Num mod Divisor，余数放 Remain 中，余数正负规则等同于 BigNumberDiv 函数。
+   返回求余计算是否成功，Remain 可以是 Num。
 
    参数：
-     Remain: TCnBigNumber                 -
-     Num: TCnBigNumber                    -
-     Divisor: TCnBigNumber                -
+     Remain: TCnBigNumber                 - 用来容纳余数的大数对象
+     Num: TCnBigNumber                    - 被除数
+     Divisor: TCnBigNumber                - 除数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否求余成功
 }
 
 function BigNumberNonNegativeMod(Remain: TCnBigNumber;
   Num: TCnBigNumber; Divisor: TCnBigNumber): Boolean;
-{* 两大数对象非负求余，Num mod Divisor，余数放 Remain 中，0 <= Remain < |Divisor|
-   余数的正负规则等同于 BigNumberMod 后再通过加减 Divisor 以确保 Remain 始终大于零
-   与 BigNumberMod 不同的是
+{* 两大数对象非负求余，Num mod Divisor，余数放 Remain 中，0 <= Remain < |Divisor|，
+   余数的正负规则等同于 BigNumberMod 后再通过加减 Divisor 以确保 Remain 始终大于零。
+   与 BigNumberMod 不同的是：
    负被除数正除数先得到负商和负余数，负余数需加正除数，如 -1005 /  100 = ... 95
    负被除数负除数先得到正商和负余数，负余数需减负除数，如 -1005 / -100 = ... 95
-   返回求余计算是否成功
+   返回求余计算是否成功。
 
    参数：
-     Remain: TCnBigNumber                 -
-     Num: TCnBigNumber                    -
-     Divisor: TCnBigNumber                -
+     Remain: TCnBigNumber                 - 用来容纳余数的大数对象
+     Num: TCnBigNumber                    - 被除数
+     Divisor: TCnBigNumber                - 除数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否求余成功
 }
 
 function BigNumberMulWordNonNegativeMod(Res: TCnBigNumber;
   Num: TCnBigNumber; N: Integer; Divisor: TCnBigNumber): Boolean;
-{* 大数对象乘以 32位有符号整型再非负求余，余数放 Res 中，0 <= Remain < |Divisor|
-   Res 始终大于零，返回求余计算是否成功
+{* 大数对象乘以 32 位有符号整型再非负求余，余数放 Res 中，0 <= Remain < |Divisor|。
+   Res 始终大于零，返回求余计算是否成功。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
-     N: Integer                           -
-     Divisor: TCnBigNumber                -
+     Res: TCnBigNumber                    - 用来容纳余数的大数对象
+     Num: TCnBigNumber                    - 被除数
+     N: Integer                           - 乘数
+     Divisor: TCnBigNumber                - 除数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否求余成功
 }
 
 function BigNumberAddMod(Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber; Divisor: TCnBigNumber): Boolean;
-{* 大数对象求和后非负求余，也就是 Res = (Num1 + Num2) mod Divisor 返回求余计算是否成功
+{* 大数对象求和后非负求余，也就是 Res = (Num1 + Num2) mod Divisor，返回求余计算是否成功。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
-     Divisor: TCnBigNumber                -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num1: TCnBigNumber                   - 加数一
+     Num2: TCnBigNumber                   - 加数二
+     Divisor: TCnBigNumber                - 除数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否求余成功
 }
 
 function BigNumberSubMod(Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber; Divisor: TCnBigNumber): Boolean;
-{* 大数对象求差后非负求余，也就是 Res = (Num1 - Num2) mod Divisor 返回求余计算是否成功
+{* 大数对象求差后非负求余，也就是 Res = (Num1 - Num2) mod Divisor，返回求余计算是否成功。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
-     Divisor: TCnBigNumber                -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num1: TCnBigNumber                   - 被减数
+     Num2: TCnBigNumber                   - 减数
+     Divisor: TCnBigNumber                - 除数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否求余成功
 }
 
 function BigNumberDivFloat(Res: TCnBigNumber; Num: TCnBigNumber;
   F: Extended): Boolean;
-{* 计算大数对象与浮点数的商，结果取整后放 Res 中，返回乘积计算是否成功，Res 可以是 Num
+{* 计算大数对象与浮点数的商，结果取整后放 Res 中，返回相除是否成功，Res 可以是 Num。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
-     F: Extended                          -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num: TCnBigNumber                    - 大数对象被除数
+     F: Extended                          - 浮点数除数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相除成功
 }
 
 function BigNumberPower(Res: TCnBigNumber; Num: TCnBigNumber;
   Exponent: Cardinal): Boolean;
-{* 求大数的整数次方，返回计算是否成功，Res 可以是 Num
+{* 求大数的整数次方，返回计算是否成功，Res 可以是 Num。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
-     Exponent: Cardinal                   -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num: TCnBigNumber                    - 底数
+     Exponent: Cardinal                   - 指数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberExp(Res: TCnBigNumber; Num: TCnBigNumber;
   Exponent: TCnBigNumber): Boolean;
-{* 求大数 Num 的 Exponent  次方，返回乘方计算是否成功，极其耗时
+{* 求大数 Num 的 Exponent  次方，返回乘方计算是否成功，极其耗时。
+   Res 可以是 Num 或 Exponent。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
-     Exponent: TCnBigNumber               -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num: TCnBigNumber                    - 底数
+     Exponent: TCnBigNumber               - 指数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberGcd(Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
-{* 求俩大数 Num1 与 Num2 的最大公约数，Res 可以是 Num1 或 Num2
+{* 求两个大数 Num1 与 Num2 的最大公约数，Res 可以是 Num1 或 Num2。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num1: TCnBigNumber                   - 待求最大公约数的大数对象一
+     Num2: TCnBigNumber                   - 待求最大公约数的大数对象二
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberLcm(Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
-{* 求俩大数 Num1 与 Num2 的最小公倍数，Res 可以是 Num1 或 Num2
+{* 求两个大数 Num1 与 Num2 的最小公倍数，Res 可以是 Num1 或 Num2。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num1: TCnBigNumber                   -
-     Num2: TCnBigNumber                   -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num1: TCnBigNumber                   - 待求最小公倍数的大数对象一
+     Num2: TCnBigNumber                   - 待求最小公倍数的大数对象二
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberUnsignedMulMod(Res: TCnBigNumber; A: TCnBigNumber;
   B: TCnBigNumber; C: TCnBigNumber): Boolean;
-{* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
-  注意: 三个参数均会忽略负值，也就是均用正值参与计算
+{* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）。
+   注意: 三个参数均会忽略负值，也就是均用正值参与计算。
 
    参数：
-     Res: TCnBigNumber                    -
-     A: TCnBigNumber                      -
-     B: TCnBigNumber                      -
-     C: TCnBigNumber                      -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     A: TCnBigNumber                      - 乘数一
+     B: TCnBigNumber                      - 乘数二
+     C: TCnBigNumber                      - 除数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberMulMod(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber;
   C: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-{* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
-  注意: A、B 允许是负值，乘积为负时，结果为 C - 乘积为正的余
-  另外该方法因为比下面的 BigNumberDirectMulMod 慢，所以不建议使用
+{* 快速计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）。
+   注意: A、B 允许是负值，乘积为负时，结果为 C - 乘积为正的余。
+   另外该方法因为比下面的 BigNumberDirectMulMod 慢，所以不建议使用。
 
    参数：
-     Res: TCnBigNumber                    -
-     A: TCnBigNumber                      -
-     B: TCnBigNumber                      -
-     C: TCnBigNumber                      -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     A: TCnBigNumber                      - 乘数一
+     B: TCnBigNumber                      - 乘数二
+     C: TCnBigNumber                      - 除数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberDirectMulMod(Res: TCnBigNumber; A: TCnBigNumber;
   B: TCnBigNumber; C: TCnBigNumber): Boolean;
-{* 普通计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）
-  注意：位数较少时，该方法比上面的 BigNumberMulMod 方法要快不少，另外内部执行的是 NonNegativeMod，余数为正
+{* 普通计算 (A * B) mod C，返回计算是否成功，Res 不能是 C。A、B、C 保持不变（如果 Res 不是 A、B 的话）。
+   注意：位数较少时，该方法比上面的 BigNumberMulMod 方法要快不少，另外内部执行的是 NonNegativeMod，余数为正。
 
    参数：
-     Res: TCnBigNumber                    -
-     A: TCnBigNumber                      -
-     B: TCnBigNumber                      -
-     C: TCnBigNumber                      -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     A: TCnBigNumber                      - 乘数一
+     B: TCnBigNumber                      - 乘数二
+     C: TCnBigNumber                      - 除数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberMontgomeryReduction(Res: TCnBigNumber; T: TCnBigNumber;
   R: TCnBigNumber; N: TCnBigNumber; NNegInv: TCnBigNumber): Boolean;
-{* 蒙哥马利约简法快速计算 T * R^-1 mod N 其中要求 R 是刚好比 N 大的 2 整数次幂，
-  NNegInv 是预先计算好的 N 对 R 的负模逆元，T 不能为负且小于 N * R
+{* 蒙哥马利约简法快速计算 (T * R^-1) mod N，其中要求 R 是刚好比 N 大的 2 整数次幂，
+   NNegInv 是预先计算好的 N 对 R 的负模逆元，T 不能为负且必须小于 N * R。
 
    参数：
-     Res: TCnBigNumber                    -
-     T: TCnBigNumber                      -
-     R: TCnBigNumber                      -
-     N: TCnBigNumber                      -
-     NNegInv: TCnBigNumber                -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     T: TCnBigNumber                      - 蒙哥马利约简法里的 T
+     R: TCnBigNumber                      - 蒙哥马利约简法里的 R
+     N: TCnBigNumber                      - 蒙哥马利约简法里的模数 N
+     NNegInv: TCnBigNumber                - 预先计算好的 N 对 R 的负模逆元
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberMontgomeryMulMod(Res: TCnBigNumber; A: TCnBigNumber;
   B: TCnBigNumber; R: TCnBigNumber; R2ModN: TCnBigNumber;
   N: TCnBigNumber; NNegInv: TCnBigNumber): Boolean;
-{* 蒙哥马利模乘法（内部使用四次蒙哥马利约简法）快速计算 A * B mod N，其中要求 R 是刚好比 N 大的 2 整数次幂，
-  R2ModN 是预先计算好的 R^2 mod N 的值，NNegInv 是预先计算好的 N 对 R 的负模逆元
+{* 蒙哥马利模乘法（内部使用四次蒙哥马利约简法）快速计算 A * B * R^-1 mod N，其中要求 R 是刚好比 N 大的 2 整数次幂，
+   R2ModN 是预先计算好的 R^2 mod N 的值，NNegInv 是预先计算好的 N 对 R 的负模逆元。
 
    参数：
-     Res: TCnBigNumber                    -
-     A: TCnBigNumber                      -
-     B: TCnBigNumber                      -
-     R: TCnBigNumber                      -
-     R2ModN: TCnBigNumber                 -
-     N: TCnBigNumber                      -
-     NNegInv: TCnBigNumber                -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     A: TCnBigNumber                      - 蒙哥马利模乘法里的乘数一
+     B: TCnBigNumber                      - 蒙哥马利模乘法里的乘数二
+     R: TCnBigNumber                      - 蒙哥马利模乘法里的 R
+     R2ModN: TCnBigNumber                 - 预先计算好的 R^2 mod N 的值
+     N: TCnBigNumber                      - 蒙哥马利约简法里的模数 N
+     NNegInv: TCnBigNumber                - 预先计算好的 N 对 R 的负模逆元
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberPowerWordMod(Res: TCnBigNumber; A: TCnBigNumber;
   B: Cardinal; C: TCnBigNumber): Boolean;
-{* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、C 之一，内部调用 BigNumberPowerMod
+{* 快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、C 之一，内部调用 BigNumberPowerMod。
 
    参数：
-     Res: TCnBigNumber                    -
-     A: TCnBigNumber                      -
-     B: Cardinal                          -
-     C: TCnBigNumber                      -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     A: TCnBigNumber                      - 大数对象乘数
+     B: Cardinal                          - 整数乘数
+     C: TCnBigNumber                      - 模数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberPowerMod(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber;
   C: TCnBigNumber): Boolean;
-{* 滑动窗口法快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能比下面的蒙哥马利法好大约百分之十
+{* 滑动窗口法快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能比下面的蒙哥马利法好大约百分之十。
 
    参数：
-     Res: TCnBigNumber                    -
-     A: TCnBigNumber                      -
-     B: TCnBigNumber                      -
-     C: TCnBigNumber                      -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     A: TCnBigNumber                      - 乘数一
+     B: TCnBigNumber                      - 乘数二
+     C: TCnBigNumber                      - 模数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberMontgomeryPowerMod(Res: TCnBigNumber; A: TCnBigNumber;
   B: TCnBigNumber; C: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-{* 蒙哥马利法快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能略差，可以不用
+{* 蒙哥马利法快速计算 (A ^ B) mod C，返回计算是否成功，Res 不能是 A、B、C 之一，性能略差，可以不用。
 
    参数：
-     Res: TCnBigNumber                    -
-     A: TCnBigNumber                      -
-     B: TCnBigNumber                      -
-     C: TCnBigNumber                      -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     A: TCnBigNumber                      - 乘数一
+     B: TCnBigNumber                      - 乘数二
+     C: TCnBigNumber                      - 模数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberPowerPowerMod(Res: TCnBigNumber; A: TCnBigNumber;
   B: TCnBigNumber; C: TCnBigNumber; N: TCnBigNumber): Boolean;
-{* 快速计算 A ^ (B ^ C) mod N，更不能直接算，更容易溢出。Res 不能是 A、B、C、N 之一
+{* 快速计算 A ^ (B ^ C) mod N，更不能直接算，更容易溢出。Res 不能是 A、B、C、N 之一。
 
    参数：
-     Res: TCnBigNumber                    -
-     A: TCnBigNumber                      -
-     B: TCnBigNumber                      -
-     C: TCnBigNumber                      -
-     N: TCnBigNumber                      -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     A: TCnBigNumber                      - 底数一
+     B: TCnBigNumber                      - 底数二
+     C: TCnBigNumber                      - 指数
+     N: TCnBigNumber                      - 模数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberLog2(Num: TCnBigNumber): Extended;
-{* 返回大数的 2 为底的对数的扩展精度浮点值，内部用扩展精度浮点实现，超界未处理
+{* 返回大数的 2 为底的对数的扩展精度浮点值，内部用扩展精度浮点实现。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待计算的大数对象
 
-   返回值：Extended                       -
+   返回值：Extended                       - 返回 2 为底的对数值
 }
 
 function BigNumberLog10(Num: TCnBigNumber): Extended;
-{* 返回大数的 10 为底的常用对数的扩展精度浮点值，内部用扩展精度浮点实现，超界未处理
+{* 返回大数的 10 为底的常用对数的扩展精度浮点值，内部用扩展精度浮点实现。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待计算的大数对象
 
-   返回值：Extended                       -
+   返回值：Extended                       - 返回常用对数值
 }
 
 function BigNumberLogN(Num: TCnBigNumber): Extended;
-{* 返回大数的 e 为底的自然对数的扩展精度浮点值，内部用扩展精度浮点实现，超界未处理
+{* 返回大数的 e 为底的自然对数的扩展精度浮点值，内部用扩展精度浮点实现。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待计算的大数对象
 
-   返回值：Extended                       -
+   返回值：Extended                       - 返回自然对数值
 }
 
 function BigNumberFermatCheckComposite(A: TCnBigNumber; B: TCnBigNumber;
   C: TCnBigNumber; T: Integer): Boolean;
 {* Miller-Rabin 算法中的单次费马测试，返回 True 表示 B 不是素数，
-  注意 A B C 并非任意选择，B 是待测试的素数，A 是随机数，C 是 B - 1 右移 T 位后得到的第一个奇数
+   注意 A B C 并非任意选择，B 是待测试的素数，A 是随机数，C 是 B - 1 右移 T 位后得到的第一个奇数。
 
    参数：
-     A: TCnBigNumber                      -
-     B: TCnBigNumber                      -
-     C: TCnBigNumber                      -
-     T: Integer                           -
+     A: TCnBigNumber                      - 随机数
+     B: TCnBigNumber                      - 待测试的素数
+     C: TCnBigNumber                      - B - 1 右移 T 位后得到的第一个奇数
+     T: Integer                           - Miller-Rabin 算法中的 T 值
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberIsProbablyPrime(Num: TCnBigNumber; TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
-{* 概率性判断一个大数是否素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
-  注意不能采用简单的费马小定理判断或 Solovay-Strassen 概率性素性检测，因为对 Carmichael 数无效
+{* 概率性判断一个大数是否素数，TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢。
+   注意不能采用简单的费马小定理判断或 Solovay-Strassen 概率性素性检测，因为对 Carmichael 数无效。
 
    参数：
-     Num: TCnBigNumber                    -
-     TestCount: Integer                   -
+     Num: TCnBigNumber                    - 待判断的大数对象
+     TestCount: Integer                   - 测试次数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否素数
 }
 
 function BigNumberGeneratePrime(Num: TCnBigNumber; BytesCount: Integer;
   TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
-{* 生成一个指定字节位数的大素数，不保证最高位为 1。TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
+{* 生成一个指定字节长度的大素数，不保证最高位为 1。
+   TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢。
 
    参数：
-     Num: TCnBigNumber                    -
-     BytesCount: Integer                  -
-     TestCount: Integer                   -
+     Num: TCnBigNumber                    - 用来容纳结果的大数对象
+     BytesCount: Integer                  - 字节长度
+     TestCount: Integer                   - 测试次数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否生成成功
 }
 
 function BigNumberGeneratePrimeByBitsCount(Num: TCnBigNumber; BitsCount: Integer;
   TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
-{* 生成一个指定二进制位数的大素数，最高位确保为 1。TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
+{* 生成一个指定二进制位数的大素数，最高位确保为 1。
+   TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢。
 
    参数：
-     Num: TCnBigNumber                    -
-     BitsCount: Integer                   -
-     TestCount: Integer                   -
+     Num: TCnBigNumber                    - 用来容纳结果的大数对象
+     BitsCount: Integer                   - 位长度
+     TestCount: Integer                   - 测试次数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否生成成功
 }
 
 function BigNumberNextPrime(Res: TCnBigNumber; Num: TCnBigNumber;
   TestCount: Integer = CN_BN_MILLER_RABIN_DEF_COUNT): Boolean;
-{* 生成一个比 Num 大或相等的大素数，结果放 Res，Res 可以是 Num，
-  TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
+{* 生成一个比 Num 大或相等的大素数，结果放 Res，Res 可以是 Num。
+   TestCount 指 Miller-Rabin 算法的测试次数，越大越精确也越慢
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
-     TestCount: Integer                   -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num: TCnBigNumber                    - 待比较的大数对象
+     TestCount: Integer                   - 测试次数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否生成成功
 }
 
 function BigNumberCheckPrimitiveRoot(R: TCnBigNumber; Prime: TCnBigNumber; Factors: TCnBigNumberList): Boolean;
-{* 原根判断辅助函数。判断 R 是否对于 Prime - 1 的每个因子，都有 R ^ (剩余因子的积) mod Prime <> 1
-   Factors 必须是 Prime - 1 的不重复的质因数列表，可从 BigNumberFindFactors 获取并去重而来
+{* 原根判断辅助函数。判断 R 是否对于 Prime - 1 的每个因子，都有 R ^ (剩余因子的积) mod Prime <> 1。
+   Factors 必须是 Prime - 1 的不重复的素数因子列表，可从 BigNumberFindFactors 获取并去重而来。
 
    参数：
-     R: TCnBigNumber                      -
-     Prime: TCnBigNumber                  -
-     Factors: TCnBigNumberList            -
+     R: TCnBigNumber                      - 待判断的大数对象
+     Prime: TCnBigNumber                  - 素数
+     Factors: TCnBigNumberList            - Prime - 1 的不重复的素数因子列表
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否判断成功
 }
 
 function BigNumberGetMinRootFromPrime(Res: TCnBigNumber; Prime: TCnBigNumber): Boolean;
-{* 计算一素数的原根，返回计算是否成功
+{* 计算一素数的原根，返回计算是否成功。
 
    参数：
-     Res: TCnBigNumber                    -
-     Prime: TCnBigNumber                  -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Prime: TCnBigNumber                  - 素数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberIsInt32(Num: TCnBigNumber): Boolean;
-{* 大数是否是一个 32 位有符号整型范围内的数
+{* 大数是否是一个 32 位有符号整数范围内的数。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待判断的大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否在 32 位有符号整数范围内
 }
 
 function BigNumberIsUInt32(Num: TCnBigNumber): Boolean;
-{* 大数是否是一个 32 位无符号整型范围内的数
+{* 大数是否是一个 32 位无符号整数范围内的数。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待判断的大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否在 32 位无符号整数范围内
 }
 
 function BigNumberIsInt64(Num: TCnBigNumber): Boolean;
-{* 大数是否是一个 64 位有符号整型范围内的数
+{* 大数是否是一个 64 位有符号整数范围内的数。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待判断的大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否在 64 位有符号整数范围内
 }
 
 function BigNumberIsUInt64(Num: TCnBigNumber): Boolean;
-{* 大数是否是一个 64 位无符号整型范围内的数
+{* 大数是否是一个 64 位无符号整型范围内的数。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待判断的大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否在 64 位无符号整数范围内
 }
 
 procedure BigNumberExtendedEuclideanGcd(A: TCnBigNumber; B: TCnBigNumber; X: TCnBigNumber;
   Y: TCnBigNumber);
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
-   调用者需自行保证 A B 互素，因为结果只满足 A * X + B * Y = GCD(A, B)
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解。
+   调用者需自行保证 A B 互素，因为结果只满足 A * X + B * Y = GCD(A, B)。
    A, B 是已知大数，X, Y 是解出来的结果，注意 X 有可能小于 0，如需要正数，可以再加上 B
 
    参数：
-     A: TCnBigNumber                      -
-     B: TCnBigNumber                      -
-     X: TCnBigNumber                      -
-     Y: TCnBigNumber                      -
+     A: TCnBigNumber                      - 二元一次不定方程系数 A
+     B: TCnBigNumber                      - 二元一次不定方程系数 B
+     X: TCnBigNumber                      - 用来容纳结果 X 的大数对象
+     Y: TCnBigNumber                      - 用来容纳结果 Y 的大数对象
 
    返回值：（无）
 }
 
 procedure BigNumberExtendedEuclideanGcd2(A: TCnBigNumber; B: TCnBigNumber; X: TCnBigNumber;
   Y: TCnBigNumber);
-{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解
-   调用者需自行保证 A B 互素，因为结果只满足 A * X + B * Y = GCD(A, B)
-   A, B 是已知大数，X, Y 是解出来的结果，注意 X 有可能小于 0，如需要正数，可以再加上 B
-   X 被称为 A 针对 B 的模反元素，因此本算法也用来算 A 针对 B 的模反元素
-   （由于可以视作 -Y，所以本方法与上一方法是等同的）
+{* 扩展欧几里得辗转相除法求二元一次不定方程 A * X - B * Y = 1 的整数解。
+   调用者需自行保证 A B 互素，因为结果只满足 A * X + B * Y = GCD(A, B)。
+   A, B 是已知大数，X, Y 是解出来的结果，注意 X 有可能小于 0，如需要正数，可以再加上 B。
+   X 被称为 A 针对 B 的模反元素，因此本算法也用来算 A 针对 B 的模反元素。
+   （由于可以视作 -Y，所以本方法与上一方法是等同的）。
 
    参数：
-     A: TCnBigNumber                      -
-     B: TCnBigNumber                      -
-     X: TCnBigNumber                      -
-     Y: TCnBigNumber                      -
+     A: TCnBigNumber                      - 二元一次不定方程系数 A
+     B: TCnBigNumber                      - 二元一次不定方程系数 B
+     X: TCnBigNumber                      - 用来容纳结果 X 的大数对象
+     Y: TCnBigNumber                      - 用来容纳结果 Y 的大数对象
 
    返回值：（无）
 }
@@ -2388,214 +2391,213 @@ procedure BigNumberExtendedEuclideanGcd2(A: TCnBigNumber; B: TCnBigNumber; X: TC
 function BigNumberModularInverse(Res: TCnBigNumber;
   X: TCnBigNumber; Modulus: TCnBigNumber; CheckGcd: Boolean = False): Boolean;
 {* 求 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
-   CheckGcd 参数为 True 时，内部会检查 X、Modulus 是否互素，不互素则直接返回 False
-   调用者须自行保证 X、Modulus 互素，且 Res 不能是 X 或 Modulus
+   CheckGcd 参数为 True 时，内部会检查 X、Modulus 是否互素，不互素则直接返回 False。
+   调用者须自行保证 X、Modulus 互素，且 Res 不能是 X 或 Modulus。
 
    参数：
-     Res: TCnBigNumber                    -
-     X: TCnBigNumber                      -
-     Modulus: TCnBigNumber                -
-     CheckGcd: Boolean                    -
+     Res: TCnBigNumber                    - 用来容纳模逆元的大数对象
+     X: TCnBigNumber                      - 待计算的大数对象
+     Modulus: TCnBigNumber                - 模数
+     CheckGcd: Boolean                    - 是否检查互素
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberPrimeModularInverse(Res: TCnBigNumber;
   X: TCnBigNumber; Modulus: TCnBigNumber): Boolean;
 {* 求 X 针对素数 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
-   CheckGcd 参数为 True 时，内部会检查 X、Modulus 是否互素，不互素则直接返回 False
    调用者须自行保证 Modulus 为素数，且 Res 不能是 X 或 Modulus，内部用费马小定理求值，略慢
 
    参数：
-     Res: TCnBigNumber                    -
-     X: TCnBigNumber                      -
-     Modulus: TCnBigNumber                -
+     Res: TCnBigNumber                    - 用来容纳模逆元的大数对象
+     X: TCnBigNumber                      - 待计算的大数对象
+     Modulus: TCnBigNumber                - 模素数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberNegativeModularInverse(Res: TCnBigNumber;
   X: TCnBigNumber; Modulus: TCnBigNumber; CheckGcd: Boolean = False): Boolean;
 {* 求 X 针对 Modulus 的负模反或叫负模逆元 Y，满足 (X * Y) mod M = -1，X 可为负值，Y 求出正值。
-   调用者须自行保证 X、Modulus 互素，且 Res 不能是 X 或 Modulus
+   调用者须自行保证 X、Modulus 互素，且 Res 不能是 X 或 Modulus。
 
    参数：
-     Res: TCnBigNumber                    -
-     X: TCnBigNumber                      -
-     Modulus: TCnBigNumber                -
-     CheckGcd: Boolean                    -
+     Res: TCnBigNumber                    - 用来容纳负模逆元的大数对象
+     X: TCnBigNumber                      - 待计算的大数对象
+     Modulus: TCnBigNumber                - 模数
+     CheckGcd: Boolean                    - 是否检查互素
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 procedure BigNumberModularInverseWord(Res: TCnBigNumber;
   X: Integer; Modulus: TCnBigNumber; CheckGcd: Boolean = False);
 {* 求 32 位有符号数 X 针对 Modulus 的模反或叫模逆元 Y，满足 (X * Y) mod M = 1，X 可为负值，Y 求出正值。
-   调用者须自行保证 X、Modulus 互素，且 Res 不能是 X 或 Modulus
+   调用者须自行保证 X、Modulus 互素，且 Res 不能是 X 或 Modulus。
 
    参数：
-     Res: TCnBigNumber                    -
-     X: Integer                           -
-     Modulus: TCnBigNumber                -
-     CheckGcd: Boolean                    -
+     Res: TCnBigNumber                    - 用来容纳模逆元的大数对象
+     X: Integer                           - 待计算的整数
+     Modulus: TCnBigNumber                - 模数
+     CheckGcd: Boolean                    - 否检查互素
 
    返回值：（无）
 }
 
 function BigNumberLegendre(A: TCnBigNumber; P: TCnBigNumber): Integer;
-{* 用二次互反律递归计算勒让德符号 ( A / P) 的值，较快。调用者需自行保证 P 为奇素数
+{* 用二次互反律递归计算勒让德符号 (A / P) 的值，较快。调用者需自行保证 P 为奇素数。
 
    参数：
-     A: TCnBigNumber                      -
-     P: TCnBigNumber                      -
+     A: TCnBigNumber                      - 勒让德符号中的 A
+     P: TCnBigNumber                      - 勒让德符号中的 P
 
-   返回值：Integer                        -
+   返回值：Integer                        - 返回勒让德符号
 }
 
 function BigNumberLegendre2(A: TCnBigNumber; P: TCnBigNumber): Integer; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-{* 用欧拉判别法计算勒让德符号 ( A / P) 的值，较慢，不推荐使用
+{* 用欧拉判别法计算勒让德符号 (A / P) 的值，较慢，不推荐使用。
 
    参数：
-     A: TCnBigNumber                      -
-     P: TCnBigNumber                      -
+     A: TCnBigNumber                      - 勒让德符号中的 A
+     P: TCnBigNumber                      - 勒让德符号中的 P
 
-   返回值：Integer                        -
+   返回值：Integer                        - 返回勒让德符号
 }
 
 function BigNumberTonelliShanks(Res: TCnBigNumber; A: TCnBigNumber; P: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
-{* 使用 Tonelli-Shanks 算法进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解
-   调用者需自行保证 P 为奇素数或奇素数的整数次方，该方法略慢，不推荐使用
+{* 使用 Tonelli-Shanks 算法进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解。
+   调用者需自行保证 P 为奇素数或奇素数的整数次方，该方法略慢，不推荐使用。
 
    参数：
-     Res: TCnBigNumber                    -
-     A: TCnBigNumber                      -
-     P: TCnBigNumber                      -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     A: TCnBigNumber                      - 模素数二次剩余中的 A
+     P: TCnBigNumber                      - 模素数二次剩余中的 P
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否有解
 }
 
 function BigNumberLucas(Res: TCnBigNumber; A: TCnBigNumber; P: TCnBigNumber): Boolean;
-{* 使用 IEEE P1363 规范中的 Lucas 序列进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解
-  似乎 P 应该是模 8 余 1 型素数
+{* 使用 IEEE P1363 规范中的 Lucas 序列进行模素数二次剩余求解，也就是求 Res^2 mod P = A，返回是否有解。
+   似乎 P 应该是模 8 余 1 型素数。
 
    参数：
-     Res: TCnBigNumber                    -
-     A: TCnBigNumber                      -
-     P: TCnBigNumber                      -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     A: TCnBigNumber                      - 模素数二次剩余中的 A
+     P: TCnBigNumber                      - 模素数二次剩余中的 P
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否有解
 }
 
 function BigNumberSquareRootModPrime(Res: TCnBigNumber; A: TCnBigNumber; Prime: TCnBigNumber): Boolean;
-{* 总入口函数，求 X^2 mod P = A 的解，返回是否求解成功，如成功，Res 是其中一个正值的解
+{* 通用函数求模素数二次剩余 X^2 mod P = A 的解，返回是否求解成功，如成功，Res 是其中一个正值的解。
 
    参数：
-     Res: TCnBigNumber                    -
-     A: TCnBigNumber                      -
-     Prime: TCnBigNumber                  -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     A: TCnBigNumber                      - 模素数二次剩余中的 A
+     Prime: TCnBigNumber                  - 模素数二次剩余中的 P
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否有解
 }
 
 function BigNumberJacobiSymbol(A: TCnBigNumber; N: TCnBigNumber): Integer;
-{* 计算雅可比符号，其中 N 必须是正奇数，A 必须是非负整数。如果 N 是奇素数则等同于勒让德符号
+{* 计算雅可比符号，其中 N 必须是正奇数，A 必须是非负整数。如果 N 是奇素数则等同于勒让德符号。
 
    参数：
-     A: TCnBigNumber                      -
-     N: TCnBigNumber                      -
+     A: TCnBigNumber                      - 雅可比符号中的 A
+     N: TCnBigNumber                      - 雅可比符号中的 N
 
-   返回值：Integer                        -
+   返回值：Integer                        - 返回雅可比符号
 }
 
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
-{* 找出大数的质因数列表
+{* 找出大数的素数因子列表。
 
    参数：
-     Num: TCnBigNumber                    -
-     Factors: TCnBigNumberList            -
+     Num: TCnBigNumber                    - 待计算的大数对象
+     Factors: TCnBigNumberList            - 用来容纳结果的大数列表
 
    返回值：（无）
 }
 
 procedure BigNumberEuler(Res: TCnBigNumber; Num: TCnBigNumber);
-{* 求不大于一 64 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数
+{* 求不大于一 64 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数。
 
    参数：
-     Res: TCnBigNumber                    -
-     Num: TCnBigNumber                    -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Num: TCnBigNumber                    - 待计算的大数对象
 
    返回值：（无）
 }
 
 function BigNumberLucasSequenceMod(X: TCnBigNumber; Y: TCnBigNumber; K: TCnBigNumber;
   N: TCnBigNumber; Q: TCnBigNumber; V: TCnBigNumber): Boolean;
-{* 计算 IEEE P1363 的规范中说明的 Lucas 序列，调用者需自行保证 N 为奇素数
-   Lucas 序列递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
-   V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N
+{* 计算 IEEE P1363 的规范中说明的 Lucas 序列，调用者需自行保证 N 为奇素数。
+   Lucas 序列递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2，
+   V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N。
 
    参数：
-     X: TCnBigNumber                      -
-     Y: TCnBigNumber                      -
-     K: TCnBigNumber                      -
-     N: TCnBigNumber                      -
-     Q: TCnBigNumber                      -
-     V: TCnBigNumber                      -
+     X: TCnBigNumber                      - 用来容纳 Lucas 序列中的结果 X 的大数对象
+     Y: TCnBigNumber                      - 用来容纳 Lucas 序列中的结果 Y 的大数对象
+     K: TCnBigNumber                      - Lucas 序列中的 K
+     N: TCnBigNumber                      - Lucas 序列中的 N
+     Q: TCnBigNumber                      - Lucas 序列中的 Q
+     V: TCnBigNumber                      - Lucas 序列中的 V
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回计算是否成功
 }
 
 function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
   Remainers: TCnBigNumberList; Factors: TCnBigNumberList): Boolean; overload;
-{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功
-  参数为大数列表。Remainers 支持负余数，调用者须确保 Factors 均为正且两两互素
+{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功。
+  参数为大数列表。Remainers 支持负余数，调用者须确保 Factors 均为正且两两互素。
 
    参数：
-     Res: TCnBigNumber                    -
-     Remainers: TCnBigNumberList          -
-     Factors: TCnBigNumberList            -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Remainers: TCnBigNumberList          - 余数列表
+     Factors: TCnBigNumberList            - 除数列表
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否求解成功
 }
 
 function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
   Remainers: TCnInt64List; Factors: TCnInt64List): Boolean; overload;
-{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功
+{* 用中国剩余定理，根据余数与互素的除数求一元线性同余方程组的最小解，返回求解是否成功。
    参数为 Int64 列表
 
    参数：
-     Res: TCnBigNumber                    -
-     Remainers: TCnInt64List              -
-     Factors: TCnInt64List                -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Remainers: TCnInt64List              - 余数列表
+     Factors: TCnInt64List                - 除数列表
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否求解成功
 }
 
 function BigNumberIsPerfectPower(Num: TCnBigNumber): Boolean;
-{* 判断大数是否是完全幂，大数较大时有一定耗时
+{* 判断大数是否是完全幂，大数较大时有一定耗时。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待判断大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否完全幂
 }
 
 procedure BigNumberFillCombinatorialNumbers(List: TCnBigNumberList; N: Integer);
-{* 计算组合数 C(m, N) 并生成大数对象放至大数数组中，其中 m 从 0 到 N
+{* 计算组合数 C(m, N) 并生成大数对象放至大数数组中，其中 m 从 0 到 N。
 
    参数：
-     List: TCnBigNumberList               -
-     N: Integer                           -
+     List: TCnBigNumberList               - 用来容纳组合数的大数列表
+     N: Integer                           - 组合数 N
 
    返回值：（无）
 }
 
 procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Integer; P: TCnBigNumber);
-{* 计算组合数 C(m, N) mod P 并生成大数对象放至大数数组中，其中 m 从 0 到 N
+{* 计算组合数 C(m, N) mod P 并生成大数对象放至大数数组中，其中 m 从 0 到 N。
 
    参数：
-     List: TCnBigNumberList               -
-     N: Integer                           -
-     P: TCnBigNumber                      -
+     List: TCnBigNumberList               - 用来容纳结果的大数列表
+     N: Integer                           - 组合数 N
+     P: TCnBigNumber                      - 模数
 
    返回值：（无）
 }
@@ -2604,104 +2606,104 @@ function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
 {* 用 AKS 算法判断某正整数是否是素数，判断 9223372036854775783 约需 15 秒
 
    参数：
-     N: TCnBigNumber                      -
+     N: TCnBigNumber                      - 待判断的大数对象
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否素数
 }
 
 function BigNumberIsMersennePrime(E: Integer): Boolean;
-{* 用 Lucas-Lehmer 定理检查 2 的 E 次方减一是否是梅森素数，E 达到 20 多时跑起来就开始慢了
+{* 用 Lucas-Lehmer 定理检查 2 的 E 次方减一是否是梅森素数，E 达到 20 多时跑起来就开始慢了。
 
    参数：
-     E: Integer                           -
+     E: Integer                           - 待检查的 2 的指数
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否梅森素数
 }
 
 function BigNumberNonAdjanceFormWidth(N: TCnBigNumber; Width: Integer = 1): TShortInts;
-{* 返回大数的 Width 宽度（也就是 2^Width 进制）的 NAF 非零值不相邻形式，Width 为 1 时为普通 NAF 形式
-  Width 1 和 2 等价。每个字节是有符号一项，绝对值小于 2^(Width-1)，所以有限制 1 < W <= 7
+{* 返回大数的 Width 宽度（也就是 2^Width 进制）的 NAF 非零值不相邻形式，Width 为 1 时为普通 NAF 形式。
+   Width 1 和 2 等价。每个字节是有符号一项，绝对值小于 2^(Width-1)，所以有限制 1 < W <= 7。
 
    参数：
-     N: TCnBigNumber                      -
-     Width: Integer                       -
+     N: TCnBigNumber                      - 待计算的大数对象
+     Width: Integer                       - 宽度
 
-   返回值：TShortInts                     -
+   返回值：TShortInts                     - 返回 NAF 结果
 }
 
 function BigNumberBigStepGiantStep(Res: TCnBigNumber; A: TCnBigNumber;
   B: TCnBigNumber; M: TCnBigNumber): Boolean;
-{* 大步小步算法求离散对数问题 A^X mod M = B 的解 Res，要求 A 和 M 互素
+{* 大步小步算法求离散对数问题 A^X mod M = B 的解 Res，要求 A 和 M 互素。
 
    参数：
-     Res: TCnBigNumber                    -
-     A: TCnBigNumber                      -
-     B: TCnBigNumber                      -
-     M: TCnBigNumber                      -
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     A: TCnBigNumber                      - 离散对数问题中的 A
+     B: TCnBigNumber                      - 离散对数问题中的 B
+     M: TCnBigNumber                      - 离散对数问题中的模数 M
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否计算成功
 }
 
 function BigNumberDebugDump(Num: TCnBigNumber): string;
-{* 打印大数内部信息
+{* 打印大数内部信息。
 
    参数：
-     Num: TCnBigNumber                    -
+     Num: TCnBigNumber                    - 待输出的大数对象
 
-   返回值：string                         -
+   返回值：string                         - 返回内部信息字符串
 }
 
 function BigNumberRawDump(Num: TCnBigNumber; Mem: Pointer = nil): Integer;
-{* 将大数内部信息原封不动 Dump 至 Mem 所指的内存区，如果 Mem 传 nil，则返回所需的字节长度
+{* 将大数内部信息原封不动 Dump 至 Mem 所指的内存区，如果 Mem 传 nil，则返回所需的字节长度。
 
    参数：
-     Num: TCnBigNumber                    -
-     Mem: Pointer                         -
+     Num: TCnBigNumber                    - 待输出的大数对象
+     Mem: Pointer                         - 待输出的数据块地址
 
-   返回值：Integer                        -
+   返回值：Integer                        - 返回实际写入字节长度
 }
 
 // ========================= 稀疏大数列表操作函数 ==============================
 
 function SparseBigNumberListIsZero(P: TCnSparseBigNumberList): Boolean;
-{* 判断 SparseBigNumberList 是否为 0，注意 nil、0 个项、唯一 1 个项是 0，均作为 0 处理
+{* 判断 SparseBigNumberList 是否为 0，注意 nil、0 个项、唯一 1 个项是 0，均作为 0 处理。
 
    参数：
-     P: TCnSparseBigNumberList            -
+     P: TCnSparseBigNumberList            - 待判断的大数列表
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否为 0
 }
 
 function SparseBigNumberListEqual(A: TCnSparseBigNumberList; B: TCnSparseBigNumberList): Boolean;
-{* 判断两个 SparseBigNumberList 是否相等，注意 nil、0 个项、唯一 1 个项是 0，均作为 0 处理
+{* 判断两个 SparseBigNumberList 是否相等，注意 nil、0 个项、唯一 1 个项是 0，均作为 0 处理。
 
    参数：
-     A: TCnSparseBigNumberList            -
-     B: TCnSparseBigNumberList            -
+     A: TCnSparseBigNumberList            - 待比较的大数列表一
+     B: TCnSparseBigNumberList            - 待比较的大数列表二
 
-   返回值：Boolean                        -
+   返回值：Boolean                        - 返回是否相等
 }
 
 procedure SparseBigNumberListCopy(Dst: TCnSparseBigNumberList; Src: TCnSparseBigNumberList);
-{* 将 Src 复制至 Dst
+{* 将 Src 复制至 Dst。
 
    参数：
-     Dst: TCnSparseBigNumberList          -
-     Src: TCnSparseBigNumberList          -
+     Dst: TCnSparseBigNumberList          - 目标大数列表
+     Src: TCnSparseBigNumberList          - 源大数列表
 
    返回值：（无）
 }
 
 procedure SparseBigNumberListMerge(Dst: TCnSparseBigNumberList; Src1: TCnSparseBigNumberList;
   Src2: TCnSparseBigNumberList; Add: Boolean = True);
-{* 合并两个 SparseBigNumberList 至目标 List 中，指数相同的系数 Add 为 True 时相加，否则相减
-  Dst 可以是 Src1 或 Src2，Src1 和 Src2 可以相等
+{* 合并两个 SparseBigNumberList 至目标 List 中，指数相同的系数 Add 为 True 时相加，否则相减。
+   Dst 可以是 Src1 或 Src2，Src1 和 Src2 可以相等。
 
    参数：
-     Dst: TCnSparseBigNumberList          -
-     Src1: TCnSparseBigNumberList         -
-     Src2: TCnSparseBigNumberList         -
-     Add: Boolean                         -
+     Dst: TCnSparseBigNumberList          - 目标大数列表
+     Src1: TCnSparseBigNumberList         - 待合并的大数列表一
+     Src2: TCnSparseBigNumberList         - 待合并的大数列表二
+     Add: Boolean                         - True 表示相加，False 表示相减
 
    返回值：（无）
 }
@@ -4068,8 +4070,15 @@ end;
 function BigNumberGetLow64(Num: TCnBigNumber): TUInt64;
 begin
   Result := 0;
+{$IFDEF BN_DATA_USE_64}
   if Num.DMax > 0 then
     Result := TUInt64(Num.D^);
+{$ELSE}
+  if Num.DMax = 1 then
+    Result := TUInt64(Num.D^)
+  else if Num.DMax >= 2 then
+    Result := TUInt64(PCnBigNumberElementArray(Num.D)^[0]) + (TUInt64(PCnBigNumberElementArray(Num.D)^[1]) shl 32);
+{$ENDIF}
 end;
 
 procedure BigNumberSwap(Num1: TCnBigNumber; Num2: TCnBigNumber);
@@ -5081,6 +5090,12 @@ var
   L: TCnBigNumberElement;
   T, F: PCnBigNumberElementArray;
 begin
+  if N < 0 then
+  begin
+    Result := BigNumberShiftRight(Res, Num, -N);
+    Exit;
+  end;
+
   Result := False;
   Res.Neg := Num.Neg;
   NW := N div BN_BITS2;
@@ -5123,8 +5138,13 @@ var
   L, Tmp: TCnBigNumberElement;
   T, F: PCnBigNumberElementArray;
 begin
-  Result := False;
+  if N < 0 then
+  begin
+    Result := BigNumberShiftLeft(Res, Num, -N);
+    Exit;
+  end;
 
+  Result := False;
   NW := N div BN_BITS2;
   RB := N mod BN_BITS2;
   LB := BN_BITS2 - RB;
@@ -8565,7 +8585,7 @@ begin
   end;
 end;
 
-// 找出大数的质因数列表
+// 找出大数的素数因子列表
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 var
   P, R, S, D, T: TCnBigNumber;
@@ -8622,7 +8642,7 @@ var
   T: TCnBigNumber;
   I: Integer;
 begin
-  // 先求 Num 的不重复的质因数，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
+  // 先求 Num 的不重复的素数因子，再利用公式 Num * (1- 1/p1) * (1- 1/p2) ……
   F := nil;
   T := nil;
 
