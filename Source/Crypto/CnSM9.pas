@@ -176,25 +176,75 @@ type
     {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 转换为字符串}
+    {* 转换为字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
+
     function IsZero: Boolean;
-    {* 是否为 0}
+    {* 是否为 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 0
+    }
+
     function IsOne: Boolean;
-    {* 是否为 1}
+    {* 是否为 1。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 1
+    }
+
     procedure SetZero;
     {* 设置为 0}
     procedure SetOne;
     {* 设置为 1}
     procedure SetU;
     {* 设置为 U 值}
-    procedure SetBigNumber(const Num: TCnBigNumber);
-    {* 设置为一大数}
+    procedure SetBigNumber(Num: TCnBigNumber);
+    {* 设置为一大数。
+
+       参数：
+         Num: TCnBigNumber                - 待设置的大数
+
+       返回值：（无）
+    }
+
     procedure SetHex(const S0: string; const S1: string);
-    {* 设置为两个十六进制字符串}
+    {* 设置为两个十六进制字符串。
+
+       参数：
+         const S0: string                 - 十六进制字符串一
+         const S1: string                 - 十六进制字符串二
+
+       返回值：（无）
+    }
+
     procedure SetWord(Value: Cardinal);
-    {* 设置为单个整数}
+    {* 设置为单个整数。
+
+       参数：
+         Value: Cardinal                  - 待设置的整数
+
+       返回值：（无）
+    }
+
     procedure SetWords(Value0: Cardinal; Value1: Cardinal);
-    {* 设置为两个整数}
+    {* 设置为两个整数。
+
+       参数：
+         Value0: Cardinal                 - 整数一
+         Value1: Cardinal                 - 整数二
+
+       返回值：（无）
+    }
 
     property Items[Index: Integer]: TCnBigNumber read GetItems; default;
     {* 条目索引}
@@ -237,11 +287,32 @@ type
     {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 转换为字符串}
+    {* 转换为字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
+
     function IsZero: Boolean;
-    {* 是否为 0}
+    {* 是否为 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 0
+    }
+
     function IsOne: Boolean;
-    {* 是否为 1}
+    {* 是否为 1。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 1
+    }
+
     procedure SetZero;
     {* 设置为 0}
     procedure SetOne;
@@ -250,16 +321,55 @@ type
     {* 设置为 U 值}
     procedure SetV;
     {* 设置为 V 值}
-    procedure SetBigNumber(const Num: TCnBigNumber);
-    {* 设置为单个大数}
-    procedure SetBigNumbers(const Num0, Num1: TCnBigNumber);
-    {* 设置为两个个大数}
+    procedure SetBigNumber(Num: TCnBigNumber);
+    {* 设置为单个大数。
+
+       参数：
+         Num: TCnBigNumber                - 待设置的大数
+
+       返回值：（无）
+    }
+
+    procedure SetBigNumbers(Num0, Num1: TCnBigNumber);
+    {* 设置为两个个大数。
+
+       参数：
+         Num0: TCnBigNumber               - 大数一
+         Num1: TCnBigNumber               - 大数二
+
+       返回值：（无）
+    }
     procedure SetHex(const S0: string; const S1: string; const S2: string; const S3: string);
-    {* 设置为四个十六进制字符串}
+    {* 设置为四个十六进制字符串。
+
+       参数：
+         const S0: string                 - 十六进制字符串一
+         const S1: string                 - 十六进制字符串二
+         const S2: string                 - 十六进制字符串三
+         const S3: string                 - 十六进制字符串四
+
+       返回值：（无）
+    }
     procedure SetWord(Value: Cardinal);
-    {* 设置为单个整数}
+    {* 设置为单个整数。
+
+       参数：
+         Value: Cardinal                  - 待设置的整数
+
+       返回值：（无）
+    }
+
     procedure SetWords(Value0, Value1, Value2, Value3: Cardinal);
-    {* 设置为四个整数}
+    {* 设置为四个整数
+
+       参数：
+         Value0: Cardinal                 - 整数一
+         Value1: Cardinal                 - 整数二
+         Value2: Cardinal                 - 整数三
+         Value3: Cardinal                 - 整数四
+
+       返回值：（无）
+    }
 
     property Items[Index: Integer]: TCnFP2 read GetItems; default;
     {* 条目索引}
@@ -303,11 +413,32 @@ type
     {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 转换为字符串}
+    {* 转换为字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
+
     function IsZero: Boolean;
-    {* 是否为 0}
+    {* 是否为 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 0
+    }
+
     function IsOne: Boolean;
-    {* 是否为 1}
+    {* 是否为 1。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 1
+    }
+
     procedure SetZero;
     {* 设置为 0}
     procedure SetOne;
@@ -320,21 +451,78 @@ type
     {* 设置为 W 值}
     procedure SetWSqr;
     {* 设置为 W 平方值}
-    procedure SetBigNumber(const Num: TCnBigNumber);
-    {* 设置为单个大数}
-    procedure SetBigNumbers(const Num0, Num1, Num2: TCnBigNumber);
-    {* 设置为三个大数}
+    procedure SetBigNumber(Num: TCnBigNumber);
+    {* 设置为单个大数。
+
+       参数：
+         Num: TCnBigNumber                - 待设置的大数
+
+       返回值：（无）
+    }
+
+    procedure SetBigNumbers(Num0, Num1, Num2: TCnBigNumber);
+    {* 设置为三个大数。
+
+       参数：
+         Num0: TCnBigNumber               - 大数一
+         Num1: TCnBigNumber               - 大数二
+         Num2: TCnBigNumber               - 大数三
+
+       返回值：（无）
+    }
+
     procedure SetHex(const S0: string; const S1: string; const S2: string; const S3: string;
       const S4: string; const S5: string; const S6: string; const S7: string;
       const S8: string; const S9: string; const S10: string; const S11: string);
-    {* 设置为十二个十六进制字符串}
+    {* 设置为十二个十六进制字符串。
+
+       参数：
+         const S0: string                 - 十六进制字符串一
+         const S1: string                 - 十六进制字符串二
+         const S2: string                 - 十六进制字符串三
+         const S3: string                 - 十六进制字符串四
+         const S4: string                 - 十六进制字符串五
+         const S5: string                 - 十六进制字符串六
+         const S6: string                 - 十六进制字符串七
+         const S7: string                 - 十六进制字符串八
+         const S8: string                 - 十六进制字符串九
+         const S9: string                 - 十六进制字符串十
+         const S10: string                - 十六进制字符串十一
+         const S11: string                - 十六进制字符串十二
+
+       返回值：（无）
+    }
       
     procedure SetWord(Value: Cardinal);
-    {* 设置为单个整数}
+    {* 设置为单个整数。
+
+       参数：
+         Value: Cardinal                  - 待设置的整数
+
+       返回值：（无）
+    }
+
     procedure SetWords(Value0: Cardinal; Value1: Cardinal; Value2: Cardinal; Value3: Cardinal;
       Value4: Cardinal; Value5: Cardinal; Value6: Cardinal; Value7: Cardinal;
       Value8: Cardinal; Value9: Cardinal; Value10: Cardinal; Value11: Cardinal);
-    {* 设置为十二个整数}
+    {* 设置为十二个整数。
+
+       参数：
+         Value0: Cardinal                 - 整数一
+         Value1: Cardinal                 - 整数二
+         Value2: Cardinal                 - 整数三
+         Value3: Cardinal                 - 整数四
+         Value4: Cardinal                 - 整数五
+         Value5: Cardinal                 - 整数六
+         Value6: Cardinal                 - 整数七
+         Value7: Cardinal                 - 整数八
+         Value8: Cardinal                 - 整数九
+         Value9: Cardinal                 - 整数十
+         Value10: Cardinal                - 整数十一
+         Value11: Cardinal                - 整数十二
+
+       返回值：（无）
+    }
 
     property Items[Index: Integer]: TCnFP4 read GetItems; default;
     {* 条目索引}
@@ -385,7 +573,13 @@ type
     }
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 转换为字符串}
+    {* 转换为字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
 
     property X: TCnFP2 read FX;
     {* X 坐标}
@@ -406,27 +600,102 @@ type
     {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 转换为字符串}
+    {* 转换为字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
+
     procedure SetZero;
     {* 设置为全 0，似乎没啥用}
     function IsAtInfinity: Boolean;
-    {* 是否位于无限远处}
+    {* 是否位于无限远处。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否位于无限远处
+    }
+
     procedure SetToInfinity;
     {* 坐标设为无限远}
-    procedure GetCoordinatesFP2(const FP2X, FP2Y: TCnFP2);
-    {* 获取 X、Y 坐标值，内部采用复制}
-    procedure SetCoordinatesFP2(const FP2X, FP2Y: TCnFP2);
-    {* 设置 X、Y 坐标值，内部采用复制}
-    procedure SetCoordinatesHex(const SX0, SX1, SY0, SY1: string);
-    {* 设置 X、Y 坐标值，使用十六进制字符串}
-    procedure SetCoordinatesBigNumbers(const X0, X1, Y0, Y1: TCnBigNumber);
-    {* 设置 X、Y 坐标值，使用大数对象，内部采用复制}
-    procedure GetJacobianCoordinatesFP12(const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber);
-    {* 获取扩展 X、Y 坐标值，内部采用复制}
-    procedure SetJacobianCoordinatesFP12(const FP12X, FP12Y: TCnFP12; Prime: TCnBigNumber);
-    {* 设置扩展 X、Y 坐标值，内部采用复制}
+    procedure GetCoordinatesFP2(FP2X, FP2Y: TCnFP2);
+    {* 获取 X、Y 坐标值，内部采用复制。
+
+       参数：
+         FP2X: TCnFP2                     - 输出的 X 坐标
+         FP2Y: TCnFP2                     - 输出的 Y 坐标
+
+       返回值：（无）
+    }
+
+    procedure SetCoordinatesFP2(FP2X, FP2Y: TCnFP2);
+    {* 设置 X、Y 坐标值，内部采用复制。
+
+       参数：
+         FP2X: TCnFP2                     - 待设置的 X 坐标
+         FP2Y: TCnFP2                     - 待设置的 Y 坐标
+
+       返回值：（无）
+    }
+
+    procedure SetCoordinatesHex(const SX0: string; const SX1: string;
+      const SY0: string; const SY1: string);
+    {* 设置 X、Y 坐标值，使用十六进制字符串。
+
+       参数：
+         const SX0: string                - X0 的十六进制字符串
+         const SX1: string                - X1 的十六进制字符串
+         const SY0: string                - Y0 的十六进制字符串
+         const SY0: string                - Y1 的十六进制字符串
+
+       返回值：（无）
+    }
+
+    procedure SetCoordinatesBigNumbers(X0, X1, Y0, Y1: TCnBigNumber);
+    {* 设置 X、Y 坐标值，使用大数对象，内部采用复制。
+
+       参数：
+         X0: TCnBigNumber                 - X0 坐标值
+         X1: TCnBigNumber                 - X1 坐标值
+         Y0: TCnBigNumber                 - Y0 坐标值
+         Y1: TCnBigNumber                 - Y1 坐标值
+
+       返回值：（无）
+    }
+
+    procedure GetJacobianCoordinatesFP12(FP12X: TCnFP12; FP12Y: TCnFP12; Prime: TCnBigNumber);
+    {* 获取扩展 X、Y 坐标值，内部采用复制。
+
+       参数：
+         FP12X: TCnFP12                   - 输出的 X 坐标值
+         FP12Y: TCnFP12                   - 输出的 Y 坐标值
+         Prime: TCnBigNumber              - 有限域上界
+
+       返回值：（无）
+    }
+
+    procedure SetJacobianCoordinatesFP12(FP12X: TCnFP12; FP12Y: TCnFP12; Prime: TCnBigNumber);
+    {* 设置扩展 X、Y 坐标值，内部采用复制。
+
+       参数：
+         FP12X: TCnFP12                   - 待设置的 X 坐标值
+         FP12Y: TCnFP12                   - 待设置的 Y 坐标值
+         Prime: TCnBigNumber              - 有限域上界
+
+       返回值：（无）
+    }
+
     function IsOnCurve(Prime: TCnBigNumber): Boolean;
-    {* 判断是否在椭圆曲线 y^2 = x^3 + 5 上}
+    {* 判断是否在椭圆曲线 y^2 = x^3 + 5 上。
+
+       参数：
+         Prime: TCnBigNumber              - 有限域上界
+
+       返回值：Boolean                    - 返回是否在该椭圆曲线上
+    }
 
     property X: TCnFP2 read FX;
     {* X 坐标}
@@ -487,7 +756,7 @@ type
 
   TCnSM9SignatureUserPrivateKey = class(TCnEccPoint);
   {* SM9 中的用户签名私钥，由 KGC 密钥管理中心根据用户标识生成，无对应公钥
-    或者说，用户验证签名时用的公钥就是用户标识与签名主公钥}
+     或者说，用户验证签名时用的公钥就是用户标识与签名主公钥}
 
   TCnSM9Signature = class
   {* SM9 的签名值表示类，包含 H 大数和 S 点}
@@ -501,7 +770,13 @@ type
     {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 转换为字符串}
+    {* 转换为字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
 
     property H: TCnBigNumber read FH;
     {* 签名大数 H}
@@ -552,7 +827,13 @@ type
     {* 析构函数}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 转换为字符串}
+    {* 转换为字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
 
     property KeyByteLength: Integer read FKeyLength;
     {* 密文的字节长度}
@@ -608,395 +889,1280 @@ type
 // ====================== 二次扩域大整系数元素运算函数 =========================
 
 function FP2New: TCnFP2;
-{* 创建一二次扩域大整系数元素对象，等同于 TCnFP2.Create}
+{* 创建一二次扩域大整系数元素对象，等同于 TCnFP2.Create。
+
+   参数：
+     （无）
+
+   返回值：TCnFP2                         - 返回创建的二次扩域大整系数元素对象
+}
 
 procedure FP2Free(FP2: TCnFP2);
-{* 释放一二次扩域大整系数元素对象，等同于 TCnFP2.Free}
+{* 释放一二次扩域大整系数元素对象，等同于 TCnFP2.Free
+
+   参数：
+     FP2: TCnFP2                          - 待释放的二次扩域大整系数元素对象
+
+   返回值：（无）
+}
 
 function FP2IsZero(FP2: TCnFP2): Boolean;
-{* 判断一二次扩域大整系数元素对象是否为 0}
+{* 判断一二次扩域大整系数元素对象是否为 0。
+
+   参数：
+     FP2: TCnFP2                          - 待判断的二次扩域大整系数元素对象
+
+   返回值：Boolean                        - 返回是否为 0
+}
 
 function FP2IsOne(FP2: TCnFP2): Boolean;
-{* 判断一二次扩域大整系数元素对象是否为 1}
+{* 判断一二次扩域大整系数元素对象是否为 1。
+
+   参数：
+     FP2: TCnFP2                          - 待判断的二次扩域大整系数元素对象
+
+   返回值：Boolean                        - 返回是否为 1
+}
 
 procedure FP2SetZero(FP2: TCnFP2);
-{* 将一二次扩域大整系数元素对象设置为 0}
+{* 将一二次扩域大整系数元素对象设置为 0。
+
+   参数：
+     FP2: TCnFP2                          - 待设置的二次扩域大整系数元素对象
+
+   返回值：（无）
+}
 
 procedure FP2SetOne(FP2: TCnFP2);
-{* 将一二次扩域大整系数元素对象设置为 1，也就是 [0] 为 1，[1] 为 0}
+{* 将一二次扩域大整系数元素对象设置为 1，也就是 [0] 为 1，[1] 为 0。
+
+   参数：
+     FP2: TCnFP2                          - 待设置的二次扩域大整系数元素对象
+
+   返回值：（无）
+}
 
 function FP2SetU(FP2: TCnFP2): Boolean;
-{* 将一二次扩域大整系数元素对象设为 U，也就是 [0] 为 0，[1] 为 1}
+{* 将一二次扩域大整系数元素对象设为 U，也就是 [0] 为 0，[1] 为 1。
+
+   参数：
+     FP2: TCnFP2                          - 待设置的二次扩域大整系数元素对象
+
+   返回值：Boolean                        -
+}
 
 function FP2SetBigNumber(FP2: TCnFP2; Num: TCnBigNumber): Boolean;
-{* 将一二次扩域大整系数元素对象设置为某一个大数}
+{* 将一二次扩域大整系数元素对象设置为某一个大数。
+
+   参数：
+     FP2: TCnFP2                          - 待设置的二次扩域大整系数元素对象
+     Num: TCnBigNumber                    -
+
+   返回值：Boolean                        -
+}
 
 function FP2SetBigNumbers(FP2: TCnFP2; Num0: TCnBigNumber; Num1: TCnBigNumber): Boolean;
-{* 将一二次扩域大整系数元素对象设置为两个大数值}
+{* 将一二次扩域大整系数元素对象设置为两个大数值。
+
+   参数：
+     FP2: TCnFP2                          - 待设置的二次扩域大整系数元素对象
+     Num0: TCnBigNumber                   -
+     Num1: TCnBigNumber                   -
+
+   返回值：Boolean                        -
+}
 
 function FP2SetHex(FP2: TCnFP2; const S0: string; const S1: string): Boolean;
-{* 将一二次扩域大整系数元素对象设置为两个十六进制字符串}
+{* 将一二次扩域大整系数元素对象设置为两个十六进制字符串。
+
+   参数：
+     FP2: TCnFP2                          - 待设置的二次扩域大整系数元素对象
+     const S0: string                     -
+     const S1: string                     -
+
+   返回值：Boolean                        -
+}
 
 function FP2ToString(FP2: TCnFP2): string;
-{* 将一二次扩域大整系数元素对象转换为字符串}
+{* 将一二次扩域大整系数元素对象转换为字符串。
+
+   参数：
+     FP2: TCnFP2                          - 待转换的二次扩域大整系数元素对象
+
+   返回值：string                         - 返回字符串
+}
 
 procedure FP2SetWord(FP2: TCnFP2; Value: Cardinal);
-{* 将一二次扩域大整系数元素对象设置为一个 Cardinal}
+{* 将一二次扩域大整系数元素对象设置为一个 Cardinal
+
+   参数：
+     FP2: TCnFP2                          - 待设置的二次扩域大整系数元素对象
+     Value: Cardinal                      -
+
+   返回值：（无）
+}
 
 procedure FP2SetWords(FP2: TCnFP2; Value0: Cardinal; Value1: Cardinal);
-{* 将一二次扩域大整系数元素对象设置为两个 Cardinal}
+{* 将一二次扩域大整系数元素对象设置为两个 Cardinal
+
+   参数：
+     FP2: TCnFP2                          - 待设置的二次扩域大整系数元素对象
+     Value0: Cardinal                     -
+     Value1: Cardinal                     -
+
+   返回值：（无）
+}
 
 function FP2Equal(F1: TCnFP2; F2: TCnFP2): Boolean;
-{* 判断两个二次扩域大整系数元素对象值是否相等}
+{* 判断两个二次扩域大整系数元素对象值是否相等。
+
+   参数：
+     F1: TCnFP2                           - 待比较的二次扩域大整系数元素对象一
+     F2: TCnFP2                           - 待比较的二次扩域大整系数元素对象二
+
+   返回值：Boolean                        -
+}
 
 function FP2Copy(Dst: TCnFP2; Src: TCnFP2): TCnFP2;
-{* 将一二次扩域大整系数元素对象值复制到另一个二次扩域大整系数元素对象中}
+{* 将一二次扩域大整系数元素对象值复制到另一个二次扩域大整系数元素对象中
+
+   参数：
+     Dst: TCnFP2                          -
+     Src: TCnFP2                          -
+
+   返回值：TCnFP2                         -
+}
 
 procedure FP2Negate(Res: TCnFP2; F: TCnFP2; Prime: TCnBigNumber);
-{* 将一二次扩域大整系数元素对象值有限域中求负}
+{* 将一二次扩域大整系数元素对象值有限域中求负
+
+   参数：
+     Res: TCnFP2                          - 用来容纳结果的二次扩域大整系数元素对象
+     F: TCnFP2                            -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2Add(Res: TCnFP2; F1: TCnFP2; F2: TCnFP2; Prime: TCnBigNumber);
-{* 有限域中二次扩域大整系数元素加法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
+{* 有限域中二次扩域大整系数元素加法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2
+
+   参数：
+     Res: TCnFP2                          - 用来容纳结果的二次扩域大整系数元素对象
+     F1: TCnFP2                           -
+     F2: TCnFP2                           -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2Sub(Res: TCnFP2; F1: TCnFP2; F2: TCnFP2; Prime: TCnBigNumber);
-{* 有限域中二次扩域大整系数元素减法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
+{* 有限域中二次扩域大整系数元素减法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2
+
+   参数：
+     Res: TCnFP2                          - 用来容纳结果的二次扩域大整系数元素对象
+     F1: TCnFP2                           -
+     F2: TCnFP2                           -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2Mul(Res: TCnFP2; F1: TCnFP2; F2: TCnFP2; Prime: TCnBigNumber); overload;
-{* 有限域中二次扩域大整系数元素乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
+{* 有限域中二次扩域大整系数元素乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2
+
+   参数：
+     Res: TCnFP2                          - 用来容纳结果的二次扩域大整系数元素对象
+     F1: TCnFP2                           -
+     F2: TCnFP2                           -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2Mul3(Res: TCnFP2; F: TCnFP2; Prime: TCnBigNumber);
-{* 有限域中二次扩域大整系数元素对象乘以 3，Prime 为域素数，Res 可以是 F}
+{* 有限域中二次扩域大整系数元素对象乘以 3，Prime 为域素数，Res 可以是 F
+
+   参数：
+     Res: TCnFP2                          - 用来容纳结果的二次扩域大整系数元素对象
+     F: TCnFP2                            -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2MulU(Res: TCnFP2; F1: TCnFP2; F2: TCnFP2; Prime: TCnBigNumber);
-{* 有限域中二次扩域大整系数元素 U 乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
+{* 有限域中二次扩域大整系数元素 U 乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2
+
+   参数：
+     Res: TCnFP2                          - 用来容纳结果的二次扩域大整系数元素对象
+     F1: TCnFP2                           -
+     F2: TCnFP2                           -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2Mul(Res: TCnFP2; F: TCnFP2; Num: TCnBigNumber; Prime: TCnBigNumber); overload;
-{* 有限域中二次扩域大整系数元素与大数的乘法，Prime 为域素数，Res 可以是 F，但 Num 不能是 Res 或 F 中的内容}
+{* 有限域中二次扩域大整系数元素与大数的乘法，Prime 为域素数，Res 可以是 F，但 Num 不能是 Res 或 F 中的内容
+
+   参数：
+     Res: TCnFP2                          - 用来容纳结果的二次扩域大整系数元素对象
+     F: TCnFP2                            -
+     Num: TCnBigNumber                    -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2Inverse(Res: TCnFP2; F: TCnFP2; Prime: TCnBigNumber);
-{* 有限域中二次扩域大整系数元素求模反，Prime 为域素数，Res 可以是 F}
+{* 有限域中二次扩域大整系数元素求模反，Prime 为域素数，Res 可以是 F
+
+   参数：
+     Res: TCnFP2                          - 用来容纳结果的二次扩域大整系数元素对象
+     F: TCnFP2                            -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2Div(Res: TCnFP2; F1: TCnFP2; F2: TCnFP2; Prime: TCnBigNumber);
-{* 有限域中二次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
+{* 有限域中二次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现
+
+   参数：
+     Res: TCnFP2                          - 用来容纳结果的二次扩域大整系数元素对象
+     F1: TCnFP2                           -
+     F2: TCnFP2                           -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 function FP2ToStream(FP2: TCnFP2; Stream: TStream; FixedLen: Integer = 0): Integer;
-{* 将一二次扩域大整系数元素对象的内容写入流，返回写入长度}
+{* 将一二次扩域大整系数元素对象的内容写入流，返回写入长度
+
+   参数：
+     FP2: TCnFP2                          -
+     Stream: TStream                      -
+     FixedLen: Integer                    -
+
+   返回值：Integer                        -
+}
 
 // ====================== 四次扩域大整系数元素运算函数 =========================
 
 function FP4New: TCnFP4;
-{* 创建一四次扩域大整系数元素对象，等同于 TCnFP4.Create}
+{* 创建一四次扩域大整系数元素对象，等同于 TCnFP4.Create。
+
+   参数：
+     （无）
+
+   返回值：TCnFP4                         - 返回创建的四次扩域大整系数元素对象
+}
 
 procedure FP4Free(FP4: TCnFP4);
-{* 释放一四次扩域大整系数元素对象，等同于 TCnFP4.Free}
+{* 释放一四次扩域大整系数元素对象，等同于 TCnFP4.Free
+
+   参数：
+     FP4: TCnFP4                          -
+
+   返回值：（无）
+}
 
 function FP4IsZero(FP4: TCnFP4): Boolean;
-{* 判断一四次扩域大整系数元素对象是否为 0}
+{* 判断一四次扩域大整系数元素对象是否为 0
+
+   参数：
+     FP4: TCnFP4                          -
+
+   返回值：Boolean                        -
+}
 
 function FP4IsOne(FP4: TCnFP4): Boolean;
-{* 判断一四次扩域大整系数元素对象是否为 1}
+{* 判断一四次扩域大整系数元素对象是否为 1
+
+   参数：
+     FP4: TCnFP4                          -
+
+   返回值：Boolean                        -
+}
 
 procedure FP4SetZero(FP4: TCnFP4);
-{* 将一四次扩域大整系数元素对象设置为 0}
+{* 将一四次扩域大整系数元素对象设置为 0
+
+   参数：
+     FP4: TCnFP4                          -
+
+   返回值：（无）
+}
 
 procedure FP4SetOne(FP4: TCnFP4);
-{* 将一四次扩域大整系数元素对象设置为 1，也就是 [0] 为 1，[1] 为 0}
+{* 将一四次扩域大整系数元素对象设置为 1，也就是 [0] 为 1，[1] 为 0
+
+   参数：
+     FP4: TCnFP4                          -
+
+   返回值：（无）
+}
 
 procedure FP4SetU(FP4: TCnFP4);
-{* 将一四次扩域大整系数元素对象设为 U，也就是 [0] 为 U，[1] 为 0}
+{* 将一四次扩域大整系数元素对象设为 U，也就是 [0] 为 U，[1] 为 0
+
+   参数：
+     FP4: TCnFP4                          -
+
+   返回值：（无）
+}
 
 procedure FP4SetV(FP4: TCnFP4);
-{* 将一四次扩域大整系数元素对象设为 V，也就是 [0] 为 0，[1] 为 1}
+{* 将一四次扩域大整系数元素对象设为 V，也就是 [0] 为 0，[1] 为 1
+
+   参数：
+     FP4: TCnFP4                          -
+
+   返回值：（无）
+}
 
 procedure FP4SetBigNumber(FP4: TCnFP4; Num: TCnBigNumber);
-{* 将一四次扩域大整系数元素对象设置为某一个大数}
+{* 将一四次扩域大整系数元素对象设置为某一个大数
+
+   参数：
+     FP4: TCnFP4                          -
+     Num: TCnBigNumber                    -
+
+   返回值：（无）
+}
 
 procedure FP4SetBigNumbers(FP4: TCnFP4; Num0: TCnBigNumber; Num1: TCnBigNumber);
-{* 将一四次扩域大整系数元素对象设置为两个大数值}
+{* 将一四次扩域大整系数元素对象设置为两个大数值
+
+   参数：
+     FP4: TCnFP4                          -
+     Num0: TCnBigNumber                   -
+     Num1: TCnBigNumber                   -
+
+   返回值：（无）
+}
 
 procedure FP4SetFP2(FP4: TCnFP4; FP2: TCnFP2);
-{* 将一四次扩域大整系数元素对象设置为一个二次扩域大整系数元素}
+{* 将一四次扩域大整系数元素对象设置为一个二次扩域大整系数元素
+
+   参数：
+     FP4: TCnFP4                          -
+     FP2: TCnFP2                          -
+
+   返回值：（无）
+}
 
 procedure FP4Set2FP2S(FP4: TCnFP4; FP20: TCnFP2; FP21: TCnFP2);
-{* 将一四次扩域大整系数元素对象设置为两个二次扩域大整系数元素}
+{* 将一四次扩域大整系数元素对象设置为两个二次扩域大整系数元素
+
+   参数：
+     FP4: TCnFP4                          -
+     FP20: TCnFP2                         -
+     FP21: TCnFP2                         -
+
+   返回值：（无）
+}
 
 procedure FP4SetHex(FP4: TCnFP4; const S0: string; const S1: string;
   const S2: string; const S3: string);
-{* 将一四次扩域大整系数元素对象设置为四个十六进制字符串}
+{* 将一四次扩域大整系数元素对象设置为四个十六进制字符串
+
+   参数：
+     FP4: TCnFP4                          -
+     const S0: string                     -
+     const S1: string                     -
+     const S2: string                     -
+     const S3: string                     -
+
+   返回值：（无）
+}
 
 function FP4ToString(FP4: TCnFP4): string;
-{* 将一四次扩域大整系数元素对象转换为字符串}
+{* 将一四次扩域大整系数元素对象转换为字符串。
+
+   参数：
+     FP4: TCnFP4                          -
+
+   返回值：string                         - 返回字符串
+}
 
 procedure FP4SetWord(FP4: TCnFP4; Value: Cardinal);
-{* 将一四次扩域大整系数元素对象设置为一个 Cardinal}
+{* 将一四次扩域大整系数元素对象设置为一个 Cardinal
+
+   参数：
+     FP4: TCnFP4                          -
+     Value: Cardinal                      -
+
+   返回值：（无）
+}
 
 procedure FP4SetWords(FP4: TCnFP4; Value0: Cardinal; Value1: Cardinal;
   Value2: Cardinal; Value3: Cardinal);
-{* 将一四次扩域大整系数元素对象设置为四个 Cardinal}
+{* 将一四次扩域大整系数元素对象设置为四个 Cardinal
+
+   参数：
+     FP4: TCnFP4                          -
+     Value0: Cardinal                     -
+     Value1: Cardinal                     -
+     Value2: Cardinal                     -
+     Value3: Cardinal                     -
+
+   返回值：（无）
+}
 
 function FP4Equal(F1: TCnFP4; F2: TCnFP4): Boolean;
-{* 判断两个四次扩域大整系数元素对象值是否相等}
+{* 判断两个四次扩域大整系数元素对象值是否相等
+
+   参数：
+     F1: TCnFP4                           -
+     F2: TCnFP4                           -
+
+   返回值：Boolean                        -
+}
 
 function FP4Copy(Dst: TCnFP4; Src: TCnFP4): TCnFP4;
-{* 将一四次扩域大整系数元素对象值复制到另一个四次扩域大整系数元素对象中}
+{* 将一四次扩域大整系数元素对象值复制到另一个四次扩域大整系数元素对象中
+
+   参数：
+     Dst: TCnFP4                          -
+     Src: TCnFP4                          -
+
+   返回值：TCnFP4                         -
+}
 
 procedure FP4Negate(Res: TCnFP4; F: TCnFP4; Prime: TCnBigNumber);
-{* 将一四次扩域大整系数元素对象值有限域中求负}
+{* 将一四次扩域大整系数元素对象值有限域中求负
+
+   参数：
+     Res: TCnFP4                          - 用来容纳结果的四次扩域大整系数元素对象
+     F: TCnFP4                            -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP4Add(Res: TCnFP4; F1: TCnFP4; F2: TCnFP4; Prime: TCnBigNumber);
-{* 有限域中四次扩域大整系数元素加法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
+{* 有限域中四次扩域大整系数元素加法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2
+
+   参数：
+     Res: TCnFP4                          - 用来容纳结果的四次扩域大整系数元素对象
+     F1: TCnFP4                           -
+     F2: TCnFP4                           -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP4Sub(Res: TCnFP4; F1: TCnFP4; F2: TCnFP4; Prime: TCnBigNumber);
-{* 有限域中四次扩域大整系数元素减法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
+{* 有限域中四次扩域大整系数元素减法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2
+
+   参数：
+     Res: TCnFP4                          - 用来容纳结果的四次扩域大整系数元素对象
+     F1: TCnFP4                           -
+     F2: TCnFP4                           -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP4Mul(Res: TCnFP4; F1: TCnFP4; F2: TCnFP4; Prime: TCnBigNumber);
-{* 有限域中四次扩域大整系数元素乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
+{* 有限域中四次扩域大整系数元素乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2
+
+   参数：
+     Res: TCnFP4                          - 用来容纳结果的四次扩域大整系数元素对象
+     F1: TCnFP4                           -
+     F2: TCnFP4                           -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP4Mul3(Res: TCnFP4; F: TCnFP4; Prime: TCnBigNumber);
-{* 有限域中四次扩域大整系数元素对象乘以 3，Prime 为域素数，Res 可以是 F}
+{* 有限域中四次扩域大整系数元素对象乘以 3，Prime 为域素数，Res 可以是 F
+
+   参数：
+     Res: TCnFP4                          - 用来容纳结果的四次扩域大整系数元素对象
+     F: TCnFP4                            -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP4MulV(Res: TCnFP4; F1: TCnFP4; F2: TCnFP4; Prime: TCnBigNumber);
-{* 有限域中四次扩域大整系数元素 V 乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
+{* 有限域中四次扩域大整系数元素 V 乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2
+
+   参数：
+     Res: TCnFP4                          - 用来容纳结果的四次扩域大整系数元素对象
+     F1: TCnFP4                           -
+     F2: TCnFP4                           -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP4Inverse(Res: TCnFP4; F: TCnFP4; Prime: TCnBigNumber);
-{* 有限域中四次扩域大整系数元素求模反，Prime 为域素数，Res 可以是 F}
+{* 有限域中四次扩域大整系数元素求模反，Prime 为域素数，Res 可以是 F
+
+   参数：
+     Res: TCnFP4                          - 用来容纳结果的四次扩域大整系数元素对象
+     F: TCnFP4                            -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP4Div(Res: TCnFP4; F1: TCnFP4; F2: TCnFP4; Prime: TCnBigNumber);
-{* 有限域中四次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
+{* 有限域中四次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现
+
+   参数：
+     Res: TCnFP4                          - 用来容纳结果的四次扩域大整系数元素对象
+     F1: TCnFP4                           -
+     F2: TCnFP4                           -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 function FP4ToStream(FP4: TCnFP4; Stream: TStream; FixedLen: Integer = 0): Integer;
-{* 将一四次扩域大整系数元素对象的内容写入流，返回写入长度}
+{* 将一四次扩域大整系数元素对象的内容写入流，返回写入长度
+
+   参数：
+     FP4: TCnFP4                          -
+     Stream: TStream                      -
+     FixedLen: Integer                    -
+
+   返回值：Integer                        -
+}
 
 // ===================== 十二次扩域大整系数元素运算函数 ========================
 
 function FP12New: TCnFP12;
-{* 创建一十二次扩域大整系数元素对象，等同于 TCnFP12.Create}
+{* 创建一十二次扩域大整系数元素对象，等同于 TCnFP12.Create。
+
+   参数：
+     （无）
+
+   返回值：TCnFP12                        - 返回创建的十二次扩域大整系数元素对象
+}
 
 procedure FP12Free(FP12: TCnFP12);
-{* 释放一十二次扩域大整系数元素对象，等同于 TCnFP12.Free}
+{* 释放一十二次扩域大整系数元素对象，等同于 TCnFP12.Free
+
+   参数：
+     FP12: TCnFP12                        -
+
+   返回值：（无）
+}
 
 function FP12IsZero(FP12: TCnFP12): Boolean;
-{* 判断一十二次扩域大整系数元素对象是否为 0}
+{* 判断一十二次扩域大整系数元素对象是否为 0
+
+   参数：
+     FP12: TCnFP12                        -
+
+   返回值：Boolean                        -
+}
 
 function FP12IsOne(FP12: TCnFP12): Boolean;
-{* 判断一十二次扩域大整系数元素对象是否为 1}
+{* 判断一十二次扩域大整系数元素对象是否为 1
+
+   参数：
+     FP12: TCnFP12                        -
+
+   返回值：Boolean                        -
+}
 
 procedure FP12SetZero(FP12: TCnFP12);
-{* 将一十二次扩域大整系数元素对象设置为 0}
+{* 将一十二次扩域大整系数元素对象设置为 0
+
+   参数：
+     FP12: TCnFP12                        -
+
+   返回值：（无）
+}
 
 procedure FP12SetOne(FP12: TCnFP12);
-{* 将一十二次扩域大整系数元素对象设置为 1}
+{* 将一十二次扩域大整系数元素对象设置为 1
+
+   参数：
+     FP12: TCnFP12                        -
+
+   返回值：（无）
+}
 
 procedure FP12SetU(FP12: TCnFP12);
-{* 将一十二次扩域大整系数元素对象设为 U，也就是仨 FP4 分别 U、0、0}
+{* 将一十二次扩域大整系数元素对象设为 U，也就是仨 FP4 分别 U、0、0
+
+   参数：
+     FP12: TCnFP12                        -
+
+   返回值：（无）
+}
 
 procedure FP12SetV(FP12: TCnFP12);
-{* 将一十二次扩域大整系数元素对象设为 V，也就是仨 FP4 分别 V、0、0}
+{* 将一十二次扩域大整系数元素对象设为 V，也就是仨 FP4 分别 V、0、0
+
+   参数：
+     FP12: TCnFP12                        -
+
+   返回值：（无）
+}
 
 procedure FP12SetW(FP12: TCnFP12);
-{* 将一十二次扩域大整系数元素对象设为 W，也就是仨 FP4 分别 0、1、0}
+{* 将一十二次扩域大整系数元素对象设为 W，也就是仨 FP4 分别 0、1、0
+
+   参数：
+     FP12: TCnFP12                        -
+
+   返回值：（无）
+}
 
 procedure FP12SetWSqr(FP12: TCnFP12);
-{* 将一十二次扩域大整系数元素对象设为 W^2，也就是仨 FP4 分别 0、0、1}
+{* 将一十二次扩域大整系数元素对象设为 W^2，也就是仨 FP4 分别 0、0、1
+
+   参数：
+     FP12: TCnFP12                        -
+
+   返回值：（无）
+}
 
 procedure FP12SetBigNumber(FP12: TCnFP12; Num: TCnBigNumber);
-{* 将一十二次扩域大整系数元素对象设置为某一个大数}
+{* 将一十二次扩域大整系数元素对象设置为某一个大数
+
+   参数：
+     FP12: TCnFP12                        -
+     Num: TCnBigNumber                    -
+
+   返回值：（无）
+}
 
 procedure FP12SetBigNumbers(FP12: TCnFP12; Num0: TCnBigNumber;
   Num1: TCnBigNumber; Num2: TCnBigNumber);
-{* 将一十二次扩域大整系数元素对象设置为三个大数值}
+{* 将一十二次扩域大整系数元素对象设置为三个大数值
+
+   参数：
+     FP12: TCnFP12                        -
+     Num0: TCnBigNumber                   -
+     Num1: TCnBigNumber                   -
+     Num2: TCnBigNumber                   -
+
+   返回值：（无）
+}
 
 procedure FP12SetFP4(FP12: TCnFP12; FP4: TCnFP4);
-{* 将一十二次扩域大整系数元素对象设置为一个四次扩域大整系数元素}
+{* 将一十二次扩域大整系数元素对象设置为一个四次扩域大整系数元素
+
+   参数：
+     FP12: TCnFP12                        -
+     FP4: TCnFP4                          -
+
+   返回值：（无）
+}
 
 procedure FP12Set3FP4S(FP12: TCnFP12; FP40: TCnFP4; FP41: TCnFP4; FP42: TCnFP4);
-{* 将一十二次扩域大整系数元素对象设置为三个四次扩域大整系数元素}
+{* 将一十二次扩域大整系数元素对象设置为三个四次扩域大整系数元素
+
+   参数：
+     FP12: TCnFP12                        -
+     FP40: TCnFP4                         -
+     FP41: TCnFP4                         -
+     FP42: TCnFP4                         -
+
+   返回值：（无）
+}
 
 procedure FP12SetFP2(FP12: TCnFP12; FP2: TCnFP2);
-{* 将一十二次扩域大整系数元素对象设置为一个二次扩域大整系数元素}
+{* 将一十二次扩域大整系数元素对象设置为一个二次扩域大整系数元素
+
+   参数：
+     FP12: TCnFP12                        -
+     FP2: TCnFP2                          -
+
+   返回值：（无）
+}
 
 procedure FP12SetHex(FP12: TCnFP12; const S0: string; const S1: string;
   const S2: string; const S3: string; const S4: string; const S5: string;
   const S6: string; const S7: string; const S8: string; const S9: string;
   const S10: string; const S11: string);
-{* 将一十二次扩域大整系数元素对象设置为十二个十六进制字符串}
+{* 将一十二次扩域大整系数元素对象设置为十二个十六进制字符串
+
+   参数：
+     FP12: TCnFP12                        -
+     const S0: string                     -
+     const S1: string                     -
+     const S2: string                     -
+     const S3: string                     -
+     const S4: string                     -
+     const S5: string                     -
+     const S6: string                     -
+     const S7: string                     -
+     const S8: string                     -
+     const S9: string                     -
+     const S10: string                    -
+     const S11: string                    -
+
+   返回值：（无）
+}
 
 function FP12ToString(FP12: TCnFP12): string;
-{* 将一十二次扩域大整系数元素对象转换为字符串}
+{* 将一十二次扩域大整系数元素对象转换为字符串。
+
+   参数：
+     FP12: TCnFP12                        -
+
+   返回值：string                         - 返回字符串
+}
 
 procedure FP12SetWord(FP12: TCnFP12; Value: Cardinal);
-{* 将一十二次扩域大整系数元素对象设置为一个 Cardinal}
+{* 将一十二次扩域大整系数元素对象设置为一个 Cardinal
+
+   参数：
+     FP12: TCnFP12                        -
+     Value: Cardinal                      -
+
+   返回值：（无）
+}
 
 procedure FP12SetWords(FP12: TCnFP12; Value0: Cardinal; Value1: Cardinal;
   Value2: Cardinal; Value3: Cardinal; Value4: Cardinal; Value5: Cardinal;
   Value6: Cardinal; Value7: Cardinal; Value8: Cardinal; Value9: Cardinal;
   Value10: Cardinal; Value11: Cardinal);
-{* 将一十二次扩域大整系数元素对象设置为十二个 Cardinal}
+{* 将一十二次扩域大整系数元素对象设置为十二个 Cardinal
+
+   参数：
+     FP12: TCnFP12                        -
+     Value0: Cardinal                     -
+     Value1: Cardinal                     -
+     Value2: Cardinal                     -
+     Value3: Cardinal                     -
+     Value4: Cardinal                     -
+     Value5: Cardinal                     -
+     Value6: Cardinal                     -
+     Value7: Cardinal                     -
+     Value8: Cardinal                     -
+     Value9: Cardinal                     -
+     Value10: Cardinal                    -
+     Value11: Cardinal                    -
+
+   返回值：（无）
+}
 
 function FP12Equal(F1: TCnFP12; F2: TCnFP12): Boolean;
-{* 判断两个十二次扩域大整系数元素对象值是否相等}
+{* 判断两个十二次扩域大整系数元素对象值是否相等
+
+   参数：
+     F1: TCnFP12                          -
+     F2: TCnFP12                          -
+
+   返回值：Boolean                        -
+}
 
 function FP12Copy(Dst: TCnFP12; Src: TCnFP12): TCnFP12;
-{* 将一十二次扩域大整系数元素对象值复制到另一个十二次扩域大整系数元素对象中}
+{* 将一十二次扩域大整系数元素对象值复制到另一个十二次扩域大整系数元素对象中
+
+   参数：
+     Dst: TCnFP12                         -
+     Src: TCnFP12                         -
+
+   返回值：TCnFP12                        -
+}
 
 procedure FP12Negate(Res: TCnFP12; F: TCnFP12; Prime: TCnBigNumber);
-{* 将一十二次扩域大整系数元素对象值有限域中求负}
+{* 将一十二次扩域大整系数元素对象值有限域中求负
+
+   参数：
+     Res: TCnFP12                         - 用来容纳结果的十二次扩域大整系数元素对象
+     F: TCnFP12                           -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP12Add(Res: TCnFP12; F1: TCnFP12; F2: TCnFP12; Prime: TCnBigNumber);
-{* 有限域中十二次扩域大整系数元素加法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
+{* 有限域中十二次扩域大整系数元素加法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2
+
+   参数：
+     Res: TCnFP12                         - 用来容纳结果的十二次扩域大整系数元素对象
+     F1: TCnFP12                          -
+     F2: TCnFP12                          -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP12Sub(Res: TCnFP12; F1: TCnFP12; F2: TCnFP12; Prime: TCnBigNumber);
-{* 有限域中十二次扩域大整系数元素减法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2}
+{* 有限域中十二次扩域大整系数元素减法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2
+
+   参数：
+     Res: TCnFP12                         - 用来容纳结果的十二次扩域大整系数元素对象
+     F1: TCnFP12                          -
+     F2: TCnFP12                          -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP12Mul(Res: TCnFP12; F1: TCnFP12; F2: TCnFP12; Prime: TCnBigNumber);
-{* 有限域中十二次扩域大整系数元素乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2}
+{* 有限域中十二次扩域大整系数元素乘法，Prime 为域素数，Res 不可以是 F1 或 F2，F1 可以是 F2
+
+   参数：
+     Res: TCnFP12                         - 用来容纳结果的十二次扩域大整系数元素对象
+     F1: TCnFP12                          -
+     F2: TCnFP12                          -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP12Mul3(Res: TCnFP12; F: TCnFP12; Prime: TCnBigNumber);
-{* 有限域中十二次扩域大整系数元素对象乘以 3，Prime 为域素数，Res 可以是 F}
+{* 有限域中十二次扩域大整系数元素对象乘以 3，Prime 为域素数，Res 可以是 F
+
+   参数：
+     Res: TCnFP12                         - 用来容纳结果的十二次扩域大整系数元素对象
+     F: TCnFP12                           -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP12Inverse(Res: TCnFP12; F: TCnFP12; Prime: TCnBigNumber);
-{* 有限域中十二次扩域大整系数元素求模反，Prime 为域素数，Res 可以是 F}
+{* 有限域中十二次扩域大整系数元素求模反，Prime 为域素数，Res 可以是 F
+
+   参数：
+     Res: TCnFP12                         - 用来容纳结果的十二次扩域大整系数元素对象
+     F: TCnFP12                           -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP12Div(Res: TCnFP12; F1: TCnFP12; F2: TCnFP12; Prime: TCnBigNumber);
-{* 有限域中十二次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现}
+{* 有限域中十二次扩域大整系数元素除法，Prime 为域素数，Res 可以是 F1、F2，F1 可以是 F2，内部用模反乘法实现
+
+   参数：
+     Res: TCnFP12                         - 用来容纳结果的十二次扩域大整系数元素对象
+     F1: TCnFP12                          -
+     F2: TCnFP12                          -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP12Power(Res: TCnFP12; F: TCnFP12; Exponent: TCnBigNumber; Prime: TCnBigNumber);
-{* 有限域中十二次扩域大整系数元素乘方，Prime 为域素数，Res 可以是 F}
+{* 有限域中十二次扩域大整系数元素乘方，Prime 为域素数，Res 可以是 F
+
+   参数：
+     Res: TCnFP12                         - 用来容纳结果的十二次扩域大整系数元素对象
+     F: TCnFP12                           -
+     Exponent: TCnBigNumber               -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 function FP12ToStream(FP12: TCnFP12; Stream: TStream; FixedLen: Integer = 0): Integer;
-{* 将一十二次扩域大整系数元素对象的内容写入流，返回写入长度}
+{* 将一十二次扩域大整系数元素对象的内容写入流，返回写入长度
+
+   参数：
+     FP12: TCnFP12                        -
+     Stream: TStream                      -
+     FixedLen: Integer                    -
+
+   返回值：Integer                        -
+}
 
 // ===================== 仿射坐标系里的三元点的运算函数 ========================
 
 function FP2AffinePointNew: TCnFP2AffinePoint;
-{* 创建一仿射坐标系里的三元点对象，等同于 TCnAffinePoint.Create}
+{* 创建一仿射坐标系里的三元点对象，等同于 TCnAffinePoint.Create
+
+   参数：
+     （无）
+
+   返回值：TCnFP2AffinePoint              -
+}
 
 procedure AffinePointFree(P: TCnFP2AffinePoint);
-{* 释放一仿射坐标系里的三元点对象，等同于 TCnAffinePoint.Free}
+{* 释放一仿射坐标系里的三元点对象，等同于 TCnAffinePoint.Free
+
+   参数：
+     P: TCnFP2AffinePoint                 -
+
+   返回值：（无）
+}
 
 procedure FP2AffinePointSetZero(P: TCnFP2AffinePoint);
-{* 将一个仿射坐标系里的三元点坐标设置为全 0}
+{* 将一个仿射坐标系里的三元点坐标设置为全 0
+
+   参数：
+     P: TCnFP2AffinePoint                 -
+
+   返回值：（无）
+}
 
 function FP2AffinePointToString(P: TCnFP2AffinePoint): string;
-{* 将一仿射坐标系里的三元点对象转换为字符串}
+{* 将一仿射坐标系里的三元点对象转换为字符串。
+
+   参数：
+     P: TCnFP2AffinePoint                 -
+
+   返回值：string                         - 返回字符串
+}
 
 function FP2AffinePointEqual(P1: TCnFP2AffinePoint; P2: TCnFP2AffinePoint): Boolean;
-{* 判断两个仿射坐标系里的三元点对象值是否相等}
+{* 判断两个仿射坐标系里的三元点对象值是否相等
+
+   参数：
+     P1: TCnFP2AffinePoint                -
+     P2: TCnFP2AffinePoint                -
+
+   返回值：Boolean                        -
+}
 
 function FP2AffinePointCopy(Dst: TCnFP2AffinePoint; Src: TCnFP2AffinePoint): TCnFP2AffinePoint;
-{* 将一仿射坐标系里的三元点对象值复制到另一个仿射坐标系里的三元点对象中}
+{* 将一仿射坐标系里的三元点对象值复制到另一个仿射坐标系里的三元点对象中
+
+   参数：
+     Dst: TCnFP2AffinePoint               -
+     Src: TCnFP2AffinePoint               -
+
+   返回值：TCnFP2AffinePoint              -
+}
 
 function FP2AffinePointIsAtInfinity(P: TCnFP2AffinePoint): Boolean;
-{* 判断一仿射坐标系里的三元点对象是否位于无限远处}
+{* 判断一仿射坐标系里的三元点对象是否位于无限远处
+
+   参数：
+     P: TCnFP2AffinePoint                 -
+
+   返回值：Boolean                        -
+}
 
 procedure FP2AffinePointSetToInfinity(P: TCnFP2AffinePoint);
-{* 将一仿射坐标系里的三元点对象坐标设为无限远}
+{* 将一仿射坐标系里的三元点对象坐标设为无限远
+
+   参数：
+     P: TCnFP2AffinePoint                 -
+
+   返回值：（无）
+}
 
 procedure FP2AffinePointGetCoordinates(P: TCnFP2AffinePoint; FP2X: TCnFP2; FP2Y: TCnFP2);
-{* 获取一仿射坐标系里的三元点对象的 XY 坐标值，内部采用复制，只支持 Z 为 1 的情形}
+{* 获取一仿射坐标系里的三元点对象的 XY 坐标值，内部采用复制，只支持 Z 为 1 的情形
+
+   参数：
+     P: TCnFP2AffinePoint                 -
+     FP2X: TCnFP2                         -
+     FP2Y: TCnFP2                         -
+
+   返回值：（无）
+}
 
 procedure FP2AffinePointSetCoordinates(P: TCnFP2AffinePoint; FP2X: TCnFP2; FP2Y: TCnFP2);
-{* 设置一仿射坐标系里的三元点对象的 XY 坐标值，内部采用复制}
+{* 设置一仿射坐标系里的三元点对象的 XY 坐标值，内部采用复制
+
+   参数：
+     P: TCnFP2AffinePoint                 -
+     FP2X: TCnFP2                         -
+     FP2Y: TCnFP2                         -
+
+   返回值：（无）
+}
 
 procedure FP2AffinePointSetCoordinatesHex(P: TCnFP2AffinePoint;
   const SX0: string; const SX1: string; const SY0: string; const SY1: string);
-{* 设置一仿射坐标系里的三元点对象的 XY 坐标值，使用十六进制字符串}
+{* 设置一仿射坐标系里的三元点对象的 XY 坐标值，使用十六进制字符串
+
+   参数：
+     P: TCnFP2AffinePoint                 -
+     const SX0: string                    -
+     const SX1: string                    -
+     const SY0: string                    -
+     const SY1: string                    -
+
+   返回值：（无）
+}
 
 procedure FP2AffinePointSetCoordinatesBigNumbers(P: TCnFP2AffinePoint;
   X0: TCnBigNumber; X1: TCnBigNumber; Y0: TCnBigNumber; Y1: TCnBigNumber);
-{* 设置一仿射坐标系里的三元点对象的 XY 坐标值，使用大数对象，内部采用复制}
+{* 设置一仿射坐标系里的三元点对象的 XY 坐标值，使用大数对象，内部采用复制
+
+   参数：
+     P: TCnFP2AffinePoint                 -
+     X0: TCnBigNumber                     -
+     X1: TCnBigNumber                     -
+     Y0: TCnBigNumber                     -
+     Y1: TCnBigNumber                     -
+
+   返回值：（无）
+}
 
 procedure FP2AffinePointGetJacobianCoordinates(P: TCnFP2AffinePoint;
   FP12X: TCnFP12; FP12Y: TCnFP12; Prime: TCnBigNumber);
-{* 获取一仿射坐标系里的三元点对象的雅可比 XY 坐标值，内部采用复制}
+{* 获取一仿射坐标系里的三元点对象的雅可比 XY 坐标值，内部采用复制
+
+   参数：
+     P: TCnFP2AffinePoint                 -
+     FP12X: TCnFP12                       -
+     FP12Y: TCnFP12                       -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2AffinePointSetJacobianCoordinates(P: TCnFP2AffinePoint;
   FP12X: TCnFP12; FP12Y: TCnFP12; Prime: TCnBigNumber);
-{* 设置一仿射坐标系里的三元点对象的雅可比 XY 坐标值，内部采用复制}
+{* 设置一仿射坐标系里的三元点对象的雅可比 XY 坐标值，内部采用复制
+
+   参数：
+     P: TCnFP2AffinePoint                 -
+     FP12X: TCnFP12                       -
+     FP12Y: TCnFP12                       -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 function FP2AffinePointIsOnCurve(P: TCnFP2AffinePoint; Prime: TCnBigNumber): Boolean;
-{* 判断一仿射坐标系里的三元点对象是否在椭圆曲线 y^2 = x^3 + 5 上}
+{* 判断一仿射坐标系里的三元点对象是否在椭圆曲线 y^2 = x^3 + 5 上
+
+   参数：
+     P: TCnFP2AffinePoint                 -
+     Prime: TCnBigNumber                  -
+
+   返回值：Boolean                        -
+}
 
 procedure FP2AffinePointNegate(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
   Prime: TCnBigNumber);
-{* 一个仿射坐标系里的三元点对象的椭圆曲线求反，Res 可以是 P}
+{* 一个仿射坐标系里的三元点对象的椭圆曲线求反，Res 可以是 P
+
+   参数：
+     Res: TCnFP2AffinePoint               -
+     P: TCnFP2AffinePoint                 -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2AffinePointDouble(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
   Prime: TCnBigNumber);
-{* 一个仿射坐标系里的三元点对象的椭圆曲线倍点法，Res 可以是 P}
+{* 一个仿射坐标系里的三元点对象的椭圆曲线倍点法，Res 可以是 P
+
+   参数：
+     Res: TCnFP2AffinePoint               -
+     P: TCnFP2AffinePoint                 -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2AffinePointAdd(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
   Q: TCnFP2AffinePoint; Prime: TCnBigNumber);
 {* 两个仿射坐标系里的三元点对象的椭圆曲线加法，Res 可以是 P 或 Q，P 可以是 Q，
-  注意内部还是将 Z 当成 1，仍然是求反的普通操作}
+  注意内部还是将 Z 当成 1，仍然是求反的普通操作
+
+   参数：
+     Res: TCnFP2AffinePoint               -
+     P: TCnFP2AffinePoint                 -
+     Q: TCnFP2AffinePoint                 -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2AffinePointSub(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
   Q: TCnFP2AffinePoint; Prime: TCnBigNumber);
-{* 两个仿射坐标系里的三元点对象的椭圆曲线减法，Res 可以是 P 或 Q，P 可以是 Q}
+{* 两个仿射坐标系里的三元点对象的椭圆曲线减法，Res 可以是 P 或 Q，P 可以是 Q
+
+   参数：
+     Res: TCnFP2AffinePoint               -
+     P: TCnFP2AffinePoint                 -
+     Q: TCnFP2AffinePoint                 -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2AffinePointMul(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
   Num: TCnBigNumber; Prime: TCnBigNumber);
-{* 一个仿射坐标系里的三元点对象的椭圆曲线 N 倍点法，Res 可以是 P}
+{* 一个仿射坐标系里的三元点对象的椭圆曲线 N 倍点法，Res 可以是 P
+
+   参数：
+     Res: TCnFP2AffinePoint               -
+     P: TCnFP2AffinePoint                 -
+     Num: TCnBigNumber                    -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2AffinePointFrobenius(Res: TCnFP2AffinePoint; P: TCnFP2AffinePoint;
   Prime: TCnBigNumber);
 {* 计算一个仿射坐标系里的三元点对象的弗罗贝尼乌斯自同态值，Res 可以是 P
-  其实就是 P 的 Prime 次方的结果 mod Prime}
+  其实就是 P 的 Prime 次方的结果 mod Prime
+
+   参数：
+     Res: TCnFP2AffinePoint               -
+     P: TCnFP2AffinePoint                 -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 function FP2PointToString(P: TCnFP2Point): string;
-{* 将一仿射坐标系里的二元点 FP2 对象转换为字符串}
+{* 将一仿射坐标系里的二元点 FP2 对象转换为字符串。
+
+   参数：
+     P: TCnFP2Point                       -
+
+   返回值：string                         - 返回字符串
+}
 
 procedure FP2AffinePointToFP2Point(FP2P: TCnFP2Point; FP2AP: TCnFP2AffinePoint;
   Prime: TCnBigNumber);
-{* 将一仿射坐标系里的三元点 FP2 对象转换为普通坐标系里的二元点 FP2 对象}
+{* 将一仿射坐标系里的三元点 FP2 对象转换为普通坐标系里的二元点 FP2 对象
+
+   参数：
+     FP2P: TCnFP2Point                    -
+     FP2AP: TCnFP2AffinePoint             -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure FP2PointToFP2AffinePoint(FP2AP: TCnFP2AffinePoint; FP2P: TCnFP2Point);
-{* 将一仿射坐标系里的三元点 FP2 对象转换为普通坐标系里的二元点 FP2 对象}
+{* 将一仿射坐标系里的三元点 FP2 对象转换为普通坐标系里的二元点 FP2 对象
+
+   参数：
+     FP2AP: TCnFP2AffinePoint             -
+     FP2P: TCnFP2Point                    -
+
+   返回值：（无）
+}
 
 // ============================ 双线性对计算函数 ===============================
 
 procedure Rate(F: TCnFP12; Q: TCnFP2AffinePoint; XP: TCnBigNumber;
   YP: TCnBigNumber; A: TCnBigNumber; K: TCnBigNumber; Prime: TCnBigNumber);
 {* 计算 R-ate 对。输出是一个 FP12 值，输入是一个 BN 曲线上的点的坐标 XP、YP，
-  一个 FP2 上的 XYZ 仿射坐标点，一个指数 K、一个循环次数 A}
+  一个 FP2 上的 XYZ 仿射坐标点，一个指数 K、一个循环次数 A
+
+   参数：
+     F: TCnFP12                           -
+     Q: TCnFP2AffinePoint                 -
+     XP: TCnBigNumber                     -
+     YP: TCnBigNumber                     -
+     A: TCnBigNumber                      -
+     K: TCnBigNumber                      -
+     Prime: TCnBigNumber                  -
+
+   返回值：（无）
+}
 
 procedure SM9RatePairing(F: TCnFP12; Q: TCnFP2AffinePoint; P: TCnEccPoint);
 {* 根据 SM9 指定的 BN 曲线的参数以及指定点计算 R-ate 对，输入为一个 BN 曲线上的点
-  一个 FP2 上的 XYZ 仿射坐标点，输出为一个 FP12 值}
+  一个 FP2 上的 XYZ 仿射坐标点，输出为一个 FP12 值
+
+   参数：
+     F: TCnFP12                           -
+     Q: TCnFP2AffinePoint                 -
+     P: TCnEccPoint                       -
+
+   返回值：（无）
+}
 
 // ===================== SM9 具体实现函数：签名与验证 ==========================
 
 function CnSM9KGCGenerateSignatureMasterKey(SignatureMasterKey:
   TCnSM9SignatureMasterKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，生成签名主密钥}
+{* 由 KCG 调用，生成签名主密钥。
+
+   参数：
+     SignatureMasterKey: TCnSM9SignatureMasterKey         - 待生成的 SM9 签名主密钥
+     SM9: TCnSM9                                          - 可以传入 SM9 实例，默认为空
+
+   返回值：Boolean                                        - 返回是否生成成功
+}
 
 function CnSM9KGCGenerateSignatureUserKey(SignatureMasterPrivateKey:
   TCnSM9SignatureMasterPrivateKey; const AUserID: AnsiString;
   OutSignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，根据用户 ID 生成用户签名私钥}
+{* 由 KCG 调用，根据用户 ID 生成用户签名私钥。
+
+   参数：
+     SignatureMasterPrivateKey: TCnSM9SignatureMasterPrivateKey           - 用来生成用户签名私钥的 SM9 签名主密钥
+     const AUserID: AnsiString                                            - 用户标识
+     OutSignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey            - 待生成的 SM9 用户签名私钥
+     SM9: TCnSM9                                                          - 可以传入 SM9 实例，默认为空
+
+   返回值：Boolean                                                        - 返回是否生成成功
+}
 
 function CnSM9UserSignData(SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey;
   SignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey; PlainData: Pointer;
   DataByteLen: Integer; OutSignature: TCnSM9Signature; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
-{* 利用用户签名私钥与用户 ID 对数据进行签名，返回成功与否，签名值放在 OutSignature 中
-  注意因有用户私钥存在，用户 ID 无需参与签名}
+{* 利用用户签名私钥与用户 ID 对数据进行签名，返回成功与否，签名值放在 OutSignature 中。
+   注意因有用户私钥存在，用户 ID 无需参与签名。
+
+   参数：
+     SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey             - 用来签名的 SM9 签名主公钥
+     SignatureUserPrivateKey: TCnSM9SignatureUserPrivateKey               - 用来签名的 SM9 用户签名私钥
+     PlainData: Pointer                                                   - 待签名的明文数据块地址
+     DataByteLen: Integer                                                 - 待签名的明文数据块字节长度
+     OutSignature: TCnSM9Signature                                        - 输出的签名值
+     SM9: TCnSM9                                                          - 可以传入 SM9 实例，默认为空
+     const RandHex: string                                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
+
+   返回值：Boolean                                                        - 返回签名是否成功
+}
 
 function CnSM9UserVerifyData(const AUserID: AnsiString; PlainData: Pointer; DataByteLen: Integer;
   InSignature: TCnSM9Signature; SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey;
   SM9: TCnSM9 = nil): Boolean;
-{* 利用公开的签名公钥与用户 ID 对数据与签名进行验证，返回验证签名成功与否
-  注意用户 ID 需要参与签名验证}
+{* 利用公开的签名公钥与用户 ID 对数据与签名进行验证，返回验证签名成功与否。
+   注意用户 ID 需要参与签名验证。
+
+   参数：
+     const AUserID: AnsiString                                            - 用户标识
+     PlainData: Pointer                                                   - 待验证的明文数据块地址
+     DataByteLen: Integer                                                 - 待验证的明文数据块字节长度
+     InSignature: TCnSM9Signature                                         - 待验证的签名值
+     SignatureMasterPublicKey: TCnSM9SignatureMasterPublicKey             - 用来验证的 SM9 签名主公钥
+     SM9: TCnSM9                                                          - 可以传入 SM9 实例，默认为空
+
+   返回值：Boolean                                                        - 返回验证是否成功
+}
 
 // ================== SM9 具体实现函数：加解密与密钥封装 =======================
 
 function CnSM9KGCGenerateEncryptionMasterKey(EncryptionMasterKey:
   TCnSM9EncryptionMasterKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，生成加密主密钥，可用于加解密或密钥封装}
+{* 由 KCG 调用，生成加密主密钥，可用于加解密或密钥封装。
+
+   参数：
+     EncryptionMasterKey: TCnSM9EncryptionMasterKey       - 待生成的 SM9 加密主密钥
+     SM9: TCnSM9                                          - 可以传入 SM9 实例，默认为空
+
+   返回值：Boolean                                        - 返回是否生成成功
+}
 
 function CnSM9KGCGenerateEncryptionUserKey(EncryptionMasterPrivateKey:
   TCnSM9EncryptionMasterPrivateKey; const AUserID: AnsiString;
   OutEncryptionUserKey: TCnSM9EncryptionUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，根据用户 ID 生成用户加密私钥，可用于加解密或密钥封装}
+{* 由 KCG 调用，根据用户 ID 生成用户加密私钥，可用于加解密或密钥封装。
+
+   参数：
+     EncryptionMasterPrivateKey: TCnSM9EncryptionMasterPrivateKey         - 用来生成用户加密私钥的 SM9 加密主密钥
+     const AUserID: AnsiString                                            - 用户标识
+     OutEncryptionUserKey: TCnSM9EncryptionUserPrivateKey                 - 待生成的 SM9 用户加密私钥
+     SM9: TCnSM9                                                          - 可以传入 SM9 实例，默认为空
+
+   返回值：Boolean                                                        - 返回是否生成成功
+}
 
 // ====================== SM9 具体实现函数：密钥封装 ===========================
 
@@ -1004,13 +2170,35 @@ function CnSM9UserSendKeyEncapsulation(const DestUserID: AnsiString; KeyByteLeng
   EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey;
   OutKeyEncapsulation: TCnSM9KeyEncapsulation; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
 {* 普通用户根据目标用户的 ID 与加密主公钥，生成 KeyLength 长度的字节串密钥封装内容，
-  返回封装是否成功}
+   返回封装是否成功。
+
+   参数：
+     const DestUserID: AnsiString                         - 目标用户标识
+     KeyByteLength: Integer                               - 待封装的密钥字节长度
+     EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey - 用于密钥封装的 SM9 加密主公钥
+     OutKeyEncapsulation: TCnSM9KeyEncapsulation          - 生成的字节串密钥封装内容，需传输给对方
+     SM9: TCnSM9                                          - 可以传入 SM9 实例，默认为空
+     const RandHex: string                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
+
+   返回值：Boolean                                        - 返回封装是否成功
+}
 
 function CnSM9UserReceiveKeyEncapsulation(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; KeyByteLength: Integer;
   InKeyEncapsulationC: TCnSM9KeyEncapsulationCode; out Key: TBytes; SM9: TCnSM9 = nil): Boolean;
 {* 目标用户根据自身的 ID 与自己的用户加密私钥，从 KeyEncapsulation 对象中还原 KeyLength
-  长度的字节串密钥封装内容放在 Key 中，返回解封是否成功}
+   长度的字节串密钥封装内容放在 Key 中，返回解封是否成功。
+
+   参数：
+     const DestUserID: AnsiString                         - 目标用户标识
+     EncryptionUserKey: TCnSM9EncryptionUserPrivateKey    - 用于密钥封装的 SM9 用户加密私钥
+     KeyByteLength: Integer                               - 待封装的密钥字节长度
+     InKeyEncapsulationC: TCnSM9KeyEncapsulationCode      - 由对方生成并传输而来的字节串密钥封装内容
+     out Key: TBytes                                      - 输出的解封密钥
+     SM9: TCnSM9                                          - 可以传入 SM9 实例，默认为空
+
+   返回值：Boolean                                        - 返回解封是否成功
+}
 
 // ======================= SM9 具体实现函数：加解密 ============================
 
@@ -1018,32 +2206,88 @@ function CnSM9UserEncryptData(const DestUserID: AnsiString;
   EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey; PlainData: Pointer;
   DataByteLen: Integer; K1ByteLength: Integer; K2ByteLength: Integer; OutStream: TStream;
   EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
-{* 使用加密主公钥与目标用户的 ID 加密数据并写入流，返回加密是否成功，
-  EncryptionMode 是 SM4 时 K1Length 参数值忽略，内部固定为 16 字节，
-  SM4 使用 ECB 模式与 PKCS7 对齐}
+{* 使用加密主公钥与目标用户的 ID 加密数据并写入流，返回加密是否成功。
+   EncryptionMode 是 SM4 时 K1Length 参数值忽略，内部固定为 16 字节，
+   SM4 使用 ECB 模式与 PKCS7 对齐。
+
+   参数：
+     const DestUserID: AnsiString                         - 用户标识
+     EncryptionPublicKey: TCnSM9EncryptionMasterPublicKey - 用于加密的 SM9 加密主公钥
+     PlainData: Pointer                                   - 待加密的明文数据块地址
+     DataByteLen: Integer                                 - 待加密的明文数据块字节长度
+     K1ByteLength: Integer                                - 第一个密钥的字节长度
+     K2ByteLength: Integer                                - 第二个密钥的字节长度
+     OutStream: TStream                                   - 输出的密文流
+     EncryptionMode: TCnSM9EncrytionMode                  - 加密模式
+     SM9: TCnSM9                                          - 可以传入 SM9 实例，默认为空
+     const RandHex: string                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
+
+   返回值：Boolean                                        - 返回加密是否成功
+}
 
 function CnSM9UserDecryptData(const DestUserID: AnsiString;
   EncryptionUserKey: TCnSM9EncryptionUserPrivateKey; EnData: Pointer;
   DataByteLen: Integer; K2ByteLength: Integer; OutStream: TStream;
   EncryptionMode: TCnSM9EncrytionMode = semSM4; SM9: TCnSM9 = nil): Boolean;
-{* 使用用户加密私钥解密数据并写入流，返回解密是否成功}
+{* 使用用户加密私钥解密数据并写入流，返回解密是否成功
+
+   参数：
+     const DestUserID: AnsiString                         - 用户标识
+     EncryptionUserKey: TCnSM9EncryptionUserPrivateKey    - 用于解密的 SM9 用户加密私钥
+     EnData: Pointer                                      - 待解密的密文数据块地址
+     DataByteLen: Integer                                 - 待解密的密文数据块字节长度
+     K2ByteLength: Integer                                - 第二个密钥的字节长度
+     OutStream: TStream                                   - 输出的明文流
+     EncryptionMode: TCnSM9EncrytionMode                  - 加密模式
+     SM9: TCnSM9                                          - 可以传入 SM9 实例，默认为空
+
+   返回值：Boolean                                        - 返回解密是否成功
+}
 
 // ====================== SM9 具体实现函数：密钥交换 ===========================
 
 function CnSM9KGCGenerateKeyExchangeMasterKey(KeyExchangeMasterKey:
   TCnSM9KeyExchangeMasterKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，生成加密主密钥，可用于密钥交换，行为等同于 CnSM9KGCGenerateEncryptionMasterKey}
+{* 由 KCG 调用，生成加密主密钥，可用于密钥交换，行为等同于 CnSM9KGCGenerateEncryptionMasterKey。
+
+   参数：
+     KeyExchangeMasterKey: TCnSM9KeyExchangeMasterKey     - 待生成的 SM9 密钥交换加密主密钥
+     SM9: TCnSM9                                          - 可以传入 SM9 实例，默认为空
+
+   返回值：Boolean                                        - 返回是否生成成功
+}
 
 function CnSM9KGCGenerateKeyExchangeUserKey(KeyExchangeMasterPrivateKey:
   TCnSM9KeyExchangeMasterPrivateKey; const AUserID: AnsiString;
   OutKeyExchangeUserKey: TCnSM9KeyExchangeUserPrivateKey; SM9: TCnSM9 = nil): Boolean;
-{* 由 KCG 调用，根据用户 ID 生成用于密钥交换的用户加密私钥}
+{* 由 KCG 调用，根据用户 ID 生成用于密钥交换的用户加密私钥。
+
+   参数：
+     KeyExchangeMasterPrivateKey: TCnSM9KeyExchangeMasterPrivateKey       - 用来密钥交换的 SM9 加密主密钥
+     const AUserID: AnsiString                                            - 用户标识
+     OutKeyExchangeUserKey: TCnSM9KeyExchangeUserPrivateKey               - 待生成的用于密钥交换的用户加密私钥
+     SM9: TCnSM9                                                          - 可以传入 SM9 实例，默认为空
+
+   返回值：Boolean                                                        - 返回是否生成成功
+}
 
 function CnSM9UserKeyExchangeAStep1(const BUserID: AnsiString; KeyByteLength: Integer;
   KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey; OutRA: TCnEccPoint;
   OutRandA: TCnBigNumber; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
-{* 密钥交换第一步，A 用 B 的 ID 以及加密主公钥生成一个椭圆曲线点 RA 给 B
-  同时记录中间计算结果 OutRandA，需要外部传入保存其值，在第三步中使用}
+{* 密钥交换第一步，A 用 B 的 ID 以及加密主公钥生成一个椭圆曲线点 RA 给 B，
+   同时记录中间计算结果 OutRandA，需要外部传入保存其值，在第三步中使用。
+
+   参数：
+     const BUserID: AnsiString                                            - B 方的用户标识
+     KeyByteLength: Integer                                               - 待生成的密钥字节长度
+     KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey               - 用来密钥交换的 SM9 加密主公钥
+     OutRA: TCnEccPoint                                                   - 生成的中间结果坐标点 R，需在本次交换会话中保留，需传输至 B 方
+     OutRandA: TCnBigNumber                                               - 生成的中间结果随机数，需在本次交换会话中保留，不能传输给 B 方
+     SM9: TCnSM9                                                          - 可以传入 SM9 实例，默认为空
+     const RandHex: string                                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
+
+   返回值：Boolean                                                        - 返回
+}
 
 function CnSM9UserKeyExchangeBStep1(const AUserID: AnsiString; const BUserID: AnsiString;
   KeyByteLength: Integer; KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
@@ -1051,8 +2295,27 @@ function CnSM9UserKeyExchangeBStep1(const AUserID: AnsiString; const BUserID: An
   OutRB: TCnEccPoint; out KeyB: TBytes; out OutOptionalSB: TCnSM3Digest;
   OutG1: TCnFP12; OutG2: TCnFP12; OutG3: TCnFP12; SM9: TCnSM9 = nil; const RandHex: string = ''): Boolean;
 {* 密钥交换第二步，B 用 A、B 的 ID 以及加密主公钥与自己的私钥，根据所密钥长度与 RA
-  生成协商密钥 KeyB。另外生成另一个椭圆曲线点 RB 再加上一个可选的校验结果 SB 给 A
-  同时记录 OutG1, OutG2, OutG3 三个中间计算结果，需要外部传入保存其值，在第四步中使用}
+   生成协商密钥 KeyB。另外生成另一个椭圆曲线点 RB 再加上一个可选的校验结果 SB 给 A，
+   同时记录 OutG1, OutG2, OutG3 三个中间计算结果，需要外部传入保存其值，在第四步中使用。
+
+   参数：
+     const AUserID: AnsiString                                      - A 方的用户标识
+     const BUserID: AnsiString                                      - B 方的用户标识
+     KeyByteLength: Integer                                         - 待生成的密钥字节长度
+     KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey         - 用来密钥交换的 SM9 加密主公钥
+     KeyExchangeBUserKey: TCnSM9KeyExchangeUserPrivateKey           - 用来密钥交换的 B 用户 SM9 加密主私钥
+     InRA: TCnEccPoint                                              - 由 A 方生成并传输而来的中间结果坐标点 R
+     OutRB: TCnEccPoint                                             - 生成的中间结果坐标点 R，需传输回 A 方
+     out KeyB: TBytes                                               - B 生成的协商密钥
+     out OutOptionalSB: TCnSM3Digest                                - 输出的可选校验杂凑值
+     OutG1: TCnFP12                                                 - 输出中间计算结果 G1 供第四步校验
+     OutG2: TCnFP12                                                 - 输出中间计算结果 G2 供第四步校验
+     OutG3: TCnFP12                                                 - 输出中间计算结果 G3 供第四步校验
+     SM9: TCnSM9                                                    - 可以传入 SM9 实例，默认为空
+     const RandHex: string                                          - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
+
+   返回值：Boolean                                                  - 返回是否计算成功
+}
 
 function CnSM9UserKeyExchangeAStep2(const AUserID: AnsiString; const BUserID: AnsiString;
   KeyByteLength: Integer; KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey;
@@ -1060,28 +2323,86 @@ function CnSM9UserKeyExchangeAStep2(const AUserID: AnsiString; const BUserID: An
   InRA: TCnEccPoint; InRB: TCnEccPoint; InOptionalSB: TCnSM3Digest; out KeyA: TBytes;
   out OutOptionalSA: TCnSM3Digest; SM9: TCnSM9 = nil): Boolean;
 {* 密钥交换第三步，A 用 B 的 ID 以及加密主公钥与自己的私钥，根据所密钥长度与 RA、RB
-  生成协商密钥 KeyA，以及一个可选的校验结果 SA 给 B，此处 KeyA 应当等于 KeyB}
+   生成协商密钥 KeyA，以及一个可选的校验结果 SA 给 B，此处 KeyA 应当等于 KeyB。
+
+   参数：
+     const AUserID: AnsiString                                      - A 方的用户标识
+     const BUserID: AnsiString                                      - B 方的用户标识
+     KeyByteLength: Integer                                         - 待生成的密钥字节长度
+     KeyExchangePublicKey: TCnSM9KeyExchangeMasterPublicKey         - 用来密钥交换的 SM9 加密主公钥
+     KeyExchangeAUserKey: TCnSM9KeyExchangeUserPrivateKey           - 用来密钥交换的 A 用户 SM9 加密主私钥
+     InRandA: TCnBigNumber                                          - A 方第一次调用时生成的中间结果随机数
+     InRA: TCnEccPoint                                              - A 方第一次调用时生成的中间结果坐标点 R
+     InRB: TCnEccPoint                                              - 由 B 方生成并传输而来的中间结果坐标点 R
+     InOptionalSB: TCnSM3Digest                                     - 由 B 方生成并传输而来的可选校验杂凑值
+     out KeyA: TBytes                                               - A 生成的协商密钥
+     out OutOptionalSA: TCnSM3Digest                                - 输出的可选校验杂凑值
+     SM9: TCnSM9                                                    - 可以传入 SM9 实例，默认为空
+
+   返回值：Boolean                                                  - 返回协商是否成功
+}
 
 function CnSM9UserKeyExchangeBStep2(const AUserID: AnsiString; const BUserID: AnsiString;
   InRA: TCnEccPoint; InRB: TCnEccPoint; InOptionalSA: TCnSM3Digest; InG1: TCnFP12;
   InG2: TCnFP12; InG3: TCnFP12; SM9: TCnSM9 = nil): Boolean;
 {* 密钥交换第四步，可选。B 用 A、B 的 ID 以及第二步中的三个中间结果，根据 RA、RB
-  计算出校验结果并与 InOptionalSA 比较，不通过则校验失败}
+   计算出校验结果并与 InOptionalSA 比较，不通过则校验失败。
+
+   参数：
+     const AUserID: AnsiString            - A 方的用户标识
+     const BUserID: AnsiString            - B 方的用户标识
+     InRA: TCnEccPoint                    - 由 A 方生成并传输而来的中间结果坐标点 R
+     InRB: TCnEccPoint                    - B 方第一次调用时生成的中间结果坐标点 R
+     InOptionalSA: TCnSM3Digest           - 由 A 方生成并传输而来的可选校验杂凑值
+     InG1: TCnFP12                        - B 方第一次调用时生成的中间计算结果 G1
+     InG2: TCnFP12                        - B 方第一次调用时生成的中间计算结果 G2
+     InG3: TCnFP12                        - B 方第一次调用时生成的中间计算结果 G3
+     SM9: TCnSM9                          - 可以传入 SM9 实例，默认为空
+
+   返回值：Boolean                        - 返回校验是否成功
+}
 
 // =================== SM9 具体实现函数：两种杂凑算法 ========================
 
 function CnSM9Hash1(Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
   N: TCnBigNumber): Boolean;
-{* SM9 中规定的第一个密码函数，内部使用 SM3，256 位的杂凑函数
-  输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order}
+{* SM9 中规定的第一个密码函数，内部使用 SM3，256 位的杂凑函数。
+   输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order。
+
+   参数：
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+     N: TCnBigNumber                      - 应传入 SM9 的 Order
+
+   返回值：Boolean                        - 返回是否计算成功
+}
 
 function CnSM9Hash2(Res: TCnBigNumber; Data: Pointer; DataByteLen: Integer;
   N: TCnBigNumber): Boolean;
-{* SM9 中规定的第二个密码函数，内部使用 SM3，256 位的杂凑函数
-  输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order}
+{* SM9 中规定的第二个密码函数，内部使用 SM3，256 位的杂凑函数。
+   输入为比特串 Data 与大数 N，输出为 1 至 N - 1 闭区间内的大数，N 应该传 SM9.Order。
+
+   参数：
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     Data: Pointer                        - 待计算的数据块地址
+     DataByteLen: Integer                 - 待计算的数据块字节长度
+     N: TCnBigNumber                      - 应传入 SM9 的 Order
+
+   返回值：Boolean                        - 返回是否计算成功
+}
 
 function SM9Mac(Key: Pointer; KeyByteLength: Integer; Z: Pointer; ZByteLength: Integer): TCnSM3Digest;
-{* 根据密钥 Key 与消息 Z，求消息认证码}
+{* 根据密钥 Key 与消息 Z，求消息认证码，实际上是拼一起运算的 SM3 杂凑值。
+
+   参数：
+     Key: Pointer                         - 密钥数据块地址
+     KeyByteLength: Integer               - 密钥数据块字节长度
+     Z: Pointer                           - 消息数据块地址
+     ZByteLength: Integer                 - 消息数据块字节长度
+
+   返回值：TCnSM3Digest                   - 返回杂凑值
+}
 
 implementation
 
@@ -2779,7 +4100,7 @@ begin
   Result := FP2IsZero(Self);
 end;
 
-procedure TCnFP2.SetBigNumber(const Num: TCnBigNumber);
+procedure TCnFP2.SetBigNumber(Num: TCnBigNumber);
 begin
   FP2SetBigNumber(Self, Num);
 end;
@@ -2855,12 +4176,12 @@ begin
   Result := FP4IsZero(Self);
 end;
 
-procedure TCnFP4.SetBigNumber(const Num: TCnBigNumber);
+procedure TCnFP4.SetBigNumber(Num: TCnBigNumber);
 begin
   FP4SetBigNumber(Self, Num);
 end;
 
-procedure TCnFP4.SetBigNumbers(const Num0, Num1: TCnBigNumber);
+procedure TCnFP4.SetBigNumbers(Num0, Num1: TCnBigNumber);
 begin
   FP4SetBigNumbers(Self, Num0, Num1);
 end;
@@ -2946,12 +4267,12 @@ begin
   Result := FP12IsZero(Self);
 end;
 
-procedure TCnFP12.SetBigNumber(const Num: TCnBigNumber);
+procedure TCnFP12.SetBigNumber(Num: TCnBigNumber);
 begin
   FP12SetBigNumber(Self, Num);
 end;
 
-procedure TCnFP12.SetBigNumbers(const Num0, Num1, Num2: TCnBigNumber);
+procedure TCnFP12.SetBigNumbers(Num0, Num1, Num2: TCnBigNumber);
 begin
   FP12SetBigNumbers(Self, Num0, Num1, Num2);
 end;
@@ -3081,13 +4402,12 @@ begin
   inherited;
 end;
 
-procedure TCnFP2AffinePoint.GetCoordinatesFP2(const FP2X,
-  FP2Y: TCnFP2);
+procedure TCnFP2AffinePoint.GetCoordinatesFP2(FP2X, FP2Y: TCnFP2);
 begin
   FP2AffinePointGetCoordinates(Self, FP2X, FP2Y);
 end;
 
-procedure TCnFP2AffinePoint.GetJacobianCoordinatesFP12(const FP12X, FP12Y: TCnFP12;
+procedure TCnFP2AffinePoint.GetJacobianCoordinatesFP12(FP12X, FP12Y: TCnFP12;
   Prime: TCnBigNumber);
 begin
   FP2AffinePointGetJacobianCoordinates(Self, FP12X, FP12Y, Prime);
@@ -3103,14 +4423,13 @@ begin
   Result := FP2AffinePointIsOnCurve(Self, Prime);
 end;
 
-procedure TCnFP2AffinePoint.SetCoordinatesBigNumbers(const X0, X1, Y0,
+procedure TCnFP2AffinePoint.SetCoordinatesBigNumbers(X0, X1, Y0,
   Y1: TCnBigNumber);
 begin
   FP2AffinePointSetCoordinatesBigNumbers(Self, X0, X1, Y0, Y1);
 end;
 
-procedure TCnFP2AffinePoint.SetCoordinatesFP2(const FP2X,
-  FP2Y: TCnFP2);
+procedure TCnFP2AffinePoint.SetCoordinatesFP2(FP2X, FP2Y: TCnFP2);
 begin
   FP2AffinePointSetCoordinates(Self, FP2X, FP2Y);
 end;
@@ -3121,7 +4440,7 @@ begin
   FP2AffinePointSetCoordinatesHex(Self, SX0, SX1, SY0, SY1);
 end;
 
-procedure TCnFP2AffinePoint.SetJacobianCoordinatesFP12(const FP12X, FP12Y: TCnFP12;
+procedure TCnFP2AffinePoint.SetJacobianCoordinatesFP12(FP12X, FP12Y: TCnFP12;
   Prime: TCnBigNumber);
 begin
   FP2AffinePointSetJacobianCoordinates(Self, FP12X, FP12Y, Prime);

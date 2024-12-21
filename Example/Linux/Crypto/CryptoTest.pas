@@ -4158,7 +4158,6 @@ var
   Priv: TCnRSAPrivateKey;
   Pub: TCnRSAPublicKey;
   Data, E, D: TCnBigNumber;
-  S: AnsiString;
 begin
   Priv := TCnRSAPrivateKey.Create(True); // ∆Ù”√ CRT
   Pub := TCnRSAPublicKey.Create;
