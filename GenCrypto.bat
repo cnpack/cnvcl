@@ -214,7 +214,7 @@ ECHO USEUNIT("..\Source\CnPDFCrypt.pas");                                       
 ECHO USEUNIT("..\Source\CnPemUtils.pas");                                              >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnPoly1305.pas");                                              >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnPolynomial.pas");                                            >> Crypto.bpf
-ECHO USEUNIT("..\Source\CnPrimeNumber.pas");                                           >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnPrime.pas");                                                 >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnRandom.pas");                                                >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnRC4.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnRSA.pas");                                                   >> Crypto.bpf
@@ -268,7 +268,7 @@ ECHO       ..\Source\CnOTP.obj ..\Source\CnOTS.obj                              
 ECHO       ..\Source\CnPaillier.obj ..\Source\CnPDFCrypt.obj                          >> Crypto.bpr
 ECHO       ..\Source\CnPemUtils.obj ..\Source\CnPoly1305.obj                          >> Crypto.bpr
 ECHO       ..\Source\CnPolynomial.obj                                                 >> Crypto.bpr
-ECHO       ..\Source\CnPrimeNumber.obj                                                >> Crypto.bpr
+ECHO       ..\Source\CnPrime.obj                                                      >> Crypto.bpr
 ECHO       ..\Source\CnRandom.obj ..\Source\CnRC4.obj                                 >> Crypto.bpr
 ECHO       ..\Source\CnRSA.obj                                                        >> Crypto.bpr
 ECHO       ..\Source\CnSecretSharing.obj ..\Source\CnSHA1.obj                         >> Crypto.bpr
@@ -499,7 +499,7 @@ ECHO   CnPDFCrypt in '..\Source\CnPDFCrypt.pas',                               >
 ECHO   CnPemUtils in '..\Source\CnPemUtils.pas',                               >> %1
 ECHO   CnPoly1305 in '..\Source\CnPoly1305.pas',                               >> %1
 ECHO   CnPolynomial in '..\Source\CnPolynomial.pas',                           >> %1
-ECHO   CnPrimeNumber in '..\Source\CnPrimeNumber.pas',                         >> %1
+ECHO   CnPrime in '..\Source\CnPrime.pas',                                     >> %1
 ECHO   CnRandom in '..\Source\CnRandom.pas',                                   >> %1
 ECHO   CnRC4 in '..\Source\CnRC4.pas',                                         >> %1
 ECHO   CnRSA in '..\Source\CnRSA.pas',                                         >> %1
