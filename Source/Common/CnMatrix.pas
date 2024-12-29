@@ -26,7 +26,7 @@ unit CnMatrix;
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：高阶行列式的代数余子式计算方法初步验证通过，矩阵求逆结果可能不是整数
 * 开发平台：PWin7 + Delphi 5.0
-* 兼容测试：暂未进行
+* 兼容测试：暂未进行。另外 Hadamard 相关乘法，积矩阵可否是原矩阵待考察
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2022.07.01 V1.3
 *               加入矩阵斜角索引的计算
@@ -48,6 +48,7 @@ uses
 
 type
   ECnMatrixException = class(Exception);
+  {* 矩阵相关异常}
 
   TCnIntMatrix = class(TPersistent)
   {* Int64 范围内的整数矩阵的实现类}
@@ -69,50 +70,192 @@ type
     procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(ARowCount: Integer = 1; AColCount: Integer = 1); virtual;
+    {* 构造函数。
+
+       参数：
+         ARowCount: Integer               - 指定矩阵行数
+         AColCount: Integer               - 指定矩阵列数
+
+       返回值：                           - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
+    {* 析构函数}
 
     // 供子类重载实现自定义的加减乘除操作，基类因为是整数，没有除操作
     function OperationAdd(X: Int64; Y: Int64): Int64; virtual;
+    {* 元素加法操作。
+
+       参数：
+         X: Int64                         - 加数一
+         Y: Int64                         - 加数二
+
+       返回值：Int64                      - 返回和
+    }
+
     function OperationSub(X: Int64; Y: Int64): Int64; virtual;
+    {* 元素减法操作。
+
+       参数：
+         X: Int64                         - 被减数
+         Y: Int64                         - 减数
+
+       返回值：Int64                      - 返回差
+    }
+
     function OperationMul(X: Int64; Y: Int64): Int64; virtual;
+    {* 元素乘法操作。
+
+       参数：
+         X: Int64                         - 乘数一
+         Y: Int64                         - 乘数二
+
+       返回值：Int64                      - 返回积
+    }
+
     function OperationDiv(X: Int64; Y: Int64): Int64; virtual;
+    {* 元素除法操作，基类未实现，会抛异常。
+
+       参数：
+         X: Int64                         - 被除数
+         Y: Int64                         - 除数
+
+       返回值：Int64                      - 返回商
+    }
+
+
+    procedure Add(Factor: Int64);
+    {* 矩阵各元素加上一个常数。
+
+       参数：
+         Factor: Int64                    - 加数
+
+       返回值：（无）
+    }
 
     procedure Mul(Factor: Int64);
-    {* 矩阵各元素乘以一个常数}
-    procedure Add(Factor: Int64);
-    {* 矩阵各元素加上一个常数}
+    {* 矩阵各元素乘以一个常数。
+
+       参数：
+         Factor: Int64                    - 乘数
+
+       返回值：（无）
+    }
+
     procedure Divide(Factor: Int64); virtual;
-    {* 矩阵各元素除以一个常数，基类因为是整数，未实现除法}
+    {* 矩阵各元素除以一个常数，基类因为是整数，未实现除法，会抛异常。
+
+       参数：
+         Factor: Int64                    - 除数
+
+       返回值：（无）
+    }
 
     procedure SetE(Size: Integer);
-    {* 设置为 Size 阶单位矩阵}
+    {* 设置为 Size 阶单位矩阵。
+
+       参数：
+         Size: Integer                    - 阶数
+
+       返回值：（无）
+    }
+
     procedure SetZero;
     {* 设置为全 0 矩阵}
+
     procedure Transpose;
     {* 矩阵转置，也就是行列互换}
 
     function Determinant: Int64; virtual;
-    {* 求方阵行列式值}
+    {* 求方阵行列式值。
+
+       参数：
+         （无）
+
+       返回值：Int64                      - 返回行列式值
+    }
+
     function Trace: Int64;
-    {* 求方阵的迹，也就是对角线元素的和}
+    {* 求方阵的迹，也就是左上到右下的对角线元素的和。
+
+       参数：
+         （无）
+
+       返回值：Int64                      - 返回迹
+    }
+
     function IsSquare: Boolean;
-    {* 是否方阵}
+    {* 是否方阵。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否方阵
+    }
+
     function IsZero: Boolean;
-    {* 是否全 0 方阵}
+    {* 是否全 0 方阵。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否全 0 方阵
+    }
+
     function IsE: Boolean;
-    {* 是否单位方阵}
+    {* 是否单位方阵。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否单位方阵
+    }
+
     function IsSymmetrical: Boolean;
-    {* 是否对称方阵}
+    {* 是否对称方阵。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否对称方阵
+    }
+
     function IsSingular: Boolean;
-    {* 是否奇异方阵，也就是行列式是否等于 0}
+    {* 是否奇异方阵，也就是行列式是否等于 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否奇异方阵
+    }
 
     procedure DeleteRow(Row: Integer);
-    {* 删除其中一行}
+    {* 删除其中一行。
+
+       参数：
+         Row: Integer                     - 待删除的行号
+
+       返回值：（无）
+    }
+
     procedure DeleteCol(Col: Integer);
-    {* 删除其中一列}
+    {* 删除其中一列。
+
+       参数：
+         Col: Integer                     - 待删除的列号
+
+       返回值：（无）
+    }
 
     procedure DumpToStrings(List: TStrings; Sep: Char = ' ');
-    {* 输出到字符串}
+    {* 输出到字符串列表
+
+       参数：
+         List: TStrings                   - 用来容纳结果的字符串列表
+         Sep: Char                        - 分隔符
+
+       返回值：（无）
+    }
 
     property Value[Row, Col: Integer]: Int64 read GetValue write SetValue; default;
     {* 根据行列下标访问矩阵元素，下标都从 0 开始}
@@ -145,50 +288,191 @@ type
     procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(ARowCount: Integer = 1; AColCount: Integer = 1); virtual;
+    {* 构造函数。
+
+       参数：
+         ARowCount: Integer               - 指定矩阵行数
+         AColCount: Integer               - 指定矩阵列数
+
+       返回值：                           - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
+    {* 析构函数}
 
     // 供子类重载实现自定义的加减乘除操作
     function OperationAdd(X: Extended; Y: Extended): Extended; virtual;
+    {* 元素加法操作。
+
+       参数：
+         X: Extended                      - 加数一
+         Y: Extended                      - 加数二
+
+       返回值：Extended                   - 返回和
+    }
+
     function OperationSub(X: Extended; Y: Extended): Extended; virtual;
+    {* 元素减法操作。
+
+       参数：
+         X: Extended                      - 被减数
+         Y: Extended                      - 减数
+
+       返回值：Extended                   - 返回差
+    }
+
     function OperationMul(X: Extended; Y: Extended): Extended; virtual;
+    {* 元素乘法操作。
+
+       参数：
+         X: Extended                      - 乘数一
+         Y: Extended                      - 乘数二
+
+       返回值：Extended                   - 返回积
+    }
+
     function OperationDiv(X: Extended; Y: Extended): Extended; virtual;
+    {* 元素除法操作。
+
+       参数：
+         X: Extended                      - 被除数
+         Y: Extended                      - 除数
+
+       返回值：Extended                   - 返回商
+    }
+
+    procedure Add(Factor: Extended);
+    {* 矩阵各元素加上一个常数
+
+       参数：
+         Factor: Extended                 - 加数
+
+       返回值：（无）
+    }
 
     procedure Mul(Factor: Extended);
-    {* 矩阵各元素乘以一个常数}
-    procedure Add(Factor: Extended);
-    {* 矩阵各元素加上一个常数}
+    {* 矩阵各元素乘以一个常数。
+
+       参数：
+         Factor: Extended                 - 乘数
+
+       返回值：（无）
+    }
+
     procedure Divide(Factor: Extended); virtual;
-    {* 矩阵各元素除以一个常数，基类因为是整数，未实现除法}
+    {* 矩阵各元素除以一个常数。
+
+       参数：
+         Factor: Extended                 - 除数
+
+       返回值：（无）
+    }
 
     procedure SetE(Size: Integer);
-    {* 设置为 Size 阶单位矩阵}
+    {* 设置为 Size 阶单位矩阵。
+
+       参数：
+         Size: Integer                    - 阶数
+
+       返回值：（无）
+    }
+
     procedure SetZero;
     {* 设置为全 0 矩阵}
+
     procedure Transpose;
     {* 矩阵转置，也就是行列互换}
 
     function Determinant: Extended; virtual;
-    {* 求方阵行列式值}
+    {* 求方阵行列式值。
+
+       参数：
+         （无）
+
+       返回值：Extended                   - 返回行列式值
+    }
+
     function Trace: Extended;
-    {* 求方阵的迹，也就是对角线元素的和}
+    {* 求方阵的迹，也就是左上到右下的对角线元素的和。
+
+       参数：
+         （无）
+
+       返回值：Extended                   - 返回迹
+    }
+
     function IsSquare: Boolean;
-    {* 是否方阵}
+    {* 是否方阵。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否方阵
+    }
+
     function IsZero: Boolean;
-    {* 是否全 0 方阵}
+    {* 是否全 0 方阵。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否全 0 方阵
+    }
+
     function IsE: Boolean;
-    {* 是否单位方阵}
+    {* 是否单位方阵。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否单位方阵
+    }
+
     function IsSymmetrical: Boolean;
-    {* 是否对称方阵}
+    {* 是否对称方阵。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否对称方阵
+    }
+
     function IsSingular: Boolean;
-    {* 是否奇异方阵，也就是行列式是否等于 0}
+    {* 是否奇异方阵，也就是行列式是否等于 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否奇异方阵
+    }
 
     procedure DeleteRow(Row: Integer);
-    {* 删除其中一行}
+    {* 删除其中一行。
+
+       参数：
+         Row: Integer                     - 待删除的行号
+
+       返回值：（无）
+    }
+
     procedure DeleteCol(Col: Integer);
-    {* 删除其中一列}
+    {* 删除其中一列。
+
+       参数：
+         Col: Integer                     - 待删除的列号
+
+       返回值：（无）
+    }
 
     procedure DumpToStrings(List: TStrings; Sep: Char = ' ');
-    {* 输出到字符串}
+    {* 输出到字符串列表。
+
+       参数：
+         List: TStrings                   - 用来容纳结果的字符串列表
+         Sep: Char                        - 分隔符
+
+       返回值：（无）
+    }
 
     property Value[Row, Col: Integer]: Extended read GetValue write SetValue; default;
     {* 根据行列下标访问矩阵元素，下标都从 0 开始}
@@ -202,7 +486,7 @@ type
   end;
 
   TCnRationalNumber = class(TPersistent)
-  {* 表示一个有理数}
+  {* 表示一个有理数，分子分母均在 Int64 范围内}
   private
     FNominator: Int64;
     FDenominator: Int64;
@@ -211,60 +495,191 @@ type
     procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     function IsInt: Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-    {* 是否整数，也就是判断分母是否是正负 1}
+    {* 是否整数，也就是判断分母是否是正负 1。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否整数
+    }
+
     function IsZero: Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-    {* 是否为 0}
+    {* 是否为 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 0
+    }
+
     function IsOne: Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-    {* 是否为 1}
+    {* 是否为 1。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 1
+    }
+
     function IsNegative: Boolean;
-    {* 是否为负值}
+    {* 是否为负值。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否负值
+    }
+
     procedure Neg;
     {* 变成相反数}
+
     procedure Reciprocal;
     {* 变成倒数}
+
     procedure SetZero;
     {* 设为 0}
+
     procedure SetOne;
     {* 设为 1}
 
     function EqualInt(Value: Int64): Boolean;
-    {* 是否与另一值相等}
+    {* 是否与另一值相等。
+
+       参数：
+         Value: Int64                     - 待比较的整数
+
+       返回值：Boolean                    - 返回是否相等
+    }
+
     function Equal(Value: TCnRationalNumber): Boolean;
-    {* 是否与另一值相等}
+    {* 是否与另一值相等。
+
+       参数：
+         Value: TCnRationalNumber         - 待比较的有理数
+
+       返回值：Boolean                    - 返回是否相等
+    }
 
     procedure Add(Value: Int64); overload;
-    {* 加上一个整数}
+    {* 加上一个整数。
+
+       参数：
+         Value: Int64                     - 加数
+
+       返回值：（无）
+    }
+
     procedure Sub(Value: Int64); overload;
-    {* 减去一个整数}
+    {* 减去一个整数。
+
+       参数：
+         Value: Int64                     - 减数
+
+       返回值：（无）
+    }
+
     procedure Mul(Value: Int64); overload;
-    {* 乘以一个整数}
+    {* 乘以一个整数。
+
+       参数：
+         Value: Int64                     - 乘数
+
+       返回值：（无）
+    }
+
     procedure Divide(Value: Int64); overload;
-    {* 除以一个整数}
+    {* 除以一个整数。
+
+       参数：
+         Value: Int64                     - 除数
+
+       返回值：（无）
+    }
+
     procedure Add(Value: TCnRationalNumber); overload;
-    {* 加上一个有理数}
+    {* 加上一个有理数。
+
+       参数：
+         Value: TCnRationalNumber         - 加数
+
+       返回值：（无）
+    }
+
     procedure Sub(Value: TCnRationalNumber); overload;
-    {* 减去一个有理数}
+    {* 减去一个有理数。
+
+       参数：
+         Value: TCnRationalNumber         - 减数
+
+       返回值：（无）
+    }
+
     procedure Mul(Value: TCnRationalNumber); overload;
-    {* 乘以一个有理数}
+    {* 乘以一个有理数。
+
+       参数：
+         Value: TCnRationalNumber         - 乘数
+
+       返回值：（无）
+    }
+
     procedure Divide(Value: TCnRationalNumber); overload;
-    {* 除以一个有理数}
+    {* 除以一个有理数。
+
+       参数：
+         Value: TCnRationalNumber         - 除数
+
+       返回值：（无）
+    }
 
     procedure SetIntValue(Value: Int64);
-    {* 值设为一个整数}
+    {* 值设为一个整数。
+
+       参数：
+         Value: Int64                     - 待设置的整数
+
+       返回值：（无）
+    }
+
     procedure SetValue(ANominator: Int64; ADenominator: Int64);
-    {* 值设为一个分数}
+    {* 值设为一个分数。
+
+       参数：
+         ANominator: Int64                - 分子
+         ADenominator: Int64              - 分母
+
+       返回值：（无）
+    }
+
     procedure SetString(const Value: string);
-    {* 值设为一个字符串，可以是纯数字，或带 / 的分数}
+    {* 值设为一个字符串，可以是纯数字，或带 / 的分数。
+
+       参数：
+         const Value: string              - 待设置的字符串
+
+       返回值：（无）
+    }
+
     procedure Reduce;
     {* 尽量约分}
+
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 输出成字符串}
+    {* 输出成字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
+
     property Nominator: Int64 read FNominator write FNominator;
     {* 分子}
-    property Denominator: Int64 read FDenominator write SetDenominator; 
+    property Denominator: Int64 read FDenominator write SetDenominator;
     {* 分母}
   end;
 
@@ -282,13 +697,36 @@ type
     function GetValueObject(Row: Integer; Col: Integer): TObject;
     procedure SetValueObject(Row: Integer; Col: Integer; const Value: TObject); // 一组 TObjectList
   public
-    constructor Create(ARow: Integer; ACol: Integer); virtual;
+    constructor Create(ARowCount: Integer; AColCount: Integer); virtual;
+    {* 构造函数。
+
+       参数：
+         ARowCount: Integer               - 指定二维对象行数
+         AColCount: Integer               - 指定二维对象列数
+
+       返回值：                           - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure DeleteRow(Row: Integer);
-    {* 删除一行}
+    {* 删除其中一行。
+
+       参数：
+         Row: Integer                     - 待删除的行号
+
+       返回值：（无）
+    }
+
     procedure DeleteCol(Col: Integer);
-    {* 删除一列}
+    {* 删除其中一列。
+
+       参数：
+         Col: Integer                     - 待删除的列号
+
+       返回值：（无）
+    }
 
     property ValueObject[Row, Col: Integer]: TObject read GetValueObject write SetValueObject; default;
     {* 二维数组值}
@@ -315,51 +753,178 @@ type
     procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(ARowCount: Integer = 1; AColCount: Integer = 1); virtual;
+    {* 构造函数。
+
+       参数：
+         ARowCount: Integer               - 指定矩阵行数
+         AColCount: Integer               - 指定矩阵列数
+
+       返回值：                           - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
+    {* 析构函数}
+
+
+    procedure Add(Factor: Int64); overload;
+    {* 矩阵各元素加上一个常数。
+
+       参数：
+         Factor: Int64                    - 加数
+
+       返回值：（无）
+    }
 
     procedure Mul(Factor: Int64); overload;
-    {* 矩阵各元素乘以一个常数}
+    {* 矩阵各元素乘以一个常数。
+
+       参数：
+         Factor: Int64                    - 乘数
+
+       返回值：（无）
+    }
+
     procedure Divide(Factor: Int64); overload;
-    {* 矩阵各元素除以一个常数}
-    procedure Add(Factor: Int64); overload;
-    {* 矩阵各元素加上一个常数}
-    procedure Mul(Factor: TCnRationalNumber); overload;
-    {* 矩阵各元素乘以一个常数}
-    procedure Divide(Factor: TCnRationalNumber); overload;
-    {* 矩阵各元素除以一个常数}
+    {* 矩阵各元素除以一个常数。
+
+       参数：
+         Factor: Int64                    - 除数
+
+       返回值：（无）
+    }
+
     procedure Add(Factor: TCnRationalNumber); overload;
-    {* 矩阵各元素加上一个常数}
+    {* 矩阵各元素加上一个常数。
+
+       参数：
+         Factor: TCnRationalNumber        - 加数
+
+       返回值：（无）
+    }
+
+    procedure Mul(Factor: TCnRationalNumber); overload;
+    {* 矩阵各元素乘以一个常数。
+
+       参数：
+         Factor: TCnRationalNumber        - 乘数
+
+       返回值：（无）
+    }
+
+    procedure Divide(Factor: TCnRationalNumber); overload;
+    {* 矩阵各元素除以一个常数。
+
+       参数：
+         Factor: TCnRationalNumber        - 除数
+
+       返回值：（无）
+    }
 
     procedure SetE(Size: Integer);
-    {* 设置为 Size 阶单位矩阵}
+    {* 设置为 Size 阶单位矩阵。
+
+       参数：
+         Size: Integer                    - 阶数
+
+       返回值：（无）
+    }
+
     procedure SetZero;
     {* 设置为全 0 矩阵}
+
     procedure Transpose;
     {* 矩阵转置，也就是行列互换}
 
     procedure DeleteRow(Row: Integer);
-    {* 删除其中一行}
+    {* 删除其中一行。
+
+       参数：
+         Row: Integer                     - 待删除的行号
+
+       返回值：（无）
+    }
+
     procedure DeleteCol(Col: Integer);
-    {* 删除其中一列}
+    {* 删除其中一列。
+
+       参数：
+         Col: Integer                     - 待删除的列号
+
+       返回值：（无）
+    }
 
     procedure Determinant(D: TCnRationalNumber);
-    {* 求方阵行列式值}
+    {* 求方阵行列式值。
+
+       参数：
+         D: TCnRationalNumber             - 用来容纳结果的有理数
+
+       返回值：（无）
+    }
+
     procedure Trace(T: TCnRationalNumber);
-    {* 求方阵的迹，也就是对角线元素的和}
-  
+    {* 求方阵的迹，也就是对角线元素的和。
+
+       参数：
+         T: TCnRationalNumber             - 用来容纳结果的有理数
+
+       返回值：（无）
+    }
+
     function IsSquare: Boolean;
-    {* 是否方阵}
+    {* 是否方阵。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否方阵
+    }
+
     function IsZero: Boolean;
-    {* 是否全 0 方阵}
+    {* 是否全 0 方阵。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否全 0 方阵
+    }
+
     function IsE: Boolean;
-    {* 是否单位方阵}
+    {* 是否单位方阵。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否单位方阵
+    }
+
     function IsSymmetrical: Boolean;
-    {* 是否对称方阵}
+    {* 是否对称方阵。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否对称方阵
+    }
+
     function IsSingular: Boolean;
-    {* 是否奇异方阵，也就是行列式是否等于 0}
+    {* 是否奇异方阵，也就是行列式是否等于 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否奇异方阵
+    }
 
     procedure DumpToStrings(List: TStrings; Sep: Char = ' ');
-    {* 输出到字符串}
+    {* 输出到字符串列表。
+
+       参数：
+         List: TStrings                   - 用来容纳结果的字符串列表
+         Sep: Char                        - 分隔符
+
+       返回值：（无）
+    }
 
     property Value[Row, Col: Integer]: TCnRationalNumber read GetValue write SetValue; default;
     {* 根据行列下标访问矩阵元素，下标都从 0 开始}
@@ -376,134 +941,412 @@ type
 
 procedure CnMatrixMul(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix; MulResult: TCnIntMatrix); overload;
 {* 两个矩阵相乘，结果放 MulResult 矩阵中，要求 Matrix1 列数与 Martrix2 行数相等。
-  MulResult 不能是 Matrix1 或 Matrix2}
+   MulResult 不能是 Matrix1 或 Matrix2。
+
+   参数：
+     Matrix1: TCnIntMatrix                - 乘数矩阵一
+     Matrix2: TCnIntMatrix                - 乘数矩阵二
+     MulResult: TCnIntMatrix              - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixPower(Matrix: TCnIntMatrix; K: Integer; PowerResult: TCnIntMatrix); overload;
-{* 求方阵 K 次幂，结果放 PowerResult 矩阵中，PowerResult 不能是 Matrix}
+{* 求方阵 K 次幂，结果放 PowerResult 矩阵中，PowerResult 不能是 Matrix。
+
+   参数：
+     Matrix: TCnIntMatrix                 - 底数矩阵
+     K: Integer                           - 指数
+     PowerResult: TCnIntMatrix            - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixAdd(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix; AddResult: TCnIntMatrix); overload;
 {* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
-  AddResult 可以是 Matrix1 或 Matrix2 或其他}
+   AddResult 可以是 Matrix1 或 Matrix2。
+
+   参数：
+     Matrix1: TCnIntMatrix                - 加数矩阵一
+     Matrix2: TCnIntMatrix                - 加数矩阵二
+     AddResult: TCnIntMatrix              - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixHadamardProduct(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix; ProductResult: TCnIntMatrix); overload;
-{* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
-  ProductResult 可以是 Matrix1 或 Matrix2 或其他}
+{* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 相等。
+   ProductResult 可以是 Matrix1 或 Matrix2 或其他。
+
+   参数：
+     Matrix1: TCnIntMatrix                - 乘数矩阵一
+     Matrix2: TCnIntMatrix                - 乘数矩阵二
+     ProductResult: TCnIntMatrix          - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixTranspose(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix); overload;
-{* 转置矩阵，将第一个矩阵转置至第二个，Matrix1、Matrix2 可以相等}
+{* 转置矩阵，将第一个矩阵转置至第二个，Matrix1、Matrix2 可以相等。
+
+   参数：
+     Matrix1: TCnIntMatrix                - 待转置的原矩阵
+     Matrix2: TCnIntMatrix                - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixMinor(Matrix: TCnIntMatrix; Row: Integer; Col: Integer;
   MinorResult: TCnIntMatrix); overload;
-{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵}
+{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵。
+
+   参数：
+     Matrix: TCnIntMatrix                 - 待求余子式的原矩阵
+     Row: Integer                         - 去除的行号
+     Col: Integer                         - 去除的列号
+     MinorResult: TCnIntMatrix            - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixAdjoint(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix); overload;
-{* 求方阵的伴随阵}
+{* 求方阵的伴随阵。
+
+   参数：
+     Matrix1: TCnIntMatrix                - 待求伴随阵的原矩阵
+     Matrix2: TCnIntMatrix                - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixInverse(Matrix1: TCnIntMatrix; Matrix2: TCnIntMatrix); overload;
 {* 求方阵的逆矩阵，也就是伴随阵除以行列式，注意 TCnIntMatrix 不直接支持逆矩阵，
-  因为除可能导致非整数，需要改用有理数矩阵来表示，或子类伽罗华矩阵}
+   因为除可能导致非整数，需要改用有理数矩阵来表示，或子类伽罗华矩阵。
+
+   参数：
+     Matrix1: TCnIntMatrix                - 待求逆矩阵的原矩阵
+     Matrix2: TCnIntMatrix                - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 // =========================== 浮点数矩阵运算方法 ==============================
 
 procedure CnMatrixMul(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix; MulResult: TCnFloatMatrix); overload;
 {* 两个矩阵相乘，结果放 MulResult 矩阵中，要求 Matrix1 列数与 Martrix2 行数相等。
-  MulResult 不能是 Matrix1 或 Matrix2}
+   MulResult 不能是 Matrix1 或 Matrix2。
+
+   参数：
+     Matrix1: TCnFloatMatrix              - 乘数矩阵一
+     Matrix2: TCnFloatMatrix              - 乘数矩阵二
+     MulResult: TCnFloatMatrix            - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixPower(Matrix: TCnFloatMatrix; K: Integer; PowerResult: TCnFloatMatrix); overload;
-{* 求方阵 K 次幂，结果放 PowerResult 矩阵中，PowerResult 不能是 Matrix}
+{* 求方阵 K 次幂，结果放 PowerResult 矩阵中，PowerResult 不能是 Matrix。
+
+   参数：
+     Matrix: TCnFloatMatrix               - 底数矩阵
+     K: Integer                           - 指数
+     PowerResult: TCnFloatMatrix          - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixAdd(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix;
   AddResult: TCnFloatMatrix); overload;
 {* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
-  AddResult 可以是 Matrix1 或 Matrix2 或其他}
+   AddResult 可以是 Matrix1 或 Matrix2。
+
+   参数：
+     Matrix1: TCnFloatMatrix              - 加数矩阵一
+     Matrix2: TCnFloatMatrix              - 加数矩阵二
+     AddResult: TCnFloatMatrix            - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixHadamardProduct(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix;
   ProductResult: TCnFloatMatrix); overload;
-{* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
-  ProductResult 可以是 Matrix1 或 Matrix2 或其他}
+{* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 相等。
+   ProductResult 可以是 Matrix1 或 Matrix2 或其他。
+
+   参数：
+     Matrix1: TCnFloatMatrix              - 乘数矩阵一
+     Matrix2: TCnFloatMatrix              - 乘数矩阵二
+     ProductResult: TCnFloatMatrix        - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixTranspose(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix); overload;
-{* 转置矩阵，将第一个矩阵转置至第二个，Matrix1、Matrix2 可以相等}
+{* 转置矩阵，将第一个矩阵转置至第二个，Matrix1、Matrix2 可以相等。
+
+   参数：
+     Matrix1: TCnFloatMatrix              - 待转置的原矩阵
+     Matrix2: TCnFloatMatrix              - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixMinor(Matrix: TCnFloatMatrix; Row: Integer; Col: Integer;
   MinorResult: TCnFloatMatrix); overload;
-{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵}
+{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵。
+
+   参数：
+     Matrix: TCnFloatMatrix               - 待求余子式的原矩阵
+     Row: Integer                         - 去除的行号
+     Col: Integer                         - 去除的列号
+     MinorResult: TCnFloatMatrix          - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixAdjoint(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix); overload;
-{* 求方阵的伴随阵}
+{* 求方阵的伴随阵。
+
+   参数：
+     Matrix1: TCnFloatMatrix              - 待求伴随阵的原矩阵
+     Matrix2: TCnFloatMatrix              - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixInverse(Matrix1: TCnFloatMatrix; Matrix2: TCnFloatMatrix); overload;
-{* 求方阵的逆矩阵，也就是伴随阵除以行列式}
+{* 求方阵的逆矩阵，也就是伴随阵除以行列式。
+
+   参数：
+     Matrix1: TCnFloatMatrix              - 待求逆矩阵的原矩阵
+     Matrix2: TCnFloatMatrix              - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 // =========================== 有理数矩阵运算方法 ==============================
 
 procedure CnIntToRationalMatrix(Int: TCnIntMatrix; Rational: TCnRationalMatrix);
-{* 将一个整数矩阵转换为有理数矩阵}
+{* 将一个整数矩阵转换为有理数矩阵。
+
+   参数：
+     Int: TCnIntMatrix                    - 待转换的整数矩阵
+     Rational: TCnRationalMatrix          - 用来容纳结果的有理数矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixMul(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix;
   MulResult: TCnRationalMatrix); overload;
 {* 两个矩阵相乘，结果放 MulResult 矩阵中，要求 Matrix1 列数与 Martrix2 行数相等。
-  MulResult 不能是 Matrix1 或 Matrix2}
+   MulResult 不能是 Matrix1 或 Matrix2。
+
+   参数：
+     Matrix1: TCnRationalMatrix           - 乘数矩阵一
+     Matrix2: TCnRationalMatrix           - 乘数矩阵二
+     MulResult: TCnRationalMatrix         - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixPower(Matrix: TCnRationalMatrix; K: Integer; PowerResult: TCnRationalMatrix); overload;
-{* 求方阵 K 次幂，结果放 PowerResult 矩阵中，PowerResult 不能是 Matrix}
+{* 求方阵 K 次幂，结果放 PowerResult 矩阵中，PowerResult 不能是 Matrix。
+
+   参数：
+     Matrix: TCnRationalMatrix            - 底数矩阵
+     K: Integer                           - 指数
+     PowerResult: TCnRationalMatrix       - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixAdd(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix;
   AddResult: TCnRationalMatrix); overload;
-{* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
-  AddResult 可以是 Matrix1 或 Matrix2 或其他}
+{* 两个矩阵相加，结果放 AddResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 相等。
+   AddResult 可以是 Matrix1 或 Matrix2。
+
+   参数：
+     Matrix1: TCnRationalMatrix           - 加数矩阵一
+     Matrix2: TCnRationalMatrix           - 加数矩阵二
+     AddResult: TCnRationalMatrix         - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixHadamardProduct(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix;
   ProductResult: TCnRationalMatrix); overload;
-{* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 行数相等。
-  ProductResult 可以是 Matrix1 或 Matrix2 或其他}
+{* 两个矩阵哈达马相乘，结果放 ProductResult 矩阵中，要求 Matrix1 尺寸与 Martrix2 相等。
+   ProductResult 可以是 Matrix1 或 Matrix2。
+
+   参数：
+     Matrix1: TCnRationalMatrix           - 乘数矩阵一
+     Matrix2: TCnRationalMatrix           - 乘数矩阵二
+     ProductResult: TCnRationalMatrix     - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixTranspose(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix); overload;
-{* 转置矩阵，将第一个矩阵转置至第二个，Matrix1、Matrix2 可以相等}
+{* 转置矩阵，将第一个矩阵转置至第二个，Matrix1、Matrix2 可以相等。
+
+   参数：
+     Matrix1: TCnRationalMatrix           - 待转置的原矩阵
+     Matrix2: TCnRationalMatrix           - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixMinor(Matrix: TCnRationalMatrix; Row: Integer; Col: Integer;
   MinorResult: TCnRationalMatrix); overload;
-{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵}
+{* 求矩阵的余子式，也即去除指定行列后剩下的矩阵。
+
+   参数：
+     Matrix: TCnRationalMatrix            - 待求余子式的原矩阵
+     Row: Integer                         - 去除的行号
+     Col: Integer                         - 去除的列号
+     MinorResult: TCnRationalMatrix       - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixAdjoint(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix); overload;
-{* 求方阵的伴随阵}
+{* 求方阵的伴随阵。
+
+   参数：
+     Matrix1: TCnRationalMatrix           - 待求伴随阵的原矩阵
+     Matrix2: TCnRationalMatrix           - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 procedure CnMatrixInverse(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix); overload;
-{* 求方阵的逆矩阵，也就是伴随阵除以行列式，需要有理数矩阵来表示}
+{* 求方阵的逆矩阵，也就是伴随阵除以行列式，需要有理数矩阵来表示。
+
+   参数：
+     Matrix1: TCnRationalMatrix           - 待求逆矩阵的原矩阵
+     Matrix2: TCnRationalMatrix           - 用来容纳结果的矩阵
+
+   返回值：（无）
+}
 
 // ============================== 有理数运算方法 ===============================
 
 procedure CnRationalNumberAdd(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
   RationalResult: TCnRationalNumber);
-{* 有理数加法，三数可以相等}
+{* 有理数加法，三个参数可以是同一对象。
+
+   参数：
+     Number1: TCnRationalNumber           - 加数一
+     Number2: TCnRationalNumber           - 加数二
+     RationalResult: TCnRationalNumber    - 用来容纳结果的有理数
+
+   返回值：（无）
+}
 
 procedure CnRationalNumberAdd3(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
   Number3: TCnRationalNumber; RationalResult: TCnRationalNumber);
-{* 有理数三个数加法，结果不能是加数}
+{* 有理数三个数加法，RationalResult 不能是 Number1 或 Number2 或 Number3。
 
-procedure CnRationalNumberSub(Number1: TCnRationalNumber; Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
-{* 有理数减法，三数可以相等}
+   参数：
+     Number1: TCnRationalNumber           - 加数一
+     Number2: TCnRationalNumber           - 加数二
+     Number3: TCnRationalNumber           - 加数三
+     RationalResult: TCnRationalNumber    - 用来容纳结果的有理数
 
-procedure CnRationalNumberMul(Number1: TCnRationalNumber; Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
-{* 有理数乘法，三数可以相等}
+   返回值：（无）
+}
 
-procedure CnRationalNumberMul3(Number1: TCnRationalNumber; Number2: TCnRationalNumber; Number3: TCnRationalNumber; RationalResult: TCnRationalNumber);
-{* 有理数三个数乘法，结果不能是乘数}
+procedure CnRationalNumberSub(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
+  RationalResult: TCnRationalNumber);
+{* 有理数减法，三个参数可以是同一对象。
 
-procedure CnRationalNumberDiv(Number1: TCnRationalNumber; Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
-{* 有理数除法，三数可以相等}
+   参数：
+     Number1: TCnRationalNumber           - 被减数
+     Number2: TCnRationalNumber           - 减数
+     RationalResult: TCnRationalNumber    - 用来容纳结果的有理数
+
+   返回值：（无）
+}
+
+procedure CnRationalNumberMul(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
+  RationalResult: TCnRationalNumber);
+{* 有理数乘法，三个参数可以是同一对象。
+
+   参数：
+     Number1: TCnRationalNumber           - 乘数一
+     Number2: TCnRationalNumber           - 乘数二
+     RationalResult: TCnRationalNumber    - 用来容纳结果的有理数
+
+   返回值：（无）
+}
+
+procedure CnRationalNumberMul3(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
+  Number3: TCnRationalNumber; RationalResult: TCnRationalNumber);
+{* 有理数三个数乘法，RationalResult 不能是 Number1 或 Number2。
+
+   参数：
+     Number1: TCnRationalNumber           - 乘数一
+     Number2: TCnRationalNumber           - 乘数二
+     Number3: TCnRationalNumber           - 乘数三
+     RationalResult: TCnRationalNumber    - 用来容纳结果的有理数
+
+   返回值：（无）
+}
+
+procedure CnRationalNumberDiv(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
+  RationalResult: TCnRationalNumber);
+{* 有理数除法，三个参数可以是同一对象。
+
+   参数：
+     Number1: TCnRationalNumber           - 被除数
+     Number2: TCnRationalNumber           - 除数
+     RationalResult: TCnRationalNumber    - 用来容纳结果的有理数
+
+   返回值：（无）
+}
 
 function CnRationalNumberCompare(Number1: TCnRationalNumber; Number2: TCnRationalNumber): Integer;
-{* 比较两个有理数，> = < 分别返回1 0 -1}
+{* 比较两个有理数，前者大于、等于、小于后者时分别返回 1、0、-1。
+
+   参数：
+     Number1: TCnRationalNumber           - 待比较的有理数一
+     Number2: TCnRationalNumber           - 待比较的有理数二
+
+   返回值：Integer                        - 返回比较结果
+}
 
 procedure CnReduceInt64(var X: Int64; var Y: Int64);
-{* 尽量比例缩小，也就是约分}
+{* 尽量按比例缩小，也就是约分。
+
+   参数：
+     var X: Int64                         - 待约分的分子
+     var Y: Int64                         - 待约分的分母
+
+   返回值：（无）
+}
 
 function RowColToZigZag(ARow: Integer; ACol: Integer; N: Integer): Integer;
-{* 将 N 阶方阵中的行列值转换为左上角斜排的索引值，均 0 开始}
+{* 将 N 阶方阵中的行列值转换为左上角斜排的索引值，均 0 开始。
+
+   参数：
+     ARow: Integer                        - 行号
+     ACol: Integer                        - 列号
+     N: Integer                           - 方阵阶数
+
+   返回值：Integer                        - 返回索引值
+}
 
 procedure ZigZagToRowCol(Index: Integer; out ARow: Integer; out ACol: Integer; N: Integer);
-{* 将 N 阶方阵中的左上角斜排的索引值转换为行列值，均 0 开始}
+{* 将 N 阶方阵中的左上角斜排的索引值转换为行列值，均 0 开始。
+
+   参数：
+     Index: Integer                       - 索引值
+     out ARow: Integer                    - 输出的行号
+     out ACol: Integer                    - 输出的列号
+     N: Integer                           - 方阵阶数
+
+   返回值：（无）
+}
 
 implementation
 
@@ -1583,19 +2426,18 @@ function TCnIntMatrix.IsZero: Boolean;
 var
   I, J: Integer;
 begin
+  Result := False;
   if not IsSquare then
-  begin
-    Result := False;
     Exit;
-  end;
 
   for I := 0 to FRowCount - 1 do
+  begin
     for J := 0 to FColCount - 1 do
+    begin
       if FMatrix[I, J] <> 0 then
-      begin
-        Result := False;
         Exit;
-      end;
+    end;
+  end;
 
   Result := True;
 end;
@@ -1982,19 +2824,18 @@ function TCnFloatMatrix.IsZero: Boolean;
 var
   I, J: Integer;
 begin
+  Result := False;
   if not IsSquare then
-  begin
-    Result := False;
     Exit;
-  end;
 
   for I := 0 to FRowCount - 1 do
+  begin
     for J := 0 to FColCount - 1 do
+    begin
       if FMatrix[I, J] <> 0 then
-      begin
-        Result := False;
         Exit;
-      end;
+    end;
+  end;
 
   Result := True;
 end;
@@ -2325,7 +3166,7 @@ begin
     Result := A;
     Exit;
   end;
-  
+
   D := Int64Gcd(A, B);
   if D = 1 then
     Result := A * B
@@ -2523,15 +3364,15 @@ end;
 
 { TCn2DObjectList }
 
-constructor TCn2DObjectList.Create(ARow, ACol: Integer);
+constructor TCn2DObjectList.Create(ARowCount, AColCount: Integer);
 begin
   inherited Create;
-  CheckCount(ARow);
-  CheckCount(ACol);
+  CheckCount(ARowCount);
+  CheckCount(AColCount);
 
   FRows := TObjectList.Create(True);
-  RowCount := ARow;
-  ColCount := ACol;
+  RowCount := ARowCount;
+  ColCount := AColCount;
 end;
 
 procedure TCn2DObjectList.DeleteCol(Col: Integer);
@@ -2900,19 +3741,18 @@ function TCnRationalMatrix.IsZero: Boolean;
 var
   I, J: Integer;
 begin
+  Result := False;
   if not IsSquare then
-  begin
-    Result := False;
     Exit;
-  end;
 
   for I := 0 to RowCount - 1 do
+  begin
     for J := 0 to ColCount - 1 do
+    begin
       if not Value[I, J].IsZero then
-      begin
-        Result := False;
         Exit;
-      end;
+    end;
+  end;
 
   Result := True;
 end;
