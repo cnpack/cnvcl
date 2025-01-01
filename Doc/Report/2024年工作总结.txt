@@ -1,0 +1,98 @@
+CnPack 开发组 2024 年工作总结
+
+    CnPack 在 2024 年取得的主要成绩如下：
+
+一、CnPack IDE 专家包连续发布 1.3.0、1.3.1、1.5.0、1.5.1、1.5.2 版本，支持至 RAD Studio 12.2 Patch 2，并增加 AI 辅助编码专家。
+
+    每日构建版下载地址：
+    https://www.cnpack.org/downbuilds.php
+
+二、CnPack 源码继续于 GitHub 上维护，并定期同步至国内镜像 Gitee。并修订了发布协议至第二版，对商用更加宽松，详情可参考 License.chs.txt。
+
+    地址：
+    https://github.com/cnpack
+    https://gitee.com/cnpack
+
+三、CnVcl 中加解密库增加了 RC4、DSA 算法及 PDF 加解密功能的支持，并增加脚本将加解密功能独立组成新库 cncrypto，该独立加解密库在 Gitee 上维护，可供只需要加解密功能的用户聚焦使用。
+
+    地址：
+    https://gitee.com/cnpack/cncrypto
+
+
+四、CnPack 开发组启用微信公众号，公众号名“CnPack开发组”，欢迎关注。
+
+    2025 年 CnPack 开发组的计划如下：
+
+一、CnWizards 继续增强功能、修复 Bug，增加对未来可能的新版本 RAD Studio 12/14 的补丁包及后续版本的支持。
+
+二、CnWizards 将进一步加强国内外的宣传工作。希望能继续进一步扩大用户群。
+
+三、继续扩充及移植 CnPack 组件包，补充和完善各类文档。
+
+四、继续进行 CnPack 开发组的团队建设与规模发展。
+
+    CnPack 开发组网站：https://www.cnpack.org
+    CnPack 开发组论坛：https://bbs.cnpack.org
+    CnPack 开发组管理员信箱：master@cnpack.org
+    CnPack 微信公众号：CnPack开发组
+
+    CnPack 开发组内部 QQ 群：CnPack I~VI（满），
+                             CnPack VII 超级群：47744868
+
+    CnPack 开发组内部微信群：有兴趣的朋友请联系管理员加入。
+
+    （注：邮件列表与 QQ/微信群原则上只供开发组成员与用户加入；不建议同一用户重复加入多个 QQ 群）
+
+    团结奋斗！！共同进步！！
+
+
+                                              CnPack 开发组 刘啸、周劲羽
+                                                              2025-01-01
+
+
+========================================================================
+
+CnPack Working Report in 2024
+
+    Below are the achievements of CnPack in 2024:
+
+1. CnPack IDE Wizards 1.3.0/1.3.1/1.5.0/1.5.1/1.5.2 published with a new AI Coder Wizard. Support to RAD Studio 12.2 Patch 2.
+
+   Our nightly build version:
+   https://www.cnpack.org/downbuilds.php
+
+2. CnPack Sources are maintained at GitHub and Gitee mirror. CnPack Agreement License upgraded to 2nd edition, please refer to License.enu.txt.
+
+   https://github.com/cnpack
+   https://gitee.com/cnpack
+
+3. Add RC4/DSA/PDF Encryption into CnVcl. Now we also write a GenCrypto.bat to generate a stand-alone package cncrypto and maintained at Gitee:
+
+   https://gitee.com/cnpack/cncrypto
+
+4. CnPack Team accepts Donation using alipay and wechat QR code in our help files, and paypal: donation@cnpack.org
+
+    Below is the plan of CnPack for 2025:
+
+1. Continue to fix the bugs and do the function improvements for CnWizards. We hope users number can increase considerably in the next year.
+
+2. Continue maintaining CnVcl library and documentation.
+
+3. Continue to build the CnPack Team.
+
+    CnPack Website: https://www.cnpack.org
+    CnPack BBS:     https://bbs.cnpack.org
+    CnPack Email:   master@cnpack.org
+
+    CnPack QQ Group:     CnPack I~VI: (Full)
+                         CnPack VII: 47744868
+
+    CnPack WeChat Group: Please contact Administrator to join.
+
+    (Note: Mailing list and QQ/WeChat group are only used by CnPack Members and Users.)
+
+    Let's do it well!
+
+
+                              CnPack Administrators: Liu Xiao, Zhou JingYu
+                                                                2025-01-01

@@ -94,10 +94,13 @@ type
 
     procedure Neg;
     {* 变成相反数}
+
     procedure Reciprocal;
     {* 变成倒数}
+
     procedure SetZero;
     {* 设为 0}
+
     procedure SetOne;
     {* 设为 1}
 
@@ -141,7 +144,7 @@ type
     {* 减去一个整数。
 
        参数：
-         Value: Int64                     - 被减数
+         Value: Int64                     - 减数
 
        返回值：（无）
     }
@@ -177,7 +180,7 @@ type
     {* 减去一个大整数。
 
        参数：
-         Value: TCnBigNumber              - 被减数
+         Value: TCnBigNumber              - 减数
 
        返回值：（无）
     }
@@ -390,23 +393,23 @@ procedure BigRationalNumberDiv(Res: TCnBigRational; Num1: TCnBigRational; Num2: 
 }
 
 function BigRationalNumberCompare(Num1: TCnBigRational; Num2: TCnBigRational): Integer; overload;
-{* 大有理数比较，> = < 分别返回 1 0 -1。
+{* 大有理数比较，前者大于、等于、小于后者时分别返回 1、0、-1。
 
    参数：
      Num1: TCnBigRational                 - 待比较的大有理数一
      Num2: TCnBigRational                 - 待比较的大有理数二
 
-   返回值：Integer                        - 大于、等于、小于分别返回 1 0 -1
+   返回值：Integer                        - 返回比较结果
 }
 
 function BigRationalNumberCompare(Num1: TCnBigRational; Num2: Int64): Integer; overload;
-{^ 大有理数与整数比较，> = < 分别返回 1 0 -1。
+{^ 大有理数与整数比较，前者大于、等于、小于后者时分别返回 1、0、-1。
 
    参数：
      Num1: TCnBigRational                 - 待比较的大有理数
      Num2: TCnBigRational                 - 待比较的整数
 
-   返回值：Integer                        - 大于、等于、小于分别返回 1 0 -1
+   返回值：Integer                        - 返回比较结果
 }
 
 procedure ReduceBigNumber(X: TCnBigNumber; Y: TCnBigNumber);
