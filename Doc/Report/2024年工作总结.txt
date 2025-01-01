@@ -19,7 +19,7 @@ CnPack 开发组 2024 年工作总结
     https://gitee.com/cnpack/cncrypto
 
 
-四、CnPack 开发组启用微信公众号，公众号名“CnPack开发组”，欢迎关注。
+四、CnPack 网站进行了改版，主要是调整色调布局，内容无明显改动。CnPack 开发组启用微信公众号，公众号名“CnPack开发组”，欢迎关注。
 
     2025 年 CnPack 开发组的计划如下：
 
@@ -70,7 +70,9 @@ CnPack Working Report in 2024
 
    https://gitee.com/cnpack/cncrypto
 
-4. CnPack Team accepts Donation using alipay and wechat QR code in our help files, and paypal: donation@cnpack.org
+4. CnPack website simply upgraded to adjust the colors and layout.
+
+5. CnPack Team accepts Donation using alipay and wechat QR code in our help files, and paypal: donation@cnpack.org
 
     Below is the plan of CnPack for 2025:
 
