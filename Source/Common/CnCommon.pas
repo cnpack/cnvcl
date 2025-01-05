@@ -8183,10 +8183,10 @@ begin
   while CT <> nil do
   begin
     if GetPropInfo(CT, PropName) <> nil then
-    begin
-      Result := CT;
+      Result := CT
+    else // 父类无此属性，说明在上一个循环的 CT 中
       Break;
-    end;
+
     CT := CT.ClassParent;
   end;
 end;
