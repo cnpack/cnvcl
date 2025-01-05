@@ -92,6 +92,7 @@ type
   private
     FPropName: string;
     FPropType: TTypeKind;
+    FPropTypeName: string;
     FPropValue: Variant;
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     FPropRttiValue: TValue;
@@ -119,6 +120,7 @@ type
 
     property PropName: string read FPropName write FPropName;
     property PropType: TTypeKind read FPropType write FPropType;
+    property PropTypeName: string read FPropTypeName write FPropTypeName;
     property PropValue: Variant read FPropValue write FPropValue;
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     property PropRttiValue: TValue read FPropRttiValue write FPropRttiValue;
@@ -1859,6 +1861,7 @@ begin
 
             AProp.PropName := PropInfoName(PropInfo);
             AProp.PropType := PropInfo^.PropType^^.Kind;
+            AProp.PropTypeName := PropInfo^.PropType^^.Name;
             AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
 
             // 有写入权限，并且指定类型，才可修改，否则界面上没法整
@@ -1955,6 +1958,7 @@ begin
 
               AProp.PropName := RttiProperty.Name;
               AProp.PropType := RttiProperty.PropertyType.TypeKind;
+              AProp.PropTypeName := RttiProperty.PropertyType.Name;
               AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
 
               // 有写入权限，并且指定类型，才可修改，否则界面上没法整
@@ -2048,6 +2052,7 @@ begin
 
             CalcIndexedProperty(RttiIndexedProperty, AProp);
             AProp.PropType := RttiIndexedProperty.PropertyType.TypeKind;
+            AProp.PropTypeName := RttiIndexedProperty.PropertyType.Name;
             AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
 
             AProp.DisplayValue := '<Indexed Property>';
@@ -2166,6 +2171,7 @@ begin
 
         AProp.PropName := 'Owner';
         AProp.PropType := tkClass;
+        AProp.PropTypeName := 'TComponent';
         AProp.IsObjOrIntf := True;
         AProp.PropValue := Integer((FObjectInstance as TComponent).Owner);
         AProp.ObjValue := (FObjectInstance as TComponent).Owner;
@@ -2193,6 +2199,7 @@ begin
 
         AProp.PropName := 'ComponentIndex';
         AProp.PropType := tkInteger;
+        AProp.PropTypeName := 'Integer';
         AProp.IsObjOrIntf := False;
         AProp.PropValue := (FObjectInstance as TComponent).ComponentIndex;
         AProp.ObjValue := nil;
@@ -2211,6 +2218,7 @@ begin
 
         AProp.PropName := 'ComponentState';
         AProp.PropType := tkSet;
+        AProp.PropTypeName := 'TComponentState';
         AProp.IsObjOrIntf := False;
 
         IntSet := 0;
@@ -2233,6 +2241,7 @@ begin
 
         AProp.PropName := 'ComponentStyle';
         AProp.PropType := tkSet;
+        AProp.PropTypeName := 'TComponentStyle';
         AProp.IsObjOrIntf := False;
 
         IntSet := 0;
@@ -2258,6 +2267,7 @@ begin
 
         AProp.PropName := 'Parent';
         AProp.PropType := tkClass;
+        AProp.PropTypeName := 'TControl';
         AProp.IsObjOrIntf := True;
         AProp.PropValue := Integer((FObjectInstance as TControl).Parent);
         AProp.ObjValue := (FObjectInstance as TControl).Parent;
@@ -2276,6 +2286,7 @@ begin
 
         AProp.PropName := 'Text';
         AProp.PropType := tkString;
+        AProp.PropTypeName := 'String';
         AProp.IsObjOrIntf := False;
         AProp.PropValue := TConrolAccess(FObjectInstance).Text;
         AProp.ObjValue := nil;
@@ -2294,6 +2305,7 @@ begin
 
         AProp.PropName := 'ControlState';
         AProp.PropType := tkSet;
+        AProp.PropTypeName := 'TControlState';
         AProp.IsObjOrIntf := False;
 
         IntSet := 0;
@@ -2316,6 +2328,7 @@ begin
 
         AProp.PropName := 'ControlStyle';
         AProp.PropType := tkSet;
+        AProp.PropTypeName := 'TControlStyle';
         AProp.IsObjOrIntf := False;
 
         IntSet := 0;
