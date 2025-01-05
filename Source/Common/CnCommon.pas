@@ -1240,6 +1240,13 @@ procedure DoSetPropValueIncludeSub(Instance: TObject; const PropName: string;
   Value: Variant; AOwner: TComponent = nil);
 {* 设置级联属性值，不处理异常}
 
+function GetOriginalClassFromProperty(AClass: TClass; const PropName: string): TClass; overload;
+{* 获取某属性所在的定义的父类，无则返回 nil。
+  比较 AClass 和返回值是否相等就可知道该属性是本 Class 中定义的还是父类里定义的}
+
+function GetOriginalClassFromProperty(AObject: TObject; const PropName: string): TClass; overload;
+{* 获取某属性所在的定义的父类，无则返回 nil}
+
 function StrToSetValue(const Value: string; PInfo: PTypeInfo): Integer;
 {* 字符串转集合值 }
 
@@ -8159,6 +8166,38 @@ begin
   except
     Result := False;
   end;
+end;
+
+// 获取某属性所在的定义的父类，无则返回 nil
+function GetOriginalClassFromProperty(AClass: TClass; const PropName: string): TClass;
+var
+  PropInfo: PPropInfo;
+  CT: TClass;
+begin
+  Result := nil;
+  PropInfo := GetPropInfo(AClass, PropName);
+  if PropInfo = nil then
+    Exit;
+
+  CT := AClass;
+  while CT <> nil do
+  begin
+    if GetPropInfo(CT, PropName) <> nil then
+    begin
+      Result := CT;
+      Break;
+    end;
+    CT := CT.ClassParent;
+  end;
+end;
+
+// 获取某属性所在的定义的父类，无则返回 nil
+function GetOriginalClassFromProperty(AObject: TObject; const PropName: string): TClass;
+begin
+  if AObject <> nil then
+    Result := GetOriginalClassFromProperty(AObject.ClassType, PropName)
+  else
+    Result := nil;
 end;
 
 // 字符串转集合值

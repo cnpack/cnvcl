@@ -58,8 +58,9 @@ type
   public
     constructor Create(AObject: TObject; const AEventName: string;
       NewData: Pointer; NewCode: Pointer);
-    {* 构造函数，传入待挂接的对象，待挂接的事件名，新事件处理程序的函数地址，
-      新事件处理程序的对象。构造后自动挂接。如 NewData 为 nil，则使用旧 Data}
+    {* 构造函数，传入待挂接的对象、待挂接的事件名、新事件处理程序的函数地址。
+      新事件处理程序的对象。构造后自动挂接。如 NewData 为 nil，则使用旧 Data
+      新事件函数地址类似于 @TMyForm.MyButton1Click 这种}
     destructor Destroy; override;
     {* 析构函数，自动取消挂接}
 
