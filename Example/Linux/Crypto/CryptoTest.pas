@@ -308,6 +308,7 @@ function TestChameleonHash: Boolean;
 function TestKDFPB1: Boolean;
 function TestKDFPB2: Boolean;
 function TestKDFSM2SM9: Boolean;
+function TestHKDF: Boolean;
 
 // ================================ Prime Number ===============================
 
@@ -657,6 +658,7 @@ begin
   MyAssert(TestKDFPB1, 'TestKDFPB1');
   MyAssert(TestKDFPB2, 'TestKDFPB2');
   MyAssert(TestKDFSM2SM9, 'TestKDFSM2SM9');
+  MyAssert(TestHKDF, 'TestHKDF');
 
 // ================================ Prime Number ===============================
 
@@ -4523,6 +4525,40 @@ begin
   Pass := HexToBytes('57E7B63623FAE5F08CDA468E872A20AFA03DED41BF1403770E040DC83AF31A67991F2B01EBF9EFD8881F0A0493000603');
   Res := CnSM2SM9KDF(Pass, 19);
   Result := DataToHex(@Res[0], Length(Res)) = '046B04A9ADF53B389B9E2AAFB47D90F4D08978';
+end;
+
+function TestHKDF: Boolean;
+var
+  IKM, Salt, Info, Key: TBytes;
+begin
+  IKM := AnsiToBytes('input master key');
+  Salt := AnsiToBytes('salt');
+  Info := AnsiToBytes('context info');
+
+  Key := CnHKDFBytes(chkSha256, IKM, Salt, Info, 32);
+  Result := DataToHex(@Key[0], Length(Key)) = '97BE21FE349CD0AE15BC2AF067E0CC017FA11811A65EBA68D2D3EA9D8E4B9F1B';
+
+  if not Result then Exit;
+
+  Key := CnHKDFBytes(chkMd5, IKM, Salt, Info, 32);
+  Result := DataToHex(@Key[0], Length(Key)) = 'F828FB1619735FE4AE5BA177938AABDCFDE3F7D9BE8D7F450635AF2D175E2DA1';
+
+  if not Result then Exit;
+
+  Key := CnHKDFBytes(chkSha1, IKM, Salt, Info, 32);
+  Result := DataToHex(@Key[0], Length(Key)) = 'BE1BB878F64762BD739E0D177F4A6C27B352446614A95EEBA7D908313AB5DFE5';
+
+  if not Result then Exit;
+
+  Key := CnHKDFBytes(chkSha3_256, IKM, Salt, Info, 32);
+  Result := DataToHex(@Key[0], Length(Key)) = '5F4CC820246E4AFEAB56E94E5795BC606A1594D55F8296661C6420E26BCB4371';
+
+  if not Result then Exit;
+
+  IKM := AnsiToBytes('input keying material');
+  Info := AnsiToBytes('optional context string');
+  Key := CnHKDFBytes(chkSm3, IKM, nil, Info, 32); // Salt ЮЊПе
+  Result := DataToHex(@Key[0], Length(Key)) = '040E1C83AB8CA2C2AD73EDAE1EA6025DD21F77AA1AA088926D3843BCA70310CA';
 end;
 
 // ================================ Prime Number ===============================
