@@ -110,7 +110,9 @@ type
   {* BER 相关异常}
 
   TCnBerTagRange = CN_BER_TAG_BOOLEAN..CN_BER_TAG_BMPSTRING;
+  {* BER 的 Tag 范围}
   TCnBerTagSet = set of TCnBerTagRange;
+  {* BER 的 Tag 集合}
 
   TCnBerTag = (cbtReserved_0, cbtBoolean, cbtInteger, cbtBit_String,
     cbtOctet_String, cbtNull, cbtObject_Identifier, cbtObject_Descripion,
@@ -120,8 +122,10 @@ type
     cbtIa5String, cbtUtcTime, cbtGeneralizedTime, cbtGraphicString,
     cbtVisibleString, cbtGeneralString, cbtUniversalString, cbtCharacter_String,
     cbtBmpstring);
+  {* BER 的 Tag 枚举定义}
 
   TCnBerTags = set of TCnBerTag;
+  {* BER 的 Tag 枚举集合}
 
   TCnBerReadNode = class(TCnLeaf)
   {* 描述一解析出来的 ASN.1 节点}
@@ -417,7 +421,7 @@ type
 
   public
     constructor Create(Data: PByte; DataByteLen: Cardinal; AParseInnerString: Boolean = False);
-    {* 构造函数
+    {* 构造函数。
 
        参数：
          Data: PByte                      - 待解析的数据区地址
@@ -498,7 +502,7 @@ type
     // 计算并填充 FHead 与 FHeadLen
   public
     constructor Create(ATree: TCnTree); override;
-    {* 构造函数
+    {* 构造函数。
 
        参数：
          ATree: TCnTree                   - 指定所属树
@@ -553,11 +557,13 @@ type
     }
 
     property Items[AIndex: Integer]: TCnBerWriteNode read GetItems write SetItems;
-
+    {* 索引子节点}
     property Data: Pointer read FData write FData;
+    {* 数据块地址}
     property DataLength: Integer read FDataLength write FDataLength;
+    {* 数据块字节长度}
     property IsContainer: Boolean read GetIsContainer write SetIsContainer;
-
+    {* 是否是容器}
     property BerTag: Integer read FBerTag write FBerTag;
     {* 节点类型，也就是 Tag}
     property BerTypeMask: Byte read FBerTypeMask write FBerTypeMask;
@@ -588,7 +594,7 @@ type
     {* 析构函数}
 
     procedure SaveTo(DestBuf: Pointer);
-    {* 将 BER 内容保存至 DestBuf 所指的内存区，内存区大小至少需要 GetTotalSize
+    {* 将 BER 内容保存至 DestBuf 所指的内存区，内存区大小至少需要 GetTotalSize。
 
        参数：
          DestBuf: Pointer                 - 容纳待输出内容的数据块地址
@@ -705,9 +711,9 @@ type
        后面的长度内容等不计算了，直接由 RawLV 与 LVLen 的区域指定。
 
        参数：
-         RawTag: Integer                  -
-         RawLV: PByte                     -
-         LVLen: Integer                   -
+         RawTag: Integer                  - 指定的原始 Tag
+         RawLV: PByte                     - 指定的原始长度
+         LVLen: Integer                   - 指定的原始长度字段所代表的长度
          Parent: TCnBerWriteNode          - 待新增节点的父节点，如为 nil 表示新增至根节点下
 
        返回值：TCnBerWriteNode            - 返回新增的节点
@@ -733,8 +739,8 @@ function AddBigNumberToWriter(Writer: TCnBerWriter; Num: TCnBigNumber;
   Parent: TCnBerWriteNode; Tag: Integer = CN_BER_TAG_INTEGER; FixedLen: Integer = 0): TCnBerWriteNode;
 {* 将一个大数的内容写入一个新增的 Ber 整型格式的节点，FixedLen 为 0 时无固定长度，
    FixedLen 指定大数实际长度不足时使用固定长度，为 0 时则使用大数实际长度。
-   如 FixedLen 为 0，节点会根据最高位的实际情况决定是否加一个字节 0
-   如 FixedLen 不为 0，节点会在 FixedLen 与大数实际长度的基础上强行加一个字节 0
+   如 FixedLen 为 0，节点会根据最高位的实际情况决定是否加一个字节 0。
+   如 FixedLen 不为 0，节点会在 FixedLen 与大数实际长度的基础上强行加一个字节 0。
 
    参数：
      Writer: TCnBerWriter                 - BER 写入的工具类实例
