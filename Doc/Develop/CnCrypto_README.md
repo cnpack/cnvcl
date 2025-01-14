@@ -44,9 +44,9 @@ CnPack 密码算法库对中国国家商用密码算法标准有着完整而强大的支持：
 
 CnPack 密码算法库不涉及 VCL/FMX 界面组件，仅是基础库的形式提供，因而可直接将 cncrypto\Source 目录加入 Delphi 的工程搜索路径，便可直接在工程中 uses 相应单元并调用。
 
-另外 CnPack 密码算法库也提供了运行期包的形式，在任一版本 Delphi 中打开 cncrypto\Package\CnCrypto.dpk，即可编译成 BPL 使用。
+另外 CnPack 密码算法库也提供了运行期包的形式，在任一版本 Delphi 中打开 cncrypto\Package\CnCrypto.dpk，即可编译成 BPL 使用。注意如果已经编译安装了 CnPack 组件包，则无需也不应编译使用 CnPack 密码算法库的包，会出现单元命名冲突。
 
-注：如果在 Delphi 5 下编译 BPL，需手工将 requires 语句中的 vcl 改为 vcl50。
+注：如果在 Delphi 5 下编译该 BPL，需手工将 requires 语句中的 vcl 改为 vcl50。
 
 ## 测试用例
 
