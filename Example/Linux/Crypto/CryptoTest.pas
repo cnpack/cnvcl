@@ -39,6 +39,11 @@ interface
 
 // 注意为了保持测试用例的纯净性，不能 {$I CnPack.inc}
 
+{$IFDEF FPC}
+// FPC 下要关闭 Range Check 以避免编译出错
+{$R-}
+{$ENDIF}
+
 uses
   SysUtils, Classes, {$IFDEF ANDROID} FMX.Types, {$ENDIF}
   CnNative, CnBigNumber, CnSM4, CnDES, CnAES, CnAEAD, CnRSA, CnECC, CnSM2, CnSM3,
@@ -862,12 +867,20 @@ begin
 
   A64 := $2A64C05397B3C10D; B64 := $9C34A79E5B0F2180;
   ConstTimeConditionalSwap64(False, A64, B64);
+{$IFDEF FPC}
+  Result := (A64 = $2A64C05397B3C10D) and (B64 = TUInt64($9C34A79E5B0F2180));
+{$ELSE}
   Result := (A64 = $2A64C05397B3C10D) and (B64 = $9C34A79E5B0F2180);
+{$ENDIF}
 
   if not Result then Exit;
 
   ConstTimeConditionalSwap64(True, A64, B64);
+{$IFDEF FPC}
+  Result := (A64 = TUInt64($9C34A79E5B0F2180)) and (B64 = $2A64C05397B3C10D);
+{$ELSE}
   Result := (A64 = $9C34A79E5B0F2180) and (B64 = $2A64C05397B3C10D);
+{$ENDIF}
 end;
 
 function TestConstTimeSelect: Boolean;

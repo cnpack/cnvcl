@@ -822,13 +822,6 @@ const
 type
   TSHA2Type = (stSHA2_224, stSHA2_256, stSHA2_384, stSHA2_512);
 
-{$IFDEF SUPPORT_UINT64}
-  TUInt64 = UInt64;
-{$ELSE}
-  // D 5,6,7 下暂且用有符号的 Int64 来代替无符号的 Int64
-  TUInt64 = Int64;
-{$ENDIF}
-
 const
   MAX_FILE_SIZE = 512 * 1024 * 1024;
   // If file size <= this size (bytes), using Mapping, else stream
