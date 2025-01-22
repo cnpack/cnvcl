@@ -808,7 +808,7 @@ begin
 {$IFDEF MSWINDOWS}
   WSAStartup($101, aWSAData);
   try
-    skLocal := Socket(23, SOCK_STREAM, 0); // Open a socket
+    skLocal := socket(AF_INET, SOCK_STREAM, 0); // Open a socket£¬AF_INET 2
     if (skLocal = INVALID_SOCKET) then
       Exit;
 
