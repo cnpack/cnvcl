@@ -96,12 +96,34 @@ type
     function GetSize: Integer;
   public
     constructor Create(MultiThread: Boolean = False); virtual;
+    {* 构造函数。
+
+       参数：
+         MultiThread: Boolean             - 是否需要多线程互斥
+
+       返回值：                           - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Push(Data: Pointer);
-    {* 队列尾挂上一指针}
+    {* 队列尾挂上一指针。
+
+       参数：
+         Data: Pointer                    - 待推入的指针
+
+       返回值：                           - 无
+    }
+
     function Pop: Pointer;
-    {* 队列头弹出一指针，如队列空则返回 nil}
+    {* 队列头弹出一指针，如队列空则返回 nil。
+
+       参数：
+         （无）
+
+       返回值：                           - 弹出的指针
+    }
 
     property Size: Integer read GetSize;
     {* 内部指针数}
@@ -116,31 +138,76 @@ type
     FList: TList;
   public
     constructor Create(MultiThread: Boolean = False); virtual;
+    {* 构造函数。
+
+       参数：
+         MultiThread: Boolean             - 是否需要多线程互斥
+
+       返回值：                           - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
+    {* 析构函数}
 
     function Count: Integer;
-    {* 队列内元素数量}
+    {* 队列内元素数量。
+
+       参数：
+         （无）
+
+       返回值：                           - 返回队列内元素数量
+    }
+
     function IsEmpty: Boolean;
-    {* 队列是否为空}
+    {* 队列是否为空。
+
+       参数：
+         （无）
+
+       返回值：                           - 返回队列是否为空
+    }
+
     procedure Clear;
     {* 清除队列内所有元素}
 
     procedure Push(AObject: TObject);
-    {* 将一对象入队列}
+    {* 将一对象入队列。
+
+       参数：
+         AObject: TObject                 - 待推入队列的对象
+
+       返回值：                           - 无
+    }
+
     function Pop: TObject;
-    {* 出队列至一对象，如堆栈空则抛异常}
+    {* 队列内出一对象，如队列空则抛异常。
+
+       参数：
+         （无）
+
+       返回值：                           - 弹出的对象
+    }
   end;
 
   TCnObjectStack = class(TObject)
   {* 对象栈实现类，可运行期创建时指定是否支持多线程互斥。
-    内部采用列表实现，仅对象引用，不持有对象}
+     内部采用列表实现，仅对象引用，不持有对象}
   private
     FMultiThread: Boolean;
     FLock: TCriticalSection;
     FList: TList;
   public
     constructor Create(MultiThread: Boolean = False); virtual;
+    {* 构造函数。
+
+       参数：
+         MultiThread: Boolean             - 是否需要多线程互斥
+
+       返回值：                           - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
+    {* 析构函数}
 
     function Count: Integer;
     {* 栈内元素数量}
@@ -182,8 +249,16 @@ type
   public
     constructor Create(ASize: Integer; AFullOverwrite: Boolean = False;
       AMultiThread: Boolean = False);
-    {* 构造函数，ASize 是缓冲区容量；AFullOverwrite 是否允许缓冲区满后再塞东西时
-      覆盖以前的数据，AMultiThread 是否需要多线程互斥}
+    {* 构造函数。
+
+       参数：
+         ASize: Integer                   - 循环队列缓冲区的元素容量
+         AFullOverwrite: Boolean          - 是否允许缓冲区满后再写入内容时覆盖以前的数据
+         AMultiThread: Boolean            - 是否需要多线程互斥
+
+       返回值：                           - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
     {* 析构函数}
 
@@ -229,10 +304,22 @@ type
     {* 析构函数，显式释放内部对象}
 
     function Obtain: TObject;
-    {* 从对象池获取一个对象，不用时需调用 Recycle 归还}
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还。
+
+       参数：
+         （无）
+
+       返回值：TObject                    - 返回的对象
+    }
 
     procedure Recycle(Num: TObject);
-    {* 将一个对象归还至对象池}
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Num: TObject                     - 待归还的对象
+
+       返回值：（无）
+    }
   end;
 
 //==============================================================================
@@ -449,6 +536,7 @@ type
     procedure SetCount(NewCount: Integer);
   public
     destructor Destroy; override;
+    {* 析构函数}
     function Add(Item: TObject): Integer;
     procedure Clear; virtual;
     procedure Delete(Index: Integer);
@@ -474,47 +562,94 @@ type
 
 {$IFDEF POSIX}
 
-  // MACOS/LINUX 等平台下的 TList 没有 IgnoreDuplicated 功能，需要手工去重
   TCnInternalList<T> = class(TList<T>)
+  {* MACOS/LINUX 等平台下的 TList 没有 IgnoreDuplicated 功能，需要新写一个类并手工去重}
   public
     procedure RemoveDuplictedElements;
+    {* 去除重复的元素}
   end;
 
 {$ENDIF}
 
   TCnBytesObject = class
-  {* 封装了字节数组的对象}
+  {* 封装了字节数组的对象，内部复制内容进行管理}
   private
     FData: TBytes;
   public
     constructor Create(AMem: Pointer = nil; MemByteSize: Integer = 0); virtual;
+    {* 构造函数。
+
+       参数：
+         AMem: Pointer                    - 数据块地址，作为内容复制到内部的字节数组中
+         MemByteSize: Integer             - 数据块字节长度
+
+       返回值：                           - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
+    {* 析构函数}
 
     property Data: TBytes read FData write FData;
+    {* 内容字节数组}
   end;
 
   TCnBytesPair = class
-  {* 封装了俩字节数组的对象}
+  {* 封装了俩字节数组的对象，内部复制内容进行管理}
   private
     FKey: TBytes;
     FValue: TBytes;
   public
     constructor Create(AKeyMem: Pointer = nil; KeyMemByteSize: Integer = 0;
       AValueMem: Pointer = nil; ValueMemByteSize: Integer = 0); virtual;
+    {* 构造函数。
+
+       参数：
+         AKeyMem: Pointer                 - Key 的数据块地址，作为内容复制到内部的字节数组中
+         KeyMemByteSize: Integer          - Key 的数据块字节长度
+         AValueMem: Pointer               - Value 的数据块地址，作为内容复制到内部的字节数组中
+         ValueMemByteSize: Integer        - Value 的数据块字节长度
+
+       返回值：                           - 返回创建的对象实例
+    }
+
     destructor Destroy; override;
+    {* 析构函数}
 
     property Key: TBytes read FKey write FKey;
+    {* Key 字节数组}
     property Value: TBytes read FValue write FValue;
+    {* Value 字节数组}
   end;
 
 procedure CnIntegerListCopy(Dst: TCnIntegerList; Src: TCnIntegerList);
-{* 复制 TCnIntegerList}
+{* 复制 TCnIntegerList。
+
+   参数：
+     Dst: TCnIntegerList              - 目标列表
+     Src: TCnIntegerList              - 源列表
+
+   返回值：                           - 无
+}
 
 procedure CnInt64ListCopy(Dst: TCnInt64List; Src: TCnInt64List);
-{* 复制 TCnInt64List}
+{* 复制 TCnInt64List。
+
+   参数：
+     Dst: TCnInt64List                - 目标列表
+     Src: TCnInt64List                - 源列表
+
+   返回值：                           - 无
+}
 
 procedure CnRefObjectListCopy(Dst: TCnRefObjectList; Src: TCnRefObjectList);
-{* 复制 TCnRefObjectList}
+{* 复制 TCnRefObjectList。
+
+   参数：
+     Dst: TCnRefObjectList            - 目标列表
+     Src: TCnRefObjectList            - 源列表
+
+   返回值：                           - 无
+}
 
 implementation
 
