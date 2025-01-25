@@ -43,6 +43,7 @@ type
     btnShowTreeGraph: TButton;
     btnShowBTree: TButton;
     btnShowRBTree: TButton;
+    btnDepthFirstTravelPost: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnLoadFromTreeViewClick(Sender: TObject);
@@ -72,6 +73,7 @@ type
     procedure btnShowTreeGraphClick(Sender: TObject);
     procedure btnShowBTreeClick(Sender: TObject);
     procedure btnShowRBTreeClick(Sender: TObject);
+    procedure btnDepthFirstTravelPostClick(Sender: TObject);
   private
     { Private declarations }
     FTree: TCnTree;
@@ -514,6 +516,13 @@ procedure TCnTreeTestForm.btnDepthFirstTravelClick(Sender: TObject);
 begin
   FTravalResult := '';
   FTree.DepthFirstTravel;
+  ShowMessage(FTravalResult);
+end;
+
+procedure TCnTreeTestForm.btnDepthFirstTravelPostClick(Sender: TObject);
+begin
+  FTravalResult := '';
+  FTree.DepthFirstTravel(False);
   ShowMessage(FTravalResult);
 end;
 

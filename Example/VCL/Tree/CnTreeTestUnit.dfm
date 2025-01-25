@@ -67,13 +67,13 @@ object CnTreeTestForm: TCnTreeTestForm
       Top = 24
       Width = 145
       Height = 25
-      Caption = 'Depth First Travel'
+      Caption = 'Depth First Travel PreOrder'
       TabOrder = 1
       OnClick = btnDepthFirstTravelClick
     end
     object btnWidthFirstTravel: TButton
-      Left = 176
-      Top = 64
+      Left = 16
+      Top = 104
       Width = 145
       Height = 25
       Caption = 'Width First Travel'
@@ -88,6 +88,15 @@ object CnTreeTestForm: TCnTreeTestForm
       Caption = 'Show Tree Height'
       TabOrder = 4
       OnClick = btnTreeHeightClick
+    end
+    object btnDepthFirstTravelPost: TButton
+      Left = 176
+      Top = 64
+      Width = 145
+      Height = 25
+      Caption = 'Depth First Travel PostOrder'
+      TabOrder = 5
+      OnClick = btnDepthFirstTravelPostClick
     end
   end
   object grpBTree: TGroupBox

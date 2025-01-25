@@ -112,7 +112,7 @@ type
     function GetSubTreeHeight: Integer; virtual;
 
     procedure AssignTo(Dest: TPersistent); override;
-    procedure DoDepthFirstTravel;
+    procedure DoDepthFirstTravel(PreOrder: Boolean = True);
     procedure DoWidthFirstTravel;
     function SetChild(ALeaf: TCnLeaf; Index: Integer): TCnLeaf;
     {* 将某节点赋值为第 Index 个子节点，返回原节点值 }
@@ -290,15 +290,15 @@ type
 {$ENDIF}
   public
     constructor Create; overload;
-    {* 构造方法 }
+    {* 构造方法}
     constructor Create(LeafClass: TCnLeafClass); overload;
     {* 另一构造方法}
     destructor Destroy; override;
-    {* 析构方法 }
-    procedure DepthFirstTravel;
-    {* 进行深度优先遍历 }
+    {* 析构方法}
+    procedure DepthFirstTravel(PreOrder: Boolean = True);
+    {* 进行深度优先遍历，包括前序（先本节点后子节点）和后序（先子节点后本节点）两种，注意不是二叉树因而没有中序}
     procedure WidthFirstTravel;
-    {* 进行广度优先遍历 }
+    {* 进行广度优先遍历}
     function ExtractLeaf(ALeaf: TCnLeaf): TCnLeaf;
     {* 从树中剥离一叶节点并返回它 }
     procedure Clear; virtual;
@@ -365,7 +365,7 @@ type
     property Root: TCnLeaf read GetRoot;
     {* 根节点，总是存在 }
     property Items[AbsoluteIndex: Integer]: TCnLeaf read GetItems;
-    {* 根据深度优先的遍历顺序获得第 n 个子节点，类似于 TreeNodes 中的机制，0 代表 Root }
+    {* 根据前序深度优先的遍历顺序获得第 n 个子节点，类似于 TreeNodes 中的机制，0 代表 Root }
     property Count: Integer read GetCount;
     {* 返回树中所有节点的数目，包括 Root }
     property MaxLevel: Integer read GetMaxLevel;
@@ -532,14 +532,24 @@ begin
   end;
 end;
 
-procedure TCnLeaf.DoDepthFirstTravel;
+procedure TCnLeaf.DoDepthFirstTravel(PreOrder: Boolean);
 var
   I: Integer;
 begin
-  if FTree <> nil then
-    FTree.DoDepthFirstTravelLeaf(Self);
-  for I := 0 to FList.Count - 1 do
-    Items[I].DoDepthFirstTravel;
+  if PreOrder then // 前序，先本节点再子节点
+  begin
+    if FTree <> nil then
+      FTree.DoDepthFirstTravelLeaf(Self);
+    for I := 0 to FList.Count - 1 do
+      Items[I].DoDepthFirstTravel(PreOrder);
+  end
+  else // 后序，先子节点再本节点
+  begin
+    for I := 0 to FList.Count - 1 do
+      Items[I].DoDepthFirstTravel(PreOrder);
+    if FTree <> nil then
+      FTree.DoDepthFirstTravelLeaf(Self);
+  end;
 end;
 
 procedure TCnLeaf.DoWidthFirstTravel;
@@ -877,9 +887,9 @@ begin
   inherited;
 end;
 
-procedure TCnTree.DepthFirstTravel;
+procedure TCnTree.DepthFirstTravel(PreOrder: Boolean);
 begin
-  FRoot.DoDepthFirstTravel;
+  FRoot.DoDepthFirstTravel(PreOrder);
 end;
 
 function TCnTree.CreateLeaf(ATree: TCnTree): TCnLeaf;
