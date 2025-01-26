@@ -41,7 +41,7 @@ object CnTreeTestForm: TCnTreeTestForm
     Left = 312
     Top = 24
     Width = 345
-    Height = 145
+    Height = 153
     Caption = 'Common Tree'
     TabOrder = 1
     object btnLoadFromTreeView: TButton
@@ -55,7 +55,7 @@ object CnTreeTestForm: TCnTreeTestForm
     end
     object btnSaveToTreeView: TButton
       Left = 16
-      Top = 64
+      Top = 56
       Width = 145
       Height = 25
       Caption = 'Save To TreeView'
@@ -72,8 +72,8 @@ object CnTreeTestForm: TCnTreeTestForm
       OnClick = btnDepthFirstTravelClick
     end
     object btnWidthFirstTravel: TButton
-      Left = 16
-      Top = 104
+      Left = 176
+      Top = 88
       Width = 145
       Height = 25
       Caption = 'Width First Travel'
@@ -81,8 +81,8 @@ object CnTreeTestForm: TCnTreeTestForm
       OnClick = btnWidthFirstTravelClick
     end
     object btnTreeHeight: TButton
-      Left = 176
-      Top = 104
+      Left = 16
+      Top = 88
       Width = 145
       Height = 25
       Caption = 'Show Tree Height'
@@ -91,12 +91,20 @@ object CnTreeTestForm: TCnTreeTestForm
     end
     object btnDepthFirstTravelPost: TButton
       Left = 176
-      Top = 64
+      Top = 56
       Width = 145
       Height = 25
       Caption = 'Depth First Travel PostOrder'
       TabOrder = 5
       OnClick = btnDepthFirstTravelPostClick
+    end
+    object chkTravelReverse: TCheckBox
+      Left = 176
+      Top = 120
+      Width = 137
+      Height = 17
+      Caption = 'Travel Reverse'
+      TabOrder = 6
     end
   end
   object grpBTree: TGroupBox

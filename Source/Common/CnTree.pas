@@ -85,6 +85,7 @@ type
 //==============================================================================
 
   ECnTreeException = class(Exception);
+  {* 树相关异常}
 
   TCnTree = class;
 
@@ -112,88 +113,89 @@ type
     function GetSubTreeHeight: Integer; virtual;
 
     procedure AssignTo(Dest: TPersistent); override;
-    procedure DoDepthFirstTravel(PreOrder: Boolean = True);
-    procedure DoWidthFirstTravel;
+    procedure DoDepthFirstTravel(PreOrder: Boolean = True; Reverse: Boolean = False);
+    procedure DoWidthFirstTravel(Reverse: Boolean = False);
     function SetChild(ALeaf: TCnLeaf; Index: Integer): TCnLeaf;
-    {* 将某节点赋值为第 Index 个子节点，返回原节点值 }
+    {* 将某节点赋值为第 Index 个子节点，返回原节点值}
     property AllNonNilCount: Integer read GetAllNonNilCount;
-    {* 所有非 nil 的子孙节点数目 }
+    {* 所有非 nil 的子孙节点数目}
   public
     constructor Create(ATree: TCnTree); virtual;
-    {* 构造方法，需要一 Tree 做容器 }
+    {* 构造方法，需要一 Tree 做容器}
     destructor Destroy; override;
-    {* 析构方法 }
+    {* 析构方法}
+
     function AddChild(ALeaf: TCnLeaf): TCnLeaf;
-    {* 添加一指定的子节点作为最后的直属子节点 }
+    {* 添加一指定的子节点作为最后的直属子节点}
     function AddChildFirst(ALeaf: TCnLeaf): TCnLeaf;
-    {* 添加一指定的子节点作为第一直属子节点 }
+    {* 添加一指定的子节点作为第一直属子节点}
     function InsertChild(ALeaf: TCnLeaf; AIndex: Integer): TCnLeaf;
-    {* 在指定的子索引后增加一子节点 }
+    {* 在指定的子索引后增加一子节点}
     procedure Clear; virtual;
-    {* 清除所有直属子节点，子节点以下也会被删除释放  }
+    {* 清除所有直属子节点，子节点以下也会被删除释放}
     procedure DeleteChild(AIndex: Integer); virtual;
-    {* 删除一直属子节点，子节点以下会被删除释放 }
+    {* 删除一直属子节点，子节点以下会被删除释放}
     procedure Delete;
-    {* 删除本身和子节点 }
+    {* 删除本身和子节点}
     function ExtractChild(AIndex: Integer): TCnLeaf; overload;
-    {* 剥离出一直属子节点，子节点以下不会被删除释放 }
+    {* 剥离出一直属子节点，子节点以下不会被删除释放}
     function ExtractChild(ALeaf: TCnLeaf): TCnLeaf; overload;
-    {* 剥离出指定的一子节点，子节点以下不会被删除释放 }
+    {* 剥离出指定的一子节点，子节点以下不会被删除释放}
 
     // 获得其他节点的方法
     function GetFirstChild: TCnLeaf;
-    {* 获得第一个直属子节点 }
+    {* 获得第一个直属子节点}
     function GetLastChild: TCnLeaf;
-    {* 获得最后一个直属子节点 }
+    {* 获得最后一个直属子节点}
     function GetNext: TCnLeaf;
     {* 获得第一子节点，如无，则返回同级节点的后一个节点，如无，则返回 nil }
     function GetNextChild(Value: TCnLeaf): TCnLeaf;
-    {* 获得某子节点的后一同级节点，无则返回 nil }
+    {* 获得某子节点的后一同级节点，无则返回 nil}
     function GetNextSibling: TCnLeaf;
-    {* 获得同级的后一子节点，无则返回 nil }
+    {* 获得同级的后一子节点，无则返回 nil}
     function GetPrev: TCnLeaf;
-    {* 获得同级节点的前一个节点，如无，则返回父节点，如无，则返回 nil }
+    {* 获得同级节点的前一个节点，如无，则返回父节点，如无，则返回 nil}
     function GetPrevChild(Value: TCnLeaf): TCnLeaf;
-    {* 获得某一子节点的前一同级节点，无则返回 nil }
+    {* 获得某一子节点的前一同级节点，无则返回 nil}
     function GetPrevSibling: TCnLeaf;
-    {* 获得同级的前一子节点，无则返回 nil }
+    {* 获得同级的前一子节点，无则返回 nil}
     function GetAbsoluteItems(AAbsoluteIndex: Integer): TCnLeaf;
-    {* 根据深度优先的遍历顺序获得第 n 个子节点，类似于 TreeNodes 中的机制 }
+    {* 根据深度优先的遍历顺序获得第 n 个子节点，类似于 TreeNodes 中的机制}
     function GetAbsoluteIndexFromParent(IndirectParentLeaf: TCnLeaf): Integer;
     {* 获得 Leaf 在 IndirectParentLeaf 下深度优先的遍历顺序的索引，0 开始，
       如果 IndirectParentLeaf 不是间接或直接 Parent 则返回 -1}
     function HasAsParent(Value: TCnLeaf): Boolean;
-    {* 指定的节点是否是本节点的上级或更上级 }
+    {* 指定的节点是否是本节点的上级或更上级}
     function IndexOf(ALeaf: TCnLeaf): Integer;
-    {* 在直属子节点中查找是否有某一节点并返回其索引 }
+    {* 在直属子节点中查找是否有某一节点并返回其索引}
     property AbsoluteIndex: Integer read GetAbsoluteIndex;
-    {* 在整棵树中的索引值 }
+    {* 在整棵树中的索引值}
     property AllCount: Integer read GetAllCount;
-    {* 所有子孙节点数目 }
+    {* 所有子孙节点数目}
     property Count: Integer read GetCount;
-    {* 直属子节点数目 }
+    {* 直属子节点数目}
     property HasChildren: Boolean read GetHasChildren;
-    {* 是否有子节点 }
+    {* 是否有子节点}
     property Index: Integer read GetIndex;
-    {* 本叶节点在父节点列表中的顺序索引，从 0 开始。无父则为 -1 }
+    {* 本叶节点在父节点列表中的顺序索引，从 0 开始。无父则为 -1}
     property Items[AIndex: Integer]: TCnLeaf read GetItems write SetItems; default;
-    {* 直属叶节点数组 }
+    {* 直属叶节点数组}
     property SubTreeHeight: Integer read GetSubTreeHeight;
     {* 此节点下属子树的最大高度，无子节点时为 0}
 
     property Level: Integer read GetLevel;
-    {* 本节点层数，Root 节点 Level 为 0 }
+    {* 本节点层数，Root 节点 Level 为 0}
     property Parent: TCnLeaf read GetParent;
-    {* 父节点，不可写 }
+    {* 父节点，不可写}
     property Tree: TCnTree read GetTree;
-    {* 所属树，一个叶必须属于一棵树 }
+    {* 所属树，一个叶必须属于一棵树}
   published
     property Obj: TObject read FObj write FObj;
     {* 用以保存一对象引用}
     property Data: Integer read FData write FData;
-    {* 用以保存一整数的属性，类似于 Tag }
+    {* 用以保存一整数的属性，类似于 Tag}
     property Text: string read FText write FText;
-    {* 用以保存一字符串的属性 }
+    {* 用以保存一字符串的属性}
   end;
 
   ICnTreeFiler = interface(IUnknown)
@@ -269,23 +271,23 @@ type
     {* 当某节点需要插入一个子节点时被调用，供树的子类根据条件抛出异常来拦截控制}
 
     procedure RegisterLeaf(ALeaf: TCnLeaf);
-    {* 仅供叶节点调用，在树中登记此叶节点 }
+    {* 仅供叶节点调用，在树中登记此叶节点}
     procedure UnRegisterLeaf(ALeaf: TCnLeaf);
-    {* 仅供叶节点调用，取消此叶节点的登记 }
+    {* 仅供叶节点调用，取消此叶节点的登记}
 
 {$IFDEF ENABLE_UIINTERACT}
   {$IFDEF MSWINDOWS}
     procedure LoadFromATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode); virtual;
-    {* 从一 TreeNode 节点载入其子节点，供递归调用 }
+    {* 从一 TreeNode 节点载入其子节点，供递归调用}
     procedure SaveToATreeNode(ALeaf: TCnLeaf; ANode: TTreeNode); virtual;
-    {* 将节点本身以及子节点写入一 TreeNode，供递归调用 }
+    {* 将节点本身以及子节点写入一 TreeNode，供递归调用}
   {$ENDIF}
 
   {$IFDEF SUPPORT_FMX}
     procedure LoadFromATreeViewItem(ALeaf: TCnLeaf; AItem: TTreeViewItem); virtual;
-    {* 从一 TreeNode 节点载入其子节点，供递归调用 }
+    {* 从一 TreeNode 节点载入其子节点，供递归调用}
     procedure SaveToATreeViewItem(ALeaf: TCnLeaf; AItem: TTreeViewItem); virtual;
-    {* 将节点本身以及子节点写入一 TreeNode，供递归调用 }
+    {* 将节点本身以及子节点写入一 TreeNode，供递归调用}
   {$ENDIF}
 {$ENDIF}
   public
@@ -295,35 +297,36 @@ type
     {* 另一构造方法}
     destructor Destroy; override;
     {* 析构方法}
-    procedure DepthFirstTravel(PreOrder: Boolean = True);
-    {* 进行深度优先遍历，包括前序（先本节点后子节点）和后序（先子节点后本节点）两种，注意不是二叉树因而没有中序}
-    procedure WidthFirstTravel;
-    {* 进行广度优先遍历}
+    procedure DepthFirstTravel(PreOrder: Boolean = True; Reverse: Boolean = False);
+    {* 进行深度优先遍历，包括前序（先本节点后子节点）和后序（先子节点后本节点）两种，注意不是二叉树因而没有中序
+       Reverse 控制遍历同级子节点的顺序，False 表示从 0 开始增大找，True 表示从最后一个往前找}
+    procedure WidthFirstTravel(Reverse: Boolean = False);
+    {* 进行广度优先遍历，Reverse 控制遍历同级子节点的顺序，False 表示从 0 开始增大找，True 表示从最后一个往前找}
     function ExtractLeaf(ALeaf: TCnLeaf): TCnLeaf;
-    {* 从树中剥离一叶节点并返回它 }
+    {* 从树中剥离一叶节点并返回它}
     procedure Clear; virtual;
     {* 清除并释放所有叶节点，批量序次释放，不进行树遍历，不进行通知更新 }
 
     // 各种添加方法
     function AddChildFirst(AParent: TCnLeaf): TCnLeaf;
-    {* 给指定的节点增加一首子节点 }
+    {* 给指定的节点增加一首子节点}
     function AddChild(AParent: TCnLeaf): TCnLeaf;
-    {* 给指定的节点增加一尾子节点 }
+    {* 给指定的节点增加一尾子节点}
     function InsertChild(AParent: TCnLeaf; AIndex: Integer): TCnLeaf;
-    {* 给指定的节点增加一指定位置的子节点 }
+    {* 给指定的节点增加一指定位置的子节点}
     function AddFirst(ASibing: TCnLeaf): TCnLeaf;
-    {* 给指定的节点增加一同级的最前节点 }
+    {* 给指定的节点增加一同级的最前节点}
     function Add(ASibing: TCnLeaf): TCnLeaf;
-    {* 给指定的节点增加一同级的最后节点 }
+    {* 给指定的节点增加一同级的最后节点}
 
     procedure ExchangeWithChild(Leaf1: TCnLeaf; Leaf2: TCnLeaf); overload;
-    {* 交换俩节点位置，带子节点们一起交换 }
+    {* 交换俩节点位置，带子节点们一起交换}
     procedure ExchangeWithChild(AbsoluteIndex1: Integer; AbsoluteIndex2: Integer); overload;
-    {* 交换俩节点位置，带子节点们一起交换 }
+    {* 交换俩节点位置，带子节点们一起交换}
     procedure Exchange(Leaf1: TCnLeaf; Leaf2: TCnLeaf); overload;
-    {* 单纯交换俩节点位置 }
+    {* 单纯交换俩节点位置}
     procedure Exchange(AbsoluteIndex1: Integer; AbsoluteIndex2: Integer); overload;
-    {* 单纯根据索引交换俩节点位置 }
+    {* 单纯根据索引交换俩节点位置}
 
 {$IFDEF ENABLE_UIINTERACT}
   {$IFDEF MSWINDOWS}
@@ -356,42 +359,42 @@ type
 
     // 流化方法
     procedure LoadFromFile(Filer: ICnTreeFiler; const FileName: string); virtual;
-    {* 从文件中载入树节点，由提供接口的对象实现 }
+    {* 从文件中载入树节点，由提供接口的对象实现}
     procedure SaveToFile(Filer: ICnTreeFiler; const FileName: string); virtual;
-    {* 将树节点保存至文件，由提供接口的对象实现 }
+    {* 将树节点保存至文件，由提供接口的对象实现}
 
     property BatchUpdating: Boolean read FBatchUpdating write FBatchUpdating;
-    {* 是否在批量更新，为 True 时叶节点释放时不通知 Tree }
+    {* 是否在批量更新，为 True 时叶节点释放时不通知 Tree}
     property Root: TCnLeaf read GetRoot;
-    {* 根节点，总是存在 }
+    {* 根节点，总是存在}
     property Items[AbsoluteIndex: Integer]: TCnLeaf read GetItems;
-    {* 根据前序深度优先的遍历顺序获得第 n 个子节点，类似于 TreeNodes 中的机制，0 代表 Root }
+    {* 根据前序深度优先的遍历顺序获得第 n 个子节点，类似于 TreeNodes 中的机制，0 代表 Root}
     property Count: Integer read GetCount;
-    {* 返回树中所有节点的数目，包括 Root }
+    {* 返回树中所有节点的数目，包括 Root}
     property MaxLevel: Integer read GetMaxLevel;
     {* 返回树中最深层节点的层数，Root 为 0}
     property Height: Integer read GetHeight;
     {* 树高度，只有 Root 时为 1}
     property RegisteredCount: Integer read GetRegisteredCount;
-    {* 返回树中所有注册过的子节点的数目 }
+    {* 返回树中所有注册过的子节点的数目}
   published
     property OnDepthFirstTravelLeaf: TNotifyEvent read FOnDepthFirstTravelLeaf write FOnDepthFirstTravelLeaf;
-    {* 深度优先遍历时遍历到一个叶节点时的触发事件，Sender 是此节点 }
+    {* 深度优先遍历时遍历到一个叶节点时的触发事件，Sender 是此节点}
     property OnWidthFirstTravelLeaf: TNotifyEvent read FOnWidthFirstTravelLeaf write FOnWidthFirstTravelLeaf;
-    {* 广度优先遍历时遍历到一个叶节点时的触发事件，Sender 是此节点 }
+    {* 广度优先遍历时遍历到一个叶节点时的触发事件，Sender 是此节点}
 
 {$IFDEF ENABLE_UIINTERACT}
   {$IFDEF MSWINDOWS}
     property OnLoadANode: TCnTreeNodeEvent read FOnLoadANode write FOnLoadANode;
-    {* 从 VCL 的 TreeView 中载入节点时针对每一个节点的触发事件 }
+    {* 从 VCL 的 TreeView 中载入节点时针对每一个节点的触发事件}
     property OnSaveANode: TCnTreeNodeEvent read FOnSaveANode write FOnSaveANode;
-    {* 将节点存入 VCL 的 TreeView 时针对每一个节点的触发事件 }
+    {* 将节点存入 VCL 的 TreeView 时针对每一个节点的触发事件}
   {$ENDIF}
   {$IFDEF SUPPORT_FMX}
     property OnLoadAItem: TCnTreeViewItemEvent read FOnLoadAItem write FOnLoadAItem;
-    {* 从 VCL 的 TreeView 中载入节点时针对每一个节点的触发事件 }
+    {* 从 VCL 的 TreeView 中载入节点时针对每一个节点的触发事件}
     property OnSaveAItem: TCnTreeViewItemEvent read FOnSaveAItem write FOnSaveAItem;
-    {* 将节点存入 VCL 的 TreeView 时针对每一个节点的触发事件 }
+    {* 将节点存入 VCL 的 TreeView 时针对每一个节点的触发事件}
   {$ENDIF}
 {$ENDIF}
   end;
@@ -532,7 +535,7 @@ begin
   end;
 end;
 
-procedure TCnLeaf.DoDepthFirstTravel(PreOrder: Boolean);
+procedure TCnLeaf.DoDepthFirstTravel(PreOrder: Boolean; Reverse: Boolean);
 var
   I: Integer;
 begin
@@ -540,19 +543,37 @@ begin
   begin
     if FTree <> nil then
       FTree.DoDepthFirstTravelLeaf(Self);
-    for I := 0 to FList.Count - 1 do
-      Items[I].DoDepthFirstTravel(PreOrder);
+
+    if Reverse then
+    begin
+      for I := FList.Count - 1 downto 0 do
+        Items[I].DoDepthFirstTravel(PreOrder, Reverse);
+    end
+    else
+    begin
+      for I := 0 to FList.Count - 1 do
+        Items[I].DoDepthFirstTravel(PreOrder, Reverse);
+    end;
   end
   else // 后序，先子节点再本节点
   begin
-    for I := 0 to FList.Count - 1 do
-      Items[I].DoDepthFirstTravel(PreOrder);
+    if Reverse then
+    begin
+      for I := FList.Count - 1 downto 0 do
+        Items[I].DoDepthFirstTravel(PreOrder, Reverse);
+    end
+    else
+    begin
+      for I := 0 to FList.Count - 1 do
+        Items[I].DoDepthFirstTravel(PreOrder, Reverse);
+    end;
+
     if FTree <> nil then
       FTree.DoDepthFirstTravelLeaf(Self);
   end;
 end;
 
-procedure TCnLeaf.DoWidthFirstTravel;
+procedure TCnLeaf.DoWidthFirstTravel(Reverse: Boolean);
 var
   Queue: TQueue;
   I: Integer;
@@ -563,8 +584,16 @@ begin
     FTree.DoWidthFirstTravelLeaf(Self);
   Queue := TQueue.Create;
   try
-    for I := 0 to FList.Count - 1 do
-      Queue.Push(Items[I]);
+    if Reverse then
+    begin
+      for I := FList.Count - 1 downto 0 do
+        Queue.Push(Items[I]);
+    end
+    else
+    begin
+      for I := 0 to FList.Count - 1 do
+        Queue.Push(Items[I]);
+    end;
 
     while Queue.Count > 0 do
     begin
@@ -573,8 +602,18 @@ begin
         FTree.DoWidthFirstTravelLeaf(Node);
 
       if Node.Count > 0 then
-        for I := 0 to Node.Count - 1 do
-          Queue.Push(Node.Items[I]);
+      begin
+        if Reverse then
+        begin
+          for I := Node.Count - 1 downto 0 do
+            Queue.Push(Node.Items[I]);
+        end
+        else
+        begin
+          for I := 0 to Node.Count - 1 do
+            Queue.Push(Node.Items[I]);
+        end;
+      end;
     end;
   finally
     Queue.Free;
@@ -887,9 +926,9 @@ begin
   inherited;
 end;
 
-procedure TCnTree.DepthFirstTravel(PreOrder: Boolean);
+procedure TCnTree.DepthFirstTravel(PreOrder: Boolean; Reverse: Boolean);
 begin
-  FRoot.DoDepthFirstTravel(PreOrder);
+  FRoot.DoDepthFirstTravel(PreOrder, Reverse);
 end;
 
 function TCnTree.CreateLeaf(ATree: TCnTree): TCnLeaf;
@@ -925,9 +964,9 @@ begin
     FLeaves.Add(ALeaf);
 end;
 
-procedure TCnTree.WidthFirstTravel;
+procedure TCnTree.WidthFirstTravel(Reverse: Boolean);
 begin
-  FRoot.DoWidthFirstTravel;
+  FRoot.DoWidthFirstTravel(Reverse);
 end;
 
 procedure TCnTree.UnRegisterLeaf(ALeaf: TCnLeaf);

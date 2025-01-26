@@ -44,6 +44,7 @@ type
     btnShowBTree: TButton;
     btnShowRBTree: TButton;
     btnDepthFirstTravelPost: TButton;
+    chkTravelReverse: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnLoadFromTreeViewClick(Sender: TObject);
@@ -515,21 +516,21 @@ end;
 procedure TCnTreeTestForm.btnDepthFirstTravelClick(Sender: TObject);
 begin
   FTravalResult := '';
-  FTree.DepthFirstTravel;
+  FTree.DepthFirstTravel(True, chkTravelReverse.Checked);
   ShowMessage(FTravalResult);
 end;
 
 procedure TCnTreeTestForm.btnDepthFirstTravelPostClick(Sender: TObject);
 begin
   FTravalResult := '';
-  FTree.DepthFirstTravel(False);
+  FTree.DepthFirstTravel(False, chkTravelReverse.Checked);
   ShowMessage(FTravalResult);
 end;
 
 procedure TCnTreeTestForm.btnWidthFirstTravelClick(Sender: TObject);
 begin
   FTravalResult := '';
-  FTree.WidthFirstTravel;
+  FTree.WidthFirstTravel(chkTravelReverse.Checked);
   ShowMessage(FTravalResult);
 end;
 
