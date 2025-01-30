@@ -1486,8 +1486,8 @@ begin
 end;
 {$ENDIF}
 
-// 对ExtractFileDir的封装，防止Delphi XE3的TStringHelper.LastDelimiter
-// 引入的不兼容，XE3的ExtractFileDir('C:\1.dpr')返回的是'C:'而不是'C:\'
+// 对 ExtractFileDir 的封装，防止 Delphi XE3 的 TStringHelper.LastDelimiter
+// 引入的不兼容，XE3 的 ExtractFileDir('C:\1.dpr') 返回的是 'C:' 而不是 'C:\'
 function _CnExtractFileDir(const FileName: string): string;
 {$IFDEF DELPHIXE3_UP}
 var
@@ -1504,8 +1504,8 @@ begin
 end;
 {$ENDIF}
 
-// 对ExtractFilePath的封装，防止Delphi XE3的
-// TStringHelper.LastDelimiter引入的不兼容
+// 对 ExtractFilePath 的封装，防止 Delphi XE3 的
+// TStringHelper.LastDelimiter 引入的不兼容
 function _CnExtractFilePath(const FileName: string): string;
 {$IFDEF DELPHIXE3_UP}
 var
@@ -1520,14 +1520,14 @@ begin
 end;
 {$ENDIF}
 
-// 对ChangeFileExt的封装，防止Delphi XE3的
-// TStringHelper.LastDelimiter引入的不兼容
+// 对 ChangeFileExt 的封装，防止 Delphi XE3 的
+// TStringHelper.LastDelimiter 引入的不兼容
 function _CnChangeFileExt(const FileName, Extension: string): string;
 {$IFDEF DELPHIXE3_UP}
 var
   I: Integer;
 begin
-  I := LastDelimiter('.' + PathDelim + DriveDelim,Filename);
+  I := LastDelimiter('.' + PathDelim + DriveDelim, Filename);
   if (I = 0) or (FileName[I] <> '.') then I := MaxInt;
   Result := Copy(FileName, 1, I - 1) + Extension;
 end;

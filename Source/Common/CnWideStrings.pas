@@ -98,6 +98,7 @@ type
 { TCnWideStringList }
 
   TCnWideListFormat = (wlfAnsi, wlfUtf8, wlfUnicode);
+  {* 加载与保存时支持的三种编码，Ansi、Utf8、Utf16}
 
   TCnWideStringList = class;
   TCnWideStringListSortCompare = function(List: TCnWideStringList; Index1, Index2: Integer): Integer;
@@ -109,10 +110,11 @@ type
   end;
 
   TCnWideStringList = class(TPersistent)
-  {* WideString 版的 TStringList 实现}
+  {* WideString 版的 TStringList 实现，Load/Save 时有编码的处理}
   private
     FList: TList;
     FUseSingleLF: Boolean;
+    FLoadFormat: TCnWideListFormat;
     function GetName(Index: Integer): WideString;
     function GetValue(const Name: WideString): WideString;
     procedure SetValue(const Name, Value: WideString);
@@ -153,6 +155,8 @@ type
 
     property UseSingleLF: Boolean read FUseSingleLF write FUseSingleLF;
     {* 控制 GetTextStr 时使用的换行是否是单个 #10 而不是常规的 #13#10}
+    property LoadFormat: TCnWideListFormat read FLoadFormat;
+    {* LoadFromStream 时识别出的格式}
   end;
 
   TCnWideCharDisplayWideLengthCalculator = function(AWChar: WideChar): Boolean;
@@ -577,6 +581,7 @@ constructor TCnWideStringList.Create;
 begin
   inherited;
   FList := TList.Create;
+  FLoadFormat := wlfUnicode;
 end;
 
 procedure TCnWideStringList.CustomSort(Compare: TCnWideStringListSortCompare);
@@ -746,6 +751,8 @@ begin
       S := UTF8ToWideString(SA);
 {$ENDIF}
       SetTextStr(S);
+
+      FLoadFormat := wlfUtf8;
       Exit;
     end;
     Stream.Position := Stream.Position - 3;  
@@ -755,11 +762,13 @@ begin
   begin
     SetLength(HeaderStr, 2);
     Stream.Read(Pointer(HeaderStr)^, 2);
-    if HeaderStr = #$FF#$FE then // utf-8 format
+    if HeaderStr = #$FF#$FE then // utf-16 format
     begin
       SetLength(S, (Size - 2) div SizeOf(WideChar));
       Stream.Read(Pointer(S)^, (Size - 2) div SizeOf(WideChar) * SizeOf(WideChar));
       SetTextStr(S);
+
+      FLoadFormat := wlfUnicode;
       Exit;
     end;
     Stream.Position := Stream.Position - 2;  
@@ -768,6 +777,7 @@ begin
   SetString(SA, nil, Size);
   Stream.Read(Pointer(SA)^, Size);
   SetTextStr({$IFDEF UNICODE}string{$ENDIF}(SA));
+  FLoadFormat := wlfAnsi;
 end;
 
 procedure TCnWideStringList.Put(Index: Integer; const S: WideString);
