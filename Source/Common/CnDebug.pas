@@ -31,7 +31,9 @@ unit CnDebug;
 * 开发平台：PWin2000Pro + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.08.30
+* 修改记录：2025.02.05
+*               增加 REDIRECT_OPDS 编译条件，以控制直接使用 OutputDebugStringA
+*           2024.08.30
 *               修正 x64 下输出时钟周期不准确的问题，去除无用函数
 *           2022.12.03
 *               支持 FMX，但在 MACOS 下只支持文件输出的方式
@@ -100,6 +102,10 @@ interface
 
 {$I CnPack.inc}
 
+// {$DEFINE REDIRECT_OPDS}
+// 定义此条件将在 Windows 下将输出直接改成 OutputDebugString，忽略其他所有输出方式
+// 注意仍然会被 FIgnoreViewer 变量给拦截而不输出
+
 // {$DEFINE DUMP_TO_FILE}
 // 定义此条件可重定向到文件.
 // Define this flag to log message to a file.
@@ -134,6 +140,10 @@ interface
   {$IFNDEF DUMP_TO_FILE}
     {$DEFINE DUMP_TO_FILE} // MAC 下只能支持到文件，干脆直接支持
   {$ENDIF}
+{$ENDIF}
+
+{$IFNDEF MSWINDOWS}
+  {$UNDEF REDIRECT_OPDS}   // 非 Windows 下不支持 OutputDebugString
 {$ENDIF}
 
 {$IFDEF ENABLE_FMX}
@@ -294,7 +304,9 @@ type
     FChannel: TCnDebugChannel;
     FCSThrdId: TCnDebugCriticalSection;
     FAutoStart: Boolean;
+{$IFNDEF REDIRECT_OPDS}
     FViewerAutoStartCalled: Boolean;
+{$ENDIF}
     // 内部变量，控制不朝 Viewer 输出
     FIgnoreViewer: Boolean;
     FExceptFilter: TStringList;
@@ -1681,6 +1693,10 @@ var
   end;
 
 begin
+{$IFDEF REDIRECT_OPDS}
+  if not FIgnoreViewer then
+    OutputDebugStringA(AMsg);
+{$ELSE}
   CnEnterCriticalSection(FStartCriticalSection);
   try
     if FAutoStart and not FIgnoreViewer and not FViewerAutoStartCalled then
@@ -1691,11 +1707,16 @@ begin
   finally
     CnLeaveCriticalSection(FStartCriticalSection);
   end;
+{$ENDIF}
 
 {$IFDEF MSWINDOWS}
   InterlockedIncrement(FMessageCount);
 {$ELSE}
   TInterlocked.Increment(FMessageCount);
+{$ENDIF}
+
+{$IFDEF REDIRECT_OPDS}
+  Exit;
 {$ENDIF}
 
   if not CheckEnabled and not FDumpToFile then
