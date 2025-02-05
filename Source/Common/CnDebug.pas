@@ -1451,6 +1451,7 @@ begin
 {$ELSE}
   FCSThrdId := TCnDebugCriticalSection.Create;
 {$ENDIF}
+
   CreateChannel;
 
 {$IFDEF DUMP_TO_FILE}
@@ -5356,7 +5357,12 @@ end;
 initialization
 {$IFNDEF NDEBUG}
   {$IFDEF MSWINDOWS}
+
+  {$IFDEF REDIRECT_OPDS}
+  CnDebugChannelClass := nil; // 用 OutputDebugString 不创建 Channel
+  {$ELSE}
   CnDebugChannelClass := TCnMapFileChannel;
+  {$ENDIF}
 
   InitializeCriticalSection(FStartCriticalSection);
   InitializeCriticalSection(FCnDebuggerCriticalSection);
