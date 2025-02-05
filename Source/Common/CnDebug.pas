@@ -5377,7 +5377,10 @@ initialization
   {$ENDIF}
   {$ENDIF}
   FCnDebugger := TCnDebugger.Create;
+
+  {$IFNDEF REDIRECT_OPDS}
   FixCallingCPUPeriod;
+  {$ENDIF}
 
   {$IFDEF CAPTURE_STACK}
   CnSetAdditionalExceptionRecorder(FCnDebugger.ExceptionRecorder);
