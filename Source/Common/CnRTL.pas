@@ -149,7 +149,7 @@ type
     procedure TraceStackFrames; override;
   public
     constructor Create(CtxPtr, Addr: Pointer; OnlyDelphi: Boolean = False);
-    {* 参数为 Context 指针、发生异常时的地址/EIP}
+    {* 参数为 Context 指针（x86 下传 EBP 指针，x64 下没有 EBP 得传 nil）、发生异常时的地址/EIP}
   end;
 
 // ================= 进程内指定模块用改写 IAT 表的方式 Hook API ================
@@ -925,7 +925,7 @@ const
 var
   StackList: TCnStackInfoList;
 begin
-  if (ExceptionFlags = cNonContinuable) and (ExceptionCode = cDelphiException) and (NumberOfArguments = 7)
+  if (ExceptionFlags = cNonContinuable) and (ExceptionCode = cDelphiException) and (NumberOfArguments in [7, 8])
     {$IFNDEF WIN64} and (TCnNativeUInt(Arguments) = TCnNativeUInt(@Arguments) + OFFSET) {$ENDIF}
     then
   begin
@@ -982,6 +982,7 @@ begin
   Result := False;
   if not FExceptionHooked then
   begin
+    // 注意这里 64 位下也适用
     Result := CnHookImportAddressTable(kernel32, 'RaiseException', Kernel32RaiseException,
       @MyKernel32RaiseException, SystemTObjectInstance);
 
@@ -1051,7 +1052,7 @@ begin
   end
 end;
 
-{ TCnExceptionStackInfoList }
+{ TCnManualStackInfoList }
 
 constructor TCnManualStackInfoList.Create(CtxPtr, Addr: Pointer;
   OnlyDelphi: Boolean);

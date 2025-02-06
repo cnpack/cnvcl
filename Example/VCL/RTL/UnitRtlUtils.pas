@@ -74,16 +74,28 @@ procedure TFormRtlUtils.btnGetMyModuleClick(Sender: TObject);
 var
   List: TCnModuleInfoList;
 begin
-  List := TCnModuleInfoList.Create(True);
+  List := TCnModuleInfoList.Create(False);
   mmoMyModules.Lines.Clear;
   List.DumpToStrings(mmoMyModules.Lines);
   List.Free;
 end;
 
+{$IFDEF CPU64BITS}
+
+// 没派上用场
+function GetRIP64: Pointer;
+asm
+        CALL @@NEXT;
+@@NEXT: POP RAX
+end;
+
+{$ELSE}
 function GetEBP32: Pointer;
 asm
         MOV     EAX, EBP
 end;
+
+{$ENDIF}
 
 procedure TFormRtlUtils.btnGetStackClick(Sender: TObject);
 begin
@@ -248,7 +260,11 @@ var
   SL: TJclStackInfoList;
 {$ENDIF}
 begin
+{$IFDEF CPU64BITS}
+  List := TCnManualStackInfoList.Create(nil, nil);
+{$ELSE}
   List := TCnManualStackInfoList.Create(GetEBP32, nil);
+{$ENDIF}
   mmoStack.Lines.Clear;
   List.DumpToStrings(mmoStack.Lines);
   List.Free;
