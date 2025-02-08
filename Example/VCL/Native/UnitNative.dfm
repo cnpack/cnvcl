@@ -93,7 +93,7 @@ object FormNative: TFormNative
     Font.Name = 'Courier New'
     Font.Style = []
     ParentFont = False
-    TabOrder = 2
+    TabOrder = 18
   end
   object btnStrUInt64: TButton
     Left = 224
@@ -101,7 +101,7 @@ object FormNative: TFormNative
     Width = 75
     Height = 25
     Caption = 'StrToUInt64'
-    TabOrder = 3
+    TabOrder = 2
     OnClick = btnStrUInt64Click
   end
   object btnMul32: TButton
@@ -110,7 +110,7 @@ object FormNative: TFormNative
     Width = 89
     Height = 25
     Caption = 'Mul U32 to Int64'
-    TabOrder = 4
+    TabOrder = 3
     OnClick = btnMul32Click
   end
   object btnHighLowBits: TButton
@@ -119,7 +119,7 @@ object FormNative: TFormNative
     Width = 97
     Height = 25
     Caption = 'Test High Low Bits'
-    TabOrder = 5
+    TabOrder = 4
     OnClick = btnHighLowBitsClick
   end
   object btnInt64MulMod: TButton
@@ -128,7 +128,7 @@ object FormNative: TFormNative
     Width = 97
     Height = 25
     Caption = 'Int64 MulMod'
-    TabOrder = 6
+    TabOrder = 5
     OnClick = btnInt64MulModClick
   end
   object btnUInt64Add: TButton
@@ -137,7 +137,7 @@ object FormNative: TFormNative
     Width = 75
     Height = 25
     Caption = 'UInt64 Add'
-    TabOrder = 7
+    TabOrder = 9
     OnClick = btnUInt64AddClick
   end
   object btnUInt64Mul: TButton
@@ -146,7 +146,7 @@ object FormNative: TFormNative
     Width = 75
     Height = 25
     Caption = 'UInt64 Mul'
-    TabOrder = 8
+    TabOrder = 10
     OnClick = btnUInt64MulClick
   end
   object btnGetGT2Power: TButton
@@ -155,7 +155,7 @@ object FormNative: TFormNative
     Width = 75
     Height = 25
     Caption = '> 2^n 32'
-    TabOrder = 9
+    TabOrder = 11
     OnClick = btnGetGT2PowerClick
   end
   object btnGetGT2Power64: TButton
@@ -164,7 +164,7 @@ object FormNative: TFormNative
     Width = 75
     Height = 25
     Caption = '> 2^n 64'
-    TabOrder = 10
+    TabOrder = 12
     OnClick = btnGetGT2Power64Click
   end
   object edtPower: TEdit
@@ -172,7 +172,7 @@ object FormNative: TFormNative
     Top = 64
     Width = 49
     Height = 21
-    TabOrder = 11
+    TabOrder = 13
     Text = '9'
   end
   object edtExponent: TEdit
@@ -180,7 +180,7 @@ object FormNative: TFormNative
     Top = 64
     Width = 49
     Height = 21
-    TabOrder = 12
+    TabOrder = 14
     Text = '10'
   end
   object edtUPower: TEdit
@@ -188,7 +188,7 @@ object FormNative: TFormNative
     Top = 64
     Width = 49
     Height = 21
-    TabOrder = 13
+    TabOrder = 15
     Text = '9'
   end
   object edtUExponent: TEdit
@@ -196,7 +196,7 @@ object FormNative: TFormNative
     Top = 64
     Width = 49
     Height = 21
-    TabOrder = 14
+    TabOrder = 16
     Text = '10'
   end
   object btnInt64AddMod: TButton
@@ -205,7 +205,7 @@ object FormNative: TFormNative
     Width = 75
     Height = 25
     Caption = 'Int64 AddMod'
-    TabOrder = 15
+    TabOrder = 6
     OnClick = btnInt64AddModClick
   end
   object btnEndian: TButton
@@ -215,7 +215,7 @@ object FormNative: TFormNative
     Height = 25
     Anchors = [akTop, akRight]
     Caption = 'Endian'
-    TabOrder = 16
+    TabOrder = 19
     OnClick = btnEndianClick
   end
   object chkSwap: TCheckBox
@@ -225,7 +225,7 @@ object FormNative: TFormNative
     Height = 17
     Anchors = [akTop, akRight]
     Caption = 'Swap'
-    TabOrder = 17
+    TabOrder = 20
   end
   object btnConstTimeCondSwap: TButton
     Left = 871
@@ -234,7 +234,7 @@ object FormNative: TFormNative
     Height = 25
     Anchors = [akTop, akRight]
     Caption = 'Const Time'
-    TabOrder = 18
+    TabOrder = 21
     OnClick = btnConstTimeCondSwapClick
   end
   object btnInt64DivMod: TButton
@@ -244,7 +244,7 @@ object FormNative: TFormNative
     Height = 25
     Anchors = [akTop, akRight]
     Caption = 'Int64 Div Mod'
-    TabOrder = 19
+    TabOrder = 22
     OnClick = btnInt64DivModClick
   end
   object btnUInt64DivMod: TButton
@@ -254,7 +254,7 @@ object FormNative: TFormNative
     Height = 25
     Anchors = [akTop, akRight]
     Caption = 'UInt64 Div Mod'
-    TabOrder = 20
+    TabOrder = 23
     OnClick = btnUInt64DivModClick
   end
   object btnInt128DivMod: TButton
@@ -264,7 +264,7 @@ object FormNative: TFormNative
     Height = 25
     Anchors = [akTop, akRight]
     Caption = 'Int128 Div Mod'
-    TabOrder = 21
+    TabOrder = 24
     OnClick = btnInt128DivModClick
   end
   object btnUInt128DivMod: TButton
@@ -274,7 +274,7 @@ object FormNative: TFormNative
     Height = 25
     Anchors = [akTop, akRight]
     Caption = 'UInt128 Div Mod'
-    TabOrder = 22
+    TabOrder = 25
     OnClick = btnUInt128DivModClick
   end
   object btnToBinTest: TButton
@@ -284,7 +284,7 @@ object FormNative: TFormNative
     Height = 25
     Anchors = [akTop, akRight]
     Caption = 'To Binary Str'
-    TabOrder = 23
+    TabOrder = 26
     OnClick = btnToBinTestClick
   end
   object btnReverseBit: TButton
@@ -293,7 +293,7 @@ object FormNative: TFormNative
     Width = 75
     Height = 25
     Caption = 'Reverse Bit'
-    TabOrder = 24
+    TabOrder = 27
     OnClick = btnReverseBitClick
   end
   object btn128Bit: TButton
@@ -302,7 +302,7 @@ object FormNative: TFormNative
     Width = 75
     Height = 25
     Caption = '128 Bit Test'
-    TabOrder = 25
+    TabOrder = 28
     OnClick = btn128BitClick
   end
   object btnU12864DivMod: TButton
@@ -311,7 +311,7 @@ object FormNative: TFormNative
     Width = 75
     Height = 25
     Caption = 'U128 64 D/M'
-    TabOrder = 26
+    TabOrder = 29
     OnClick = btnU12864DivModClick
   end
   object btn12864DivMod: TButton
@@ -320,7 +320,7 @@ object FormNative: TFormNative
     Width = 75
     Height = 25
     Caption = '128 64 D/M'
-    TabOrder = 27
+    TabOrder = 30
     OnClick = btn12864DivModClick
   end
   object btnMemSort: TButton
@@ -329,7 +329,7 @@ object FormNative: TFormNative
     Width = 75
     Height = 25
     Caption = 'Mem Sort'
-    TabOrder = 28
+    TabOrder = 31
     OnClick = btnMemSortClick
   end
   object btnUInt32ToStr: TButton
@@ -338,7 +338,7 @@ object FormNative: TFormNative
     Width = 75
     Height = 25
     Caption = 'UInt32 ToStr'
-    TabOrder = 29
+    TabOrder = 8
     OnClick = btnUInt32ToStrClick
   end
   object btnInt16ToLE: TButton
@@ -347,7 +347,16 @@ object FormNative: TFormNative
     Width = 75
     Height = 25
     Caption = 'Int16 To LE'
-    TabOrder = 30
+    TabOrder = 17
     OnClick = btnInt16ToLEClick
+  end
+  object btn64SubOf32: TButton
+    Left = 744
+    Top = 16
+    Width = 105
+    Height = 25
+    Caption = '64 Sub Overflow 32'
+    TabOrder = 7
+    OnClick = btn64SubOf32Click
   end
 end

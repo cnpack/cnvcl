@@ -47,6 +47,7 @@ type
     btnMemSort: TButton;
     btnUInt32ToStr: TButton;
     btnInt16ToLE: TButton;
+    btn64SubOf32: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnUInt64DivClick(Sender: TObject);
     procedure btnUInt64ModClick(Sender: TObject);
@@ -76,6 +77,7 @@ type
     procedure btnMemSortClick(Sender: TObject);
     procedure btnUInt32ToStrClick(Sender: TObject);
     procedure btnInt16ToLEClick(Sender: TObject);
+    procedure btn64SubOf32Click(Sender: TObject);
   private
 
   public
@@ -812,6 +814,21 @@ begin
   C := 28057;
   C := UInt16ToBigEndian(C);
   ShowMessage(IntToStr(C));
+end;
+
+procedure TFormNative.btn64SubOf32Click(Sender: TObject);
+var
+  A, B, R: TUInt64;
+  C: Integer;
+begin
+  A := $77009900FFFFFFFF;
+  B := $770098FFFFFFFF00;
+  UInt64Sub(R, A, B, C);
+  ShowMessage(UInt64ToHex(R));
+  if IsUInt64SubOverflowInt32(A, B) then
+    ShowMessage('Overflow Int 32')
+  else
+    ShowMessage('Not Overflow');
 end;
 
 end.

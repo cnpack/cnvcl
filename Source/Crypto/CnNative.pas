@@ -197,8 +197,15 @@ type
 
 const
   CN_MAX_SQRT_INT64: Cardinal               = 3037000499;
+  CN_MAX_INT8: ShortInt                     = $7F;
+  CN_MIN_INT8: ShortInt                     = -128;
+  CN_MAX_INT16: SmallInt                    = $7FFF;
+  CN_MIN_INT16: SmallInt                    = -32768;
+  CN_MAX_INT32: Integer                     = $7FFFFFFF;
+  CN_MIN_INT32: Integer                     = $80000000;  // 会出编译警告，但 -2147483648 会出错
   CN_MAX_INT64: Int64                       = $7FFFFFFFFFFFFFFF;
   CN_MIN_INT64: Int64                       = $8000000000000000;
+  CN_MAX_UINT8: Byte                        = $FF;
   CN_MAX_UINT16: Word                       = $FFFF;
   CN_MAX_UINT32: Cardinal                   = $FFFFFFFF;
   CN_MAX_TUINT64: TUInt64                   = $FFFFFFFFFFFFFFFF;
@@ -515,6 +522,17 @@ function IsUInt64AddOverflow(A: TUInt64; B: TUInt64): Boolean;
      B: TUInt64                           - 加数二
 
    返回值：Boolean                        - 返回相加是否会溢出
+}
+
+function IsUInt64SubOverflowInt32(A: TUInt64; B: TUInt64): Boolean;
+{* 判断一个 64 位无符号整数减去另一个 64 位无符号整数的结果是否超出 32 位有符号整数范围，
+   可用于 64 位汇编中的 JMP 跳转类型判断。
+
+   参数：
+     A: TUInt64                           - 被减数
+     B: TUInt64                           - 减数
+
+   返回值：Boolean                        - 返回是否超出 32 位有符号整数范围
 }
 
 procedure UInt64Add(var R: TUInt64; A: TUInt64; B: TUInt64; out Carry: Integer);
@@ -4338,6 +4356,26 @@ end;
 function IsUInt64AddOverflow(A, B: TUInt64): Boolean;
 begin
   Result := UInt64Compare(A + B, A) < 0; // 无符号相加，结果只要小于任一个数就说明溢出了
+end;
+
+function IsUInt64SubOverflowInt32(A: TUInt64; B: TUInt64): Boolean;
+var
+  GT: Boolean;
+  R: TUInt64;
+begin
+  GT := UInt64Compare(A, B) >= 0; // GT 表示 A >= B
+  if GT then
+  begin
+    R := A - B;
+    // 判断 64 位无符号范围内 R 是否超过 MaxInt32
+    Result := UInt64Compare(R, TUInt64(CN_MAX_INT32)) > 0;
+  end
+  else
+  begin
+    R := B - A;
+    // 判断 64 位有符号范围内 -R 是否小于 MinInt32，也就是判断 64 位无符号 R 是否超过 MinInt32
+    Result := UInt64Compare(R, TUInt64(CN_MIN_INT32)) > 0;
+  end;
 end;
 
 // 两个 64 位无符号整数相加，A + B => R，如果有溢出，则溢出的 1 搁进位标记里，否则清零
