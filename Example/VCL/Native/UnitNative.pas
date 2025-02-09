@@ -821,8 +821,8 @@ var
   A, B, R: TUInt64;
   C: Integer;
 begin
-  A := $77009900FFFFFFFF;
-  B := $770098FFFFFFFF00;
+  B := $00007FF9C775BFE0;
+  A := $0000000000759070;
   UInt64Sub(R, A, B, C);
   ShowMessage(UInt64ToHex(R));
   if IsUInt64SubOverflowInt32(A, B) then

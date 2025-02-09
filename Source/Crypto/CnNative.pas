@@ -203,6 +203,7 @@ const
   CN_MIN_INT16: SmallInt                    = -32768;
   CN_MAX_INT32: Integer                     = $7FFFFFFF;
   CN_MIN_INT32: Integer                     = $80000000;  // 会出编译警告，但 -2147483648 会出错
+  CN_MIN_INT32_IN_INT64: Int64              = $0000000080000000;
   CN_MAX_INT64: Int64                       = $7FFFFFFFFFFFFFFF;
   CN_MIN_INT64: Int64                       = $8000000000000000;
   CN_MAX_UINT8: Byte                        = $FF;
@@ -4373,8 +4374,8 @@ begin
   else
   begin
     R := B - A;
-    // 判断 64 位有符号范围内 -R 是否小于 MinInt32，也就是判断 64 位无符号 R 是否超过 MinInt32
-    Result := UInt64Compare(R, TUInt64(CN_MIN_INT32)) > 0;
+    // 判断 64 位有符号范围内 -R 是否小于 MinInt32，也就是判断 64 位无符号 R 是否超过 MinInt32 的无符号形式
+    Result := UInt64Compare(R, CN_MIN_INT32_IN_INT64) > 0;
   end;
 end;
 
