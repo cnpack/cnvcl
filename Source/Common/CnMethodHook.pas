@@ -132,7 +132,7 @@ function GetInterfaceMethodAddress(const AIntf: IUnknown;
 implementation
 
 resourcestring
-  SMemoryWriteError = 'Error Writing Method Memory (%s).';
+  SCnMemoryWriteError = 'Error Writing Method Memory (%s).';
 
 const
   csJmpCode = $E9;              // 相对跳转指令机器码
@@ -306,6 +306,9 @@ procedure TCnMethodHook.HookMethod;
 var
   DummyProtection: DWORD;
   OldProtection: DWORD;
+{$IFDEF CPU64BITS}
+  NewAddr: UInt64;
+{$ENDIF}
 begin
   if FHooked then Exit;
 
@@ -340,7 +343,7 @@ begin
   begin
     // 设置代码页写访问权限
     if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump), PAGE_EXECUTE_READWRITE, @OldProtection) then
-      raise Exception.CreateFmt(SMemoryWriteError, [SysErrorMessage(GetLastError)]);
+      raise Exception.CreateFmt(SCnMemoryWriteError, [SysErrorMessage(GetLastError)]);
 
     try
       // 保存原来的代码
@@ -361,7 +364,7 @@ begin
     finally
       // 恢复代码页访问权限
       if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump), OldProtection, @DummyProtection) then
-        raise Exception.CreateFmt(SMemoryWriteError, [SysErrorMessage(GetLastError)]);
+        raise Exception.CreateFmt(SCnMemoryWriteError, [SysErrorMessage(GetLastError)]);
     end;
   end;
 
@@ -413,7 +416,7 @@ begin
   begin
     // 设置代码页写访问权限
     if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump), PAGE_READWRITE, @OldProtection) then
-      raise Exception.CreateFmt(SMemoryWriteError, [SysErrorMessage(GetLastError)]);
+      raise Exception.CreateFmt(SCnMemoryWriteError, [SysErrorMessage(GetLastError)]);
 
     try
       // 恢复原来的代码
@@ -421,7 +424,7 @@ begin
     finally
       // 恢复代码页访问权限
       if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump), OldProtection, @DummyProtection) then
-        raise Exception.CreateFmt(SMemoryWriteError, [SysErrorMessage(GetLastError)]);
+        raise Exception.CreateFmt(SCnMemoryWriteError, [SysErrorMessage(GetLastError)]);
     end;
 
     // 保存多处理器下指令缓冲区同步
