@@ -28,7 +28,9 @@ unit CnMethodHook;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：
 * 本 地 化：该单元中的字符串支持本地化处理方式
-* 修改记录：2023.05.27
+* 修改记录：2025.02.09
+*               修正 GetBplMethodAddress 在 64 位下的错误并完善 64 位长短跳转的 Hook
+*           2023.05.27
 *               加入 Win64 下的支持，但不确定是否覆盖了所有长跳转的情况
 *           2018.01.12
 *               加入获得接口成员函数地址的方法，构造器增加 DefaultHook 参数
@@ -44,18 +46,40 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes;
+  Windows, SysUtils, Classes, CnNative;
 
 type
   PCnLongJump = ^TCnLongJump;
   TCnLongJump = packed record
     JmpOp: Byte;        // Jmp 相对跳转指令，为 $E9，32 位和 64 位通用
 {$IFDEF CPU64BITS}
-    Addr: DWORD;        // 64 位下的跳转到的相对地址，也是 32 位，但不确定有无覆盖所有情况
+    Addr: DWORD;        // 64 位下的跳转到的相对地址，也是 32 位，但覆盖不到 DLL 布局太远的情况
 {$ELSE}
-    Addr: Pointer;      // 跳转到的相对地址
+    Addr: Pointer;      // 跳转到的 32 位相对地址
 {$ENDIF}
   end;
+
+{$IFDEF CPU64BITS}
+
+  { 64 位下的变相长跳转汇编，占 14 字节
+      PUSH addr.low32
+      MOV DWORD [rsp+4], addr.high32
+      RET
+    也即 68 44332211
+         C74424 04 88776655
+         C3
+    可跳转到 $5566778811223344
+  }
+  PCnLongJump64 = ^TCnLongJump64;
+  TCnLongJump64 = packed record
+    PushOp: Byte;         // $68
+    AddrLow32: DWORD;
+    MovOp: DWORD;         // $042444C7
+    AddrHigh32: DWORD;
+    RetOp: Byte;          // $C3
+  end;
+
+{$ENDIF}
 
   TCnMethodHook = class
   {* 静态或 dynamic 方法挂接类，用于挂接类中静态方法或声明为 dynamic 的动态方法。
@@ -66,6 +90,11 @@ type
     FOldMethod: Pointer;
     FNewMethod: Pointer;
     FSaveData: TCnLongJump;
+{$IFDEF CPU64BITS}
+    FSaveData64: TCnLongJump64; // 64 位远跳的保存数据
+    FFar: Boolean;              // 64 位下是否太远要用更长的跳转
+    procedure InitLongJump64(JmpPtr: PCnLongJump64);
+{$ENDIF}
   public
     constructor Create(const AOldMethod, ANewMethod: Pointer; DefaultHook: Boolean = True);
     {* 构造器，参数为原方法地址和新方法地址。注意如果在专家包中使用，原方法地址
@@ -89,7 +118,8 @@ type
 
 function CnGetBplMethodAddress(Method: Pointer): Pointer;
 {* 返回在 BPL 中实际的方法地址。如专家包中用 @TPersistent.Assign 返回的其实是
-   一个 Jmp 跳转地址，该函数可以返回在 BPL 中方法的真实地址。}
+   一个 Jmp 跳转地址，该函数可以返回在 BPL 中方法的真实地址，支持 32 位和 64 位
+   其中 64 位下目前只处理了跳转是 JMP QWORD PTR [RIP + offset] 也即 $25FF 的情形}
 
 function GetInterfaceMethodAddress(const AIntf: IUnknown;
   MethodIndex: Integer): Pointer;
@@ -115,18 +145,42 @@ type
   TCnAddressInt = Integer;
 {$ENDIF}
 
+var
+{$IFDEF CPU64BITS}
+  Is64: Boolean = True;
+{$ELSE}
+  Is64: Boolean = False;
+{$ENDIF}
+
 // 返回在 BPL 中实际的方法地址
 function CnGetBplMethodAddress(Method: Pointer): Pointer;
 type
-  PJmpCode = ^TJmpCode;
   TJmpCode = packed record
     Code: Word;                 // 间接跳转指定，为 $25FF
-    Addr: ^Pointer;             // 跳转指针地址，指向保存目标地址的指针
+{$IFDEF CPU64BITS}
+    Addr: DWORD;                // 64 位下的跳转到的 8 字节地址所存储位置的相对偏移，也是 32 位，JMP QWORD PTR [RIP + Addr]
+{$ELSE}
+    Addr: ^Pointer;             // 32 位下的跳转指针地址，指向保存目标地址的指针，JMP DWORD PTR [Addr]
+{$ENDIF}
   end;
+  PJmpCode = ^TJmpCode;
 
+{$IFDEF CPU64BITS}
+var
+  P: PPointer;
+{$ENDIF}
 begin
-  if PJmpCode(Method)^.Code = csJmp32Code then
-    Result := PJmpCode(Method)^.Addr^
+  if (Method <> nil) and (PJmpCode(Method)^.Code = csJmp32Code) then
+  begin
+{$IFDEF CPU64BITS}
+    // Addr 存放一个 32 位偏移，加上 RIP 也就是 Method 入口再加本跳转指令的 6 字节
+    // 就能得到一个绝对地址，该地址存放的 8 字节是真正的跳转目标地址
+    P := PPointer(NativeInt(Method) + SizeOf(TJmpCode) + Integer(PJmpCode(Method)^.Addr));
+    Result := P^;
+{$ELSE}
+    Result := PJmpCode(Method)^.Addr^;
+{$ENDIF}
+  end
   else
     Result := Method;
 end;
@@ -144,11 +198,17 @@ type
   end;
   PIntfMethodEntry = ^TIntfMethodEntry;
 
+{$IFDEF CPU64BITS}
+  TRelativeAddr = DWORD;
+{$ELSE}
+  TRelativeAddr = ^Pointer;
+{$ENDIF}
+
   // 长短跳转的组合声明，实际上等同于 TJmpCode 与 TLongJmp 俩结构的组合
   TIntfJumpEntry = packed record
     case Integer of
       0: (ByteOpCode: Byte; Offset: LongInt);       // $E9 加四字节，32 位和 64 位通用
-      1: (WordOpCode: Word; Addr: ^Pointer);        // $25FF 加四字节
+      1: (WordOpCode: Word; Addr: TRelativeAddr);   // $25FF 加四字节
   end;
   PIntfJumpEntry = ^TIntfJumpEntry;
   PPointer = ^Pointer;
@@ -157,6 +217,9 @@ var
   OffsetStubPtr: Pointer;
   IntfPtr: PIntfMethodEntry;
   JmpPtr: PIntfJumpEntry;
+{$IFDEF CPU64BITS}
+  P: PPointer;
+{$ENDIF}
 begin
   Result := nil;
   if (AIntf = nil) or (MethodIndex < 0) then
@@ -199,7 +262,14 @@ begin
     end
     else if JmpPtr^.WordOpCode = csJmp32Code then
     begin
+{$IFDEF CPU64BITS}
+      // Addr 存放一个 32 位偏移，加上 RIP 也就是本入口再加本跳转指令的 6 字节
+      // 就能得到一个绝对地址，该地址存放的 8 字节是真正的跳转目标地址
+      P := PPointer(NativeInt(JmpPtr) + 6 + Integer(JmpPtr^.Addr));
+      Result := P^;
+{$ELSE}
       Result := JmpPtr^.Addr^;
+{$ENDIF}
     end;
   end;
 end;
@@ -218,6 +288,10 @@ begin
   FOldMethod := AOldMethod;
   FNewMethod := ANewMethod;
 
+{$IFDEF CPU64BITS}
+  FFar := IsUInt64SubOverflowInt32(UInt64(FNewMethod), UInt64(FOldMethod));
+{$ENDIF}
+
   if DefaultHook then
     HookMethod;
 end;
@@ -234,35 +308,79 @@ var
   OldProtection: DWORD;
 begin
   if FHooked then Exit;
-  
-  // 设置代码页写访问权限
-  if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump), PAGE_EXECUTE_READWRITE, @OldProtection) then
-    raise Exception.CreateFmt(SMemoryWriteError, [SysErrorMessage(GetLastError)]);
 
-  try
-    // 保存原来的代码
-    FSaveData := PCnLongJump(FOldMethod)^;
-
-    // 用跳转指令替换原来方法前 5 字节代码
-    PCnLongJump(FOldMethod)^.JmpOp := csJmpCode;
+  if Is64 {$IFDEF CPU64BITS} and FFar {$ENDIF} then
+  begin
 {$IFDEF CPU64BITS}
-    PCnLongJump(FOldMethod)^.Addr := DWORD(TCnAddressInt(FNewMethod) -
-      TCnAddressInt(FOldMethod) - SizeOf(TCnLongJump)); // 64 下也使用 32 位相对地址
-{$ELSE}
-    PCnLongJump(FOldMethod)^.Addr := Pointer(TCnAddressInt(FNewMethod) -
-      TCnAddressInt(FOldMethod) - SizeOf(TCnLongJump)); // 使用 32 位相对地址
-{$ENDIF}
+    // 64 位长跳转
+    if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump64), PAGE_EXECUTE_READWRITE, @OldProtection) then
+      raise Exception.CreateFmt(SCnMemoryWriteError, [SysErrorMessage(GetLastError)]);
 
-    // 保存多处理器下指令缓冲区同步
-    FlushInstructionCache(GetCurrentProcess, FOldMethod, SizeOf(TCnLongJump));
-  finally
-    // 恢复代码页访问权限
-    if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump), OldProtection, @DummyProtection) then
+    try
+      // 保存原来的代码
+      FSaveData64 := PCnLongJump64(FOldMethod)^;
+
+      // 用跳转指令替换原来方法前 14 字节代码
+      InitLongJump64(PCnLongJump64(FOldMethod));
+
+      NewAddr := UInt64(FNewMethod); // 64 位跳转地址拆成高低两部分分别塞入堆栈
+      PCnLongJump64(FOldMethod)^.AddrLow32 := DWORD(NewAddr and $FFFFFFFF);
+      PCnLongJump64(FOldMethod)^.AddrHigh32 := DWORD(NewAddr shr 32);
+
+      // 保存多处理器下指令缓冲区同步
+      FlushInstructionCache(GetCurrentProcess, FOldMethod, SizeOf(TCnLongJump64));
+    finally
+      // 恢复代码页访问权限
+      if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump64), OldProtection, @DummyProtection) then
+        raise Exception.CreateFmt(SCnMemoryWriteError, [SysErrorMessage(GetLastError)]);
+    end;
+{$ENDIF}
+  end
+  else // 64 或 32 位相对跳转
+  begin
+    // 设置代码页写访问权限
+    if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump), PAGE_EXECUTE_READWRITE, @OldProtection) then
       raise Exception.CreateFmt(SMemoryWriteError, [SysErrorMessage(GetLastError)]);
+
+    try
+      // 保存原来的代码
+      FSaveData := PCnLongJump(FOldMethod)^;
+
+      // 用跳转指令替换原来方法前 5 字节代码
+      PCnLongJump(FOldMethod)^.JmpOp := csJmpCode;
+  {$IFDEF CPU64BITS}
+      PCnLongJump(FOldMethod)^.Addr := DWORD(TCnAddressInt(FNewMethod) -
+        TCnAddressInt(FOldMethod) - SizeOf(TCnLongJump)); // 64 下也使用 32 位相对地址
+  {$ELSE}
+      PCnLongJump(FOldMethod)^.Addr := Pointer(TCnAddressInt(FNewMethod) -
+        TCnAddressInt(FOldMethod) - SizeOf(TCnLongJump)); // 使用 32 位相对地址
+  {$ENDIF}
+
+      // 保存多处理器下指令缓冲区同步
+      FlushInstructionCache(GetCurrentProcess, FOldMethod, SizeOf(TCnLongJump));
+    finally
+      // 恢复代码页访问权限
+      if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump), OldProtection, @DummyProtection) then
+        raise Exception.CreateFmt(SMemoryWriteError, [SysErrorMessage(GetLastError)]);
+    end;
   end;
 
   FHooked := True;
 end;
+
+{$IFDEF CPU64BITS}
+
+procedure TCnMethodHook.InitLongJump64(JmpPtr: PCnLongJump64);
+begin
+  if JmpPtr <> nil then
+  begin
+    JmpPtr^.PushOp := $68;
+    JmpPtr^.MovOp := $042444C7;
+    JmpPtr^.RetOp := $C3;
+  end;
+end;
+
+{$ENDIF}
 
 procedure TCnMethodHook.UnhookMethod;
 var
@@ -270,22 +388,45 @@ var
   OldProtection: DWORD;
 begin
   if not FHooked then Exit;
-  
-  // 设置代码页写访问权限
-  if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump), PAGE_READWRITE, @OldProtection) then
-    raise Exception.CreateFmt(SMemoryWriteError, [SysErrorMessage(GetLastError)]);
 
-  try
-    // 恢复原来的代码
-    PCnLongJump(FOldMethod)^ := FSaveData;
-  finally
-    // 恢复代码页访问权限
-    if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump), OldProtection, @DummyProtection) then
+  if Is64 {$IFDEF CPU64BITS} and FFar {$ENDIF} then
+  begin
+{$IFDEF CPU64BITS}
+    // 设置代码页写访问权限
+    if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump64), PAGE_READWRITE, @OldProtection) then
+      raise Exception.CreateFmt(SCnMemoryWriteError, [SysErrorMessage(GetLastError)]);
+
+    try
+      // 恢复原来的代码
+      PCnLongJump64(FOldMethod)^ := FSaveData64;
+    finally
+      // 恢复代码页访问权限
+      if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump64), OldProtection, @DummyProtection) then
+        raise Exception.CreateFmt(SCnMemoryWriteError, [SysErrorMessage(GetLastError)]);
+    end;
+
+    // 保存多处理器下指令缓冲区同步
+    FlushInstructionCache(GetCurrentProcess, FOldMethod, SizeOf(TCnLongJump64));
+{$ENDIF}
+  end
+  else
+  begin
+    // 设置代码页写访问权限
+    if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump), PAGE_READWRITE, @OldProtection) then
       raise Exception.CreateFmt(SMemoryWriteError, [SysErrorMessage(GetLastError)]);
-  end;
 
-  // 保存多处理器下指令缓冲区同步
-  FlushInstructionCache(GetCurrentProcess, FOldMethod, SizeOf(TCnLongJump));
+    try
+      // 恢复原来的代码
+      PCnLongJump(FOldMethod)^ := FSaveData;
+    finally
+      // 恢复代码页访问权限
+      if not VirtualProtect(FOldMethod, SizeOf(TCnLongJump), OldProtection, @DummyProtection) then
+        raise Exception.CreateFmt(SMemoryWriteError, [SysErrorMessage(GetLastError)]);
+    end;
+
+    // 保存多处理器下指令缓冲区同步
+    FlushInstructionCache(GetCurrentProcess, FOldMethod, SizeOf(TCnLongJump));
+  end;
 
   FHooked := False;
 end;
