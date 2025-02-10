@@ -106,6 +106,9 @@ procedure CnFmxControlBringToFront(AControl: TComponent);
 procedure CnFmxControlSendToBack(AControl: TComponent);
 {* 将一个 FMX 的 Control 放至后面}
 
+procedure CnFmxGetFormClientSize(AForm: TComponent; out AClientWidth, AClientHeight: Integer);
+{* 获取一个 FMX 的 Form 的 ClientWidth, ClientHeight}
+
 function CnFmxGetCommonCustomFormCaption(AForm: TComponent): string;
 {* 获取一个 FMX 的 Form 的标题文字}
 
@@ -485,6 +488,15 @@ procedure CnFmxControlSendToBack(AControl: TComponent);
 begin
   if (AControl <> nil) and AControl.InheritsFrom(TFmxObject) then
     TFmxObject(AControl).SendToBack;
+end;
+
+procedure CnFmxGetFormClientSize(AForm: TComponent; out AClientWidth, AClientHeight: Integer);
+begin
+  if (AForm <> nil) and CnFmxIsInheritedFromCommonCustomForm(AForm) then
+  begin
+    AClientWidth := FMX.Forms.TCommonCustomForm(AForm).ClientWidth;
+    AClientHeight := FMX.Forms.TCommonCustomForm(AForm).ClientHeight;
+  end;
 end;
 
 function CnFmxGetCommonCustomFormCaption(AForm: TComponent): string;

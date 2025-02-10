@@ -39,7 +39,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Controls, Windows
+  SysUtils, Classes, Controls, Windows, Forms
 {$IFDEF SUPPORT_FMX}
   , CnFmxUtils
 {$ENDIF};
@@ -83,6 +83,9 @@ procedure ControlBringToFront(AControl: TComponent);
 
 procedure ControlSendToBack(AControl: TComponent);
 {* 封装的设置 Control 的 SendToBack 的过程，封装了 FMX 的实现}
+
+procedure GetFormClientSize(AForm: TComponent; out AClientWidth, AClientHeight: Integer);
+{* 封装的获取 Form 的 ClientWidth, ClientHeight 的过程，封装了 FMX 的实现}
 
 implementation
 
@@ -291,6 +294,18 @@ begin
   end;
 {$IFDEF SUPPORT_FMX}
   CnFmxControlSendToBack(AControl);
+{$ENDIF}
+end;
+
+procedure GetFormClientSize(AForm: TComponent; out AClientWidth, AClientHeight: Integer);
+begin
+  if AForm is TCustomForm then
+  begin
+    AClientWidth := TCustomForm(AForm).ClientWidth;
+    AClientHeight := TCustomForm(AForm).ClientHeight;
+  end;
+{$IFDEF SUPPORT_FMX}
+  CnFmxGetFormClientSize(AForm, AClientWidth, AClientHeight);
 {$ENDIF}
 end;
 
