@@ -31,7 +31,9 @@ unit CnDebug;
 * 开发平台：PWin2000Pro + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.02.05
+* 修改记录：2025.02.11
+*               增加对 FMX 的 Evaluate 支持，需要定义 ENABLE_FMX，待测试
+*           2025.02.05
 *               增加 REDIRECT_OPDS 编译条件，以控制直接使用 OutputDebugStringA
 *           2024.08.30
 *               修正 x64 下输出时钟周期不准确的问题，去除无用函数
@@ -118,6 +120,10 @@ interface
 // {$DEFINE CAPTURE_STACK}
 // 定义此条件可启用堆栈抓取与行号获取功能，之前的 USE_JCL 废止。专家包可按需在工程选项中定义
 
+// 如果 FMX 框架下需要用到 FMX 功能，请手工定义 ENABLE_FMX。
+// 如果是 MACOS，下文会自动定义 ENABLE_FMX
+// {$DEFINE ENABLE_FMX}
+
 {$IFDEF NDEBUG}
   {$UNDEF DEBUG}
   {$UNDEF SUPPORT_EVALUATE}
@@ -130,9 +136,6 @@ interface
   {$DEFINE SUPPORT_EVALUATE}
 {$ENDIF}
 
-// 如果 FMX 框架下，请手工定义 ENABLE_FMX。如果是 MACOS，下文会自动定义 ENABLE_FMX
-// {$DEFINE ENABLE_FMX}
-
 {$IFDEF MACOS}
   {$UNDEF CAPTURE_STACK}   // CnRTL Does NOT Support MACOS.
   {$UNDEF SUPPORT_EVALUATE}
@@ -144,10 +147,6 @@ interface
 
 {$IFNDEF MSWINDOWS}
   {$UNDEF REDIRECT_OPDS}   // 非 Windows 下不支持 OutputDebugString
-{$ENDIF}
-
-{$IFDEF ENABLE_FMX}
-  {$UNDEF SUPPORT_EVALUATE}
 {$ENDIF}
 
 uses
@@ -600,7 +599,12 @@ type
     // 查看对象函数
     procedure EvaluateObject(AObject: TObject; SyncMode: Boolean = False); overload;
     procedure EvaluateObject(APointer: Pointer; SyncMode: Boolean = False); overload;
-    procedure EvaluateControlUnderPos(const ScreenPos: TPoint);
+
+
+    procedure EvaluateControlUnderPos(const ScreenPos: TPoint); {$IFDEF ENABLE_FMX} overload; {$ENDIF}
+{$IFDEF ENABLE_FMX}
+    procedure EvaluateControlUnderPos(const ScreenPos: TPointF); overload;
+{$ENDIF}
     procedure EvaluateInterfaceInstance(const AIntf: IUnknown; SyncMode: Boolean = False);
 
     // 辅助过程
@@ -1311,6 +1315,80 @@ begin
   Result := PixelFormatBytes[APixelFormat];
 {$ENDIF}
 end;
+
+{$IFDEF ENABLE_FMX}
+
+type
+  TFmxControlHack = class(FMX.Controls.TControl);
+
+function FindFmxControlAtPoint(const ScreenPos: TPointF): FMX.Controls.TControl;
+var
+  I, J: Integer;
+  Form: TCommonCustomForm;
+  FormRoot: TFmxObject;
+
+  function FindControlAtPosition(Root: TFmxObject; const ScreenPos: TPointF): FMX.Controls.TControl;
+  var
+    I: Integer;
+    ChildObj: TFmxObject;
+    LocalPos: TPointF;
+    CurrentControl: FMX.Controls.TControl;
+  begin
+    Result := nil;
+
+    // 仅处理 FMX TControl 及其子类
+    if not (Root is FMX.Controls.TControl) then Exit;
+    CurrentControl := FMX.Controls.TControl(Root);
+
+    // 过滤条件
+    if not CurrentControl.Visible
+      or not CurrentControl.HitTest
+      or (CurrentControl.Opacity = 0) then Exit;
+
+    // 坐标转换
+    LocalPos := TFmxControlHack(CurrentControl).ScreenToLocal(ScreenPos);
+
+    // 不在内部，退出
+    if (LocalPos.X < 0) or (LocalPos.Y < 0) or (LocalPos.X >= CurrentControl.Width)
+      or (LocalPos.Y >= CurrentControl.Height) then
+      Exit;
+
+    // 在内部，还得判断是否在子对象里，于是逆序遍历子对象（从最上层开始）
+    for I := Root.ChildrenCount - 1 downto 0 do
+    begin
+      ChildObj := Root.Children[I];
+      Result := FindControlAtPosition(ChildObj, ScreenPos);
+      if Assigned(Result) then Exit;
+    end;
+
+    // 如果子对象未命中则返回当前控件
+    Result := CurrentControl;
+  end;
+
+begin
+  Result := nil;
+
+  // 遍历所有窗体
+  for I := FMX.Forms.Screen.FormCount - 1 downto 0 do
+  begin
+    Form := FMX.Forms.Screen.Forms[I];
+    if not Form.Visible then
+      Continue;
+
+    // 检查是否在窗体客户区内
+    if Form.ClientRect.Contains(Form.ScreenToClient(ScreenPos)) then
+    begin
+      for J := 0 to Form.ChildrenCount - 1 do
+      begin
+        Result := FindControlAtPosition(Form.Children[J], ScreenPos);
+        if Result <> nil then
+          Exit;
+      end;
+    end;
+  end;
+end;
+
+{$ENDIF}
 
 {$IFDEF MSWINDOWS}
 
@@ -3519,13 +3597,38 @@ begin
 {$ENDIF}
 end;
 
+{$IFDEF ENABLE_FMX}
+
+procedure TCnDebugger.EvaluateControlUnderPos(const ScreenPos: TPointF);
+var
+  P: TPoint;
+begin
+  P.X := Round(ScreenPos.X);
+  P.Y := Round(ScreenPos.Y);
+  EvaluateControlUnderPos(P);
+end;
+
+{$ENDIF}
+
 procedure TCnDebugger.EvaluateControlUnderPos(const ScreenPos: TPoint);
 {$IFDEF SUPPORT_EVALUATE}
 var
   Control: TWinControl;
+{$IFDEF ENABLE_FMX}
+  ScreenPoint: TPointF; // 鼠标屏幕坐标
+  ClientPoint: TPointF; // 转换后的窗体客户区坐标
+  Obj: TFmxObject;
+{$ENDIF}
 {$ENDIF}
 begin
 {$IFDEF SUPPORT_EVALUATE}
+{$IFDEF ENABLE_FMX}
+  ScreenPoint.X := ScreenPos.X;
+  ScreenPoint.Y := ScreenPos.Y;
+  Obj := FindFmxControlAtPoint(ScreenPoint);
+  if Obj <> nil then
+    EvaluateObject(Obj);
+{$ENDIF}
   Control := FindVCLWindow(ScreenPos);
   if Control <> nil then
     EvaluateObject(Control);

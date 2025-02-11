@@ -45,6 +45,9 @@ interface
 
 {$I CnPack.inc}
 
+// 如在高版本下编译，需要在工程编译条件中加入 ENABLE_UIINTERACT 以支持树结构
+// 找不到单元时要在 UnitScope 中加 Vcl，即使是在 FMX 体系中
+
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
   Grids, StdCtrls, ExtCtrls, TypInfo, Contnrs, Buttons, ComCtrls, Tabs, Commctrl,
