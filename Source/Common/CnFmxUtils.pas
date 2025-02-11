@@ -53,6 +53,12 @@ function CnFmxGetObjectParent(AObject: TComponent): TComponent;
 function CnFmxGetControlParent(AControl: TComponent): TComponent;
 {* 获取一个 FMX 的 Control 的 Parent。如果 AControl 并非 FMX.TControl 的子类，返回 nil}
 
+function CnFmxGetChildrenCount(AComp: TComponent): Integer;
+{* 获取一个 FmxObject 的 Child 数量。如果 AComp 并非 FmxObject 的子类，返回 -1}
+
+function CnFmxGetChildByIndex(AComp: TComponent; Index: Integer): TComponent;
+{* 获取一个 FmxObject 的第 Index 个 Child。如果 AComp 并非 FmxObject 的子类，返回 nil}
+
 function CnFmxGetControlsCount(AControl: TComponent): Integer;
 {* 获取一个 FMX 的 Control 的子 Control 数量。如果 AControl 并非 FMX.TControl 的子类，返回 -1}
 
@@ -175,6 +181,22 @@ begin
     Result := TControl(AControl).Parent
   else
     Result := nil;
+end;
+
+function CnFmxGetChildrenCount(AComp: TComponent): Integer;
+begin
+  if (AComp = nil) or not (AComp is TFmxObject) then
+    Result := -1
+  else
+    Result := TFmxObject(AComp).ChildrenCount;
+end;
+
+function CnFmxGetChildByIndex(AComp: TComponent; Index: Integer): TComponent;
+begin
+  if (AComp = nil) or not (AComp is TFmxObject) then
+    Result := nil
+  else
+    Result := TFmxObject(AComp).Children[Index];
 end;
 
 function CnFmxGetControlsCount(AControl: TComponent): Integer;
