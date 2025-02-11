@@ -87,6 +87,9 @@ procedure ControlSendToBack(AControl: TComponent);
 procedure GetFormClientSize(AForm: TComponent; out AClientWidth, AClientHeight: Integer);
 {* 封装的获取 Form 的 ClientWidth, ClientHeight 的过程，封装了 FMX 的实现}
 
+function GetWindowPlatformHandle(AForm: TComponent): HWND;
+{* 获取 Windows 平台上的组件的 Handle，如果不是特定类，则返回 0}
+
 implementation
 
 // 返回控件在屏幕上的坐标区域
@@ -306,6 +309,17 @@ begin
   end;
 {$IFDEF SUPPORT_FMX}
   CnFmxGetFormClientSize(AForm, AClientWidth, AClientHeight);
+{$ENDIF}
+end;
+
+function GetWindowPlatformHandle(AForm: TComponent): HWND;
+begin
+  Result := 0;
+  if AForm is TWinControl then
+    Result := TWinControl(AForm).Handle;
+{$IFDEF SUPPORT_FMX}
+  if Result = 0 then
+    Result := CnFmxGetWindowPlatformHandle(AForm);
 {$ENDIF}
 end;
 

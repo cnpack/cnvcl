@@ -42,7 +42,7 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Grid;
+  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Grid, FMX.Platform.Win;
 
 type
   TCnFmxPosType = (fptLeft, fptTop, fptRight, fptBottom, fptWidth, fptHeight);
@@ -144,6 +144,9 @@ procedure CnFmxGetScreenFormsWithClassName(const ClsName: string; OutForms: TLis
 
 function CnFmxGetFmxApplication: TComponent;
 {* 返回 FMX 框架里的 Application 实例}
+
+function CnFmxGetWindowPlatformHandle(AComp: TComponent): THandle;
+{* 返回 FMX 框架里的封装的 Window Handle，如 AComp 不是相关类则返回 0}
 
 implementation
 
@@ -656,6 +659,14 @@ end;
 function CnFmxGetFmxApplication: TComponent;
 begin
   Result := Application;
+end;
+
+function CnFmxGetWindowPlatformHandle(AComp: TComponent): THandle;
+begin
+  if AComp is TCommonCustomForm then
+    Result := WindowHandleToPlatform(TCommonCustomForm(AComp).Handle).Wnd
+  else
+    Result := 0;
 end;
 
 procedure CreateFmxSetFixArray;
