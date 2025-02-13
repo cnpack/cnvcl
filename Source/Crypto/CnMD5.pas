@@ -334,28 +334,28 @@ begin
   X := (X shl N) or (X shr (32 - N));
 end;
 
-procedure FF(var A: Cardinal; B, C, D, X: Cardinal; S: BYTE; AC: Cardinal);
+procedure FF(var A: Cardinal; B, C, D, X: Cardinal; S: BYTE; AC: Cardinal); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Inc(A, F(B, C, D) + X + AC);
   ROT(A, S);
   Inc(A, B);
 end;
 
-procedure GG(var A: Cardinal; B, C, D, X: Cardinal; S: BYTE; AC: Cardinal);
+procedure GG(var A: Cardinal; B, C, D, X: Cardinal; S: BYTE; AC: Cardinal); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Inc(A, G(B, C, D) + X + AC);
   ROT(A, S);
   Inc(A, B);
 end;
 
-procedure HH(var A: Cardinal; B, C, D, X: Cardinal; S: BYTE; AC: Cardinal);
+procedure HH(var A: Cardinal; B, C, D, X: Cardinal; S: BYTE; AC: Cardinal); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Inc(A, H(B, C, D) + X + AC);
   ROT(A, S);
   Inc(A, B);
 end;
 
-procedure II(var A: Cardinal; B, C, D, X: Cardinal; S: BYTE; AC: Cardinal);
+procedure II(var A: Cardinal; B, C, D, X: Cardinal; S: BYTE; AC: Cardinal); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Inc(A, I(B, C, D) + X + AC);
   ROT(A, S);

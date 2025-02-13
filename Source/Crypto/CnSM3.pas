@@ -278,7 +278,7 @@ const
 type
   TSM3ProcessData = array[0..63] of Byte;
 
-procedure GetULongBe(var N: Cardinal; B: PAnsiChar; I: Integer);
+procedure GetULongBe(var N: Cardinal; B: PAnsiChar; I: Integer); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   D: Cardinal;
 begin
@@ -287,7 +287,7 @@ begin
   N := D;
 end;
 
-procedure PutULongBe(N: Cardinal; B: PAnsiChar; I: Integer);
+procedure PutULongBe(N: Cardinal; B: PAnsiChar; I: Integer); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   B[I] := AnsiChar(N shr 24);
   B[I + 1] := AnsiChar(N shr 16);

@@ -894,42 +894,42 @@ begin
   Result := ((X or Y) and Z) or (X and Y);
 end;
 
-function EP0256(X: Cardinal): Cardinal;
+function EP0256(X: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := ROTRight256(X, 2) xor ROTRight256(X, 13) xor ROTRight256(X, 22);
 end;
 
-function EP1256(X: Cardinal): Cardinal;
+function EP1256(X: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := ROTRight256(X, 6) xor ROTRight256(X, 11) xor ROTRight256(X, 25);
 end;
 
-function SIG0256(X: Cardinal): Cardinal;
+function SIG0256(X: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := ROTRight256(X, 7) xor ROTRight256(X, 18) xor (X shr 3);
 end;
 
-function SIG1256(X: Cardinal): Cardinal;
+function SIG1256(X: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := ROTRight256(X, 17) xor ROTRight256(X, 19) xor (X shr 10);
 end;
 
-function SIG0512(X: TUInt64): TUInt64;
+function SIG0512(X: TUInt64): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := ROTRight512(X, 28) xor ROTRight512(X, 34) xor ROTRight512(X, 39);
 end;
 
-function SIG1512(X: TUInt64): TUInt64;
+function SIG1512(X: TUInt64): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := ROTRight512(X, 14) xor ROTRight512(X, 18) xor ROTRight512(X, 41);
 end;
 
-function Gamma0512(X: TUInt64): TUInt64;
+function Gamma0512(X: TUInt64): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := ROTRight512(X, 1) xor ROTRight512(X, 8) xor SHR512(X, 7);
 end;
 
-function Gamma1512(X: TUInt64): TUInt64;
+function Gamma1512(X: TUInt64): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := ROTRight512(X, 19) xor ROTRight512(X, 61) xor SHR512(X, 6);
 end;

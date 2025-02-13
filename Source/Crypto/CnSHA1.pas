@@ -280,7 +280,7 @@ begin
   Result := (x and y) or (z and (x or y));
 end;
 
-function RB(A: Cardinal): Cardinal;
+function RB(A: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (A shr 24) or ((A shr 8) and $FF00) or ((A shl 8) and $FF0000) or (A shl 24);
 end;
