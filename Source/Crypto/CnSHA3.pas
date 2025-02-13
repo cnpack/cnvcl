@@ -1210,7 +1210,7 @@ const
     15, 23, 19, 13, 12, 2, 20, 14, 22, 9,  6,  1
   );
 
-function ROTL64(Q: TUInt64; N: Integer): TUInt64;
+function ROTL64(Q: TUInt64; N: Integer): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (Q shl N) xor (Q shr (64 - N));
 end;
