@@ -258,6 +258,17 @@ const
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     );
 
+  SM3_T: array[0..63] of Cardinal = (
+    $79CC4519, $79CC4519, $79CC4519, $79CC4519, $79CC4519, $79CC4519, $79CC4519, $79CC4519,
+    $79CC4519, $79CC4519, $79CC4519, $79CC4519, $79CC4519, $79CC4519, $79CC4519, $79CC4519,
+    $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A,
+    $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A,
+    $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A,
+    $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A,
+    $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A,
+    $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A, $7A879D8A
+  );
+
   MAX_FILE_SIZE = 512 * 1024 * 1024;
   // If file size <= this size (bytes), using Mapping, else stream
 
@@ -284,43 +295,43 @@ begin
   B[I + 3] := AnsiChar(N);
 end;
 
-function FF0(X, Y, Z: Cardinal): Cardinal;
+function FF0(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := X xor Y xor Z;
 end;
 
-function FF1(X, Y, Z: Cardinal): Cardinal;
+function FF1(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (X and Y) or (Y and Z) or (X and Z);
 end;
 
-function GG0(X, Y, Z: Cardinal): Cardinal;
+function GG0(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := X xor Y xor Z;
 end;
 
-function GG1(X, Y, Z: Cardinal): Cardinal;
+function GG1(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (X and Y) or ((not X) and Z);
 end;
 
-function SM3Shl(X: Cardinal; N: Integer): Cardinal;
+function SM3Shl(X: Cardinal; N: Integer): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (X and $FFFFFFFF) shl N;
 end;
 
 // 循环左移。注意 N 为 0 或 32 时返回值仍为 X，N 为 33 时返回值等于 N 为 1 时的返回值
-function ROTL(X: Cardinal; N: Integer): Cardinal;
+function ROTL(X: Cardinal; N: Integer): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := SM3Shl(X, N) or (X shr (32 - N));
 end;
 
-function P0(X: Cardinal): Cardinal;
+function P0(X: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := X xor ROTL(X, 9) xor ROTL(X, 17);
 end;
 
-function P1(X: Cardinal): Cardinal;
+function P1(X: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := X xor ROTL(X, 15) xor ROTL(X, 23);
 end;
@@ -348,16 +359,10 @@ var
   SS1, SS2, TT1, TT2: Cardinal;
   W: array[0..67] of Cardinal;
   W1: array[0..63] of Cardinal;
-  T: array[0..63] of Cardinal;
   A, B, C, D, E, F, G, H: Cardinal;
   Temp1, Temp2, Temp3, Temp4, Temp5: Cardinal;
   J: Integer;
 begin
-  for J := 0 to 15 do
-    T[J] := $79CC4519;
-  for J := 16 to 63 do
-    T[J] := $7A879D8A;
-
   GetULongBe(W[ 0], Data,  0);
   GetULongBe(W[ 1], Data,  4);
   GetULongBe(W[ 2], Data,  8);
@@ -401,7 +406,7 @@ begin
 
   for J := 0 to 15 do
   begin
-    SS1 := ROTL((ROTL(A, 12) + E + ROTL(T[J], J)), 7);
+    SS1 := ROTL((ROTL(A, 12) + E + ROTL(SM3_T[J], J)), 7);
     SS2 := SS1 xor ROTL(A, 12);
     TT1 := FF0(A, B, C) + D + SS2 + W1[J];
     TT2 := GG0(E, F, G) + H + SS1 + W[J];
@@ -417,7 +422,7 @@ begin
 
   for J := 16 to 63 do
   begin
-    SS1 := ROTL((ROTL(A, 12) + E + ROTL(T[J], J)), 7);
+    SS1 := ROTL((ROTL(A, 12) + E + ROTL(SM3_T[J], J)), 7);
     SS2 := SS1 xor ROTL(A, 12);
     TT1 := FF1(A, B, C) + D + SS2 + W1[J];
     TT2 := GG1(E, F, G) + H + SS1 + W[J];
