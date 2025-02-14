@@ -50,7 +50,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative, CnConsts;
+  SysUtils, Classes, Math {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative, CnConsts;
 
 type
   PCnSHAGeneralDigest = ^TCnSHAGeneralDigest;
@@ -822,6 +822,13 @@ const
 type
   TSHA2Type = (stSHA2_224, stSHA2_256, stSHA2_384, stSHA2_512);
 
+{$IFDEF SUPPORT_UINT64}
+  TUInt64 = UInt64;
+{$ELSE}
+  // D 5,6,7 下暂且用有符号的 Int64 来代替无符号的 Int64
+  TUInt64 = Int64;
+{$ENDIF}
+
 const
   MAX_FILE_SIZE = 512 * 1024 * 1024;
   // If file size <= this size (bytes), using Mapping, else stream
@@ -1114,12 +1121,15 @@ end;
 
 procedure SHA256Update(var Context: TCnSHA256Context; Input: PAnsiChar; ByteLength: Cardinal);
 var
-  I: Integer;
+  BytesToCopy: Cardinal;
 begin
-  for I := 0 to ByteLength - 1 do
+  while ByteLength > 0 do
   begin
-    Context.Data[Context.DataLen] := Byte(Input[I]);
-    Inc(Context.DataLen);
+    BytesToCopy := Min(64 - Context.DataLen, ByteLength);
+    Move(Input^, Context.Data[Context.DataLen], BytesToCopy);
+    Inc(Context.DataLen, BytesToCopy);
+    Dec(ByteLength, BytesToCopy);
+    Inc(Input, BytesToCopy);
     if Context.DataLen = 64 then
     begin
       SHA256Transform(Context, @Context.Data[0]);

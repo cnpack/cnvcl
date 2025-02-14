@@ -360,7 +360,7 @@ var
   W: array[0..67] of Cardinal;
   W1: array[0..63] of Cardinal;
   A, B, C, D, E, F, G, H: Cardinal;
-  Temp1, Temp2, Temp3, Temp4, Temp5: Cardinal;
+  Temp1, Temp2: Cardinal;
   J: Integer;
 begin
   GetULongBe(W[ 0], Data,  0);
@@ -384,10 +384,7 @@ begin
   begin
     Temp1 := W[J - 16] xor W[J - 9];
     Temp2 := ROTL(W[J - 3], 15);
-    Temp3 := Temp1 xor Temp2;
-    Temp4 := P1(Temp3);
-    Temp5 := ROTL(W[J - 13],7 ) xor W[J - 6];
-    W[J] := Temp4 xor Temp5;
+    W[J] := P1(Temp1 xor Temp2) xor (ROTL(W[J - 13], 7) xor W[J - 6]);
   end;
 
   for J := 0 to 63 do
