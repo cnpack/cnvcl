@@ -664,7 +664,13 @@ end;
 function CnFmxGetWindowPlatformHandle(AComp: TComponent): THandle;
 begin
   if AComp is TCommonCustomForm then
-    Result := WindowHandleToPlatform(TCommonCustomForm(AComp).Handle).Wnd
+  begin
+{$IFDEF DELPHIXE4_UP}
+    Result := WindowHandleToPlatform(TCommonCustomForm(AComp).Handle).Wnd;
+{$ELSE}
+    Result := FmxHandleToHWND(TCommonCustomForm(AComp).Handle);
+{$ENDIF}
+  end
   else
     Result := 0;
 end;
