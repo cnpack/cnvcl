@@ -1286,7 +1286,7 @@ var
 begin
   if (AList = nil) or (Collection = nil) then Exit;
 
-  AList.Add('Collection: $' + IntToHex(Integer(Collection), CN_HEX_DIGITS) + ' ' + Collection.ClassName);
+  AList.Add('Collection: $' + IntToHex(TCnNativeInt(Collection), CN_HEX_DIGITS) + ' ' + Collection.ClassName);
   AList.Add('  Count = ' + IntToStr(Collection.Count));
   AddObjectToStringList(Collection, AList, 0);
   for I := 0 to Collection.Count - 1 do
@@ -2436,7 +2436,7 @@ begin
     except
       List.Add(SCnObjException);
     end;
-    LogMsgWithTypeTag('Object: $' + IntToHex(Integer(AObject), CN_HEX_DIGITS) + SCnCRLF +
+    LogMsgWithTypeTag('Object: $' + IntToHex(TCnNativeInt(AObject), CN_HEX_DIGITS) + SCnCRLF +
       List.Text, cmtObject, ATag);
   finally
     List.Free;
@@ -3366,7 +3366,7 @@ begin
     except
       List.Add(SCnObjException);
     end;
-    TraceMsgWithTypeTag('Object: ' + IntToHex(Integer(AObject), CN_HEX_DIGITS) + SCnCRLF +
+    TraceMsgWithTypeTag('Object: ' + IntToHex(TCnNativeInt(AObject), CN_HEX_DIGITS) + SCnCRLF +
       List.Text, cmtObject, ATag);
   finally
     List.Free;
@@ -4428,11 +4428,11 @@ begin
       vtString:
         Result := Result + 'String: ' + string(PShortString(Args[I].VString)^) + CRLF;
       vtPointer:
-        Result := Result + 'Pointer: ' + IntToHex(Integer(Args[I].VPointer), CN_HEX_DIGITS) + CRLF;
+        Result := Result + 'Pointer: ' + IntToHex(TCnNativeInt(Args[I].VPointer), CN_HEX_DIGITS) + CRLF;
       vtPChar:
         Result := Result + 'PChar: ' + string(Args[I].VPChar) + CRLF;
       vtObject:
-        Result := Result + 'Object: ' + Args[I].VObject.ClassName + IntToHex(Integer
+        Result := Result + 'Object: ' + Args[I].VObject.ClassName + IntToHex(TCnNativeInt
           (Args[I].VObject), CN_HEX_DIGITS) + CRLF;
       vtClass:
         Result := Result + 'Class: ' + Args[I].VClass.ClassName + CRLF;
@@ -4447,7 +4447,7 @@ begin
       vtVariant:
         Result := Result + 'Variant: ' + string(Args[I].VVariant^) + CRLF;
       vtInterface:
-        Result := Result + 'Interface: ' + IntToHex(Integer(Args[I].VInterface), CN_HEX_DIGITS) + CRLF;
+        Result := Result + 'Interface: ' + IntToHex(TCnNativeInt(Args[I].VInterface), CN_HEX_DIGITS) + CRLF;
       vtWideString:
         Result := Result + 'WideString: ' + WideString(PWideChar(Args[I].VWideString)) + CRLF;
       vtInt64:
@@ -4584,7 +4584,7 @@ begin
     if Obj <> nil then
     begin
       Result := Result + ' ' + SCnCRLF + ' ' + Obj.ClassName + ': ' +
-        IntToHex(Integer(Obj), CN_HEX_DIGITS);
+        IntToHex(TCnNativeInt(Obj), CN_HEX_DIGITS);
 
       List := TStringList.Create;
       try
