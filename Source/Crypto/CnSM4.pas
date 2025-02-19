@@ -721,7 +721,7 @@ begin
     Result := B;
 end;
 
-procedure GetULongBe(var N: Cardinal; B: PAnsiChar; I: Integer);
+procedure GetULongBe(var N: Cardinal; B: PAnsiChar; I: Integer); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   D: Cardinal;
 begin
@@ -730,7 +730,7 @@ begin
   N := D;
 end;
 
-procedure PutULongBe(N: Cardinal; B: PAnsiChar; I: Integer);
+procedure PutULongBe(N: Cardinal; B: PAnsiChar; I: Integer); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   B[I] := AnsiChar(N shr 24);
   B[I + 1] := AnsiChar(N shr 16);
@@ -738,18 +738,18 @@ begin
   B[I + 3] := AnsiChar(N);
 end;
 
-function SM4Shl(X: Cardinal; N: Integer): Cardinal;
+function SM4Shl(X: Cardinal; N: Integer): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (X and $FFFFFFFF) shl N;
 end;
 
 // 循环左移。注意 N 为 0 或 32 时返回值仍为 X，N 为 33 时返回值等于 N 为 1 时的返回值
-function ROTL(X: Cardinal; N: Integer): Cardinal;
+function ROTL(X: Cardinal; N: Integer): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := SM4Shl(X, N) or (X shr (32 - N));
 end;
 
-procedure Swap(var A: Cardinal; var B: Cardinal);
+procedure Swap(var A: Cardinal; var B: Cardinal); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   T: Cardinal;
 begin
@@ -758,7 +758,7 @@ begin
   B := T;
 end;
 
-function SM4SBox(Inch: Byte): Byte;
+function SM4SBox(Inch: Byte): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   PTable: Pointer;
 begin
@@ -766,7 +766,7 @@ begin
   Result := PByte(TCnNativeInt(PTable) + Inch)^;
 end;
 
-function SM4Lt(Ka: Cardinal): Cardinal;
+function SM4Lt(Ka: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   BB: Cardinal;
   A: array[0..3] of Byte;
@@ -784,7 +784,7 @@ begin
     xor (ROTL(BB, 24));
 end;
 
-function SM4F(X0: Cardinal; X1: Cardinal; X2: Cardinal; X3: Cardinal; RK: Cardinal): Cardinal;
+function SM4F(X0: Cardinal; X1: Cardinal; X2: Cardinal; X3: Cardinal; RK: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := X0 xor SM4Lt(X1 xor X2 xor X3 xor RK);
 end;
