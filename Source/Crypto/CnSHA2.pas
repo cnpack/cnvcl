@@ -50,7 +50,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative, CnConsts;
+  SysUtils, Classes, Math {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative, CnConsts;
 
 type
   PCnSHAGeneralDigest = ^TCnSHAGeneralDigest;
@@ -822,6 +822,13 @@ const
 type
   TSHA2Type = (stSHA2_224, stSHA2_256, stSHA2_384, stSHA2_512);
 
+{$IFDEF SUPPORT_UINT64}
+  TUInt64 = UInt64;
+{$ELSE}
+  // D 5,6,7 下暂且用有符号的 Int64 来代替无符号的 Int64
+  TUInt64 = Int64;
+{$ENDIF}
+
 const
   MAX_FILE_SIZE = 512 * 1024 * 1024;
   // If file size <= this size (bytes), using Mapping, else stream
@@ -1114,18 +1121,45 @@ end;
 
 procedure SHA256Update(var Context: TCnSHA256Context; Input: PAnsiChar; ByteLength: Cardinal);
 var
-  I: Integer;
+  Blocks: Cardinal;
 begin
-  for I := 0 to ByteLength - 1 do
+  // 处理缓冲区中已有的部分数据
+  if (Context.DataLen > 0) then
   begin
-    Context.Data[Context.DataLen] := Byte(Input[I]);
-    Inc(Context.DataLen);
-    if Context.DataLen = 64 then
+    // 计算可填充到缓冲区的数据量
+    Blocks := Min(64 - Context.DataLen, ByteLength);
+    Move(Input^, Context.Data[Context.DataLen], Blocks);
+    Inc(Context.DataLen, Blocks);
+    Inc(Input, Blocks);
+    Dec(ByteLength, Blocks);
+
+    // 缓冲区填满时立即处理
+    if (Context.DataLen = 64) then
     begin
       SHA256Transform(Context, @Context.Data[0]);
-      Context.BitLen := Context.BitLen + 512;
+      Inc(Context.BitLen, 512);
       Context.DataLen := 0;
     end;
+  end;
+
+  if (ByteLength <= 0) then Exit;  
+
+  // 直接处理完整块
+  Blocks := ByteLength div 64;
+  while (Blocks > 0) do
+  begin
+    SHA256Transform(Context, Input);
+    Inc(Context.BitLen, 512);
+    Dec(Blocks);
+    Inc(Input, 64);
+    Dec(ByteLength, 64);
+  end;
+
+  // 处理剩余数据
+  if (ByteLength > 0) then
+  begin
+    Move(Input^, Context.Data, ByteLength);
+    Context.DataLen := ByteLength;
   end;
 end;
 
@@ -1267,34 +1301,42 @@ end;
 
 procedure SHA512Update(var Context: TCnSHA512Context; Input: PAnsiChar; ByteLength: Cardinal);
 var
-  TempLength, RemainLength, NewLength, BlockCount: Cardinal;
+  Blocks: Cardinal;
 begin
-  TempLength := 128 - Context.DataLen;
-  if ByteLength < TempLength then
-    RemainLength := ByteLength
-  else
-    RemainLength := TempLength;
-
-  Move(Input^, Context.Data[Context.DataLen], RemainLength);
-  if Context.DataLen + ByteLength < 128 then
+  // 处理缓冲区中已有的部分数据
+  if (Context.DataLen > 0) then
   begin
-    Inc(Context.DataLen, ByteLength);
-    Exit;
+    // 计算可填充到缓冲区的数据量
+    Blocks := Min(128 - Context.DataLen, ByteLength);
+    Move(Input^, Context.Data[Context.DataLen], Blocks);
+    Inc(Context.DataLen, Blocks);
+    Inc(Input, Blocks);
+    Dec(ByteLength, Blocks);
+
+    // 缓冲区填满时立即处理
+    if (Context.DataLen = 128) then
+    begin
+      SHA512Transform(Context, @Context.Data[0], 1);
+      Inc(Context.TotalLen, 128);
+      Context.DataLen := 0;
+    end;
   end;
 
-  NewLength := Cardinal(ByteLength) - RemainLength;
-  BlockCount := NewLength div 128;
-  Input := PAnsiChar(TCnNativeUInt(Input) + RemainLength);
+  if (ByteLength <= 0) then Exit;
 
-  SHA512Transform(Context, @Context.Data[0], 1);
-  SHA512Transform(Context, Input, BlockCount);
+  // 直接处理完整块
+  Blocks := ByteLength div 128;
+  SHA512Transform(Context, Input, Blocks);
+  Inc(Input, Blocks shl 7);
+  Inc(Context.TotalLen, Blocks shl 7);
+  ByteLength := ByteLength mod 128;
 
-  RemainLength := NewLength mod 128;
-  Input := PAnsiChar(TCnNativeUInt(Input) + (BlockCount shl 7));
-  Move(Input^, Context.Data[Context.DataLen], RemainLength);
-
-  Context.DataLen := RemainLength;
-  Inc(Context.TotalLen, (BlockCount + 1) shl 7);
+  // 处理剩余数据
+  if (ByteLength > 0) then
+  begin
+    Move(Input^, Context.Data, ByteLength);
+    Context.DataLen := ByteLength;
+  end;
 end;
 
 procedure SHA512UpdateW(var Context: TCnSHA512Context; Input: PWideChar; CharLength: Cardinal);

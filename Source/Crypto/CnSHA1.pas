@@ -49,7 +49,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative, CnConsts;
+  SysUtils, Classes, Math {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative, CnConsts;
 
 type
   PCnSHA1Digest = ^TCnSHA1Digest;
@@ -289,11 +289,15 @@ procedure SHA1Compress(var Data: TCnSHA1Context);
 var
   A, B, C, D, E, T: Cardinal;
   W: array[0..79] of Cardinal;
+  PBuf: PCardinal;
   I: Integer;
 begin
-  Move(Data.Buffer, W, Sizeof(Data.Buffer));
+  PBuf := PCardinal(@Data.Buffer[0]);
   for I := 0 to 15 do
-    W[I] := RB(W[I]);
+  begin
+    W[I] := RB(PBuf^);
+    Inc(PBuf);
+  end;
   for I := 16 to 79 do
     W[I] := LRot32(W[I - 3] xor W[I - 8] xor W[I - 14] xor W[I - 16], 1);
   A := Data.Hash[0];
@@ -374,14 +378,17 @@ begin
 end;
 
 procedure SHA1Update(var Context: TCnSHA1Context; Input: PAnsiChar; ByteLength: Integer);
+var
+  BytesToCopy: Cardinal;
 begin
   SHA1UpdateLen(Context, ByteLength);
   while ByteLength > 0 do
   begin
-    Context.Buffer[Context.Index] := PByte(Input)^;
-    Inc(PByte(Input));
-    Inc(Context.Index);
-    Dec(ByteLength);
+    BytesToCopy := Min(64 - Context.Index, ByteLength);
+    Move(Input^, Context.Buffer[Context.Index], BytesToCopy);
+    Inc(Context.Index, BytesToCopy);
+    Dec(ByteLength, BytesToCopy);
+    Inc(Input, BytesToCopy);
     if Context.Index = 64 then
     begin
       Context.Index := 0;
