@@ -70,8 +70,8 @@ type
     function GetHandle: Integer;
     function GetMemory: Pointer;
   protected
-    class procedure ReadError;
-    class procedure WriteError;
+    class procedure ReadError; reintroduce;
+    class procedure WriteError; reintroduce;
     procedure WriteDataType(DataType: TCnStreamDataType);
     function ReadDataType: TCnStreamDataType;
     procedure DoRead(var Buffer; Count: Longint);
