@@ -941,61 +941,67 @@ begin
   Result := ROTRight512(X, 19) xor ROTRight512(X, 61) xor SHR512(X, 6);
 end;
 
-procedure SHA256Transform(var Context: TCnSHA256Context; Data: PAnsiChar);
+procedure SHA256Transform(var Context: TCnSHA256Context; Data: PAnsiChar; BlockCount: Integer);
 var
   A, B, C, D, E, F, G, H, T1, T2: Cardinal;
   M: array[0..63] of Cardinal;
   I, J: Integer;
 begin
-  I := 0;
-  J := 0;
-  while I < 16 do
+  while (BlockCount > 0) do
   begin
-    M[I] := (Cardinal(Data[J]) shl 24) or (Cardinal(Data[J + 1]) shl 16) or (Cardinal(Data
-      [J + 2]) shl 8) or Cardinal(Data[J + 3]);
-    Inc(I);
-    Inc(J, 4);
+    I := 0;
+    J := 0;
+    while I < 16 do
+    begin
+      M[I] := (Cardinal(Data[J]) shl 24) or (Cardinal(Data[J + 1]) shl 16) or (Cardinal(Data
+        [J + 2]) shl 8) or Cardinal(Data[J + 3]);
+      Inc(I);
+      Inc(J, 4);
+    end;
+
+    while I < 64 do
+    begin
+      M[I] := SIG1256(M[I - 2]) + M[I - 7] + SIG0256(M[I - 15]) + M[I - 16];
+      Inc(I);
+    end;
+
+    A := Context.State[0];
+    B := Context.State[1];
+    C := Context.State[2];
+    D := Context.State[3];
+    E := Context.State[4];
+    F := Context.State[5];
+    G := Context.State[6];
+    H := Context.State[7];
+
+    I := 0;
+    while I < 64 do
+    begin
+      T1 := H + EP1256(E) + CH256(E, F, G) + KEYS256[I] + M[I];
+      T2 := EP0256(A) + MAJ256(A, B, C);
+      H := G;
+      G := F;
+      F := E;
+      E := D + T1;
+      D := C;
+      C := B;
+      B := A;
+      A := T1 + T2;
+      Inc(I);
+    end;
+
+    Context.State[0] := Context.State[0] + A;
+    Context.State[1] := Context.State[1] + B;
+    Context.State[2] := Context.State[2] + C;
+    Context.State[3] := Context.State[3] + D;
+    Context.State[4] := Context.State[4] + E;
+    Context.State[5] := Context.State[5] + F;
+    Context.State[6] := Context.State[6] + G;
+    Context.State[7] := Context.State[7] + H;
+
+    Dec(BlockCount);
+    Inc(Data, 64);
   end;
-
-  while I < 64 do
-  begin
-    M[I] := SIG1256(M[I - 2]) + M[I - 7] + SIG0256(M[I - 15]) + M[I - 16];
-    Inc(I);
-  end;
-
-  A := Context.State[0];
-  B := Context.State[1];
-  C := Context.State[2];
-  D := Context.State[3];
-  E := Context.State[4];
-  F := Context.State[5];
-  G := Context.State[6];
-  H := Context.State[7];
-
-  I := 0;
-  while I < 64 do
-  begin
-    T1 := H + EP1256(E) + CH256(E, F, G) + KEYS256[I] + M[I];
-    T2 := EP0256(A) + MAJ256(A, B, C);
-    H := G;
-    G := F;
-    F := E;
-    E := D + T1;
-    D := C;
-    C := B;
-    B := A;
-    A := T1 + T2;
-    Inc(I);
-  end;
-
-  Context.State[0] := Context.State[0] + A;
-  Context.State[1] := Context.State[1] + B;
-  Context.State[2] := Context.State[2] + C;
-  Context.State[3] := Context.State[3] + D;
-  Context.State[4] := Context.State[4] + E;
-  Context.State[5] := Context.State[5] + F;
-  Context.State[6] := Context.State[6] + G;
-  Context.State[7] := Context.State[7] + H;
 end;
 
 {$WARNINGS OFF}
@@ -1136,24 +1142,20 @@ begin
     // 缓冲区填满时立即处理
     if (Context.DataLen = 64) then
     begin
-      SHA256Transform(Context, @Context.Data[0]);
+      SHA256Transform(Context, @Context.Data[0], 1);
       Inc(Context.BitLen, 512);
       Context.DataLen := 0;
     end;
   end;
 
-  if (ByteLength <= 0) then Exit;  
+  if (ByteLength <= 0) then Exit;
 
   // 直接处理完整块
   Blocks := ByteLength div 64;
-  while (Blocks > 0) do
-  begin
-    SHA256Transform(Context, Input);
-    Inc(Context.BitLen, 512);
-    Dec(Blocks);
-    Inc(Input, 64);
-    Dec(ByteLength, 64);
-  end;
+  SHA256Transform(Context, Input, Blocks);
+  Inc(Input, Blocks * 64);
+  Inc(Context.BitLen, Blocks * 512);
+  ByteLength := ByteLength mod 64;
 
   // 处理剩余数据
   if (ByteLength > 0) then
@@ -1213,7 +1215,7 @@ begin
       Inc(I);
     end;
 
-    SHA256Transform(Context, @(Context.Data[0]));
+    SHA256Transform(Context, @(Context.Data[0]), 1);
     FillChar(Context.Data, 56, 0);
   end;
 
@@ -1226,7 +1228,7 @@ begin
   Context.Data[58] := Context.Bitlen shr 40;
   Context.Data[57] := Context.Bitlen shr 48;
   Context.Data[56] := Context.Bitlen shr 56;
-  SHA256Transform(Context, @(Context.Data[0]));
+  SHA256Transform(Context, @(Context.Data[0]), 1);
 
   for I := 0 to 3 do
   begin
@@ -1327,8 +1329,8 @@ begin
   // 直接处理完整块
   Blocks := ByteLength div 128;
   SHA512Transform(Context, Input, Blocks);
-  Inc(Input, Blocks shl 7);
-  Inc(Context.TotalLen, Blocks shl 7);
+  Inc(Input, Blocks * 128);
+  Inc(Context.TotalLen, Blocks * 128);
   ByteLength := ByteLength mod 128;
 
   // 处理剩余数据
