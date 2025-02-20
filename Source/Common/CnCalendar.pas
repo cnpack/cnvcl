@@ -48,7 +48,9 @@ unit CnCalendar;
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.09.03 V2.4
+* 修改记录：2025.02.20 V2.5
+*               根据清风徐来的报告，修正 2025 年农历 3 月的日期偏差问题
+*           2022.09.03 V2.4
 *               根据罗建仁的报告与查证，修正月干支在小寒节气前后可能有误的问题
 *           2022.07.03 V2.3
 *               根据罗建仁的报告与查证，修正 1582 年及之前节气有十天偏差的问题
@@ -261,341 +263,958 @@ const
     ( '正北', '东北', '正东', '东南',
       '正南', '西南', '正西', '西北');
   {* 吉神方位，对应八卦的八个方向。
-   吉神包括喜神、财神、贵神，贵神还包括阴贵、阳贵，默认指阳贵}
+     吉神包括喜神、财神、贵神，贵神还包括阴贵、阳贵，默认指阳贵}
 
 type
-  ECnDateException = class(Exception);
-
-  ECnTimeException = class(Exception);
+  ECnDateTimeException = class(Exception);
+  {* 历法相关异常}
 
   TCnCalendarType = (ctinvalid, ctJulian, ctGregorian);
-  {* 日历类型，    非法，     儒略，    格利高里}
+  {* 日历类型：    非法，     儒略，    格里高利}
 
   TCnLunarMonthType = (lmtSmall, lmtBig);
-  {* 农历月类型      小月，    大月}
+  {* 农历月类型：    小月，    大月}
 
   TCnEclipseType = (etNone, etSolar, etMoonFull, etMoonHalf);
-  {* 日月食类型， 无，    日食，   月全食，    月偏食 }
+  {* 日月食类型： 无，    日食，   月全食，    月偏食 }
 
   TCnMoonPhase = (mpNone, mpShuo, mpWang);
-  {* 月相，     无，    朔，    望}
+  {* 月相：     无，    朔，    望}
 
   TCnSunRiseSetType = (stNormal, stAllwaysUp, stAllwaysDown, stError);
-  {* 日出日落类型，  普通，    日不落，     日不出，       数据错误 }
+  {* 日出日落类型：  普通，    日不落，     日不出，       数据错误 }
 
 function GetSunRiseSetTime(ADate: TDateTime; Longitude, Latitude: Extended;
   ZoneTime: Integer; var RiseTime, TransitTime, SetTime: TDateTime):
   TCnSunRiseSetType;
-{* 计算日出日落时间
-   ADate        - 日期
-   Longitude    - 经度
-   Latitude     - 纬度
-   ZoneTime     - 时区
-   RiseTime     - 返回日出时间，如果无日出返回 -1
-   TransitTime  - 返回日中时间，如果无日中返回 -1
-   SetTime      - 返回日落时间，如果无日落返回 -1
-   Result       - 返回结果类型
+{* 计算日出日落时间。
+
+   参数：
+     ADate: TDateTime                     - 日期
+     Longitude: Extended                  - 经度
+     Latitude: Extended                   - 纬度
+     ZoneTime: Integer                    - 时区
+     var RiseTime: TDateTime              - 返回日出时间，如果无日出返回 -1
+     var TransitTime: TDateTime           - 返回日中时间，如果无日中返回 -1
+     var SetTime: TDateTime               - 返回日落时间，如果无日落返回 -1
+
+   返回值：Boolean                        - 返回日出日落类型
 }
 
 function GetDateIsValid(AYear, AMonth, ADay: Integer): Boolean;
-{* 返回公历日期是否合法}
+{* 返回公历日期是否合法。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待判断的公历年、月、日
+
+   返回值：Boolean                        - 返回是否合法
+}
 
 procedure ValidDate(AYear, AMonth, ADay: Integer);
-{* 判断公历日期是否合法，不合法则抛出异常}
+{* 判断公历日期是否合法，不合法则抛出异常。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待判断的公历年、月、日
+
+   返回值：（无）
+}
 
 function GetLunarDateIsValid(ALunarYear, ALunarMonth, ALunarDay: Integer;
   IsLeapMonth: Boolean = False): Boolean;
-{* 返回农历日期是否合法}
+{* 返回农历日期是否合法。
+
+   参数：
+     ALunarYear, ALunarMonth, ALunarDay: Integer          - 待判断的农历年、月、日
+     IsLeapMonth: Boolean                                 - 该农历日期是否闰月
+
+   返回值：Boolean                                        - 返回是否合法
+}
 
 procedure ValidLunarDate(ALunarYear, ALunarMonth, ALunarDay: Integer;
   IsLeapMonth: Boolean = False);
-{* 判断农历日期是否合法，不合法则抛出异常}
+{* 判断农历日期是否合法，不合法则抛出异常。
+
+   参数：
+     ALunarYear, ALunarMonth, ALunarDay: Integer          - 待判断的农历年、月、日
+     IsLeapMonth: Boolean                                 - 该农历日期是否闰月
+
+   返回值：（无）
+}
 
 function GetTimeIsValid(AHour, AMinitue, ASecond: Integer): Boolean;
-{* 返回时间是否合法}
+{* 返回时间是否合法。
+
+   参数：
+     AHour, AMinitue, ASecond: Integer    - 待判断的时、分、秒
+
+   返回值：Boolean                        - 返回是否合法
+}
 
 procedure ValidTime(AHour, AMinitue, ASecond: Integer);
-{* 判断时间是否合法，不合法则抛出异常}
+{* 判断时间是否合法，不合法则抛出异常。
+
+   参数：
+     AHour, AMinitue, ASecond: Integer    - 待判断的时、分、秒
+
+   返回值：（无）
+}
 
 function GetMonthDays(AYear, AMonth: Integer): Integer;
-{* 取公历年的某月天数，不考虑 1582 年 10 月的特殊情况}
+{* 取公历年的某月天数，不考虑 1582 年 10 月的特殊情况。
+
+   参数：
+     AYear, AMonth: Integer               - 公历年的某个月
+
+   返回值：Integer                        - 返回该月天数
+}
 
 function GetLunarMonthDays(ALunarYear, ALunarMonth: Integer;
   IsLeapMonth: Boolean = False): Integer;
-{* 取农历年的某月天数}
+{* 取农历年的某月天数。
+
+   参数：
+     ALunarYear, ALunarMonth: Integer     - 农历年的某个月
+     IsLeapMonth: Boolean                 - 该农历月是否闰月
+
+   返回值：Integer                        - 返回该月天数
+}
 
 function GetIsLeapYear(AYear: Integer): Boolean;
-{* 返回某公历是否闰年，自动判断 Julian 还是 Gregorian，支持公元前}
+{* 返回某公历是否闰年，自动判断儒略历还是格里高利历法，支持公元前。
+
+   参数：
+     AYear: Integer                       - 待计算的公历年份
+
+   返回值：Boolean                        - 返回是否闰年
+}
 
 function GetDayFromYearBegin(AYear, AMonth, ADay: Integer): Integer; overload;
-{* 取某日期到年初的天数，不考虑 1582 年 10 月的特殊情况 }
+{* 取某日期到年初的天数，不考虑 1582 年 10 月的特殊情况。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回该日到年初的天数
+}
 
 function GetDayFromYearBegin(AYear, AMonth, ADay, AHour: Integer;
   AMinute: Integer = 0; ASecond: Integer = 0): Extended; overload;
-{* 取某日期到年初的天数，小时、分、秒数折算入小数，不考虑 1582 年 10 月的特殊情况 }
+{* 取某日期到年初的天数，小时、分、秒数折算入小数，不考虑 1582 年 10 月的特殊情况 
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+     AHour, AMinute, ASecond: Integer     - 待计算的时、分、秒
+
+   返回值：Extended                       - 返回该时刻到年初的天数，时间折算成小数
+}
 
 function ExtractMonthDay(Days: Integer; AYear: Integer; out AMonth: Integer;
   out ADay: Integer): Boolean;
-{* 从距年首天数返回月和日数，年份用来判断是否是闰年，返回 False 表示不合法日期}
+{* 从距年初天数返回月和日数，年份用来判断是否是闰年，返回 False 表示不合法日期。
+
+   参数：
+     Days: Integer                        - 待计算的距年初天数
+     AYear: Integer                       - 公历年，用来判断是否闰年
+     out AMonth: Integer                  - 返回月
+     out ADay: Integer                    - 返回日
+
+   返回值：Boolean                        - 返回日期是否合法
+}
 
 function GetWeek(const AValue: TDateTime): Integer; overload;
-{* 获得某公历日期是星期几，0-6 对应 日到六}
+{* 获得某公历日期是星期几，0-6 对应日到六。
+
+   参数：
+     const AValue: TDateTime              - 待计算的日期
+
+   返回值：Integer                        - 返回星期几
+}
 
 function GetWeek(AYear, AMonth, ADay: Integer): Integer; overload;
-{* 获得某公历日期是星期几，0-6 对应 日到六}
+{* 获得某公历日期是星期几，0-6 对应日到六。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回星期几
+}
 
 function GetWeekFromNumber(const AValue: Integer): string;
-{* 从数字获得星期名，不包括星期二字, 0-6 对应 日到六}
+{* 从数字获得星期名，不包括“星期”二字, 0-6 对应日到六。
+
+   参数：
+     const AValue: Integer                - 待计算的星期数字
+
+   返回值：string                         - 返回星期字符串
+}
 
 function GetYinYangFromNumber(const AValue: Integer): string;
-{* 从数字获得阴阳名, 0-1 对应 阴阳}
+{* 从数字获得阴阳名, 0-1 对应阴阳。
+
+   参数：
+     const AValue: Integer                - 待计算的阴阳数字
+
+   返回值：string                         - 返回阴阳字符串
+}
 
 function Get5XingFromNumber(const AValue: Integer): string;
-{* 从数字获得五行名, 0-4 对应 金木水火土}
+{* 从数字获得五行名, 0-4 对应金木水火土。
+
+   参数：
+     const AValue: Integer                - 待计算的五行数字
+
+   返回值：string                         - 返回五行字符串
+}
 
 function Get12JianFromNumber(const AValue: Integer): string;
-{* 从数字获得十二建名, 0-11}
+{* 从数字获得十二建名, 0-11 对应建除满平定执破危成收开闭。
+
+   参数：
+     const AValue: Integer                - 待计算的十二建数字
+
+   返回值：string                         - 返回十二建字符串
+}
 
 function Get3FuFromNumber(const AValue: Integer): string;
-{* 从数字获得三伏名, 0-2}
+{* 从数字获得三伏名, 0-2 对应初伏中伏末伏。
+
+   参数：
+     const AValue: Integer                - 待计算的三伏数字
+
+   返回值：string                         - 返回三伏字符串
+}
 
 function GetTianGanFromNumber(const AValue: Integer): string;
-{* 从数字获得天干名, 0-9}
+{* 从数字获得天干名, 0-9 对应甲乙丙丁戊己庚辛壬癸。
+
+   参数：
+     const AValue: Integer                - 待计算的天干数字
+
+   返回值：string                         - 返回天干字符串
+}
 
 function GetDiZhiFromNumber(const AValue: Integer): string;
-{* 从数字获得地支名, 0-11}
+{* 从数字获得地支名, 0-11 对应子丑寅卯辰巳午未申酉戌亥。
+
+   参数：
+     const AValue: Integer                - 待计算的地支数字
+
+   返回值：string                         - 返回地支字符串
+}
 
 function GetGanZhiFromNumber(const AValue: Integer): string;
-{* 从数字获得天干地支名, 0-59}
+{* 从数字获得天干地支名, 0-59 对应的不一一列出了。
+
+   参数：
+     const AValue: Integer                - 待计算的干支数字
+
+   返回值：string                         - 返回干支字符串
+}
 
 function GetShengXiaoFromNumber(const AValue: Integer): string;
-{* 从数字获得生肖名, 0-11}
+{* 从数字获得生肖名, 0-11 对应鼠牛虎兔龙蛇马羊猴鸡狗猪。
+
+   参数：
+     const AValue: Integer                - 待计算的生肖数字
+
+   返回值：string                         - 返回生肖字符串
+}
 
 function GetJieQiFromNumber(const AValue: Integer): string;
-{* 从数字获得节气名, 0-23}
+{* 从数字获得节气名, 0-23 对应的不一一列出了。
+
+   参数：
+     const AValue: Integer                - 待计算的节气数字
+
+   返回值：string                         - 返回节气字符串
+}
 
 function GetXingZuoFromNumber(const AValue: Integer): string;
-{* 从数字获得星座名, 0-11}
+{* 从数字获得星座名, 0-11 对应的不一一列出了。
+
+   参数：
+     const AValue: Integer                - 待计算的星座数字
+
+   返回值：string                         - 返回星座字符串
+}
 
 function Get28XiuFromNumber(const AValue: Integer): string;
-{* 从数字获得二十八宿名, 0-27}
+{* 从数字获得二十八宿名, 0-27 对应的不一一列出了。
+
+   参数：
+     const AValue: Integer                - 待计算的二十八宿数字
+
+   返回值：string                         - 返回二十八宿名字符串
+}
 
 function Get28XiuLongFromNumber(const AValue: Integer): string;
-{* 从数字获得二十八宿完整名, 0-27}
+{* 从数字获得二十八宿完整名, 0-27 对应的不一一列出了。
+
+   参数：
+     const AValue: Integer                - 待计算的二十八宿数字
+
+   返回值：string                         - 返回二十八宿完整名字符串
+}
 
 function GetLunarMonthFromNumber(const AMonth: Integer; IsLeap: Boolean): string;
-{* 从数字获得农历月名称, 1-12}
+{* 从数字获得农历月名称, 1-12。
+
+   参数：
+     const AMonth: Integer                - 待计算的农历月份数
+     IsLeap: Boolean                      - 是否闰月
+
+   返回值：string                         - 返回农历月字符串
+}
 
 function GetLunarDayFromNumber(const ADay: Integer): string;
-{* 从数字获得农历日名称, 1-30}
+{* 从数字获得农历日名称, 1-30。
+
+   参数：
+     const ADay: Integer                  - 待计算的农历日数
+
+   返回值：string                         - 返回农历日字符串
+}
 
 function GetYinYangFromGan(const Gan: Integer): Integer;
-{* 从天干获得其阴阳, 0-9 转换成 0-1}
+{* 从天干获得其阴阳, 0-9 转换成 0-1。
+
+   参数：
+     const Gan: Integer                   - 待计算的天干数
+
+   返回值：Integer                        - 返回阴阳
+}
 
 function GetYinYangFromZhi(const Zhi: Integer): Integer;
-{* 从地支获得其阴阳, 0-11 转换成 0-1}
+{* 从地支获得其阴阳, 0-11 转换成 0-1。
+
+   参数：
+     const Zhi: Integer                   - 待计算的地支数
+
+   返回值：Integer                        - 返回阴阳
+}
 
 function CombineGanZhi(Gan, Zhi: Integer): Integer;
-{* 将天干地支组合成干支，0-9 0-11 转换成 0-59。注意是六十轮排，不是任意两个干支都能组合}
+{* 将天干地支组合成干支，0-9 0-11 转换成 0-59。注意是六十轮排，不是任意两个干支都能组合。
+
+   参数：
+     Gan, Zhi: Integer                    - 待组合的干数和支数
+
+   返回值：Integer                        - 返回干支数，如果组合失败则返回 -1
+}
 
 function ExtractGanZhi(GanZhi: Integer; out Gan: Integer; out Zhi: Integer): Boolean;
-{* 将干支拆分成天干地支，0-59 转换成 0-9 0-11 }
+{* 将干支拆分成天干地支，0-59 转换成 0-9 及 0-11。
+
+   参数：
+     GanZhi: Integer                      - 待拆分的干支数
+     out Gan: Integer                     - 返回干数
+     out Zhi: Integer                     - 返回支数
+
+   返回值：Boolean                        - 返回是否拆分成功
+}
 
 function Get5XingFromGan(const Gan: Integer): Integer;
-{* 获得某干的五行，0-4 对应 金木水火土}
+{* 获得某干的五行，0-4 对应金木水火土。
+
+   参数：
+     const Gan: Integer                   - 待计算的干数
+
+   返回值：Integer                        - 返回五行
+}
 
 function Get5XingFromZhi(const Zhi: Integer): Integer;
-{* 获得某支的五行，0-4 对应 金木水火土}
+{* 获得某支的五行，0-4 对应金木水火土。
+
+   参数：
+     const Zhi: Integer                   - 待计算的支数
+
+   返回值：Integer                        - 返回五行
+}
 
 function Get5XingFromGanZhi(const GanZhi: Integer): Integer; overload;
-{* 获得某干支的纳音五行（短），0-4 对应 金木水火土}
+{* 获得某干支的纳音五行（短），0-4 对应金木水火土。
+
+   参数：
+     const GanZhi: Integer                - 待计算的干支数
+
+   返回值：Integer                        - 返回纳音五行
+}
 
 function Get5XingFromGanZhi(Gan, Zhi: Integer): Integer; overload;
-{* 获得某干支的纳音五行（短），0-4 对应 金木水火土}
+{* 获得某干支的纳音五行（短），0-4 对应金木水火土
+
+   参数：
+     Gan, Zhi: Integer                    - 待计算的干数与支数
+
+   返回值：Integer                        - 返回纳音五行
+}
 
 function Get5XingFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得某公历日的纳音五行（短），0-4 对应 金木水火土}
+{* 获得某公历日的纳音五行（短），0-4 对应金木水火土。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回纳音五行
+}
 
 function Get5XingLongFromGanZhi(const GanZhi: Integer): string; overload;
-{* 获得某干支的纳音五行（长），返回字符串}
+{* 获得某干支的纳音五行（长），返回字符串。
+
+   参数：
+     const GanZhi: Integer                - 待计算的干支数
+
+   返回值：string                         - 返回纳音五行字符串
+}
 
 function Get5XingLongFromGanZhi(Gan, Zhi: Integer): string; overload;
-{* 获得某干支的纳音五行（长），返回字符串}
+{* 获得某干支的纳音五行（长），返回字符串。
+
+   参数：
+     Gan, Zhi: Integer                    - 待计算的干支数
+
+   返回值：string                         - 返回纳音五行长字符串
+}
 
 function Get5XingLongFromDay(AYear, AMonth, ADay: Integer): string;
-{* 获得某公历日的纳音五行（长），返回字符串}
+{* 获得某公历日的纳音五行（长），返回字符串。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：string                         - 返回纳音五行长字符串
+}
 
 function Get3HeFromZhi(const Zhi: Integer; out He1: Integer;
   out He2: Integer): Boolean;
-{* 获得某地支的两个三合}
+{* 获得某地支的另外两个三合。
+
+   参数：
+     const Zhi: Integer                   - 待计算的地支数
+     out He1: Integer                     - 返回三合地支之一
+     out He2: Integer                     - 返回三合地支之二
+
+   返回值：Boolean                        - 返回是否计算成功
+}
 
 function GetGanZhiFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
-{* 获得某公历时的天干地支，0-59 对应 甲子到癸亥}
+{* 获得某公历时的天干地支，0-59 对应 甲子到癸亥。
+
+   参数：
+     AYear, AMonth, ADay, AHour: Integer  - 待计算的公历年、月、日、时
+
+   返回值：Integer                        - 返回时干支
+}
 
 function GetGanZhiFromDay(AYear, AMonth, ADay: Integer): Integer; overload;
-{* 获得某公历日的天干地支，0-59 对应 甲子到癸亥}
+{* 获得某公历日的天干地支，0-59 对应甲子到癸亥。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回日干支
+}
 
 function GetGanZhiFromDay(AYear, AMonth, ADay, AHour: Integer): Integer; overload;
-{* 获得某公历日的天干地支，0-59 对应 甲子到癸亥，小时参数用于判断 23 小时后是次日}
+{* 获得某公历日的天干地支，0-59 对应 甲子到癸亥，小时参数用于判断 23 小时后是次日。
+
+   参数：
+     AYear, AMonth, ADay, AHour: Integer  - 待计算的公历年、月、日、时
+
+   返回值：Integer                        - 返回日干支
+}
 
 function GetGanZhiFromDay(AllDays: Integer): Integer; overload;
-{* 获得某公历日的天干地支，0-59 对应 甲子到癸亥，参数为距离公元元年 1 月 0 日的绝对天数}
+{* 获得形式为绝对天数的某公历日的天干地支，0-59 对应甲子到癸亥，参数为距离公元元年 1 月 0 日的绝对天数。
+
+   参数：
+     AllDays: Integer                     - 待计算的公历绝对天数
+
+   返回值：Integer                        - 返回日干支
+}
 
 function GetGanZhiFromMonth(AYear, AMonth, ADay: Integer): Integer; overload;
-{* 获得某公历月的天干地支，需要日是因为月以节气分界，不考虑时。0-59 对应 甲子到癸亥}
+{* 获得某公历月的天干地支，需要日是因为月以节气分界，不考虑时。0-59 对应甲子到癸亥。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回月干支
+}
 
 function GetGanZhiFromMonth(AYear, AMonth, ADay, AHour: Integer): Integer; overload;
-{* 获得某公历月的天干地支，需要日与时是因为月以节气分界。0-59 对应 甲子到癸亥}
+{* 获得某公历月的天干地支，需要日与时是因为月以节气分界。0-59 对应甲子到癸亥。
+
+   参数：
+     AYear, AMonth, ADay, AHour: Integer  - 待计算的公历年、月、日、时
+
+   返回值：Integer                        - 返回月干支
+}
 
 function GetGanZhiFromYear(AYear: Integer): Integer; overload;
-{* 获得某公/农历年的天干地支，0-59 对应 甲子到癸亥}
+{* 获得某公/农历年的天干地支，0-59 对应甲子到癸亥。
+
+   参数：
+     AYear: Integer                       - 待计算的公历年或农历年
+
+   返回值：Integer                        - 返回年干支
+}
 
 function GetGanZhiFromYear(AYear, AMonth, ADay: Integer): Integer; overload;
-{* 根据公历年月日获得某公历年的天干地支，以立春为年分界，0-59 对应 甲子到癸亥}
+{* 根据公历年月日获得某公历年的天干地支，以立春为年分界，0-59 对应甲子到癸亥。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回年干支
+}
 
 function GetGanZhiFromYear(AYear, AMonth, ADay, AHour: Integer): Integer; overload;
-{* 根据公历年月日获得某公历年的天干地支，以立春为年分界，精确到小时，0-59 对应 甲子到癸亥}
+{* 根据公历年月日时获得某公历年的天干地支，以立春为年分界，精确到小时，0-59 对应甲子到癸亥。
+
+   参数：
+     AYear, AMonth, ADay, AHour: Integer  - 待计算的公历年、月、日、时
+
+   返回值：Integer                        - 返回年干支
+}
 
 function GetGanFromYear(AYear: Integer): Integer;
-{* 获得某公/农历年的天干，0-9 对应 甲到癸}
+{* 获得某公/农历年的天干，0-9 对应甲到癸。
+
+   参数：
+     AYear: Integer                       - 待计算的公历年或农历年
+
+   返回值：Integer                        - 返回天干
+}
 
 function GetZhiFromYear(AYear: Integer): Integer;
-{* 获得某公/农历年的地支，0-11 对应 子到亥}
+{* 获得某公/农历年的地支，0-11 对应子到亥
+
+   参数：
+     AYear: Integer                       - 待计算的公历年或农历年
+
+   返回值：Integer                        - 返回地支
+}
 
 function GetShengXiaoFromYear(AYear: Integer): Integer;
-{* 获得某公/农历年的生肖也就是地支，0-11 对应 鼠到猪}
+{* 获得某公/农历年的生肖也就是地支，0-11 对应鼠到猪。
+
+   参数：
+     AYear: Integer                       - 待计算的公历年
+
+   返回值：Integer                        - 返回生肖
+}
 
 function GetXingZuoFromMonthDay(AMonth, ADay: Integer): Integer;
-{* 获得某公历月日的星座，0-11 对应 白羊到双鱼}
+{* 获得某公历月日的星座，0-11 对应白羊到双鱼。
+
+   参数：
+     AMonth, ADay: Integer                - 待计算的公历月、日
+
+   返回值：Integer                        - 返回星座
+}
 
 function Get12JianFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得某公历月日的十二建，0-11 对应 建到闭}
+{* 获得某公历月日的十二建，0-11 对应建到闭。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回十二建
+}
 
 function Get28XiuFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得某公历日的二十八宿，0-27 对应 角到轸}
+{* 获得某公历日的二十八宿，0-27 对应角到轸。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回二十八宿
+}
 
 function GetTaiShenStringFromDay(AYear, AMonth, ADay: Integer): string; overload;
-{* 获得某公历日的胎神方位，0-59 返回胎神位置加胎神方位的字符串}
+{* 获得某公历日的胎神方位，0-59 返回胎神位置加胎神方位的字符串。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：string                         - 返回胎神方位字符串
+}
 
 function GetTaiShenStringFromDay(AYear, AMonth, ADay: Integer;
   out TaiShen1: string; out TaiShen2: string): Boolean; overload;
-{* 获得某公历日的胎神方位，0-59 返回胎神位置与胎神方位两个字符串}
+{* 获得某公历日的胎神方位，0-59 返回胎神位置与胎神方位两个字符串。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+     out TaiShen1: string                 - 返回胎神位置字符串
+     out TaiShen2: string                 - 返回胎神方位字符串
+
+   返回值：Boolean                        - 返回是否获取成功
+}
 
 function GetShiChenFromHour(AHour: Integer): Integer;
-{* 获得小时时刻对应的时辰，0-11 对应子至亥}
+{* 获得小时时刻对应的时辰，0-11 对应子至亥。
+
+   参数：
+     AHour: Integer                       - 待计算的小时数
+
+   返回值：Integer                        - 返回时辰
+}
 
 function AdjustYearByJieQi(var AYear: Integer; AMonth: Integer;
   ADay: Integer; AHour: Integer): Boolean;
-{根据立春为界，调整公历年的年月日的年份数，供黄历中针对年的干支等概念的计算}
+{根据立春为界，调整公历年的年月日的年份数，供黄历中针对年的干支等概念的计算。
+
+   参数：
+     var AYear: Integer                   - 供调整的公历年，调整后的结果也放其中
+     AMonth: Integer                      - 该公历日期的月份数
+     ADay: Integer                        - 该公历日期的日数
+     AHour: Integer                       - 该公历日期的小时数
+
+   返回值：Boolean                        - 返回日期是否合法，注意与是否调整无关
+}
 
 function AdjustYearMonthByJieQi(var AYear: Integer; var AMonth: Integer;
   ADay: Integer; AHour: Integer): Boolean;
-{根据节气为界，调整公历年的年月日的年份数与月份数，供黄历中针对月的干支等概念的计算}
+{根据节气为界，调整公历年的年月日的年份数与月份数，供黄历中针对月的干支等概念的计算。
+
+   参数：
+     var AYear: Integer                   - 供调整的公历年，调整后的结果也放其中
+     var AMonth: Integer                  - 供调整的公历月，调整后的结果也放其中
+     ADay: Integer                        - 该公历日期的日数
+     AHour: Integer                       - 该公历日期的小时数
+
+   返回值：Boolean                        - 返回日期是否合法，注意与是否调整无关
+}
 
 function Get3YuanFromNumber(A3Yuan: Integer): string;
-{* 从数字获得三元名称，0-2}
+{* 从数字获得三元名称，0-2。
+
+   参数：
+     A3Yuan: Integer                      - 待获取的三元数字
+
+   返回值：string                         - 返回三元名称
+}
 
 function Get9XingFromNumber(A9Xing: Integer): string;
-{* 从数字获得九星名称，0-8}
+{* 从数字获得九星名称，0-8。
+
+   参数：
+     A9Xing: Integer                      - 待获取的九星数字
+
+   返回值：string                         - 返回九星名称
+}
 
 function Get3YuanFromYear(AYear, AMonth, ADay: Integer): Integer;
-{* 获取公历年所属的三元，0-2}
+{* 获取公历年所属的三元，0-2。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回三元
+}
 
 function GetYun9XingFromYear(AYear, AMonth, ADay: Integer): Integer;
-{* 获取公历年的运九星，0-8 对应一白到九紫}
+{* 获取公历年的运九星，0-8 对应一白到九紫。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回运九星
+}
 
 function Get9XingFromYear(AYear, AMonth, ADay: Integer): Integer;
-{* 获取公历年的年九星，0-8 对应一白到九紫}
+{* 获取公历年的年九星，0-8 对应一白到九紫。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回年九星
+}
 
 function Get9XingFromMonth(AYear, AMonth, ADay: Integer): Integer;
-{* 获取公历月的月九星，0-8 对应一白到九紫}
+{* 获取公历月的月九星，0-8 对应一白到九紫。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回月九星
+}
 
 function Get9XingFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获取公历日的日九星，0-8 对应一白到九紫}
+{* 获取公历日的日九星，0-8 对应一白到九紫。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回日九星
+}
 
 function Get9XingFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
-{* 获取公历时的时九星，0-8 对应一白到九紫}
+{* 获取公历时的时九星，0-8 对应一白到九紫。
+
+   参数：
+     AYear, AMonth, ADay, AHour: Integer  - 待计算的公历年、月、日、时
+
+   返回值：Integer                        - 返回时九星
+}
 
 function GetJiShenFangWeiFromNumber(AFangWei: Integer): string;
-{* 根据吉神方位数字获得吉神方位名称}
+{* 根据吉神（包括财神、喜神、福神、贵神）方位数字获得吉神方位名称。
+
+   参数：
+     AFangWei: Integer                    - 待获取的吉神方位数
+
+   返回值：string                         - 返回吉神方位名称
+}
 
 function GetCaiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日的财神方位，0-7}
+{* 获得公历年月日的财神方位，0-7。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回财神方位
+}
 
 function GetXiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日的喜神方位，0-7}
+{* 获得公历年月日的喜神方位，0-7。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回喜神方位
+}
 
 function GetFuShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日的福神方位，0-7}
+{* 获得公历年月日的福神方位，0-7。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回福神方位
+}
 
 function GetGuiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日的贵神方位，0-7，默认为阳贵}
+{* 获得公历年月日的贵神方位，0-7，默认为阳贵。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回贵神方位，默认为阳贵
+}
 
 function GetYangGuiShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日的阳贵神方位，0-7}
+{* 获得公历年月日的阳贵神方位，0-7。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回阳贵神方位
+}
 
 function GetYingShenFangWeiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日的阴贵神方位，0-7}
+{* 获得公历年月日的阴贵神方位，0-7。
 
-function GetAllDays(Year, Month, Day: Integer): Integer;
-{* 获得距公元元年 1 月 0 日的绝对天数}
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回阴贵神方位
+}
+
+function GetAllDays(AYear, AMonth, ADay: Integer): Integer;
+{* 获得距公元元年 1 月 0 日的绝对天数。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回绝对天数
+}
 
 function GetJieQiInAYear(AYear, N: Integer; out AMonth: Integer;
   out ADay: Integer; out AHour: Integer; out AMinitue: Integer): Boolean;
-{* 获得某公历年的第 N 个节气的交节月日时分，0-23，对应小寒到冬至}
+{* 获得某公历年的第 N 个节气的交节月日时分，0~23，对应小寒到冬至。
+
+   参数：
+     AYear: Integer                       - 待计算的公历年
+     N: Integer                           - 待计算的节气序号
+     out AMonth: Integer                  - 返回节气所在月份
+     out ADay: Integer                    - 返回节气所在日
+     out AHour: Integer                   - 返回节气交接时刻的小时数
+     out AMinitue: Integer                - 返回节气交接时刻的分钟数
+
+   返回值：Boolean                        - 返回计算是否成功
+}
 
 function GetJieQiFromDay(AYear, AMonth, ADay: Integer): Integer;
-{* 获得公历年月日是本年的什么节气，0-23，对应立春到大寒，无则返回 -1}
+{* 获得公历年月日是本年的什么节气，0-23，对应立春到大寒，无则返回 -1。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回节气序号，-1 为不是节气
+}
 
 function GetJieQiTimeFromDay(AYear, AMonth, ADay: Integer; out AHour: Integer; out AMinitue: Integer): Integer;
-{* 获得公历年月日是本年的什么节气以及交节时刻，0-23，对应立春到大寒，无则返回 -1}
+{* 获得公历年月日是本年的什么节气以及交节时刻，0-23，对应立春到大寒，无则返回 -1。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+     out AHour: Integer                   - 返回节气交接时刻的小时数
+     out AMinitue: Integer                - 返回节气交接时刻的分钟数
+
+   返回值：Integer                        - 返回节气序号，-1 为不是节气
+}
 
 function GetShu9Day(AYear, AMonth, ADay: Integer; out JiuSeq: Integer; out JiuDay: Integer): Boolean;
-{* 获得公历年月日在数九日中的第几九的第几日，1~9,1~9 对应一九到九九，False 为不在数九日内}
+{* 获得公历年月日在数九日中的第几九的第几日，1~9,1~9 对应一九到九九，返回 False 为不在数九日内。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+     out JiuSeq: Integer                  - 返回数九的第几九
+     out JiuDay: Integer                  - 返回本九内第几日
+
+   返回值：Boolean                        - 返回是否在数九日内
+}
 
 function Get3FuDay(AYear, AMonth, ADay: Integer; out FuSeq: Integer; out FuDay: Integer): Boolean;
-{* 获得公历年月日在三伏日中的第几伏的第几日，0~2,1~10（或 20）对应初伏到末伏的伏日，False 为不在伏日内}
+{* 获得公历年月日在三伏日中的第几伏的第几日，0~2,1~10（或 20）对应初伏到末伏的伏日，返回 False 为不在三伏日内。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+     out FuSeq: Integer                   - 返回三伏的第几伏
+     out FuDay: Integer                   - 返回本伏内第几日
+
+   返回值：Boolean                        - 返回是否在三伏日内
+}
 
 function GetRuMeiDay(AYear: Integer; out AMonth: Integer; out ADay: Integer): Boolean;
-{* 获得某公历年中的入梅日期，梅雨季节的开始日，芒种后的第一个丙日}
+{* 获得某公历年中的入梅日期，梅雨季节的开始日，芒种后的第一个丙日，返回是否获取成功。
+
+   参数：
+     AYear: Integer                       - 待计算的公历年
+     out AMonth: Integer                  - 返回的入梅日期所在月份
+     out ADay: Integer                    - 返回的入梅日
+
+   返回值：Boolean                        - 返回是否获取成功
+}
 
 function GetChuMeiDay(AYear: Integer; out AMonth: Integer; out ADay: Integer): Boolean;
-{* 获得某公历年中的出梅日期，梅雨季节的结束日，小暑后的第一个未日}
+{* 获得某公历年中的出梅日期，梅雨季节的结束日，小暑后的第一个未日，返回是否获取成功。
+
+   参数：
+     AYear: Integer                       - 待计算的公历年
+     out AMonth: Integer                  - 返回的出梅日期所在月份
+     out ADay: Integer                    - 返回的出梅日
+
+   返回值：Boolean                        - 返回是否获取成功
+}
 
 function GetLunarFromDay(AYear, AMonth, ADay: Integer;
   out LunarYear, LunarMonth, LunarDay: Integer; out IsLeapMonth: Boolean): Boolean;
-{* 获得某公历年月日的农历年月日和是否闰月}
+{* 获得某公历年月日的农历年月日和是否闰月，返回是否获取成功。
+
+   参数：
+     AYear, AMonth, ADay: Integer                         - 待计算的公历年、月、日
+     out LunarYear, LunarMonth, LunarDay: Integer         - 用来容纳计算结果的农历年、月、日
+     out IsLeapMonth: Boolean                             - 返回是否闰月
+
+   返回值：Boolean                                        - 返回是否计算成功
+}
 
 function GetLunarMonthDayFromDay(AYear, AMonth, ADay: Integer;
   out LunarMonth, LunarDay: Integer; out IsLeapMonth: Boolean): Boolean;
-{* 获得某公历年月日的农历月日和是否闰月的信息，年份按相等处理}
+{* 获得某公历年月日的农历月日和是否闰月的信息，年份按相等处理，返回是否获取成功。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+     out LunarMonth, LunarDay: Integer    - 用来容纳计算结果的农历月、日
+     out IsLeapMonth: Boolean             - 返回是否闰月
+
+   返回值：Boolean                        - 返回是否计算成功
+}
 
 function GetLunarLeapMonth(AYear: Integer): Integer;
 {* 获得某农历年的第几个月是闰月，返回 1~12 对应第一个月到第十二个月，
-   也就是去年闰十二月到今年闰十一月，返回 0 表示无闰月}
+   也就是去年闰十二月到今年闰十一月，返回 0 表示无闰月。
+
+   参数：
+     AYear: Integer                       - 待计算的农历年
+
+   返回值：Integer                        - 返回闰月，0 表示无闰月
+}
 
 function GetDayFromLunar(ALunarYear, ALunarMonth, ALunarDay: Integer; IsLeapMonth:
   Boolean; out AYear, AMonth, ADay: Integer): Boolean;
-{* 获得某农历年月日（加是否闰月）的公历年月日}
+{* 获得某农历年月日（加是否闰月）的公历年月日，返回是否获取成功。
+
+   参数：
+     ALunarYear, ALunarMonth, ALunarDay: Integer          - 待计算的农历年、月、日
+     IsLeapMonth: Boolean                                 - 是否闰月
+     out AYear, AMonth, ADay: Integer                     - 用来容纳计算结果的年、月、日
+
+   返回值：Boolean                                        - 返回是否计算成功
+}
 
 function Compare2Day(Year1, Month1, Day1, Year2, Month2, Day2: Integer): Integer;
-{* 比较两个公历日期，1 > = < 2 分别返回 1、0、-1}
+{* 比较两个公历日期，前者大于、等于、小于后者时分别返回 1、0、-1，大于指更靠近未来。
+
+   参数：
+     Year1, Month1, Day1: Integer         - 待判断的第一个公历年、月、日
+     Year2, Month2, Day2: Integer         - 待判断的第二个公历年、月、日
+
+   返回值：Integer                        - 返回比较结果
+}
 
 function Compare2LunarDay(Year1, Month1, Day1: Integer; IsLeap1: Boolean;
   Year2, Month2, Day2: Integer; IsLeap2: Boolean): Integer;
-{* 比较两个农历日期（包括闰月信息），1 >=< 2 分别返回 1、0、-1}
+{* 比较两个农历日期（包括闰月信息），前者大于、等于、小于后者时分别返回 1、0、-1，大于指更靠近未来。
+
+   参数：
+     Year1, Month1, Day1: Integer         - 待判断的第一个农历年、月、日
+     IsLeap1: Boolean                     - 第一个农历是否闰月
+     Year2, Month2, Day2: Integer         - 待判断的第二个农历年、月、日
+     IsLeap2: Boolean                     - 第二个农历是否闰月
+
+   返回值：Integer                        - 返回比较结果
+}
 
 function GetYearSeperatedByLiChun(AYear, AMonth, ADay: Integer): Integer;
-{* 根据公历年月日，返回该日所属的以立春分割的年份，也就是说立春日后是今年，否则为去年}
+{* 根据公历年月日，返回该日所属的以立春分割的年份，也就是说立春日后是今年，否则为去年。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回所属公历年
+}
 
 function GetEquStandardDays(AYear, AMonth, ADay: Integer): Integer;
-{* 获得某公历日的等效标准日数}
+{* 获得某公历日的等效标准日数。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回等效标准日数
+}
 
 function GetDayFromEquStandardDays(EquDays: Integer;
   out AYear, AMonth, ADay: Integer): Boolean;
-{* 获得等效标准日数对应的某公历日}
+{* 获得等效标准日数对应的某公历日，返回是否获取成功。
+
+   参数：
+     EquDays: Integer                     - 待计算的等效标准日数
+     out AYear, AMonth, ADay: Integer     - 用来容纳计算结果的年、月、日
+
+   返回值：Boolean                        - 返回是否计算成功
+}
 
 implementation
+
+resourcestring
+  SCnErrorDateIsInvalid = 'Date is Invalid: %d-%d-%d.';
+  SCnErrorLunarDateIsInvalid = 'Lunar Date is Invalid: %d-%d-%d, MonthLeap %d.';
+  SCnErrorTimeIsInvalid = 'Time is Invalid: %d:%d:%d.';
 
 const
   RADS = 0.0174532925;
@@ -1559,7 +2178,7 @@ end;
 function Get3HeFromZhi(const Zhi: Integer; out He1: Integer;
   out He2: Integer): Boolean;
 begin
-  // 三合是互相差4的三个地支，也就是申子辰、寅午戌、巳酉丑、卯亥未，
+  // 三合是互相差 4 的三个地支，也就是申子辰、寅午戌、巳酉丑、卯亥未，
   // 或者说猴鼠龙、虎马狗、蛇鸡牛、兔猪羊
   Result := False;
   if Zhi in [0..11] then
@@ -1693,7 +2312,7 @@ end;
 procedure ValidDate(AYear, AMonth, ADay: Integer);
 begin
   if not GetDateIsValid(AYear, AMonth, ADay) then
-    raise ECnDateException.CreateFmt('Date is Invalid: %d-%d-%d.', [AYear, AMonth, ADay]);
+    raise ECnDateTimeException.CreateFmt(SCnErrorDateIsInvalid, [AYear, AMonth, ADay]);
 end;
 
 // 返回农历日期是否合法
@@ -1722,7 +2341,7 @@ end;
 procedure ValidLunarDate(ALunarYear, ALunarMonth, ALunarDay: Integer; IsLeapMonth: Boolean);
 begin
   if not GetLunarDateIsValid(ALunarYear, ALunarMonth, ALunarDay, IsLeapMonth) then
-    raise ECnDateException.CreateFmt('Lunar Date is Invalid: %d-%d-%d, MonthLeap %d.',
+    raise ECnDateTimeException.CreateFmt(SCnErrorLunarDateIsInvalid,
       [ALunarYear, ALunarMonth, ALunarDay, Integer(IsLeapMonth)]);
 end;
 
@@ -1736,7 +2355,7 @@ end;
 procedure ValidTime(AHour, AMinitue, ASecond: Integer);
 begin
   if not GetTimeIsValid(AHour, AMinitue, ASecond) then
-    raise ECnTimeException.CreateFmt('Time is Invalid: %d:%d:%d.', [AHour, AMinitue, ASecond]);
+    raise ECnDateTimeException.CreateFmt(SCnErrorTimeIsInvalid, [AHour, AMinitue, ASecond]);
 end;
 
 // 比较两个公历日期，1 >=< 2 分别返回 1、0、-1
@@ -1872,56 +2491,55 @@ begin
   Result := True;
 end;
 
-// 获得距公元原点的日数
-function GetAllDays(Year, Month, Day: Integer): Integer;
-
-  function GetBasicDays(AYear, AMonth, ADay: Integer): Integer;
-  var
-    I: Integer;
-  begin
-    if AYear > 0 then
-      Result := (AYear - 1) * 365
-    else
-      Result := AYear * 365;
-
-    for I := 1 to AMonth - 1 do
-      Inc(Result, GetMonthDays(AYear, I));
-    Inc(Result, ADay);
-  end;
-
-  function GetLeapDays(AYear, AMonth, ADay: Integer): Integer;
-  begin
-    if AYear >= 0 then // 公元后
-    begin
-      if GetCalendarType(AYear, AMonth, ADay) in [ctJulian, ctInvalid] then
-        Result := 0
-      else
-      begin
-        // 1582.10.5/15 前的 Julian 历只有四年一闰，历法此日后调整为 Gregorian 历
-        Result := 10; // 被 Gregory 删去的 10 天
-
-        if AYear > 1700 then // 修正算法简化版，从 1701 年的 11 起
-        begin
-          // 每一世纪累加一
-          Inc(Result, 1 + ((AYear - 1701) div 100));
-          // 但 400 整除的世纪不加
-          Dec(Result, ((AYear - 1601) div 400));
-        end;
-      end;
-      Result := ((AYear - 1) div 4) - Result; // 4 年一闰数
-    end
-    else // 公元前
-    begin
-      Result := - ((- AYear + 3) div 4);
-    end;
-  end;
-
+function GetBasicDays(AYear, AMonth, ADay: Integer): Integer;
+var
+  I: Integer;
 begin
-  Result := GetBasicDays(Year, Month, Day) + GetLeapDays(Year, Month, Day);
+  if AYear > 0 then
+    Result := (AYear - 1) * 365
+  else
+    Result := AYear * 365;
+
+  for I := 1 to AMonth - 1 do
+    Inc(Result, GetMonthDays(AYear, I));
+  Inc(Result, ADay);
 end;
 
-// 获取等效标准天数，此概念系移植而来，似乎是距 Gregorian 历元年元旦的天数
-// 注意此处的 Gregorian 历不包括删去的 10 天，因此等效标准日是连续的
+function GetLeapDays(AYear, AMonth, ADay: Integer): Integer;
+begin
+  if AYear >= 0 then // 公元后
+  begin
+    if GetCalendarType(AYear, AMonth, ADay) in [ctJulian, ctInvalid] then
+      Result := 0
+    else
+    begin
+      // 1582.10.5/15 前的儒略历只有四年一闰，历法此日后调整为格里高利历
+      Result := 10; // 被格里高利删去的 10 天
+
+      if AYear > 1700 then // 修正算法简化版，从 1701 年的 11 起
+      begin
+        // 每一世纪累加一
+        Inc(Result, 1 + ((AYear - 1701) div 100));
+        // 但 400 整除的世纪不加
+        Dec(Result, ((AYear - 1601) div 400));
+      end;
+    end;
+    Result := ((AYear - 1) div 4) - Result; // 4 年一闰数
+  end
+  else // 公元前
+  begin
+    Result := - ((- AYear + 3) div 4);
+  end;
+end;
+
+// 获得距公元原点的日数
+function GetAllDays(AYear, AMonth, ADay: Integer): Integer;
+begin
+  Result := GetBasicDays(AYear, AMonth, ADay) + GetLeapDays(AYear, AMonth, ADay);
+end;
+
+// 获取等效标准天数，此概念系移植而来，似乎是距格里高利历元年元旦的天数
+// 注意此处的格里高利历不包括删去的 10 天，因此等效标准日是连续的
 function GetEquStandardDays(AYear, AMonth, ADay: Integer): Integer;
 var
   AType: TCnCalendarType;
@@ -1937,10 +2555,10 @@ begin
   begin
     Result := (AYear - 1) * 365 + ((AYear - 1) div 4)
       + GetDayFromYearBegin(AYear, AMonth, ADay) - 2;
-    { 为啥减 2？猜测公元 1 年到 1582 年，Julian 历较 Gregorian 历多闰了 12 天，
+    { 为啥减 2？猜测公元 1 年到 1582 年，儒略历较格里高利历多闰了 12 天，
       (100, 200, 300, 500, 600, 700, 900, 1000, 1100, 1300, 1400, 1500)
-      而 Gregory 只删去 10 天，所以留下了 2 天的差值。
-      这说明，按 Gregorian 历从 1582.10.4 往前倒推得的 Gregorian 历元年元旦
+      而格里高利只删去 10 天，所以留下了 2 天的差值。
+      这说明，按格里高利历从 1582.10.4 往前倒推得的格里高利历元年元旦
       和实际公元元年元旦不是同一天。 }
   end;
 end;
@@ -1966,10 +2584,10 @@ begin
 
   if EquDays < 0 then Exit; // 暂不处理公元前的等效标准日
 
-  if EquDays <= 577735 then // 如果是 1582.10.4 (577735) 及之前为Julian历，需要修正
+  if EquDays <= 577735 then // 如果是 1582.10.4 (577735) 及之前为儒略历，需要修正
   begin
     Diff := EquDays div (365 * 100) - EquDays div (365 * 400);
-    Dec(EquDays, 10); // Gregorian 删去的 10 天
+    Dec(EquDays, 10); // 格里高利删去的 10 天
     Inc(EquDays, 12 - Diff); // 补上多闰的 12 天中多闰的部分
   end;
 
@@ -3123,12 +3741,22 @@ var
   C: Char;
 begin
   C := SCnLeapMonth[AYear + 850]; // 字符串下标以 1 开始。
-  if {$IFDEF UNICODE}CharInSet(C, ['0'..'9']){$ELSE}C in ['0'..'9']{$ENDIF} then
+
+{$IFDEF UNICODE}
+  if CharInSet(C, ['0'..'9']) then
     Result := StrToInt(C)
-  else if {$IFDEF UNICODE}CharInSet(C , ['a'..'c']){$ELSE}C in ['a'..'c']{$ENDIF} then
+  else if CharInSet(C , ['a'..'c']) then
     Result := 10 + Ord(C) - Ord('a')
   else
     Result := -1;
+{$ELSE}
+  if C in ['0'..'9'] then
+    Result := StrToInt(C)
+  else if C in ['a'..'c'] then
+    Result := 10 + Ord(C) - Ord('a')
+  else
+    Result := -1;
+{$ENDIF}
 end;
 
 // 获得一大于零的数的小数部分
@@ -3148,7 +3776,7 @@ end;
 
 // 获得某公历年月日的农历日数和该日月相以及日月食类型和时刻
 function GetLunarMoon(AYear, AMonth, ADay: Integer; out EclipseType: TCnEclipseType;
-  out MoonPhase: TCnMoonPhase; out theTime: Double): Real;
+  out MoonPhase: TCnMoonPhase; out TheTime: Double): Real;
 var
   K, K1: Real;
   T, Rpi, Zone, F0, Fc, J0, Aa0, Ab0, Ac0, ShuoTime, WangTime: Real;
@@ -3252,31 +3880,31 @@ begin
       LunDay := LunDay + 30;
   end;
   
-  // 2025.4.27 ~ 5.26 少一天
-  if (AYear = 2025)
-    and (((AMonth = 4) and (ADay >= 27)) or ((AMonth = 5) and (ADay <= 26))) then
-  begin
-    Inc(LunDay);
-    if LunDay > 30 then
-      LunDay := LunDay - 30;
-  end;
+// 原始移植而来的代码，有 2025.4.27 ~ 5.26 少一天的机制，但经计算与实际情况不符，干掉
+//  if (AYear = 2025)
+//    and (((AMonth = 4) and (ADay >= 27)) or ((AMonth = 5) and (ADay <= 26))) then
+//  begin
+//    Inc(LunDay);
+//    if LunDay > 30 then
+//      LunDay := LunDay - 30;
+//  end;
 
   Result := LunDay;
 
   if LunDay = 1 then // 朔日
   begin
     MoonPhase := mpShuo;
-    theTime := ShuoTime;
+    TheTime := ShuoTime;
   end
   else if LunDay = WangDay then
   begin
     MoonPhase := mpWang;
-    theTime := WangTime;
+    TheTime := WangTime;
   end
   else
   begin
     MoonPhase := mpNone;
-    theTime := -1;
+    TheTime := -1;
   end;
 end;
 
