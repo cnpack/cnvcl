@@ -24,7 +24,18 @@ unit CnMethodHook;
 * 软件名称：CnPack IDE 专家包
 * 单元名称：对象方法挂接单元
 * 单元作者：周劲羽 (zjy@cnpack.org)
-* 备    注：该单元用来挂接类的方法，由 CnWizMethodHook 移植而来在组件包中使用
+* 备    注：该单元用来挂接 IDE 内部类的方法
+*           32 位下统一使用相对跳转也即 E9 加 32 位偏移，一般没啥问题。
+*           64 位下如果也用 E9 加 32 位偏移，那么 DLL 在内存空间中太远就会跳不过去
+*           64 位下有 25FF 加 RIP 偏移处的 8 字节作为绝对跳转地址的模式（BPL 就如此），
+*           但同样存在该 8 字节存储的位置离待挂接的方法太远的问题。
+*
+*           因而两种选择，一是在 64 位下使用 DDetours 来规避。二是考虑这种（已实现）：
+*              push address.low32
+*              mov dword [rsp+4], address.high32
+*              ret
+*           好处是能覆盖所有空间不用担心太远，坏处是 14 个字节，远超 32 位下的 5 个。
+*
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：
 * 本 地 化：该单元中的字符串支持本地化处理方式
@@ -152,7 +163,7 @@ var
   Is64: Boolean = False;
 {$ENDIF}
 
-// 返回在 BPL 中实际的方法地址
+// 返回在 BPL 中实际的方法地址，支持 32 位和 64 位，机器码都为 $25FF，但含义不同
 function CnGetBplMethodAddress(Method: Pointer): Pointer;
 type
   TJmpCode = packed record
