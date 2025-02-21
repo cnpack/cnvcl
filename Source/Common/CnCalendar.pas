@@ -282,21 +282,21 @@ type
   {* 月相：     无，    朔，    望}
 
   TCnSunRiseSetType = (stNormal, stAllwaysUp, stAllwaysDown, stError);
-  {* 日出日落类型：  普通，    日不落，     日不出，       数据错误 }
+  {* 日出日落类型：    普通，    极昼，       极夜，        数据错误 }
 
 function GetSunRiseSetTime(ADate: TDateTime; Longitude, Latitude: Extended;
-  ZoneTime: Integer; var RiseTime, TransitTime, SetTime: TDateTime):
+  ZoneTime: Integer; out RiseTime, TransitTime, SetTime: TDateTime):
   TCnSunRiseSetType;
-{* 计算日出日落时间。
+{* 计算某经纬度地点在某公历日期的日出日落时刻。
 
    参数：
      ADate: TDateTime                     - 日期
      Longitude: Extended                  - 经度
      Latitude: Extended                   - 纬度
-     ZoneTime: Integer                    - 时区
-     var RiseTime: TDateTime              - 返回日出时间，如果无日出返回 -1
-     var TransitTime: TDateTime           - 返回日中时间，如果无日中返回 -1
-     var SetTime: TDateTime               - 返回日落时间，如果无日落返回 -1
+     ZoneTime: Integer                    - 该经度所在的时区，比如国内的经纬度应传 8
+     out RiseTime: TDateTime              - 返回日出时间，如果无日出返回 -1
+     out TransitTime: TDateTime           - 返回日中时间，如果无日中返回 -1
+     out SetTime: TDateTime               - 返回日落时间，如果无日落返回 -1
 
    返回值：Boolean                        - 返回日出日落类型
 }
@@ -1209,6 +1209,48 @@ function GetDayFromEquStandardDays(EquDays: Integer;
    返回值：Boolean                        - 返回是否计算成功
 }
 
+function GetJulianDate(AYear, AMonth, ADay: Integer): Extended; overload;
+{* 获得某公历日中午 12 点的儒略日数，也即以儒略历的公元前 4713 年 1 月 1 日
+   中午 12 点为起点的日数，一般是个整数。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Extended                       - 返回儒略日数
+}
+
+function GetJulianDate(AYear, AMonth, ADay: Integer;
+  AHour, AMinute, ASecond: Integer): Extended; overload;
+{* 获得某公历日期时刻的儒略日数。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+     AHour, AMinute, ASecond: Integer     - 待计算的时、分、秒
+
+   返回值：Extended                       - 返回儒略日数
+}
+
+function GetModifiedJulianDate(AYear, AMonth, ADay: Integer): Extended; overload;
+{* 获得某公历日中午 12 点的约化儒略日数，也即以公元 1858 年 11 月 17 日
+   0 点为起点的日数，小数部分一般是 0.5。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Extended                       - 返回约化儒略日数
+}
+
+function GetModifiedJulianDate(AYear, AMonth, ADay: Integer;
+  AHour, AMinute, ASecond: Integer): Extended; overload;
+{* 获得某公历日期时刻的约化儒略日数。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+     AHour, AMinute, ASecond: Integer     - 待计算的时、分、秒
+
+   返回值：Extended                       - 返回约化儒略日数
+}
+
 implementation
 
 resourcestring
@@ -1591,7 +1633,7 @@ begin
     Result := Result + 360;
 end;
 
-// 计算约化儒略日
+// 日出日落专用的计算约化儒略日
 function Mjd(Year, Month, Day, Hour: Integer): Extended;
 var
   A, B: Extended;
@@ -1737,7 +1779,7 @@ begin
 end;
 
 function DoSunCalc(AMjd: Extended; Glong, Glat: Extended;
-  Tz: Integer; var RiseTime, TransitTime, SetTime: TDateTime):
+  Tz: Integer; out RiseTime, TransitTime, SetTime: TDateTime):
   TCnSunRiseSetType;
 var
   sinho, sglat, cglat: Extended;
@@ -1829,7 +1871,7 @@ end;
 
 // 计算日出日落时间
 function GetSunRiseSetTime(ADate: TDateTime; Longitude, Latitude: Extended;
-  ZoneTime: Integer; var RiseTime, TransitTime, SetTime: TDateTime):
+  ZoneTime: Integer; out RiseTime, TransitTime, SetTime: TDateTime):
   TCnSunRiseSetType;
 var
   Year, Month, Day: Word;
@@ -1843,10 +1885,6 @@ begin
     Result := stError;
   end;          
 end;
-
-//==============================================================================
-// 以上是日出日落计算的内容
-//==============================================================================
 
 // 生成本地的干支字符串列表，因为不想手工输入 ;)
 procedure GenerateGanZhiArray;
@@ -2630,6 +2668,38 @@ begin
   AMonth := M;
   ADay := D + 1;
   Result := True;
+end;
+
+function GetJulianDate(AYear, AMonth, ADay: Integer): Extended;
+var
+  A, Y, M: Integer;
+begin
+  ValidDate(AYear, AMonth, ADay);
+
+  A := (14 - AMonth) div 12;
+  Y := AYear + 4800 - A;
+  M := AMonth + 12 * A - 3;
+
+  Result := ADay + ((153 * M + 2) div 5) + 365 * Y + (Y div 4) - (Y div 100) + (Y div 400) - 32045;
+  Result := Result;
+end;
+
+function GetJulianDate(AYear, AMonth, ADay: Integer;
+  AHour, AMinute, ASecond: Integer): Extended; overload;
+begin
+  Result := GetJulianDate(AYear, AMonth, ADay) - 0.5; // 得到 0 时的儒略日数
+  Result := Result + (AHour * 3600 + AMinute * 60 + ASecond) / 86400; // 加上当日小数
+end;
+
+function GetModifiedJulianDate(AYear, AMonth, ADay: Integer): Extended;
+begin
+  Result := GetJulianDate(AYear, AMonth, ADay) - 2400000.5;
+end;
+
+function GetModifiedJulianDate(AYear, AMonth, ADay: Integer;
+  AHour, AMinute, ASecond: Integer): Extended;
+begin
+  Result := GetJulianDate(AYear, AMonth, ADay, AHour, AMinute, ASecond) - 2400000.5;
 end;
 
 // 获得某日期是星期几，0-6

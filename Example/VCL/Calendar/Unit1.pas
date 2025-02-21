@@ -7,7 +7,7 @@ uses
   StdCtrls, ComCtrls, CnMonthCalendar;
 
 type
-  TForm1 = class(TForm)
+  TFormCalendar = class(TForm)
     pgc1: TPageControl;
     ts1: TTabSheet;
     lblYear: TLabel;
@@ -38,6 +38,20 @@ type
     chkYearButton: TCheckBox;
     dtpSet: TDateTimePicker;
     lblDate: TLabel;
+    tsSun: TTabSheet;
+    lblSunYear: TLabel;
+    edtSunYear: TEdit;
+    edtSunMonth: TEdit;
+    edtSunDay: TEdit;
+    lblSunDay: TLabel;
+    lblSunMonth: TLabel;
+    lblLongi: TLabel;
+    edtSunLongi: TEdit;
+    lblLat: TLabel;
+    edtSunLat: TEdit;
+    btnSunTime: TButton;
+    btnSunAngle: TButton;
+    mmoSun: TMemo;
     procedure btnCalcClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
@@ -47,15 +61,16 @@ type
     procedure chkYearButtonClick(Sender: TObject);
     procedure dtpSetChange(Sender: TObject);
     procedure CnMonthCalendar1Change(Sender: TObject);
+    procedure btnSunTimeClick(Sender: TObject);
+    procedure btnSunAngleClick(Sender: TObject);
   private
-    { Private declarations }
     procedure ConvertEditToDate;
   public
-    { Public declarations }
+
   end;
 
 var
-  Form1: TForm1;
+  FormCalendar: TFormCalendar;
 
 implementation
 
@@ -66,7 +81,7 @@ uses CnCalendar, CnCalClass;
 var
   AYear, AMonth, ADay, AHour: Integer;
 
-procedure TForm1.btnCalcClick(Sender: TObject);
+procedure TFormCalendar.btnCalcClick(Sender: TObject);
 var
   I, GanZhi, Gan, Zhi, JiuXing: Integer;
   M1, D1, H1, mi1: Integer;
@@ -84,6 +99,8 @@ begin
   
   mmoResult.Lines.Add('公历日数：' + IntToStr(GetAllDays(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('等效标准日数：' + IntToStr(GetEquStandardDays(AYear, AMonth, ADay)));
+  mmoResult.Lines.Add('儒略日数：' + FloatToStr(GetJulianDate(AYear, AMonth, ADay)));
+  mmoResult.Lines.Add('约化儒略日数：' + FloatToStr(GetModifiedJulianDate(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('星期：' + IntToStr(GetWeek(AYear, AMonth, ADay)));
   if GetShu9Day(AYear, AMonth, ADay, v91, v92) then
     mmoResult.Lines.Add(Format('%d九第%d天', [v91, v92]));
@@ -165,7 +182,7 @@ begin
   end;
 end;
 
-procedure TForm1.ConvertEditToDate;
+procedure TFormCalendar.ConvertEditToDate;
 begin
   AYear := StrToIntDef(edtYear.Text, 2000);
   AMonth := StrToIntDef(edtMonth.Text, 12);
@@ -173,7 +190,7 @@ begin
   AHour := StrToIntDef(edtHour.Text, 0);
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TFormCalendar.FormCreate(Sender: TObject);
 var
   Year, Month, Day: Word;
   Hour, Min, Sec, Dummy: Word;
@@ -191,7 +208,7 @@ begin
   pgc1.ActivePageIndex := 0;
 end;
 
-procedure TForm1.Button1Click(Sender: TObject);
+procedure TFormCalendar.Button1Click(Sender: TObject);
 var
   HourObj: TCnHourObj;
 begin
@@ -231,12 +248,12 @@ begin
   end;
 end;
 
-procedure TForm1.chkGanZhiClick(Sender: TObject);
+procedure TFormCalendar.chkGanZhiClick(Sender: TObject);
 begin
   CnMonthCalendar1.ShowGanZhi := chkGanZhi.Checked;
 end;
 
-procedure TForm1.btnCalcLunarClick(Sender: TObject);
+procedure TFormCalendar.btnCalcLunarClick(Sender: TObject);
 var
   Year, Month, Day: Integer;
   IsLeap: Boolean;
@@ -271,24 +288,65 @@ begin
   mmoLunar.Lines.Add(Format('本农历月天数：%d', [GetLunarMonthDays(Year, Month, chkLeap.Checked)]));
 end;
 
-procedure TForm1.chkMonthButtonClick(Sender: TObject);
+procedure TFormCalendar.chkMonthButtonClick(Sender: TObject);
 begin
   Self.CnMonthCalendar1.ShowMonthButton := chkMonthButton.Checked;
 end;
 
-procedure TForm1.chkYearButtonClick(Sender: TObject);
+procedure TFormCalendar.chkYearButtonClick(Sender: TObject);
 begin
   CnMonthCalendar1.ShowYearButton := chkYearButton.Checked;
 end;
 
-procedure TForm1.dtpSetChange(Sender: TObject);
+procedure TFormCalendar.dtpSetChange(Sender: TObject);
 begin
   CnMonthCalendar1.Date := dtpSet.Date;
 end;
 
-procedure TForm1.CnMonthCalendar1Change(Sender: TObject);
+procedure TFormCalendar.CnMonthCalendar1Change(Sender: TObject);
 begin
   lblDate.Caption := DateTimeToStr(CnMonthCalendar1.Date);
+end;
+
+procedure TFormCalendar.btnSunTimeClick(Sender: TObject);
+var
+  Dt: TDateTime;
+  J, W: Extended;
+  T1, T2, T3: TDateTime;
+begin
+  Dt := EncodeDate(StrToIntDef(edtSunYear.Text, 2025), StrToIntDef(edtSunMonth.Text, 10),
+    StrToIntDef(edtSunDay.Text, 1));
+  J := StrToFloat(edtSunLongi.Text);
+  W := StrToFloat(edtSunLat.Text);
+
+  if GetSunRiseSetTime(Dt, J, W, 8, T1, T2, T3) = stNormal then
+  begin
+    mmoSun.Lines.Add('日出：' + TimeToStr(T1));
+    mmoSun.Lines.Add('日中：' + TimeToStr(T2));
+    mmoSun.Lines.Add('日落：' + TimeToStr(T3));
+  end
+  else
+    mmoSun.Lines.Add('极昼或极夜');
+end;
+
+procedure TFormCalendar.btnSunAngleClick(Sender: TObject);
+var
+  Dt: TDateTime;
+  J, W: Extended;
+  A1, A2: Extended;
+begin
+  Dt := EncodeDate(StrToIntDef(edtSunYear.Text, 2025), StrToIntDef(edtSunMonth.Text, 10),
+    StrToIntDef(edtSunDay.Text, 1));
+  J := StrToFloat(edtSunLongi.Text);
+  W := StrToFloat(edtSunLat.Text);
+
+//  if GetSunRiseSetAzimuth(Dt, J, W, A1, A2) then
+//  begin
+//    mmoSun.Lines.Add('日出：' + FloatToStr(A1));
+//    mmoSun.Lines.Add('日落：' + FloatToStr(A2));
+//  end
+//  else
+//    mmoSun.Lines.Add('极昼或极夜');
 end;
 
 end.

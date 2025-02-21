@@ -1,4 +1,4 @@
-object Form1: TForm1
+object FormCalendar: TFormCalendar
   Left = 273
   Top = 110
   BorderStyle = bsDialog
@@ -256,6 +256,113 @@ object Form1: TForm1
         Align = alBottom
         ScrollBars = ssVertical
         TabOrder = 5
+      end
+    end
+    object tsSun: TTabSheet
+      Caption = '日出日落计算'
+      ImageIndex = 3
+      object lblSunYear: TLabel
+        Left = 8
+        Top = 20
+        Width = 12
+        Height = 12
+        Caption = '年'
+      end
+      object lblSunDay: TLabel
+        Left = 208
+        Top = 20
+        Width = 12
+        Height = 12
+        Caption = '日'
+      end
+      object lblSunMonth: TLabel
+        Left = 112
+        Top = 20
+        Width = 12
+        Height = 12
+        Caption = '月'
+      end
+      object lblLongi: TLabel
+        Left = 296
+        Top = 20
+        Width = 12
+        Height = 12
+        Caption = '经'
+      end
+      object lblLat: TLabel
+        Left = 392
+        Top = 20
+        Width = 12
+        Height = 12
+        Caption = '纬'
+      end
+      object edtSunYear: TEdit
+        Left = 32
+        Top = 16
+        Width = 57
+        Height = 20
+        TabOrder = 0
+        Text = '2025'
+      end
+      object edtSunMonth: TEdit
+        Left = 128
+        Top = 16
+        Width = 57
+        Height = 20
+        TabOrder = 1
+        Text = '2'
+      end
+      object edtSunDay: TEdit
+        Left = 224
+        Top = 16
+        Width = 57
+        Height = 20
+        TabOrder = 2
+        Text = '20'
+      end
+      object edtSunLongi: TEdit
+        Left = 320
+        Top = 16
+        Width = 57
+        Height = 20
+        TabOrder = 3
+        Text = '121.47493'
+      end
+      object edtSunLat: TEdit
+        Left = 416
+        Top = 16
+        Width = 57
+        Height = 20
+        TabOrder = 4
+        Text = '31.22897'
+      end
+      object btnSunTime: TButton
+        Left = 32
+        Top = 48
+        Width = 75
+        Height = 25
+        Caption = '时刻'
+        TabOrder = 5
+        OnClick = btnSunTimeClick
+      end
+      object btnSunAngle: TButton
+        Left = 128
+        Top = 48
+        Width = 75
+        Height = 25
+        Caption = '方位角'
+        Enabled = False
+        TabOrder = 6
+        OnClick = btnSunAngleClick
+      end
+      object mmoSun: TMemo
+        Left = 0
+        Top = 88
+        Width = 537
+        Height = 438
+        Align = alBottom
+        ScrollBars = ssVertical
+        TabOrder = 7
       end
     end
   end
