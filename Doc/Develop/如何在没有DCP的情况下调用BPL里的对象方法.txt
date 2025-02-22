@@ -1,0 +1,336 @@
+**********************************************************************
+                     CnPack For Delphi/C++Builder
+                     中国人自己的免费第三方开发包
+                 (C)Copyright 2001-2025 CnPack 开发组
+**********************************************************************
+
+                 如何在没有DCP的情况下调用BPL里的对象方法
+                           Revision 1.0.0.0
+                       =========================
+                        作者：刘啸 2024.02.22
+
+
+在理解并回答题目里的问题之前，我们先回顾一下Delphi的带包编译的背景知识。
+
+熟悉Delphi编译特点的程序员都知道，Delphi的编译不仅速度快，而且能将所需的纯Pascal库全部编译进一个EXE，复制到别的Windows机器上立马可以运行，无需像VB/VC那样依赖一堆系统运行库。这种机制给Delphi程序的分发带来了很大的便利。同时，Delphi自身也支持“将程序编译成EXE加一堆系统库”的机制，这样在大型项目中，程序员们也能很方便地将代码模块组织成不同BPL，以实现代码复用与共享。
+
+那么，这两种机制有些什么不同呢？
+
+======================================================================
+1. 不带包？还是带包？
+======================================================================
+
+第一种完整编译成EXE的模式很容易理解，我们能看到，Delphi的安装目录的Lib目录下有一大堆扩展名为DCU的文件，均由安装目录的Source目录下的VCL源码编译而来。它们相当于C/C++中的OBJ文件，包含了编译后的二进制代码。完整编译模式下，Delphi在打包我们的EXE时，会将这些DCU全打进来，最终生成一个独立EXE，体积一般几百K到几个M，稍微有点大。
+
+Delphi还有另外一种编译模式叫“Build with Runtime Packages”，也即带包编译。当我们在工程选项里勾上这一选项时，会要求我们输入包名，一般默认会填上Delphi安装后自带的一批包名如rtl、vcl、vclxx等。之后编译出的EXE就比独立编译的小得多，几十K的都有。运行EXE时，它会加载这批包所指明的BPL包，如果找不到，EXE就运行不起来。
+
+带包编译的过程也比完整编译要复杂一些。我们再看看Delphi的Lib目录，这里头除了大量DCU之外，还有少数DCP文件。原来，Source目录下的VCL源码，不光直接编译成了这批DCU，还以另外一种方式分了很多组，每一组编译成了一个DCP和一个BPL。
+
+BPL的概念相当于DLL，包含了可被加载的二进制代码，而DCP相当于C/C++里的头文件加LIB文件，提供了如何加载并调用BPL里的内容的使用说明，不包含编译后的二进制代码。
+
+比如SysUtils.pas里的代码，在Delphi 7中除了被提前编译成SysUtils.dcu之外，还被编译进了rtl.dcp和rt70.bpl，前者搁Delphi的Lib目录里供带包编译时链接用，后者搁Windows的System32或SysWOW64下供动态加载用。
+
+注意DCP和BPL的名字是可以不同的，只不过我们自己写DPK包的时候，所生成的DCP和BPL一般都相同。
+
+Delphi里有很多强大的第三方组件包，其组织形式一般也是这两种，一个DPK引用组件包内的源码，编译时既产生DCU，也生成DCP和BPL，只要这三者都在合适的路径下能被找到，那么这些组件便既能通过DCU的形式完整编译进EXE，也能通过DCP的形式编译进EXE、运行时加载对应BPL。
+
+决定一个程序是否使用带包编译，主要取决于这个程序的模块耦合度。小的程序一个EXE全搞定，无需带包。而大型的系统，可执行文件本身可能会拆成多个DLL，这种情况下，如果每个DLL编译时都不带包，则要把系统DCU都重复打进每个DLL，体积增大了不说，一些全局的内容还无法互通，比如Application、Screen等全局对象，因而带包编译就势在必行。另外，设计时我们还可以选择将项目代码主动拆分成不同BPL，也就是把部分代码像第三方组件包一样写成DPK，可以享受其强大、且不局限于DLL函数调用的功能。
+
+======================================================================
+2. 带包为什么强大？
+======================================================================
+
+BPL虽然本质上也是DLL，但比普通的DLL要强大很多。DLL仅仅实现了函数的输出，而BPL不仅实现了独立函数的输出，还实现了类、方法、全局变量的输出与共享。那这些机制是如何实现的呢？
+
+答案其实还是函数输出，只不过Borland/CodeGear/EMB等在其上面又做了一层手脚。
+
+这里举个简单例子：VCL源码的IniFiles里有个TIniFile类，它有个DeleteKey方法，声明如下：
+
+  TIniFile = class(TCustomIniFile)
+  public
+    ...
+    procedure DeleteKey(const Section, Ident: String);
+
+我们一般调用它的代码是这么写的：
+
+  var
+    Ini: TIniFile;
+  begin
+    Ini := TIniFile.Create;
+    Ini.DeleteKey('ASection', 'Ident');
+    ...
+
+在带包编译的情况下，跑到Ini.DeleteKey这句时，Delphi并不是去找链接进EXE里的IniFiles.dcu里的代码，因为压根没链接。
+
+那它是如何找到去哪调用、怎样调用目标代码呢？
+
+原来，Delphi在编译BPL时，把每个类、每个方法、每个全局变量，都编译成了特殊的函数，并输出供外头调用。
+
+上面的TIniFile类的DeleteKey方法，在Delphi 7的rtl70.bpl里，实际上生成了这样一个对应的函数：
+
+@Inifiles@TIniFile@DeleteKey$qqrx17System@AnsiStringt1
+
+这个函数名以一种特征值的方式，把该方法所在的单元、所属的类、所需的调用参数数量及类型，全部塞到函数名里头了。
+
+只要看这个函数名，就能知道，这个函数其实就是IniFiles单元里TIniFile类的DeleteKey方法，它还有俩参数，类型是AnsiString。
+
+至于特征值编码的细节，太复杂，一时半会说不清。好在各种调试器或逆向工具如IDA、OllyDbg、x64Dbg等，均有将这些古里古怪的函数名解码成可读的方法名的功能。
+
+知道了上面BPL把类或对象的方法作为一个DLL的普通函数进行输出后，读者或许要问，DLL函数和对象的方法其实是不同的，参数要怎么传？
+
+浅层次的答案很简单：Delphi用DCP，将这些机制完全封装好了，你代码里写的Ini.DeleteKey('ASection', 'Ident')，在带包编译时会自动链接rtl70.bpl，会自动通过GetProcAddress拿到@Inifiles@TIniFile@DeleteKey$qqrx17System@AnsiStringt1的入口地址，然后，传参，调！
+
+一切对用户来说都是透明的。
+
+======================================================================
+3. 如何在没有DCP的情况下调用BPL里的对象方法？
+======================================================================
+
+现在，终于轮到我们的问题了。
+
+这个问题一般人碰不着。如果大家写的系统的代码全在自己手里，无论如何拆BPL，只要能编译，就会生成一一对应的DCP和BPL，就能顺利让别人使用。
+
+除非有一种情况，那就是发布BPL的人，独独不打算让你用。
+
+就拿Delphi的IDE来说，它本身就是一个十分巨大的项目，的确也拆成了许多BPL，一部分属于Open ToolsAPI相关，有相应的Pascal代码供阅读（如ToolsAPI.pas），也有相应的DCP供带包编译使用（如designide.dcp），更有相应的BPL供真正运行时调用。
+
+但是Delphi IDE里有更多功能是不属于开放领域的，譬如最核心的一个cordide70.bpl，包含了IDE主窗体、组件查看器、编辑器在内的大量重要功能，有大量的类的方法按上面的复杂规则输出成函数了。很多函数实现了IDE内部的核心类及核心功能，我们CnPack IDE专家包的很多功能必须调用它们的对象方法才能实现。
+
+但是，这些BPL，没有对应的DCP。
+
+铛铛铛！考验我们开发组的时候到了。
+
+======================================================================
+4. 对象的方法如何像普通函数一样调用？
+======================================================================
+
+既然BPL把类或对象的方法作为一个DLL的普通函数进行输出，我们自然会疑惑，虽然封装好了，但实际上我们都知道DLL函数和对象的方法其实是不同的，参数具体要怎么传？
+
+这个不同很好理解。对象的方法有个隐含的Self参数，代表对象本身，而独立的函数没有。于是Delphi理所当然地给这种函数加上了Self参数。
+
+也就是说，输出的函数@Inifiles@TIniFile@DeleteKey$qqrx17System@AnsiStringt1，它的真实声明其实是：
+
+  procedure @Inifiles@TIniFile@DeleteKey$qqrx17System@AnsiStringt1
+    (ASelf: TObject; const Section, Ident: String);
+
+Delphi的32位程序里，函数默认的调用方式是fastcall，函数名里也是如此指定的。用EAX、ECX、EDX三个寄存器传自左到右的参数，再多就用堆栈，且函数如果有返回值，用EAX传出。
+
+所以我们代码里写的：
+
+  Ini.DeleteKey('ASection', 'Ident');
+
+实质上就会变成调用
+
+  @Inifiles@TIniFile@DeleteKey$qqrx17System@AnsiStringt1(Ini, 'ASection', 'Ident');
+
+在这调用中，Self参数也就是变量Ini，作为第一个参数塞进了EAX寄存器，然后俩字符串ASection和Ident的对象地址分别被塞进了ECX和EDX寄存器。
+
+这个调用变化，是Delphi在带包编译时，拿相应DCP里的说明来改造的，对调用者来说，是完全透明的。
+
+经过上面的BPL输出函数的分析说明，调用技巧也就呼之欲出了。
+
+比如，我们的专家包DLL里，通过遍历IDE的窗口，能拿到代码编辑器控件的对象实例，通过直接调用其ClassName方法，能够知道它是一个类名为TEditControl的对象，也能通过反复调用ClassParent等方法，得知它父类是TCustomEditControl、TWinControl、TControl……一路下去到TObject。
+
+注意，我们的专家包也是带包编译的，我们能调用ClassName及ClassParent等这些封装在rtl70.bpl（或其他Delphi版本）里的对象方法，缘于我们带包编译时指定了rtl.dcp。
+
+但TEditControl类的实现，显然没有什么DCP供我们链接指定，我们哪怕知道TEditControl有个很牛B的public方法，比如GiveMeALotOfMoney(AMount: Integer)，也没法调用。
+
+（好吧，也没这个方法，我们换一个实际存在的。）
+
+我们的需求是，拿到了编辑器控件TEditControl的对象实例，要获取编辑器中某一行的字符串。
+
+通过用ExeScope（静态）或OllyDbg（动态）等工具查看coreide70.bpl的输出函数列表，可以看到有一些类似于以下的函数：
+
+  @Editors@TCustomEditControl@GetHotlinkText$qqrv
+  @Editors@TCustomEditControl@GetLineCount$qqrv
+  ...
+  @Editors@TCustomEditControl@GetTextAtLine$qqri
+  ...
+  @Editors@TCustomEditControl@GetSearchAfter$qqrv
+  @Editors@TCustomEditControl@GetSearchBegin$qqrv
+
+注意中间那一行GetTextAtLine，其完整函数名表示，它是Editors单元里，TCustomEditControl类的一个公开方法GetTextAtLine，$qqri则是方法的调用约定、参数和返回值类型的编码，一个参数类型为32 位整数Integer，返回值类型为 string，调用约定则是fastcall。
+
+所以这个函数对应方法的完整声明其实是：
+
+  TCustomEditControl=class(TWinControl)
+  public
+    function GetTextAtLine(Line: Integer): string;
+
+这个函数本身要调用的声明则是：
+
+  function GetTextAtLine(ASelf: TObject; Line: Integer): string;
+
+好了，知道了BPL里这个函数的完整声明，又知道我们专家包的DLL被Delphi加载时地址空间里存在coreide70.bpl这个包，我们就能够真正调用该方法了。
+
+======================================================================
+5. 现在，有用的代码来了！
+======================================================================
+
+我们举的例子仍然在我们的专家包在Delphi 7的IDE中。我们已经通过枚举窗口拿到了编辑器控件的对象实例EditControl，要调用coreide70.bpl这个IDE的核心BPL库里的一个方法，该方法能够接受一个行号参数，返回编辑器控件在该行的字符串。
+
+前面我们根据逆向coreide70.bpl时发现的函数'@Editors@TCustomEditControl@GetTextAtLine$qqri'，已经知道了这个函数所对应的类及方法的具体声明，下面我们一步一步来实现这个调用。
+
+首先，声明GetTextAtLine的独立函数类型：
+
+  type
+    TGetTextAtLineProc = function(ASelf: TObject; LineNum: Integer): string;
+
+其次，声明一个函数变量用于接收该函数的入口指针：
+
+  DoGetTextAtLine: TGetTextAtLineProc = nil;
+
+再次，加载该BPL，拿到该函数的入口地址：
+
+  FCorIdeModule := LoadLibrary('coreide70.bpl');
+  DoGetTextAtLine := GetProcAddress(FCorIdeModule, '@Editors@TCustomEditControl@GetTextAtLine$qqri'));
+
+假设我们手头有一个TEditControl类型的对象实例叫EditControl，那么，我们就可以用以下代码，获取其第10行的内容了：
+
+  var
+    Line: string;
+  begin
+    Line := DoGetTextAtLine(EditControl, 10);
+    ShowMessage(Line);
+
+当然，不用时，记得FreeLibrary(FCorIdeModule);
+
+======================================================================
+6. 32位和64位一样吗？
+======================================================================
+
+作为本文的结尾，这里再填一个大坑。
+
+以上无DCP的BPL函数模拟方法调用，我们并未刻意区分32位还是64位，在32位下调用顺利，我们也想当然地认为，64位下和它应该是一致的。
+
+虽然64位的寄存器传参方式与顺序变了，fastcall从32位的EAX、ECX、EDX、堆栈，到64位的RCX、RDX、R8、R9、堆栈，但实质上没有太大区别。
+
+虽然64位BPL里函数命名方式变了，从32位里的一堆@分隔，变成了64位中的_ZN开头、数字长度加字符串拼接的模式，但对于调用GetProcAddress获取其地址同样也没有区别。
+
+BPL里的编译进去的procedure TTestClass.TestProc(A: Integer)，在外部同样可以声明成procedure TestClassProc(ASelf: TObject; A: Integer)的形式，通过GetProcAddress拿到入口地址，赋值后进行调用，结果也没问题。
+
+但是……（注意，“但是”来了）
+
+不是所有的方法都能这么调用！
+
+我们在实战中碰到一个64位BPL里的输出函数，分析出它的声明比较简单，类似于上一篇文章里提到的：
+
+  function TTestClass.GetTextAtLine(Line: Integer): string;
+
+我们想当然地参考上面的例子，声明成：
+
+  function TTestClassGetTextAtLine(ASelf: TObject; Line: Integer): string;
+
+拿到地址，一调……不对，怎么崩了？
+
+什么？Access violation at address 00007FF8F34B85C9 in module 'xxxxxx.bpl' (offset 185C9). Read of address 0000000075FF7A70？
+
+上面一个不还好好的吗？
+
+百思不得其解，只得继续掏出x64位调试器，分析汇编。
+
+我们发现怪异的事是，照理Self、Line两个参数，应该通过RCX、RDX两个寄存器传过去，就行了。
+
+然而，无论是BPL里自己对这个函数的正确调用，还是我们对这个函数的调用，都出现了莫名其妙的第三个参数。也就是说，RCX、RDX、R8仨寄存器都用上了。
+
+赶紧去查64位的调用规范，又问AI让AI猜，终于给出一个线索，64位汇编调用中，如果函数返回值是string或接口实例或var型参数，大概就会在编译过程中多生成一个参数，用来容纳该返回值，且大概和RAX有些重复，可能是为了保险吧。
+
+多一个隐藏参数本身没啥问题，可它和Self这个原来就有的隐藏参数搁一块，就出问题了。
+
+原来，Delphi的64位编译机制下，对于对象的方法，是先将隐藏参数Self搁RCX，再将隐藏参数返回值搁RDX，再处理其他参数于R8、R9等寄存器。
+
+但对于独立函数，则是先将隐藏参数返回值搁RCX，再处理其他参数于RDX、R8等寄存器。
+
+我们上面的调用机制，偏偏做了一次从对象方法到普通函数的转换，就导致了参数顺序混乱。
+
+BPL里的对象方法，需要的是先Self再返回值，而我们调用时用的普通函数机制，传的是先返回值再ASelf。
+
+对，这里的ASelf已经是普通参数，不再代表对象方法中的Self了。
+
+所以，我给张三时你要李四，我给李四时你要张三，BPL里不崩才怪。
+
+======================================================================
+7. 解决办法是什么？另辟蹊径
+======================================================================
+
+如果这种调用转换只是参数多少的问题，那么我们可以在声明中看情况增删参数以符合BPL的对象方法的内部需要，但这种两个参数顺序颠倒的，其中一个还是隐藏参数没法在声明里调整，那就麻烦了。
+
+看来，对象方法转换成普通函数，这条路不太行得通。那么，还有什么办法能够模拟对对象方法的调用？
+
+TMethod/事件，隆重登场！
+
+大家如果粗略读过VCL源码，一定记得VCL里经常有些protected的函数比如procedure DoChange; virtual;其实现是：
+
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+
+这个FOnChange是何方神圣？
+
+  FOnChange: TNotifyEvent;
+
+这个TNotifyEvent又是何方神圣？
+
+  TNotifyEvent = procedure (Sender: TObject) of object;
+
+也就是说，这种带个of object的声明，就是事件。它本质上是一个TMethod。
+
+虽然TNotifyEvent或者说所有的of object的函数声明都是TMethod，这个关系并没在VCL源码中体现，而是编译器内部的包装实现，但并不影响我们理解TMethod。
+
+  TMethod = record
+    Code, Data: Pointer;
+  end;
+
+TMethod就俩指针，一个Code、一个Data。无论各种各样的of object的procedure或function声明得五花八门多种多样，最后它们在内存中的实例，全都会统一变成一个Code、一个Data。
+
+我们还记得，普通对象的方法，可以理解为专属于某一对象的一个函数，同一类型的不同对象，哪怕方法同名，逻辑上也不是同一个函数。
+
+当然，为了节省内存，实现上其实是同一个函数。
+
+如何在“实现是同一份”的基础上区分“不同对象的方法”？当然是依靠Self参数。
+
+我们再来看看TMethod或者对应的TNotifyEvent，我们代码里动态给事件赋值时经常在TForm1.OnCreate里这么写：
+
+  Button1.OnClick := Self.Button1Click; 
+
+这句赋值语句，左边是一个TMethod，右边是一个对象的方法。它俩既然能通过赋值的方式传递，其实说明，方法，和事件，本质上，是等同的！
+
+怎么个对象方法和事件等同法？一句话：Button1Click方法的入口地址，给了TMethod的Code，Self则给了Data。
+
+我们完全可以采用声明一个事件，然后给这个事件的Code和Data各自赋值、再调用这个事件的方式，实现BPL中的对象方法的正确调用，而无需从普通函数绕一道。
+
+废话不多说，上代码（依然拿上面的例子举例）：
+
+声明一个事件类型，注意带of object，且没ASelf参数了：
+
+  type
+    TGetTextAtLineProc = function(LineNum: Integer): string of object;
+
+其次，声明一个事件变量，用于接收该函数的入口指针：
+
+  DoGetTextAtLine: TGetTextAtLineProc = nil;
+
+再次，加载该BPL，拿到该函数的入口地址，赋值给其Code：
+
+  FCorIdeModule := LoadLibrary('coreide70.bpl');
+  DoGetTextAtLine.Code := GetProcAddress(FCorIdeModule, '@Editors@TCustomEditControl@GetTextAtLine$qqri'));
+
+调用时，则要这么写：
+
+  var
+    Line: string;
+  begin
+    Method(DoGetTextAtLine).Data := EditControl;
+    Line := DoGetTextAtLine(10);
+    ShowMessage(Line);
+
+经过实践验证，这种方法在64位下正确完成了隐藏参数与Self参数的顺序对接，而且如果32位下没有隐藏参数，也同样能完成对接。均能在无DCP参与编译的情况下，正确调用BPL中的对象方法。
+
+======================================================================
+8. 结束语
+======================================================================
+
+以上前后两部分分析，帮我们完成了32位和64位Windows环境中调用无DCP的BPL的全部功能。
+
+但作为在Delphi这个特大型IDE中跑起来的大型DLL，我们的专家包不光要各种调用没文档的BPL，还要拦截各种BPL的内部调用，这种拦截术语叫inline Hook，同样是值得分析和分享的。
+
+那就作为下期主题的预告吧。
