@@ -79,6 +79,8 @@ begin
   
   mmoResult.Lines.Add('公历日数：' + IntToStr(GetAllDays(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('等效标准日数：' + IntToStr(GetEquStandardDays(AYear, AMonth, ADay)));
+  mmoResult.Lines.Add('儒略日数：' + FloatToStr(GetJulianDate(AYear, AMonth, ADay)));
+  mmoResult.Lines.Add('约化儒略日数：' + FloatToStr(GetModifiedJulianDate(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('星期：' + IntToStr(GetWeek(AYear, AMonth, ADay)));
   if GetShu9Day(AYear, AMonth, ADay, v91, v92) then
     mmoResult.Lines.Add(Format('%d九第%d天', [v91, v92]));
