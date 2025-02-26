@@ -68,6 +68,18 @@ type
      Abort      - 是否中断
    |</PRE>}
 
+  TCnInetProgressDataEvent = procedure (Sender: TObject; TotalSize, CurrSize: Integer;
+    Data: PByte; DataLen: Integer; var Abort: Boolean) of object;
+  {* 数据下载进度附带本次数据事件
+   |<PRE>
+     Sender     - 线程对象
+     TotalSize  - 总字节数，如果为 -1，表示长度未知
+     CurrSize   - 当前完成字节数
+     Data       - 本次返回的数据所在内存区地址
+     DataLen    - 本次返回的数据的字节长度
+     Abort      - 是否中断
+   |</PRE>}
+
   TCnURLInfo = record
     Protocol: string;
     Host: string;
@@ -87,6 +99,7 @@ type
     FAborted: Boolean;
     FGetDataFail: Boolean;
     FOnProgress: TCnInetProgressEvent;
+    FOnProgressData: TCnInetProgressDataEvent;
     FUserAgent: string;
     FDecoding: Boolean;
     FDecodingValid: Boolean;
@@ -103,7 +116,7 @@ type
     FIgnoreSSLError: Boolean;
     function ParseURL(URL: string; var Info: TCnURLInfo): Boolean;
   protected
-    procedure DoProgress(TotalSize, CurrSize: Integer);
+    procedure DoProgress(TotalSize, CurrSize: Integer; Data: PByte; DataLen: Integer);
     function InitInet: Boolean;
     procedure CloseInet;
     function GetStreamFromHandle(Handle: HINTERNET; TotalSize: Integer;
@@ -144,7 +157,9 @@ type
       返回是否成功，如失败，可用 GetLastError 获取错误码}
 
     property OnProgress: TCnInetProgressEvent read FOnProgress write FOnProgress;
-    {* 数据进度事件}
+    {* 获取数据时的进度事件}
+    property OnProgressData: TCnInetProgressDataEvent read FOnProgressData write FOnProgressData;
+    {* 获取数据时的进度事件，带本次数据}
     property Aborted: Boolean read FAborted;
     {* 是否已被中断}
     property GetDataFail: Boolean read FGetDataFail;
@@ -326,10 +341,12 @@ begin
   FAborted := True;
 end;
 
-procedure TCnInet.DoProgress(TotalSize, CurrSize: Integer);
+procedure TCnInet.DoProgress(TotalSize, CurrSize: Integer; Data: PByte; DataLen: Integer);
 begin
   if Assigned(FOnProgress) then
     FOnProgress(Self, TotalSize, CurrSize, FAborted);
+  if Assigned(FOnProgressData) then
+    FOnProgressData(Self, TotalSize, CurrSize, Data, DataLen, FAborted);
 end;
 
 function TCnInet.ParseURL(URL: string; var Info: TCnURLInfo): Boolean;
@@ -451,23 +468,24 @@ end;
 function TCnInet.GetStreamFromHandle(Handle: HINTERNET; TotalSize: Integer;
   Stream: TStream): Boolean;
 var
-  CurrSize, Readed: Cardinal;
+  CurrSize, ReadCnt: Cardinal;
   Buf: array[0..csBufferSize - 1] of Byte;
 begin
   Result := False;
   CurrSize := 0;
-  Readed := 0;
+  ReadCnt := 0;
   repeat
-    if not InternetReadFile(Handle, @Buf, csBufferSize, Readed) then
+    if not InternetReadFile(Handle, @Buf, csBufferSize, ReadCnt) then
       Exit;
-    if Readed > 0 then
+
+    if ReadCnt > 0 then
     begin
-      Stream.Write(Buf, Readed);
-      Inc(CurrSize, Readed);
-      DoProgress(TotalSize, CurrSize);
+      Stream.Write(Buf, ReadCnt);
+      Inc(CurrSize, ReadCnt);
+      DoProgress(TotalSize, CurrSize, @Buf, ReadCnt);
       if Aborted then Exit;
     end;
-  until Readed = 0;
+  until ReadCnt = 0;
   Result := True;
 end;
 
