@@ -676,7 +676,8 @@ begin
   if Current <> nil then
     Current.AddChild(Result);
 
-  while P.TokenID <> jttTerminated do
+  // { 后也可以直接一个 } 表示空对象
+  while (P.TokenID <> jttTerminated) and (P.TokenID <> jttObjectEnd) do
   begin
     // 必须一个 String
     JSONCheckToken(P, jttString);
