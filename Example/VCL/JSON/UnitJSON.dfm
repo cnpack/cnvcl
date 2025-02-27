@@ -53,7 +53,7 @@ object FormJSON: TFormJSON
         Width = 417
         Height = 241
         ReadOnly = True
-        TabOrder = 0
+        TabOrder = 10
       end
       object chkJSONFormat: TCheckBox
         Left = 456
@@ -61,7 +61,7 @@ object FormJSON: TFormJSON
         Width = 73
         Height = 17
         Caption = 'Format'
-        TabOrder = 1
+        TabOrder = 8
       end
       object tvJSON: TTreeView
         Left = 544
@@ -93,7 +93,7 @@ object FormJSON: TFormJSON
           '        ]'
           '    }'
           '}')
-        TabOrder = 3
+        TabOrder = 0
       end
       object btnParse: TButton
         Left = 456
@@ -101,7 +101,7 @@ object FormJSON: TFormJSON
         Width = 75
         Height = 25
         Caption = 'Parse'
-        TabOrder = 4
+        TabOrder = 1
         OnClick = btnParseClick
       end
       object mmoJSONToken: TMemo
@@ -110,7 +110,7 @@ object FormJSON: TFormJSON
         Width = 385
         Height = 241
         ScrollBars = ssVertical
-        TabOrder = 5
+        TabOrder = 9
       end
       object btnClone: TButton
         Left = 456
@@ -118,7 +118,7 @@ object FormJSON: TFormJSON
         Width = 75
         Height = 25
         Caption = 'Clone'
-        TabOrder = 6
+        TabOrder = 4
         OnClick = btnCloneClick
       end
       object btnArray: TButton
@@ -127,7 +127,7 @@ object FormJSON: TFormJSON
         Width = 75
         Height = 25
         Caption = 'Array Test'
-        TabOrder = 7
+        TabOrder = 5
         OnClick = btnArrayClick
       end
       object btnMerge: TButton
@@ -136,7 +136,7 @@ object FormJSON: TFormJSON
         Width = 75
         Height = 25
         Caption = 'Merge Test'
-        TabOrder = 8
+        TabOrder = 6
         OnClick = btnMergeClick
       end
       object chkReplaceName: TCheckBox
@@ -145,7 +145,16 @@ object FormJSON: TFormJSON
         Width = 65
         Height = 17
         Caption = 'Replace'
-        TabOrder = 9
+        TabOrder = 7
+      end
+      object btnParseMulti: TButton
+        Left = 456
+        Top = 47
+        Width = 75
+        Height = 25
+        Caption = 'Parse Multi'
+        TabOrder = 3
+        OnClick = btnParseMultiClick
       end
     end
     object tsJSONConstruct: TTabSheet
