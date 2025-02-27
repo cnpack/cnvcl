@@ -69,7 +69,7 @@ type
    |</PRE>}
 
   TCnInetProgressDataEvent = procedure (Sender: TObject; TotalSize, CurrSize: Integer;
-    Data: PByte; DataLen: Integer; var Abort: Boolean) of object;
+    Data: Pointer; DataLen: Integer; var Abort: Boolean) of object;
   {* 数据下载进度附带本次数据事件
    |<PRE>
      Sender     - 线程对象
