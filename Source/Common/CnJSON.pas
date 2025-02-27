@@ -49,7 +49,9 @@ unit CnJSON;
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.07.30 V1.5
+* 修改记录：2025.02.27 V1.6
+*                 增加将字符串解析成多个 JSONObject 的过程
+*           2024.07.30 V1.5
 *                 实现 Value 的 Clone 方法、数组的 AddValues 方法，合并 JSONObject 的过程
 *           2024.06.30 V1.4
 *                 浮点数与字符串转换不受某些逗号的系统区域设置的影响，均以点号小数点为准
@@ -506,8 +508,11 @@ type
 function CnJSONConstruct(Obj: TCnJSONObject; UseFormat: Boolean = True; Indent: Integer = 0): AnsiString;
 {* 将 JSON 对象转为 UTF8 格式的 JSON 字符串}
 
-function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject;
-{* 解析 UTF8 格式的 JSON 字符串为 JSON 对象}
+function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject; overload;
+{* 解析 UTF8 格式的 JSON 字符串为单个 JSON 对象，需要外部释放}
+
+procedure CnJSONParse(const JsonStr: AnsiString; Objects: TObjectList); overload;
+{* 解析 UTF8 格式的 JSON 字符串为多个 JSON 对象，每个对象加入 Objects 列表中，需要外部释放}
 
 procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject;
   Replace: Boolean = False);
@@ -716,6 +721,31 @@ begin
       begin
         Result := JSONParseObject(P, nil);
         Exit;
+      end;
+
+      P.NextNoJunk;
+    end;
+  finally
+    P.Free;
+  end;
+end;
+
+procedure CnJSONParse(const JsonStr: AnsiString; Objects: TObjectList);
+var
+  P: TCnJSONParser;
+  Obj: TCnJSONObject;
+begin
+  P := TCnJSONParser.Create;
+  try
+    P.SetOrigin(PAnsiChar(JsonStr));
+
+    while P.TokenID <> jttTerminated do
+    begin
+      if P.TokenID = jttObjectBegin then
+      begin
+        Obj := JSONParseObject(P, nil);
+        if Obj <> nil then
+          Objects.Add(Obj);
       end;
 
       P.NextNoJunk;
