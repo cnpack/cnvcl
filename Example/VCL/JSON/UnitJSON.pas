@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ComCtrls, TypInfo, CnJSON, CnCommon;
+  Dialogs, StdCtrls, ComCtrls, TypInfo, Contnrs, CnJSON, CnCommon;
 
 type
   TFormJSON = class(TForm)
@@ -34,6 +34,7 @@ type
     btnArray: TButton;
     btnMerge: TButton;
     chkReplaceName: TCheckBox;
+    btnParseMulti: TButton;
     procedure btnParseClick(Sender: TObject);
     procedure btnJSONConstruct1Click(Sender: TObject);
     procedure btnWriteClick(Sender: TObject);
@@ -44,6 +45,7 @@ type
     procedure btnCloneClick(Sender: TObject);
     procedure btnArrayClick(Sender: TObject);
     procedure btnMergeClick(Sender: TObject);
+    procedure btnParseMultiClick(Sender: TObject);
   private
     procedure DumpJSONToTreeView(JSON: TCnJSONObject);
   public
@@ -107,6 +109,27 @@ begin
 
   Obj.Free;
   Parser.Free;
+end;
+
+procedure TFormJSON.btnParseMultiClick(Sender: TObject);
+var
+  Parser: TCnJSONParser;
+  S: AnsiString;
+  I: Integer;
+  Obj: TCnJSONObject;
+  Objs: TObjectList;
+begin
+  // ºº×Ö×ª UTF8
+{$IFDEF UNICODE}
+  S := Utf8Encode(mmoJSON.Lines.Text);
+{$ELSE}
+  S := CnUtf8EncodeWideString(WideString(mmoJSON.Lines.Text));
+{$ENDIF}
+
+  Objs := TObjectList.Create;
+  CnJSONParse(S, Objs);
+  ShowMessage(IntToStr(Objs.Count));
+  Objs.Free;
 end;
 
 procedure TFormJSON.DumpJSONToTreeView(JSON: TCnJSONObject);
