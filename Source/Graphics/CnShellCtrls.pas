@@ -37,7 +37,9 @@ unit CnShellCtrls;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2003.12.03
+* 修改记录：2025.02.28
+*               修正 64 位下的 ChangeNotifierThread 出错提前释放的问题
+*           2003.12.03
 *               移植自 Delphi 7
 ================================================================================
 |</PRE>}
@@ -239,7 +241,7 @@ type
     nfSizeChange, nfWriteChange, nfSecurityChange);
   TNotifyFilters = set of TNotifyFilter;
 
-  TShellChangeThread = class(TThread)
+  TCnShellChangeThread = class(TThread)
   private
     FMutex,
     FWaitHandle: Integer;
@@ -253,17 +255,17 @@ type
   public
     constructor Create(ChangeEvent: TThreadMethod); virtual;
     destructor Destroy; override;
-    procedure SetDirectoryOptions( Directory : String; WatchSubTree : Boolean;
-      NotifyOptionFlags : DWORD);
-    property ChangeEvent : TThreadMethod read FChangeEvent write FChangeEvent;
+    procedure SetDirectoryOptions( Directory: string; WatchSubTree: Boolean;
+      NotifyOptionFlags: DWORD);
+    property ChangeEvent: TThreadMethod read FChangeEvent write FChangeEvent;
   end;
 
   TCnCustomShellChangeNotifier = class(TComponent)
   private
     FFilters: TNotifyFilters;
     FWatchSubTree: Boolean;
-    FRoot : TRoot;
-    FThread: TShellChangeThread;
+    FRoot: TRoot;
+    FThread: TCnShellChangeThread;
     FOnChange: TThreadMethod;
     procedure SetRoot(const Value: TRoot);
     procedure SetWatchSubTree(const Value: Boolean);
@@ -341,9 +343,7 @@ type
     procedure GetSelectedIndex(Node: TTreeNode); override;
     procedure InitNode(NewNode: TTreeNode; ID: PItemIDList; ParentNode: TTreeNode);
     procedure Loaded; override;
-    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure Delete(Node: TTreeNode); override;
-    //! procedure NodeDeleted(Sender: TObject; Node: TTreeNode);
     function NodeFromAbsoluteID(StartNode: TTreeNode; ID: PItemIDList): TTreeNode;
     function NodeFromRelativeID(ParentNode: TTreeNode; ID: PItemIDList): TTreeNode;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
@@ -370,8 +370,8 @@ type
     property UseShellImages: Boolean read FUseShellImages write SetUseShellImages;
     property OnAddFolder: TAddFolderEvent read FOnAddFolder write FOnAddFolder;
     property OnRootChanged: TNotifyEvent read FOnRootChanged write FOnRootChanged;
-    procedure CommandCompleted(Verb: String; Succeeded: Boolean);
-    procedure ExecuteCommand(Verb: String; var Handled: Boolean);
+    procedure CommandCompleted(Verb: string; Succeeded: Boolean);
+    procedure ExecuteCommand(Verb: string; var Handled: Boolean);
   end;
 
 { TCnShellTreeView }
@@ -522,8 +522,8 @@ type
     property OnAddFolder: TAddFolderEvent read FOnAddFolder write FOnAddFolder;
     property OnEditing: TLVEditingEvent read FOnEditing write FOnEditing;
     property OnRootChanged: TNotifyEvent read FOnRootChanged write FOnRootChanged;
-    procedure CommandCompleted(Verb: String; Succeeded: Boolean);
-    procedure ExecuteCommand(Verb: String; var Handled: Boolean);
+    procedure CommandCompleted(Verb: string; Succeeded: Boolean);
+    procedure ExecuteCommand(Verb: string; var Handled: Boolean);
   end;
 
 { TCnShellListView }
@@ -596,7 +596,8 @@ procedure InvokeContextMenu(Owner: TWinControl; AFolder: TShellFolder; X, Y: Int
 
 implementation
 
-uses ShellAPI, ComObj, TypInfo, Menus, Consts, Math, CnCommon;
+uses
+  ShellAPI, ComObj, TypInfo, Menus, Consts, Math, CnCommon;
 
 resourcestring
   SShellDefaultNameStr = 'Name';
@@ -629,7 +630,7 @@ var
   ICM: IContextMenu = nil;
   ICM2: IContextMenu2 = nil;
   DesktopFolder: TShellFolder = nil;
-  CS : TRTLCriticalSection;
+  CS: TRTLCriticalSection;
 
 { PIDL manipulation }
 
@@ -692,21 +693,21 @@ end;
 
 function ConcatPIDLs(IDList1, IDList2: PItemIDList): PItemIDList;
 var
-  cb1, cb2: Integer;
+  Cb1, Cb2: Integer;
 begin
   if Assigned(IDList1) then
-    cb1 := GetPIDLSize(IDList1) - SizeOf(IDList1^.mkid.cb)
+    Cb1 := GetPIDLSize(IDList1) - SizeOf(IDList1^.mkid.cb)
   else
-    cb1 := 0;
+    Cb1 := 0;
 
-  cb2 := GetPIDLSize(IDList2);
+  Cb2 := GetPIDLSize(IDList2);
 
-  Result := CreatePIDL(cb1 + cb2);
+  Result := CreatePIDL(Cb1 + Cb2);
   if Assigned(Result) then
   begin
     if Assigned(IDList1) then
-      CopyMemory(Result, IDList1, cb1);
-    CopyMemory(PAnsiChar(Result) + cb1, IDList2, cb2);
+      CopyMemory(Result, IDList1, Cb1);
+    CopyMemory(PAnsiChar(Result) + Cb1, IDList2, Cb2);
   end;
 end;
 
@@ -746,7 +747,7 @@ end;
 
 procedure NoFolderDetails(AFolder: TShellFolder; HR: HResult);
 begin
-  Raise EInvalidPath.CreateFmt(SShellNoDetails, [AFolder.DisplayName, HR]);
+  raise EInvalidPath.CreateFmt(SShellNoDetails, [AFolder.DisplayName, HR]);
 end;
 
 function DesktopShellFolder: IShellFolder;
@@ -908,7 +909,7 @@ begin
 end;
 
 function GetDisplayName(Parentfolder: IShellFolder; PIDL: PItemIDList;
-                        Flags: DWORD): string;
+  Flags: DWORD): string;
 var
   StrRet: TStrRet;
 begin
@@ -916,7 +917,7 @@ begin
   if ParentFolder = nil then
   begin
     Result := 'parentfolder = nil';  { Do not localize }
-    exit;
+    Exit;
   end;
   FillChar(StrRet, SizeOf(StrRet), 0);
   ParentFolder.GetDisplayNameOf(PIDL, Flags, StrRet);
@@ -1015,7 +1016,7 @@ begin
     cbSize := SizeOf(ICI);
     fMask := CMIC_MASK_ASYNCOK;
     hWND := 0;
-    lpVerb := Verb; 
+    lpVerb := Verb;
     nShow := SW_SHOWNORMAL;
   end;
   PIDL := AFolder.RelativeID;
@@ -1261,11 +1262,10 @@ procedure TShellFolder.LoadColumnDetails(RootFolder: TShellFolder;
   function DefaultDetailColumn(FindData: TWin32FindData; Col: integer): string;
   begin
     case Col of
-    //1 : Result := FindData.cFileName; // Name
-    1 : Result := IntToStr(CalcFileSize(FindData)); // Size
-    2 : Result := _CnExtractFileExt(FindData.cFileName); // Type
-    3 : Result := DateTimeToStr(CalcModifiedDate(FindData)); // Modified
-    4 : Result := IntToStr(FindData.dwFileAttributes);
+      1 : Result := IntToStr(CalcFileSize(FindData)); // Size
+      2 : Result := _CnExtractFileExt(FindData.cFileName); // Type
+      3 : Result := DateTimeToStr(CalcModifiedDate(FindData)); // Modified
+      4 : Result := IntToStr(FindData.dwFileAttributes);
     end;
   end;
 
@@ -1283,7 +1283,6 @@ var
   J: Integer;
   SD: TShellDetails;
   HR: HResult;
-  //AFolder: TShellFolder;
   FindData: TWin32FindData;
 
 begin
@@ -1291,10 +1290,7 @@ begin
   FDetails.Clear;
   FViewHandle := Handle;
   SF2 := RootFolder.ShellFolder2;
-  {//!
-  if fpFileSystem in Properties then
-    ColumnCount := 4;
-  }
+
   if Assigned(SF2) then
   begin
     // Already have name and icon, so see if we can provide details
@@ -1329,7 +1325,7 @@ begin
   if FDetails.Count > 0 then
     Result := FDetails[Index-1] // Index is 1-based
   else
-    Raise Exception.CreateFmt(SCallLoadDetails, [ Self.DisplayName ] );
+    raise Exception.CreateFmt(SCallLoadDetails, [ Self.DisplayName ] );
 end;
 
 procedure TShellFolder.SetDetails(Index: integer; const Value: string);
@@ -1391,12 +1387,8 @@ begin
   Result := False;
   if not (fcCanRename in Capabilities) then Exit;
 
-  Result := ParentShellFolder.SetNameOf(
-       0,
-       FPIDL,
-       PWideChar(NewName),
-       SHGDN_NORMAL,
-       NewPIDL) = S_OK;
+  Result := ParentShellFolder.SetNameOf(0, FPIDL, PWideChar(NewName),
+    SHGDN_NORMAL, NewPIDL) = S_OK;
   if Result then
   begin
     DisposePIDL(FPIDL);
@@ -1408,7 +1400,7 @@ begin
       FFullPIDL := CopyPIDL(NewPIDL);
   end
   else
-    Raise Exception.Create(Format(SRenamedFailedError,[NewName]));
+    raise Exception.Create(Format(SRenamedFailedError,[NewName]));
 end;
 
 function TShellFolder.ImageIndex(LargeIcon: Boolean): Integer;
@@ -1472,7 +1464,7 @@ end;
 
 destructor TCnCustomShellChangeNotifier.Destroy;
 var
-  Temp : TShellChangeThread;
+  Temp : TCnShellChangeThread;
 begin
   if Assigned(FThread) then
   begin
@@ -1536,16 +1528,16 @@ procedure TCnCustomShellChangeNotifier.Start;
 begin
   if Assigned(FOnChange) then
   begin
-    FThread := TShellChangeThread.Create(FOnChange);
+    FThread := TCnShellChangeThread.Create(FOnChange);
     FThread.SetDirectoryOptions(FRoot,
       LongBool(FWatchSubTree), NotifyOptionFlags);
     FThread.Resume;
   end;
 end;
 
-{ TShellChangeThread }
+{ TCnShellChangeThread }
 
-constructor TShellChangeThread.Create(ChangeEvent: TThreadMethod);
+constructor TCnShellChangeThread.Create(ChangeEvent: TThreadMethod);
 begin
   FreeOnTerminate := True;
   FChangeEvent := ChangeEvent;
@@ -1556,7 +1548,7 @@ begin
   inherited Create(True);
 end;
 
-destructor TShellChangeThread.Destroy;
+destructor TCnShellChangeThread.Destroy;
 begin
   if FWaitHandle <> ERROR_INVALID_HANDLE then
     FindCloseChangeNotification(FWaitHandle);
@@ -1564,16 +1556,17 @@ begin
   inherited Destroy;
 end;
 
-procedure TShellChangeThread.Execute;
+procedure TCnShellChangeThread.Execute;
 var
   Obj: DWORD;
-  Handles: array[0..1] of DWORD;
+  Handles: array[0..1] of THandle;
 begin
   EnterCriticalSection(CS);
   FWaitHandle := FindFirstChangeNotification(PChar(FDirectory),
      LongBool(FWatchSubTree), FNotifyOptionFlags);
   LeaveCriticalSection(CS);
   if FWaitHandle = ERROR_INVALID_HANDLE then Exit;
+
   while not Terminated do
   begin
     Handles[0] := FWaitHandle;
@@ -1601,7 +1594,7 @@ begin
   end;
 end;
 
-procedure TShellChangeThread.SetDirectoryOptions(Directory: String;
+procedure TCnShellChangeThread.SetDirectoryOptions(Directory: String;
   WatchSubTree: Boolean; NotifyOptionFlags: DWORD);
 begin
   EnterCriticalSection(CS);
@@ -1627,7 +1620,6 @@ begin
   FObjectTypes := [otFolders];
   RightClickSelect := True;
   FAutoContext := True;
-  //! OnDeletion := NodeDeleted;
   FUpdating := False;
   FListView := nil;
   FImageListChanging := False;
@@ -1648,7 +1640,7 @@ begin
   try
     for I := 0 to Items.Count-1 do
     begin
-      if Assigned(Folders[i]) then
+      if Assigned(Folders[I]) then
         Folders[I].Free;
       Items[I].Data := nil;
     end;
@@ -1672,7 +1664,7 @@ end;
 procedure TCnCustomShellTreeView.DestroyWnd;
 begin
   ClearItems;
-  inherited DestroyWnd;
+  inherited;
 end;
 
 procedure TCnCustomShellTreeView.CommandCompleted(Verb: String;
@@ -1717,13 +1709,12 @@ begin
     StrPCopy(szPath, _CnExtractFilePath(TShellFolder(Selected.Data).PathName));
     SetCurrentDirectory(szPath);
   end;
-
 end;
 
 function TreeSortFunc(Node1, Node2: TTreeNode; lParam: Integer): Integer; stdcall;
 begin
   Result := SmallInt(TShellFolder(Node1.Data).ParentShellFolder.CompareIDs(
-       0, TShellFolder(Node1.Data).RelativeID, TShellFolder(Node2.Data).RelativeID));
+    0, TShellFolder(Node1.Data).RelativeID, TShellFolder(Node2.Data).RelativeID));
 end;
 
 procedure TCnCustomShellTreeView.InitNode(NewNode: TTreeNode; ID: PItemIDList; ParentNode: TTreeNode);
@@ -1771,10 +1762,12 @@ begin
   try
     try
       HR := TShellFolder(Node.Data).ShellFolder.EnumObjects(Application.Handle,
-                     ObjectFlags(FObjectTypes),
-                     EnumList);
+        ObjectFlags(FObjectTypes), EnumList);
       if HR <> 0 then Exit;
-    except on E:Exception do end;
+    except
+      on E:Exception do
+        ;
+    end;
 
     while EnumList.Next(1, ID, NumIDs) = S_OK do
     begin
@@ -1805,7 +1798,8 @@ begin
     FRootFolder := CreateRootFolder(FRootFolder, FOldRoot, FRoot);
     ErrorMsg := '';
   except
-    on E : Exception do ErrorMsg := E.Message;
+    on E: Exception do
+      ErrorMsg := E.Message;
   end;
 
   if Assigned(FRootFolder) then
@@ -1818,10 +1812,7 @@ begin
       with RootNode do
       begin
         Data := TShellFolder.Create(nil, FRootFolder.AbsoluteID, FRootFolder.ShellFolder);
-
-        Text := GetDisplayName(DesktopShellFolder,
-                               TShellFolder(Data).AbsoluteID,
-                               SHGDN_NORMAL);
+        Text := GetDisplayName(DesktopShellFolder, TShellFolder(Data).AbsoluteID, SHGDN_NORMAL);
 
         if FUseShellImages and not Assigned(Images) then
         begin
@@ -1836,8 +1827,9 @@ begin
       FLoadingRoot := False;
     end;
   end;
+
   if ErrorMsg <> '' then
-    Raise Exception.Create( ErrorMsg );
+    raise Exception.Create(ErrorMsg);
 end;
 
 function TCnCustomShellTreeView.CanExpand(Node: TTreeNode): Boolean;
@@ -1849,6 +1841,7 @@ begin
   if (csDesigning in ComponentState) and (Node.Level > 0) then Exit;
   if Assigned(OnExpanding) then OnExpanding(Self, Node, Result);
   if Result then
+  begin
     if Fldr.IsFolder and (Node.HasChildren) and (Node.Count = 0) then
       PopulateNode(Node)
     else if not Fldr.IsFolder then
@@ -1856,6 +1849,7 @@ begin
       ShellExecute(Handle, nil, PChar(Fldr.PathName), nil,
         PChar(_CnExtractFilePath(Fldr.PathName)), 0);
     end;
+  end;
   Node.HasChildren := Node.Count > 0;
 end;
 
@@ -1865,6 +1859,7 @@ var
   Node: TTreeNode;
 begin
   with Item do
+  begin
     if pszText <> nil then
     begin
       S := pszText;
@@ -1873,17 +1868,7 @@ begin
       if ( Node <> nil ) and TShellFolder(Node.Data).Rename(S) then
         Node.Text := S;
     end;
-end;
-
-procedure TCnCustomShellTreeView.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-begin
-  //! Commenting this out fixes #107480, #109250
-  (*
-  if (Button = mbRight) and FAutoContext and (Selected <> nil) and (Selected.Data <> nil) then
-    InvokeContextMenu(Self, SelectedFolder, X, Y)
-  else
-  (**)
-    inherited MouseUp(Button, Shift, X, Y);
+  end;
 end;
 
 function TCnCustomShellTreeView.NodeFromRelativeID(ParentNode: TTreeNode; ID: PItemIDList): TTreeNode;
@@ -1922,17 +1907,6 @@ begin
   inherited Delete(Node);
 end;
 
-(*
-procedure TCnCustomShellTreeView.NodeDeleted(Sender: TObject; Node: TTreeNode);
-begin
-  if Assigned(Node.Data) then
-  begin
-    TShellFolder(Node.Data).Free;
-    Node.Data := nil;
-  end;
-end;
-(**)
-
 procedure TCnCustomShellTreeView.RootChanged;
 begin
   if FUpdating then Exit;
@@ -1962,7 +1936,8 @@ begin
     begin
       Result := InNode;
       Exit;
-    end else
+    end
+    else
       InNode := InNode.GetNext;
   until (InNode = nil) or (InNode.Level <= ALevel);
 end;
@@ -1985,11 +1960,11 @@ begin
   if TShellFolder(Node.Data).ShellFolder = nil then Exit;
   SaveCursor := Screen.Cursor;
   ParentFolder := nil;
-  //Need absolute PIDL to search for top item once tree is rebuilt.
+
   TopID := CopyPIDL(TShellFolder(TopItem.Data).RelativeID);
   if TShellFolder(TopItem.Data).Parent <> nil then
     TopID := ConcatPIDLs(TShellFolder(TopItem.Data).Parent.AbsoluteID, TopID);
-  //Same thing for SelID
+
   SelID := nil;
   if (Selected <> nil) and (Selected.Data <> nil) then
   begin
@@ -2302,8 +2277,6 @@ begin
   end;
 end;
 
-{ TCustomShellComboBox }
-
 var
   CompareFolder: TShellFolder = nil;
 
@@ -2371,8 +2344,10 @@ begin
   if not (csDestroying in ComponentState) then
     Items.Count := 0;
   for I := 0 to FFolders.Count-1 do
-    if Assigned(Folders[i]) then
+  begin
+    if Assigned(Folders[I]) then
       Folders[I].Free;
+  end;
 
   FFolders.Clear;
 end;
@@ -2390,7 +2365,7 @@ end;
 procedure TCnCustomShellListView.ExecuteCommand(Verb: String;
   var Handled: Boolean);
 var
-  szPath: array[0..MAX_PATH] of char;
+  szPath: array[0..MAX_PATH] of Char;
 begin
   if SameText(Verb, SCmdVerbRename) then
   begin
@@ -2423,7 +2398,7 @@ end;
 procedure TCnCustomShellListView.DestroyWnd;
 begin
   ClearItems;
-  inherited DestroyWnd;
+  inherited;
 end;
 
 procedure TCnCustomShellListView.SetObjectTypes(Value: TShellObjectTypes);
@@ -2447,7 +2422,7 @@ begin
     Populate;
     if ViewStyle = vsReport then EnumColumns;
     AutoRefresh := StayFresh;
-    
+
     if Assigned(FOnRootChanged) then
       FOnRootChanged(Self);
   finally
@@ -2466,7 +2441,6 @@ var
   NewFolder: IShellFolder;
   Count: Integer;
   AFolder: TShellFolder;
-
 begin
   if (csLoading in ComponentState) and not HandleAllocated then Exit;
   Items.BeginUpdate;
@@ -2526,12 +2500,16 @@ end;
 procedure TCnCustomShellListView.DblClick;
 begin
   if FAutoNavigate and (Selected <> nil) then
+  begin
     with Folders[Selected.Index] do
+    begin
       if IsFolder then
         SetPathFromID(AbsoluteID)
       else
         ShellExecute(Handle, nil, PChar(PathName), nil,
           PChar(_CnExtractFilePath(PathName)), 1);
+    end;
+  end;
   inherited DblClick;
 end;
 
@@ -2591,19 +2569,19 @@ end;
 function TCnCustomShellListView.SelectedFolder: TShellFolder;
 begin
   Result := nil;
-  if Selected <> nil then Result := Folders[Selected.Index];
+  if Selected <> nil then
+    Result := Folders[Selected.Index];
 end;
 
 function TCnCustomShellListView.OwnerDataFetch(Item: TListItem;
   Request: TItemRequest): Boolean;
-
 var
   AFolder: TShellFolder;
   J: integer;
 begin
   Result := True;
   AFolder := Folders[Item.Index];
-  if not Assigned(AFolder) then exit;
+  if not Assigned(AFolder) then Exit;
 
   if (Item.Index > FFolders.Count - 1) or (Item.Index < 0) then Exit;
   if irText in Request then
@@ -2613,44 +2591,9 @@ begin
 
   if ViewStyle <> vsReport then Exit;
 
-  //PIDL := AFolder.FPIDL;
-
   AFolder.LoadColumnDetails(FRootFolder, Self.Handle, Columns.Count);
   for J := 1 to Columns.Count - 1 do
     Item.SubItems.Add(AFolder.Details[J]);
-
-  (*
-  FRootFolder.ViewHandle := Self.Handle;
-  SF2 := FRootFolder.ShellFolder2;
-  if Assigned(SF2) then
-  begin
-    // Already have name and icon, so see if we can provide details
-    for J := 1 to Columns.Count - 1 do
-    begin
-      HR := SF2.GetDetailsOf(PIDL, J, SD);
-      Item.SubItems.Add(StrRetToString(PIDL, SD.str, Format('**%x**', [HR])));
-    end;
-  end
-  else
-  begin
-    ISD := FRootFolder.ShellDetails;
-    if Assigned(ISD) then
-    begin
-      PIDL := TShellFolder(FFolders[Item.Index]).FPIDL;
-      for J := 1 to Columns.Count - 1 do
-      begin
-        ISD.GetDetailsOf(PIDL, J, SD);
-        Item.SubItems.Add(StrRetToString(PIDL, SD.str));
-      end;
-    end
-    else if (fpFileSystem in FRootFolder.Properties) then
-    begin
-      GetDetailsOf(TShellFolder(FFolders[Item.Index]), FindData);
-      for J := 1 to Columns.Count - 1 do
-        Item.SubItems.Add(DefaultDetailColumn(FindData, J));
-    end;
-  end;
-  (**)
 end;
 
 function TCnCustomShellListView.GetFolder(Index: Integer): TShellFolder;
@@ -2665,9 +2608,6 @@ function TCnCustomShellListView.OwnerDataFind(Find: TItemFind;
 var
   I: Integer;
   Found: Boolean;
-//OnDataFind gets called in response to calls to FindCaption, FindData,
-//GetNearestItem, etc. It also gets called for each keystroke sent to the
-//ListView (for incremental searching)
 begin
   Result := -1;
   I := StartIndex;
@@ -2675,11 +2615,17 @@ begin
   begin
     repeat
       if (I = FFolders.Count-1) then
-        if Wrap then I := 0 else Exit;
+      begin
+        if Wrap then
+          I := 0
+        else
+          Exit;
+      end;
       Found := Pos(UpperCase(FindString), UpperCase(Folders[I].DisplayName)) = 1;
       Inc(I);
     until Found or (I = StartIndex);
-    if Found then Result := I-1;
+    if Found then
+      Result := I - 1;
   end;
 end;
 
@@ -2694,12 +2640,11 @@ end;
 
 procedure TCnCustomShellListView.Loaded;
 begin
-  inherited Loaded;
+  inherited; // Why 2 inherited?
   Populate;
   if csLoading in ComponentState then
-    inherited Loaded;
+    inherited;
   SetAutoRefresh(FAutoRefresh);
-
 end;
 
 procedure TCnCustomShellListView.DoContextPopup(MousePos: TPoint;
@@ -2709,7 +2654,8 @@ begin
   begin
     InvokeContextMenu(Self, SelectedFolder, MousePos.X, MousePos.Y);
     Handled := True;
-  end else
+  end
+  else
     inherited;
 end;
 
@@ -2726,31 +2672,7 @@ begin
   end;
 end;
 
-(*
-
-The method I outlined previously works for me (just tested for Printers):
-
- - Start with the required IShellFolder interface
- - See if it supports IShellDetails
- - If not, use FShellFolder.CreateViewObject to get IShellDetails
- - If it is a normal file folder (SFGAO_FILESYSTEM) you know what to do
- - If not, call IShellDetails.GetDetailsOf on the virtual folder until
-   it returns the same column name twice (gives you the column types,
-   names, and count).  Use nil for the first parameter.
- - For each virtual file, call IShellDetails.GetDetailsOf the number of
-   columns times passing in the PItemIDList this time to get details.
-
-> Furthermore, I have not yet found a way to determine that a PIDL I
-> happen to have is a virtual folder, or a specific virtual folder. Still
-> looking for suggestions there as well.
-
-  You can tell a normal folder using IShellFolder.GetAttributesOf and
-checking for SFGAO_FILESYSTEM.  This returns false for printers, scheduled
-tasks, etc.
-
-(**)
 procedure TCnCustomShellListView.EnumColumns;
-
 var
   ColNames: TStringList;
 
@@ -2761,14 +2683,16 @@ var
 
     function ColumnIsUnique(const Name: string): boolean;
     var
-      i : integer;
+      I : integer;
     begin
-      for i := 0 to ColNames.Count - 1 do
-        if SameText(ColNames[i], Name) then
+      for I := 0 to ColNames.Count - 1 do
+      begin
+        if SameText(ColNames[I], Name) then
         begin
           Result := False;
           exit;
         end;
+      end;
       Result := True;
     end;
 
@@ -2779,6 +2703,7 @@ var
     begin
       Result := ColumnIsUnique(ColName);
       if Result then
+      begin
         with Columns.Add do
         begin
           Caption := ColName;
@@ -2790,6 +2715,7 @@ var
           Width := SD.cxChar * Canvas.TextWidth('X');
           ColNames.Add(ColName);
         end;
+      end;
     end
     else
       Result := True;
@@ -2885,6 +2811,7 @@ procedure TCnCustomShellListView.KeyDown(var Key: Word; Shift: TShiftState);
 begin
   inherited;
   if FAutoNavigate then
+  begin
     case Key of
       VK_RETURN:
         if ssAlt in Shift then
@@ -2902,6 +2829,7 @@ begin
       VK_BACK: if not IsEditing then Back;
       VK_F5: Refresh;
     end;
+  end;
 end;
 
 {$IFNDEF COMPILER6_UP}
@@ -2929,9 +2857,12 @@ begin
   begin
     Value.Root := Root;
     Value.FListView := Self;
-  end else
+  end
+  else
+  begin
     if FTreeView <> nil then
       FTreeView.FListView := nil;
+  end;
 
   if FTreeView <> nil then
     FTreeView.FreeNotification(Self);
@@ -2947,14 +2878,15 @@ end;
 
 procedure TCnCustomShellListView.WndProc(var Message: TMessage);
 begin
-  //to handle submenus of context menus.
   with Message do
+  begin
     if ((Msg = WM_INITMENUPOPUP) or (Msg = WM_DRAWITEM) or (Msg = WM_MENUCHAR)
     or (Msg = WM_MEASUREITEM)) and Assigned(ICM2) then
     begin
       ICM2.HandleMenuMsg(Msg, wParam, lParam);
       Result := 0;
     end;
+  end;
   inherited;
 end;
 
@@ -3015,15 +2947,12 @@ begin
   end;
 end;
 
-
 initialization
-
   CreateDesktopFolder;
   InitializeCriticalSection(CS);
   OleInitialize(nil);
 
 finalization
-
   if Assigned(DesktopFolder) then
     DesktopFolder.Free;
   DeleteCriticalSection(CS);
