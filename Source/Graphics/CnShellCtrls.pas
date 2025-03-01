@@ -39,6 +39,7 @@ unit CnShellCtrls;
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2025.02.28
 *               修正 64 位下的 ChangeNotifierThread 出错提前释放的问题
+*               并修正 ImageList 获取被截断的问题
 *           2003.12.03
 *               移植自 Delphi 7
 ================================================================================
@@ -237,9 +238,9 @@ type
     property ViewHandle: THandle read FViewHandle write FViewHandle;
   end;
 
-  TNotifyFilter = (nfFileNameChange, nfDirNameChange, nfAttributeChange,
+  TCnShellNotifyFilter = (nfFileNameChange, nfDirNameChange, nfAttributeChange,
     nfSizeChange, nfWriteChange, nfSecurityChange);
-  TNotifyFilters = set of TNotifyFilter;
+  TCnShellNotifyFilters = set of TCnShellNotifyFilter;
 
   TCnShellChangeThread = class(TThread)
   private
@@ -248,28 +249,28 @@ type
     FChangeEvent: TThreadMethod;
     FDirectory: string;
     FWatchSubTree: Boolean;
-    FWaitChanged : Boolean;
+    FWaitChanged: Boolean;
     FNotifyOptionFlags: DWORD;
   protected
     procedure Execute; override;
   public
     constructor Create(ChangeEvent: TThreadMethod); virtual;
     destructor Destroy; override;
-    procedure SetDirectoryOptions( Directory: string; WatchSubTree: Boolean;
+    procedure SetDirectoryOptions(Directory: string; WatchSubTree: Boolean;
       NotifyOptionFlags: DWORD);
     property ChangeEvent: TThreadMethod read FChangeEvent write FChangeEvent;
   end;
 
   TCnCustomShellChangeNotifier = class(TComponent)
   private
-    FFilters: TNotifyFilters;
+    FFilters: TCnShellNotifyFilters;
     FWatchSubTree: Boolean;
     FRoot: TRoot;
     FThread: TCnShellChangeThread;
     FOnChange: TThreadMethod;
     procedure SetRoot(const Value: TRoot);
     procedure SetWatchSubTree(const Value: Boolean);
-    procedure SetFilters(const Value: TNotifyFilters);
+    procedure SetFilters(const Value: TCnShellNotifyFilters);
     procedure SetOnChange(const Value: TThreadMethod);
   protected
     procedure Change;
@@ -277,7 +278,7 @@ type
   public
     constructor Create(AOwner : TComponent); override;
     destructor Destroy; override;
-    property NotifyFilters: TNotifyFilters read FFilters write SetFilters;
+    property NotifyFilters: TCnShellNotifyFilters read FFilters write SetFilters;
     property Root: TRoot read FRoot write SetRoot;
     property WatchSubTree: Boolean read FWatchSubTree write SetWatchSubTree;
     property OnChange: TThreadMethod read FOnChange write SetOnChange;
@@ -309,7 +310,7 @@ type
     FOldRoot : TRoot;
     FRootFolder: TShellFolder;
     FObjectTypes: TShellObjectTypes;
-    FImages: Integer;
+    FImages: THandle;
     FLoadingRoot,
     FAutoContext,
     FUpdating: Boolean;
@@ -457,7 +458,7 @@ type
     FUpdating: Boolean;
     FObjectTypes: TShellObjectTypes;
     FLargeImages,
-    FSmallImages: Integer;
+    FSmallImages: THandle;
     FOnAddFolder: TAddFolderEvent;
     FOnRootChanged: TNotifyEvent;
     FFolders: TList;
@@ -1485,7 +1486,7 @@ begin
   end;
 end;
 
-procedure TCnCustomShellChangeNotifier.SetFilters(const Value: TNotifyFilters);
+procedure TCnCustomShellChangeNotifier.SetFilters(const Value: TCnShellNotifyFilters);
 begin
   FFilters := Value;
   Change;
@@ -2197,7 +2198,8 @@ begin
           FImageListChanging := False;
         end;
       end
-      else inherited;
+      else
+        inherited WndProc(Message);
   else
     inherited WndProc(Message);
   end;
