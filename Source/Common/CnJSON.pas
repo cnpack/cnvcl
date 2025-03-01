@@ -49,8 +49,8 @@ unit CnJSON;
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.02.27 V1.6
-*                 增加将字符串解析成多个 JSONObject 的过程
+* 修改记录：2025.03.01 V1.6
+*                 增加将字符串解析成多个 JSONObject 的过程并增加步进机制用于解析不完整的字符串
 *           2024.07.30 V1.5
 *                 实现 Value 的 Clone 方法、数组的 AddValues 方法，合并 JSONObject 的过程
 *           2024.06.30 V1.4
@@ -511,8 +511,13 @@ function CnJSONConstruct(Obj: TCnJSONObject; UseFormat: Boolean = True; Indent: 
 function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject; overload;
 {* 解析 UTF8 格式的 JSON 字符串为单个 JSON 对象，需要外部释放}
 
-procedure CnJSONParse(const JsonStr: AnsiString; Objects: TObjectList); overload;
-{* 解析 UTF8 格式的 JSON 字符串为多个 JSON 对象，每个对象加入 Objects 列表中，需要外部释放}
+function CnJSONParse(JsonStr: PAnsiChar; Objects: TObjectList): Integer; overload;
+{* 解析 UTF8 格式的 JSON 字符串为多个 JSON 对象，每个对象加入 Objects 列表中，需要外部释放
+  返回值表示解析出完整的 JSON 对象后，该字符串步进了多少字节。用于不完整的 JSON 字符串持续解析。
+  JsonStr + 返回值就是下一个待解析的起点，也就是上一个成功解析的右大括号的后一处，具体来说就是：
+  字符串如果以右大括号结尾，JsonStr + 返回值会指向它结尾的 #0，
+  字符串尾部如果是大括号加一些空格或回车换行，JsonStr + 返回值会指向第一个空格或换行，
+  字符串尾部如果是不完整的 JSON 字符串，JsonStr + 返回值就指向不完整的开头。}
 
 procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject;
   Replace: Boolean = False);
@@ -534,6 +539,9 @@ const
 
   CN_NAME_HASH_THRESHOLD = 128;
   {* JSONObject 的 Key Value 对数量超过这个阈值时，内部用哈希表进行加速}
+
+var
+  DummyTermStep: Integer;
 
 resourcestring
   SCnErrorJSONTokenFmt = 'JSON Token %s Expected at Offset %d';
@@ -566,7 +574,7 @@ end;
 
 function JSONParseValue(P: TCnJSONParser; Current: TCnJSONBase): TCnJSONValue; forward;
 
-function JSONParseObject(P: TCnJSONParser; Current: TCnJSONBase): TCnJSONObject; forward;
+function JSONParseObject(P: TCnJSONParser; Current: TCnJSONBase; out TermStep: Integer): TCnJSONObject; forward;
 
 procedure JSONCheckToken(P: TCnJSONParser; ExpectedToken: TCnJSONTokenType);
 begin
@@ -647,7 +655,7 @@ function JSONParseValue(P: TCnJSONParser; Current: TCnJSONBase): TCnJSONValue;
 begin
   case P.TokenID of
     jttObjectBegin:
-      Result := JSONParseObject(P, Current);
+      Result := JSONParseObject(P, Current, DummyTermStep);
     jttString:
       Result := JSONParseString(P, Current);
     jttNumber:
@@ -666,8 +674,8 @@ begin
   end;
 end;
 
-// 解析器遇到 { 时调用，要求 Current 是外部创建的 JSONObject 对象
-function JSONParseObject(P: TCnJSONParser; Current: TCnJSONBase): TCnJSONObject;
+// 解析器遇到 { 时调用，要求 Current 是外部创建的 JSONObject 对象或 nil
+function JSONParseObject(P: TCnJSONParser; Current: TCnJSONBase; out TermStep: Integer): TCnJSONObject;
 var
   Pair: TCnJSONPair;
 begin
@@ -676,34 +684,44 @@ begin
   if Current <> nil then
     Current.AddChild(Result);
 
-  // { 后也可以直接一个 } 表示空对象
-  while (P.TokenID <> jttTerminated) and (P.TokenID <> jttObjectEnd) do
-  begin
-    // 必须一个 String
-    JSONCheckToken(P, jttString);
-
-    Pair := TCnJSONPair.Create;
-    Pair.Name.Content := P.Token;            // 设置 Pair 自有的 Name 的内容
-    Result.AddChild(Pair);
-
-    // 必须一个冒号
-    P.NextNoJunk;
-    JSONCheckToken(P, jttNameValueSep);
-
-    P.NextNoJunk;
-    JSONParseValue(P, Pair);
-    // 必须一个 Value
-
-    if P.TokenID = jttElementSep then        // 有逗号分隔，说明有下一对 Key Value 对
+  try
+    // { 后也可以直接一个 } 表示空对象
+    while (P.TokenID <> jttTerminated) and (P.TokenID <> jttObjectEnd) do
     begin
-      P.NextNoJunk;
-      Continue;
-    end
-    else
-      Break;
-  end;
+      // 必须一个 String
+      JSONCheckToken(P, jttString);
 
-  JSONCheckToken(P, jttObjectEnd);
+      Pair := TCnJSONPair.Create;
+      Pair.Name.Content := P.Token;            // 设置 Pair 自有的 Name 的内容
+      Result.AddChild(Pair);
+
+      // 必须一个冒号
+      P.NextNoJunk;
+      JSONCheckToken(P, jttNameValueSep);
+
+      P.NextNoJunk;
+      JSONParseValue(P, Pair);
+      // 必须一个 Value
+
+      if P.TokenID = jttElementSep then        // 有逗号分隔，说明有下一对 Key Value 对
+      begin
+        P.NextNoJunk;
+        Continue;
+      end
+      else
+        Break;
+    end;
+
+    JSONCheckToken(P, jttObjectEnd);
+    TermStep := P.RunPos;
+  except
+    // 如果解析出了异常，那么有 Current 的情况下，不完整的 Result 仍挂在 Current 下
+    // 如果没 Current，那么要释放之前创建的 Result 这个对象，否则会出内存泄漏
+    if Current = nil then
+      FreeAndNil(Result);
+
+    raise;
+  end;
   P.NextNoJunk;
 end;
 
@@ -720,7 +738,7 @@ begin
     begin
       if P.TokenID = jttObjectBegin then
       begin
-        Result := JSONParseObject(P, nil);
+        Result := JSONParseObject(P, nil, DummyTermStep);
         Exit;
       end;
 
@@ -731,22 +749,34 @@ begin
   end;
 end;
 
-procedure CnJSONParse(const JsonStr: AnsiString; Objects: TObjectList);
+function CnJSONParse(JsonStr: PAnsiChar; Objects: TObjectList): Integer;
 var
   P: TCnJSONParser;
   Obj: TCnJSONObject;
+  Step: Integer;
 begin
+  Result := 0;
   P := TCnJSONParser.Create;
   try
-    P.SetOrigin(PAnsiChar(JsonStr));
-
+    P.SetOrigin(JsonStr);
     while P.TokenID <> jttTerminated do
     begin
+      // 这个循环有两个退出点，一个是碰不上 {，一个是碰上 { 后解析出错
       if P.TokenID = jttObjectBegin then
       begin
-        Obj := JSONParseObject(P, nil);
+        try
+          Obj := JSONParseObject(P, nil, Step);
+        except
+          Obj := nil;
+        end;
+
         if Obj <> nil then
+        begin
           Objects.Add(Obj);
+          Result := Step;
+        end
+        else
+          Exit;
       end;
 
       P.NextNoJunk;

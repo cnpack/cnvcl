@@ -35,6 +35,7 @@ type
     btnMerge: TButton;
     chkReplaceName: TCheckBox;
     btnParseMulti: TButton;
+    btnParseMultiStep: TButton;
     procedure btnParseClick(Sender: TObject);
     procedure btnJSONConstruct1Click(Sender: TObject);
     procedure btnWriteClick(Sender: TObject);
@@ -46,6 +47,7 @@ type
     procedure btnArrayClick(Sender: TObject);
     procedure btnMergeClick(Sender: TObject);
     procedure btnParseMultiClick(Sender: TObject);
+    procedure btnParseMultiStepClick(Sender: TObject);
   private
     procedure DumpJSONToTreeView(JSON: TCnJSONObject);
   public
@@ -113,10 +115,7 @@ end;
 
 procedure TFormJSON.btnParseMultiClick(Sender: TObject);
 var
-  Parser: TCnJSONParser;
   S: AnsiString;
-  I: Integer;
-  Obj: TCnJSONObject;
   Objs: TObjectList;
 begin
   // ºº×Ö×ª UTF8
@@ -127,7 +126,7 @@ begin
 {$ENDIF}
 
   Objs := TObjectList.Create;
-  CnJSONParse(S, Objs);
+  CnJSONParse(PAnsiChar(S), Objs);
   ShowMessage(IntToStr(Objs.Count));
   Objs.Free;
 end;
@@ -396,6 +395,29 @@ begin
 
   Obj1.Free;
   Obj2.Free;
+end;
+
+procedure TFormJSON.btnParseMultiStepClick(Sender: TObject);
+var
+  S: AnsiString;
+  P: PAnsiChar;
+  R: Integer;
+  Objs: TObjectList;
+begin
+  S := 'data: {"id":"8b1dca4f-29b4-40ba-a1ad-3e7f0518d528","object":"chat.completion.chunk","created":1740660100,'
+    + '"model":"deepseek-chat","system_fingerprint":"fp_3a5770e1b4_prod0225","choices":[{"index":0,"delta":{"content":""},'
+    + '"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":49,"completion_tokens":454,"total_tokens":503,'
+    + '"prompt_tokens_details":{"cached_tokens":0},"prompt_cache_hit_tokens":0,"prompt_cache_miss_tokens":49}}' + #$0A#$0A
+    + '}data: [DONE] { test:';
+
+  Objs := TObjectList.Create;
+  R := CnJSONParse(PAnsiChar(S), Objs);
+  ShowMessage(IntToStr(Objs.Count) + ' ' + IntToStr(R));
+
+  P := PAnsiChar(S) + R;
+  ShowMessage(P);
+
+  Objs.Free;
 end;
 
 end.
