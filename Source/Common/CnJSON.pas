@@ -51,6 +51,7 @@ unit CnJSON;
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2025.03.01 V1.6
 *                 增加将字符串解析成多个 JSONObject 的过程并增加步进机制用于解析不完整的字符串
+*                 并修正对字符串一开始就出现 \" 时的处理错误
 *           2024.07.30 V1.5
 *                 实现 Value 的 Clone 方法、数组的 AddValues 方法，合并 JSONObject 的过程
 *           2024.06.30 V1.4
@@ -514,8 +515,9 @@ function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject; overload;
 function CnJSONParse(JsonStr: PAnsiChar; Objects: TObjectList): Integer; overload;
 {* 解析 UTF8 格式的 JSON 字符串为多个 JSON 对象，每个对象加入 Objects 列表中，需要外部释放
   返回值表示解析出完整的 JSON 对象后，该字符串步进了多少字节。用于不完整的 JSON 字符串持续解析。
-  JsonStr + 返回值就是下一个待解析的起点，也就是上一个成功解析的右大括号的后一处，具体来说就是：
-  字符串如果以右大括号结尾，JsonStr + 返回值会指向它结尾的 #0，
+  字符指针 JsonStr + 返回值（或者说字符串下标 string(JsonStr)[返回值+1]）就是下一个待解析的起点，
+  也就是上一个成功解析的右大括号的后一处。具体来说就是：
+  字符串如果以右大括号结尾，字符指针 JsonStr + 返回值会指向它结尾的 #0，
   字符串尾部如果是大括号加一些空格或回车换行，JsonStr + 返回值会指向第一个空格或换行，
   字符串尾部如果是不完整的 JSON 字符串，JsonStr + 返回值就指向不完整的开头。}
 
@@ -1029,16 +1031,13 @@ procedure TCnJSONParser.StringProc;
 begin
   StepRun;
   FTokenID := jttString;
-  // 要处理 UTF8 字符串，也要处理转义字符如 \ 后的 " \ / b f n r t u 直到结束的 " 为止
+  // 要处理 UTF8 字符串，也要处理转义字符如 \ 后的 " \ / b f n r t u 直到结束的真正 " 为止
   while FOrigin[FRun] <> '"' do
   begin
-    StepRun;
-    if FOrigin[FRun] = '\' then
-    begin
-      StepRun;
-      if FOrigin[FRun] = '"' then   // \" 特殊处理以避免判断结束错误，但要注意 UTF8 的后续字符可能出现引号
-        StepRun;
-    end;
+    if FOrigin[FRun] = '\' then // 有转义号
+      StepRun; // 指向转义号后面一个字符，如果该字符是双引号，会被下面越过，不参与循环结束判断
+
+    StepRun; // 越过转义号后一字符指向转义号后第二个字符，可能是引号，可能是 u 后的四个数字字母，其他正常字符
   end;
   StepRun;
 end;
@@ -1964,7 +1963,7 @@ begin
           'n': Bld.AppendWideChar(#$0A);
           'f': Bld.AppendWideChar(#$0C);
           'r': Bld.AppendWideChar(#$0D);
-          'u':
+          'u': // u 后面四个十六进制字符如 FFFF，不支持更长的
             begin
               Inc(P);
               B3 := Ord(P^);
