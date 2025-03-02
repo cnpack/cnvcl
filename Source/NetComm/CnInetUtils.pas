@@ -120,10 +120,12 @@ type
     function InitInet: Boolean;
     procedure CloseInet;
     function GetStreamFromHandle(Handle: HINTERNET; TotalSize: Integer;
-      Stream: TStream): Boolean;
-    function GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TStrings): Boolean; overload;
-    function GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TBytes): Boolean; overload;
-    function GetFTPStream(Info: TCnURLInfo; Stream: TStream): Boolean;
+      Stream: TStream; ErrCodePtr: PDWORD = nil): Boolean;
+    function GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TStrings;
+      ErrCodePtr: PDWORD = nil): Boolean; overload;
+    function GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TBytes;
+      ErrCodePtr: PDWORD = nil): Boolean; overload;
+    function GetFTPStream(Info: TCnURLInfo; Stream: TStream; ErrCodePtr: PDWORD = nil): Boolean;
   public
     constructor Create;
     destructor Destroy; override;
@@ -134,27 +136,35 @@ type
     {* 从 AURL 地址读取数据，如果成功，返回内容的原始字节数组，失败则返回空
       返回空时可用 GetLastError 获取错误码}
 
-    function GetStream(const AURL: string; Stream: TStream; APost: TStrings = nil): Boolean; overload;
+    function GetStream(const AURL: string; Stream: TStream; APost: TStrings = nil;
+      ErrCodePtr: PDWORD = nil): Boolean; overload;
     {* 从 AURL 地址读取数据到流 Stream，如果 APost 不为 nil 则执行 Post 调用
-      返回是否成功，如失败，可用 GetLastError 获取错误码}
-    function GetStream(const AURL: string; Stream: TStream; APost: TBytes): Boolean; overload;
+      返回是否成功。如传了 ErrCodePtr，失败情况下内部会调用 GetLastError 返回错误码
+      注意如果外部调用 GetLastError，有可能已经迟了，错误码被冲掉了，因而通过指针参数返回}
+    function GetStream(const AURL: string; Stream: TStream; APost: TBytes;
+      ErrCodePtr: PDWORD = nil): Boolean; overload;
     {* 从 AURL 地址读取数据到流 Stream，如果 APost 不为 nil 则执行 Post 调用
-      返回是否成功，如失败，可用 GetLastError 获取错误码}
+      返回是否成功。如传了 ErrCodePtr，失败情况下内部会调用 GetLastError 返回错误码
+      注意如果外部调用 GetLastError，有可能已经迟了，错误码被冲掉了，因而通过指针参数返回}
 
-    function GetString(const AURL: string; APost: TStrings = nil): AnsiString; overload;
+    function GetString(const AURL: string; APost: TStrings = nil; ErrCodePtr: PDWORD = nil): AnsiString; overload;
     {* 从 AURL 地址返回一个字符串，如果 APost 不为 nil 则执行 Post 调用
-      返回是否成功，如失败，可用 GetLastError 获取错误码}
-    function GetString(const AURL: string; APost: TBytes): AnsiString; overload;
+      返回是否成功。如传了 ErrCodePtr，失败情况下内部会调用 GetLastError 返回错误码
+      注意如果外部调用 GetLastError，有可能已经迟了，错误码被冲掉了，因而通过指针参数返回}
+    function GetString(const AURL: string; APost: TBytes; ErrCodePtr: PDWORD = nil): AnsiString; overload;
     {* 从 AURL 地址返回一个字符串，如果 APost 不为 nil 则执行 Post 调用
-      返回是否成功，如失败，可用 GetLastError 获取错误码}
+      返回是否成功。如传了 ErrCodePtr，失败情况下内部会调用 GetLastError 返回错误码
+      注意如果外部调用 GetLastError，有可能已经迟了，错误码被冲掉了，因而通过指针参数返回}
 
-    function GetFile(const AURL, FileName: string; APost: TStrings = nil): Boolean; overload;
+    function GetFile(const AURL, FileName: string; APost: TStrings = nil; ErrCodePtr: PDWORD = nil): Boolean; overload;
     {* 从 AURL 地址读取数据保存到文件 FileName，如果 APost 不为 nil 则执行 Post 调用
-      返回是否成功，如失败，可用 GetLastError 获取错误码}
+      返回是否成功。如传了 ErrCodePtr，失败情况下内部会调用 GetLastError 返回错误码
+      注意如果外部调用 GetLastError，有可能已经迟了，错误码被冲掉了，因而通过指针参数返回}
 
-    function GetFile(const AURL, FileName: string; APost: TBytes): Boolean; overload;
+    function GetFile(const AURL, FileName: string; APost: TBytes; ErrCodePtr: PDWORD = nil): Boolean; overload;
     {* 从 AURL 地址读取数据保存到文件 FileName，如果 APost 不为 nil 则执行 Post 调用
-      返回是否成功，如失败，可用 GetLastError 获取错误码}
+      返回是否成功。如传了 ErrCodePtr，失败情况下内部会调用 GetLastError 返回错误码
+      注意如果外部调用 GetLastError，有可能已经迟了，错误码被冲掉了，因而通过指针参数返回}
 
     property OnProgress: TCnInetProgressEvent read FOnProgress write FOnProgress;
     {* 获取数据时的进度事件}
@@ -419,7 +429,8 @@ begin
   end;
 end;
 
-function TCnInet.GetStream(const AURL: string; Stream: TStream; APost: TStrings): Boolean;
+function TCnInet.GetStream(const AURL: string; Stream: TStream; APost: TStrings;
+  ErrCodePtr: PDWORD): Boolean;
 var
   Info: TCnURLInfo;
 begin
@@ -432,9 +443,9 @@ begin
     Exit;
 
   if SameText(Info.Protocol, 'http') or SameText(Info.Protocol, 'https') then
-    Result := GetHTTPStream(Info, Stream, APost)
+    Result := GetHTTPStream(Info, Stream, APost, ErrCodePtr)
   else if SameText(Info.Protocol, 'ftp') then
-    Result := GetFTPStream(Info, Stream);
+    Result := GetFTPStream(Info, Stream, ErrCodePtr);
 
   if FAborted then
     Result := False;
@@ -442,7 +453,8 @@ begin
   FGetDataFail := not Result;
 end;
 
-function TCnInet.GetStream(const AURL: string; Stream: TStream; APost: TBytes): Boolean;
+function TCnInet.GetStream(const AURL: string; Stream: TStream; APost: TBytes;
+  ErrCodePtr: PDWORD): Boolean;
 var
   Info: TCnURLInfo;
 begin
@@ -455,9 +467,9 @@ begin
     Exit;
 
   if SameText(Info.Protocol, 'http') or SameText(Info.Protocol, 'https') then
-    Result := GetHTTPStream(Info, Stream, APost)
+    Result := GetHTTPStream(Info, Stream, APost, ErrCodePtr)
   else if SameText(Info.Protocol, 'ftp') then
-    Result := GetFTPStream(Info, Stream);
+    Result := GetFTPStream(Info, Stream, ErrCodePtr);
 
   if FAborted then
     Result := False;
@@ -466,7 +478,7 @@ begin
 end;
 
 function TCnInet.GetStreamFromHandle(Handle: HINTERNET; TotalSize: Integer;
-  Stream: TStream): Boolean;
+  Stream: TStream; ErrCodePtr: PDWORD): Boolean;
 var
   CurrSize, ReadCnt: Cardinal;
   Buf: array[0..csBufferSize - 1] of Byte;
@@ -476,7 +488,11 @@ begin
   ReadCnt := 0;
   repeat
     if not InternetReadFile(Handle, @Buf, csBufferSize, ReadCnt) then
+    begin
+      if ErrCodePtr <> nil then
+        ErrCodePtr^ := GetLastError;
       Exit;
+    end;
 
     if ReadCnt > 0 then
     begin
@@ -489,7 +505,7 @@ begin
   Result := True;
 end;
 
-function TCnInet.GetFTPStream(Info: TCnURLInfo; Stream: TStream): Boolean;
+function TCnInet.GetFTPStream(Info: TCnURLInfo; Stream: TStream; ErrCodePtr: PDWORD): Boolean;
 var
   hConnect, hFtp: HINTERNET;
   FindData: TWin32FindData;
@@ -503,8 +519,15 @@ begin
       StrToIntDef(Info.Port, INTERNET_DEFAULT_FTP_PORT),
       PChar(Info.Username), PChar(Info.Password),
       INTERNET_SERVICE_FTP, 0, 0);
-    if (hConnect = nil) or FAborted then
+    if FAborted then
       Exit;
+
+    if hConnect = nil then
+    begin
+      if ErrCodePtr <> nil then
+        ErrCodePtr^ := GetLastError;
+      Exit;
+    end;
 
     hFtp := FtpFindFirstFile(hConnect, PChar(Info.PathName), FindData,
       INTERNET_FLAG_NEED_FILE, 0);
@@ -518,17 +541,25 @@ begin
 
     hFtp := FtpOpenFile(hConnect, PChar(Info.PathName), GENERIC_READ,
       FTP_TRANSFER_TYPE_BINARY, 0);
-    if (hFtp = nil) or FAborted then
+    if FAborted then
       Exit;
-      
-    Result := GetStreamFromHandle(hFtp, TotalSize, Stream);
+
+    if hFtp = nil then
+    begin
+      if ErrCodePtr <> nil then
+        ErrCodePtr^ := GetLastError;
+      Exit;
+    end;
+
+    Result := GetStreamFromHandle(hFtp, TotalSize, Stream, ErrCodePtr);
   finally
     if hFtp <> nil then InternetCloseHandle(hFtp);
     if hConnect <> nil then InternetCloseHandle(hConnect);
   end;
 end;
 
-function TCnInet.GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TStrings): Boolean;
+function TCnInet.GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TStrings;
+  ErrCodePtr: PDWORD): Boolean;
 var
   IsHttps: Boolean;
   PathName: string;
@@ -623,7 +654,12 @@ begin
 
       if FAborted then Exit;
 
-      Result := GetStreamFromHandle(hRequest, StrToIntDef(SizeStr, -1), Stream);
+      Result := GetStreamFromHandle(hRequest, StrToIntDef(SizeStr, -1), Stream, ErrCodePtr);
+    end
+    else
+    begin
+      if ErrCodePtr <> nil then
+        ErrCodePtr^ := GetLastError;
     end;
   finally
     if hRequest <> nil then InternetCloseHandle(hRequest);
@@ -631,7 +667,8 @@ begin
   end;
 end;
 
-function TCnInet.GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TBytes): Boolean;
+function TCnInet.GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TBytes;
+  ErrCodePtr: PDWORD): Boolean;
 var
   IsHttps: Boolean;
   PathName: string;
@@ -721,7 +758,12 @@ begin
 
       if FAborted then Exit;
 
-      Result := GetStreamFromHandle(hRequest, StrToIntDef(SizeStr, -1), Stream);
+      Result := GetStreamFromHandle(hRequest, StrToIntDef(SizeStr, -1), Stream, ErrCodePtr);
+    end
+    else
+    begin
+      if ErrCodePtr <> nil then
+        ErrCodePtr^ := GetLastError;
     end;
   finally
     if hRequest <> nil then InternetCloseHandle(hRequest);
@@ -729,14 +771,14 @@ begin
   end;
 end;
 
-function TCnInet.GetString(const AURL: string; APost: TStrings): AnsiString;
+function TCnInet.GetString(const AURL: string; APost: TStrings; ErrCodePtr: PDWORD): AnsiString;
 var
   Stream: TMemoryStream;
 begin
   try
     Stream := TMemoryStream.Create;
     try
-      if GetStream(AURL, Stream, APost) then
+      if GetStream(AURL, Stream, APost, ErrCodePtr) then
       begin
         SetLength(Result, Stream.Size);
         Move(Stream.Memory^, PAnsiChar(Result)^, Stream.Size);
@@ -751,14 +793,14 @@ begin
   end;
 end;
 
-function TCnInet.GetString(const AURL: string; APost: TBytes): AnsiString;
+function TCnInet.GetString(const AURL: string; APost: TBytes; ErrCodePtr: PDWORD): AnsiString;
 var
   Stream: TMemoryStream;
 begin
   try
     Stream := TMemoryStream.Create;
     try
-      if GetStream(AURL, Stream, APost) then
+      if GetStream(AURL, Stream, APost, ErrCodePtr) then
       begin
         SetLength(Result, Stream.Size);
         Move(Stream.Memory^, PAnsiChar(Result)^, Stream.Size);
@@ -773,7 +815,7 @@ begin
   end;
 end;
 
-function TCnInet.GetFile(const AURL, FileName: string; APost: TStrings): Boolean;
+function TCnInet.GetFile(const AURL, FileName: string; APost: TStrings; ErrCodePtr: PDWORD): Boolean;
 var
   Stream: TFileStream;
 begin
@@ -781,7 +823,7 @@ begin
     Stream := TFileStream.Create(FileName, fmCreate or fmShareDenyWrite);
     try
       Stream.Size := 0;
-      Result := GetStream(AURL, Stream, APost);
+      Result := GetStream(AURL, Stream, APost, ErrCodePtr);
     finally
       Stream.Free;
     end;
@@ -790,7 +832,7 @@ begin
   end;
 end;
 
-function TCnInet.GetFile(const AURL, FileName: string; APost: TBytes): Boolean;
+function TCnInet.GetFile(const AURL, FileName: string; APost: TBytes; ErrCodePtr: PDWORD): Boolean;
 var
   Stream: TFileStream;
 begin
@@ -798,7 +840,7 @@ begin
     Stream := TFileStream.Create(FileName, fmCreate or fmShareDenyWrite);
     try
       Stream.Size := 0;
-      Result := GetStream(AURL, Stream, APost);
+      Result := GetStream(AURL, Stream, APost, ErrCodePtr);
     finally
       Stream.Free;
     end;
