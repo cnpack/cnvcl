@@ -49,7 +49,9 @@ unit CnJSON;
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.03.01 V1.6
+* 修改记录：2025.03.02 V1.7
+*                 经 DeepSeek 检查修正几处小问题
+*           2025.03.01 V1.6
 *                 增加将字符串解析成多个 JSONObject 的过程并增加步进机制用于解析不完整的字符串
 *                 并修正对字符串一开始就出现 \" 时的处理错误
 *           2024.07.30 V1.5
@@ -301,7 +303,7 @@ type
   string = quotation-mark *char quotation-mark
 }
   TCnJSONString = class(TCnJSONValue)
-  {* 代表 JSON 中的字符串值的类}
+  {* 代表 JSON 中的字符串值的类，解析时 Content 是包含前后双引号在内的未处理转义的内容}
   private
     FValue: string;
     // 与 Content 同步的 string 格式内容，同时支持 Unicode 与 Ansi
@@ -334,6 +336,8 @@ type
 
     function Clone: TCnJSONValue; override;
     {* 复制一份相同的数字对象}
+
+    class function FloatToJsonFormat(Value: Extended): AnsiString;
   end;
 
   TCnJSONNull = class(TCnJSONValue)
@@ -554,6 +558,7 @@ resourcestring
   SCnErrorJSONStringParse = 'JSON String Parse Error';
   SCnErrorJSONValueTypeNotImplementedFmt = 'NOT Implemented for this JSON Value Type %s';
   SCnErrorJSONArrayConstsTypeFmt = 'JSON Const Type NOT Support %d';
+  SCnErrorJSONArrayTrailingComma = 'JSON Trailing Comma Error in Array';
 
 {$IFDEF SUPPORT_FORMAT_SETTINGS}
 
@@ -643,6 +648,9 @@ begin
     if P.TokenID = jttElementSep then
     begin
       P.NextNoJunk;
+      if P.TokenID = jttArrayEnd then // 最后一个元素后不允许逗号
+        raise ECnJSONException.Create(SCnErrorJSONArrayTrailingComma);
+
       Continue;
     end
     else
@@ -683,8 +691,6 @@ var
 begin
   Result := TCnJSONObject.Create;
   P.NextNoJunk;
-  if Current <> nil then
-    Current.AddChild(Result);
 
   try
     // { 后也可以直接一个 } 表示空对象
@@ -694,8 +700,8 @@ begin
       JSONCheckToken(P, jttString);
 
       Pair := TCnJSONPair.Create;
-      Pair.Name.Content := P.Token;            // 设置 Pair 自有的 Name 的内容
       Result.AddChild(Pair);
+      Pair.Name.Content := P.Token;            // 设置 Pair 自有的 Name 的内容
 
       // 必须一个冒号
       P.NextNoJunk;
@@ -717,13 +723,15 @@ begin
     JSONCheckToken(P, jttObjectEnd);
     TermStep := P.RunPos;
   except
-    // 如果解析出了异常，那么有 Current 的情况下，不完整的 Result 仍挂在 Current 下
-    // 如果没 Current，那么要释放之前创建的 Result 这个对象，否则会出内存泄漏
-    if Current = nil then
-      FreeAndNil(Result);
+    // 如果解析出了异常，就要释放之前创建的 Result 这个对象，否则会出内存泄漏
+    FreeAndNil(Result);
 
     raise;
   end;
+
+  // 最后再把有效的 Result 挂上去
+  if (Current <> nil) and (Result <> nil) then
+    Current.AddChild(Result);
   P.NextNoJunk;
 end;
 
@@ -978,10 +986,33 @@ end;
 
 procedure TCnJSONParser.NumberProc;
 begin
-  repeat
-    StepRun;
-  until not (FOrigin[FRun] in ['0'..'9', '.', 'e', 'E']); // 负号不能再出现了，能出现 e 这种科学计数法
   FTokenID := jttNumber;
+
+  // 可选正负号
+  if FOrigin[FRun] in ['-', '+'] then
+    StepRun;
+
+  // 整数部分
+  while FOrigin[FRun] in ['0'..'9'] do
+    StepRun;
+
+  // 可能有小数部分
+  if FOrigin[FRun] = '.' then
+  begin
+    StepRun;
+    while FOrigin[FRun] in ['0'..'9'] do
+      StepRun;
+  end;
+
+  // 指数
+  if FOrigin[FRun] in ['e', 'E'] then
+  begin
+    StepRun;
+    if FOrigin[FRun] in ['-', '+'] then
+      StepRun;
+    while FOrigin[FRun] in ['0'..'9'] do
+      StepRun;
+  end;
 end;
 
 procedure TCnJSONParser.ObjectBeginProc;
@@ -1148,13 +1179,7 @@ var
   V: TCnJSONNumber;
 begin
   V := TCnJSONNumber.Create;
-{$IFDEF SUPPORT_FORMAT_SETTINGS}
-  V.Content := AnsiString(FloatToStr(Value, JSONFormatSettings));
-{$ELSE}
-  V.Content := AnsiString(FloatToStr(Value));
-  // D 5 6 下不支持 TFormatSettings，可能因为区域设置将小数点整成了逗号，替换回来
-  V.Content := StringReplace(V.Content, ',', '.', [rfReplaceAll]);
-{$ENDIF}
+  V.Content := TCnJSONNumber.FloatToJsonFormat(Value);
   Result := AddPair(Name, V);
 end;
 
@@ -1607,13 +1632,7 @@ var
   V: TCnJSONNumber;
 begin
   V := TCnJSONNumber.Create;
-{$IFDEF SUPPORT_FORMAT_SETTINGS}
-  V.Content := AnsiString(FloatToStr(Value, JSONFormatSettings));
-{$ELSE}
-  V.Content := AnsiString(FloatToStr(Value));
-  // D 5 6 下不支持 TFormatSettings，可能因为区域设置将小数点整成了逗号，替换回来
-  V.Content := StringReplace(V.Content, ',', '.', [rfReplaceAll]);
-{$ENDIF}
+  V.Content := TCnJSONNumber.FloatToJsonFormat(Value);
   Result := AddValue(V);
 end;
 
@@ -1957,6 +1976,7 @@ begin
         Inc(P);
         case P^ of
           '\': Bld.AppendWideChar('\');
+          '/': Bld.AppendWideChar('/');
           '"': Bld.AppendWideChar('"');
           'b': Bld.AppendWideChar(#$08);
           't': Bld.AppendWideChar(#$09);
@@ -2032,6 +2052,11 @@ begin
               Bld.AppendChar('\');
               Bld.AppendChar('\');
             end;
+          '/':
+            begin
+              Bld.AppendChar('\');
+              Bld.AppendChar('/');
+            end;
           '"':
             begin
               Bld.AppendChar('\');
@@ -2090,6 +2115,18 @@ function TCnJSONNumber.Clone: TCnJSONValue;
 begin
   Result := TCnJSONNumber.Create;
   Result.Assign(Self);
+end;
+
+class function TCnJSONNumber.FloatToJsonFormat(Value: Extended): AnsiString;
+begin
+{$IFDEF SUPPORT_FORMAT_SETTINGS}
+  Result := AnsiString(FloatToStr(Value, JSONFormatSettings));
+{$ELSE}
+  Result := AnsiString(FloatToStr(Value));
+  // D 5 6 下不支持 TFormatSettings，可能因为区域设置将小数点整成了逗号，替换回来
+  Result := StringReplace(Result, ',', '.', [rfReplaceAll]);
+  // TODO: 如何区分因某些区域设置使 FloatToStr 出现逗号小数点和逗号千位分隔符？
+{$ENDIF}
 end;
 
 function TCnJSONNumber.IsNumber: Boolean;
