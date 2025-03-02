@@ -636,28 +636,40 @@ begin
 end;
 
 // 解析器遇到数组开始符号 [ 时调用，Current 是外部的父对象
-function JSONParseArray(P: TCnJSONParser; Current: TCnJSONBase): TCnJSONArray;
+function JSONParseArray(P: TCnJSONParser; Current: TCnJSONBase; out TermStep: Integer): TCnJSONArray;
 begin
   Result := TCnJSONArray.Create;
   P.NextNoJunk;
 
-  Current.AddChild(Result);
-  while not (P.TokenID in [jttTerminated, jttArrayEnd]) do
-  begin
-    JSONParseValue(P, Result);
-    if P.TokenID = jttElementSep then
+  try
+    while not (P.TokenID in [jttTerminated, jttArrayEnd]) do
     begin
-      P.NextNoJunk;
-      if P.TokenID = jttArrayEnd then // 最后一个元素后不允许逗号
-        raise ECnJSONException.Create(SCnErrorJSONArrayTrailingComma);
+      JSONParseValue(P, Result);
+      if P.TokenID = jttElementSep then
+      begin
+        P.NextNoJunk;
+        if P.TokenID = jttArrayEnd then // 最后一个元素后不允许逗号
+          raise ECnJSONException.Create(SCnErrorJSONArrayTrailingComma);
 
-      Continue;
-    end
-    else
-      Break;
+        Continue;
+      end
+      else
+        Break;
+    end;
+
+    JSONCheckToken(P, jttArrayEnd);
+    TermStep := P.RunPos;
+  except
+    // 如果解析出了异常，就要释放之前创建的 Result 这个对象，否则会出内存泄漏
+    FreeAndNil(Result);
+
+    raise;
   end;
 
-  JSONCheckToken(P, jttArrayEnd);
+  // 最后再把有效的 Result 挂上去
+  if (Current <> nil) and (Result <> nil) then
+    Current.AddChild(Result);
+
   P.NextNoJunk;
 end;
 
@@ -671,7 +683,7 @@ begin
     jttNumber:
       Result := JSONParseNumber(P, Current);
     jttArrayBegin:
-      Result := JSONParseArray(P, Current);
+      Result := JSONParseArray(P, Current, DummyTermStep);
     jttNull:
       Result := JSONParseNull(P, Current);
     jttTrue:
