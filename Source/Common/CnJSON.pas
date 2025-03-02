@@ -2046,16 +2046,11 @@ begin
       P := @Str[1];
       while P^ <> #0 do
       begin
-        case P^ of
+        case P^ of // 注意生成时不进行 / 的转义
           '\':
             begin
               Bld.AppendChar('\');
               Bld.AppendChar('\');
-            end;
-          '/':
-            begin
-              Bld.AppendChar('\');
-              Bld.AppendChar('/');
             end;
           '"':
             begin
