@@ -148,6 +148,12 @@ function CnFmxGetFmxApplication: TComponent;
 function CnFmxGetWindowPlatformHandle(AComp: TComponent): THandle;
 {* 返回 FMX 框架里的封装的 Window Handle，如 AComp 不是相关类则返回 0}
 
+function CnFmxGetControlVisible(AControl: TComponent): Boolean;
+{* 返回 FMX Control 是否可见，如非 Control，返回 False}
+
+procedure CnFmxSetControlVisible(AControl: TComponent; AVisible: Boolean);
+{* 设置 FMX Control 是否可见，如非 Control 则什么也不做}
+
 implementation
 
 const
@@ -163,9 +169,6 @@ const
     'TFillTextFlag', 'TStandardGesture', 'TInteractiveGesture', 'TGestureType',
     'TGestureOption', 'TGestureEngineFlag'
     );
-
-type
-  TControlHack = class(TControl);
 
 var
   FCnFmxFixEnumNameArray: array[0..CN_FMX_FIX_SET_COUNT - 1] of TStrings;
@@ -673,6 +676,20 @@ begin
   end
   else
     Result := 0;
+end;
+
+function CnFmxGetControlVisible(AControl: TComponent): Boolean;
+begin
+  if AControl.InheritsFrom(TControl) then
+    Result := TControl(AControl).Visible
+  else
+    Result := False;
+end;
+
+procedure CnFmxSetControlVisible(AControl: TComponent; AVisible: Boolean);
+begin
+  if AControl.InheritsFrom(TControl) then
+    TControl(AControl).Visible := AVisible;
 end;
 
 procedure CreateFmxSetFixArray;

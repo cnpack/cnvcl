@@ -26,6 +26,7 @@ unit CnVclFmxMixed;
 * 单元作者：CnPack 开发组
 * 备    注：该单元从 CnCommon 分离出来，放置那些需要同时引用 VCL 与 FMX 的内容，
 *           需要和 CnFmxUtils 配合使用，以减少用 CnCommon 但又不用 FMX 时的体积。
+*           注意本单元引用的单元前缀必须是 VCL，除 CnFmxUtils 外不引用任何 FMX 单元。
 * 开发平台：WinXP + Delphi XE2
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
