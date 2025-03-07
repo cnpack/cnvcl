@@ -91,6 +91,9 @@ procedure GetFormClientSize(AForm: TComponent; out AClientWidth, AClientHeight: 
 function GetWindowPlatformHandle(AForm: TComponent): HWND;
 {* 获取 Windows 平台上的组件的 Handle，如果不是特定类，则返回 0}
 
+procedure InvalidateControl(AControl: TComponent);
+{* 封装的重画 Control 的过程，封装了 FMX 的实现}
+
 implementation
 
 // 返回控件在屏幕上的坐标区域
@@ -321,6 +324,18 @@ begin
 {$IFDEF SUPPORT_FMX}
   if Result = 0 then
     Result := CnFmxGetWindowPlatformHandle(AForm);
+{$ENDIF}
+end;
+
+procedure InvalidateControl(AControl: TComponent);
+begin
+  if AControl is TControl then
+  begin
+    TControl(AControl).Invalidate;
+    Exit;
+  end;
+{$IFDEF SUPPORT_FMX}
+  CnFmxInvalidateControl(AControl);
 {$ENDIF}
 end;
 

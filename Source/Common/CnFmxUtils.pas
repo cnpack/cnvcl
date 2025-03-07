@@ -154,6 +154,9 @@ function CnFmxGetControlVisible(AControl: TComponent): Boolean;
 procedure CnFmxSetControlVisible(AControl: TComponent; AVisible: Boolean);
 {* 设置 FMX Control 是否可见，如非 Control 则什么也不做}
 
+procedure CnFmxInvalidateControl(AControl: TComponent);
+{* 让 FMX Control 重画，如非 Control 则什么也不做}
+
 implementation
 
 const
@@ -690,6 +693,12 @@ procedure CnFmxSetControlVisible(AControl: TComponent; AVisible: Boolean);
 begin
   if AControl.InheritsFrom(TControl) then
     TControl(AControl).Visible := AVisible;
+end;
+
+procedure CnFmxInvalidateControl(AControl: TComponent);
+begin
+  if AControl.InheritsFrom(TControl) then
+    TControl(AControl).Repaint;
 end;
 
 procedure CreateFmxSetFixArray;
