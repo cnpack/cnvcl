@@ -195,7 +195,7 @@ Delphi 5、6、7里，竟然没有UInt64类型！只有Delphi 2005及以上版本才有。
   Unit1.pas.32: C := A * B;
   0044D11B 8BC1             mov eax,ecx
   0044D11D F7EE             imul esi
-  
+
 因而并不是真正的32位无符号数乘法。
 
 要完成32位无符号数的准确相乘，靠Delphi 7这种不支持UInt64的编译器是没指望了（须是Delphi 2005或以上支持UInt64的编译器，会编译出MUL无符号乘法指令），所幸在System.pas里我们发现有个System.@_llmul，我们分析了它的调用参数传播的规则，把它封装成了一个函数：
@@ -222,7 +222,7 @@ Delphi 5、6、7里，竟然没有UInt64类型！只有Delphi 2005及以上版本才有。
         PUSH    DWORD PTR[EBP + $8]           // B Lo
         CALL    System.@_llumod;
   end;
-  
+
 以及：
 
   function UInt64Div(A, B: TUInt64): TUInt64;

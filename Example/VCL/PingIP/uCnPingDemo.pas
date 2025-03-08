@@ -172,23 +172,26 @@ end;
 
 procedure TFormPingDemo.btnIPInfoClick(Sender: TObject);
 const
-  IPINFO = '计算机名称: %0:S' + #13#10
-    + '本机IP地址: %1:S' + #13#10
-    + '子网掩码: %2:S' + #13#10
-    + 'Mac地址: %3:S' + #13#10
-    + '广播地址: %4:S' + #13#10
-    + 'IP地址数: %5:D' + #13#10
-    + '容纳的主机数: %6:D' + #13#10;
+  IPINFO = '计算机名称: %s' + #13#10
+    + '本机IPv4地址: %s' + #13#10
+    + 'IPv4子网掩码: %s' + #13#10
+    + '本机IPv6地址: %s' + #13#10
+    // + 'IPv6子网掩码: %s' + #13#10
+    + 'Mac地址: %s' + #13#10
+    + '广播地址: %s' + #13#10
+    + 'IPv4地址数: %d' + #13#10
+    + '容纳的IPv4主机数: %d' + #13#10;
   BOOL_STRS: array[False..True] of string = ('False', 'True');
 var
   I: Integer;
   IpGroups: TCnIPGroup;
+  Ip6Groups: TCnIPv6Group;
 begin
   CheckIP(TButton(Sender));
   IP.IPAddress := FLocalIP;
   statDemo.Panels[0].Text := '本机IP信息';
-  redtIPInfo.Lines.Text := Format(IPINFO, [IP.ComputerName, IP.IPAddress,
-    IP.SubnetMask, IP.MacAddress, IP.BroadCastIP, IP.LocalIPCount, IP.Hosts]);
+  redtIPInfo.Lines.Text := Format(IPINFO, [IP.ComputerName, IP.IPAddress, IP.SubnetMask,
+    IP.IPv6Address, {IP.IPv6SubnetMask,} IP.MacAddress, IP.BroadCastIP, IP.LocalIPCount, IP.Hosts]);
 
   IpGroups := IP.LocalIPGroup;
   for I := Low(IpGroups) to High(IpGroups) do
@@ -201,6 +204,19 @@ begin
     redtIPInfo.Lines.Add('Loopback ' + BOOL_STRS[IpGroups[I].Loopback]);
     redtIPInfo.Lines.Add('SupportBroadcast ' + BOOL_STRS[IpGroups[I].SupportBroadcast]);
   end;
+
+  Ip6Groups := IP.LocalIPv6Group;
+  for I := Low(Ip6Groups) to High(Ip6Groups) do
+  begin
+    redtIPInfo.Lines.Add('================ ' + IntToStr(I));
+    redtIPInfo.Lines.Add(IP.Int128ToIPv6(Ip6Groups[I].IPv6Address));
+    redtIPInfo.Lines.Add(IP.Int128ToIPv6(Ip6Groups[I].SubnetMask));
+    redtIPInfo.Lines.Add(IP.Int128ToIPv6(Ip6Groups[I].BroadCast));
+    redtIPInfo.Lines.Add('UpState ' + BOOL_STRS[Ip6Groups[I].UpState]);
+    redtIPInfo.Lines.Add('Loopback ' + BOOL_STRS[Ip6Groups[I].Loopback]);
+    redtIPInfo.Lines.Add('SupportBroadcast ' + BOOL_STRS[Ip6Groups[I].SupportBroadcast]);
+  end;
+
 end;
 
 procedure TFormPingDemo.btnCalcv6Click(Sender: TObject);

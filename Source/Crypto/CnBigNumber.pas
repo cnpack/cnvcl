@@ -97,7 +97,7 @@ interface
 {$ENDIF}
 
 uses
-  Classes, SysUtils, Math, CnNative {$IFDEF MSWINDOWS}, Windows {$ENDIF},
+  Classes, SysUtils, Math, SysConst, CnNative {$IFDEF MSWINDOWS}, Windows {$ENDIF},
   Contnrs, CnContainers, CnHashMap, CnRandom
   {$IFNDEF COMPILER5}, Types {$ENDIF}
   {$IFDEF BN_DATA_USE_64}, CnInt128 {$ENDIF}
@@ -3010,7 +3010,7 @@ var
   A0, A1, A2, A3: TCnBigNumberElement;
 begin
   Result := nil;
-  if Words > (MaxInt div (4 * BN_BITS2)) then
+  if (Words <= 0) or (Words > (MaxInt div (4 * BN_BITS2))) then
     Exit;
 
   A := PCnBigNumberElement(GetMemory(SizeOf(TCnBigNumberElement) * Words));
@@ -5367,10 +5367,7 @@ var
 {$ENDIF}
 begin
   if W = 0 then
-  begin
-    Result := TCnBigNumberElement(-1);
-    Exit;
-  end;
+    raise EDivByZero.Create(SDivByZero);
 
 {$IFDEF BN_DATA_USE_64}
   if W > $FFFFFFFF then
@@ -5396,10 +5393,7 @@ var
   L, D: TCnBigNumberElement;
 begin
   if W = 0 then
-  begin
-    Result := TCnBigNumberElement(-1);
-    Exit;
-  end;
+    raise EDivByZero.Create(SDivByZero);;
 
   Result := 0;
   if Num.Top = 0 then

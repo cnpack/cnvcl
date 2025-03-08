@@ -125,6 +125,7 @@ type
 
     function GetIPv6Address: string;
     procedure SetIPv6Address(const Value: string);
+    function GetIPv6SubnetMask: string;
     function GetLocalIPv6Count: Integer;
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string);
@@ -180,6 +181,9 @@ type
 
     property IPv6Address: string read GetIPv6Address write SetIPv6Address stored False;
     {* IPv6 地址字符串形式，默认为本机 IPv6 地址}
+    // property IPv6SubnetMask: string read GetIPv6SubnetMask stored False;
+    {* IPv6 地址的子网掩码}
+
     property ComputerName: string read GetComputerName stored False;
     {* 本机名称}
     property MacAddress: string read GetMacAddress stored False;
@@ -215,16 +219,17 @@ const
   IPNOTE3 = $0000FF00;
   IPNOTE4 = $000000FF;
 
+  AF_INET6 = 23;
+  MAX_ADAPTER_ADDRESS_LENGTH = 8;
+  MAX_DHCPV6_DUID_LENGTH = 130;
+  MAX_DNS_SUFFIX_STRING_LENGTH = 256;
+
 type
   { 从 Winsock 2.0 导入函数 WSAIOCtl -- 在 Win98/ME/2K/Xp and 95 OSR2, NT srv pack #3下才有 Winsock 2 }
   TWSAIoctl = function (s: TSocket; cmd: DWORD; lpInBuffer: PByte; dwInBufferLen:
                         DWORD; lpOutBuffer: PByte; dwOutBufferLen: DWORD;
                         lpdwOutBytesReturned: LPDWORD; lpOverLapped: POINTER;
                         lpOverLappedRoutine: POINTER): Integer; stdcall;
-
-  // 从 iphlpapi.dll 中导入函数
-//  TGetAdaptersAddresses = function (Family: ULONG; Flags: DWORD; Reserved: Pointer;
-//    pAdapterAddresses: PIP_ADAPTER_ADDRESSES; pOutBufLen: PULONG): DWORD; stdcall;
 
   sockaddr_gen = packed record
     AddressIn: sockaddr_in;
@@ -238,10 +243,265 @@ type
     iiNetmask: sockaddr_gen; // Network mask
   end;
 
+  // IPv6 所需相关定义
+
+type
+  IFTYPE = ULONG;
+  IF_INDEX = ULONG;
+  NET_IF_COMPARTMENT_ID = Cardinal;
+
+  _SOCKET_ADDRESS = record
+    lpSockaddr: PSOCKADDR;
+    iSockaddrLength: Integer;
+  end;
+  SOCKET_ADDRESS = _SOCKET_ADDRESS;
+  PSOCKET_ADDRESS = ^SOCKET_ADDRESS;
+
+  IP_PREFIX_ORIGIN = (
+    IpPrefixOriginOther,
+    IpPrefixOriginManual,
+    IpPrefixOriginWellKnown,
+    IpPrefixOriginDhcp,
+    IpPrefixOriginRouterAdvertisement);
+
+  IP_SUFFIX_ORIGIN = (
+    IpSuffixOriginOther,
+    IpSuffixOriginManual,
+    IpSuffixOriginWellKnown,
+    IpSuffixOriginDhcp,
+    IpSuffixOriginLinkLayerAddress,
+    IpSuffixOriginRandom);
+
+  IP_DAD_STATE = (
+    IpDadStateInvalid,
+    IpDadStateTentative,
+    IpDadStateDuplicate,
+    IpDadStateDeprecated,
+    IpDadStatePreferred);
+
+  PIP_ADAPTER_UNICAST_ADDRESS = ^_IP_ADAPTER_UNICAST_ADDRESS;
+  _IP_ADAPTER_UNICAST_ADDRESS = record
+    Union: record
+      case Integer of
+        0: (
+          Alignment: Int64);
+        1: (
+          Length: ULONG;
+          Flags: DWORD);
+    end;
+    Next: PIP_ADAPTER_UNICAST_ADDRESS;
+    Address: SOCKET_ADDRESS;
+
+    PrefixOrigin: IP_PREFIX_ORIGIN;
+    SuffixOrigin: IP_SUFFIX_ORIGIN;
+    DadState: IP_DAD_STATE;
+
+    ValidLifetime: ULONG;
+    PreferredLifetime: ULONG;
+    LeaseLifetime: ULONG;
+    OnLinkPrefixLength: UCHAR;
+  end;
+
+  PIP_ADAPTER_PREFIX = ^IP_ADAPTER_PREFIX;
+  IP_ADAPTER_PREFIX = record
+    Union: record
+    case Integer of
+      0: (
+        Alignment: Int64);
+      1: (
+        Length: ULONG;
+        Flags: DWORD);
+    end;
+    Next: PIP_ADAPTER_PREFIX;
+    Address: SOCKET_ADDRESS;
+    PrefixLength: ULONG;
+  end;
+
+  PIP_ADAPTER_ANYCAST_ADDRESS = ^IP_ADAPTER_ANYCAST_ADDRESS;
+  IP_ADAPTER_ANYCAST_ADDRESS = record
+    Union: record
+      case Integer of
+        0: (
+          Alignment: Int64);
+        1: (
+          Length: ULONG;
+          Flags: DWORD);
+    end;
+    Next: PIP_ADAPTER_ANYCAST_ADDRESS;
+    Address: SOCKET_ADDRESS;
+  end;
+
+  PIP_ADAPTER_MULTICAST_ADDRESS = ^IP_ADAPTER_MULTICAST_ADDRESS;
+  IP_ADAPTER_MULTICAST_ADDRESS = record
+    Union: record
+      case Integer of
+        0: (
+          Alignment: Int64);
+        1: (
+          Length: ULONG;
+          Flags: DWORD);
+    end;
+    Next: PIP_ADAPTER_MULTICAST_ADDRESS;
+    Address: SOCKET_ADDRESS;
+  end;
+
+  PIP_ADAPTER_DNS_SERVER_ADDRESS = ^_IP_ADAPTER_DNS_SERVER_ADDRESS;
+  _IP_ADAPTER_DNS_SERVER_ADDRESS = record
+    Union: record
+      case Integer of
+        0: (
+          Alignment: Int64);
+        1: (
+          Length: ULONG;
+          Reserved: DWORD);
+    end;
+    Next: PIP_ADAPTER_DNS_SERVER_ADDRESS;
+    Address: SOCKET_ADDRESS;
+  end;
+
+  IF_OPER_STATUS = (
+    IfOperStatusInvalid,
+    IfOperStatusUp,
+    IfOperStatusDown,
+    IfOperStatusTesting,
+    IfOperStatusUnknown,
+    IfOperStatusDormant,
+    IfOperStatusNotPresent,
+    IfOperStatusLowerLayerDown);
+
+  PIP_ADAPTER_WINS_SERVER_ADDRESS_LH = ^IP_ADAPTER_WINS_SERVER_ADDRESS_LH;
+  IP_ADAPTER_WINS_SERVER_ADDRESS_LH = record
+    Union: record
+      case Integer of
+        0: (
+          Alignment: Int64);
+        1: (
+          Length: ULONG;
+          Reserved: DWORD);
+    end;
+    Next: PIP_ADAPTER_WINS_SERVER_ADDRESS_LH;
+    Address: SOCKET_ADDRESS;
+  end;
+
+  PIP_ADAPTER_GATEWAY_ADDRESS_LH = ^IP_ADAPTER_GATEWAY_ADDRESS_LH;
+  IP_ADAPTER_GATEWAY_ADDRESS_LH = record
+    Union: record
+      case Integer of
+        0: (
+          Alignment: Int64);
+        1: (
+          Length: ULONG;
+          Reserved: DWORD);
+    end;
+    Next: PIP_ADAPTER_GATEWAY_ADDRESS_LH;
+    Address: SOCKET_ADDRESS;
+  end;
+
+  NET_IF_NETWORK_GUID = TGUID;
+
+  NET_IF_CONNECTION_TYPE = (
+    NetIfConnectionInvalid,
+    NetIfConnectionDedicated,
+    NetIfConnectionPassive,
+    NetIfConnectionDemand,
+    NetIfConnectionMaximum);
+
+  TUNNEL_TYPE = (
+    TunnelTypeNone,
+    TunnelTypeOther,
+    TunnelTypeDirect,
+    TunnelType6To4,      // 11
+    TunnelTypeIsatap,    // 13
+    TunnelTypeTeredo,
+    TunnelTypeIPHTTPS);
+
+  PIP_ADAPTER_DNS_SUFFIX = ^IP_ADAPTER_DNS_SUFFIX;
+  IP_ADAPTER_DNS_SUFFIX = record
+    Next: PIP_ADAPTER_DNS_SUFFIX;
+    AString: array[0..MAX_DNS_SUFFIX_STRING_LENGTH - 1] of WCHAR;
+  end;
+
+  PIP_ADAPTER_ADDRESSES = ^IP_ADAPTER_ADDRESSES;
+  IP_ADAPTER_ADDRESSES = record
+    Union: record
+      case Integer of
+        0: (
+          Alignment: Int64);
+        1: (
+          Length: ULONG;
+          IfIndex: DWORD);
+    end;
+    Next: PIP_ADAPTER_ADDRESSES;
+    AdapterName: PAnsiChar;
+    FirstUnicastAddress: PIP_ADAPTER_UNICAST_ADDRESS;
+    FirstAnycastAddress: PIP_ADAPTER_ANYCAST_ADDRESS;
+    FirstMulticastAddress: PIP_ADAPTER_MULTICAST_ADDRESS;
+    FirstDnsServerAddress: PIP_ADAPTER_DNS_SERVER_ADDRESS;
+    DnsSuffix: PWCHAR;
+    Description: PWCHAR;
+    FriendlyName: PWCHAR;
+    PhysicalAddress: array [0..MAX_ADAPTER_ADDRESS_LENGTH - 1] of BYTE;
+    PhysicalAddressLength: DWORD;
+    Flags: DWORD;
+    Mtu: DWORD;
+    IfType: IFTYPE;
+    OperStatus: IF_OPER_STATUS;
+    Ipv6IfIndex: IF_INDEX;
+    ZoneIndices: array [0..15] of DWORD;
+    FirstPrefix: PIP_ADAPTER_PREFIX;
+    TransmitLinkSpeed: Int64;
+    ReceiveLinkSpeed: Int64;
+    FirstWinsServerAddress: PIP_ADAPTER_WINS_SERVER_ADDRESS_LH;
+    FirstGatewayAddress: PIP_ADAPTER_GATEWAY_ADDRESS_LH;
+    Ipv4Metric: ULONG;
+    Ipv6Metric: ULONG;
+    Luid: Int64;
+    Dhcpv4Server: SOCKET_ADDRESS;
+    CompartmentId: NET_IF_COMPARTMENT_ID;
+    NetworkGuid: NET_IF_NETWORK_GUID;
+    ConnectionType: NET_IF_CONNECTION_TYPE;
+    TunnelType: TUNNEL_TYPE;
+    //
+    // DHCP v6 Info.
+    //
+    Dhcpv6Server: SOCKET_ADDRESS;
+    Dhcpv6ClientDuid: array [0..MAX_DHCPV6_DUID_LENGTH - 1] of Byte;
+    Dhcpv6ClientDuidLength: ULONG;
+    Dhcpv6Iaid: ULONG;
+    FirstDnsSuffix: PIP_ADAPTER_DNS_SUFFIX;
+  end;
+
+  IN6_ADDR = record
+    case Integer of
+      0: (s6_bytes: array[0..15] of Byte);
+      1: (s6_words: array[0..7] of Word);
+  end;
+  PIN6_ADDR = ^IN6_ADDR;
+
+  sockaddr_in6_union = record
+    case Integer of
+      0 : (sin6_scope_id : ULONG);     // Set of interfaces for a scope.
+      1 : (sin6_scope_struct : ULONG);
+  end;
+
+  SOCKADDR_IN6 = record
+    sin6_family: u_short;        // AF_INET6.
+    sin6_port: u_short;          // Transport level port number.
+    sin6_flowinfo: ULONG;        // IPv6 flow information.
+    sin6_addr: IN6_ADDR;         // IPv6 address.
+    a : sockaddr_in6_union;
+  end;
+  PSOCKADDR_IN6 = ^SOCKADDR_IN6;
+
 var
   WSAIoctl: TWSAIoctl = nil;
-//  GetAdaptersAddresses: TGetAdaptersAddresses = nil;
   WS2_32DllHandle: THandle = 0;
+
+  in6addr_loopback: IN6_ADDR;
+
+function GetAdaptersAddresses(Family: ULONG; Flags: DWORD; Reserved: Pointer;
+  pAdapterAddresses: PIP_ADAPTER_ADDRESSES; pOutBufLen: PULONG): DWORD; stdcall;
+  external 'iphlpapi.dll';
 
 procedure InitWSAIoctl;
 begin
@@ -880,18 +1140,128 @@ begin
 {$ENDIF}
 end;
 
-{$IFDEF MSWINDOWS}
-
 class function TCnIp.EnumLocalIPv6(var aLocalIPv6: TCnIPv6Group): Integer;
+{$IFDEF MSWINDOWS}
+const
+  GAA_FLAG_INCLUDE_PREFIX = $0010;
+  MAX_ADAPTER_ADDRESS_LENGTH = 8;
+var
+  Ret: DWORD;
+  BufLen: ULONG;
+  Adapter, AdapterList: PIP_ADAPTER_ADDRESSES;
+  UnicastAddr: PIP_ADAPTER_UNICAST_ADDRESS;
+  Addr6: Psockaddr_in6;
+  I: Integer;
+  AddrBuf: array[0..7] of Word;
+
+  function IN6_IS_ADDR_LOOPBACK(const A: PIN6_ADDR): Boolean;
+  begin
+    Result := CompareMem(A, @in6addr_loopback, SizeOf(IN6_ADDR));
+  end;
+
 begin
   Result := 0;
   SetLength(aLocalIPv6, 0);
-  // TODO: 还没整好
+  BufLen := 0;
+  Ret := GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nil, nil, @BufLen);
+  if Ret <> ERROR_BUFFER_OVERFLOW then Exit;
+
+  GetMem(AdapterList, BufLen);
+  try
+    Ret := GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nil, AdapterList, @BufLen);
+    if Ret <> ERROR_SUCCESS then Exit;
+
+    Adapter := AdapterList;
+    while Adapter <> nil do
+    begin
+      if (Adapter.OperStatus = IfOperStatusUp) and (Adapter.FirstUnicastAddress <> nil) then
+      begin
+        UnicastAddr := Adapter.FirstUnicastAddress;
+        while UnicastAddr <> nil do
+        begin
+          if (UnicastAddr.Address.lpSockaddr <> nil) and
+             (UnicastAddr.Address.lpSockaddr.sin_family = AF_INET6) then
+          begin
+            Addr6 := Psockaddr_in6(UnicastAddr.Address.lpSockaddr);
+            if not IN6_IS_ADDR_LOOPBACK(@Addr6.sin6_addr) then
+            begin
+              SetLength(aLocalIPv6, Result + 1);
+              Move(Addr6^.sin6_addr, AddrBuf, SizeOf(AddrBuf));
+
+              // 转换 128 位地址到 TCnUInt128，注意有个网络字节顺序到主机字节顺序的转换
+              for I := Low(AddrBuf) to High(AddrBuf) do
+                AddrBuf[I] := UInt16NetworkToHost(AddrBuf[I]);
+              Move(AddrBuf[0], aLocalIPv6[Result].IPv6Address, SizeOf(TCnUInt128));
+
+
+              // 子网掩码（前缀长度转换）
+              aLocalIPv6[Result].SubnetMask := CnUInt128Zero;
+              UInt128Not(aLocalIPv6[Result].SubnetMask);
+
+              UInt128ShiftLeft(aLocalIPv6[Result].SubnetMask, 128 - UnicastAddr.OnLinkPrefixLength);
+              aLocalIPv6[Result].UpState := True;
+              Inc(Result);
+            end;
+          end;
+          UnicastAddr := UnicastAddr.Next;
+        end;
+      end;
+      Adapter := Adapter.Next;
+    end;
+  finally
+    FreeMem(AdapterList);
+  end;
+{$ELSE}
+var
+  Pif, OldPif: Pifaddrs;
+  Addr6: Psockaddr_in6;
+  I: Integer;
+  AddrBuf: array[0..15] of Byte;
+begin
+  Result := 0;
+  SetLength(aLocalIPv6, 0);
+  if getifaddrs(@Pif) <> 0 then Exit;
+  OldPif := Pif;
+  try
+    while Pif <> nil do
+    begin
+      if (Pif^.ifa_addr <> nil) and (Pif^.ifa_addr.sa_family = AF_INET6) then
+      begin
+        Addr6 := Psockaddr_in6(Pif^.ifa_addr);
+        if not IN6_IS_ADDR_LOOPBACK(@Addr6^.sin6_addr) then
+        begin
+          SetLength(aLocalIPv6, Result + 1);
+          Move(Addr6^.sin6_addr, AddrBuf, SizeOf(AddrBuf));
+          // 转换 IPv6 地址到 TCnUInt128
+          Move(AddrBuf[0], aLocalIPv6[Result].IPv6Address, SizeOf(TCnUInt128));
+          // 子网掩码（需从ifa_netmask获取）
+          if Pif^.ifa_netmask <> nil then
+          begin
+            Addr6 := Psockaddr_in6(Pif^.ifa_netmask);
+            Move(Addr6^.sin6_addr, AddrBuf, SizeOf(AddrBuf));
+            for I := 0 to 15 do
+              aLocalIPv6[Result].SubnetMask.Bytes[I] := AddrBuf[I];
+          end;
+          aLocalIPv6[Result].UpState := (Pif^.ifa_flags and IFF_UP) <> 0;
+          Inc(Result);
+        end;
+      end;
+      Pif := Pif^.ifa_next;
+    end;
+  finally
+    freeifaddrs(OldPif);
+  end;
+{$ENDIF}
 end;
 
 function TCnIp.GetIPv6Address: string;
 begin
   Result := Int128ToIPv6(FIPv6.IPv6Address);
+end;
+
+function TCnIp.GetIPv6SubnetMask: string;
+begin
+  Result := Int128ToIPv6(FIPv6.SubnetMask);
 end;
 
 function TCnIp.GetLocalIPv6Count: Integer;
@@ -963,7 +1333,12 @@ begin
   end;
 end;
 
+
+
 initialization
+  FillChar(in6addr_loopback.s6_bytes, SizeOf(IN6_ADDR), 0);
+  in6addr_loopback.s6_bytes[15] := 1;
+{$IFDEF MSWINDOWS}
   InitWSAIoctl;
 
 finalization
