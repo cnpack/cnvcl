@@ -29,7 +29,9 @@ unit CnIP;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.12.17 V1.4
+* 修改记录：2025.03.09 V1.5
+*                增加 Windows 下 IPv6 的支持
+*           2022.12.17 V1.4
 *                增加对 MacOS 的支持，部分功能不可用
 *           2019.03.03 V1.3
 *                将部分函数改为 class 以外部也可调用
@@ -82,7 +84,8 @@ type
 
   TCnIPv6Info = packed record
     IPv6Address: TCnUInt128;             // IPv6 地址，此处用 UInt128 存储
-    SubnetMask: TCnUInt128;              // 子网掩码，此处用 UInt128 存储
+    SubnetMask: TCnUInt128;              // 子网掩码，此处用 UInt128 存储，但并不代表真实 IPv6，需要用 UInt128ToHex 来查看
+    PrefixLength: Integer;               // 子网前缀长度，IPv6 中比起子网掩码概念，更普遍的是这个
     BroadCast: TCnUInt128;               // 广播地址，此处用 UInt128 存储
     HostName: array[0..255] of AnsiChar; // 主机名
     NetType: TCnIPv4NetType;             // IPv6 地址的网络类型
@@ -105,7 +108,6 @@ type
     FLocalIPs: TCnIPGroup;
     FLocalIPv6s: TCnIPv6Group;
     FNotes: TCnIPv4Notes;
-    FNotesV6: TCnIPv6Notes;
 {$IFDEF MSWINDOWS}
     FWSAData: TWSAData;
 {$ENDIF}
@@ -126,6 +128,8 @@ type
     function GetIPv6Address: string;
     procedure SetIPv6Address(const Value: string);
     function GetIPv6SubnetMask: string;
+    function GetIPv6PrefixLength: Integer;
+    procedure SetIPv6PrefixLength(const Value: Integer);
     function GetLocalIPv6Count: Integer;
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string);
@@ -181,7 +185,9 @@ type
 
     property IPv6Address: string read GetIPv6Address write SetIPv6Address stored False;
     {* IPv6 地址字符串形式，默认为本机 IPv6 地址}
-    // property IPv6SubnetMask: string read GetIPv6SubnetMask stored False;
+    property IPv6PrefixLength: Integer read GetIPv6PrefixLength write SetIPv6PrefixLength stored False;
+    {* IPv6 地址的前缀长度，比起子网掩码来说更有普遍性}
+    property IPv6SubnetMask: string read GetIPv6SubnetMask stored False;
     {* IPv6 地址的子网掩码}
 
     property ComputerName: string read GetComputerName stored False;
@@ -244,17 +250,14 @@ type
   end;
 
   // IPv6 所需相关定义
-
-type
   IFTYPE = ULONG;
   IF_INDEX = ULONG;
   NET_IF_COMPARTMENT_ID = Cardinal;
 
-  _SOCKET_ADDRESS = record
+  SOCKET_ADDRESS = record
     lpSockaddr: PSOCKADDR;
     iSockaddrLength: Integer;
   end;
-  SOCKET_ADDRESS = _SOCKET_ADDRESS;
   PSOCKET_ADDRESS = ^SOCKET_ADDRESS;
 
   IP_PREFIX_ORIGIN = (
@@ -292,9 +295,9 @@ type
     Next: PIP_ADAPTER_UNICAST_ADDRESS;
     Address: SOCKET_ADDRESS;
 
-    PrefixOrigin: IP_PREFIX_ORIGIN;
-    SuffixOrigin: IP_SUFFIX_ORIGIN;
-    DadState: IP_DAD_STATE;
+    PrefixOrigin: DWORD;
+    SuffixOrigin: DWORD;
+    DadState: DWORD;
 
     ValidLifetime: ULONG;
     PreferredLifetime: ULONG;
@@ -445,7 +448,7 @@ type
     Flags: DWORD;
     Mtu: DWORD;
     IfType: IFTYPE;
-    OperStatus: IF_OPER_STATUS;
+    OperStatus: Integer; // IF_OPER_STATUS;
     Ipv6IfIndex: IF_INDEX;
     ZoneIndices: array [0..15] of DWORD;
     FirstPrefix: PIP_ADAPTER_PREFIX;
@@ -460,7 +463,7 @@ type
     CompartmentId: NET_IF_COMPARTMENT_ID;
     NetworkGuid: NET_IF_NETWORK_GUID;
     ConnectionType: NET_IF_CONNECTION_TYPE;
-    TunnelType: TUNNEL_TYPE;
+    TunnelType: DWORD; // TUNNEL_TYPE;
     //
     // DHCP v6 Info.
     //
@@ -608,21 +611,24 @@ begin
   begin
     FIPv6.IPv6Address := FLocalIPv6s[0].IPv6Address;
     FIPv6.SubnetMask := FLocalIPv6s[0].SubnetMask;
+    FIPv6.PrefixLength := FLocalIPv6s[0].PrefixLength;
   end
   else if IPv6s > 1 then // IF more than one, do not use 127.0.0.1 as default
   begin
     for I := 0 to IPv6s - 1 do
     begin
-      if Int128ToIPv6(FLocalIPv6s[I].IPv6Address) <> '127.0.0.1' then
+      if Int128ToIPv6(FLocalIPv6s[I].IPv6Address) <> '0000:0000:0000:0000:0000:000:0000:0001' then
       begin
         FIPv6.IPv6Address := FLocalIPv6s[I].IPv6Address;
         FIPv6.SubnetMask := FLocalIPv6s[I].SubnetMask;
+        FIPv6.PrefixLength := FLocalIPv6s[I].PrefixLength;
         Break;
       end;
       if UInt128IsZero(FIPv6.IPv6Address) then
       begin
         FIPv6.IPv6Address := FLocalIPv6s[0].IPv6Address;
         FIPv6.SubnetMask := FLocalIPv6s[0].SubnetMask;
+        FIPv6.PrefixLength := FLocalIPv6s[0].PrefixLength;
       end;
     end;
   end;
@@ -1151,7 +1157,6 @@ var
   Adapter, AdapterList: PIP_ADAPTER_ADDRESSES;
   UnicastAddr: PIP_ADAPTER_UNICAST_ADDRESS;
   Addr6: Psockaddr_in6;
-  I: Integer;
   AddrBuf: array[0..7] of Word;
 
   function IN6_IS_ADDR_LOOPBACK(const A: PIN6_ADDR): Boolean;
@@ -1174,32 +1179,30 @@ begin
     Adapter := AdapterList;
     while Adapter <> nil do
     begin
-      if (Adapter.OperStatus = IfOperStatusUp) and (Adapter.FirstUnicastAddress <> nil) then
+      if {(Adapter.OperStatus = Ord(IfOperStatusUp)) and } (Adapter.FirstUnicastAddress <> nil) then
       begin
         UnicastAddr := Adapter.FirstUnicastAddress;
         while UnicastAddr <> nil do
         begin
-          if (UnicastAddr.Address.lpSockaddr <> nil) and
-             (UnicastAddr.Address.lpSockaddr.sin_family = AF_INET6) then
+          if (UnicastAddr^.Address.lpSockaddr <> nil) and
+             (UnicastAddr^.Address.lpSockaddr.sin_family = AF_INET6) then
           begin
-            Addr6 := Psockaddr_in6(UnicastAddr.Address.lpSockaddr);
+            Addr6 := Psockaddr_in6(UnicastAddr^.Address.lpSockaddr);
             if not IN6_IS_ADDR_LOOPBACK(@Addr6.sin6_addr) then
             begin
               SetLength(aLocalIPv6, Result + 1);
               Move(Addr6^.sin6_addr, AddrBuf, SizeOf(AddrBuf));
 
-              // 转换 128 位地址到 TCnUInt128，注意有个网络字节顺序到主机字节顺序的转换
-              for I := Low(AddrBuf) to High(AddrBuf) do
-                AddrBuf[I] := UInt16NetworkToHost(AddrBuf[I]);
+              // 转换 128 位地址到 TCnUInt128
               Move(AddrBuf[0], aLocalIPv6[Result].IPv6Address, SizeOf(TCnUInt128));
-
+              aLocalIPv6[Result].PrefixLength := UnicastAddr^.OnLinkPrefixLength;
 
               // 子网掩码（前缀长度转换）
               aLocalIPv6[Result].SubnetMask := CnUInt128Zero;
               UInt128Not(aLocalIPv6[Result].SubnetMask);
 
-              UInt128ShiftLeft(aLocalIPv6[Result].SubnetMask, 128 - UnicastAddr.OnLinkPrefixLength);
-              aLocalIPv6[Result].UpState := True;
+              UInt128ShiftLeft(aLocalIPv6[Result].SubnetMask, 128 - UnicastAddr^.OnLinkPrefixLength);
+              aLocalIPv6[Result].UpState := (Adapter.OperStatus = Ord(IfOperStatusUp));
               Inc(Result);
             end;
           end;
@@ -1261,7 +1264,17 @@ end;
 
 function TCnIp.GetIPv6SubnetMask: string;
 begin
-  Result := Int128ToIPv6(FIPv6.SubnetMask);
+  Result := UInt128ToHex(FIPv6.SubnetMask);
+end;
+
+function TCnIp.GetIPv6PrefixLength: Integer;
+begin
+  Result := FIPv6.PrefixLength;
+end;
+
+procedure TCnIp.SetIPv6PrefixLength(const Value: Integer);
+begin
+  FIPv6.PrefixLength := Value;
 end;
 
 function TCnIp.GetLocalIPv6Count: Integer;
@@ -1275,7 +1288,9 @@ var
 begin
   Move(aIPv6, R[1], SizeOf(TCnUInt128));
   Result := Format('%4.4x:%4.4x:%4.4x:%4.4x:%4.4x:%4.4x:%4.4x:%4.4x',
-    [R[1], R[2], R[3], R[4], R[5], R[6], R[7], R[8]]);
+    [UInt16NetworkToHost(R[1]), UInt16NetworkToHost(R[2]), UInt16NetworkToHost(R[3]),
+    UInt16NetworkToHost(R[4]), UInt16NetworkToHost(R[5]), UInt16NetworkToHost(R[6]),
+    UInt16NetworkToHost(R[7]), UInt16NetworkToHost(R[8])]);
 end;
 
 class function TCnIp.IPv6ToInt128(const aIPv6: string): TCnUInt128;
@@ -1332,8 +1347,6 @@ begin
     SL.Free;
   end;
 end;
-
-
 
 initialization
   FillChar(in6addr_loopback.s6_bytes, SizeOf(IN6_ADDR), 0);

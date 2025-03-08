@@ -74,13 +74,12 @@ type
     procedure btnIPInfoClick(Sender: TObject);
     procedure btnCalcv6Click(Sender: TObject);
   private
-    { Private declarations }
     Ping: TCnPing;
     IP: TCnIp;
     FLocalIP, FResult: string;
     procedure CheckIP(Sender: TButtonControl);
   public
-    { Public declarations }
+
   end;
 
 var
@@ -176,7 +175,8 @@ const
     + '本机IPv4地址: %s' + #13#10
     + 'IPv4子网掩码: %s' + #13#10
     + '本机IPv6地址: %s' + #13#10
-    // + 'IPv6子网掩码: %s' + #13#10
+    + 'IPv6前缀长度: %d' + #13#10
+    + 'IPv6子网掩码: %s' + #13#10
     + 'Mac地址: %s' + #13#10
     + '广播地址: %s' + #13#10
     + 'IPv4地址数: %d' + #13#10
@@ -191,7 +191,8 @@ begin
   IP.IPAddress := FLocalIP;
   statDemo.Panels[0].Text := '本机IP信息';
   redtIPInfo.Lines.Text := Format(IPINFO, [IP.ComputerName, IP.IPAddress, IP.SubnetMask,
-    IP.IPv6Address, {IP.IPv6SubnetMask,} IP.MacAddress, IP.BroadCastIP, IP.LocalIPCount, IP.Hosts]);
+    IP.IPv6Address, IP.IPv6PrefixLength, IP.IPv6SubnetMask, IP.MacAddress,
+    IP.BroadCastIP, IP.LocalIPCount, IP.Hosts]);
 
   IpGroups := IP.LocalIPGroup;
   for I := Low(IpGroups) to High(IpGroups) do
@@ -210,7 +211,8 @@ begin
   begin
     redtIPInfo.Lines.Add('================ ' + IntToStr(I));
     redtIPInfo.Lines.Add(IP.Int128ToIPv6(Ip6Groups[I].IPv6Address));
-    redtIPInfo.Lines.Add(IP.Int128ToIPv6(Ip6Groups[I].SubnetMask));
+    redtIPInfo.Lines.Add(IntToStr(Ip6Groups[I].PrefixLength));
+    redtIPInfo.Lines.Add(UInt128ToHex(Ip6Groups[I].SubnetMask));
     redtIPInfo.Lines.Add(IP.Int128ToIPv6(Ip6Groups[I].BroadCast));
     redtIPInfo.Lines.Add('UpState ' + BOOL_STRS[Ip6Groups[I].UpState]);
     redtIPInfo.Lines.Add('Loopback ' + BOOL_STRS[Ip6Groups[I].Loopback]);

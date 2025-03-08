@@ -1,11 +1,11 @@
 object FormPingDemo: TFormPingDemo
-  Left = 318
-  Top = 221
+  Left = 267
+  Top = 140
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'CnPing CnIP Demo'
-  ClientHeight = 438
-  ClientWidth = 604
+  ClientHeight = 528
+  ClientWidth = 726
   Color = clBtnFace
   Font.Charset = GB2312_CHARSET
   Font.Color = clWindowText
@@ -3290,7 +3290,7 @@ object FormPingDemo: TFormPingDemo
   object Panel2: TPanel
     Left = 0
     Top = 0
-    Width = 604
+    Width = 726
     Height = 153
     Align = alTop
     BevelOuter = bvNone
@@ -3423,16 +3423,16 @@ object FormPingDemo: TFormPingDemo
   object Panel3: TPanel
     Left = 0
     Top = 153
-    Width = 604
-    Height = 263
+    Width = 726
+    Height = 353
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
     object pgcResult: TPageControl
       Left = 0
       Top = 0
-      Width = 604
-      Height = 263
+      Width = 726
+      Height = 353
       ActivePage = TabSheet4
       Align = alClient
       MultiLine = True
@@ -3445,8 +3445,8 @@ object FormPingDemo: TFormPingDemo
         object redtPing: TRichEdit
           Left = 0
           Top = 0
-          Width = 596
-          Height = 236
+          Width = 718
+          Height = 326
           Align = alClient
           Font.Charset = GB2312_CHARSET
           Font.Color = clWindowText
@@ -3464,8 +3464,8 @@ object FormPingDemo: TFormPingDemo
         object chklstResult: TCheckListBox
           Left = 0
           Top = 0
-          Width = 596
-          Height = 236
+          Width = 718
+          Height = 326
           Align = alClient
           ItemHeight = 12
           TabOrder = 0
@@ -3477,8 +3477,8 @@ object FormPingDemo: TFormPingDemo
         object redtPingBuffer: TRichEdit
           Left = 0
           Top = 0
-          Width = 596
-          Height = 236
+          Width = 718
+          Height = 326
           Align = alClient
           ReadOnly = True
           TabOrder = 0
@@ -3490,8 +3490,8 @@ object FormPingDemo: TFormPingDemo
         object redtIPInfo: TRichEdit
           Left = 0
           Top = 0
-          Width = 596
-          Height = 236
+          Width = 718
+          Height = 326
           Align = alClient
           ReadOnly = True
           TabOrder = 0
@@ -3501,8 +3501,8 @@ object FormPingDemo: TFormPingDemo
   end
   object statDemo: TStatusBar
     Left = 0
-    Top = 416
-    Width = 604
+    Top = 506
+    Width = 726
     Height = 22
     Panels = <
       item
