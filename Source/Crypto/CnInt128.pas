@@ -1384,12 +1384,12 @@ begin
   if S < 0 then
     UInt128ShiftRight(N, -S);
 
-  if S > 128 then // 全移跑了
+  if S >= 128 then // 全移跑了
   begin
     N.Hi64 := 0;
     N.Lo64 := 0;
   end
-  else if S > 64 then
+  else if S >= 64 then
   begin
     // Lo 为全 0
     N.Hi64 := N.Lo64 shl (S - 64);
@@ -1421,14 +1421,14 @@ begin
   if S < 0 then
     UInt128ShiftLeft(N, -S);
 
-  if S > 128 then // 全移跑了
+  if S >= 128 then // 全移跑了
   begin
     N.Hi64 := 0;
     N.Lo64 := 0;
   end
-  else if S > 64 then
+  else if S >= 64 then
   begin
-    // Lo 为全 0
+    // Hi 为全 0
     N.Lo64 := N.Hi64 shr (S - 64);
     N.Hi64 := 0;
   end

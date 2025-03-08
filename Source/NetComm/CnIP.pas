@@ -85,7 +85,7 @@ type
   TCnIPv6Info = packed record
     IPv6Address: TCnUInt128;             // IPv6 地址，此处用 UInt128 存储
     SubnetMask: TCnUInt128;              // 子网掩码，此处用 UInt128 存储，但并不代表真实 IPv6，需要用 UInt128ToHex 来查看
-    PrefixLength: Integer;               // 子网前缀长度，IPv6 中比起子网掩码概念，更普遍的是这个
+    PrefixLength: Integer;               // 子网前缀长度，IPv6 中比起子网掩码概念，更普遍的是这个，对应 SubnetMask 的高位是 1 的个数
     BroadCast: TCnUInt128;               // 广播地址，此处用 UInt128 存储
     HostName: array[0..255] of AnsiChar; // 主机名
     NetType: TCnIPv4NetType;             // IPv6 地址的网络类型
