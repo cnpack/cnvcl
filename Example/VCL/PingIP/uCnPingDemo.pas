@@ -218,7 +218,6 @@ begin
     redtIPInfo.Lines.Add('Loopback ' + BOOL_STRS[Ip6Groups[I].Loopback]);
     redtIPInfo.Lines.Add('SupportBroadcast ' + BOOL_STRS[Ip6Groups[I].SupportBroadcast]);
   end;
-
 end;
 
 procedure TFormPingDemo.btnCalcv6Click(Sender: TObject);

@@ -282,6 +282,8 @@ type
     IpDadStateDeprecated,
     IpDadStatePreferred);
 
+  // 本结构应长 48 字节，其中枚举类型各占 4 字节，但直接使用枚举的话没声明对齐
+  // 可能变成 1 字节导致总长 40 字节，因而均用 DWORD 代替以符合 Windows 的实际情况
   PIP_ADAPTER_UNICAST_ADDRESS = ^_IP_ADAPTER_UNICAST_ADDRESS;
   _IP_ADAPTER_UNICAST_ADDRESS = record
     Union: record
@@ -294,11 +296,9 @@ type
     end;
     Next: PIP_ADAPTER_UNICAST_ADDRESS;
     Address: SOCKET_ADDRESS;
-
-    PrefixOrigin: DWORD;
-    SuffixOrigin: DWORD;
-    DadState: DWORD;
-
+    PrefixOrigin: DWORD; // IP_PREFIX_ORIGIN
+    SuffixOrigin: DWORD; // IP_SUFFIX_ORIGIN
+    DadState: DWORD;     // IP_DAD_STATE
     ValidLifetime: ULONG;
     PreferredLifetime: ULONG;
     LeaseLifetime: ULONG;
