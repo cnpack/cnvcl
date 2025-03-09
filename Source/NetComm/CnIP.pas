@@ -64,6 +64,9 @@ type
   TCnIPv6Notes = array[1..8] of Word;
   {* IPv6 地址的各子节点，八个双字节}
 
+  TCnIPv6NetMask = array[0..15] of Byte;
+  {* IPv6 地址的子网掩码，16 个字节，0 下标代表高位}
+
   TCnIPv4NetType = (iptNone, iptANet, iptBNet, iptCNet, iptDNet, iptENet,
     iptBroadCast, iptKeepAddr);
   {* IP 地址分类：不是 IP 地址、A 类地址、B 类地址、C 类地址、D 类地址、E 类地址、
@@ -84,7 +87,7 @@ type
 
   TCnIPv6Info = packed record
     IPv6Address: TCnUInt128;             // IPv6 地址，此处用 UInt128 存储
-    SubnetMask: TCnUInt128;              // 子网掩码，此处用 UInt128 存储，但并不代表真实 IPv6，需要用 UInt128ToHex 来查看
+    SubnetMask: TCnIPv6NetMask;          // 子网掩码，下标 0 是高位，符合阅读习惯
     PrefixLength: Integer;               // 子网前缀长度，IPv6 中比起子网掩码概念，更普遍的是这个，对应 SubnetMask 的高位是 1 的个数
     BroadCast: TCnUInt128;               // 广播地址，此处用 UInt128 存储
     HostName: array[0..255] of AnsiChar; // 主机名
@@ -202,16 +205,22 @@ implementation
 
 {$R-}
 
-{$IFDEF MSWINDOWS}
-
 const
-  WS2_32DLL = 'WS2_32.DLL';
-
   MAXIPNOTE = 255;
   MAXIPV6NOTE = 65535;
   IPJOIN = '.';
   IPV6JOIN = ':';
   IPADDRFORMAT = '%0:D.%1:D.%2:D.%3:D';
+
+  IPNOTE1 = $FF000000;
+  IPNOTE2 = $00FF0000;
+  IPNOTE3 = $0000FF00;
+  IPNOTE4 = $000000FF;
+
+{$IFDEF MSWINDOWS}
+
+const
+  WS2_32DLL = 'WS2_32.DLL';
 
   SIO_GET_INTERFACE_LIST = $4004747F;
   IFF_UP = $00000001;
@@ -219,11 +228,6 @@ const
   IFF_LOOPBACK = $00000004;
   IFF_POINTTOPOINT = $00000008;
   IFF_MULTICAST = $00000010;
-
-  IPNOTE1 = $FF000000;
-  IPNOTE2 = $00FF0000;
-  IPNOTE3 = $0000FF00;
-  IPNOTE4 = $000000FF;
 
   AF_INET6 = 23;
   MAX_ADAPTER_ADDRESS_LENGTH = 8;
@@ -1157,11 +1161,10 @@ var
   Adapter, AdapterList: PIP_ADAPTER_ADDRESSES;
   UnicastAddr: PIP_ADAPTER_UNICAST_ADDRESS;
   Addr6: Psockaddr_in6;
-  AddrBuf: array[0..7] of Word;
 
-  function IN6_IS_ADDR_LOOPBACK(const A: PIN6_ADDR): Boolean;
+  function IN6_IS_ADDR_LOOPBACK(const A: in6_addr): Boolean;
   begin
-    Result := CompareMem(A, @in6addr_loopback, SizeOf(IN6_ADDR));
+    Result := CompareMem(@A, @in6addr_loopback, SizeOf(IN6_ADDR));
   end;
 
 begin
@@ -1188,20 +1191,17 @@ begin
              (UnicastAddr^.Address.lpSockaddr.sin_family = AF_INET6) then
           begin
             Addr6 := Psockaddr_in6(UnicastAddr^.Address.lpSockaddr);
-            if not IN6_IS_ADDR_LOOPBACK(@Addr6.sin6_addr) then
+            if not IN6_IS_ADDR_LOOPBACK(Addr6.sin6_addr) then
             begin
               SetLength(aLocalIPv6, Result + 1);
-              Move(Addr6^.sin6_addr, AddrBuf, SizeOf(AddrBuf));
-
-              // 转换 128 位地址到 TCnUInt128
-              Move(AddrBuf[0], aLocalIPv6[Result].IPv6Address, SizeOf(TCnUInt128));
+              Move(Addr6^.sin6_addr, aLocalIPv6[Result].IPv6Address, SizeOf(in6_addr));
               aLocalIPv6[Result].PrefixLength := UnicastAddr^.OnLinkPrefixLength;
 
               // 子网掩码（前缀长度转换）
-              aLocalIPv6[Result].SubnetMask := CnUInt128Zero;
-              UInt128Not(aLocalIPv6[Result].SubnetMask);
+              FillChar(aLocalIPv6[Result].SubnetMask[0], SizeOf(TCnIPv6NetMask), $FF);
+              MemoryShiftLeft(@aLocalIPv6[Result].SubnetMask[0], @aLocalIPv6[Result].SubnetMask[0],
+                SizeOf(TCnIPv6NetMask), 128 - UnicastAddr^.OnLinkPrefixLength);
 
-              UInt128ShiftLeft(aLocalIPv6[Result].SubnetMask, 128 - UnicastAddr^.OnLinkPrefixLength);
               aLocalIPv6[Result].UpState := (Adapter.OperStatus = Ord(IfOperStatusUp));
               Inc(Result);
             end;
@@ -1218,12 +1218,10 @@ begin
 var
   Pif, OldPif: Pifaddrs;
   Addr6: Psockaddr_in6;
-  I: Integer;
-  AddrBuf: array[0..15] of Byte;
 begin
   Result := 0;
   SetLength(aLocalIPv6, 0);
-  if getifaddrs(@Pif) <> 0 then Exit;
+  if getifaddrs(Pif) <> 0 then Exit;
   OldPif := Pif;
   try
     while Pif <> nil do
@@ -1231,20 +1229,20 @@ begin
       if (Pif^.ifa_addr <> nil) and (Pif^.ifa_addr.sa_family = AF_INET6) then
       begin
         Addr6 := Psockaddr_in6(Pif^.ifa_addr);
-        if not IN6_IS_ADDR_LOOPBACK(@Addr6^.sin6_addr) then
+        if not IN6_IS_ADDR_LOOPBACK(Addr6^.sin6_addr) then
         begin
           SetLength(aLocalIPv6, Result + 1);
-          Move(Addr6^.sin6_addr, AddrBuf, SizeOf(AddrBuf));
-          // 转换 IPv6 地址到 TCnUInt128
-          Move(AddrBuf[0], aLocalIPv6[Result].IPv6Address, SizeOf(TCnUInt128));
-          // 子网掩码（需从ifa_netmask获取）
+          Move(Addr6^.sin6_addr, aLocalIPv6[Result].IPv6Address, SizeOf(in6_addr));
+
+          // 子网掩码（需从 ifa_netmask 获取）
           if Pif^.ifa_netmask <> nil then
           begin
             Addr6 := Psockaddr_in6(Pif^.ifa_netmask);
-            Move(Addr6^.sin6_addr, AddrBuf, SizeOf(AddrBuf));
-            for I := 0 to 15 do
-              aLocalIPv6[Result].SubnetMask.Bytes[I] := AddrBuf[I];
+            Move(Addr6^.sin6_addr, aLocalIPv6[Result].SubnetMask, SizeOf(in6_addr));
           end;
+
+          // 计算 SubnetMask 中连续多少个 1 作为 PrefixLength
+          aLocalIPv6[Result].PrefixLength := MemoryGetLowBits(@aLocalIPv6[Result].SubnetMask[0], SizeOf(TCnIPv6NetMask));
           aLocalIPv6[Result].UpState := (Pif^.ifa_flags and IFF_UP) <> 0;
           Inc(Result);
         end;
@@ -1264,7 +1262,7 @@ end;
 
 function TCnIp.GetIPv6SubnetMask: string;
 begin
-  Result := UInt128ToHex(FIPv6.SubnetMask);
+  Result := DataToHex(@FIPv6.SubnetMask[0], SizeOf(TCnIPv6NetMask));
 end;
 
 function TCnIp.GetIPv6PrefixLength: Integer;
@@ -1288,9 +1286,9 @@ var
 begin
   Move(aIPv6, R[1], SizeOf(TCnUInt128));
   Result := Format('%4.4x:%4.4x:%4.4x:%4.4x:%4.4x:%4.4x:%4.4x:%4.4x',
-    [UInt16NetworkToHost(R[1]), UInt16NetworkToHost(R[2]), UInt16NetworkToHost(R[3]),
-    UInt16NetworkToHost(R[4]), UInt16NetworkToHost(R[5]), UInt16NetworkToHost(R[6]),
-    UInt16NetworkToHost(R[7]), UInt16NetworkToHost(R[8])]);
+    [UInt16HostToNetwork(R[1]), UInt16HostToNetwork(R[2]), UInt16HostToNetwork(R[3]),
+    UInt16HostToNetwork(R[4]), UInt16HostToNetwork(R[5]), UInt16HostToNetwork(R[6]),
+    UInt16HostToNetwork(R[7]), UInt16HostToNetwork(R[8])]);
 end;
 
 class function TCnIp.IPv6ToInt128(const aIPv6: string): TCnUInt128;
@@ -1341,17 +1339,19 @@ begin
     begin
       // 每一个转换成 16 进制
       for I := 0 to SL.Count - 1 do
-        aResult[I + 1] := CheckIpv6Note(SL[I]);
+        aResult[I + 1] := UInt16NetworkToHost(CheckIpv6Note(SL[I]));
     end;
   finally
     SL.Free;
   end;
 end;
 
+{$IFDEF MSWINDOWS}
+
 initialization
   FillChar(in6addr_loopback.s6_bytes, SizeOf(IN6_ADDR), 0);
   in6addr_loopback.s6_bytes[15] := 1;
-{$IFDEF MSWINDOWS}
+
   InitWSAIoctl;
 
 finalization

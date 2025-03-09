@@ -39,7 +39,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, Winsock, Buttons, Provider, ExtCtrls, ComCtrls, CheckLst,
-  CnPing, CnIP, CnButtons, CnEdit, CnInt128;
+  CnPing, CnIP, CnButtons, CnEdit, CnNative, CnInt128;
 
 type
   TFormPingDemo = class(TForm)
@@ -212,7 +212,7 @@ begin
     redtIPInfo.Lines.Add('================ ' + IntToStr(I));
     redtIPInfo.Lines.Add(IP.Int128ToIPv6(Ip6Groups[I].IPv6Address));
     redtIPInfo.Lines.Add(IntToStr(Ip6Groups[I].PrefixLength));
-    redtIPInfo.Lines.Add(UInt128ToHex(Ip6Groups[I].SubnetMask));
+    redtIPInfo.Lines.Add(DataToHex(@Ip6Groups[I].SubnetMask[0], SizeOf(TCnIPv6NetMask)));
     redtIPInfo.Lines.Add(IP.Int128ToIPv6(Ip6Groups[I].BroadCast));
     redtIPInfo.Lines.Add('UpState ' + BOOL_STRS[Ip6Groups[I].UpState]);
     redtIPInfo.Lines.Add('Loopback ' + BOOL_STRS[Ip6Groups[I].Loopback]);

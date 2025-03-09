@@ -88,7 +88,7 @@ implementation
 {$R *.fmx}
 
 uses
-  CnInt128;
+  CnInt128, CnNative;
 
 procedure TfrmCnPingDemo.FormCreate(Sender: TObject);
 begin
@@ -212,7 +212,7 @@ begin
     redtIPInfo.Lines.Add('================ ' + IntToStr(I));
     redtIPInfo.Lines.Add(IP.Int128ToIPv6(Ip6Groups[I].IPv6Address));
     redtIPInfo.Lines.Add(IntToStr(Ip6Groups[I].PrefixLength));
-    redtIPInfo.Lines.Add(UInt128ToHex(Ip6Groups[I].SubnetMask));
+    redtIPInfo.Lines.Add(DataToHex(@Ip6Groups[I].SubnetMask[0], SizeOf(TCnIPv6NetMask)));
     redtIPInfo.Lines.Add(IP.Int128ToIPv6(Ip6Groups[I].BroadCast));
     redtIPInfo.Lines.Add('UpState ' + BOOL_STRS[Ip6Groups[I].UpState]);
     redtIPInfo.Lines.Add('Loopback ' + BOOL_STRS[Ip6Groups[I].Loopback]);
