@@ -1128,6 +1128,28 @@ procedure MemoryClearBit(Mem: Pointer; N: Integer);
    返回值：（无）
 }
 
+function MemoryGetHighBits(Mem: Pointer; MemByteLen: Integer): Integer;
+{* 返回内存块中是 1 的最高二进制位是第几位，“高”指低地址方向。如果没有 1，返回 -1。
+   内存块从地址低到高编为 8 * MemByteLen - 1 到 0 这么多位，末字节的最低位是 0 位。
+
+   参数：
+     Mem: Pointer                         - 待处理的数据块地址
+     MemByteLen: Integer                  - 待处理的数据块字节长度
+
+   返回值：Integer                        - 返回 1 的最高位序号
+}
+
+function MemoryGetLowBits(Mem: Pointer; MemByteLen: Integer): Integer;
+{* 返回内存块中是 1 的最低二进制位是第几位，“低”指高地址方向。如果没有 1，返回 -1。
+   内存块从地址低到高编为 8 * MemByteLen - 1 到 0 这么多位，末字节的最低位是 0 位。
+
+   参数：
+     Mem: Pointer                         - 待处理的数据块地址
+     MemByteLen: Integer                  - 待处理的数据块字节长度
+
+   返回值：Integer                        - 返回 1 的最低位序号
+}
+
 function MemoryToBinStr(Mem: Pointer; MemByteLen: Integer; Sep: Boolean = False): string;
 {* 将一块内存内容从低到高字节顺序输出为二进制字符串，Sep 表示字节之间是否空格分隔。
 
@@ -2493,6 +2515,68 @@ begin
 
   V := not Byte(1 shl B);
   P^ := P^ and V;
+end;
+
+function MemoryGetHighBits(Mem: Pointer; MemByteLen: Integer): Integer;
+var
+  I, R, ZO: Integer;
+  P: PByteArray;
+begin
+  Result := -1;
+  if (Mem = nil) or (MemByteLen <= 0) then
+    Exit;
+
+  P := PByteArray(Mem);
+  ZO := 0;
+  for I := 0 to MemByteLen - 1 do // 从低地址往高地址找
+  begin
+    R := GetUInt8HighBits(P^[I]);
+    if R = -1 then // 该字节全 0
+    begin
+      ZO := ZO + 8;
+    end
+    else // 该字节有 1，中止
+    begin
+      ZO := ZO + 8 - R + 1;
+      Break;
+    end;
+  end;
+
+  if ZO = MemByteLen * 8 then // 全零，没 1
+    Result := -1
+  else
+    Result := MemByteLen * 8 - ZO; // 有 1，总位数减去 0 的个数
+end;
+
+function MemoryGetLowBits(Mem: Pointer; MemByteLen: Integer): Integer;
+var
+  I, R, ZC: Integer;
+  P: PByteArray;
+begin
+  Result := -1;
+  if (Mem = nil) or (MemByteLen <= 0) then
+    Exit;
+
+  P := PByteArray(Mem);
+  ZC := 0;
+  for I := MemByteLen - 1 downto 0 do // 从高地址往低地址找
+  begin
+    R := GetUInt8LowBits(P^[I]);
+    if R = -1 then // 该字节全 0
+    begin
+      ZC := ZC + 8;
+    end
+    else // 该字节有 1，中止
+    begin
+      ZC := ZC + R;
+      Break;
+    end;
+  end;
+
+  if ZC = MemByteLen * 8 then // 全零，没 1
+    Result := -1
+  else
+    Result := MemByteLen * 8 - ZC; // 有 1，总位数减去 0 的个数
 end;
 
 function MemoryToBinStr(Mem: Pointer; MemByteLen: Integer; Sep: Boolean): string;
@@ -4020,265 +4104,154 @@ end;
 
 // 返回 UInt64 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1
 function GetUInt64HighBits(B: TUInt64): Integer;
-begin
-  if B = 0 then
-  begin
-    Result := -1;
-    Exit;
-  end;
-
-  Result := 1;
-  if B shr 32 = 0 then
-  begin
-   Inc(Result, 32);
-   B := B shl 32;
-  end;
-  if B shr 48 = 0 then
-  begin
-   Inc(Result, 16);
-   B := B shl 16;
-  end;
-  if B shr 56 = 0 then
-  begin
-    Inc(Result, 8);
-    B := B shl 8;
-  end;
-  if B shr 60 = 0 then
-  begin
-    Inc(Result, 4);
-    B := B shl 4;
-  end;
-  if B shr 62 = 0 then
-  begin
-    Inc(Result, 2);
-    B := B shl 2;
-  end;
-  Result := Result - Integer(B shr 63); // 得到前导 0 的数量
-  Result := 63 - Result;
-end;
-
-// 返回 Cardinal 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1
-function GetUInt32HighBits(B: Cardinal): Integer;
-begin
-  if B = 0 then
-  begin
-    Result := -1;
-    Exit;
-  end;
-
-  Result := 1;
-  if B shr 16 = 0 then
-  begin
-   Inc(Result, 16);
-   B := B shl 16;
-  end;
-  if B shr 24 = 0 then
-  begin
-    Inc(Result, 8);
-    B := B shl 8;
-  end;
-  if B shr 28 = 0 then
-  begin
-    Inc(Result, 4);
-    B := B shl 4;
-  end;
-  if B shr 30 = 0 then
-  begin
-    Inc(Result, 2);
-    B := B shl 2;
-  end;
-  Result := Result - Integer(B shr 31); // 得到前导 0 的数量
-  Result := 31 - Result;
-end;
-
-function GetUInt16HighBits(B: Word): Integer;
-begin
-  if B = 0 then
-  begin
-    Result := -1;
-    Exit;
-  end;
-
-  Result := 1;
-  if B shr 8 = 0 then
-  begin
-    Inc(Result, 8);
-    B := B shl 8;
-  end;
-  if B shr 12 = 0 then
-  begin
-    Inc(Result, 4);
-    B := B shl 4;
-  end;
-  if B shr 14 = 0 then
-  begin
-    Inc(Result, 2);
-    B := B shl 2;
-  end;
-  Result := Result - Integer(B shr 15); // 得到前导 0 的数量
-  Result := 15 - Result;
-end;
-
-function GetUInt8HighBits(B: Byte): Integer;
-begin
-  if B = 0 then
-  begin
-    Result := -1;
-    Exit;
-  end;
-
-  Result := 1;
-  if B shr 4 = 0 then
-  begin
-    Inc(Result, 4);
-    B := B shl 4;
-  end;
-  if B shr 6 = 0 then
-  begin
-    Inc(Result, 2);
-    B := B shl 2;
-  end;
-  Result := Result - Integer(B shr 7); // 得到前导 0 的数量
-  Result := 7 - Result;
-end;
-
-// 返回 Int64 的是 1 的最低二进制位是第几位，最低位是 0，如果没有 1，返回 -1
-function GetUInt64LowBits(B: TUInt64): Integer;
 var
-  Y: TUInt64;
-  N: Integer;
+  I: Integer;
 begin
   Result := -1;
   if B = 0 then
     Exit;
 
-  N := 63;
-  Y := B shl 32;
-  if Y <> 0 then
+  for I := 63 downto 0 do
   begin
-    Dec(N, 32);
-    B := Y;
+    if (B and (1 shl I)) <> 0 then
+    begin
+      Result := I;
+      Break;
+    end;
   end;
-  Y := B shl 16;
-  if Y <> 0 then
+end;
+
+// 返回 Cardinal 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1
+function GetUInt32HighBits(B: Cardinal): Integer;
+var
+  I: Integer;
+begin
+  Result := -1;
+  if B = 0 then
+    Exit;
+
+  for I := 31 downto 0 do
   begin
-    Dec(N, 16);
-    B := Y;
+    if (B and (1 shl I)) <> 0 then
+    begin
+      Result := I;
+      Break;
+    end;
   end;
-  Y := B shl 8;
-  if Y <> 0 then
+end;
+
+// 返回 Word 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1
+function GetUInt16HighBits(B: Word): Integer;
+var
+  I: Integer;
+begin
+  Result := -1;
+  if B = 0 then
+    Exit;
+
+  for I := 15 downto 0 do
   begin
-    Dec(N, 8);
-    B := Y;
+    if (B and (1 shl I)) <> 0 then
+    begin
+      Result := I;
+      Break;
+    end;
   end;
-  Y := B shl 4;
-  if Y <> 0 then
+end;
+
+// 返回 Byte 的是 1 的最高二进制位是第几位，最低位是 0，如果没有 1，返回 -1
+function GetUInt8HighBits(B: Byte): Integer;
+var
+  I: Integer;
+begin
+  Result := -1;
+  if B = 0 then
+    Exit;
+
+  for I := 7 downto 0 do
   begin
-    Dec(N, 4);
-    B := Y;
+    if (B and (1 shl I)) <> 0 then
+    begin
+      Result := I;
+      Break;
+    end;
   end;
-  Y := B shl 2;
-  if Y <> 0 then
+end;
+
+// 返回 UInt64 的是 1 的最低二进制位是第几位，最低位是 0，如果没有 1，返回 -1
+function GetUInt64LowBits(B: TUInt64): Integer;
+var
+  I: Integer;
+begin
+  Result := -1;
+  if B = 0 then
+    Exit;
+
+  for I := 0 to 63 do
   begin
-    Dec(N, 2);
-    B := Y;
+    if (B and (1 shl I)) <> 0 then
+    begin
+      Result := I;
+      Break;
+    end;
   end;
-  B := B shl 1;
-  Result := N - Integer(B shr 63);
 end;
 
 // 返回 Cardinal 的是 1 的最低二进制位是第几位，最低位是 0，如果没有 1，返回 -1
 function GetUInt32LowBits(B: Cardinal): Integer;
 var
-  Y, N: Integer;
+  I: Integer;
 begin
   Result := -1;
   if B = 0 then
     Exit;
 
-  N := 31;
-  Y := B shl 16;
-  if Y <> 0 then
+  for I := 0 to 31 do
   begin
-    Dec(N, 16);
-    B := Y;
+    if (B and (1 shl I)) <> 0 then
+    begin
+      Result := I;
+      Break;
+    end;
   end;
-  Y := B shl 8;
-  if Y <> 0 then
-  begin
-    Dec(N, 8);
-    B := Y;
-  end;
-  Y := B shl 4;
-  if Y <> 0 then
-  begin
-    Dec(N, 4);
-    B := Y;
-  end;
-  Y := B shl 2;
-  if Y <> 0 then
-  begin
-    Dec(N, 2);
-    B := Y;
-  end;
-  B := B shl 1;
-  Result := N - Integer(B shr 31);
 end;
 
 // 返回 Word 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1
 function GetUInt16LowBits(B: Word): Integer;
 var
-  Y, N: Integer;
+  I: Integer;
 begin
   Result := -1;
   if B = 0 then
     Exit;
 
-  N := 15;
-  Y := B shl 8;
-  if Y <> 0 then
+  for I := 0 to 15 do
   begin
-    Dec(N, 8);
-    B := Y;
+    if (B and (1 shl I)) <> 0 then
+    begin
+      Result := I;
+      Break;
+    end;
   end;
-  Y := B shl 4;
-  if Y <> 0 then
-  begin
-    Dec(N, 4);
-    B := Y;
-  end;
-  Y := B shl 2;
-  if Y <> 0 then
-  begin
-    Dec(N, 2);
-    B := Y;
-  end;
-  B := B shl 1;
-  Result := N - Integer(B shr 15);
 end;
 
 // 返回 Byte 的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1
 function GetUInt8LowBits(B: Byte): Integer;
 var
-  N: Integer;
+  I: Integer;
 begin
   Result := -1;
   if B = 0 then
     Exit;
 
-  N := 7;
-  if B shr 4 = 0 then
+  for I := 0 to 7 do
   begin
-    Dec(N, 4);
-    B := B shl 4;
+    if (B and (1 shl I)) <> 0 then
+    begin
+      Result := I;
+      Break;
+    end;
   end;
-  if B shr 6 = 0 then
-  begin
-    Dec(N, 2);
-    B := B shl 2;
-  end;
-  B := B shl 1;
-  Result := N - Integer(B shr 7);
 end;
 
 // 封装的 Int64 Mod，碰到负值时取反求模再模减
