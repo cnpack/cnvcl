@@ -1393,7 +1393,7 @@ function BigNumberFromBinary(Buf: PAnsiChar; ByteLen: Integer): TCnBigNumber;
 }
 
 function BigNumberReadBinaryFromStream(Num: TCnBigNumber; Stream: TStream): Boolean;
-{* 从流中加载大数，返回是否加载成功。
+{* 从流中加载大数，不处理正负号，返回是否加载成功。
 
    参数：
      Num: TCnBigNumber                    - 待处理的大数对象
@@ -1404,7 +1404,8 @@ function BigNumberReadBinaryFromStream(Num: TCnBigNumber; Stream: TStream): Bool
 
 function BigNumberWriteBinaryToStream(Num: TCnBigNumber; Stream: TStream;
   FixedLen: Integer = 0): Integer;
-{* 将一个大数的二进制部分写入流，返回写入流的长度。注意内部有个元素间以及元素内倒序的过程以符合网络或阅读习惯。
+{* 将一个大数的二进制部分写入流，不处理正负号，返回写入流的长度。
+   注意内部有个元素间以及元素内倒序的过程以符合网络或阅读习惯。
    FixedLen 表示大数内容不够 FixedLen 字节长度时高位补足 0 以保证 Stream 中输出固定 FixedLen 字节的长度。
    大数长度超过 FixedLen 时按大数实际字节长度写。
 
@@ -1426,7 +1427,7 @@ function BigNumberFromBytes(Buf: TBytes): TCnBigNumber;
 }
 
 function BigNumberToBytes(Num: TCnBigNumber): TBytes;
-{* 将一个大数转换成二进制数据写入字节数组并返回，字节顺序同 Binary，失败返回 nil。
+{* 将一个大数转换成二进制数据写入字节数组并返回，字节顺序同 Binary，不处理正负号，失败返回 nil。
 
    参数：
      Num: TCnBigNumber                    - 待转换的大数对象
