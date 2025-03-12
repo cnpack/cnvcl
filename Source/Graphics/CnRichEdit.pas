@@ -149,10 +149,9 @@ begin
 end;
 
 function TCnRichEditRender.RenderRtfToBitmap(RtfContent: TStream; FixedWidth: Integer): TBitmap;
-begin
-  CreateHiddenRichEdit(FixedWidth);
+begin;
   try
-    RenderToBackBuffer(RtfContent);
+    RenderToBackBuffer(RtfContent, FixedWidth);
     Result := TBitmap.Create;
     Result.Assign(FBackBuffer);
   except
@@ -166,6 +165,10 @@ procedure TCnRichEditRender.GetRtfSize(RtfContent: TStream; out Width,
 var
   LogPixX, LogPixY, PhysicalWidth, PhysicalHeight: Integer;
 begin
+  // 创建控件时强制应用尺寸
+  CreateHiddenRichEdit(FixedWidth); // 确保此处传入 FixedWidth
+
+  // 以下 D5 ~ D7 下换行控制有效
   FRichEdit.Parent := FTempParent;
   Application.ProcessMessages; // 确保窗口句柄创建
 
@@ -200,8 +203,8 @@ begin
   LogPixY := GetDeviceCaps(FBackBuffer.Canvas.Handle, LOGPIXELSY);
 
   // 准备位图缓冲区
-  Width := MulDiv(PhysicalWidth, LogPixX, 96);
-  Height := MulDiv(PhysicalHeight, LogPixY, 96);
+  Width := MulDiv(PhysicalWidth, LogPixX, 96) + 4;
+  Height := MulDiv(PhysicalHeight, LogPixY, 96) + 4;
 end;
 
 { TCnRenderParentForm }
