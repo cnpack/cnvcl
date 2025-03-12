@@ -108,7 +108,12 @@ begin
       FRichEdit.Width := FixedWidth
     else
       FRichEdit.Width := 1440;
+
     FRichEdit.Color := FBackgroundColor;
+{$IFDEF UNICODE}
+    // D2009 或以上版本，Width 改变后宽度不会更新，需要这里补一下
+    FRichEdit.Perform(CM_RECREATEWND, 0, 0);
+{$ENDIF}
   end
   else
   begin

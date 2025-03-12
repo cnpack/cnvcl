@@ -46,7 +46,7 @@ const
     '{\rtf1\ansi\ansicpg936\deff0\deflang1033\deflangfe2052{\fonttbl{\f0\fnil\fcharset134 \''cb\''ce\''cc\''e5;}{\f1\fnil\fcharset0 Arial Black;}{\f2\fnil\fcharset0 Microsoft Sans Serif;}{\f3\fnil\fcharset0 Courier New;}}' + #13#10 +
     '{\colortbl ;\red255\green0\blue0;\red0\green176\blue80;\red75\green172\blue198;}' + #13#10 +
     '{\*\generator Msftedit 5.41.21.2510;}\viewkind4\uc1\pard\sa200\sl276\slmult1\lang2052\b\f0\fs36 Hello\b0\fs22\par' + #13#10 +
-    '\cf1\lang1033\f1 Red Text 啊红色文字，你是多么的美丽！Well, well come here to my house.\cf0\lang2052\f0\par' + #13#10 +
+    '\cf1\lang2052\f0 Red Text 啊红色文字，你是多么的美丽！Well, well come here to my house.\cf0\lang2052\f0\par' + #13#10 +
     '\cf2\lang1033\b\i\f2 Green Text\par' + #13#10 +
     '\cf3\b0\i0\strike\f3 Blue Text\par' + #13#10 +
     '\cf3\b0\i0\strike\f3 Blue Text\par' + #13#10 +
