@@ -101,20 +101,30 @@ end;
 
 procedure TCnRichEditRender.CreateHiddenRichEdit(FixedWidth: Integer);
 begin
-  FreeAndNil(FRichEdit);
-
-  FRichEdit := TRichEdit.Create(FTempParent);
-  if FixedWidth > 0 then
-    FRichEdit.Width := FixedWidth
+  // 高版本 Delphi 里，需要 FreeAndNil(FRichEdit); 否则 FixedWidth 缩小时不生效
+  if FRichEdit <> nil then
+  begin
+    if FixedWidth > 0 then
+      FRichEdit.Width := FixedWidth
+    else
+      FRichEdit.Width := 1440;
+    FRichEdit.Color := FBackgroundColor;
+  end
   else
-    FRichEdit.Width := 1440;
+  begin
+    FRichEdit := TRichEdit.Create(FTempParent);
+    if FixedWidth > 0 then
+      FRichEdit.Width := FixedWidth
+    else
+      FRichEdit.Width := 1440;
 
-  FRichEdit.Visible := False;
-  FRichEdit.Parent := FTempParent;
-  FRichEdit.ScrollBars := ssHorizontal;
-  FRichEdit.WordWrap := False;
-  FRichEdit.BorderStyle := bsNone;
-  FRichEdit.Color := FBackgroundColor;
+    FRichEdit.Visible := False;
+    FRichEdit.Parent := FTempParent;
+    FRichEdit.ScrollBars := ssHorizontal;
+    FRichEdit.WordWrap := False;
+    FRichEdit.BorderStyle := bsNone;
+    FRichEdit.Color := FBackgroundColor;
+  end;
 end;
 
 procedure TCnRichEditRender.RenderToBackBuffer(RtfContent: TStream; FixedWidth: Integer);
