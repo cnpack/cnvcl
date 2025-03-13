@@ -70,6 +70,7 @@ type
     cmtDirectLink,     // <
     cmtImageSign,      // !
     cmtContent,        // 内容
+    cmtSpace,          // 空格
     cmtLineBreak,      // 回车换行
     cmtTerminate       // 结束符
   );
@@ -142,17 +143,19 @@ type
   TCnMarkDownParagraphType = (cmpUnknown, cmpHeading1, cmpHeading2, cmpHeading3,
     cmpHeading4, cmpHeading5, cmpHeading6, cmpHeading7, cmpCommon, cmpPre, cmpLine,
     cmpFenceCodeBlock, cmpOrderedList, cmpUnorderedList, cmpQuota, cmpEmpty);
+  {* 段落类型}
 
   TCnMarkDownTextFragmentType = (cmfUnknown, cmfCommon, cmfBold, cmfItalic,
     cmfBoldItalic, cmfStroke, cmfCodeBlock, cmfLink, cmfLinkDisplay, cmfImage, cmfDirectLink);
+  {* 文本类型}
   TCnMarkDownTextFragmentTypes = set of TCnMarkDownTextFragmentType;
-
-  TCnMarkDownParagraphBraceType = (cmpbNone, cmpbOrderedList, cmpbUnOrderedList);
 
   TCnMarkDownTextBraceType = (cmtbNone, cmtbBold, cmtbItalic, cmtbBoldItalic, cmtbStroke,
     cmtbCodeBlock);
+  {* 文本块需要配对的类型}
 
   TCnMarkDownBase = class
+  {* 文法树节点的基类}
   private
     FItems: TObjectList;
     FParent: TCnMarkDownBase;
@@ -164,6 +167,7 @@ type
     destructor Destroy; override;
 
     function Add(AMarkDown: TCnMarkDownBase): TCnmarkDownBase;
+    procedure Delete(Index: Integer);
 
     property Parent: TCnMarkDownBase read FParent write FParent;
     property Items[Index: Integer]: TCnMarkDownBase read GetItem write SetItem; default;
@@ -171,11 +175,11 @@ type
   end;
 
   TCnMarkDownParagraph = class(TCnMarkDownBase)
+  {* 代表段落}
   private
     FParagraphType: TCnMarkDownParagraphType;
     FCloseType: TCnMarkDownTextBraceType;
     FOpenType: TCnMarkDownTextBraceType;
-
   public
     property OpenType: TCnMarkDownTextBraceType read FOpenType write FOpenType;
     property CloseType: TCnMarkDownTextBraceType read FCloseType write FCloseType;
@@ -184,6 +188,7 @@ type
   end;
 
   TCnMarkDownTextFragment = class(TCnMarkDownBase)
+  {* 代表段内文字块}
   private
     FContent: string;
     FFragmentType: TCnMarkDownTextFragmentType;
@@ -203,7 +208,8 @@ type
   TCnMarkDownConverter = class
   {* 转换器抽象基类}
   protected
-    function ConvertParagraph(Paragraph: TCnMarkDownParagraph): string; virtual; abstract;
+    function ConvertParagraphStart(Paragraph: TCnMarkDownParagraph): string; virtual; abstract;
+    function ConvertParagraphEnd(Paragraph: TCnMarkDownParagraph): string; virtual; abstract;
     function ConvertFragment(Fragment: TCnMarkDownTextFragment): string; virtual; abstract;
     function EscapeContent(const Text: string): string; virtual; abstract;
   public
@@ -215,13 +221,13 @@ type
   private
     FRtf: TCnStringBuilder;
     FCurrentFontSize: Integer;
-    FPrevIsOrderedList: Boolean;
-    FPrevIsUnOrderedList: BOolean;
     FListCounters: array[1..9] of Integer; // 支持最多 9 级列表
     function GetListLevel(Paragraph: TCnMarkDownParagraph): Integer;
     function GetQuotaLevel(Paragraph: TCnMarkDownParagraph): Integer;
+    {* 获得包括本节点在内的所有父节点层次中的引用嵌套数，0 开始}
   protected
-    function ConvertParagraph(Paragraph: TCnMarkDownParagraph): string; override;
+    function ConvertParagraphStart(Paragraph: TCnMarkDownParagraph): string; override;
+    function ConvertParagraphEnd(Paragraph: TCnMarkDownParagraph): string; override;
     function ConvertFragment(Fragment: TCnMarkDownTextFragment): string; override;
     function EscapeContent(const Text: string): string; override;
     procedure ProcessNode(Node: TCnMarkDownBase);
@@ -239,6 +245,8 @@ procedure CnMarkDownDebugOutput(MarkDown: TCnMarkDownBase; List: TStrings);
 
 function CnMarkDownConvertToRTF(Root: TCnMarkDownBase): string;
 {* 将 MarkDown 的 DOM 树输出成 RTF 字符串}
+
+//  RTF 段落格式：{\pard [控制参数] [文本内容] \par}
 
 implementation
 
@@ -281,6 +289,10 @@ const
     '\lang2052\langfe2052\f0\fs24\qj';          // 中文排版设置+默认字体
 
   CN_RTF_FOOTER = '}';
+
+  CN_QUOTA_INDENT = 720;    // 引用的缩进
+  CN_LIST_UNINDENT = -360;  // 列表的点或序号的反缩进
+  CN_LIST_INDENT = 720;     // 列表文字的缩进
 
 function IsBlank(const Str: string): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
@@ -681,7 +693,7 @@ var
 begin
   IsLS := FIsLineStart;
   StepRun;
-  FTokenID := cmtContent;
+  FTokenID := cmtSpace;
 
   if IsLS then                // 行首四个空格做缩进
   begin
@@ -717,6 +729,9 @@ begin
       end;
     end;
   end;
+
+  if IsLS and (FTokenID = cmtSpace) then // 行首的空格越过后，仍然当行首计算
+    FIsLineStart := True;
 end;
 
 procedure TCnMarkDownParser.SquareProc;
@@ -909,6 +924,11 @@ constructor TCnMarkDownBase.Create;
 begin
   inherited;
   FItems := TObjectList.Create(True);
+end;
+
+procedure TCnMarkDownBase.Delete(Index: Integer);
+begin
+  FItems.Delete(Index);
 end;
 
 destructor TCnMarkDownBase.Destroy;
@@ -1151,7 +1171,7 @@ begin
         cmtLineBreak:
           begin
             // 要确保退出循环时 P.TokenID 指向换行
-            if PT in [cmpHeading1..cmpHeading7] then // 这些单个就退出
+            if PT in [cmpHeading1..cmpHeading7, cmpOrderedList, cmpUnOrderedList] then // 这些单个就退出
               Break;
 
             P.SaveToBookmark(Bookmark);
@@ -1272,6 +1292,7 @@ end;
 
 function CnParseMarkDownString(const MarkDown: string): TCnMarkDownBase;
 var
+  I: Integer;
   P: TCnMarkDownParser;
   Root: TCnMarkDownBase;
   CurPara: TCnMarkDownParagraph;
@@ -1392,9 +1413,23 @@ begin
     end;
   except
     Root.Free; // 解析途中如有异常则释放 Root
+    Root := nil;
     raise;
   end;
 
+  // 先清除掉无用的空段
+  if Root <> nil then
+  begin
+    for I := Root.Count - 1 downto 0 do
+    begin
+      if Root[I] is TCnMarkDownParagraph then
+      begin
+        if (TCnMarkDownParagraph(Root[I]).Count = 0) and
+          (TCnMarkDownParagraph(Root[I]).ParagraphType = cmpEmpty) then
+          Root.Delete(I);
+      end;
+    end;
+  end;
   Result := Root;
 end;
 
@@ -1413,12 +1448,15 @@ end;
 { TCnRTFConverter }
 
 function TCnRTFConverter.Convert(Root: TCnMarkDownBase): string;
+var
+  I: Integer;
 begin
   FRtf.Clear;
-  FPrevIsOrderedList := False;
-  FPrevIsUnOrderedList := False;
   FRtf.Append(CN_RTF_HEADER);
-  ProcessNode(Root);
+
+  for I := 0 to Root.Count - 1 do
+    ProcessNode(Root.Items[I]);
+
   FRtf.Append(CN_RTF_FOOTER);
   Result := FRtf.ToString;
 end;
@@ -1437,10 +1475,19 @@ begin
   end;
 end;
 
-function TCnRTFConverter.ConvertParagraph(Paragraph: TCnMarkDownParagraph): string;
-var
-  Level: Integer;
+function TCnRTFConverter.ConvertParagraphEnd(Paragraph: TCnMarkDownParagraph): string;
 begin
+  if Paragraph.ParagraphType = cmpLine then
+    Result := #13#10 // 分隔线无需补充尾部内容
+  else if Paragraph.ParagraphType <> cmpQuota then // Quota 也不是具体段落，不写
+    Result :='\par}'#13#10;
+end;
+
+function TCnRTFConverter.ConvertParagraphStart(Paragraph: TCnMarkDownParagraph): string;
+var
+  Level, Q: Integer;
+begin
+  Q := GetQuotaLevel(Paragraph);
   case Paragraph.ParagraphType of
     cmpHeading1..cmpHeading7:
       begin
@@ -1449,31 +1496,33 @@ begin
       end;
     cmpUnorderedList:
       begin
-        if FPrevIsUnOrderedList then // 本次是非第一个列表
-          Result := '{\pntext\f2\''B7\tab}'
-        else                         // 本次是列表中的第一项
-          Result := '{\pard{\pntext\f2\''B7\tab}{\*\pn\pnlvlblt\pnf2\pnindent0{\pntxtb\''B7}}\fi-360\li720\sa200\sl276\slmult1 ';
+        Result := Format('{\pard{\pntext\f2\''B7\tab}{\*\pn\pnlvlblt\pnf2\pnindent0{\pntxtb\''B7}}\fi%d\li%d\sa200\sl276\slmult1 ',
+          [CN_LIST_UNINDENT, CN_LIST_INDENT + Q * CN_QUOTA_INDENT]);
       end;
     cmpOrderedList:
       begin
-        Level := GetListLevel(Paragraph);  // 缩进层级，暂未使用
+        Level := GetListLevel(Paragraph);  // 列表缩进层级
+        Q := GetQuotaLevel(Paragraph);     // 引用缩进层级
         Inc(FListCounters[Level]);         // 列表序号
 
-        if FPrevIsOrderedList then // 本次是非第一个列表
-          Result := Format('{\pntext\f0 %d.\tab}', [FListCounters[Level]])
-        else                       // 本次是列表中的第一项
-          Result := Format('{\pard{\pntext\f0 %d.\tab}{\*\pn\pnlvlbody\pnf0\pnindent0\pnstart1\pndec{\pntxta.}}\fi-360\li720\sa200\sl276\slmult1\lang2052\f0\fs22 ',
-            [FListCounters[Level]]);
+        Result := Format('{\pard{\pntext\f0 %d.\tab}\fi%d\li%d\sa200\sl276\slmult1\lang2052\f0\fs22 ',
+          [FListCounters[Level], CN_LIST_UNINDENT, CN_LIST_INDENT + Q * CN_QUOTA_INDENT])
       end;
-    cmpLine:           Result := '{\pard\sa200\brdrb\brdrs\brdrw15\par}';
+    cmpLine:
+      Result := '{\pard\sa200\brdrb\brdrs\brdrw15\par}';
     cmpQuota:
       begin
-        Level := GetQuotaLevel(Paragraph);  // 引用层级
-        Result := Format('{\pard\lang2052\li%d\qj ', [800 * Level]);
+        // Quota 本身不是具体段落，不写
       end;
-    cmpFenceCodeBlock: Result := '{\lang2052\f1\fs20\cbpat1 ';
+    cmpFenceCodeBlock:
+      Result := '{\lang2052\f1\fs20\cbpat1 ';
   else
-    Result := '{\pard ';
+    if (Paragraph.Parent <> nil) and (Paragraph.Parent is TCnMarkDownParagraph) then
+    begin
+      Result := Format('{\pard\li%d ', [Q * CN_QUOTA_INDENT])   // 普通内层段落缩进由引用层级控制
+    end
+    else
+      Result := '{\pard\plain\li0\fi0 '; // 顶级段落用默认缩进 0 的格式
   end;
 end;
 
@@ -1517,7 +1566,10 @@ function TCnRTFConverter.GetQuotaLevel(Paragraph: TCnMarkDownParagraph): Integer
 var
   Node: TCnMarkDownBase;
 begin
-  Result := 1;
+  Result := 0;
+  if Paragraph.ParagraphType = cmpQuota then
+    Inc(Result);
+
   Node := Paragraph.Parent;
   while (Node <> nil) and (Node is TCnMarkDownParagraph) do
   begin
@@ -1531,57 +1583,15 @@ procedure TCnRTFConverter.ProcessNode(Node: TCnMarkDownBase);
 var
   I: Integer;
 begin
-  if FPrevIsOrderedList and (Node is TCnMarkDownParagraph) and
-    (TCnMarkDownParagraph(Node).ParagraphType <> cmpOrderedList) then
-  begin
-    // 前一个是有序列表，现在不是，说明出现了有序列表结尾，需要给上一个补个结尾
-    FPrevIsOrderedList := False;
-    FRtf.Append('}'#13#10);
-  end;
-  if FPrevIsUnOrderedList and (Node is TCnMarkDownParagraph) and
-    (TCnMarkDownParagraph(Node).ParagraphType <> cmpUnOrderedList) then
-  begin
-    // 前一个是无序列表，现在不是，说明出现了无序列表结尾，需要给上一个补个结尾
-    FPrevIsUnOrderedList := False;
-    FRtf.Append('}'#13#10);
-  end;
-
   if Node is TCnMarkDownParagraph then
-    FRtf.Append(ConvertParagraph(TCnMarkDownParagraph(Node)));
+    FRtf.Append(ConvertParagraphStart(TCnMarkDownParagraph(Node)));
 
   for I := 0 to Node.Count - 1 do
-  begin
-    ProcessNode(Node.Items[I]); // 内部会真正设置 FPrevIsOrderedList 和 FPrevIsUnOrderedList
-
-    if I = Node.Count - 1 then
-    begin
-      // 是本循环的最后一个，后面肯定都不会是本层级相同的列表了，收尾
-      // 这里收尾了后，再递归进本函数上面，不会再进了
-      // 如果不在此收尾，那后面如果没其他 Node 了，就会出现列表无法闭合的错误
-      if (Node.Items[I] is TCnMarkDownParagraph) and
-        (TCnMarkDownParagraph(Node.Items[I]).ParagraphType in [cmpOrderedList, cmpUnOrderedList]) then
-      begin
-        FPrevIsOrderedList := False;
-        FPrevIsUnOrderedList := False;
-        FRtf.Append('}'#13#10);
-      end;
-    end;
-  end;
+    ProcessNode(Node.Items[I]);
 
   if Node is TCnMarkDownParagraph then
-  begin
-    FPrevIsOrderedList := TCnMarkDownParagraph(Node).ParagraphType = cmpOrderedList;
-    FPrevIsUnOrderedList := TCnMarkDownParagraph(Node).ParagraphType = cmpUnOrderedList;
-
-    if TCnMarkDownParagraph(Node).ParagraphType in [cmpOrderedList, cmpUnOrderedList] then
-      FRtf.Append('\par'#13#10) // 列表项本身不需要大右括号
-    else if TCnMarkDownParagraph(Node).ParagraphType = cmpLine then
-      FRtf.Append(#13#10) // 分隔线无需补充尾部内容
-    else
-      FRtf.Append('}\par'#13#10);
-  end;
-
-  if Node is TCnMarkDownTextFragment then
+    FRtf.Append(ConvertParagraphEnd(TCnMarkDownParagraph(Node)))
+  else if Node is TCnMarkDownTextFragment then
     FRtf.Append(ConvertFragment(TCnMarkDownTextFragment(Node)));
 end;
 

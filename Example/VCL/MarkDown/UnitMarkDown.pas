@@ -15,10 +15,12 @@ type
     btnDump: TButton;
     btnParseTree: TButton;
     btnConvRtf: TButton;
+    btnShowRTF: TButton;
     procedure btnTestClick(Sender: TObject);
     procedure btnDumpClick(Sender: TObject);
     procedure btnParseTreeClick(Sender: TObject);
     procedure btnConvRtfClick(Sender: TObject);
+    procedure btnShowRTFClick(Sender: TObject);
   private
     procedure DumpMarkDownTokens(const MD: string);
   public
@@ -132,6 +134,22 @@ begin
   mmoParse.Lines.Text := string(S);
   MD.Free;
 
+  if Length(S) > 0 then
+  begin
+    Mem := TMemoryStream.Create;
+    Mem.WriteBuffer(S[1], Length(S));
+    Mem.Position := 0;
+    redtMarkDown.Lines.LoadFromStream(Mem);
+    Mem.Free;
+  end;
+end;
+
+procedure TFormMarkDown.btnShowRTFClick(Sender: TObject);
+var
+  S: AnsiString;
+  Mem: TMemoryStream;
+begin
+  S := mmoParse.Lines.Text;
   if Length(S) > 0 then
   begin
     Mem := TMemoryStream.Create;

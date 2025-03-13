@@ -100,4 +100,13 @@ object FormMarkDown: TFormMarkDown
     TabOrder = 6
     OnClick = btnConvRtfClick
   end
+  object btnShowRTF: TButton
+    Left = 600
+    Top = 496
+    Width = 25
+    Height = 25
+    Caption = '->'
+    TabOrder = 7
+    OnClick = btnShowRTFClick
+  end
 end
