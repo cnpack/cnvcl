@@ -14,9 +14,11 @@ type
     mmoParse: TMemo;
     btnDump: TButton;
     btnParseTree: TButton;
+    btnConvRtf: TButton;
     procedure btnTestClick(Sender: TObject);
     procedure btnDumpClick(Sender: TObject);
     procedure btnParseTreeClick(Sender: TObject);
+    procedure btnConvRtfClick(Sender: TObject);
   private
     procedure DumpMarkDownTokens(const MD: string);
   public
@@ -115,6 +117,16 @@ begin
   mmoParse.Lines.Clear;
   MD := CnParseMarkDownString(mmoMarkDown.Lines.Text);
   CnMarkDownDebugOutput(MD, mmoParse.Lines);
+  MD.Free;
+end;
+
+procedure TFormMarkDown.btnConvRtfClick(Sender: TObject);
+var
+  MD: TCnMarkDownBase;
+begin
+  mmoParse.Lines.Clear;
+  MD := CnParseMarkDownString(mmoMarkDown.Lines.Text);
+  mmoParse.Lines.Text := CnMarkDownConvertToRTF(MD);
   MD.Free;
 end;
 

@@ -91,4 +91,13 @@ object FormMarkDown: TFormMarkDown
     TabOrder = 5
     OnClick = btnParseTreeClick
   end
+  object btnConvRtf: TButton
+    Left = 200
+    Top = 8
+    Width = 75
+    Height = 25
+    Caption = 'To RTF'
+    TabOrder = 6
+    OnClick = btnConvRtfClick
+  end
 end

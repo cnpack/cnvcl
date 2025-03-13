@@ -25,6 +25,9 @@ unit CnMarkDown;
 * 单元名称：MarkDown 格式解析单元
 * 单元作者：CnPack 开发组
 * 备    注：语法支持不完整，譬如没有表格，不支持嵌套列表等
+*           Parser 能够实现 MarkDown 的词法分析，CnParseMarkDownString 则能将
+*           MarkDown 文本解析成 DOM 树。该树包括两层结构，第一层是段落、第二层是文字。
+*           根据 DOM 树未来可再输出成 HTML 或 RTF。
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -38,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Contnrs, TypInfo;
+  Classes, SysUtils, Contnrs, TypInfo, CnStrings;
 
 type
   TCnMarkDownTokenType = (cmtUnknown,
@@ -72,6 +75,14 @@ type
   );
   TCnMarkDownTokenTypes = set of TCnMarkDownTokenType;
 
+  TCnMarkDownBookmark = packed record
+  {* 解析器中的书签，作为回溯用}
+    Run: Integer;
+    TokenPos: Integer;
+    IsLineStart: Boolean;
+    TokenID: TCnMarkDownTokenType;
+  end;
+
   TCnMarkDownParser = class
   {* String 格式的 MarkDown 字符串语法解析器}
   private
@@ -102,8 +113,6 @@ type
     function GetToken: string;
     procedure SetOrigin(const Value: PChar);
     function GetTokenLength: Integer;
-    function IsCRLF(C: Char): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-    function IsSpaceOrTab(C: Char): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
   protected
     procedure StepRun; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
   public
@@ -114,6 +123,9 @@ type
 
     procedure Next;
     {* 跳至下一个 Token 并确定 TokenID}
+
+    procedure SaveToBookmark(var Bookmark: TCnMarkDownBookmark);
+    procedure LoadFromBookmark(var Bookmark: TCnMarkDownBookmark);
 
     property Origin: PAnsiChar read FOrigin write SetOrigin;
     {* 待解析的 string 格式的 MarkDown 字符串内容}
@@ -135,8 +147,10 @@ type
     cmfBoldItalic, cmfStroke, cmfCodeBlock, cmfLink, cmfLinkDisplay, cmfImage, cmfDirectLink);
   TCnMarkDownTextFragmentTypes = set of TCnMarkDownTextFragmentType;
 
-  TCnMarkDownBraceType = (cmbNone, cmbBold, cmbItalic, cmbBoldItalic, cmbStroke,
-    cmbCodeBlock);
+  TCnMarkDownParagraphBraceType = (cmpbNone, cmpbOrderedList, cmpbUnOrderedList);
+
+  TCnMarkDownTextBraceType = (cmtbNone, cmtbBold, cmtbItalic, cmtbBoldItalic, cmtbStroke,
+    cmtbCodeBlock);
 
   TCnMarkDownBase = class
   private
@@ -159,8 +173,13 @@ type
   TCnMarkDownParagraph = class(TCnMarkDownBase)
   private
     FParagraphType: TCnMarkDownParagraphType;
+    FCloseType: TCnMarkDownTextBraceType;
+    FOpenType: TCnMarkDownTextBraceType;
 
   public
+    property OpenType: TCnMarkDownTextBraceType read FOpenType write FOpenType;
+    property CloseType: TCnMarkDownTextBraceType read FCloseType write FCloseType;
+
     property ParagraphType: TCnMarkDownParagraphType read FParagraphType write FParagraphType;
   end;
 
@@ -168,17 +187,43 @@ type
   private
     FContent: string;
     FFragmentType: TCnMarkDownTextFragmentType;
-    FCloseType: TCnMarkDownBraceType;
-    FOpenType: TCnMarkDownBraceType;
+    FCloseType: TCnMarkDownTextBraceType;
+    FOpenType: TCnMarkDownTextBraceType;
     function GetContent: string;
   public
     procedure AddContent(const Cont: string);
 
-    property OpenType: TCnMarkDownBraceType read FOpenType write FOpenType;
-    property CloseType: TCnMarkDownBraceType read FCloseType write FCloseType;
+    property OpenType: TCnMarkDownTextBraceType read FOpenType write FOpenType;
+    property CloseType: TCnMarkDownTextBraceType read FCloseType write FCloseType;
 
     property FragmentType: TCnMarkDownTextFragmentType read FFragmentType write FFragmentType;
     property Content: string read GetContent;
+  end;
+
+  TCnMarkDownConverter = class
+  {* 转换器抽象基类}
+  protected
+    function ConvertParagraph(Paragraph: TCnMarkDownParagraph): string; virtual; abstract;
+    function ConvertFragment(Fragment: TCnMarkDownTextFragment): string; virtual; abstract;
+    function EscapeContent(const Text: string): string; virtual; abstract;
+  public
+    function Convert(Root: TCnMarkDownBase): string; virtual; abstract;
+  end;
+
+  TCnRTFConverter = class(TCnMarkDownConverter)
+  {* RTF 转换器实现类}
+  private
+    FRtf: TCnStringBuilder;
+    FCurrentFontSize: Integer;
+  protected
+    function ConvertParagraph(Paragraph: TCnMarkDownParagraph): string; override;
+    function ConvertFragment(Fragment: TCnMarkDownTextFragment): string; override;
+    function EscapeContent(const Text: string): string; override;
+    procedure ProcessNode(Node: TCnMarkDownBase);
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function Convert(Root: TCnMarkDownBase): string; override;
   end;
 
 function CnParseMarkDownString(const MarkDown: string): TCnMarkDownBase;
@@ -187,15 +232,19 @@ function CnParseMarkDownString(const MarkDown: string): TCnMarkDownBase;
 procedure CnMarkDownDebugOutput(MarkDown: TCnMarkDownBase; List: TStrings);
 {* 将 MarkDown 对象树打印到字符串列表中}
 
+function CnMarkDownConvertToRTF(Root: TCnMarkDownBase): string;
+{* 将 MarkDown 的 DOM 树输出成 RTF 字符串}
+
 implementation
 
 const
+  // 这些标记是需要配对的
   CN_MARKDOWN_FRAGMENTTYPE_NEED_MATCH: TCnMarkDownTextFragmentTypes =
     [cmfBold, cmfItalic, cmfBoldItalic, cmfStroke, cmfCodeBlock];
 
   // 遇见这些标记，即使前面没有连续两个回车换行，也要新起一段
   CN_MARKDOWN_TOKENTYPE_PARAHEAD: TCnMarkDownTokenTypes =
-    [cmtHeading1,       // 行首#空格
+    [cmtHeading1,      // 行首#空格
     cmtHeading2,       // 行首##空格
     cmtHeading3,       // 行首###空格
     cmtHeading4,       // 行首####空格
@@ -210,7 +259,26 @@ const
     cmtFenceCodeBlock  // 行首```
   ];
 
-function IsBlank(const Str: string): Boolean;
+  //CN_RTF_HEADER = '{\rtf1\ansi\ansicpg936\deff0{\fonttbl{\f0\fnil Courier New;}}\viewkind4\uc1\pard\lang2052\f0\fs24';
+
+  CN_RTF_HEADER =
+    '{\rtf1\ansi\ansicpg936\deff0' +            // 文档头+简体中文代码页
+    '{\fonttbl' +                               // 字体表开始
+    '{\f0\fnil\fcharset134 SimSun;}' +          // 主字体：宋体（GB2312字符集）
+    '{\f1\fnil\fcharset134 Microsoft YaHei;}' + // 备用字体1：微软雅黑
+    '{\f2\fnil\fcharset134 KaiTi;}' +           // 备用字体2：楷体
+    '{\f3\fnil\fcharset134 Courier New;}' +       // 等宽字体
+    '}' +                                       // 字体表结束
+    '{\colortbl;' +
+    '\red0\green0\blue0;' +
+    '\red255\green0\blue0;' +
+    '\red216\green216\blue216;}' +              // 颜色表（黑、红、灰）
+    '\viewkind4\uc1\pard' +                     // 视图模式+Unicode声明
+    '\lang2052\langfe2052\f0\fs24\qj';          // 中文排版设置+默认字体
+
+  CN_RTF_FOOTER = '}';
+
+function IsBlank(const Str: string): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   I: Integer;
 begin
@@ -223,6 +291,16 @@ begin
     end;
   end;
   Result := True;
+end;
+
+function IsCRLF(C: Char): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  Result := (C = #13) or (C = #10);
+end;
+
+function IsSpaceOrTab(C: Char): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  Result := (C = ' ') or (C = #9);
 end;
 
 { TCnMarkDownParser }
@@ -287,16 +365,6 @@ begin
   end;
 end;
 
-function TCnMarkDownParser.IsCRLF(C: Char): Boolean;
-begin
-  Result := (C = #13) or (C = #10);
-end;
-
-function TCnMarkDownParser.IsSpaceOrTab(C: Char): Boolean;
-begin
-  Result := (C = ' ') or (C = #9);
-end;
-
 procedure TCnMarkDownParser.LessProc;
 begin
   StepRun;
@@ -320,6 +388,14 @@ begin
     FTokenID := cmtLineBreak;
     StepRun;
   end;
+end;
+
+procedure TCnMarkDownParser.LoadFromBookmark(var Bookmark: TCnMarkDownBookmark);
+begin
+  FRun := Bookmark.Run;
+  FTokenPos := Bookmark.TokenPos;
+  FIsLineStart := Bookmark.IsLineStart;
+  FTokenID := Bookmark.TokenID;
 end;
 
 procedure TCnMarkDownParser.MinusHeaderProc;
@@ -515,6 +591,14 @@ begin
   begin
     FTokenID := cmtCodeBlock;
   end;
+end;
+
+procedure TCnMarkDownParser.SaveToBookmark(var Bookmark: TCnMarkDownBookmark);
+begin
+  Bookmark.Run := FRun;
+  Bookmark.TokenPos := FTokenPos;
+  Bookmark.IsLineStart := FIsLineStart;
+  Bookmark.TokenID := FTokenID;
 end;
 
 procedure TCnMarkDownParser.SetOrigin(const Value: PChar);
@@ -931,31 +1015,27 @@ procedure ParseMarkDownToLineEnd(P: TCnMarkDownParser; Parent: TCnMarkDownParagr
 var
   Frag: TCnMarkDownTextFragment;
   PT: TCnMarkDownParagraphType;
+  Bookmark: TCnMarkDownBookmark;
 
-  procedure SkipEnd;
-  begin
-    if P.TokenID <> cmtTerminate then
-      P.Next;
-  end;
-
-  function MapTokenToBrace(ATokenType: TCnMarkDownTokenType): TCnMarkDownBraceType;
+  function MapTokenToBrace(ATokenType: TCnMarkDownTokenType): TCnMarkDownTextBraceType;
   begin
     case ATokenType of
-      cmtBold:       Result := cmbBold;
-      cmtItalic:     Result := cmbItalic;
-      cmtBoldItalic: Result := cmbBoldItalic;
-      cmtStroke:     Result := cmbStroke;
-      cmtCodeBlock:  Result := cmbCodeBlock;
+      cmtBold:       Result := cmtbBold;
+      cmtItalic:     Result := cmtbItalic;
+      cmtBoldItalic: Result := cmtbBoldItalic;
+      cmtStroke:     Result := cmtbStroke;
+      cmtCodeBlock:  Result := cmtbCodeBlock;
     else
-      Result := cmbNone;
+      Result := cmtbNone;
     end;
   end;
 
+  // 注意该函数返回 True 时，ParentLastOpenFrag 须返回对应 Open 的 Fragment
   function ParentFragmentHasLastOpenToken(AnOpen: TCnMarkDownTokenType): Boolean;
   var
     I: Integer;
     F: TCnMarkDownTextFragment;
-    B: TCnMarkDownBraceType;
+    B: TCnMarkDownTextBraceType;
   begin
     // 从后往前找 Parent 的 Fragment 里是否有开放的
     // cmtBold, cmtItalic, cmtBoldItalic, cmtStroke, cmtCodeBlock 等
@@ -973,8 +1053,8 @@ var
     Result := False;
   end;
 
-  // 最近的一个普通的、或应关闭而未关闭的 Fragment
-  // 注意它和 ParentFragmentHasLastOpenToken 判断的依据有可能不是同一个
+  // 最近的一个应关闭而未关闭的 Fragment
+  // 注意它和 ParentFragmentHasLastOpenToken 判断的依据必须相同
   function ParentLastOpenFrag: TCnMarkDownTextFragment;
   var
     F: TCnMarkDownTextFragment;
@@ -983,28 +1063,60 @@ var
     if Parent.Count > 0 then
     begin
       F := TCnMarkDownTextFragment(Parent.Items[Parent.Count - 1]);
-      if (F.FragmentType in CN_MARKDOWN_FRAGMENTTYPE_NEED_MATCH)
-        and (F.CloseType = cmbNone) then
-        Result := F
-      else if not (F.FragmentType in [cmfDirectLink, cmfLink, cmfLinkDisplay]) then // 直接链等几个是单块，不可再加东西
+      if (F.FragmentType in CN_MARKDOWN_FRAGMENTTYPE_NEED_MATCH)          // 应关闭而未关闭的
+        and (F.CloseType = cmtbNone) then
+      begin
         Result := F;
+        Exit;
+      end;
+
+      if F.FragmentType in [cmfDirectLink, cmfLink, cmfLinkDisplay] then // 直接链等几个是单块，不可再加东西
+        Result := nil;
+    end;
+  end;
+
+  // 最近一个可加东西的，不能是闭合的配对块，不能是单块
+  function ParentLastCommonFrag: TCnMarkDownTextFragment;
+  var
+    F: TCnMarkDownTextFragment;
+  begin
+    Result := nil;
+    if Parent.Count > 0 then
+    begin
+      F := TCnMarkDownTextFragment(Parent.Items[Parent.Count - 1]);
+      if F.FragmentType in [cmfDirectLink, cmfLink, cmfLinkDisplay] then // 不能是单块
+        Exit;
+
+      if (F.FragmentType in CN_MARKDOWN_FRAGMENTTYPE_NEED_MATCH) // 不能是闭合的配对块
+        and (F.CloseType <> cmtbNone) then
+        Exit;
     end;
   end;
 
   procedure AddCommonContent(const Str: string);
+  var
+    L: TCnMarkDownTextFragment;
   begin
-    if ParentLastOpenFrag = nil then // 没有上一个，或上一个独立、完备，就加个新的
+    L := ParentLastOpenFrag;
+    if L = nil then // 上一个独立、完备
     begin
-      Frag := TCnMarkDownTextFragment.Create;
-      Frag.FragmentType := cmfCommon;
+      L := ParentLastCommonFrag;
+      if L = nil then // 或者没有上一个，就加个新的
+      begin
+        Frag := TCnMarkDownTextFragment.Create;
+        Frag.FragmentType := cmfCommon;
 
-      Parent.Add(Frag);
+        Parent.Add(Frag);
+        Frag.AddContent(Str);
+        Exit;
+      end;
     end;
-    ParentLastOpenFrag.AddContent(Str);
+    L.AddContent(Str);
   end;
 
 begin
-  // 解析直到行尾的内容然后添加到 Parent 下，并越过行尾。P 在前一个 Token，这里按需 Next
+  // 解析直到行尾的内容然后添加到 Parent 下，并越过行尾的换行指向下一个。供调用者 Next
+  // 进来时，P 在前一个 Token，这里按需 Next
   // 结束分两种情况：
   // 一、普通换行或硬换行后强行结束（比如 Parent 是 Heading），不管下一行是啥
   // 二、普通换行后看自己以及下一行是啥决定是否结束（比如自己是普通段落，普通换行则不结束得连续俩换行，或硬换行结束）
@@ -1021,9 +1133,6 @@ begin
       P.Next;
       Frag.AddContent(P.Token);
     until (P.TokenID in [cmtTerminate, cmtLineBreak, cmtHardBreak]); // 普通回车或硬回车结束
-
-    SkipEnd;
-    Exit;
   end
   else
   begin
@@ -1036,26 +1145,34 @@ begin
       case P.TokenID of
         cmtLineBreak:
           begin
+            // 要确保退出循环时 P.TokenID 指向换行
             if PT in [cmpHeading1..cmpHeading7] then // 这些单个就退出
               Break;
 
+            P.SaveToBookmark(Bookmark);
             P.Next;
 
-            // 连续两个也退出，一些典型段落开头也退出，其他普通内容继续
-            if P.TokenID in [cmtLineBreak] + CN_MARKDOWN_TOKENTYPE_PARAHEAD then
+            // 连续两个也退出，一些典型段落开头也退出但要回退到换行，其他普通内容继续
+            if P.TokenID = cmtLineBreak then
               Break
+            else if P.TokenID in CN_MARKDOWN_TOKENTYPE_PARAHEAD then
+            begin
+              // 回退到上一 Token
+              P.LoadFromBookmark(Bookmark);
+              Break;
+            end
             else if P.TokenID = cmtContent then
               AddCommonContent(P.Token);
           end;
         cmtBold:
           begin
             if ParentFragmentHasLastOpenToken(cmtBold) then
-              ParentLastOpenFrag.CloseType := cmbBold
+              ParentLastOpenFrag.CloseType := cmtbBold
             else
             begin
               Frag := TCnMarkDownTextFragment.Create;
               Frag.FragmentType := cmfBold;
-              Frag.OpenType := cmbBold;
+              Frag.OpenType := cmtbBold;
 
               Parent.Add(Frag);
             end;
@@ -1063,12 +1180,12 @@ begin
         cmtItalic:
           begin
             if ParentFragmentHasLastOpenToken(cmtItalic) then
-              ParentLastOpenFrag.CloseType := cmbItalic
+              ParentLastOpenFrag.CloseType := cmtbItalic
             else
             begin
               Frag := TCnMarkDownTextFragment.Create;
               Frag.FragmentType := cmfItalic;
-              Frag.OpenType := cmbItalic;
+              Frag.OpenType := cmtbItalic;
 
               Parent.Add(Frag);
             end;
@@ -1076,12 +1193,12 @@ begin
         cmtBoldItalic:
           begin
             if ParentFragmentHasLastOpenToken(cmtBoldItalic) then
-              ParentLastOpenFrag.CloseType := cmbBoldItalic
+              ParentLastOpenFrag.CloseType := cmtbBoldItalic
             else
             begin
               Frag := TCnMarkDownTextFragment.Create;
               Frag.FragmentType := cmfBoldItalic;
-              Frag.OpenType := cmbBoldItalic;
+              Frag.OpenType := cmtbBoldItalic;
 
               Parent.Add(Frag);
             end;
@@ -1089,12 +1206,25 @@ begin
         cmtStroke:
           begin
             if ParentFragmentHasLastOpenToken(cmtStroke) then
-              ParentLastOpenFrag.CloseType := cmbStroke
+              ParentLastOpenFrag.CloseType := cmtbStroke
             else
             begin
               Frag := TCnMarkDownTextFragment.Create;
               Frag.FragmentType := cmfStroke;
-              Frag.OpenType := cmbStroke;
+              Frag.OpenType := cmtbStroke;
+
+              Parent.Add(Frag);
+            end;
+          end;
+        cmtCodeBlock:
+          begin
+            if ParentFragmentHasLastOpenToken(cmtCodeBlock) then
+              ParentLastOpenFrag.CloseType := cmtbCodeBlock
+            else
+            begin
+              Frag := TCnMarkDownTextFragment.Create;
+              Frag.FragmentType := cmfCodeBlock;
+              Frag.OpenType := cmtbCodeBlock;
 
               Parent.Add(Frag);
             end;
@@ -1273,6 +1403,98 @@ end;
 function TCnMarkDownTextFragment.GetContent: string;
 begin
   Result := FContent;
+end;
+
+{ TCnRTFConverter }
+
+function TCnRTFConverter.Convert(Root: TCnMarkDownBase): string;
+begin
+  FRtf.Clear;
+  FRtf.Append(CN_RTF_HEADER);
+  ProcessNode(Root);
+  FRtf.Append(CN_RTF_FOOTER);
+  Result := FRtf.ToString;
+end;
+
+function TCnRTFConverter.ConvertFragment(Fragment: TCnMarkDownTextFragment): string;
+begin
+  case Fragment.FragmentType of
+    cmfCodeBlock:   Result := '\f3\highlight3\b ' + EscapeContent(Fragment.Content) + '\b0\highlight0\f0 ';
+    cmfBold:        Result := '\b ' + EscapeContent(Fragment.Content) + '\b0 ';
+    cmfItalic:      Result := '\i ' + EscapeContent(Fragment.Content) + '\i0 ';
+    cmfBoldItalic:  Result := '\b\i ' + EscapeContent(Fragment.Content) + '\i0\b0 ';
+    cmfStroke:      Result := '\strike ' + EscapeContent(Fragment.Content) + '\strike0 ';
+    cmfLink:        Result := '\cf2 ' + EscapeContent(Fragment.Content) + '\cf0 ';
+  else
+    Result := EscapeContent(Fragment.Content);
+  end;
+end;
+
+function TCnRTFConverter.ConvertParagraph(Paragraph: TCnMarkDownParagraph): string;
+begin
+  case Paragraph.ParagraphType of
+    cmpHeading1..cmpHeading7:
+    begin
+      FCurrentFontSize := 36 - (Ord(Paragraph.ParagraphType) - Ord(cmpHeading1)) * 4;
+      Result := Format('{\pard\fs%d\b ', [FCurrentFontSize]);
+    end;
+    cmpUnorderedList:  Result := '{\lang2052\bullet ';
+    cmpOrderedList:    Result := '{\lang2052\pard\tx720\li720 ';
+    cmpLine:           Result := '{\pard\brdrb\brdrs\brdrw10\brsp20 ';
+    cmpQuota:          Result := '{\lang2052\li1440\qj ';
+    cmpFenceCodeBlock: Result := '{\lang2052\f1\fs20\cbpat1 ';
+  else
+    Result := '{\pard ';
+  end;
+end;
+
+constructor TCnRTFConverter.Create;
+begin
+  inherited;
+  FRtf := TCnStringBuilder.Create;
+  FCurrentFontSize := 24;
+end;
+
+destructor TCnRTFConverter.Destroy;
+begin
+  FRtf.Free;
+  inherited;
+end;
+
+function TCnRTFConverter.EscapeContent(const Text: string): string;
+begin
+  Result := StringReplace(Text, '\', '\\', [rfReplaceAll]);
+  Result := StringReplace(Result, '{', '\{', [rfReplaceAll]);
+  Result := StringReplace(Result, '}', '\}', [rfReplaceAll]);
+  Result := StringReplace(Result, #13#10, '\line ', [rfReplaceAll]);
+  Result := StringReplace(Result, #10, '\line ', [rfReplaceAll]);
+end;
+
+procedure TCnRTFConverter.ProcessNode(Node: TCnMarkDownBase);
+var
+  I: Integer;
+begin
+  if Node is TCnMarkDownParagraph then
+    FRtf.Append(ConvertParagraph(TCnMarkDownParagraph(Node)));
+
+  for I := 0 to Node.Count - 1 do
+    ProcessNode(Node.Items[I]);
+
+  if Node is TCnMarkDownParagraph then
+    FRtf.Append('}\par'#13#10);
+
+  if Node is TCnMarkDownTextFragment then
+    FRtf.Append(ConvertFragment(TCnMarkDownTextFragment(Node)));
+end;
+
+function CnMarkDownConvertToRTF(Root: TCnMarkDownBase): string;
+begin
+  with TCnRTFConverter.Create do
+  try
+    Result := Convert(Root);
+  finally
+    Free;
+  end;
 end;
 
 end.
