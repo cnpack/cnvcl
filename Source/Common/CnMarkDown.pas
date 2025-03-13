@@ -219,6 +219,7 @@ type
     FPrevIsUnOrderedList: BOolean;
     FListCounters: array[1..9] of Integer; // 支持最多 9 级列表
     function GetListLevel(Paragraph: TCnMarkDownParagraph): Integer;
+    function GetQuotaLevel(Paragraph: TCnMarkDownParagraph): Integer;
   protected
     function ConvertParagraph(Paragraph: TCnMarkDownParagraph): string; override;
     function ConvertFragment(Fragment: TCnMarkDownTextFragment): string; override;
@@ -900,6 +901,7 @@ end;
 function TCnMarkDownBase.Add(AMarkDown: TCnMarkDownBase): TCnmarkDownBase;
 begin
   FItems.Add(AMarkDown);
+  AMarkDown.Parent := Self;
   Result := AMarkDown;
 end;
 
@@ -1463,8 +1465,12 @@ begin
           Result := Format('{\pard{\pntext\f0 %d.\tab}{\*\pn\pnlvlbody\pnf0\pnindent0\pnstart1\pndec{\pntxta.}}\fi-360\li720\sa200\sl276\slmult1\lang2052\f0\fs22 ',
             [FListCounters[Level]]);
       end;
-    cmpLine:           Result := '{\pard\brdrb\brdrs\brdrw10\brsp20 ';
-    cmpQuota:          Result := '{\lang2052\li1440\qj ';
+    cmpLine:           Result := '{\pard\sa200\brdrb\brdrs\brdrw15\par}';
+    cmpQuota:
+      begin
+        Level := GetQuotaLevel(Paragraph);  // 引用层级
+        Result := Format('{\pard\lang2052\li%d\qj ', [800 * Level]);
+      end;
     cmpFenceCodeBlock: Result := '{\lang2052\f1\fs20\cbpat1 ';
   else
     Result := '{\pard ';
@@ -1507,6 +1513,20 @@ begin
   end;
 end;
 
+function TCnRTFConverter.GetQuotaLevel(Paragraph: TCnMarkDownParagraph): Integer;
+var
+  Node: TCnMarkDownBase;
+begin
+  Result := 1;
+  Node := Paragraph.Parent;
+  while (Node <> nil) and (Node is TCnMarkDownParagraph) do
+  begin
+    if TCnMarkDownParagraph(Node).ParagraphType in [cmpQuota] then
+      Inc(Result);
+    Node := Node.Parent;
+  end;
+end;
+
 procedure TCnRTFConverter.ProcessNode(Node: TCnMarkDownBase);
 var
   I: Integer;
@@ -1530,7 +1550,23 @@ begin
     FRtf.Append(ConvertParagraph(TCnMarkDownParagraph(Node)));
 
   for I := 0 to Node.Count - 1 do
-    ProcessNode(Node.Items[I]);
+  begin
+    ProcessNode(Node.Items[I]); // 内部会真正设置 FPrevIsOrderedList 和 FPrevIsUnOrderedList
+
+    if I = Node.Count - 1 then
+    begin
+      // 是本循环的最后一个，后面肯定都不会是本层级相同的列表了，收尾
+      // 这里收尾了后，再递归进本函数上面，不会再进了
+      // 如果不在此收尾，那后面如果没其他 Node 了，就会出现列表无法闭合的错误
+      if (Node.Items[I] is TCnMarkDownParagraph) and
+        (TCnMarkDownParagraph(Node.Items[I]).ParagraphType in [cmpOrderedList, cmpUnOrderedList]) then
+      begin
+        FPrevIsOrderedList := False;
+        FPrevIsUnOrderedList := False;
+        FRtf.Append('}'#13#10);
+      end;
+    end;
+  end;
 
   if Node is TCnMarkDownParagraph then
   begin
@@ -1539,6 +1575,8 @@ begin
 
     if TCnMarkDownParagraph(Node).ParagraphType in [cmpOrderedList, cmpUnOrderedList] then
       FRtf.Append('\par'#13#10) // 列表项本身不需要大右括号
+    else if TCnMarkDownParagraph(Node).ParagraphType = cmpLine then
+      FRtf.Append(#13#10) // 分隔线无需补充尾部内容
     else
       FRtf.Append('}\par'#13#10);
   end;
