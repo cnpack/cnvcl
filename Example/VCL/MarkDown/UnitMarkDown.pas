@@ -123,11 +123,23 @@ end;
 procedure TFormMarkDown.btnConvRtfClick(Sender: TObject);
 var
   MD: TCnMarkDownBase;
+  S: AnsiString;
+  Mem: TMemoryStream;
 begin
   mmoParse.Lines.Clear;
   MD := CnParseMarkDownString(mmoMarkDown.Lines.Text);
-  mmoParse.Lines.Text := CnMarkDownConvertToRTF(MD);
+  S := CnMarkDownConvertToRTF(MD);
+  mmoParse.Lines.Text := string(S);
   MD.Free;
+
+  if Length(S) > 0 then
+  begin
+    Mem := TMemoryStream.Create;
+    Mem.WriteBuffer(S[1], Length(S));
+    Mem.Position := 0;
+    redtMarkDown.Lines.LoadFromStream(Mem);
+    Mem.Free;
+  end;
 end;
 
 end.

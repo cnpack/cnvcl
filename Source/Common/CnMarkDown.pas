@@ -215,6 +215,10 @@ type
   private
     FRtf: TCnStringBuilder;
     FCurrentFontSize: Integer;
+    FPrevIsOrderedList: Boolean;
+    FPrevIsUnOrderedList: BOolean;
+    FListCounters: array[1..9] of Integer; // 支持最多 9 级列表
+    function GetListLevel(Paragraph: TCnMarkDownParagraph): Integer;
   protected
     function ConvertParagraph(Paragraph: TCnMarkDownParagraph): string; override;
     function ConvertFragment(Fragment: TCnMarkDownTextFragment): string; override;
@@ -259,21 +263,20 @@ const
     cmtFenceCodeBlock  // 行首```
   ];
 
-  //CN_RTF_HEADER = '{\rtf1\ansi\ansicpg936\deff0{\fonttbl{\f0\fnil Courier New;}}\viewkind4\uc1\pard\lang2052\f0\fs24';
-
   CN_RTF_HEADER =
     '{\rtf1\ansi\ansicpg936\deff0' +            // 文档头+简体中文代码页
     '{\fonttbl' +                               // 字体表开始
     '{\f0\fnil\fcharset134 SimSun;}' +          // 主字体：宋体（GB2312字符集）
     '{\f1\fnil\fcharset134 Microsoft YaHei;}' + // 备用字体1：微软雅黑
     '{\f2\fnil\fcharset134 KaiTi;}' +           // 备用字体2：楷体
-    '{\f3\fnil\fcharset134 Courier New;}' +       // 等宽字体
+    '{\f3\fnil\fcharset134 Courier New;}' +     // 等宽字体
     '}' +                                       // 字体表结束
     '{\colortbl;' +
     '\red0\green0\blue0;' +
     '\red255\green0\blue0;' +
     '\red216\green216\blue216;}' +              // 颜色表（黑、红、灰）
-    '\viewkind4\uc1\pard' +                     // 视图模式+Unicode声明
+    '\viewkind4\uc1' +                          // 视图模式+Unicode声明
+    '\pard' +
     '\lang2052\langfe2052\f0\fs24\qj';          // 中文排版设置+默认字体
 
   CN_RTF_FOOTER = '}';
@@ -1410,6 +1413,8 @@ end;
 function TCnRTFConverter.Convert(Root: TCnMarkDownBase): string;
 begin
   FRtf.Clear;
+  FPrevIsOrderedList := False;
+  FPrevIsUnOrderedList := False;
   FRtf.Append(CN_RTF_HEADER);
   ProcessNode(Root);
   FRtf.Append(CN_RTF_FOOTER);
@@ -1431,15 +1436,33 @@ begin
 end;
 
 function TCnRTFConverter.ConvertParagraph(Paragraph: TCnMarkDownParagraph): string;
+var
+  Level: Integer;
 begin
   case Paragraph.ParagraphType of
     cmpHeading1..cmpHeading7:
-    begin
-      FCurrentFontSize := 36 - (Ord(Paragraph.ParagraphType) - Ord(cmpHeading1)) * 4;
-      Result := Format('{\pard\fs%d\b ', [FCurrentFontSize]);
-    end;
-    cmpUnorderedList:  Result := '{\lang2052\bullet ';
-    cmpOrderedList:    Result := '{\lang2052\pard\tx720\li720 ';
+      begin
+        FCurrentFontSize := 36 - (Ord(Paragraph.ParagraphType) - Ord(cmpHeading1)) * 4;
+        Result := Format('{\pard\fs%d\b ', [FCurrentFontSize]);
+      end;
+    cmpUnorderedList:
+      begin
+        if FPrevIsUnOrderedList then // 本次是非第一个列表
+          Result := '{\pntext\f2\''B7\tab}'
+        else                         // 本次是列表中的第一项
+          Result := '{\pard{\pntext\f2\''B7\tab}{\*\pn\pnlvlblt\pnf2\pnindent0{\pntxtb\''B7}}\fi-360\li720\sa200\sl276\slmult1 ';
+      end;
+    cmpOrderedList:
+      begin
+        Level := GetListLevel(Paragraph);  // 缩进层级，暂未使用
+        Inc(FListCounters[Level]);         // 列表序号
+
+        if FPrevIsOrderedList then // 本次是非第一个列表
+          Result := Format('{\pntext\f0 %d.\tab}', [FListCounters[Level]])
+        else                       // 本次是列表中的第一项
+          Result := Format('{\pard{\pntext\f0 %d.\tab}{\*\pn\pnlvlbody\pnf0\pnindent0\pnstart1\pndec{\pntxta.}}\fi-360\li720\sa200\sl276\slmult1\lang2052\f0\fs22 ',
+            [FListCounters[Level]]);
+      end;
     cmpLine:           Result := '{\pard\brdrb\brdrs\brdrw10\brsp20 ';
     cmpQuota:          Result := '{\lang2052\li1440\qj ';
     cmpFenceCodeBlock: Result := '{\lang2052\f1\fs20\cbpat1 ';
@@ -1470,10 +1493,39 @@ begin
   Result := StringReplace(Result, #10, '\line ', [rfReplaceAll]);
 end;
 
+function TCnRTFConverter.GetListLevel(Paragraph: TCnMarkDownParagraph): Integer;
+var
+  Node: TCnMarkDownBase;
+begin
+  Result := 1;
+  Node := Paragraph.Parent;
+  while (Node <> nil) and (Node is TCnMarkDownParagraph) do
+  begin
+    if TCnMarkDownParagraph(Node).ParagraphType in [cmpOrderedList, cmpUnorderedList] then
+      Inc(Result);
+    Node := Node.Parent;
+  end;
+end;
+
 procedure TCnRTFConverter.ProcessNode(Node: TCnMarkDownBase);
 var
   I: Integer;
 begin
+  if FPrevIsOrderedList and (Node is TCnMarkDownParagraph) and
+    (TCnMarkDownParagraph(Node).ParagraphType <> cmpOrderedList) then
+  begin
+    // 前一个是有序列表，现在不是，说明出现了有序列表结尾，需要给上一个补个结尾
+    FPrevIsOrderedList := False;
+    FRtf.Append('}'#13#10);
+  end;
+  if FPrevIsUnOrderedList and (Node is TCnMarkDownParagraph) and
+    (TCnMarkDownParagraph(Node).ParagraphType <> cmpUnOrderedList) then
+  begin
+    // 前一个是无序列表，现在不是，说明出现了无序列表结尾，需要给上一个补个结尾
+    FPrevIsUnOrderedList := False;
+    FRtf.Append('}'#13#10);
+  end;
+
   if Node is TCnMarkDownParagraph then
     FRtf.Append(ConvertParagraph(TCnMarkDownParagraph(Node)));
 
@@ -1481,7 +1533,15 @@ begin
     ProcessNode(Node.Items[I]);
 
   if Node is TCnMarkDownParagraph then
-    FRtf.Append('}\par'#13#10);
+  begin
+    FPrevIsOrderedList := TCnMarkDownParagraph(Node).ParagraphType = cmpOrderedList;
+    FPrevIsUnOrderedList := TCnMarkDownParagraph(Node).ParagraphType = cmpUnOrderedList;
+
+    if TCnMarkDownParagraph(Node).ParagraphType in [cmpOrderedList, cmpUnOrderedList] then
+      FRtf.Append('\par'#13#10) // 列表项本身不需要大右括号
+    else
+      FRtf.Append('}\par'#13#10);
+  end;
 
   if Node is TCnMarkDownTextFragment then
     FRtf.Append(ConvertFragment(TCnMarkDownTextFragment(Node)));
