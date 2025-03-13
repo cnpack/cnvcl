@@ -145,7 +145,7 @@ type
     cmpFenceCodeBlock, cmpOrderedList, cmpUnorderedList, cmpQuota, cmpEmpty);
   {* 段落类型}
 
-  TCnMarkDownTextFragmentType = (cmfUnknown, cmfCommon, cmfBold, cmfItalic,
+  TCnMarkDownTextFragmentType = (cmfUnknown, cmfCommon, cmfHardBreak, cmfBold, cmfItalic,
     cmfBoldItalic, cmfStroke, cmfCodeBlock, cmfLink, cmfLinkDisplay, cmfImage, cmfDirectLink);
   {* 文本类型}
   TCnMarkDownTextFragmentTypes = set of TCnMarkDownTextFragmentType;
@@ -166,8 +166,9 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
-    function Add(AMarkDown: TCnMarkDownBase): TCnmarkDownBase;
+    function Add(AMarkDown: TCnMarkDownBase): TCnMarkDownBase;
     procedure Delete(Index: Integer);
+    function Extract(Index: Integer): TCnMarkDownBase;
 
     property Parent: TCnMarkDownBase read FParent write FParent;
     property Items[Index: Integer]: TCnMarkDownBase read GetItem write SetItem; default;
@@ -180,11 +181,14 @@ type
     FParagraphType: TCnMarkDownParagraphType;
     FCloseType: TCnMarkDownTextBraceType;
     FOpenType: TCnMarkDownTextBraceType;
+    FCodeType: string;
   public
     property OpenType: TCnMarkDownTextBraceType read FOpenType write FOpenType;
     property CloseType: TCnMarkDownTextBraceType read FCloseType write FCloseType;
 
     property ParagraphType: TCnMarkDownParagraphType read FParagraphType write FParagraphType;
+    property CodeType: string read FCodeType write FCodeType;
+    {* 类型为 cmpFenceCodeBlock 时的代码语言类型}
   end;
 
   TCnMarkDownTextFragment = class(TCnMarkDownBase)
@@ -207,24 +211,36 @@ type
 
   TCnMarkDownConverter = class
   {* 转换器抽象基类}
+  private
+    FBasicFontSize: Integer;
   protected
     function ConvertParagraphStart(Paragraph: TCnMarkDownParagraph): string; virtual; abstract;
     function ConvertParagraphEnd(Paragraph: TCnMarkDownParagraph): string; virtual; abstract;
     function ConvertFragment(Fragment: TCnMarkDownTextFragment): string; virtual; abstract;
     function EscapeContent(const Text: string): string; virtual; abstract;
   public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
     function Convert(Root: TCnMarkDownBase): string; virtual; abstract;
+
+    property BasicFontSize: Integer read FBasicFontSize write FBasicFontSize;
+    {* 基础字体大小，单位是 Point，注意内部会转换成半 Point 为单位，也就是乘以 2}
   end;
 
   TCnRTFConverter = class(TCnMarkDownConverter)
   {* RTF 转换器实现类}
   private
     FRtf: TCnStringBuilder;
-    FCurrentFontSize: Integer;
     FListCounters: array[1..9] of Integer; // 支持最多 9 级列表
     function GetListLevel(Paragraph: TCnMarkDownParagraph): Integer;
     function GetQuotaLevel(Paragraph: TCnMarkDownParagraph): Integer;
     {* 获得包括本节点在内的所有父节点层次中的引用嵌套数，0 开始}
+
+    function PointToHalfPoint(Point: Integer): Integer;
+    {* Point 转换为 RTF 中字体的尺寸单位半磅}
+    function PointToTwips(Point: Integer): Integer;
+    {* Point 转换为 RTF 中对齐的尺寸单位缇}
   protected
     function ConvertParagraphStart(Paragraph: TCnMarkDownParagraph): string; override;
     function ConvertParagraphEnd(Paragraph: TCnMarkDownParagraph): string; override;
@@ -232,7 +248,7 @@ type
     function EscapeContent(const Text: string): string; override;
     procedure ProcessNode(Node: TCnMarkDownBase);
   public
-    constructor Create;
+    constructor Create; override;
     destructor Destroy; override;
     function Convert(Root: TCnMarkDownBase): string; override;
   end;
@@ -286,7 +302,7 @@ const
     '\red216\green216\blue216;}' +              // 颜色表（黑、红、灰）
     '\viewkind4\uc1' +                          // 视图模式+Unicode声明
     '\pard' +
-    '\lang2052\langfe2052\f0\fs24\qj';          // 中文排版设置+默认字体
+    '\lang2052\langfe2052\f0\fs%d\qj';          // 中文排版设置+默认字体
 
   CN_RTF_FOOTER = '}';
 
@@ -598,7 +614,7 @@ begin
       StepRun;
       if FOrigin[FRun] = '`' then
       begin
-        FTokenID := cmtQuota;
+        FTokenID := cmtFenceCodeBlock;
         StepRun;
       end;
     end;
@@ -690,6 +706,7 @@ end;
 procedure TCnMarkDownParser.SpaceProc;
 var
   IsLS: Boolean;
+  Bookmark: TCnMarkDownBookmark;
 begin
   IsLS := FIsLineStart;
   StepRun;
@@ -713,6 +730,7 @@ begin
   end
   else // 平时俩空格加（回车）换行
   begin
+    SaveToBookmark(Bookmark);
     if FOrigin[FRun] = ' ' then
     begin
       StepRun;
@@ -726,8 +744,12 @@ begin
         FTokenID := cmtHardBreak;
         StepRun;
         StepRun;
-      end;
-    end;
+      end
+      else
+        LoadFromBookmark(Bookmark); // 不是硬回车，需要回到起始空格处
+    end
+    else
+      LoadFromBookmark(Bookmark);   // 不是硬回车，需要回到起始空格处
   end;
 
   if IsLS and (FTokenID = cmtSpace) then // 行首的空格越过后，仍然当行首计算
@@ -937,6 +959,11 @@ begin
   inherited;
 end;
 
+function TCnMarkDownBase.Extract(Index: Integer): TCnMarkDownBase;
+begin
+  Result := TCnMarkDownBase(FItems.Extract(FItems[Index]));
+end;
+
 function TCnMarkDownBase.GetCount: Integer;
 begin
   Result := FItems.Count;
@@ -956,7 +983,7 @@ end;
 procedure CnMarkDownDebugOutputLevel(MarkDown: TCnMarkDownBase; List: TStrings; Level: Integer = 0);
 var
   I: Integer;
-  IndentStr: string;
+  S, IndentStr: string;
   Para: TCnMarkDownParagraph;
   Fragment: TCnMarkDownTextFragment;
   TypeName: string;
@@ -973,7 +1000,10 @@ begin
     Para := TCnMarkDownParagraph(MarkDown);
     // 获取段落类型枚举名称
     TypeName := GetEnumName(TypeInfo(TCnMarkDownParagraphType), Ord(Para.ParagraphType));
-    List.Add(IndentStr + '[Paragraph] ' + TypeName);
+    S := IndentStr + '[Paragraph] ' + TypeName;
+    if Para.CodeType <> '' then
+      S := S + ': ' + Para.CodeType;
+    List.Add(S);
   end
   else if MarkDown is TCnMarkDownTextFragment then
   begin
@@ -1013,6 +1043,7 @@ begin
     cmtLine: Result := cmpLine;
     cmtIndent: Result := cmpPre;
     cmtQuota: Result := cmpQuota;
+    cmtFenceCodeBlock: Result := cmpFenceCodeBlock;
 
     cmtUnOrderedList: Result := cmpUnorderedList;
     cmtOrderedList: Result := cmpOrderedList;
@@ -1115,6 +1146,9 @@ var
       if (F.FragmentType in CN_MARKDOWN_FRAGMENTTYPE_NEED_MATCH) // 不能是闭合的配对块
         and (F.CloseType <> cmtbNone) then
         Exit;
+
+      if F.FragmentType = cmfCommon then
+        Result := F;
     end;
   end;
 
@@ -1146,7 +1180,7 @@ begin
   // 一、普通换行或硬换行后强行结束（比如 Parent 是 Heading），不管下一行是啥
   // 二、普通换行后看自己以及下一行是啥决定是否结束（比如自己是普通段落，普通换行则不结束得连续俩换行，或硬换行结束）
 
-  PT := TCnMarkDownParagraph(Parent).ParagraphType;
+  PT := Parent.ParagraphType;
   if PT in [cmpPre, cmpFenceCodeBlock] then
   begin
     // Pre 和代码块都原封不动处理单行，代码块由外界循环处理
@@ -1156,7 +1190,10 @@ begin
 
     repeat
       P.Next;
-      Frag.AddContent(P.Token);
+      if (PT = cmpFenceCodeBlock) and (P.TokenID = cmtContent) and (Parent.CodeType = '') then
+        Parent.CodeType := P.Token // 语言名不进代码
+      else
+        Frag.AddContent(P.Token);
     until (P.TokenID in [cmtTerminate, cmtLineBreak, cmtHardBreak]); // 普通回车或硬回车结束
   end
   else
@@ -1165,9 +1202,18 @@ begin
       P.Next;
 
     // 循环解析行内容
-    while not (P.TokenID in [cmtTerminate, cmtHardBreak]) do
+    while P.TokenID <> cmtTerminate do
     begin
       case P.TokenID of
+        cmtHardBreak:
+          begin
+            // 记录当前 Frag 为硬回车，外头会中断段落
+            Frag := TCnMarkDownTextFragment.Create;
+            Frag.FragmentType := cmfHardBreak;
+
+            Parent.Add(Frag);
+            Break;
+          end;
         cmtLineBreak:
           begin
             // 要确保退出循环时 P.TokenID 指向换行
@@ -1292,10 +1338,11 @@ end;
 
 function CnParseMarkDownString(const MarkDown: string): TCnMarkDownBase;
 var
-  I: Integer;
+  I, J: Integer;
   P: TCnMarkDownParser;
   Root: TCnMarkDownBase;
-  CurPara: TCnMarkDownParagraph;
+  CurPara, P2, P1: TCnMarkDownParagraph;
+  F: TCnMarkDownTextFragment;
   ParaStack: TStack;
 
   procedure NewParagraph;
@@ -1395,7 +1442,7 @@ begin
               // 引用块，块后是新的一段
               NewParagraph;
             end;
-        else //cmtContent, cmtLinkDisplay, cmtDirectLink, cmtImageSign:
+        else // cmtContent, cmtLinkDisplay, cmtDirectLink, cmtImageSign:
           // 其他普通内容，跳过开始的空格，解析整行
           if not IsBlank(P.Token) then
           begin
@@ -1417,9 +1464,38 @@ begin
     raise;
   end;
 
-  // 先清除掉无用的空段
   if Root <> nil then
   begin
+    // 将硬回车分开的段拼在一起
+    if Root.Count >= 2 then
+    begin
+      for I := Root.Count - 1 downto 1 do
+      begin
+        if (Root[I] is TCnMarkDownParagraph) and (Root[I - 1] is TCnMarkDownParagraph) then
+        begin
+          P2 := TCnMarkDownParagraph(Root[I]);
+          P1 := TCnMarkDownParagraph(Root[I - 1]);
+          if (P2.ParagraphType = cmpCommon) and (P1.ParagraphType = cmpCommon) then
+          begin
+            // 如果 P1 的最后一个 Fragment 是硬回车
+            if (P1.Count > 0) and (P1[P1.Count - 1] is TCnMarkDownTextFragment) then
+            begin
+              F := TCnMarkDownTextFragment(P1[P1.Count - 1]);
+              if F.FragmentType = cmfHardBreak then
+              begin
+                // 把 P2 的内容从 0 开始 Extract 出来加给 P1
+                for J := 0 to P2.Count - 1 do
+                  P1.Add(P2.Extract(0));
+
+                Root.Delete(I); // 删除并释放 P2
+              end;
+            end;
+          end;
+        end;
+      end;
+    end;
+
+    // 再清除掉无用的空段
     for I := Root.Count - 1 downto 0 do
     begin
       if Root[I] is TCnMarkDownParagraph then
@@ -1452,7 +1528,7 @@ var
   I: Integer;
 begin
   FRtf.Clear;
-  FRtf.Append(CN_RTF_HEADER);
+  FRtf.Append(Format(CN_RTF_HEADER, [PointToHalfPoint(BasicFontSize)]));
 
   for I := 0 to Root.Count - 1 do
     ProcessNode(Root.Items[I]);
@@ -1470,6 +1546,7 @@ begin
     cmfBoldItalic:  Result := '\b\i ' + EscapeContent(Fragment.Content) + '\i0\b0 ';
     cmfStroke:      Result := '\strike ' + EscapeContent(Fragment.Content) + '\strike0 ';
     cmfLink:        Result := '\cf2 ' + EscapeContent(Fragment.Content) + '\cf0 ';
+    cmfHardBreak:   Result := '\line ';
   else
     Result := EscapeContent(Fragment.Content);
   end;
@@ -1485,31 +1562,53 @@ end;
 
 function TCnRTFConverter.ConvertParagraphStart(Paragraph: TCnMarkDownParagraph): string;
 var
-  Level, Q: Integer;
+  L, Q: Integer;
+
+  function HeadSizeFactor(Head: TCnMarkDownParagraphType): Extended;
+  begin
+    Result := 1.0;
+    case Head of
+      cmpHeading1: Result := 1.5;
+      cmpHeading2: Result := 1.4;
+      cmpHeading3: Result := 1.3;
+      cmpHeading4: Result := 1.2;
+      cmpHeading5: Result := 1.1;
+      cmpHeading6: Result := 1.0;
+      cmpHeading7: Result := 0.9;
+    end;
+  end;
+
+  function TwipsFromFontSizeFactor(F: Extended): Integer;
+  begin
+    Result := Round(PointToTwips(BasicFontSize) * F);
+  end;
+
 begin
   Q := GetQuotaLevel(Paragraph);
   case Paragraph.ParagraphType of
     cmpHeading1..cmpHeading7:
       begin
-        FCurrentFontSize := 36 - (Ord(Paragraph.ParagraphType) - Ord(cmpHeading1)) * 4;
-        Result := Format('{\pard\fs%d\b ', [FCurrentFontSize]);
+        L := Round(PointToHalfPoint(BasicFontSize) * HeadSizeFactor(Paragraph.ParagraphType));
+        Result := Format('{\pard\fs%d\sa%d\b ', [L, PointToTwips(Round(L * 0.3))]);
+        // 标题的段后间距少一点点
       end;
     cmpUnorderedList:
       begin
-        Result := Format('{\pard{\pntext\f2\''B7\tab}{\*\pn\pnlvlblt\pnf2\pnindent0{\pntxtb\''B7}}\fi%d\li%d\sa200\sl276\slmult1 ',
-          [CN_LIST_UNINDENT, CN_LIST_INDENT + Q * CN_QUOTA_INDENT]);
+        Result := Format('{\pard{\pntext\f2\''B7\tab}{\*\pn\pnlvlblt\pnf2\pnindent0{\pntxtb\''B7}}\fi%d\li%d\sa%d\sl276\slmult1 ',
+          [CN_LIST_UNINDENT, CN_LIST_INDENT + Q * CN_QUOTA_INDENT, TwipsFromFontSizeFactor(0.5)]);
       end;
     cmpOrderedList:
       begin
-        Level := GetListLevel(Paragraph);  // 列表缩进层级
-        Q := GetQuotaLevel(Paragraph);     // 引用缩进层级
-        Inc(FListCounters[Level]);         // 列表序号
+        L := GetListLevel(Paragraph);  // 列表缩进层级
+        Q := GetQuotaLevel(Paragraph); // 引用缩进层级
+        Inc(FListCounters[L]);         // 列表序号
 
-        Result := Format('{\pard{\pntext\f0 %d.\tab}\fi%d\li%d\sa200\sl276\slmult1\lang2052\f0\fs22 ',
-          [FListCounters[Level], CN_LIST_UNINDENT, CN_LIST_INDENT + Q * CN_QUOTA_INDENT])
+        Result := Format('{\pard{\pntext\f0 %d.\tab}\fi%d\li%d\sa%d\sl276\slmult1\lang2052\f0\fs%d ',
+          [FListCounters[L], CN_LIST_UNINDENT, CN_LIST_INDENT + Q * CN_QUOTA_INDENT,
+           TwipsFromFontSizeFactor(0.5), PointToHalfPoint(BasicFontSize)]);
       end;
     cmpLine:
-      Result := '{\pard\sa200\brdrb\brdrs\brdrw15\par}';
+      Result := Format('{\pard\sa%d\brdrb\brdrs\brdrw15\par}', [TwipsFromFontSizeFactor(0.5)]);
     cmpQuota:
       begin
         // Quota 本身不是具体段落，不写
@@ -1517,12 +1616,11 @@ begin
     cmpFenceCodeBlock:
       Result := '{\lang2052\f1\fs20\cbpat1 ';
   else
+    // 普通内层段落缩进由引用层级控制，并保持一定段后间距，稍微大一点点
     if (Paragraph.Parent <> nil) and (Paragraph.Parent is TCnMarkDownParagraph) then
-    begin
-      Result := Format('{\pard\li%d ', [Q * CN_QUOTA_INDENT])   // 普通内层段落缩进由引用层级控制
-    end
+      Result := Format('{\pard\li%d\sa%d ', [Q * CN_QUOTA_INDENT, TwipsFromFontSizeFactor(0.6)])
     else
-      Result := '{\pard\plain\li0\fi0 '; // 顶级段落用默认缩进 0 的格式
+      Result := Format('{\pard\plain\li0\fi0\sa%d ', [TwipsFromFontSizeFactor(0.6)]); // 顶级段落用默认缩进 0 的格式
   end;
 end;
 
@@ -1530,7 +1628,6 @@ constructor TCnRTFConverter.Create;
 begin
   inherited;
   FRtf := TCnStringBuilder.Create;
-  FCurrentFontSize := 24;
 end;
 
 destructor TCnRTFConverter.Destroy;
@@ -1579,6 +1676,16 @@ begin
   end;
 end;
 
+function TCnRTFConverter.PointToHalfPoint(Point: Integer): Integer;
+begin
+  Result := Point shl 1;
+end;
+
+function TCnRTFConverter.PointToTwips(Point: Integer): Integer;
+begin
+  Result := Point * 20;
+end;
+
 procedure TCnRTFConverter.ProcessNode(Node: TCnMarkDownBase);
 var
   I: Integer;
@@ -1603,6 +1710,19 @@ begin
   finally
     Free;
   end;
+end;
+
+{ TCnMarkDownConverter }
+
+constructor TCnMarkDownConverter.Create;
+begin
+  FBasicFontSize := 12; // 默认 12 Point
+end;
+
+destructor TCnMarkDownConverter.Destroy;
+begin
+
+  inherited;
 end;
 
 end.
