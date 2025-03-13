@@ -29,6 +29,7 @@ unit CnPE;
 *                 加载进内存后，一个数据相对于程序开始处的偏移称为相对虚拟地址（RVA）
 *           PE 文件中大部分偏移都是 RVA，少部分和加载无关的使用 RA
 *           PE 文件的格式分类大概如下：
+*
 *           +------------------------------------------------------------------+
 *           | IMAGE_DOS_HEADER  64 字节、MZ、e_lfanew 是 PE 头的文件偏移
 *           +------------------------------------------------------------------+
@@ -48,10 +49,13 @@ unit CnPE;
 *           +------------------------------------------------------------------+
 *           | 各个 Section 排列
 *           +------------------------------------------------------------------+
+*
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：Win32/Win64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.03.12
+* 修改记录：2025.03.13
+*               增加一判断 PE 文件是 32 还是 64 位的函数
+*           2024.03.12
 *               如果偏移量过大造成溢出变负值，则忽略此错误偏移量与对应行号
 *           2022.08.07
 *               创建单元,实现功能
@@ -663,8 +667,13 @@ type
     {* 本进程内的调试信息列表}
   end;
 
+  TCnPEFileType = (cpetInvalid, cpet32Bit, cpet64Bit);
+
 function CreateInProcessAllModulesList: TCnInProcessModuleList;
 {* 创建当前进程中所有模块的 TCnInProcessModuleList，调用者自行释放}
+
+function GetPEFileType(const FileName: string): TCnPEFileType;
+{* 判断 PE 文件类型是 32 位还是 64 位还是非法的}
 
 implementation
 
@@ -2536,6 +2545,36 @@ begin
     Result.Name := SourceName;
     Result.FileName := SourceFile;
     FSourceModuleNames.AddObject(SourceName, Result);
+  end;
+end;
+
+function GetPEFileType(const FileName: string): TCnPEFileType;
+var
+  F: TFileStream;
+  DosHeader: TImageDosHeader;
+  NtHeaders: TImageNtHeaders;
+begin
+  Result := cpetInvalid;
+  if not FileExists(FileName) then
+    Exit;
+
+  F := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    if F.Read(DosHeader, SizeOf(DosHeader)) <> SizeOf(DosHeader) then Exit;
+    if DosHeader.e_magic <> $5A4D then Exit; // 检查 'MZ' 标志
+
+    F.Seek(DosHeader._lfanew, soBeginning);
+    if F.Read(NtHeaders, SizeOf(NtHeaders)) <> SizeOf(NtHeaders) then Exit;
+    if NtHeaders.Signature <> $00004550 then Exit; // 检查'PE\0\0'标志
+
+    case NtHeaders.FileHeader.Machine of
+      IMAGE_FILE_MACHINE_I386:
+        Result := cpet32Bit;
+      IMAGE_FILE_MACHINE_AMD64:
+        Result := cpet64Bit;
+    end;
+  finally
+    F.Free;
   end;
 end;
 
