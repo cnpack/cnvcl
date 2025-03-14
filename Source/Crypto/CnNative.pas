@@ -202,7 +202,9 @@ const
   CN_MAX_INT16: SmallInt                    = $7FFF;
   CN_MIN_INT16: SmallInt                    = -32768;
   CN_MAX_INT32: Integer                     = $7FFFFFFF;
+{$WARNINGS OFF}
   CN_MIN_INT32: Integer                     = $80000000;  // 会出编译警告，但 -2147483648 会出错
+{$WARNINGS ON}
   CN_MIN_INT32_IN_INT64: Int64              = $0000000080000000;
   CN_MAX_INT64: Int64                       = $7FFFFFFFFFFFFFFF;
   CN_MIN_INT64: Int64                       = $8000000000000000;
