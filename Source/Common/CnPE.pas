@@ -2563,7 +2563,7 @@ begin
     if F.Read(DosHeader, SizeOf(DosHeader)) <> SizeOf(DosHeader) then Exit;
     if DosHeader.e_magic <> $5A4D then Exit; // 检查 'MZ' 标志
 
-    F.Seek(DosHeader._lfanew, soBeginning);
+    F.Seek(DosHeader._lfanew, soFromBeginning);
     if F.Read(NtHeaders, SizeOf(NtHeaders)) <> SizeOf(NtHeaders) then Exit;
     if NtHeaders.Signature <> $00004550 then Exit; // 检查'PE\0\0'标志
 
