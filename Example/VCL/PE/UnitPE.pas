@@ -59,6 +59,7 @@ type
     btnMapProc: TButton;
     btnMapLineNumbers: TButton;
     btnManualAddr: TButton;
+    btnCheck64: TButton;
     procedure btnBrowseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnParsePEFileClick(Sender: TObject);
@@ -77,6 +78,7 @@ type
     procedure btnMapProcClick(Sender: TObject);
     procedure btnMapLineNumbersClick(Sender: TObject);
     procedure btnManualAddrClick(Sender: TObject);
+    procedure btnCheck64Click(Sender: TObject);
   private
     FPE: TCnPE;
     procedure DumpPE(PE: TCnPE);
@@ -677,6 +679,7 @@ begin
       Info := ML.GetDebugInfoFromAddress(CallerAddr);
     end;
 
+    I := 0;
     if Info.GetDebugInfoFromAddr(CallerAddr, MN, UN, PN, LN, OL, OP) then
       mmoStack.Lines.Add(Format('#%2.2d %p - Module: %s Unit: %s Procedure %s. Line %d, +%d +%x',
         [I, CallerAddr, MN, UN, PN, LN, OL, OP]))
@@ -685,6 +688,21 @@ begin
 
   finally
     ML.Free;
+  end;
+end;
+
+procedure TFormPE.btnCheck64Click(Sender: TObject);
+var
+  T: TCnPEFileType;
+begin
+  if dlgOpen1.Execute then
+  begin
+    T := GetPEFileType(dlgOpen1.FileName);
+    case T of
+      cpetInvalid: ShowMessage('NOT PE');
+      cpet32Bit: ShowMessage('32 Bit');
+      cpet64Bit: ShowMessage('64 Bit');
+    end;
   end;
 end;
 

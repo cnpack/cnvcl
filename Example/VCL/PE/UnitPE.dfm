@@ -23,9 +23,9 @@ object FormPE: TFormPE
     Caption = 'PE File:'
   end
   object bvl1: TBevel
-    Left = 640
+    Left = 656
     Top = 16
-    Width = 49
+    Width = 25
     Height = 25
     Shape = bsLeftLine
   end
@@ -439,6 +439,15 @@ object FormPE: TFormPE
     Caption = 'Load'
     TabOrder = 6
     OnClick = btnLoadClick
+  end
+  object btnCheck64: TButton
+    Left = 608
+    Top = 16
+    Width = 33
+    Height = 25
+    Caption = '32/64'
+    TabOrder = 7
+    OnClick = btnCheck64Click
   end
   object dlgOpen1: TOpenDialog
     Left = 264
