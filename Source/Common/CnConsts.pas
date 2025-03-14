@@ -80,7 +80,7 @@ var
 const
   // CnPack Information
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.1.5.2';
+  SCnPackVer = 'Ver 0.1.6.0';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'https://www.cnpack.org';
   SCnPackBbsUrl = 'https://bbs.cnpack.org';
@@ -90,7 +90,7 @@ const
   SCnPackBugEmail = 'bugs@cnpack.org';
   SCnPackSuggestionsEmail = 'suggestions@cnpack.org';
 
-  SCnPackDonationUrl = 'https://www.cnpack.org/foundation.php';
+  SCnPackDonationUrl = 'https://www.cnpack.org/donation.php';
   SCnPackDonationUrlSF = 'http://sourceforge.net/donate/index.php?group_id=110999';
   SCnPackGroup = 'CnPack Team';
   SCnPackCopyright = '(C)Copyright 2001-2025 ' + SCnPackGroup;
