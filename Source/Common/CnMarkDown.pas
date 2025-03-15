@@ -109,7 +109,7 @@ type
     procedure WaveProc;            // ~ 俩删除线
     procedure QuotaProc;           // `
     procedure LineBreakProc;       // 普通的回车换行
-    procedure TerminateProc; // #0
+    procedure TerminateProc;       // #0 Next 时不会前进
 
     function GetToken: string;
     procedure SetOrigin(const Value: PChar);
@@ -128,7 +128,7 @@ type
     procedure SaveToBookmark(var Bookmark: TCnMarkDownBookmark);
     procedure LoadFromBookmark(var Bookmark: TCnMarkDownBookmark);
 
-    property Origin: PAnsiChar read FOrigin write SetOrigin;
+    property Origin: PChar read FOrigin write SetOrigin;
     {* 待解析的 string 格式的 MarkDown 字符串内容}
     property RunPos: Integer read FRun;
     {* 当前处理位置相对于 FOrigin 的线性偏移量，单位为字节数，0 开始}
@@ -146,12 +146,13 @@ type
   {* 段落类型}
 
   TCnMarkDownTextFragmentType = (cmfUnknown, cmfCommon, cmfHardBreak, cmfBold, cmfItalic,
-    cmfBoldItalic, cmfStroke, cmfCodeBlock, cmfLink, cmfLinkDisplay, cmfImage, cmfDirectLink);
+    cmfBoldItalic, cmfStroke, cmfCodeBlock, cmfFenceCodeBlockStart, cmfFenceCodeBlockEnd,
+    cmfLink, cmfLinkDisplay, cmfImage, cmfDirectLink);
   {* 文本类型}
   TCnMarkDownTextFragmentTypes = set of TCnMarkDownTextFragmentType;
 
   TCnMarkDownTextBraceType = (cmtbNone, cmtbBold, cmtbItalic, cmtbBoldItalic, cmtbStroke,
-    cmtbCodeBlock);
+    cmtbCodeBlock, cmtbFenceCodeBlock);
   {* 文本块需要配对的类型}
 
   TCnMarkDownBase = class
@@ -299,7 +300,8 @@ const
     '{\colortbl;' +
     '\red0\green0\blue0;' +
     '\red255\green0\blue0;' +
-    '\red216\green216\blue216;}' +              // 颜色表（黑、红、灰）
+    '\red216\green216\blue216;' +
+    '\red204\green232\blue255;}' +              // 颜色表（黑、红、灰、浅蓝）
     '\viewkind4\uc1' +                          // 视图模式+Unicode声明
     '\pard' +
     '\lang2052\langfe2052\f0\fs%d\qj';          // 中文排版设置+默认字体
@@ -1100,7 +1102,8 @@ var
     for I := Parent.Count - 1 downto 0 do
     begin
       F := TCnMarkDownTextFragment(Parent.Items[I]);
-      if (F.FragmentType in CN_MARKDOWN_FRAGMENTTYPE_NEED_MATCH) and (F.OpenType = B) and (F.CloseType <> B) then
+      if (F.FragmentType in CN_MARKDOWN_FRAGMENTTYPE_NEED_MATCH)
+        and (F.OpenType = B) and (F.CloseType <> B) then
       begin
         Result := True;
         Exit;
@@ -1181,20 +1184,44 @@ begin
   // 二、普通换行后看自己以及下一行是啥决定是否结束（比如自己是普通段落，普通换行则不结束得连续俩换行，或硬换行结束）
 
   PT := Parent.ParagraphType;
-  if PT in [cmpPre, cmpFenceCodeBlock] then
+  if PT = cmpPre then
   begin
-    // Pre 和代码块都原封不动处理单行，代码块由外界循环处理
+    // Pre 要原封不动处理单行
     Frag := TCnMarkDownTextFragment.Create;
     Frag.FragmentType := cmfCommon;
     Parent.Add(Frag);
 
     repeat
       P.Next;
-      if (PT = cmpFenceCodeBlock) and (P.TokenID = cmtContent) and (Parent.CodeType = '') then
-        Parent.CodeType := P.Token // 语言名不进代码
-      else
-        Frag.AddContent(P.Token);
+      Frag.AddContent(P.Token);
     until (P.TokenID in [cmtTerminate, cmtLineBreak, cmtHardBreak]); // 普通回车或硬回车结束
+  end
+  else if PT = cmpFenceCodeBlock then
+  begin
+    // 对 ``` 的处理是起始，因为独立的 ``` 行结束在外层调用者处会判断处理
+    if P.TokenID = cmtFenceCodeBlock then
+    begin
+      // Start 后一个 Content 当代码类型名
+      repeat
+        P.Next;
+        if (P.TokenID = cmtContent) and (Parent.CodeType = '') then
+          Parent.CodeType := P.Token;
+      until (P.TokenID in [cmtTerminate, cmtLineBreak, cmtHardBreak]); // 普通回车或硬回车结束
+      P.Next; // 越过回车
+    end
+    else // 非 Fence，直接记录
+    begin
+      Frag := TCnMarkDownTextFragment.Create;
+      Frag.FragmentType := cmfCommon;
+      Parent.Add(Frag);
+      Frag.AddContent(P.Token);
+
+      repeat
+        P.Next;
+        Frag.AddContent(P.Token);
+      until (P.TokenID in [cmtTerminate, cmtLineBreak, cmtHardBreak]); // 普通回车或硬回车结束
+      P.Next; // 越过回车
+    end;
   end
   else
   begin
@@ -1466,7 +1493,7 @@ begin
 
   if Root <> nil then
   begin
-    // 将硬回车分开的段拼在一起
+    // 将硬回车分开的连续普通段拼在一起
     if Root.Count >= 2 then
     begin
       for I := Root.Count - 1 downto 1 do
@@ -1614,7 +1641,7 @@ begin
         // Quota 本身不是具体段落，不写
       end;
     cmpFenceCodeBlock:
-      Result := '{\lang2052\f1\fs20\cbpat1 ';
+      Result := Format('{\pard\f3\fs%d\cbpat3\brdrs\brdrw15\brdrcf3\box\sa30 ', [PointToHalfPoint(BasicFontSize)]);
   else
     // 普通内层段落缩进由引用层级控制，并保持一定段后间距，稍微大一点点
     if (Paragraph.Parent <> nil) and (Paragraph.Parent is TCnMarkDownParagraph) then
