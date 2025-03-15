@@ -260,7 +260,7 @@ function CnParseMarkDownString(const MarkDown: string): TCnMarkDownBase;
 procedure CnMarkDownDebugOutput(MarkDown: TCnMarkDownBase; List: TStrings);
 {* 将 MarkDown 对象树打印到字符串列表中}
 
-function CnMarkDownConvertToRTF(Root: TCnMarkDownBase): string;
+function CnMarkDownConvertToRTF(Root: TCnMarkDownBase; ABasicFontSize: Integer = 12): string;
 {* 将 MarkDown 的 DOM 树输出成 RTF 字符串}
 
 //  RTF 段落格式：{\pard [控制参数] [文本内容] \par}
@@ -1091,7 +1091,6 @@ var
   // 注意该函数返回 True 时，ParentLastOpenFrag 须返回对应 Open 的 Fragment
   function ParentFragmentHasLastOpenToken(AnOpen: TCnMarkDownTokenType): Boolean;
   var
-    I: Integer;
     F: TCnMarkDownTextFragment;
     B: TCnMarkDownTextBraceType;
   begin
@@ -1099,9 +1098,9 @@ var
     // cmtBold, cmtItalic, cmtBoldItalic, cmtStroke, cmtCodeBlock 等
     // 以决定本次遇到的是开还是闭，注意处理了交叉
     B := MapTokenToBrace(AnOpen);
-    for I := Parent.Count - 1 downto 0 do
+    if Parent.Count > 0 then
     begin
-      F := TCnMarkDownTextFragment(Parent.Items[I]);
+      F := TCnMarkDownTextFragment(Parent.Items[Parent.Count - 1]);
       if (F.FragmentType in CN_MARKDOWN_FRAGMENTTYPE_NEED_MATCH)
         and (F.OpenType = B) and (F.CloseType <> B) then
       begin
@@ -1231,132 +1230,138 @@ begin
     // 循环解析行内容
     while P.TokenID <> cmtTerminate do
     begin
-      case P.TokenID of
-        cmtHardBreak:
-          begin
-            // 记录当前 Frag 为硬回车，外头会中断段落
-            Frag := TCnMarkDownTextFragment.Create;
-            Frag.FragmentType := cmfHardBreak;
-
-            Parent.Add(Frag);
-            Break;
-          end;
-        cmtLineBreak:
-          begin
-            // 要确保退出循环时 P.TokenID 指向换行
-            if PT in [cmpHeading1..cmpHeading7, cmpOrderedList, cmpUnOrderedList] then // 这些单个就退出
-              Break;
-
-            P.SaveToBookmark(Bookmark);
-            P.Next;
-
-            // 连续两个也退出，一些典型段落开头也退出但要回退到换行，其他普通内容继续
-            if P.TokenID = cmtLineBreak then
-              Break
-            else if P.TokenID in CN_MARKDOWN_TOKENTYPE_PARAHEAD then
-            begin
-              // 回退到上一 Token
-              P.LoadFromBookmark(Bookmark);
-              Break;
-            end
-            else if P.TokenID = cmtContent then
-              AddCommonContent(P.Token);
-          end;
-        cmtBold:
-          begin
-            if ParentFragmentHasLastOpenToken(cmtBold) then
-              ParentLastOpenFrag.CloseType := cmtbBold
-            else
-            begin
-              Frag := TCnMarkDownTextFragment.Create;
-              Frag.FragmentType := cmfBold;
-              Frag.OpenType := cmtbBold;
-
-              Parent.Add(Frag);
-            end;
-          end;
-        cmtItalic:
-          begin
-            if ParentFragmentHasLastOpenToken(cmtItalic) then
-              ParentLastOpenFrag.CloseType := cmtbItalic
-            else
-            begin
-              Frag := TCnMarkDownTextFragment.Create;
-              Frag.FragmentType := cmfItalic;
-              Frag.OpenType := cmtbItalic;
-
-              Parent.Add(Frag);
-            end;
-          end;
-        cmtBoldItalic:
-          begin
-            if ParentFragmentHasLastOpenToken(cmtBoldItalic) then
-              ParentLastOpenFrag.CloseType := cmtbBoldItalic
-            else
-            begin
-              Frag := TCnMarkDownTextFragment.Create;
-              Frag.FragmentType := cmfBoldItalic;
-              Frag.OpenType := cmtbBoldItalic;
-
-              Parent.Add(Frag);
-            end;
-          end;
-        cmtStroke:
-          begin
-            if ParentFragmentHasLastOpenToken(cmtStroke) then
-              ParentLastOpenFrag.CloseType := cmtbStroke
-            else
-            begin
-              Frag := TCnMarkDownTextFragment.Create;
-              Frag.FragmentType := cmfStroke;
-              Frag.OpenType := cmtbStroke;
-
-              Parent.Add(Frag);
-            end;
-          end;
-        cmtCodeBlock:
-          begin
-            if ParentFragmentHasLastOpenToken(cmtCodeBlock) then
-              ParentLastOpenFrag.CloseType := cmtbCodeBlock
-            else
-            begin
-              Frag := TCnMarkDownTextFragment.Create;
-              Frag.FragmentType := cmfCodeBlock;
-              Frag.OpenType := cmtbCodeBlock;
-
-              Parent.Add(Frag);
-            end;
-          end;
-        cmtLinkDisplay:
-          begin
-            Frag := TCnMarkDownTextFragment.Create;
-            Frag.FragmentType := cmfLinkDisplay;
-            Frag.AddContent(P.Token);
-            Parent.Add(Frag);
-          end;
-        cmtLink:
-          begin
-            Frag := TCnMarkDownTextFragment.Create;
-            Frag.FragmentType := cmfLink;
-            Frag.AddContent(P.Token);
-            Parent.Add(Frag);
-          end;
-        cmtDirectLink:
-          begin
-            Frag := TCnMarkDownTextFragment.Create;
-            Frag.FragmentType := cmfDirectLink;
-            Frag.AddContent(P.Token);
-            Parent.Add(Frag);
-          end;
-        cmtImageSign:
-          begin
-            Frag := TCnMarkDownTextFragment.Create;
-            Frag.FragmentType := cmfImage;
-            Frag.AddContent(P.Token);
-            Parent.Add(Frag);
-          end;
+      // CodeBlock 里无需解析
+      if (P.TokenID <> cmtCodeBlock) and ParentFragmentHasLastOpenToken(cmtCodeBlock) then
+        AddCommonContent(P.Token)
       else
-        AddCommonContent(P.Token);
+      begin
+        case P.TokenID of
+          cmtHardBreak:
+            begin
+              // 记录当前 Frag 为硬回车，外头会中断段落
+              Frag := TCnMarkDownTextFragment.Create;
+              Frag.FragmentType := cmfHardBreak;
+
+              Parent.Add(Frag);
+              Break;
+            end;
+          cmtLineBreak:
+            begin
+              // 要确保退出循环时 P.TokenID 指向换行
+              if PT in [cmpHeading1..cmpHeading7, cmpOrderedList, cmpUnOrderedList] then // 这些单个就退出
+                Break;
+
+              P.SaveToBookmark(Bookmark);
+              P.Next;
+
+              // 连续两个也退出，一些典型段落开头也退出但要回退到换行，其他普通内容继续
+              if P.TokenID = cmtLineBreak then
+                Break
+              else if P.TokenID in CN_MARKDOWN_TOKENTYPE_PARAHEAD then
+              begin
+                // 回退到上一 Token
+                P.LoadFromBookmark(Bookmark);
+                Break;
+              end
+              else if P.TokenID = cmtContent then
+                AddCommonContent(P.Token);
+            end;
+          cmtBold:
+            begin
+              if ParentFragmentHasLastOpenToken(cmtBold) then
+                ParentLastOpenFrag.CloseType := cmtbBold
+              else
+              begin
+                Frag := TCnMarkDownTextFragment.Create;
+                Frag.FragmentType := cmfBold;
+                Frag.OpenType := cmtbBold;
+
+                Parent.Add(Frag);
+              end;
+            end;
+          cmtItalic:
+            begin
+              if ParentFragmentHasLastOpenToken(cmtItalic) then
+                ParentLastOpenFrag.CloseType := cmtbItalic
+              else
+              begin
+                Frag := TCnMarkDownTextFragment.Create;
+                Frag.FragmentType := cmfItalic;
+                Frag.OpenType := cmtbItalic;
+
+                Parent.Add(Frag);
+              end;
+            end;
+          cmtBoldItalic:
+            begin
+              if ParentFragmentHasLastOpenToken(cmtBoldItalic) then
+                ParentLastOpenFrag.CloseType := cmtbBoldItalic
+              else
+              begin
+                Frag := TCnMarkDownTextFragment.Create;
+                Frag.FragmentType := cmfBoldItalic;
+                Frag.OpenType := cmtbBoldItalic;
+
+                Parent.Add(Frag);
+              end;
+            end;
+          cmtStroke:
+            begin
+              if ParentFragmentHasLastOpenToken(cmtStroke) then
+                ParentLastOpenFrag.CloseType := cmtbStroke
+              else
+              begin
+                Frag := TCnMarkDownTextFragment.Create;
+                Frag.FragmentType := cmfStroke;
+                Frag.OpenType := cmtbStroke;
+
+                Parent.Add(Frag);
+              end;
+            end;
+          cmtCodeBlock:
+            begin
+              if ParentFragmentHasLastOpenToken(cmtCodeBlock) then
+                ParentLastOpenFrag.CloseType := cmtbCodeBlock
+              else
+              begin
+                Frag := TCnMarkDownTextFragment.Create;
+                Frag.FragmentType := cmfCodeBlock;
+                Frag.OpenType := cmtbCodeBlock;
+
+                Parent.Add(Frag);
+              end;
+            end;
+          cmtLinkDisplay:
+            begin
+              Frag := TCnMarkDownTextFragment.Create;
+              Frag.FragmentType := cmfLinkDisplay;
+              Frag.AddContent(P.Token);
+              Parent.Add(Frag);
+            end;
+          cmtLink:
+            begin
+              Frag := TCnMarkDownTextFragment.Create;
+              Frag.FragmentType := cmfLink;
+              Frag.AddContent(P.Token);
+              Parent.Add(Frag);
+            end;
+          cmtDirectLink:
+            begin
+              Frag := TCnMarkDownTextFragment.Create;
+              Frag.FragmentType := cmfDirectLink;
+              Frag.AddContent(P.Token);
+              Parent.Add(Frag);
+            end;
+          cmtImageSign:
+            begin
+              Frag := TCnMarkDownTextFragment.Create;
+              Frag.FragmentType := cmfImage;
+              Frag.AddContent(P.Token);
+              Parent.Add(Frag);
+            end;
+        else
+          AddCommonContent(P.Token);
+        end;
       end;
       P.Next;
     end;
@@ -1729,10 +1734,11 @@ begin
     FRtf.Append(ConvertFragment(TCnMarkDownTextFragment(Node)));
 end;
 
-function CnMarkDownConvertToRTF(Root: TCnMarkDownBase): string;
+function CnMarkDownConvertToRTF(Root: TCnMarkDownBase; ABasicFontSize: Integer): string;
 begin
   with TCnRTFConverter.Create do
   try
+    BasicFontSize := ABasicFontSize;
     Result := Convert(Root);
   finally
     Free;

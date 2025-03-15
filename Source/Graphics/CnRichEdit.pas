@@ -55,10 +55,12 @@ type
     destructor Destroy; override;
 
     function RenderRtfToBitmap(RtfContent: TStream; FixedWidth: Integer = 0): TBitmap;
-    {* 传入富文本流和指定宽度，计算布局尺寸并渲染到位图上，返回位图对象，需外部释放}
+    {* 传入富文本流和指定宽度，计算布局尺寸并渲染到位图上，返回位图对象，需外部释放。
+       富文本流要求是 AnsiString 写成的，不能是 UnicodeString}
     procedure GetRtfSize(RtfContent: TStream; out Width, Height: Integer;
       FixedWidth: Integer = 0);
-    {* 传入富文本流和指定宽度，计算布局尺寸，不进行实际渲染}
+    {* 传入富文本流和指定宽度，计算布局尺寸，不进行实际渲染。
+       富文本流要求是 AnsiString 写成的，不能是 UnicodeString}
 
     property BackgroundColor: TColor read FBackgroundColor write FBackgroundColor;
     {* 背景色，默认白色}
