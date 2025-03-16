@@ -1652,7 +1652,7 @@ begin
     if (Paragraph.Parent <> nil) and (Paragraph.Parent is TCnMarkDownParagraph) then
       Result := Format('{\pard\li%d\sa%d ', [Q * CN_QUOTA_INDENT, TwipsFromFontSizeFactor(0.6)])
     else
-      Result := Format('{\pard\plain\li0\fi0\sa%d ', [TwipsFromFontSizeFactor(0.6)]); // 顶级段落用默认缩进 0 的格式
+      Result := Format('{\pard\li0\fi0\sa%d ', [TwipsFromFontSizeFactor(0.6)]); // 顶级段落用默认缩进 0 的格式
   end;
 end;
 

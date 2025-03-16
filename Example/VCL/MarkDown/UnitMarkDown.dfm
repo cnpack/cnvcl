@@ -13,6 +13,13 @@ object FormMarkDown: TFormMarkDown
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
+  object lblFontSize: TLabel
+    Left = 288
+    Top = 12
+    Width = 74
+    Height = 13
+    Caption = 'Base Font Size:'
+  end
   object mmoMarkDown: TMemo
     Left = 16
     Top = 48
@@ -33,7 +40,19 @@ object FormMarkDown: TFormMarkDown
       '>  * 喝水'
       '>  * 吃饭'
       '> > 不信命**就是**不信命'
-      ''
+      '```pascal'
+      
+        'function TCnRTFConverter.ConvertFragment(Fragment: TCnMarkDownTe' +
+        'xtFragment): string;'
+      'begin'
+      '  if Fragment.FragmentType = cmfCodeBlock then'
+      
+        '    Result := EscapeContent(Fragment.Content)  // 直接转义内容，' +
+        '不额外修饰'
+      '  else'
+      '    Exit;'
+      'end;'
+      '```'
       
         '    FragmentType 喝水 F**ragmentType FragmentType FragmentTypeFr' +
         'agmentType吃饭TypeFragmentType '
@@ -57,7 +76,7 @@ object FormMarkDown: TFormMarkDown
     TabOrder = 1
   end
   object btnTest: TButton
-    Left = 416
+    Left = 984
     Top = 8
     Width = 75
     Height = 25
@@ -108,5 +127,13 @@ object FormMarkDown: TFormMarkDown
     Caption = '->'
     TabOrder = 7
     OnClick = btnShowRTFClick
+  end
+  object edtBaseFontSize: TEdit
+    Left = 368
+    Top = 8
+    Width = 49
+    Height = 21
+    TabOrder = 8
+    Text = '12'
   end
 end

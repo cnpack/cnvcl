@@ -16,6 +16,8 @@ type
     btnParseTree: TButton;
     btnConvRtf: TButton;
     btnShowRTF: TButton;
+    lblFontSize: TLabel;
+    edtBaseFontSize: TEdit;
     procedure btnTestClick(Sender: TObject);
     procedure btnDumpClick(Sender: TObject);
     procedure btnParseTreeClick(Sender: TObject);
@@ -130,7 +132,7 @@ var
 begin
   mmoParse.Lines.Clear;
   MD := CnParseMarkDownString(mmoMarkDown.Lines.Text);
-  S := CnMarkDownConvertToRTF(MD);
+  S := CnMarkDownConvertToRTF(MD, StrToIntDef(edtBaseFontSize.Text, 12));
   mmoParse.Lines.Text := string(S);
   MD.Free;
 
