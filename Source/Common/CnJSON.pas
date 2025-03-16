@@ -1075,14 +1075,16 @@ begin
   StepRun;
   FTokenID := jttString;
   // 要处理 UTF8 字符串，也要处理转义字符如 \ 后的 " \ / b f n r t u 直到结束的真正 " 为止
-  while FOrigin[FRun] <> '"' do
+  while (FOrigin[FRun] <> '"') and (FOrigin[FRun] <> #0) do
   begin
     if FOrigin[FRun] = '\' then // 有转义号
       StepRun; // 指向转义号后面一个字符，如果该字符是双引号，会被下面越过，不参与循环结束判断
 
     StepRun; // 越过转义号后一字符指向转义号后第二个字符，可能是引号，可能是 u 后的四个数字字母，其他正常字符
   end;
-  StepRun;
+
+  if FOrigin[FRun] <> #0 then
+    StepRun;
 end;
 
 procedure TCnJSONParser.TerminateProc;
