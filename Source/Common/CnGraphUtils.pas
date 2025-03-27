@@ -181,7 +181,7 @@ procedure CnSetRectHeight(var Rect: TRect; Value: Integer);
 {* 设置一 TRect 的高度}
 
 procedure CnRectInflate(var Rect: TRect; DX, DY: Integer);
-{* 缩小一个 TRect}
+{* 放大一个 TRect。DX/DY 是正值会增加宽度和高度，负值会减小宽度和高度}
 
 procedure CnRectOffset(var Rect: TRect; DX, DY: Integer);
 {* 偏移一个 TRect}
