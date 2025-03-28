@@ -84,6 +84,7 @@ var
 
 procedure TFormCalendar.btnCalcClick(Sender: TObject);
 var
+  GZYear, GZMonth: Integer;
   I, GanZhi, Gan, Zhi, JiuXing: Integer;
   M1, D1, H1, mi1: Integer;
   M2, D2, H2, mi2: Integer;
@@ -114,6 +115,11 @@ begin
   GanZhi := GetGanZhiFromYear(AYear, AMonth, ADay, AHour);
   ExtractGanZhi(GanZhi, Gan, Zhi);
   JiuXing := Get9XingFromYear(AYear, AMonth, ADay);
+
+  GZYear := AYear;
+  GZMonth := AMonth;
+  AdjustYearMonthToGanZhi(GZYear, GZMonth, ADay, AHour);
+  mmoResult.Lines.Add('干支纪年：' + IntToStr(GZYear) + '年' + IntToStr(GZMonth) + '月');
   mmoResult.Lines.Add('生肖：' + GetShengXiaoFromNumber(Zhi));
   mmoResult.Lines.Add('年：'+ GetGanZhiFromNumber(GanZhi) + '，五行：'
     + Get5XingFromNumber(Get5XingFromGan(Gan)) + Get5XingFromNumber(Get5XingFromZhi(Zhi))

@@ -897,7 +897,7 @@ function GetShiChenFromHour(AHour: Integer): Integer;
 
 function AdjustYearByJieQi(var AYear: Integer; AMonth: Integer;
   ADay: Integer; AHour: Integer): Boolean;
-{根据立春为界，调整公历年的年月日的年份数，供黄历中针对年的干支等概念的计算。
+{* 根据立春为界，调整公历年的年月日的年份数，供黄历中针对年的干支等概念的计算。
 
    参数：
      var AYear: Integer                   - 供调整的公历年，调整后的结果也放其中
@@ -910,7 +910,26 @@ function AdjustYearByJieQi(var AYear: Integer; AMonth: Integer;
 
 function AdjustYearMonthByJieQi(var AYear: Integer; var AMonth: Integer;
   ADay: Integer; AHour: Integer): Boolean;
-{根据节气为界，调整公历年的年月日的年份数与月份数，供黄历中针对月的干支等概念的计算。
+{* 根据节气为界，调整公历年的年月日的年份数与月份数，供黄历中针对月的干支等概念的计算。
+   注意本调整不等同于干支纪年中的以立春为首月的方法，那样月份数会产生约 1 到 2 的偏差，
+   会导致每个公历月里的每一天的干支月都不等于该公历月，某些情况下会造成较大不便，
+   因此本过程仅以本月第一个节气为界，之前的则月份减一，小寒则年减一且月十二，
+   保持了每月大部分情况下不会调整。
+
+   参数：
+     var AYear: Integer                   - 供调整的公历年，调整后的结果也放其中
+     var AMonth: Integer                  - 供调整的公历月，调整后的结果也放其中
+     ADay: Integer                        - 该公历日期的日数
+     AHour: Integer                       - 该公历日期的小时数
+
+   返回值：Boolean                        - 返回日期是否合法，注意与是否调整无关
+}
+
+function AdjustYearMonthToGanZhi(var AYear: Integer; var AMonth: Integer;
+  ADay: Integer; AHour: Integer): Boolean;
+{* 根据立春与节气为界，调整公历年的年月日的年份数与月份数到标准干支纪年，
+   供黄历中针对月的干支等概念的计算。该调整与 AdjustYearMonthByJieQi 不同在于
+   严格以立春为干支年的岁首和首月，节气为月份分界。与实际公历年月有 1 到 2 个月的差距。
 
    参数：
      var AYear: Integer                   - 供调整的公历年，调整后的结果也放其中
@@ -2976,7 +2995,8 @@ function GetGanZhiFromMonth(AYear, AMonth, ADay, AHour: Integer): Integer;
 var
   Gan, DummyZhi, M: Integer;
 begin
-  // 需要先根据节气调整月份数以及年份数
+  // 需要先根据节气调整月份数以及年份数，注意调整得到的结果不是标准干支纪年
+  // 有一个月差距，但下面弥补上了
   AdjustYearMonthByJieQi(AYear, AMonth, ADay, AHour);
 
   Result := -1;
@@ -2994,7 +3014,7 @@ begin
       Result := 0;
   end;
 
-  M := AMonth - 2;
+  M := AMonth - 2;       // 立春后的首月是公历二月，计算月份差
   if M < 0 then
     M := M + 10;
   Inc(Result, M mod 10); // 计算本月干数
@@ -3257,7 +3277,43 @@ begin
     // TODO: 本应该加上判断且 I 月首节气属于本月，前提是节气算法有较大偏差可能不落在本月，
     // 之前 1582 年及以前存在 10 天偏差，修正后暂未发现了，因此此处暂时不改
 
+    // 公历月 AMonth 的第一个节气的序号是 2 * AMonth - 1，如二月第一个节气立春是 3
     if Days < Floor(GetJieQiDayTimeFromYear(AYear, 2 * AMonth - 1)) then
+      Dec(AMonth);
+  end;
+end;
+
+// 根据立春与节气为界，调整公历年的年月日的年份数与月份数到标准干支纪年
+function AdjustYearMonthToGanZhi(var AYear: Integer; var AMonth: Integer;
+  ADay: Integer; AHour: Integer): Boolean;
+var
+  Days, JieQi: Extended;
+begin
+  Result := GetDateIsValid(AYear, AMonth, ADay);
+  if not Result then
+    Exit;
+
+  Days := GetDayFromYearBegin(AYear, AMonth, ADay, AHour);
+
+  JieQi := Floor(GetJieQiDayTimeFromYear(AYear, 3)); // 2 月的立春
+  if Days < JieQi then
+  begin
+    Dec(AYear);    // 立春之前，是去年
+    JieQi := Floor(GetJieQiDayTimeFromYear(AYear, 1)); // 1 月的小寒
+    if Days < JieQi then
+      AMonth := 11       // 小寒前算干支年 11 月
+    else
+      AMonth := 12;      // 小寒后立春前诉案干支年 12 月
+  end
+  else
+  begin
+    // 计算本年的节气（不是前一年的），看该日落在哪俩节气内
+    // 如果本公历月首节气的距年头的日数大于等于此日，则此日属于上上个月，节气本日属于上月
+
+    // 公历月 AMonth 的第一个节气的序号是 2 * AMonth - 1，如二月第一个节气立春是 3
+    if Days < Floor(GetJieQiDayTimeFromYear(AYear, 2 * AMonth - 1)) then
+      Dec(AMonth, 2)
+    else
       Dec(AMonth);
   end;
 end;
@@ -3367,9 +3423,10 @@ var
   Zhi: Integer;
 begin
   Result := -1;
-  if AdjustYearMonthByJieQi(AYear, AMonth, ADay, 0) then
+  if AdjustYearMonthToGanZhi(AYear, AMonth, ADay, 0) then
   begin
-    // 得到立春分割的年以及节气分割的月后获取年干支
+    // 得到立春分割的年以及节气分割的月后获取年干支，
+    // 注意这里走的是标准干支纪年，也即立春后的首月算正月 1，拿这个月份数计算才符合口诀
     Zhi := GetZhiFromYear(AYear);
     case Zhi of
       0, 3, 6, 9:
