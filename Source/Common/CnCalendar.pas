@@ -280,6 +280,10 @@ const
       '甲寅', '乙卯', '丙辰', '丁巳', '戊午', '己未', '庚申', '辛酉', '壬戌', '癸亥' );
   {* 六十干支字符串，Sexagenary Cycle}
 
+  SCn12TaiSuiArray: array[0..11] of string =
+    ( '太岁', '太阳', '丧门', '太阴', '五鬼', '死符', '岁破', '龙德', '白虎', '福德', '天狗', '病符');
+  {* 十二太岁名称字符串，与十二地支对应}
+
   SCn60TaiSuiArray: array[0..59] of string =
     ( '金辨', '陈材', '耿章', '沈兴', '赵达', '郭灿', '王济', '李素', '刘旺', '康志',
       '施广', '任保', '郭嘉', '汪文', '鲁先', '龙仲', '董德', '郑但', '陆明', '魏仁',
@@ -535,8 +539,17 @@ function GetGanZhiFromNumber(const AValue: Integer): string;
    返回值：string                         - 返回干支字符串
 }
 
+function Get12TaiSuiFromNumber(const AValue: Integer): string;
+{* 从地支数字获得十二太岁名, 0-11 对应太岁到病符。
+
+   参数：
+     const AValue: Integer                - 待计算的地支数字
+
+   返回值：string                         - 返回十二太岁字符串
+}
+
 function Get60TaiSuiFromNumber(const AValue: Integer): string;
-{* 从数字获得六十太岁名, 0-59 对应的不一一列出了。
+{* 从干支数字获得六十太岁名, 0-59 对应的不一一列出了。
 
    参数：
      const AValue: Integer                - 待计算的干支数字
@@ -2007,6 +2020,14 @@ begin
   Result := '';
   if (AValue >= 0)  and (AValue < 60) then
     Result := SCnGanZhiArray[AValue];
+end;
+
+// 从地支数字获得十二太岁名, 0-11
+function Get12TaiSuiFromNumber(const AValue: Integer): string;
+begin
+  Result := '';
+  if (AValue >= 0)  and (AValue < 12) then
+    Result := SCn12TaiSuiArray[AValue];
 end;
 
 // 从数字获得六十太岁名, 0-59
