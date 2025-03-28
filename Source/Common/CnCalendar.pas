@@ -48,7 +48,9 @@ unit CnCalendar;
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.02.20 V2.5
+* 修改记录：2025.03.28 V2.6
+*               增加六曜日的计算
+*           2025.02.20 V2.5
 *               根据清风徐来的报告，修正 2025 年农历 3 月的日期偏差问题
 *           2022.09.03 V2.4
 *               根据罗建仁的报告与查证，修正月干支在小寒节气前后可能有误的问题
@@ -201,6 +203,10 @@ const
   SCn9XingStarArray: array[0..8] of string =
     ( '贪狼', '巨门', '禄存', '文曲', '廉贞', '武曲', '破军', '左辅', '右弼');
   {* 九星的星宿名称}
+
+  SCn6YaoArray: array[0..5] of string =
+    ('先胜', '友引', '先负', '佛灭', '大安', '赤口');
+  {* 六曜日的名称}
 
   SCnTaiShen1Array: array[0..59] of string =
     ( '占门碓', '碓磨厕', '厨灶炉', '仓库门', '房床厕',
@@ -906,6 +912,15 @@ function Get9XingFromNumber(A9Xing: Integer): string;
    返回值：string                         - 返回九星名称
 }
 
+function Get6YaoFromNumber(A6Yao: Integer): string;
+{* 从数字获得六曜名称，0-5。
+
+   参数：
+     A6Yao: Integer                       - 待获取的六曜数字
+
+   返回值：string                         - 返回六曜名称
+}
+
 function Get3YuanFromYear(AYear, AMonth, ADay: Integer): Integer;
 {* 获取公历年所属的三元，0-2。
 
@@ -958,6 +973,15 @@ function Get9XingFromHour(AYear, AMonth, ADay, AHour: Integer): Integer;
      AYear, AMonth, ADay, AHour: Integer  - 待计算的公历年、月、日、时
 
    返回值：Integer                        - 返回时九星
+}
+
+function Get6YaoFromDay(AYear, AMonth, ADay: Integer): Integer;
+{* 获取公历日的日六曜，0-5 对应先胜到赤口。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+
+   返回值：Integer                        - 返回日六曜
 }
 
 function GetJiShenFangWeiFromNumber(AFangWei: Integer): string;
@@ -1256,6 +1280,7 @@ implementation
 resourcestring
   SCnErrorDateIsInvalid = 'Date is Invalid: %d-%d-%d.';
   SCnErrorLunarDateIsInvalid = 'Lunar Date is Invalid: %d-%d-%d, MonthLeap %d.';
+  SCnErrorConvertLunarDate = 'Date is Invalid for Lunar Conversion: %d-%d-%d.';
   SCnErrorTimeIsInvalid = 'Time is Invalid: %d:%d:%d.';
 
 const
@@ -3231,6 +3256,14 @@ begin
     Result := SCn9XingArray[A9Xing];
 end;
 
+// 从数字获得六曜名称，0-5
+function Get6YaoFromNumber(A6Yao: Integer): string;
+begin
+  Result := '';
+  if (A6Yao >= 0) and (A6Yao < 6) then
+    Result := SCn6YaoArray[A6Yao];
+end;
+
 // 获取公历年所属的三元，0-2 对应上元中元下元
 function Get3YuanFromYear(AYear, AMonth, ADay: Integer): Integer;
 begin
@@ -3502,6 +3535,19 @@ begin
         end;
     end;
   end;
+end;
+
+// 获取公历日的日六曜，0-5 对应先胜到赤口
+function Get6YaoFromDay(AYear, AMonth, ADay: Integer): Integer;
+var
+  LY, LM, LD: Integer;
+  Leap: Boolean;
+begin
+  // 农历月日相加
+  if GetLunarFromDay(AYear, AMonth, ADay, LY, LM, LD, Leap) then
+    Result := (LM + LD + 4) mod 6 // 农历月日和除以 6，余数为 0 是大安，所以加 4
+  else
+    raise ECnDateTimeException.CreateFmt(SCnErrorConvertLunarDate, [AYear, AMonth, ADay]);
 end;
 
 // 根据吉神方位数字获得吉神方位名称
