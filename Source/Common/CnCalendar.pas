@@ -49,7 +49,7 @@ unit CnCalendar;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2025.03.28 V2.6
-*               增加六曜日的计算
+*               增加六曜日的计算，增加六十太岁字符串
 *           2025.02.20 V2.5
 *               根据清风徐来的报告，修正 2025 年农历 3 月的日期偏差问题
 *           2022.09.03 V2.4
@@ -97,7 +97,7 @@ uses
 const
   SCnYinYangArray: array[0..1] of string =
     ('阴', '阳');
-  {* 阴阳字符串 }
+  {* 阴阳字符串}
 
   SCnTianGanArray: array[0..9] of string =
     ('甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸');
@@ -121,44 +121,44 @@ const
      '斗', '牛', '女', '虚', '危', '室', '壁',  // 北方玄武七宿
      '奎', '娄', '胃', '昴', '毕', '觜', '参',  // 西方白虎七宿
      '井', '鬼', '柳', '星', '张', '翼', '轸'); // 南方朱雀七宿
-  {* 二十八宿字符串 }
+  {* 二十八宿字符串}
 
   SCn28XiuLongArray: array[0..27] of string =
     ('角木蛟', '亢金龙', '氐土貉', '房日兔', '心月狐', '尾火虎', '箕水豹',  // 东方青龙七宿
      '斗木獬', '牛金牛', '女土蝠', '虚日鼠', '危月燕', '室火猪', '壁水獝',  // 北方玄武七宿
      '奎木狼', '娄金狗', '胃土雉', '昴日鸡', '毕月乌', '觜火猴', '参水猿',  // 西方白虎七宿
      '井木犴', '鬼金羊', '柳土獐', '星日马', '张月鹿', '翼火蛇', '轸水蚓'); // 南方朱雀七宿
-  {* 二十八宿完整名称字符串 }
+  {* 二十八宿完整名称字符串}
 
   SCnLunarMonthLeapName: string = '闰';
   SCnLunarMonthName: string = '月';
   SCnLunarMonthNameArray: array[0..11] of string =
     ('一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二');
-  {* 农历月份字符串 }
+  {* 农历月份字符串}
 
   SCnLunarNumber1Array: array[0..10] of string =
     ('一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '');
-  {* 农历日期个位字符串 }
+  {* 农历日期个位字符串}
 
   SCnLunarNumber2Array: array[0..5] of string =
     ('初', '十', '廿', '卅', '二', '三');
-  {* 农历日期十位字符串 }
+  {* 农历日期十位字符串}
 
   SCnWeekNumberArray: array[0..6] of string =
     ('日', '一', '二', '三', '四', '五', '六');
-  {* 星期字符串 }
+  {* 星期字符串}
 
   SCn5XingArray: array[0..4] of string =
     ('金', '木', '水', '火', '土');
-  {* 五行字符串，以通常的金木水火土为顺序 }
+  {* 五行字符串，以通常的金木水火土为顺序}
 
   SCn12JianArray: array[0..11] of string =
     ('建', '除', '满', '平', '定', '执', '破', '危', '成', '收', '开', '闭');
-  {* 十二建字符串 }
+  {* 十二建字符串}
 
   SCn3FuArray: array[0..2] of string =
     ('初伏', '中伏', '末伏');
-  {* 三伏字符串 }
+  {* 三伏字符串}
 
   SCnJieQiArray: array[0..23] of string = (
     '立春', // 节气  Beginning of Spring   3
@@ -190,23 +190,23 @@ const
 
   SCn3YuanArray: array[0..2] of string =
     ( '上元', '中元', '下元' );
-  {* 三元名称}
+  {* 三元名称字符串}
 
   SCn9XingArray: array[0..8] of string =
     ( '一白', '二黑', '三碧', '四绿', '五黄', '六白', '七赤', '八白', '九紫');
-  {* 九星名称}
+  {* 九星名称字符串}
 
   SCn9Xing5XingArray: array[0..8] of string =
     ( '水', '土', '木', '木', '土', '金', '金', '土', '火');
-  {* 九星所属五行名称}
+  {* 九星所属五行名称字符串}
 
   SCn9XingStarArray: array[0..8] of string =
     ( '贪狼', '巨门', '禄存', '文曲', '廉贞', '武曲', '破军', '左辅', '右弼');
-  {* 九星的星宿名称}
+  {* 九星的星宿名称字符串}
 
   SCn6YaoArray: array[0..5] of string =
     ('先胜', '友引', '先负', '佛灭', '大安', '赤口');
-  {* 六曜日的名称}
+  {* 六曜日的名称字符串}
 
   SCnTaiShen1Array: array[0..59] of string =
     ( '占门碓', '碓磨厕', '厨灶炉', '仓库门', '房床厕',
@@ -226,7 +226,7 @@ const
 
       '占门炉', '碓磨门', '厨灶栖', '仓库床', '房床碓',
       '占门厕', '碓磨炉', '厨灶门', '仓库栖', '占门床' );
-  {* 每日胎神位置，与六十干支轮排对应}
+  {* 每日胎神位置字符串，与六十干支轮排对应}
 
   SCnTaiShen2Array: array[0..59] of string =
     ( '外东南', '外东南', '外正南', '外正南', '外正南',
@@ -246,7 +246,7 @@ const
 
       '外东北', '外正东', '外正东', '外正东', '外正东',
       '外正东', '外东南', '外东南', '外东南', '外东南' );
-  {* 每日胎神方位，与六十干支轮排对应}
+  {* 每日胎神方位字符串，与六十干支轮排对应}
 
   SCnNaYinWuXingArray: array[0..29] of string =
     ( '海中金', '炉中火', '大林木',
@@ -263,29 +263,47 @@ const
 
       '桑柘木', '大溪水', '沙中土',
       '天上火', '石榴木', '大海水' );
-  {* 纳音五行，与相邻一对六十干支对应}
+  {* 纳音五行字符串，与相邻一对六十干支对应}
 
   SCnJiShenFangWeiArray: array[0..7] of string =
     ( '正北', '东北', '正东', '东南',
       '正南', '西南', '正西', '西北');
-  {* 吉神方位，对应八卦的八个方向。
+  {* 吉神方位字符串，对应八卦的八个方向。
      吉神包括喜神、财神、贵神，贵神还包括阴贵、阳贵，默认指阳贵}
+
+  SCnGanZhiArray: array[0..59] of string =
+    ( '甲子', '乙丑', '丙寅', '丁卯', '戊辰', '己巳', '庚午', '辛未', '壬申', '癸酉',
+      '甲戌', '乙亥', '丙子', '丁丑', '戊寅', '己卯', '庚辰', '辛巳', '壬午', '癸未',
+      '甲申', '乙酉', '丙戌', '丁亥', '戊子', '己丑', '庚寅', '辛卯', '壬辰', '癸巳',
+      '甲午', '乙未', '丙申', '丁酉', '戊戌', '己亥', '庚子', '辛丑', '壬寅', '癸卯',
+      '甲辰', '乙巳', '丙午', '丁未', '戊申', '己酉', '庚戌', '辛亥', '壬子', '癸丑',
+      '甲寅', '乙卯', '丙辰', '丁巳', '戊午', '己未', '庚申', '辛酉', '壬戌', '癸亥' );
+  {* 六十干支字符串，Sexagenary Cycle}
+
+  SCn60TaiSuiArray: array[0..59] of string =
+    ( '金辨', '陈材', '耿章', '沈兴', '赵达', '郭灿', '王济', '李素', '刘旺', '康志',
+      '施广', '任保', '郭嘉', '汪文', '鲁先', '龙仲', '董德', '郑但', '陆明', '魏仁',
+      '方杰', '蒋崇', '白敏', '封济', '邹铛', '傅佑', '邬桓', '范宁', '彭泰', '徐单',
+      '章词', '杨仙', '管仲', '唐杰', '姜武', '谢太', '卢秘', '杨信', '贺谔', '皮时',
+      '李诚', '吴遂', '文哲', '缪丙', '徐浩', '程宝', '倪秘', '叶坚', '丘德', '朱得',
+      '张朝', '万清', '辛亚', '杨彦', '黎卿', '傅党', '毛梓', '石政', '洪充', '虞程' );
+  {* 六十太岁名称字符串，与六十干支对应}
 
 type
   ECnDateTimeException = class(Exception);
   {* 历法相关异常}
 
   TCnCalendarType = (ctinvalid, ctJulian, ctGregorian);
-  {* 日历类型：    非法，     儒略，    格里高利}
+  {* 日历类型：      非法，     儒略，    格里高利}
 
   TCnLunarMonthType = (lmtSmall, lmtBig);
-  {* 农历月类型：    小月，    大月}
+  {* 农历月类型：      小月，    大月}
 
   TCnEclipseType = (etNone, etSolar, etMoonFull, etMoonHalf);
-  {* 日月食类型： 无，    日食，   月全食，    月偏食 }
+  {* 日月食类型：   无，    日食，   月全食，    月偏食 }
 
   TCnMoonPhase = (mpNone, mpShuo, mpWang);
-  {* 月相：     无，    朔，    望}
+  {* 月相：       无，    朔，    望}
 
   TCnSunRiseSetType = (stNormal, stAllwaysUp, stAllwaysDown, stError);
   {* 日出日落类型：    普通，    极昼，       极夜，        数据错误 }
@@ -515,6 +533,15 @@ function GetGanZhiFromNumber(const AValue: Integer): string;
      const AValue: Integer                - 待计算的干支数字
 
    返回值：string                         - 返回干支字符串
+}
+
+function Get60TaiSuiFromNumber(const AValue: Integer): string;
+{* 从数字获得六十太岁名, 0-59 对应的不一一列出了。
+
+   参数：
+     const AValue: Integer                - 待计算的干支数字
+
+   返回值：string                         - 返回六十太岁字符串
 }
 
 function GetShengXiaoFromNumber(const AValue: Integer): string;
@@ -1627,10 +1654,6 @@ const
     ;
   { * 自公元前 850 年开始的农历闰月信息 -849~2100，移植自中国日历类，2100 后罗建仁计算补充}
 
-var
-  SCnGanZhiArray: array[0..59] of string;
-  {* 干支字符串，Sexagenary Cycle}
-  
 //==============================================================================
 // 以下是日出日落计算的内容
 //==============================================================================
@@ -1911,15 +1934,6 @@ begin
   end;          
 end;
 
-// 生成本地的干支字符串列表，因为不想手工输入 ;)
-procedure GenerateGanZhiArray;
-var
-  I: Integer;
-begin
-  for I := 0 to 59 do
-    SCnGanZhiArray[I] := SCnTianGanArray[I mod 10] + SCnDiZhiArray[I mod 12];
-end;
-
 // 从数字获得五行名, 0-4 对应 金木水火土
 function Get5XingFromNumber(const AValue: Integer): string;
 begin
@@ -1974,6 +1988,14 @@ begin
   Result := '';
   if (AValue >= 0)  and (AValue < 60) then
     Result := SCnGanZhiArray[AValue];
+end;
+
+// 从数字获得六十太岁名, 0-59
+function Get60TaiSuiFromNumber(const AValue: Integer): string;
+begin
+  Result := '';
+  if (AValue >= 0)  and (AValue < 60) then
+    Result := SCn60TaiSuiArray[AValue];
 end;
 
 // 从数字获得生肖名, 0-11
@@ -4242,8 +4264,5 @@ begin
     OldTempLunarMonth := TempLunarMonth;
   end;
 end;
-
-initialization
-  GenerateGanZhiArray;
 
 end.
