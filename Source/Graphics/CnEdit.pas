@@ -70,6 +70,8 @@ type
   TTextType = (NormalText, IntegerText, FloatText, IdentText); // 文本类型
   //           普通文本、  整数、       小数、     标识符
 
+  TCnPaintPaddingEvent = procedure(Sender: TObject; Canvas: TCanvas; PaddingRect: TRect) of object;
+
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
 {$ENDIF}
@@ -88,6 +90,7 @@ type
     FAcceptNegative: Boolean;
     FAcceptCharList: string;
     FButtonCursor: TCursor;
+    FOnPaintPadding: TCnPaintPaddingEvent;
     procedure SetLinkStyle(Value: TLinkStyle); // 设置是否显示按钮
     procedure TrackButton(X, Y: Integer); // 跟踪鼠标按下按钮移开又回来的情况。按下触发
     procedure StopTracking; //同上。up 触发
@@ -110,6 +113,8 @@ type
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+
+    procedure DoPaintPadding(Canvas: TCanvas; PaddingRect: TRect); virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -135,6 +140,9 @@ type
     {* 是否能输入 - 号}
     property AcceptCharList: string read FAcceptCharList write FAcceptCharList;
     {* 允许输入的字符列表，非 Unicode 环境下对汉字支持不好}
+
+    property OnPaintPadding: TCnPaintPaddingEvent read FOnPaintPadding write FOnPaintPadding;
+    {* Padding 不为 0 时触发的自绘 Padding 区的事件}
   end;
 
 implementation
@@ -370,6 +378,12 @@ begin
   inherited MouseUp(Button, Shift, X, Y);
 end;
 
+procedure TCnEdit.DoPaintPadding(Canvas: TCanvas; PaddingRect: TRect);
+begin
+  if Assigned(FOnPaintPadding) then
+    FOnPaintPadding(Self, Canvas, PaddingRect);
+end;
+
 procedure TCnEdit.SetLinkStyle(Value: TLinkStyle);
 begin
   if Value = FLinkStyle then
@@ -407,7 +421,7 @@ end;
 procedure TCnEdit.WMPaint(var Message: TWMPaint);
 var
   Margins: TPoint;
-  R, TR: TRect;
+  R, TR, PR: TRect;
   DC: HDC;
   PS: TPaintStruct;
   S: string;
@@ -520,6 +534,25 @@ begin
 
       // TR 是整个区域，绘制文字
       TextRect(TR, L, Margins.Y, S);
+
+      // 左右对齐时有 Padding 就让自绘 Padding
+      if (FPaddingWidth > 0) and (FAlignment in [taLeftJustify, taRightJustify]) then
+      begin
+        PR.Top := TR.Top;
+        PR.Bottom := TR.Bottom;
+        if FAlignment = taLeftJustify then
+        begin
+          PR.Left := Margins.X;
+          PR.Right := L;
+        end
+        else
+        begin
+          PR.Left := L;
+          PR.Right := L + FPaddingWidth;
+        end;
+
+        DoPaintPadding(FCanvas, PR);
+      end;
     end;
   finally
     FCanvas.Handle := 0;

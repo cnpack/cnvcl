@@ -1,4 +1,4 @@
-object frmMain: TfrmMain
+object FrmMain: TFrmMain
   Left = 208
   Top = 170
   Width = 273

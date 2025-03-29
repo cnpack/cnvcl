@@ -7,7 +7,7 @@ uses
   Dialogs, StdCtrls, {$IFNDEF VER130} Variants, {$ENDIF} CnEdit;
 
 type
-  TfrmMain = class(TForm)
+  TFrmMain = class(TForm)
     edtNormalText: TCnEdit;
     lblNormalText: TLabel;
     edtIntegerText: TCnEdit;
@@ -27,38 +27,37 @@ type
     procedure EditorExit(Sender: TObject);
     procedure edt1ButtonClick(Sender: TObject);
   private
-    { Private declarations }
     FLastEditor: TCnEdit;
   public
-    { Public declarations }
+
   end;
 
 var
-  frmMain: TfrmMain;
+  FrmMain: TFrmMain;
 
 implementation
 
 {$R *.dfm}
 
-procedure TfrmMain.btnGetValueClick(Sender: TObject);
+procedure TFrmMain.btnGetValueClick(Sender: TObject);
 var
-  value: Variant;
+  Value: Variant;
 begin
   if not Assigned(FLastEditor) then Exit;
-  value := FLastEditor.Value;
-  if VarType(value) = varString then // uses Variants to support D6/7
-    ShowMessage(value)
+  Value := FLastEditor.Value;
+  if VarType(Value) = varString then // uses Variants to support D6/7
+    ShowMessage(Value)
   else
-    ShowMessage(FloatToStr(value));
+    ShowMessage(FloatToStr(Value));
 end;
 
-procedure TfrmMain.EditorExit(Sender: TObject);
+procedure TFrmMain.EditorExit(Sender: TObject);
 begin
   if Sender is TCnEdit then
     FLastEditor := Sender as TCnEdit;
 end;
 
-procedure TfrmMain.edt1ButtonClick(Sender: TObject);
+procedure TFrmMain.edt1ButtonClick(Sender: TObject);
 begin
   ShowMessage('Button Clicked');
 end;
