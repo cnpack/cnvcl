@@ -43,7 +43,7 @@ unit CnCalendar;
 *           zjy (zjy@cnpack.org)
 *           罗建仁
 * 备    注：星期、年月日时干支、年生肖、节气日期、星座、阴阳五行、十二建（神）、
-*           三元、九运、九星、二十八宿、九九、三伏、吉神方位已实现，
+*           三元、九运、九星、二十八宿、六曜、九九、三伏、吉神方位已实现，
 *           公历、农历互相转换也初步实现。
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
@@ -908,9 +908,11 @@ function GetShiChenFromHour(AHour: Integer): Integer;
    返回值：Integer                        - 返回时辰
 }
 
-function AdjustYearByJieQi(var AYear: Integer; AMonth: Integer;
+function AdjustYearToGanZhi(var AYear: Integer; AMonth: Integer;
   ADay: Integer; AHour: Integer): Boolean;
-{* 根据立春为界，调整公历年的年月日的年份数，供黄历中针对年的干支等概念的计算。
+{* 根据立春为界，调整公历年的年月日的年份数到标准干支纪年，供黄历中针对年的干支
+   等概念的计算。注意按约定的规则，立春当天 0 时起就属于新年，哪怕立春交接时刻
+   在 0 时后的某一时刻，月份分界的节气也类似。
 
    参数：
      var AYear: Integer                   - 供调整的公历年，调整后的结果也放其中
@@ -921,28 +923,11 @@ function AdjustYearByJieQi(var AYear: Integer; AMonth: Integer;
    返回值：Boolean                        - 返回日期是否合法，注意与是否调整无关
 }
 
-function AdjustYearMonthByJieQi(var AYear: Integer; var AMonth: Integer;
-  ADay: Integer; AHour: Integer): Boolean;
-{* 根据节气为界，调整公历年的年月日的年份数与月份数，供黄历中针对月的干支等概念的计算。
-   注意本调整不等同于干支纪年中的以立春为首月的方法，那样月份数会产生约 1 到 2 的偏差，
-   会导致每个公历月里的每一天的干支月都不等于该公历月，某些情况下会造成较大不便，
-   因此本过程仅以本月第一个节气为界，之前的则月份减一，小寒则年减一且月十二，
-   保持了每月大部分情况下不会调整。
-
-   参数：
-     var AYear: Integer                   - 供调整的公历年，调整后的结果也放其中
-     var AMonth: Integer                  - 供调整的公历月，调整后的结果也放其中
-     ADay: Integer                        - 该公历日期的日数
-     AHour: Integer                       - 该公历日期的小时数
-
-   返回值：Boolean                        - 返回日期是否合法，注意与是否调整无关
-}
-
 function AdjustYearMonthToGanZhi(var AYear: Integer; var AMonth: Integer;
   ADay: Integer; AHour: Integer): Boolean;
 {* 根据立春与节气为界，调整公历年的年月日的年份数与月份数到标准干支纪年，
-   供黄历中针对月的干支等概念的计算。该调整与 AdjustYearMonthByJieQi 不同在于
-   严格以立春为干支年的岁首和首月，节气为月份分界。与实际公历年月有 1 到 2 个月的差距。
+   供黄历中针对月的干支等概念的计算。注意按约定的规则，立春当天 0 时起就属于新年，
+   哪怕立春交接时刻在 0 时后的某一时刻，月份分界的节气也类似。
 
    参数：
      var AYear: Integer                   - 供调整的公历年，调整后的结果也放其中
@@ -3016,9 +3001,8 @@ function GetGanZhiFromMonth(AYear, AMonth, ADay, AHour: Integer): Integer;
 var
   Gan, DummyZhi, M: Integer;
 begin
-  // 需要先根据节气调整月份数以及年份数，注意调整得到的结果不是标准干支纪年
-  // 有一个月差距，但下面弥补上了
-  AdjustYearMonthByJieQi(AYear, AMonth, ADay, AHour);
+  // 需要先根据节气调整月份数以及年份数为标准干支纪年
+  AdjustYearMonthToGanZhi(AYear, AMonth, ADay, AHour);
 
   Result := -1;
   ExtractGanZhi(GetGanZhiFromYear(AYear), Gan, DummyZhi);
@@ -3035,7 +3019,7 @@ begin
       Result := 0;
   end;
 
-  M := AMonth - 2;       // 立春后的首月是公历二月，计算月份差
+  M := AMonth - 1;       // 计算干支纪元的月份 AMonth 与立春后的首月 1 的月份差
   if M < 0 then
     M := M + 10;
   Inc(Result, M mod 10); // 计算本月干数
@@ -3043,7 +3027,8 @@ begin
   if Result >= 10 then
     Result := Result mod 10;
 
-  Result := CombineGanZhi(Result, AMonth mod 12); // 组合支数，立春之后的所在的本月为寅，一般是二月，正好寅=2
+  // 组合支数，立春之后的所在的本月为寅，1 月寅为 2，因而干支月份加 1 即为地支
+  Result := CombineGanZhi(Result, (AMonth + 1) mod 12);
 end;
 
 // 获得某公/农历年的干支，0-59 对应 甲子到癸亥
@@ -3071,7 +3056,7 @@ end;
 function GetGanZhiFromYear(AYear, AMonth, ADay, AHour: Integer): Integer; overload;
 begin
   // 如是立春日前，属于前一年，精确到小时判断。立春当天算这一年
-  if GetDayFromYearBegin(AYear, AMonth, ADay, AHour) < GetJieQiDayTimeFromYear(AYear, 3) then
+  if GetDayFromYearBegin(AYear, AMonth, ADay, AHour) < Floor(GetJieQiDayTimeFromYear(AYear, 3)) then
     Dec(AYear);
   Result := GetGanZhiFromYear(AYear);
 end;
@@ -3253,7 +3238,7 @@ begin
 end;
 
 // 根据立春为界，调整公历年的年月日的年份数，供黄历中针对年的干支等概念的计算
-function AdjustYearByJieQi(var AYear: Integer; AMonth: Integer;
+function AdjustYearToGanZhi(var AYear: Integer; AMonth: Integer;
   ADay: Integer; AHour: Integer): Boolean;
 var
   Days: Extended;
@@ -3270,37 +3255,6 @@ begin
   begin
     // 年需要调整为前一年
     Dec(AYear);
-  end;
-end;
-
-// 根据节气为界，调整公历年的年月日的月份数，供黄历中针对月的干支等概念的计算
-function AdjustYearMonthByJieQi(var AYear: Integer; var AMonth: Integer;
-  ADay: Integer; AHour: Integer): Boolean;
-var
-  Days, XH: Extended;
-begin
-  Result := GetDateIsValid(AYear, AMonth, ADay);
-  if not Result then
-    Exit;
-
-  Days := GetDayFromYearBegin(AYear, AMonth, ADay, AHour);
-
-  XH := Floor(GetJieQiDayTimeFromYear(AYear, 1)); // 1 月的小寒
-  if Days < XH then
-  begin
-    Dec(AYear);    // 小寒之前，是去年 12 月，小寒本日属于今年
-    AMonth := 12;
-  end
-  else
-  begin
-    // 计算本年的节气（不是前一年的），看该日落在哪俩节气内
-    // 如果本月首节气的距年头的日数大于等于此日，则此日属于上个月，节气本日属于本月
-    // TODO: 本应该加上判断且 I 月首节气属于本月，前提是节气算法有较大偏差可能不落在本月，
-    // 之前 1582 年及以前存在 10 天偏差，修正后暂未发现了，因此此处暂时不改
-
-    // 公历月 AMonth 的第一个节气的序号是 2 * AMonth - 1，如二月第一个节气立春是 3
-    if Days < Floor(GetJieQiDayTimeFromYear(AYear, 2 * AMonth - 1)) then
-      Dec(AMonth);
   end;
 end;
 
