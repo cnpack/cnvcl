@@ -190,7 +190,11 @@ begin
   SetRect(R, 0, 0, ClientWidth - 2, ClientHeight + 1); // +1 is workAround for Windows paint bug
   if (FLinkStyle <> lsNone) then
     Dec(R.Right, FButtonWidth);
+{$IFDEF WIN64}
+  SendMessage(Handle, EM_SETRECT, 0, NativeUInt(@R));
+{$ELSE}
   SendMessage(Handle, EM_SETRECT, 0, LongInt(@R));
+{$ENDIF}
   Repaint;
 end;
 
