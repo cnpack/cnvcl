@@ -2,12 +2,12 @@ program CnEditDemo;
 
 uses
   Forms,
-  uMain in 'uMain.pas' {frmMain};
+  uMain in 'uMain.pas' {FrmMain};
 
 {$R *.res}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TfrmMain, frmMain);
+  Application.CreateForm(TFrmMain, FrmMain);
   Application.Run;
 end.
