@@ -42,7 +42,9 @@ unit CnEdit;
 * 开发平台：PWinXP + Delphi 6.0
 * 兼容测试：PWin9X/2000/XP + Delphi 6.0
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.03.26 V1.4
+* 修改记录：2025.03.29 V1.5
+*               增加一个 PaddingWidth 属性控制文本横向绘制的缩进像素数，默认 0
+*           2022.03.26 V1.4
 *               调整大尺寸时的按钮绘制细节
 *           2009.07.04 V1.3
 *               修正 tArightJustify 时绘制不正确的问题，感谢 jAmEs_
@@ -74,6 +76,7 @@ type
   TCnEdit = class(TEdit)
   private
     FButtonWidth: Integer;
+    FPaddingWidth: Integer;
     FCanvas: TControlCanvas;
     FLinkStyle: TLinkStyle;
     FAlignment: TAlignment;
@@ -94,6 +97,7 @@ type
     procedure WMSetCursor(var Msg: TWMSetCursor); message WM_SETCURSOR; // 设置鼠标在按钮上的箭头
     function GetValue: Variant;
     procedure SetButtonCursor(const Value: TCursor);
+    procedure SetPaddingWidth(const Value: Integer);
   protected
     procedure EditButtonClick; virtual; // 单击事件
     procedure BoundsChanged;
@@ -119,6 +123,8 @@ type
     {* 按钮上的光标}
     property ButtonWidth: Integer read FButtonWidth;
     {* 按钮宽度，只读}
+    property PaddingWidth: Integer read FPaddingWidth write SetPaddingWidth;
+    {* 文本内的对齐偏移量，默认 0}
     property Alignment: TAlignment read FAlignment write FAlignment default TaLeftJustify;
     {* 对齐方式}
     property TextType: TTextType read FTextType write FTextType default NormalText;
@@ -133,7 +139,8 @@ type
 
 implementation
 
-uses CnCommon;
+uses
+  CnCommon;
 
 { TCnEdit }
 
@@ -379,7 +386,7 @@ begin
   begin
     TrackButton(-1, -1);
     FTracking := False;
-    MouseCApture := False;
+    MouseCapture := False;
   end;
 end;
 
@@ -400,7 +407,7 @@ end;
 procedure TCnEdit.WMPaint(var Message: TWMPaint);
 var
   Margins: TPoint;
-  R: TRect;
+  R, TR: TRect;
   DC: HDC;
   PS: TPaintStruct;
   S: string;
@@ -424,16 +431,18 @@ begin
     with FCanvas do
     begin
       // 设置控件的范围
-      if (FLinkStyle <> lsNone) then
+      TR := ClientRect;
+
+      if FLinkStyle <> lsNone then // R 是按钮区域
         SetRect(R, ClientWidth - FButtonWidth, 0, ClientWidth, ClientHeight)
       else
       begin
-        R := ClientRect;
+        // TR 是整个区域
         if not (NewStyleControls and Ctl3D) and (BOrderStyle = bsSingle) then
         begin
           Brush.Color := clWindowFrame;
-          FrameRect(R);
-          InflateRect(R, -1, -1);
+          FrameRect(TR);
+          InflateRect(TR, -1, -1);
         end;
         Brush.Color := Color;
       end;
@@ -452,17 +461,16 @@ begin
       else
       begin
         case FAlignment of
-          taLeftJustify: L := Margins.X;
-          tArightJustify: L := ClientWidth - TextWidth(S) - Margins.X - 1;
+          taLeftJustify: L := Margins.X + FPaddingWidth;
+          taRightJustify: L := ClientWidth - TextWidth(S) - Margins.X - 1 - FPaddingWidth;
         else
           L := (ClientWidth - TextWidth(S)) div 2;
         end;
       end;
-        
-      TextRect(R, L, Margins.Y, S);
 
       if FLinkStyle <> lsNone then   // 画按钮
       begin
+        // R 是按钮区域
         Flags := 0;
         if FPressed then
           Flags := BF_FLAT;
@@ -505,9 +513,13 @@ begin
           end;
         end;
 
+        // 将绘制的按钮区域排除掉，再将 DC 的所有内容画出去
         ExcludeClipRect(DC, R.Left, R.Top, R.Right, R.Bottom);
         PaintWindow(DC);
       end;
+
+      // TR 是整个区域，绘制文字
+      TextRect(TR, L, Margins.Y, S);
     end;
   finally
     FCanvas.Handle := 0;
@@ -545,6 +557,15 @@ begin
   begin
     FButtonCursor := Value;
     Perform(WM_SETCURSOR, 0, 0);
+  end;
+end;
+
+procedure TCnEdit.SetPaddingWidth(const Value: Integer);
+begin
+  if Value <> FPaddingWidth then
+  begin
+    FPaddingWidth := Value;
+    Invalidate;
   end;
 end;
 
