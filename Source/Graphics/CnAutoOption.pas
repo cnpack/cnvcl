@@ -358,8 +358,8 @@ begin
   if (PropKind = tkClass) and not VarIsNull(Value) then
   begin
 {$IFDEF WIN64}
-    SrcObj := TPersistent(Integer(Value));
-    DstObj := TPersistent(Integer(PropValue));
+    SrcObj := TPersistent(NativeInt(Value));
+    DstObj := TPersistent(NativeInt(PropValue));
 {$ELSE}
     Integer(SrcObj) := Value;
     Integer(DstObj) := PropValue;
@@ -382,7 +382,7 @@ begin
   if (PropKind = tkClass) and not VarIsNull(Value) and (Value <> PropValue) then
   begin
 {$IFDEF WIN64}
-    Obj := TObject(Integer(Value));
+    Obj := TObject(NativeInt(Value));
 {$ELSE}
     Integer(Obj) := Value;
 {$ENDIF}
@@ -398,8 +398,8 @@ begin
   if (PropKind = tkClass) and not VarIsNull(DefaultValue) then
   begin
 {$IFDEF WIN64}
-    SrcObj := TPersistent(Integer(DefaultValue));
-    DstObj := TPersistent(Integer(PropValue));
+    SrcObj := TPersistent(NativeInt(DefaultValue));
+    DstObj := TPersistent(NativeInt(PropValue));
 {$ELSE}
     Integer(SrcObj) := DefaultValue;
     Integer(DstObj) := PropValue;
@@ -424,7 +424,7 @@ begin
   if PropKind = tkClass then
   begin
 {$IFDEF WIN64}
-    SrcObj := TPersistent(Integer(PropValue));
+    SrcObj := TPersistent(NativeInt(PropValue));
 {$ELSE}
     Integer(SrcObj) := PropValue;
 {$ENDIF}
@@ -438,7 +438,7 @@ begin
     if DstObj <> nil then
     begin
       DstObj.Assign(SrcObj);
-      Value := Integer(DstObj);
+      Value := NativeInt(DstObj);
     end
     else
       Value := PropValue;
@@ -536,7 +536,7 @@ begin
     tkClass:
       begin
 {$IFDEF WIN64}
-        Obj := TObject(Integer(Value));
+        Obj := TObject(NativeInt(Value));
 {$ELSE}
         Integer(Obj) := Value;
 {$ENDIF}

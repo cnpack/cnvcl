@@ -40,7 +40,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, ComCtrls, TypInfo,
   {$IFDEF COMPILER6_UP} Variants, {$ENDIF COMPILER6_UP}
   StdCtrls, ImgList, CnSpin, Dialogs, Menus, Math, Forms, CnGraphConsts,
-  CnAutoOption;
+  CnAutoOption, CnNative;
 
 type
 
@@ -366,7 +366,7 @@ begin
   else if FInplaceEdit is TMemo then
   begin
 {$IFDEF WIN64}
-    Obj := TObject(Integer(Item.Value));
+    Obj := TObject(NativeInt(Item.Value));
 {$ELSE}
     Integer(Obj) := Item.Value;
 {$ENDIF}
@@ -391,13 +391,13 @@ procedure TCnAOTreeView.ApplyOption;
 
   procedure DoApplyOption(Option: TCnBaseOption);
   var
-    i: Integer;
+    I: Integer;
   begin
     if Option is TCnOptionItem then
       TCnOptionItem(Option).ApplyOption
     else if Option is TCnOptionGroup then
-      for i := 0 to TCnOptionGroup(Option).Count - 1 do
-        DoApplyOption(TCnOptionGroup(Option)[i]);
+      for I := 0 to TCnOptionGroup(Option).Count - 1 do
+        DoApplyOption(TCnOptionGroup(Option)[I]);
   end;
 begin
   ApplyInplaceEdit;
@@ -430,7 +430,7 @@ end;
 
 procedure TCnAOTreeView.ComboBoxDropDown(Sender: TObject);
 var
-  i: Integer;
+  I: Integer;
   MaxWidth: Integer;
   Bitmap: Graphics.TBitmap;
   ComboBox: TComboBox;
@@ -443,8 +443,8 @@ begin
   Bitmap := Graphics.TBitmap.Create;
   try
     Bitmap.Canvas.Font.Assign(ComboBox.Font);
-    for i := 0 to ComboBox.Items.Count - 1 do
-      MaxWidth := Max(MaxWidth, Bitmap.Canvas.TextWidth(ComboBox.Items[i]) + 10);
+    for I := 0 to ComboBox.Items.Count - 1 do
+      MaxWidth := Max(MaxWidth, Bitmap.Canvas.TextWidth(ComboBox.Items[I]) + 10);
   finally;
     Bitmap.Free;
   end;
@@ -538,7 +538,7 @@ var
     Obj: TPersistent;
   begin
 {$IFDEF WIN64}
-    Obj := TPersistent(Integer(Value));
+    Obj := TPersistent(NativeInt(Value));
 {$ELSE}
     Integer(Obj) := Value;
 {$ENDIF}
@@ -595,13 +595,13 @@ end;
 procedure TCnAOTreeView.DefaultOption;
   procedure DoDefaultOption(Option: TCnBaseOption);
   var
-    i: Integer;
+    I: Integer;
   begin
     if Option is TCnOptionItem then
       TCnOptionItem(Option).DefaultOption
     else if Option is TCnOptionGroup then
-      for i := 0 to TCnOptionGroup(Option).Count - 1 do
-        DoDefaultOption(TCnOptionGroup(Option)[i]);
+      for I := 0 to TCnOptionGroup(Option).Count - 1 do
+        DoDefaultOption(TCnOptionGroup(Option)[I]);
   end;
 begin
   DoDefaultOption(FOptions);
@@ -610,7 +610,7 @@ end;
 
 function TCnAOTreeView.DoClickNode(Node: TTreeNode): Boolean;
 var
-  i, Min, Max: Integer;
+  I, Min, Max: Integer;
   Item: TCnOptionItem;
   BoolValue: Boolean;
   EnumInfo: PTypeInfo;
@@ -629,11 +629,13 @@ begin
       okEnum:
         begin
           Item.Value := Node.Index + Item.MinValue;
-          for i := 0 to Node.Parent.Count - 1 do
-            if i = Node.Index then
-              SetNodeImageIndex(Node.Parent.Item[i], csIdxSelected)
+          for I := 0 to Node.Parent.Count - 1 do
+          begin
+            if I = Node.Index then
+              SetNodeImageIndex(Node.Parent.Item[I], csIdxSelected)
             else
-              SetNodeImageIndex(Node.Parent.Item[i], csIdxUnSelected)
+              SetNodeImageIndex(Node.Parent.Item[I], csIdxUnSelected);
+          end;
         end;
       okSet:
         begin
@@ -646,9 +648,9 @@ begin
           SetValue := [];
           Min := GetTypeData(EnumInfo).MinValue;
           Max := GetTypeData(EnumInfo).MaxValue;
-          for i := Min to Max do
-            if Node.Parent.Item[i].ImageIndex = csIdxChecked then
-              Include(SetValue, i + Min);
+          for I := Min to Max do
+            if Node.Parent.Item[I].ImageIndex = csIdxChecked then
+              Include(SetValue, I + Min);
           Item.Value := Integer(SetValue);
         end;
     end;
@@ -768,7 +770,7 @@ begin
       tkClass:
         begin
 {$IFDEF WIN64}
-          Obj := TObject(Integer(Item.Value));
+          Obj := TObject(NativeInt(Item.Value));
 {$ELSE}
           Integer(Obj) := Item.Value;
 {$ENDIF}
@@ -830,7 +832,7 @@ begin
   Node := TTreeNode(FInplaceEdit.Tag);
   Item := TCnOptionItem(Node.Data);
 {$IFDEF WIN64}
-  Obj := TFont(Integer(Item.Value));
+  Obj := TFont(NativeInt(Item.Value));
 {$ELSE}
   Integer(Obj) := Item.Value;
 {$ENDIF}
@@ -846,14 +848,14 @@ end;
 
 procedure TCnAOTreeView.OnInplaceEditEnterExit(Sender: TObject);
 var
-  i: Integer;
+  I: Integer;
 begin
   if FInplaceEdit <> nil then
   begin
     FInplaceEdit.Invalidate;
     if FInplaceEdit is TWinControl then
-      for i := 0 to TWinControl(FInplaceEdit).ControlCount - 1 do
-        TWinControl(FInplaceEdit).Controls[i].Invalidate;
+      for I := 0 to TWinControl(FInplaceEdit).ControlCount - 1 do
+        TWinControl(FInplaceEdit).Controls[I].Invalidate;
   end;
 end;
 
@@ -861,14 +863,14 @@ procedure TCnAOTreeView.ResetOption;
 
   procedure DoResetOption(Option: TCnBaseOption);
   var
-    i: Integer;
+    I: Integer;
   begin
     if Option is TCnOptionItem then
       TCnOptionItem(Option).ResetOption
     else if Option is TCnOptionGroup then
-      for i := 0 to TCnOptionGroup(Option).Count - 1 do
+      for I := 0 to TCnOptionGroup(Option).Count - 1 do
       try
-        DoResetOption(TCnOptionGroup(Option)[i]);
+        DoResetOption(TCnOptionGroup(Option)[I]);
       except
         Application.HandleException(nil);
       end;
@@ -890,7 +892,7 @@ var
 begin
   if (Selected <> nil) and (TopItem <> nil) and (FInplaceEdit <> nil) then
   begin
-    FInplaceEdit.Tag := Integer(Selected);
+    FInplaceEdit.Tag := TCnNativeInt(Selected);
     FInplaceEdit.Parent := Self;
     if FInplaceEdit is TWinControl then
     begin
@@ -921,7 +923,7 @@ var
     Obj: TObject;
   begin
 {$IFDEF WIN64}
-    Obj := TObject(Integer(Value));
+    Obj := TObject(NativeInt(Value));
 {$ELSE}
     Integer(Obj) := Value;
 {$ENDIF}
@@ -936,7 +938,7 @@ var
     Obj: TObject;
   begin
 {$IFDEF WIN64}
-    Obj := TObject(Integer(Value));
+    Obj := TObject(NativeInt(Value));
 {$ELSE}
     Integer(Obj) := Value;
 {$ENDIF}
@@ -1036,7 +1038,7 @@ procedure TCnAOTreeView.UpdateTreeView;
 
   function AddNode(ParentNode: TTreeNode; AOption: TCnBaseOption): TTreeNode;
   var
-    i: Integer;
+    I: Integer;
     EnumInfo: PTypeInfo;
   begin
     Result := Items.AddChildObject(ParentNode, AOption.Text, AOption);
@@ -1046,13 +1048,13 @@ procedure TCnAOTreeView.UpdateTreeView;
         okGroup:
           begin
             with TCnOptionGroup(AOption) do
-              for i := 0 to Count - 1 do
-                AddNode(Result, Items[i]);
+              for I := 0 to Count - 1 do
+                AddNode(Result, Items[I]);
           end;
         okEnum:
           with TCnOptionItem(AOption) do
           begin
-            for i := MinValue to MaxValue do
+            for I := MinValue to MaxValue do
             begin
               UpdateNode(Items.AddChildObject(Result, '', nil));
             end;
@@ -1061,7 +1063,7 @@ procedure TCnAOTreeView.UpdateTreeView;
           with TCnOptionItem(AOption) do
           begin
             EnumInfo := GetTypeData(PropInfo^.PropType^)^.CompType^;
-            for i := GetTypeData(EnumInfo).MinValue to GetTypeData(EnumInfo).MaxValue do
+            for I := GetTypeData(EnumInfo).MinValue to GetTypeData(EnumInfo).MaxValue do
               UpdateNode(Items.AddChildObject(Result, '', nil));
           end;
       end;

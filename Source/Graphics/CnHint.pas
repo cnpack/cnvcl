@@ -39,7 +39,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Graphics, Classes, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, Math, CnConsts, CnGraphConsts, CnClasses;
+  StdCtrls, ExtCtrls, Math, CnConsts, CnGraphConsts, CnClasses, CnNative;
 
 const
   CN_MSG_HINT_NOTIFY = WM_USER + $0357;
@@ -738,7 +738,7 @@ begin
       FTimer.Enabled := True;
       New(PT);
       PT^ := HintPos;
-      PostMessage(Handle, CN_MSG_HINT_NOTIFY, HidePause, Integer(PT));
+      PostMessage(Handle, CN_MSG_HINT_NOTIFY, HidePause, TCnNativeUInt(PT));
     end;
   finally
     FLastActive := GetTickCount;
