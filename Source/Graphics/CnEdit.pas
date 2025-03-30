@@ -431,7 +431,7 @@ var
   S: string;
   Flags: Integer;
   W: Integer;
-  L, I, Offset: Integer;
+  L, I, Offset, D: Integer;
 begin
   if FCanvas = nil then
   begin
@@ -515,18 +515,18 @@ begin
           end
           else
           begin
-            L := FButtonWidth div 4;
+            D := FButtonWidth div 4;
             Offset := (FButtonWidth - 16) div 4 - 1;
             if Offset < 0 then
               Offset := 0;
             W := (R.Bottom - R.Top) div 3 + 1;
 
-            for I := 0 to L do
+            for I := 0 to D do
             begin
-              if R.Left + L + Offset + I > R.Left + L + Offset + W - I then // 避免画过头
+              if R.Left + D + Offset + I > R.Left + D + Offset + W - I then // 避免画过头
                 Break;
-              Windows.MoveToEx(DC, R.Left + L + Offset + I, R.Top + W + I, nil);
-              Windows.LineTo(DC, R.Left + L + Offset + W - I, R.Top + W + I);
+              Windows.MoveToEx(DC, R.Left + D + Offset + I, R.Top + W + I, nil);
+              Windows.LineTo(DC, R.Left + D + Offset + W - I, R.Top + W + I);
             end;
           end;
         end;
