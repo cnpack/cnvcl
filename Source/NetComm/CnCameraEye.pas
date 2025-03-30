@@ -391,7 +391,11 @@ begin
   begin
     {* ∑¢ÀÕ÷∏¡Ó }
     CheckRes(SendMessage(FHWndC, WM_CAP_SET_CALLBACK_VIDEOSTREAM, 0, 0));
+{$IFDEF WIN64}
+    CheckRes(SendMessage(FHWndC, WM_CAP_SET_CALLBACK_ERROR, 0, NativeInt(@CapErrorCallback)));
+{$ELSE}
     CheckRes(SendMessage(FHWndC, WM_CAP_SET_CALLBACK_ERROR, 0, Integer(@CapErrorCallback)));
+{$ENDIF}
     CheckRes(SendMessage(FHWndC, WM_CAP_SET_CALLBACK_STATUS, 0, 0));
     CheckRes(SendMessage(FHWndC, WM_CAP_DRIVER_CONNECT, 0, 0));
     CheckRes(SendMessage(FHWndC, WM_CAP_SET_SCALE, 1, 0));
@@ -400,7 +404,7 @@ begin
     CheckRes(SendMessage(FHWndC, WM_CAP_SET_PREVIEW, 1, 0));
   end;
 
-  if Assigned(OnStart) then
+  if Assigned(FOnStart) then
     FOnStart(Self);
 end;
 

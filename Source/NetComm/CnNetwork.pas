@@ -2537,7 +2537,11 @@ begin
 
   if Len > 0 then
   begin
+{$IFDEF CPU64BITS}
+    PortAddr := PWORD(NativeInt(@(SocksReq^.DestionationAddress)) + Len);
+{$ELSE}
     PortAddr := PWORD(Integer(@(SocksReq^.DestionationAddress)) + Len);
+{$ENDIF}
     Result := UInt16NetworkToHost(PortAddr^);
   end;
 end;
@@ -2589,7 +2593,11 @@ begin
 
   if Len > 0 then
   begin
+{$IFDEF CPU64BITS}
+    PortAddr := PWORD(NativeInt(@(SocksResp^.BindAddress)) + Len);
+{$ELSE}
     PortAddr := PWORD(Integer(@(SocksResp^.BindAddress)) + Len);
+{$ENDIF}
     Result := UInt16NetworkToHost(PortAddr^);
   end;
 end;
@@ -2637,7 +2645,11 @@ begin
 
   if Len > 0 then
   begin
+{$IFDEF CPU64BITS}
+    PortAddr := PWORD(NativeInt(@(SocksReq^.DestionationAddress)) + Len);
+{$ELSE}
     PortAddr := PWORD(Integer(@(SocksReq^.DestionationAddress)) + Len);
+{$ENDIF}
     PortAddr^ := UInt16HostToNetwork(Port);
   end;
   Result := Len + 4 + SizeOf(Word);
@@ -2685,7 +2697,11 @@ begin
 
   if Len > 0 then
   begin
+{$IFDEF CPU64BITS}
+    PortAddr := PWORD(NativeInt(@(SocksResp^.BindAddress)) + Len);
+{$ELSE}
     PortAddr := PWORD(Integer(@(SocksResp^.BindAddress)) + Len);
+{$ENDIF}
     PortAddr^ := UInt16HostToNetwork(Port);
   end;
   Result := Len + 4 + SizeOf(Word);
