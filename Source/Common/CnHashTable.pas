@@ -552,8 +552,8 @@ begin
                 begin
                   if LCompInd > -3 then
                     Break;
-                  Result := (LChars1 shr 24) + ((LChars1 shr 8) and $ff00)
-                    - (LChars2 shr 24) - ((LChars2 shr 8) and $ff00);
+                  Result := (LChars1 shr 24) + ((LChars1 shr 8) and $FF00)
+                    - (LChars2 shr 24) - ((LChars2 shr 8) and $FF00);
                   Exit;
                 end;
               end;

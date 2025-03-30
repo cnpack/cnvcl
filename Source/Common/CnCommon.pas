@@ -196,7 +196,7 @@ procedure DrawMatchText(Canvas: TCanvas; const MatchStr, Text: string;
 
 {$ENDIF}
 
-function SameCharCounts(s1, s2: string): Integer;
+function SameCharCounts(S1, S2: string): Integer;
 {* 两个字符串的前面的相同字符数}
 function CharCounts(Str: PChar; Chr: Char): Integer;
 {* 在字符串中某字符出现的次数}
@@ -1643,17 +1643,17 @@ end;
 // 移动文件、目录
 function MoveFile(const sName, dName: string): Boolean;
 var
-  s1, s2: string;
+  S1, S2: string;
   lpFileOp: TSHFileOpStruct;
 begin
-  s1 := PChar(sName) + #0#0;
-  s2 := PChar(dName) + #0#0;
+  S1 := PChar(sName) + #0#0;
+  S2 := PChar(dName) + #0#0;
   with lpFileOp do
   begin
     Wnd := Application.Handle;
     wFunc := FO_MOVE;
-    pFrom := PChar(s1);
-    pTo := PChar(s2);
+    pFrom := PChar(S1);
+    pTo := PChar(S2);
     fFlags := FOF_ALLOWUNDO;
     hNameMappings := nil;
     lpszProgressTitle := nil;
@@ -1921,7 +1921,7 @@ begin
         if ShowNewButton then
           ulFlags := ulFlags or $0040;
         lpfn := SelectDirCB;
-        lparam := Integer(PChar(Directory));
+        lparam := TCnNativeUInt(PChar(Directory));
       end;
       ItemIDList := SHBrowseForFolder(BrowseInfo);
       Result :=  ItemIDList <> nil;
@@ -2023,14 +2023,15 @@ var
   ShellMalloc: IMalloc;
   IDesktopFolder: IShellFolder;
   Dummy: LongWord;
+
   function BrowseCallbackProc(hwnd: HWND; uMsg: UINT; lParam: Cardinal;
-    lpData: Cardinal): integer; stdcall;
+    lpData: Cardinal): Integer; stdcall;
   var
     PathName: array[0..MAX_PATH] of WideChar;
   begin
     case uMsg of
       BFFM_INITIALIZED:
-        SendMessage(Hwnd, BFFM_SETSELECTION, Ord(True), Integer(lpData));
+        SendMessage(Hwnd, BFFM_SETSELECTION, Ord(True), TCnNativeUInt(lpData));
       BFFM_SELCHANGED:
         begin
           SHGetPathFromIDListW(PItemIDList(lParam), @PathName);
@@ -2063,7 +2064,7 @@ begin
         lpszTitle := PWideChar(Caption);
         ulFlags := uFlag;
         lpfn := @BrowseCallbackProc;
-        lParam := Integer(PWideChar(Path));
+        lParam := TCnNativeUInt(PWideChar(Path));
       end;
       ItemIDList := SHBrowseForFolderW(BrowseInfo);
       Result := ItemIDList <> nil;
@@ -2088,17 +2089,17 @@ end;
 {$ENDIF}
 
 // 两个字符串的前面的相同字符数
-function SameCharCounts(s1, s2: string): Integer;
+function SameCharCounts(S1, S2: string): Integer;
 var
   Str1, Str2: PChar;
 begin
   Result := 1;
-  s1 := s1 + #0;
-  s2 := s2 + #0;
-  Str1 := PChar(s1);
-  Str2 := PChar(s2);
+  S1 := S1 + #0;
+  S2 := S2 + #0;
+  Str1 := PChar(S1);
+  Str2 := PChar(S2);
 
-  while (s1[Result] = s2[Result]) and (s1[Result] <> #0) do
+  while (S1[Result] = S2[Result]) and (S1[Result] <> #0) do
   begin
     Inc(Result);
   end;
@@ -2118,29 +2119,30 @@ end;
 // 在字符串中某字符出现的次数
 function CharCounts(Str: PChar; Chr: Char): Integer;
 var
-  p: PChar;
+  P: PChar;
 begin
   Result := 0;
-  p := StrScan(Str, Chr);
-  while p <> nil do
+  P := StrScan(Str, Chr);
+  while P <> nil do
   begin
 {$IFDEF MSWINDOWS}
-    case StrByteType(Str, Integer(p - Str)) of
+    case StrByteType(Str, Integer(P - Str)) of
       mbSingleByte: begin
         Inc(Result);
-        Inc(p);
+        Inc(P);
       end;
-      mbLeadByte: Inc(p);
+      mbLeadByte: Inc(P);
     end;
 {$ENDIF}
 {$IFDEF POSIX}
-    if StrByteType(Str, Integer(p - Str)) = mbSingleByte then begin
+    if StrByteType(Str, Integer(P - Str)) = mbSingleByte then
+    begin
       Inc(Result);
-      Inc(p);
+      Inc(P);
     end;
 {$ENDIF}
-    Inc(p);
-    p := StrScan(p, Chr);
+    Inc(P);
+    P := StrScan(P, Chr);
   end;
 end;
 
@@ -4475,11 +4477,11 @@ end;
 // 判断s1是否包含在s2中
 function InStr(const sShort: string; const sLong: string): Boolean;
 var
-  s1, s2: string;
+  S1, S2: string;
 begin
-  s1 := LowerCase(sShort);
-  s2 := LowerCase(sLong);
-  Result := Pos(s1, s2) > 0;
+  S1 := LowerCase(sShort);
+  S2 := LowerCase(sLong);
+  Result := Pos(S1, S2) > 0;
 end;
 
 // 扩展整数转字符串函数，参数分别为目标数、长度、填充字符（默认为０）
@@ -5568,7 +5570,7 @@ end;
 // 用分号分隔的作者、邮箱字符串转换为输出格式
 function CnAuthorEmailToStr(Author, Email: string): string;
 var
-  s1, s2: string;
+  S1, S2: string;
 
   function GetLeftStr(var S: string; Sep: string): string;
   var
@@ -5589,15 +5591,15 @@ var
 
 begin
   Result := '';
-  s1 := GetLeftStr(Author, ';');
-  s2 := GetLeftStr(Email, ';');
-  while s1 <> '' do
+  S1 := GetLeftStr(Author, ';');
+  S2 := GetLeftStr(Email, ';');
+  while S1 <> '' do
   begin
     if Result <> '' then Result := Result + #13#10;
-    Result := Result + s1;
-    if s2 <> '' then Result := Result + ' (' + s2 + ')';
-    s1 := GetLeftStr(Author, ';');
-    s2 := GetLeftStr(Email, ';');
+    Result := Result + S1;
+    if S2 <> '' then Result := Result + ' (' + S2 + ')';
+    S1 := GetLeftStr(Author, ';');
+    S2 := GetLeftStr(Email, ';');
   end;
 end;
 
@@ -7541,30 +7543,30 @@ end;
 function TextFullWidthToHalfWidth(const Text: string): string;
 var
   S: string;
-  s1, s2: WideString;
+  S1, S2: WideString;
   l: Integer;
 begin
   // 中文句号和顿号不会自动替换为 . 号，需要自行处理
   S := StringReplace(Text, '。', '.', [rfReplaceAll]);
   S := StringReplace(S, '、', ',', [rfReplaceAll]);
-  s1 := S;
-  l := Length(s1);
-  SetLength(s2, l);
-  LCMapStringW(GetThreadLocale, LCMAP_HALFWIDTH, PWideChar(s1), l, PWideChar(s2), l);
-  Result := s2;
+  S1 := S;
+  l := Length(S1);
+  SetLength(S2, l);
+  LCMapStringW(GetThreadLocale, LCMAP_HALFWIDTH, PWideChar(S1), l, PWideChar(S2), l);
+  Result := S2;
 end;
 
 // 半角字符转换为全角字符
 function TextHalfWidthToFullWidth(const Text: string): string;
 var
-  s1, s2: WideString;
+  S1, S2: WideString;
   l: Integer;
 begin
-  s1 := Text;
-  l := Length(s1);
-  SetLength(s2, l);
-  LCMapStringW(GetThreadLocale, LCMAP_FULLWIDTH, PWideChar(s1), l, PWideChar(s2), l);
-  Result := s2;
+  S1 := Text;
+  l := Length(S1);
+  SetLength(S2, l);
+  LCMapStringW(GetThreadLocale, LCMAP_FULLWIDTH, PWideChar(S1), l, PWideChar(S2), l);
+  Result := S2;
 end;
 
 // 获得 CustomEdit 选中的字符串，可以处理 XP 以上的系统
@@ -8060,7 +8062,7 @@ begin
       if PreferStrings and (AObject <> nil) and (AObject is TComponent) then
         Result := (AObject as TComponent).Name
       else
-        Result := Integer(AObject);
+        Result := TCnNativeInt(AObject);
       Exit;
     end;
 

@@ -24,7 +24,8 @@ unit CnMulticastEvent;
 * 软件名称：开发包基础库
 * 单元名称：多播对象实现单元
 * 单元作者：Chinbo（Shenloqi）
-* 备    注：该单元定义了多播对象。由于内嵌汇编的限制，无法在 Delphi 5 下实现
+* 备    注：该单元定义了多播对象。由于内嵌汇编的限制，无法在 Delphi 5 下实现，
+*           且只支持 32 位。
 * 开发平台：PWin2K SP3 + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 6/7 C++Builder 6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -926,11 +927,12 @@ end;
 
 procedure TCnMulticastEventList.Clear;
 var
-  i: Integer;
+  I: Integer;
 begin
-  for i := Count - 1 downto 0 do
+  for I := Count - 1 downto 0 do
   begin
-    if Assigned(Objects[i]) then Objects[i].Free;
+    if Assigned(Objects[I]) then
+      Objects[I].Free;
   end;
 
   inherited;
@@ -1001,12 +1003,12 @@ end;
 
 function TCnMulticastEventManager.GetItems(Index: Pointer): TCnMulticastEvent;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := nil;
-  i := FEvents.IndexOf(PointerToString(Index));
-  if i >= 0 then
-    Result := TCnMulticastEvent(FEvents.Objects[i]);
+  I := FEvents.IndexOf(PointerToString(Index));
+  if I >= 0 then
+    Result := TCnMulticastEvent(FEvents.Objects[I]);
 end;
 
 function TCnMulticastEventManager.PointerToString(APointer: Pointer): string;
@@ -1019,7 +1021,8 @@ begin
   Result := FEvents.IndexOf(PointerToString(AMethod));
   if Result >= 0 then
   begin
-    if not FreeEventObject then FEvents.Objects[Result] := nil;
+    if not FreeEventObject then
+      FEvents.Objects[Result] := nil;
     FEvents.Delete(Result);
   end;
 end;
@@ -1035,12 +1038,14 @@ begin
 end;
 
 {$IFDEF TEST}
+
 type
   TTestProc = procedure(a, b, c, d, e, f, g, h, i, j: Integer) of object;
   TTestHelper = class
     procedure OnChange(Sender: TObject);
     procedure OnTest(a, b, c, d, e, f, g, h, i, j: Integer);
   end;
+
   TTest = class
     FOnTest: TTestProc;
     procedure DoTest;

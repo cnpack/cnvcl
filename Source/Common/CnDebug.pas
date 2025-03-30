@@ -789,6 +789,11 @@ const
   SCnStackTraceFromAddressFmt = '';
   SCnStackTraceNil = 'No Stack Trace.';
   SCnStackTraceNotSupport = 'Stack Trace NOT Support.';
+{$IFDEF CPUX64}
+  SCnLocationInfoFmt = '(%16.16x) [%-14s | $%16.16x] ';
+{$ELSE}
+  SCnLocationInfoFmt = '(%8.8x) [%-14s | $%8.8x] ';
+{$ENDIF}
 
   CnDebugWaitingMutexTime = 1000;  // Mutex 的等待时间顶多 1 秒
   CnDebugStartingEventTime = 5000; // 启动 Viewer 的 Event 的等待时间顶多 5 秒
@@ -959,7 +964,7 @@ begin
     BitOffset := I mod 8;
     ByteMask := 1 shl BitOffset;
 
-    EleByte := PByte(Integer(AnsiCharSetAddr) + ByteOffset)^;
+    EleByte := PByte(TCnNativeInt(AnsiCharSetAddr) + ByteOffset)^;
     if (EleByte and ByteMask) <> 0 then
     begin
       if Result <> '' then
@@ -1007,13 +1012,8 @@ begin
     Exit;
 
   // (地址) [模块名| 基址]
-{$IFDEF CPUX64}
-  Result := Format('(%16.16x) [%-14s | $%16.16x] ', [TCnNativeInt(Address),
+  Result := Format(SCnLocationInfoFmt, [TCnNativeInt(Address),
     ExtractFileName(Info.ModuleFile), Info.ModuleHandle]);
-{$ELSE}
-  Result := Format('(%8.8x) [%-14s | $%8.8x] ', [TCnNativeInt(Address),
-    ExtractFileName(Info.ModuleFile), Info.ModuleHandle]);
-{$ENDIF}
 
   if Info.GetDebugInfoFromAddr(Address, MN, UN, PN, LN, OL, OP) then
   begin
@@ -1559,7 +1559,7 @@ begin
   Index := FThrdIDList.IndexOf(Pointer(ThrdID));
   if Index >= 0 then
   begin
-    Indent := Integer(FIndentList.Items[Index]);
+    Indent := Integer(FIndentList.Items[Index]); // Indent 很小，无需在乎 64 位下截断成 32 位
     if Indent > 0 then Dec(Indent);
     FIndentList.Items[Index] := Pointer(Indent);
     Result := Indent;
@@ -3645,6 +3645,7 @@ begin
 {$IFDEF SUPPORT_INTERFACE_AS_OBJECT}
   Result := AIntf as TObject;
 {$ELSE}
+  // 只在 32 位下，可用 Integer 转换
   with PObjectFromInterfaceStub(PPointer(PPointer(AIntf)^)^)^ do
   case Stub of
     $04244483: Result := Pointer(Integer(AIntf) + ShortJmp);
@@ -5174,11 +5175,7 @@ begin
   if (FMap <> 0) and (FMapHeader <> nil) then
   begin
     Header := FMapHeader;
-{$IFDEF CPUX64}
-    FMsgBase := Pointer(Header^.DataOffset + NativeInt(FMapHeader));
-{$ELSE}
-    FMsgBase := Pointer(Header^.DataOffset + Integer(FMapHeader));
-{$ENDIF}
+    FMsgBase := Pointer(Header^.DataOffset + TCnNativeInt(FMapHeader));
     FMapSize := Header^.MapSize;
     FQueueSize := FMapSize - Header^.DataOffset;
     Result := (Header^.MapEnabled = CnDebugMapEnabled) and
@@ -5283,11 +5280,7 @@ begin
       // 锁定并删队列头元素，直到有足够的空间来容纳本 Size 为止
       IsFull := True;
       repeat
-{$IFDEF CPUX64}
-        MsgLen := PInteger(NativeInt(FMsgBase) + FFront)^;
-{$ELSE}
-        MsgLen := PInteger(Integer(FMsgBase) + FFront)^;
-{$ENDIF}
+        MsgLen := PInteger(TCnNativeInt(FMsgBase) + FFront)^;
         FFront := (FFront + MsgLen) mod FQueueSize;
       until not BufferFull;
       // 删完毕，进入写步骤 -- 以上可以考虑改成直接清空队列
@@ -5296,39 +5289,21 @@ begin
     // 先写数据再改指针
     if FTail + Size < FQueueSize then
     begin
-{$IFDEF CPUX64}
-      CopyMemory(Pointer(NativeInt(FMsgBase) + FTail), @MsgDesc, Size);
-{$ELSE}
-      CopyMemory(Pointer(Integer(FMsgBase) + FTail), @MsgDesc, Size);
-{$ENDIF}
+      CopyMemory(Pointer(TCnNativeInt(FMsgBase) + FTail), @MsgDesc, Size);
     end
     else
     begin
       RestLen := FQueueSize - FTail;
       if RestLen < SizeOf(Integer) then // 剩余空间不足以容纳信息头的 Length 字段
       begin
-{$IFDEF CPUX64}
-        CopyMemory(Pointer(NativeInt(FMsgBase) + FTail), @MsgDesc, SizeOf(Integer));
-{$ELSE}
-        CopyMemory(Pointer(Integer(FMsgBase) + FTail), @MsgDesc, SizeOf(Integer));
-{$ENDIF}
+        CopyMemory(Pointer(TCnNativeInt(FMsgBase) + FTail), @MsgDesc, SizeOf(Integer));
         // 强行复制，要求队列超出 QueueSize 外的尾部至少有 SizeOf(Integer) 的空余缓冲
         // 可不如此做，但会增加 Viewer 读取长度时的回溯困难
       end
       else
-      begin
-{$IFDEF CPUX64}
-        CopyMemory(Pointer(NativeInt(FMsgBase) + FTail), @MsgDesc, RestLen);
-{$ELSE}
-        CopyMemory(Pointer(Integer(FMsgBase) + FTail), @MsgDesc, RestLen);
-{$ENDIF}
-      end;
+        CopyMemory(Pointer(TCnNativeInt(FMsgBase) + FTail), @MsgDesc, RestLen);
 
-{$IFDEF CPUX64}
-      CopyMemory(FMsgBase, Pointer(NativeInt(@MsgDesc) + RestLen), Size - RestLen);
-{$ELSE}
-      CopyMemory(FMsgBase, Pointer(Integer(@MsgDesc) + RestLen), Size - RestLen);
-{$ENDIF}
+      CopyMemory(FMsgBase, Pointer(TCnNativeInt(@MsgDesc) + RestLen), Size - RestLen);
     end;
 
     Inc(FTail, Size);

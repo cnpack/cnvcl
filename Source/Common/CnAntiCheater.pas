@@ -61,7 +61,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, Windows, SysUtils, TypInfo, CnMethodHook;
+  Classes, Windows, SysUtils, TypInfo, CnNative, CnMethodHook;
 
 type
   ECnAntiCheaterHookException = class(Exception);
@@ -448,13 +448,13 @@ begin
             if FEmptyPtr = (THUNK_SIZE div CALL_SIZE) then
               raise ECnAntiCheaterHookException.Create(SCnErrorHookPoolOverflow);
     
-            AGet := PCnGetCall(Integer(FHookPool) + FEmptyPtr * CALL_SIZE);
+            AGet := PCnGetCall(TCnNativeInt(FHookPool) + FEmptyPtr * CALL_SIZE);
             Inc(FEmptyPtr);
     
             Move(SCnGetCall, AGet^.Code1, SizeOf(SCnGetCall));
-            AGet^.AddrGet := Pointer(Integer(PropInfo^.GetProc) - Integer(AGet) - 27);
-            // 27 为相对跳转指令相对于AGet头部的偏移，包括跳转指令本身
-            AGet^.OffSetConvert := $0C; // GetConvert 方法在本类 VMT 中的偏移 $0c
+            AGet^.AddrGet := Pointer(TCnNativeInt(PropInfo^.GetProc) - TCnNativeInt(AGet) - 27);
+            // 27 为相对跳转指令相对于 AGet 头部的偏移，包括跳转指令本身
+            AGet^.OffSetConvert := $0C; // GetConvert 方法在本类 VMT 中的偏移 $0C
     
             AHooker := TCnMethodHook.Create(PropInfo^.GetProc, AGet);
             AGet^.HookInst1 := AHooker;
@@ -470,12 +470,12 @@ begin
             if FEmptyPtr = (THUNK_SIZE div CALL_SIZE) then
               raise ECnAntiCheaterHookException.Create(SCnErrorHookPoolOverflow);
     
-            ASet := PCnSetCall(Integer(FHookPool) + FEmptyPtr * CALL_SIZE);
+            ASet := PCnSetCall(TCnNativeInt(FHookPool) + FEmptyPtr * CALL_SIZE);
             Inc(FEmptyPtr);
     
             Move(SCnSetCall, ASet^.Code1, SizeOf(SCnSetCall));
-            ASet^.AddrSet := Pointer(Integer(PropInfo^.SetProc) - Integer(ASet) - 43);
-            // 43 为相对跳转指令相对于ASet头部的偏移，包括跳转指令本身
+            ASet^.AddrSet := Pointer(TCnNativeInt(PropInfo^.SetProc) - TCnNativeInt(ASet) - 43);
+            // 43 为相对跳转指令相对于 ASet 头部的偏移，包括跳转指令本身
             ASet^.OffSetConvert := $10; // SetConvert 方法在本类 VMT 中的偏移 $10
     
             AHooker := TCnMethodHook.Create(PropInfo^.SetProc, ASet);
