@@ -322,11 +322,7 @@ type
     FOnFindComponent: TCnFindComponentEvent;
     FControlFindList: TList;
     FOnFindControl: TCnFindControlEvent;
-{$IFDEF CAPTURE_STACK}
-    FIsInExcption: Boolean;
-{$ENDIF}
     procedure CreateChannel;
-
     function GetActive: Boolean;
     procedure SetActive(const Value: Boolean);
     function IntArrayToString(ArrayAddress: Pointer; ElementCount, ElementSize: Integer;
@@ -835,6 +831,11 @@ var
 {$IFDEF CAPTURE_STACK}
   FInProcessCriticalSection: TCnDebugCriticalSection;
   FInProcessModuleList: TCnInProcessModuleList = nil;
+{$ENDIF}
+
+{$IFDEF CAPTURE_STACK}
+threadvar
+  FIsInExcption: Boolean;
 {$ENDIF}
 
 procedure CnEnterCriticalSection(Section: TCnDebugCriticalSection);
