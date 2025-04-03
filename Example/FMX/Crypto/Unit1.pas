@@ -1073,7 +1073,6 @@ begin
         end;
         edtAesResult.Text := BytesToHex(ResBytes);
         Exit;
-{$ENDIF}
       end
       else
       begin
