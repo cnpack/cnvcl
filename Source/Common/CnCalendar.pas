@@ -49,7 +49,7 @@ unit CnCalendar;
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2025.03.28 V2.6
-*               增加六曜日的计算，增加六十太岁字符串
+*               增加干支纪年的年月转换，增加六曜日的计算，增加六十太岁字符串
 *           2025.02.20 V2.5
 *               根据清风徐来的报告，修正 2025 年农历 3 月的日期偏差问题
 *           2022.09.03 V2.4
@@ -427,7 +427,7 @@ function GetDayFromYearBegin(AYear, AMonth, ADay: Integer): Integer; overload;
 
 function GetDayFromYearBegin(AYear, AMonth, ADay, AHour: Integer;
   AMinute: Integer = 0; ASecond: Integer = 0): Extended; overload;
-{* 取某日期到年初的天数，小时、分、秒数折算入小数，不考虑 1582 年 10 月的特殊情况 
+{* 取某日期到年初的天数，小时、分、秒数折算入小数，不考虑 1582 年 10 月的特殊情况。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日

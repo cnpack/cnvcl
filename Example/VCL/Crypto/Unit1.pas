@@ -1278,7 +1278,7 @@ procedure TFormCrypt.btnAesDecryptClick(Sender: TObject);
 var
   TmpAesIv: TCnAESBuffer;
   IvStr: AnsiString;
-  KeyBytes, IvBytes, ResBytes, DataBytes: TBytes;
+  KeyBytes, IvBytes, ResBytes: TBytes;
 begin
   if rbAesecb.Checked then
   begin
@@ -1327,10 +1327,6 @@ begin
     begin
       KeyBytes := MyStringToBytes(edtAesKey.Text);
       IvBytes := MyStringToBytes(IvStr);
-      DataBytes := MyStringToBytes(edtAes.Text);
-
-      if rbAescbc.Checked and (cbbAesPadding.ItemIndex = 1) then // CBC ÐèÒª¶ÔÆë
-        BytesAddPKCS7Padding(DataBytes, CN_AES_BLOCKSIZE);
     end;
 
     if rbAescbc.Checked then
