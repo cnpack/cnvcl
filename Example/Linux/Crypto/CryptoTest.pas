@@ -89,6 +89,8 @@ function TestBigNumberRoundDiv: Boolean;
 function TestBigNumberShiftLeft: Boolean;
 function TestBigNumberGetBitsCount: Boolean;
 function TestBigNumberShiftRightOne: Boolean;
+function TestBigNumberGcd: Boolean;
+function TestBigNumberLcm: Boolean;
 function TestBigNumberFermatCheckComposite: Boolean;
 function TestBigNumberIsProbablyPrime: Boolean;
 function TestBigNumberIsPerfectPower: Boolean;
@@ -440,6 +442,8 @@ begin
   MyAssert(TestBigNumberShiftLeft, 'TestBigNumberShiftLeft');
   MyAssert(TestBigNumberGetBitsCount, 'TestBigNumberGetBitsCount');
   MyAssert(TestBigNumberShiftRightOne, 'TestBigNumberShiftRightOne');
+  MyAssert(TestBigNumberGcd, 'TestBigNumberGcd');
+  MyAssert(TestBigNumberLcm, 'TestBigNumberLcm');
   MyAssert(TestBigNumberFermatCheckComposite, 'TestBigNumberFermatCheckComposite');
   MyAssert(TestBigNumberIsProbablyPrime, 'TestBigNumberIsProbablyPrime');
   MyAssert(TestBigNumberIsPerfectPower, 'TestBigNumberIsPerfectPower');
@@ -1317,6 +1321,82 @@ begin
   A.SetHex('1F1BB7E73A2BF6B7175959BC04F056290B0D8CDBC57B2D0B19494325EE6634CA0F441A3C69C8EB840E9AA704F05C1D090BAE579FEF1776A91EE7A973E28F4E00');
   A.ShiftRightOne;
   Result := A.ToHex() = '0F8DDBF39D15FB5B8BACACDE02782B148586C66DE2BD96858CA4A192F7331A6507A20D1E34E475C2074D5382782E0E8485D72BCFF78BBB548F73D4B9F147A700';
+  BigNumberFree(A);
+end;
+
+function TestBigNumberGcd: Boolean;
+var
+  A, B, C: TCnBigNumber;
+begin
+  A := BigNumberNew;
+  B := BigNumberNew;
+  C := BigNumberNew;
+
+  // 要包括小范围的 Int64 的数以及大数以做到覆盖，因内部分开处理了
+  A.SetDec('5');
+  B.SetDec('13');
+  BigNumberGcd(C, A, B);
+  Result := C.ToDec = '1';
+  if not Result then Exit;
+
+  A.SetDec('625000');
+  B.SetDec('10275');
+  BigNumberGcd(C, A, B);
+  Result := C.ToDec = '25';
+  if not Result then Exit;
+
+  A.SetDec('92752378340189327');
+  B.SetDec('10098278758718');
+  BigNumberGcd(C, A, B);
+  Result := C.ToDec = '1';
+  if not Result then Exit;
+
+  A.SetDec('43674960102945789956341939450673822288888880');
+  B.SetDec('98421092474268980864245077976421597415750');
+  BigNumberGcd(C, A, B);
+  Result := C.ToDec = '30';
+  if not Result then Exit;
+
+  BigNumberFree(C);
+  BigNumberFree(B);
+  BigNumberFree(A);
+end;
+
+function TestBigNumberLcm: Boolean;
+var
+  A, B, C: TCnBigNumber;
+begin
+  A := BigNumberNew;
+  B := BigNumberNew;
+  C := BigNumberNew;
+
+  // 内部虽然没分开，但也推荐用小范围的 Int64 的数以及大数以做到覆盖
+  A.SetDec('13');
+  B.SetDec('5');
+  BigNumberLcm(C, A, B);
+  Result := C.ToDec = '65';
+  if not Result then Exit;
+
+  A.SetDec('93666666');
+  B.SetDec('32784522');
+  BigNumberLcm(C, A, B);
+  Result := C.ToDec = '511802812023942';
+  if not Result then Exit;
+
+  A.SetDec('65536');
+  B.SetDec('1609845068400000000');
+  BigNumberLcm(C, A, B);
+  Result := C.ToDec = '103030084377600000000';
+  if not Result then Exit;
+
+  A.SetDec('9681273465892781943786476838947823898923889185');
+  B.SetDec('2387639409472541638495736283949590');
+  BigNumberLcm(C, A, B);
+  Result := C.ToDec = '1541026004069761890928432375060847439427168479412914472659863043376995685745610';
+  if not Result then Exit;
+
+  BigNumberFree(C);
+  BigNumberFree(B);
   BigNumberFree(A);
 end;
 

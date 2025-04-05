@@ -266,6 +266,33 @@ type
        返回值：Integer                    - 返回十进制位数
     }
 
+    function IsCardinal: Boolean;
+    {* 大数是否是一个 32 位无符号整数范围内的数。
+
+       参数：
+         （无）
+
+       返回值：Boolean                        - 返回是否在 32 位无符号整数范围内
+    }
+
+    function GetCardinal: Cardinal;
+    {* 取 32 位无符号整数值，如超界，返回 $FFFFFFFF。
+
+       参数：
+         （无）
+
+       返回值：Cardinal                   - 返回 32 位无符号整数
+    }
+
+    function SetCardinal(W: Cardinal): Boolean;
+    {* 给大数赋 32 位无符号整数值。
+
+       参数：
+         W: Cardinal                      - 待赋值的 32 位无符号整数
+
+       返回值：Boolean                    - 返回是否赋值成功
+    }
+
     function GetWord: Cardinal;
     {* 取 32 位无符号整数值，如超界，返回 $FFFFFFFF。
 
@@ -282,6 +309,15 @@ type
          W: Cardinal                      - 待赋值的 32 位无符号整数
 
        返回值：Boolean                    - 返回是否赋值成功
+    }
+
+    function IsInteger: Boolean;
+    {* 大数是否是一个 32 位有符号整数范围内的数。
+
+       参数：
+         （无）
+
+       返回值：Boolean                        - 返回是否在 32 位有符号整数范围内
     }
 
     function GetInteger: Integer;
@@ -302,6 +338,15 @@ type
        返回值：Boolean                    - 返回是否赋值成功
     }
 
+    function IsInt64: Boolean;
+    {* 大数是否是一个 64 位有符号整数范围内的数。
+
+       参数：
+         （无）
+
+       返回值：Boolean                        - 返回是否在 64 位有符号整数范围内
+    }
+
     function GetInt64: Int64;
     {* 取 64 位有符号整数值，如超界，返回 $7FFFFFFFFFFFFFFF。
 
@@ -318,6 +363,15 @@ type
          W: Int64                         - 待赋值的 64 位有符号整数
 
        返回值：Boolean                    - 返回是否赋值成功
+    }
+
+    function IsUInt64: Boolean;
+    {* 大数是否是一个 64 位无符号整数范围内的数。
+
+       参数：
+         （无）
+
+       返回值：Boolean                        - 返回是否在 64 位无符号整数范围内
     }
 
 {$IFDEF SUPPORT_UINT64}
@@ -6884,8 +6938,18 @@ function BigNumberGcd(Res: TCnBigNumber; Num1: TCnBigNumber;
   Num2: TCnBigNumber): Boolean;
 var
   T, A, B: TCnBigNumber;
+  R: Int64;
 begin
   Result := False;
+
+  // 小点儿的数用 Int64 版本处理以加速，因为公约数小。公倍数则不一定
+  if Num1.IsInt64 and Num2.IsInt64 then
+  begin
+    R := CnInt64GreatestCommonDivisor2(Num1.GetInt64, Num2.GetInt64);
+    Res.SetInt64(R);
+    Result := True;
+    Exit;
+  end;
 
   A := nil;
   B := nil;
@@ -9003,8 +9067,8 @@ begin
   BK := nil;
 
   try
-    // 找出最小的 R 满足 N mod R 的阶 > (Log二底(N))^2。
-    // N mod R 的阶（假设叫 L），指满足 N 的 L 次方后 mod R 为 1 的最小 L
+    // 找出最小的 R 满足 N mod R 的乘法阶 > (Log二底(N))^2
+    // N mod R 的乘法阶（假设叫 L），指满足 N 的 L 次方后 mod R 为 1 的最小 L
     NR := True;
 
     R := FLocalBigNumberPool.Obtain;
@@ -9015,7 +9079,7 @@ begin
     T := FLocalBigNumberPool.Obtain;
     BK := FLocalBigNumberPool.Obtain;
 
-    // 找出最小的 R，这一步参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时，应该有办法优化
+    // 找出最小的 R，这一步参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时
     while NR do
     begin
       R.AddWord(1);
@@ -9594,6 +9658,11 @@ begin
   Result := BigNumberGetBytesCount(Self);
 end;
 
+function TCnBigNumber.GetCardinal: Cardinal;
+begin
+  Result := BigNumberGetWord(Self);
+end;
+
 function TCnBigNumber.GetWord: Cardinal;
 begin
   Result := BigNumberGetWord(Self);
@@ -9648,6 +9717,26 @@ begin
   Result := BigNumberIsWord(Self, W);
 end;
 
+function TCnBigNumber.IsCardinal: Boolean;
+begin
+  Result := BigNumberIsUInt32(Self);
+end;
+
+function TCnBigNumber.IsInteger: Boolean;
+begin
+  Result := BigNumberIsInt32(Self);
+end;
+
+function TCnBigNumber.IsInt64: Boolean;
+begin
+  Result := BigNumberIsInt64(Self);
+end;
+
+function TCnBigNumber.IsUInt64: Boolean;
+begin
+  Result := BigNumberIsUInt64(Self);
+end;
+
 function TCnBigNumber.IsZero: Boolean;
 begin
   Result := BigNumberIsZero(Self);
@@ -9691,6 +9780,11 @@ end;
 function TCnBigNumber.SetOne: Boolean;
 begin
   Result := BigNumberSetOne(Self);
+end;
+
+function TCnBigNumber.SetCardinal(W: Cardinal): Boolean;
+begin
+  Result := BigNumberSetWord(Self, W);
 end;
 
 function TCnBigNumber.SetWord(W: Cardinal): Boolean;
@@ -9741,7 +9835,6 @@ function TCnBigNumber.WordExpand(Words: Integer): TCnBigNumber;
 begin
   Result := BigNumberWordExpand(Self, Words);
 end;
-
 
 function TCnBigNumber.GetDecString: string;
 begin

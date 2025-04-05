@@ -3091,14 +3091,14 @@ begin
   if CnInt64IsPerfectPower(N) then // 如果是完全幂则是合数
     Exit;
 
-  // 找出最小的 R 满足 欧拉(R) > (Log二底(N))^2。
+  // 找出最小的 R 满足 N mod R 的乘法阶 > (Log二底(N))^2。
+  // N mod R 的乘法阶（假设叫 L），指满足 N 的 L 次方后 mod R 为 1 的最小 L
   NR := True;
   R := 1;
-  LG2 := Log2(N);
-  // LG2 := GetUInt64HighBits(N); // 整数会有误差
+  LG2 := Log2(N);                 // 整数会有误差，需要用到浮点，一般不会超出浮点范围
   LG22 := Trunc(LG2 * LG2);
 
-  // 找出最小的 R
+  // 找出最小的 R，这一步参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时
   while NR do
   begin
     Inc(R);
