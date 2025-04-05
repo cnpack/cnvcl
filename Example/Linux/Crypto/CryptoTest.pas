@@ -94,6 +94,7 @@ function TestBigNumberIsProbablyPrime: Boolean;
 function TestBigNumberIsPerfectPower: Boolean;
 function TestBigNumberJacobiSymbol: Boolean;
 function TestBigNumberMersennePrime: Boolean;
+function TestBigNumberAKSIsPrime: Boolean;
 
 // ================================ Bits =======================================
 
@@ -444,6 +445,7 @@ begin
   MyAssert(TestBigNumberIsPerfectPower, 'TestBigNumberIsPerfectPower');
   MyAssert(TestBigNumberJacobiSymbol, 'TestBigNumberJacobiSymbol');
   MyAssert(TestBigNumberMersennePrime, 'TestBigNumberMersennePrime');
+  MyAssert(TestBigNumberAKSIsPrime, 'TestBigNumberAKSIsPrime');
 
 // ================================ Bits =======================================
 
@@ -1406,6 +1408,21 @@ begin
   Result := not BigNumberIsMersennePrime(4) and not BigNumberIsMersennePrime(8)
     and not BigNumberIsMersennePrime(11) and not BigNumberIsMersennePrime(15)
     and not BigNumberIsMersennePrime(18) and not BigNumberIsMersennePrime(21);;
+end;
+
+function TestBigNumberAKSIsPrime: Boolean;
+begin
+  // 这些是素数
+  Result := BigNumberAKSIsPrime(2) and BigNumberAKSIsPrime(3) and BigNumberAKSIsPrime(5)
+    and BigNumberAKSIsPrime(859) and BigNumberAKSIsPrime(2999) and BigNumberAKSIsPrime(16769023)
+    and BigNumberAKSIsPrime(87178291199) and BigNumberAKSIsPrime(9223372036854775783);
+
+  if not Result then Exit;
+
+  // 这些不是素数
+  Result := not BigNumberAKSIsPrime(6) and not BigNumberAKSIsPrime(125)
+    and not BigNumberAKSIsPrime(9999999999) and not BigNumberAKSIsPrime(87178291200)
+    and not BigNumberAKSIsPrime(24036584) and not BigNumberAKSIsPrime(9223372036854775784);
 end;
 
 // ================================ Bits =======================================

@@ -99,7 +99,7 @@ type
       NotifyOptionFlags : DWORD);
     procedure SetFileMasks(FileMasks: TStringList);
     procedure SetIncludePath(IncludePath: Boolean);
-    property ChangeEvent : TFileDealMethod read FChangeEvent write FChangeEvent;
+    property ChangeEvent: TFileDealMethod read FChangeEvent write FChangeEvent;
   end;
 
 {$IFDEF SUPPORT_32_AND_64}

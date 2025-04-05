@@ -2603,11 +2603,20 @@ procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Intege
    返回值：（无）
 }
 
-function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
-{* 用 AKS 算法判断某正整数是否是素数，判断 9223372036854775783 约需 15 秒
+function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean; overload;
+{* 用 AKS 算法判断某大正整数是否是素数，判断 9223372036854775783 约需 15 秒。
 
    参数：
      N: TCnBigNumber                      - 待判断的大数对象
+
+   返回值：Boolean                        - 返回是否素数
+}
+
+function BigNumberAKSIsPrime(N: Int64): Boolean; overload;
+{* 用 AKS 算法判断某正整数是否是素数。
+
+   参数：
+     N: Int64                             - 待判断的正整数
 
    返回值：Boolean                        - 返回是否素数
 }
@@ -8960,6 +8969,19 @@ begin
     BigNumberNonNegativeMod(List[I], List[I], P);
 end;
 
+function BigNumberAKSIsPrime(N: Int64): Boolean;
+var
+  T: TCnBigNumber;
+begin
+  T := TCnBigNumber.Create;
+  try
+    T.SetInt64(N);
+    Result := BigNumberAKSIsPrime(T);
+  finally
+    T.Free;
+  end;
+end;
+
 function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
 var
   NR: Boolean;
@@ -8981,21 +9003,23 @@ begin
   BK := nil;
 
   try
-    // 找出最小的 R 满足 欧拉(R) > (Log二底(N))^2。
+    // 找出最小的 R 满足 N mod R 的阶 > (Log二底(N))^2。
+    // N mod R 的阶（假设叫 L），指满足 N 的 L 次方后 mod R 为 1 的最小 L
     NR := True;
 
     R := FLocalBigNumberPool.Obtain;
     R.SetOne;
-    LG2 := BigNumberLog2(N);
-    // LG2 := GetUInt64HighBits(N); // 整数会有误差
+    LG2 := BigNumberLog2(N);      // 整数会有误差，需要用到浮点，一般不会超出浮点范围
     LG22 := Trunc(LG2 * LG2);
 
     T := FLocalBigNumberPool.Obtain;
     BK := FLocalBigNumberPool.Obtain;
-    // 找出最小的 R
+    // 找出最小的 R，这一步 K 从 1 到 (Log二底(N))^2，较为耗时，应该有办法优化
     while NR do
     begin
       R.AddWord(1);
+
+      // TODO: 计算 Gcd(R, N)，如果不为 1 则合数，退出
       NR := False;
 
       K := 1;
@@ -9008,7 +9032,7 @@ begin
       end;
     end;
 
-    // 得到 R，如果某些比 R 小的 T 和 N 不互素，则是合数
+    // 得到 R，从 R 往低了找，如果某些比 R 小的 T 和 N 不互素，则是合数
     BigNumberCopy(T, R);
     C := FLocalBigNumberPool.Obtain;
 
@@ -9041,7 +9065,7 @@ begin
     // X^N + Y 对 X^R-1 取模则是 X^(N-R) + Y
     // 一减，得到的结果其实是 Y^N - Y
 
-    // 从 1 到 欧拉(R)平方根 * (Log二底(N)) 的整数部分作为 Y，计算 Y^N - Y mod N 是否是 0
+    // 从 1 到 欧拉(R)平方根 * (Log二底(N)) 的整数部分，逐个作为 Y，计算 Y^N - Y mod N 是否是 0
 
     T.SetOne;
     while BigNumberCompare(T, C) <= 0 do
