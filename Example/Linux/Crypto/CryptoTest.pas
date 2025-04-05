@@ -383,7 +383,7 @@ end;
 
 procedure MyAssert(V: Boolean; const Msg: string);
 begin
-  MyWriteln(Msg + '...');
+  MyWriteln(FormatDateTime('yyyy-MM-dd:hh:nn:ss.zzz | ', Now) +  Msg + '...');
   Assert(V);
 end;
 

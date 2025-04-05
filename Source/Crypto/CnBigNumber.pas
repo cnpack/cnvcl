@@ -2521,7 +2521,7 @@ procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
 }
 
 procedure BigNumberEuler(Res: TCnBigNumber; Num: TCnBigNumber);
-{* 求不大于一 64 位无符号数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数。
+{* 求不大于大整数 Num 的且与 Num 互素的正整数的个数，也就是欧拉函数。
 
    参数：
      Res: TCnBigNumber                    - 用来容纳结果的大数对象
@@ -8986,7 +8986,7 @@ function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
 var
   NR: Boolean;
   R, T, C, Q: TCnBigNumber;
-  K, LG22: Integer;
+  K, LG22: Int64;
   LG2: Extended;
   BK: TCnBigNumber;
 begin
@@ -9014,20 +9014,21 @@ begin
 
     T := FLocalBigNumberPool.Obtain;
     BK := FLocalBigNumberPool.Obtain;
-    // 找出最小的 R，这一步 K 从 1 到 (Log二底(N))^2，较为耗时，应该有办法优化
+
+    // 找出最小的 R，这一步参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时，应该有办法优化
     while NR do
     begin
       R.AddWord(1);
-
-      // TODO: 计算 Gcd(R, N)，如果不为 1 则合数，退出
       NR := False;
 
       K := 1;
       while not NR and (K <= LG22) do
       begin
-        BK.SetWord(K);
+        BK.SetInt64(K);
         BigNumberPowerMod(T, N, BK, R);
         NR := T.IsZero or T.IsOne;
+        // 求余得到 1 或 0 时 NR 为 True，跳出内层但外层继续
+        // 直到小于 LG22 的所有 K 均算出来余数非 1 非 0，此时的 R 才有效
         Inc(K);
       end;
     end;
