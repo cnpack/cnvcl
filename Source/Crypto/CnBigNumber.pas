@@ -770,7 +770,25 @@ type
        参数：
          ABigNumber: TCnBigNumber         - 待添加的大数对象
 
-       返回值：Integer                    - 新增的该大数对象
+       返回值：Integer                    - 新增的该大数对象的索引值
+    }
+
+    function Add(Num: Integer): TCnBigNumber; overload;
+    {* 添加一整数，内部生成大数对象，注意返回的结果无需也不应手动释放。
+
+       参数：
+         Num: Integer                     - 待添加的整数
+
+       返回值：TCnBigNumber               - 新增的该大数对象
+    }
+
+    procedure AddList(List: TCnBigNumberList);
+    {* 添加一大数列表，也即复制列表内的所有大数对象并添加。
+
+       参数：
+         List: TCnBigNumberList           - 待添加的整数
+
+       返回值：（无）
     }
 
     function Remove(ABigNumber: TCnBigNumber): Integer;
@@ -800,6 +818,7 @@ type
 
        返回值：（无）
     }
+
     procedure RemoveDuplicated;
     {* 去重，也就是删除并释放值重复的大数对象，只留一个}
 
@@ -810,6 +829,18 @@ type
          Sum: TCnBigNumber                - 输出的和
 
        返回值：（无）
+    }
+
+    procedure BigNumberSort;
+    {* 列表内大数从小到大排序}
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将大数列表转成字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
     }
 
     property Items[Index: Integer]: TCnBigNumber read GetItem write SetItem; default;
@@ -1646,12 +1677,22 @@ function BigNumberCompare(Num1: TCnBigNumber; Num2: TCnBigNumber): Integer;
    返回值：Integer                        - 返回比较结果
 }
 
-function BigNumberCompareInteger(Num1: TCnBigNumber; Num2: Integer): Integer;
+function BigNumberCompareInteger(Num1: TCnBigNumber; Num2: Integer): Integer; overload;
 {* 带符号比较一个大数对象与一个整数，前者大于、等于、小于后者时分别返回 1、0、-1。
 
    参数：
      Num1: TCnBigNumber                   - 待比较的大数对象
      Num2: Integer                        - 待比较的整数
+
+   返回值：Integer                        - 返回比较结果
+}
+
+function BigNumberCompareInteger(Num1: TCnBigNumber; Num2: Int64): Integer; overload;
+{* 带符号比较一个大数对象与一个整数，前者大于、等于、小于后者时分别返回 1、0、-1。
+
+   参数：
+     Num1: TCnBigNumber                   - 待比较的大数对象
+     Num2: Int64                          - 待比较的整数
 
    返回值：Integer                        - 返回比较结果
 }
@@ -2565,11 +2606,21 @@ function BigNumberJacobiSymbol(A: TCnBigNumber; N: TCnBigNumber): Integer;
 }
 
 procedure BigNumberFindFactors(Num: TCnBigNumber; Factors: TCnBigNumberList);
-{* 找出大数的素数因子列表。
+{* 找出大数的素数因子列表，可重复且未排序。
 
    参数：
      Num: TCnBigNumber                    - 待计算的大数对象
      Factors: TCnBigNumberList            - 用来容纳结果的大数列表
+
+   返回值：（无）
+}
+
+procedure BigNumberFindAllFactors(Num: TCnBigNumber; AllFactors: TCnBigNumberList);
+{* 找出大数的所有因子列表，不重复且排序。
+
+   参数：
+     Num: TCnBigNumber                    - 待计算的大数对象
+     AllFactors: TCnBigNumberList         - 用来容纳结果的大数列表
 
    返回值：（无）
 }
@@ -2704,6 +2755,21 @@ function BigNumberBigStepGiantStep(Res: TCnBigNumber; A: TCnBigNumber;
      A: TCnBigNumber                      - 离散对数问题中的 A
      B: TCnBigNumber                      - 离散对数问题中的 B
      M: TCnBigNumber                      - 离散对数问题中的模数 M
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
+function BigNumberMultiplicativeOrder(Res: TCnBigNumber; N: TCnBigNumber;
+  R: TCnBigNumber): Boolean;
+{* 用欧拉函数求大整数 N 模 R 的乘法阶，也即求满足 N^K mod R = 1 的 K 的最小正整数值。
+   乘法阶一定比 R 小，但与 N 大小无关。且由欧拉定理，俩互素时 R 的欧拉函数值一定满足等式但未必最小。
+   所以乘法阶必然是 R 的欧拉函数值的因数，可将其因数分解后组合遍历，比暴力遍历效率高。
+   注意乘法阶必须 N 和 R 互素才存在，如不互素，本函数返回 False。
+
+   参数：
+     Res: TCnBigNumber                    - 用来容纳结果的大数对象
+     N: TCnBigNumber                      - 待求乘法阶的大数
+     R: TCnBigNumber                      - 模数
 
    返回值：Boolean                        - 返回是否计算成功
 }
@@ -2855,6 +2921,23 @@ var
 {$ELSE}
   FCnBigNumberIs64: Boolean = False;
 {$ENDIF}
+
+function DefBigNumberCompare(Item1, Item2: Pointer): Integer;
+var
+  A, B: TCnBigNumber;
+begin
+  A := TCnBigNumber(Item1);
+  B := TCnBigNumber(Item2);
+
+  if (A = nil) and (B = nil) then
+    Result := 0
+  else if A = nil then
+    Result := -1
+  else if B = nil then
+    Result := 1
+  else
+    Result := BigNumberCompare(A, B);
+end;
 
 function CnBigNumberIs64Mode: Boolean;
 begin
@@ -3854,6 +3937,19 @@ begin
   T := FLocalBigNumberPool.Obtain;
   try
     T.SetInteger(Num2);
+    Result := BigNumberCompare(Num1, T);
+  finally
+    FLocalBigNumberPool.Recycle(T);
+  end;
+end;
+
+function BigNumberCompareInteger(Num1: TCnBigNumber; Num2: Int64): Integer;
+var
+  T: TCnBigNumber;
+begin
+  T := FLocalBigNumberPool.Obtain;
+  try
+    T.SetInt64(Num2);
     Result := BigNumberCompare(Num1, T);
   finally
     FLocalBigNumberPool.Recycle(T);
@@ -8704,6 +8800,114 @@ begin
   end;
 end;
 
+procedure BigNumberFindAllFactors(Num: TCnBigNumber; AllFactors: TCnBigNumberList);
+var
+  I, J, L: Integer;
+  P, PV, TN: TCnBigNumber;
+  F, EF, EP, T: TCnBigNumberList;
+  EC: TCnIntegerList;
+
+  procedure GeneratePowerValues(P: TCnBigNumber; MaxExp: Integer; Powers: TCnBigNumberList);
+  var
+    K: Integer;
+    CurrentPower, P2: TCnBigNumber;
+  begin
+    Powers.Clear;
+    CurrentPower := Powers.Add;
+    CurrentPower.SetOne; // P^0
+
+    for K := 1 to MaxExp do
+    begin
+      P2 := Powers.Add;
+      BigNumberMul(P2, CurrentPower, P);
+      CurrentPower := P2;
+    end;
+  end;
+
+begin
+  if Num.IsZero then
+    Exit;
+
+  if Num.IsOne then
+  begin
+    AllFactors.Add(1);
+    Exit;
+  end
+  else if BigNumberIsProbablyPrime(Num) then
+  begin
+    AllFactors.Add(1);
+    AllFactors.Add(BigNumberDuplicate(Num));
+    Exit;
+  end;
+
+  F := nil;
+  EF := nil;
+  EC := nil;
+  EP := nil;
+
+  try
+    F := TCnBigNumberList.Create;
+    BigNumberFindFactors(Num, F);   // 先获取素因数列表，可重复未排序的
+
+    F.BigNumberSort;
+    EF := TCnBigNumberList.Create;
+    EC := TCnIntegerList.Create;
+
+    for I := 0 to F.Count - 1 do
+    begin
+      P := F[I];
+      J := EF.IndexOfValue(P);     // 查找 P 在 Factors 中的索引
+      if J = -1 then               // 若 P 不存在于 Factors
+      begin
+        EF.Add(BigNumberDuplicate(P));                 // 添加新素因子
+        EC.Add(1);                 // 初始化次数为 1
+      end
+      else
+        EC[J] := EC[J] + 1;        // 若存在，次数加 1
+    end;
+
+    // 在 EF 和 EC 列表中得到不重复的素数因子及其对应次幂数
+    AllFactors.Add(1);
+    EP := TCnBigNumberList.Create;
+
+    for I := 0 to EF.Count - 1 do
+    begin
+      P := EF[I];
+      GeneratePowerValues(P, EC[I], EP);
+
+      // 遍历组合，把结果存入 AllFactors 列表中
+      T := TCnBigNumberList.Create;
+      try
+        // 遍历当前所有的因数
+        for J := 0 to AllFactors.Count - 1 do
+        begin
+          // 遍历当前素因子的所有幂次
+          for L := 0 to EP.Count - 1 do
+          begin
+            PV := EP[L];
+            // 计算新因数并添加到临时列表
+            TN := T.Add;
+            BigNumberMul(TN, AllFactors[J], PV);
+          end;
+        end;
+
+        // 用新生成的因数替换原有的列表
+        AllFactors.Clear;
+        AllFactors.AddList(T);
+      finally
+        T.Free;
+      end;
+    end;
+
+    AllFactors.BigNumberSort;
+  finally
+    EP.Free;
+    EC.Free;
+    EF.Free;
+    F.Free;
+  end;
+end;
+
 procedure BigNumberEuler(Res: TCnBigNumber; Num: TCnBigNumber);
 var
   F: TCnBigNumberList;
@@ -9079,6 +9283,16 @@ begin
     T := FLocalBigNumberPool.Obtain;
     BK := FLocalBigNumberPool.Obtain;
 
+    // 找出最小的 R。这一步之前参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时
+    // 现改为从 R 的欧拉函数值的所有因数中搜索，但速度无明显提高，可能是列表复制耗时，还需优化
+//    while True do
+//    begin
+//      R.AddWord(1);
+//      BigNumberMultiplicativeOrder(BK, N, R);
+//      if BigNumberCompareInteger(BK, LG22) > 0 then
+//        Break;
+//    end;
+
     // 找出最小的 R，这一步参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时
     while NR do
     begin
@@ -9326,6 +9540,51 @@ begin
     FLocalBigNumberPool.Recycle(T);
     FLocalBigNumberPool.Recycle(C);
     Map.Free;
+  end;
+end;
+
+function BigNumberMultiplicativeOrder(Res: TCnBigNumber; N: TCnBigNumber;
+  R: TCnBigNumber): Boolean;
+var
+  I: Integer;
+  E, T: TCnBigNumber;
+  F: TCnBigNumberList;
+begin
+  Result := False;
+
+  T := nil;
+  E := nil;
+  F := nil;
+
+  try
+    T := FLocalBigNumberPool.Obtain;
+    BigNumberGcd(T, N, R);
+    if not T.IsOne then
+      Exit;
+
+    // 互素才有存在乘法阶
+    E := FLocalBigNumberPool.Obtain;
+    BigNumberEuler(E, R);
+
+    F := TCnBigNumberList.Create;
+    BigNumberFindAllFactors(E, F);
+
+    // 拿到全部因子，遍历验证
+    for I := 0 to F.Count - 1 do
+    begin
+      // 验证 N 的 F[I] 次方 mod R 是否为 1
+      BigNumberPowerMod(T, N, F[I], R);
+      if T.IsOne then
+      begin
+        BigNumberCopy(Res, F[I]);
+        Result := True;
+        Exit;
+      end;
+    end;
+  finally
+    F.Free;
+    FLocalBigNumberPool.Recycle(E);
+    FLocalBigNumberPool.Recycle(T);
   end;
 end;
 
@@ -9975,6 +10234,29 @@ begin
   Add(Result);
 end;
 
+function TCnBigNumberList.Add(Num: Integer): TCnBigNumber;
+begin
+  Result := TCnBigNumber.Create;
+  Result.SetInteger(Num);
+  Add(Result);
+end;
+
+procedure TCnBigNumberList.AddList(List: TCnBigNumberList);
+var
+  I: Integer;
+begin
+  if (List <> nil) and (List.Count > 0) then
+  begin
+    for I := 0 to List.Count - 1 do
+      Add(BigNumberDuplicate(List[I]));
+  end;
+end;
+
+procedure TCnBigNumberList.BigNumberSort;
+begin
+  inherited Sort(DefBigNumberCompare);
+end;
+
 constructor TCnBigNumberList.Create;
 begin
   inherited Create(True);
@@ -10031,6 +10313,20 @@ begin
   Sum.SetZero;
   for I := 0 to Count - 1 do
     BigNumberAdd(Sum, Sum, Items[I]);
+end;
+
+function TCnBigNumberList.ToString: string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Count - 1 do
+  begin
+    if I = 0 then
+      Result := Items[I].ToDec
+    else
+      Result := Result + ',' + Items[I].ToDec;
+  end;
 end;
 
 { TCnBigNumberPool }

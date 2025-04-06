@@ -107,6 +107,7 @@ type
     btnBase64: TButton;
     btnBatch: TButton;
     btnMersenne: TButton;
+    btnAllFactors: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -182,6 +183,7 @@ type
     procedure btnBase64Click(Sender: TObject);
     procedure btnBatchClick(Sender: TObject);
     procedure btnMersenneClick(Sender: TObject);
+    procedure btnAllFactorsClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -1554,6 +1556,36 @@ begin
       ShowMessage('2^' + IntToStr(E) + ' - 1 is a MersennePrime')
     else
       ShowMessage('2^' + IntToStr(E) + ' - 1 is NOT a MersennePrime');
+  end;
+end;
+
+procedure TFormBigNumber.btnAllFactorsClick(Sender: TObject);
+var
+  S: string;
+  B: TCnBigNumber;
+  F: TCnBigNumberList;
+begin
+  F := TCnBigNumberList.Create;
+
+  if not InputQuery('Hint', 'Enter a Dec Number. If Cancel, will Use Num1.', S) then
+  begin
+    BigNumberFindFactors(Num1, F);
+    S := F.ToString;
+    F.Clear;
+    BigNumberFindAllFactors(Num1, F);
+    S := S + #13#10 + F.ToString;
+    ShowMessage(S);
+  end
+  else
+  begin
+    B := TCnBigNumber.FromDec(S);
+    BigNumberFindFactors(B, F);
+    S := F.ToString;
+    F.Clear;
+    BigNumberFindAllFactors(B, F);
+    S := S + #13#10 + F.ToString;
+    ShowMessage(S);
+    B.Free;
   end;
 end;
 

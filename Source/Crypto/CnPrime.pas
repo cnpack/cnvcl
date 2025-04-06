@@ -2491,7 +2491,7 @@ begin
     for I := 0 to F.Count - 1 do
     begin
       P := F[I];
-      J := EF.IndexOf(P);          // 正确：查找 P 在 Factors 中的索引
+      J := EF.IndexOf(P);          // 查找 P 在 Factors 中的索引
       if J = -1 then               // 若 P 不存在于 Factors
       begin
         EF.Add(P);                 // 添加新素因子
@@ -3349,7 +3349,7 @@ begin
   LG2 := Log2(N);                 // 整数会有误差，需要用到浮点，一般不会超出浮点范围
   LG22 := Trunc(LG2 * LG2);
 
-  // 找出最小的 R，这一步之前参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时
+  // 找出最小的 R。这一步之前参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时
   // 现改为从 R 的欧拉函数值的所有因数中搜索，速度大大提高
   while True do
   begin
@@ -3453,9 +3453,8 @@ end;
 function CnInt64MultiplicativeOrder(N, R: TUInt64): TUInt64;
 var
   I: Integer;
-  E: TUInt64;
+  E, T: TUInt64;
   F: TCnUInt64List;
-  T: TUInt64;
 begin
   Result := 0;
   if CnInt64GreatestCommonDivisor(N, R) <> 1 then
