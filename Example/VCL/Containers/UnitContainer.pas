@@ -24,6 +24,7 @@ type
     btnHashMapDel: TButton;
     btnHashMapClear: TButton;
     btnHashMapAddInt64: TButton;
+    btnIntList: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnPushFrontClick(Sender: TObject);
@@ -34,6 +35,7 @@ type
     procedure btnHashMapDelClick(Sender: TObject);
     procedure btnHashMapClearClick(Sender: TObject);
     procedure btnHashMapAddInt64Click(Sender: TObject);
+    procedure btnIntListClick(Sender: TObject);
   private
     FRing: TCnObjectRingBuffer;
     FHashMap: TCnHashMap;
@@ -229,6 +231,70 @@ begin
     M := 1;
   FHashMap.Add(M, M + 1);
   DumpMap;
+end;
+
+procedure TFormContainers.btnIntListClick(Sender: TObject);
+var
+  EL: TCnExtendedList;
+  L1: TCnIntegerList;
+  L2: TCnUInt32List;
+  L3: TCnInt64List;
+  L4: TCnUInt64List;
+begin
+  EL := TCnExtendedList.Create;
+  L1 := TCnIntegerList.Create;
+  L2 := TCnUInt32List.Create;
+  L3 := TCnInt64List.Create;
+  L4 := TCnUInt64List.Create;
+
+  EL.Add(0);
+  EL.Add(-3.14);
+  EL.Add(-3.14);
+  EL.Add(0.00001);
+  EL.Add(3.4e5);
+  EL.Add(-10000);
+  EL.FloatSort;
+  ShowMessage(EL.ToString);
+
+  L1.Add(0);
+  L1.Add(14303434);
+  L1.Add(-193984);
+  L1.Add(100);
+  L1.Add(-90099);
+  L1.IntSort;
+  ShowMessage(L1.ToString);
+
+  L2.Add(0);
+  L2.Add(14303434);
+  L2.Add(193984);
+  L2.Add(100);
+  L2.Add(100);
+  L2.Add(90099);
+  L2.IntSort;
+  ShowMessage(L2.ToString);
+
+  L3.Add(0);
+  L3.Add(14303434333);
+  L3.Add(-1939843);
+  L3.Add(10033);
+  L3.Add(-90099333);
+  L3.IntSort;
+  ShowMessage(L3.ToString);
+
+  L4.Add(0);
+  L4.Add(143034344444);
+  L4.Add(1939844444);
+  L4.Add(100);
+  L4.Add($FFFFFFFFFFFFFFFF);
+  L4.Add(90099777777);
+  L4.IntSort;
+  ShowMessage(L4.ToString);
+
+  L4.Free;
+  L3.Free;
+  L2.Free;
+  L1.Free;
+  EL.Free;
 end;
 
 end.

@@ -3,7 +3,7 @@ object FormContainers: TFormContainers
   Top = 121
   BorderStyle = bsDialog
   Caption = 'Test Containers'
-  ClientHeight = 519
+  ClientHeight = 593
   ClientWidth = 984
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -150,5 +150,14 @@ object FormContainers: TFormContainers
     Caption = 'HashMap Add Int64'
     TabOrder = 9
     OnClick = btnHashMapAddInt64Click
+  end
+  object btnIntList: TButton
+    Left = 32
+    Top = 520
+    Width = 75
+    Height = 25
+    Caption = 'Int List'
+    TabOrder = 10
+    OnClick = btnIntListClick
   end
 end

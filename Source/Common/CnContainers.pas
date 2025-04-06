@@ -51,10 +51,13 @@ unit CnContainers;
 *
 *           释放：
 *             Q.Free;
+*
 * 开发平台：PWinXP + Delphi 7
 * 兼容测试：PWin2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.05.10 V1.4
+* 修改记录：2025.04.06 V1.5
+*               几个列表类加入排序功能
+*           2024.05.10 V1.4
 *               将 CnClasses 中的 UInt32/UInt64 列表移动至此处，没泛型只能这样
 *           2024.04.28 V1.4
 *               增加对象队列，更改链表队列类名
@@ -326,6 +329,8 @@ type
 // Int32 列表类
 //==============================================================================
 
+  TCnInt32CompareProc = function(I1, I2: Integer): Integer;
+
   TCnIntegerList = class(TList)
   {* 整数列表，利用 32 位 Pointer 或 64 位 Pointer 的低 32 位存 Integer}
   private
@@ -334,6 +339,10 @@ type
   public
     function Add(Item: Integer): Integer; reintroduce;
     procedure Insert(Index: Integer; Item: Integer); reintroduce;
+    procedure IntSort(CompareProc: TCnInt32CompareProc = nil);
+    {* 排序，默认从小到大}
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+
     property Items[Index: Integer]: Integer read Get write Put; default;
   end;
 
@@ -343,6 +352,8 @@ type
 
   PInt64List = ^TInt64List;
   TInt64List = array[0..MaxListSize - 1] of Int64;
+
+  TCnInt64CompareProc = function(I1, I2: Int64): Integer;
 
   TCnInt64List = class(TObject)
   {* 64 位有符号整数列表}
@@ -374,6 +385,9 @@ type
     function Last: Int64;
     procedure Move(CurIndex: Integer; NewIndex: Integer);
     function Remove(Item: Int64): Integer;
+    procedure IntSort(CompareProc: TCnInt64CompareProc = nil);
+    {* 排序，默认从小到大}
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
     property Capacity: Integer read FCapacity write SetCapacity;
     property Count: Integer read FCount write SetCount;
@@ -391,6 +405,8 @@ const
 type
   PCnUInt32Array = ^TCnUInt32Array;
   TCnUInt32Array = array[0..CN_MAX_UINT32_SIZE - 1] of Cardinal;
+
+  TCnUInt32CompareProc = function(U1, U2: Cardinal): Integer;
 
   TCnUInt32List = class(TObject)
   {* 容纳 UInt32 的 List}
@@ -421,6 +437,10 @@ type
     function Last: Cardinal;
     procedure Move(CurIndex: Integer; NewIndex: Integer);
     function Remove(Item: Cardinal): Integer;
+    procedure IntSort(CompareProc: TCnUInt32CompareProc = nil);
+    {* 排序，默认从小到大}
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+
     property Capacity: Integer read FCapacity write SetCapacity;
     property Count: Integer read FCount write SetCount;
     property Items[Index: Integer]: Cardinal read Get write Put; default;
@@ -439,6 +459,8 @@ const
 type
   PCnUInt64Array = ^TCnUInt64Array;
   TCnUInt64Array = array[0..CN_MAX_UINT64_SIZE - 1] of TUInt64;
+
+  TCnUInt64CompareProc = function(U1, U2: TUInt64): Integer;
 
   TCnUInt64List = class(TObject)
   {* 容纳 UInt64 的 List，不支持 UInt64 的平台下用 Int64 代替}
@@ -471,6 +493,10 @@ type
     function Last: TUInt64;
     procedure Move(CurIndex, NewIndex: TUInt64);
     function Remove(Item: TUInt64): TUInt64;
+    procedure IntSort(CompareProc: TCnUInt64CompareProc = nil);
+    {* 排序，默认从小到大}
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+
     property Capacity: TUInt64 read FCapacity write SetCapacity;
     property Count: TUInt64 read FCount write SetCount;
     property Items[Index: TUInt64]: TUInt64 read Get write Put; default;
@@ -481,6 +507,8 @@ type
 
   PExtendedList = ^TExtendedList;
   TExtendedList = array[0..MaxListSize - 1] of Extended;
+
+  TCnExtendedCompareProc = function(E1, E2: Extended): Integer;
 
   TCnExtendedList = class(TObject)
   {* 扩展精度浮点数列表，注意不同平台下元素长度可能不一样}
@@ -512,6 +540,8 @@ type
     function Last: Extended;
     procedure Move(CurIndex: Integer; NewIndex: Integer);
     function Remove(Item: Extended): Integer;
+    procedure FloatSort(CompareProc: TCnExtendedCompareProc = nil);
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
 
     property Capacity: Integer read FCapacity write SetCapacity;
     property Count: Integer read FCount write SetCount;
@@ -671,6 +701,98 @@ type
     property Next: TCnQueueNode read FNext write FNext;
     property Data: Pointer read FData write FData;
   end;
+
+threadvar
+  FCompareProcExtended: TCnExtendedCompareProc;
+  FCompareProcInt32: TCnInt32CompareProc;
+  FCompareProcUInt32: TCnUInt32CompareProc;
+  FCompareProcInt64: TCnInt64CompareProc;
+  FCompareProcUInt64: TCnUInt64CompareProc;
+
+function DefExtendedCompareProc(E1, E2: Extended): Integer;
+begin
+  if Abs(E1 - E2) < 0.000001 then
+    Result := 0
+  else if E1 > E2 then
+    Result := 1
+  else
+    Result := -1;
+end;  
+
+function DefInt32CompareProc(I1, I2: Integer): Integer;
+begin
+  if I1 = I2 then
+    Result := 0
+  else if I1 > I2 then
+    Result := 1
+  else
+    Result := -1;
+end;
+
+function DefInt64CompareProc(I1, I2: Int64): Integer;
+begin
+  if I1 = I2 then
+    Result := 0
+  else if I1 > I2 then
+    Result := 1
+  else
+    Result := -1;
+end;
+
+function DefUInt32CompareProc(U1, U2: Cardinal): Integer;
+begin
+  if U1 = U2 then
+    Result := 0
+  else if U1 > U2 then
+    Result := 1
+  else
+    Result := -1;
+end;
+
+function DefUInt64CompareProc(U1, U2: TUInt64): Integer;
+begin
+  Result := UInt64Compare(U1, U2);
+end;
+
+function MyExtendedSortCompare(P1, P2: Pointer; ElementByteSize: Integer): Integer;
+begin
+  if Assigned(FCompareProcExtended) then
+    Result := FCompareProcExtended(PExtended(P1)^, PExtended(P2)^)
+  else
+    Result := DefExtendedCompareProc(PExtended(P1)^, PExtended(P2)^);
+end;
+
+function MyInt32SortCompare(Item1, Item2: Pointer): Integer;
+begin
+  if Assigned(FCompareProcInt32) then
+    Result := FCompareProcInt32(Integer(Item1), Integer(Item2))
+  else
+    Result := DefInt32CompareProc(Integer(Item1), Integer(Item2));
+end;
+
+function MyUInt32SortCompare(P1, P2: Pointer; ElementByteSize: Integer): Integer;
+begin
+  if Assigned(FCompareProcUInt32) then
+    Result := FCompareProcUInt32(PCardinal(P1)^, PCardinal(P2)^)
+  else
+    Result := DefUInt32CompareProc(PCardinal(P1)^, PCardinal(P2)^);
+end;
+
+function MyInt64SortCompare(P1, P2: Pointer; ElementByteSize: Integer): Integer;
+begin
+  if Assigned(FCompareProcInt64) then
+    Result := FCompareProcInt64(PInt64(P1)^, PInt64(P2)^)
+  else
+    Result := DefInt64CompareProc(PInt64(P1)^, PInt64(P2)^);
+end;
+
+function MyUInt64SortCompare(P1, P2: Pointer; ElementByteSize: Integer): Integer;
+begin
+  if Assigned(FCompareProcUInt64) then
+    Result := FCompareProcUInt64(PUInt64(P1)^, PUInt64(P2)^)
+  else
+    Result := DefUInt64CompareProc(PUInt64(P1)^, PUInt64(P2)^);
+end;
 
 { TCnQueue }
 
@@ -1132,6 +1254,26 @@ begin
   inherited Insert(Index, IntegerToPointer(Item));
 end;
 
+procedure TCnIntegerList.IntSort(CompareProc: TCnInt32CompareProc);
+begin
+  FCompareProcInt32 := CompareProc;
+  Sort(MyInt32SortCompare);
+end;
+
+function TCnIntegerList.ToString: string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Count - 1 do
+  begin
+    if I = 0 then
+      Result := IntToStr(Items[I])
+    else
+      Result := Result + ',' + IntToStr(Items[I]);
+  end;
+end;
+
 procedure TCnIntegerList.Put(Index: Integer; const Value: Integer);
 begin
   inherited Put(Index, IntegerToPointer(Value));
@@ -1309,6 +1451,27 @@ begin
   Result := IndexOf(Item);
   if Result >= 0 then
     Delete(Result);
+end;
+
+procedure TCnInt64List.IntSort(CompareProc: TCnInt64CompareProc);
+begin
+  FCompareProcInt64 := CompareProc;
+  if FCount >= 1 then
+    MemoryQuickSort(FList, SizeOf(Int64), FCount, MyInt64SortCompare);
+end;
+
+function TCnInt64List.ToString: string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Count - 1 do
+  begin
+    if I = 0 then
+      Result := IntToStr(Items[I])
+    else
+      Result := Result + ',' + IntToStr(Items[I]);
+  end;
 end;
 
 procedure TCnInt64List.SetCapacity(NewCapacity: Integer);
@@ -1508,6 +1671,27 @@ begin
     Delete(Result);
 end;
 
+procedure TCnUInt32List.IntSort(CompareProc: TCnUInt32CompareProc);
+begin
+  FCompareProcUInt32 := CompareProc;
+  if FCount >= 1 then
+    MemoryQuickSort(FList, SizeOf(Cardinal), FCount, MyUInt32SortCompare);
+end;
+
+function TCnUInt32List.ToString: string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Count - 1 do
+  begin
+    if I = 0 then
+      Result := UInt32ToStr(Items[I])
+    else
+      Result := Result + ',' + UInt32ToStr(Items[I]);
+  end;
+end;
+
 procedure TCnUInt32List.SetCapacity(NewCapacity: Integer);
 begin
   if (NewCapacity < FCount) or (NewCapacity > MaxListSize) then
@@ -1705,6 +1889,27 @@ begin
     Delete(Result);
 end;
 
+procedure TCnUInt64List.IntSort(CompareProc: TCnUInt64CompareProc);
+begin
+  FCompareProcUInt64 := CompareProc;
+  if FCount >= 1 then
+    MemoryQuickSort(FList, SizeOf(TUInt64), FCount, MyUInt64SortCompare);
+end;
+
+function TCnUInt64List.ToString: string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Count - 1 do
+  begin
+    if I = 0 then
+      Result := UInt64ToStr(Items[I])
+    else
+      Result := Result + ',' + UInt64ToStr(Items[I]);
+  end;
+end;
+
 procedure TCnUInt64List.SetCapacity(NewCapacity: TUInt64);
 begin
   if (NewCapacity < FCount) or (NewCapacity > MaxListSize) then
@@ -1727,8 +1932,10 @@ begin
   if NewCount > FCount then
     FillChar(FList^[FCount], (NewCount - FCount) * SizeOf(TUInt64), 0)
   else
+  begin
     for I := FCount - 1 downto NewCount do
       Delete(I);
+  end;
   FCount := NewCount;
 end;
 
@@ -1904,6 +2111,27 @@ begin
   Result := IndexOf(Item);
   if Result >= 0 then
     Delete(Result);
+end;
+
+procedure TCnExtendedList.FloatSort(CompareProc: TCnExtendedCompareProc);
+begin
+  FCompareProcExtended := CompareProc;
+  if FCount >= 1 then
+    MemoryQuickSort(FList, SizeOf(Extended), FCount, MyExtendedSortCompare);
+end;
+
+function TCnExtendedList.ToString: string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Count - 1 do
+  begin
+    if I = 0 then
+      Result := FloatToStr(Items[I])
+    else
+      Result := Result + ',' + FloatToStr(Items[I]);
+  end;
 end;
 
 procedure TCnExtendedList.SetCapacity(NewCapacity: Integer);
