@@ -40,7 +40,9 @@ unit CnBigNumber;
 *           注：D5/D6/CB5/CB6 下曾经遇上编译器 Bug 无法修复，
 *           譬如写 Int64(AInt64Var) 这样的强制类型转换时，现在暂时绕过了。
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.11.05 V2.8
+* 修改记录：2025.04.07 V2.9
+*               加入几个列表新方法、乘法阶的计算，调整随机调用为非初始化版本以提速
+*           2024.11.05 V2.8
 *               加入雅可比符号的计算及梅森素数的判定
 *           2024.10.10 V2.7
 *               部分函数加入的参数检测，以在调用时参数引用重复时抛异常
@@ -3997,7 +3999,8 @@ begin
 
   if BigNumberWordExpand(Num, (BytesCount + BN_BYTES - 1) div BN_BYTES) <> nil then
   begin
-    Result := CnRandomFillBytes(PAnsiChar(Num.D), BytesCount);
+    // 改用非重复初始化的快速版本，不知道有无副作用？
+    Result := CnRandomFillBytes2(PAnsiChar(Num.D), BytesCount);
     if Result then
     begin
       Num.Top := (BytesCount + BN_BYTES - 1) div BN_BYTES;
@@ -4027,9 +4030,13 @@ begin
 
   // 但头上可能有多余的，再把 C * 8 - 1 到 N 之间的位清零，只留 0 到 N - 1 位
   if BitsCount <= C * 8 - 1 then
+  begin
     for I := C * 8 - 1 downto BitsCount do
+    begin
       if not BigNumberClearBit(Num, I) then
         Exit;
+    end;
+  end;
 
   Result := True;
 end;
@@ -9252,9 +9259,8 @@ end;
 
 function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean;
 var
-  NR: Boolean;
   R, T, C, Q: TCnBigNumber;
-  K, LG22: Int64;
+  LG22: Int64;
   LG2: Extended;
   BK: TCnBigNumber;
 begin
@@ -9273,8 +9279,6 @@ begin
   try
     // 找出最小的 R 满足 N mod R 的乘法阶 > (Log二底(N))^2
     // N mod R 的乘法阶（假设叫 L），指满足 N 的 L 次方后 mod R 为 1 的最小 L
-    NR := True;
-
     R := FLocalBigNumberPool.Obtain;
     R.SetOne;
     LG2 := BigNumberLog2(N);      // 整数会有误差，需要用到浮点，一般不会超出浮点范围
@@ -9284,31 +9288,13 @@ begin
     BK := FLocalBigNumberPool.Obtain;
 
     // 找出最小的 R。这一步之前参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时
-    // 现改为从 R 的欧拉函数值的所有因数中搜索，但速度无明显提高，可能是列表复制耗时，还需优化
-//    while True do
-//    begin
-//      R.AddWord(1);
-//      BigNumberMultiplicativeOrder(BK, N, R);
-//      if BigNumberCompareInteger(BK, LG22) > 0 then
-//        Break;
-//    end;
-
-    // 找出最小的 R，这一步参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时
-    while NR do
+    // 现改为从 R 的欧拉函数值的所有因数中搜索，速度有明显提高，前提是取随机数时使用非重复初始化版本
+    while True do
     begin
       R.AddWord(1);
-      NR := False;
-
-      K := 1;
-      while not NR and (K <= LG22) do
-      begin
-        BK.SetInt64(K);
-        BigNumberPowerMod(T, N, BK, R);
-        NR := T.IsZero or T.IsOne;
-        // 求余得到 1 或 0 时 NR 为 True，跳出内层但外层继续
-        // 直到小于 LG22 的所有 K 均算出来余数非 1 非 0，此时的 R 才有效
-        Inc(K);
-      end;
+      BigNumberMultiplicativeOrder(BK, N, R);
+      if BigNumberCompareInteger(BK, LG22) > 0 then
+        Break;
     end;
 
     // 得到 R，从 R 往低了找，如果某些比 R 小的 T 和 N 不互素，则是合数
