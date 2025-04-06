@@ -2711,7 +2711,8 @@ procedure BigNumberFillCombinatorialNumbersMod(List: TCnBigNumberList; N: Intege
 }
 
 function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean; overload;
-{* 用 AKS 算法判断某大正整数是否是素数，判断 9223372036854775783 约需 15 秒。
+{* 用 AKS 算法准确判断某大正整数是否是素数，判断 9223372036854775783 约需 3 秒，
+   判断 334551562509014333221406299998596765179 约需 10 秒。
 
    参数：
      N: TCnBigNumber                      - 待判断的大数对象
@@ -2720,7 +2721,7 @@ function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean; overload;
 }
 
 function BigNumberAKSIsPrime(N: Int64): Boolean; overload;
-{* 用 AKS 算法判断某正整数是否是素数。
+{* 用 AKS 算法准确判断某正整数是否是素数。
 
    参数：
      N: Int64                             - 待判断的正整数
