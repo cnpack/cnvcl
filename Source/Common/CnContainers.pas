@@ -338,6 +338,7 @@ type
     procedure Put(Index: Integer; const Value: Integer);
   public
     function Add(Item: Integer): Integer; reintroduce;
+    procedure AddList(List: TCnIntegerList);
     procedure Insert(Index: Integer; Item: Integer); reintroduce;
     procedure IntSort(CompareProc: TCnInt32CompareProc = nil);
     {* 排序，默认从小到大}
@@ -370,6 +371,7 @@ type
   public
     destructor Destroy; override;
     function Add(Item: Int64): Integer;
+    procedure AddList(List: TCnInt64List);
     procedure Clear; virtual;
     procedure Delete(Index: Integer);
     procedure DeleteLow(ACount: Integer);
@@ -424,6 +426,7 @@ type
   public
     destructor Destroy; override;
     function Add(Item: Cardinal): Integer;
+    procedure AddList(List: TCnUInt32List);
     procedure Clear; virtual;
     procedure Delete(Index: Integer);
     class procedure Error(const Msg: string; Data: Integer); overload; virtual;
@@ -478,6 +481,7 @@ type
   public
     destructor Destroy; override;
     function Add(Item: TUInt64): TUInt64;
+    procedure AddList(List: TCnUInt64List);
     procedure Clear; virtual;
     procedure Delete(Index: TUInt64);
     class procedure Error(const Msg: string; Data: Integer); overload; virtual;
@@ -525,6 +529,7 @@ type
   public
     destructor Destroy; override;
     function Add(Item: Extended): Integer;
+    procedure AddList(List: TCnExtendedList);
     procedure Clear; virtual;
     procedure Delete(Index: Integer);
     procedure DeleteLow(ACount: Integer);
@@ -717,7 +722,7 @@ begin
     Result := 1
   else
     Result := -1;
-end;  
+end;
 
 function DefInt32CompareProc(I1, I2: Integer): Integer;
 begin
@@ -1244,6 +1249,17 @@ begin
   Result := inherited Add(IntegerToPointer(Item));
 end;
 
+procedure TCnIntegerList.AddList(List: TCnIntegerList);
+var
+  I: Integer;
+begin
+  if (List <> nil) and (List.Count > 0) then
+  begin
+    for I := 0 to List.Count - 1 do
+      Add(List[I]);
+  end;
+end;
+
 function TCnIntegerList.Get(Index: Integer): Integer;
 begin
   Result := PointerToInteger(inherited Get(Index));
@@ -1293,6 +1309,17 @@ begin
     Grow;
   FList^[Result] := Item;
   Inc(FCount);
+end;
+
+procedure TCnInt64List.AddList(List: TCnInt64List);
+var
+  I: Integer;
+begin
+  if (List <> nil) and (List.Count > 0) then
+  begin
+    for I := 0 to List.Count - 1 do
+      Add(List[I]);
+  end;
 end;
 
 procedure TCnInt64List.Clear;
@@ -1518,6 +1545,17 @@ begin
   Inc(FCount);
 end;
 
+procedure TCnUInt32List.AddList(List: TCnUInt32List);
+var
+  I: Integer;
+begin
+  if (List <> nil) and (List.Count > 0) then
+  begin
+    for I := 0 to List.Count - 1 do
+      Add(List[I]);
+  end;
+end;
+
 procedure TCnUInt32List.Clear;
 begin
   SetCount(0);
@@ -1734,6 +1772,17 @@ begin
     Grow;
   FList^[Result] := Item;
   Inc(FCount);
+end;
+
+procedure TCnUInt64List.AddList(List: TCnUInt64List);
+var
+  I: Integer;
+begin
+  if (List <> nil) and (List.Count > 0) then
+  begin
+    for I := 0 to List.Count - 1 do
+      Add(List[I]);
+  end;
 end;
 
 procedure TCnUInt64List.Clear;
@@ -1953,6 +2002,17 @@ begin
     Grow;
   FList^[Result] := Item;
   Inc(FCount);
+end;
+
+procedure TCnExtendedList.AddList(List: TCnExtendedList);
+var
+  I: Integer;
+begin
+  if (List <> nil) and (List.Count > 0) then
+  begin
+    for I := 0 to List.Count - 1 do
+      Add(List[I]);
+  end;
 end;
 
 procedure TCnExtendedList.Clear;

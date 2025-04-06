@@ -1023,6 +1023,8 @@ function CnIsInt64PrimitiveRoot(Num: TUInt64; Root: TUInt64): Boolean;
 
 procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
 {* 求一 32 位无符号整数的全部素数因子，可重复不排序，结果放 Factors 列表中。
+   调用前请确保 Factors 为 Count 为 0 的空列表。Num 如为 0 返回空，1 返回 1
+   注意：可重复意味着 Factors 中所有元素相乘等于 Num。
 
    参数：
      Num: Cardinal                        - 待分解的 32 位无符号整数
@@ -1033,10 +1035,34 @@ procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
 
 procedure CnInt64FindFactors(Num: TUInt64; Factors: TCnUInt64List);
 {* 求一 64 位无符号整数的全部素数因子，可重复不排序，结果放 Factors 列表中。
+   调用前请确保 Factors 为 Count 为 0 的空列表。Num 如为 0 返回空，1 返回 1
+   注意：可重复意味着 Factors 中所有元素相乘等于 Num。
 
    参数：
      Num: TUInt64                         - 待分解的 64 位无符号整数
      Factors: TCnUInt64List               - 返回全部素数因子
+
+   返回值：（无）
+}
+
+procedure CnUInt32FindAllFactors(Num: Cardinal; AllFactors: TCnUInt32List);
+{* 求一 32 位无符号整数的全部因子，不重复且排序，结果放 AllFactors 列表中。
+   调用前请确保 AllFactors 为 Count 为 0 的空列表。Num 如为 0 返回空，1 返回 1
+
+   参数：
+     Num: Cardinal                        - 待分解的 32 位无符号整数
+     AllFactors: TCnUInt32List            - 返回全部因子
+
+   返回值：（无）
+}
+
+procedure CnInt64FindAllFactors(Num: TUInt64; AllFactors: TCnUInt64List);
+{* 求一 64 位无符号整数的全部素数因子，不重复且排序，结果放 AllFactors 列表中。
+   调用前请确保 AllFactors 为 Count 为 0 的空列表。Num 如为 0 返回空，1 返回 1
+
+   参数：
+     Num: TUInt64                         - 待分解的 64 位无符号整数
+     Factors: TCnUInt64List               - 返回全部因子
 
    返回值：（无）
 }
@@ -1360,6 +1386,19 @@ function CnUInt64Shor(N: TUInt64; Base: TUInt64 = 3): TUInt64;
      Base: TUInt64                        - 秀尔算法中的基值
 
    返回值：TUInt64                        - 待分解整数如是合数且分解成功的话则返回其中一个因数，失败则返回 1
+}
+
+function CnInt64MultiplicativeOrder(N, R: TUInt64): TUInt64;
+{* 用欧拉函数求 64 位有符号整数 N 模 R 的乘法阶，也即求满足 N^K mod R = 1 的 K 的最小正整数值。
+   乘法阶一定比 R 小，但与 N 大小无关。且由欧拉定理，俩互素时 R 的欧拉函数值一定满足等式但未必最小。
+   所以乘法阶必然是 R 的欧拉函数值的因数，可将其因数分解后组合遍历，比暴力遍历效率高。
+   注意乘法阶必须 N 和 R 互素才存在，如不互素，本函数返回 0。
+
+   参数：
+     N: Int64                             - 待求乘法阶的 64 位有符号整数
+     R: Int64                             - 模数
+
+   返回值：Int64                          - 返回 N 模 R 的乘法阶
 }
 
 implementation
@@ -2249,7 +2288,10 @@ procedure CnUInt32FindFactors(Num: Cardinal; Factors: TCnUInt32List);
 var
   P, C: Cardinal;
 begin
-  if CnUInt32IsPrime(Num) then
+  if Num = 0 then
+    Exit;
+
+  if (Num = 1) or CnUInt32IsPrime(Num) then
   begin
     Factors.Add(Num);
     Exit;
@@ -2271,7 +2313,10 @@ procedure CnInt64FindFactors(Num: TUInt64; Factors: TCnUInt64List);
 var
   P, C: TUInt64;
 begin
-  if CnInt64IsPrime(Num) then
+  if Num = 0 then
+    Exit;
+
+  if (Num = 1) or CnInt64IsPrime(Num) then
   begin
     Factors.Add(Num);
     Exit;
@@ -2286,6 +2331,214 @@ begin
 
   CnInt64FindFactors(P, Factors);
   CnInt64FindFactors(UInt64Div(Num, P), Factors);
+end;
+
+procedure CnUInt32FindAllFactors(Num: Cardinal; AllFactors: TCnUInt32List);
+var
+  I, J, L: Integer;
+  P, PV: Cardinal;
+  F, EF, EC, EP, T: TCnUInt32List;
+
+  procedure GeneratePowerValues(P, MaxExp: Cardinal; Powers: TCnUInt32List);
+  var
+    K: Integer;
+    CurrentPower: Cardinal;
+  begin
+    CurrentPower := 1; // P^0
+    Powers.Clear;
+    Powers.Add(CurrentPower);
+
+    for K := 1 to MaxExp do
+    begin
+      CurrentPower := CurrentPower * P;
+      Powers.Add(CurrentPower);
+    end;
+  end;
+
+begin
+  if Num = 0 then
+    Exit;
+
+  if Num = 1 then
+  begin
+    AllFactors.Add(1);
+    Exit;
+  end
+  else if CnUInt32IsPrime(Num) then
+  begin
+    AllFactors.Add(1);
+    AllFactors.Add(Num);
+    Exit;
+  end;
+
+  F := nil;
+  EF := nil;
+  EC := nil;
+  EP := nil;
+
+  try
+    F := TCnUInt32List.Create;
+    CnUInt32FindFactors(Num, F);   // 先获取素因数列表，可重复未排序的
+
+    F.IntSort;
+    EF := TCnUInt32List.Create;
+    EC := TCnUInt32List.Create;
+
+    for I := 0 to F.Count - 1 do
+    begin
+      P := F[I];
+      J := EF.IndexOf(P);          // 正确：查找 P 在 Factors 中的索引
+      if J = -1 then               // 若 P 不存在于 Factors
+      begin
+        EF.Add(P);                 // 添加新素因子
+        EC.Add(1);                 // 初始化次数为 1
+      end
+      else
+        EC[J] := EC[J] + 1;        // 若存在，次数加 1
+    end;
+
+    // 在 EF 和 EC 列表中得到不重复的素数因子及其对应次幂数
+    AllFactors.Add(1);
+    EP := TCnUInt32List.Create;
+
+    for I := 0 to EF.Count - 1 do
+    begin
+      P := EF[I];
+      GeneratePowerValues(P, EC[I], EP);
+
+      // 遍历组合，把结果存入 AllFactors 列表中
+      T := TCnUInt32List.Create;
+      try
+        // 遍历当前所有的因数
+        for J := 0 to AllFactors.Count - 1 do
+        begin
+          // 遍历当前素因子的所有幂次
+          for L := 0 to EP.Count - 1 do
+          begin
+            PV := EP[L];
+            // 计算新因数并添加到临时列表
+            T.Add(AllFactors[J] * PV);
+          end;
+        end;
+        // 用新生成的因数替换原有的列表
+        AllFactors.Clear;
+        AllFactors.AddList(T);
+      finally
+        T.Free;
+      end;
+    end;
+
+    AllFactors.IntSort;
+  finally
+    EP.Free;
+    EC.Free;
+    EF.Free;
+    F.Free;
+  end;
+end;
+
+procedure CnInt64FindAllFactors(Num: TUInt64; AllFactors: TCnUInt64List);
+var
+  I, J, L: Integer;
+  P, PV: TUInt64;
+  F, EF, EC, EP, T: TCnUInt64List;
+
+  procedure GeneratePowerValues(P, MaxExp: TUInt64; Powers: TCnUInt64List);
+  var
+    K: Integer;
+    CurrentPower: TUInt64;
+  begin
+    CurrentPower := 1; // P^0
+    Powers.Clear;
+    Powers.Add(CurrentPower);
+
+    for K := 1 to MaxExp do
+    begin
+      CurrentPower := CurrentPower * P;
+      Powers.Add(CurrentPower);
+    end;
+  end;
+
+begin
+  if Num = 0 then
+    Exit;
+
+  if Num = 1 then
+  begin
+    AllFactors.Add(1);
+    Exit;
+  end
+  else if CnInt64IsPrime(Num) then
+  begin
+    AllFactors.Add(1);
+    AllFactors.Add(Num);
+    Exit;
+  end;
+
+  F := nil;
+  EF := nil;
+  EC := nil;
+  EP := nil;
+
+  try
+    F := TCnUInt64List.Create;
+    CnInt64FindFactors(Num, F);   // 先获取素因数列表，可重复未排序的
+
+    F.IntSort;
+    EF := TCnUInt64List.Create;
+    EC := TCnUInt64List.Create;
+
+    for I := 0 to F.Count - 1 do
+    begin
+      P := F[I];
+      J := EF.IndexOf(P);          // 正确：查找 P 在 Factors 中的索引
+      if J = -1 then               // 若 P 不存在于 Factors
+      begin
+        EF.Add(P);                 // 添加新素因子
+        EC.Add(1);                 // 初始化次数为 1
+      end
+      else
+        EC[J] := EC[J] + 1;        // 若存在，次数加 1
+    end;
+
+    // 在 EF 和 EC 列表中得到不重复的素数因子及其对应次幂数
+    AllFactors.Add(1);
+    EP := TCnUInt64List.Create;
+
+    for I := 0 to EF.Count - 1 do
+    begin
+      P := EF[I];
+      GeneratePowerValues(P, EC[I], EP);
+
+      // 遍历组合，把结果存入 AllFactors 列表中
+      T := TCnUInt64List.Create;
+      try
+        // 遍历当前所有的因数
+        for J := 0 to AllFactors.Count - 1 do
+        begin
+          // 遍历当前素因子的所有幂次
+          for L := 0 to EP.Count - 1 do
+          begin
+            PV := EP[L];
+            // 计算新因数并添加到临时列表
+            T.Add(AllFactors[J] * PV);
+          end;
+        end;
+        // 用新生成的因数替换原有的列表
+        AllFactors.Clear;
+        AllFactors.AddList(T);
+      finally
+        T.Free;
+      end;
+    end;
+
+    AllFactors.IntSort;
+  finally
+    EP.Free;
+    EC.Free;
+    EF.Free;
+    F.Free;
+  end;
 end;
 
 // 求不大于一 32 位无符号整数 Num 的与 Num 互素的正整数的个数，也就是欧拉函数
@@ -3080,7 +3333,6 @@ end;
 
 function CnInt64AKSIsPrime(N: Int64): Boolean;
 var
-  NR: Boolean;
   R, T, C: Int64;
   K, LG22: Integer;
   LG2, Q: Extended;
@@ -3093,24 +3345,19 @@ begin
 
   // 找出最小的 R 满足 N mod R 的乘法阶 > (Log二底(N))^2。
   // N mod R 的乘法阶（假设叫 L），指满足 N 的 L 次方后 mod R 为 1 的最小 L
-  NR := True;
   R := 1;
   LG2 := Log2(N);                 // 整数会有误差，需要用到浮点，一般不会超出浮点范围
   LG22 := Trunc(LG2 * LG2);
 
-  // 找出最小的 R，这一步参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时
-  while NR do
+  // 找出最小的 R，这一步之前参考维基百科上的 K 暴力从 1 到 (Log二底(N))^2，较为耗时
+  // 现改为从 R 的欧拉函数值的所有因数中搜索，速度大大提高
+  while True do
   begin
     Inc(R);
-    NR := False;
+    K := Int64(CnInt64MultiplicativeOrder(N, R));
 
-    K := 1;
-    while not NR and (K <= LG22) do
-    begin
-      T := MontgomeryPowerMod(N, K, R);  // 非负 Int64 可以使用 TUInt64 版本的 MontgomeryPowerMod
-      NR := (T = 0) or (T = 1);
-      Inc(K);
-    end;
+    if K > LG22 then
+      Break;
   end;
 
   // 得到 R，如果某些比 R 小的 T 和 N 不互素，则是合数
@@ -3200,6 +3447,39 @@ begin
       Exit;
     end;
     Inc(R);
+  end;
+end;
+
+function CnInt64MultiplicativeOrder(N, R: TUInt64): TUInt64;
+var
+  I: Integer;
+  E: TUInt64;
+  F: TCnUInt64List;
+  T: TUInt64;
+begin
+  Result := 0;
+  if CnInt64GreatestCommonDivisor(N, R) <> 1 then
+    Exit;
+
+  // 互素才有存在乘法阶
+  E := CnEulerInt64(R);
+  F := TCnUInt64List.Create;
+  try
+    CnInt64FindAllFactors(E, F);
+
+    // 拿到全部因子，遍历验证
+    for I := 0 to F.Count - 1 do
+    begin
+      // 验证 N 的 F[I] 次方 mod R 是否为 1
+      T := MontgomeryPowerMod(N, F[I], R);
+      if T = 1 then
+      begin
+        Result := F[I];
+        Exit;
+      end;
+    end;
+  finally
+    F.Free;
   end;
 end;
 

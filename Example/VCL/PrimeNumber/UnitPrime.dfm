@@ -680,6 +680,13 @@ object FormPrime: TFormPrime
         Height = 17
         Shape = bsTopLine
       end
+      object lblTo: TLabel
+        Left = 384
+        Top = 140
+        Width = 13
+        Height = 13
+        Caption = 'To'
+      end
       object btnCRTTest: TButton
         Left = 24
         Top = 24
@@ -758,6 +765,31 @@ object FormPrime: TFormPrime
         Caption = 'Shor'
         TabOrder = 8
         OnClick = btnShorClick
+      end
+      object edtMulOrderN: TEdit
+        Left = 328
+        Top = 136
+        Width = 49
+        Height = 21
+        TabOrder = 9
+        Text = '3'
+      end
+      object edtMulOrderR: TEdit
+        Left = 408
+        Top = 136
+        Width = 49
+        Height = 21
+        TabOrder = 10
+        Text = '7'
+      end
+      object btnMulOrder: TButton
+        Left = 480
+        Top = 136
+        Width = 153
+        Height = 25
+        Caption = 'Multiplicative Order'
+        TabOrder = 11
+        OnClick = btnMulOrderClick
       end
     end
   end

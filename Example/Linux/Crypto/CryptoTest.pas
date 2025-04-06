@@ -50,7 +50,7 @@ uses
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
-  CnDSA, CnWideStrings;
+  CnDSA, CnWideStrings, CnContainers;
 
 procedure TestCrypto;
 {* 密码库总测试入口}
@@ -324,6 +324,7 @@ function TestPrimeNumber1: Boolean;
 function TestPrimeNumber2: Boolean;
 function TestPrimeNumber3: Boolean;
 function TestPrimeNumber4: Boolean;
+function TestPrimeNumber5: Boolean;
 
 // ================================ 25519 ======================================
 
@@ -677,6 +678,7 @@ begin
   MyAssert(TestPrimeNumber2, 'TestPrimeNumber2');
   MyAssert(TestPrimeNumber3, 'TestPrimeNumber3');
   MyAssert(TestPrimeNumber4, 'TestPrimeNumber4');
+  MyAssert(TestPrimeNumber5, 'TestPrimeNumber5');
 
 // ================================ 25519 ======================================
 
@@ -4714,6 +4716,64 @@ begin
   if not Result then Exit;
 
   Result := CnInt64JacobiSymbol(14147, 68756437) = 1;
+end;
+
+function TestPrimeNumber5: Boolean;
+var
+  F32: TCnUInt32List;
+  F64: TCnUInt64List;
+begin
+  // 素数因数分解
+  F32 := TCnUInt32List.Create;
+  CnUInt32FindFactors(0, F32);
+  F32.IntSort;
+  Result := F32.ToString = '';
+  if not Result then Exit;
+
+  F32.Clear;
+  CnUInt32FindFactors(1, F32);
+  F32.IntSort;
+  Result := F32.ToString = '1';
+  if not Result then Exit;
+
+  F32.Clear;
+  CnUInt32FindFactors(2, F32);
+  F32.IntSort;
+  Result := F32.ToString = '2';
+  if not Result then Exit;
+
+  F32.Clear;
+  CnUInt32FindFactors(240, F32);
+  F32.IntSort;
+  Result := F32.ToString = '2,2,2,2,3,5';
+  if not Result then Exit;
+  F32.Free;
+
+  F64 := TCnUInt64List.Create;
+  CnInt64FindFactors(0, F64);
+  F64.IntSort;
+  Result := F64.ToString = '';
+  if not Result then Exit;
+
+  F64.Clear;
+  CnInt64FindFactors(1, F64);
+  F64.IntSort;
+  Result := F64.ToString = '1';
+  if not Result then Exit;
+
+  F64.Clear;
+  CnInt64FindFactors(2, F64);
+  F64.IntSort;
+  Result := F64.ToString = '2';
+  if not Result then Exit;
+
+  F64.Clear;
+  CnInt64FindFactors(24086086400, F64);
+  F64.IntSort;
+  Result := F64.ToString = '2,2,2,2,2,2,2,2,5,5,1609,2339';
+  if not Result then Exit;
+
+  F64.Free;
 end;
 
 // ================================ 25519 ========================================

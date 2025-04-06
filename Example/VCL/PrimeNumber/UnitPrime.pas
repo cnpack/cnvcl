@@ -103,6 +103,10 @@ type
     bvl4: TBevel;
     edtShor: TEdit;
     btnShor: TButton;
+    edtMulOrderN: TEdit;
+    lblTo: TLabel;
+    edtMulOrderR: TEdit;
+    btnMulOrder: TButton;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -141,6 +145,7 @@ type
     procedure btnMontMulModClick(Sender: TObject);
     procedure btnMontMulModTimeClick(Sender: TObject);
     procedure btnShorClick(Sender: TObject);
+    procedure btnMulOrderClick(Sender: TObject);
   private
 
   public
@@ -260,13 +265,16 @@ begin
     begin
       F := TCnUInt32List.Create;
       CnUInt32FindFactors(N, F);
-      S := #13#10#13#10;
-      for I := 0 to F.Count - 1 do
-        S := S + ' ' + IntToStr(F[I]);
+      F.IntSort;
+      S := #13#10#13#10 + F.ToString;
+      F.Clear;
+      CnUInt32FindAllFactors(N, F);
+      S := S + #13#10 + F.ToString;
       F.Free;
       N := CnEulerUInt32(N);
       S := S + #13#10 + 'Euler: ' + IntToStr(N);
       ShowMessage('Not Prime Number. Factors are:' + S);
+      mmoCar.Lines.Add(S);
     end;
   end;
 end;
@@ -303,13 +311,15 @@ begin
     begin
       F := TCnUInt64List.Create;
       CnInt64FindFactors(N, F);
-      S := #13#10#13#10;
-      for I := 0 to F.Count - 1 do
-        S := S + ' ' + UInt64ToStr(F[I]);
+      S := #13#10#13#10 + F.ToString;
+      F.Clear;
+      CnInt64FindAllFactors(N, F);
+      S := S + #13#10 + F.ToString;
       F.Free;
       N := CnEulerInt64(N);
       S := S + #13#10 + 'Euler: ' + UInt64ToStr(N);
       ShowMessage('Not Prime Number. Factors are:' + S);
+      mmoCar.Lines.Add(S);
     end;
   end;
 end;
@@ -872,6 +882,16 @@ begin
     ShowMessage('OK ' + UInt64ToStr(F))
   else
     ShowMessage('Fail. Prime or Base Error');
+end;
+
+procedure TFormPrime.btnMulOrderClick(Sender: TObject);
+var
+  N, R: TUInt64;
+begin
+  N := StrToUInt64(edtMulOrderN.Text);
+  R := StrToUInt64(edtMulOrderR.Text);
+
+  ShowMessage(UInt64ToStr(CnInt64MultiplicativeOrder(N, R)));
 end;
 
 end.

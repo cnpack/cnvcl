@@ -671,8 +671,10 @@ procedure TFormPrime.btnCombinatorialNumberClick(Sender: TObject);
 var
   I: Integer;
   List: TCnInt64List;
+  UList: TCnUInt64List;
 begin
   List := TCnInt64List.Create;
+  UList := TCnUInt64List.Create;
   try
     CnInt64FillCombinatorialNumbers(List, 61);
     for I := 0 to List.Count - 1 do
@@ -680,12 +682,13 @@ begin
 
     mmoResult.Lines.Add('');
 
-    CnUInt64FillCombinatorialNumbers(List, 62);
-    for I := 0 to List.Count - 1 do
-      mmoResult.Lines.Add(Format('%3.3d  -  ', [I]) +  UInt64ToStr(List[I]));
+    CnUInt64FillCombinatorialNumbers(UList, 62);
+    for I := 0 to UList.Count - 1 do
+      mmoResult.Lines.Add(Format('%3.3d  -  ', [I]) +  UInt64ToStr(UList[I]));
 
     pgc1.ActivePageIndex := 0;
   finally
+    UList.Free;
     List.Free;
   end;
 end;
@@ -694,8 +697,10 @@ procedure TFormPrime.btnComNumModClick(Sender: TObject);
 var
   I: Integer;
   List: TCnInt64List;
+  UList: TCnUInt64List;
 begin
   List := TCnInt64List.Create;
+  UList := TCnUInt64List.Create;
   try
     CnInt64FillCombinatorialNumbersMod(List, 29, 31);
     for I := 0 to List.Count - 1 do
@@ -703,12 +708,13 @@ begin
 
     mmoResult.Lines.Add('');
 
-    CnUInt64FillCombinatorialNumbersMod(List, 29, 31);
-    for I := 0 to List.Count - 1 do
-      mmoResult.Lines.Add(Format('%3.3d  -  ', [I]) +  UInt64ToStr(List[I]));
+    CnUInt64FillCombinatorialNumbersMod(UList, 29, 31);
+    for I := 0 to UList.Count - 1 do
+      mmoResult.Lines.Add(Format('%3.3d  -  ', [I]) +  UInt64ToStr(UList[I]));
 
     pgc1.ActivePageIndex := 0;
   finally
+    UList.Free;
     List.Free;
   end;
 end;

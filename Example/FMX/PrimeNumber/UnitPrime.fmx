@@ -20,7 +20,7 @@ object FormPrime: TFormPrime
     Size.Width = 743.000000000000000000
     Size.Height = 429.000000000000000000
     Size.PlatformDefault = False
-    TabIndex = 2
+    TabIndex = 0
     TabOrder = 0
     TabPosition = Top
     Sizes = (
@@ -38,7 +38,7 @@ object FormPrime: TFormPrime
       CustomIcon = <
         item
         end>
-      IsSelected = False
+      IsSelected = True
       Size.Width = 136.000000000000000000
       Size.Height = 28.000000000000000000
       Size.PlatformDefault = False
@@ -244,7 +244,7 @@ object FormPrime: TFormPrime
       CustomIcon = <
         item
         end>
-      IsSelected = True
+      IsSelected = False
       ImageIndex = 2
       Size.Width = 162.000000000000000000
       Size.Height = 28.000000000000000000
