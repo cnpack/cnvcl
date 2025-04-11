@@ -28,7 +28,9 @@ unit CnLangUtils;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2021.02.20 V1.1
+* 修改记录：2025.04.11 V1.2
+*               屏蔽可能的 TStrings 的 Text 获取异常的问题
+*           2021.02.20 V1.1
 *               增加代码页的获取
 *           2006.10.12 V1.0
 *               创建单元，实现功能
@@ -43,8 +45,6 @@ uses
   SysUtils, SysConst, Classes, Windows;
 
 type
-{ TCnLangStringExtractor }
-
   TLangTransFilter = (tfFont, tfCaption, tfCategory, tfHelpKeyword, tfHint,
     tfText, tfImeName, tfTitle, tfDefaultExt, tfFilter, tfInitialDir,
     tfSubItemsText, tfOthers);
@@ -387,9 +387,16 @@ begin
       if BaseName <> '' then
         AStr := BaseName + DefDelimeter + AStr;
 
-      if not SkipEmptyStr or ((AObject as TStrings).Text <> '') then
-        Strings.Add(AStr + DefEqual + StringReplace((AObject as TStrings).Text,
-          SCnCRLF, SCnBR, [rfReplaceAll, rfIgnoreCase]));
+      try
+        // 可能获取异常，原因在于某些组件需要创建并 Set 好 Parent 后才能获取到
+        // 如设计期取 TOpenTextFileDialog 里头的 ComboBox 的 Items 的值时
+        if not SkipEmptyStr or ((AObject as TStrings).Text <> '') then
+          Strings.Add(AStr + DefEqual + StringReplace((AObject as TStrings).Text,
+            SCnCRLF, SCnBR, [rfReplaceAll, rfIgnoreCase]));
+      except
+        if not SkipEmptyStr then // 获取异常就塞空串
+          Strings.Add(AStr + DefEqual);
+      end;
       Exit;
     end
     else if (AObject is TCollection) then // TCollection 对象遍历其 Item

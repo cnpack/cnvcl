@@ -32,18 +32,20 @@ unit CnLangMgr;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2009.08.18 V1.5
+* 修改记录：2025.04.11 V2.5
+*               屏蔽可能的 TStrings 的 Text 设置异常的问题
+*           2009.08.18 V2.4
 *               将字符串常量注册机制与多语管理器独立出来
-*           2009.07.15 V1.5
+*           2009.07.15 V2.3
 *               修改资源字符串常量存储机制，直接保存在 PResStringRec 的 Identifier
 *               中，由翻译时统一改动，不挂接以减少问题。
-*           2009.07.11 V1.4
+*           2009.07.11 V2.2
 *               增加字符串常量的注册机制，注册了的字符串能在改变语言时被自动翻译
 *               而无需在事件中手工调用 TranslateStr，资源字符串的自动翻译也已通
 *               过挂接 LoadResString 完成。
-*           2008.05.30 V1.3
+*           2008.05.30 V2.1
 *               不处理只读的 string 属性，加入某 Tag 值不翻译的机制
-*           2007.09.18 V1.10
+*           2007.09.18 V2.00
 *               增加翻译事件以便让用户控制是否翻译某些对象和属性。
 *           2006.08.21 V1.9
 *               修正手工创建多语管理器时未释放的问题。
@@ -1067,7 +1069,14 @@ begin
 
       TransStr := TranslateString(AStr);
       if TransStr <> '' then
-        (AObject as TStrings).Text := TransStr;
+      begin
+        try
+          (AObject as TStrings).Text := TransStr;
+        except
+          ; // 可能设置异常得屏蔽，原因在于某些组件需要创建并 Set 好 Parent 后才能设置
+            // 如设计期取 TOpenTextFileDialog 里头的 ComboBox 的 Items 的值时
+        end;
+      end;
 
       Exit;
     end
