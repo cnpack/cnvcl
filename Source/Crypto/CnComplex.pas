@@ -26,6 +26,7 @@ unit CnComplex;
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：本单元实现了扩展精度浮点数的复数结构 TCnComplexNumber 及其各类运算。
 *           为提高效率，使用 record 而不用 TObject。
+*           实现了基于大整数的复数类，注意不支持除、绝对值等需要浮点运算的场合。
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -41,7 +42,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, SysConst, Math, CnMath;
+  Classes, SysUtils, SysConst, Math, CnMath, CnBigNumber;
 
 type
   ECnComplexNumberException = class(Exception);
@@ -62,6 +63,23 @@ type
 
   PCnComplexArray = ^TCnComplexArray;
   {* 指向复数结构数组的指针}
+
+  TCnBigComplexNumber = class(TObject)
+  {* 实部虚部均为大整数的复数类}
+  private
+    FR: TCnBigNumber;
+    FI: TCnBigNumber;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    property R: TCnBigNumber read FR;
+    {* 实部}
+    property I: TCnBigNumber read FI;
+    {* 虚部}
+  end;
+
+// ======================== 浮点精度的复数运算 =================================
 
 function ComplexNumberIsZero(var Complex: TCnComplexNumber): Boolean;
 {* 返回复数是否为 0。
@@ -285,7 +303,6 @@ function ComplexNumberAbsolute(var Complex: TCnComplexNumber): Extended;
      var Complex: TCnComplexNumber        - 待计算的复数
 
    返回值：Extended                       - 返回复数的绝对值
-
 }
 
 function ComplexNumberArgument(var Complex: TCnComplexNumber): Extended;
@@ -309,6 +326,217 @@ procedure ComplexNumberSetAbsoluteArgument(var Complex: TCnComplexNumber;
    返回值：（无）
 }
 
+// ========================== 大整数的复数运算 =================================
+
+function BigComplexNumberIsZero(Complex: TCnBigComplexNumber): Boolean;
+{* 返回大整数复数是否为 0。
+
+   参数：
+     Complex: TCnBigComplexNumber         - 待判断的大整数复数
+
+   返回值：Boolean                        - 返回是否等于 0
+}
+
+procedure BigComplexNumberSetZero(Complex: TCnBigComplexNumber);
+{* 大整数复数置 0。
+
+   参数：
+     Complex: TCnBigComplexNumber         - 待设置的大整数复数
+
+   返回值：（无）
+}
+
+procedure BigComplexNumberSetValue(Complex: TCnBigComplexNumber;
+  AR: Int64; AI: Int64); overload;
+{* 大整数复数赋值。
+
+   参数：
+     Complex: TCnBigComplexNumber         - 待赋值的大整数复数
+     AR: Int64                            - 大整数复数的实部
+     AI: Int64                            - 大整数复数的虚部
+
+   返回值：（无）
+}
+
+procedure BigComplexNumberSetValue(Complex: TCnBigComplexNumber;
+  const AR: string; const AI: string); overload;
+{* 大整数复数赋值。
+
+   参数：
+     Complex: TCnBigComplexNumber         - 待赋值的大整数复数
+     const AR: string                     - 实部的十进制整数字符串形式
+     const AI: string                     - 虚部的十进制整数字符串形式
+
+   返回值：（无）
+}
+
+function BigComplexNumberToString(Complex: TCnBigComplexNumber): string;
+{* 大整数复数转换为形如 a + bi 的字符串，实部虚部若有 0 则对应省略。
+
+   参数：
+     Complex: TCnBigComplexNumber         - 待转换的大整数复数
+
+   返回值：string                         - 返回大整数复数的字符串形式
+}
+
+function BigComplexNumberEqual(Complex1: TCnBigComplexNumber; Complex2: TCnBigComplexNumber): Boolean;
+{* 判断两个大整数复数值是否相等。
+
+   参数：
+     Complex1: TCnBigComplexNumber        - 待比较的大整数复数一
+     Complex2: TCnBigComplexNumber        - 待比较的大整数复数二
+
+   返回值：Boolean                        - 返回两个大整数复数值是否相等
+}
+
+procedure BigComplexNumberSwap(Complex1: TCnBigComplexNumber; Complex2: TCnBigComplexNumber);
+{* 交换两个大整数复数的值。
+
+   参数：
+     Complex1: TCnBigComplexNumber        - 待交换的大整数复数一
+     Complex2: TCnBigComplexNumber        - 待交换的大整数复数二
+
+   返回值：（无）
+}
+
+procedure BigComplexNumberCopy(Dst: TCnBigComplexNumber; Src: TCnBigComplexNumber);
+{* 复制大整数复数的值。
+
+   参数：
+     Dst: TCnBigComplexNumber             - 目标大整数复数
+     Src: TCnBigComplexNumber             - 源大整数复数
+
+   返回值：（无）
+}
+
+procedure BigComplexNumberAdd(Res: TCnBigComplexNumber;
+  Complex1: TCnBigComplexNumber; Complex2: TCnBigComplexNumber); overload;
+{* 大整数复数加法，Complex1 和 Complex2 可以是同一个对象，Res 可以是 Complex1 或 Complex2。
+
+   参数：
+     Res: TCnBigComplexNumber             - 大整数复数和
+     Complex1: TCnBigComplexNumber        - 大整数复数加数一
+     Complex2: TCnBigComplexNumber        - 大整数复数加数二
+
+   返回值：（无）
+}
+
+procedure BigComplexNumberSub(Res: TCnBigComplexNumber;
+  Complex1: TCnBigComplexNumber; Complex2: TCnBigComplexNumber); overload;
+{* 大整数复数减法，Complex1 和 Complex2 可以是同一个对象，Res 可以是 Complex1 或 Complex2。
+
+   参数：
+     Res: TCnBigComplexNumber             - 大整数复数差
+     Complex1: TCnBigComplexNumber        - 大整数复数被减数
+     Complex2: TCnBigComplexNumber        - 大整数复数减数
+
+   返回值：（无）
+}
+
+procedure BigComplexNumberMul(Res: TCnBigComplexNumber;
+  Complex1: TCnBigComplexNumber; Complex2: TCnBigComplexNumber); overload;
+{* 大整数复数乘法，Complex1 和 Complex2 可以是同一个对象，Res 可以是 Complex1 或 Complex2。
+
+   参数：
+     Res: TCnBigComplexNumber             - 大整数复数积
+     Complex1: TCnBigComplexNumber        - 大整数复数乘数一
+     Complex2: TCnBigComplexNumber        - 大整数复数乘数二
+
+   返回值：（无）
+}
+
+procedure BigComplexNumberAdd(Res: TCnBigComplexNumber;
+  Complex: TCnBigComplexNumber; Value: Int64); overload;
+{* 大整数复数与整数的加法，Complex 和 Res 可以是同一个对象。
+
+   参数：
+     Res: TCnBigComplexNumber             - 大整数复数和
+     Complex: TCnBigComplexNumber         - 大整数复数加数
+     Value: Int64                         - 整数加数
+
+   返回值：（无）
+}
+
+procedure BigComplexNumberSub(Res: TCnBigComplexNumber;
+  Complex: TCnBigComplexNumber; Value: Int64); overload;
+{* 大整数复数与整数的减法，Complex 和 Res 可以是同一个对象。
+
+   参数：
+     Res: TCnBigComplexNumber             - 大整数复数差
+     Complex: TCnBigComplexNumber         - 大整数复数被减数
+     Value: Int64                         - 整数减数
+
+   返回值：（无）
+}
+
+procedure BigComplexNumberMul(Res: TCnBigComplexNumber;
+  Complex: TCnBigComplexNumber; Value: Int64); overload;
+{* 大整数复数与整数数的乘法，Complex 和 Res 可以是同一个对象。
+
+   参数：
+     Res: TCnBigComplexNumber             - 大整数复数积
+     Complex: TCnBigComplexNumber         - 大整数复数乘数
+     Value: Int64                         - 整数乘数
+
+   返回值：（无）
+}
+
+procedure BigComplexConjugate(Res: TCnBigComplexNumber; Complex: TCnBigComplexNumber);
+{* 获得共轭大整数复数，Res 可以是 Complex。
+
+   参数：
+     Res: TCnBigComplexNumber            - 大整数复数的共轭结果
+     Complex: TCnBigComplexNumber        - 待求共轭的大整数复数
+
+   返回值：（无）
+}
+
+function BigComplexIsPureReal(Complex: TCnBigComplexNumber): Boolean;
+{* 大整数复数是否纯实数，也就是判断虚部是否为 0。
+
+   参数：
+     Complex: TCnBigComplexNumber         - 待判断的大整数复数
+
+   返回值：Boolean                        - 返回是否纯实数
+}
+
+function BigComplexIsPureImaginary(Complex: TCnBigComplexNumber): Boolean;
+{* 大整数复数是否纯虚数，也就是判断实部是否为 0 且虚部不为 0。
+
+   参数：
+     Complex: TCnBigComplexNumber         - 待判断的大整数复数
+
+   返回值：Boolean                        - 返回是否纯虚数
+}
+
+function BigComplexNumberAbsolute(Complex: TCnBigComplexNumber): Extended; overload;
+{* 返回大整数复数的绝对值，也即距复平面原点的距离，以浮点数表示。
+
+   参数：
+     Complex: TCnBigComplexNumber         - 待计算的大整数复数
+
+   返回值：Extended                       - 返回大整数复数的绝对值
+}
+
+function BigComplexNumberAbsolute(Res: TCnBigNumber; Complex: TCnBigComplexNumber): Boolean; overload;
+{* 返回大整数复数的绝对值，也即距复平面原点的距离，以大整数表示。
+
+   参数：
+     Res: TCnBigComplexNumber             - 用来容纳结果的大整数对象
+     Complex: TCnBigComplexNumber         - 待计算的大整数复数
+
+   返回值：Boolean                        - 返回是否求值成功
+}
+
+function BigComplexNumberArgument(Complex: TCnBigComplexNumber): Extended;
+{* 返回大整数复数的辐角主值，也即与复平面正 X 轴的夹角，范围在 0 到 2π。
+
+   参数：
+     Complex: TCnBigComplexNumber         - 待计算的大整数复数
+
+   返回值：Extended                       - 返回大整数复数的辐角主值，单位为弧度
+}
+
 var
   CnComplexZero: TCnComplexNumber;
   {* 复数 0}
@@ -320,6 +548,18 @@ var
   {* 复数 i}
 
   CnComplexNegOneI: TCnComplexNumber;
+  {* 复数 -i}
+
+  CnBigComplexNumberZero: TCnBigComplexNumber;
+  {* 复数 0}
+
+  CnBigComplexNumberOne: TCnBigComplexNumber;
+  {* 复数 1}
+
+  CnBigComplexNumberOneI: TCnBigComplexNumber;
+  {* 复数 i}
+
+  CnBigComplexNumberNegOneI: TCnBigComplexNumber;
   {* 复数 -i}
 
 implementation
@@ -519,6 +759,210 @@ begin
   Complex.I := AnAbsolute * Sin(AnArgument);
 end;
 
+{ TCnBigComplexNumber }
+
+constructor TCnBigComplexNumber.Create;
+begin
+  inherited;
+  FR := TCnBigNumber.Create;
+  FI := TCnBigNumber.Create;
+end;
+
+destructor TCnBigComplexNumber.Destroy;
+begin
+  FI.Free;
+  FR.Free;
+  inherited;
+end;
+
+function BigComplexNumberIsZero(Complex: TCnBigComplexNumber): Boolean;
+begin
+  Result := Complex.FR.IsZero and Complex.FI.IsZero;
+end;
+
+procedure BigComplexNumberSetZero(Complex: TCnBigComplexNumber);
+begin
+  Complex.FR.SetZero;
+  Complex.FI.SetZero;
+end;
+
+procedure BigComplexNumberSetValue(Complex: TCnBigComplexNumber;
+  AR: Int64; AI: Int64);
+begin
+  Complex.FR.SetInt64(AR);
+  Complex.FI.SetInt64(AI);
+end;
+
+procedure BigComplexNumberSetValue(Complex: TCnBigComplexNumber;
+  const AR: string; const AI: string);
+begin
+  Complex.FR.SetDec(AR);
+  Complex.FI.SetDec(AI);
+end;
+
+function BigComplexNumberToString(Complex: TCnBigComplexNumber): string;
+begin
+  if BigComplexIsPureReal(Complex) then
+    Result := Complex.FR.ToDec
+  else if BigComplexIsPureImaginary(Complex) then
+    Result := Complex.FI.ToDec + 'i'
+  else if Complex.FI.IsNegative then
+    Result := Complex.FR.ToDec + Complex.FI.ToDec
+  else
+    Result := Complex.FR.ToDec + '+' + Complex.FI.ToDec;
+end;
+
+function BigComplexNumberEqual(Complex1: TCnBigComplexNumber; Complex2: TCnBigComplexNumber): Boolean;
+begin
+  Result := BigNumberEqual(Complex1.FR, Complex2.FR) and BigNumberEqual(Complex1.FI, Complex2.FI);
+end;
+
+procedure BigComplexNumberSwap(Complex1: TCnBigComplexNumber; Complex2: TCnBigComplexNumber);
+begin
+  BigNumberSwap(Complex1.FR, Complex2.FR);
+  BigNumberSwap(Complex1.FI, Complex2.FI);
+end;
+
+procedure BigComplexNumberCopy(Dst: TCnBigComplexNumber; Src: TCnBigComplexNumber);
+begin
+  BigNumberCopy(Dst.FR, Src.FR);
+  BigNumberCopy(Dst.FI, Src.FI);
+end;
+
+procedure BigComplexNumberAdd(Res: TCnBigComplexNumber;
+  Complex1: TCnBigComplexNumber; Complex2: TCnBigComplexNumber);
+begin
+  BigNumberAdd(Res.FR, Complex1.FR, Complex2.FR);
+  BigNumberAdd(Res.FI, Complex1.FI, Complex2.FI);
+end;
+
+procedure BigComplexNumberSub(Res: TCnBigComplexNumber;
+  Complex1: TCnBigComplexNumber; Complex2: TCnBigComplexNumber);
+begin
+  BigNumberSub(Res.FR, Complex1.FR, Complex2.FR);
+  BigNumberSub(Res.FI, Complex1.FI, Complex2.FI);
+end;
+
+procedure BigComplexNumberMul(Res: TCnBigComplexNumber;
+  Complex1: TCnBigComplexNumber; Complex2: TCnBigComplexNumber);
+begin
+  BigNumberMul(Res.FR, Complex1.FR, Complex2.FR);
+  BigNumberMul(Res.FI, Complex1.FI, Complex2.FI);
+end;
+
+procedure BigComplexNumberAdd(Res: TCnBigComplexNumber;
+  Complex: TCnBigComplexNumber; Value: Int64);
+var
+  T: TCnBigNumber;
+begin
+  BigComplexNumberCopy(Res, Complex);
+  T := TCnBigNumber.Create;
+  try
+    T.SetInt64(Value);
+    BigNumberAdd(Res.FR, Res.FR, T);
+  finally
+    T.Free;
+  end;
+end;
+
+procedure BigComplexNumberSub(Res: TCnBigComplexNumber;
+  Complex: TCnBigComplexNumber; Value: Int64);
+var
+  T: TCnBigNumber;
+begin
+  BigComplexNumberCopy(Res, Complex);
+  T := TCnBigNumber.Create;
+  try
+    T.SetInt64(Value);
+    BigNumberSub(Res.FR, Res.FR, T);
+  finally
+    T.Free;
+  end;
+end;
+
+procedure BigComplexNumberMul(Res: TCnBigComplexNumber;
+  Complex: TCnBigComplexNumber; Value: Int64);
+var
+  T: TCnBigNumber;
+begin
+  BigComplexNumberCopy(Res, Complex);
+  T := TCnBigNumber.Create;
+  try
+    T.SetInt64(Value);
+    BigNumberMul(Res.FR, Res.FR, T);
+    BigNumberMul(Res.FI, Res.FI, T);
+  finally
+    T.Free;
+  end;
+end;
+
+procedure BigComplexConjugate(Res: TCnBigComplexNumber; Complex: TCnBigComplexNumber);
+begin
+  BigNumberCopy(Res.FR, Complex.FR);
+  BigNumberCopy(Res.FI, Complex.FI);
+  Res.FI.Negate;
+end;
+
+function BigComplexIsPureReal(Complex: TCnBigComplexNumber): Boolean;
+begin
+  Result := Complex.FI.IsZero;
+end;
+
+function BigComplexIsPureImaginary(Complex: TCnBigComplexNumber): Boolean;
+begin
+  Result := Complex.FR.IsZero and not Complex.FI.IsZero;
+end;
+
+function BigComplexNumberAbsolute(Complex: TCnBigComplexNumber): Extended;
+var
+  X, Y: Extended;
+begin
+  X := BigNumberGetFloat(Complex.FR);
+  Y := BigNumberGetFloat(Complex.FI);
+  Result := Sqrt(X * X + Y * Y);
+end;
+
+function BigComplexNumberAbsolute(Res: TCnBigNumber; Complex: TCnBigComplexNumber): Boolean;
+var
+  X, Y: TCnBigNumber;
+begin
+  X := BigNumberDuplicate(Complex.FR);
+  Y := BigNumberDuplicate(Complex.FI);
+  BigNumberMul(X, X, X);
+  BigNumberMul(Y, Y, Y);
+  BigNumberAdd(Res, X, Y);
+  Result := BigNumberSqrt(Res, Res);
+end;
+
+function BigComplexNumberArgument(Complex: TCnBigComplexNumber): Extended;
+var
+  X, Y: Extended;
+begin
+  X := BigNumberGetFloat(Complex.FR);
+  Y := BigNumberGetFloat(Complex.FI);
+
+  if Complex.FI.IsZero then
+  begin
+    if not Complex.FR.IsNegative then
+      Result := 0                    // 正实数辐角返回 0，包括 0 也凑合着返回 0
+    else
+      Result := CN_PI;               // 复实数辐角返回 π
+  end
+  else if Complex.FR.IsZero then
+  begin
+    if not Complex.FI.IsZero and not Complex.FI.IsNegative then
+      Result := CN_PI / 2            // 正纯虚数辐角返回半 π
+    else
+      Result := CN_PI + CN_PI / 2;   // 复纯虚数辐角返回 3π/2
+  end
+  else // 实部虚部均不为 0
+  begin
+    Result := ArcTan2(Y, X);
+    if Result < 0 then
+      Result := Result + CN_PI * 2;
+  end;
+end;
+
 initialization
   ComplexNumberSetZero(CnComplexZero);
 
@@ -530,5 +974,16 @@ initialization
 
   CnComplexNegOneI.R := 0;
   CnComplexNegOneI.I := -1;
+
+  CnBigComplexNumberZero := TCnBigComplexNumber.Create;
+  CnBigComplexNumberOne := TCnBigComplexNumber.Create;
+  CnBigComplexNumberOneI := TCnBigComplexNumber.Create;
+  CnBigComplexNumberNegOneI := TCnBigComplexNumber.Create;
+
+finalization
+  CnBigComplexNumberNegOneI.Free;
+  CnBigComplexNumberOneI.Free;
+  CnBigComplexNumberOne.Free;
+  CnBigComplexNumberZero.Free;
 
 end.
