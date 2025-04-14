@@ -83,9 +83,9 @@ uses
 {
   IEEE 754 规定的三种浮点格式，有效数在低位 0：
 
-  单精度 Single             1 符号位 S，8 位指数 E，23 位有效数 M，共 4 字节 32 位
-  双精度 Double             1 符号位 S，11 位指数 E，52 位有效数 M，共 8 字节 64 位
-  扩展双精度 Extended       1 符号位 S，15 位指数 E，64 位有效数 M，共 10 字节 80 位
+  单精度 Single             1 符号位 S，8 位指数 E，23 位有效数 M （隐含第 24 位的 1），共 4 字节 32 位
+  双精度 Double             1 符号位 S，11 位指数 E，52 位有效数 M（隐含第 53 位的 1），共 8 字节 64 位
+  扩展双精度 Extended       1 符号位 S，15 位指数 E，64 位有效数 M（第 64 位显式 1），共 10 字节 80 位
 
   IEEE 754-2008 加了
   四倍精度 Quadruple        1 符号位 S，15 位指数 E，112 位有效数 M，共 16 字节 128 位
@@ -95,10 +95,34 @@ uses
         M: 规范化单/双精度的二进制 M 的高位加个 1. 代表有效数，扩展的无需加，自身有 1.
            最终值：有效数（二进制 1.xxxx 的形式）乘以 2 的 E 次方（注意不是 10 的 E 次方！）
 
+  （S 符号位、X 指数、M 有效数字但不代表真实值，因为正规化过了并且可能有隐含小数点）
+
   格式          字节 1    字节 2    字节 3    字节 4    ...  字节 n（每个字节的右边低位是 0）
+
   单精度 4      SXXXXXXX  XMMMMMMM  MMMMMMMM  MMMMMMMM
+      例：      01000110  00011100  01000000  00000000
+                   4   6     1   C     4   0     0   0     （内存因为大小端，可能有全局倒序）浮点数实际值 10000
+         分为： 0 10001100 00111000100000000000000
+         S：0、X：140（要减去 127 得到真实的 13）、M：原始值 1C4000
+         高位加 1 和小数点，得到 100111000100000000000000 为实际有效数字，真实值则是 1.001110001
+         浮点数实际值：1.001110001 左移 13 位，得到十六进制 2710.00，小数点后全 0，折算成十进制 10000 符合实际结果
+
   双精度 8      SXXXXXXX  XXXXMMMM  MMMMMMMM  MMMMMMMM  ...  MMMMMMMM
+      例：      01000000  11000011  10001000  0000000000000000000000000000000000000000
+                   4   0     C   3     8   8     0   0     （内存因为大小端，可能有全局倒序）浮点数实际值 10000
+         分为： 0 10000001100 0011100010000000000000000000000000000000000000000000
+         S：0、X：1036（要减去 1023 得到真实的 13）、M：原始值 3 88 00 00 00 00 00
+         高位加 1 和小数点得到二进制 10011100010000000000000000000000000000000000000000000 为实际有效数字，真实值则是 1.001110001
+         浮点数实际值：1.001110001 左移 13 位，得到十六进制 2710.00，小数点后全 0，折算成十进制 10000 符合实际结果
+
   扩展双精度 10 SXXXXXXX  XXXXXXXX  1MMMMMMM  MMMMMMMM  ...  MMMMMMMM  // 注意它的有效数字包括了 1，其余都省略了 1
+      例：      01000000  00001100  10011100  01000000  ...
+                   4   0     0   C     9   C     4   0     （内存因为大小端，可能有全局倒序）浮点数实际值 10000
+         分为： 0 100000000001100 1001110000100000 ...
+         S：0、X：16396（要减去 16383 得到真实的 13）、M：原始值 9C 40 00 ...
+         高位不用额外加 1，只要加小数点得到二进制 10011100 01000000 ... 为实际有效数字，真实值则是 1.001110001
+         浮点数实际值：1.001110001 左移 13 位，得到十六进制 2710.00，小数点后全 0，折算成十进制 10000 符合实际结果
+
   四倍精度 16   SXXXXXXX  XXXXXXXX  MMMMMMMM  MMMMMMMM  ...  MMMMMMMM
   八倍精度 32   SXXXXXXX  XXXXXXXX  XXXXMMMM  MMMMMMMM  ...  MMMMMMMM
 
@@ -121,7 +145,7 @@ type
   PCnQuadruple = ^TCnQuadruple;
 
   TCnOctuple = packed record
-  {* Delphi 中无八倍精度类型，用两个 Int64 及其指针代替}
+  {* Delphi 中无八倍精度类型，用两个 Int64 及其指针代替，暂无处理函数}
     F0: Int64;
     F1: Int64;
     F2: Int64;
@@ -130,6 +154,7 @@ type
   PCnOctuple = ^TCnOctuple;
 
   ECnFloatSizeError = class(Exception);
+  {* 浮点数长度异常}
 
 const
   CN_EXTENDED_SIZE_8  =          8;    // Win64 下的 Extended 只有 8 字节
@@ -168,8 +193,8 @@ const
 
 procedure ExtractFloatSingle(Value: Single; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: Cardinal);
-{* 从单精度浮点数中解出符号位、指数、有效数字。
-   注：指数为真实指数；有效数字为低 24 位，其中原始的为 0~22 位，第 23 位为补上去的 1。
+{* 从单精度浮点数中解出符号位、指数、添加了最高位 1 并去除了小数点的完整有效数字。
+   注意：指数为真实指数；有效数字为低 24 位，其中原始的为 0~22 位，第 23 位为补上去的 1。
 
    参数：
      Value: Single                        - 待解开的单精度浮点数
@@ -182,8 +207,8 @@ procedure ExtractFloatSingle(Value: Single; out SignNegative: Boolean;
 
 procedure ExtractFloatDouble(Value: Double; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
-{* 从双精度浮点数中解出符号位、指数、有效数字。
-   注：指数为真实指数；有效数字为低 53 位，其中原始的为 0~51 位，第 52 位为补上去的 1。
+{* 从双精度浮点数中解出符号位、指数、添加了最高位 1 并去除了小数点的完整有效数字。
+   注意：指数为真实指数；有效数字为低 53 位，其中原始的为 0~51 位，第 52 位为补上去的 1。
 
    参数：
      Value: Double                        - 待解开的双精度浮点数
@@ -196,9 +221,9 @@ procedure ExtractFloatDouble(Value: Double; out SignNegative: Boolean;
 
 procedure ExtractFloatExtended(Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64);
-{* 从扩展精度浮点数中解出符号位、指数、有效数字，支持 10 字节、
+{* 从扩展精度浮点数中解出符号位、指数、去除了小数点的完整有效数字，支持 10 字节、
    以及 16 字节截断为 10 字节的 Extended 格式。
-   注：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1。
+   注意：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1。
 
    参数：
      Value: Extended                      - 待解开的扩展精度浮点数
@@ -211,9 +236,9 @@ procedure ExtractFloatExtended(Value: Extended; out SignNegative: Boolean;
 
 procedure ExtractFloatQuadruple(Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out MantissaLo: TUInt64; out MantissaHi: TUInt64);
-{* 从十六字节精度浮点数中解出符号位、指数、有效数字，只在 Extended 为 16 字节
+{* 从十六字节精度浮点数中解出符号位、指数、去除了小数点的完整有效数字，只在 Extended 为 16 字节
    且格式是 IEEE 754-2008 里的四倍精度浮点时有效（目前 Delphi 不支持该格式）
-   注：指数为真实指数；有效数字 112 位，分为高低两部分。
+   注意：指数为真实指数；有效数字 112 位，分为高低两部分，其中原始的为 0~110 位，第 111 位为补上去的 1。
 
    参数：
      Value: Extended                      - 待解开的十六字节精度浮点数
@@ -227,7 +252,7 @@ procedure ExtractFloatQuadruple(Value: Extended; out SignNegative: Boolean;
 
 procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
   Mantissa: Cardinal; var Value: Single);
-{* 把符号位、指数、有效数字拼成单精度浮点数。
+{* 把符号位、指数、有效数字拼成单精度浮点数，要求有效数字为正规化的，也即共 24 位且最高位为 1。
 
    参数：
      SignNegative: Boolean                - 符号位，True 为负
@@ -240,7 +265,7 @@ procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
 
 procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Double);
-{* 把符号位、指数、有效数字拼成双精度浮点数。
+{* 把符号位、指数、有效数字拼成双精度浮点数，要求有效数字为正规化的，也即共 53 位且最高位为 1。
 
    参数：
      SignNegative: Boolean                - 符号位，True 为负
@@ -254,7 +279,7 @@ procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
 procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
   Mantissa: TUInt64; var Value: Extended);
 {* 把符号位、指数、有效数字拼成扩展精度浮点数，支持 10 字节、
-   以及 16 字节截断为 10 字节的 Extended 格式。
+   以及 16 字节截断为 10 字节的 Extended 格式。要求有效数字为正规化的，也即共 64 位且最高位为 1。
 
    参数：
      SignNegative: Boolean                - 符号位，True 为负
@@ -263,13 +288,13 @@ procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
      var Value: Extended                  - 返回组合的扩展精度浮点数
 
    返回值：（无）
-
 }
 
 procedure CombineFloatQuadruple(SignNegative: Boolean; Exponent: Integer;
   MantissaLo: TUInt64; MantissaHi: TUInt64; var Value: Extended);
 {* 把符号位、指数、有效数字拼成扩展精度浮点数，只在 Extended 为 16 字节
    且格式是 IEEE 754-2008 里的四倍精度浮点时有效（目前 Delphi 不支持该格式）。
+   要求有效数字为正规化的，也即共 112 位且最高位为 1。
 
    参数：
      SignNegative: Boolean                - 符号位，True 为负
@@ -397,13 +422,13 @@ function ExtendedIsNan(AValue: Extended): Boolean;
   均调用了 FloatDecimalToBinaryExtended 过程，FloatDecimalToBinaryExtended 不公开。}
 
 function FloatDecimalToBinExtended(fIn: Extended; DecimalExp: Boolean;
-  AlwaysUseExponent: Boolean): AnsiString; // Convert to binary
+  AlwaysUseExponent: Boolean): AnsiString; deprecated; // Convert to binary
 
 function FloatDecimalToOctExtended(fIn: Extended; DecimalExp: Boolean;
-  AlwaysUseExponent: Boolean): AnsiString; // Convert to octal
+  AlwaysUseExponent: Boolean): AnsiString; deprecated; // Convert to octal
 
 function FloatDecimalToHexExtended(fIn: Extended; DecimalExp: Boolean;
-  AlwaysUseExponent: Boolean): AnsiString; // Convert to hexdecimal
+  AlwaysUseExponent: Boolean): AnsiString; deprecated; // Convert to hexdecimal
 
 {$ENDIF}
 {$ENDIF}

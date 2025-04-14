@@ -709,6 +709,24 @@ type
        返回值：TCnBigNumber               - 返回新建的大数对象
     }
 
+    function IsFloat: Boolean;
+    {* 大数是否是一个 Extended 扩展精度浮点范围内的数。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否在扩展精度范围内
+    }
+
+    function GetFloat: Extended;
+    {* 将大数转换为浮点数。
+
+       参数：
+         （无）
+
+       返回值：Extended                   - 返回浮点数
+    }
+
     function SetFloat(F: Extended): Boolean;
     {* 根据一浮点数给自身赋值。
 
@@ -2452,6 +2470,16 @@ function BigNumberIsUInt64(Num: TCnBigNumber): Boolean;
      Num: TCnBigNumber                    - 待判断的大数对象
 
    返回值：Boolean                        - 返回是否在 64 位无符号整数范围内
+}
+
+function BigNumberIsFloat(Num: TCnBigNumber): Boolean;
+{* 大数是否是一个扩展精度浮点范围内的数，注意仅判断范围，不保证精度。
+   另外 Win64 下 Extended 实际上是双精度，Win32 下才是扩展精度。
+
+   参数：
+     Num: TCnBigNumber                    - 待判断的大数对象
+
+   返回值：Boolean                        - 返回是否在扩展精度浮点范围内
 }
 
 procedure BigNumberExtendedEuclideanGcd(A: TCnBigNumber; B: TCnBigNumber; X: TCnBigNumber;
@@ -4310,8 +4338,8 @@ var
   T: TCnUInt128;
 begin
   UInt64MulUInt64(A, B, T.Lo64, T.Hi64); // 计算 A * B
-  UInt128Add(T, R);                      // 加上 R
-  UInt128Add(T, C);                      // 加上 C
+  UInt128Add(T, T, R);                   // 加上 R
+  UInt128Add(T, T, C);                   // 加上 C
   R := T.Lo64;
   C := T.Hi64;
 end;
@@ -4322,7 +4350,7 @@ var
   T: TCnUInt128;
 begin
   UInt64MulUInt64(A, B, T.Lo64, T.Hi64); // 计算 A * B
-  UInt128Add(T, C);                      // 加上 C
+  UInt128Add(T, T, C);                   // 加上 C
   R := T.Lo64;
   C := T.Hi64;
 end;
@@ -4475,26 +4503,26 @@ begin
   while (N and (not 3)) <> 0 do
   begin
 {$IFDEF BN_DATA_USE_64}
-    UInt128Add(LL, AP^[0]);
-    UInt128Add(LL, BP^[0]);
+    UInt128Add(LL, LL, AP^[0]);
+    UInt128Add(LL, LL, BP^[0]);
     RP^[0] := LL.Lo64;
     LL.Lo64 := LL.Hi64;
     LL.Hi64 := 0;
 
-    UInt128Add(LL, AP^[1]);
-    UInt128Add(LL, BP^[1]);
+    UInt128Add(LL, LL, AP^[1]);
+    UInt128Add(LL, LL, BP^[1]);
     RP^[1] := LL.Lo64;
     LL.Lo64 := LL.Hi64;
     LL.Hi64 := 0;
 
-    UInt128Add(LL, AP^[2]);
-    UInt128Add(LL, BP^[2]);
+    UInt128Add(LL, LL, AP^[2]);
+    UInt128Add(LL, LL, BP^[2]);
     RP^[2] := LL.Lo64;
     LL.Lo64 := LL.Hi64;
     LL.Hi64 := 0;
 
-    UInt128Add(LL, AP^[3]);
-    UInt128Add(LL, BP^[3]);
+    UInt128Add(LL, LL, AP^[3]);
+    UInt128Add(LL, LL, BP^[3]);
     RP^[3] := LL.Lo64;
     LL.Lo64 := LL.Hi64;
     LL.Hi64 := 0;
@@ -4526,8 +4554,8 @@ begin
   while N <> 0 do
   begin
 {$IFDEF BN_DATA_USE_64}
-    UInt128Add(LL, AP^[0]);
-    UInt128Add(LL, BP^[0]);
+    UInt128Add(LL, LL, AP^[0]);
+    UInt128Add(LL, LL, BP^[0]);
     RP^[0] := LL.Lo64;
     LL.Lo64 := LL.Hi64;
     LL.Hi64 := 0;
@@ -5970,6 +5998,7 @@ var
   N: Boolean;
   E, B, K: Integer;
   M, T: TUInt64;
+  DB: Double;
 begin
   Result := 0;
   if not Num.IsZero then
@@ -5979,47 +6008,113 @@ begin
     B := Num.GetBitsCount;
     E := B - 1;
 
-    if E > CN_EXTENDED_MAX_EXPONENT then
-      raise ERangeError.Create(SCnErrorBigNumberFloatExponentRange);
-
-    if B <= 64 then
+    if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
     begin
-      M := PInt64Array(Num.D)^[0];
+      if E > CN_EXTENDED_MAX_EXPONENT then
+        raise ERangeError.Create(SCnErrorBigNumberFloatExponentRange);
 
-      if B < 64 then
-        M := M shl (64 - B);
-    end
-    else // 如 Top > 2，则只能取最高 64 位放 M 里，其余的只能舍弃
-    begin
-      // (B - 1) div 64 是高的要读的 64 位的序号，里头有 B mod 64 个位
-      K := (B - 1) div 64;
-{$IFDEF SUPPORT_UINT64}
-      T := TUInt64(PInt64Array(Num.D)^[K]);
-{$ELSE}
-      T := PInt64Array(Num.D)^[K];
-{$ENDIF}
-      K := B mod 64;
-      if K > 0 then // T 里只有低 K 位
-        T := T shl (64 - K);
-
-      M := T; // M 拿到一批高位了
-
-      if K > 0 then // 要补充一批 M 的低位
+      if B <= 64 then
       begin
-        K := ((B - 1) div 64) - 1;
+{$IFDEF BN_DATA_USE_64}
+        M := PUInt64Array(Num.D)^[0];
+{$ELSE}
+        if B >= 32 then
+          M := PInt64Array(Num.D)^[0]
+        else
+          M := PCnLongWord32Array(Num.D)^[0];
+{$ENDIF}
+
+        if B < 64 then   // 10 字节扩展精度有 64 位有效数字，要求最高位为 1
+          M := M shl (64 - B);
+      end
+      else // 如 Top > 2，则只能取最高 64 位放 M 里，其余的只能舍弃
+      begin
+        // (B - 1) div 64 是高的要读的 64 位的序号，里头有 B mod 64 个位
+        K := (B - 1) div 64;
 {$IFDEF SUPPORT_UINT64}
         T := TUInt64(PInt64Array(Num.D)^[K]);
 {$ELSE}
         T := PInt64Array(Num.D)^[K];
 {$ENDIF}
-        K := 64 - (B mod 64); // 要补充的是 T 的高 K 位
+        K := B mod 64;
+        if K > 0 then // T 里只有低 K 位
+          T := T shl (64 - K);
 
-        T := T shr (64 - K);
-        M := M or T;
+        M := T; // M 拿到一批高位了
+
+        if K > 0 then // 要补充一批 M 的低位
+        begin
+          K := ((B - 1) div 64) - 1;
+{$IFDEF SUPPORT_UINT64}
+          T := TUInt64(PInt64Array(Num.D)^[K]);
+{$ELSE}
+          T := PInt64Array(Num.D)^[K];
+{$ENDIF}
+          K := 64 - (B mod 64); // 要补充的是 T 的高 K 位
+
+          T := T shr (64 - K);
+          M := M or T;
+        end;
       end;
-    end;
 
-    CombineFloatExtended(N, E, M, Result);
+      CombineFloatExtended(N, E, M, Result);
+    end
+    else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+    begin
+      if E > CN_DOUBLE_MAX_EXPONENT then
+        raise ERangeError.Create(SCnErrorBigNumberFloatExponentRange);
+
+      if B <= 64 then
+      begin
+{$IFDEF BN_DATA_USE_64}
+        M := PUInt64Array(Num.D)^[0];
+{$ELSE}
+        if B >= 32 then
+          M := PInt64Array(Num.D)^[0]
+        else
+          M := PCnLongWord32Array(Num.D)^[0];
+{$ENDIF}
+
+        if B < 53 then
+          M := M shl (53 - B)  // 双精度浮点有 53 位有效数字，最高位内部会被隐含舍去
+        else if B > 53 then
+          M := M shr (B - 53); // 如果 64 位内比 53 位多，只取最高 53 位，其余舍弃精度
+      end
+      else // 如二进制位数大于 64，则只能取最高 53 位放 M 里，其余的舍弃精度
+      begin
+        // (B - 1) div 64 是高的要读的 64 位的序号，里头有 B mod 64 个位
+        K := (B - 1) div 64;
+{$IFDEF SUPPORT_UINT64}
+        T := TUInt64(PInt64Array(Num.D)^[K]);
+{$ELSE}
+        T := PInt64Array(Num.D)^[K];
+{$ENDIF}
+        K := B mod 64;
+        if K > 0 then // T 里只有低 K 位
+          T := T shl (64 - K);
+
+        M := T; // M 拿到一批高位了
+
+        if K > 0 then // 要补充一批 M 的低位
+        begin
+          K := ((B - 1) div 64) - 1;
+{$IFDEF SUPPORT_UINT64}
+          T := TUInt64(PInt64Array(Num.D)^[K]);
+{$ELSE}
+          T := PInt64Array(Num.D)^[K];
+{$ENDIF}
+          K := 64 - (B mod 64); // 要补充的是 T 的高 K 位
+
+          T := T shr (64 - K);
+          M := M or T;
+        end;
+      end;
+
+      // 和上面一样取到最高的 64 位后，再右移 11 位只留其高 53 位
+      M := M shr 11;
+      CombineFloatDouble(N, E, M, DB);
+      Result := DB;
+    end;
   end;
 end;
 
@@ -8039,6 +8134,20 @@ end;
 function BigNumberIsUInt64(Num: TCnBigNumber): Boolean;
 begin
   Result := not Num.IsNegative and (Num.GetBitsCount <= BN_BITS_UINT_64);
+end;
+
+function BigNumberIsFloat(Num: TCnBigNumber): Boolean;
+begin
+  if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
+  begin
+    // 判断是否属于 10 字节扩展精度范围
+    Result := BigNumberGetBitsCount(Num) < CN_EXTENDED_MAX_EXPONENT;
+  end
+  else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+  begin
+    // 判断是否属于 8 字节双精度范围
+    Result := BigNumberGetBitsCount(Num) < CN_DOUBLE_MAX_EXPONENT;
+  end;
 end;
 
 // 扩展欧几里得辗转相除法求二元一次不定方程 A * X + B * Y = 1 的整数解
@@ -10206,6 +10315,16 @@ end;
 function TCnBigNumber.SetFloat(F: Extended): Boolean;
 begin
   Result := BigNumberSetFloat(F, Self);
+end;
+
+function TCnBigNumber.IsFloat: Boolean;
+begin
+  Result := BigNumberIsFloat(Self);
+end;
+
+function TCnBigNumber.GetFloat: Extended;
+begin
+  Result := BigNumberGetFloat(Self);
 end;
 
 { TCnBigNumberList }
