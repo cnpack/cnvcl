@@ -67,7 +67,8 @@ resourcestring
 
 var
   // 公共信息
-  SCnInformation: string = '提示';
+  SCnHint: string = '提示';
+  SCnInformation: string = '信息';
   SCnWarning: string = '警告';
   SCnError: string = '錯誤';
   SCnEnabled: string = '有效';
@@ -84,7 +85,7 @@ var
 const
   // 開發包信息
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.1.5.2';
+  SCnPackVer = 'Ver 0.1.6.0';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'https://www.cnpack.org';
   SCnPackBbsUrl = 'https://bbs.cnpack.org';

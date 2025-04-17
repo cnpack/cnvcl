@@ -63,6 +63,7 @@ resourcestring
 
 var
   // Common Information
+  SCnHint: string = 'Hint';
   SCnInformation: string = 'Information';
   SCnWarning: string = 'Warning';
   SCnError: string = 'Error';
@@ -80,7 +81,7 @@ var
 const
   // CnPack Information
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.1.5.2';
+  SCnPackVer = 'Ver 0.1.6.0';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'https://www.cnpack.org';
   SCnPackBbsUrl = 'https://bbs.cnpack.org';

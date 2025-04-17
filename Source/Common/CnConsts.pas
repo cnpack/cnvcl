@@ -63,6 +63,7 @@ resourcestring
 
 var
   // Common Information
+  SCnHint: string = 'Hint';
   SCnInformation: string = 'Information';
   SCnWarning: string = 'Warning';
   SCnError: string = 'Error';
