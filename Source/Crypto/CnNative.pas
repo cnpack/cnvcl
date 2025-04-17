@@ -1514,44 +1514,44 @@ function MoveMost(const Source; var Dest; ByteLen: Integer; MostLen: Integer): I
 
 // =============================== 算术右移 ===================================
 
-function SarInt8(var V: Byte; ShiftCount: Integer): Byte;
-{* 将一 8 位整数进行算术右移，也就是保留符号位的右移。
+function SarInt8(V: ShortInt; ShiftCount: Integer): ShortInt;
+{* 将一 8 位有符号整数进行算术右移，也就是用符号位填充空位的右移。
 
    参数：
-     var V: Byte                          - 待算术右移的 8 位整数
+     V: ShortInt                          - 待算术右移的 8 位有符号整数
      ShiftCount: Integer                  - 算术右移的位数
 
-   返回值：Byte                           - 返回移位后的值
+   返回值：ShortInt                       - 返回移位后的值
 }
 
-function SarInt16(var V: Word; ShiftCount: Integer): Word;
-{* 将一 16 位整数进行算术右移，也就是保留符号位的右移。
+function SarInt16(V: SmallInt; ShiftCount: Integer): SmallInt;
+{* 将一 16 位有符号整数进行算术右移，也就是用符号位填充空位的右移。
 
    参数：
-     var V: Word                          - 待算术右移的 16 位整数
+     V: SmallInt                          - 待算术右移的 16 位有符号整数
      ShiftCount: Integer                  - 算术右移的位数
 
-   返回值：Word                           - 返回移位后的值
+   返回值：SmallInt                       - 返回移位后的值
 }
 
-function SarInt32(var V: Cardinal; ShiftCount: Integer): Cardinal;
-{* 将一 32 位整数进行算术右移，也就是保留符号位的右移。
+function SarInt32(V: Integer; ShiftCount: Integer): Integer;
+{* 将一 32 位有符号整数进行算术右移，也就是用符号位填充空位的右移。
 
    参数：
-     var V: Cardinal                      - 待算术右移的 32 位整数
+     V: Integer                           - 待算术右移的 32 位有符号整数
      ShiftCount: Integer                  - 算术右移的位数
 
-   返回值：Cardinal                       - 返回移位后的值
+   返回值：Integer                        - 返回移位后的值
 }
 
-function SarInt64(var V: TUInt64; ShiftCount: Integer): TUInt64;
-{* 将一 64 位整数进行算术右移，也就是保留符号位的右移。
+function SarInt64(V: Int64; ShiftCount: Integer): Int64;
+{* 将一 64 位有符号整数进行算术右移，也就是用符号位填充空位的右移。
 
    参数：
-     var V: TUInt64                       - 待算术右移的 64 位整数
+     V: Int64                             - 待算术右移的 64 位有符号整数
      ShiftCount: Integer                  - 算术右移的位数
 
-   返回值：TUInt64                        - 返回移位后的值
+   返回值：Int64                          - 返回移位后的值
 }
 
 // ================ 以下是执行时间固定的无 if 判断的部分逻辑函数 ===============
@@ -3347,32 +3347,32 @@ end;
 
 // =============================== 算术右移 ===================================
 
-function SarInt8(var V: Byte; ShiftCount: Integer): Byte;
+function SarInt8(V: ShortInt; ShiftCount: Integer): ShortInt;
 begin
   Result := V shr ShiftCount;
   if (V and $80) <> 0 then
-    Result := Result or $80;
+    Result := Result or ($FF shl (8 - ShiftCount));
 end;
 
-function SarInt16(var V: Word; ShiftCount: Integer): Word;
+function SarInt16(V: SmallInt; ShiftCount: Integer): SmallInt;
 begin
   Result := V shr ShiftCount;
   if (V and $8000) <> 0 then
-    Result := Result or $8000;
+    Result := Result or ($FFFF shl (16 - ShiftCount));
 end;
 
-function SarInt32(var V: Cardinal; ShiftCount: Integer): Cardinal;
+function SarInt32(V: Integer; ShiftCount: Integer): Integer;
 begin
   Result := V shr ShiftCount;
   if (V and $80000000) <> 0 then
-    Result := Result or $80000000;
+    Result := Result or ($FFFFFFFF shl (32 - ShiftCount));
 end;
 
-function SarInt64(var V: TUInt64; ShiftCount: Integer): TUInt64;
+function SarInt64(V: Int64; ShiftCount: Integer): Int64;
 begin
   Result := V shr ShiftCount;
   if (V and $8000000000000000) <> 0 then
-    Result := Result or $8000000000000000;
+    Result := Result or ($FFFFFFFFFFFFFFFF shl (64 - ShiftCount));
 end;
 
 procedure ConstTimeConditionalSwap8(CanSwap: Boolean; var A, B: Byte);
