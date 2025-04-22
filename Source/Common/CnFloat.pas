@@ -257,7 +257,7 @@ procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
    参数：
      SignNegative: Boolean                - 符号位，True 为负
      Exponent: Integer                    - 指数
-     Mantissa: Cardinal                   - 有效数字
+     Mantissa: Cardinal                   - 有效数字，仅低 24 位有效
      var Value: Single                    - 返回组合的单精度浮点数
 
    返回值：（无）
@@ -270,7 +270,7 @@ procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
    参数：
      SignNegative: Boolean                - 符号位，True 为负
      Exponent: Integer                    - 指数
-     Mantissa: TUInt64                    - 有效数字
+     Mantissa: TUInt64                    - 有效数字，仅低 53 位有效
      var Value: Double                    - 返回组合的双精度浮点数
 
    返回值：（无）
@@ -284,7 +284,7 @@ procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
    参数：
      SignNegative: Boolean                - 符号位，True 为负
      Exponent: Integer                    - 指数
-     Mantissa: TUInt64                    - 有效数字
+     Mantissa: TUInt64                    - 有效数字，64 位全有效
      var Value: Extended                  - 返回组合的扩展精度浮点数
 
    返回值：（无）
@@ -299,8 +299,8 @@ procedure CombineFloatQuadruple(SignNegative: Boolean; Exponent: Integer;
    参数：
      SignNegative: Boolean                - 符号位，True 为负
      Exponent: Integer                    - 指数
-     MantissaLo: TUInt64                  - 有效数字低 64 位
-     MantissaHi: TUInt64                  - 有效数字高 64 位
+     MantissaLo: TUInt64                  - 有效数字低 64 位，64 位全有效
+     MantissaHi: TUInt64                  - 有效数字高 64 位，仅低 48 位有效
      var Value: Extended                  - 返回组合的十六字节精度浮点数
 
    返回值：（无）

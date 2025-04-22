@@ -85,7 +85,7 @@ begin
 
   Log('Send ' + IntToStr(C) + ' Bytes.');
 
-  //退出事件处理函数则断开了
+  // 退出事件处理函数则断开了
 end;
 
 procedure TFormTCPServer.TCPError(Sender: TObject; SocketError: Integer);

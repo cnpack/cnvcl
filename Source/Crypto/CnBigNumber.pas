@@ -6036,8 +6036,9 @@ begin
 {$ELSE}
         T := PInt64Array(Num.D)^[K];
 {$ENDIF}
+        // T 拿到最高的 64 位 Element
         K := B mod 64;
-        if K > 0 then // T 里只有低 K 位
+        if K > 0 then // 但 T 里只有高 K 位
           T := T shl (64 - K);
 
         M := T; // M 拿到一批高位了
@@ -6050,6 +6051,7 @@ begin
 {$ELSE}
           T := PInt64Array(Num.D)^[K];
 {$ENDIF}
+          // T 拿到次高的 64 位 Element
           K := 64 - (B mod 64); // 要补充的是 T 的高 K 位
 
           T := T shr (64 - K);
@@ -6079,6 +6081,7 @@ begin
           M := M shl (53 - B)  // 双精度浮点有 53 位有效数字，最高位内部会被隐含舍去
         else if B > 53 then
           M := M shr (B - 53); // 如果 64 位内比 53 位多，只取最高 53 位，其余舍弃精度
+        // 此时 M 是低 53 位有效的数字
       end
       else // 如二进制位数大于 64，则只能取最高 53 位放 M 里，其余的舍弃精度
       begin
@@ -6089,8 +6092,9 @@ begin
 {$ELSE}
         T := PInt64Array(Num.D)^[K];
 {$ENDIF}
+        // T 拿到最高的 64 位 Element
         K := B mod 64;
-        if K > 0 then // T 里只有低 K 位
+        if K > 0 then // T 里只有高 K 位有效
           T := T shl (64 - K);
 
         M := T; // M 拿到一批高位了
@@ -6103,15 +6107,17 @@ begin
 {$ELSE}
           T := PInt64Array(Num.D)^[K];
 {$ENDIF}
+          // T 拿到次高的 64 位 Element
           K := 64 - (B mod 64); // 要补充的是 T 的高 K 位
 
           T := T shr (64 - K);
           M := M or T;
         end;
+
+        // 此时 M 是高 64 位，右移 11 位让其 53 位有效
+        M := M shr 11;
       end;
 
-      // 和上面一样取到最高的 64 位后，再右移 11 位只留其高 53 位
-      M := M shr 11;
       CombineFloatDouble(N, E, M, DB);
       Result := DB;
     end;
@@ -6377,7 +6383,7 @@ begin
         T2.Power(Exponent - 1);
         T2.MulWord(Exponent);                // 得到 Exponent * Power(X0, Exponent - 1)
 
-        BigBinaryDiv(T1, T1, T2, 10);            // 得到商，保留一定精度
+        BigBinaryDiv(T1, T1, T2, 10);        // 得到商，保留一定精度
         BigBinarySub(X1, X0, T1);            // 算出 X1
 
         // 得到 X0 和 X1 的整数部分并比较
@@ -6605,7 +6611,13 @@ begin
   begin
     // 解出符号、指数、有效数字进行整数运算
     ExtractFloatExtended(F, N, E, M);
-    E := E - 63;
+
+    // 注意 Extended 在 Win32/Mac 下是 10 字节扩展精度，而 Win64 下是 8 字节双精度
+    if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
+      E := E - 63
+    else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+      E := E - 52;
+    // 把有效数字根据精度调整小数点后变成了整数，
     // 现在的真实值为 M * 2^E 次方，所以要乘以 M，再乘以 2^E
 
     B := FLocalBigNumberPool.Obtain;

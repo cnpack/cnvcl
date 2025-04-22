@@ -10,18 +10,18 @@ uses
 
 type
   TFormFloat = class(TForm)
-   Edit1: TEdit;
-   CheckBox1: TCheckBox;
-   CheckBox2: TCheckBox;
-   Button1: TButton;
-   Label1: TLabel;
-   rdoBin: TRadioButton;
-   rdoOct: TRadioButton;
-   rdoHex: TRadioButton;
+    Edit1: TEdit;
+    CheckBox1: TCheckBox;
+    CheckBox2: TCheckBox;
+    Button1: TButton;
+    Label1: TLabel;
+    rdoBin: TRadioButton;
+    rdoOct: TRadioButton;
+    rdoHex: TRadioButton;
     btnExtract: TButton;
     btnUInt64ToFloat: TButton;
     btnFloatToUInt64: TButton;
-   procedure Button1Click(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
     procedure btnExtractClick(Sender: TObject);
     procedure btnUInt64ToFloatClick(Sender: TObject);
     procedure btnFloatToUInt64Click(Sender: TObject);
