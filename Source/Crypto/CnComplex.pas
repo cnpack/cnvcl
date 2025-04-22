@@ -976,9 +976,20 @@ initialization
   CnComplexNegOneI.I := -1;
 
   CnBigComplexNumberZero := TCnBigComplexNumber.Create;
+  CnBigComplexNumberZero.FR.SetZero;
+  CnBigComplexNumberZero.FI.SetZero;
+
   CnBigComplexNumberOne := TCnBigComplexNumber.Create;
+  CnBigComplexNumberOne.FR.SetOne;
+  CnBigComplexNumberOne.FI.SetZero;
+
   CnBigComplexNumberOneI := TCnBigComplexNumber.Create;
+  CnBigComplexNumberOneI.FR.SetZero;
+  CnBigComplexNumberOneI.FI.SetOne;
+
   CnBigComplexNumberNegOneI := TCnBigComplexNumber.Create;
+  CnBigComplexNumberNegOneI.FR.SetZero;
+  CnBigComplexNumberNegOneI.FI.SetInteger(-1);
 
 finalization
   CnBigComplexNumberNegOneI.Free;
