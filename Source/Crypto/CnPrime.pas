@@ -1275,7 +1275,7 @@ function CnInt64SquareRoot(X: Int64; P: Int64): Int64;
 
 function CnInt64JacobiSymbol(A: Int64; N: Int64): Int64;
 {* 计算雅可比符号 (A / N)，其中 N 必须是奇数，如果是负奇数则等同于正奇数。
-   如果 N 是奇素数则等同于勒让德符号。
+   如果 N 是奇素数则等同于勒让德符号。A 可以为任意整数。
 
    参数：
      A: Int64                             - 雅可比符号中的 A

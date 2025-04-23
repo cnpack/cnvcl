@@ -2626,7 +2626,8 @@ function BigNumberSquareRootModPrime(Res: TCnBigNumber; A: TCnBigNumber; Prime: 
 }
 
 function BigNumberJacobiSymbol(A: TCnBigNumber; N: TCnBigNumber): Integer;
-{* 计算雅可比符号，其中 N 必须是奇数，A 必须是非负整数。如果 N 是奇素数则等同于勒让德符号。
+{* 计算雅可比符号，其中 N 必须是奇数，如果是负奇数则等同于正奇数。
+   如果 N 是奇素数则等同于勒让德符号。A 可以为任意整数。
 
    参数：
      A: TCnBigNumber                      - 雅可比符号中的 A
@@ -2665,19 +2666,19 @@ procedure BigNumberEuler(Res: TCnBigNumber; Num: TCnBigNumber);
    返回值：（无）
 }
 
-function BigNumberLucasSequenceMod(X: TCnBigNumber; Y: TCnBigNumber; K: TCnBigNumber;
+function BigNumberLucasVSequenceMod(X: TCnBigNumber; Y: TCnBigNumber; K: TCnBigNumber;
   N: TCnBigNumber; Q: TCnBigNumber; V: TCnBigNumber): Boolean;
-{* 计算 IEEE P1363 的规范中说明的 Lucas 序列，调用者需自行保证 N 为奇素数。
-   Lucas 序列递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2，
+{* 计算 IEEE P1363 的规范中说明的 Lucas 的 V 序列，调用者需自行保证 N 为奇素数。
+   Lucas 的 V 序列递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2，
    V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N。
 
    参数：
-     X: TCnBigNumber                      - 用来容纳 Lucas 序列中的结果 X 的大数对象
-     Y: TCnBigNumber                      - 用来容纳 Lucas 序列中的结果 Y 的大数对象
-     K: TCnBigNumber                      - Lucas 序列中的 K
-     N: TCnBigNumber                      - Lucas 序列中的 N
-     Q: TCnBigNumber                      - Lucas 序列中的 Q
-     V: TCnBigNumber                      - Lucas 序列中的 V
+     X: TCnBigNumber                      - 用来容纳 Lucas 序列中的结果 X 的大数对象（定义中的 P）
+     Y: TCnBigNumber                      - 用来容纳 Lucas 序列中的结果 Y 的大数对象（定义中的 Q）
+     K: TCnBigNumber                      - Lucas 序列中的 K 序数
+     N: TCnBigNumber                      - Lucas 序列中的 N 模数
+     Q: TCnBigNumber                      - 容纳 Lucas 的 V 序列中的 Y ^ (K div 2) mod N 的值
+     V: TCnBigNumber                      - 容纳 Lucas 的 V 序列中的 Vk mod N 的值
 
    返回值：Boolean                        - 返回计算是否成功
 }
@@ -2883,6 +2884,7 @@ function CnBigNumberIs64Mode: Boolean;
 var
   CnBigNumberOne: TCnBigNumber = nil;     // 表示 1 的大数常量
   CnBigNumberZero: TCnBigNumber = nil;    // 表示 0 的大数常量
+  CnBigNumberNegOne: TCnBigNumber = nil;  // 表示 -1 的大数常量
 
 implementation
 
@@ -8558,7 +8560,7 @@ begin
       BigNumberCopy(T, P);
       BigNumberAddWord(T, 1);
       BigNumberShiftRight(T, T, 1);
-      if not BigNumberLucasSequenceMod(X, A, T, P, U, V) then
+      if not BigNumberLucasVSequenceMod(X, A, T, P, U, V) then
         Exit;
 
       BigNumberCopy(Z, V);
@@ -8739,8 +8741,9 @@ function BigNumberJacobiSymbol(A: TCnBigNumber; N: TCnBigNumber): Integer;
 var
   R: Integer;
   AA, NN: TCnBigNumber;
+  Neg: Boolean;
 begin
-  if A.IsNegative or not N.IsOdd then        // 负数，及 N 偶数不支持
+  if N.IsEven then        // N 偶数不支持
     raise ECnBigNumberException.Create(SCnErrorBigNumberJacobiSymbol);
 
   if A.IsZero then
@@ -8752,6 +8755,23 @@ begin
   begin
     Result := 1;
     Exit;
+  end
+  else if A.IsNegOne then // (-1, N) = (-1)^((N - 1)/2)
+  begin
+    NN := FLocalBigNumberPool.Obtain;
+    try
+      BigNumberCopy(NN, N);
+      NN.SubWord(1);
+      BigNumberShiftRightOne(NN, NN);
+
+      if NN.IsEven then
+        Result := 1
+      else
+        Result := -1;
+      Exit;
+    finally
+      FLocalBigNumberPool.Recycle(NN);
+    end;
   end
   else if A.IsWord(2) then
   begin
@@ -8768,15 +8788,20 @@ begin
 
   try
     AA := FLocalBigNumberPool.Obtain;
-    if BigNumberCompare(A, N) > 0 then
-      BigNumberMod(AA, A, N)
-    else
-      BigNumberCopy(AA, A);
+    BigNumberCopy(AA, A);
+
+    Neg := AA.IsNegative;  // 负就先翻转并记录
+    if Neg then
+      AA.Negate;
 
     NN := FLocalBigNumberPool.Obtain;
     BigNumberCopy(NN, N);
     if NN.IsNegative then  // 模数如为负，可以直接转正
       NN.Negate;
+
+    // A 太大就先 mod N
+    if BigNumberCompare(AA, NN) > 0 then
+      BigNumberMod(AA, AA, NN);
 
     Result := 1;
     while not AA.IsZero do
@@ -8801,6 +8826,10 @@ begin
 
     if not NN.IsOne then // N 不为 1 说明不互素
       Result := 0;
+
+    // 原始 A 为负，要乘以一个 -1 的雅可比符号
+    if Neg and (Result <> 0) then
+      Result := Result * BigNumberJacobiSymbol(CnBigNumberNegOne, N);
   finally
     FLocalBigNumberPool.Recycle(NN);
     FLocalBigNumberPool.Recycle(AA);
@@ -9073,8 +9102,8 @@ begin
   end;
 end;
 
-// 计算 IEEE P1363 的规范中说明的 Lucas 序列
-function BigNumberLucasSequenceMod(X, Y, K, N: TCnBigNumber; Q, V: TCnBigNumber): Boolean;
+// 计算 IEEE P1363 的规范中说明的 Lucas 的 V 序列
+function BigNumberLucasVSequenceMod(X, Y, K, N: TCnBigNumber; Q, V: TCnBigNumber): Boolean;
 var
   C, I: Integer;
   V0, V1, Q0, Q1, T0, T1, C2: TCnBigNumber;
@@ -10810,13 +10839,14 @@ initialization
   CnBigNumberOne.SetOne;
   CnBigNumberZero := TCnBigNumber.Create;
   CnBigNumberZero.SetZero;
+  CnBigNumberNegOne := TCnBigNumber.Create;
+  CnBigNumberNegOne.SetInteger(-1);
 
 finalization
-//  CnBigNumberZero.DecString;  // 手工调用这两句防止被编译器忽略
-//  CnBigNumberZero.DebugDump;
-
-  CnBigNumberOne.Free;
+  CnBigNumberNegOne.Free;
   CnBigNumberZero.Free;
+  CnBigNumberOne.Free;
+
   FLocalBigNumberPool.Free;
   FLocalBigBinaryPool.Free;
 
