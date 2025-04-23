@@ -1474,6 +1474,36 @@ begin
   Result := BigNumberJacobiSymbol(A, N) = -1;
   if not Result then Exit;
 
+  A.SetDec('9237512893489267120909234987561230233241');
+  N.SetDec('119872354839100272484348735687564378089401882467674327932479');
+
+  Result := BigNumberJacobiSymbol(A, N) = -1;
+  if not Result then Exit;
+
+  A.SetDec('-1');
+  N.SetDec('7');
+
+  Result := BigNumberJacobiSymbol(A, N) = -1;
+  if not Result then Exit;
+
+  A.SetDec('-3');
+  N.SetDec('19');
+
+  Result := BigNumberJacobiSymbol(A, N) = 1;
+  if not Result then Exit;
+
+  A.SetDec('-7');
+  N.SetDec('-37');
+
+  Result := BigNumberJacobiSymbol(A, N) = -1;
+  if not Result then Exit;
+
+  A.SetDec('-15');
+  N.SetDec('-21');
+
+  Result := BigNumberJacobiSymbol(A, N) = 0;
+  if not Result then Exit;
+
   BigNumberFree(N);
   BigNumberFree(A);
 end;
@@ -4718,6 +4748,18 @@ begin
   if not Result then Exit;
 
   Result := CnInt64JacobiSymbol(14147, 68756437) = 1;
+  if not Result then Exit;
+
+  Result := CnInt64JacobiSymbol(-1, 7) = -1;
+  if not Result then Exit;
+
+  Result := CnInt64JacobiSymbol(-3, 19) = 1;
+  if not Result then Exit;
+
+  Result := CnInt64JacobiSymbol(-7, -37) = -1;
+  if not Result then Exit;
+
+  Result := CnInt64JacobiSymbol(-15, -21) = 0;
 end;
 
 function TestPrimeNumber5: Boolean;

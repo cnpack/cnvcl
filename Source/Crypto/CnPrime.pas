@@ -1274,8 +1274,8 @@ function CnInt64SquareRoot(X: Int64; P: Int64): Int64;
 }
 
 function CnInt64JacobiSymbol(A: Int64; N: Int64): Int64;
-{* 计算雅可比符号 (A / N)，其中 N 必须是奇数，如果是负奇数则等同于正奇数。
-   如果 N 是奇素数则等同于勒让德符号。A 可以为任意整数。
+{* 计算雅可比符号 (A / N)，其中 N 必须是奇数，如果 N 是负奇数，则 A 为正时等同于 N 为正奇数，
+   A 为负时等同于 -(A / -N)。如果 N 是奇素数则等同于勒让德符号。A 可以为任意整数。
 
    参数：
      A: Int64                             - 雅可比符号中的 A
@@ -2951,16 +2951,18 @@ end;
 
 function CnInt64JacobiSymbol(A: Int64; N: Int64): Int64;
 var
-  Neg: Boolean;
-  R, T: Int64;
+  ANeg, NNeg: Boolean;
+  R, T, B: Int64;
 begin
   if (N and 1) = 0 then         // N 偶数不支持
     raise ECnPrimeException.Create(SCnErrorInvalidParam);
 
-  if N < 0 then                 // 模数为负直接转正就行
+  B := 0;
+  NNeg := N < 0;
+  if NNeg then                 // 模数为负先转正再记录
     N := -N;
 
-  Neg := False;
+  ANeg := False;
   if (A = 0) or (A = 1) then // (0, N) = 0   (1, N) = 1
   begin
     Result := A;
@@ -2990,7 +2992,8 @@ begin
   else if A < 0 then // A 为负，要转正并通过 -1 计算
   begin
     A := -A;
-    Neg := True;
+    ANeg := True;
+    B := N;          // 记录转正了的 N 作为最后补充，以下 N 会变动
   end;
 
   if A > N then
@@ -3024,8 +3027,14 @@ begin
     Result := 0;
 
   // 原始 A 为负，要乘以一个 -1 的雅可比符号
-  if Neg and (Result <> 0) then
-    Result := Result * CnInt64JacobiSymbol(-1, N);
+  if ANeg and (Result <> 0) then
+  begin
+    Result := Result * CnInt64JacobiSymbol(-1, B);
+
+    // 如果原始 N 为负，还得乘以一个负号
+    if NNeg then
+      Result := -Result;
+  end;
 end;
 
 function ChineseRemainderTheoremInt64(Remainers, Factors: array of TUInt64): TUInt64;

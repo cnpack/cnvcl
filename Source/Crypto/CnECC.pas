@@ -3264,7 +3264,7 @@ begin
     X := RandomInt64LessThan(P);
 
     // 再计算 Lucas 序列中的 V，其下标 K 为 (P+1)/2
-    CnLucasSequenceMod(X, G, (P + 1) shr 1, P, U, V);
+    CnLucasVSequenceMod(X, G, (P + 1) shr 1, P, U, V);
 
     // V 偶则直接右移 1 再 mod P，V 奇则加 P 再右移 1
     if (V and 1) = 0 then

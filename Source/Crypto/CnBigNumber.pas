@@ -2626,8 +2626,8 @@ function BigNumberSquareRootModPrime(Res: TCnBigNumber; A: TCnBigNumber; Prime: 
 }
 
 function BigNumberJacobiSymbol(A: TCnBigNumber; N: TCnBigNumber): Integer;
-{* 计算雅可比符号，其中 N 必须是奇数，如果是负奇数则等同于正奇数。
-   如果 N 是奇素数则等同于勒让德符号。A 可以为任意整数。
+{* 计算雅可比符号，其中 N 必须是奇数，如果 N 是负奇数，则 A 为正时等同于 N 为正奇数，
+   A 为负时等同于 -(A / -N)。如果 N 是奇素数则等同于勒让德符号。A 可以为任意整数。
 
    参数：
      A: TCnBigNumber                      - 雅可比符号中的 A
@@ -8741,7 +8741,7 @@ function BigNumberJacobiSymbol(A: TCnBigNumber; N: TCnBigNumber): Integer;
 var
   R: Integer;
   AA, NN: TCnBigNumber;
-  Neg: Boolean;
+  ANeg: Boolean;
 begin
   if N.IsEven then        // N 偶数不支持
     raise ECnBigNumberException.Create(SCnErrorBigNumberJacobiSymbol);
@@ -8790,8 +8790,8 @@ begin
     AA := FLocalBigNumberPool.Obtain;
     BigNumberCopy(AA, A);
 
-    Neg := AA.IsNegative;  // 负就先翻转并记录
-    if Neg then
+    ANeg := AA.IsNegative;  // 负就先翻转并记录
+    if ANeg then
       AA.Negate;
 
     NN := FLocalBigNumberPool.Obtain;
@@ -8827,9 +8827,20 @@ begin
     if not NN.IsOne then // N 不为 1 说明不互素
       Result := 0;
 
-    // 原始 A 为负，要乘以一个 -1 的雅可比符号
-    if Neg and (Result <> 0) then
-      Result := Result * BigNumberJacobiSymbol(CnBigNumberNegOne, N);
+    // 原始 A 为负，要乘以一个 -1 的雅可比符号，模数要求正数
+    if ANeg and (Result <> 0) then
+    begin
+      if N.IsNegative then
+      begin
+        BigNumberCopy(NN, N);
+        NN.Negate;
+
+        // 如果原始 N 为负，还得乘以一个负号
+        Result := -Result * BigNumberJacobiSymbol(CnBigNumberNegOne, NN); // N 为负，NN 为正
+      end
+      else
+        Result := Result * BigNumberJacobiSymbol(CnBigNumberNegOne, N);   // N 为正
+    end;
   finally
     FLocalBigNumberPool.Recycle(NN);
     FLocalBigNumberPool.Recycle(AA);
