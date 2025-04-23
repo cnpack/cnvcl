@@ -4115,7 +4115,7 @@ begin
 
   for I := 63 downto 0 do
   begin
-    if (B and (1 shl I)) <> 0 then
+    if (B and (TUInt64(1) shl I)) <> 0 then // 这里必须加 TUInt64 强制转换，否则会得出 8 的最高二进制位为 35 的错误结果
     begin
       Result := I;
       Break;
