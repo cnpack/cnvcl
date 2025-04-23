@@ -1246,15 +1246,15 @@ function CnInt64Legendre(A: Int64; P: Int64): Integer;
    返回值：Integer                        - 返回勒让德符号
 }
 
-procedure CnLucasSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int64; out V: Int64);
-{* 计算 IEEE P1363 的规范中说明的 Lucas 序列，范围为 Int64。
-   递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2。
+procedure CnLucasVSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int64; out V: Int64);
+{* 计算 IEEE P1363 的规范中说明的 Lucas 的 V 序列，范围为 Int64。
+   V 序列递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2。
    V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N。
 
    参数：
-     X: Int64                             - Lucas 序列的 X 值
-     Y: Int64                             - Lucas 序列的 Y 值
-     K: Int64                             - Lucas 序列的第 K 个
+     X: Int64                             - Lucas 的 V 序列的 X 值
+     Y: Int64                             - Lucas 的 V 序列的 Y 值
+     K: Int64                             - 所需 Lucas 的 V 序列的序数，第 K 个
      N: Int64                             - 模数
      out Q: Int64                         - 返回的 Lucas 序列的 Q 值
      out V: Int64                         - 返回的 Lucas 序列的 V 值
@@ -1264,6 +1264,7 @@ procedure CnLucasSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int6
 
 function CnInt64SquareRoot(X: Int64; P: Int64): Int64;
 {* 计算平方剩余，也就是返回 Result^2 mod P = X，范围为 Int64，0 与负值暂不支持。
+   P 必须为正奇数。返回 0 表示无解。
 
    参数：
      X: Int64                             - 待计算平方剩余的 X
@@ -1273,7 +1274,8 @@ function CnInt64SquareRoot(X: Int64; P: Int64): Int64;
 }
 
 function CnInt64JacobiSymbol(A: Int64; N: Int64): Int64;
-{* 计算雅可比符号 (A / N)，其中 N 必须是正奇数，A 必须是正整数。如果 N 是奇素数则等同于勒让德符号。
+{* 计算雅可比符号 (A / N)，其中 N 必须是奇数，如果是负奇数则等同于正奇数。
+   如果 N 是奇素数则等同于勒让德符号。
 
    参数：
      A: Int64                             - 雅可比符号中的 A
@@ -2782,10 +2784,10 @@ begin
   if (A <= 0) or (P <= 0) then
     raise ECnPrimeException.Create(SCnErrorInvalidParam);
 
-  // 三种情况：P 能整除 A 时返回 0，不能整除时，如果 A 是完全平方数就返回 1，否则返回 -1
+  // 三种情况：P 能整除 A 时返回 0，不能整除时，如果存在某整数的平方 mod P 后等于 A 则返回 1，否则返回 -1
   if A mod P = 0 then
     Result := 0
-  else if MontgomeryPowerMod(A, (P - 1) shr 1, P) = 1 then // 欧拉判别法
+  else if MontgomeryPowerMod(A, (P - 1) shr 1, P) = 1 then // 欧拉判别法判别是否二次剩余
     Result := 1
   else
     Result := -1;
@@ -2794,57 +2796,7 @@ end;
 // P1363 上的 Lucas 序列计算，虽然和 SM2 里的说明几乎全都对不上号，但目前结果看起来还靠谱
 // V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
 // V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N
-procedure CnLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
-var
-  C, I: Integer;
-  V0, V1, Q0, Q1: Int64;
-begin
-  if K < 0 then
-    raise ECnPrimeException.Create(SCnErrorInvalidKForLucasSequence);
-
-  if K = 0 then
-  begin
-    Q := 1;
-    V := 2;
-    Exit;
-  end
-  else if K = 1 then
-  begin
-    Q := 1;
-    V := X;
-    Exit;
-  end;
-
-  V0 := 2;
-  V1 := X;
-  Q0 := 1;
-  Q1 := 1;
-
-  C := GetUInt64HighBits(K);
-  for I := C downto 0 do
-  begin
-    Q0 := Int64MultipleMod(Q0, Q1, N);
-    if GetUInt64BitSet(K, I) then
-    begin
-      Q1 := Int64MultipleMod(Q0, Y, N);
-      V0 := Int64Mod(Int64MultipleMod(V0, V1, N) - Int64MultipleMod(X, Q0, N), N);
-      V1 := Int64Mod(Int64MultipleMod(V1, V1, N) - Int64MultipleMod(2, Q1, N), N);
-    end
-    else
-    begin
-      Q1 := Q0;
-      V1 := Int64Mod(Int64MultipleMod(V0, V1, N) - Int64MultipleMod(X, Q0, N), N);
-      V0 := Int64Mod(Int64MultipleMod(V0, V0, N) - Int64MultipleMod(2, Q0, N), N);
-    end;
-  end;
-  Q := Q0;
-  V := V0;
-end;
-
-// P1363 上的 Lucas 计算，虽然和 SM2 里的说明几乎全都对不上号，但目前结果看起来还靠谱
-// V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
-// V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N
-procedure CalcLucasSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
+procedure CnLucasVSequenceMod(X, Y, K, N: Int64; out Q, V: Int64);
 var
   C, I: Integer;
   V0, V1, Q0, Q1: Int64;
@@ -2906,7 +2858,7 @@ begin
     X := RandomInt64LessThan(P);
 
     // 再计算 Lucas 序列中的 V，其下标 K 为 (P+1)/2
-    CalcLucasSequenceMod(X, G, (P + 1) shr 1, P, U, V);
+    CnLucasVSequenceMod(X, G, (P + 1) shr 1, P, U, V);
 
     // V 偶则直接右移 1 再 mod P，V 奇则加 P 再右移 1
     if (V and 1) = 0 then
@@ -2971,7 +2923,7 @@ begin
     end;
   PT8U1:
     begin
-      // IEEE P1363 中说的 Lucas 序列
+      // IEEE P1363 中说的 Lucas 序列，注意内部使用随机数，不同的运行可能得到不同的合法解
       if SquareRootModPrimeLucas(X, P, Y) then
         Result := Y;
     end;
@@ -2999,11 +2951,16 @@ end;
 
 function CnInt64JacobiSymbol(A: Int64; N: Int64): Int64;
 var
+  Neg: Boolean;
   R, T: Int64;
 begin
-  if (A < -1) or (N <= 0) or ((N and 1) = 0) then         // 负数，及 N 偶数不支持
+  if (N and 1) = 0 then         // N 偶数不支持
     raise ECnPrimeException.Create(SCnErrorInvalidParam);
 
+  if N < 0 then                 // 模数为负直接转正就行
+    N := -N;
+
+  Neg := False;
   if (A = 0) or (A = 1) then // (0, N) = 0   (1, N) = 1
   begin
     Result := A;
@@ -3030,7 +2987,13 @@ begin
 
     // 所以 n mod 8 得到 1、7 时为 1，3、5 时为 -1，注意奇数平方减一一定能被 8 整除
   end
-  else if A > N then
+  else if A < 0 then // A 为负，要转正并通过 -1 计算
+  begin
+    A := -A;
+    Neg := True;
+  end;
+
+  if A > N then
     A := A mod N;
 
   // 再利用同余及二次互反律循环简化计算，并通过除二让 A 变成奇数且 A、N 互素，因为 (A, N) = (A/2, N) * (2, N)
@@ -3059,6 +3022,10 @@ begin
 
   if N <> 1 then // N 不为 1 说明不互素
     Result := 0;
+
+  // 原始 A 为负，要乘以一个 -1 的雅可比符号
+  if Neg and (Result <> 0) then
+    Result := Result * CnInt64JacobiSymbol(-1, N);
 end;
 
 function ChineseRemainderTheoremInt64(Remainers, Factors: array of TUInt64): TUInt64;
