@@ -325,6 +325,7 @@ function TestPrimeNumber2: Boolean;
 function TestPrimeNumber3: Boolean;
 function TestPrimeNumber4: Boolean;
 function TestPrimeNumber5: Boolean;
+function TestSquareRoot: Boolean;
 
 // ================================ 25519 ======================================
 
@@ -679,6 +680,7 @@ begin
   MyAssert(TestPrimeNumber3, 'TestPrimeNumber3');
   MyAssert(TestPrimeNumber4, 'TestPrimeNumber4');
   MyAssert(TestPrimeNumber5, 'TestPrimeNumber5');
+  MyAssert(TestSquareRoot, 'TestSquareRoot');
 
 // ================================ 25519 ======================================
 
@@ -4774,6 +4776,34 @@ begin
   if not Result then Exit;
 
   F64.Free;
+end;
+
+function TestSquareRoot: Boolean;
+var
+  R: Int64;
+begin
+  R := CnInt64SquareRoot(4, 37); // 8 余 5 型
+  Result := R = 35;
+
+  if not Result then Exit;
+
+  R := CnInt64SquareRoot(5, 11); // 4 余 3 型
+  Result := R = 4;
+
+  if not Result then Exit;
+
+  R := CnInt64SquareRoot(8, 17); // 8 余 1 型，注意有两个解
+  Result := (R = 5) or (R = 12);
+
+  if not Result then Exit;
+
+  R := CnInt64SquareRoot(9, 25); // 非奇素数，无解
+  Result := R = 0;
+
+  if not Result then Exit;
+
+  R := CnInt64SquareRoot(20, 25); // 不互素，无解
+  Result := R = 0;
 end;
 
 // ================================ 25519 ========================================
