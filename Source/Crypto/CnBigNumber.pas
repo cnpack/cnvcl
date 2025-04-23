@@ -2626,7 +2626,7 @@ function BigNumberSquareRootModPrime(Res: TCnBigNumber; A: TCnBigNumber; Prime: 
 }
 
 function BigNumberJacobiSymbol(A: TCnBigNumber; N: TCnBigNumber): Integer;
-{* 计算雅可比符号，其中 N 必须是正奇数，A 必须是非负整数。如果 N 是奇素数则等同于勒让德符号。
+{* 计算雅可比符号，其中 N 必须是奇数，A 必须是非负整数。如果 N 是奇素数则等同于勒让德符号。
 
    参数：
      A: TCnBigNumber                      - 雅可比符号中的 A
@@ -7873,7 +7873,7 @@ begin
     if not BigNumberSubWord(X, 1) then
       Exit;
 
-    if BigNumberCopy(W, X) = nil then  // W := Num - 1;
+    if BigNumberCopy(W, X) = nil then  // W := X := Num - 1;
       Exit;
 
     T := 0;
@@ -8740,7 +8740,7 @@ var
   R: Integer;
   AA, NN: TCnBigNumber;
 begin
-  if A.IsNegative or N.IsNegative or not N.IsOdd then        // 负数，及 N 偶数不支持
+  if A.IsNegative or not N.IsOdd then        // 负数，及 N 偶数不支持
     raise ECnBigNumberException.Create(SCnErrorBigNumberJacobiSymbol);
 
   if A.IsZero then
@@ -8775,6 +8775,8 @@ begin
 
     NN := FLocalBigNumberPool.Obtain;
     BigNumberCopy(NN, N);
+    if NN.IsNegative then  // 模数如为负，可以直接转正
+      NN.Negate;
 
     Result := 1;
     while not AA.IsZero do
