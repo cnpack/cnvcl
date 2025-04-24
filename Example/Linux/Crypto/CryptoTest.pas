@@ -326,6 +326,7 @@ function TestPrimeNumber3: Boolean;
 function TestPrimeNumber4: Boolean;
 function TestPrimeNumber5: Boolean;
 function TestSquareRoot: Boolean;
+function TestBPSWIsPrime: Boolean;
 
 // ================================ 25519 ======================================
 
@@ -681,6 +682,7 @@ begin
   MyAssert(TestPrimeNumber4, 'TestPrimeNumber4');
   MyAssert(TestPrimeNumber5, 'TestPrimeNumber5');
   MyAssert(TestSquareRoot, 'TestSquareRoot');
+  MyAssert(TestBPSWIsPrime, 'TestBPSWIsPrime');
 
 // ================================ 25519 ======================================
 
@@ -4846,6 +4848,21 @@ begin
 
   R := CnInt64SquareRoot(20, 25); // 不互素，无解
   Result := R = 0;
+end;
+
+function TestBPSWIsPrime: Boolean;
+begin
+  // 这些是素数
+  Result := CnInt64BPSWIsPrime(2) and CnInt64BPSWIsPrime(3) and CnInt64BPSWIsPrime(5)
+    and CnInt64BPSWIsPrime(859) and CnInt64BPSWIsPrime(2999) and CnInt64BPSWIsPrime(16769023)
+    and CnInt64BPSWIsPrime(87178291199) and CnInt64BPSWIsPrime(9223372036854775783);
+
+  if not Result then Exit;
+
+  // 这些不是素数
+  Result := not CnInt64BPSWIsPrime(6) and not CnInt64BPSWIsPrime(125)
+    and not CnInt64BPSWIsPrime(9999999999) and not CnInt64BPSWIsPrime(87178291200)
+    and not CnInt64BPSWIsPrime(24036584) and not CnInt64BPSWIsPrime(9223372036854775784);
 end;
 
 // ================================ 25519 ========================================

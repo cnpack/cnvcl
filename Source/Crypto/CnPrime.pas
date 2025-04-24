@@ -3503,8 +3503,14 @@ begin
   if N <= 1 then
     Exit;
 
-  if N and 1 = 0 then
+  if (N > 2) and ((N and 1) = 0) then
     Exit;
+
+  if N = 2 then
+  begin
+    Result := True;
+    Exit;
+  end;
 
   // 以上小范围照常判断
 
