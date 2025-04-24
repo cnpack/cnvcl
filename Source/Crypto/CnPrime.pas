@@ -1248,6 +1248,21 @@ function CnInt64Legendre(A: Int64; P: Int64): Integer;
    返回值：Integer                        - 返回勒让德符号
 }
 
+procedure CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64; out U: Int64);
+{* 计算 Lucas 的 U 序列，范围为 Int64。
+   U 序列递归定义为：U0 = 0, U1 = 1, and Uk = P * Uk-1 - Q * Vk-2   for k >= 2。
+   U 返回 Uk mod N。
+
+   参数：
+     X: Int64                             - Lucas 的 U 序列的 P 值
+     Y: Int64                             - Lucas 的 U 序列的 Q 值
+     K: Int64                             - 所需 Lucas 的 U 序列的序数，第 K 个
+     N: Int64                             - 模数
+     out U: Int64                         - 返回的 Lucas 序列的 U 值
+
+   返回值：（无）
+}
+
 procedure CnLucasVSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int64; out V: Int64);
 {* 计算 IEEE P1363 的规范中说明的 Lucas 的 V 序列，范围为 Int64。
    V 序列递归定义为：V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2。
@@ -1260,21 +1275,6 @@ procedure CnLucasVSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int
      N: Int64                             - 模数
      out Q: Int64                         - 返回的 Lucas 序列的 Q 值
      out V: Int64                         - 返回的 Lucas 序列的 V 值
-
-   返回值：（无）
-}
-
-procedure CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64; out U: Int64);
-{* 计算 Lucas 的 U 序列，范围为 Int64。
-   U 序列递归定义为：U0 = 0, U1 = 1, and Uk = P * Uk-1 - Q * Vk-2   for k >= 2。
-   U 返回 Uk mod N。
-
-   参数：
-     X: Int64                             - Lucas 的 U 序列的 P 值
-     Y: Int64                             - Lucas 的 U 序列的 Q 值
-     K: Int64                             - 所需 Lucas 的 U 序列的序数，第 K 个
-     N: Int64                             - 模数
-     out U: Int64                         - 返回的 Lucas 序列的 U 值
 
    返回值：（无）
 }
@@ -2819,6 +2819,87 @@ begin
     Result := -1;
 end;
 
+{
+  Lucas 序列没模的情况计算前几项：
+
+  序号     U(P,Q)               V(P,Q)
+  0        0                    2
+  1        1                    P
+  2        P                    P^2-2Q
+  3        P^2-Q                P^3-3PQ
+  4        P^3-2PQ              P^4-4(P^2)Q+2Q^2
+  5        P^4-3(P^2)Q+Q^2      P^5-5(P^3)Q+5PQ^2
+  6        P^5-4(P^3)Q+3PQ^2    P^6-6(P^4)Q+9(P^2)(Q^2)-2Q^3
+}
+
+procedure CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64; out U: Int64);
+var
+  C, I: Integer;
+  U0, U1, V0, V1, Q0, Q1: Int64;
+begin
+  if K < 0 then
+    raise ECnPrimeException.Create(SCnErrorInvalidKForLucasSequence);
+
+  // U0 = 0, U1 = 1, and Uk = P * Uk-1 - Q * Uk-2   for k >= 2。
+
+  // 并有用于快速计算的递推公式，二倍以及偶加一：
+  // U2k = Uk * Vk                  V2k = Vk^2 - 2 * Q^k             Q2k = Qk^2
+  // U2k+1 = U{k+1} * Vk - Q^k * P  V2k+1 = V{k+1} * Vk - Q^k * P    Q2k+1 = Q2k * Q
+
+  if K = 0 then
+  begin
+    U := 0;
+    Exit;
+  end
+  else if K = 1 then
+  begin
+    U := 1;
+    Exit;
+  end;
+
+  C := GetUInt64HighBits(K); // 0 开始的最高位，所以下面从 C 位到 0 位循环
+
+  U0 := 0;      // U_0 = 0
+  U1 := 1;      // U_1 = 1
+  V0 := 2;      // V_0 = 2
+  V1 := P;      // V_1 = P
+  Q0 := 1;
+  Q1 := 1;
+
+  for I := C downto 0 do                        // h 表示下标，从 0 开始
+  begin
+    Q0 := Int64MultipleMod(Q0, Q1, N);          // Q0 得到 Q 的 h 次方
+    // 更新 Q0 为 Q0 * Q1，分两种情况：
+    // 上一轮进分支一时，Q0 是 Q^h，Q1 是 Q^h+1，相乘为 2h+1，符合 U0 从 h 变 2h+1
+    // 上一轮进分支二时，Q0 是 Q^h，Q1 原样赋值也是 Q^h，相乘为 2h，符合 U0 从 h 变 2h
+
+    // 进来时，U0 U1 分别是 Uh 和 Uh+1，V0 V1 分别是 Vh 和 Vh+1
+    if GetUInt64BitSet(K, I) then
+    begin
+      Q1 := Int64MultipleMod(Q0, Q, N);         // Q1 得到 Q^h+1
+
+      // U0 从 Uh 变成 U2h+1（二倍加一）；U1 从 Uh+1 变成 U2h+2（二倍）
+      // V0 从 Vh 变成 V2h+1（二倍加一）；V1 从 Vh+1 变成 V2h+2（二倍）
+      U0 := Int64Mod(Int64MultipleMod(U1, V0, N) - Int64MultipleMod(Q0, P, N), N);  // U_{2h+1} = U_{h+1} * V_h - Q^h * P
+      V0 := Int64Mod(Int64MultipleMod(V1, V0, N) - Int64MultipleMod(Q0, P, N), N);  // V_{2h+1} = V_{h+1} * V_h - Q^h * P
+      U1 := Int64MultipleMod(U1, V1, N);                                            // U_{2h+2} = U_{h+1} * V_{h+1}
+      V1 := Int64Mod(Int64MultipleMod(V1, V1, N) - Int64MultipleMod(2, Q1, N), N);  // V_{2h+2} = V_{h+1}^2 - 2Q^{h+1}
+    end
+    else
+    begin
+      Q1 := Q0;
+      // U0 从 Uh 变成 U2h（二倍）；U1 从 Uh+1 变成 U2h+2（二倍加一）
+      // V0 从 Vh 变成 V2h（二倍）；V1 从 Vh+1 变成 V2h+2（二倍加一）
+      U1 := Int64Mod(Int64MultipleMod(U1, V0, N) - Q0, N);                           // U_{2h+1} = U_h+1 * V_h - Q^h
+      V1 := Int64Mod(Int64MultipleMod(V0, V1, N) - Int64MultipleMod(Q0, P, N), N);   // V_{2h+1} = V_h * V_{h+1} - Q^h * P
+      U0 := Int64MultipleMod(U0, V0, N);                                             // U_{2h} = U_h * V_h
+      V0 := Int64Mod(Int64MultipleMod(V0, V0, N) - Int64MultipleMod(2, Q0, N), N);   // V_{2h} = V_h^2 - 2Q^h
+    end;
+  end;
+
+  U := U0;
+end;
+
 // P1363 上的 Lucas 序列计算，虽然和 SM2 里的说明几乎全都对不上号，但目前结果看起来还靠谱
 // V0 = 2, V1 = X, and Vk = X * Vk-1 - Y * Vk-2   for k >= 2
 // V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N
@@ -2879,88 +2960,6 @@ begin
   end;
   Q := Q0;
   V := V0; // 最终主要返回 V0
-end;
-
-{
-  Lucas 序列没模的情况计算前几项：
-
-  序号     U(P,Q)               V(P,Q)
-  0        0                    2
-  1        1                    P
-  2        P                    P^2-2Q
-  3        P^2-Q                P^3-3PQ
-  4        P^3-2PQ              P^4-4(P^2)Q+2Q^2
-  5        P^4-3(P^2)Q+Q^2      P^5-5(P^3)Q+5PQ^2
-  6        P^5-4(P^3)Q+3PQ^2    P^6-6(P^4)Q+9(P^2)(Q^2)-2Q^3
-}
-
-procedure CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64; out U: Int64);
-var
-  C: Int64;
-  U0, U1, V0, V1, Q0, Q1: Int64;
-  I: Integer;
-begin
-  if K < 0 then
-    raise ECnPrimeException.Create(SCnErrorInvalidKForLucasSequence);
-
-  // U0 = 0, U1 = 1, and Uk = P * Uk-1 - Q * Uk-2   for k >= 2。
-
-  // 并有用于快速计算的递推公式，二倍以及偶加一：
-  // U2k = Uk * Vk                  V2k = Vk^2 - 2 * Q^k             Q2k = Qk^2
-  // U2k+1 = U{k+1} * Vk - Q^k * P  V2k+1 = V{k+1} * Vk - Q^k * P    Q2k+1 = Q2k * Q
-
-  if K = 0 then
-  begin
-    U := 0;
-    Exit;
-  end
-  else if K = 1 then
-  begin
-    U := 1;
-    Exit;
-  end;
-
-  C := GetUInt64HighBits(K);
-
-  U0 := 0;      // U_0 = 0
-  U1 := 1;      // U_1 = 1
-  V0 := 2;      // V_0 = 2
-  V1 := P;      // V_1 = P
-  Q0 := 1;
-  Q1 := 1;
-
-  for I := C downto 0 do                        // h 表示下标，从 0 开始
-  begin
-    Q0 := Int64MultipleMod(Q0, Q1, N);          // Q0 得到 Q 的 h 次方
-    // 更新 Q0 为 Q0 * Q1，分两种情况：
-    // 上一轮进分支一时，Q0 是 Q^h，Q1 是 Q^h+1，相乘为 2h+1，符合 U0 从 h 变 2h+1
-    // 上一轮进分支二时，Q0 是 Q^h，Q1 原样赋值也是 Q^h，相乘为 2h，符合 U0 从 h 变 2h
-
-    // 进来时，U0 U1 分别是 Uh 和 Uh+1，V0 V1 分别是 Vh 和 Vh+1
-    if GetUInt64BitSet(K, I) then
-    begin
-      Q1 := Int64MultipleMod(Q0, Q, N);         // Q1 得到 Q^h+1
-
-      // U0 从 Uh 变成 U2h+1（二倍加一）；U1 从 Uh+1 变成 U2h+2（二倍）
-      // V0 从 Vh 变成 V2h+1（二倍加一）；V1 从 Vh+1 变成 V2h+2（二倍）
-      U0 := Int64Mod(Int64MultipleMod(U1, V0, N) - Int64MultipleMod(Q0, P, N), N);  // U_{2h+1} = U_{h+1} * V_h - Q^h * P
-      V0 := Int64Mod(Int64MultipleMod(V1, V0, N) - Int64MultipleMod(Q0, P, N), N);  // V_{2h+1} = V_{h+1} * V_h - Q^h * P
-      U1 := Int64MultipleMod(U1, V1, N);                                            // U_{2h+2} = U_{h+1} * V_{h+1}
-      V1 := Int64Mod(Int64MultipleMod(V1, V1, N) - Int64MultipleMod(2, Q1, N), N);  // V_{2h+2} = V_{h+1}^2 - 2Q^{h+1}
-    end
-    else
-    begin
-      Q1 := Q0;
-      // U0 从 Uh 变成 U2h（二倍）；U1 从 Uh+1 变成 U2h+2（二倍加一）
-      // V0 从 Vh 变成 V2h（二倍）；V1 从 Vh+1 变成 V2h+2（二倍加一）
-      U1 := Int64Mod(Int64MultipleMod(U1, V0, N) - Q0, N);                           // U_{2h+1} = U_h+1 * V_h - Q^h
-      V1 := Int64Mod(Int64MultipleMod(V0, V1, N) - Int64MultipleMod(Q0, P, N), N);   // V_{2h+1} = V_h * V_{h+1} - Q^h * P
-      U0 := Int64MultipleMod(U0, V0, N);                                             // U_{2h} = U_h * V_h
-      V0 := Int64Mod(Int64MultipleMod(V0, V0, N) - Int64MultipleMod(2, Q0, N), N);   // V_{2h} = V_h^2 - 2Q^h
-    end;
-  end;
-
-  U := U0;
 end;
 
 // 封装的对于 P 为 8*u+1 的奇素数，用 Lucas 方法求其模平方根

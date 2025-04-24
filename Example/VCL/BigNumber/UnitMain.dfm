@@ -791,7 +791,7 @@ object FormBigNumber: TFormBigNumber
         Width = 121
         Height = 57
         Caption = 'Batch Test'
-        TabOrder = 79
+        TabOrder = 80
         OnClick = btnBatchClick
       end
       object btnMersenne: TButton
@@ -811,6 +811,15 @@ object FormBigNumber: TFormBigNumber
         Caption = 'All Factors'
         TabOrder = 78
         OnClick = btnAllFactorsClick
+      end
+      object btnBNBPSW: TButton
+        Left = 1040
+        Top = 403
+        Width = 129
+        Height = 25
+        Caption = 'BPSW is Prime'
+        TabOrder = 79
+        OnClick = btnBNBPSWClick
       end
     end
     object tsSparseBigNumberList: TTabSheet

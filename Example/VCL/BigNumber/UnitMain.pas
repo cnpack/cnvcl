@@ -108,6 +108,7 @@ type
     btnBatch: TButton;
     btnMersenne: TButton;
     btnAllFactors: TButton;
+    btnBNBPSW: TButton;
     procedure btnGen1Click(Sender: TObject);
     procedure btnGen2Click(Sender: TObject);
     procedure btnDupClick(Sender: TObject);
@@ -184,6 +185,7 @@ type
     procedure btnBatchClick(Sender: TObject);
     procedure btnMersenneClick(Sender: TObject);
     procedure btnAllFactorsClick(Sender: TObject);
+    procedure btnBNBPSWClick(Sender: TObject);
   private
     procedure CalcRandomLength;
     procedure ShowNumbers;
@@ -1128,6 +1130,13 @@ begin
     else
       ShowMessage('NOT Prime');
     P.Free;
+  end
+  else
+  begin
+    if BigNumberAKSIsPrime(Num1) then
+      ShowMessage('Num1 Is a Prime')
+    else
+      ShowMessage('Num1 NOT Prime');
   end;
 end;
 
@@ -1586,6 +1595,30 @@ begin
     S := S + #13#10 + F.ToString;
     ShowMessage(S);
     B.Free;
+  end;
+end;
+
+procedure TFormBigNumber.btnBNBPSWClick(Sender: TObject);
+var
+  P: TCnBigNumber;
+  S: string;
+begin
+  S := '39779';
+  if InputQuery('Hint', 'Enter an Integer Value', S) then
+  begin
+    P := TCnBigNumber.FromDec(S);
+    if BigNumberBPSWIsPrime(P) then
+      ShowMessage(S + ' Is a Prime')
+    else
+      ShowMessage('NOT Prime');
+    P.Free;
+  end
+  else
+  begin
+    if BigNumberBPSWIsPrime(Num1) then
+      ShowMessage('Num1 Is a Prime')
+    else
+      ShowMessage('Num1 NOT Prime');
   end;
 end;
 

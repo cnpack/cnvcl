@@ -97,6 +97,7 @@ function TestBigNumberIsPerfectPower: Boolean;
 function TestBigNumberJacobiSymbol: Boolean;
 function TestBigNumberMersennePrime: Boolean;
 function TestBigNumberAKSIsPrime: Boolean;
+function TestBigNumberBPSWIsPrime: Boolean;
 
 // ================================ Bits =======================================
 
@@ -453,6 +454,7 @@ begin
   MyAssert(TestBigNumberJacobiSymbol, 'TestBigNumberJacobiSymbol');
   MyAssert(TestBigNumberMersennePrime, 'TestBigNumberMersennePrime');
   MyAssert(TestBigNumberAKSIsPrime, 'TestBigNumberAKSIsPrime');
+  MyAssert(TestBigNumberBPSWIsPrime, 'TestBigNumberBPSWIsPrime');
 
 // ================================ Bits =======================================
 
@@ -1539,6 +1541,42 @@ begin
   Result := not BigNumberAKSIsPrime(6) and not BigNumberAKSIsPrime(125)
     and not BigNumberAKSIsPrime(9999999999) and not BigNumberAKSIsPrime(87178291200)
     and not BigNumberAKSIsPrime(24036584) and not BigNumberAKSIsPrime(9223372036854775784);
+end;
+
+function TestBigNumberBPSWIsPrime: Boolean;
+var
+  N: TCnBigNumber;
+begin
+  // 这些是素数
+  Result := BigNumberBPSWIsPrime(2) and BigNumberBPSWIsPrime(3) and BigNumberBPSWIsPrime(5)
+    and BigNumberBPSWIsPrime(859) and BigNumberBPSWIsPrime(2999) and BigNumberBPSWIsPrime(16769023)
+    and BigNumberBPSWIsPrime(87178291199) and BigNumberBPSWIsPrime(9223372036854775783);
+
+  if not Result then Exit;
+
+  // 这些不是素数
+  Result := not BigNumberBPSWIsPrime(6) and not BigNumberBPSWIsPrime(125)
+    and not BigNumberBPSWIsPrime(9999999999) and not BigNumberBPSWIsPrime(87178291200)
+    and not BigNumberBPSWIsPrime(24036584) and not BigNumberBPSWIsPrime(9223372036854775784);
+
+  if not Result then Exit;
+
+  N := TCnBigNumber.Create;
+  N.SetDec('17958680315477529118359626974837716792693875094011614024011168510975569729310314' +
+    '880849257372098399323281383080965010765274640234224256167493484359641041522147531619250' +
+    '480871054471940913644503701423747232778359344650625273884644359540555918976207228041284' +
+    '2514717420103698926250778354663659964058787962356617577');
+  Result := BigNumberBPSWIsPrime(N);
+  if not Result then Exit;
+
+  N.SetDec('14969176467827120502498686286027013471395488404082070216831428287046164277671531' +
+    '718906110319350798869642932334626497763724550748618776256325699077121330088529531311509' +
+    '011733515213756078066269277069262905021429760084973349218408676900227626414013688181522' +
+    '0489013547400320331396810226222993793410831538299353421');
+  Result := BigNumberBPSWIsPrime(N);
+  if not Result then Exit;
+
+  N.Free;
 end;
 
 // ================================ Bits =======================================

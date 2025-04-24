@@ -40,7 +40,9 @@ unit CnBigNumber;
 *           注：D5/D6/CB5/CB6 下曾经遇上编译器 Bug 无法修复，
 *           譬如写 Int64(AInt64Var) 这样的强制类型转换时，现在暂时绕过了。
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2025.04.07 V2.9
+* 修改记录：2025.04.24 V3.0
+*               加入 Lucas U V 序列的计算及 BPSW 素数判定算法
+*           2025.04.07 V2.9
 *               加入几个列表新方法、乘法阶的计算，调整随机调用为非初始化版本以提速
 *           2024.11.05 V2.8
 *               加入雅可比符号的计算及梅森素数的判定
@@ -1677,12 +1679,22 @@ function BigNumberFromFloat(F: Extended): TCnBigNumber;
    返回值：TCnBigNumber                   - 返回新建的大数对象
 }
 
-function BigNumberEqual(Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean;
+function BigNumberEqual(Num1: TCnBigNumber; Num2: TCnBigNumber): Boolean; overload;
 {* 比较两个大数对象是否相等，相等返回 True，不等返回 False。
 
    参数：
      Num1: TCnBigNumber                   - 待比较的大数对象一
      Num2: TCnBigNumber                   - 待比较的大数对象二
+
+   返回值：Boolean                        - 返回是否相等
+}
+
+function BigNumberEqual(Num1: TCnBigNumber; Num2: Int64): Boolean; overload;
+{* 比较一个大数对象是否等于指定整数，相等返回 True，不等返回 False。
+
+   参数：
+     Num1: TCnBigNumber                   - 待比较的大数对象
+     Num2: TCnBigNumber                   - 待比较的整数
 
    返回值：Boolean                        - 返回是否相等
 }
@@ -2666,6 +2678,22 @@ procedure BigNumberEuler(Res: TCnBigNumber; Num: TCnBigNumber);
    返回值：（无）
 }
 
+function BigNumberLucasUSequenceMod(P: TCnBigNumber; Q: TCnBigNumber; K: TCnBigNumber;
+  N: TCnBigNumber; U: TCnBigNumber): Boolean;
+{* 计算 Lucas 的 U 序列，调用者需自行保证 N 为奇素数。
+   Lucas 的 U 序列递归定义为：U0 = 0, U1 = 1, and Uk = P * Uk-1 - Q * Vk-2   for k >= 2，
+   U 返回 Uk mod N。
+
+   参数：
+     P: TCnBigNumber                      - Lucas 序列中的 P 参数大数对象
+     Q: TCnBigNumber                      - Lucas 序列中的 Q 参数大数对象
+     K: TCnBigNumber                      - Lucas 序列中的 K 序数
+     N: TCnBigNumber                      - Lucas 序列中的 N 模数
+     U: TCnBigNumber                      - 容纳 Lucas 的 U 序列中的 Uk mod N 的值
+
+   返回值：Boolean                        - 返回计算是否成功
+}
+
 function BigNumberLucasVSequenceMod(X: TCnBigNumber; Y: TCnBigNumber; K: TCnBigNumber;
   N: TCnBigNumber; Q: TCnBigNumber; V: TCnBigNumber): Boolean;
 {* 计算 IEEE P1363 的规范中说明的 Lucas 的 V 序列，调用者需自行保证 N 为奇素数。
@@ -2673,8 +2701,8 @@ function BigNumberLucasVSequenceMod(X: TCnBigNumber; Y: TCnBigNumber; K: TCnBigN
    V 返回 Vk mod N，Q 返回 Y ^ (K div 2) mod N。
 
    参数：
-     X: TCnBigNumber                      - 用来容纳 Lucas 序列中的结果 X 的大数对象（定义中的 P）
-     Y: TCnBigNumber                      - 用来容纳 Lucas 序列中的结果 Y 的大数对象（定义中的 Q）
+     X: TCnBigNumber                      - Lucas 序列中的 X 参数大数对象
+     Y: TCnBigNumber                      - Lucas 序列中的 Y 参数大数对象
      K: TCnBigNumber                      - Lucas 序列中的 K 序数
      N: TCnBigNumber                      - Lucas 序列中的 N 模数
      Q: TCnBigNumber                      - 容纳 Lucas 的 V 序列中的 Y ^ (K div 2) mod N 的值
@@ -2751,6 +2779,25 @@ function BigNumberAKSIsPrime(N: TCnBigNumber): Boolean; overload;
 
 function BigNumberAKSIsPrime(N: Int64): Boolean; overload;
 {* 用 AKS 算法准确判断某正整数是否是素数。
+
+   参数：
+     N: Int64                             - 待判断的正整数
+
+   返回值：Boolean                        - 返回是否素数
+}
+
+function BigNumberBPSWIsPrime(N: TCnBigNumber): Boolean; overload;
+{* 用 Baillie-PSW 算法大概率准确判断某大正整数是否是素数，判断 2048 位素数耗时一秒内
+   RSA 中生成两个 2048 位的素数如使用本算法进行判断，耗时约 5 秒。
+
+   参数：
+     N: TCnBigNumber                      - 待判断的大数对象
+
+   返回值：Boolean                        - 返回是否素数
+}
+
+function BigNumberBPSWIsPrime(N: Int64): Boolean; overload;
+{* 用 Baillie-PSW 算法大概率准确判断某正整数是否是素数。
 
    参数：
      N: Int64                             - 待判断的正整数
@@ -3891,6 +3938,11 @@ begin
   Result := BigNumberCompare(Num1, Num2) = 0;
 end;
 
+function BigNumberEqual(Num1: TCnBigNumber; Num2: Int64): Boolean;
+begin
+  Result := Num1.IsInt64 and (Num1.GetInt64 = Num2);
+end;
+
 function BigNumberCompare(Num1: TCnBigNumber; Num2: TCnBigNumber): Integer;
 var
   I, Gt, Lt: Integer;
@@ -3910,7 +3962,6 @@ begin
       Result := 1
     else
       Result := 0;
-
     Exit;
   end;
 
@@ -9113,6 +9164,116 @@ begin
   end;
 end;
 
+// 计算 Lucas 的 U 序列
+function BigNumberLucasUSequenceMod(P: TCnBigNumber; Q: TCnBigNumber; K: TCnBigNumber;
+  N: TCnBigNumber; U: TCnBigNumber): Boolean;
+var
+  C, I: Integer;
+  U0, U1, V0, V1, Q0, Q1, T0, T1: TCnBigNumber;
+begin
+  Result := False;
+  if K.IsNegative then
+    Exit;
+
+  if K.IsZero then
+  begin
+    U.SetZero;
+    Exit;
+  end
+  else if K.IsOne then
+  begin
+    U.SetOne;
+    Exit;
+  end;
+
+  C := BigNumberGetBitsCount(K); // 有效位数，所以下面从 C - 1 位到 0 位循环
+  if C < 1 then
+    Exit;
+
+  U0 := nil;
+  U1 := nil;
+  V0 := nil;
+  V1 := nil;
+  Q0 := nil;
+  Q1 := nil;
+  T0 := nil;
+  T1 := nil;
+
+  try
+    U0 := FLocalBigNumberPool.Obtain;
+    U1 := FLocalBigNumberPool.Obtain;
+    V0 := FLocalBigNumberPool.Obtain;
+    V1 := FLocalBigNumberPool.Obtain;
+    Q0 := FLocalBigNumberPool.Obtain;
+    Q1 := FLocalBigNumberPool.Obtain;
+    T0 := FLocalBigNumberPool.Obtain;
+    T1 := FLocalBigNumberPool.Obtain;
+
+    U0.SetZero;            // U_0 = 0
+    U1.SetOne;             // U_1 = 1
+    V0.SetInteger(2);      // V_0 = 2
+    BigNumberCopy(V1, P);  // V_1 = P
+    Q0.SetOne;
+    Q1.SetOne;
+
+    for I := C - 1 downto 0 do
+    begin
+      if not BigNumberDirectMulMod(Q0, Q0, Q1, N) then Exit;
+
+      if BigNumberIsBitSet(K, I) then
+      begin
+        if not BigNumberDirectMulMod(Q1, Q0, Q, N) then Exit;
+
+        if not BigNumberDirectMulMod(T0, U1, V0, N) then Exit; // U_{2h+1} = U_{h+1} * V_h - Q^h * P
+        if not BigNumberDirectMulMod(T1, Q0, P, N) then Exit;
+        if not BigNumberSubMod(U0, T0, T1, N) then Exit;
+
+        if not BigNumberDirectMulMod(T0, V1, V0, N) then Exit; // V_{2h+1} = V_{h+1} * V_h - Q^h * P
+        if not BigNumberSubMod(V0, T0, T1, N) then Exit;       // T1 = Q^h * P 已计算
+
+        if not BigNumberDirectMulMod(U1, U1, V1, N) then Exit; // U_{2h+2} = U_{h+1} * V_{h+1}
+
+        if not BigNumberDirectMulMod(T0, V1, V1, N) then Exit; // V_{2h+2} = V_{h+1}^2 - 2Q^{h+1}
+        BigNumberCopy(T1, Q1);
+        if not BigNumberShiftLeftOne(T1, T1) then Exit;
+        if not BigNumberMod(T1, T1, N) then Exit;
+        if not BigNumberSubMod(V1, T0, T1, N) then Exit;
+      end
+      else
+      begin
+        BigNumberCopy(Q1, Q0);
+
+        if not BigNumberDirectMulMod(T0, U1, V0, N) then Exit; // U_{2h+1} = U_h+1 * V_h - Q^h
+        if not BigNumberSubMod(U1, T0, Q0, N) then Exit;
+
+        if not BigNumberDirectMulMod(T0, V1, V0, N) then Exit; // V_{2h+1} = V_h * V_{h+1} - Q^h * P
+        if not BigNumberDirectMulMod(T1, Q0, P, N) then Exit;
+        if not BigNumberSubMod(V1, T0, T1, N) then Exit;
+
+        if not BigNumberDirectMulMod(U0, U0, V0, N) then Exit; // U_{2h} = U_h * V_h
+
+        if not BigNumberDirectMulMod(T0, V0, V0, N) then Exit; // V_{2h} = V_{h}^2 - 2Q^{h}
+        BigNumberCopy(T1, Q0);
+        if not BigNumberShiftLeftOne(T1, T1) then Exit;
+        if not BigNumberMod(T1, T1, N) then Exit;
+        if not BigNumberSubMod(V0, T0, T1, N) then Exit;
+      end;
+    end;
+
+    BigNumberCopy(U, U0);
+    Result := True;
+  finally
+    FLocalBigNumberPool.Recycle(T1);
+    FLocalBigNumberPool.Recycle(T0);
+    FLocalBigNumberPool.Recycle(Q1);
+    FLocalBigNumberPool.Recycle(Q0);
+    FLocalBigNumberPool.Recycle(V1);
+    FLocalBigNumberPool.Recycle(V0);
+    FLocalBigNumberPool.Recycle(U1);
+    FLocalBigNumberPool.Recycle(U0);
+  end;
+end;
+
 // 计算 IEEE P1363 的规范中说明的 Lucas 的 V 序列
 function BigNumberLucasVSequenceMod(X, Y, K, N: TCnBigNumber; Q, V: TCnBigNumber): Boolean;
 var
@@ -9138,6 +9299,10 @@ begin
     Exit;
   end;
 
+  C := BigNumberGetBitsCount(K);  // 有效位数，所以下面从 C - 1 位到 0 位循环
+  if C < 1 then
+    Exit;
+
   V0 := nil;
   V1 := nil;
   Q0 := nil;
@@ -9160,10 +9325,6 @@ begin
     BigNumberCopy(V1, X);
     Q0.SetOne;
     Q1.SetOne;
-
-    C := BigNumberGetBitsCount(K);
-    if C < 1 then
-      Exit;
 
     for I := C - 1 downto 0 do
     begin
@@ -9521,6 +9682,92 @@ begin
     FLocalBigNumberPool.Recycle(C);
     FLocalBigNumberPool.Recycle(Q);
     FLocalBigNumberPool.Recycle(BK);
+  end;
+end;
+
+function BigNumberBPSWIsPrime(N: Int64): Boolean;
+var
+  T: TCnBigNumber;
+begin
+  T := TCnBigNumber.Create;
+  try
+    T.SetInt64(N);
+    Result := BigNumberBPSWIsPrime(T);
+  finally
+    T.Free;
+  end;
+end;
+
+function BigNumberBPSWIsPrime(N: TCnBigNumber): Boolean;
+var
+  T: Integer;
+  X, Y, A, U: TCnBigNumber;
+begin
+  Result := False;
+  if N.IsNegative or N.IsZero or N.IsOne then
+    Exit;
+
+  if BigNumberEqual(N, 2) then
+  begin
+    Result := True;
+    Exit;
+  end
+  else if N.IsEven then
+    Exit;
+
+  X := nil;
+  Y := nil;
+  A := nil;
+  U := nil;
+
+  try
+    X := FLocalBigNumberPool.Obtain;
+    BigNumberCopy(X, N);
+
+    X.SubWord(1);
+    T := 0;
+    while X.IsEven do
+    begin
+      X.ShiftRightOne;
+      Inc(T);
+    end;
+
+    // 计算一轮以 2 为基的费马检测，如不通过则是合数
+    Y := FLocalBigNumberPool.Obtain;
+    Y.SetWord(2);
+    if BigNumberFermatCheckComposite(Y, N, X, T) then
+      Exit;
+
+    X.SetInteger(-3);
+    repeat
+      if X.IsNegative then
+        X.SubWord(2)
+      else
+        X.AddWord(2);
+
+      X.Negate;
+    until BignumberJacobiSymbol(X, N) = -1;
+
+    // X 中拿到正确的 D 值，计算 Q 值放到 Y 中，P 值 1 也放 X 中
+    X.SubWord(1);
+    X.Negate;
+    BigNumberShiftRight(Y, X, 2);
+    X.SetOne;
+
+    A := FLocalBigNumberPool.Obtain;
+    BigNumberCopy(A, N);
+    A.AddWord(1);
+
+    U := FLocalBigNumberPool.Obtain;
+    if not BigNumberLucasUSequenceMod(X, Y, A, N, U) then
+      Exit;
+
+    Result := U.IsZero;
+  finally
+    FLocalBigNumberPool.Recycle(U);
+    FLocalBigNumberPool.Recycle(A);
+    FLocalBigNumberPool.Recycle(Y);
+    FLocalBigNumberPool.Recycle(X);
   end;
 end;
 
