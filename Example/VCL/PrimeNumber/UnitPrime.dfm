@@ -732,18 +732,18 @@ object FormPrime: TFormPrime
         OnClick = btnCRTTestClick
       end
       object btnCheckPrime: TButton
-        Left = 152
+        Left = 120
         Top = 24
-        Width = 129
+        Width = 89
         Height = 25
-        Caption = 'Check Prime'
+        Caption = 'Check Primes'
         TabOrder = 1
         OnClick = btnCheckPrimeClick
       end
       object btnInt64BSGS: TButton
-        Left = 328
+        Left = 232
         Top = 24
-        Width = 121
+        Width = 97
         Height = 25
         Caption = 'Int64 BSGS'
         TabOrder = 2
@@ -754,7 +754,7 @@ object FormPrime: TFormPrime
         Top = 72
         Width = 121
         Height = 21
-        TabOrder = 4
+        TabOrder = 5
         Text = '1350851717672992089'
       end
       object btnIsPerfectPower: TButton
@@ -763,7 +763,7 @@ object FormPrime: TFormPrime
         Width = 105
         Height = 25
         Caption = 'Is Perfect Power'
-        TabOrder = 5
+        TabOrder = 6
         OnClick = btnIsPerfectPowerClick
       end
       object btnCombinatorialNumber: TButton
@@ -772,7 +772,7 @@ object FormPrime: TFormPrime
         Width = 161
         Height = 25
         Caption = 'Combinatorial Numbers'
-        TabOrder = 6
+        TabOrder = 7
         OnClick = btnCombinatorialNumberClick
       end
       object btnComNumMod: TButton
@@ -781,7 +781,7 @@ object FormPrime: TFormPrime
         Width = 161
         Height = 25
         Caption = 'Combinatorial Numbers Mod'
-        TabOrder = 7
+        TabOrder = 8
         OnClick = btnComNumModClick
       end
       object edtShor: TEdit
@@ -789,7 +789,7 @@ object FormPrime: TFormPrime
         Top = 136
         Width = 121
         Height = 21
-        TabOrder = 8
+        TabOrder = 9
         Text = '115'
       end
       object btnShor: TButton
@@ -798,7 +798,7 @@ object FormPrime: TFormPrime
         Width = 75
         Height = 25
         Caption = 'Shor'
-        TabOrder = 9
+        TabOrder = 10
         OnClick = btnShorClick
       end
       object edtMulOrderN: TEdit
@@ -806,7 +806,7 @@ object FormPrime: TFormPrime
         Top = 136
         Width = 49
         Height = 21
-        TabOrder = 10
+        TabOrder = 11
         Text = '3'
       end
       object edtMulOrderR: TEdit
@@ -814,7 +814,7 @@ object FormPrime: TFormPrime
         Top = 136
         Width = 49
         Height = 21
-        TabOrder = 11
+        TabOrder = 12
         Text = '7'
       end
       object btnMulOrder: TButton
@@ -823,7 +823,7 @@ object FormPrime: TFormPrime
         Width = 153
         Height = 25
         Caption = 'Multiplicative Order'
-        TabOrder = 12
+        TabOrder = 13
         OnClick = btnMulOrderClick
       end
       object btnBPSWCheckPrime: TButton
@@ -832,7 +832,7 @@ object FormPrime: TFormPrime
         Width = 129
         Height = 25
         Caption = 'BPSW Check Prime'
-        TabOrder = 3
+        TabOrder = 4
         OnClick = btnBPSWCheckPrimeClick
       end
       object edtLucasK: TEdit
@@ -840,7 +840,7 @@ object FormPrime: TFormPrime
         Top = 208
         Width = 49
         Height = 21
-        TabOrder = 13
+        TabOrder = 14
         Text = '11'
       end
       object btnLukasU: TButton
@@ -849,7 +849,7 @@ object FormPrime: TFormPrime
         Width = 75
         Height = 25
         Caption = 'Lucas U'
-        TabOrder = 17
+        TabOrder = 18
         OnClick = btnLukasUClick
       end
       object btnLukasV: TButton
@@ -858,7 +858,7 @@ object FormPrime: TFormPrime
         Width = 75
         Height = 25
         Caption = 'Lucas V'
-        TabOrder = 18
+        TabOrder = 19
         OnClick = btnLukasVClick
       end
       object edtLucasP: TEdit
@@ -866,7 +866,7 @@ object FormPrime: TFormPrime
         Top = 208
         Width = 49
         Height = 21
-        TabOrder = 14
+        TabOrder = 15
         Text = '1'
       end
       object edtLucasQ: TEdit
@@ -874,7 +874,7 @@ object FormPrime: TFormPrime
         Top = 208
         Width = 49
         Height = 21
-        TabOrder = 15
+        TabOrder = 16
         Text = '-1'
       end
       object edtLucasN: TEdit
@@ -882,8 +882,16 @@ object FormPrime: TFormPrime
         Top = 208
         Width = 49
         Height = 21
-        TabOrder = 16
+        TabOrder = 17
         Text = '7'
+      end
+      object edtBPSW: TEdit
+        Left = 392
+        Top = 24
+        Width = 105
+        Height = 21
+        TabOrder = 3
+        Text = '11'
       end
     end
   end

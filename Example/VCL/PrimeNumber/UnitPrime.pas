@@ -119,6 +119,7 @@ type
     lblLucasQ: TLabel;
     edtLucasN: TEdit;
     lblLucasN: TLabel;
+    edtBPSW: TEdit;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -910,11 +911,14 @@ begin
 end;
 
 procedure TFormPrime.btnBPSWCheckPrimeClick(Sender: TObject);
+var
+  K: Int64;
 begin
-//  if CnInt64BPSWIsPrime(31) then
-//    ShowMessage('Is Prime')
-//  else
-//    ShowMessage('NOT Prime');
+  K := StrToInt64(edtBPSW.Text);
+  if CnInt64BPSWIsPrime(K) then
+    ShowMessage(edtBPSW.Text + ' Is Prime')
+  else
+    ShowMessage(edtBPSW.Text + ' is NOT a Prime');
 end;
 
 procedure TFormPrime.btnLukasUClick(Sender: TObject);

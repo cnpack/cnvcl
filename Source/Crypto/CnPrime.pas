@@ -39,7 +39,9 @@ unit CnPrime;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.06.04 V1.7
+* 修改记录：2025.04.24 V1.8
+*               增加 Lucas U 序列的计算，和原来 V 序列的独立，并增加 BPSW 素性检测
+*           2022.06.04 V1.7
 *               增加负模逆元与蒙哥马利约简以及基于此实现的快速模乘算法，能快一些
 *           2021.11.20 V1.6
 *               实现 AKS 精确素性判断算法。
@@ -1387,6 +1389,15 @@ procedure CnUInt64FillCombinatorialNumbersMod(List: TCnUInt64List; N: Integer; P
 
 function CnInt64AKSIsPrime(N: Int64): Boolean;
 {* 用 AKS 算法判断某正整数是否是素数，判断 9223372036854775783 约需 10 秒钟。
+
+   参数：
+     N: Int64                             - 待判断的 64 位有符号整数
+
+   返回值：Boolean                        - 返回是否是素数
+}
+
+function CnInt64BPSWIsPrime(N: Int64): Boolean;
+{* 用 Baillie-PSW 算法判断某正整数是否是素数，内部是一轮 Miller-Rabin 测试和一轮 Lucas 测试。
 
    参数：
      N: Int64                             - 待判断的 64 位有符号整数
@@ -3482,6 +3493,51 @@ begin
   end;
 
   Result := True;
+end;
+
+function CnInt64BPSWIsPrime(N: Int64): Boolean;
+var
+  T, X, D, P, Q, U: Int64;
+begin
+  Result := False;
+  if N <= 1 then
+    Exit;
+
+  if N and 1 = 0 then
+    Exit;
+
+  // 以上小范围照常判断
+
+  X := N - 1;
+  T := 0;
+  while X and 1 = 0 do
+  begin
+    X := X shr 1;
+    Inc(T);
+  end;
+
+  // 计算一轮以 2 为基的费马检测，如不通过则是合数
+  if FermatCheckComposite(2, N, X, T) then
+    Exit;
+
+  // 通过后，再进行 Lucas 测试，先用雅可比符号得到 D
+  D := -3;
+  repeat
+    if D > 0 then
+      D := D + 2
+    else
+      D := D - 2;
+
+    D := -D;
+  until CnInt64JacobiSymbol(D, N) = -1;
+
+  // 得到 D 后，计算 P 和 Q
+  P := 1;
+  Q := Trunc((1 - D) / 4);
+
+  // 计算 Lucas U 序列
+  CnLucasUSequenceMod(P, Q, N + 1, N, U);
+  Result := U = 0;
 end;
 
 {$WARNINGS ON}
