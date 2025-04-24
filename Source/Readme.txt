@@ -95,6 +95,9 @@ cnpack\Source 目录内容说明：
   CnLinkedList.pas
     双向链表实现单元
 
+  CnMarkDown.pas
+    MarkDown 格式解析与转换单元
+
   CnMath.pas
     数学计算库
 
@@ -136,6 +139,9 @@ cnpack\Source 目录内容说明：
 
   CnQuantum.pas
     部分量子基础实现单元
+
+  CnRichEdit.pas
+    与富文本渲染相关的功能单元
 
   CnRopes.pas
     Ropes 数据结构实现单元

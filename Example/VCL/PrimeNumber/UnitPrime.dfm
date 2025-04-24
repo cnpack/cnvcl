@@ -51,7 +51,7 @@ object FormPrime: TFormPrime
         Anchors = [akLeft, akTop, akRight, akBottom]
         ReadOnly = True
         ScrollBars = ssBoth
-        TabOrder = 2
+        TabOrder = 3
       end
       object chkQuickGen: TCheckBox
         Left = 392
@@ -61,7 +61,7 @@ object FormPrime: TFormPrime
         Caption = 'Quick Mode'
         Checked = True
         State = cbChecked
-        TabOrder = 3
+        TabOrder = 2
       end
     end
     object tsIsPrime: TTabSheet
@@ -103,7 +103,7 @@ object FormPrime: TFormPrime
         Top = 64
         Width = 121
         Height = 21
-        TabOrder = 2
+        TabOrder = 5
         Text = '397796406237767'
       end
       object btnInt64IsPrime: TButton
@@ -112,7 +112,7 @@ object FormPrime: TFormPrime
         Width = 105
         Height = 25
         Caption = 'Is Int64 Prime?'
-        TabOrder = 3
+        TabOrder = 6
         OnClick = btnInt64IsPrimeClick
       end
       object btnCarmichael: TButton
@@ -121,7 +121,7 @@ object FormPrime: TFormPrime
         Width = 137
         Height = 25
         Caption = 'Carmichael is Prime?'
-        TabOrder = 4
+        TabOrder = 7
         OnClick = btnCarmichaelClick
       end
       object mmoCar: TMemo
@@ -132,7 +132,7 @@ object FormPrime: TFormPrime
         Anchors = [akLeft, akTop, akRight, akBottom]
         ReadOnly = True
         ScrollBars = ssBoth
-        TabOrder = 5
+        TabOrder = 10
       end
       object btnGen64: TButton
         Left = 488
@@ -140,7 +140,7 @@ object FormPrime: TFormPrime
         Width = 145
         Height = 25
         Caption = 'Generate a Int64 Prime'
-        TabOrder = 6
+        TabOrder = 3
         OnClick = btnGen64Click
       end
       object btnGenInt32Prime: TButton
@@ -149,7 +149,7 @@ object FormPrime: TFormPrime
         Width = 137
         Height = 25
         Caption = 'Generate a Int32 Prime'
-        TabOrder = 7
+        TabOrder = 2
         OnClick = btnGenInt32PrimeClick
       end
       object btnInt64AKS: TButton
@@ -167,7 +167,7 @@ object FormPrime: TFormPrime
         Width = 57
         Height = 17
         Caption = 'Raw'
-        TabOrder = 9
+        TabOrder = 4
       end
       object btnMoreAKS: TButton
         Left = 568
@@ -175,7 +175,7 @@ object FormPrime: TFormPrime
         Width = 65
         Height = 25
         Caption = 'More AKS'
-        TabOrder = 10
+        TabOrder = 9
         OnClick = btnMoreAKSClick
       end
     end
@@ -347,7 +347,7 @@ object FormPrime: TFormPrime
         Top = 184
         Width = 401
         Height = 21
-        TabOrder = 9
+        TabOrder = 10
       end
       object btnMulMod: TButton
         Left = 24
@@ -355,7 +355,7 @@ object FormPrime: TFormPrime
         Width = 81
         Height = 21
         Caption = 'Mul Mod'
-        TabOrder = 10
+        TabOrder = 9
         OnClick = btnMulModClick
       end
       object btnMulMod64: TButton
@@ -406,7 +406,7 @@ object FormPrime: TFormPrime
         Width = 83
         Height = 21
         Caption = 'Add Mod U64'
-        TabOrder = 16
+        TabOrder = 17
         OnClick = btnAddMod64Click
       end
       object edtAddModRes: TEdit
@@ -414,7 +414,7 @@ object FormPrime: TFormPrime
         Top = 296
         Width = 401
         Height = 21
-        TabOrder = 17
+        TabOrder = 16
       end
       object btnMontReduct: TButton
         Left = 24
@@ -525,7 +525,7 @@ object FormPrime: TFormPrime
         Width = 137
         Height = 21
         Caption = 'Gen UInt32 DH Max Root'
-        TabOrder = 3
+        TabOrder = 5
         OnClick = btnGenInt32DHClick
       end
       object edtDHXa: TEdit
@@ -533,7 +533,7 @@ object FormPrime: TFormPrime
         Top = 84
         Width = 121
         Height = 21
-        TabOrder = 4
+        TabOrder = 6
         Text = '123456'
       end
       object edtDHXb: TEdit
@@ -541,7 +541,7 @@ object FormPrime: TFormPrime
         Top = 124
         Width = 121
         Height = 21
-        TabOrder = 5
+        TabOrder = 12
         Text = '654321'
       end
       object btnCalcXA: TButton
@@ -550,7 +550,7 @@ object FormPrime: TFormPrime
         Width = 49
         Height = 21
         Caption = 'Calc Ya'
-        TabOrder = 6
+        TabOrder = 7
         OnClick = btnCalcXAClick
       end
       object btnCalcYb: TButton
@@ -559,7 +559,7 @@ object FormPrime: TFormPrime
         Width = 49
         Height = 21
         Caption = 'Calc Yb'
-        TabOrder = 7
+        TabOrder = 13
         OnClick = btnCalcYbClick
       end
       object edtDHYa: TEdit
@@ -574,7 +574,7 @@ object FormPrime: TFormPrime
         Top = 124
         Width = 129
         Height = 21
-        TabOrder = 9
+        TabOrder = 14
       end
       object btnDHACKey: TButton
         Left = 416
@@ -582,7 +582,7 @@ object FormPrime: TFormPrime
         Width = 65
         Height = 21
         Caption = 'A Calc Key'
-        TabOrder = 10
+        TabOrder = 9
         OnClick = btnDHACKeyClick
       end
       object btnDHBCK: TButton
@@ -591,7 +591,7 @@ object FormPrime: TFormPrime
         Width = 65
         Height = 21
         Caption = 'B Calc Key'
-        TabOrder = 11
+        TabOrder = 15
         OnClick = btnDHBCKClick
       end
       object edtAKey: TEdit
@@ -599,14 +599,14 @@ object FormPrime: TFormPrime
         Top = 84
         Width = 137
         Height = 21
-        TabOrder = 12
+        TabOrder = 10
       end
       object edtBKey: TEdit
         Left = 496
         Top = 124
         Width = 137
         Height = 21
-        TabOrder = 13
+        TabOrder = 16
       end
       object btnDHIsRoot32: TButton
         Left = 56
@@ -614,7 +614,7 @@ object FormPrime: TFormPrime
         Width = 137
         Height = 21
         Caption = 'Is Primitive Root  32'
-        TabOrder = 14
+        TabOrder = 3
         OnClick = btnDHIsRoot32Click
       end
       object btnDHIsPrimitiveRoot64: TButton
@@ -623,7 +623,7 @@ object FormPrime: TFormPrime
         Width = 137
         Height = 21
         Caption = 'Is Primitive Root  64'
-        TabOrder = 15
+        TabOrder = 4
         OnClick = btnDHIsPrimitiveRoot64Click
       end
       object btnDHRand: TButton
@@ -632,7 +632,7 @@ object FormPrime: TFormPrime
         Width = 41
         Height = 21
         Caption = 'Rand'
-        TabOrder = 16
+        TabOrder = 11
         OnClick = btnDHRandClick
       end
       object btnDHCheck: TButton
@@ -649,7 +649,7 @@ object FormPrime: TFormPrime
         Width = 209
         Height = 25
         Caption = 'Gen UInt32 DH Min Root'
-        TabOrder = 18
+        TabOrder = 20
         OnClick = btnGenDH2Click
       end
       object btnGenDH3: TButton
@@ -658,7 +658,7 @@ object FormPrime: TFormPrime
         Width = 209
         Height = 25
         Caption = 'Gen UInt64 DH2 Min Root'
-        TabOrder = 19
+        TabOrder = 18
         OnClick = btnGenDH3Click
       end
       object btnDHCheck2: TButton
@@ -667,7 +667,7 @@ object FormPrime: TFormPrime
         Width = 145
         Height = 25
         Caption = 'DH Check Preset Generator'
-        TabOrder = 20
+        TabOrder = 19
       end
     end
     object tsCRT: TTabSheet
@@ -687,6 +687,41 @@ object FormPrime: TFormPrime
         Height = 13
         Caption = 'To'
       end
+      object bvlLucasK: TBevel
+        Left = 24
+        Top = 184
+        Width = 609
+        Height = 17
+        Shape = bsTopLine
+      end
+      object lblLucasK: TLabel
+        Left = 24
+        Top = 212
+        Width = 10
+        Height = 13
+        Caption = '#:'
+      end
+      object lblLucasP: TLabel
+        Left = 112
+        Top = 212
+        Width = 10
+        Height = 13
+        Caption = 'P:'
+      end
+      object lblLucasQ: TLabel
+        Left = 200
+        Top = 212
+        Width = 11
+        Height = 13
+        Caption = 'Q:'
+      end
+      object lblLucasN: TLabel
+        Left = 288
+        Top = 212
+        Width = 34
+        Height = 13
+        Caption = 'mod N:'
+      end
       object btnCRTTest: TButton
         Left = 24
         Top = 24
@@ -697,7 +732,7 @@ object FormPrime: TFormPrime
         OnClick = btnCRTTestClick
       end
       object btnCheckPrime: TButton
-        Left = 192
+        Left = 152
         Top = 24
         Width = 129
         Height = 25
@@ -706,7 +741,7 @@ object FormPrime: TFormPrime
         OnClick = btnCheckPrimeClick
       end
       object btnInt64BSGS: TButton
-        Left = 416
+        Left = 328
         Top = 24
         Width = 121
         Height = 25
@@ -719,7 +754,7 @@ object FormPrime: TFormPrime
         Top = 72
         Width = 121
         Height = 21
-        TabOrder = 3
+        TabOrder = 4
         Text = '1350851717672992089'
       end
       object btnIsPerfectPower: TButton
@@ -728,7 +763,7 @@ object FormPrime: TFormPrime
         Width = 105
         Height = 25
         Caption = 'Is Perfect Power'
-        TabOrder = 4
+        TabOrder = 5
         OnClick = btnIsPerfectPowerClick
       end
       object btnCombinatorialNumber: TButton
@@ -737,7 +772,7 @@ object FormPrime: TFormPrime
         Width = 161
         Height = 25
         Caption = 'Combinatorial Numbers'
-        TabOrder = 5
+        TabOrder = 6
         OnClick = btnCombinatorialNumberClick
       end
       object btnComNumMod: TButton
@@ -746,7 +781,7 @@ object FormPrime: TFormPrime
         Width = 161
         Height = 25
         Caption = 'Combinatorial Numbers Mod'
-        TabOrder = 6
+        TabOrder = 7
         OnClick = btnComNumModClick
       end
       object edtShor: TEdit
@@ -754,7 +789,7 @@ object FormPrime: TFormPrime
         Top = 136
         Width = 121
         Height = 21
-        TabOrder = 7
+        TabOrder = 8
         Text = '115'
       end
       object btnShor: TButton
@@ -763,7 +798,7 @@ object FormPrime: TFormPrime
         Width = 75
         Height = 25
         Caption = 'Shor'
-        TabOrder = 8
+        TabOrder = 9
         OnClick = btnShorClick
       end
       object edtMulOrderN: TEdit
@@ -771,7 +806,7 @@ object FormPrime: TFormPrime
         Top = 136
         Width = 49
         Height = 21
-        TabOrder = 9
+        TabOrder = 10
         Text = '3'
       end
       object edtMulOrderR: TEdit
@@ -779,7 +814,7 @@ object FormPrime: TFormPrime
         Top = 136
         Width = 49
         Height = 21
-        TabOrder = 10
+        TabOrder = 11
         Text = '7'
       end
       object btnMulOrder: TButton
@@ -788,8 +823,67 @@ object FormPrime: TFormPrime
         Width = 153
         Height = 25
         Caption = 'Multiplicative Order'
-        TabOrder = 11
+        TabOrder = 12
         OnClick = btnMulOrderClick
+      end
+      object btnBPSWCheckPrime: TButton
+        Left = 504
+        Top = 24
+        Width = 129
+        Height = 25
+        Caption = 'BPSW Check Prime'
+        TabOrder = 3
+        OnClick = btnBPSWCheckPrimeClick
+      end
+      object edtLucasK: TEdit
+        Left = 48
+        Top = 208
+        Width = 49
+        Height = 21
+        TabOrder = 13
+        Text = '11'
+      end
+      object btnLukasU: TButton
+        Left = 464
+        Top = 208
+        Width = 75
+        Height = 25
+        Caption = 'Lucas U'
+        TabOrder = 17
+        OnClick = btnLukasUClick
+      end
+      object btnLukasV: TButton
+        Left = 560
+        Top = 208
+        Width = 75
+        Height = 25
+        Caption = 'Lucas V'
+        TabOrder = 18
+        OnClick = btnLukasVClick
+      end
+      object edtLucasP: TEdit
+        Left = 136
+        Top = 208
+        Width = 49
+        Height = 21
+        TabOrder = 14
+        Text = '1'
+      end
+      object edtLucasQ: TEdit
+        Left = 224
+        Top = 208
+        Width = 49
+        Height = 21
+        TabOrder = 15
+        Text = '-1'
+      end
+      object edtLucasN: TEdit
+        Left = 336
+        Top = 208
+        Width = 49
+        Height = 21
+        TabOrder = 16
+        Text = '7'
       end
     end
   end

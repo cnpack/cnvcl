@@ -107,6 +107,18 @@ type
     lblTo: TLabel;
     edtMulOrderR: TEdit;
     btnMulOrder: TButton;
+    btnBPSWCheckPrime: TButton;
+    bvlLucasK: TBevel;
+    edtLucasK: TEdit;
+    btnLukasU: TButton;
+    btnLukasV: TButton;
+    lblLucasK: TLabel;
+    edtLucasP: TEdit;
+    lblLucasP: TLabel;
+    edtLucasQ: TEdit;
+    lblLucasQ: TLabel;
+    edtLucasN: TEdit;
+    lblLucasN: TLabel;
     procedure btnGenClick(Sender: TObject);
     procedure btnIsPrimeClick(Sender: TObject);
     procedure btnInt64IsPrimeClick(Sender: TObject);
@@ -146,6 +158,9 @@ type
     procedure btnMontMulModTimeClick(Sender: TObject);
     procedure btnShorClick(Sender: TObject);
     procedure btnMulOrderClick(Sender: TObject);
+    procedure btnBPSWCheckPrimeClick(Sender: TObject);
+    procedure btnLukasUClick(Sender: TObject);
+    procedure btnLukasVClick(Sender: TObject);
   private
 
   public
@@ -892,6 +907,42 @@ begin
   R := StrToUInt64(edtMulOrderR.Text);
 
   ShowMessage(UInt64ToStr(CnInt64MultiplicativeOrder(N, R)));
+end;
+
+procedure TFormPrime.btnBPSWCheckPrimeClick(Sender: TObject);
+begin
+//  if CnInt64BPSWIsPrime(31) then
+//    ShowMessage('Is Prime')
+//  else
+//    ShowMessage('NOT Prime');
+end;
+
+procedure TFormPrime.btnLukasUClick(Sender: TObject);
+var
+  K, P, Q, N: Integer;
+  R: Int64;
+begin
+  K := StrToInt(edtLucasK.Text);
+  P := StrToInt(edtLucasP.Text);
+  Q := StrToInt(edtLucasQ.Text);
+  N := StrToInt(edtLucasN.Text);
+
+  CnLucasUSequenceMod(P, Q, K, N, R);
+  ShowMessage(IntToStr(R));
+end;
+
+procedure TFormPrime.btnLukasVClick(Sender: TObject);
+var
+  K, P, Q, N: Integer;
+  R, D: Int64;
+begin
+  K := StrToInt(edtLucasK.Text);
+  P := StrToInt(edtLucasP.Text);
+  Q := StrToInt(edtLucasQ.Text);
+  N := StrToInt(edtLucasN.Text);
+
+  CnLucasVSequenceMod(P, Q, K, N, D, R);
+  ShowMessage(IntToStr(R));
 end;
 
 end.
