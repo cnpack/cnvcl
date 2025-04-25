@@ -500,15 +500,17 @@ type
   end;
   PSOCKADDR_IN6 = ^SOCKADDR_IN6;
 
+  TGetAdaptersAddresses = function(Family: ULONG; Flags: DWORD; Reserved: Pointer;
+    pAdapterAddresses: PIP_ADAPTER_ADDRESSES; pOutBufLen: PULONG): DWORD; stdcall;
+
 var
   WSAIoctl: TWSAIoctl = nil;
+  GetAdaptersAddresses: TGetAdaptersAddresses = nil;
+
   WS2_32DllHandle: THandle = 0;
+  IphlpApiHandle: THandle = 0;
 
   in6addr_loopback: IN6_ADDR;
-
-function GetAdaptersAddresses(Family: ULONG; Flags: DWORD; Reserved: Pointer;
-  pAdapterAddresses: PIP_ADAPTER_ADDRESSES; pOutBufLen: PULONG): DWORD; stdcall;
-  external 'iphlpapi.dll';
 
 procedure InitWSAIoctl;
 begin
@@ -517,12 +519,20 @@ begin
   begin
     @WSAIoctl := GetProcAddress(WS2_32DllHandle, 'WSAIoctl');
   end;
+
+  IphlpApiHandle := LoadLibrary('iphlpapi.dll');
+  if IphlpApiHandle <> 0 then
+  begin
+    @GetAdaptersAddresses := GetProcAddress(IphlpApiHandle, 'GetAdaptersAddresses');
+  end;
 end;
 
 procedure FreeWSAIoctl;
 begin
   if WS2_32DllHandle <> 0 then
     FreeLibrary(WS2_32DllHandle);
+  if IphlpApiHandle <> 0 then
+    FreeLibrary(IphlpApiHandle);
 end;  
 
 {$ELSE}
