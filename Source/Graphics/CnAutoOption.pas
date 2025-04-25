@@ -438,7 +438,11 @@ begin
     if DstObj <> nil then
     begin
       DstObj.Assign(SrcObj);
+{$IFDEF WIN64}
       Value := NativeInt(DstObj);
+{$ELSE}
+      Value := Integer(DstObj);
+{$ENDIF}
     end
     else
       Value := PropValue;
