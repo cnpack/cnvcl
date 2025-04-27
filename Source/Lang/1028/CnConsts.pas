@@ -80,7 +80,8 @@ var
   SCnMsgDlgYesToAll: string = '全是(&A)';
   SCnMsgDlgNoToAll: string = '全否(&l)';
   SCnVersion: string = '版本';
-  SCnNeedAdmin: string = '可能需要管理員權限﹝';
+  SCnNeedAdmin: string = '可能需要管理員權限';
+  SCnNotSupport: string = '該操作不支持';
 
 const
   // 開發包信息

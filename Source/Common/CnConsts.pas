@@ -76,7 +76,8 @@ var
   SCnMsgDlgYesToAll: string = 'Yes to &All';
   SCnMsgDlgNoToAll: string = 'No to A&ll';
   SCnVersion: string = 'Version';
-  SCnNeedAdmin: string = 'Maybe Need Administrator.';
+  SCnNeedAdmin: string = 'Maybe Need Administrator';
+  SCnNotSupport: string = 'Operation Not Supported';
 
 const
   // CnPack Information

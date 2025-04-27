@@ -123,8 +123,10 @@ type
       Stream: TStream; ErrCodePtr: PDWORD = nil): Boolean;
     function GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TStrings;
       ErrCodePtr: PDWORD = nil): Boolean; overload;
+    {* APost 可为 nil，内部使用 Get，否则用 Post}
     function GetHTTPStream(Info: TCnURLInfo; Stream: TStream; APost: TBytes;
       ErrCodePtr: PDWORD = nil): Boolean; overload;
+    {* APost 可为 nil，内部使用 Get，否则用 Post}
     function GetFTPStream(Info: TCnURLInfo; Stream: TStream; ErrCodePtr: PDWORD = nil): Boolean;
   public
     constructor Create;
@@ -138,31 +140,31 @@ type
 
     function GetStream(const AURL: string; Stream: TStream; APost: TStrings = nil;
       ErrCodePtr: PDWORD = nil): Boolean; overload;
-    {* 从 AURL 地址读取数据到流 Stream，如果 APost 不为 nil 则执行 Post 调用
+    {* 从 AURL 地址读取数据到流 Stream，如果 APost 不为 nil 则执行 Post 调用，否则 Get
       返回是否成功。如传了 ErrCodePtr，失败情况下内部会调用 GetLastError 返回错误码
       注意如果外部调用 GetLastError，有可能已经迟了，错误码被冲掉了，因而通过指针参数返回}
     function GetStream(const AURL: string; Stream: TStream; APost: TBytes;
       ErrCodePtr: PDWORD = nil): Boolean; overload;
-    {* 从 AURL 地址读取数据到流 Stream，如果 APost 不为 nil 则执行 Post 调用
+    {* 从 AURL 地址读取数据到流 Stream，如果 APost 不为 nil 则执行 Post 调用，否则 Get
       返回是否成功。如传了 ErrCodePtr，失败情况下内部会调用 GetLastError 返回错误码
       注意如果外部调用 GetLastError，有可能已经迟了，错误码被冲掉了，因而通过指针参数返回}
 
     function GetString(const AURL: string; APost: TStrings = nil; ErrCodePtr: PDWORD = nil): AnsiString; overload;
-    {* 从 AURL 地址返回一个字符串，如果 APost 不为 nil 则执行 Post 调用
+    {* 从 AURL 地址返回一个字符串，如果 APost 不为 nil 则执行 Post 调用，否则 Get
       返回是否成功。如传了 ErrCodePtr，失败情况下内部会调用 GetLastError 返回错误码
       注意如果外部调用 GetLastError，有可能已经迟了，错误码被冲掉了，因而通过指针参数返回}
     function GetString(const AURL: string; APost: TBytes; ErrCodePtr: PDWORD = nil): AnsiString; overload;
-    {* 从 AURL 地址返回一个字符串，如果 APost 不为 nil 则执行 Post 调用
+    {* 从 AURL 地址返回一个字符串，如果 APost 不为 nil 则执行 Post 调用，否则 Get
       返回是否成功。如传了 ErrCodePtr，失败情况下内部会调用 GetLastError 返回错误码
       注意如果外部调用 GetLastError，有可能已经迟了，错误码被冲掉了，因而通过指针参数返回}
 
     function GetFile(const AURL, FileName: string; APost: TStrings = nil; ErrCodePtr: PDWORD = nil): Boolean; overload;
-    {* 从 AURL 地址读取数据保存到文件 FileName，如果 APost 不为 nil 则执行 Post 调用
+    {* 从 AURL 地址读取数据保存到文件 FileName，如果 APost 不为 nil 则执行 Post 调用，否则 Get
       返回是否成功。如传了 ErrCodePtr，失败情况下内部会调用 GetLastError 返回错误码
       注意如果外部调用 GetLastError，有可能已经迟了，错误码被冲掉了，因而通过指针参数返回}
 
     function GetFile(const AURL, FileName: string; APost: TBytes; ErrCodePtr: PDWORD = nil): Boolean; overload;
-    {* 从 AURL 地址读取数据保存到文件 FileName，如果 APost 不为 nil 则执行 Post 调用
+    {* 从 AURL 地址读取数据保存到文件 FileName，如果 APost 不为 nil 则执行 Post 调用，否则 Get
       返回是否成功。如传了 ErrCodePtr，失败情况下内部会调用 GetLastError 返回错误码
       注意如果外部调用 GetLastError，有可能已经迟了，错误码被冲掉了，因而通过指针参数返回}
 
