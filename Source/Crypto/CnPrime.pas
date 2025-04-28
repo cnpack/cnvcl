@@ -35,7 +35,10 @@ unit CnPrime;
 *
 *           另外本单元中的 Int64 系列均是 32 位编译器下靠 Int64 封装支持 UInt64，
 *           为的是照顾不支持 UInt64 的编译器。真正的 UInt64 系列函数均是 CPUX64 位下实现。
-*           
+*
+*           另外，因 Delphi 5 的 C1093 的 Bug，将 Lucas U 序列和 V 序列的计算函数隐藏
+*           未来也不宜再在此单元中加输出函数。
+*
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -1248,6 +1251,10 @@ function CnInt64Legendre(A: Int64; P: Int64): Integer;
    返回值：Integer                        - 返回勒让德符号
 }
 
+{$IFNDEF DELPHI5}
+
+// 因 Delphi 5 的 C1093 Bug，不输出 Lucas 相关的俩函数
+
 function CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64): Int64;
 {* 计算 Lucas 的 U 序列，范围为 Int64。
    U 序列递归定义为：U0 = 0, U1 = 1, and Uk = P * Uk-1 - Q * Vk-2   for k >= 2。
@@ -1277,6 +1284,8 @@ procedure CnLucasVSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int
 
    返回值：（无）
 }
+
+{$ENDIF}
 
 function CnInt64SquareRoot(X: Int64; P: Int64): Int64;
 {* 计算平方剩余，也就是返回 Result^2 mod P = X，范围为 Int64，0 与负值暂不支持。
