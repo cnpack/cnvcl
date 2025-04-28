@@ -1248,7 +1248,7 @@ function CnInt64Legendre(A: Int64; P: Int64): Integer;
    返回值：Integer                        - 返回勒让德符号
 }
 
-procedure CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64; out U: Int64);
+function CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64): Int64;
 {* 计算 Lucas 的 U 序列，范围为 Int64。
    U 序列递归定义为：U0 = 0, U1 = 1, and Uk = P * Uk-1 - Q * Vk-2   for k >= 2。
    U 返回 Uk mod N。
@@ -1258,9 +1258,8 @@ procedure CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64; out U: Int
      Y: Int64                             - Lucas 的 U 序列的 Q 值
      K: Int64                             - 所需 Lucas 的 U 序列的序数，第 K 个
      N: Int64                             - 模数
-     out U: Int64                         - 返回的 Lucas 序列的 U 值
 
-   返回值：（无）
+   返回值：（无）                         - 返回的 Lucas 序列的 U 值
 }
 
 procedure CnLucasVSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int64; out V: Int64);
@@ -2832,10 +2831,11 @@ end;
   6        P^5-4(P^3)Q+3PQ^2    P^6-6(P^4)Q+9(P^2)(Q^2)-2Q^3
 }
 
-procedure CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64; out U: Int64);
+function CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64): Int64;
 var
   C, I: Integer;
-  U0, U1, V0, V1, Q0, Q1: Int64;
+  U0, U1, V0: Int64;
+  V1, Q0, Q1: Int64;
 begin
   if K < 0 then
     raise ECnPrimeException.Create(SCnErrorInvalidKForLucasSequence);
@@ -2848,12 +2848,12 @@ begin
 
   if K = 0 then
   begin
-    U := 0;
+    Result := 0;
     Exit;
   end
   else if K = 1 then
   begin
-    U := 1;
+    Result := 1;
     Exit;
   end;
 
@@ -2897,7 +2897,7 @@ begin
     end;
   end;
 
-  U := U0;
+  Result := U0;
 end;
 
 // P1363 上的 Lucas 序列计算，虽然和 SM2 里的说明几乎全都对不上号，但目前结果看起来还靠谱
@@ -3541,7 +3541,7 @@ begin
   Q := Trunc((1 - D) / 4);
 
   // 计算 Lucas U 序列
-  CnLucasUSequenceMod(P, Q, N + 1, N, U);
+  U := CnLucasUSequenceMod(P, Q, N + 1, N);
   Result := U = 0;
 end;
 

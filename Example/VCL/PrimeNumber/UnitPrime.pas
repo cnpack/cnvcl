@@ -931,7 +931,7 @@ begin
   Q := StrToInt(edtLucasQ.Text);
   N := StrToInt(edtLucasN.Text);
 
-  CnLucasUSequenceMod(P, Q, K, N, R);
+  R := CnLucasUSequenceMod(P, Q, K, N);
   ShowMessage(IntToStr(R));
 end;
 
