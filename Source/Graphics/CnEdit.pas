@@ -42,7 +42,9 @@ unit CnEdit;
 * 开发平台：PWinXP + Delphi 6.0
 * 兼容测试：PWin9X/2000/XP + Delphi 6.0
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.03.29 V1.5
+* 修改记录：2025.04.29 V1.6
+*               增加部分主题颜色的支持
+*           2025.03.29 V1.5
 *               增加一个 PaddingWidth 属性控制文本横向绘制的缩进像素数，默认 0
 *           2022.03.26 V1.4
 *               调整大尺寸时的按钮绘制细节
@@ -63,7 +65,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Controls, StdCtrls, Forms, Graphics,
-  Clipbrd;
+  Clipbrd {$IFDEF SUPPORT_THEME}, Vcl.Themes {$ENDIF};
 
 type
   TLinkStyle = (lsNone, lsEllipsis, lsDropDown); // 是否出现按钮以及按钮类型
@@ -203,6 +205,14 @@ begin
   inherited Create(AOwner);
   FButtonWidth := GetSystemMetrics(SM_CXVSCROLL);
   FAcceptNegative := True;
+
+{$IFDEF SUPPORT_THEME}
+  if StyleServices.Enabled then
+  begin
+    Color := StyleServices.GetStyleColor(scEdit);
+    Font.Color := StyleServices.GetStyleFontColor(sfEditBoxTextNormal);
+  end;
+{$ENDIF};
 end;
 
 procedure TCnEdit.CreateParams(var Params: TCreateParams);
@@ -458,7 +468,13 @@ begin
         // TR 是整个区域
         if not (NewStyleControls and Ctl3D) and (BOrderStyle = bsSingle) then
         begin
-          Brush.Color := clWindowFrame;
+{$IFDEF SUPPORT_THEME}
+          if StyleServices.Enabled then
+            Brush.Color := StyleServices.GetSystemColor(clWindowFrame)
+          else
+{$ENDIF}
+            Brush.Color := clWindowFrame;
+
           FrameRect(TR);
           InflateRect(TR, -1, -1);
         end;
@@ -492,6 +508,11 @@ begin
         Flags := 0;
         if FPressed then
           Flags := BF_FLAT;
+
+{$IFDEF SUPPORT_THEME}
+        if StyleServices.Enabled then
+          Brush.Color := StyleServices.GetStyleColor(scEdit);
+{$ENDIF}
         DrawEdge(DC, R, EDGE_RAISED, BF_RECT or BF_MIDDLE or Flags);
         Flags := ((R.Right - R.Left) shr 1) - 1 + Ord(FPressed);
         if FLinkStyle = lsEllipsis then // 画点
