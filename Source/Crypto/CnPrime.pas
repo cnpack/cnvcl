@@ -1266,7 +1266,7 @@ function CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64): Int64;
      K: Int64                             - 所需 Lucas 的 U 序列的序数，第 K 个
      N: Int64                             - 模数
 
-   返回值：（无）                         - 返回的 Lucas 序列的 U 值
+   返回值：                               - 返回 Lucas 序列的 U 值
 }
 
 procedure CnLucasVSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int64; out V: Int64);
