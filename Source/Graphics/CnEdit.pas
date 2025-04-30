@@ -628,7 +628,7 @@ procedure TCnEdit.SetParent(AParent: TWinControl);
 begin
   inherited;
 {$IFDEF SUPPORT_THEME}
-  if StyleServices.Enabled then
+  if (AParent <> nil) and StyleServices.Enabled then
   begin
     Color := StyleServices.GetStyleColor(scEdit);
     Font.Color := StyleServices.GetStyleFontColor(sfEditBoxTextNormal);
