@@ -511,8 +511,11 @@ begin
 
 {$IFDEF SUPPORT_THEME}
         if StyleServices.Enabled then
-          Brush.Color := StyleServices.GetStyleColor(scEdit);
+          Brush.Color := StyleServices.GetStyleColor(scEdit)
+        else
 {$ENDIF}
+          Brush.Color := Color;
+
         DrawEdge(DC, R, EDGE_RAISED, BF_RECT or BF_MIDDLE or Flags);
         Flags := ((R.Right - R.Left) shr 1) - 1 + Ord(FPressed);
         if FLinkStyle = lsEllipsis then // »­µã
