@@ -104,6 +104,7 @@ type
     procedure SetButtonCursor(const Value: TCursor);
     procedure SetPaddingWidth(const Value: Integer);
   protected
+    procedure SetParent(AParent: TWinControl); override;
     procedure EditButtonClick; virtual; // 单击事件
     procedure BoundsChanged;
     procedure CreateParams(var Params: TCreateParams); override; // 这个非常有用
@@ -205,14 +206,6 @@ begin
   inherited Create(AOwner);
   FButtonWidth := GetSystemMetrics(SM_CXVSCROLL);
   FAcceptNegative := True;
-
-{$IFDEF SUPPORT_THEME}
-  if StyleServices.Enabled then
-  begin
-    Color := StyleServices.GetStyleColor(scEdit);
-    Font.Color := StyleServices.GetStyleFontColor(sfEditBoxTextNormal);
-  end;
-{$ENDIF};
 end;
 
 procedure TCnEdit.CreateParams(var Params: TCreateParams);
@@ -516,6 +509,7 @@ begin
 {$ENDIF}
           Brush.Color := Color;
 
+        Rectangle(R.Left, R.Top, R.Right, R.Bottom);
         DrawEdge(DC, R, EDGE_RAISED, BF_RECT or BF_MIDDLE or Flags);
         Flags := ((R.Right - R.Left) shr 1) - 1 + Ord(FPressed);
         if FLinkStyle = lsEllipsis then // 画点
@@ -628,6 +622,18 @@ begin
     FPaddingWidth := Value;
     Invalidate;
   end;
+end;
+
+procedure TCnEdit.SetParent(AParent: TWinControl);
+begin
+  inherited;
+{$IFDEF SUPPORT_THEME}
+  if StyleServices.Enabled then
+  begin
+    Color := StyleServices.GetStyleColor(scEdit);
+    Font.Color := StyleServices.GetStyleFontColor(sfEditBoxTextNormal);
+  end;
+{$ENDIF};
 end;
 
 procedure TCnEdit.WMPaste(var Message: TWMPaste);

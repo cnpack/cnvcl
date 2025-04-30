@@ -57,6 +57,7 @@ unit CnPDF;
 * 本 地 化：该单元无需本地化处理
 * 修改记录：2024.03.03 V1.4
 *               PDF 文件的载入与保存初步支持权限密码与用户密码，内部使用 40RC4/128RC4/128AES 加密，其他途径暂不支持
+*               并从本文件独立出去放 CnPDFCrypt 单元中。
 *           2024.02.22 V1.3
 *               实现 TCnImagesToPDFCreator 以在输出 JPEG 的 PDF 时支持页面边距等设置
 *               增加从 PDF 中抽取 JPEG 文件的方法
@@ -181,9 +182,9 @@ type
   end;
 
   TCnPDFNameObject = class(TCnPDFSimpleObject)
+  {* PDF 文件中的名字对象类}
   private
     function GetName: AnsiString;
-  {* PDF 文件中的名字对象类}
   public
     function WriteToStream(Stream: TStream): Cardinal; override;
     {* 输出斜杠加名字}
