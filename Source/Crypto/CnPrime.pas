@@ -1253,7 +1253,7 @@ function CnInt64Legendre(A: Int64; P: Int64): Integer;
 
 {$IFNDEF DELPHI5}
 
-// 因 Delphi 5 的 C1093 Bug，不输出 Lucas 相关的俩函数
+// 因 Delphi 5 的 C1093 Bug，不输出 Lucas 的 U 函数
 
 function CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64): Int64;
 {* 计算 Lucas 的 U 序列，范围为 Int64。
@@ -1268,6 +1268,8 @@ function CnLucasUSequenceMod(P: Int64; Q: Int64; K: Int64; N: Int64): Int64;
 
    返回值：                               - 返回 Lucas 序列的 U 值
 }
+
+{$ENDIF}
 
 procedure CnLucasVSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int64; out V: Int64);
 {* 计算 IEEE P1363 的规范中说明的 Lucas 的 V 序列，范围为 Int64。
@@ -1284,8 +1286,6 @@ procedure CnLucasVSequenceMod(X: Int64; Y: Int64; K: Int64; N: Int64; out Q: Int
 
    返回值：（无）
 }
-
-{$ENDIF}
 
 function CnInt64SquareRoot(X: Int64; P: Int64): Int64;
 {* 计算平方剩余，也就是返回 Result^2 mod P = X，范围为 Int64，0 与负值暂不支持。
