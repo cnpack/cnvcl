@@ -36,7 +36,7 @@ unit CnPrime;
 *           另外本单元中的 Int64 系列均是 32 位编译器下靠 Int64 封装支持 UInt64，
 *           为的是照顾不支持 UInt64 的编译器。真正的 UInt64 系列函数均是 CPUX64 位下实现。
 *
-*           另外，因 Delphi 5 的 C1093 的 Bug，将 Lucas U 序列和 V 序列的计算函数隐藏
+*           另外，因 Delphi 5 的 C1093 的 Bug，将 Lucas U 序列的计算函数隐藏，
 *           未来也不宜再在此单元中加输出函数。
 *
 * 开发平台：WinXP + Delphi 5.0
