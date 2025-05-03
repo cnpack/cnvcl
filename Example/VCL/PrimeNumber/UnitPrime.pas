@@ -942,15 +942,10 @@ begin
 end;
 
 procedure TFormPrime.btnLukasVClick(Sender: TObject);
-{$IFNDEF DELPHI5}
 var
   K, P, Q, N: Integer;
   R, D: Int64;
-{$ENDIF}
 begin
-{$IFDEF DELPHI5}
-  ShowMessage('Delphi 5 NOT Support');
-{$ELSE}
   K := StrToInt(edtLucasK.Text);
   P := StrToInt(edtLucasP.Text);
   Q := StrToInt(edtLucasQ.Text);
@@ -958,7 +953,6 @@ begin
 
   CnLucasVSequenceMod(P, Q, K, N, D, R);
   ShowMessage(IntToStr(R));
-{$ENDIF}
 end;
 
 end.
