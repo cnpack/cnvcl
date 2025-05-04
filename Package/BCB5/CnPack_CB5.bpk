@@ -35,6 +35,7 @@
       ..\..\Source\Common\CnJSON.obj 
       ..\..\Source\Common\CnLinkedList.obj 
       ..\..\Source\Common\CnLockFree.obj 
+      ..\..\Source\Common\CnMarkDown.obj 
       ..\..\Source\Common\CnMatrix.obj 
       ..\..\Source\Common\CnMath.obj 
       ..\..\Source\Common\CnMethodHook.obj 

@@ -35,6 +35,7 @@
       ..\..\Source\Common\CnJSON.obj 
       ..\..\Source\Common\CnLinkedList.obj 
       ..\..\Source\Common\CnLockFree.obj 
+      ..\..\Source\Common\CnMarkDown.obj 
       ..\..\Source\Common\CnMatrix.obj 
       ..\..\Source\Common\CnMath.obj 
       ..\..\Source\Common\CnMethodHook.obj 
@@ -328,6 +329,7 @@
       <FILE FILENAME="..\..\Source\Common\CnJSON.pas" FORMNAME="" UNITNAME="CnJSON" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnLinkedList.pas" FORMNAME="" UNITNAME="CnLinkedList" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnLockFree.pas" FORMNAME="" UNITNAME="CnLockFree" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnMarkDown.pas" FORMNAME="" UNITNAME="CnMarkDown" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMatrix.pas" FORMNAME="" UNITNAME="CnMatrix" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMath.pas" FORMNAME="" UNITNAME="CnMath" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnMethodHook.pas" FORMNAME="" UNITNAME="CnMethodHook" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

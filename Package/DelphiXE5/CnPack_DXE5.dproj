@@ -140,6 +140,7 @@
         <DCCReference Include="..\..\Source\Common\CnJSON.pas"/>
         <DCCReference Include="..\..\Source\Common\CnLinkedList.pas"/>
         <DCCReference Include="..\..\Source\Common\CnLockFree.pas"/>
+        <DCCReference Include="..\..\Source\Common\CnMarkDown.pas"/>
         <DCCReference Include="..\..\Source\Common\CnMath.pas"/>
         <DCCReference Include="..\..\Source\Common\CnMatrix.pas"/>
         <DCCReference Include="..\..\Source\Common\CnMethodHook.pas"/>
