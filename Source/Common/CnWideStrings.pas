@@ -739,7 +739,7 @@ begin
   begin
     SetLength(HeaderStr, 3);
     Stream.Read(Pointer(HeaderStr)^, 3);
-    if HeaderStr = #$EF#$BB#$BF then // utf-8 format
+    if HeaderStr = #$EF#$BB#$BF then // UTF-8 BOM
     begin
       SetLength(SA, Size - 3);
       Stream.Read(Pointer(SA)^, Size - 3);
@@ -748,7 +748,11 @@ begin
       SetLength(S, Len);
       MultiByteToWideChar(CP_UTF8, 0, PAnsiChar(SA), -1, PWideChar(S), Len);
 {$ELSE}
+  {$IFDEF FPC}
+      S := CnUtf8DecodeToWideString(SA);
+  {$ELSE}
       S := UTF8ToWideString(SA);
+  {$ENDIF}
 {$ENDIF}
       SetTextStr(S);
 
@@ -762,7 +766,7 @@ begin
   begin
     SetLength(HeaderStr, 2);
     Stream.Read(Pointer(HeaderStr)^, 2);
-    if HeaderStr = #$FF#$FE then // utf-16 format
+    if HeaderStr = #$FF#$FE then // UTF-16 BOM
     begin
       SetLength(S, (Size - 2) div SizeOf(WideChar));
       Stream.Read(Pointer(S)^, (Size - 2) div SizeOf(WideChar) * SizeOf(WideChar));
