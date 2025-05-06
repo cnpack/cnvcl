@@ -1199,7 +1199,7 @@ var
 begin
   A1 := N div 8;
   B1 := 7 - (N mod 8);
-  P := PByte(TCnNativeInt(AMem) + A1);
+  P := PByte(TCnNativeUInt(AMem) + A1);
 
   V := Byte(1 shl B1);
   Result := (P^ and V) <> 0;
@@ -1272,7 +1272,7 @@ begin
     MemoryXor(@Y[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
     GMulBlock128(Y, H, X);  // 一轮计算结果再次放入 X
 
-    AAD := Pointer(TCnNativeInt(AAD) + CN_AEAD_BLOCK);
+    AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK);
     Dec(AL, CN_AEAD_BLOCK);
   end;
 
@@ -1294,7 +1294,7 @@ begin
     MemoryXor(@Y[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
     GMulBlock128(Y, H, X);  // 一轮计算结果再次放入 X
 
-    Data := Pointer(TCnNativeInt(Data) + CN_AEAD_BLOCK);
+    Data := Pointer(TCnNativeUInt(Data) + CN_AEAD_BLOCK);
     Dec(DL, CN_AEAD_BLOCK);
   end;
 
@@ -1360,7 +1360,7 @@ begin
     MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
     GMulBlock128(Y, Ctx.HashKey, Ctx.State);  // 一轮计算结果再次放入 Ctx.State
 
-    AAD := Pointer(TCnNativeInt(AAD) + CN_AEAD_BLOCK);
+    AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK);
     Dec(AADByteLength, CN_AEAD_BLOCK);
   end;
 
@@ -1392,7 +1392,7 @@ begin
     MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
     GMulBlock128(Y, Ctx.HashKey, Ctx.State);  // 一轮计算结果再次放入 Ctx.State
 
-    Data := Pointer(TCnNativeInt(Data) + CN_AEAD_BLOCK);
+    Data := Pointer(TCnNativeUInt(Data) + CN_AEAD_BLOCK);
     Dec(DataByteLength, CN_AEAD_BLOCK);
   end;
 
@@ -1541,8 +1541,8 @@ begin
     GHash128Update(GHashCtx, @C[0], SizeOf(TCn128BitsBuffer));
 
     // 准备下一步
-    PlainData := Pointer(TCnNativeInt(PlainData) + CN_AEAD_BLOCK);
-    EnData := Pointer(TCnNativeInt(EnData) + CN_AEAD_BLOCK);
+    PlainData := Pointer(TCnNativeUInt(PlainData) + CN_AEAD_BLOCK);
+    EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
     Dec(PlainByteLength, CN_AEAD_BLOCK);
   end;
 
@@ -1642,8 +1642,8 @@ begin
     Move(C[0], PlainData^, SizeOf(TCn128BitsBuffer));
 
     // 准备下一步
-    EnData := Pointer(TCnNativeInt(EnData) + CN_AEAD_BLOCK);
-    PlainData := Pointer(TCnNativeInt(PlainData) + CN_AEAD_BLOCK);
+    EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
+    PlainData := Pointer(TCnNativeUInt(PlainData) + CN_AEAD_BLOCK);
     Dec(EnByteLength, CN_AEAD_BLOCK);
   end;
 
@@ -1813,7 +1813,7 @@ var
 begin
   GCMEncrypt(Key, KeyByteLength, Nonce, NonceByteLength, PlainData, PlainByteLength,
     AAD, AADByteLength, OutEnData, OutTag, aetAES256);
-  Move(OutTag[0], Pointer(TCnNativeInt(OutEnData) +PlainByteLength)^, SizeOf(TCnGCM128Tag));
+  Move(OutTag[0], Pointer(TCnNativeUInt(OutEnData) +PlainByteLength)^, SizeOf(TCnGCM128Tag));
 end;
 
 function AES128GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnGCM128Tag): TBytes;
@@ -1880,7 +1880,7 @@ begin
     Exit;
   end;
 
-  Move(Pointer(TCnNativeInt(EnData) + EnByteLength - SizeOf(TCnGCM128Tag))^, InTag[0], SizeOf(TCnGCM128Tag));
+  Move(Pointer(TCnNativeUInt(EnData) + EnByteLength - SizeOf(TCnGCM128Tag))^, InTag[0], SizeOf(TCnGCM128Tag));
   Result := GCMDecrypt(Key, KeyByteLength, Nonce, NonceByteLength, EnData, EnByteLength - SizeOf(TCnGCM128Tag),
     AAD, AADByteLength, OutPlainData, InTag, aetAES256);
 end;
@@ -1927,7 +1927,7 @@ begin
     MemoryXor(@L[0], @X[0], SizeOf(TCn128BitsBuffer), @Y[0]);
     AEADEncryptBlock(AeadCtx, Y, X, EncryptType); // 一轮计算结果再次放入 X
 
-    Data := Pointer(TCnNativeInt(Data) + CN_AEAD_BLOCK);
+    Data := Pointer(TCnNativeUInt(Data) + CN_AEAD_BLOCK);
     Dec(DataByteLength, CN_AEAD_BLOCK);
   end;
 
@@ -2090,7 +2090,7 @@ begin
       AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
 
       // 递增准备处理后面的
-      AAD := Pointer(TCnNativeInt(AAD) + CN_AEAD_BLOCK - 2);
+      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK - 2);
       Dec(AADByteLength, CN_AEAD_BLOCK - 2);
     end
     else
@@ -2108,7 +2108,7 @@ begin
       AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
 
       // 递增准备处理后面的
-      AAD := Pointer(TCnNativeInt(AAD) + CN_AEAD_BLOCK - 6);
+      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK - 6);
       Dec(AADByteLength, CN_AEAD_BLOCK - 6);
     end;
 
@@ -2122,7 +2122,7 @@ begin
       AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
 
       // 递增准备处理后面的
-      AAD := Pointer(TCnNativeInt(AAD) + CN_AEAD_BLOCK);
+      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK);
       Dec(AADByteLength, CN_AEAD_BLOCK);
     end;
 
@@ -2158,8 +2158,8 @@ begin
     AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
 
     // 递增准备处理后面的
-    Data := Pointer(TCnNativeInt(Data) + CN_AEAD_BLOCK);
-    EnData := Pointer(TCnNativeInt(EnData) + CN_AEAD_BLOCK);
+    Data := Pointer(TCnNativeUInt(Data) + CN_AEAD_BLOCK);
+    EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
     Dec(DataByteLength, CN_AEAD_BLOCK);
   end;
 
@@ -2363,7 +2363,7 @@ begin
       AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
 
       // 递增准备处理后面的
-      AAD := Pointer(TCnNativeInt(AAD) + CN_AEAD_BLOCK - 2);
+      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK - 2);
       Dec(AADByteLength, CN_AEAD_BLOCK - 2);
     end
     else
@@ -2381,7 +2381,7 @@ begin
       AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
 
       // 递增准备处理后面的
-      AAD := Pointer(TCnNativeInt(AAD) + CN_AEAD_BLOCK - 6);
+      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK - 6);
       Dec(AADByteLength, CN_AEAD_BLOCK - 6);
     end;
 
@@ -2395,7 +2395,7 @@ begin
       AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
 
       // 递增准备处理后面的
-      AAD := Pointer(TCnNativeInt(AAD) + CN_AEAD_BLOCK);
+      AAD := Pointer(TCnNativeUInt(AAD) + CN_AEAD_BLOCK);
       Dec(AADByteLength, CN_AEAD_BLOCK);
     end;
 
@@ -2431,8 +2431,8 @@ begin
     AEADEncryptBlock(CMacCtx, CX, CX, EncryptType);
 
     // 递增准备处理后面的
-    EnData := Pointer(TCnNativeInt(EnData) + CN_AEAD_BLOCK);
-    PlainData := Pointer(TCnNativeInt(PlainData) + CN_AEAD_BLOCK);
+    EnData := Pointer(TCnNativeUInt(EnData) + CN_AEAD_BLOCK);
+    PlainData := Pointer(TCnNativeUInt(PlainData) + CN_AEAD_BLOCK);
     Dec(EnByteLength, CN_AEAD_BLOCK);
   end;
 

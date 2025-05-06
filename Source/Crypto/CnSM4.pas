@@ -763,7 +763,7 @@ var
   PTable: Pointer;
 begin
   PTable := @(SboxTable[0][0]);
-  Result := PByte(TCnNativeInt(PTable) + Inch)^;
+  Result := PByte(TCnNativeUInt(PTable) + Inch)^;
 end;
 
 function SM4Lt(Ka: Cardinal): Cardinal;
@@ -824,7 +824,7 @@ begin
   for I := 0 to 31 do
   begin
     K[I + 4] := K[I] xor SM4CalciRK(K[I + 1] xor K[I + 2] xor K[I + 3] xor CK[I]);
-    (PCardinal(TCnNativeInt(SK) + I * SizeOf(Cardinal)))^ := K[I + 4];
+    (PCardinal(TCnNativeUInt(SK) + I * SizeOf(Cardinal)))^ := K[I + 4];
   end;
 end;
 
@@ -932,7 +932,7 @@ begin
       if ByteLen >= CN_SM4_BLOCKSIZE then
       begin
         for I := 0 to CN_SM4_BLOCKSIZE - 1 do
-          (PByte(TCnNativeInt(Output) + I))^ := (PByte(TCnNativeInt(Input) + I))^
+          (PByte(TCnNativeUInt(Output) + I))^ := (PByte(TCnNativeUInt(Input) + I))^
             xor LocalIv[I];
 
         SM4OneRound(@(Ctx.Sk[0]), Output, Output);
@@ -945,7 +945,7 @@ begin
         Move(Input^, EndBuf[0], ByteLen);
 
         for I := 0 to CN_SM4_BLOCKSIZE - 1 do
-          (PByte(TCnNativeInt(Output) + I))^ := EndBuf[I]
+          (PByte(TCnNativeUInt(Output) + I))^ := EndBuf[I]
             xor LocalIv[I];
 
         SM4OneRound(@(Ctx.Sk[0]), Output, Output);
@@ -966,7 +966,7 @@ begin
         SM4OneRound(@(Ctx.Sk[0]), Input, Output);
 
         for I := 0 to CN_SM4_BLOCKSIZE - 1 do
-          (PByte(TCnNativeInt(Output) + I))^ := (PByte(TCnNativeInt(Output) + I))^
+          (PByte(TCnNativeUInt(Output) + I))^ := (PByte(TCnNativeUInt(Output) + I))^
             xor LocalIv[I];
 
         Move(Input^, LocalIv[0], CN_SM4_BLOCKSIZE);
@@ -979,7 +979,7 @@ begin
         SM4OneRound(@(Ctx.Sk[0]), @(EndBuf[0]), Output);
 
         for I := 0 to CN_SM4_BLOCKSIZE - 1 do
-          (PByte(TCnNativeInt(Output) + I))^ := (PByte(TCnNativeInt(Output) + I))^
+          (PByte(TCnNativeUInt(Output) + I))^ := (PByte(TCnNativeUInt(Output) + I))^
             xor LocalIv[I];
 
         Move(EndBuf[0], LocalIv[0], CN_SM4_BLOCKSIZE);
@@ -1008,8 +1008,8 @@ begin
         SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], Output);  // 先加密 Iv
 
         for I := 0 to CN_SM4_BLOCKSIZE - 1 do
-          (PByte(TCnNativeInt(Output) + I))^ := (PByte(TCnNativeInt(Input) + I))^
-            xor (PByte(TCnNativeInt(Output) + I))^;  // 加密结果与明文异或作为输出密文
+          (PByte(TCnNativeUInt(Output) + I))^ := (PByte(TCnNativeUInt(Input) + I))^
+            xor (PByte(TCnNativeUInt(Output) + I))^;  // 加密结果与明文异或作为输出密文
 
         Move(Output[0], LocalIv[0], CN_SM4_BLOCKSIZE);  // 密文取代 Iv 以备下一轮
       end
@@ -1018,7 +1018,7 @@ begin
         SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], @Tail[0]);
 
         for I := 0 to ByteLen - 1 do // 只需异或剩余长度，无需处理完整的 16 字节
-          (PByte(TCnNativeInt(Output) + I))^ := (PByte(TCnNativeInt(Input) + I))^ xor Tail[I];
+          (PByte(TCnNativeUInt(Output) + I))^ := (PByte(TCnNativeUInt(Input) + I))^ xor Tail[I];
       end;
 
       Inc(Input, CN_SM4_BLOCKSIZE);
@@ -1035,8 +1035,8 @@ begin
         SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], Output);   // 先加密 Iv
 
         for I := 0 to CN_SM4_BLOCKSIZE - 1 do
-          (PByte(TCnNativeInt(Output) + I))^ := (PByte(TCnNativeInt(Output) + I))^
-            xor (PByte(TCnNativeInt(Input) + I))^;    // 加密结果与密文异或得到明文
+          (PByte(TCnNativeUInt(Output) + I))^ := (PByte(TCnNativeUInt(Output) + I))^
+            xor (PByte(TCnNativeUInt(Input) + I))^;    // 加密结果与密文异或得到明文
 
         Move(Input[0], LocalIv[0], CN_SM4_BLOCKSIZE);    // 密文取代 Iv 再拿去下一轮加密
       end
@@ -1045,7 +1045,7 @@ begin
         SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], @Tail[0]);
 
         for I := 0 to ByteLen - 1 do
-          (PByte(TCnNativeInt(Output) + I))^ := Tail[I] xor (PByte(TCnNativeInt(Input) + I))^;
+          (PByte(TCnNativeUInt(Output) + I))^ := Tail[I] xor (PByte(TCnNativeUInt(Input) + I))^;
       end;
 
       Inc(Input, CN_SM4_BLOCKSIZE);
@@ -1072,15 +1072,15 @@ begin
         Move(Output[0], LocalIv[0], CN_SM4_BLOCKSIZE);   // 加密结果先留存给下一步
 
         for I := 0 to CN_SM4_BLOCKSIZE - 1 do      // 加密结果与明文异或出密文
-          (PByte(TCnNativeInt(Output) + I))^ := (PByte(TCnNativeInt(Input) + I))^
-            xor (PByte(TCnNativeInt(Output) + I))^;
+          (PByte(TCnNativeUInt(Output) + I))^ := (PByte(TCnNativeUInt(Input) + I))^
+            xor (PByte(TCnNativeUInt(Output) + I))^;
       end
       else
       begin
         SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], @Tail[0]);  // 先加密 Iv
 
         for I := 0 to ByteLen - 1 do             // 无需完整 16 字节
-          (PByte(TCnNativeInt(Output) + I))^ := (PByte(TCnNativeInt(Input) + I))^ xor Tail[I];
+          (PByte(TCnNativeUInt(Output) + I))^ := (PByte(TCnNativeUInt(Input) + I))^ xor Tail[I];
       end;
 
       Inc(Input, CN_SM4_BLOCKSIZE);
@@ -1098,15 +1098,15 @@ begin
         Move(Output[0], LocalIv[0], CN_SM4_BLOCKSIZE);    // 加密结果先留存给下一步
 
         for I := 0 to CN_SM4_BLOCKSIZE - 1 do       // 加密内容与密文异或得到明文
-          (PByte(TCnNativeInt(Output) + I))^ := (PByte(TCnNativeInt(Output) + I))^
-            xor (PByte(TCnNativeInt(Input) + I))^;
+          (PByte(TCnNativeUInt(Output) + I))^ := (PByte(TCnNativeUInt(Output) + I))^
+            xor (PByte(TCnNativeUInt(Input) + I))^;
       end
       else
       begin
         SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], @Tail[0]);   // 先加密 Iv
 
         for I := 0 to ByteLen - 1 do
-          (PByte(TCnNativeInt(Output) + I))^ := Tail[I] xor (PByte(TCnNativeInt(Input) + I))^;
+          (PByte(TCnNativeUInt(Output) + I))^ := Tail[I] xor (PByte(TCnNativeUInt(Input) + I))^;
       end;
 
       Inc(Input, CN_SM4_BLOCKSIZE);
@@ -1138,7 +1138,7 @@ begin
       SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], @LocalIv[0]);  // 先加密 Iv
 
       for I := 0 to CN_SM4_BLOCKSIZE - 1 do      // 加密结果与明文异或出密文
-        (PByte(TCnNativeInt(Output) + I))^ := (PByte(TCnNativeInt(Input) + I))^
+        (PByte(TCnNativeUInt(Output) + I))^ := (PByte(TCnNativeUInt(Input) + I))^
           xor LocalIv[I];
     end
     else
@@ -1150,7 +1150,7 @@ begin
       SM4OneRound(@(Ctx.Sk[0]), @LocalIv[0], @LocalIv[0]);  // 先加密 Iv
 
       for I := 0 to ByteLen - 1 do             // 无需完整 16 字节
-        (PByte(TCnNativeInt(Output) + I))^ := (PByte(TCnNativeInt(Input) + I))^
+        (PByte(TCnNativeUInt(Output) + I))^ := (PByte(TCnNativeUInt(Input) + I))^
           xor LocalIv[I];
     end;
 

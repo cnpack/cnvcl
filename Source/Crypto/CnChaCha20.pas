@@ -364,8 +364,8 @@ begin
         Q^[J] := P^[J] xor M^[J];
 
       // 指向下一块
-      P := PByteArray(TCnNativeInt(P) + SizeOf(Cardinal) * CN_CHACHA_STATE_SIZE);
-      Q := PByteArray(TCnNativeInt(Q) + SizeOf(Cardinal) * CN_CHACHA_STATE_SIZE);
+      P := PByteArray(TCnNativeUInt(P) + SizeOf(Cardinal) * CN_CHACHA_STATE_SIZE);
+      Q := PByteArray(TCnNativeUInt(Q) + SizeOf(Cardinal) * CN_CHACHA_STATE_SIZE);
 
       Inc(Cnt);
     end;

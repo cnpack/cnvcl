@@ -1224,7 +1224,7 @@ begin
   while Utf16Str^ <> #0 do
   begin
     L := GetByteWidthFromUtf16(Utf16Str);
-    Utf16Str := PWideChar(TCnNativeInt(Utf16Str) + L);
+    Utf16Str := PWideChar(TCnNativeUInt(Utf16Str) + L);
     Inc(Result);
   end;
 end;

@@ -298,7 +298,7 @@ begin
     end;
 
     KeyLength := KeyLength - SizeOf(TCnMD5Digest);
-    OutKey := PAnsiChar(TCnNativeInt(OutKey) + SizeOf(TCnMD5Digest));
+    OutKey := PAnsiChar(TCnNativeUInt(OutKey) + SizeOf(TCnMD5Digest));
 
     Move(Md5Dig[0], PSMD5[1], SizeOf(TCnMD5Digest));
     Md5Dig2 := MD5StringA(PSMD5);
@@ -323,7 +323,7 @@ begin
     end;
 
     KeyLength := KeyLength - SizeOf(TCnSHA256Digest);
-    OutKey := PAnsiChar(TCnNativeInt(OutKey) + SizeOf(TCnSHA256Digest));
+    OutKey := PAnsiChar(TCnNativeUInt(OutKey) + SizeOf(TCnSHA256Digest));
 
     Move(Sha256Dig[0], PSSHA256[1], SizeOf(TCnSHA256Digest));
     Sha256Dig2 := SHA256StringA(PSSHA256);

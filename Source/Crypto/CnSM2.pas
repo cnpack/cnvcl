@@ -1549,24 +1549,24 @@ begin
     // P 已指向 C1，写 C1 中的 X
     Num.SetBinary(P, CN_SM2_FINITEFIELD_BYTESIZE);
     AddBigNumberToWriter(Writer, Num, Root);
-    P := Pointer(TCnNativeInt(P) + CN_SM2_FINITEFIELD_BYTESIZE);
+    P := Pointer(TCnNativeUInt(P) + CN_SM2_FINITEFIELD_BYTESIZE);
 
     // 写 C1 中的 Y
     Num.SetBinary(P, CN_SM2_FINITEFIELD_BYTESIZE);
     AddBigNumberToWriter(Writer, Num, Root);
-    P := Pointer(TCnNativeInt(P) + CN_SM2_FINITEFIELD_BYTESIZE);
+    P := Pointer(TCnNativeUInt(P) + CN_SM2_FINITEFIELD_BYTESIZE);
 
     // C1 写完，根据类型处理 C3C2 或 C2C3
     if SequenceType = cstC1C3C2 then
     begin
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, SizeOf(TCnSM3Digest)); // 写 C3 校验
-      P := Pointer(TCnNativeInt(P) + SizeOf(TCnSM3Digest));
+      P := Pointer(TCnNativeUInt(P) + SizeOf(TCnSM3Digest));
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, MLen);                 // 写 C2 密文
     end
     else
     begin
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, MLen);                 // 写 C2 密文
-      P := Pointer(TCnNativeInt(P) + MLen);
+      P := Pointer(TCnNativeUInt(P) + MLen);
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, SizeOf(TCnSM3Digest)); // 写 C3 校验
     end;
 

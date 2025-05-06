@@ -3265,8 +3265,8 @@ begin
       PCnBigNumberElementArray(TmpA)^[3] := A3;
 
       Dec(I);
-      TmpA := PCnBigNumberElement(TCnNativeInt(TmpA) + 4 * SizeOf(TCnBigNumberElement));
-      B := PCnBigNumberElement(TCnNativeInt(B) + 4 * SizeOf(TCnBigNumberElement));
+      TmpA := PCnBigNumberElement(TCnNativeUInt(TmpA) + 4 * SizeOf(TCnBigNumberElement));
+      B := PCnBigNumberElement(TCnNativeUInt(B) + 4 * SizeOf(TCnBigNumberElement));
     end;
 
     case Num.Top and 3 of
@@ -3609,7 +3609,7 @@ begin
     if Ftl^ <> 0 then
       Break;
 
-    Ftl := PCnBigNumberElement(TCnNativeInt(Ftl) - SizeOf(TCnBigNumberElement));
+    Ftl := PCnBigNumberElement(TCnNativeUInt(Ftl) - SizeOf(TCnBigNumberElement));
     Dec(Top);
   end;
   Num.Top := Top;
@@ -3631,7 +3631,7 @@ begin
     begin
       Dec(I);
       Buf^ := #0;
-      Buf := PAnsiChar(TCnNativeInt(Buf) + 1); // 先补 0
+      Buf := PAnsiChar(TCnNativeUInt(Buf) + 1); // 先补 0
     end;
   end;
 
@@ -3642,7 +3642,7 @@ begin
     L := PCnBigNumberElementArray(Num.D)^[I div BN_BYTES];
     Buf^ := AnsiChar(Chr(L shr (8 * (I mod BN_BYTES)) and $FF));
 
-    Buf := PAnsiChar(TCnNativeInt(Buf) + 1);
+    Buf := PAnsiChar(TCnNativeUInt(Buf) + 1);
   end;
 end;
 
@@ -3745,7 +3745,7 @@ begin
   while N > 0 do
   begin
     L := (L shl 8) or Ord(Buf^);
-    Buf := PAnsiChar(TCnNativeInt(Buf) + 1);  // Buf 是越处理越往高地址走
+    Buf := PAnsiChar(TCnNativeUInt(Buf) + 1);  // Buf 是越处理越往高地址走
 
     if M = 0 then
     begin
@@ -4204,8 +4204,8 @@ begin
     A^[2] := A2;
     A^[3] := A3;
 
-    A := PCnBigNumberElementArray(TCnNativeInt(A) + 4 * SizeOf(TCnBigNumberElement));
-    B := PCnBigNumberElementArray(TCnNativeInt(B) + 4 * SizeOf(TCnBigNumberElement));
+    A := PCnBigNumberElementArray(TCnNativeUInt(A) + 4 * SizeOf(TCnBigNumberElement));
+    B := PCnBigNumberElementArray(TCnNativeUInt(B) + 4 * SizeOf(TCnBigNumberElement));
   end;
 
   case Src.Top and 3 of
@@ -4480,9 +4480,9 @@ begin
           end;
       end;
 
-      AP := PCnBigNumberElementArray(TCnNativeInt(AP) + 4 * SizeOf(TCnBigNumberElement));
-      BP := PCnBigNumberElementArray(TCnNativeInt(BP) + 4 * SizeOf(TCnBigNumberElement));
-      RP := PCnBigNumberElementArray(TCnNativeInt(RP) + 4 * SizeOf(TCnBigNumberElement));
+      AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + 4 * SizeOf(TCnBigNumberElement));
+      BP := PCnBigNumberElementArray(TCnNativeUInt(BP) + 4 * SizeOf(TCnBigNumberElement));
+      RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + 4 * SizeOf(TCnBigNumberElement));
 
       Dec(N, 4);
     end;
@@ -4498,9 +4498,9 @@ begin
           RP^[0] := TCnBigNumberElement((Int64(AP^[0]) xor Int64(BP^[0])) and BN_MASK2);
       end;
 
-      AP := PCnBigNumberElementArray(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-      BP := PCnBigNumberElementArray(TCnNativeInt(BP) + SizeOf(TCnBigNumberElement));
-      RP := PCnBigNumberElementArray(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+      AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+      BP := PCnBigNumberElementArray(TCnNativeUInt(BP) + SizeOf(TCnBigNumberElement));
+      RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
       Dec(N);
     end;
   end
@@ -4597,9 +4597,9 @@ begin
     LL := LL shr BN_BITS2;
 {$ENDIF}
 
-    AP := PCnBigNumberElementArray(TCnNativeInt(AP) + 4 * SizeOf(TCnBigNumberElement));
-    BP := PCnBigNumberElementArray(TCnNativeInt(BP) + 4 * SizeOf(TCnBigNumberElement));
-    RP := PCnBigNumberElementArray(TCnNativeInt(RP) + 4 * SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + 4 * SizeOf(TCnBigNumberElement));
+    BP := PCnBigNumberElementArray(TCnNativeUInt(BP) + 4 * SizeOf(TCnBigNumberElement));
+    RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + 4 * SizeOf(TCnBigNumberElement));
 
     Dec(N, 4);
   end;
@@ -4618,9 +4618,9 @@ begin
     LL := LL shr BN_BITS2;
 {$ENDIF}
 
-    AP := PCnBigNumberElementArray(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-    BP := PCnBigNumberElementArray(TCnNativeInt(BP) + SizeOf(TCnBigNumberElement));
-    RP := PCnBigNumberElementArray(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+    BP := PCnBigNumberElementArray(TCnNativeUInt(BP) + SizeOf(TCnBigNumberElement));
+    RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
     Dec(N);
   end;
 
@@ -4666,9 +4666,9 @@ begin
     if T1 <> T2 then
       if T1 < T2 then C := 1 else C := 0;
 
-    AP := PCnBigNumberElementArray(TCnNativeInt(AP) + 4 * SizeOf(TCnBigNumberElement));
-    BP := PCnBigNumberElementArray(TCnNativeInt(BP) + 4 * SizeOf(TCnBigNumberElement));
-    RP := PCnBigNumberElementArray(TCnNativeInt(RP) + 4 * SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + 4 * SizeOf(TCnBigNumberElement));
+    BP := PCnBigNumberElementArray(TCnNativeUInt(BP) + 4 * SizeOf(TCnBigNumberElement));
+    RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + 4 * SizeOf(TCnBigNumberElement));
 
     Dec(N, 4);
   end;
@@ -4681,9 +4681,9 @@ begin
     if T1 <> T2 then
       if T1 < T2 then C := 1 else C := 0;
 
-    AP := PCnBigNumberElementArray(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-    BP := PCnBigNumberElementArray(TCnNativeInt(BP) + SizeOf(TCnBigNumberElement));
-    RP := PCnBigNumberElementArray(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+    BP := PCnBigNumberElementArray(TCnNativeUInt(BP) + SizeOf(TCnBigNumberElement));
+    RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
     Dec(N);
   end;
   Result := C;
@@ -4703,16 +4703,16 @@ begin
     MulAdd(RP^[2], AP^[2], W, Result);
     MulAdd(RP^[3], AP^[3], W, Result);
 
-    AP := PCnBigNumberElementArray(TCnNativeInt(AP) + 4 * SizeOf(TCnBigNumberElement));
-    RP := PCnBigNumberElementArray(TCnNativeInt(RP) + 4 * SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + 4 * SizeOf(TCnBigNumberElement));
+    RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + 4 * SizeOf(TCnBigNumberElement));
     Dec(N, 4);
   end;
 
   while N <> 0 do
   begin
     MulAdd(RP^[0], AP^[0], W, Result);
-    AP := PCnBigNumberElementArray(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-    RP := PCnBigNumberElementArray(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+    RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
     Dec(N);
   end;
 end;
@@ -4732,8 +4732,8 @@ begin
     Mul(RP^[2], AP^[2], W, Result);
     Mul(RP^[3], AP^[3], W, Result);
 
-    AP := PCnBigNumberElementArray(TCnNativeInt(AP) + 4 * SizeOf(TCnBigNumberElement));
-    RP := PCnBigNumberElementArray(TCnNativeInt(RP) + 4 * SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + 4 * SizeOf(TCnBigNumberElement));
+    RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + 4 * SizeOf(TCnBigNumberElement));
 
     Dec(N, 4);
   end;
@@ -4742,8 +4742,8 @@ begin
   begin
     Mul(RP^[0], AP^[0], W, Result);
 
-    AP := PCnBigNumberElementArray(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-    RP := PCnBigNumberElementArray(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+    RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
 
     Dec(N);
   end;
@@ -4761,16 +4761,16 @@ begin
     Sqr(RP^[4], RP^[5], AP^[2]);
     Sqr(RP^[6], RP^[7], AP^[3]);
 
-    AP := PCnBigNumberElementArray(TCnNativeInt(AP) + 4 * SizeOf(TCnBigNumberElement));
-    RP := PCnBigNumberElementArray(TCnNativeInt(RP) + 8 * SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + 4 * SizeOf(TCnBigNumberElement));
+    RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + 8 * SizeOf(TCnBigNumberElement));
     Dec(N, 4);
   end;
 
   while N <> 0 do
   begin
     Sqr(RP^[0], RP^[1], AP^[0]);
-    AP := PCnBigNumberElementArray(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-    RP := PCnBigNumberElementArray(TCnNativeInt(RP) + 2 * SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+    RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + 2 * SizeOf(TCnBigNumberElement));
     Dec(N);
   end;
 end;
@@ -4969,8 +4969,8 @@ begin
 
   Carry := BigNumberAddWords(PCnBigNumberElementArray(RP), PCnBigNumberElementArray(AP), PCnBigNumberElementArray(BP), Min);
 
-  AP := PCnBigNumberElement(TCnNativeInt(AP) + Min * SizeOf(TCnBigNumberElement));
-  RP := PCnBigNumberElement(TCnNativeInt(RP) + Min * SizeOf(TCnBigNumberElement));
+  AP := PCnBigNumberElement(TCnNativeUInt(AP) + Min * SizeOf(TCnBigNumberElement));
+  RP := PCnBigNumberElement(TCnNativeUInt(RP) + Min * SizeOf(TCnBigNumberElement));
 
   if Carry <> 0 then
   begin
@@ -4978,11 +4978,11 @@ begin
     begin
       Dec(Dif);
       T1 := AP^;
-      AP := PCnBigNumberElement(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
+      AP := PCnBigNumberElement(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
       T2 := (T1 + 1) and BN_MASK2;
 
       RP^ := T2;
-      RP := PCnBigNumberElement(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+      RP := PCnBigNumberElement(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
 
       if T2 <> 0 then
       begin
@@ -5004,8 +5004,8 @@ begin
     begin
       Dec(Dif);
       RP^ := AP^;
-      AP := PCnBigNumberElement(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-      RP := PCnBigNumberElement(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+      AP := PCnBigNumberElement(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+      RP := PCnBigNumberElement(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
     end;
   end;
 
@@ -5041,8 +5041,8 @@ begin
   begin
     T1 := AP^;
     T2 := BP^;
-    AP := PCnBigNumberElement(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-    BP := PCnBigNumberElement(TCnNativeInt(BP) + SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElement(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+    BP := PCnBigNumberElement(TCnNativeUInt(BP) + SizeOf(TCnBigNumberElement));
     if Carry <> 0 then
     begin
       if T1 <= T2 then
@@ -5060,7 +5060,7 @@ begin
       T1 := (T1 - T2) and BN_MASK2;
     end;
     RP^ := T1 and BN_MASK2;
-    RP := PCnBigNumberElement(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+    RP := PCnBigNumberElement(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
   end;
 
   if Carry <> 0 then
@@ -5072,11 +5072,11 @@ begin
     begin
       Dec(Dif);
       T1 := AP^;
-      AP := PCnBigNumberElement(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
+      AP := PCnBigNumberElement(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
       T2 := (T1 - 1) and BN_MASK2;
 
       RP^ := T2;
-      RP := PCnBigNumberElement(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+      RP := PCnBigNumberElement(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
       if T1 <> 0 then
         Break;
     end;
@@ -5089,26 +5089,26 @@ begin
       if Dif = 0 then Break;
       Dec(Dif);
       RP^ := AP^;
-      AP := PCnBigNumberElement(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-      RP := PCnBigNumberElement(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+      AP := PCnBigNumberElement(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+      RP := PCnBigNumberElement(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
 
       if Dif = 0 then Break;
       Dec(Dif);
       RP^ := AP^;
-      AP := PCnBigNumberElement(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-      RP := PCnBigNumberElement(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+      AP := PCnBigNumberElement(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+      RP := PCnBigNumberElement(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
 
       if Dif = 0 then Break;
       Dec(Dif);
       RP^ := AP^;
-      AP := PCnBigNumberElement(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-      RP := PCnBigNumberElement(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+      AP := PCnBigNumberElement(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+      RP := PCnBigNumberElement(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
 
       if Dif = 0 then Break;
       Dec(Dif);
       RP^ := AP^;
-      AP := PCnBigNumberElement(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-      RP := PCnBigNumberElement(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+      AP := PCnBigNumberElement(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+      RP := PCnBigNumberElement(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
     end;
   end;
 
@@ -5256,9 +5256,9 @@ begin
   for I := 0 to Num.Top - 1 do
   begin
     T := AP^;
-    AP := PCnBigNumberElement(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElement(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
     RP^ := ((T shl 1) or C) and BN_MASK2;
-    RP := PCnBigNumberElement(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+    RP := PCnBigNumberElement(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
 
     if (T and BN_TBIT) <> 0 then
       C := 1
@@ -5421,7 +5421,7 @@ begin
     end;
   end;
 
-  F := PCnBigNumberElementArray(TCnNativeInt(Num.D) + NW * SizeOf(TCnBigNumberElement));
+  F := PCnBigNumberElementArray(TCnNativeUInt(Num.D) + NW * SizeOf(TCnBigNumberElement));
   T := PCnBigNumberElementArray(Res.D);
   J := Num.Top - NW;
   Res.Top := I;
@@ -5431,22 +5431,22 @@ begin
     for I := J downto 1 do
     begin
       T^[0] := F^[0];
-      F := PCnBigNumberElementArray(TCnNativeInt(F) + SizeOf(TCnBigNumberElement));
-      T := PCnBigNumberElementArray(TCnNativeInt(T) + SizeOf(TCnBigNumberElement));
+      F := PCnBigNumberElementArray(TCnNativeUInt(F) + SizeOf(TCnBigNumberElement));
+      T := PCnBigNumberElementArray(TCnNativeUInt(T) + SizeOf(TCnBigNumberElement));
     end;
   end
   else
   begin
     L := F^[0];
-    F := PCnBigNumberElementArray(TCnNativeInt(F) + SizeOf(TCnBigNumberElement));
+    F := PCnBigNumberElementArray(TCnNativeUInt(F) + SizeOf(TCnBigNumberElement));
     for I := J - 1 downto 1 do
     begin
       Tmp := (L shr RB) and BN_MASK2;
       L := F^[0];
       T^[0] := (Tmp or (L shl LB)) and BN_MASK2;
 
-      F := PCnBigNumberElementArray(TCnNativeInt(F) + SizeOf(TCnBigNumberElement));
-      T := PCnBigNumberElementArray(TCnNativeInt(T) + SizeOf(TCnBigNumberElement));
+      F := PCnBigNumberElementArray(TCnNativeUInt(F) + SizeOf(TCnBigNumberElement));
+      T := PCnBigNumberElementArray(TCnNativeUInt(T) + SizeOf(TCnBigNumberElement));
     end;
 
     L := (L shr RB) and BN_MASK2;
@@ -5802,7 +5802,7 @@ begin
 
   // 求有效长度，一个字母数字占 4 位
   I := 0;
-  while PAnsiChar(TCnNativeInt(P) + I)^ in ['0'..'9', 'A'..'F', 'a'..'f'] do
+  while PAnsiChar(TCnNativeUInt(P) + I)^ in ['0'..'9', 'A'..'F', 'a'..'f'] do
     Inc(I);
 
   BigNumberSetZero(Res);
@@ -5825,7 +5825,7 @@ begin
 
     while True do
     begin
-      C := Ord(PAnsiChar(TCnNativeInt(P) + J - M)^);
+      C := Ord(PAnsiChar(TCnNativeUInt(P) + J - M)^);
       if (C >= Ord('0')) and (C <= Ord('9')) then
         K := C - Ord('0')
       else if (C >= Ord('a')) and (C <= Ord('f')) then
@@ -5876,7 +5876,7 @@ var
 
   function BufRemain(Nu: Integer; Pt: PAnsiChar; Res: PAnsiChar): Integer;
   begin
-    Result := Nu + 3 - (TCnNativeInt(Pt) - TCnNativeInt(Res));
+    Result := Nu + 3 - (TCnNativeUInt(Pt) - TCnNativeUInt(Res));
   end;
 
 begin
@@ -5919,9 +5919,9 @@ begin
       while not BigNumberIsZero(T) do
       begin
         LP^ := BigNumberDivWord(T, BN_DEC_CONV);
-        LP := PCnBigNumberElement(TCnNativeInt(LP) + SizeOf(TCnBigNumberElement));
+        LP := PCnBigNumberElement(TCnNativeUInt(LP) + SizeOf(TCnBigNumberElement));
       end;
-      LP := PCnBigNumberElement(TCnNativeInt(LP) - SizeOf(TCnBigNumberElement));
+      LP := PCnBigNumberElement(TCnNativeUInt(LP) - SizeOf(TCnBigNumberElement));
 
       R := BufRemain(N, P, @(Result[1]));
 {$IFDEF UNICODE}
@@ -5933,7 +5933,7 @@ begin
         Inc(P);
       while LP <> BnData do
       begin
-        LP := PCnBigNumberElement(TCnNativeInt(LP) - SizeOf(TCnBigNumberElement));
+        LP := PCnBigNumberElement(TCnNativeUInt(LP) - SizeOf(TCnBigNumberElement));
         R := BufRemain(N, P, @(Result[1]));
 {$IFDEF UNICODE}
         AnsiStrings.AnsiFormatBuf(P^, R, AnsiString(BN_DEC_FMT2), Length(BN_DEC_FMT2), [LP^]);
@@ -5977,7 +5977,7 @@ begin
 
   // 求有效长度
   I := 0;
-  while PAnsiChar(TCnNativeInt(P) + I)^ in ['0'..'9'] do
+  while PAnsiChar(TCnNativeUInt(P) + I)^ in ['0'..'9'] do
     Inc(I);
 
   BigNumberSetZero(Res);
@@ -6203,22 +6203,22 @@ begin
   RP^[0] := 0;
   RP^[Max - 1] := 0;
 
-  RP := PCnBigNumberElementArray(TCnNativeInt(RP) + SizeOf(TCnBigNumberElement));
+  RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + SizeOf(TCnBigNumberElement));
   J := N - 1;
 
   if J > 0 then
   begin
-    AP := PCnBigNumberElementArray(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-    RP^[J] := BigNumberMulWords(RP, AP, J, PCnBigNumberElementArray(TCnNativeInt(AP) - SizeOf(TCnBigNumberElement))^[0]);
-    RP := PCnBigNumberElementArray(TCnNativeInt(RP) + 2 * SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+    RP^[J] := BigNumberMulWords(RP, AP, J, PCnBigNumberElementArray(TCnNativeUInt(AP) - SizeOf(TCnBigNumberElement))^[0]);
+    RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + 2 * SizeOf(TCnBigNumberElement));
   end;
 
   for I := N - 2 downto 1 do
   begin
     Dec(J);
-    AP := PCnBigNumberElementArray(TCnNativeInt(AP) + SizeOf(TCnBigNumberElement));
-    RP^[J] := BigNumberMulAddWords(RP, AP, J, PCnBigNumberElementArray(TCnNativeInt(AP) - SizeOf(TCnBigNumberElement))^[0]);
-    RP := PCnBigNumberElementArray(TCnNativeInt(RP) + 2 * SizeOf(TCnBigNumberElement));
+    AP := PCnBigNumberElementArray(TCnNativeUInt(AP) + SizeOf(TCnBigNumberElement));
+    RP^[J] := BigNumberMulAddWords(RP, AP, J, PCnBigNumberElementArray(TCnNativeUInt(AP) - SizeOf(TCnBigNumberElement))^[0]);
+    RP := PCnBigNumberElementArray(TCnNativeUInt(RP) + 2 * SizeOf(TCnBigNumberElement));
   end;
 
   BigNumberAddWords(PCnBigNumberElementArray(R), PCnBigNumberElementArray(R), PCnBigNumberElementArray(R), Max);
@@ -6482,7 +6482,7 @@ begin
     A := RR;
   end;
 
-  RR := PCnBigNumberElement(TCnNativeInt(R) + NA * SizeOf(TCnBigNumberElement));
+  RR := PCnBigNumberElement(TCnNativeUInt(R) + NA * SizeOf(TCnBigNumberElement));
   if NB <= 0 then
   begin
     BigNumberMulWords(PCnBigNumberElementArray(R), PCnBigNumberElementArray(A), NA, 0);
@@ -6496,34 +6496,34 @@ begin
     Dec(NB);
     if NB <=0 then
       Exit;
-    RR := PCnBigNumberElement(TCnNativeInt(RR) + SizeOf(TCnBigNumberElement));
-    R := PCnBigNumberElement(TCnNativeInt(R) + SizeOf(TCnBigNumberElement));
-    B := PCnBigNumberElement(TCnNativeInt(B) + SizeOf(TCnBigNumberElement));
+    RR := PCnBigNumberElement(TCnNativeUInt(RR) + SizeOf(TCnBigNumberElement));
+    R := PCnBigNumberElement(TCnNativeUInt(R) + SizeOf(TCnBigNumberElement));
+    B := PCnBigNumberElement(TCnNativeUInt(B) + SizeOf(TCnBigNumberElement));
 
     RR^ := BigNumberMulAddWords(PCnBigNumberElementArray(R), PCnBigNumberElementArray(A), NA, B^);
 
     Dec(NB);
     if NB <=0 then
       Exit;
-    RR := PCnBigNumberElement(TCnNativeInt(RR) + SizeOf(TCnBigNumberElement));
-    R := PCnBigNumberElement(TCnNativeInt(R) + SizeOf(TCnBigNumberElement));
-    B := PCnBigNumberElement(TCnNativeInt(B) + SizeOf(TCnBigNumberElement));
+    RR := PCnBigNumberElement(TCnNativeUInt(RR) + SizeOf(TCnBigNumberElement));
+    R := PCnBigNumberElement(TCnNativeUInt(R) + SizeOf(TCnBigNumberElement));
+    B := PCnBigNumberElement(TCnNativeUInt(B) + SizeOf(TCnBigNumberElement));
     RR^ := BigNumberMulAddWords(PCnBigNumberElementArray(R), PCnBigNumberElementArray(A), NA, B^);
 
     Dec(NB);
     if NB <=0 then
       Exit;
-    RR := PCnBigNumberElement(TCnNativeInt(RR) + SizeOf(TCnBigNumberElement));
-    R := PCnBigNumberElement(TCnNativeInt(R) + SizeOf(TCnBigNumberElement));
-    B := PCnBigNumberElement(TCnNativeInt(B) + SizeOf(TCnBigNumberElement));
+    RR := PCnBigNumberElement(TCnNativeUInt(RR) + SizeOf(TCnBigNumberElement));
+    R := PCnBigNumberElement(TCnNativeUInt(R) + SizeOf(TCnBigNumberElement));
+    B := PCnBigNumberElement(TCnNativeUInt(B) + SizeOf(TCnBigNumberElement));
     RR^ := BigNumberMulAddWords(PCnBigNumberElementArray(R), PCnBigNumberElementArray(A), NA, B^);
 
     Dec(NB);
     if NB <=0 then
       Exit;
-    RR := PCnBigNumberElement(TCnNativeInt(RR) + SizeOf(TCnBigNumberElement));
-    R := PCnBigNumberElement(TCnNativeInt(R) + SizeOf(TCnBigNumberElement));
-    B := PCnBigNumberElement(TCnNativeInt(B) + SizeOf(TCnBigNumberElement));
+    RR := PCnBigNumberElement(TCnNativeUInt(RR) + SizeOf(TCnBigNumberElement));
+    R := PCnBigNumberElement(TCnNativeUInt(R) + SizeOf(TCnBigNumberElement));
+    B := PCnBigNumberElement(TCnNativeUInt(B) + SizeOf(TCnBigNumberElement));
     RR^ := BigNumberMulAddWords(PCnBigNumberElementArray(R), PCnBigNumberElementArray(A), NA, B^);
   end;
 end;
@@ -6770,7 +6770,7 @@ begin
 
     // 注意 WNum 需要使用外部的 D，把池子里拿出来的东西先备份
     WNum.Neg := 0;
-    WNum.D := PCnBigNumberElement(TCnNativeInt(SNum.D) + Loop * SizeOf(TCnBigNumberElement));
+    WNum.D := PCnBigNumberElement(TCnNativeUInt(SNum.D) + Loop * SizeOf(TCnBigNumberElement));
     WNum.Top := DivN;
     WNum.DMax := SNum.DMax - Loop;
 
@@ -6781,7 +6781,7 @@ begin
       D1 := PCnBigNumberElementArray(SDiv.D)^[DivN - 2];
     // D0 D1 是 SDiv 的最高俩 UInt32/UInt64
 
-    WNump := PCnBigNumberElement(TCnNativeInt(SNum.D) + (NumN - 1) * SizeOf(TCnBigNumberElement));
+    WNump := PCnBigNumberElement(TCnNativeUInt(SNum.D) + (NumN - 1) * SizeOf(TCnBigNumberElement));
 
     if Num.Neg <> Divisor.Neg then
       SRes.Neg := 1
@@ -6792,7 +6792,7 @@ begin
       Exit;
 
     SRes.Top := Loop;
-    Resp := PCnBigNumberElement(TCnNativeInt(SRes.D) + (Loop - 1) * SizeOf(TCnBigNumberElement));
+    Resp := PCnBigNumberElement(TCnNativeUInt(SRes.D) + (Loop - 1) * SizeOf(TCnBigNumberElement));
 
     if BigNumberWordExpand(Tmp, DivN + 1) = nil then
       Exit;
@@ -6809,14 +6809,14 @@ begin
     if SRes.Top = 0 then
       SRes.Neg := 0
     else
-      Resp := PCnBigNumberElement(TCnNativeInt(Resp) - SizeOf(TCnBigNumberElement));
+      Resp := PCnBigNumberElement(TCnNativeUInt(Resp) - SizeOf(TCnBigNumberElement));
 
     for I := 0 to Loop - 2 do
     begin
 //    Rem := 0;
       // 用 N0/N1/D0/D1 计算出一个 Q 使 | WNum - SDiv * Q | < SDiv
       N0 := WNump^;
-      N1 := (PCnBigNumberElement(TCnNativeInt(WNump) - SizeOf(TCnBigNumberElement)))^;
+      N1 := (PCnBigNumberElement(TCnNativeUInt(WNump) - SizeOf(TCnBigNumberElement)))^;
 
       if N0 = D0 then
         Q := BN_MASK2
@@ -6840,7 +6840,7 @@ begin
         while True do
         begin
           if (T2H < Rem) or ((T2H = Rem) and
-             (T2L <= (PCnBigNumberElement(TCnNativeInt(WNump) - 2 * SizeOf(TCnBigNumberElement)))^)) then
+             (T2L <= (PCnBigNumberElement(TCnNativeUInt(WNump) - 2 * SizeOf(TCnBigNumberElement)))^)) then
              Break;
           Dec(Q);
           Inc(Rem, D0);
@@ -6854,7 +6854,7 @@ begin
 
       L0 := BigNumberMulWords(PCnBigNumberElementArray(Tmp.D), PCnBigNumberElementArray(SDiv.D), DivN, Q);
       PCnBigNumberElementArray(Tmp.D)^[DivN] := L0;
-      WNum.D := PCnBigNumberElement(TCnNativeInt(WNum.D) - SizeOf(TCnBigNumberElement));
+      WNum.D := PCnBigNumberElement(TCnNativeUInt(WNum.D) - SizeOf(TCnBigNumberElement));
 
       if BigNumberSubWords(PCnBigNumberElementArray(WNum.D), PCnBigNumberElementArray(WNum.D),
         PCnBigNumberElementArray(Tmp.D), DivN + 1) <> 0 then
@@ -6866,8 +6866,8 @@ begin
       end;
 
       Resp^ := Q;
-      WNump := PCnBigNumberElement(TCnNativeInt(WNump) - SizeOf(TCnBigNumberElement));
-      Resp := PCnBigNumberElement(TCnNativeInt(Resp) - SizeOf(TCnBigNumberElement));
+      WNump := PCnBigNumberElement(TCnNativeUInt(WNump) - SizeOf(TCnBigNumberElement));
+      Resp := PCnBigNumberElement(TCnNativeUInt(Resp) - SizeOf(TCnBigNumberElement));
     end;
 
     BigNumberCorrectTop(SNum);

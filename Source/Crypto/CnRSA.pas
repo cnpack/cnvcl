@@ -3335,13 +3335,13 @@ begin
 
     if OutLen + MdLen <= MaskLen then
     begin
-      SHA1Final(Ctx, PCnSHA1Digest(TCnNativeInt(OutMask) + OutLen)^);
+      SHA1Final(Ctx, PCnSHA1Digest(TCnNativeUInt(OutMask) + OutLen)^);
       OutLen := OutLen + MdLen;
     end
     else
     begin
       SHA1Final(Ctx, Dig);
-      Move(Dig[0], PCnSHA1Digest(TCnNativeInt(OutMask) + OutLen)^, MaskLen - OutLen);
+      Move(Dig[0], PCnSHA1Digest(TCnNativeUInt(OutMask) + OutLen)^, MaskLen - OutLen);
       OutLen := MaskLen;
     end;
 
@@ -3370,8 +3370,8 @@ begin
   end;
 
   ToBuf^ := 0;
-  Seed := PByteArray(TCnNativeInt(ToBuf) + 1);
-  DB := PByteArray(TCnNativeInt(ToBuf) + MdLen + 1);
+  Seed := PByteArray(TCnNativeUInt(ToBuf) + 1);
+  DB := PByteArray(TCnNativeUInt(ToBuf) + MdLen + 1);
 
   // 00 | 20 位 Seed | DB
   // 其中 DB := ParamHash || PS || 0x01 || Data，长度是 EmLen - MdLen
@@ -3380,11 +3380,11 @@ begin
   Move(SeedMask[0], DB^, MdLen);
 
   // To 区 DB 的前 20 字节先留着，后面到尾巴先填满 0
-  FillChar(PByte(TCnNativeInt(DB) + MdLen)^, EmLen - DataByteLen - 2 * MdLen - 1, 0);
+  FillChar(PByte(TCnNativeUInt(DB) + MdLen)^, EmLen - DataByteLen - 2 * MdLen - 1, 0);
   DB^[EmLen - DataByteLen - MdLen - 1] := 1;
 
   // 明文搁后面
-  Move(PlainData^, PByte(TCnNativeInt(DB) + EmLen - DataByteLen - MdLen)^, DataByteLen);
+  Move(PlainData^, PByte(TCnNativeUInt(DB) + EmLen - DataByteLen - MdLen)^, DataByteLen);
 
   // To[1] 开始的 20 个字节 Rand 一下
   if not CnRandomFillBytes(PAnsiChar(Seed), MdLen) then
@@ -3450,8 +3450,8 @@ begin
   end;
 
   // 找出密文中的 长 MdLen 的 MaskedSeed 以及后面长 DBLen 的 MaskedDB
-  MaskedSeed := PByteArray(TCnNativeInt(EnData) + 1);
-  MaskedDB := PByteArray(TCnNativeInt(EnData) + MdLen + 1);
+  MaskedSeed := PByteArray(TCnNativeUInt(EnData) + 1);
+  MaskedDB := PByteArray(TCnNativeUInt(EnData) + MdLen + 1);
 
   ParamHash := SHA1Buffer(DigestParam, ParamByteLen);
 
