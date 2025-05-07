@@ -621,13 +621,13 @@ type
        返回值：string                     - 返回大数字符串
     }
 
-    function GetHashCode: Integer; {$IFDEF OBJECT_HAS_GETHASHCODE} override; {$ENDIF}
+    function GetHashCode: TCnHashCode; {$IFDEF OBJECT_HAS_GETHASHCODE} override; {$ENDIF}
     {* 生成杂凑值。
 
        参数：
          （无）
 
-       返回值：Integer                    - 返回杂凑值
+       返回值：TCnHashCode                - 返回杂凑值，只 32 位有效
     }
 
     function ToHex(FixedLen: Integer = 0): string;
@@ -10572,7 +10572,7 @@ begin
   Result := BigNumberGetWordsCount(Self);
 end;
 
-function TCnBigNumber.GetHashCode: Integer;
+function TCnBigNumber.GetHashCode: TCnHashCode;
 var
   I: Integer;
 begin

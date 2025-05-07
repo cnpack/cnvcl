@@ -113,6 +113,12 @@ type
   TCnNativeUIntPtr = PCardinal;
 {$ENDIF}
 
+{$IFDEF FPC}
+  TCnHashCode      = PtrInt;
+{$ELSE}
+  TCnHashCode      = Integer;
+{$ENDIF}
+
 {$IFDEF CPU64BITS}
   TCnUInt64        = NativeUInt;
   TCnInt64         = NativeInt;

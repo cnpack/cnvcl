@@ -1440,7 +1440,7 @@ function CnInt64MultiplicativeOrder(N, R: TUInt64): TUInt64;
 implementation
 
 uses
-  CnHashMap, CnPolynomial, CnBigNumber, CnRandom;
+  CnHashMap, CnPolynomial, CnRandom;
 
 resourcestring
   SCnErrorInvalidKForLucasSequence = 'Invalid K for Lucas Sequence';
