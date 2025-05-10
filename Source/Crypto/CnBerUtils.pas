@@ -855,7 +855,7 @@ begin
   D := C - Num.GetBytesCount;
 
   FillChar(P^, D, 0);
-  Num.ToBinary(PAnsiChar(TCnNativeUInt(P) + D));
+  Num.ToBinary(PAnsiChar(TCnIntAddress(P) + D));
 
   Result := Writer.AddBasicNode(Tag, P, C, Parent);
   FreeMemory(P);
@@ -1189,7 +1189,7 @@ end;
 procedure TCnBerReadNode.CopyDataTo(DestBuf: Pointer);
 begin
   if (FOriginData <> nil) and (FBerDataLength > 0) then
-    Move(Pointer(TCnNativeUInt(FOriginData) + FBerDataOffset)^, DestBuf^, FBerDataLength);
+    Move(Pointer(TCnIntAddress(FOriginData) + FBerDataOffset)^, DestBuf^, FBerDataLength);
 end;
 
 function TCnBerReadNode.GetItems(AIndex: Integer): TCnBerReadNode;
@@ -1207,7 +1207,7 @@ begin
   if FOriginData = nil then
     Result := nil
   else
-    Result := Pointer(TCnNativeUInt(FOriginData) + FBerDataOffset);
+    Result := Pointer(TCnIntAddress(FOriginData) + FBerDataOffset);
 end;
 
 function TCnBerReadNode.GetNextSibling: TCnBerReadNode;
@@ -1223,13 +1223,13 @@ end;
 procedure TCnBerReadNode.CopyHeadTo(DestBuf: Pointer);
 begin
   if FOriginData <> nil then
-    Move(Pointer(TCnNativeUInt(FOriginData) + FBerOffset)^, DestBuf^, FBerLength - FBerDataLength);
+    Move(Pointer(TCnIntAddress(FOriginData) + FBerOffset)^, DestBuf^, FBerLength - FBerDataLength);
 end;
 
 procedure TCnBerReadNode.CopyTLVTo(DestBuf: Pointer);
 begin
   if (FOriginData <> nil) and (FBerLength > 0) then
-    Move(Pointer(TCnNativeUInt(FOriginData) + FBerOffset)^, DestBuf^, FBerLength);
+    Move(Pointer(TCnIntAddress(FOriginData) + FBerOffset)^, DestBuf^, FBerLength);
 end;
 
 function TCnBerReadNode.AsIA5String: string;
@@ -1319,7 +1319,7 @@ begin
   if FOriginData = nil then
     Result := nil
   else
-    Result := Pointer(TCnNativeUInt(FOriginData) + FBerOffset);
+    Result := Pointer(TCnIntAddress(FOriginData) + FBerOffset);
 end;
 
 function TCnBerReadNode.AsBoolean: Boolean;
@@ -1751,7 +1751,7 @@ begin
   else
   begin
     if (FHeadLen > 0) and (FMem.Size > FHeadLen) then
-      Result := Stream.Write(Pointer(TCnNativeUInt(FMem.Memory) + FHeadLen)^, FMem.Size - FHeadLen);
+      Result := Stream.Write(Pointer(TCnIntAddress(FMem.Memory) + FHeadLen)^, FMem.Size - FHeadLen);
   end;
 end;
 

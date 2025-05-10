@@ -1560,13 +1560,13 @@ begin
     if SequenceType = cstC1C3C2 then
     begin
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, SizeOf(TCnSM3Digest)); // 写 C3 校验
-      P := Pointer(TCnNativeUInt(P) + SizeOf(TCnSM3Digest));
+      P := Pointer(TCnIntAddress(P) + SizeOf(TCnSM3Digest));
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, MLen);                 // 写 C2 密文
     end
     else
     begin
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, MLen);                 // 写 C2 密文
-      P := Pointer(TCnNativeUInt(P) + MLen);
+      P := Pointer(TCnIntAddress(P) + MLen);
       Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, P, SizeOf(TCnSM3Digest)); // 写 C3 校验
     end;
 

@@ -286,7 +286,7 @@ var
   I: Integer;
 begin
   for I := 0 to CN_ZUC_KEYSIZE - 1 do
-    LFSR_S[I] := MakeUInt31((PByte(TCnNativeUInt(Key) + I))^, EK_D[I], (PByte(TCnNativeUInt(Iv) + I))^);
+    LFSR_S[I] := MakeUInt31((PByte(TCnIntAddress(Key) + I))^, EK_D[I], (PByte(TCnIntAddress(Iv) + I))^);
 
   F_R1 := 0;
   F_R2 := 0;
@@ -314,7 +314,7 @@ begin
   for I := 0 to KeyStreamLen - 1 do
   begin
     ZUCBitReorganization();
-    (PCardinal(TCnNativeUInt(KeyStream) + SizeOf(Cardinal) * I))^ := F() xor BRC_X[3];
+    (PCardinal(TCnIntAddress(KeyStream) + SizeOf(Cardinal) * I))^ := F() xor BRC_X[3];
     ZUCLFSRWithWorkMode();
   end;
 end;
@@ -390,10 +390,10 @@ begin
   I := I div 32;
 
   if T = 0 then
-    Result := PCardinal(TCnNativeUInt(Data) + SizeOf(Cardinal) * I)^
+    Result := PCardinal(TCnIntAddress(Data) + SizeOf(Cardinal) * I)^
   else
-    Result := (PCardinal(TCnNativeUInt(Data) + SizeOf(Cardinal) * I)^ shl T) or
-      (PCardinal(TCnNativeUInt(Data) + SizeOf(Cardinal) * (I + 1))^ shr (32 - T));
+    Result := (PCardinal(TCnIntAddress(Data) + SizeOf(Cardinal) * I)^ shl T) or
+      (PCardinal(TCnIntAddress(Data) + SizeOf(Cardinal) * (I + 1))^ shr (32 - T));
 end;
 
 // 取内存块第 I 个 Bit 起的一个 Bit，I 从 0 开始，返回 0 或 1
@@ -401,7 +401,7 @@ function GetBit(Data: PCardinal; I: Integer): Byte;
 var
   A, B: Cardinal;
 begin
-  A := PCardinal(TCnNativeUInt(Data) + SizeOf(Cardinal) * (I div 32))^;
+  A := PCardinal(TCnIntAddress(Data) + SizeOf(Cardinal) * (I div 32))^;
   B := 1 shl (31 - (I mod 32));
   if (A and B) <> 0 then
     Result := 1
@@ -451,7 +451,7 @@ begin
     end;
     T := T xor GetDWord(Z, BitLen);
 
-    Mac := T xor PCardinal(TCnNativeUInt(Z) + SizeOf(Cardinal) * (L - 1))^;
+    Mac := T xor PCardinal(TCnIntAddress(Z) + SizeOf(Cardinal) * (L - 1))^;
   finally
     FreeMemory(Z);
   end;

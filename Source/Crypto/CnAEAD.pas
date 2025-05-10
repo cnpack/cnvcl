@@ -1199,7 +1199,7 @@ var
 begin
   A1 := N div 8;
   B1 := 7 - (N mod 8);
-  P := PByte(TCnNativeUInt(AMem) + A1);
+  P := PByte(TCnIntAddress(AMem) + A1);
 
   V := Byte(1 shl B1);
   Result := (P^ and V) <> 0;
@@ -1813,7 +1813,7 @@ var
 begin
   GCMEncrypt(Key, KeyByteLength, Nonce, NonceByteLength, PlainData, PlainByteLength,
     AAD, AADByteLength, OutEnData, OutTag, aetAES256);
-  Move(OutTag[0], Pointer(TCnNativeUInt(OutEnData) +PlainByteLength)^, SizeOf(TCnGCM128Tag));
+  Move(OutTag[0], Pointer(TCnIntAddress(OutEnData) +PlainByteLength)^, SizeOf(TCnGCM128Tag));
 end;
 
 function AES128GCMDecryptBytes(Key, Iv, EnData, AAD: TBytes; var InTag: TCnGCM128Tag): TBytes;
@@ -1880,7 +1880,7 @@ begin
     Exit;
   end;
 
-  Move(Pointer(TCnNativeUInt(EnData) + EnByteLength - SizeOf(TCnGCM128Tag))^, InTag[0], SizeOf(TCnGCM128Tag));
+  Move(Pointer(TCnIntAddress(EnData) + EnByteLength - SizeOf(TCnGCM128Tag))^, InTag[0], SizeOf(TCnGCM128Tag));
   Result := GCMDecrypt(Key, KeyByteLength, Nonce, NonceByteLength, EnData, EnByteLength - SizeOf(TCnGCM128Tag),
     AAD, AADByteLength, OutPlainData, InTag, aetAES256);
 end;

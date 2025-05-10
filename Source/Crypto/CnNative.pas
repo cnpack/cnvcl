@@ -119,6 +119,17 @@ type
   TCnHashCode      = Integer;
 {$ENDIF}
 
+  // 供进行地址加减运算的类型，考虑了 FPC 和 Delphi 下对符号的要求
+{$IFDEF FPC}
+  TCnIntAddress    = NativeUInt;
+{$ELSE}
+  {$IFDEF SUPPORT_32_AND_64}
+  TCnIntAddress    = NativeInt;
+  {$ELSE}
+  TCnIntAddress    = Integer;
+  {$ENDIF}
+{$ENDIF}
+
 {$IFDEF CPU64BITS}
   TCnUInt64        = NativeUInt;
   TCnInt64         = NativeInt;
@@ -2300,9 +2311,9 @@ begin
         R^[0] := not A^[0];
     end;
 
-    A := PCnLongWord32Array(TCnNativeUInt(A) + SizeOf(Cardinal));
-    B := PCnLongWord32Array(TCnNativeUInt(B) + SizeOf(Cardinal));
-    R := PCnLongWord32Array(TCnNativeUInt(R) + SizeOf(Cardinal));
+    A := PCnLongWord32Array(TCnIntAddress(A) + SizeOf(Cardinal));
+    B := PCnLongWord32Array(TCnIntAddress(B) + SizeOf(Cardinal));
+    R := PCnLongWord32Array(TCnIntAddress(R) + SizeOf(Cardinal));
 
     Dec(N, SizeOf(Cardinal));
   end;
@@ -2326,9 +2337,9 @@ begin
           BR^[0] := not BA^[0];
       end;
 
-      BA := PByteArray(TCnNativeUInt(BA) + SizeOf(Byte));
-      BB := PByteArray(TCnNativeUInt(BB) + SizeOf(Byte));
-      BR := PByteArray(TCnNativeUInt(BR) + SizeOf(Byte));
+      BA := PByteArray(TCnIntAddress(BA) + SizeOf(Byte));
+      BB := PByteArray(TCnIntAddress(BB) + SizeOf(Byte));
+      BR := PByteArray(TCnIntAddress(BR) + SizeOf(Byte));
       Dec(N);
     end;
   end;
@@ -2393,7 +2404,7 @@ begin
   begin
     // 起点是 PF^[N] 和 PT^[0]，长度 MemLen - N 个字节，但相邻字节间有交叉
     L := MemByteLen - N;
-    PF := PByteArray(TCnNativeUInt(PF) + N);
+    PF := PByteArray(TCnIntAddress(PF) + N);
 
     for I := 1 to L do // 从低位往低移动，先处理低的
     begin
@@ -2401,8 +2412,8 @@ begin
       if I < L then    // 最高一个字节 PF^[1] 会超界
         PT^[0] := (PF^[1] shr LB) or PT^[0];
 
-      PF := PByteArray(TCnNativeUInt(PF) + 1);
-      PT := PByteArray(TCnNativeUInt(PT) + 1);
+      PF := PByteArray(TCnIntAddress(PF) + 1);
+      PT := PByteArray(TCnIntAddress(PT) + 1);
     end;
 
     // 剩下的要填 0
@@ -2451,21 +2462,21 @@ begin
     // 起点是 PF^[0] 和 PT^[N]，长度 MemLen - N 个字节，但得从高处开始，且相邻字节间有交叉
     L := MemByteLen - N;
 
-    PF := PByteArray(TCnNativeUInt(AMem) + L - 1);
-    PT := PByteArray(TCnNativeUInt(BMem) + MemByteLen - 1);
+    PF := PByteArray(TCnIntAddress(AMem) + L - 1);
+    PT := PByteArray(TCnIntAddress(BMem) + MemByteLen - 1);
 
     for I := L downto 1 do // 从高位往高位移动，先处理后面的
     begin
       PT^[0] := Byte(PF^[0] shr RB);
       if I > 1 then        // 最低一个字节 PF^[-1] 会超界
       begin
-        PF := PByteArray(TCnNativeUInt(PF) - 1);
+        PF := PByteArray(TCnIntAddress(PF) - 1);
         PT^[0] := (PF^[0] shl LB) or PT^[0];
       end
       else
-        PF := PByteArray(TCnNativeUInt(PF) - 1);
+        PF := PByteArray(TCnIntAddress(PF) - 1);
 
-      PT := PByteArray(TCnNativeUInt(PT) - 1);
+      PT := PByteArray(TCnIntAddress(PT) - 1);
     end;
 
     // 剩下的最前面的要填 0
@@ -2485,7 +2496,7 @@ begin
 
   A := N div 8;
   B := N mod 8;
-  P := PByte(TCnNativeUInt(Mem) + A);
+  P := PByte(TCnIntAddress(Mem) + A);
 
   V := Byte(1 shl B);
   Result := (P^ and V) <> 0;
@@ -2502,7 +2513,7 @@ begin
 
   A := N div 8;
   B := N mod 8;
-  P := PByte(TCnNativeUInt(Mem) + A);
+  P := PByte(TCnIntAddress(Mem) + A);
 
   V := Byte(1 shl B);
   P^ := P^ or V;
@@ -2519,7 +2530,7 @@ begin
 
   A := N div 8;
   B := N mod 8;
-  P := PByte(TCnNativeUInt(Mem) + A);
+  P := PByte(TCnIntAddress(Mem) + A);
 
   V := not Byte(1 shl B);
   P^ := P^ and V;
@@ -2657,8 +2668,8 @@ begin
     A^[0] := B^[0];
     B^[0] := TC;
 
-    A := PCnLongWord32Array(TCnNativeUInt(A) + SizeOf(Cardinal));
-    B := PCnLongWord32Array(TCnNativeUInt(B) + SizeOf(Cardinal));
+    A := PCnLongWord32Array(TCnIntAddress(A) + SizeOf(Cardinal));
+    B := PCnLongWord32Array(TCnIntAddress(B) + SizeOf(Cardinal));
 
     Dec(MemByteLen, SizeOf(Cardinal));
   end;
@@ -2674,8 +2685,8 @@ begin
       BA^[0] := BB^[0];
       BB^[0] :=TB;
 
-      BA := PByteArray(TCnNativeUInt(BA) + SizeOf(Byte));
-      BB := PByteArray(TCnNativeUInt(BB) + SizeOf(Byte));
+      BA := PByteArray(TCnIntAddress(BA) + SizeOf(Byte));
+      BB := PByteArray(TCnIntAddress(BB) + SizeOf(Byte));
 
       Dec(MemByteLen);
     end;
@@ -2721,8 +2732,8 @@ begin
       Exit;
     end;
 
-    A := PCnLongWord32Array(TCnNativeUInt(A) + SizeOf(Cardinal));
-    B := PCnLongWord32Array(TCnNativeUInt(B) + SizeOf(Cardinal));
+    A := PCnLongWord32Array(TCnIntAddress(A) + SizeOf(Cardinal));
+    B := PCnLongWord32Array(TCnIntAddress(B) + SizeOf(Cardinal));
 
     Dec(MemByteLen, SizeOf(Cardinal));
   end;
@@ -2745,8 +2756,8 @@ begin
         Exit;
       end;
 
-      BA := PByteArray(TCnNativeUInt(BA) + SizeOf(Byte));
-      BB := PByteArray(TCnNativeUInt(BB) + SizeOf(Byte));
+      BA := PByteArray(TCnIntAddress(BA) + SizeOf(Byte));
+      BB := PByteArray(TCnIntAddress(BB) + SizeOf(Byte));
 
       Dec(MemByteLen);
     end;
@@ -2905,7 +2916,7 @@ begin
   begin
     for I := 0 to ByteLength - 1 do
     begin
-      B := PByte(TCnNativeUInt(InData) + I * SizeOf(Byte))^;
+      B := PByte(TCnIntAddress(InData) + I * SizeOf(Byte))^;
       Result[I * 2 + 1] := HiDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := HiDigits[B and $0F];
     end;
@@ -2914,7 +2925,7 @@ begin
   begin
     for I := 0 to ByteLength - 1 do
     begin
-      B := PByte(TCnNativeUInt(InData) + I * SizeOf(Byte))^;
+      B := PByte(TCnIntAddress(InData) + I * SizeOf(Byte))^;
       Result[I * 2 + 1] := LoDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := LoDigits[B and $0F];
     end;
@@ -2940,7 +2951,7 @@ begin
   H := PChar(Hex);
   for I := 1 to L div 2 do
   begin
-    PByte(TCnNativeUInt(OutData) + I - 1)^ := Byte(HexToInt(@H[(I - 1) * 2], 2));
+    PByte(TCnIntAddress(OutData) + I - 1)^ := Byte(HexToInt(@H[(I - 1) * 2], 2));
     Inc(Result);
   end;
 end;
@@ -2963,7 +2974,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PByte(TCnNativeUInt(Buffer) + I * SizeOf(Char))^;
+      B := PByte(TCnIntAddress(Buffer) + I * SizeOf(Char))^;
       Result[I * 2 + 1] := HiDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := HiDigits[B and $0F];
     end;
@@ -2972,7 +2983,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PByte(TCnNativeUInt(Buffer) + I * SizeOf(Char))^;
+      B := PByte(TCnIntAddress(Buffer) + I * SizeOf(Char))^;
       Result[I * 2 + 1] := LoDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := LoDigits[B and $0F];
     end;
@@ -3029,7 +3040,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PByte(TCnNativeUInt(Buffer) + I)^;
+      B := PByte(TCnIntAddress(Buffer) + I)^;
       Result[I * 2 + 1] := AnsiHiDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := AnsiHiDigits[B and $0F];
     end;
@@ -3038,7 +3049,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PByte(TCnNativeUInt(Buffer) + I)^;
+      B := PByte(TCnIntAddress(Buffer) + I)^;
       Result[I * 2 + 1] := AnsiLoDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := AnsiLoDigits[B and $0F];
     end;
@@ -3063,7 +3074,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PByte(TCnNativeUInt(Buffer) + I)^;
+      B := PByte(TCnIntAddress(Buffer) + I)^;
       Result[I * 2 + 1] := HiDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := HiDigits[B and $0F];
     end;
@@ -3072,7 +3083,7 @@ begin
   begin
     for I := 0 to L - 1 do
     begin
-      B := PByte(TCnNativeUInt(Buffer) + I)^;
+      B := PByte(TCnIntAddress(Buffer) + I)^;
       Result[I * 2 + 1] := LoDigits[(B shr 4) and $0F];
       Result[I * 2 + 2] := LoDigits[B and $0F];
     end;
@@ -4782,17 +4793,17 @@ begin
     J := R;
     P := (L + R) shr 1;
     repeat
-      while CompareProc(Pointer(TCnNativeUInt(Mem) + I * ElementByteSize),
-        Pointer(TCnNativeUInt(Mem) + P * ElementByteSize), ElementByteSize) < 0 do
+      while CompareProc(Pointer(TCnIntAddress(Mem) + I * ElementByteSize),
+        Pointer(TCnIntAddress(Mem) + P * ElementByteSize), ElementByteSize) < 0 do
         Inc(I);
-      while CompareProc(Pointer(TCnNativeUInt(Mem) + J * ElementByteSize),
-        Pointer(TCnNativeUInt(Mem) + P * ElementByteSize), ElementByteSize) > 0 do
+      while CompareProc(Pointer(TCnIntAddress(Mem) + J * ElementByteSize),
+        Pointer(TCnIntAddress(Mem) + P * ElementByteSize), ElementByteSize) > 0 do
         Dec(J);
 
       if I <= J then
       begin
-        MemorySwap(Pointer(TCnNativeUInt(Mem) + I * ElementByteSize),
-          Pointer(TCnNativeUInt(Mem) + J * ElementByteSize), ElementByteSize);
+        MemorySwap(Pointer(TCnIntAddress(Mem) + I * ElementByteSize),
+          Pointer(TCnIntAddress(Mem) + J * ElementByteSize), ElementByteSize);
 
         if P = I then
           P := J
