@@ -581,7 +581,7 @@ implementation
 {$R CnPropSheet.res}
 
 uses
-  CnDebug;
+  CnDebug {$IFDEF ENABLE_FMX}, CnFmxUtils {$ENDIF};
 
 type
   PParamData = ^TParamData;
@@ -1653,6 +1653,9 @@ var
   AMenuItem: TMenuItem;
   AComp: TComponent;
   AControl: TWinControl;
+{$IFDEF ENABLE_FMX}
+  AFmxControl: TComponent;
+{$ENDIF}
   AItemObj: TCnCollectionItemObject;
   AMenuObj: TCnMenuItemObject;
   ACompObj: TCnComponentObject;
@@ -2507,6 +2510,49 @@ begin
 
         DoAfterEvaluateControls;
       end;
+
+{$IFDEF ENABLE_FMX}
+      // 判断并添加 FMX 的 Controls
+      if CnFmxIsInheritedFromControl(ObjectInstance) then
+      begin
+        AFmxControl := ObjectInstance as TComponent;
+        for I := 0 to CnFmxGetControlsCount(AFmxControl) - 1 do
+        begin
+          IsExisting := IsRefresh and (I < FControls.Count);
+          if IsExisting then
+            AControlObj := TCnControlObject(FControls.Items[I])
+          else
+            AControlObj := TCnControlObject.Create;
+
+          AControlObj.ObjClassName := CnFmxGetControlByIndex(AFmxControl, I).ClassName;
+          AControlObj.CtrlName := CnFmxGetControlByIndex(AFmxControl, I).Name;
+          AControlObj.Index := I;
+          if AControlObj.ObjValue <> CnFmxGetControlByIndex(AFmxControl, I) then
+          begin
+            AControlObj.ObjValue := CnFmxGetControlByIndex(AFmxControl, I);
+            AControlObj.Changed := True;
+          end
+          else
+            AControlObj.Changed := False;
+
+          AControlObj.DisplayName := Format('%s.Controls[%d]', [AFmxControl.Name, I]);
+{$IFDEF WIN64}
+          AControlObj.DisplayValue := Format('%s: %s: $%16.16x', [AControlObj.CtrlName,
+            AControlObj.ObjClassName, NativeInt(AControlObj.ObjValue)]);
+{$ELSE}
+          AControlObj.DisplayValue := Format('%s: %s: $%8.8x', [AControlObj.CtrlName,
+            AControlObj.ObjClassName, Integer(AControlObj.ObjValue)]);
+{$ENDIF}
+
+          if not IsExisting then
+            Controls.Add(AControlObj);
+
+          Include(FContentTypes, pctControls);
+        end;
+
+        DoAfterEvaluateControls;
+      end;
+{$ENDIF}
 
       // 如果是 ImageList，画其子图片
       if ObjectInstance is TCustomImageList then
@@ -3859,9 +3905,12 @@ end;
 procedure TCnPropSheetForm.SearchTrees;
 var
   Comp: TComponent;
-  Ctrl: TControl;
+  Ctrl, RootControl: TControl;
+{$IFDEF ENABLE_FMX}
+  FmxCtrl, RootFmxControl: TComponent;
+{$ENDIF}
   RootComponent: TComponent;
-  RootControl: TControl;
+
 
   procedure AddComponentToTree(AComp: TComponent; ParentLeaf: TCnLeaf = nil);
   var
@@ -3902,9 +3951,47 @@ var
 {$ENDIF}
 
     if ACtrl is TWinControl then
-    for I := 0 to (ACtrl as TWinControl).ControlCount - 1 do
-      AddControltoTree((ACtrl as TWinControl).Controls[I], Leaf);
+    begin
+      for I := 0 to (ACtrl as TWinControl).ControlCount - 1 do
+        AddControltoTree((ACtrl as TWinControl).Controls[I], Leaf);
+    end;
   end;
+
+{$IFDEF ENABLE_FMX}
+  procedure AddFmxControltoTree(ACtrl: TComponent; ParentLeaf: TCnLeaf = nil);
+  var
+    I: Integer;
+    Leaf: TCnLeaf;
+    Ctrl: TComponent;
+  begin
+    if ParentLeaf = nil then
+      ParentLeaf := FControlTree.Root;
+
+    Leaf := FControlTree.AddChild(ParentLeaf);
+    Leaf.Obj := ACtrl;
+
+{$IFDEF WIN64}
+    Leaf.Text := Format('%s: %s: $%16.16x', [ACtrl.Name, ACtrl.ClassName, NativeInt(ACtrl)]);
+{$ELSE}
+    Leaf.Text := Format('%s: %s: $%8.8x', [ACtrl.Name, ACtrl.ClassName, Integer(ACtrl)]);
+{$ENDIF}
+
+    if CnFmxGetControlsCount(ACtrl) > 0 then
+    begin
+      for I := 0 to CnFmxGetControlsCount(ACtrl) - 1 do
+        AddFmxControltoTree(CnFmxGetControlByIndex(ACtrl, I), Leaf);
+    end
+    else  // 顶层 Form 不走 Controls 属性，得从 Children 里绕
+    begin
+      for I := 0 to CnFmxGetChildrenCount(ACtrl) - 1 do
+      begin
+        Ctrl := CnFmxGetChildByIndex(ACtrl, I);
+        if CnFmxIsInheritedFromControl(Ctrl) then
+          AddFmxControltoTree(Ctrl, Leaf);
+      end;
+    end;
+  end;
+{$ENDIF}
 
 begin
   if FObjectPointer = nil then
@@ -3944,6 +4031,17 @@ begin
         RootControl := RootControl.Parent;
       AddControlToTree(RootControl);
     end;
+
+{$IFDEF ENABLE_FMX}
+    if CnFmxIsInheritedFromControl(TObject(FObjectPointer)) then
+    begin
+      FmxCtrl := TObject(FObjectPointer) as TComponent;
+      RootFmxControl := FmxCtrl;
+      while CnFmxGetControlParent(RootFmxControl) <> nil do
+        RootFmxControl := CnFmxGetControlParent(RootFmxControl);
+      AddFmxControlToTree(RootFmxControl);
+    end;
+{$ENDIF}
   except
     ; // 如果不是 TObject，屏蔽异常
   end;
