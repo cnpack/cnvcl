@@ -709,7 +709,6 @@ procedure CnFmxControlCanvasFillRect(AControl: TComponent; ARect: TRect; AColor:
 var
   R: TRectF;
   C: TCanvas;
-  Ctrl: TControl;
   OldColor: TAlphaColor;
   OldStyle: TBrushKind;
 begin
