@@ -42,8 +42,8 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Types, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Grid,
-  FMX.Platform.Win;
+  FMX.Types, {$IFDEF DELPHIXE5_UP} FMX.Graphics, {$ENDIF} FMX.Controls, FMX.Forms,
+  FMX.Dialogs, FMX.Grid, FMX.Platform.Win;
 
 type
   TCnFmxPosType = (fptLeft, fptTop, fptRight, fptBottom, fptWidth, fptHeight);
@@ -719,7 +719,11 @@ begin
     OldColor := C.Fill.Color;
     OldStyle := C.Fill.Kind;
     try
+{$IFNDEF DELPHIXE6_UP}
+      C.Fill.Kind := TBrushKind.bkSolid;
+{$ELSE}
       C.Fill.Kind := TBrushKind.Solid;
+{$ENDIF}
       C.Fill.Color := AColor;
 
       R.Top := ARect.Top;

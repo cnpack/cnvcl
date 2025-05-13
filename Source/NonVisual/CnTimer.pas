@@ -326,15 +326,15 @@ end;
 
 function TCnTimerMgr.InitMMTimer: Boolean;
 var
-  tc: TIMECAPS;
+  TC: TIMECAPS;
 begin
   Result := False;
-  if timeGetDevCaps(@tc, SizeOf(TIMECAPS)) = TIMERR_NOERROR then
+  if timeGetDevCaps(@TC, SizeOf(TIMECAPS)) = TIMERR_NOERROR then
   begin
-    FTimerRes := tc.wPeriodMin;
+    FTimerRes := TC.wPeriodMin;
     if timeBeginPeriod(FTimerRes) = TIMERR_NOERROR then
     begin
-      FTimerID := timeSetEvent(tc.wPeriodMin, 0, MMTimerProc, TCnNativeUInt(Self),
+      FTimerID := timeSetEvent(TC.wPeriodMin, 0, MMTimerProc, TCnNativeUInt(Self),
         TIME_PERIODIC);
       Result := FTimerID <> 0;
     end
@@ -369,14 +369,14 @@ end;
 
 procedure TCnTimerMgr.ClearTimer;
 var
-  i: Integer;
+  I: Integer;
 begin
   with FTimerList.LockList do
   try
-    for i := Count - 1 downto 0 do
+    for I := Count - 1 downto 0 do
     begin
-      TCnTimerObject(Items[i]).Free;
-      Delete(i);
+      TCnTimerObject(Items[I]).Free;
+      Delete(I);
     end;
   finally
     FTimerList.UnlockList;
@@ -385,17 +385,19 @@ end;
 
 procedure TCnTimerMgr.DeleteTimer(TimerObject: TCnTimerObject);
 var
-  i: Integer;
+  I: Integer;
 begin
   with FTimerList.LockList do
   try
-    for i := 0 to Count - 1 do
-      if Items[i] = TimerObject then
+    for I := 0 to Count - 1 do
+    begin
+      if Items[I] = TimerObject then
       begin
         TimerObject.Free;
-        Delete(i);
+        Delete(I);
         Exit;
       end;
+    end;
   finally
     FTimerList.UnlockList;
   end;
@@ -403,14 +405,16 @@ end;
 
 procedure TCnTimerMgr.DoTimer(Sync: Boolean);
 var
-  i: Integer;
+  I: Integer;
   CurrTick: Cardinal;
 begin
   with FTimerList.LockList do
   try
     CurrTick := timeGetTime;
-    for i := 0 to Count - 1 do
-      with TCnTimerObject(Items[i]) do
+    for I := 0 to Count - 1 do
+    begin
+      with TCnTimerObject(Items[I]) do
+      begin
         if Enabled and (FSyncEvent = Sync) and(Interval <> 0) and
           (CurrTick - FLastTickCount >= Interval) and Assigned(FOnTimer) then
         begin
@@ -425,6 +429,8 @@ begin
             Application.HandleException(Self);
           end;
         end;
+      end;
+    end;
   finally
     FTimerList.UnlockList;
   end;
@@ -445,7 +451,7 @@ begin
 end;
 
 var
-  TimerMgr: TCnTimerMgr;
+  TimerMgr: TCnTimerMgr = nil;
 
 function GetTimerMgr: TCnTimerMgr;
 begin
@@ -728,8 +734,10 @@ end;
 procedure TCnTimerItem.Timer(Sender: TObject);
 begin
   if not TCnTimerList(TCnTimerCollection(Collection).GetOwner).Timer(Index) then
+  begin
     if Assigned(FOnTimer) then
       FOnTimer(Self);
+  end;
 end;
 
 //==============================================================================
