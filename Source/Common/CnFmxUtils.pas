@@ -42,7 +42,7 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Types, {$IFDEF DELPHIXE5_UP} FMX.Graphics, {$ENDIF} FMX.Controls, FMX.Forms,
+  FMX.Types, {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics, {$ENDIF} FMX.Controls, FMX.Forms,
   FMX.Dialogs, FMX.Grid, FMX.Platform.Win;
 
 type

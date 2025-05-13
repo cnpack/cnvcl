@@ -154,7 +154,7 @@ uses
   {$IFDEF ENABLE_FMX}, System.Types, System.UITypes, System.SyncObjs, System.UIConsts
   {$IFDEF MSWINDOWS}, Winapi.Windows, Winapi.Messages, Vcl.Controls, System.Win.Registry
   {$ELSE}, Posix.Unistd, Posix.Pthread {$ENDIF},
-  FMX.Controls, FMX.Forms, {$IFDEF DELPHIXE5_UP} FMX.Graphics, {$ENDIF} FMX.Types
+  FMX.Controls, FMX.Forms, {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics, {$ENDIF} FMX.Types
   {$IFDEF FMX_PIXELFORMATS}, FMX.PixelFormats {$ENDIF}
   {$ELSE}, Windows, Registry, Messages, Controls, Graphics, Forms {$ENDIF}
   {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF}
