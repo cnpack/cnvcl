@@ -154,7 +154,8 @@ uses
   {$IFDEF ENABLE_FMX}, System.Types, System.UITypes, System.SyncObjs, System.UIConsts
   {$IFDEF MSWINDOWS}, Winapi.Windows, Winapi.Messages, Vcl.Controls, System.Win.Registry
   {$ELSE}, Posix.Unistd, Posix.Pthread {$ENDIF},
-  FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Types
+  FMX.Controls, FMX.Forms, {$IFDEF DELPHIXE5_UP} FMX.Graphics, {$ENDIF} FMX.Types
+  {$IFDEF FMX_PIXELFORMATS}, FMX.PixelFormats {$ENDIF}
   {$ELSE}, Windows, Registry, Messages, Controls, Graphics, Forms {$ENDIF}
   {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF}
   {$IFDEF CAPTURE_STACK}, CnPE, CnRTL {$ENDIF};
@@ -470,6 +471,7 @@ type
     procedure LogException(E: Exception; const AMsg: string = '');
     procedure LogMemDump(AMem: Pointer; Size: Integer);
     procedure LogBitmapMemory(ABmp: TBitmap);
+    // 既适用于 Vcl 的 TBitmap，也适用于 Fmx 的 TBitmap，根据编译条件而定
 {$IFDEF MSWINDOWS}
     procedure LogVirtualKey(AKey: Word);
     procedure LogVirtualKeyWithTag(AKey: Word; const ATag: string);
@@ -1301,9 +1303,25 @@ begin
   AList.Add('end');
 end;
 
+{$IFDEF ENABLE_FMX}
+
+// FMX 的
+{$IFDEF DELPHIXE3_UP}
 function GetBitmapPixelBytesCount(APixelFormat: TPixelFormat): Integer;
 begin
-{$IFNDEF ENABLE_FMX}
+{$IFDEF FMX_PIXELFORMATS}
+  Result := GetPixelFormatBytes(APixelFormat);
+{$ELSE}
+  Result := PixelFormatBytes[APixelFormat];
+{$ENDIF}
+end;
+{$ENDIF}
+
+{$ELSE}
+
+// VCL 的
+function GetBitmapPixelBytesCount(APixelFormat: TPixelFormat): Integer;
+begin
   case APixelFormat of
     pf8bit: Result := 1;
     pf15bit, pf16bit: Result := 2;
@@ -1312,34 +1330,37 @@ begin
   else
     raise Exception.Create('NOT Suppport');
   end;
-{$ELSE}
-  Result := PixelFormatBytes[APixelFormat];
-{$ENDIF}
 end;
+
+{$ENDIF}
 
 {$IFDEF ENABLE_FMX}
 
 type
+{$IFDEF DELPHIXE4_UP}
   TFmxControlHack = class(FMX.Controls.TControl);
+{$ELSE}
+  TFmxControlHack = class(FMX.Types.TControl);
+{$ENDIF}
 
-function FindFmxControlAtPoint(const ScreenPos: TPointF): FMX.Controls.TControl;
+function FindFmxControlAtPoint(const ScreenPos: TPointF): TFmxControlHack;
 var
   I, J: Integer;
   Form: TCommonCustomForm;
   FormRoot: TFmxObject;
 
-  function FindControlAtPosition(Root: TFmxObject; const ScreenPos: TPointF): FMX.Controls.TControl;
+  function FindControlAtPosition(Root: TFmxObject; const ScreenPos: TPointF): TFmxControlHack;
   var
     I: Integer;
     ChildObj: TFmxObject;
     LocalPos: TPointF;
-    CurrentControl: FMX.Controls.TControl;
+    CurrentControl: TFmxControlHack;
   begin
     Result := nil;
 
     // 仅处理 FMX TControl 及其子类
-    if not (Root is FMX.Controls.TControl) then Exit;
-    CurrentControl := FMX.Controls.TControl(Root);
+    if not (Root is TFmxControlHack) then Exit;
+    CurrentControl := TFmxControlHack(Root);
 
     // 过滤条件
     if not CurrentControl.Visible
@@ -2277,7 +2298,9 @@ var
   H, B: Integer;
   E: Boolean;
 {$IFDEF ENABLE_FMX}
+{$IFNDEF DELPHIXE2} // XE2 没有 BitmapData
   D: TBitmapData;
+{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 begin
@@ -2291,12 +2314,41 @@ begin
   if (ABmp <> nil) and not E then
   begin
     LogFmt('Bmp Width %d, Height %d.', [ABmp.Width, ABmp.Height]);
+  {$IFDEF ENABLE_FMX}
+    {$IFDEF DELPHIXE2}
+    B := 4; // XE2 FMX 的 Bitmap 不支持 PixelFormat，每像素四字节
+    {$ELSE}
+    B := GetBitmapPixelBytesCount(ABmp.PixelFormat); // FMX 的 Bitmap
+    {$ENDIF}
+  {$ELSE}
+    B := GetBitmapPixelBytesCount(ABmp.PixelFormat); // VCL 的 Bitmap
+  {$ENDIF}
 
-    B := GetBitmapPixelBytesCount(ABmp.PixelFormat);
 {$IFDEF ENABLE_FMX}
+  {$IFDEF DELPHIXE2}
+    for H := 0 to ABmp.Height - 1 do
+      LogMemDump(ABmp.ScanLine[H], ABmp.Width * B);
+  {$ELSE}
+    {$IFDEF DELPHIXE6_UP}
     if ABmp.Map(TMapAccess.Read, D) then
+    begin
       for H := 0 to ABmp.Height - 1 do
         LogMemDump(D.GetScanline(H), ABmp.Width * B);
+    end;
+    {$ELSE}
+    if ABmp.Map(TMapAccess.maRead, D) then
+    begin
+      for H := 0 to ABmp.Height - 1 do
+      begin
+        {$IFDEF DELPHIXE3}
+        LogMemDump(@PLongByteArray(D.Data)[H * D.Pitch], ABmp.Width * B);
+        {$ELSE}
+        LogMemDump(D.GetScanline(H), ABmp.Width * B);
+        {$ENDIF}
+      end;
+    end;
+    {$ENDIF}
+  {$ENDIF}
 {$ELSE}
     for H := 0 to ABmp.Height - 1 do
       LogMemDump(ABmp.ScanLine[H], ABmp.Width * B);
@@ -3241,7 +3293,9 @@ var
   H, B: Integer;
   E: Boolean;
 {$IFDEF ENABLE_FMX}
+{$IFNDEF DELPHIXE2} // XE2 没有 BitmapData
   D: TBitmapData;
+{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 begin
@@ -3256,11 +3310,41 @@ begin
   begin
     TraceFmt('Bmp Width %d, Height %d.', [ABmp.Width, ABmp.Height]);
 
-    B := GetBitmapPixelBytesCount(ABmp.PixelFormat);
+  {$IFDEF ENABLE_FMX}
+    {$IFDEF DELPHIXE2}
+    B := 4; // XE2 FMX 的 Bitmap 不支持 PixelFormat，每像素四字节
+    {$ELSE}
+    B := GetBitmapPixelBytesCount(ABmp.PixelFormat); // FMX 的 Bitmap
+    {$ENDIF}
+  {$ELSE}
+    B := GetBitmapPixelBytesCount(ABmp.PixelFormat); // VCL 的 Bitmap
+  {$ENDIF}
+
 {$IFDEF ENABLE_FMX}
+  {$IFDEF DELPHIXE2}
+    for H := 0 to ABmp.Height - 1 do
+      TraceMemDump(ABmp.ScanLine[H], ABmp.Width * B);
+  {$ELSE}
+    {$IFDEF DELPHIXE6_UP}
     if ABmp.Map(TMapAccess.Read, D) then
+    begin
       for H := 0 to ABmp.Height - 1 do
         TraceMemDump(D.GetScanline(H), ABmp.Width * B);
+    end;
+    {$ELSE}
+    if ABmp.Map(TMapAccess.maRead, D) then
+    begin
+      for H := 0 to ABmp.Height - 1 do
+      begin
+        {$IFDEF DELPHIXE3}
+        TraceMemDump(@PLongByteArray(D.Data)[H * D.Pitch], ABmp.Width * B);
+        {$ELSE}
+        TraceMemDump(D.GetScanline(H), ABmp.Width * B);
+        {$ENDIF}
+      end;
+    end;
+    {$ENDIF}
+  {$ENDIF}
 {$ELSE}
     for H := 0 to ABmp.Height - 1 do
       TraceMemDump(ABmp.ScanLine[H], ABmp.Width * B);
@@ -4980,12 +5064,22 @@ begin
   end;
 
 {$IFDEF ENABLE_FMX}
+  {$IFDEF DELPHIXE2}
+    for I := 0 to AControl.ChildrenCount - 1 do
+    begin
+      if AControl.Children[I] is TControl then
+        InternalFindControl(TControl(AControl.Children[I]));
+    end;
+  {$ELSE}
     for I := 0 to AControl.ControlsCount - 1 do
       InternalFindControl(AControl.Controls[I]);
+  {$ENDIF}
 {$ELSE}
   if AControl is TWinControl then
+  begin
     for I := 0 to TWinControl(AControl).ControlCount - 1 do
       InternalFindControl(TWinControl(AControl).Controls[I]);
+  end;
 {$ENDIF}
 end;
 
