@@ -3192,7 +3192,8 @@ begin
   if FObjectExpr = '' then
   begin
     btnLocate.Visible := (TObject(FInspector.ObjectAddr) is TGraphicControl) or
-      (TObject(FInspector.ObjectAddr) is TWinControl);
+      (TObject(FInspector.ObjectAddr) is TWinControl)
+      {$IFDEF ENABLE_FMX} or CnFmxIsInheritedFromControl(TObject(FInspector.ObjectAddr)) {$ENDIF};
   end
   else
     btnLocate.Visible := False;
@@ -3781,6 +3782,10 @@ var
   AHandle: THandle;
   OldColor: TColor;
   OldStyle: TBrushStyle;
+{$IFDEF ENABLE_FMX}
+  R: TRect;
+  Ctrl: TComponent;
+{$ENDIF}
 begin
   // Paint GraphicControl using its Canvas
   if TObject(FInspector.ObjectAddr) is TGraphicControl then
@@ -3803,6 +3808,14 @@ begin
       ACanvas.Brush.Style := OldStyle;
     end;
   end
+{$IFDEF ENABLE_FMX}
+  else if CnFmxIsInheritedFromControl(TObject(FInspector.ObjectAddr)) then
+  begin
+    Ctrl := TComponent(FInspector.ObjectAddr);
+    R := CnFmxGetControlRect(Ctrl);
+    CnFmxControlCanvasFillRect(Ctrl, R, clRed);
+  end
+{$ENDIF}
   else if TObject(FInspector.ObjectAddr) is TWinControl then
   begin
     // Paint WinControl using its Window DC

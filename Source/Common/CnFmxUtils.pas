@@ -42,7 +42,8 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Grid, FMX.Platform.Win;
+  FMX.Types, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Grid,
+  FMX.Platform.Win;
 
 type
   TCnFmxPosType = (fptLeft, fptTop, fptRight, fptBottom, fptWidth, fptHeight);
@@ -156,6 +157,9 @@ procedure CnFmxSetControlVisible(AControl: TComponent; AVisible: Boolean);
 
 procedure CnFmxInvalidateControl(AControl: TComponent);
 {* 让 FMX Control 重画，如非 Control 则什么也不做}
+
+procedure CnFmxControlCanvasFillRect(AControl: TComponent; ARect: TRect; AColor: TColor);
+{* 以指定矩形和颜色来填充 Control 的画布，如非 Control 则什么也不做}
 
 implementation
 
@@ -699,6 +703,35 @@ procedure CnFmxInvalidateControl(AControl: TComponent);
 begin
   if AControl.InheritsFrom(TControl) then
     TControl(AControl).Repaint;
+end;
+
+procedure CnFmxControlCanvasFillRect(AControl: TComponent; ARect: TRect; AColor: TColor);
+var
+  R: TRectF;
+  C: TCanvas;
+  Ctrl: TControl;
+  OldColor: TAlphaColor;
+  OldStyle: TBrushKind;
+begin
+  if AControl.InheritsFrom(TControl) then
+  begin
+    C := TControl(AControl).Canvas;
+    OldColor := C.Fill.Color;
+    OldStyle := C.Fill.Kind;
+    try
+      C.Fill.Kind := TBrushKind.Solid;
+      C.Fill.Color := AColor;
+
+      R.Top := ARect.Top;
+      R.Left := ARect.Left;
+      R.Bottom := ARect.Bottom;
+      R.Right := ARect.Right;
+      C.FillRect(R, 0, 0, [], 1);
+    finally
+      C.Fill.Color := OldColor;
+      C.Fill.Kind := OldStyle;
+    end;
+  end;
 end;
 
 procedure CreateFmxSetFixArray;
