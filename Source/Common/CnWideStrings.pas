@@ -322,6 +322,17 @@ function CalcUtf8LengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer
    返回值：Integer                        - 返回该宽字符串从 1 到 WideOffset 的子串的 UTF-8 长度
 }
 
+function CalcUtf8LengthFromWideStringAnsiOffset(Text: PWideChar; AnsiOffset: Integer): Integer;
+{* 计算 Unicode 宽字符串转成 Ansi 后从 1 到 AnsiOffset 的子串的 UTF-8 长度，AnsiOffset 从 1 开始。如果 AnsiOffset 是 0 则返回 0。
+   等于转 Ansi 后 Copy(1, AnsiOffset) 后的子串转回 Unicode 宽字符串再转 UTF-8 取 Length，但不进行实际转换。
+
+   参数：
+     Text: PWideChar                      - 待计算的宽字符串地址
+     AnsiOffset: Integer                  - 以 Ansi 字符为单位的偏移量
+
+   返回值：Integer                        - 返回该宽字符串转成 Ansi 后从 1 到 AnsiOffset 的子串的 UTF-8 长度
+}
+
 function CalcUtf8LengthFromUtf8HeadChar(AChar: AnsiChar): Integer;
 {* 计算一个 UTF-8 前导字符所代表的字符长度。
 
@@ -437,6 +448,19 @@ function CalcWideStringDisplayLengthFromAnsiOffset(Text: PWideChar; AnsiOffset: 
      Calculator: TCnWideCharDisplayWideLengthCalculator   - 针对宽字符的显示宽度计算回调函数，不同的 Delphi IDE 编辑器中有不同的特殊规则
 
    返回值：Integer                                        - 返回该宽字符串转换为 Ansi 后从 1 到 AnsiOffset 子串长度对应的 Unicode 字符串的显示长度
+}
+
+function CalcUtf8LengthFromWideStringAnsiDisplayOffset(Text: PWideChar; AnsiDisplayOffset: Integer;
+  Calculator: TCnWideCharDisplayWideLengthCalculator = nil): Integer;
+{* 计算 Unicode 宽字符串转成显示相关的 Ansi 后从 1 到 AnsiOffset 的子串的 UTF-8 长度，AnsiDisplayOffset 从 1 开始。如果 AnsiDisplayOffset 是 0 则返回 0。
+   等于转显示相关的 Ansi 后 Copy(1, AnsiDisplayOffset) 后的子串转回 Unicode 宽字符串再转 UTF-8 取 Length，但不进行实际转换。
+
+   参数：
+     Text: PWideChar                                      - 待计算的宽字符串地址
+     AnsiDisplayOffset: Integer                           - 以显示相关的 Ansi 字符为单位的偏移量
+     Calculator: TCnWideCharDisplayWideLengthCalculator   - 针对宽字符的显示宽度计算回调函数，不同的 Delphi IDE 编辑器中有不同的特殊规则
+
+   返回值：Integer                                        - 返回该宽字符串转成显示相关的 Ansi 后从 1 到 AnsiDisplayOffset 的子串的 UTF-8 长度
 }
 
 function ConvertUtf16ToAlterDisplayAnsi(WideText: PWideChar; AlterChar: AnsiChar = ' ';
@@ -1405,7 +1429,7 @@ begin
     Result := 0;
 end;
 
-// 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 UTF-8 长度，WideOffset 从 1 开始。
+// 计算 Unicode 宽字符串从 1 到 WideOffset 的子串的 UTF-8 长度，WideOffset 从 1 开始
 function CalcUtf8LengthFromWideStringOffset(Text: PWideChar; WideOffset: Integer): Integer;
 var
   Idx: Integer;
@@ -1419,6 +1443,27 @@ begin
       Inc(Result, CalcUtf8LengthFromWideChar(Text^));
       Inc(Text);
       Inc(Idx);
+    end;
+  end;
+end;
+
+// 计算 Unicode 宽字符串转成 Ansi 后从 1 到 AnsiOffset 的子串的 UTF-8 长度，AnsiOffset 从 1 开始
+function CalcUtf8LengthFromWideStringAnsiOffset(Text: PWideChar; AnsiOffset: Integer): Integer;
+var
+  Idx: Integer;
+begin
+  Result := 0;
+  if (Text <> nil) and (AnsiOffset > 0) then
+  begin
+    Idx := 0;
+    while (Text^ <> #0) and (Idx < AnsiOffset) do // Idx 0 开始，AnsiOffset 1 开始，所以用 <
+    begin
+      Inc(Result, CalcUtf8LengthFromWideChar(Text^));
+      Inc(Text);
+      if Ord(Text^) > $FF then // 大于 $FF 的转成 Ansi 必然占两字节
+        Inc(Idx, 2)
+      else
+        Inc(Idx);
     end;
   end;
 end;
@@ -1644,6 +1689,31 @@ begin
 
     if AllowExceedEnd and (Text^ = #0) and (Idx < AnsiOffset) then
       Inc(Result, AnsiOffset - Idx);
+  end;
+end;
+
+// 计算 Unicode 宽字符串转成显示相关的 Ansi 后从 1 到 AnsiOffset 的子串的 UTF-8 长度，AnsiDisplayOffset 从 1 开始
+function CalcUtf8LengthFromWideStringAnsiDisplayOffset(Text: PWideChar;
+  AnsiDisplayOffset: Integer; Calculator: TCnWideCharDisplayWideLengthCalculator): Integer;
+var
+  Idx: Integer;
+begin
+  Result := 0;
+  if (Text <> nil) and (AnsiDisplayOffset > 0) then
+  begin
+    Idx := 0;
+    if not Assigned(Calculator) then
+      Calculator := @WideCharIsWideLength;
+
+    while (Text^ <> #0) and (Idx < AnsiDisplayOffset) do // Idx 0 开始，AnsiDisplayOffset 1 开始，所以用 <
+    begin
+      Inc(Result, CalcUtf8LengthFromWideChar(Text^));
+      Inc(Text);
+      if Calculator(Text^) then
+        Inc(Idx, SizeOf(WideChar))
+      else
+        Inc(Idx, SizeOf(AnsiChar));
+    end;
   end;
 end;
 
