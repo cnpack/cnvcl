@@ -45,10 +45,17 @@ unit CnCalendar;
 * 备    注：星期、年月日时干支、年生肖、节气日期、星座、阴阳五行、十二建（神）、
 *           三元、九运、九星、二十八宿、六曜、九九、三伏、吉神方位已实现，
 *           公历、农历互相转换也初步实现。
+*
+*           注意，本单元中的公元前的公历年份除特殊说明外均是绝对值变负值，比如公元前 1 年
+*           便是 -1 年，没有公元 0 年，和部分函数及天文领域使用 0 作为公元前 1 年不同。
+*
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.03.28 V2.6
+* 修改记录：2025.05.21 V2.7
+*               增加儒略日/约化儒略日与公历年月日的互转及公历日步进函数
+*               并修正等效标准日数在公元前可能有计算偏差的问题
+*           2025.03.28 V2.6
 *               增加干支纪年的年月转换，增加六曜日的计算，增加六十太岁字符串
 *           2025.02.20 V2.5
 *               根据清风徐来的报告，修正 2025 年农历 3 月的日期偏差问题
@@ -387,6 +394,15 @@ procedure ValidTime(AHour, AMinitue, ASecond: Integer);
    返回值：（无）
 }
 
+procedure StepToNextDay(var AYear, AMonth, ADay: Integer;
+  ZeroYear: Boolean = False);
+{* 公历年月日往后步进一天，考虑各种闰年、格里高利历删 10 天等因素。
+
+   参数：
+     var AYear, AMonth, ADay: Integer     - 待步进的公历年、月、日
+     ZeroYear: Boolean                    - 是否允许出现公元 0 年以便于特殊场合计算
+}
+
 function GetMonthDays(AYear, AMonth: Integer): Integer;
 {* 取公历年的某月天数，不考虑 1582 年 10 月的特殊情况。
 
@@ -408,16 +424,17 @@ function GetLunarMonthDays(ALunarYear, ALunarMonth: Integer;
 }
 
 function GetIsLeapYear(AYear: Integer): Boolean;
-{* 返回某公历是否闰年，自动判断儒略历还是格里高利历法，支持公元前。
+{* 返回某公历是否闰年，自动判断儒略历还是格里高利历法，支持公元前，
+   公元前按儒略历的公元后正四倍数闰年往前连续推，譬如公元前 1 年、前 5 年……为闰年。
 
    参数：
-     AYear: Integer                       - 待计算的公历年份
+     AYear: Integer                       - 待计算的公历年份，不能为 0
 
    返回值：Boolean                        - 返回是否闰年
 }
 
 function GetDayFromYearBegin(AYear, AMonth, ADay: Integer): Integer; overload;
-{* 取某日期到年初的天数，不考虑 1582 年 10 月的特殊情况。
+{* 取某日期到年初的天数，不考虑 1582 年 10 月的特殊情况，年份值不能为 0。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1102,7 +1119,7 @@ function GetAllDays(AYear, AMonth, ADay: Integer): Integer;
 
 function GetJieQiInAYear(AYear, N: Integer; out AMonth: Integer;
   out ADay: Integer; out AHour: Integer; out AMinitue: Integer): Boolean;
-{* 获得某公历年的第 N 个节气的交节月日时分，0~23，对应小寒到冬至。
+{* 获得某公历年内的第 N 个节气的交节月日时分，0~23，对应物理顺序的小寒到冬至，并非立春到大寒。
 
    参数：
      AYear: Integer                       - 待计算的公历年
@@ -1258,7 +1275,8 @@ function GetYearSeperatedByLiChun(AYear, AMonth, ADay: Integer): Integer;
 }
 
 function GetEquStandardDays(AYear, AMonth, ADay: Integer): Integer;
-{* 获得某公历日的等效标准日数。
+{* 获得某公历日的等效标准日数，似乎是离格利高里历往前推到儒略历公元元年 0 日的日数。
+   注意由于内部计算特殊场合的要求，该函数的年参数必须连续且出现 0，也即公元前 1 年为 0。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1279,7 +1297,7 @@ function GetDayFromEquStandardDays(EquDays: Integer;
 
 function GetJulianDate(AYear, AMonth, ADay: Integer): Extended; overload;
 {* 获得某公历日中午 12 点的儒略日数，也即以儒略历的公元前 4713 年 1 月 1 日
-   中午 12 点为起点的日数，一般是个整数。
+   中午 12 点为起点的日数（该年是儒略历闰年），一般是个整数。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -1299,7 +1317,7 @@ function GetJulianDate(AYear, AMonth, ADay: Integer;
 }
 
 function GetModifiedJulianDate(AYear, AMonth, ADay: Integer): Extended; overload;
-{* 获得某公历日中午 12 点的约化儒略日数，也即以公元 1858 年 11 月 17 日
+{* 获得某公历日中午 12 点的约化儒略日数，也即以格里高利历的公元 1858 年 11 月 17 日
    0 点为起点的日数，小数部分一般是 0.5。
 
    参数：
@@ -1319,6 +1337,26 @@ function GetModifiedJulianDate(AYear, AMonth, ADay: Integer;
    返回值：Extended                       - 返回约化儒略日数
 }
 
+function GetDayFromJulianDate(JD: Extended; out AYear, AMonth, ADay: Integer): Boolean;
+{* 获得某儒略日数对应哪一天的公历年月日，整数对应当日正午。
+
+   参数：
+     JD: Extended                         - 待计算的儒略日数，应当尽量传整数值
+     out AYear, AMonth, ADay: Integer     - 返回的公历年、月、日
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
+function GetDayFromModifiedJulianDate(MJD: Extended; out AYear, AMonth, ADay: Integer): Boolean;
+{* 获得某约化儒略日数对应的公历年月日，小数部分应当是 0.5，对应当日正午。
+
+   参数：
+     MJD: Extended                        - 待计算的约化儒略日数，小数部分应当是 0.5
+     out AYear, AMonth, ADay: Integer     - 返回的公历年、月、日
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
 implementation
 
 resourcestring
@@ -1326,6 +1364,7 @@ resourcestring
   SCnErrorLunarDateIsInvalid = 'Lunar Date is Invalid: %d-%d-%d, MonthLeap %d.';
   SCnErrorConvertLunarDate = 'Date is Invalid for Lunar Conversion: %d-%d-%d.';
   SCnErrorTimeIsInvalid = 'Time is Invalid: %d:%d:%d.';
+  SCnErrorYearIsInvalid = 'Year is Invalid: 0';
 
 const
   RADS = 0.0174532925;
@@ -2336,10 +2375,12 @@ function GetIsLeapYear(AYear: Integer): Boolean;
 begin
   if GetCalendarType(AYear, 1, 1) = ctGregorian then
     Result := (AYear mod 4 = 0) and ((AYear mod 100 <> 0) or (AYear mod 400 = 0))
-  else if AYear >= 0 then
+  else if AYear > 0 then
     Result := (AYear mod 4 = 0)
-  else // 需要独立判断公元前的原因是没有公元 0 年
+  else if AYear < 0 then // 需要独立判断公元前的原因是没有公元 0 年
     Result := (AYear - 3) mod 4 = 0
+  else
+    raise ECnDateTimeException.Create(SCnErrorYearIsInvalid);
 end;
 
 // 取本月天数，不考虑 1582 年 10 月的特殊情况
@@ -2352,7 +2393,7 @@ begin
       Result:= 30;
     2:// 闰年
       if GetIsLeapYear(AYear) then
-        Result :=  29
+        Result := 29
       else
         Result := 28
   else
@@ -2466,6 +2507,62 @@ procedure ValidTime(AHour, AMinitue, ASecond: Integer);
 begin
   if not GetTimeIsValid(AHour, AMinitue, ASecond) then
     raise ECnDateTimeException.CreateFmt(SCnErrorTimeIsInvalid, [AHour, AMinitue, ASecond]);
+end;
+
+// 公历年月日往后步进一天，考虑各种闰年、格里高利历删 10 天等因素
+procedure StepToNextDay(var AYear, AMonth, ADay: Integer; ZeroYear: Boolean);
+var
+  LY: Integer;
+begin
+  if not ZeroYear then
+    ValidDate(AYear, AMonth, ADay);
+
+  if (AYear = 1582) and (AMonth = 10) and (ADay = 4) then
+  begin
+    ADay := 15;
+    Exit;
+  end
+  else
+  begin
+    if ZeroYear and (AYear <= 0) then   // GetIsLeapYear 和 GetMonthDays 只接受非 0 年数
+      LY := AYear - 1
+    else
+      LY := AYear;
+
+    if (AMonth = 2) and (ADay = 28) then // 处理闰年的 2 月 29 日
+    begin
+      if GetIsLeapYear(LY) then
+        ADay := 29
+      else
+      begin
+        ADay := 1;
+        Inc(AMonth);
+      end;
+      Exit;
+    end
+    else
+    begin
+      if ADay >= GetMonthDays(LY, AMonth) then // 月底，进月
+      begin
+        ADay := 1;
+        Inc(AMonth);
+
+        if AMonth = 13 then  // 超月，进年
+        begin
+          AMonth := 1;
+
+          if not ZeroYear and (AYear = -1) then // 公元前一年到公元元年
+            AYear := 1
+          else
+            Inc(AYear);
+        end;
+      end
+      else
+      begin
+        Inc(ADay); // 非月底，加一天就行
+      end;
+    end;
+  end;
 end;
 
 // 比较两个公历日期，1 >=< 2 分别返回 1、0、-1
@@ -2663,13 +2760,18 @@ begin
   end
   else if AType = ctJulian then
   begin
-    Result := (AYear - 1) * 365 + ((AYear - 1) div 4)
-      + GetDayFromYearBegin(AYear, AMonth, ADay) - 2;
-    { 为啥减 2？猜测公元 1 年到 1582 年，儒略历较格里高利历多闰了 12 天，
+    { 为啥最后减 2？猜测公元 1 年到 1582 年，儒略历较格里高利历多闰了 12 天，
       (100, 200, 300, 500, 600, 700, 900, 1000, 1100, 1300, 1400, 1500)
       而格里高利只删去 10 天，所以留下了 2 天的差值。
       这说明，按格里高利历从 1582.10.4 往前倒推得的格里高利历元年元旦
       和实际公元元年元旦不是同一天。 }
+    if AYear > 0 then
+      Result := (AYear - 1) * 365 + ((AYear - 1) div 4)
+        + GetDayFromYearBegin(AYear, AMonth, ADay) - 2
+    else
+      Result := (AYear - 1) * 365 + ((AYear) div 4) - 1     // 这里减一是因为 0 年也是闰年，多一个
+        + GetDayFromYearBegin(AYear - 1, AMonth, ADay) - 2;
+    // GetDayFromYearBegin 需要正经的非 0 公历年，但 AYear 传的是连续的所以要减一
   end;
 end;
 
@@ -2692,12 +2794,12 @@ begin
   AMonth := 0;
   ADay := 0;
 
-  if EquDays < 0 then Exit; // 暂不处理公元前的等效标准日
+  if EquDays < 0 then Exit;  // 暂不处理公元前的等效标准日
 
-  if EquDays <= 577735 then // 如果是 1582.10.4 (577735) 及之前为儒略历，需要修正
+  if EquDays <= 577735 then  // 如果是 1582.10.4 (577735) 及之前为儒略历，需要修正
   begin
     Diff := EquDays div (365 * 100) - EquDays div (365 * 400);
-    Dec(EquDays, 10); // 格里高利删去的 10 天
+    Dec(EquDays, 10);        // 格里高利删去的 10 天
     Inc(EquDays, 12 - Diff); // 补上多闰的 12 天中多闰的部分
   end;
 
@@ -2748,12 +2850,17 @@ var
 begin
   ValidDate(AYear, AMonth, ADay);
 
+  if AYear < 0 then // 外界公元没有公元 0 年，但此处年份计算要连续，所以内部把公元前的年份数加一
+    Inc(AYear);
+
   A := (14 - AMonth) div 12;
   Y := AYear + 4800 - A;
   M := AMonth + 12 * A - 3;
 
-  Result := ADay + ((153 * M + 2) div 5) + 365 * Y + (Y div 4) - (Y div 100) + (Y div 400) - 32045;
-  Result := Result;
+  if GetCalendarType(AYear, AMonth, ADay) = ctGregorian then
+    Result := ADay + ((153 * M + 2) div 5) + 365 * Y + (Y div 4) - (Y div 100) + (Y div 400) - 32045
+  else
+    Result := ADay + ((153 * M + 2) div 5) + 365 * Y + (Y div 4) - 32083;
 end;
 
 function GetJulianDate(AYear, AMonth, ADay: Integer;
@@ -2772,6 +2879,50 @@ function GetModifiedJulianDate(AYear, AMonth, ADay: Integer;
   AHour, AMinute, ASecond: Integer): Extended;
 begin
   Result := GetJulianDate(AYear, AMonth, ADay, AHour, AMinute, ASecond) - 2400000.5;
+end;
+
+function GetDayFromJulianDate(JD: Extended; out AYear, AMonth, ADay: Integer): Boolean;
+var
+  A, B, C, D, E, M: Double;
+begin
+  // Jean Meeus 转换算法
+  A := JD;
+  if A < 2299161 then          // 判断是否在格里高利历启用前
+    B := A
+  else
+  begin
+    C := Trunc((A - 1867216.25)/36524.25); // 处理格里历置闰规则
+    B := A + 1 + C - Trunc(C / 4);         // 补偿历法变更误差
+  end;
+
+  D := B + 1524;                  // 调整历元至公元前 4716 年 3 月 1 日
+  C := Trunc((D - 122.1)/365.25); // 计算年份基数
+  E := Trunc(365.25 * C);         // 年积日
+  M := Trunc((D - E)/30.6001);    // 计算月份基数
+
+  // 计算具体日期
+  ADay := Trunc(D - E - Trunc(30.6001 * M)); // 日数计算
+  AMonth := Trunc(M - 1);                    // 处理月份偏移
+  if AMonth > 12 then
+    AMonth := AMonth - 12;        // 调整 12 月后的月份
+
+  AYear := Trunc(C - 4715);       // 年份基数转换
+  if AMonth > 2 then              // 处理 1-2 月属于前一年的情况
+    Dec(AYear);
+
+  if AYear <= 0 then              // 计算得到的是连续的年份，负值转换为无公元 0 年的年份
+    Dec(AYear);
+
+  Result := GetDateIsValid(AYear, AMonth, ADay);
+end;
+
+function GetDayFromModifiedJulianDate(MJD: Extended; out AYear, AMonth, ADay: Integer): Boolean;
+var
+  JD: Extended;
+begin
+  // 约化儒略日转标准儒略日
+  JD := MJD + 2400000.5;
+  Result := GetDayFromJulianDate(JD, AYear, AMonth, ADay);
 end;
 
 // 获得某日期是星期几，0-6

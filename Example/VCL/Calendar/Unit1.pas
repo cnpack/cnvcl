@@ -52,6 +52,13 @@ type
     btnSunTime: TButton;
     btnSunAngle: TButton;
     mmoSun: TMemo;
+    tsDays: TTabSheet;
+    btnEquStandardDays: TButton;
+    btnJulianDays: TButton;
+    btnCheckDays: TButton;
+    btnEquStandardDays1: TButton;
+    mmoDays: TMemo;
+    btnCheckLunar: TButton;
     procedure btnCalcClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
@@ -63,6 +70,11 @@ type
     procedure CnMonthCalendar1Change(Sender: TObject);
     procedure btnSunTimeClick(Sender: TObject);
     procedure btnSunAngleClick(Sender: TObject);
+    procedure btnEquStandardDaysClick(Sender: TObject);
+    procedure btnJulianDaysClick(Sender: TObject);
+    procedure btnCheckDaysClick(Sender: TObject);
+    procedure btnEquStandardDays1Click(Sender: TObject);
+    procedure btnCheckLunarClick(Sender: TObject);
   private
     procedure ConvertEditToDate;
   public
@@ -355,6 +367,160 @@ begin
 //  end
 //  else
 //    mmoSun.Lines.Add('极昼或极夜');
+end;
+
+procedure TFormCalendar.btnEquStandardDaysClick(Sender: TObject);
+var
+  Day, Day1: Integer;
+  Y, M, D:Integer;
+begin
+  for Day := 36499 to 36500 do
+  begin
+    GetDayFromEquStandardDays(Day, Y, M, D);
+    Day1 := GetEquStandardDays(Y, M, D);
+    if (Day1 <> Day) then
+     mmoDays.Lines.Add('Error ' + IntToStr(Day1));
+  end;
+end;
+
+procedure TFormCalendar.btnJulianDaysClick(Sender: TObject);
+var
+  I: Integer;
+  J: Extended;
+  Y, M, D: Integer;
+begin
+  for I := -2400000 to 610000 do
+  begin
+    if GetDayFromModifiedJulianDate(I + 0.5, Y, M, D) then
+    begin
+      J := GetModifiedJulianDate(Y, M, D);
+      if J <> I + 0.5 then
+      begin
+        ShowMessage(IntToStr(I) + ' <> ' + FloatToStr(J));
+        Exit;;
+      end;
+    end
+    else
+    begin
+      ShowMessage('Error ' + IntToStr(I));
+      Exit;
+    end;
+  end;
+  ShowMessage('OK');
+end;
+
+procedure TFormCalendar.btnCheckDaysClick(Sender: TObject);
+var
+  Y, M, D: Integer;
+  AY, AM, AD: Integer;
+  JD, JD1: Extended;
+begin
+  Y := -4713;
+  M := 1;
+  D := 1;
+
+  JD := GetJulianDate(Y, M, D);
+  repeat
+    StepToNextDay(Y, M, D);
+    JD1 := GetJulianDate(Y, M, D);
+    if JD1 - JD <> 1 then
+    begin
+      ShowMessage(Format('NOT ++ %d %d %d', [Y, M, D]));
+      Exit;
+    end;
+    GetDayFromJulianDate(JD1, AY, AM, AD);
+    if (AY <> Y) or (AM <> M) or (AD <> D) then
+    begin
+      ShowMessage(Format('NOT = %d %d %d', [Y, M, D]));
+      Exit;
+    end;
+    JD := JD1;
+  until Y > 3000;
+  ShowMessage('Julian Date OK');
+
+  Y := -4713;
+  M := 1;
+  D := 1;
+
+  JD := GetModifiedJulianDate(Y, M, D);
+  repeat
+    StepToNextDay(Y, M, D);
+    JD1 := GetModifiedJulianDate(Y, M, D);
+    if JD1 - JD <> 1 then
+    begin
+      ShowMessage(Format('NOT ++ %d %d %d', [Y, M, D]));
+      Exit;
+    end;
+    GetDayFromModifiedJulianDate(JD1, AY, AM, AD);
+    if (AY <> Y) or (AM <> M) or (AD <> D) then
+    begin
+      ShowMessage(Format('NOT = %d %d %d', [Y, M, D]));
+      Exit;
+    end;
+    JD := JD1;
+  until Y > 3000;
+  ShowMessage('Modified Julian Date OK');
+end;
+
+procedure TFormCalendar.btnEquStandardDays1Click(Sender: TObject);
+var
+  Y, M, D: Integer;
+  AY, AM, AD: Integer;
+  ED, ED1: Integer;
+begin
+  Y := -100;
+  M := 12;
+  D := 31;
+
+  ED := GetEquStandardDays(Y, M, D);
+  repeat
+    StepToNextDay(Y, M, D, True);
+    ED1 := GetEquStandardDays(Y, M, D);
+    if ED1 - ED <> 1 then
+    begin
+      ShowMessage(Format('NOT ++ %d %d %d', [Y, M, D]));
+      Exit;
+    end;
+//    if GetDayFromEquStandardDays(ED1, AY, AM, AD) then
+//    begin
+//      if (AY <> Y) or (AM <> M) or (AD <> D) then
+//      begin
+//        ShowMessage(Format('NOT = %d %d %d', [Y, M, D]));
+//        Exit;
+//      end;
+//    end;
+    ED := ED1;
+  until Y > 3000;
+  ShowMessage('EquStandardDay OK');
+end;
+
+procedure TFormCalendar.btnCheckLunarClick(Sender: TObject);
+var
+  Y, M, D: Integer;
+  LY, LM, LD: Integer;
+  Leap: Boolean;
+begin
+  mmoDays.Lines.Clear;
+
+  Y := 1799;
+  M := 12;
+  D := 31;
+
+  repeat
+    StepToNextDay(Y, M, D);
+    if GetLunarFromDay(Y, M, D, LY, LM, LD, Leap) then
+    begin
+      if LD = 1 then
+      begin
+        if Leap then
+          mmoDays.Lines.Add(Format('公历 %4.4d %2.2d %2.2d -> 农历 %4.4d 闰%2.2d %2.2d',
+            [Y, M, D, LY, LM, LD]))
+        else
+          mmoDays.Lines.Add(Format('公历 %4.4d %2.2d %2.2d -> 农历 %4.4d %2.2d %2.2d',
+            [Y, M, D, LY, LM, LD]));
+      end;
+    end;
+  until Y > 2100;
 end;
 
 end.

@@ -365,5 +365,63 @@ object FormCalendar: TFormCalendar
         TabOrder = 7
       end
     end
+    object tsDays: TTabSheet
+      Caption = '日数计算'
+      ImageIndex = 4
+      object btnEquStandardDays: TButton
+        Left = 128
+        Top = 16
+        Width = 121
+        Height = 25
+        Caption = '反向检查等效标准日'
+        TabOrder = 0
+        OnClick = btnEquStandardDaysClick
+      end
+      object btnJulianDays: TButton
+        Left = 352
+        Top = 16
+        Width = 97
+        Height = 25
+        Caption = '反向检查儒略日'
+        TabOrder = 1
+        OnClick = btnJulianDaysClick
+      end
+      object btnCheckDays: TButton
+        Left = 264
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = '检查儒略日'
+        TabOrder = 2
+        OnClick = btnCheckDaysClick
+      end
+      object btnEquStandardDays1: TButton
+        Left = 16
+        Top = 16
+        Width = 105
+        Height = 25
+        Caption = '检查等效标准日'
+        TabOrder = 3
+        OnClick = btnEquStandardDays1Click
+      end
+      object mmoDays: TMemo
+        Left = 16
+        Top = 64
+        Width = 505
+        Height = 449
+        ReadOnly = True
+        ScrollBars = ssVertical
+        TabOrder = 4
+      end
+      object btnCheckLunar: TButton
+        Left = 456
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = '检查农历'
+        TabOrder = 5
+        OnClick = btnCheckLunarClick
+      end
+    end
   end
 end
