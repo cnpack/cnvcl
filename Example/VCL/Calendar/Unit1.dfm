@@ -406,9 +406,9 @@ object FormCalendar: TFormCalendar
       end
       object mmoDays: TMemo
         Left = 16
-        Top = 64
+        Top = 96
         Width = 505
-        Height = 449
+        Height = 417
         ReadOnly = True
         ScrollBars = ssVertical
         TabOrder = 4
@@ -421,6 +421,24 @@ object FormCalendar: TFormCalendar
         Caption = '检查农历'
         TabOrder = 5
         OnClick = btnCheckLunarClick
+      end
+      object btnVerifyLeapNumber: TButton
+        Left = 16
+        Top = 56
+        Width = 105
+        Height = 25
+        Caption = '检查预置闰月数据'
+        TabOrder = 6
+        OnClick = btnVerifyLeapNumberClick
+      end
+      object btnCheckAll: TButton
+        Left = 128
+        Top = 56
+        Width = 121
+        Height = 25
+        Caption = '检查多个日'
+        TabOrder = 7
+        OnClick = btnCheckAllClick
       end
     end
   end
