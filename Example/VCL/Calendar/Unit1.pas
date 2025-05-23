@@ -511,11 +511,13 @@ procedure TFormCalendar.btnCheckLunarClick(Sender: TObject);
 var
   Y, M, D: Integer;
   LY, LM, LD: Integer;
+  BY, BM, BD: Integer;
   Leap: Boolean;
+  BLeap: Boolean;
 begin
   mmoDays.Lines.Clear;
 
-  Y := 1799;
+  Y := 1599;
   M := 12;
   D := 31;
 
@@ -523,6 +525,13 @@ begin
     StepToNextDay(Y, M, D);
     if GetLunarFromDay(Y, M, D, LY, LM, LD, Leap) then
     begin
+      if not GetDayFromLunar(LY, LM, LD, Leap, BY, BM, BD) then
+        mmoDays.Lines.Add(Format('Error Lunar Seach Back %d %d %d', [LY, LM, LD]))
+      else
+      begin
+        if (BY <> Y) or (BM <> M) or (BD <> D) then
+          mmoDays.Lines.Add(Format('Error Lunar Convert Back for %d %d %d to %d %d %d', [Y, M, D, LY, LM, LD]))
+      end;
       if LD = 1 then
       begin
         if Leap then

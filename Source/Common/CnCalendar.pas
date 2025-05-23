@@ -49,6 +49,9 @@ unit CnCalendar;
 *           注意，本单元中的公元前的公历年份除特殊说明外均是绝对值变负值，比如公元前 1 年
 *           便是 -1 年，没有公元 0 年，和部分函数及天文领域使用 0 作为公元前 1 年不同。
 *
+*           因天文计算精度及历史状况复杂的原因，农历在公元 1600 年后基本准确，
+*           但公元 1600 年之前因历史情况较复杂，准确度无法保证，使用时应注意。
+*
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -1233,10 +1236,10 @@ function GetLunarLeapMonth(AYear: Integer): Integer;
 
 function GetDayFromLunar(ALunarYear, ALunarMonth, ALunarDay: Integer; IsLeapMonth:
   Boolean; out AYear, AMonth, ADay: Integer): Boolean;
-{* 获得某农历年月日（加是否闰月）的公历年月日，返回是否获取成功。
+{* 获得某农历年月日（加是否闰月）的公历年月日，农历年不能为 0，返回是否获取成功。
 
    参数：
-     ALunarYear, ALunarMonth, ALunarDay: Integer          - 待计算的农历年、月、日
+     ALunarYear, ALunarMonth, ALunarDay: Integer          - 待计算的农历年、月、日，农历年不能为 0
      IsLeapMonth: Boolean                                 - 是否闰月
      out AYear, AMonth, ADay: Integer                     - 用来容纳计算结果的年、月、日
 
@@ -1698,7 +1701,7 @@ const
     '0c0090050030b0070040c0090050010c0070040c0080060020b00700400a090060020b' +
     '007003002090060020a005004001090050030b007004001090050040c0080040c00a00' +
     '60020c007005001090060030b0070050020a0060020c008004002090060030b0080040' +
-    '02090060030b0080040020a0060040b0080040010b0060030b0070050010a006004002' +
+    '02090060030b0080040020a0060040b0080040010b0060030b0070050030a006004002' +
     '0700500308006004003070050030700600400307005003080060040030700500409006' +
     '0040030700500409006005002070050030a00600500307005004002060040020600500' +
     '30020600400307005004090060040030700500408007005003080050040a0060050030' +
@@ -2499,7 +2502,7 @@ function GetLunarDateIsValid(ALunarYear, ALunarMonth, ALunarDay: Integer;
   IsLeapMonth: Boolean): Boolean;
 begin
   Result := False;
-  if not (ALunarMonth in [1..12]) then
+  if (ALunarYear = 0) or not (ALunarMonth in [1..12]) then
     Exit;
 
   if ALunarDay > 30 then
@@ -4367,15 +4370,15 @@ begin
     Result := 0;
 end;
 
-// 获得某公历年月日的农历月数，其中公历年份似乎要求传 0 连续，
-// 也即公元前 1 年要传 0，公元前 850 年要传 -849
+// 获得某公历年月日的农历月数，如果是闰月则用负值表示。
+// 其中公历年份似乎要求传 0 连续，也即公元前 1 年要传 0，公元前 850 年要传 -849
 function GetLunarMonth(AYear, AMonth, ADay: Integer): Real;
 var
   LunDay: Real;
   aEclipsType: TCnEclipseType;
   aMoonPhase: TCnMoonPhase;
   aTime: Double;
-  LeapMons, NMonth: Integer;
+  LeapMons, NMonth, LMY, LMY1: Integer;
 
   // 小数的求余数
   function GetRemain(X, W: Real): Real;
@@ -4403,34 +4406,49 @@ begin
   if AYear <= -256 then Inc(NMonth, 2);
   if AYear <= -722 then Inc(NMonth);
 
-  Result := Round(GetRemain(NMonth - 3, 12) + 1);
+  LMY := GetLeapMonth(AYear);
+  LMY1 := GetLeapMonth(AYear - 1);
 
-  if (Result = GetLeapMonth(AYear - 1)) and (AMonth = 1) and (ADay < LunDay) then
+  Result := Round(GetRemain(NMonth - 3, 12) + 1); // Result 得到阴历月，但所在阴历年有小概率不是 AYear
+
+  if ((Result = LMY1) and (AMonth = 1) and (ADay < LunDay))
+    or ((Result = LMY1) and (LMY1 = 12) and (AMonth in [1, 2])) then  // 这行条件是小心地补上去的，理论上无需判断 ADay 和 LunDay 的关系
   begin
     Result := - Result;    // 如果 AYear - 1 年末是闰月且该月接到了 AYear 年,则 AYear 年年初也是闰月
   end
-  else if Result = GetLeapMonth(AYear) then
+  else if Result = LMY then
   begin
     // 如果得到的月份数与当年所闰的月相同，比如 1612 年 1 月 31 号。
     // 上面计算所得的是 11 月，并且 1612 年年底有个闰 11 月，这俩不能混淆
-    if (AMonth in [1, 2]) and (GetLeapMonth(AYear) <> 12) then
+    // 但如果阴历月 1 且闰月 1，大概率是同一年
+    if (Result <> 1) and ((AMonth in [1, 2]) and (LMY <> 12)) then
     begin
-      // 粗略判断，如果月份在年初，且今年闰月不是 12 月，就说明两个月不是一个年的，
+      // 粗略判断，如果公历月份在年初，且今年闰月不是 12 月，就大概率说明两个月不是一个年的，
       // 所以不是闰月，修正为普通月。但这个修正可能不是太准确
 
       // 比如 1984 年有闰 10 月，而 1984.1.1 的农历月为 10，
       // 但这是从 1983 年阴历接过来的，所以不是 1984 年的闰 10 月
+
       Result := Result + 1;
     end
     else
     begin
-      Result := - Result;
+      Result := - Result; // 置负表示闰月
     end;
   end
   else
   begin
-    if (Result < GetLeapMonth(AYear)) or (AMonth < Result) and (GetLeapMonth(AYear) > 0) then
-      Result := Result + 1;  // 如果 AYear 年是闰月但当月未过闰月则前面多扣除了本年的闰月，这里应当补偿
+    if ((Result < LMY) or (AMonth < Result)) and (LMY > 0) then
+    begin
+      // 如果 AYear 年有闰月但当月未过闰月则前面多扣除了本年的闰月，这里应当补偿
+      // 但如果 AYear 跨年了，实际农历年是前一年比如公元 1575 01 01，这里就会漏掉加一，下面再补偿
+      Result := Result + 1;
+    end
+    else if (Result >= 11) and (AMonth in [1, 2]) and (LMY1 > 0 ) and (Result < LMY1) then
+    begin
+      // 姑且认为公历月 1 或 2 且农历月 11 或以后，必定发生了跨年，因此得拿前一年的来补偿
+      Result := Result + 1;
+    end;
 
     Result := Round(GetRemain(Result - 1, 12) + 1);
   end;
