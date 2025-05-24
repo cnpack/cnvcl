@@ -52,6 +52,9 @@ unit CnCalendar;
 *           因天文计算精度及历史状况复杂的原因，农历在公元 25 年之前准确度无法保证，
 *           且因历史上修历原因，公元 250 前的农历转公历不保证能得到唯一正确的结果，使用时应注意。
 *
+*           公农历转换目前置闰的闰月是预置数据方式，不直接计算节气，
+*           因而后续可规划将节气算法优化至精确度更高的方式。
+*
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -1203,8 +1206,12 @@ function GetChuMeiDay(AYear: Integer; out AMonth: Integer; out ADay: Integer): B
 function GetLunarFromDay(AYear, AMonth, ADay: Integer;
   out LunarYear, LunarMonth, LunarDay: Integer; out IsLeapMonth: Boolean): Boolean;
 {* 获得某公历年月日的农历年月日和是否闰月，公历年不能为 0，返回是否获取成功。
-   注意因历史上的确出现过修历增补月份的比如公元 239 年 12 月 13 日十二月大后，
-   公元 240 年 1 月 12 日增加十二月小，又不算闰月，因而农历 239 年十二月内的就查不出来。
+   注意因历史上的确出现过修历增补月份的，这里暂且用“闰月”标记其第二个月。
+   比如：
+   公元 239 年 12 月 13 日十二月大后，公元 240 年 1 月 12 日增加十二月小，本来不算闰月，
+   但为了以示区分，240 年 1 月 12 日及以后的十二月返回 IsLeapMonth 为 True。
+   公元 23 年 12 月 2 日十二月小后，12 月 31 日增加十二月大，也不叫闰月，
+   同样为了以示区分，12 月 31 日及以后的十二月返回 IsLeapMonth 为 True。
 
    参数：
      AYear, AMonth, ADay: Integer                         - 待计算的公历年、月、日
@@ -1239,6 +1246,9 @@ function GetLunarLeapMonth(AYear: Integer): Integer;
 function GetDayFromLunar(ALunarYear, ALunarMonth, ALunarDay: Integer; IsLeapMonth:
   Boolean; out AYear, AMonth, ADay: Integer): Boolean;
 {* 获得某农历年月日（加是否闰月）的公历年月日，农历年不能为 0，返回是否获取成功。
+   注意因历史上的确出现过修历增补月份的。比如：
+   公元 239 年 12 月 13 日十二月大后，公元 240 年 1 月 12 日增加十二月小，又不算闰月，因而农历 239 年十二月内的就查不出来。
+   公元 23 年 12 月 2 日十二月小后，12 月 31 日增加十二月大，也不叫闰月，因而农历 23 年十二月内的也查不出来。
 
    参数：
      ALunarYear, ALunarMonth, ALunarDay: Integer          - 待计算的农历年、月、日，农历年不能为 0
@@ -2437,6 +2447,15 @@ begin
   end;
 end;
 
+// 获得某农历年的历史上增加的闰月，返回 1~12 对应一月到十二月，返回 0 表示无额外闰月
+function GetLunarAdditionalLeapMonth(AYear: Integer): Integer;
+begin
+  if (AYear in [23, 239]) then // 这俩农历年加了两个十二月
+    Result := 12
+  else
+    Result := 0;
+end;
+
 // 取农历年的某月天数
 function GetLunarMonthDays(ALunarYear, ALunarMonth: Integer;
   IsLeapMonth: Boolean = False): Integer;
@@ -2446,8 +2465,9 @@ var
   ALeap: Boolean;
 begin
   Result := -1;
-  if IsLeapMonth and (GetLunarLeapMonth(ALunarYear) <> ALunarMonth) then
-    Exit; // 该年无此闰月则退出
+  if IsLeapMonth and (GetLunarLeapMonth(ALunarYear) <> ALunarMonth)
+    and (GetLunarAdditionalLeapMonth(ALunarYear) <> ALunarMonth) then
+    Exit; // 该年无此闰月或额外闰月则退出
 
   if not GetDayFromLunar(ALunarYear, ALunarMonth, 1, IsLeapMonth, AYear, AMonth, ADay) then
     Exit;
@@ -2455,7 +2475,8 @@ begin
   EquDay1 := GetEquStandardDays(AYear, AMonth, ADay);
 
   ALeap := False;
-  if GetLunarLeapMonth(ALunarYear) = ALunarMonth then // 这个月在本年内是有个闰月的
+  if (GetLunarLeapMonth(ALunarYear) = ALunarMonth) or
+    (GetLunarAdditionalLeapMonth(ALunarYear) = ALunarMonth) then // 这个月在本年内是有个闰月的
   begin
     if IsLeapMonth then // 如果输入就是闰月，则后推一个月
     begin
@@ -2513,13 +2534,16 @@ begin
   if ALunarDay > 30 then
     Exit;
 
-  if IsLeapMonth and (GetLunarLeapMonth(ALunarYear) <> ALunarMonth) then
-    Exit; // 该年无此闰月则退出
+  if IsLeapMonth and (GetLunarLeapMonth(ALunarYear) <> ALunarMonth)
+    and (GetLunarAdditionalLeapMonth(ALunarYear) <> ALunarMonth) then
+    Exit; // 该年无此闰月或额外闰月则退出
 
   // 判断大小月数是否超界
   if ALunarDay = 30 then
+  begin
     if ALunarDay > GetLunarMonthDays(ALunarYear, ALunarMonth, IsLeapMonth) then
       Exit;
+  end;
 
   Result := True;
 end;
@@ -4483,6 +4507,26 @@ begin
 
     Result := Round(GetRemain(Result - 1, 12) + 1);
   end;
+
+{
+   公元 239 年 12 月 13 日十二月大后，公元 240 年 1 月 12 日增加十二月小，本来不算闰月，
+   但为了以示区分，240 年 1 月 12 日及以后的十二月返回 IsLeapMonth 为 True。
+   公元 23 年 12 月 2 日十二月小后，12 月 31 日增加十二月大，也不叫闰月，
+   同样为了以示区分，12 月 31 日及以后的十二月返回 IsLeapMonth 为 True。
+}
+
+   if Result = 12 then
+   begin
+     if AYear = 240 then
+     begin
+       if ((AMonth = 1) and (ADay >= 12)) or ((AMonth = 2) and (ADay <= 9)) then
+         Result := -Result;
+     end
+     else if (AYear = 23) and (AMonth = 12) and (ADay = 31) then
+       Result := -Result
+     else if (AYear = 24) and (AMonth = 1) and (ADay <= 28) then
+       Result := -Result;
+   end;
 end;
 
 // 获得某公历年月日的农历年月日和是否闰月的信息
@@ -4561,15 +4605,17 @@ var
   Count: Integer;
 begin
   Result := False;
-  if IsLeapMonth and (GetLunarLeapMonth(ALunarYear) <> ALunarMonth) then
-    Exit; // 该年无此闰月则退出
+  if IsLeapMonth and (GetLunarLeapMonth(ALunarYear) <> ALunarMonth)
+    and (GetLunarAdditionalLeapMonth(ALunarYear) <> ALunarMonth) then
+    Exit; // 该年无此闰月或额外闰月则退出
+
 
   // 初始范围为本公历年一月一日到次年十二月三十一日，这样做的前提是历史上正月初一
   // 没有落到公历年年前去。如果有这样的情况，可考虑适当扩大搜索范围，比如从
   // 上一公历年一月一日到次年十二月三十一日，但又可能引发下面对搜索范围判断的错，只能分开处理
   // 确保搜索范围最多只有两年
 
-  if (ALunarYear < 20) and (ALunarMonth = 1) then
+  if (ALunarYear < 20) and (ALunarMonth in [1, 2]) then
   begin
     // 公元几十年的范围内，正月初一可能落到公历年前，因此搜索年份改成前一年初到今年年底
     StartYear := ALunarYear - 1;
@@ -4623,9 +4669,20 @@ begin
 
     if (Lsd = lsdInvalid) and (Count = 1) then
     begin
-      // 第一次进来时，可能也要调整农历转换年份，凑合着判断
+      // 第一次进来时，可能也要调整农历转换年份，如果公历是年底的月，但农历转出来是年初的月，说明属于第二年
       if (TempMonth > 10) and (TempLunarMonth <= 2) then
+      begin
         Inc(TempLunarYear);
+        if TempLunarYear = 0 then
+          TempLunarYear := 1;
+      end
+      else if (TempLunarYear = StartYear) and (TempMonth = TempLunarMonth) and (TempMonth = 1) then
+      begin
+        // 第二种情况，第一次的中间点必然是第一年年底前后，如果公历农历月份都为 1 则表示是属于第二年的
+        Inc(TempLunarYear);
+        if TempLunarYear = 0 then
+          TempLunarYear := 1;
+      end;
     end;
 
     case Lsd of
@@ -4633,13 +4690,21 @@ begin
         begin
           // 往未来搜索时如果农历月由大变小了，说明跨了年，年份得加一
           if TempLunarMonth < OldTempLunarMonth then
+          begin
             Inc(TempLunarYear);
+            if TempLunarYear = 0 then
+              TempLunarYear := 1;
+          end;
         end;
       lsdDown:
         begin
           // 往过去搜索时如果农历月由小变大了，说明跨了年，年份得减一
           if TempLunarMonth > OldTempLunarMonth then
+          begin
             Dec(TempLunarYear);
+            if TempLunarYear = 0 then
+              TempLunarYear := -1;
+          end;
         end;
     end;
 
