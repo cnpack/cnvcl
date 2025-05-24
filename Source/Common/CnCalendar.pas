@@ -49,8 +49,8 @@ unit CnCalendar;
 *           注意，本单元中的公元前的公历年份除特殊说明外均是绝对值变负值，比如公元前 1 年
 *           便是 -1 年，没有公元 0 年，和部分函数及天文领域使用 0 作为公元前 1 年不同。
 *
-*           因天文计算精度及历史状况复杂的原因，农历在公元 1600 年后基本准确，
-*           但公元 1500 年之前因历史情况较复杂，准确度无法保证，使用时应注意。
+*           因天文计算精度及历史状况复杂的原因，农历在公元 25 年之前准确度无法保证，
+*           且因历史上修历原因，公元 250 前的农历转公历不保证能得到唯一正确的结果，使用时应注意。
 *
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
@@ -1203,6 +1203,8 @@ function GetChuMeiDay(AYear: Integer; out AMonth: Integer; out ADay: Integer): B
 function GetLunarFromDay(AYear, AMonth, ADay: Integer;
   out LunarYear, LunarMonth, LunarDay: Integer; out IsLeapMonth: Boolean): Boolean;
 {* 获得某公历年月日的农历年月日和是否闰月，公历年不能为 0，返回是否获取成功。
+   注意因历史上的确出现过修历增补月份的比如公元 239 年 12 月 13 日十二月大后，
+   公元 240 年 1 月 12 日增加十二月小，又不算闰月，因而农历 239 年十二月内的就查不出来。
 
    参数：
      AYear, AMonth, ADay: Integer                         - 待计算的公历年、月、日
@@ -1214,7 +1216,7 @@ function GetLunarFromDay(AYear, AMonth, ADay: Integer;
 
 function GetLunarMonthDayFromDay(AYear, AMonth, ADay: Integer;
   out LunarMonth, LunarDay: Integer; out IsLeapMonth: Boolean): Boolean;
-{* 获得某公历年月日的农历月日和是否闰月的信息，年份按相等处理，返回是否获取成功。
+{* 获得某公历年月日的农历月日和是否闰月的信息，年份按相等处理，实际可能不等。返回是否获取成功。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
@@ -4310,6 +4312,15 @@ begin
     K := K + 0.5;
   end;
 
+  // 1199.03.28 ~ 04.26 有偏差导致该月差一天要减去
+  if (AYear = 1199)
+    and (((AMonth = 3) and (ADay >= 28)) or ((AMonth = 4) and (ADay <= 26))) then
+  begin
+    Dec(LunDay);
+    if LunDay < 1 then
+      LunDay := Lunday + 30;
+  end;
+
   // 1914.11.17 ~ 12.16 朔日计算时刻 0:02 离历史实际情况（到前一天去了）有偏差导致该月差一天要减去
   if (AYear = 1914)
     and (((AMonth = 11) and (ADay >= 17)) or ((AMonth = 12) and (ADay <= 16))) then
@@ -4401,13 +4412,22 @@ begin
   // 这里用 -849 是因为在 GetEquStandardDays 要求的连续年份的限制下，公元前 850 年是 -849
 
   //历史上的修改月建
-  if AYear <= 240 then Inc(NMonth);
+  if (AYear < 240) or ((AYear = 240) and (AMonth = 1) and (ADay < 12)) then
+    Inc(NMonth);  // 公元 239 年 12 月 13 日农历十二月大，240 年 1 月 12 日增加十二月小但又不叫闰月
+
   if AYear <= 237 then Dec(NMonth);
-  if AYear < 24 then Inc(NMonth);
-  if AYear < 9 then Dec(NMonth);
-  if AYear <= -255 then Inc(NMonth);
-  if AYear <= -256 then Inc(NMonth, 2);
-  if AYear <= -722 then Inc(NMonth);
+
+  if (AYear < 24) and not ((AYear = 23) and (AMonth = 12) and (ADay = 31)) then  // 23 年 12 月 31 日也不能加 1
+    Inc(NMonth);  // 公元 23 年 12 月 2 日十二月小，12 月 31 日增加十二月大但也不叫闰月
+
+  if AYear < 9 then
+    Dec(NMonth);
+  if AYear <= -255 then
+    Inc(NMonth);
+  if AYear <= -256 then
+    Inc(NMonth, 2);
+  if AYear <= -722 then
+    Inc(NMonth);
 
   LMY := GetLeapMonth(AYear);
   LMY1 := GetLeapMonth(AYear - 1);
@@ -4435,9 +4455,10 @@ begin
 
       Result := Result + 1;
     end
-    else if (AMonth in [1, 2]) and (Result = 12) then
+    else if ((AMonth in [1, 2]) or ((AMonth = 3) and (AYear <= 436))) and (Result = 12) then
     begin
       // 还要考虑这种情况，公元 1574 年 1、2 月转农历得到 12 月，且 1574 年闰 12 月，这种情况也不是闰月，要修正为普通月
+      // 公元 436 年 3 月 1 日转农历得到 12 月，且 436 年闰 12 月，这种情况也不是闰月，同样要修正为普通月，但 3 月条件限制在公元 436 之前
       Result := 1;  // 12 + 1 - 12 = 1
     end
     else
@@ -4490,6 +4511,10 @@ begin
     if (LunarMonth > 6) and (AMonth < 6) then
       Dec(LunarYear);
 
+    // 公元后的特殊情况，公历在 12 月，农历在 1 月，则是下一年
+    if (LunarMonth = 1) and (AMonth = 12) then
+      Inc(LunarYear);
+
     ZeroYearToNonZeroYear(LunarYear); // 连续的农历年转成非连续的农历年，没有农历 0 年
     Result := True;
   end;
@@ -4541,15 +4566,34 @@ begin
 
   // 初始范围为本公历年一月一日到次年十二月三十一日，这样做的前提是历史上正月初一
   // 没有落到公历年年前去。如果有这样的情况，可考虑适当扩大搜索范围，比如从
-  // 上一公历年一月一日到次年十二月三十一日，但又可能引发下面对搜索范围判断的错
-  StartYear := ALunarYear;
+  // 上一公历年一月一日到次年十二月三十一日，但又可能引发下面对搜索范围判断的错，只能分开处理
+  // 确保搜索范围最多只有两年
+
+  if (ALunarYear < 20) and (ALunarMonth = 1) then
+  begin
+    // 公元几十年的范围内，正月初一可能落到公历年前，因此搜索年份改成前一年初到今年年底
+    StartYear := ALunarYear - 1;
+    if StartYear = 0 then
+      Dec(StartYear);
+
+    EndYear := ALunarYear;
+  end
+  else
+  begin
+    StartYear := ALunarYear;
+
+    EndYear := ALunarYear + 1;
+    if EndYear = 0 then // 没有公元 0 年同样没有农历 0 年
+      EndYear := 1;
+  end;
+
   StartMonth := 1;
   StartDay := 1;
-  StartDays := Trunc(GetJulianDate(StartYear, StartMonth, StartDay));
 
-  EndYear := ALunarYear + 1;
   EndMonth := 12;
   EndDay := 31;
+
+  StartDays := Trunc(GetJulianDate(StartYear, StartMonth, StartDay));
   EndDays := Trunc(GetJulianDate(EndYear, EndMonth, EndDay));
 
   Only2 := False;
@@ -4573,10 +4617,16 @@ begin
       Only2 := True;
 
     GetDayFromJulianDate(InterDays, TempYear, TempMonth, TempDay);
-    // ZeroYearToNonZeroYear(TempYear); // 上面返回的年份是 0 连续的，需要转成非 0 的公元年份
     GetLunarMonthDayFromDay(TempYear, TempMonth, TempDay, TempLunarMonth,
       TempLunarDay, TempIsLeap);
     // 此转换不能直接获取年份，故用下面的判断来获取年份
+
+    if (Lsd = lsdInvalid) and (Count = 1) then
+    begin
+      // 第一次进来时，可能也要调整农历转换年份，凑合着判断
+      if (TempMonth > 10) and (TempLunarMonth <= 2) then
+        Inc(TempLunarYear);
+    end;
 
     case Lsd of
       lsdUp:
