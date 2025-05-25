@@ -49,8 +49,7 @@ unit CnCalendar;
 *           注意，本单元中的公元前的公历年份除特殊说明外均是绝对值变负值，比如公元前 1 年
 *           便是 -1 年，没有公元 0 年，和部分函数及天文领域使用 0 作为公元前 1 年不同。
 *
-*           因天文计算精度及历史状况复杂的原因，农历在公元 25 年之前准确度无法保证，
-*           且因历史上修历原因，公元 250 前的农历转公历不保证能得到唯一正确的结果，使用时应注意。
+*           因天文计算精度及历史状况复杂的原因，农历在公元 250 年之前准确度无法保证，使用时应注意。
 *
 *           公农历转换目前置闰的闰月是预置数据方式，不直接计算节气，
 *           因而后续可规划将节气算法优化至精确度更高的方式。
@@ -1738,6 +1737,30 @@ const
   { * 自公元前 850 年开始的农历闰月信息 -849~2100，移植自中国日历类，2100 后罗建仁计算补充
     共 3650 项，竟然比上面的多一项，原因是为了方便直接按公元年份 +849 做下标访问，
     内部多塞了个公元 0 年的 0 值，费解但目测不影响}
+
+type
+  TCnLunarDateSingleMonthFix = packed record
+  {* 因古代观测精度限制，针对单个农历月的公农历转换修正一天的数据，暂时没处理跨年的情况}
+    Year: Integer;         // 偏差所在的年份
+    Month: Integer;        // 偏差开始的月份，结束是下一个月
+    StartDay: Integer;     // 偏差开始的日期
+    EndDay: Integer;       // 下个月偏差结束的日期
+    IncOne: Boolean;       // True 表示加一天，False 表示减一天
+  end;
+
+const
+  CN_LUNAR_SINGLE_MONTH_FIX: array[0..8] of TCnLunarDateSingleMonthFix = (
+  {* 历史上因观测偏差导致的单个农历月首的单日偏差修正}
+    (Year:  244; Month:  4; StartDay: 24; EndDay: 23; IncOne: False),
+    (Year:  245; Month:  1; StartDay: 15; EndDay: 13; IncOne: True),
+    (Year:  245; Month:  5; StartDay: 13; EndDay: 11; IncOne: False),
+    (Year:  245; Month:  7; StartDay: 11; EndDay:  9; IncOne: False),
+    (Year:  246; Month:  2; StartDay:  3; EndDay:  4; IncOne: True),
+    (Year: 1199; Month:  3; StartDay: 28; EndDay: 26; IncOne: False),
+    (Year: 1914; Month: 11; StartDay: 17; EndDay: 16; IncOne: True),
+    (Year: 1924; Month:  3; StartDay:  5; EndDay:  3; IncOne: True),
+    (Year: 2018; Month: 11; StartDay:  7; EndDay:  6; IncOne: False)
+  );
 
 // 无公元元年的公历年份，转换为内部连续的包含 0 的年份，负值加一
 procedure NonZeroYearToZeroYear(var AYear: Integer);
@@ -4255,7 +4278,7 @@ var
   K, K1: Real;
   T, Rpi, Zone, F0, Fc, J0, Aa0, Ab0, Ac0, ShuoTime, WangTime: Real;
   Aa, Ab, Ac, F1, J: Real;
-  Ms, LunDay, LunDay0, WangDay: Integer;
+  I, Ms, LunDay, LunDay0, WangDay: Integer;
   S, R, P, Q: Real;
   StdDays: Integer;
 begin
@@ -4336,50 +4359,36 @@ begin
     K := K + 0.5;
   end;
 
-  // 1199.03.28 ~ 04.26 有偏差导致该月差一天要减去
-  if (AYear = 1199)
-    and (((AMonth = 3) and (ADay >= 28)) or ((AMonth = 4) and (ADay <= 26))) then
+  // 历史上的观测偏差导致的单个农历月首的单日偏差修正（不跨年的情况）
+  for I := Low(CN_LUNAR_SINGLE_MONTH_FIX) to High(CN_LUNAR_SINGLE_MONTH_FIX) do
   begin
-    Dec(LunDay);
-    if LunDay < 1 then
-      LunDay := Lunday + 30;
+    if (AYear = CN_LUNAR_SINGLE_MONTH_FIX[I].Year)
+      and (((AMonth = CN_LUNAR_SINGLE_MONTH_FIX[I].Month) and (ADay >= CN_LUNAR_SINGLE_MONTH_FIX[I].StartDay))
+      or ((AMonth = CN_LUNAR_SINGLE_MONTH_FIX[I].Month + 1) and (ADay <= CN_LUNAR_SINGLE_MONTH_FIX[I].EndDay))) then
+    begin
+      if CN_LUNAR_SINGLE_MONTH_FIX[I].IncOne then
+      begin
+        Inc(LunDay);
+        if LunDay > 30 then
+          LunDay := Lunday - 30;
+      end
+      else
+      begin
+        Dec(LunDay);
+        if LunDay < 1 then
+          LunDay := LunDay + 30;
+      end;
+    end;
   end;
 
-  // 1914.11.17 ~ 12.16 朔日计算时刻 0:02 离历史实际情况（到前一天去了）有偏差导致该月差一天要减去
-  if (AYear = 1914)
-    and (((AMonth = 11) and (ADay >= 17)) or ((AMonth = 12) and (ADay <= 16))) then
+  // 245.12.6 到 246.1.4 跨年的有偏差导致该月差一天要加上
+  if ((AYear = 245) and ((AMonth = 12) and (ADay >= 6)))
+    or ((AYear = 246) and ((AMonth = 1) and (ADay <= 4))) then
   begin
     Inc(LunDay);
     if LunDay > 30 then
       LunDay := Lunday - 30;
   end;
-
-  // 1924.3.5 ~ 4.3 少一天
-  if (AYear = 1924)
-    and (((AMonth = 3) and (ADay >= 5)) or ((AMonth = 4) and (ADay <= 3))) then
-  begin
-    Inc(LunDay);
-    if LunDay > 30 then
-      LunDay := Lunday - 30;
-  end;
-
-  // 2018.11.7 ~ 12.6 多一天
-  if (AYear = 2018)
-    and (((AMonth = 11) and (ADay >= 7)) or ((AMonth = 12) and (ADay <= 6))) then
-  begin
-    Dec(LunDay);
-    if LunDay < 1 then
-      LunDay := LunDay + 30;
-  end;
-
-// 原始移植而来的代码，有 2025.4.27 ~ 5.26 少一天的机制，但经计算与实际情况不符，干掉
-//  if (AYear = 2025)
-//    and (((AMonth = 4) and (ADay >= 27)) or ((AMonth = 5) and (ADay <= 26))) then
-//  begin
-//    Inc(LunDay);
-//    if LunDay > 30 then
-//      LunDay := LunDay - 30;
-//  end;
 
   Result := LunDay;
 
@@ -4524,7 +4533,7 @@ begin
      end
      else if (AYear = 23) and (AMonth = 12) and (ADay = 31) then
        Result := -Result
-     else if (AYear = 24) and (AMonth = 1) and (ADay <= 28) then
+     else if (AYear = 24) and (AMonth = 1) and (ADay <= 29) then
        Result := -Result;
    end;
 end;
