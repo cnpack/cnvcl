@@ -1260,6 +1260,15 @@ function UInt64ToBinStr(V: TUInt64): string;
    返回值：string                         - 返回二进制字符串
 }
 
+function StrToUInt(const S: string): Cardinal;
+{* 将字符串转换为 32 位无符号整数。
+
+   参数：
+     const S: string                      - 待转换的字符串
+
+   返回值：Cardinal                       - 返回转换结果
+}
+
 function HexToInt(const Hex: string): Integer; overload;
 {* 将一十六进制字符串转换为整型，适合较短尤其是 2 字符的字符串。
 
@@ -3921,7 +3930,7 @@ begin
   Empty := True;
 
   if (S[I] =  Char('$')) or (UpCase(S[I]) =  Char('X'))
-    or ((S[I] =  Char('0')) and (I < Length(S)) and (UpCase(S[I+1]) =  Char('X'))) then
+    or ((S[I] =  Char('0')) and (I < Length(S)) and (UpCase(S[I + 1]) =  Char('X'))) then
   begin
     if S[I] =  Char('0') then
       Inc(I);
@@ -3929,7 +3938,7 @@ begin
     while True do
     begin
       case Char(S[I]) of
-        Char('0').. Char('9'): Dig := Ord(S[I]) -  Ord('0');
+        Char('0').. Char('9'): Dig := Ord(S[I]) - Ord('0');
         Char('A').. Char('F'): Dig := Ord(S[I]) - (Ord('A') - 10);
         Char('a').. Char('f'): Dig := Ord(S[I]) - (Ord('a') - 10);
       else
@@ -3962,6 +3971,91 @@ begin
         Break;
 
       Result := Result * 10 + TUInt64(Dig);
+      Inc(I);
+      Empty := False;
+    end;
+  end;
+
+  if (S[I] <> Char(#0)) or Empty then
+    Code := I + 1 - FirstIndex
+  else
+    Code := 0;
+end;
+
+function _ValUInt32(const S: string; var Code: Integer): Cardinal;
+const
+  FirstIndex = 1;
+var
+  I: Integer;
+  Dig: Integer;
+  Sign: Boolean;
+  Empty: Boolean;
+begin
+  I := FirstIndex;
+  Dig := 0; 
+  Result := 0;
+
+  if S = '' then
+  begin
+    Code := 1;
+    Exit;
+  end;
+
+  while S[I] = Char(' ') do
+    Inc(I);
+  Sign := False;
+
+  if S[I] =  Char('-') then
+  begin
+    Sign := True;
+    Inc(I);
+  end
+  else if S[I] =  Char('+') then
+    Inc(I);
+  Empty := True;
+
+  if (S[I] =  Char('$')) or (UpCase(S[I]) =  Char('X'))
+    or ((S[I] =  Char('0')) and (I < Length(S)) and (UpCase(S[I + 1]) =  Char('X'))) then
+  begin
+    if S[I] =  Char('0') then
+      Inc(I);
+    Inc(I);
+    while True do
+    begin
+      case Char(S[I]) of
+        Char('0').. Char('9'): Dig := Ord(S[I]) - Ord('0');
+        Char('A').. Char('F'): Dig := Ord(S[I]) - (Ord('A') - 10);
+        Char('a').. Char('f'): Dig := Ord(S[I]) - (Ord('a') - 10);
+      else
+        Break;
+      end;
+
+      if Result > (CN_MAX_UINT32 shr 4) then
+        Break;
+      if Sign and (Dig <> 0) then
+        Break;
+
+      Result := Result shl 4 + Cardinal(Dig);
+      Inc(I);
+      Empty := False;
+    end;
+  end
+  else
+  begin
+    while True do
+    begin
+      case Char(S[I]) of
+        Char('0').. Char('9'): Dig := Ord(S[I]) - Ord('0');
+      else
+        Break;
+      end;
+
+      if Result > (CN_MAX_UINT32 div 10) then
+        Break;
+      if Sign and (Dig <> 0) then
+        Break;
+
+      Result := Result * 10 + Cardinal(Dig);
       Inc(I);
       Empty := False;
     end;
@@ -4011,7 +4105,21 @@ begin
 {$IFDEF DELPHIXE6_UP}
   Result := SysUtils.StrToUInt64(S);  // StrToUInt64 only exists under XE6 or above
 {$ELSE}
-  Result := _ValUInt64(S,  E);
+  Result := _ValUInt64(S, E);
+  if E <> 0 then raise EConvertError.CreateResFmt(@SInvalidInteger, [S]);
+{$ENDIF}
+end;
+
+function StrToUInt(const S: string): Cardinal;
+{$IFNDEF DELPHI102_TOKYO_UP}
+var
+  E: Integer;
+{$ENDIF}
+begin
+{$IFDEF DELPHI102_TOKYO_UP}
+  Result := SysUtils.StrToUInt(S);  // StrToUInt only exists under D102T or above
+{$ELSE}
+  Result := _ValUInt32(S, E);
   if E <> 0 then raise EConvertError.CreateResFmt(@SInvalidInteger, [S]);
 {$ENDIF}
 end;
