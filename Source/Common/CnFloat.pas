@@ -220,13 +220,29 @@ procedure ExtractFloatDouble(Value: Double; out SignNegative: Boolean;
 }
 
 procedure ExtractFloatExtended(Value: Extended; out SignNegative: Boolean;
-  out Exponent: Integer; out Mantissa: TUInt64);
+  out Exponent: Integer; out Mantissa: TUInt64); overload;
 {* 从扩展精度浮点数中解出符号位、指数、去除了小数点的完整有效数字，支持 10 字节、
-   以及 16 字节截断为 10 字节的 Extended 格式。
+   以及 16 字节截断为 10 字节的 Extended 格式。该函数实现依赖平台的 Extended 尺寸。
    注意：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1。
 
    参数：
      Value: Extended                      - 待解开的扩展精度浮点数
+     out SignNegative: Boolean            - 符号位，True 为负
+     out Exponent: Integer                - 指数
+     out Mantissa: TUInt64                - 有效数字
+
+   返回值：（无）
+}
+
+procedure ExtractFloatExtended(ValueAddr: Pointer; ExtendedSize: Integer;
+  out SignNegative: Boolean; out Exponent: Integer; out Mantissa: TUInt64); overload;
+{* 从不定长度的扩展精度浮点数所在地址中解出符号位、指数、去除了小数点的完整有效数字，支持 10 字节、
+   以及 16 字节截断为 10 字节的 Extended 格式。该函数实现与本平台的 Extended 尺寸无关。
+   注意：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1。
+
+   参数：
+     ValueAddr: Pointer                   - 待解开的扩展精度浮点数所在地址
+     ExtendedSize: Integer                - 该扩展进度的大小，只支持 8、10、16 三个值
      out SignNegative: Boolean            - 符号位，True 为负
      out Exponent: Integer                - 指数
      out Mantissa: TUInt64                - 有效数字
@@ -1166,6 +1182,26 @@ begin
   end
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
     ExtractFloatDouble(Value, SignNegative, Exponent, Mantissa)
+  else
+    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+end;
+
+procedure ExtractFloatExtended(ValueAddr: Pointer; ExtendedSize: Integer;
+  out SignNegative: Boolean; out Exponent: Integer; out Mantissa: TUInt64);
+var
+  D: Double;
+begin
+  if (ExtendedSize = CN_EXTENDED_SIZE_10) or (ExtendedSize = CN_EXTENDED_SIZE_16) then
+  begin
+    SignNegative := (PExtendedRec10(ValueAddr)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
+    Exponent := (PExtendedRec10(ValueAddr)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
+    Mantissa := PExtendedRec10(ValueAddr)^.Mantissa; // 有 1，不用加了
+  end
+  else if ExtendedSize = CN_EXTENDED_SIZE_8 then
+  begin
+    Move(ValueAddr^, D, SizeOf(Double));
+    ExtractFloatDouble(D, SignNegative, Exponent, Mantissa);
+  end
   else
     raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
 end;
