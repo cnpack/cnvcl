@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, CnFloat, CnNative, StdCtrls;
+  Dialogs, CnFloat, CnNative, StdCtrls, ExtCtrls;
 
 type
   TFormFloat = class(TForm)
@@ -21,10 +21,22 @@ type
     btnExtract: TButton;
     btnUInt64ToFloat: TButton;
     btnFloatToUInt64: TButton;
+    bvl1: TBevel;
+    edtFloat: TEdit;
+    rgFloat: TRadioGroup;
+    edtFloatHex: TEdit;
+    edtFloatBack: TEdit;
+    chkNeg: TCheckBox;
+    lblExp: TLabel;
+    edtExp: TEdit;
+    lblManti: TLabel;
+    edtManti: TEdit;
     procedure Button1Click(Sender: TObject);
     procedure btnExtractClick(Sender: TObject);
     procedure btnUInt64ToFloatClick(Sender: TObject);
     procedure btnFloatToUInt64Click(Sender: TObject);
+    procedure edtFloatChange(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
 
   public
@@ -126,6 +138,66 @@ begin
   ShowMessage(UInt64ToStr(U));
   U := ExtendedToUInt64(D1);
   ShowMessage(UInt64ToStr(U));
+end;
+
+procedure TFormFloat.edtFloatChange(Sender: TObject);
+var
+  F1: Single;
+  F2: Double;
+  F3: Extended;
+  Sign: Boolean;
+  Exp: Integer;
+  Mant: Cardinal;
+  Mant64: TUInt64;
+
+  function HexTrimZero(N: TUInt64): string;
+  begin
+    Result := UInt64ToHex(N);
+    if Length(Result) > 0 then
+    begin
+      while Result[1] = '0' do
+        Delete(Result, 1, 1);
+    end;
+  end;
+
+begin
+  edtFloatHex.Text := '';
+  if Trim(edtFloat.Text) = '' then
+    Exit;
+
+  case rgFloat.ItemIndex of
+    0:
+      begin
+        F1 := StrToFloat(edtFloat.Text);
+        edtFloatHex.Text := DataToHex(@F1, SizeOf(F1));
+        edtFloatBack.Text := FloatToStr(F1);
+        ExtractFloatSingle(F1, Sign, Exp, Mant);
+        edtManti.Text := HexTrimZero(Mant);
+      end;
+    1:
+      begin
+        F2 := StrToFloat(edtFloat.Text);
+        edtFloatHex.Text := DataToHex(@F2, SizeOf(F2));
+        edtFloatBack.Text := FloatToStr(F2);
+        ExtractFloatDouble(F2, Sign, Exp, Mant64);
+        edtManti.Text := HexTrimZero(Mant64);
+      end;
+    2:
+      begin
+        F3 := StrToFloat(edtFloat.Text);
+        edtFloatHex.Text := DataToHex(@F3, SizeOf(F3));
+        edtFloatBack.Text := ExtendedToStr(F3);
+        ExtractFloatExtended(F3, Sign, Exp, Mant64);
+        edtManti.Text := HexTrimZero(Mant64);
+      end;
+  end;
+  chkNeg.Checked := Sign;
+  edtExp.Text := IntToStr(Exp);
+end;
+
+procedure TFormFloat.FormCreate(Sender: TObject);
+begin
+  edtFloat.OnChange(edtFloat);
 end;
 
 end.

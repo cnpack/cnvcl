@@ -102,8 +102,8 @@ procedure TFormCalendar.btnCalcClick(Sender: TObject);
 var
   GZYear, GZMonth: Integer;
   I, GanZhi, Gan, Zhi, JiuXing: Integer;
-  M1, D1, H1, mi1: Integer;
-  M2, D2, H2, mi2: Integer;
+  M1, D1, H1, mi1, s1: Integer;
+  M2, D2, H2, mi2, s2: Integer;
   v91, v92: Integer;
   vf1, vf2: Integer;
   rmMonth, rmDay, cmMonth, cmDay: Integer;
@@ -176,7 +176,7 @@ begin
   mmoResult.Lines.Add('本日节气：' + GetJieQiFromNumber(GetJieQiFromDay(AYear, AMonth, ADay)));
   if GetJieQiFromDay(AYear, AMonth, ADay) >= 0 then
   begin
-    if GetJieQiTimeFromDay(AYear, AMonth, ADay, H1, mi1) >= 0 then
+    if GetJieQiTimeFromDay(AYear, AMonth, ADay, H1, mi1, s1) >= 0 then
       mmoResult.Lines.Add(Format('本日交节时刻：%d 时 %d 分', [H1, mi1])); 
   end;
   mmoResult.Lines.Add('每日胎神：' + GetTaiShenStringFromDay(AYear, AMonth, ADay));
@@ -198,11 +198,11 @@ begin
   mmoResult.Lines.Add(Format('公历%d年各节气交接时刻：', [AYear]));
   for I := 0 to 11 do
   begin
-    GetJieQiInAYear(AYear, 2 * I, M1, D1, H1, mi1);
-    GetJieQiInAYear(AYear, 2 * I + 1, M2, D2, H2, mi2);
-    mmoResult.Lines.Add(Format('%s：%2d月%2d日:%2d时:%2d分    %s：%2d月%2d日:%2d时:%2d分',
-      [GetJieQiFromNumber((I * 2 + 22) mod 24), M1, D1, H1, mi1,
-       GetJieQiFromNumber((I * 2 + 23) mod 24), M2, D2, H2, mi2]));
+    GetJieQiInAYear(AYear, 2 * I, M1, D1, H1, mi1, s1);
+    GetJieQiInAYear(AYear, 2 * I + 1, M2, D2, H2, mi2, s2);
+    mmoResult.Lines.Add(Format('%s：%2d月%2d日:%2d时:%2d分:%2d秒    %s：%2d月%2d日:%2d时:%2d分:%2d秒',
+      [GetJieQiFromNumber((I * 2 + 22) mod 24), M1, D1, H1, mi1, s1,
+       GetJieQiFromNumber((I * 2 + 23) mod 24), M2, D2, H2, mi2, s2]));
   end;
 end;
 
@@ -517,22 +517,29 @@ var
 begin
   mmoDays.Lines.Clear;
 
-  Y := 1198;
-  M := 12;
-  D := 30;
+  Y := 1;
+  M := 1;
+  D := 1;
 
   repeat
     StepToNextDay(Y, M, D);
     if GetLunarFromDay(Y, M, D, LY, LM, LD, Leap) then
     begin
       if not GetDayFromLunar(LY, LM, LD, Leap, BY, BM, BD) then
-        mmoDays.Lines.Add(Format('Error Lunar Seach Back %d %d %d', [LY, LM, LD]))
+      begin
+        mmoDays.Lines.Add(Format('Error Lunar Seach Back for Lunar %d %d %d Leap %d', [LY, LM, LD, Ord(Leap)]));
+        Exit;
+      end
       else
       begin
         if (BY <> Y) or (BM <> M) or (BD <> D) then
-          mmoDays.Lines.Add(Format('Error Lunar Convert Back for %d %d %d to %d %d %d', [Y, M, D, LY, LM, LD]))
+        begin
+          mmoDays.Lines.Add(Format('Error Lunar Convert Back for Solar %d %d %d to Lunar %d %d %d %d. Get Solar %d %d %d',
+            [Y, M, D, LY, LM, LD, Ord(Leap), BY, BM, BD]));
+          Exit;
+        end;
       end;
-      if LD = 1 then
+      // if {(LM = 1) and } (LD = 1) then
       begin
         if Leap then
           mmoDays.Lines.Add(Format('公历 %4.4d %2.2d %2.2d -> 农历 %4.4d 闰%2.2d %2.2d',
@@ -542,7 +549,7 @@ begin
             [Y, M, D, LY, LM, LD]));
       end;
     end;
-  until Y > 2100;
+  until Y > 2800;
 end;
 
 const

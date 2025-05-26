@@ -414,6 +414,16 @@ function ExtendedIsNan(AValue: Extended): Boolean;
    返回值：Boolean                        - 返回是否非实数
 }
 
+function ExtendedToStr(AValue: Extended): string;
+{* 将扩展精度浮点数转换为字符串，支持其最大的精度。
+   Delphi 默认 15 位小数，本函数增大到 18，也即支持 1234567899876543.21。
+
+   参数：
+     AValue: Extended                     - 待判断的扩展精度浮点数
+
+   返回值：string                         - 返回转换结果
+}
+
 // FPC、Windows 64/Linux 64 等平台以及 Delphi 5、6 不支持以下三个函数
 {$IFDEF WIN32}
 {$IFDEF COMPILER7_UP}
@@ -1374,6 +1384,14 @@ begin
     Result := DoubleIsNan(AValue)
   else
     raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+end;
+
+function ExtendedToStr(AValue: Extended): string;
+var
+  Buffer: array[0..63] of Char;
+begin
+  SetString(Result, Buffer, FloatToText(Buffer, AValue, fvExtended,
+    ffGeneral, 18, 0)); // 内部限制了最大 18
 end;
 
 end.
