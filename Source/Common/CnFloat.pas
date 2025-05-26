@@ -1297,7 +1297,7 @@ procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
 var
   D: Double;
 begin
-  if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
+  if (ExtendedSize = CN_EXTENDED_SIZE_10) or (ExtendedSize = CN_EXTENDED_SIZE_16) then
   begin
     PExtendedRec10(ValueAddr)^.Mantissa := Mantissa;
     Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
@@ -1308,7 +1308,7 @@ begin
     else
       PExtendedRec10(ValueAddr)^.ExpSign := PExtendedRec10(ValueAddr)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
   end
-  else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+  else if ExtendedSize = CN_EXTENDED_SIZE_8 then
   begin
     CombineFloatDouble(SignNegative, Exponent, Mantissa, D);
     Move(D, ValueAddr^, SizeOf(Double));
