@@ -221,7 +221,7 @@ procedure ExtractFloatDouble(Value: Double; out SignNegative: Boolean;
 
 procedure ExtractFloatExtended(Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: TUInt64); overload;
-{* 从扩展精度浮点数中解出符号位、指数、去除了小数点的完整有效数字，支持 10 字节、
+{* 从扩展精度浮点数中解出符号位、指数、去除了小数点的完整有效数字，支持 8 字节、10 字节、
    以及 16 字节截断为 10 字节的 Extended 格式。该函数实现依赖平台的 Extended 尺寸。
    注意：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1。
 
@@ -236,13 +236,13 @@ procedure ExtractFloatExtended(Value: Extended; out SignNegative: Boolean;
 
 procedure ExtractFloatExtended(ValueAddr: Pointer; ExtendedSize: Integer;
   out SignNegative: Boolean; out Exponent: Integer; out Mantissa: TUInt64); overload;
-{* 从不定长度的扩展精度浮点数所在地址中解出符号位、指数、去除了小数点的完整有效数字，支持 10 字节、
+{* 从不定长度的扩展精度浮点数所在地址中解出符号位、指数、去除了小数点的完整有效数字，支持 8 字节、10 字节、
    以及 16 字节截断为 10 字节的 Extended 格式。该函数实现与本平台的 Extended 尺寸无关。
    注意：指数为真实指数；有效数字为全部 64 位，最高位 63 位为自带的 1。
 
    参数：
      ValueAddr: Pointer                   - 待解开的扩展精度浮点数所在地址
-     ExtendedSize: Integer                - 该扩展进度的大小，只支持 8、10、16 三个值
+     ExtendedSize: Integer                - 该扩展精度的大小，只支持 8、10、16 三个值
      out SignNegative: Boolean            - 符号位，True 为负
      out Exponent: Integer                - 指数
      out Mantissa: TUInt64                - 有效数字
@@ -293,15 +293,32 @@ procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
 }
 
 procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
-  Mantissa: TUInt64; var Value: Extended);
+  Mantissa: TUInt64; var Value: Extended); overload;
 {* 把符号位、指数、有效数字拼成扩展精度浮点数，支持 10 字节、
-   以及 16 字节截断为 10 字节的 Extended 格式。要求有效数字为正规化的，也即共 64 位且最高位为 1。
+   以及 16 字节截断为 10 字节的 Extended 格式。该函数实现依赖平台的 Extended 尺寸。
+   要求有效数字为正规化的，也即共 64 位且最高位为 1。
 
    参数：
      SignNegative: Boolean                - 符号位，True 为负
      Exponent: Integer                    - 指数
      Mantissa: TUInt64                    - 有效数字，64 位全有效
      var Value: Extended                  - 返回组合的扩展精度浮点数
+
+   返回值：（无）
+}
+
+procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
+  Mantissa: TUInt64; ValueAddr: Pointer; ExtendedSize: Integer); overload;
+{* 把符号位、指数、有效数字拼成扩展精度浮点数，支持 10 字节、
+   以及 16 字节截断为 10 字节的 Extended 格式。该函数实现与本平台的 Extended 尺寸无关。
+   要求有效数字为正规化的，也即共 64 位且最高位为 1。
+
+   参数：
+     SignNegative: Boolean                - 符号位，True 为负
+     Exponent: Integer                    - 指数
+     Mantissa: TUInt64                    - 有效数字，64 位全有效
+     ValueAddr: Pointer                   - 容纳组合的扩展精度浮点数的地址
+     ExtendedSize: Integer                - 该扩展精度的大小，只支持 8、10、16 三个值
 
    返回值：（无）
 }
@@ -1270,6 +1287,31 @@ begin
   begin
     CombineFloatDouble(SignNegative, Exponent, Mantissa, D);
     Value := D;
+  end
+  else
+    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+end;
+
+procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
+  Mantissa: TUInt64; ValueAddr: Pointer; ExtendedSize: Integer);
+var
+  D: Double;
+begin
+  if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
+  begin
+    PExtendedRec10(ValueAddr)^.Mantissa := Mantissa;
+    Inc(Exponent, CN_EXPONENT_OFFSET_EXTENDED);
+
+    PExtendedRec10(ValueAddr)^.ExpSign := Exponent and CN_EXPONENT_EXTENDED_MASK;
+    if SignNegative then
+      PExtendedRec10(ValueAddr)^.ExpSign := PExtendedRec10(ValueAddr)^.ExpSign or CN_SIGN_EXTENDED_MASK
+    else
+      PExtendedRec10(ValueAddr)^.ExpSign := PExtendedRec10(ValueAddr)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
+  end
+  else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+  begin
+    CombineFloatDouble(SignNegative, Exponent, Mantissa, D);
+    Move(D, ValueAddr^, SizeOf(Double));
   end
   else
     raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
