@@ -66,16 +66,18 @@ unit CnCalendar;
 *           注意，本单元中的公元前的公历年份除特殊说明外均是绝对值变负值，比如公元前 1 年
 *           便是 -1 年，没有公元 0 年，和部分函数及天文领域使用 0 作为公元前 1 年不同。
 *
-*           因天文计算精度及历史状况复杂的原因，农历在公元 250 年之前准确度无法保证，使用时应注意。
+*           因天文计算精度及历史状况复杂的原因，农历在公元 250 年之前的准确度无法
+*           确保与历史实际情况一致，使用时应注意。
 *
-*           公农历转换目前置闰的闰月是预置数据方式，不直接计算节气，
-*           因而后续可规划将节气算法优化至精确度更高的方式，如寿星天文历中的精确到秒。
+*           公农历转换目前置闰的闰月是预置数据方式，不直接依赖于节气计算，
+*           因而节气算法优化至精确度更高的方式（寿星天文历中的精确到秒的算法）
+*           不影响农历大小月判断与修正，避免了精度优化的过程中需要重新核对历史农历的繁文缛节。
 *
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.05.25 V2.8
-*               增加移植自寿星天文历的精确节气算法，待测试验证
+* 修改记录：2025.05.27 V2.8
+*               增加并切换至移植自寿星天文历的精确节气算法，基本测试验证通过
 *           2025.05.21 V2.7
 *               增加儒略日/约化儒略日与公历年月日的互转及公历日步进函数
 *               并修正等效标准日数在公元前可能有计算偏差的问题
@@ -3380,8 +3382,8 @@ var
   Y0, T0, V, DV, Acc, T1, T2, T3: Extended;
   I: Integer;
 begin
-  Y0 := CN_DT_AT[High(CN_DT_AT)- 2 ]; // 表中最后一年
-  T0 := CN_DT_AT[High(CN_DT_AT)- 1];  // 表中最后一年的 deltatT
+  Y0 := CN_DT_AT[High(CN_DT_AT) - 1]; // 表中最后一年
+  T0 := CN_DT_AT[High(CN_DT_AT)];     // 表中最后一年的 deltatT
   if Y >= Y0 then
   begin
     Acc := 31; // y0 年之后的加速度估计。瑞士星历表 31，NASA 网站 32，skmap 的 29
@@ -3516,7 +3518,7 @@ var
   F: Extended;
 begin
   F := 628.307585 * T;
-  Result := 628.332 + 21 * Sin(1.527 + F) + 0.44 * Sin( 1.48 + F * 2)
+  Result := 628.332 + 21 * Sin(1.527 + F) + 0.44 * Sin(1.48 + F * 2)
     + 0.129 * Sin(5.82 + F) * T + 0.00055 * Sin(4.21 + F) * T * T;
 end;
 
@@ -3528,7 +3530,7 @@ begin
   V := 628.3319653318;
   T := (W - 1.75347 - CN_PI) / V;
   V := EearthVelocity(T); // v 的精度 0.03%
-  T := T + ( W - SolarApparentLongitude(T, 10) )/ V;
+  T := T + ( W - SolarApparentLongitude(T, 10) ) / V;
   V := EearthVelocity(T); // 再算一次 V 有助于提高精度，不算也可以
   T := T + ( W - SolarApparentLongitude(T, -1) ) / V;
   Result := T;
@@ -3567,7 +3569,7 @@ begin
   Result := N in [0..23];
   if Result then
   begin
-    Days := GetJieQiDayTimeFromYear(AYear, N + 1);
+    Days := GetJieQiDayTimeFromYear2(AYear, N + 1);
     for I := 1 to 12 do
     begin
       Day := GetMonthDays(AYear, I);

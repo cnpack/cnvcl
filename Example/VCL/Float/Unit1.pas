@@ -153,11 +153,8 @@ var
   function HexTrimZero(N: TUInt64): string;
   begin
     Result := UInt64ToHex(N);
-    if Length(Result) > 0 then
-    begin
-      while Result[1] = '0' do
-        Delete(Result, 1, 1);
-    end;
+    while (Length(Result) > 0) and (Result[1] = '0') do
+      Delete(Result, 1, 1);
   end;
 
 begin
