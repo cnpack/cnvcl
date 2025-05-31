@@ -4028,6 +4028,11 @@ begin
     WM_VSCROLL              : Result := Format('WM_VSCROLL: %d/$%x', [AMessage, AMessage]);
     WM_INITMENU             : Result := Format('WM_INITMENU: %d/$%x', [AMessage, AMessage]);
     WM_INITMENUPOPUP        : Result := Format('WM_INITMENUPOPUP: %d/$%x', [AMessage, AMessage]);
+
+    $118                    : Result := Format('WM_SYSTIMER: %d/$%x', [AMessage, AMessage]);
+    $119                    : Result := Format('WM_GESTURE: %d/$%x', [AMessage, AMessage]);
+    $11A                    : Result := Format('WM_GESTURENOTIFY: %d/$%x', [AMessage, AMessage]);
+
     WM_MENUSELECT           : Result := Format('WM_MENUSELECT: %d/$%x', [AMessage, AMessage]);
     WM_MENUCHAR             : Result := Format('WM_MENUCHAR: %d/$%x', [AMessage, AMessage]);
     WM_ENTERIDLE            : Result := Format('WM_ENTERIDLE: %d/$%x', [AMessage, AMessage]);
