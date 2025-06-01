@@ -3963,7 +3963,9 @@ begin
     WM_ERASEBKGND           : Result := Format('WM_ERASEBKGND: %d/$%x', [AMessage, AMessage]);
     WM_SYSCOLORCHANGE       : Result := Format('WM_SYSCOLORCHANGE: %d/$%x', [AMessage, AMessage]);
     WM_ENDSESSION           : Result := Format('WM_ENDSESSION: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     WM_SYSTEMERROR          : Result := Format('WM_SYSTEMERROR: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     WM_SHOWWINDOW           : Result := Format('WM_SHOWWINDOW: %d/$%x', [AMessage, AMessage]);
     WM_CTLCOLOR             : Result := Format('WM_CTLCOLOR: %d/$%x', [AMessage, AMessage]);
     WM_WININICHANGE         : Result := Format('WM_WININICHANGE/WM_SETTINGCHANGE: %d/$%x', [AMessage, AMessage]);
@@ -3994,7 +3996,9 @@ begin
     WM_COMPAREITEM          : Result := Format('WM_COMPAREITEM: %d/$%x', [AMessage, AMessage]);
     WM_GETOBJECT            : Result := Format('WM_GETOBJECT: %d/$%x', [AMessage, AMessage]);
     WM_COMPACTING           : Result := Format('WM_COMPACTING: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     WM_COMMNOTIFY           : Result := Format('WM_COMMNOTIFY: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     WM_WINDOWPOSCHANGING    : Result := Format('WM_WINDOWPOSCHANGING: %d/$%x', [AMessage, AMessage]);
     WM_WINDOWPOSCHANGED     : Result := Format('WM_WINDOWPOSCHANGED: %d/$%x', [AMessage, AMessage]);
     WM_POWER                : Result := Format('WM_POWER: %d/$%x', [AMessage, AMessage]);
@@ -4174,10 +4178,13 @@ begin
     WM_HOTKEY               : Result := Format('WM_HOTKEY: %d/$%x', [AMessage, AMessage]);
     WM_PRINT                : Result := Format('WM_PRINT: %d/$%x', [AMessage, AMessage]);
     WM_PRINTCLIENT          : Result := Format('WM_PRINTCLIENT: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     WM_HANDHELDFIRST        : Result := Format('WM_HANDHELDFIRST: %d/$%x', [AMessage, AMessage]);
     WM_HANDHELDLAST         : Result := Format('WM_HANDHELDLAST: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     WM_PENWINFIRST          : Result := Format('WM_PENWINFIRST: %d/$%x', [AMessage, AMessage]);
     WM_PENWINLAST           : Result := Format('WM_PENWINLAST: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     WM_COALESCE_FIRST       : Result := Format('WM_COALESCE_FIRST: %d/$%x', [AMessage, AMessage]);
     WM_COALESCE_LAST        : Result := Format('WM_COALESCE_LAST: %d/$%x', [AMessage, AMessage]);
     WM_DDE_INITIATE         : Result := Format('WM_DDE_INITIATE: %d/$%x', [AMessage, AMessage]);
@@ -4189,17 +4196,20 @@ begin
     WM_DDE_REQUEST          : Result := Format('WM_DDE_REQUEST: %d/$%x', [AMessage, AMessage]);
     WM_DDE_POKE             : Result := Format('WM_DDE_POKE: %d/$%x', [AMessage, AMessage]);
     WM_DDE_EXECUTE          : Result := Format('WM_DDE_EXECUTE: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     WM_APP                  : Result := Format('WM_APP: %d/$%x', [AMessage, AMessage]);
     WM_USER                 : Result := Format('WM_USER: %d/$%x', [AMessage, AMessage]);
     // VCL Control Messages
     // CM_BASE                 : Result := Format('CM_BASE: %d/$%x', [AMessage, AMessage]);
     CM_ACTIVATE             : Result := Format('CM_ACTIVATE: %d/$%x', [AMessage, AMessage]);
     CM_DEACTIVATE           : Result := Format('CM_DEACTIVATE: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     CM_GOTFOCUS             : Result := Format('CM_GOTFOCUS: %d/$%x', [AMessage, AMessage]);
     CM_LOSTFOCUS            : Result := Format('CM_LOSTFOCUS: %d/$%x', [AMessage, AMessage]);
     CM_CANCELMODE           : Result := Format('CM_CANCELMODE: %d/$%x', [AMessage, AMessage]);
     CM_DIALOGKEY            : Result := Format('CM_DIALOGKEY: %d/$%x', [AMessage, AMessage]);
     CM_DIALOGCHAR           : Result := Format('CM_DIALOGCHAR: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     CM_FOCUSCHANGED         : Result := Format('CM_FOCUSCHANGED: %d/$%x', [AMessage, AMessage]);
     CM_PARENTFONTCHANGED    : Result := Format('CM_PARENTFONTCHANGED: %d/$%x', [AMessage, AMessage]);
     CM_PARENTCOLORCHANGED   : Result := Format('CM_PARENTCOLORCHANGED: %d/$%x', [AMessage, AMessage]);
@@ -4209,13 +4219,17 @@ begin
     CM_COLORCHANGED         : Result := Format('CM_COLORCHANGED: %d/$%x', [AMessage, AMessage]);
     CM_FONTCHANGED          : Result := Format('CM_FONTCHANGED: %d/$%x', [AMessage, AMessage]);
     CM_CURSORCHANGED        : Result := Format('CM_CURSORCHANGED: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     CM_CTL3DCHANGED         : Result := Format('CM_CTL3DCHANGED: %d/$%x', [AMessage, AMessage]);
     CM_PARENTCTL3DCHANGED   : Result := Format('CM_PARENTCTL3DCHANGED: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     CM_TEXTCHANGED          : Result := Format('CM_TEXTCHANGED: %d/$%x', [AMessage, AMessage]);
     CM_MOUSEENTER           : Result := Format('CM_MOUSEENTER: %d/$%x', [AMessage, AMessage]);
     CM_MOUSELEAVE           : Result := Format('CM_MOUSELEAVE: %d/$%x', [AMessage, AMessage]);
     CM_MENUCHANGED          : Result := Format('CM_MENUCHANGED: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     CM_APPKEYDOWN           : Result := Format('CM_APPKEYDOWN: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     CM_APPSYSCOMMAND        : Result := Format('CM_APPSYSCOMMAND: %d/$%x', [AMessage, AMessage]);
     CM_BUTTONPRESSED        : Result := Format('CM_BUTTONPRESSED: %d/$%x', [AMessage, AMessage]);
     CM_SHOWINGCHANGED       : Result := Format('CM_SHOWINGCHANGED: %d/$%x', [AMessage, AMessage]);
@@ -4224,34 +4238,48 @@ begin
     CM_DESIGNHITTEST        : Result := Format('CM_DESIGNHITTEST: %d/$%x', [AMessage, AMessage]);
     CM_ICONCHANGED          : Result := Format('CM_ICONCHANGED: %d/$%x', [AMessage, AMessage]);
     CM_WANTSPECIALKEY       : Result := Format('CM_WANTSPECIALKEY: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     CM_INVOKEHELP           : Result := Format('CM_INVOKEHELP: %d/$%x', [AMessage, AMessage]);
     CM_WINDOWHOOK           : Result := Format('CM_WINDOWHOOK: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     CM_RELEASE              : Result := Format('CM_RELEASE: %d/$%x', [AMessage, AMessage]);
     CM_SHOWHINTCHANGED      : Result := Format('CM_SHOWHINTCHANGED: %d/$%x', [AMessage, AMessage]);
     CM_PARENTSHOWHINTCHANGED: Result := Format('CM_PARENTSHOWHINTCHANGED: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     CM_SYSCOLORCHANGE       : Result := Format('CM_SYSCOLORCHANGE: %d/$%x', [AMessage, AMessage]);
     CM_WININICHANGE         : Result := Format('CM_WININICHANGE: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     CM_FONTCHANGE           : Result := Format('CM_FONTCHANGE: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     CM_TIMECHANGE           : Result := Format('CM_TIMECHANGE: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     CM_TABSTOPCHANGED       : Result := Format('CM_TABSTOPCHANGED: %d/$%x', [AMessage, AMessage]);
     CM_UIACTIVATE           : Result := Format('CM_UIACTIVATE: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     CM_UIDEACTIVATE         : Result := Format('CM_UIDEACTIVATE: %d/$%x', [AMessage, AMessage]);
     CM_DOCWINDOWACTIVATE    : Result := Format('CM_DOCWINDOWACTIVATE: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     CM_CONTROLLISTCHANGE    : Result := Format('CM_CONTROLLISTCHANGE: %d/$%x', [AMessage, AMessage]);
     CM_GETDATALINK          : Result := Format('CM_GETDATALINK: %d/$%x', [AMessage, AMessage]);
     CM_CHILDKEY             : Result := Format('CM_CHILDKEY: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     CM_DRAG                 : Result := Format('CM_DRAG: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     CM_HINTSHOW             : Result := Format('CM_HINTSHOW: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     CM_DIALOGHANDLE         : Result := Format('CM_DIALOGHANDLE: %d/$%x', [AMessage, AMessage]);
     CM_ISTOOLCONTROL        : Result := Format('CM_ISTOOLCONTROL: %d/$%x', [AMessage, AMessage]);
     CM_RECREATEWND          : Result := Format('CM_RECREATEWND: %d/$%x', [AMessage, AMessage]);
     CM_INVALIDATE           : Result := Format('CM_INVALIDATE: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     CM_SYSFONTCHANGED       : Result := Format('CM_SYSFONTCHANGED: %d/$%x', [AMessage, AMessage]);
     CM_CONTROLCHANGE        : Result := Format('CM_CONTROLCHANGE: %d/$%x', [AMessage, AMessage]);
     CM_CHANGED              : Result := Format('CM_CHANGED: %d/$%x', [AMessage, AMessage]);
+{$IFNDEF FPC}
     CM_DOCKCLIENT           : Result := Format('CM_DOCKCLIENT: %d/$%x', [AMessage, AMessage]);
     CM_UNDOCKCLIENT         : Result := Format('CM_UNDOCKCLIENT: %d/$%x', [AMessage, AMessage]);
     CM_FLOAT                : Result := Format('CM_FLOAT: %d/$%x', [AMessage, AMessage]);
+{$ENDIF}
     CM_BORDERCHANGED        : Result := Format('CM_BORDERCHANGED: %d/$%x', [AMessage, AMessage]);
     CM_BIDIMODECHANGED      : Result := Format('CM_BIDIMODECHANGED: %d/$%x', [AMessage, AMessage]);
     CM_PARENTBIDIMODECHANGED: Result := Format('CM_PARENTBIDIMODECHANGED: %d/$%x', [AMessage, AMessage]);
