@@ -149,6 +149,11 @@ interface
   {$UNDEF REDIRECT_OPDS}   // 非 Windows 下不支持 OutputDebugString
 {$ENDIF}
 
+{$IFDEF FPC}
+  {$UNDEF SUPPORT_EVALUATE}
+  {$UNDEF CAPTURE_STACK}
+{$ENDIF}
+
 uses
   SysUtils, Classes, TypInfo
   {$IFDEF ENABLE_FMX}, System.Types, System.UITypes, System.SyncObjs, System.UIConsts
@@ -1087,7 +1092,11 @@ begin
     begin
       // Get information about found properties
       PropertyInfo := PropertyList^[PropIdx];
+{$IFDEF FPC}
+      PropertyType := PropertyInfo^.PropType;
+{$ELSE}
       PropertyType := PropertyInfo^.PropType^;
+{$ENDIF}
       PropertyKind := PropertyType^.Kind;
       PropertyName := string(PropertyInfo^.Name);
       PropertyTypeName := string(PropertyType^.Name);
@@ -1105,7 +1114,11 @@ begin
         case PropertyKind of
           tkSet:
             begin
-              BaseType := GetTypeData(PropertyType)^.CompType^;
+{$IFDEF FPC}
+              BaseType := GetTypeData(PropertyType).CompType;
+{$ELSE}
+              BaseType := GetTypeData(PropertyType).CompType^;
+{$ENDIF}
               BaseData := GetTypeData(BaseType);
               OrdValue := GetOrdProp(PropOwner, PropertyInfo);
               NewLine := Prefix + '+ ' + PropertyName + ': ' + PropertyTypeName + ' = [' +
@@ -1191,7 +1204,7 @@ begin
                 GetEnumName(PropertyType, OrdValue);
               List.Add(NewLine);
             end;
-          tkString, tkLString, tkWString {$IFNDEF VER130} {$IF RTLVersion > 19.00}, tkUString{$IFEND} {$ENDIF}:
+          tkString, tkLString, tkWString {$IFDEF FPC}, tkUString {$ELSE} {$IFNDEF VER130} {$IF RTLVersion > 19.00}, tkUString{$IFEND} {$ENDIF} {$ENDIF}:
             begin
               NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName + ' = ' + '''' +
                 GetStrProp(PropOwner, PropertyInfo) + '''';
@@ -1268,7 +1281,11 @@ begin
       // Get information about found properties
       PropertyInfo := PropertyList^[PropIdx];
       PropertyName := string(PropertyInfo^.Name);
+{$IFDEF FPC}
+      PropertyType := PropertyInfo^.PropType;
+{$ELSE}
       PropertyType := PropertyInfo^.PropType^;
+{$ENDIF}
       PropertyTypeName := string(PropertyType^.Name);
 
       NewLine := Prefix + '  ' + PropertyName + ': ' + PropertyTypeName;
@@ -1421,7 +1438,9 @@ const
 var
   Kernel32Handle: THandle;
   IsWow64Process: function(Handle: THandle; var Res: BOOL): BOOL; stdcall;
-  GetNativeSystemInfo : procedure(var lpSystemInfo: TSystemInfo); stdcall; isWoW64:BOOL; SystemInfo :  TSystemInfo;
+  GetNativeSystemInfo: procedure(var lpSystemInfo: TSystemInfo); stdcall;
+  isWoW64: BOOL;
+  SystemInfo :  TSystemInfo;
 begin
   Result := False;
   Kernel32Handle := GetModuleHandle(kernel32);
@@ -4720,7 +4739,11 @@ begin
       for I := 0 to IntfTable.EntryCount-1 do
       begin
         IntfEntry := @IntfTable.Entries[I];
+{$IFDEF FPC}
+        Result := Result + ' ' + SCnCRLF + GUIDToString(IntfEntry^.IID^);
+{$ELSE}
         Result := Result + ' ' + SCnCRLF + GUIDToString(IntfEntry^.IID);
+{$ENDIF}
         // TODO: If Enhanced RTTI, using IID to Find Actual Interface Type and Parse Methods.
       end;
     end;
