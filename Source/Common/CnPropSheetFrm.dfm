@@ -24,7 +24,7 @@ object CnPropSheetForm: TCnPropSheetForm
     Left = 0
     Top = 0
     Width = 100
-    Height = 575
+    Height = 570
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 1
@@ -91,7 +91,7 @@ object CnPropSheetForm: TCnPropSheetForm
       Left = 0
       Top = 30
       Width = 100
-      Height = 524
+      Height = 519
       Align = alClient
       HideSelection = False
       Indent = 19
@@ -99,29 +99,21 @@ object CnPropSheetForm: TCnPropSheetForm
       TabOrder = 0
       OnDblClick = TreeViewDblClick
     end
-    object tsTree: TTabSet
+    object pnlTreeTab: TPanel
       Left = 0
-      Top = 554
+      Top = 549
       Width = 100
       Height = 21
       Align = alBottom
-      Font.Charset = ANSI_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -11
-      Font.Name = 'Tahoma'
-      Font.Style = []
-      Tabs.Strings = (
-        'Components'
-        'Controls')
-      TabIndex = 0
-      OnChange = tsTreeChange
+      BevelOuter = bvNone
+      TabOrder = 1
     end
   end
   object pnlRight: TPanel
     Left = 100
     Top = 0
     Width = 351
-    Height = 575
+    Height = 570
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -287,34 +279,20 @@ object CnPropSheetForm: TCnPropSheetForm
         Text = 'Unknown'
       end
     end
-    object tsSwitch: TTabSet
+    object pnlSwitchTab: TPanel
       Left = 0
-      Top = 554
+      Top = 549
       Width = 351
       Height = 21
       Align = alBottom
-      Font.Charset = ANSI_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -11
-      Font.Name = 'Tahoma'
-      Font.Style = []
-      Tabs.Strings = (
-        'Properties'
-        'Events'
-        'Methods'
-        'Strings'
-        'CollectionItems'
-        'Components'
-        'Controls'
-        'Hierarchy')
-      TabIndex = 0
-      OnChange = tsSwitchChange
+      BevelOuter = bvNone
+      TabOrder = 1
     end
     object pnlMain: TPanel
       Left = 0
       Top = 30
       Width = 351
-      Height = 524
+      Height = 519
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 2
@@ -412,7 +390,6 @@ object CnPropSheetForm: TCnPropSheetForm
         RowSelect = True
         ParentFont = False
         PopupMenu = pmSheet
-        ShowWorkAreas = True
         TabOrder = 2
         ViewStyle = vsReport
         OnCustomDrawItem = lvPropCustomDrawItem
@@ -497,7 +474,6 @@ object CnPropSheetForm: TCnPropSheetForm
         RowSelect = True
         ParentFont = False
         PopupMenu = pmSheet
-        ShowWorkAreas = True
         TabOrder = 4
         ViewStyle = vsReport
         OnCustomDrawItem = lvPropCustomDrawItem
@@ -528,7 +504,6 @@ object CnPropSheetForm: TCnPropSheetForm
         RowSelect = True
         ParentFont = False
         PopupMenu = pmSheet
-        ShowWorkAreas = True
         TabOrder = 0
         ViewStyle = vsReport
         OnCustomDrawItem = lvPropCustomDrawItem
@@ -600,7 +575,7 @@ object CnPropSheetForm: TCnPropSheetForm
         Left = 0
         Top = 0
         Width = 351
-        Height = 524
+        Height = 519
         Align = alClient
         BevelInner = bvLowered
         BevelOuter = bvNone
@@ -611,7 +586,7 @@ object CnPropSheetForm: TCnPropSheetForm
         Left = 0
         Top = 0
         Width = 351
-        Height = 524
+        Height = 519
         Align = alClient
         BevelInner = bvLowered
         BevelOuter = bvNone
@@ -620,7 +595,7 @@ object CnPropSheetForm: TCnPropSheetForm
         Visible = False
         object pnlGraphicInfo: TPanel
           Left = 1
-          Top = 482
+          Top = 477
           Width = 349
           Height = 41
           Align = alBottom
@@ -643,7 +618,7 @@ object CnPropSheetForm: TCnPropSheetForm
           Left = 1
           Top = 1
           Width = 349
-          Height = 481
+          Height = 476
           Align = alClient
           BorderStyle = bsNone
           TabOrder = 1

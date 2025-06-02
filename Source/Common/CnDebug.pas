@@ -150,7 +150,6 @@ interface
 {$ENDIF}
 
 {$IFDEF FPC}
-  {$UNDEF SUPPORT_EVALUATE}
   {$UNDEF CAPTURE_STACK}
 {$ENDIF}
 
@@ -3717,7 +3716,11 @@ end;
 procedure TCnDebugger.EvaluateControlUnderPos(const ScreenPos: TPoint);
 {$IFDEF SUPPORT_EVALUATE}
 var
+{$IFDEF FPC}
+  Control: TControl;
+{$ELSE}
   Control: TWinControl;
+{$ENDIF}
 {$IFDEF ENABLE_FMX}
   ScreenPoint: TPointF; // 鼠标屏幕坐标
   ClientPoint: TPointF; // 转换后的窗体客户区坐标
@@ -3733,7 +3736,12 @@ begin
   if Obj <> nil then
     EvaluateObject(Obj);
 {$ENDIF}
+
+{$IFDEF FPC}
+  Control := FindControlAtPosition(ScreenPos, True);
+{$ELSE}
   Control := FindVCLWindow(ScreenPos);
+{$ENDIF}
   if Control <> nil then
     EvaluateObject(Control);
 {$ENDIF}

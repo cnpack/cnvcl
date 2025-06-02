@@ -50,7 +50,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
-  Grids, StdCtrls, ExtCtrls, TypInfo, Contnrs, Buttons, ComCtrls, Tabs, Commctrl,
+  Grids, StdCtrls, ExtCtrls, TypInfo, Contnrs, Buttons, ComCtrls, {$IFNDEF FPC} Tabs, {$ENDIF} Commctrl,
   Clipbrd, ImgList, CnTree {$IFDEF VER130}{$ELSE}, Variants{$ENDIF}
   {$IFDEF SUPPORT_ENHANCED_RTTI}, Rtti {$ENDIF};
 
@@ -387,9 +387,9 @@ type
   TCnPropSheetForm = class(TForm)
     pnlTop: TPanel;
     pnlTree: TPanel;
-    tsTree: TTabSet;
+    pnlTreeTab: TPanel;
     TreeView: TTreeView;
-    tsSwitch: TTabSet;
+    pnlSwitchTab: TPanel;
     pnlMain: TPanel;
     lvProp: TListView;
     mmoText: TMemo;
@@ -426,8 +426,8 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure tsSwitchChange(Sender: TObject; NewTab: Integer;
-      var AllowChange: Boolean);
+    procedure tsSwitchChange(Sender: TObject {$IFNDEF FPC}; NewTab: Integer;
+      var AllowChange: Boolean {$ENDIF});
     procedure btnInspectClick(Sender: TObject);
     procedure lvPropCustomDrawItem(Sender: TCustomListView;
       Item: TListItem; State: TCustomDrawState; var DefaultDraw: Boolean);
@@ -450,8 +450,8 @@ type
     procedure pbGraphicMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
     procedure btnTreeClick(Sender: TObject);
-    procedure tsTreeChange(Sender: TObject; NewTab: Integer;
-      var AllowChange: Boolean);
+    procedure tsTreeChange(Sender: TObject {$IFNDEF FPC}; NewTab: Integer;
+      var AllowChange: Boolean {$ENDIF});
     procedure TreeViewDblClick(Sender: TObject);
     procedure btnSearchClick(Sender: TObject);
     procedure edtSearchKeyPress(Sender: TObject; var Key: Char);
@@ -460,6 +460,13 @@ type
     procedure pbGraphicPaint(Sender: TObject);
     procedure lvFieldsDblClick(Sender: TObject);
   private
+{$IFDEF FPC}
+    tsSwitch: TTabControl;
+    tsTree: TTabControl;
+{$ELSE}
+    tsSwitch: TTabSet;
+    tsTree: TTabSet;
+{$ENDIF}
     FImgBk: TBitmap;
     FGraphicBmp: TBitmap;  // 用于显示的
     FListViewHeaderHeight: Integer;
@@ -787,8 +794,13 @@ end;
 
 function GetParamFlagsName(AParamFlags: TParamFlags): string;
 const
+{$IFDEF FPC}
+  SParamFlag: array[TParamFlag] of string
+    = ('var', 'const', 'array of', 'address', '', 'out', 'const ref', 'hidden', 'high', 'self', 'vmt', 'result');
+{$ELSE}
   SParamFlag: array[TParamFlag] of string
     = ('var', 'const', 'array of', 'address', '', 'out'{$IFDEF COMPILER14_UP}, 'result'{$ENDIF});
+{$ENDIF}
 var
   I: TParamFlag;
 begin
@@ -827,7 +839,11 @@ begin
     end;
   end;
 
+{$IFDEF FPC}
+  T := GetTypeData(PropInfo^.PropType);
+{$ELSE}
   T := GetTypeData(PropInfo^.PropType^);
+{$ENDIF}
 
   if T^.MethodKind = mkFunction then
     Result := Result + 'function ' + CompName + '.' + MthName + '('
@@ -995,23 +1011,40 @@ var
   S: string;
   IntToId: TIntToIdent;
   AMethod: TMethod;
+  K: TTypeKind;
 {$IFDEF COMPILER6_UP}
   Intf: IInterface;
 {$ENDIF}
 begin
   Result := '';
-  case PropInfo^.PropType^^.Kind of
+{$IFDEF FPC}
+  K := PropInfo^.PropType^.Kind;
+{$ELSE}
+  K := PropInfo^.PropType^^.Kind;
+{$ENDIF}
+  case K of
     tkInteger:
       begin
         S := IntToStr(GetOrdProp(Instance, PropInfo));
+{$IFDEF FPC}
+        IntToId := FindIntToIdent(PropInfo^.PropType);
+{$ELSE}
         IntToId := FindIntToIdent(PropInfo^.PropType^);
+{$ENDIF}
         if Assigned(IntToId) and IntToId(GetOrdProp(Instance, PropInfo), S) then
         else
         begin
+{$IFDEF FPC}
+          if PropInfo^.PropType^.Name = 'TColor' then
+            S := Format('$%8.8x', [GetOrdProp(Instance, PropInfo)])
+          else
+            S := IntToStr(GetOrdProp(Instance, PropInfo));
+{$ELSE}
           if PropInfo^.PropType^^.Name = 'TColor' then
             S := Format('$%8.8x', [GetOrdProp(Instance, PropInfo)])
           else
             S := IntToStr(GetOrdProp(Instance, PropInfo));
+{$ENDIF}
         end;
       end;
     tkChar:
@@ -1052,14 +1085,26 @@ begin
         AMethod := GetMethodProp(Instance, PropInfo);
         if (AMethod.Code <> nil) and (AMethod.Data <> nil) then
         begin
-{$IFDEF WIN64}
+{$IFDEF FPC}
+  {$IFDEF WIN64}
+          S := Format('%s: ($%16.16x, $%16.16x): %s', [PropInfo^.PropType^.Name,
+            NativeInt(AMethod.Code), NativeInt(AMethod.Data),
+            GetMethodDeclare(Instance, PropInfo)]);
+  {$ELSE}
+          S := Format('%s: ($%8.8x, $%8.8x): %s', [PropInfo^.PropType^.Name,
+            Integer(AMethod.Code), Integer(AMethod.Data),
+            GetMethodDeclare(Instance, PropInfo)]);
+  {$ENDIF}
+{$ELSE}
+  {$IFDEF WIN64}
           S := Format('%s: ($%16.16x, $%16.16x): %s', [PropInfo^.PropType^^.Name,
             NativeInt(AMethod.Code), NativeInt(AMethod.Data),
             GetMethodDeclare(Instance, PropInfo)]);
-{$ELSE}
+  {$ELSE}
           S := Format('%s: ($%8.8x, $%8.8x): %s', [PropInfo^.PropType^^.Name,
             Integer(AMethod.Code), Integer(AMethod.Data),
             GetMethodDeclare(Instance, PropInfo)]);
+  {$ENDIF}
 {$ENDIF}
         end
         else
@@ -1647,6 +1692,7 @@ var
   PropListPtr: PPropList;
   I, APropCount: Integer;
   PropInfo: PPropInfo;
+  K: TTypeKind;
   AProp: TCnPropertyObject;
   AEvent: TCnEventObject;
   ACollection: TCollection;
@@ -1857,7 +1903,12 @@ begin
       for I := 0 to APropCount - 1 do
       begin
         PropInfo := PropListPtr^[I];
-        if PropInfo^.PropType^^.Kind in tkProperties then
+{$IFDEF FPC}
+        K := PropInfo^.PropType^.Kind;
+{$ELSE}
+        K := PropInfo^.PropType^^.Kind;
+{$ENDIF}
+        if K in tkProperties then
         begin
           try
             if not IsRefresh then
@@ -1866,13 +1917,23 @@ begin
               AProp := IndexOfProperty(Properties, PropInfoName(PropInfo));
 
             AProp.PropName := PropInfoName(PropInfo);
+{$IFDEF FPC}
+            AProp.PropType := PropInfo^.PropType^.Kind;
+            AProp.PropTypeName := PropInfo^.PropType^.Name;
+{$ELSE}
             AProp.PropType := PropInfo^.PropType^^.Kind;
             AProp.PropTypeName := PropInfo^.PropType^^.Name;
+{$ENDIF}
             AProp.IsObjOrIntf := AProp.PropType in [tkClass, tkInterface];
 
             // 有写入权限，并且指定类型，才可修改，否则界面上没法整
+{$IFDEF FPC}
+            AProp.CanModify := (PropInfo^.SetProc <> nil) and (PropInfo^.PropType^.Kind
+              in CnCanModifyPropTypes);
+{$ELSE}
             AProp.CanModify := (PropInfo^.SetProc <> nil) and (PropInfo^.PropType^^.Kind
               in CnCanModifyPropTypes);
+{$ENDIF}
 
             try
               AProp.PropValue := GetPropValue(FObjectInstance, PropInfoName(PropInfo));
@@ -1909,7 +1970,7 @@ begin
         end;
 
         // 拿事件
-        if PropInfo^.PropType^^.Kind = tkMethod then
+        if K = tkMethod then
         begin
           try
             if not IsRefresh then
@@ -2687,6 +2748,7 @@ function TCnLocalObjectInspector.ChangePropertyValue(const PropName, Value: stri
   PropObj: TCnPropertyObject): Boolean;
 var
   PropInfo: PPropInfo;
+  K: TTypeKind;
   VInt: Integer;
   VInt64: Int64;
   VFloat: Double;
@@ -2803,7 +2865,12 @@ begin
   if (PropInfo = nil) or (PropInfo^.SetProc = nil) then
     Exit;
 
-  case PropInfo^.PropType^^.Kind of
+{$IFDEF FPC}
+  K := PropInfo^.PropType^.Kind;
+{$ELSE}
+  K := PropInfo^.PropType^^.Kind;
+{$ENDIF}
+  case K of
     tkInteger:
       begin
         try
@@ -2811,6 +2878,19 @@ begin
           SetOrdProp(ObjectInstance, PropName, VInt);
         except
           // 判断是否是 TColor 和 clRed 这种
+{$IFDEF FPC}
+          if PropInfo^.PropType^.Name = 'TColor' then
+          begin
+            try
+              C := StringToColor(Value);
+              SetOrdProp(ObjectInstance, PropName, C);
+            except
+              Exit;
+            end;
+          end
+          else
+            Exit;
+{$ELSE}
           if PropInfo^.PropType^^.Name = 'TColor' then
           begin
             try
@@ -2822,6 +2902,7 @@ begin
           end
           else
             Exit;
+{$ENDIF}
         end;
       end;
     tkInt64:
@@ -2902,6 +2983,70 @@ begin
   FImgBk := TBitmap.Create;
   FImgBk.Handle := LoadBitmap(HInstance, 'CNTRANSBK');
   FGraphicBmp := TBitmap.Create;
+
+{$IFDEF FPC}
+  // tsSwitch
+  tsSwitch := TTabControl.Create(Self);
+  tsSwitch.TabPosition := tpBottom;
+
+  // tsTree
+  tsTree := TTabControl.Create(Self);
+  tsTree.TabPosition := tpBottom;
+{$ELSE}
+  // tsSwitch
+  tsSwitch := TTabSet.Create(Self);
+
+  // tsTree
+  tsTree := TTabSet.Create(Self);
+{$ENDIF}
+
+  // tsSwitch
+  tsSwitch.Name := 'tsSwitch';
+  tsSwitch.Parent := pnlSwitchTab;
+  tsSwitch.Left := 0;
+  tsSwitch.Top := 0;
+  tsSwitch.Width := 351;
+  tsSwitch.Height := 21;
+  tsSwitch.Align := alClient;
+  tsSwitch.Font.Charset := ANSI_CHARSET;
+  tsSwitch.Font.Color := clWindowText;
+  tsSwitch.Font.Height := -11;
+  tsSwitch.Font.Name := 'Tahoma';
+  tsSwitch.Font.Style := [];
+
+  tsSwitch.Tabs.Clear;
+  tsSwitch.Tabs.Add('Properties');
+  tsSwitch.Tabs.Add('Events');
+  tsSwitch.Tabs.Add('Methods');
+  tsSwitch.Tabs.Add('Strings');
+  tsSwitch.Tabs.Add('CollectionItems');
+  tsSwitch.Tabs.Add('Components');
+  tsSwitch.Tabs.Add('Controls');
+  tsSwitch.Tabs.Add('Hierarchy');
+
+  tsSwitch.TabIndex := 0;
+  tsSwitch.OnChange := tsSwitchChange;
+
+  // tsTree
+  tsTree.Name := 'tsTree';
+  tsTree.Parent := pnlTreeTab;
+  tsTree.Left := 0;
+  tsTree.Top := 0;
+  tsTree.Width := 100;
+  tsTree.Height := 21;
+  tsTree.Align := alClient;
+  tsTree.Font.Charset := ANSI_CHARSET;
+  tsTree.Font.Color := clWindowText;
+  tsTree.Font.Height := -11;
+  tsTree.Font.Name := 'Tahoma';
+  tsTree.Font.Style := [];
+
+  tsTree.Tabs.Clear;
+  tsTree.Tabs.Add('Components');
+  tsTree.Tabs.Add('Controls');
+
+  tsTree.TabIndex := 0;
+  tsTree.OnChange := tsTreeChange;
 
 {$IFDEF COMPILER7_UP}
   pnlHierarchy.ParentBackground := False;
@@ -3230,10 +3375,15 @@ var
 begin
   tsSwitch.Tabs.Clear;
   for AType := Low(TCnPropContentType) to High(TCnPropContentType) do
+  begin
     if AType in FContentTypes then
       tsSwitch.Tabs.Add(SCnPropContentType[AType]);
+  end;
 
   tsSwitch.TabIndex := 0;
+{$IFDEF FPC}
+  tsSwitch.OnChange(tsSwitch);
+{$ENDIF}
 end;
 
 procedure TCnPropSheetForm.UpdateUIStrings;
@@ -3310,14 +3460,21 @@ begin
   UpdatePanelPositions;
 end;
 
-procedure TCnPropSheetForm.tsSwitchChange(Sender: TObject; NewTab: Integer;
-  var AllowChange: Boolean);
+procedure TCnPropSheetForm.tsSwitchChange(Sender: TObject {$IFNDEF FPC}; NewTab: Integer;
+  var AllowChange: Boolean {$ENDIF});
 var
+  Str: string;
   AControl: TWinControl;
   NeedChangePanel: Boolean;
 begin
-  AControl := nil; NeedChangePanel := False;
-  case IndexOfContentTypeStr(tsSwitch.Tabs.Strings[NewTab]) of
+  AControl := nil;
+  NeedChangePanel := False;
+{$IFDEF FPC}
+  Str := tsSwitch.Tabs.Strings[tsSwitch.TabIndex];
+{$ELSE}
+  Str := tsSwitch.Tabs.Strings[NewTab];
+{$ENDIF}
+  case IndexOfContentTypeStr(Str) of
     pctProps:             AControl := lvProp;
     pctFields:            AControl := lvFields;
     pctEvents:            AControl := lvEvent;
@@ -4088,10 +4245,14 @@ begin
   end;
 end;
 
-procedure TCnPropSheetForm.tsTreeChange(Sender: TObject; NewTab: Integer;
-  var AllowChange: Boolean);
+procedure TCnPropSheetForm.tsTreeChange(Sender: TObject {$IFNDEF FPC}; NewTab: Integer;
+  var AllowChange: Boolean {$ENDIF});
 begin
+{$IFDEF FPC}
+  UpdateToTree(tsTree.TabIndex > 0);
+{$ELSE}
   UpdateToTree(NewTab > 0);
+{$ENDIF}
 end;
 
 procedure TCnPropSheetForm.SaveATreeNode(ALeaf: TCnLeaf;

@@ -58,7 +58,7 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source\ObjRep;..\..\..\Source\Common;..\..\..\..\cnwizards\Source\Examples"/>
+      <IncludeFiles Value="..\..\..\Source\ObjRep;..\..\..\Source\Common;..\..\..\..\cnwizards\Source\Examples;$(ProjOutDir)"/>
       <Libraries Value="..\..\..\Source\ObjRep"/>
       <OtherUnitFiles Value="..\..\..\Source\ObjRep;..\..\..\Source\Common;..\..\..\..\cnwizards\Source\Examples"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
@@ -66,7 +66,7 @@
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
-        <SyntaxMode Value="delphi"/>
+        <SyntaxMode Value="Delphi"/>
       </SyntaxOptions>
     </Parsing>
     <Linking>
@@ -79,6 +79,14 @@
         </Win32>
       </Options>
     </Linking>
+    <Other>
+      <CustomOptions Value="-dENABLE_UIINTERACT
+-dSUPPORT_EVALUATE"/>
+      <OtherDefines Count="2">
+        <Define0 Value="ENABLE_UIINTERACT"/>
+        <Define1 Value="SUPPORT_EVALUATE"/>
+      </OtherDefines>
+    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions>
