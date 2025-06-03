@@ -1468,8 +1468,8 @@ function ExtendedToStr(AValue: Extended): string;
 var
   Buffer: array[0..63] of Char;
 begin
-  SetString(Result, Buffer, FloatToText(Buffer, AValue, fvExtended,
-    ffGeneral, 18, 0)); // 内部限制了最大 18
+  SetString(Result, Buffer, FloatToText(Buffer, AValue, {$IFNDEF FPC} fvExtended, {$ENDIF}
+     ffGeneral,  18, 0)); // 内部限制了最大 18
 end;
 
 end.
