@@ -293,7 +293,15 @@ begin
   {$IFDEF WIN64}
   Result := InterlockedExchangeAdd(Addend, Value);
   {$ELSE}
+    {$IFDEF FPC}
+      {$IFDEF DARWIN}
+  Result := InterlockedExchangeAdd(Addend, Value);
+      {$ELSE}
   Result := InterlockedExchangeAdd(@Addend, Value);
+      {$ENDIF}
+    {$ELSE}
+  Result := InterlockedExchangeAdd(@Addend, Value);
+    {$ENDIF}
   {$ENDIF}
 {$ENDIF}
 end;
@@ -929,7 +937,10 @@ begin
   Append(Key, Value);
 end;
 
+{$IFDEF MSWINDOWS}
+
 initialization
   InterlockedCompareExchange64 := GetProcAddress(GetModuleHandle(kernel32), 'InterlockedCompareExchange64');
 
+{$ENDIF}
 end.
