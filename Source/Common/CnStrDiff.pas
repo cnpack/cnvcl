@@ -81,7 +81,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes;
+  SysUtils, Classes;
 
 const
   //Maximum allowed deviation from centre diagonal vector ...

@@ -39,7 +39,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Contnrs;
+  SysUtils, Classes, {$IFDEF MSWINDOWS} Windows, {$ENDIF} Contnrs, CnRandom;
 
 const
   CN_SKIPLIST_MAX_LEVEL = 16; // 0 ~ 15
@@ -145,44 +145,6 @@ type
   end;
 
 implementation
-
-const
-  CN_BITS_IN_RANDOM = 31;
-  PROV_RSA_FULL = 1;
-
-function CryptAcquireContext(phProv: PULONG; pszContainer: PAnsiChar;
-  pszProvider: PAnsiChar; dwProvType: DWORD; dwFlags: DWORD): BOOL;
-  stdcall; external ADVAPI32 name 'CryptAcquireContextA';
-
-function CryptReleaseContext(hProv: ULONG; dwFlags: DWORD): BOOL;
-  stdcall; external ADVAPI32 name 'CryptReleaseContext';
-
-function CryptGenRandom(hProv: ULONG; dwLen: DWORD; pbBuffer: PAnsiChar): BOOL;
-  stdcall; external ADVAPI32 name 'CryptGenRandom';
-
-// 使用 Windows API 实现随机填充 32 bit
-function Rand32: DWORD;
-var
-  HProv: Cardinal;
-  Res: DWORD;
-begin
-  HProv := 0;
-  if not CryptAcquireContext(@HProv, nil, nil, PROV_RSA_FULL, 0) then
-    raise ECnSkipListRandomError.Create('SkipList Error Random.');
-
-  if HProv <> 0 then
-  begin
-    try
-      CryptGenRandom(HProv, SizeOf(DWORD), @Res);
-    finally
-      CryptReleaseContext(HProv, 0);
-    end;
-  end
-  else
-    raise ECnSkipListRandomError.Create('SkipList Error Random.');
-  
-  Result := Res;
-end;
 
 { TCnSkipListNodeList }
 
@@ -330,7 +292,7 @@ begin
   end;
 
   repeat
-    FRandomBits := Rand32;
+    FRandomBits := RandomUInt32;
     B := FRandomBits and C;
     if B = 0 then    // 增一层的概率是 FLevelProbability
       Inc(Result);

@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Windows, Contnrs;
+  Classes, SysUtils, {$IFDEF MSWINDOWS} Windows, {$ENDIF} Contnrs;
 
 type
   ECnRopeIndexException = class(Exception);
@@ -385,7 +385,7 @@ begin
     if Len > 0 then
     begin
       FChars := GetMemory((Len + 1) * SizeOf(Char));
-      CopyMemory(FChars, Str, Len * SizeOf(Char));
+      Move(Str^, FChars^, Len * SizeOf(Char));
       FChars[Len] := #0;
       FLength := Len;
     end;
@@ -446,7 +446,7 @@ begin
   if (FChars <> nil) and (Length > 0) then
   begin
     SetLength(Result, Length);
-    CopyMemory(@Result[1], FChars, Length * SizeOf(Char));
+    Move(FChars^, Result[1], Length * SizeOf(Char));
   end
   else
     Result := '';

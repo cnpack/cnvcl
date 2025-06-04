@@ -41,9 +41,21 @@ interface
 
 {$I CnPack.inc}
 
+{$IFNDEF MSWINDOWS}
+  {$UNDEF SUPPORT_GDIPLUS}
+{$ENDIF}
+
 uses
-  Windows, Graphics, Math, Classes, Controls
+  {$IFDEF MSWINDOWS} Windows, {$ELSE} MacTypes, ObjcBase, Types, {$ENDIF} Graphics, Math, Classes, Controls
   {$IFDEF SUPPORT_GDIPLUS}, WinApi.GDIPOBJ, WinApi.GDIPAPI {$ENDIF};
+
+{$IFDEF FPC}
+{$IFDEF DARWIN}
+type
+  ULONG = Cardinal;
+  BOOL  = LongBool;
+{$ENDIF}
+{$ENDIF}
 
 //==============================================================================
 // 扩展的颜色格式转换函数
@@ -201,6 +213,7 @@ procedure CnSetRectLocation(var Rect: TRect; const P: TPoint); overload;
 procedure CnCanvasRoundRect(const Canvas: TCanvas; const Rect: TRect; CX, CY: Integer);
 {* 在 Canvas 上绘制圆角矩形}
 
+{$IFDEF MSWINDOWS}
 {$IFNDEF SUPPORT_GDIPLUS}
 
 procedure CnStartUpGdiPlus;
@@ -209,16 +222,18 @@ procedure CnShutDownGdiPlus;
 {* 由于 DLL 中不允许跟着单元来初始化/释放 GDI+，所以输出给宿主调用，释放 GDI+}
 
 {$ENDIF}
+{$ENDIF}
 
 function FontEqual(A, B: TFont): Boolean;
 {* 比较俩字体对象的各属性是否相等}
 
 implementation
 
+{$IFDEF MSWINDOWS}
 {$IFNDEF SUPPORT_GDIPLUS}
 
 //==============================================================================
-// 编译器不支持 GDI+ 时手工定义 GDI+ 相关函数
+// Windows 下编译器不支持 GDI+ 时手工定义 GDI+ 相关函数
 //==============================================================================
 
 const
@@ -334,6 +349,37 @@ var
   GdipDisposeImage: TGdipDisposeImage = nil;
   GdipDrawImageRect: TGdipDrawImageRect = nil;
   GdipDrawImageRectI: TGdipDrawImageRectI = nil;
+
+{$ENDIF}
+
+{$ELSE}  // 非 Windows 平台补充声明实现
+
+type
+  TRGBTriple = packed record
+    rgbtBlue: Byte;
+    rgbtGreen: Byte;
+    rgbtRed: Byte;
+  end;
+
+function RGB(r, g, b: Byte): TColor;
+begin
+  Result := (r or (g shl 8) or (b shl 16));
+end;
+
+function GetRValue(rgb: DWORD): Byte;
+begin
+  Result := Byte(rgb);
+end;
+
+function GetGValue(rgb: DWORD): Byte;
+begin
+  Result := Byte(rgb shr 8);
+end;
+
+function GetBValue(rgb: DWORD): Byte;
+begin
+  Result := Byte(rgb shr 16);
+end;
 
 {$ENDIF}
 
@@ -659,6 +705,8 @@ begin
   end;
 end;
 
+{$IFDEF MSWINDOWS}
+
 procedure StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True);
 var
 {$IFDEF SUPPORT_GDIPLUS}
@@ -725,6 +773,18 @@ begin
     Dst.Canvas.Draw(0, 0, Src);
 {$ENDIF}
 end;
+
+{$ELSE}
+
+procedure StretchDrawBmp(Src, Dst: TBitmap; Smooth: Boolean = True);
+var
+  Rd: TRect;
+begin
+  Rd := Rect(0, 0, Dst.Width, Dst.Height);
+  Dst.Canvas.StretchDraw(Rd, Src);
+end;
+
+{$ENDIF}
 
 function FontEqual(A, B: TFont): Boolean;
 begin
@@ -851,6 +911,7 @@ begin
     Canvas.RoundRect(Rect.Left, Rect.Top, Rect.Right, Rect.Bottom, CX, CY);
 end;
 
+{$IFDEF MSWINDOWS}
 {$IFNDEF SUPPORT_GDIPLUS}
 
 procedure CnStartUpGdiPlus;
@@ -880,7 +941,9 @@ begin
 end;
 
 {$ENDIF}
+{$ENDIF}
 
+{$IFDEF MSWINDOWS}
 {$IFNDEF SUPPORT_GDIPLUS}
 
 initialization
@@ -922,6 +985,7 @@ finalization
   if GdiPlusHandle <> 0 then
     FreeLibrary(GdiPlusHandle);
 
+{$ENDIF}
 {$ENDIF}
 
 end.

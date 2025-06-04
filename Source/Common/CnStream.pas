@@ -42,7 +42,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  {$IFDEF MSWINDOWS} Windows, {$ELSE} System.Types, {$ENDIF} SysUtils, Classes;
+  {$IFDEF MSWINDOWS} Windows, {$ELSE} Types, {$ENDIF} SysUtils, Classes;
 
 type
 

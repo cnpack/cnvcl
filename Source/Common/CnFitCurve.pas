@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Math, Contnrs;
+  {$IFDEF MSWINDOWS} Windows, {$ENDIF} SysUtils, Math, Contnrs;
 
 type
   TCnFitCurve = class
