@@ -615,6 +615,7 @@ const
   CN_TLS_EXTENSIONTYPE_STATUS_REQUEST                            = 5;
 
 type
+  TCnIPv6Array = array[0..7] of Word;
 
 {*
   IP 包头示意图，字节内左边是高位，右边是低位。
@@ -1678,11 +1679,17 @@ procedure CnSetTLSHandShakeClientHelloCompressionMethod(const ClientHello: PCnTL
 
 // =========================== IP 地址转换函数 =================================
 
-function CardinalToIPString(const IP: Cardinal): string;
+function CnCardinalToIPv4String(const IP: Cardinal): string;
 {* IPv4 整型转换为字符串，IP 要求为 Host 字节顺序，从网络上取来时需要转换}
 
-function IPStringToCardinal(const IP: string): Cardinal;
+function CnIPv4StringToCardinal(const IP: string): Cardinal;
 {* IPv4 字符串转换为整型，结果为 Host 字节顺序，网络传输时需要再转换}
+
+function CnArrayToIPv6String(const IP: TCnIPv6Array): string;
+{* IPv6 双字数组转换为字符串，IP 要求为 Host 字节顺序，从网络上取来时需要转换}
+
+function CnIPv6StringToArray(const IP: string): TCnIPv6Array;
+{* IPv6 字符串转换为双字数组，结果为 Host 字节顺序，网络传输时需要再转换，如字符串非法，则填充全 0}
 
 // ============================ 校验和计算函数 =================================
 
@@ -1703,7 +1710,7 @@ function GetNameFromCipher(Cipher: Word): string;
 
 implementation
 
-function CardinalToIPString(const IP: Cardinal): string;
+function CnCardinalToIPv4String(const IP: Cardinal): string;
 var
   A, B, C, D: Byte;
 begin
@@ -1714,7 +1721,7 @@ begin
   Result := Format('%d.%d.%d.%d', [A, B, C, D]);
 end;
 
-function IPStringToCardinal(const IP: string): Cardinal;
+function CnIPv4StringToCardinal(const IP: string): Cardinal;
 var
   MyIP: string;
   P: Integer;
@@ -1756,6 +1763,89 @@ begin
     Exit;
   end;
   Result := (AA shl 24) or (BB shl 16) or (CC shl 8) or DD;
+end;
+
+function CnArrayToIPv6String(const IP: TCnIPv6Array): string;
+begin
+  Result := Format('%4.4x:%4.4x:%4.4x:%4.4x:%4.4x:%4.4x:%4.4x:%4.4x',
+    [UInt16HostToNetwork(IP[0]), UInt16HostToNetwork(IP[1]), UInt16HostToNetwork(IP[2]),
+    UInt16HostToNetwork(IP[3]), UInt16HostToNetwork(IP[4]), UInt16HostToNetwork(IP[5]),
+    UInt16HostToNetwork(IP[6]), UInt16HostToNetwork(IP[7])]);
+end;
+
+// 将字符串按冒号拆分，确保连续冒号时存在空字符串，但单个冒号在最前、最后的情形又要忽略前后的空字符串
+function SplitStringByColon(const S: string; Res: TStringList): Integer;
+var
+  I: Integer;
+  StartPos: Integer;
+  Temp: string;
+begin
+  Res.Clear;
+  StartPos := 1;
+  while StartPos <= Length(S) do
+  begin
+    // 查找下一个冒号的位置
+    I := StartPos;
+    while (I <= Length(S)) and (S[I] <> ':') do
+      Inc(I);
+
+    // 如果找到了冒号，检查冒号前的字符串是否为空
+    if I = StartPos then
+    begin
+      // 如果是连续的冒号，则添加空字符串
+      Res.Add('');
+    end
+    else
+    begin
+      // 添加冒号前的字符串到结果中
+      Temp := Copy(S, StartPos, I - StartPos);
+      Res.Add(Temp);
+    end;
+
+    // 准备下一次搜索，跳过当前的冒号
+    StartPos := I + 1;
+  end;
+  Result := Res.Count;
+end;
+
+// 与 CnIP 中类似
+function CnIPv6StringToArray(const IP: string): TCnIPv6Array;
+var
+  SL: TStringList;
+  I, ZC, E: Integer;
+begin
+  FillChar(Result[0], 0, SizeOf(TCnIPv6Array));
+
+  SL := TStringList.Create;
+  try
+    I := Pos('/', IP);
+    if I > 1 then // 子网长度如果存在则去除
+      SplitStringByColon(Copy(IP, 1, I - 1), SL)
+    else
+      SplitStringByColon(IP, SL);
+
+    // 处理 :: 表示连续的 0，确保展开为 8 个
+    E := SL.IndexOf('');
+    if E > -1 then
+    begin
+      ZC := 8 - SL.Count;
+      if ZC > 0 then
+      begin
+        SL.Delete(E);
+        for I := 0 to ZC do
+          SL.Insert(E, '0000');
+      end;
+    end;
+
+    if SL.Count = 8 then
+    begin
+      // 每一个转换成 16 进制
+      for I := 0 to SL.Count - 1 do
+        Result[I] := UInt16NetworkToHost(HexToInt(SL[I]));
+    end;
+  finally
+    SL.Free;
+  end;
 end;
 
 function CnGetNetworkCheckSum(const Buf: Pointer; ByteLength: Cardinal): Word;
@@ -2494,17 +2584,18 @@ function CnGetSocksRequestDestinationAddress(const SocksReq: PCnSocksRequest): s
 var
   Len: Integer;
   Res: AnsiString;
+  IPv6: TCnIPv6Array;
 begin
   Result := '';
   case SocksReq^.AddressType of
     CN_SOCKS_ADDRESS_TYPE_IPV4:
       begin
-        Result := CardinalToIPString(UInt32NetworkToHost(SocksReq^.DestionationAddress.IpV4Address));
+        Result := CnCardinalToIPv4String(UInt32NetworkToHost(SocksReq^.DestionationAddress.IpV4Address));
       end;
     CN_SOCKS_ADDRESS_TYPE_IPV6:
       begin
-        // TODO: IPv6
-        raise Exception.Create('NOT Implemented.');
+        Move(SocksReq^.DestionationAddress.IpV6Address[0], IPv6[0], SizeOf(TCnIPv6Array));
+        Result := CnArrayToIPv6String(IPv6);
       end;
     CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
       begin
@@ -2550,17 +2641,18 @@ function CnGetSocksResponseBindAddress(const SocksResp: PCnSocksResponse): strin
 var
   Len: Integer;
   Res: AnsiString;
+  IPv6: TCnIPv6Array;
 begin
   Result := '';
   case SocksResp^.AddressType of
     CN_SOCKS_ADDRESS_TYPE_IPV4:
       begin
-        Result := CardinalToIPString(UInt32NetworkToHost(SocksResp^.BindAddress.IpV4Address));
+        Result := CnCardinalToIPv4String(UInt32NetworkToHost(SocksResp^.BindAddress.IpV4Address));
       end;
     CN_SOCKS_ADDRESS_TYPE_IPV6:
       begin
-        // TODO: IPv6
-        raise Exception.Create('NOT Implemented.');
+        Move(SocksResp^.BindAddress.IpV6Address[0], IPv6[0], SizeOf(TCnIPv6Array));
+        Result := CnArrayToIPv6String(IPv6);
       end;
     CN_SOCKS_ADDRESS_TYPE_DOMAINNAME:
       begin
@@ -2607,7 +2699,7 @@ var
   IP: Cardinal;
   AnsiAddress: AnsiString;
 begin
-  IP := UInt32HostToNetwork(IPStringToCardinal(Address));
+  IP := UInt32HostToNetwork(CnIPv4StringToCardinal(Address));
   if IP = 0 then // 非法 IP，表示是域名
   begin
     SocksReq^.AddressType := CN_SOCKS_ADDRESS_TYPE_DOMAINNAME;
@@ -2660,7 +2752,7 @@ var
   IP: Cardinal;
   AnsiAddress: AnsiString;
 begin
-  IP := UInt32HostToNetwork(IPStringToCardinal(Address));
+  IP := UInt32HostToNetwork(CnIPv4StringToCardinal(Address));
   if IP = 0 then // 非法 IP，表示是域名
   begin
     SocksResp^.AddressType := CN_SOCKS_ADDRESS_TYPE_DOMAINNAME;
