@@ -1484,6 +1484,12 @@ function CnGetICMPIdentifier(const ICMPHeader: PCnICMPHeader): Word;
 function CnGetICMPSequenceNumber(const ICMPHeader: PCnICMPHeader): Word;
 {* 获得 ICMP 包头内的序列号，存在网络字节转换}
 
+procedure CnSetICMPType(const ICMPHeader: PCnICMPHeader; MessageType: Integer);
+{* 设置 ICMP 包头内的消息类型}
+
+procedure CnSetICMPCode(const ICMPHeader: PCnICMPHeader; Code: Integer);
+{* 设置 ICMP 包头内的消息代码}
+
 procedure CnSetICMPChecksum(const ICMPHeader: PCnICMPHeader; Checksum: Word);
 {* 设置 ICMP 包头内的校验和，存在网络字节转换}
 
@@ -2364,6 +2370,16 @@ end;
 function CnGetICMPSequenceNumber(const ICMPHeader: PCnICMPHeader): Word;
 begin
   Result := UInt16NetworkToHost(ICMPHeader^.SequenceNumber);
+end;
+
+procedure CnSetICMPType(const ICMPHeader: PCnICMPHeader; MessageType: Integer);
+begin
+  ICMPHeader^.MessageType := MessageType;
+end;
+
+procedure CnSetICMPCode(const ICMPHeader: PCnICMPHeader; Code: Integer);
+begin
+  ICMPHeader^.Code := Code;
 end;
 
 procedure CnSetICMPChecksum(const ICMPHeader: PCnICMPHeader; Checksum: Word);
