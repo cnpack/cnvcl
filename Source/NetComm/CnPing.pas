@@ -39,7 +39,7 @@ interface
 
 uses
   {$IFDEF MSWINDOWS} Windows, WinSock, {$ELSE}
-  Posix.ArpaInet, Posix.NetinetIn, Posix.SysSocket, {$ENDIF}
+  Posix.ArpaInet, Posix.NetinetIn, Posix.SysSocket, Posix.SysTime, {$ENDIF}
   SysUtils, Classes, Controls, StdCtrls,
   CnClasses, CnConsts, CnNetConsts, CnNetwork, CnSocket;
 
@@ -169,10 +169,10 @@ const
   SCnPingData = 'CnPack Ping.';
 
   SCN_ICMP_ERROR_OK         = 0;
-  SCN_ICMP_ERROR_BAD_ADDR   = -1;
-  SCN_ICMP_ERROR_TIME_OUT   = -2;
-  SCN_ICMP_ERROR_GENERAL    = -3;
-  SCN_ICMP_ERROR_SOCKET     = -4;
+  SCN_ICMP_ERROR_BAD_ADDR   = -1;     // 地址错误
+  SCN_ICMP_ERROR_TIME_OUT   = -2;     // 超时
+  SCN_ICMP_ERROR_GENERAL    = -3;     // 一般错误
+  SCN_ICMP_ERROR_SOCKET     = -4;     // Socket 错误
   SCN_ICMP_ERROR_UNKNOWN    = -100;
 
 {$IFDEF MSWINDOWS}
@@ -372,11 +372,16 @@ end;
 
 function TCnPing.PingIP_Host(const aIP: TCnIpInfo; const Data;
   Count: Cardinal; var aReply: string): Integer;
-{$IFDEF MSWINDOWS}
 var
+  pReqData, pRevData, P: PAnsiChar;
+{$IFDEF MSWINDOWS}
   IPOpt: TCnIPOptionInformation; // 发送数据结构
-  pReqData, pRevData: PAnsiChar;
   pCIER: PCnIcmpEchoReply;
+{$ELSE}
+  Sock: TSocket;
+  DestAddr: TSockAddr;
+  HIcmp: PCnICMPHeader;
+  tv: timeval;
 {$ENDIF}
 begin
   Result := SCN_ICMP_ERROR_UNKNOWN;
@@ -451,8 +456,51 @@ begin
     FreeMem(pCIER);      //释放内存
   end;
 {$ELSE}
-  // TODO: POSIX sendto Ping and recvfrom
-  raise Exception.Create('NOT Implemented.');
+  // POSIX sendto Ping and recvfrom
+  Sock := CnNewSocket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+  if Sock = INVALID_SOCKET then
+  begin
+    Result := SCN_ICMP_ERROR_SOCKET;
+    Exit;
+  end;
+
+  tv.tv_sec := 3;
+  tv.tv_usec := 0;
+  CnSetSockOpt(Sock, SOL_SOCKET, SO_RCVTIMEO, @tv, SizeOf(tv));
+
+  pReqData := nil;
+  pRevData := nil;
+  try
+    GetMem(pReqData, SizeOf(TCnICMPHeader) + Count);
+
+    HIcmp := PCnICMPHeader(pReqData);
+    P := pReqData;
+    Inc(P, SizeOf(TCnICMPHeader));
+    Move(Data, P^, Count); // 准备发送的数据
+
+    CnSetICMPType(HIcmp, CN_ICMP_TYPE_ECHO);
+    CnSetICMPCode(HIcmp, CN_ICMP_CODE_NO_CODE);
+    CnSetICMPIdentifier(HIcmp, Random($FFFF));
+    CnSetICMPSequenceNumber(HIcmp, 0);
+
+    CnFillICMPHeaderCheckSum(HIcmp, Count);
+
+    FillChar(DestAddr, SizeOf(DestAddr), 0);
+    DestAddr.sin_family := AF_INET;
+    DestAddr.sin_addr.s_addr := inet_addr(PAnsiChar(aIP.IP));
+    if CnSendTo(Sock, HIcmp^, SizeOf(TCnICMPHeader) + Count, 0, DestAddr,
+      SizeOf(DestAddr)) = SOCKET_ERROR then
+      Exit;
+
+    // TODO: recvfrom
+    raise Exception.Create('NOT Implemented.');
+  finally
+    if pRevData <> nil then
+      FreeMem(pRevData); // 释放内存
+    if pReqData <> nil then
+      FreeMem(pReqData); //释放内存
+  end;
+
 {$ENDIF}
 end;
 
@@ -466,15 +514,15 @@ begin
     SCN_ICMP_ERROR_UNKNOWN: Result := SICMPRunError;
     SCN_ICMP_ERROR_BAD_ADDR: Result := SInvalidAddr;
     SCN_ICMP_ERROR_TIME_OUT: Result := Format(SNoResponse, [RemoteHost]);
-    else
-      if pIPE <> nil then
-      begin
-        sHost := aIP.IP;
-        if aIP.Host <> '' then
-          sHost := aIP.Host + ': ' + sHost;
-        Result := (Format(SPingResultString, [sHost, pIPE^.DataSize, pIPE^.RTT,
-          pIPE^.Options.TTL]));
-      end;
+  else
+    if pIPE <> nil then
+    begin
+      sHost := aIP.IP;
+      if aIP.Host <> '' then
+        sHost := aIP.Host + ': ' + sHost;
+      Result := (Format(SPingResultString, [sHost, pIPE^.DataSize, pIPE^.RTT,
+        pIPE^.Options.TTL]));
+    end;
   end;
 end;
 
