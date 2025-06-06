@@ -373,15 +373,21 @@ end;
 function TCnPing.PingIP_Host(const aIP: TCnIpInfo; const Data;
   Count: Cardinal; var aReply: string): Integer;
 var
-  pReqData, pRevData, P: PAnsiChar;
+  pReqData: PAnsiChar;
 {$IFDEF MSWINDOWS}
+  pRevData: PAnsiChar;
   IPOpt: TCnIPOptionInformation; // 发送数据结构
   pCIER: PCnIcmpEchoReply;
 {$ELSE}
+  P: PAnsiChar;
   Sock: TSocket;
   DestAddr: TSockAddr;
+  HIp: PCnIPHeader;
   HIcmp: PCnICMPHeader;
   tv: timeval;
+  Buf: array[0..1023] of Byte;
+  R, FromLen: Integer;
+  ID: Word;
 {$ENDIF}
 begin
   Result := SCN_ICMP_ERROR_UNKNOWN;
@@ -469,7 +475,7 @@ begin
   CnSetSockOpt(Sock, SOL_SOCKET, SO_RCVTIMEO, @tv, SizeOf(tv));
 
   pReqData := nil;
-  pRevData := nil;
+
   try
     GetMem(pReqData, SizeOf(TCnICMPHeader) + Count);
 
@@ -480,7 +486,8 @@ begin
 
     CnSetICMPType(HIcmp, CN_ICMP_TYPE_ECHO);
     CnSetICMPCode(HIcmp, CN_ICMP_CODE_NO_CODE);
-    CnSetICMPIdentifier(HIcmp, Random($FFFF));
+    ID := Random($FFFF);
+    CnSetICMPIdentifier(HIcmp, ID);
     CnSetICMPSequenceNumber(HIcmp, 0);
 
     CnFillICMPHeaderCheckSum(HIcmp, Count);
@@ -492,11 +499,34 @@ begin
       SizeOf(DestAddr)) = SOCKET_ERROR then
       Exit;
 
-    // TODO: recvfrom
-    raise Exception.Create('NOT Implemented.');
+    // recvfrom
+    FromLen := SizeOf(DestAddr);
+    R := CnRecvFrom(Sock, Buf[0], SizeOf(Buf), 0, DestAddr, FromLen);
+    if R > SizeOf(TCnIPHeader) + SizeOf(TCnICMPHeader) then
+    begin
+      HIp := PCnIPHeader(@Buf[0]);
+      P := PAnsiChar(HIp);
+      Inc(P, CnGetIPHeaderLength(HIp) * 4);
+      HIcmp := PCnICMPHeader(P);
+
+      if (HIcmp^.MessageType = CN_ICMP_TYPE_ECHO_REPLY) and (ID = HIcmp^.Identifier) then
+        Result := SCN_ICMP_ERROR_OK
+      else
+      begin
+        Result := SCN_ICMP_ERROR_GENERAL;
+        if Assigned(FOnError) then
+          FOnError(Self, aIP.IP, aIP.Host, FTTL, 0, SICMPRunError);
+      end;
+    end
+    else
+    begin
+      Result := SCN_ICMP_ERROR_GENERAL;
+      if Assigned(FOnError) then
+        FOnError(Self, aIP.IP, aIP.Host, FTTL, 0, SICMPRunError);
+    end;
+
+    CnCloseSocket(Sock);
   finally
-    if pRevData <> nil then
-      FreeMem(pRevData); // 释放内存
     if pReqData <> nil then
       FreeMem(pReqData); //释放内存
   end;
