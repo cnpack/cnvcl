@@ -162,24 +162,24 @@ type
   TCnWideCharDisplayWideLengthCalculator = function(AWChar: WideChar): Boolean;
   {* 针对宽字符的显示宽度计算回调函数类型，不同的 Delphi IDE 编辑器中需要不同的实现}
 
-function CnUtf8EncodeWideString(const S: WideString): AnsiString;
+function CnUtf8EncodeWideString(const S: TCnWideString): AnsiString;
 {* 对 WideString 进行 UTF-8 编码得到 AnsiString，不做 Ansi 转换避免丢字符，
    支持四字节 UTF-16 字符与 UTF8-MB4。
 
    参数：
-     const S: WideString                  - 待转换的宽字符串
+     const S: WideString/UnicodeString    - 待转换的宽字符串
 
    返回值：AnsiString                     - 返回 UTF-8 字符串
 }
 
-function CnUtf8DecodeToWideString(const S: AnsiString): WideString;
+function CnUtf8DecodeToWideString(const S: AnsiString): TCnWideString;
 {* 对 AnsiString 的 UTF-8 解码得到 WideString，不做 Ansi 转换避免丢字符，
    支持四字节 UTF-16 字符与 UTF8-MB4。
 
    参数：
      const S: AnsiString                  - 待转换的 UTF-8 字符串
 
-   返回值：WideString                     - 返回的宽字符串
+   返回值：WideString/UnicodeString       - 返回的宽字符串
 }
 
 function GetUtf16HighByte(Rec: PCn2CharRec): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
@@ -1160,7 +1160,7 @@ begin
 end;
 
 // 对 WideString 进行 UTF-8 编码得到 AnsiString，不做 Ansi 转换避免丢字符
-function CnUtf8EncodeWideString(const S: WideString): AnsiString;
+function CnUtf8EncodeWideString(const S: TCnWideString): AnsiString;
 var
   L: Integer;
   Temp: AnsiString;
@@ -1179,7 +1179,7 @@ begin
 end;
 
 // 对 AnsiString 的 UTF-8 解码得到 WideString，不做 Ansi 转换避免丢字符
-function CnUtf8DecodeToWideString(const S: AnsiString): WideString;
+function CnUtf8DecodeToWideString(const S: AnsiString): TCnWideString;
 var
   L: Integer;
 begin
