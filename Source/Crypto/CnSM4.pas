@@ -766,7 +766,7 @@ begin
   Result := PByte(TCnIntAddress(PTable) + Inch)^;
 end;
 
-function SM4Lt(Ka: Cardinal): Cardinal;
+function SM4Lt(Ka: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   BB: Cardinal;
   A: array[0..3] of Byte;
