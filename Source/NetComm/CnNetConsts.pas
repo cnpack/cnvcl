@@ -67,7 +67,7 @@ resourcestring
   // CnPing
   SCnPingName = 'CnPing Component';
   SCnPingComment = 'CnPing Component';  
-  SInitFailed = 'Init Failed. Maybe Winsock Verison Error';
+  SInitFailed = 'Init Failed. Maybe No Permission or Winsock Verison Error';
   SInvalidAddr = 'IP Address Error';
   SNoResponse = '[%0:S] No Response';
   STimeOut = 'Time Out';    

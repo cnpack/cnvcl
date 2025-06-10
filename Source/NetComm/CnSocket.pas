@@ -40,7 +40,7 @@ interface
 uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows, WinSock {$ELSE}, System.Net.Socket,
   Posix.Base, Posix.NetIf, Posix.SysSocket, Posix.ArpaInet, Posix.NetinetIn,
-  Posix.Unistd, Posix.SysSelect, Posix.SysTime {$ENDIF};
+  Posix.Unistd, Posix.SysSelect, Posix.SysTime, Posix.Errno {$ENDIF};
 
 type
 {$IFDEF MSWINDOWS}
@@ -127,6 +127,9 @@ procedure CnFDClear(F: Integer; var FD: TCnFDSet);
 
 function CnFDIsSet(F: Integer; var FD: TCnFDSet): Boolean;
 {* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台上的 FD_ISSET 函数的封装}
+
+function CnGetNetErrorNo: Integer;
+{* 对 Windows 以及 POSIX（包括 MAC、Linux 等）平台返回最近一次网络错误码}
 
 implementation
 
@@ -294,6 +297,15 @@ end;
 function CnFDIsSet(F: Integer; var FD: TCnFDSet): Boolean;
 begin
   Result := FD_ISSET(F, FD);
+end;
+
+function CnGetNetErrorNo: Integer;
+begin
+{$IFDEF MSWINDOWS}
+  Result := WSAGetLastError;
+{$ELSE}
+  Result := Posix.Errno.errno;
+{$ENDIF}
 end;
 
 end.
