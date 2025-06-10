@@ -67,7 +67,7 @@ resourcestring
   // CnPing
   SCnPingName = 'Ping組件';
   SCnPingComment = 'Ping組件';
-  SInitFailed = 'Winsock 初始化失敗，可能是版本不正確';
+  SInitFailed = '初始化失敗，可能權限不足或Winsock版本不正確';
   SInvalidAddr = 'IP地址不合法';
   SNoResponse = '[%0:S] 沒有響應';
   STimeOut = '響應超時';

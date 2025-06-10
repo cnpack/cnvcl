@@ -96,7 +96,7 @@ const
   SCnPackBugEmail = 'bugs@cnpack.org';
   SCnPackSuggestionsEmail = 'suggestions@cnpack.org';
 
-  SCnPackDonationUrl = 'https://www.cnpack.org/foundation.php';
+  SCnPackDonationUrl = 'https://www.cnpack.org/donation.php';
   SCnPackDonationUrlSF = 'http://sourceforge.net/donate/index.php?group_id=110999';
   SCnPackGroup = 'CnPack Ж}ЕoВе';
   SCnPackCopyright = '(C)Copyright 2001-2025 ' + SCnPackGroup;
