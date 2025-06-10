@@ -397,6 +397,7 @@ begin
     aReply := GetReplyString(Result, aIP, nil);
     Exit;
   end;
+
   if aIP.Address = INADDR_NONE then
   begin
     Result := SCN_ICMP_ERROR_BAD_ADDR;
@@ -467,6 +468,7 @@ begin
   if Sock = INVALID_SOCKET then
   begin
     Result := SCN_ICMP_ERROR_SOCKET;
+    aReply := GetReplyString(Result, aIP, nil);
     Exit;
   end;
 
@@ -495,9 +497,17 @@ begin
     FillChar(DestAddr, SizeOf(DestAddr), 0);
     DestAddr.sin_family := AF_INET;
     DestAddr.sin_addr.s_addr := inet_addr(PAnsiChar(aIP.IP));
-    if CnSendTo(Sock, HIcmp^, SizeOf(TCnICMPHeader) + Count, 0, DestAddr,
-      SizeOf(DestAddr)) = SOCKET_ERROR then
+
+    R := CnSendTo(Sock, HIcmp^, SizeOf(TCnICMPHeader) + Count, 0, DestAddr,
+      SizeOf(DestAddr));
+    if R = SOCKET_ERROR then
+    begin
+      Result := SCN_ICMP_ERROR_GENERAL; // 发生错误
+      aReply := IntToStr(CnGetNetErrorNo);
+      if Assigned(FOnError) then
+        FOnError(Self, aIP.IP, aIP.Host, FTTL, 0, IntToStr(CnGetNetErrorNo));
       Exit;
+    end;
 
     // recvfrom
     FromLen := SizeOf(DestAddr);
@@ -518,15 +528,23 @@ begin
           FOnError(Self, aIP.IP, aIP.Host, FTTL, 0, SICMPRunError);
       end;
     end
+    else if R = -1 then
+    begin
+      Result := SCN_ICMP_ERROR_TIME_OUT;
+      if Assigned(FOnError) then
+        FOnError(Self, aIP.IP, aIP.Host, FTTL, 0, SNoResponse);
+    end
     else
     begin
-      Result := SCN_ICMP_ERROR_GENERAL;
+      Result := SCN_ICMP_ERROR_UNKNOWN;
       if Assigned(FOnError) then
         FOnError(Self, aIP.IP, aIP.Host, FTTL, 0, SICMPRunError);
     end;
 
     CnCloseSocket(Sock);
   finally
+    if aReply = '' then
+      aReply := GetReplyString(Result, aIP, nil);
     if pReqData <> nil then
       FreeMem(pReqData); //释放内存
   end;
@@ -542,8 +560,10 @@ begin
   Result := SInvalidAddr;
   case aResult of
     SCN_ICMP_ERROR_UNKNOWN: Result := SICMPRunError;
+    SCN_ICMP_ERROR_GENERAL: Result := SICMPRunError;
     SCN_ICMP_ERROR_BAD_ADDR: Result := SInvalidAddr;
     SCN_ICMP_ERROR_TIME_OUT: Result := Format(SNoResponse, [RemoteHost]);
+    SCN_ICMP_ERROR_SOCKET: Result := SInitFailed;
   else
     if pIPE <> nil then
     begin
