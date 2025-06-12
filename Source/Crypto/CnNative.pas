@@ -208,6 +208,31 @@ type
   TCnBitOperation = (boAnd, boOr, boXor, boNot);
   {* 位操作类型}
 
+  // 供我们使用的静态有符号无符号数组类型
+  PCnInt8Array = ^TCnInt8Array;
+  TCnInt8Array = array[0..0] of ShortInt;
+
+  PCnUInt8Array = ^TCnUInt8Array;
+  TCnUInt8Array = array[0..0] of Byte;
+
+  PCnInt16Array = ^TCnInt16Array;
+  TCnInt16Array = array[0..0] of SmallInt;
+
+  PCnUInt16Array = ^TCnUInt16Array;
+  TCnUInt16Array = array[0..0] of Word;
+
+  PCnInt32Array = ^TCnInt32Array;
+  TCnInt32Array = array[0..0] of Integer;
+
+  PCnUInt32Array = ^TCnUInt32Array;
+  TCnUInt32Array = array[0..0] of Cardinal;
+
+  PCnInt64Array = ^TCnInt64Array;
+  TCnInt64Array = array[0..0] of Int64;
+
+  PCnUInt64Array = ^TCnUInt64Array;
+  TCnUInt64Array = array[0..0] of TUInt64;
+
 type
   TCnMemSortCompareProc = function (P1, P2: Pointer; ElementByteSize: Integer): Integer;
   {* 内存固定块尺寸的数组排序比较函数原型}
