@@ -157,7 +157,7 @@ function SHA256Buffer(const Buffer; Count: Cardinal): TCnSHA256Digest;
 
    参数：
      const Buffer                         - 待计算的数据块地址
-     Count: Cardinal                      -
+     Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
 }
@@ -167,7 +167,7 @@ function SHA384Buffer(const Buffer; Count: Cardinal): TCnSHA384Digest;
 
    参数：
      const Buffer                         - 待计算的数据块地址
-     Count: Cardinal                      -
+     Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
 }
@@ -177,7 +177,7 @@ function SHA512Buffer(const Buffer; Count: Cardinal): TCnSHA512Digest;
 
    参数：
      const Buffer                         - 待计算的数据块地址
-     Count: Cardinal                      -
+     Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
 }
@@ -262,7 +262,7 @@ function SHA224StringA(const Str: AnsiString): TCnSHA224Digest;
 {* 对 AnsiString 类型数据进行 SHA224 计算。
 
    参数：
-     const Str: AnsiString                -
+     const Str: AnsiString                - 待计算的字符串
 
    返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
 }
@@ -282,7 +282,7 @@ function SHA256StringA(const Str: AnsiString): TCnSHA256Digest;
 {* 对 AnsiString 类型数据进行 SHA256 计算。
 
    参数：
-     const Str: AnsiString                -
+     const Str: AnsiString                - 待计算的字符串
 
    返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
 }
@@ -302,7 +302,7 @@ function SHA384StringA(const Str: AnsiString): TCnSHA384Digest;
 {* 对 AnsiString 类型数据进行 SHA384 计算。
 
    参数：
-     const Str: AnsiString                -
+     const Str: AnsiString                - 待计算的字符串
 
    返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
 }
@@ -322,7 +322,7 @@ function SHA512StringA(const Str: AnsiString): TCnSHA512Digest;
 {* 对 AnsiString 类型数据进行 SHA512 计算。
 
    参数：
-     const Str: AnsiString                -
+     const Str: AnsiString                - 待计算的字符串
 
    返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
 }
