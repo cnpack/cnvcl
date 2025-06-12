@@ -2152,7 +2152,7 @@ var
   Info: BY_HANDLE_FILE_INFORMATION;
   Rec: Int64Rec;
 {$ENDIF}
-  begin
+begin
 {$IFDEF MSWINDOWS}
   Result := False;
   IsEmpty := False;
