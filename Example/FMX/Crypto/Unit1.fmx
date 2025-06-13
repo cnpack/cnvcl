@@ -19,71 +19,19 @@ object FormCrypt: TFormCrypt
     Size.Width = 1249.000000000000000000
     Size.Height = 385.000000000000000000
     Size.PlatformDefault = False
-    TabIndex = 0
+    TabIndex = 6
     TabOrder = 0
     TabPosition = Top
-    Sizes = (
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s
-      1249s
-      357s)
     object tsDES: TTabItem
       CustomIcon = <
         item
         end>
-      IsSelected = True
-      Size.Width = 46.000000000000000000
-      Size.Height = 28.000000000000000000
+      IsSelected = False
+      Size.Width = 44.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'DES'
-      ExplicitSize.cx = 44.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpdES: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -256,14 +204,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 19
-      Size.Width = 53.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 51.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = '3DES'
-      ExplicitSize.cx = 51.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grp3Des: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -436,14 +381,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 1
-      Size.Width = 51.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 50.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'MD5'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpMd5: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -546,14 +488,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 2
-      Size.Width = 63.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 62.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'Base64'
-      ExplicitSize.cx = 62.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object GroupBox1: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -672,14 +611,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 3
-      Size.Width = 90.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 89.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'CRC8/16/32'
-      ExplicitSize.cx = 89.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpCRC32: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -812,14 +748,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 4
-      Size.Width = 61.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 59.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'CRC64'
-      ExplicitSize.cx = 59.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grp1: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -910,16 +843,13 @@ object FormCrypt: TFormCrypt
       CustomIcon = <
         item
         end>
-      IsSelected = False
+      IsSelected = True
       ImageIndex = 5
-      Size.Width = 54.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 53.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA1'
-      ExplicitSize.cx = 53.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpSha1: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -974,7 +904,7 @@ object FormCrypt: TFormCrypt
           TabOrder = 5
           OnDblClick = ResultDblClick
         end
-        object btnFileSha1: TButton
+        object btnSHA1File: TButton
           Position.X = 72.000000000000000000
           Position.Y = 208.000000000000000000
           Size.Width = 75.000000000000000000
@@ -982,7 +912,7 @@ object FormCrypt: TFormCrypt
           Size.PlatformDefault = False
           TabOrder = 6
           Text = 'File SHA1'
-          OnClick = btnFileSha1Click
+          OnClick = btnSHA1FileClick
         end
         object edtSHA1HMacKey: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
@@ -1022,14 +952,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 6
-      Size.Width = 49.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 48.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SM3'
-      ExplicitSize.cx = 48.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpSM3: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -1131,14 +1058,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 7
-      Size.Width = 49.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 48.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SM4'
-      ExplicitSize.cx = 48.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpSM4: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -1329,14 +1253,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 8
-      Size.Width = 45.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 44.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'AES'
-      ExplicitSize.cx = 44.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpAes: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -1549,13 +1470,10 @@ object FormCrypt: TFormCrypt
       IsSelected = False
       ImageIndex = 10
       Size.Width = 68.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA224'
-      ExplicitSize.cx = 68.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpSHA224: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -1658,14 +1576,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 9
-      Size.Width = 68.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 67.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA256'
-      ExplicitSize.cx = 67.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpSHA256: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -1720,7 +1635,7 @@ object FormCrypt: TFormCrypt
           TabOrder = 5
           OnDblClick = ResultDblClick
         end
-        object btnFileSHA256: TButton
+        object btnSHA256File: TButton
           Position.X = 72.000000000000000000
           Position.Y = 208.000000000000000000
           Size.Width = 75.000000000000000000
@@ -1728,7 +1643,7 @@ object FormCrypt: TFormCrypt
           Size.PlatformDefault = False
           TabOrder = 6
           Text = 'File SHA256'
-          OnClick = btnFileSHA256Click
+          OnClick = btnSHA256FileClick
         end
         object edtSHA256HmacKey: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
@@ -1769,13 +1684,10 @@ object FormCrypt: TFormCrypt
       IsSelected = False
       ImageIndex = 12
       Size.Width = 68.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA384'
-      ExplicitSize.cx = 68.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpSHA384: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -1877,14 +1789,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 11
-      Size.Width = 68.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 67.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA512'
-      ExplicitSize.cx = 67.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpSHA512: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -1987,13 +1896,10 @@ object FormCrypt: TFormCrypt
       IsSelected = False
       ImageIndex = 10
       Size.Width = 80.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA3_224'
-      ExplicitSize.cx = 80.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpSHA3_224: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -2096,14 +2002,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 9
-      Size.Width = 80.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 79.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA3_256'
-      ExplicitSize.cx = 79.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpSHA3_256: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -2158,7 +2061,7 @@ object FormCrypt: TFormCrypt
           TabOrder = 5
           OnDblClick = ResultDblClick
         end
-        object btnFileSHA3_256: TButton
+        object btnSHA3_256File: TButton
           Position.X = 72.000000000000000000
           Position.Y = 208.000000000000000000
           Size.Width = 75.000000000000000000
@@ -2166,7 +2069,7 @@ object FormCrypt: TFormCrypt
           Size.PlatformDefault = False
           TabOrder = 6
           Text = 'File SHA3_256'
-          OnClick = btnFileSHA3_256Click
+          OnClick = btnSHA3_256FileClick
         end
         object edtSHA3_256HmacKey: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
@@ -2207,13 +2110,10 @@ object FormCrypt: TFormCrypt
       IsSelected = False
       ImageIndex = 12
       Size.Width = 80.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA3_384'
-      ExplicitSize.cx = 80.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpSHA3_384: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -2315,14 +2215,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 11
-      Size.Width = 80.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 79.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'SHA3_512'
-      ExplicitSize.cx = 79.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpSHA3_512: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -2418,20 +2315,443 @@ object FormCrypt: TFormCrypt
         end
       end
     end
+    object tsBLAKE224: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 10
+      Size.Width = 79.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'BLAKE224'
+      object grpBLAKE224: TGroupBox
+        Anchors = [akLeft, akTop, akRight]
+        Position.X = 24.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 2376.000000000000000000
+        Size.Height = 289.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'BLAKE224'
+        TabOrder = 0
+        object lblBLAKE224: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 44.000000000000000000
+          Size.Width = 28.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'From:'
+        end
+        object lblBLAKE224HmacKey: TLabel
+          Position.X = 264.000000000000000000
+          Position.Y = 44.000000000000000000
+          Size.Width = 51.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Hmac Key:'
+        end
+        object edtBLAKE224: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 0
+          Text = 'Sample Text'
+          Position.X = 72.000000000000000000
+          Position.Y = 40.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBLAKE224: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'BLAKE224'
+          OnClick = btnBLAKE224Click
+        end
+        object pnlBLAKE224: TPanel
+          Position.X = 8.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 401.000000000000000000
+          Size.Height = 41.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          OnDblClick = ResultDblClick
+        end
+        object btnBLAKE224File: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'File BLAKE224'
+          OnClick = btnBLAKE224FileClick
+        end
+        object edtBLAKE224HmacKey: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Text = 'HmacKey'
+          Position.X = 320.000000000000000000
+          Position.Y = 40.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBLAKE224Hmac: TButton
+          Position.X = 320.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'BLAKE224 Hmac'
+          OnClick = btnBLAKE224HmacClick
+        end
+        object btnUBLAKE224: TButton
+          Position.X = 168.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Utf16 BLAKE224'
+          OnClick = btnUBLAKE224Click
+        end
+      end
+    end
+    object tsBLAKE256: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 9
+      Size.Width = 78.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'BLAKE256'
+      object grpBLAKE256: TGroupBox
+        Anchors = [akLeft, akTop, akRight]
+        Position.X = 24.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 2296.000000000000000000
+        Size.Height = 289.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'BLAKE256'
+        TabOrder = 0
+        object lblBLAKE256: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 44.000000000000000000
+          Size.Width = 28.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'From:'
+        end
+        object lblBLAKE256HmacKey: TLabel
+          Position.X = 264.000000000000000000
+          Position.Y = 44.000000000000000000
+          Size.Width = 51.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Hmac Key:'
+        end
+        object edtBLAKE256: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 0
+          Text = 'Sample Text'
+          Position.X = 72.000000000000000000
+          Position.Y = 40.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBLAKE256: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'BLAKE256'
+          OnClick = btnBLAKE256Click
+        end
+        object pnlBLAKE256: TPanel
+          Position.X = 8.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 401.000000000000000000
+          Size.Height = 41.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          OnDblClick = ResultDblClick
+        end
+        object btnBLAKE256File: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 6
+          Text = 'File BLAKE256'
+          OnClick = btnBLAKE256FileClick
+        end
+        object edtBLAKE256HmacKey: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Text = 'HmacKey'
+          Position.X = 320.000000000000000000
+          Position.Y = 40.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBLAKE256Hmac: TButton
+          Position.X = 320.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'BLAKE256 Hmac'
+          OnClick = btnBLAKE256HmacClick
+        end
+        object btnUBLAKE256: TButton
+          Position.X = 168.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Utf16 BLAKE256'
+          OnClick = btnUBLAKE256Click
+        end
+      end
+    end
+    object tsBLAKE384: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 12
+      Size.Width = 79.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'BLAKE384'
+      object grpBLAKE384: TGroupBox
+        Anchors = [akLeft, akTop, akRight]
+        Position.X = 24.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 2296.000000000000000000
+        Size.Height = 289.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'BLAKE384'
+        TabOrder = 0
+        object lblBLAKE384: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 44.000000000000000000
+          Size.Width = 28.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'From:'
+        end
+        object lblBLAKE384Result: TLabel
+          Position.X = 8.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 401.000000000000000000
+          Size.Height = 41.000000000000000000
+          Size.PlatformDefault = False
+          OnDblClick = ResultDblClick
+        end
+        object lblBLAKE384HmacKey: TLabel
+          Position.X = 264.000000000000000000
+          Position.Y = 44.000000000000000000
+          Size.Width = 51.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Hmac Key:'
+        end
+        object edtBLAKE384: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 0
+          Text = 'Sample Text'
+          Position.X = 72.000000000000000000
+          Position.Y = 40.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBLAKE384: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'BLAKE384'
+          OnClick = btnBLAKE384Click
+        end
+        object btnBLAKE384File: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'File BLAKE384'
+          OnClick = btnBLAKE384FileClick
+        end
+        object edtBLAKE384HmacKey: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Text = 'HmacKey'
+          Position.X = 320.000000000000000000
+          Position.Y = 40.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBLAKE384Hmac: TButton
+          Position.X = 320.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'BLAKE384 Hmac'
+          OnClick = btnBLAKE384HmacClick
+        end
+        object btnUBLAKE384: TButton
+          Position.X = 168.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Utf16 BLAKE384'
+          OnClick = btnUBLAKE384Click
+        end
+      end
+    end
+    object tsBLAKE512: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 11
+      Size.Width = 78.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'BLAKE512'
+      object grpBLAKE512: TGroupBox
+        Anchors = [akLeft, akTop, akRight]
+        Position.X = 24.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 2312.000000000000000000
+        Size.Height = 289.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'BLAKE512'
+        TabOrder = 0
+        object lblBLAKE512: TLabel
+          Position.X = 24.000000000000000000
+          Position.Y = 44.000000000000000000
+          Size.Width = 28.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'From:'
+        end
+        object lblBLAKE512Result: TLabel
+          Position.X = 8.000000000000000000
+          Position.Y = 136.000000000000000000
+          Size.Width = 401.000000000000000000
+          Size.Height = 41.000000000000000000
+          Size.PlatformDefault = False
+          OnDblClick = ResultDblClick
+        end
+        object lblBLAKE512HmacKey: TLabel
+          Position.X = 264.000000000000000000
+          Position.Y = 44.000000000000000000
+          Size.Width = 51.000000000000000000
+          Size.Height = 13.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Hmac Key:'
+        end
+        object edtBLAKE512: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 0
+          Text = 'Sample Text'
+          Position.X = 72.000000000000000000
+          Position.Y = 40.000000000000000000
+          Size.Width = 169.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBLAKE512: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 2
+          Text = 'BLAKE512'
+          OnClick = btnBLAKE512Click
+        end
+        object btnBLAKE512File: TButton
+          Position.X = 72.000000000000000000
+          Position.Y = 208.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 5
+          Text = 'File BLAKE512'
+          OnClick = btnBLAKE512FileClick
+        end
+        object edtBLAKE512HmacKey: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          TabOrder = 1
+          Text = 'HmacKey'
+          Position.X = 320.000000000000000000
+          Position.Y = 40.000000000000000000
+          Size.Width = 73.000000000000000000
+          Size.Height = 21.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnBLAKE512Hmac: TButton
+          Position.X = 320.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 4
+          Text = 'BLAKE512 Hmac'
+          OnClick = btnBLAKE512HmacClick
+        end
+        object btnUBLAKE512: TButton
+          Position.X = 168.000000000000000000
+          Position.Y = 80.000000000000000000
+          Size.Width = 75.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 3
+          Text = 'Utf16 BLAKE512'
+          OnClick = btnUBLAKE512Click
+        end
+      end
+    end
     object tsZUC: TTabItem
       CustomIcon = <
         item
         end>
       IsSelected = False
       ImageIndex = 13
-      Size.Width = 48.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 46.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'ZUC'
-      ExplicitSize.cx = 46.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpZuc: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -2527,14 +2847,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 18
-      Size.Width = 45.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 44.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'TEA'
-      ExplicitSize.cx = 44.000000000000000000
-      ExplicitSize.cy = 24.000000000000000000
       object grpTea: TGroupBox
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
@@ -2766,13 +3083,10 @@ object FormCrypt: TFormCrypt
       IsSelected = False
       ImageIndex = 20
       Size.Width = 74.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'Poly1305'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpPoly1305: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -2844,14 +3158,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 21
-      Size.Width = 80.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 78.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'ChaCha20'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpChaCha20: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
@@ -2936,14 +3247,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 22
-      Size.Width = 55.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 54.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'AEAD'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpAEAD: TGroupBox
         Position.X = 24.000000000000000000
         Position.Y = 24.000000000000000000
@@ -3110,14 +3418,11 @@ object FormCrypt: TFormCrypt
         end>
       IsSelected = False
       ImageIndex = 23
-      Size.Width = 47.000000000000000000
-      Size.Height = 28.000000000000000000
+      Size.Width = 46.000000000000000000
+      Size.Height = 24.000000000000000000
       Size.PlatformDefault = False
-      StyleLookup = ''
       TabOrder = 0
       Text = 'FNV'
-      ExplicitSize.cx = 50.000000000000000000
-      ExplicitSize.cy = 50.000000000000000000
       object grpFNV: TGroupBox
         Anchors = [akLeft, akTop, akRight]
         Position.X = 24.000000000000000000
