@@ -20,14 +20,14 @@ object FormCrypt: TFormCrypt
     Height = 457
     Top = 24
     Width = 745
-    ActivePage = tsDES
+    ActivePage = tsBLAKE256
     MultiLine = True
-    TabIndex = 0
+    TabIndex = 20
     TabOrder = 0
     Options = [nboMultiLine]
     object tsDES: TTabSheet
       Caption = 'DES'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       object grpdES: TGroupBox
         Left = 24
@@ -180,7 +180,7 @@ object FormCrypt: TFormCrypt
     end
     object ts3DES: TTabSheet
       Caption = '3DES'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 19
       object grp3Des: TGroupBox
@@ -334,7 +334,7 @@ object FormCrypt: TFormCrypt
     end
     object tsMD5: TTabSheet
       Caption = 'MD5'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 1
       object grpMd5: TGroupBox
@@ -426,7 +426,7 @@ object FormCrypt: TFormCrypt
     end
     object tsBase64: TTabSheet
       Caption = 'Base64'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 2
       object GroupBox1: TGroupBox
@@ -538,7 +538,7 @@ object FormCrypt: TFormCrypt
     end
     object tsCRC32: TTabSheet
       Caption = 'CRC8/16/32'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 3
       object grpCRC32: TGroupBox
@@ -657,7 +657,7 @@ object FormCrypt: TFormCrypt
     end
     object tsCRC64: TTabSheet
       Caption = 'CRC64'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 4
       object grp1: TGroupBox
@@ -740,7 +740,7 @@ object FormCrypt: TFormCrypt
     end
     object tsSha1: TTabSheet
       Caption = 'SHA1'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 5
       object grpSha1: TGroupBox
@@ -832,7 +832,7 @@ object FormCrypt: TFormCrypt
     end
     object tsSM3: TTabSheet
       Caption = 'SM3'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 6
       object grpSM3: TGroupBox
@@ -925,7 +925,7 @@ object FormCrypt: TFormCrypt
     end
     object tsSM4: TTabSheet
       Caption = 'SM4'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 7
       object grpSM4: TGroupBox
@@ -1121,7 +1121,7 @@ object FormCrypt: TFormCrypt
     end
     object tsAES: TTabSheet
       Caption = 'AES'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 8
       object grpAes: TGroupBox
@@ -1312,7 +1312,7 @@ object FormCrypt: TFormCrypt
     end
     object tsSHA224: TTabSheet
       Caption = 'SHA224'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 10
       object grpSHA224: TGroupBox
@@ -1404,7 +1404,7 @@ object FormCrypt: TFormCrypt
     end
     object tsSHA256: TTabSheet
       Caption = 'SHA256'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 9
       object grpSHA256: TGroupBox
@@ -1496,7 +1496,7 @@ object FormCrypt: TFormCrypt
     end
     object tsSHA384: TTabSheet
       Caption = 'SHA384'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 12
       object grpSHA384: TGroupBox
@@ -1589,7 +1589,7 @@ object FormCrypt: TFormCrypt
     end
     object tsSHA512: TTabSheet
       Caption = 'SHA512'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 11
       object grpSHA512: TGroupBox
@@ -1682,7 +1682,7 @@ object FormCrypt: TFormCrypt
     end
     object tsSHA3_224: TTabSheet
       Caption = 'SHA3_224'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 10
       object grpSHA3_224: TGroupBox
@@ -1774,7 +1774,7 @@ object FormCrypt: TFormCrypt
     end
     object tsSHA3_256: TTabSheet
       Caption = 'SHA3_256'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 9
       object grpSHA3_256: TGroupBox
@@ -1866,7 +1866,7 @@ object FormCrypt: TFormCrypt
     end
     object tsSHA3_384: TTabSheet
       Caption = 'SHA3_384'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 12
       object grpSHA3_384: TGroupBox
@@ -1959,7 +1959,7 @@ object FormCrypt: TFormCrypt
     end
     object tsSHA3_512: TTabSheet
       Caption = 'SHA3_512'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 11
       object grpSHA3_512: TGroupBox
@@ -2052,7 +2052,7 @@ object FormCrypt: TFormCrypt
     end
     object tsSHAKE: TTabSheet
       Caption = 'SHAKE'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 24
       object grpSHAKE: TGroupBox
@@ -2164,393 +2164,377 @@ object FormCrypt: TFormCrypt
     end
     object tsBLAKE224: TTabSheet
       Caption = 'BLAKE224'
+      ClientHeight = 395
+      ClientWidth = 737
       ImageIndex = 10
       object grpBLAKE224: TGroupBox
         Left = 24
-        Top = 24
-        Width = 497
         Height = 289
-        Anchors = [akLeft, akTop, akRight]
+        Top = 24
+        Width = 489
+        Anchors = [akTop, akLeft, akRight]
         Caption = 'BLAKE224'
+        ClientHeight = 271
+        ClientWidth = 485
         TabOrder = 0
         object lblBLAKE224: TLabel
-          Left = 24
-          Top = 44
-          Width = 28
+          Left = 20
           Height = 13
+          Top = 16
+          Width = 28
           Caption = 'From:'
         end
         object lblBLAKE224HmacKey: TLabel
-          Left = 264
-          Top = 44
-          Width = 51
+          Left = 260
           Height = 13
+          Top = 16
+          Width = 51
           Caption = 'Hmac Key:'
         end
         object edtBLAKE224: TEdit
-          Left = 72
-          Top = 40
-          Width = 169
+          Left = 68
           Height = 21
+          Top = 12
+          Width = 169
           TabOrder = 0
           Text = 'Sample Text'
         end
         object btnBLAKE224: TButton
-          Left = 72
-          Top = 80
-          Width = 75
+          Left = 68
           Height = 25
+          Top = 52
+          Width = 75
           Caption = 'BLAKE224'
-          TabOrder = 2
           OnClick = btnBLAKE224Click
+          TabOrder = 2
         end
         object pnlBLAKE224: TPanel
-          Left = 8
-          Top = 136
-          Width = 401
+          Left = 4
           Height = 41
+          Top = 108
+          Width = 401
           BevelOuter = bvNone
-          TabOrder = 6
+          TabOrder = 5
           OnDblClick = ResultDblClick
         end
         object btnBLAKE224File: TButton
-          Left = 72
-          Top = 208
-          Width = 75
+          Left = 68
           Height = 25
+          Top = 180
+          Width = 75
           Caption = 'File BLAKE224'
-          TabOrder = 7
           OnClick = btnBLAKE224FileClick
+          TabOrder = 6
         end
         object edtBLAKE224HmacKey: TEdit
-          Left = 320
-          Top = 40
-          Width = 73
+          Left = 316
           Height = 21
+          Top = 12
+          Width = 73
           TabOrder = 1
           Text = 'HmacKey'
         end
         object btnBLAKE224Hmac: TButton
-          Left = 320
-          Top = 80
-          Width = 75
+          Left = 316
           Height = 25
+          Top = 52
+          Width = 75
           Caption = 'BLAKE224 Hmac'
-          TabOrder = 4
           OnClick = btnBLAKE224HmacClick
+          TabOrder = 4
         end
         object btnUBLAKE224: TButton
-          Left = 168
-          Top = 80
-          Width = 75
+          Left = 164
           Height = 25
+          Top = 52
+          Width = 75
           Caption = 'Utf16 BLAKE224'
-          TabOrder = 3
           OnClick = btnUBLAKE224Click
-        end
-        object chkBLAKE224Utf8: TCheckBox
-          Left = 256
-          Top = 84
-          Width = 49
-          Height = 17
-          Caption = 'UTF-8'
-          TabOrder = 5
+          TabOrder = 3
         end
       end
     end
     object tsBLAKE256: TTabSheet
       Caption = 'BLAKE256'
+      ClientHeight = 395
+      ClientWidth = 737
       ImageIndex = 9
       object grpBLAKE256: TGroupBox
         Left = 24
-        Top = 24
-        Width = 417
         Height = 289
-        Anchors = [akLeft, akTop, akRight]
+        Top = 24
+        Width = 409
+        Anchors = [akTop, akLeft, akRight]
         Caption = 'BLAKE256'
+        ClientHeight = 271
+        ClientWidth = 405
         TabOrder = 0
         object lblBLAKE256: TLabel
-          Left = 24
-          Top = 44
-          Width = 28
+          Left = 20
           Height = 13
+          Top = 16
+          Width = 28
           Caption = 'From:'
         end
         object lblBLAKE256HmacKey: TLabel
-          Left = 264
-          Top = 44
-          Width = 51
+          Left = 260
           Height = 13
+          Top = 16
+          Width = 51
           Caption = 'Hmac Key:'
         end
         object edtBLAKE256: TEdit
-          Left = 72
-          Top = 40
-          Width = 169
+          Left = 68
           Height = 21
+          Top = 12
+          Width = 169
           TabOrder = 0
           Text = 'Sample Text'
         end
         object btnBLAKE256: TButton
-          Left = 72
-          Top = 80
-          Width = 75
+          Left = 68
           Height = 25
+          Top = 52
+          Width = 75
           Caption = 'BLAKE256'
-          TabOrder = 2
           OnClick = btnBLAKE256Click
+          TabOrder = 2
         end
         object pnlBLAKE256: TPanel
-          Left = 8
-          Top = 136
-          Width = 401
+          Left = 4
           Height = 41
+          Top = 108
+          Width = 401
           BevelOuter = bvNone
-          TabOrder = 6
+          TabOrder = 5
           OnDblClick = ResultDblClick
         end
         object btnBLAKE256File: TButton
-          Left = 72
-          Top = 208
-          Width = 75
+          Left = 68
           Height = 25
+          Top = 180
+          Width = 75
           Caption = 'File BLAKE256'
-          TabOrder = 7
-          OnClick = btnFileBLAKE256Click
+          OnClick = btnBLAKE256FileClick
+          TabOrder = 6
         end
         object edtBLAKE256HmacKey: TEdit
-          Left = 320
-          Top = 40
-          Width = 73
+          Left = 316
           Height = 21
+          Top = 12
+          Width = 73
           TabOrder = 1
           Text = 'HmacKey'
         end
         object btnBLAKE256Hmac: TButton
-          Left = 320
-          Top = 80
-          Width = 75
+          Left = 316
           Height = 25
+          Top = 52
+          Width = 75
           Caption = 'BLAKE256 Hmac'
-          TabOrder = 4
           OnClick = btnBLAKE256HmacClick
+          TabOrder = 4
         end
         object btnUBLAKE256: TButton
-          Left = 168
-          Top = 80
-          Width = 75
+          Left = 164
           Height = 25
+          Top = 52
+          Width = 75
           Caption = 'Utf16 BLAKE256'
-          TabOrder = 3
           OnClick = btnUBLAKE256Click
-        end
-        object chkBLAKE256Utf8: TCheckBox
-          Left = 256
-          Top = 84
-          Width = 49
-          Height = 17
-          Caption = 'UTF-8'
-          TabOrder = 5
+          TabOrder = 3
         end
       end
     end
     object tsBLAKE384: TTabSheet
       Caption = 'BLAKE384'
+      ClientHeight = 395
+      ClientWidth = 737
       ImageIndex = 12
       object grpBLAKE384: TGroupBox
         Left = 24
-        Top = 24
-        Width = 417
         Height = 289
-        Anchors = [akLeft, akTop, akRight]
+        Top = 24
+        Width = 409
+        Anchors = [akTop, akLeft, akRight]
         Caption = 'BLAKE384'
+        ClientHeight = 271
+        ClientWidth = 405
         TabOrder = 0
         object lblBLAKE384: TLabel
-          Left = 24
-          Top = 44
-          Width = 28
+          Left = 20
           Height = 13
+          Top = 16
+          Width = 28
           Caption = 'From:'
         end
         object lblBLAKE384Result: TLabel
-          Left = 8
-          Top = 136
-          Width = 401
+          Left = 4
           Height = 41
+          Top = 108
+          Width = 401
           Alignment = taCenter
           AutoSize = False
           Layout = tlCenter
           OnDblClick = ResultDblClick
         end
         object lblBLAKE384HmacKey: TLabel
-          Left = 264
-          Top = 44
-          Width = 51
+          Left = 260
           Height = 13
+          Top = 16
+          Width = 51
           Caption = 'Hmac Key:'
         end
         object edtBLAKE384: TEdit
-          Left = 72
-          Top = 40
-          Width = 169
+          Left = 68
           Height = 21
+          Top = 12
+          Width = 169
           TabOrder = 0
           Text = 'Sample Text'
         end
         object btnBLAKE384: TButton
-          Left = 72
-          Top = 80
-          Width = 75
+          Left = 68
           Height = 25
+          Top = 52
+          Width = 75
           Caption = 'BLAKE384'
-          TabOrder = 2
           OnClick = btnBLAKE384Click
+          TabOrder = 2
         end
         object btnBLAKE384File: TButton
-          Left = 72
-          Top = 208
-          Width = 75
+          Left = 68
           Height = 25
+          Top = 180
+          Width = 75
           Caption = 'File BLAKE384'
-          TabOrder = 6
           OnClick = btnBLAKE384FileClick
+          TabOrder = 5
         end
         object edtBLAKE384HmacKey: TEdit
-          Left = 320
-          Top = 40
-          Width = 73
+          Left = 316
           Height = 21
+          Top = 12
+          Width = 73
           TabOrder = 1
           Text = 'HmacKey'
         end
         object btnBLAKE384Hmac: TButton
-          Left = 320
-          Top = 80
-          Width = 75
+          Left = 316
           Height = 25
+          Top = 52
+          Width = 75
           Caption = 'BLAKE384 Hmac'
-          TabOrder = 4
           OnClick = btnBLAKE384HmacClick
+          TabOrder = 4
         end
         object btnUBLAKE384: TButton
-          Left = 168
-          Top = 80
-          Width = 75
+          Left = 164
           Height = 25
+          Top = 52
+          Width = 75
           Caption = 'Utf16 BLAKE384'
-          TabOrder = 3
           OnClick = btnUBLAKE384Click
-        end
-        object chkBLAKE384Utf8: TCheckBox
-          Left = 256
-          Top = 84
-          Width = 49
-          Height = 17
-          Caption = 'UTF-8'
-          TabOrder = 5
+          TabOrder = 3
         end
       end
     end
     object tsBLAKE512: TTabSheet
       Caption = 'BLAKE512'
+      ClientHeight = 395
+      ClientWidth = 737
       ImageIndex = 11
       object grpBLAKE512: TGroupBox
         Left = 24
-        Top = 24
-        Width = 433
         Height = 289
-        Anchors = [akLeft, akTop, akRight]
+        Top = 24
+        Width = 425
+        Anchors = [akTop, akLeft, akRight]
         Caption = 'BLAKE512'
+        ClientHeight = 271
+        ClientWidth = 421
         TabOrder = 0
         object lblBLAKE512: TLabel
-          Left = 24
-          Top = 44
-          Width = 28
+          Left = 20
           Height = 13
+          Top = 16
+          Width = 28
           Caption = 'From:'
         end
         object lblBLAKE512Result: TLabel
-          Left = 8
-          Top = 136
-          Width = 401
+          Left = 4
           Height = 41
+          Top = 108
+          Width = 401
           Alignment = taCenter
           AutoSize = False
           Layout = tlCenter
           OnDblClick = ResultDblClick
         end
         object lblBLAKE512HmacKey: TLabel
-          Left = 264
-          Top = 44
-          Width = 51
+          Left = 260
           Height = 13
+          Top = 16
+          Width = 51
           Caption = 'Hmac Key:'
         end
         object edtBLAKE512: TEdit
-          Left = 72
-          Top = 40
-          Width = 169
+          Left = 68
           Height = 21
+          Top = 12
+          Width = 169
           TabOrder = 0
           Text = 'Sample Text'
         end
         object btnBLAKE512: TButton
-          Left = 72
-          Top = 80
-          Width = 75
+          Left = 68
           Height = 25
+          Top = 52
+          Width = 75
           Caption = 'BLAKE512'
-          TabOrder = 2
           OnClick = btnBLAKE512Click
+          TabOrder = 2
         end
         object btnBLAKE512File: TButton
-          Left = 72
-          Top = 208
-          Width = 75
+          Left = 68
           Height = 25
+          Top = 180
+          Width = 75
           Caption = 'File BLAKE512'
-          TabOrder = 6
           OnClick = btnBLAKE512FileClick
+          TabOrder = 5
         end
         object edtBLAKE512HmacKey: TEdit
-          Left = 320
-          Top = 40
-          Width = 73
+          Left = 316
           Height = 21
+          Top = 12
+          Width = 73
           TabOrder = 1
           Text = 'HmacKey'
         end
         object btnBLAKE512Hmac: TButton
-          Left = 320
-          Top = 80
-          Width = 75
+          Left = 316
           Height = 25
+          Top = 52
+          Width = 75
           Caption = 'BLAKE512 Hmac'
-          TabOrder = 4
           OnClick = btnBLAKE512HmacClick
+          TabOrder = 4
         end
         object btnUBLAKE512: TButton
-          Left = 168
-          Top = 80
-          Width = 75
+          Left = 164
           Height = 25
+          Top = 52
+          Width = 75
           Caption = 'Utf16 BLAKE512'
-          TabOrder = 3
           OnClick = btnUBLAKE512Click
-        end
-        object chkBLAKE512Utf8: TCheckBox
-          Left = 256
-          Top = 84
-          Width = 49
-          Height = 17
-          Caption = 'UTF-8'
-          TabOrder = 5
+          TabOrder = 3
         end
       end
     end
     object tsZUC: TTabSheet
       Caption = 'ZUC'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 13
       object grpZuc: TGroupBox
@@ -2640,7 +2624,7 @@ object FormCrypt: TFormCrypt
     end
     object tsTEA: TTabSheet
       Caption = 'TEA'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 18
       object grpTea: TGroupBox
@@ -2842,7 +2826,7 @@ object FormCrypt: TFormCrypt
     end
     object tsPoly1305: TTabSheet
       Caption = 'Poly1305'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 20
       object grpPoly1305: TGroupBox
@@ -2908,7 +2892,7 @@ object FormCrypt: TFormCrypt
     end
     object tsChaCha20: TTabSheet
       Caption = 'ChaCha20'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 21
       object grpChaCha20: TGroupBox
@@ -3004,7 +2988,7 @@ object FormCrypt: TFormCrypt
     end
     object tsAEAD: TTabSheet
       Caption = 'AEAD'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 22
       object grpAEAD: TGroupBox
@@ -3173,7 +3157,7 @@ object FormCrypt: TFormCrypt
     end
     object tsFNV: TTabSheet
       Caption = 'FNV'
-      ClientHeight = 413
+      ClientHeight = 395
       ClientWidth = 737
       ImageIndex = 23
       object grpFNV: TGroupBox

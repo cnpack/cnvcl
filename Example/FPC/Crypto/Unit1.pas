@@ -5,7 +5,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  LCLIntf, LCLType, {$IFDEF MSWINDOWS} Windows, {$ENDIF},
+  LCLIntf, LCLType, {$IFDEF MSWINDOWS} Windows, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls,
   ComCtrls, Clipbrd;
 
@@ -2965,7 +2965,7 @@ begin
     pnlBLAKE224.Caption := BLAKE224Print(BLAKE224StringA(AnsiString(edtBLAKE224.Text)));
 {$ELSE}
   if chkBLAKE224Utf8.Checked then
-    pnlBLAKE224.Caption := BLAKE224Print(BLAKE224String(CnAnsiToUtf8(edtBLAKE224.Text)))
+    pnlBLAKE224.Caption := BLAKE224Print(BLAKE224String(Utf8Encode(edtBLAKE224.Text)))
   else
     pnlBLAKE224.Caption := BLAKE224Print(BLAKE224String(edtBLAKE224.Text));
 {$ENDIF}
@@ -2984,7 +2984,7 @@ var
 begin
   Key := AnsiString(edtBLAKE224HmacKey.Text);
   if chkBLAKE224Utf8.Checked then
-    S := CnAnsiToUtf8(edtBLAKE224.Text)
+    S := Utf8Encode(edtBLAKE224.Text)
   else
     S := AnsiString(edtBLAKE224.Text);
 
@@ -3001,7 +3001,7 @@ begin
     pnlBLAKE256.Caption := BLAKE256Print(BLAKE256StringA(AnsiString(edtBLAKE256.Text)));
 {$ELSE}
   if chkBLAKE256Utf8.Checked then
-    pnlBLAKE256.Caption := BLAKE256Print(BLAKE256String(CnAnsiToUtf8(edtBLAKE256.Text)))
+    pnlBLAKE256.Caption := BLAKE256Print(BLAKE256String(Utf8Encode(edtBLAKE256.Text)))
   else
     pnlBLAKE256.Caption := BLAKE256Print(BLAKE256String(edtBLAKE256.Text));
 {$ENDIF}
@@ -3030,7 +3030,7 @@ begin
     S := BLAKE384Print(BLAKE384StringA(AnsiString(edtBLAKE384.Text)));
 {$ELSE}
   if chkBLAKE384Utf8.Checked then
-    S := BLAKE384Print(BLAKE384String(CnAnsiToUtf8(edtBLAKE384.Text)))
+    S := BLAKE384Print(BLAKE384String(Utf8Encode(edtBLAKE384.Text)))
   else
     S := BLAKE384Print(BLAKE384String(edtBLAKE384.Text));
 {$ENDIF}
@@ -3057,7 +3057,7 @@ var
 begin
   Key := AnsiString(edtBLAKE384HmacKey.Text);
   if chkBLAKE384Utf8.Checked then
-    S := CnAnsiToUtf8(edtBLAKE384.Text)
+    S := Utf8Encode(edtBLAKE384.Text)
   else
     S := AnsiString(edtBLAKE384.Text);
 
@@ -3078,7 +3078,7 @@ begin
     S := BLAKE512Print(BLAKE512StringA(AnsiString(edtBLAKE512.Text)));
 {$ELSE}
   if chkBLAKE512Utf8.Checked then
-    S := BLAKE512Print(BLAKE512String(CnAnsiToUtf8(edtBLAKE512.Text)))
+    S := BLAKE512Print(BLAKE512String(Utf8Encode(edtBLAKE512.Text)))
   else
     S := BLAKE512Print(BLAKE512String(edtBLAKE512.Text));
 {$ENDIF}
@@ -3105,7 +3105,7 @@ var
 begin
   Key := AnsiString(edtBLAKE512HmacKey.Text);
   if chkBLAKE512Utf8.Checked then
-    S := CnAnsiToUtf8(edtBLAKE512.Text)
+    S := Utf8Encode(edtBLAKE512.Text)
   else
     S := AnsiString(edtBLAKE512.Text);
 
