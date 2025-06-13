@@ -64,6 +64,7 @@
       ..\..\Source\Crypto\CnBerUtils.obj 
       ..\..\Source\Crypto\CnBigNumber.obj 
       ..\..\Source\Crypto\CnBits.obj 
+      ..\..\Source\Crypto\CnBLAKE.obj 
       ..\..\Source\Crypto\CnCertificateAuthority.obj 
       ..\..\Source\Crypto\CnComplex.obj 
       ..\..\Source\Crypto\CnCRC32.obj 

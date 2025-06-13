@@ -65,6 +65,7 @@
       ..\..\Source\Crypto\CnBerUtils.obj 
       ..\..\Source\Crypto\CnBigNumber.obj 
       ..\..\Source\Crypto\CnBits.obj 
+      ..\..\Source\Crypto\CnBLAKE.obj 
       ..\..\Source\Crypto\CnCertificateAuthority.obj 
       ..\..\Source\Crypto\CnComplex.obj 
       ..\..\Source\Crypto\CnCRC32.obj 
@@ -360,6 +361,7 @@
       <FILE FILENAME="..\..\Source\Crypto\CnBerUtils.pas" FORMNAME="" UNITNAME="CnBerUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnBigNumber.pas" FORMNAME="" UNITNAME="CnBigNumber" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnBits.pas" FORMNAME="" UNITNAME="CnBits" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Crypto\CnBLAKE.pas" FORMNAME="" UNITNAME="CnBLAKE" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnCertificateAuthority.pas" FORMNAME="" UNITNAME="CnCertificateAuthority" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnComplex.pas" FORMNAME="" UNITNAME="CnComplex" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Crypto\CnCRC32.pas" FORMNAME="" UNITNAME="CnCRC32" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

@@ -163,6 +163,7 @@
         <DCCReference Include="..\..\Source\Crypto\CnBerUtils.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnBigNumber.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnBits.pas"/>
+        <DCCReference Include="..\..\Source\Crypto\CnBLAKE.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnCertificateAuthority.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnComplex.pas"/>
         <DCCReference Include="..\..\Source\Crypto\CnCRC32.pas"/>
