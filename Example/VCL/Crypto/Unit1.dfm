@@ -21,7 +21,7 @@ object FormCrypt: TFormCrypt
     Top = 24
     Width = 745
     Height = 457
-    ActivePage = tsDES
+    ActivePage = tsSHA256
     MultiLine = True
     TabOrder = 0
     object tsDES: TTabSheet
@@ -719,10 +719,10 @@ object FormCrypt: TFormCrypt
         end
       end
     end
-    object tsSha1: TTabSheet
+    object tsSHA1: TTabSheet
       Caption = 'SHA1'
       ImageIndex = 5
-      object grpSha1: TGroupBox
+      object grpSHA1: TGroupBox
         Left = 24
         Top = 24
         Width = 433
@@ -730,7 +730,7 @@ object FormCrypt: TFormCrypt
         Anchors = [akLeft, akTop, akRight]
         Caption = 'SHA1'
         TabOrder = 0
-        object lblSha1: TLabel
+        object lblSHA1: TLabel
           Left = 24
           Top = 44
           Width = 28
@@ -744,7 +744,7 @@ object FormCrypt: TFormCrypt
           Height = 13
           Caption = 'Hmac Key:'
         end
-        object edtSha1: TEdit
+        object edtSHA1: TEdit
           Left = 72
           Top = 40
           Width = 169
@@ -752,16 +752,16 @@ object FormCrypt: TFormCrypt
           TabOrder = 0
           Text = 'Sample Text'
         end
-        object btnSha1: TButton
+        object btnSHA1: TButton
           Left = 72
           Top = 80
           Width = 75
           Height = 25
           Caption = 'SHA1'
           TabOrder = 2
-          OnClick = btnSha1Click
+          OnClick = btnSHA1Click
         end
-        object pnlSha1: TPanel
+        object pnlSHA1: TPanel
           Left = 8
           Top = 136
           Width = 401
@@ -770,14 +770,14 @@ object FormCrypt: TFormCrypt
           TabOrder = 6
           OnDblClick = ResultDblClick
         end
-        object btnFileSha1: TButton
+        object btnFileSHA1: TButton
           Left = 72
           Top = 208
           Width = 75
           Height = 25
           Caption = 'File SHA1'
           TabOrder = 7
-          OnClick = btnFileSha1Click
+          OnClick = btnFileSHA1Click
         end
         object edtSHA1HMacKey: TEdit
           Left = 320
@@ -1435,14 +1435,14 @@ object FormCrypt: TFormCrypt
           TabOrder = 6
           OnDblClick = ResultDblClick
         end
-        object btnFileSHA256: TButton
+        object btnSHA256File: TButton
           Left = 72
           Top = 208
           Width = 75
           Height = 25
           Caption = 'File SHA256'
           TabOrder = 7
-          OnClick = btnFileSHA256Click
+          OnClick = btnSHA256FileClick
         end
         object edtSHA256HmacKey: TEdit
           Left = 320
@@ -1821,14 +1821,14 @@ object FormCrypt: TFormCrypt
           TabOrder = 6
           OnDblClick = ResultDblClick
         end
-        object btnFileSHA3_256: TButton
+        object btnSHA3_256File: TButton
           Left = 72
           Top = 208
           Width = 75
           Height = 25
           Caption = 'File SHA3_256'
           TabOrder = 7
-          OnClick = btnFileSHA3_256Click
+          OnClick = btnSHA3_256FileClick
         end
         object edtSHA3_256HmacKey: TEdit
           Left = 320
@@ -2174,6 +2174,392 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = 'UTF-8'
           TabOrder = 7
+        end
+      end
+    end
+    object tsBLAKE224: TTabSheet
+      Caption = 'BLAKE224'
+      ImageIndex = 10
+      object grpBLAKE224: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 497
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'BLAKE224'
+        TabOrder = 0
+        object lblBLAKE224: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblBLAKE224HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
+        object edtBLAKE224: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnBLAKE224: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'BLAKE224'
+          TabOrder = 2
+          OnClick = btnBLAKE224Click
+        end
+        object pnlBLAKE224: TPanel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          BevelOuter = bvNone
+          TabOrder = 6
+          OnDblClick = ResultDblClick
+        end
+        object btnBLAKE224File: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File BLAKE224'
+          TabOrder = 7
+          OnClick = btnBLAKE224FileClick
+        end
+        object edtBLAKE224HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 1
+          Text = 'HmacKey'
+        end
+        object btnBLAKE224Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'BLAKE224 Hmac'
+          TabOrder = 4
+          OnClick = btnBLAKE224HmacClick
+        end
+        object btnUBLAKE224: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 BLAKE224'
+          TabOrder = 3
+          OnClick = btnUBLAKE224Click
+        end
+        object chkBLAKE224Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 5
+        end
+      end
+    end
+    object tsBLAKE256: TTabSheet
+      Caption = 'BLAKE256'
+      ImageIndex = 9
+      object grpBLAKE256: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 417
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'BLAKE256'
+        TabOrder = 0
+        object lblBLAKE256: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblBLAKE256HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
+        object edtBLAKE256: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnBLAKE256: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'BLAKE256'
+          TabOrder = 2
+          OnClick = btnBLAKE256Click
+        end
+        object pnlBLAKE256: TPanel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          BevelOuter = bvNone
+          TabOrder = 6
+          OnDblClick = ResultDblClick
+        end
+        object btnBLAKE256File: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File BLAKE256'
+          TabOrder = 7
+          OnClick = btnBLAKE256FileClick
+        end
+        object edtBLAKE256HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 1
+          Text = 'HmacKey'
+        end
+        object btnBLAKE256Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'BLAKE256 Hmac'
+          TabOrder = 4
+          OnClick = btnBLAKE256HmacClick
+        end
+        object btnUBLAKE256: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 BLAKE256'
+          TabOrder = 3
+          OnClick = btnUBLAKE256Click
+        end
+        object chkBLAKE256Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 5
+        end
+      end
+    end
+    object tsBLAKE384: TTabSheet
+      Caption = 'BLAKE384'
+      ImageIndex = 12
+      object grpBLAKE384: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 417
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'BLAKE384'
+        TabOrder = 0
+        object lblBLAKE384: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblBLAKE384Result: TLabel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          Alignment = taCenter
+          AutoSize = False
+          Layout = tlCenter
+          OnDblClick = ResultDblClick
+        end
+        object lblBLAKE384HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
+        object edtBLAKE384: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnBLAKE384: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'BLAKE384'
+          TabOrder = 2
+          OnClick = btnBLAKE384Click
+        end
+        object btnBLAKE384File: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File BLAKE384'
+          TabOrder = 6
+          OnClick = btnBLAKE384FileClick
+        end
+        object edtBLAKE384HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 1
+          Text = 'HmacKey'
+        end
+        object btnBLAKE384Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'BLAKE384 Hmac'
+          TabOrder = 4
+          OnClick = btnBLAKE384HmacClick
+        end
+        object btnUBLAKE384: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 BLAKE384'
+          TabOrder = 3
+          OnClick = btnUBLAKE384Click
+        end
+        object chkBLAKE384Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 5
+        end
+      end
+    end
+    object tsBLAKE512: TTabSheet
+      Caption = 'BLAKE512'
+      ImageIndex = 11
+      object grpBLAKE512: TGroupBox
+        Left = 24
+        Top = 24
+        Width = 433
+        Height = 289
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'BLAKE512'
+        TabOrder = 0
+        object lblBLAKE512: TLabel
+          Left = 24
+          Top = 44
+          Width = 28
+          Height = 13
+          Caption = 'From:'
+        end
+        object lblBLAKE512Result: TLabel
+          Left = 8
+          Top = 136
+          Width = 401
+          Height = 41
+          Alignment = taCenter
+          AutoSize = False
+          Layout = tlCenter
+          OnDblClick = ResultDblClick
+        end
+        object lblBLAKE512HmacKey: TLabel
+          Left = 264
+          Top = 44
+          Width = 51
+          Height = 13
+          Caption = 'Hmac Key:'
+        end
+        object edtBLAKE512: TEdit
+          Left = 72
+          Top = 40
+          Width = 169
+          Height = 21
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnBLAKE512: TButton
+          Left = 72
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'BLAKE512'
+          TabOrder = 2
+          OnClick = btnBLAKE512Click
+        end
+        object btnBLAKE512File: TButton
+          Left = 72
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File BLAKE512'
+          TabOrder = 6
+          OnClick = btnBLAKE512FileClick
+        end
+        object edtBLAKE512HmacKey: TEdit
+          Left = 320
+          Top = 40
+          Width = 73
+          Height = 21
+          TabOrder = 1
+          Text = 'HmacKey'
+        end
+        object btnBLAKE512Hmac: TButton
+          Left = 320
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'BLAKE512 Hmac'
+          TabOrder = 4
+          OnClick = btnBLAKE512HmacClick
+        end
+        object btnUBLAKE512: TButton
+          Left = 168
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'Utf16 BLAKE512'
+          TabOrder = 3
+          OnClick = btnUBLAKE512Click
+        end
+        object chkBLAKE512Utf8: TCheckBox
+          Left = 256
+          Top = 84
+          Width = 49
+          Height = 17
+          Caption = 'UTF-8'
+          TabOrder = 5
         end
       end
     end

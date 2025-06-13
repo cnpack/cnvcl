@@ -55,13 +55,13 @@ type
     btnCRC64: TButton;
     pnlCRC64: TPanel;
     btnFileCRC64: TButton;
-    tsSha1: TTabSheet;
-    grpSha1: TGroupBox;
-    lblSha1: TLabel;
-    edtSha1: TEdit;
-    btnSha1: TButton;
-    pnlSha1: TPanel;
-    btnFileSha1: TButton;
+    tsSHA1: TTabSheet;
+    grpSHA1: TGroupBox;
+    lblSHA1: TLabel;
+    edtSHA1: TEdit;
+    btnSHA1: TButton;
+    pnlSHA1: TPanel;
+    btnFileSHA1: TButton;
     tsSM3: TTabSheet;
     grpSM3: TGroupBox;
     lblSM3: TLabel;
@@ -105,7 +105,7 @@ type
     edtSHA256: TEdit;
     btnSHA256: TButton;
     pnlSHA256: TPanel;
-    btnFileSHA256: TButton;
+    btnSHA256File: TButton;
     tsSHA224: TTabSheet;
     grpSHA224: TGroupBox;
     lblSHA224: TLabel;
@@ -140,7 +140,7 @@ type
     edtSHA3_256: TEdit;
     btnSHA3_256: TButton;
     pnlSHA3_256: TPanel;
-    btnFileSHA3_256: TButton;
+    btnSHA3_256File: TButton;
     tsSHA3_384: TTabSheet;
     grpSHA3_384: TGroupBox;
     lblSHA3_384: TLabel;
@@ -379,6 +379,54 @@ type
     btnRC4Decrypt: TButton;
     lblRC4Origin: TLabel;
     edtRC4Origin: TEdit;
+    tsBLAKE224: TTabSheet;
+    grpBLAKE224: TGroupBox;
+    lblBLAKE224: TLabel;
+    edtBLAKE224: TEdit;
+    btnBLAKE224: TButton;
+    pnlBLAKE224: TPanel;
+    btnBLAKE224File: TButton;
+    lblBLAKE224HmacKey: TLabel;
+    edtBLAKE224HmacKey: TEdit;
+    btnBLAKE224Hmac: TButton;
+    btnUBLAKE224: TButton;
+    chkBLAKE224Utf8: TCheckBox;
+    tsBLAKE256: TTabSheet;
+    grpBLAKE256: TGroupBox;
+    lblBLAKE256: TLabel;
+    edtBLAKE256: TEdit;
+    btnBLAKE256: TButton;
+    pnlBLAKE256: TPanel;
+    btnBLAKE256File: TButton;
+    lblBLAKE256HmacKey: TLabel;
+    edtBLAKE256HmacKey: TEdit;
+    btnBLAKE256Hmac: TButton;
+    btnUBLAKE256: TButton;
+    chkBLAKE256Utf8: TCheckBox;
+    tsBLAKE384: TTabSheet;
+    grpBLAKE384: TGroupBox;
+    lblBLAKE384: TLabel;
+    lblBLAKE384Result: TLabel;
+    edtBLAKE384: TEdit;
+    btnBLAKE384: TButton;
+    btnBLAKE384File: TButton;
+    lblBLAKE384HmacKey: TLabel;
+    edtBLAKE384HmacKey: TEdit;
+    btnBLAKE384Hmac: TButton;
+    btnUBLAKE384: TButton;
+    chkBLAKE384Utf8: TCheckBox;
+    tsBLAKE512: TTabSheet;
+    grpBLAKE512: TGroupBox;
+    lblBLAKE512: TLabel;
+    edtBLAKE512: TEdit;
+    btnBLAKE512: TButton;
+    btnBLAKE512File: TButton;
+    lblBLAKE512Result: TLabel;
+    lblBLAKE512HmacKey: TLabel;
+    edtBLAKE512HmacKey: TEdit;
+    btnBLAKE512Hmac: TButton;
+    btnUBLAKE512: TButton;
+    chkBLAKE512Utf8: TCheckBox;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -390,8 +438,8 @@ type
     procedure FormCreate(Sender: TObject);
     procedure btnCRC64Click(Sender: TObject);
     procedure btnFileCRC64Click(Sender: TObject);
-    procedure btnSha1Click(Sender: TObject);
-    procedure btnFileSha1Click(Sender: TObject);
+    procedure btnSHA1Click(Sender: TObject);
+    procedure btnFileSHA1Click(Sender: TObject);
     procedure btnSM3Click(Sender: TObject);
     procedure btnFileSM3Click(Sender: TObject);
     procedure btnSm4Click(Sender: TObject);
@@ -400,7 +448,7 @@ type
     procedure btnAesDecryptClick(Sender: TObject);
     procedure ResultDblClick(Sender: TObject);
     procedure btnSHA256Click(Sender: TObject);
-    procedure btnFileSHA256Click(Sender: TObject);
+    procedure btnSHA256FileClick(Sender: TObject);
     procedure btnSHA224Click(Sender: TObject);
     procedure btnSHA224FileClick(Sender: TObject);
     procedure btnSHA512Click(Sender: TObject);
@@ -424,7 +472,7 @@ type
     procedure btnCRC32HmacClick(Sender: TObject);
     procedure btnCRC64HmacClick(Sender: TObject);
     procedure btnSHA3_256Click(Sender: TObject);
-    procedure btnFileSHA3_256Click(Sender: TObject);
+    procedure btnSHA3_256FileClick(Sender: TObject);
     procedure btnSHA3_224Click(Sender: TObject);
     procedure btnSHA3_224FileClick(Sender: TObject);
     procedure btnSHA3_512Click(Sender: TObject);
@@ -490,6 +538,22 @@ type
     procedure btnSM4Utf8DecClick(Sender: TObject);
     procedure btnRC4CryptClick(Sender: TObject);
     procedure btnRC4DecryptClick(Sender: TObject);
+    procedure btnBLAKE224Click(Sender: TObject);
+    procedure btnBLAKE224FileClick(Sender: TObject);
+    procedure btnBLAKE256Click(Sender: TObject);
+    procedure btnBLAKE256FileClick(Sender: TObject);
+    procedure btnBLAKE384Click(Sender: TObject);
+    procedure btnBLAKE384FileClick(Sender: TObject);
+    procedure btnBLAKE512Click(Sender: TObject);
+    procedure btnBLAKE512FileClick(Sender: TObject);
+    procedure btnBLAKE256HmacClick(Sender: TObject);
+    procedure btnBLAKE224HmacClick(Sender: TObject);
+    procedure btnBLAKE384HmacClick(Sender: TObject);
+    procedure btnBLAKE512HmacClick(Sender: TObject);
+    procedure btnUBLAKE224Click(Sender: TObject);
+    procedure btnUBLAKE256Click(Sender: TObject);
+    procedure btnUBLAKE384Click(Sender: TObject);
+    procedure btnUBLAKE512Click(Sender: TObject);
   private
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -505,7 +569,7 @@ implementation
 
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
-  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnAEAD, CnFNV, CnRC4,
+  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnAEAD, CnFNV, CnRC4, CnBLAKE,
   CnPemUtils, CnNative, CnWideStrings;
 
 {$R *.DFM}
@@ -863,25 +927,25 @@ begin
       pnlCRC64.Caption := IntToHex(Crc, 2);
 end;
 
-procedure TFormCrypt.btnSha1Click(Sender: TObject);
+procedure TFormCrypt.btnSHA1Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
   if chkSHA1Utf8.Checked then
-    pnlSha1.Caption := SHA1Print(SHA1Bytes(TEncoding.UTF8.GetBytes(edtSha1.Text)))
+    pnlSHA1.Caption := SHA1Print(SHA1Bytes(TEncoding.UTF8.GetBytes(edtSHA1.Text)))
   else
-    pnlSha1.Caption := SHA1Print(SHA1StringA(AnsiString(edtSha1.Text)));
+    pnlSHA1.Caption := SHA1Print(SHA1StringA(AnsiString(edtSHA1.Text)));
 {$ELSE}
   if chkSHA1Utf8.Checked then
-    pnlSha1.Caption := SHA1Print(SHA1String(CnAnsiToUtf8(edtSha1.Text)))
+    pnlSHA1.Caption := SHA1Print(SHA1String(CnAnsiToUtf8(edtSHA1.Text)))
   else
-    pnlSha1.Caption := SHA1Print(SHA1String(edtSha1.Text));
+    pnlSHA1.Caption := SHA1Print(SHA1String(edtSHA1.Text));
 {$ENDIF}
 end;
 
-procedure TFormCrypt.btnFileSha1Click(Sender: TObject);
+procedure TFormCrypt.btnFileSHA1Click(Sender: TObject);
 begin
   if OpenDialog1.Execute then
-    pnlSha1.Caption := SHA1Print(SHA1File(OpenDialog1.FileName));
+    pnlSHA1.Caption := SHA1Print(SHA1File(OpenDialog1.FileName));
 end;
 
 procedure TFormCrypt.btnSM3Click(Sender: TObject);
@@ -1431,42 +1495,42 @@ procedure TFormCrypt.btnSHA256Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
   if chkSHA256Utf8.Checked then
-    pnlSha256.Caption := SHA256Print(SHA256Bytes(TEncoding.UTF8.GetBytes(edtSha256.Text)))
+    pnlSHA256.Caption := SHA256Print(SHA256Bytes(TEncoding.UTF8.GetBytes(edtSHA256.Text)))
   else
-    pnlSha256.Caption := SHA256Print(SHA256StringA(AnsiString(edtSha256.Text)));
+    pnlSHA256.Caption := SHA256Print(SHA256StringA(AnsiString(edtSHA256.Text)));
 {$ELSE}
   if chkSHA256Utf8.Checked then
-    pnlSha256.Caption := SHA256Print(SHA256String(CnAnsiToUtf8(edtSha256.Text)))
+    pnlSHA256.Caption := SHA256Print(SHA256String(CnAnsiToUtf8(edtSHA256.Text)))
   else
-    pnlSha256.Caption := SHA256Print(SHA256String(edtSha256.Text));
+    pnlSHA256.Caption := SHA256Print(SHA256String(edtSHA256.Text));
 {$ENDIF}
 end;
 
-procedure TFormCrypt.btnFileSHA256Click(Sender: TObject);
+procedure TFormCrypt.btnSHA256FileClick(Sender: TObject);
 begin
   if OpenDialog1.Execute then
-    pnlSha256.Caption := SHA256Print(SHA256File(OpenDialog1.FileName));
+    pnlSHA256.Caption := SHA256Print(SHA256File(OpenDialog1.FileName));
 end;
 
 procedure TFormCrypt.btnSHA224Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
   if chkSHA224Utf8.Checked then
-    pnlSha224.Caption := SHA224Print(SHA224Bytes(TEncoding.UTF8.GetBytes(edtSha224.Text)))
+    pnlSHA224.Caption := SHA224Print(SHA224Bytes(TEncoding.UTF8.GetBytes(edtSHA224.Text)))
   else
-    pnlSha224.Caption := SHA224Print(SHA224StringA(AnsiString(edtSha224.Text)));
+    pnlSHA224.Caption := SHA224Print(SHA224StringA(AnsiString(edtSHA224.Text)));
 {$ELSE}
   if chkSHA224Utf8.Checked then
-    pnlSha224.Caption := SHA224Print(SHA224String(CnAnsiToUtf8(edtSha224.Text)))
+    pnlSHA224.Caption := SHA224Print(SHA224String(CnAnsiToUtf8(edtSHA224.Text)))
   else
-    pnlSha224.Caption := SHA224Print(SHA224String(edtSha224.Text));
+    pnlSHA224.Caption := SHA224Print(SHA224String(edtSHA224.Text));
 {$ENDIF}
 end;
 
 procedure TFormCrypt.btnSHA224FileClick(Sender: TObject);
 begin
   if OpenDialog1.Execute then
-    pnlSha224.Caption := SHA224Print(SHA224File(OpenDialog1.FileName));
+    pnlSHA224.Caption := SHA224Print(SHA224File(OpenDialog1.FileName));
 end;
 
 procedure TFormCrypt.btnSHA512Click(Sender: TObject);
@@ -1475,14 +1539,14 @@ var
 begin
 {$IFDEF UNICODE}
   if chkSHA512Utf8.Checked then
-    S := SHA512Print(SHA512Bytes(TEncoding.UTF8.GetBytes(edtSha512.Text)))
+    S := SHA512Print(SHA512Bytes(TEncoding.UTF8.GetBytes(edtSHA512.Text)))
   else
-    S := SHA512Print(SHA512StringA(AnsiString(edtSha512.Text)));
+    S := SHA512Print(SHA512StringA(AnsiString(edtSHA512.Text)));
 {$ELSE}
   if chkSHA512Utf8.Checked then
-    S := SHA512Print(SHA512String(CnAnsiToUtf8(edtSha512.Text)))
+    S := SHA512Print(SHA512String(CnAnsiToUtf8(edtSHA512.Text)))
   else
-    S := SHA512Print(SHA512String(edtSha512.Text));
+    S := SHA512Print(SHA512String(edtSHA512.Text));
 {$ENDIF}
   Insert(#13#10, S, 65);
   lblSHA512Result.Caption := S;
@@ -1506,14 +1570,14 @@ var
 begin
 {$IFDEF UNICODE}
   if chkSHA384Utf8.Checked then
-    S := SHA384Print(SHA384Bytes(TEncoding.UTF8.GetBytes(edtSha384.Text)))
+    S := SHA384Print(SHA384Bytes(TEncoding.UTF8.GetBytes(edtSHA384.Text)))
   else
-    S := SHA384Print(SHA384StringA(AnsiString(edtSha384.Text)));
+    S := SHA384Print(SHA384StringA(AnsiString(edtSHA384.Text)));
 {$ELSE}
   if chkSHA384Utf8.Checked then
-    S := SHA384Print(SHA384String(CnAnsiToUtf8(edtSha384.Text)))
+    S := SHA384Print(SHA384String(CnAnsiToUtf8(edtSHA384.Text)))
   else
-    S := SHA384Print(SHA384String(edtSha384.Text));
+    S := SHA384Print(SHA384String(edtSHA384.Text));
 {$ENDIF}
   Insert(#13#10, S, 49);
   lblSHA384Result.Caption := S;
@@ -1845,31 +1909,31 @@ begin
   pnlCRC64.Caption := IntToHex(Output, 2);
 end;
 
-procedure TFormCrypt.btnFileSHA3_256Click(Sender: TObject);
+procedure TFormCrypt.btnSHA3_256FileClick(Sender: TObject);
 begin
   if OpenDialog1.Execute then
-    pnlSha3_256.Caption := SHA3_256Print(SHA3_256File(OpenDialog1.FileName));
+    pnlSHA3_256.Caption := SHA3_256Print(SHA3_256File(OpenDialog1.FileName));
 end;
 
 procedure TFormCrypt.btnSHA3_224Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
   if chkSHA3_224Utf8.Checked then
-    pnlSHA3_224.Caption := SHA3_224Print(SHA3_224Bytes(TEncoding.UTF8.GetBytes(edtSha3_224.Text)))
+    pnlSHA3_224.Caption := SHA3_224Print(SHA3_224Bytes(TEncoding.UTF8.GetBytes(edtSHA3_224.Text)))
   else
-    pnlSHA3_224.Caption := SHA3_224Print(SHA3_224StringA(AnsiString(edtSha3_224.Text)));
+    pnlSHA3_224.Caption := SHA3_224Print(SHA3_224StringA(AnsiString(edtSHA3_224.Text)));
 {$ELSE}
   if chkSHA3_224Utf8.Checked then
-    pnlSHA3_224.Caption := SHA3_224Print(SHA3_224String(CnAnsiToUtf8(edtSha3_224.Text)))
+    pnlSHA3_224.Caption := SHA3_224Print(SHA3_224String(CnAnsiToUtf8(edtSHA3_224.Text)))
   else
-    pnlSHA3_224.Caption := SHA3_224Print(SHA3_224String(edtSha3_224.Text));
+    pnlSHA3_224.Caption := SHA3_224Print(SHA3_224String(edtSHA3_224.Text));
 {$ENDIF}
 end;
 
 procedure TFormCrypt.btnSHA3_224FileClick(Sender: TObject);
 begin
   if OpenDialog1.Execute then
-    pnlSha3_224.Caption := SHA3_224Print(SHA3_224File(OpenDialog1.FileName));
+    pnlSHA3_224.Caption := SHA3_224Print(SHA3_224File(OpenDialog1.FileName));
 end;
 
 procedure TFormCrypt.btnSHA3_224HmacClick(Sender: TObject);
@@ -1891,14 +1955,14 @@ procedure TFormCrypt.btnSHA3_256Click(Sender: TObject);
 begin
 {$IFDEF UNICODE}
   if chkSHA3_256Utf8.Checked then
-    pnlSHA3_256.Caption := SHA3_256Print(SHA3_256Bytes(TEncoding.UTF8.GetBytes(edtSha3_256.Text)))
+    pnlSHA3_256.Caption := SHA3_256Print(SHA3_256Bytes(TEncoding.UTF8.GetBytes(edtSHA3_256.Text)))
   else
-    pnlSHA3_256.Caption := SHA3_256Print(SHA3_256StringA(AnsiString(edtSha3_256.Text)));
+    pnlSHA3_256.Caption := SHA3_256Print(SHA3_256StringA(AnsiString(edtSHA3_256.Text)));
 {$ELSE}
   if chkSHA3_256Utf8.Checked then
-    pnlSHA3_256.Caption := SHA3_256Print(SHA3_256String(CnAnsiToUtf8(edtSha3_256.Text)))
+    pnlSHA3_256.Caption := SHA3_256Print(SHA3_256String(CnAnsiToUtf8(edtSHA3_256.Text)))
   else
-    pnlSHA3_256.Caption := SHA3_256Print(SHA3_256String(edtSha3_256.Text));
+    pnlSHA3_256.Caption := SHA3_256Print(SHA3_256String(edtSHA3_256.Text));
 {$ENDIF}
 end;
 
@@ -1923,14 +1987,14 @@ var
 begin
 {$IFDEF UNICODE}
   if chkSHA3_384Utf8.Checked then
-    S := SHA3_384Print(SHA3_384Bytes(TEncoding.UTF8.GetBytes(edtSha3_384.Text)))
+    S := SHA3_384Print(SHA3_384Bytes(TEncoding.UTF8.GetBytes(edtSHA3_384.Text)))
   else
-    S := SHA3_384Print(SHA3_384StringA(AnsiString(edtSha3_384.Text)));
+    S := SHA3_384Print(SHA3_384StringA(AnsiString(edtSHA3_384.Text)));
 {$ELSE}
   if chkSHA3_384Utf8.Checked then
-    S := SHA3_384Print(SHA3_384String(CnAnsiToUtf8(edtSha3_384.Text)))
+    S := SHA3_384Print(SHA3_384String(CnAnsiToUtf8(edtSHA3_384.Text)))
   else
-    S := SHA3_384Print(SHA3_384String(edtSha3_384.Text));
+    S := SHA3_384Print(SHA3_384String(edtSHA3_384.Text));
 {$ENDIF}
   Insert(#13#10, S, 49);
   lblSHA3_384Result.Caption := S;
@@ -1971,14 +2035,14 @@ var
 begin
 {$IFDEF UNICODE}
   if chkSHA3_512Utf8.Checked then
-    S := SHA3_512Print(SHA3_512Bytes(TEncoding.UTF8.GetBytes(edtSha3_512.Text)))
+    S := SHA3_512Print(SHA3_512Bytes(TEncoding.UTF8.GetBytes(edtSHA3_512.Text)))
   else
-    S := SHA3_512Print(SHA3_512StringA(AnsiString(edtSha3_512.Text)));
+    S := SHA3_512Print(SHA3_512StringA(AnsiString(edtSHA3_512.Text)));
 {$ELSE}
   if chkSHA3_512Utf8.Checked then
-    S := SHA3_512Print(SHA3_512String(CnAnsiToUtf8(edtSha3_512.Text)))
+    S := SHA3_512Print(SHA3_512String(CnAnsiToUtf8(edtSHA3_512.Text)))
   else
-    S := SHA3_512Print(SHA3_512String(edtSha3_512.Text));
+    S := SHA3_512Print(SHA3_512String(edtSHA3_512.Text));
 {$ENDIF}
   Insert(#13#10, S, 65);
   lblSHA3_512Result.Caption := S;
@@ -2020,7 +2084,7 @@ end;
 
 procedure TFormCrypt.btnUSHA1Click(Sender: TObject);
 begin
-  pnlSha1.Caption := SHA1Print(SHA1UnicodeString(edtSha1.Text));
+  pnlSHA1.Caption := SHA1Print(SHA1UnicodeString(edtSHA1.Text));
 end;
 
 procedure TFormCrypt.btnUSM3Click(Sender: TObject);
@@ -2034,19 +2098,19 @@ end;
 
 procedure TFormCrypt.btnUSHA224Click(Sender: TObject);
 begin
-  pnlSha224.Caption := SHA224Print(SHA224UnicodeString(edtSha224.Text));
+  pnlSHA224.Caption := SHA224Print(SHA224UnicodeString(edtSHA224.Text));
 end;
 
 procedure TFormCrypt.btnUSHA256Click(Sender: TObject);
 begin
-  pnlSha256.Caption := SHA256Print(SHA256UnicodeString(edtSha256.Text));
+  pnlSHA256.Caption := SHA256Print(SHA256UnicodeString(edtSHA256.Text));
 end;
 
 procedure TFormCrypt.btnUSHA384Click(Sender: TObject);
 var
   S: string;
 begin
-  S := SHA384Print(SHA384UnicodeString(edtSha384.Text));
+  S := SHA384Print(SHA384UnicodeString(edtSHA384.Text));
   Insert(#13#10, S, 49);
   lblSHA384Result.Caption := S;
 end;
@@ -2055,26 +2119,26 @@ procedure TFormCrypt.btnUSHA512Click(Sender: TObject);
 var
   S: string;
 begin
-  S := SHA512Print(SHA512UnicodeString(edtSha512.Text));
+  S := SHA512Print(SHA512UnicodeString(edtSHA512.Text));
   Insert(#13#10, S, 65);
   lblSHA512Result.Caption := S;
 end;
 
 procedure TFormCrypt.btnUSHA3_224Click(Sender: TObject);
 begin
-  pnlSHA3_224.Caption := SHA3_224Print(SHA3_224UnicodeString(edtSha3_224.Text));
+  pnlSHA3_224.Caption := SHA3_224Print(SHA3_224UnicodeString(edtSHA3_224.Text));
 end;
 
 procedure TFormCrypt.btnUSHA3_256Click(Sender: TObject);
 begin
-  pnlSHA3_256.Caption := SHA3_256Print(SHA3_256UnicodeString(edtSha3_256.Text));
+  pnlSHA3_256.Caption := SHA3_256Print(SHA3_256UnicodeString(edtSHA3_256.Text));
 end;
 
 procedure TFormCrypt.btnUSHA3_384Click(Sender: TObject);
 var
   S: string;
 begin
-  S := SHA3_384Print(SHA3_384UnicodeString(edtSha3_384.Text));
+  S := SHA3_384Print(SHA3_384UnicodeString(edtSHA3_384.Text));
   Insert(#13#10, S, 49);
   lblSHA3_384Result.Caption := S;
 end;
@@ -2083,7 +2147,7 @@ procedure TFormCrypt.btnUSHA3_512Click(Sender: TObject);
 var
   S: string;
 begin
-  S := SHA3_512Print(SHA3_512UnicodeString(edtSha3_512.Text));
+  S := SHA3_512Print(SHA3_512UnicodeString(edtSHA3_512.Text));
   Insert(#13#10, S, 65);
   lblSHA3_512Result.Caption := S;
 end;
@@ -3043,6 +3107,193 @@ end;
 procedure TFormCrypt.btnRC4DecryptClick(Sender: TObject);
 begin
   edtRC4Origin.Text := RC4DecryptStrFromHex(edtRC4Code.Text, edtRC4Key.Text);
+end;
+
+procedure TFormCrypt.btnBLAKE224Click(Sender: TObject);
+begin
+{$IFDEF UNICODE}
+  if chkBLAKE224Utf8.Checked then
+    pnlBLAKE224.Caption := BLAKE224Print(BLAKE224Bytes(TEncoding.UTF8.GetBytes(edtBLAKE224.Text)))
+  else
+    pnlBLAKE224.Caption := BLAKE224Print(BLAKE224StringA(AnsiString(edtBLAKE224.Text)));
+{$ELSE}
+  if chkBLAKE224Utf8.Checked then
+    pnlBLAKE224.Caption := BLAKE224Print(BLAKE224String(CnAnsiToUtf8(edtBLAKE224.Text)))
+  else
+    pnlBLAKE224.Caption := BLAKE224Print(BLAKE224String(edtBLAKE224.Text));
+{$ENDIF}
+end;
+
+procedure TFormCrypt.btnBLAKE224FileClick(Sender: TObject);
+begin
+  if OpenDialog1.Execute then
+    pnlBLAKE224.Caption := BLAKE224Print(BLAKE224File(OpenDialog1.FileName));
+end;
+
+procedure TFormCrypt.btnBLAKE224HmacClick(Sender: TObject);
+var
+  Output: TCnBLAKE224Digest;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtBLAKE224HmacKey.Text);
+  if chkBLAKE224Utf8.Checked then
+    S := CnAnsiToUtf8(edtBLAKE224.Text)
+  else
+    S := AnsiString(edtBLAKE224.Text);
+
+  BLAKE224Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  pnlBLAKE224.Caption := BLAKE224Print(Output);
+end;
+
+procedure TFormCrypt.btnBLAKE256Click(Sender: TObject);
+begin
+{$IFDEF UNICODE}
+  if chkBLAKE256Utf8.Checked then
+    pnlBLAKE256.Caption := BLAKE256Print(BLAKE256Bytes(TEncoding.UTF8.GetBytes(edtBLAKE256.Text)))
+  else
+    pnlBLAKE256.Caption := BLAKE256Print(BLAKE256StringA(AnsiString(edtBLAKE256.Text)));
+{$ELSE}
+  if chkBLAKE256Utf8.Checked then
+    pnlBLAKE256.Caption := BLAKE256Print(BLAKE256String(CnAnsiToUtf8(edtBLAKE256.Text)))
+  else
+    pnlBLAKE256.Caption := BLAKE256Print(BLAKE256String(edtBLAKE256.Text));
+{$ENDIF}
+end;
+
+procedure TFormCrypt.btnBLAKE256FileClick(Sender: TObject);
+begin
+  if OpenDialog1.Execute then
+    pnlBLAKE256.Caption := BLAKE256Print(BLAKE256File(OpenDialog1.FileName));
+end;
+
+procedure TFormCrypt.btnBLAKE256HmacClick(Sender: TObject);
+begin
+  if OpenDialog1.Execute then
+    pnlBLAKE256.Caption := BLAKE256Print(BLAKE256File(OpenDialog1.FileName));
+end;
+
+procedure TFormCrypt.btnBLAKE384Click(Sender: TObject);
+var
+  S: string;
+begin
+{$IFDEF UNICODE}
+  if chkBLAKE384Utf8.Checked then
+    S := BLAKE384Print(BLAKE384Bytes(TEncoding.UTF8.GetBytes(edtBLAKE384.Text)))
+  else
+    S := BLAKE384Print(BLAKE384StringA(AnsiString(edtBLAKE384.Text)));
+{$ELSE}
+  if chkBLAKE384Utf8.Checked then
+    S := BLAKE384Print(BLAKE384String(CnAnsiToUtf8(edtBLAKE384.Text)))
+  else
+    S := BLAKE384Print(BLAKE384String(edtBLAKE384.Text));
+{$ENDIF}
+  Insert(#13#10, S, 49);
+  lblBLAKE384Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnBLAKE384FileClick(Sender: TObject);
+var
+  S: string;
+begin
+  if OpenDialog1.Execute then
+  begin
+    S := BLAKE384Print(BLAKE384File(OpenDialog1.FileName));
+    Insert(#13#10, S, 49);
+    lblBLAKE384Result.Caption := S;
+  end;
+end;
+
+procedure TFormCrypt.btnBLAKE384HmacClick(Sender: TObject);
+var
+  Output: TCnBLAKE384Digest;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtBLAKE384HmacKey.Text);
+  if chkBLAKE384Utf8.Checked then
+    S := CnAnsiToUtf8(edtBLAKE384.Text)
+  else
+    S := AnsiString(edtBLAKE384.Text);
+
+  BLAKE384Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  S := BLAKE384Print(Output);
+  Insert(#13#10, S, 49);
+  lblBLAKE384Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnBLAKE512Click(Sender: TObject);
+var
+  S: string;
+begin
+{$IFDEF UNICODE}
+  if chkBLAKE512Utf8.Checked then
+    S := BLAKE512Print(BLAKE512Bytes(TEncoding.UTF8.GetBytes(edtBLAKE512.Text)))
+  else
+    S := BLAKE512Print(BLAKE512StringA(AnsiString(edtBLAKE512.Text)));
+{$ELSE}
+  if chkBLAKE512Utf8.Checked then
+    S := BLAKE512Print(BLAKE512String(CnAnsiToUtf8(edtBLAKE512.Text)))
+  else
+    S := BLAKE512Print(BLAKE512String(edtBLAKE512.Text));
+{$ENDIF}
+  Insert(#13#10, S, 65);
+  lblBLAKE512Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnBLAKE512FileClick(Sender: TObject);
+var
+  S: string;
+begin
+  if OpenDialog1.Execute then
+  begin
+    S := BLAKE512Print(BLAKE512File(OpenDialog1.FileName));
+    Insert(#13#10, S, 65);
+    lblBLAKE512Result.Caption := S;
+  end;
+end;
+
+procedure TFormCrypt.btnBLAKE512HmacClick(Sender: TObject);
+var
+  Output: TCnBLAKE512Digest;
+  S, Key: AnsiString;
+begin
+  Key := AnsiString(edtBLAKE512HmacKey.Text);
+  if chkBLAKE512Utf8.Checked then
+    S := CnAnsiToUtf8(edtBLAKE512.Text)
+  else
+    S := AnsiString(edtBLAKE512.Text);
+
+  BLAKE512Hmac(@Key[1], Length(Key), @S[1], Length(S), Output);
+  S := BLAKE512Print(Output);
+  Insert(#13#10, S, 65);
+  lblBLAKE512Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnUBLAKE224Click(Sender: TObject);
+begin
+  pnlBLAKE224.Caption := BLAKE224Print(BLAKE224UnicodeString(edtBLAKE224.Text));
+end;
+
+procedure TFormCrypt.btnUBLAKE256Click(Sender: TObject);
+begin
+  pnlBLAKE256.Caption := BLAKE256Print(BLAKE256UnicodeString(edtBLAKE256.Text));
+end;
+
+procedure TFormCrypt.btnUBLAKE384Click(Sender: TObject);
+var
+  S: string;
+begin
+  S := BLAKE384Print(BLAKE384UnicodeString(edtBLAKE384.Text));
+  Insert(#13#10, S, 49);
+  lblBLAKE384Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnUBLAKE512Click(Sender: TObject);
+var
+  S: string;
+begin
+  S := BLAKE512Print(BLAKE512UnicodeString(edtBLAKE512.Text));
+  Insert(#13#10, S, 65);
+  lblBLAKE512Result.Caption := S;
 end;
 
 end.
