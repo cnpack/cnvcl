@@ -50,7 +50,7 @@ uses
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
-  CnDSA, CnWideStrings, CnContainers;
+  CnDSA, CnWideStrings, CnContainers, CnBLAKE;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
@@ -207,6 +207,21 @@ function TestSHA3_512HMac: Boolean;
 function TestSHA3_512Update: Boolean;
 function TestSHAKE128: Boolean;
 function TestSHAKE256: Boolean;
+
+// ================================ BLAKE ======================================
+
+function TestBLAKE224: Boolean;
+function TestBLAKE224HMac: Boolean;
+function TestBLAKE224Update: Boolean;
+function TestBLAKE256: Boolean;
+function TestBLAKE256HMac: Boolean;
+function TestBLAKE256Update: Boolean;
+function TestBLAKE384: Boolean;
+function TestBLAKE384HMac: Boolean;
+function TestBLAKE384Update: Boolean;
+function TestBLAKE512: Boolean;
+function TestBLAKE512HMac: Boolean;
+function TestBLAKE512Update: Boolean;
 
 // ================================ Base64 =====================================
 
@@ -564,6 +579,21 @@ begin
   MyAssert(TestSHA3_512Update, 'TestSHA3_512Update');
   MyAssert(TestSHAKE128, 'TestSHAKE128');
   MyAssert(TestSHAKE256, 'TestSHAKE256');
+
+// ================================ BLAKE ======================================
+
+  MyAssert(TestBLAKE224, 'TestBLAKE224');
+  MyAssert(TestBLAKE224HMac, 'TestBLAKE224HMac');
+  MyAssert(TestBLAKE224Update, 'TestBLAKE224Update');
+  MyAssert(TestBLAKE256, 'TestBLAKE256');
+  MyAssert(TestBLAKE256HMac, 'TestBLAKE256HMac');
+  MyAssert(TestBLAKE256Update, 'TestBLAKE256Update');
+  MyAssert(TestBLAKE384, 'TestBLAKE384');
+  MyAssert(TestBLAKE384HMac, 'TestBLAKE384HMac');
+  MyAssert(TestBLAKE384Update, 'TestBLAKE384Update');
+  MyAssert(TestBLAKE512, 'TestBLAKE512');
+  MyAssert(TestBLAKE512HMac, 'TestBLAKE512HMac');
+  MyAssert(TestBLAKE512Update, 'TestBLAKE512Update');
 
 // ================================ Base64 =====================================
 
@@ -2798,6 +2828,218 @@ begin
     '5733740143EF5D2B58B96A363D4E0807' +
     '6A1A9D7846436E4DCA5728B6F760EEF0' +
     'CA92BF0BE5615E96959D767197A0BEEB';
+end;
+
+// ================================ BLAKE ======================================
+
+function TestBLAKE224: Boolean;
+var
+  Dig: TCnBLAKE224Digest;
+  Data: TBytes;
+begin
+  Dig := BLAKE224Bytes(nil);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE224Digest)) = '7DC5313B1C04512A174BD6503B89607AECBEE0903D40A8A569C94EED';
+
+  if not Result then Exit;
+
+  Data := HexToBytes('00');
+  Dig := BLAKE224Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE224Digest)) = '4504CB0314FB2A4F7A692E696E487912FE3F2468FE312C73A5278EC5';
+
+  if not Result then Exit;
+
+  Data := HexToBytes('000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000');
+  Dig := BLAKE224Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE224Digest)) = 'F5AA00DD1CB847E3140372AF7B5C46B4888D82C8C0A917913CFB5D04';
+end;
+
+function TestBLAKE224HMac: Boolean;
+var
+  S: AnsiString;
+  Dig: TCnBLAKE224Digest;
+  Data: TBytes;
+begin
+  S := 'CnPack Key';
+  Data := HexToBytes('436E5061636B2054657374');
+  BLAKE224Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE224Digest)) = '6E680E83717D0A06A787D4E310D423942B05EAA107A803A005584A69';
+end;
+
+function TestBLAKE224Update: Boolean;
+var
+  D1, D2: TCnBLAKE224Digest;
+  C: TCnBLAKE224Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := BLAKE224StringA(S);
+  BLAKE224Init(C);
+  BLAKE224Update(C, PAnsiChar(S1), Length(S1));
+  BLAKE224Update(C, PAnsiChar(S2), Length(S2));
+  BLAKE224Final(C, D2);
+
+  Result := BLAKE224Match(D1, D2);
+end;
+
+function TestBLAKE256: Boolean;
+var
+  Dig: TCnBLAKE256Digest;
+  Data: TBytes;
+begin
+  Dig := BLAKE256Bytes(nil);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE256Digest)) = '716F6E863F744B9AC22C97EC7B76EA5F5908BC5B2F67C61510BFC4751384EA7A';
+
+  if not Result then Exit;
+
+  Data := HexToBytes('00');
+  Dig := BLAKE256Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE256Digest)) = '0CE8D4EF4DD7CD8D62DFDED9D4EDB0A774AE6A41929A74DA23109E8F11139C87';
+
+  if not Result then Exit;
+
+  Data := HexToBytes('000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000');
+  Dig := BLAKE256Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE256Digest)) = 'D419BAD32D504FB7D44D460C42C5593FE544FA4C135DEC31E21BD9ABDCC22D41';
+end;
+
+function TestBLAKE256HMac: Boolean;
+var
+  S: AnsiString;
+  Dig: TCnBLAKE256Digest;
+  Data: TBytes;
+begin
+  S := 'CnPack Key';
+  Data := HexToBytes('436E5061636B2054657374');
+  BLAKE256Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE256Digest)) = '5FA4F8D8187F34BFA24ED840E4C9BB72830617D19CDE6BF9C816BE593AE5B61E';
+end;
+
+function TestBLAKE256Update: Boolean;
+var
+  D1, D2: TCnBLAKE256Digest;
+  C: TCnBLAKE256Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := BLAKE256StringA(S);
+  BLAKE256Init(C);
+  BLAKE256Update(C, PAnsiChar(S1), Length(S1));
+  BLAKE256Update(C, PAnsiChar(S2), Length(S2));
+  BLAKE256Final(C, D2);
+
+  Result := BLAKE256Match(D1, D2);
+end;
+
+function TestBLAKE384: Boolean;
+var
+  Dig: TCnBLAKE384Digest;
+  Data: TBytes;
+begin
+  Dig := BLAKE384Bytes(nil);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE384Digest)) = 'C6CBD89C926AB525C242E6621F2F5FA73AA4AFE3D9E24AED727FAAADD6AF38B620BDB623DD2B4788B1C8086984AF8706';
+
+  if not Result then Exit;
+
+  Data := HexToBytes('00');
+  Dig := BLAKE384Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE384Digest)) = '10281F67E135E90AE8E882251A355510A719367AD70227B137343E1BC122015C29391E8545B5272D13A7C2879DA3D807';
+
+  if not Result then Exit;
+
+  Data := HexToBytes('000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+    + '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000');
+  Dig := BLAKE384Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE384Digest)) = '0B9845DD429566CDAB772BA195D271EFFE2D0211F16991D766BA749447C5CDE569780B2DAA66C4B224A2EC2E5D09174C';
+end;
+
+function TestBLAKE384HMac: Boolean;
+var
+  S: AnsiString;
+  Dig: TCnBLAKE384Digest;
+  Data: TBytes;
+begin
+  S := 'CnPack Key';
+  Data := HexToBytes('436E5061636B2054657374');
+  BLAKE384Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE384Digest)) = 'EAB03631FF5C841689BE189A227AC263317DC40247C8DAD81D71678A7A07F98AEF6C970DD8AD2E752D308173ABDC02F2';
+end;
+
+function TestBLAKE384Update: Boolean;
+var
+  D1, D2: TCnBLAKE384Digest;
+  C: TCnBLAKE384Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := BLAKE384StringA(S);
+  BLAKE384Init(C);
+  BLAKE384Update(C, PAnsiChar(S1), Length(S1));
+  BLAKE384Update(C, PAnsiChar(S2), Length(S2));
+  BLAKE384Final(C, D2);
+
+  Result := BLAKE384Match(D1, D2);
+end;
+
+function TestBLAKE512: Boolean;
+var
+  Dig: TCnBLAKE512Digest;
+  Data: TBytes;
+begin
+  Dig := BLAKE512Bytes(nil);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE512Digest)) = 'A8CFBBD73726062DF0C6864DDA65DEFE58EF0CC52A5625090FA17601E1EECD1B628E94F396AE402A00ACC9EAB77B4D4C2E852AAAA25A636D80AF3FC7913EF5B8';
+
+  if not Result then Exit;
+
+  Data := HexToBytes('00');
+  Dig := BLAKE512Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE512Digest)) = '97961587F6D970FABA6D2478045DE6D1FABD09B61AE50932054D52BC29D31BE4FF9102B9F69E2BBDB83BE13D4B9C06091E5FA0B48BD081B634058BE0EC49BEB3';
+
+  if not Result then Exit;
+
+  Data := HexToBytes('000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+    + '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000');
+  Dig := BLAKE512Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE512Digest)) = '313717D608E9CF758DCB1EB0F0C3CF9FC150B2D500FB33F51C52AFC99D358A2F1374B8A38BBA7974E7F6EF79CAB16F22CE1E649D6E01AD9589C213045D545DDE';
+end;
+
+function TestBLAKE512HMac: Boolean;
+var
+  S: AnsiString;
+  Dig: TCnBLAKE512Digest;
+  Data: TBytes;
+begin
+  S := 'CnPack Key';
+  Data := HexToBytes('436E5061636B2054657374');
+  BLAKE512Hmac(@S[1], Length(S), @Data[0], Length(Data), Dig);
+  Result := DataToHex(@Dig[0], SizeOf(TCnBLAKE512Digest)) = '8BDC51AE7542AC47E32E60659ADB57C53D4CD2EAEFA28911ECDFB6F2419F97539AC73C3DCBF4051782968DA0B8914A5C2DA423762E56C6208E0A12DA0E30EA90';
+end;
+
+function TestBLAKE512Update: Boolean;
+var
+  D1, D2: TCnBLAKE512Digest;
+  C: TCnBLAKE512Context;
+  S, S1, S2: AnsiString;
+begin
+  S1 := '0123456789abcdefghi';
+  S2 := 'jklmnop';
+  S := S1 + S2;
+
+  D1 := BLAKE512StringA(S);
+  BLAKE512Init(C);
+  BLAKE512Update(C, PAnsiChar(S1), Length(S1));
+  BLAKE512Update(C, PAnsiChar(S2), Length(S2));
+  BLAKE512Final(C, D2);
+
+  Result := BLAKE512Match(D1, D2);
 end;
 
 // ================================ Base64 =====================================

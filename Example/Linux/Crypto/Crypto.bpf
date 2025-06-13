@@ -6,6 +6,7 @@ USEUNIT("..\..\..\Source\Crypto\CnBase64.pas");
 USEUNIT("..\..\..\Source\Crypto\CnBerUtils.pas");
 USEUNIT("..\..\..\Source\Crypto\CnBigNumber.pas");
 USEUNIT("..\..\..\Source\Crypto\CnBits.pas");
+USEUNIT("..\..\..\Source\Crypto\CnBLAKE.pas");
 USEUNIT("..\..\..\Source\Crypto\CnCertificateAuthority.pas");
 USEUNIT("..\..\..\Source\Crypto\CnChaCha20.pas");
 USEUNIT("..\..\..\Source\Crypto\CnComplex.pas");

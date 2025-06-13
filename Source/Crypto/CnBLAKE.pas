@@ -895,7 +895,7 @@ var
   T: Pointer;
 begin
   T := Pointer(TCnIntAddress(Ptr) + SizeOf(Cardinal));
-  Result := TUInt64(U8To32Big(Ptr)) or TUInt64(U8To32Big(T));
+  Result := (TUInt64(U8To32Big(Ptr)) shl 32) or TUInt64(U8To32Big(T));
 end;
 
 procedure U32To8Big(Ptr: Pointer; V: Cardinal);
@@ -957,7 +957,7 @@ end;
 // ============================== 基础函数完毕 =================================
 
 // 224/256 核心流程，Ptr 是字节数组首地址
-procedure BLAKE32Compress(var Context: TCnBLAKE224Context; Ptr: Pointer);
+procedure BLAKE224256Compress(var Context: TCnBLAKE224Context; Ptr: Pointer);
 var
   I: Integer;
   M, V: array[0..15] of Cardinal;
@@ -1004,7 +1004,7 @@ begin
 end;
 
 // 384/512 核心流程，Ptr 是字节数组首地址
-procedure BLAKE64Compress(var Context: TCnBLAKE384Context; Ptr: Pointer);
+procedure BLAKE384512Compress(var Context: TCnBLAKE384Context; Ptr: Pointer);
 var
   I: Integer;
   M, V: array[0..15] of TUInt64;
@@ -1050,7 +1050,7 @@ begin
     Context.H[I] := Context.H[I] xor Context.S[I mod 4];
 end;
 
-procedure BLAKE32Update(var Context: TCnBLAKE256Context; Input: PAnsiChar; ByteLength: Cardinal);
+procedure BLAKE224256Update(var Context: TCnBLAKE256Context; Input: PAnsiChar; ByteLength: Cardinal);
 var
   Left, Fill: Integer;
 begin
@@ -1064,7 +1064,7 @@ begin
     if Context.T[0] = 0 then
       Inc(Context.T[1]);
 
-    BLAKE32Compress(Context, @(Context.Buf[0]));
+    BLAKE224256Compress(Context, @(Context.Buf[0]));
     Inc(Input, Fill);
     Dec(ByteLength, Fill);
     Left := 0;
@@ -1076,7 +1076,7 @@ begin
     if Context.T[0] = 0 then
       Inc(Context.T[1]);
 
-    BLAKE32Compress(Context, @(Context.Buf[0]));
+    BLAKE224256Compress(Context, Input);
     Inc(Input, 64);
     Dec(ByteLength, 64);
   end;
@@ -1090,7 +1090,7 @@ begin
     Context.BufLen := 0;
 end;
 
-procedure BLAKE32UpdateW(var Context: TCnBLAKE256Context; Input: PWideChar; CharLength: Cardinal);
+procedure BLAKE224256UpdateW(var Context: TCnBLAKE256Context; Input: PWideChar; CharLength: Cardinal);
 var
 {$IFDEF MSWINDOWS}
   Content: PAnsiChar;
@@ -1105,14 +1105,14 @@ begin
   try
     iLen := WideCharToMultiByte(0, 0, Input, CharLength, // 代码页默认用 0
       PAnsiChar(Content), CharLength * SizeOf(WideChar), nil, nil);
-    BLAKE32Update(Context, Content, iLen);
+    BLAKE224256Update(Context, Content, iLen);
   finally
     FreeMem(Content);
   end;
 {$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
   S := StrNew(Input);
   A := AnsiString(S);
-  BLAKE32Update(Context, @A[1], Length(A));
+  BLAKE224256Update(Context, @A[1], Length(A));
 {$ENDIF}
 end;
 
@@ -1140,7 +1140,7 @@ end;
 
 procedure BLAKE224Update(var Context: TCnBLAKE224Context; Input: PAnsiChar; ByteLength: Cardinal);
 begin
-  BLAKE32Update(Context, Input, ByteLength);
+  BLAKE224256Update(Context, Input, ByteLength);
 end;
 
 procedure BLAKE224Final(var Context: TCnBLAKE224Context; var Digest: TCnBLAKE224Digest);
@@ -1163,7 +1163,7 @@ begin
   if Context.BufLen = 55 then
   begin
     Context.T[0] := Context.T[0] - 8;
-    BLAKE32Update(Context, @OZ, 1);
+    BLAKE224256Update(Context, @OZ, 1);
   end
   else
   begin
@@ -1172,23 +1172,23 @@ begin
       if Context.BufLen = 0 then
         Context.Nullt := 1;
       Context.T[0] := Context.T[0] - (440 - (Context.BufLen shl 3));
-      BLAKE32Update(Context, @Padding[0], 55 - Context.BufLen);
+      BLAKE224256Update(Context, @Padding[0], 55 - Context.BufLen);
     end
     else
     begin
       Context.T[0] := Context.T[0] - (512 - (Context.BufLen shl 3));
-      BLAKE32Update(Context, @Padding[0], 64 - Context.BufLen);
+      BLAKE224256Update(Context, @Padding[0], 64 - Context.BufLen);
       Context.T[0] := Context.T[0] - 440;
-      BLAKE32Update(Context, @Padding[1], 55 );
+      BLAKE224256Update(Context, @Padding[1], 55 );
       Context.Nullt := 1;
     end;
 
-    BLAKE32Update(Context, @ZZ, 1);
+    BLAKE224256Update(Context, @ZZ, 1);
     Context.T[0] := Context.T[0] - 8;
   end;
 
   Context.T[0] := Context.T[0] - 64;
-  BLAKE32Update(Context, @MsgLen[0], 8);
+  BLAKE224256Update(Context, @MsgLen[0], 8);
 
   U32To8Big(@Digest[0], Context.H[0]);
   U32To8Big(@Digest[4], Context.H[1]);
@@ -1223,7 +1223,7 @@ end;
 
 procedure BLAKE256Update(var Context: TCnBLAKE256Context; Input: PAnsiChar; ByteLength: Cardinal);
 begin
-  BLAKE32Update(Context, Input, ByteLength);
+  BLAKE224256Update(Context, Input, ByteLength);
 end;
 
 procedure BLAKE256Final(var Context: TCnBLAKE256Context; var Digest: TCnBLAKE256Digest);
@@ -1246,7 +1246,7 @@ begin
   if Context.BufLen = 55 then
   begin
     Context.T[0] := Context.T[0] - 8;
-    BLAKE32Update(Context, @OZ, 1);
+    BLAKE224256Update(Context, @OZ, 1);
   end
   else
   begin
@@ -1255,23 +1255,23 @@ begin
       if Context.BufLen = 0 then
         Context.Nullt := 1;
       Context.T[0] := Context.T[0] - (440 - (Context.BufLen shl 3));
-      BLAKE32Update(Context, @Padding[0], 55 - Context.BufLen);
+      BLAKE224256Update(Context, @Padding[0], 55 - Context.BufLen);
     end
     else
     begin
       Context.T[0] := Context.T[0] - (512 - (Context.BufLen shl 3));
-      BLAKE32Update(Context, @Padding[0], 64 - Context.BufLen);
+      BLAKE224256Update(Context, @Padding[0], 64 - Context.BufLen);
       Context.T[0] := Context.T[0] - 440;
-      BLAKE32Update(Context, @Padding[1], 55);
+      BLAKE224256Update(Context, @Padding[1], 55);
       Context.Nullt := 1;
     end;
 
-    BLAKE32Update(Context, @ZZ, 1);
+    BLAKE224256Update(Context, @ZZ, 1);
     Context.T[0] := Context.T[0] - 8;
   end;
 
   Context.T[0] := Context.T[0] - 64;
-  BLAKE32Update(Context, @MsgLen[0], 8);
+  BLAKE224256Update(Context, @MsgLen[0], 8);
 
   U32To8Big(@Digest[0], Context.H[0]);
   U32To8Big(@Digest[4], Context.H[1]);
@@ -1283,7 +1283,7 @@ begin
   U32To8Big(@Digest[28], Context.H[7]);
 end;
 
-procedure BLAKE64Update(var Context: TCnBLAKE512Context; Input: PAnsiChar; ByteLength: Cardinal);
+procedure BLAKE384512Update(var Context: TCnBLAKE512Context; Input: PAnsiChar; ByteLength: Cardinal);
 var
   Left, Fill: Integer;
 begin
@@ -1297,7 +1297,7 @@ begin
     if Context.T[0] = 0 then
       Inc(Context.T[1]);
 
-    BLAKE64Compress(Context, @(Context.Buf[0]));
+    BLAKE384512Compress(Context, @(Context.Buf[0]));
     Inc(Input, Fill);
     Dec(ByteLength, Fill);
     Left := 0;
@@ -1309,7 +1309,7 @@ begin
     if Context.T[0] = 0 then
       Inc(Context.T[1]);
 
-    BLAKE64Compress(Context, @(Context.Buf[0]));
+    BLAKE384512Compress(Context, Input);
     Inc(Input, 128);
     Dec(ByteLength, 128);
   end;
@@ -1323,7 +1323,7 @@ begin
     Context.BufLen := 0;
 end;
 
-procedure BLAKE64UpdateW(var Context: TCnBLAKE512Context; Input: PWideChar; CharLength: Cardinal);
+procedure BLAKE384512UpdateW(var Context: TCnBLAKE512Context; Input: PWideChar; CharLength: Cardinal);
 var
 {$IFDEF MSWINDOWS}
   Content: PAnsiChar;
@@ -1338,14 +1338,14 @@ begin
   try
     iLen := WideCharToMultiByte(0, 0, Input, CharLength, // 代码页默认用 0
       PAnsiChar(Content), CharLength * SizeOf(WideChar), nil, nil);
-    BLAKE64Update(Context, Content, iLen);
+    BLAKE384512Update(Context, Content, iLen);
   finally
     FreeMem(Content);
   end;
 {$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
   S := StrNew(Input);
   A := AnsiString(S);
-  BLAKE64Update(Context, @A[1], Length(A));
+  BLAKE384512Update(Context, @A[1], Length(A));
 {$ENDIF}
 end;
 
@@ -1373,7 +1373,7 @@ end;
 
 procedure BLAKE384Update(var Context: TCnBLAKE384Context; Input: PAnsiChar; ByteLength: Cardinal);
 begin
-  BLAKE64Update(Context, Input, ByteLength);
+  BLAKE384512Update(Context, Input, ByteLength);
 end;
 
 procedure BLAKE384Final(var Context: TCnBLAKE384Context; var Digest: TCnBLAKE384Digest);
@@ -1396,7 +1396,7 @@ begin
   if Context.BufLen = 111 then
   begin
     Context.T[0] := Context.T[0] - 8;
-    BLAKE64Update(Context, @OZ, 1);
+    BLAKE384512Update(Context, @OZ, 1);
   end
   else
   begin
@@ -1405,23 +1405,23 @@ begin
       if Context.BufLen = 0 then
         Context.Nullt := 1;
       Context.T[0] := Context.T[0] - (888 - (Context.BufLen shl 3));
-      BLAKE64Update(Context, @Padding[0], 111 - Context.BufLen);
+      BLAKE384512Update(Context, @Padding[0], 111 - Context.BufLen);
     end
     else
     begin
       Context.T[0] := Context.T[0] - (1024 - (Context.BufLen shl 3));
-      BLAKE64Update(Context, @Padding[0], 128 - Context.BufLen);
+      BLAKE384512Update(Context, @Padding[0], 128 - Context.BufLen);
       Context.T[0] := Context.T[0] - 888;
-      BLAKE64Update(Context, @Padding[1], 111);
+      BLAKE384512Update(Context, @Padding[1], 111);
       Context.Nullt := 1;
     end;
 
-    BLAKE64Update(Context, @ZZ, 1);
+    BLAKE384512Update(Context, @ZZ, 1);
     Context.T[0] := Context.T[0] - 8;
   end;
 
   Context.T[0] := Context.T[0] - 128;
-  BLAKE64Update(Context, @MsgLen[0], 16);
+  BLAKE384512Update(Context, @MsgLen[0], 16);
 
   U64To8Big(@Digest[0], Context.H[0]);
   U64To8Big(@Digest[8], Context.H[1]);
@@ -1455,7 +1455,7 @@ end;
 
 procedure BLAKE512Update(var Context: TCnBLAKE512Context; Input: PAnsiChar; ByteLength: Cardinal);
 begin
-  BLAKE64Update(Context, Input, ByteLength);
+  BLAKE384512Update(Context, Input, ByteLength);
 end;
 
 procedure BLAKE512Final(var Context: TCnBLAKE512Context; var Digest: TCnBLAKE512Digest);
@@ -1478,7 +1478,7 @@ begin
   if Context.BufLen = 111 then
   begin
     Context.T[0] := Context.T[0] - 8;
-    BLAKE64Update(Context, @OZ, 1);
+    BLAKE384512Update(Context, @OZ, 1);
   end
   else
   begin
@@ -1487,23 +1487,23 @@ begin
       if Context.BufLen = 0 then
         Context.Nullt := 1;
       Context.T[0] := Context.T[0] - (888 - (Context.BufLen shl 3));
-      BLAKE64Update(Context, @Padding[0], 111 - Context.BufLen);
+      BLAKE384512Update(Context, @Padding[0], 111 - Context.BufLen);
     end
     else
     begin
       Context.T[0] := Context.T[0] - (1024 - (Context.BufLen shl 3));
-      BLAKE64Update(Context, @Padding[0], 128 - Context.BufLen);
+      BLAKE384512Update(Context, @Padding[0], 128 - Context.BufLen);
       Context.T[0] := Context.T[0] - 888;
-      BLAKE64Update(Context, @Padding[1], 111);
+      BLAKE384512Update(Context, @Padding[1], 111);
       Context.Nullt := 1;
     end;
 
-    BLAKE64Update(Context, @ZZ, 1);
+    BLAKE384512Update(Context, @ZZ, 1);
     Context.T[0] := Context.T[0] - 8;
   end;
 
   Context.T[0] := Context.T[0] - 128;
-  BLAKE64Update(Context, @MsgLen[0], 16);
+  BLAKE384512Update(Context, @MsgLen[0], 16);
 
   U64To8Big(@Digest[0], Context.H[0]);
   U64To8Big(@Digest[8], Context.H[1]);
@@ -1743,7 +1743,7 @@ var
   Context: TCnBLAKE224Context;
 begin
   BLAKE224Init(Context);
-  BLAKE32UpdateW(Context, PWideChar(Str), Length(Str));
+  BLAKE224256UpdateW(Context, PWideChar(Str), Length(Str));
   BLAKE224Final(Context, Result);
 end;
 
@@ -1763,7 +1763,7 @@ var
   Context: TCnBLAKE256Context;
 begin
   BLAKE256Init(Context);
-  BLAKE32UpdateW(Context, PWideChar(Str), Length(Str));
+  BLAKE224256UpdateW(Context, PWideChar(Str), Length(Str));
   BLAKE256Final(Context, Result);
 end;
 
@@ -1783,7 +1783,7 @@ var
   Context: TCnBLAKE384Context;
 begin
   BLAKE384Init(Context);
-  BLAKE64UpdateW(Context, PWideChar(Str), Length(Str));
+  BLAKE384512UpdateW(Context, PWideChar(Str), Length(Str));
   BLAKE384Final(Context, Result);
 end;
 
@@ -1803,7 +1803,7 @@ var
   Context: TCnBLAKE512Context;
 begin
   BLAKE512Init(Context);
-  BLAKE64UpdateW(Context, PWideChar(Str), Length(Str));
+  BLAKE384512UpdateW(Context, PWideChar(Str), Length(Str));
   BLAKE512Final(Context, Result);
 end;
 
