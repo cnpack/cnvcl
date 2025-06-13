@@ -36,6 +36,7 @@ type
     chkReplaceName: TCheckBox;
     btnParseMulti: TButton;
     btnParseMultiStep: TButton;
+    btnParseToArray: TButton;
     procedure btnParseClick(Sender: TObject);
     procedure btnJSONConstruct1Click(Sender: TObject);
     procedure btnWriteClick(Sender: TObject);
@@ -48,6 +49,7 @@ type
     procedure btnMergeClick(Sender: TObject);
     procedure btnParseMultiClick(Sender: TObject);
     procedure btnParseMultiStepClick(Sender: TObject);
+    procedure btnParseToArrayClick(Sender: TObject);
   private
     procedure DumpJSONToTreeView(JSON: TCnJSONObject);
   public
@@ -418,6 +420,28 @@ begin
   ShowMessage(P);
 
   Objs.Free;
+end;
+
+procedure TFormJSON.btnParseToArrayClick(Sender: TObject);
+var
+  S: AnsiString;
+  Arr: TCnJSONArray;
+begin
+  // ºº×Ö×ª UTF8
+{$IFDEF UNICODE}
+  S := Utf8Encode(mmoJSON.Lines.Text);
+{$ELSE}
+  S := CnUtf8EncodeWideString(WideString(mmoJSON.Lines.Text));
+{$ENDIF}
+
+  Arr := CnJSONParseToArray(S);
+  if Arr <> nil then
+  begin
+    ShowMessage(IntToStr(Arr.Count));
+    ShowMessage(Arr.ToJSON);
+  end
+  else
+    ShowMessage('NOT Array');
 end;
 
 end.

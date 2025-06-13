@@ -49,7 +49,9 @@ unit CnJSON;
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.03.02 V1.7
+* 修改记录：2025.06.13 V1.8
+*                 增加解析 [ 开头和 ] 结尾的字符串为 JSONArray 的方法
+*           2025.03.02 V1.7
 *                 经 DeepSeek 检查修正几处小问题
 *           2025.03.01 V1.6
 *                 增加将字符串解析成多个 JSONObject 的过程并增加步进机制用于解析不完整的字符串
@@ -531,6 +533,10 @@ procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject;
   名字不存在的键值对将复制后插入；名字存在的，同为数组则直接拼接（元素不会判重）、同为对象则合并，
   其他情况，Replace 为 False 则啥都不做，Replace 为 True，则复制后替换}
 
+function CnJSONParseToArray(const JsonStr: AnsiString): TCnJSONArray;
+{* 解析 UTF8 格式的 JSON 字符串为一个数组，用于处理 [ 开头及 ] 结尾的字符串，
+  如果字符串不是 [ 开头及 ] 结尾，返回 nil}
+
 implementation
 
 {$IFNDEF UNICODE}
@@ -745,6 +751,25 @@ begin
   if (Current <> nil) and (Result <> nil) then
     Current.AddChild(Result);
   P.NextNoJunk;
+end;
+
+function CnJSONParseToArray(const JsonStr: AnsiString): TCnJSONArray;
+var
+  P: TCnJSONParser;
+begin
+  Result := nil;
+  P := TCnJSONParser.Create;
+  try
+    P.SetOrigin(PAnsiChar(JsonStr));
+
+    if P.TokenID in [jttBlank, jttUnknown] then
+      P.NextNoJunk;
+
+    if P.TokenID = jttArrayBegin then
+      Result := JSONParseArray(P, nil, DummyTermStep);
+  finally
+    P.Free;
+  end;
 end;
 
 function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject;

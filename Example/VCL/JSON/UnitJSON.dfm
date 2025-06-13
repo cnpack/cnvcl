@@ -165,6 +165,15 @@ object FormJSON: TFormJSON
         TabOrder = 11
         OnClick = btnParseMultiStepClick
       end
+      object btnParseToArray: TButton
+        Left = 456
+        Top = 360
+        Width = 75
+        Height = 25
+        Caption = 'btnParseToArray'
+        TabOrder = 12
+        OnClick = btnParseToArrayClick
+      end
     end
     object tsJSONConstruct: TTabSheet
       Caption = 'JSON Construct'
