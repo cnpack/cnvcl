@@ -318,6 +318,9 @@ type
     {* 把字符串加上双引号与转义后返回为 JSON 格式，内部会做 UTF8 转换
       Str 为 string 类型，同时支持 Unicode 与 Ansi 下的 string}
   public
+    class function FromString(const Value: string): TCnJSONString;
+    {* 从一字符串创建实例}
+
     function Clone: TCnJSONValue; override;
     {* 复制一份相同的字符串对象}
 
@@ -335,6 +338,11 @@ type
   private
 
   public
+    class function FromInt(Value: Int64): TCnJSONNumber;
+    {* 从整数值创建实例}
+    class function FromFloat(Value: Extended): TCnJSONNumber;
+    {* 从浮点数值创建实例}
+
     function IsNumber: Boolean; override;
 
     function Clone: TCnJSONValue; override;
@@ -1979,6 +1987,12 @@ begin
   Result.Assign(Self);
 end;
 
+class function TCnJSONString.FromString(const Value: string): TCnJSONString;
+begin
+  Result := TCnJSONString.Create;
+  Result.SetValue(Value);
+end;
+
 function TCnJSONString.IsString: Boolean;
 begin
   Result := True;
@@ -2190,6 +2204,18 @@ begin
   Result := StringReplace(Result, ',', '.', [rfReplaceAll]);
   // TODO: 如何区分因某些区域设置使 FloatToStr 出现逗号小数点和逗号千位分隔符？
 {$ENDIF}
+end;
+
+class function TCnJSONNumber.FromFloat(Value: Extended): TCnJSONNumber;
+begin
+  Result := TCnJSONNumber.Create;
+  Result.SetContent(FloatToStr(Value));
+end;
+
+class function TCnJSONNumber.FromInt(Value: Int64): TCnJSONNumber;
+begin
+  Result := TCnJSONNumber.Create;
+  Result.SetContent(IntToStr(Value));
 end;
 
 function TCnJSONNumber.IsNumber: Boolean;
