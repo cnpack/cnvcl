@@ -202,7 +202,9 @@ begin
         TCnJSONRPCRequest(Result).Method := Obj[SCN_JSONRPC_METHOD].AsString;
 
         if Obj[SCN_JSONRPC_PARAMS] <> nil then
-          TCnJSONRPCRequest(Result).Params := Obj[SCN_JSONRPC_PARAMS].Clone;
+          TCnJSONRPCRequest(Result).Params := Obj[SCN_JSONRPC_PARAMS].Clone
+        else
+          TCnJSONRPCRequest(Result).Params := nil;
       end
       else
       begin
@@ -210,7 +212,9 @@ begin
         TCnJSONRPCNoficiation(Result).Method := Obj[SCN_JSONRPC_METHOD].AsString;
 
         if Obj[SCN_JSONRPC_PARAMS] <> nil then
-          TCnJSONRPCNoficiation(Result).Params := Obj[SCN_JSONRPC_PARAMS].Clone;
+          TCnJSONRPCNoficiation(Result).Params := Obj[SCN_JSONRPC_PARAMS].Clone
+        else
+          TCnJSONRPCNoficiation(Result).Params := nil;
       end;
     end;
 
@@ -289,10 +293,11 @@ begin
   Root := TCnJSONObject.Create;
   try
     Root.AddPair(SCN_JSONRPC_VERSION, FVersion);
+    DoToJSON(Root);
+
     if FID <> CN_INVALID_ID then
       Root.AddPair(SCN_JSONRPC_ID, FID);
 
-    DoToJSON(Root);
     Result := Root.ToJSON(UseFormat, Indent);
   finally
     Root.Free;
@@ -406,6 +411,7 @@ end;
 
 procedure TCnJSONRPCNoficiation.DoToJSON(Root: TCnJSONObject);
 begin
+  Root.AddPair(SCN_JSONRPC_METHOD, FMethod);
   Root.AddPair(SCN_JSONRPC_PARAMS, FParams.Clone);
 end;
 
