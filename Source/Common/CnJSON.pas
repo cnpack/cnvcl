@@ -49,8 +49,9 @@ unit CnJSON;
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.06.13 V1.8
+* 修改记录：2025.06.14 V1.8
 *                 增加解析 [ 开头和 ] 结尾的字符串为 JSONArray 的方法
+*                 增加将一批 JSON 对象或值转换为 [ 开头和 ] 结尾的字符串的方法
 *           2025.03.02 V1.7
 *                 经 DeepSeek 检查修正几处小问题
 *           2025.03.01 V1.6
@@ -512,8 +513,14 @@ type
     {* 将 Instance 的各属性写入 JSON 字符串，UseFormat 控制是否带缩进格式}
   end;
 
-function CnJSONConstruct(Obj: TCnJSONObject; UseFormat: Boolean = True; Indent: Integer = 0): AnsiString;
-{* 将 JSON 对象转为 UTF8 格式的 JSON 字符串}
+function CnJSONConstruct(Obj: TCnJSONObject; UseFormat: Boolean = True;
+  Indent: Integer = 0): AnsiString; overload;
+{* 将单个 JSON 对象转为 UTF8 格式的 JSON 字符串}
+
+function CnJSONConstruct(Objects: TObjectList; UseFormat: Boolean = True;
+  Indent: Integer = 0): AnsiString; overload;
+{* 将列表中的多个 JSON 对象或值转为 UTF8 格式的 JSON 字符串，结果以 [ 开头 ] 结尾，
+  Objects 列表中的对象须为 TCnJSONValue 或其子类}
 
 function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject; overload;
 {* 解析 UTF8 格式的 JSON 字符串为单个 JSON 对象，需要外部释放}
@@ -840,6 +847,28 @@ begin
     Result := Obj.ToJSON(UseFormat, Indent)
   else
     Result := '';
+end;
+
+function CnJSONConstruct(Objects: TObjectList; UseFormat: Boolean;
+  Indent: Integer): AnsiString;
+var
+  I: Integer;
+begin
+  Result := '[';
+  if Objects.Count > 0 then
+  begin
+    for I := 0 to Objects.Count - 1 do
+    begin
+      if Objects[I] is TCnJSONValue then
+      begin
+        if I = 0 then
+          Result := Result + TCnJSONValue(Objects[I]).ToJSON(UseFormat, Indent)
+        else
+          Result := Result + ', ' + TCnJSONValue(Objects[I]).ToJSON(UseFormat, Indent);
+      end;
+    end;
+  end;
+  Result := Result + ']';
 end;
 
 procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject;
