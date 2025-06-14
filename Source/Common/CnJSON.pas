@@ -187,6 +187,13 @@ type
     function Clone: TCnJSONValue; virtual; abstract;
     {* 复制一份自身，包括自身持有的所有对象}
 
+    class function FromString(const Value: string): TCnJSONValue;
+    {* 从一字符串创建实例}
+    class function FromInt(const Value: Integer): TCnJSONValue;
+    {* 从一整数创建实例}
+    class function FromFloat(const Value: Extended): TCnJSONValue;
+    {* 从一浮点数创建实例}
+
     // 以下方法组装用
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
 
@@ -318,7 +325,7 @@ type
     {* 把字符串加上双引号与转义后返回为 JSON 格式，内部会做 UTF8 转换
       Str 为 string 类型，同时支持 Unicode 与 Ansi 下的 string}
   public
-    class function FromString(const Value: string): TCnJSONString;
+    class function FromString(const Value: string): TCnJSONString; reintroduce;
     {* 从一字符串创建实例}
 
     function Clone: TCnJSONValue; override;
@@ -338,9 +345,9 @@ type
   private
 
   public
-    class function FromInt(Value: Int64): TCnJSONNumber;
+    class function FromInt(Value: Int64): TCnJSONNumber; reintroduce;
     {* 从整数值创建实例}
-    class function FromFloat(Value: Extended): TCnJSONNumber;
+    class function FromFloat(Value: Extended): TCnJSONNumber; reintroduce;
     {* 从浮点数值创建实例}
 
     function IsNumber: Boolean; override;
@@ -1587,6 +1594,21 @@ destructor TCnJSONValue.Destroy;
 begin
 
   inherited;
+end;
+
+class function TCnJSONValue.FromFloat(const Value: Extended): TCnJSONValue;
+begin
+  Result := TCnJSONNumber.FromFloat(Value);
+end;
+
+class function TCnJSONValue.FromInt(const Value: Integer): TCnJSONValue;
+begin
+  Result := TCnJSONNumber.FromInt(Value);
+end;
+
+class function TCnJSONValue.FromString(const Value: string): TCnJSONValue;
+begin
+  Result := TCnJSONString.FromString(Value);
 end;
 
 function TCnJSONValue.GetCount: Integer;
