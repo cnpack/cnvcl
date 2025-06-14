@@ -71,7 +71,7 @@ begin
     TCnJSONArray(Request.Params).AddValue(3);
     Request.ID := 1;
 
-    Json := Request.ToJSON(False);
+    Json := Request.ToJSON;
     AssertEqualsStr(
       '{"jsonrpc":"2.0","method":"add","params":[5,3],"id":1}',
       Json,
@@ -92,7 +92,7 @@ begin
     Response.RPCResult := TCnJSONNumber.FromInt(8);
     Response.ID := 1;
 
-    Json := Response.ToJSON(False);
+    Json := Response.ToJSON;
     AssertEqualsStr(
       '{"jsonrpc":"2.0","result":8,"id":1}',
       Json,
@@ -114,7 +114,7 @@ begin
     Error.ErrorMessage := 'Method not found';
     Error.ID := 1;
 
-    Json := Error.ToJSON(False);
+    Json := Error.ToJSON;
     AssertEqualsStr(
       '{"jsonrpc":"2.0","error":{"code":-32601,"message":"Method not found","data":{}},"id":1}',
       Json,
@@ -136,7 +136,7 @@ begin
     Notification.Params := TCnJSONObject.Create;
     TCnJSONObject(Notification.Params).AddPair('status', 'ready');
 
-    Json := Notification.ToJSON(False);
+    Json := Notification.ToJSON;
     AssertEqualsStr(
       '{"jsonrpc":"2.0","method":"update","params":{"status":"ready"}}',
       Json,
@@ -276,7 +276,7 @@ begin
   try
     Request.Method := 'test';
     Request.ID := MAX_ID;
-    Json := Request.ToJSON(False);
+    Json := Request.ToJSON;
 
     RPC := CnParseJSONRPC(Json);
     try

@@ -63,8 +63,8 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
-    function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString;
-    {* 生成 UTF8 格式的 JSON 字符串}
+    function ToJSON: AnsiString;
+    {* 生成 UTF8 格式的 JSON 字符串，不带格式和缩进}
 
     property Version: string read FVersion write FVersion;
     {* 版本号字符串，默认 2.0}
@@ -285,8 +285,7 @@ begin
   inherited;
 end;
 
-function TCnJSONRPCBase.ToJSON(UseFormat: Boolean;
-  Indent: Integer): AnsiString;
+function TCnJSONRPCBase.ToJSON: AnsiString;
 var
   Root: TCnJSONObject;
 begin
@@ -298,7 +297,7 @@ begin
     if FID <> CN_INVALID_ID then
       Root.AddPair(SCN_JSONRPC_ID, FID);
 
-    Result := Root.ToJSON(UseFormat, Indent);
+    Result := Root.ToJSON(False, 0);
   finally
     Root.Free;
   end;
