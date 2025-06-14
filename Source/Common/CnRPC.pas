@@ -61,7 +61,9 @@ type
     {* 子类添加要输出的内容供最终转换成 JSON}
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     function ToJSON: AnsiString;
     {* 生成 UTF8 格式的 JSON 字符串，不带格式和缩进}
@@ -82,12 +84,14 @@ type
     procedure DoToJSON(Root: TCnJSONObject); override;
   public
     constructor Create; override;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     property Method: string read FMethod write FMethod;
     {* 调用的方法名}
     property Params: TCnJSONValue read FParams write SetParams;
-    {* 参数，可以是 TCnJSONObject}
+    {* 参数，可以是 TCnJSONObject，可能为 nil}
   end;
 
   TCnJSONRPCResponse = class(TCnJSONRPCBase)
@@ -99,7 +103,9 @@ type
     procedure DoToJSON(Root: TCnJSONObject); override;
   public
     constructor Create; override;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     property RPCResult: TCnJSONValue read FRPCResult write SetRPCResult;
     {* 结果，可以是 TCnJSONObject}
@@ -116,14 +122,16 @@ type
     procedure DoToJSON(Root: TCnJSONObject); override;
   public
     constructor Create; override;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     property ErrorCode: Integer read FErrorCode write FErrorCode;
     {* 错误码}
     property ErrorMessage: string read FErrorMessage write FErrorMessage;
     {* 错误信息}
     property ErrorData: TCnJSONValue read FErrorData write SetErrorData;
-    {* 错误数据，可以是 TCnJSONObject}
+    {* 错误数据，可以是 TCnJSONObject，可能为 nil}
   end;
 
   TCnJSONRPCNoficiation = class(TCnJSONRPCBase)
@@ -136,18 +144,20 @@ type
     procedure DoToJSON(Root: TCnJSONObject); override;
   public
     constructor Create; override;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     property Method: string read FMethod write FMethod;
     {* 调用的方法名}
     property Params: TCnJSONValue read FParams write SetParams;
-    {* 参数，可以是 TCnJSONObject}
+    {* 参数，可以是 TCnJSONObject，可能为 nil}
   end;
 
 function CnParseJSONRPC(const JsonStr: AnsiString): TCnJSONRPCBase;
 {* 解析 UTF8 格式的 JSON 字符串为一个 JSONRPC 实例，有 method 的为
-  Request 或 Notification，有 ID 的为前者否则为后者；有 error 的是错误，
-  有 result 的是 Response}
+  Request 请求或 Notification 通知，有 ID 的为前者否则为后者；有 error 的是错误，
+  有 result 的是 Response 回应}
 
 function CnParseJSONRPCs(const JsonStr: AnsiString; RPCs: TObjectList): Boolean;
 {* 如果 JSON 字符串是 [ 开头 ] 结尾，则本函数将其以数组方式解析成多个 JSONRPC 对象
@@ -192,7 +202,9 @@ begin
         TCnJSONRPCError(Result).ErrorMessage := Tmp[SCN_JSONRPC_ERRORMESSAGE].AsString;
 
       if Tmp[SCN_JSONRPC_ERRORDATA] <> nil then
-        TCnJSONRPCError(Result).ErrorData := Tmp[SCN_JSONRPC_ERRORDATA].Clone;
+        TCnJSONRPCError(Result).ErrorData := Tmp[SCN_JSONRPC_ERRORDATA].Clone
+      else
+        TCnJSONRPCError(Result).ErrorData := nil;
     end
     else if Obj[SCN_JSONRPC_METHOD] <> nil then
     begin
