@@ -80,6 +80,10 @@ type
 
 implementation
 
+resourcestring
+  SCnErrorBlake2InvalidKeySize = 'Invalid Key Length';
+  SCnErrorBlake2InvalidDigestSize = 'Invalid Digest Length';
+
 const
   BLAKE2S_IV: array[0..7] of Cardinal = (
     $6A09E667, $BB67AE85, $3C6EF372, $A54FF53A,
@@ -120,6 +124,36 @@ const
     (  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 ),
     ( 14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3 )
   );
+
+type
+  TCnBLAKE2SParam = packed record
+    DigestLength: Byte;
+    KeyLength: Byte;
+    FanOut: Byte;
+    Depth: Byte;
+    LeafLength: Cardinal;
+    NodeOffset: Cardinal;
+    XofLength: Word;
+    NodeDepth: Byte;
+    InnerLength: Byte;
+    Salt: array[0..CN_BLAKE2S_SALTBYTES - 1] of Byte;
+    Personal: array[0..CN_BLAKE2S_PERSONALBYTES - 1] of Byte;
+  end;
+
+  TCnBLAKE2BParam = packed record
+    DigestLength: Byte;
+    KeyLength: Byte;
+    FanOut: Byte;
+    Depth: Byte;
+    LeafLength: Cardinal;
+    NodeOffset: Cardinal;
+    XofLength: Cardinal;
+    NodeDepth: Byte;
+    InnerLength: Byte;
+    Reserved: array[0..13] of Byte; // ∂‘∆Î 32 ”√
+    Salt: array[0..CN_BLAKE2B_SALTBYTES - 1] of Byte;
+    Personal: array[0..CN_BLAKE2B_PERSONALBYTES - 1] of Byte;
+  end;
 
 function ROTRight256(A, B: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
@@ -193,6 +227,88 @@ begin
   GB(MPtr, R, 5, V^[1], V^[6], V^[11], V^[12]);
   GB(MPtr, R, 6, V^[2], V^[7], V^[8], V^[13]);
   GB(MPtr, R, 7, V^[3], V^[4], V^[9], V^[14]);
+end;
+
+procedure BLAKE2SCompress(var Context: TCnBLAKE2SContext; InPtr: Pointer);
+var
+  I: Integer;
+  C: PCardinal;
+  M, V: array[0..15] of Cardinal;
+begin
+  for I := 0 to 15 do
+  begin
+    C := PCardinal(TCnIntAddress(InPtr) + I * SizeOf(Cardinal));
+    M[I] := UInt32ToLittleEndian(C^);
+  end;
+
+  for I := 0 to 7 do
+    V[I] := Context.H[I];
+
+  V[ 8] := BLAKE2S_IV[0];
+  V[ 9] := BLAKE2S_IV[1];
+  V[10] := BLAKE2S_IV[2];
+  V[11] := BLAKE2S_IV[3];
+  V[12] := Context.T[0] xor BLAKE2S_IV[4];
+  V[13] := Context.T[1] xor BLAKE2S_IV[5];
+  V[14] := Context.F[0] xor BLAKE2S_IV[6];
+  V[15] := Context.F[1] xor BLAKE2S_IV[7];
+
+  RoundS(@M[0], @V[0], 0);
+  RoundS(@M[0], @V[0], 1);
+  RoundS(@M[0], @V[0], 2);
+  RoundS(@M[0], @V[0], 3);
+  RoundS(@M[0], @V[0], 4);
+  RoundS(@M[0], @V[0], 5);
+  RoundS(@M[0], @V[0], 6);
+  RoundS(@M[0], @V[0], 7);
+  RoundS(@M[0], @V[0], 8);
+  RoundS(@M[0], @V[0], 9);
+
+  for I := 0 to 7 do
+    Context.H[I] := Context.H[I] xor V[I] xor V[I + 8];
+end;
+
+procedure BLAKE2BCompress(var Context: TCnBLAKE2BContext; InPtr: Pointer);
+var
+  I: Integer;
+  P: PCnUInt8Array;
+  C: PUInt64;
+  M, V: array[0..15] of TUInt64;
+begin
+  P := PCnUInt8Array(InPtr);
+  for I := 0 to 15 do
+  begin
+    C := PUInt64(TCnIntAddress(InPtr) + I * SizeOf(TUInt64));
+    M[I] := UInt64ToLittleEndian(C^);
+  end;
+
+  for I := 0 to 7 do
+    V[I] := Context.H[I];
+
+  V[ 8] := BLAKE2B_IV[0];
+  V[ 9] := BLAKE2B_IV[1];
+  V[10] := BLAKE2B_IV[2];
+  V[11] := BLAKE2B_IV[3];
+  V[12] := Context.T[0] xor BLAKE2B_IV[4];
+  V[13] := Context.T[1] xor BLAKE2B_IV[5];
+  V[14] := Context.F[0] xor BLAKE2B_IV[6];
+  V[15] := Context.F[1] xor BLAKE2B_IV[7];
+
+  RoundB(@M[0], @V[0], 0);
+  RoundB(@M[0], @V[0], 1);
+  RoundB(@M[0], @V[0], 2);
+  RoundB(@M[0], @V[0], 3);
+  RoundB(@M[0], @V[0], 4);
+  RoundB(@M[0], @V[0], 5);
+  RoundB(@M[0], @V[0], 6);
+  RoundB(@M[0], @V[0], 7);
+  RoundB(@M[0], @V[0], 8);
+  RoundB(@M[0], @V[0], 9);
+  RoundB(@M[0], @V[0], 10);
+  RoundB(@M[0], @V[0], 11);
+
+  for I := 0 to 7 do
+    Context.H[I] := Context.H[I] xor V[I] xor V[I + 8];
 end;
 
 end.
