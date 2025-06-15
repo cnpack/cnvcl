@@ -210,28 +210,28 @@ type
 
   // 供我们使用的静态有符号无符号数组类型
   PCnInt8Array = ^TCnInt8Array;
-  TCnInt8Array = array[0..0] of ShortInt;
+  TCnInt8Array = array[0..(MaxInt div SizeOf(ShortInt) - 1)] of ShortInt;
 
   PCnUInt8Array = ^TCnUInt8Array;
-  TCnUInt8Array = array[0..0] of Byte;
+  TCnUInt8Array = array[0..(MaxInt div SizeOf(Byte) - 1)] of Byte;
 
   PCnInt16Array = ^TCnInt16Array;
-  TCnInt16Array = array[0..0] of SmallInt;
+  TCnInt16Array = array[0..(MaxInt div SizeOf(SmallInt) - 1)] of SmallInt;
 
   PCnUInt16Array = ^TCnUInt16Array;
-  TCnUInt16Array = array[0..0] of Word;
+  TCnUInt16Array = array[0..(MaxInt div SizeOf(Word) - 1)] of Word;
 
   PCnInt32Array = ^TCnInt32Array;
-  TCnInt32Array = array[0..0] of Integer;
+  TCnInt32Array = array[0..(MaxInt div SizeOf(Integer) - 1)] of Integer;
 
   PCnUInt32Array = ^TCnUInt32Array;
-  TCnUInt32Array = array[0..0] of Cardinal;
+  TCnUInt32Array = array[0..(MaxInt div SizeOf(Cardinal) - 1)] of Cardinal;
 
   PCnInt64Array = ^TCnInt64Array;
-  TCnInt64Array = array[0..0] of Int64;
+  TCnInt64Array = array[0..(MaxInt div SizeOf(Int64) - 1)] of Int64;
 
   PCnUInt64Array = ^TCnUInt64Array;
-  TCnUInt64Array = array[0..0] of TUInt64;
+  TCnUInt64Array = array[0..(MaxInt div SizeOf(TUInt64) - 1)] of TUInt64;
 
 type
   TCnMemSortCompareProc = function (P1, P2: Pointer; ElementByteSize: Integer): Integer;
