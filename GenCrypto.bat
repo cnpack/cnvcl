@@ -193,6 +193,7 @@ ECHO USEUNIT("..\Source\CnBerUtils.pas");                                       
 ECHO USEUNIT("..\Source\CnBigNumber.pas");                                             >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnBits.pas");                                                  >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnBLAKE.pas");                                                 >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnBLAKE2.pas");                                                >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnCertificateAuthority.pas");                                  >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnChaCha20.pas");                                              >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnComplex.pas");                                               >> Crypto.bpf
@@ -257,6 +258,7 @@ ECHO     ^<OBJFILES value=^"..\Source\Cn25519.obj ..\Source\CnAEAD.obj          
 ECHO       ..\Source\CnAES.obj ..\Source\CnBase64.obj                                 >> Crypto.bpr
 ECHO       ..\Source\CnBerUtils.obj ..\Source\CnBigNumber.obj                         >> Crypto.bpr
 ECHO       ..\Source\CnBits.obj ..\Source\CnBLAKE.obj                                 >> Crypto.bpr
+ECHO       ..\Source\CnBLAKE2.obj                                                     >> Crypto.bpr
 ECHO       ..\Source\CnCertificateAuthority.obj                                       >> Crypto.bpr
 ECHO       ..\Source\CnChaCha20.obj ..\Source\CnComplex.obj                           >> Crypto.bpr
 ECHO       ..\Source\CnCRC32.obj ..\Source\CnDES.obj                                  >> Crypto.bpr
@@ -474,6 +476,7 @@ ECHO   CnBigNumber in '..\Source\CnBigNumber.pas',                             >
 ECHO   CnBigRational in '..\Source\CnBigRational.pas',                         >> %1
 ECHO   CnBits in '..\Source\CnBits.pas',                                       >> %1
 ECHO   CnBLAKE in '..\Source\CnBLAKE.pas',                                     >> %1
+ECHO   CnBLAKE2 in '..\Source\CnBLAKE2.pas',                                   >> %1
 ECHO   CnCertificateAuthority in '..\Source\CnCertificateAuthority.pas',       >> %1
 ECHO   CnChaCha20 in '..\Source\CnChaCha20.pas',                               >> %1
 ECHO   CnComplex in '..\Source\CnComplex.pas',                                 >> %1
