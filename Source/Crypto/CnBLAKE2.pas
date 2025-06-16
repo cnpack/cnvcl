@@ -676,11 +676,9 @@ end;
 procedure BLAKE2BCompress(var Context: TCnBLAKE2BContext; InPtr: Pointer);
 var
   I: Integer;
-  P: PCnUInt8Array;
   C: PUInt64;
   M, V: array[0..15] of TUInt64;
 begin
-  P := PCnUInt8Array(InPtr);
   for I := 0 to 15 do
   begin
     C := PUInt64(TCnIntAddress(InPtr) + I * SizeOf(TUInt64));

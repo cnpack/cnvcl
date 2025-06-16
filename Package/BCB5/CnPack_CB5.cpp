@@ -44,6 +44,7 @@ USEUNIT("..\..\Source\Common\CnMethodHook.pas");
 USEUNIT("..\..\Source\Common\CnPDF.pas");
 USEUNIT("..\..\Source\Common\CnPE.pas");
 USEUNIT("..\..\Source\Common\CnRopes.pas");
+USEUNIT("..\..\Source\Common\CnRPC.pas");
 USEUNIT("..\..\Source\Common\CnShellUtils.pas");
 USEUNIT("..\..\Source\Common\CnSingleton.pas");
 USEUNIT("..\..\Source\Common\CnSingletonComp.pas");
