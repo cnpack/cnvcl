@@ -299,6 +299,18 @@
         <Filename Value="../../Source/Common/CnGB18030.pas"/>
         <UnitName Value="CnGB18030"/>
       </Item71>
+      <Item72>
+        <Filename Value="../../Source/Crypto/CnBLAKE.pas"/>
+        <UnitName Value="CnBLAKE"/>
+      </Item72>
+      <Item73>
+        <Filename Value="../../Source/Crypto/CnBLAKE2.pas"/>
+        <UnitName Value="CnBLAKE2"/>
+      </Item73>
+      <Item73>
+        <Filename Value="../../Source/Common/CnRPC.pas"/>
+        <UnitName Value="CnRPC"/>
+      </Item73>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

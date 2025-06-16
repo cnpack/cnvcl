@@ -8,6 +8,7 @@
       ..\..\..\Source\Crypto\CnAES.obj ..\..\..\Source\Crypto\CnBase64.obj 
       ..\..\..\Source\Crypto\CnBerUtils.obj ..\..\..\Source\Crypto\CnBigNumber.obj 
       ..\..\..\Source\Crypto\CnBits.obj ..\..\..\Source\Crypto\CnBLAKE.obj 
+      ..\..\..\Source\Crypto\CnBLAKE2.obj 
       ..\..\..\Source\Crypto\CnCertificateAuthority.obj 
       ..\..\..\Source\Crypto\CnChaCha20.obj ..\..\..\Source\Crypto\CnComplex.obj 
       ..\..\..\Source\Crypto\CnCRC32.obj ..\..\..\Source\Crypto\CnDES.obj 
