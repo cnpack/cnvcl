@@ -88,9 +88,13 @@ type
     Last: Byte;
   end;
 
+  TCnBLAKE2CalcProgressFunc = procedure(ATotal, AProgress: Int64; var Cancel:
+    Boolean) of object;
+  {* 各类 BLAKE2 系列杂凑进度回调事件类型声明}
+
 function BLAKE2S(Input: PAnsiChar; ByteLength: Cardinal; Key: PAnsiChar = nil;
   KeyLength: Integer = 0; DigestLength: Integer = CN_BLAKE2S_OUTBYTES): TCnBLAKE2SDigest;
-{* 对数据块进行 BLAKE2S 计算。
+{* 对数据块进行 BLAKE2S 计算。注意当 Key 存在时长度将截断或补 #0 为 32 字节。
 
    参数：
      Input: PAnsiChar                     - 待计算的数据块地址
@@ -104,7 +108,7 @@ function BLAKE2S(Input: PAnsiChar; ByteLength: Cardinal; Key: PAnsiChar = nil;
 
 function BLAKE2B(Input: PAnsiChar; ByteLength: Cardinal; Key: PAnsiChar = nil;
   KeyLength: Integer = 0; DigestLength: Integer = CN_BLAKE2B_OUTBYTES): TCnBLAKE2BDigest;
-{* 对数据块进行 BLAKE2B 计算。
+{* 对数据块进行 BLAKE2B 计算。注意当 Key 存在时长度将截断或补 #0 为 64 字节。
 
    参数：
      Input: PAnsiChar                     - 待计算的数据块地址
@@ -116,11 +120,111 @@ function BLAKE2B(Input: PAnsiChar; ByteLength: Cardinal; Key: PAnsiChar = nil;
    返回值：TCnBLAKE2BDigest               - 返回的 BLAKE2B 杂凑值
 }
 
+function BLAKE2SBuffer(const Buffer; Count: Cardinal; const Key; KeyCount: Cardinal;
+  DigestLength: Integer = CN_BLAKE2S_OUTBYTES): TCnBLAKE2SDigest;
+{* 对数据块进行 BLAKE2S 计算。注意当 Key 存在时长度将截断或补 #0 为 32 字节。
+
+   参数：
+     const Buffer                         - 待计算的数据块地址
+     Count: Cardinal                      - 待计算的数据块字节长度
+     const Key                            - BLAKE2S 密钥地址
+     KeyCount: Cardinal                   - BLAKE2S 密钥字节长度
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 32
+
+   返回值：TCnBLAKE2SDigest              - 返回的 BLAKE2S 杂凑值
+}
+
+function BLAKE2BBuffer(const Buffer; Count: Cardinal; const Key; KeyCount: Cardinal;
+  DigestLength: Integer = CN_BLAKE2B_OUTBYTES): TCnBLAKE2BDigest;
+{* 对数据块进行 BLAKE2B 计算。注意当 Key 存在时长度将截断或补 #0 为 64 字节。
+
+   参数：
+     const Buffer                         - 待计算的数据块地址
+     Count: Cardinal                      - 待计算的数据块字节长度
+     const Key                            - BLAKE2B 密钥地址
+     KeyCount: Cardinal                   - BLAKE2B 密钥字节长度
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 64
+
+   返回值：TCnBLAKE2BDigest               - 返回的 BLAKE2B 杂凑值
+}
+
+function BLAKE2SBytes(Data: TBytes; Key: TBytes = nil; DigestLength: Integer = CN_BLAKE2S_OUTBYTES): TCnBLAKE2SDigest;
+{* 对字节数组进行 BLAKE2S 计算。注意当 Key 存在时长度将截断或补 #0 为 32 字节。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+     Key: TBytes                          - BLAKE2S 密钥字节数组，默认为空
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 32
+
+   返回值：TCnBLAKE2SDigest               - 返回的 BLAKE2S 杂凑值
+}
+
+function BLAKE2BBytes(Data: TBytes; Key: TBytes = nil; DigestLength: Integer = CN_BLAKE2B_OUTBYTES): TCnBLAKE2BDigest;
+{* 对字节数组进行 BLAKE2B 计算。注意当 Key 存在时长度将截断或补 #0 为 64 字节。
+
+   参数：
+     Data: TBytes                         - 待计算的字节数组
+     Key: TBytes                          - BLAKE2B 密钥字节数组，默认为空
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 64
+
+   返回值：TCnBLAKE2BDigest               - 返回的 BLAKE2B 杂凑值
+}
+
+function BLAKE2SString(const Str: string; const Key: string = '';
+  DigestLength: Integer = CN_BLAKE2S_OUTBYTES): TCnBLAKE2SDigest;
+{* 对 String 类型数据进行 BLAKE2S 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
+   代码中会将其强行转换成 AnsiString 进行计算。注意当 Key 非空时长度将截断或补 #0 为 32 字节。
+
+   参数：
+     const Str: string                    - 待计算的字符串
+     const Key: string                    - BLAKE2S 密钥的字符串形式
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 32
+
+   返回值：TCnBLAKE2SDigest               - 返回的 BLAKE2S 杂凑值
+}
+
+function BLAKE2BString(const Str: string; const Key: string = '';
+  DigestLength: Integer = CN_BLAKE2B_OUTBYTES): TCnBLAKE2BDigest;
+{* 对 String 类型数据进行 BLAKE2B 计算，注意 D2009 或以上版本的 string 为 UnicodeString，
+   代码中会将其强行转换成 AnsiString 进行计算。注意当 Key 非空时长度将截断或补 #0 为 64 字节。
+
+   参数：
+     const Str: string                    - 待计算的字符串
+     const Key: string                    - BLAKE2B 密钥的字符串形式
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 64
+
+   返回值：TCnBLAKE2BDigest               - 返回的 BLAKE2B 杂凑值
+}
+
+function BLAKE2SStringA(const Str: AnsiString; const Key: AnsiString = '';
+  DigestLength: Integer = CN_BLAKE2S_OUTBYTES): TCnBLAKE2SDigest;
+{* 对 AnsiString 类型数据进行 BLAKE2S 计算。注意当 Key 非空时长度将截断或补 #0 为 32 字节。
+
+   参数：
+     const Str: AnsiString                - 待计算的字符串
+     const Key: AnsiString                - BLAKE2S 密钥的字符串形式
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 32
+
+   返回值：TCnBLAKE2SDigest               - 返回的 BLAKE2S 杂凑值
+}
+
+function BLAKE2BStringA(const Str: AnsiString; const Key: AnsiString = '';
+  DigestLength: Integer = CN_BLAKE2B_OUTBYTES): TCnBLAKE2BDigest;
+{* 对 String 类型数据进行 BLAKE2B 计算。注意当 Key 非空时长度将截断或补 #0 为 64 字节。
+
+   参数：
+     const Str: AnsiString                - 待计算的字符串
+     const Key: AnsiString                - BLAKE2B 密钥的字符串形式
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 64
+
+   返回值：TCnBLAKE2BDigest               - 返回的 BLAKE2B 杂凑值
+}
+
 // 以下三个函数用于外部持续对数据进行零散的 BLAKE2S 计算，BLAKE2SUpdate 可多次被调用
 
 procedure BLAKE2SInit(var Context: TCnBLAKE2SContext; Key: PAnsiChar = nil; KeyLength: Integer = 0;
   DigestLength: Integer = CN_BLAKE2S_OUTBYTES);
-{* 初始化一轮 BLAKE2S 计算上下文，准备计算 BLAKE2S 结果。
+{* 初始化一轮 BLAKE2S 计算上下文，准备计算 BLAKE2S 结果。注意当 Key 存在时长度将截断或补 #0 为 32 字节。
 
    参数：
      var Context: TCnBLAKE2SContext       - 待初始化的 BLAKE2S 上下文
@@ -157,7 +261,7 @@ procedure BLAKE2SFinal(var Context: TCnBLAKE2SContext; var Digest: TCnBLAKE2SDig
 
 procedure BLAKE2BInit(var Context: TCnBLAKE2BContext; Key: PAnsiChar = nil; KeyLength: Integer = 0;
   DigestLength: Integer = CN_BLAKE2B_OUTBYTES);
-{* 初始化一轮 BLAKE2B 计算上下文，准备计算 BLAKE2B 结果。
+{* 初始化一轮 BLAKE2B 计算上下文，准备计算 BLAKE2B 结果。注意当 Key 存在时长度将截断或补 #0 为 64 字节。
 
    参数：
      var Context: TCnBLAKE2BContext       - 待初始化的 BLAKE2B 上下文
@@ -524,7 +628,14 @@ begin
 
   // 初始化参数区
   FillChar(B2SP, SizeOf(TCnBLAKE2SParam), 0);
+
+  if Key = nil then
+    KeyLength := 0;
+  if KeyLength > CN_BLAKE2S_KEYBYTES then
+    KeyLength := CN_BLAKE2S_KEYBYTES;
+
   B2SP.DigestLength := DigestLength;
+  B2SP.KeyLength := KeyLength;
   B2SP.FanOut := 1;
   B2SP.Depth := 1;
 
@@ -537,9 +648,6 @@ begin
   if (Key <> nil) and (KeyLength > 0) then
   begin
     FillChar(B[0], SizeOf(B), 0);
-    if KeyLength > CN_BLAKE2S_KEYBYTES then
-      KeyLength := CN_BLAKE2S_KEYBYTES;
-
     Move(Key^, B[0], KeyLength);
     BLAKE2SUpdate(Context, @B[0], CN_BLAKE2S_BLOCKBYTES);
   end;
@@ -552,7 +660,7 @@ begin
   Left := Context.BufLen;
   Fill := CN_BLAKE2S_BLOCKBYTES - Left;
 
-  if ByteLength > 0 then
+  if (Input <> nil) and (ByteLength > 0) then
   begin
     if ByteLength > Fill then
     begin
@@ -593,6 +701,7 @@ begin
 
   // 最后一块没算完的补 0 算完
   FillChar(Context.Buf[Context.BufLen], CN_BLAKE2S_BLOCKBYTES - Context.BufLen, 0);
+  Context.F[0] := Cardinal(-1);
   BLAKE2SCompress(Context, @Context.Buf[0]);
 
   // 生成结果
@@ -615,6 +724,16 @@ begin
   BLAKE2SFinal(Context, Result);
 end;
 
+function BLAKE2SBuffer(const Buffer; Count: Cardinal; const Key;
+  KeyCount: Cardinal; DigestLength: Integer): TCnBLAKE2SDigest;
+var
+  Context: TCnBLAKE2SContext;
+begin
+  BLAKE2SInit(Context, PAnsiChar(Key), KeyCount, DigestLength);
+  BLAKE2SUpdate(Context, PAnsiChar(Buffer), Count);
+  BLAKE2SFinal(Context, Result);
+end;
+
 // 以下三个函数用于外部持续对数据进行零散的 BLAKE2S 计算，BLAKE2SUpdate 可多次被调用
 
 procedure BLAKE2BInit(var Context: TCnBLAKE2BContext; Key: PAnsiChar;
@@ -634,7 +753,14 @@ begin
 
   // 初始化参数区
   FillChar(B2BP, SizeOf(TCnBLAKE2BParam), 0);
+
+  if Key = nil then
+    KeyLength := 0;
+  if KeyLength > CN_BLAKE2B_KEYBYTES then
+    KeyLength := CN_BLAKE2B_KEYBYTES;
+
   B2BP.DigestLength := DigestLength;
+  B2BP.KeyLength := KeyLength;
   B2BP.FanOut := 1;
   B2BP.Depth := 1;
 
@@ -647,9 +773,6 @@ begin
   if (Key <> nil) and (KeyLength > 0) then
   begin
     FillChar(B[0], SizeOf(B), 0);
-    if KeyLength > CN_BLAKE2B_KEYBYTES then
-      KeyLength := CN_BLAKE2B_KEYBYTES;
-
     Move(Key^, B[0], KeyLength);
     BLAKE2BUpdate(Context, @B[0], CN_BLAKE2B_BLOCKBYTES);
   end;
@@ -662,7 +785,7 @@ begin
   Left := Context.BufLen;
   Fill := CN_BLAKE2B_BLOCKBYTES - Left;
 
-  if ByteLength > 0 then
+  if (Input <> nil) and (ByteLength > 0) then
   begin
     if ByteLength > Fill then
     begin
@@ -703,6 +826,7 @@ begin
 
   // 最后一块没算完的补 0 算完
   FillChar(Context.Buf[Context.BufLen], CN_BLAKE2B_BLOCKBYTES - Context.BufLen, 0);
+  Context.F[0] := TUInt64(-1);
   BLAKE2BCompress(Context, @Context.Buf[0]);
 
   // 生成结果
@@ -722,6 +846,114 @@ var
 begin
   BLAKE2BInit(Context, Key, KeyLength, DigestLength);
   BLAKE2BUpdate(Context, Input, ByteLength);
+  BLAKE2BFinal(Context, Result);
+end;
+
+function BLAKE2BBuffer(const Buffer; Count: Cardinal; const Key;
+  KeyCount: Cardinal; DigestLength: Integer): TCnBLAKE2BDigest;
+var
+  Context: TCnBLAKE2BContext;
+begin
+  BLAKE2BInit(Context, PAnsiChar(Key), KeyCount, DigestLength);
+  BLAKE2BUpdate(Context, PAnsiChar(Buffer), Count);
+  BLAKE2BFinal(Context, Result);
+end;
+
+function BLAKE2SBytes(Data: TBytes; Key: TBytes; DigestLength: Integer): TCnBLAKE2SDigest;
+var
+  D, K: PAnsiChar;
+  DL, KL: Cardinal;
+begin
+  if (Data = nil) or (Length(Data) = 0) then
+  begin
+    D := nil;
+    DL := 0;
+  end
+  else
+  begin
+    D := @Data[0];
+    DL := Length(Data);
+  end;
+
+  if (Key = nil) or (Length(Key) = 0) then
+  begin
+    K := nil;
+    KL := 0;
+  end
+  else
+  begin
+    K := @Key[0];
+    KL := Length(Key);
+  end;
+
+  Result := BLAKE2S(D, DL, K, KL, DigestLength);
+end;
+
+function BLAKE2BBytes(Data: TBytes; Key: TBytes; DigestLength: Integer): TCnBLAKE2BDigest;
+var
+  D, K: PAnsiChar;
+  DL, KL: Cardinal;
+begin
+  if (Data = nil) or (Length(Data) = 0) then
+  begin
+    D := nil;
+    DL := 0;
+  end
+  else
+  begin
+    D := @Data[0];
+    DL := Length(Data);
+  end;
+
+  if (Key = nil) or (Length(Key) = 0) then
+  begin
+    K := nil;
+    KL := 0;
+  end
+  else
+  begin
+    K := @Key[0];
+    KL := Length(Key);
+  end;
+
+  Result := BLAKE2B(D, DL, K, KL, DigestLength);
+end;
+
+function BLAKE2SString(const Str, Key: string; DigestLength: Integer): TCnBLAKE2SDigest;
+var
+  AStr, AKey: AnsiString;
+begin
+  AStr := AnsiString(Str);
+  AKey := AnsiString(Key);
+  Result := BLAKE2SStringA(AStr, AKey, DigestLength);
+end;
+
+function BLAKE2BString(const Str, Key: string; DigestLength: Integer): TCnBLAKE2BDigest;
+var
+  AStr, AKey: AnsiString;
+begin
+  AStr := AnsiString(Str);
+  AKey := AnsiString(Key);
+  Result := BLAKE2BStringA(AStr, AKey, DigestLength);
+end;
+
+function BLAKE2SStringA(const Str, Key: AnsiString;
+  DigestLength: Integer): TCnBLAKE2SDigest;
+var
+  Context: TCnBLAKE2SContext;
+begin
+  BLAKE2SInit(Context, PAnsiChar(Key), Length(Key), DigestLength);
+  BLAKE2SUpdate(Context, PAnsiChar(Str), Length(Str));
+  BLAKE2SFinal(Context, Result);
+end;
+
+function BLAKE2BStringA(const Str, Key: AnsiString;
+  DigestLength: Integer): TCnBLAKE2BDigest;
+var
+  Context: TCnBLAKE2BContext;
+begin
+  BLAKE2BInit(Context, PAnsiChar(Key), Length(Key), DigestLength);
+  BLAKE2BUpdate(Context, PAnsiChar(Str), Length(Str));
   BLAKE2BFinal(Context, Result);
 end;
 

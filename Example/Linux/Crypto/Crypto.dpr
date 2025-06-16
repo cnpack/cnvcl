@@ -34,6 +34,7 @@ uses
   CnBigNumber in '..\..\..\Source\Crypto\CnBigNumber.pas',
   CnBits in '..\..\..\Source\Crypto\CnBits.pas',
   CnBLAKE in '..\..\..\Source\Crypto\CnBLAKE.pas',
+  CnBLAKE2 in '..\..\..\Source\Crypto\CnBLAKE2.pas',
   CnCertificateAuthority in '..\..\..\Source\Crypto\CnCertificateAuthority.pas',
   CnChaCha20 in '..\..\..\Source\Crypto\CnChaCha20.pas',
   CnComplex in '..\..\..\Source\Crypto\CnComplex.pas',
