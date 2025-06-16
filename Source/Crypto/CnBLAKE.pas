@@ -500,7 +500,6 @@ function BLAKE512Stream(Stream: TStream; CallBack: TCnBLAKECalcProgressFunc = ni
    返回值：TCnBLAKE512Digest              - 返回的 BLAKE512 杂凑值
 }
 
-
 // 以下三个函数用于外部持续对数据进行零散的 BLAKE224 计算，BLAKE224Update 可多次被调用
 
 procedure BLAKE224Init(var Context: TCnBLAKE224Context);
@@ -1808,7 +1807,7 @@ begin
 end;
 
 function InternalBLAKEStream(Stream: TStream; const BufSize: Cardinal; var D:
-  TCnBLAKEGeneralDigest; BLAKEType: TBLAKEType; CallBack: TCnBLAKECalcProgressFunc = nil): Boolean;
+  TCnBLAKEGeneralDigest; BLAKEType: TBLAKEType; CallBack: TCnBLAKECalcProgressFunc): Boolean;
 var
   Buf: PAnsiChar;
   BufLen: Cardinal;
@@ -1926,7 +1925,7 @@ begin
 end;
 
 // 对指定流进行 BLAKE224 计算
-function BLAKE224Stream(Stream: TStream; CallBack: TCnBLAKECalcProgressFunc = nil):
+function BLAKE224Stream(Stream: TStream; CallBack: TCnBLAKECalcProgressFunc):
   TCnBLAKE224Digest;
 var
   Dig: TCnBLAKEGeneralDigest;
@@ -1936,7 +1935,7 @@ begin
 end;
 
 // 对指定流进行 BLAKE256 计算
-function BLAKE256Stream(Stream: TStream; CallBack: TCnBLAKECalcProgressFunc = nil):
+function BLAKE256Stream(Stream: TStream; CallBack: TCnBLAKECalcProgressFunc):
   TCnBLAKE256Digest;
 var
   Dig: TCnBLAKEGeneralDigest;
@@ -1946,7 +1945,7 @@ begin
 end;
 
 // 对指定流进行 BLAKE384 计算
-function BLAKE384Stream(Stream: TStream; CallBack: TCnBLAKECalcProgressFunc = nil):
+function BLAKE384Stream(Stream: TStream; CallBack: TCnBLAKECalcProgressFunc):
   TCnBLAKE384Digest;
 var
   Dig: TCnBLAKEGeneralDigest;
@@ -1956,7 +1955,7 @@ begin
 end;
 
 // 对指定流进行 BLAKE512 计算
-function BLAKE512Stream(Stream: TStream; CallBack: TCnBLAKECalcProgressFunc = nil):
+function BLAKE512Stream(Stream: TStream; CallBack: TCnBLAKECalcProgressFunc):
   TCnBLAKE512Digest;
 var
   Dig: TCnBLAKEGeneralDigest;
@@ -1995,7 +1994,7 @@ begin
 {$ENDIF}
 end;
 
-function InternalBLAKEFile(const FileName: string; BLAKE2Type: TBLAKEType;
+function InternalBLAKEFile(const FileName: string; BLAKEType: TBLAKEType;
   CallBack: TCnBLAKECalcProgressFunc): TCnBLAKEGeneralDigest;
 var
   Context224: TCnBLAKE224Context;
@@ -2017,7 +2016,7 @@ var
 
   procedure _BLAKEInit;
   begin
-    case BLAKE2Type of
+    case BLAKEType of
       btBLAKE224:
         BLAKE224Init(Context224);
       btBLAKE256:
@@ -2032,7 +2031,7 @@ var
 {$IFDEF MSWINDOWS}
   procedure _BLAKEUpdate;
   begin
-    case BLAKE2Type of
+    case BLAKEType of
       btBLAKE224:
         BLAKE224Update(Context224, ViewPointer, GetFileSize(FileHandle, nil));
       btBLAKE256:
@@ -2047,7 +2046,7 @@ var
 
   procedure _BLAKEFinal;
   begin
-    case BLAKE2Type of
+    case BLAKEType of
       btBLAKE224:
         BLAKE224Final(Context224, Dig224);
       btBLAKE256:
@@ -2061,7 +2060,7 @@ var
 
   procedure _CopyResult(var D: TCnBLAKEGeneralDigest);
   begin
-    case BLAKE2Type of
+    case BLAKEType of
       btBLAKE224:
         Move(Dig224[0], D[0], SizeOf(TCnBLAKE224Digest));
       btBLAKE256:
@@ -2080,7 +2079,7 @@ begin
     // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，采用流方式循环处理
     Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
     try
-      InternalBLAKEStream(Stream, 4096 * 1024, Result, BLAKE2Type, CallBack);
+      InternalBLAKEStream(Stream, 4096 * 1024, Result, BLAKEType, CallBack);
     finally
       Stream.Free;
     end;

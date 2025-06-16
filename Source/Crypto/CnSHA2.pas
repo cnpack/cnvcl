@@ -1651,7 +1651,7 @@ begin
 end;
 
 function InternalSHAStream(Stream: TStream; const BufSize: Cardinal; var D:
-  TCnSHAGeneralDigest; SHA2Type: TSHA2Type; CallBack: TCnSHACalcProgressFunc = nil): Boolean;
+  TCnSHAGeneralDigest; SHA2Type: TSHA2Type; CallBack: TCnSHACalcProgressFunc): Boolean;
 var
   Buf: PAnsiChar;
   BufLen: Cardinal;
@@ -1769,7 +1769,7 @@ begin
 end;
 
 // 对指定流进行 SHA224 计算
-function SHA224Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc = nil):
+function SHA224Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
   TCnSHA224Digest;
 var
   Dig: TCnSHAGeneralDigest;
@@ -1779,7 +1779,7 @@ begin
 end;
 
 // 对指定流进行 SHA256 计算
-function SHA256Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc = nil):
+function SHA256Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
   TCnSHA256Digest;
 var
   Dig: TCnSHAGeneralDigest;
@@ -1789,7 +1789,7 @@ begin
 end;
 
 // 对指定流进行 SHA384 计算
-function SHA384Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc = nil):
+function SHA384Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
   TCnSHA384Digest;
 var
   Dig: TCnSHAGeneralDigest;
@@ -1799,7 +1799,7 @@ begin
 end;
 
 // 对指定流进行 SHA512 计算
-function SHA512Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc = nil):
+function SHA512Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
   TCnSHA512Digest;
 var
   Dig: TCnSHAGeneralDigest;

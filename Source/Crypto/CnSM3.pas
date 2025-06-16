@@ -662,7 +662,7 @@ begin
 end;
 
 function InternalSM3Stream(Stream: TStream; const BufSize: Cardinal; var D:
-  TCnSM3Digest; CallBack: TCnSM3CalcProgressFunc = nil): Boolean;
+  TCnSM3Digest; CallBack: TCnSM3CalcProgressFunc): Boolean;
 var
   Context: TCnSM3Context;
   Buf: PAnsiChar;
@@ -806,7 +806,7 @@ end;
 
 // 对指定流进行 SM3 计算
 function SM3Stream(Stream: TStream;
-  CallBack: TCnSM3CalcProgressFunc = nil): TCnSM3Digest;
+  CallBack: TCnSM3CalcProgressFunc): TCnSM3Digest;
 begin
   InternalSM3Stream(Stream, 4096 * 1024, Result, CallBack);
 end;

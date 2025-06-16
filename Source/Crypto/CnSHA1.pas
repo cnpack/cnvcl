@@ -506,7 +506,7 @@ begin
 end;
 
 function InternalSHA1Stream(Stream: TStream; const BufSize: Cardinal; var D:
-  TCnSHA1Digest; CallBack: TCnSHA1CalcProgressFunc = nil): Boolean;
+  TCnSHA1Digest; CallBack: TCnSHA1CalcProgressFunc): Boolean;
 var
   Context: TCnSHA1Context;
   Buf: PAnsiChar;
@@ -553,7 +553,7 @@ end;
 
 // 对指定流进行 SHA1 计算
 function SHA1Stream(Stream: TStream;
-  CallBack: TCnSHA1CalcProgressFunc = nil): TCnSHA1Digest;
+  CallBack: TCnSHA1CalcProgressFunc): TCnSHA1Digest;
 begin
   InternalSHA1Stream(Stream, 4096 * 1024, Result, CallBack);
 end;

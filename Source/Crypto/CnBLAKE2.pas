@@ -40,7 +40,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNative;
+  SysUtils, Classes, {$IFDEF MSWINDOWS} Windows, {$ENDIF} CnNative,
+  CnWideStrings, CnConsts;
 
 const
   CN_BLAKE2S_BLOCKBYTES    = 64;
@@ -208,9 +209,24 @@ function BLAKE2SStringA(const Str: AnsiString; const Key: AnsiString = '';
    返回值：TCnBLAKE2SDigest               - 返回的 BLAKE2S 杂凑值
 }
 
+function BLAKE2SStringW(const Str: WideString; const Key: WideString = '';
+  DigestLength: Integer = CN_BLAKE2S_OUTBYTES): TCnBLAKE2SDigest;
+{* 对 WideString 类型数据进行 BLAKE2S 计算。
+   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   其他平台会直接转换为 AnsiString 类型，再进行计算。
+   注意当 Key 非空时转换后的长度将截断或补 #0 为 32 字节。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+     const Key: WideString                - BLAKE2S 密钥的宽字符串形式
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 32
+
+   返回值：TCnBLAKE2SDigest               - 返回的 BLAKE2S 杂凑值
+}
+
 function BLAKE2BStringA(const Str: AnsiString; const Key: AnsiString = '';
   DigestLength: Integer = CN_BLAKE2B_OUTBYTES): TCnBLAKE2BDigest;
-{* 对 String 类型数据进行 BLAKE2B 计算。注意当 Key 非空时长度将截断或补 #0 为 64 字节。
+{* 对 AnsiString 类型数据进行 BLAKE2B 计算。注意当 Key 非空时长度将截断或补 #0 为 64 字节。
 
    参数：
      const Str: AnsiString                - 待计算的字符串
@@ -220,7 +236,104 @@ function BLAKE2BStringA(const Str: AnsiString; const Key: AnsiString = '';
    返回值：TCnBLAKE2BDigest               - 返回的 BLAKE2B 杂凑值
 }
 
-// 以下三个函数用于外部持续对数据进行零散的 BLAKE2S 计算，BLAKE2SUpdate 可多次被调用
+function BLAKE2BStringW(const Str: WideString; const Key: WideString = '';
+  DigestLength: Integer = CN_BLAKE2B_OUTBYTES): TCnBLAKE2BDigest;
+{* 对 WideString 类型数据进行 BLAKE2B 计算。
+   计算前 Windows 下会调用 WideCharToMultyByte 转换为 AnsiString 类型，
+   其他平台会直接转换为 AnsiString 类型，再进行计算。
+   注意当 Key 非空时转换后的长度将截断或补 #0 为 64 字节。
+
+   参数：
+     const Str: WideString                - 待计算的宽字符串
+     const Key: WideString                - BLAKE2B 密钥的宽字符串形式
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 64
+
+   返回值：TCnBLAKE2BDigest               - 返回的 BLAKE2B 杂凑值
+}
+
+function BLAKE2SUnicodeString(const Str: TCnWideString; const Key: TCnWideString = '';
+  DigestLength: Integer = CN_BLAKE2S_OUTBYTES): TCnBLAKE2SDigest;
+{* 对 UnicodeString 类型数据进行直接的 BLAKE2S 计算，直接计算内部 UTF16 内容，不进行转换。
+   注意当 Key 非空时长度将截断或补 #0 为 32 字节。
+
+   参数：
+     const Str: TCnWideString             - 待计算的宽字符串
+     const Key: TCnWideString             - BLAKE2S 密钥的宽字符串形式
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 32
+
+   返回值：TCnBLAKE2SDigest               - 返回的 BLAKE2S 杂凑值
+}
+
+function BLAKE2BUnicodeString(const Str: TCnWideString; const Key: TCnWideString = '';
+  DigestLength: Integer = CN_BLAKE2B_OUTBYTES): TCnBLAKE2BDigest;
+{* 对 UnicodeString 类型数据进行直接的 BLAKE2S 计算，直接计算内部 UTF16 内容，不进行转换。
+   注意当 Key 非空时长度将截断或补 #0 为 64 字节。
+
+   参数：
+     const Str: TCnWideString             - 待计算的宽字符串
+     const Key: TCnWideString             - BLAKE2B 密钥的宽字符串形式
+     DigestLength: Integer                - 指定输出的摘要字节长度，默认 64
+
+   返回值：TCnBLAKE2BDigest               - 返回的 BLAKE2B 杂凑值
+}
+
+function BLAKE2SFile(const FileName: string; Key: TBytes = nil;
+  DigestLength: Integer = CN_BLAKE2S_OUTBYTES; CallBack: TCnBLAKE2CalcProgressFunc =
+  nil): TCnBLAKE2SDigest;
+{* 对指定文件内容进行 BLAKE2S 计算。
+
+   参数：
+     const FileName: string                - 待计算的文件名
+     Key: TBytes                           - BLAKE2S 密钥字节数组，默认为空
+     DigestLength: Integer                 - 指定输出的摘要字节长度，默认 32
+     CallBack: TCnBLAKE2CalcProgressFunc   - 进度回调函数，默认为空
+
+   返回值：TCnBLAKE2SDigest                - 返回的 BLAKE2S 杂凑值
+}
+
+function BLAKE2SStream(Stream: TStream; Key: TBytes = nil;
+  DigestLength: Integer = CN_BLAKE2S_OUTBYTES; CallBack: TCnBLAKE2CalcProgressFunc = nil):
+  TCnBLAKE2SDigest;
+{* 对指定流数据进行 BLAKE2S 计算。
+
+   参数：
+     Stream: TStream                       - 待计算的流内容
+     Key: TBytes                           - BLAKE2S 密钥字节数组，默认为空
+     DigestLength: Integer                 - 指定输出的摘要字节长度，默认 32
+     CallBack: TCnBLAKE2CalcProgressFunc   - 进度回调函数，默认为空
+
+   返回值：TCnBLAKE2SDigest                - 返回的 BLAKE2S 杂凑值
+}
+
+function BLAKE2BFile(const FileName: string; Key: TBytes = nil;
+  DigestLength: Integer = CN_BLAKE2B_OUTBYTES; CallBack: TCnBLAKE2CalcProgressFunc =
+  nil): TCnBLAKE2BDigest;
+{* 对指定文件内容进行 BLAKE2B 计算。
+
+   参数：
+     const FileName: string                - 待计算的文件名
+     Key: TBytes                           - BLAKE2B 密钥字节数组，默认为空
+     DigestLength: Integer                 - 指定输出的摘要字节长度，默认 32
+     CallBack: TCnBLAKE2CalcProgressFunc   - 进度回调函数，默认为空
+
+   返回值：TCnBLAKE2BDigest                - 返回的 BLAKE2B 杂凑值
+}
+
+function BLAKE2BStream(Stream: TStream; Key: TBytes = nil;
+  DigestLength: Integer = CN_BLAKE2B_OUTBYTES; CallBack: TCnBLAKE2CalcProgressFunc = nil):
+  TCnBLAKE2BDigest;
+{* 对指定流数据进行 BLAKE2B 计算。
+
+   参数：
+     Stream: TStream                       - 待计算的流内容
+     Key: TBytes                           - BLAKE2B 密钥字节数组，默认为空
+     DigestLength: Integer                 - 指定输出的摘要字节长度，默认 32
+     CallBack: TCnBLAKE2CalcProgressFunc   - 进度回调函数，默认为空
+
+   返回值：TCnBLAKE2BDigest                - 返回的 BLAKE2B 杂凑值
+}
+
+// 以下三类函数用于外部持续对数据进行零散的 BLAKE2S 计算，BLAKE2SUpdate 可多次被调用
 
 procedure BLAKE2SInit(var Context: TCnBLAKE2SContext; Key: PAnsiChar = nil; KeyLength: Integer = 0;
   DigestLength: Integer = CN_BLAKE2S_OUTBYTES);
@@ -369,6 +482,9 @@ resourcestring
   SCnErrorBlake2InvalidDigestSize = 'Invalid Digest Length';
 
 const
+  MAX_FILE_SIZE = 512 * 1024 * 1024;
+  // If file size <= this size (bytes), using Mapping, else stream
+
   BLAKE2S_IV: array[0..7] of Cardinal = (
     $6A09E667, $BB67AE85, $3C6EF372, $A54FF53A,
     $510E527F, $9B05688C, $1F83D9AB, $5BE0CD19
@@ -438,6 +554,11 @@ type
     Salt: array[0..CN_BLAKE2B_SALTBYTES - 1] of Byte;
     Personal: array[0..CN_BLAKE2B_PERSONALBYTES - 1] of Byte;
   end;
+
+  PCnBLAKE2GeneralDigest = ^TCnBLAKE2GeneralDigest;
+  TCnBLAKE2GeneralDigest = array[0..CN_BLAKE2B_OUTBYTES - 1] of Byte;
+
+  TBLAKE2Type = (btBLAKE2B, btBLAKE2S);
 
 function ROTRight256(A, B: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
@@ -609,7 +730,7 @@ begin
     Inc(Context.T[1]);
 end;
 
-// 以下三个函数用于外部持续对数据进行零散的 BLAKE2S 计算，BLAKE2SUpdate 可多次被调用
+// 以下三类函数用于外部持续对数据进行零散的 BLAKE2S 计算，BLAKE2SUpdate 可多次被调用
 
 procedure BLAKE2SInit(var Context: TCnBLAKE2SContext; Key: PAnsiChar;
   KeyLength, DigestLength: Integer);
@@ -653,6 +774,33 @@ begin
   end;
 end;
 
+procedure BLAKE2SInitW(var Context: TCnBLAKE2SContext; Key: PWideChar;
+  CharLength, DigestLength: Integer);
+var
+{$IFDEF MSWINDOWS}
+  Content: PAnsiChar;
+  iLen: Cardinal;
+{$ELSE}
+  S: string; // 必须是 UnicodeString
+  A: AnsiString;
+{$ENDIF}
+begin
+{$IFDEF MSWINDOWS}
+  GetMem(Content, CharLength * SizeOf(WideChar));
+  try
+    iLen := WideCharToMultiByte(0, 0, Key, CharLength, // 代码页默认用 0
+      PAnsiChar(Content), CharLength * SizeOf(WideChar), nil, nil);
+    BLAKE2SInit(Context, Content, iLen, DigestLength);
+  finally
+    FreeMem(Content);
+  end;
+{$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
+  S := StrNew(Key);
+  A := AnsiString(S);
+  BLAKE2SInit(Context, @A[1], Length(A), DigestLength);
+{$ENDIF}
+end;
+
 procedure BLAKE2SUpdate(var Context: TCnBLAKE2SContext; Input: PAnsiChar; ByteLength: Cardinal);
 var
   Left, Fill: Cardinal;
@@ -689,6 +837,33 @@ begin
     Move(Input^, Context.Buf[Context.BufLen], ByteLength);
     Context.BufLen := Context.BufLen + ByteLength;
   end;
+end;
+
+procedure BLAKE2SUpdateW(var Context: TCnBLAKE2SContext;
+  Input: PWideChar; CharLength: Cardinal);
+var
+{$IFDEF MSWINDOWS}
+  Content: PAnsiChar;
+  iLen: Cardinal;
+{$ELSE}
+  S: string; // 必须是 UnicodeString
+  A: AnsiString;
+{$ENDIF}
+begin
+{$IFDEF MSWINDOWS}
+  GetMem(Content, CharLength * SizeOf(WideChar));
+  try
+    iLen := WideCharToMultiByte(0, 0, Input, CharLength, // 代码页默认用 0
+      PAnsiChar(Content), CharLength * SizeOf(WideChar), nil, nil);
+    BLAKE2SUpdate(Context, Content, iLen);
+  finally
+    FreeMem(Content);
+  end;
+{$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
+  S := StrNew(Input);
+  A := AnsiString(S);
+  BLAKE2SUpdate(Context, @A[1], Length(A));
+{$ENDIF}
 end;
 
 procedure BLAKE2SFinal(var Context: TCnBLAKE2SContext; var Digest: TCnBLAKE2SDigest);
@@ -734,7 +909,7 @@ begin
   BLAKE2SFinal(Context, Result);
 end;
 
-// 以下三个函数用于外部持续对数据进行零散的 BLAKE2S 计算，BLAKE2SUpdate 可多次被调用
+// 以下三类函数用于外部持续对数据进行零散的 BLAKE2S 计算，BLAKE2SUpdate 可多次被调用
 
 procedure BLAKE2BInit(var Context: TCnBLAKE2BContext; Key: PAnsiChar;
   KeyLength, DigestLength: Integer);
@@ -778,6 +953,33 @@ begin
   end;
 end;
 
+procedure BLAKE2BInitW(var Context: TCnBLAKE2BContext; Key: PWideChar;
+  CharLength, DigestLength: Integer);
+var
+{$IFDEF MSWINDOWS}
+  Content: PAnsiChar;
+  iLen: Cardinal;
+{$ELSE}
+  S: string; // 必须是 UnicodeString
+  A: AnsiString;
+{$ENDIF}
+begin
+{$IFDEF MSWINDOWS}
+  GetMem(Content, CharLength * SizeOf(WideChar));
+  try
+    iLen := WideCharToMultiByte(0, 0, Key, CharLength, // 代码页默认用 0
+      PAnsiChar(Content), CharLength * SizeOf(WideChar), nil, nil);
+    BLAKE2BInit(Context, Content, iLen, DigestLength);
+  finally
+    FreeMem(Content);
+  end;
+{$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
+  S := StrNew(Key);
+  A := AnsiString(S);
+  BLAKE2BInit(Context, @A[1], Length(A), DigestLength);
+{$ENDIF}
+end;
+
 procedure BLAKE2BUpdate(var Context: TCnBLAKE2BContext; Input: PAnsiChar; ByteLength: Cardinal);
 var
   Left, Fill: Cardinal;
@@ -814,6 +1016,33 @@ begin
     Move(Input^, Context.Buf[Context.BufLen], ByteLength);
     Context.BufLen := Context.BufLen + ByteLength;
   end;
+end;
+
+procedure BLAKE2BUpdateW(var Context: TCnBLAKE2BContext;
+  Input: PWideChar; CharLength: Cardinal);
+var
+{$IFDEF MSWINDOWS}
+  Content: PAnsiChar;
+  iLen: Cardinal;
+{$ELSE}
+  S: string; // 必须是 UnicodeString
+  A: AnsiString;
+{$ENDIF}
+begin
+{$IFDEF MSWINDOWS}
+  GetMem(Content, CharLength * SizeOf(WideChar));
+  try
+    iLen := WideCharToMultiByte(0, 0, Input, CharLength, // 代码页默认用 0
+      PAnsiChar(Content), CharLength * SizeOf(WideChar), nil, nil);
+    BLAKE2BUpdate(Context, Content, iLen);
+  finally
+    FreeMem(Content);
+  end;
+{$ELSE}  // MacOS 下直接把 UnicodeString 转成 AnsiString 计算，不支持非 Windows 非 Unicode 平台
+  S := StrNew(Input);
+  A := AnsiString(S);
+  BLAKE2BUpdate(Context, @A[1], Length(A));
+{$ENDIF}
 end;
 
 procedure BLAKE2BFinal(var Context: TCnBLAKE2BContext; var Digest: TCnBLAKE2BDigest);
@@ -919,7 +1148,8 @@ begin
   Result := BLAKE2B(D, DL, K, KL, DigestLength);
 end;
 
-function BLAKE2SString(const Str, Key: string; DigestLength: Integer): TCnBLAKE2SDigest;
+function BLAKE2SString(const Str: string; const Key: string;
+  DigestLength: Integer): TCnBLAKE2SDigest;
 var
   AStr, AKey: AnsiString;
 begin
@@ -928,7 +1158,8 @@ begin
   Result := BLAKE2SStringA(AStr, AKey, DigestLength);
 end;
 
-function BLAKE2BString(const Str, Key: string; DigestLength: Integer): TCnBLAKE2BDigest;
+function BLAKE2BString(const Str: string; const Key: string;
+  DigestLength: Integer): TCnBLAKE2BDigest;
 var
   AStr, AKey: AnsiString;
 begin
@@ -937,7 +1168,7 @@ begin
   Result := BLAKE2BStringA(AStr, AKey, DigestLength);
 end;
 
-function BLAKE2SStringA(const Str, Key: AnsiString;
+function BLAKE2SStringA(const Str: AnsiString; const Key: AnsiString;
   DigestLength: Integer): TCnBLAKE2SDigest;
 var
   Context: TCnBLAKE2SContext;
@@ -947,7 +1178,17 @@ begin
   BLAKE2SFinal(Context, Result);
 end;
 
-function BLAKE2BStringA(const Str, Key: AnsiString;
+function BLAKE2SStringW(const Str: WideString; const Key: WideString;
+  DigestLength: Integer): TCnBLAKE2SDigest;
+var
+  Context: TCnBLAKE2SContext;
+begin
+  BLAKE2SInitW(Context, PWideChar(Key), Length(Key), DigestLength);
+  BLAKE2SUpdateW(Context, PWideChar(Str), Length(Str));
+  BLAKE2SFinal(Context, Result);
+end;
+
+function BLAKE2BStringA(const Str: AnsiString; const Key: AnsiString;
   DigestLength: Integer): TCnBLAKE2BDigest;
 var
   Context: TCnBLAKE2BContext;
@@ -955,6 +1196,355 @@ begin
   BLAKE2BInit(Context, PAnsiChar(Key), Length(Key), DigestLength);
   BLAKE2BUpdate(Context, PAnsiChar(Str), Length(Str));
   BLAKE2BFinal(Context, Result);
+end;
+
+function BLAKE2BStringW(const Str: WideString; const Key: WideString;
+  DigestLength: Integer): TCnBLAKE2BDigest;
+var
+  Context: TCnBLAKE2BContext;
+begin
+  BLAKE2BInitW(Context, PWideChar(Key), Length(Key), DigestLength);
+  BLAKE2BUpdateW(Context, PWideChar(Str), Length(Str));
+  BLAKE2BFinal(Context, Result);
+end;
+
+function BLAKE2SUnicodeString(const Str: TCnWideString; const Key: TCnWideString;
+  DigestLength: Integer): TCnBLAKE2SDigest;
+var
+  Context: TCnBLAKE2SContext;
+begin
+  BLAKE2SInit(Context, PAnsiChar(@Key[1]), Length(Key) * SizeOf(WideChar), DigestLength);
+  BLAKE2SUpdate(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  BLAKE2SFinal(Context, Result);
+end;
+
+function BLAKE2BUnicodeString(const Str: TCnWideString; const Key: TCnWideString;
+  DigestLength: Integer): TCnBLAKE2BDigest;
+var
+  Context: TCnBLAKE2BContext;
+begin
+  BLAKE2BInit(Context, PAnsiChar(@Key[1]), Length(Key) * SizeOf(WideChar), DigestLength);
+  BLAKE2BUpdate(Context, PAnsiChar(@Str[1]), Length(Str) * SizeOf(WideChar));
+  BLAKE2BFinal(Context, Result);
+end;
+
+function InternalBLAKE2Stream(Stream: TStream; Key: TBytes; DigestLength: Integer;
+  const BufSize: Cardinal; var D: TCnBLAKE2GeneralDigest; BLAKE2Type: TBLAKE2Type;
+  CallBack: TCnBLAKE2CalcProgressFunc): Boolean;
+var
+  Buf: PAnsiChar;
+  BufLen: Cardinal;
+  Size: Int64;
+  ReadBytes: Cardinal;
+  TotalBytes: Int64;
+  SavePos: Int64;
+  CancelCalc: Boolean;
+  KP: PAnsiChar;
+  KL: Cardinal;
+
+  Context2S: TCnBLAKE2SContext;
+  Context2B: TCnBLAKE2BContext;
+  Dig2S: TCnBLAKE2SDigest;
+  Dig2B: TCnBLAKE2BDigest;
+
+  procedure _BLAKE2Init;
+  begin
+    if (Key = nil) or (Length(Key) = 0) then
+    begin
+      KP := nil;
+      KL := 0;
+    end
+    else
+    begin
+      KP := @Key[0];
+      KL := Length(Key);
+    end;
+
+    case BLAKE2Type of
+      btBLAKE2S:
+        BLAKE2SInit(Context2S, KP, KL, DigestLength);
+      btBLAKE2B:
+        BLAKE2BInit(Context2B, KP, KL, DigestLength);
+    end;
+  end;
+
+  procedure _BLAKE2Update;
+  begin
+    case BLAKE2Type of
+      btBLAKE2S:
+        BLAKE2SUpdate(Context2S, Buf, ReadBytes);
+      btBLAKE2B:
+        BLAKE2BUpdate(Context2B, Buf, ReadBytes);
+    end;
+  end;
+
+  procedure _BLAKE2Final;
+  begin
+    case BLAKE2Type of
+      btBLAKE2S:
+        BLAKE2SFinal(Context2S, Dig2S);
+      btBLAKE2B:
+        BLAKE2BFinal(Context2B, Dig2B);
+    end;
+  end;
+
+  procedure _CopyResult;
+  begin
+    case BLAKE2Type of
+      btBLAKE2S:
+        Move(Dig2S[0], D[0], SizeOf(TCnBLAKE2SDigest));
+      btBLAKE2B:
+        Move(Dig2B[0], D[0], SizeOf(TCnBLAKE2BDigest));
+    end;
+  end;
+
+begin
+  Result := False;
+  Size := Stream.Size;
+  SavePos := Stream.Position;
+  TotalBytes := 0;
+  if Size = 0 then
+    Exit;
+  if Size < BufSize then
+    BufLen := Size
+  else
+    BufLen := BufSize;
+
+  CancelCalc := False;
+  _BLAKE2Init;
+ 
+  GetMem(Buf, BufLen);
+  try
+    Stream.Position := 0;
+    repeat
+      ReadBytes := Stream.Read(Buf^, BufLen);
+      if ReadBytes <> 0 then
+      begin
+        Inc(TotalBytes, ReadBytes);
+        _BLAKE2Update;
+
+        if Assigned(CallBack) then
+        begin
+          CallBack(Size, TotalBytes, CancelCalc);
+          if CancelCalc then
+            Exit;
+        end;
+      end;
+    until (ReadBytes = 0) or (TotalBytes = Size);
+    _BLAKE2Final;
+    _CopyResult;
+    Result := True;
+  finally
+    FreeMem(Buf, BufLen);
+    Stream.Position := SavePos;
+  end;
+end;
+
+function BLAKE2SStream(Stream: TStream; Key: TBytes; DigestLength: Integer;
+  CallBack: TCnBLAKE2CalcProgressFunc): TCnBLAKE2SDigest;
+var
+  Dig: TCnBLAKE2GeneralDigest;
+begin
+  if (DigestLength <= 0) or (DigestLength > CN_BLAKE2S_OUTBYTES) then
+    raise ECnBLAKE2Exception.Create(SCnErrorBlake2InvalidDigestSize);
+
+  InternalBLAKE2Stream(Stream, Key, DigestLength, 4096 * 1024, Dig, btBLAKE2S, CallBack);
+  Move(Dig[0], Result[0], DigestLength);
+end;
+
+function BLAKE2BStream(Stream: TStream; Key: TBytes; DigestLength: Integer;
+  CallBack: TCnBLAKE2CalcProgressFunc): TCnBLAKE2BDigest;
+var
+  Dig: TCnBLAKE2GeneralDigest;
+begin
+  if (DigestLength <= 0) or (DigestLength > CN_BLAKE2B_OUTBYTES) then
+    raise ECnBLAKE2Exception.Create(SCnErrorBlake2InvalidDigestSize);
+
+  InternalBLAKE2Stream(Stream, Key, DigestLength, 4096 * 1024, Dig, btBLAKE2B, CallBack);
+  Move(Dig[0], Result[0], DigestLength);
+end;
+
+function FileSizeIsLargeThanMaxOrCanNotMap(const AFileName: string; out IsEmpty: Boolean): Boolean;
+{$IFDEF MSWINDOWS}
+var
+  H: THandle;
+  Info: BY_HANDLE_FILE_INFORMATION;
+  Rec: Int64Rec;
+{$ENDIF}
+begin
+{$IFDEF MSWINDOWS}
+  Result := False;
+  IsEmpty := False;
+  H := CreateFile(PChar(AFileName), GENERIC_READ, FILE_SHARE_READ, nil,
+    OPEN_EXISTING, 0, 0);
+  if H = INVALID_HANDLE_VALUE then
+    Exit;
+  try
+    if not GetFileInformationByHandle(H, Info) then
+      Exit;
+  finally
+    CloseHandle(H);
+  end;
+  Rec.Lo := Info.nFileSizeLow;
+  Rec.Hi := Info.nFileSizeHigh;
+  Result := (Rec.Hi > 0) or (Rec.Lo > MAX_FILE_SIZE);
+  IsEmpty := (Rec.Hi = 0) and (Rec.Lo = 0);
+{$ELSE}
+  Result := True; // 非 Windows 平台返回 True，表示不 Mapping
+{$ENDIF}
+end;
+
+function InternalBLAKE2File(const FileName: string; Key: TBytes; DigestLength: Integer;
+  BLAKE2Type: TBLAKE2Type; CallBack: TCnBLAKE2CalcProgressFunc): TCnBLAKE2GeneralDigest;
+var
+  Context2S: TCnBLAKE2SContext;
+  Context2B: TCnBLAKE2BContext;
+  Dig2S: TCnBLAKE2SDigest;
+  Dig2B: TCnBLAKE2BDigest;
+  KP: PAnsiChar;
+  KL: Cardinal;
+
+{$IFDEF MSWINDOWS}
+  FileHandle: THandle;
+  MapHandle: THandle;
+  ViewPointer: Pointer;
+{$ENDIF}
+  Stream: TStream;
+  FileIsZeroSize: Boolean;
+
+  procedure _BLAKE2Init;
+  begin
+    if (Key = nil) or (Length(Key) = 0) then
+    begin
+      KP := nil;
+      KL := 0;
+    end
+    else
+    begin
+      KP := @Key[0];
+      KL := Length(Key);
+    end;
+
+    case BLAKE2Type of
+      btBLAKE2S:
+        BLAKE2SInit(Context2S, KP, KL, DigestLength);
+      btBLAKE2B:
+        BLAKE2BInit(Context2B, KP, KL, DigestLength);
+    end;
+  end;
+
+{$IFDEF MSWINDOWS}
+  procedure _BLAKE2Update;
+  begin
+    case BLAKE2Type of
+      btBLAKE2S:
+        BLAKE2SUpdate(Context2S, ViewPointer, GetFileSize(FileHandle, nil));
+      btBLAKE2B:
+        BLAKE2BUpdate(Context2B, ViewPointer, GetFileSize(FileHandle, nil));
+    end;
+  end;
+{$ENDIF}
+
+  procedure _BLAKE2Final;
+  begin
+    case BLAKE2Type of
+      btBLAKE2S:
+        BLAKE2SFinal(Context2S, Dig2S);
+      btBLAKE2B:
+        BLAKE2BFinal(Context2B, Dig2B);
+    end;
+  end;
+
+  procedure _CopyResult(var D: TCnBLAKE2GeneralDigest);
+  begin
+    case BLAKE2Type of
+      btBLAKE2S:
+        Move(Dig2S[0], D[0], SizeOf(TCnBLAKE2SDigest));
+      btBLAKE2B:
+        Move(Dig2B[0], D[0], SizeOf(TCnBLAKE2BDigest));
+    end;
+  end;
+
+begin
+  FileIsZeroSize := False;
+  if FileSizeIsLargeThanMaxOrCanNotMap(FileName, FileIsZeroSize) then
+  begin
+    // 大于 2G 的文件可能 Map 失败，或非 Windows 平台，采用流方式循环处理
+    Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+    try
+      InternalBLAKE2Stream(Stream, Key, DigestLength, 4096 * 1024, Result, BLAKE2Type, CallBack);
+    finally
+      Stream.Free;
+    end;
+  end
+  else
+  begin
+{$IFDEF MSWINDOWS}
+    _BLAKE2Init;
+    FileHandle := CreateFile(PChar(FileName), GENERIC_READ, FILE_SHARE_READ or
+      FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or
+      FILE_FLAG_SEQUENTIAL_SCAN, 0);
+    if FileHandle <> INVALID_HANDLE_VALUE then
+    begin
+      try
+        MapHandle := CreateFileMapping(FileHandle, nil, PAGE_READONLY, 0, 0, nil);
+        if MapHandle <> 0 then
+        begin
+          try
+            ViewPointer := MapViewOfFile(MapHandle, FILE_MAP_READ, 0, 0, 0);
+            if ViewPointer <> nil then
+            begin
+              try
+                _BLAKE2Update;
+              finally
+                UnmapViewOfFile(ViewPointer);
+              end;
+            end
+            else
+            begin
+              raise Exception.Create(SCnErrorMapViewOfFile + IntToStr(GetLastError));
+            end;
+          finally
+            CloseHandle(MapHandle);
+          end;
+        end
+        else
+        begin
+          if not FileIsZeroSize then
+            raise Exception.Create(SCnErrorCreateFileMapping + IntToStr(GetLastError));
+        end;
+      finally
+        CloseHandle(FileHandle);
+      end;
+    end;
+    _BLAKE2Final;
+    _CopyResult(Result);
+{$ENDIF}
+  end;
+end;
+
+function BLAKE2SFile(const FileName: string; Key: TBytes; DigestLength: Integer;
+  CallBack: TCnBLAKE2CalcProgressFunc): TCnBLAKE2SDigest;
+var
+  Dig: TCnBLAKE2GeneralDigest;
+begin
+  if (DigestLength <= 0) or (DigestLength > CN_BLAKE2S_OUTBYTES) then
+    raise ECnBLAKE2Exception.Create(SCnErrorBlake2InvalidDigestSize);
+
+  Dig := InternalBLAKE2File(FileName, Key, DigestLength, btBLAKE2S, CallBack);
+  Move(Dig[0], Result[0], DigestLength);
+end;
+
+function BLAKE2BFile(const FileName: string; Key: TBytes; DigestLength: Integer;
+  CallBack: TCnBLAKE2CalcProgressFunc): TCnBLAKE2BDigest;
+var
+  Dig: TCnBLAKE2GeneralDigest;
+begin
+  if (DigestLength <= 0) or (DigestLength > CN_BLAKE2B_OUTBYTES) then
+    raise ECnBLAKE2Exception.Create(SCnErrorBlake2InvalidDigestSize);
+
+  Dig := InternalBLAKE2File(FileName, Key, DigestLength, btBLAKE2B, CallBack);
+  Move(Dig[0], Result[0], DigestLength);
 end;
 
 function BLAKE2SPrint(const Digest: TCnBLAKE2SDigest; DigestLength: Integer): string;

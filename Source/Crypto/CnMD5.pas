@@ -175,7 +175,7 @@ function MD5UnicodeString(const Str: string): TCnMD5Digest;
 
 {$ELSE}
 
-function MD5UnicodeString(const Str: WideString ): TCnMD5Digest;
+function MD5UnicodeString(const Str: WideString): TCnMD5Digest;
 {* 对 UnicodeString 类型数据进行直接的 MD5 计算，直接计算内部 UTF16 内容，不进行转换。
 
 
@@ -584,7 +584,7 @@ begin
 end;
 
 function InternalMD5Stream(Stream: TStream; const BufSize: Cardinal; var D:
-  TCnMD5Digest; CallBack: TCnMD5CalcProgressFunc = nil): Boolean;
+  TCnMD5Digest; CallBack: TCnMD5CalcProgressFunc): Boolean;
 var
   Context: TCnMD5Context;
   Buf: PAnsiChar;
@@ -805,7 +805,7 @@ end;
 
 // 对指定流进行 MD5 计算
 function MD5Stream(Stream: TStream;
-  CallBack: TCnMD5CalcProgressFunc = nil): TCnMD5Digest;
+  CallBack: TCnMD5CalcProgressFunc): TCnMD5Digest;
 begin
   InternalMD5Stream(Stream, 4096 * 1024, Result, CallBack);
 end;
