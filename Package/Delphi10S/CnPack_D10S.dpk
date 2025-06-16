@@ -111,6 +111,7 @@ contains
   CnBigNumber in '..\..\Source\Crypto\CnBigNumber.pas',
   CnBits in '..\..\Source\Crypto\CnBits.pas',
   CnBLAKE in '..\..\Source\Crypto\CnBLAKE.pas',
+  CnBLAKE2 in '..\..\Source\Crypto\CnBLAKE2.pas',
   CnCertificateAuthority in '..\..\Source\Crypto\CnCertificateAuthority.pas',
   CnComplex in '..\..\Source\Crypto\CnComplex.pas',
   CnCRC32 in '..\..\Source\Crypto\CnCRC32.pas',
