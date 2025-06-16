@@ -44,6 +44,7 @@
       ..\..\Source\Common\CnPE.obj 
       ..\..\Source\Common\CnQuantum.obj 
       ..\..\Source\Common\CnRopes.obj 
+      ..\..\Source\Common\CnRPC.obj 
       ..\..\Source\Common\CnShellUtils.obj 
       ..\..\Source\Common\CnSingleton.obj 
       ..\..\Source\Common\CnSingletonComp.obj 
@@ -341,6 +342,7 @@
       <FILE FILENAME="..\..\Source\Common\CnPE.pas" FORMNAME="" UNITNAME="CnPE" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnQuantum.pas" FORMNAME="" UNITNAME="CnQuantum" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnRopes.pas" FORMNAME="" UNITNAME="CnRopes" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Common\CnRPC.pas" FORMNAME="" UNITNAME="CnRPC" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnShellUtils.pas" FORMNAME="" UNITNAME="CnShellUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnSingleton.pas" FORMNAME="" UNITNAME="CnSingleton" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Common\CnSingletonComp.pas" FORMNAME="" UNITNAME="CnSingletonComp" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

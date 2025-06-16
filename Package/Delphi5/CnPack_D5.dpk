@@ -78,6 +78,7 @@ contains
   CnPE in '..\..\Source\Common\CnPE.pas',
   CnQuantum in '..\..\Source\Common\CnQuantum.pas',
   CnRopes in '..\..\Source\Common\CnRopes.pas',
+  CnRPC in '..\..\Source\Common\CnRPC.pas',
   CnShellUtils in '..\..\Source\Common\CnShellUtils.pas',
   CnSingleton in '..\..\Source\Common\CnSingleton.pas',
   CnSingletonComp in '..\..\Source\Common\CnSingletonComp.pas',
