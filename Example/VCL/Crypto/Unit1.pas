@@ -3363,7 +3363,7 @@ begin
 {$IFDEF UNICODE}
   if chkBLAKE2SUtf8.Checked then
     pnlBLAKE2S.Caption := BLAKE2SPrint(BLAKE2SBytes(TEncoding.UTF8.GetBytes(edtBLAKE2S.Text),
-      TEncoding.UTF8.GetBytes(edtBLAKE2SKey.Text));
+      TEncoding.UTF8.GetBytes(edtBLAKE2SKey.Text)))
   else
     pnlBLAKE2S.Caption := BLAKE2SPrint(BLAKE2SStringA(AnsiString(edtBLAKE2S.Text), AnsiString(edtBLAKE2SKey.Text)));
 {$ELSE}

@@ -1,5 +1,5 @@
 object FormCrypt: TFormCrypt
-  Left = 371
+  Left = 232
   Height = 500
   Top = 243
   Width = 800
@@ -20,9 +20,9 @@ object FormCrypt: TFormCrypt
     Height = 457
     Top = 24
     Width = 745
-    ActivePage = tsBLAKE256
+    ActivePage = tsDES
     MultiLine = True
-    TabIndex = 20
+    TabIndex = 0
     TabOrder = 0
     Options = [nboMultiLine]
     object tsDES: TTabSheet
@@ -2252,6 +2252,14 @@ object FormCrypt: TFormCrypt
           OnClick = btnUBLAKE224Click
           TabOrder = 3
         end
+        object chkBLAKE224Utf8: TCheckBox
+          Left = 256
+          Height = 17
+          Top = 58
+          Width = 49
+          Caption = 'UTF-8'
+          TabOrder = 7
+        end
       end
     end
     object tsBLAKE256: TTabSheet
@@ -2343,6 +2351,14 @@ object FormCrypt: TFormCrypt
           Caption = 'Utf16 BLAKE256'
           OnClick = btnUBLAKE256Click
           TabOrder = 3
+        end
+        object chkBLAKE256Utf8: TCheckBox
+          Left = 256
+          Height = 17
+          Top = 58
+          Width = 49
+          Caption = 'UTF-8'
+          TabOrder = 7
         end
       end
     end
@@ -2437,6 +2453,14 @@ object FormCrypt: TFormCrypt
           OnClick = btnUBLAKE384Click
           TabOrder = 3
         end
+        object chkBLAKE384Utf8: TCheckBox
+          Left = 256
+          Height = 17
+          Top = 58
+          Width = 49
+          Caption = 'UTF-8'
+          TabOrder = 6
+        end
       end
     end
     object tsBLAKE512: TTabSheet
@@ -2529,6 +2553,197 @@ object FormCrypt: TFormCrypt
           Caption = 'Utf16 BLAKE512'
           OnClick = btnUBLAKE512Click
           TabOrder = 3
+        end
+        object chkBLAKE512Utf8: TCheckBox
+          Left = 256
+          Height = 17
+          Top = 58
+          Width = 49
+          Caption = 'UTF-8'
+          TabOrder = 6
+        end
+      end
+    end
+    object tsBLAKE2S: TTabSheet
+      Caption = 'BLAKE2S'
+      ClientHeight = 395
+      ClientWidth = 737
+      ImageIndex = 9
+      object grpBLAKE2S: TGroupBox
+        Left = 24
+        Height = 289
+        Top = 24
+        Width = 409
+        Anchors = [akTop, akLeft, akRight]
+        Caption = 'BLAKE2S'
+        ClientHeight = 271
+        ClientWidth = 405
+        TabOrder = 0
+        object lblBLAKE2S: TLabel
+          Left = 20
+          Height = 13
+          Top = 16
+          Width = 28
+          Caption = 'From:'
+        end
+        object lblBLAKE2SKey: TLabel
+          Left = 260
+          Height = 13
+          Top = 16
+          Width = 22
+          Caption = 'Key:'
+        end
+        object edtBLAKE2S: TEdit
+          Left = 68
+          Height = 21
+          Top = 12
+          Width = 169
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnBLAKE2S: TButton
+          Left = 68
+          Height = 25
+          Top = 52
+          Width = 75
+          Caption = 'BLAKE2S'
+          OnClick = btnBLAKE2SClick
+          TabOrder = 2
+        end
+        object pnlBLAKE2S: TPanel
+          Left = 4
+          Height = 41
+          Top = 108
+          Width = 401
+          BevelOuter = bvNone
+          TabOrder = 5
+          OnDblClick = ResultDblClick
+        end
+        object btnBLAKE2SFile: TButton
+          Left = 68
+          Height = 25
+          Top = 180
+          Width = 75
+          Caption = 'File BLAKE2S'
+          OnClick = btnBLAKE2SFileClick
+          TabOrder = 4
+        end
+        object edtBLAKE2SKey: TEdit
+          Left = 316
+          Height = 21
+          Top = 12
+          Width = 73
+          TabOrder = 1
+          Text = 'Key'
+        end
+        object btnUBLAKE2S: TButton
+          Left = 164
+          Height = 25
+          Top = 52
+          Width = 75
+          Caption = 'Utf16 BLAKE2S'
+          OnClick = btnUBLAKE2SClick
+          TabOrder = 3
+        end
+        object chkBLAKE2SUtf8: TCheckBox
+          Left = 256
+          Height = 17
+          Top = 58
+          Width = 49
+          Caption = 'UTF-8'
+          TabOrder = 6
+        end
+      end
+    end
+    object tsBLAKE2B: TTabSheet
+      Caption = 'BLAKE2B'
+      ClientHeight = 395
+      ClientWidth = 737
+      ImageIndex = 11
+      object grpBLAKE2B: TGroupBox
+        Left = 24
+        Height = 289
+        Top = 24
+        Width = 425
+        Anchors = [akTop, akLeft, akRight]
+        Caption = 'BLAKE2B'
+        ClientHeight = 271
+        ClientWidth = 421
+        TabOrder = 0
+        object lblBLAKE2B: TLabel
+          Left = 20
+          Height = 13
+          Top = 16
+          Width = 28
+          Caption = 'From:'
+        end
+        object lblBLAKE2BResult: TLabel
+          Left = 4
+          Height = 41
+          Top = 108
+          Width = 401
+          Alignment = taCenter
+          AutoSize = False
+          Layout = tlCenter
+          OnDblClick = ResultDblClick
+        end
+        object lblBLAKE2BKey: TLabel
+          Left = 260
+          Height = 13
+          Top = 16
+          Width = 22
+          Caption = 'Key:'
+        end
+        object edtBLAKE2B: TEdit
+          Left = 68
+          Height = 21
+          Top = 12
+          Width = 169
+          TabOrder = 0
+          Text = 'Sample Text'
+        end
+        object btnBLAKE2B: TButton
+          Left = 68
+          Height = 25
+          Top = 52
+          Width = 75
+          Caption = 'BLAKE2B'
+          OnClick = btnBLAKE2BClick
+          TabOrder = 2
+        end
+        object btnBLAKE2BFile: TButton
+          Left = 68
+          Height = 25
+          Top = 180
+          Width = 75
+          Caption = 'File BLAKE2B'
+          OnClick = btnBLAKE2BFileClick
+          TabOrder = 4
+        end
+        object edtBLAKE2BKey: TEdit
+          Left = 316
+          Height = 21
+          Top = 12
+          Width = 73
+          TabOrder = 1
+          Text = 'Key'
+        end
+        object btnUBLAKE2B: TButton
+          Left = 164
+          Height = 25
+          Top = 52
+          Width = 75
+          Caption = 'Utf16 BLAKE2B'
+          OnClick = btnUBLAKE2BClick
+          TabOrder = 3
+        end
+        object chkBLAKE2BUtf8: TCheckBox
+          Left = 256
+          Height = 17
+          Top = 58
+          Width = 49
+          Caption = 'UTF-8'
+          TabOrder = 5
         end
       end
     end
