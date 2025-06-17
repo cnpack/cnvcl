@@ -3196,6 +3196,7 @@ begin
     begin
       Data := FInspector.Properties.Items[I];
       Caption := TCnPropertyObject(FInspector.Properties.Items[I]).PropName;
+      SubItems.Add(TCnPropertyObject(FInspector.Properties.Items[I]).PropTypeName);
       SubItems.Add(TCnPropertyObject(FInspector.Properties.Items[I]).DisplayValue);
     end;
   end;
@@ -3400,7 +3401,7 @@ begin
   else
     FixWidth := 24;
 
-  lvProp.Columns[1].Width := Self.ClientWidth - lvProp.Columns[0].Width - FixWidth;
+  lvProp.Columns[2].Width := Self.ClientWidth - lvProp.Columns[0].Width - lvProp.Columns[1].Width - FixWidth;
   lvEvent.Columns[1].Width := Self.ClientWidth - lvEvent.Columns[0].Width - FixWidth;
   lvFields.Columns[1].Width := Self.ClientWidth - lvFields.Columns[0].Width - FixWidth;
   lvMethods.Columns[1].Width := Self.ClientWidth - lvMethods.Columns[0].Width - FixWidth;
@@ -3711,8 +3712,16 @@ begin
 
     if (Item <> nil) and (Item.Data <> nil) and TCnDisplayObject(Item.Data).Changed then
     begin
-      ALv.Canvas.Font.Color := clRed;
-      ALv.Canvas.Font.Style := [fsBold];
+      if SubItem = 1 then
+      begin
+        ALv.Canvas.Font.Color := clBlack;
+        ALv.Canvas.Font.Style := [];
+      end
+      else
+      begin
+        ALv.Canvas.Font.Color := clRed;
+        ALv.Canvas.Font.Style := [fsBold];
+      end;
     end
     else
     begin
