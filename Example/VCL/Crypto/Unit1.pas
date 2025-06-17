@@ -427,6 +427,28 @@ type
     btnBLAKE512Hmac: TButton;
     btnUBLAKE512: TButton;
     chkBLAKE512Utf8: TCheckBox;
+    tsBLAKE2S: TTabSheet;
+    grpBLAKE2S: TGroupBox;
+    lblBLAKE2S: TLabel;
+    edtBLAKE2S: TEdit;
+    btnBLAKE2S: TButton;
+    btnBLAKE2SFile: TButton;
+    lblBLAKE2SKey: TLabel;
+    edtBLAKE2SKey: TEdit;
+    btnUBLAKE2S: TButton;
+    chkBLAKE2SUtf8: TCheckBox;
+    tsBLAKE2B: TTabSheet;
+    grpBLAKE2B: TGroupBox;
+    lblBLAKE2B: TLabel;
+    edtBLAKE2B: TEdit;
+    btnBLAKE2B: TButton;
+    btnBLAKE2BFile: TButton;
+    lblBLAKE2BResult: TLabel;
+    lblBLAKE2BKey: TLabel;
+    edtBLAKE2BKey: TEdit;
+    btnUBLAKE2B: TButton;
+    chkBLAKE2BUtf8: TCheckBox;
+    pnlBLAKE2S: TPanel;
     procedure btnMd5Click(Sender: TObject);
     procedure btnDesCryptClick(Sender: TObject);
     procedure btnDesDecryptClick(Sender: TObject);
@@ -554,6 +576,12 @@ type
     procedure btnUBLAKE256Click(Sender: TObject);
     procedure btnUBLAKE384Click(Sender: TObject);
     procedure btnUBLAKE512Click(Sender: TObject);
+    procedure btnBLAKE2SClick(Sender: TObject);
+    procedure btnBLAKE2SFileClick(Sender: TObject);
+    procedure btnUBLAKE2SClick(Sender: TObject);
+    procedure btnBLAKE2BClick(Sender: TObject);
+    procedure btnBLAKE2BFileClick(Sender: TObject);
+    procedure btnUBLAKE2BClick(Sender: TObject);
   private
     procedure InitTeaKeyData;
     function ToHex(Buffer: PAnsiChar; Length: Integer): AnsiString;
@@ -569,7 +597,7 @@ implementation
 
 uses
   CnMD5, CnDES, CnBase64, CnCRC32, CnSHA1, CnSM3, CnSM4, CnAES, CnSHA2, CnZUC,
-  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnAEAD, CnFNV, CnRC4, CnBLAKE,
+  CnSHA3, CnTEA, CnPoly1305, CnChaCha20, CnAEAD, CnFNV, CnRC4, CnBLAKE, CnBLAKE2,
   CnPemUtils, CnNative, CnWideStrings;
 
 {$R *.DFM}
@@ -3294,6 +3322,81 @@ begin
   S := BLAKE512Print(BLAKE512UnicodeString(edtBLAKE512.Text));
   Insert(#13#10, S, 65);
   lblBLAKE512Result.Caption := S;
+end;
+
+procedure TFormCrypt.btnBLAKE2BClick(Sender: TObject);
+var
+  S: string;
+begin
+{$IFDEF UNICODE}
+  if chkBLAKE2BUtf8.Checked then
+    S := BLAKE2BPrint(BLAKE2BBytes(TEncoding.UTF8.GetBytes(edtBLAKE2B.Text),
+      TEncoding.UTF8.GetBytes(edtBLAKE2BKey.Text)))
+  else
+    S := BLAKE2BPrint(BLAKE2BStringA(AnsiString(edtBLAKE2B.Text), AnsiString(edtBLAKE2BKey.Text)));
+{$ELSE}
+  if chkBLAKE2BUtf8.Checked then
+    S := BLAKE2BPrint(BLAKE2BString(CnAnsiToUtf8(edtBLAKE2B.Text), CnAnsiToUtf8(edtBLAKE2BKey.Text)))
+  else
+    S := BLAKE2BPrint(BLAKE2BString(edtBLAKE2B.Text, edtBLAKE2BKey.Text));
+{$ENDIF}
+  Insert(#13#10, S, 65);
+  lblBLAKE2BResult.Caption := S;
+end;
+
+procedure TFormCrypt.btnBLAKE2BFileClick(Sender: TObject);
+var
+  K: TBytes;
+  S: string;
+begin
+  if OpenDialog1.Execute then
+  begin
+    K := AnsiToBytes(edtBLAKE2BKey.Text);
+    S := BLAKE2BPrint(BLAKE2BFile(OpenDialog1.FileName, K));
+    Insert(#13#10, S, 65);
+    lblBLAKE2BResult.Caption := S;
+  end;
+end;
+
+procedure TFormCrypt.btnBLAKE2SClick(Sender: TObject);
+begin
+{$IFDEF UNICODE}
+  if chkBLAKE2SUtf8.Checked then
+    pnlBLAKE2S.Caption := BLAKE2SPrint(BLAKE2SBytes(TEncoding.UTF8.GetBytes(edtBLAKE2S.Text),
+      TEncoding.UTF8.GetBytes(edtBLAKE2SKey.Text));
+  else
+    pnlBLAKE2S.Caption := BLAKE2SPrint(BLAKE2SStringA(AnsiString(edtBLAKE2S.Text), AnsiString(edtBLAKE2SKey.Text)));
+{$ELSE}
+  if chkBLAKE2SUtf8.Checked then
+    pnlBLAKE2S.Caption := BLAKE2SPrint(BLAKE2SString(CnAnsiToUtf8(edtBLAKE2S.Text), CnAnsiToUtf8(edtBLAKE2SKey.Text)))
+  else
+    pnlBLAKE2S.Caption := BLAKE2SPrint(BLAKE2SString(edtBLAKE2S.Text, edtBLAKE2SKey.Text));
+{$ENDIF}
+end;
+
+procedure TFormCrypt.btnBLAKE2SFileClick(Sender: TObject);
+var
+  K: TBytes;
+begin
+  if OpenDialog1.Execute then
+  begin
+    K := AnsiToBytes(edtBLAKE2SKey.Text);
+    pnlBLAKE2S.Caption := BLAKE2SPrint(BLAKE2SFile(OpenDialog1.FileName, K));
+  end;
+end;
+
+procedure TFormCrypt.btnUBLAKE2BClick(Sender: TObject);
+var
+  S: string;
+begin
+  S := BLAKE2BPrint(BLAKE2BUnicodeString(edtBLAKE2B.Text, edtBLAKE2BKey.Text));
+  Insert(#13#10, S, 65);
+  lblBLAKE2BResult.Caption := S;
+end;
+
+procedure TFormCrypt.btnUBLAKE2SClick(Sender: TObject);
+begin
+  pnlBLAKE2S.Caption := BLAKE2SPrint(BLAKE2SUnicodeString(edtBLAKE2S.Text, edtBLAKE2SKey.Text));
 end;
 
 end.
