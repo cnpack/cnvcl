@@ -275,6 +275,7 @@ type
 {$ENDIF}
 
   TCnTimeDesc = packed record
+  {* 计时描述结构}
     Tag: array[0..CnMaxTagLength - 1] of AnsiChar;
     PassCount: Integer;
     StartTime: Int64;
@@ -299,6 +300,7 @@ type
   TCnDebugChannel = class;
 
   TCnDebugger = class(TObject)
+  {* 调试输出核心类}
   private
     FActive: Boolean;
     FThrdIDList: TList;
@@ -395,9 +397,12 @@ type
     procedure InternalOutput(var Data; Size: Integer);
   public
     constructor Create;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure StartDebugViewer;
+    {* 启动查看器}
 
     // 利用 CPU 周期计时 == Start ==
     procedure StartTimeMark(const ATag: Integer; const AMsg: string = ''); overload;
@@ -619,11 +624,15 @@ type
     {* 全局范围内发起 Control 遍历，每个组件触发 OnFindComponent 事件，用于查找}
 
     procedure Enable;
+    {* 启用输出}
     procedure Disable;
+    {* 禁用输出}
 
     // 其他属性
     property Channel: TCnDebugChannel read GetChannel;
+    {* 输出通道}
     property Filter: TCnDebugFilter read GetFilter;
+    {* 过滤条件}
 
     property Active: Boolean read GetActive write SetActive;
     {* 是否使能，也就是是否输出信息}
@@ -661,26 +670,26 @@ type
     procedure SetAutoFlush(const Value: Boolean);
   protected
     procedure SetActive(const Value: Boolean); virtual;
-    // 供子类重载以处理 Active 变化
+    {* 供子类重载以处理 Active 变化}
     function CheckReady: Boolean; virtual;
-    // 检测是否准备好
+    {* 检测是否准备好}
     procedure UpdateFlush; virtual;
-    // AutoFlush 属性更新时供子类重载以进行处理
+    {* AutoFlush 属性更新时供子类重载以进行处理}
   public
     constructor Create(IsAutoFlush: Boolean = True); virtual;
-    // 构造函数，参数为是否自动送出并等待接收完成
+    {* 构造函数，参数为是否自动送出并等待接收完成}
     procedure StartDebugViewer; virtual;
-    // 启动 Debug Viewer 并等待其启动完成
+    {* 启动 Debug Viewer 并等待其启动完成}
     function CheckFilterChanged: Boolean; virtual;
-    // 检测过滤条件是否改变
+    {* 检测过滤条件是否改变}
     procedure RefreshFilter(Filter: TCnDebugFilter); virtual;
-    // 过滤条件改变时重新载入
+    {* 过滤条件改变时重新载入}
     procedure SendContent(var MsgDesc; Size: Integer); virtual;
-    // 发送信息内容
+    {* 发送信息内容}
     property Active: Boolean read FActive write SetActive;
-    // 是否激活
+    {* 是否激活}
     property AutoFlush: Boolean read FAutoFlush write SetAutoFlush;
-    // 是否自动送出并等接收方接收
+    {* 是否自动送出并等接收方接收}
   end;
 
   TCnDebugChannelClass = class of TCnDebugChannel;
@@ -832,7 +841,11 @@ var
 
   FFixedCalling: Int64 = 0;
 
-  FUseLocalSession: Boolean = {$IFDEF LOCAL_SESSION}True{$ELSE}False{$ENDIF};
+{$IFDEF LOCAL_SESSION}
+  FUseLocalSession: Boolean = True;
+{$ELSE}
+  FUseLocalSession: Boolean = False;
+{$ENDIF}
 
 {$IFDEF CAPTURE_STACK}
   FInProcessCriticalSection: TCnDebugCriticalSection;
