@@ -374,14 +374,22 @@ begin
 end;
 
 procedure SHA1Update(var Context: TCnSHA1Context; Input: PAnsiChar; ByteLength: Integer);
+var
+  B: Integer;
 begin
   SHA1UpdateLen(Context, ByteLength);
   while ByteLength > 0 do
   begin
-    Context.Buffer[Context.Index] := PByte(Input)^;
-    Inc(PByte(Input));
-    Inc(Context.Index);
-    Dec(ByteLength);
+    if 64 - Context.Index > ByteLength then
+      B := ByteLength
+    else
+      B := 64 - Context.Index;
+
+    Move(Input^, Context.Buffer[Context.Index], B);
+    Inc(PByte(Input), B);
+    Inc(Context.Index, B);
+    Dec(ByteLength, B);
+
     if Context.Index = 64 then
     begin
       Context.Index := 0;

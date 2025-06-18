@@ -716,15 +716,15 @@ end;
 
 procedure IncBLAKE2SCounter(var Context: TCnBLAKE2SContext; Step: Integer);
 begin
-  Context.T[0] := Context.T[0] + Step;
-  if Context.T[0] < Step then
+  Context.T[0] := Context.T[0] + Cardinal(Step);
+  if Context.T[0] < Cardinal(Step) then
     Inc(Context.T[1]);
 end;
 
 procedure IncBLAKE2BCounter(var Context: TCnBLAKE2BContext; Step: Integer);
 begin
-  Context.T[0] := Context.T[0] + Step;
-  if Context.T[0] < Step then
+  Context.T[0] := Context.T[0] + Cardinal(Step);
+  if Context.T[0] < TUInt64(Step) then
     Inc(Context.T[1]);
 end;
 
@@ -833,7 +833,7 @@ begin
 
     // 不足块的留着等下回或 Final
     Move(Input^, Context.Buf[Context.BufLen], ByteLength);
-    Context.BufLen := Context.BufLen + ByteLength;
+    Context.BufLen := Context.BufLen + Integer(ByteLength);
   end;
 end;
 
@@ -1012,7 +1012,7 @@ begin
 
     // 不足块的留着等下回或 Final
     Move(Input^, Context.Buf[Context.BufLen], ByteLength);
-    Context.BufLen := Context.BufLen + ByteLength;
+    Context.BufLen := Context.BufLen + Integer(ByteLength);
   end;
 end;
 

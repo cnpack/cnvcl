@@ -1051,7 +1051,7 @@ end;
 
 procedure BLAKE224256Update(var Context: TCnBLAKE256Context; Input: PAnsiChar; ByteLength: Cardinal);
 var
-  Left, Fill: Integer;
+  Left, Fill: Cardinal;
 begin
   Left := Context.BufLen;
   Fill := 64 - Left;
@@ -1150,10 +1150,10 @@ var
 begin
   ZZ := 0;
   OZ := $80;
-  LO := Context.T[0] + (Context.BufLen shl 3);
+  LO := Context.T[0] + Cardinal(Context.BufLen shl 3);
   HI := Context.T[1];
 
-  if LO < (Context.BufLen shl 3) then
+  if LO < Cardinal(Context.BufLen shl 3) then
     Inc(HI);
 
   U32To8Big(@MsgLen[0], HI);
@@ -1170,12 +1170,12 @@ begin
     begin
       if Context.BufLen = 0 then
         Context.Nullt := 1;
-      Context.T[0] := Context.T[0] - (440 - (Context.BufLen shl 3));
+      Context.T[0] := Context.T[0] - Cardinal(440 - (Context.BufLen shl 3));
       BLAKE224256Update(Context, @Padding[0], 55 - Context.BufLen);
     end
     else
     begin
-      Context.T[0] := Context.T[0] - (512 - (Context.BufLen shl 3));
+      Context.T[0] := Context.T[0] - Cardinal(512 - (Context.BufLen shl 3));
       BLAKE224256Update(Context, @Padding[0], 64 - Context.BufLen);
       Context.T[0] := Context.T[0] - 440;
       BLAKE224256Update(Context, @Padding[1], 55 );
@@ -1233,10 +1233,10 @@ var
 begin
   ZZ := 1;
   OZ := $81;
-  LO := Context.T[0] + (Context.BufLen shl 3);
+  LO := Context.T[0] + Cardinal(Context.BufLen shl 3);
   HI := Context.T[1];
 
-  if LO < (Context.BufLen shl 3) then
+  if LO < Cardinal(Context.BufLen shl 3) then
     Inc(HI);
 
   U32To8Big(@MsgLen[0], HI);
@@ -1253,12 +1253,12 @@ begin
     begin
       if Context.BufLen = 0 then
         Context.Nullt := 1;
-      Context.T[0] := Context.T[0] - (440 - (Context.BufLen shl 3));
+      Context.T[0] := Context.T[0] - Cardinal(440 - (Context.BufLen shl 3));
       BLAKE224256Update(Context, @Padding[0], 55 - Context.BufLen);
     end
     else
     begin
-      Context.T[0] := Context.T[0] - (512 - (Context.BufLen shl 3));
+      Context.T[0] := Context.T[0] - Cardinal(512 - (Context.BufLen shl 3));
       BLAKE224256Update(Context, @Padding[0], 64 - Context.BufLen);
       Context.T[0] := Context.T[0] - 440;
       BLAKE224256Update(Context, @Padding[1], 55);
@@ -1284,7 +1284,7 @@ end;
 
 procedure BLAKE384512Update(var Context: TCnBLAKE512Context; Input: PAnsiChar; ByteLength: Cardinal);
 var
-  Left, Fill: Integer;
+  Left, Fill: Cardinal;
 begin
   Left := Context.BufLen;
   Fill := 128 - Left;
@@ -1383,7 +1383,7 @@ var
 begin
   ZZ := 0;
   OZ := $80;
-  LO := Context.T[0] + (Context.BufLen shl 3);
+  LO := Context.T[0] + TUInt64(Context.BufLen shl 3);
   HI := Context.T[1];
 
   if LO < (Context.BufLen shl 3) then
@@ -1403,12 +1403,12 @@ begin
     begin
       if Context.BufLen = 0 then
         Context.Nullt := 1;
-      Context.T[0] := Context.T[0] - (888 - (Context.BufLen shl 3));
+      Context.T[0] := Context.T[0] - TUInt64(888 - (Context.BufLen shl 3));
       BLAKE384512Update(Context, @Padding[0], 111 - Context.BufLen);
     end
     else
     begin
-      Context.T[0] := Context.T[0] - (1024 - (Context.BufLen shl 3));
+      Context.T[0] := Context.T[0] - TUInt64(1024 - (Context.BufLen shl 3));
       BLAKE384512Update(Context, @Padding[0], 128 - Context.BufLen);
       Context.T[0] := Context.T[0] - 888;
       BLAKE384512Update(Context, @Padding[1], 111);
@@ -1465,7 +1465,7 @@ var
 begin
   ZZ := 1;
   OZ := $81;
-  LO := Context.T[0] + (Context.BufLen shl 3);
+  LO := Context.T[0] + TUInt64(Context.BufLen shl 3);
   HI := Context.T[1];
 
   if LO < (Context.BufLen shl 3) then
@@ -1485,12 +1485,12 @@ begin
     begin
       if Context.BufLen = 0 then
         Context.Nullt := 1;
-      Context.T[0] := Context.T[0] - (888 - (Context.BufLen shl 3));
+      Context.T[0] := Context.T[0] - TUInt64(888 - (Context.BufLen shl 3));
       BLAKE384512Update(Context, @Padding[0], 111 - Context.BufLen);
     end
     else
     begin
-      Context.T[0] := Context.T[0] - (1024 - (Context.BufLen shl 3));
+      Context.T[0] := Context.T[0] - TUInt64(1024 - (Context.BufLen shl 3));
       BLAKE384512Update(Context, @Padding[0], 128 - Context.BufLen);
       Context.T[0] := Context.T[0] - 888;
       BLAKE384512Update(Context, @Padding[1], 111);

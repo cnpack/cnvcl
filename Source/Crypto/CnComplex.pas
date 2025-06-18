@@ -796,8 +796,8 @@ end;
 procedure BigComplexNumberSetValue(Complex: TCnBigComplexNumber;
   const AR: string; const AI: string);
 begin
-  Complex.FR.SetDec(AR);
-  Complex.FI.SetDec(AI);
+  Complex.FR.SetDec(AnsiString(AR));
+  Complex.FI.SetDec(AnsiString(AI));
 end;
 
 function BigComplexNumberToString(Complex: TCnBigComplexNumber): string;

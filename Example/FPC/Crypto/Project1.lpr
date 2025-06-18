@@ -13,7 +13,7 @@ uses
   CnSHA2 in '..\..\..\Source\Crypto\CnSHA2.pas',
   CnSHA3 in '..\..\..\Source\Crypto\CnSHA3.pas',
   CnBLAKE in '..\..\..\Source\Crypto\CnBLAKE.pas',
-  CnBLAKE2 in '..\..\..\Source\Crypto\CnBLAKE.pas',
+  CnBLAKE2 in '..\..\..\Source\Crypto\CnBLAKE2.pas',
   CnSM3 in '..\..\..\Source\Crypto\CnSM3.pas',
   CnSM4 in '..\..\..\Source\Crypto\CnSM4.pas',
   CnAES in '..\..\..\Source\Crypto\CnAES.pas',

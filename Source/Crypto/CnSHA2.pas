@@ -1114,12 +1114,20 @@ end;
 
 procedure SHA256Update(var Context: TCnSHA256Context; Input: PAnsiChar; ByteLength: Cardinal);
 var
-  I: Integer;
+  B: Cardinal;
 begin
-  for I := 0 to ByteLength - 1 do
+  while ByteLength > 0 do
   begin
-    Context.Data[Context.DataLen] := Byte(Input[I]);
-    Inc(Context.DataLen);
+    if 64 - Context.DataLen > ByteLength then
+      B := ByteLength
+    else
+      B := 64 - Context.DataLen;
+
+    Move(Input^, Context.Data[Context.DataLen], B);
+    Inc(Context.DataLen, B);
+    Dec(ByteLength, B);
+    Inc(Input, B);
+
     if Context.DataLen = 64 then
     begin
       SHA256Transform(Context, @Context.Data[0]);

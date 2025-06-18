@@ -867,7 +867,7 @@ begin
 
   try
     DS := TMemoryStream.Create;
-    if ECN_BASE64_OK <> Base64Decode(AnsiString(S), DS, False) then
+    if ECN_BASE64_OK <> Base64Decode(S, DS, False) then
       Exit;
 
     DS.Position := 0;
@@ -1067,11 +1067,7 @@ begin
 
           // To De Base64 S
           MemoryStream.Clear;
-{$IFDEF UNICODE}
-          Result := (ECN_BASE64_OK = Base64Decode(AnsiString(S), MemoryStream, False));
-{$ELSE}
           Result := (ECN_BASE64_OK = Base64Decode(S, MemoryStream, False));
-{$ENDIF}
         end;
       end;
     finally
