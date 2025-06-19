@@ -230,12 +230,13 @@ object CnPropSheetForm: TCnPropSheetForm
         OnClick = btnEvaluateClick
       end
       object btnLocate: TSpeedButton
-        Left = 357
+        Left = 429
         Top = 5
         Width = 20
         Height = 21
         Hint = 'Locate Control'
         AllowAllUp = True
+        Anchors = [akTop, akRight]
         Caption = '*'
         Flat = True
         Font.Charset = DEFAULT_CHARSET
@@ -270,8 +271,9 @@ object CnPropSheetForm: TCnPropSheetForm
       object edtClassName: TEdit
         Left = 180
         Top = 8
-        Width = 174
+        Width = 237
         Height = 18
+        Anchors = [akLeft, akTop, akRight]
         BorderStyle = bsNone
         ParentColor = True
         ReadOnly = True
