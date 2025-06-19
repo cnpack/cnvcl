@@ -343,7 +343,7 @@ object CnPropSheetForm: TCnPropSheetForm
           end
           item
             Caption = 'Type'
-            Width = 100
+            Width = 120
           end
           item
             Caption = 'Field Value'
@@ -387,7 +387,7 @@ object CnPropSheetForm: TCnPropSheetForm
           end
           item
             Caption = 'Type'
-            Width = 100
+            Width = 120
           end
           item
             Caption = 'Handler'
@@ -409,7 +409,7 @@ object CnPropSheetForm: TCnPropSheetForm
         OnKeyDown = ListViewKeyDown
         OnSelectItem = lvPropSelectItem
       end
-      object lvMethods: TListView
+      object lvMethod: TListView
         Left = 16
         Top = 56
         Width = 321
@@ -421,6 +421,7 @@ object CnPropSheetForm: TCnPropSheetForm
           end
           item
             Caption = 'Address'
+            Width = 120
           end
           item
             Caption = 'Full Method'

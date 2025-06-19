@@ -421,7 +421,7 @@ type
     lvMenuItem: TListView;
     edtClassName: TEdit;
     btnLocate: TSpeedButton;
-    lvMethods: TListView;
+    lvMethod: TListView;
     lvField: TListView;
     pnlGraphicInfo: TPanel;
     bxGraphic: TScrollBox;
@@ -3226,7 +3226,7 @@ begin
   lvProp.Items.Clear;
   lvEvent.Items.Clear;
   lvField.Items.Clear;
-  lvMethods.Items.Clear;
+  lvMethod.Items.Clear;
   lvCollectionItem.Items.Clear;
   lvMenuItem.Items.Clear;
   lvComp.Items.Clear;
@@ -3285,7 +3285,7 @@ begin
 
   for I := 0 to FInspector.MethodCount - 1 do
   begin
-    with lvMethods.Items.Add do
+    with lvMethod.Items.Add do
     begin
       Data := FInspector.Methods.Items[I];
       Caption := TCnMethodObject(FInspector.Methods.Items[I]).MethodSimpleName;
@@ -3465,7 +3465,7 @@ begin
   lvProp.Columns[2].Width := Self.ClientWidth - lvProp.Columns[0].Width - lvProp.Columns[1].Width - FixWidth;
   lvEvent.Columns[2].Width := Self.ClientWidth - lvEvent.Columns[0].Width - lvEvent.Columns[1].Width - FixWidth;
   lvField.Columns[2].Width := Self.ClientWidth - lvField.Columns[0].Width - lvField.Columns[1].Width - FixWidth;
-  lvMethods.Columns[2].Width := Self.ClientWidth - lvMethods.Columns[0].Width - lvMethods.Columns[1].Width - FixWidth;
+  lvMethod.Columns[2].Width := Self.ClientWidth - lvMethod.Columns[0].Width - lvMethod.Columns[1].Width - FixWidth;
   lvCollectionItem.Columns[1].Width := Self.ClientWidth - lvCollectionItem.Columns[0].Width - FixWidth;
   lvMenuItem.Columns[1].Width := Self.ClientWidth - lvMenuItem.Columns[0].Width - FixWidth;
   lvComp.Columns[1].Width := Self.ClientWidth - lvComp.Columns[0].Width - FixWidth;
@@ -3540,7 +3540,7 @@ begin
     pctProps:             AControl := lvProp;
     pctFields:            AControl := lvField;
     pctEvents:            AControl := lvEvent;
-    pctMethods:           AControl := lvMethods;
+    pctMethods:           AControl := lvMethod;
     pctCollectionItems:   AControl := lvCollectionItem;
     pctMenuItems:         AControl := lvMenuItem;
     pctStrings:           AControl := mmoText;
