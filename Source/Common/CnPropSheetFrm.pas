@@ -154,9 +154,18 @@ type
   private
     FMethodSimpleName: string;
     FFullName: string;
+    FAddress: string;
+    FFullNameWithAddress: string;
   public
     property MethodSimpleName: string read FMethodSimpleName write FMethodSimpleName;
+    {* 方法名}
+    property Address: string read FAddress write FAddress;
+    {* 地址}
     property FullName: string read FFullName write FFullName;
+    {* 不带地址的完整声明}
+
+    property FullNameWithAddress: string read FFullNameWithAddress write FFullNameWithAddress;
+    {* 带地址的完整声明，仅内部查询判重使用}
   end;
 
 {$IFDEF SUPPORT_ENHANCED_RTTI}
@@ -167,6 +176,7 @@ type
     FOffset: Integer;
     FFieldName: string;
     FFieldType: TRttiType;
+    FFieldTypeName: string;
     FCanModify: Boolean;
     FFieldValue: TValue;
   public
@@ -174,6 +184,8 @@ type
     {* 构造函数}
     property FieldName: string read FFieldName write FFieldName;
     {* Field 的名字}
+    property FieldTypeName: string read FFieldTypeName write FFieldTypeName;
+    {* Field 的类型名称}
     property FieldType: TRttiType read FFieldType write FFieldType;
     {* Field 的类型}
     property FieldValue: TValue read FFieldValue write FFieldValue;
@@ -297,7 +309,7 @@ type
     function IndexOfEvent(AEvents: TObjectList;
       const AEventName: string): TCnEventObject;
     function IndexOfMethod(AMethods: TObjectList;
-      const AMethodName: string): TCnMethodObject;
+      const AMethodNameWithAddress: string): TCnMethodObject;
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     function IndexOfField(AFields: TObjectList;
       const AFieldName: string): TCnFieldObject;
@@ -410,7 +422,7 @@ type
     edtClassName: TEdit;
     btnLocate: TSpeedButton;
     lvMethods: TListView;
-    lvFields: TListView;
+    lvField: TListView;
     pnlGraphicInfo: TPanel;
     bxGraphic: TScrollBox;
     pbGraphic: TPaintBox;
@@ -458,7 +470,7 @@ type
     procedure Copy1Click(Sender: TObject);
     procedure CopyAll1Click(Sender: TObject);
     procedure pbGraphicPaint(Sender: TObject);
-    procedure lvFieldsDblClick(Sender: TObject);
+    procedure lvFieldDblClick(Sender: TObject);
   private
 {$IFDEF FPC}
     tsSwitch: TTabControl;
@@ -570,7 +582,7 @@ function EvaluatePointer(Address: Pointer; Data: Pointer = nil;
 
 function GetPropValueStr(Instance: TObject; PropInfo: PPropInfo): string;
 
-function GetObjValueStr(AObj: TObject): string;
+function GetObjValueStr(AObj: TObject; WithType: Boolean = True): string;
 
 {$IFDEF SUPPORT_ENHANCED_RTTI}
 
@@ -749,44 +761,67 @@ begin
   Result := string(PropInfo^.Name);
 end;
 
-function GetClassValueStr(AClass: TClass): string;
+function GetClassValueStr(AClass: TClass; WithType: Boolean = True): string;
 var
  S: string;
 begin
  if AClass <> nil then
  begin
-   try
-     S := AClass.ClassName;
-   except
-     S := 'Unknown Object';
-   end;
+   if WithType then
+   begin
+     try
+       S := AClass.ClassName;
+     except
+       S := 'Unknown Class';
+     end;
+
 {$IFDEF WIN64}
-   Result := Format('(%s.$%16.16x)', [S, NativeInt(AClass)]);
+     Result := Format('(%s.$%16.16x)', [S, NativeInt(AClass)]);
 {$ELSE}
-   Result := Format('(%s.$%8.8x)', [S, Integer(AClass)]);
+     Result := Format('(%s.$%8.8x)', [S, Integer(AClass)]);
 {$ENDIF}
+   end
+   else
+   begin
+{$IFDEF WIN64}
+     Result := Format('($%16.16x)', [NativeInt(AClass)]);
+{$ELSE}
+     Result := Format('($%8.8x)', [Integer(AClass)]);
+{$ENDIF}
+   end;
  end
  else
    Result := 'nil';
 end;
 
-function GetObjValueStr(AObj: TObject): string;
+function GetObjValueStr(AObj: TObject; WithType: Boolean): string;
 var
   S: string;
 begin
   if AObj <> nil then
   begin
-    try
-      S := AObj.ClassName;
-    except
-      S := 'Unknown Object';
-    end;
+    if WithType then
+    begin
+      try
+        S := AObj.ClassName;
+      except
+        S := 'Unknown Object';
+      end;
 
 {$IFDEF WIN64}
-    Result := Format('(%s.$%16.16x)', [S, NativeInt(AObj)]);
+      Result := Format('(%s.$%16.16x)', [S, NativeInt(AObj)]);
 {$ELSE}
-    Result := Format('(%s.$%8.8x)', [S, Integer(AObj)]);
+      Result := Format('(%s.$%8.8x)', [S, Integer(AObj)]);
 {$ENDIF}
+    end
+    else
+    begin
+{$IFDEF WIN64}
+      Result := Format('($%16.16x)', [NativeInt(AObj)]);
+{$ELSE}
+      Result := Format('($%8.8x)', [Integer(AObj)]);
+{$ENDIF}
+    end;
   end
   else
     Result := 'nil';
@@ -1590,7 +1625,7 @@ begin
 end;
 
 function TCnObjectInspector.IndexOfMethod(AMethods: TObjectList;
-  const AMethodName: string): TCnMethodObject;
+  const AMethodNameWithAddress: string): TCnMethodObject;
 var
   I: Integer;
   AMethod: TCnMethodObject;
@@ -1601,7 +1636,7 @@ begin
     for I := 0 to AMethods.Count - 1 do
     begin
       AMethod := TCnMethodObject(AMethods.Items[I]);
-      if AMethod.FullName = AMethodName then
+      if AMethod.FullNameWithAddress = AMethodNameWithAddress then
       begin
         Result := AMethod;
         Exit;
@@ -1723,8 +1758,10 @@ var
   RttiMethod: TRttiMethod;
   AMethod: TCnMethodObject;
 
-  function GetMethodFullName(ARttiMethod: TRttiMethod): string;
+  function GetMethodFullName(ARttiMethod: TRttiMethod; WithAddress: Boolean): string;
   begin
+    if WithAddress then
+    begin
   {$IFDEF WIN64}
     Result := Format('$%16.16x: %s;', [NativeInt(ARttiMethod.CodeAddress),
       ARttiMethod.ToString]);
@@ -1732,6 +1769,9 @@ var
     Result := Format('$%8.8x: %s;', [Integer(ARttiMethod.CodeAddress),
       ARttiMethod.ToString]);
   {$ENDIF}
+    end
+    else
+      Result := ARttiMethod.ToString;
   end;
 {$ENDIF}
 
@@ -2136,7 +2176,7 @@ begin
         try
           for RttiMethod in RttiType.GetMethods do  // 有些在此出 Exception
           begin
-            S := GetMethodFullName(RttiMethod);
+            S := GetMethodFullName(RttiMethod, True); // 需要加地址，判重用
             if not IsRefresh then
             begin
               AMethod := TCnMethodObject.Create;
@@ -2146,7 +2186,19 @@ begin
               AMethod := IndexOfMethod(FMethods, S);
 
             AMethod.MethodSimpleName := RttiMethod.Name;
-            AMethod.FullName := S;
+            AMethod.FullNameWithAddress := S;
+            I := Pos(': ', S);
+            if I > 1 then
+            begin
+              AMethod.FullName := Copy(S, I + 2, MaxInt);
+              AMethod.Address := Copy(S, 1, I - 1);
+            end
+            else
+            begin
+              AMethod.FullName := S;
+              AMethod.Address := 'nil';
+            end;
+
             if S <> AMethod.DisplayValue then
             begin
               AMethod.DisplayValue := S;
@@ -2178,9 +2230,15 @@ begin
             AField.FieldType := RttiField.FieldType;
 
             if RttiField.FieldType <> nil then // 有可能 FieldType 为 nil
-              AField.IsObjOrIntf := RttiField.FieldType.TypeKind in [tkClass, tkInterface]
+            begin
+              AField.IsObjOrIntf := RttiField.FieldType.TypeKind in [tkClass, tkInterface];
+              AField.FieldTypeName := RttiField.FieldType.Name;
+            end
             else
+            begin
               AField.IsObjOrIntf := False;
+              AField.FieldTypeName := '<no type>';
+            end;
 
             try
               AField.FieldValue := RttiField.GetValue(FObjectInstance);
@@ -3167,7 +3225,7 @@ begin
 
   lvProp.Items.Clear;
   lvEvent.Items.Clear;
-  lvFields.Items.Clear;
+  lvField.Items.Clear;
   lvMethods.Items.Clear;
   lvCollectionItem.Items.Clear;
   lvMenuItem.Items.Clear;
@@ -3204,10 +3262,11 @@ begin
 {$IFDEF SUPPORT_ENHANCED_RTTI}
   for I := 0 to FInspector.FieldCount - 1 do
   begin
-    with lvFields.Items.Add do
+    with lvField.Items.Add do
     begin
       Data := FInspector.Fields.Items[I];
       Caption := TCnFieldObject(FInspector.Fields.Items[I]).FieldName;
+      SubItems.Add(TCnFieldObject(FInspector.Fields.Items[I]).FieldTypeName);
       SubItems.Add(TCnFieldObject(FInspector.Fields.Items[I]).DisplayValue);
     end;
   end;
@@ -3219,6 +3278,7 @@ begin
     begin
       Data := FInspector.Events.Items[I];
       Caption := TCnEventObject(FInspector.Events.Items[I]).EventName;
+      SubItems.Add(TCnEventObject(FInspector.Events.Items[I]).EventType);
       SubItems.Add(TCnEventObject(FInspector.Events.Items[I]).DisplayValue);
     end;
   end;
@@ -3229,6 +3289,7 @@ begin
     begin
       Data := FInspector.Methods.Items[I];
       Caption := TCnMethodObject(FInspector.Methods.Items[I]).MethodSimpleName;
+      SubItems.Add(TCnMethodObject(FInspector.Methods.Items[I]).Address);
       SubItems.Add(TCnMethodObject(FInspector.Methods.Items[I]).FullName);
     end;
   end;
@@ -3402,9 +3463,9 @@ begin
     FixWidth := 24;
 
   lvProp.Columns[2].Width := Self.ClientWidth - lvProp.Columns[0].Width - lvProp.Columns[1].Width - FixWidth;
-  lvEvent.Columns[1].Width := Self.ClientWidth - lvEvent.Columns[0].Width - FixWidth;
-  lvFields.Columns[1].Width := Self.ClientWidth - lvFields.Columns[0].Width - FixWidth;
-  lvMethods.Columns[1].Width := Self.ClientWidth - lvMethods.Columns[0].Width - FixWidth;
+  lvEvent.Columns[2].Width := Self.ClientWidth - lvEvent.Columns[0].Width - lvEvent.Columns[1].Width - FixWidth;
+  lvField.Columns[2].Width := Self.ClientWidth - lvField.Columns[0].Width - lvField.Columns[1].Width - FixWidth;
+  lvMethods.Columns[2].Width := Self.ClientWidth - lvMethods.Columns[0].Width - lvMethods.Columns[1].Width - FixWidth;
   lvCollectionItem.Columns[1].Width := Self.ClientWidth - lvCollectionItem.Columns[0].Width - FixWidth;
   lvMenuItem.Columns[1].Width := Self.ClientWidth - lvMenuItem.Columns[0].Width - FixWidth;
   lvComp.Columns[1].Width := Self.ClientWidth - lvComp.Columns[0].Width - FixWidth;
@@ -3477,7 +3538,7 @@ begin
 {$ENDIF}
   case IndexOfContentTypeStr(Str) of
     pctProps:             AControl := lvProp;
-    pctFields:            AControl := lvFields;
+    pctFields:            AControl := lvField;
     pctEvents:            AControl := lvEvent;
     pctMethods:           AControl := lvMethods;
     pctCollectionItems:   AControl := lvCollectionItem;
@@ -3642,7 +3703,8 @@ begin
         (TCnDisplayObject(Item.Data).IntfValue <> nil)
 {$IFDEF SUPPORT_ENHANCED_RTTI}
   {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
-        or (TCnPropertyObject(Item.Data).IndexParamCount > 0) // 表示是 Index 类型的属性
+        or ((TObject(Item.Data) is TCnPropertyObject) and
+        (TCnPropertyObject(Item.Data).IndexParamCount > 0)) // 表示是 Index 类型的属性
   {$ENDIF}
 {$ENDIF}
         ) then
@@ -4431,7 +4493,7 @@ begin
   pbGraphic.Canvas.Draw(0, 0, FGraphicBmp);
 end;
 
-procedure TCnPropSheetForm.lvFieldsDblClick(Sender: TObject);
+procedure TCnPropSheetForm.lvFieldDblClick(Sender: TObject);
 {$IFDEF SUPPORT_ENHANCED_RTTI}
 var
   Field: TCnFieldObject;
@@ -4439,10 +4501,10 @@ var
 {$ENDIF}
 begin
 {$IFDEF SUPPORT_ENHANCED_RTTI}
-  if lvFields.Selected = nil then
+  if lvField.Selected = nil then
     Exit;
 
-  Field := TCnFieldObject(lvFields.Selected.Data);
+  Field := TCnFieldObject(lvField.Selected.Data);
   if (Field = nil) or not Field.CanModify then
     Exit;
 

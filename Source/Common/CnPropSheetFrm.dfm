@@ -331,7 +331,7 @@ object CnPropSheetForm: TCnPropSheetForm
         OnKeyDown = ListViewKeyDown
         OnSelectItem = lvPropSelectItem
       end
-      object lvFields: TListView
+      object lvField: TListView
         Left = 8
         Top = 0
         Width = 321
@@ -340,6 +340,10 @@ object CnPropSheetForm: TCnPropSheetForm
           item
             Caption = 'Field Name'
             Width = 130
+          end
+          item
+            Caption = 'Type'
+            Width = 100
           end
           item
             Caption = 'Field Value'
@@ -358,7 +362,7 @@ object CnPropSheetForm: TCnPropSheetForm
         ViewStyle = vsReport
         OnCustomDrawItem = lvPropCustomDrawItem
         OnCustomDrawSubItem = lvPropCustomDrawSubItem
-        OnDblClick = lvFieldsDblClick
+        OnDblClick = lvFieldDblClick
         OnKeyDown = ListViewKeyDown
         OnSelectItem = lvPropSelectItem
       end
@@ -380,6 +384,10 @@ object CnPropSheetForm: TCnPropSheetForm
           item
             Caption = 'Event'
             Width = 130
+          end
+          item
+            Caption = 'Type'
+            Width = 100
           end
           item
             Caption = 'Handler'
@@ -410,6 +418,9 @@ object CnPropSheetForm: TCnPropSheetForm
           item
             Caption = 'Method Name'
             Width = 130
+          end
+          item
+            Caption = 'Address'
           end
           item
             Caption = 'Full Method'
