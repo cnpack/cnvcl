@@ -80,9 +80,9 @@ unit CnDebug;
 *           2006.11.11
 *               增加运行期查看对象 RTTI 信息的功能，需要定义 SUPPORT_EVALUATE。
 *           2006.10.11
-*               增加一消息类型，修改为全局对象。
+*               增加一信息类型，修改为全局对象。
 *           2006.07.16
-*               增加了三个消息统计属性。
+*               增加了三个信息统计属性。
 *           2005.02.27
 *               增加了类似于 Overseer 的 JclExcept 记录功能，需要安装 JCL 库。
 *               如不安装 JCL 库，则需要从 JCL 库中复制以下文件来参与编译：
@@ -199,18 +199,18 @@ type
   {$NODEFINE TCnMsgAnnex}
   TCnMsgAnnex = packed record
   {* 放入数据区的每条信息的头描述结构 }
-    Level:     Integer;                            // 自定义 Level 数，供用户过滤用
+    Level:     Integer;                            // 自定义 Level 数（级别），供用户过滤用
     Indent:    Integer;                            // 缩进数目，由 Enter 和 Leave 控制
     ProcessId: Cardinal;                           // 调用者的进程 ID
     ThreadId:  Cardinal;                           // 调用者的线程 ID
-    Tag: array[0..CnMaxTagLength - 1] of AnsiChar; // 自定义 Tag 值，供用户过滤用
-    MsgType:   Cardinal;                           // 消息类型
+    Tag: array[0..CnMaxTagLength - 1] of AnsiChar; // 自定义 Tag 值（标记），供用户过滤用
+    MsgType:   Cardinal;                           // 信息类型
     MsgCPInterval: Int64;                          // 计时结束时的 CPU 周期数
-    TimeStampType: Cardinal;                       // 消息输出的时间戳类型
+    TimeStampType: Cardinal;                       // 信息输出的时间戳类型
     case Integer of
-      1: (MsgDateTime:   TDateTime);               // 消息输出的时间戳值 DateTime
-      2: (MsgTickCount:  Cardinal);                // 消息输出的时间戳值 TickCount
-      3: (MsgCPUPeriod:  Int64);                   // 消息输出的时间戳值 CPU 周期
+      1: (MsgDateTime:   TDateTime);               // 信息输出的时间戳值 DateTime
+      2: (MsgTickCount:  Cardinal);                // 信息输出的时间戳值 TickCount
+      3: (MsgCPUPeriod:  Int64);                   // 信息输出的时间戳值 CPU 周期
   end;
 
   {$NODEFINE TCnMsgDesc}
@@ -368,9 +368,23 @@ type
 {$ENDIF}
   protected
     function CheckEnabled: Boolean;
-    {* 检测当前输出功能是否使能 }
+    {* 检测当前输出功能是否启用。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否启用
+    }
     function CheckFiltered(const Tag: string; Level: Byte; AType: TCnMsgType): Boolean;
-    {* 检测当前输出信息是否被允许输出，True 允许，False 允许 }
+    {* 检测当前输出信息是否被允许输出，True 允许，False 不允许。
+
+       参数：
+         const Tag: string                - 当前信息的标记
+         Level: Byte                      - 当前信息的级别
+         AType: TCnMsgType                - 当前信息的类型
+
+       返回值：Boolean                    - 返回是否允许输出
+    }
 
     // 处理 Indent
     function GetCurrentIndent(ThrdID: Cardinal): Integer;
@@ -406,216 +420,1563 @@ type
 
     // 利用 CPU 周期计时 == Start ==
     procedure StartTimeMark(const ATag: Integer; const AMsg: string = ''); overload;
-    {* 标记此 Tag 的一次计时开始的时刻，不发送内容}
+    {* 标记此 Tag 的一次计时开始的时刻，不发送内容。
+
+       参数：
+         const ATag: Integer              - 开始时刻标记
+         const AMsg: string               - 开始时刻字符串内容
+
+       返回值：（无）
+    }
     procedure StopTimeMark(const ATag: Integer; const AMsg: string = ''); overload;
-    {* 标记此 Tag 的一次计时结束的时刻，并将本次计时耗时叠加至同 Tag 计时上发出}
+    {* 标记此 Tag 的一次计时结束的时刻，并将本次计时耗时叠加至同 Tag 计时上发出。
 
-    {* 此两函数不使用局部字符串变量，误差相对较小，所以推荐使用}
+       参数：
+         const ATag: Integer              - 结束时刻标记
+         const AMsg: string               - 结束时刻字符串内容
 
+       返回值：（无）
+    }
+
+    // 以上两函数不使用局部字符串变量，误差相对较小，所以推荐使用}
     // 以下两函数由于使用了 Delphi 字符串，误差较大（几万左右个 CPU 周期）
     procedure StartTimeMark(const ATag: string; const AMsg: string = ''); overload;
+      {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+    {* 标记此 Tag 的一次计时开始的时刻，不发送内容。
+       因使用字符串导致误差较大，不推荐使用。
+
+       参数：
+         const ATag: string               - 开始时刻标记
+         const AMsg: string               - 开始时刻字符串内容
+
+       返回值：（无）
+    }
+
     procedure StopTimeMark(const ATag: string; const AMsg: string = ''); overload;
+      {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+    {* 标记此 Tag 的一次计时结束的时刻，并将本次计时耗时叠加至同 Tag 计时上发出。
+       因使用字符串导致误差较大，不推荐使用。
+
+       参数：
+         const ATag: string               - 结束时刻标记
+         const AMsg: string               - 结束时刻字符串内容
+
+       返回值：（无）
+    }
+
     // 利用 CPU 周期计时 == End ==
 
     // Log 系列输出函数 == Start ==
     procedure LogMsg(const AMsg: string);
+    {* 在 DEBUG 条件下输出字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogMsgWithTag(const AMsg: string; const ATag: string);
+    {* 在 DEBUG 条件下输出指定标记的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure LogMsgWithLevel(const AMsg: string; ALevel: Integer);
+    {* 在 DEBUG 条件下输出指定级别的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         ALevel: Integer                  - 待输出的信息级别
+
+       返回值：（无）
+    }
+
     procedure LogMsgWithType(const AMsg: string; AType: TCnMsgType);
+    {* 在 DEBUG 条件下输出指定类型的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         AType: TCnMsgType                - 待输出的信息类型
+
+       返回值：（无）
+    }
+
     procedure LogMsgWithTagLevel(const AMsg: string; const ATag: string; ALevel: Integer);
+    {* 在 DEBUG 条件下输出指定标记、指定级别的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         const ATag: string               - 待输出的信息标记
+         ALevel: Integer                  - 待输出的信息级别
+
+       返回值：（无）
+    }
+
     procedure LogMsgWithLevelType(const AMsg: string; ALevel: Integer; AType: TCnMsgType);
+    {* 在 DEBUG 条件下输出指定级别、指定类型的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         ALevel: Integer                  - 待输出的信息级别
+         AType: TCnMsgType                - 待输出的信息类型
+
+       返回值：（无）
+    }
+
     procedure LogMsgWithTypeTag(const AMsg: string; AType: TCnMsgType; const ATag: string);
+    {* 在 DEBUG 条件下输出指定类型、指定标记的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         AType: TCnMsgType                - 待输出的信息类型
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure LogFmt(const AFormat: string; Args: array of const);
+    {* 在 DEBUG 条件下输出格式化字符串信息。
+
+       参数：
+         const AFormat: string            - 待输出的格式化字符串
+         Args: array of const             - 待输出的参数数组
+
+       返回值：（无）
+    }
+
     procedure LogFmtWithTag(const AFormat: string; Args: array of const; const ATag: string);
+    {* 在 DEBUG 条件下输出指定标记的格式化字符串信息。
+
+       参数：
+         const AFormat: string            - 待输出的格式化字符串
+         Args: array of const             - 待输出的参数数组
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure LogFmtWithLevel(const AFormat: string; Args: array of const; ALevel: Integer);
+    {* 在 DEBUG 条件下输出指定级别的格式化字符串信息。
+
+       参数：
+         const AFormat: string            - 待输出的格式化字符串
+         Args: array of const             - 待输出的参数数组
+         ALevel: Integer                  - 待输出的信息级别
+
+       返回值：（无）
+    }
+
     procedure LogFmtWithType(const AFormat: string; Args: array of const; AType: TCnMsgType);
+    {* 在 DEBUG 条件下输出指定类型的格式化字符串信息。
+
+       参数：
+         const AFormat: string            - 待输出的格式化字符串
+         Args: array of const             - 待输出的参数数组
+         AType: TCnMsgType                - 待输出的信息类型
+
+       返回值：（无）
+    }
+
     procedure LogFull(const AMsg: string; const ATag: string;
       ALevel: Integer; AType: TCnMsgType; CPUPeriod: Int64 = 0);
+    {* 在 DEBUG 条件下输出指定标记、指定级别、指定类型，可能携带计时信息的字符串。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         const ATag: string               - 待输出的信息标记
+         ALevel: Integer                  - 待输出的信息级别
+         AType: TCnMsgType                - 待输出的信息类型
+         CPUPeriod: Int64                 - 携带的计时信息，默认为 0
+
+       返回值：（无）
+    }
 
     procedure LogSeparator;
+    {* 在 DEBUG 条件下输出分隔线}
+
     procedure LogEnter(const AProcName: string; const ATag: string = '');
+    {* 在 DEBUG 条件下输出指定标记的函数过程进入信息。
+
+       参数：
+         const AProcName: string          - 进入的函数过程名
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
     procedure LogLeave(const AProcName: string; const ATag: string = '');
+    {* 在 DEBUG 条件下输出指定标记的函数过程退出信息。
+
+       参数：
+         const AProcName: string          - 退出的函数过程名
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
 
     // 额外辅助的输出函数
     procedure LogMsgWarning(const AMsg: string);
+    {* 在 DEBUG 条件下输出警告类型的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的警告类型的字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogMsgError(const AMsg: string);
+    {* 在 DEBUG 条件下输出错误类型的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的错误类型的字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogErrorFmt(const AFormat: string; Args: array of const);
+    {* 在 DEBUG 条件下输出错误类型的格式化字符串信息。
+
+       参数：
+         const AFormat: string            - 待输出的格式化字符串
+         Args: array of const             - 待输出的参数数组
+
+       返回值：（无）
+    }
+
 {$IFDEF MSWINDOWS}
     procedure LogLastError;
+    {* 在 DEBUG 条件下输出 Windows 下的 GetLastError 值}
 {$ENDIF}
+
     procedure LogAssigned(Value: Pointer; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出指针及其为空判断。
+
+       参数：
+         Value: Pointer                   - 待判断输出的指针
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogBoolean(Value: Boolean; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出布尔值。
+
+       参数：
+         Value: Boolean                   - 待输出的布尔值
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogColor(Color: TColor; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出颜色值。
+
+       参数：
+         Color: TColor                    - 待输出的颜色值
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogFloat(Value: Extended; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出浮点数。
+
+       参数：
+         Value: Extended                  - 待输出的浮点数
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogInteger(Value: Integer; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出 32 位有符号整型值。
+
+       参数：
+         Value: Integer                   - 待输出的 32 位有符号整型值
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogInt64(Value: Int64; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出 64 位有符号整型值。
+
+       参数：
+         Value: Int64                     - 待输出的 64 位有符号整型值
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
 {$IFDEF SUPPORT_UINT64}
     procedure LogUInt64(Value: UInt64; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出 64 位无符号整型值。
+
+       参数：
+         Value: UInt64                    - 待输出的 64 位无符号整型值
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
 {$ENDIF}
+
     procedure LogChar(Value: Char; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出单个字符值。
+
+       参数：
+         Value: Char                      - 待输出的字符
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogAnsiChar(Value: AnsiChar; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出单个单字节字符值。
+
+       参数：
+         Value: AnsiChar                  - 待输出的单字节字符
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogWideChar(Value: WideChar; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出单个双字节字符值。
+
+       参数：
+         Value: WideChar                  - 待输出的双字节字符
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogSet(const ASet; ASetSize: Integer; SetElementTypInfo: PTypeInfo = nil;
       const AMsg: string = '');
+    {* 在 DEBUG 条件下输出集合值。
+
+       参数：
+         const ASet                       - 待输出的集合值
+         ASetSize: Integer                - 集合大小
+         SetElementTypInfo: PTypeInfo     - 该集合类型的类型信息
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogCharSet(const ASet: TSysCharSet; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出字符集合。
+
+       参数：
+         const ASet: TSysCharSet          - 待输出的字符集合
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogAnsiCharSet(const ASet: TCnAnsiCharSet; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出单字符集合。
+
+       参数：
+         const ASet: TCnAnsiCharSet       - 待输出的单字符集合
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
 {$IFDEF UNICODE}
     procedure LogWideCharSet(const ASet: TCnWideCharSet; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出双字符集合。
+
+       参数：
+         const ASet: TCnWideCharSet       - 待输出的双字符集合
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
 {$ENDIF}
+
     procedure LogDateTime(Value: TDateTime; const AMsg: string = '' );
+    {* 在 DEBUG 条件下输出日期时间。
+
+       参数：
+         Value: TDateTime                 - 待输出的日期时间
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
+    {* 在 DEBUG 条件下输出指定格式的日期时间。
+
+       参数：
+         Value: TDateTime                 - 待输出的日期时间
+         const AFmt: string               - 待输出的日期时间格式字符串
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogPointer(Value: Pointer; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出指针值。
+
+       参数：
+         Value: Pointer                   - 待输出的指针值
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogPoint(Point: TPoint; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出点坐标。
+
+       参数：
+         Point: TPoint                    - 待输出的点坐标
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogSize(Size: TSize; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出尺寸结构。
+
+       参数：
+         Size: TSize                      - 待输出的尺寸结构
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogRect(Rect: TRect; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出矩形坐标。
+
+       参数：
+         Rect: TRect                      - 待输出的矩形坐标
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogBits(Bits: TBits; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出位数组对象。
+
+       参数：
+         Bits: TBits                      - 待输出的位数组对象
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogGUID(const GUID: TGUID; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出 GUID。
+
+       参数：
+         const GUID: TGUID                - 待输出的 GUID
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogRawString(const Value: string);
+    {* 在 DEBUG 条件下输出字符串的原始值，包括十六进制。
+
+       参数：
+         const Value: string              - 待输出的字符串
+
+       返回值：（无）
+    }
+
     procedure LogRawAnsiString(const Value: AnsiString);
+    {* 在 DEBUG 条件下输出 AnsiString 的原始值，包括十六进制。
+
+       参数：
+         const Value: AnsiString          - 待输出的 AnsiString
+
+       返回值：（无）
+    }
+
     procedure LogRawWideString(const Value: WideString);
+    {* 在 DEBUG 条件下输出 WideString 的原始值，包括十六进制。
+
+       参数：
+         const Value: WideString          - 待输出的 WideString
+
+       返回值：（无）
+    }
+
     procedure LogStrings(Strings: TStrings; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出字符串列表的值。
+
+       参数：
+         Strings: TStrings                - 待输出的字符串列表对象
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     procedure LogEnumType<T>(const AMsg: string = '');
+    {* 在 DEBUG 条件下通过泛型的方式输出枚举类型。
+
+       参数：
+         T                                - 待输出的枚举类型
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
 {$ENDIF}
+
     procedure LogException(E: Exception; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出异常。
+
+       参数：
+         E: Exception                     - 待输出的异常
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogMemDump(AMem: Pointer; Size: Integer);
+    {* 在 DEBUG 条件下输出指定内存块内容
+
+       参数：
+         AMem: Pointer                    - 待输出的内存块地址
+         Size: Integer                    - 待输出的内存块字节长度
+
+       返回值：（无）
+    }
+
     procedure LogBitmapMemory(ABmp: TBitmap);
-    // 既适用于 Vcl 的 TBitmap，也适用于 Fmx 的 TBitmap，根据编译条件而定
+    {* 在 DEBUG 条件下输出位图的内存内容，内容可能拆成多条信息输出。
+       既适用于 Vcl 的 TBitmap，也适用于 Fmx 的 TBitmap，根据编译条件而定。
+
+       参数：
+         ABmp: TBitmap                    - 待输出内存内容的位图对象
+
+       返回值：（无）
+    }
+
 {$IFDEF MSWINDOWS}
     procedure LogVirtualKey(AKey: Word);
+    {* 在 DEBUG 条件下输出虚拟键值。
+
+       参数：
+         AKey: Word                       - 待输出的虚拟键值
+
+       返回值：（无）
+    }
+
     procedure LogVirtualKeyWithTag(AKey: Word; const ATag: string);
+    {* 在 DEBUG 条件下输出指定标记的虚拟键值。
+
+       参数：
+         AKey: Word                       - 待输出的虚拟键值
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure LogWindowMessage(AMessage: Cardinal);
+    {* 在 DEBUG 条件下输出 Windows 消息。
+
+       参数：
+         AMessage: Cardinal               - 待输出的 Windows 消息
+
+       返回值：（无）
+    }
+
     procedure LogWindowMessageWithTag(AMessage: Cardinal; const ATag: string);
+    {* 在 DEBUG 条件下输出指定标记的 Windows 消息。
+
+       参数：
+         AMessage: Cardinal               - 待输出的 Windows 消息
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
 {$ENDIF}
     procedure LogObject(AObject: TObject);
+    {* 在 DEBUG 条件下输出对象，包括其属性与实现的接口。
+
+       参数：
+         AObject: TObject                 - 待输出的对象
+
+       返回值：（无）
+    }
+
     procedure LogObjectWithTag(AObject: TObject; const ATag: string);
+    {* 在 DEBUG 条件下输出指定标记的对象，包括其属性与实现的接口。
+
+       参数：
+         AObject: TObject                 - 待输出的对象
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure LogCollection(ACollection: TCollection);
+    {* 在 DEBUG 条件下输出 Collection，包括其属性、实现接口及其 CollectionItem。
+
+       参数：
+         ACollection: TCollection         - 待输出的 Collection
+
+       返回值：（无）
+    }
+
     procedure LogCollectionWithTag(ACollection: TCollection; const ATag: string);
+    {* 在 DEBUG 条件下输出指定标记的 Collection，包括其属性、实现接口及其 CollectionItem。
+
+       参数：
+         ACollection: TCollection         - 待输出的 Collection
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure LogComponent(AComponent: TComponent);
+    {* 在 DEBUG 条件下输出组件的流化内容。
+
+       参数：
+         AComponent: TComponent           - 待输出的组件
+
+       返回值：（无）
+    }
+
     procedure LogComponentWithTag(AComponent: TComponent; const ATag: string);
+    {* 在 DEBUG 条件下输出指定标记的组件的流化内容。
+
+       参数：
+         AComponent: TComponent           - 待输出的组件
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure LogCurrentStack(const AMsg: string = '');
+    {* 在 DEBUG 条件下输出当前运行堆栈信息。
+
+       参数：
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogConstArray(const Arr: array of const; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出参数数组。
+
+       参数：
+         Arr: array of const              - 待输出的参数数组
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogIntegerArray(const Arr: array of Integer; const AMsg: string = ''); overload;
+    {* 在 DEBUG 条件下输出 32 位有符号整数动态数组。
+
+       参数：
+         const Arr: array of Integer      - 待输出的 32 位有符号整数动态数组
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogIntegerArray(const ArrAddr: Pointer; Count: Integer; const AMsg: string = ''); overload;
+    {* 在 DEBUG 条件下输出 32 位有符号整数数组。
+
+       参数：
+         const ArrAddr: Pointer           - 待输出的 32 位有符号整数数组的首地址
+         Count: Integer                   - 数组元素个数
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogCardinalArray(const Arr: array of Cardinal; const AMsg: string = ''); overload;
+    {* 在 DEBUG 条件下输出 32 位无符号整数动态数组。
+
+       参数：
+         const Arr: array of Cardinal     - 待输出的 32 位无符号整数动态数组
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogCardinalArray(const ArrAddr: Pointer; Count: Integer; const AMsg: string = ''); overload;
+    {* 在 DEBUG 条件下输出 32 位无符号整数数组。
+
+       参数：
+         const ArrAddr: Pointer           - 待输出的 32 位无符号整数数组的首地址
+         Count: Integer                   - 数组元素个数
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogClass(const AClass: TClass; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出类信息，包括属性等。
+
+       参数：
+         const AClass: TClass             - 待输出的类
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogClassByName(const AClassName: string; const AMsg: string = '');
+    {* 在 DEBUG 条件下根据类名查找并输出类信息，包括属性等。
+
+       参数：
+         const AClassName: string         - 待输出的类名
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogInterface(const AIntf: IUnknown; const AMsg: string = '');
+    {* 在 DEBUG 条件下输出接口实例信息，包括实现它的对象信息。
+
+       参数：
+         const AIntf: IUnknown            - 待输出的接口实例
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure LogStackFromAddress(Addr: Pointer; const AMsg: string = '');
+    {* 在 DEBUG 条件下分析并输出指定地址的调用堆栈信息。
+
+       参数：
+         Addr: Pointer                    - 待分析的指定地址
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     // Log 系列输出函数 == End ==
 
     // Trace 系列输出函数 == Start ==
     procedure TraceMsg(const AMsg: string);
+    {* 无 NDEBUG 条件时输出字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceMsgWithTag(const AMsg: string; const ATag: string);
+    {* 无 NDEBUG 条件时输出指定标记的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure TraceMsgWithLevel(const AMsg: string; ALevel: Integer);
+    {* 无 NDEBUG 条件时输出指定级别的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         ALevel: Integer                  - 待输出的信息级别
+
+       返回值：（无）
+    }
+
     procedure TraceMsgWithType(const AMsg: string; AType: TCnMsgType);
+    {* 无 NDEBUG 条件时输出指定类型的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         AType: TCnMsgType                - 待输出的信息类型
+
+       返回值：（无）
+    }
+
     procedure TraceMsgWithTagLevel(const AMsg: string; const ATag: string; ALevel: Integer);
+    {* 无 NDEBUG 条件时输出指定标记、指定级别的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         const ATag: string               - 待输出的信息标记
+         ALevel: Integer                  - 待输出的信息级别
+
+       返回值：（无）
+    }
+
     procedure TraceMsgWithLevelType(const AMsg: string; ALevel: Integer; AType: TCnMsgType);
+    {* 无 NDEBUG 条件时输出指定级别、指定类型的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         ALevel: Integer                  - 待输出的信息级别
+         AType: TCnMsgType                - 待输出的信息类型
+
+       返回值：（无）
+    }
+
     procedure TraceMsgWithTypeTag(const AMsg: string; AType: TCnMsgType; const ATag: string);
+    {* 无 NDEBUG 条件时输出指定类型、指定标记的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         AType: TCnMsgType                - 待输出的信息类型
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure TraceFmt(const AFormat: string; Args: array of const);
+    {* 无 NDEBUG 条件时输出格式化字符串信息。
+
+       参数：
+         const AFormat: string            - 待输出的格式化字符串
+         Args: array of const             - 待输出的参数数组
+
+       返回值：（无）
+    }
+
     procedure TraceFmtWithTag(const AFormat: string; Args: array of const; const ATag: string);
+    {* 无 NDEBUG 条件时输出指定标记的格式化字符串信息。
+
+       参数：
+         const AFormat: string            - 待输出的格式化字符串
+         Args: array of const             - 待输出的参数数组
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure TraceFmtWithLevel(const AFormat: string; Args: array of const; ALevel: Integer);
+    {* 无 NDEBUG 条件时输出指定级别的格式化字符串信息。
+
+       参数：
+         const AFormat: string            - 待输出的格式化字符串
+         Args: array of const             - 待输出的参数数组
+         ALevel: Integer                  - 待输出的信息级别
+
+       返回值：（无）
+    }
+
     procedure TraceFmtWithType(const AFormat: string; Args: array of const; AType: TCnMsgType);
+    {* 无 NDEBUG 条件时输出指定类型的格式化字符串信息。
+
+       参数：
+         const AFormat: string            - 待输出的格式化字符串
+         Args: array of const             - 待输出的参数数组
+         AType: TCnMsgType                - 待输出的信息类型
+
+       返回值：（无）
+    }
+
     procedure TraceFull(const AMsg: string; const ATag: string;
       ALevel: Integer; AType: TCnMsgType; CPUPeriod: Int64 = 0);
+    {* 无 NDEBUG 条件时输出指定标记、指定级别、指定类型，可能携带计时信息的字符串。
+
+       参数：
+         const AMsg: string               - 待输出的字符串信息
+         const ATag: string               - 待输出的信息标记
+         ALevel: Integer                  - 待输出的信息级别
+         AType: TCnMsgType                - 待输出的信息类型
+         CPUPeriod: Int64                 - 携带的计时信息，默认为 0
+
+       返回值：（无）
+    }
 
     procedure TraceSeparator;
+    {* 无 NDEBUG 条件时输出分隔线}
+
     procedure TraceEnter(const AProcName: string; const ATag: string = '');
+    {* 无 NDEBUG 条件时输出指定标记的函数过程进入信息。
+
+       参数：
+         const AProcName: string          - 进入的函数过程名
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure TraceLeave(const AProcName: string; const ATag: string = '');
+    {* 无 NDEBUG 条件时输出指定标记的函数过程退出信息。
+
+       参数：
+         const AProcName: string          - 退出的函数过程名
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
 
     // 额外辅助的输出函数
     procedure TraceMsgWarning(const AMsg: string);
+    {* 无 NDEBUG 条件时输出警告类型的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的警告类型的字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceMsgError(const AMsg: string);
+    {* 无 NDEBUG 条件时输出错误类型的字符串信息。
+
+       参数：
+         const AMsg: string               - 待输出的错误类型的字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceErrorFmt(const AFormat: string; Args: array of const);
+    {* 无 NDEBUG 条件时输出错误类型的格式化字符串信息。
+
+       参数：
+         const AFormat: string            - 待输出的格式化字符串
+         Args: array of const             - 待输出的参数数组
+
+       返回值：（无）
+    }
+
 {$IFDEF MSWINDOWS}
     procedure TraceLastError;
+    {* 无 NDEBUG 条件时输出 Windows 下的 GetLastError 值}
 {$ENDIF}
+
     procedure TraceAssigned(Value: Pointer; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出指针及其为空判断。
+
+       参数：
+         Value: Pointer                   - 待判断输出的指针
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceBoolean(Value: Boolean; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出布尔值。
+
+       参数：
+         Value: Boolean                   - 待输出的布尔值
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceColor(Color: TColor; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出颜色值。
+
+       参数：
+         Color: TColor                    - 待输出的颜色值
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceFloat(Value: Extended; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出浮点数。
+
+       参数：
+         Value: Extended                  - 待输出的浮点数
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceInteger(Value: Integer; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出 32 位有符号整型值。
+
+       参数：
+         Value: Integer                   - 待输出的 32 位有符号整型值
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceInt64(Value: Int64; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出 64 位有符号整型值。
+
+       参数：
+         Value: Int64                     - 待输出的 64 位有符号整型值
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
 {$IFDEF SUPPORT_UINT64}
     procedure TraceUInt64(Value: UInt64; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出 64 位无符号整型值。
+
+       参数：
+         Value: UInt64                    - 待输出的 64 位无符号整型值
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
 {$ENDIF}
+
     procedure TraceChar(Value: Char; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出单个字符值。
+
+       参数：
+         Value: Char                      - 待输出的字符
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceAnsiChar(Value: AnsiChar; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出单个单字节字符值。
+
+       参数：
+         Value: AnsiChar                  - 待输出的单字节字符
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceWideChar(Value: WideChar; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出单个双字节字符值。
+
+       参数：
+         Value: WideChar                  - 待输出的双字节字符
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceSet(const ASet; ASetSize: Integer; SetElementTypInfo: PTypeInfo = nil;
       const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出集合值。
+
+       参数：
+         const ASet                       - 待输出的集合值
+         ASetSize: Integer                - 集合大小
+         SetElementTypInfo: PTypeInfo     - 该集合类型的类型信息
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceCharSet(const ASet: TSysCharSet; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出字符集合。
+
+       参数：
+         const ASet: TSysCharSet          - 待输出的字符集合
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceAnsiCharSet(const ASet: TCnAnsiCharSet; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出单字符集合。
+
+       参数：
+         const ASet: TCnAnsiCharSet       - 待输出的单字符集合
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
 {$IFDEF UNICODE}
     procedure TraceWideCharSet(const ASet: TCnWideCharSet; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出双字符集合。
+
+       参数：
+         const ASet: TCnWideCharSet       - 待输出的双字符集合
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
 {$ENDIF}
+
     procedure TraceDateTime(Value: TDateTime; const AMsg: string = '' );
+    {* 无 NDEBUG 条件时输出日期时间。
+
+       参数：
+         Value: TDateTime                 - 待输出的日期时间
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceDateTimeFmt(Value: TDateTime; const AFmt: string; const AMsg: string = '' );
+    {* 无 NDEBUG 条件时输出指定格式的日期时间。
+
+       参数：
+         Value: TDateTime                 - 待输出的日期时间
+         const AFmt: string               - 待输出的日期时间格式字符串
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TracePointer(Value: Pointer; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出指针值。
+
+       参数：
+         Value: Pointer                   - 待输出的指针值
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TracePoint(Point: TPoint; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出点坐标。
+
+       参数：
+         Point: TPoint                    - 待输出的点坐标
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceSize(Size: TSize; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出尺寸结构。
+
+       参数：
+         Size: TSize                      - 待输出的尺寸结构
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceRect(Rect: TRect; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出矩形坐标。
+
+       参数：
+         Rect: TRect                      - 待输出的矩形坐标
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceBits(Bits: TBits; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出位数组对象。
+
+       参数：
+         Bits: TBits                      - 待输出的位数组对象
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceGUID(const GUID: TGUID; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出 GUID。
+
+       参数：
+         const GUID: TGUID                - 待输出的 GUID
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceRawString(const Value: string);
+    {* 无 NDEBUG 条件时输出字符串的原始值，包括十六进制。
+
+       参数：
+         const Value: string              - 待输出的字符串
+
+       返回值：（无）
+    }
+
     procedure TraceRawAnsiString(const Value: AnsiString);
+    {* 无 NDEBUG 条件时输出 AnsiString 的原始值，包括十六进制。
+
+       参数：
+         const Value: AnsiString          - 待输出的 AnsiString
+
+       返回值：（无）
+    }
+
     procedure TraceRawWideString(const Value: WideString);
+    {* 无 NDEBUG 条件时输出 WideString 的原始值，包括十六进制。
+
+       参数：
+         const Value: WideString          - 待输出的 WideString
+
+       返回值：（无）
+    }
+
     procedure TraceStrings(Strings: TStrings; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出字符串列表的值。
+
+       参数：
+         Strings: TStrings                - 待输出的字符串列表对象
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
 {$IFDEF SUPPORT_ENHANCED_RTTI}
     procedure TraceEnumType<T>(const AMsg: string = '');
+    {* 无 NDEBUG 条件时通过泛型的方式输出枚举类型。
+
+       参数：
+         T                                - 待输出的枚举类型
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
 {$ENDIF}
+
     procedure TraceException(E: Exception; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出异常。
+
+       参数：
+         E: Exception                     - 待输出的异常
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceMemDump(AMem: Pointer; Size: Integer);
+    {* 无 NDEBUG 条件时输出指定内存块内容
+
+       参数：
+         AMem: Pointer                    - 待输出的内存块地址
+         Size: Integer                    - 待输出的内存块字节长度
+
+       返回值：（无）
+    }
+
     procedure TraceBitmapMemory(ABmp: TBitmap);
+    {* 无 NDEBUG 条件时输出位图的内存内容，内容可能拆成多条信息输出。
+       既适用于 Vcl 的 TBitmap，也适用于 Fmx 的 TBitmap，根据编译条件而定。
+
+       参数：
+         ABmp: TBitmap                    - 待输出内存内容的位图对象
+
+       返回值：（无）
+    }
+
 {$IFDEF MSWINDOWS}
     procedure TraceVirtualKey(AKey: Word);
+    {* 无 NDEBUG 条件时输出虚拟键值。
+
+       参数：
+         AKey: Word                       - 待输出的虚拟键值
+
+       返回值：（无）
+    }
+
     procedure TraceVirtualKeyWithTag(AKey: Word; const ATag: string);
+    {* 无 NDEBUG 条件时输出指定标记的虚拟键值。
+
+       参数：
+         AKey: Word                       - 待输出的虚拟键值
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure TraceWindowMessage(AMessage: Cardinal);
+    {* 无 NDEBUG 条件时输出 Windows 消息。
+
+       参数：
+         AMessage: Cardinal               - 待输出的 Windows 消息
+
+       返回值：（无）
+    }
+
     procedure TraceWindowMessageWithTag(AMessage: Cardinal; const ATag: string);
+    {* 无 NDEBUG 条件时输出指定标记的 Windows 消息。
+
+       参数：
+         AMessage: Cardinal               - 待输出的 Windows 消息
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
 {$ENDIF}
+
     procedure TraceObject(AObject: TObject);
+    {* 无 NDEBUG 条件时输出对象，包括其属性与实现的接口。
+
+       参数：
+         AObject: TObject                 - 待输出的对象
+
+       返回值：（无）
+    }
+
     procedure TraceObjectWithTag(AObject: TObject; const ATag: string);
+    {* 无 NDEBUG 条件时输出指定标记的对象，包括其属性与实现的接口。
+
+       参数：
+         AObject: TObject                 - 待输出的对象
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure TraceCollection(ACollection: TCollection);
+    {* 无 NDEBUG 条件时输出 Collection，包括其属性、实现接口及其 CollectionItem。
+
+       参数：
+         ACollection: TCollection         - 待输出的 Collection
+
+       返回值：（无）
+    }
+
     procedure TraceCollectionWithTag(ACollection: TCollection; const ATag: string);
+    {* 无 NDEBUG 条件时输出指定标记的 Collection，包括其属性、实现接口及其 CollectionItem。
+
+       参数：
+         ACollection: TCollection         - 待输出的 Collection
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure TraceComponent(AComponent: TComponent);
+    {* 无 NDEBUG 条件时输出组件的流化内容。
+
+       参数：
+         AComponent: TComponent           - 待输出的组件
+
+       返回值：（无）
+    }
+
     procedure TraceComponentWithTag(AComponent: TComponent; const ATag: string);
+    {* 无 NDEBUG 条件时输出指定标记的组件的流化内容。
+
+       参数：
+         AComponent: TComponent           - 待输出的组件
+         const ATag: string               - 待输出的信息标记
+
+       返回值：（无）
+    }
+
     procedure TraceCurrentStack(const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出当前运行堆栈信息。
+
+       参数：
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceConstArray(const Arr: array of const; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出参数数组。
+
+       参数：
+         Arr: array of const              - 待输出的参数数组
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceIntegerArray(const Arr: array of Integer; const AMsg: string = ''); overload;
+    {* 无 NDEBUG 条件时输出 32 位有符号整数动态数组。
+
+       参数：
+         const Arr: array of Integer      - 待输出的 32 位有符号整数动态数组
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceIntegerArray(const ArrAddr: Pointer; Count: Integer; const AMsg: string = ''); overload;
+    {* 无 NDEBUG 条件时输出 32 位有符号整数数组。
+
+       参数：
+         const ArrAddr: Pointer           - 待输出的 32 位有符号整数数组的首地址
+         Count: Integer                   - 数组元素个数
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceCardinalArray(const Arr: array of Cardinal; const AMsg: string = ''); overload;
+    {* 无 NDEBUG 条件时输出 32 位无符号整数动态数组。
+
+       参数：
+         const Arr: array of Cardinal     - 待输出的 32 位无符号整数动态数组
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceCardinalArray(const ArrAddr: Pointer; Count: Integer; const AMsg: string = ''); overload;
+    {* 无 NDEBUG 条件时输出 32 位无符号整数数组。
+
+       参数：
+         const ArrAddr: Pointer           - 待输出的 32 位无符号整数数组的首地址
+         Count: Integer                   - 数组元素个数
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceClass(const AClass: TClass; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出类信息，包括属性等。
+
+       参数：
+         const AClass: TClass             - 待输出的类
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceClassByName(const AClassName: string; const AMsg: string = '');
+    {* 无 NDEBUG 条件时根据类名查找并输出类信息，包括属性等。
+
+       参数：
+         const AClassName: string         - 待输出的类名
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceInterface(const AIntf: IUnknown; const AMsg: string = '');
+    {* 无 NDEBUG 条件时输出接口实例信息，包括实现它的对象信息。
+
+       参数：
+         const AIntf: IUnknown            - 待输出的接口实例
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     procedure TraceStackFromAddress(Addr: Pointer; const AMsg: string = '');
+    {* 无 NDEBUG 条件时分析并输出指定地址的调用堆栈信息。
+
+       参数：
+         Addr: Pointer                    - 待分析的指定地址
+         const AMsg: string               - 待输出的附加字符串信息
+
+       返回值：（无）
+    }
+
     // Trace 系列输出函数 == End ==
 
     // 监视变量函数
     procedure WatchMsg(const AVarName: string; const AValue: string);
+    {* 无 NDEBUG 条件时监视变量，同一个变量名的值将更新。
+
+       参数：
+         const AVarName: string           - 待监视输出的变量名
+         const AValue: string             - 待监视输出的变量值
+
+       返回值：（无）
+    }
     procedure WatchFmt(const AVarName: string; const AFormat: string; Args: array of const);
+    {* 无 NDEBUG 条件时监视变量，同一个变量名的值将更新。
+
+       参数：
+         const AVarName: string           - 待监视输出的变量名
+         const AFormat: string            - 待监视输出的格式化字符串
+         Args: array of const             - 待监视输出的参数数组
+
+       返回值：（无）
+    }
     procedure WatchClear(const AVarName: string);
+    {* 无 NDEBUG 条件时清除监视变量。
+
+       参数：
+         const AVarName: string           - 待清除的变量名
+
+       返回值：（无）
+    }
 
     // 异常过滤函数
     procedure AddFilterExceptClass(E: ExceptClass); overload;
+    {* 增加异常过滤。
+
+       参数：
+         E: ExceptClass                   - 待增加的异常类
+
+       返回值：（无）
+    }
+
     procedure RemoveFilterExceptClass(E: ExceptClass); overload;
+    {* 删除异常过滤。
+
+       参数：
+         E: ExceptClass                   - 待删除的异常类
+
+       返回值：（无）
+    }
     procedure AddFilterExceptClass(const EClassName: string); overload;
+    {* 增加异常过滤。
+
+       参数：
+         const EClassName: string         - 待增加的异常类名
+
+       返回值：（无）
+    }
     procedure RemoveFilterExceptClass(const EClassName: string); overload;
+    {* 删除异常过滤。
+
+       参数：
+         const EClassName: string         - 待删除的异常类名
+
+       返回值：（无）
+    }
 
     // 查看对象函数
     procedure EvaluateObject(AObject: TObject; SyncMode: Boolean = False); overload;
-    procedure EvaluateObject(APointer: Pointer; SyncMode: Boolean = False); overload;
+    {* 查看对象细节
 
+       参数：
+         AObject: TObject                 - 待查看的对象
+         SyncMode: Boolean                - 是否阻塞式同步分析对象
+
+       返回值：（无）
+    }
+
+    procedure EvaluateObject(APointer: Pointer; SyncMode: Boolean = False); overload;
+    {* 查看对象细节
+
+       参数：
+         APointer: Pointer                - 待查看的对象指针
+         SyncMode: Boolean                - 是否阻塞式同步分析对象
+
+       返回值：（无）
+    }
 
     procedure EvaluateControlUnderPos(const ScreenPos: TPoint); {$IFDEF ENABLE_FMX} overload; {$ENDIF}
+    {* 查看指定屏幕坐标下的 VCL 控件细节
+
+       参数：
+         const ScreenPos: TPoint          - 指定的屏幕坐标
+
+       返回值：（无）
+    }
+
 {$IFDEF ENABLE_FMX}
     procedure EvaluateControlUnderPos(const ScreenPos: TPointF); overload;
+    {* 查看指定屏幕坐标下的 FMX 控件细节
+
+       参数：
+         const ScreenPos: TPointF         - 指定的屏幕坐标
+
+       返回值：（无）
+    }
 {$ENDIF}
+
     procedure EvaluateInterfaceInstance(const AIntf: IUnknown; SyncMode: Boolean = False);
+    {* 查看接口实例对应的对象细节。
+
+       参数：
+         const AIntf: IUnknown            - 待查看的接口实例
+         SyncMode: Boolean                - 是否阻塞式同步分析接口
+
+       返回值：（无）
+    }
 
     // 辅助过程
     function ObjectFromInterface(const AIntf: IUnknown): TObject;
+    {* 从接口实例查找对应实现它的具体对象实例。
+
+       参数：
+         const AIntf: IUnknown            - 待查找的接口实例
+
+       返回值：TObject                    - 返回查找到的对象实例
+    }
 
     procedure FindComponent;
     {* 全局范围内发起 Component 遍历，每个组件触发 OnFindComponent 事件，用于查找}
@@ -648,13 +2009,13 @@ type
     property UseAppend: Boolean read GetUseAppend write SetUseAppend;
     {* 每次运行时，如果文件已存在，是否追加到已有内容后还是重写}
 
-    // 输出消息统计
+    // 输出信息统计
     property MessageCount: Integer read GetMessageCount;
-    {* 调用而输出的拆包消息数。注意一条长消息可能会被拆包拆成多条消息}
+    {* 调用而输出的拆包信息数。注意一条长信息可能会被拆包拆成多条信息}
     property PostedMessageCount: Integer read GetPostedMessageCount;
-    {* 实际输出成功的拆包后的消息数。}
+    {* 实际输出成功的拆包后的信息数。}
     property DiscardedMessageCount: Integer read GetDiscardedMessageCount;
-    {* 未输出的拆包消息数。}
+    {* 未输出的拆包信息数。}
 
     property OnFindComponent: TCnFindComponentEvent read FOnFindComponent write FOnFindComponent;
     {* 全局遍历 Component 时的回调}
@@ -670,22 +2031,66 @@ type
     procedure SetAutoFlush(const Value: Boolean);
   protected
     procedure SetActive(const Value: Boolean); virtual;
-    {* 供子类重载以处理 Active 变化}
+    {* 供子类重载以处理 Active 变化。
+
+       参数：
+         const Value: Boolean             - 是否启用
+
+       返回值：（无）
+    }
+
     function CheckReady: Boolean; virtual;
-    {* 检测是否准备好}
+    {* 检测是否准备好。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否准备好
+    }
+
     procedure UpdateFlush; virtual;
     {* AutoFlush 属性更新时供子类重载以进行处理}
   public
     constructor Create(IsAutoFlush: Boolean = True); virtual;
-    {* 构造函数，参数为是否自动送出并等待接收完成}
+    {* 构造函数，参数为是否自动送出并等待接收完成。
+
+       参数：
+         IsAutoFlush: Boolean             - 是否自动送出并等待接收完成
+
+       返回值：（无）
+    }
+
     procedure StartDebugViewer; virtual;
     {* 启动 Debug Viewer 并等待其启动完成}
+
     function CheckFilterChanged: Boolean; virtual;
-    {* 检测过滤条件是否改变}
+    {* 检测过滤条件是否改变。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回过滤条件是否改变
+    }
+
     procedure RefreshFilter(Filter: TCnDebugFilter); virtual;
-    {* 过滤条件改变时重新载入}
+    {* 过滤条件改变时重新载入。
+
+       参数：
+         Filter: TCnDebugFilter           - 待重新载入的过滤条件
+
+       返回值：（无）
+    }
+
     procedure SendContent(var MsgDesc; Size: Integer); virtual;
-    {* 发送信息内容}
+    {* 发送信息内容
+
+       参数：
+         var MsgDesc                      - 待发送的信息体
+         Size: Integer                    - 待发送的信息字节长度
+
+       返回值：（无）
+    }
+
     property Active: Boolean read FActive write SetActive;
     {* 是否激活}
     property AutoFlush: Boolean read FAutoFlush write SetAutoFlush;
@@ -1885,7 +3290,7 @@ begin
     else
     begin
 {$IFDEF MSWINDOWS}
-      InterlockedIncrement(FMessageCount); // 拆包消息也要计数，但第一条在上头已计了
+      InterlockedIncrement(FMessageCount); // 拆包信息也要计数，但第一条在上头已计了
 {$ELSE}
       TInterlocked.Increment(FMessageCount);
 {$ENDIF}
