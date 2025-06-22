@@ -8,13 +8,13 @@
       <SearchPaths>
         <IncludeFiles Value="../../Source/Crypto;../../Source/Common"/>
         <Libraries Value="../../Source/Crypto;../../Source/Common"/>
-        <OtherUnitFiles Value="../../Source/Crypto;../../Source/Common"/>
+        <OtherUnitFiles Value="../../Source/Crypto;../../Source/Common;../../Source/NonVisual;../../Source/NetComm"/>
       </SearchPaths>
       <Parsing>
         <Style Value="1"/>
       </Parsing>
     </CompilerOptions>
-    <Files Count="71">
+    <Files Count="79">
       <Item1>
         <Filename Value="../../Source/Crypto/CnAES.pas"/>
         <UnitName Value="CnAES"/>
@@ -300,17 +300,37 @@
         <UnitName Value="CnGB18030"/>
       </Item71>
       <Item72>
-        <Filename Value="../../Source/Crypto/CnBLAKE.pas"/>
-        <UnitName Value="CnBLAKE"/>
+        <Filename Value="../../Source/NonVisual/CnThreadPool.pas"/>
+        <UnitName Value="CnThreadPool"/>
       </Item72>
       <Item73>
+        <Filename Value="../../Source/NetComm/CnNetConsts.pas"/>
+        <UnitName Value="CnNetConsts"/>
+      </Item73>
+      <Item74>
+        <Filename Value="../../Source/NetComm/CnNetwork.pas"/>
+        <UnitName Value="CnNetwork"/>
+      </Item74>
+      <Item75>
+        <Filename Value="../../Source/NonVisual/CnMenuHook.pas"/>
+        <UnitName Value="CnMenuHook"/>
+      </Item75>
+      <Item76>
+        <Filename Value="../../Source/Common/CnMethodHook.pas"/>
+        <UnitName Value="CnMethodHook"/>
+      </Item76>
+      <Item77>
+        <Filename Value="../../Source/Crypto/CnBLAKE.pas"/>
+        <UnitName Value="CnBLAKE"/>
+      </Item77>
+      <Item78>
         <Filename Value="../../Source/Crypto/CnBLAKE2.pas"/>
         <UnitName Value="CnBLAKE2"/>
-      </Item73>
-      <Item73>
+      </Item78>
+      <Item79>
         <Filename Value="../../Source/Common/CnRPC.pas"/>
         <UnitName Value="CnRPC"/>
-      </Item73>
+      </Item79>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

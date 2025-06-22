@@ -59,7 +59,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, Forms, ActnList, Menus, Contnrs,
+  SysUtils, Classes, Forms, ActnList, Menus, Contnrs,
   CnConsts, CnClasses, CnCompConsts;
 
 type
@@ -121,7 +121,7 @@ type
 
 { TCnMenuItemDef }
 
-  TMenuItemCreatedEvent = procedure (Sender: TObject; MenuItem: TMenuItem) of object;
+  TCnMenuItemCreatedEvent = procedure (Sender: TObject; MenuItem: TMenuItem) of object;
 
   TCnMenuItemDef = class(TCnAbstractMenuItemDef)
   private
@@ -135,7 +135,7 @@ type
     FShortCut: TShortCut;
     FStatus: TCnMenuItemStatus;
     FOnClick: TNotifyEvent;
-    FOnCreated: TMenuItemCreatedEvent;
+    FOnCreated: TCnMenuItemCreatedEvent;
   protected
     function GetName: string; override;
     function GetInsertPos: TCnMenuItemInsertPos; override;
@@ -164,7 +164,7 @@ type
 
     property OnClick: TNotifyEvent read FOnClick write FOnClick;
     {* 菜单点击事件}
-    property OnCreated: TMenuItemCreatedEvent read FOnCreated write FOnCreated;
+    property OnCreated: TCnMenuItemCreatedEvent read FOnCreated write FOnCreated;
     {* 当菜单项被动态创建之后调用，用户可以在该事件中修改菜单属性}
   end;
 
@@ -183,9 +183,9 @@ type
 // 被挂接的 TPopupMenu 菜单对象数据类
 //==============================================================================
 
-{ TMenuObj }
+{ TCnMenuObj }
 
-  TMenuObj = class(TObject)
+  TCnMenuObj = class(TObject)
   private
     FOldOnPopup: TNotifyEvent;
     FMenu: TPopupMenu;
@@ -202,23 +202,25 @@ type
 
 { TCnMenuHook }
 
-  TMenuPopupEvent = procedure (Sender: TObject; Menu: TPopupMenu) of object;
+  TCnMenuPopupEvent = procedure (Sender: TObject; Menu: TPopupMenu) of object;
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnMenuHook = class(TCnComponent)
   private
     FMenuList: TObjectList;
     FMenuItemDefList: TObjectList;
     FActive: Boolean;
-    FOnAfterPopup: TMenuPopupEvent;
-    FOnBeforePopup: TMenuPopupEvent;
+    FOnAfterPopup: TCnMenuPopupEvent;
+    FOnBeforePopup: TCnMenuPopupEvent;
     procedure SetActive(const Value: Boolean);
     function GetMenuItemDef(Index: Integer): TCnAbstractMenuItemDef;
     function GetMenuItemDefCount: Integer;
   protected
-    function GetMenuObj(Menu: TPopupMenu): TMenuObj;
+    function GetMenuObj(Menu: TPopupMenu): TCnMenuObj;
     procedure OnMenuPopup(Sender: TObject); virtual;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
 
@@ -251,9 +253,9 @@ type
     {* 用户菜单项定义计数}
     property MenuItemDefs[Index: Integer]: TCnAbstractMenuItemDef read GetMenuItemDef;
     {* 用户菜单项定义数组}
-    property OnBeforePopup: TMenuPopupEvent read FOnBeforePopup write FOnBeforePopup;
+    property OnBeforePopup: TCnMenuPopupEvent read FOnBeforePopup write FOnBeforePopup;
     {* 被挂接的菜单弹出前事件，此时用户菜单项已经释放，用户可在此进行特别的处理}
-    property OnAfterPopup: TMenuPopupEvent read FOnAfterPopup write FOnAfterPopup;
+    property OnAfterPopup: TCnMenuPopupEvent read FOnAfterPopup write FOnAfterPopup;
     {* 被挂接的菜单弹出后事件，此时用户菜单项已经创建，用户可在此进行特别的处理}
   end;
 
@@ -383,7 +385,7 @@ end;
 
 { TMenuObj }
 
-constructor TMenuObj.Create(AMenu: TPopupMenu; NewOnPopup: TNotifyEvent);
+constructor TCnMenuObj.Create(AMenu: TPopupMenu; NewOnPopup: TNotifyEvent);
 begin
   inherited Create;
   FMenu := AMenu;
@@ -391,7 +393,7 @@ begin
   FMenu.OnPopup := NewOnPopup;
 end;
 
-destructor TMenuObj.Destroy;
+destructor TCnMenuObj.Destroy;
 begin
   FMenu.OnPopup := FOldOnPopup;
   inherited;
@@ -507,16 +509,18 @@ end;
 // 菜单挂接处理
 //------------------------------------------------------------------------------
 
-function TCnMenuHook.GetMenuObj(Menu: TPopupMenu): TMenuObj;
+function TCnMenuHook.GetMenuObj(Menu: TPopupMenu): TCnMenuObj;
 var
   I: Integer;
 begin
   for I := 0 to FMenuList.Count - 1 do
-    if TMenuObj(FMenuList[I]).Menu = Menu then
+  begin
+    if TCnMenuObj(FMenuList[I]).Menu = Menu then
     begin
-      Result := TMenuObj(FMenuList[I]);
+      Result := TCnMenuObj(FMenuList[I]);
       Exit;
     end;
+  end;
   Result := nil;
 end;
 
@@ -524,14 +528,14 @@ procedure TCnMenuHook.HookMenu(AMenu: TPopupMenu);
 begin
   if not IsHooked(AMenu) then
   begin
-    FMenuList.Add(TMenuObj.Create(AMenu, OnMenuPopup));
+    FMenuList.Add(TCnMenuObj.Create(AMenu, OnMenuPopup));
     AMenu.FreeNotification(Self);
   end;
 end;
 
 procedure TCnMenuHook.UnHookMenu(AMenu: TPopupMenu);
 var
-  Obj: TMenuObj;
+  Obj: TCnMenuObj;
 begin
   Obj := GetMenuObj(AMenu);
   if Assigned(Obj) then
@@ -577,11 +581,13 @@ var
   I: Integer;
 begin
   for I := 0 to MenuItemDefCount - 1 do
+  begin
     if SameText(MenuItemDefs[I].Name, AName) then
     begin
       Result := I;
       Exit;
     end;
+  end;
   Result := -1;
 end;
 
@@ -599,7 +605,7 @@ end;
 procedure TCnMenuHook.OnMenuPopup(Sender: TObject);
 var
   Menu: TPopupMenu;
-  MenuObj: TMenuObj;
+  MenuObj: TCnMenuObj;
   I: Integer;
 begin
   if not (Sender is TPopupMenu) then
@@ -613,8 +619,10 @@ begin
     
   // 根据 Tag 移去没有名字的菜单项
   for I := Menu.Items.Count - 1 downto 0 do
+  begin
     if Menu.Items[I].Tag = csMenuItemTag then
       Menu.Items[I].Free;
+  end;
 
   if Assigned(FOnBeforePopup) then
     FOnBeforePopup(Self, Menu);
@@ -622,8 +630,10 @@ begin
   // 调用原来的事件
   MenuObj := GetMenuObj(Menu);
   if Assigned(MenuObj) then
+  begin
     if Assigned(MenuObj.OldOnPopup) then
       MenuObj.OldOnPopup(Sender);
+  end;
 
   // 如果菜单项本身没有内容，则说明不会弹出，此处也不添加内容，避免强行弹出
   if Menu.Items.Count = 0 then
@@ -633,8 +643,10 @@ begin
   begin
     // 重新更新自定义菜单项
     for I := 0 to MenuItemDefCount - 1 do
+    begin
       if MenuItemDefs[I].Active then
         DoAddMenuItem(Menu, MenuItemDefs[I]);
+    end;
 
     if Assigned(FOnAfterPopup) then
       FOnAfterPopup(Self, Menu);

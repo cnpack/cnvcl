@@ -18,6 +18,21 @@
 {                                                                              }
 {******************************************************************************}
 
+{******************************************************************************
+  This component is modified from Aleksej Petrov's threadpool, fixed some
+  memory leaks and enhanced the scheduling implementation and fixed some bugs.
+
+*******************************************************************************
+
+    Component for processing request queue in pool of threads
+
+    Copyright (c) 2001, Aleksej Petrov, AKPetrov@pisem.net
+
+     Free for noncommercial use.
+  Please contact with author for use in commercial projects.
+
+*******************************************************************************}
+
 unit CnThreadPool;
 {* |<PRE>
 ================================================================================
@@ -25,6 +40,113 @@ unit CnThreadPool;
 * 单元名称：线程池实现单元
 * 单元作者：Chinbo（Shenloqi）
 * 备    注：支持 D5 至最新版但对应例子用了 Indy 因而例子只能在 D7 或以上编译
+*
+*          设计：
+*              实现线程池，首先要抽象出任务，最简单的就是使用一个指
+*            向某一结构的指针，不过这样做显然不是一个好的方法，还有
+*            一种比较简单的方法就是使用对象；有了抽象的任务之后，就
+*            要有一个对任务的管理列表，这可以简单的用 TList 实现，尽管
+*            TList 的事件少了一些；然后就要有执行处理任务的线程，这最
+*            好要从 TThread 继承；然后要有通知机制，任务量，计算时间的
+*            估算，任务平衡机制。
+*              最简单的实现是工作线程作完一次任务之后就休眠，管理线
+*            程使用一个定时器定期给这些线程进行分配，管理，不过这样
+*            效率不高；也可以在增加任务的时候就进行一次分配，不过这
+*            样的主动分配对于线程的任务均衡，效率等都不是好的解决方
+*            法，而信号量则会比较好的解决这个问题。而线程池中线程的
+*            释放则可以简单通过计时器实现。
+*              真正的问题是如何估计工作量，线程池的工作强度，然后决
+*            定何时需要增加线程，何时需要减少线程:)
+*
+*          限制：
+*              考虑到线程池的使用范围，所以在实现中采用了不少只有在
+*            NT 系列才实现的 API，所以该组件在 NT 系列操作系统上会有最好
+*            的效果，当然也不支持非 Windows 环境。
+*              因为使用了 WaitableTimer，所以在 9x 环境下线程池不会减少
+*            线程池中的线程数目，应该是可以通过 SetTimer 替代，不过
+*            SetTimer 需要一个消息循环处理 WM_TIMER 消息，开销较大且不
+*            容易实现:)
+*              另外还有一个替代的方法就是 mmsystem 的 timesetevent 函数,
+*            不过这个函数的开销应该比其他的更大
+*              不过如果通过 TTimer 来实现的话，应该就可以实现跨平台的
+*            组件了...
+*
+*          内存泄漏：
+*              一般情况下该组件不会有内存泄露，然而当线程池被释放时
+*            线程池中还有正在工作的线程，且这些线程依赖的外部环境被
+*            破坏时，为了线程能够正常退出不得已使用了 TerminateThread
+*            函数，而这个函数不会清理线程分配的内存，就可能造成内存
+*            泄露，幸运的是这种情形一般发生在应用程序退出时破坏了外
+*            部环境所致，所以一旦应用程序退出，操作系统会做相应的清
+*            理工作，所以实际上应该不算内存泄露:)
+*              即使是使用了 TerminateThread，也不应该会造成程序退出时
+*            的种种异常，如 RunTime Error 216
+*
+*          类及函数：
+*
+*            TCnCriticalSection -- 临界区的封装
+*              在 NT 中实现了 TryEnterCriticalSection，在 SyncObjs.pas 中
+*            的 TCriticalSection 没有封装这个函数，TCnCriticalSection
+*            封装了它，且直接从 TObject 继承，开销应该小一些:)
+*              TryEnter -- TryEnterCriticalSection
+*              TryEnterEx -- 9x时候就是Enter，NT就是TryEnter
+*
+*            TCnTaskDataObject -- 线程池线程处理数据的封装
+*              线程池中的线程处理任务所需的数据的基类
+*              一般情况下，要实现某种特定的任务就需要实现相应的一个
+*            从该类继承的类
+*              Duplicate -- 是否与另一个处理数据相同，相同则不处理
+*              Info -- 信息，用于调试输出
+*
+*            TCnPoolingThread -- 线程池中的线程
+*              线程池中的线程的基类，一般情况下不需要继承该类就可以
+*            实现大部分的操作，但在线程需要一些外部环境时可以继承该
+*            类的构造和析构函数，另一种方法是可以在线程池的相关事件
+*            中进行这些配置
+*              AverageWaitingTime -- 平均等待时间
+*              AverageProcessingTime -- 平均处理时间
+*              Duplicate -- 是否正在处理相同的任务
+*              Info -- 信息，用于调试输出
+*              IsDead -- 是否已死
+*              IsFinished -- 是否执行完成
+*              IsIdle -- 是否空闲
+*              NewAverage -- 计算平均值（特殊算法）
+*              StillWorking -- 表明线程仍然在运行
+*              Execute -- 线程执行函数，一般不需继承
+*              Create -- 构造函数
+*              Destroy -- 析构函数
+*              Terminate -- 结束线程
+*
+*            TCnThreadPool -- 线程池
+*              控件的事件并没有使用同步方式封装，所以这些事件的代码要线程安全才可以
+*              HasSpareThread -- 有空闲的线程
+*              AverageWaitingTime -- 平均等待时间
+*              AverageProcessingTime -- 平均计算时间
+*              TaskCount -- 任务数目
+*              ThreadCount -- 线程数目
+*              CheckTaskEmpty -- 检查任务是否都已经完成
+*              GetRequest -- 从队列中获取任务
+*              DecreaseThreads -- 减少线程
+*              IncreaseThreads -- 增加线程
+*              FreeFinishedThreads -- 释放完成的线程
+*              KillDeadThreads -- 清除死线程
+*              Info -- 信息，用于调试输出
+*              OSIsWin9x -- 操作系统是Win9x
+*              AddRequest -- 增加任务
+*              RemoveRequest -- 从队列中删除任务
+*              CreateSpecial -- 创建自定义线程池线程的构造函数
+*              AdjustInterval -- 减少线程的时间间隔
+*              DeadTaskAsNew -- 将死线程的任务重新加到队列
+*              MinAtLeast -- 线程数不少于最小数目
+*              ThreadDeadTimeout -- 线程死亡超时
+*              ThreadsMinCount -- 最少线程数
+*              ThreadsMaxCount -- 最大线程数
+*              OnGetInfo -- 获取信息事件
+*              OnProcessRequest -- 处理任务事件
+*              OnQueueEmpty -- 队列空事件
+*              OnThreadInitializing -- 线程初始化事件
+*              OnThreadFinalizing -- 线程终止化事件
+*
 * 开发平台：PWin2000Pro + Delphi 7.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串暂不符合本地化处理方式
@@ -52,134 +174,6 @@ unit CnThreadPool;
  *              创建单元，实现功能
 ================================================================================
 |</PRE>}
-
-{********************************************************
-  This component is modified from Aleksej Petrov's threadpool, fixed some
-  memory leaks and enhanced the scheduling implementation and fixed some bugs.
-
- {*************************************************************}
- {                                                             }
- {   Component for processing request queue in pool of threads }
- {                                                             }
- {   Copyright (c) 2001, Aleksej Petrov, AKPetrov@pisem.net    }
- {                                                             }
- {    Free for noncommercial use.                              }
- { Please contact with author for use in commercial projects.  }
- {                                                             }
- {*************************************************************}
-
-{********************************************************
-
-    单元说明：
-        该单元实现了线程池的功能
-
-    设计：
-        实现线程池，首先要抽象出任务，最简单的就是使用一个指
-      向某一结构的指针，不过这样做显然不是一个好的方法，还有
-      一种比较简单的方法就是使用对象；有了抽象的任务之后，就
-      要有一个对任务的管理列表，这可以简单的用 TList 实现，尽管
-      TList 的事件少了一些；然后就要有执行处理任务的线程，这最
-      好要从 TThread 继承；然后要有通知机制，任务量，计算时间的
-      估算，任务平衡机制。
-        最简单的实现是工作线程作完一次任务之后就休眠，管理线
-      程使用一个定时器定期给这些线程进行分配，管理，不过这样
-      效率不高；也可以在增加任务的时候就进行一次分配，不过这
-      样的主动分配对于线程的任务均衡，效率等都不是好的解决方
-      法，而信号量则会比较好的解决这个问题。而线程池中线程的
-      释放则可以简单通过计时器实现。
-        真正的问题是如何估计工作量，线程池的工作强度，然后决
-      定何时需要增加线程，何时需要减少线程:)
-
-    限制：
-        考虑到线程池的使用范围，所以在实现中采用了不少只有在
-      NT 系列才实现的 API，所以该组件在 NT 系列操作系统上会有最好
-      的效果，当然也不支持非 Windows 环境。
-        因为使用了 WaitableTimer，所以在 9x 环境下线程池不会减少
-      线程池中的线程数目，应该是可以通过 SetTimer 替代，不过
-      SetTimer 需要一个消息循环处理 WM_TIMER 消息，开销较大且不
-      容易实现:)
-        另外还有一个替代的方法就是 mmsystem 的 timesetevent 函数,
-      不过这个函数的开销应该比其他的更大
-        不过如果通过 TTimer 来实现的话，应该就可以实现跨平台的
-      组件了...
-
-    内存泄漏：
-        一般情况下该组件不会有内存泄露，然而当线程池被释放时
-      线程池中还有正在工作的线程，且这些线程依赖的外部环境被
-      破坏时，为了线程能够正常退出不得已使用了 TerminateThread
-      函数，而这个函数不会清理线程分配的内存，就可能造成内存
-      泄露，幸运的是这种情形一般发生在应用程序退出时破坏了外
-      部环境所致，所以一旦应用程序退出，操作系统会做相应的清
-      理工作，所以实际上应该不算内存泄露:)
-        即使是使用了 TerminateThread，也不应该会造成程序退出时
-      的种种异常，如 RunTime Error 216
-
-    类及函数：
-
-      TCnCriticalSection -- 临界区的封装
-        在 NT 中实现了 TryEnterCriticalSection，在 SyncObjs.pas 中
-      的 TCriticalSection 没有封装这个函数，TCnCriticalSection
-      封装了它，且直接从 TObject 继承，开销应该小一些:)
-        TryEnter -- TryEnterCriticalSection
-        TryEnterEx -- 9x时候就是Enter，NT就是TryEnter
-
-      TCnTaskDataObject -- 线程池线程处理数据的封装
-        线程池中的线程处理任务所需的数据的基类
-        一般情况下，要实现某种特定的任务就需要实现相应的一个
-      从该类继承的类
-        Duplicate -- 是否与另一个处理数据相同，相同则不处理
-        Info -- 信息，用于调试输出
-
-      TCnPoolingThread -- 线程池中的线程
-        线程池中的线程的基类，一般情况下不需要继承该类就可以
-      实现大部分的操作，但在线程需要一些外部环境时可以继承该
-      类的构造和析构函数，另一种方法是可以在线程池的相关事件
-      中进行这些配置
-        AverageWaitingTime -- 平均等待时间
-        AverageProcessingTime -- 平均处理时间
-        Duplicate -- 是否正在处理相同的任务
-        Info -- 信息，用于调试输出
-        IsDead -- 是否已死
-        IsFinished -- 是否执行完成
-        IsIdle -- 是否空闲
-        NewAverage -- 计算平均值（特殊算法）
-        StillWorking -- 表明线程仍然在运行
-        Execute -- 线程执行函数，一般不需继承
-        Create -- 构造函数
-        Destroy -- 析构函数
-        Terminate -- 结束线程
-
-      TCnThreadPool -- 线程池
-        控件的事件并没有使用同步方式封装，所以这些事件的代码要线程安全才可以
-        HasSpareThread -- 有空闲的线程
-        AverageWaitingTime -- 平均等待时间
-        AverageProcessingTime -- 平均计算时间
-        TaskCount -- 任务数目
-        ThreadCount -- 线程数目
-        CheckTaskEmpty -- 检查任务是否都已经完成
-        GetRequest -- 从队列中获取任务
-        DecreaseThreads -- 减少线程
-        IncreaseThreads -- 增加线程
-        FreeFinishedThreads -- 释放完成的线程
-        KillDeadThreads -- 清除死线程
-        Info -- 信息，用于调试输出
-        OSIsWin9x -- 操作系统是Win9x
-        AddRequest -- 增加任务
-        RemoveRequest -- 从队列中删除任务
-        CreateSpecial -- 创建自定义线程池线程的构造函数
-        AdjustInterval -- 减少线程的时间间隔
-        DeadTaskAsNew -- 将死线程的任务重新加到队列
-        MinAtLeast -- 线程数不少于最小数目
-        ThreadDeadTimeout -- 线程死亡超时
-        ThreadsMinCount -- 最少线程数
-        ThreadsMaxCount -- 最大线程数
-        OnGetInfo -- 获取信息事件
-        OnProcessRequest -- 处理任务事件
-        OnQueueEmpty -- 队列空事件
-        OnThreadInitializing -- 线程初始化事件
-        OnThreadFinalizing -- 线程终止化事件
-
-********************************************************}
 
 interface
 
@@ -278,8 +272,10 @@ type
   TCnThreadInPoolFinalizing = procedure(Sender: TCnThreadPool;
     Thread: TCnPoolingThread) of object;
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnThreadPool = class(TCnComponent)
   private
@@ -1503,7 +1499,7 @@ initialization
   V.dwOSVersionInfoSize := SizeOf(V);
   FOSIsWin9x := GetVersionEx(V) and
     (V.dwPlatformId = VER_PLATFORM_WIN32_WINDOWS);
-    
+
 {$IFDEF DEBUG}
   TraceLog := SimpleTrace;
 {$ENDIF}
