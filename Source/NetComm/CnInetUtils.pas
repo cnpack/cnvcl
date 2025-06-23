@@ -32,7 +32,9 @@ unit CnInetUtils;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.05.01 V1.3
+* 修改记录：2025.06.24 V1.4
+*                支持 Windows 下的 FPC
+*           2024.05.01 V1.3
 *                增加部分 Post 相关内容及默认忽略证书错误的选项
 *           2023.02.22 V1.2
 *                EncodeURL 增加部分特殊字符的转换
@@ -227,7 +229,7 @@ const
 function EncodeURL(const URL: string): string;
 const
   UnsafeChars = ['*', '#', '%', '<', '>', '+', ' ', ';', '/', '?', '@', '=', '&',
-    '|', '{', '}', '\', '^', '~', '[', ']', '~', '`'];
+    '|', '{', '}', '\', '^', '~', '[', ']', '`'];
 var
   I: Integer;
   InStr, OutStr: AnsiString;
