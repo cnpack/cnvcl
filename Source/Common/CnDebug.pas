@@ -2205,10 +2205,12 @@ const
   SCnStackTraceFromAddressFmt = '';
   SCnStackTraceNil = 'No Stack Trace.';
   SCnStackTraceNotSupport = 'Stack Trace NOT Support.';
+{$IFDEF CAPTURE_STACK}
 {$IFDEF CPUX64}
   SCnLocationInfoFmt = '(%16.16x) [%-14s | $%16.16x] ';
 {$ELSE}
   SCnLocationInfoFmt = '(%8.8x) [%-14s | $%8.8x] ';
+{$ENDIF}
 {$ENDIF}
 
   CnDebugWaitingMutexTime = 1000;  // Mutex 的等待时间顶多 1 秒
@@ -4116,7 +4118,7 @@ begin
     P := @Arr[0];
 
   if AMsg = '' then
-    LogFull(FormatMsg('%s %s', [SCnIntegerArray,
+    LogFull(FormatMsg('%s %s', [SCnCardinalArray,
       IntArrayToString(P, Length(Arr), SizeOf(Cardinal), False)]),
       CurrentTag, CurrentLevel, CurrentMsgType)
   else
@@ -4131,7 +4133,7 @@ procedure TCnDebugger.LogCardinalArray(const ArrAddr: Pointer; Count: Integer;
 begin
 {$IFDEF DEBUG}
   if AMsg = '' then
-    LogFull(FormatMsg('%s %s', [SCnIntegerArray,
+    LogFull(FormatMsg('%s %s', [SCnCardinalArray,
       IntArrayToString(ArrAddr, Count, SizeOf(Cardinal), False)]),
       CurrentTag, CurrentLevel, CurrentMsgType)
   else
@@ -5073,7 +5075,7 @@ begin
     P := @Arr[0];
 
   if AMsg = '' then
-    TraceFull(FormatMsg('%s %s', [SCnIntegerArray,
+    TraceFull(FormatMsg('%s %s', [SCnCardinalArray,
       IntArrayToString(P, Length(Arr), SizeOf(Cardinal), False)]),
       CurrentTag, CurrentLevel, CurrentMsgType)
   else
@@ -5086,7 +5088,7 @@ procedure TCnDebugger.TraceCardinalArray(const ArrAddr: Pointer; Count: Integer;
   const AMsg: string);
 begin
   if AMsg = '' then
-    TraceFull(FormatMsg('%s %s', [SCnIntegerArray,
+    TraceFull(FormatMsg('%s %s', [SCnCardinalArray,
       IntArrayToString(ArrAddr, Count, SizeOf(Cardinal), False)]),
       CurrentTag, CurrentLevel, CurrentMsgType)
   else

@@ -1058,6 +1058,17 @@ begin
   K := PropInfo^.PropType^^.Kind;
 {$ENDIF}
   case K of
+{$IFDEF FPC}
+      tkAString: // AString 类型 FPC 特有
+      begin
+        S := GetStrProp(Instance, PropInfo);
+      end;
+    tkBool:    // Bool 类型 FPC 特有
+      begin
+        iTmp := GetOrdProp(Instance, PropInfo);
+        S := BooleanIdents[iTmp <> 0];
+      end;
+{$ENDIF}
     tkInteger:
       begin
         S := IntToStr(GetOrdProp(Instance, PropInfo));
