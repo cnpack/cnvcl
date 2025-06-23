@@ -28,9 +28,11 @@ unit CnIni;
 *           编译时如出现 Graphics 找不到，请按编译平台是否 Windows 在工程选项中
 *           添加 Vcl 或 FMX 前缀
 * 开发平台：PWin2000Pro + Delphi 5.0
-* 兼容测试：PWin9X/2000/XP + Delphi 5/6
+* 兼容测试：PWin9X/2000/XP + Delphi 5/6 + Lazarus 4.0
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.02.23 V1.1
+* 修改记录：2025.06.23 V1.2
+*               在 FPC3 下编译通过
+*           2024.02.23 V1.1
 *               加入 ReadStringsBoolean 和 WriteStringsBoolean 的功能
 *           2002.10.20 V1.0
 *               创建单元
@@ -496,8 +498,13 @@ end;
 
 function TCnIniFile.IsBooleanType(PInfo: PTypeInfo): Boolean;
 begin
+{$IFDEF FPC}
+  Result := (PInfo.Kind = tkEnumeration) and
+    (GetTypeData(PInfo)^.BaseType = TypeInfo(Boolean));
+{$ELSE}
   Result := (PInfo.Kind = tkEnumeration) and
     (GetTypeData(PInfo)^.BaseType^ = TypeInfo(Boolean));
+{$ENDIF}
 end;
 
 function TCnIniFile.IsDateTimeType(PInfo: PTypeInfo): Boolean;
@@ -513,6 +520,7 @@ var
   PropIdx: Integer;
   PropList: PPropList;
   PropInfo: PPropInfo;
+  TpInfo: PTypeInfo;
   Obj: TObject;
 begin
   Count := GetPropList(AObject.ClassInfo, tkProperties - [tkArray, tkRecord,
@@ -527,29 +535,34 @@ begin
       try
         if ValueExists(Section, PropInfoName(PropInfo)) then
         begin
-          if IsColorType(PropInfo^.PropType^) then
+{$IFDEF FPC}
+          TpInfo := PropInfo^.PropType;
+{$ELSE}
+          TpInfo := PropInfo^.PropType^;
+{$ENDIF}
+          if IsColorType(TpInfo) then
             SetOrdProp(AObject, PropInfo, ReadColor(Section, PropInfoName(PropInfo),
               GetOrdProp(AObject, PropInfo)))
-          else if IsBooleanType(PropInfo^.PropType^) then
+          else if IsBooleanType(TpInfo) then
           begin
             if ReadBool(Section, PropInfoName(PropInfo), GetOrdProp(AObject, PropInfo) <> 0) then
               SetEnumProp(AObject, PropInfo, BoolToStr(True, True))
             else
               SetEnumProp(AObject, PropInfo, BoolToStr(False, True));
           end
-          else if IsBoolType(PropInfo^.PropType^) then
+          else if IsBoolType(TpInfo) then
           begin
             if ReadBool(Section, PropInfoName(PropInfo), GetOrdProp(AObject, PropInfo) <> 0) then
               SetOrdProp(AObject, PropInfo, -1)
             else
               SetOrdProp(AObject, PropInfo, 0);
           end
-          else if IsDateTimeType(PropInfo^.PropType^) then
+          else if IsDateTimeType(TpInfo) then
             SetFloatProp(AObject, PropInfo, ReadDateTime(Section, PropInfoName(PropInfo),
               GetFloatProp(AObject, PropInfo)))
           else
           begin
-            case PropInfo^.PropType^^.Kind of
+            case TpInfo^.Kind of
               tkInteger:
                 SetOrdProp(AObject, PropInfo, ReadInteger(Section, PropInfoName(PropInfo),
                   GetOrdProp(AObject, PropInfo)));
@@ -610,6 +623,7 @@ var
   PropIdx: Integer;
   PropList: PPropList;
   PropInfo: PPropInfo;
+  TpInfo: PTypeInfo;
   Obj: TObject;
 begin
   Count := GetPropList(AObject.ClassInfo, tkProperties - [tkArray, tkRecord,
@@ -625,15 +639,21 @@ begin
         if not NoDef or IsStoredProp(AObject, PropInfo) and
           not IsDefaultPropertyValue(AObject, PropInfo) then
         begin
-          if IsColorType(PropInfo^.PropType^) then
+
+{$IFDEF FPC}
+          TpInfo := PropInfo^.PropType;
+{$ELSE}
+          TpInfo := PropInfo^.PropType^;
+{$ENDIF}
+          if IsColorType(TpInfo) then
             WriteColor(Section, PropInfoName(PropInfo), GetOrdProp(AObject, PropInfo))
-          else if IsBooleanType(PropInfo^.PropType^) or IsBoolType(PropInfo^.PropType^) then
+          else if IsBooleanType(TpInfo) or IsBoolType(TpInfo) then
             WriteBool(Section, PropInfoName(PropInfo), GetOrdProp(AObject, PropInfo) <> 0)
-          else if IsDateTimeType(PropInfo^.PropType^) then
+          else if IsDateTimeType(TpInfo) then
             WriteDateTime(Section, PropInfoName(PropInfo), GetFloatProp(AObject, PropInfo))
           else
           begin
-            case PropInfo^.PropType^^.Kind of
+            case TpInfo^.Kind of
               tkInteger:
                 WriteInteger(Section, PropInfoName(PropInfo), GetOrdProp(AObject, PropInfo));
               tkChar:

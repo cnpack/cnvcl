@@ -28,7 +28,9 @@ unit CnCommon;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2022.10.07 by LiuXiao
+* 修改记录：2025.06.23
+*               在 FPC3 下编译通过
+*           2022.10.07 by LiuXiao
 *               增加多行文本输入框函数
 *           2021.06.22 by LiuXiao
 *               增加多按钮提示框的函数，暂不支持图标
@@ -80,7 +82,7 @@ uses
   Windows, Messages, Graphics, Controls, Forms, Dialogs,
   ComCtrls, Math, Menus, Registry, ComObj, FileCtrl, ShellAPI, CommDlg,
   MMSystem, StdCtrls, ExtCtrls, ActiveX, ShlObj, CheckLst, MultiMon,
-  {$IFNDEF FPC} TLHelp32, PsAPI,{$ENDIF}
+  {$IFNDEF FPC} TLHelp32, PsAPI, {$ELSE} Variants, JwaTlHelp32, JwaPsApi, {$ENDIF}
   {$IFDEF COMPILER6_UP}
     Types,
   {$ENDIF}
@@ -1712,7 +1714,11 @@ begin
     hInstApp := 0;
     lpIDList := nil;
   end;
+{$IFDEF FPC}
+  ShellExecuteEx(LPSHELLEXECUTEINFO(@SEI));
+{$ELSE}
   ShellExecuteEx(@SEI);
+{$ENDIF}
 end;
 
 // 缩短显示不下的长路径名
@@ -1851,7 +1857,11 @@ begin
   begin
     lStructSize := SizeOf(OpenName);
     hWndOwner := GetModuleHandle('');
+{$IFDEF FPC}
+    Hinstance := GetModuleHandle(nil);
+{$ELSE}
     Hinstance := SysInit.Hinstance;
+{$ENDIF}
     lpstrFilter := PChar(Filter + #0 + Ext + #0#0);
     lpstrCustomFilter := '';
     nMaxCustFilter := 0;
@@ -1875,7 +1885,13 @@ begin
     lpfnHook := nil;
     lpTemplateName := '';
   end;
+
+{$IFDEF FPC}
+  Result := GetOpenFileName(LPOPENFILENAME(@OpenName));
+{$ELSE}
   Result := GetOpenFileName(OpenName);
+{$ENDIF}
+
   if Result then
     FileName := ReturnFile
   else
@@ -2415,10 +2431,18 @@ begin
       MM.Send(True);
       MS.SignOff;
     finally
+{$IFDEF FPC}
+      Finalize(MS);
+{$ELSE}
       VarClear(MS);
+{$ENDIF}
     end;
   finally
+{$IFDEF FPC}
+    Finalize(MM);
+{$ELSE}
     VarClear(MM);
+{$ENDIF}
   end;
 end;
 
@@ -4514,7 +4538,11 @@ end;
 
 function StrSpToInt(const Value: string; Sp: Char = ','): Int64;
 begin
+{$IFDEF FPC}
+  Result := StrToInt64(StringReplace(Value, Sp, '', [rfReplaceAll, rfIgnoreCase]));
+{$ELSE}
   Result := StrToInt64(AnsiReplaceText(Value, Sp, ''));
+{$ENDIF}
 end;
 
 // 返回字符串右边的字符
@@ -7162,7 +7190,7 @@ end;
 {$ENDIF}
 
 // 输出限制在 Min..Max 之间
-function TrimInt(Value, Min, Max: Integer): Integer; overload;
+function TrimInt(Value, Min, Max: Integer): Integer;
 begin
   if Value > Max then
     Result := Max
@@ -7772,7 +7800,7 @@ var
 
   function InternalEnablePrivilege(Token: Cardinal; PrivName: string; Enable: Boolean): Boolean;
   var
-    TP: TOKEN_PRIVILEGES;
+    TP {$IFDEF FPC}, Prev {$ENDIF}: TOKEN_PRIVILEGES;
     Dummy: Cardinal;
   begin
     TP.PrivilegeCount := 1;
@@ -7782,7 +7810,11 @@ var
     else
       TP.Privileges[0].Attributes := 0;
 
+{$IFDEF FPC}
+    AdjustTokenPrivileges(Token, False, TP, SizeOf(TP), Prev, Dummy);
+{$ELSE}
     AdjustTokenPrivileges(Token, False, TP, SizeOf(TP), nil, Dummy);
+{$ENDIF}
     Result := GetLastError = ERROR_SUCCESS;
   end;
 
@@ -8071,7 +8103,11 @@ begin
     begin
       if PropInfo^.PropType^.Kind = tkInteger then
       begin
+{$IFDEF FPC}
+        IntToId := FindIntToIdent(PPropInfo(PropInfo)^.PropType);
+{$ELSE}
         IntToId := FindIntToIdent(PPropInfo(PropInfo)^.PropType^);
+{$ENDIF}
         if Assigned(IntToId) and IntToId(Result, IdValue) then
           Result := IdValue;
       end
@@ -8112,12 +8148,20 @@ begin
     PropInfo := GetPropInfo(Instance, PropName);
     if PropInfo^.PropType^.Kind = tkInteger then
     begin
+{$IFDEF FPC}
+      IdToInt := FindIdentToInt(PPropInfo(PropInfo)^.PropType);
+{$ELSE}
       IdToInt := FindIdentToInt(PPropInfo(PropInfo)^.PropType^);
+{$ENDIF}
       if Assigned(IdToInt) and IdToInt(Value, IntValue) then
         SetPropValue(Instance, PropName, IntValue)
       else
       begin
+{$IFDEF FPC}
+        S := VarToStrDef(Value, '');
+{$ELSE}
         S := VarToStr(Value);
+{$ENDIF}
         if (S <> '') and (Length(S) > 1) and (S[1] = '$') then // 是十六进制
         begin
           if IsInt(S) then
@@ -8219,7 +8263,13 @@ begin
   if S = '' then Exit;
   if S[Length(S)] = ']' then
     Delete(S, Length(S), 1);
+
+{$IFDEF FPC}
+  EnumInfo := GetTypeData(PInfo).CompType;
+{$ELSE}
   EnumInfo := GetTypeData(PInfo).CompType^;
+{$ENDIF}
+
   Strings := TStringList.Create;
   try
     Strings.CommaText := S;
@@ -8254,6 +8304,7 @@ var
   I, APropCount: Integer;
   PropListPtr: PPropList;
   PropInfo: PPropInfo;
+  TpInfo: PTypeInfo;
   AObj: TObject;
 begin
   if PropNames = nil then
@@ -8272,7 +8323,12 @@ begin
         if PropInfo^.Name = '' then
           Continue;
 
-        if PropInfo^.PropType^^.Kind in (tkProperties + tkMethods) then
+{$IFDEF FPC}
+        TpInfo := PropInfo^.PropType;
+{$ELSE}
+        TpInfo := PropInfo^.PropType^;
+{$ENDIF}
+        if TpInfo^.Kind in (tkProperties + tkMethods) then
         begin
           if BaseName = '' then
           begin
@@ -8280,7 +8336,7 @@ begin
               PropNames.Add(PropInfoName(PropInfo))
             else
               PropNames.AddObject(PropInfoName(PropInfo) + '=' +
-                TypeInfoName(PropInfo^.PropType^), TObject(PropInfo^.PropType^^.Kind))
+                TypeInfoName(TpInfo), TObject(TpInfo^.Kind))
           end
           else
           begin
@@ -8288,10 +8344,10 @@ begin
               PropNames.Add(BaseName + '.' + PropInfoName(PropInfo))
             else
               PropNames.AddObject(BaseName + '.' + PropInfoName(PropInfo) + '=' +
-                TypeInfoName(PropInfo^.PropType^), TObject(PropInfo^.PropType^^.Kind))
+                TypeInfoName(TpInfo), TObject(TpInfo^.Kind))
           end;
 
-          if PropInfo^.PropType^^.Kind = tkClass then
+          if TpInfo^.Kind = tkClass then
           begin
             AObj := GetObjectProp(AComp, PropInfo);
             if (AObj <> nil) then // 暂只处理非组件的属性、和属于自己的组件属性
@@ -8314,6 +8370,7 @@ var
   I, APropCount: Integer;
   PropListPtr: PPropList;
   PropInfo: PPropInfo;
+  TpInfo: PTypeInfo;
 begin
   if PropNames = nil then
     Exit;
@@ -8331,13 +8388,18 @@ begin
         if PropInfo^.Name = '' then
           Continue;
 
-        if PropInfo^.PropType^^.Kind in (tkProperties + tkMethods) then
+{$IFDEF FPC}
+        TpInfo := PropInfo^.PropType;
+{$ELSE}
+        TpInfo := PropInfo^.PropType^;
+{$ENDIF}
+        if TpInfo^.Kind in (tkProperties + tkMethods) then
         begin
           if not IncludeType then
             PropNames.Add(PropInfoName(PropInfo))
           else
             PropNames.AddObject(PropInfoName(PropInfo) + '=' +
-              TypeInfoName(PropInfo^.PropType^), TObject(PropInfo^.PropType^^.Kind))
+              TypeInfoName(TpInfo), TObject(TpInfo^.Kind))
         end;
       end;
     finally

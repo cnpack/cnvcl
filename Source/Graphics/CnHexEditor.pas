@@ -50,7 +50,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Controls, Graphics, Forms, Clipbrd,
-  CnNative;
+  {$IFDEF FPC} LCLType, {$ENDIF} CnNative;
 
 type
   TCnWMImeChar = packed record
@@ -69,8 +69,10 @@ type
   TCnMouseObject = (moNone, moAddress, moHex, moChar);
 
 type
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnHexEditor = class(TCustomControl)
   private
@@ -273,7 +275,11 @@ end;
 
 procedure TCnHexEditor.AdjustScrollBars;
 var
+{$IFDEF FPC}
+  ScrlInfo: Windows.TScrollInfo;
+{$ELSE}
   ScrlInfo: TScrollInfo;
+{$ENDIF}
 begin
   SetScrollRange(Handle, SB_VERT, 0, FLineCount, True);
   SetScrollRange(Handle, SB_HORZ, 0, 76, True);
