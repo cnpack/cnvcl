@@ -31,14 +31,15 @@
 
 {$IFDEF FPC}
   // Free Pascal Compiler 3.x Up Definitions
-  {$DEFINE SUPPORT_PASCAL}          // Pascal
-  {$DEFINE SUPPORT_UINT64}          // UInt64
-  {$DEFINE SUPPORT_32_AND_64}       // 支持 32 和 64 位，可用 NativeInt 等
-  {$DEFINE SUPPORT_ENCODING}        // Unicode 字符串支持 Encoding 转换
-  {$DEFINE SUPPORT_INLINE}          // 支持 inline
+  {$DEFINE SUPPORT_PASCAL}                     // Pascal
+  {$DEFINE SUPPORT_UINT64}                     // 支持 UInt64
+  {$DEFINE SUPPORT_32_AND_64}                  // 支持 32 和 64 位，可用 NativeInt 等
+  {$DEFINE SUPPORT_ENCODING}                   // Unicode 字符串支持 Encoding 转换
+  {$DEFINE SUPPORT_INLINE}                     // 支持 inline
+  {$DEFINE SUPPORT_INTERFACE_AS_OBJECT}        // 支持从接口实例寻找其实现对象实例
 
-  {$DEFINE OBJECT_HAS_TOSTRING}     // TObject.ToString
-  {$DEFINE OBJECT_HAS_GETHASHCODE}  // TObject.GetHashCode
+  {$DEFINE OBJECT_HAS_TOSTRING}                // TObject.ToString
+  {$DEFINE OBJECT_HAS_GETHASHCODE}             // TObject.GetHashCode
   {$DEFINE TBYTES_DEFINED}
   {$DEFINE NO_OLDCREATEORDER}
 
@@ -3386,7 +3387,7 @@
 {$ENDIF}
 
 {$IFDEF BDS2010_UP}
-  {$DEFINE SUPPORT_INTERFACE_AS_OBJECT}
+  {$DEFINE SUPPORT_INTERFACE_AS_OBJECT}        // 支持从接口实例寻找其实现对象实例
   {$DEFINE SUPPORT_ENHANCED_RTTI}              // New enhanced RTTI
   {$DEFINE SUPPORT_EXTERNAL_DELAYED}           // External functions can be declared as 'delayed'
   {$DEFINE SUPPORT_CLASS_CONSTRUCTOR}          // 2010 and above Supports class constructor and destructor
