@@ -48,22 +48,22 @@ interface
 {$I CnPack.inc}
 
 uses
-  {$IFDEF COMPILER6_UP}
-  DesignIntf, DesignEditors, Variants,
-  {$ELSE}
-  Dsgnintf,
-  {$ENDIF}
+  {$IFDEF FPC} LazIDEIntf, ComponentEditors, {$ELSE} ToolsApi,
+  {$IFDEF COMPILER6_UP} DesignIntf, DesignEditors, Variants, {$ELSE}
+  Dsgnintf, {$ENDIF} {$ENDIF}
   SysUtils, Classes, Forms, Windows, Messages, Dialogs, Graphics, Menus, Grids,
   ComCtrls, Controls, ExtCtrls, ToolWin, ActnList, ImgList, TypInfo, StdCtrls,
-  FileCtrl,
-  CnLangConsts, CnLangTranslator, CnLangMgr, CnLangCollection, CnLangStorage,
-  CnIniLangFileStorage, CnIniStrUtils, CnCommon, ToolsApi, ComObj, CnOTAUtils,
+  FileCtrl, ComObj, CnLangConsts, CnLangTranslator, CnLangMgr, CnLangCollection,
+  CnLangStorage, CnIniLangFileStorage, CnIniStrUtils, CnCommon, CnOTAUtils,
   CnClasses, CnTransFilter, CnLangUtils;
 
 type
-
+{$IFDEF FPC}
+  IDesigner = TComponentEditorDesigner;
+{$ELSE}
 {$IFNDEF COMPILER6_UP}
   IDesigner = IFormDesigner;
+{$ENDIF}
 {$ENDIF}
 
   TCnTranslatorEditor = class(TComponentEditor)
@@ -352,10 +352,12 @@ begin
   end;
 
   if Self.Container = nil then
+  begin
     if (Self.TransEditor = nil) then
       Exit
     else
       Self.Container := TWinControl(TCnLangTranslator(Self.TransEditor.Component).Owner);
+  end;
 
   Storage.CurrentLanguageIndex := Item.Index;
 
@@ -395,6 +397,7 @@ begin
         S := TCnLangString(GetValueByTransName(Self.Container, S));
         Self.StringGrid.Cells[2, I + 1] := S
       end;
+
       // 显示其翻译后的值
       if Storage.GetString(List[I], S) then
         Self.StringGrid.Cells[3, I + 1] := S;
@@ -486,10 +489,12 @@ begin
     Exit;
 
   if Self.Container = nil then
+  begin
     if (Self.TransEditor = nil) then
       Exit
     else
       Self.Container := TWinControl(TCnLangTranslator(Self.TransEditor.Component).Owner);
+  end;
 
   List := TStringList.Create;
   Item := TCnLanguageItem(tvStorages.Selected.Data);
@@ -514,8 +519,10 @@ var
   I: Integer;
 begin
   for I := 1 to Self.StringGrid.RowCount do
+  begin
     if Self.StringGrid.Cells[3, I] = '' then
       Self.StringGrid.Cells[3, I] := Self.StringGrid.Cells[2, I];
+  end;
 end;
 
 procedure TFrmTransEditor.actUpdateStrsExecute(Sender: TObject);
@@ -525,7 +532,7 @@ var
   I, Index: Integer;
   Item: TCnLanguageItem;
 begin
-  { DONE : 获得所有字串列表，对于已经有翻译的，对应移动翻译字串。否则添加。 }
+  { 获得所有字串列表，对于已经有翻译的，对应移动翻译字串。否则添加。 }
   if (tvStorages.Selected = nil) or (tvStorages.Selected.Level <> 1) then
     Exit;
 
@@ -659,15 +666,21 @@ begin
   if Node.Level = 0 then  // 多语管理器的存储组件用粗体显示
   begin
     if CnLanguageManager <> nil then
+    begin
       if CnLanguageManager.LanguageStorage = TCnCustomLangStorage(Node.Data) then
         Sender.Canvas.Font.Style := [fsBold];
+    end;
   end
   else if Node.Level = 1 then // 多语管理器的当前语言条目也用粗体显示
   begin
     if CnLanguageManager <> nil then
+    begin
       if CnLanguageManager.LanguageStorage = TCnCustomLangStorage(Node.Parent.Data) then
+      begin
         if CnLanguageManager.CurrentLanguageIndex = Node.Parent.IndexOf(Node) then
           Sender.Canvas.Font.Style := [fsBold];
+      end;
+    end;
   end;
 
   DefaultDraw := True;
@@ -713,6 +726,7 @@ begin
 end;
 
 procedure TFrmTransEditor.actCollectFormExecute(Sender: TObject);
+{$IFNDEF FPC}
 var
   List: TStringList;
   Item: TCnLanguageItem;
@@ -833,8 +847,11 @@ var
       Exit;
     end;
   end;
-
+{$ENDIF}
 begin
+{$IFDEF FPC}
+  raise Exception.Create('NOT Implemented');
+{$ELSE}
   if (tvStorages.Selected = nil) or (tvStorages.Selected.Level <> 1) then
     Exit;
 
@@ -882,6 +899,7 @@ begin
   finally
     Screen.Cursor := crDefault;
   end;
+{$ENDIF}
 end;
 
 procedure TFrmTransEditor.WriteNameValueStringsToGrid(List: TStrings;

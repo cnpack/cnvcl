@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="5">
+    <PathDelim Value="\"/>
+    <Name Value="dclCnPack_FPC3"/>
+    <Type Value="DesignTime"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <IncludeFiles Value="..\..\Source\MultiLang;..\..\Source\Common"/>
+        <Libraries Value="..\..\Source\MultiLang;..\..\Source\Common"/>
+        <OtherUnitFiles Value="..\..\Source\MultiLang;..\..\Source\Common"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+    </CompilerOptions>
+    <Files>
+      <Item>
+        <Filename Value="..\..\Source\MultiLang\CnLangEditors.pas"/>
+        <UnitName Value="CnLangEditors"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\Source\MultiLang\CnLangReg.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="CnLangReg"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\Source\MultiLang\CnLangTranslator.pas"/>
+        <UnitName Value="CnLangTranslator"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\Source\MultiLang\CnTransEditor.pas"/>
+        <UnitName Value="CnTransEditor"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\Source\MultiLang\CnTransFilter.pas"/>
+        <UnitName Value="CnTransFilter"/>
+      </Item>
+    </Files>
+    <RequiredPkgs>
+      <Item>
+        <PackageName Value="LazControlDsgn"/>
+      </Item>
+      <Item>
+        <PackageName Value="IDEIntf"/>
+      </Item>
+      <Item>
+        <PackageName Value="CnPack_FPC3"/>
+      </Item>
+      <Item>
+        <PackageName Value="FCL"/>
+      </Item>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+      <UseFileFilters Value="True"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

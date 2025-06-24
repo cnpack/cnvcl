@@ -38,11 +38,10 @@ interface
 {$I CnPack.inc}
 
 uses
-  {$IFDEF COMPILER6_UP}
-  DesignIntf, DesignEditors, DesignMenus,
-  {$ELSE}
-  Dsgnintf,
-  {$ENDIF}
+  {$IFDEF FPC} PropEdits, ComponentEditors, LazIDEIntf, FormEditingIntf,
+  ObjInspStrConsts, IDEOptionsIntf, Dialogs, {$ELSE}
+  {$IFDEF COMPILER6_UP} DesignIntf, DesignEditors, DesignMenus, {$ELSE}
+  Dsgnintf, {$ENDIF} {$ENDIF}
   SysUtils, Classes, FileCtrl;
 
 type
@@ -185,8 +184,10 @@ end;
 procedure TCnStorageEditor.Edit;
 begin
   if Component is TCnCustomLangStorage then
+  begin
     ShowCollectionEditor(Designer, Component,
       TCnCustomLangStorage(Component).Languages, 'Languages');
+  end;
 end;
 
 procedure TCnStorageEditor.ExecuteVerb(Index: Integer);

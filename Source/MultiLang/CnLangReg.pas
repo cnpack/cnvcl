@@ -38,11 +38,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  {$IFDEF COMPILER6_UP}
-  DesignIntf, DesignEditors,
-  {$ELSE}
-  DsgnIntf,
-  {$ENDIF}
+  {$IFDEF FPC} LazIDEIntf, PropEdits, ComponentEditors, {$ELSE}
+  {$IFDEF COMPILER6_UP} DesignIntf, DesignEditors, {$ELSE} DsgnIntf,{$ENDIF} {$ENDIF}
   SysUtils, Classes,
   CnLangCollection, CnLangConsts, CnLangMgr, CnLangStorage, CnLangTranslator,
   CnLangEditors, CnTransEditor, CnHashLangStorage, CnIniLangFileStorage;
