@@ -42,7 +42,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, SysConst, Classes, Windows;
+  SysUtils, SysConst, Classes, {$IFDEF FPC} Variants, {$ELSE}
+  {$IFDEF COMPILER6_UP} Variants, {$ENDIF} {$ENDIF} Windows;
 
 type
   TLangTransFilter = (tfFont, tfCaption, tfCategory, tfHelpKeyword, tfHint,
@@ -116,7 +117,6 @@ function CnLanguages: TCnLanguages;
 implementation
 
 uses
-  {$IFDEF COMPILER6_UP} Variants, {$ENDIF}
   {$IFDEF DEBUG_MULTILANG} CnDebug, {$ENDIF}
   {$IFDEF SUPPORT_FMX} CnFmxUtils, {$ENDIF}
   Forms, Dialogs, Graphics, Menus, Grids, ComCtrls, Controls, ExtCtrls,
@@ -529,7 +529,7 @@ begin
         {$IFDEF UNICODE}, tkUString{$ENDIF}]) then
       begin
         try
-          APropValue := VartoStr(GetPropValue(AObject, APropName));
+          APropValue := VarToStr(GetPropValue(AObject, APropName));
         except
           // 部分 OLE 等组件获取 WideString 属性时出错，加个屏蔽
           Continue;

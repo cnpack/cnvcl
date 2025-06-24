@@ -6,15 +6,15 @@
     <CompilerOptions>
       <Version Value="11"/>
       <SearchPaths>
-        <IncludeFiles Value="../../Source/Crypto;../../Source/Common"/>
-        <Libraries Value="../../Source/Crypto;../../Source/Common"/>
-        <OtherUnitFiles Value="../../Source/Crypto;../../Source/Common;../../Source/NonVisual;../../Source/NetComm"/>
+        <IncludeFiles Value="../../Source/Crypto;../../Source/Common;../../Source/NonVisual;../../Source/NetComm;../../Source/MultiLang;../../Source/Graphics"/>
+        <Libraries Value="../../Source/Crypto;../../Source/Common;../../Source/NonVisual;../../Source/NetComm;../../Source/MultiLang;../../Source/Graphics"/>
+        <OtherUnitFiles Value="../../Source/Crypto;../../Source/Common;../../Source/NonVisual;../../Source/NetComm;../../Source/MultiLang;../../Source/Graphics"/>
       </SearchPaths>
       <Parsing>
         <Style Value="1"/>
       </Parsing>
     </CompilerOptions>
-    <Files Count="79">
+    <Files Count="87">
       <Item1>
         <Filename Value="../../Source/Crypto/CnAES.pas"/>
         <UnitName Value="CnAES"/>
@@ -331,6 +331,38 @@
         <Filename Value="../../Source/Common/CnRPC.pas"/>
         <UnitName Value="CnRPC"/>
       </Item79>
+      <Item80>
+        <Filename Value="../../Source/MultiLang/CnHashIniFile.pas"/>
+        <UnitName Value="CnHashIniFile"/>
+      </Item80>
+      <Item81>
+        <Filename Value="../../Source/MultiLang/CnHashLangStorage.pas"/>
+        <UnitName Value="CnHashLangStorage"/>
+      </Item81>
+      <Item82>
+        <Filename Value="../../Source/MultiLang/CnIniLangFileStorage.pas"/>
+        <UnitName Value="CnIniLangFileStorage"/>
+      </Item82>
+      <Item83>
+        <Filename Value="../../Source/MultiLang/CnLangCollection.pas"/>
+        <UnitName Value="CnLangCollection"/>
+      </Item83>
+      <Item84>
+        <Filename Value="../../Source/MultiLang/CnLangConsts.pas"/>
+        <UnitName Value="CnLangConsts"/>
+      </Item84>
+      <Item85>
+        <Filename Value="../../Source/MultiLang/CnLangMgr.pas"/>
+        <UnitName Value="CnLangMgr"/>
+      </Item85>
+      <Item86>
+        <Filename Value="../../Source/MultiLang/CnLangStorage.pas"/>
+        <UnitName Value="CnLangStorage"/>
+      </Item86>
+      <Item87>
+        <Filename Value="../../Source/MultiLang/CnLangUtils.pas"/>
+        <UnitName Value="CnLangUtils"/>
+      </Item87>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

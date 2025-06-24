@@ -19,7 +19,9 @@ uses
   CnTreeClasses, CnWideStrings, Cn25519, CnInt128, CnFNV, CnPoly1305, 
   CnChaCha20, CnBits, CnLattice, CnVector, CnJSON, CnRC4, CnPDFCrypt, 
   CnGB18030, CnThreadPool, CnNetConsts, CnNetwork, CnMenuHook, CnMethodHook, 
-  CnBLAKE, CnBLAKE2, CnRPC;
+  CnBLAKE, CnBLAKE2, CnRPC, CnHashIniFile, CnHashLangStorage, 
+  CnIniLangFileStorage, CnLangCollection, CnLangConsts, CnLangMgr, 
+  CnLangStorage, CnLangUtils;
 
 implementation
 

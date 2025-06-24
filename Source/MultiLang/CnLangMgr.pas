@@ -32,7 +32,9 @@ unit CnLangMgr;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.04.11 V2.5
+* 修改记录：2025.06.24 V2.6
+*               移植到 Lazarus
+*           2025.04.11 V2.5
 *               屏蔽可能的 TStrings 的 Text 设置异常的问题
 *           2009.08.18 V2.4
 *               将字符串常量注册机制与多语管理器独立出来
@@ -77,7 +79,8 @@ interface
 
 uses
   SysUtils, Classes, Graphics, TypInfo, Windows, Forms, ComCtrls, ActnList,
-  Dialogs, ExtCtrls, Controls, Contnrs, {$IFDEF COMPILER6_UP}Variants, {$ENDIF}
+  Dialogs, ExtCtrls, Controls, Contnrs, {$IFDEF FPC} Variants, {$ENDIF}
+  {$IFDEF COMPILER6_UP} Variants, {$ENDIF}
   CnConsts, CnClasses, CnCommon, CnLangStorage, CnLangCollection, CnIniStrUtils;
 
 const
@@ -288,8 +291,10 @@ type
     {* 翻译一对象的某个属性时的事件 }
   end;
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnLangManager = class(TCnCustomLangManager)
   {* 具有窗体翻译能力的多语言管理器 }
@@ -387,12 +392,16 @@ var
 begin
   Result := nil;
   if (FLangMgrList <> nil) and (FLangMgrList.Count > 0) then
+  begin
     for I := 0 to FLangMgrList.Count - 1 do
+    begin
       if TObject(FLangMgrList.Items[I]) is TCnCustomLangManager then
       begin
         Result := TObject(FLangMgrList.Items[I]) as TCnCustomLangManager;
         Exit;
       end;
+    end;
+  end;
 end;
 
 procedure CreateLanguageManager(AOwner: TComponent);
@@ -467,13 +476,18 @@ var
 begin
   if AID = 0 then
     AID := GetSystemDefaultLangID;
+
   if Assigned(FLanguageStorage) then
+  begin
     for I := 0 to FLanguageStorage.LanguageCount - 1 do
+    begin
       if FLanguageStorage.Languages.Items[I].LanguageID = AID then
       begin
         CurrentLanguageIndex := I;
         Exit;
       end;
+    end;
+  end;
 end;
 
 constructor TCnBaseLangManager.Create(AOwner: TComponent);
@@ -492,7 +506,7 @@ begin
 
   FAutoTranslateStrings := True;
 
-  if (csDesigning in ComponentState) then
+  if csDesigning in ComponentState then
   begin
     for I := 0 to AOwner.ComponentCount - 1 do
     begin
@@ -649,14 +663,14 @@ begin
         P := Copy(R, 1, J - 1); // P 此时是第一和第二点中间的字串
         if Owner.FindComponent(P) <> nil then // 子控件的属性优先
         begin
-          Result := VartoStr(GetPropValueIncludeSub(Owner.FindComponent(P),
+          Result := VarToStr(GetPropValueIncludeSub(Owner.FindComponent(P),
             Copy(R, J + 1, Length(R) - J)));
           if Mode = itSet then
             SetPropValueIncludeSub(Owner.FindComponent(P), Copy(R, J + 1, Length(R) - J), Value);
         end  // 然后才是属性的属性
         else
         begin
-          Result := VartoStr(GetPropValueIncludeSub(Owner, Copy(Name, I + 1, Length(Name) - I)));
+          Result := VarToStr(GetPropValueIncludeSub(Owner, Copy(Name, I + 1, Length(Name) - I)));
           if Mode = itSet then
             SetPropValueIncludeSub(Owner, Copy(Name, I + 1, Length(Name) - I), Value);
         end;
@@ -1458,12 +1472,14 @@ var
 begin
   Found := False;
   for I := 0 to FNotifier.Count - 1 do
+  begin
     if SameMethod(TMethod(PCnLangChangedNotifierRecord(FNotifier[I])^.Notifier),
       TMethod(Notify)) then
     begin
       Found := True;
       Break;
     end;
+  end;
 
   if not Found then
   begin
@@ -1480,12 +1496,14 @@ var
 begin
   Idx := -1;
   for I := 0 to FNotifier.Count - 1 do
+  begin
     if SameMethod(TMethod(PCnLangChangedNotifierRecord(FNotifier[I])^.Notifier),
       TMethod(Notify)) then
     begin
       Idx := I;
       Break;
     end;
+  end;
 
   if Idx >= 0 then
   begin
@@ -1566,8 +1584,10 @@ begin
         FOldTransForms.Clear;
 
       for I := 0 to Screen.CustomFormCount - 1 do
+      begin
         if Screen.CustomForms[I].ClassNameIs(Prefix) then
           FOldTransForms.Add(Screen.CustomForms[I]);
+      end;
 
 {$IFDEF SUPPORT_FMX}
       // 也遍历 FMX 窗体中符合条件的窗体
@@ -1589,8 +1609,10 @@ begin
         FOldTransDMs.Clear;
 
       for I := 0 to Screen.DataModuleCount - 1 do
+      begin
         if Screen.DataModules[I].ClassNameIs(Prefix) then
           FOldTransDMs.Add(Screen.DataModules[I]);
+      end;
     end;
 
     for I := 0 to FOldTransDMs.Count - 1 do
@@ -1617,9 +1639,13 @@ begin
   if Assigned(FLangMgrList) then
   begin
     if FLangMgrList.Count > 0 then
+    begin
       for I := FLangMgrList.Count - 1 downto 0 do
+      begin
         if FLangMgrList.Items[I] <> nil then
           TObject(FLangMgrList.Items[I]).Free;
+      end;
+    end;
 
     FreeAndNil(FLangMgrList);
   end;
@@ -1711,10 +1737,14 @@ begin
     begin
       BObj.FDstStr := DstStr; // 保存一份字符串引用
       VirtualProtect(BObj.StringRecAddr, SizeOf(TResStringRec), PAGE_EXECUTE_READWRITE, @OldProtect);
-{$IFDEF WIN64}
-      PResStringRec(BObj.StringRecAddr)^.Identifier := NativeUint(BObj.FDstStr);
+{$IFDEF FPC}
+      PResStringRec(BObj.StringRecAddr)^ := BObj.FDstStr;
 {$ELSE}
+  {$IFDEF WIN64}
+      PResStringRec(BObj.StringRecAddr)^.Identifier := NativeUint(BObj.FDstStr);
+  {$ELSE}
       PResStringRec(BObj.StringRecAddr)^.Identifier := Integer(BObj.FDstStr);
+  {$ENDIF}
 {$ENDIF}
       VirtualProtect(BObj.StringRecAddr, SizeOf(TResStringRec), OldProtect, nil);
     end;

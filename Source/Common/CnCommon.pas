@@ -82,7 +82,7 @@ uses
   Windows, Messages, Graphics, Controls, Forms, Dialogs,
   ComCtrls, Math, Menus, Registry, ComObj, FileCtrl, ShellAPI, CommDlg,
   MMSystem, StdCtrls, ExtCtrls, ActiveX, ShlObj, CheckLst, MultiMon,
-  {$IFNDEF FPC} TLHelp32, PsAPI, {$ELSE} Variants, JwaTlHelp32, JwaPsApi, {$ENDIF}
+  {$IFDEF FPC} Variants, JwaTlHelp32, JwaPsApi, {$ELSE} TLHelp32, PsAPI, {$ENDIF}
   {$IFDEF COMPILER6_UP}
     Types,
   {$ENDIF}

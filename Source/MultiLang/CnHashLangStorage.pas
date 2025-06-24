@@ -139,8 +139,10 @@ type
     {* 自定义加载文件事件 }
   end;
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnHashLangFileStorage = class(TCnCustomHashLangStorage)
   published
