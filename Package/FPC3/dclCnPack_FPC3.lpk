@@ -10,7 +10,7 @@
       <SearchPaths>
         <IncludeFiles Value="..\..\Source\MultiLang;..\..\Source\Common"/>
         <Libraries Value="..\..\Source\MultiLang;..\..\Source\Common"/>
-        <OtherUnitFiles Value="..\..\Source\MultiLang;..\..\Source\Common"/>
+        <OtherUnitFiles Value="..\..\Source\MultiLang;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\Graphics"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>

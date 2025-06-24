@@ -1253,12 +1253,12 @@ begin
         Continue;
 
       APropType := PropType(AObject, APropName);
-      if (APropType in [tkString, tkLString, tkWString //, tkWChar
+      if (APropType in [tkString, {$IFDEF FPC} tkAString, {$ENDIF} tkLString, tkWString //, tkWChar
         {$IFDEF UNICODE}, tkUString{$ENDIF}]) then
       begin
         if NeedCheckIgnoreAction then
         begin
-          APropValue := VartoStr(GetPropValue(AObject, APropName));
+          APropValue := VarToStr(GetPropValue(AObject, APropName));
           if ((APropName = 'Caption') and (ActionCaption = APropValue)) or
             ((APropName = 'Hint') and (ActionHint = APropValue)) then
           begin

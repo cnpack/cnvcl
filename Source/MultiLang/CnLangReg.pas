@@ -48,6 +48,10 @@ procedure Register;
 
 implementation
 
+{$IFDEF FPC}
+{$R '..\..\Source\Common\CnPack.dcr'}
+{$ENDIF}
+
 procedure Register;
 begin
   RegisterComponents('CnMutiLang', [TCnLangManager, TCnLangTranslator,

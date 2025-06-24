@@ -1,0 +1,22 @@
+object Form2: TForm2
+  Left = 610
+  Height = 256
+  Top = 313
+  Width = 416
+  Caption = '另一个动态创建的窗体'
+  ClientHeight = 256
+  ClientWidth = 416
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  LCLVersion = '4.0.0.4'
+  object lbl1: TLabel
+    Left = 88
+    Height = 13
+    Top = 104
+    Width = 281
+    AutoSize = False
+    Caption = '这个窗体就一个测试的 Label'
+  end
+end
