@@ -67,8 +67,10 @@ uses
   CnConsts, CnClasses, CnCompConsts;
 
 type
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnFormScaler = class(TCnComponent)
   private
@@ -774,7 +776,11 @@ var
 begin
   Msg := TWMWindowPosChanging(Message);
   // 解决调整边界大小已经到了约束值之后的 BUG
+{$IFDEF FPC}
+  Windows.GetWindowRect(Msg.WindowPos^._hwnd, aRect);
+{$ELSE}
   Windows.GetWindowRect(Msg.WindowPos.hwnd, aRect);
+{$ENDIF}
 
   if (Msg.WindowPos.flags and SWP_NOSIZE = 0) then
   begin
