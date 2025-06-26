@@ -50,10 +50,12 @@ unit CnPE;
 *           | 各个 Section 排列
 *           +------------------------------------------------------------------+
 *
-* 开发平台：PWin7 + Delphi 5
+* 开发平台：PWin7 + Delphi 5 + Lazarus 4.0
 * 兼容测试：Win32/Win64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.03.13
+* 修改记录：2025.06.25
+*               增加对 FPC 的支持
+*           2025.03.13
 *               增加一判断 PE 文件是 32 还是 64 位的函数
 *           2024.03.12
 *               如果偏移量过大造成溢出变负值，则忽略此错误偏移量与对应行号
@@ -67,7 +69,9 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Psapi, Contnrs, CnContainers, CnNative;
+  SysUtils, Classes,
+  {$IFDEF FPC} JwaWindows, JwaPsApi, {$ELSE} Windows, PsAPI, {$ENDIF}
+  Contnrs, CnContainers, CnNative;
 
 const
   CN_INVALID_LINENUMBER_OFFSET = -1;
@@ -1123,7 +1127,11 @@ begin
   if FDirectoryDebug = nil then
     Exit;
 
+{$IFDEF FPC}
+  FDebugType := FDirectoryDebug^.Type_;
+{$ELSE}
   FDebugType := FDirectoryDebug^._Type;
+{$ENDIF}
   FDebugSizeOfData := FDirectoryDebug^.SizeOfData;
   FDebugAddressOfRawData := FDirectoryDebug^.AddressOfRawData;
   FDebugPointerToRawData := FDirectoryDebug^.PointerToRawData;
@@ -1471,7 +1479,11 @@ begin
     raise ECnPEException.Create(SCnPEFormatError);
 
   P := PByte(FBaseAddress);
+{$IFDEF FPC}
+  Inc(P, FDosHeader^.e_lfanew);
+{$ELSE}
   Inc(P, FDosHeader^._lfanew);
+{$ENDIF}
 
   FNtHeaders := PImageNtHeaders(P);
   if FNtHeaders^.Signature <> IMAGE_NT_SIGNATURE then
@@ -1497,7 +1509,11 @@ begin
   FDosOvno := FDosHeader^.e_ovno;
   FDosOemid := FDosHeader^.e_oemid;
   FDosOeminfo := FDosHeader^.e_oeminfo;
+{$IFDEF FPC}
+  FDosLfanew := FDosHeader^.e_lfanew;
+{$ELSE}
   FDosLfanew := FDosHeader^._lfanew;
+{$ENDIF}
 
   // Signature
   FSignature := FNtHeaders^.Signature;
@@ -2379,15 +2395,21 @@ var
       if (CP > 1) and (SP > 1) and (CP > SP + 1) then
       begin
         SL := Copy(LO, 1, SP - 1);
+{$IFDEF FPC}
+        System.Delete(LO, 1, CP); // 删去分号以及之前的内容
+{$ELSE}
         Delete(LO, 1, CP); // 删去分号以及之前的内容
-
+{$ENDIF}
         SSP := Pos(' ', LO);
         if SSP > 1 then // 后面还有
         begin
           SO := Copy(LO, 1, SSP - 1);
           Module.AddLineOffset(StrToInt(SL), HexStrToDWord(SO));
+{$IFDEF FPC}
+          System.Delete(LO, 1, SSP);
+{$ELSE}
           Delete(LO, 1, SSP);
-
+{$ENDIF}
           LO := Trim(LO); // 可能还有空格分隔
         end
         else // 后面没了
@@ -2426,13 +2448,21 @@ var
       if SP > 1 then
       begin
         SS := Copy(LS, 1, SP - 1);
+{$IFDEF FPC}
+        System.Delete(LS, 1, SP);
+{$ELSE}
         Delete(LS, 1, SP);
+{$ENDIF}
         LS := Trim(LS);
 
         NP := Pos(NAME_PREFIX, LS);
         if NP > 1 then
         begin
+{$IFDEF FPC}
+          System.Delete(LS, 1, NP + Length(NAME_PREFIX) - 1);
+{$ELSE}
           Delete(LS, 1, NP + Length(NAME_PREFIX) - 1);
+{$ENDIF}
           SP := Pos(' ', LS);
           if SP > 0 then
           begin
@@ -2468,7 +2498,11 @@ begin
       // 根据 S 的不同分块处理
       if Pos(LINE_NUMBER_PREFIX, S) = 1 then
       begin
+{$IFDEF FPC}
+        System.Delete(S, 1, Length(LINE_NUMBER_PREFIX));
+{$ELSE}
         Delete(S, 1, Length(LINE_NUMBER_PREFIX));
+{$ENDIF}
         S := Trim(S);
 
         LB := Pos('(', S);
@@ -2552,7 +2586,11 @@ function GetPEFileType(const FileName: string): TCnPEFileType;
 var
   F: TFileStream;
   DosHeader: TImageDosHeader;
+{$IFDEF FPC}
+  NtHeaders: TImageNtHeaders32;
+{$ELSE}
   NtHeaders: TImageNtHeaders;
+{$ENDIF}
 begin
   Result := cpetInvalid;
   if not FileExists(FileName) then
@@ -2563,7 +2601,12 @@ begin
     if F.Read(DosHeader, SizeOf(DosHeader)) <> SizeOf(DosHeader) then Exit;
     if DosHeader.e_magic <> $5A4D then Exit; // 检查 'MZ' 标志
 
+{$IFDEF FPC}
+    F.Seek(DosHeader.e_lfanew, soFromBeginning);
+{$ELSE}
     F.Seek(DosHeader._lfanew, soFromBeginning);
+{$ENDIF}
+
     if F.Read(NtHeaders, SizeOf(NtHeaders)) <> SizeOf(NtHeaders) then Exit;
     if NtHeaders.Signature <> $00004550 then Exit; // 检查'PE\0\0'标志
 

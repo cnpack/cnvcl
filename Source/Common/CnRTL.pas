@@ -52,7 +52,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Contnrs, TLHelp32, Psapi, Imagehlp;
+  SysUtils, Classes, Windows, Contnrs,
+  {$IFDEF FPC} JwaTlHelp32, JwaPsApi, {$ELSE} TLHelp32, PsAPI, {$ENDIF} Imagehlp;
 
 type
   TCnModuleInfo = class(TObject)
@@ -481,12 +482,18 @@ var
   ModuleInfo: TModuleInfo;
   Info: TCnModuleInfo;
   Res: DWORD;
+  B: Boolean;
   AName: array[0..MAX_PATH - 1] of Char;
 begin
   Result := nil;
 
   // 根据每个 Module Handle 拿 Module 基地址等信息
-  if GetModuleInformation(PH, MH, @ModuleInfo, SizeOf(TModuleInfo)) then
+{$IFDEF FPC}
+  B := GetModuleInformation(PH, MH, ModuleInfo, SizeOf(TModuleInfo));
+{$ELSE}
+  B := GetModuleInformation(PH, MH, @ModuleInfo, SizeOf(TModuleInfo));
+{$ENDIF}
+  if B then
   begin
     Info := TCnModuleInfo.Create;
     Info.HModule := MH;
@@ -561,8 +568,13 @@ begin
           begin
             if MemInfo.AllocationBase <> LastAllocBase then
             begin
+{$IFDEF FPC}
+              if MemInfo._Type = MEM_IMAGE then
+                CheckDelphiModule(AddModule(ProcessHandle, HMODULE(MemInfo.AllocationBase)));
+{$ELSE}
               if MemInfo.Type_9 = MEM_IMAGE then
                 CheckDelphiModule(AddModule(ProcessHandle, HMODULE(MemInfo.AllocationBase)));
+{$ENDIF}
               LastAllocBase := MemInfo.AllocationBase;
             end;
             Inc(Base, MemInfo.RegionSize);
@@ -761,8 +773,13 @@ begin
     Exit;
 
   Size := 0;
+{$IFDEF FPC}
+  PIP := PImageImportDescriptor(ImageDirectoryEntryToData(Pointer(HP), True,
+    IMAGE_DIRECTORY_ENTRY_IMPORT, @Size));
+{$ELSE}
   PIP := PImageImportDescriptor(ImageDirectoryEntryToData(Pointer(HP), True,
     IMAGE_DIRECTORY_ENTRY_IMPORT, Size));
+{$ENDIF}
 
   if PIP = nil then
     Exit;
@@ -905,9 +922,26 @@ var
   Kernel32RaiseException: Pointer = nil;
   SysUtilsExceptObjProc: function (P: PExceptionRecord): Exception = nil;
 
+{$IFDEF FPC}
+function FindClassHInstance(Address: Pointer): HINST;
+var
+  MemInfo: TMemoryBasicInformation;
+begin
+  VirtualQuery(Address, MemInfo, SizeOf(MemInfo));
+  if MemInfo.State = $1000{MEM_COMMIT} then
+    Result := HINST(MemInfo.AllocationBase)
+  else
+    Result := 0;
+end;
+{$ENDIF}
+
 function SystemTObjectInstance: HINST;
 begin
+{$IFDEF FPC}
+  Result := FindClassHInstance(Pointer(System.TObject.ClassType));
+{$ELSE}
   Result := FindClassHInstance(System.TObject);
+{$ENDIF}
 end;
 
 procedure DoExceptionNotify(ExceptObj: Exception; ExceptAddr: Pointer;
