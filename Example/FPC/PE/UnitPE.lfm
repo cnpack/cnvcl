@@ -1,0 +1,462 @@
+object FormPE: TFormPE
+  Left = 158
+  Height = 614
+  Top = 134
+  Width = 1110
+  Caption = 'PE File Test'
+  ClientHeight = 614
+  ClientWidth = 1110
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  LCLVersion = '4.0.0.4'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  object lblPEFile: TLabel
+    Left = 16
+    Height = 13
+    Top = 16
+    Width = 36
+    Caption = 'PE File:'
+  end
+  object bvl1: TBevel
+    Left = 656
+    Height = 25
+    Top = 16
+    Width = 25
+    Shape = bsLeftLine
+  end
+  object edtPEFile: TEdit
+    Left = 64
+    Height = 21
+    Top = 16
+    Width = 281
+    TabOrder = 0
+  end
+  object btnParsePE: TButton
+    Left = 672
+    Height = 25
+    Top = 16
+    Width = 75
+    Caption = 'Parse Module'
+    TabOrder = 1
+    OnClick = btnParsePEClick
+  end
+  object cbbRunModule: TComboBox
+    Left = 752
+    Height = 21
+    Top = 16
+    Width = 329
+    ItemHeight = 13
+    Style = csDropDownList
+    TabOrder = 2
+  end
+  object btnBrowse: TButton
+    Left = 352
+    Height = 25
+    Top = 16
+    Width = 75
+    Caption = 'Browse'
+    TabOrder = 3
+    OnClick = btnBrowseClick
+  end
+  object btnParsePEFile: TButton
+    Left = 432
+    Height = 25
+    Top = 16
+    Width = 75
+    Caption = 'Parse File'
+    TabOrder = 4
+    OnClick = btnParsePEFileClick
+  end
+  object pgcPE: TPageControl
+    Left = 16
+    Height = 524
+    Top = 48
+    Width = 1072
+    ActivePage = tsDosHeader
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    TabIndex = 0
+    TabOrder = 5
+    object tsDosHeader: TTabSheet
+      Caption = 'Dos Header'
+      ClientHeight = 498
+      ClientWidth = 1064
+      object mmoDos: TMemo
+        Left = 16
+        Height = 434
+        Top = 16
+        Width = 313
+        Anchors = [akTop, akLeft, akBottom]
+        TabOrder = 0
+      end
+    end
+    object tsNtHeader: TTabSheet
+      Caption = 'NtHeader'
+      ClientHeight = 498
+      ClientWidth = 1064
+      ImageIndex = 1
+      object mmoFile: TMemo
+        Left = 16
+        Height = 434
+        Top = 16
+        Width = 313
+        Anchors = [akTop, akLeft, akBottom]
+        TabOrder = 0
+      end
+      object mmoOptional: TMemo
+        Left = 336
+        Height = 434
+        Top = 16
+        Width = 377
+        Anchors = [akTop, akLeft, akBottom]
+        ScrollBars = ssVertical
+        TabOrder = 1
+      end
+      object tlb1: TToolBar
+        Left = 784
+        Height = 429
+        Top = 16
+        Width = 137
+        Align = alNone
+        ButtonHeight = 21
+        ButtonWidth = 88
+        Caption = 'tlb1'
+        EdgeBorders = []
+        ShowCaptions = True
+        TabOrder = 2
+        object btn0: TToolButton
+          Left = 1
+          Top = 0
+          Caption = '0. Export'
+          ImageIndex = 0
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn1: TToolButton
+          Tag = 1
+          Left = 1
+          Top = 21
+          Caption = '1. Import'
+          ImageIndex = 1
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn2: TToolButton
+          Tag = 2
+          Left = 1
+          Top = 42
+          Caption = '2. Resource'
+          ImageIndex = 2
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn3: TToolButton
+          Tag = 3
+          Left = 1
+          Top = 63
+          Caption = '3. Exception'
+          ImageIndex = 3
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn4: TToolButton
+          Tag = 4
+          Left = 1
+          Top = 84
+          Caption = '4. Security'
+          ImageIndex = 4
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn5: TToolButton
+          Tag = 5
+          Left = 1
+          Top = 105
+          Caption = '5. Base Reloc'
+          ImageIndex = 5
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn6: TToolButton
+          Tag = 6
+          Left = 1
+          Top = 126
+          Caption = '6. Debug'
+          ImageIndex = 6
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn7: TToolButton
+          Tag = 7
+          Left = 1
+          Top = 147
+          Caption = '7. Copyright'
+          ImageIndex = 7
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn8: TToolButton
+          Tag = 8
+          Left = 1
+          Top = 168
+          Caption = '8. Global Ptr'
+          ImageIndex = 8
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn9: TToolButton
+          Tag = 9
+          Left = 1
+          Top = 189
+          Caption = '9. TLS'
+          ImageIndex = 9
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn10: TToolButton
+          Tag = 10
+          Left = 1
+          Top = 210
+          Caption = '10. Load Config'
+          ImageIndex = 10
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn11: TToolButton
+          Tag = 11
+          Left = 1
+          Top = 231
+          Caption = '11. Bound Import'
+          ImageIndex = 11
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn12: TToolButton
+          Tag = 12
+          Left = 1
+          Top = 252
+          Caption = '12. IAT'
+          ImageIndex = 12
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn13: TToolButton
+          Tag = 13
+          Left = 1
+          Top = 273
+          Caption = '13. Delay Import'
+          ImageIndex = 13
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn14: TToolButton
+          Tag = 14
+          Left = 1
+          Top = 294
+          Caption = '14. COM Desc'
+          ImageIndex = 14
+          Wrap = True
+          OnClick = btn0Click
+        end
+        object btn15: TToolButton
+          Tag = 15
+          Left = 1
+          Top = 315
+          Caption = '15. ?'
+          ImageIndex = 15
+          OnClick = btn0Click
+        end
+      end
+      object btnDebugInfo: TButton
+        Left = 728
+        Height = 25
+        Top = 400
+        Width = 75
+        Caption = 'Debug Info'
+        TabOrder = 3
+        OnClick = btnDebugInfoClick
+      end
+    end
+    object tsSectionHeader: TTabSheet
+      Caption = 'SectionHeader'
+      ClientHeight = 498
+      ClientWidth = 1064
+      ImageIndex = 2
+      object mmoSection: TMemo
+        Left = 16
+        Height = 434
+        Top = 16
+        Width = 313
+        Anchors = [akTop, akLeft, akBottom]
+        ScrollBars = ssVertical
+        TabOrder = 0
+      end
+      object btnViewSection: TButton
+        Left = 352
+        Height = 25
+        Top = 16
+        Width = 75
+        Caption = 'View Section'
+        TabOrder = 1
+        OnClick = btnViewSectionClick
+      end
+      object edtSectionIndex: TEdit
+        Left = 440
+        Height = 21
+        Top = 16
+        Width = 41
+        TabOrder = 2
+        Text = '0'
+      end
+      object udSection: TUpDown
+        Left = 481
+        Height = 21
+        Top = 16
+        Width = 15
+        Associate = edtSectionIndex
+        Min = 0
+        Position = 0
+        TabOrder = 3
+      end
+    end
+    object tsStackTrace: TTabSheet
+      Caption = 'Stack Trace'
+      ClientHeight = 498
+      ClientWidth = 1064
+      ImageIndex = 3
+      object btnStackTrace: TButton
+        Left = 568
+        Height = 57
+        Top = 16
+        Width = 75
+        Caption = 'Stack Trace'
+        TabOrder = 0
+        OnClick = btnStackTraceClick
+      end
+      object mmoStack: TMemo
+        Left = 16
+        Height = 434
+        Top = 16
+        Width = 537
+        Anchors = [akTop, akLeft, akBottom]
+        TabOrder = 1
+        WordWrap = False
+      end
+      object mmoNames: TMemo
+        Left = 568
+        Height = 362
+        Top = 88
+        Width = 472
+        Anchors = [akTop, akLeft, akRight, akBottom]
+        ScrollBars = ssVertical
+        TabOrder = 2
+        WordWrap = False
+      end
+      object btnTDNames: TButton
+        Left = 656
+        Height = 25
+        Top = 16
+        Width = 75
+        Caption = 'TD Names'
+        TabOrder = 3
+        OnClick = btnTDNamesClick
+      end
+      object btnTDSourceModules: TButton
+        Left = 744
+        Height = 25
+        Top = 16
+        Width = 75
+        Caption = 'TD Source'
+        TabOrder = 4
+        OnClick = btnTDSourceModulesClick
+      end
+      object btnTDProc: TButton
+        Left = 832
+        Height = 25
+        Top = 16
+        Width = 75
+        Caption = 'TD Procedure'
+        TabOrder = 5
+        OnClick = btnTDProcClick
+      end
+      object btnTDLineNumbers: TButton
+        Left = 920
+        Height = 25
+        Top = 16
+        Width = 75
+        Caption = 'TD Line/Offset'
+        TabOrder = 6
+        OnClick = btnTDLineNumbersClick
+      end
+      object btnMapNames: TButton
+        Left = 656
+        Height = 25
+        Top = 48
+        Width = 75
+        Caption = 'Map Names'
+        Enabled = False
+        TabOrder = 7
+      end
+      object btnMapSourceModules: TButton
+        Left = 744
+        Height = 25
+        Top = 48
+        Width = 75
+        Caption = 'Map Source'
+        TabOrder = 8
+        OnClick = btnMapSourceModulesClick
+      end
+      object btnMapProc: TButton
+        Left = 832
+        Height = 25
+        Top = 48
+        Width = 75
+        Caption = 'Map Procedure'
+        TabOrder = 9
+        OnClick = btnMapProcClick
+      end
+      object btnMapLineNumbers: TButton
+        Left = 920
+        Height = 25
+        Top = 48
+        Width = 75
+        Caption = 'Map Line/Offset'
+        TabOrder = 10
+        OnClick = btnMapLineNumbersClick
+      end
+      object btnManualAddr: TButton
+        Left = 1008
+        Height = 25
+        Top = 16
+        Width = 49
+        Caption = 'Manual'
+        TabOrder = 11
+        OnClick = btnManualAddrClick
+      end
+    end
+  end
+  object btnLoad: TButton
+    Left = 520
+    Height = 25
+    Top = 16
+    Width = 75
+    Caption = 'Load'
+    TabOrder = 6
+    OnClick = btnLoadClick
+  end
+  object btnCheck64: TButton
+    Left = 608
+    Height = 25
+    Top = 16
+    Width = 33
+    Caption = '32/64'
+    TabOrder = 7
+    OnClick = btnCheck64Click
+  end
+  object dlgOpen1: TOpenDialog
+    Left = 264
+    Top = 32
+  end
+end
