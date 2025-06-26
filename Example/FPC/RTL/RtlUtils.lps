@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="12"/>
+    <BuildModes Active="Default"/>
+    <Units>
+      <Unit>
+        <Filename Value="RtlUtils.dpr"/>
+        <IsPartOfProject Value="True"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="UnitRtlUtils.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FormRtlUtils"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="215"/>
+        <CursorPos X="30" Y="229"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <CursorPos X="24" Y="13"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\inc\systemh.inc"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="1577"/>
+        <CursorPos X="16" Y="1589"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\win\sysutils.pp"/>
+        <UnitName Value="SysUtils"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="1642"/>
+        <CursorPos X="84" Y="1654"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\win\wininc\struct.inc"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="1868"/>
+        <CursorPos X="27" Y="1874"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="29">
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="1013" TopLine="998"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="1014" TopLine="998"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="957" TopLine="945"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="958" TopLine="945"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="959" TopLine="945"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitRtlUtils.pas"/>
+        <Caret Line="227" TopLine="215"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitRtlUtils.pas"/>
+        <Caret Line="229" Column="26" TopLine="215"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="1010" TopLine="998"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitRtlUtils.pas"/>
+        <Caret Line="228" TopLine="215"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="1010" TopLine="998"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitRtlUtils.pas"/>
+        <Caret Line="245" TopLine="233"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="1010" TopLine="998"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="1011" TopLine="998"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="1013" TopLine="998"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="1014" TopLine="998"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="957" TopLine="945"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="958" TopLine="945"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="959" TopLine="945"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitRtlUtils.pas"/>
+        <Caret Line="227" TopLine="215"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitRtlUtils.pas"/>
+        <Caret Line="228" Column="3" TopLine="215"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitRtlUtils.pas"/>
+        <Caret Line="245" TopLine="233"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="1010" TopLine="998"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="1011" TopLine="998"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="1013" TopLine="998"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="1014" TopLine="998"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="957" TopLine="945"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="958" TopLine="945"/>
+      </Position>
+      <Position>
+        <Filename Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Caret Line="959" TopLine="945"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitRtlUtils.pas"/>
+        <Caret Line="227" TopLine="215"/>
+      </Position>
+      <Position>
+        <Filename Value="UnitRtlUtils.pas"/>
+        <Caret Line="229" TopLine="215"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+  <SkipCheckLCLInterfaces Value="True"/>
+  <Debugging>
+    <BreakPoints>
+      <Item>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Line Value="975"/>
+      </Item>
+      <Item>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Line Value="1026"/>
+      </Item>
+      <Item>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="..\..\..\Source\Common\CnRTL.pas"/>
+        <Line Value="1010"/>
+      </Item>
+    </BreakPoints>
+  </Debugging>
+</CONFIG>

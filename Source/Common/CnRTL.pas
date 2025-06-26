@@ -902,7 +902,11 @@ end;
 // ======================== 全局的异常 Hook 处理 ===============================
 
 const
-  cDelphiException = $0EEDFADE;
+{$IFDEF FPC}
+  cDelphiFpcException = $E0465043;
+{$ELSE}
+  cDelphiFpcException = $0EEDFADE;
+{$ENDIF}
   cNonContinuable = 1;
 
 type
@@ -920,7 +924,11 @@ var
   FExceptionRecorder: TCnExceptionNotifier = nil;
 
   Kernel32RaiseException: Pointer = nil;
+{$IFDEF FPC}
+  SysUtilsExceptObjProc: function (Code: Longint; const Rec: TExceptionRecord): Exception = nil;
+{$ELSE}
   SysUtilsExceptObjProc: function (P: PExceptionRecord): Exception = nil;
+{$ENDIF}
 
 {$IFDEF FPC}
 function FindClassHInstance(Address: Pointer): HINST;
@@ -956,11 +964,16 @@ procedure MyKernel32RaiseException(ExceptionCode, ExceptionFlags, NumberOfArgume
   Arguments: PExceptionArguments); stdcall;
 const
   OFFSET = 4;
+{$IFDEF FPC}
+  EXCEPTION_ARGNUM = [5];
+{$ELSE}
+  EXCEPTION_ARGNUM = [7, 8];
+{$ENDIF}
 var
   StackList: TCnStackInfoList;
 begin
-  if (ExceptionFlags = cNonContinuable) and (ExceptionCode = cDelphiException) and (NumberOfArguments in [7, 8])
-    {$IFNDEF WIN64} and (TCnNativeUInt(Arguments) = TCnNativeUInt(@Arguments) + OFFSET) {$ENDIF}
+  if (ExceptionFlags = cNonContinuable) and (ExceptionCode = cDelphiFpcException) and (NumberOfArguments in EXCEPTION_ARGNUM)
+    {$IFNDEF FPC} {$IFNDEF WIN64} and (TCnNativeUInt(Arguments) = TCnNativeUInt(@Arguments) + OFFSET) {$ENDIF} {$ENDIF}
     then
   begin
     // 在此记录当前堆栈，并去除本单元内部的记录
@@ -987,6 +1000,25 @@ threadvar
   ExceptionContext: TContext;
 
 // OS 异常后走这里，先走 Vectored
+
+{$IFDEF FPC}
+
+function MyExceptObjProc(Code: Longint; const Rec: TExceptionRecord): Exception;
+var
+  StackList: TCnStackInfoList;
+begin
+  Result := SysUtilsExceptObjProc(Code, Rec);  // 先调用旧的返回 Exception 对象
+  StackList := TCnManualStackInfoList.Create(@ExceptionContext, Rec.ExceptionAddress);
+
+  try
+    DoExceptionNotify(Result, Rec.ExceptionAddress, True, StackList);
+  finally
+    StackList.Free;
+  end;
+end;
+
+{$ELSE}
+
 function MyExceptObjProc(P: PExceptionRecord): Exception;
 var
   StackList: TCnStackInfoList;
@@ -1000,6 +1032,8 @@ begin
     StackList.Free;
   end;
 end;
+
+{$ENDIF}
 
 // OS 异常先走这里，后走 ExceptObjProc
 function MyVectoredExceptionHandler(ExceptionInfo: PEXCEPTION_POINTERS): DWORD; stdcall;
