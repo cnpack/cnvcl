@@ -149,10 +149,6 @@ interface
   {$UNDEF REDIRECT_OPDS}   // 非 Windows 下不支持 OutputDebugString
 {$ENDIF}
 
-{$IFDEF FPC}
-  {$UNDEF CAPTURE_STACK}
-{$ENDIF}
-
 uses
   SysUtils, Classes, TypInfo
   {$IFDEF ENABLE_FMX}, System.Types, System.UITypes, System.SyncObjs, System.UIConsts

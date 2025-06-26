@@ -38,7 +38,9 @@
       <Unit>
         <Filename Value="UnitOutput.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="FormSend"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit>
       <Unit>
         <Filename Value="..\..\..\Source\Common\CnDebug.pas"/>
@@ -59,8 +61,8 @@
     <PathDelim Value="\"/>
     <SearchPaths>
       <IncludeFiles Value="..\..\..\Source\ObjRep;..\..\..\Source\Common;..\..\..\..\cnwizards\Source\Examples;$(ProjOutDir)"/>
-      <Libraries Value="..\..\..\Source\ObjRep"/>
-      <OtherUnitFiles Value="..\..\..\Source\ObjRep;..\..\..\Source\Common;..\..\..\..\cnwizards\Source\Examples"/>
+      <Libraries Value="..\..\..\Source\ObjRep;..\..\..\Source\Common;..\..\..\Source\Crypto"/>
+      <OtherUnitFiles Value="..\..\..\Source\ObjRep;..\..\..\Source\Common;..\..\..\Source\Crypto;..\..\..\..\cnwizards\Source\Examples"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       <ObjectPath Value="..\..\..\Source\ObjRep"/>
     </SearchPaths>
@@ -81,10 +83,14 @@
     </Linking>
     <Other>
       <CustomOptions Value="-dENABLE_UIINTERACT
--dSUPPORT_EVALUATE"/>
-      <OtherDefines Count="2">
+-dSUPPORT_EVALUATE
+-dDEBUG
+-dCAPTURE_STACK"/>
+      <OtherDefines Count="4">
         <Define0 Value="ENABLE_UIINTERACT"/>
         <Define1 Value="SUPPORT_EVALUATE"/>
+        <Define2 Value="DEBUG"/>
+        <Define3 Value="CAPTURE_STACK"/>
       </OtherDefines>
     </Other>
   </CompilerOptions>
