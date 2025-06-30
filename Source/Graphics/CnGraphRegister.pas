@@ -42,9 +42,10 @@ uses
   {$IFNDEF FPC}
   {$IFDEF COMPILER6_UP} DesignIntf, DesignEditors, {$ELSE} DsgnIntf, {$ENDIF}
   {$ENDIF}
-  CnConsts, {$IFNDEF FPC} CnGraphics, CnImage, CnSpin, CnGraphPropEditors, CnCheckTreeView,
-  CnWizardImage, CnEdit, CnShellCtrls, {$ENDIF} CnWaterImage, {$IFNDEF FPC} CnAOTreeView, CnAACtrls,
-  CnAAFont, CnAAFontEditor, CnAAFontDialog, CnTabSet, CnButtonEdit, CnPanel,
+  CnConsts, {$IFNDEF FPC} CnGraphics, CnImage, CnGraphPropEditors, CnCheckTreeView,
+  CnWizardImage, CnShellCtrls, {$ENDIF} CnWaterImage, CnPanel, CnEdit, CnSpin,
+  {$IFNDEF FPC} CnAOTreeView, CnAACtrls,
+  CnAAFont, CnAAFontEditor, CnAAFontDialog, CnTabSet, CnButtonEdit,
   CnSkinMagic, CnButtons, CnHint, CnGauge, CnListBox, CnColorGrid,
   CnMonthCalendar, CnValidateImage, CnErrorProvider, CnLED, {$ENDIF} CnHexEditor;
 
@@ -59,7 +60,9 @@ begin
   //RegisterComponents(SCnGraphicPalette, [TCnImage]);
 {$IFNDEF FPC}
   RegisterComponents(SCnGraphicPalette, [TCnButton, TCnBitBtn, TCnSpeedButton]);
+{$ENDIF}
   RegisterComponents(SCnGraphicPalette, [TCnPanel, TCnEdit, TCnSpinEdit]);
+{$IFNDEF FPC}
   RegisterComponents(SCnGraphicPalette, [TCnListBox]);
   RegisterComponents(SCnGraphicPalette, [TCnTabSet, TCnButtonEdit]);
   RegisterComponents(SCnGraphicPalette, [TCnCheckTreeView]);

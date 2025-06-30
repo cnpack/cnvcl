@@ -39,7 +39,7 @@ interface
 
 uses
   Windows, Classes, StdCtrls, ExtCtrls, Controls, Messages, SysUtils,
-  Forms, Graphics, Menus, Buttons, CnConsts;
+  Forms, Graphics, Menus, Buttons, CnConsts {$IFDEF FPC}, LCLType {$ENDIF};
 
 const
   InitRepeatPause = 400;  { pause before repeat timer (ms) }
@@ -90,7 +90,9 @@ type
     property Align;
     property Anchors;
     property Constraints;
+{$IFNDEF FPC}
     property Ctl3D;
+{$ENDIF}
     property DownGlyph: TBitmap read GetDownGlyph write SetDownGlyph;
     property DownNumGlyphs: TNumGlyphs read GetDownNumGlyphs write SetDownNumGlyphs default 1;
     property DragCursor;
@@ -98,7 +100,9 @@ type
     property DragMode;
     property Enabled;
     property FocusControl: TWinControl read FFocusControl write FFocusControl;
+{$IFNDEF FPC}
     property ParentCtl3D;
+{$ENDIF}
     property ParentShowHint;
     property PopupMenu;
     property ShowHint;
@@ -134,7 +138,7 @@ type
     procedure SetValue (NewValue: LongInt);
     procedure SetEditRect;
     procedure WMSize(var Message: TWMSize); message WM_SIZE;
-    procedure CMEnter(var Message: TCMGotFocus); message CM_ENTER;
+    procedure CMEnter(var Message: TWMNoParams); message CM_ENTER;
     procedure CMExit(var Message: TCMExit);   message CM_EXIT;
     procedure WMPaste(var Message: TWMPaste);   message WM_PASTE;
     procedure WMCut(var Message: TWMCut);   message WM_CUT;
@@ -157,7 +161,9 @@ type
     property AutoSize;
     property Color;
     property Constraints;
+{$IFNDEF FPC}
     property Ctl3D;
+{$ENDIF}
     property DragCursor;
     property DragMode;
     property EditorEnabled: Boolean read FEditorEnabled write FEditorEnabled default True;
@@ -168,7 +174,9 @@ type
     property MaxValue: LongInt read FMaxValue write FMaxValue;
     property MinValue: LongInt read FMinValue write FMinValue;
     property ParentColor;
+{$IFNDEF FPC}
     property ParentCtl3D;
+{$ENDIF}
     property ParentFont;
     property ParentShowHint;
     property PopupMenu;
@@ -520,7 +528,7 @@ begin
     Height := MinHeight
   else if FButton <> nil then
   begin
-    if NewStyleControls and Ctl3D then
+    if NewStyleControls {$IFNDEF FPC} and Ctl3D {$ENDIF} then
       FButton.SetBounds(Width - FButton.Width - 5, 0, FButton.Width, Height - 5)
     else FButton.SetBounds(Width - FButton.Width, 1, FButton.Width, Height - 3);
     SetEditRect;
@@ -532,7 +540,11 @@ var
   DC: HDC;
   SaveFont: HFont;
   I: Integer;
+{$IFDEF FPC}
+  SysMetrics, Metrics: Windows.TTextMetric;
+{$ELSE}
   SysMetrics, Metrics: TTextMetric;
+{$ENDIF}
 begin
   DC := GetDC(0);
   GetTextMetrics(DC, SysMetrics);
@@ -598,7 +610,7 @@ begin
   end;
 end;
 
-procedure TCnSpinEdit.CMEnter(var Message: TCMGotFocus);
+procedure TCnSpinEdit.CMEnter(var Message: TWMNoParams);
 begin
   if AutoSelect and not (csLButtonDown in ControlState) then
     SelectAll;

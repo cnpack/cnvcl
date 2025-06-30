@@ -124,8 +124,10 @@ type
 
 { TCnAAFontDialog }
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnAAFontDialog = class(TComponent)
   {* 平滑特效字体对话框组件，使用方法同普通对话框}

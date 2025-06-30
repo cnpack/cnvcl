@@ -49,8 +49,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls, StdCtrls, ShellAPI, CnAAFont, CnTimer;
+  Windows, {$IFDEF FPC} JwaWindows, {$ENDIF} Messages, SysUtils, Classes, Graphics,
+  Controls, Forms, Dialogs, ExtCtrls, StdCtrls, ShellAPI, CnAAFont, CnTimer;
 
 const
   // 暂时不使用版本号
@@ -83,8 +83,10 @@ type
 
 { TAALabel }
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnAALabel = class(TCnAAGraphicControl)
   {* 平滑特效字体标签控件，用于显示单行文本，在控件的 Effect 属性中定义了所有与
@@ -179,8 +181,10 @@ type
 
   TCnFadeStyle = (fsNone, fsIn, fsOut);
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnAALinkLabel = class(TCnAALabel)
   {* 平滑特效超链接标签控件，用于显示超链接，支持切换时的淡入淡出效果}
@@ -262,8 +266,10 @@ type
 
 { TCnAAText }
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnAAText = class(TCnAACustomText)
   {* 平滑特效文本控件，用于显示多行文本，通过使用标签，允许每行文本使用不同的
@@ -365,8 +371,10 @@ type
 
 { TCnAAScrollText }
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnAAScrollText = class(TCnAACustomText)
   {* 平滑滚动文本控件，用于多行文本的动态滚动显示}
@@ -402,7 +410,9 @@ type
     procedure PaintCanvas; override;
     function UseDefaultLabels: Boolean; override;
     procedure LoadedEx; override;
+{$IFNDEF FPC}
     function CanResize(var NewWidth, NewHeight: Integer): Boolean; override;
+{$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
     {* 类构造器}
@@ -451,8 +461,10 @@ type
   
 { TCnAAMarqueeText }
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnAAMarqueeText = class(TCnAAGraphicControl)
    {* 平滑字幕文本控件，用于文本的水平滚动显示}
@@ -561,8 +573,10 @@ type
 
 { TCnAAFadeText }
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnAAFadeText = class(TCnAACustomText)
   {* 平滑特效渐隐文本控件，用于多行文本的淡入淡出切换显示}
@@ -1868,6 +1882,7 @@ begin
   end;
 end;
 
+{$IFNDEF FPC}
 // 大小变化消息
 function TCnAAScrollText.CanResize(var NewWidth,
   NewHeight: Integer): Boolean;
@@ -1876,6 +1891,7 @@ begin
   if NewHeight < 20 then NewHeight := 20;
   Result := inherited CanResize(NewWidth, NewHeight);
 end;
+{$ENDIF}
 
 // 循环延时
 procedure TCnAAScrollText.OnDelayTimer(Sender: TObject);

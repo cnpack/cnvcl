@@ -9,12 +9,13 @@
         <IncludeFiles Value="../../Source/Crypto;../../Source/Common;../../Source/NonVisual;../../Source/NetComm;../../Source/MultiLang;../../Source/Graphics"/>
         <Libraries Value="../../Source/Crypto;../../Source/Common;../../Source/NonVisual;../../Source/NetComm;../../Source/MultiLang;../../Source/Graphics"/>
         <OtherUnitFiles Value="../../Source/Crypto;../../Source/Common;../../Source/NonVisual;../../Source/NetComm;../../Source/MultiLang;../../Source/Graphics"/>
+        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Parsing>
         <Style Value="1"/>
       </Parsing>
     </CompilerOptions>
-    <Files Count="93">
+    <Files Count="99">
       <Item1>
         <Filename Value="../../Source/Crypto/CnAES.pas"/>
         <UnitName Value="CnAES"/>
@@ -387,6 +388,30 @@
         <Filename Value="../../Source/Common/CnVarList.pas"/>
         <UnitName Value="CnVarList"/>
       </Item93>
+      <Item94>
+        <Filename Value="../../Source/Graphics/CnAACtrls.pas"/>
+        <UnitName Value="CnAACtrls"/>
+      </Item94>
+      <Item95>
+        <Filename Value="../../Source/Graphics/CnAAFont.pas"/>
+        <UnitName Value="CnAAFont"/>
+      </Item95>
+      <Item96>
+        <Filename Value="../../Source/Graphics/CnAAFontDialog.pas"/>
+        <UnitName Value="CnAAFontDialog"/>
+      </Item96>
+      <Item97>
+        <Filename Value="../../Source/Graphics/CnSpin.pas"/>
+        <UnitName Value="CnSpin"/>
+      </Item97>
+      <Item98>
+        <Filename Value="../../Source/Graphics/CnPanel.pas"/>
+        <UnitName Value="CnPanel"/>
+      </Item98>
+      <Item99>
+        <Filename Value="../../Source/Graphics/CnEdit.pas"/>
+        <UnitName Value="CnEdit"/>
+      </Item99>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

@@ -52,8 +52,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, Classes, Graphics, SysUtils, Consts, Controls, Forms,
-  Registry, StdCtrls, ExtCtrls, Math, IniFiles, CnNative, CnClasses;
+  Windows, {$IFDEF FPC} JwaWindows, {$ELSE} Consts, {$ENDIF} Messages, Classes, Graphics, SysUtils,
+  Controls, Forms, Registry, StdCtrls, ExtCtrls, Math, IniFiles, CnNative, CnClasses;
 
 type
 
@@ -1040,6 +1040,33 @@ type
 
   TCnParentControl = class(TWinControl);
   TCnMyControl = class(TControl);
+
+{$IFDEF FPC}
+
+// FPC 下没这函数，手工补上
+function CopyPalette(Palette: HPALETTE): HPALETTE;
+var
+  PaletteSize: Integer;
+  LogPal: TMaxLogPalette;
+begin
+  Result := 0;
+  if Palette = 0 then Exit;
+  PaletteSize := 0;
+  if GetObject(Palette, SizeOf(PaletteSize), @PaletteSize) = 0 then Exit;
+  if PaletteSize = 0 then Exit;
+  with LogPal do
+  begin
+    palVersion := $0300;
+    palNumEntries := PaletteSize;
+{$IFDEF FPC}
+    GetPaletteEntries(Palette, 0, PaletteSize, @palPalEntry[0]);
+{$ELSE}
+    GetPaletteEntries(Palette, 0, PaletteSize, palPalEntry);
+{$ENDIF}
+  end;
+  Result := CreatePalette(PLogPalette(@LogPal)^);
+end;
+{$ENDIF}
 
 function HSLtoRGB(H, S, L: Double): TColor;
 var
@@ -3509,7 +3536,12 @@ var
   IsWin98: Boolean;
 begin
   V.dwOSVersionInfoSize := SizeOf(V);
+{$IFDEF FPC}
+  IsWin98 := GetVersionEx(@V) and (V.dwPlatformId = VER_PLATFORM_WIN32_WINDOWS);
+{$ELSE}
   IsWin98 := GetVersionEx(V) and (V.dwPlatformId = VER_PLATFORM_WIN32_WINDOWS);
+{$ENDIF}
+
   Reg := TRegistry.Create;
   try                                   // 从注册表中读取用户名和组织名
     Reg.Rootkey := HKEY_LOCAL_MACHINE;

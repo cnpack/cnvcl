@@ -22,7 +22,8 @@ uses
   CnBLAKE, CnBLAKE2, CnRPC, CnHashIniFile, CnHashLangStorage, 
   CnIniLangFileStorage, CnLangCollection, CnLangConsts, CnLangMgr, 
   CnLangStorage, CnLangUtils, CnWaterImage, CnWaterEffect, CnZip, 
-  CnBinaryDiffPatch, CnEventBus, CnVarList;
+  CnBinaryDiffPatch, CnEventBus, CnVarList, CnAACtrls, CnAAFont, 
+  CnAAFontDialog, CnSpin, CnPanel, CnEdit;
 
 implementation
 

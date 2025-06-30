@@ -8,8 +8,8 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <IncludeFiles Value="..\..\Source\MultiLang;..\..\Source\Common"/>
-        <Libraries Value="..\..\Source\MultiLang;..\..\Source\Common"/>
+        <IncludeFiles Value="..\..\Source\MultiLang;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\Graphics"/>
+        <Libraries Value="..\..\Source\MultiLang;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\Graphics"/>
         <OtherUnitFiles Value="..\..\Source\MultiLang;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\Graphics"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>

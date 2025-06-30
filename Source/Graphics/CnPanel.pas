@@ -38,11 +38,13 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Controls, Messages, ExtCtrls, Graphics;
+  SysUtils, Classes, Windows, {$IFDEF FPC} LCLType, {$ENDIF} Controls, Messages, ExtCtrls, Graphics;
 
 type
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnPanel = class(TPanel)
   private
@@ -85,8 +87,10 @@ begin
   Width := 200;
   Height := 140;
 
+{$IFNDEF FPC}
   ParentCtl3d := False;
   Ctl3D := False;
+{$ENDIF}
   ParentColor := False;
   Color := clBtnFace;
 end;
@@ -135,7 +139,10 @@ begin
     StretchBlt(FBuffer.Canvas.Handle, 0, 0, Width, Height,
                Canvas.Handle, 0, 0, Width, Height, cmSrcCopy);
 
+{$IFNDEF FPC}
     if Ctl3D then DrawEdge(FBuffer.Canvas.Handle, R, BDR_RAISEDINNER, BF_RECT);
+{$ENDIF}
+
     FBuffer.Canvas.Pen.Mode := pmCopy;
     FBuffer.Canvas.Pen.Style := psSolid;
     Canvas.Draw(0, 0, FBuffer);
@@ -148,7 +155,9 @@ begin
       R.Top := ((R.Bottom + R.Top) - FontHeight) div 2;
       R.Bottom := R.Top + FontHeight;
       Flags := DT_EXPANDTABS or DT_VCENTER or Alignments[Alignment];
+{$IFNDEF FPC}
       Flags := DrawTextBiDiModeFlags(Flags);
+{$ENDIF}
       DrawText(Handle, PChar(Caption), -1, R, Flags);
     end;
   end
@@ -185,7 +194,7 @@ end;
 procedure TCnPanel.CMCtl3DChanged(var Message: TMessage);
 begin
   inherited;
-  RecreateWnd;
+  RecreateWnd{$IFDEF FPC}(Self){$ENDIF};
 end;
 
 procedure TCnPanel.SetTransparent(const Value: Boolean);

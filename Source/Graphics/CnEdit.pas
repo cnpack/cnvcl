@@ -64,8 +64,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, Controls, StdCtrls, Forms, Graphics,
-  Clipbrd {$IFDEF SUPPORT_THEME}, Vcl.Themes {$ENDIF};
+  Windows, Messages, SysUtils, Classes, {$IFDEF FPC} LCLType, {$ENDIF} Controls,
+  StdCtrls, Forms, Graphics, Clipbrd {$IFDEF SUPPORT_THEME}, Vcl.Themes {$ENDIF};
 
 type
   TLinkStyle = (lsNone, lsEllipsis, lsDropDown); // 是否出现按钮以及按钮类型
@@ -74,8 +74,10 @@ type
 
   TCnPaintPaddingEvent = procedure(Sender: TObject; Canvas: TCanvas; PaddingRect: TRect) of object;
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnEdit = class(TEdit)
   private
@@ -243,14 +245,20 @@ var
   DC: HDC;
   SaveFont: HFont;
   I: Integer;
+{$IFDEF FPC}
+  SysMetrics, Metrics: Windows.TTextMetric;
+{$ELSE}
   SysMetrics, Metrics: TTextMetric;
+{$ENDIF}
 begin
   if NewStyleControls then
   begin
     if BOrderStyle = bsNone then
       I := 0
+{$IFNDEF FPC}
     else if Ctl3D then
       I := 1
+{$ENDIF}
     else
       I := 2;
       
@@ -281,7 +289,11 @@ end;
 
 procedure TCnEdit.KeyDown(var Key: Word; Shift: TShiftState);
 var
+{$IFDEF FPC}
+  Msg: Messages.TMsg;
+{$ELSE}
   Msg: TMsg;
+{$ENDIF}
 begin
   if (FLinkStyle in [lsEllipsis, lsDropDown]) and (Key = VK_RETURN) and (Shift = [sSCtrl]) then
   begin
@@ -314,7 +326,7 @@ begin
   end
   else
   begin
-    if not CharInSet(Key, [Chr(VK_BACK), Chr(VK_RETURN), #01, #03, #08, #22, #24, #26]) then // Ctrl+A/C/BK/V/X/Z
+    if not CharInSet(Key, [Chr(VK_BACK), Chr(VK_RETURN), #01, #03, #22, #24, #26]) then // Ctrl+A/C/BK/V/X/Z
     begin
       if FTextType = IntegerText then
       begin
@@ -430,7 +442,11 @@ var
   Margins: TPoint;
   R, TR, PR: TRect;
   DC: HDC;
+{$IFDEF FPC}
+  PS: Windows.TPaintStruct;
+{$ELSE}
   PS: TPaintStruct;
+{$ENDIF}
   S: string;
   Flags: Integer;
   W: Integer;
@@ -459,7 +475,7 @@ begin
       else
       begin
         // TR 是整个区域
-        if not (NewStyleControls and Ctl3D) and (BOrderStyle = bsSingle) then
+        if not (NewStyleControls {$IFNDEF FPC} and Ctl3D {$ENDIF}) and (BOrderStyle = bsSingle) then
         begin
 {$IFDEF SUPPORT_THEME}
           if StyleServices.Enabled then

@@ -53,8 +53,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, SysUtils, Classes, Forms, MMSystem, CnClasses, CnConsts, CnCompConsts,
-  CnNative;
+  Windows, SysUtils, {$IFDEF FPC} LCLIntf, {$ENDIF} Classes, Forms, MMSystem,
+  CnClasses, CnConsts, CnCompConsts, CnNative;
 
 type
 
@@ -100,8 +100,10 @@ type
 
 { TCnTimer }
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnTimer = class(TCnComponent)
   {* 高精度定时器组件，使用方法类似 TTimer。}
@@ -235,8 +237,10 @@ type
   {* 高精度定时器列表事件。Index 为产生事件的定时器子项序号，Handle 返回是否已处理，
      如果在事件中将 Handle 置为 true，将不产生该定时器子项事件}
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnTimerList = class(TCnComponent)
   {* 高精度定时器列表组件，可以定义多个定时器。}
@@ -306,23 +310,38 @@ constructor TCnTimerMgr.Create;
 begin
   inherited Create;
   FTimerList := TThreadList.Create;
+{$IFDEF FPC}
+  FHwnd := LCLIntf.AllocateHWnd(WndProc);
+{$ELSE}
   FHwnd := AllocateHWnd(WndProc);
+{$ENDIF}
   InitMMTimer;
 end;
 
 destructor TCnTimerMgr.Destroy;
 begin
+{$IFDEF FPC}
+  LCLIntf.DeallocateHWnd(FHwnd);
+{$ELSE}
   DeallocateHWnd(FHwnd);
+{$ENDIF}
   FreeMMTimer;
   ClearTimer;
   FreeAndNil(FTimerList);
   inherited Destroy;
 end;
 
-procedure MMTimerProc(uTimerID, uMessage: UINT; dwUser, dw1, dw2: TCnNativeUInt) stdcall;
+{$IFDEF FPC}
+procedure MMTimerProc(uTimerID, uMessage: UINT; dwUser, dw1, dw2: UINT); stdcall;
 begin
   TCnTimerMgr(dwUser).Timer;
-end;  
+end;
+{$ELSE}
+procedure MMTimerProc(uTimerID, uMessage: UINT; dwUser, dw1, dw2: TCnNativeUInt); stdcall;
+begin
+  TCnTimerMgr(dwUser).Timer;
+end;
+{$ENDIF}
 
 function TCnTimerMgr.InitMMTimer: Boolean;
 var
