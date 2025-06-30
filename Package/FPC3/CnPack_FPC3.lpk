@@ -14,7 +14,7 @@
         <Style Value="1"/>
       </Parsing>
     </CompilerOptions>
-    <Files Count="89">
+    <Files Count="93">
       <Item1>
         <Filename Value="../../Source/Crypto/CnAES.pas"/>
         <UnitName Value="CnAES"/>
@@ -371,6 +371,22 @@
         <Filename Value="../../Source/Graphics/CnWaterEffect.pas"/>
         <UnitName Value="CnWaterEffect"/>
       </Item89>
+      <Item90>
+        <Filename Value="../../Source/Common/CnZip.pas"/>
+        <UnitName Value="CnZip"/>
+      </Item90>
+      <Item91>
+        <Filename Value="../../Source/Common/CnBinaryDiffPatch.pas"/>
+        <UnitName Value="CnBinaryDiffPatch"/>
+      </Item91>
+      <Item92>
+        <Filename Value="../../Source/Common/CnEventBus.pas"/>
+        <UnitName Value="CnEventBus"/>
+      </Item92>
+      <Item93>
+        <Filename Value="../../Source/Common/CnVarList.pas"/>
+        <UnitName Value="CnVarList"/>
+      </Item93>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

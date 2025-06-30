@@ -42,7 +42,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Windows, Classes, Math{$IFDEF COMPILER6_UP}, Variants, StrUtils{$ENDIF};
+  SysUtils, Windows, Classes, Math {$IFDEF FPC}, Variants {$ENDIF}
+  {$IFDEF COMPILER6_UP}, Variants, StrUtils{$ENDIF};
 
 type
   TCnVars = array of Variant;
@@ -80,7 +81,7 @@ type
     function ToString: string; override;
     {* 将变体列表转换成字符串，允许嵌套}
 {$ELSE}
-    function ToString: WideString; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    function ToString: WideString; {$IFNDEF FPC}{$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}{$ENDIF}
     {* 将变体列表转换成字符串，允许嵌套}
 {$ENDIF}
     function FromString(Text: WideString; var Error: string): Boolean;
