@@ -36,6 +36,11 @@
         <Filename Value="..\..\Source\MultiLang\CnTransFilter.pas"/>
         <UnitName Value="CnTransFilter"/>
       </Item>
+      <Item>
+        <Filename Value="..\..\Source\Graphics\CnGraphRegister.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="CnGraphRegister"/>
+      </Item>
     </Files>
     <RequiredPkgs>
       <Item>

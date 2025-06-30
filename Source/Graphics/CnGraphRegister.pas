@@ -39,16 +39,14 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics,
-  {$IFDEF COMPILER6_UP}
-  DesignIntf, DesignEditors,
-  {$ELSE}
-  DsgnIntf,
+  {$IFNDEF FPC}
+  {$IFDEF COMPILER6_UP} DesignIntf, DesignEditors, {$ELSE} DsgnIntf, {$ENDIF}
   {$ENDIF}
-  CnConsts, CnGraphics, CnImage, CnSpin, CnGraphPropEditors, CnCheckTreeView,
-  CnWizardImage, CnEdit, CnShellCtrls, CnWaterImage, CnAOTreeView, CnAACtrls,
+  CnConsts, {$IFNDEF FPC} CnGraphics, CnImage, CnSpin, CnGraphPropEditors, CnCheckTreeView,
+  CnWizardImage, CnEdit, CnShellCtrls, {$ENDIF} CnWaterImage, {$IFNDEF FPC} CnAOTreeView, CnAACtrls,
   CnAAFont, CnAAFontEditor, CnAAFontDialog, CnTabSet, CnButtonEdit, CnPanel,
-  CnSkinMagic, CnButtons, CnHexEditor, CnHint, CnGauge, CnListBox, CnColorGrid,
-  CnMonthCalendar, CnValidateImage, CnErrorProvider, CnLED;
+  CnSkinMagic, CnButtons, CnHint, CnGauge, CnListBox, CnColorGrid,
+  CnMonthCalendar, CnValidateImage, CnErrorProvider, CnLED, {$ENDIF} CnHexEditor;
 
 procedure Register;
 {* ¿Ø¼þ¡¢×é¼þ±à¼­Æ÷¡¢ÊôÐÔ±à¼­Æ÷×¢²á¹ý³Ì}
@@ -59,6 +57,7 @@ procedure Register;
 begin
   //RegisterComponents(SCnGraphicPalette, [TCnPaintBox]);
   //RegisterComponents(SCnGraphicPalette, [TCnImage]);
+{$IFNDEF FPC}
   RegisterComponents(SCnGraphicPalette, [TCnButton, TCnBitBtn, TCnSpeedButton]);
   RegisterComponents(SCnGraphicPalette, [TCnPanel, TCnEdit, TCnSpinEdit]);
   RegisterComponents(SCnGraphicPalette, [TCnListBox]);
@@ -66,10 +65,12 @@ begin
   RegisterComponents(SCnGraphicPalette, [TCnCheckTreeView]);
   RegisterComponents(SCnGraphicPalette, [TCnAOTreeView]);
   RegisterComponents(SCnGraphicPalette, [TCnWizardImage]);
-  RegisterComponents(SCnGraphicPalette, [TCnWaterImage]);
   RegisterComponents(SCnGraphicPalette, [TCnValidateImage]);
   RegisterComponents(SCnGraphicPalette, [TCnGauge]);
+{$ENDIF}
+  RegisterComponents(SCnGraphicPalette, [TCnWaterImage]);
   RegisterComponents(SCnGraphicPalette, [TCnHexEditor]);
+{$IFNDEF FPC}
   RegisterComponents(SCnGraphicPalette, [TCnMonthCalendar]);
   RegisterComponents(SCnGraphicPalette, [TCnColorGrid]);
   RegisterComponents(SCnGraphicPalette, [TCnErrorProvider]);
@@ -86,6 +87,7 @@ begin
   RegisterComponents(SCnGraphicPalette, [TCnAAFontDialog]);
   RegisterPropertyEditor(TypeInfo(TCnAAEffect), nil, '', TCnAAEffectProperty);
   RegisterComponentEditor(TCnAALabel, TCnAALabelEditor);
+{$ENDIF}
 end;
 
 end.

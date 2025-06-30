@@ -21,7 +21,7 @@ uses
   CnGB18030, CnThreadPool, CnNetConsts, CnNetwork, CnMenuHook, CnMethodHook, 
   CnBLAKE, CnBLAKE2, CnRPC, CnHashIniFile, CnHashLangStorage, 
   CnIniLangFileStorage, CnLangCollection, CnLangConsts, CnLangMgr, 
-  CnLangStorage, CnLangUtils;
+  CnLangStorage, CnLangUtils, CnWaterImage, CnWaterEffect;
 
 implementation
 
