@@ -40,7 +40,7 @@ var
 
 implementation
 
-{$R *.DFM}
+{$R *.lfm}
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin

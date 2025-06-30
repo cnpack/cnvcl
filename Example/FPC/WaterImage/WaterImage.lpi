@@ -21,6 +21,12 @@
     </RunParams>
     <RequiredPackages>
       <Item>
+        <PackageName Value="dclCnPack_FPC3"/>
+      </Item>
+      <Item>
+        <PackageName Value="CnPack_FPC3"/>
+      </Item>
+      <Item>
         <PackageName Value="LCL"/>
       </Item>
     </RequiredPackages>
@@ -32,7 +38,9 @@
       <Unit>
         <Filename Value="Unit1.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form1"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit>
     </Units>
   </ProjectOptions>

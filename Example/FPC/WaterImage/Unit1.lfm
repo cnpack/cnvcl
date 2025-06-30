@@ -1,27 +1,26 @@
 object Form1: TForm1
   Left = 192
+  Height = 350
   Top = 107
   Width = 618
-  Height = 350
   Caption = 'Form1'
+  ClientHeight = 350
+  ClientWidth = 618
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
-  Font.Style = []
-  OldCreateOrder = False
+  LCLVersion = '4.0.0.4'
   OnCreate = FormCreate
-  PixelsPerInch = 96
-  TextHeight = 13
   object CnWaterImage1: TCnWaterImage
     Left = 8
+    Height = 300
     Top = 8
     Width = 400
-    Height = 300
     AutoSize = True
+    Radius = 0
     Picture.Data = {
-      0A544A504547496D616765A7570000FFD8FFE000104A46494600010200006400
+      0A544A706567496D616765A7570000FFD8FFE000104A46494600010200006400
       640000FFEC00114475636B79000100040000001E0000FFEE000E41646F626500
       64C000000001FFDB008400100B0B0B0C0B100C0C10170F0D0F171B141010141B
       1F17171717171F1E171A1A1A1A171E1E23252725231E2F2F33332F2F40404040
@@ -722,141 +721,112 @@ object Form1: TForm1
       A7B87BDEC9B6DF6EE3FCD7E56A03D56FCEDF6F0E14C07A472347F5821E668574
       2E05BC6B139716EB0B91E038D6517E87FEE6EBF8F0FB28F83F4DFF00636DFC38
       FDB43D0360CDFA4E8167EF91964F69916D605B9D076AE8327DBFD3BFB96E1CFA
-      D206FA8FDB56C2494D471ED089EAF578D7AAB3A7FFD9}
+      D206FA8FDB56C2494D471ED089EAF578D7AAB3A7FFD9
+    }
     OnBeforeRender = CnWaterImage1BeforeRender
   end
   object lbl1: TLabel
     Left = 424
+    Height = 13
     Top = 8
     Width = 73
-    Height = 13
     Caption = 'Random Delay:'
   end
   object lbl2: TLabel
     Left = 424
+    Height = 13
     Top = 64
     Width = 101
-    Height = 13
     Caption = 'Random Blob Height:'
   end
   object lbl3: TLabel
     Left = 424
+    Height = 13
     Top = 120
     Width = 124
-    Height = 13
     Caption = 'Mouse Track Blob Height:'
   end
   object lbl4: TLabel
     Left = 424
+    Height = 13
     Top = 176
     Width = 84
-    Height = 13
     Caption = 'Click Blob Height:'
   end
   object lbl5: TLabel
     Left = 424
+    Height = 13
     Top = 232
     Width = 77
-    Height = 13
     Caption = 'Water Damping:'
   end
   object TrackBar1: TTrackBar
     Left = 416
+    Height = 33
     Top = 24
     Width = 185
-    Height = 33
     Max = 20
-    Orientation = trHorizontal
-    Frequency = 1
     Position = 0
-    SelEnd = 0
-    SelStart = 0
-    TabOrder = 0
-    TickMarks = tmBottomRight
-    TickStyle = tsAuto
     OnChange = tbChanged
+    TabOrder = 0
   end
   object TrackBar2: TTrackBar
     Left = 416
+    Height = 33
     Top = 80
     Width = 185
-    Height = 33
     Max = 20
-    Orientation = trHorizontal
-    Frequency = 1
     Position = 0
-    SelEnd = 0
-    SelStart = 0
-    TabOrder = 1
-    TickMarks = tmBottomRight
-    TickStyle = tsAuto
     OnChange = tbChanged
+    TabOrder = 1
   end
   object TrackBar3: TTrackBar
     Left = 416
+    Height = 33
     Top = 136
     Width = 185
-    Height = 33
     Max = 20
-    Orientation = trHorizontal
-    Frequency = 1
     Position = 0
-    SelEnd = 0
-    SelStart = 0
-    TabOrder = 2
-    TickMarks = tmBottomRight
-    TickStyle = tsAuto
     OnChange = tbChanged
+    TabOrder = 2
   end
   object TrackBar4: TTrackBar
     Left = 416
+    Height = 33
     Top = 192
     Width = 185
-    Height = 33
     Max = 20
-    Orientation = trHorizontal
-    Frequency = 1
     Position = 0
-    SelEnd = 0
-    SelStart = 0
-    TabOrder = 3
-    TickMarks = tmBottomRight
-    TickStyle = tsAuto
     OnChange = tbChanged
+    TabOrder = 3
   end
   object btn1: TButton
     Left = 424
+    Height = 25
     Top = 288
     Width = 73
-    Height = 25
     Caption = 'C&lear'
     TabOrder = 4
     OnClick = btn1Click
   end
   object btn2: TButton
     Left = 520
+    Height = 25
     Top = 288
     Width = 75
-    Height = 25
     Caption = '&Random Blob'
     TabOrder = 5
     OnClick = btn2Click
   end
   object TrackBar5: TTrackBar
     Left = 416
+    Height = 33
     Top = 248
     Width = 185
-    Height = 33
     Max = 20
-    Orientation = trHorizontal
-    Frequency = 1
     Position = 0
-    SelEnd = 0
-    SelStart = 0
-    TabOrder = 6
-    TickMarks = tmBottomRight
-    TickStyle = tsAuto
     OnChange = tbChanged
+    TabOrder = 6
   end
   object tmr1: TTimer
     Interval = 50
