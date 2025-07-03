@@ -216,20 +216,22 @@ begin
 
     if FObject is TControl then
     begin
-      if Name = 'ONCANRESIZE' then
-      begin
-        Method := TMethod(TControlHack(FObject).OnCanResize);
-        PrepareMethodHook;
-        TControlHack(FObject).OnCanResize := TCanResizeEvent(Method);
-        FHooked := True;
-      end
-      else if Name = 'ONCLICK' then
+      if Name = 'ONCLICK' then
       begin
         Method := TMethod(TControlHack(FObject).OnClick);
         PrepareMethodHook;
         TControlHack(FObject).OnClick := TNotifyEvent(Method);
         FHooked := True;
       end
+{$IFNDEF FPC}
+      else if Name = 'ONCANRESIZE' then
+      begin
+        Method := TMethod(TControlHack(FObject).OnCanResize);
+        PrepareMethodHook;
+        TControlHack(FObject).OnCanResize := TCanResizeEvent(Method);
+        FHooked := True;
+      end
+{$ENDIF}
       else if Name = 'ONCONSTRAINEDRESIZE' then
       begin
         Method := TMethod(TControlHack(FObject).OnConstrainedResize);
@@ -417,14 +419,16 @@ begin
 
     if FObject is TControl then
     begin
-      if Name = 'ONCANRESIZE' then
-      begin
-        TControlHack(FObject).OnCanResize := TCanResizeEvent(Method);
-      end
-      else if Name = 'ONCLICK' then
+      if Name = 'ONCLICK' then
       begin
         TControlHack(FObject).OnClick := TNotifyEvent(Method);
       end
+{$IFNDEF FPC}
+      else if Name = 'ONCANRESIZE' then
+      begin
+        TControlHack(FObject).OnCanResize := TCanResizeEvent(Method);
+      end
+{$ENDIF}
       else if Name = 'ONCONSTRAINEDRESIZE' then
       begin
         TControlHack(FObject).OnConstrainedResize := TConstrainedResizeEvent(Method);

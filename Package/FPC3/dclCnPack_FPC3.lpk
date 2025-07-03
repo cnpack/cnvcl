@@ -10,7 +10,7 @@
       <SearchPaths>
         <IncludeFiles Value="..\..\Source\MultiLang;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\Graphics"/>
         <Libraries Value="..\..\Source\MultiLang;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\Graphics"/>
-        <OtherUnitFiles Value="..\..\Source\MultiLang;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\Graphics"/>
+        <OtherUnitFiles Value="..\..\Source\MultiLang;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\Graphics;..\..\Source\NonVisual"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
@@ -40,6 +40,11 @@
         <Filename Value="..\..\Source\Graphics\CnGraphRegister.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="CnGraphRegister"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\Source\NonVisual\CnCompRegister.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="CnCompRegister"/>
       </Item>
     </Files>
     <RequiredPkgs>

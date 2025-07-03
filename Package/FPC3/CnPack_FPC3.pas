@@ -23,7 +23,8 @@ uses
   CnIniLangFileStorage, CnLangCollection, CnLangConsts, CnLangMgr, 
   CnLangStorage, CnLangUtils, CnWaterImage, CnWaterEffect, CnZip, 
   CnBinaryDiffPatch, CnEventBus, CnVarList, CnAACtrls, CnAAFont, 
-  CnAAFontDialog, CnSpin, CnPanel, CnEdit;
+  CnAAFontDialog, CnSpin, CnPanel, CnEdit, CnActionListHook, CnControlHook, 
+  CnEventHook;
 
 implementation
 

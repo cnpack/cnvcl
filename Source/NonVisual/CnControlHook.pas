@@ -55,6 +55,7 @@ type
 { TCnControlHookItem }
 
   TCnControlHook = class;
+
   TCnControlHookCollection = class;
 
   THookMessageEvent = procedure (Sender: TObject; Control: TControl;
@@ -129,8 +130,10 @@ type
    
 { TCnControlHook }
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnControlHook = class(TCnComponent)
   {* 控件消息过程挂接组件，允许通过替换 TControl 子类的 WindowProc 属性来获得控件的消息通知}

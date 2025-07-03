@@ -42,17 +42,16 @@ uses
 {$IFDEF SUPPORT_ADO}
   {$IFDEF SUPPORT_CROSS_PLATFORM} Data.Win.AdoConEd {$ELSE} AdoConEd {$ENDIF},
 {$ENDIF}
-{$IFDEF COMPILER6_UP}
-  DesignIntf, DesignEditors,
-{$ELSE}
-  DsgnIntf,
+{$IFNDEF FPC}
+  {$IFDEF COMPILER6_UP} DesignIntf, DesignEditors, {$ELSE} DsgnIntf, {$ENDIF}
 {$ENDIF}
-  CnTimer, CnFormScaler, CnControlHook, CnActionListHook, CnMenuHook, CnThreadPool,
-  CnActiveScript, CnASPropEditors, CnTrayIcon, CnObjectPool, CnConsole,
+  CnTimer, CnControlHook, CnActionListHook, CnMenuHook, CnThreadPool,
+{$IFNDEF FPC}
+  CnFormScaler, CnActiveScript, CnASPropEditors, CnTrayIcon, CnObjectPool, CnConsole,
   CnVolumeCtrl, CnMDIBackGround, CnWinampCtrl, CnRestoreSystemMenu, CnDockFormControl, 
   CnDelphiDockStyle, CnVCDockStyle, CnVIDDockStyle, CnVSNETDockStyle, CnDockPropertyReg,
   CnFileSystemWatcher, CnDragResizer, CnKeyBlocker, CnFilePacker, CnGlobalKeyHook,
-  CnOuterControls, CnTaskBar, CnRawInput, CnSystemDebugControl, CnConsts;
+  CnOuterControls, CnTaskBar, CnRawInput, CnSystemDebugControl, {$ENDIF} CnConsts;
 
 procedure Register;
 {* ¿Ø¼þ¡¢×é¼þ±à¼­Æ÷¡¢ÊôÐÔ±à¼­Æ÷×¢²á¹ý³Ì}
@@ -61,9 +60,10 @@ implementation
 
 procedure Register;
 begin
-  RegisterComponents(SCnNonVisualPalette, [TCnTimer, TCnTimerList, TCnTrayIcon]);
+  RegisterComponents(SCnNonVisualPalette, [TCnTimer, TCnTimerList {$IFNDEF FPC}, TCnTrayIcon {$ENDIF}]);
   RegisterComponents(SCnNonVisualPalette, [TCnControlHook, TCnActionListHook,
     TCnMenuHook]);
+{$IFNDEF FPC}
   RegisterComponents(SCnNonVisualPalette, [TCnFormScaler, TCnVolumeCtrl, TCnMDIBackGround]);
   RegisterComponents(SCnNonVisualPalette, [TCnActiveScriptSite, TCnActiveScriptWindow]);
   RegisterComponents(SCnNonVisualPalette, [TCnObjectPool, TCnThreadPool, TCnWinampCtrl]);
@@ -88,6 +88,7 @@ begin
   RegisterComponentEditor(TCnBasicDockStyle, TCnDockStyleEditor);
   RegisterComponentEditor(TCnVIDTabPageControl, TCnVIDTabPageControlEditor);
   RegisterComponentEditor(TCnVIDDockTabSheet, TCnVIDTabPageControlEditor);
+{$ENDIF}
 end;
 
 end.

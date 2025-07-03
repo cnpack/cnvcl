@@ -15,7 +15,7 @@
         <Style Value="1"/>
       </Parsing>
     </CompilerOptions>
-    <Files Count="99">
+    <Files Count="102">
       <Item1>
         <Filename Value="../../Source/Crypto/CnAES.pas"/>
         <UnitName Value="CnAES"/>
@@ -412,6 +412,18 @@
         <Filename Value="../../Source/Graphics/CnEdit.pas"/>
         <UnitName Value="CnEdit"/>
       </Item99>
+      <Item100>
+        <Filename Value="../../Source/NonVisual/CnActionListHook.pas"/>
+        <UnitName Value="CnActionListHook"/>
+      </Item100>
+      <Item101>
+        <Filename Value="../../Source/NonVisual/CnControlHook.pas"/>
+        <UnitName Value="CnControlHook"/>
+      </Item101>
+      <Item102>
+        <Filename Value="../../Source/Common/CnEventHook.pas"/>
+        <UnitName Value="CnEventHook"/>
+      </Item102>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

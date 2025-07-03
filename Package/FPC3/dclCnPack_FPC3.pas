@@ -9,7 +9,7 @@ interface
 
 uses
   CnLangEditors, CnLangReg, CnLangTranslator, CnTransEditor, CnTransFilter, 
-  CnGraphRegister, LazarusPackageIntf;
+  CnGraphRegister, CnCompRegister, LazarusPackageIntf;
 
 implementation
 
@@ -17,6 +17,7 @@ procedure Register;
 begin
   RegisterUnit('CnLangReg', @CnLangReg.Register);
   RegisterUnit('CnGraphRegister', @CnGraphRegister.Register);
+  RegisterUnit('CnCompRegister', @CnCompRegister.Register);
 end;
 
 initialization
