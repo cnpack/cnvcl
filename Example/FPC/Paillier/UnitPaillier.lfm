@@ -1,0 +1,634 @@
+object FormPaillier: TFormPaillier
+  Left = 192
+  Height = 608
+  Top = 108
+  Width = 979
+  Caption = 'Test Paillier'
+  ClientHeight = 608
+  ClientWidth = 979
+  Color = clBtnFace
+  Font.CharSet = GB2312_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = '宋体'
+  Position = poScreenCenter
+  LCLVersion = '4.0.0.4'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  object pgcPaillier: TPageControl
+    Left = 8
+    Height = 562
+    Top = 8
+    Width = 953
+    ActivePage = tsInt64Paillier
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    TabIndex = 0
+    TabOrder = 0
+    object tsInt64Paillier: TTabSheet
+      Caption = 'Int64 Paillier'
+      ClientHeight = 536
+      ClientWidth = 945
+      object grpInt64Paillier: TGroupBox
+        Left = 8
+        Height = 491
+        Top = 8
+        Width = 921
+        Anchors = [akTop, akLeft, akRight, akBottom]
+        Caption = 'Int64 Paillier'
+        ClientHeight = 474
+        ClientWidth = 917
+        ParentBackground = False
+        TabOrder = 0
+        object lblInt64Public: TLabel
+          Left = 216
+          Height = 12
+          Top = 28
+          Width = 54
+          Caption = 'Public N:'
+        end
+        object lblInt64PublicG: TLabel
+          Left = 416
+          Height = 12
+          Top = 28
+          Width = 12
+          Caption = 'G:'
+        end
+        object lblInt64PrivateP: TLabel
+          Left = 216
+          Height = 12
+          Top = 60
+          Width = 60
+          Caption = 'Private P:'
+        end
+        object lblInt64PrivateQ: TLabel
+          Left = 416
+          Height = 12
+          Top = 60
+          Width = 12
+          Caption = 'Q:'
+        end
+        object lblInt64PrivateLambda: TLabel
+          Left = 576
+          Height = 12
+          Top = 60
+          Width = 42
+          Caption = 'Lambda:'
+        end
+        object lblInt64PrivateMu: TLabel
+          Left = 760
+          Height = 12
+          Top = 60
+          Width = 18
+          Caption = 'Mu:'
+        end
+        object lblInt64Data: TLabel
+          Left = 216
+          Height = 12
+          Top = 92
+          Width = 30
+          Caption = 'Data:'
+        end
+        object bvl1: TBevel
+          Left = 576
+          Height = 25
+          Top = 24
+          Width = 9
+          Shape = bsLeftLine
+        end
+        object lblInt64PublicN2: TLabel
+          Left = 592
+          Height = 12
+          Top = 28
+          Width = 24
+          Caption = 'N^2:'
+        end
+        object bvl2: TBevel
+          Left = 16
+          Height = 17
+          Top = 120
+          Width = 885
+          Anchors = [akTop, akLeft, akRight]
+          Shape = bsTopLine
+        end
+        object lblInt64Data1: TLabel
+          Left = 16
+          Height = 12
+          Top = 148
+          Width = 36
+          Caption = '明文1:'
+        end
+        object lblInt64Data2: TLabel
+          Left = 280
+          Height = 12
+          Top = 148
+          Width = 48
+          Caption = '+ 明文2:'
+        end
+        object lblInt64Data3: TLabel
+          Left = 584
+          Height = 12
+          Top = 148
+          Width = 54
+          Caption = '=  明文3:'
+        end
+        object lblInt64Enc1: TLabel
+          Left = 16
+          Height = 12
+          Top = 188
+          Width = 36
+          Caption = '密文1:'
+        end
+        object lblInt64Enc2: TLabel
+          Left = 280
+          Height = 12
+          Top = 188
+          Width = 48
+          Caption = '* 密文2:'
+        end
+        object lblInt64Enc3: TLabel
+          Left = 584
+          Height = 12
+          Top = 188
+          Width = 54
+          Caption = '=  密文3:'
+        end
+        object btnInt64PaillierSample: TButton
+          Left = 16
+          Height = 25
+          Top = 24
+          Width = 75
+          Caption = 'Sample'
+          TabOrder = 0
+          OnClick = btnInt64PaillierSampleClick
+        end
+        object btnGenerateKey: TButton
+          Left = 120
+          Height = 25
+          Top = 24
+          Width = 75
+          Caption = 'Gen Key'
+          TabOrder = 1
+          OnClick = btnGenerateKeyClick
+        end
+        object edtInt64PublicN: TEdit
+          Left = 272
+          Height = 20
+          Top = 24
+          Width = 121
+          TabOrder = 2
+          Text = '3830097319'
+          OnChange = edtInt64PublicNChange
+        end
+        object edtInt64PublicG: TEdit
+          Left = 440
+          Height = 20
+          Top = 24
+          Width = 121
+          TabOrder = 3
+          Text = '3830097320'
+        end
+        object edtInt64PrivateP: TEdit
+          Left = 272
+          Height = 20
+          Top = 56
+          Width = 121
+          TabOrder = 4
+          Text = '61723'
+        end
+        object edtInt64PrivateQ: TEdit
+          Left = 440
+          Height = 20
+          Top = 56
+          Width = 121
+          TabOrder = 5
+          Text = '62053'
+        end
+        object edtInt64PrivateLambda: TEdit
+          Left = 624
+          Height = 20
+          Top = 56
+          Width = 121
+          TabOrder = 6
+          Text = '638328924'
+        end
+        object edtInt64PrivateMu: TEdit
+          Left = 792
+          Height = 20
+          Top = 56
+          Width = 121
+          TabOrder = 7
+          Text = '1352223169'
+        end
+        object edtInt64Data: TEdit
+          Left = 272
+          Height = 20
+          Top = 88
+          Width = 289
+          TabOrder = 8
+          Text = '23333'
+        end
+        object btnInt64Encrypt: TButton
+          Left = 16
+          Height = 25
+          Top = 56
+          Width = 177
+          Caption = 'Encrypt/Decrypt'
+          TabOrder = 9
+          OnClick = btnInt64EncryptClick
+        end
+        object edtInt64PublicN2: TEdit
+          Left = 624
+          Height = 20
+          Top = 24
+          Width = 289
+          TabOrder = 10
+        end
+        object edtInt64Data1: TEdit
+          Left = 72
+          Height = 20
+          Top = 144
+          Width = 193
+          TabOrder = 11
+          Text = '23'
+        end
+        object edtInt64Data2: TEdit
+          Left = 336
+          Height = 20
+          Top = 144
+          Width = 217
+          TabOrder = 12
+          Text = '74'
+        end
+        object edtInt64Data3: TEdit
+          Left = 656
+          Height = 20
+          Top = 144
+          Width = 257
+          TabOrder = 13
+        end
+        object edtInt64Enc1: TEdit
+          Left = 72
+          Height = 20
+          Top = 184
+          Width = 193
+          TabOrder = 14
+        end
+        object edtInt64Enc2: TEdit
+          Left = 336
+          Height = 20
+          Top = 184
+          Width = 217
+          TabOrder = 15
+        end
+        object edtInt64Enc3: TEdit
+          Left = 656
+          Height = 20
+          Top = 184
+          Width = 257
+          TabOrder = 16
+        end
+        object btnChecknt64AddHomo: TButton
+          Left = 16
+          Height = 25
+          Top = 224
+          Width = 897
+          Caption = '验证加法同态'
+          TabOrder = 17
+          OnClick = btnChecknt64AddHomoClick
+        end
+        object btnInt64PaillierSample2: TButton
+          Left = 16
+          Height = 25
+          Top = 429
+          Width = 105
+          Anchors = [akLeft, akBottom]
+          Caption = 'Sample Check1'
+          TabOrder = 18
+          OnClick = btnInt64PaillierSample2Click
+        end
+        object btnInt64PaillierSample3: TButton
+          Left = 136
+          Height = 25
+          Top = 429
+          Width = 105
+          Anchors = [akLeft, akBottom]
+          Caption = 'Sample Check2'
+          TabOrder = 19
+          OnClick = btnInt64PaillierSample3Click
+        end
+        object btnInt64PaillierSample4: TButton
+          Left = 264
+          Height = 25
+          Top = 429
+          Width = 105
+          Anchors = [akLeft, akBottom]
+          Caption = 'Check3'
+          TabOrder = 20
+          OnClick = btnInt64PaillierSample4Click
+        end
+        object btnInt64PaillierSample5: TButton
+          Left = 392
+          Height = 25
+          Top = 429
+          Width = 105
+          Anchors = [akLeft, akBottom]
+          Caption = 'Check4'
+          TabOrder = 21
+          OnClick = btnInt64PaillierSample5Click
+        end
+      end
+    end
+    object tsBigNumberPaillier: TTabSheet
+      Caption = 'BigNumber Paillier'
+      ClientHeight = 536
+      ClientWidth = 945
+      ImageIndex = 1
+      object grpBNPaillier: TGroupBox
+        Left = 8
+        Height = 491
+        Top = 8
+        Width = 921
+        Anchors = [akTop, akLeft, akRight, akBottom]
+        Caption = 'BigNumber Paillier'
+        ClientHeight = 474
+        ClientWidth = 917
+        ParentBackground = False
+        TabOrder = 0
+        object lblBNPublic: TLabel
+          Left = 16
+          Height = 12
+          Top = 68
+          Width = 54
+          Caption = 'Public N:'
+        end
+        object lblBNPublicG: TLabel
+          Left = 16
+          Height = 12
+          Top = 100
+          Width = 12
+          Caption = 'G:'
+        end
+        object lblBNPrivateP: TLabel
+          Left = 16
+          Height = 12
+          Top = 180
+          Width = 60
+          Caption = 'Private P:'
+        end
+        object lblBNPrivateQ: TLabel
+          Left = 48
+          Height = 12
+          Top = 212
+          Width = 12
+          Caption = 'Q:'
+        end
+        object lblBNPrivateLambda: TLabel
+          Left = 16
+          Height = 12
+          Top = 244
+          Width = 42
+          Caption = 'Lambda:'
+        end
+        object lblBNPrivateMu: TLabel
+          Left = 40
+          Height = 12
+          Top = 276
+          Width = 18
+          Caption = 'Mu:'
+        end
+        object lblBNData: TLabel
+          Left = 424
+          Height = 12
+          Top = 28
+          Width = 30
+          Caption = 'Data:'
+        end
+        object bvl11: TBevel
+          Left = 16
+          Height = 17
+          Top = 160
+          Width = 885
+          Anchors = [akTop, akLeft, akRight]
+          Shape = bsTopLine
+        end
+        object lbBNPublicN2: TLabel
+          Left = 16
+          Height = 12
+          Top = 132
+          Width = 24
+          Caption = 'N^2:'
+        end
+        object bvl111: TBevel
+          Left = 16
+          Height = 17
+          Top = 384
+          Width = 885
+          Anchors = [akTop, akLeft, akRight]
+          Shape = bsTopLine
+        end
+        object lblBNData1: TLabel
+          Left = 16
+          Height = 12
+          Top = 404
+          Width = 36
+          Caption = '明文1:'
+        end
+        object lblBNEnc1: TLabel
+          Left = 16
+          Height = 12
+          Top = 444
+          Width = 36
+          Caption = '密文1:'
+        end
+        object lblBNEnc2: TLabel
+          Left = 280
+          Height = 12
+          Top = 444
+          Width = 48
+          Caption = '* 密文2:'
+        end
+        object lblBNData2: TLabel
+          Left = 280
+          Height = 12
+          Top = 404
+          Width = 48
+          Caption = '+ 明文2:'
+        end
+        object lblBNData3: TLabel
+          Left = 584
+          Height = 12
+          Top = 404
+          Width = 54
+          Caption = '=  明文3:'
+        end
+        object lblBNEnc3: TLabel
+          Left = 584
+          Height = 12
+          Top = 444
+          Width = 54
+          Caption = '=  密文3:'
+        end
+        object btnBNPaillierSample: TButton
+          Left = 16
+          Height = 25
+          Top = 24
+          Width = 75
+          Caption = 'Sample'
+          TabOrder = 0
+          OnClick = btnBNPaillierSampleClick
+        end
+        object btnBNGenerateKey: TButton
+          Left = 120
+          Height = 25
+          Top = 24
+          Width = 75
+          Caption = 'Gen Key'
+          TabOrder = 1
+          OnClick = btnBNGenerateKeyClick
+        end
+        object edtBNPublicN: TEdit
+          Left = 72
+          Height = 20
+          Top = 64
+          Width = 829
+          Anchors = [akTop, akLeft, akRight]
+          TabOrder = 2
+          Text = '3830097319'
+          OnChange = edtBNPublicNChange
+        end
+        object edtBNPublicG: TEdit
+          Left = 72
+          Height = 20
+          Top = 96
+          Width = 829
+          Anchors = [akTop, akLeft, akRight]
+          TabOrder = 3
+          Text = '3830097320'
+        end
+        object edtBNPrivateP: TEdit
+          Left = 72
+          Height = 20
+          Top = 176
+          Width = 829
+          Anchors = [akTop, akLeft, akRight]
+          TabOrder = 4
+          Text = '61723'
+        end
+        object edtBNPrivateQ: TEdit
+          Left = 72
+          Height = 20
+          Top = 208
+          Width = 829
+          Anchors = [akTop, akLeft, akRight]
+          TabOrder = 5
+          Text = '62053'
+        end
+        object edtBNPrivateLambda: TEdit
+          Left = 72
+          Height = 20
+          Top = 240
+          Width = 829
+          Anchors = [akTop, akLeft, akRight]
+          TabOrder = 6
+          Text = '638328924'
+        end
+        object edtBNPrivateMu: TEdit
+          Left = 72
+          Height = 20
+          Top = 272
+          Width = 829
+          Anchors = [akTop, akLeft, akRight]
+          TabOrder = 7
+          Text = '1352223169'
+        end
+        object edtBNData: TEdit
+          Left = 456
+          Height = 20
+          Top = 24
+          Width = 445
+          Anchors = [akTop, akLeft, akRight]
+          TabOrder = 8
+          Text = '23333'
+        end
+        object btnBNEncrypt: TButton
+          Left = 232
+          Height = 25
+          Top = 24
+          Width = 177
+          Caption = 'Encrypt/Decrypt'
+          TabOrder = 9
+          OnClick = btnBNEncryptClick
+        end
+        object edtBNPublicN2: TEdit
+          Left = 72
+          Height = 20
+          Top = 128
+          Width = 829
+          Anchors = [akTop, akLeft, akRight]
+          TabOrder = 10
+        end
+        object mmoBNResult: TMemo
+          Left = 72
+          Height = 65
+          Top = 304
+          Width = 829
+          Anchors = [akTop, akLeft, akRight]
+          TabOrder = 11
+        end
+        object edtBNData1: TEdit
+          Left = 72
+          Height = 20
+          Top = 400
+          Width = 193
+          TabOrder = 12
+          Text = '6543209873'
+        end
+        object edtBNEnc1: TEdit
+          Left = 72
+          Height = 20
+          Top = 440
+          Width = 193
+          TabOrder = 13
+        end
+        object edtBNData2: TEdit
+          Left = 336
+          Height = 20
+          Top = 400
+          Width = 217
+          TabOrder = 14
+          Text = '744567897654321396234'
+        end
+        object edtBNEnc2: TEdit
+          Left = 336
+          Height = 20
+          Top = 440
+          Width = 217
+          TabOrder = 15
+        end
+        object edtBNEnc3: TEdit
+          Left = 656
+          Height = 20
+          Top = 440
+          Width = 257
+          TabOrder = 16
+        end
+        object edtBNData3: TEdit
+          Left = 656
+          Height = 20
+          Top = 400
+          Width = 257
+          TabOrder = 17
+        end
+        object btnCheckBNAddHomo: TButton
+          Left = 16
+          Height = 25
+          Top = 480
+          Width = 897
+          Caption = '验证加法同态'
+          TabOrder = 18
+          OnClick = btnCheckBNAddHomoClick
+        end
+      end
+    end
+  end
+end
