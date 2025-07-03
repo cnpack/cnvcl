@@ -1,4 +1,4 @@
-program TesetPaillier;
+program TestPaillier;
 
 uses
   Forms,
