@@ -503,6 +503,7 @@ type
 
     FComponentTree: TCnTree;
     FControlTree: TCnTree;
+    FScreenTree: TCnTree;
 
     FOnEvaluateBegin: TNotifyEvent;
     FOnEvaluateEnd: TNotifyEvent;
@@ -525,9 +526,9 @@ type
     procedure UpdateHierarchys;
     procedure UpdatePanelPositions;
 
-    // 根据 FObjectPointer 查其组件树与控件树
+    // 根据 FObjectPointer 查其组件树与控件树及其他
     procedure SearchTrees;
-    procedure UpdateToTree(IsControl: Boolean);
+    procedure UpdateToTree(TreeType: Integer);
     procedure SaveATreeNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode; var Valid: Boolean);
 
     procedure MsgInspectObject(var Msg: TMessage); message CN_INSPECTOBJECT;
@@ -601,6 +602,11 @@ implementation
 
 uses
   CnDebug {$IFDEF ENABLE_FMX}, CnFmxUtils {$ENDIF};
+
+const
+  CN_TREE_TYPE_COMPONENT  = 0;
+  CN_TREE_TYPE_CONTROL    = 1;
+  CN_TREE_TYPE_SCREENFORM = 2;
 
 type
   PParamData = ^TParamData;
@@ -3113,6 +3119,7 @@ begin
   tsTree.Tabs.Clear;
   tsTree.Tabs.Add('Components');
   tsTree.Tabs.Add('Controls');
+  tsTree.Tabs.Add('Screen Forms');
 
   tsTree.TabIndex := 0;
   tsTree.OnChange := tsTreeChange;
@@ -3493,6 +3500,8 @@ begin
   FHierPanels.Free;
   FComponentTree.Free;
   FControlTree.Free;
+  FScreenTree.Free;
+
   if FInspector <> nil then
     FreeAndNil(FInspector);
 end;
@@ -4150,7 +4159,7 @@ begin
   if ShowTree then
   begin
     SearchTrees;
-    UpdateToTree(tsTree.TabIndex > 0);
+    UpdateToTree(tsTree.TabIndex);
   end;
 end;
 
@@ -4209,6 +4218,39 @@ var
     end;
   end;
 
+  procedure AddScreenFormsToTree;
+  var
+    I: Integer;
+    Leaf: TCnLeaf;
+    F: TComponent;
+  begin
+    for I := 0 to Screen.CustomFormCount - 1 do
+    begin
+      Leaf := FScreenTree.AddChild(FScreenTree.Root);
+      F := Screen.CustomForms[I];
+      Leaf.Obj := F;
+{$IFDEF WIN64}
+      Leaf.Text := Format('%s: %s: $%16.16x', [F.Name, F.ClassName, NativeInt(F)]);
+{$ELSE}
+      Leaf.Text := Format('%s: %s: $%8.8x', [F.Name, F.ClassName, Integer(F)]);
+{$ENDIF}
+    end;
+
+{$IFDEF ENABLE_FMX}
+    for I := 0 to CnFmxGetScreenFormCount - 1 do
+    begin
+      Leaf := FScreenTree.AddChild(FScreenTree.Root);
+      F := CnFmxGetScreenForms(I);
+      Leaf.Obj := F;
+{$IFDEF WIN64}
+      Leaf.Text := Format('%s: %s: $%16.16x', [F.Name, F.ClassName, NativeInt(F)]);
+{$ELSE}
+      Leaf.Text := Format('%s: %s: $%8.8x', [F.Name, F.ClassName, Integer(F)]);
+{$ENDIF}
+    end;
+{$ENDIF}
+  end;
+
 {$IFDEF ENABLE_FMX}
   procedure AddFmxControltoTree(ACtrl: TComponent; ParentLeaf: TCnLeaf = nil);
   var
@@ -4265,6 +4307,12 @@ begin
   else
     FControlTree.Clear;
 
+  if FScreenTree = nil then
+  begin
+    FScreenTree := TCnTree.Create;
+    FScreenTree.OnSaveANode := SaveATreeNode;
+  end;
+
   try
     if TObject(FObjectPointer) is TComponent then
     begin
@@ -4284,8 +4332,11 @@ begin
       AddControlToTree(RootControl);
     end;
 
+    AddScreenFormsToTree;
+
 {$IFDEF ENABLE_FMX}
-    if CnFmxIsInheritedFromControl(TObject(FObjectPointer)) then
+    if CnFmxIsInheritedFromControl(TObject(FObjectPointer)) or
+      CnFmxIsInheritedFromCommonCustomForm(TObject(FObjectPointer)) then
     begin
       FmxCtrl := TObject(FObjectPointer) as TComponent;
       RootFmxControl := FmxCtrl;
@@ -4299,15 +4350,19 @@ begin
   end;
 end;
 
-procedure TCnPropSheetForm.UpdateToTree(IsControl: Boolean);
+procedure TCnPropSheetForm.UpdateToTree(TreeType: Integer);
 var
   I: Integer;
   Ptr: Pointer;
 begin
-  if not IsControl then
+  if TreeType = CN_TREE_TYPE_COMPONENT then
     FComponentTree.SaveToTreeView(TreeView)
+  else if TreeType = CN_TREE_TYPE_CONTROL then
+    FControlTree.SaveToTreeView(TreeView)
+  else if TreeType = CN_TREE_TYPE_SCREENFORM then
+    FScreenTree.SaveToTreeView(TreeView)
   else
-    FControlTree.SaveToTreeView(TreeView);
+    Exit;
 
   // 展开
   if TreeView.Items.Count > 0 then
@@ -4331,9 +4386,9 @@ procedure TCnPropSheetForm.tsTreeChange(Sender: TObject {$IFNDEF FPC}; NewTab: I
   var AllowChange: Boolean {$ENDIF});
 begin
 {$IFDEF FPC}
-  UpdateToTree(tsTree.TabIndex > 0);
+  UpdateToTree(tsTree.TabIndex);
 {$ELSE}
-  UpdateToTree(NewTab > 0);
+  UpdateToTree(NewTab);
 {$ENDIF}
 end;
 

@@ -161,6 +161,12 @@ procedure CnFmxInvalidateControl(AControl: TComponent);
 procedure CnFmxControlCanvasFillRect(AControl: TComponent; ARect: TRect; AColor: TColor);
 {* 以指定矩形和颜色来填充 Control 的画布，如非 Control 则什么也不做}
 
+function CnFmxGetScreenFormCount: Integer;
+{* 获取 Screen 的 FormCount 数}
+
+function CnFmxGetScreenForms(Index: Integer): TCommonCustomForm;
+{* 获取 Screen 的第 Index 个 Form}
+
 implementation
 
 const
@@ -735,6 +741,16 @@ begin
       C.Fill.Kind := OldStyle;
     end;
   end;
+end;
+
+function CnFmxGetScreenFormCount: Integer;
+begin
+  Result := Screen.FormCount;
+end;
+
+function CnFmxGetScreenForms(Index: Integer): TCommonCustomForm;
+begin
+  Result := Screen.Forms[Index];
 end;
 
 procedure CreateFmxSetFixArray;
