@@ -27,8 +27,11 @@ unit CnSpin;
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 备    注：由 周劲羽 从 Delphi 5 中移植而来，以实现 BCB 的兼容
-* 修改记录：2002.12.07 V1.0
+* 备    注：Delphi 下由周劲羽从 Delphi 5 中移植而来，以实现 BCB 的兼容
+*           Lazarus 中直接使用 TSpinEdit
+* 修改记录：2025.07.05 V1.1
+*               FPC 中直接使用 TSpinEdit，避免不兼容的 Bug
+*           2002.12.07 V1.0
 *               移植自 Delphi 5
 ================================================================================
 |</PRE>}
@@ -39,13 +42,17 @@ interface
 
 uses
   Windows, Classes, StdCtrls, ExtCtrls, Controls, Messages, SysUtils,
-  Forms, Graphics, Menus, Buttons, CnConsts {$IFDEF FPC}, LCLType {$ENDIF};
+  Forms, Graphics, Menus, Buttons, CnConsts {$IFDEF FPC}, LCLType, Spin {$ENDIF};
 
 const
   InitRepeatPause = 400;  { pause before repeat timer (ms) }
   RepeatPause     = 100;  { pause before hint window displays (ms)}
 
 type
+{$IFDEF FPC}
+  TCnSpinEdit = TSpinEdit;
+{$ELSE}
+
   TNumGlyphs = Buttons.TNumGlyphs;
 
   TCnTimerSpeedButton = class;
@@ -90,9 +97,7 @@ type
     property Align;
     property Anchors;
     property Constraints;
-{$IFNDEF FPC}
     property Ctl3D;
-{$ENDIF}
     property DownGlyph: TBitmap read GetDownGlyph write SetDownGlyph;
     property DownNumGlyphs: TNumGlyphs read GetDownNumGlyphs write SetDownNumGlyphs default 1;
     property DragCursor;
@@ -100,9 +105,7 @@ type
     property DragMode;
     property Enabled;
     property FocusControl: TWinControl read FFocusControl write FFocusControl;
-{$IFNDEF FPC}
     property ParentCtl3D;
-{$ENDIF}
     property ParentShowHint;
     property PopupMenu;
     property ShowHint;
@@ -161,9 +164,7 @@ type
     property AutoSize;
     property Color;
     property Constraints;
-{$IFNDEF FPC}
     property Ctl3D;
-{$ENDIF}
     property DragCursor;
     property DragMode;
     property EditorEnabled: Boolean read FEditorEnabled write FEditorEnabled default True;
@@ -174,9 +175,7 @@ type
     property MaxValue: LongInt read FMaxValue write FMaxValue;
     property MinValue: LongInt read FMinValue write FMinValue;
     property ParentColor;
-{$IFNDEF FPC}
     property ParentCtl3D;
-{$ENDIF}
     property ParentFont;
     property ParentShowHint;
     property PopupMenu;
@@ -223,7 +222,11 @@ type
     property TimeBtnState: TTimeBtnState read FTimeBtnState write FTimeBtnState;
   end;
 
+{$ENDIF}
+
 implementation
+
+{$IFNDEF FPC}
 
 {$R CNSPIN}
 
@@ -522,15 +525,16 @@ var
 begin
   inherited;
   MinHeight := GetMinHeight;
-    { text edit bug: if size to less than minheight, then edit ctrl does
-      not display the text }
+
   if Height < MinHeight then
     Height := MinHeight
   else if FButton <> nil then
   begin
-    if NewStyleControls {$IFNDEF FPC} and Ctl3D {$ENDIF} then
+    if NewStyleControls and Ctl3D then
       FButton.SetBounds(Width - FButton.Width - 5, 0, FButton.Width, Height - 5)
-    else FButton.SetBounds(Width - FButton.Width, 1, FButton.Width, Height - 3);
+    else
+      FButton.SetBounds(Width - FButton.Width, 1, FButton.Width, Height - 3);
+
     SetEditRect;
   end;
 end;
@@ -540,11 +544,7 @@ var
   DC: HDC;
   SaveFont: HFont;
   I: Integer;
-{$IFDEF FPC}
-  SysMetrics, Metrics: Windows.TTextMetric;
-{$ELSE}
   SysMetrics, Metrics: TTextMetric;
-{$ENDIF}
 begin
   DC := GetDC(0);
   GetTextMetrics(DC, SysMetrics);
@@ -677,5 +677,7 @@ begin
     DrawFocusRect(Canvas.Handle, R);
   end;
 end;
+
+{$ENDIF}
 
 end.
