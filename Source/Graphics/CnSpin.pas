@@ -50,7 +50,8 @@ const
 
 type
 {$IFDEF FPC}
-  TCnSpinEdit = TSpinEdit;
+  TCnSpinEdit = class(TSpinEdit)
+  end;
 {$ELSE}
 
   TNumGlyphs = Buttons.TNumGlyphs;
