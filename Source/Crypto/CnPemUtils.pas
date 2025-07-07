@@ -54,7 +54,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNative, CnRandom, CnKDF, CnBase64, CnAES, CnDES;
+  SysUtils, Classes, CnNative, CnRandom, CnKDF, CnBase64, CnAES, CnDES, CnSM4;
 
 const
   CN_PKCS1_BLOCK_TYPE_PRIVATE_00       = 00;
@@ -70,7 +70,8 @@ type
   TCnKeyHashMethod = (ckhMd5, ckhSha256);
   {* PEM 格式支持的杂凑类型}
 
-  TCnKeyEncryptMethod = (ckeNone, ckeDES, cke3DES, ckeAES128, ckeAES192, ckeAES256);
+  TCnKeyEncryptMethod = (ckeNone, ckeDES, cke3DES, ckeAES128, ckeAES192, ckeAES256,
+    ckeSM4);
   {* PEM 格式支持的加密类型}
 
 // ======================= PEM 文件读写函数，支持加解密 ========================
@@ -380,14 +381,16 @@ const
   ENC_TYPE_AES256 = 'AES-256';
   ENC_TYPE_DES    = 'DES';
   ENC_TYPE_3DES   = 'DES-EDE3';
+  ENC_TYPE_SM4    = 'SM4';
 
   ENC_BLOCK_CBC   = 'CBC';
 
   ENC_TYPE_STRS: array[TCnKeyEncryptMethod] of string =
-    ('', ENC_TYPE_DES, ENC_TYPE_3DES, ENC_TYPE_AES128, ENC_TYPE_AES192, ENC_TYPE_AES256);
+    ('', ENC_TYPE_DES, ENC_TYPE_3DES, ENC_TYPE_AES128, ENC_TYPE_AES192,
+    ENC_TYPE_AES256, ENC_TYPE_SM4);
 
   ENC_TYPE_BLOCK_SIZE: array[TCnKeyEncryptMethod] of Byte =
-    (0, 8, 8, 16, 16, 16);
+    (0, 8, 8, 16, 16, 16, 16);
 
 function Min(A, B: Integer): Integer;
 begin
@@ -756,6 +759,8 @@ var
   DesKey: TCnDESKey;
   Des3Key: TCn3DESKey;
   DesIv: TCnDESIv;
+  Sm4Key: TCnSM4Key;
+  Sm4Iv: TCnSM4Iv;
 begin
   Result := False;
 
@@ -830,6 +835,14 @@ begin
           EncryptAES256StreamCBC(Stream, Stream.Size, AESKey256, AesIv, ES);
           Result := True;
         end;
+      ckeSM4:
+        begin
+          Move(Keys[0], Sm4Key[0], SizeOf(TCnSM4Key));
+          Move(IvStr[1], Sm4Iv[0], SizeOf(TCnSM4Iv));
+
+          SM4EncryptStreamCBC(Stream, Stream.Size, Sm4Key, Sm4Iv, ES);
+          Result := True;
+        end;
     end;
   finally
     if ES.Size > 0 then
@@ -858,6 +871,8 @@ var
   DesKey: TCnDESKey;
   Des3Key: TCn3DESKey;
   DesIv: TCnDESIv;
+  Sm4Key: TCnSM4Key;
+  Sm4Iv: TCnSM4Iv;
 begin
   Result := False;
   DS := nil;
@@ -940,7 +955,17 @@ begin
       TripleDESDecryptStreamCBC(DS, DS.Size, Des3Key, DesIv, Stream);
       RemovePKCS7Padding(Stream);
       Result := True;
-    end;
+    end
+    else if (M1 = ENC_TYPE_SM4) and (M2 = ENC_BLOCK_CBC) then
+    begin
+      // 解开 SM4-CBC 加密的密文
+      Move(Keys[0], Sm4Key[0], SizeOf(TCnSM4Key));
+      Move(IvStr[1], Sm4Iv[0], Min(SizeOf(TCnSM4Iv), Length(IvStr)));
+
+      SM4DecryptStreamCBC(DS, DS.Size, Sm4Key, Sm4Iv, Stream);
+      RemovePKCS7Padding(Stream);
+      Result := True;
+    end
   finally
     DS.Free;
   end;
