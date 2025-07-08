@@ -24,17 +24,21 @@ unit CnRTL;
 * 软件名称：CnDebugger 相关运行库
 * 单元名称：CnDebug 相关的运行期工具单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 备    注：该单元实现了部分 CnDebugger 所需的 Module/Stack 相关内容
-*           部分内容引用了 JCL
+* 备    注：该单元实现了部分 CnDebugger 所需的 Module/Stack 相关内容，部分引用了 JCL。
+*           异常捕捉目标：语言中 raise 出的 Exception，以及 OS 中跑起来碰到的外部异常如除 0 等，
+*           无论有没被 try except，都要能抓住并获取堆栈再记录输出，但不影响原有的异常处理流程。
+*
+*           Delphi + Windows 下
+*           抓当前调用堆栈           抓语言抛异常             抓 OS 异常
+* 实现类    TCnCurrentStackInfoList  TCnCurrentStackInfoList  TCnExceptionStackInfoList
+* 32 位     RtlCaptureStackTrace     RtlCaptureStackTrace     用 AddVectoredExceptionHandler 拿 Context，再 StackWalk64
+* 64 位     RtlCaptureStackTrace     RtlCaptureStackTrace     用 AddVectoredExceptionHandler 拿 Context，但 StackWalk64 的结果似乎也不对。
+*
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：Win32/Win64
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2020.05.08
 *               实现 Delphi 模块的异常挂接，包括 raise 与 OS 异常两种，基本支持 32/64。
-*           抓当前调用堆栈           抓语言抛异常             抓 OS 异常
-* 实现类    TCnCurrentStackInfoList  TCnCurrentStackInfoList  TCnExceptionStackInfoList
-* 32 位     RtlCaptureStackTrace     RtlCaptureStackTrace     用 AddVectoredExceptionHandler 拿 Context，再 StackWalk64
-* 64 位     RtlCaptureStackTrace     RtlCaptureStackTrace     用 AddVectoredExceptionHandler 拿 Context，但 StackWalk64 的结果似乎也不对。
 *           2020.05.05
 *               实现当前 exe 内改写 IAT 的方式 Hook API，同时支持 32/64。
 *               当模块内的 OriginalFirstThunk 有效时根据函数名来搜索 IAT
@@ -46,6 +50,7 @@ unit CnRTL;
 *               创建单元,实现功能
 ================================================================================
 |</PRE>}
+
 
 interface
 
@@ -1117,7 +1122,7 @@ begin
       Info.CallerAddr := Callers[I];
       Add(Info);
     end;
-  end
+  end;
 end;
 
 { TCnManualStackInfoList }

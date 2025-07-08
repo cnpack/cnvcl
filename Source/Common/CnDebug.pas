@@ -150,7 +150,7 @@ interface
 {$ENDIF}
 
 uses
-  SysUtils, Classes, TypInfo
+  SysUtils, Classes, TypInfo {$IFDEF FPC} {$IFDEF CAPTURE_STACK}, LineInfo {$ENDIF} {$ENDIF}
   {$IFDEF ENABLE_FMX}, System.Types, System.UITypes, System.SyncObjs, System.UIConsts
   {$IFDEF MSWINDOWS}, Winapi.Windows, Winapi.Messages, Vcl.Controls, System.Win.Registry
   {$ELSE}, Posix.Unistd, Posix.Pthread {$ENDIF},
@@ -2415,6 +2415,9 @@ end;
 function GetLocationInfoStr(const Address: Pointer): string;
 var
   Info: TCnModuleDebugInfo;
+{$IFDEF FPC}
+  FN, SN: ShortString;
+{$ENDIF}
   MN, UN, PN: string;
   LN, OL, OP: Integer;
 begin
@@ -2438,6 +2441,23 @@ begin
   Result := Format(SCnLocationInfoFmt, [TCnNativeInt(Address),
     ExtractFileName(Info.ModuleFile), Info.ModuleHandle]);
 
+{$IFDEF FPC}
+  if GetLineInfo(PtrUInt(Address), FN, SN, LN) then
+  begin
+    if FN <> '' then
+      Result := Result + FN;
+
+    if SN <> '' then
+    begin
+      Result := Result + ' ("' + SN + '"';
+      if LN > 0 then
+        Result := Result + Format(' #%d', [LN]);
+
+      Result := Result + ')';
+    end;
+  end
+  else
+{$ENDIF}
   if Info.GetDebugInfoFromAddr(Address, MN, UN, PN, LN, OL, OP) then
   begin
     if PN <> '' then
