@@ -1141,7 +1141,7 @@ end;
 
 procedure TCnManualStackInfoList.TraceStackFrames;
 var
-  Ctx: TContext;     // Ctx 貌似得声明靠上，不能放大数组后面，否则虚拟机会出莫名其妙的错
+  Ctx: array[0..1] of TContext;     // Ctx 貌似得 16 字节对齐，否则会出莫名其妙的错，只能手动对齐
   PCtx: PContext;
   Info: TCnStackInfo;
   STKF64: TStackFrame64;
@@ -1153,9 +1153,14 @@ begin
   begin
     if FCtxPtr = nil then
     begin
-      FillChar(Ctx, SizeOf(TContext), 0);
-      RtlCaptureContext(@Ctx);  // 64 位的情况下，居然虚拟机上可能会出错
-      FCtxPtr := @Ctx;
+      FillChar(Ctx[0], SizeOf(Ctx), 0);
+      FCtxPtr := @Ctx[0];
+
+      // 往地址低的地方去对齐 16 字节
+      while (TCnNativeUInt(FCtxPtr) and $F) <> 0 do
+        FCtxPtr := Pointer(TCnNativeUInt(FCtxPtr) - 1);
+
+      RtlCaptureContext(FCtxPtr);  // 64 位的情况下可能会出错，于是强行 16 字节对齐
     end;
     PCtx := PContext(FCtxPtr);
 
