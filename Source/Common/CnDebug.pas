@@ -400,7 +400,7 @@ type
     function GUIDToString(const GUID: TGUID): string;
 
     procedure GetCurrentTrace(Strings: TStrings);
-    procedure GetTraceFromAddr(StackBaseAddr: Pointer; Strings: TStrings);
+    procedure GetTraceFromAddr(RunAddr, FrameAddr, StackAddr: Pointer; Strings: TStrings);
 
     procedure InternalOutputMsg(const AMsg: PAnsiChar; Size: Integer; const ATag: AnsiString;
       ALevel, AIndent: Integer; AType: TCnMsgType; ThreadID: Cardinal; CPUPeriod: Int64);
@@ -1143,12 +1143,15 @@ type
        返回值：（无）
     }
 
-    procedure LogStackFromAddress(Addr: Pointer; const AMsg: string = '');
-    {* 在 DEBUG 条件下分析并输出指定地址的调用堆栈信息。
+    procedure LogStackFromAddress(RunAddr: Pointer; const AMsg: string = '';
+      FrameAddr: Pointer = nil; StackAddr: Pointer = nil);
+    {* 在 DEBUG 条件下根据指定 EIP/RIP 地址及栈帧地址分析并输出调用堆栈信息，32 位下似乎 EBP 也行，64 位下似乎有问题。
 
        参数：
-         Addr: Pointer                    - 待分析的指定地址
+         RunAddr: Pointer                 - 待分析的指定 EIP/RIP 地址，32 位下似乎 EBP 也行
          const AMsg: string               - 待输出的附加字符串信息
+         FrameAddr: Pointer               - 基址指针 EBP/RBP，32 位下可不传
+         StackAddr: Pointer               - 堆栈指针 ESP/RSP，32 位下可不传
 
        返回值：（无）
     }
@@ -1837,12 +1840,15 @@ type
        返回值：（无）
     }
 
-    procedure TraceStackFromAddress(Addr: Pointer; const AMsg: string = '');
-    {* 无 NDEBUG 条件时分析并输出指定地址的调用堆栈信息。
+    procedure TraceStackFromAddress(RunAddr: Pointer; const AMsg: string = '';
+      FrameAddr: Pointer = nil; StackAddr: Pointer = nil);
+    {* 无 NDEBUG 条件时根据指定 EIP/RIP 地址及栈帧地址分析并输出调用堆栈信息，32 位下似乎 EBP 也行，64 位下似乎有问题。
 
        参数：
-         Addr: Pointer                    - 待分析的指定地址
+         RunAddr: Pointer                 - 待分析的指定 EIP/RIP 地址，32 位下似乎 EBP 也行
          const AMsg: string               - 待输出的附加字符串信息
+         FrameAddr: Pointer               - 基址指针 EBP/RBP，32 位下可不传
+         StackAddr: Pointer               - 堆栈指针 ESP/RSP，32 位下可不传
 
        返回值：（无）
     }
@@ -6254,18 +6260,19 @@ begin
 {$ENDIF}
 end;
 
-procedure TCnDebugger.GetTraceFromAddr(StackBaseAddr: Pointer; Strings: TStrings);
+procedure TCnDebugger.GetTraceFromAddr(RunAddr, FrameAddr, StackAddr: Pointer; Strings: TStrings);
 {$IFDEF CAPTURE_STACK}
 var
   I: Integer;
   List: TCnStackInfoList;
+  Context: TContext;
 {$ENDIF}
 begin
   if Strings = nil then
     Exit;
   Strings.Clear;
 
-  if StackBaseAddr = nil then
+  if RunAddr = nil then
   begin
     Strings.Add(SCnStackTraceNil);
     Exit;
@@ -6274,7 +6281,19 @@ begin
 {$IFDEF CAPTURE_STACK}
   List := nil;
   try
-    List := TCnManualStackInfoList.Create(StackBaseAddr, nil);
+    if (FrameAddr = nil) and (StackAddr = nil) then
+      List := TCnManualStackInfoList.Create(nil, RunAddr)
+    else
+    begin
+{$IFDEF WIN64}
+      Context.Rsp := DWORD64(StackAddr);
+      Context.Rbp := DWORD64(FrameAddr);
+{$ELSE}
+      Context.Esp := DWORD(StackAddr);
+      Context.Ebp := DWORD(FrameAddr);
+{$ENDIF}
+      List := TCnManualStackInfoList.Create(@Context, RunAddr)
+    end;
     for I := 0 to List.Count - 1 do
       Strings.Add(GetLocationInfoStr(List.Items[I].CallerAddr));
   finally
@@ -6285,8 +6304,8 @@ begin
 {$ENDIF}
 end;
 
-procedure TCnDebugger.LogStackFromAddress(Addr: Pointer;
-  const AMsg: string);
+procedure TCnDebugger.LogStackFromAddress(RunAddr: Pointer;
+  const AMsg: string; FrameAddr: Pointer; StackAddr: Pointer);
 {$IFDEF DEBUG}
 {$IFDEF CAPTURE_STACK}
 var
@@ -6299,20 +6318,20 @@ begin
   Strings := nil;
   try
     Strings := TStringList.Create;
-    Strings.Add(GetLocationInfoStr(Addr));
-    GetTraceFromAddr(Addr, Strings);
-    LogMsgWithType(Format('Address $%p with Stack: %s', [Addr, AMsg + SCnCRLF + Strings.Text]), cmtInformation);
+    // 无需调用 Strings.Add('***' + GetLocationInfoStr(RunAddr));
+    GetTraceFromAddr(RunAddr, FrameAddr, StackAddr, Strings);
+    LogMsgWithType(Format('Address $%p with Stack: %s', [RunAddr, AMsg + SCnCRLF + Strings.Text]), cmtInformation);
   finally
     Strings.Free;
   end;
 {$ELSE}
-  LogPointer(Addr, AMsg);
+  LogPointer(RunAddr, AMsg);
 {$ENDIF}
 {$ENDIF}
 end;
 
-procedure TCnDebugger.TraceStackFromAddress(Addr: Pointer;
-  const AMsg: string);
+procedure TCnDebugger.TraceStackFromAddress(RunAddr: Pointer;
+  const AMsg: string; FrameAddr: Pointer; StackAddr: Pointer);
 {$IFDEF CAPTURE_STACK}
 var
   Strings: TStringList;
@@ -6322,14 +6341,14 @@ begin
   Strings := nil;
   try
     Strings := TStringList.Create;
-    Strings.Add(GetLocationInfoStr(Addr));
-    GetTraceFromAddr(Addr, Strings);
-    TraceMsgWithType(Format('Address $%p with Stack: %s', [Addr, AMsg + SCnCRLF + Strings.Text]), cmtInformation);
+    // 无需调用 Strings.Add('***' + GetLocationInfoStr(RunAddr));
+    GetTraceFromAddr(RunAddr, FrameAddr, StackAddr, Strings);
+    TraceMsgWithType(Format('Address $%p with Stack: %s', [RunAddr, AMsg + SCnCRLF + Strings.Text]), cmtInformation);
   finally
     Strings.Free;
   end;
 {$ELSE}
-  TracePointer(Addr, AMsg);
+  TracePointer(RunAddr, AMsg);
 {$ENDIF}
 end;
 

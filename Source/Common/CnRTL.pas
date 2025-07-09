@@ -28,11 +28,11 @@ unit CnRTL;
 *           异常捕捉目标：语言中 raise 出的 Exception，以及 OS 中跑起来碰到的外部异常如除 0 等，
 *           无论有没被 try except，都要能抓住并获取堆栈再记录输出，但不影响原有的异常处理流程。
 *
-*           Delphi + Windows 下
-*           抓当前调用堆栈           抓语言抛异常             抓 OS 异常
-* 实现类    TCnCurrentStackInfoList  TCnCurrentStackInfoList  TCnExceptionStackInfoList
-* 32 位     RtlCaptureStackTrace     RtlCaptureStackTrace     用 AddVectoredExceptionHandler 拿 Context，再 StackWalk64
-* 64 位     RtlCaptureStackTrace     RtlCaptureStackTrace     用 AddVectoredExceptionHandler 拿 Context，但 StackWalk64 的结果似乎也不对。
+*           Delphi/FPC + Windows 下
+*           抓当前调用堆栈           抓语言抛异常            拿别处的异常回溯堆栈          抓 OS 异常
+* 实现类    TCnCurrentStackInfoList  TCnCurrentStackInfoList TCnManualStackInfoList        TCnManualStackInfoList
+* 32 位机制 RtlCaptureStackTrace     RtlCaptureStackTrace    ExceptAddr StackWalk64        AddVectoredExceptionHandler 拿 Context，再 StackWalk64
+* 64 位机制 RtlCaptureStackTrace     RtlCaptureStackTrace    ExceptAddr StackWalk64 但有错 AddVectoredExceptionHandler 拿 Context，但 StackWalk64 的结果似乎也不对。
 *
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：Win32/Win64
@@ -155,7 +155,7 @@ type
     procedure TraceStackFrames; override;
   public
     constructor Create(CtxPtr, Addr: Pointer; OnlyDelphi: Boolean = False);
-    {* 参数为 Context 指针（x86 下传 EBP 指针，x64 下没有 EBP 得传 nil）、发生异常时的地址/EIP}
+    {* 参数为 Context 指针，（无则传 nil，由内部去获取）、发生异常时的地址/EIP}
   end;
 
 // ================= 进程内指定模块用改写 IAT 表的方式 Hook API ================
@@ -234,7 +234,11 @@ const
   STACK_INFO_FMT = 'Caller: ' + HEX_FMT;
 
   MAX_STACK_COUNT = 1024;
-  ImagehlpLib = 'IMAGEHLP.DLL';
+{$IFDEF WIN64}
+  csHelpLibraryName = 'DBGHELP.DLL';
+{$ELSE}
+  csHelpLibraryName = 'IMAGEHLP.DLL';
+{$ENDIF}
   IMAGE_ORDINAL_FLAG = LongWord($80000000);
 
 type
@@ -418,7 +422,7 @@ type
 
 var
   // XP 以前的平台不支持这批 API，需要动态加载
-  FImagehlpLibHandle: THandle = 0;
+  FHelpLibHandle: THandle = 0;
 
   RtlCaptureStackBackTrace: TRtlCaptureStackBackTrace = nil;
   RtlCaptureContext: TRtlCaptureContext = nil;
@@ -729,16 +733,16 @@ begin
       RtlCaptureContext := TRtlCaptureContext(P);
   end;
 
-  FImagehlpLibHandle := LoadLibrary(ImagehlpLib);
-  if FImagehlpLibHandle <> 0 then
+  FHelpLibHandle := LoadLibrary(csHelpLibraryName);
+  if FHelpLibHandle <> 0 then
   begin
-    P := GetProcAddress(FImagehlpLibHandle, 'StackWalk64');
+    P := GetProcAddress(FHelpLibHandle, 'StackWalk64');
     if P <> nil then
       StackWalk64 := TStackWalk64(P);
-    P := GetProcAddress(FImagehlpLibHandle, 'SymFunctionTableAccess64');
+    P := GetProcAddress(FHelpLibHandle, 'SymFunctionTableAccess64');
     if P <> nil then
       SymFunctionTableAccess64 := TSymFunctionTableAccess64(P);
-    P := GetProcAddress(FImagehlpLibHandle, 'SymGetModuleBase64');
+    P := GetProcAddress(FHelpLibHandle, 'SymGetModuleBase64');
     if P <> nil then
       SymGetModuleBase64 := TSymGetModuleBase64(P);
   end;
@@ -1184,7 +1188,8 @@ begin
 
     while True do
     begin
-      // FIXME: 64 位下 StackWalk64 始终抓不到堆栈，咋办？
+      // FIXME: 64 位下 StackWalk64 靠当前的 Context 和一个异常的 ExceptAddr 似乎不配套，
+      // 始终抓不到完整堆栈，偏偏 32 位的又可以
       Res := StackWalk64(MachineType, P, T, @STKF64, PCtx, nil, @SymFunctionTableAccess64,
         @SymGetModuleBase64, nil);
 
@@ -1211,8 +1216,8 @@ initialization
 
 finalization
   CnUnHookException;
-  if FImagehlpLibHandle <> 0 then
-    FreeLibrary(FImagehlpLibHandle);
+  if FHelpLibHandle <> 0 then
+    FreeLibrary(FHelpLibHandle);
 
 end.
 

@@ -541,7 +541,7 @@ begin
     if J / I = 0 then
       Exit;
   except
-    // 这段代码有问题：StackFromAddress 需要的是 EBP 地址才能跟踪堆栈，给 EIP 或 ExceptAddr 无法跟踪
+    // 照理要给 EIP 或 ExceptAddr 运行地址才能跟踪，其他地址没用
     if rgMethod.ItemIndex = 1 then
       CnDebugger.TraceStackFromAddress(ExceptAddr)
     else
@@ -556,6 +556,7 @@ end;
 
 procedure TFormSend.btnEBPAddrClick(Sender: TObject);
 begin
+  // 但 32 位下给 EBP 居然也行，且 64 位下给啥都不行
   if rgMethod.ItemIndex = 1 then
     CnDebugger.TraceStackFromAddress(GetEBP)
   else
