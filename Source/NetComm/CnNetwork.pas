@@ -606,13 +606,69 @@ const
   CN_CIPHER_AES256_SHA256                                        = $003D;
   CN_CIPHER_AES128_SHA256                                        = $003C;
 
-  {* TLS/SSL 中的 ExtensionType，来自 RFC 3546}
+  {* TLS/SSL 中的 ExtensionType，来自 IANA，被 RFC 3546、6006、8422、8446 等引用}
   CN_TLS_EXTENSIONTYPE_SERVER_NAME                               = 0;
   CN_TLS_EXTENSIONTYPE_MAX_FRAGMENT_LENGTH                       = 1;
   CN_TLS_EXTENSIONTYPE_CLIENT_CERTIFICATE_URL                    = 2;
   CN_TLS_EXTENSIONTYPE_TRUSTED_CA_KEYS                           = 3;
   CN_TLS_EXTENSIONTYPE_TRUNCATED_HMAC                            = 4;
   CN_TLS_EXTENSIONTYPE_STATUS_REQUEST                            = 5;
+  CN_TLS_EXTENSIONTYPE_USER_MAPPING                              = 6;
+  CN_TLS_EXTENSIONTYPE_CLIENT_AUTHZ                              = 7;
+  CN_TLS_EXTENSIONTYPE_SERVER_AUTHZ                              = 8;
+  CN_TLS_EXTENSIONTYPE_CERT_TYPE                                 = 9;
+  CN_TLS_EXTENSIONTYPE_SUPPORTED_GROUPS                          = 10;
+  CN_TLS_EXTENSIONTYPE_EC_POINT_FORMATS                          = 11;
+  CN_TLS_EXTENSIONTYPE_SRP                                       = 12;
+  CN_TLS_EXTENSIONTYPE_SIGNATURE_ALGORITHMS                      = 13;
+  CN_TLS_EXTENSIONTYPE_USE_SRTP                                  = 14;
+  CN_TLS_EXTENSIONTYPE_HEARTBEAT                                 = 15;
+  CN_TLS_EXTENSIONTYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION    = 16;
+  CN_TLS_EXTENSIONTYPE_SIGNED_CERTIFICATE_TIMESTAMP              = 18;
+  CN_TLS_EXTENSIONTYPE_CLIENT_CERTIFICATE_TYPE                   = 19;
+  CN_TLS_EXTENSIONTYPE_SERVER_CERTIFICATE_TYPE                   = 20;
+  CN_TLS_EXTENSIONTYPE_PADDING                                   = 21;
+  CN_TLS_EXTENSIONTYPE_ENCRYPT_THEN_MAC                          = 22;
+  CN_TLS_EXTENSIONTYPE_EXTENDED_MASTER_SECRET                    = 23;
+  CN_TLS_EXTENSIONTYPE_TOKEN_BINDING                             = 24;
+  CN_TLS_EXTENSIONTYPE_CACHED_INFO                               = 25;
+  CN_TLS_EXTENSIONTYPE_TLS_LTS                                   = 26;
+  CN_TLS_EXTENSIONTYPE_COMPRESS_CERTIFICATE                      = 27;
+  CN_TLS_EXTENSIONTYPE_RECORD_SIZE_LIMIT                         = 28;
+  CN_TLS_EXTENSIONTYPE_PWD_PROTECT                               = 29;
+  CN_TLS_EXTENSIONTYPE_PWD_CLEAR                                 = 30;
+  CN_TLS_EXTENSIONTYPE_PASSWORD_SALT                             = 31;
+  CN_TLS_EXTENSIONTYPE_TICKET_PINNING                            = 32;
+  CN_TLS_EXTENSIONTYPE_TLS_CERT_WITH_EXTERN_PSK                  = 33;
+  CN_TLS_EXTENSIONTYPE_DELEGATED_CREDENTIAL                      = 34;
+  CN_TLS_EXTENSIONTYPE_SESSION_TICKET                            = 35;
+  CN_TLS_EXTENSIONTYPE_TLMSP                                     = 36;
+  CN_TLS_EXTENSIONTYPE_TLMSP_PROXYING                            = 37;
+  CN_TLS_EXTENSIONTYPE_TLMSP_DELEGATE                            = 38;
+  CN_TLS_EXTENSIONTYPE_SUPPORTED_EKT_CIPHERS                     = 39;
+  CN_TLS_EXTENSIONTYPE_PRE_SHARED_KEY                            = 41;
+  CN_TLS_EXTENSIONTYPE_EARLY_DATA                                = 42;
+  CN_TLS_EXTENSIONTYPE_SUPPORTED_VERSIONS                        = 43;
+  CN_TLS_EXTENSIONTYPE_COOKIE                                    = 44;
+  CN_TLS_EXTENSIONTYPE_PSK_KEY_EXCHANGE_MODES                    = 45;
+  CN_TLS_EXTENSIONTYPE_CERTIFICATE_AUTHORITIES                   = 47;
+  CN_TLS_EXTENSIONTYPE_OID_FILTERS                               = 48;
+  CN_TLS_EXTENSIONTYPE_POST_HANDSHAKE_AUTH                       = 49;
+  CN_TLS_EXTENSIONTYPE_SIGNATURE_ALGORITHMS_CERT                 = 50;
+  CN_TLS_EXTENSIONTYPE_KEY_SHARE                                 = 51;
+  CN_TLS_EXTENSIONTYPE_TRANSPARENCY_INFO                         = 52;
+  CN_TLS_EXTENSIONTYPE_CONNECTION_ID                             = 54;
+  CN_TLS_EXTENSIONTYPE_EXTERNAL_ID_HASH                          = 55;
+  CN_TLS_EXTENSIONTYPE_EXTERNAL_SESSION_ID                       = 56;
+  CN_TLS_EXTENSIONTYPE_QUIC_TRANSPORT_PARAMETERS                 = 57;
+  CN_TLS_EXTENSIONTYPE_TICKET_REQUEST                            = 58;
+  CN_TLS_EXTENSIONTYPE_DNSSEC_CHAIN                              = 59;
+  CN_TLS_EXTENSIONTYPE_SEQUENCE_NUMBER_ENCRYPTION_ALGORITHMS     = 60;
+  CN_TLS_EXTENSIONTYPE_RRC                                       = 61;
+  CN_TLS_EXTENSIONTYPE_TLS_FLAGS                                 = 62;
+  CN_TLS_EXTENSIONTYPE_ECH_OUTER_EXTENSIONS                      = 64768;
+  CN_TLS_EXTENSIONTYPE_ENCRYPTED_CLIENT_HELLO                    = 65037;
+  CN_TLS_EXTENSIONTYPE_RENEGOTIATION_INFO                        = 65281;
 
 type
   TCnIPv6Array = array[0..7] of Word;
@@ -1264,6 +1320,32 @@ type
   PCnTLSAlertPacket = ^TCnTLSAlertPacket;
 
 {
+  TLS/SSL 握手包扩展示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeClientHello 后的附加内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |       ExtensionLength       |          ExtensionType          |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |     ExtensionDataLength     |        ExtensionData ...        |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeExtensions = packed record
+    ExtensionLength:          Word;                    // 扩展数据总字节长度，不包含本 Word
+    ExtensionType:            Word;                    // 第一条扩展类型
+    ExtensionDataLength:      Word;                    // 第一条扩展数据的字节长度
+    ExtensionData:            array[0..0] of Byte;     // 第一条扩展数据
+                                                       // 后续重复上面三项
+  end;
+
+  PCnTLSHandShakeExtensions = ^TCnTLSHandShakeExtensions;
+
+{
   TLS/SSL 握手包 ClientHello 示意图，字节内左边是高位，右边是低位。
   字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
   注意本包头是 TLS/SSL 的 TCnTLSHandShakeHeader 的 Content 内容
@@ -1277,15 +1359,15 @@ type
 
 }
   TCnTLSHandShakeClientHello = packed record
-    ProtocolVersion:          Word;                    // 真正有效的 TLS/SSL 版本号
+    ProtocolVersion:          Word;                    // 真正有效的 TLS/SSL 版本号，对应 CN_TLS_SSL_VERSION_*
     Random:                   array[0..31] of Byte;    // 32 字节随机数，其中前 4 字节可能是时间戳
-    SessionLength:            Byte;                    // 1 字节 SessionId 长度
-    SessionId:                array[0..0] of Byte;     // 实际长度为 [0..SessionLength - 1]
+    SessionLength:            Byte;                    // 1 字节 SessionId 长度，常用 32
+    SessionId:                array[0..31] of Byte;    // 实际长度为 [0..SessionLength - 1]
     CipherSuitesLength:       Word;                    // 以字节为单位的 CipherSuites 列表长度，占 2 字节
-    CipherSuites:             array[0..0] of Word;     // 实际字节长度为 CipherSuitesLength
-    CompressionMethodLength:  Byte;                    // 1 字节压缩方法长度
-    CompressionMethod:        array[0..0] of Byte;     // 压缩方法列表
-
+    CipherSuites:             array[0..3] of Word;     // CipherSuites 列表，实际字节长度为 CipherSuitesLength
+    CompressionMethodLength:  Byte;                    // 1 字节压缩方法长度，常用 1
+    CompressionMethod:        array[0..0] of Byte;     // 压缩方法列表，实际字节长度为 CompressionMethodLength
+    Extensions:               TCnTLSHandShakeExtensions;  // 扩展握手包头，可能没有
   end;
 
   PCnTLSHandShakeClientHello = ^TCnTLSHandShakeClientHello;
@@ -1514,7 +1596,7 @@ function CnGetNTPMode(const NTPPacket: PCnNTPPacket): Integer;
 {* 获得 NTP 包内的模式}
 
 procedure CnSetNTPLeapIndicator(const NTPPacket: PCnNTPPacket; LeapIndicator: Integer);
-{* 设置 NTP 包内的闰秒标识，使用 CN_NTP_LEAP_INDICATOR_* 系列常数 }
+{* 设置 NTP 包内的闰秒标识，使用 CN_NTP_LEAP_INDICATOR_* 系列常数}
 
 procedure CnSetNTPVersionNumber(const NTPPacket: PCnNTPPacket; VersionNumber: Integer);
 {* 设置 NTP 包内的版本号，使用 CN_NTP_VERSION_* 系列常数}
@@ -1653,6 +1735,24 @@ function CnGetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandS
 procedure CnSetTLSHandShakeHeaderContentLength(const HandShakeHeader: PCnTLSHandShakeHeader; ContentLength: Cardinal);
 {* 设置 TLS/SSL 握手协议报文的内容长度}
 
+function CnGetTLSHandShakeExtensionsExtensionLength(const Extensions: PCnTLSHandShakeExtensions): Word;
+{* 返回 TLS/SSL 握手协议扩展报文的内容总长度}
+
+procedure CnSetTLSHandShakeExtensionsExtensionLength(const Extensions: PCnTLSHandShakeExtensions; ExtLenth: Word);
+{* 设置 TLS/SSL 握手协议扩展报文的内容总长度}
+
+function CnGetTLSHandShakeExtensionsExtensionType(const Extensions: PCnTLSHandShakeExtensions): Word;
+{* 返回 TLS/SSL 握手协议扩展报文的首个扩展字段的类型}
+
+procedure CnSetTLSHandShakeExtensionsExtensionType(const Extensions: PCnTLSHandShakeExtensions; ExtType: Word);
+{* 设置 TLS/SSL 握手协议扩展报文的首个扩展字段的类型}
+
+function CnGetTLSHandShakeExtensionsExtensionDataLength(const Extensions: PCnTLSHandShakeExtensions): Word;
+{* 返回 TLS/SSL 握手协议扩展报文的首个扩展字段的长度}
+
+procedure CnSetTLSHandShakeExtensionsExtensionDataLength(const Extensions: PCnTLSHandShakeExtensions; ExtDataLength: Word);
+{* 设置 TLS/SSL 握手协议扩展报文的首个扩展字段的长度}
+
 function CnGetTLSHandShakeClientHelloSessionId(const ClientHello: PCnTLSHandShakeClientHello): TBytes;
 {* 获取 TLS/SSL 握手协议报文 ClientHello 类型中的 SessionId}
 
@@ -1682,6 +1782,12 @@ function CnGetTLSHandShakeClientHelloCompressionMethod(const ClientHello: PCnTLS
 
 procedure CnSetTLSHandShakeClientHelloCompressionMethod(const ClientHello: PCnTLSHandShakeClientHello; CompressionMethod: TBytes);
 {* 设置 TLS/SSL 握手协议报文 ClientHello 类型中的 CompressionMethod}
+
+function CnGetTLSHandShakeClientHelloExtensions(const ClientHello: PCnTLSHandShakeClientHello): PCnTLSHandShakeExtensions; overload;
+{* 获取 TLS/SSL 握手协议报文 ClientHello 类型中扩展包头的地址，但单纯从本包内容看，无法判断其是否真实存在}
+
+function CnGetTLSHandShakeClientHelloExtensions(const HandShakeHeader: PCnTLSHandShakeHeader): PCnTLSHandShakeExtensions; overload;
+{* 获取 TLS/SSL 握手协议报文 ClientHello 类型中完整包头的长度，结合本包之外的握手包内容长度，可判断是否存在，无则返回 nil}
 
 // =========================== IP 地址转换函数 =================================
 
@@ -2851,6 +2957,36 @@ begin
   HandShakeHeader^.LengthLo := UInt16HostToNetwork(ContentLength and $FFFF);
 end;
 
+function CnGetTLSHandShakeExtensionsExtensionLength(const Extensions: PCnTLSHandShakeExtensions): Word;
+begin
+  Result := UInt16NetworkToHost(Extensions^.ExtensionLength);
+end;
+
+procedure CnSetTLSHandShakeExtensionsExtensionLength(const Extensions: PCnTLSHandShakeExtensions; ExtLenth: Word);
+begin
+  Extensions^.ExtensionLength := UInt16HostToNetwork(ExtLenth);
+end;
+
+function CnGetTLSHandShakeExtensionsExtensionType(const Extensions: PCnTLSHandShakeExtensions): Word;
+begin
+  Result := UInt16NetworkToHost(Extensions^.ExtensionType);
+end;
+
+procedure CnSetTLSHandShakeExtensionsExtensionType(const Extensions: PCnTLSHandShakeExtensions; ExtType: Word);
+begin
+  Extensions^.ExtensionType := UInt16HostToNetwork(ExtType);
+end;
+
+function CnGetTLSHandShakeExtensionsExtensionDataLength(const Extensions: PCnTLSHandShakeExtensions): Word;
+begin
+  Result := UInt16NetworkToHost(Extensions^.ExtensionDataLength);
+end;
+
+procedure CnSetTLSHandShakeExtensionsExtensionDataLength(const Extensions: PCnTLSHandShakeExtensions; ExtDataLength: Word);
+begin
+  Extensions^.ExtensionDataLength := UInt16HostToNetwork(ExtDataLength);
+end;
+
 function CnGetTLSHandShakeClientHelloSessionId(const ClientHello: PCnTLSHandShakeClientHello): TBytes;
 begin
   SetLength(Result, ClientHello^.SessionLength);
@@ -2916,7 +3052,7 @@ begin
   L := Length(CipherSuites);
   if L > 0 then
   begin
-    CnSetTLSHandShakeClientHelloCipherSuitesLength(ClientHello, L);
+    CnSetTLSHandShakeClientHelloCipherSuitesLength(ClientHello, L * SizeOf(Word));
 
     P := @(ClientHello^.SessionLength);
     Inc(P, SizeOf(Byte) + P^);
@@ -2984,6 +3120,33 @@ begin
   Inc(P);
   if Length(CompressionMethod) > 0 then
     Move(CompressionMethod[0], P^, Length(CompressionMethod));
+end;
+
+function CnGetTLSHandShakeClientHelloExtensions(const ClientHello: PCnTLSHandShakeClientHello): PCnTLSHandShakeExtensions;
+var
+  B: PByte;
+begin
+  B := @ClientHello^.SessionId[0];
+  Inc(B, ClientHello^.SessionLength);
+  Inc(B, SizeOf(Word)); // 跳过 CipherSuitesLength 双字节
+  Inc(B, CnGetTLSHandShakeClientHelloCipherSuitesLength(ClientHello));    // 跳过 CipherSuites，指向 CompressionMethodLength
+  Inc(B, B^ + SizeOf(Byte)); // 跳过这个 Byte 和其 CompressionMethod
+  Result := PCnTLSHandShakeExtensions(B);
+end;
+
+function CnGetTLSHandShakeClientHelloExtensions(const HandShakeHeader: PCnTLSHandShakeHeader): PCnTLSHandShakeExtensions;
+var
+  L: Cardinal;
+  P: PCnTLSHandShakeExtensions;
+begin
+  L := CnGetTLSHandShakeHeaderContentLength(HandShakeHeader);
+  P := CnGetTLSHandShakeClientHelloExtensions(PCnTLSHandShakeClientHello(@HandShakeHeader^.Content[0]));
+
+  // 如果握手包头里的内容长度大于 ClientHello 的实际长度，才有扩展头存在
+  if L > (TCnIntAddress(P) - TCnIntAddress(HandShakeHeader)) then
+    Result := PCnTLSHandShakeExtensions(P)
+  else
+    Result := nil;
 end;
 
 end.
