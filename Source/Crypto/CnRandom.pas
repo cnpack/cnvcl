@@ -155,6 +155,15 @@ function CnRandomFillBytes2(Buf: PAnsiChar; BufByteLen: Integer): Boolean;
    返回值：Boolean                        - 返回随机填充是否成功
 }
 
+function CnRandomBytes(ByteLen: Integer): TBytes;
+{* 使用 Windows API 或 /dev/random 设备填充并返回指定长度的随机字节数组。
+
+   参数：
+     ByteLen: Integer                     - 待生成的随机字节数组的字节长度
+
+   返回值：TBytes                         - 返回随机字节数组
+}
+
 implementation
 
 {$IFDEF MSWINDOWS}
@@ -259,6 +268,15 @@ begin
     F.Free;
   end;
 {$ENDIF}
+end;
+
+function CnRandomBytes(ByteLen: Integer): TBytes;
+begin
+  if ByteLen > 0 then
+  begin
+    SetLength(Result, ByteLen);
+    CnRandomFillBytes2(@Result[0], ByteLen);
+  end;
 end;
 
 function RandomUInt64: TUInt64;

@@ -29,10 +29,10 @@ unit CnRTL;
 *           无论有没被 try except，都要能抓住并获取堆栈再记录输出，但不影响原有的异常处理流程。
 *
 *           Delphi/FPC + Windows 下
-*           抓当前调用堆栈           抓语言抛异常            拿别处的异常回溯堆栈          抓 OS 异常
-* 实现类    TCnCurrentStackInfoList  TCnCurrentStackInfoList TCnManualStackInfoList        TCnManualStackInfoList
-* 32 位机制 RtlCaptureStackTrace     RtlCaptureStackTrace    ExceptAddr StackWalk64        AddVectoredExceptionHandler 拿 Context，再 StackWalk64
-* 64 位机制 RtlCaptureStackTrace     RtlCaptureStackTrace    ExceptAddr StackWalk64 但有错 AddVectoredExceptionHandler 拿 Context，但 StackWalk64 的结果似乎也不对。
+*           抓当前调用堆栈           抓语言抛异常             拿别处的异常回溯堆栈          抓 OS 异常
+* 实现类    TCnCurrentStackInfoList  TCnCurrentStackInfoList  TCnManualStackInfoList        TCnManualStackInfoList
+* 32 位机制 RtlCaptureStackBackTrace RtlCaptureStackBackTrace ExceptAddr StackWalk64        AddVectoredExceptionHandler 拿 Context，再 StackWalk64
+* 64 位机制 RtlCaptureStackBackTrace RtlCaptureStackBackTrace ExceptAddr StackWalk64 但有错 AddVectoredExceptionHandler 拿 Context，但 StackWalk64 的结果似乎也不对。
 *
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：Win32/Win64
@@ -141,13 +141,14 @@ type
   end;
 
   TCnCurrentStackInfoList = class(TCnStackInfoList)
-  {* 返回创建本实例时的堆栈}
+  {* 返回创建本实例时的堆栈，内部使用 RtlCaptureStackBackTrace}
   protected
     procedure TraceStackFrames; override;
   end;
 
   TCnManualStackInfoList = class(TCnStackInfoList)
-  {* 根据外部的 Context 与运行地址回溯调用堆栈}
+  {* 根据外部的 Context 与运行地址回溯调用堆栈，内部使用 StackWalk64，
+     如参数均为 nil 则抓取当前堆栈。注意如 Context 与 Addr 不配套则获取失败或不完整}
   private
     FCtxPtr: Pointer;
     FAddr: Pointer;
@@ -155,7 +156,8 @@ type
     procedure TraceStackFrames; override;
   public
     constructor Create(CtxPtr, Addr: Pointer; OnlyDelphi: Boolean = False);
-    {* 参数为 Context 指针，（无则传 nil，由内部去获取）、发生异常时的地址/EIP}
+    {* 参数为 Context 指针，（无则传 nil，由内部去获取）、
+       发生异常时的地址/EIP，（无则传 nil，由内部 TraceStackFrames 时获取）}
   end;
 
 // ================= 进程内指定模块用改写 IAT 表的方式 Hook API ================
