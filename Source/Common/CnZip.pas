@@ -26,6 +26,7 @@ unit CnZip;
 * 单元作者：CnPack 开发组 Liu Xiao
 * 备    注：使用 Delphi 自带的 Zlib 实现压缩解压与传统密码支持。
 *           但 XE2 以上的 Zlib 才支持 WindowBits 参数，才兼容传统的 ZIP 软件
+*           另外因为 Zip 需要文件系统支持，故目前暂不支持跨平台。
 * 开发平台：PWinXP + Delphi 5
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
 * 本 地 化：该单元中的字符串均符合本地化处理方式

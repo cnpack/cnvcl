@@ -670,6 +670,9 @@ const
   CN_TLS_EXTENSIONTYPE_ENCRYPTED_CLIENT_HELLO                    = 65037;
   CN_TLS_EXTENSIONTYPE_RENEGOTIATION_INFO                        = 65281;
 
+  {* TLS/SSL 中的 Extension 中的 Server Name Indication 中的 NameType，来自 RFC 6066}
+  CN_TLS_EXTENSION_NAMETYPE_HOSTNAME                             = 0;
+
 type
   TCnIPv6Array = array[0..7] of Word;
 
@@ -1328,22 +1331,48 @@ type
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |       ExtensionLength       |          ExtensionType          |
+  |       ExtensionLength         |        ExtensionType          |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |     ExtensionDataLength     |        ExtensionData ...        |
+  |     ExtensionDataLength       |      ExtensionData ...        |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 }
 
   TCnTLSHandShakeExtensions = packed record
     ExtensionLength:          Word;                    // 扩展数据总字节长度，不包含本 Word
-    ExtensionType:            Word;                    // 第一条扩展类型
+    ExtensionType:            Word;                    // 第一条扩展类型，使用 CN_TLS_EXTENSIONTYPE_*
     ExtensionDataLength:      Word;                    // 第一条扩展数据的字节长度
     ExtensionData:            array[0..0] of Byte;     // 第一条扩展数据
                                                        // 后续重复上面三项
   end;
 
   PCnTLSHandShakeExtensions = ^TCnTLSHandShakeExtensions;
+
+{
+  TLS/SSL 握手包扩展包中的 SNI 示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeExtensions 的 ExtensionData 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |         ListLength            | NameType      | NameLength Hi |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | NameLength Lo |         Name ...                              |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeServerNameIndication = packed record
+    ListLength:               Word;                    // 列表字节长度，不包含本 Word
+    NameType:                 Byte;                    // 主机名类型，使用 CN_TLS_EXTENSION_NAMETYPE_*
+    NameLength:               Word;                    // 主机名字节长度
+    Name:                     array[0..0] of AnsiChar; // 主机名内容
+                                                       // 后续重复上面三项
+  end;
+
+  PCnTLSHandShakeServerNameIndication = ^TCnTLSHandShakeServerNameIndication;
 
 {
   TLS/SSL 握手包 ClientHello 示意图，字节内左边是高位，右边是低位。
@@ -1752,6 +1781,21 @@ function CnGetTLSHandShakeExtensionsExtensionDataLength(const Extensions: PCnTLS
 
 procedure CnSetTLSHandShakeExtensionsExtensionDataLength(const Extensions: PCnTLSHandShakeExtensions; ExtDataLength: Word);
 {* 设置 TLS/SSL 握手协议扩展报文的首个扩展字段的长度}
+
+function CnGetTLSHandShakeServerNameIndicationListLength(const SNI: PCnTLSHandShakeServerNameIndication): Word;
+{* 返回 TLS/SSL 中的 Extension 中的 Server Name Indication 中的列表长度}
+
+procedure CnSetTLSHandShakeServerNameIndicationListLength(const SNI: PCnTLSHandShakeServerNameIndication; ListLength: Word);
+{* 设置 TLS/SSL 中的 Extension 中的 Server Name Indication 中的列表长度}
+
+function CnGetTLSHandShakeServerNameIndicationNameLength(const SNI: PCnTLSHandShakeServerNameIndication): Word;
+{* 返回 TLS/SSL 中的 Extension 中的 Server Name Indication 中的主机名长度}
+
+procedure CnSetTLSHandShakeServerNameIndicationNameLength(const SNI: PCnTLSHandShakeServerNameIndication; NameLength: Word);
+{* 设置 TLS/SSL 中的 Extension 中的 Server Name Indication 中的主机名长度}
+
+function CnTLSHandShakeServerNameIndicationAddHost(const SNI: PCnTLSHandShakeServerNameIndication; const HostName: AnsiString): Integer;
+{* 将一个主机名添加至已初始化好的 SNI 头中，返回 SNI 头的新的字节长度}
 
 function CnGetTLSHandShakeClientHelloSessionId(const ClientHello: PCnTLSHandShakeClientHello): TBytes;
 {* 获取 TLS/SSL 握手协议报文 ClientHello 类型中的 SessionId}
@@ -2985,6 +3029,54 @@ end;
 procedure CnSetTLSHandShakeExtensionsExtensionDataLength(const Extensions: PCnTLSHandShakeExtensions; ExtDataLength: Word);
 begin
   Extensions^.ExtensionDataLength := UInt16HostToNetwork(ExtDataLength);
+end;
+
+function CnGetTLSHandShakeServerNameIndicationListLength(const SNI: PCnTLSHandShakeServerNameIndication): Word;
+begin
+  Result := UInt16NetworkToHost(SNI^.ListLength);
+end;
+
+procedure CnSetTLSHandShakeServerNameIndicationListLength(const SNI: PCnTLSHandShakeServerNameIndication; ListLength: Word);
+begin
+  SNI^.ListLength := UInt16HostToNetwork(ListLength);
+end;
+
+function CnGetTLSHandShakeServerNameIndicationNameLength(const SNI: PCnTLSHandShakeServerNameIndication): Word;
+begin
+  Result := UInt16NetworkToHost(SNI^.NameLength);
+end;
+
+procedure CnSetTLSHandShakeServerNameIndicationNameLength(const SNI: PCnTLSHandShakeServerNameIndication; NameLength: Word);
+begin
+  SNI^.NameLength := UInt16HostToNetwork(NameLength);
+end;
+
+function CnTLSHandShakeServerNameIndicationAddHost(const SNI: PCnTLSHandShakeServerNameIndication; const HostName: AnsiString): Integer;
+var
+  OL: Word;
+  LSNI: PCnTLSHandShakeServerNameIndication;
+begin
+  Result := 0;
+  if HostName = '' then
+    Exit;
+
+  OL := CnGetTLSHandShakeServerNameIndicationListLength(SNI);
+  if OL < 2 then
+  begin
+    LSNI := SNI;
+    OL := 0;
+  end
+  else
+    LSNI := PCnTLSHandShakeServerNameIndication(TCnIntAddress(SNI) + OL - SizeOf(Word));
+
+  // 给新的位置增加内容
+  LSNI^.NameType := CN_TLS_EXTENSION_NAMETYPE_HOSTNAME;
+  CnSetTLSHandShakeServerNameIndicationNameLength(LSNI, Length(HostName));
+  Move(HostName[1], LSNI^.Name[0], Length(HostName));
+
+  // 更新旧的位置的列表长度
+  CnSetTLSHandShakeServerNameIndicationListLength(SNI, OL + Length(HostName) + 3); // 3 表示一个 NameType 一个 NameLength
+  Result := CnGetTLSHandShakeServerNameIndicationListLength(SNI) + SizeOf(Word);   // 加上 ListLength 自身
 end;
 
 function CnGetTLSHandShakeClientHelloSessionId(const ClientHello: PCnTLSHandShakeClientHello): TBytes;
