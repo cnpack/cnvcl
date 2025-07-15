@@ -1762,6 +1762,8 @@ var
   IsExisting: Boolean;
   Hies: TStrings;
   ATmpClass: TClass;
+  IntfTable: PInterfaceTable;
+  IntfEntry: PInterfaceEntry;
   IntSet: Integer;
 {$IFDEF SUPPORT_ENHANCED_RTTI}
   RttiContext: TRttiContext;
@@ -1859,6 +1861,29 @@ var
   end;
 
 {$IFDEF SUPPORT_ENHANCED_RTTI}
+
+  function GetInterfaceNameByGUID(const AGUID: TGUID): string;
+  var
+    RttiContext: TRttiContext;
+    RttiType: TRttiType;
+  begin
+    Result := '';
+    RttiContext := TRttiContext.Create;
+    try
+      for RttiType in RttiContext.GetTypes do
+      begin
+        if (RttiType.TypeKind = tkInterface) and
+           IsEqualGUID(GetTypeData(RttiType.Handle).Guid, AGUID) then
+        begin
+          Result := RttiType.Name;
+          Exit;
+        end;
+      end;
+    finally
+      RttiContext.Free;
+    end;
+  end;
+
 {$IFDEF SUPPORT_ENHANCED_INDEXEDPROPERTY}
   procedure CalcIndexedProperty(Indexed: TRttiIndexedProperty;
     IndexedProp: TCnPropertyObject);
@@ -1903,6 +1928,15 @@ var
   end;
 {$ENDIF}
 {$ENDIF}
+
+  function GUIDToString(const GUID: TGUID): string;
+  begin
+    SetLength(Result, 38);
+    StrLFmt(PChar(Result), 38,'{%.8x-%.4x-%.4x-%.2x%.2x-%.2x%.2x%.2x%.2x%.2x%.2x}',
+      [GUID.D1, GUID.D2, GUID.D3, GUID.D4[0], GUID.D4[1], GUID.D4[2], GUID.D4[3],
+      GUID.D4[4], GUID.D4[5], GUID.D4[6], GUID.D4[7]]);
+  end;
+
 begin
   if ObjectInstance <> nil then
   begin
@@ -1927,12 +1961,33 @@ begin
     Hies := TStringList.Create;
     try
       ATmpClass := ObjectInstance.ClassType;
-      Hies.Add(ATmpClass.ClassName);
-      while ATmpClass.ClassParent <> nil do
-      begin
-        ATmpClass := ATmpClass.ClassParent;
+      repeat
         Hies.Add(ATmpClass.ClassName);
-      end;
+
+        IntfTable := ATmpClass.GetInterfaceTable;
+        if IntfTable <> nil then
+        begin
+          for I := 0 to IntfTable.EntryCount - 1 do
+          begin
+            IntfEntry := @IntfTable.Entries[I];
+{$IFDEF FPC}
+            Hies[Hies.Count - 1] := Hies[Hies.Count - 1] + ', ' +  GUIDToString(IntfEntry^.IID^);
+{$ELSE}
+  {$IFDEF SUPPORT_ENHANCED_RTTI}
+            S := GetInterfaceNameByGUID(IntfEntry^.IID);
+  {$ELSE}
+            S := '';
+  {$ENDIF}
+            if S = '' then
+              S := GUIDToString(IntfEntry^.IID);
+            Hies[Hies.Count - 1] := Hies[Hies.Count - 1] + ', ' + S;
+{$ENDIF}
+          end;
+        end;
+
+        ATmpClass := ATmpClass.ClassParent;
+      until ATmpClass = nil;
+
       Hierarchy := Hies.Text;
     finally
       Hies.Free;

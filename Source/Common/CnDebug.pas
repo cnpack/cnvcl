@@ -6214,7 +6214,7 @@ begin
     IntfTable := ClassPtr.GetInterfaceTable;
     if IntfTable <> nil then
     begin
-      for I := 0 to IntfTable.EntryCount-1 do
+      for I := 0 to IntfTable.EntryCount - 1 do
       begin
         IntfEntry := @IntfTable.Entries[I];
 {$IFDEF FPC}
