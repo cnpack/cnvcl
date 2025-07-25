@@ -204,6 +204,7 @@ type
     edtCHNewNum: TEdit;
     btnCHVerify: TButton;
     btnBNVerifyKeys: TButton;
+    btnInt64VerifyKeys: TButton;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -253,6 +254,7 @@ type
     procedure btnFindRandomClick(Sender: TObject);
     procedure btnCHVerifyClick(Sender: TObject);
     procedure btnBNVerifyKeysClick(Sender: TObject);
+    procedure btnInt64VerifyKeysClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -1088,6 +1090,24 @@ end;
 procedure TFormRSA.btnBNVerifyKeysClick(Sender: TObject);
 begin
   if CnRSAVerifyKeys(FPrivateKey, FPublicKey) then
+    ShowMessage('Verify Keys OK')
+  else
+    ShowMessage('Verify Keys Fail');
+end;
+
+procedure TFormRSA.btnInt64VerifyKeysClick(Sender: TObject);
+var
+  P1, P2: Cardinal;
+  M1, M2, D, E: TUInt64;
+begin
+  P1 := StrToUInt(edtPrime1.Text);
+  P2 := StrToUInt(edtPrime2.Text);
+  M1 := StrToUInt64(edtPrivProduct.Text);
+  M2 := StrToUInt64(edtPubProduct.Text);
+  D := StrToUInt64(edtPrivExp.Text);
+  E := StrToUInt64(edtPubExp.Text);
+
+  if CnInt64RSAVerifyKeys(P1, P2, M1, D, M2, E) then
     ShowMessage('Verify Keys OK')
   else
     ShowMessage('Verify Keys Fail');

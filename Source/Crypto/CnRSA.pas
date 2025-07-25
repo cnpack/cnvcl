@@ -31,7 +31,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.11.23 V2.9
+* 修改记录：2025.07.25 V3.0
+*               增加 Int64 的 RSA 公私钥验证函数
+*           2024.11.23 V2.9
 *               增加一批针对字节数组的加解密函数
 *           2024.09.27 V2.8
 *               修正私钥返回位数可能错误的问题
@@ -260,6 +262,22 @@ function CnInt64RSAGenerateKeys(out PrimeKey1: Cardinal; out PrimeKey2: Cardinal
      HighBitSet: Boolean                  - 是否要求素数最高位为 1
 
    返回值：Boolean                        - 返回生成是否成功
+}
+
+function CnInt64RSAVerifyKeys(PrimeKey1: Cardinal; PrimeKey2: Cardinal;
+  PrivKeyProduct: TUInt64; PrivKeyExponent: TUInt64; PubKeyProduct: TUInt64;
+  PubKeyExponent: TUInt64): Boolean;
+{* 验证一对 Int64 的 RSA 公私钥是否配套。
+
+   参数：
+     out PrimeKey1: Cardinal              - 待验证的 Int64 范围内的 RSA 公私钥的素数一
+     out PrimeKey2: Cardinal              - 待验证的 Int64 范围内的 RSA 公私钥的素数二
+     out PrivKeyProduct: TUInt64          - 待验证的 Int64 范围内的 RSA 私钥的素数积
+     out PrivKeyExponent: TUInt64         - 待验证的 Int64 范围内的 RSA 的私钥指数
+     out PubKeyProduct: TUInt64           - 待验证的 Int64 范围内的 RSA 公钥的素数积
+     out PubKeyExponent: TUInt64          - 待验证的 Int64 范围内的 RSA 公钥指数
+
+   返回值：Boolean                        - 返回验证是否成功
 }
 
 function CnInt64RSAEncrypt(Data: TUInt64; PrivKeyProduct: TUInt64;
@@ -1135,6 +1153,31 @@ begin
      PrivKeyExponent := PrivKeyExponent + Y;
   end;
   Result := True;
+end;
+
+function CnInt64RSAVerifyKeys(PrimeKey1: Cardinal; PrimeKey2: Cardinal;
+  PrivKeyProduct: TUInt64; PrivKeyExponent: TUInt64; PubKeyProduct: TUInt64;
+  PubKeyExponent: TUInt64): Boolean;
+var
+  T: TUInt64;
+begin
+  // 私钥的俩素数乘积要等于私钥的 Product
+  // 公私钥的 Product 得相等
+  // 公钥指数是素数，大点也没关系
+  // 验证 d
+  Result := False;
+  if PrivKeyProduct <> PubKeyProduct then
+    Exit;
+
+  if UInt64Mul(PrimeKey1, PrimeKey2) <> PrivKeyProduct then
+    Exit;
+
+  if not CnInt64IsPrime(PubKeyExponent) then
+    Exit;
+
+  // 验证 d 是否符合 e * d mod (p-1)(q-1) = 1
+  T := UInt64Mul(PrimeKey1 - 1, PrimeKey2 - 1);
+  Result := MultipleMod(PubKeyExponent, PrivKeyExponent, T) = 1;
 end;
 
 // 利用上面生成的私钥对数据进行加密，返回加密是否成功

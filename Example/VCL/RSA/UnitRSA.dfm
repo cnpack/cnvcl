@@ -89,7 +89,6 @@ object FormRSA: TFormRSA
           Width = 273
           Height = 21
           ParentShowHint = False
-          ReadOnly = True
           ShowHint = True
           TabOrder = 0
           OnChange = edtBNChange
@@ -101,7 +100,6 @@ object FormRSA: TFormRSA
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           ParentShowHint = False
-          ReadOnly = True
           ShowHint = True
           TabOrder = 1
           OnChange = edtBNChange
@@ -113,7 +111,6 @@ object FormRSA: TFormRSA
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           ParentShowHint = False
-          ReadOnly = True
           ShowHint = True
           TabOrder = 2
           OnChange = edtBNChange
@@ -125,7 +122,6 @@ object FormRSA: TFormRSA
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           ParentShowHint = False
-          ReadOnly = True
           ShowHint = True
           TabOrder = 3
           OnChange = edtBNChange
@@ -137,7 +133,6 @@ object FormRSA: TFormRSA
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           ParentShowHint = False
-          ReadOnly = True
           ShowHint = True
           TabOrder = 4
           OnChange = edtBNChange
@@ -149,7 +144,6 @@ object FormRSA: TFormRSA
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           ParentShowHint = False
-          ReadOnly = True
           ShowHint = True
           TabOrder = 5
           OnChange = edtBNChange
@@ -164,12 +158,12 @@ object FormRSA: TFormRSA
           OnClick = btnGenerateRSAClick
         end
         object btnSendR: TButton
-          Left = 584
+          Left = 568
           Top = 192
           Width = 177
           Height = 21
           Caption = 'Send (p-1)*(q-1) to Euclidean B'
-          TabOrder = 7
+          TabOrder = 8
           OnClick = btnSendRClick
         end
         object chkN64: TCheckBox
@@ -178,7 +172,20 @@ object FormRSA: TFormRSA
           Width = 97
           Height = 17
           Caption = '* 64 Bits'
-          TabOrder = 8
+          TabOrder = 7
+        end
+        object btnInt64VerifyKeys: TButton
+          Left = 760
+          Top = 192
+          Width = 81
+          Height = 21
+          Hint = 'Verify Loaded RSA Private and Public Keys'
+          Anchors = [akTop, akRight]
+          Caption = 'Verify Int64 Keys'
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 9
+          OnClick = btnInt64VerifyKeysClick
         end
       end
       object grpCrypt: TGroupBox
@@ -188,7 +195,7 @@ object FormRSA: TFormRSA
         Height = 121
         Anchors = [akLeft, akRight, akBottom]
         Caption = 'Crypt'
-        TabOrder = 1
+        TabOrder = 2
         object lblData: TLabel
           Left = 16
           Top = 24
@@ -223,7 +230,7 @@ object FormRSA: TFormRSA
           Top = 52
           Width = 529
           Height = 21
-          TabOrder = 2
+          TabOrder = 3
         end
         object edtDataBack: TEdit
           Left = 64
@@ -231,7 +238,7 @@ object FormRSA: TFormRSA
           Width = 529
           Height = 21
           ReadOnly = True
-          TabOrder = 4
+          TabOrder = 5
         end
         object btnRSAEn: TButton
           Left = 616
@@ -248,7 +255,7 @@ object FormRSA: TFormRSA
           Width = 89
           Height = 21
           Caption = 'RSA Decrypt'
-          TabOrder = 3
+          TabOrder = 4
           OnClick = btnRSADeClick
         end
         object chkPureUInt64: TCheckBox
@@ -258,7 +265,7 @@ object FormRSA: TFormRSA
           Height = 17
           Caption = 'UInt64'
           Enabled = False
-          TabOrder = 5
+          TabOrder = 2
         end
       end
       object btnInt64Sample: TButton
@@ -267,7 +274,7 @@ object FormRSA: TFormRSA
         Width = 75
         Height = 25
         Caption = 'Int64 Sample'
-        TabOrder = 2
+        TabOrder = 1
         OnClick = btnInt64SampleClick
       end
     end
@@ -416,7 +423,7 @@ object FormRSA: TFormRSA
           Width = 105
           Height = 21
           Caption = 'Generate RSA Keys'
-          TabOrder = 12
+          TabOrder = 13
           OnClick = btnBNGenClick
         end
         object edtBNPrivExp: TEdit
@@ -440,7 +447,7 @@ object FormRSA: TFormRSA
           ParentShowHint = False
           ReadOnly = True
           ShowHint = True
-          TabOrder = 8
+          TabOrder = 9
           OnChange = edtBNChange
         end
         object mmoBNPrivProduct: TMemo
@@ -474,7 +481,7 @@ object FormRSA: TFormRSA
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 13
+          TabOrder = 14
           Items.Strings = (
             '4096'
             '2048'
@@ -493,7 +500,7 @@ object FormRSA: TFormRSA
           Caption = 'Load PEM'
           ParentShowHint = False
           ShowHint = True
-          TabOrder = 14
+          TabOrder = 15
           OnClick = btnBNLoadKeysClick
         end
         object btnBNSaveKeys: TButton
@@ -505,7 +512,7 @@ object FormRSA: TFormRSA
           Caption = 'Save PEM'
           ParentShowHint = False
           ShowHint = True
-          TabOrder = 15
+          TabOrder = 17
           OnClick = btnBNSaveKeysClick
         end
         object btnBNLoadPub: TButton
@@ -531,7 +538,7 @@ object FormRSA: TFormRSA
           Caption = 'Save PEM'
           ParentShowHint = False
           ShowHint = True
-          TabOrder = 9
+          TabOrder = 10
           OnClick = btnSavePubClick
         end
         object cbbSaveFormat: TComboBox
@@ -541,7 +548,7 @@ object FormRSA: TFormRSA
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 16
+          TabOrder = 18
           Items.Strings = (
             'PKCS#1'
             'PKCS#8')
@@ -573,7 +580,7 @@ object FormRSA: TFormRSA
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 11
+          TabOrder = 12
           Items.Strings = (
             '4096'
             '2048'
@@ -588,7 +595,7 @@ object FormRSA: TFormRSA
           Width = 105
           Height = 21
           Caption = 'Generate RSA Keys'
-          TabOrder = 10
+          TabOrder = 11
           OnClick = btnGenByMClick
         end
         object cbbSaveCrypt: TComboBox
@@ -598,7 +605,7 @@ object FormRSA: TFormRSA
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 17
+          TabOrder = 19
           Items.Strings = (
             'NO Crypt'
             'DES'
@@ -614,7 +621,7 @@ object FormRSA: TFormRSA
           Height = 21
           Style = csDropDownList
           ItemHeight = 13
-          TabOrder = 18
+          TabOrder = 16
           Items.Strings = (
             'MD5'
             'SHA256')
@@ -629,7 +636,7 @@ object FormRSA: TFormRSA
           Caption = 'Verify Keys'
           ParentShowHint = False
           ShowHint = True
-          TabOrder = 19
+          TabOrder = 8
           OnClick = btnBNVerifyKeysClick
         end
       end
@@ -675,7 +682,7 @@ object FormRSA: TFormRSA
             Width = 81
             Height = 21
             Caption = 'RSA Encrypt'
-            TabOrder = 0
+            TabOrder = 1
             OnClick = btnBNRSAEnClick
           end
           object edtBNData: TEdit
@@ -683,7 +690,7 @@ object FormRSA: TFormRSA
             Top = 20
             Width = 577
             Height = 21
-            TabOrder = 1
+            TabOrder = 0
             Text = '1234567890987654321'
           end
           object edtBNRes: TEdit
@@ -699,7 +706,7 @@ object FormRSA: TFormRSA
             Width = 577
             Height = 21
             ReadOnly = True
-            TabOrder = 3
+            TabOrder = 4
           end
           object btnBNRSADe: TButton
             Left = 648
@@ -707,7 +714,7 @@ object FormRSA: TFormRSA
             Width = 81
             Height = 21
             Caption = 'RSA Decrypt'
-            TabOrder = 4
+            TabOrder = 3
             OnClick = btnBNRSADeClick
           end
         end
@@ -743,7 +750,7 @@ object FormRSA: TFormRSA
             Width = 553
             Height = 21
             ReadOnly = True
-            TabOrder = 1
+            TabOrder = 5
           end
           object btnBrowse1: TButton
             Left = 656
@@ -751,7 +758,7 @@ object FormRSA: TFormRSA
             Width = 75
             Height = 21
             Caption = 'Browse'
-            TabOrder = 2
+            TabOrder = 1
             OnClick = btnBrowse1Click
           end
           object btnBrowse2: TButton
@@ -760,7 +767,7 @@ object FormRSA: TFormRSA
             Width = 75
             Height = 21
             Caption = 'Browse'
-            TabOrder = 3
+            TabOrder = 6
             OnClick = btnBrowse2Click
           end
           object btnPrivCrypt: TBitBtn
@@ -775,7 +782,7 @@ object FormRSA: TFormRSA
             Font.Name = 'MS Sans Serif'
             Font.Style = []
             ParentFont = False
-            TabOrder = 4
+            TabOrder = 2
             OnClick = btnPrivCryptClick
           end
           object btnPubCrypt: TButton
@@ -784,7 +791,7 @@ object FormRSA: TFormRSA
             Width = 137
             Height = 21
             Caption = 'Crypt Using Public Key'
-            TabOrder = 5
+            TabOrder = 3
             OnClick = btnPubCryptClick
           end
           object btnDePrivate: TButton
@@ -793,7 +800,7 @@ object FormRSA: TFormRSA
             Width = 137
             Height = 21
             Caption = 'Decrypt Using Private Key'
-            TabOrder = 6
+            TabOrder = 7
             OnClick = btnDePrivateClick
           end
           object btnDePub: TBitBtn
@@ -808,7 +815,7 @@ object FormRSA: TFormRSA
             Font.Name = 'MS Sans Serif'
             Font.Style = []
             ParentFont = False
-            TabOrder = 7
+            TabOrder = 8
             OnClick = btnDePubClick
           end
           object chkOAEP: TCheckBox
@@ -817,7 +824,7 @@ object FormRSA: TFormRSA
             Width = 97
             Height = 17
             Caption = 'OAEP Padding'
-            TabOrder = 8
+            TabOrder = 4
           end
         end
         object tsSign: TTabSheet
@@ -840,7 +847,7 @@ object FormRSA: TFormRSA
             Caption = 'Signature File:'
           end
           object lblSigMethod: TLabel
-            Left = 668
+            Left = 666
             Top = 42
             Width = 94
             Height = 13
@@ -850,13 +857,13 @@ object FormRSA: TFormRSA
           object edtSignFile: TEdit
             Left = 88
             Top = 8
-            Width = 741
+            Width = 739
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             TabOrder = 0
           end
           object btnSignBrowse: TButton
-            Left = 836
+            Left = 834
             Top = 8
             Width = 75
             Height = 21
@@ -877,20 +884,20 @@ object FormRSA: TFormRSA
           object edtSigFile: TEdit
             Left = 88
             Top = 72
-            Width = 741
+            Width = 739
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             ReadOnly = True
-            TabOrder = 3
+            TabOrder = 4
           end
           object btnSignatureBrowse: TButton
-            Left = 836
+            Left = 834
             Top = 72
             Width = 75
             Height = 21
             Anchors = [akTop, akRight]
             Caption = 'Browse'
-            TabOrder = 4
+            TabOrder = 5
             OnClick = btnSignatureBrowseClick
           end
           object btnPrivVerify: TButton
@@ -900,7 +907,7 @@ object FormRSA: TFormRSA
             Height = 21
             Caption = 'Verify Using Private Key'
             Enabled = False
-            TabOrder = 5
+            TabOrder = 7
             OnClick = btnPrivVerifyClick
           end
           object btnPubVerify: TButton
@@ -913,14 +920,14 @@ object FormRSA: TFormRSA
             OnClick = btnPubVerifyClick
           end
           object cbbSig: TComboBox
-            Left = 772
+            Left = 770
             Top = 40
             Width = 65
             Height = 21
             Style = csDropDownList
             Anchors = [akTop, akRight]
             ItemHeight = 13
-            TabOrder = 7
+            TabOrder = 3
             Items.Strings = (
               '<None>'
               'MD5'
@@ -1168,7 +1175,7 @@ object FormRSA: TFormRSA
           Width = 209
           Height = 21
           Caption = 'Int64 Extended Euclidean Gcd to Calc  X'
-          TabOrder = 2
+          TabOrder = 5
           OnClick = btnMInt64MIClick
         end
         object edtMX: TEdit
@@ -1177,7 +1184,7 @@ object FormRSA: TFormRSA
           Width = 193
           Height = 21
           ReadOnly = True
-          TabOrder = 3
+          TabOrder = 6
         end
         object edtMY: TEdit
           Left = 320
@@ -1185,7 +1192,7 @@ object FormRSA: TFormRSA
           Width = 193
           Height = 21
           ReadOnly = True
-          TabOrder = 4
+          TabOrder = 7
         end
         object edtMXP: TEdit
           Left = 56
@@ -1193,7 +1200,7 @@ object FormRSA: TFormRSA
           Width = 193
           Height = 21
           ReadOnly = True
-          TabOrder = 5
+          TabOrder = 8
         end
         object edtPY: TEdit
           Left = 320
@@ -1201,7 +1208,7 @@ object FormRSA: TFormRSA
           Width = 193
           Height = 21
           ReadOnly = True
-          TabOrder = 6
+          TabOrder = 9
         end
         object btnMInt32MI: TButton
           Left = 56
@@ -1209,7 +1216,7 @@ object FormRSA: TFormRSA
           Width = 209
           Height = 21
           Caption = 'UInt32 Extended Euclidean Gcd to Calc  X'
-          TabOrder = 7
+          TabOrder = 4
           OnClick = btnMInt32MIClick
         end
         object btnUInt32MI: TButton
@@ -1218,7 +1225,7 @@ object FormRSA: TFormRSA
           Width = 75
           Height = 21
           Caption = 'UInt32 MI'
-          TabOrder = 8
+          TabOrder = 2
           OnClick = btnUInt32MIClick
         end
         object btnInt64MI: TButton
@@ -1227,7 +1234,7 @@ object FormRSA: TFormRSA
           Width = 75
           Height = 21
           Caption = 'Int64 MI'
-          TabOrder = 9
+          TabOrder = 3
           OnClick = btnInt64MIClick
         end
       end
@@ -1358,7 +1365,7 @@ object FormRSA: TFormRSA
           Top = 132
           Width = 163
           Height = 21
-          TabOrder = 6
+          TabOrder = 11
           Text = '654321'
         end
         object btnCalcYb: TButton
@@ -1367,7 +1374,7 @@ object FormRSA: TFormRSA
           Width = 49
           Height = 21
           Caption = 'Calc Yb'
-          TabOrder = 7
+          TabOrder = 12
           OnClick = btnCalcYbClick
         end
         object btnCalcXA: TButton
@@ -1376,7 +1383,7 @@ object FormRSA: TFormRSA
           Width = 49
           Height = 21
           Caption = 'Calc Ya'
-          TabOrder = 8
+          TabOrder = 6
           OnClick = btnCalcXAClick
         end
         object edtDHYa: TEdit
@@ -1384,14 +1391,14 @@ object FormRSA: TFormRSA
           Top = 92
           Width = 175
           Height = 21
-          TabOrder = 9
+          TabOrder = 7
         end
         object edtDHYb: TEdit
           Left = 314
           Top = 132
           Width = 175
           Height = 21
-          TabOrder = 10
+          TabOrder = 13
         end
         object btnDHBCK: TButton
           Left = 502
@@ -1399,7 +1406,7 @@ object FormRSA: TFormRSA
           Width = 65
           Height = 21
           Caption = 'B Calc Key'
-          TabOrder = 11
+          TabOrder = 14
           OnClick = btnDHBCKClick
         end
         object btnDHACKey: TButton
@@ -1408,7 +1415,7 @@ object FormRSA: TFormRSA
           Width = 65
           Height = 21
           Caption = 'A Calc Key'
-          TabOrder = 12
+          TabOrder = 8
           OnClick = btnDHACKeyClick
         end
         object edtAKey: TEdit
@@ -1416,14 +1423,14 @@ object FormRSA: TFormRSA
           Top = 92
           Width = 163
           Height = 21
-          TabOrder = 13
+          TabOrder = 9
         end
         object edtBKey: TEdit
           Left = 581
           Top = 132
           Width = 163
           Height = 21
-          TabOrder = 14
+          TabOrder = 15
         end
         object cbbDHBits: TComboBox
           Left = 72
@@ -1431,7 +1438,7 @@ object FormRSA: TFormRSA
           Width = 145
           Height = 21
           ItemHeight = 13
-          TabOrder = 15
+          TabOrder = 16
           Text = '64'
           Items.Strings = (
             '32'
@@ -1445,7 +1452,7 @@ object FormRSA: TFormRSA
           Width = 25
           Height = 21
           Caption = 'R'
-          TabOrder = 16
+          TabOrder = 10
           OnClick = btnDHRandClick
         end
       end
@@ -1541,14 +1548,14 @@ object FormRSA: TFormRSA
           Top = 56
           Width = 353
           Height = 21
-          TabOrder = 0
+          TabOrder = 1
         end
         object edtCHRoot: TEdit
           Left = 496
           Top = 56
           Width = 121
           Height = 21
-          TabOrder = 1
+          TabOrder = 2
         end
         object btnGenCH: TButton
           Left = 632
@@ -1556,7 +1563,7 @@ object FormRSA: TFormRSA
           Width = 113
           Height = 21
           Caption = 'Generate CH'
-          TabOrder = 2
+          TabOrder = 3
           OnClick = btnGenCHClick
         end
         object edtCHNumber: TEdit
@@ -1564,7 +1571,7 @@ object FormRSA: TFormRSA
           Top = 20
           Width = 545
           Height = 21
-          TabOrder = 3
+          TabOrder = 0
           Text = '73618513111136280958052434894378447995623'
         end
         object edtCHSecKey: TEdit
@@ -1604,7 +1611,7 @@ object FormRSA: TFormRSA
           Top = 228
           Width = 545
           Height = 21
-          TabOrder = 8
+          TabOrder = 10
         end
         object btnFindRandom: TButton
           Left = 632
@@ -1620,7 +1627,7 @@ object FormRSA: TFormRSA
           Top = 196
           Width = 545
           Height = 21
-          TabOrder = 10
+          TabOrder = 8
           Text = '961397411368986421346864224325900985312468'
         end
         object btnCHVerify: TButton
@@ -1636,11 +1643,11 @@ object FormRSA: TFormRSA
     end
   end
   object dlgOpenPEM: TOpenDialog
-    Left = 556
+    Left = 540
     Top = 240
   end
   object dlgSavePEM: TSaveDialog
-    Left = 588
+    Left = 564
     Top = 240
   end
   object ilCrypt: TImageList
