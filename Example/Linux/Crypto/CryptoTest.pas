@@ -335,6 +335,7 @@ function TestRSAPubPkcs1: Boolean;
 function TestRSAPrivPubPkcs8: Boolean;
 function TestRSAPubPkcs8: Boolean;
 function TestChameleonHash: Boolean;
+function TestRSA2Crypt: Boolean;
 
 // ================================ KDF ========================================
 
@@ -716,6 +717,7 @@ begin
   MyAssert(TestRSAPrivPubPkcs8, 'TestRSAPrivPubPkcs8');
   MyAssert(TestRSAPubPkcs8, 'TestRSAPubPkcs8');
   MyAssert(TestChameleonHash, 'TestChameleonHash');
+  MyAssert(TestRSA2Crypt, 'TestRSA2Crypt');
 
 // ================================ KDF ========================================
 
@@ -5022,6 +5024,114 @@ begin
     Rand.Free;
     NewNum.Free;
     NewHash.Free;
+  end;
+end;
+
+function TestRSA2Crypt: Boolean;
+const
+  KEY1 =
+    '-----BEGIN RSA PRIVATE KEY-----' + #13#10 +
+    'MIIEowIBAAKCAQEAxOiG2ZD8KB6njUiPJeLD8JmP+9QGqxpIQ9o94LPrAqxXFDpt' + #13#10 +
+    'zpgAw3rQfvcAZaoZkgCFOYFWXtPVk0Oy7/NZ27SGQO4hKvlIAFjrcqVvoXJey6SC' + #13#10 +
+    'EB/Q169ePoy3voG49ZXXlvSrfaf2cuPbosnS2vk3C18492AazmY1jCRbQVxDXQcF' + #13#10 +
+    'jv0/YE3bSozydNvIvPyaFFPdWjJxSr5Hja4QbE+TR+DVRGtA/tGkLafR6rNrp6BL' + #13#10 +
+    'rKXFkoCq0seXhKLvmKF7y/fy+NXT+RI34e7dz+PVMu7RYRZIIipAMumL+QvQxCp0' + #13#10 +
+    'Cm1Ant48m4es2gI0/yVmD++YBmlHcFbPAtR9awIDAQABAoIBAGO4dwKcIHeY/rXY' + #13#10 +
+    'd1Zyf1TMEFUyzaW9i7eBQTEZLP2PlhISfSXRaSGWgxyprrPN72E3jkDPNZSUp2cL' + #13#10 +
+    'NAW9MlbIF+2uK3H+CO7UGXlYOy6CI2vyhkPwOO3iTFJVJYD/ZVJKboJuqqLaez84' + #13#10 +
+    'EjVhDL4E1FGYCduN+kVpEdlFWEnCsnjW/YoxvNZ0BDHMJE8wTHWfULiIdEq4pjxT' + #13#10 +
+    'DqiJ98SP124OYqx89nC0GZQ0V+byE5vWlm66v5jQmRvmhySMXmLM7AM91Zummurb' + #13#10 +
+    'QtS8oGA2TzHyXEQ/CoKLrGyg+5nF6foOifgx0zDBWRzvhvGeMHr9IsxKR44q9NM2' + #13#10 +
+    'W5OZqcECgYEA6Dem/SqUcilNSIgST8s/2A6S03JBp799eDnmbZUVs50LxWtRaGuX' + #13#10 +
+    'ks+FlZJLrtzROm+jTQ7eBJjQzALomnNKADaf7pzjigBHMmxFnisad8iCHnAlK3zr' + #13#10 +
+    'vL8gvgFL5S1myvdCn2ENjY4zdJ+iPsXrkionR6d8sGMIKGy1mV5cuBECgYEA2RMh' + #13#10 +
+    'QpYuKH2xzSpLsTb4q6ocaQMIMPuXq8HF8wbMSQN4eD8HKKPyvewUlO/horZujVxg' + #13#10 +
+    'oZXbgy5KDqE5gJGm6HKIctGsqVFxKZFw8IiZ5LAgBInaPr8CbiBVDyw4n2p2ZApE' + #13#10 +
+    'fxn81juQR56H9ngih2z9w/+qNZ1nywgr3up6ebsCgYBwhWb5DYTYvIKiPq0A1S+e' + #13#10 +
+    'dZFXu+lsazFU7Flnh/H4EoT9qD7OJjRQAxZrn3Pky0Lm2el7EVUrTRD/iflDvdGB' + #13#10 +
+    'wPZGHOd0myXknOou9hvhJttF/HlGVUW1M7ed2er4pcNFXgJ+T/zNNrZgMGnhmO3I' + #13#10 +
+    '6XwXEGUu4w206Ngl9L9gwQKBgCwPO/L99IR3br1L1m0z0SlWr8mIugLnLhPIktsP' + #13#10 +
+    'CCvRroQJlvRiwoRWBJ9uSQfzq2C53Usu1Y08uf9aLgewiIYpqRRVBoyfYS6kvJ21' + #13#10 +
+    'vDa0oOsK5+dQcbfUjC82NI/21ezcQKbjqXP6RwCiZspZ+/gs4R0FKZEUT9rf37ex' + #13#10 +
+    'NAa9AoGBAMLCrQutRbpESFd2YCUnVpR/XZVPwPzyGJEO2XIjNQGJRbkL/SCw3iOq' + #13#10 +
+    '4mHXBJbd2/v/arJ6KOOiPMvgmyjHjCAIeC0INMCyyFbeO0YuF9xdKQmX+12V4oZU' + #13#10 +
+    'n5pVIVJmV56F7+wjcOWpvBZJKjm1fRHi7B9/eQc7J5GZDQu3oksp' + #13#10 +
+    '-----END RSA PRIVATE KEY-----';
+  KEY2 =
+    '-----BEGIN RSA PRIVATE KEY-----' + #13#10 +
+    'MIIEowIBAAKCAQEA2Q5FvKydE9LW9TzV0hGNaOtfuP4xYdmXM1bGjsgt+TI34efM' + #13#10 +
+    'xj+YeqKIihkujfEuidWk8TnaHN+/ojUso73w0ma7u2m9wH/xAlcQtTaLH6c/ALIv' + #13#10 +
+    'XqtPjXTtbQo91J+Zx30Mt/M/GNCGbcIwQPrMnuqxnb26mvcZW0MR/neVs+g0w0nn' + #13#10 +
+    '6BgnGTd2bUNcXmNpJQmkSx/j71Z0kvCDT+lTv0UjOKniOySHNb5YyzFAIUmyLMjP' + #13#10 +
+    'BTgHO8NoCsyO4avhZ8KtSb9i3lQNxeW4lwHPgIOzWaktn760o+skhuTr7HTgLbsa' + #13#10 +
+    'DqRPztHfPKBdT8HepIeEo//GT4drcH41S4mLswIDAQABAoIBAGGFRRXZJBXVA9lZ' + #13#10 +
+    'RORGGJfMMMzIAF3rSkC5uypJjEZLJsprwBhOWG64+cm6OK1zcCpjf+EV0gZpDQuP' + #13#10 +
+    'Aohq/Xk6yRwSDTwg/6LChXI1mFpXZTol1JyfMXXn1AjKsi8Gqivz5jP7qRy4C73i' + #13#10 +
+    'opV/WVIJNlYd+WpInO7g+oOvLOaQGIVyJGckk1AbNSZapbUygh+Xh3CfelqsZIY6' + #13#10 +
+    'bWEufCApGuikTozjiy5B9mGwOC6gNZg0zzgMRrwwTIhsy2uiKKLXtGrw4gxykdwe' + #13#10 +
+    'u6Le8//+eNmf5ocBzUOeJorEHz9TzNvI2R/d/C8++fNriVMZrPZ408q+n6DhCcBz' + #13#10 +
+    'gp8pqLkCgYEA+VHMxpQxGAg3LUgGHVx8U0pyuNO/25djvLampl7hYJzNMV/Cxy55' + #13#10 +
+    'eQfCRsyEckaV0VXgSmNKneiKskIILtx2yKLGmQO5rEF210ULKZPpA+fQr4KoUMtw' + #13#10 +
+    'JrC4a4D+THtf+tfuKRLEhs+x2LrYTOsu8mQAFcOG5JDPitSuKWnR0QUCgYEA3t8o' + #13#10 +
+    '+M09GeS3l2xFvWMnYnvD4sMaI+uPXj6GQZa1XHELY321KiZKAqlcyZWFvghBuMpe' + #13#10 +
+    'JYc27mcdDmx7+KkG12XgSlQLHM0chW6Hq6U89Jt8arwNuFCI+hxPLWmm7d4zqbSW' + #13#10 +
+    'Re2vLyskboDUYJClCn03WUjDj8EqCzbsVi0g51cCgYABtUbC4YcIlB3UqJaqItUT' + #13#10 +
+    'OQJaM9EvrvTW+SVhJGtE3y4ktXQ/KxlX8+6nz4Tkx4kFOyJjQBTlyg8RM5ScxZPm' + #13#10 +
+    'wf68U6M1A+nNhcKS0VmaVj8+xJVkoFAvY6yPx/12Bq5cqJgQHfnMtqWQR49tz3qt' + #13#10 +
+    '3HOHsqQ88qUJXXWoAPqYBQKBgGEQ8mhCAw2G9orFhi4wxBN5cdwOOxFP47YZJyHj' + #13#10 +
+    'wINNXLdtJX0BBhTYrGfDbmdQc0dHI+/WTw9P63C/wNKQ00D2xtO4fMqDbpuSgxY3' + #13#10 +
+    'ti+WlH5r/tG6iZ3cvIM7048fyoJr+1LjbPvvH0PdaiHQfYDu/i8tqLawW15dAluZ' + #13#10 +
+    '9g2rAoGBANqi8uPZCuefXl0lqN/gWQdBjPuZcM/NIs17O/dOIdgqybKAPTF3pnN3' + #13#10 +
+    'kMzXixFpr0gA/I595Ey/Kqtbms0nZnhf4DKxUY99FW930WzE5hXJbtolqEtndup5' + #13#10 +
+    'tLLb5C+2g8f0qIARkPHeAkBMVKdFOaFB22wXVDuZOsIeaBTM/shV' + #13#10 +
+    '-----END RSA PRIVATE KEY-----';
+var
+  S: AnsiString;
+  Stream: TMemoryStream;
+  Priv1, Priv2: TCnRSAPrivateKey;
+  Pub1, Pub2: TCnRSAPublicKey;
+  C1, C2, En, D1, D2: TBytes;
+begin
+  Result := False;
+
+  Priv1 := TCnRSAPrivateKey.Create;
+  Priv2 := TCnRSAPrivateKey.Create;
+  Pub1 := TCnRSAPublicKey.Create;
+  Pub2 := TCnRSAPublicKey.Create;
+
+  Stream := TMemoryStream.Create;
+  try
+    S := AnsiString(KEY1);
+    Stream.Write(S[1], Length(S));
+    Stream.Position := 0;
+
+    if not CnRSALoadKeysFromPem(Stream, Priv1, Pub1) then
+      Exit;
+
+    S := AnsiString(KEY2);
+    Stream.Size := 0;
+    Stream.Write(S[1], Length(S));
+    Stream.Position := 0;
+
+    if not CnRSALoadKeysFromPem(Stream, Priv2, Pub2) then
+      Exit;
+
+    C1 := AnsiToBytes('Test Encrypt Message 1.');
+    C2 := AnsiToBytes('Message 2 For Test.');
+
+    En := CnRSA2EncryptBytes(C1, C2, Pub1, Pub2);
+    if Length(En) <= 0 then
+      Exit;
+
+    D1 := CnRSA2DecryptBytes(En, Priv1);
+    D2 := CnRSA2DecryptBytes(En, Priv2);
+
+    Result := CompareBytes(D1, C1) and CompareBytes(D2, C2);
+  finally
+    Pub2.Free;
+    Pub1.Free;
+    Priv2.Free;
+    Priv1.Free;
   end;
 end;
 

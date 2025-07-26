@@ -152,6 +152,7 @@
         <DCCReference Include="..\..\..\Source\Crypto\CnBigNumber.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnBits.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnBLAKE.pas"/>
+        <DCCReference Include="..\..\..\Source\Crypto\CnBLAKE2.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnCertificateAuthority.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnChaCha20.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnComplex.pas"/>
@@ -197,6 +198,8 @@
         <DCCReference Include="..\..\..\Source\Common\CnMath.pas"/>
         <DCCReference Include="..\..\..\Source\Common\CnMatrix.pas"/>
         <DCCReference Include="..\..\..\Source\Common\CnTree.pas"/>
+        <DCCReference Include="..\..\..\Source\Common\CnStrings.pas"/>
+        <DCCReference Include="..\..\..\Source\Common\CnWideStrings.pas"/>
         <DCCReference Include="CryptoTest.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

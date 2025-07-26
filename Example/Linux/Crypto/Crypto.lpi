@@ -68,6 +68,10 @@
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
+        <Filename Value="..\..\..\Source\Crypto\CnBLAKE2.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
         <Filename Value="..\..\..\Source\Crypto\CnCertificateAuthority.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>

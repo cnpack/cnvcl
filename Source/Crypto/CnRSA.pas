@@ -25,9 +25,11 @@ unit CnRSA;
 * 单元名称：RSA 算法单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：本单元实现了 Int64 及大整数范围内的 RSA 算法，公钥 Exponent 默认固定使用 65537。
-*           并基于大整数 RSA 算法实现了公私钥生成、存储、载入与数据加解密、签名验签。 
-*           另外官方提倡公钥加密、私钥解密，但 RSA 两者等同，也可私钥加密、公钥解密，
-*           本单元两类方法都提供了，使用时须注意配对。
+*           并基于大整数 RSA 算法实现了公私钥生成、存储、载入与数据加解密、签名验签。
+*           并基于 CRT 实现了双密钥加解密，也即两个公钥可以分别加密两个明文并合并至一个大密文
+*           该大密文用各自私钥能解出各自对应的明文。 
+*           另外官方提倡公钥加密、私钥解密，但 RSA 两者等同，也可私钥加密、公钥解密，不过不提倡。
+*           本单元两类方法都提供了，如真要使用后者，加解密时须注意配对。
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -675,11 +677,11 @@ function CnRSADecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer
 {* 用私钥对数据块进行解密，并解开其 PKCS1 填充或 OAEP 填充，结果放 OutBuf 中，并返回明文数据字节长度。
 
    参数：
-     EnData: Pointer                      - 待加密的明文数据块地址
-     DataByteLen: Integer                 - 待加密的明文数据块字节长度
+     EnData: Pointer                      - 待解密的密文数据块地址
+     DataByteLen: Integer                 - 待解密的密文数据块字节长度
      OutBuf: Pointer                      - 容纳返回的明文数据的数据块的地址，其字节长度不能短于密钥素数积的字节长度
      out OutByteLen: Integer              - 返回的明文实际字节长度
-     PrivateKey: TCnRSAPrivateKey         - 用于加密的 RSA 私钥
+     PrivateKey: TCnRSAPrivateKey         - 用于解密的 RSA 私钥
      PaddingMode: TCnRSAPaddingMode       - 指定对齐模式，需和密文的实际情况一致
 
    返回值：Boolean                        - 返回解密是否成功
@@ -724,7 +726,7 @@ function CnRSADecryptBytes(EnData: TBytes; PrivateKey: TCnRSAPrivateKey;
    参数：
      EnData: TBytes                       - 待解密的密文字节数组
      PrivateKey: TCnRSAPrivateKey         - 用于解密的 RSA 私钥
-     PaddingMode: TCnRSAPaddingMode       - 指定对齐模式，需和密文文件的实际情况一致
+     PaddingMode: TCnRSAPaddingMode       - 指定对齐模式，需和密文的实际情况一致
 
    返回值：TBytes                         - 返回明文字节数组
 }
@@ -996,6 +998,69 @@ function CnChameleonHashFindRandom(InOldData: TCnBigNumber; InNewData: TCnBigNum
      Root: TCnBigNumber                   - 变色龙杂凑的原根
 
    返回值：Boolean                        - 返回生成是否成功
+}
+
+// =========================== 双密钥密文加解密函数 ============================
+
+function CnRSA2EncryptData(PlainData1: Pointer; DataByteLen1: Integer; PlainData2: Pointer; DataByteLen2: Integer;
+  OutBuf: Pointer; PublicKey1, PublicKey2: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean;
+{* 使用两个 RSA 公钥分别加密两个明文，合并成一个大密文，返回加密是否成功。
+   加密前可指定使用 PKCS1 填充或 OAEP 填充。如成功，加密密文存放在 OutBuf 中。
+   密文用对应的 RSA 私钥可解出对应的明文。
+
+   参数：
+     PlainData1: Pointer                  - 待加密的第一个明文数据块地址
+     DataByteLen1: Integer                - 待加密的第二个明文数据块字节长度
+     PlainData2: Pointer                  - 待加密的第一个明文数据块地址
+     DataByteLen2: Integer                - 待加密的第二个明文数据块字节长度
+     OutBuf: Pointer                      - 容纳返回的密文数据的数据块的地址，其字节长度不能短于两个密钥素数积的字节长度之和
+     PublicKey1: TCnRSAPublicKey          - 用于加密第一个明文数据的 RSA 公钥
+     PublicKey2: TCnRSAPublicKey          - 用于加密第二个明文数据的 RSA 公钥
+     PaddingMode: TCnRSAPaddingMode       - 指定对齐模式
+
+   返回值：Boolean                        - 返回加密是否成功
+}
+
+function CnRSA2DecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
+  out OutByteLen: Integer; PrivateKey: TCnRSAPrivateKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean;
+{* 使用单个 RSA 私钥解密双密钥加密的大密文，并解开其 PKCS1 填充或 OAEP 填充，并返回明文数据字节长度。
+
+   参数：
+     EnData: Pointer                      - 待解密的双密钥密文数据块地址
+     DataByteLen: Integer                 - 待解密的双密钥密文数据块字节长度
+     OutBuf: Pointer                      - 容纳返回的明文数据的数据块的地址，其字节长度不能短于密钥素数积的字节长度
+     out OutByteLen: Integer              - 返回的明文实际字节长度
+     PrivateKey: TCnRSAPrivateKey         - 用于解密的 RSA 私钥
+     PaddingMode: TCnRSAPaddingMode       - 指定对齐模式，需和密文的实际情况一致
+
+   返回值：Boolean                        - 返回解密是否成功
+}
+
+function CnRSA2EncryptBytes(PlainData1, PlainData2: TBytes; PublicKey1, PublicKey2: TCnRSAPublicKey;
+  PaddingMode: TCnRSAPaddingMode = cpmPKCS1): TBytes;
+{* 使用两个 RSA 公钥分别加密两个明文，合并成一个大密文，返回密文字节数组。
+   加密前可指定使用 PKCS1 填充或 OAEP 填充。
+
+   参数：
+     PlainData1: TBytes                   - 待加密的第一个明文字节数组
+     PlainData2: TBytes                   - 待加密的第二个明文字节数组
+     PublicKey1: TCnRSAPublicKey          - 用于加密第一个明文字节数组的 RSA 公钥
+     PublicKey2: TCnRSAPublicKey          - 用于加密第二个明文字节数组的 RSA 公钥
+     PaddingMode: TCnRSAPaddingMode       - 指定对齐模式
+
+   返回值：TBytes                         - 返回密文字节数组
+}
+
+function CnRSA2DecryptBytes(EnData: TBytes; PrivateKey: TCnRSAPrivateKey;
+  PaddingMode: TCnRSAPaddingMode = cpmPKCS1): TBytes;
+{* 使用单个 RSA 私钥解密双密钥加密的大密文字节数组，并解开其 PKCS1 填充或 OAEP 填充，返回解密的字节数组。
+
+   参数：
+     EnData: TBytes                       - 待解密的双密钥密文字节数组
+     PrivateKey: TCnRSAPrivateKey         - 用于解密的 RSA 私钥
+     PaddingMode: TCnRSAPaddingMode       - 指定对齐模式，需和密文的实际情况一致
+
+   返回值：TBytes                         - 返回明文字节数组
 }
 
 // ================================= 其他辅助函数 ==============================
@@ -3321,6 +3386,117 @@ begin
     SK.Free;
     M.Free;
   end;
+end;
+
+// =========================== 双密钥密文加解密函数 ============================
+
+function CnRSA2EncryptData(PlainData1: Pointer; DataByteLen1: Integer;
+  PlainData2: Pointer; DataByteLen2: Integer; OutBuf: Pointer; PublicKey1,
+  PublicKey2: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean;
+var
+  En1, En2: TBytes;
+  M, Y, C1, C2: TCnBigNumber;
+begin
+  // TODO: 外部判断私钥，四个素数必须两两不同避免无解
+
+  // 位数须相同
+  Result := False;
+  if PublicKey1.GetBitsCount <> PublicKey2.GetBitsCount then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_BITS);
+    Exit;
+  end;
+
+  SetLength(En1, PublicKey1.GetBytesCount);
+  if not CnRSAEncryptData(PlainData1, DataByteLen1, @En1[0], PublicKey1, PaddingMode) then
+    Exit;
+
+  SetLength(En2, PublicKey1.GetBytesCount);
+  if not CnRSAEncryptData(PlainData2, DataByteLen2, @En2[0], PublicKey2, PaddingMode) then
+    Exit;
+
+  // 计算合并大密文
+  M := nil;
+  C1 := nil;
+  C2 := nil;
+  Y := nil;
+
+  try
+    // 计算大积
+    M := TCnBigNumber.Create;
+    if not BigNumberMul(M, PublicKey1.PubKeyProduct, PublicKey2.PubKeyProduct) then
+    begin
+      _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+      Exit;
+    end;
+
+    // 把俩密文变成大数
+    C1 := TCnBigNumber.FromBinary(PAnsiChar(@En1[0]), Length(En1));
+    C2 := TCnBigNumber.FromBinary(PAnsiChar(@En2[0]), Length(En2));
+
+    Y := TCnBigNumber.Create;
+
+    // 再合并计算大密文的大数，(C1 * N2 * Y2 + C2 * N1 * Y1) mod N
+    BigNumberMul(C1, PublicKey2.PubKeyProduct, C1);
+    // 计算各自相互的模逆元
+    if not BigNumberModularInverse(Y, PublicKey2.PubKeyProduct, PublicKey1.PubKeyProduct) then
+    begin
+      _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+      Exit;
+    end;
+    BigNumberMul(C1, C1, Y); // 释放 Y
+
+    BigNumberMul(C2, PublicKey1.PubKeyProduct, C2);
+    // 计算各自相互的模逆元
+    if not BigNumberModularInverse(Y, PublicKey1.PubKeyProduct, PublicKey2.PubKeyProduct) then
+    begin
+      _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+      Exit;
+    end;
+    BigNumberMul(C2, C2, Y); // 再释放 Y
+
+    BigNumberAddMod(Y, C1, C2, M);
+    Y.ToBinary(OutBuf, PublicKey1.GetBytesCount + PublicKey2.GetBytesCount);
+  finally
+    Y.Free;
+    C1.Free;
+    C2.Free;
+    M.Free;
+  end;
+
+  Result := True;
+  _CnSetLastError(ECN_RSA_OK);
+end;
+
+function CnRSA2DecryptData(EnData: Pointer; DataByteLen: Integer; OutBuf: Pointer;
+  out OutByteLen: Integer; PrivateKey: TCnRSAPrivateKey; PaddingMode: TCnRSAPaddingMode = cpmPKCS1): Boolean;
+begin
+  Result := RSADecryptPadding(PrivateKey.GetBytesCount, EnData, DataByteLen,
+    OutBuf, OutByteLen, PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyProduct, PaddingMode);
+end;
+
+function CnRSA2EncryptBytes(PlainData1, PlainData2: TBytes; PublicKey1,
+  PublicKey2: TCnRSAPublicKey; PaddingMode: TCnRSAPaddingMode): TBytes;
+begin
+  if (Length(PlainData1) = 0) or (Length(PlainData2) = 0) or
+    (PublicKey1.GetBytesCount <= 0) or (PublicKey2.GetBytesCount <= 0) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Result := nil;
+  end
+  else
+  begin
+    SetLength(Result, PublicKey1.GetBytesCount + PublicKey2.GetBytesCount);
+    if not CnRSA2EncryptData(@PlainData1[0], Length(PlainData1), @PlainData2[0], Length(PlainData2),
+      @Result[0], PublicKey1, PublicKey2, PaddingMode) then
+      SetLength(Result, 0);
+  end;
+end;
+
+function CnRSA2DecryptBytes(EnData: TBytes; PrivateKey: TCnRSAPrivateKey;
+  PaddingMode: TCnRSAPaddingMode = cpmPKCS1): TBytes;
+begin
+  Result := CnRSADecryptBytes(EnData, PrivateKey, PaddingMode);
 end;
 
 function GetDigestSignTypeFromBerOID(OID: Pointer; OidByteLen: Integer): TCnRSASignDigestType;
