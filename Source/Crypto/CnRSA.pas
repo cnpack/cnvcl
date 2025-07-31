@@ -33,7 +33,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2025.07.25 V3.0
+* 修改记录：2025.07.31 V3.1
+*               增加两个从 PEM 格式的字符串中读入公私钥的函数
+*           2025.07.25 V3.0
 *               增加 Int64 的 RSA 公私钥验证函数
 *           2024.11.23 V2.9
 *               增加一批针对字节数组的加解密函数
@@ -382,6 +384,22 @@ function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
    返回值：Boolean                        - 返回加载是否成功
 }
 
+function CnRSALoadKeysFromPemStr(const PemStr: string; PrivateKey: TCnRSAPrivateKey;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  const Password: string = ''): Boolean;
+{* 从 PEM 格式的字符串中加载一对 RSA 公私钥数据，如某钥参数为空则不载入。
+   自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释。
+
+   参数：
+     const PemStr: string                 - 待加载的 PEM 格式的字符串
+     PrivateKey: TCnRSAPrivateKey         - 加载后的内容存入该 RSA 私钥
+     PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
+     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
+     const Password: string               - PEM 流如加密，此处应传对应的密码
+
+   返回值：Boolean                        - 返回加载是否成功
+}
+
 function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS1;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
@@ -434,13 +452,27 @@ function CnRSALoadPublicKeyFromPem(const PemFileName: string;
    返回值：Boolean                        - 返回加载是否成功
 }
 
-function CnRSALoadPublicKeyFromPem(const PemStream: TStream;
+function CnRSALoadPublicKeyFromPem(PemStream: TStream;
   PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
   const Password: string = ''): Boolean; overload;
 {* 从 PEM 格式的流中加载 RSA 公钥数据，返回是否成功。
 
    参数：
      const PemStream: TStream             - 待加载的 PEM 格式的流
+     PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
+     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
+     const Password: string               - PEM 流如加密，此处应传对应密码
+
+   返回值：Boolean                        - 返回加载是否成功
+}
+
+function CnRSALoadPublicKeyFromPemStr(const PemStr: string;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  const Password: string = ''): Boolean;
+{* 从 PEM 格式的流中加载 RSA 公钥数据，返回是否成功。
+
+   参数：
+     const PemStr: string                 - 待加载的 PEM 格式的字符串
      PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
      KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
      const Password: string               - PEM 流如加密，此处应传对应密码
@@ -507,7 +539,7 @@ function CnRSAEncrypt(Data: TCnBigNumber; PublicKey: TCnRSAPublicKey;
 
 function CnRSADecrypt(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
   Data: TCnBigNumber): Boolean; overload;
-{* 利用 RSA 私钥对数据 Res 进行解密，解密结果写入 Data。返回解密是否成功。
+{* 利用 RSA 私钥对数据 Data 进行解密，解密结果写入 Res。返回解密是否成功。
    该方法内部会根据私钥的 CRT 设置决定是否启用 CRT 加速。
 
    参数：
@@ -520,7 +552,7 @@ function CnRSADecrypt(Res: TCnBigNumber; PrivateKey: TCnRSAPrivateKey;
 
 function CnRSADecrypt(Res: TCnBigNumber; PublicKey: TCnRSAPublicKey;
   Data: TCnBigNumber): Boolean; overload;
-{* 利用 RSA 公钥对数据 Res 进行解密，解密结果写入 Data。返回解密是否成功
+{* 利用 RSA 公钥对数据 Data 进行解密，解密结果写入 Res。返回解密是否成功
 
    参数：
      Res: TCnBigNumber                    - 输出的解密后的大数数据
@@ -1534,7 +1566,34 @@ begin
   end;
 end;
 
-// 从 PEM 格式文件中加载公私钥数据
+// 从 PEM 格式的字符串中加载公私钥数据
+function CnRSALoadKeysFromPemStr(const PemStr: string; PrivateKey: TCnRSAPrivateKey;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod;
+  const Password: string): Boolean;
+var
+  Stream: TMemoryStream;
+  S: AnsiString;
+begin
+  Result := False;
+  if Length(PemStr) <= 0 then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Exit;
+  end;
+
+  S := AnsiString(PemStr);
+  Stream := TMemoryStream.Create;
+  try
+    Stream.Write(S[1], Length(S));
+    Stream.Position := 0;
+
+    Result := CnRSALoadKeysFromPem(Stream, PrivateKey, PublicKey, KeyHashMethod, Password);
+  finally
+    Stream.Free;
+  end;
+end;
+
+// 从 PEM 格式的文件中加载公私钥数据
 (*
 PKCS#1:
   RSAPrivateKey ::= SEQUENCE {                       0
@@ -1707,7 +1766,34 @@ begin
   end;
 end;
 
-// 从 PEM 格式文件中加载公钥数据
+// 从 PEM 格式的字符串中加载公钥数据
+function CnRSALoadPublicKeyFromPemStr(const PemStr: string;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod;
+  const Password: string): Boolean;
+var
+  Stream: TMemoryStream;
+  S: AnsiString;
+begin
+  Result := False;
+  if Length(PemStr) <= 0 then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Exit;
+  end;
+
+  S := AnsiString(PemStr);
+  Stream := TMemoryStream.Create;
+  try
+    Stream.Write(S[1], Length(S));
+    Stream.Position := 0;
+
+    Result := CnRSALoadPublicKeyFromPem(Stream, PublicKey, KeyHashMethod, Password);
+  finally
+    Stream.Free;
+  end;
+end;
+
+// 从 PEM 格式的文件中加载公钥数据
 // 注意 PKCS#8 的 PublicKey 的 PEM 在标准 ASN.1 上做了一层封装，
 // 把 Modulus 与 Exponent 封在了 BitString 中，需要 Paser 解析出来
 (*
@@ -1750,9 +1836,9 @@ begin
   end;
 end;
 
-function CnRSALoadPublicKeyFromPem(const PemStream: TStream;
-  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
-  const Password: string = ''): Boolean;
+function CnRSALoadPublicKeyFromPem(PemStream: TStream;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod;
+  const Password: string): Boolean;
 var
   Mem: TMemoryStream;
   Reader: TCnBerReader;
