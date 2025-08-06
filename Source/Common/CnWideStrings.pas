@@ -37,7 +37,9 @@ unit CnWideStrings;
 * 开发平台：WinXP SP3 + Delphi 5.0
 * 兼容测试：
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.08.01 V1.3
+* 修改记录：2025.08.06 V1.3
+*               Ansi 转换为 Utf8 支持 FPC
+*           2024.08.01 V1.3
 *               允许外界指定宽字符的显示宽度计算回调，以满足部分自定义绘制情形
 *               并独立区分出 Ansi 的 ByteLength 和 DisplayLength 系列函数
 *               判断显示宽度、光标列等，需要用 DisplayLength 系列函数
@@ -60,7 +62,8 @@ interface
 // Delphi 默认 UTF16-LE，如果要处理 UTF16-BE 字符串，需要定义 UTF16_BE
 
 uses
-  {$IFDEF MSWINDOWS} Windows, {$ENDIF} SysUtils, Classes, CnNative;
+  {$IFDEF MSWINDOWS} Windows, {$ENDIF} SysUtils, Classes, CnNative
+  {$IFDEF FPC}, LConvEncoding {$ENDIF};
 
 const
   CN_INVALID_CODEPOINT = $FFFFFFFF;
@@ -1893,6 +1896,9 @@ end;
 
 function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
 begin
+{$IFDEF FPC}
+  Result := ConvertEncoding(Text, EncodingAnsi, EncodingUTF8);
+{$ELSE}
 {$IFDEF UNICODE}
   Result := AnsiString(Utf8Encode(Text)); // 返回值不可改为 UTF8String 类型，否则此处转换无效
 {$ELSE}
@@ -1902,10 +1908,14 @@ begin
   Result := CnUtf8EncodeWideString(WideString(Text));
   {$ENDIF}
 {$ENDIF}
+{$ENDIF}
 end;
 
 function CnAnsiToUtf82(const Text: string): string;
 begin
+{$IFDEF FPC}
+  Result := ConvertEncoding(Text, EncodingAnsi, EncodingUTF8);
+{$ELSE}
 {$IFDEF UNICODE}
   Result := string(Utf8Encode(Text));
 {$ELSE}
@@ -1914,6 +1924,7 @@ begin
   {$ELSE}
   Result := CnUtf8EncodeWideString(WideString(Text));
   {$ENDIF}
+{$ENDIF}
 {$ENDIF}
 end;
 
