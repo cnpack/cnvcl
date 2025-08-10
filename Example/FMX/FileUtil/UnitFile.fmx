@@ -1,0 +1,77 @@
+object FormFile: TFormFile
+  Left = 192
+  Top = 112
+  BorderStyle = Single
+  Caption = 'File Utils Test'
+  ClientHeight = 513
+  ClientWidth = 706
+  Position = ScreenCenter
+  object lblFind: TLabel
+    Position.X = 16.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 23.000000000000000000
+    Size.Height = 13.000000000000000000
+    Text = 'Find:'
+  end
+  object lblIn: TLabel
+    Position.X = 128.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 12.000000000000000000
+    Size.Height = 13.000000000000000000
+    Text = 'In:'
+  end
+  object edtPattern: TEdit
+    Position.X = 56.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 57.000000000000000000
+    Size.Height = 21.000000000000000000
+    TabOrder = 0
+    Text = '*'
+  end
+  object edtPath: TEdit
+    Position.X = 160.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 433.000000000000000000
+    Size.Height = 21.000000000000000000
+    TabOrder = 1
+    Text = 'C:\'
+  end
+  object btnFind: TButton
+    Position.X = 16.000000000000000000
+    Position.Y = 64.000000000000000000
+    Size.Width = 577.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'Find! Find!! Find!!!'
+    TabOrder = 2
+    OnClick = btnFindClick
+  end
+  object mmoResult: TMemo
+    TextSettings.WordWrap = True
+    Position.X = 16.000000000000000000
+    Position.Y = 112.000000000000000000
+    Size.Width = 665.000000000000000000
+    Size.Height = 377.000000000000000000
+    TabOrder = 3
+  end
+  object btnBrowse: TButton
+    Position.X = 608.000000000000000000
+    Position.Y = 24.000000000000000000
+    Size.Width = 75.000000000000000000
+    Size.Height = 25.000000000000000000
+    Text = 'Browse'
+    TabOrder = 4
+    OnClick = btnBrowseClick
+  end
+  object chkCancel: TCheckBox
+    Position.X = 608.000000000000000000
+    Position.Y = 72.000000000000000000
+    Size.Width = 73.000000000000000000
+    Size.Height = 17.000000000000000000
+    Text = 'Cancel'
+    TabOrder = 5
+  end
+  object dlgOpen1: TOpenDialog
+    Left = 336
+    Top = 240
+  end
+end
