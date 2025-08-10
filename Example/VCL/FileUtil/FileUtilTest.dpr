@@ -1,4 +1,4 @@
-program FileUtil;
+program FileUtilTest;
 
 uses
   Forms,

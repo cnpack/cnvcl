@@ -446,7 +446,7 @@ type
   {* 查找指定目录下文件的回调函数，FileName 是是带路径的完整文件名}
 
   TDirCallBack = procedure(const SubDir: string) of object;
-  {* 查找指定目录时进入子目录回调函数，SubDir 是单独的目录名，并非完整路径}
+  {* 查找指定目录时进入子目录回调函数，SubDir 是不包括根搜索路径的相对子路径，并非完整路径}
 
 function FindFile(const Path: string; const FileName: string = '*.*';
   Proc: TFindCallBack = nil; DirProc: TDirCallBack = nil; bSub: Boolean = True;
