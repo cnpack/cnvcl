@@ -1,0 +1,83 @@
+object FormFile: TFormFile
+  Left = 192
+  Height = 513
+  Top = 112
+  Width = 706
+  BorderStyle = bsDialog
+  Caption = 'File Utils Test'
+  ClientHeight = 513
+  ClientWidth = 706
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Position = poScreenCenter
+  LCLVersion = '4.0.0.4'
+  object lblFind: TLabel
+    Left = 16
+    Height = 13
+    Top = 24
+    Width = 23
+    Caption = 'Find:'
+  end
+  object lblIn: TLabel
+    Left = 128
+    Height = 13
+    Top = 24
+    Width = 12
+    Caption = 'In:'
+  end
+  object edtPattern: TEdit
+    Left = 56
+    Height = 21
+    Top = 24
+    Width = 57
+    TabOrder = 0
+    Text = '*'
+  end
+  object edtPath: TEdit
+    Left = 160
+    Height = 21
+    Top = 24
+    Width = 433
+    TabOrder = 1
+    Text = 'C:\'
+  end
+  object btnFind: TButton
+    Left = 16
+    Height = 25
+    Top = 64
+    Width = 577
+    Caption = 'Find! Find!! Find!!!'
+    TabOrder = 2
+    OnClick = btnFindClick
+  end
+  object mmoResult: TMemo
+    Left = 16
+    Height = 377
+    Top = 112
+    Width = 665
+    TabOrder = 3
+  end
+  object btnBrowse: TButton
+    Left = 608
+    Height = 25
+    Top = 24
+    Width = 75
+    Caption = 'Browse'
+    TabOrder = 4
+    OnClick = btnBrowseClick
+  end
+  object chkCancel: TCheckBox
+    Left = 608
+    Height = 17
+    Top = 72
+    Width = 53
+    Caption = 'Cancel'
+    TabOrder = 5
+  end
+  object dlgOpen1: TOpenDialog
+    Left = 336
+    Top = 240
+  end
+end
