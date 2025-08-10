@@ -1,7 +1,8 @@
 program FileUtilTest;
 
 uses
-  Forms,
+  System.StartUpCopy,
+  FMX.Forms,
   UnitFile in 'UnitFile.pas' {FormFile};
 
 {$R *.RES}
