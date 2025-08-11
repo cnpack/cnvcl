@@ -3,9 +3,9 @@ unit UnitZip;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
+  SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
   FMX.StdCtrls, CnZip, FMX.ComboEdit, FMX.Edit, FMX.Memo, FMX.TabControl, FMX.Types, System.Types, System.UITypes,
-  FMX.ScrollBox, FMX.Controls.Presentation, Vcl.FileCtrl;
+  FMX.ScrollBox, FMX.Controls.Presentation, FMX.Memo.Types;
 
 type
   TFormZip = class(TForm)
@@ -114,9 +114,9 @@ var
   ZR: TCnZipReader;
   Dir: string;
 begin
-  Dir := 'C:\';
-  if SelectDirectory(Dir, [sdAllowCreate, sdPerformCreate, sdPrompt], 1000) then
+  if dlgOpen.Execute then
   begin
+    Dir := ExtractFileDir(dlgOpen.FileName);
     mmoZip.Lines.Clear;
     ZR := TCnZipReader.Create;
     ZR.OpenZipFile(edtZip.Text);
@@ -171,11 +171,15 @@ procedure TFormZip.btnZipDirClick(Sender: TObject);
 var
   Dir: string;
 begin
-  Dir := 'C:\';
-  if SelectDirectory(Dir, [sdAllowCreate, sdPerformCreate, sdPrompt], 1000) then
+  if dlgOpen.Execute then
+  begin
+    Dir := ExtractFileDir(dlgOpen.FileName);
     if dlgSave.Execute then
+    begin
       if CnZipDirectory(Dir, dlgSave.FileName, zcStored, edtPass.Text) then
         ShowMessage('Zip Directory OK.');
+    end;
+  end;
 end;
 
 procedure TFormZip.FormCreate(Sender: TObject);

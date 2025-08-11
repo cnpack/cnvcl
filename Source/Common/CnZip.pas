@@ -30,7 +30,9 @@ unit CnZip;
 * 开发平台：PWinXP + Delphi 5
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2024.02.17 V1.5
+* 修改记录：2025.08.11 V1.6
+*                支持 MacOS，但文件时间似乎有点问题
+*           2024.02.17 V1.5
 *                新增流压缩解压缩函数，注意需 SUPPORT_ZLIB_WINDOWBITS 才兼容标准 Deflate
 *           2022.03.30 V1.4
 *                支持删除 Zip 包中的指定文件
@@ -56,7 +58,9 @@ interface
 // {$DEFINE DEBUGZIP}
 
 uses
-  SysUtils, Classes, Windows, Contnrs, CnCRC32, CnNative,
+  SysUtils, Classes, {$IFDEF MSWINDOWS} Windows, {$ELSE} Posix.SysStat,
+  System.DateUtils, {$ENDIF}
+  Contnrs, CnCRC32, CnNative,
   ZLib {$IFDEF FPC}, ZStream {$ENDIF}
   {$IFNDEF DISABLE_DIRECTORY_SUPPORT}, CnFileUtils {$ENDIF}
   {$IFNDEF COMPILER6_UP}, CnWideStrings  {$ENDIF};
@@ -381,9 +385,9 @@ type
     constructor Create(OutStream: TStream; const APassword: AnsiString; const AZipHeader: PCnZipHeader);
     destructor Destroy; override;
 
-    function Read(var Buffer; Count: Integer): Integer; override;    // 可无需实现
+    function Read(var Buffer; Count: Longint): Longint; override;    // 可无需实现
     function Seek(Offset: Longint; Origin: Word): Longint; override; // 可无需实现
-    function Write(const Buffer; Count: Integer): Integer; override;
+    function Write(const Buffer; Count: Longint): Longint; override;
   end;
 
   TCnDecryptStoredStream = class(TStream)
@@ -401,9 +405,9 @@ type
       const AZipHeader: PCnZipHeader);
     destructor Destroy; override;
 
-    function Read(var Buffer; Count: Integer): Integer; override;
+    function Read(var Buffer; Count: Longint): Longint; override;
     function Seek(Offset: Longint; Origin: Word): Longint; override; // 可无需实现
-    function Write(const Buffer; Count: Integer): Integer; override; // 可无需实现
+    function Write(const Buffer; Count: Longint): Longint; override; // 可无需实现
   end;
 
   TCnEncryptZipCompressStream = class(TStream)
@@ -421,9 +425,9 @@ type
       const AZipHeader: PCnZipHeader);
     destructor Destroy; override;
 
-    function Read(var Buffer; Count: Integer): Integer; override;    // 可无需实现
+    function Read(var Buffer; Count: Longint): Longint; override;    // 可无需实现
     function Seek(Offset: Longint; Origin: Word): Longint; override; // 可无需实现
-    function Write(const Buffer; Count: Integer): Integer; override;
+    function Write(const Buffer; Count: Longint): Longint; override;
   end;
 
   TCnDecryptZipCompressStream = class(TStream)
@@ -441,9 +445,9 @@ type
       const AZipHeader: PCnZipHeader);
     destructor Destroy; override;
 
-    function Read(var Buffer; Count: Integer): Integer; override;
+    function Read(var Buffer; Count: Longint): Longint; override;
     function Seek(Offset: Longint; Origin: Word): Longint; override; // 可无需实现
-    function Write(const Buffer; Count: Integer): Integer; override; // 可无需实现
+    function Write(const Buffer; Count: Longint): Longint; override; // 可无需实现
   end;
 
 procedure RegisterCompressionHandlerClass(AClass: TCnZipCompressionHandlerClass);
@@ -1181,7 +1185,7 @@ begin
 end;
 {$ENDIF}
 
-function TCnStoredStream.Read(var Buffer; Count: Integer): Longint;
+function TCnStoredStream.Read(var Buffer; Count: Longint): Longint;
 begin
   Result := FStream.Read(Buffer, Count);
 end;
@@ -1191,7 +1195,7 @@ begin
   Result := FStream.Seek(Offset, Origin);
 end;
 
-function TCnStoredStream.Write(const Buffer; Count: Integer): Longint;
+function TCnStoredStream.Write(const Buffer; Count: Longint): Longint;
 begin
   Result := FStream.Write(Buffer, Count);
 end;
@@ -1236,11 +1240,19 @@ var
 
   function GetFileDateTime(const FileName: string): TDateTime;
   var
+  {$IFDEF MSWINDOWS}
     Handle: THandle;
     FindData: TWin32FindData;
     SystemTime: TSystemTime;
+  {$ELSE}
+    StatBuf: _stat;
+    UTCTime: TDateTime;
+    LocalTime: TDateTime;
+    Year, Month, Day, Hour, Min, Sec, MSec: Word;
+  {$ENDIF}
   begin
     Result := 0.0;
+  {$IFDEF MSWINDOWS}
     Handle := FindFirstFile(PChar(FileName), FindData);
     if Handle <> INVALID_HANDLE_VALUE then
     begin
@@ -1254,6 +1266,22 @@ var
             wSecond, wMilliseconds);
       end;
     end;
+  {$ELSE}
+    FillChar(StatBuf, SizeOf(StatBuf), 0);
+
+    if stat(PAnsiChar(UTF8Encode(FileName)), StatBuf) <> 0 then
+      Exit;
+
+    if (StatBuf.st_mode and S_IFMT) = S_IFDIR then
+      Exit;
+
+    UTCTime := UnixToDateTime(StatBuf.st_mtime);
+    LocalTime := TTimeZone.Local.ToLocalTime(UTCTime);
+    DecodeDateTime(LocalTime, Year, Month, Day, Hour, Min, Sec, MSec);
+
+    // 设置毫秒为 0，因为 Unix 时间戳只有秒级精度
+    Result := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Min, Sec, 0);
+  {$ENDIF}
   end;
 
 begin
@@ -1270,7 +1298,7 @@ begin
   try
     LocalHeader^.Flag := 0;
     LocalHeader^.CompressionMethod := Word(Compression);
-    LocalHeader^.ModifiedDateTime := DateTimeToFileDate(GetFileDateTime(FileName) );
+    LocalHeader^.ModifiedDateTime := DateTimeToFileDate(GetFileDateTime(FileName));
     LocalHeader^.UncompressedSize := InStream.Size;
     LocalHeader^.InternalAttributes := 0;
     LocalHeader^.ExternalAttributes := 0;
@@ -1579,7 +1607,7 @@ begin
   inherited;
 end;
 
-function TCnDecryptStoredStream.Read(var Buffer; Count: Integer): Integer;
+function TCnDecryptStoredStream.Read(var Buffer; Count: Longint): Longint;
 var
   P: PByte;
   I: Integer;
@@ -1598,7 +1626,7 @@ begin
   raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
-function TCnDecryptStoredStream.Write(const Buffer; Count: Integer): Integer;
+function TCnDecryptStoredStream.Write(const Buffer; Count: Longint): Longint;
 begin
   raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
@@ -1635,18 +1663,18 @@ begin
   inherited;
 end;
 
-function TCnEncryptStoredStream.Read(var Buffer; Count: Integer): Integer;
+function TCnEncryptStoredStream.Read(var Buffer; Count: Longint): Longint;
 begin
   raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
-function TCnEncryptStoredStream.Seek(Offset: Integer;
+function TCnEncryptStoredStream.Seek(Offset: Longint;
   Origin: Word): Longint;
 begin
   raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
-function TCnEncryptStoredStream.Write(const Buffer; Count: Integer): Integer;
+function TCnEncryptStoredStream.Write(const Buffer; Count: Longint): Longint;
 const
   MaxBufSize = $F000;
 var
@@ -1735,19 +1763,19 @@ begin
 end;
 
 function TCnEncryptZipCompressStream.Read(var Buffer;
-  Count: Integer): Integer;
+  Count: Longint): Longint;
 begin
   raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
-function TCnEncryptZipCompressStream.Seek(Offset: Integer;
+function TCnEncryptZipCompressStream.Seek(Offset: Longint;
   Origin: Word): Longint;
 begin
   raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
 function TCnEncryptZipCompressStream.Write(const Buffer;
-  Count: Integer): Integer;
+  Count: Longint): Longint;
 begin
   // 外界写入的原始内容在这里要转写进 FZip 压缩流，压缩后内容则被 FZip 写进 FZipped
   Result := FZip.Write(Buffer, Count);
@@ -1810,20 +1838,20 @@ begin
 end;
 
 function TCnDecryptZipCompressStream.Read(var Buffer;
-  Count: Integer): Integer;
+  Count: Longint): Longint;
 begin
   // 外界 Read 时从 FDecrypted 读出解压缩后的内容并解密
   Result := FUnzip.Read(Buffer, Count);
 end;
 
-function TCnDecryptZipCompressStream.Seek(Offset: Integer;
+function TCnDecryptZipCompressStream.Seek(Offset: Longint;
   Origin: Word): Longint;
 begin
   raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;
 
 function TCnDecryptZipCompressStream.Write(const Buffer;
-  Count: Integer): Integer;
+  Count: Longint): Longint;
 begin
   raise ECnZipException.CreateRes(@SCnZipNotImplemented);
 end;

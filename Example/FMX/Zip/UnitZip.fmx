@@ -20,31 +20,43 @@ object FormZip: TFormZip
     TabIndex = 0
     TabOrder = 0
     TabPosition = Top
+    Sizes = (
+      801s
+      447s
+      801s
+      447s
+      801s
+      447s)
     object tsReader: TTabItem
       CustomIcon = <
         item
         end>
       IsSelected = True
-      Size.Width = 144.000000000000000000
-      Size.Height = 24.000000000000000000
+      Size.Width = 152.000000000000000000
+      Size.Height = 26.000000000000000000
       Size.PlatformDefault = False
+      StyleLookup = ''
       TabOrder = 0
       Text = 'Open a Zip and Extract'
+      ExplicitSize.cx = 144.000000000000000000
+      ExplicitSize.cy = 24.000000000000000000
       object lblZip: TLabel
         Position.X = 16.000000000000000000
         Position.Y = 28.000000000000000000
-        Size.Width = 37.000000000000000000
+        Size.Width = 57.000000000000000000
         Size.Height = 13.000000000000000000
         Size.PlatformDefault = False
         Text = 'Zip File:'
+        TabOrder = 6
       end
       object lblPassword: TLabel
-        Position.X = 560.000000000000000000
+        Position.X = 536.000000000000000000
         Position.Y = 28.000000000000000000
-        Size.Width = 49.000000000000000000
+        Size.Width = 73.000000000000000000
         Size.Height = 13.000000000000000000
         Size.PlatformDefault = False
         Text = 'Password:'
+        TabOrder = 7
       end
       object edtZip: TEdit
         Touch.InteractiveGestures = [LongTap, DoubleTap]
@@ -118,11 +130,14 @@ object FormZip: TFormZip
         end>
       IsSelected = False
       ImageIndex = 1
-      Size.Width = 113.000000000000000000
-      Size.Height = 24.000000000000000000
+      Size.Width = 119.000000000000000000
+      Size.Height = 26.000000000000000000
       Size.PlatformDefault = False
+      StyleLookup = ''
       TabOrder = 0
       Text = 'Create a New Zip'
+      ExplicitSize.cx = 113.000000000000000000
+      ExplicitSize.cy = 24.000000000000000000
       object lblPass: TLabel
         Position.X = 552.000000000000000000
         Position.Y = 26.000000000000000000
@@ -130,6 +145,7 @@ object FormZip: TFormZip
         Size.Height = 13.000000000000000000
         Size.PlatformDefault = False
         Text = 'Password:'
+        TabOrder = 9
       end
       object mmoFiles: TMemo
         Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
@@ -235,11 +251,14 @@ object FormZip: TFormZip
         end>
       IsSelected = False
       ImageIndex = 2
-      Size.Width = 60.000000000000000000
-      Size.Height = 24.000000000000000000
+      Size.Width = 61.000000000000000000
+      Size.Height = 26.000000000000000000
       Size.PlatformDefault = False
+      StyleLookup = ''
       TabOrder = 0
       Text = 'Stream'
+      ExplicitSize.cx = 60.000000000000000000
+      ExplicitSize.cy = 24.000000000000000000
       object btnTestStream: TButton
         Position.X = 16.000000000000000000
         Position.Y = 16.000000000000000000
