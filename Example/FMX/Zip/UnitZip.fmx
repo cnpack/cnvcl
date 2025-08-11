@@ -1,0 +1,267 @@
+object FormZip: TFormZip
+  Left = 120
+  Top = 111
+  Caption = 'Test Zip'
+  ClientHeight = 521
+  ClientWidth = 828
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  Left = 120
+  Top = 111
+  DesignerMasterStyle = 0
+  object PageControl1: TTabControl
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 801.000000000000000000
+    Size.Height = 473.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 0
+    TabPosition = Top
+    object tsReader: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 144.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'Open a Zip and Extract'
+      object lblZip: TLabel
+        Position.X = 16.000000000000000000
+        Position.Y = 28.000000000000000000
+        Size.Width = 37.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Zip File:'
+      end
+      object lblPassword: TLabel
+        Position.X = 560.000000000000000000
+        Position.Y = 28.000000000000000000
+        Size.Width = 49.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Password:'
+      end
+      object edtZip: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 0
+        Position.X = 64.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 209.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnBrowse: TButton
+        Position.X = 280.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+        Text = 'Browse'
+        OnClick = btnBrowseClick
+      end
+      object btnRead: TButton
+        Position.X = 360.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        Text = 'Read Zip'
+        OnClick = btnReadClick
+      end
+      object mmoZip: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        ReadOnly = True
+        TextSettings.Font.Family = 'Courier New'
+        TextSettings.Font.Size = 9.000000000000000000
+        TextSettings.WordWrap = True
+        Position.X = 16.000000000000000000
+        Position.Y = 64.000000000000000000
+        Size.Width = 761.000000000000000000
+        Size.Height = 369.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 3
+        Viewport.Width = 757.000000000000000000
+        Viewport.Height = 365.000000000000000000
+      end
+      object btnExtract: TButton
+        Position.X = 712.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 4
+        Text = 'Extract'
+        OnClick = btnExtractClick
+      end
+      object edtPassword: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 5
+        Text = '123'
+        Position.X = 616.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 89.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+    end
+    object tsWriter: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 1
+      Size.Width = 113.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'Create a New Zip'
+      object lblPass: TLabel
+        Position.X = 552.000000000000000000
+        Position.Y = 26.000000000000000000
+        Size.Width = 49.000000000000000000
+        Size.Height = 13.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Password:'
+      end
+      object mmoFiles: TMemo
+        Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+        DataDetectorTypes = []
+        TextSettings.WordWrap = True
+        Position.X = 16.000000000000000000
+        Position.Y = 64.000000000000000000
+        Size.Width = 761.000000000000000000
+        Size.Height = 369.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        Viewport.Width = 757.000000000000000000
+        Viewport.Height = 365.000000000000000000
+      end
+      object btnCreate: TButton
+        Position.X = 16.000000000000000000
+        Position.Y = 22.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+        Text = 'Create'
+        OnClick = btnCreateClick
+      end
+      object btnAdd: TButton
+        Position.X = 96.000000000000000000
+        Position.Y = 22.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        Text = 'Add a File'
+        OnClick = btnAddClick
+      end
+      object btnSave: TButton
+        Position.X = 256.000000000000000000
+        Position.Y = 22.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 3
+        Text = 'Save'
+        OnClick = btnSaveClick
+      end
+      object btnZipDir: TButton
+        Position.X = 704.000000000000000000
+        Position.Y = 22.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 4
+        Text = 'Zip Directory'
+        OnClick = btnZipDirClick
+      end
+      object chkRemovePath: TCheckBox
+        IsChecked = True
+        Position.X = 360.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 97.000000000000000000
+        Size.Height = 17.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 5
+        Text = 'Remove Path'
+      end
+      object edtPass: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 6
+        Text = '123'
+        Position.X = 608.000000000000000000
+        Position.Y = 22.000000000000000000
+        Size.Width = 73.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object cbbMode: TComboEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        TabOrder = 7
+        ItemHeight = 13.000000000000000000
+        Items.Strings = (
+          'Stored'
+          'Deflate')
+        ItemIndex = -1
+        Position.X = 464.000000000000000000
+        Position.Y = 22.000000000000000000
+        Size.Width = 73.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnRemoveFile: TButton
+        Position.X = 176.000000000000000000
+        Position.Y = 22.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 8
+        Text = 'Remove a File'
+        OnClick = btnRemoveFileClick
+      end
+    end
+    object tsStream: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      ImageIndex = 2
+      Size.Width = 60.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'Stream'
+      object btnTestStream: TButton
+        Position.X = 16.000000000000000000
+        Position.Y = 16.000000000000000000
+        Size.Width = 75.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        Text = 'Test Stream'
+        OnClick = btnTestStreamClick
+      end
+    end
+  end
+  object dlgOpen: TOpenDialog
+    Left = 408
+    Top = 8
+  end
+  object dlgSave: TSaveDialog
+    Left = 116
+    Top = 112
+  end
+  object dlgOpenFile: TOpenDialog
+    Left = 164
+    Top = 112
+  end
+end

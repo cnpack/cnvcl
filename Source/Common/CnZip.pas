@@ -56,9 +56,9 @@ interface
 // {$DEFINE DEBUGZIP}
 
 uses
-  SysUtils, Classes, Windows, Contnrs, FileCtrl, CnCRC32, CnNative,
+  SysUtils, Classes, Windows, Contnrs, CnCRC32, CnNative,
   ZLib {$IFDEF FPC}, ZStream {$ENDIF}
-  {$IFNDEF DISABLE_DIRECTORY_SUPPORT}, CnCommon {$ENDIF}
+  {$IFNDEF DISABLE_DIRECTORY_SUPPORT}, CnFileUtils {$ENDIF}
   {$IFNDEF COMPILER6_UP}, CnWideStrings  {$ENDIF};
   // D5 下需要用到 CnWideStrings 单元做 UTF8 支持
 
@@ -1211,7 +1211,7 @@ begin
   else
     FDirFiles.Free;
 
-  FindFile(DirName, '*.*', FindFileCallback);
+  CnFindFile(DirName, '*', FindFileCallback);
 
   for I := 0 to FDirFiles.Count - 1 do
   begin
