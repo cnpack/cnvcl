@@ -19,6 +19,7 @@ object FormFile: TFormFile
     Size.Height = 13.000000000000000000
     Size.PlatformDefault = False
     Text = 'Find:'
+    TabOrder = 6
   end
   object lblIn: TLabel
     Position.X = 128.000000000000000000
@@ -27,6 +28,7 @@ object FormFile: TFormFile
     Size.Height = 13.000000000000000000
     Size.PlatformDefault = False
     Text = 'In:'
+    TabOrder = 7
   end
   object edtPattern: TEdit
     Touch.InteractiveGestures = [LongTap, DoubleTap]

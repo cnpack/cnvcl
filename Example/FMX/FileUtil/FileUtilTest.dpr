@@ -5,7 +5,7 @@ uses
   FMX.Forms,
   UnitFile in 'UnitFile.pas' {FormFile};
 
-{$R *.RES}
+{$R *.res}
 
 begin
   Application.Initialize;

@@ -51,7 +51,8 @@ type
 function CnFindFile(const Path: string; const FileNamePattern: string = '*';
   FileProc: TCnFindFileCallBack = nil; DirProc: TCnFindDirCallBack = nil;
   IncludeSubDir: Boolean = True): Boolean;
-{* 根据通配符查找指定目录下的文件，返回是否被中断}
+{* 根据通配符查找指定目录下的文件，返回是否被中断。
+  注意：DirProc 仅在 IncludeSubDir 为 True 时被回调，表示准备遍历该子目录}
 
 implementation
 
@@ -90,13 +91,22 @@ var
         if (Info.Name <> '.') and (Info.Name <> '..') then
         begin
           if (Info.Attr and faSymLink) <> 0 then
+          begin
+            Succ := FindNext(Info);
             Continue; // 跳过符号链接
+          end;
 
           if (Info.Attr and faDirectory) <> faDirectory then
           begin
             if Assigned(FileProc) then
+            begin
+{$IFDEF MSWINDOWS}
               FileProc(APath + Info.FindData.cFileName, Info, FindAbort);
-          end
+{$ELSE}
+              FileProc(APath + Info.Name, Info, FindAbort);
+{$ENDIF}
+            end;
+          end;
         end;
 
         if FindAbort then
@@ -117,7 +127,10 @@ var
             (Info.Attr and faDirectory = faDirectory) then
           begin
             if (Info.Attr and faSymLink) <> 0 then
+            begin
+              Succ := FindNext(Info);
               Continue; // 跳过符号链接
+            end;
 
             if Assigned(DirProc) then
               DirProc(MakePath(SubPath) + Info.Name);
