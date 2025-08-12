@@ -1284,6 +1284,22 @@ var
   {$ENDIF}
   end;
 
+  // Zip 似乎专用 Win 格式的 FileDate，MacOS 等平台下不能使用系统自带版本
+  function WinDateTimeToFileDate(DateTime: TDateTime): LongInt;
+  var
+    Year, Month, Day, Hour, Min, Sec, MSec: Word;
+  begin
+    DecodeDate(DateTime, Year, Month, Day);
+    if (Year < 1980) or (Year > 2107) then
+      Result := 0
+    else
+    begin
+      DecodeTime(DateTime, Hour, Min, Sec, MSec);
+      LongRec(Result).Lo := (Sec shr 1) or (Min shl 5) or (Hour shl 11);
+      LongRec(Result).Hi := Day or (Month shl 5) or ((Year - 1980) shl 9);
+    end;
+  end;
+
 begin
   if Trim(FileName) = '' then
     Exit;
@@ -1298,7 +1314,7 @@ begin
   try
     LocalHeader^.Flag := 0;
     LocalHeader^.CompressionMethod := Word(Compression);
-    LocalHeader^.ModifiedDateTime := DateTimeToFileDate(GetFileDateTime(FileName));
+    LocalHeader^.ModifiedDateTime := WinDateTimeToFileDate(GetFileDateTime(FileName));
     LocalHeader^.UncompressedSize := InStream.Size;
     LocalHeader^.InternalAttributes := 0;
     LocalHeader^.ExternalAttributes := 0;
