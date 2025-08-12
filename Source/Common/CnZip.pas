@@ -26,12 +26,13 @@ unit CnZip;
 * 单元作者：CnPack 开发组 Liu Xiao
 * 备    注：使用 Delphi 自带的 Zlib 实现压缩解压与传统密码支持。
 *           但 XE2 以上的 Zlib 才支持 WindowBits 参数，才兼容传统的 ZIP 软件
-*           另外因为 Zip 需要文件系统支持，故目前暂不支持跨平台。
+*           FPC 目前也已支持，内部注意压缩解压缩流创建时指定 ASkipHeader 为 True
+*           才是兼容传统 ZIP 软件的关键。
 * 开发平台：PWinXP + Delphi 5
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.08.11 V1.6
-*                支持 MacOS，但文件时间似乎有点问题
+* 修改记录：2025.08.12 V1.6
+*                支持 MacOS 及 FPC，文件时间统一使用 Windows 格式
 *           2024.02.17 V1.5
 *                新增流压缩解压缩函数，注意需 SUPPORT_ZLIB_WINDOWBITS 才兼容标准 Deflate
 *           2022.03.30 V1.4
@@ -278,14 +279,14 @@ function CnZipExtractTo(const FileName: string; const DirName: string;
 
 procedure CnZipCompressStream(InStream, OutZipStream: TStream;
   CompressionLevel: TCompressionLevel = clDefault);
-{* 将 InStream 中的内容压缩并输出至 OutZipStream
+{* 将 InStream 中的内容压缩并输出至 OutZipStream。
   注意，如果 Delphi 版本过低导致 CnPack.inc 中未定义 SUPPORT_ZLIB_WINDOWBITS
   压缩出的内容可能和标准 Deflate 不兼容}
 
 procedure CnZipUncompressStream(InZipStream, OutStream: TStream);
-{* 将 InZipStream 中的压缩的内容解压缩并输出至 OutStream
+{* 将 InZipStream 中的压缩的内容解压缩并输出至 OutStream。
   注意，如果 Delphi 版本过低导致 CnPack.inc 中未定义 SUPPORT_ZLIB_WINDOWBITS
-  则可能和标准 Deflate 不兼容，解压内容可能失败
+  则可能和标准 Deflate 不兼容，解压内容可能失败。
   另外，解压缩时会从 InZipStream 的 Position 读起，宜按需设为 0}
 
 implementation
@@ -1131,7 +1132,7 @@ begin
 {$IFDEF SUPPORT_ZLIB_WINDOWBITS}
       Result := TCompressionStream.Create(OutStream, zcDefault, -15);
 {$ELSE}
-      Result := TCompressionStream.Create(clDefault, OutStream);
+      Result := TCompressionStream.Create(clDefault, OutStream {$IFDEF FPC} , True {$ENDIF});
 {$ENDIF}
     end;
   end;
@@ -1164,7 +1165,7 @@ begin
 {$IFDEF SUPPORT_ZLIB_WINDOWBITS}
       Result := TDecompressionStream.Create(InStream, -15);
 {$ELSE}
-      Result := TDecompressionStream.Create(InStream);
+      Result := TDecompressionStream.Create(InStream {$IFDEF FPC} , True {$ENDIF});
 {$ENDIF}
     end;
   end;
