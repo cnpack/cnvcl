@@ -16,6 +16,7 @@ COPY ..\..\cnvcl\Source\Common\CnBigDecimal.pas .
 COPY ..\..\cnvcl\Source\Common\CnBigRational.pas .
 COPY ..\..\cnvcl\Source\Common\CnConsts.pas .
 COPY ..\..\cnvcl\Source\Common\CnContainers.pas .
+COPY ..\..\cnvcl\Source\Common\CnFileUtils.pas .
 COPY ..\..\cnvcl\Source\Common\CnFloat.pas .
 COPY ..\..\cnvcl\Source\Common\CnHashMap.pas .
 COPY ..\..\cnvcl\Source\Common\CnMath.pas .
@@ -23,6 +24,7 @@ COPY ..\..\cnvcl\Source\Common\CnMatrix.pas .
 COPY ..\..\cnvcl\Source\Common\CnTree.pas .
 COPY ..\..\cnvcl\Source\Common\CnStrings.pas .
 COPY ..\..\cnvcl\Source\Common\CnWideStrings.pas .
+COPY ..\..\cnvcl\Source\Common\CnZip.pas .
 COPY ..\..\cnvcl\Source\Crypto\*.pas .
 CD ..
 MKDIR Package
@@ -236,12 +238,14 @@ ECHO USEUNIT("..\Source\CnBigRational.pas");                                    
 ECHO USEUNIT("..\Source\CnConsts.pas");                                                >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnContainers.pas");                                            >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnFloat.pas");                                                 >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnFileUtils.pas");                                             >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnHashMap.pas");                                               >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnMath.pas");                                                  >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnMatrix.pas");                                                >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnTree.pas");                                                  >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnStrings.pas");                                               >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnWideStrings.pas");                                           >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnZip.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("CryptoTest.pas");                                                               >> Crypto.bpf
 ECHO //---------------------------------------------------------------------------            >> Crypto.bpf
 ECHO This file is used by the project manager only and should be treated like project file    >> Crypto.bpf
@@ -270,8 +274,7 @@ ECHO       ..\Source\CnMD5.obj ..\Source\CnNative.obj                           
 ECHO       ..\Source\CnOTP.obj ..\Source\CnOTS.obj                                    >> Crypto.bpr
 ECHO       ..\Source\CnPaillier.obj ..\Source\CnPDFCrypt.obj                          >> Crypto.bpr
 ECHO       ..\Source\CnPemUtils.obj ..\Source\CnPoly1305.obj                          >> Crypto.bpr
-ECHO       ..\Source\CnPolynomial.obj                                                 >> Crypto.bpr
-ECHO       ..\Source\CnPrime.obj                                                      >> Crypto.bpr
+ECHO       ..\Source\CnPolynomial.obj ..\Source\CnPrime.obj                           >> Crypto.bpr
 ECHO       ..\Source\CnRandom.obj ..\Source\CnRC4.obj                                 >> Crypto.bpr
 ECHO       ..\Source\CnRSA.obj                                                        >> Crypto.bpr
 ECHO       ..\Source\CnSecretSharing.obj ..\Source\CnSHA1.obj                         >> Crypto.bpr
@@ -281,11 +284,12 @@ ECHO       ..\Source\CnSM4.obj ..\Source\CnSM9.obj                              
 ECHO       ..\Source\CnTEA.obj ..\Source\CnVector.obj                                 >> Crypto.bpr
 ECHO       ..\Source\CnZUC.obj ..\Source\CnBigDecimal.obj                             >> Crypto.bpr
 ECHO       ..\Source\CnBigRational.obj                                                >> Crypto.bpr
-ECHO       ..\Source\CnConsts.obj                                                     >> Crypto.bpr
-ECHO       ..\Source\CnContainers.obj ..\Source\CnFloat.obj                           >> Crypto.bpr
+ECHO       ..\Source\CnConsts.obj ..\Source\CnContainers.obj                          >> Crypto.bpr
+ECHO       ..\Source\CnFileUtils.obj ..\Source\CnFloat.obj                            >> Crypto.bpr
 ECHO       ..\Source\CnHashMap.obj ..\Source\CnMath.obj                               >> Crypto.bpr
 ECHO       ..\Source\CnMatrix.obj ..\Source\CnTree.obj                                >> Crypto.bpr
 ECHO       ..\Source\CnStrings.obj ..\Source\CnWideStrings.obj                        >> Crypto.bpr
+ECHO       ..\Source\CnZip.obj                                                        >> Crypto.bpr
 ECHO       CryptoTest.obj Crypto.obj^"/^>                                                          >> Crypto.bpr
 ECHO     ^<RESFILES value=""/^>                                                                    >> Crypto.bpr
 ECHO     ^<IDLFILES value=""/^>                                                                    >> Crypto.bpr
@@ -488,6 +492,7 @@ ECHO   CnDFT in '..\Source\CnDFT.pas',                                         >
 ECHO   CnDSA in '..\Source\CnDSA.pas',                                         >> %1
 ECHO   CnECC in '..\Source\CnECC.pas',                                         >> %1
 ECHO   CnFEC in '..\Source\CnFEC.pas',                                         >> %1
+ECHO   CnFileUtils in '..\Source\CnFileUtils.pas',                             >> %1
 ECHO   CnFloat in '..\Source\CnFloat.pas',                                     >> %1
 ECHO   CnFNV in '..\Source\CnFNV.pas',                                         >> %1
 ECHO   CnHashMap in '..\Source\CnHashMap.pas',                                 >> %1
@@ -522,6 +527,7 @@ ECHO   CnTEA in '..\Source\CnTEA.pas',                                         >
 ECHO   CnTree in '..\Source\CnTree.pas',                                       >> %1
 ECHO   CnVector in '..\Source\CnVector.pas',                                   >> %1
 ECHO   CnWideStrings in '..\Source\CnWideStrings.pas',                         >> %1
+ECHO   CnZip in '..\Source\CnZip.pas',                                         >> %1
 IF "%2" == "ALLFILES" (
   ECHO   CnZUC in '..\Source\CnZUC.pas';                                       >> %1
 ) ELSE (

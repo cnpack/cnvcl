@@ -193,6 +193,7 @@
         <DCCReference Include="..\..\..\Source\Common\CnBigRational.pas"/>
         <DCCReference Include="..\..\..\Source\Common\CnConsts.pas"/>
         <DCCReference Include="..\..\..\Source\Common\CnContainers.pas"/>
+        <DCCReference Include="..\..\..\Source\Common\CnFileUtils.pas"/>
         <DCCReference Include="..\..\..\Source\Common\CnFloat.pas"/>
         <DCCReference Include="..\..\..\Source\Common\CnHashMap.pas"/>
         <DCCReference Include="..\..\..\Source\Common\CnMath.pas"/>
@@ -200,6 +201,7 @@
         <DCCReference Include="..\..\..\Source\Common\CnTree.pas"/>
         <DCCReference Include="..\..\..\Source\Common\CnStrings.pas"/>
         <DCCReference Include="..\..\..\Source\Common\CnWideStrings.pas"/>
+        <DCCReference Include="..\..\..\Source\Common\CnZip.pas"/>
         <DCCReference Include="CryptoTest.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

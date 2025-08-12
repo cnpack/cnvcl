@@ -20,8 +20,7 @@
       ..\..\..\Source\Crypto\CnOTS.obj ..\..\..\Source\Crypto\CnPaillier.obj 
       ..\..\..\Source\Crypto\CnPDFCrypt.obj 
       ..\..\..\Source\Crypto\CnPemUtils.obj ..\..\..\Source\Crypto\CnPoly1305.obj 
-      ..\..\..\Source\Crypto\CnPolynomial.obj 
-      ..\..\..\Source\Crypto\CnPrime.obj 
+      ..\..\..\Source\Crypto\CnPolynomial.obj  ..\..\..\Source\Crypto\CnPrime.obj 
       ..\..\..\Source\Crypto\CnRandom.obj ..\..\..\Source\Crypto\CnRC4.obj 
       ..\..\..\Source\Crypto\CnRSA.obj 
       ..\..\..\Source\Crypto\CnSecretSharing.obj ..\..\..\Source\Crypto\CnSHA1.obj 
@@ -31,11 +30,12 @@
       ..\..\..\Source\Crypto\CnTEA.obj ..\..\..\Source\Crypto\CnVector.obj 
       ..\..\..\Source\Crypto\CnZUC.obj ..\..\..\Source\Common\CnBigDecimal.obj 
       ..\..\..\Source\Common\CnBigRational.obj 
-      ..\..\..\Source\Common\CnConsts.obj 
-      ..\..\..\Source\Common\CnContainers.obj ..\..\..\Source\Common\CnFloat.obj 
+      ..\..\..\Source\Common\CnConsts.obj ..\..\..\Source\Common\CnContainers.obj 
+      ..\..\..\Source\Common\CnFileUtils.obj ..\..\..\Source\Common\CnFloat.obj 
       ..\..\..\Source\Common\CnHashMap.obj ..\..\..\Source\Common\CnMath.obj 
       ..\..\..\Source\Common\CnMatrix.obj ..\..\..\Source\Common\CnTree.obj 
       ..\..\..\Source\Common\CnStrings.obj ..\..\..\Source\Common\CnWideStrings.obj 
+      ..\..\..\Source\Common\CnZip.obj 
       CryptoTest.obj Crypto.obj"/>
     <RESFILES value=""/>
     <IDLFILES value=""/>
