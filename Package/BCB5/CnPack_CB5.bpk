@@ -22,6 +22,7 @@
       ..\..\Source\Common\CnDynObjBuilder.obj 
       ..\..\Source\Common\CnEventBus.obj 
       ..\..\Source\Common\CnEventHook.obj 
+      ..\..\Source\Common\CnFileUtils.obj 
       ..\..\Source\Common\CnFitCurve.obj 
       ..\..\Source\Common\CnFloat.obj 
       ..\..\Source\Common\CnGB18030.obj 

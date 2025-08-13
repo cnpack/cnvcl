@@ -43,16 +43,40 @@ uses
 type
   TCnFindFileCallBack = procedure(const FullFileName: string; const Info: TSearchRec;
     var FindAbort: Boolean) of object;
-  {* 查找指定目录下文件的回调函数，FullFileName 是带路径的完整文件名}
+  {* 查找到指定目录下文件时的回调函数。
+
+     参数：
+       const FullFileName: string         - 带路径的完整文件名
+       const Info: TSearchRec             - 文件搜索结构
+       var FindAbort: Boolean             - 是否中断，赋值为 True 时表示中断
+
+     返回值：（无）
+  }
 
   TCnFindDirCallBack = procedure(const SubDir: string) of object;
-  {* 查找指定目录时进入子目录回调函数，SubDir 是不包括根搜索路径的相对子路径，并非完整路径}
+  {* 查找指定目录时进入子目录的回调函数。
+
+     参数：
+       const SubDir: string               - 不包括根搜索路径的相对子路径，并非完整路径
+
+     返回值：（无）
+  }
 
 function CnFindFile(const Path: string; const FileNamePattern: string = '*';
   FileProc: TCnFindFileCallBack = nil; DirProc: TCnFindDirCallBack = nil;
   IncludeSubDir: Boolean = True): Boolean;
-{* 根据通配符查找指定目录下的文件，返回是否被中断。
-  注意：DirProc 仅在 IncludeSubDir 为 True 时被回调，表示准备遍历该子目录}
+{* 根据通配符查找指定目录下的文件，返回是否查找完成、未被中断。
+   注意：DirProc 仅在 IncludeSubDir 为 True 时被回调，表示准备遍历该子目录。
+
+   参数：
+     const Path: string                   - 待查找的目录
+     const FileNamePattern: string        - 文件名单个匹配的通配符，默认 * 表示匹配所有文件
+     FileProc: TCnFindFileCallBack        - 查找到文件时的回调
+     DirProc: TCnFindDirCallBack          - 进入子目录时的回调，注意子目录名无需匹配通配符
+     IncludeSubDir: Boolean               - 查找时是否包含子目录，为 True 时才会调用子目录回调
+
+   返回值：Boolean                        - 返回是否查找完成、未被中断   
+}
 
 implementation
 

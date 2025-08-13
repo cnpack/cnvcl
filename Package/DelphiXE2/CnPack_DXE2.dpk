@@ -65,6 +65,7 @@ contains
   CnDynObjBuilder in '..\..\Source\Common\CnDynObjBuilder.pas',
   CnEventBus in '..\..\Source\Common\CnEventBus.pas',
   CnEventHook in '..\..\Source\Common\CnEventHook.pas',
+  CnFileUtils in '..\..\Source\Common\CnFileUtils.pas',
   CnFitCurve in '..\..\Source\Common\CnFitCurve.pas',
   CnFloat in '..\..\Source\Common\CnFloat.pas',
   CnGB18030 in '..\..\Source\Common\CnGB18030.pas',

@@ -106,6 +106,7 @@
         <DCCReference Include="..\..\Source\Common\CnDynObjBuilder.pas"/>
         <DCCReference Include="..\..\Source\Common\CnEventBus.pas"/>
         <DCCReference Include="..\..\Source\Common\CnEventHook.pas"/>
+        <DCCReference Include="..\..\Source\Common\CnFileUtils.pas"/>
         <DCCReference Include="..\..\Source\Common\CnFitCurve.pas"/>
         <DCCReference Include="..\..\Source\Common\CnFloat.pas"/>
         <DCCReference Include="..\..\Source\Common\CnGB18030.pas"/>

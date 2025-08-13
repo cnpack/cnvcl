@@ -245,7 +245,6 @@ ECHO USEUNIT("..\Source\CnMatrix.pas");                                         
 ECHO USEUNIT("..\Source\CnTree.pas");                                                  >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnStrings.pas");                                               >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnWideStrings.pas");                                           >> Crypto.bpf
-ECHO USEUNIT("..\Source\CnZip.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("CryptoTest.pas");                                                               >> Crypto.bpf
 ECHO //---------------------------------------------------------------------------            >> Crypto.bpf
 ECHO This file is used by the project manager only and should be treated like project file    >> Crypto.bpf
@@ -289,7 +288,6 @@ ECHO       ..\Source\CnFileUtils.obj ..\Source\CnFloat.obj                      
 ECHO       ..\Source\CnHashMap.obj ..\Source\CnMath.obj                               >> Crypto.bpr
 ECHO       ..\Source\CnMatrix.obj ..\Source\CnTree.obj                                >> Crypto.bpr
 ECHO       ..\Source\CnStrings.obj ..\Source\CnWideStrings.obj                        >> Crypto.bpr
-ECHO       ..\Source\CnZip.obj                                                        >> Crypto.bpr
 ECHO       CryptoTest.obj Crypto.obj^"/^>                                                          >> Crypto.bpr
 ECHO     ^<RESFILES value=""/^>                                                                    >> Crypto.bpr
 ECHO     ^<IDLFILES value=""/^>                                                                    >> Crypto.bpr

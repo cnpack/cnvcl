@@ -24,10 +24,11 @@ unit CnZip;
 * 软件名称：CnPack 组件包
 * 单元名称：CnPack 组件包 Zip 实现单元
 * 单元作者：CnPack 开发组 Liu Xiao
-* 备    注：使用 Delphi 自带的 Zlib 实现压缩解压与传统密码支持。
-*           但 XE2 以上的 Zlib 才支持 WindowBits 参数，才兼容传统的 ZIP 软件
+* 备    注：使用 Delphi 自带的 ZLib 实现压缩解压与传统密码支持。
+*           但 XE2 以上的 ZLib 才支持 WindowBits 参数，才兼容传统的 ZIP 软件。
 *           FPC 目前也已支持，内部注意压缩解压缩流创建时指定 ASkipHeader 为 True
 *           才是兼容传统 ZIP 软件的关键。
+*           C++Builder 5/6 不带 ZLib，因此暂时没法支持。
 * 开发平台：PWinXP + Delphi 5
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -150,8 +151,16 @@ type
     {* 构造函数}
     destructor Destroy; override;
     {* 析构函数}
+
     function IndexOf(const FileName: string): Integer;
-    {* 在该 Zip 文件中查找指定文件名，返回其顺序索引}
+    {* 在该 Zip 文件中查找指定文件名，返回其顺序索引。
+
+       参数：
+         const FileName: string           - 待查找的文件名
+
+       返回值：Integer                    - 返回顺序索引号
+    }
+
     property FileCount: Integer read GetFileCount;
     {* 该 Zip 文件包含的文件个数}
     property FileName[Index: Integer]: string read GetFileName;
@@ -198,18 +207,51 @@ type
     destructor Destroy; override;
 
     procedure OpenZipFile(const ZipFileName: string);
-    {* 打开一个 Zip 文件}
+    {* 打开一个 Zip 文件。
+
+       参数：
+         const ZipFileName: string        - 待打开的 Zip 文件名
+
+       返回值：（无）
+    }
+
     procedure ExtractAllTo(const Path: string);
-    {* 将打开的 Zip 文件全部解压至指定目录}
+    {* 将打开的 Zip 文件全部解压至指定目录。
+
+       参数：
+         const Path: string               - 解压目标目录
+
+       返回值：（无）
+    }
+
     procedure ExtractTo(Index: Integer; const Path: string; CreateSubdirs: Boolean = True);
-    {* 解压指定序号的单个文件至指定目录}
+    {* 解压指定序号的单个文件至指定目录
+
+       参数：
+         Index: Integer                   - 待解压的文件序号
+         const Path: string               - 解压目标目录
+         CreateSubdirs: Boolean           - 是否创建子目录
+
+       返回值：（无）
+    }
+
     procedure ExtractByFileName(const FileName: string; const Path: string; CreateSubdirs: Boolean = True);
-    {* 解压指定文件至指定目录}
+    {* 解压指定文件至指定目录。
+
+       参数：
+         const FileName: string           - 待解压的文件名
+         const Path: string               - 解压目标目录
+         CreateSubdirs: Boolean           - 是否创建子目录
+
+       返回值：（无）
+    }
+
     procedure Close;
     {* 关闭该 Zip 文件}
 
     property Password;
     {* 解压该 Zip 文件所需的密码}
+
     property HasPassword;
     {* 该 Zip 文件头里的标志是否需要密码才能解压}
   end;
@@ -230,20 +272,57 @@ type
     destructor Destroy; override;
 
     procedure CreateZipFile(const ZipFileName: string);
-    {* 创建一个空白的 Zip 文件}
+    {* 创建一个空白的 Zip 文件。
+
+       参数：
+         const ZipFileName: string        - Zip 文件名
+
+       返回值：（无）
+    }
+
     procedure AddFile(const FileName: string; const ArchiveFileName: string = '';
       Compression: TCnZipCompressionMethod = zcDeflate);
-    {* 向 Zip 文件中添加指定内容，FileName 为具体文件，ArchiveFileName 为要写入
-      Zip 内部的文件名}
+    {* 向 Zip 文件中添加指定内容，FileName 为具体文件，ArchiveFileName 为要写入 Zip 内部的文件名。
+
+       参数：
+         const FileName: string                           - 待添加的外部文件
+         const ArchiveFileName: string                    - 待写入 Zip 的内部文件名，默认空表示和 FileName 一致
+         Compression: TCnZipCompressionMethod             - 压缩方式
+
+       返回值：（无）
+    }
+
     function RemoveFile(const FileName: string): Boolean;
-    {* 从 Zip 文件内删除一个文件，返回删除是否成功
-      文件名参数需根据 RemovePath 的值以对应是否包含路径}
+    {* 从 Zip 文件内删除一个文件，返回删除是否成功。
+       文件名参数需根据 RemovePath 的值以对应是否包含路径。
+
+       参数：
+         const FileName: string           - 待删除的文件名
+
+       返回值：Boolean                    - 返回删除是否成功
+    }
+
     function RemoveFileByIndex(FileIndex: Integer): Boolean;
-    {* 从 Zip 文件内删除一个指定序号的文件，返回删除是否成功}
+    {* 从 Zip 文件内删除一个指定序号的文件，返回删除是否成功。
+
+       参数：
+         FileIndex: Integer               - 待删除的文件序号，从 0 开始
+
+       返回值：Boolean                    - 返回删除是否成功。
+    }
+
 {$IFNDEF DISABLE_DIRECTORY_SUPPORT}
     procedure AddDirectory(const DirName: string; Compression: TCnZipCompressionMethod = zcDeflate);
-    {* 向 Zip 文件中添加指定目录下的所有文件}
-{$ENDIF}    
+    {* 向 Zip 文件中添加指定目录下的所有文件。
+
+       参数：
+         const DirName: string                            - 待添加的目录名
+         Compression: TCnZipCompressionMethod             - 压缩方式
+
+       返回值：（无）
+    }
+{$ENDIF}
+
     procedure Save;
     {* 将压缩内容保存至 Zip 文件}
     procedure Close;
@@ -260,34 +339,78 @@ type
   end;
 
 procedure RegisterCompressionHandlerClass(AClass: TCnZipCompressionHandlerClass);
-{* 供外界提供对新的压缩方式的支持}
+{* 供外界提供对新的压缩方式的支持。
+
+   参数：
+     AClass: TCnZipCompressionHandlerClass                - 新压缩方式
+
+   返回值：（无）
+}
 
 function CnZipFileIsValid(const FileName: string): Boolean;
-{* 判断 Zip 文件是否合法}
+{* 判断 Zip 文件是否合法。
+
+   参数：
+     const FileName: string               - 待判断的 Zip 文件名
+
+   返回值：Boolean                        - 返回是否合法
+}
 
 {$IFNDEF DISABLE_DIRECTORY_SUPPORT}
 
 function CnZipDirectory(const DirName: string; const FileName: string;
   Compression: TCnZipCompressionMethod = zcDeflate; const Password: string = ''): Boolean;
-{* 将指定目录压缩为一个 Zip 文件}
+{* 将指定目录压缩为一个 Zip 文件。
+
+   参数：
+     const DirName: string                                - 待压缩的目录名
+     const FileName: string                               - 压缩的目标文件名
+     Compression: TCnZipCompressionMethod                 - 压缩方式
+     const Password: string                               - Zip 文件密码
+
+   返回值：Boolean                                        - 返回压缩是否成功
+}
 
 {$ENDIF}
 
 function CnZipExtractTo(const FileName: string; const DirName: string;
   const Password: string = ''): Boolean;
-{* 将指定 Zip 文件解压缩到指定目录}
+{* 将指定 Zip 文件解压缩到指定目录。
+
+   参数：
+     const FileName: string               - 待解压的 Zip 文件名
+     const DirName: string                - 解压目标目录名
+     const Password: string               - Zip 文件密码
+
+   返回值：Boolean                        - 返回解压是否成功
+}
 
 procedure CnZipCompressStream(InStream, OutZipStream: TStream;
   CompressionLevel: TCompressionLevel = clDefault);
 {* 将 InStream 中的内容压缩并输出至 OutZipStream。
-  注意，如果 Delphi 版本过低导致 CnPack.inc 中未定义 SUPPORT_ZLIB_WINDOWBITS
-  压缩出的内容可能和标准 Deflate 不兼容}
+   注意，如果 Delphi 版本过低导致 CnPack.inc 中未定义 SUPPORT_ZLIB_WINDOWBITS
+   压缩出的内容可能和标准 Deflate 不兼容。
+
+   参数：
+     InStream: TStream                    - 输入内容流
+     OutZipStream: TStream                - 输出压缩流
+     CompressionLevel: TCompressionLevel  - 压缩等级
+
+   返回值：（无）
+}
 
 procedure CnZipUncompressStream(InZipStream, OutStream: TStream);
 {* 将 InZipStream 中的压缩的内容解压缩并输出至 OutStream。
-  注意，如果 Delphi 版本过低导致 CnPack.inc 中未定义 SUPPORT_ZLIB_WINDOWBITS
-  则可能和标准 Deflate 不兼容，解压内容可能失败。
-  另外，解压缩时会从 InZipStream 的 Position 读起，宜按需设为 0}
+   注意，如果 Delphi 版本过低导致 CnPack.inc 中未定义 SUPPORT_ZLIB_WINDOWBITS
+   则可能和标准 Deflate 不兼容，解压内容可能失败。
+   另外，解压缩时会从 InZipStream 的 Position 读起，宜按需设为 0。
+
+   参数：
+     InZipStream: TStream                 - 输入压缩流
+     OutStream: TStream                   - 输出内容流
+
+   返回值：（无）
+}
 
 implementation
 
