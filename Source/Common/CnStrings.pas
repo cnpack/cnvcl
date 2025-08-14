@@ -28,7 +28,9 @@ unit CnStrings;
 * 开发平台：PWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备    注：AnsiStringList 移植自 Delphi 7 的 StringList
-* 最后更新：2022.10.25
+* 最后更新：2025.08.14
+*               增加一个分隔符分隔的全匹配搜索实现函数
+*           2022.10.25
 *               增加 StringBuilder 的实现，支持 Ansi 和 Unicode 模式
 *           2022.04.25
 *               增加三个字符串替换函数，支持整字匹配
@@ -645,6 +647,21 @@ function FuzzyMatchStrWithScore(const Pattern: string; const Str: string; out Sc
    返回值：Boolean                        - 返回是否有模糊匹配的内容
 }
 
+function AnyWhereSepMatchStr(const Pattern: string; const Str: string; SepContainer: TStringList;
+  MatchedIndexes: TList = nil; CaseSensitive: Boolean = False; SepChar: Char = ' '): Boolean;
+{* 分割子串后独立均匹配子串，也就是把 Pattern 按 SepChar 劈分成多个字符串后进行匹配，全都匹配才返回匹配。
+   MatchedIndexes 中返回 Str 中匹配的下标号，SepContainer 是外界传入的 TStringList 以减少创建开销。
+
+   参数：
+     const Pattern: string                - 待匹配的子串
+     const Str: string                    - 待搜索的完整字符串
+     SepContainer: TStringList;           - 外界传入的 TStringList 以减少内部创建开销
+     MatchedIndexes: TList                - 返回字符串中各字符匹配的下标号
+     CaseSensitive: Boolean               - 控制是否区分大小写
+
+   返回值：Boolean                        - 返回是否匹配成功
+}
+
 function CnStringReplace(const S: string; const OldPattern: string;
   const NewPattern: string; Flags: TCnReplaceFlags): string;
 {* 支持整字匹配的字符串替换，在 Unicode 或非 Unicode 编译器下都有效。
@@ -981,6 +998,69 @@ begin
     Inc(Score, BestLetterScore);
 
   Result := PIdx > Length(Pattern);
+end;
+
+function AnyWhereSepMatchStr(const Pattern: string; const Str: string; SepContainer: TStringList;
+  MatchedIndexes: TList; CaseSensitive: Boolean; SepChar: Char): Boolean;
+var
+  D, I, J: Integer;
+  ToFind: string;
+  SepChars: TSysCharSet;
+begin
+  Result := False;
+
+  if Pos(SepChar, Pattern) <= 0 then
+  begin
+    // 没有隔离字符，蜕变成 Pos
+    if CaseSensitive then
+      D := Pos(Pattern, Str)
+    else
+      D := Pos(UpperCase(Pattern), UpperCase(Str));
+
+    if D > 0 then
+    begin
+      Result := True;
+      if MatchedIndexes <> nil then
+      begin
+        MatchedIndexes.Clear;
+        for I := 0 to Length(Pattern) - 1 do
+          MatchedIndexes.Add(Pointer(D + I));
+      end;
+    end;
+  end
+  else
+  begin
+    SepContainer.Clear;
+    SepChars := [];
+    Include(SepChars, SepChar);
+    if CaseSensitive then
+    begin
+      ExtractStrings(SepChars, [], PChar(Pattern), SepContainer);
+      ToFind := Str;
+    end
+    else
+    begin
+      ExtractStrings(SepChars, [], PChar(UpperCase(Pattern)), SepContainer);
+      ToFind := UpperCase(Str);
+    end;
+
+    MatchedIndexes.Clear;
+    for I := 0 to SepContainer.Count - 1 do
+    begin
+      D := Pos(SepContainer[I], ToFind);
+      if D <= 0 then
+      begin
+        MatchedIndexes.Clear;
+        Exit;
+      end
+      else
+      begin
+        for J := 0 to Length(SepContainer[I]) - 1 do
+          MatchedIndexes.Add(Pointer(D + J));
+      end;
+    end;
+    Result := True;
+  end;
 end;
 
 { TCnAnsiStrings }
