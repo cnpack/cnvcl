@@ -1611,7 +1611,7 @@ var
   FirstMatch: Boolean;
 begin
   mmoResult.Clear;
-  Pattern := Trim(edtSepSearch.Text);
+  Pattern := edtSepSearch.Text;
   FirstMatch := True;
   if Pattern <> '' then
   begin
@@ -1637,7 +1637,6 @@ begin
     MatchedIndexes.Free;
   end;
   pbString.Invalidate;
-//
 end;
 
 end.

@@ -1811,6 +1811,7 @@ begin
   end
   else
   begin
+    // 以下绘制似乎仅在 MatchedIndexes 排好序的情况下绘制正确
     Canvas.TextOut(X, Y, Text);
     SetLength(PaintStr, Length(Text));
     StrCopy(PChar(PaintStr), PChar(Text));

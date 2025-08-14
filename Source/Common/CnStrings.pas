@@ -1000,9 +1000,19 @@ begin
   Result := PIdx > Length(Pattern);
 end;
 
+function MatchedIndexesCompare(Item1, Item2: Pointer): Integer;
+var
+  R1, R2: Integer;
+begin
+  R1 := Integer(Item1);
+  R2 := Integer(Item2);
+  Result := R1 - R2;
+end;
+
 function AnyWhereSepMatchStr(const Pattern: string; const Str: string; SepContainer: TStringList;
   MatchedIndexes: TList; CaseSensitive: Boolean; SepChar: Char): Boolean;
 var
+  IsNil: Boolean;
   D, I, J: Integer;
   ToFind: string;
   SepChars: TSysCharSet;
@@ -1030,36 +1040,54 @@ begin
   end
   else
   begin
-    SepContainer.Clear;
-    SepChars := [];
-    Include(SepChars, SepChar);
-    if CaseSensitive then
-    begin
-      ExtractStrings(SepChars, [], PChar(Pattern), SepContainer);
-      ToFind := Str;
-    end
+    IsNil := SepContainer = nil;
+    if IsNil then
+      SepContainer := TStringList.Create
     else
-    begin
-      ExtractStrings(SepChars, [], PChar(UpperCase(Pattern)), SepContainer);
-      ToFind := UpperCase(Str);
-    end;
+      SepContainer.Clear;
 
-    MatchedIndexes.Clear;
-    for I := 0 to SepContainer.Count - 1 do
-    begin
-      D := Pos(SepContainer[I], ToFind);
-      if D <= 0 then
+    try
+      SepChars := [];
+      Include(SepChars, SepChar);
+      if CaseSensitive then
       begin
-        MatchedIndexes.Clear;
-        Exit;
+        ExtractStrings(SepChars, [], PChar(Pattern), SepContainer);
+        ToFind := Str;
       end
       else
       begin
-        for J := 0 to Length(SepContainer[I]) - 1 do
-          MatchedIndexes.Add(Pointer(D + J));
+        ExtractStrings(SepChars, [], PChar(UpperCase(Pattern)), SepContainer);
+        ToFind := UpperCase(Str);
       end;
+
+      if MatchedIndexes <> nil then
+        MatchedIndexes.Clear;
+      for I := 0 to SepContainer.Count - 1 do
+      begin
+        D := Pos(SepContainer[I], ToFind);
+        if D <= 0 then
+        begin
+          if MatchedIndexes <> nil then
+            MatchedIndexes.Clear;
+          Exit;
+        end
+        else
+        begin
+          if MatchedIndexes <> nil then
+          begin
+            for J := 0 to Length(SepContainer[I]) - 1 do
+              MatchedIndexes.Add(Pointer(D + J));
+          end;
+        end;
+      end;
+
+      if (MatchedIndexes <> nil) and (MatchedIndexes.Count > 1) then
+        MatchedIndexes.Sort(MatchedIndexesCompare);
+      Result := True;
+    finally
+      if IsNil then
+        SepContainer.Free;
     end;
-    Result := True;
   end;
 end;
 
