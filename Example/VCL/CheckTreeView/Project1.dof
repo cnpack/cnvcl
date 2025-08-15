@@ -86,8 +86,8 @@ Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 Count=9
 Item0=..\..\..\Source\Graphics;..\..\..\Source\Common;..\..\..\Source\Crypto
 Item1=..\..\cnpack\Source\Graphics;..\..\cnpack\Source\Common
-Item2=..\..\..\cnpack\Source\Common;..\..\..\cnpack\Source\MultiLang;..\..\..\cnpack\Source\Nonvisual;..\..\..\Source;..\..\..\Source\MultiLang;..\..\..\Source\Framework;..\..\..\Source\ThirdParty
-Item3=..\..\..\cnpack\Source\Common;..\..\..\cnpack\Source\MultiLang;..\..\..\cnpack\Source\Nonvisual;..\..\..\Source;..\..\..\Source\MultiLang;..\..\..\Source\Framework
+Item2=..\..\..\cnpack\Source\Common;..\..\..\cnpack\Source\MultiLang;..\..\..\cnpack\Source\NonVisual;..\..\..\Source;..\..\..\Source\MultiLang;..\..\..\Source\Framework;..\..\..\Source\ThirdParty
+Item3=..\..\..\cnpack\Source\Common;..\..\..\cnpack\Source\MultiLang;..\..\..\cnpack\Source\NonVisual;..\..\..\Source;..\..\..\Source\MultiLang;..\..\..\Source\Framework
 Item4=..\..\..\cnpack\Source\Common;..\..\..\cnpack\Source\MultiLang;..\..\..\Source;..\..\..\Source\MultiLang;..\..\..\Source\Framework
 Item5=..\..\..\cnpack\Source\Common;..\..\..\cnpack\Source\MultiLang;..\..\..\Source\MultiLang;..\..\..\Source\Framework
 Item6=..\..\..\cnpack\Source\Common;..\..\..\cnpack\Source\MultiLang;..\..\..\Source\MultiLang
