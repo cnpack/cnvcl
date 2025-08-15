@@ -101,8 +101,8 @@ const
   sLineBreak = {$IFDEF POSIX} #10 {$ENDIF} {$IFDEF MSWINDOWS} #13#10 {$ENDIF};
 {$ENDIF}
 
-  Alpha = ['A'..'Z', 'a'..'z', '_'];
-  AlphaNumeric = Alpha + ['0'..'9'];
+  CN_ALPHA_CHARS = ['A'..'Z', 'a'..'z', '_'];
+  CN_ALPHANUMERIC = CN_ALPHA_CHARS + ['0'..'9'];
 
   SCN_UTF16_ANSI_WIDE_CHAR_SEP = $900;
 
@@ -635,6 +635,9 @@ function IsValidIdentW(const Ident: string): Boolean;
 
 function IsValidIdentWide(const Ident: WideString): Boolean;
 {* 判断宽字符串是否是有效的 Unicode 标识符，只在 BDS 以上调用}
+
+function StrContainsRegExpr(const Str: string): Boolean;
+{* 判断字符串内是否包含正则表达式专用字符}
 
 {$IFDEF COMPILER5}
 function BoolToStr(B: Boolean; UseBoolStrs: Boolean = False): string;
@@ -4787,47 +4790,63 @@ end;
 function IsValidIdentChar(C: Char; First: Boolean): Boolean;
 begin
   if First then
-    Result := CharInSet(C, Alpha)
+    Result := CharInSet(C, CN_ALPHA_CHARS)
   else
-    Result := CharInSet(C, AlphaNumeric);
+    Result := CharInSet(C, CN_ALPHANUMERIC);
 end;
 
 // 判断字符串是否是有效的 Unicode 标识符，只在 Unicode 下调用
 function IsValidIdentW(const Ident: string): Boolean;
-const
-  Alpha = ['A'..'Z', 'a'..'z', '_'];
-  AlphaNumeric = Alpha + ['0'..'9'];
 var
   I: Integer;
 begin
   Result := False;
-  if (Length(Ident) = 0) or not ((AnsiChar(Ident[1]) in Alpha) or (Ord(Ident[1]) > 127)) then
+  if (Length(Ident) = 0) or not ((AnsiChar(Ident[1]) in CN_ALPHA_CHARS) or (Ord(Ident[1]) > 127)) then
     Exit;
   for I := 2 to Length(Ident) do
-    if not ((AnsiChar(Ident[I]) in AlphaNumeric) or (Ord(Ident[I]) > 127)) then
+  begin
+    if not ((AnsiChar(Ident[I]) in CN_ALPHANUMERIC) or (Ord(Ident[I]) > 127)) then
       Exit;
+  end;
   Result := True;
 end;
 
 // 判断宽字符串是否是有效的 Unicode 标识符，只在 BDS 以上调用
 function IsValidIdentWide(const Ident: WideString): Boolean;
 {$IFDEF BDS}
-const
-  Alpha = ['A'..'Z', 'a'..'z', '_'];
-  AlphaNumeric = Alpha + ['0'..'9'];
 var
   I: Integer;
 {$ENDIF}
 begin
   Result := False;
 {$IFDEF BDS}
-  if (Length(Ident) = 0) or not ((AnsiChar(Ident[1]) in Alpha) or (Ord(Ident[1]) > 127)) then
+  if (Length(Ident) = 0) or not ((AnsiChar(Ident[1]) in CN_ALPHA_CHARS) or (Ord(Ident[1]) > 127)) then
     Exit;
   for I := 2 to Length(Ident) do
-    if not ((AnsiChar(Ident[I]) in AlphaNumeric) or (Ord(Ident[I]) > 127)) then
+  begin
+    if not ((AnsiChar(Ident[I]) in CN_ALPHANUMERIC) or (Ord(Ident[I]) > 127)) then
       Exit;
+  end;
   Result := True;
 {$ENDIF}
+end;
+
+// 判断字符串内是否包含正则表达式专用字符
+function StrContainsRegExpr(const Str: string): Boolean;
+const
+  REG_CHARS = ['^', '$', '.', '*', '[', ']', '(', ')', '/', '\'];
+var
+  I: Integer;
+begin
+  Result := False;
+  if Length(Str) > 0 then
+  begin
+    for I := 1 to Length(Str) do
+    begin
+      if Str[I] in REG_CHARS then
+        Exit;
+    end;
+  end;
 end;
 
 const
@@ -4838,7 +4857,7 @@ const
 {$IFDEF COMPILER5}
 function BoolToStr(B: Boolean; UseBoolStrs: Boolean = False): string;
 const
-  cSimpleBoolStrs: array [boolean] of String = ('0', '-1');
+  cSimpleBoolStrs: array [Boolean] of string = ('0', '-1');
 begin
   if UseBoolStrs then
   begin
