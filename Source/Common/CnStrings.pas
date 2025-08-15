@@ -1048,7 +1048,7 @@ begin
 
     try
       SepChars := [];
-      Include(SepChars, SepChar);
+      Include(SepChars, AnsiChar(SepChar));
       if CaseSensitive then
       begin
         ExtractStrings(SepChars, [], PChar(Pattern), SepContainer);
