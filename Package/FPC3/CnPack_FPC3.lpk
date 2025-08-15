@@ -14,8 +14,14 @@
       <Parsing>
         <Style Value="1"/>
       </Parsing>
+      <Other>
+        <CustomOptions Value="-dENABLE_UIINTERACT"/>
+        <OtherDefines Count="1">
+          <Define0 Value="ENABLE_UIINTERACT"/>
+        </OtherDefines>
+      </Other>
     </CompilerOptions>
-    <Files Count="102">
+    <Files Count="109">
       <Item1>
         <Filename Value="../../Source/Crypto/CnAES.pas"/>
         <UnitName Value="CnAES"/>
@@ -424,6 +430,34 @@
         <Filename Value="../../Source/Common/CnEventHook.pas"/>
         <UnitName Value="CnEventHook"/>
       </Item102>
+      <Item103>
+        <Filename Value="../../Source/NetComm/CnInetUtils.pas"/>
+        <UnitName Value="CnInetUtils"/>
+      </Item103>
+      <Item104>
+        <Filename Value="../../Source/Common/CnDebug.pas"/>
+        <UnitName Value="CnDebug"/>
+      </Item104>
+      <Item105>
+        <Filename Value="../../Source/Common/CnPropSheetFrm.pas"/>
+        <UnitName Value="CnPropSheetFrm"/>
+      </Item105>
+      <Item106>
+        <Filename Value="../../Source/Graphics/CnWizardImage.pas"/>
+        <UnitName Value="CnWizardImage"/>
+      </Item106>
+      <Item107>
+        <Filename Value="../../Source/NonVisual/CnFormScaler.pas"/>
+        <UnitName Value="CnFormScaler"/>
+      </Item107>
+      <Item108>
+        <Filename Value="../../Source/Common/CnRTL.pas"/>
+        <UnitName Value="CnRTL"/>
+      </Item108>
+      <Item109>
+        <Filename Value="../../Source/Crypto/CnAEAD.pas"/>
+        <UnitName Value="CnAEAD"/>
+      </Item109>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

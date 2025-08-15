@@ -24,7 +24,8 @@ uses
   CnLangStorage, CnLangUtils, CnWaterImage, CnWaterEffect, CnZip, 
   CnBinaryDiffPatch, CnEventBus, CnVarList, CnAACtrls, CnAAFont, 
   CnAAFontDialog, CnSpin, CnPanel, CnEdit, CnActionListHook, CnControlHook, 
-  CnEventHook;
+  CnEventHook, CnInetUtils, CnDebug, CnPropSheetFrm, CnWizardImage, 
+  CnFormScaler, CnRTL, CnAEAD;
 
 implementation
 
