@@ -2596,7 +2596,7 @@ begin
     case PropType^.Kind of
       tkInteger, tkChar, tkEnumeration, tkSet:
         ReadOrdProp;
-      tkString, tkLString, tkWString {$IFDEF UNICODE}, tkUString {$ENDIF}:
+      tkString, tkLString, tkWString {$IFDEF UNICODE}, tkUString {$ENDIF} {$IFDEF FPC}, tkAString {$ENDIF}:
         ReadStrProp;
       tkFloat:
         ReadFloatProp; // 时间日期暂时不额外处理，内部都用浮点先整
@@ -2793,7 +2793,7 @@ begin
     case PropType^.Kind of
       tkInteger, tkChar, tkEnumeration, tkSet:
         WriteOrdProp;
-      tkString, tkLString, tkWString {$IFDEF UNICODE}, tkUString {$ENDIF}:
+      tkString, tkLString, tkWString {$IFDEF UNICODE}, tkUString {$ENDIF} {$IFDEF FPC}, tkAString {$ENDIF}:
         WriteStrProp;
       tkFloat:
         WriteFloatProp; // 时间日期暂时不额外处理，内部都用浮点先整

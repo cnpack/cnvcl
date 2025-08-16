@@ -6,8 +6,7 @@
     <CompilerOptions>
       <Version Value="11"/>
       <SearchPaths>
-        <IncludeFiles Value="../../Source/Crypto;../../Source/Common;../../Source/NonVisual;../../Source/NetComm;../../Source/MultiLang;../../Source/Graphics"/>
-        <Libraries Value="../../Source/Crypto;../../Source/Common;../../Source/NonVisual;../../Source/NetComm;../../Source/MultiLang;../../Source/Graphics"/>
+        <IncludeFiles Value="../../Source/Common"/>
         <OtherUnitFiles Value="../../Source/Crypto;../../Source/Common;../../Source/NonVisual;../../Source/NetComm;../../Source/MultiLang;../../Source/Graphics"/>
         <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
