@@ -46,10 +46,16 @@ unit CnJSON;
 *
 *           TCnJSONReader.LoadFromJSON 与 TCnJSONWriter.SaveToJSON 能够将对象的属性流化至 JSON 字符串中
 *
+*           ！！！注意！！！
+*           JSON 内部使用 UTF8，解析出的 Name 和 Value 的 string，在 Delphi 中根据编译器对应是 Ansi/Utf16
+*           而在 FPC 的 Ansi 模式下，因 FPC 本身的要求，为避免多余的转换，此处的 string 是 UTF8 格式。
+*
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.06.14 V1.8
+* 修改记录：2025.08.19 V1.9
+*                 FPC 的 Ansi 模式下，string 使用 Utf8，暂不支持 FPC 的 Unicode 模式
+*           2025.06.14 V1.8
 *                 增加解析 [ 开头和 ] 结尾的字符串为 JSONArray 的方法
 *                 增加将一批 JSON 对象或值转换为 [ 开头和 ] 结尾的字符串的方法
 *           2025.03.02 V1.7
@@ -333,11 +339,12 @@ type
 
     function IsString: Boolean; override;
     function AsString: string; override;
-    {* 根据 Content 值更新 Value 并返回}
+    {* 根据 Content 值更新 Value 并返回。
+       注意在 FPC 的 Ansi 模式下是 UTF8，Delphi 中则是 Ansi 或 Utf16}
 
     property Value: string read FValue write SetValue;
     {* 组装时供外界写入值，内部同步更新 Content
-      同时支持 Unicode 与 Ansi 下的 string}
+      同时支持 Delphi 中的 Unicode 与 Ansi 下的 string，及 FPC 的 Utf8 格式}
   end;
 
   TCnJSONNumber = class(TCnJSONValue)
@@ -2023,7 +2030,11 @@ end;
 function TCnJSONString.JsonFormatToString(const Str: AnsiString): string;
 var
   Bld: TCnStringBuilder;
+{$IFDEF FPC}
+  P: PAnsiChar;
+{$ELSE}
   P: PWideChar;
+{$ENDIF}
   U: Integer;
 {$IFDEF UNICODE}
   WS: string;
@@ -2056,6 +2067,64 @@ begin
   if Length(Str) = 0 then
     Exit;
 
+{$IFDEF FPC}
+  // FPC 下的 string 得是 Utf8 格式，需要直接解码
+  P := @Str[1];
+  if P^ <> '"' then
+    raise ECnJSONException.Create(SCnErrorJSONStringParse);
+
+  Bld := TCnStringBuilder.Create(True);  // 处理单字节字符串得用 Ansi 模式
+  try
+    Inc(P);
+    while (P^ <> '"') and (P^ <> #0) do
+    begin
+      if P^ = '\' then
+      begin
+        Inc(P);
+        case P^ of
+          '\': Bld.AppendAnsiChar('\');
+          '/': Bld.AppendAnsiChar('/');
+          '"': Bld.AppendAnsiChar('"');
+          'b': Bld.AppendAnsiChar(#$08);
+          't': Bld.AppendAnsiChar(#$09);
+          'n': Bld.AppendAnsiChar(#$0A);
+          'f': Bld.AppendAnsiChar(#$0C);
+          'r': Bld.AppendAnsiChar(#$0D);
+          'u': // u 后面四个十六进制字符如 FFFF，不支持更长的
+            begin
+              Inc(P);
+              B3 := Ord(P^);
+              CheckHex(B3);
+
+              Inc(P);
+              B2 := Ord(P^);
+              CheckHex(B2);
+
+              Inc(P);
+              B1 := Ord(P^);
+              CheckHex(B1);
+
+              Inc(P);
+              B0 := Ord(P^);
+              CheckHex(B0);
+
+              U := (HexToDec(B3) shl 12) or (HexToDec(B2) shl 8) or (HexToDec(B1) shl 4) or HexToDec(B0);
+              Bld.AppendWideChar(WideChar(U));
+            end;
+        else
+          raise ECnJSONException.Create(SCnErrorJSONStringParse);
+        end;
+      end
+      else
+        Bld.AppendAnsiChar(P^);
+      Inc(P);
+    end;
+
+    Result := Bld.ToAnsiString;
+  finally
+    Bld.Free;
+  end;
+{$ELSE}
   // Unicode 环境下使用系统的转换，否则使用 CnWideStrings 里的转换
 {$IFDEF UNICODE}
   WS := UTF8ToUnicodeString(Str);
@@ -2127,6 +2196,7 @@ begin
   finally
     Bld.Free;
   end;
+{$ENDIF}
 end;
 
 procedure TCnJSONString.SetValue(const Value: string);
@@ -2142,7 +2212,7 @@ var
   P: PChar;
 begin
   // 加引号以及转义编码再 UTF8 转换
-  Bld := TCnStringBuilder.Create;
+  Bld := TCnStringBuilder.Create; // Delphi中根据是否Unicode决定用Wide或Ansi，FPC下用Ansi
   try
     Bld.AppendChar('"');
     if Length(Str) > 0 then
@@ -2199,9 +2269,13 @@ begin
     Result := UTF8Encode(Bld.ToString);
     // Unicode 环境下 StringBuilder 内部使用 Wide 模式，返回 UnicodeString，直接编码成 UTF8
 {$ELSE}
+  {$IFDEF FPC}
+    Result := Bld.ToString; // FPC中 string 内容已经是 UTF8 了，无需再转一次
+  {$ELSE}
     // 非 Unicode 环境下 StringBuilder 内部使用 Ansi 模式，返回 AnsiString（内部可能有双字节字符）
     // 转成 WideString 后编码成 UTF8
     Result := CnUtf8EncodeWideString(WideString(Bld.ToString));
+  {$ENDIF}
 {$ENDIF}
   finally
     Bld.Free;
