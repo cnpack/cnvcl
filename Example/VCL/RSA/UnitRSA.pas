@@ -205,6 +205,8 @@ type
     btnCHVerify: TButton;
     btnBNVerifyKeys: TButton;
     btnInt64VerifyKeys: TButton;
+    btnPubCryptLong: TButton;
+    btnPrivDecryptLong: TButton;
     procedure btnGenerateRSAClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
@@ -255,6 +257,8 @@ type
     procedure btnCHVerifyClick(Sender: TObject);
     procedure btnBNVerifyKeysClick(Sender: TObject);
     procedure btnInt64VerifyKeysClick(Sender: TObject);
+    procedure btnPubCryptLongClick(Sender: TObject);
+    procedure btnPrivDecryptLongClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -1111,6 +1115,47 @@ begin
     ShowMessage('Verify Keys OK')
   else
     ShowMessage('Verify Keys Fail');
+end;
+
+procedure TFormRSA.btnPubCryptLongClick(Sender: TObject);
+var
+  F, D: TFileStream;
+begin
+  if dlgSaveFile.Execute then
+  begin
+    F := TFileStream.Create(edtFile1.Text, fmOpenRead or fmShareDenyWrite);
+    D := TFileStream.Create(dlgSaveFile.FileName, fmCreate);
+
+    try
+      if CnRSAEncryptLongStream(F, D, FPublicKey) then
+      begin
+        edtFile2.Text := dlgSaveFile.FileName;
+        ShowMessage('Encrypt OK');
+      end;
+    finally
+      D.Free;
+      F.Free;
+    end;
+  end;
+end;
+
+procedure TFormRSA.btnPrivDecryptLongClick(Sender: TObject);
+var
+  F, D: TFileStream;
+begin
+  if dlgSaveFile.Execute then
+  begin
+    F := TFileStream.Create(edtFile2.Text, fmOpenRead or fmShareDenyWrite);
+    D := TFileStream.Create(dlgSaveFile.FileName, fmCreate);
+
+    try
+      if CnRSADecryptLongStream(F, D, FPrivateKey) then
+        ShowMessage('Decrypt OK');
+    finally
+      D.Free;
+      F.Free;
+    end;
+  end;
 end;
 
 end.
