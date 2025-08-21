@@ -508,6 +508,8 @@ begin
         if Start <> 0 then
           Inc(Start);
       end;
+    else
+      Start := I; // 跳过 #0 时实际上可能已经处理掉了 CN_PKCS1_BLOCK_TYPE_PRIVATE_00
   end;
 
   if Start > 0 then
