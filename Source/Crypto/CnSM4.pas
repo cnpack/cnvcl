@@ -128,7 +128,7 @@ procedure SM4Encrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; ByteLe
 procedure SM4Decrypt(Key: PAnsiChar; Input: PAnsiChar; Output: PAnsiChar; ByteLen: Integer);
 {* 原始的 SM4 解密数据块，ECB 模式，将 Input 内的密文内容解密搁到 Output 中
   调用者自行保证 Key 指向内容至少需 16 字节，Input 和 Output 指向内容长相等并且都为 ByteLen 字节
-  且 ByteLen 必须被 16 整除
+  且 ByteLen 必须被 16 整除。
 
    参数：
      Key: PAnsiChar                       - 16 字节 SM4 密钥

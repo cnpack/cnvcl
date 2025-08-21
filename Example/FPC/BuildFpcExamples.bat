@@ -5,7 +5,7 @@ CD Examples\VCL
 SETLOCAL ENABLEDELAYEDEXPANSION
 SET ROOTDIR=%~dp0
 ECHO ROOTDIR=!ROOTDIR!
-SET DCC32="C:\lazarus\fpc\3.2.2\bin\i386-win32\fpc.exe -MDelphi -Scghi -O1 -gw2 -godwarfsets -gl -WG -l -vewnhibq -Fi..\..\..\Source\Crypto -Fi..\..\..\Source\Common -Filib\i386-win32 -Fu..\..\..\Source\Crypto -Fu..\..\..\Source\Common -FuC:\lazarus\lcl\units\i386-win32\win32 -FuC:\lazarus\lcl\units\i386-win32 -FuC:\lazarus\components\freetype\lib\i386-win32 -FuC:\lazarus\components\lazutils\lib\i386-win32 -FuC:\lazarus\packager\units\i386-win32 -Fu. -FElib\i386-win32 -olib\i386-win32\RSA.exe -dLCL -dLCLwin32 -dPUREPASCAL"
+SET FPC32="C:\lazarus\fpc\3.2.2\bin\i386-win32\fpc.exe" -MDelphi -Scghi -O1 -gw2 -godwarfsets -gl -WG -l -vewnhibq -Fi..\..\..\Source\Crypto -Fi..\..\..\Source\Common -Fi..\..\..\Source\NetComm -Fi..\..\..\Source\MultiLang -Fi..\..\..\Source\Graphics -Fu..\..\..\Source\Crypto -Fu..\..\..\Source\Common -Fu..\..\..\Source\NetComm -Fu..\..\..\Source\MultiLang -Fu..\..\..\Source\Graphics -FuC:\lazarus\lcl\units\i386-win32\win32 -FuC:\lazarus\lcl\units\i386-win32 -FuC:\lazarus\components\freetype\lib\i386-win32 -FuC:\lazarus\components\lazutils\lib\i386-win32 -FuC:\lazarus\packager\units\i386-win32 -Fu. -dLCL -dLCLwin32 -dPUREPASCAL 
 
 CD %ROOTDIR%
 SET DPR="NOVALUE"
@@ -19,7 +19,7 @@ FOR /D %%D IN (.\*) DO (
     SET LPR=%%F
     IF "!LPR:~-3!" == "lpr" (
       ECHO Building !LPR! with !LPR:~0,-3!cfg in !DIRNAME!
-      %DCC32% "%%F"
+      %FPC32% "%%F"
       IF !ERRORLEVEL! NEQ 0 GOTO END
 CALL :CLEANTMP
     )

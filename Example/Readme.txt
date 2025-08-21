@@ -13,4 +13,6 @@ VCL Ä¿Â¼ÏÂµÄ¹¤³ÌÒÔ Delphi 7 ±àÒëÔËÐÐÎªÖ÷¡£FMX Ä¿Â¼ÏÂµÄ¹¤³ÌÒÔ Delphi 10.3 Rio ±àÒ
 SET DCC32="C:\Program Files\Borland\Delphi7\Bin\dcc32.exe"
 SET DCCR_32="C:\Program Files\Embarcadero\Studio\20.0\bin\dcc32.exe"
 
-ÖÁÓÚ FPC Ä¿Â¼ÏÂ£¬Ä¿Ç°ÃüÁîÐÐÖ§³ÖÔÝÊ±Ã»ÓÐ£¬ÒòÎªÌáÊ¾¡°ÃüÁîÐÐÌ«³¤¡±¡­¡­
+ÖÁÓÚ FPC Ä¿Â¼ÏÂ£¬Ä¿Ç°Ö»Ö§³Ö FPC 3.2.2 µÄ¼òµ¥ÃüÁîÐÐ±àÒë£¬Ã»ÓÐ¼æÈÝ¾É°æµÄºó¹ËÖ®ÓÇ£¬Òò¶øÏà¶Ô¼òµ¥¡£ÈçÐèÒª¸ü¸Ä³ÉÆäËû°æ±¾µÄ FPC£¬»ò¸ü¸Ä³É·ÇÄ¬ÈÏ°²×°Ä¿Â¼ÏÂµÄ FPC£¬Ö»ÐèÊÖ¹¤ÐÞ¸ÄÕâÀï¼´¿É£º
+
+SET DCC32="C:\lazarus\fpc\3.2.2\bin\i386-win32\fpc.exe" 

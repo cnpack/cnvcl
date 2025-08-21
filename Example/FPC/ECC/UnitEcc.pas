@@ -2155,7 +2155,7 @@ begin
   for I := 0 to 100 do
   begin
     K.SetWord(I);
-    if not BigNumberLucasSequenceMod(X, Y, K, N, Q, V) then
+    if not BigNumberLucasVSequenceMod(X, Y, K, N, Q, V) then
       Exit;
 
     mmoLucasRes.Lines.Add(Format('%d: %s, %s', [I, Q.ToDec, V.ToDec]));
