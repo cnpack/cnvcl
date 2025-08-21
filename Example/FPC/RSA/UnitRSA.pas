@@ -14,6 +14,8 @@ type
   { TFormRSA }
 
   TFormRSA = class(TForm)
+    btnPrivDecryptLong: TButton;
+    btnPubCryptLong: TButton;
     lblPBits: TLabel;
     pgc1: TPageControl;
     tsInt64RSA: TTabSheet;
@@ -188,6 +190,8 @@ type
     chkOAEP: TCheckBox;
     btnInt64Sample: TButton;
     procedure btnGenerateRSAClick(Sender: TObject);
+    procedure btnPrivDecryptLongClick(Sender: TObject);
+    procedure btnPubCryptLongClick(Sender: TObject);
     procedure btnRSAEnClick(Sender: TObject);
     procedure btnRSADeClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -386,6 +390,47 @@ begin
 
     FR := TUInt64(Prime1 - 1 ) * TUInt64(Prime2 - 1);
     lblInt64MBits.Caption := 'n Bits: ' + IntToStr(GetInt64BitCount(FPrivKeyProduct));
+  end;
+end;
+
+procedure TFormRSA.btnPrivDecryptLongClick(Sender: TObject);
+var
+  F, D: TFileStream;
+begin
+  if dlgSaveFile.Execute then
+  begin
+    F := TFileStream.Create(edtFile2.Text, fmOpenRead or fmShareDenyWrite);
+    D := TFileStream.Create(dlgSaveFile.FileName, fmCreate);
+
+    try
+      if CnRSADecryptLongStream(F, D, FPrivateKey) then
+        ShowMessage('Decrypt OK');
+    finally
+      D.Free;
+      F.Free;
+    end;
+  end;
+end;
+
+procedure TFormRSA.btnPubCryptLongClick(Sender: TObject);
+var
+  F, D: TFileStream;
+begin
+  if dlgSaveFile.Execute then
+  begin
+    F := TFileStream.Create(edtFile1.Text, fmOpenRead or fmShareDenyWrite);
+    D := TFileStream.Create(dlgSaveFile.FileName, fmCreate);
+
+    try
+      if CnRSAEncryptLongStream(F, D, FPublicKey) then
+      begin
+        edtFile2.Text := dlgSaveFile.FileName;
+        ShowMessage('Encrypt OK');
+      end;
+    finally
+      D.Free;
+      F.Free;
+    end;
   end;
 end;
 

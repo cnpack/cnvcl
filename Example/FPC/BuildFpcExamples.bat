@@ -5,7 +5,7 @@ CD Examples\VCL
 SETLOCAL ENABLEDELAYEDEXPANSION
 SET ROOTDIR=%~dp0
 ECHO ROOTDIR=!ROOTDIR!
-SET DCC32="C:\lazarus\fpc\3.2.2\bin\i386-win32\fpc.exe -MDelphi -Scghi -O1 -gw2 -godwarfsets -gl -WG -l -vewnhibq -Fi..\..\..\Source\Crypto -Fi..\..\..\Source\Common -Filib\i386-win32 -Fu..\..\..\Source\Crypto -Fu..\..\..\Source\Common -FuC:\lazarus\lcl\units\i386-win32\win32 -FuC:\lazarus\lcl\units\i386-win32 -FuC:\lazarus\components\freetype\lib\i386-win32 -FuC:\lazarus\components\lazutils\lib\i386-win32 -FuC:\lazarus\packager\units\i386-win32 -Fu. -FElib\i386-win32 -olib\i386-win32\RSA.exe -dLCL -dLCLwin32 -dBorland -dVer150 -dDelphi7 -dCompiler6_Up -dPUREPASCAL"
+SET DCC32="C:\lazarus\fpc\3.2.2\bin\i386-win32\fpc.exe -MDelphi -Scghi -O1 -gw2 -godwarfsets -gl -WG -l -vewnhibq -Fi..\..\..\Source\Crypto -Fi..\..\..\Source\Common -Filib\i386-win32 -Fu..\..\..\Source\Crypto -Fu..\..\..\Source\Common -FuC:\lazarus\lcl\units\i386-win32\win32 -FuC:\lazarus\lcl\units\i386-win32 -FuC:\lazarus\components\freetype\lib\i386-win32 -FuC:\lazarus\components\lazutils\lib\i386-win32 -FuC:\lazarus\packager\units\i386-win32 -Fu. -FElib\i386-win32 -olib\i386-win32\RSA.exe -dLCL -dLCLwin32 -dPUREPASCAL"
 
 CD %ROOTDIR%
 SET DPR="NOVALUE"
