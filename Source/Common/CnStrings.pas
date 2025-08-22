@@ -707,7 +707,18 @@ function CnStringReplaceW(const S: WideString; const OldPattern: WideString;
 
 {$ENDIF}
 
+function NativeStringToUIString(const Str: string): string;
+{* Lazarus/FPC 的 Ansi 模式专用，因为 Lazarus/FPC 的 Ansi 模式下和界面有关的字符串是 Utf8 格式，
+   而我们内部的普通字符串大多是 Ansi 或 Utf16，这里做一次封装转换。}
+
+function UIStringToNativeString(const Str: string): string;
+{* Lazarus/FPC 的 Ansi 模式专用，因为 Lazarus/FPC 的 Ansi 模式下和界面有关的字符串是 Utf8 格式，
+   而我们内部的普通字符串大多是 Ansi 或 Utf16，这里做一次封装转换。}
+
 implementation
+
+uses
+  CnWideStrings;
 
 const
   SLineBreak = #13#10;
@@ -719,6 +730,24 @@ resourcestring
   SListIndexError = 'AnsiString List index out of bounds (%d)';
   SSortedListError = 'Operation not allowed on sorted AnsiString list';
   SListCapacityError = 'Error New Capacity or Length Value %d';
+
+function NativeStringToUIString(const Str: string): string;
+begin
+{$IFDEF FPC}
+  Result := CnAnsiToUtf82(Str);
+{$ELSE}
+  Result := Str;
+{$ENDIF}
+end;
+
+function UIStringToNativeString(const Str: string): string;
+begin
+{$IFDEF FPC}
+  Result := CnUtf8ToAnsi2(Str);
+{$ELSE}
+  Result := Str;
+{$ENDIF}
+end;
 
 {$IFNDEF COMPILER7_UP}
 

@@ -1870,6 +1870,9 @@ end;
 
 function CnUtf8ToAnsi(const Text: AnsiString): AnsiString;
 begin
+{$IFDEF FPC}
+  Result := ConvertEncoding(Text, EncodingUTF8, EncodingAnsi);
+{$ELSE}
 {$IFDEF UNICODE}
   Result := AnsiString(UTF8ToUnicodeString(PAnsiChar(Text)));
 {$ELSE}
@@ -1879,10 +1882,14 @@ begin
   Result := AnsiString(CnUtf8DecodeToWideString(Text));
   {$ENDIF}
 {$ENDIF}
+{$ENDIF}
 end;
 
 function CnUtf8ToAnsi2(const Text: string): string;
 begin
+{$IFDEF FPC}
+  Result := ConvertEncoding(Text, EncodingUTF8, EncodingAnsi);
+{$ELSE}
 {$IFDEF UNICODE}
   Result := UTF8ToUnicodeString(PAnsiChar(AnsiString(Text)));
 {$ELSE}
@@ -1891,6 +1898,7 @@ begin
   {$ELSE}
   Result := AnsiString(CnUtf8DecodeToWideString(Text));
   {$ENDIF}
+{$ENDIF}
 {$ENDIF}
 end;
 
