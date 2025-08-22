@@ -1971,7 +1971,8 @@ begin
           begin
             IntfEntry := @IntfTable.Entries[I];
 {$IFDEF FPC}
-            Hies[Hies.Count - 1] := Hies[Hies.Count - 1] + ', ' +  GUIDToString(IntfEntry^.IID^);
+            if IntfEntry^.IID <> nil then
+              Hies[Hies.Count - 1] := Hies[Hies.Count - 1] + ', ' +  GUIDToString(IntfEntry^.IID^);
 {$ELSE}
   {$IFDEF SUPPORT_ENHANCED_RTTI}
             S := GetInterfaceNameByGUID(IntfEntry^.IID);
