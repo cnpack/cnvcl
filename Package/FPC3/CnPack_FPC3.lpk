@@ -7,7 +7,7 @@
       <Version Value="11"/>
       <SearchPaths>
         <IncludeFiles Value="../../Source/Common"/>
-        <OtherUnitFiles Value="../../Source/Crypto;../../Source/Common;../../Source/NonVisual;../../Source/NetComm;../../Source/MultiLang;../../Source/Graphics"/>
+        <OtherUnitFiles Value="../../Source/Crypto;../../Source/Common;../../Source/NonVisual;../../Source/NetComm;../../Source/MultiLang;../../Source/Graphic"/>
         <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Parsing>
@@ -370,11 +370,11 @@
         <UnitName Value="CnLangUtils"/>
       </Item87>
       <Item88>
-        <Filename Value="../../Source/Graphics/CnWaterImage.pas"/>
+        <Filename Value="../../Source/Graphic/CnWaterImage.pas"/>
         <UnitName Value="CnWaterImage"/>
       </Item88>
       <Item89>
-        <Filename Value="../../Source/Graphics/CnWaterEffect.pas"/>
+        <Filename Value="../../Source/Graphic/CnWaterEffect.pas"/>
         <UnitName Value="CnWaterEffect"/>
       </Item89>
       <Item90>
@@ -394,27 +394,27 @@
         <UnitName Value="CnVarList"/>
       </Item93>
       <Item94>
-        <Filename Value="../../Source/Graphics/CnAACtrls.pas"/>
+        <Filename Value="../../Source/Graphic/CnAACtrls.pas"/>
         <UnitName Value="CnAACtrls"/>
       </Item94>
       <Item95>
-        <Filename Value="../../Source/Graphics/CnAAFont.pas"/>
+        <Filename Value="../../Source/Graphic/CnAAFont.pas"/>
         <UnitName Value="CnAAFont"/>
       </Item95>
       <Item96>
-        <Filename Value="../../Source/Graphics/CnAAFontDialog.pas"/>
+        <Filename Value="../../Source/Graphic/CnAAFontDialog.pas"/>
         <UnitName Value="CnAAFontDialog"/>
       </Item96>
       <Item97>
-        <Filename Value="../../Source/Graphics/CnSpin.pas"/>
+        <Filename Value="../../Source/Graphic/CnSpin.pas"/>
         <UnitName Value="CnSpin"/>
       </Item97>
       <Item98>
-        <Filename Value="../../Source/Graphics/CnPanel.pas"/>
+        <Filename Value="../../Source/Graphic/CnPanel.pas"/>
         <UnitName Value="CnPanel"/>
       </Item98>
       <Item99>
-        <Filename Value="../../Source/Graphics/CnEdit.pas"/>
+        <Filename Value="../../Source/Graphic/CnEdit.pas"/>
         <UnitName Value="CnEdit"/>
       </Item99>
       <Item100>
@@ -442,7 +442,7 @@
         <UnitName Value="CnPropSheetFrm"/>
       </Item105>
       <Item106>
-        <Filename Value="../../Source/Graphics/CnWizardImage.pas"/>
+        <Filename Value="../../Source/Graphic/CnWizardImage.pas"/>
         <UnitName Value="CnWizardImage"/>
       </Item106>
       <Item107>

@@ -381,7 +381,7 @@ cnpack\Source 目录内容说明：
 
                 13 文件
 
-\Graphics －图像界面控件库目录
+\Graphic －图像界面控件库目录
 
   CnAACtrl.pas
     平滑特效字体控件单元

@@ -135,40 +135,40 @@
       ..\..\Source\DbReport\CnRunSqlUnit.obj 
       ..\..\Source\DbReport\CnSQLAnalyzer.obj 
       ..\..\Source\DbReport\CnXlsWriter.obj 
-      ..\..\Source\Graphics\CnAACtrls.obj 
-      ..\..\Source\Graphics\CnAAFont.obj 
-      ..\..\Source\Graphics\CnAAFontDialog.obj 
-      ..\..\Source\Graphics\CnAOTreeView.obj 
-      ..\..\Source\Graphics\CnAutoOption.obj 
-      ..\..\Source\Graphics\CnButtonEdit.obj 
-      ..\..\Source\Graphics\CnButtons.obj 
-      ..\..\Source\Graphics\CnCheckTreeView.obj 
-      ..\..\Source\Graphics\CnColorGrid.obj 
-      ..\..\Source\Graphics\CnEdit.obj 
-      ..\..\Source\Graphics\CnErrorProvider.obj 
-      ..\..\Source\Graphics\CnGauge.obj 
-      ..\..\Source\Graphics\CnGraphConsts.obj 
-      ..\..\Source\Graphics\CnGraphics.obj 
-      ..\..\Source\Graphics\CnHexEditor.obj 
-      ..\..\Source\Graphics\CnHint.obj 
-      ..\..\Source\Graphics\CnIconUtils.obj 
-      ..\..\Source\Graphics\CnImage.obj 
-      ..\..\Source\Graphics\CnLED.obj 
-      ..\..\Source\Graphics\CnListBox.obj 
-      ..\..\Source\Graphics\CnMemo.obj 
-      ..\..\Source\Graphics\CnMonthCalendar.obj 
-      ..\..\Source\Graphics\CnOpenGLPaintBox.obj 
-      ..\..\Source\Graphics\CnPanel.obj 
-      ..\..\Source\Graphics\CnShellCtrls.obj 
-      ..\..\Source\Graphics\CnSkinMagic.obj 
-      ..\..\Source\Graphics\CnSpin.obj 
-      ..\..\Source\Graphics\CnSplitter.obj 
-      ..\..\Source\Graphics\CnTabSet.obj 
-      ..\..\Source\Graphics\CnTextControl.obj 
-      ..\..\Source\Graphics\CnValidateImage.obj 
-      ..\..\Source\Graphics\CnWaterEffect.obj 
-      ..\..\Source\Graphics\CnWaterImage.obj 
-      ..\..\Source\Graphics\CnWizardImage.obj 
+      ..\..\Source\Graphic\CnAACtrls.obj 
+      ..\..\Source\Graphic\CnAAFont.obj 
+      ..\..\Source\Graphic\CnAAFontDialog.obj 
+      ..\..\Source\Graphic\CnAOTreeView.obj 
+      ..\..\Source\Graphic\CnAutoOption.obj 
+      ..\..\Source\Graphic\CnButtonEdit.obj 
+      ..\..\Source\Graphic\CnButtons.obj 
+      ..\..\Source\Graphic\CnCheckTreeView.obj 
+      ..\..\Source\Graphic\CnColorGrid.obj 
+      ..\..\Source\Graphic\CnEdit.obj 
+      ..\..\Source\Graphic\CnErrorProvider.obj 
+      ..\..\Source\Graphic\CnGauge.obj 
+      ..\..\Source\Graphic\CnGraphConsts.obj 
+      ..\..\Source\Graphic\CnGraphics.obj 
+      ..\..\Source\Graphic\CnHexEditor.obj 
+      ..\..\Source\Graphic\CnHint.obj 
+      ..\..\Source\Graphic\CnIconUtils.obj 
+      ..\..\Source\Graphic\CnImage.obj 
+      ..\..\Source\Graphic\CnLED.obj 
+      ..\..\Source\Graphic\CnListBox.obj 
+      ..\..\Source\Graphic\CnMemo.obj 
+      ..\..\Source\Graphic\CnMonthCalendar.obj 
+      ..\..\Source\Graphic\CnOpenGLPaintBox.obj 
+      ..\..\Source\Graphic\CnPanel.obj 
+      ..\..\Source\Graphic\CnShellCtrls.obj 
+      ..\..\Source\Graphic\CnSkinMagic.obj 
+      ..\..\Source\Graphic\CnSpin.obj 
+      ..\..\Source\Graphic\CnSplitter.obj 
+      ..\..\Source\Graphic\CnTabSet.obj 
+      ..\..\Source\Graphic\CnTextControl.obj 
+      ..\..\Source\Graphic\CnValidateImage.obj 
+      ..\..\Source\Graphic\CnWaterEffect.obj 
+      ..\..\Source\Graphic\CnWaterImage.obj 
+      ..\..\Source\Graphic\CnWizardImage.obj 
       ..\..\Source\MultiLang\CnHashIniFile.obj 
       ..\..\Source\MultiLang\CnHashLangStorage.obj 
       ..\..\Source\MultiLang\CnIniLangFileStorage.obj 
@@ -267,7 +267,7 @@
     <PACKAGES value="rtl.bpi vcl.bpi vclx.bpi dbrtl.bpi vcldb.bpi vclsmp.bpi adortl.bpi dsnap.bpi 
       bcbsmp.bpi bcbie.bpi"/>
     <PATHCPP value=".;"/>
-    <PATHPAS value=".;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;..\..\Source\Graphics;..\..\Source\MultiLang;..\..\Source\NetComm;..\..\Source\NonVisual"/>
+    <PATHPAS value=".;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;..\..\Source\Graphic;..\..\Source\MultiLang;..\..\Source\NetComm;..\..\Source\NonVisual"/>
     <PATHRC value=".;"/>
     <PATHASM value=".;"/>
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
@@ -276,14 +276,14 @@
     <USERDEFINES value="_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT;USEPACKAGES"/>
     <MAINSOURCE value="CnPack_CB6.cpp"/>
-    <INCLUDEPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib\psdk;$(BCB)\lib"/>
+    <INCLUDEPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphic;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphic;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib\psdk;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
     <OTHERFILES value=""/>
   </MACROS>
   <OPTIONS>
     <IDLCFLAGS value="-I..\..\Source\NonVisual -I..\..\Source\NetComm -I..\..\Source\MultiLang 
-      -I..\..\Source\Graphics -I..\..\Source\Common -I..\..\Source\Crypto -I..\..\Source\DbReport -I..\. -I..\Source\NonVisual 
+      -I..\..\Source\Graphic -I..\..\Source\Common -I..\..\Source\Crypto -I..\..\Source\DbReport -I..\. -I..\Source\NonVisual 
       -I$(BCB)\include -I$(BCB)\include\vcl -src_suffix cpp 
       -D_DEBUG -boa"/>
     <CFLAG1 value="-Od -H=$(BCB)\lib\vcl60.csm -Hc -Vx -Ve -X- -r- -a8 
@@ -434,40 +434,40 @@
       <FILE FILENAME="..\..\Source\DbReport\CnRunSqlUnit.pas" FORMNAME="" UNITNAME="CnRunSqlUnit" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\DbReport\CnSQLAnalyzer.pas" FORMNAME="" UNITNAME="CnSQLAnalyzer" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\DbReport\CnXlsWriter.pas" FORMNAME="" UNITNAME="CnXlsWriter" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnAACtrls.pas" FORMNAME="" UNITNAME="CnAACtrls" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnAAFont.pas" FORMNAME="" UNITNAME="CnAAFont" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnAAFontDialog.pas" FORMNAME="" UNITNAME="CnAAFontDialog" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnAOTreeView.pas" FORMNAME="" UNITNAME="CnAOTreeView" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnAutoOption.pas" FORMNAME="" UNITNAME="CnAutoOption" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnButtonEdit.pas" FORMNAME="" UNITNAME="CnButtonEdit" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnButtons.pas" FORMNAME="" UNITNAME="CnButtons" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnCheckTreeView.pas" FORMNAME="" UNITNAME="CnCheckTreeView" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnColorGrid.pas" FORMNAME="" UNITNAME="CnColorGrid" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnEdit.pas" FORMNAME="" UNITNAME="CnEdit" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnErrorProvider.pas" FORMNAME="" UNITNAME="CnErrorProvider" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnGauge.pas" FORMNAME="" UNITNAME="CnGauge" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnGraphConsts.pas" FORMNAME="" UNITNAME="CnGraphConsts" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnGraphics.pas" FORMNAME="" UNITNAME="CnGraphics" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnHexEditor.pas" FORMNAME="" UNITNAME="CnHexEditor" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnHint.pas" FORMNAME="" UNITNAME="CnHint" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnIconUtils.pas" FORMNAME="" UNITNAME="CnIconUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnImage.pas" FORMNAME="" UNITNAME="CnImage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnLED.pas" FORMNAME="" UNITNAME="CnLED" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnListBox.pas" FORMNAME="" UNITNAME="CnListBox" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnMemo.pas" FORMNAME="" UNITNAME="CnMemo" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnMonthCalendar.pas" FORMNAME="" UNITNAME="CnMonthCalendar" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnOpenGLPaintBox.pas" FORMNAME="" UNITNAME="CnOpenGLPaintBox" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnPanel.pas" FORMNAME="" UNITNAME="CnPanel" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnShellCtrls.pas" FORMNAME="" UNITNAME="CnShellCtrls" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnSkinMagic.pas" FORMNAME="" UNITNAME="CnSkinMagic" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnSpin.pas" FORMNAME="" UNITNAME="CnSpin" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnSplitter.pas" FORMNAME="" UNITNAME="CnSplitter" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnTabSet.pas" FORMNAME="" UNITNAME="CnTabSet" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnTextControl.pas" FORMNAME="" UNITNAME="CnTextControl" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnValidateImage.pas" FORMNAME="" UNITNAME="CnValidateImage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnWaterEffect.pas" FORMNAME="" UNITNAME="CnWaterEffect" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnWaterImage.pas" FORMNAME="" UNITNAME="CnWaterImage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\..\Source\Graphics\CnWizardImage.pas" FORMNAME="" UNITNAME="CnWizardImage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnAACtrls.pas" FORMNAME="" UNITNAME="CnAACtrls" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnAAFont.pas" FORMNAME="" UNITNAME="CnAAFont" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnAAFontDialog.pas" FORMNAME="" UNITNAME="CnAAFontDialog" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnAOTreeView.pas" FORMNAME="" UNITNAME="CnAOTreeView" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnAutoOption.pas" FORMNAME="" UNITNAME="CnAutoOption" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnButtonEdit.pas" FORMNAME="" UNITNAME="CnButtonEdit" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnButtons.pas" FORMNAME="" UNITNAME="CnButtons" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnCheckTreeView.pas" FORMNAME="" UNITNAME="CnCheckTreeView" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnColorGrid.pas" FORMNAME="" UNITNAME="CnColorGrid" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnEdit.pas" FORMNAME="" UNITNAME="CnEdit" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnErrorProvider.pas" FORMNAME="" UNITNAME="CnErrorProvider" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnGauge.pas" FORMNAME="" UNITNAME="CnGauge" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnGraphConsts.pas" FORMNAME="" UNITNAME="CnGraphConsts" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnGraphics.pas" FORMNAME="" UNITNAME="CnGraphics" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnHexEditor.pas" FORMNAME="" UNITNAME="CnHexEditor" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnHint.pas" FORMNAME="" UNITNAME="CnHint" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnIconUtils.pas" FORMNAME="" UNITNAME="CnIconUtils" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnImage.pas" FORMNAME="" UNITNAME="CnImage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnLED.pas" FORMNAME="" UNITNAME="CnLED" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnListBox.pas" FORMNAME="" UNITNAME="CnListBox" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnMemo.pas" FORMNAME="" UNITNAME="CnMemo" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnMonthCalendar.pas" FORMNAME="" UNITNAME="CnMonthCalendar" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnOpenGLPaintBox.pas" FORMNAME="" UNITNAME="CnOpenGLPaintBox" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnPanel.pas" FORMNAME="" UNITNAME="CnPanel" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnShellCtrls.pas" FORMNAME="" UNITNAME="CnShellCtrls" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnSkinMagic.pas" FORMNAME="" UNITNAME="CnSkinMagic" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnSpin.pas" FORMNAME="" UNITNAME="CnSpin" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnSplitter.pas" FORMNAME="" UNITNAME="CnSplitter" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnTabSet.pas" FORMNAME="" UNITNAME="CnTabSet" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnTextControl.pas" FORMNAME="" UNITNAME="CnTextControl" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnValidateImage.pas" FORMNAME="" UNITNAME="CnValidateImage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnWaterEffect.pas" FORMNAME="" UNITNAME="CnWaterEffect" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnWaterImage.pas" FORMNAME="" UNITNAME="CnWaterImage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnWizardImage.pas" FORMNAME="" UNITNAME="CnWizardImage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\MultiLang\CnHashIniFile.pas" FORMNAME="" UNITNAME="CnHashIniFile" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\MultiLang\CnHashLangStorage.pas" FORMNAME="" UNITNAME="CnHashLangStorage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\MultiLang\CnIniLangFileStorage.pas" FORMNAME="" UNITNAME="CnIniLangFileStorage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
@@ -597,11 +597,11 @@ Comments=
 
 [HistoryLists\hlIncludePath]
 Count=1
-Item0=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;$(BCB)\include;$(BCB)\include\vcl
+Item0=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphic;..\Source\Common;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
 Count=1
-Item0=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;$(BCB)\lib\obj;$(BCB)\lib
+Item0=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphic;..\Source\Common;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=1

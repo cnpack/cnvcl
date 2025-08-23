@@ -10,9 +10,9 @@
       ..\..\Source\DbReport\CnDBRegister.obj 
       ..\..\Source\DbReport\CnADOUpdateSQLEditor.obj 
       ..\..\Source\DbReport\CnADOUpdateSQLFrm.obj 
-      ..\..\Source\Graphics\CnGraphPropEditors.obj 
-      ..\..\Source\Graphics\CnGraphRegister.obj 
-      ..\..\Source\Graphics\CnAAFontEditor.obj 
+      ..\..\Source\Graphic\CnGraphPropEditors.obj 
+      ..\..\Source\Graphic\CnGraphRegister.obj 
+      ..\..\Source\Graphic\CnAAFontEditor.obj 
       ..\..\Source\MultiLang\CnLangEditors.obj 
       ..\..\Source\MultiLang\CnLangReg.obj 
       ..\..\Source\MultiLang\CnTransEditor.obj 
@@ -36,7 +36,7 @@
     <PACKAGES value="vcl50.bpi Vclx50.bpi Vcldb50.bpi dsnide50.bpi dclado50.bpi vclado50.bpi vclmid50.bpi 
       CnPack_CB5.bpi"/>
     <PATHCPP value=".;"/>
-    <PATHPAS value=".;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;..\..\Source\Graphics;..\..\Source\MultiLang;..\..\Source\NetComm;..\..\Source\NonVisual"/>
+    <PATHPAS value=".;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;..\..\Source\Graphic;..\..\Source\MultiLang;..\..\Source\NetComm;..\..\Source\NonVisual"/>
     <PATHRC value=".;"/>
     <PATHASM value=".;"/>
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
@@ -45,13 +45,13 @@
     <USERDEFINES value="_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT;USEPACKAGES"/>
     <MAINSOURCE value="dclCnPack_CB5.cpp"/>
-    <INCLUDEPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\source\toolsapi"/>
-    <LIBPATH value="$(BCB)\Projects\Lib;..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib;$(BCB)\source\toolsapi"/>
+    <INCLUDEPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphic;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\source\toolsapi"/>
+    <LIBPATH value="$(BCB)\Projects\Lib;..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphic;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib;$(BCB)\source\toolsapi"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
     <IDLCFLAGS value="-I..\..\Source\NonVisual -I..\..\Source\NetComm -I..\..\Source\MultiLang 
-      -I..\..\Source\Graphics -I..\..\Source\Common -I..\..\Source\Crypto -I..\..\Source\DbReport 
+      -I..\..\Source\Graphic -I..\..\Source\Common -I..\..\Source\Crypto -I..\..\Source\DbReport 
       -I$(BCB)\include -I$(BCB)\include\vcl -I$(BCB)\source\toolsapi -src_suffix 
       cpp -D_DEBUG -boa"/>
     <CFLAG1 value="-Od -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a8 -b- -k -y -v -vi- -c 
@@ -96,13 +96,13 @@ Comments=
 
 [HistoryLists\hlIncludePath]
 Count=2
-Item0=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\source\toolsapi
-Item1=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl
+Item0=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphic;..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\source\toolsapi
+Item1=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphic;..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
 Count=2
-Item0=$(BCB)\Projects\Lib;..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib;$(BCB)\source\toolsapi
-Item1=$(BCB)\Projects\Lib;..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib
+Item0=$(BCB)\Projects\Lib;..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphic;..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib;$(BCB)\source\toolsapi
+Item1=$(BCB)\Projects\Lib;..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphic;..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=1
