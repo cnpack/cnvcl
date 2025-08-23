@@ -3,8 +3,8 @@ program ProjectMemo;
 uses
   Forms,
   UnitMemo in 'UnitMemo.pas' {CnMemoForm},
-  CnMemo in '..\..\..\Source\Graphics\CnMemo.pas',
-  CnTextControl in '..\..\..\Source\Graphics\CnTextControl.pas';
+  CnMemo in '..\..\..\Source\Graphic\CnMemo.pas',
+  CnTextControl in '..\..\..\Source\Graphic\CnTextControl.pas';
 
 {$R *.RES}
 

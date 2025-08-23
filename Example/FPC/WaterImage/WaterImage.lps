@@ -23,7 +23,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Graphics\CnWaterImage.pas"/>
+        <Filename Value="..\..\..\Source\Graphic\CnWaterImage.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="343"/>
         <UsageCount Value="10"/>

@@ -43,7 +43,7 @@ OutputDir=
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\..\Source\Common;..\..\..\Source\Crypto;..\..\..\Source\NetComm;..\..\..\Source\Graphics
+SearchPath=..\..\..\Source\Common;..\..\..\Source\Crypto;..\..\..\Source\NetComm;..\..\..\Source\Graphic
 Packages=Vcl50;Vclx50;vclsmp50;Vcldb50;vclado50;ibevnt50;Vclbde50;vcldbx50;Qrpt50;TeeUI50;TeeDB50;Tee50;Dss50;TeeQR50;VCLIB50;Vclmid50;vclie50;Inetdb50;Inet50;NMFast50;webmid50;dclocx50;dclaxserver50;RxCtl5;AAFont_D5
 Conditionals=
 DebugSourceDirs=
@@ -81,8 +81,8 @@ Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
 Count=5
-Item0=..\..\..\Source\Common;..\..\..\Source\Crypto;..\..\..\Source\NetComm;..\..\..\Source\Graphics
-Item1=..\..\..\Source\NetComm;..\..\..\Source\Graphics
+Item0=..\..\..\Source\Common;..\..\..\Source\Crypto;..\..\..\Source\NetComm;..\..\..\Source\Graphic
+Item1=..\..\..\Source\NetComm;..\..\..\Source\Graphic
 Item2=..\..\..\Source\NetComm
 Item3=..\..\..\Source\Common;..\..\..\Source\Crypto
 Item4=..\Source\Common

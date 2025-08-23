@@ -3,7 +3,7 @@ program TabSet;
 uses
   Forms,
   TabSetUnit in 'TabSetUnit.pas' {FormTabSet},
-  CnTabSet in '..\..\..\Source\Graphics\CnTabSet.pas';
+  CnTabSet in '..\..\..\Source\Graphic\CnTabSet.pas';
 
 {$R *.RES}
 

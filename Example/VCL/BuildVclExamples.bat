@@ -58,7 +58,7 @@ REM 删除编译中的临时文件
   DEL *.dcu 2> NUL
   DEL ..\..\..\Source\Crypto\*.dcu 2> NUL
   DEL ..\..\..\Source\Common\*.dcu 2> NUL
-  DEL ..\..\..\Source\Graphics\*.dcu 2> NUL
+  DEL ..\..\..\Source\Graphic\*.dcu 2> NUL
   DEL ..\..\..\Source\DbReport\*.dcu 2> NUL
   DEL ..\..\..\Source\NetComm\*.dcu 2> NUL
   DEL ..\..\..\Source\NonVisual\*.dcu 2> NUL

@@ -3,7 +3,7 @@ program CnGLPaintBox;
 uses
   Forms,
   CnGLPaintBoxDemo in 'CnGLPaintBoxDemo.pas' {frmMain},
-  CnOpenGLPaintBox in '..\..\..\Source\Graphics\CnOpenGLPaintBox.pas';
+  CnOpenGLPaintBox in '..\..\..\Source\Graphic\CnOpenGLPaintBox.pas';
 
 {$R *.res}
 

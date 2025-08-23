@@ -3,11 +3,11 @@ program LEDSample;
 uses
   Forms,
   UFrmMain in 'UFrmMain.pas' {FrmMain},
-  CnLED in '..\..\..\Source\Graphics\CnLED.pas',
-  CnAutoOption in '..\..\..\Source\Graphics\CnAutoOption.pas',
-  CnAOTreeView in '..\..\..\Source\Graphics\CnAOTreeView.pas',
-  CnSpin in '..\..\..\Source\Graphics\CnSpin.pas',
-  CnGraphConsts in '..\..\..\Source\Graphics\CnGraphConsts.pas';
+  CnLED in '..\..\..\Source\Graphic\CnLED.pas',
+  CnAutoOption in '..\..\..\Source\Graphic\CnAutoOption.pas',
+  CnAOTreeView in '..\..\..\Source\Graphic\CnAOTreeView.pas',
+  CnSpin in '..\..\..\Source\Graphic\CnSpin.pas',
+  CnGraphConsts in '..\..\..\Source\Graphic\CnGraphConsts.pas';
 
 {$R *.res}
 

@@ -48,9 +48,9 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source\Common;..\..\..\Source\Graphics;..\..\..\Source\Crypto;$(ProjOutDir)"/>
-      <Libraries Value="..\..\..\Source\Common;..\..\..\Source\Graphics;..\..\..\Source\Crypto"/>
-      <OtherUnitFiles Value="..\..\..\Source\Common;..\..\..\Source\Graphics;..\..\..\Source\Crypto"/>
+      <IncludeFiles Value="..\..\..\Source\Common;..\..\..\Source\Graphic;..\..\..\Source\Crypto;$(ProjOutDir)"/>
+      <Libraries Value="..\..\..\Source\Common;..\..\..\Source\Graphic;..\..\..\Source\Crypto"/>
+      <OtherUnitFiles Value="..\..\..\Source\Common;..\..\..\Source\Graphic;..\..\..\Source\Crypto"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       <ObjectPath Value="..\..\..\Source\Common"/>
     </SearchPaths>

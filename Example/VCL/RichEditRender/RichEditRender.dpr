@@ -3,7 +3,7 @@ program RichEditRender;
 uses
   Forms,
   UnitRender in 'UnitRender.pas' {FormRender},
-  CnRichEdit in '..\..\..\Source\Graphics\CnRichEdit.pas';
+  CnRichEdit in '..\..\..\Source\Graphic\CnRichEdit.pas';
 
 {$R *.RES}
 
