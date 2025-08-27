@@ -7121,9 +7121,6 @@ end;
 procedure SelectMemoOneLine(AMemo: TMemo; FromLine: Integer);
 var
   L, I: Integer;
-{$IFDEF DELPHI2007}
-  J, Len: Integer;
-{$ENDIF}
 begin
   if AMemo = nil then
     Exit;
@@ -7133,17 +7130,17 @@ begin
     L := 0;
     for I := 0 to FromLine - 1 do
     begin
-{$IFDEF DELPHI2007}
-      Len := Length(AMemo.Lines[I]);
-      for J := 0 to Length(AMemo.Lines[I]) - 1 do
-      begin
-        if Ord(AMemo.Lines[I][J]) < 128 then
-          Inc(Len);
-      end;
-      Len := Len div 2;
-      L := L + Len + 2;
+{$IFDEF LAZARUS}
+      // Lazarus 下内容是 Utf8，需要转换成 Ansi 宽度
+      L := L + Length(CnUtf8ToAnsi2(AMemo.Lines[I])) + 2;
 {$ELSE}
+{$IFDEF DELPHI2007}
+      // D2007 的 IDE 中特殊，在 Ansi 模式使用 Utf16 宽度。注意普通程序无需如此。
+      L := L + Length(WideString(AMemo.Lines[I])) + 2;
+{$ELSE}
+      // D 5 6 7 2005 2006 下 Ansi 用 Ansi 模式，D2009 或以上 Utf16 模式，均无问题
       L := L + Length(AMemo.Lines[I]) + 2;
+{$ENDIF}
 {$ENDIF}
     end;
 
