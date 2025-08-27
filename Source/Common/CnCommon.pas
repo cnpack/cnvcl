@@ -7130,9 +7130,9 @@ begin
     L := 0;
     for I := 0 to FromLine - 1 do
     begin
-{$IFDEF LAZARUS}
-      // Lazarus 下内容是 Utf8，需要转换成 Ansi 宽度
-      L := L + Length(CnUtf8ToAnsi2(AMemo.Lines[I])) + 2;
+{$IFDEF FPC}
+      // Lazarus 下内容是 Utf8，需要转换成 UTF16 宽度
+      L := L + Length(UnicodeString(AMemo.Lines[I])) + 2;
 {$ELSE}
 {$IFDEF DELPHI2007}
       // D2007 的 IDE 中特殊，在 Ansi 模式使用 Utf16 宽度。注意普通程序无需如此。
