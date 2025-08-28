@@ -151,9 +151,9 @@ type
     {* 本机 IP 地址数，已经排除 127.0.0.1}
 
     property LocalIPv6Group: TCnIPv6Group read FLocalIPv6s;
-    {* 本机 IPv6 地址相关信息，包含本机实际 IPv6}
+    {* 本机 IPv6 地址相关信息，包含本机实际 IPv6 及环回地址}
     property LocalIPv6Count: Integer read GetLocalIPv6Count;
-    {* 本机 IPv6 地址数}
+    {* 本机 IPv6 地址数，已经排除环回地址}
 
     class function IPTypeCheck(const aIP: string): TCnIPv4NetType;
     {* 检查 IP 地址类型以及是否合法}
