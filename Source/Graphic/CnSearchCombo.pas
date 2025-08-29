@@ -22,7 +22,7 @@ unit CnSearchCombo;
 {* |<PRE>
 ================================================================================
 * 软件名称：界面控件包
-* 单元名称：下拉框搜索控件单元
+* 单元名称：下拉框搜索控件单元，注意滚轮滚动效果在 FPC 下无效。
 * 单元作者：CnPack 开发组
 * 备    注：从专家包中独立而来
 * 开发平台：Win7 + Delphi 7.0
@@ -39,7 +39,8 @@ interface
 
 uses
   SysUtils, Classes, Windows, Messages, Graphics, Forms, Controls, StdCtrls, Math,
-  Menus, AppEvnts, CnContainers, CnStrings, CnEdit;
+  Menus, {$IFDEF FPC} LCLType, {$ELSE} AppEvnts, {$ENDIF} CnContainers, CnStrings,
+  CnEdit;
 
 type
   TCnItemHintEvent = procedure (Sender: TObject; Index: Integer;
@@ -69,8 +70,9 @@ type
   protected
     procedure CreateParams(var Params: TCreateParams); override;
     procedure CreateWnd; override;
-
+{$IFNDEF FPC}
     function CanResize(var NewWidth, NewHeight: Integer): Boolean; override;
+{$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -147,7 +149,9 @@ type
     FDisableChange: Boolean;
     FOnKillFocus: TNotifyEvent;
     FDropDownList: TCnDropDownBox;
+{$IFNDEF FPC}
     FEvents: TApplicationEvents;
+{$ENDIF}
     FOnSelect: TNotifyEvent;
     procedure DropDownListDblClick(Sender: TObject);
     procedure DropDownListClick(Sender: TObject);
@@ -242,12 +246,16 @@ begin
   Result := Max((AHeight - BorderSize) div ItemHeight, 4) * ItemHeight + BorderSize;
 end;
 
+{$IFNDEF FPC}
+
 function TCnFloatListBox.CanResize(var NewWidth,
   NewHeight: Integer): Boolean;
 begin
   NewHeight := AdjustHeight(NewHeight);
   Result := True;
 end;
+
+{$ENDIF}
 
 procedure TCnFloatListBox.CloseUp;
 begin
@@ -265,7 +273,11 @@ var
 begin
   with Message.DrawItemStruct^ do
   begin
+{$IFDEF FPC}
+    State := TOwnerDrawState(itemState);
+{$ELSE}
     State := TOwnerDrawState(LongRec(itemState).Lo);
+{$ENDIF}
     Canvas.Handle := hDC;
     Canvas.Font := Font;
     Canvas.Brush := Brush;
@@ -504,11 +516,14 @@ end;
 procedure TCnDropDownBox.MouseMove(Shift: TShiftState; X, Y: Integer);
 var
   Index: Integer;
+  P: TPoint;
 begin
   inherited;
   if Shift = [] then
   begin
-    Index := ItemAtPos(Point(X, Y), True);
+    P.X := X;
+    P.Y := Y;
+    Index := ItemAtPos(P, True);
     if Index <> FLastItem then
     begin
       FLastItem := Index;
@@ -525,7 +540,7 @@ begin
             ;
           end;
         end;
-        Application.ActivateHint(ClientToScreen(Point(X, Y)));
+        Application.ActivateHint(ClientToScreen(P));
       end;
     end;
   end;
@@ -781,13 +796,17 @@ begin
   // 注意上下移动选中时也会触发，不光是单击
   // 所以要用 FDisableClickFlag 来控制限制在后者范围内
 
+{$IFNDEF FPC}
   FEvents := TApplicationEvents.Create(nil);
   FEvents.OnMessage := ApplicationMessage;
+{$ENDIF}
 end;
 
 destructor TCnSearchComboBox.Destroy;
 begin
+{$IFNDEF FPC}
   FEvents.Free;
+{$ENDIF}
   inherited;
 end;
 
