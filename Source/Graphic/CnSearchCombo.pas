@@ -312,6 +312,10 @@ begin
   FShadow := True;
   InitOriginalColors;
 
+{$IFDEF FPC}
+  ItemHeight := 16;
+{$ENDIF}
+
   ShowHint := True;
   Font.Name := 'Tahoma';
   Font.Size := 8;
@@ -778,7 +782,9 @@ var
 begin
   ShiftState := KeyDataToShiftState(Message.KeyData);
   AShortCut := ShortCut(Message.CharCode, ShiftState);
+{$IFNDEF FPC}
   Message.Result := 1;
+{$ENDIF}
   if not HandleEditShortCut(Self, AShortCut) then
     inherited;
 end;
