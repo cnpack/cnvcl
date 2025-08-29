@@ -570,8 +570,10 @@ begin
         PaintWindow(DC);
       end;
 
-      // TR 是整个区域，绘制文字
-      TextRect(TR, L, Margins.Y, S);
+{$IFDEF FPC}
+      if FLinkStyle = lsNone then // FPC 下貌似 Windows 编辑框会自行绘制内容，此处无需绘制
+{$ENDIF}
+        TextRect(TR, L, Margins.Y, S); // TR 是整个区域，绘制文字
 
       // 左右对齐时有 Padding 就让自绘 Padding
       if (FPaddingWidth > 0) and (FAlignment in [taLeftJustify, taRightJustify]) then
