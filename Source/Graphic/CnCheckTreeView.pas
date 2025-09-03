@@ -60,8 +60,10 @@ type
   TCnStateChangeEvent = procedure (Sender: TObject; Node: TTreeNode;
     OldState, NewState: TCheckBoxState) of object;
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnCheckTreeView = class(TTreeView)
   private
@@ -119,11 +121,28 @@ implementation
 { TCnCheckTreeView }
 
 constructor TCnCheckTreeView.Create(AOwner: TComponent);
+{$IFDEF FPC}
+var
+  Bmp: TBitmap;
+{$ENDIF}
 begin
   inherited;
   FStateImages := TImageList.CreateSize(16, 16);
+{$IFDEF FPC}
+  FStateImages.Masked := True;
+  FStateImages.BkColor := clFuchsia;
+
+  Bmp := TBitmap.Create;
+  try
+    Bmp.LoadFromResourceName(hInstance, 'CNTREEVIEWSTATE');
+    FStateImages.AddSliced(Bmp, Bmp.Width div FStateImages.Width, 1);
+  finally
+    Bmp.Free;
+  end;
+{$ELSE}
   FStateImages.Handle := ImageList_LoadBitmap(hInstance, 'CNTREEVIEWSTATE',
     16, 0, clFuchsia);
+{$ENDIF}
   StateImages := FStateImages;
 
 {$IFDEF DELPHI120_ATHENS_UP}
@@ -170,6 +189,7 @@ begin
   begin
     OldState := TCheckBoxState(Node.StateIndex - 1);
     Node.StateIndex := Ord(Value) + 1;
+
     if FUpdateCount = 0 then
     begin
       SyncChildNode(Node);
@@ -241,6 +261,7 @@ var
       SelCount := 0;
       UnSelCount := 0;
       Count := 0;
+
       while ChildNode <> nil do
       begin
         if DoSyncNodeState(ChildNode) = cbChecked then
@@ -285,10 +306,11 @@ var
   ParentNode: TTreeNode;
 begin
   if Node.StateIndex <> Ord(cbGrayed) + 1 then
+  begin
     for I := 0 to Node.Count - 1 do
     begin
-      // 同步的子节点Node.Item[I]必须是有 Check 框类型的节点
-      if TCheckBoxState(Node.Item[I].StateIndex - 1) in [cbUnchecked, cbChecked, cbGrayed] then
+      // 同步的子节点 Node[I] 必须是有 Check 框类型的节点
+      if TCheckBoxState(Node[I].StateIndex - 1) in [cbUnchecked, cbChecked, cbGrayed] then
       begin
         ParentNode := Node;
         if not (TCheckBoxState(Node.StateIndex - 1) in [cbUnchecked, cbChecked, cbGrayed]) then
@@ -299,15 +321,16 @@ begin
           begin
             ParentNode := ParentNode.Parent;
           end;
-          Node.Item[I].StateIndex := ParentNode.StateIndex;
+          Node[I].StateIndex := ParentNode.StateIndex;
         end else
         begin
           // 如果当前节点 Node 的状态有 Check 框的，直接同步
-          Node.Item[I].StateIndex := Node.StateIndex;
+          Node[I].StateIndex := Node.StateIndex;
         end;
       end;
-      SyncChildNode(Node.Item[I]);
+      SyncChildNode(Node[I]);
     end;
+  end;
 end;
 
 // 同步父节点状态, 父节点拷贝子节点状态
@@ -343,7 +366,7 @@ var
     begin
       for I:= 0 to Node.Count - 1 do
       begin
-        CheckNode(Node.Item[I]);
+        CheckNode(Node[I]);
       end;
     end;
   end;
@@ -356,6 +379,7 @@ begin
     UnSelCount := 0;
     Count := 0;
     ChildNode := ParentNode.GetFirstChild;
+
     while ChildNode <> nil do
     begin
       // 检查 Check 状态不能用 GetCheckBoxState 了。
@@ -591,6 +615,7 @@ begin
   if FCanDisableNode <> Value then
   begin
     FCanDisableNode := Value;
+
     if not Value then // 禁止使用 NodeEnable 属性时，恢复所有 Enabled 的 Node
     begin
       BeginUpdate;
