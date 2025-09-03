@@ -20,7 +20,7 @@
         </OtherDefines>
       </Other>
     </CompilerOptions>
-    <Files Count="109">
+    <Files Count="110">
       <Item1>
         <Filename Value="../../Source/Crypto/CnAES.pas"/>
         <UnitName Value="CnAES"/>
@@ -457,6 +457,10 @@
         <Filename Value="../../Source/Crypto/CnAEAD.pas"/>
         <UnitName Value="CnAEAD"/>
       </Item109>
+      <Item110>
+        <Filename Value="../../Source/Graphic/CnCheckTreeView.pas"/>
+        <UnitName Value="CnCheckTreeView"/>
+      </Item110>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

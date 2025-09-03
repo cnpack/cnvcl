@@ -25,7 +25,7 @@ uses
   CnBinaryDiffPatch, CnEventBus, CnVarList, CnAACtrls, CnAAFont, 
   CnAAFontDialog, CnSpin, CnPanel, CnEdit, CnActionListHook, CnControlHook, 
   CnEventHook, CnInetUtils, CnDebug, CnPropSheetFrm, CnWizardImage, 
-  CnFormScaler, CnRTL, CnAEAD;
+  CnFormScaler, CnRTL, CnAEAD, CnCheckTreeView;
 
 implementation
 

@@ -34,7 +34,9 @@ unit CnCheckTreeView;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2008.04.10 V1.2
+* 修改记录：2025.09.03 V1.3
+*               支持 FPC
+*           2008.04.10 V1.2
 *               修改 SyncParentNode、SyncChildNode 函数，
 *               使其在有 CheckBox 的时候才会同步节点的状态 by Jackson.He
 *               增加一方法 HideCheckBox 用来隐藏某节点的复选框
@@ -128,13 +130,13 @@ var
 begin
   inherited;
   FStateImages := TImageList.CreateSize(16, 16);
-{$IFDEF FPC}
-  FStateImages.Masked := True;
-  FStateImages.BkColor := clFuchsia;
 
+{$IFDEF FPC}
   Bmp := TBitmap.Create;
   try
     Bmp.LoadFromResourceName(hInstance, 'CNTREEVIEWSTATE');
+    Bmp.TransparentColor:= clFuchsia;
+    Bmp.Transparent := True;
     FStateImages.AddSliced(Bmp, Bmp.Width div FStateImages.Width, 1);
   finally
     Bmp.Free;
@@ -143,6 +145,7 @@ begin
   FStateImages.Handle := ImageList_LoadBitmap(hInstance, 'CNTREEVIEWSTATE',
     16, 0, clFuchsia);
 {$ENDIF}
+
   StateImages := FStateImages;
 
 {$IFDEF DELPHI120_ATHENS_UP}
