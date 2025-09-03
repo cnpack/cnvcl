@@ -43,7 +43,8 @@ uses
   {$IFDEF COMPILER6_UP} DesignIntf, DesignEditors, {$ELSE} DsgnIntf, {$ENDIF}
   {$ENDIF}
   CnConsts, {$IFNDEF FPC} CnGraphics, CnImage, CnGraphPropEditors, CnCheckTreeView,
-  CnWizardImage, CnShellCtrls, {$ENDIF} CnWaterImage, CnPanel, CnEdit, CnSpin,
+  CnWizardImage, CnShellCtrls, {$ENDIF}
+  CnWaterImage, CnPanel, CnEdit, CnSpin, CnCheckTreeView,
   {$IFNDEF FPC} CnAOTreeView, CnAACtrls,
   CnAAFont, CnAAFontEditor, CnAAFontDialog, CnTabSet, CnButtonEdit,
   CnSkinMagic, CnButtons, CnHint, CnGauge, CnListBox, CnColorGrid,
