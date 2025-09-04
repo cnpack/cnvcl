@@ -197,6 +197,7 @@ begin
     begin
       SyncChildNode(Node);
       SyncParentNode(Node);
+
       if Assigned(FOnStateChange) then
         FOnStateChange(Self, Node, OldState, Value);
     end;      
@@ -291,12 +292,11 @@ var
       end;
     end
     else if not (Node.StateIndex in [1..3]) then
-    begin
       Node.StateIndex := Ord(cbUnchecked) + 1;
-    end;
 
     Result := GetCheckBoxState(Node);
   end;
+
 begin
   for I := 0 to Items.Count - 1 do
     DoSyncNodeState(Items[I]);
@@ -321,15 +321,12 @@ begin
           // 如果当前节点 Node 的状态是没有 Check 框的，则必须往上找有 Check 框的父节点的状态
           while (ParentNode <> Items.Item[0]) and
             (not (TCheckBoxState(ParentNode.StateIndex - 1) in [cbUnchecked, cbChecked, cbGrayed])) do
-          begin
             ParentNode := ParentNode.Parent;
-          end;
+
           Node[I].StateIndex := ParentNode.StateIndex;
-        end else
-        begin
-          // 如果当前节点 Node 的状态有 Check 框的，直接同步
-          Node[I].StateIndex := Node.StateIndex;
-        end;
+        end
+        else
+          Node[I].StateIndex := Node.StateIndex; // 如果当前节点 Node 的状态有 Check 框的，直接同步
       end;
       SyncChildNode(Node[I]);
     end;
@@ -367,10 +364,8 @@ var
 
     if Node.HasChildren then
     begin
-      for I:= 0 to Node.Count - 1 do
-      begin
+      for I := 0 to Node.Count - 1 do
         CheckNode(Node[I]);
-      end;
     end;
   end;
 
@@ -387,13 +382,10 @@ begin
     begin
       // 检查 Check 状态不能用 GetCheckBoxState 了。
       if TCheckBoxState(ChildNode.StateIndex - 1) = cbChecked then
-      begin
-        Inc(SelCount);
-      // 检查 Check 状态不能用 GetCheckBoxState 了。
-      end else if TCheckBoxState(ChildNode.StateIndex - 1) = cbUnchecked then
-      begin
-        Inc(UnSelCount);
-      end else if not (TCheckBoxState(ChildNode.StateIndex - 1) in [cbUnchecked, cbChecked, cbGrayed]) then
+        Inc(SelCount)  // 检查 Check 状态不能用 GetCheckBoxState 了。
+      else if TCheckBoxState(ChildNode.StateIndex - 1) = cbUnchecked then
+        Inc(UnSelCount)
+      else if not (TCheckBoxState(ChildNode.StateIndex - 1) in [cbUnchecked, cbChecked, cbGrayed]) then
       begin
         // 如果 ChildNode 节点是没有 Check 框的，
         // 则需要看有 Check 节点的总数以及有 Check 框没有选中的总数以及选中的总数状态
@@ -402,15 +394,12 @@ begin
         SubCount := 0;
         CheckNode(ChildNode);
         if SubUnSelCount = SubCount then
-        begin
           Inc(UnSelCount);
-        end;
 
         if SubSelCount = SubCount then
-        begin
           Inc(SelCount);
-        end;
       end;
+
       Inc(Count);
       ChildNode := ParentNode.GetNextChild(ChildNode);
     end;
@@ -419,23 +408,18 @@ begin
     begin
       if (ParentNode.StateIndex <> Ord(cbChecked) + 1) and
         (TCheckBoxState(ParentNode.StateIndex - 1) in [cbUnchecked, cbChecked, cbGrayed]) then
-      begin
         ParentNode.StateIndex := Ord(cbChecked) + 1;
-      end;
     end
     else if UnSelCount = Count then
     begin
       if (ParentNode.StateIndex <> Ord(cbUnchecked) + 1) and
-         (TCheckBoxState(ParentNode.StateIndex - 1) in [cbUnchecked, cbChecked, cbGrayed]) then
-      begin
+        (TCheckBoxState(ParentNode.StateIndex - 1) in [cbUnchecked, cbChecked, cbGrayed]) then
         ParentNode.StateIndex := Ord(cbUnchecked) + 1;
-      end;
     end
     else if (ParentNode.StateIndex <> Ord(cbGrayed) + 1) and
       (TCheckBoxState(ParentNode.StateIndex - 1) in [cbUnchecked, cbChecked, cbGrayed]) then
-    begin
       ParentNode.StateIndex := Ord(cbGrayed) + 1;
-    end;
+
     SyncParentNode(ParentNode);
   end;
 end;
@@ -488,6 +472,7 @@ begin
   Items.BeginUpdate;
   try
     Node := Items.GetFirstNode;
+
     while Node <> nil do
     begin
       Node.StateIndex := Ord(cbChecked) + 1;
@@ -505,6 +490,7 @@ begin
   Items.BeginUpdate;
   try
     Node := Items.GetFirstNode;
+
     while Node <> nil do
     begin
       Node.StateIndex := Ord(cbUnchecked) + 1;
@@ -522,6 +508,7 @@ begin
   Items.BeginUpdate;
   try
     Node := Items.GetFirstNode;
+
     while Node <> nil do
     begin
       if Node.StateIndex = Ord(cbUnchecked) + 1 then
