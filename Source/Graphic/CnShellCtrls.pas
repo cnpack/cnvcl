@@ -284,8 +284,10 @@ type
     property OnChange: TThreadMethod read FOnChange write SetOnChange;
   end;
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnShellChangeNotifier = class(TCnCustomShellChangeNotifier)
   published
@@ -331,7 +333,10 @@ type
     procedure SetPathFromID(ID: PItemIDList);
     procedure SetRoot(const Value: TRoot);
     procedure SetUseShellImages(const Value: Boolean);
-    procedure SetAutoRefresh(const Value: boolean);
+    procedure SetAutoRefresh(const Value: Boolean);
+{$IFDEF FPC}
+    function TreeSortInternalMethod(Node1, Node2: TTreeNode): Integer;
+{$ENDIF}
   protected
     function CanChange(Node: TTreeNode): Boolean; override;
     function CanExpand(Node: TTreeNode): Boolean; override;
@@ -339,7 +344,9 @@ type
     procedure CreateWnd; override;
     procedure DestroyWnd; override;
     procedure DoContextPopup(MousePos: TPoint; var Handled: Boolean); override;
+{$IFNDEF FPC}
     procedure Edit(const Item: TTVItem); override;
+{$ENDIF}
     procedure GetImageIndex(Node: TTreeNode); override;
     procedure GetSelectedIndex(Node: TTreeNode); override;
     procedure InitNode(NewNode: TTreeNode; ID: PItemIDList; ParentNode: TTreeNode);
@@ -377,8 +384,10 @@ type
 
 { TCnShellTreeView }
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnShellTreeView = class(TCnCustomShellTreeView)
   published
@@ -392,9 +401,13 @@ type
     property Anchors;
     property AutoRefresh;
     property BorderStyle;
+{$IFNDEF FPC}
     property ChangeDelay;
+{$ENDIF}
     property Color;
+{$IFNDEF FPC}
     property Ctl3D;
+{$ENDIF}
     property Cursor;
     property DragCursor;
     property DragMode;
@@ -404,7 +417,9 @@ type
     property Images;
     property Indent;
     property ParentColor;
+{$IFNDEF FPC}
     property ParentCtl3D;
+{$ENDIF}
     property ParentFont;
     property ParentShowHint;
     property PopupMenu;
@@ -486,14 +501,18 @@ type
     procedure DblClick; override;
     procedure DoContextPopup(MousePos: TPoint; var Handled: Boolean); override;
     procedure EditText;
+{$IFNDEF FPC}
     procedure Edit(const Item: TLVItem); override;
+{$ENDIF}
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
     procedure Loaded; override;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+{$IFNDEF FPC}
     function OwnerDataFetch(Item: TListItem; Request: TItemRequest): Boolean; override;
     function OwnerDataFind(Find: TItemFind; const FindString: string;
       const FindPosition: TPoint; FindData: Pointer; StartIndex: Integer;
       Direction: TSearchDirection; Wrap: Boolean): Integer; override;
+{$ENDIF}
     procedure Populate; virtual;
     procedure RootChanged;
     procedure SetObjectTypes(Value: TShellObjectTypes);
@@ -529,8 +548,10 @@ type
 
 { TCnShellListView }
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnShellListView = class(TCnCustomShellListView)
   published
@@ -549,7 +570,9 @@ type
     property ColumnClick;
     property OnClick;
     property OnDblClick;
+{$IFNDEF FPC}
     property Ctl3D;
+{$ENDIF}
     property DragMode;
     property ReadOnly default True;
     property Enabled;
@@ -598,7 +621,7 @@ procedure InvokeContextMenu(Owner: TWinControl; AFolder: TShellFolder; X, Y: Int
 implementation
 
 uses
-  ShellAPI, ComObj, TypInfo, Menus, Consts, Math, CnCommon;
+  ShellAPI, ComObj, TypInfo, Menus, {$IFNDEF FPC} Consts, {$ENDIF} Math, CnCommon;
 
 resourcestring
   SShellDefaultNameStr = 'Name';
@@ -1422,7 +1445,11 @@ begin
     lpIDList := AbsoluteID;
     nShow := SW_SHOW;
   end;
+{$IFDEF FPC}
+  Result := Integer(ShellExecuteEx(LPSHELLEXECUTEINFO(@SEI)));
+{$ELSE}
   Result := Integer(ShellExecuteEx(@SEI));
+{$ENDIF}
 end;
 
 { TCnCustomShellChangeNotifier }
@@ -1668,7 +1695,7 @@ begin
   inherited;
 end;
 
-procedure TCnCustomShellTreeView.CommandCompleted(Verb: String;
+procedure TCnCustomShellTreeView.CommandCompleted(Verb: string;
   Succeeded: Boolean);
 var
   Fldr : TShellFolder;
@@ -1693,7 +1720,7 @@ begin
   end;
 end;
 
-procedure TCnCustomShellTreeView.ExecuteCommand(Verb: String;
+procedure TCnCustomShellTreeView.ExecuteCommand(Verb: string;
   var Handled: Boolean);
 var
   szPath: array[0..MAX_PATH] of char;
@@ -1776,7 +1803,11 @@ begin
       InitNode(NewNode, ID, Node);
     end;
 
+{$IFDEF FPC}
+    Node.CustomSort(TreeSortInternalMethod);
+{$ELSE}
     Node.CustomSort(@TreeSortFunc, 0);
+{$ENDIF}
   finally
     Items.EndUpdate;
     Screen.Cursor := SaveCursor;
@@ -1854,6 +1885,8 @@ begin
   Node.HasChildren := Node.Count > 0;
 end;
 
+{$IFNDEF FPC}
+
 procedure TCnCustomShellTreeView.Edit(const Item: TTVItem);
 var
   S: string;
@@ -1871,6 +1904,8 @@ begin
     end;
   end;
 end;
+
+{$ENDIF}
 
 function TCnCustomShellTreeView.NodeFromRelativeID(ParentNode: TTreeNode; ID: PItemIDList): TTreeNode;
 var
@@ -2075,7 +2110,7 @@ begin
   if Selected <> nil then Result := TShellFolder(Selected.Data);
 end;
 
-function TCnCustomShellTreeView.GetPath: String;
+function TCnCustomShellTreeView.GetPath: string;
 begin
   if SelectedFolder <> nil then
     Result := SelectedFolder.PathName
@@ -2257,7 +2292,7 @@ begin
   FListView := Value;
 end;
 
-procedure TCnCustomShellTreeView.SetAutoRefresh(const Value: boolean);
+procedure TCnCustomShellTreeView.SetAutoRefresh(const Value: Boolean);
 begin
   FAutoRefresh := Value;
   if not (csLoading in ComponentState) then
@@ -2279,6 +2314,14 @@ begin
   end;
 end;
 
+{$IFDEF FPC}
+
+function TCnCustomShellTreeView.TreeSortInternalMethod(Node1, Node2: TTreeNode): Integer;
+begin
+  Result := TreeSortFunc(Node1, Node2, 0);
+end;
+
+{$ENDIF}
 var
   CompareFolder: TShellFolder = nil;
 
@@ -2521,6 +2564,8 @@ begin
     ListView_EditLabel(Handle, Selected.Index);
 end;
 
+{$IFNDEF FPC}
+
 procedure TCnCustomShellListView.Edit(const Item: TLVItem);
 var
   S: string;
@@ -2536,6 +2581,8 @@ begin
     end;
   end;
 end;
+
+{$ENDIF}
 
 procedure TCnCustomShellListView.SetAutoRefresh(const Value: Boolean);
 begin
@@ -2575,6 +2622,8 @@ begin
     Result := Folders[Selected.Index];
 end;
 
+{$IFNDEF FPC}
+
 function TCnCustomShellListView.OwnerDataFetch(Item: TListItem;
   Request: TItemRequest): Boolean;
 var
@@ -2598,10 +2647,14 @@ begin
     Item.SubItems.Add(AFolder.Details[J]);
 end;
 
+{$ENDIF}
+
 function TCnCustomShellListView.GetFolder(Index: Integer): TShellFolder;
 begin
   Result := TShellFolder(FFolders[Index]);
 end;
+
+{$IFNDEF FPC}
 
 function TCnCustomShellListView.OwnerDataFind(Find: TItemFind;
   const FindString: string; const FindPosition: TPoint; FindData: Pointer;
@@ -2630,6 +2683,8 @@ begin
       Result := I - 1;
   end;
 end;
+
+{$ENDIF}
 
 procedure TCnCustomShellListView.SetSorted(const Value: Boolean);
 begin
