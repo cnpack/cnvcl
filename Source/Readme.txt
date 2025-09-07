@@ -5,6 +5,12 @@ cnpack\Source 目录内容说明：
   CnAntiCheater.pas
     使用内存变换防明文搜索的工具类
 
+  CnBigDecimal.pas
+    无限精度小数实现单元
+
+  CnBigRational.pas
+    无限精度有理数实现单元
+
   CnBinaryDiffPatch.pas
     二进制差分与合并算法实现单元
 
@@ -53,6 +59,9 @@ cnpack\Source 目录内容说明：
   CnEventHook.pas
     事件挂接的实现单元
 
+  CnFileUtils.pas
+    文件操作工具单元
+
   CnFitCurve.pas
     曲线拟合实现单元
 
@@ -88,6 +97,9 @@ cnpack\Source 目录内容说明：
 
   CnIniStrUtils.pas
     扩展的 INI 访问的字符串处理
+
+  CnJSON.pas
+    JSON 格式数据处理单元
 
   CnLockFree.pas
     无锁数据结构实现单元
@@ -146,6 +158,9 @@ cnpack\Source 目录内容说明：
   CnRopes.pas
     Ropes 数据结构实现单元
 
+  CnRPC.pas
+    JSON-RPC 2.0 解析与组装单元
+
   CnRTL.pas
     运行期异常捕捉实现单元
 
@@ -203,7 +218,7 @@ cnpack\Source 目录内容说明：
   CnZip.pas
     Zip 压缩文件实现单元
 
-              68 文件
+              73 文件
 
 \Crypto - 加解密算法目录
 
@@ -224,6 +239,15 @@ cnpack\Source 目录内容说明：
 
   CnBigNumber.pas
     大数计算单元
+
+  CnBits.pas
+    位运算实现单元
+
+  CnBLAKE.pas
+    BLAKE 算法实现单元
+
+  CnBLAKE2.pas
+    BLAKE2 算法实现单元
 
   CnCertificateAuthority.pas
     证书签名验证的实现单元
@@ -336,7 +360,7 @@ cnpack\Source 目录内容说明：
   CnZUC.pas
     祖冲之算法实现单元
 
-                共 43 文件
+                共 46 文件
 
 \DbReport －数据库组件与报表库目录
 
@@ -383,7 +407,7 @@ cnpack\Source 目录内容说明：
 
 \Graphic －图像界面控件库目录
 
-  CnAACtrl.pas
+  CnAACtrls.pas
     平滑特效字体控件单元
 
   CnAAFont.pas
@@ -515,7 +539,7 @@ cnpack\Source 目录内容说明：
   CnLangConsts.pas
   CnNetConsts.pas
   CnDockGlobal.pas
-  CnDBConst.pas
+  CnDBConsts.pas
   CnRS232Dialog.dfm
   CnProgressFrm.dfm
   CnFoxmailMsgFrm.dfm
