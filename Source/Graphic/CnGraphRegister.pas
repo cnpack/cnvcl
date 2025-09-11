@@ -42,7 +42,7 @@ uses
   {$IFNDEF FPC}
   {$IFDEF COMPILER6_UP} DesignIntf, DesignEditors, {$ELSE} DsgnIntf, {$ENDIF}
   {$ENDIF}
-  CnConsts, {$IFNDEF FPC} CnGraphics, CnImage, CnGraphPropEditors, CnCheckTreeView,
+  CnConsts, {$IFNDEF FPC} CnGraphics, CnImage, CnGraphPropEditors,
   CnWizardImage, CnShellCtrls, {$ENDIF}
   CnWaterImage, CnPanel, CnEdit, CnSpin, CnCheckTreeView,
   {$IFNDEF FPC} CnAOTreeView, CnAACtrls,
