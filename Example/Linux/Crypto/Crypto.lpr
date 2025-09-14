@@ -27,7 +27,7 @@ program Crypto;
 {$R *.res}
 
 uses
-  SysUtils, Interfaces,
+  SysUtils,
   Cn25519 in '..\..\..\Source\Crypto\Cn25519.pas',
   CnAEAD in '..\..\..\Source\Crypto\CnAEAD.pas',
   CnAES in '..\..\..\Source\Crypto\CnAES.pas',
