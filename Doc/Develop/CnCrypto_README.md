@@ -43,7 +43,7 @@ CnPack 密码算法库对中国国家商用密码算法标准有着完整而强大的支持：
 
 ### 编译引入
 
-CnPack 密码算法库不涉及 VCL/FMX 界面组件，仅是基础库的形式提供，因而可直接将 cncrypto\Source 目录加入 Delphi 的工程搜索路径，便可直接在工程中 uses 相应单元并调用。
+CnPack 密码算法库不涉及 VCL/FMX 界面组件，仅是基础库的形式提供，因而可直接将 cncrypto\Source 目录加入 Delphi 或 Lazarus 的工程搜索路径，便可直接在工程中 uses 相应单元并调用。
 
 另外 CnPack 密码算法库也提供了运行期包的形式，在任一版本 Delphi 中打开 cncrypto\Package\CnCrypto.dpk，即可编译成 BPL 使用。注意如果已经编译安装了 CnPack 组件包，则无需也不应编译使用 CnPack 密码算法库的包，会出现单元命名冲突。
 
@@ -51,7 +51,8 @@ CnPack 密码算法库不涉及 VCL/FMX 界面组件，仅是基础库的形式提供，因而可直接将 cnc
 
 ## 测试用例
 
-cncrypto\Test 目录下有一完整的命令行测试用例 CryptoTest.dpr，使用任一版本 Delphi 打开运行即可覆盖验证 CnPack 密码算法库的绝大多数功能，或用 C++Builder 5/6 打开 Crypto.bpr、或用 Lazarus 打开 Crypto.lpi，均同样可以运行。尾部两个用例耗时较长以小时计，跑时需有耐心。
+cncrypto\Test 目录下有一完整的命令行测试用例 CryptoTest.dpr，使用任一版本 Delphi 打开运行即可覆盖验证 CnPack 密码算法库的绝大多数功能，或用 C++Builder 5/6 打开 Crypto.bpr、或用 Lazarus 打开 Crypto.lpi，均同样可以运行。在没有 Lazarus 仅有 FPC 时，也可用 fpc 命令行编译 Crypto.lpr 以运行。尾部两个用例耗时较长以小时计，跑时需有耐心。
+另外，本加解密库仅在小端 CPU 上运行测试过，大端 CPU 暂不保证支持。
 
 ## 演示例子
 
