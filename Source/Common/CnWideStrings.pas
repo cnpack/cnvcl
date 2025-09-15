@@ -34,6 +34,8 @@ unit CnWideStrings;
 *           但计算所占光标列宽或所占显示宽度倍数，则要求和 IDE 行为有关（和 IDE 版本有关）
 *           因而独立成 DisplayLength 系列函数，并允许不同地方传入不同的 Calculator 进行计算
 *
+*           补充：Lazarus IDE 中编译时使用 LConvEncoding 进行转换，似乎靠谱点儿。
+*
 * 开发平台：WinXP SP3 + Delphi 5.0
 * 兼容测试：
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -63,7 +65,7 @@ interface
 
 uses
   {$IFDEF MSWINDOWS} Windows, {$ENDIF} SysUtils, Classes, CnNative
-  {$IFDEF FPC}, LConvEncoding {$ENDIF};
+  {$IFDEF LAZARUS}, LConvEncoding {$ENDIF};
 
 const
   CN_INVALID_CODEPOINT = $FFFFFFFF;
@@ -166,7 +168,7 @@ type
   {* 针对宽字符的显示宽度计算回调函数类型，不同的 Delphi IDE 编辑器中需要不同的实现}
 
 function CnUtf8EncodeWideString(const S: TCnWideString): AnsiString;
-{* 对 WideString 进行 UTF-8 编码得到 AnsiString，不做 Ansi 转换避免丢字符，
+{* 对 WideString 进行 UTF-8 编码并将内容放到 AnsiString 中返回，不做 Ansi 转换避免丢字符，
    支持四字节 UTF-16 字符与 UTF8-MB4。
 
    参数：
@@ -176,7 +178,7 @@ function CnUtf8EncodeWideString(const S: TCnWideString): AnsiString;
 }
 
 function CnUtf8DecodeToWideString(const S: AnsiString): TCnWideString;
-{* 对 AnsiString 的 UTF-8 解码得到 WideString，不做 Ansi 转换避免丢字符，
+{* 对内容是 UTF-8 编码的 AnsiString 进行 UTF-8 解码得到 WideString，不做 Ansi 转换避免丢字符，
    支持四字节 UTF-16 字符与 UTF8-MB4。
 
    参数：
@@ -1871,7 +1873,11 @@ end;
 function CnUtf8ToAnsi(const Text: AnsiString): AnsiString;
 begin
 {$IFDEF FPC}
+  {$IFDEF LAZARUS}
   Result := ConvertEncoding(Text, EncodingUTF8, EncodingAnsi);
+  {$ELSE}
+  Result := Utf8ToAnsi(Text);
+  {$ENDIF}
 {$ELSE}
 {$IFDEF UNICODE}
   Result := AnsiString(UTF8ToUnicodeString(PAnsiChar(Text)));
@@ -1888,7 +1894,11 @@ end;
 function CnUtf8ToAnsi2(const Text: string): string;
 begin
 {$IFDEF FPC}
+  {$IFDEF LAZARUS}
   Result := ConvertEncoding(Text, EncodingUTF8, EncodingAnsi);
+  {$ELSE}
+  Result := Utf8ToAnsi(Text);
+  {$ENDIF}
 {$ELSE}
 {$IFDEF UNICODE}
   Result := UTF8ToUnicodeString(PAnsiChar(AnsiString(Text)));
@@ -1905,7 +1915,11 @@ end;
 function CnAnsiToUtf8(const Text: AnsiString): AnsiString;
 begin
 {$IFDEF FPC}
+  {$IFDEF LAZARUS}
   Result := ConvertEncoding(Text, EncodingAnsi, EncodingUTF8);
+  {$ELSE}
+  Result := AnsiToUtf8(Text);
+  {$ENDIF}
 {$ELSE}
 {$IFDEF UNICODE}
   Result := AnsiString(Utf8Encode(Text)); // 返回值不可改为 UTF8String 类型，否则此处转换无效
@@ -1922,7 +1936,11 @@ end;
 function CnAnsiToUtf82(const Text: string): string;
 begin
 {$IFDEF FPC}
+  {$IFDEF LAZARUS}
   Result := ConvertEncoding(Text, EncodingAnsi, EncodingUTF8);
+  {$ELSE}
+  Result := AnsiToUtf8(Text);
+  {$ENDIF}
 {$ELSE}
 {$IFDEF UNICODE}
   Result := string(Utf8Encode(Text));
