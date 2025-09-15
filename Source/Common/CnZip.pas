@@ -25,6 +25,7 @@ unit CnZip;
 * 单元名称：CnPack 组件包 Zip 实现单元
 * 单元作者：CnPack 开发组 Liu Xiao
 * 备    注：使用 Delphi 自带的 ZLib 实现压缩解压与传统密码支持。
+*           Delphi/FPC、Win/Mac 目前基本支持。
 *           但 XE2 以上的 ZLib 才支持 WindowBits 参数，才兼容传统的 ZIP 软件。
 *           FPC 目前也已支持，内部注意压缩解压缩流创建时指定 ASkipHeader 为 True
 *           才是兼容传统 ZIP 软件的关键。
@@ -60,12 +61,12 @@ interface
 // {$DEFINE DEBUGZIP}
 
 uses
-  SysUtils, Classes, {$IFDEF MSWINDOWS} Windows, {$ELSE} Posix.SysStat,
-  System.DateUtils, {$ENDIF}
-  Contnrs, CnCRC32, CnNative,
-  ZLib {$IFDEF FPC}, ZStream {$ENDIF}
+  SysUtils, Classes, {$IFDEF MSWINDOWS} Windows, {$ELSE}
+  {$IFDEF FPC} Unix, BaseUnix, DateUtils, {$ELSE}
+  Posix.SysStat, System.DateUtils, {$ENDIF} {$ENDIF}
+  Contnrs, CnCRC32, CnNative, ZLib {$IFDEF FPC}, ZStream {$ENDIF}
   {$IFNDEF DISABLE_DIRECTORY_SUPPORT}, CnFileUtils {$ENDIF}
-  {$IFNDEF COMPILER6_UP}, CnWideStrings  {$ENDIF};
+  {$IFNDEF COMPILER6_UP}, CnWideStrings {$ENDIF};
   // D5 下需要用到 CnWideStrings 单元做 UTF8 支持
 
 type
@@ -1369,7 +1370,11 @@ var
     FindData: TWin32FindData;
     SystemTime: TSystemTime;
   {$ELSE}
+    {$IFDEF FPC}
+    StatBuf: Stat;
+    {$ELSE}
     StatBuf: _stat;
+    {$ENDIF}
     UTCTime: TDateTime;
     LocalTime: TDateTime;
     Year, Month, Day, Hour, Min, Sec, MSec: Word;
@@ -1393,14 +1398,23 @@ var
   {$ELSE}
     FillChar(StatBuf, SizeOf(StatBuf), 0);
 
+{$IFDEF FPC}
+    if fpStat(PAnsiChar(FileName), StatBuf) <> 0 then
+      Exit;
+{$ELSE}
     if stat(PAnsiChar(UTF8Encode(FileName)), StatBuf) <> 0 then
       Exit;
+{$ENDIF}
 
     if (StatBuf.st_mode and S_IFMT) = S_IFDIR then
       Exit;
 
     UTCTime := UnixToDateTime(StatBuf.st_mtime);
+{$IFDEF FPC}
+    LocalTime := UniversalTimeToLocal(UTCTime);
+{$ELSE}
     LocalTime := TTimeZone.Local.ToLocalTime(UTCTime);
+{$ENDIF}
     DecodeDateTime(LocalTime, Year, Month, Day, Hour, Min, Sec, MSec);
 
     // 设置毫秒为 0，因为 Unix 时间戳只有秒级精度
