@@ -707,6 +707,10 @@ function CnStringReplaceW(const S: WideString; const OldPattern: WideString;
 
 {$ENDIF}
 
+function CnPosEx(const SubStr, S: string; CaseSensitive: Boolean; WholeWords:
+  Boolean; StartCount: Integer = 1): Integer;
+{* 增强的字符串查找函数，支持查找第几个，首个的 StartCount 为 1}
+
 function NativeStringToUIString(const Str: string): string;
 {* Lazarus/FPC 的 Ansi 模式专用，因为 Lazarus/FPC 的 Ansi 模式下和界面有关的字符串是 Utf8 格式，
    而我们内部的普通字符串大多是 Ansi 或 Utf16，这里做一次封装转换。}
@@ -2423,6 +2427,68 @@ begin
 end;
 
 {$ENDIF}
+
+function CnPosEx(const SubStr, S: string; CaseSensitive: Boolean; WholeWords:
+  Boolean; StartCount: Integer): Integer;
+var
+  P: PChar;
+  I, Count, Len, SubLen: Integer;
+  StrUpper, SubUpper: string;
+begin
+  Result := 0;
+  if (SubStr = '') or (S = '') or (StartCount < 1) then
+    Exit;
+
+  Len := Length(S);
+  SubLen := Length(SubStr);
+  if SubLen > Len then
+    Exit;
+
+  if not CaseSensitive then
+  begin
+    StrUpper := UpperCase(S);
+    SubUpper := UpperCase(SubStr);
+    P := PChar(StrUpper);
+  end
+  else
+    P := PChar(S);
+
+  Count := 0;
+  for I := 1 to Len - SubLen + 1 do
+  begin
+    if (CaseSensitive and (P^ = SubStr[1]) and
+      (CompareMem(P, PChar(SubStr), SubLen * SizeOf(Char))))
+      or
+      (not CaseSensitive and (P^ = SubUpper[1]) and
+      (CompareMem(P, PChar(SubUpper), SubLen * SizeOf(Char)))) then
+    begin
+      if WholeWords then
+      begin
+        // 检查是否整词匹配
+        if ((I = 1) or IsSepChar((P - 1)^)) and
+           ((I + SubLen - 1 >= Len) or IsSepChar((P + SubLen)^)) then
+        begin
+          Inc(Count);
+          if Count = StartCount then
+          begin
+            Result := I;
+            Exit;
+          end;
+        end;
+      end
+      else
+      begin
+        Inc(Count);
+        if Count = StartCount then
+        begin
+          Result := I;
+          Exit;
+        end;
+      end;
+    end;
+    Inc(P);
+  end;
+end;
 
 {$WARNINGS ON}
 

@@ -36,7 +36,7 @@ object FormStrings: TFormStrings
         object lblStringBuilderInfo: TLabel
           Left = 608
           Top = 32
-          Width = 193
+          Width = 3
           Height = 13
         end
         object rgMode: TRadioGroup
@@ -221,6 +221,26 @@ object FormStrings: TFormStrings
           Height = 97
           TabOrder = 19
         end
+      end
+    end
+    object tsStrings: TTabSheet
+      Caption = 'Strings'
+      ImageIndex = 1
+      object btnTestPosEx: TButton
+        Left = 16
+        Top = 16
+        Width = 89
+        Height = 25
+        Caption = 'Test CnPosEx'
+        TabOrder = 0
+        OnClick = btnTestPosExClick
+      end
+      object mmoStringsRes: TMemo
+        Left = 16
+        Top = 56
+        Width = 497
+        Height = 409
+        TabOrder = 1
       end
     end
   end
