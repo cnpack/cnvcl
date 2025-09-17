@@ -86,7 +86,7 @@ var
 const
   // 開發包信息
   SCnPackAbout = 'CnPack';
-  SCnPackVer = 'Ver 0.1.6.1';
+  SCnPackVer = 'Ver 0.1.7.0';
   SCnPackStr = SCnPackAbout + ' ' + SCnPackVer;
   SCnPackUrl = 'https://www.cnpack.org';
   SCnPackBbsUrl = 'https://bbs.cnpack.org';
