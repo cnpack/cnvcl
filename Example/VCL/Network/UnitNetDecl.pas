@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, StdCtrls, WinSock;
+  ComCtrls, StdCtrls, WinSock, ExtCtrls;
 
 type
   TFormNetDecl = class(TForm)
@@ -25,12 +25,17 @@ type
     btnSSLListenStart: TButton;
     btnSSLParseTest: TButton;
     mmoSSL: TMemo;
+    bvl1: TBevel;
+    btnSSLClient: TButton;
+    edtTLSHost: TEdit;
+    edtTLSPort: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure btnSniffClick(Sender: TObject);
     procedure btnIPManualClick(Sender: TObject);
     procedure btnCheckSumClick(Sender: TObject);
     procedure btnSSLListenStartClick(Sender: TObject);
     procedure btnSSLParseTestClick(Sender: TObject);
+    procedure btnSSLClientClick(Sender: TObject);
   private
     FRecving: Boolean;
     FRecCount: Integer;
@@ -42,6 +47,7 @@ type
   public
     FSocket: TSocket;
     FAddr: TSockAddrIn;
+    FTlsClientSocket: TSocket;
   end;
 
   TIpInfo = record
@@ -91,7 +97,7 @@ var
 implementation
 
 uses
-  CnNetwork, CnNative;
+  CnNetwork, CnNative, CnSocket, CnRandom;
 
 {$R *.DFM}
 
@@ -112,6 +118,30 @@ const
   IPNOTE2 = $00FF0000;
   IPNOTE3 = $0000FF00;
   IPNOTE4 = $000000FF;
+
+const
+  DATA_CLIENT_HELLO =
+    '1603010200' + 
+    '010001FC' +
+    '0303' + 'FB55143D5EA1D3D75161F4F1C4D005CC5481ADE320C1A7CC2D63584EFBFB6A8A' + // 32 字节 Random
+    '20' + '2D028CC0B79560C101974EA1F6F16992E14C54565751FC0214FFDE2B782D52C8'+    // 32 字节 Session
+    '0020' + 'CACA130113021303C02BC02FC02CC030CCA9CCA8C013C014009C009D002F0035' + // 32 字节的 CipherSuites
+    '01' + '00' +  // 压缩
+    '0193' + // 扩展总长度，后面的 806 字节
+    '1A1A' + '00000010000E000C02683208' +
+    '687474702F312E31000A000A0008EAEA001D0017001844690005000302683200' +
+    '0B00020100001700000033002B0029EAEA000100001D00207FF1FDC5590367C8' +
+    '316B70BA34BF05CA810ECB47337D973EC82BF60FDE114C13001B000302000200' +
+    '0500050100000000000D0012001004030804040105030805050108060601002D' +
+    '00020101FF0100010000120000002B0007068A8A0304030300230000FAFA0001' +
+    '00001500E0000000000000000000000000000000000000000000000000000000' +
+    '0000000000000000000000000000000000000000000000000000000000000000' +
+    '0000000000000000000000000000000000000000000000000000000000000000' +
+    '0000000000000000000000000000000000000000000000000000000000000000' +
+    '0000000000000000000000000000000000000000000000000000000000000000' +
+    '0000000000000000000000000000000000000000000000000000000000000000' +
+    '0000000000000000000000000000000000000000000000000000000000000000' +
+    '0000000000';
 
 var
   WSAIoctl: TWSAIoctl = nil;
@@ -572,25 +602,6 @@ begin
 end;
 
 procedure TFormNetDecl.btnSSLParseTestClick(Sender: TObject);
-const
-  DATA_CLIENT_HELLO =
-    '1603010200010001FC0303FB55143D5EA1D3D75161F4F1C4D005CC5481ADE320' +
-    'C1A7CC2D63584EFBFB6A8A202D028CC0B79560C101974EA1F6F16992E14C5456' +
-    '5751FC0214FFDE2B782D52C80020CACA130113021303C02BC02FC02CC030CCA9' +
-    'CCA8C013C014009C009D002F0035010001931A1A00000010000E000C02683208' +
-    '687474702F312E31000A000A0008EAEA001D0017001844690005000302683200' +
-    '0B00020100001700000033002B0029EAEA000100001D00207FF1FDC5590367C8' +
-    '316B70BA34BF05CA810ECB47337D973EC82BF60FDE114C13001B000302000200' +
-    '0500050100000000000D0012001004030804040105030805050108060601002D' +
-    '00020101FF0100010000120000002B0007068A8A0304030300230000FAFA0001' +
-    '00001500E0000000000000000000000000000000000000000000000000000000' +
-    '0000000000000000000000000000000000000000000000000000000000000000' +
-    '0000000000000000000000000000000000000000000000000000000000000000' +
-    '0000000000000000000000000000000000000000000000000000000000000000' +
-    '0000000000000000000000000000000000000000000000000000000000000000' +
-    '0000000000000000000000000000000000000000000000000000000000000000' +
-    '0000000000000000000000000000000000000000000000000000000000000000' +
-    '0000000000';
 var
   I: Integer;
   Data, T: TBytes;
@@ -626,6 +637,104 @@ begin
   mmoSSL.Lines.Add(Format('TLSHandShakeClientHello.CompressionMethodLength: %d', [CnGetTLSHandShakeClientHelloCompressionMethodLength(P3)]));
   T := CnGetTLSHandShakeClientHelloCompressionMethod(P3);
   mmoSSL.Lines.Add(Format('TLSHandShakeClientHello.CompressionMethod: %s', [BytesToHex(T)]));
+end;
+
+procedure TFormNetDecl.btnSSLClientClick(Sender: TObject);
+const
+  HOST: AnsiString = 'www.cnpack.org';
+var
+  SockAddress: TSockAddr;
+  Data: TBytes;
+  Buffer: array[0..1023] of Byte;
+  Ciphers: TWords;
+  H: PCnTLSRecordLayer;
+  B: PCnTLSHandShakeHeader;
+  C: PCnTLSHandShakeClientHello;
+  E: PCnTLSHandShakeExtensions;
+  S: PCnTLSHandShakeServerNameIndication;
+  BytesReceived: Integer;
+begin
+  // 创建 Socket 连接目标，发送内容，收包
+  FTlsClientSocket := CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if FTlsClientSocket = INVALID_SOCKET then
+    Exit;
+
+  SockAddress.sin_family := AF_INET;
+  SockAddress.sin_port := ntohs(StrToIntDef(edtTLSPort.Text, 443));
+
+  SockAddress.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(edtTLSHost.Text)));
+  if SOCKET_ERROR <> CnConnect(FTlsClientSocket, SockAddress, SizeOf(SockAddress)) then
+  begin
+    // 构造 ClientData 包到 Data
+    // Data := HexToBytes(DATA_CLIENT_HELLO);
+    FillChar(Buffer, SizeOf(Buffer), 0);
+
+    // 构造握手协议中的 ClientHello 包
+
+    // TLS 层头
+    H := PCnTLSRecordLayer(@Buffer[0]);
+    H^.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
+    H^.MajorVersion := 3;
+    H^.MinorVersion := 1;
+    // H^.BodyLength := 0;    // TODO: 尺寸
+
+    // 握手协议头
+    B := PCnTLSHandShakeHeader(@H^.Body[0]);
+    B^.HandShakeType := CN_TLS_HANDSHAKE_TYPE_CLIENT_HELLO;
+    // CnSetTLSHandShakeHeaderContentLength(B, 0); // 尺寸先置 0，后面再补
+
+    // 握手协议 ClientHello 包
+    C := PCnTLSHandShakeClientHello(@B^.Content[0]);
+
+    // 设置真正版本号
+    C^.ProtocolVersion := CN_TLS_SSL_VERSION_TLS_13;
+
+    // 生成随机数
+    CnRandomFillBytes2(@C^.Random[0], SizeOf(C^.Random));
+
+    // 随机生成 Session
+    CnSetTLSHandShakeClientHelloSessionId(C, CnRandomBytes(32));
+
+    // 填充 Ciphers
+    SetLength(Ciphers, 4);
+    Ciphers[0] := CN_CIPHER_TLS_SM4_GCM_SM3;
+    Ciphers[1] := CN_CIPHER_TLS_AES_256_GCM_SHA384;
+    Ciphers[2] := CN_CIPHER_TLS_AES_128_CCM_SHA256;
+    Ciphers[3] := CN_CIPHER_TLS_CHACHA20_POLY1305_SHA256;
+
+    CnSetTLSHandShakeClientHelloCipherSuites(C, Ciphers);
+
+    // 填充压缩类型
+    SetLength(Data, 1);
+    Data[0] := 0;
+    CnSetTLSHandShakeClientHelloCompressionMethod(C, Data);
+
+    // 整 SNI 包中的一条记录
+    E := CnGetTLSHandShakeClientHelloExtensions(C);
+    CnSetTLSHandShakeExtensionsExtensionType(E, CN_TLS_EXTENSIONTYPE_SERVER_NAME);
+    S := PCnTLSHandShakeServerNameIndication(@E^.ExtensionData[0]);
+    CnSetTLSHandShakeExtensionsExtensionDataLength(E, CnTLSHandShakeServerNameIndicationAddHost(S, 'www.cnpack.org'));
+
+    CnSetTLSHandShakeExtensionsExtensionLength(E, CnGetTLSHandShakeExtensionsExtensionDataLength(E) + SizeOf(Word)); // Data 加一个 Type，不加 Length
+
+    // C 和 ExtensionData 的首字节的差再加扩展内容长度就是握手协议的 Content 长
+    CnSetTLSHandShakeHeaderContentLength(B, TCnIntAddress(@E.ExtensionData[0]) - TCnIntAddress(C) + CnGetTLSHandShakeExtensionsExtensionDataLength(E));
+
+    CnSetTLSRecordLayerBodyLength(H, CnGetTLSHandShakeHeaderContentLength(B) + 4); // 3 字节 Length + 1 字节类型
+
+    // 发送 ClientHello 包，+ 5 是 RecordLayer 中的 Type Version BodyLength 等长度和
+    if CnSend(FTlsClientSocket, H^, CnGetTLSRecordLayerBodyLength(H) + 5, 0) <> SOCKET_ERROR then
+    begin
+      // 接收回包
+      FillChar(Buffer, SizeOf(Buffer), 0);
+      BytesReceived := CnRecv(FTlsClientSocket, Buffer[0], Length(Buffer), 0);
+      if BytesReceived > 0 then
+      begin
+        // 解析 TLS 响应
+      end;
+    end;
+  end;
+  CnCloseSocket(FTlsClientSocket);
 end;
 
 end.

@@ -1152,11 +1152,11 @@ procedure ShowLastError;
 
 function GetHzPy(const AHzStr: AnsiString): AnsiString;
 {* 取汉字的拼音首字母，注意编码必须是 GB2312，并且只支持部分常用字
- （GBK/GB18030 编码也可但获取不到）}
+ （GBK/GB18030 编码也可传入，但绝大部分获取不到）}
 
 {$IFDEF UNICODE}
 function GetHzPyW(const AHzStr: string): string;
-{* 取汉字的拼音，参数为 Utf16}
+{* 取汉字的拼音首字母，参数为 Utf16}
 {$ENDIF}
 
 {$IFDEF MSWINDOWS}
@@ -7541,7 +7541,7 @@ end;
 
 {$IFDEF UNICODE}
 
-// 取汉字的拼音，参数为 Utf16
+// 取汉字的拼音首字母，参数为 Utf16
 function GetHzPyW(const AHzStr: string): string;
 begin
   Result := string(GetHzPy(AnsiString(AHzStr)));

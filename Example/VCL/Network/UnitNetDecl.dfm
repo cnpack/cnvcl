@@ -19,7 +19,7 @@ object FormNetDecl: TFormNetDecl
     Top = 16
     Width = 817
     Height = 409
-    ActivePage = tsIP
+    ActivePage = tsSSL
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsIP: TTabSheet
@@ -120,6 +120,13 @@ object FormNetDecl: TFormNetDecl
     object tsSSL: TTabSheet
       Caption = 'SSL/TLS'
       ImageIndex = 1
+      object bvl1: TBevel
+        Left = 336
+        Top = 16
+        Width = 25
+        Height = 25
+        Shape = bsLeftLine
+      end
       object btnSSLListenStart: TButton
         Left = 16
         Top = 16
@@ -144,6 +151,31 @@ object FormNetDecl: TFormNetDecl
         Width = 777
         Height = 305
         TabOrder = 2
+      end
+      object btnSSLClient: TButton
+        Left = 352
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = 'TLS Client to'
+        TabOrder = 3
+        OnClick = btnSSLClientClick
+      end
+      object edtTLSHost: TEdit
+        Left = 440
+        Top = 16
+        Width = 121
+        Height = 21
+        TabOrder = 4
+        Text = '104.238.140.188'
+      end
+      object edtTLSPort: TEdit
+        Left = 568
+        Top = 16
+        Width = 33
+        Height = 21
+        TabOrder = 5
+        Text = '443'
       end
     end
   end
