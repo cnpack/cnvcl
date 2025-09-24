@@ -309,24 +309,24 @@ var
     $00, $00, $00, $00, $00, $00, $00, $00
   );
 
-function F(X, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function F(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := (X and y) or ((not X) and z);
+  Result := (X and Y) or ((not X) and Z);
 end;
 
-function G(X, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function G(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := (X and z) or (y and (not z));
+  Result := (X and Z) or (Y and (not Z));
 end;
 
-function H(X, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function H(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := X xor y xor z;
+  Result := X xor Y xor Z;
 end;
 
-function I(X, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function I(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := y xor (X or (not z));
+  Result := Y xor (X or (not Z));
 end;
 
 procedure ROT(var X: Cardinal; N: BYTE); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}

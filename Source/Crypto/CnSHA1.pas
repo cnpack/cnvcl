@@ -265,19 +265,19 @@ begin
   Result := X shl (C and 31) + X shr (32 - C and 31);
 end;
 
-function F1(x, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function F1(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := z xor (x and (y xor z));
+  Result := Z xor (X and (Y xor Z));
 end;
 
-function F2(x, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function F2(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := x xor y xor z;
+  Result := X xor Y xor Z;
 end;
 
-function F3(x, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function F3(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := (x and y) or (z and (x or y));
+  Result := (X and Y) or (Z and (X or Y));
 end;
 
 function RB(A: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}

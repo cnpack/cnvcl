@@ -448,12 +448,12 @@ type
 
   TCnXXHGeneralDigest = TCnXXH64Digest; // ×î³¤µÄ
 
-function RolDWord(Value: Cardinal; Shift: Byte): Cardinal;
+function RolDWord(Value: Cardinal; Shift: Byte): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (Value shl Shift) or (Value shr (32 - Shift));
 end;
 
-function RolQWord(Value: TUInt64; Shift: Byte): TUInt64;
+function RolQWord(Value: TUInt64; Shift: Byte): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (Value shl Shift) or (Value shr (64 - Shift));
 end;
