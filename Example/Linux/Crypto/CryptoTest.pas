@@ -168,8 +168,6 @@ function TestCRC64ECMA: Boolean;
 
 function TestXXH32: Boolean;
 function TestXXH64: Boolean;
-//function TestXXH3_64: Boolean;
-//function TestXXH3_128: Boolean;
 
 // ================================ MD5 ========================================
 
@@ -559,8 +557,6 @@ begin
 
   MyAssert(TestXXH32, 'TestXXH32');
   MyAssert(TestXXH64, 'TestXXH64');
-//  MyAssert(TestXXH3_64, 'TestXXH3_64');
-//  MyAssert(TestXXH3_128, 'TestXXH3_128');
 
 // ================================ MD5 ========================================
 
@@ -2397,38 +2393,6 @@ begin
   Dig := XXH64Bytes(Data);
   Result := DataToHex(@Dig[0], SizeOf(TCnXXH64Digest)) = '785BD894067C2F38';
 end;
-
-//function TestXXH3_64: Boolean;
-//var
-//  Dig: TCnXXH3_64Digest;
-//  Data: TBytes;
-//begin
-//  Data := AnsiToBytes('CnPack Test');
-//  Dig := XXH3_64Bytes(Data);
-//  Result := DataToHex(@Dig[0], SizeOf(TCnXXH3_64Digest)) = '8D5B529CAB12FDA9';
-//
-//  if not Result then Exit;
-//
-//  Data := AnsiToBytes('CnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack');
-//  Dig := XXH3_64Bytes(Data);
-//  Result := DataToHex(@Dig[0], SizeOf(TCnXXH3_64Digest)) = 'CDB9CE01032957C6';
-//end;
-//
-//function TestXXH3_128: Boolean;
-//var
-//  Dig: TCnXXH3_128Digest;
-//  Data: TBytes;
-//begin
-//  Data := AnsiToBytes('CnPack Test');
-//  Dig := XXH3_128Bytes(Data);
-//  Result := DataToHex(@Dig[0], SizeOf(TCnXXH3_128Digest)) = '111D98FD304A4B647157091193C77683';
-//
-//  if not Result then Exit;
-//
-//  Data := AnsiToBytes('CnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack');
-//  Dig := XXH3_128Bytes(Data);
-//  Result := DataToHex(@Dig[0], SizeOf(TCnXXH3_128Digest)) = '971B0355AE2CF015AE52C35C6E82823B';
-//end;
 
 // ================================ MD5 ========================================
 

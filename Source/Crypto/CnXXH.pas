@@ -430,7 +430,6 @@ const
 
   CN_XXH32_BLOCK_SIZE  = 16;
   CN_XXH64_BLOCK_SIZE  = 32;
-  CN_XXH3_BLOCK_SIZE   = 256;
 
   CN_XXH32_PRIME32_1 = 2654435761;
   CN_XXH32_PRIME32_2 = 2246822519;
@@ -444,53 +443,10 @@ const
   CN_XXH64_PRIME64_4: TUInt64 = $85EBCA77C2B2AE63; // 9650029242287828579;
   CN_XXH64_PRIME64_5: TUInt64 = $27D4EB2F165667C5; // 2870177450012600261;
 
-  // XXH3 常量
-  CN_XXH3_SECRET_DEFAULT_SIZE = 192;
-  CN_XXH3_SECRET: array[0..CN_XXH3_SECRET_DEFAULT_SIZE-1] of Byte = (
-    $B8, $FE, $6C, $39, $23, $A4, $4B, $BE, $7C, $01, $81, $2C, $F7, $21, $AD, $1C,
-    $DE, $D4, $6D, $E9, $83, $9B, $97, $AF, $72, $BC, $8F, $1E, $F5, $D9, $E8, $C4,
-    $34, $CF, $4F, $F9, $C0, $5E, $F2, $6A, $9E, $EA, $2B, $7D, $E0, $D8, $94, $FA,
-    $BB, $40, $7E, $2E, $A5, $1B, $75, $F0, $3E, $51, $53, $64, $2A, $ED, $8B, $B0,
-    $E6, $BD, $7A, $DF, $10, $77, $12, $C8, $4C, $BF, $6B, $58, $60, $D6, $3D, $61,
-    $CE, $1D, $E7, $2D, $DC, $B7, $80, $35, $0F, $74, $A8, $31, $D1, $30, $3F, $98,
-    $AA, $07, $5F, $F8, $7F, $CD, $7B, $0B, $F6, $EF, $67, $68, $07, $AC, $28, $B1,
-    $5B, $93, $B9, $5A, $08, $97, $4E, $0E, $95, $F4, $9F, $1F, $12, $C2, $5D, $E2,
-    $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0,
-    $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0,
-    $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0,
-    $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0, $C0
-  );
-
 type
   TCnXXHType = (xtXXH32, xtXXH64);
 
   TCnXXHGeneralDigest = TCnXXH64Digest; // 最长的
-
-// 辅助函数
-function XXH3_avalanche(H64: TUInt64): TUInt64;
-begin
-  H64 := H64 xor (H64 shr 37);
-  H64 := H64 * CN_XXH64_PRIME64_3;
-  H64 := H64 xor (H64 shr 32);
-  Result := H64;
-end;
-
-function XXH3_mul128Fold64(Lo, Hi: TUInt64): TUInt64;
-var
-  Product: TUInt64;
-begin
-  Product := Lo * Hi;
-  Result := Product xor (Product shr 64);
-end;
-
-function XXH3_scrambleAcc(Acc: TUInt64; SecretValue: TUInt64): TUInt64;
-var
-  XorShifted: TUInt64;
-begin
-  XorShifted := Acc xor (Acc shr 47);
-  XorShifted := XorShifted xor SecretValue;
-  Result := XorShifted * CN_XXH64_PRIME64_1;
-end;
 
 function RolDWord(Value: Cardinal; Shift: Byte): Cardinal;
 begin
@@ -500,24 +456,6 @@ end;
 function RolQWord(Value: TUInt64; Shift: Byte): TUInt64;
 begin
   Result := (Value shl Shift) or (Value shr (64 - Shift));
-end;
-
-function XXH3_mix16B(const Input: Pointer; const Secret: Pointer): TUInt64;
-var
-  Input64: PUInt64;
-  Secret64: PUInt64;
-begin
-  Input64 := PUInt64(Input);
-  Secret64 := PUInt64(Secret);
-  
-  // 官方 XXH3 算法的 mix16B 实现
-  Result := Input64^ xor Secret64^;
-  Inc(Input64);
-  Inc(Secret64);
-  Result := Result * CN_XXH64_PRIME64_1;
-  Result := Result + (Input64^ xor Secret64^);
-  Result := RolQWord(Result, 31);
-  Result := Result * CN_XXH64_PRIME64_2;
 end;
 
 procedure XXH32Init(var Context: TCnXXH32Context; Seed: Cardinal);
@@ -644,9 +582,7 @@ begin
       RolDWord(Context.V3, 12) + RolDWord(Context.V4, 18);
   end
   else
-  begin
     Hash := Context.Seed + CN_XXH32_PRIME32_5;
-  end;
 
   Hash := Hash + Cardinal(Context.TotalLen);
 
@@ -1020,12 +956,8 @@ var
 
   Context32: TCnXXH32Context;
   Context64: TCnXXH64Context;
-//  Context3_64: TCnXXH3_64Context;
-//  Context3_128: TCnXXH3_128Context;
   Dig32: TCnXXH32Digest;
   Dig64: TCnXXH64Digest;
-//  Dig3_64: TCnXXH3_64Digest;
-//  Dig3_128: TCnXXH3_128Digest;
 
   procedure _XXHInit;
   begin
@@ -1034,10 +966,6 @@ var
         XXH32Init(Context32);
       xtXXH64:
         XXH64Init(Context64);
-//      xtXXH3_64:
-//        XXH3_64Init(Context3_64);
-//      xtXXH3_128:
-//        XXH3_128Init(Context3_128);
     end;
   end;
 
@@ -1048,10 +976,6 @@ var
         XXH32Update(Context32, Buf, ReadBytes);
       xtXXH64:
         XXH64Update(Context64, Buf, ReadBytes);
-//      xtXXH3_64:
-//        XXH3_64Update(Context3_64, Buf, ReadBytes);
-//      xtXXH3_128:
-//        XXH3_128Update(Context3_128, Buf, ReadBytes);
     end;
   end;
 
@@ -1062,10 +986,6 @@ var
         XXH32Final(Context32, Dig32);
       xtXXH64:
         XXH64Final(Context64, Dig64);
-//      xtXXH3_64:
-//        XXH3_64Final(Context3_64, Dig3_64);
-//      xtXXH3_128:
-//        XXH3_128Final(Context3_128, Dig3_128);
     end;
   end;
 
@@ -1076,10 +996,6 @@ var
         Move(Dig32[0], D[0], SizeOf(TCnXXH32Digest));
       xtXXH64:
         Move(Dig64[0], D[0], SizeOf(TCnXXH64Digest));
-//      xtXXH3_64:
-//        Move(Dig3_64[0], D[0], SizeOf(TCnXXH3_64Digest));
-//      xtXXH3_128:
-//        Move(Dig3_128[0], D[0], SizeOf(TCnXXH3_128Digest));
     end;
   end;
 
@@ -1180,12 +1096,8 @@ function InternalXXHFile(const FileName: string; Seed: TUInt64; XXHType: TCnXXHT
 var
   Context32: TCnXXH32Context;
   Context64: TCnXXH64Context;
-//  Context3_64: TCnXXH3_64Context;
-//  Context3_128: TCnXXH3_128Context;
   Dig32: TCnXXH32Digest;
   Dig64: TCnXXH64Digest;
-//  Dig3_64: TCnXXH3_64Digest;
-//  Dig3_128: TCnXXH3_128Digest;
 
 {$IFDEF MSWINDOWS}
   FileHandle: THandle;
@@ -1202,10 +1114,6 @@ var
         XXH32Init(Context32);
       xtXXH64:
         XXH64Init(Context64);
-//      xtXXH3_64:
-//        XXH3_64Init(Context3_64);
-//      xtXXH3_128:
-//        XXH3_128Init(Context3_128);
     end;
   end;
 
@@ -1217,10 +1125,6 @@ var
         XXH32Update(Context32, ViewPointer, GetFileSize(FileHandle, nil));
       xtXXH64:
         XXH64Update(Context64, ViewPointer, GetFileSize(FileHandle, nil));
-//      xtXXH3_64:
-//        XXH3_64Update(Context3_64, ViewPointer, GetFileSize(FileHandle, nil));
-//      xtXXH3_128:
-//        XXH3_128Update(Context3_128, ViewPointer, GetFileSize(FileHandle, nil));
     end;
   end;
 {$ENDIF}
@@ -1232,10 +1136,6 @@ var
         XXH32Final(Context32, Dig32);
       xtXXH64:
         XXH64Final(Context64, Dig64);
-//      xtXXH3_64:
-//        XXH3_64Final(Context3_64, Dig3_64);
-//      xtXXH3_128:
-//        XXH3_128Final(Context3_128, Dig3_128);
     end;
   end;
 
@@ -1246,10 +1146,6 @@ var
         Move(Dig32[0], D[0], SizeOf(TCnXXH32Digest));
       xtXXH64:
         Move(Dig64[0], D[0], SizeOf(TCnXXH64Digest));
-//      xtXXH3_64:
-//        Move(Dig3_64[0], D[0], SizeOf(TCnXXH3_64Digest));
-//      xtXXH3_128:
-//        Move(Dig3_128[0], D[0], SizeOf(TCnXXH3_128Digest));
     end;
   end;
 
