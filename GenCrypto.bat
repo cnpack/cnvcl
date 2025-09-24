@@ -232,6 +232,7 @@ ECHO USEUNIT("..\Source\CnSM4.pas");                                            
 ECHO USEUNIT("..\Source\CnSM9.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnTEA.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnVector.pas");                                                >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnXXH.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnZUC.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnBigDecimal.pas");                                            >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnBigRational.pas");                                           >> Crypto.bpf
@@ -281,6 +282,7 @@ ECHO       ..\Source\CnSHA2.obj ..\Source\CnSHA3.obj                            
 ECHO       ..\Source\CnSM2.obj ..\Source\CnSM3.obj                                    >> Crypto.bpr
 ECHO       ..\Source\CnSM4.obj ..\Source\CnSM9.obj                                    >> Crypto.bpr
 ECHO       ..\Source\CnTEA.obj ..\Source\CnVector.obj                                 >> Crypto.bpr
+ECHO       ..\Source\CnXXH.obj                                                        >> Crypto.bpr
 ECHO       ..\Source\CnZUC.obj ..\Source\CnBigDecimal.obj                             >> Crypto.bpr
 ECHO       ..\Source\CnBigRational.obj                                                >> Crypto.bpr
 ECHO       ..\Source\CnConsts.obj ..\Source\CnContainers.obj                          >> Crypto.bpr
@@ -525,6 +527,7 @@ ECHO   CnTEA in '..\Source\CnTEA.pas',                                         >
 ECHO   CnTree in '..\Source\CnTree.pas',                                       >> %1
 ECHO   CnVector in '..\Source\CnVector.pas',                                   >> %1
 ECHO   CnWideStrings in '..\Source\CnWideStrings.pas',                         >> %1
+ECHO   CnXXH in '..\Source\CnXXH.pas',                                         >> %1
 ECHO   CnZip in '..\Source\CnZip.pas',                                         >> %1
 IF "%2" == "ALLFILES" (
   ECHO   CnZUC in '..\Source\CnZUC.pas';                                       >> %1

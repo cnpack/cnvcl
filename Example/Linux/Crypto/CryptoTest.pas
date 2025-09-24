@@ -50,7 +50,7 @@ uses
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
-  CnDSA, CnBLAKE, CnBLAKE2, CnWideStrings, CnContainers;
+  CnDSA, CnBLAKE, CnBLAKE2, CnXXH, CnWideStrings, CnContainers;
 
 procedure TestCrypto;
 {* 密码库总测试入口}
@@ -163,6 +163,13 @@ function TestCRC8CCITT: Boolean;
 function TestCRC16CCITT: Boolean;
 function TestCRC32: Boolean;
 function TestCRC64ECMA: Boolean;
+
+// ================================ XXH ========================================
+
+function TestXXH32: Boolean;
+function TestXXH64: Boolean;
+//function TestXXH3_64: Boolean;
+//function TestXXH3_128: Boolean;
 
 // ================================ MD5 ========================================
 
@@ -547,6 +554,13 @@ begin
   MyAssert(TestCRC16CCITT, 'TestCRC16CCITT');
   MyAssert(TestCRC32, 'TestCRC32');
   MyAssert(TestCRC64ECMA, 'TestCRC64ECMA');
+
+// ============================== XXHash =======================================
+
+  MyAssert(TestXXH32, 'TestXXH32');
+  MyAssert(TestXXH64, 'TestXXH64');
+//  MyAssert(TestXXH3_64, 'TestXXH3_64');
+//  MyAssert(TestXXH3_128, 'TestXXH3_128');
 
 // ================================ MD5 ========================================
 
@@ -2349,6 +2363,72 @@ begin
   Result := CRC64Calc(0, S[1], Length(S)) = Int64($95CF1FEBBF05E07E);
   // 注意这里的结果对于 Int64 来说是负值，因此需要强制转换，否则 Linux64 下比较会不相等
 end;
+
+// ============================== XXHash =======================================
+
+function TestXXH32: Boolean;
+var
+  Dig: TCnXXH32Digest;
+  Data: TBytes;
+begin
+  Data := AnsiToBytes('CnPack Test');
+  Dig := XXH32Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnXXH32Digest)) = '74514068';
+
+  if not Result then Exit;
+
+  Data := AnsiToBytes('CnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack Test');
+  Dig := XXH32Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnXXH32Digest)) = 'FAB834F4';
+end;
+
+function TestXXH64: Boolean;
+var
+  Dig: TCnXXH64Digest;
+  Data: TBytes;
+begin
+  Data := AnsiToBytes('CnPack Test');
+  Dig := XXH64Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnXXH64Digest)) = '1639ECD44D3A4765';
+
+  if not Result then Exit;
+
+  Data := AnsiToBytes('CnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack Test');
+  Dig := XXH64Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnXXH64Digest)) = '785BD894067C2F38';
+end;
+
+//function TestXXH3_64: Boolean;
+//var
+//  Dig: TCnXXH3_64Digest;
+//  Data: TBytes;
+//begin
+//  Data := AnsiToBytes('CnPack Test');
+//  Dig := XXH3_64Bytes(Data);
+//  Result := DataToHex(@Dig[0], SizeOf(TCnXXH3_64Digest)) = '8D5B529CAB12FDA9';
+//
+//  if not Result then Exit;
+//
+//  Data := AnsiToBytes('CnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack');
+//  Dig := XXH3_64Bytes(Data);
+//  Result := DataToHex(@Dig[0], SizeOf(TCnXXH3_64Digest)) = 'CDB9CE01032957C6';
+//end;
+//
+//function TestXXH3_128: Boolean;
+//var
+//  Dig: TCnXXH3_128Digest;
+//  Data: TBytes;
+//begin
+//  Data := AnsiToBytes('CnPack Test');
+//  Dig := XXH3_128Bytes(Data);
+//  Result := DataToHex(@Dig[0], SizeOf(TCnXXH3_128Digest)) = '111D98FD304A4B647157091193C77683';
+//
+//  if not Result then Exit;
+//
+//  Data := AnsiToBytes('CnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack');
+//  Dig := XXH3_128Bytes(Data);
+//  Result := DataToHex(@Dig[0], SizeOf(TCnXXH3_128Digest)) = '971B0355AE2CF015AE52C35C6E82823B';
+//end;
 
 // ================================ MD5 ========================================
 

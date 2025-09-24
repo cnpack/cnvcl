@@ -73,6 +73,7 @@ uses
   CnSM9 in '..\..\..\Source\Crypto\CnSM9.pas',
   CnTEA in '..\..\..\Source\Crypto\CnTEA.pas',
   CnVector in '..\..\..\Source\Crypto\CnVector.pas',
+  CnXXH in '..\..\..\Source\Crypto\CnXXH.pas',
   CnZUC in '..\..\..\Source\Crypto\CnZUC.pas',
   CnBigDecimal in '..\..\..\Source\Common\CnBigDecimal.pas',
   CnBigRational in '..\..\..\Source\Common\CnBigRational.pas',

@@ -28,6 +28,7 @@
       ..\..\..\Source\Crypto\CnSM2.obj ..\..\..\Source\Crypto\CnSM3.obj 
       ..\..\..\Source\Crypto\CnSM4.obj ..\..\..\Source\Crypto\CnSM9.obj 
       ..\..\..\Source\Crypto\CnTEA.obj ..\..\..\Source\Crypto\CnVector.obj 
+      ..\..\..\Source\Crypto\CnXXH.obj 
       ..\..\..\Source\Crypto\CnZUC.obj ..\..\..\Source\Common\CnBigDecimal.obj 
       ..\..\..\Source\Common\CnBigRational.obj 
       ..\..\..\Source\Common\CnConsts.obj ..\..\..\Source\Common\CnContainers.obj 

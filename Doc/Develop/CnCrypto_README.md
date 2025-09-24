@@ -14,7 +14,7 @@ CnPack 开发包以开放源码（Open Source）的形式发布，遵守 CnPack 的许可协议，受 CnP
 
 - **对称加密**：SM4、AES、DES、3DES、RC4、ChaCha20、TEA、ZUC
 - **非对称加密**：RSA、ECC 椭圆曲线（魏尔斯特拉斯曲线，包括 SM2）、25519/448 椭圆曲线（蒙哥马利及扭曲爱德华曲线）
-- **杂凑**：SM3、MD5、SHA1、SHA2/SHA3/BLAKE 系列（224、256、384、512）SHAKE、BLAKE2（2S/2B)、CRC8/16/32/64、Poly1305、FNV、一次性杂凑签名算法 OTS
+- **杂凑**：SM3、MD5、SHA1、SHA2/SHA3/BLAKE 系列（224、256、384、512）SHAKE、BLAKE2（2S/2B）、XXHash（32/64）、CRC8/16/32/64、Poly1305、FNV、一次性杂凑签名算法 OTS
 - **其他密码学领域**：SM9、同态加密、协同加密、格密码、NTRU
 - **编码解码**：Base64、ASN.1（DER/BER）、Hamming 校验
 - **CA证书**：RSA/ECC 证书申请、签发与校验

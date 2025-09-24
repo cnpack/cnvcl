@@ -188,6 +188,7 @@
         <DCCReference Include="..\..\..\Source\Crypto\CnSM9.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnTEA.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnVector.pas"/>
+        <DCCReference Include="..\..\..\Source\Crypto\CnXXH.pas"/>
         <DCCReference Include="..\..\..\Source\Crypto\CnZUC.pas"/>
         <DCCReference Include="..\..\..\Source\Common\CnBigDecimal.pas"/>
         <DCCReference Include="..\..\..\Source\Common\CnBigRational.pas"/>
