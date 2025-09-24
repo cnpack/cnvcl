@@ -618,7 +618,6 @@ begin
   SM3Final(Context, Result);
 end;
 
-// 对 String 类型数据进行 SM3 转换
 function SM3String(const Str: string): TCnSM3Digest;
 var
   AStr: AnsiString;
@@ -627,7 +626,6 @@ begin
   Result := SM3StringA(AStr);
 end;
 
-// 对 AnsiString 类型数据进行 SM3 转换
 function SM3StringA(const Str: AnsiString): TCnSM3Digest;
 var
   Context: TCnSM3Context;
@@ -637,7 +635,6 @@ begin
   SM3Final(Context, Result);
 end;
 
-// 对 WideString 类型数据进行 SM3 转换
 function SM3StringW(const Str: WideString): TCnSM3Digest;
 var
   Context: TCnSM3Context;
@@ -647,7 +644,6 @@ begin
   SM3Final(Context, Result);
 end;
 
-// 对 UnicodeString 类型数据进行直接的 SM3 计算，不进行转换
 {$IFDEF UNICODE}
 function SM3UnicodeString(const Str: string): TCnSM3Digest;
 {$ELSE}
@@ -707,7 +703,6 @@ begin
   end;
 end;
 
-// 对指定文件数据进行SM3转换
 function SM3File(const FileName: string;
   CallBack: TCnSM3CalcProgressFunc): TCnSM3Digest;
 var
@@ -804,7 +799,6 @@ begin
   end;
 end;
 
-// 对指定流进行 SM3 计算
 function SM3Stream(Stream: TStream;
   CallBack: TCnSM3CalcProgressFunc): TCnSM3Digest;
 begin

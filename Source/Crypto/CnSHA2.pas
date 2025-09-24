@@ -418,7 +418,7 @@ function SHA512UnicodeString(const Str: WideString): TCnSHA512Digest;
 
 function SHA224File(const FileName: string; CallBack: TCnSHACalcProgressFunc =
   nil): TCnSHA224Digest;
-{* 对指定文件内容进行 SHA256 计算。
+{* 对指定文件内容进行 SHA224 计算。
 
    参数：
      const FileName: string               - 待计算的文件名
@@ -627,7 +627,7 @@ procedure SHA512Update(var Context: TCnSHA512Context; Input: PAnsiChar; ByteLeng
 }
 
 procedure SHA512Final(var Context: TCnSHA512Context; var Digest: TCnSHA512Digest);
-{* 结束本轮计算，将 SHA512 结果返回至 Digest 中
+{* 结束本轮计算，将 SHA512 结果返回至 Digest 中。
 
    参数：
      var Context: TCnSHA512Context        - SHA512 上下文

@@ -357,10 +357,13 @@ cnpack\Source 目录内容说明：
   CnVector.pas
     向量计算实现单元
 
+  CnXXH.pas
+    XXHash 杂凑算法实现单元
+
   CnZUC.pas
     祖冲之算法实现单元
 
-                共 46 文件
+                共 47 文件
 
 \DbReport －数据库组件与报表库目录
 
