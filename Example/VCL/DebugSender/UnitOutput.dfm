@@ -1,6 +1,7 @@
 object FormSend: TFormSend
   Left = 329
   Top = 164
+  Action = actTest
   BorderStyle = bsDialog
   Caption = 'Send Debug'
   ClientHeight = 434
@@ -14,7 +15,7 @@ object FormSend: TFormSend
   KeyPreview = True
   OldCreateOrder = False
   Position = poScreenCenter
-  OnClick = FormClick
+  OnClick = actTestExecute
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
   PixelsPerInch = 96
@@ -1122,5 +1123,14 @@ object FormSend: TFormSend
   object dlgOpen1: TOpenDialog
     Left = 216
     Top = 352
+  end
+  object actlst1: TActionList
+    Left = 224
+    Top = 200
+    object actTest: TAction
+      Caption = 'actTest'
+      ShortCut = 16452
+      OnExecute = actTestExecute
+    end
   end
 end
