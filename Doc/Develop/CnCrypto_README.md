@@ -121,7 +121,7 @@ Alternatively, the library also provides a runtime package. Open `cncrypto\Packa
 
 ## Test Cases
 
-The `cncrypto\Test` directory contains a complete command-line test suite, `CryptoTest.dpr`. Open and run it in any version of Delphi to verify the majority of the CnPack Crypto Library's functionality. It can also be opened with C++Builder 5/6 (`Crypto.bpr`) or Lazarus (`Crypto.lpi`) to run the tests. If only FPC (Free Pascal Compiler) is available without Lazarus, you may compile and run `Crypto.lpr` using the `fpc` command-line tool. The last two test cases are time-consuming and may take hours to complete¡ªplease be patient during execution.
+The `cncrypto\Test` directory contains a complete command-line test suite, `CryptoTest.dpr`. Open and run it in any version of Delphi to verify the majority of the CnPack Crypto Library's functionality. It can also be opened with C++Builder 5/6 (`Crypto.bpr`) or Lazarus (`Crypto.lpi`) to run the tests. If only FPC (Free Pascal Compiler) is available without Lazarus, you may compile and run `Crypto.lpr` using the `fpc` command-line tool. The last two test cases are time-consuming and may take hours to complete. Please be patient during execution.
 
 > **Note**: This cryptographic library has only been tested on little-endian CPUs. Support for big-endian CPUs is not currently guaranteed.
 
