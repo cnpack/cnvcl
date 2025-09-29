@@ -78,7 +78,7 @@ The CnPack Crypto Library aims to provide robust cryptographic algorithm support
 
 ## License
 
-The CnPack Development Package is released as open-source software under the CnPack License Agreement, which provides legal protection. Detailed terms of the license are described in the License file; please refer to the license document for specifics.
+The CnPack Development Package is released as open-source software under the CnPack License Agreement, which provides legal protection. Detailed terms of the license are described in the License file. Please refer to the license document for specifics.
 
 ## Main Features
 
