@@ -1095,7 +1095,12 @@ begin
           if PropInfo^.PropType^^.Name = 'TColor' then
             S := Format('$%8.8x', [GetOrdProp(Instance, PropInfo)])
           else if PropInfo^.PropType^^.Name = 'TShortCut' then
-            S := IntToStr(GetOrdProp(Instance, PropInfo)) + ' - ' + ShortCutToText(TShortCut(GetOrdProp(Instance, PropInfo)))
+          begin
+            if GetOrdProp(Instance, PropInfo) = 0 then
+              S := '0'
+            else
+              S := IntToStr(GetOrdProp(Instance, PropInfo)) + ' - ' + ShortCutToText(TShortCut(GetOrdProp(Instance, PropInfo)))
+          end
           else
             S := IntToStr(GetOrdProp(Instance, PropInfo));
 {$ENDIF}
