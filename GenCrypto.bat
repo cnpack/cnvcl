@@ -5,7 +5,7 @@ DEL /S /Q cncrypto
 RMDIR /Q cncrypto /S
 MKDIR cncrypto
 CD cncrypto
-COPY ..\cnvcl\License.chs.txt .\License.txt
+COPY ..\cnvcl\License.chs.txt + ..\cnvcl\License.enu.txt .\License.txt
 COPY ..\cnvcl\Doc\Develop\CnCrypto_README.md .\README.md
 COPY ..\cnvcl\CleanInplace.bat .\Clean.bat
 COPY ..\cnvcl\.gitignore .
