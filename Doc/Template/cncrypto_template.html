@@ -5,54 +5,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><!--#UNIT_NAME#--> µ¥Ôª°ïÖúÎÄµµ</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
         .unit-container {
             padding: 30px;
             max-width: 1000px;
             margin: 0 auto;
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-radius: 8px;
         }
-        
+
         .unit-header {
-            border-bottom: 2px solid #667eea;
+            border-bottom: 2px solid #F03663;
             padding-bottom: 20px;
             margin-bottom: 30px;
         }
-        
+
         .unit-title {
-            color: #667eea;
+            color: #F03663;
             font-size: 32px;
             margin-bottom: 10px;
+            font-weight: 500;
         }
-        
+
         .unit-description {
             color: #666;
             font-size: 18px;
             line-height: 1.6;
         }
-        
+
         .section {
-            margin: 30px 0;
+            margin: 40px 0;
         }
-        
+
         .section-title {
             color: #333;
             font-size: 24px;
-            margin-bottom: 15px;
-            border-left: 4px solid #667eea;
+            margin-bottom: 20px;
+            border-left: 4px solid #F03663;
             padding-left: 15px;
+            font-weight: 500;
         }
-        
+
         .content-placeholder {
             background: #f8f9fa;
-            border: 1px dashed #ddd;
+            border-left: 3px solid #F03663;
             padding: 20px;
             border-radius: 4px;
-            color: #666;
+            color: #555;
             text-align: left;
+            margin-bottom: 20px;
         }
-        
+
         .code-block {
             background: #f5f5f5;
-            border: 1px solid #e0e0e0;
+            border-left: 3px solid #F03663;
             border-radius: 4px;
             padding: 15px;
             margin: 15px 0;
