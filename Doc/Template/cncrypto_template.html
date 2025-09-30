@@ -28,22 +28,24 @@
         }
 
         .unit-header {
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            margin: -30px -30px 30px -30px;
+            background: white;
             border-bottom: 2px solid #F03663;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
         }
 
         .unit-title {
-            color: #F03663;
             font-size: 32px;
             margin-bottom: 10px;
             font-weight: 500;
+            color: #F03663;
         }
 
         .unit-description {
-            color: #666;
             font-size: 18px;
             line-height: 1.6;
+            opacity: 0.9;
         }
 
         .section {
@@ -69,15 +71,137 @@
             margin-bottom: 20px;
         }
 
-        .code-block {
-            background: #f5f5f5;
-            border-left: 3px solid #F03663;
+        .api-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            overflow: hidden;
+            border-left: 4px solid #F03663;
+        }
+
+        .api-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        .api-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .api-name-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            gap: 8px;
+        }
+
+        .api-type-label {
+            font-size: 16px;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .api-declaration-label {
+            font-size: 16px;
+            color: #666;
+            font-weight: bold;
+            margin-top: 0px;
+            margin-bottom: 10px;
+        }
+
+        .api-description-label {
+            font-size: 16px;
+            color: #666;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .api-name {
+            flex-grow: 1;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+
+        .api-visibility {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            color: #666;
+            background: #FFEE99;
+            padding: 3px 8px;
             border-radius: 4px;
-            padding: 15px;
-            margin: 15px 0;
+        }
+
+        .api-body {
+            padding: 15px 20px;
+        }
+
+        .api-declaration {
+            background: #f5f5f5;
+            border-radius: 4px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
             font-family: 'Courier New', monospace;
             font-size: 14px;
             overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .api-description {
+            color: #444;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 12px 15px;
+            margin: 10px 0;
+            line-height: 1.8;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .api-description p {
+            margin: 1em 0;
+        }
+
+        .api-description p:last-child {
+            margin-bottom: 0.3em;
+        }
+
+        .api-description br {
+            display: block;
+            content: "";
+            margin: 0.8em 0;
+        }
+
+        .class-card {
+            border-left: 4px solid #4285F4;
+            margin-bottom: 30px;
+        }
+
+        .class-header {
+            background: linear-gradient(to right, #f8f9fa, #fff);
+        }
+
+        .method-card {
+            margin-left: 30px;
+            border-left: 4px solid #34A853;
+        }
+
+        .method-header {
+            background: #f8f9fa;
+        }
+
+        .nested-methods {
+            padding: 0 0 15px 0;
         }
 
 .u0 { font-family: "Courier New"; font-size: 10pt;color: #FF0000 }
@@ -102,26 +226,26 @@
             <h1 class="unit-title"><!--#UNIT_NAME#--></h1>
             <p class="unit-description"><!--#UNIT_DESC#--></p>
         </div>
-        
+
         <div class="section">
             <h2 class="section-title">单元概述</h2>
             <div class="content-placeholder">
                 <!--#UNIT_COMMENT#-->
             </div>
         </div>
-        
+
         <div class="section">
             <h2 class="section-title">主要对外声明</h2>
                 <!--#UNIT_DECL_LIST#-->
         </div>
-        
+
         <div class="section">
             <h2 class="section-title">使用示例</h2>
             <div class="code-block">
                 暂无。
             </div>
         </div>
-        
+
         <div class="section">
             <h2 class="section-title">注意事项</h2>
             <div class="content-placeholder">
