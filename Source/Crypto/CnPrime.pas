@@ -74,10 +74,9 @@ uses
   SysUtils, Classes, Math, CnNative, CnContainers;
 
 const
-  // 用 Miller Rabin 素数概率判断算法所进行的次数
   CN_MILLER_RABIN_DEF_COUNT = 30;
+  {* 用 Miller Rabin 素数概率判断算法所进行的次数}
 
-  // 65537 内的素数表，由 Examples 目录中的 Prime 测试程序在普通模式下生成
   CN_PRIME_NUMBERS_SQRT_UINT32: array[1..6543] of Cardinal = (2, 3, 5, 7, 11, 13,
     17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97,
     101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173,
@@ -655,34 +654,54 @@ const
     65257, 65267, 65269, 65287, 65293, 65309, 65323, 65327, 65353, 65357, 65371,
     65381, 65393, 65407, 65413, 65419, 65423, 65437, 65447, 65449, 65479, 65497,
     65519, 65521, 65537);
-
-  CN_PRIME_THEOREM_MIN = 67;
+  {* 65537 内的素数表，由 Examples 目录中的 Prime 测试程序在普通模式下生成}
 
   CN_MAX_SQRT_UINT32 = 65537;
+  {* UInt32 范围内的最大平方根数}
 
-  CN_PRIME_MAX_INT8              = 127;     // = 127
-  CN_PRIME_MAX_INT32             = 2147483647;   // = 2147483647
+  CN_PRIME_MAX_INT8              = 127;
+  {* 8 位有符号数上界也是 8 位有符号数所能表示的最大素数，等于上界 127。注意没有 16 位的，因为其上界 32767 不是素数}
+  CN_PRIME_MAX_INT32             = 2147483647;
+  {* 32 位有符号数上界也是 32 位有符号数所能表示的最大素数，等于上界 2147483647}
 
-  CN_MAX_PRIME_LESS_THAN_INT8    = 113;     // < 127
-  CN_MAX_PRIME_LESS_THAN_UINT8   = 251;     // < 255
-  CN_MAX_PRIME_LESS_THAN_INT16   = 32749;   // < 32767
-  CN_MAX_PRIME_LESS_THAN_UINT16  = 65521;   // < 65535
-  CN_MAX_PRIME_LESS_THAN_INT32   = 2147483629;   // < 2147483647
-  CN_MAX_PRIME_LESS_THAN_UINT32  = 4294967291;   // < 4294967295;
-  CN_MAX_PRIME_LESS_THAN_INT64   = 9223372036854775783;  // < 9223372036854775807
-  CN_MAX_PRIME_LESS_THAN_UINT64  = $FFFFFFFFFFFFFFC5; // 18446744073709551557 < 18446744073709551615
+  CN_MAX_PRIME_LESS_THAN_INT8    = 113;
+  {* 8 位有符号数上界内（不包括上界）所能表示的最大素数，小于上界 127}
+  CN_MAX_PRIME_LESS_THAN_UINT8   = 251;
+  {* 8 位无符号数上界内（不包括上界）所能表示的最大素数，小于上界 255}
+  CN_MAX_PRIME_LESS_THAN_INT16   = 32749;
+  {* 16 位有符号数上界内（不包括上界）所能表示的最大素数，小于上界 32767}
+  CN_MAX_PRIME_LESS_THAN_UINT16  = 65521;
+  {* 16 位无符号数上界内（不包括上界）所能表示的最大素数，小于上界 65535}
+  CN_MAX_PRIME_LESS_THAN_INT32   = 2147483629;
+  {* 32 位有符号数上界内（不包括上界）所能表示的最大素数，小于上界 2147483647}
+  CN_MAX_PRIME_LESS_THAN_UINT32  = 4294967291;
+  {* 32 位无符号数上界内（不包括上界）所能表示的最大素数，小于上界 4294967295}
+  CN_MAX_PRIME_LESS_THAN_INT64   = 9223372036854775783;
+  {* 64 位有符号数上界内（不包括上界）所能表示的最大素数，小于上界 9223372036854775807}
+  CN_MAX_PRIME_LESS_THAN_UINT64  = $FFFFFFFFFFFFFFC5;
+  {* 64 位无符号数上界内（不包括上界）所能表示的最大素数 18446744073709551557，小于上界 18446744073709551615}
 
-  CN_MIN_PRIME_MORE_THAN_INT8    = 131;     // > 127
-  CN_MIN_PRIME_MORE_THAN_UINT8   = 257;     // > 255
-  CN_MIN_PRIME_MORE_THAN_INT16   = 32771;   // > 32767
-  CN_MIN_PRIME_MORE_THAN_UINT16  = 65537;   // > 65535
-  CN_MIN_PRIME_MORE_THAN_INT32   = 2147483659;   // > 2147483647
-  CN_MIN_PRIME_MORE_THAN_UINT32  = 4294967311;   // > 4294967295
-  CN_MIN_PRIME_MORE_THAN_INT64   = $800000000000001D; // 9223372036854775837 > 9223372036854775807
-  CN_MIN_PRIME_MORE_THAN_UINT64 = '$01000000000000000D'; // 比 UInt64 大一点的素数，只能用字符串表示了
+  CN_MIN_PRIME_MORE_THAN_INT8    = 131;
+  {* 超出 8 位有符号数上界 127 的最小素数}
+  CN_MIN_PRIME_MORE_THAN_UINT8   = 257;
+  {* 超出 8 位无符号数上界 255 的最小素数}
+  CN_MIN_PRIME_MORE_THAN_INT16   = 32771;
+  {* 超出 16 位有符号数上界 32767 的最小素数}
+  CN_MIN_PRIME_MORE_THAN_UINT16  = 65537;
+  {* 超出 16 位无符号数上界 65536 的最小素数}
+  CN_MIN_PRIME_MORE_THAN_INT32   = 2147483659;
+  {* 超出 32 位有符号数上界 2147483647 的最小素数}
+  CN_MIN_PRIME_MORE_THAN_UINT32  = 4294967311;
+  {* 超出 32 位无符号数上界 4294967295 的最小素数}
+  CN_MIN_PRIME_MORE_THAN_INT64   = $800000000000001D;
+  {* 超出 64 位有符号数上界 9223372036854775807 的最小素数 9223372036854775837}
+  CN_MIN_PRIME_MORE_THAN_UINT64 = '$01000000000000000D';
+  {* 超出 64 位无符号数上界 18446744073709551615 的最小素数 18446744073709551629，只能用字符串表示}
 
   CN_MAX_PRIME_LESS_THAN_SQRT_INT64 = 3037000493;
+  {* 小于 64 位有符号数上界的平方根的最大素数}
   CN_MIN_PRIME_MORE_THAN_SQRT_INT64 = 3037000507;
+  {* 超出 64 位有符号数上界的平方根的最小素数}
 
 type
   ECnPrimeException = class(Exception);

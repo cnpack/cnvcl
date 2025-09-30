@@ -76,16 +76,21 @@ uses
 
 type
   PMD5Digest = ^TCnMD5Digest;
+  {* MD5 杂凑结果指针}
   TCnMD5Digest = array[0..15] of Byte;
   {* MD5 杂凑结果，16 字节}
 
   TCnMD5Count = array[0..1] of Cardinal;
+  {* MD5 内部计数结构}
   TCnMD5State = array[0..3] of Cardinal;
+  {* MD5 内部状态结构}
   TCnMD5Block = array[0..15] of Cardinal;
+  {* MD5 内部块结构}
 
   TCnMD5Buffer = array[0..63] of Byte;
+  {* MD5 内部缓冲区结构}
 
-  TCnMD5Context = record
+  TCnMD5Context = packed record
   {* MD5 的上下文结构}
     State   : TCnMD5State;
     Count   : TCnMD5Count;

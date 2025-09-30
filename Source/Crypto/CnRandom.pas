@@ -25,7 +25,7 @@ unit CnRandom;
 * 单元名称：随机数填充单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：本单元封装了 Windows 平台及 MacOS/Linux 平台下的安全随机数发生器
-*           对外提供安全随机数填充功能。
+*           并对外提供安全随机数填充功能。
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win32/Win64/MacOS/Linux + Unicode/NonUnicode
 * 本 地 化：该单元无需本地化处理
@@ -49,6 +49,7 @@ uses
 
 type
   ECnRandomAPIError = class(Exception);
+  {* 随机数相关异常}
 
 function RandomUInt64: TUInt64;
 {* 返回 UInt64 范围内的随机数，在不支持 UInt64 的平台上用 Int64 代替。

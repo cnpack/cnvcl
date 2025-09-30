@@ -26,8 +26,8 @@ unit CnXXH;
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：本单元实现了 XXHash 系列杂凑算法，包括 XXH32/XXH64。
 *           Seed 相当于 Key 或者初始化向量，直接影响最终计算结果。
-*           注意算法内大量使用 UInt64 乘法，几乎都会溢出，已按 UInt64 截断处理
-*           另外，32 位和 64 位结果的输出采用了网络字节顺序，和主机大小端无关
+*           注意算法内大量使用 UInt64 乘法，几乎都会溢出，已按 UInt64 截断处理。
+*           另外，32 位和 64 位结果的输出采用了网络字节顺序，和主机大小端无关。
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -45,10 +45,12 @@ uses
 
 type
   PCnXXH32Digest = ^TCnXXH32Digest;
+  {* XXH32 杂凑结果指针}
   TCnXXH32Digest = array[0..3] of Byte;
   {* XXH32 杂凑结果，32 位 4 字节}
 
   PCnXXH64Digest = ^TCnXXH64Digest;
+  {* XXH64 杂凑结果指针}
   TCnXXH64Digest = array[0..7] of Byte;
   {* XXH64 杂凑结果，64 位 8 字节}
 
