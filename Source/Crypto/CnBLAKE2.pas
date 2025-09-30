@@ -25,8 +25,8 @@ unit CnBLAKE2;
 * 单元名称：BLAKE 杂凑算法实现单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 *           参考 https://github.com/BLAKE2/BLAKE2 的 C 代码移植，补充部分功能
-* 备    注：本单元参考 RFC 7693 实现了 BLAKE2 系列杂凑算法如 2S/2B 等。
-*           注：BLAKE2 内部设计了 Key 值，因而无需额外的 HMAC 实现。
+* 备    注：本单元参考 RFC 7693 实现了 BLAKE2 系列杂凑算法 2S/2B。
+*           注意，因为 BLAKE2 内部设计了 Key 值，因而无需额外的 HMAC 实现。
 * 开发平台：PWin7 + Delphi 7.0
 * 兼容测试：PWinXP/7/10/11 + Delphi 5/6/7 ~ D12
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -44,25 +44,38 @@ uses
 
 const
   CN_BLAKE2S_BLOCKBYTES    = 64;
+  {* BLAKE2S 块大小，64 字节}
   CN_BLAKE2S_OUTBYTES      = 32;
+  {* BLAKE2S 杂凑结果长度，32 字节}
   CN_BLAKE2S_KEYBYTES      = 32;
+  {* BLAKE2S 密码长度，32 字节}
   CN_BLAKE2S_SALTBYTES     = 8;
+  {* BLAKE2S 盐长度，8 字节}
   CN_BLAKE2S_PERSONALBYTES = 8;
+  {* BLAKE2S 内部长度，8 字节}
 
   CN_BLAKE2B_BLOCKBYTES    = 128;
+  {* BLAKE2S 块大小，128 字节}
   CN_BLAKE2B_OUTBYTES      = 64;
+  {* BLAKE2B 杂凑结果大小，64 字节}
   CN_BLAKE2B_KEYBYTES      = 64;
+  {* BLAKE2B 密码长度，64 字节}
   CN_BLAKE2B_SALTBYTES     = 16;
+  {* BLAKE2B 盐长度，16 字节}
   CN_BLAKE2B_PERSONALBYTES = 16;
+  {* BLAKE2B 内部长度，16 字节}
 
 type
   ECnBLAKE2Exception = class(Exception);
+  {* BLAKE2 相关异常}
 
   PCnBLAKE2SDigest = ^TCnBLAKE2SDigest;
+  {* BLAKE2S 杂凑结果指针}
   TCnBLAKE2SDigest = array[0..CN_BLAKE2S_OUTBYTES - 1] of Byte;
   {* BLAKE2S 杂凑结果，最长 32 字节}
 
   PCnBLAKE2BDigest = ^TCnBLAKE2BDigest;
+  {* BLAKE2B 杂凑结果指针}
   TCnBLAKE2BDigest = array[0..CN_BLAKE2B_OUTBYTES - 1] of Byte;
   {* BLAKE2B 杂凑结果，最长 64 字节}
 

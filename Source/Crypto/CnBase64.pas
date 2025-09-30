@@ -66,8 +66,10 @@ uses
   SysUtils, Classes, CnNative, CnConsts;
 
 const
-  ECN_BASE64_OK                        = ECN_OK; // 转换成功
+  // 错误码
+  ECN_BASE64_OK                        = ECN_OK;
   {* Base64 系列错误码：无错误，值为 0}
+
   ECN_BASE64_ERROR_BASE                = ECN_CUSTOM_ERROR_BASE + $500;
   {* Base64 系列错误码的基准起始值，为 ECN_CUSTOM_ERROR_BASE 加上 $500}
 
