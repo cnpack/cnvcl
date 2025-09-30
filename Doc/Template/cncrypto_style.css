@@ -73,6 +73,7 @@ body {
     background: white;
     border-right: 1px solid #e0e0e0;
     overflow-y: auto;
+    padding-bottom: 20px;
 }
 
 .search-box {
@@ -96,6 +97,7 @@ body {
 
 .unit-list {
     list-style: none;
+    padding-bottom: 10px;
 }
 
 .unit-item {
