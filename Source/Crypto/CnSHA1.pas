@@ -53,10 +53,11 @@ uses
 
 type
   PCnSHA1Digest = ^TCnSHA1Digest;
+  {* SHA1 杂凑结果指针}
   TCnSHA1Digest = array[0..19] of Byte;
   {* SHA1 杂凑结果，20 字节}
 
-  TCnSHA1Context = record
+  TCnSHA1Context = packed record
   {* SHA1 的上下文结构}
     Hash: array[0..4] of Cardinal;
     Hi, Lo: Cardinal;

@@ -42,6 +42,7 @@ unit CnPDFCrypt;
 *           5        5  CFM AESV3 AES256/CBC/PKCS5        256，在 CFM 中                       1.7
 *
 *           加解密测试用例：
+*
 *               非 Unicode 编译器读 40RC4 加密通过       非 Unicode 编译器写 40RC4 加密通过
 *               非 Unicode 编译器读 128RC4 加密通过      非 Unicode 编译器写 128RC4 加密通过
 *               非 Unicode 编译器读 128AES 加密通过      非 Unicode 编译器写 128AES 加密通过
@@ -72,8 +73,8 @@ type
   ECnPDFCryptException = class(Exception);
   {* PDF 加解密的异常}
 
-  TCnPDFEncryptionMethod = (cpemNotSupport, cpem40RC4, cpem128RC4, cpem128AES); //, cpem256AES);
-  {* 支持的几种加密模式，其中 40RC4 目前仍有问题}
+  TCnPDFEncryptionMethod = (cpemNotSupport, cpem40RC4, cpem128RC4, cpem128AES);
+  {* 支持的几种加密模式，其中 40RC4 目前仍有问题，256 AES 不支持}
 
   TCnPDFDataCryptor = class
   {* 加解密实现类，设置一次原始 Key，可反复对多个对象的字节流实施加解密}
