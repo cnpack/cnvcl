@@ -4,20 +4,20 @@ const units = [
 
 function initUnitList() {
   const unitList = document.getElementById('unitList');
-  units.forEach(unit => {
+  units.forEach(function(unit) {
     const li = document.createElement('li');
     li.className = 'unit-item';
     li.textContent = unit;
-    li.onclick = () => loadUnit(unit);
+    li.onclick = function() { loadUnit(unit); };
     unitList.appendChild(li);
   });
 }
 
 function loadUnit(unitName) {
   const frame = document.getElementById('contentFrame');
-  frame.src = `${unitName}.html`;
+  frame.src = unitName + '.html';
   
-  document.querySelectorAll('.unit-item').forEach(item => {
+  document.querySelectorAll('.unit-item').forEach(function(item) {
     item.classList.remove('active');
     if (item.textContent === unitName) {
       item.classList.add('active');
@@ -31,7 +31,7 @@ function initSearch() {
     const searchTerm = this.value.toLowerCase();
     const unitItems = document.querySelectorAll('.unit-item');
     
-    unitItems.forEach(item => {
+    unitItems.forEach(function(item) {
       const unitName = item.textContent.toLowerCase();
       if (unitName.includes(searchTerm)) {
         item.style.display = 'block';
