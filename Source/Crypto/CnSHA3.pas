@@ -27,9 +27,10 @@ unit CnSHA3;
 *           从匿名/佚名 Keccak C 代码与 Pascal 代码混合移植而来并补充部分功能。
 * 备    注：本单元实现了 SHA3 系列杂凑算法及对应的 HMAC 算法，包括 SHA3-224/256/384/512
 *           及可变长度摘要的 SHAKE128/SHAKE256等。
+*
 *           SHA3 规范来自 NIST.FIPS.202
 *           SHA-3 Standard: Permutation-Based Hash and Extendable-Output Functions
-*           其中额外定义了 Bit 串到 Byte 串的转换
+*           其中额外定义了 Bit 串到 Byte 串的转换。
 *           简而言之就是 Bit 串长度能够整除 8 时每 8 个 Bit 按位倒置就是一个字节，字节间的顺序保持不变。
 *
 * 开发平台：PWinXP + Delphi 5.0
@@ -64,22 +65,27 @@ const
 
 type
   PCnSHA3GeneralDigest = ^TCnSHA3GeneralDigest;
+  {* SHA3 系列通用的杂凑结果指针}
   TCnSHA3GeneralDigest = array[0..63] of Byte;
   {* SHA3 系列通用的杂凑结果，以最大的 64 字节为准}
 
   PCnSHA3_224Digest = ^TCnSHA3_224Digest;
+  {* SHA3_224 杂凑结果指针}
   TCnSHA3_224Digest = array[0..27] of Byte;
   {* SHA3_224 杂凑结果，28 字节}
 
   PCnSHA3_256Digest = ^TCnSHA3_256Digest;
+  {* SHA3_256 杂凑结果指针}
   TCnSHA3_256Digest = array[0..31] of Byte;
   {* SHA3_256 杂凑结果，32 字节}
 
   PCnSHA3_384Digest = ^TCnSHA3_384Digest;
+  {* SHA3_384 杂凑结果指针}
   TCnSHA3_384Digest = array[0..47] of Byte;
   {* SHA3_384 杂凑结果，48 字节}
 
   PCnSHA3_512Digest = ^TCnSHA3_512Digest;
+  {* SHA3_512 杂凑结果指针}
   TCnSHA3_512Digest = array[0..63] of Byte;
   {* SHA3_512 杂凑结果，64 字节}
 

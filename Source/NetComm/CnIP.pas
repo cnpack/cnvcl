@@ -29,7 +29,9 @@ unit CnIP;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.03.09 V1.5
+* 修改记录：2025.08.30 V1.5
+*                增加两个索引属性以保持与 Local*Count 排除环回地址的特性一致
+*           2025.03.09 V1.5
 *                增加 Windows 下 IPv6 的支持
 *           2022.12.17 V1.4
 *                增加对 MacOS 的支持，部分功能不可用
@@ -52,7 +54,7 @@ uses
   {$IFDEF MSWINDOWS} Windows, Winsock, Nb30, {$ELSE}
   System.Net.Socket, Posix.NetinetIn, Posix.NetDB, Posix.ArpaInet, Posix.SysSocket,
   Posix.NetIf, Posix.StrOpts, Posix.Errno, {$ENDIF}
-  SysUtils, Classes, Controls, StdCtrls,
+  SysUtils, Classes, Controls, StdCtrls, Consts, {$IFNDEF COMPILER5} RTLConsts, {$ENDIF}
   CnInt128, CnClasses, CnConsts, CnNetConsts, CnNative, CnSocket;
 
 type
@@ -125,6 +127,7 @@ type
     class function GetIPv6Notes(const aIPv6: string; var aResult: TCnIPv6Notes): Boolean;
     {* 分解 IPv6 地址各结点，IPv6 错误时将抛出错误信息}
     function GetLocalIPCount: Integer;
+    function GetLocalIPs(Index: Integer): TCnIPInfo;
     function GetComputerName: string;
     function GetMacAddress: string;
 
@@ -134,6 +137,7 @@ type
     function GetIPv6PrefixLength: Integer;
     procedure SetIPv6PrefixLength(const Value: Integer);
     function GetLocalIPv6Count: Integer;
+    function GetLocalIPv6s(Index: Integer): TCnIPv6Info;
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string);
       override;
@@ -146,14 +150,20 @@ type
     destructor Destroy; override;
 
     property LocalIPGroup: TCnIPGroup read FLocalIPs;
-    {* 本机 IP 地址相关信息，包含本机实际 IP 及 127.0.0.1}
+    {* 本机 IP 地址相关信息的原始数组，包含本机实际 IP 及 127.0.0.1}
+
+    property LocalIPs[Index: Integer]: TCnIPInfo read GetLocalIPs;
+    {* 本机 IP 地址索引，已经排除 127.0.0.1}
     property LocalIPCount: Integer read GetLocalIPCount;
     {* 本机 IP 地址数，已经排除 127.0.0.1}
 
     property LocalIPv6Group: TCnIPv6Group read FLocalIPv6s;
-    {* 本机 IPv6 地址相关信息，包含本机实际 IPv6}
+    {* 本机 IPv6 地址相关信息的原始数据，包含本机实际 IPv6 及环回地址}
+
+    property LocalIPv6s[Index: Integer]: TCnIPv6Info read GetLocalIPv6s;
+    {* 本机 IPv6 地址索引，已经排除环回地址}
     property LocalIPv6Count: Integer read GetLocalIPv6Count;
-    {* 本机 IPv6 地址数}
+    {* 本机 IPv6 地址数，已经排除环回地址}
 
     class function IPTypeCheck(const aIP: string): TCnIPv4NetType;
     {* 检查 IP 地址类型以及是否合法}
@@ -593,6 +603,8 @@ end;
 constructor TCnIp.Create(AOwner: TComponent);
 var
   IPs, IPv6s, I: Integer;
+  aIP: TCnIPInfo;
+  aIPv6: TCnIPv6Info;
 begin
   inherited Create(AOwner);
   IPs := EnumLocalIP(FLocalIPs);
@@ -619,6 +631,21 @@ begin
         FIP.SubnetMask := FLocalIPs[0].SubnetMask;
       end;
     end;
+
+    for I := 0 to IPs - 1 do
+    begin
+      if IntToIP(FLocalIPs[I].IPAddress) = '127.0.0.1' then
+      begin
+        if I <> IPs - 1 then
+        begin
+          // 和最后一个交换，也就是把环回地址放最后
+          Move(FLocalIPs[I], aIP, SizeOf(TCnIPInfo));
+          Move(FLocalIPs[IPs - 1], FLocalIPs[I], SizeOf(TCnIPInfo));
+          Move(aIP, FLocalIPs[IPs - 1], SizeOf(TCnIPInfo));
+        end;
+        Break;
+      end;
+    end;
   end;
 
   if IPv6s = 1 then // Only ONE IP address
@@ -627,7 +654,7 @@ begin
     FIPv6.SubnetMask := FLocalIPv6s[0].SubnetMask;
     FIPv6.PrefixLength := FLocalIPv6s[0].PrefixLength;
   end
-  else if IPv6s > 1 then // IF more than one, do not use 127.0.0.1 as default
+  else if IPv6s > 1 then // IF more than one, do not use Loopback as default
   begin
     for I := 0 to IPv6s - 1 do
     begin
@@ -643,6 +670,21 @@ begin
         FIPv6.IPv6Address := FLocalIPv6s[0].IPv6Address;
         FIPv6.SubnetMask := FLocalIPv6s[0].SubnetMask;
         FIPv6.PrefixLength := FLocalIPv6s[0].PrefixLength;
+      end;
+    end;
+
+    for I := 0 to IPv6s - 1 do
+    begin
+      if Int128ToIPv6(FLocalIPv6s[I].IPv6Address) = '0000:0000:0000:0000:0000:000:0000:0001' then
+      begin
+        if I <> IPs - 1 then
+        begin
+          // 和最后一个交换，也就是把环回地址放最后
+          Move(FLocalIPv6s[I], aIPv6, SizeOf(TCnIPv6Info));
+          Move(FLocalIPv6s[IPs - 1], FLocalIPv6s[I], SizeOf(TCnIPv6Info));
+          Move(aIPv6, FLocalIPv6s[IPs - 1], SizeOf(TCnIPv6Info));
+        end;
+        Break;
       end;
     end;
   end;
@@ -666,6 +708,14 @@ end;
 function TCnIp.GetLocalIPCount: Integer;
 begin
   Result := Length(FLocalIPs) - 1;
+end;
+
+function TCnIp.GetLocalIPs(Index: Integer): TCnIPInfo;
+begin
+  if (Index >= 0) and (Index < GetLocalIPCount) then
+    Result := FLocalIPs[Index]
+  else
+    raise EListError.CreateFmt(SListIndexError, [Index]);
 end;
 
 function TCnIp.GetIPAddress: string;
@@ -1288,6 +1338,14 @@ end;
 function TCnIp.GetLocalIPv6Count: Integer;
 begin
   Result := Length(FLocalIPv6s) - 1;
+end;
+
+function TCnIp.GetLocalIPv6s(Index: Integer): TCnIPv6Info;
+begin
+  if (Index >= 0) and (Index < GetLocalIPv6Count) then
+    Result := FLocalIPv6s[Index]
+  else
+    raise EListError.CreateFmt(SListIndexError, [Index]);
 end;
 
 class function TCnIp.Int128ToIPv6(var aIPv6: TCnUInt128): string;

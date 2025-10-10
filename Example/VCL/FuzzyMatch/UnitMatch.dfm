@@ -20,15 +20,15 @@ object FormFuzzy: TFormFuzzy
   object lblSearch: TLabel
     Left = 16
     Top = 24
-    Width = 42
+    Width = 36
     Height = 12
-    Caption = 'Search:'
+    Caption = 'Fuzzy:'
   end
   object pbString: TPaintBox
     Left = 64
-    Top = 56
+    Top = 96
     Width = 569
-    Height = 25
+    Height = 41
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
@@ -39,24 +39,31 @@ object FormFuzzy: TFormFuzzy
   end
   object bvl: TBevel
     Left = 64
-    Top = 368
+    Top = 424
     Width = 569
     Height = 17
     Shape = bsTopLine
   end
   object lblSearchKMP: TLabel
     Left = 16
-    Top = 384
+    Top = 440
     Width = 66
     Height = 12
     Caption = 'KMP Search:'
   end
   object lblKMPIn: TLabel
     Left = 256
-    Top = 384
+    Top = 440
     Width = 12
     Height = 12
     Caption = 'in'
+  end
+  object lblSep: TLabel
+    Left = 16
+    Top = 56
+    Width = 24
+    Height = 12
+    Caption = 'Sep:'
   end
   object chkCase: TCheckBox
     Left = 432
@@ -77,7 +84,7 @@ object FormFuzzy: TFormFuzzy
   end
   object mmoResult: TMemo
     Left = 64
-    Top = 96
+    Top = 152
     Width = 569
     Height = 249
     ScrollBars = ssVertical
@@ -96,7 +103,7 @@ object FormFuzzy: TFormFuzzy
   end
   object edtKMPPattern: TEdit
     Left = 88
-    Top = 384
+    Top = 440
     Width = 153
     Height = 20
     TabOrder = 4
@@ -104,7 +111,7 @@ object FormFuzzy: TFormFuzzy
   end
   object edtKMPText: TEdit
     Left = 280
-    Top = 384
+    Top = 440
     Width = 217
     Height = 20
     TabOrder = 5
@@ -112,11 +119,19 @@ object FormFuzzy: TFormFuzzy
   end
   object btnKMPSearch: TButton
     Left = 520
-    Top = 384
+    Top = 440
     Width = 113
     Height = 25
     Caption = 'KMP Search'
     TabOrder = 6
     OnClick = btnKMPSearchClick
+  end
+  object edtSepSearch: TEdit
+    Left = 64
+    Top = 54
+    Width = 353
+    Height = 20
+    TabOrder = 7
+    OnChange = edtSepSearchChange
   end
 end

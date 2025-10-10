@@ -3,8 +3,8 @@ program Project1;
 uses
   Forms,
   Unit1 in 'Unit1.pas' {Form1},
-  CnSpin in '..\..\..\Source\Graphics\CnSpin.pas',
-  CnValidateImage in '..\..\..\Source\Graphics\CnValidateImage.pas';
+  CnSpin in '..\..\..\Source\Graphic\CnSpin.pas',
+  CnValidateImage in '..\..\..\Source\Graphic\CnValidateImage.pas';
 
 {$R *.res}
 

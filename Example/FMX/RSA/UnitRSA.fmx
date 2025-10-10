@@ -846,7 +846,7 @@ object FormRSA: TFormRSA
             Size.Height = 13.000000000000000000
             Size.PlatformDefault = False
             Text = 'Original File:'
-            TabOrder = 9
+            TabOrder = 11
           end
           object lblFile2: TLabel
             Position.X = 10.000000000000000000
@@ -855,7 +855,7 @@ object FormRSA: TFormRSA
             Size.Height = 13.000000000000000000
             Size.PlatformDefault = False
             Text = 'Encrypted File:'
-            TabOrder = 10
+            TabOrder = 12
           end
           object edtFile1: TEdit
             Touch.InteractiveGestures = [LongTap, DoubleTap]
@@ -945,11 +945,35 @@ object FormRSA: TFormRSA
           object chkOAEP: TCheckBox
             Position.X = 392.000000000000000000
             Position.Y = 42.000000000000000000
-            Size.Width = 97.000000000000000000
+            Size.Width = 105.000000000000000000
             Size.Height = 17.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 8
             Text = 'OAEP Padding'
+          end
+          object btnPubCryptLong: TButton
+            Position.X = 528.000000000000000000
+            Position.Y = 40.000000000000000000
+            Size.Width = 281.000000000000000000
+            Size.Height = 21.000000000000000000
+            Size.PlatformDefault = False
+            TabOrder = 9
+            Text = 'Crypt Big File with PKCS1 Block Using Public Key'
+            OnClick = btnPubCryptLongClick
+            Left = 512
+            Top = 40
+          end
+          object btnPrivDecryptLong: TButton
+            Position.X = 528.000000000000000000
+            Position.Y = 104.000000000000000000
+            Size.Width = 281.000000000000000000
+            Size.Height = 21.000000000000000000
+            Size.PlatformDefault = False
+            TabOrder = 10
+            Text = 'Decrypt Big File with PKCS1 Block Using Private Key'
+            OnClick = btnPrivDecryptLongClick
+            Left = 512
+            Top = 104
           end
         end
         object tsSign: TTabItem

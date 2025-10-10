@@ -5,9 +5,9 @@
 **********************************************************************
 
                     CnPack Component Package (Alpha)
-                           Version 2025.05.12
+                           Version 2025.09.18
                         =======================
-                          CnPack Team 2025.05
+                          CnPack Team 2025.09
 
 
 =====================================================
@@ -45,8 +45,9 @@ development, please contact us:
 ======================================================================
 
     Now Delphi 5/6/7/2005/2006/2007/2009/2010/XE/XE2/XE3/XE4/XE5/XE6/XE7/XE8/
-10 Seattle/10.1 Berlin/10.2 Tokyo/10.3 Rio/10.4 Sydney/11 Alexandria/12 Athens
-and C++Builder 5/6 are supported by CnPack Component Package.
+10 Seattle/10.1 Berlin/10.2 Tokyo/10.3 Rio/10.4 Sydney/11 Alexandria/12 Athens/
+13 Florence and C++Builder 5/6 are supported by CnPack Component Package.
+FPC 3/Lazarus 4 are also partly supported.
     You can open corresponding package files in IDE and press "compile" 
 or "install" buttons to compile and install it. The package files with "dcl"
 prefix are for design time, others for run time.

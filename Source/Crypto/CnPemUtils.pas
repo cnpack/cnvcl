@@ -66,6 +66,12 @@ const
   CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM    = 02;
   {* PKCS1 对齐时的块类型字段值三，默认应用于 RSA 的公钥加密场合}
 
+  CN_PKCS1_PADDING_SIZE                = 11;
+  {* PKCS1 的大小差值：一个前导 00、一个类型字节、至少 8 字节内容填充，一个填充后的 00 结尾}
+
+  CN_PKCS5_BLOCK_SIZE                  = 8;
+  {* PKCS5 的默认块大小}
+
 type
   TCnKeyHashMethod = (ckhMd5, ckhSha256);
   {* PEM 格式支持的杂凑类型}
@@ -368,9 +374,6 @@ procedure BytesRemoveISO10126Padding(var Data: TBytes);
 implementation
 
 const
-  PKCS1_PADDING_SIZE            = 11; // 一个前导 00、一个类型字节、至少 8 字节内容填充，一个填充后的 00 结尾
-  PKCS5_BLOCK_SIZE              = 8;
-
   ENC_HEAD_PROCTYPE = 'Proc-Type:';
   ENC_HEAD_PROCTYPE_NUM = '4';
   ENC_HEAD_ENCRYPTED = 'ENCRYPTED';
@@ -411,7 +414,7 @@ begin
     Exit;
 
   // 不足以填充
-  if DataByteLen > BlockSize - PKCS1_PADDING_SIZE then
+  if DataByteLen > BlockSize - CN_PKCS1_PADDING_SIZE then
     Exit;
 
   B := 0;
@@ -505,6 +508,8 @@ begin
         if Start <> 0 then
           Inc(Start);
       end;
+    else
+      Start := I; // 跳过 #0 时实际上可能已经处理掉了 CN_PKCS1_BLOCK_TYPE_PRIVATE_00
   end;
 
   if Start > 0 then
@@ -605,7 +610,7 @@ end;
 
 procedure AddPKCS5Padding(Stream: TMemoryStream);
 begin
-  AddPKCS7Padding(Stream, PKCS5_BLOCK_SIZE);
+  AddPKCS7Padding(Stream, CN_PKCS5_BLOCK_SIZE);
 end;
 
 procedure RemovePKCS5Padding(Stream: TMemoryStream);
@@ -615,7 +620,7 @@ end;
 
 function StrAddPKCS5Padding(const Str: AnsiString): AnsiString;
 begin
-  Result := StrAddPKCS7Padding(Str, PKCS5_BLOCK_SIZE);
+  Result := StrAddPKCS7Padding(Str, CN_PKCS5_BLOCK_SIZE);
 end;
 
 function StrRemovePKCS5Padding(const Str: AnsiString): AnsiString;
@@ -656,7 +661,7 @@ end;
 
 procedure BytesAddPKCS5Padding(var Data: TBytes);
 begin
-  BytesAddPKCS7Padding(Data, PKCS5_BLOCK_SIZE);
+  BytesAddPKCS7Padding(Data, CN_PKCS5_BLOCK_SIZE);
 end;
 
 procedure BytesRemovePKCS5Padding(var Data: TBytes);

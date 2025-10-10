@@ -1094,6 +1094,13 @@ begin
 {$ELSE}
           if PropInfo^.PropType^^.Name = 'TColor' then
             S := Format('$%8.8x', [GetOrdProp(Instance, PropInfo)])
+          else if PropInfo^.PropType^^.Name = 'TShortCut' then
+          begin
+            if GetOrdProp(Instance, PropInfo) = 0 then
+              S := '0'
+            else
+              S := IntToStr(GetOrdProp(Instance, PropInfo)) + ' - ' + ShortCutToText(TShortCut(GetOrdProp(Instance, PropInfo)))
+          end
           else
             S := IntToStr(GetOrdProp(Instance, PropInfo));
 {$ENDIF}
@@ -1971,7 +1978,8 @@ begin
           begin
             IntfEntry := @IntfTable.Entries[I];
 {$IFDEF FPC}
-            Hies[Hies.Count - 1] := Hies[Hies.Count - 1] + ', ' +  GUIDToString(IntfEntry^.IID^);
+            if IntfEntry^.IID <> nil then
+              Hies[Hies.Count - 1] := Hies[Hies.Count - 1] + ', ' +  GUIDToString(IntfEntry^.IID^);
 {$ELSE}
   {$IFDEF SUPPORT_ENHANCED_RTTI}
             S := GetInterfaceNameByGUID(IntfEntry^.IID);

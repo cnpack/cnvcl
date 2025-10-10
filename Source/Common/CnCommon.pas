@@ -101,8 +101,8 @@ const
   sLineBreak = {$IFDEF POSIX} #10 {$ENDIF} {$IFDEF MSWINDOWS} #13#10 {$ENDIF};
 {$ENDIF}
 
-  Alpha = ['A'..'Z', 'a'..'z', '_'];
-  AlphaNumeric = Alpha + ['0'..'9'];
+  CN_ALPHA_CHARS = ['A'..'Z', 'a'..'z', '_'];
+  CN_ALPHANUMERIC = CN_ALPHA_CHARS + ['0'..'9'];
 
   SCN_UTF16_ANSI_WIDE_CHAR_SEP = $900;
 
@@ -636,6 +636,9 @@ function IsValidIdentW(const Ident: string): Boolean;
 function IsValidIdentWide(const Ident: WideString): Boolean;
 {* 判断宽字符串是否是有效的 Unicode 标识符，只在 BDS 以上调用}
 
+function StrContainsRegExpr(const Str: string): Boolean;
+{* 判断字符串内是否包含正则表达式专用字符}
+
 {$IFDEF COMPILER5}
 function BoolToStr(B: Boolean; UseBoolStrs: Boolean = False): string;
 {* Delphi5没有实现布尔型转换为字符串，类似于Delphi6,7的实现}
@@ -1149,11 +1152,11 @@ procedure ShowLastError;
 
 function GetHzPy(const AHzStr: AnsiString): AnsiString;
 {* 取汉字的拼音首字母，注意编码必须是 GB2312，并且只支持部分常用字
- （GBK/GB18030 编码也可但获取不到）}
+ （GBK/GB18030 编码也可传入，但绝大部分获取不到）}
 
 {$IFDEF UNICODE}
 function GetHzPyW(const AHzStr: string): string;
-{* 取汉字的拼音，参数为 Utf16}
+{* 取汉字的拼音首字母，参数为 Utf16}
 {$ENDIF}
 
 {$IFDEF MSWINDOWS}
@@ -1811,6 +1814,7 @@ begin
   end
   else
   begin
+    // 以下绘制似乎仅在 MatchedIndexes 排好序的情况下绘制正确
     Canvas.TextOut(X, Y, Text);
     SetLength(PaintStr, Length(Text));
     StrCopy(PChar(PaintStr), PChar(Text));
@@ -4786,47 +4790,63 @@ end;
 function IsValidIdentChar(C: Char; First: Boolean): Boolean;
 begin
   if First then
-    Result := CharInSet(C, Alpha)
+    Result := CharInSet(C, CN_ALPHA_CHARS)
   else
-    Result := CharInSet(C, AlphaNumeric);
+    Result := CharInSet(C, CN_ALPHANUMERIC);
 end;
 
 // 判断字符串是否是有效的 Unicode 标识符，只在 Unicode 下调用
 function IsValidIdentW(const Ident: string): Boolean;
-const
-  Alpha = ['A'..'Z', 'a'..'z', '_'];
-  AlphaNumeric = Alpha + ['0'..'9'];
 var
   I: Integer;
 begin
   Result := False;
-  if (Length(Ident) = 0) or not ((AnsiChar(Ident[1]) in Alpha) or (Ord(Ident[1]) > 127)) then
+  if (Length(Ident) = 0) or not ((AnsiChar(Ident[1]) in CN_ALPHA_CHARS) or (Ord(Ident[1]) > 127)) then
     Exit;
   for I := 2 to Length(Ident) do
-    if not ((AnsiChar(Ident[I]) in AlphaNumeric) or (Ord(Ident[I]) > 127)) then
+  begin
+    if not ((AnsiChar(Ident[I]) in CN_ALPHANUMERIC) or (Ord(Ident[I]) > 127)) then
       Exit;
+  end;
   Result := True;
 end;
 
 // 判断宽字符串是否是有效的 Unicode 标识符，只在 BDS 以上调用
 function IsValidIdentWide(const Ident: WideString): Boolean;
 {$IFDEF BDS}
-const
-  Alpha = ['A'..'Z', 'a'..'z', '_'];
-  AlphaNumeric = Alpha + ['0'..'9'];
 var
   I: Integer;
 {$ENDIF}
 begin
   Result := False;
 {$IFDEF BDS}
-  if (Length(Ident) = 0) or not ((AnsiChar(Ident[1]) in Alpha) or (Ord(Ident[1]) > 127)) then
+  if (Length(Ident) = 0) or not ((AnsiChar(Ident[1]) in CN_ALPHA_CHARS) or (Ord(Ident[1]) > 127)) then
     Exit;
   for I := 2 to Length(Ident) do
-    if not ((AnsiChar(Ident[I]) in AlphaNumeric) or (Ord(Ident[I]) > 127)) then
+  begin
+    if not ((AnsiChar(Ident[I]) in CN_ALPHANUMERIC) or (Ord(Ident[I]) > 127)) then
       Exit;
+  end;
   Result := True;
 {$ENDIF}
+end;
+
+// 判断字符串内是否包含正则表达式专用字符
+function StrContainsRegExpr(const Str: string): Boolean;
+const
+  REG_CHARS = ['^', '$', '.', '*', '[', ']', '(', ')', '/', '\'];
+var
+  I: Integer;
+begin
+  Result := False;
+  if Length(Str) > 0 then
+  begin
+    for I := 1 to Length(Str) do
+    begin
+      if Str[I] in REG_CHARS then
+        Exit;
+    end;
+  end;
 end;
 
 const
@@ -4837,7 +4857,7 @@ const
 {$IFDEF COMPILER5}
 function BoolToStr(B: Boolean; UseBoolStrs: Boolean = False): string;
 const
-  cSimpleBoolStrs: array [boolean] of String = ('0', '-1');
+  cSimpleBoolStrs: array [Boolean] of string = ('0', '-1');
 begin
   if UseBoolStrs then
   begin
@@ -7101,9 +7121,6 @@ end;
 procedure SelectMemoOneLine(AMemo: TMemo; FromLine: Integer);
 var
   L, I: Integer;
-{$IFDEF DELPHI2007}
-  J, Len: Integer;
-{$ENDIF}
 begin
   if AMemo = nil then
     Exit;
@@ -7113,17 +7130,17 @@ begin
     L := 0;
     for I := 0 to FromLine - 1 do
     begin
-{$IFDEF DELPHI2007}
-      Len := Length(AMemo.Lines[I]);
-      for J := 0 to Length(AMemo.Lines[I]) - 1 do
-      begin
-        if Ord(AMemo.Lines[I][J]) < 128 then
-          Inc(Len);
-      end;
-      Len := Len div 2;
-      L := L + Len + 2;
+{$IFDEF FPC}
+      // Lazarus 下内容是 Utf8，需要转换成 UTF16 宽度
+      L := L + Length(UnicodeString(AMemo.Lines[I])) + 2;
 {$ELSE}
+{$IFDEF DELPHI2007}
+      // D2007 的 IDE 中特殊，在 Ansi 模式使用 Utf16 宽度。注意普通程序无需如此。
+      L := L + Length(WideString(AMemo.Lines[I])) + 2;
+{$ELSE}
+      // D 5 6 7 2005 2006 下 Ansi 用 Ansi 模式，D2009 或以上 Utf16 模式，均无问题
       L := L + Length(AMemo.Lines[I]) + 2;
+{$ENDIF}
 {$ENDIF}
     end;
 
@@ -7524,7 +7541,7 @@ end;
 
 {$IFDEF UNICODE}
 
-// 取汉字的拼音，参数为 Utf16
+// 取汉字的拼音首字母，参数为 Utf16
 function GetHzPyW(const AHzStr: string): string;
 begin
   Result := string(GetHzPy(AnsiString(AHzStr)));

@@ -38,7 +38,9 @@
       <Unit>
         <Filename Value="UnitRSA.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="FormRSA"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
       </Unit>
     </Units>
   </ProjectOptions>

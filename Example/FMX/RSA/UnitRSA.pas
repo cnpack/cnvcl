@@ -4,7 +4,7 @@ interface
 
 uses
   {$IFDEF MSWINDOWS} Windows, Messages, {$ENDIF} SysUtils, Classes, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs,
-  FMX.StdCtrls, FMX.ExtCtrls, CnBigNumber, CnRSA, CnNative, CnPrime,
+  FMX.StdCtrls, FMX.ExtCtrls, CnBigNumber, CnRSA, CnNative, CnPrime, CnMath,
   CnCommon, CnPemUtils, FMX.ComboEdit, FMX.Edit, FMX.ImgList, FMX.Memo, FMX.TabControl, FMX.Types,
   System.ImageList, FMX.ScrollBox, FMX.Controls.Presentation;
 
@@ -180,6 +180,8 @@ type
     ilCrypt: TImageList;
     dlgOpenFile: TOpenDialog;
     dlgSaveFile: TSaveDialog;
+    btnPubCryptLong: TButton;
+    btnPrivDecryptLong: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure edtBNChange(Sender: TObject);
@@ -224,6 +226,8 @@ type
     procedure btnDHACKeyClick(Sender: TObject);
     procedure btnDHRandClick(Sender: TObject);
     procedure btnFastSqrtClick(Sender: TObject);
+    procedure btnPubCryptLongClick(Sender: TObject);
+    procedure btnPrivDecryptLongClick(Sender: TObject);
   private
     FPrivKeyProduct, FPrivKeyExponent, FPubKeyProduct, FPubKeyExponent, FR: TUInt64;
     FBNR: TCnBigNumber;
@@ -651,6 +655,25 @@ begin
   end;
 end;
 
+procedure TFormRSA.btnPrivDecryptLongClick(Sender: TObject);
+var
+  F, D: TFileStream;
+begin
+  if dlgSaveFile.Execute then
+  begin
+    F := TFileStream.Create(edtFile2.Text, fmOpenRead or fmShareDenyWrite);
+    D := TFileStream.Create(dlgSaveFile.FileName, fmCreate);
+
+    try
+      if CnRSADecryptLongStream(F, D, FPrivateKey) then
+        ShowMessage('Decrypt OK');
+    finally
+      D.Free;
+      F.Free;
+    end;
+  end;
+end;
+
 procedure TFormRSA.btnPubCryptClick(Sender: TObject);
 var
   R: Boolean;
@@ -667,6 +690,28 @@ begin
       ShowMessage('RSA Public Key Encrypt File Success.');
       if Trim(edtFile2.Text) = '' then
         edtFile2.Text := dlgSaveFile.FileName;
+    end;
+  end;
+end;
+
+procedure TFormRSA.btnPubCryptLongClick(Sender: TObject);
+var
+  F, D: TFileStream;
+begin
+  if dlgSaveFile.Execute then
+  begin
+    F := TFileStream.Create(edtFile1.Text, fmOpenRead or fmShareDenyWrite);
+    D := TFileStream.Create(dlgSaveFile.FileName, fmCreate);
+
+    try
+      if CnRSAEncryptLongStream(F, D, FPublicKey) then
+      begin
+        edtFile2.Text := dlgSaveFile.FileName;
+        ShowMessage('Encrypt OK');
+      end;
+    finally
+      D.Free;
+      F.Free;
     end;
   end;
 end;

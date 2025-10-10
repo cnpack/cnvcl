@@ -26,9 +26,6 @@ unit CnBLAKE;
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 *           从 https://github.com/veorq/BLAKE/ 的 C 代码移植而来并补充部分功能
 * 备    注：本单元实现了 BLAKE 系列杂凑算法及对应的 HMAC 算法，包括 BLAKE224/256/384/512。
-*           注：Delphi 5/6/7 本单元用了有符号 Int64 代替无符号 UInt64 来计算 SHA512/384，
-*           原因是基于补码规则，有无符号数的加减移位以及溢出的舍弃机制等都相同，唯一不
-*           同的是比较，而本单元中没有类似的比较。
 * 开发平台：PWin7 + Delphi 7.0
 * 兼容测试：PWinXP/7/10/11 + Delphi 5/6/7 ~ D12
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -46,21 +43,27 @@ uses
 
 type
   PCnBLAKEGeneralDigest = ^TCnBLAKEGeneralDigest;
+  {* BLAKE 通用杂凑结果指针}
   TCnBLAKEGeneralDigest = array[0..63] of Byte;
+  {* BLAKE 通用杂凑结果，取最长的 64 字节}
 
   PCnBLAKE224Digest = ^TCnBLAKE224Digest;
+  {* BLAKE224 杂凑结果指针}
   TCnBLAKE224Digest = array[0..27] of Byte;
   {* BLAKE224 杂凑结果，28 字节}
 
   PCnBLAKE256Digest = ^TCnBLAKE256Digest;
+  {* BLAKE256 杂凑结果指针}
   TCnBLAKE256Digest = array[0..31] of Byte;
   {* BLAKE256 杂凑结果，32 字节}
 
   PCnBLAKE384Digest = ^TCnBLAKE384Digest;
+  {* BLAKE384 杂凑结果指针}
   TCnBLAKE384Digest = array[0..47] of Byte;
   {* BLAKE384 杂凑结果，48 字节}
 
   PCnBLAKE512Digest = ^TCnBLAKE512Digest;
+  {* BLAKE512 杂凑结果指针}
   TCnBLAKE512Digest = array[0..63] of Byte;
   {* BLAKE512 杂凑结果，64 字节}
 

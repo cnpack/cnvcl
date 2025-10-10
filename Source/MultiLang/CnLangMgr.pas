@@ -558,11 +558,13 @@ procedure TCnBaseLangManager.SetCurrentLanguageIndex(
 begin
   FCurrentLanguageIndex := Value;
   if Assigned(FLanguageStorage) then
+  begin
     if (Value >= 0) and (Value < FLanguageStorage.LanguageCount) then
     begin
       FLanguageStorage.CurrentLanguageIndex := Value;
       DoLanguageChanged;
     end;
+  end;
 end;
 
 procedure TCnBaseLangManager.SetLanguageStorage(Value:
@@ -582,6 +584,7 @@ begin
 
     if Assigned(Value) then
       Value.FreeNotification(Self);
+
     if FLanguageStorage.CurrentLanguage <> nil then
     begin
       AID := FLanguageStorage.CurrentLanguage.LanguageID;
@@ -616,8 +619,8 @@ begin
 {$IFDEF COMPILER6_UP}
   Result := WideFormat(Translate(Src), Args);
 {$ELSE}
-  // todo: D5 doesn't support WideFormat
-  Result := Format(Translate(Src), Args);
+  // D5 ²»Ö§³Ö WideFormat
+  Result := TCnLangString(Format(Translate(Src), Args));
 {$ENDIF}
 end;
 

@@ -28,7 +28,9 @@ unit CnStrings;
 * 开发平台：PWinXPPro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7/2005 + C++Build 5/6
 * 备    注：AnsiStringList 移植自 Delphi 7 的 StringList
-* 最后更新：2022.10.25
+* 最后更新：2025.08.14
+*               增加一个分隔符分隔的全匹配搜索实现函数
+*           2022.10.25
 *               增加 StringBuilder 的实现，支持 Ansi 和 Unicode 模式
 *           2022.04.25
 *               增加三个字符串替换函数，支持整字匹配
@@ -645,6 +647,21 @@ function FuzzyMatchStrWithScore(const Pattern: string; const Str: string; out Sc
    返回值：Boolean                        - 返回是否有模糊匹配的内容
 }
 
+function AnyWhereSepMatchStr(const Pattern: string; const Str: string; SepContainer: TStringList;
+  MatchedIndexes: TList = nil; CaseSensitive: Boolean = False; SepChar: Char = ' '): Boolean;
+{* 分割子串后独立均匹配子串，也就是把 Pattern 按 SepChar 劈分成多个字符串后进行匹配，全都匹配才返回匹配。
+   MatchedIndexes 中返回 Str 中匹配的下标号，SepContainer 是外界传入的 TStringList 以减少创建开销。
+
+   参数：
+     const Pattern: string                - 待匹配的子串
+     const Str: string                    - 待搜索的完整字符串
+     SepContainer: TStringList;           - 外界传入的 TStringList 以减少内部创建开销
+     MatchedIndexes: TList                - 返回字符串中各字符匹配的下标号
+     CaseSensitive: Boolean               - 控制是否区分大小写
+
+   返回值：Boolean                        - 返回是否匹配成功
+}
+
 function CnStringReplace(const S: string; const OldPattern: string;
   const NewPattern: string; Flags: TCnReplaceFlags): string;
 {* 支持整字匹配的字符串替换，在 Unicode 或非 Unicode 编译器下都有效。
@@ -690,7 +707,22 @@ function CnStringReplaceW(const S: WideString; const OldPattern: WideString;
 
 {$ENDIF}
 
+function CnPosEx(const SubStr, S: string; CaseSensitive: Boolean; WholeWords:
+  Boolean; StartCount: Integer = 1): Integer;
+{* 增强的字符串查找函数，支持查找第几个，首个的 StartCount 为 1}
+
+function NativeStringToUIString(const Str: string): string;
+{* Lazarus/FPC 的 Ansi 模式专用，因为 Lazarus/FPC 的 Ansi 模式下和界面有关的字符串是 Utf8 格式，
+   而我们内部的普通字符串大多是 Ansi 或 Utf16，这里做一次封装转换。}
+
+function UIStringToNativeString(const Str: string): string;
+{* Lazarus/FPC 的 Ansi 模式专用，因为 Lazarus/FPC 的 Ansi 模式下和界面有关的字符串是 Utf8 格式，
+   而我们内部的普通字符串大多是 Ansi 或 Utf16，这里做一次封装转换。}
+
 implementation
+
+uses
+  CnWideStrings;
 
 const
   SLineBreak = #13#10;
@@ -702,6 +734,24 @@ resourcestring
   SListIndexError = 'AnsiString List index out of bounds (%d)';
   SSortedListError = 'Operation not allowed on sorted AnsiString list';
   SListCapacityError = 'Error New Capacity or Length Value %d';
+
+function NativeStringToUIString(const Str: string): string;
+begin
+{$IFDEF FPC}
+  Result := CnAnsiToUtf82(Str);
+{$ELSE}
+  Result := Str;
+{$ENDIF}
+end;
+
+function UIStringToNativeString(const Str: string): string;
+begin
+{$IFDEF FPC}
+  Result := CnUtf8ToAnsi2(Str);
+{$ELSE}
+  Result := Str;
+{$ENDIF}
+end;
 
 {$IFNDEF COMPILER7_UP}
 
@@ -981,6 +1031,97 @@ begin
     Inc(Score, BestLetterScore);
 
   Result := PIdx > Length(Pattern);
+end;
+
+function MatchedIndexesCompare(Item1, Item2: Pointer): Integer;
+var
+  R1, R2: Integer;
+begin
+  R1 := Integer(Item1);
+  R2 := Integer(Item2);
+  Result := R1 - R2;
+end;
+
+function AnyWhereSepMatchStr(const Pattern: string; const Str: string; SepContainer: TStringList;
+  MatchedIndexes: TList; CaseSensitive: Boolean; SepChar: Char): Boolean;
+var
+  IsNil: Boolean;
+  D, I, J: Integer;
+  ToFind: string;
+  SepChars: TSysCharSet;
+begin
+  Result := False;
+
+  if Pos(SepChar, Pattern) <= 0 then
+  begin
+    // 没有隔离字符，蜕变成 Pos
+    if CaseSensitive then
+      D := Pos(Pattern, Str)
+    else
+      D := Pos(UpperCase(Pattern), UpperCase(Str));
+
+    if D > 0 then
+    begin
+      Result := True;
+      if MatchedIndexes <> nil then
+      begin
+        MatchedIndexes.Clear;
+        for I := 0 to Length(Pattern) - 1 do
+          MatchedIndexes.Add(Pointer(D + I));
+      end;
+    end;
+  end
+  else
+  begin
+    IsNil := SepContainer = nil;
+    if IsNil then
+      SepContainer := TStringList.Create
+    else
+      SepContainer.Clear;
+
+    try
+      SepChars := [];
+      Include(SepChars, AnsiChar(SepChar));
+      if CaseSensitive then
+      begin
+        ExtractStrings(SepChars, [], PChar(Pattern), SepContainer);
+        ToFind := Str;
+      end
+      else
+      begin
+        ExtractStrings(SepChars, [], PChar(UpperCase(Pattern)), SepContainer);
+        ToFind := UpperCase(Str);
+      end;
+
+      if MatchedIndexes <> nil then
+        MatchedIndexes.Clear;
+      for I := 0 to SepContainer.Count - 1 do
+      begin
+        D := Pos(SepContainer[I], ToFind);
+        if D <= 0 then
+        begin
+          if MatchedIndexes <> nil then
+            MatchedIndexes.Clear;
+          Exit;
+        end
+        else
+        begin
+          if MatchedIndexes <> nil then
+          begin
+            for J := 0 to Length(SepContainer[I]) - 1 do
+              MatchedIndexes.Add(Pointer(D + J));
+          end;
+        end;
+      end;
+
+      if (MatchedIndexes <> nil) and (MatchedIndexes.Count > 1) then
+        MatchedIndexes.Sort(MatchedIndexesCompare);
+      Result := True;
+    finally
+      if IsNil then
+        SepContainer.Free;
+    end;
+  end;
 end;
 
 { TCnAnsiStrings }
@@ -2286,6 +2427,68 @@ begin
 end;
 
 {$ENDIF}
+
+function CnPosEx(const SubStr, S: string; CaseSensitive: Boolean; WholeWords:
+  Boolean; StartCount: Integer): Integer;
+var
+  P: PChar;
+  I, Count, Len, SubLen: Integer;
+  StrUpper, SubUpper: string;
+begin
+  Result := 0;
+  if (SubStr = '') or (S = '') or (StartCount < 1) then
+    Exit;
+
+  Len := Length(S);
+  SubLen := Length(SubStr);
+  if SubLen > Len then
+    Exit;
+
+  if not CaseSensitive then
+  begin
+    StrUpper := UpperCase(S);
+    SubUpper := UpperCase(SubStr);
+    P := PChar(StrUpper);
+  end
+  else
+    P := PChar(S);
+
+  Count := 0;
+  for I := 1 to Len - SubLen + 1 do
+  begin
+    if (CaseSensitive and (P^ = SubStr[1]) and
+      (CompareMem(P, PChar(SubStr), SubLen * SizeOf(Char))))
+      or
+      (not CaseSensitive and (P^ = SubUpper[1]) and
+      (CompareMem(P, PChar(SubUpper), SubLen * SizeOf(Char)))) then
+    begin
+      if WholeWords then
+      begin
+        // 检查是否整词匹配
+        if ((I = 1) or IsSepChar((P - 1)^)) and
+           ((I + SubLen - 1 >= Len) or IsSepChar((P + SubLen)^)) then
+        begin
+          Inc(Count);
+          if Count = StartCount then
+          begin
+            Result := I;
+            Exit;
+          end;
+        end;
+      end
+      else
+      begin
+        Inc(Count);
+        if Count = StartCount then
+        begin
+          Result := I;
+          Exit;
+        end;
+      end;
+    end;
+    Inc(P);
+  end;
+end;
 
 {$WARNINGS ON}
 

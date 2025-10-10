@@ -63,9 +63,44 @@ type
     {* 析构函数}
 
     function Add(X: Int64; Y: Int64): Int64; virtual;
+    {* 多项式加法。
+
+       参数：
+         X: Int64                         - 加数一
+         Y: Int64                         - 加数二
+
+       返回值：Int64                      - 和
+    }
+
     function Subtract(X: Int64; Y: Int64): Int64; virtual;
+    {* 多项式减法。
+
+       参数：
+         X: Int64                         - 被减数
+         Y: Int64                         - 减数
+
+       返回值：Int64                      - 差
+    }
+
     function Multiply(X: Int64; Y: Int64): Int64; virtual;
+    {* 多项式乘法。
+
+       参数：
+         X: Int64                         - 乘数一
+         Y: Int64                         - 乘数二
+
+       返回值：Int64                      - 积
+    }
+
     function Divide(X: Int64; Y: Int64): Int64; virtual;
+    {* 多项式除法。
+
+       参数：
+         X: Int64                         - 被除数
+         Y: Int64                         - 除数
+
+       返回值：Int64                      - 商
+    }
   end;
 
   TCnGalois2Power8Rule = class(TCnCalculationRule)

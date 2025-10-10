@@ -43,7 +43,7 @@ OutputDir=
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\..\Source\Common;..\..\..\Source\Crypto;..\..\..\Source\Nonvisual;..\..\..\Source\Graphics
+SearchPath=..\..\..\Source\Common;..\..\..\Source\Crypto;..\..\..\Source\NonVisual;..\..\..\Source\Graphic
 Packages=vcl;rtl;indy;vclx;dbrtl;vcldb;bdertl;adortl;IntrawebDB_50_70;Intraweb_50_70;Rave50CLX;Rave50VCL;dclOfficeXP;EhLib70;dxELibD7;dxEdtrD7;dxGrEdD7;ECQDBCD7;EQTLD7;EQDBTLD7;dxComnD7;EQGridD7;RxCtl7;VclSmp;RxDB7;teedb;tee;dbxcds;dss;ibxpress;dclCnPack_D7;CnPack_D7;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dsnap;dsnapcon;soaprtl;dbexpress;inetdb;vcldbx;webdsnap;websnap;teeui;vclactnband;vclshlctrls;RxBDE7;Rz30Ctls70;Rz30DBCtls70
 Conditionals=
 DebugSourceDirs=
@@ -81,4 +81,4 @@ Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
 Count=1
-Item0=..\..\..\Source\Common;..\..\..\Source\Crypto;..\..\..\Source\Nonvisual
+Item0=..\..\..\Source\Common;..\..\..\Source\Crypto;..\..\..\Source\NonVisual

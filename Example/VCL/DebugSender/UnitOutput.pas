@@ -41,7 +41,8 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ComCtrls, ExtCtrls, UnitThread, Buttons,
-  ImgList, Menus {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}, PNGImage {$ENDIF};
+  ImgList, Menus, ActnList {$IFDEF TGRAPHIC_SUPPORT_PARTIALTRANSPARENCY}, PNGImage,
+  {$ENDIF};
 
 type
   ITest = interface
@@ -126,6 +127,8 @@ type
     dlgOpen1: TOpenDialog;
     btnDrawTransparent: TButton;
     btnEvaluateSample: TButton;
+    actlst1: TActionList;
+    actTest: TAction;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -177,6 +180,7 @@ type
     procedure btnEvaluateImageClick(Sender: TObject);
     procedure btnDrawTransparentClick(Sender: TObject);
     procedure btnEvaluateSampleClick(Sender: TObject);
+    procedure actTestExecute(Sender: TObject);
   private
     FComponenet: TComponent;
     FTimeStamp: Boolean;
@@ -775,6 +779,11 @@ begin
 
   (FComponenet as TCnSampleComponent).OnClick := btnEvaluateSampleClick;
   CnDebugger.EvaluateObject(FComponenet);
+end;
+
+procedure TFormSend.actTestExecute(Sender: TObject);
+begin
+  CnDebugger.LogMsg('actTest Execute');
 end;
 
 end.

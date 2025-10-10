@@ -43,7 +43,7 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
-        <Filename Value="..\..\..\Source\Graphics\CnHexEditor.pas"/>
+        <Filename Value="..\..\..\Source\Graphic\CnHexEditor.pas"/>
         <TopLine Value="61"/>
         <CursorPos X="3" Y="73"/>
         <UsageCount Value="10"/>
@@ -88,7 +88,7 @@
     </Units>
     <JumpHistory HistoryIndex="13">
       <Position>
-        <Filename Value="..\..\..\Source\Graphics\CnHexEditor.pas"/>
+        <Filename Value="..\..\..\Source\Graphic\CnHexEditor.pas"/>
         <Caret Line="73" Column="3" TopLine="61"/>
       </Position>
       <Position>

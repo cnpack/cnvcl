@@ -101,86 +101,120 @@ type
 
 {$IFDEF SUPPORT_32_AND_64}
   TCnNativeInt     = NativeInt;
+  {* 统一定义 32 位和 64 位下通用的有符号整数类型}
   TCnNativeUInt    = NativeUInt;
+  {* 统一定义 32 位和 64 位下通用的无符号整数类型}
   TCnNativePointer = NativeInt;
+  {* 统一定义 32 位和 64 位下通用的指针类型}
   TCnNativeIntPtr  = PNativeInt;
+  {* 统一定义 32 位和 64 位下通用的指向有符号整数的指针类型}
   TCnNativeUIntPtr = PNativeUInt;
+  {* 统一定义 32 位和 64 位下通用的指向无符号整数的指针类型}
 {$ELSE}
   TCnNativeInt     = Integer;
+  {* 统一定义 32 位和 64 位下通用的有符号整数类型}
   TCnNativeUInt    = Cardinal;
+  {* 统一定义 32 位和 64 位下通用的无符号整数类型}
   TCnNativePointer = Integer;
+  {* 统一定义 32 位和 64 位下通用的指针类型}
   TCnNativeIntPtr  = PInteger;
+  {* 统一定义 32 位和 64 位下通用的指向有符号整数的指针类型}
   TCnNativeUIntPtr = PCardinal;
+  {* 统一定义 32 位和 64 位下通用的指向无符号整数的指针类型}
 {$ENDIF}
 
 {$IFDEF FPC}
   TCnHashCode      = PtrInt;
+  {* 统一定义 Delphi 和 FPC 下的 HashCode 类型}
 {$ELSE}
   TCnHashCode      = Integer;
+  {* 统一定义 Delphi 和 FPC 下的 HashCode 类型}
 {$ENDIF}
 
   // 供进行地址加减运算的类型，考虑了 FPC 和 Delphi 下对符号的要求
 {$IFDEF FPC}
   TCnIntAddress    = NativeUInt;
+  {* 统一定义 Delphi 和 FPC 下的供进行地址加减运算的类型}
 {$ELSE}
   {$IFDEF SUPPORT_32_AND_64}
   TCnIntAddress    = NativeInt;
+  {* 统一定义 Delphi 和 FPC 下的供进行地址加减运算的类型}
   {$ELSE}
   TCnIntAddress    = Integer;
+  {* 统一定义 Delphi 和 FPC 下的供进行地址加减运算的类型}
   {$ENDIF}
 {$ENDIF}
 
 {$IFDEF CPU64BITS}
   TCnUInt64        = NativeUInt;
+  {* 统一定义 64 位无符号整数类型}
   TCnInt64         = NativeInt;
+  {* 统一定义 64 位有符号整数类型}
 {$ELSE}
   {$IFDEF SUPPORT_UINT64}
   TCnUInt64        = UInt64;
+  {* 统一定义 64 位无符号整数类型}
   {$ELSE}
-  TCnUInt64 = packed record  // 只能用这样的结构代替
+  TCnUInt64 = packed record
+  {* 在不支持 UInt64 的 32 位环境下，定义 64 位无符号整数结构}
     case Boolean of
       True:  (Value: Int64);
       False: (Lo32, Hi32: Cardinal);
   end;
   {$ENDIF}
   TCnInt64         = Int64;
+  {* 统一定义 64 位有无符号整数类型}
 {$ENDIF}
 
 // TUInt64 用于 cnvcl 库中不支持 UInt64 的运算如 div mod 等
 {$IFDEF SUPPORT_UINT64}
   TUInt64          = UInt64;
+  {* 统一定义 64 位无符号整数类型}
   {$IFNDEF SUPPORT_PUINT64}
   PUInt64          = ^UInt64;
+  {* 统一定义指向 64 位无符号整数的指针类型}
   {$ENDIF}
 {$ELSE}
   TUInt64          = Int64;
+  {* 统一定义 64 位无符号整数类型，用于 cnvcl 库中不支持 UInt64 的运算}
   PUInt64          = ^TUInt64;
+  {* 统一定义指向 64 位无符号整数的指针类型，用于 cnvcl 库中不支持 UInt64 的运算}
 {$ENDIF}
 
 {$IFNDEF SUPPORT_INT64ARRAY}
-  // 如果系统没有定义 Int64Array
   Int64Array  = array[0..$0FFFFFFE] of Int64;
+  {* 如果系统没有定义 Int64Array 则定义上 64 位有符号数组}
   PInt64Array = ^Int64Array;
+  {* 如果系统没有定义 PInt64Array 则定义上 64 位有符号数组指针}
 {$ENDIF}
 
-  TUInt64Array = array of TUInt64; // 这个动态数组声明似乎容易和静态数组声明有冲突
-
+  TUInt64Array = array of TUInt64;
+  {* 统一定义 64 位无符号整数动态数组，注意这个动态数组声明似乎容易和静态数组声明有冲突}
   ExtendedArray = array[0..65537] of Extended;
+  {* 扩展精度浮点数数组}
   PExtendedArray = ^ExtendedArray;
+  {* 扩展精度浮点数数组指针}
 
   PCnWord16Array = ^TCnWord16Array;
+  {* 16 位无符号整数数组指针}
   TCnWord16Array = array [0..0] of Word;
+  {* 16 位无符号整数数组}
 
 {$IFDEF POSIX64}
-  TCnLongWord32 = Cardinal; // Linux64/MacOS64 (or POSIX64?) LongWord is 64 Bits
+  TCnLongWord32 = Cardinal;
+  {* 统一定义 32 位无符号 LongWord，因为 Linux64/MacOS64 或 POSIX64 下面 LongWord 竟然是 64 位无符号数}
 {$ELSE}
   TCnLongWord32 = LongWord;
+  {* 统一定义 32 位无符号 LongWord}
 {$ENDIF}
   PCnLongWord32 = ^TCnLongWord32;
+  {* 统一定义指向 32 位无符号 LongWord 的指针}
 
   TCnLongWord32Array = array [0..MaxInt div SizeOf(Integer) - 1] of TCnLongWord32;
+  {* 统一定义 32 位无符号 LongWord 数组}
 
   PCnLongWord32Array = ^TCnLongWord32Array;
+  {* 统一定义 32 位无符号 LongWord 数组指针}
 
 {$IFNDEF TBYTES_DEFINED}
   TBytes = array of Byte;
@@ -203,35 +237,53 @@ type
   {* 无符号四字节动态数组}
 
   PCnByte = ^Byte;
+  {* 指向 8 位无符号数的指针类型}
   PCnWord = ^Word;
+  {* 指向 16 位无符号数的指针类型}
 
   TCnBitOperation = (boAnd, boOr, boXor, boNot);
   {* 位操作类型}
 
   // 供我们使用的静态有符号无符号数组类型
   PCnInt8Array = ^TCnInt8Array;
+  {* 静态 8 位有符号整数数组指针}
   TCnInt8Array = array[0..(MaxInt div SizeOf(ShortInt) - 1)] of ShortInt;
+  {* 静态 8 位有符号整数数组}
 
   PCnUInt8Array = ^TCnUInt8Array;
+  {* 静态 8 位无符号整数数组指针}
   TCnUInt8Array = array[0..(MaxInt div SizeOf(Byte) - 1)] of Byte;
+  {* 静态 8 位无符号整数数组}
 
   PCnInt16Array = ^TCnInt16Array;
+  {* 静态 16 位有符号整数数组指针}
   TCnInt16Array = array[0..(MaxInt div SizeOf(SmallInt) - 1)] of SmallInt;
+  {* 静态 16 位有符号整数数组}
 
   PCnUInt16Array = ^TCnUInt16Array;
+  {* 静态 16 位无符号整数数组指针}
   TCnUInt16Array = array[0..(MaxInt div SizeOf(Word) - 1)] of Word;
+  {* 静态 16 位无符号整数数组}
 
   PCnInt32Array = ^TCnInt32Array;
+  {* 静态 32 位有符号整数数组指针}
   TCnInt32Array = array[0..(MaxInt div SizeOf(Integer) - 1)] of Integer;
+  {* 静态 32 位有符号整数数组}
 
   PCnUInt32Array = ^TCnUInt32Array;
+  {* 静态 32 位无符号整数数组指针}
   TCnUInt32Array = array[0..(MaxInt div SizeOf(Cardinal) - 1)] of Cardinal;
+  {* 静态 32 位无符号整数数组}
 
   PCnInt64Array = ^TCnInt64Array;
+  {* 静态 64 位有符号整数数组指针}
   TCnInt64Array = array[0..(MaxInt div SizeOf(Int64) - 1)] of Int64;
+  {* 静态 64 位有符号整数数组}
 
   PCnUInt64Array = ^TCnUInt64Array;
+  {* 静态 64 位无符号整数数组指针}
   TCnUInt64Array = array[0..(MaxInt div SizeOf(TUInt64) - 1)] of TUInt64;
+  {* 静态 64 位无符号整数数组}
 
 type
   TCnMemSortCompareProc = function (P1, P2: Pointer; ElementByteSize: Integer): Integer;
@@ -239,22 +291,38 @@ type
 
 const
   CN_MAX_SQRT_INT64: Cardinal               = 3037000499;
+  {* 64 位有符号数范围内最大的平方根}
   CN_MAX_INT8: ShortInt                     = $7F;
+  {* 最大的 8 位有符号数}
   CN_MIN_INT8: ShortInt                     = -128;
+  {* 最小的 8 位有符号数}
   CN_MAX_INT16: SmallInt                    = $7FFF;
+  {* 最大的 16 位有符号数}
   CN_MIN_INT16: SmallInt                    = -32768;
+  {* 最小的 16 位有符号数}
   CN_MAX_INT32: Integer                     = $7FFFFFFF;
+  {* 最大的 32 位有符号数}
 {$WARNINGS OFF}
-  CN_MIN_INT32: Integer                     = $80000000;  // 会出编译警告，但 -2147483648 会出错
+  CN_MIN_INT32: Integer                     = $80000000;
+  {* 最小的 32 位有符号数 -2147483648}
+  // 会出编译警告，但写 -2147483648 会出错
 {$WARNINGS ON}
   CN_MIN_INT32_IN_INT64: Int64              = $0000000080000000;
+  {* 64 位有符号数范围内最小的 32 位有符号数 -2147483648}
   CN_MAX_INT64: Int64                       = $7FFFFFFFFFFFFFFF;
+  {* 最大的 64 位有符号数}
   CN_MIN_INT64: Int64                       = $8000000000000000;
+  {* 最小的 64 位有符号数}
   CN_MAX_UINT8: Byte                        = $FF;
+  {* 最大的 8 位无符号数}
   CN_MAX_UINT16: Word                       = $FFFF;
+  {* 最大的 16 位无符号数}
   CN_MAX_UINT32: Cardinal                   = $FFFFFFFF;
+  {* 最大的 32 位无符号数}
   CN_MAX_TUINT64: TUInt64                   = $FFFFFFFFFFFFFFFF;
+  {* 最大的 64 位无符号数}
   CN_MAX_SIGNED_INT64_IN_TUINT64: TUInt64   = $7FFFFFFFFFFFFFFF;
+  {* 64 位无符号数范围内最大的 64 位有符号数}
 
 {*
   对于 D567 等不支持 UInt64 的编译器，虽然可以用 Int64 代替 UInt64 进行加减、存储

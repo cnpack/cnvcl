@@ -1,6 +1,6 @@
 object FormRSA: TFormRSA
   Left = 234
-  Top = 134
+  Top = 61
   BorderStyle = bsDialog
   Caption = 'RSA Demo'
   ClientHeight = 627
@@ -826,6 +826,24 @@ object FormRSA: TFormRSA
             Caption = 'OAEP Padding'
             TabOrder = 4
           end
+          object btnPubCryptLong: TButton
+            Left = 512
+            Top = 40
+            Width = 257
+            Height = 21
+            Caption = 'Crypt Big File with PKCS1 Block Using Public Key'
+            TabOrder = 9
+            OnClick = btnPubCryptLongClick
+          end
+          object btnPrivDecryptLong: TButton
+            Left = 512
+            Top = 104
+            Width = 257
+            Height = 21
+            Caption = 'Decrypt Big File with PKCS1 Block Using Private Key'
+            TabOrder = 10
+            OnClick = btnPrivDecryptLongClick
+          end
         end
         object tsSign: TTabSheet
           Hint = 'Sign/Verify File'
@@ -847,7 +865,7 @@ object FormRSA: TFormRSA
             Caption = 'Signature File:'
           end
           object lblSigMethod: TLabel
-            Left = 666
+            Left = 662
             Top = 42
             Width = 94
             Height = 13
@@ -857,13 +875,13 @@ object FormRSA: TFormRSA
           object edtSignFile: TEdit
             Left = 88
             Top = 8
-            Width = 739
+            Width = 735
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             TabOrder = 0
           end
           object btnSignBrowse: TButton
-            Left = 834
+            Left = 830
             Top = 8
             Width = 75
             Height = 21
@@ -884,14 +902,14 @@ object FormRSA: TFormRSA
           object edtSigFile: TEdit
             Left = 88
             Top = 72
-            Width = 739
+            Width = 735
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             ReadOnly = True
             TabOrder = 4
           end
           object btnSignatureBrowse: TButton
-            Left = 834
+            Left = 830
             Top = 72
             Width = 75
             Height = 21
@@ -920,7 +938,7 @@ object FormRSA: TFormRSA
             OnClick = btnPubVerifyClick
           end
           object cbbSig: TComboBox
-            Left = 770
+            Left = 766
             Top = 40
             Width = 65
             Height = 21

@@ -6218,7 +6218,10 @@ begin
       begin
         IntfEntry := @IntfTable.Entries[I];
 {$IFDEF FPC}
-        Result := Result + ' ' + SCnCRLF + GUIDToString(IntfEntry^.IID^);
+        if IntfEntry^.IID <> nil then
+          Result := Result + ' ' + SCnCRLF + GUIDToString(IntfEntry^.IID^)
+        else
+          Result := Result + ' ' + SCnCRLF + '<Empty GUID>';
 {$ELSE}
         Result := Result + ' ' + SCnCRLF + GUIDToString(IntfEntry^.IID);
 {$ENDIF}

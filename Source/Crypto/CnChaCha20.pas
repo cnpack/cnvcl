@@ -28,6 +28,7 @@ unit CnChaCha20;
 *           XChaCha20 依据草案实现。算法中的 Nonce 类似于初始化向量。
 *
 *           ChaCha20 块运算：输入 32 字节 Key、12 字节 Nonce、4 字节 Counter，输出 64 字节内容。
+*
 *           ChaCha20 流运算：输入 32 字节 Key、12 字节 Nonce、4 字节 Counter，任意长度明/密文。
 *                    输出相同长度密/明文，内部 Counter 初始值默认使用 1
 *

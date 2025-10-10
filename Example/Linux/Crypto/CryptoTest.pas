@@ -50,7 +50,7 @@ uses
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
-  CnDSA, CnBLAKE, CnBLAKE2, CnWideStrings, CnContainers;
+  CnDSA, CnBLAKE, CnBLAKE2, CnXXH, CnWideStrings, CnContainers;
 
 procedure TestCrypto;
 {* 密码库总测试入口}
@@ -163,6 +163,11 @@ function TestCRC8CCITT: Boolean;
 function TestCRC16CCITT: Boolean;
 function TestCRC32: Boolean;
 function TestCRC64ECMA: Boolean;
+
+// ================================ XXH ========================================
+
+function TestXXH32: Boolean;
+function TestXXH64: Boolean;
 
 // ================================ MD5 ========================================
 
@@ -336,6 +341,8 @@ function TestRSAPrivPubPkcs8: Boolean;
 function TestRSAPubPkcs8: Boolean;
 function TestChameleonHash: Boolean;
 function TestRSA2Crypt: Boolean;
+function TestRSALongStream1: Boolean;
+function TestRSALongStream2: Boolean;
 
 // ================================ KDF ========================================
 
@@ -546,6 +553,11 @@ begin
   MyAssert(TestCRC32, 'TestCRC32');
   MyAssert(TestCRC64ECMA, 'TestCRC64ECMA');
 
+// ============================== XXHash =======================================
+
+  MyAssert(TestXXH32, 'TestXXH32');
+  MyAssert(TestXXH64, 'TestXXH64');
+
 // ================================ MD5 ========================================
 
   MyAssert(TestMD5, 'TestMD5');
@@ -718,6 +730,8 @@ begin
   MyAssert(TestRSAPubPkcs8, 'TestRSAPubPkcs8');
   MyAssert(TestChameleonHash, 'TestChameleonHash');
   MyAssert(TestRSA2Crypt, 'TestRSA2Crypt');
+  MyAssert(TestRSALongStream1, 'TestRSALongStream1');
+  MyAssert(TestRSALongStream2, 'TestRSALongStream2');
 
 // ================================ KDF ========================================
 
@@ -2344,6 +2358,40 @@ begin
   S := 'CnPack Test';
   Result := CRC64Calc(0, S[1], Length(S)) = Int64($95CF1FEBBF05E07E);
   // 注意这里的结果对于 Int64 来说是负值，因此需要强制转换，否则 Linux64 下比较会不相等
+end;
+
+// ============================== XXHash =======================================
+
+function TestXXH32: Boolean;
+var
+  Dig: TCnXXH32Digest;
+  Data: TBytes;
+begin
+  Data := AnsiToBytes('CnPack Test');
+  Dig := XXH32Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnXXH32Digest)) = '74514068';
+
+  if not Result then Exit;
+
+  Data := AnsiToBytes('CnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack Test');
+  Dig := XXH32Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnXXH32Digest)) = 'FAB834F4';
+end;
+
+function TestXXH64: Boolean;
+var
+  Dig: TCnXXH64Digest;
+  Data: TBytes;
+begin
+  Data := AnsiToBytes('CnPack Test');
+  Dig := XXH64Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnXXH64Digest)) = '1639ECD44D3A4765';
+
+  if not Result then Exit;
+
+  Data := AnsiToBytes('CnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack TestCnPack Test');
+  Dig := XXH64Bytes(Data);
+  Result := DataToHex(@Dig[0], SizeOf(TCnXXH64Digest)) = '785BD894067C2F38';
 end;
 
 // ================================ MD5 ========================================
@@ -5132,6 +5180,260 @@ begin
     Pub1.Free;
     Priv2.Free;
     Priv1.Free;
+  end;
+end;
+
+function TestRSALongStream1: Boolean;
+const
+  KEY =
+    '-----BEGIN RSA PRIVATE KEY-----' + #13#10 +
+    'MIICXQIBAAKBgQCGVs2u3xXdEwQum3Um/8/IP7FcfkkaYpnHwO1EW84L0lzD8qSF' + #13#10 +
+    'bWFc2ou2IZ133VcXtRbUfZEonzD8ljYTdGXuVS9rqRlJ2JXTWFI0jWy+9UQBW8hU' + #13#10 +
+    'T+ak3eKNGEk9tRy+gniike74qrclUmjuKgv7zTdt+N/z7CIGRmVWvC/B3QIDAQAB' + #13#10 +
+    'AoGAF/0yN5MAvXyi14vNLMyrlw/ApUqr1TlcSq5p8DYQok3LYPZYaLcylrk0D68L' + #13#10 +
+    'BpeQ8NvWmtVdcYqT3dcZCvpTJSpQCzRewWfiCPYjKoJ/0wIhTMedQLCOw8joOeop' + #13#10 +
+    '2LFq3ui1vsbnst5oktw6GJFNHxvJ4NpgbNnieqQkSWxkMqUCQQD16RKsh2rgNNaa' + #13#10 +
+    'L1tN2+9cXexucFfNulcMaK0FSmx2ylJdJcI7evgpvnPcYcgXobvmeHYxVty7ZHX7' + #13#10 +
+    'OTkQxgRTAkEAi9nWbdwj/jAZxEe3G/JAczOsY8A8FKLmutXiYmfoHl9deh4lxpgw' + #13#10 +
+    'Dp9fb2adUwSWuWDIew4r5iPyoP0NDURbDwJBAIU5JP3FS3h2B8F2YH+45F9lHv7h' + #13#10 +
+    '7B+vkRNO7lWMcWCV0bNXDnhM8X8kB/7gFpf+7h45KscmKOV40pYs9SaKMLMCQHhy' + #13#10 +
+    'eVfNDcLSsp52FaKgFhoiGwseeaBcXNP1ejC+xQ/DmsKeTHKqiFlPseZEPqNNhHLM' + #13#10 +
+    'hF5Xaj+gHkvBJgiTIskCQQCp0FMAgOCBQdsJKYxEetiBb2DxdTiam6s1QA8xcQ99' + #13#10 +
+    'I0FMSVba8467OWrg6DyOMyp5NfIy4Gci7+8CuGAMvcGr' + #13#10 +
+    '-----END RSA PRIVATE KEY-----';
+  PLAIN1 = 'A Test Message Single.'; // 一块内
+  PLAIN2 = '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10; // 一块整
+
+  PLAIN3 = '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    'abcdefghijklmnopqrst'; // 一块多
+
+  PLAIN4 = '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10; // 两块整
+var
+  Priv: TCnRSAPrivateKey;
+  Pub: TCnRSAPublicKey;
+  InStream, OutStream: TMemoryStream;
+  Plain, DecB: TBytes;
+begin
+  Result := False;
+
+  Priv := TCnRSAPrivateKey.Create;
+  Pub := TCnRSAPublicKey.Create;
+  InStream := TMemoryStream.Create;
+  OutStream := TMemoryStream.Create;
+
+  try
+    CnRSALoadKeysFromPemStr(KEY, Priv, Pub);
+
+    Plain := AnsiToBytes(PLAIN1);
+    BytesToStream(Plain, InStream);
+    InStream.Position := 0;
+    OutStream.Size := 0;
+    if CnRSAEncryptLongStream(InStream, OutStream, Pub) then
+    begin
+      OutStream.Position := 0;
+      InStream.Size := 0;
+      if CnRSADecryptLongStream(OutStream, InStream, Priv) then
+      begin
+        DecB := StreamToBytes(InStream);
+        Result := CompareBytes(Plain, DecB);
+      end;
+    end;
+
+    if not Result then Exit;
+
+    Plain := AnsiToBytes(PLAIN2);
+    BytesToStream(Plain, InStream);
+    InStream.Position := 0;
+    OutStream.Size := 0;
+    if CnRSAEncryptLongStream(InStream, OutStream, Pub) then
+    begin
+      OutStream.Position := 0;
+      InStream.Size := 0;
+      if CnRSADecryptLongStream(OutStream, InStream, Priv) then
+      begin
+        DecB := StreamToBytes(InStream);
+        Result := CompareBytes(Plain, DecB);
+      end;
+    end;
+
+    if not Result then Exit;
+
+    Plain := AnsiToBytes(PLAIN3);
+    BytesToStream(Plain, InStream);
+    InStream.Position := 0;
+    OutStream.Size := 0;
+    if CnRSAEncryptLongStream(InStream, OutStream, Pub) then
+    begin
+      OutStream.Position := 0;
+      InStream.Size := 0;
+      if CnRSADecryptLongStream(OutStream, InStream, Priv) then
+      begin
+        DecB := StreamToBytes(InStream);
+        Result := CompareBytes(Plain, DecB);
+      end;
+    end;
+
+    if not Result then Exit;
+
+    Plain := AnsiToBytes(PLAIN4);
+    BytesToStream(Plain, InStream);
+    InStream.Position := 0;
+    OutStream.Size := 0;
+    if CnRSAEncryptLongStream(InStream, OutStream, Pub) then
+    begin
+      OutStream.Position := 0;
+      InStream.Size := 0;
+      if CnRSADecryptLongStream(OutStream, InStream, Priv) then
+      begin
+        DecB := StreamToBytes(InStream);
+        Result := CompareBytes(Plain, DecB);
+      end;
+    end;
+  finally
+    OutStream.Free;
+    InStream.Free;
+    Pub.Free;
+    Priv.Free;
+  end;
+end;
+
+function TestRSALongStream2: Boolean;
+const
+  KEY =
+    '-----BEGIN RSA PRIVATE KEY-----' + #13#10 +
+    'MIICXQIBAAKBgQCGVs2u3xXdEwQum3Um/8/IP7FcfkkaYpnHwO1EW84L0lzD8qSF' + #13#10 +
+    'bWFc2ou2IZ133VcXtRbUfZEonzD8ljYTdGXuVS9rqRlJ2JXTWFI0jWy+9UQBW8hU' + #13#10 +
+    'T+ak3eKNGEk9tRy+gniike74qrclUmjuKgv7zTdt+N/z7CIGRmVWvC/B3QIDAQAB' + #13#10 +
+    'AoGAF/0yN5MAvXyi14vNLMyrlw/ApUqr1TlcSq5p8DYQok3LYPZYaLcylrk0D68L' + #13#10 +
+    'BpeQ8NvWmtVdcYqT3dcZCvpTJSpQCzRewWfiCPYjKoJ/0wIhTMedQLCOw8joOeop' + #13#10 +
+    '2LFq3ui1vsbnst5oktw6GJFNHxvJ4NpgbNnieqQkSWxkMqUCQQD16RKsh2rgNNaa' + #13#10 +
+    'L1tN2+9cXexucFfNulcMaK0FSmx2ylJdJcI7evgpvnPcYcgXobvmeHYxVty7ZHX7' + #13#10 +
+    'OTkQxgRTAkEAi9nWbdwj/jAZxEe3G/JAczOsY8A8FKLmutXiYmfoHl9deh4lxpgw' + #13#10 +
+    'Dp9fb2adUwSWuWDIew4r5iPyoP0NDURbDwJBAIU5JP3FS3h2B8F2YH+45F9lHv7h' + #13#10 +
+    '7B+vkRNO7lWMcWCV0bNXDnhM8X8kB/7gFpf+7h45KscmKOV40pYs9SaKMLMCQHhy' + #13#10 +
+    'eVfNDcLSsp52FaKgFhoiGwseeaBcXNP1ejC+xQ/DmsKeTHKqiFlPseZEPqNNhHLM' + #13#10 +
+    'hF5Xaj+gHkvBJgiTIskCQQCp0FMAgOCBQdsJKYxEetiBb2DxdTiam6s1QA8xcQ99' + #13#10 +
+    'I0FMSVba8467OWrg6DyOMyp5NfIy4Gci7+8CuGAMvcGr' + #13#10 +
+    '-----END RSA PRIVATE KEY-----';
+  PLAIN1 = 'A Test Message Single.'; // 一块内
+  PLAIN2 = '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10; // 一块整
+
+  PLAIN3 = '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    'abcdefghijklmnopqrst'; // 一块多
+
+  PLAIN4 = '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10 +
+    '123456789012345678901234567890' + #13#10; // 两块整
+var
+  Priv: TCnRSAPrivateKey;
+  Pub: TCnRSAPublicKey;
+  InStream, OutStream: TMemoryStream;
+  Plain, DecB: TBytes;
+begin
+  Result := False;
+
+  Priv := TCnRSAPrivateKey.Create;
+  Pub := TCnRSAPublicKey.Create;
+  InStream := TMemoryStream.Create;
+  OutStream := TMemoryStream.Create;
+
+  try
+    CnRSALoadKeysFromPemStr(KEY, Priv, Pub);
+
+    Plain := AnsiToBytes(PLAIN1);
+    BytesToStream(Plain, InStream);
+    InStream.Position := 0;
+    OutStream.Size := 0;
+    if CnRSAEncryptLongStream(InStream, OutStream, Priv) then
+    begin
+      OutStream.Position := 0;
+      InStream.Size := 0;
+      if CnRSADecryptLongStream(OutStream, InStream, Pub) then
+      begin
+        DecB := StreamToBytes(InStream);
+        Result := CompareBytes(Plain, DecB);
+      end;
+    end;
+
+    if not Result then Exit;
+
+    Plain := AnsiToBytes(PLAIN2);
+    BytesToStream(Plain, InStream);
+    InStream.Position := 0;
+    OutStream.Size := 0;
+    if CnRSAEncryptLongStream(InStream, OutStream, Priv) then
+    begin
+      OutStream.Position := 0;
+      InStream.Size := 0;
+      if CnRSADecryptLongStream(OutStream, InStream, Pub) then
+      begin
+        DecB := StreamToBytes(InStream);
+        Result := CompareBytes(Plain, DecB);
+      end;
+    end;
+
+    if not Result then Exit;
+
+    Plain := AnsiToBytes(PLAIN3);
+    BytesToStream(Plain, InStream);
+    InStream.Position := 0;
+    OutStream.Size := 0;
+    if CnRSAEncryptLongStream(InStream, OutStream, Priv) then
+    begin
+      OutStream.Position := 0;
+      InStream.Size := 0;
+      if CnRSADecryptLongStream(OutStream, InStream, Pub) then
+      begin
+        DecB := StreamToBytes(InStream);
+        Result := CompareBytes(Plain, DecB);
+      end;
+    end;
+
+    if not Result then Exit;
+
+    Plain := AnsiToBytes(PLAIN4);
+    BytesToStream(Plain, InStream);
+    InStream.Position := 0;
+    OutStream.Size := 0;
+    if CnRSAEncryptLongStream(InStream, OutStream, Priv) then
+    begin
+      OutStream.Position := 0;
+      InStream.Size := 0;
+      if CnRSADecryptLongStream(OutStream, InStream, Pub) then
+      begin
+        DecB := StreamToBytes(InStream);
+        Result := CompareBytes(Plain, DecB);
+      end;
+    end;
+  finally
+    OutStream.Free;
+    InStream.Free;
+    Pub.Free;
+    Priv.Free;
   end;
 end;
 

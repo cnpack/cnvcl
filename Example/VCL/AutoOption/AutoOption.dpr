@@ -3,8 +3,8 @@ program AutoOption;
 uses
   Forms,
   Unit1 in 'Unit1.pas' {Form1},
-  CnAutoOption in '..\..\..\Source\Graphics\CnAutoOption.pas',
-  CnAOTreeView in '..\..\..\Source\Graphics\CnAOTreeView.pas';
+  CnAutoOption in '..\..\..\Source\Graphic\CnAutoOption.pas',
+  CnAOTreeView in '..\..\..\Source\Graphic\CnAOTreeView.pas';
 
 {$R *.res}
 

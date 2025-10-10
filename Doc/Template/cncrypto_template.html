@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="GBK">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><!--#UNIT_NAME#--> 单元帮助文档</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .unit-container {
+      padding: 30px;
+      max-width: 1000px;
+      margin: 0 auto;
+      background-color: #fff;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      border-radius: 8px;
+    }
+
+    .unit-header {
+      padding: 20px;
+      border-radius: 8px 8px 0 0;
+      margin: -30px -30px 30px -30px;
+      background: white;
+      border-bottom: 2px solid #F03663;
+    }
+
+    .unit-title {
+      font-size: 32px;
+      margin-bottom: 10px;
+      font-weight: 500;
+      color: #F03663;
+    }
+
+    .unit-description {
+      font-size: 18px;
+      line-height: 1.6;
+      opacity: 0.9;
+    }
+
+    .section {
+      margin: 40px 0;
+    }
+
+    .section-title {
+      color: #333;
+      font-size: 24px;
+      margin-bottom: 20px;
+      border-left: 4px solid #F03663;
+      padding-left: 15px;
+      font-weight: 500;
+    }
+
+    .content-placeholder {
+      background: #f8f9fa;
+      border-left: 3px solid #F03663;
+      padding: 20px;
+      border-radius: 4px;
+      color: #555;
+      text-align: left;
+      margin-bottom: 20px;
+    }
+
+    .api-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      overflow: hidden;
+      border-left: 4px solid #F03663;
+    }
+
+    .api-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .api-header {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .api-name-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+      gap: 8px;
+    }
+
+    .api-type-label {
+      font-size: 16px;
+      color: #666;
+      font-weight: bold;
+    }
+
+    .api-declaration-label {
+      font-size: 16px;
+      color: #666;
+      font-weight: bold;
+      margin-top: 0px;
+      margin-bottom: 10px;
+    }
+
+    .api-description-label {
+      font-size: 16px;
+      color: #666;
+      font-weight: bold;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+
+    .api-name {
+      flex-grow: 1;
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      font-family: 'Courier New', monospace;
+    }
+
+    .api-visibility {
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      font-weight: bold;
+      color: #666;
+      background: #FFEE99;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .api-body {
+      padding: 15px 20px;
+    }
+
+    .api-declaration {
+      background: #f5f5f5;
+      border-radius: 4px;
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: normal;
+      padding-left: 2em;
+      text-indent: -1em;
+    }
+
+    .api-description {
+      color: #444;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      padding: 12px 15px;
+      margin: 10px 0;
+      line-height: 1.8;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .api-description p {
+      margin: 1em 0;
+    }
+
+    .api-description p:last-child {
+      margin-bottom: 0.3em;
+    }
+
+    .api-description br {
+      display: block;
+      content: "";
+      margin: 0.8em 0;
+    }
+
+    .class-card {
+      border-left: 4px solid #4285F4;
+      margin-bottom: 30px;
+    }
+
+    .class-header {
+      background: linear-gradient(to right, #f8f9fa, #fff);
+    }
+
+    .method-card {
+      margin-left: 30px;
+      border-left: 4px solid #34A853;
+    }
+
+    .method-header {
+      background: #f8f9fa;
+    }
+
+    .nested-methods {
+      padding: 0 0 15px 0;
+    }
+
+    .copyright {
+      text-align: center;
+      margin-top: 40px;
+      padding: 20px;
+      color: #666;
+      font-size: 14px;
+      border-top: 2px solid #F03663;
+    }
+
+.u0 { font-family: "Courier New"; font-size: 10pt;color: #FF0000 }
+.u1 { font-family: "Courier New"; font-size: 10pt; font-style: italic;color: #000080 }
+.u2 { font-family: "Courier New"; font-size: 10pt;color: #0000FF }
+.u3 { font-family: "Courier New"; font-size: 10pt;color: #008000 }
+.u4 { font-family: "Courier New"; font-size: 10pt;color: #000000 }
+.u5 { font-family: "Courier New"; font-size: 10pt; font-weight: bold;color: #000080 }
+.u6 { font-family: "Courier New"; font-size: 10pt;color: #000000 }
+.u7 { font-family: "Courier New"; font-size: 10pt;color: #000000 }
+.u8 { font-family: "Courier New"; font-size: 10pt;color: #0000FF }
+.u9 { font-family: "Courier New"; font-size: 10pt;color: #0000FF }
+.u10 { font-family: "Courier New"; font-size: 10pt;color: #000000 }
+.u11 { font-family: "Courier New"; font-size: 10pt;color: #0000FF }
+.uc { font-family: "Courier New"; font-size: 12pt;color: #000000 }
+
+  </style>
+</head>
+<body>
+  <div class="unit-container">
+    <div class="unit-header">
+      <h1 class="unit-title"><!--#UNIT_NAME#--></h1>
+      <p class="unit-description"><!--#UNIT_DESC#--></p>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">单元概述</h2>
+      <div class="content-placeholder">
+        <!--#UNIT_COMMENT#-->
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">主要对外声明</h2>
+        <!--#UNIT_DECL_LIST#-->
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">使用示例</h2>
+      <div class="content-placeholder">
+        暂无。
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">注意事项</h2>
+      <div class="content-placeholder">
+        暂无。
+      </div>
+    </div>
+
+    <div class="copyright">
+      (C)版权所有 2001-2025 CnPack 开发组
+    </div>
+  </div>
+</body>
+</html>

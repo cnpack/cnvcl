@@ -42,8 +42,9 @@ uses
   {$IFNDEF FPC}
   {$IFDEF COMPILER6_UP} DesignIntf, DesignEditors, {$ELSE} DsgnIntf, {$ENDIF}
   {$ENDIF}
-  CnConsts, {$IFNDEF FPC} CnGraphics, CnImage, CnGraphPropEditors, CnCheckTreeView,
-  CnWizardImage, CnShellCtrls, {$ENDIF} CnWaterImage, CnPanel, CnEdit, CnSpin,
+  CnConsts, {$IFNDEF FPC} CnGraphics, CnImage, CnGraphPropEditors,
+  CnWizardImage, CnShellCtrls, {$ENDIF}
+  CnWaterImage, CnPanel, CnEdit, CnSpin, CnCheckTreeView,
   {$IFNDEF FPC} CnAOTreeView, CnAACtrls,
   CnAAFont, CnAAFontEditor, CnAAFontDialog, CnTabSet, CnButtonEdit,
   CnSkinMagic, CnButtons, CnHint, CnGauge, CnListBox, CnColorGrid,
@@ -56,8 +57,8 @@ implementation
 
 procedure Register;
 begin
-  //RegisterComponents(SCnGraphicPalette, [TCnPaintBox]);
-  //RegisterComponents(SCnGraphicPalette, [TCnImage]);
+  // RegisterComponents(SCnGraphicPalette, [TCnPaintBox]);
+  // RegisterComponents(SCnGraphicPalette, [TCnImage]);
 {$IFNDEF FPC}
   RegisterComponents(SCnGraphicPalette, [TCnButton, TCnBitBtn, TCnSpeedButton]);
 {$ENDIF}
@@ -65,7 +66,9 @@ begin
 {$IFNDEF FPC}
   RegisterComponents(SCnGraphicPalette, [TCnListBox]);
   RegisterComponents(SCnGraphicPalette, [TCnTabSet, TCnButtonEdit]);
+{$ENDIF}
   RegisterComponents(SCnGraphicPalette, [TCnCheckTreeView]);
+{$IFNDEF FPC}
   RegisterComponents(SCnGraphicPalette, [TCnAOTreeView]);
   RegisterComponents(SCnGraphicPalette, [TCnWizardImage]);
   RegisterComponents(SCnGraphicPalette, [TCnValidateImage]);
@@ -80,8 +83,8 @@ begin
   RegisterComponents(SCnGraphicPalette, [TCnLEDText]);
   RegisterComponents(SCnGraphicPalette, [TCnSkinMagic]);
   RegisterComponents(SCnGraphicPalette, [TCnHint, TCnHintWindow]);
-  //RegisterComponents(SCnGraphicPalette, [TCnCheckGroupBox]);
-  //RegisterPropertyEditor(TypeInfo(TCnBitmap), nil, '', TCnBitmapProperty);
+  // RegisterComponents(SCnGraphicPalette, [TCnCheckGroupBox]);
+  // RegisterPropertyEditor(TypeInfo(TCnBitmap), nil, '', TCnBitmapProperty);
   RegisterComponents(SCnGraphicPalette, [TCnShellTreeView, TCnShellListView,
     TCnShellChangeNotifier]);
 

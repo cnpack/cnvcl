@@ -3,7 +3,7 @@ program Project1;
 uses
   Forms,
   Unit1 in 'Unit1.pas' {Form1},
-  CnErrorProvider in '..\..\..\Source\Graphics\CnErrorProvider.pas';
+  CnErrorProvider in '..\..\..\Source\Graphic\CnErrorProvider.pas';
 
 {$R *.res}
 

@@ -1,10 +1,10 @@
 @ECHO CnPack Component Package
 @ECHO CHT Resource Files will be Copied to overwrite CHS Files 
 @PAUSE
-copy .\Lang\1028\CnGraphConsts.pas   .\Graphics\CnGraphConsts.pas  /Y
+copy .\Lang\1028\CnGraphConsts.pas   .\Graphic\CnGraphConsts.pas  /Y
 copy .\Lang\1028\CnLangConsts.pas    .\MultiLang\CnLangConsts.pas  /Y
 copy .\Lang\1028\CnNetConsts.pas     .\NetComm\CnNetConsts.pas     /Y
-copy .\Lang\1028\CnAAFontDialog.dfm  .\Graphics\CnAAFontDialog.dfm /Y
+copy .\Lang\1028\CnAAFontDialog.dfm  .\Graphic\CnAAFontDialog.dfm /Y
 copy .\Lang\1028\CnCompAboutFrm.dfm  .\Common\CnCompAboutFrm.dfm   /Y
 copy .\Lang\1028\CnFoxmailMsgFrm.dfm .\ObjRep\CnFoxmailMsgFrm.dfm  /Y
 copy .\Lang\1028\CnProgressFrm.dfm   .\ObjRep\CnProgressFrm.dfm    /Y

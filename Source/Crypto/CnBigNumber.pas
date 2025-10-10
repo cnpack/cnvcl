@@ -114,19 +114,27 @@ const
 type
 {$IFDEF SUPPORT_UINT64}
   TUInt64Array = array [0..MaxInt div SizeOf(UInt64) - 1] of UInt64;
+  {* UInt64 数组类型}
   PUInt64Array = ^TUInt64Array;
+  {* UInt64 数组指针类型}
 {$ENDIF}
 
 {$IFDEF BN_DATA_USE_64}
   // 大数内部元素，使用 64 位
   TCnBigNumberElement = UInt64;
+  {* 大数内部元素类型，64 位}
   PCnBigNumberElement = PUInt64;
+  {* 大数内部元素指针类型，64 位}
   PCnBigNumberElementArray = PUInt64Array;
+  {* 大数内部元素数组指针类型，64 位}
 {$ELSE}
   // 大数内部元素，使用 32 位
   TCnBigNumberElement = Cardinal;
+  {* 大数内部元素类型，32 位}
   PCnBigNumberElement = PCardinal;
+  {* 大数内部元素指针类型，32 位}
   PCnBigNumberElementArray = PCnLongWord32Array;
+  {* 大数内部元素数组指针类型，32 位}
 {$ENDIF}
 
   ECnBigNumberException = class(Exception);

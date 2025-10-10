@@ -20,11 +20,14 @@ type
     lblKMPIn: TLabel;
     edtKMPText: TEdit;
     btnKMPSearch: TButton;
+    lblSep: TLabel;
+    edtSepSearch: TEdit;
     procedure edtSearchChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure pbStringPaint(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnKMPSearchClick(Sender: TObject);
+    procedure edtSepSearchChange(Sender: TObject);
   private
     FPaintStr: string;
     FPaintText: string;
@@ -1597,6 +1600,43 @@ end;
 procedure TFormFuzzy.btnKMPSearchClick(Sender: TObject);
 begin
   ShowMessage(IntToStr(StringKMP(edtKMPPattern.Text, edtKMPText.Text)));
+end;
+
+procedure TFormFuzzy.edtSepSearchChange(Sender: TObject);
+var
+  Pattern: string;
+  MatchedIndexes: TList;
+  Seps: TStringList;
+  I: Integer;
+  FirstMatch: Boolean;
+begin
+  mmoResult.Clear;
+  Pattern := edtSepSearch.Text;
+  FirstMatch := True;
+  if Pattern <> '' then
+  begin
+    MatchedIndexes := TList.Create;
+    Seps := TStringList.Create;
+
+    for I := Low(SAR_STRS) to High(SAR_STRS) do
+    begin
+      if AnyWhereSepMatchStr(Pattern, SAR_STRS[I], Seps, MatchedIndexes, chkCase.Checked) then
+      begin
+        mmoResult.Lines.Add(Format('%s -%s', [SAR_STRS[I], ListToString(MatchedIndexes)]));
+
+        if FirstMatch then
+        begin
+          FPaintStr := SAR_STRS[I];
+          CopyList(MatchedIndexes, FMatchedIndexes);
+          FirstMatch := False;
+        end;
+      end;
+    end;
+
+    Seps.Free;
+    MatchedIndexes.Free;
+  end;
+  pbString.Invalidate;
 end;
 
 end.

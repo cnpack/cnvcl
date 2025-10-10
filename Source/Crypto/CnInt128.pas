@@ -53,15 +53,19 @@ const
   {* 最大的无符号 UInt128 值，等于 $FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF}
 
 type
-  TCnInt128 = packed record   // 128 位有符号整数结构
+  TCnInt128 = packed record
+  {* 128 位有符号整数结构}
     Lo64, Hi64: Int64;        // 注意 Lo64 内部仍作为 64 位无符号整数处理
   end;
   PCnInt128 = ^TCnInt128;
+  {* 128 位有符号整数结构指针}
 
-  TCnUInt128 = packed record  // 128 位无符号整数结构
+  TCnUInt128 = packed record
+  {* 128 位无符号整数结构}
     Lo64, Hi64: TUInt64;
   end;
   PCnUInt128 = ^TCnUInt128;
+  {* 128 位无符号整数结构指针}
 
 // ========================= Int128 计算函数 ===================================
 

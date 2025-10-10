@@ -59,10 +59,11 @@ uses
 
 const
   CN_ZUC_KEYSIZE = 16;
+  {* 祖冲之算法的密码长度，16 字节}
 
 procedure ZUC(Key: PByte; Iv: PByte; KeyStream: PCardinal; KeyStreamLen: Cardinal);
 {* 祖冲之基础算法。根据输入的 16 字节密码和 16 字节初始化向量，
-   生成 KeyStreamLen 个四字节密码序列放至 KeyStream 所指的内存中
+   生成 KeyStreamLen 个四字节密码序列放至 KeyStream 所指的内存中。
 
    参数：
      Key: PByte                           - 16 字节密码的内存地址

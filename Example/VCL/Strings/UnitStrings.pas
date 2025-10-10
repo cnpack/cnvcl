@@ -34,6 +34,9 @@ type
     btnStringStartCount: TButton;
     btnFormat: TButton;
     mmoContent: TMemo;
+    tsStrings: TTabSheet;
+    btnTestPosEx: TButton;
+    mmoStringsRes: TMemo;
     procedure rgModeClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -54,6 +57,7 @@ type
     procedure btnCardinalClick(Sender: TObject);
     procedure btnWordClick(Sender: TObject);
     procedure btnUInt64Click(Sender: TObject);
+    procedure btnTestPosExClick(Sender: TObject);
   private
     FBuilder: TCnStringBuilder;
     procedure UpdateContent;
@@ -259,6 +263,53 @@ begin
   FBuilder.Append(V);
   UpdateContent;
 {$ENDIF}
+end;
+
+procedure TFormStrings.btnTestPosExClick(Sender: TObject);
+var
+  P: Integer;
+begin
+  // 1. 基本功能测试
+  mmoStringsRes.Lines.Add('=== 基本功能测试 ===');
+  P := CnPosEx('abc', '123abc456', False, False, 1);
+  mmoStringsRes.Lines.Add('查找"abc"在"123abc456"中的位置(不区分大小写,非整词): ' + IntToStr(P)); // 应返回 4
+
+  // 2. 大小写敏感测试
+  mmoStringsRes.Lines.Add('=== 大小写敏感测试 ===');
+  P := CnPosEx('ABC', '123abc456', True, False, 1);
+  mmoStringsRes.Lines.Add('区分大小写查找"ABC": ' + IntToStr(P)); // 应返回 0
+  P := CnPosEx('ABC', '123abc456', False, False, 1);
+  mmoStringsRes.Lines.Add('不区分大小写查找"ABC": ' + IntToStr(P)); // 应返回 4
+
+  // 3. 整词匹配测试
+  mmoStringsRes.Lines.Add('=== 整词匹配测试 ===');
+  P := CnPosEx('abc', '123abc456 abc 789', False, True, 1);
+  mmoStringsRes.Lines.Add('整词匹配查找"abc": ' + IntToStr(P)); // 应返回 11
+  P := CnPosEx('abc', '123abc456 abc 789', False, False, 1);
+  mmoStringsRes.Lines.Add('非整词匹配查找"abc": ' + IntToStr(P)); // 应返回 4
+
+  // 4. 多次出现测试
+  mmoStringsRes.Lines.Add('=== 多次出现测试 ===');
+  P := CnPosEx('abc', 'abc123abc456abc', False, False, 2);
+  mmoStringsRes.Lines.Add('查找第2次出现: ' + IntToStr(P)); // 应返回 7
+  P := CnPosEx('abc', 'abc123abc456abc', False, False, 3);
+  mmoStringsRes.Lines.Add('查找第3次出现: ' + IntToStr(P)); // 应返回 13
+
+  // 5. 汉字测试
+  mmoStringsRes.Lines.Add('=== 汉字测试 ===');
+  P := CnPosEx('测试', '这是一个测试函数', False, False, 1);
+  mmoStringsRes.Lines.Add('查找汉字"测试": ' + IntToStr(P)); // 应返回 9 或 5
+  P := CnPosEx('测试', '这是一个测试函数测试', False, True, 2);
+  mmoStringsRes.Lines.Add('整词匹配查找第2个"测试": ' + IntToStr(P)); // 应返回 17 或 9
+
+  // 6. 边界条件测试
+  mmoStringsRes.Lines.Add('=== 边界条件测试 ===');
+  P := CnPosEx('', '123abc456', False, False, 1);
+  mmoStringsRes.Lines.Add('空子串测试: ' + IntToStr(P)); // 应返回0
+  P := CnPosEx('abc', '', False, False, 1);
+  mmoStringsRes.Lines.Add('空字符串测试: ' + IntToStr(P)); // 应返回0
+  P := CnPosEx('abc', '123ABC456', True, False, 1);
+  mmoStringsRes.Lines.Add('不存在子串测试(区分大小写): ' + IntToStr(P)); // 应返回0
 end;
 
 end.

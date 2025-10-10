@@ -64,8 +64,8 @@
     <PathDelim Value="\"/>
     <SearchPaths>
       <IncludeFiles Value="..\..\..\Source\Common;..\..\..\Source\MultiLang;$(ProjOutDir)"/>
-      <Libraries Value="..\..\..\Source\Common;..\..\..\Source\MultiLang;..\..\..\Source\Crypto;..\..\..\Source\Graphics"/>
-      <OtherUnitFiles Value="..\..\..\Source\Common;..\..\..\Source\MultiLang;..\..\..\Source\Crypto;..\..\..\Source\Graphics"/>
+      <Libraries Value="..\..\..\Source\Common;..\..\..\Source\MultiLang;..\..\..\Source\Crypto;..\..\..\Source\Graphic"/>
+      <OtherUnitFiles Value="..\..\..\Source\Common;..\..\..\Source\MultiLang;..\..\..\Source\Crypto;..\..\..\Source\Graphic"/>
       <UnitOutputDirectory Value="."/>
       <ObjectPath Value="..\..\..\Source\Common"/>
     </SearchPaths>

@@ -3482,6 +3482,10 @@
   {$DEFINE OTA_CODEEDITOR_SERVICE}      // 11.3 加入了 ToolsAPI.Editor 接口，但编译时无法和 11.0/1/2 区分，只能加到 12 里
 {$ENDIF}
 
+{$IFDEF DELPHI120_ATHENS}
+  {$DEFINE CODEEDITOR_PAINTTEXT_BUG}    // Athens 12 的 PaintText 通知里，Text 有乱码的 Bug，13 修复
+{$ENDIF}
+
 {$IFDEF DELPHI110_ALEXANDRIA_UP}
   {$DEFINE NO_OLDCREATEORDER}           // Alexandria 11 removed OldCreateOrder
   {$DEFINE IDE_SUPPORT_HDPI}            // Alexandria 11 supports HDPI using TVirtualImageList, etc.
@@ -3513,11 +3517,11 @@
 
 {$IFDEF DELPHI10_SEATTLE_UP}
   {$DEFINE IDE_HAS_OWN_STRUCTUAL_HIGHLIGHT}  // 10S has own Structual Highlight
-  {$DEFINE IDE_HAS_HIDE_NONVISUAL}      // 10S has "Hide Nonvisual" Feature.
+  {$DEFINE IDE_HAS_HIDE_NONVISUAL}      // 10S has "Hide NonVisual" Feature.
 {$ENDIF}
 
 {$IFDEF DELPHIXE8_UP}
-  {$DEFINE INIFILE_READWRITE_INTEGER}   // XE8 及以上的 IniFile 的 ReadInteger 和 WriteInteger 参数开始由 LongInt 改为 Integer
+  {$DEFINE INIFILE_READWRITE_INTEGER}   // XE8 及以上的 IniFile 的 ReadInteger 和 WriteInteger 参数开始由 Longint 改为 Integer
   {$DEFINE IDE_INTEGRATE_CASTALIA}      // XE8/10S and above integrate Castalia.
 {$ENDIF}
 
@@ -3729,7 +3733,7 @@
 {$ENDIF}
 
 {$IFDEF COMPILER5}
-  {$DEFINE TSTREAM_LONGINT}              // D6 及以上的 TStream 是 Int64
+  {$DEFINE TSTREAM_LONGINT}              // D6 及以上的 TStream 的 Size 和 Position 是 Int64
 {$ENDIF}
 
 {$IFDEF BCB5}

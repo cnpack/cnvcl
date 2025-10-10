@@ -25,11 +25,14 @@ unit CnSecretSharing;
 * 单元名称：秘密共享算法实现单元，
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：本单元实现了密码共享相关算法，目前包括目前包括 Shamir 门限方案与 Feldman VSS 方案。
+*
 *           Shamir 门限方案是利用构造多项式生成多个点坐标并利用插值还原点的秘密共享方案，
 *           其问题是拆分后的秘密没有验证是否正确的机制，因而有了改进版的 Feldman VSS 方案。
 *           后者需要用到素数 P 满足 P = 2*Q + 1 且 Q 也是素数，内嵌的 Shamir 模 Q，
 *           用于验证的计算则模 P
+*
 *           Shamir 门限方案包括 Split 和 Reconstruct 两个场合。
+*
 *           Feldman VSS 加了验证，包括 Split、Verify 和 Reconstruct 三个场合。
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
@@ -89,6 +92,7 @@ const
     '9172FE9CE98583FF8E4F1232EEF28183C3FE3B1B4C6FAD73' +
     '3BB5FCBC2EC22005C58EF1837D1683B2C6F34A26C1B2EFFA' +
     '886B423861285C97FFFFFFFFFFFFFFFF';
+  {* RFC 7919 中推荐的 Diffie-Hellman 使用的 2048 位素数}
 
   CN_PRIME_FFDHE_3072 =
     'FFFFFFFFFFFFFFFFADF85458A2BB4A9AAFDC5620273D3CF1' +
@@ -107,6 +111,7 @@ const
     '64F2E21E71F54BFF5CAE82AB9C9DF69EE86D2BC522363A0D' +
     'ABC521979B0DEADA1DBF9A42D5C4484E0ABCD06BFA53DDEF' +
     '3C1B20EE3FD59D7C25E41D2B66C62E37FFFFFFFFFFFFFFFF';
+  {* RFC 7919 中推荐的 Diffie-Hellman 使用的 3072 位素数}
 
   CN_PRIME_FFDHE_4096 =
     'FFFFFFFFFFFFFFFFADF85458A2BB4A9AAFDC5620273D3CF1' +
@@ -131,6 +136,7 @@ const
     '1A1DB93D7140003C2A4ECEA9F98D0ACC0A8291CDCEC97DCF' +
     '8EC9B55A7F88A46B4DB5A851F44182E1C68A007E5E655F6A' +
     'FFFFFFFFFFFFFFFF';
+  {* RFC 7919 中推荐的 Diffie-Hellman 使用的 4096 位素数}
 
   CN_PRIME_FFDHE_6144 =
     'FFFFFFFFFFFFFFFFADF85458A2BB4A9AAFDC5620273D3CF1' +
@@ -165,6 +171,7 @@ const
     'E49F5235C95B91178CCF2DD5CACEF403EC9D1810C6272B04' +
     '5B3B71F9DC6B80D63FDD4A8E9ADB1E6962A69526D43161C1' +
     'A41D570D7938DAD4A40E329CD0E40E65FFFFFFFFFFFFFFFF';
+  {* RFC 7919 中推荐的 Diffie-Hellman 使用的 6144 位素数}
 
   CN_PRIME_FFDHE_8192 =
     'FFFFFFFFFFFFFFFFADF85458A2BB4A9AAFDC5620273D3CF1' +
@@ -210,10 +217,11 @@ const
     'FAFABE1C5D71A87E2F741EF8C1FE86FEA6BBFDE530677F0D' +
     '97D11D49F7A8443D0822E506A9F4614E011E2A94838FF88C' +
     'D68C8BB7C5C6424CFFFFFFFFFFFFFFFF';
+  {* RFC 7919 中推荐的 Diffie-Hellman 使用的 8192 位素数}
 
 type
   TCnFeldmanVssPiece = class
-  {* FeldmanVss 分片实现类}
+  {* Feldman VSS 分片实现类}
   private
     FOrder: TCnBigNumber;
     FShare: TCnBigNumber;

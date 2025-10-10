@@ -67,43 +67,106 @@ uses
 
 const
   CN_BER_TAG_TYPE_MASK                      = $C0;
-  // 最高两位：00 为 Universal，01 为 Application，10 为 Context-Specific，11 为 Private
+  {* Ber Tag 的类型掩码，代表一字节内的最高两位：00 为 Universal，01 为 Application，10 为 Context-Specific，11 为 Private}
 
   CN_BER_TAG_STRUCT_MASK                    = $20;
+  {* Ber Tag 的结构掩码}
+
   CN_BER_TAG_VALUE_MASK                     = $1F;
+  {* Ber Tag 的值掩码}
+
   CN_BER_LENLEN_MASK                        = $80;
+  {* Ber Tag 的长度的长度掩码}
+
   CN_BER_LENGTH_MASK                        = $7F;
+  {* Ber Tag 的长度掩码}
 
   CN_BER_TAG_RESERVED                       = $00;
+  {* Ber Tag 类型 0，保留}
+
   CN_BER_TAG_BOOLEAN                        = $01;
+  {* 布尔类型的 Ber Tag}
+
   CN_BER_TAG_INTEGER                        = $02;
+  {* 整数类型的 Ber Tag}
+
   CN_BER_TAG_BIT_STRING                     = $03;
+  {* 位串类型的 Ber Tag}
+
   CN_BER_TAG_OCTET_STRING                   = $04;
+  {* 字符串类型的 Ber Tag}
+
   CN_BER_TAG_NULL                           = $05;
+  {* Null 类型的 Ber Tag}
+
   CN_BER_TAG_OBJECT_IDENTIFIER              = $06;
+  {* 对象标识符类型的 Ber Tag}
+
   CN_BER_TAG_OBJECT_DESCRIPION              = $07;
+  {* 对象描述类型的 Ber Tag}
+
   CN_BER_TAG_EXTERNAL                       = $08;
+  {* 外部类型的 Ber Tag}
+
   CN_BER_TAG_REAL                           = $09;
+  {* 浮点数类型的 Ber Tag}
+
   CN_BER_TAG_ENUMERATED                     = $0A;
+  {* 枚举类型的 Ber Tag}
+
   CN_BER_TAG_EMBEDDED_PDV                   = $0B;
+  {* 嵌入类型的 Ber Tag}
+
   CN_BER_TAG_UFT8STRING                     = $0C;
+  {* UTF-8 字符串类型的 Ber Tag}
+
   CN_BER_TAG_RELATIVE_OID                   = $0D;
+  {* 关联对象描述类型的 Ber Tag}
 
   CN_BER_TAG_SEQUENCE                       = $10;
+  {* 序列类型的 Ber Tag}
+
   CN_BER_TAG_SET                            = $11;
+  {* 集合类型的 Ber Tag}
+
   CN_BER_TAG_NUMERICSTRING                  = $12;
+  {* 数字字符串类型的 Ber Tag}
+
   CN_BER_TAG_PRINTABLESTRING                = $13;
-  CN_BER_TAG_TELETEXSTRING                  = $14;  // T61String
+  {* 可打印字符串类型的 Ber Tag}
+
+  CN_BER_TAG_TELETEXSTRING                  = $14;
+  {* T61String 字符串类型的 Ber Tag}
+
   CN_BER_TAG_VIDEOTEXSTRING                 = $15;
+  {* 视频字符串类型的 Ber Tag}
+
   CN_BER_TAG_IA5STRING                      = $16;
+  {* IA5 字符串类型的 Ber Tag}
+
   CN_BER_TAG_UTCTIME                        = $17;
+  {* 协调世界时的日期时间类型的 Ber Tag}
+
   CN_BER_TAG_GENERALIZEDTIME                = $18;
+  {* 通用日期时间类型的 Ber Tag}
+
   CN_BER_TAG_GRAPHICSTRING                  = $19;
+  {* 图像字符串类型的 Ber Tag}
+
   CN_BER_TAG_VISIBLESTRING                  = $1A;
+  {* 可见字符串类型的 Ber Tag}
+
   CN_BER_TAG_GENERALSTRING                  = $1B;
+  {* 普通字符串类型的 Ber Tag}
+
   CN_BER_TAG_UNIVERSALSTRING                = $1C;
+  {* 通用字符串类型的 Ber Tag}
+
   CN_BER_TAG_CHARACTER_STRING               = $1D;
+  {* 字符化字符串类型的 Ber Tag}
+
   CN_BER_TAG_BMPSTRING                      = $1E;
+  {* 位图字符串类型的 Ber Tag}
 
 type
   ECnBerException = class(Exception);
@@ -111,6 +174,7 @@ type
 
   TCnBerTagRange = CN_BER_TAG_BOOLEAN..CN_BER_TAG_BMPSTRING;
   {* BER 的 Tag 范围}
+
   TCnBerTagSet = set of TCnBerTagRange;
   {* BER 的 Tag 集合}
 

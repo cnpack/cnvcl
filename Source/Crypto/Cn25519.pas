@@ -145,7 +145,7 @@ type
   end;
 
   TCnTwistedEdwardsCurve = class
-  {* 有限域上的扭曲爱德华曲线 au^2 + v^2 = 1 + du^2v^2 (其中 u v 与蒙哥马利曲线的 x y 有映射关系)}
+  {* 有限域上的扭曲爱德华曲线 au^2 + v^2 = 1 + du^2v^2 （其中 u v 与蒙哥马利曲线的 x y 有映射关系）}
   private
     FCoefficientA: TCnBigNumber;
     FCoefficientD: TCnBigNumber;
@@ -215,7 +215,7 @@ type
     }
 
     procedure PointAddPoint(P: TCnEccPoint; Q: TCnEccPoint; Sum: TCnEccPoint);
-    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同
+    {* 计算 P + Q，值放入 Sum 中，Sum 可以是 P、Q 之一，P、Q 可以相同。
        此处的加法的几何意义相当于单位圆上的与正 Y 轴的夹角角度相加法则，
        中性点(0, 1)，等同于 Weierstrass 曲线中的无穷远点。
 

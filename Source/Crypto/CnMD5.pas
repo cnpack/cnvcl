@@ -76,16 +76,21 @@ uses
 
 type
   PMD5Digest = ^TCnMD5Digest;
+  {* MD5 杂凑结果指针}
   TCnMD5Digest = array[0..15] of Byte;
   {* MD5 杂凑结果，16 字节}
 
   TCnMD5Count = array[0..1] of Cardinal;
+  {* MD5 内部计数结构}
   TCnMD5State = array[0..3] of Cardinal;
+  {* MD5 内部状态结构}
   TCnMD5Block = array[0..15] of Cardinal;
+  {* MD5 内部块结构}
 
   TCnMD5Buffer = array[0..63] of Byte;
+  {* MD5 内部缓冲区结构}
 
-  TCnMD5Context = record
+  TCnMD5Context = packed record
   {* MD5 的上下文结构}
     State   : TCnMD5State;
     Count   : TCnMD5Count;
@@ -309,24 +314,24 @@ var
     $00, $00, $00, $00, $00, $00, $00, $00
   );
 
-function F(X, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function F(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := (X and y) or ((not X) and z);
+  Result := (X and Y) or ((not X) and Z);
 end;
 
-function G(X, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function G(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := (X and z) or (y and (not z));
+  Result := (X and Z) or (Y and (not Z));
 end;
 
-function H(X, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function H(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := X xor y xor z;
+  Result := X xor Y xor Z;
 end;
 
-function I(X, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function I(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := y xor (X or (not z));
+  Result := Y xor (X or (not Z));
 end;
 
 procedure ROT(var X: Cardinal; N: BYTE); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}

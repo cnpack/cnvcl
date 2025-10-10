@@ -53,10 +53,11 @@ uses
 
 type
   PCnSHA1Digest = ^TCnSHA1Digest;
+  {* SHA1 杂凑结果指针}
   TCnSHA1Digest = array[0..19] of Byte;
   {* SHA1 杂凑结果，20 字节}
 
-  TCnSHA1Context = record
+  TCnSHA1Context = packed record
   {* SHA1 的上下文结构}
     Hash: array[0..4] of Cardinal;
     Hi, Lo: Cardinal;
@@ -265,19 +266,19 @@ begin
   Result := X shl (C and 31) + X shr (32 - C and 31);
 end;
 
-function F1(x, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function F1(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := z xor (x and (y xor z));
+  Result := Z xor (X and (Y xor Z));
 end;
 
-function F2(x, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function F2(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := x xor y xor z;
+  Result := X xor Y xor Z;
 end;
 
-function F3(x, y, z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function F3(X, Y, Z: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := (x and y) or (z and (x or y));
+  Result := (X and Y) or (Z and (X or Y));
 end;
 
 function RB(A: Cardinal): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}

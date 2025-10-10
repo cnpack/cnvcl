@@ -3,7 +3,7 @@ program Project1;
 uses
   Forms,
   Unit1 in 'Unit1.pas' {FormMandelbrot},
-  CnMandelbrotImage in '..\..\..\Source\Graphics\CnMandelbrotImage.pas';
+  CnMandelbrotImage in '..\..\..\Source\Graphic\CnMandelbrotImage.pas';
 
 {$R *.RES}
 

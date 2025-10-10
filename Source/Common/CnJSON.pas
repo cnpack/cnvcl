@@ -46,10 +46,17 @@ unit CnJSON;
 *
 *           TCnJSONReader.LoadFromJSON 与 TCnJSONWriter.SaveToJSON 能够将对象的属性流化至 JSON 字符串中
 *
+*           ！！！注意！！！
+*           JSON 内部使用 UTF8，解析出的 Name 和 Value 的 string，在 Delphi 中根据编译器对应是 Ansi/Utf16
+*           在 FPC 的 Ansi 模式下解析出的 Name 和 Value 的 string 则是 Ansi，
+*           外部和 UI 打交道时请根据 FPC 的要求以决定是否转换为 UTF8 格式。
+*
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.06.14 V1.8
+* 修改记录：2025.08.19 V1.9
+*                 修正 FPC 的支持。FPC 的 Ansi 模式下 string 仍使用 Ansi，暂不支持 FPC 的 Unicode 模式
+*           2025.06.14 V1.8
 *                 增加解析 [ 开头和 ] 结尾的字符串为 JSONArray 的方法
 *                 增加将一批 JSON 对象或值转换为 [ 开头和 ] 结尾的字符串的方法
 *           2025.03.02 V1.7
@@ -333,11 +340,12 @@ type
 
     function IsString: Boolean; override;
     function AsString: string; override;
-    {* 根据 Content 值更新 Value 并返回}
+    {* 根据 Content 值更新 Value 并返回。
+       注意在 FPC 的 Ansi 模式下是 UTF8，Delphi 中则是 Ansi 或 Utf16}
 
     property Value: string read FValue write SetValue;
     {* 组装时供外界写入值，内部同步更新 Content
-      同时支持 Unicode 与 Ansi 下的 string}
+      同时支持 Delphi 中的 Unicode 与 Ansi 下的 string，及 FPC 的 Utf8 格式}
   end;
 
   TCnJSONNumber = class(TCnJSONValue)
@@ -2122,7 +2130,7 @@ begin
     // Unicode 版本下使用 Wide 版本，直接输出 string
 {$ELSE}
     Result := AnsiString(Bld.ToWideString);
-    // 非 Unicode 下强行使用 Wide 版本时只支持输出 WideString，外部转换成 AnsiString
+    // 非 Unicode 下强行使用 Wide 版本时只支持输出 WideString，这里强行转换成 AnsiString
 {$ENDIF}
   finally
     Bld.Free;
@@ -2142,7 +2150,7 @@ var
   P: PChar;
 begin
   // 加引号以及转义编码再 UTF8 转换
-  Bld := TCnStringBuilder.Create;
+  Bld := TCnStringBuilder.Create; // Delphi 中根据是否 Unicode 决定用 Wide 或 Ansi，FPC 下用 Ansi
   try
     Bld.AppendChar('"');
     if Length(Str) > 0 then
@@ -2503,6 +2511,18 @@ class procedure TCnJSONReader.ReadProperty(Instance: TPersistent;
 var
   PropType: PTypeInfo;
 
+{$IFDEF FPC}
+
+  procedure ReadBoolProp;
+  var
+    Value: Boolean;
+  begin
+    if ReadBooleanValue(Obj, string(PropInfo^.Name), Value) then
+      SetOrdProp(Instance, PropInfo, Ord(Value));
+  end;
+
+{$ENDIF}
+
   procedure ReadStrProp;
   var
     Value: string;
@@ -2596,8 +2616,12 @@ begin
     case PropType^.Kind of
       tkInteger, tkChar, tkEnumeration, tkSet:
         ReadOrdProp;
-      tkString, tkLString, tkWString {$IFDEF UNICODE}, tkUString {$ENDIF}:
+      tkString, tkLString, tkWString {$IFDEF UNICODE}, tkUString {$ENDIF} {$IFDEF FPC}, tkAString {$ENDIF}:
         ReadStrProp;
+{$IFDEF FPC}
+      tkBool:
+        ReadBoolProp;
+{$ENDIF}
       tkFloat:
         ReadFloatProp; // 时间日期暂时不额外处理，内部都用浮点先整
       tkInt64:
@@ -2710,6 +2734,18 @@ class procedure TCnJSONWriter.WriteProperty(Instance: TPersistent;
 var
   PropType: PTypeInfo;
 
+{$IFDEF FPC}
+
+  procedure WriteBoolProp;
+  var
+    Value: Boolean;
+  begin
+    Value := GetOrdProp(Instance, PropInfo) <> 0;
+    WriteBooleanValue(Obj, string(PropInfo^.Name), Value);
+  end;
+
+{$ENDIF}
+
   procedure WriteStrProp;
   var
     Value: string;
@@ -2793,8 +2829,12 @@ begin
     case PropType^.Kind of
       tkInteger, tkChar, tkEnumeration, tkSet:
         WriteOrdProp;
-      tkString, tkLString, tkWString {$IFDEF UNICODE}, tkUString {$ENDIF}:
+      tkString, tkLString, tkWString {$IFDEF UNICODE}, tkUString {$ENDIF} {$IFDEF FPC}, tkAString {$ENDIF}:
         WriteStrProp;
+{$IFDEF FPC}
+      tkBool:
+        WriteBoolProp;
+{$ENDIF}
       tkFloat:
         WriteFloatProp; // 时间日期暂时不额外处理，内部都用浮点先整
       tkInt64:

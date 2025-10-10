@@ -22,6 +22,7 @@
       ..\..\Source\Common\CnDynObjBuilder.obj 
       ..\..\Source\Common\CnEventBus.obj 
       ..\..\Source\Common\CnEventHook.obj 
+      ..\..\Source\Common\CnFileUtils.obj 
       ..\..\Source\Common\CnFitCurve.obj 
       ..\..\Source\Common\CnFloat.obj 
       ..\..\Source\Common\CnGB18030.obj 
@@ -108,40 +109,40 @@
       ..\..\Source\DbReport\CnDBConsts.obj 
       ..\..\Source\DbReport\CnPagedGrid.obj 
       ..\..\Source\DbReport\CnXlsWriter.obj 
-      ..\..\Source\Graphics\CnAACtrls.obj 
-      ..\..\Source\Graphics\CnAAFont.obj 
-      ..\..\Source\Graphics\CnAAFontDialog.obj 
-      ..\..\Source\Graphics\CnAOTreeView.obj 
-      ..\..\Source\Graphics\CnAutoOption.obj 
-      ..\..\Source\Graphics\CnButtonEdit.obj 
-      ..\..\Source\Graphics\CnButtons.obj 
-      ..\..\Source\Graphics\CnCheckTreeView.obj 
-      ..\..\Source\Graphics\CnColorGrid.obj 
-      ..\..\Source\Graphics\CnEdit.obj 
-      ..\..\Source\Graphics\CnErrorProvider.obj 
-      ..\..\Source\Graphics\CnGauge.obj 
-      ..\..\Source\Graphics\CnGraphConsts.obj 
-      ..\..\Source\Graphics\CnGraphics.obj 
-      ..\..\Source\Graphics\CnHexEditor.obj 
-      ..\..\Source\Graphics\CnHint.obj 
-      ..\..\Source\Graphics\CnIconUtils.obj 
-      ..\..\Source\Graphics\CnImage.obj 
-      ..\..\Source\Graphics\CnLED.obj 
-      ..\..\Source\Graphics\CnListBox.obj 
-      ..\..\Source\Graphics\CnMemo.obj 
-      ..\..\Source\Graphics\CnMonthCalendar.obj 
-      ..\..\Source\Graphics\CnOpenGLPaintBox.obj 
-      ..\..\Source\Graphics\CnPanel.obj 
-      ..\..\Source\Graphics\CnShellCtrls.obj 
-      ..\..\Source\Graphics\CnSkinMagic.obj 
-      ..\..\Source\Graphics\CnSpin.obj 
-      ..\..\Source\Graphics\CnSplitter.obj 
-      ..\..\Source\Graphics\CnTabSet.obj 
-      ..\..\Source\Graphics\CnTextControl.obj 
-      ..\..\Source\Graphics\CnValidateImage.obj 
-      ..\..\Source\Graphics\CnWaterEffect.obj 
-      ..\..\Source\Graphics\CnWaterImage.obj 
-      ..\..\Source\Graphics\CnWizardImage.obj 
+      ..\..\Source\Graphic\CnAACtrls.obj 
+      ..\..\Source\Graphic\CnAAFont.obj 
+      ..\..\Source\Graphic\CnAAFontDialog.obj 
+      ..\..\Source\Graphic\CnAOTreeView.obj 
+      ..\..\Source\Graphic\CnAutoOption.obj 
+      ..\..\Source\Graphic\CnButtonEdit.obj 
+      ..\..\Source\Graphic\CnButtons.obj 
+      ..\..\Source\Graphic\CnCheckTreeView.obj 
+      ..\..\Source\Graphic\CnColorGrid.obj 
+      ..\..\Source\Graphic\CnEdit.obj 
+      ..\..\Source\Graphic\CnErrorProvider.obj 
+      ..\..\Source\Graphic\CnGauge.obj 
+      ..\..\Source\Graphic\CnGraphConsts.obj 
+      ..\..\Source\Graphic\CnGraphics.obj 
+      ..\..\Source\Graphic\CnHexEditor.obj 
+      ..\..\Source\Graphic\CnHint.obj 
+      ..\..\Source\Graphic\CnIconUtils.obj 
+      ..\..\Source\Graphic\CnImage.obj 
+      ..\..\Source\Graphic\CnLED.obj 
+      ..\..\Source\Graphic\CnListBox.obj 
+      ..\..\Source\Graphic\CnMemo.obj 
+      ..\..\Source\Graphic\CnMonthCalendar.obj 
+      ..\..\Source\Graphic\CnOpenGLPaintBox.obj 
+      ..\..\Source\Graphic\CnPanel.obj 
+      ..\..\Source\Graphic\CnShellCtrls.obj 
+      ..\..\Source\Graphic\CnSkinMagic.obj 
+      ..\..\Source\Graphic\CnSpin.obj 
+      ..\..\Source\Graphic\CnSplitter.obj 
+      ..\..\Source\Graphic\CnTabSet.obj 
+      ..\..\Source\Graphic\CnTextControl.obj 
+      ..\..\Source\Graphic\CnValidateImage.obj 
+      ..\..\Source\Graphic\CnWaterEffect.obj 
+      ..\..\Source\Graphic\CnWaterImage.obj 
+      ..\..\Source\Graphic\CnWizardImage.obj 
       ..\..\Source\MultiLang\CnHashIniFile.obj 
       ..\..\Source\MultiLang\CnHashLangStorage.obj 
       ..\..\Source\MultiLang\CnIniLangFileStorage.obj 
@@ -230,7 +231,7 @@
     <SPARELIBS value="Vcl50.lib Vclx50.lib vclado50.lib Vclmid50.bpi wininet.lib ws2_32.lib"/>
     <PACKAGES value="vcl50.bpi Vclx50.bpi Vcldb50.bpi VclSmp50.bpi vclado50.bpi Vclmid50.bpi"/>
     <PATHCPP value=".;"/>
-    <PATHPAS value=".;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;..\..\Source\Graphics;..\..\Source\MultiLang;..\..\Source\NetComm;..\..\Source\NonVisual"/>
+    <PATHPAS value=".;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;..\..\Source\Graphic;..\..\Source\MultiLang;..\..\Source\NetComm;..\..\Source\NonVisual"/>
     <PATHRC value=".;"/>
     <PATHASM value=".;"/>
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
@@ -239,13 +240,13 @@
     <USERDEFINES value="_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT;USEPACKAGES"/>
     <MAINSOURCE value="CnPack_CB5.cpp"/>
-    <INCLUDEPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib\psdk;$(BCB)\lib"/>
+    <INCLUDEPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphic;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl"/>
+    <LIBPATH value="..\..\Source\NonVisual;..\..\Source\NetComm;..\..\Source\MultiLang;..\..\Source\Graphic;..\..\Source\Common;..\..\Source\Crypto;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib\psdk;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
     <IDLCFLAGS value="-I..\..\Source\NonVisual -I..\..\Source\NetComm -I..\..\Source\MultiLang 
-      -I..\..\Source\Graphics -I..\..\Source\Common -I..\..\Source\Crypto -I..\..\Source\DbReport -I$(BCB)\include 
+      -I..\..\Source\Graphic -I..\..\Source\Common -I..\..\Source\Crypto -I..\..\Source\DbReport -I$(BCB)\include 
       -I$(BCB)\include\vcl -src_suffix cpp -D_DEBUG -boa"/>
     <CFLAG1 value="-Od -H=$(BCB)\lib\vcl50.csm -Hc -Vx -Ve -X- -r- -a8 -b- -k -y -v -vi- -c 
       -tWM"/>
@@ -289,11 +290,11 @@ Comments=
 
 [HistoryLists\hlIncludePath]
 Count=1
-Item0=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl
+Item0=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphic;..\Source\Common;..\..\Source\DbReport;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
 Count=1
-Item0=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphics;..\Source\Common;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib
+Item0=..\Source\NonVisual;..\Source\NetComm;..\Source\MultiLang;..\Source\Graphic;..\Source\Common;..\..\Source\DbReport;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=1

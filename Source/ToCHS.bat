@@ -1,10 +1,10 @@
 @ECHO CnPack Component Package
 @ECHO Chinese-Simplified Resource Files will be Copied to overwrite Current Files 
 @PAUSE
-copy .\Lang\2052\CnGraphConsts.pas   .\Graphics\CnGraphConsts.pas  /Y
+copy .\Lang\2052\CnGraphConsts.pas   .\Graphic\CnGraphConsts.pas  /Y
 copy .\Lang\2052\CnLangConsts.pas    .\MultiLang\CnLangConsts.pas  /Y
 copy .\Lang\2052\CnNetConsts.pas     .\NetComm\CnNetConsts.pas     /Y
-copy .\Lang\2052\CnAAFontDialog.dfm  .\Graphics\CnAAFontDialog.dfm /Y
+copy .\Lang\2052\CnAAFontDialog.dfm  .\Graphic\CnAAFontDialog.dfm /Y
 copy .\Lang\2052\CnCompAboutFrm.dfm  .\Common\CnCompAboutFrm.dfm   /Y
 copy .\Lang\2052\CnFoxmailMsgFrm.dfm .\ObjRep\CnFoxmailMsgFrm.dfm  /Y
 copy .\Lang\2052\CnProgressFrm.dfm   .\ObjRep\CnProgressFrm.dfm    /Y

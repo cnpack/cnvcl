@@ -9,7 +9,7 @@
       <PathDelim Value="\"/>
       <SearchPaths>
         <IncludeFiles Value="..\..\Source\Common"/>
-        <OtherUnitFiles Value="..\..\Source\Common;..\..\Source\MultiLang;..\..\Source\Graphics;..\..\Source\NonVisual"/>
+        <OtherUnitFiles Value="..\..\Source\Common;..\..\Source\MultiLang;..\..\Source\Graphic;..\..\Source\NonVisual"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
@@ -36,7 +36,7 @@
         <UnitName Value="CnTransFilter"/>
       </Item>
       <Item>
-        <Filename Value="..\..\Source\Graphics\CnGraphRegister.pas"/>
+        <Filename Value="..\..\Source\Graphic\CnGraphRegister.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="CnGraphRegister"/>
       </Item>

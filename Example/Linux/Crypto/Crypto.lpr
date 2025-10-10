@@ -27,7 +27,7 @@ program Crypto;
 {$R *.res}
 
 uses
-  SysUtils, Interfaces,
+  SysUtils,
   Cn25519 in '..\..\..\Source\Crypto\Cn25519.pas',
   CnAEAD in '..\..\..\Source\Crypto\CnAEAD.pas',
   CnAES in '..\..\..\Source\Crypto\CnAES.pas',
@@ -73,11 +73,13 @@ uses
   CnSM9 in '..\..\..\Source\Crypto\CnSM9.pas',
   CnTEA in '..\..\..\Source\Crypto\CnTEA.pas',
   CnVector in '..\..\..\Source\Crypto\CnVector.pas',
+  CnXXH in '..\..\..\Source\Crypto\CnXXH.pas',
   CnZUC in '..\..\..\Source\Crypto\CnZUC.pas',
   CnBigDecimal in '..\..\..\Source\Common\CnBigDecimal.pas',
   CnBigRational in '..\..\..\Source\Common\CnBigRational.pas',
   CnConsts in '..\..\..\Source\Common\CnConsts.pas',
   CnContainers in '..\..\..\Source\Common\CnContainers.pas',
+  CnFileUtils in '..\..\..\Source\Common\CnFileUtils.pas',
   CnFloat in '..\..\..\Source\Common\CnFloat.pas',
   CnHashMap in '..\..\..\Source\Common\CnHashMap.pas',
   CnMath in '..\..\..\Source\Common\CnMath.pas',
@@ -85,6 +87,7 @@ uses
   CnTree in '..\..\..\Source\Common\CnTree.pas',
   CnStrings in '..\..\..\Source\Common\CnStrings.pas',
   CnWideStrings in '..\..\..\Source\Common\CnWideStrings.pas',
+  CnZip in '..\..\..\Source\Common\CnZip.pas',
   CryptoTest in 'CryptoTest.pas';
 
 begin

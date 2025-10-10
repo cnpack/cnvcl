@@ -25,19 +25,27 @@ unit CnCertificateAuthority;
 * 单元名称：基于 RSA 与 ECC 的 CA 证书认证单元
 * 单元作者：CnPack 开发组
 * 备    注：生成客户端 CSR 文件做证书签名请求，类似于命令：
+*
 *               openssl req -new -key clientkey.pem -out client.csr -config /c/Program\ Files/Git/ssl/openssl.cnf
+*
 *               其中 clientkey.pem 是预先生成的 RSA 或 ECC 私钥
+*
 *           一次性生成自签名的 crt 证书：
+*
 *               openssl req -new -x509 -keyout ca.key -out ca.crt -config /c/Program\ Files/Git/ssl/openssl.cnf
+*
 *           或利用现有 Key 对此 Key 生成的 CSR 请求文件进行自签名：
+*
 *               openssl x509 -req -days 365 -in client.csr -signkey clientkey.pem -out selfsigned.crt
+*
 *           或利用 openssl ca 命令，用根私钥与根证书签发其他的 CSR 生成 CRT 证书
 *
-*           证书 CRT 文件解析字段说明，杂凑算法以 sha256 为例：
-*                    RSA 签 RSA                RSA 签 ECC                ECC 签 RSA           ECC 签 ECC
-* 靠近签发者的类型： sha256WithRSAEncryption   sha256WithRSAEncryption   ecdsaWithSHA256      ecdsaWithSHA256
-* 被签发者的类型：   rsaEncryption             ecPublicKey + 曲线类型    rsaEncryption        ecPublicKey + 曲线类型
-* 最下面的总类型：   sha256WithRSAEncryption   sha256WithRSAEncryption   ecdsaWithSHA256      ecdsaWithSHA256
+*           证书 CRT 文件解析字段说明，杂凑算法以 SHA256 为例：
+*                        RSA 签 RSA                RSA 签 ECC                ECC 签 RSA           ECC 签 ECC
+*     靠近签发者的类型： sha256WithRSAEncryption   sha256WithRSAEncryption   ecdsaWithSHA256      ecdsaWithSHA256
+*     被签发者的类型：   rsaEncryption             ecPublicKey + 曲线类型    rsaEncryption        ecPublicKey + 曲线类型
+*     最下面的总类型：   sha256WithRSAEncryption   sha256WithRSAEncryption   ecdsaWithSHA256      ecdsaWithSHA256
+*
 *           注意：签发者类型和总类型俩字段总是相同的，被签发者的类型不包括杂凑算法
 *
 *           逐级验证证书时，是拿父证书里的被签发者公钥来验证子证书的内容的杂凑值与子证书的签名内容是否对得上号
@@ -73,8 +81,11 @@ uses
 
 const
   CN_CRT_BASIC_VERSION_1      = 0;
+  {* 证书规范版本号 0}
   CN_CRT_BASIC_VERSION_2      = 1;
+  {* 证书规范版本号 1}
   CN_CRT_BASIC_VERSION_3      = 2;
+  {* 证书规范版本号 2}
 
 type
   ECnCAException = class(Exception);

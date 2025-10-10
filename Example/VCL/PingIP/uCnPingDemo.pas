@@ -206,6 +206,7 @@ begin
     redtIPInfo.Lines.Add('SupportBroadcast ' + BOOL_STRS[IpGroups[I].SupportBroadcast]);
   end;
 
+  redtIPInfo.Lines.Add('IPv6µØÖ·Êý: ' + IntToStr(IP.LocalIPv6Count));
   Ip6Groups := IP.LocalIPv6Group;
   for I := Low(Ip6Groups) to High(Ip6Groups) do
   begin

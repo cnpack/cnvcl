@@ -28,7 +28,7 @@ COPY ..\..\cnvcl\Source\Common\CnStream.pas .
 COPY ..\..\cnvcl\Source\Common\CnStrings.pas .
 COPY ..\..\cnvcl\Source\Common\CnWideStrings.pas .
 COPY ..\..\cnvcl\Source\Common\CnPack.dcr .
-COPY ..\..\cnvcl\Source\Graphics\CnHexEditor.pas .
+COPY ..\..\cnvcl\Source\Graphic\CnHexEditor.pas .
 COPY ..\..\cnvcl\Source\MultiLang\*.pas .
 COPY ..\..\cnvcl\Source\MultiLang\*.dfm .
 COPY ..\..\cnvcl\Source\MultiLang\*.inc .

@@ -6,7 +6,7 @@ uses
   CnDebug in '..\..\..\Source\Common\CnDebug.pas',
   UnitThread in 'UnitThread.pas',
   CnRTL in '..\..\..\Source\Common\CnRTL.pas',
-  CnSampleComponent in '..\..\..\..\cnwizards\Source\Examples\CnSampleComponent.pas';
+  CnSampleComponent in '..\..\..\..\cnwizards\Source\Example\CnSampleComponent.pas';
 
 {$R *.res}
 

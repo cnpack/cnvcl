@@ -33,7 +33,10 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2025.07.31 V3.1
+* 修改记录：2025.08.22 V3.2
+*               增加两个公钥加密私钥解密超长流的函数及两个私钥加密公钥解密超长流的函数，
+*               内部使用分块与 PKCS1 对齐，注意私钥运算时性能较慢。
+*           2025.07.31 V3.1
 *               增加两个从 PEM 格式的字符串中读入公私钥的函数
 *           2025.07.25 V3.0
 *               增加 Int64 的 RSA 公私钥验证函数
@@ -809,6 +812,50 @@ function CnRSADecryptFile(const InFileName: string; const OutFileName: string;
      const OutFileName: string            - 解密后输出的明文文件名
      PrivateKey: TCnRSAPrivateKey         - 用于解密的 RSA 私钥
      PaddingMode: TCnRSAPaddingMode       - 指定对齐模式，需和密文文件的实际情况一致
+
+   返回值：Boolean                        - 返回解密是否成功
+}
+
+function CnRSAEncryptLongStream(InStream, OutStream: TStream; PublicKey: TCnRSAPublicKey): Boolean; overload;
+{* 用公钥对输入流进行超长型加密，按块拆分，块内进行 PKCS1 对齐，对齐各块加密后写入输出流。
+
+   参数：
+     InStream: TStream                    - 待加密的明文流
+     OutStream: TStream                   - 加密后输出的流
+     PublicKey: TCnRSAPublicKey           - 用于加密的 RSA 公钥
+
+   返回值：Boolean                        - 返回加密是否成功
+}
+
+function CnRSADecryptLongStream(InStream, OutStream: TStream; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
+{* 用私钥对输入流进行超长型解密，按块拆分，块内进行解密并去除 PKCS1 对齐，拼合写入输出流。
+
+   参数：
+     InStream: TStream                    - 待解密的密文流
+     OutStream: TStream                   - 解密后输出的流
+     PrivateKey: TCnRSAPrivateKey         - 用于解密的 RSA 私钥
+
+   返回值：Boolean                        - 返回解密是否成功
+}
+
+function CnRSAEncryptLongStream(InStream, OutStream: TStream; PrivateKey: TCnRSAPrivateKey): Boolean; overload;
+{* 用私钥对输入流进行超长型加密，按块拆分，块内进行 PKCS1 对齐，对齐各块加密后写入输出流。
+
+   参数：
+     InStream: TStream                    - 待加密的明文流
+     OutStream: TStream                   - 加密后输出的流
+     PrivateKey: TCnRSAPrivateKey         - 用于加密的 RSA 私钥
+
+   返回值：Boolean                        - 返回加密是否成功
+}
+
+function CnRSADecryptLongStream(InStream, OutStream: TStream; PublicKey: TCnRSAPublicKey): Boolean; overload;
+{* 用公钥对输入流进行超长型解密，按块拆分，块内进行解密并去除 PKCS1 对齐，拼合写入输出流。
+
+   参数：
+     InStream: TStream                    - 待解密的密文流
+     OutStream: TStream                   - 解密后输出的流
+     PublicKey: TCnRSAPublicKey           - 用于解密的 RSA 公钥
 
    返回值：Boolean                        - 返回解密是否成功
 }
@@ -2358,7 +2405,7 @@ begin
   Result := FPubKeyProduct.GetBytesCount;
 end;
 
-{ RSA 加密解密运算}
+// ========================= RSA 加密解密运算 ==================================
 
 function RSACryptRawData(Data: Pointer; DataByteLen: Integer; OutBuf: Pointer;
   out OutByteLen: Integer; Exponent, Product: TCnBigNumber): Boolean;
@@ -2373,8 +2420,8 @@ begin
 
     if RSACrypt(D, Product, Exponent, R) then
     begin
-      R.ToBinary(OutBuf); // TODO: Fixed Len?
-      OutByteLen := R.GetBytesCount;
+      R.ToBinary(OutBuf, Product.GetBytesCount); // Must Fixed Len
+      OutByteLen := Product.GetBytesCount; // R.GetBytesCount;
 
       Result := True;
       _CnSetLastError(ECN_RSA_OK);
@@ -2813,7 +2860,235 @@ begin
   end;
 end;
 
-// RSA 文件签名与验证实现
+function CnRSAEncryptLongStream(InStream, OutStream: TStream; PublicKey: TCnRSAPublicKey): Boolean;
+var
+  InBuf, OutBuf: TBytes;
+  Stream: TMemoryStream;
+  BlockSize, BytesRead, BytesEnc, TotalBytes: Integer;
+begin
+  Result := False;
+  if (PublicKey = nil) or (InStream = nil) or (OutStream = nil) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Exit;
+  end;
+
+  BlockSize :=  PublicKey.GetBytesCount - CN_PKCS1_PADDING_SIZE;
+  if BlockSize <= 0 then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_BITS);
+    Exit;
+  end;
+  SetLength(InBuf, BlockSize);                  // 分块的内容读入到此
+  SetLength(OutBuf, PublicKey.GetBytesCount);   // 加密的内容输出到此
+  TotalBytes := 0;
+
+  Stream := TMemoryStream.Create;
+  try
+    while True do
+    begin
+      BytesRead := InStream.Read(InBuf[0], BlockSize);
+      if BytesRead > 0 then
+      begin
+        Stream.Size := 0;
+
+        // 分块的内容加上 Padding
+        if not AddPKCS1Padding(CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM, PublicKey.GetBytesCount,
+          @InBuf[0], BytesRead, Stream) then
+        begin
+          _CnSetLastError(ECN_RSA_PADDING_ERROR);
+          Exit;
+        end;
+
+        if not CnRSAEncryptRawData(Stream.Memory, Stream.Size, @OutBuf[0], BytesEnc, PublicKey) then
+          Exit; // 如果失败，内部设置了错误码
+
+        OutStream.Write(OutBuf[0], BytesEnc);
+        Inc(TotalBytes, BytesRead);
+      end
+      else // 总长度整数块后读出为 0 表示结束
+        Break;
+
+      if BytesRead < BlockSize then // 总长度非整数块读出非整块也表示结束
+        Break;
+    end;
+    Result := TotalBytes > 0;
+  finally
+    Stream.Free;
+    SetLength(OutBuf, 0);
+    SetLength(InBuf, 0);
+  end;
+end;
+
+function CnRSADecryptLongStream(InStream, OutStream: TStream; PrivateKey: TCnRSAPrivateKey): Boolean;
+var
+  InBuf, OutBuf: TBytes;
+  BlockSize, BytesRead, BytesDec, TotalBytes: Integer;
+begin
+  Result := False;
+  if (PrivateKey = nil) or (InStream = nil) or (OutStream = nil) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Exit;
+  end;
+
+  BlockSize :=  PrivateKey.GetBytesCount;
+  if BlockSize <= 0 then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_BITS);
+    Exit;
+  end;
+  SetLength(InBuf, BlockSize);    // 分块的内容读入到此
+  SetLength(OutBuf, BlockSize);   // 解密的内容输出到此
+  TotalBytes := 0;
+
+  try
+    while True do
+    begin
+      BytesRead := InStream.Read(InBuf[0], BlockSize);
+      if BytesRead > 0 then
+      begin
+        if not CnRSADecryptRawData(@InBuf[0], BytesRead, @OutBuf[0], BytesDec, PrivateKey) then
+          Exit; // 如果失败，内部设置了错误码
+
+        // 分块的解密内容删除 Padding，此处复用 InBuf 与 BytesDec
+        if not RemovePKCS1Padding(@OutBuf[0], BytesDec, @InBuf[0], BytesDec) then
+        begin
+          _CnSetLastError(ECN_RSA_PADDING_ERROR);
+          Exit;
+        end;
+
+        OutStream.Write(InBuf[0], BytesDec);
+        Inc(TotalBytes, BytesRead);
+      end
+      else // 总长度整数块后读出为 0 表示结束
+        Break;
+
+      if BytesRead < BlockSize then // 总长度非整数块读出非整块也表示结束
+        Break;
+    end;
+    Result := TotalBytes > 0;
+  finally
+    SetLength(OutBuf, 0);
+    SetLength(InBuf, 0);
+  end;
+end;
+
+function CnRSAEncryptLongStream(InStream, OutStream: TStream; PrivateKey: TCnRSAPrivateKey): Boolean;
+var
+  InBuf, OutBuf: TBytes;
+  Stream: TMemoryStream;
+  BlockSize, BytesRead, BytesEnc, TotalBytes: Integer;
+begin
+  Result := False;
+  if (PrivateKey = nil) or (InStream = nil) or (OutStream = nil) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Exit;
+  end;
+
+  BlockSize :=  PrivateKey.GetBytesCount - CN_PKCS1_PADDING_SIZE;
+  if BlockSize <= 0 then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_BITS);
+    Exit;
+  end;
+  SetLength(InBuf, BlockSize);                  // 分块的内容读入到此
+  SetLength(OutBuf, PrivateKey.GetBytesCount);   // 加密的内容输出到此
+  TotalBytes := 0;
+
+  Stream := TMemoryStream.Create;
+  try
+    while True do
+    begin
+      BytesRead := InStream.Read(InBuf[0], BlockSize);
+      if BytesRead > 0 then
+      begin
+        Stream.Size := 0;
+
+        // 分块的内容加上 Padding
+        if not AddPKCS1Padding(CN_PKCS1_BLOCK_TYPE_PRIVATE_00, PrivateKey.GetBytesCount,
+          @InBuf[0], BytesRead, Stream) then
+        begin
+          _CnSetLastError(ECN_RSA_PADDING_ERROR);
+          Exit;
+        end;
+
+        if not CnRSAEncryptRawData(Stream.Memory, Stream.Size, @OutBuf[0], BytesEnc, PrivateKey) then
+          Exit; // 如果失败，内部设置了错误码
+
+        OutStream.Write(OutBuf[0], BytesEnc);
+        Inc(TotalBytes, BytesRead);
+      end
+      else // 总长度整数块后读出为 0 表示结束
+        Break;
+
+      if BytesRead < BlockSize then // 总长度非整数块读出非整块也表示结束
+        Break;
+    end;
+    Result := TotalBytes > 0;
+  finally
+    Stream.Free;
+    SetLength(OutBuf, 0);
+    SetLength(InBuf, 0);
+  end;
+end;
+
+function CnRSADecryptLongStream(InStream, OutStream: TStream; PublicKey: TCnRSAPublicKey): Boolean;
+var
+  InBuf, OutBuf: TBytes;
+  BlockSize, BytesRead, BytesDec, TotalBytes: Integer;
+begin
+  Result := False;
+  if (PublicKey = nil) or (InStream = nil) or (OutStream = nil) then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_INPUT);
+    Exit;
+  end;
+
+  BlockSize :=  PublicKey.GetBytesCount;
+  if BlockSize <= 0 then
+  begin
+    _CnSetLastError(ECN_RSA_INVALID_BITS);
+    Exit;
+  end;
+  SetLength(InBuf, BlockSize);    // 分块的内容读入到此
+  SetLength(OutBuf, BlockSize);   // 解密的内容输出到此
+  TotalBytes := 0;
+
+  try
+    while True do
+    begin
+      BytesRead := InStream.Read(InBuf[0], BlockSize);
+      if BytesRead > 0 then
+      begin
+        if not CnRSADecryptRawData(@InBuf[0], BytesRead, @OutBuf[0], BytesDec, PublicKey) then
+          Exit; // 如果失败，内部设置了错误码
+
+        // 分块的解密内容删除 Padding，此处复用 InBuf 与 BytesDec
+        if not RemovePKCS1Padding(@OutBuf[0], BytesDec, @InBuf[0], BytesDec) then
+        begin
+          _CnSetLastError(ECN_RSA_PADDING_ERROR);
+          Exit;
+        end;
+
+        OutStream.Write(InBuf[0], BytesDec);
+        Inc(TotalBytes, BytesRead);
+      end
+      else // 总长度整数块后读出为 0 表示结束
+        Break;
+
+      if BytesRead < BlockSize then // 总长度非整数块读出非整块也表示结束
+        Break;
+    end;
+    Result := TotalBytes > 0;
+  finally
+    SetLength(OutBuf, 0);
+    SetLength(InBuf, 0);
+  end;
+end;
+
+// ======================== RSA 文件签名与验证实现 =============================
 
 // 根据指定数字摘要算法计算指定流的二进制杂凑值并写入 Stream，如果出错内部会设置错误码
 function CalcDigestStream(InStream: TStream; SignType: TCnRSASignDigestType;

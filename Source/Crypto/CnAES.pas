@@ -40,7 +40,8 @@ unit CnAES;
 *           另外高版本 Delphi 中请尽量避免使用 AnsiString 参数版本的函数（十六进制除外），
 *           避免不可视字符出现乱码影响加解密结果。
 *
-*           补充：============= Java 中默认的 AES 对应此处的 AES256 ============
+*           补充：Java 中默认的 AES 对应此处的 AES256
+*
 *           另外，C++Builder 5/6 下对 overload 的函数大概率存在判断错误从而调用
 *           混乱的情形，故本单元做了处理，部分 overload 函数仅在 Delphi 下存在，
 *           额外再封装了部分不同名的函数以支持 C++Builder 5/6 下编译运行。
@@ -107,15 +108,29 @@ type
   {* AES256 的扩展密钥结构}
 
   PCnAESBuffer = ^TCnAESBuffer;
+  {* AES 加解密块指针}
+
   PCnAESKey128 = ^TCnAESKey128;
+  {* AES128 的密钥结构指针}
+
   PCnAESKey192 = ^TCnAESKey192;
+  {* AES192 的密钥结构指针}
+
   PCnAESKey256 = ^TCnAESKey256;
+  {* AES256 的密钥结构指针}
+
   PCnAESExpandedKey128 = ^TCnAESExpandedKey128;
+  {* AES128 的扩展密钥结构指针}
+
   PCnAESExpandedKey192 = ^TCnAESExpandedKey192;
+  {* AES192 的扩展密钥结构指针}
+
   PCnAESExpandedKey256 = ^TCnAESExpandedKey256;
+  {* AES256 的扩展密钥结构指针}
 
   TCnAESCTRNonce = array[0..3] of Byte;
   {* CTR 模式下的 Nonce 结构，4 字节}
+
   TCnAESCTRIv = array[0..7] of Byte;
   {* CTR 模式下的初始化向量结构，8 字节}
 

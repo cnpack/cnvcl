@@ -26,9 +26,6 @@ unit CnSHA2;
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 *           从匿名/佚名 C 代码与 Pascal 代码混合移植而来并补充部分功能。
 * 备    注：本单元实现了 SHA2 系列杂凑算法及对应的 HMAC 算法，包括 SHA224/256/384/512。
-*           注：Delphi 5/6/7 本单元用了有符号 Int64 代替无符号 UInt64 来计算 SHA512/384，
-*           原因是基于补码规则，有无符号数的加减移位以及溢出的舍弃机制等都相同，唯一不
-*           同的是比较，而本单元中没有类似的比较。
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -53,8 +50,8 @@ uses
   SysUtils, Classes {$IFDEF MSWINDOWS}, Windows {$ENDIF}, CnNative, CnConsts;
 
 type
-  PCnSHAGeneralDigest = ^TCnSHAGeneralDigest;
-  TCnSHAGeneralDigest = array[0..63] of Byte;
+  PCnSHA2GeneralDigest = ^TCnSHA2GeneralDigest;
+  TCnSHA2GeneralDigest = array[0..63] of Byte;
 
   PCnSHA224Digest = ^TCnSHA224Digest;
   TCnSHA224Digest = array[0..27] of Byte;
@@ -418,7 +415,7 @@ function SHA512UnicodeString(const Str: WideString): TCnSHA512Digest;
 
 function SHA224File(const FileName: string; CallBack: TCnSHACalcProgressFunc =
   nil): TCnSHA224Digest;
-{* 对指定文件内容进行 SHA256 计算。
+{* 对指定文件内容进行 SHA224 计算。
 
    参数：
      const FileName: string               - 待计算的文件名
@@ -627,7 +624,7 @@ procedure SHA512Update(var Context: TCnSHA512Context; Input: PAnsiChar; ByteLeng
 }
 
 procedure SHA512Final(var Context: TCnSHA512Context; var Digest: TCnSHA512Digest);
-{* 结束本轮计算，将 SHA512 结果返回至 Digest 中
+{* 结束本轮计算，将 SHA512 结果返回至 Digest 中。
 
    参数：
      var Context: TCnSHA512Context        - SHA512 上下文
@@ -1659,7 +1656,7 @@ begin
 end;
 
 function InternalSHAStream(Stream: TStream; const BufSize: Cardinal; var D:
-  TCnSHAGeneralDigest; SHA2Type: TSHA2Type; CallBack: TCnSHACalcProgressFunc): Boolean;
+  TCnSHA2GeneralDigest; SHA2Type: TSHA2Type; CallBack: TCnSHACalcProgressFunc): Boolean;
 var
   Buf: PAnsiChar;
   BufLen: Cardinal;
@@ -1780,7 +1777,7 @@ end;
 function SHA224Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
   TCnSHA224Digest;
 var
-  Dig: TCnSHAGeneralDigest;
+  Dig: TCnSHA2GeneralDigest;
 begin
   InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_224, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA224Digest));
@@ -1790,7 +1787,7 @@ end;
 function SHA256Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
   TCnSHA256Digest;
 var
-  Dig: TCnSHAGeneralDigest;
+  Dig: TCnSHA2GeneralDigest;
 begin
   InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_256, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA256Digest));
@@ -1800,7 +1797,7 @@ end;
 function SHA384Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
   TCnSHA384Digest;
 var
-  Dig: TCnSHAGeneralDigest;
+  Dig: TCnSHA2GeneralDigest;
 begin
   InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_384, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA384Digest));
@@ -1810,7 +1807,7 @@ end;
 function SHA512Stream(Stream: TStream; CallBack: TCnSHACalcProgressFunc):
   TCnSHA512Digest;
 var
-  Dig: TCnSHAGeneralDigest;
+  Dig: TCnSHA2GeneralDigest;
 begin
   InternalSHAStream(Stream, 4096 * 1024, Dig, stSHA2_512, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA512Digest));
@@ -1847,7 +1844,7 @@ begin
 end;
 
 function InternalSHAFile(const FileName: string; SHA2Type: TSHA2Type;
-  CallBack: TCnSHACalcProgressFunc): TCnSHAGeneralDigest;
+  CallBack: TCnSHACalcProgressFunc): TCnSHA2GeneralDigest;
 var
   Context224: TCnSHA224Context;
   Context256: TCnSHA256Context;
@@ -1910,7 +1907,7 @@ var
     end;
   end;
 
-  procedure _CopyResult(var D: TCnSHAGeneralDigest);
+  procedure _CopyResult(var D: TCnSHA2GeneralDigest);
   begin
     case SHA2Type of
       stSHA2_224:
@@ -1986,7 +1983,7 @@ end;
 function SHA224File(const FileName: string; CallBack: TCnSHACalcProgressFunc):
   TCnSHA224Digest;
 var
-  Dig: TCnSHAGeneralDigest;
+  Dig: TCnSHA2GeneralDigest;
 begin
   Dig := InternalSHAFile(FileName, stSHA2_224, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA224Digest));
@@ -1996,7 +1993,7 @@ end;
 function SHA256File(const FileName: string; CallBack: TCnSHACalcProgressFunc):
   TCnSHA256Digest;
 var
-  Dig: TCnSHAGeneralDigest;
+  Dig: TCnSHA2GeneralDigest;
 begin
   Dig := InternalSHAFile(FileName, stSHA2_256, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA256Digest));
@@ -2006,7 +2003,7 @@ end;
 function SHA384File(const FileName: string; CallBack: TCnSHACalcProgressFunc):
   TCnSHA384Digest;
 var
-  Dig: TCnSHAGeneralDigest;
+  Dig: TCnSHA2GeneralDigest;
 begin
   Dig := InternalSHAFile(FileName, stSHA2_384, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA384Digest));
@@ -2016,7 +2013,7 @@ end;
 function SHA512File(const FileName: string; CallBack: TCnSHACalcProgressFunc):
   TCnSHA512Digest;
 var
-  Dig: TCnSHAGeneralDigest;
+  Dig: TCnSHA2GeneralDigest;
 begin
   Dig := InternalSHAFile(FileName, stSHA2_512, CallBack);
   Move(Dig[0], Result[0], SizeOf(TCnSHA512Digest));
