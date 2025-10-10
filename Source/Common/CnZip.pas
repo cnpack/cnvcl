@@ -1285,7 +1285,7 @@ var
   end;
 
   // Zip 似乎专用 Win 格式的 FileDate，MacOS 等平台下不能使用系统自带版本
-  function WinDateTimeToFileDate(DateTime: TDateTime): LongInt;
+  function WinDateTimeToFileDate(DateTime: TDateTime): Cardinal;
   var
     Year, Month, Day, Hour, Min, Sec, MSec: Word;
   begin
