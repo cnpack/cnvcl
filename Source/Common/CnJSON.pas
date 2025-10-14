@@ -586,13 +586,13 @@ var
   DummyTermStep: Integer;
 
 resourcestring
-  SCnErrorJSONTokenFmt = 'JSON Token %s Expected at Offset %d';
+  SCnErrorJSONTokenFmt = 'JSON Token %s Expected at Offset %d but Get %s';
   SCnErrorJSONValueFmt = 'JSON Value Error %s at Offset %d';
   SCnErrorJSONPair = 'JSON Pair Value Conflict';
   SCnErrorJSONTypeMismatch = 'JSON Value Type Mismatch';
   SCnErrorJSONNameNotExistsFmt = 'JSON Name %s NOT Exist.';
   SCnErrorJSONStringParse = 'JSON String Parse Error';
-  SCnErrorJSONValueTypeNotImplementedFmt = 'NOT Implemented for this JSON Value Type %s';
+  SCnErrorJSONValueTypeNotImplementedFmt = 'NOT Implemented %s for this JSON Value Type %s';
   SCnErrorJSONArrayConstsTypeFmt = 'JSON Const Type NOT Support %d';
   SCnErrorJSONArrayTrailingComma = 'JSON Trailing Comma Error in Array';
 
@@ -623,7 +623,8 @@ procedure JSONCheckToken(P: TCnJSONParser; ExpectedToken: TCnJSONTokenType);
 begin
   if P.TokenID <> ExpectedToken then
     raise ECnJSONException.CreateFmt(SCnErrorJSONTokenFmt,
-      [GetEnumName(TypeInfo(TCnJSONTokenType), Ord(ExpectedToken)), P.RunPos]);
+      [GetEnumName(TypeInfo(TCnJSONTokenType), Ord(ExpectedToken)), P.RunPos,
+      GetEnumName(TypeInfo(TCnJSONTokenType), Ord(P.TokenID))]);
 end;
 
 // 解析器遇到字符串时调用，Current 是外部的父对象
@@ -1621,22 +1622,26 @@ end;
 
 function TCnJSONValue.GetCount: Integer;
 begin
-  raise ECnJSONException.CreateFmt(SCnErrorJSONValueTypeNotImplementedFmt, [ClassName]);
+  raise ECnJSONException.CreateFmt(SCnErrorJSONValueTypeNotImplementedFmt,
+    ['GetCount', ClassName]);
 end;
 
 function TCnJSONValue.GetName(Index: Integer): TCnJSONString;
 begin
-  raise ECnJSONException.CreateFmt(SCnErrorJSONValueTypeNotImplementedFmt, [ClassName]);
+  raise ECnJSONException.CreateFmt(SCnErrorJSONValueTypeNotImplementedFmt,
+    ['GetName', ClassName]);
 end;
 
 function TCnJSONValue.GetValue(Index: Integer): TCnJSONValue;
 begin
-  raise ECnJSONException.CreateFmt(SCnErrorJSONValueTypeNotImplementedFmt, [ClassName]);
+  raise ECnJSONException.CreateFmt(SCnErrorJSONValueTypeNotImplementedFmt,
+    ['GetValue', ClassName]);
 end;
 
 function TCnJSONValue.GetValueByName(const Name: string): TCnJSONValue;
 begin
-  raise ECnJSONException.CreateFmt(SCnErrorJSONValueTypeNotImplementedFmt, [ClassName]);
+  raise ECnJSONException.CreateFmt(SCnErrorJSONValueTypeNotImplementedFmt,
+    ['GetValueByName', ClassName]);
 end;
 
 function TCnJSONValue.IsArray: Boolean;
