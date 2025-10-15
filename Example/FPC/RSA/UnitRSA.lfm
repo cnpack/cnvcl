@@ -642,12 +642,12 @@ object FormRSA: TFormRSA
         Height = 179
         Top = 344
         Width = 959
-        ActivePage = tsFile
+        ActivePage = tsData
         Anchors = [akTop, akLeft, akRight, akBottom]
         Images = ilCrypt
         MultiLine = True
         Options = [nboMultiLine]
-        TabIndex = 1
+        TabIndex = 0
         TabOrder = 1
         TabPosition = tpRight
         object tsData: TTabSheet

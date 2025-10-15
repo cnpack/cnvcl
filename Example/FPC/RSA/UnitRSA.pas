@@ -589,7 +589,7 @@ begin
   Data := BigNumberNew;
   Res := TCnBigNumber.FromDec(edtBNRes.Text);
 
-  if CnRSADecrypt(Res, FPublicKey, Data) then
+  if CnRSADecrypt(Data, FPublicKey, Res) then
     edtBNDataBack.Text := Data.ToDec;
 
   BigNumberFree(Res);
