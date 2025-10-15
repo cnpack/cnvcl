@@ -543,29 +543,44 @@ function CnJSONConstruct(Obj: TCnJSONObject; UseFormat: Boolean = True;
 function CnJSONConstruct(Objects: TObjectList; UseFormat: Boolean = True;
   Indent: Integer = 0): AnsiString; overload;
 {* 将列表中的多个 JSON 对象或值转为 UTF8 格式的 JSON 字符串，结果以 [ 开头 ] 结尾，
-  Objects 列表中的对象须为 TCnJSONValue 或其子类}
+   Objects 列表中的对象须为 TCnJSONValue 或其子类。}
+
+{$IFDEF UNICODE}
+
+function CnJSONParse(const JsonStr: string): TCnJSONObject; overload;
+{* 解析 UTF-16 格式的 JSON 字符串为单个 JSON 对象，需要外部释放}
+
+{$ENDIF}
 
 function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject; overload;
 {* 解析 UTF8 格式的 JSON 字符串为单个 JSON 对象，需要外部释放}
 
 function CnJSONParse(JsonStr: PAnsiChar; Objects: TObjectList): Integer; overload;
-{* 解析 UTF8 格式的 JSON 字符串为多个 JSON 对象，每个对象加入 Objects 列表中，需要外部释放
-  返回值表示解析出完整的 JSON 对象后，该字符串步进了多少字节。用于不完整的 JSON 字符串持续解析。
-  字符指针 JsonStr + 返回值（或者说字符串下标 string(JsonStr)[返回值+1]）就是下一个待解析的起点，
-  也就是上一个成功解析的右大括号的后一处。具体来说就是：
-  字符串如果以右大括号结尾，字符指针 JsonStr + 返回值会指向它结尾的 #0，
-  字符串尾部如果是大括号加一些空格或回车换行，JsonStr + 返回值会指向第一个空格或换行，
-  字符串尾部如果是不完整的 JSON 字符串，JsonStr + 返回值就指向不完整的开头。}
+{* 解析 UTF8 格式的 JSON 字符串为多个 JSON 对象，每个对象加入 Objects 列表中，需要外部释放。
+   返回值表示解析出完整的 JSON 对象后，该字符串步进了多少字节。用于不完整的 JSON 字符串持续解析。
+   字符指针 JsonStr + 返回值（或者说字符串下标 string(JsonStr)[返回值+1]）就是下一个待解析的起点，
+   也就是上一个成功解析的右大括号的后一处。具体来说就是：
+   字符串如果以右大括号结尾，字符指针 JsonStr + 返回值会指向它结尾的 #0，
+   字符串尾部如果是大括号加一些空格或回车换行，JsonStr + 返回值会指向第一个空格或换行，
+   字符串尾部如果是不完整的 JSON 字符串，JsonStr + 返回值就指向不完整的开头。}
 
 procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject;
   Replace: Boolean = False);
-{* 将 FromObj 这个 JSONObject 的键值对合并至 ToObj 这个 JSONObject
-  名字不存在的键值对将复制后插入；名字存在的，同为数组则直接拼接（元素不会判重）、同为对象则合并，
-  其他情况，Replace 为 False 则啥都不做，Replace 为 True，则复制后替换}
+{* 将 FromObj 这个 JSONObject 的键值对合并至 ToObj 这个 JSONObject。
+   名字不存在的键值对将复制后插入；名字存在的，同为数组则直接拼接（元素不会判重）、同为对象则合并，
+   其他情况，Replace 为 False 则啥都不做，Replace 为 True，则复制后替换。}
 
-function CnJSONParseToArray(const JsonStr: AnsiString): TCnJSONArray;
+{$IFDEF UNICODE}
+
+function CnJSONParseToArray(const JsonStr: string): TCnJSONArray; overload;
+{* 解析 UTF-16 格式的 JSON 字符串为一个数组，用于处理 [ 开头及 ] 结尾的字符串，
+   如果字符串不是 [ 开头及 ] 结尾，返回 nil。}
+
+{$ENDIF}
+
+function CnJSONParseToArray(const JsonStr: AnsiString): TCnJSONArray; {$IFDEF UNICODE} overload; {$ENDIF}
 {* 解析 UTF8 格式的 JSON 字符串为一个数组，用于处理 [ 开头及 ] 结尾的字符串，
-  如果字符串不是 [ 开头及 ] 结尾，返回 nil}
+  如果字符串不是 [ 开头及 ] 结尾，返回 nil。}
 
 implementation
 
@@ -784,6 +799,15 @@ begin
   P.NextNoJunk;
 end;
 
+{$IFDEF UNICODE}
+
+function CnJSONParseToArray(const JsonStr: string): TCnJSONArray;
+begin
+  Result := CnJSONParseToArray(UTF8Encode(JsonStr));
+end;
+
+{$ENDIF}
+
 function CnJSONParseToArray(const JsonStr: AnsiString): TCnJSONArray;
 var
   P: TCnJSONParser;
@@ -802,6 +826,15 @@ begin
     P.Free;
   end;
 end;
+
+{$IFDEF UNICODE}
+
+function CnJSONParse(const JsonStr: string): TCnJSONObject;
+begin
+  Result := CnJSONParse(UTF8Encode(JsonStr));
+end;
+
+{$ENDIF}
 
 function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject;
 var
