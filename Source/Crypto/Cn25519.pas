@@ -52,7 +52,9 @@ unit Cn25519;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.08.12 V1.6
+* 修改记录：2025.10.22 V1.7
+*               加入验证公私钥是否配套的方法
+*           2023.08.12 V1.6
 *               加入 448 蒙哥马利曲线与非扭曲爱德华曲线的完整实现以及 Ed448 的签名验签功能
 *           2022.07.30 V1.5
 *               去除部分无用的判断以精简代码
@@ -589,6 +591,16 @@ type
        返回值：Boolean                        - 生成是否成功
     }
 
+    function VerifyKeys(PrivateKey: TCnCurve25519PrivateKey; PublicKey: TCnCurve25519PublicKey): Boolean;
+    {* 验证一对 Curve25519 公私钥是否配套。
+
+       参数：
+         PrivateKey: TCnCurve25519PrivateKey  - 待验证的 Curve25519 私钥
+         PublicKey: TCnCurve25519PublicKey    - 待验证的 Curve25519 公钥
+
+       返回值：Boolean                        - 返回验证是否成功
+    }
+
     procedure MultiplePoint(K: TCnBigNumber; P: TCnEccPoint); override;
     {* 计算某点 P 的 k * P 值，值重新放入该点，P 中允许只存 X 信息
        内部实现使用 64 位多项式拆项的蒙哥马利阶梯算法。
@@ -767,6 +779,16 @@ type
          PublicKey: TCnEd25519PublicKey       - 生成的 Ed25519 椭圆曲线的公钥
 
        返回值：Boolean                        - 生成是否成功
+    }
+
+    function VerifyKeys(PrivateKey: TCnEd25519PrivateKey; PublicKey: TCnEd25519PublicKey): Boolean;
+    {* 验证一对 Ed25519 公私钥是否配套。
+
+       参数：
+         PrivateKey: TCnEd25519PrivateKey     - 待验证的 Ed448 私钥
+         PublicKey: TCnEd25519PublicKey       - 待验证的 Ed448 公钥
+
+       返回值：Boolean                        - 返回验证是否成功
     }
 
     procedure PlainToPoint(Plain: TCnEd25519Data; OutPoint: TCnEccPoint);
@@ -1106,6 +1128,16 @@ type
        返回值：Boolean                        - 生成是否成功
     }
 
+    function VerifyKeys(PrivateKey: TCnCurve448PrivateKey; PublicKey: TCnCurve448PublicKey): Boolean;
+    {* 验证一对 Curve448 公私钥是否配套。
+
+       参数：
+         PrivateKey: TCnCurve448PrivateKey    - 待验证的 Curve448 私钥
+         PublicKey: TCnCurve448PublicKey      - 待验证的 Curve448 公钥
+
+       返回值：Boolean                        - 返回验证是否成功
+    }
+
     procedure MultiplePoint(K: TCnBigNumber; P: TCnEccPoint); override;
     {* 计算某点 P 的 k * P 值，值重新放入该点。P 中允许只存 X 信息
        注意 448 不适用 2^51 的多项式加速算法，内部实现仅 X 的射影点的蒙哥马利阶梯算法。
@@ -1280,6 +1312,16 @@ type
          PublicKey: TCnEd448PublicKey         - 生成的 Ed448 椭圆曲线的公钥
 
        返回值：Boolean                        - 生成是否成功
+    }
+
+    function VerifyKeys(PrivateKey: TCnEd448PrivateKey; PublicKey: TCnEd448PublicKey): Boolean;
+    {* 验证一对 Ed448 公私钥是否配套。
+
+       参数：
+         PrivateKey: TCnEd448PrivateKey       - 待验证的 Ed448 私钥
+         PublicKey: TCnEd448PublicKey         - 待验证的 Ed448 公钥
+
+       返回值：Boolean                        - 返回验证是否成功
     }
 
     procedure PlainToPoint(Plain: TCnEd448Data; OutPoint: TCnEccPoint);
@@ -3911,6 +3953,21 @@ begin
   Result := True;
 end;
 
+function TCnCurve25519.VerifyKeys(PrivateKey: TCnCurve25519PrivateKey;
+  PublicKey: TCnCurve25519PublicKey): Boolean;
+var
+  P: TCnEccPoint;
+begin
+  P := TCnEccPoint.Create;
+  try
+    P.Assign(FGenerator);
+    MultiplePoint(PrivateKey, P);
+    Result := CnEccPointsEqual(P, PublicKey);
+  finally
+    P.Free;
+  end;
+end;
+
 procedure TCnCurve25519.MultiplePoint(K: TCnBigNumber; P: TCnEccPoint);
 var
   M: TCn25519Field64EccPoint;
@@ -4240,6 +4297,32 @@ begin
     Result := True;
   finally
     FBigNumberPool.Recycle(K);
+  end;
+end;
+
+function TCnEd25519.VerifyKeys(PrivateKey: TCnEd25519PrivateKey;
+  PublicKey: TCnEd25519PublicKey): Boolean;
+var
+  K: TCnBigNumber;
+  P: TCnEccPoint;
+begin
+  P := nil;
+  K := nil;
+
+  try
+    K := FBigNumberPool.Obtain;
+    CnCalcKeysFromEd25519PrivateKey(PrivateKey, K, nil);
+
+    P := TCnEccPoint.Create;
+
+    // 该乘数 K 乘以 G 点照理要等于公钥
+    P.Assign(FGenerator);
+    MultiplePoint(K, P);                         // 基点乘 K 次
+
+    Result := CnEccPointsEqual(P, PublicKey);
+  finally
+    FBigNumberPool.Recycle(K);
+    P.Free;
   end;
 end;
 
@@ -5802,6 +5885,21 @@ begin
   Result := True;
 end;
 
+function TCnCurve448.VerifyKeys(PrivateKey: TCnCurve448PrivateKey;
+  PublicKey: TCnCurve448PublicKey): Boolean;
+var
+  P: TCnEccPoint;
+begin
+  P := TCnEccPoint.Create;
+  try
+    P.Assign(FGenerator);
+    MultiplePoint(PrivateKey, P);
+    Result := CnEccPointsEqual(P, PublicKey);
+  finally
+    P.Free;
+  end;
+end;
+
 procedure TCnCurve448.MultiplePoint(K: TCnBigNumber; P: TCnEccPoint);
 var
   T: TCnEccPoint;
@@ -6118,6 +6216,32 @@ begin
     Result := True;
   finally
     FBigNumberPool.Recycle(K);
+  end;
+end;
+
+function TCnEd448.VerifyKeys(PrivateKey: TCnEd448PrivateKey;
+  PublicKey: TCnEd448PublicKey): Boolean;
+var
+  K: TCnBigNumber;
+  P: TCnEccPoint;
+begin
+  P := nil;
+  K := nil;
+
+  try
+    K := FBigNumberPool.Obtain;
+    CnCalcKeysFromEd448PrivateKey(PrivateKey, K, nil);
+
+    P := TCnEccPoint.Create;
+
+    // 该乘数 K 乘以 G 点照理要等于公钥
+    P.Assign(FGenerator);
+    MultiplePoint(K, P);                         // 基点乘 K 次
+
+    Result := CnEccPointsEqual(P, PublicKey);
+  finally
+    FBigNumberPool.Recycle(K);
+    P.Free;
   end;
 end;
 

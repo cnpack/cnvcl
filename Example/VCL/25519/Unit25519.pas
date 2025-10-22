@@ -1282,10 +1282,13 @@ var
 begin
   if FEd25519.GenerateKeys(TCnEd25519PrivateKey(F25519PrivKey), TCnEd25519PublicKey(F25519PubKey)) then
   begin
-    CnEd25519BigNumberToData(F25519PrivKey, D);
-    edtEd25519Priv.Text := DataToHex(@D[0], SizeOf(D));
-    CnEd25519PointToData(F25519PubKey, D);
-    edtEd25519Pub.Text := DataToHex(@D[0], SizeOf(D));
+    if FEd25519.VerifyKeys(TCnEd25519PrivateKey(F25519PrivKey), TCnEd25519PublicKey(F25519PubKey)) then
+    begin
+      CnEd25519BigNumberToData(F25519PrivKey, D);
+      edtEd25519Priv.Text := DataToHex(@D[0], SizeOf(D));
+      CnEd25519PointToData(F25519PubKey, D);
+      edtEd25519Pub.Text := DataToHex(@D[0], SizeOf(D));
+    end;
   end;
 end;
 
@@ -2155,10 +2158,13 @@ var
 begin
   if FEd448.GenerateKeys(TCnEd448PrivateKey(F448PrivKey), TCnEd448PublicKey(F448PubKey)) then
   begin
-    CnEd448BigNumberToData(F448PrivKey, D);
-    edtEd448Priv.Text := DataToHex(@D[0], SizeOf(D));
-    CnEd448PointToData(F448PubKey, D);
-    edtEd448Pub.Text := DataToHex(@D[0], SizeOf(D));
+    if FEd448.VerifyKeys(TCnEd448PrivateKey(F448PrivKey), TCnEd448PublicKey(F448PubKey)) then
+    begin
+      CnEd448BigNumberToData(F448PrivKey, D);
+      edtEd448Priv.Text := DataToHex(@D[0], SizeOf(D));
+      CnEd448PointToData(F448PubKey, D);
+      edtEd448Pub.Text := DataToHex(@D[0], SizeOf(D));
+    end;
   end;
 end;
 
