@@ -51,21 +51,27 @@ uses
 
 type
   PCnSHA2GeneralDigest = ^TCnSHA2GeneralDigest;
+  {* SHA2 系列通用的杂凑结果指针}
   TCnSHA2GeneralDigest = array[0..63] of Byte;
+  {* SHA2 系列通用的杂凑结果，以最大的 64 字节为准}
 
   PCnSHA224Digest = ^TCnSHA224Digest;
+  {* SHA224 杂凑结果指针}
   TCnSHA224Digest = array[0..27] of Byte;
   {* SHA224 杂凑结果，28 字节}
 
   PCnSHA256Digest = ^TCnSHA256Digest;
+  {* SHA256 杂凑结果指针}
   TCnSHA256Digest = array[0..31] of Byte;
   {* SHA256 杂凑结果，32 字节}
 
   PCnSHA384Digest = ^TCnSHA384Digest;
+  {* SHA384 杂凑结果指针}
   TCnSHA384Digest = array[0..47] of Byte;
   {* SHA384 杂凑结果，48 字节}
 
   PCnSHA512Digest = ^TCnSHA512Digest;
+  {* SHA512 杂凑结果指针}
   TCnSHA512Digest = array[0..63] of Byte;
   {* SHA512 杂凑结果，64 字节}
 
@@ -85,7 +91,7 @@ type
   TCnSHA512Context = packed record
   {* SHA512 的上下文结构}
     DataLen: Cardinal;
-    Data: array[0..127] of Byte;
+    Data: array[0..255] of Byte;      // 扩大以容纳 Final 时俩块的情况
     TotalLen: Int64;
     State: array[0..7] of Int64;
     Ipad: array[0..127] of Byte;      {!< HMAC: inner padding        }
@@ -1331,7 +1337,8 @@ end;
 procedure SHA512Final(var Context: TCnSHA512Context; var Digest: TCnSHA512Digest);
 var
   I: Integer;
-  BlockCount, BitLength, PmLength: Cardinal;
+  BlockCount, PmLength: Cardinal;
+  BitLength: TUInt64;
 begin
   if (Context.DataLen mod 128) > 111 then
     BlockCount := 2
@@ -1347,6 +1354,20 @@ begin
   Context.Data[PmLength - 2] := Byte(BitLength shr 8);
   Context.Data[PmLength - 3] := Byte(BitLength shr 16);
   Context.Data[PmLength - 4] := Byte(BitLength shr 24);
+  Context.Data[PmLength - 5] := Byte(BitLength shr 32);
+  Context.Data[PmLength - 6] := Byte(BitLength shr 40);
+  Context.Data[PmLength - 7] := Byte(BitLength shr 48);
+  Context.Data[PmLength - 8] := Byte(BitLength shr 56);
+
+//  无需再次按规范中的 128 位长度赋值，因为上面 FillChar 已填 0
+//  Context.Data[PmLength - 9] := 0;
+//  Context.Data[PmLength - 10] := 0;
+//  Context.Data[PmLength - 11] := 0;
+//  Context.Data[PmLength - 12] := 0;
+//  Context.Data[PmLength - 13] := 0;
+//  Context.Data[PmLength - 14] := 0;
+//  Context.Data[PmLength - 15] := 0;
+//  Context.Data[PmLength - 16] := 0;
 
   SHA512Transform(Context, @(Context.Data[0]), BlockCount);
 
