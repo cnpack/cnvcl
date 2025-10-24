@@ -261,7 +261,7 @@ type
     function CreateObject: TObject; override;
   public
     function Obtain: TCnBigDecimal;
-    {* 将一个对象归还至对象池。
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还。
 
        参数：
          Num: TCnBigDecimal               - 待归还至池中的对象
@@ -279,6 +279,7 @@ type
   end;
 
   ECnBigBinaryException = class(Exception);
+  {* 大二进制浮点数相关异常}
 
   TCnBigBinary = class
   {* 大二进制浮点数实现类，用 CnBigNumber 保存有效数字，用 Integer 保存基于 2 的指数
