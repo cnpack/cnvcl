@@ -70,6 +70,7 @@ type
     function Mul3(X: Int64; Y: Int64; Z: Int64): Int64; virtual;
     function NegativeOnePower(N: Integer): Integer; virtual;
     procedure AssignTo(Dest: TPersistent); override;
+    {* 内部赋值}
   public
     constructor Create(ARowCount: Integer = 1; AColCount: Integer = 1); virtual;
     {* 构造函数。
@@ -288,6 +289,7 @@ type
     function Mul3(X: Extended; Y: Extended; Z: Extended): Extended; virtual;
     function NegativeOnePower(N: Integer): Integer; virtual;
     procedure AssignTo(Dest: TPersistent); override;
+    {* 内部赋值}
   public
     constructor Create(ARowCount: Integer = 1; AColCount: Integer = 1); virtual;
     {* 构造函数。
@@ -495,6 +497,7 @@ type
     procedure SetDenominator(const Value: Int64);
   protected
     procedure AssignTo(Dest: TPersistent); override;
+    {* 内部赋值}
   public
     constructor Create; virtual;
     {* 构造函数}
@@ -753,6 +756,7 @@ type
       const Value: TCnRationalNumber);
   protected
     procedure AssignTo(Dest: TPersistent); override;
+    {* 内部赋值}
   public
     constructor Create(ARowCount: Integer = 1; AColCount: Integer = 1); virtual;
     {* 构造函数。
