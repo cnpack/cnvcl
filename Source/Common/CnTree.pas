@@ -24,12 +24,12 @@ unit CnTree;
 * 软件名称：CnPack 公共单元
 * 单元名称：实现单根无序树的基类单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 备    注：该单元为 TCnTree 和 TCnLeaf 的单根无序树的实现单元，以及其子类
-*           二叉树 TCnBinaryTree/Leaf、字典搜索树 TCnTrieTree/Leaf。
+* 备    注：本单元为 TCnTree 和 TCnLeaf 的单根无序树的实现单元。
 *           TCnTree/Leaf 类似于 TTreeNodes/Node 的关系，支持深度和广度优先遍历，
 *           支持按深度优先的顺序以索引值的形式直接访问各个节点。
-*           红黑树尚未完全实现，不可用。
-*           另外，ComCtrls 的引用，导致 Windows 下的纯 FMX 工程也需引用 Vcl 前缀单元，之后再修
+*
+*           另外，默认不支持与 TreeView 控件的交互，如要支持，请定义 ENABLE_UIINTERACT
+*           定义后会引用 ComCtrls，副作用可能是导致纯 FMX 工程也需引用 Vcl 前缀单元。
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6 + 10.3.1
 * 本 地 化：该单元中的字符串均符合本地化处理方式

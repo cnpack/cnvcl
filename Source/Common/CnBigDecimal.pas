@@ -68,22 +68,20 @@ type
   ECnBigDecimalException = class(Exception);
   {* 大十进制浮点数相关异常}
 
-  TCnBigRoundMode = (
-  {* 大十进制浮点数取整的模式，十进制包括六种，不处理四舍六入五成单的特殊需求，二进制包括前五种
-     注意：四舍五入的入只有入至绝对值大的情况，没有正负无穷的情况，因为舍动作必然是往绝对值小的数取}
-    drAwayFromZero,
-    {* 往绝对值大的数取}
-    drTowardsZero,
-    {* 往绝对值小的数取，等于只留整数部分的 Trunc}
-    drCeilingToInfinite,
-    {* 往正无穷大取}
-    drFloorToNegInfinite,
-    {* 往负无穷大取}
-    drRound,
-    {* 四舍五入（二进制模式下是 0 舍 1 入）、入至绝对值大的数}
-    dr465RoundEven
-    {* 四舍六入五成双（不支持二进制模式）、入至绝对值大的数}
-  );
+  TCnBigRoundMode = (drAwayFromZero, drTowardsZero, drCeilingToInfinite,
+    drFloorToNegInfinite, drRound, dr465RoundEven);
+  {* 大十进制浮点数取整的模式，十进制包括六种，不处理四舍六入五成单的特殊需求，二进制包括前五种。
+     注意：四舍五入的入只有入至绝对值大的情况，没有正负无穷的情况，因为舍动作必然是往绝对值小的数取。
+
+     枚举值：
+       drAwayFromZero                     - 往绝对值大的数取
+       drTowardsZero                      - 往绝对值小的数取，等于只留整数部分的 Trunc
+       drCeilingToInfinite                - 往正无穷大取
+       drFloorToNegInfinite               - 往负无穷大取
+       drRound                            - 四舍五入（二进制模式下是 0 舍 1 入）、入至绝对值大的数
+       dr465RoundEven                     - 四舍六入五成双（不支持二进制模式）、入至绝对值大的数
+  }
+
 
   TCnBigDecimal = class
   {* 大十进制浮点数实现类，用 CnBigNumber 保存有效数字，用 Integer 保存指数也就是小数点位置
@@ -96,7 +94,9 @@ type
     function GetDebugDump: string;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure SetZero;
     {* 设置成 0}
@@ -292,7 +292,9 @@ type
     function GetDecString: string;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure SetZero;
     {* 设置成 0}

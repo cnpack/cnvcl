@@ -24,11 +24,13 @@ unit CnZip;
 * 软件名称：CnPack 组件包
 * 单元名称：CnPack 组件包 Zip 实现单元
 * 单元作者：CnPack 开发组 Liu Xiao
-* 备    注：使用 Delphi 自带的 ZLib 实现压缩解压与传统密码支持。
-*           Delphi/FPC、Win/Mac 目前基本支持。
+* 备    注：本单元使用 Delphi 自带的 ZLib 实现压缩解压与传统密码支持。
+*           Delphi/FPC、Windows/Mac 目前基本支持。
+*
 *           但 XE2 以上的 ZLib 才支持 WindowBits 参数，才兼容传统的 ZIP 软件。
-*           FPC 目前也已支持，内部注意压缩解压缩流创建时指定 ASkipHeader 为 True
+*           内部注意压缩解压缩流创建时指定 ASkipHeader 为 True
 *           才是兼容传统 ZIP 软件的关键。
+*
 *           C++Builder 5/6 不带 ZLib，因此暂时没法支持。
 * 开发平台：PWinXP + Delphi 5
 * 兼容测试：PWinXP/7 + Delphi 5 ~ XE
@@ -74,14 +76,11 @@ type
   {* Zip 相关异常}
 
   TCnZipCompressionMethod = (
-  {* Zip 压缩类型}
     zcStored, zcShrunk, zcReduce1, zcReduce2, zcReduce3, zcReduce4, zcImplode,
     zcTokenize, zcDeflate, zcDeflate64, zcPKImplode, zcReserved11, zcBZIP2,
     zcReserved13, zcLZMA, zcReserved15, zcReserved16, zcReserved17, zcTERSE,
-    zcLZ77
-//    zcWavePack = 97,
-//    zcPPMdI1
-  );
+    zcLZ77);
+  {* Zip 压缩类型}
 
   TCnZipHeader = packed record
   {* Zip 文件头结构}
@@ -105,6 +104,7 @@ type
     FileComment:        AnsiString;
   end;
   PCnZipHeader = ^TCnZipHeader;
+  {* 指向 Zip 文件头结构的指针}
 
   TCnZipEndOfCentralHeader = packed record
   {* Zip Central 头结束部分结构}
@@ -118,6 +118,7 @@ type
     {Comment: RawByteString}
   end;
   PCnZipEndOfCentralHeader = ^TCnZipEndOfCentralHeader;
+  {* 指向 Zip Central 头结束部分结构的指针}
 
   TCnZipBase = class(TObject)
   {* Zip 工具类基类}
@@ -189,6 +190,7 @@ type
   end;
 
   TCnZipCompressionHandlerClass = class of TCnZipAbstractCompressionHandler;
+  {* 压缩类型的实现类型}
 
   TCnZipReader = class(TCnZipBase)
   {* 用来打开 Zip 文件可解压的工具类}

@@ -24,7 +24,7 @@ unit CnMath;
 * 软件名称：开发包基础库
 * 单元名称：数学计算的算法单元
 * 单元作者：CnPack 开发组
-* 备    注：旨在脱离 Math 库，先不太管运行效率
+* 备    注：本单元实现了一些数学函数，目的在于脱离 Math 库，运行效率较官方实现可能略低。
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -42,7 +42,10 @@ uses
 
 const
   CN_PI = 3.1415926535897932384626;
+  {* 圆周率的浮点值}
+
   CN_FLOAT_DEFAULT_DIGIT = 10;
+  {* 默认的浮点运算位数}
 
 function CnAbs(F: Extended): Extended; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 计算浮点数的绝对值。

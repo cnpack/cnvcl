@@ -22,37 +22,13 @@ unit CnFloat;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：浮点数转换
+* 单元名称：浮点数解析与转换单元
 * 单元作者：王乾元(wqyfavor@163.com)
-* 备    注：该单元实现了三个将 Extended 类型转换为二、八、十六进制字符串的函数。
-*           算法是读取 Extended 类型在内存中的二进制内容进行转换。关于 Extended 类型的说明
-*           可以参考其它资料。Double 与 Single 类型为系统通用支持的浮点类型，与 Delphi 特有的
-*           Extended 在存储形式上稍有不同。三者均将尾数规格化，但 Double 与 Single 尾数部分略
-*           掉了默认的 1。比如尾数二进制内容为 1.001，则在 Double 与 Single 中存储为 001，略去
-*           小数点前的 1，而在 Extended 里存储为 1001。
-*           NaN 意为 "not a number"，不是个数，定义参看 Math.pas 单元中的常量 NaN
-*           Infinity 为无穷大，定义参看 Math.pas 单元中的常量 Infinity 与 NegInfinity.
-*           解释一下 DecimalExp 与 AlwaysUseExponent 参数。
-*           将十进制浮点数度转换成其他进制时，如果用指数形式（科学计算法）表达（有些情况
-*           也只能用指数形式，比如 1E-1000，不用指数时是 0.0000000...0001，转换后指数部分
-*           也应该用相应进制表示。但有时可以仍用十进制表示指数部分，比如二进制串
-*           1.001E101，真值为 100100，将指数用十进制表达更清楚一些 1.001D5，表示将小数点
-*           右移 5 位。DecimalExp 这个参数就是指定是否用十进制表达指数部分的。注意，用十进制
-*           数表示指数并无规定表达法，程序中使用 "D" 来表示，"E" 为用相应进制表示。另外，由于
-*           十六进制比较特殊，"D" 与 "E" 均为十六进制特殊字符，所以十六进制表达时使用了 "^"
-*           字符，输出样例 3.BD^D(12)、A.BD^E(ABCE)。如不喜欢这种格式可以自行修改。
-*           AlwaysUseExponent 参数指定是否一定用科学读数法表达，比如 100.111 位数比较少，
-*           程序自动判断不需要使用科学计数法，当 AlwaysUseExponent 为真时则一定表达为指数
-*           形式 1.00111E2。
-*           const
-*             MaxBinDigits = 120;
-*             MaxHexDigits = 30;
-*             MaxOctDigits = 40;
-*           这三个常量指定最长能输出多少位，当结果超过这个数时，则一定使用科学计数法。
+* 备    注：该单元实现了单精度、双精度、扩展精度浮点数的解析与转换。
 *
-*           另外，Extended 只有 Win32 下是 10 字节，MacOS/Linux x64 下均是 16 字节，Win64 和 ARM 平台均是 8 字节
+*           注意 Extended 只有 Win32 下是 10 字节，MacOS/Linux x64 下均是 16 字节，Win64 和 ARM 平台均是 8 字节
 *           而且，MacOS64 下的 16 字节扩展精度并非  IEEE 754-2008 中规定的 Quadruple 格式，而是前 10 字节截断，
-*           内部结构同 Win32 下的扩展 10 字节
+*           内部结构同 Win32 下的扩展 10 字节。
 *
 * 开发平台：WinXP + Delphi 2009
 * 兼容测试：Delphi 2007，且 Extended 或以上只支持小端模式
@@ -143,6 +119,7 @@ type
       False: (W0, W1: Word);   // 小端机器上，符号和指数都在这个 W1 里
   end;
   PCnQuadruple = ^TCnQuadruple;
+  {* 指向四倍精度结构的指针}
 
   TCnOctuple = packed record
   {* Delphi 中无八倍精度类型，用两个 Int64 及其指针代替，暂无处理函数}
@@ -152,44 +129,93 @@ type
     F3: Int64;
   end;
   PCnOctuple = ^TCnOctuple;
+  {* 指向八倍精度结构的指针}
 
   ECnFloatSizeError = class(Exception);
   {* 浮点数长度异常}
 
 const
-  CN_EXTENDED_SIZE_8  =          8;    // Win64 下的 Extended 只有 8 字节
-  CN_EXTENDED_SIZE_10 =          10;   // Win32 下的 Extended 是标准的 10 字节
-  CN_EXTENDED_SIZE_16 =          16;   // MACOS64/Linux64 是 16 字节
+  CN_EXTENDED_SIZE_8  =          8;
+  {* Win64 下的 Extended 类型的长度，只有 8 字节}
+
+  CN_EXTENDED_SIZE_10 =          10;
+  {* Win32 下的 Extended 类型的长度，是标准的 10 字节}
+
+  CN_EXTENDED_SIZE_16 =          16;
+  {* MACOS64/Linux64 下的 Extended 类型的长度，是 16 字节}
 
   CN_SIGN_SINGLE_MASK =          $80000000;
+  {* 单精度浮点数的符号位掩码}
+
   CN_SIGN_DOUBLE_MASK =          $8000000000000000;
-  CN_SIGN_EXTENDED_MASK =        $8000;              // 刨去了 8 字节有效数字
-  CN_SIGN_QUADRUPLE_MASK =       $80000000;          // 只针对前四字节，刨去了后面所有内容
+  {* 双精度浮点数的符号位掩码}
 
-  CN_EXPONENT_SINGLE_MASK =      $7F800000;          // 还要右移 23 位
-  CN_EXPONENT_DOUBLE_MASK =      $7FF0000000000000;  // 还要右移 52 位
-  CN_EXPONENT_EXTENDED_MASK =    $7FFF;              // 刨去了 8 字节有效数字
-  CN_EXPONENT_QUADRUPLE_MASK =   $7FFF;              // 刨去了 14 字节有效数字
+  CN_SIGN_EXTENDED_MASK =        $8000;
+  {* 扩展精度浮点数的符号位掩码，已经刨去了 8 字节有效数字}
 
-  CN_SIGNIFICAND_SINGLE_MASK =   $007FFFFF;          // 低 23 位
-  CN_SIGNIFICAND_DOUBLE_MASK =   $000FFFFFFFFFFFFF;  // 低 52 位
-  CN_SIGNIFICAND_EXTENDED_MASK = $FFFFFFFFFFFFFFFF;  // 低 64 位，其实就是全部 8 字节整
+  CN_SIGN_QUADRUPLE_MASK =       $80000000;
+  {* 四倍精度浮点数的符号位掩码，只针对前四字节，刨去了后面所有内容}
+
+  CN_EXPONENT_SINGLE_MASK =      $7F800000;
+  {* 单精度浮点数的指数掩码，还要右移 23 位}
+
+  CN_EXPONENT_DOUBLE_MASK =      $7FF0000000000000;
+  {* 双精度浮点数的指数掩码，还要右移 52 位}
+
+  CN_EXPONENT_EXTENDED_MASK =    $7FFF;
+  {* 扩展精度浮点数的指数掩码，刨去了 8 字节有效数字}
+
+  CN_EXPONENT_QUADRUPLE_MASK =   $7FFF;
+  {* 四倍精度浮点数的指数掩码，刨去了 14 字节有效数字}
+
+  CN_SIGNIFICAND_SINGLE_MASK =   $007FFFFF;
+  {* 单精度浮点数的有效数字掩码，低 23 位}
+
+  CN_SIGNIFICAND_DOUBLE_MASK =   $000FFFFFFFFFFFFF;
+  {* 双精度浮点数的有效数字掩码，低 52 位}
+
+  CN_SIGNIFICAND_EXTENDED_MASK = $FFFFFFFFFFFFFFFF;
+  {* 扩展精度浮点数的有效数字掩码，低 64 位，其实就是全部 8 字节整}
+
   CN_SIGNIFICAND_QUADRUPLE_MASK = $FFFF;
+  {* 四倍精度浮点数的有效数字掩码，只针对前四字节，还有加上后面所有内容}
 
   CN_SINGLE_SIGNIFICAND_BITLENGTH         = 23;
+  {* 单精度浮点数的有效数字位长度}
+
   CN_DOUBLE_SIGNIFICAND_BITLENGTH         = 52;
+  {* 双精度浮点数的有效数字位长度}
+
   CN_EXTENDED_SIGNIFICAND_BITLENGTH       = 63;
+  {* 扩展精度浮点数的有效数字位长度}
 
-  CN_EXPONENT_OFFSET_SINGLE               = 127;     // 实际指数值要加上这仨才能存到内存的指数中
+  CN_EXPONENT_OFFSET_SINGLE               = 127;
+  {* 单精度浮点数的指数偏移值，实际指数值要加上该值才能存入单精度浮点数的指数区}
+
   CN_EXPONENT_OFFSET_DOUBLE               = 1023;
-  CN_EXPONENT_OFFSET_EXTENDED             = 16383;   // 10 和 16 字节扩展精度浮点数均为这个数字
+  {* 双精度浮点数的指数偏移值，实际指数值要加上该值才能存入双精度浮点数的指数区}
 
+  CN_EXPONENT_OFFSET_EXTENDED             = 16383;
+  {* 扩展精度浮点数的指数偏移值，实际指数值要加上该值才能存入扩展精度浮点数的指数区，10 和 16 字节扩展精度浮点数均为该值}
+
+  // 仨 Max 均不包括指数全 1 的情形（那是正负无穷大）
   CN_SINGLE_MIN_EXPONENT                  = -127;
-  CN_SINGLE_MAX_EXPONENT                  = 127;     // 仨 Max 均不包括指数全 1 的情形（那是正负无穷大）
+  {* 单精度浮点数的最小指数}
+
+  CN_SINGLE_MAX_EXPONENT                  = 127;     
+  {* 单精度浮点数的最大指数}
+
   CN_DOUBLE_MIN_EXPONENT                  = -1023;
+  {* 双精度浮点数的最小指数}
+
   CN_DOUBLE_MAX_EXPONENT                  = 1023;
+  {* 双精度浮点数的最大指数}
+
   CN_EXTENDED_MIN_EXPONENT                = -16383;
+  {* 扩展精度浮点数的最小指数}
+
   CN_EXTENDED_MAX_EXPONENT                = 16383;
+  {* 扩展精度浮点数的最大指数}
 
 procedure ExtractFloatSingle(Value: Single; out SignNegative: Boolean;
   out Exponent: Integer; out Mantissa: Cardinal);
@@ -460,6 +486,33 @@ function ExtendedToStr(AValue: Extended): string;
 // FPC、Windows 64/Linux 64 等平台以及 Delphi 5、6 不支持以下三个函数
 {$IFDEF WIN32}
 {$IFDEF COMPILER7_UP}
+{
+  此处实现了三个将 Extended 类型转换为二、八、十六进制字符串的函数。
+  算法是读取 Extended 类型在内存中的二进制内容进行转换。关于 Extended 类型的说明
+  可以参考其它资料。Double 与 Single 类型为系统通用支持的浮点类型，与 Delphi 特有的
+  Extended 在存储形式上稍有不同。三者均将尾数规格化，但 Double 与 Single 尾数部分略
+  掉了默认的 1。比如尾数二进制内容为 1.001，则在 Double 与 Single 中存储为 001，略去
+  小数点前的 1，而在 Extended 里存储为 1001。
+  NaN 意为 "not a number"，不是个数，定义参看 Math.pas 单元中的常量 NaN
+  Infinity 为无穷大，定义参看 Math.pas 单元中的常量 Infinity 与 NegInfinity.
+  解释一下 DecimalExp 与 AlwaysUseExponent 参数。
+  将十进制浮点数度转换成其他进制时，如果用指数形式（科学计算法）表达（有些情况
+  也只能用指数形式，比如 1E-1000，不用指数时是 0.0000000...0001，转换后指数部分
+  也应该用相应进制表示。但有时可以仍用十进制表示指数部分，比如二进制串
+  1.001E101，真值为 100100，将指数用十进制表达更清楚一些 1.001D5，表示将小数点
+  右移 5 位。DecimalExp 这个参数就是指定是否用十进制表达指数部分的。注意，用十进制
+  数表示指数并无规定表达法，程序中使用 "D" 来表示，"E" 为用相应进制表示。另外，由于
+  十六进制比较特殊，"D" 与 "E" 均为十六进制特殊字符，所以十六进制表达时使用了 "^"
+  字符，输出样例 3.BD^D(12)、A.BD^E(ABCE)。如不喜欢这种格式可以自行修改。
+  AlwaysUseExponent 参数指定是否一定用科学读数法表达，比如 100.111 位数比较少，
+  程序自动判断不需要使用科学计数法，当 AlwaysUseExponent 为真时则一定表达为指数
+  形式 1.00111E2。
+  const
+    MaxBinDigits = 120;
+    MaxHexDigits = 30;
+    MaxOctDigits = 40;
+  这三个常量指定最长能输出多少位，当结果超过这个数时，则一定使用科学计数法。
+}
 
 { FloatDecimalToBinExtended, FloatDecimalToOctExtended，FloatDecimalToHexExtended
   均调用了 FloatDecimalToBinaryExtended 过程，FloatDecimalToBinaryExtended 不公开。}
