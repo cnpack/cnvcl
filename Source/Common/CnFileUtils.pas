@@ -96,7 +96,13 @@ var
     Result := Trim(Dir);
     if Result = '' then Exit;
     if not IsPathDelimiter(Result, Length(Result)) then
-      Result := Result + {$IFDEF MSWINDOWS} '\'; {$ELSE} '/'; {$ENDIF};
+    begin
+{$IFDEF MSWINDOWS}
+      Result := Result + '\';
+{$ELSE}
+      Result := Result + '/';
+{$ENDIF};
+    end;
   end;
 
   procedure DoFindFile(const Path, SubPath: string; const FileNamePattern: string;
