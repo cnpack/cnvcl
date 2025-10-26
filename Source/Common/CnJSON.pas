@@ -24,8 +24,8 @@ unit CnJSON;
 * 软件名称：开发包基础库
 * 单元名称：JSON 解析与组装单元，适用于 DXE6 以下无 JSON 解析库的场合
 * 单元作者：CnPack 开发组
-* 备    注：适合 UTF8 无注释格式，根据 RFC 7159 来处理
-*           注意未经严格全面测试，不适合替代 System.JSON
+* 备    注：本单元根据 RFC 7159 实现了 JSON 的解析与组装功能，适合 UTF8 无注释格式，
+*           不支持 JSON5 等扩展，注意未经严格全面测试，也不适合完全替代 System.JSON
 *           仅在无 System.JSON 的低版本中充当 JSON 解析与组装用
 *
 *           一段 JSON 是一个 JSONObject，包含一个或多个 Key Value 对，
@@ -38,6 +38,7 @@ unit CnJSON;
 *
 *           解析：
 *              调用函数 CnJSONParse，传入 UTF8 格式的 JSONString，返回 JSONObject 对象
+*              如果是 NDJSON 字符串，针对每一行调用 CnJSONParse 即可
 *
 *           组装：
 *              创建 TCnJSONObject 后调用其 AddPair 函数
@@ -54,7 +55,9 @@ unit CnJSON;
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.08.19 V1.9
+* 修改记录：2025.10.26 V2.0
+*                 加入一函数允许生成 NDJSON 格式的字符串
+*           2025.08.19 V1.9
 *                 修正 FPC 的支持。FPC 的 Ansi 模式下 string 仍使用 Ansi，暂不支持 FPC 的 Unicode 模式
 *           2025.06.14 V1.8
 *                 增加解析 [ 开头和 ] 结尾的字符串为 JSONArray 的方法
@@ -545,6 +548,10 @@ function CnJSONConstruct(Objects: TObjectList; UseFormat: Boolean = True;
 {* 将列表中的多个 JSON 对象或值转为 UTF8 格式的 JSON 字符串，结果以 [ 开头 ] 结尾，
    Objects 列表中的对象须为 TCnJSONValue 或其子类。}
 
+function CnNewLineDelimitedJSONConstruct(Objects: TObjectList): AnsiString;
+{* 将列表中的多个 JSON 对象或值转为 UTF8 格式的 NDJSON 字符串，每行一个对象或值，
+   行与行之间以 #13#10 分隔。Objects 列表中的对象须为 TCnJSONValue 或其子类。}
+
 {$IFDEF UNICODE}
 
 function CnJSONParse(const JsonStr: string): TCnJSONObject; overload;
@@ -926,6 +933,21 @@ begin
     end;
   end;
   Result := Result + ']';
+end;
+
+function CnNewLineDelimitedJSONConstruct(Objects: TObjectList): AnsiString;
+var
+  I: Integer;
+begin
+  Result := '';
+  if Objects.Count > 0 then
+  begin
+    for I := 0 to Objects.Count - 1 do
+    begin
+      if Objects[I] is TCnJSONValue then
+        Result := Result + TCnJSONValue(Objects[I]).ToJSON(False, 0) + CRLF;
+    end;
+  end;
 end;
 
 procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject;

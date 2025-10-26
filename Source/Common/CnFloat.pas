@@ -202,7 +202,7 @@ const
   CN_SINGLE_MIN_EXPONENT                  = -127;
   {* 单精度浮点数的最小指数}
 
-  CN_SINGLE_MAX_EXPONENT                  = 127;     
+  CN_SINGLE_MAX_EXPONENT                  = 127;
   {* 单精度浮点数的最大指数}
 
   CN_DOUBLE_MIN_EXPONENT                  = -1023;
