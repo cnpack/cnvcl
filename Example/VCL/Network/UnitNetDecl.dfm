@@ -12,6 +12,9 @@ object FormNetDecl: TFormNetDecl
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  DesignSize = (
+    856
+    440)
   PixelsPerInch = 96
   TextHeight = 13
   object pgcNetDecl: TPageControl
@@ -24,6 +27,9 @@ object FormNetDecl: TFormNetDecl
     TabOrder = 0
     object tsIP: TTabSheet
       Caption = 'IP'
+      DesignSize = (
+        809
+        381)
       object lblLocal: TLabel
         Left = 16
         Top = 18
@@ -42,7 +48,7 @@ object FormNetDecl: TFormNetDecl
         Top = 16
         Width = 193
         Height = 21
-        ItemHeight = 13
+        ItemHeight = 0
         TabOrder = 0
       end
       object btnSniff: TButton

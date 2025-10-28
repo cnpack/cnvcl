@@ -653,6 +653,7 @@ var
   E: PCnTLSHandShakeExtensions;
   S: PCnTLSHandShakeServerNameIndication;
   BytesReceived: Integer;
+  A: PCnTLSAlertPacket;
 begin
   // 创建 Socket 连接目标，发送内容，收包
   FTlsClientSocket := CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -728,9 +729,26 @@ begin
       // 接收回包
       FillChar(Buffer, SizeOf(Buffer), 0);
       BytesReceived := CnRecv(FTlsClientSocket, Buffer[0], Length(Buffer), 0);
-      if BytesReceived > 0 then
+      if BytesReceived > SizeOf(TCnTLSRecordLayer) then
       begin
         // 解析 TLS 响应
+        H := PCnTLSRecordLayer(@Buffer[0]);
+        mmoSSL.Lines.Add(Format('TLSRecordLayer.ContentType %d', [H^.ContentType]));
+        mmoSSL.Lines.Add(Format('TLSRecordLayer.MajorVersion %d', [H^.MajorVersion]));
+        mmoSSL.Lines.Add(Format('TLSRecordLayer.MinorVersion %d', [H^.MinorVersion]));
+        mmoSSL.Lines.Add(Format('TLSRecordLayer.BodyLength %d', [CnGetTLSRecordLayerBodyLength(H)]));
+        case Buffer[0] of
+          CN_TLS_CONTENT_TYPE_ALERT:
+            begin
+              A := PCnTLSAlertPacket(@(H^.Body[0]));
+              mmoSSL.Lines.Add(Format('TLSAlertPacket.AlertLevel %d', [A^.AlertLevel])); // 2 是致命错误
+              mmoSSL.Lines.Add(Format('TLSAlertPacket.AlertDescription %d', [A^.AlertDescription])); // 50 是解码错误
+            end;
+          CN_TLS_CONTENT_TYPE_HANDSHAKE:
+            begin
+
+            end;
+        end;
       end;
     end;
   end;
