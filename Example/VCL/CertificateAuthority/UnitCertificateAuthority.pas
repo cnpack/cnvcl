@@ -1016,13 +1016,13 @@ begin
           Break;
         end;
 
-        // 获取证书的 Common Name ( 1 表示 Common Name)
-        dwSize := CertGetNameString(pCertContext, 1, 0, nil, nil, 0);
+        // 获取证书的发行者
+        dwSize := CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, nil, nil, 0);
         if dwSize > 0 then
         begin
           GetMem(pName, dwSize * SizeOf(WideChar));
           try
-            CertGetNameString(pCertContext, 1, 0, nil, pName, dwSize);
+            CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, nil, pName, dwSize);
             SL.Add(pName);
           finally
             FreeMem(pName);
@@ -1034,7 +1034,10 @@ begin
     end;
 
     if SL.Count > 0 then
-      mmoRootCerts.Lines.Assign(SL)
+    begin
+      mmoRootCerts.Lines.Assign(SL);
+      ShowMessage('发现证书数 ' + IntToStr(SL.Count));
+    end
     else
       ShowMessage('未发现根证书');
   finally
