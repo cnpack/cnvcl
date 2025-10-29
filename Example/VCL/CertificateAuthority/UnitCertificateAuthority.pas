@@ -1050,11 +1050,11 @@ end;
 
 procedure TFormCA.lstCertsClick(Sender: TObject);
 var
-  SelIssuer, Issuer: WideString;
+  SelIssuer: WideString;
   hStore: HCERTSTORE;
   pCertContext: PCERT_CONTEXT;
   dwSize: DWORD;
-  pName: PWideChar;
+  AName, pName: PWideChar;
 begin
   mmoCertInfo.Lines.Clear;
   if (lstCerts.Items.Count <= 0) or (lstCerts.ItemIndex <= 0) then
@@ -1108,27 +1108,13 @@ begin
             dwSize := CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, nil, nil, 0);
             if dwSize > 0 then
             begin
-              GetMem(pName, dwSize * SizeOf(WideChar));
+              GetMem(AName, dwSize * SizeOf(WideChar));
 
               try
-                CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, nil, pName, dwSize);
-                mmoCertInfo.Lines.Add('颁发者: ' + string(pName));
+                CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, nil, AName, dwSize);
+                mmoCertInfo.Lines.Add('颁发者: ' + string(AName));
               finally
-                FreeMem(pName);
-              end;
-            end;
-
-            // 获取主题信息
-            dwSize := CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, nil, nil, 0);
-            if dwSize > 0 then
-            begin
-              GetMem(pName, dwSize * SizeOf(WideChar));
-
-              try
-                CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, nil, pName, dwSize);
-                mmoCertInfo.Lines.Add('主题: ' + string(pName));
-              finally
-                FreeMem(pName);
+                FreeMem(AName);
               end;
             end;
 
