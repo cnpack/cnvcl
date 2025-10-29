@@ -107,7 +107,7 @@ implementation
 {$R *.DFM}
 
 uses
-  CnNative;
+  CnNative, CnCommon;
 
 const
   crypt32 = 'crypt32.dll';
@@ -1091,7 +1091,62 @@ begin
 
           if SelIssuer = pName then
           begin
-            // TODO: 获取该 pCertContext 的信息并输出到 mmoCertInfo 中
+            // 获取该 pCertContext 的信息并输出到 mmoCertInfo 中
+
+            mmoCertInfo.Lines.Add('=== 证书详细信息 ===');
+
+            // 获取证书版本
+            mmoCertInfo.Lines.Add('版本: ' + IntToStr(pCertContext^.pCertInfo^.dwVersion + 1));
+
+            // 获取序列号
+            mmoCertInfo.Lines.Add('序列号: ' + DataToHex(pCertContext^.pCertInfo^.SerialNumber.pbData, pCertContext^.pCertInfo^.SerialNumber.cbData));
+
+            // 获取签名算法
+            mmoCertInfo.Lines.Add('签名算法: ' + string(pCertContext^.pCertInfo^.SignatureAlgorithm.pszObjId));
+
+            // 获取颁发者信息
+            dwSize := CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, nil, nil, 0);
+            if dwSize > 0 then
+            begin
+              GetMem(pName, dwSize * SizeOf(WideChar));
+
+              try
+                CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, nil, pName, dwSize);
+                mmoCertInfo.Lines.Add('颁发者: ' + string(pName));
+              finally
+                FreeMem(pName);
+              end;
+            end;
+
+            // 获取主题信息
+            dwSize := CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, nil, nil, 0);
+            if dwSize > 0 then
+            begin
+              GetMem(pName, dwSize * SizeOf(WideChar));
+
+              try
+                CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, nil, pName, dwSize);
+                mmoCertInfo.Lines.Add('主题: ' + string(pName));
+              finally
+                FreeMem(pName);
+              end;
+            end;
+
+            // 获取有效期
+            mmoCertInfo.Lines.Add('生效时间: ' + DateTimeToStr(FileTimeToDateTime(pCertContext^.pCertInfo^.NotBefore)));
+            mmoCertInfo.Lines.Add('过期时间: ' + DateTimeToStr(FileTimeToDateTime(pCertContext^.pCertInfo^.NotAfter)));
+
+            // 获取公钥信息
+            mmoCertInfo.Lines.Add('公钥算法: ' + string(pCertContext^.pCertInfo^.SubjectPublicKeyInfo.Algorithm.pszObjId));
+            mmoCertInfo.Lines.Add('公钥长度: ' + IntToStr(pCertContext^.pCertInfo^.SubjectPublicKeyInfo.PublicKey.cbData * 8) + ' 位');
+
+            // 获取扩展信息数量
+            mmoCertInfo.Lines.Add('扩展数量: ' + IntToStr(pCertContext^.pCertInfo^.cExtension));
+
+            mmoCertInfo.Lines.Add('');
+            mmoCertInfo.Lines.Add('=== 证书编码信息 ===');
+            mmoCertInfo.Lines.Add('编码类型: ' + IntToHex(pCertContext^.dwCertEncodingType, 8));
+            mmoCertInfo.Lines.Add('编码长度: ' + IntToStr(pCertContext^.cbCertEncoded) + ' 字节');
 
             Break;
           end;
