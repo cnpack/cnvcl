@@ -438,6 +438,35 @@ object FormCA: TFormCA
         end
       end
     end
+    object tsMisc: TTabSheet
+      Caption = 'Misc'
+      ImageIndex = 2
+      object grpMisc: TGroupBox
+        Left = 8
+        Top = 8
+        Width = 841
+        Height = 521
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Caption = 'Misc'
+        TabOrder = 0
+        object btnGetWinRoot: TButton
+          Left = 16
+          Top = 24
+          Width = 225
+          Height = 25
+          Caption = 'Get Windows Root Certs'
+          TabOrder = 0
+          OnClick = btnGetWinRootClick
+        end
+        object mmoRootCerts: TMemo
+          Left = 16
+          Top = 64
+          Width = 225
+          Height = 273
+          TabOrder = 1
+        end
+      end
+    end
   end
   object dlgOpen: TOpenDialog
     Left = 532
