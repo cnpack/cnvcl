@@ -452,18 +452,27 @@ object FormCA: TFormCA
         object btnGetWinRoot: TButton
           Left = 16
           Top = 24
-          Width = 225
+          Width = 305
           Height = 25
           Caption = 'Get Windows Root Certs'
           TabOrder = 0
           OnClick = btnGetWinRootClick
         end
-        object mmoRootCerts: TMemo
+        object lstCerts: TListBox
           Left = 16
           Top = 64
-          Width = 225
-          Height = 273
+          Width = 305
+          Height = 361
+          ItemHeight = 13
           TabOrder = 1
+          OnClick = lstCertsClick
+        end
+        object mmoCertInfo: TMemo
+          Left = 344
+          Top = 64
+          Width = 473
+          Height = 361
+          TabOrder = 2
         end
       end
     end

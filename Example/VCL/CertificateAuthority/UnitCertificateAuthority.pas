@@ -64,7 +64,8 @@ type
     tsMisc: TTabSheet;
     grpMisc: TGroupBox;
     btnGetWinRoot: TButton;
-    mmoRootCerts: TMemo;
+    lstCerts: TListBox;
+    mmoCertInfo: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure btnBrowseCSRClick(Sender: TObject);
     procedure btnBrowseKeyClick(Sender: TObject);
@@ -82,6 +83,7 @@ type
     procedure btnRootCRTBrowseClick(Sender: TObject);
     procedure btnVerifyCRTClick(Sender: TObject);
     procedure btnGetWinRootClick(Sender: TObject);
+    procedure lstCertsClick(Sender: TObject);
   private
     FClientRsaPriv: TCnRSAPrivateKey;
     FClientRsaPub: TCnRSAPublicKey;
@@ -993,7 +995,7 @@ var
   dwSize: DWORD;
   pName: PWideChar;
 begin
-  mmoRootCerts.Lines.Clear;
+  lstCerts.Items.Clear;
 
   SL := TStringList.Create;
   try
@@ -1004,6 +1006,7 @@ begin
       raise Exception.Create('无法打开证书存储');
       Exit;
     end;
+
     try
       // 枚举存储中的所有证书
       pCertContext := nil;
@@ -1035,13 +1038,70 @@ begin
 
     if SL.Count > 0 then
     begin
-      mmoRootCerts.Lines.Assign(SL);
+      lstCerts.Items.Assign(SL);
       ShowMessage('发现证书数 ' + IntToStr(SL.Count));
     end
     else
       ShowMessage('未发现根证书');
   finally
     SL.Free;
+  end;
+end;
+
+procedure TFormCA.lstCertsClick(Sender: TObject);
+var
+  SelIssuer, Issuer: WideString;
+  hStore: HCERTSTORE;
+  pCertContext: PCERT_CONTEXT;
+  dwSize: DWORD;
+  pName: PWideChar;
+begin
+  mmoCertInfo.Lines.Clear;
+  if (lstCerts.Items.Count <= 0) or (lstCerts.ItemIndex <= 0) then
+    Exit;
+
+  SelIssuer := lstCerts.Items[lstCerts.ItemIndex];
+  if SelIssuer = '' then
+    Exit;
+
+  // 打开受信任的根证书颁发机构存储
+  hStore := CertOpenSystemStore(0, 'ROOT');
+  if hStore = nil then
+  begin
+    raise Exception.Create('无法打开证书存储');
+    Exit;
+  end;
+
+  try
+    // 枚举存储中的所有证书
+    pCertContext := nil;
+    while True do
+    begin
+      pCertContext := CertEnumCertificatesInStore(hStore, pCertContext);
+      if pCertContext = nil then
+        Break;
+
+      // 获取证书的发行者
+      dwSize := CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, nil, nil, 0);
+      if dwSize > 0 then
+      begin
+        GetMem(pName, dwSize * SizeOf(WideChar));
+        try
+          CertGetNameString(pCertContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, nil, pName, dwSize);
+
+          if SelIssuer = pName then
+          begin
+            // TODO: 获取该 pCertContext 的信息并输出到 mmoCertInfo 中
+
+            Break;
+          end;
+        finally
+          FreeMem(pName);
+        end;
+      end;
+    end;
+  finally
+    CertCloseStore(hStore, 0);
   end;
 end;
 
