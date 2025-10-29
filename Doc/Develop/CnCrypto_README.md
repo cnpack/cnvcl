@@ -56,7 +56,7 @@ CnPack 密码算法库不涉及 VCL/FMX 界面组件，仅是基础库的形式提供，因而可直接将 `cn
 
 ## 演示例子
 
-`cncrypto\Example` 目录下有 Delphi 和 Lazarus 两个目录，其中各个子目录下分别是 Delphi 下以及 Lazarus 下的各类算法的演示示例，可使用对应 IDE 打开以了解各类算法库的调用方式。
+`cncrypto\Example` 目录下有 Delphi 和 Lazarus 两个目录，其中各个子目录下分别是 Delphi 下以及 Lazarus 下的各类算法的演示示例，可使用对应 IDE 打开以了解各类算法库的调用方式。注意例子工程本身不保证能够跨平台，一般仅能在 Win32 及 Win64 平台下运行。
 
 ## 关于我们
 
