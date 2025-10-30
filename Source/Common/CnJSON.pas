@@ -55,7 +55,10 @@ unit CnJSON;
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.10.26 V2.0
+* 修改记录：2025.10.30 V2.0
+*                 加入允许 Key 或 Value 的字符串不带双引号的选项，默认禁用
+*                 加入解析 NDJSON 字符串为 JSON 对象数组的函数
+*           2025.10.26 V2.0
 *                 加入一函数允许生成 NDJSON 格式的字符串
 *           2025.08.19 V1.9
 *                 修正 FPC 的支持。FPC 的 Ansi 模式下 string 仍使用 Ansi，暂不支持 FPC 的 Unicode 模式
@@ -96,13 +99,18 @@ type
 
   TCnJSONTokenType = (jttObjectBegin, jttObjectEnd, jttArrayBegin, jttArrayEnd,
     jttNameValueSep, jttElementSep, jttNumber, jttString, jttNull, jttTrue,
-    jttFalse, jttBlank, jttTerminated, jttUnknown);
+    jttFalse, jttBlank, jttTerminated, jttIdent, jttUnknown);
   {* JSON 中的符号类型，对应左大括号、右大括号、左中括号、右中括号、分号、逗号、
-    数字（包括整数和浮点）、双引号字符串、null、true、false、空格回车、#0、未知等}
+    数字（包括整数和浮点）、双引号字符串、null、true、false、空格回车、#0、
+    允许不带引号时的标识符、未知等}
+
+  TCnJSONTokenTypes = set of TCnJSONTokenType;
+  {* JSON 中的符号类型集合}
 
   TCnJSONParser = class
   {* UTF8 格式的无注释的 JSON 字符串解析器}
   private
+    FRawKeyValue: Boolean;
     FRun: Integer;
     FTokenPos: Integer;
     FOrigin: PAnsiChar;
@@ -110,6 +118,7 @@ type
     FProcTable: array[#0..#255] of procedure of object;
     FTokenID: TCnJSONTokenType;
 
+    procedure IdentProc;                 // 允许不带引号的 Key 时的标识符，注意要包括 Keyword 的逻辑
     procedure KeywordProc;               // null true false 仨标识符
     procedure ObjectBeginProc;           // {
     procedure ObjectEndProc;             // }
@@ -132,8 +141,8 @@ type
     procedure StepRun; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
     procedure StepBOM;
   public
-    constructor Create; virtual;
-    {* 构造函数}
+    constructor Create(AllowRawKeyValue: Boolean = False); virtual;
+    {* 构造函数，AllowRawKey 指允许 Key 不带引号}
     destructor Destroy; override;
     {* 析构函数}
 
@@ -152,6 +161,9 @@ type
     {* 当前 Token 的 UTF8 字符串，暂不解析内容}
     property TokenLength: Integer read GetTokenLength;
     {* 当前 Token 的字节长度}
+
+    property RawKeyValue: Boolean read FRawKeyValue;
+    {* 是否允许 Key 和 Value 的字符串不带双引号}
   end;
 
   TCnJSONString = class;
@@ -554,22 +566,32 @@ function CnNewLineDelimitedJSONConstruct(Objects: TObjectList): AnsiString;
 
 {$IFDEF UNICODE}
 
-function CnJSONParse(const JsonStr: string): TCnJSONObject; overload;
-{* 解析 UTF-16 格式的 JSON 字符串为单个 JSON 对象，需要外部释放}
+function CnJSONParse(const JsonStr: string; AllowRawKeyValue: Boolean = False): TCnJSONObject; overload;
+{* 解析 UTF-16 格式的 JSON 字符串为单个 JSON 对象，需要外部释放。
+   AllowRawKeyValue 表示是否允许 Key 和 Value 不带双引号，默认必须带。}
 
 {$ENDIF}
 
-function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject; overload;
+function CnJSONParse(const JsonStr: AnsiString; AllowRawKeyValue: Boolean = False): TCnJSONObject; overload;
 {* 解析 UTF8 格式的 JSON 字符串为单个 JSON 对象，需要外部释放}
 
-function CnJSONParse(JsonStr: PAnsiChar; Objects: TObjectList): Integer; overload;
+function CnJSONParse(JsonStr: PAnsiChar; Objects: TObjectList; AllowRawKeyValue: Boolean = False): Integer; overload;
 {* 解析 UTF8 格式的 JSON 字符串为多个 JSON 对象，每个对象加入 Objects 列表中，需要外部释放。
+   AllowRawKeyValue 表示是否允许 Key 和 Value 不带双引号，默认必须带。
    返回值表示解析出完整的 JSON 对象后，该字符串步进了多少字节。用于不完整的 JSON 字符串持续解析。
    字符指针 JsonStr + 返回值（或者说字符串下标 string(JsonStr)[返回值+1]）就是下一个待解析的起点，
    也就是上一个成功解析的右大括号的后一处。具体来说就是：
    字符串如果以右大括号结尾，字符指针 JsonStr + 返回值会指向它结尾的 #0，
    字符串尾部如果是大括号加一些空格或回车换行，JsonStr + 返回值会指向第一个空格或换行，
    字符串尾部如果是不完整的 JSON 字符串，JsonStr + 返回值就指向不完整的开头。}
+
+function CnNewLineDelimitedJSONParse(JsonStr: PAnsiChar; Objects: TObjectList;
+  AllowRawKeyValue: Boolean = False): Integer;
+{* 解析 UTF8 格式的 NDJSON 字符串为多个 JSON 对象，每个对象加入 Objects 列表中，需要外部释放。
+   AllowRawKeyValue 表示是否允许 Key 和 Value 不带双引号，默认必须带。
+   返回值表示解析出完整的 JSON 对象后，该字符串步进了多少字节。用于不完整的 NDJSON 字符串持续解析。
+   字符指针 JsonStr + 返回值（或者说字符串下标 string(JsonStr)[返回值+1]）就是下一个待解析的起点，
+   也就是上一个成功解析的换行符的后一处。}
 
 procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject;
   Replace: Boolean = False);
@@ -579,15 +601,17 @@ procedure CnJSONMergeObject(FromObj: TCnJSONObject; ToObj: TCnJSONObject;
 
 {$IFDEF UNICODE}
 
-function CnJSONParseToArray(const JsonStr: string): TCnJSONArray; overload;
+function CnJSONParseToArray(const JsonStr: string; AllowRawKeyValue: Boolean = False): TCnJSONArray; overload;
 {* 解析 UTF-16 格式的 JSON 字符串为一个数组，用于处理 [ 开头及 ] 结尾的字符串，
-   如果字符串不是 [ 开头及 ] 结尾，返回 nil。}
+   如果字符串不是 [ 开头及 ] 结尾，返回 nil。
+   AllowRawKeyValue 表示是否允许 Key 和 Value 不带双引号，默认必须带。}
 
 {$ENDIF}
 
-function CnJSONParseToArray(const JsonStr: AnsiString): TCnJSONArray; {$IFDEF UNICODE} overload; {$ENDIF}
+function CnJSONParseToArray(const JsonStr: AnsiString; AllowRawKeyValue: Boolean = False): TCnJSONArray; {$IFDEF UNICODE} overload; {$ENDIF}
 {* 解析 UTF8 格式的 JSON 字符串为一个数组，用于处理 [ 开头及 ] 结尾的字符串，
-  如果字符串不是 [ 开头及 ] 结尾，返回 nil。}
+  如果字符串不是 [ 开头及 ] 结尾，返回 nil。
+  AllowRawKeyValue 表示是否允许 Key 和 Value 不带双引号，默认必须带。}
 
 implementation
 
@@ -641,7 +665,7 @@ function JSONParseValue(P: TCnJSONParser; Current: TCnJSONBase): TCnJSONValue; f
 
 function JSONParseObject(P: TCnJSONParser; Current: TCnJSONBase; out TermStep: Integer): TCnJSONObject; forward;
 
-procedure JSONCheckToken(P: TCnJSONParser; ExpectedToken: TCnJSONTokenType);
+procedure JSONCheckToken(P: TCnJSONParser; ExpectedToken: TCnJSONTokenType); overload;
 begin
   if P.TokenID <> ExpectedToken then
     raise ECnJSONException.CreateFmt(SCnErrorJSONTokenFmt,
@@ -649,11 +673,27 @@ begin
       GetEnumName(TypeInfo(TCnJSONTokenType), Ord(P.TokenID))]);
 end;
 
+procedure JSONCheckToken(P: TCnJSONParser; ExpectedTokens: TCnJSONTokenTypes); overload;
+var
+  SetVal: Integer;
+begin
+  if not (P.TokenID in ExpectedTokens) then
+  begin
+    Move(ExpectedTokens, SetVal, SizeOf(ExpectedTokens));
+    raise ECnJSONException.CreateFmt(SCnErrorJSONTokenFmt,
+      [IntToStr(SetVal), P.RunPos,
+      GetEnumName(TypeInfo(TCnJSONTokenType), Ord(P.TokenID))]);
+  end;
+end;
+
 // 解析器遇到字符串时调用，Current 是外部的父对象
 function JSONParseString(P: TCnJSONParser; Current: TCnJSONBase): TCnJSONString;
 begin
   Result := TCnJSONString.Create;
-  Result.Content := P.Token;
+  if P.TokenID  = jttIdent then
+    Result.Content := Format('"%s"', [P.Token]) // 补上双引号
+  else
+    Result.Content := P.Token;
   Current.AddChild(Result);
   P.NextNoJunk;
 end;
@@ -734,24 +774,49 @@ end;
 
 function JSONParseValue(P: TCnJSONParser; Current: TCnJSONBase): TCnJSONValue;
 begin
-  case P.TokenID of
-    jttObjectBegin:
-      Result := JSONParseObject(P, Current, DummyTermStep);
-    jttString:
-      Result := JSONParseString(P, Current);
-    jttNumber:
-      Result := JSONParseNumber(P, Current);
-    jttArrayBegin:
-      Result := JSONParseArray(P, Current, DummyTermStep);
-    jttNull:
-      Result := JSONParseNull(P, Current);
-    jttTrue:
-      Result := JSONParseTrue(P, Current);
-    jttFalse:
-      Result := JSONParseFalse(P, Current);
+  if P.RawKeyValue then
+  begin
+    case P.TokenID of
+      jttObjectBegin:
+        Result := JSONParseObject(P, Current, DummyTermStep);
+      jttString, jttIdent:
+        Result := JSONParseString(P, Current);
+      jttNumber:
+        Result := JSONParseNumber(P, Current);
+      jttArrayBegin:
+        Result := JSONParseArray(P, Current, DummyTermStep);
+      jttNull:
+        Result := JSONParseNull(P, Current);
+      jttTrue:
+        Result := JSONParseTrue(P, Current);
+      jttFalse:
+        Result := JSONParseFalse(P, Current);
+    else
+      raise ECnJSONException.CreateFmt(SCnErrorJSONValueFmt,
+        [GetEnumName(TypeInfo(TCnJSONTokenType), Ord(P.TokenID)), P.RunPos]);
+    end;
+  end
   else
-    raise ECnJSONException.CreateFmt(SCnErrorJSONValueFmt,
-      [GetEnumName(TypeInfo(TCnJSONTokenType), Ord(P.TokenID)), P.RunPos]);
+  begin
+    case P.TokenID of
+      jttObjectBegin:
+        Result := JSONParseObject(P, Current, DummyTermStep);
+      jttString:
+        Result := JSONParseString(P, Current);
+      jttNumber:
+        Result := JSONParseNumber(P, Current);
+      jttArrayBegin:
+        Result := JSONParseArray(P, Current, DummyTermStep);
+      jttNull:
+        Result := JSONParseNull(P, Current);
+      jttTrue:
+        Result := JSONParseTrue(P, Current);
+      jttFalse:
+        Result := JSONParseFalse(P, Current);
+    else
+      raise ECnJSONException.CreateFmt(SCnErrorJSONValueFmt,
+        [GetEnumName(TypeInfo(TCnJSONTokenType), Ord(P.TokenID)), P.RunPos]);
+    end;
   end;
 end;
 
@@ -767,12 +832,19 @@ begin
     // { 后也可以直接一个 } 表示空对象
     while (P.TokenID <> jttTerminated) and (P.TokenID <> jttObjectEnd) do
     begin
-      // 必须一个 String
-      JSONCheckToken(P, jttString);
+      // 必须一个 String 或 Ident
+      if P.RawKeyValue then
+        JSONCheckToken(P, [jttString, jttIdent])
+      else
+        JSONCheckToken(P, jttString);
 
       Pair := TCnJSONPair.Create;
       Result.AddChild(Pair);
-      Pair.Name.Content := P.Token;            // 设置 Pair 自有的 Name 的内容
+
+      if P.TokenID = jttIdent then
+        Pair.Name.Content := Format('"%s"', [P.Token]) // 设置 Pair 自有的 Name 的内容，补上双引号
+      else
+        Pair.Name.Content := P.Token;            // 设置 Pair 自有的 Name 的内容
 
       // 必须一个冒号
       P.NextNoJunk;
@@ -808,19 +880,19 @@ end;
 
 {$IFDEF UNICODE}
 
-function CnJSONParseToArray(const JsonStr: string): TCnJSONArray;
+function CnJSONParseToArray(const JsonStr: string; AllowRawKeyValue: Boolean): TCnJSONArray;
 begin
-  Result := CnJSONParseToArray(UTF8Encode(JsonStr));
+  Result := CnJSONParseToArray(UTF8Encode(JsonStr), AllowRawKeyValue);
 end;
 
 {$ENDIF}
 
-function CnJSONParseToArray(const JsonStr: AnsiString): TCnJSONArray;
+function CnJSONParseToArray(const JsonStr: AnsiString; AllowRawKeyValue: Boolean = False): TCnJSONArray;
 var
   P: TCnJSONParser;
 begin
   Result := nil;
-  P := TCnJSONParser.Create;
+  P := TCnJSONParser.Create(AllowRawKeyValue);
   try
     P.SetOrigin(PAnsiChar(JsonStr));
 
@@ -836,19 +908,19 @@ end;
 
 {$IFDEF UNICODE}
 
-function CnJSONParse(const JsonStr: string): TCnJSONObject;
+function CnJSONParse(const JsonStr: string; AllowRawKeyValue: Boolean): TCnJSONObject;
 begin
-  Result := CnJSONParse(UTF8Encode(JsonStr));
+  Result := CnJSONParse(UTF8Encode(JsonStr), AllowRawKeyValue);
 end;
 
 {$ENDIF}
 
-function CnJSONParse(const JsonStr: AnsiString): TCnJSONObject;
+function CnJSONParse(const JsonStr: AnsiString; AllowRawKeyValue: Boolean): TCnJSONObject;
 var
   P: TCnJSONParser;
 begin
   Result := nil;
-  P := TCnJSONParser.Create;
+  P := TCnJSONParser.Create(AllowRawKeyValue);
   try
     P.SetOrigin(PAnsiChar(JsonStr));
 
@@ -867,14 +939,14 @@ begin
   end;
 end;
 
-function CnJSONParse(JsonStr: PAnsiChar; Objects: TObjectList): Integer;
+function CnJSONParse(JsonStr: PAnsiChar; Objects: TObjectList; AllowRawKeyValue: Boolean): Integer;
 var
   P: TCnJSONParser;
   Obj: TCnJSONObject;
   Step: Integer;
 begin
   Result := 0;
-  P := TCnJSONParser.Create;
+  P := TCnJSONParser.Create(AllowRawKeyValue);
   try
     P.SetOrigin(JsonStr);
     while P.TokenID <> jttTerminated do
@@ -902,6 +974,106 @@ begin
   finally
     P.Free;
   end;
+end;
+
+function CnNewLineDelimitedJSONParse(JsonStr: PAnsiChar; Objects: TObjectList; AllowRawKeyValue: Boolean): Integer;
+const
+  LF = #10;
+var
+  P1, P2: PAnsiChar;
+  L: Integer;
+  S: AnsiString;
+  Obj: TCnJSONObject;
+
+  function FixObjectBeginEnd(const Str: string): string;
+  begin
+    Result := Trim(Str);
+    if Result <> '' then
+    begin
+      if (Pos('{', Str) <= 0) and (Pos('}', Str) <= 0) then
+        Result := '{' + Result + '}';
+    end;
+  end;
+
+begin
+  // 取出完整的一行来解析，该行可能只是逗号分隔的 Key Value 对列表，也可能是大括号括起来的一个对象
+  P1 := JsonStr;
+  P2 := StrScan(P1, LF);
+  Result := 0;
+
+  repeat
+    if P2 = nil then
+    begin
+      // 到了末尾，处理 P1 到尾巴，最好 Trim 一下再判空
+      L := StrLen(P1);
+      if L > 0 then
+      begin
+        SetLength(S, L);
+        Move(P1^, S[1], L);
+
+        S := FixObjectBeginEnd(S);
+
+        // 解析 S
+        if S <> '' then
+        begin
+          try
+            Obj := CnJSONParse(S, AllowRawKeyValue);
+          except
+            Obj := nil;
+          end;
+
+          if Obj <> nil then
+            Objects.Add(Obj)
+          else
+          begin
+            // 本行开头 P1 之后解析不成功，返回 P1 - JsonStr
+            Result := TCnNativeUInt(P1) - TCnNativeUInt(JsonStr);
+            Exit;
+          end;
+        end;
+      end;
+
+      // 最后一行解析成功了 Result 是末尾的 #0 减去 JsonStr，等于 StrLen
+      Result := StrLen(JsonStr);
+      Break;
+    end
+    else
+    begin
+      // 处理 P1 到 P2 前一个，最好 Trim 一下再判空
+      L := TCnNativeUInt(P2) - TCnNativeUInt(P1) - 1;
+      if L > 0 then
+      begin
+        SetLength(S, L);
+        Move(P1^, S[1], L);
+
+        S := FixObjectBeginEnd(S);
+
+        // 解析 S
+        if S <> '' then
+        begin
+          try
+            Obj := CnJSONParse(S, AllowRawKeyValue);
+          except
+            Obj := nil;
+          end;
+
+          if Obj <> nil then
+            Objects.Add(Obj)
+          else
+          begin
+            // 本行开头 P1 之后解析不成功，返回 P1 - JsonStr
+            Result := TCnNativeUInt(P1) - TCnNativeUInt(JsonStr);
+            Exit;
+          end;
+        end;
+      end;
+
+      // 再继续扫描
+      P1 := P2;
+      Inc(P1);
+      P2 := StrScan(P1, LF);
+    end;
+  until False;
 end;
 
 function CnJSONConstruct(Obj: TCnJSONObject; UseFormat: Boolean;
@@ -1028,9 +1200,10 @@ begin
   FTokenID := jttBlank;
 end;
 
-constructor TCnJSONParser.Create;
+constructor TCnJSONParser.Create(AllowRawKeyValue: Boolean);
 begin
   inherited Create;
+  FRawKeyValue := AllowRawKeyValue;
   MakeMethodTable;
 end;
 
@@ -1053,6 +1226,30 @@ end;
 function TCnJSONParser.GetTokenLength: Integer;
 begin
   Result := FRun - FTokenPos;
+end;
+
+procedure TCnJSONParser.IdentProc;
+begin
+  FStringLen := 0;
+  repeat
+    StepRun;
+    Inc(FStringLen);
+  until not (FOrigin[FRun] in ['a'..'z', 'A'..'Z', '_']); // 找到标识符后的尾巴
+
+  FTokenID := jttUnknown; // 先这么设
+  if (FStringLen = 5) and TokenEqualStr(FOrigin + FRun - FStringLen, 'false') then
+    FTokenID := jttFalse
+  else if FStringLen = 4 then
+  begin
+    if TokenEqualStr(FOrigin + FRun - FStringLen, 'true') then
+      FTokenID := jttTrue
+    else if TokenEqualStr(FOrigin + FRun - FStringLen, 'null') then
+      FTokenID := jttNull
+    else
+      FTokenID := jttIdent;
+  end
+  else
+    FTokenID := jttIdent;
 end;
 
 procedure TCnJSONParser.KeywordProc;
@@ -1079,33 +1276,68 @@ procedure TCnJSONParser.MakeMethodTable;
 var
   I: AnsiChar;
 begin
-  for I := #0 to #255 do
+  if FRawKeyValue then // 允许 Key 不带引号的情况下，要多搞个 IdentProc
   begin
-    case I of
-      #0:
-        FProcTable[I] := TerminateProc;
-      #9, #10, #13, #32:
-        FProcTable[I] := BlankProc;
-      '"':
-        FProcTable[I] := StringProc;
-      '0'..'9', '+', '-':
-        FProcTable[I] := NumberProc;
-      '{':
-        FProcTable[I] := ObjectBeginProc;
-      '}':
-        FProcTable[I] := ObjectEndProc;
-      '[':
-        FProcTable[I] := ArrayBeginProc;
-      ']':
-        FProcTable[I] := ArrayEndProc;
-      ':':
-        FProcTable[I] := NameValueSepProc;
-      ',':
-        FProcTable[I] := ArrayElementSepProc;
-      'f', 'n', 't':
-        FProcTable[I] := KeywordProc;
-    else
-      FProcTable[I] := UnknownProc;
+    for I := #0 to #255 do
+    begin
+      case I of
+        #0:
+          FProcTable[I] := TerminateProc;
+        #9, #10, #13, #32:
+          FProcTable[I] := BlankProc;
+        '"':
+          FProcTable[I] := StringProc;
+        '0'..'9', '+', '-':
+          FProcTable[I] := NumberProc;
+        '{':
+          FProcTable[I] := ObjectBeginProc;
+        '}':
+          FProcTable[I] := ObjectEndProc;
+        '[':
+          FProcTable[I] := ArrayBeginProc;
+        ']':
+          FProcTable[I] := ArrayEndProc;
+        ':':
+          FProcTable[I] := NameValueSepProc;
+        ',':
+          FProcTable[I] := ArrayElementSepProc;
+        'a'..'z', 'A'..'Z', '_':
+          FProcTable[I] := IdentProc;
+      else
+        FProcTable[I] := UnknownProc;
+      end;
+    end;
+  end
+  else
+  begin
+    for I := #0 to #255 do
+    begin
+      case I of
+        #0:
+          FProcTable[I] := TerminateProc;
+        #9, #10, #13, #32:
+          FProcTable[I] := BlankProc;
+        '"':
+          FProcTable[I] := StringProc;
+        '0'..'9', '+', '-':
+          FProcTable[I] := NumberProc;
+        '{':
+          FProcTable[I] := ObjectBeginProc;
+        '}':
+          FProcTable[I] := ObjectEndProc;
+        '[':
+          FProcTable[I] := ArrayBeginProc;
+        ']':
+          FProcTable[I] := ArrayEndProc;
+        ':':
+          FProcTable[I] := NameValueSepProc;
+        ',':
+          FProcTable[I] := ArrayElementSepProc;
+        'f', 'n', 't':
+          FProcTable[I] := KeywordProc;
+      else
+        FProcTable[I] := UnknownProc;
+      end;
     end;
   end;
 end;

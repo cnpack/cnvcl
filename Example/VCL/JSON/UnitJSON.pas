@@ -37,6 +37,11 @@ type
     btnParseMulti: TButton;
     btnParseMultiStep: TButton;
     btnParseToArray: TButton;
+    tsNDJsonParse: TTabSheet;
+    lblNDStr: TLabel;
+    mmoNDJSON: TMemo;
+    btnNDParse: TButton;
+    mmoNDJsonRes: TMemo;
     procedure btnParseClick(Sender: TObject);
     procedure btnJSONConstruct1Click(Sender: TObject);
     procedure btnWriteClick(Sender: TObject);
@@ -50,6 +55,7 @@ type
     procedure btnParseMultiClick(Sender: TObject);
     procedure btnParseMultiStepClick(Sender: TObject);
     procedure btnParseToArrayClick(Sender: TObject);
+    procedure btnNDParseClick(Sender: TObject);
   private
     procedure DumpJSONToTreeView(JSON: TCnJSONObject);
   public
@@ -442,6 +448,25 @@ begin
   end
   else
     ShowMessage('NOT Array');
+end;
+
+procedure TFormJSON.btnNDParseClick(Sender: TObject);
+var
+  List: TObjectList;
+  Obj: TCnJSONObject;
+  I: Integer;
+begin
+  List := TObjectList.Create(True);
+  I := CnNewLineDelimitedJSONParse(mmoNDJSON.Lines.GetText, List, True);
+  ShowMessage(Format('Get %d Objects to Offset %d', [List.Count, I]));
+
+  mmoNDJsonRes.Lines.Clear;
+  for I := 0 to List.Count - 1 do
+  begin
+    Obj := TCnJSONObject(List[I]);
+    mmoNDJsonRes.Lines.Add(Obj.ToJSON(False));
+  end;
+  List.Free;
 end;
 
 end.

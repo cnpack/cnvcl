@@ -249,6 +249,66 @@ object FormJSON: TFormJSON
         OnClick = btnJSONSortClick
       end
     end
+    object tsNDJsonParse: TTabSheet
+      Caption = 'ND JSON Parse'
+      ImageIndex = 2
+      object lblNDStr: TLabel
+        Left = 16
+        Top = 16
+        Width = 30
+        Height = 13
+        Caption = 'String:'
+      end
+      object mmoNDJSON: TMemo
+        Left = 56
+        Top = 16
+        Width = 889
+        Height = 145
+        Lines.Strings = (
+          'event: message_start'
+          
+            'data: {"type":"message_start","message":{"id":"055290091b3169433' +
+            '1ac6d15640ecf4d","type":"message","role":"assistant","content":[' +
+            '],"model":"MiniMax-M2","stop_reason":null,"stop_sequence":null,"' +
+            'usage":{"input_tokens":59,"output_tokens":0},"service_tier":"sta' +
+            'ndard"}}'
+          'event: ping'
+          'data: {"type":"ping"}'
+          'event: content_block_start'
+          
+            'data: {"type":"content_block_start","index":0,"content_block":{"' +
+            'type":"thinking","thinking":""}}'
+          'event: content_block_delta'
+          
+            'data: {"type":"content_block_delta","index":0,"delta":{"type":"t' +
+            'hinking_delta","thinking":"首先，用户"}}'
+          'event: content_block_delta'
+          
+            'data: {"type":"content_block_delta","index":0,"delta":{"type":"t' +
+            'hinking_delta","thinking":"要求用简体中文解释代码：`Application.' +
+            'CreateForm(TForm1, Form1);`。这是Delphi和Lazarus中常见的"}}')
+        ScrollBars = ssBoth
+        TabOrder = 0
+        WantReturns = False
+        WordWrap = False
+      end
+      object btnNDParse: TButton
+        Left = 56
+        Top = 176
+        Width = 75
+        Height = 25
+        Caption = 'Parse'
+        TabOrder = 1
+        OnClick = btnNDParseClick
+      end
+      object mmoNDJsonRes: TMemo
+        Left = 56
+        Top = 216
+        Width = 889
+        Height = 145
+        TabOrder = 2
+      end
+    end
   end
   object dlgSave1: TSaveDialog
     Left = 616

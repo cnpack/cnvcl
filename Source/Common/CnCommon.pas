@@ -640,8 +640,10 @@ function StrContainsRegExpr(const Str: string): Boolean;
 {* 判断字符串内是否包含正则表达式专用字符}
 
 {$IFDEF COMPILER5}
+
 function BoolToStr(B: Boolean; UseBoolStrs: Boolean = False): string;
-{* Delphi5没有实现布尔型转换为字符串，类似于Delphi6,7的实现}
+{* Delphi 5 没有实现布尔型转换为字符串，类似于Delphi 6/7 的实现}
+
 {$ENDIF COMPILER5}
 
 function LinesToStr(const Lines: string): string;
@@ -4853,8 +4855,8 @@ const
   csLinesCR = #13#10;
   csStrCR = '\n';
 
-// 多行文本转单行（换行符转'\n'）
 {$IFDEF COMPILER5}
+
 function BoolToStr(B: Boolean; UseBoolStrs: Boolean = False): string;
 const
   cSimpleBoolStrs: array [Boolean] of string = ('0', '-1');
@@ -4869,8 +4871,10 @@ begin
   else
     Result := cSimpleBoolStrs[B];
 end;
+
 {$ENDIF COMPILER5}
 
+// 多行文本转单行（换行符转'\n'）
 function LinesToStr(const Lines: string): string;
 begin
   Result := StringReplace(Lines, csLinesCR, csStrCR, [rfReplaceAll]);
