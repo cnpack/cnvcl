@@ -644,7 +644,6 @@ const
   HOST: AnsiString = 'www.cnpack.org';
 var
   SockAddress: TSockAddr;
-  Data: TBytes;
   Buffer: array[0..1023] of Byte;
   Ciphers: TWords;
   H: PCnTLSRecordLayer;
@@ -654,6 +653,10 @@ var
   S: PCnTLSHandShakeServerNameIndication;
   BytesReceived: Integer;
   A: PCnTLSAlertPacket;
+  SessionId: TBytes;
+  CompressionMethod: TBytes;
+  ExtensionsStart: PByte;
+  TotalHandshakeLen: Cardinal;
 begin
   // 创建 Socket 连接目标，发送内容，收包
   FTlsClientSocket := CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -661,13 +664,11 @@ begin
     Exit;
 
   SockAddress.sin_family := AF_INET;
-  SockAddress.sin_port := ntohs(StrToIntDef(edtTLSPort.Text, 443));
-
+  SockAddress.sin_port := htons(StrToIntDef(edtTLSPort.Text, 443));
   SockAddress.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(edtTLSHost.Text)));
+
   if SOCKET_ERROR <> CnConnect(FTlsClientSocket, SockAddress, SizeOf(SockAddress)) then
   begin
-    // 构造 ClientData 包到 Data
-    // Data := HexToBytes(DATA_CLIENT_HELLO);
     FillChar(Buffer, SizeOf(Buffer), 0);
 
     // 构造握手协议中的 ClientHello 包
@@ -676,56 +677,85 @@ begin
     H := PCnTLSRecordLayer(@Buffer[0]);
     H^.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
     H^.MajorVersion := 3;
-    H^.MinorVersion := 1;
-    // H^.BodyLength := 0;    // TODO: 尺寸
+    H^.MinorVersion := 3;  // TLS 1.2 用于兼容性
 
     // 握手协议头
     B := PCnTLSHandShakeHeader(@H^.Body[0]);
     B^.HandShakeType := CN_TLS_HANDSHAKE_TYPE_CLIENT_HELLO;
-    // CnSetTLSHandShakeHeaderContentLength(B, 0); // 尺寸先置 0，后面再补
 
     // 握手协议 ClientHello 包
     C := PCnTLSHandShakeClientHello(@B^.Content[0]);
 
-    // 设置真正版本号
-    C^.ProtocolVersion := CN_TLS_SSL_VERSION_TLS_13;
+    // 设置真正版本号 - TLS 1.2
+    C^.ProtocolVersion := CN_TLS_SSL_VERSION_TLS_12;
 
     // 生成随机数
     CnRandomFillBytes2(@C^.Random[0], SizeOf(C^.Random));
 
-    // 随机生成 Session
-    CnSetTLSHandShakeClientHelloSessionId(C, CnRandomBytes(32));
+    // 生成 Session ID (可以为空或 32 字节)
+    SetLength(SessionId, 32);
+    CnRandomFillBytes2(@SessionId[0], 32);
+    CnSetTLSHandShakeClientHelloSessionId(C, SessionId);
 
     // 填充 Ciphers
     SetLength(Ciphers, 4);
-    Ciphers[0] := CN_CIPHER_TLS_SM4_GCM_SM3;
+    Ciphers[0] := CN_CIPHER_TLS_AES_128_GCM_SHA256;
     Ciphers[1] := CN_CIPHER_TLS_AES_256_GCM_SHA384;
-    Ciphers[2] := CN_CIPHER_TLS_AES_128_CCM_SHA256;
-    Ciphers[3] := CN_CIPHER_TLS_CHACHA20_POLY1305_SHA256;
-
+    Ciphers[2] := CN_CIPHER_TLS_CHACHA20_POLY1305_SHA256;
+    Ciphers[3] := CN_CIPHER_ECDHE_RSA_AES128_GCM_SHA256;
     CnSetTLSHandShakeClientHelloCipherSuites(C, Ciphers);
 
     // 填充压缩类型
-    SetLength(Data, 1);
-    Data[0] := 0;
-    CnSetTLSHandShakeClientHelloCompressionMethod(C, Data);
+    SetLength(CompressionMethod, 1);
+    CompressionMethod[0] := 0;
+    CnSetTLSHandShakeClientHelloCompressionMethod(C, CompressionMethod);
 
-    // 整 SNI 包中的一条记录
-    E := CnGetTLSHandShakeClientHelloExtensions(C);
+    // 获取 Extensions 的起始位置
+    ExtensionsStart := PByte(C);
+    Inc(ExtensionsStart, SizeOf(Word));     // ProtocolVersion
+    Inc(ExtensionsStart, 32);               // Random
+    Inc(ExtensionsStart, 1);                // SessionLength
+    Inc(ExtensionsStart, C^.SessionLength); // SessionId
+    Inc(ExtensionsStart, SizeOf(Word));     // CipherSuitesLength
+    Inc(ExtensionsStart, CnGetTLSHandShakeClientHelloCipherSuitesLength(C)); // CipherSuites
+    Inc(ExtensionsStart, 1);                // CompressionMethodLength
+    Inc(ExtensionsStart, CnGetTLSHandShakeClientHelloCompressionMethodLength(C)); // CompressionMethod
+
+    // 设置 Extensions
+    E := PCnTLSHandShakeExtensions(ExtensionsStart);
+
+    // 先设置第一个 Extension - SNI
     CnSetTLSHandShakeExtensionsExtensionType(E, CN_TLS_EXTENSIONTYPE_SERVER_NAME);
     S := PCnTLSHandShakeServerNameIndication(@E^.ExtensionData[0]);
-    CnSetTLSHandShakeExtensionsExtensionDataLength(E, CnTLSHandShakeServerNameIndicationAddHost(S, 'www.cnpack.org'));
 
-    CnSetTLSHandShakeExtensionsExtensionLength(E, CnGetTLSHandShakeExtensionsExtensionDataLength(E) + SizeOf(Word)); // Data 加一个 Type，不加 Length
+    // 添加主机名到 SNI
+    CnSetTLSHandShakeServerNameIndicationListLength(S, 0);
+    CnTLSHandShakeServerNameIndicationAddHost(S, AnsiString(edtTLSHost.Text));
 
-    // C 和 ExtensionData 的首字节的差再加扩展内容长度就是握手协议的 Content 长
-    CnSetTLSHandShakeHeaderContentLength(B, TCnIntAddress(@E.ExtensionData[0]) - TCnIntAddress(C) + CnGetTLSHandShakeExtensionsExtensionDataLength(E));
+    // 设置这个 Extension 的数据长度
+    CnSetTLSHandShakeExtensionsExtensionDataLength(E, 
+      CnGetTLSHandShakeServerNameIndicationListLength(S) + SizeOf(Word));
 
-    CnSetTLSRecordLayerBodyLength(H, CnGetTLSHandShakeHeaderContentLength(B) + 4); // 3 字节 Length + 1 字节类型
+    // 计算 Extensions 总长度 (Type + Length + Data)
+    CnSetTLSHandShakeExtensionsExtensionLength(E,
+      SizeOf(Word) + SizeOf(Word) + CnGetTLSHandShakeExtensionsExtensionDataLength(E));
 
-    // 发送 ClientHello 包，+ 5 是 RecordLayer 中的 Type Version BodyLength 等长度和
+    // 计算整个握手消息的长度
+    TotalHandshakeLen := TCnIntAddress(ExtensionsStart) - TCnIntAddress(C) +
+      SizeOf(Word) + CnGetTLSHandShakeExtensionsExtensionLength(E);
+
+    // 设置握手头的内容长度
+    CnSetTLSHandShakeHeaderContentLength(B, TotalHandshakeLen);
+
+    // 设置 TLS Record Layer 的 Body 长度 (HandshakeType(1) + Length(3) + Content)
+    CnSetTLSRecordLayerBodyLength(H, 4 + TotalHandshakeLen);
+
+    // 发送 ClientHello 包
     if CnSend(FTlsClientSocket, H^, CnGetTLSRecordLayerBodyLength(H) + 5, 0) <> SOCKET_ERROR then
     begin
+      mmoSSL.Lines.Add('Sent ClientHello Packet, Size: ' +
+        IntToStr(CnGetTLSRecordLayerBodyLength(H) + 5));
+
       // 接收回包
       FillChar(Buffer, SizeOf(Buffer), 0);
       BytesReceived := CnRecv(FTlsClientSocket, Buffer[0], Length(Buffer), 0);
@@ -737,21 +767,43 @@ begin
         mmoSSL.Lines.Add(Format('TLSRecordLayer.MajorVersion %d', [H^.MajorVersion]));
         mmoSSL.Lines.Add(Format('TLSRecordLayer.MinorVersion %d', [H^.MinorVersion]));
         mmoSSL.Lines.Add(Format('TLSRecordLayer.BodyLength %d', [CnGetTLSRecordLayerBodyLength(H)]));
+
         case Buffer[0] of
           CN_TLS_CONTENT_TYPE_ALERT:
             begin
               A := PCnTLSAlertPacket(@(H^.Body[0]));
-              mmoSSL.Lines.Add(Format('TLSAlertPacket.AlertLevel %d', [A^.AlertLevel])); // 2 是致命错误
-              mmoSSL.Lines.Add(Format('TLSAlertPacket.AlertDescription %d', [A^.AlertDescription])); // 50 是解码错误
+              mmoSSL.Lines.Add(Format('TLSAlertPacket.AlertLevel %d', [A^.AlertLevel]));
+              mmoSSL.Lines.Add(Format('TLSAlertPacket.AlertDescription %d', [A^.AlertDescription]));
+
+              case A^.AlertDescription of
+                40: mmoSSL.Lines.Add('Error: Handshake Failure');
+                47: mmoSSL.Lines.Add('Error: Illegal Parameter');
+                50: mmoSSL.Lines.Add('Error: Decode Error');
+                70: mmoSSL.Lines.Add('Error: Protocol Version');
+              else
+                if A^.AlertLevel = 2 then
+                  mmoSSL.Lines.Add('Fatal Error!')
+                else
+                  mmoSSL.Lines.Add('Warning.');
+              end;
             end;
           CN_TLS_CONTENT_TYPE_HANDSHAKE:
             begin
-
+              mmoSSL.Lines.Add('Received ServerHello!');
+              B := PCnTLSHandShakeHeader(@(H^.Body[0]));
+              mmoSSL.Lines.Add(Format('HandShakeType: %d', [B^.HandShakeType]));
             end;
         end;
-      end;
-    end;
-  end;
+      end
+      else
+        mmoSSL.Lines.Add('Receive Failed or NO Data');
+    end
+    else
+      mmoSSL.Lines.Add('Send Failed');
+  end
+  else
+    mmoSSL.Lines.Add('Connect Failed');
+    
   CnCloseSocket(FTlsClientSocket);
 end;
 
