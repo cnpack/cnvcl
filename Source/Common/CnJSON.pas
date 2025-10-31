@@ -26,12 +26,13 @@ unit CnJSON;
 * 单元作者：CnPack 开发组
 * 备    注：本单元根据 RFC 7159 实现了 JSON 的解析与组装功能，适合 UTF8 无注释格式，
 *           不支持 JSON5 等扩展，注意未经严格全面测试，也不适合完全替代 System.JSON
-*           仅在无 System.JSON 的低版本中充当 JSON 解析与组装用
+*           仅在无 System.JSON 的低版本中充当 JSON 解析与组装用。
 *
 *           一段 JSON 是一个 JSONObject，包含一个或多个 Key Value 对，
 *           Key 是双引号字符串，Value 则可以是普通值、JSONObject 或 JSONArray，
 *           JSONArray 是一排 JSONValue。
 *           解析函数里的 AllowRawKeyValue 参数表示是否允许 Key 和 Value 不带双引号。
+*           注意不带双引号时，内容不支持斜杆转义。
 *
 *           JSONValue 设有 Count 及 [Integer] 非缺省索引作为是 JSONArray 时的子项，
 *           设有 Count 及 Values[String] 缺省索引作为是 JSONObject 时的子项，String 参数为 Key
@@ -1250,7 +1251,7 @@ begin
     StepRun;
     Inc(FStringLen);
   until not ((FOrigin[FRun] in ['a'..'z', 'A'..'Z', '_']) or (Ord(FOrigin[FRun]) >= $80));
-  // 找到标识符后的尾巴，注意扩展字符或者说 UTF8 内容也当成标识符
+  // 找到标识符后的尾巴，注意扩展字符或者说 UTF8 内容也当成标识符，但不支持转义了，转义直接当成分隔符了
 
   FTokenID := jttUnknown; // 先这么设
   if (FStringLen = 5) and TokenEqualStr(FOrigin + FRun - FStringLen, 'false') then

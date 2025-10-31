@@ -42,6 +42,7 @@ type
     mmoNDJSON: TMemo;
     btnNDParse: TButton;
     mmoNDJsonRes: TMemo;
+    btnSimpleParse: TButton;
     procedure btnParseClick(Sender: TObject);
     procedure btnJSONConstruct1Click(Sender: TObject);
     procedure btnWriteClick(Sender: TObject);
@@ -56,10 +57,11 @@ type
     procedure btnParseMultiStepClick(Sender: TObject);
     procedure btnParseToArrayClick(Sender: TObject);
     procedure btnNDParseClick(Sender: TObject);
+    procedure btnSimpleParseClick(Sender: TObject);
   private
     procedure DumpJSONToTreeView(JSON: TCnJSONObject);
   public
-    { Public declarations }
+
   end;
 
 var
@@ -70,7 +72,7 @@ implementation
 {$R *.dfm}
 
 uses
-  CnWideStrings, CnSampleComponent;
+  CnWideStrings, CnNative, CnSampleComponent;
 
 procedure TFormJSON.btnParseClick(Sender: TObject);
 var
@@ -467,6 +469,28 @@ begin
     mmoNDJsonRes.Lines.Add(Obj.ToJSON(False));
   end;
   List.Free;
+end;
+
+procedure TFormJSON.btnSimpleParseClick(Sender: TObject);
+const
+  JSON =
+    '646174613A207B2274797065223A22636F6E74656E745F626C6F636B5F64656C' +
+    '7461222C22696E646578223A302C2264656C7461223A7B2274797065223A2274' +
+    '68696E6B696E675F64656C7461222C227468696E6B696E67223A22E4B8ADE79A' +
+    '84E4B8BBE7A88BE5BA8FE59D97EFBC88626567696E2E2E2E656E642EEFBC89E5' +
+    '8685E380825C6E205C6E20E8A7A3E9878AEFBC9A5C6E202D204170706C696361' +
+    '74696F6EEFBC9AE8BF99E698AFE5BA94E794A8E7A88BE5BA8FE5AFB9227D' +
+    '7D';  // E8B13F
+var
+  S: AnsiString;
+  Obj: TCnJSONObject;
+begin
+  S := HexToAnsiStr(JSON);
+  Insert('\t', S, 174);
+  ShowMessage(CnUtf8ToAnsi(S));
+  Obj := CnJSONParse(S, True);
+  mmoNDJsonRes.Lines.Add(Obj.ToJSON(False));
+  Obj.Free;
 end;
 
 end.

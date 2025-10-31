@@ -289,7 +289,6 @@ object FormJSON: TFormJSON
             'CreateForm(TForm1, Form1);`。这是Delphi和Lazarus中常见的"}}')
         ScrollBars = ssBoth
         TabOrder = 0
-        WantReturns = False
         WordWrap = False
       end
       object btnNDParse: TButton
@@ -307,6 +306,15 @@ object FormJSON: TFormJSON
         Width = 889
         Height = 145
         TabOrder = 2
+      end
+      object btnSimpleParse: TButton
+        Left = 160
+        Top = 176
+        Width = 105
+        Height = 25
+        Caption = 'Simple Parse'
+        TabOrder = 3
+        OnClick = btnSimpleParseClick
       end
     end
   end
