@@ -30,7 +30,8 @@ unit CnJSON;
 *
 *           一段 JSON 是一个 JSONObject，包含一个或多个 Key Value 对，
 *           Key 是双引号字符串，Value 则可以是普通值、JSONObject 或 JSONArray，
-*           JSONArray 是一排 JSONValue
+*           JSONArray 是一排 JSONValue。
+*           解析函数里的 AllowRawKeyValue 参数表示是否允许 Key 和 Value 不带双引号。
 *
 *           JSONValue 设有 Count 及 [Integer] 非缺省索引作为是 JSONArray 时的子项，
 *           设有 Count 及 Values[String] 缺省索引作为是 JSONObject 时的子项，String 参数为 Key
@@ -1040,7 +1041,7 @@ begin
     else
     begin
       // 处理 P1 到 P2 前一个，最好 Trim 一下再判空
-      L := TCnNativeUInt(P2) - TCnNativeUInt(P1) - 1;
+      L := TCnNativeUInt(P2) - TCnNativeUInt(P1);
       if L > 0 then
       begin
         SetLength(S, L);
@@ -1234,7 +1235,8 @@ begin
   repeat
     StepRun;
     Inc(FStringLen);
-  until not (FOrigin[FRun] in ['a'..'z', 'A'..'Z', '_']); // 找到标识符后的尾巴
+  until not ((FOrigin[FRun] in ['a'..'z', 'A'..'Z', '_']) or (Ord(FOrigin[FRun]) >= $80));
+  // 找到标识符后的尾巴，注意扩展字符或者说 UTF8 内容也当成标识符
 
   FTokenID := jttUnknown; // 先这么设
   if (FStringLen = 5) and TokenEqualStr(FOrigin + FRun - FStringLen, 'false') then
