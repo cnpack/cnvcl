@@ -986,9 +986,23 @@ var
   S: AnsiString;
   Obj: TCnJSONObject;
 
-  function FixObjectBeginEnd(const Str: string): string;
+  function AnsiTrim(const S: AnsiString): AnsiString;
+  var
+    I, L: Integer;
   begin
-    Result := Trim(Str);
+    L := Length(S);
+    I := 1;
+    while (I <= L) and (S[I] <= ' ') do Inc(I);
+    if I > L then Result := '' else
+    begin
+      while S[L] <= ' ' do Dec(L);
+      Result := Copy(S, I, L - I + 1);
+    end;
+  end;
+
+  function FixObjectBeginEnd(const Str: AnsiString): AnsiString;
+  begin
+    Result := AnsiTrim(Str); // Trim 的 Unicode 版隐含了转换，会出现问号导致解析失败
     if Result <> '' then
     begin
       if (Pos('{', Str) <= 0) and (Pos('}', Str) <= 0) then
