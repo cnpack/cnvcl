@@ -644,21 +644,26 @@ const
   HOST: AnsiString = 'www.cnpack.org';
 var
   SockAddress: TSockAddr;
-  Buffer: array[0..1023] of Byte;
+  Buffer: array[0..2047] of Byte;
   Ciphers: TWords;
   H: PCnTLSRecordLayer;
   B: PCnTLSHandShakeHeader;
   C: PCnTLSHandShakeClientHello;
-  E: PCnTLSHandShakeExtensions;
-  S: PCnTLSHandShakeServerNameIndication;
   BytesReceived: Integer;
   A: PCnTLSAlertPacket;
   SessionId: TBytes;
   CompressionMethod: TBytes;
   ExtensionsStart: PByte;
+  CurrentExtPtr: PByte;
   TotalHandshakeLen: Cardinal;
+  ExtensionsTotalLen: Word;
+  ExtType: PWord;
+  ExtDataLen: PWord;
+  ExtData: PByte;
+
+  T: TBytes;
+  I: Integer;
 begin
-  // 创建 Socket 连接目标，发送内容，收包
   FTlsClientSocket := CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if FTlsClientSocket = INVALID_SOCKET then
     Exit;
@@ -671,13 +676,11 @@ begin
   begin
     FillChar(Buffer, SizeOf(Buffer), 0);
 
-    // 构造握手协议中的 ClientHello 包
-
     // TLS 层头
     H := PCnTLSRecordLayer(@Buffer[0]);
     H^.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
     H^.MajorVersion := 3;
-    H^.MinorVersion := 3;  // TLS 1.2 用于兼容性
+    H^.MinorVersion := 3;  // TLS 1.2
 
     // 握手协议头
     B := PCnTLSHandShakeHeader(@H^.Body[0]);
@@ -686,23 +689,26 @@ begin
     // 握手协议 ClientHello 包
     C := PCnTLSHandShakeClientHello(@B^.Content[0]);
 
-    // 设置真正版本号 - TLS 1.2
+    // 设置版本号 - TLS 1.2
     C^.ProtocolVersion := CN_TLS_SSL_VERSION_TLS_12;
 
     // 生成随机数
     CnRandomFillBytes2(@C^.Random[0], SizeOf(C^.Random));
 
-    // 生成 Session ID (可以为空或 32 字节)
+    // 生成 Session ID (32 字节)
     SetLength(SessionId, 32);
     CnRandomFillBytes2(@SessionId[0], 32);
     CnSetTLSHandShakeClientHelloSessionId(C, SessionId);
 
-    // 填充 Ciphers
-    SetLength(Ciphers, 4);
-    Ciphers[0] := CN_CIPHER_TLS_AES_128_GCM_SHA256;
-    Ciphers[1] := CN_CIPHER_TLS_AES_256_GCM_SHA384;
-    Ciphers[2] := CN_CIPHER_TLS_CHACHA20_POLY1305_SHA256;
-    Ciphers[3] := CN_CIPHER_ECDHE_RSA_AES128_GCM_SHA256;
+    // 填充 Ciphers - 使用TLS 1.2兼容的密码套件
+    SetLength(Ciphers, 7);
+    Ciphers[0] := CN_CIPHER_ECDHE_RSA_AES128_GCM_SHA256;
+    Ciphers[1] := CN_CIPHER_ECDHE_RSA_AES256_GCM_SHA384;
+    Ciphers[2] := CN_CIPHER_ECDHE_ECDSA_AES128_GCM_SHA256;
+    Ciphers[3] := CN_CIPHER_ECDHE_ECDSA_AES256_GCM_SHA384;
+    Ciphers[4] := CN_CIPHER_ECDHE_RSA_CHACHA20_POLY1305;
+    Ciphers[5] := CN_CIPHER_AES128_GCM_SHA256;
+    Ciphers[6] := CN_CIPHER_TLS_SM4_GCM_SM3;
     CnSetTLSHandShakeClientHelloCipherSuites(C, Ciphers);
 
     // 填充压缩类型
@@ -717,58 +723,154 @@ begin
     Inc(ExtensionsStart, 1);                // SessionLength
     Inc(ExtensionsStart, C^.SessionLength); // SessionId
     Inc(ExtensionsStart, SizeOf(Word));     // CipherSuitesLength
-    Inc(ExtensionsStart, CnGetTLSHandShakeClientHelloCipherSuitesLength(C)); // CipherSuites
+    Inc(ExtensionsStart, CnGetTLSHandShakeClientHelloCipherSuitesLength(C));
     Inc(ExtensionsStart, 1);                // CompressionMethodLength
-    Inc(ExtensionsStart, CnGetTLSHandShakeClientHelloCompressionMethodLength(C)); // CompressionMethod
+    Inc(ExtensionsStart, CnGetTLSHandShakeClientHelloCompressionMethodLength(C));
 
-    // 设置 Extensions
-    E := PCnTLSHandShakeExtensions(ExtensionsStart);
+    // 先写入 Extensions 总长度占位符，内容稍后填充
+    CurrentExtPtr := ExtensionsStart;
+    Inc(CurrentExtPtr, SizeOf(Word)); // 跳过 ExtensionsLength 字段
 
-    // 先设置第一个 Extension - SNI
-    CnSetTLSHandShakeExtensionsExtensionType(E, CN_TLS_EXTENSIONTYPE_SERVER_NAME);
-    S := PCnTLSHandShakeServerNameIndication(@E^.ExtensionData[0]);
+    // ==================== Extension 1: Server Name Indication (SNI) ====================
+    ExtType := PWord(CurrentExtPtr);
+    ExtType^ := UInt16HostToNetwork(CN_TLS_EXTENSIONTYPE_SERVER_NAME);
+    Inc(CurrentExtPtr, SizeOf(Word));
 
-    // 添加主机名到 SNI
-    CnSetTLSHandShakeServerNameIndicationListLength(S, 0);
-    CnTLSHandShakeServerNameIndicationAddHost(S, AnsiString(edtTLSHost.Text));
+    ExtDataLen := PWord(CurrentExtPtr);
+    Inc(CurrentExtPtr, SizeOf(Word));
 
-    // 设置这个 Extension 的数据长度
-    CnSetTLSHandShakeExtensionsExtensionDataLength(E, 
-      CnGetTLSHandShakeServerNameIndicationListLength(S) + SizeOf(Word));
+    ExtData := CurrentExtPtr;
+    // SNI List Length
+    PWord(ExtData)^ := UInt16HostToNetwork(Length(HOST) + 3);
+    Inc(ExtData, SizeOf(Word));
+    // Name Type (0 = hostname)
+    ExtData^ := CN_TLS_EXTENSION_NAMETYPE_HOSTNAME;
+    Inc(ExtData);
+    // Hostname Length
+    PWord(ExtData)^ := UInt16HostToNetwork(Length(HOST));
+    Inc(ExtData, SizeOf(Word));
+    // Hostname
+    Move(AnsiString(HOST)[1], ExtData^, Length(HOST));
+    Inc(ExtData, Length(HOST));
 
-    // 计算 Extensions 总长度 (Type + Length + Data)
-    CnSetTLSHandShakeExtensionsExtensionLength(E,
-      SizeOf(Word) + SizeOf(Word) + CnGetTLSHandShakeExtensionsExtensionDataLength(E));
+    ExtDataLen^ := UInt16HostToNetwork(Length(HOST) + 3 + 2);
+    CurrentExtPtr := ExtData;
 
-    // 计算整个握手消息的长度
-    TotalHandshakeLen := TCnIntAddress(ExtensionsStart) - TCnIntAddress(C) +
-      SizeOf(Word) + CnGetTLSHandShakeExtensionsExtensionLength(E);
+    // ==================== Extension 2: Supported Groups ====================
+    ExtType := PWord(CurrentExtPtr);
+    ExtType^ := UInt16HostToNetwork(CN_TLS_EXTENSIONTYPE_SUPPORTED_GROUPS);
+    Inc(CurrentExtPtr, SizeOf(Word));
+
+    ExtDataLen := PWord(CurrentExtPtr);
+    Inc(CurrentExtPtr, SizeOf(Word));
+
+    ExtData := CurrentExtPtr;
+    // Supported Groups List Length（4 个组 * 2 字节）
+    PWord(ExtData)^ := UInt16HostToNetwork(8);
+    Inc(ExtData, SizeOf(Word));
+    // Groups
+    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_NAMED_GROUP_X25519);
+    Inc(ExtData, SizeOf(Word));
+    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_NAMED_GROUP_SECP256R1);
+    Inc(ExtData, SizeOf(Word));
+    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_NAMED_GROUP_SECP384R1);
+    Inc(ExtData, SizeOf(Word));
+    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_NAMED_GROUP_SECP521R1);
+    Inc(ExtData, SizeOf(Word));
+
+    ExtDataLen^ := UInt16HostToNetwork(10); // 2 + 8
+    CurrentExtPtr := ExtData;
+
+    // ==================== Extension 3: EC Point Formats ====================
+    ExtType := PWord(CurrentExtPtr);
+    ExtType^ := UInt16HostToNetwork(CN_TLS_EXTENSIONTYPE_EC_POINT_FORMATS);
+    Inc(CurrentExtPtr, SizeOf(Word));
+
+    ExtDataLen := PWord(CurrentExtPtr);
+    Inc(CurrentExtPtr, SizeOf(Word));
+
+    ExtData := CurrentExtPtr;
+    // EC Point Formats Length
+    ExtData^ := 1;
+    Inc(ExtData);
+    // Uncompressed format
+    ExtData^ := 0; // EC_POINT_UNCOMPRESSED;
+    Inc(ExtData);
+
+    ExtDataLen^ := UInt16HostToNetwork(2);
+    CurrentExtPtr := ExtData;
+
+    // ==================== Extension 4: Signature Algorithms ====================
+    ExtType := PWord(CurrentExtPtr);
+    ExtType^ := UInt16HostToNetwork(CN_TLS_EXTENSIONTYPE_SIGNATURE_ALGORITHMS);
+    Inc(CurrentExtPtr, SizeOf(Word));
+
+    ExtDataLen := PWord(CurrentExtPtr);
+    Inc(CurrentExtPtr, SizeOf(Word));
+
+    ExtData := CurrentExtPtr;
+    // Signature Hash Algorithms Length（6 个算法 * 2 字节）
+    PWord(ExtData)^ := UInt16HostToNetwork(12);
+    Inc(ExtData, SizeOf(Word));
+
+    // Algorithms
+    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_SIGN_ALG_ECDSA_SECP256R1_SHA256);
+    Inc(ExtData, SizeOf(Word));
+    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_SIGN_ALG_RSA_PKCS1_SHA256);
+    Inc(ExtData, SizeOf(Word));
+    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_SIGN_ALG_ECDSA_SECP384R1_SHA384);
+    Inc(ExtData, SizeOf(Word));
+    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_SIGN_ALG_RSA_PKCS1_SHA384);
+    Inc(ExtData, SizeOf(Word));
+    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_SIGN_ALG_ECDSA_SECP521R1_SHA512);
+    Inc(ExtData, SizeOf(Word));
+    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_SIGN_ALG_RSA_PKCS1_SHA512);
+    Inc(ExtData, SizeOf(Word));
+
+    ExtDataLen^ := UInt16HostToNetwork(14); // 2 + 12
+    CurrentExtPtr := ExtData;
+
+    // 计算 Extensions 总长度并填充
+    ExtensionsTotalLen := TCnIntAddress(CurrentExtPtr) - TCnIntAddress(ExtensionsStart) - SizeOf(Word);
+    PWord(ExtensionsStart)^ := UInt16HostToNetwork(ExtensionsTotalLen);
+    
+    // 计算整个握手消息的内容长度
+    TotalHandshakeLen :=
+      SizeOf(Word) +                                                    // ProtocolVersion
+      32 +                                                              // Random
+      1 +                                                               // SessionLength
+      C^.SessionLength +                                                // SessionId
+      SizeOf(Word) +                                                    // CipherSuitesLength
+      CnGetTLSHandShakeClientHelloCipherSuitesLength(C) +               // CipherSuites
+      1 +                                                               // CompressionMethodLength
+      CnGetTLSHandShakeClientHelloCompressionMethodLength(C) +          // CompressionMethod
+      SizeOf(Word) +                                                    // ExtensionsLength
+      ExtensionsTotalLen;                                               // Extensions内容
 
     // 设置握手头的内容长度
     CnSetTLSHandShakeHeaderContentLength(B, TotalHandshakeLen);
 
-    // 设置 TLS Record Layer 的 Body 长度 (HandshakeType(1) + Length(3) + Content)
-    CnSetTLSRecordLayerBodyLength(H, 4 + TotalHandshakeLen);
+    // 设置 TLS Record Layer 的 Body 长度
+    CnSetTLSRecordLayerBodyLength(H, 1 + 3 + TotalHandshakeLen);
 
     // 发送 ClientHello 包
-    if CnSend(FTlsClientSocket, H^, CnGetTLSRecordLayerBodyLength(H) + 5, 0) <> SOCKET_ERROR then
+    if CnSend(FTlsClientSocket, H^, 5 + CnGetTLSRecordLayerBodyLength(H), 0) <> SOCKET_ERROR then
     begin
       mmoSSL.Lines.Add('Sent ClientHello Packet, Size: ' +
-        IntToStr(CnGetTLSRecordLayerBodyLength(H) + 5));
+        IntToStr(5 + CnGetTLSRecordLayerBodyLength(H)));
 
       // 接收回包
       FillChar(Buffer, SizeOf(Buffer), 0);
       BytesReceived := CnRecv(FTlsClientSocket, Buffer[0], Length(Buffer), 0);
       if BytesReceived > SizeOf(TCnTLSRecordLayer) then
       begin
-        // 解析 TLS 响应
         H := PCnTLSRecordLayer(@Buffer[0]);
         mmoSSL.Lines.Add(Format('TLSRecordLayer.ContentType %d', [H^.ContentType]));
         mmoSSL.Lines.Add(Format('TLSRecordLayer.MajorVersion %d', [H^.MajorVersion]));
         mmoSSL.Lines.Add(Format('TLSRecordLayer.MinorVersion %d', [H^.MinorVersion]));
         mmoSSL.Lines.Add(Format('TLSRecordLayer.BodyLength %d', [CnGetTLSRecordLayerBodyLength(H)]));
 
-        case Buffer[0] of
+        case H^.ContentType of
           CN_TLS_CONTENT_TYPE_ALERT:
             begin
               A := PCnTLSAlertPacket(@(H^.Body[0]));
@@ -776,10 +878,14 @@ begin
               mmoSSL.Lines.Add(Format('TLSAlertPacket.AlertDescription %d', [A^.AlertDescription]));
 
               case A^.AlertDescription of
-                40: mmoSSL.Lines.Add('Error: Handshake Failure');
-                47: mmoSSL.Lines.Add('Error: Illegal Parameter');
-                50: mmoSSL.Lines.Add('Error: Decode Error');
-                70: mmoSSL.Lines.Add('Error: Protocol Version');
+                40:
+                  mmoSSL.Lines.Add('Error: Handshake Failure');
+                47:
+                  mmoSSL.Lines.Add('Error: Illegal Parameter');
+                50:
+                  mmoSSL.Lines.Add('Error: Decode Error');
+                70:
+                  mmoSSL.Lines.Add('Error: Protocol Version');
               else
                 if A^.AlertLevel = 2 then
                   mmoSSL.Lines.Add('Fatal Error!')
@@ -792,6 +898,165 @@ begin
               mmoSSL.Lines.Add('Received ServerHello!');
               B := PCnTLSHandShakeHeader(@(H^.Body[0]));
               mmoSSL.Lines.Add(Format('HandShakeType: %d', [B^.HandShakeType]));
+
+              // 解析 ServerHello 内容
+              if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO then
+              begin
+                // ServerHello 结构与 ClientHello 类似
+                C := PCnTLSHandShakeClientHello(@B^.Content[0]);
+
+                mmoSSL.Lines.Add('=== ServerHello Details ===');
+                mmoSSL.Lines.Add(Format('Protocol Version: $%4.4x (TLS %d.%d)',
+                    [C^.ProtocolVersion,
+                      (C^.ProtocolVersion shr 8) and $FF - 2,
+                      C^.ProtocolVersion and $FF]));
+
+                mmoSSL.Lines.Add(Format('Random (32 bytes): %s',
+                    [DataToHex(@C^.Random[0], SizeOf(C^.Random))]));
+
+                mmoSSL.Lines.Add(Format('Session ID Length: %d', [C^.SessionLength]));
+                if C^.SessionLength > 0 then
+                begin
+                  T := CnGetTLSHandShakeClientHelloSessionId(C);
+                  mmoSSL.Lines.Add(Format('Session ID: %s', [BytesToHex(T)]));
+                end
+                else
+                  mmoSSL.Lines.Add('Session ID: (empty - no session resumption)');
+
+                // 获取选择的 Cipher Suite（ServerHello 中只有一个）
+                ExtData := @C^.SessionId[0];
+                Inc(ExtData, C^.SessionLength);
+
+                // ServerHello 中 Cipher Suite 是 2 字节
+                PWord(ExtData)^ := UInt16NetworkToHost(PWord(ExtData)^);
+                mmoSSL.Lines.Add(Format('Selected Cipher Suite: $%4.4x - %s',
+                    [PWord(ExtData)^, GetNameFromCipher(PWord(ExtData)^)]));
+                Inc(ExtData, SizeOf(Word));
+
+                // Compression Method (1 字节)
+                mmoSSL.Lines.Add(Format('Compression Method: %d', [ExtData^]));
+                Inc(ExtData);
+
+                // Extensions (如果有)
+                // 计算当前位置距离 HandShake Header Content 起始的偏移
+                // 如果还有剩余数据，则表示有 Extensions
+                CurrentExtPtr := PByte(C);
+                Inc(CurrentExtPtr,
+                  SizeOf(Word) +          // ProtocolVersion
+                  32 +                    // Random
+                  1 +                     // SessionLength
+                  C^.SessionLength +      // SessionId
+                  SizeOf(Word) +          // Cipher Suite
+                  1);                     // Compression Method
+
+                if TCnIntAddress(ExtData) < TCnIntAddress(B) + 4 +
+                  CnGetTLSHandShakeHeaderContentLength(B) then begin
+                  // 读取 Extensions Length
+                  ExtensionsTotalLen := UInt16NetworkToHost(PWord(ExtData)^);
+                  Inc(ExtData, SizeOf(Word));
+                  mmoSSL.Lines.Add(Format('Extensions Length: %d', [ExtensionsTotalLen]));
+
+                  if ExtensionsTotalLen > 0 then
+                  begin
+                    mmoSSL.Lines.Add('=== Server Extensions ===');
+                    CurrentExtPtr := ExtData;
+
+                    while TCnIntAddress(CurrentExtPtr) < TCnIntAddress(ExtData)
+                      + ExtensionsTotalLen do
+                    begin
+                      // Extension Type
+                      ExtType := PWord(CurrentExtPtr);
+                      ExtType^ := UInt16NetworkToHost(ExtType^);
+                      Inc(CurrentExtPtr, SizeOf(Word));
+
+                      // Extension Data Length
+                      ExtDataLen := PWord(CurrentExtPtr);
+                      ExtDataLen^ := UInt16NetworkToHost(ExtDataLen^);
+                      Inc(CurrentExtPtr, SizeOf(Word));
+
+                      mmoSSL.Lines.Add(Format('Extension Type: %d, Length: %d',
+                          [ExtType^, ExtDataLen^]));
+
+                      // 根据类型解析具体内容
+                      case ExtType^ of
+                        CN_TLS_EXTENSIONTYPE_SERVER_NAME:
+                          mmoSSL.Lines.Add('  - Server Name Indication (SNI)');
+                        CN_TLS_EXTENSIONTYPE_SUPPORTED_GROUPS:
+                          begin
+                            mmoSSL.Lines.Add('  - Supported Groups');
+                            // 服务器一般不发送此扩展，但如果发送则解析
+                          end;
+                        CN_TLS_EXTENSIONTYPE_EC_POINT_FORMATS:
+                          begin
+                            mmoSSL.Lines.Add('  - EC Point Formats');
+                            if ExtDataLen^ > 0 then begin
+                              ExtData := CurrentExtPtr;
+                              mmoSSL.Lines.Add(Format('    Formats Count: %d', [ExtData
+                                ^]));
+                              Inc(ExtData);
+                              for I := 0 to Integer(PByte(TCnIntAddress(CurrentExtPtr))
+                                ^) - 1 do begin
+                                case ExtData^ of
+                                  0:
+                                    mmoSSL.Lines.Add('      - Uncompressed');
+                                  1:
+                                    mmoSSL.Lines.Add('      - ANSI X9.62 compressed prime');
+                                  2:
+                                    mmoSSL.Lines.Add('      - ANSI X9.62 compressed char2');
+                                else
+                                  mmoSSL.Lines.Add(Format('      - Unknown format: %d',
+                                    [ExtData^]));
+                                end;
+                                Inc(ExtData);
+                              end;
+                            end;
+                          end;
+                        CN_TLS_EXTENSIONTYPE_SESSION_TICKET:
+                          mmoSSL.Lines.Add('  - Session Ticket');
+                        CN_TLS_EXTENSIONTYPE_ENCRYPT_THEN_MAC:
+                          mmoSSL.Lines.Add('  - Encrypt-then-MAC');
+                        CN_TLS_EXTENSIONTYPE_EXTENDED_MASTER_SECRET:
+                          mmoSSL.Lines.Add('  - Extended Master Secret');
+                        CN_TLS_EXTENSIONTYPE_RENEGOTIATION_INFO:
+                          begin
+                            mmoSSL.Lines.Add('  - Renegotiation Info');
+                            if ExtDataLen^ > 0 then
+                            begin
+                              ExtData := CurrentExtPtr;
+                              mmoSSL.Lines.Add(Format('    Renegotiated Connection Length: %d',
+                                [ExtData^]));
+                            end;
+                          end;
+                        CN_TLS_EXTENSIONTYPE_SUPPORTED_VERSIONS:
+                          begin
+                            mmoSSL.Lines.Add('  - Supported Versions');
+                            if ExtDataLen^ = 2 then
+                            begin
+                              ExtData := CurrentExtPtr;
+                              mmoSSL.Lines.Add(Format('    Selected Version: $%4.4x',
+                                  [UInt16NetworkToHost(PWord(ExtData)^)]));
+                            end;
+                          end;
+                        CN_TLS_EXTENSIONTYPE_KEY_SHARE:
+                          begin
+                            mmoSSL.Lines.Add('  - Key Share (TLS 1.3)');
+                            // TLS 1.3 的扩展，如果出现说明协商了 TLS 1.3
+                          end;
+                      else
+                        mmoSSL.Lines.Add(Format('  - Unknown Extension Type: %d',
+                          [ExtType^]));
+                      end;
+
+                      // 跳到下一个 Extension
+                      Inc(CurrentExtPtr, ExtDataLen^);
+                    end;
+                  end;
+                end
+                else
+                  mmoSSL.Lines.Add('No Extensions in ServerHello');
+
+                mmoSSL.Lines.Add('=== End of ServerHello ===');
+              end;
             end;
         end;
       end
@@ -803,7 +1068,7 @@ begin
   end
   else
     mmoSSL.Lines.Add('Connect Failed');
-    
+
   CnCloseSocket(FTlsClientSocket);
 end;
 

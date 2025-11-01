@@ -673,6 +673,36 @@ const
   {* TLS/SSL 中的 Extension 中的 Server Name Indication 中的 NameType，来自 RFC 6066}
   CN_TLS_EXTENSION_NAMETYPE_HOSTNAME                             = 0;
 
+  {* TLS/SSL 中的 Extension 中的 signature_algorithms 字段，来自 RFC8446}
+  CN_TLS_SIGN_ALG_RSA_PKCS1_SHA256                               = $0401;
+  CN_TLS_SIGN_ALG_RSA_PKCS1_SHA384                               = $0501;
+  CN_TLS_SIGN_ALG_RSA_PKCS1_SHA512                               = $0601;
+  CN_TLS_SIGN_ALG_ECDSA_SECP256R1_SHA256                         = $0403;
+  CN_TLS_SIGN_ALG_ECDSA_SECP384R1_SHA384                         = $0503;
+  CN_TLS_SIGN_ALG_ECDSA_SECP521R1_SHA512                         = $0603;
+  CN_TLS_SIGN_ALG_RSA_PSS_RSAE_SHA256                            = $0804;
+  CN_TLS_SIGN_ALG_RSA_PSS_RSAE_SHA384                            = $0805;
+  CN_TLS_SIGN_ALG_RSA_PSS_RSAE_SHA512                            = $0806;
+  CN_TLS_SIGN_ALG_ED25519                                        = $0807;
+  CN_TLS_SIGN_ALG_ED448                                          = $0808;
+  CN_TLS_SIGN_ALG_RSA_PSS_PSS_SHA256                             = $0809;
+  CN_TLS_SIGN_ALG_RSA_PSS_PSS_SHA384                             = $080A;
+  CN_TLS_SIGN_ALG_RSA_PSS_PSS_SHA512                             = $080B;
+  CN_TLS_SIGN_ALG_RSA_PKCS1_SHA1                                 = $0201;
+  CN_TLS_SIGN_ALG_ECDSA_SHA1                                     = $0203;
+
+  {* TLS/SSL 中的 Extension 中的椭圆曲线 Supported Groups 类型，来自 RFC8446}
+  CN_TLS_NAMED_GROUP_SECP256R1                                   = $0017;
+  CN_TLS_NAMED_GROUP_SECP384R1                                   = $0018;
+  CN_TLS_NAMED_GROUP_SECP521R1                                   = $0019;
+  CN_TLS_NAMED_GROUP_X25519                                      = $001D;
+  CN_TLS_NAMED_GROUP_X448                                        = $001E;
+  CN_TLS_NAMED_GROUP_FFDHE2048                                   = $0100;
+  CN_TLS_NAMED_GROUP_FFDHE3072                                   = $0101;
+  CN_TLS_NAMED_GROUP_FFDHE4096                                   = $0102;
+  CN_TLS_NAMED_GROUP_FFDHE6144                                   = $0103;
+  CN_TLS_NAMED_GROUP_FFDHE8192                                   = $0104;
+
 type
   TCnIPv6Array = array[0..7] of Word;
 
