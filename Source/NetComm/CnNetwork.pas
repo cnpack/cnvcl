@@ -1417,6 +1417,7 @@ type
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 }
+
   TCnTLSHandShakeClientHello = packed record
     ProtocolVersion:          Word;                    // 真正有效的 TLS/SSL 版本号，对应 CN_TLS_SSL_VERSION_*
     Random:                   array[0..31] of Byte;    // 32 字节随机数，其中前 4 字节可能是时间戳
@@ -1430,6 +1431,32 @@ type
   end;
 
   PCnTLSHandShakeClientHello = ^TCnTLSHandShakeClientHello;
+
+{
+  TLS/SSL 握手包 ServerHello 示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeHeader 的 Content 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |       ProtocolVersion         |        Random ...             |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeServerHello = packed record
+    ProtocolVersion:          Word;                    // 真正有效的 TLS/SSL 版本号，对应 CN_TLS_SSL_VERSION_*
+    Random:                   array[0..31] of Byte;    // 32 字节随机数，其中前 4 字节可能是时间戳
+    SessionLength:            Byte;                    // 1 字节 SessionId 长度，常用 32
+    SessionId:                array[0..31] of Byte;    // 实际长度为 [0..SessionLength - 1]
+    CipherSuite:              Word;                    // 单个选中的 CipherSuite
+    CompressionMethod:        Byte;                    // 1 字节压缩方法
+    Extensions:               TCnTLSHandShakeExtensions;  // 扩展握手包头，可能没有
+  end;
+
+  PCnTLSHandShakeServerHello = ^TCnTLSHandShakeServerHello;
 
 // ======================== IP 包头系列函数 ====================================
 
@@ -1862,6 +1889,30 @@ function CnGetTLSHandShakeClientHelloExtensions(const ClientHello: PCnTLSHandSha
 
 function CnGetTLSHandShakeClientHelloExtensions(const HandShakeHeader: PCnTLSHandShakeHeader): PCnTLSHandShakeExtensions; overload;
 {* 获取 TLS/SSL 握手协议报文 ClientHello 类型中完整包头的长度，结合本包之外的握手包内容长度，可判断是否存在，无则返回 nil}
+
+function CnGetTLSHandShakeServerHelloSessionId(const ServerHello: PCnTLSHandShakeServerHello): TBytes;
+{* 获取 TLS/SSL 握手协议报文 ServerHello 类型中的 SessionId}
+
+procedure CnSetTLSHandShakeServerHelloSessionId(const ServerHello: PCnTLSHandShakeServerHello; SessionId: TBytes);
+{* 设置 TLS/SSL 握手协议报文 ServerHello 类型中的 SessionId}
+
+function CnGetTLSHandShakeServerHelloCipherSuite(const ServerHello: PCnTLSHandShakeServerHello): Word;
+{* 获取 TLS/SSL 握手协议报文 ServerHello 类型中的单个 CipherSuite}
+
+procedure CnSetTLSHandShakeServerHelloCipherSuite(const ServerHello: PCnTLSHandShakeServerHello; CipherSuite: Word);
+{* 设置 TLS/SSL 握手协议报文 ServerHello 类型中的单个 CipherSuite}
+
+function CnGetTLSHandShakeServerHelloCompressionMethod(const ServerHello: PCnTLSHandShakeServerHello): Byte;
+{* 获取 TLS/SSL 握手协议报文 ServerHello 类型中的单个 CompressionMethod}
+
+procedure CnSetTLSHandShakeServerHelloCompressionMethod(const ServerHello: PCnTLSHandShakeServerHello; CompressionMethod: Byte);
+{* 设置 TLS/SSL 握手协议报文 ServerHello 类型中的单个 CompressionMethod}
+
+function CnGetTLSHandShakeServerHelloExtensions(const ServerHello: PCnTLSHandShakeServerHello): PCnTLSHandShakeExtensions; overload;
+{* 获取 TLS/SSL 握手协议报文 ServerHello 类型中扩展包头的地址，但单纯从本包内容看，无法判断其是否真实存在}
+
+function CnGetTLSHandShakeServerHelloExtensions(const HandShakeHeader: PCnTLSHandShakeHeader): PCnTLSHandShakeExtensions; overload;
+{* 获取 TLS/SSL 握手协议报文 ServerHello 类型中完整包头的长度，结合本包之外的握手包内容长度，可判断是否存在，无则返回 nil}
 
 // =========================== IP 地址转换函数 =================================
 
@@ -3265,6 +3316,88 @@ begin
   P := CnGetTLSHandShakeClientHelloExtensions(PCnTLSHandShakeClientHello(@HandShakeHeader^.Content[0]));
 
   // 如果握手包头里的内容长度大于 ClientHello 的实际长度，才有扩展头存在
+  if L > (TCnIntAddress(P) - TCnIntAddress(HandShakeHeader)) then
+    Result := PCnTLSHandShakeExtensions(P)
+  else
+    Result := nil;
+end;
+
+function CnGetTLSHandShakeServerHelloSessionId(const ServerHello: PCnTLSHandShakeServerHello): TBytes;
+begin
+  SetLength(Result, ServerHello^.SessionLength);
+  if ServerHello^.SessionLength > 0 then
+    Move(ServerHello^.SessionId[0], Result[0], ServerHello^.SessionLength);
+end;
+
+procedure CnSetTLSHandShakeServerHelloSessionId(const ServerHello: PCnTLSHandShakeServerHello; SessionId: TBytes);
+begin
+  ServerHello^.SessionLength := Byte(Length(SessionId));
+  if ServerHello^.SessionLength > 0 then
+    Move(SessionId[0], ServerHello^.SessionId[0], ServerHello^.SessionLength);
+end;
+
+function CnGetTLSHandShakeServerHelloCipherSuite(const ServerHello: PCnTLSHandShakeServerHello): Word;
+var
+  P: PByte;
+  T: PWord;
+begin
+  P := @(ServerHello^.SessionLength);
+  Inc(P, SizeOf(Byte) + P^);
+  T := PWord(P);
+  Result := UInt16NetworkToHost(T^);
+end;
+
+procedure CnSetTLSHandShakeServerHelloCipherSuite(const ServerHello: PCnTLSHandShakeServerHello; CipherSuite: Word);
+var
+  P: PByte;
+  T: PWord;
+begin
+  P := @(ServerHello^.SessionLength);
+  Inc(P, SizeOf(Byte) + P^);
+  T := PWord(P);
+  T^ := UInt16HostToNetwork(CipherSuite);
+end;
+
+function CnGetTLSHandShakeServerHelloCompressionMethod(const ServerHello: PCnTLSHandShakeServerHello): Byte;
+var
+  P: PByte;
+begin
+  P := @(ServerHello^.SessionLength);
+  Inc(P, SizeOf(Byte) + P^);
+  Inc(P, SizeOf(Word));
+  Result := P^;
+end;
+
+procedure CnSetTLSHandShakeServerHelloCompressionMethod(const ServerHello: PCnTLSHandShakeServerHello; CompressionMethod: Byte);
+var
+  P: PByte;
+begin
+  P := @(ServerHello^.SessionLength);
+  Inc(P, SizeOf(Byte) + P^);
+  Inc(P, SizeOf(Word));
+  P^ := CompressionMethod;
+end;
+
+function CnGetTLSHandShakeServerHelloExtensions(const ServerHello: PCnTLSHandShakeServerHello): PCnTLSHandShakeExtensions;
+var
+  B: PByte;
+begin
+  B := @ServerHello^.SessionId[0];
+  Inc(B, ServerHello^.SessionLength);
+  Inc(B, SizeOf(Word)); // 跳过 CipherSuite 双字节，指向 CompressionMethod
+  Inc(B, SizeOf(Byte)); // 跳过 CompressionMethod 字节
+  Result := PCnTLSHandShakeExtensions(B);
+end;
+
+function CnGetTLSHandShakeServerHelloExtensions(const HandShakeHeader: PCnTLSHandShakeHeader): PCnTLSHandShakeExtensions;
+var
+  L: Cardinal;
+  P: PCnTLSHandShakeExtensions;
+begin
+  L := CnGetTLSHandShakeHeaderContentLength(HandShakeHeader);
+  P := CnGetTLSHandShakeServerHelloExtensions(PCnTLSHandShakeServerHello(@HandShakeHeader^.Content[0]));
+
+  // 如果握手包头里的内容长度大于 ServerHello 的实际长度，才有扩展头存在
   if L > (TCnIntAddress(P) - TCnIntAddress(HandShakeHeader)) then
     Result := PCnTLSHandShakeExtensions(P)
   else

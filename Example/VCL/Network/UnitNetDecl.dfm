@@ -121,7 +121,7 @@ object FormNetDecl: TFormNetDecl
       Caption = 'SSL/TLS'
       ImageIndex = 1
       object bvl1: TBevel
-        Left = 336
+        Left = 520
         Top = 16
         Width = 25
         Height = 25
@@ -139,9 +139,9 @@ object FormNetDecl: TFormNetDecl
       object btnSSLParseTest: TButton
         Left = 176
         Top = 16
-        Width = 145
+        Width = 177
         Height = 25
-        Caption = 'Parse ClientHello Test'
+        Caption = 'Parse ClientHello/ServerHello Test'
         TabOrder = 1
         OnClick = btnSSLParseTestClick
       end
@@ -153,7 +153,7 @@ object FormNetDecl: TFormNetDecl
         TabOrder = 2
       end
       object btnSSLClient: TButton
-        Left = 352
+        Left = 536
         Top = 16
         Width = 75
         Height = 25
@@ -162,7 +162,7 @@ object FormNetDecl: TFormNetDecl
         OnClick = btnSSLClientClick
       end
       object edtTLSHost: TEdit
-        Left = 440
+        Left = 624
         Top = 16
         Width = 121
         Height = 21
@@ -170,7 +170,7 @@ object FormNetDecl: TFormNetDecl
         Text = '104.238.140.188'
       end
       object edtTLSPort: TEdit
-        Left = 568
+        Left = 752
         Top = 16
         Width = 33
         Height = 21

@@ -124,7 +124,7 @@ const
     '1603010200' + 
     '010001FC' +
     '0303' + 'FB55143D5EA1D3D75161F4F1C4D005CC5481ADE320C1A7CC2D63584EFBFB6A8A' + // 32 字节 Random
-    '20' + '2D028CC0B79560C101974EA1F6F16992E14C54565751FC0214FFDE2B782D52C8'+    // 32 字节 Session
+    '20' + '2D028CC0B79560C101974EA1F6F16992E14C54565751FC0214FFDE2B782D52C8' +   // 32 字节 Session
     '0020' + 'CACA130113021303C02BC02FC02CC030CCA9CCA8C013C014009C009D002F0035' + // 32 字节的 CipherSuites
     '01' + '00' +  // 压缩
     '0193' + // 扩展总长度，后面的 806 字节
@@ -142,6 +142,13 @@ const
     '0000000000000000000000000000000000000000000000000000000000000000' +
     '0000000000000000000000000000000000000000000000000000000000000000' +
     '0000000000';
+
+  DATA_SERVER_HELLO =
+    '1603030058' +
+    '02000054' +
+    '0303' + '0CCF42C46A501B5A8A32F9D0C6AACC6E88E034AC163C21F4749DC64A9F847A4E' +
+    '20' + '8C37281CBEC0C9C167FBC6BA27CAB6F2C134154AA716692505CAD97843D898AE' +
+    'C02B'+ '00' + '000C' + '00000000000B00040300010216030308350B0008310008';
 
 var
   WSAIoctl: TWSAIoctl = nil;
@@ -609,6 +616,10 @@ var
   P1: PCnTLSRecordLayer;
   P2: PCnTLSHandShakeHeader;
   P3: PCnTLSHandShakeClientHello;
+  S1: PCnTLSRecordLayer;
+  S2: PCnTLSHandShakeHeader;
+  S3: PCnTLSHandShakeServerHello;
+  SE: PCnTLSHandShakeExtensions;
 begin
   mmoSSL.Lines.Clear;
   Data := HexToBytes(DATA_CLIENT_HELLO);
@@ -637,6 +648,30 @@ begin
   mmoSSL.Lines.Add(Format('TLSHandShakeClientHello.CompressionMethodLength: %d', [CnGetTLSHandShakeClientHelloCompressionMethodLength(P3)]));
   T := CnGetTLSHandShakeClientHelloCompressionMethod(P3);
   mmoSSL.Lines.Add(Format('TLSHandShakeClientHello.CompressionMethod: %s', [BytesToHex(T)]));
+
+  mmoSSL.Lines.Add('');
+  Data := HexToBytes(DATA_SERVER_HELLO);
+  S1 := PCnTLSRecordLayer(@Data[0]);
+  mmoSSL.Lines.Add(Format('TLSRecordLayer.ContentType %d', [S1^.ContentType]));
+  mmoSSL.Lines.Add(Format('TLSRecordLayer.MajorVersion %d', [S1^.MajorVersion]));
+  mmoSSL.Lines.Add(Format('TLSRecordLayer.MinorVersion %d', [S1^.MinorVersion]));
+  mmoSSL.Lines.Add(Format('TLSRecordLayer.BodyLength %d', [CnGetTLSRecordLayerBodyLength(S1)]));
+
+  S2 := PCnTLSHandShakeHeader(@(S1^.Body));
+  mmoSSL.Lines.Add(Format('TLSHandShakeHeader.HandShakeType %d', [S2^.HandShakeType]));
+  mmoSSL.Lines.Add(Format('TLSHandShakeHeader.Length %d', [CnGetTLSHandShakeHeaderContentLength(S2)]));
+
+  S3 := PCnTLSHandShakeServerHello(@(S2^.Content));
+  mmoSSL.Lines.Add(Format('TLSHandShakeServerHello.ProtocolVersion $%4.4x', [S3^.ProtocolVersion]));
+  mmoSSL.Lines.Add(Format('TLSHandShakeServerHello.Random32: %s', [DataToHex(@S3^.Random[0], SizeOf(S3^.Random))]));
+  mmoSSL.Lines.Add(Format('TLSHandShakeServerHello.SessionLength %d', [S3^.SessionLength]));
+  T := CnGetTLSHandShakeServerHelloSessionId(S3);
+  mmoSSL.Lines.Add(Format('TLSHandShakeServerHello.SessionId: %s', [BytesToHex(T)]));
+  mmoSSL.Lines.Add(Format('TLSHandShakeServerHello.CipherSuite: %4.4x %s', [CnGetTLSHandShakeServerHelloCipherSuite(S3), GetNameFromCipher(CnGetTLSHandShakeServerHelloCipherSuite(S3))]));
+  mmoSSL.Lines.Add(Format('TLSHandShakeServerHello.CompressionMethod: %d', [CnGetTLSHandShakeServerHelloCompressionMethod(S3)]));
+
+  SE := CnGetTLSHandShakeServerHelloExtensions(S3);
+  mmoSSL.Lines.Add(Format('TLSHandShakeServerHello.ExtensionLength: %d', [CnGetTLSHandShakeExtensionsExtensionLength(SE)]));
 end;
 
 procedure TFormNetDecl.btnSSLClientClick(Sender: TObject);
@@ -659,10 +694,12 @@ var
   ExtensionsTotalLen: Word;
   ExtType: PWord;
   ExtDataLen: PWord;
-  ExtData: PByte;
+  ExtData, ExtTmpData: PByte;
 
   T: TBytes;
   I: Integer;
+  S: PCnTLSHandShakeServerHello;
+  E: PCnTLSHandShakeExtensions;
 begin
   FTlsClientSocket := CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if FTlsClientSocket = INVALID_SOCKET then
@@ -902,57 +939,54 @@ begin
               // 解析 ServerHello 内容
               if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO then
               begin
-                // ServerHello 结构与 ClientHello 类似
-                C := PCnTLSHandShakeClientHello(@B^.Content[0]);
-
+                S := PCnTLSHandShakeServerHello(@B^.Content[0]);
                 mmoSSL.Lines.Add('=== ServerHello Details ===');
-                mmoSSL.Lines.Add(Format('Protocol Version: $%4.4x (TLS %d.%d)',
-                    [C^.ProtocolVersion,
-                      (C^.ProtocolVersion shr 8) and $FF - 2,
-                      C^.ProtocolVersion and $FF]));
+                mmoSSL.Lines.Add(Format('Protocol Version: $%4.4x',
+                    [S^.ProtocolVersion]));
 
-                mmoSSL.Lines.Add(Format('Random (32 bytes): %s',
-                    [DataToHex(@C^.Random[0], SizeOf(C^.Random))]));
+                mmoSSL.Lines.Add(Format('Random (32 Bytes): %s',
+                    [DataToHex(@S^.Random[0], SizeOf(S^.Random))]));
 
-                mmoSSL.Lines.Add(Format('Session ID Length: %d', [C^.SessionLength]));
-                if C^.SessionLength > 0 then
+                mmoSSL.Lines.Add(Format('Session ID Length: %d', [S^.SessionLength]));
+                if S^.SessionLength > 0 then
                 begin
-                  T := CnGetTLSHandShakeClientHelloSessionId(C);
+                  T := CnGetTLSHandShakeServerHelloSessionId(S);
                   mmoSSL.Lines.Add(Format('Session ID: %s', [BytesToHex(T)]));
                 end
                 else
                   mmoSSL.Lines.Add('Session ID: (empty - no session resumption)');
 
                 // 获取选择的 Cipher Suite（ServerHello 中只有一个）
-                ExtData := @C^.SessionId[0];
-                Inc(ExtData, C^.SessionLength);
+                ExtData := @S^.SessionId[0];
+                Inc(ExtData, S^.SessionLength);
 
-                // ServerHello 中 Cipher Suite 是 2 字节
-                PWord(ExtData)^ := UInt16NetworkToHost(PWord(ExtData)^);
+                // ServerHello 中 Cipher Suite 是 2 字节，没长度了
                 mmoSSL.Lines.Add(Format('Selected Cipher Suite: $%4.4x - %s',
-                    [PWord(ExtData)^, GetNameFromCipher(PWord(ExtData)^)]));
+                    [CnGetTLSHandShakeServerHelloCipherSuite(S), GetNameFromCipher(CnGetTLSHandShakeServerHelloCipherSuite(S))]));
                 Inc(ExtData, SizeOf(Word));
 
                 // Compression Method (1 字节)
-                mmoSSL.Lines.Add(Format('Compression Method: %d', [ExtData^]));
+                mmoSSL.Lines.Add(Format('Compression Method: %d', [CnGetTLSHandShakeServerHelloCompressionMethod(S)]));
                 Inc(ExtData);
 
                 // Extensions (如果有)
                 // 计算当前位置距离 HandShake Header Content 起始的偏移
                 // 如果还有剩余数据，则表示有 Extensions
-                CurrentExtPtr := PByte(C);
+                CurrentExtPtr := PByte(S);
                 Inc(CurrentExtPtr,
                   SizeOf(Word) +          // ProtocolVersion
                   32 +                    // Random
                   1 +                     // SessionLength
-                  C^.SessionLength +      // SessionId
+                  S^.SessionLength +      // SessionId
                   SizeOf(Word) +          // Cipher Suite
                   1);                     // Compression Method
 
                 if TCnIntAddress(ExtData) < TCnIntAddress(B) + 4 +
-                  CnGetTLSHandShakeHeaderContentLength(B) then begin
+                  CnGetTLSHandShakeHeaderContentLength(B) then
+                begin
+                  E := CnGetTLSHandShakeServerHelloExtensions(S);
                   // 读取 Extensions Length
-                  ExtensionsTotalLen := UInt16NetworkToHost(PWord(ExtData)^);
+                  ExtensionsTotalLen := CnGetTLSHandShakeExtensionsExtensionLength(E);
                   Inc(ExtData, SizeOf(Word));
                   mmoSSL.Lines.Add(Format('Extensions Length: %d', [ExtensionsTotalLen]));
 
@@ -975,7 +1009,7 @@ begin
                       Inc(CurrentExtPtr, SizeOf(Word));
 
                       mmoSSL.Lines.Add(Format('Extension Type: %d, Length: %d',
-                          [ExtType^, ExtDataLen^]));
+                        [ExtType^, ExtDataLen^]));
 
                       // 根据类型解析具体内容
                       case ExtType^ of
@@ -989,25 +1023,26 @@ begin
                         CN_TLS_EXTENSIONTYPE_EC_POINT_FORMATS:
                           begin
                             mmoSSL.Lines.Add('  - EC Point Formats');
-                            if ExtDataLen^ > 0 then begin
-                              ExtData := CurrentExtPtr;
-                              mmoSSL.Lines.Add(Format('    Formats Count: %d', [ExtData
+                            if ExtDataLen^ > 0 then
+                            begin
+                              ExtTmpData := CurrentExtPtr;
+                              mmoSSL.Lines.Add(Format('    Formats Count: %d', [ExtTmpData
                                 ^]));
-                              Inc(ExtData);
-                              for I := 0 to Integer(PByte(TCnIntAddress(CurrentExtPtr))
-                                ^) - 1 do begin
-                                case ExtData^ of
+                              Inc(ExtTmpData);
+                              for I := 0 to Integer(PByte(TCnIntAddress(CurrentExtPtr))^) - 1 do
+                              begin
+                                case ExtTmpData^ of
                                   0:
                                     mmoSSL.Lines.Add('      - Uncompressed');
                                   1:
-                                    mmoSSL.Lines.Add('      - ANSI X9.62 compressed prime');
+                                    mmoSSL.Lines.Add('      - ANSI X9.62 Compressed Prime');
                                   2:
-                                    mmoSSL.Lines.Add('      - ANSI X9.62 compressed char2');
+                                    mmoSSL.Lines.Add('      - ANSI X9.62 Compressed Char2');
                                 else
-                                  mmoSSL.Lines.Add(Format('      - Unknown format: %d',
-                                    [ExtData^]));
+                                  mmoSSL.Lines.Add(Format('      - Unknown Format: %d',
+                                    [ExtTmpData^]));
                                 end;
-                                Inc(ExtData);
+                                Inc(ExtTmpData);
                               end;
                             end;
                           end;
