@@ -679,7 +679,7 @@ const
   HOST: AnsiString = 'www.cnpack.org';
 var
   SockAddress: TSockAddr;
-  Buffer: array[0..2047] of Byte;
+  Buffer: array[0..4095] of Byte;
   Ciphers: TWords;
   H: PCnTLSRecordLayer;
   B: PCnTLSHandShakeHeader;
@@ -705,6 +705,9 @@ var
   I: Integer;
   S: PCnTLSHandShakeServerHello;
 
+  CerBytes: Cardinal;
+  Cer: PCnTLSHandShakeCertificate;
+  CI: PCnTLSHandShakeCertificateItem;
 begin
   FTlsClientSocket := CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if FTlsClientSocket = INVALID_SOCKET then
@@ -834,16 +837,24 @@ begin
       mmoSSL.Lines.Add('Sent ClientHello Packet, Size: ' +
         IntToStr(5 + CnGetTLSRecordLayerBodyLength(H)));
 
-      // 接收回包
+      mmoSSL.Lines.Add('');
+
+      // 等一会儿接收回包
+      Sleep(1000);
+
       FillChar(Buffer, SizeOf(Buffer), 0);
       BytesReceived := CnRecv(FTlsClientSocket, Buffer[0], Length(Buffer), 0);
       if BytesReceived > SizeOf(TCnTLSRecordLayer) then
       begin
+        mmoSSL.Lines.Add(Format('SSL/TLS Get Response %d', [BytesReceived]));
+
         H := PCnTLSRecordLayer(@Buffer[0]);
         mmoSSL.Lines.Add(Format('TLSRecordLayer.ContentType %d', [H^.ContentType]));
         mmoSSL.Lines.Add(Format('TLSRecordLayer.MajorVersion %d', [H^.MajorVersion]));
         mmoSSL.Lines.Add(Format('TLSRecordLayer.MinorVersion %d', [H^.MinorVersion]));
         mmoSSL.Lines.Add(Format('TLSRecordLayer.BodyLength %d', [CnGetTLSRecordLayerBodyLength(H)]));
+
+        TotalHandshakeLen := 5 + CnGetTLSRecordLayerBodyLength(H);
 
         case H^.ContentType of
           CN_TLS_CONTENT_TYPE_ALERT:
@@ -1031,6 +1042,121 @@ begin
                 mmoSSL.Lines.Add('=== End of ServerHello ===');
               end;
             end;
+        end;
+
+        // 还有第二个包
+        if TotalHandshakeLen < BytesReceived then
+        begin
+          H := PCnTLSRecordLayer(@Buffer[TotalHandshakeLen]);
+          mmoSSL.Lines.Add(Format('2 TLSRecordLayer.ContentType %d', [H^.ContentType]));
+          mmoSSL.Lines.Add(Format('2 TLSRecordLayer.MajorVersion %d', [H^.MajorVersion]));
+          mmoSSL.Lines.Add(Format('2 TLSRecordLayer.MinorVersion %d', [H^.MinorVersion]));
+          mmoSSL.Lines.Add(Format('2 TLSRecordLayer.BodyLength %d', [CnGetTLSRecordLayerBodyLength(H)]));
+
+          TotalHandshakeLen := TotalHandshakeLen + 5 + CnGetTLSRecordLayerBodyLength(H);
+        end
+        else
+          Exit;
+
+        // 第二个包如果是握手包
+        if H^.ContentType = CN_TLS_CONTENT_TYPE_HANDSHAKE then
+        begin
+          B := PCnTLSHandShakeHeader(@(H^.Body[0]));
+          mmoSSL.Lines.Add(Format('2 HandShakeType: %d', [B^.HandShakeType]));
+
+          // 如果是服务器证书包
+          if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_CERTIFICATE then
+          begin
+            Cer := PCnTLSHandShakeCertificate(@B^.Content[0]);
+            mmoSSL.Lines.Add('=== Server Certificates ===');
+            mmoSSL.Lines.Add('2 Certificate Total Cert List Bytes: ' + IntToStr(CnGetTLSHandShakeCertificateListLength(Cer)));
+
+            // 第一个证书
+            CerBytes := 0;
+            CI := CnGetTLSHandShakeCertificateItem(Cer);
+            Inc(CerBytes, 3 + CnGetTLSHandShakeCertificateItemCertificateLength(CI));
+
+            mmoSSL.Lines.Add(Format('2 Certificate #1 Cert Bytes %d', [CnGetTLSHandShakeCertificateItemCertificateLength(CI)]));
+            mmoSSL.Lines.Add(BytesToHex(CnGetTLSHandShakeCertificateItemCertificate(CI)));
+
+            // 第二个证书
+            if CerBytes < CnGetTLSHandShakeCertificateListLength(Cer) then
+            begin
+              CI := CnGetTLSHandShakeCertificateItem(Cer, CI);
+              Inc(CerBytes, 3 + CnGetTLSHandShakeCertificateItemCertificateLength(CI));
+
+              mmoSSL.Lines.Add(Format('2 Certificate #2 Cert Bytes %d', [CnGetTLSHandShakeCertificateItemCertificateLength(CI)]));
+              mmoSSL.Lines.Add(BytesToHex(CnGetTLSHandShakeCertificateItemCertificate(CI)));
+
+              // 第三个证书
+              if CerBytes < CnGetTLSHandShakeCertificateListLength(Cer) then
+              begin
+                CI := CnGetTLSHandShakeCertificateItem(Cer, CI);
+                Inc(CerBytes, 3 + CnGetTLSHandShakeCertificateItemCertificateLength(CI));
+
+                mmoSSL.Lines.Add(Format('2 Certificate #3 Cert Bytes %d', [CnGetTLSHandShakeCertificateItemCertificateLength(CI)]));
+                mmoSSL.Lines.Add(BytesToHex(CnGetTLSHandShakeCertificateItemCertificate(CI)));
+
+                if CerBytes < CnGetTLSHandShakeCertificateListLength(Cer) then
+                  mmoSSL.Lines.Add('2 Certificate Other Certs Ignored.');
+              end;
+            end;
+            mmoSSL.Lines.Add('=== Server Certificates End ===');
+          end;
+        end;
+
+        // 还有第三个包
+        if TotalHandshakeLen < BytesReceived then
+        begin
+          H := PCnTLSRecordLayer(@Buffer[TotalHandshakeLen]);
+          mmoSSL.Lines.Add(Format('3 TLSRecordLayer.ContentType %d', [H^.ContentType]));
+          mmoSSL.Lines.Add(Format('3 TLSRecordLayer.MajorVersion %d', [H^.MajorVersion]));
+          mmoSSL.Lines.Add(Format('3 TLSRecordLayer.MinorVersion %d', [H^.MinorVersion]));
+          mmoSSL.Lines.Add(Format('3 TLSRecordLayer.BodyLength %d', [CnGetTLSRecordLayerBodyLength(H)]));
+
+          TotalHandshakeLen := TotalHandshakeLen + 5 + CnGetTLSRecordLayerBodyLength(H);
+        end
+        else
+          Exit;
+
+        // 第三个包如果是握手包
+        if H^.ContentType = CN_TLS_CONTENT_TYPE_HANDSHAKE then
+        begin
+          B := PCnTLSHandShakeHeader(@(H^.Body[0]));
+          mmoSSL.Lines.Add(Format('3 HandShakeType: %d', [B^.HandShakeType]));
+
+          // 如果是服务器密钥交换包
+          if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_KEY_EXCHANGE_RESERVED then
+          begin
+
+          end;
+        end;
+
+        // 还有第四个包
+        if TotalHandshakeLen < BytesReceived then
+        begin
+          H := PCnTLSRecordLayer(@Buffer[TotalHandshakeLen]);
+          mmoSSL.Lines.Add(Format('4 TLSRecordLayer.ContentType %d', [H^.ContentType]));
+          mmoSSL.Lines.Add(Format('4 TLSRecordLayer.MajorVersion %d', [H^.MajorVersion]));
+          mmoSSL.Lines.Add(Format('4 TLSRecordLayer.MinorVersion %d', [H^.MinorVersion]));
+          mmoSSL.Lines.Add(Format('4 TLSRecordLayer.BodyLength %d', [CnGetTLSRecordLayerBodyLength(H)]));
+
+          TotalHandshakeLen := TotalHandshakeLen + 5 + CnGetTLSRecordLayerBodyLength(H);
+        end
+        else
+          Exit;
+
+        // 第四个包如果是握手包
+        if H^.ContentType = CN_TLS_CONTENT_TYPE_HANDSHAKE then
+        begin
+          B := PCnTLSHandShakeHeader(@(H^.Body[0]));
+          mmoSSL.Lines.Add(Format('4 HandShakeType: %d', [B^.HandShakeType]));
+
+          // 如果是 ServerHello 结束，才完成这一轮接收
+          if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE_RESERVED then
+          begin
+
+          end;
         end;
       end
       else

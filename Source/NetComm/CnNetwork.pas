@@ -1543,6 +1543,48 @@ type
 
   PCnTLSHandShakeServerHello = ^TCnTLSHandShakeServerHello;
 
+{
+  TLS/SSL 握手包 CertificateItem 示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeCertificate 的 Certificates 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |              CertificateLength                |Certificate ...|
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeCertificateItem = packed record
+    CertificateLength:        array[0..2] of Byte;          // 证书总字节长度，不包含本仨字节
+    Certificate:              array[0..0] of Byte;          // 证书编码数据
+  end;
+
+  PCnTLSHandShakeCertificateItem = ^TCnTLSHandShakeCertificateItem;
+
+{
+  TLS/SSL 握手包 Certificate 示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeHeader 的 Content 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |            CertificateListLength              |Certificates...|
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeCertificate = packed record
+    CertificateListLength:    array[0..2] of Byte;          // 证书列表总字节长度，不包含本仨字节
+    Certificates:             TCnTLSHandShakeCertificateItem;   // 第一个起始数据
+  end;
+
+  PCnTLSHandShakeCertificate = ^TCnTLSHandShakeCertificate;
+
 // ======================== IP 包头系列函数 ====================================
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
@@ -2038,6 +2080,28 @@ function CnGetTLSHandShakeServerHelloExtensions(const ServerHello: PCnTLSHandSha
 
 function CnGetTLSHandShakeServerHelloExtensions(const HandShakeHeader: PCnTLSHandShakeHeader): PCnTLSHandShakeExtensions; overload;
 {* 获取 TLS/SSL 握手协议报文 ServerHello 类型中完整包头的长度，结合本包之外的握手包内容长度，可判断是否存在，无则返回 nil}
+
+function CnGetTLSHandShakeCertificateItemCertificateLength(const CertificateItem: PCnTLSHandShakeCertificateItem): Cardinal;
+{* 获取 TLS/SSL 握手协议报文 Certificate 中的单个条目的证书长度}
+
+procedure CnSetTLSHandShakeCertificateItemCertificateLength(const CertificateItem: PCnTLSHandShakeCertificateItem; CertificateLength: Cardinal);
+{* 设置 TLS/SSL 握手协议报文 Certificate 中的单个条目的证书长度}
+
+function CnGetTLSHandShakeCertificateItemCertificate(const CertificateItem: PCnTLSHandShakeCertificateItem): TBytes;
+{* 获取 TLS/SSL 握手协议报文 Certificate 中的单个条目的证书内容}
+
+procedure CnSetTLSHandShakeCertificateItemCertificate(const CertificateItem: PCnTLSHandShakeCertificateItem; Certificate: TBytes);
+{* 设置 TLS/SSL 握手协议报文 Certificate 中的单个条目的证书内容}
+
+function CnGetTLSHandShakeCertificateListLength(const Certificate: PCnTLSHandShakeCertificate): Cardinal;
+{* 获取 TLS/SSL 握手协议报文 Certificate 中的所有条目的总长度}
+
+procedure CnSetTLSHandShakeCertificateListLength(const Certificate: PCnTLSHandShakeCertificate; CertificateListLength: Cardinal);
+{* 设置 TLS/SSL 握手协议报文 Certificate 中的所有条目的总长度}
+
+function CnGetTLSHandShakeCertificateItem(const Certificate: PCnTLSHandShakeCertificate;
+  PrevItem: PCnTLSHandShakeCertificateItem = nil): PCnTLSHandShakeCertificateItem;
+{* 返回 TLS/SSL 握手协议扩展报文 Certificate 指定证书条目后的下一个证书条目，如果指定条目为 nil，返回第一个}
 
 // =========================== IP 地址转换函数 =================================
 
@@ -3720,6 +3784,84 @@ begin
     Result := PCnTLSHandShakeExtensions(P)
   else
     Result := nil;
+end;
+
+function CnGetTLSHandShakeCertificateItemCertificateLength(const CertificateItem: PCnTLSHandShakeCertificateItem): Cardinal;
+var
+  P: PByteArray;
+begin
+  P := PByteArray(@(CertificateItem^.CertificateLength[0]));
+  Result := (P^[0] shl 16) or (P^[1] shl 8) or P^[2];
+end;
+
+procedure CnSetTLSHandShakeCertificateItemCertificateLength(const CertificateItem: PCnTLSHandShakeCertificateItem; CertificateLength: Cardinal);
+var
+  P: PByteArray;
+begin
+  P := PByteArray(@(CertificateItem^.CertificateLength[0]));
+  P^[0] := (CertificateLength and $FF0000) shr 16;
+  P^[1] := (CertificateLength and $FF00) shr 8;
+  P^[2] := CertificateLength and $FF;
+end;
+
+function CnGetTLSHandShakeCertificateItemCertificate(const CertificateItem: PCnTLSHandShakeCertificateItem): TBytes;
+var
+  L: Integer;
+begin
+  L := CnGetTLSHandShakeCertificateItemCertificateLength(CertificateItem);
+  if L > 0 then
+  begin
+    SetLength(Result, L);
+    Move(CertificateItem^.Certificate[0], Result[0], L);
+  end
+  else
+    Result := nil;
+end;
+
+procedure CnSetTLSHandShakeCertificateItemCertificate(const CertificateItem: PCnTLSHandShakeCertificateItem; Certificate: TBytes);
+var
+  L: Integer;
+begin
+  L := Length(Certificate);
+  CnSetTLSHandShakeCertificateItemCertificateLength(CertificateItem, Cardinal(L));
+  if L > 0 then
+    Move(Certificate[0], CertificateItem^.Certificate[0], L);
+end;
+
+function CnGetTLSHandShakeCertificateListLength(const Certificate: PCnTLSHandShakeCertificate): Cardinal;
+var
+  P: PByteArray;
+begin
+  P := PByteArray(@(Certificate^.CertificateListLength[0]));
+  Result := (P^[0] shl 16) or (P^[1] shl 8) or P^[2];
+end;
+
+procedure CnSetTLSHandShakeCertificateListLength(const Certificate: PCnTLSHandShakeCertificate; CertificateListLength: Cardinal);
+var
+  P: PByteArray;
+begin
+  P := PByteArray(@(Certificate^.CertificateListLength[0]));
+  P^[0] := (CertificateListLength and $FF0000) shr 16;
+  P^[1] := (CertificateListLength and $FF00) shr 8;
+  P^[2] := CertificateListLength and $FF;
+end;
+
+function CnGetTLSHandShakeCertificateItem(const Certificate: PCnTLSHandShakeCertificate;
+  PrevItem: PCnTLSHandShakeCertificateItem): PCnTLSHandShakeCertificateItem;
+var
+  P: PByte;
+begin
+  if PrevItem = nil then
+  begin
+    Result := @(Certificate^.Certificates);
+  end
+  else
+  begin
+    P := PByte(PrevItem);
+    Inc(P, 3);
+    Inc(P, CnGetTLSHandShakeCertificateItemCertificateLength(PrevItem));
+    Result := PCnTLSHandShakeCertificateItem(P);
+  end;
 end;
 
 end.
