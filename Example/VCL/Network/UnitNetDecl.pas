@@ -684,10 +684,14 @@ var
   H: PCnTLSRecordLayer;
   B: PCnTLSHandShakeHeader;
   C: PCnTLSHandShakeClientHello;
+  SNI: PCnTLSHandShakeServerNameIndication;
   BytesReceived: Integer;
   A: PCnTLSAlertPacket;
   SessionId: TBytes;
   CompressionMethod: TBytes;
+
+  E: PCnTLSHandShakeExtensions;
+  EI: PCnTLSHandShakeExtensionItem;
   ExtensionsStart: PByte;
   CurrentExtPtr: PByte;
   TotalHandshakeLen: Cardinal;
@@ -697,9 +701,10 @@ var
   ExtData, ExtTmpData: PByte;
 
   T: TBytes;
+  W: TWords;
   I: Integer;
   S: PCnTLSHandShakeServerHello;
-  E: PCnTLSHandShakeExtensions;
+
 begin
   FTlsClientSocket := CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if FTlsClientSocket = INVALID_SOCKET then
@@ -735,9 +740,10 @@ begin
     // 生成 Session ID (32 字节)
     SetLength(SessionId, 32);
     CnRandomFillBytes2(@SessionId[0], 32);
+
     CnSetTLSHandShakeClientHelloSessionId(C, SessionId);
 
-    // 填充 Ciphers - 使用TLS 1.2兼容的密码套件
+    // 填充 Ciphers - 使用 TLS 1.2 兼容的密码套件
     SetLength(Ciphers, 7);
     Ciphers[0] := CN_CIPHER_ECDHE_RSA_AES128_GCM_SHA256;
     Ciphers[1] := CN_CIPHER_ECDHE_RSA_AES256_GCM_SHA384;
@@ -764,113 +770,45 @@ begin
     Inc(ExtensionsStart, 1);                // CompressionMethodLength
     Inc(ExtensionsStart, CnGetTLSHandShakeClientHelloCompressionMethodLength(C));
 
-    // 先写入 Extensions 总长度占位符，内容稍后填充
-    CurrentExtPtr := ExtensionsStart;
-    Inc(CurrentExtPtr, SizeOf(Word)); // 跳过 ExtensionsLength 字段
+    // 开始设置扩展内容
+    E := PCnTLSHandShakeExtensions(ExtensionsStart);
 
-    // ==================== Extension 1: Server Name Indication (SNI) ====================
-    ExtType := PWord(CurrentExtPtr);
-    ExtType^ := UInt16HostToNetwork(CN_TLS_EXTENSIONTYPE_SERVER_NAME);
-    Inc(CurrentExtPtr, SizeOf(Word));
+    // 拿第一个 ExtensionItem，设置类型
+    EI := CnGetTLSHandShakeExtensionsExtensionItem(E);
+    CnSetTLSHandShakeExtensionsExtensionType(EI, CN_TLS_EXTENSIONTYPE_SERVER_NAME);
 
-    ExtDataLen := PWord(CurrentExtPtr);
-    Inc(CurrentExtPtr, SizeOf(Word));
+    // 拿第一个 ExtensionItem 的数据，当成一个 SNI，写一个 Host，并设置 ExtensionItem 的数据长度
+    SNI := CnGetTLSHandShakeExtensionsExtensionData(EI);
+    CnSetTLSHandShakeExtensionsExtensionDataLength(EI, CnTLSHandShakeServerNameIndicationAddHost(SNI, HOST));
 
-    ExtData := CurrentExtPtr;
-    // SNI List Length
-    PWord(ExtData)^ := UInt16HostToNetwork(Length(HOST) + 3);
-    Inc(ExtData, SizeOf(Word));
-    // Name Type (0 = hostname)
-    ExtData^ := CN_TLS_EXTENSION_NAMETYPE_HOSTNAME;
-    Inc(ExtData);
-    // Hostname Length
-    PWord(ExtData)^ := UInt16HostToNetwork(Length(HOST));
-    Inc(ExtData, SizeOf(Word));
-    // Hostname
-    Move(AnsiString(HOST)[1], ExtData^, Length(HOST));
-    Inc(ExtData, Length(HOST));
+    // 拿第二个 ExtensionItem 的数据，当成一个 Supported Groups，写入四个支持的椭圆曲线类型
+    EI := CnGetTLSHandShakeExtensionsExtensionItem(E, EI);
+    SetLength(W, 4);
+    W[0] := CN_TLS_NAMED_GROUP_X25519;
+    W[1] := CN_TLS_NAMED_GROUP_SECP256R1;
+    W[2] := CN_TLS_NAMED_GROUP_SECP384R1;
+    W[3] := CN_TLS_NAMED_GROUP_SECP521R1;
+    CnSetTLSHandShakeSupportedGroups(EI, W); // 同时设置了扩展数据类型和扩展数据长度
 
-    ExtDataLen^ := UInt16HostToNetwork(Length(HOST) + 3 + 2);
-    CurrentExtPtr := ExtData;
+    // 拿第三个 ExtensionItem 的数据，当成一个 EC Point Formats，写入一个 Uncompressed
+    EI := CnGetTLSHandShakeExtensionsExtensionItem(E, EI);
+    CnSetTLSHandShakeECPointFormats(EI, CN_TLS_EC_POINT_FORMATS_UNCOMPRESSED);
 
-    // ==================== Extension 2: Supported Groups ====================
-    ExtType := PWord(CurrentExtPtr);
-    ExtType^ := UInt16HostToNetwork(CN_TLS_EXTENSIONTYPE_SUPPORTED_GROUPS);
-    Inc(CurrentExtPtr, SizeOf(Word));
+    // 拿第四个 ExtensionItem 的数据，当成一个 Signature Algorithms，写入六个算法
+    EI := CnGetTLSHandShakeExtensionsExtensionItem(E, EI);
+    SetLength(W, 6);
+    W[0] := CN_TLS_SIGN_ALG_ECDSA_SECP256R1_SHA256;
+    W[1] := CN_TLS_SIGN_ALG_RSA_PKCS1_SHA256;
+    W[2] := CN_TLS_SIGN_ALG_ECDSA_SECP384R1_SHA384;
+    W[3] := CN_TLS_SIGN_ALG_RSA_PKCS1_SHA384;
+    W[4] := CN_TLS_SIGN_ALG_ECDSA_SECP521R1_SHA512;
+    W[5] := CN_TLS_SIGN_ALG_RSA_PKCS1_SHA512;
+    CnSetTLSHandShakeSignatureAlgorithms(EI, W);
 
-    ExtDataLen := PWord(CurrentExtPtr);
-    Inc(CurrentExtPtr, SizeOf(Word));
+    // 总共四个，计算扩展数据总长度并写入，注意整个扩展长度还要加上 2 字节长度
+    CnSetTLSHandShakeExtensionsExtensionLengthByItemCount(E, 4);
 
-    ExtData := CurrentExtPtr;
-    // Supported Groups List Length（4 个组 * 2 字节）
-    PWord(ExtData)^ := UInt16HostToNetwork(8);
-    Inc(ExtData, SizeOf(Word));
-    // Groups
-    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_NAMED_GROUP_X25519);
-    Inc(ExtData, SizeOf(Word));
-    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_NAMED_GROUP_SECP256R1);
-    Inc(ExtData, SizeOf(Word));
-    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_NAMED_GROUP_SECP384R1);
-    Inc(ExtData, SizeOf(Word));
-    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_NAMED_GROUP_SECP521R1);
-    Inc(ExtData, SizeOf(Word));
-
-    ExtDataLen^ := UInt16HostToNetwork(10); // 2 + 8
-    CurrentExtPtr := ExtData;
-
-    // ==================== Extension 3: EC Point Formats ====================
-    ExtType := PWord(CurrentExtPtr);
-    ExtType^ := UInt16HostToNetwork(CN_TLS_EXTENSIONTYPE_EC_POINT_FORMATS);
-    Inc(CurrentExtPtr, SizeOf(Word));
-
-    ExtDataLen := PWord(CurrentExtPtr);
-    Inc(CurrentExtPtr, SizeOf(Word));
-
-    ExtData := CurrentExtPtr;
-    // EC Point Formats Length
-    ExtData^ := 1;
-    Inc(ExtData);
-    // Uncompressed format
-    ExtData^ := 0; // EC_POINT_UNCOMPRESSED;
-    Inc(ExtData);
-
-    ExtDataLen^ := UInt16HostToNetwork(2);
-    CurrentExtPtr := ExtData;
-
-    // ==================== Extension 4: Signature Algorithms ====================
-    ExtType := PWord(CurrentExtPtr);
-    ExtType^ := UInt16HostToNetwork(CN_TLS_EXTENSIONTYPE_SIGNATURE_ALGORITHMS);
-    Inc(CurrentExtPtr, SizeOf(Word));
-
-    ExtDataLen := PWord(CurrentExtPtr);
-    Inc(CurrentExtPtr, SizeOf(Word));
-
-    ExtData := CurrentExtPtr;
-    // Signature Hash Algorithms Length（6 个算法 * 2 字节）
-    PWord(ExtData)^ := UInt16HostToNetwork(12);
-    Inc(ExtData, SizeOf(Word));
-
-    // Algorithms
-    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_SIGN_ALG_ECDSA_SECP256R1_SHA256);
-    Inc(ExtData, SizeOf(Word));
-    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_SIGN_ALG_RSA_PKCS1_SHA256);
-    Inc(ExtData, SizeOf(Word));
-    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_SIGN_ALG_ECDSA_SECP384R1_SHA384);
-    Inc(ExtData, SizeOf(Word));
-    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_SIGN_ALG_RSA_PKCS1_SHA384);
-    Inc(ExtData, SizeOf(Word));
-    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_SIGN_ALG_ECDSA_SECP521R1_SHA512);
-    Inc(ExtData, SizeOf(Word));
-    PWord(ExtData)^ := UInt16HostToNetwork(CN_TLS_SIGN_ALG_RSA_PKCS1_SHA512);
-    Inc(ExtData, SizeOf(Word));
-
-    ExtDataLen^ := UInt16HostToNetwork(14); // 2 + 12
-    CurrentExtPtr := ExtData;
-
-    // 计算 Extensions 总长度并填充
-    ExtensionsTotalLen := TCnIntAddress(CurrentExtPtr) - TCnIntAddress(ExtensionsStart) - SizeOf(Word);
-    PWord(ExtensionsStart)^ := UInt16HostToNetwork(ExtensionsTotalLen);
-    
+    // 还缺两个长度
     // 计算整个握手消息的内容长度
     TotalHandshakeLen :=
       SizeOf(Word) +                                                    // ProtocolVersion
@@ -882,15 +820,15 @@ begin
       1 +                                                               // CompressionMethodLength
       CnGetTLSHandShakeClientHelloCompressionMethodLength(C) +          // CompressionMethod
       SizeOf(Word) +                                                    // ExtensionsLength
-      ExtensionsTotalLen;                                               // Extensions内容
+      CnGetTLSHandShakeExtensionsExtensionLength(E);                    // Extensions 内容
 
     // 设置握手头的内容长度
     CnSetTLSHandShakeHeaderContentLength(B, TotalHandshakeLen);
 
-    // 设置 TLS Record Layer 的 Body 长度
+    // 设置 TLS Record Layer 的 Body 长度，1 + 3 表示 TCnTLSHandShakeHeader 的前三个字段 1 + 1 + 2
     CnSetTLSRecordLayerBodyLength(H, 1 + 3 + TotalHandshakeLen);
 
-    // 发送 ClientHello 包
+    // 发送 ClientHello 包，5 表示 TCnTLSRecordLayer 中的前四个字段：3 Byte + 1 Word
     if CnSend(FTlsClientSocket, H^, 5 + CnGetTLSRecordLayerBodyLength(H), 0) <> SOCKET_ERROR then
     begin
       mmoSSL.Lines.Add('Sent ClientHello Packet, Size: ' +

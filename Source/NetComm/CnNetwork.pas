@@ -691,7 +691,7 @@ const
   CN_TLS_SIGN_ALG_RSA_PKCS1_SHA1                                 = $0201;
   CN_TLS_SIGN_ALG_ECDSA_SHA1                                     = $0203;
 
-  {* TLS/SSL 中的 Extension 中的椭圆曲线 Supported Groups 类型，来自 RFC8446}
+  {* TLS/SSL 中的 Extension 中的椭圆曲线 Supported Groups 类型，来自 RFC 8446}
   CN_TLS_NAMED_GROUP_SECP256R1                                   = $0017;
   CN_TLS_NAMED_GROUP_SECP384R1                                   = $0018;
   CN_TLS_NAMED_GROUP_SECP521R1                                   = $0019;
@@ -702,6 +702,9 @@ const
   CN_TLS_NAMED_GROUP_FFDHE4096                                   = $0102;
   CN_TLS_NAMED_GROUP_FFDHE6144                                   = $0103;
   CN_TLS_NAMED_GROUP_FFDHE8192                                   = $0104;
+
+  {* TLS/SSL 中的 Extension 中的椭圆曲线点的格式类型，来自 RFC 8446}
+  CN_TLS_EC_POINT_FORMATS_UNCOMPRESSED                           = 0;
 
 type
   TCnIPv6Array = array[0..7] of Word;
@@ -1353,6 +1356,30 @@ type
   PCnTLSAlertPacket = ^TCnTLSAlertPacket;
 
 {
+  TLS/SSL 握手包扩展条目示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeClientHello 后的附加内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |       ExtensionType           |      ExtensionDataLength      |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | ExtensionData     ...         |                               |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeExtensionItem = packed record
+    ExtensionType:            Word;                    // 扩展类型，使用 CN_TLS_EXTENSIONTYPE_*
+    ExtensionDataLength:      Word;                    // 扩展数据的字节长度
+    ExtensionData:            array[0..0] of Byte;     // 扩展数据，实际长度可变
+  end;
+
+  PCnTLSHandShakeExtensionItem = ^TCnTLSHandShakeExtensionItem;
+
+{
   TLS/SSL 握手包扩展示意图，字节内左边是高位，右边是低位。
   字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
   注意本包头是 TLS/SSL 的 TCnTLSHandShakeClientHello 后的附加内容
@@ -1361,19 +1388,14 @@ type
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |       ExtensionLength         |        ExtensionType          |
-  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |     ExtensionDataLength       |      ExtensionData ...        |
+  |       ExtensionLength         |        Extension ...          |
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 }
 
   TCnTLSHandShakeExtensions = packed record
     ExtensionLength:          Word;                    // 扩展数据总字节长度，不包含本 Word
-    ExtensionType:            Word;                    // 第一条扩展类型，使用 CN_TLS_EXTENSIONTYPE_*
-    ExtensionDataLength:      Word;                    // 第一条扩展数据的字节长度
-    ExtensionData:            array[0..0] of Byte;     // 第一条扩展数据
-                                                       // 后续重复上面三项
+    Extension:                TCnTLSHandShakeExtensionItem; // 第一个起始数据
   end;
 
   PCnTLSHandShakeExtensions = ^TCnTLSHandShakeExtensions;
@@ -1403,6 +1425,69 @@ type
   end;
 
   PCnTLSHandShakeServerNameIndication = ^TCnTLSHandShakeServerNameIndication;
+
+{
+  TLS/SSL 握手包扩展包中的 Supported Groups 示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeExtensions 的 ExtensionData 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |         NameLength            |        Name[0]...             |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeSupportedGroups = packed record
+    NameLength:               Word;                    // 支持的椭圆曲线的数组字节长度
+    Name:                     array[0..0] of Word;     // 支持的椭圆曲线数组，使用 CN_TLS_NAMED_GROUP_*
+  end;
+
+  PCnTLSHandShakeSupportedGroups = ^TCnTLSHandShakeSupportedGroups;
+
+{
+  TLS/SSL 握手包扩展包中的 ECPointFormats 示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeExtensions 的 ExtensionData 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | FormatLength  |  PointFormat  |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeECPointFormats = packed record
+    FormatLength:             Byte;                    // 支持的椭圆曲线的点的格式长度，一般是 1
+    PointFormat:              Byte;                    // 支持的椭圆曲线的点的格式，使用 CN_TLS_EC_POINT_FORMATS_*，一般是 0
+  end;
+
+  PCnTLSHandShakeECPointFormats = ^TCnTLSHandShakeECPointFormats;
+
+{
+  TLS/SSL 握手包扩展包中的 Signature Algorithms 示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeExtensions 的 ExtensionData 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |         SigAlgLength          |        SigAlgs[0]...          |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeSignatureAlgorithms = packed record
+    SigAlgLength:             Word;                    // 支持的签名算法字节长度
+    SigAlgs:                  array[0..0] of Word;     // 支持的签名算法列表，使用 CN_TLS_SIGN_ALG_*
+  end;
+
+  PCnTLSHandShakeSignatureAlgorithms = ^TCnTLSHandShakeSignatureAlgorithms;
 
 {
   TLS/SSL 握手包 ClientHello 示意图，字节内左边是高位，右边是低位。
@@ -1827,17 +1912,30 @@ function CnGetTLSHandShakeExtensionsExtensionLength(const Extensions: PCnTLSHand
 procedure CnSetTLSHandShakeExtensionsExtensionLength(const Extensions: PCnTLSHandShakeExtensions; ExtLenth: Word);
 {* 设置 TLS/SSL 握手协议扩展报文的内容总长度}
 
-function CnGetTLSHandShakeExtensionsExtensionType(const Extensions: PCnTLSHandShakeExtensions): Word;
-{* 返回 TLS/SSL 握手协议扩展报文的首个扩展字段的类型}
+procedure CnSetTLSHandShakeExtensionsExtensionLengthByItemCount(const Extensions: PCnTLSHandShakeExtensions; ExtItemCount: Integer);
+{* 根据已经设置好的 Item 内容的数量，统计并设置 TLS/SSL 握手协议扩展报文的内容总长度}
 
-procedure CnSetTLSHandShakeExtensionsExtensionType(const Extensions: PCnTLSHandShakeExtensions; ExtType: Word);
-{* 设置 TLS/SSL 握手协议扩展报文的首个扩展字段的类型}
+function CnGetTLSHandShakeExtensionsExtensionItem(const Extensions: PCnTLSHandShakeExtensions;
+  PrevItem: PCnTLSHandShakeExtensionItem = nil): PCnTLSHandShakeExtensionItem;
+{* 返回 TLS/SSL 握手协议扩展报文的某个扩展条目地址的下一个扩展条目，如果指定条目为 nil，返回第一个}
 
-function CnGetTLSHandShakeExtensionsExtensionDataLength(const Extensions: PCnTLSHandShakeExtensions): Word;
-{* 返回 TLS/SSL 握手协议扩展报文的首个扩展字段的长度}
+function CnGetTLSHandShakeExtensionsExtensionType(const ExtensionItem: PCnTLSHandShakeExtensionItem): Word;
+{* 返回 TLS/SSL 握手协议扩展报文的指定扩展条目的扩展类型}
 
-procedure CnSetTLSHandShakeExtensionsExtensionDataLength(const Extensions: PCnTLSHandShakeExtensions; ExtDataLength: Word);
-{* 设置 TLS/SSL 握手协议扩展报文的首个扩展字段的长度}
+procedure CnSetTLSHandShakeExtensionsExtensionType(const ExtensionItem: PCnTLSHandShakeExtensionItem; ExtType: Word);
+{* 设置 TLS/SSL 握手协议扩展报文的指定扩展条目的扩展类型}
+
+function CnGetTLSHandShakeExtensionsExtensionDataLength(const ExtensionItem: PCnTLSHandShakeExtensionItem): Word;
+{* 返回 TLS/SSL 握手协议扩展报文的指定扩展条目的数据长度}
+
+procedure CnSetTLSHandShakeExtensionsExtensionDataLength(const ExtensionItem: PCnTLSHandShakeExtensionItem; ExtDataLength: Word);
+{* 设置 TLS/SSL 握手协议扩展报文的指定扩展字段的长度}
+
+function CnGetTLSHandShakeExtensionsExtensionData(const ExtensionItem: PCnTLSHandShakeExtensionItem): Pointer;
+{* 返回 TLS/SSL 握手协议扩展报文的指定扩展条目的数据地址}
+
+procedure CnSetTLSHandShakeExtensionsExtensionData(const ExtensionItem: PCnTLSHandShakeExtensionItem; Data: TBytes);
+{* 设置 TLS/SSL 握手协议扩展报文的指定扩展条目的数据，内部会同时设置相应的数据长度}
 
 function CnGetTLSHandShakeServerNameIndicationListLength(const SNI: PCnTLSHandShakeServerNameIndication): Word;
 {* 返回 TLS/SSL 中的 Extension 中的 Server Name Indication 中的列表长度}
@@ -1852,7 +1950,34 @@ procedure CnSetTLSHandShakeServerNameIndicationNameLength(const SNI: PCnTLSHandS
 {* 设置 TLS/SSL 中的 Extension 中的 Server Name Indication 中的主机名长度}
 
 function CnTLSHandShakeServerNameIndicationAddHost(const SNI: PCnTLSHandShakeServerNameIndication; const HostName: AnsiString): Integer;
-{* 将一个主机名添加至已初始化好的 SNI 头中，返回 SNI 头的新的字节长度}
+{* 将一个主机名添加至已初始化好的 SNI 头中，返回 SNI 头的新的总字节长度}
+
+function CnGetTLSHandShakeSupportedGroupsNameLength(const SG: PCnTLSHandShakeSupportedGroups): Word;
+{* 返回 TLS/SSL 中的 Extension 中的 Supported Groups 中的名称长度}
+
+procedure CnSetTLSHandShakeSupportedGroupsNameLength(const SG: PCnTLSHandShakeSupportedGroups; NameLength: Word);
+{* 设置 TLS/SSL 中的 Extension 中的 Supported Groups 中的名称长度}
+
+function CnGetTLSHandShakeSupportedGroups(const ExtensionItem: PCnTLSHandShakeExtensionItem): TWords;
+{* 获得 TLS/SSL 中的 Extension 中的一扩展的支持椭圆曲线类型数组}
+
+procedure CnSetTLSHandShakeSupportedGroups(const ExtensionItem: PCnTLSHandShakeExtensionItem; Groups: TWords);
+{* 设置 TLS/SSL 中的 Extension 中的一扩展的支持椭圆曲线类型数组，同时设置类型与数据长度}
+
+procedure CnSetTLSHandShakeECPointFormats(const ExtensionItem: PCnTLSHandShakeExtensionItem; PointFormat: Byte);
+{* 设置 TLS/SSL 中的 Extension 中的一扩展的单个支持椭圆曲线点格式，同时设置类型与数据长度}
+
+function CnGetTLSHandShakeSignatureAlgorithmsSigAlgLength(const SG: PCnTLSHandShakeSignatureAlgorithms): Word;
+{* 返回 TLS/SSL 中的 Extension 中的一扩展签名算法类型数组中的算法数组长度}
+
+procedure CnSetTLSHandShakeSignatureAlgorithmsSigAlgLength(const SG: PCnTLSHandShakeSignatureAlgorithms; SigAlgLength: Word);
+{* 设置 TLS/SSL 中的 Extension 中的一扩展签名算法类型数组中的算法数组长度}
+
+function CnGetTLSHandShakeSignatureAlgorithms(const ExtensionItem: PCnTLSHandShakeExtensionItem): TWords;
+{* 获得 TLS/SSL 中的 Extension 中的一扩展的支持签名算法类型数组}
+
+procedure CnSetTLSHandShakeSignatureAlgorithms(const ExtensionItem: PCnTLSHandShakeExtensionItem; SigAlgs: TWords);
+{* 设置 TLS/SSL 中的 Extension 中的一扩展的支持签名算法类型数组，同时设置类型与数据长度}
 
 function CnGetTLSHandShakeClientHelloSessionId(const ClientHello: PCnTLSHandShakeClientHello): TBytes;
 {* 获取 TLS/SSL 握手协议报文 ClientHello 类型中的 SessionId}
@@ -3092,24 +3217,89 @@ begin
   Extensions^.ExtensionLength := UInt16HostToNetwork(ExtLenth);
 end;
 
-function CnGetTLSHandShakeExtensionsExtensionType(const Extensions: PCnTLSHandShakeExtensions): Word;
+procedure CnSetTLSHandShakeExtensionsExtensionLengthByItemCount(const Extensions: PCnTLSHandShakeExtensions; ExtItemCount: Integer);
+var
+  T, W: Word;
+  P: PByte;
 begin
-  Result := UInt16NetworkToHost(Extensions^.ExtensionType);
+  if ExtItemCount <= 0 then
+    CnSetTLSHandShakeExtensionsExtensionLength(Extensions, 0)
+  else
+  begin
+    T := 0;
+    P :=  PByte(CnGetTLSHandShakeExtensionsExtensionItem(Extensions)); // 拿第一个 Item
+    repeat
+      // 计算这个 Item 的长度
+      W := 0;
+      Inc(W, SizeOf(Word));
+      Inc(W, SizeOf(Word));
+      Inc(W, CnGetTLSHandShakeExtensionsExtensionDataLength(PCnTLSHandShakeExtensionItem(P)));
+
+      // P 步进至下一 Item
+      Inc(P, W);
+
+      // 累计长度到 T
+      Inc(T, W);
+      Dec(ExtItemCount);
+    until ExtItemCount = 0;
+
+    CnSetTLSHandShakeExtensionsExtensionLength(Extensions, T);
+  end;
 end;
 
-procedure CnSetTLSHandShakeExtensionsExtensionType(const Extensions: PCnTLSHandShakeExtensions; ExtType: Word);
+function CnGetTLSHandShakeExtensionsExtensionItem(const Extensions: PCnTLSHandShakeExtensions;
+  PrevItem: PCnTLSHandShakeExtensionItem): PCnTLSHandShakeExtensionItem;
+var
+  P: PByte;
 begin
-  Extensions^.ExtensionType := UInt16HostToNetwork(ExtType);
+  if PrevItem = nil then
+  begin
+    Result := @(Extensions^.Extension);
+  end
+  else
+  begin
+    P := PByte(PrevItem);
+    Inc(P, SizeOf(Word));
+    Inc(P, SizeOf(Word));
+    Inc(P, CnGetTLSHandShakeExtensionsExtensionDataLength(PrevItem));
+    Result := PCnTLSHandShakeExtensionItem(P);
+  end;
 end;
 
-function CnGetTLSHandShakeExtensionsExtensionDataLength(const Extensions: PCnTLSHandShakeExtensions): Word;
+function CnGetTLSHandShakeExtensionsExtensionType(const ExtensionItem: PCnTLSHandShakeExtensionItem): Word;
 begin
-  Result := UInt16NetworkToHost(Extensions^.ExtensionDataLength);
+  Result := UInt16NetworkToHost(ExtensionItem^.ExtensionType);
 end;
 
-procedure CnSetTLSHandShakeExtensionsExtensionDataLength(const Extensions: PCnTLSHandShakeExtensions; ExtDataLength: Word);
+procedure CnSetTLSHandShakeExtensionsExtensionType(const ExtensionItem: PCnTLSHandShakeExtensionItem; ExtType: Word);
 begin
-  Extensions^.ExtensionDataLength := UInt16HostToNetwork(ExtDataLength);
+  ExtensionItem^.ExtensionType := UInt16HostToNetwork(ExtType);
+end;
+
+function CnGetTLSHandShakeExtensionsExtensionDataLength(const ExtensionItem: PCnTLSHandShakeExtensionItem): Word;
+begin
+  Result := UInt16NetworkToHost(ExtensionItem^.ExtensionDataLength);
+end;
+
+procedure CnSetTLSHandShakeExtensionsExtensionDataLength(const ExtensionItem: PCnTLSHandShakeExtensionItem; ExtDataLength: Word);
+begin
+  ExtensionItem^.ExtensionDataLength := UInt16HostToNetwork(ExtDataLength);
+end;
+
+function CnGetTLSHandShakeExtensionsExtensionData(const ExtensionItem: PCnTLSHandShakeExtensionItem): Pointer;
+begin
+  Result := @(ExtensionItem^.ExtensionData[0]);
+end;
+
+procedure CnSetTLSHandShakeExtensionsExtensionData(const ExtensionItem: PCnTLSHandShakeExtensionItem; Data: TBytes);
+begin
+  if Length(Data) > 0 then
+  begin
+    CnSetTLSHandShakeExtensionsExtensionDataLength(ExtensionItem, Length(Data));
+    Move(Data[0], CnGetTLSHandShakeExtensionsExtensionData(ExtensionItem)^, Length(Data));
+  end
+  else
+    CnSetTLSHandShakeExtensionsExtensionDataLength(ExtensionItem, 0);
 end;
 
 function CnGetTLSHandShakeServerNameIndicationListLength(const SNI: PCnTLSHandShakeServerNameIndication): Word;
@@ -3158,6 +3348,134 @@ begin
   // 更新旧的位置的列表长度
   CnSetTLSHandShakeServerNameIndicationListLength(SNI, OL + Length(HostName) + 3); // 3 表示一个 NameType 一个 NameLength
   Result := CnGetTLSHandShakeServerNameIndicationListLength(SNI) + SizeOf(Word);   // 加上 ListLength 自身
+end;
+
+function CnGetTLSHandShakeSupportedGroupsNameLength(const SG: PCnTLSHandShakeSupportedGroups): Word;
+begin
+  Result := UInt16NetworkToHost(SG^.NameLength);
+end;
+
+procedure CnSetTLSHandShakeSupportedGroupsNameLength(const SG: PCnTLSHandShakeSupportedGroups; NameLength: Word);
+begin
+  SG^.NameLength := UInt16HostToNetwork(NameLength);
+end;
+
+function CnGetTLSHandShakeSupportedGroups(const ExtensionItem: PCnTLSHandShakeExtensionItem): TWords;
+var
+  L: Integer;
+  SG: PCnTLSHandShakeSupportedGroups;
+  T: PWord;
+begin
+  if (CnGetTLSHandShakeExtensionsExtensionType(ExtensionItem) = CN_TLS_EXTENSIONTYPE_SUPPORTED_GROUPS)
+    and (ExtensionItem^.ExtensionDataLength > 2) then
+  begin
+    SG := PCnTLSHandShakeSupportedGroups(CnGetTLSHandShakeExtensionsExtensionData(ExtensionItem));
+    L := CnGetTLSHandShakeSupportedGroupsNameLength(SG);
+
+    if L >= 2 then
+    begin
+      SetLength(Result, L shr 1);
+      T := PWord(@SG^.Name[0]);
+
+      for L := 0 to Length(Result) - 1 do
+      begin
+        Result[L] := UInt16NetworkToHost(T^);
+        Inc(T);
+      end;
+    end;
+  end
+  else
+    Result := nil;
+end;
+
+procedure CnSetTLSHandShakeSupportedGroups(const ExtensionItem: PCnTLSHandShakeExtensionItem; Groups: TWords);
+var
+  I: Integer;
+  SG: PCnTLSHandShakeSupportedGroups;
+  T: PWord;
+begin
+  CnSetTLSHandShakeExtensionsExtensionType(ExtensionItem, CN_TLS_EXTENSIONTYPE_SUPPORTED_GROUPS);
+  CnSetTLSHandShakeExtensionsExtensionDataLength(ExtensionItem, Length(Groups) * SizeOf(Word) + SizeOf(Word));
+
+  SG := PCnTLSHandShakeSupportedGroups(CnGetTLSHandShakeExtensionsExtensionData(ExtensionItem));
+  CnSetTLSHandShakeSupportedGroupsNameLength(SG, Length(Groups) * SizeOf(Word));
+
+  T := PWord(@SG^.Name[0]);
+  for I := 0 to Length(Groups) - 1 do
+  begin
+    T^ := UInt16HostToNetwork(Groups[I]);
+    Inc(T);
+  end;
+end;
+
+procedure CnSetTLSHandShakeECPointFormats(const ExtensionItem: PCnTLSHandShakeExtensionItem; PointFormat: Byte);
+var
+  PF: PCnTLSHandShakeECPointFormats;
+begin
+  CnSetTLSHandShakeExtensionsExtensionType(ExtensionItem, CN_TLS_EXTENSIONTYPE_EC_POINT_FORMATS);
+  CnSetTLSHandShakeExtensionsExtensionDataLength(ExtensionItem, SizeOf(Byte) + SizeOf(Byte));
+
+  PF := PCnTLSHandShakeECPointFormats(CnGetTLSHandShakeExtensionsExtensionData(ExtensionItem));
+  PF^.FormatLength := SizeOf(Byte);
+  PF^.PointFormat := PointFormat;
+end;
+
+function CnGetTLSHandShakeSignatureAlgorithmsSigAlgLength(const SG: PCnTLSHandShakeSignatureAlgorithms): Word;
+begin
+  Result := UInt16NetworkToHost(SG^.SigAlgLength);
+end;
+
+procedure CnSetTLSHandShakeSignatureAlgorithmsSigAlgLength(const SG: PCnTLSHandShakeSignatureAlgorithms; SigAlgLength: Word);
+begin
+  SG^.SigAlgLength := UInt16HostToNetwork(SigAlgLength);
+end;
+
+function CnGetTLSHandShakeSignatureAlgorithms(const ExtensionItem: PCnTLSHandShakeExtensionItem): TWords;
+var
+  L: Integer;
+  SA: PCnTLSHandShakeSignatureAlgorithms;
+  T: PWord;
+begin
+  if (CnGetTLSHandShakeExtensionsExtensionType(ExtensionItem) = CN_TLS_EXTENSIONTYPE_SIGNATURE_ALGORITHMS)
+    and (ExtensionItem^.ExtensionDataLength > 2) then
+  begin
+    SA := PCnTLSHandShakeSignatureAlgorithms(CnGetTLSHandShakeExtensionsExtensionData(ExtensionItem));
+    L := CnGetTLSHandShakeSignatureAlgorithmsSigAlgLength(SA);
+
+    if L >= 2 then
+    begin
+      SetLength(Result, L shr 1);
+      T := PWord(@SA^.SigAlgs[0]);
+
+      for L := 0 to Length(Result) - 1 do
+      begin
+        Result[L] := UInt16NetworkToHost(T^);
+        Inc(T);
+      end;
+    end;
+  end
+  else
+    Result := nil;
+end;
+
+procedure CnSetTLSHandShakeSignatureAlgorithms(const ExtensionItem: PCnTLSHandShakeExtensionItem; SigAlgs: TWords);
+var
+  I: Integer;
+  SA: PCnTLSHandShakeSignatureAlgorithms;
+  T: PWord;
+begin
+  CnSetTLSHandShakeExtensionsExtensionType(ExtensionItem, CN_TLS_EXTENSIONTYPE_SIGNATURE_ALGORITHMS);
+  CnSetTLSHandShakeExtensionsExtensionDataLength(ExtensionItem, Length(SigAlgs) * SizeOf(Word) + SizeOf(Word));
+
+  SA := PCnTLSHandShakeSignatureAlgorithms(CnGetTLSHandShakeExtensionsExtensionData(ExtensionItem));
+  CnSetTLSHandShakeSignatureAlgorithmsSigAlgLength(SA, Length(SigAlgs) * SizeOf(Word));
+
+  T := PWord(@SA^.SigAlgs[0]);
+  for I := 0 to Length(SigAlgs) - 1 do
+  begin
+    T^ := UInt16HostToNetwork(SigAlgs[I]);
+    Inc(T);
+  end;
 end;
 
 function CnGetTLSHandShakeClientHelloSessionId(const ClientHello: PCnTLSHandShakeClientHello): TBytes;
