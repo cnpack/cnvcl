@@ -1215,7 +1215,7 @@ begin
             mmoSSL.Lines.Add('3 ECCPoint: ' + BytesToHex(CnGetTLSHandShakeServerKeyExchangeECPoint(SK)));
 
             SP := CnGetTLSHandShakeSignedParamsFromServerKeyExchange(SK);
-            mmoSSL.Lines.Add(Format('3 Sign Alg: %4.4x', [CnGetTLSHandShakeSignedParamsSignatureAlgorithm(SP)]));
+            mmoSSL.Lines.Add(Format('3 Sign Alg: %4.4x', [CnGetTLSHandShakeSignedParamsSignatureAlgorithm(SP)])); // 服务器选择的签名算法
             mmoSSL.Lines.Add('3 SignLength: ' + IntToStr(CnGetTLSHandShakeSignedParamsSignatureLength(SP)));
             ServerSigBytes := CnGetTLSHandShakeSignedParamsSignature(SP);
             mmoSSL.Lines.Add('3 Signature: ' + BytesToHex(ServerSigBytes));
@@ -1237,21 +1237,29 @@ begin
                 SignStream := TMemoryStream.Create;
                 WriteBytesToStream(RandClient, SignStream);
                 WriteBytesToStream(RandServer, SignStream);
-                SignStream.Write(SK^.ECCurveType, 4 + SK^.ECPointLength);
+
+                // 3.1 写入 curve_type (1 byte)
+                SignStream.Write(SK^.ECCurveType, 1);
+                // 3.2 写入 named_curve (2 bytes, 原始也就是网络字节序)
+                SignStream.Write(SK^.NamedCurve, 2);
+                // 3.3 写入 public_key_length (1 byte)
+                SignStream.Write(SK^.ECPointLength, 1);
+                // 3.4 写入 public_key (ECPointLength bytes)
+                SignStream.Write(SK^.ECPoint[0], SK^.ECPointLength);
                 SignStream.Position := 0;
 
                 ServerCert := TCnCertificate.Create;
                 if CnCALoadCertificateFromBytes(ServerCertBytes, ServerCert) and not ServerCert.IsRSA then
                 begin
-                  Ecc := TCnEcc.Create(ServerCert.BasicCertificate.SubjectEccCurveType);
+                  Ecc := TCnEcc.Create(CurveType); // 使用服务器指定的 Cipher，而不是证书中的类型，虽然两者可能相等
                   SignValueStream := TMemoryStream.Create;
                   WriteBytesToStream(ServerSigBytes, SignValueStream);
                   SignValueStream.Position := 0;
 
-                  // 数据是杂凑过的 SignStream，曲线在 Ecc 里，公钥在 ServerCert 的公钥里，签名在 ServerSig 里
-                  if CnEccVerifyStream(SignStream, SignValueStream, Ecc, ServerCert.BasicCertificate.SubjectEccPublicKey,
-                    GetEccSignTypeFromCASignType(ServerCert.CASignType)) then
-                    mmoSSL.Lines.Add('*** Signature Verify OK ***')
+                  // 数据是杂凑过的 SignStream，曲线在 Ecc 里，公钥在 ServerCert 的公钥里，签名在 SignValueStream 里
+                  if CnEccVerifyStream(SignStream, SignValueStream, Ecc,
+                    ServerCert.BasicCertificate.SubjectEccPublicKey, DigestType) then
+                    mmoSSL.Lines.Add('*** Signature Verify OK ***') // 使用服务器指定的 Cipher 中的 DigestType，而不是证书中的类型，虽然两者可能相等
                   else
                     mmoSSL.Lines.Add('*** Signature Verify Fail ***');
                 end;
