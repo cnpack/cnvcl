@@ -109,7 +109,7 @@ const
   {* ecPublicKey 的 OID}
 
 type
-  TCnEccSignDigestType = (esdtMD5, esdtSHA1, esdtSHA256, esdtSM3);
+  TCnEccSignDigestType = (esdtMD5, esdtSHA1, esdtSHA256, esdtSM3, esdtSHA384, esdtSHA512);
   {* ECC 签名所支持的数字摘要算法，不支持无摘要的方式}
 
   ECnEccException = class(Exception);
@@ -5649,6 +5649,8 @@ var
   Sha1: TCnSHA1Digest;
   Sha256: TCnSHA256Digest;
   Sm3Dig: TCnSM3Digest;
+  Sha384: TCnSHA384Digest;
+  Sha512: TCnSHA512Digest;
 begin
   Result := False;
   case SignType of
@@ -5676,6 +5678,18 @@ begin
         outStream.Write(Sm3Dig, SizeOf(TCnSM3Digest));
         Result := True;
       end;
+    esdtSHA384:
+      begin
+        Sha384 := SHA384Stream(InStream);
+        outStream.Write(Sha384, SizeOf(TCnSHA384Digest));
+        Result := True;
+      end;
+    esdtSHA512:
+      begin
+        Sha512 := SHA512Stream(InStream);
+        outStream.Write(Sha512, SizeOf(TCnSHA512Digest));
+        Result := True;
+      end;
   end;
 end;
 
@@ -5687,6 +5701,8 @@ var
   Sha1: TCnSHA1Digest;
   Sha256: TCnSHA256Digest;
   Sm3Dig: TCnSM3Digest;
+  Sha384: TCnSHA384Digest;
+  Sha512: TCnSHA512Digest;
 begin
   Result := False;
   case SignType of
@@ -5712,6 +5728,18 @@ begin
       begin
         Sm3Dig := SM3File(FileName);
         outStream.Write(Sm3Dig, SizeOf(TCnSM3Digest));
+        Result := True;
+      end;
+    esdtSHA384:
+      begin
+        Sha384 := SHA384File(FileName);
+        outStream.Write(Sha384, SizeOf(TCnSHA384Digest));
+        Result := True;
+      end;
+    esdtSHA512:
+      begin
+        Sha512 := SHA512File(FileName);
+        outStream.Write(Sha512, SizeOf(TCnSHA512Digest));
         Result := True;
       end;
   end;
@@ -6315,6 +6343,8 @@ begin
     esdtSHA1: Result := 'SHA1';
     esdtSHA256: Result := 'SHA256';
     esdtSM3: Result := 'SM3';
+    esdtSHA384: Result := 'SHA384';
+    esdtSHA512: Result := 'SHA512';
   else
     Result := '<Unknown>';
   end;
