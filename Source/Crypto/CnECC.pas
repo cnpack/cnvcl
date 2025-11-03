@@ -897,6 +897,15 @@ type
        返回值：（无）
     }
 
+    procedure GenerateKey(PrivateKey: TCnEccPrivateKey);
+    {* 仅生成一该椭圆曲线的私钥，私钥是运算次数 k，不计算对应公钥。
+
+       参数：
+         PrivateKey: TCnEccPrivateKey     - 生成的椭圆曲线的私钥
+
+       返回值：（无）
+    }
+
     procedure Encrypt(PlainPoint: TCnEccPoint; PublicKey: TCnEccPublicKey;
       OutDataPoint1: TCnEccPoint; OutDataPoint2: TCnEccPoint);
     {* 公钥加密明文点 M，得到两个点的输出密文，内部包含了随机值 r，也就是 C1 = M + rK; C2 = r * G。
@@ -4008,6 +4017,13 @@ begin
 
   PublicKey.Assign(FGenerator);
   MultiplePoint(PrivateKey, PublicKey);             // 基点乘 PrivateKey 次
+end;
+
+procedure TCnEcc.GenerateKey(PrivateKey: TCnEccPrivateKey);
+begin
+  BigNumberRandRange(PrivateKey, FOrder);           // 比 0 大但比基点阶小的随机数
+  if PrivateKey.IsZero then                         // 万一真拿到 0，就加 1
+    PrivateKey.SetOne;
 end;
 
 function TCnEcc.GetBitsCount: Integer;
