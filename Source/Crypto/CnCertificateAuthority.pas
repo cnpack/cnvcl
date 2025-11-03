@@ -94,7 +94,7 @@ type
   {* 证书相关异常}
 
   TCnCASignType = (ctMd5RSA, ctSha1RSA, ctSha256RSA, ctMd5Ecc, ctSha1Ecc,
-    ctSha256Ecc, ctSM2withSM3);
+    ctSha256Ecc, ctSM2withSM3, ctSha384Ecc, ctSha512Ecc);
   {* 证书签名使用的杂凑签名算法，ctSha1RSA 表示先 Sha1 再 RSA，但 ctSM2withSM3 表示先 SM3 再 SM2}
 
   TCnCASignTypes = set of TCnCASignType;
@@ -948,6 +948,14 @@ const
     $2A, $81, $1C, $CF, $55, $01, $83, $75
   ); // 1.2.156.10197.1.501
 
+  OID_SHA384_ECDSA                : array[0..7] of Byte = (
+    $2A, $86, $48, $CE, $3D, $04, $03, $03
+  );// 1.2.840.10045.4.3.3
+
+  OID_SHA512_ECDSA                : array[0..7] of Byte = (
+    $2A, $86, $48, $CE, $3D, $04, $03, $04
+  );// 1.2.840.10045.4.3.4
+
   SCRLF = #13#10;
 
   // 用于交换字符串数据的常量
@@ -960,7 +968,7 @@ const
   SDN_EMAILADDRESS               = 'EmailAddress';
 
   RSA_CA_TYPES: TCnCASignTypes = [ctMd5RSA, ctSha1RSA, ctSha256RSA];
-  ECC_CA_TYPES: TCnCASignTypes = [ctMd5Ecc, ctSha1Ecc, ctSha256Ecc, ctSM2withSM3];
+  ECC_CA_TYPES: TCnCASignTypes = [ctMd5Ecc, ctSha1Ecc, ctSha256Ecc, ctSM2withSM3, ctSha384Ecc, ctSha512Ecc];
 
 var
   DummyPointer: Pointer;
@@ -987,7 +995,13 @@ begin
         SizeOf(OID_SHA256_ECDSA), AParent);
     ctSM2withSM3:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SM2_SM3ENCRYPTION[0],
-        SizeOf(OID_SM2_SM3ENCRYPTION), AParent)
+        SizeOf(OID_SM2_SM3ENCRYPTION), AParent);
+    ctSha384Ecc:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA384_ECDSA[0],
+        SizeOf(OID_SHA384_ECDSA), AParent);
+    ctSha512Ecc:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SHA512_ECDSA[0],
+        SizeOf(OID_SHA512_ECDSA), AParent);
     // TODO: 其它算法类型支持
   end;
 end;
@@ -999,6 +1013,8 @@ var
   Md5: TCnMD5Digest;
   Sha1: TCnSHA1Digest;
   Sha256: TCnSHA256Digest;
+  Sha384: TCnSHA384Digest;
+  Sha512: TCnSHA512Digest;
 begin
   Result := False;
   case CASignType of
@@ -1018,6 +1034,18 @@ begin
       begin
         Sha256 := SHA256Buffer(Buffer, Count);
         outStream.Write(Sha256, SizeOf(TCnSHA256Digest));
+        Result := True;
+      end;
+    ctSha384Ecc:
+      begin
+        Sha384 := SHA384Buffer(Buffer, Count);
+        outStream.Write(Sha384, SizeOf(TCnSHA384Digest));
+        Result := True;
+      end;
+    ctSha512Ecc:
+      begin
+        Sha512 := SHA512Buffer(Buffer, Count);
+        outStream.Write(Sha512, SizeOf(TCnSHA512Digest));
         Result := True;
       end;
   end;
@@ -1048,6 +1076,10 @@ begin
       Result := esdtSHA256;
     ctSM2withSM3:
       Result := esdtSM3;
+    ctSha384Ecc:
+      Result := esdtSHA384;
+    ctSha512Ecc:
+      Result := esdtSHA512;
   end;
 end;
 
@@ -1422,7 +1454,13 @@ begin
     Result := ctSha256Ecc
   else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SM2_SM3ENCRYPTION[0],
     SizeOf(OID_SM2_SM3ENCRYPTION)) then
-    Result := ctSM2withSM3;
+    Result := ctSM2withSM3
+  else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA384_ECDSA[0],
+    SizeOf(OID_SHA384_ECDSA)) then
+    Result := ctSha384Ecc
+  else if CompareObjectIdentifier(ObjectIdentifierNode, @OID_SHA512_ECDSA[0],
+    SizeOf(OID_SHA512_ECDSA)) then
+    Result := ctSha512Ecc;
 end;
 
 // 从以下结构中解出 RSA 公钥
@@ -2275,6 +2313,8 @@ begin
     ctSha1Ecc: Result := 'SHA1 ECDSA';
     ctSha256Ecc: Result := 'SHA256 ECDSA';
     ctSM2withSM3: Result := 'SM2 with SM3';
+    ctSha384Ecc: Result := 'SHA384 ECDSA';
+    ctSha512Ecc: Result := 'SHA512 ECDSA';
   else
     Result := '<Unknown>';
   end;
@@ -2661,8 +2701,16 @@ begin
   Result := Result + SCRLF + 'Subject: ';
   Result := Result + SCRLF + FSubject.ToString;
   Result := Result + SCRLF + 'SubjectUniqueID: ' + FSubjectUniqueID;
-  Result := Result + SCRLF + 'Subject Public Key Modulus: ' + SubjectRSAPublicKey.PubKeyProduct.ToDec;
-  Result := Result + SCRLF + 'Subject Public Key Exponent: ' + SubjectRSAPublicKey.PubKeyExponent.ToDec;
+  if FSubjectIsRSA then
+  begin
+    Result := Result + SCRLF + 'Subject RSA Public Key Modulus: ' + SubjectRSAPublicKey.PubKeyProduct.ToDec;
+    Result := Result + SCRLF + 'Subject RSA Public Key Exponent: ' + SubjectRSAPublicKey.PubKeyExponent.ToDec;
+  end
+  else
+  begin
+    Result := Result + SCRLF + 'Subject ECC Public Key: ' + SubjectEccPublicKey.ToString;
+    Result := Result + SCRLF + 'Subject ECC CurveType: ' + GetEnumName(TypeInfo(TCnEccCurveType), Ord(SubjectEccCurveType));
+  end;
   Result := Result + SCRLF + FStandardExtension.ToString;
   Result := Result + SCRLF + FPrivateInternetExtension.ToString;
 end;
