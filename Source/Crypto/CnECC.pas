@@ -2107,7 +2107,7 @@ function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
 
    参数：
      InStream: TMemoryStream              - 待签名的内存流
-     OutSignStream: TMemoryStream         - 输出的签名内容内存流
+     OutSignStream: TMemoryStream         - 输出的签名内容内存流，ASN1 格式
      CurveType: TCnEccCurveType           - 用于签名的椭圆曲线类型
      PrivateKey: TCnEccPrivateKey         - 用来签名的椭圆曲线私钥
      SignType: TCnEccSignDigestType       - 签名的杂凑类型
@@ -2118,11 +2118,11 @@ function CnEccSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
 function CnEccVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   Ecc: TCnEcc; PublicKey: TCnEccPublicKey;
   SignType: TCnEccSignDigestType = esdtMD5): Boolean; overload;
-{* 用公钥与签名值验证指定内存流，Ecc 中需要预先指定曲线。
+{* 用公钥与签名值验证指定内存流，签名格式是 ASN1/BER 包装的 R S，Ecc 中需要预先指定曲线。
 
    参数：
      InStream: TMemoryStream              - 待验证的内存流
-     InSignStream: TMemoryStream          - 签名内容内存流
+     InSignStream: TMemoryStream          - 签名内容内存流，应是 ASN1 格式
      Ecc: TCnEcc                          - 用于验证的椭圆曲线实例
      PublicKey: TCnEccPublicKey           - 用来验证的椭圆曲线公钥
      SignType: TCnEccSignDigestType       - 签名的杂凑类型，需和签名内容保持一致

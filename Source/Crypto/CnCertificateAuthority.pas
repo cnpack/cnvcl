@@ -855,6 +855,24 @@ function GetCASignNameFromSignType(Sign: TCnCASignType): string;
    返回值：string                         - 返回证书的签名杂凑算法
 }
 
+function GetRSASignTypeFromCASignType(CASignType: TCnCASignType): TCnRSASignDigestType;
+{* 从 RSA 证书的签名杂凑算法中获取其对应的杂凑类型。
+
+   参数：
+     CASignType: TCnCASignType            - 证书的签名杂凑算法
+
+   返回值：TCnRSASignDigestType           - 返回对应的杂凑算法
+}
+
+function GetEccSignTypeFromCASignType(CASignType: TCnCASignType): TCnEccSignDigestType;
+{* 从 ECC 证书的签名类型中获取其对应的杂凑类型。
+
+   参数：
+     CASignType: TCnCASignType            - 证书的签名杂凑算法
+
+   返回值：TCnRSASignDigestType           - 返回对应的杂凑算法
+}
+
 implementation
 
 resourcestring

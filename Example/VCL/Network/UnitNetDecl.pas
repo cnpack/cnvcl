@@ -97,7 +97,7 @@ var
 implementation
 
 uses
-  CnNetwork, CnNative, CnSocket, CnRandom;
+  CnNetwork, CnNative, CnSocket, CnRandom, CnECC, CnSHA2, CnCertificateAuthority;
 
 {$R *.DFM}
 
@@ -674,6 +674,40 @@ begin
   mmoSSL.Lines.Add(Format('TLSHandShakeServerHello.ExtensionLength: %d', [CnGetTLSHandShakeExtensionsExtensionLength(SE)]));
 end;
 
+function ExtractEccCurveDigest(SigAlg: Word; out CurveType: TCnEccCurveType; out DigestType: TCnEccSignDigestType): Boolean;
+begin
+  Result := True;
+  case SigAlg of
+    CN_TLS_SIGN_ALG_ECDSA_SECP256R1_SHA256:
+      begin
+        CurveType := ctSecp256r1;
+        DigestType := esdtSHA256;
+      end;
+    CN_TLS_SIGN_ALG_ECDSA_SECP384R1_SHA384:
+      begin
+        CurveType := ctSecp384r1;
+        DigestType := esdtSHA384;
+      end;
+    CN_TLS_SIGN_ALG_ECDSA_SECP521R1_SHA512:
+      begin
+        CurveType := ctSecp521r1;
+        DigestType := esdtSHA512;
+      end;
+//    CN_TLS_SIGN_ALG_ED25519:
+//      begin
+//        CurveType := ctSecp521r1;
+//        DigestType := esdtSHA512;
+//      end;
+//    CN_TLS_SIGN_ALG_ED448:
+//      begin
+//        CurveType := ctSecp521r1;
+//        DigestType := esdtSHA512;
+//      end;
+  else
+    Result := False;
+  end;
+end;
+
 procedure TFormNetDecl.btnSSLClientClick(Sender: TObject);
 const
   HOST: AnsiString = 'www.cnpack.org';
@@ -685,6 +719,7 @@ var
   B: PCnTLSHandShakeHeader;
   C: PCnTLSHandShakeClientHello;
   SNI: PCnTLSHandShakeServerNameIndication;
+  RandClient, RandServer: TBytes;
   BytesReceived: Integer;
   A: PCnTLSAlertPacket;
   SessionId: TBytes;
@@ -710,6 +745,15 @@ var
   CI: PCnTLSHandShakeCertificateItem;
   SK: PCnTLSHandShakeServerKeyExchange;
   SP: PCnTLSHandShakeSignedParams;
+
+  SignStream: TMemoryStream;
+  SignValueStream: TMemoryStream;
+  CurveType: TCnEccCurveType;
+  DigestType: TCnEccSignDigestType;
+  Ecc: TCnEcc;
+  ServerSigBytes: TBytes;
+  ServerCert: TCnCertificate;
+  ServerCertBytes: TBytes;
 begin
   FTlsClientSocket := CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if FTlsClientSocket = INVALID_SOCKET then
@@ -740,7 +784,9 @@ begin
     C^.ProtocolVersion := CN_TLS_SSL_VERSION_TLS_12;
 
     // 生成随机数
-    CnRandomFillBytes2(@C^.Random[0], SizeOf(C^.Random));
+    SetLength(RandClient, SizeOf(C^.Random));
+    CnRandomFillBytes2(@RandClient[0], Length(RandClient));
+    Move(RandClient[0], C^.Random[0], SizeOf(C^.Random));
 
     // 生成 Session ID (32 字节)
     SetLength(SessionId, 32);
@@ -895,8 +941,8 @@ begin
                 mmoSSL.Lines.Add(Format('Protocol Version: $%4.4x',
                     [S^.ProtocolVersion]));
 
-                mmoSSL.Lines.Add(Format('Random (32 Bytes): %s',
-                    [DataToHex(@S^.Random[0], SizeOf(S^.Random))]));
+                RandServer := NewBytesFromMemory(@S^.Random[0], SizeOf(S^.Random));
+                mmoSSL.Lines.Add(Format('Random (32 Bytes): %s', [BytesToHex(RandServer)]));
 
                 mmoSSL.Lines.Add(Format('Session ID Length: %d', [S^.SessionLength]));
                 if S^.SessionLength > 0 then
@@ -1079,7 +1125,18 @@ begin
             Inc(CerBytes, 3 + CnGetTLSHandShakeCertificateItemCertificateLength(CI));
 
             mmoSSL.Lines.Add(Format('2 Certificate #1 Cert Bytes %d', [CnGetTLSHandShakeCertificateItemCertificateLength(CI)]));
-            mmoSSL.Lines.Add(BytesToHex(CnGetTLSHandShakeCertificateItemCertificate(CI)));
+            ServerCertBytes := CnGetTLSHandShakeCertificateItemCertificate(CI);
+            mmoSSL.Lines.Add(BytesToHex(ServerCertBytes));
+
+            ServerCert := TCnCertificate.Create;
+            try
+              if CnCALoadCertificateFromBytes(ServerCertBytes, ServerCert) then
+                mmoSSL.Lines.Add('2 Certificate #1 Parsing: ' + ServerCert.ToString)
+              else
+                mmoSSL.Lines.Add('2 Certificate #1 Parsing Fail.');
+            finally
+              ServerCert.Free;
+            end;
 
             // 第二个证书
             if CerBytes < CnGetTLSHandShakeCertificateListLength(Cer) then
@@ -1090,6 +1147,16 @@ begin
               mmoSSL.Lines.Add(Format('2 Certificate #2 Cert Bytes %d', [CnGetTLSHandShakeCertificateItemCertificateLength(CI)]));
               mmoSSL.Lines.Add(BytesToHex(CnGetTLSHandShakeCertificateItemCertificate(CI)));
 
+              ServerCert := TCnCertificate.Create;
+              try
+                if CnCALoadCertificateFromBytes(CnGetTLSHandShakeCertificateItemCertificate(CI), ServerCert) then
+                  mmoSSL.Lines.Add('2 Certificate #2 Parsing: ' + ServerCert.ToString)
+                else
+                  mmoSSL.Lines.Add('2 Certificate #2 Parsing Fail.');
+              finally
+                ServerCert.Free;
+              end;
+
               // 第三个证书
               if CerBytes < CnGetTLSHandShakeCertificateListLength(Cer) then
               begin
@@ -1098,6 +1165,16 @@ begin
 
                 mmoSSL.Lines.Add(Format('2 Certificate #3 Cert Bytes %d', [CnGetTLSHandShakeCertificateItemCertificateLength(CI)]));
                 mmoSSL.Lines.Add(BytesToHex(CnGetTLSHandShakeCertificateItemCertificate(CI)));
+
+                ServerCert := TCnCertificate.Create;
+                try
+                  if CnCALoadCertificateFromBytes(CnGetTLSHandShakeCertificateItemCertificate(CI), ServerCert) then
+                    mmoSSL.Lines.Add('2 Certificate #3 Parsing: ' + ServerCert.ToString)
+                  else
+                    mmoSSL.Lines.Add('2 Certificate #3 Parsing Fail.');
+                finally
+                  ServerCert.Free;
+                end;
 
                 if CerBytes < CnGetTLSHandShakeCertificateListLength(Cer) then
                   mmoSSL.Lines.Add('2 Certificate Other Certs Ignored.');
@@ -1138,10 +1215,53 @@ begin
             mmoSSL.Lines.Add('3 ECCPoint: ' + BytesToHex(CnGetTLSHandShakeServerKeyExchangeECPoint(SK)));
 
             SP := CnGetTLSHandShakeSignedParamsFromServerKeyExchange(SK);
-            mmoSSL.Lines.Add('3 Sign Alg: ' + IntToStr(CnGetTLSHandShakeSignedParamsSignatureAlgorithm(SP)));
+            mmoSSL.Lines.Add(Format('3 Sign Alg: %4.4x', [CnGetTLSHandShakeSignedParamsSignatureAlgorithm(SP)]));
             mmoSSL.Lines.Add('3 SignLength: ' + IntToStr(CnGetTLSHandShakeSignedParamsSignatureLength(SP)));
-            mmoSSL.Lines.Add('3 Signature: ' + BytesToHex(CnGetTLSHandShakeSignedParamsSignature(SP)));
+            ServerSigBytes := CnGetTLSHandShakeSignedParamsSignature(SP);
+            mmoSSL.Lines.Add('3 Signature: ' + BytesToHex(ServerSigBytes));
             mmoSSL.Lines.Add('=== Server Key Exchange End ===');
+
+            // 验证签名，先拼凑待签名数据：普通椭圆曲线是
+            // ClientHello.random + ServerHello.random + ServerKeyExchange.params 的指定类型杂凑结果
+            // 25519/448 则是ClientHello.random + ServerHello.random + ServerKeyExchange.params 没杂凑，让 25519/448 内部杂凑
+
+            if ExtractEccCurveDigest(CnGetTLSHandShakeSignedParamsSignatureAlgorithm(SP), CurveType, DigestType) then
+            begin
+              // 我们先拼凑数据：
+              Ecc := nil;
+              SignStream := nil;
+              SignValueStream := nil;
+              ServerCert := nil;
+
+              try
+                SignStream := TMemoryStream.Create;
+                WriteBytesToStream(RandClient, SignStream);
+                WriteBytesToStream(RandServer, SignStream);
+                SignStream.Write(SK^.ECCurveType, 4 + SK^.ECPointLength);
+                SignStream.Position := 0;
+
+                ServerCert := TCnCertificate.Create;
+                if CnCALoadCertificateFromBytes(ServerCertBytes, ServerCert) and not ServerCert.IsRSA then
+                begin
+                  Ecc := TCnEcc.Create(ServerCert.BasicCertificate.SubjectEccCurveType);
+                  SignValueStream := TMemoryStream.Create;
+                  WriteBytesToStream(ServerSigBytes, SignValueStream);
+                  SignValueStream.Position := 0;
+
+                  // 数据是杂凑过的 SignStream，曲线在 Ecc 里，公钥在 ServerCert 的公钥里，签名在 ServerSig 里
+                  if CnEccVerifyStream(SignStream, SignValueStream, Ecc, ServerCert.BasicCertificate.SubjectEccPublicKey,
+                    GetEccSignTypeFromCASignType(ServerCert.CASignType)) then
+                    mmoSSL.Lines.Add('*** Signature Verify OK ***')
+                  else
+                    mmoSSL.Lines.Add('*** Signature Verify Fail ***');
+                end;
+              finally
+                SignValueStream.Free;
+                ServerCert.Free;
+                SignStream.Free;
+                Ecc.Free;
+              end;
+            end;
           end;
         end;
 
