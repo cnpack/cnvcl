@@ -54,7 +54,9 @@ unit CnCertificateAuthority;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.11.27 V1.6
+* 修改记录：2025.11.03 V1.7
+*               增加两个从字节数组中读证书及证书请求的封装函数
+*           2023.11.27 V1.6
 *               读 PEM 格式的 CRT 证书时也支持二进制 ASN.1 格式的 CER 证书
 *           2021.12.09 V1.5
 *               加入 SM2/SM3 证书类型的解析支持
@@ -76,7 +78,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, TypInfo, {$IFDEF MSWINDOWS} Windows, {$ENDIF}
+  SysUtils, Classes, TypInfo, {$IFDEF MSWINDOWS} Windows, {$ENDIF} CnNative,
   CnBigNumber, CnRSA, CnECC, CnBerUtils, CnPemUtils, CnMD5, CnSHA1, CnSHA2;
 
 const
@@ -651,6 +653,17 @@ function CnCALoadCertificateSignRequestFromFile(const FileName: string;
    返回值：Boolean                                        - 返回加载是否成功
 }
 
+function CnCALoadCertificateSignRequestFromBytes(Data: TBytes;
+  CertificateRequest: TCnCertificateRequest): Boolean;
+{* 解析 PEM 格式的 CSR 字节数组并将内容加载入 TCnCertificateRequest 对象中。
+
+   参数：
+     Data: TBytes                                         - 待解析的 PEM 字节数组
+     CertificateRequest: TCnCertificateRequest            - 加载的证书请求对象
+
+   返回值：Boolean                                        - 返回加载是否成功
+}
+
 function CnCALoadCertificateSignRequestFromStream(Stream: TStream;
   CertificateRequest: TCnCertificateRequest): Boolean;
 {* 解析 PEM 格式的 CSR 流并将内容加载入 TCnCertificateRequest 对象中。
@@ -756,6 +769,18 @@ function CnCALoadCertificateFromFile(const FileName: string;
    返回值：Boolean                        - 返回加载是否成功
 }
 
+function CnCALoadCertificateFromBytes(Data: TBytes;
+  Certificate: TCnCertificate; const Password: string = ''): Boolean;
+{* 解析 PEM 格式的 CRT 证书流或原始的二进制 CER 字节数组，并将内容放入 TCnCertificate 对象中。
+
+   参数：
+     Data: TBytes                         - 待解析的流
+     Certificate: TCnCertificate          - 加载的证书对象
+     const Password: string               - 证书如加密，此处提供对应密码
+
+   返回值：Boolean                        - 返回加载是否成功
+}
+
 function CnCALoadCertificateFromStream(Stream: TStream;
   Certificate: TCnCertificate; const Password: string = ''): Boolean;
 {* 解析 PEM 格式的 CRT 证书流或原始的二进制 CER 流，并将内容放入 TCnCertificate 对象中。
@@ -831,9 +856,6 @@ function GetCASignNameFromSignType(Sign: TCnCASignType): string;
 }
 
 implementation
-
-uses
-  CnNative;
 
 resourcestring
   SCnErrorNotSelfSignCanNotVerify = 'NOT Self-Sign. Can NOT Verify.';
@@ -1657,6 +1679,21 @@ begin
   end;
 end;
 
+function CnCALoadCertificateSignRequestFromBytes(Data: TBytes;
+  CertificateRequest: TCnCertificateRequest): Boolean;
+var
+  Stream: TMemoryStream;
+begin
+  Stream := TMemoryStream.Create;
+  try
+    WriteBytesToStream(Data, Stream);
+    Stream.Position := 0;
+    Result := CnCALoadCertificateSignRequestFromStream(Stream, CertificateRequest);
+  finally
+    Stream.Free;
+  end;
+end;
+
 {
   CSR 文件的大体格式如下：
 
@@ -2330,6 +2367,21 @@ var
 begin
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
+    Result := CnCALoadCertificateFromStream(Stream, Certificate, Password);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function CnCALoadCertificateFromBytes(Data: TBytes;
+  Certificate: TCnCertificate; const Password: string): Boolean;
+var
+  Stream: TMemoryStream;
+begin
+  Stream := TMemoryStream.Create;
+  try
+    WriteBytesToStream(Data, Stream);
+    Stream.Position := 0;
     Result := CnCALoadCertificateFromStream(Stream, Certificate, Password);
   finally
     Stream.Free;
