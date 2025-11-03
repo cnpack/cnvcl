@@ -1484,10 +1484,10 @@ function BigNumberWordExpand(Num: TCnBigNumber; Words: Integer): TCnBigNumber;
 
 function BigNumberToBinary(Num: TCnBigNumber; Buf: PAnsiChar; FixedLen: Integer = 0): Integer;
 {* 将一个大数转换成二进制数据放入 Buf 中，Buf 的长度必须大于等于其 BytesCount，
-   返回 Buf 写入的长度，注意不处理正负号。如果 Buf 为 nil，则直接返回所需长度
+   返回 Buf 写入的长度，注意不处理正负号。如果 Buf 为 nil，则直接返回所需长度。
    大数长度超过 FixedLen 时按大数实际字节长度写，否则先写字节 0 补齐长度
-   注意内部有个元素间倒序的过程，同时元素内也有拆字节的过程，抹平了 CPU 大小端的不同
-   也就是说低内存被写入的是大数内部的高位数据，符合网络或阅读习惯
+   注意内部有个元素间倒序的过程，同时元素内也有拆字节的过程，抹平了 CPU 大小端的不同。
+   也就是说低内存被写入的是大数内部的高位数据，符合网络或阅读习惯。
 
    参数：
      Num: TCnBigNumber                    - 待处理的大数对象
@@ -1541,11 +1541,12 @@ function BigNumberFromBytes(Buf: TBytes): TCnBigNumber;
    返回值：TCnBigNumber                   - 返回新建的大数对象
 }
 
-function BigNumberToBytes(Num: TCnBigNumber): TBytes;
+function BigNumberToBytes(Num: TCnBigNumber; FixedLen: Integer = 0): TBytes;
 {* 将一个大数转换成二进制数据写入字节数组并返回，字节顺序同 Binary，不处理正负号，失败返回 nil。
 
    参数：
      Num: TCnBigNumber                    - 待转换的大数对象
+     FixedLen: Integer                    - 指定大数实际字节长度不足时使用的固定字节长度，为 0 时则使用大数实际字节长度
 
    返回值：TBytes                         - 返回字节数组
 }
@@ -3713,7 +3714,7 @@ begin
     Result := BigNumberFromBinary(@Buf[0], Length(Buf));
 end;
 
-function BigNumberToBytes(Num: TCnBigNumber): TBytes;
+function BigNumberToBytes(Num: TCnBigNumber; FixedLen: Integer): TBytes;
 var
   L: Integer;
 begin
@@ -3721,8 +3722,16 @@ begin
   L := BigNumberGetBytesCount(Num);
   if L > 0 then
   begin
-    SetLength(Result, L);
-    BigNumberToBinary(Num, @Result[0]);
+    if L >= FixedLen then
+    begin
+      SetLength(Result, L);
+      BigNumberToBinary(Num, @Result[0]);
+    end
+    else
+    begin
+      SetLength(Result, FixedLen);
+      BigNumberToBinary(Num, @Result[FixedLen - L]);
+    end;
   end;
 end;
 

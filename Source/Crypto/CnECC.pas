@@ -465,6 +465,15 @@ type
        返回值：string                     - 返回 Base64 字符串
     }
 
+    function ToBytes(FixedLen: Integer = 0): TBytes;
+    {* 输出成带 03 或 04 前缀的字节数组，如果只有 X 值，使用 03 前缀。
+
+       参数：
+         FixedLen: Integer                - 指定数据的固定字节长度，不足则高位补 0
+
+       返回值：string                     - 返回字节数组
+    }
+
     property X: TCnBigNumber read FX write SetX;
     {* 椭圆曲线点的 X 坐标}
     property Y: TCnBigNumber read FY write SetY;
@@ -3849,6 +3858,24 @@ begin
     Base64Encode(Stream.Memory, Stream.Size, Result);
   finally
     Stream.Free;
+  end;
+end;
+
+function TCnEccPoint.ToBytes(FixedLen: Integer): TBytes;
+var
+  Prefix: TBytes;
+begin
+  SetLength(Prefix, 1);
+  if FY.IsZero then
+  begin
+    Prefix[0] := 3; // 不知道 Y 具体值，无法确定奇偶，暂时写 03
+    Result := ConcatBytes(Prefix, BigNumberToBytes(FX, FixedLen));
+  end
+  else
+  begin
+    Prefix[0] := 4;
+    Result := ConcatBytes(Prefix, BigNumberToBytes(FX, FixedLen));
+    Result := ConcatBytes(Result, BigNumberToBytes(FY, FixedLen));
   end;
 end;
 
