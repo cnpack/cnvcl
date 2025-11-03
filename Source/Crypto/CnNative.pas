@@ -1494,6 +1494,16 @@ function HexToStream(const Hex: string; Stream: TStream): Integer;
    返回值：Integer                        - 返回写入的字节数
 }
 
+function WriteBytesToStream(Data: TBytes; Stream: TStream): Integer;
+{* 将字节数组写入流中，返回写入的字节数。
+
+   参数：
+     Data: TBytes                         - 待写入的字节数组
+     Stream: TStream                      - 写入的流
+
+   返回值：Integer                        - 返回写入的字节数
+}
+
 procedure ReverseBytes(Data: TBytes);
 {* 按字节顺序倒置一字节数组。
 
@@ -3259,6 +3269,14 @@ begin
     B := Byte(HexToInt(@H[(I - 1) * 2], 2));
     Inc(Result, Stream.Write(B, 1));
   end;
+end;
+
+function WriteBytesToStream(Data: TBytes; Stream: TStream): Integer;
+begin
+  if Length(Data) > 0 then
+    Result := Stream.Write(Data[0], Length(Data))
+  else
+    Result := 0;
 end;
 
 procedure ReverseBytes(Data: TBytes);
