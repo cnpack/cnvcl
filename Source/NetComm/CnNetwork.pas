@@ -716,6 +716,9 @@ const
   CN_TLS_SIGN_PARAM_SIG_ALG_ED25519                              = 7;
   CN_TLS_SIGN_PARAM_SIG_ALG_ED448                                = 8;
 
+  {* TLS/SSL 中的 Extension 中的椭圆曲线点的转换类型，默认 04，不压缩}
+  CN_TLS_EC_POINT_CONVERSION_FORM_UNCOMPRESSED                   = 4;
+
 type
   TCnIPv6Array = array[0..7] of Word;
 
@@ -1647,6 +1650,29 @@ type
 
   PCnTLSHandShakeServerKeyExchange = ^TCnTLSHandShakeServerKeyExchange;
 
+{
+  TLS/SSL 握手包中的 Client Key Exchange 示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeHeader 的 Content 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  | PointConvForm |                     X ...                     |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |                           Y ...                               |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeClientKeyExchange = packed record
+    PointConversionForm:      Byte;                         // 椭圆曲线点格式，使用 CN_TLS_EC_POINT_CONVERSION_FORM_*
+    XY:                       array[0..0] of Byte;          // 椭圆曲线公钥点的 X Y 坐标，实际长度可变
+  end;
+
+  PCnTLSHandShakeClientKeyExchange = ^TCnTLSHandShakeClientKeyExchange;
+
 // ======================== IP 包头系列函数 ====================================
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
@@ -2197,6 +2223,12 @@ function CnGetTLSHandShakeSignedParamsSignature(const SP: PCnTLSHandShakeSignedP
 
 procedure CnSetTLSHandShakeSignedParamsSignature(const SP: PCnTLSHandShakeSignedParams; Signature: TBytes);
 {* 设置 TLS/SSL 握手协议报文签名及参数部分的签名内容}
+
+function CnGetTLSHandShakeClientKeyExchangeECPoint(const CKE: PCnTLSHandShakeClientKeyExchange; EccFiniteFieldSize: Integer): TBytes;
+{* 获取 TLS/SSL 握手协议报文 Client Key Exchange 中的椭圆曲线点内容，包括前缀 04，内部不知长度，需要传入对应椭圆曲线的有限域长度}
+
+procedure CnSetTLSHandShakeClientKeyExchangeECPoint(const CKE: PCnTLSHandShakeClientKeyExchange; ECPoint: TBytes);
+{* 设置 TLS/SSL 握手协议报文 Client Key Exchange 中的椭圆曲线点内容，字节数组需包括前缀 04}
 
 // =========================== IP 地址转换函数 =================================
 
@@ -4044,6 +4076,26 @@ begin
   end
   else
     CnSetTLSHandShakeSignedParamsSignatureLength(SP, 0);
+end;
+
+function CnGetTLSHandShakeClientKeyExchangeECPoint(const CKE: PCnTLSHandShakeClientKeyExchange; EccFiniteFieldSize: Integer): TBytes;
+begin
+  if (CKE^.PointConversionForm <> CN_TLS_EC_POINT_CONVERSION_FORM_UNCOMPRESSED) or (EccFiniteFieldSize <= 0) then
+    Result := nil
+  else
+  begin
+    SetLength(Result, 1 + EccFiniteFieldSize shl 1);
+    Move(CKE^.PointConversionForm, Result[0], Length(Result));
+  end;
+end;
+
+procedure CnSetTLSHandShakeClientKeyExchangeECPoint(const CKE: PCnTLSHandShakeClientKeyExchange; ECPoint: TBytes);
+begin
+  if Length(ECPoint) > 1 then
+  begin
+    if ECPoint[0] = CN_TLS_EC_POINT_CONVERSION_FORM_UNCOMPRESSED then
+      Move(ECPoint[0], CKE^.PointConversionForm, Length(ECPoint));
+  end;
 end;
 
 end.
