@@ -32,6 +32,8 @@ unit CnECC;
 *           概念：椭圆曲线的阶是曲线上的总点数（似乎不包括无限远点）
 *           基点的阶是基点标量乘多少等于无限远点。两者是倍数整除关系，可能相等。
 *
+*           注意：不包括二元域上的魏尔斯特拉斯曲线 y^2 + xy = x^3 + ax^2 + b (mod f(x)) 的实现
+*
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行，注意部分辅助函数缺乏固定长度处理，待修正，但 ASN.1 包装可无需指定固定长度
 * 本 地 化：该单元无需本地化处理
@@ -633,7 +635,7 @@ type
   TCnEccCurveType = (ctCustomized, ctSM2, ctSM2Example192, ctSM2Example256,
     ctRfc4754ECDSAExample256, ctSecp224r1, ctSecp224k1, ctSecp256k1, ctPrime256v1,
     ctWapiPrime192v1, ctSM9Bn256v1, ctSecp256r1, ctSecp384r1, ctSecp521r1);
-  {* 本单元支持的椭圆曲线类型}
+  {* 本单元支持的椭圆曲线类型，其中 ctSecp256r1 和 ctPrime256v1 是不同名但同系数的曲线}
 
   TCnEcc = class
   {* 描述一有限素域 p 也就是 0 到 p - 1 上的椭圆曲线 y^2 = x^3 + Ax + B mod p}
@@ -2504,7 +2506,7 @@ const
       N: 'B640000002A3A6F1D603AB4FF58EC74449F2934B18EA8BEEE56EE19CD69ECF25';
       H: '01'
     ),
-    ( // ctSecp256r1
+    ( // ctSecp256r1 = ctPrime256v1
       P: 'FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF';
       A: 'FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC';
       B: '5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B';

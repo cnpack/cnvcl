@@ -533,7 +533,7 @@ const
   CN_TLS_ALERT_DESC_CERTIFICATE_REQUIRED                         = 116; //
   CN_TLS_ALERT_DESC_NO_APPLICATION_PROTOCOL                      = 120; //
 
-  {* TLS/SSL 的 Cipher 列表}
+  {* TLS/SSL 的 Cipher 列表，注意 DHE 的 E 是 Ephemeral 表示临时}
   {* TLS 1.3}
   CN_CIPHER_TLS_AES_128_GCM_SHA256                               = $1301;
   CN_CIPHER_TLS_AES_256_GCM_SHA384                               = $1302;
@@ -705,6 +705,16 @@ const
 
   {* TLS/SSL 中的 Extension 中的椭圆曲线点的格式类型，来自 RFC 8446}
   CN_TLS_EC_POINT_FORMATS_UNCOMPRESSED                           = 0;
+
+  {* TLS/SSL 中的 Server Key Exchange 中的椭圆曲线命名类型，来自 RFC 8446}
+  CN_TLS_EC_CURVETYPE_EXPLICIT_PRIME                             = 1; // 详细传递参数的素域椭圆曲线
+  CN_TLS_EC_CURVETYPE_EXPLICIT_CHAR2                             = 2; // 详细传递参数的二次域椭圆曲线
+  CN_TLS_EC_CURVETYPE_NAMED_CURVE                                = 3; // 约定的命名曲线
+
+  {* TLS/SSL 中的 Server Key Exchange 中的椭圆曲线签名算法，来自 RFC 8446}
+  CN_TLS_SIGN_PARAM_SIG_ALG_ECDSA                                = 3;
+  CN_TLS_SIGN_PARAM_SIG_ALG_ED25519                              = 7;
+  CN_TLS_SIGN_PARAM_SIG_ALG_ED448                                = 8;
 
 type
   TCnIPv6Array = array[0..7] of Word;
@@ -1477,14 +1487,14 @@ type
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  |         SigAlgLength          |        SigAlgs[0]...          |
-  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |  SignatureAlgorithmsLength    |  SignatureAlgorithms[0]...    |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ +-+
 
 }
 
   TCnTLSHandShakeSignatureAlgorithms = packed record
-    SigAlgLength:             Word;                    // 支持的签名算法字节长度
-    SigAlgs:                  array[0..0] of Word;     // 支持的签名算法列表，使用 CN_TLS_SIGN_ALG_*
+    SignatureAlgorithmsLength:  Word;                  // 支持的签名算法字节长度
+    SignatureAlgorithms:      array[0..0] of Word;     // 支持的签名算法列表，使用 CN_TLS_SIGN_ALG_*
   end;
 
   PCnTLSHandShakeSignatureAlgorithms = ^TCnTLSHandShakeSignatureAlgorithms;
@@ -1584,6 +1594,58 @@ type
   end;
 
   PCnTLSHandShakeCertificate = ^TCnTLSHandShakeCertificate;
+
+{
+  TLS/SSL 握手包中的签名及参数部分示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeServerKeyExchange 的 SignedParams 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |      SignatureAlgorithm       |        SignatureLength        |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |                        Signature ...                          |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeSignedParams = packed record
+    SignatureAlgorithm:       Word;                         // 签名算法，使用 CN_TLS_SIGN_ALG_*
+    SignatureLength:          Word;                         // 签名长度
+    Signature:                array[0..0] of Byte;          // 签名内容
+  end;
+
+  PCnTLSHandShakeSignedParams = ^TCnTLSHandShakeSignedParams;
+
+{
+  TLS/SSL 握手包中的 Server Key Exchange 示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeHeader 的 Content 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |  ECCurveType  |          NamedCurve           | ECPointLength |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |                        ECPoint ...                            |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |                     SignedParams ...                          |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeServerKeyExchange = packed record
+    ECCurveType:              Byte;                         // 椭圆曲线命名类型，使用 CN_TLS_EC_CURVETYPE_*
+    NamedCurve:               Word;                         // 椭圆曲线类型，当 ECCurveType 是命名曲线时
+    ECPointLength:            Byte;                         // 椭圆曲线公钥也就是点坐标的长度
+    ECPoint:                  array[0..63] of Byte;         // 椭圆曲线公钥长度，实际长度由 ECPointLength 决定
+    SignedParams:             TCnTLSHandShakeSignedParams;  // 签名部分，注意不能直接访问
+  end;
+
+  PCnTLSHandShakeServerKeyExchange = ^TCnTLSHandShakeServerKeyExchange;
 
 // ======================== IP 包头系列函数 ====================================
 
@@ -2102,6 +2164,39 @@ procedure CnSetTLSHandShakeCertificateListLength(const Certificate: PCnTLSHandSh
 function CnGetTLSHandShakeCertificateItem(const Certificate: PCnTLSHandShakeCertificate;
   PrevItem: PCnTLSHandShakeCertificateItem = nil): PCnTLSHandShakeCertificateItem;
 {* 返回 TLS/SSL 握手协议扩展报文 Certificate 指定证书条目后的下一个证书条目，如果指定条目为 nil，返回第一个}
+
+function CnGetTLSHandShakeSignedParamsFromServerKeyExchange(const SKE: PCnTLSHandShakeServerKeyExchange): PCnTLSHandShakeSignedParams;
+{* 返回 TLS/SSL 握手协议报文 Server Key Exchange 中的签名及参数报文的地址}
+
+function CnGetTLSHandShakeServerKeyExchangeNamedCurve(const SKE: PCnTLSHandShakeServerKeyExchange): Word;
+{* 返回 TLS/SSL 握手协议报文 Server Key Exchange 中的命名椭圆曲线类型}
+
+procedure CnSetTLSHandShakeServerKeyExchangeNamedCurve(const SKE: PCnTLSHandShakeServerKeyExchange; Name: Word);
+{* 设置 TLS/SSL 握手协议报文 Server Key Exchange 中的命名椭圆曲线类型}
+
+function CnGetTLSHandShakeServerKeyExchangeECPoint(const SKE: PCnTLSHandShakeServerKeyExchange): TBytes;
+{* 获取 TLS/SSL 握手协议报文 Server Key Exchange 中的椭圆曲线点内容}
+
+procedure CnSetTLSHandShakeServerKeyExchangeECPoint(const SKE: PCnTLSHandShakeServerKeyExchange; ECPoint: TBytes);
+{* 设置 TLS/SSL 握手协议报文 Server Key Exchange 中的椭圆曲线点内容}
+
+function CnGetTLSHandShakeSignedParamsSignatureAlgorithm(const SP: PCnTLSHandShakeSignedParams): Word;
+{* 返回 TLS/SSL 握手协议报文签名及参数部分的签名算法类型}
+
+procedure CnSetTLSHandShakeSignedParamsSignatureAlgorithm(const SP: PCnTLSHandShakeSignedParams; SigAlg: Word);
+{* 设置 TLS/SSL 握手协议报文签名及参数部分的签名算法类型}
+
+function CnGetTLSHandShakeSignedParamsSignatureLength(const SP: PCnTLSHandShakeSignedParams): Word;
+{* 返回 TLS/SSL 握手协议报文签名及参数部分的签名长度}
+
+procedure CnSetTLSHandShakeSignedParamsSignatureLength(const SP: PCnTLSHandShakeSignedParams; SigLength: Word);
+{* 设置 TLS/SSL 握手协议报文签名及参数部分的签名长度}
+
+function CnGetTLSHandShakeSignedParamsSignature(const SP: PCnTLSHandShakeSignedParams): TBytes;
+{* 获取 TLS/SSL 握手协议报文签名及参数部分的签名内容}
+
+procedure CnSetTLSHandShakeSignedParamsSignature(const SP: PCnTLSHandShakeSignedParams; Signature: TBytes);
+{* 设置 TLS/SSL 握手协议报文签名及参数部分的签名内容}
 
 // =========================== IP 地址转换函数 =================================
 
@@ -3486,12 +3581,12 @@ end;
 
 function CnGetTLSHandShakeSignatureAlgorithmsSigAlgLength(const SG: PCnTLSHandShakeSignatureAlgorithms): Word;
 begin
-  Result := UInt16NetworkToHost(SG^.SigAlgLength);
+  Result := UInt16NetworkToHost(SG^.SignatureAlgorithmsLength);
 end;
 
 procedure CnSetTLSHandShakeSignatureAlgorithmsSigAlgLength(const SG: PCnTLSHandShakeSignatureAlgorithms; SigAlgLength: Word);
 begin
-  SG^.SigAlgLength := UInt16HostToNetwork(SigAlgLength);
+  SG^.SignatureAlgorithmsLength := UInt16HostToNetwork(SigAlgLength);
 end;
 
 function CnGetTLSHandShakeSignatureAlgorithms(const ExtensionItem: PCnTLSHandShakeExtensionItem): TWords;
@@ -3509,7 +3604,7 @@ begin
     if L >= 2 then
     begin
       SetLength(Result, L shr 1);
-      T := PWord(@SA^.SigAlgs[0]);
+      T := PWord(@SA^.SignatureAlgorithms[0]);
 
       for L := 0 to Length(Result) - 1 do
       begin
@@ -3534,7 +3629,7 @@ begin
   SA := PCnTLSHandShakeSignatureAlgorithms(CnGetTLSHandShakeExtensionsExtensionData(ExtensionItem));
   CnSetTLSHandShakeSignatureAlgorithmsSigAlgLength(SA, Length(SigAlgs) * SizeOf(Word));
 
-  T := PWord(@SA^.SigAlgs[0]);
+  T := PWord(@SA^.SignatureAlgorithms[0]);
   for I := 0 to Length(SigAlgs) - 1 do
   begin
     T^ := UInt16HostToNetwork(SigAlgs[I]);
@@ -3862,6 +3957,93 @@ begin
     Inc(P, CnGetTLSHandShakeCertificateItemCertificateLength(PrevItem));
     Result := PCnTLSHandShakeCertificateItem(P);
   end;
+end;
+
+function CnGetTLSHandShakeSignedParamsFromServerKeyExchange(const SKE: PCnTLSHandShakeServerKeyExchange): PCnTLSHandShakeSignedParams;
+var
+  P: PByte;
+begin
+  P := PByte(SKE);
+  Inc(P, SizeOf(Byte));
+  Inc(P, SizeOf(Word));
+  Inc(P, P^ + SizeOf(Byte));
+  Result := PCnTLSHandShakeSignedParams(P);
+end;
+
+function CnGetTLSHandShakeServerKeyExchangeNamedCurve(const SKE: PCnTLSHandShakeServerKeyExchange): Word;
+begin
+  Result := UInt16NetworkToHost(SKE^.NamedCurve);
+end;
+
+procedure CnSetTLSHandShakeServerKeyExchangeNamedCurve(const SKE: PCnTLSHandShakeServerKeyExchange; Name: Word);
+begin
+  SKE^.NamedCurve := UInt16HostToNetwork(Name);
+end;
+
+function CnGetTLSHandShakeServerKeyExchangeECPoint(const SKE: PCnTLSHandShakeServerKeyExchange): TBytes;
+begin
+  if SKE^.ECPointLength > 0 then
+  begin
+    SetLength(Result, SKE^.ECPointLength);
+    Move(SKE^.ECPoint[0], Result[0], SKE^.ECPointLength);
+  end
+  else
+    Result := nil;
+end;
+
+procedure CnSetTLSHandShakeServerKeyExchangeECPoint(const SKE: PCnTLSHandShakeServerKeyExchange; ECPoint: TBytes);
+begin
+  SKE^.ECPointLength := Length(ECPoint);
+  if SKE^.ECPointLength > 0 then
+    Move(ECPoint[0], SKE^.ECPoint[0], SKE^.ECPointLength);
+end;
+
+function CnGetTLSHandShakeSignedParamsSignatureAlgorithm(const SP: PCnTLSHandShakeSignedParams): Word;
+begin
+  Result := UInt16NetworkToHost(SP^.SignatureAlgorithm);
+end;
+
+procedure CnSetTLSHandShakeSignedParamsSignatureAlgorithm(const SP: PCnTLSHandShakeSignedParams; SigAlg: Word);
+begin
+  SP^.SignatureAlgorithm := UInt16HostToNetwork(SigAlg);
+end;
+
+function CnGetTLSHandShakeSignedParamsSignatureLength(const SP: PCnTLSHandShakeSignedParams): Word;
+begin
+  Result := UInt16NetworkToHost(SP^.SignatureLength);
+end;
+
+procedure CnSetTLSHandShakeSignedParamsSignatureLength(const SP: PCnTLSHandShakeSignedParams; SigLength: Word);
+begin
+  SP^.SignatureLength := UInt16HostToNetwork(SigLength);
+end;
+
+function CnGetTLSHandShakeSignedParamsSignature(const SP: PCnTLSHandShakeSignedParams): TBytes;
+var
+  L: Integer;
+begin
+  L := CnGetTLSHandShakeSignedParamsSignatureLength(SP);
+  if L > 0 then
+  begin
+    SetLength(Result, L);
+    Move(SP^.Signature[0], Result[0], L);
+  end
+  else
+    Result := nil;
+end;
+
+procedure CnSetTLSHandShakeSignedParamsSignature(const SP: PCnTLSHandShakeSignedParams; Signature: TBytes);
+var
+  L: Integer;
+begin
+  L  := Length(Signature);
+  if Word(L) > 0 then
+  begin
+    CnSetTLSHandShakeSignedParamsSignatureLength(SP, Word(L));
+    Move(Signature[0], SP^.Signature[0], Word(L));
+  end
+  else
+    CnSetTLSHandShakeSignedParamsSignatureLength(SP, 0);
 end;
 
 end.

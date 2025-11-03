@@ -708,6 +708,8 @@ var
   CerBytes: Cardinal;
   Cer: PCnTLSHandShakeCertificate;
   CI: PCnTLSHandShakeCertificateItem;
+  SK: PCnTLSHandShakeServerKeyExchange;
+  SP: PCnTLSHandShakeSignedParams;
 begin
   FTlsClientSocket := CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if FTlsClientSocket = INVALID_SOCKET then
@@ -1128,7 +1130,18 @@ begin
           // 如果是服务器密钥交换包
           if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_KEY_EXCHANGE_RESERVED then
           begin
+            SK := PCnTLSHandShakeServerKeyExchange(@B^.Content[0]);
+            mmoSSL.Lines.Add('=== Server Key Exchange ===');
+            mmoSSL.Lines.Add('3 ECCurveType: ' + IntToStr(SK^.ECCurveType));
+            mmoSSL.Lines.Add('3 Named Curve: ' + IntToStr(CnGetTLSHandShakeServerKeyExchangeNamedCurve(SK)));
+            mmoSSL.Lines.Add('3 ECPointLength: ' + IntToStr(SK^.ECPointLength));
+            mmoSSL.Lines.Add('3 ECCPoint: ' + BytesToHex(CnGetTLSHandShakeServerKeyExchangeECPoint(SK)));
 
+            SP := CnGetTLSHandShakeSignedParamsFromServerKeyExchange(SK);
+            mmoSSL.Lines.Add('3 Sign Alg: ' + IntToStr(CnGetTLSHandShakeSignedParamsSignatureAlgorithm(SP)));
+            mmoSSL.Lines.Add('3 SignLength: ' + IntToStr(CnGetTLSHandShakeSignedParamsSignatureLength(SP)));
+            mmoSSL.Lines.Add('3 Signature: ' + BytesToHex(CnGetTLSHandShakeSignedParamsSignature(SP)));
+            mmoSSL.Lines.Add('=== Server Key Exchange End ===');
           end;
         end;
 
@@ -1155,7 +1168,7 @@ begin
           // 如果是 ServerHello 结束，才完成这一轮接收
           if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE_RESERVED then
           begin
-
+            mmoSSL.Lines.Add('=== Server Hello Done ===');
           end;
         end;
       end

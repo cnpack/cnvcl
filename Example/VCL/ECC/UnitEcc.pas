@@ -1832,7 +1832,7 @@ begin
     for I := K.GetBitsCount - 2 downto 0 do
     begin
       // 用本轮的初始值 U1、V1 计算下一轮的 U、V，并赋值回 U1、V1
-      BigNumberMulMod(U, U1, V1, P);   // U = (U*V) mod p 计算 U 时不能改变 U1 因为 计算 V 时还要用到
+      BigNumberDirectMulMod(U, U1, V1, P);   // U = (U*V) mod p 计算 U 时不能改变 U1 因为 计算 V 时还要用到
 
       BigNumberMul(V1, V1, V1);        // V = ((V^2 +D*U^2)/2) mod p  // 计算 V 时随便改变 U1、V1
       BigNumberMul(U1, U1, U1);
