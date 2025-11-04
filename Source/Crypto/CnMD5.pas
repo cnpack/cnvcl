@@ -290,6 +290,16 @@ procedure MD5Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
    返回值：（无）
 }
 
+function MD5HmacBytes(Key: TBytes; Data: TBytes): TCnMD5Digest;
+{* 对字节数组进行基于 MD5 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 MD5 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
+}
+
 implementation
 
 const
@@ -884,6 +894,15 @@ begin
   MD5HmacInit(Ctx, Key, KeyByteLength);
   MD5HmacUpdate(Ctx, Input, ByteLength);
   MD5HmacFinal(Ctx, Output);
+end;
+
+function MD5HmacBytes(Key: TBytes; Data: TBytes): TCnMD5Digest;
+var
+  Ctx: TCnMD5Context;
+begin
+  MD5HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
+  MD5HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
+  MD5HmacFinal(Ctx, Result);
 end;
 
 end.

@@ -807,6 +807,46 @@ procedure BLAKE512Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
    返回值：（无）
 }
 
+function BLAKE224HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE224Digest;
+{* 对字节数组进行基于 BLAKE224 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 BLAKE224 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnBLAKE224Digest              - 返回的 BLAKE224 杂凑值
+}
+
+function BLAKE256HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE256Digest;
+{* 对字节数组进行基于 BLAKE256 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 BLAKE256 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnBLAKE256Digest              - 返回的 BLAKE256 杂凑值
+}
+
+function BLAKE384HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE384Digest;
+{* 对字节数组进行基于 BLAKE384 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 BLAKE384 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnBLAKE384Digest              - 返回的 BLAKE384 杂凑值
+}
+
+function BLAKE512HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE512Digest;
+{* 对字节数组进行基于 BLAKE512 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 BLAKE512 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnBLAKE512Digest              - 返回的 BLAKE512 杂凑值
+}
+
 implementation
 
 type
@@ -2375,6 +2415,15 @@ begin
   BLAKE224HmacFinal(Context, Output);
 end;
 
+function BLAKE224HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE224Digest;
+var
+  Context: TCnBLAKE224Context;
+begin
+  BLAKE224HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  BLAKE224HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  BLAKE224HmacFinal(Context, Result);
+end;
+
 procedure BLAKE256Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnBLAKE256Digest);
 var
@@ -2383,6 +2432,15 @@ begin
   BLAKE256HmacInit(Context, Key, KeyByteLength);
   BLAKE256HmacUpdate(Context, Input, ByteLength);
   BLAKE256HmacFinal(Context, Output);
+end;
+
+function BLAKE256HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE256Digest;
+var
+  Context: TCnBLAKE256Context;
+begin
+  BLAKE256HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  BLAKE256HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  BLAKE256HmacFinal(Context, Result);
 end;
 
 procedure BLAKE384HmacInit(var Context: TCnBLAKE384Context; Key: PAnsiChar; KeyLength: Integer);
@@ -2439,6 +2497,15 @@ begin
   BLAKE384HmacFinal(Context, Output);
 end;
 
+function BLAKE384HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE384Digest;
+var
+  Context: TCnBLAKE384Context;
+begin
+  BLAKE384HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  BLAKE384HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  BLAKE384HmacFinal(Context, Result);
+end;
+
 procedure BLAKE512HmacInit(var Context: TCnBLAKE512Context; Key: PAnsiChar; KeyLength: Integer);
 var
   I: Integer;
@@ -2491,6 +2558,15 @@ begin
   BLAKE512HmacInit(Context, Key, KeyByteLength);
   BLAKE512HmacUpdate(Context, Input, ByteLength);
   BLAKE512HmacFinal(Context, Output);
+end;
+
+function BLAKE512HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE512Digest;
+var
+  Context: TCnBLAKE512Context;
+begin
+  BLAKE512HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  BLAKE512HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  BLAKE512HmacFinal(Context, Result);
 end;
 
 end.

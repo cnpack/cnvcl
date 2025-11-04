@@ -1159,6 +1159,46 @@ procedure SHA3_512Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
    返回值：（无）
 }
 
+function SHA3_224HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_224Digest;
+{* 对字节数组进行基于 SHA3_224 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 SHA3_224 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA3_224Digest                   - 返回的 SHA3_224 杂凑值
+}
+
+function SHA3_256HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_256Digest;
+{* 对字节数组进行基于 SHA3_256 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 SHA3_256 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA3_256Digest              - 返回的 SHA3_256 杂凑值
+}
+
+function SHA3_384HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_384Digest;
+{* 对字节数组进行基于 SHA3_384 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 SHA3_384 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA3_384Digest              - 返回的 SHA3_384 杂凑值
+}
+
+function SHA3_512HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_512Digest;
+{* 对字节数组进行基于 SHA3_512 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 SHA3_512 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA3_512Digest              - 返回的 SHA3_512 杂凑值
+}
+
 implementation
 
 type
@@ -2701,6 +2741,50 @@ begin
   SHA3_512HmacUpdate(Context, Input, ByteLength);
   SHA3_512HmacFinal(Context, Dig);
   Move(Dig[0], Output[0], Context.DigestLen);
+end;
+
+function SHA3_224HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_224Digest;
+var
+  Ctx: TCnSHA3Context;
+  Dig: TCnSHA3GeneralDigest;
+begin
+  SHA3_224HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
+  SHA3_224HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
+  SHA3_224HmacFinal(Ctx, Dig);
+  Move(Dig[0], Result[0], Ctx.DigestLen);
+end;
+
+function SHA3_256HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_256Digest;
+var
+  Ctx: TCnSHA3Context;
+  Dig: TCnSHA3GeneralDigest;
+begin
+  SHA3_256HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
+  SHA3_256HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
+  SHA3_256HmacFinal(Ctx, Dig);
+  Move(Dig[0], Result[0], Ctx.DigestLen);
+end;
+
+function SHA3_384HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_384Digest;
+var
+  Ctx: TCnSHA3Context;
+  Dig: TCnSHA3GeneralDigest;
+begin
+  SHA3_384HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
+  SHA3_384HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
+  SHA3_384HmacFinal(Ctx, Dig);
+  Move(Dig[0], Result[0], Ctx.DigestLen);
+end;
+
+function SHA3_512HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_512Digest;
+var
+  Ctx: TCnSHA3Context;
+  Dig: TCnSHA3GeneralDigest;
+begin
+  SHA3_512HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
+  SHA3_512HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
+  SHA3_512HmacFinal(Ctx, Dig);
+  Move(Dig[0], Result[0], Ctx.DigestLen);
 end;
 
 end.

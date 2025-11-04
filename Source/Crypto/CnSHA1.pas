@@ -252,6 +252,16 @@ procedure SHA1Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
    返回值：（无）
 }
 
+function SHA1HmacBytes(Key: TBytes; Data: TBytes): TCnSHA1Digest;
+{* 对字节数组进行基于 SHA1 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 SHA1 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
+}
+
 implementation
 
 const
@@ -741,6 +751,15 @@ begin
   SHA1HmacInit(Ctx, Key, KeyByteLength);
   SHA1HmacUpdate(Ctx, Input, ByteLength);
   SHA1HmacFinal(Ctx, Output);
+end;
+
+function SHA1HmacBytes(Key: TBytes; Data: TBytes): TCnSHA1Digest;
+var
+  Ctx: TCnSHA1Context;
+begin
+  SHA1HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
+  SHA1HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
+  SHA1HmacFinal(Ctx, Result);
 end;
 
 end.

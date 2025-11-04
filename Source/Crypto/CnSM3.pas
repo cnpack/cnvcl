@@ -248,6 +248,16 @@ procedure SM3Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
    返回值：（无）
 }
 
+function SM3HmacBytes(Key: TBytes; Data: TBytes): TCnSM3Digest;
+{* 对字节数组进行基于 MD5 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 SM3 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnMD5Digest                   - 返回的 SM3 杂凑值
+}
+
 implementation
 
 const
@@ -548,7 +558,7 @@ begin
   SM3Final(Ctx, Result);
 end;
 
-procedure SM3HmacStarts(var Ctx: TCnSM3Context; Key: PAnsiChar; KeyLength: Integer);
+procedure SM3HmacInit(var Ctx: TCnSM3Context; Key: PAnsiChar; KeyLength: Integer);
 var
   I: Integer;
   Sum: TCnSM3Digest;
@@ -578,7 +588,7 @@ begin
   SM3Update(Ctx, Input, Length);
 end;
 
-procedure SM3HmacFinish(var Ctx: TCnSM3Context; var Output: TCnSM3Digest);
+procedure SM3HmacFinal(var Ctx: TCnSM3Context; var Output: TCnSM3Digest);
 var
   Len: Integer;
   TmpBuf: TCnSM3Digest;
@@ -596,9 +606,18 @@ procedure SM3Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
 var
   Ctx: TCnSM3Context;
 begin
-  SM3HmacStarts(Ctx, Key, KeyByteLength);
+  SM3HmacInit(Ctx, Key, KeyByteLength);
   SM3HmacUpdate(Ctx, Input, ByteLength);
-  SM3HmacFinish(Ctx, Output);
+  SM3HmacFinal(Ctx, Output);
+end;
+
+function SM3HmacBytes(Key: TBytes; Data: TBytes): TCnSM3Digest;
+var
+  Ctx: TCnSM3Context;
+begin
+  SM3HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
+  SM3HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
+  SM3HmacFinal(Ctx, Result);
 end;
 
 function SM3Buffer(const Buffer; Count: Cardinal): TCnSM3Digest;

@@ -811,6 +811,46 @@ procedure SHA512Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
    返回值：（无）
 }
 
+function SHA224HmacBytes(Key: TBytes; Data: TBytes): TCnSHA224Digest;
+{* 对字节数组进行基于 SHA224 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 SHA224 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
+}
+
+function SHA256HmacBytes(Key: TBytes; Data: TBytes): TCnSHA256Digest;
+{* 对字节数组进行基于 SHA256 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 SHA256 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
+}
+
+function SHA384HmacBytes(Key: TBytes; Data: TBytes): TCnSHA384Digest;
+{* 对字节数组进行基于 SHA384 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 SHA384 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA384Digest                - 返回的 SHA384 杂凑值
+}
+
+function SHA512HmacBytes(Key: TBytes; Data: TBytes): TCnSHA512Digest;
+{* 对字节数组进行基于 SHA512 的 HMAC 计算。
+
+   参数：
+     Key: TBytes                          - 待参与 SHA512 计算的密钥字节数组
+     Data: TBytes                         - 待计算的字节数组
+
+   返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
+}
+
 implementation
 
 const
@@ -2242,6 +2282,15 @@ begin
   SHA224HmacFinal(Context, Output);
 end;
 
+function SHA224HmacBytes(Key: TBytes; Data: TBytes): TCnSHA224Digest;
+var
+  Ctx: TCnSHA224Context;
+begin
+  SHA224HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
+  SHA224HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
+  SHA224HmacFinal(Ctx, Result);
+end;
+
 procedure SHA256Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA256Digest);
 var
@@ -2250,6 +2299,15 @@ begin
   SHA256HmacInit(Context, Key, KeyByteLength);
   SHA256HmacUpdate(Context, Input, ByteLength);
   SHA256HmacFinal(Context, Output);
+end;
+
+function SHA256HmacBytes(Key: TBytes; Data: TBytes): TCnSHA256Digest;
+var
+  Ctx: TCnSHA256Context;
+begin
+  SHA256HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
+  SHA256HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
+  SHA256HmacFinal(Ctx, Result);
 end;
 
 procedure SHA384HmacInit(var Context: TCnSHA384Context; Key: PAnsiChar; KeyLength: Integer);
@@ -2306,6 +2364,15 @@ begin
   SHA384HmacFinal(Context, Output);
 end;
 
+function SHA384HmacBytes(Key: TBytes; Data: TBytes): TCnSHA384Digest;
+var
+  Ctx: TCnSHA384Context;
+begin
+  SHA384HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
+  SHA384HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
+  SHA384HmacFinal(Ctx, Result);
+end;
+
 procedure SHA512HmacInit(var Context: TCnSHA512Context; Key: PAnsiChar; KeyLength: Integer);
 var
   I: Integer;
@@ -2358,6 +2425,15 @@ begin
   SHA512HmacInit(Context, Key, KeyByteLength);
   SHA512HmacUpdate(Context, Input, ByteLength);
   SHA512HmacFinal(Context, Output);
+end;
+
+function SHA512HmacBytes(Key: TBytes; Data: TBytes): TCnSHA512Digest;
+var
+  Ctx: TCnSHA512Context;
+begin
+  SHA512HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
+  SHA512HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
+  SHA512HmacFinal(Ctx, Result);
 end;
 
 end.
