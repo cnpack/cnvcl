@@ -1525,7 +1525,7 @@ begin
             end;
 
             // 计算并发送 Finished 包，先计算所有握手包的杂凑值
-            TotalHash := EccDigestBytes(TotalHash, DigestType);
+            TotalHash := EccDigestBytes(TotalHandShake, DigestType);
             VerifyData := PseudoRandomFunc(MasterKey, 'client finished', TotalHash, DigestType, 12);
 
             // TLS 层头
