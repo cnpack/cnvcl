@@ -719,6 +719,9 @@ const
   {* TLS/SSL 中的 Extension 中的椭圆曲线点的转换类型，默认 04，不压缩}
   CN_TLS_EC_POINT_CONVERSION_FORM_UNCOMPRESSED                   = 4;
 
+  {* TLS/SSL 中的 ChangeCipherSpec 中的 Content 值}
+  CN_TLS_CHANGE_CIPHER_SPEC                                      = 1;
+
 type
   TCnIPv6Array = array[0..7] of Word;
 
@@ -1673,6 +1676,26 @@ type
 
   PCnTLSHandShakeClientKeyExchange = ^TCnTLSHandShakeClientKeyExchange;
 
+{
+  TLS/SSL 握手包中的 Finished 示意图，字节内左边是高位，右边是低位。
+  字节之间采用 Big-Endian 的网络字节顺序，高位在低地址，符合阅读习惯。
+  注意本包头是 TLS/SSL 的 TCnTLSHandShakeHeader 的 Content 内容
+
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+  |                       VerifyData ...                          |
+  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+}
+
+  TCnTLSHandShakeFinished = packed record
+    VerifyData:               array[0..0] of Byte;          // 验证数据，长度由握手算法规定，TLS 1.2 是 12 字节
+  end;
+
+  PCnTLSHandShakeFinished = ^TCnTLSHandShakeFinished;
+
 // ======================== IP 包头系列函数 ====================================
 
 function CnGetIPVersion(const IPHeader: PCnIPHeader): Integer;
@@ -2225,10 +2248,16 @@ procedure CnSetTLSHandShakeSignedParamsSignature(const SP: PCnTLSHandShakeSigned
 {* 设置 TLS/SSL 握手协议报文签名及参数部分的签名内容}
 
 function CnGetTLSHandShakeClientKeyExchangeECPoint(const CKE: PCnTLSHandShakeClientKeyExchange; EccFiniteFieldSize: Integer): TBytes;
-{* 获取 TLS/SSL 握手协议报文 Client Key Exchange 中的椭圆曲线点内容，包括前缀 04，内部不知长度，需要传入对应椭圆曲线的有限域长度}
+{* 获取 TLS/SSL 握手协议报文 Client Key Exchange 中的椭圆曲线点内容，包括前缀 04，内部不知长度，需要传入对应椭圆曲线的有限域素数字节长度}
 
 procedure CnSetTLSHandShakeClientKeyExchangeECPoint(const CKE: PCnTLSHandShakeClientKeyExchange; ECPoint: TBytes);
 {* 设置 TLS/SSL 握手协议报文 Client Key Exchange 中的椭圆曲线点内容，字节数组需包括前缀 04}
+
+function CnGetTLSTLSHandShakeFinishedVerifyData(const F: PCnTLSHandShakeFinished; DataSize: Integer = 12): TBytes;
+{* 获取 TLS/SSL 握手协议报文 Finished 中的 VerifyData，长度需要外界指定，默认 12 字节}
+
+procedure CnSetTLSTLSHandShakeFinishedVerifyData(const F: PCnTLSHandShakeFinished; Data: TBytes);
+{* 设置 TLS/SSL 握手协议报文 Finished 中的 VerifyData}
 
 // =========================== IP 地址转换函数 =================================
 
@@ -4096,6 +4125,20 @@ begin
     if ECPoint[0] = CN_TLS_EC_POINT_CONVERSION_FORM_UNCOMPRESSED then
       Move(ECPoint[0], CKE^.PointConversionForm, Length(ECPoint));
   end;
+end;
+
+function CnGetTLSTLSHandShakeFinishedVerifyData(const F: PCnTLSHandShakeFinished; DataSize: Integer = 12): TBytes;
+begin
+  if DataSize > 0 then
+    Result := NewBytesFromMemory(@F^.VerifyData[0], DataSize)
+  else
+    Result := nil;
+end;
+
+procedure CnSetTLSTLSHandShakeFinishedVerifyData(const F: PCnTLSHandShakeFinished; Data: TBytes);
+begin
+  if Length(Data) > 0 then
+    Move(Data[0], F^.VerifyData[0], Length(Data));
 end;
 
 end.

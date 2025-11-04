@@ -97,7 +97,8 @@ var
 implementation
 
 uses
-  CnNetwork, CnNative, CnSocket, CnRandom, CnECC, CnSHA2, CnCertificateAuthority;
+  CnNetwork, CnNative, CnSocket, CnRandom, CnECC, CnSHA2, CnCertificateAuthority,
+  CnMD5, CnSHA1, CnSM3;
 
 {$R *.DFM}
 
@@ -674,6 +675,94 @@ begin
   mmoSSL.Lines.Add(Format('TLSHandShakeServerHello.ExtensionLength: %d', [CnGetTLSHandShakeExtensionsExtensionLength(SE)]));
 end;
 
+function EccDigestBytes(Data: TBytes; DigestType: TCnEccSignDigestType): TBytes;
+var
+  MD5Dig: TCnMD5Digest;
+  SHA1Dig: TCnSHA1Digest;
+  SHA256Dig: TCnSHA256Digest;
+  SM3Dig: TCnSM3Digest;
+  SHA384Dig: TCnSHA384Digest;
+  SHA512Dig: TCnSHA512Digest;
+begin
+  Result := nil;
+  case DigestType of
+    esdtMD5:
+      begin
+        MD5Dig := MD5Bytes(Data);
+        Result := NewBytesFromMemory(@MD5Dig[0], SizeOf(TCnMD5Digest));
+      end;
+    esdtSHA1:
+      begin
+        SHA1Dig := SHA1Bytes(Data);
+        Result := NewBytesFromMemory(@SHA1Dig[0], SizeOf(TCnSHA1Digest));
+      end;
+    esdtSHA256:
+      begin
+        SHA256Dig := SHA256Bytes(Data);
+        Result := NewBytesFromMemory(@SHA256Dig[0], SizeOf(TCnSHA256Digest));
+      end;
+    esdtSM3:
+      begin
+        SM3Dig := SM3Bytes(Data);
+        Result := NewBytesFromMemory(@SM3Dig[0], SizeOf(TCnSM3Digest));
+      end;
+    esdtSHA384:
+      begin
+        SHA384Dig := SHA384Bytes(Data);
+        Result := NewBytesFromMemory(@SHA384Dig[0], SizeOf(TCnSHA384Digest));
+      end;
+    esdtSHA512:
+      begin
+        SHA512Dig := SHA512Bytes(Data);
+        Result := NewBytesFromMemory(@SHA512Dig[0], SizeOf(TCnSHA512Digest));
+      end;
+  end;
+end;
+
+function EccHMacBytes(Key: TBytes; Data: TBytes; DigestType: TCnEccSignDigestType): TBytes;
+var
+  MD5Dig: TCnMD5Digest;
+  SHA1Dig: TCnSHA1Digest;
+  SHA256Dig: TCnSHA256Digest;
+  SM3Dig: TCnSM3Digest;
+  SHA384Dig: TCnSHA384Digest;
+  SHA512Dig: TCnSHA512Digest;
+begin
+  Result := nil;
+  case DigestType of
+    esdtMD5:
+      begin
+        MD5Dig := MD5HmacBytes(Key, Data);
+        Result := NewBytesFromMemory(@MD5Dig[0], SizeOf(TCnMD5Digest));
+      end;
+    esdtSHA1:
+      begin
+        SHA1Dig := SHA1HmacBytes(Key, Data);
+        Result := NewBytesFromMemory(@SHA1Dig[0], SizeOf(TCnSHA1Digest));
+      end;
+    esdtSHA256:
+      begin
+        SHA256Dig := SHA256HmacBytes(Key, Data);
+        Result := NewBytesFromMemory(@SHA256Dig[0], SizeOf(TCnSHA256Digest));
+      end;
+    esdtSM3:
+      begin
+        SM3Dig := SM3HmacBytes(Key, Data);
+        Result := NewBytesFromMemory(@SM3Dig[0], SizeOf(TCnSM3Digest));
+      end;
+    esdtSHA384:
+      begin
+        SHA384Dig := SHA384HmacBytes(Key, Data);
+        Result := NewBytesFromMemory(@SHA384Dig[0], SizeOf(TCnSHA384Digest));
+      end;
+    esdtSHA512:
+      begin
+        SHA512Dig := SHA512HmacBytes(Key, Data);
+        Result := NewBytesFromMemory(@SHA512Dig[0], SizeOf(TCnSHA512Digest));
+      end;
+  end;
+end;
+
 function ExtractEccCurveDigest(SigAlg: Word; out CurveType: TCnEccCurveType; out DigestType: TCnEccSignDigestType): Boolean;
 begin
   Result := True;
@@ -708,12 +797,31 @@ begin
   end;
 end;
 
+function PseudoRandomFunc(Secret: TBytes; const PLabel: AnsiString; Seed: TBytes;
+  DigestType: TCnEccSignDigestType; NeedLength: Integer): TBytes;
+var
+  Data, Res, A: TBytes;
+begin
+  Data := ConcatBytes(AnsiToBytes(PLabel), Seed);
+
+  A := EccHMacBytes(Secret, Data, DigestType);
+  Res := nil;
+  repeat
+    Res := ConcatBytes(Res, EccHMacBytes(Secret, ConcatBytes(A, Data), DigestType));
+    A := EccHMacBytes(Secret, A, DigestType);
+  until Length(Res) >= NeedLength;
+
+  Result := Copy(Res, 0, NeedLength);
+end;
+
 procedure TFormNetDecl.btnSSLClientClick(Sender: TObject);
 const
   HOST: AnsiString = 'www.cnpack.org';
 var
   SockAddress: TSockAddr;
   Buffer: array[0..4095] of Byte;
+  TotalHandShake: TBytes;
+  TotalHash: TBytes;
   Ciphers: TWords;
   H: PCnTLSRecordLayer;
   B: PCnTLSHandShakeHeader;
@@ -746,6 +854,7 @@ var
   SK: PCnTLSHandShakeServerKeyExchange;
   SP: PCnTLSHandShakeSignedParams;
 
+  SigVerified: Boolean;
   SignStream: TMemoryStream;
   SignValueStream: TMemoryStream;
   CurveType: TCnEccCurveType;
@@ -754,6 +863,17 @@ var
   ServerSigBytes: TBytes;
   ServerCert: TCnCertificate;
   ServerCertBytes: TBytes;
+  ServerKeyBytes: TBytes;
+
+  EccPrivKey: TCnEccPrivateKey;
+  EccPubKey: TCnEccPublicKey;
+  PreMasterKey: TCnEccPublicKey;
+  MasterKey: TBytes;
+
+  CK: PCnTLSHandShakeClientKeyExchange;
+  CC: PCnTLSChangeCipherSpecPacket;
+  VerifyData: TBytes;
+  F: PCnTLSHandShakeFinished;
 begin
   FTlsClientSocket := CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if FTlsClientSocket = INVALID_SOCKET then
@@ -882,6 +1002,9 @@ begin
     // 发送 ClientHello 包，5 表示 TCnTLSRecordLayer 中的前四个字段：3 Byte + 1 Word
     if CnSend(FTlsClientSocket, H^, 5 + CnGetTLSRecordLayerBodyLength(H), 0) <> SOCKET_ERROR then
     begin
+      // 保存发送包，以备最后验证
+      TotalHandShake := NewBytesFromMemory(B, CnGetTLSRecordLayerBodyLength(H));
+
       mmoSSL.Lines.Add('Sent ClientHello Packet, Size: ' +
         IntToStr(5 + CnGetTLSRecordLayerBodyLength(H)));
 
@@ -903,7 +1026,6 @@ begin
         mmoSSL.Lines.Add(Format('TLSRecordLayer.BodyLength %d', [CnGetTLSRecordLayerBodyLength(H)]));
 
         TotalHandshakeLen := 5 + CnGetTLSRecordLayerBodyLength(H);
-
         case H^.ContentType of
           CN_TLS_CONTENT_TYPE_ALERT:
             begin
@@ -932,6 +1054,8 @@ begin
               mmoSSL.Lines.Add('Received ServerHello!');
               B := PCnTLSHandShakeHeader(@(H^.Body[0]));
               mmoSSL.Lines.Add(Format('HandShakeType: %d', [B^.HandShakeType]));
+
+              TotalHandShake := ConcatBytes(TotalHandShake, NewBytesFromMemory(B, CnGetTLSRecordLayerBodyLength(H))); // 保存收包
 
               // 解析 ServerHello 内容
               if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO then
@@ -1092,6 +1216,7 @@ begin
             end;
         end;
 
+        SigVerified := False;
         // 还有第二个包
         if TotalHandshakeLen < BytesReceived then
         begin
@@ -1110,6 +1235,8 @@ begin
         if H^.ContentType = CN_TLS_CONTENT_TYPE_HANDSHAKE then
         begin
           B := PCnTLSHandShakeHeader(@(H^.Body[0]));
+          TotalHandShake := ConcatBytes(TotalHandShake, NewBytesFromMemory(B, CnGetTLSRecordLayerBodyLength(H))); // 保存收包
+
           mmoSSL.Lines.Add(Format('2 HandShakeType: %d', [B^.HandShakeType]));
 
           // 如果是服务器证书包
@@ -1202,6 +1329,8 @@ begin
         if H^.ContentType = CN_TLS_CONTENT_TYPE_HANDSHAKE then
         begin
           B := PCnTLSHandShakeHeader(@(H^.Body[0]));
+          TotalHandShake := ConcatBytes(TotalHandShake, NewBytesFromMemory(B, CnGetTLSRecordLayerBodyLength(H))); // 保存收包
+
           mmoSSL.Lines.Add(Format('3 HandShakeType: %d', [B^.HandShakeType]));
 
           // 如果是服务器密钥交换包
@@ -1212,7 +1341,8 @@ begin
             mmoSSL.Lines.Add('3 ECCurveType: ' + IntToStr(SK^.ECCurveType));
             mmoSSL.Lines.Add('3 Named Curve: ' + IntToStr(CnGetTLSHandShakeServerKeyExchangeNamedCurve(SK)));
             mmoSSL.Lines.Add('3 ECPointLength: ' + IntToStr(SK^.ECPointLength));
-            mmoSSL.Lines.Add('3 ECCPoint: ' + BytesToHex(CnGetTLSHandShakeServerKeyExchangeECPoint(SK)));
+            ServerKeyBytes := CnGetTLSHandShakeServerKeyExchangeECPoint(SK);
+            mmoSSL.Lines.Add('3 ECCPoint: ' + BytesToHex(ServerKeyBytes));
 
             SP := CnGetTLSHandShakeSignedParamsFromServerKeyExchange(SK);
             mmoSSL.Lines.Add(Format('3 Sign Alg: %4.4x', [CnGetTLSHandShakeSignedParamsSignatureAlgorithm(SP)])); // 服务器选择的签名算法
@@ -1259,7 +1389,10 @@ begin
                   // 数据是杂凑过的 SignStream，曲线在 Ecc 里，公钥在 ServerCert 的公钥里，签名在 SignValueStream 里
                   if CnEccVerifyStream(SignStream, SignValueStream, Ecc,
                     ServerCert.BasicCertificate.SubjectEccPublicKey, DigestType) then
-                    mmoSSL.Lines.Add('*** Signature Verify OK ***') // 使用服务器指定的 Cipher 中的 DigestType，而不是证书中的类型，虽然两者可能相等
+                  begin
+                    mmoSSL.Lines.Add('*** Signature Verify OK ***'); // 使用服务器指定的 Cipher 中的 DigestType，而不是证书中的类型，虽然两者可能相等
+                    SigVerified := True;
+                  end
                   else
                     mmoSSL.Lines.Add('*** Signature Verify Fail ***');
                 end;
@@ -1291,12 +1424,161 @@ begin
         if H^.ContentType = CN_TLS_CONTENT_TYPE_HANDSHAKE then
         begin
           B := PCnTLSHandShakeHeader(@(H^.Body[0]));
+          TotalHandShake := ConcatBytes(TotalHandShake, NewBytesFromMemory(B, CnGetTLSRecordLayerBodyLength(H))); // 保存收包
           mmoSSL.Lines.Add(Format('4 HandShakeType: %d', [B^.HandShakeType]));
 
           // 如果是 ServerHello 结束，才完成这一轮接收
           if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE_RESERVED then
           begin
             mmoSSL.Lines.Add('=== Server Hello Done ===');
+          end;
+        end;
+
+        if SigVerified then
+        begin
+          // 签名验证通过后，开始密钥协商
+          Ecc := nil;
+          EccPrivKey := nil;
+          EccPubKey := nil;
+          PreMasterKey := nil;
+
+          try
+            Ecc := TCnEcc.Create(CurveType);
+            // 生成一对随机公私钥
+
+            EccPrivKey := TCnEccPrivateKey.Create;
+            EccPubKey := TCnEccPublicKey.Create;
+
+            // 先根据对方发来的 Point 计算 PreMasterKey
+            Ecc.GenerateKey(EccPrivKey);
+            PreMasterKey := TCnEccPublicKey.Create;
+
+            // EccPubKey 取对方发来的 Point
+            EccPubKey.SetBytes(ServerKeyBytes);
+            CnEccDiffieHellmanComputeKey(Ecc, EccPrivKey, EccPubKey, PreMasterKey);
+
+            // 保留 PreMasterKey，握手基本 OK
+            mmoSSL.Lines.Add('5 Client Key Exchange. Got PreMaster Key: ' + PreMasterKey.ToString);
+
+            // 再计算 MasterKey！
+            MasterKey := PseudoRandomFunc(PreMasterKey.ToBytes(Ecc.BytesCount), 'master secret',
+              ConcatBytes(RandClient, RandServer), DigestType, 48);
+            mmoSSL.Lines.Add('5 Client Key Exchange. Got Master Key: ' + BytesToHex(MasterKey));
+
+            // 复用 EccPubKey，计算新的 EccPubKey 作为本次中间结果
+            CnEccDiffieHellmanGenerateOutKey(Ecc, EccPrivKey, EccPubKey);
+
+            // 把 EccPubKey 发出去供对方计算
+            // TLS 层头
+            H := PCnTLSRecordLayer(@Buffer[0]);
+            H^.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
+            H^.MajorVersion := 3;
+            H^.MinorVersion := 3;  // TLS 1.2
+
+            // 握手协议头
+            B := PCnTLSHandShakeHeader(@H^.Body[0]);
+            B^.HandShakeType := CN_TLS_HANDSHAKE_TYPE_CLIENT_KEY_EXCHANGE_RESERVED;
+
+            // Client Key Exchange 包头
+            CK := PCnTLSHandShakeClientKeyExchange(@B^.Content[0]);
+            T := EccPubKey.ToBytes(Ecc.BytesCount);
+            CnSetTLSHandShakeClientKeyExchangeECPoint(CK, T);
+
+            // 计算整个握手消息的内容长度
+            TotalHandshakeLen := Length(T);
+            // 设置握手头的内容长度
+            CnSetTLSHandShakeHeaderContentLength(B, TotalHandshakeLen);
+            // 设置 TLS Record Layer 的 Body 长度，1 + 3 表示 TCnTLSHandShakeHeader 的前三个字段 1 + 1 + 2
+            CnSetTLSRecordLayerBodyLength(H, 1 + 3 + TotalHandshakeLen);
+
+            // 发送 Client Key Exchange 包，5 表示 TCnTLSRecordLayer 中的前四个字段：3 Byte + 1 Word
+            if CnSend(FTlsClientSocket, H^, 5 + CnGetTLSRecordLayerBodyLength(H), 0) <> SOCKET_ERROR then
+            begin
+              mmoSSL.Lines.Add('Sent Client Key Exchange Packet, Size: ' +
+                IntToStr(5 + CnGetTLSRecordLayerBodyLength(H)));
+
+              // 保存发包
+              TotalHandShake := ConcatBytes(TotalHandShake, NewBytesFromMemory(B, CnGetTLSRecordLayerBodyLength(H)));
+            end;
+
+            // 发 ChangeCipherSpec
+            // TLS 层头
+            H := PCnTLSRecordLayer(@Buffer[0]);
+            H^.ContentType := CN_TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC;
+            H^.MajorVersion := 3;
+            H^.MinorVersion := 3;  // TLS 1.2
+
+            // ChangeCipherSpec 协议头
+            CC := PCnTLSChangeCipherSpecPacket(@H^.Body[0]);
+            CC.Content := CN_TLS_CHANGE_CIPHER_SPEC;
+
+            // 设置 TLS Record Layer 的 Body 长度，就 ChangeCipherSpec 的一个字节
+            CnSetTLSRecordLayerBodyLength(H, 1);
+
+            // 发送 ChangeCipherSpec 包，5 表示 TCnTLSRecordLayer 中的前四个字段：3 Byte + 1 Word
+            if CnSend(FTlsClientSocket, H^, 5 + CnGetTLSRecordLayerBodyLength(H), 0) <> SOCKET_ERROR then
+            begin
+              mmoSSL.Lines.Add('Sent Change Cipher Spec Packet, Size: ' +
+                IntToStr(5 + CnGetTLSRecordLayerBodyLength(H)));
+
+              // 注意这个包无需保存
+            end;
+
+            // 计算并发送 Finished 包，先计算所有握手包的杂凑值
+            TotalHash := EccDigestBytes(TotalHash, DigestType);
+            VerifyData := PseudoRandomFunc(MasterKey, 'client finished', TotalHash, DigestType, 12);
+
+            // TLS 层头
+            H := PCnTLSRecordLayer(@Buffer[0]);
+            H^.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
+            H^.MajorVersion := 3;
+            H^.MinorVersion := 3;  // TLS 1.2
+
+            // 握手协议头
+            B := PCnTLSHandShakeHeader(@H^.Body[0]);
+            B^.HandShakeType := CN_TLS_HANDSHAKE_TYPE_FINISHED;
+
+            F := PCnTLSHandShakeFinished(@B^.Content[0]);
+            CnSetTLSTLSHandShakeFinishedVerifyData(F, VerifyData);
+
+            // 设置握手头的内容长度，就 VerifyData 的 12 字节
+            CnSetTLSHandShakeHeaderContentLength(B, 12);
+
+            // 设置 TLS Record Layer 的 Body 长度
+            CnSetTLSRecordLayerBodyLength(H, 1 + 3 + CnGetTLSHandShakeHeaderContentLength(B));
+
+            // 发送 Finished 包，5 表示 TCnTLSRecordLayer 中的前四个字段：3 Byte + 1 Word
+            if CnSend(FTlsClientSocket, H^, 5 + CnGetTLSRecordLayerBodyLength(H), 0) <> SOCKET_ERROR then
+            begin
+              mmoSSL.Lines.Add('Sent Finished Packet, Size: ' +
+                IntToStr(5 + CnGetTLSRecordLayerBodyLength(H)));
+
+              mmoSSL.Lines.Add('');
+              // 等一会儿接收回包，但是目前收不到！！！
+              Sleep(1000);
+
+              FillChar(Buffer, SizeOf(Buffer), 0);
+              BytesReceived := CnRecv(FTlsClientSocket, Buffer[0], Length(Buffer), 0);
+              if BytesReceived > SizeOf(TCnTLSRecordLayer) then
+              begin
+                mmoSSL.Lines.Add(Format('SSL/TLS Get Response %d', [BytesReceived]));
+
+                H := PCnTLSRecordLayer(@Buffer[0]);
+                mmoSSL.Lines.Add(Format('TLSRecordLayer.ContentType %d', [H^.ContentType]));
+                mmoSSL.Lines.Add(Format('TLSRecordLayer.MajorVersion %d', [H^.MajorVersion]));
+                mmoSSL.Lines.Add(Format('TLSRecordLayer.MinorVersion %d', [H^.MinorVersion]));
+                mmoSSL.Lines.Add(Format('TLSRecordLayer.BodyLength %d', [CnGetTLSRecordLayerBodyLength(H)]));
+
+                TotalHandshakeLen := 5 + CnGetTLSRecordLayerBodyLength(H);
+              end;
+
+
+            end;
+          finally
+            PreMasterKey.Free;
+            EccPubKey.Free;
+            EccPrivKey.Free;
+            Ecc.Free;
           end;
         end;
       end
