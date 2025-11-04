@@ -2284,11 +2284,11 @@ end;
 
 function SHA224HmacBytes(Key: TBytes; Data: TBytes): TCnSHA224Digest;
 var
-  Ctx: TCnSHA224Context;
+  Context: TCnSHA224Context;
 begin
-  SHA224HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
-  SHA224HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
-  SHA224HmacFinal(Ctx, Result);
+  SHA224HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  SHA224HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA224HmacFinal(Context, Result);
 end;
 
 procedure SHA256Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
@@ -2303,11 +2303,11 @@ end;
 
 function SHA256HmacBytes(Key: TBytes; Data: TBytes): TCnSHA256Digest;
 var
-  Ctx: TCnSHA256Context;
+  Context: TCnSHA256Context;
 begin
-  SHA256HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
-  SHA256HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
-  SHA256HmacFinal(Ctx, Result);
+  SHA256HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  SHA256HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA256HmacFinal(Context, Result);
 end;
 
 procedure SHA384HmacInit(var Context: TCnSHA384Context; Key: PAnsiChar; KeyLength: Integer);
@@ -2366,11 +2366,11 @@ end;
 
 function SHA384HmacBytes(Key: TBytes; Data: TBytes): TCnSHA384Digest;
 var
-  Ctx: TCnSHA384Context;
+  Context: TCnSHA384Context;
 begin
-  SHA384HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
-  SHA384HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
-  SHA384HmacFinal(Ctx, Result);
+  SHA384HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  SHA384HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA384HmacFinal(Context, Result);
 end;
 
 procedure SHA512HmacInit(var Context: TCnSHA512Context; Key: PAnsiChar; KeyLength: Integer);
@@ -2429,11 +2429,11 @@ end;
 
 function SHA512HmacBytes(Key: TBytes; Data: TBytes): TCnSHA512Digest;
 var
-  Ctx: TCnSHA512Context;
+  Context: TCnSHA512Context;
 begin
-  SHA512HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
-  SHA512HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
-  SHA512HmacFinal(Ctx, Result);
+  SHA512HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  SHA512HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA512HmacFinal(Context, Result);
 end;
 
 end.

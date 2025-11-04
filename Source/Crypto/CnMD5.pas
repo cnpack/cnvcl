@@ -843,7 +843,7 @@ begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnMD5Digest));
 end;
 
-procedure MD5HmacInit(var Ctx: TCnMD5Context; Key: PAnsiChar; KeyLength: Integer);
+procedure MD5HmacInit(var Context: TCnMD5Context; Key: PAnsiChar; KeyLength: Integer);
 var
   I: Integer;
   Sum: TCnMD5Digest;
@@ -855,54 +855,54 @@ begin
     Key := @(Sum[0]);
   end;
 
-  FillChar(Ctx.Ipad, HMAC_MD5_BLOCK_SIZE_BYTE, $36);
-  FillChar(Ctx.Opad, HMAC_MD5_BLOCK_SIZE_BYTE, $5C);
+  FillChar(Context.Ipad, HMAC_MD5_BLOCK_SIZE_BYTE, $36);
+  FillChar(Context.Opad, HMAC_MD5_BLOCK_SIZE_BYTE, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
-    Ctx.Ipad[I] := Byte(Ctx.Ipad[I] xor Byte(Key[I]));
-    Ctx.Opad[I] := Byte(Ctx.Opad[I] xor Byte(Key[I]));
+    Context.Ipad[I] := Byte(Context.Ipad[I] xor Byte(Key[I]));
+    Context.Opad[I] := Byte(Context.Opad[I] xor Byte(Key[I]));
   end;
 
-  MD5Init(Ctx);
-  MD5Update(Ctx, @(Ctx.Ipad[0]), HMAC_MD5_BLOCK_SIZE_BYTE);
+  MD5Init(Context);
+  MD5Update(Context, @(Context.Ipad[0]), HMAC_MD5_BLOCK_SIZE_BYTE);
 end;
 
-procedure MD5HmacUpdate(var Ctx: TCnMD5Context; Input: PAnsiChar; Length: Cardinal);
+procedure MD5HmacUpdate(var Context: TCnMD5Context; Input: PAnsiChar; Length: Cardinal);
 begin
-  MD5Update(Ctx, Input, Length);
+  MD5Update(Context, Input, Length);
 end;
 
-procedure MD5HmacFinal(var Ctx: TCnMD5Context; var Output: TCnMD5Digest);
+procedure MD5HmacFinal(var Context: TCnMD5Context; var Output: TCnMD5Digest);
 var
   Len: Integer;
   TmpBuf: TCnMD5Digest;
 begin
   Len := HMAC_MD5_OUTPUT_LENGTH_BYTE;
-  MD5Final(Ctx, TmpBuf);
-  MD5Init(Ctx);
-  MD5Update(Ctx, @(Ctx.Opad[0]), HMAC_MD5_BLOCK_SIZE_BYTE);
-  MD5Update(Ctx, @(TmpBuf[0]), Len);
-  MD5Final(Ctx, Output);
+  MD5Final(Context, TmpBuf);
+  MD5Init(Context);
+  MD5Update(Context, @(Context.Opad[0]), HMAC_MD5_BLOCK_SIZE_BYTE);
+  MD5Update(Context, @(TmpBuf[0]), Len);
+  MD5Final(Context, Output);
 end;
 
 procedure MD5Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnMD5Digest);
 var
-  Ctx: TCnMD5Context;
+  Context: TCnMD5Context;
 begin
-  MD5HmacInit(Ctx, Key, KeyByteLength);
-  MD5HmacUpdate(Ctx, Input, ByteLength);
-  MD5HmacFinal(Ctx, Output);
+  MD5HmacInit(Context, Key, KeyByteLength);
+  MD5HmacUpdate(Context, Input, ByteLength);
+  MD5HmacFinal(Context, Output);
 end;
 
 function MD5HmacBytes(Key: TBytes; Data: TBytes): TCnMD5Digest;
 var
-  Ctx: TCnMD5Context;
+  Context: TCnMD5Context;
 begin
-  MD5HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
-  MD5HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
-  MD5HmacFinal(Ctx, Result);
+  MD5HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  MD5HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  MD5HmacFinal(Context, Result);
 end;
 
 end.

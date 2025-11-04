@@ -2745,46 +2745,46 @@ end;
 
 function SHA3_224HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_224Digest;
 var
-  Ctx: TCnSHA3Context;
+  Context: TCnSHA3Context;
   Dig: TCnSHA3GeneralDigest;
 begin
-  SHA3_224HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
-  SHA3_224HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
-  SHA3_224HmacFinal(Ctx, Dig);
-  Move(Dig[0], Result[0], Ctx.DigestLen);
+  SHA3_224HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  SHA3_224HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA3_224HmacFinal(Context, Dig);
+  Move(Dig[0], Result[0], Context.DigestLen);
 end;
 
 function SHA3_256HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_256Digest;
 var
-  Ctx: TCnSHA3Context;
+  Context: TCnSHA3Context;
   Dig: TCnSHA3GeneralDigest;
 begin
-  SHA3_256HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
-  SHA3_256HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
-  SHA3_256HmacFinal(Ctx, Dig);
-  Move(Dig[0], Result[0], Ctx.DigestLen);
+  SHA3_256HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  SHA3_256HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA3_256HmacFinal(Context, Dig);
+  Move(Dig[0], Result[0], Context.DigestLen);
 end;
 
 function SHA3_384HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_384Digest;
 var
-  Ctx: TCnSHA3Context;
+  Context: TCnSHA3Context;
   Dig: TCnSHA3GeneralDigest;
 begin
-  SHA3_384HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
-  SHA3_384HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
-  SHA3_384HmacFinal(Ctx, Dig);
-  Move(Dig[0], Result[0], Ctx.DigestLen);
+  SHA3_384HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  SHA3_384HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA3_384HmacFinal(Context, Dig);
+  Move(Dig[0], Result[0], Context.DigestLen);
 end;
 
 function SHA3_512HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_512Digest;
 var
-  Ctx: TCnSHA3Context;
+  Context: TCnSHA3Context;
   Dig: TCnSHA3GeneralDigest;
 begin
-  SHA3_512HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
-  SHA3_512HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
-  SHA3_512HmacFinal(Ctx, Dig);
-  Move(Dig[0], Result[0], Ctx.DigestLen);
+  SHA3_512HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  SHA3_512HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA3_512HmacFinal(Context, Dig);
+  Move(Dig[0], Result[0], Context.DigestLen);
 end;
 
 end.

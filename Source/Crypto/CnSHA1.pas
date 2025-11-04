@@ -700,7 +700,7 @@ begin
   Result := MemoryToString(@Digest[0], SizeOf(TCnSHA1Digest));
 end;
 
-procedure SHA1HmacInit(var Ctx: TCnSHA1Context; Key: PAnsiChar; KeyLength: Integer);
+procedure SHA1HmacInit(var Context: TCnSHA1Context; Key: PAnsiChar; KeyLength: Integer);
 var
   I: Integer;
   Sum: TCnSHA1Digest;
@@ -712,54 +712,54 @@ begin
     Key := @(Sum[0]);
   end;
 
-  FillChar(Ctx.Ipad, HMAC_SHA1_BLOCK_SIZE_BYTE, $36);
-  FillChar(Ctx.Opad, HMAC_SHA1_BLOCK_SIZE_BYTE, $5C);
+  FillChar(Context.Ipad, HMAC_SHA1_BLOCK_SIZE_BYTE, $36);
+  FillChar(Context.Opad, HMAC_SHA1_BLOCK_SIZE_BYTE, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
-    Ctx.Ipad[I] := Byte(Ctx.Ipad[I] xor Byte(Key[I]));
-    Ctx.Opad[I] := Byte(Ctx.Opad[I] xor Byte(Key[I]));
+    Context.Ipad[I] := Byte(Context.Ipad[I] xor Byte(Key[I]));
+    Context.Opad[I] := Byte(Context.Opad[I] xor Byte(Key[I]));
   end;
 
-  SHA1Init(Ctx);
-  SHA1Update(Ctx, @(Ctx.Ipad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
+  SHA1Init(Context);
+  SHA1Update(Context, @(Context.Ipad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
 end;
 
-procedure SHA1HmacUpdate(var Ctx: TCnSHA1Context; Input: PAnsiChar; Length: Cardinal);
+procedure SHA1HmacUpdate(var Context: TCnSHA1Context; Input: PAnsiChar; Length: Cardinal);
 begin
-  SHA1Update(Ctx, Input, Length);
+  SHA1Update(Context, Input, Length);
 end;
 
-procedure SHA1HmacFinal(var Ctx: TCnSHA1Context; var Output: TCnSHA1Digest);
+procedure SHA1HmacFinal(var Context: TCnSHA1Context; var Output: TCnSHA1Digest);
 var
   Len: Integer;
   TmpBuf: TCnSHA1Digest;
 begin
   Len := HMAC_SHA1_OUTPUT_LENGTH_BYTE;
-  SHA1Final(Ctx, TmpBuf);
-  SHA1Init(Ctx);
-  SHA1Update(Ctx, @(Ctx.Opad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
-  SHA1Update(Ctx, @(TmpBuf[0]), Len);
-  SHA1Final(Ctx, Output);
+  SHA1Final(Context, TmpBuf);
+  SHA1Init(Context);
+  SHA1Update(Context, @(Context.Opad[0]), HMAC_SHA1_BLOCK_SIZE_BYTE);
+  SHA1Update(Context, @(TmpBuf[0]), Len);
+  SHA1Final(Context, Output);
 end;
 
 procedure SHA1Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA1Digest);
 var
-  Ctx: TCnSHA1Context;
+  Context: TCnSHA1Context;
 begin
-  SHA1HmacInit(Ctx, Key, KeyByteLength);
-  SHA1HmacUpdate(Ctx, Input, ByteLength);
-  SHA1HmacFinal(Ctx, Output);
+  SHA1HmacInit(Context, Key, KeyByteLength);
+  SHA1HmacUpdate(Context, Input, ByteLength);
+  SHA1HmacFinal(Context, Output);
 end;
 
 function SHA1HmacBytes(Key: TBytes; Data: TBytes): TCnSHA1Digest;
 var
-  Ctx: TCnSHA1Context;
+  Context: TCnSHA1Context;
 begin
-  SHA1HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
-  SHA1HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
-  SHA1HmacFinal(Ctx, Result);
+  SHA1HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  SHA1HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  SHA1HmacFinal(Context, Result);
 end;
 
 end.

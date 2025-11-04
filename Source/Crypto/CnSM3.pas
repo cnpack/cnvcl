@@ -551,14 +551,14 @@ end;
 
 function SM3(Input: PAnsiChar; ByteLength: Cardinal): TCnSM3Digest;
 var
-  Ctx: TCnSM3Context;
+  Context: TCnSM3Context;
 begin
-  SM3Init(Ctx);
-  SM3Update(Ctx, Input, ByteLength);
-  SM3Final(Ctx, Result);
+  SM3Init(Context);
+  SM3Update(Context, Input, ByteLength);
+  SM3Final(Context, Result);
 end;
 
-procedure SM3HmacInit(var Ctx: TCnSM3Context; Key: PAnsiChar; KeyLength: Integer);
+procedure SM3HmacInit(var Context: TCnSM3Context; Key: PAnsiChar; KeyLength: Integer);
 var
   I: Integer;
   Sum: TCnSM3Digest;
@@ -570,54 +570,54 @@ begin
     Key := @(Sum[0]);
   end;
 
-  FillChar(Ctx.Ipad, HMAC_SM3_BLOCK_SIZE_BYTE, $36);
-  FillChar(Ctx.Opad, HMAC_SM3_BLOCK_SIZE_BYTE, $5C);
+  FillChar(Context.Ipad, HMAC_SM3_BLOCK_SIZE_BYTE, $36);
+  FillChar(Context.Opad, HMAC_SM3_BLOCK_SIZE_BYTE, $5C);
 
   for I := 0 to KeyLength - 1 do
   begin
-    Ctx.Ipad[I] := Byte(Ctx.Ipad[I] xor Byte(Key[I]));
-    Ctx.Opad[I] := Byte(Ctx.Opad[I] xor Byte(Key[I]));
+    Context.Ipad[I] := Byte(Context.Ipad[I] xor Byte(Key[I]));
+    Context.Opad[I] := Byte(Context.Opad[I] xor Byte(Key[I]));
   end;
 
-  SM3Init(Ctx);
-  SM3Update(Ctx, @(Ctx.Ipad[0]), HMAC_SM3_BLOCK_SIZE_BYTE);
+  SM3Init(Context);
+  SM3Update(Context, @(Context.Ipad[0]), HMAC_SM3_BLOCK_SIZE_BYTE);
 end;
 
-procedure SM3HmacUpdate(var Ctx: TCnSM3Context; Input: PAnsiChar; Length: Cardinal);
+procedure SM3HmacUpdate(var Context: TCnSM3Context; Input: PAnsiChar; Length: Cardinal);
 begin
-  SM3Update(Ctx, Input, Length);
+  SM3Update(Context, Input, Length);
 end;
 
-procedure SM3HmacFinal(var Ctx: TCnSM3Context; var Output: TCnSM3Digest);
+procedure SM3HmacFinal(var Context: TCnSM3Context; var Output: TCnSM3Digest);
 var
   Len: Integer;
   TmpBuf: TCnSM3Digest;
 begin
   Len := HMAC_SM3_OUTPUT_LENGTH_BYTE;
-  SM3Final(Ctx, TmpBuf);
-  SM3Init(Ctx);
-  SM3Update(Ctx, @(Ctx.Opad[0]), HMAC_SM3_BLOCK_SIZE_BYTE);
-  SM3Update(Ctx, @(TmpBuf[0]), Len);
-  SM3Final(Ctx, Output);
+  SM3Final(Context, TmpBuf);
+  SM3Init(Context);
+  SM3Update(Context, @(Context.Opad[0]), HMAC_SM3_BLOCK_SIZE_BYTE);
+  SM3Update(Context, @(TmpBuf[0]), Len);
+  SM3Final(Context, Output);
 end;
 
 procedure SM3Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSM3Digest);
 var
-  Ctx: TCnSM3Context;
+  Context: TCnSM3Context;
 begin
-  SM3HmacInit(Ctx, Key, KeyByteLength);
-  SM3HmacUpdate(Ctx, Input, ByteLength);
-  SM3HmacFinal(Ctx, Output);
+  SM3HmacInit(Context, Key, KeyByteLength);
+  SM3HmacUpdate(Context, Input, ByteLength);
+  SM3HmacFinal(Context, Output);
 end;
 
 function SM3HmacBytes(Key: TBytes; Data: TBytes): TCnSM3Digest;
 var
-  Ctx: TCnSM3Context;
+  Context: TCnSM3Context;
 begin
-  SM3HmacInit(Ctx, PAnsiChar(@Key[0]), Length(Key));
-  SM3HmacUpdate(Ctx, PAnsiChar(@Data[0]), Length(Data));
-  SM3HmacFinal(Ctx, Result);
+  SM3HmacInit(Context, PAnsiChar(@Key[0]), Length(Key));
+  SM3HmacUpdate(Context, PAnsiChar(@Data[0]), Length(Data));
+  SM3HmacFinal(Context, Result);
 end;
 
 function SM3Buffer(const Buffer; Count: Cardinal): TCnSM3Digest;
