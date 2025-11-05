@@ -210,8 +210,10 @@ function TestSHA3_384Update: Boolean;
 function TestSHA3_512: Boolean;
 function TestSHA3_512HMac: Boolean;
 function TestSHA3_512Update: Boolean;
-function TestSHAKE128: Boolean;
-function TestSHAKE256: Boolean;
+function TestSHAKE1281: Boolean;
+function TestSHAKE1282: Boolean;
+function TestSHAKE2561: Boolean;
+function TestSHAKE2562: Boolean;
 
 // ================================ BLAKE ======================================
 
@@ -599,8 +601,10 @@ begin
   MyAssert(TestSHA3_512, 'TestSHA3_512');
   MyAssert(TestSHA3_512HMac, 'TestSHA3_512HMac');
   MyAssert(TestSHA3_512Update, 'TestSHA3_512Update');
-  MyAssert(TestSHAKE128, 'TestSHAKE128');
-  MyAssert(TestSHAKE256, 'TestSHAKE256');
+  MyAssert(TestSHAKE1281, 'TestSHAKE1281');
+  MyAssert(TestSHAKE1282, 'TestSHAKE1282');
+  MyAssert(TestSHAKE2561, 'TestSHAKE2561');
+  MyAssert(TestSHAKE2562, 'TestSHAKE2562');
 
 // ================================ BLAKE ======================================
 
@@ -2812,7 +2816,7 @@ begin
   Result := SHA3_512Match(D1, D2);
 end;
 
-function TestSHAKE128: Boolean;
+function TestSHAKE1281: Boolean;
 var
   S, R: TBytes;
 begin
@@ -2855,7 +2859,28 @@ begin
     'F17D7259AB075216C0699511643B6439';
 end;
 
-function TestSHAKE256: Boolean;
+function TestSHAKE1282: Boolean;
+var
+  Ctx: TCnSHA3Context;
+  S, R: TBytes;
+  K: string;
+begin
+  SHAKE128Init(Ctx, 0);
+
+  S := HexToBytes('1FB5');
+  SHAKE128Absorb(Ctx, PAnsiChar(@S[0]), Length(S));
+  S := HexToBytes('C1278524D02645EF90C0219FF571');
+  SHAKE128Absorb(Ctx, PAnsiChar(@S[0]), Length(S));
+
+  R := SHAKE128Squeeze(Ctx, 20);
+  K := BytesToHex(R);
+  R := SHAKE128Squeeze(Ctx, 37);
+  K := K + BytesToHex(R);
+
+  Result := K = 'FEBCA33E3157EC869E0F138A2E4BAA78F122ECB2E1A929145C9AC9A35E5B8378CC877F87EA05426EFEBAD962313BDC6018B5F6A9CCFA1D4960';
+end;
+
+function TestSHAKE2561: Boolean;
 var
   S, R: TBytes;
 begin
@@ -2896,6 +2921,34 @@ begin
     '5733740143EF5D2B58B96A363D4E0807' +
     '6A1A9D7846436E4DCA5728B6F760EEF0' +
     'CA92BF0BE5615E96959D767197A0BEEB';
+end;
+
+function TestSHAKE2562: Boolean;
+var
+  Ctx: TCnSHA3Context;
+  S, R: TBytes;
+  K: string;
+begin
+  SHAKE256Init(Ctx, 0);
+
+  S := HexToBytes('7D9312FFE94845AC51056C63EB3BFF4A94626AAFB7470FF86FA88F');
+  SHAKE256Absorb(Ctx, PAnsiChar(@S[0]), Length(S));
+  S := HexToBytes('D8F0FE45C9');
+  SHAKE256Absorb(Ctx, PAnsiChar(@S[0]), Length(S));
+
+  R := SHAKE128Squeeze(Ctx, 1);
+  K := BytesToHex(R);
+  R := SHAKE128Squeeze(Ctx, 20);
+  K := K + BytesToHex(R);
+  R := SHAKE128Squeeze(Ctx, 50);
+  K := K + BytesToHex(R);
+  R := SHAKE128Squeeze(Ctx, 38);
+  K := K + BytesToHex(R);
+
+  Result := K = 'DE489392796FD3B530C506E482936AFCFE6B72DCF7E9DEF054953842FF' +
+    '19076908C8A1D6A4E7639E0FDBFA1B5201095051AAC3E3997779E588377EAC979313E3' +
+    '9C3721DC9F912CF7FDF1A9038CBABA8E9F3D95951A5D819BFFD0B080319FCD12DA0516' +
+    'BAF54B779E79E437D3EC';
 end;
 
 // ================================ BLAKE ======================================

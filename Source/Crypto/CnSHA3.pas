@@ -36,7 +36,9 @@ unit CnSHA3;
 * 开发平台：PWinXP + Delphi 5.0
 * 兼容测试：PWinXP/7 + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2023.08.02 V1.4
+* 修改记录：2025.11.06 V1.5
+*               加入 SHAKE128/SHAKE256 的 Absorb/Squeeze 机制，允许连续输出摘要
+*           2023.08.02 V1.4
 *               加入 SHAKE128/SHAKE256 的可变长度摘要的计算
 *           2022.04.26 V1.3
 *               修改 LongWord 与 Integer 地址转换以支持 MacOS64
@@ -96,6 +98,8 @@ type
     DigestLen: Cardinal;
     Round: Cardinal;
     BlockLen: Cardinal;
+    Squeezed: Cardinal;
+    SqueezeCount: Cardinal;
     Block: array[0..255] of Byte;
     Ipad: array[0..143] of Byte;      {!< HMAC: inner padding        }
     Opad: array[0..143] of Byte;      {!< HMAC: outer padding        }
@@ -859,7 +863,7 @@ procedure SHA3_512Final(var Context: TCnSHA3Context; var Digest: TCnSHA3_512Dige
    返回值：（无）
 }
 
-// 以下三个函数用于外部持续对数据进行零散的 SHAKE128 计算，SHAKE128Update 可多次被调用
+// 以下几个函数用于外部持续对数据进行零散的 SHAKE128 计算，SHAKE128Update 可多次被调用
 
 procedure SHAKE128Init(var Context: TCnSHA3Context; DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH);
 {* 初始化一轮 SHAKE128 计算上下文，准备计算 SHAKE128 结果，
@@ -873,7 +877,19 @@ procedure SHAKE128Init(var Context: TCnSHA3Context; DigestByteLength: Cardinal =
 }
 
 procedure SHAKE128Update(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLength: Cardinal);
-{* 以初始化后的上下文对一块数据进行 SHAKE128 计算。
+{* 以初始化后的上下文对一块数据进行 SHAKE128 计算，等同于 SHAKE128Absorb。
+   可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
+
+   参数：
+     var Context: TCnSHA3Context          - 通用 SHA3 上下文
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+
+   返回值：（无）
+}
+
+procedure SHAKE128Absorb(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLength: Cardinal);
+{* 以初始化后的上下文对一块数据进行 SHAKE128 计算，等同于 SHAKE128Update。
    可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
 
    参数：
@@ -894,7 +910,18 @@ procedure SHAKE128Final(var Context: TCnSHA3Context; out Digest: TBytes);
    返回值：（无）
 }
 
-// 以下三个函数用于外部持续对数据进行零散的 SHAKE128 计算，SHAKE128Update 可多次被调用
+function SHAKE128Squeeze(var Context: TCnSHA3Context; DigestByteLength: Integer): TBytes;
+{* 不结束本轮计算，将 SHAKE128 结果返回 DigestByteLength 字节长的内容，
+   后续还可继续 Absorb 以及 Squeeze。
+
+   参数：
+     var Context: TCnSHA3Context          - 通用 SHA3 上下文
+     DigestByteLength: Integer            - 需要返回的 SHAKE128 杂凑字节长度
+
+   返回值：TBytes                         - 返回的 SHAKE128 杂凑值
+}
+
+// 以下几个函数用于外部持续对数据进行零散的 SHAKE128 计算，SHAKE128Update 可多次被调用
 
 procedure SHAKE256Init(var Context: TCnSHA3Context; DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH);
 {* 初始化一轮 SHAKE256 计算上下文，准备计算 SHAKE256 结果，
@@ -908,7 +935,19 @@ procedure SHAKE256Init(var Context: TCnSHA3Context; DigestByteLength: Cardinal =
 }
 
 procedure SHAKE256Update(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLength: Cardinal);
-{* 以初始化后的上下文对一块数据进行 SHAKE256 计算。
+{* 以初始化后的上下文对一块数据进行 SHAKE256 计算，等同于 SHAKE256Absorb。
+   可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
+
+   参数：
+     var Context: TCnSHA3Context          - 通用 SHA3 上下文
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+
+   返回值：（无）
+}
+
+procedure SHAKE256Absorb(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLength: Cardinal);
+{* 以初始化后的上下文对一块数据进行 SHAKE256 计算，等同于 SHAKE256Update。
    可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
 
    参数：
@@ -927,6 +966,17 @@ procedure SHAKE256Final(var Context: TCnSHA3Context; out Digest: TBytes);
      out Digest: TBytes                   - 返回的 SHAKE256 杂凑值
 
    返回值：（无）
+}
+
+function SHAKE256Squeeze(var Context: TCnSHA3Context; DigestByteLength: Integer): TBytes;
+{* 不结束本轮计算，将 SHAKE256 结果返回 DigestByteLength 字节长的内容，
+   后续还可继续 Absorb 以及 Squeeze。
+
+   参数：
+     var Context: TCnSHA3Context          - 通用 SHA3 上下文
+     DigestByteLength: Integer            - 需要返回的 SHAKE256 杂凑字节长度
+
+   返回值：TBytes                         - 返回的 SHAKE256 杂凑值
 }
 
 function SHA3_224Print(const Digest: TCnSHA3_224Digest): string;
@@ -1328,6 +1378,8 @@ begin
   FillChar(Context.State, SizeOf(Context.State), 0);
   FillChar(Context.Block, SizeOf(Context.Block), 0);
   Context.Index := 0;
+  Context.Squeezed := 0;
+  Context.SqueezeCount := 0;
   Context.Round := SHA3_ROUNDS;
 
   case SHA3Type of
@@ -1462,6 +1514,61 @@ begin
   end;
 end;
 
+function SHAKE3Squeeze(var Context: TCnSHA3Context; DigestByteLength: Integer): TBytes;
+var
+  Idx, DL: Cardinal;
+  BlockLen: Cardinal;
+  BytesToCopy: Cardinal;
+begin
+  if DigestByteLength <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  BlockLen := Context.BlockLen;
+
+  // 如果是第一次进入，先完成 Absorb 阶段
+  if Context.Squeezed = 0 then
+  begin
+    Context.Block[Context.Index] := $1F;
+    Context.Block[Context.BlockLen - 1] := Context.Block[Context.BlockLen - 1] or $80;
+    SHA3_Transform(Context);
+    Context.Squeezed := 1;     // 标记已经完成吸收阶段
+    Context.SqueezeCount := 0; // 重置挤压计数
+  end;
+
+  // 初始化输出数组
+  SetLength(Result, DigestByteLength);
+  DL := DigestByteLength;
+  Idx := 0;
+
+  // 从当前状态提取数据
+  while DL > 0 do
+  begin
+    // 计算当前块中剩余可提取的字节数
+    BytesToCopy := BlockLen - Context.SqueezeCount;
+    if BytesToCopy > DL then
+      BytesToCopy := DL;
+
+    // 从状态中提取数据
+    Move(PByteArray(@Context.State[0])[Context.SqueezeCount], Result[Idx], BytesToCopy);
+
+    // 更新计数器和指针
+    Inc(Context.SqueezeCount, BytesToCopy);
+    Inc(Idx, BytesToCopy);
+    Dec(DL, BytesToCopy);
+
+    // 如果当前块已用完，需要变换状态获取下一个块
+    if (DL > 0) and (Context.SqueezeCount >= BlockLen) then
+    begin
+      FillChar(Context.Block[0], SizeOf(Context.Block), 0);
+      SHA3_Transform(Context);
+      Context.SqueezeCount := 0; // 重置为新的状态块的开始
+    end;
+  end;
+end;
+
 procedure SHA3_224Init(var Context: TCnSHA3Context);
 begin
   SHA3Init(Context, stSHA3_224);
@@ -1544,9 +1651,19 @@ begin
   SHA3Update(Context, Input, ByteLength);
 end;
 
+procedure SHAKE128Absorb(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLength: Cardinal);
+begin
+  SHA3Update(Context, Input, ByteLength);
+end;
+
 procedure SHAKE128Final(var Context: TCnSHA3Context; out Digest: TBytes);
 begin
   SHA3Final(Context, Digest);
+end;
+
+function SHAKE128Squeeze(var Context: TCnSHA3Context; DigestByteLength: Integer): TBytes;
+begin
+  Result := SHAKE3Squeeze(Context, DigestByteLength);
 end;
 
 procedure SHAKE256Init(var Context: TCnSHA3Context; DigestByteLength: Cardinal);
@@ -1559,9 +1676,19 @@ begin
   SHA3Update(Context, Input, ByteLength);
 end;
 
+procedure SHAKE256Absorb(var Context: TCnSHA3Context; Input: PAnsiChar; ByteLength: Cardinal);
+begin
+  SHA3Update(Context, Input, ByteLength);
+end;
+
 procedure SHAKE256Final(var Context: TCnSHA3Context; out Digest: TBytes);
 begin
   SHA3Final(Context, Digest);
+end;
+
+function SHAKE256Squeeze(var Context: TCnSHA3Context; DigestByteLength: Integer): TBytes;
+begin
+  Result := SHAKE3Squeeze(Context, DigestByteLength);
 end;
 
 // 对数据块进行 SHA3_224位计算
