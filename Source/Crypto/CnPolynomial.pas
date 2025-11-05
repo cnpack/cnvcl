@@ -77,8 +77,9 @@ type
 // =============================================================================
 
   TCnInt64Polynomial = class(TCnInt64List)
-  {* 一元整系数多项式，系数范围为 Int64}
+  {* 一元整系数多项式，系数范围为 Int64，Items[n] 就是 n 次项系数}
   private
+    procedure EnsureDegree(Degree: Integer);  // 确保第 Degree 次存在，也就是 Count >= Degree + 1
     function GetMaxDegree: Integer;
     procedure SetMaxDegree(const Value: Integer);
   public
@@ -102,7 +103,17 @@ type
        参数：
          LowToHighCoefficients: array of const            - 从 0 开始的低次到高次的多项式系数
 
-       返回值：                                           - 返回创建的对象实例
+       返回值：（无）
+    }
+
+    procedure SetCoefficent(Degree: Integer; Coefficient: Integer);
+    {* 设置某次项的系数。
+
+       参数：
+         Degree: Integer                                  - 该项的多项式的次数
+         Coefficient: Integer                             - 该项的多项式系数
+
+       返回值：（无）
     }
 
     procedure CorrectTop;
@@ -4762,6 +4773,12 @@ begin
   inherited;
 end;
 
+procedure TCnInt64Polynomial.EnsureDegree(Degree: Integer);
+begin
+  if Count < Degree + 1 then
+    SetCount(Degree + 1);
+end;
+
 function TCnInt64Polynomial.GetMaxDegree: Integer;
 begin
   if Count = 0 then
@@ -4792,6 +4809,13 @@ end;
 procedure TCnInt64Polynomial.Negate;
 begin
   Int64PolynomialNegate(Self);
+end;
+
+procedure TCnInt64Polynomial.SetCoefficent(Degree, Coefficient: Integer);
+begin
+  CheckDegree(Degree);
+  EnsureDegree(Degree);
+  Items[Degree] := Coefficient;
 end;
 
 procedure TCnInt64Polynomial.SetCoefficents(LowToHighCoefficients: array of const);
