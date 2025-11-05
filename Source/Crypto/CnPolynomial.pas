@@ -186,6 +186,51 @@ type
     {* 最高次数，0 开始，基于 Count 所以只能是 Integer，下标遍历时使用 0 到 MaxDegree}
   end;
 
+  TCnInt64PolynomialList = class(TObjectList)
+  {* 容纳一元整系数多项式的对象列表，同时拥有一元整系数多项式对象们}
+  private
+
+  protected
+    function GetItem(Index: Integer): TCnInt64Polynomial;
+    procedure SetItem(Index: Integer; APoly: TCnInt64Polynomial);
+  public
+    constructor Create; reintroduce;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    function Add: TCnInt64Polynomial; overload;
+    {* 新增一个一元整系数多项式对象，返回该对象。
+       注意添加后返回的对象已由列表纳入管理，无需也不应手动释放。
+
+       参数：
+         （无）
+
+       返回值：TCnInt64Polynomial         - 内部新增的大数对象
+    }
+
+    function Add(APoly: TCnInt64Polynomial): Integer; overload;
+    {* 添加外部的一元整系数多项式对象。注意添加后该对象由列表纳入管理，无需也不应手动释放。
+
+       参数：
+         APoly: TCnInt64Polynomial        - 待添加的一元整系数多项式对象
+
+       返回值：Integer                    - 新增的该一元整系数多项式对象的索引值
+    }
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将一元整系数多项式列表转成字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
+
+    property Items[Index: Integer]: TCnInt64Polynomial read GetItem write SetItem; default;
+    {* 一元整系数多项式列表项}
+  end;
+
   TCnInt64RationalPolynomial = class(TPersistent)
   {* 一元整系数有理分式，分母分子分别为一元整系数多项式}
   private
@@ -13403,6 +13448,55 @@ procedure TCnBigNumberBiPolynomialPool.Recycle(
   Poly: TCnBigNumberBiPolynomial);
 begin
   inherited Recycle(Poly);
+end;
+
+{ TCnInt64PolynomialList }
+
+function TCnInt64PolynomialList.Add: TCnInt64Polynomial;
+begin
+  Result := TCnInt64Polynomial.Create;
+  Add(Result);
+end;
+
+function TCnInt64PolynomialList.Add(APoly: TCnInt64Polynomial): Integer;
+begin
+  Result := inherited Add(APoly);
+end;
+
+constructor TCnInt64PolynomialList.Create;
+begin
+  inherited Create(True);
+end;
+
+destructor TCnInt64PolynomialList.Destroy;
+begin
+
+  inherited;
+end;
+
+function TCnInt64PolynomialList.GetItem(Index: Integer): TCnInt64Polynomial;
+begin
+  Result := TCnInt64Polynomial(inherited GetItem(Index));
+end;
+
+procedure TCnInt64PolynomialList.SetItem(Index: Integer;
+  APoly: TCnInt64Polynomial);
+begin
+  inherited SetItem(Index, APoly);
+end;
+
+function TCnInt64PolynomialList.ToString: string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Count - 1 do
+  begin
+    if I = 0 then
+      Result := Items[I].ToString
+    else
+      Result := Result + ',' + Items[I].ToString;
+  end;
 end;
 
 initialization

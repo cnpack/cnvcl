@@ -784,9 +784,11 @@ type
   public
     constructor Create; reintroduce;
     {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
 
     function Add: TCnBigNumber; overload;
-    {* 新增一个大数对象，返回该对象。注意添加后无需也不应手动释放。
+    {* 新增一个大数对象，返回该对象。注意添加后返回的对象已由列表纳入管理，无需也不应手动释放。
 
        参数：
          （无）
@@ -795,7 +797,7 @@ type
     }
 
     function Add(ABigNumber: TCnBigNumber): Integer; overload;
-    {* 添加外部的大数对象，注意添加后无需也不应手动释放。
+    {* 添加外部的大数对象，注意添加后该对象由列表纳入管理，无需也不应手动释放。
 
        参数：
          ABigNumber: TCnBigNumber         - 待添加的大数对象
@@ -804,7 +806,7 @@ type
     }
 
     function Add(Num: Integer): TCnBigNumber; overload;
-    {* 添加一整数，内部生成大数对象，注意返回的结果无需也不应手动释放。
+    {* 添加一整数，内部生成大数对象，注意返回的结果已由列表纳入管理，无需也不应手动释放。
 
        参数：
          Num: Integer                     - 待添加的整数
@@ -10684,6 +10686,12 @@ end;
 constructor TCnBigNumberList.Create;
 begin
   inherited Create(True);
+end;
+
+destructor TCnBigNumberList.Destroy;
+begin
+
+  inherited;
 end;
 
 function TCnBigNumberList.GetItem(Index: Integer): TCnBigNumber;
