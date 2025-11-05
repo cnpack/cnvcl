@@ -249,6 +249,7 @@ type
   {* MLKEM 种子，32 字节}
 
   TCnMLKEM = class
+  {* 基于模块化格的密钥封装机制（Module-Lattice-based Key Encapsulation Mechanism）实现类}
   private
     FMatrixRank: Integer;
     FNoise1: Integer;
@@ -265,6 +266,8 @@ type
     {* 将一个 X 的系数值压缩到 D 位并返回}
     class function Decompress(X: Word; D: Word): Word;
     {* 将一个压缩后的系数值解压并返回}
+    class function SamplePolyCBD(const RandBytes: TBytes; Eta: Integer): TWords;
+    {* 根据随机数组生成 256 个采样的多项式系数，RandBytes 的长度至少要 64 * Eta 字节}
 
     property MatrixRank: Integer read FMatrixRank write FMatrixRank;
     {* 矩阵的秩，在这里是方阵尺寸，取值 2 或 3 或 4}
@@ -981,6 +984,50 @@ destructor TCnMLKEM.Destroy;
 begin
   FRing.Free;
   inherited;
+end;
+
+class function TCnMLKEM.SamplePolyCBD(const RandBytes: TBytes; Eta: Integer): TWords;
+var
+  I, J, X, Y: Integer;
+  Bits: TCnBitBuilder;
+
+  function BitToInt(Bit: Boolean): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+  begin
+    if Bit then
+      Result := 1
+    else
+      Result := 0;
+  end;
+
+begin
+  if (Eta <> 2) and (Eta <> 3) then
+    raise ECnLatticeException.Create('Eta Must Be 2 or 3');
+  if Length(RandBytes) < 64 * Eta then
+    raise Exception.Create('Invalid Random Length for SamplePolyCBD');
+
+  SetLength(Result, CN_MLKEM_POLY_DEGREE);
+  Bits := TCnBitBuilder.Create;
+  try
+    Bits.AppendBytes(RandBytes);
+
+    for I := 0 to CN_MLKEM_POLY_DEGREE - 1 do
+    begin
+      X := 0;
+      Y := 0;
+
+      for J := 0 to Eta - 1 do
+        X := X + BitToInt(Bits[2 * I * Eta + J]);
+      for J := 0 to Eta - 1 do
+        Y := Y + BitToInt(Bits[2 * I * Eta + Eta + J]);
+
+      if X >= Y then
+        Result[I] := X - Y
+      else
+        Result[I] := CN_MLKEM_PRIME + X - Y;
+    end;
+  finally
+    Bits.Free;
+  end;
 end;
 
 { TCnMLKEMPublicKey }

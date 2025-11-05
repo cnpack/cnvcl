@@ -260,22 +260,47 @@ object FormLattice: TFormLattice
           TabOrder = 0
           OnClick = btnCompressTestClick
         end
-        object mmoCompress: TMemo
+        object mmoMLKEM: TMemo
           Left = 16
-          Top = 72
-          Width = 185
-          Height = 441
+          Top = 112
+          Width = 201
+          Height = 401
           ScrollBars = ssVertical
           TabOrder = 1
         end
         object btnDeCompressTest: TButton
-          Left = 112
+          Left = 128
           Top = 32
           Width = 89
           Height = 25
           Caption = 'Decompress Test'
           TabOrder = 2
           OnClick = btnDeCompressTestClick
+        end
+        object btnMLKEMSample: TButton
+          Left = 16
+          Top = 72
+          Width = 113
+          Height = 25
+          Caption = 'MLKEM Sample'
+          TabOrder = 3
+          OnClick = btnMLKEMSampleClick
+        end
+        object edtSamleEta: TEdit
+          Left = 144
+          Top = 74
+          Width = 73
+          Height = 21
+          TabOrder = 4
+          Text = '2'
+        end
+        object edtMLKEMD: TEdit
+          Left = 100
+          Top = 34
+          Width = 25
+          Height = 21
+          TabOrder = 5
+          Text = '11'
         end
       end
     end

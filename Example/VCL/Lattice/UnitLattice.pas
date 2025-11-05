@@ -40,8 +40,11 @@ type
     tsMLKEM: TTabSheet;
     grpMLKEM: TGroupBox;
     btnCompressTest: TButton;
-    mmoCompress: TMemo;
+    mmoMLKEM: TMemo;
     btnDeCompressTest: TButton;
+    btnMLKEMSample: TButton;
+    edtSamleEta: TEdit;
+    edtMLKEMD: TEdit;
     procedure btnSimpleTestClick(Sender: TObject);
     procedure btnInt64GaussianReduceBasisClick(Sender: TObject);
     procedure btnSimpleTest2Click(Sender: TObject);
@@ -55,6 +58,7 @@ type
     procedure btnNTRUEncryptBytesClick(Sender: TObject);
     procedure btnCompressTestClick(Sender: TObject);
     procedure btnDeCompressTestClick(Sender: TObject);
+    procedure btnMLKEMSampleClick(Sender: TObject);
   private
     FPriv: TCnNTRUPrivateKey;
     FPub: TCnNTRUPublicKey;
@@ -70,7 +74,7 @@ implementation
 {$R *.DFM}
 
 uses
-  CnBigNumber, CnVector, CnPolynomial, CnNative;
+  CnBigNumber, CnVector, CnPolynomial, CnNative, CnRandom;
 
 procedure TFormLattice.btnSimpleTestClick(Sender: TObject);
 var
@@ -416,42 +420,59 @@ end;
 
 procedure TFormLattice.btnCompressTestClick(Sender: TObject);
 var
-  I: Integer;
+  I, D: Integer;
   V, R: Word;
 begin
-  mmoCompress.Lines.Clear;
+  D := StrToIntDef(edtMLKEMD.Text, 11);
+  mmoMLKEM.Lines.Clear;
   for I := 0 to CN_MLKEM_PRIME - 1 do
   begin
-    V := TCnMLKEM.Compress(Word(I), 11);
-    R := TCnMLKEM.Decompress(V, 11);
+    V := TCnMLKEM.Compress(Word(I), D);
+    R := TCnMLKEM.Decompress(V, D);
     if I <> R then
     begin
       if Abs(I - R) > 1 then
-        mmoCompress.Lines.Add(Format('*** %d -> %d -> %d', [I, V, R]))
+        mmoMLKEM.Lines.Add(Format('*** %d -> %d -> %d', [I, V, R]))
       else
-        mmoCompress.Lines.Add(Format('* %d -> %d -> %d', [I, V, R]));
+        mmoMLKEM.Lines.Add(Format('* %d -> %d -> %d', [I, V, R]));
     end
     else
-      mmoCompress.Lines.Add(Format('  %d -> %d -> %d', [I, V, R]));
+      mmoMLKEM.Lines.Add(Format('  %d -> %d -> %d', [I, V, R]));
   end;
 end;
 
 procedure TFormLattice.btnDeCompressTestClick(Sender: TObject);
 var
-  I: Integer;
+  I, D: Integer;
   V, R: Word;
 begin
   // 2^d 以下应该都相等
-  mmoCompress.Lines.Clear;
+  D := StrToIntDef(edtMLKEMD.Text, 11);
+  mmoMLKEM.Lines.Clear;
   for I := 0 to CN_MLKEM_PRIME - 1 do
   begin
-    V := TCnMLKEM.Decompress(Word(I), 11);
-    R := TCnMLKEM.Compress(V, 11);
+    V := TCnMLKEM.Decompress(Word(I), D);
+    R := TCnMLKEM.Compress(V, D);
     if I <> R then
-      mmoCompress.Lines.Add(Format('*** %d -> %d -> %d', [I, V, R]))
+      mmoMLKEM.Lines.Add(Format('*** %d -> %d -> %d', [I, V, R]))
     else
-      mmoCompress.Lines.Add(Format('%d -> %d -> %d', [I, V, R]));
+      mmoMLKEM.Lines.Add(Format('%d -> %d -> %d', [I, V, R]));
   end;
+end;
+
+procedure TFormLattice.btnMLKEMSampleClick(Sender: TObject);
+var
+  B: TBytes;
+  I, Eta: Integer;
+  W: TWords;
+begin
+  B := CnRandomBytes(256);
+  Eta := StrToIntDef(edtSamleEta.Text, 2);
+
+  W := TCnMLKEM.SamplePolyCBD(B, Eta);
+  mmoMLKEM.Lines.Clear;
+  for I := Low(W) to High(W) do
+    mmoMLKEM.Lines.Add(IntToStr(W[I]));
 end;
 
 end.

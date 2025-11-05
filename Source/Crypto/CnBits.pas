@@ -87,6 +87,7 @@ type
 
        返回值：（无）
     }
+
   public
     constructor Create; virtual;
     {* 构造函数}
@@ -240,7 +241,7 @@ type
        返回值：Cardinal                   - 复制的内容
     }
 
-    property Bit[Index: Integer]: Boolean read GetBit write SetBit;
+    property Bit[Index: Integer]: Boolean read GetBit write SetBit; default;
     {* 按索引访问位内容，1 为 True，0 为 False。索引范围为 0 到 BitLength - 1}
 
     property ByteCapacity: Integer read GetByteCapacity write SetByteCapacity;
