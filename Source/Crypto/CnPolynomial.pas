@@ -320,8 +320,9 @@ type
 // =============================================================================
 
   TCnBigNumberPolynomial = class(TCnBigNumberList)
-  {* 一元大整系数多项式}
+  {* 一元大整系数多项式，Items[n] 就是 n 次项系数}
   private
+    procedure EnsureDegree(Degree: Integer);
     function GetMaxDegree: Integer;
     procedure SetMaxDegree(const Value: Integer);
   public
@@ -344,6 +345,16 @@ type
 
        参数：
          LowToHighCoefficients: array of const            - 从 0 开始的低次到高次的多项式系数
+
+       返回值：（无）
+    }
+
+    procedure SetCoefficent(Degree: Integer; Coefficient: TCnBigNumber);
+    {* 设置某次项的系数，内部值会从 Coefficient 中复制过去。
+
+       参数：
+         Degree: Integer                                  - 该项的多项式的次数
+         Coefficient: TCnBigNumber                        - 该项的多项式系数
 
        返回值：（无）
     }
@@ -4775,8 +4786,8 @@ end;
 
 procedure TCnInt64Polynomial.EnsureDegree(Degree: Integer);
 begin
-  if Count < Degree + 1 then
-    SetCount(Degree + 1);
+  if Degree < MaxDegree then
+    SetMaxDegree(Degree);
 end;
 
 function TCnInt64Polynomial.GetMaxDegree: Integer;
@@ -7427,6 +7438,12 @@ begin
   inherited;
 end;
 
+procedure TCnBigNumberPolynomial.EnsureDegree(Degree: Integer);
+begin
+  if Degree < MaxDegree then
+    SetMaxDegree(Degree);
+end;
+
 function TCnBigNumberPolynomial.GetMaxDegree: Integer;
 begin
   if Count = 0 then
@@ -7457,6 +7474,14 @@ end;
 procedure TCnBigNumberPolynomial.Negate;
 begin
   BigNumberPolynomialNegate(Self);
+end;
+
+procedure TCnBigNumberPolynomial.SetCoefficent(Degree: Integer;
+  Coefficient: TCnBigNumber);
+begin
+  CheckDegree(Degree);
+  EnsureDegree(Degree);
+  BigNumberCopy(Items[Degree], Coefficient);
 end;
 
 procedure TCnBigNumberPolynomial.SetCoefficents(LowToHighCoefficients: array of const);
