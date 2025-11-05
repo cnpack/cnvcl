@@ -103,8 +103,8 @@ type
     jttNameValueSep, jttElementSep, jttNumber, jttString, jttNull, jttTrue,
     jttFalse, jttBlank, jttTerminated, jttIdent, jttUnknown);
   {* JSON 中的符号类型，对应左大括号、右大括号、左中括号、右中括号、分号、逗号、
-    数字（包括整数和浮点）、双引号字符串、null、true、false、空格回车、#0、
-    允许不带引号时的标识符、未知等}
+     数字（包括整数和浮点）、双引号字符串、null、true、false、空格回车、#0、
+     允许不带引号时的标识符、未知等}
 
   TCnJSONTokenTypes = set of TCnJSONTokenType;
   {* JSON 中的符号类型集合}
@@ -263,7 +263,7 @@ type
 }
   TCnJSONObject = class(TCnJSONValue)
   {* 代表 JSON 中的对象值的类，也是 JSON 顶层类。
-    管理下面挂的所有 Pair，从而间接管理所有下属的对象实例}
+     管理下面挂的所有 Pair，从而间接管理所有下属的对象实例}
   private
     FPairs: TObjectList;
     FMap: TCnHashTable;
@@ -316,8 +316,10 @@ type
     class function FromJSON(const JsonStr: AnsiString): TCnJSONObject;
     {* 解析 UTF8 格式的 JSON 字符串，返回新对象}
 
+    function HasName(const Name: string): Boolean;
+    {* 返回是否存在指定 Name 的值}
     procedure GetNames(OutNames: TStrings);
-    {* 将 Name Value 对的 Name 放入 OutNames 列表}
+    {* 将 Name Value 对的所有 Name 放入 OutNames 列表}
     property Count: Integer read GetCount;
     {* 有多少个 Name Value 对}
 
@@ -325,10 +327,10 @@ type
     {* 名称对象索引}
     property Values[Index: Integer]: TCnJSONValue read GetValue write SetValue;
     {* 值对象索引，读方法可返回索引对应的值对象，注意值可能是 TCnJSONValue 的不同子类实例；
-      写方法可根据索引设置并管理其值对象，原有值对象如有则将释放}
+       写方法可根据索引设置并管理其值对象，原有值对象如有则将释放}
     property ValueByName[const Name: string]: TCnJSONValue read GetValueByName write SetValueByName; default;
     {* 读方法可根据名称获取值对象，无该名称则返回 nil；
-      写方法可根据名称设置并管理其值对象，原有值对象如有则释放；无该名称则抛出异常}
+       写方法可根据名称设置并管理其值对象，原有值对象如有则释放；无该名称则抛出异常}
   end;
 
   TCnJSONValueClass = class of TCnJSONValue;
@@ -362,7 +364,7 @@ type
 
     property Value: string read FValue write SetValue;
     {* 组装时供外界写入值，内部同步更新 Content
-      同时支持 Delphi 中的 Unicode 与 Ansi 下的 string，及 FPC 的 Utf8 格式}
+       同时支持 Delphi 中的 Unicode 与 Ansi 下的 string，及 FPC 的 Utf8 格式}
   end;
 
   TCnJSONNumber = class(TCnJSONValue)
@@ -1692,6 +1694,11 @@ begin
     end;
   end;
   Result := nil;
+end;
+
+function TCnJSONObject.HasName(const Name: string): Boolean;
+begin
+  Result := GetValueByName(Name) <> nil;
 end;
 
 function TCnJSONObject.IsObject: Boolean;
