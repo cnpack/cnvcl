@@ -42,9 +42,10 @@ type
     btnCompressTest: TButton;
     mmoMLKEM: TMemo;
     btnDeCompressTest: TButton;
-    btnMLKEMSample: TButton;
+    btnMLKEMSamplePolyCBD: TButton;
     edtSamleEta: TEdit;
     edtMLKEMD: TEdit;
+    btnMLKEMSampleNtt: TButton;
     procedure btnSimpleTestClick(Sender: TObject);
     procedure btnInt64GaussianReduceBasisClick(Sender: TObject);
     procedure btnSimpleTest2Click(Sender: TObject);
@@ -58,7 +59,8 @@ type
     procedure btnNTRUEncryptBytesClick(Sender: TObject);
     procedure btnCompressTestClick(Sender: TObject);
     procedure btnDeCompressTestClick(Sender: TObject);
-    procedure btnMLKEMSampleClick(Sender: TObject);
+    procedure btnMLKEMSamplePolyCBDClick(Sender: TObject);
+    procedure btnMLKEMSampleNttClick(Sender: TObject);
   private
     FPriv: TCnNTRUPrivateKey;
     FPub: TCnNTRUPublicKey;
@@ -460,7 +462,7 @@ begin
   end;
 end;
 
-procedure TFormLattice.btnMLKEMSampleClick(Sender: TObject);
+procedure TFormLattice.btnMLKEMSamplePolyCBDClick(Sender: TObject);
 var
   B: TBytes;
   I, Eta: Integer;
@@ -470,6 +472,20 @@ begin
   Eta := StrToIntDef(edtSamleEta.Text, 2);
 
   W := TCnMLKEM.SamplePolyCBD(B, Eta);
+  mmoMLKEM.Lines.Clear;
+  for I := Low(W) to High(W) do
+    mmoMLKEM.Lines.Add(IntToStr(W[I]));
+end;
+
+procedure TFormLattice.btnMLKEMSampleNttClick(Sender: TObject);
+var
+  I: Integer;
+  B: TBytes;
+  W: TWords;
+begin
+  B := CnRandomBytes(34);
+  W := TCnMLKEM.SampleNTT(B);
+
   mmoMLKEM.Lines.Clear;
   for I := Low(W) to High(W) do
     mmoMLKEM.Lines.Add(IntToStr(W[I]));

@@ -262,9 +262,9 @@ object FormLattice: TFormLattice
         end
         object mmoMLKEM: TMemo
           Left = 16
-          Top = 112
+          Top = 136
           Width = 201
-          Height = 401
+          Height = 377
           ScrollBars = ssVertical
           TabOrder = 1
         end
@@ -277,14 +277,14 @@ object FormLattice: TFormLattice
           TabOrder = 2
           OnClick = btnDeCompressTestClick
         end
-        object btnMLKEMSample: TButton
+        object btnMLKEMSamplePolyCBD: TButton
           Left = 16
           Top = 72
           Width = 113
           Height = 25
-          Caption = 'MLKEM Sample'
+          Caption = 'Sample PolyCBD'
           TabOrder = 3
-          OnClick = btnMLKEMSampleClick
+          OnClick = btnMLKEMSamplePolyCBDClick
         end
         object edtSamleEta: TEdit
           Left = 144
@@ -301,6 +301,15 @@ object FormLattice: TFormLattice
           Height = 21
           TabOrder = 5
           Text = '11'
+        end
+        object btnMLKEMSampleNtt: TButton
+          Left = 16
+          Top = 104
+          Width = 113
+          Height = 25
+          Caption = 'Sample NTT'
+          TabOrder = 6
+          OnClick = btnMLKEMSampleNttClick
         end
       end
     end
