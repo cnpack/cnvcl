@@ -37,6 +37,11 @@ type
     btnNTRUGenerateKeys: TButton;
     mmoNTRUPrivateKeyG: TMemo;
     btnNTRUEncryptBytes: TButton;
+    tsMLKEM: TTabSheet;
+    grpMLKEM: TGroupBox;
+    btnCompressTest: TButton;
+    mmoCompress: TMemo;
+    btnDeCompressTest: TButton;
     procedure btnSimpleTestClick(Sender: TObject);
     procedure btnInt64GaussianReduceBasisClick(Sender: TObject);
     procedure btnSimpleTest2Click(Sender: TObject);
@@ -48,6 +53,8 @@ type
     procedure btnNTRUGenerateKeysClick(Sender: TObject);
     procedure btnNTRUEncryptClick(Sender: TObject);
     procedure btnNTRUEncryptBytesClick(Sender: TObject);
+    procedure btnCompressTestClick(Sender: TObject);
+    procedure btnDeCompressTestClick(Sender: TObject);
   private
     FPriv: TCnNTRUPrivateKey;
     FPub: TCnNTRUPublicKey;
@@ -405,6 +412,46 @@ begin
   edtNTRUMessageDec.Text := BytesToAnsi(De);
 
   NTRU.Free;
+end;
+
+procedure TFormLattice.btnCompressTestClick(Sender: TObject);
+var
+  I: Integer;
+  V, R: Word;
+begin
+  mmoCompress.Lines.Clear;
+  for I := 0 to CN_MLKEM_PRIME - 1 do
+  begin
+    V := TCnMLKEM.Compress(Word(I), 11);
+    R := TCnMLKEM.Decompress(V, 11);
+    if I <> R then
+    begin
+      if Abs(I - R) > 1 then
+        mmoCompress.Lines.Add(Format('*** %d -> %d -> %d', [I, V, R]))
+      else
+        mmoCompress.Lines.Add(Format('* %d -> %d -> %d', [I, V, R]));
+    end
+    else
+      mmoCompress.Lines.Add(Format('  %d -> %d -> %d', [I, V, R]));
+  end;
+end;
+
+procedure TFormLattice.btnDeCompressTestClick(Sender: TObject);
+var
+  I: Integer;
+  V, R: Word;
+begin
+  // 2^d 以下应该都相等
+  mmoCompress.Lines.Clear;
+  for I := 0 to CN_MLKEM_PRIME - 1 do
+  begin
+    V := TCnMLKEM.Decompress(Word(I), 11);
+    R := TCnMLKEM.Compress(V, 11);
+    if I <> R then
+      mmoCompress.Lines.Add(Format('*** %d -> %d -> %d', [I, V, R]))
+    else
+      mmoCompress.Lines.Add(Format('%d -> %d -> %d', [I, V, R]));
+  end;
 end;
 
 end.

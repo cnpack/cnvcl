@@ -40,15 +40,29 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNative, CnVector, CnBigNumber, CnPolynomial, CnRandom, CnBits;
+  SysUtils, Classes, Contnrs,
+  CnNative, CnVector, CnBigNumber, CnPolynomial, CnRandom, CnBits;
+
+const
+  CN_MLKEM_KEY_SIZE    = 32;
+  {* MLKEM  的共享密钥及种子等的长度}
+
+  CN_MLKEM_POLY_DEGREE = 256;
+  {* MLKEM  的多项式次数}
+
+  CN_MLKEM_PRIME       = 3329;
+  {* MLKEM  使用的素数}
 
 type
   ECnLatticeException = class(Exception);
-  {* NTRU 相关异常}
+  {* NTRU/MLKEM相关异常}
 
   TCnNTRUParamType = (cnptCustomized, cnptClassic, cnptHPS2048509, cnptHPS2048677,
     cnptHPS4096821);
   {* NTRU 几个推荐参数}
+
+  TCnMLKEMType = (cmkt512, cmkt768, cmkt1024);
+  {* MLKEM 的三种实现规范}
 
   TCnNTRUPrivateKey = class
   {* Number Theory Research Unit 的私钥，F G 两个多项式及其模逆}
@@ -231,6 +245,85 @@ type
     {* 大素数幂模的幂指数，底为 2，模为 2^QExponent}
   end;
 
+  TCnMLKEMSeed = array[0..CN_MLKEM_KEY_SIZE - 1] of Byte;
+  {* MLKEM 种子，32 字节}
+
+  TCnMLKEM = class
+  private
+    FMatrixRank: Integer;
+    FNoise1: Integer;
+    FNoise2: Integer;
+    FRing: TCnInt64Polynomial;
+    FCompressDigits: Integer;
+  public
+    constructor Create(AType: TCnMLKEMType); virtual;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    class function Compress(X: Word; D: Word): Word;
+    {* 将一个 X 的系数值压缩到 D 位并返回}
+    class function Decompress(X: Word; D: Word): Word;
+    {* 将一个压缩后的系数值解压并返回}
+
+    property MatrixRank: Integer read FMatrixRank write FMatrixRank;
+    {* 矩阵的秩，在这里是方阵尺寸，取值 2 或 3 或 4}
+    property Ring: TCnInt64Polynomial read FRing;
+    {* 多项式环的模多项式}
+    property Noise1: Integer read FNoise1 write FNoise1;
+    {* 噪声参数一，控制生成密钥时秘密向量和错误向量的采样范围}
+    property Noise2: Integer read FNoise2 write FNoise2;
+    {* 噪声参数二，控制封装时的随机向量与两个错误向量的采样范围}
+    property CompressDigits: Integer read FCompressDigits write FCompressDigits;
+    {* 压缩位数}
+  end;
+
+  TCnMLKEMPrivateKey = class
+  {* MLKEM 的私钥，包括秘密多项式向量与噪音多项式向量}
+  private
+    FSecretVector: TCnInt64PolynomialList;
+    FNoiseVector: TCnInt64PolynomialList;
+    FPubVector: TCnInt64PolynomialList;
+    FSeed: TCnMLKEMSeed;
+    FSalt: TCnMLKEMSeed;
+    // FMatrix: array of array of TCnInt64Polynomial; // 根据 Seed 生成的矩阵
+  public
+    constructor Create(AType: TCnMLKEMType); virtual;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    property Seed: TCnMLKEMSeed read FSeed;
+    {* 随机种子，用于生成矩阵}
+    property Salt: TCnMLKEMSeed read FSalt;
+    {* 随机盐}
+
+    property SecretVector: TCnInt64PolynomialList read FSecretVector;
+    {* 秘密多项式向量}
+    property NoiseVector: TCnInt64PolynomialList read FNoiseVector;
+    {* 噪音多项式向量}
+    property PubVector: TCnInt64PolynomialList read FPubVector;
+    {* 公钥多项式向量}
+  end;
+
+  TCnMLKEMPublicKey = class
+  {* MLKEM 的公钥，包括可用来生成矩阵的种子，以及公钥多项式向量}
+  private
+    FSeed: TCnMLKEMSeed;
+    FPubVector: TCnInt64PolynomialList;            // 私钥与矩阵计算出的公钥多项式向量
+    // FMatrix: array of array of TCnInt64Polynomial; // 根据 Seed 生成的矩阵
+  public
+    constructor Create(AType: TCnMLKEMType); virtual;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    property Seed: TCnMLKEMSeed read FSeed;
+    {* 随机种子，用于生成矩阵}
+    property PubVector: TCnInt64PolynomialList read FPubVector;
+    {* 公钥多项式向量}
+  end;
+
 procedure NTRUDataToInt64Polynomial(Res: TCnInt64Polynomial; Data: Pointer;
   ByteLength: Integer; N: Int64; Modulus: Int64; CheckSum: Boolean = True);
 {* 根据 NTRU 的规范将数据内容转换为模数的多项式供加解密，如数据超长会抛异常。
@@ -301,6 +394,7 @@ resourcestring
   SCnErrorLatticeNTRUInvalidParam = 'Invalid NTRU Value.';
   SCnErrorLatticeModulusTooMuch = 'Modulus Too Much %d';
   SCnErrorLatticeDataTooLong = 'Data Too Long %d';
+  SCnErrorLatticeMLKEMInvalidParam = 'Invalid MLKEM Value.';
 
 type
   TCnNTRUPredefinedParams = packed record
@@ -308,6 +402,14 @@ type
     D: Int64;
     P: Int64;
     QExp: Int64;
+  end;
+
+  // Barrett Reduction 所需的参数结构体
+  TMLKEMBarrettReduce = packed record
+    MU: Cardinal;    // Floror(2^k / q) 的近似值 (通常四舍五入)
+    K: Integer;      // 幂次 k，用于计算 2^k
+    HalfQ: Word;     // q/2 的上取整或下取整，用于中心化约减
+    D: Integer;      // 此表项对应的压缩参数 d (如 du 或 dv)
   end;
 
 const
@@ -318,6 +420,16 @@ const
     (N: 677; D: 127; P: 3; QExp: 11),  // D 内部是 2^QExp div 16 - 1
     (N: 821; D: 255; P: 3; QExp: 12)   // D 内部是 2^QExp div 16 - 1
     // (N: 702; D: 0; P: 3; QExp: 13)
+  );
+
+const
+  // ML-KEM Barrett Reduction 查找表，包含不同参数集和操作（压缩、解压）所需的约减参数
+  MLKEM_BARRETT_TABLE: array[0..4] of TMLKEMBarrettReduce = (
+    (MU: 80635;   K: 28; HalfQ: 1665; D: 1),     // round(2^28/MLKEM_Q), ?, Ceil(MLKEM_Q/2),  1 is mlkem512 du
+    (MU: 1290167; K: 32; HalfQ: 1665; D: 10),    // round(2^32/MLKEM_Q), ?, Ceil(MLKEM_Q/2),  10 is mlkem768 du
+    (MU: 80635;   K: 28; HalfQ: 1665; D: 4),     // round(2^28/MLKEM_Q), ?, Ceil(MLKEM_Q/2),  4 is mlkem768 dv
+    (MU: 40318;   K: 27; HalfQ: 1664; D: 5),     // round(2^27/MLKEM_Q), ?, Floor(MLKEM_Q/2), 5 is mlkem1024 dv
+    (MU: 645084;  K: 31; HalfQ: 1664; D: 11)     // round(2^31/MLKEM_Q), ?, Floor(MLKEM_Q/2), 11 is mlkem1024 du
   );
 
 var
@@ -790,6 +902,116 @@ begin
   P.MaxDegree := MaxDegree;
   for I := 0 to MaxDegree do
     P[I] := RandomUInt32LessThan(3) - 1; // [0, 3) 也就是 0 1 2 都减一就是 -1 0 1
+end;
+
+function DivMlKemQ(X: Word; B, HQ, BS: Integer; BM: TUInt64): Word;
+var
+  R: TUInt64;
+begin
+  R := (TUInt64(X) shl B) + TUInt64(HQ);
+  R := UInt64Mul(R, BM);
+  R := R shr BS;
+  Result := Word(R and ((1 shl B) - 1));
+end;
+
+{ TCnMLKEM }
+
+class function TCnMLKEM.Compress(X, D: Word): Word;
+var
+  V, T: Word;
+  I: Integer;
+begin
+  V := 0;
+  T := (X + CN_MLKEM_PRIME) mod CN_MLKEM_PRIME;
+
+  for I := Low(MLKEM_BARRETT_TABLE) to High(MLKEM_BARRETT_TABLE) do
+  begin
+    if D = MLKEM_BARRETT_TABLE[I].D then
+    begin
+      V := DivMlKemQ(T, MLKEM_BARRETT_TABLE[I].D, MLKEM_BARRETT_TABLE[I].HalfQ,
+        MLKEM_BARRETT_TABLE[I].K, MLKEM_BARRETT_TABLE[I].MU);
+      Break;
+    end;
+  end;
+
+  Result := V;
+end;
+
+constructor TCnMLKEM.Create(AType: TCnMLKEMType);
+begin
+  inherited Create;
+  FNoise2 := 2;
+
+  FRing := TCnInt64Polynomial.Create;
+  FRing.SetCoefficent(CN_MLKEM_POLY_DEGREE, 1);
+  FRing.SetCoefficent(0, 1);
+
+  case AType of
+    cmkt512:
+      begin
+        FMatrixRank := 2;
+        FNoise1 := 3;
+      end;
+    cmkt768:
+      begin
+        FMatrixRank := 3;
+        FNoise1 := 2;
+      end;
+    cmkt1024:
+      begin
+        FMatrixRank := 4;
+        FNoise1 := 2;
+      end;
+  else
+    raise ECnLatticeException.Create(SCnErrorLatticeMLKEMInvalidParam);
+  end;
+end;
+
+class function TCnMLKEM.Decompress(X: Word; D: Word): Word;
+var
+  P: Cardinal;
+begin
+  P := Cardinal(X) * CN_MLKEM_PRIME;
+
+  Result := Word((P shr D) +                // 商（主干部分）
+    ((P and ((1 shl D) - 1)) shr (D - 1))); // 四舍五入的进位项
+end;
+
+destructor TCnMLKEM.Destroy;
+begin
+  FRing.Free;
+  inherited;
+end;
+
+{ TCnMLKEMPublicKey }
+
+constructor TCnMLKEMPublicKey.Create(AType: TCnMLKEMType);
+begin
+  inherited Create;
+  FPubVector := TCnInt64PolynomialList.Create;
+end;
+
+destructor TCnMLKEMPublicKey.Destroy;
+begin
+  FPubVector.Free;
+  inherited;
+end;
+
+{ TCnMLKEMPrivateKey }
+
+constructor TCnMLKEMPrivateKey.Create(AType: TCnMLKEMType);
+begin
+  FSecretVector := TCnInt64PolynomialList.Create;
+  FNoiseVector := TCnInt64PolynomialList.Create;
+  FPubVector := TCnInt64PolynomialList.Create;
+end;
+
+destructor TCnMLKEMPrivateKey.Destroy;
+begin
+  FPubVector.Free;
+  FNoiseVector.Free;
+  FSecretVector.Free;
+  inherited;
 end;
 
 initialization

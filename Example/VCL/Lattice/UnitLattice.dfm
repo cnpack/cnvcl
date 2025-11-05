@@ -1,6 +1,6 @@
 object FormLattice: TFormLattice
   Left = 192
-  Top = 110
+  Top = 111
   Width = 834
   Height = 615
   Caption = 'Lattice'
@@ -239,6 +239,44 @@ object FormLattice: TFormLattice
         Caption = 'Simple NTRU Attack'
         TabOrder = 4
         OnClick = btnSimpleTestClick
+      end
+    end
+    object tsMLKEM: TTabSheet
+      Caption = 'MLKEM'
+      ImageIndex = 2
+      object grpMLKEM: TGroupBox
+        Left = 8
+        Top = 4
+        Width = 785
+        Height = 529
+        Caption = 'Module-Lattice-based Key Encapsulation Mechanism'
+        TabOrder = 0
+        object btnCompressTest: TButton
+          Left = 16
+          Top = 32
+          Width = 81
+          Height = 25
+          Caption = 'Compress Test'
+          TabOrder = 0
+          OnClick = btnCompressTestClick
+        end
+        object mmoCompress: TMemo
+          Left = 16
+          Top = 72
+          Width = 185
+          Height = 441
+          ScrollBars = ssVertical
+          TabOrder = 1
+        end
+        object btnDeCompressTest: TButton
+          Left = 112
+          Top = 32
+          Width = 89
+          Height = 25
+          Caption = 'Decompress Test'
+          TabOrder = 2
+          OnClick = btnDeCompressTestClick
+        end
       end
     end
   end
