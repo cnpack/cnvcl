@@ -41,7 +41,7 @@ interface
 
 uses
   SysUtils, Classes, Contnrs,
-  CnNative, CnVector, CnBigNumber, CnPolynomial, CnRandom, CnBits;
+  CnNative, CnVector, CnBigNumber, CnPolynomial, CnRandom, CnBits, CnSHA3;
 
 const
   CN_MLKEM_KEY_SIZE    = 32;
@@ -248,6 +248,9 @@ type
   TCnMLKEMSeed = array[0..CN_MLKEM_KEY_SIZE - 1] of Byte;
   {* MLKEM 种子，32 字节}
 
+  TCnMLKEMBlock = array[0..CN_MLKEM_KEY_SIZE - 1] of Byte;
+  {* MLKEM 块数据，32 字节}
+
   TCnMLKEM = class
   {* 基于模块化格的密钥封装机制（Module-Lattice-based Key Encapsulation Mechanism）实现类}
   private
@@ -267,7 +270,16 @@ type
     class function Decompress(X: Word; D: Word): Word;
     {* 将一个压缩后的系数值解压并返回}
     class function SamplePolyCBD(const RandBytes: TBytes; Eta: Integer): TWords;
-    {* 根据随机数组生成 256 个采样的多项式系数，RandBytes 的长度至少要 64 * Eta 字节}
+    {* 根据真随机数组生成 256 个采样的多项式系数，RandBytes 的长度至少要 64 * Eta 字节}
+
+    class function PseudoRandomFunc(Eta: Integer; const Input: TCnMLKEMSeed; B: Byte): TBytes;
+    {* PRF 函数，根据 32 字节输入和一字节附加数据，用 SHAKE256 生成 64 * Eta 长度的字节}
+    class function HFunc(const Data: TBytes): TCnMLKEMBlock;
+    {* H 函数，内部用 SHA3_256 生成 32 位杂凑值}
+    class function JFunc(const Data: TBytes): TCnMLKEMBlock;
+    {* J 函数，内部用 SHAKE256 生成 32 位杂凑值}
+    class procedure GFunc(const Data: TBytes; out Block1, Block2: TCnMLKEMBlock);
+    {* G 函数，内部用 SHA3_512 生成两个 32 位杂凑值}
 
     property MatrixRank: Integer read FMatrixRank write FMatrixRank;
     {* 矩阵的秩，在这里是方阵尺寸，取值 2 或 3 或 4}
@@ -398,6 +410,8 @@ resourcestring
   SCnErrorLatticeModulusTooMuch = 'Modulus Too Much %d';
   SCnErrorLatticeDataTooLong = 'Data Too Long %d';
   SCnErrorLatticeMLKEMInvalidParam = 'Invalid MLKEM Value.';
+  SCnErrorLatticeEtaMustBe2Or3 = 'Eta Must Be 2 or 3';
+  SCnErrorLatticeInvalidRandomLength = 'Invalid Random Length for SamplePolyCBD';
 
 type
   TCnNTRUPredefinedParams = packed record
@@ -986,6 +1000,47 @@ begin
   inherited;
 end;
 
+class procedure TCnMLKEM.GFunc(const Data: TBytes; out Block1,
+  Block2: TCnMLKEMBlock);
+var
+  Dig: TCnSHA3_512Digest;
+begin
+  Dig := SHA3_512Bytes(Data);
+  Move(Dig[0], Block1[0], SizeOf(TCnMLKEMBlock));
+  Move(Dig[SizeOf(TCnMLKEMBlock)], Block2[0], SizeOf(TCnMLKEMBlock));
+end;
+
+class function TCnMLKEM.HFunc(const Data: TBytes): TCnMLKEMBlock;
+var
+  Dig: TCnSHA3_256Digest;
+begin
+  Dig := SHA3_256Bytes(Data);
+  Move(Dig[0], Result[0], SizeOf(TCnMLKEMBlock));
+end;
+
+class function TCnMLKEM.JFunc(const Data: TBytes): TCnMLKEMBlock;
+var
+  Dig: TBytes;
+begin
+  Dig := SHAKE256Bytes(Data, SizeOf(TCnMLKEMBlock));
+  Move(Dig[0], Result[0], SizeOf(TCnMLKEMBlock));
+end;
+
+class function TCnMLKEM.PseudoRandomFunc(Eta: Integer;
+  const Input: TCnMLKEMSeed; B: Byte): TBytes;
+var
+  T: TBytes;
+begin
+  if (Eta <> 2) and (Eta <> 3) then
+    raise ECnLatticeException.Create(SCnErrorLatticeEtaMustBe2Or3);
+
+  SetLength(T, SizeOf(TCnMLKEMSeed) + 1);
+  Move(Input[0], T[0], SizeOf(TCnMLKEMSeed));
+  T[SizeOf(TCnMLKEMSeed)] := B;
+
+  Result := SHAKE256Bytes(T, Eta * 64);
+end;
+
 class function TCnMLKEM.SamplePolyCBD(const RandBytes: TBytes; Eta: Integer): TWords;
 var
   I, J, X, Y: Integer;
@@ -1001,9 +1056,9 @@ var
 
 begin
   if (Eta <> 2) and (Eta <> 3) then
-    raise ECnLatticeException.Create('Eta Must Be 2 or 3');
+    raise ECnLatticeException.Create(SCnErrorLatticeEtaMustBe2Or3);
   if Length(RandBytes) < 64 * Eta then
-    raise Exception.Create('Invalid Random Length for SamplePolyCBD');
+    raise Exception.Create(SCnErrorLatticeInvalidRandomLength);
 
   SetLength(Result, CN_MLKEM_POLY_DEGREE);
   Bits := TCnBitBuilder.Create;
