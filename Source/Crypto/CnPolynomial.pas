@@ -4831,7 +4831,7 @@ end;
 
 procedure TCnInt64Polynomial.EnsureDegree(Degree: Integer);
 begin
-  if Degree < MaxDegree then
+  if Degree > MaxDegree then
     SetMaxDegree(Degree);
 end;
 
@@ -7485,7 +7485,7 @@ end;
 
 procedure TCnBigNumberPolynomial.EnsureDegree(Degree: Integer);
 begin
-  if Degree < MaxDegree then
+  if Degree > MaxDegree then
     SetMaxDegree(Degree);
 end;
 
