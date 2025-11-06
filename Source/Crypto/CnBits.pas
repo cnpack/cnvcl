@@ -92,7 +92,7 @@ type
     constructor Create; virtual;
     {* 构造函数}
     destructor Destroy; override;
-    {析构函数}
+    {* 析构函数}
 
     procedure Clear;
     {* 清空内容}
@@ -190,6 +190,16 @@ type
        参数：
          Data: Pointer                    - 待增加的数据块地址
          DataByteLen: Integer             - 待增加的数据块的字节长度
+
+       返回值：（无）
+    }
+
+    procedure DeleteBits(StartIndex: Integer; Count: Integer);
+    {* 删除从指定索引开始的指定数量的位，后部内容往前移动。
+
+       参数：
+         StartIndex: Integer              - 待删除的位的起始索引，该位会被删除
+         Count: Integer                   - 待删除的位的数量
 
        返回值：（无）
     }
@@ -424,6 +434,69 @@ destructor TCnBitBuilder.Destroy;
 begin
   SetLength(FData, 0);
   inherited;
+end;
+
+procedure TCnBitBuilder.DeleteBits(StartIndex: Integer; Count: Integer);
+var
+  I, MoveCount, ActualCount: Integer;
+  SourceBitIndex, DestBitIndex: Integer;
+  SourceByteIndex, DestByteIndex: Integer;
+  SourceBitOffset, DestBitOffset: Integer;
+  T: Byte;
+begin
+  // 参数检查和边界条件处理
+  if (StartIndex < 0) or (StartIndex >= FBitLength) or (Count <= 0) then
+    Exit;
+
+  // 计算实际要删除的位数（不能超过剩余位数）
+  if Count > FBitLength - StartIndex then
+    ActualCount := FBitLength - StartIndex
+  else
+    ActualCount := Count;
+
+  if ActualCount <= 0 then
+    Exit;
+
+  // 计算需要移动的位数
+  MoveCount := FBitLength - (StartIndex + ActualCount);
+
+  if MoveCount > 0 then
+  begin
+    // 将删除位置后面的位向前移动
+    for I := 0 to MoveCount - 1 do
+    begin
+      SourceBitIndex := StartIndex + ActualCount + I;
+      DestBitIndex := StartIndex + I;
+
+      // 获取源位的值
+      SourceByteIndex := SourceBitIndex div 8;
+      SourceBitOffset := SourceBitIndex mod 8;
+      T := FData[SourceByteIndex];
+
+      // 设置目标位的值
+      DestByteIndex := DestBitIndex div 8;
+      DestBitOffset := DestBitIndex mod 8;
+
+      if (T and (1 shl SourceBitOffset)) <> 0 then // 源位为 1，设置目标位为 1
+        FData[DestByteIndex] := FData[DestByteIndex] or (1 shl DestBitOffset)
+      else // 源位为 0，清除目标位
+        FData[DestByteIndex] := FData[DestByteIndex] and not (1 shl DestBitOffset);
+    end;
+  end;
+
+  // 更新位长度
+  FBitLength := FBitLength - ActualCount;
+
+  // 清除尾部可能残留的位（如果需要）
+  if (FBitLength > 0) and (FBitLength mod 8 <> 0) then
+  begin
+    // 清除最后一个字节中超出当前位长度的位
+    T := FData[GetByteLength - 1];
+    for I := FBitLength mod 8 to 7 do
+      T := T and not (1 shl I);
+
+    FData[GetByteLength - 1] := T;
+  end;
 end;
 
 procedure TCnBitBuilder.EnsureCapacity(ABitSize: Integer);

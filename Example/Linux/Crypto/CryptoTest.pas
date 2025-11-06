@@ -103,6 +103,7 @@ function TestBigNumberBPSWIsPrime: Boolean;
 
 function TestBitsEmpty: Boolean;
 function TestBitsAppend: Boolean;
+function TestBitsDelete: Boolean;
 
 // =============================== Int128 ======================================
 
@@ -494,6 +495,7 @@ begin
 
   MyAssert(TestBitsEmpty, 'TestBitsEmpty');
   MyAssert(TestBitsAppend, 'TestBitsAppend');
+  MyAssert(TestBitsDelete, 'TestBitsDelete');
 
 // =============================== Int128 ======================================
 
@@ -1687,6 +1689,27 @@ begin
 
   B.AppendDWord($12345678, False);
   Result := B.ToString = '010101111101110011111001011100011110011010100010110001001';
+  B.Free;
+end;
+
+function TestBitsDelete: Boolean;
+var
+  B: TCnBitBuilder;
+begin
+  B := TCnBitBuilder.Create;
+  B.AppendDWord($12345678, False);
+
+  B.DeleteBits(0, 0); // É¶¶¼²»¸É
+  B.DeleteBits(1, 3);
+  Result := B.ToString = '01110011010100010110001001';
+  if not Result then Exit;
+
+  B.DeleteBits(0, 5);
+  Result := B.ToString = '011010100010110001001';
+  if not Result then Exit;
+
+  B.DeleteBits(13, MaxInt);
+  Result := B.ToString = '0110101000101';
   B.Free;
 end;
 
