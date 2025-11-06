@@ -311,6 +311,22 @@ object FormLattice: TFormLattice
           TabOrder = 6
           OnClick = btnMLKEMSampleNttClick
         end
+        object btnMLKEMKeyGen: TButton
+          Left = 240
+          Top = 32
+          Width = 161
+          Height = 25
+          Caption = 'MLKEM KeyGen'
+          TabOrder = 7
+          OnClick = btnMLKEMKeyGenClick
+        end
+        object mmoMLKEMKeys: TMemo
+          Left = 240
+          Top = 64
+          Width = 529
+          Height = 145
+          TabOrder = 8
+        end
       end
     end
   end

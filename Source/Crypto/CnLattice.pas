@@ -254,14 +254,48 @@ type
   TCnMLKEMBlock = array[0..CN_MLKEM_KEY_SIZE - 1] of Byte;
   {* MLKEM 块数据，32 字节}
 
-  TCnMLKEMPolynomial = array[0..CN_MLKEM_KEY_SIZE - 1] of Word;
-  {* MLKEM 多项式系数，32 个双字，用来表达一个多项式}
+  TCnMLKEMPolynomial = array[0..CN_MLKEM_POLY_DEGREE - 1] of Word;
+  {* MLKEM 多项式系数，256 个双字，用来表达一个多项式}
 
   TCnMLKEMPolyVector = array of TCnMLKEMPolynomial;
   {* 多项式列表或叫向量，用来表达 S 或 E 等}
 
   TCnMLKEMPolyMatrix = array of TCnMLKEMPolyVector;
   {* 多项式矩阵，用来表达 A}
+
+  TCnMLKEMDecapsulationKey = class
+  {* MLKEM 的非公开解封密钥，包括秘密多项式向量与隐式拒绝的随机种子}
+  private
+    FSecretVector: TCnMLKEMPolyVector;
+    FInjectionSeed: TCnMLKEMSeed;
+  public
+    constructor Create; virtual;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    property SecretVector: TCnMLKEMPolyVector read FSecretVector;
+    {* 秘密多项式向量，相当于规范里的 S}
+    property InjectionSeed: TCnMLKEMSeed read FInjectionSeed;
+    {* 用于隐式拒绝的随机种子，不参与密钥生成，相当于规范里的 Z}
+  end;
+
+  TCnMLKEMEncapsulationKey = class
+  {* MLKEM 的封装密钥，可公开，包括可用来生成矩阵的种子，以及公钥多项式向量}
+  private
+    FGenerationSeed: TCnMLKEMSeed;
+    FPubVector: TCnMLKEMPolyVector;            // 私钥与矩阵计算出的公钥多项式向量
+  public
+    constructor Create; virtual;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    property GenerationSeed: TCnMLKEMSeed read FGenerationSeed;
+    {* 用于生成整套密钥的主随机种子，相当于规范里的 D}
+    property PubVector: TCnMLKEMPolyVector read FPubVector;
+    {* 生成的公开多项式向量，相当于规范里的 T}
+  end;
 
   TCnMLKEM = class
   {* 基于模块化格的密钥封装机制（Module-Lattice-based Key Encapsulation Mechanism）实现类}
@@ -272,22 +306,23 @@ type
     FRing: TCnInt64Polynomial;
     FCompressDigits: Integer;
   protected
-    procedure KPKEKeyGen(const D: TCnMLKEMSeed; out PubSeed: TCnMLKEMSeed; out Matrix: TCnMLKEMPolyMatrix;
-      out Secret: TCnMLKEMPolyVector; out Noise: TCnMLKEMPolyVector; out EKPKE, DKPKE: TBytes);
+    procedure KPKEKeyGen(const D: TCnMLKEMSeed; out GenerationSeed: TCnMLKEMSeed;
+      out Secret, Pub: TCnMLKEMPolyVector);
     {* 核心生成方法，D 是外部传入的真随机数}
 
-//    function GenerateSeeds(const D: TCnMLKEMBlock; const Z: TCnMLKEMBlock;
-//      out PrivSeed: TCnMLKEMBlock; out PubSeed: TCnMLKEMBlock): TCnMLKEMBlock;
-//    {* 通过两个真随机 32 位字节生成秘密种子和公共种子}
-    function GenerateSecret(const PrivSeed: TCnMLKEMBlock; Eta: Integer): TCnMLKEMBlock;
-    {* 通过秘密种子生成秘密多项式向量}
-    function GenerateNoise(const PrivSeed: TCnMLKEMBlock): TCnMLKEMBlock;
-    {* 通过秘密种子生成噪音多项式向量}
   public
     constructor Create(AType: TCnMLKEMType); virtual;
     {* 构造函数}
     destructor Destroy; override;
     {* 析构函数}
+
+    procedure MLKEMKeyGen(EncapKey: TCnMLKEMEncapsulationKey; DecapKey: TCnMLKEMDecapsulationKey);
+    {* 内部用两个真随机 32 字节种子，生成一对 Key}
+
+    function SaveKeyToBytes(EncapKey: TCnMLKEMEncapsulationKey): TBytes;
+    {* 将公开密钥保存成字节流}
+    function SaveKeysToBytes(DecapKey: TCnMLKEMDecapsulationKey; EncapKey: TCnMLKEMEncapsulationKey): TBytes;
+    {* 将非公开密钥与公开密钥都保存成字节流}
 
     class function Compress(X: Word; D: Word): Word;
     {* 将一个 X 的系数值压缩到 D 位并返回}
@@ -317,52 +352,6 @@ type
     {* 噪声参数二，控制封装时的随机向量与两个错误向量的采样范围}
     property CompressDigits: Integer read FCompressDigits write FCompressDigits;
     {* 压缩位数}
-  end;
-
-  TCnMLKEMPrivateKey = class
-  {* MLKEM 的私钥，包括秘密多项式向量与噪音多项式向量}
-  private
-    FSecretVector: TCnInt64PolynomialList;
-    FNoiseVector: TCnInt64PolynomialList;
-    FPubVector: TCnInt64PolynomialList;
-    FSeed: TCnMLKEMSeed;
-    FSalt: TCnMLKEMSeed;
-    // FMatrix: array of array of TCnInt64Polynomial; // 根据 Seed 生成的矩阵
-  public
-    constructor Create(AType: TCnMLKEMType); virtual;
-    {* 构造函数}
-    destructor Destroy; override;
-    {* 析构函数}
-
-    property Seed: TCnMLKEMSeed read FSeed;
-    {* 随机种子，用于生成矩阵}
-    property Salt: TCnMLKEMSeed read FSalt;
-    {* 随机盐}
-
-    property SecretVector: TCnInt64PolynomialList read FSecretVector;
-    {* 秘密多项式向量}
-    property NoiseVector: TCnInt64PolynomialList read FNoiseVector;
-    {* 噪音多项式向量}
-    property PubVector: TCnInt64PolynomialList read FPubVector;
-    {* 公钥多项式向量}
-  end;
-
-  TCnMLKEMPublicKey = class
-  {* MLKEM 的公钥，包括可用来生成矩阵的种子，以及公钥多项式向量}
-  private
-    FSeed: TCnMLKEMSeed;
-    FPubVector: TCnInt64PolynomialList;            // 私钥与矩阵计算出的公钥多项式向量
-    // FMatrix: array of array of TCnInt64Polynomial; // 根据 Seed 生成的矩阵
-  public
-    constructor Create(AType: TCnMLKEMType); virtual;
-    {* 构造函数}
-    destructor Destroy; override;
-    {* 析构函数}
-
-    property Seed: TCnMLKEMSeed read FSeed;
-    {* 随机种子，用于生成矩阵}
-    property PubVector: TCnInt64PolynomialList read FPubVector;
-    {* 公钥多项式向量}
   end;
 
 procedure NTRUDataToInt64Polynomial(Res: TCnInt64Polynomial; Data: Pointer;
@@ -1060,7 +1049,6 @@ var
   I, L: Integer;
   C: TCnBitBuilder;
   V: Cardinal;
-  RequiredBits, AvailableBits: Integer;
 begin
   if Length(B) <= 0 then
   begin
@@ -1339,23 +1327,6 @@ begin
   inherited;
 end;
 
-function TCnMLKEM.GenerateNoise(const PrivSeed: TCnMLKEMBlock): TCnMLKEMBlock;
-begin
-
-end;
-
-function TCnMLKEM.GenerateSecret(const PrivSeed: TCnMLKEMBlock;
-  Eta: Integer): TCnMLKEMBlock;
-begin
-
-end;
-
-//function TCnMLKEM.GenerateSeeds(const D, Z: TCnMLKEMBlock; out PrivSeed,
-//  PubSeed: TCnMLKEMBlock): TCnMLKEMBlock;
-//begin
-//
-//end;
-
 class procedure TCnMLKEM.GFunc(const Data: TBytes; out Block1,
   Block2: TCnMLKEMBlock);
 var
@@ -1382,27 +1353,31 @@ begin
   Move(Dig[0], Result[0], SizeOf(TCnMLKEMBlock));
 end;
 
-procedure TCnMLKEM.KPKEKeyGen(const D: TCnMLKEMSeed; out PubSeed: TCnMLKEMSeed;
-  out Matrix: TCnMLKEMPolyMatrix; out Secret: TCnMLKEMPolyVector;
-  out Noise: TCnMLKEMPolyVector; out EKPKE, DKPKE: TBytes);
+procedure TCnMLKEM.KPKEKeyGen(const D: TCnMLKEMSeed; out GenerationSeed: TCnMLKEMSeed;
+  out Secret, Pub: TCnMLKEMPolyVector);
 var
   I, J, N: Integer;
   O: TCnMLKEMSeed;
   DK, PJI, R: TBytes;
   W: TWords;
-  T: TCnMLKEMPolyVector;
+  Matrix: TCnMLKEMPolyMatrix;
+  Noise: TCnMLKEMPolyVector;
 begin
   SetLength(DK, 1);
   DK[0] := FMatrixRank;
   DK := ConcatBytes(NewBytesFromMemory(@D[0], SizeOf(TCnMLKEMBlock)), DK);
 
-  GFunc(DK, TCnMLKEMBlock(PubSeed), TCnMLKEMBlock(O));
+  GFunc(DK, TCnMLKEMBlock(GenerationSeed), TCnMLKEMBlock(O));
   N := 0;
 
+  // 设置矩阵大小
+  SetLength(Matrix, FMatrixRank);
+  for I := 0 to FMatrixRank - 1 do
+    SetLength(Matrix[I], FMatrixRank);
+
   // 准备好 Sample 随机数据
-  SetLength(Matrix, FMatrixRank, FMatrixRank);
   SetLength(PJI, SizeOf(TCnMLKEMSeed) + 2);
-  Move(PubSeed[0], PJI[0], SizeOf(TCnMLKEMSeed));
+  Move(GenerationSeed[0], PJI[0], SizeOf(TCnMLKEMSeed));
 
   // 生成矩阵
   for I := 0 to FMatrixRank - 1 do
@@ -1412,7 +1387,7 @@ begin
       PJI[SizeOf(TCnMLKEMSeed)] := J;
       PJI[SizeOf(TCnMLKEMSeed) + 1] := I;
       W := SampleNTT(PJI);
-      Move(W[0], Matrix[I][J][0], Length(W));
+      Move(W[0], Matrix[I][J][0], Length(W) * SizeOf(Word));
     end;
   end;
 
@@ -1423,7 +1398,7 @@ begin
     R := PseudoRandomFunc(FNoise1, O, N);
     W := SamplePolyCBD(R, FNoise1);
     W := NTT(W);
-    Move(W[0], Secret[I][0], Length(W));
+    Move(W[0], Secret[I][0], Length(W) * SizeOf(Word));
     Inc(N);
   end;
 
@@ -1434,25 +1409,23 @@ begin
     R := PseudoRandomFunc(FNoise1, O, N);
     W := SamplePolyCBD(R, FNoise1);
     W := NTT(W);
-    Move(W[0], Noise[I][0], Length(W));
+    Move(W[0], Noise[I][0], Length(W) * SizeOf(Word));
     Inc(N);
   end;
 
   // 计算 T = A * S + E
-  MatrixMulVectorInNTT(T, Matrix, Secret);
-  VectorAddInNTT(T, T, Noise);
+  MatrixMulVectorInNTT(Pub, Matrix, Secret);
+  VectorAddInNTT(Pub, Pub, Noise);
+end;
 
-  // T 拼上 PubSeed 输出作为 ek
-  EKPKE := nil;
-  for I := 0 to FMatrixRank - 1 do
-    EKPKE := ConcatBytes(EKPKE, ByteEncode(T[I], 12));
-
-  EKPKE := ConcatBytes(EKPKE, NewBytesFromMemory(@PubSeed[0], SizeOf(TCnMLKEMSeed)));
-
-  // S 直接输出作为 dk
-  DKPKE := nil;
-  for I := 0 to FMatrixRank - 1 do
-    DKPKE := ConcatBytes(DKPKE, ByteEncode(Secret[I], 12));
+procedure TCnMLKEM.MLKEMKeyGen(EncapKey: TCnMLKEMEncapsulationKey;
+  DecapKey: TCnMLKEMDecapsulationKey);
+var
+  D: TCnMLKEMSeed;
+begin
+  CnRandomFillBytes(@D[0], SizeOf(TCnMLKEMSeed));
+  CnRandomFillBytes(@DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
+  KPKEKeyGen(D, EncapKey.FGenerationSeed, EncapKey.FPubVector, DecapKey.FSecretVector);
 end;
 
 class function TCnMLKEM.PseudoRandomFunc(Eta: Integer;
@@ -1559,33 +1532,61 @@ end;
 
 { TCnMLKEMPublicKey }
 
-constructor TCnMLKEMPublicKey.Create(AType: TCnMLKEMType);
+constructor TCnMLKEMEncapsulationKey.Create;
 begin
   inherited Create;
-  FPubVector := TCnInt64PolynomialList.Create;
+
 end;
 
-destructor TCnMLKEMPublicKey.Destroy;
+destructor TCnMLKEMEncapsulationKey.Destroy;
 begin
-  FPubVector.Free;
+
   inherited;
 end;
 
 { TCnMLKEMPrivateKey }
 
-constructor TCnMLKEMPrivateKey.Create(AType: TCnMLKEMType);
+constructor TCnMLKEMDecapsulationKey.Create;
 begin
-  FSecretVector := TCnInt64PolynomialList.Create;
-  FNoiseVector := TCnInt64PolynomialList.Create;
-  FPubVector := TCnInt64PolynomialList.Create;
+  inherited Create;
 end;
 
-destructor TCnMLKEMPrivateKey.Destroy;
+destructor TCnMLKEMDecapsulationKey.Destroy;
 begin
-  FPubVector.Free;
-  FNoiseVector.Free;
-  FSecretVector.Free;
+
   inherited;
+end;
+
+function TCnMLKEM.SaveKeysToBytes(DecapKey: TCnMLKEMDecapsulationKey;
+  EncapKey: TCnMLKEMEncapsulationKey): TBytes;
+var
+  I: Integer;
+  EK, DK: TBytes;
+  B: TCnMLKEMBlock;
+begin
+  EK := SaveKeyToBytes(EncapKey);
+
+  DK := nil;
+  for I := 0 to FMatrixRank - 1 do
+    DK := ConcatBytes(DK, ByteEncode(DecapKey.SecretVector[I], 12));
+
+  // dk || ek || H(ek) || z
+  Result := ConcatBytes(DK, EK);
+  B := HFunc(EK);
+  Result := ConcatBytes(Result, NewBytesFromMemory(@B[0], SizeOf(TCnMLKEMBlock)));
+  Result := ConcatBytes(Result, NewBytesFromMemory(@DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMBlock)));
+end;
+
+function TCnMLKEM.SaveKeyToBytes(EncapKey: TCnMLKEMEncapsulationKey): TBytes;
+var
+  I: Integer;
+begin
+  // T 拼上 PubSeed 输出作为 EK
+  Result := nil;
+  for I := 0 to FMatrixRank - 1 do
+    Result := ConcatBytes(Result, ByteEncode(EncapKey.PubVector[I], 12));
+
+  Result := ConcatBytes(Result, NewBytesFromMemory(@EncapKey.GenerationSeed[0], SizeOf(TCnMLKEMSeed)));
 end;
 
 initialization

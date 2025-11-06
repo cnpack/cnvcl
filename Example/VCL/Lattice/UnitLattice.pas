@@ -46,6 +46,8 @@ type
     edtSamleEta: TEdit;
     edtMLKEMD: TEdit;
     btnMLKEMSampleNtt: TButton;
+    btnMLKEMKeyGen: TButton;
+    mmoMLKEMKeys: TMemo;
     procedure btnSimpleTestClick(Sender: TObject);
     procedure btnInt64GaussianReduceBasisClick(Sender: TObject);
     procedure btnSimpleTest2Click(Sender: TObject);
@@ -61,6 +63,7 @@ type
     procedure btnDeCompressTestClick(Sender: TObject);
     procedure btnMLKEMSamplePolyCBDClick(Sender: TObject);
     procedure btnMLKEMSampleNttClick(Sender: TObject);
+    procedure btnMLKEMKeyGenClick(Sender: TObject);
   private
     FPriv: TCnNTRUPrivateKey;
     FPub: TCnNTRUPublicKey;
@@ -489,6 +492,26 @@ begin
   mmoMLKEM.Lines.Clear;
   for I := Low(W) to High(W) do
     mmoMLKEM.Lines.Add(IntToStr(W[I]));
+end;
+
+procedure TFormLattice.btnMLKEMKeyGenClick(Sender: TObject);
+var
+  En: TCnMLKEMEncapsulationKey;
+  De: TCnMLKEMDecapsulationKey;
+  M: TCnMLKEM;
+begin
+  En := TCnMLKEMEncapsulationKey.Create;
+  De := TCnMLKEMDecapsulationKey.Create;
+  M := TCnMLKEM.Create(cmkt768);
+
+  M.MLKEMKeyGen(En, De);
+  mmoMLKEMKeys.Lines.Clear;
+  mmoMLKEMKeys.Lines.Add(BytesToHex(M.SaveKeyToBytes(En)));
+  mmoMLKEMKeys.Lines.Add(BytesToHex(M.SaveKeysToBytes(De, En)));
+
+  M.Free;
+  De.Free;
+  En.Free;
 end;
 
 end.
