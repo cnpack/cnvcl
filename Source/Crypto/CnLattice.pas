@@ -273,7 +273,7 @@ type
     FCompressDigits: Integer;
   protected
     procedure KPKEKeyGen(const D: TCnMLKEMSeed; out PubSeed: TCnMLKEMSeed; out Matrix: TCnMLKEMPolyMatrix;
-      out Secret: TCnMLKEMPolyVector; out Noise: TCnMLKEMPolyVector);
+      out Secret: TCnMLKEMPolyVector; out Noise: TCnMLKEMPolyVector; out EKPKE, DKPKE: TBytes);
     {* 核心生成方法，D 是外部传入的真随机数}
 
 //    function GenerateSeeds(const D: TCnMLKEMBlock; const Z: TCnMLKEMBlock;
@@ -1019,7 +1019,7 @@ begin
 end;
 
 // 把每个数的低 D 位取出来紧拼到一起
-function ByteEncode(W: TWords; D: Integer): TBytes;
+function ByteEncode(W: TWords; D: Integer): TBytes; overload;
 var
   I: Integer;
   B: TCnBitBuilder;
@@ -1030,6 +1030,24 @@ begin
   try
     for I := 0 to Length(W) - 1 do
       B.AppendWordRange(W[I], D - 1);
+
+    Result := B.ToBytes;
+  finally
+    B.Free;
+  end;
+end;
+
+function ByteEncode(P: TCnMLKEMPolynomial; D: Integer): TBytes; overload;
+var
+  I: Integer;
+  B: TCnBitBuilder;
+begin
+  CheckEncodeDigit(D);
+
+  B := TCnBitBuilder.Create;
+  try
+    for I := Low(P) to High(P) do
+      B.AppendWordRange(P[I], D - 1);
 
     Result := B.ToBytes;
   finally
@@ -1366,7 +1384,7 @@ end;
 
 procedure TCnMLKEM.KPKEKeyGen(const D: TCnMLKEMSeed; out PubSeed: TCnMLKEMSeed;
   out Matrix: TCnMLKEMPolyMatrix; out Secret: TCnMLKEMPolyVector;
-  out Noise: TCnMLKEMPolyVector);
+  out Noise: TCnMLKEMPolyVector; out EKPKE, DKPKE: TBytes);
 var
   I, J, N: Integer;
   O: TCnMLKEMSeed;
@@ -1425,8 +1443,16 @@ begin
   VectorAddInNTT(T, T, Noise);
 
   // T 拼上 PubSeed 输出作为 ek
+  EKPKE := nil;
+  for I := 0 to FMatrixRank - 1 do
+    EKPKE := ConcatBytes(EKPKE, ByteEncode(T[I], 12));
+
+  EKPKE := ConcatBytes(EKPKE, NewBytesFromMemory(@PubSeed[0], SizeOf(TCnMLKEMSeed)));
 
   // S 直接输出作为 dk
+  DKPKE := nil;
+  for I := 0 to FMatrixRank - 1 do
+    DKPKE := ConcatBytes(DKPKE, ByteEncode(Secret[I], 12));
 end;
 
 class function TCnMLKEM.PseudoRandomFunc(Eta: Integer;
