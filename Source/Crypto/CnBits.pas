@@ -194,11 +194,11 @@ type
        返回值：（无）
     }
 
-    procedure DeleteBits(StartIndex: Integer; Count: Integer);
+    procedure DeleteBits(Index: Integer; Count: Integer);
     {* 删除从指定索引开始的指定数量的位，后部内容往前移动。
 
        参数：
-         StartIndex: Integer              - 待删除的位的起始索引，该位会被删除
+         Index: Integer                   - 待删除的位的起始索引，该位会被删除
          Count: Integer                   - 待删除的位的数量
 
        返回值：（无）
@@ -242,13 +242,24 @@ type
     }
 
     function Copy(Index: Integer; Count: Integer): Cardinal;
-    {* 从指定 Index 处复制 Count 个位放入结果中，Count 超长无法容纳则抛异常。
+    {* 从指定 Index 处复制 Count 个位放入结果中，如 Count 超长无法容纳则抛异常。
 
        参数：
          Index: Integer                   - 待复制的起始位偏移量
          Count: Integer                   - 待复制的位数，不能大于 32
 
        返回值：Cardinal                   - 复制的内容
+    }
+
+    function ExtractBits(Index: Integer; Count: Integer): Cardinal;
+    {* 从指定 Index 处抽取 Count 个位放入结果中，并将原始内容删除。
+       如 Count 超长无法容纳则抛异常且不删除。
+
+       参数：
+         Index: Integer                   - 待抽取的起始位偏移量
+         Count: Integer                   - 待抽取的位数，不能大于 32
+
+       返回值：Cardinal                   - 抽取的内容
     }
 
     property Bit[Index: Integer]: Boolean read GetBit write SetBit; default;
@@ -436,7 +447,7 @@ begin
   inherited;
 end;
 
-procedure TCnBitBuilder.DeleteBits(StartIndex: Integer; Count: Integer);
+procedure TCnBitBuilder.DeleteBits(Index: Integer; Count: Integer);
 var
   I, MoveCount, ActualCount: Integer;
   SourceBitIndex, DestBitIndex: Integer;
@@ -444,13 +455,12 @@ var
   SourceBitOffset, DestBitOffset: Integer;
   T: Byte;
 begin
-  // 参数检查和边界条件处理
-  if (StartIndex < 0) or (StartIndex >= FBitLength) or (Count <= 0) then
+  if (Index < 0) or (Index >= FBitLength) or (Count <= 0) then
     Exit;
 
   // 计算实际要删除的位数（不能超过剩余位数）
-  if Count > FBitLength - StartIndex then
-    ActualCount := FBitLength - StartIndex
+  if Count > FBitLength - Index then
+    ActualCount := FBitLength - Index
   else
     ActualCount := Count;
 
@@ -458,15 +468,15 @@ begin
     Exit;
 
   // 计算需要移动的位数
-  MoveCount := FBitLength - (StartIndex + ActualCount);
+  MoveCount := FBitLength - (Index + ActualCount);
 
   if MoveCount > 0 then
   begin
     // 将删除位置后面的位向前移动
     for I := 0 to MoveCount - 1 do
     begin
-      SourceBitIndex := StartIndex + ActualCount + I;
-      DestBitIndex := StartIndex + I;
+      SourceBitIndex := Index + ActualCount + I;
+      DestBitIndex := Index + I;
 
       // 获取源位的值
       SourceByteIndex := SourceBitIndex div 8;
@@ -484,7 +494,6 @@ begin
     end;
   end;
 
-  // 更新位长度
   FBitLength := FBitLength - ActualCount;
 
   // 清除尾部可能残留的位（如果需要）
@@ -497,6 +506,12 @@ begin
 
     FData[GetByteLength - 1] := T;
   end;
+end;
+
+function TCnBitBuilder.ExtractBits(Index, Count: Integer): Cardinal;
+begin
+  Result := Copy(Index, Count);
+  DeleteBits(Index, Count);
 end;
 
 procedure TCnBitBuilder.EnsureCapacity(ABitSize: Integer);
