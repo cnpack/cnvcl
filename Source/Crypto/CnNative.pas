@@ -1607,6 +1607,17 @@ function NewBytesFromMemory(Data: Pointer; DataByteLen: Integer): TBytes;
    返回值：TBytes                         - 返回新建的字节数组
 }
 
+procedure PutBytesToMemory(Data: TBytes; Mem: Pointer; MaxByteSize: Integer = 0);
+{* 将一字节数组的内容写入指定内存区域，允许设置写入的最大数量。
+
+   参数：
+     Data: TBytes                         - 待处理的字节数组
+     Mem: Pointer                         - 待写入的数据块地址
+     MaxByteSize: Integer                 - 控制写入的最大字节数，0 表示不控制
+
+   返回值：（无）
+}
+
 function CompareBytes(A: TBytes; B: TBytes): Boolean; overload;
 {* 比较两个字节数组内容是否相同。
 
@@ -3419,6 +3430,20 @@ begin
   begin
     SetLength(Result, DataByteLen);
     Move(Data^, Result[0], DataByteLen);
+  end;
+end;
+
+procedure PutBytesToMemory(Data: TBytes; Mem: Pointer; MaxByteSize: Integer);
+var
+  L: Integer;
+begin
+  L := Length(Data);
+  if (L > 0) and (Mem <> nil) then
+  begin
+    if (MaxByteSize > 0) and (L > MaxByteSize) then
+      L := MaxByteSize;
+
+    Move(Data[0], Mem^, L);
   end;
 end;
 

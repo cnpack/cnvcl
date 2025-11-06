@@ -316,8 +316,9 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure MLKEMKeyGen(EncapKey: TCnMLKEMEncapsulationKey; DecapKey: TCnMLKEMDecapsulationKey);
-    {* 内部用两个真随机 32 字节种子，生成一对 Key}
+    procedure MLKEMKeyGen(EncapKey: TCnMLKEMEncapsulationKey; DecapKey: TCnMLKEMDecapsulationKey;
+       const RandDHex: string = ''; const RandZHex: string = '');
+    {* 用两个真随机 32 字节种子，生成一对 Key，随机数允许外部传入十六进制}
 
     function SaveKeyToBytes(EncapKey: TCnMLKEMEncapsulationKey): TBytes;
     {* 将公开密钥保存成字节流}
@@ -1419,12 +1420,20 @@ begin
 end;
 
 procedure TCnMLKEM.MLKEMKeyGen(EncapKey: TCnMLKEMEncapsulationKey;
-  DecapKey: TCnMLKEMDecapsulationKey);
+  DecapKey: TCnMLKEMDecapsulationKey; const RandDHex: string; const RandZHex: string);
 var
   D: TCnMLKEMSeed;
 begin
-  CnRandomFillBytes(@D[0], SizeOf(TCnMLKEMSeed));
-  CnRandomFillBytes(@DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
+  if Length(RandDHex) = 0 then
+    CnRandomFillBytes(@D[0], SizeOf(TCnMLKEMSeed))
+  else
+    PutBytesToMemory(HexToBytes(RandDHex), @D[0], SizeOf(TCnMLKEMSeed));
+
+  if Length(RandZHex) = 0 then
+    CnRandomFillBytes(@DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMSeed))
+  else
+    PutBytesToMemory(HexToBytes(RandZHex), @DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
+
   KPKEKeyGen(D, EncapKey.FGenerationSeed, EncapKey.FPubVector, DecapKey.FSecretVector);
 end;
 
