@@ -912,7 +912,7 @@ procedure SHAKE128Final(var Context: TCnSHA3Context; out Digest: TBytes);
 
 function SHAKE128Squeeze(var Context: TCnSHA3Context; DigestByteLength: Integer): TBytes;
 {* 不结束本轮计算，将 SHAKE128 结果返回 DigestByteLength 字节长的内容，
-   后续还可继续 Absorb 以及 Squeeze。
+   后续还可继续 Squeeze，但不能 Absorb 了。
 
    参数：
      var Context: TCnSHA3Context          - 通用 SHA3 上下文
@@ -970,7 +970,7 @@ procedure SHAKE256Final(var Context: TCnSHA3Context; out Digest: TBytes);
 
 function SHAKE256Squeeze(var Context: TCnSHA3Context; DigestByteLength: Integer): TBytes;
 {* 不结束本轮计算，将 SHAKE256 结果返回 DigestByteLength 字节长的内容，
-   后续还可继续 Absorb 以及 Squeeze。
+   后续还可继续 Squeeze，但不能 Absorb 了。
 
    参数：
      var Context: TCnSHA3Context          - 通用 SHA3 上下文
