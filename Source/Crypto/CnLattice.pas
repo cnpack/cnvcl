@@ -53,6 +53,9 @@ const
   CN_MLKEM_PRIME       = 3329;
   {* MLKEM  使用的素数}
 
+  CN_MLKEM_PRIME_INV   = 3303;
+  {* MLKEM  使用的 128 对该素数的模逆元}
+
 type
   ECnLatticeException = class(Exception);
   {* NTRU/MLKEM相关异常}
@@ -251,6 +254,15 @@ type
   TCnMLKEMBlock = array[0..CN_MLKEM_KEY_SIZE - 1] of Byte;
   {* MLKEM 块数据，32 字节}
 
+  TCnMLKEMPolynomial = array[0..CN_MLKEM_KEY_SIZE - 1] of Word;
+  {* MLKEM 多项式系数，32 个双字，用来表达一个多项式}
+
+  TCnMLKEMPolyVector = array of TCnMLKEMPolynomial;
+  {* 多项式列表或叫向量，用来表达 S 或 E 等}
+
+  TCnMLKEMPolyMatrix = array of TCnMLKEMPolyVector;
+  {* 多项式矩阵，用来表达 A}
+
   TCnMLKEM = class
   {* 基于模块化格的密钥封装机制（Module-Lattice-based Key Encapsulation Mechanism）实现类}
   private
@@ -259,6 +271,18 @@ type
     FNoise2: Integer;
     FRing: TCnInt64Polynomial;
     FCompressDigits: Integer;
+  protected
+    procedure KPKEKeyGen(const D: TCnMLKEMSeed; out PubSeed: TCnMLKEMSeed; out Matrix: TCnMLKEMPolyMatrix;
+      out Secret: TCnMLKEMPolyVector; out Noise: TCnMLKEMPolyVector);
+    {* 核心生成方法，D 是外部传入的真随机数}
+
+//    function GenerateSeeds(const D: TCnMLKEMBlock; const Z: TCnMLKEMBlock;
+//      out PrivSeed: TCnMLKEMBlock; out PubSeed: TCnMLKEMBlock): TCnMLKEMBlock;
+//    {* 通过两个真随机 32 位字节生成秘密种子和公共种子}
+    function GenerateSecret(const PrivSeed: TCnMLKEMBlock; Eta: Integer): TCnMLKEMBlock;
+    {* 通过秘密种子生成秘密多项式向量}
+    function GenerateNoise(const PrivSeed: TCnMLKEMBlock): TCnMLKEMBlock;
+    {* 通过秘密种子生成噪音多项式向量}
   public
     constructor Create(AType: TCnMLKEMType); virtual;
     {* 构造函数}
@@ -415,6 +439,7 @@ resourcestring
   SCnErrorLatticeEtaMustBe2Or3 = 'Eta Must Be 2 or 3';
   SCnErrorLatticeInvalidRandomLength = 'Invalid Random Length for SamplePolyCBD';
   SCnErrorLatticeInvalidSampleNTT = 'SampleNTT Input Must Be 34 Bytes';
+  SCnErrorLatticeInvalidEncodeDigit = 'Digit must be between 1 and 12';
 
 type
   TCnNTRUPredefinedParams = packed record
@@ -452,6 +477,61 @@ const
     (MU: 645084;  K: 31; HalfQ: 1664; D: 11)     // round(2^31/MLKEM_Q), ?, Floor(MLKEM_Q/2), 11 is mlkem1024 du
   );
 
+const
+  // FIPS 203 Appendix A 的 NTT 预计算值
+  ZETA_NTT: array[0..127] of Word = (
+    1, 1729, 2580, 3289, 2642, 630, 1897, 848,
+    1062, 1919, 193, 797, 2786, 3260, 569, 1746,
+    296, 2447, 1339, 1476, 3046, 56, 2240, 1333,
+    1426, 2094, 535, 2882, 2393, 2879, 1974, 821,
+    289, 331, 3253, 1756, 1197, 2304, 2277, 2055,
+    650, 1977, 2513, 632, 2865, 33, 1320, 1915,
+    2319, 1435, 807, 452, 1438, 2868, 1534, 2402,
+    2647, 2617, 1481, 648, 2474, 3110, 1227, 910,
+    17, 2761, 583, 2649, 1637, 723, 2288, 1100,
+    1409, 2662, 3281, 233, 756, 2156, 3015, 3050,
+    1703, 1651, 2789, 1789, 1847, 952, 1461, 2687,
+    939, 2308, 2437, 2388, 733, 2337, 268, 641,
+    1584, 2298, 2037, 3220, 375, 2549, 2090, 1645,
+    1063, 319, 2773, 757, 2099, 561, 2466, 2594,
+    2804, 1092, 403, 1026, 1143, 2150, 2775, 886,
+    1722, 1212, 1874, 1029, 2110, 2935, 885, 2154
+  );
+
+  ZETA_BASE_CASE: array[0..127] of Word = (
+    // 0-7
+    17,   2761, 583,  2649, 1637, 723,  2288, 1100,
+    // 8-15
+    1409, 2662, 3281, 233,  756,  2156, 3015, 3050,
+    // 16-23
+    1703, 1651, 2789, 1789, 1847, 952,  1461, 2687,
+    // 24-31
+    939,  2308, 2437, 2388, 733,  2337, 268,  641,
+    // 32-39
+    1584, 2298, 2037, 3220, 375,  2549, 2090, 1645,
+    // 40-47
+    1063, 319,  2773, 757,  2099, 561,  2466, 2594,
+    // 48-55
+    2804, 1092, 403,  1026, 1143, 2150, 2775, 886,
+    // 56-63
+    1722, 1212, 1874, 1029, 2110, 2935, 885,  2154,
+    // 64-71
+    17,   2761, 583,  2649, 1637, 723,  2288, 1100,
+    // 72-79
+    1409, 2662, 3281, 233,  756,  2156, 3015, 3050,
+    // 80-87
+    1703, 1651, 2789, 1789, 1847, 952,  1461, 2687,
+    // 88-95
+    939,  2308, 2437, 2388, 733,  2337, 268,  641,
+    // 96-103
+    1584, 2298, 2037, 3220, 375,  2549, 2090, 1645,
+    // 104-111
+    1063, 319,  2773, 757,  2099, 561,  2466, 2594,
+    // 112-119
+    2804, 1092, 403,  1026, 1143, 2150, 2775, 886,
+    // 120-127
+    1722, 1212, 1874, 1029, 2110, 2935, 885,  2154
+  );
 var
   FBigNumberPool: TCnBigNumberPool = nil;
   FInt64PolynomialPool: TCnInt64PolynomialPool = nil;
@@ -924,7 +1004,75 @@ begin
     P[I] := RandomUInt32LessThan(3) - 1; // [0, 3) 也就是 0 1 2 都减一就是 -1 0 1
 end;
 
-function DivMlKemQ(X: Word; B, HQ, BS: Integer; BM: TUInt64): Word;
+// ================================ MLKEM ======================================
+
+procedure CheckEta(Eta: Integer);
+begin
+  if (Eta <> 2) and (Eta <> 3) then
+    raise ECnLatticeException.Create(SCnErrorLatticeEtaMustBe2Or3);
+end;
+
+procedure CheckEncodeDigit(D: Integer);
+begin
+  if not D in [1.. 12] then
+    raise ECnLatticeException.Create(SCnErrorLatticeInvalidEncodeDigit);
+end;
+
+// 把每个数的低 D 位取出来紧拼到一起
+function ByteEncode(W: TWords; D: Integer): TBytes;
+var
+  I: Integer;
+  B: TCnBitBuilder;
+begin
+  CheckEncodeDigit(D);
+
+  B := TCnBitBuilder.Create;
+  try
+    for I := 0 to Length(W) - 1 do
+      B.AppendWordRange(W[I], D - 1);
+
+    Result := B.ToBytes;
+  finally
+    B.Free;
+  end;
+end;
+
+function ByteDecode(B: TBytes; D: Integer): TWords;
+var
+  I, L: Integer;
+  C: TCnBitBuilder;
+  V: Cardinal;
+  RequiredBits, AvailableBits: Integer;
+begin
+  if Length(B) <= 0 then
+  begin
+    Result := nil;
+    Exit;
+  end;
+
+  CheckEncodeDigit(D);
+
+  C := TCnBitBuilder.Create;
+  try
+    C.SetBytes(B);
+
+    L := (8 * (Length(B)) + D - 1) div D;
+    SetLength(Result, L);
+
+    for I := 0 to L - 1 do
+    begin
+      V := C.Copy(I * D, D);
+      if D = 12 then
+        Result[I] := V mod CN_MLKEM_PRIME
+      else
+        Result[I] := V;
+    end;
+  finally
+    C.Free;
+  end;
+end;
+
+function DivMlKemQ(X: Word; B, HQ, BS: Integer; BM: TUInt64): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   R: TUInt64;
 begin
@@ -932,6 +1080,176 @@ begin
   R := UInt64Mul(R, BM);
   R := R shr BS;
   Result := Word(R and ((1 shl B) - 1));
+end;
+
+function BitRev7(X: Byte): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 0 to 6 do
+  begin
+    Result := (Result shl 1) or (X and 1);
+    X := X shr 1;
+  end;
+end;
+
+// 模素数加减乘法
+function ModAdd(A, B: Word): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  Result := (A + B) mod CN_MLKEM_PRIME;
+end;
+
+function ModSub(A, B: Word): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  if A >= B then
+    Result := A - B
+  else
+    Result := CN_MLKEM_PRIME + A - B;
+end;
+
+function ModMul(A, B: Word): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  Result := Word(Cardinal(A) * Cardinal(B) mod CN_MLKEM_PRIME);
+end;
+
+// 数论变换
+function NTT(const F: TWords): TWords;
+var
+  Len, Start, J, I: Integer;
+  Zeta, T: Word;
+begin
+  SetLength(Result, 256);
+  Move(F[0], Result[0], 256 * SizeOf(Word));
+
+  I := 1;
+  Len := 128;
+
+  while Len >= 2 do
+  begin
+    Start := 0;
+    while Start < 256 do
+    begin
+      Zeta := ZETA_NTT[BitRev7(I) mod 128];
+      Inc(I);
+
+      for J := Start to Start + Len - 1 do
+      begin
+        T := ModMul(Zeta, Result[J + Len]);
+        Result[J + Len] := ModSub(Result[J], T);
+        Result[J] := ModAdd(Result[J], T);
+      end;
+
+      Inc(Start, 2 * Len);
+    end;
+
+    Len := Len div 2;
+  end;
+end;
+
+function INTT(const F: TWords): TWords;
+var
+  Len, Start, J, I: Integer;
+  Zeta, T: Word;
+begin
+  SetLength(Result, 256);
+  Move(F[0], Result[0], 256 * SizeOf(Word));
+
+  I := 127;
+  Len := 2;
+
+  while Len <= 128 do
+  begin
+    Start := 0;
+    while Start < 256 do
+    begin
+      Zeta := ZETA_NTT[BitRev7(I) mod 128];
+      Dec(I);
+
+      for J := Start to Start + Len - 1 do
+      begin
+        T := Result[J];
+        Result[J] := ModAdd(T, Result[J + Len]);
+        Result[J + Len] := ModMul(Zeta, ModSub(Result[J + Len], T));
+      end;
+
+      Inc(Start, 2 * Len);
+    end;
+
+    Len := Len * 2;
+  end;
+
+  // 最终缩放：乘以 3303，是 128 对 3329 的模逆元
+  for J := 0 to 255 do
+    Result[J] := ModMul(Result[J], CN_MLKEM_PRIME_INV);
+end;
+
+// 俩多项式相加
+procedure PolyAddInNTT(var Res: TCnMLKEMPolynomial; const V1, V2: TCnMLKEMPolynomial);
+var
+  I: Integer;
+begin
+  for I := Low(V1) to High(V1) do
+    Res[I] := ModAdd(V1[I], V2[I]);
+end;
+
+// 俩排多项式相加，或者说是俩多项式向量相加
+procedure VectorAddInNTT(var Res: TCnMLKEMPolyVector; const V1, V2: TCnMLKEMPolyVector);
+var
+  I: Integer;
+begin
+  for I := Low(V1) to High(V1) do
+    PolyAddInNTT(Res[I], V1[I], V2[I]);
+end;
+
+procedure BaseCaseMultiply(A0, A1, B0, B1, Gamma: Word; out C0, C1: Word);
+begin
+  // C0 = A0 * B0 + A1 * B1 * Gamma
+  C0 := ModAdd(ModMul(A0, B0), ModMul(ModMul(A1, B1), Gamma));
+
+  // C1 = A0 * B1 + A1 * B0
+  C1 := ModAdd(ModMul(A0, B1), ModMul(A1, B0));
+end;
+
+// NTT 上俩多项式相乘
+procedure PolyMulInNTT(var Res: TCnMLKEMPolynomial; const F, G: TCnMLKEMPolynomial);
+var
+  I: Integer;
+  C0, C1: Word;
+begin
+  for I := 0 to 127 do
+  begin
+    // 对每个二次分量进行乘法
+    BaseCaseMultiply(F[2 * I], F[2 * I + 1], G[2 * I], G[2 * I + 1],
+      ZETA_BASE_CASE[I], C0, C1);
+
+    Res[2 * I] := C0;
+    Res[2 * I + 1] := C1;
+  end;
+end;
+
+// NTT 上方阵乘以一个多项式向量，得到一个多项式向量
+procedure MatrixMulVectorInNTT(var Res: TCnMLKEMPolyVector;
+  const A: TCnMLKEMPolyMatrix; const S: TCnMLKEMPolyVector);
+var
+  I, J: Integer;
+  T: TCnMLKEMPolynomial;
+begin
+  SetLength(Res, Length(S));
+
+  for I := Low(Res) to High(Res) do
+  begin
+    // 初始化结果多项式为零
+    FillChar(Res[I], SizeOf(TCnMLKEMPolyVector), 0);
+
+    for J := Low(S) to High(S) do
+    begin
+      PolyMulInNTT(T, A[I, J], S[J]);
+
+      // 累加到结果中
+      PolyAddInNTT(Res[I], Res[I], T);
+    end;
+  end;
 end;
 
 { TCnMLKEM }
@@ -1003,6 +1321,23 @@ begin
   inherited;
 end;
 
+function TCnMLKEM.GenerateNoise(const PrivSeed: TCnMLKEMBlock): TCnMLKEMBlock;
+begin
+
+end;
+
+function TCnMLKEM.GenerateSecret(const PrivSeed: TCnMLKEMBlock;
+  Eta: Integer): TCnMLKEMBlock;
+begin
+
+end;
+
+//function TCnMLKEM.GenerateSeeds(const D, Z: TCnMLKEMBlock; out PrivSeed,
+//  PubSeed: TCnMLKEMBlock): TCnMLKEMBlock;
+//begin
+//
+//end;
+
 class procedure TCnMLKEM.GFunc(const Data: TBytes; out Block1,
   Block2: TCnMLKEMBlock);
 var
@@ -1027,6 +1362,71 @@ var
 begin
   Dig := SHAKE256Bytes(Data, SizeOf(TCnMLKEMBlock));
   Move(Dig[0], Result[0], SizeOf(TCnMLKEMBlock));
+end;
+
+procedure TCnMLKEM.KPKEKeyGen(const D: TCnMLKEMSeed; out PubSeed: TCnMLKEMSeed;
+  out Matrix: TCnMLKEMPolyMatrix; out Secret: TCnMLKEMPolyVector;
+  out Noise: TCnMLKEMPolyVector);
+var
+  I, J, N: Integer;
+  O: TCnMLKEMSeed;
+  DK, PJI, R: TBytes;
+  W: TWords;
+  T: TCnMLKEMPolyVector;
+begin
+  SetLength(DK, 1);
+  DK[0] := FMatrixRank;
+  DK := ConcatBytes(NewBytesFromMemory(@D[0], SizeOf(TCnMLKEMBlock)), DK);
+
+  GFunc(DK, TCnMLKEMBlock(PubSeed), TCnMLKEMBlock(O));
+  N := 0;
+
+  // 准备好 Sample 随机数据
+  SetLength(Matrix, FMatrixRank, FMatrixRank);
+  SetLength(PJI, SizeOf(TCnMLKEMSeed) + 2);
+  Move(PubSeed[0], PJI[0], SizeOf(TCnMLKEMSeed));
+
+  // 生成矩阵
+  for I := 0 to FMatrixRank - 1 do
+  begin
+    for J := 0 to FMatrixRank - 1 do
+    begin
+      PJI[SizeOf(TCnMLKEMSeed)] := J;
+      PJI[SizeOf(TCnMLKEMSeed) + 1] := I;
+      W := SampleNTT(PJI);
+      Move(W[0], Matrix[I][J][0], Length(W));
+    end;
+  end;
+
+  // 生成 K 个 S
+  SetLength(Secret, FMatrixRank);
+  for I := 0 to FMatrixRank - 1 do
+  begin
+    R := PseudoRandomFunc(FNoise1, O, N);
+    W := SamplePolyCBD(R, FNoise1);
+    W := NTT(W);
+    Move(W[0], Secret[I][0], Length(W));
+    Inc(N);
+  end;
+
+  // 生成 K 个 E
+  SetLength(Noise, FMatrixRank);
+  for I := 0 to FMatrixRank - 1 do
+  begin
+    R := PseudoRandomFunc(FNoise1, O, N);
+    W := SamplePolyCBD(R, FNoise1);
+    W := NTT(W);
+    Move(W[0], Noise[I][0], Length(W));
+    Inc(N);
+  end;
+
+  // 计算 T = A * S + E
+  MatrixMulVectorInNTT(T, Matrix, Secret);
+  VectorAddInNTT(T, T, Noise);
+
+  // T 拼上 PubSeed 输出作为 ek
+
+  // S 直接输出作为 dk
 end;
 
 class function TCnMLKEM.PseudoRandomFunc(Eta: Integer;
@@ -1102,8 +1502,7 @@ var
   end;
 
 begin
-  if (Eta <> 2) and (Eta <> 3) then
-    raise ECnLatticeException.Create(SCnErrorLatticeEtaMustBe2Or3);
+  CheckEta(Eta);
   if Length(RandBytes) < 64 * Eta then
     raise Exception.Create(SCnErrorLatticeInvalidRandomLength);
 
