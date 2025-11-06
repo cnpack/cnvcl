@@ -4552,27 +4552,35 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES128(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
+
   if Count > 0 then
   begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
     EncryptAES128(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -4590,27 +4598,35 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES192(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
+
   if Count > 0 then
   begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
     EncryptAES192(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -4628,27 +4644,35 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES256(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
+
   if Count > 0 then
   begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
     EncryptAES256(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -4718,20 +4742,26 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   if (Count mod SizeOf(TCnAESBuffer)) > 0 then
     raise ECnAESException.Create(SCnErrorAESInvalidInBufSize);
+
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     DecryptAES128(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
 end;
@@ -4756,20 +4786,26 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   if (Count mod SizeOf(TCnAESBuffer)) > 0 then
     raise ECnAESException.Create(SCnErrorAESInvalidInBufSize);
+
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     DecryptAES192(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
 end;
@@ -4794,20 +4830,26 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   if (Count mod SizeOf(TCnAESBuffer)) > 0 then
     raise ECnAESException.Create(SCnErrorAESInvalidInBufSize);
+
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     DecryptAES256(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
 end;
@@ -4879,8 +4921,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Vector := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -4888,28 +4932,34 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError); // 要求每一块都是整块
+
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^; // 原始块内容与 IV 先异或
     EncryptAES128(TempIn, ExpandedKey, TempOut);                                    // 异或结果再加密
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));                                   // 加密内容写入结果
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Vector := TempOut;                                                              // 加密内容代替原始 IV 供下一次异或使用
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
+
   if Count > 0 then
   begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^;
     EncryptAES128(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -4937,8 +4987,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Vector := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -4946,28 +4998,34 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^;
     EncryptAES192(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Vector := TempOut;
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
+
   if Count > 0 then
   begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^;
     EncryptAES192(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -4995,8 +5053,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Vector := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -5004,28 +5064,34 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^;
     EncryptAES256(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Vector := TempOut;
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
+
   if Count > 0 then
   begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     FillChar(TempIn[Count], SizeOf(TempIn) - Count, 0);
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@Vector[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@Vector[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@Vector[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@Vector[12])^;
     EncryptAES256(TempIn, ExpandedKey, TempOut);
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -5100,26 +5166,32 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
-  if (Count mod SizeOf(TCnAESBuffer)) > 0 then
+  if Count mod SizeOf(TCnAESBuffer) > 0 then
     raise ECnAESException.Create(SCnErrorAESInvalidInBufSize);
+
   Vector1 := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
+
     Vector2 := TempIn;
     DecryptAES128(TempIn, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@Vector1[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@Vector1[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@Vector1[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@Vector1[12])^;
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError(SCnErrorAESWriteError);
+
     Vector1 := Vector2;
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
@@ -5147,17 +5219,21 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
-  if (Count mod SizeOf(TCnAESBuffer)) > 0 then
+  if Count mod SizeOf(TCnAESBuffer) > 0 then
     raise ECnAESException.Create(SCnErrorAESInvalidInBufSize);
+
   Vector1 := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
+
     Vector2 := TempIn;
     DecryptAES192(TempIn, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@Vector1[0])^;
@@ -5165,8 +5241,10 @@ begin
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@Vector1[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@Vector1[12])^;
     Done := Dest.Write(TempOut, SizeOf(TempOut));
+
     if Done < SizeOf(TempOut) then
       raise EStreamError(SCnErrorAESWriteError);
+
     Vector1 := Vector2;
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
@@ -5194,17 +5272,21 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
-  if (Count mod SizeOf(TCnAESBuffer)) > 0 then
+  if Count mod SizeOf(TCnAESBuffer) > 0 then
     raise ECnAESException.Create(SCnErrorAESInvalidInBufSize);        // CBC 由于密文最后输出是因为 AES 分块加密产生的（不是其他的异或）所以必须整数块
+
   Vector1 := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
   begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
+
     Vector2 := TempIn;
     DecryptAES256(TempIn, ExpandedKey, TempOut);         // 读出密文先解密
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@Vector1[0])^;   // 解密后的内容和 Iv 异或得到明文
@@ -5212,8 +5294,10 @@ begin
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@Vector1[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@Vector1[12])^;
     Done := Dest.Write(TempOut, SizeOf(TempOut));      // 明文写出去
+
     if Done < SizeOf(TempOut) then
       raise EStreamError(SCnErrorAESWriteError);
+
     Vector1 := Vector2;                                // 保留密文取代 Iv 作为下一次和解密内容异或的内容
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
@@ -5286,8 +5370,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Vector := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -5295,14 +5381,17 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES128(Vector, ExpandedKey, TempOut);                                       // Key 先加密 Iv
     PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;  // 加密结果与明文异或
     PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));                                   // 异或的结果写进密文结果
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Vector := TempOut;                                                              // 密文结果取代 Iv 供下一轮加密
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
@@ -5311,11 +5400,13 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES128(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempOut, Count);  // 最后写入的只包括密文长度的部分，无需整个块
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -5343,8 +5434,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Vector := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -5352,14 +5445,17 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Vector := TempOut;
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
@@ -5368,11 +5464,13 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempOut, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -5400,8 +5498,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Vector := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -5409,14 +5509,17 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Vector := TempOut;
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
@@ -5425,11 +5528,13 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempOut, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -5504,8 +5609,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   // CFB 由于密文最后输出不是因为 AES 分块加密产生的而是异或（超长的可丢弃）因而不必整数块
   Vector := InitVector;
@@ -5514,14 +5621,17 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));       // 读出密文
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
+
     EncryptAES128(Vector, ExpandedKey, TempOut);         // Iv 先加密——注意是加密！不是解密！
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));      // 明文写出去
     if Done < SizeOf(TempOut) then
       raise EStreamError(SCnErrorAESWriteError);
+
     Vector := TempIn;                                 // 保留密文取代 Iv 作为下一次加密再异或的内容
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
@@ -5530,11 +5640,13 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESReadError);
+
     EncryptAES128(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
+
     Done := Dest.Write(TempOut, Count);      // 明文写出去
     if Done < Count then
       raise EStreamError(SCnErrorAESWriteError);
@@ -5563,8 +5675,11 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+
+  if Count = 0 then
+    Exit;
 
   Vector := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -5572,14 +5687,17 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
+
     EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError(SCnErrorAESWriteError);
+
     Vector := TempIn;
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
@@ -5588,11 +5706,13 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESReadError);
+
     EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
+
     Done := Dest.Write(TempOut, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESWriteError);
@@ -5621,8 +5741,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Vector := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -5630,14 +5752,17 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
+
     EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
+
     Done := Dest.Write(TempOut, SizeOf(TempOut));
     if Done < SizeOf(TempOut) then
       raise EStreamError(SCnErrorAESWriteError);
+
     Vector := TempIn;
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
@@ -5646,11 +5771,13 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESReadError);
+
     EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempOut[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempOut[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempOut[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
     PCardinal(@TempOut[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
+
     Done := Dest.Write(TempOut, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESWriteError);
@@ -5724,8 +5851,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Vector := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -5733,12 +5862,14 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
-    EncryptAES128(Vector, ExpandedKey, TempOut);                                      // Key 先加密 Iv
+
+    EncryptAES128(Vector, ExpandedKey, TempOut);                                   // Key 先加密 Iv
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;  // 加密结果与明文异或
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
     Done := Dest.Write(TempIn, SizeOf(TempIn));                                    // 异或的结果写进密文结果
+
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESWriteError);
     Vector := TempOut;                                                             // 加密结果取代 Iv 供下一轮加密，注意不是异或结果
@@ -5749,11 +5880,13 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES128(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempIn, Count);  // 最后写入的只包括密文长度的部分，无需整个块
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -5781,8 +5914,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Vector := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -5790,14 +5925,17 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Vector := TempOut;
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
@@ -5806,11 +5944,13 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -5838,8 +5978,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Vector := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -5847,14 +5989,17 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESWriteError);
+
     Vector := TempOut;
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
@@ -5863,11 +6008,13 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESReadError);
+
     EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempIn[0])^ xor PCardinal(@TempOut[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempIn, Count);
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -5942,8 +6089,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   // OFB 由于密文最后输出不是因为 AES 分块加密产生的而是异或（超长的可丢弃）因而不必整数块
   Vector := InitVector;
@@ -5952,14 +6101,17 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));       // 读出密文
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
+
     EncryptAES128(Vector, ExpandedKey, TempOut);       // Iv 先加密——注意是加密！不是解密！
     PCardinal(@TempIn[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
     PCardinal(@TempIn[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
+
     Done := Dest.Write(TempIn, SizeOf(TempIn));       // 明文写出去
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESWriteError);
+
     Vector := TempOut;                               // 保留加密内容取代 Iv 作为下一次异或前的内容
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
@@ -5968,11 +6120,13 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESReadError);
+
     EncryptAES128(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;   // 加密后的内容和密文异或得到明文
     PCardinal(@TempIn[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
+
     Done := Dest.Write(TempIn, Count);      // 明文写出去
     if Done < Count then
       raise EStreamError(SCnErrorAESWriteError);
@@ -6001,8 +6155,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Vector := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -6010,14 +6166,17 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
+
     EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
+
     Done := Dest.Write(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESWriteError);
+
     Vector := TempOut;
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
@@ -6026,11 +6185,13 @@ begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESReadError);
+
     EncryptAES192(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
+
     Done := Dest.Write(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESWriteError);
@@ -6059,8 +6220,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Vector := InitVector;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -6068,27 +6231,33 @@ begin
     Done := Source.Read(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESReadError);
+
     EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
+
     Done := Dest.Write(TempIn, SizeOf(TempIn));
     if Done < SizeOf(TempIn) then
       raise EStreamError(SCnErrorAESWriteError);
+
     Vector := TempOut;
     Dec(Count, SizeOf(TCnAESBuffer));
   end;
+
   if Count > 0 then
   begin
     Done := Source.Read(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESReadError);
+
     EncryptAES256(Vector, ExpandedKey, TempOut);
     PCardinal(@TempIn[0])^ := PCardinal(@TempOut[0])^ xor PCardinal(@TempIn[0])^;
     PCardinal(@TempIn[4])^ := PCardinal(@TempOut[4])^ xor PCardinal(@TempIn[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempOut[8])^ xor PCardinal(@TempIn[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempOut[12])^ xor PCardinal(@TempIn[12])^;
+
     Done := Dest.Write(TempIn, Count);
     if Done < Count then
       raise EStreamError(SCnErrorAESWriteError);
@@ -6166,8 +6335,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Cnt := 1;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -6186,6 +6357,7 @@ begin
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempIn, SizeOf(TempIn));                                    // 异或的结果写进密文结果
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -6210,6 +6382,7 @@ begin
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempIn, Count);  // 最后写入的只包括密文长度的部分，无需整个块
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -6238,8 +6411,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Cnt := 1;
   while Count >= SizeOf(TCnAESBuffer) do
@@ -6258,6 +6433,7 @@ begin
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempIn, SizeOf(TempIn));                                    // 异或的结果写进密文结果
     if Done < SizeOf(TempIn) then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -6282,6 +6458,7 @@ begin
     PCardinal(@TempIn[4])^ := PCardinal(@TempIn[4])^ xor PCardinal(@TempOut[4])^;
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
+
     Done := Dest.Write(TempIn, Count);  // 最后写入的只包括密文长度的部分，无需整个块
     if Done < Count then
       raise EStreamError.Create(SCnErrorAESWriteError);
@@ -6310,8 +6487,10 @@ begin
     Source.Position := 0;
     Count := Source.Size;
   end
-  else Count := Min(Count, Source.Size - Source.Position);
-  if Count = 0 then Exit;
+  else
+    Count := Min(Count, Source.Size - Source.Position);
+  if Count = 0 then
+    Exit;
 
   Cnt := 1;
   while Count >= SizeOf(TCnAESBuffer) do

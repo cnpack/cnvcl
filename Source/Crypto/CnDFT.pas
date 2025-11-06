@@ -91,7 +91,7 @@ function CnIFFT(Data: PCnComplexArray; Len: Integer): Boolean;
 }
 
 function CnNTT(Data: PInt64Array; Len: Integer): Boolean;
-{* 快速数论变换，将多项式的系数 int 64 数组转换为点值向量 int64 数组，
+{* 快速数论变换，将多项式的系数 Int 64 数组转换为点值向量 Int64 数组，
    注意要确保 Len 为 2 的整数次幂，并且 Data 各系数必须大于 0 且小于 CN_P。
 
    参数：
@@ -370,8 +370,10 @@ begin
   end;
 
   if IsReverse then
+  begin
     for J := 0 to Len - 1 do
       Data^[J] := Data^[J] div Len;
+  end;
 
   Result := True;
 end;

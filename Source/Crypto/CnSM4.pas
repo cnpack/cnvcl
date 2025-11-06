@@ -2026,7 +2026,7 @@ begin
     PCardinal(@TempIn[8])^ := PCardinal(@TempIn[8])^ xor PCardinal(@TempOut[8])^;
     PCardinal(@TempIn[12])^ := PCardinal(@TempIn[12])^ xor PCardinal(@TempOut[12])^;
 
-    Done := Dest.Write(TempOut, Count);  // 最后写入的只包括密文长度的部分，无需整个块
+    Done := Dest.Write(TempIn, Count);  // 最后写入的只包括密文长度的部分，无需整个块
     if Done < Count then
       raise EStreamError.Create(SCnErrorSM4WriteError);
   end;
