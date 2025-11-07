@@ -305,11 +305,17 @@ type
     FNoise2: Integer;
     FRing: TCnInt64Polynomial;
     FCompressDigits: Integer;
+    function GetEncapKeyByteLength: Integer;
+    function GetDecapKeyByteLength: Integer;
   protected
     procedure KPKEKeyGen(const D: TCnMLKEMSeed; out GenerationSeed: TCnMLKEMSeed;
       out Secret, Pub: TCnMLKEMPolyVector);
     {* 核心生成方法，D 是外部传入的真随机数}
 
+    procedure CheckEncapKey(EnKey: TBytes);
+    {* 检查公开密钥字节流是否合法，不合法则抛异常}
+    procedure CheckDecapKey(DeKey: TBytes);
+    {* 检查非公开密钥字节流是否合法，不合法则抛异常}
   public
     constructor Create(AType: TCnMLKEMType); virtual;
     {* 构造函数}
@@ -320,10 +326,19 @@ type
        const RandDHex: string = ''; const RandZHex: string = '');
     {* 用两个真随机 32 字节种子，生成一对 Key，随机数允许外部传入十六进制}
 
+    procedure LoadKeyFromBytes(Key: TBytes; EncapKey: TCnMLKEMEncapsulationKey);
+    {* 从字节流中加载公开密钥，失败则抛异常}
+    procedure LoadKeysFromBytes(Key: TBytes; DecapKey: TCnMLKEMDecapsulationKey;
+      EncapKey: TCnMLKEMEncapsulationKey);
+    {* 从字节流中加载非公开密钥与公开密钥，失败则抛异常}
+
     function SaveKeyToBytes(EncapKey: TCnMLKEMEncapsulationKey): TBytes;
     {* 将公开密钥保存成字节流}
     function SaveKeysToBytes(DecapKey: TCnMLKEMDecapsulationKey; EncapKey: TCnMLKEMEncapsulationKey): TBytes;
     {* 将非公开密钥与公开密钥都保存成字节流}
+
+    function CheckKeyPair(DecapKey: TCnMLKEMDecapsulationKey; EncapKey: TCnMLKEMEncapsulationKey): Boolean;
+    {* 检查一对非公开密钥与公开密钥是否匹配}
 
     class function Compress(X: Word; D: Word): Word;
     {* 将一个 X 的系数值压缩到 D 位并返回}
@@ -430,6 +445,11 @@ resourcestring
   SCnErrorLatticeInvalidRandomLength = 'Invalid Random Length for SamplePolyCBD';
   SCnErrorLatticeInvalidSampleNTT = 'SampleNTT Input Must Be 34 Bytes';
   SCnErrorLatticeInvalidEncodeDigit = 'Digit must be between 1 and 12';
+  SCnErrorLatticeEncapKeyLengthMismatch = 'Encapsulation Key Length Mismatch. Expected %d, Got %d';
+  SCnErrorLatticeEncapKeyModulusCheckFailed = 'Encapsulation Key Modulus Check Failed';
+  SCnErrorLatticeDecapKeyLengthMismatch = 'Decapsulation Key Length Mismatch. Expected %d, Got %d';
+  SCnErrorLatticeDecapKeyStructureInvalid = 'Invalid Decapsulation Key Structure: Can NOT Extract Encapsulation Key';
+  SCnErrorLatticeDecapKeyHashFailed = 'Decapsulation Key Hash Verification Failed';
 
 type
   TCnNTRUPredefinedParams = packed record
@@ -1262,6 +1282,78 @@ end;
 
 { TCnMLKEM }
 
+procedure TCnMLKEM.CheckDecapKey(DeKey: TBytes);
+var
+  ExpectedLength: Integer;
+  EkStart, EkLength: Integer;
+  EkBytes: TBytes;
+  HStart, HLength: Integer;
+  HBytes, ComputedHash: TCnMLKEMBlock;
+begin
+  // 步骤2: 类型检查 - 检查长度是否符合预期
+  ExpectedLength := GetDecapKeyByteLength;
+  if Length(DeKey) <> ExpectedLength then
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeDecapKeyLengthMismatch, 
+      [ExpectedLength, Length(DeKey)]);
+
+  // 提取 ek 部分: dk[384k : 768k+32]
+  EkStart := 384 * FMatrixRank;
+  EkLength := GetEncapKeyByteLength;
+
+  if (EkStart + EkLength) > Length(DeKey) then
+    raise ECnLatticeException.Create(SCnErrorLatticeDecapKeyStructureInvalid);
+
+  SetLength(EkBytes, EkLength);
+  Move(DeKey[EkStart], EkBytes[0], EkLength);
+
+  // 使用已有的封装密钥检查方法
+  CheckEncapKey(EkBytes);
+
+  // 步骤4: 杂凑检查 - 验证 H(ek) 是否正确
+  // H(ek) 位于 dk[768k+32 : 768k+64]
+  HStart := 768 * FMatrixRank + 32;
+  HLength := SizeOf(TCnMLKEMBlock);
+
+  if (HStart + HLength) > Length(DeKey) then
+    raise ECnLatticeException.Create(SCnErrorLatticeDecapKeyStructureInvalid);
+
+  Move(DeKey[HStart], HBytes[0], HLength);
+
+  // 计算 ek 的杂凑值
+  ComputedHash := HFunc(EkBytes);
+
+  // 比较计算出的杂凑值与存储的杂凑值
+  if not CompareMem(@HBytes[0], @ComputedHash[0], SizeOf(TCnMLKEMBlock)) then
+    raise ECnLatticeException.Create(SCnErrorLatticeDecapKeyHashFailed);
+end;
+
+procedure TCnMLKEM.CheckEncapKey(EnKey: TBytes);
+var
+  PolyBytesLength: Integer;
+  PolyBytes, TestBytes: TBytes;
+begin
+  if Length(EnKey) <> GetEncapKeyByteLength then
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeEncapKeyLengthMismatch,
+      [GetEncapKeyByteLength, Length(EnKey)]);
+
+  PolyBytesLength := 384 * FMatrixRank;
+
+  // 提取多项式部分字节
+  SetLength(PolyBytes, PolyBytesLength);
+  Move(EnKey[0], PolyBytes[0], PolyBytesLength);
+
+  // 进行 ByteDecode12 然后 ByteEncode12 往返
+  TestBytes := ByteEncode(ByteDecode(PolyBytes, 12), 12);
+  if not CompareBytes(PolyBytes, TestBytes) then
+    raise ECnLatticeException.Create(SCnErrorLatticeEncapKeyModulusCheckFailed);
+end;
+
+function TCnMLKEM.CheckKeyPair(DecapKey: TCnMLKEMDecapsulationKey;
+  EncapKey: TCnMLKEMEncapsulationKey): Boolean;
+begin
+
+end;
+
 class function TCnMLKEM.Compress(X, D: Word): Word;
 var
   V, T: Word;
@@ -1327,6 +1419,16 @@ destructor TCnMLKEM.Destroy;
 begin
   FRing.Free;
   inherited;
+end;
+
+function TCnMLKEM.GetDecapKeyByteLength: Integer;
+begin
+  Result := 768 * FMatrixRank + 96;
+end;
+
+function TCnMLKEM.GetEncapKeyByteLength: Integer;
+begin
+  Result := 384 * FMatrixRank + 32;
 end;
 
 class procedure TCnMLKEM.GFunc(const Data: TBytes; out Block1,
@@ -1418,6 +1520,90 @@ begin
   // 计算 T = A * S + E
   MatrixMulVectorInNTT(Pub, Matrix, Secret);
   VectorAddInNTT(Pub, Pub, Noise);
+end;
+
+procedure TCnMLKEM.LoadKeyFromBytes(Key: TBytes; EncapKey: TCnMLKEMEncapsulationKey);
+var
+  I: Integer;
+  PolyBytes: TBytes;
+  PolyLength: Integer;
+  SeedStart: Integer;
+begin
+  // 首先检查密钥字节流的合法性
+  CheckEncapKey(Key);
+
+  // 计算多项式部分的长度（每个多项式 384 字节，共 k 个）
+  PolyLength := 384 * FMatrixRank;
+
+  // 确保字节流长度足够
+  if Length(Key) < PolyLength + SizeOf(TCnMLKEMSeed) then
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeEncapKeyLengthMismatch, 
+      [PolyLength + SizeOf(TCnMLKEMSeed), Length(Key)]);
+
+  // 设置公钥多项式向量的大小
+  SetLength(EncapKey.FPubVector, FMatrixRank);
+
+  // 解析多项式部分
+  for I := 0 to FMatrixRank - 1 do
+  begin
+    // 提取每个多项式的字节数据（每个384字节）
+    SetLength(PolyBytes, 384);
+    Move(Key[I * 384], PolyBytes[0], 384);
+
+    // 将字节解码为多项式系数
+    // 注意这里需要将解码后的 TWords 转换为 TCnMLKEMPolynomial
+    // 假设 ByteDecode 返回的 TWords 长度是 256
+    Move(ByteDecode(PolyBytes, 12)[0], EncapKey.FPubVector[I][0],
+      CN_MLKEM_POLY_DEGREE * SizeOf(Word));
+  end;
+
+  // 解析生成种子部分（最后 32 字节）
+  SeedStart := PolyLength;
+  Move(Key[SeedStart], EncapKey.FGenerationSeed[0], SizeOf(TCnMLKEMSeed));
+end;
+
+procedure TCnMLKEM.LoadKeysFromBytes(Key: TBytes;
+  DecapKey: TCnMLKEMDecapsulationKey; EncapKey: TCnMLKEMEncapsulationKey);
+var
+  I: Integer;
+  PolyBytes: TBytes;
+  PolyLength: Integer;
+  EkStart, EkLength: Integer;
+  HStart, ZStart: Integer;
+  EkBytes: TBytes;
+begin
+  // 首先检查密钥字节流的合法性
+  CheckDecapKey(Key);
+
+  // 计算各部分的位置和长度
+  PolyLength := 384 * FMatrixRank; // 秘密向量部分长度
+
+  // 解析秘密向量部分 (dk)
+  SetLength(DecapKey.FSecretVector, FMatrixRank);
+  for I := 0 to FMatrixRank - 1 do
+  begin
+    // 提取每个秘密多项式的字节数据（每个 384 字节）
+    SetLength(PolyBytes, 384);
+    Move(Key[I * 384], PolyBytes[0], 384);
+
+    // 将字节解码为多项式系数
+    Move(ByteDecode(PolyBytes, 12)[0], DecapKey.FSecretVector[I][0],
+      CN_MLKEM_POLY_DEGREE * SizeOf(Word));
+  end;
+
+  // 解析封装密钥部分 (ek)
+  EkStart := PolyLength; // 384k
+  EkLength := GetEncapKeyByteLength; // ek 部分的长度
+
+  SetLength(EkBytes, EkLength);
+  Move(Key[EkStart], EkBytes[0], EkLength);
+
+  // 使用已有的 LoadKeyFromBytes 方法加载封装密钥
+  LoadKeyFromBytes(EkBytes, EncapKey);
+
+  // 解析注入种子部分 (z)
+  ZStart := 768 * FMatrixRank + 64; // dk(384k) + ek(384k+32) + H(ek)(32) = 768k+64
+  Move(Key[ZStart], DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
 end;
 
 procedure TCnMLKEM.MLKEMKeyGen(EncapKey: TCnMLKEMEncapsulationKey;

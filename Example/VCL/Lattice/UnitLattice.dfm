@@ -324,8 +324,16 @@ object FormLattice: TFormLattice
           Left = 240
           Top = 64
           Width = 529
-          Height = 145
+          Height = 257
           TabOrder = 8
+        end
+        object chkMLKEMUsePre: TCheckBox
+          Left = 408
+          Top = 36
+          Width = 97
+          Height = 17
+          Caption = 'Use Pre Hex Seeds'
+          TabOrder = 9
         end
       end
     end

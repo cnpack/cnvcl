@@ -48,6 +48,7 @@ type
     btnMLKEMSampleNtt: TButton;
     btnMLKEMKeyGen: TButton;
     mmoMLKEMKeys: TMemo;
+    chkMLKEMUsePre: TCheckBox;
     procedure btnSimpleTestClick(Sender: TObject);
     procedure btnInt64GaussianReduceBasisClick(Sender: TObject);
     procedure btnSimpleTest2Click(Sender: TObject);
@@ -499,15 +500,27 @@ var
   En: TCnMLKEMEncapsulationKey;
   De: TCnMLKEMDecapsulationKey;
   M: TCnMLKEM;
+  EB, DB: TBytes;
 begin
   En := TCnMLKEMEncapsulationKey.Create;
   De := TCnMLKEMDecapsulationKey.Create;
-  M := TCnMLKEM.Create(cmkt768);
 
-  M.MLKEMKeyGen(En, De);
+  M := TCnMLKEM.Create(cmkt512);
+
+  if chkMLKEMUsePre.Checked then
+    M.MLKEMKeyGen(En, De, 'BBA3C0F5DF044CDF4D9CAA53CA15FDE26F34EB3541555CFC54CA9C31B964D0C8',
+      '0A64FDD51A8D91B3166C4958A94EFC3166A4F5DF680980B878DB8371B7624C96')
+  else
+    M.MLKEMKeyGen(En, De);
+
+  EB := M.SaveKeyToBytes(En);
+  DB := M.SaveKeysToBytes(De, En);
   mmoMLKEMKeys.Lines.Clear;
-  mmoMLKEMKeys.Lines.Add(BytesToHex(M.SaveKeyToBytes(En)));
-  mmoMLKEMKeys.Lines.Add(BytesToHex(M.SaveKeysToBytes(De, En)));
+  mmoMLKEMKeys.Lines.Add(BytesToHex(EB));
+  mmoMLKEMKeys.Lines.Add(BytesToHex(DB));
+
+  M.LoadKeyFromBytes(EB, En);
+  M.LoadKeysFromBytes(DB, De, En);
 
   M.Free;
   De.Free;
