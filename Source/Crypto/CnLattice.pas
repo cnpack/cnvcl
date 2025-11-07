@@ -1089,6 +1089,7 @@ begin
   Result := Word(R and ((1 shl B) - 1));
 end;
 
+// 将一个字节的低七位倒过来
 function BitRev7(X: Byte): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
   I: Integer;
@@ -1137,7 +1138,7 @@ begin
     Start := 0;
     while Start < 256 do
     begin
-      Zeta := ZETA_NTT[BitRev7(I) mod 128];
+      Zeta := ZETA_NTT[I]; // BitRev7(I) mod 128];
       Inc(I);
 
       for J := Start to Start + Len - 1 do
@@ -1170,7 +1171,7 @@ begin
     Start := 0;
     while Start < 256 do
     begin
-      Zeta := ZETA_NTT[BitRev7(I) mod 128];
+      Zeta := ZETA_NTT[I]; // BitRev7(I) mod 128];
       Dec(I);
 
       for J := Start to Start + Len - 1 do
@@ -1434,7 +1435,7 @@ begin
   else
     PutBytesToMemory(HexToBytes(RandZHex), @DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
 
-  KPKEKeyGen(D, EncapKey.FGenerationSeed, EncapKey.FPubVector, DecapKey.FSecretVector);
+  KPKEKeyGen(D, EncapKey.FGenerationSeed, DecapKey.FSecretVector, EncapKey.FPubVector);
 end;
 
 class function TCnMLKEM.PseudoRandomFunc(Eta: Integer;
