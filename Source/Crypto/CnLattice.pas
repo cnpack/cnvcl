@@ -305,17 +305,38 @@ type
     FNoise2: Integer;
     FRing: TCnInt64Polynomial;
     FCompressDigits: Integer;
+    FCompressU: Integer;
+    FCompressV: Integer;
     function GetEncapKeyByteLength: Integer;
     function GetDecapKeyByteLength: Integer;
+
+    procedure GenerateMatrix(const Seed: TCnMLKEMSeed; out Matrix: TCnMLKEMPolyMatrix);
+    {* 根据种子生成矩阵 A}
+    procedure TransposeMatrix(const InMatrix: TCnMLKEMPolyMatrix; out Matrix: TCnMLKEMPolyMatrix);
+    {* 生成矩阵 A 的转置矩阵}
+
+    procedure SamplePolynomial(const Seed: TCnMLKEMSeed; Noise: Integer;
+      var Counter: Integer; out Polynomial: TCnMLKEMPolynomial; UseNTT: Boolean = True);
+    {* 采样生成一个多项式，UseNTT 控制内容是否 NTT 化}
+    procedure SampleVector(const Seed: TCnMLKEMSeed; Noise: Integer;
+      var Counter: Integer; out PolyVector: TCnMLKEMPolyVector; UseNTT: Boolean = True);
+    {* 采样生成一个多项式向量，UseNTT 控制内容是否 NTT 化}
   protected
     procedure KPKEKeyGen(const D: TCnMLKEMSeed; out GenerationSeed: TCnMLKEMSeed;
       out Secret, Pub: TCnMLKEMPolyVector);
     {* 核心生成方法，D 是外部传入的真随机数}
 
+    function KPKEEncrypt(EncapKey: TCnMLKEMEncapsulationKey; const Msg: TCnMLKEMBlock;
+      const Seed: TCnMLKEMSeed; out UVector: TCnMLKEMPolyVector; out VPoly: TCnMLKEMPolynomial): TBytes;
+    {* 核心加密方法，使用公开密钥与 32 位真随机种子，加密 32 位消息}
+
     procedure CheckEncapKey(EnKey: TBytes);
     {* 检查公开密钥字节流是否合法，不合法则抛异常}
     procedure CheckDecapKey(DeKey: TBytes);
     {* 检查非公开密钥字节流是否合法，不合法则抛异常}
+
+    procedure CheckKeyPair(EncapKey: TCnMLKEMEncapsulationKey; DecapKey: TCnMLKEMDecapsulationKey);
+    {* 检查一对 Key 是否匹配}
   public
     constructor Create(AType: TCnMLKEMType); virtual;
     {* 构造函数}
@@ -324,7 +345,7 @@ type
 
     procedure MLKEMKeyGen(EncapKey: TCnMLKEMEncapsulationKey; DecapKey: TCnMLKEMDecapsulationKey;
        const RandDHex: string = ''; const RandZHex: string = '');
-    {* 用两个真随机 32 字节种子，生成一对 Key，随机数允许外部传入十六进制}
+    {* 用两个真随机 32 字节种子，生成一对 Key，随机数允许外部传入 64 字符的十六进制字符串}
 
     procedure LoadKeyFromBytes(Key: TBytes; EncapKey: TCnMLKEMEncapsulationKey);
     {* 从字节流中加载公开密钥，失败则抛异常}
@@ -337,13 +358,10 @@ type
     function SaveKeysToBytes(DecapKey: TCnMLKEMDecapsulationKey; EncapKey: TCnMLKEMEncapsulationKey): TBytes;
     {* 将非公开密钥与公开密钥都保存成字节流}
 
-    function CheckKeyPair(DecapKey: TCnMLKEMDecapsulationKey; EncapKey: TCnMLKEMEncapsulationKey): Boolean;
-    {* 检查一对非公开密钥与公开密钥是否匹配}
+    function MLKEMEncrypt(EnKey: TBytes; Msg: TBytes; const RandHex: string = ''): TBytes;
+    {* 用非公开密钥流加密消息，返回加密密文。
+       要求消息长 32 字节，少补 0 多则截断。随机数允许外部传入 64 字符的十六进制字符串}
 
-    class function Compress(X: Word; D: Word): Word;
-    {* 将一个 X 的系数值压缩到 D 位并返回}
-    class function Decompress(X: Word; D: Word): Word;
-    {* 将一个压缩后的系数值解压并返回}
     class function SamplePolyCBD(const RandBytes: TBytes; Eta: Integer): TWords;
     {* 根据真随机数组生成 256 个采样的多项式系数，RandBytes 的长度至少要 64 * Eta 字节}
     class function SampleNTT(const RandBytes: TBytes): TWords;
@@ -367,7 +385,11 @@ type
     property Noise2: Integer read FNoise2 write FNoise2;
     {* 噪声参数二，控制封装时的随机向量与两个错误向量的采样范围}
     property CompressDigits: Integer read FCompressDigits write FCompressDigits;
-    {* 压缩位数}
+    {* D 的压缩位数}
+    property CompressU: Integer read FCompressU write FCompressU;
+    {* U 的压缩位数}
+    property CompressV: Integer read FCompressV write FCompressV;
+    {* V 的压缩位数}
   end;
 
 procedure NTRUDataToInt64Polynomial(Res: TCnInt64Polynomial; Data: Pointer;
@@ -444,12 +466,14 @@ resourcestring
   SCnErrorLatticeEtaMustBe2Or3 = 'Eta Must Be 2 or 3';
   SCnErrorLatticeInvalidRandomLength = 'Invalid Random Length for SamplePolyCBD';
   SCnErrorLatticeInvalidSampleNTT = 'SampleNTT Input Must Be 34 Bytes';
-  SCnErrorLatticeInvalidEncodeDigit = 'Digit must be between 1 and 12';
+  SCnErrorLatticeInvalidEncodeDigit = 'Digit Must Be Between 1 and 12';
   SCnErrorLatticeEncapKeyLengthMismatch = 'Encapsulation Key Length Mismatch. Expected %d, Got %d';
   SCnErrorLatticeEncapKeyModulusCheckFailed = 'Encapsulation Key Modulus Check Failed';
   SCnErrorLatticeDecapKeyLengthMismatch = 'Decapsulation Key Length Mismatch. Expected %d, Got %d';
   SCnErrorLatticeDecapKeyStructureInvalid = 'Invalid Decapsulation Key Structure: Can NOT Extract Encapsulation Key';
   SCnErrorLatticeDecapKeyHashFailed = 'Decapsulation Key Hash Verification Failed';
+  SCnErrorLatticeInvalidMsgLength = 'Invalid Message Length';
+  SCnErrorLatticeInvalidHexLength = 'Invalid Random Hex Length';
 
 type
   TCnNTRUPredefinedParams = packed record
@@ -487,7 +511,6 @@ const
     (MU: 645084;  K: 31; HalfQ: 1664; D: 11)     // round(2^31/MLKEM_Q), ?, Floor(MLKEM_Q/2), 11 is mlkem1024 du
   );
 
-const
   // FIPS 203 Appendix A 的 NTT 预计算值
   ZETA_NTT: array[0..127] of Word = (
     1, 1729, 2580, 3289, 2642, 630, 1897, 848,
@@ -542,6 +565,7 @@ const
     // 120-127
     1722, 1212, 1874, 1029, 2110, 2935, 885,  2154
   );
+
 var
   FBigNumberPool: TCnBigNumberPool = nil;
   FInt64PolynomialPool: TCnInt64PolynomialPool = nil;
@@ -1109,6 +1133,65 @@ begin
   Result := Word(R and ((1 shl B) - 1));
 end;
 
+// 将一个 X 的系数值压缩到 D 位并返回
+function Compress(X, D: Word): Word;
+var
+  V, T: Word;
+  I: Integer;
+begin
+  V := 0;
+  T := (X + CN_MLKEM_PRIME) mod CN_MLKEM_PRIME;
+
+  for I := Low(MLKEM_BARRETT_TABLE) to High(MLKEM_BARRETT_TABLE) do
+  begin
+    if D = MLKEM_BARRETT_TABLE[I].D then
+    begin
+      V := DivMlKemQ(T, MLKEM_BARRETT_TABLE[I].D, MLKEM_BARRETT_TABLE[I].HalfQ,
+        MLKEM_BARRETT_TABLE[I].K, MLKEM_BARRETT_TABLE[I].MU);
+      Break;
+    end;
+  end;
+
+  Result := V;
+end;
+
+// 将一个压缩后的系数值解压并返回
+function Decompress(X: Word; D: Word): Word;
+var
+  P: Cardinal;
+begin
+  P := Cardinal(X) * CN_MLKEM_PRIME;
+
+  Result := Word((P shr D) +                // 商（主干部分）
+    ((P and ((1 shl D) - 1)) shr (D - 1))); // 四舍五入的进位项
+end;
+
+// 压缩一个多项式，Res 和 Poly 可以相同
+procedure CompressPolynomial(var Res: TCnMLKEMPolynomial; const Poly: TCnMLKEMPolynomial;
+  D: Integer);
+var
+  I: Integer;
+begin
+  for I := 0 to CN_MLKEM_POLY_DEGREE - 1 do
+    Res[I] := Compress(Poly[I], D);
+end;
+
+// 压缩一个多项式向量，Res 和 V 可以相同
+procedure CompressPolyVector(var Res: TCnMLKEMPolyVector; const V: TCnMLKEMPolyVector;
+  D: Integer);
+var
+  I, J: Integer;
+begin
+  if V <> Res then
+    SetLength(Res, Length(V));
+
+  for I := 0 to Length(V) - 1 do
+  begin
+    for J := 0 to CN_MLKEM_POLY_DEGREE - 1 do
+      Res[I][J] := Compress(V[I][J], D);
+  end;
+end;
+
 // 将一个字节的低七位倒过来
 function BitRev7(X: Byte): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
@@ -1212,8 +1295,48 @@ begin
     Result[J] := ModMul(Result[J], CN_MLKEM_PRIME_INV);
 end;
 
-// 俩多项式相加
-procedure PolyAddInNTT(var Res: TCnMLKEMPolynomial; const V1, V2: TCnMLKEMPolynomial);
+// 将 NTT 系数的多项式转换为非 NTT 系数的，俩参数可以相同
+procedure PolyToINTT(const InPoly: TCnMLKEMPolynomial; out Poly: TCnMLKEMPolynomial);
+var
+  W: TWords;
+begin
+  SetLength(W, SizeOf(TCnMLKEMPolynomial) * SizeOf(Word));
+  Move(InPoly[0], W[0], Length(W));
+  W := INTT(W);
+  Move(W[0], Poly[0], Length(W));
+end;
+
+// 将非 NTT 系数的多项式转换为 NTT 系数的，俩参数可以相同
+procedure PolyToNTT(const InPoly: TCnMLKEMPolynomial; out Poly: TCnMLKEMPolynomial);
+var
+  W: TWords;
+begin
+  SetLength(W, SizeOf(TCnMLKEMPolynomial) * SizeOf(Word));
+  Move(InPoly[0], W[0], Length(W));
+  W := NTT(W);
+  Move(W[0], Poly[0], Length(W));
+end;
+
+// 将 NTT 系数的多项式向量转换为非 NTT 系数的，俩参数可以相同
+procedure VectorToINTT(const InVector: TCnMLKEMPolyVector; out Vector: TCnMLKEMPolyVector);
+var
+  I: Integer;
+begin
+  for I := Low(InVector) to High(InVector) do
+    PolyToINTT(Vector[I], Vector[I]);
+end;
+
+// 将非 NTT 系数的多项式向量转换为 NTT 系数的，俩参数可以相同
+procedure VectorToNTT(const InVector: TCnMLKEMPolyVector; out Vector: TCnMLKEMPolyVector);
+var
+  I: Integer;
+begin
+  for I := Low(InVector) to High(InVector) do
+    PolyToNTT(Vector[I], Vector[I]);
+end;
+
+// 俩多项式相加，无论是不是 NTT
+procedure PolyAdd(var Res: TCnMLKEMPolynomial; const V1, V2: TCnMLKEMPolynomial);
 var
   I: Integer;
 begin
@@ -1221,13 +1344,13 @@ begin
     Res[I] := ModAdd(V1[I], V2[I]);
 end;
 
-// 俩排多项式相加，或者说是俩多项式向量相加
-procedure VectorAddInNTT(var Res: TCnMLKEMPolyVector; const V1, V2: TCnMLKEMPolyVector);
+// 俩排多项式相加，或者说是俩多项式向量相加，无论是不是 NTT
+procedure VectorAdd(var Res: TCnMLKEMPolyVector; const V1, V2: TCnMLKEMPolyVector);
 var
   I: Integer;
 begin
   for I := Low(V1) to High(V1) do
-    PolyAddInNTT(Res[I], V1[I], V2[I]);
+    PolyAdd(Res[I], V1[I], V2[I]);
 end;
 
 procedure BaseCaseMultiply(A0, A1, B0, B1, Gamma: Word; out C0, C1: Word);
@@ -1267,16 +1390,28 @@ begin
 
   for I := Low(Res) to High(Res) do
   begin
-    // 初始化结果多项式为零
-    FillChar(Res[I], SizeOf(TCnMLKEMPolyVector), 0);
-
+    // 无需额外初始化 Res[I] 结果多项式为零，上面 SetLength 做了
     for J := Low(S) to High(S) do
     begin
       PolyMulInNTT(T, A[I, J], S[J]);
 
       // 累加到结果中
-      PolyAddInNTT(Res[I], Res[I], T);
+      PolyAdd(Res[I], Res[I], T);
     end;
+  end;
+end;
+
+// NTT 上两个多项式向量点乘，得到一个多项式
+procedure VectorDotProduct(var Res: TCnMLKEMPolynomial; const V1, V2: TCnMLKEMPolyVector);
+var
+  I: Integer;
+  T: TCnMLKEMPolynomial;
+begin
+  FillChar(Res[0], SizeOf(TCnMLKEMPolynomial), 0);
+  for I := Low(V1) to High(V1) do
+  begin
+    PolyMulInNTT(T, V1[I], V2[I]);
+    PolyAdd(Res, Res, T);
   end;
 end;
 
@@ -1348,31 +1483,21 @@ begin
     raise ECnLatticeException.Create(SCnErrorLatticeEncapKeyModulusCheckFailed);
 end;
 
-function TCnMLKEM.CheckKeyPair(DecapKey: TCnMLKEMDecapsulationKey;
-  EncapKey: TCnMLKEMEncapsulationKey): Boolean;
-begin
-
-end;
-
-class function TCnMLKEM.Compress(X, D: Word): Word;
+procedure TCnMLKEM.CheckKeyPair(EncapKey: TCnMLKEMEncapsulationKey;
+  DecapKey: TCnMLKEMDecapsulationKey);
 var
-  V, T: Word;
-  I: Integer;
+  T: TBytes;
+  Matrix: TCnMLKEMPolyMatrix;
+  PubVector: TCnMLKEMPolyVector;
 begin
-  V := 0;
-  T := (X + CN_MLKEM_PRIME) mod CN_MLKEM_PRIME;
+  T := SaveKeyToBytes(EncapKey);
+  CheckEncapKey(T);
+  T := SaveKeysToBytes(DecapKey, EncapKey);
+  CheckDecapKey(T);
 
-  for I := Low(MLKEM_BARRETT_TABLE) to High(MLKEM_BARRETT_TABLE) do
-  begin
-    if D = MLKEM_BARRETT_TABLE[I].D then
-    begin
-      V := DivMlKemQ(T, MLKEM_BARRETT_TABLE[I].D, MLKEM_BARRETT_TABLE[I].HalfQ,
-        MLKEM_BARRETT_TABLE[I].K, MLKEM_BARRETT_TABLE[I].MU);
-      Break;
-    end;
-  end;
+  GenerateMatrix(EncapKey.GenerationSeed, Matrix);
 
-  Result := V;
+  // TODO: ENCAP/DECAP 检验
 end;
 
 constructor TCnMLKEM.Create(AType: TCnMLKEMType);
@@ -1389,36 +1514,76 @@ begin
       begin
         FMatrixRank := 2;
         FNoise1 := 3;
+        FCompressU := 10;
+        FCompressV := 4;
       end;
     cmkt768:
       begin
         FMatrixRank := 3;
         FNoise1 := 2;
+        FCompressU := 10;
+        FCompressV := 4;
       end;
     cmkt1024:
       begin
         FMatrixRank := 4;
         FNoise1 := 2;
+        FCompressU := 11;
+        FCompressV := 5;
       end;
   else
     raise ECnLatticeException.Create(SCnErrorLatticeMLKEMInvalidParam);
   end;
 end;
 
-class function TCnMLKEM.Decompress(X: Word; D: Word): Word;
-var
-  P: Cardinal;
-begin
-  P := Cardinal(X) * CN_MLKEM_PRIME;
-
-  Result := Word((P shr D) +                // 商（主干部分）
-    ((P and ((1 shl D) - 1)) shr (D - 1))); // 四舍五入的进位项
-end;
-
 destructor TCnMLKEM.Destroy;
 begin
   FRing.Free;
   inherited;
+end;
+
+procedure TCnMLKEM.GenerateMatrix(const Seed: TCnMLKEMSeed;
+  out Matrix: TCnMLKEMPolyMatrix);
+var
+  I, J: Integer;
+  PJI: TBytes;
+  W: TWords;
+begin
+  // 设置矩阵大小
+  SetLength(Matrix, FMatrixRank);
+  for I := 0 to FMatrixRank - 1 do
+    SetLength(Matrix[I], FMatrixRank);
+
+  // 准备好 Sample 随机数据
+  SetLength(PJI, SizeOf(TCnMLKEMSeed) + 2);
+  Move(Seed[0], PJI[0], SizeOf(TCnMLKEMSeed));
+
+  // 生成矩阵
+  for I := 0 to FMatrixRank - 1 do
+  begin
+    for J := 0 to FMatrixRank - 1 do
+    begin
+      PJI[SizeOf(TCnMLKEMSeed)] := J;
+      PJI[SizeOf(TCnMLKEMSeed) + 1] := I;
+      W := SampleNTT(PJI);
+      Move(W[0], Matrix[I][J][0], Length(W) * SizeOf(Word));
+    end;
+  end;
+end;
+
+procedure TCnMLKEM.TransposeMatrix(const InMatrix: TCnMLKEMPolyMatrix; out Matrix: TCnMLKEMPolyMatrix);
+var
+  I, J: Integer;
+begin
+  SetLength(Matrix, FMatrixRank);
+  for I := 0 to FMatrixRank - 1 do
+    SetLength(Matrix[I], FMatrixRank);
+
+  for I := 0 to FMatrixRank - 1 do
+  begin
+    for J := 0 to FMatrixRank - 1 do
+      Matrix[J][I] := InMatrix[I][J];
+  end;
 end;
 
 function TCnMLKEM.GetDecapKeyByteLength: Integer;
@@ -1460,10 +1625,9 @@ end;
 procedure TCnMLKEM.KPKEKeyGen(const D: TCnMLKEMSeed; out GenerationSeed: TCnMLKEMSeed;
   out Secret, Pub: TCnMLKEMPolyVector);
 var
-  I, J, N: Integer;
+  N: Integer;
   O: TCnMLKEMSeed;
-  DK, PJI, R: TBytes;
-  W: TWords;
+  DK: TBytes;
   Matrix: TCnMLKEMPolyMatrix;
   Noise: TCnMLKEMPolyVector;
 begin
@@ -1471,55 +1635,22 @@ begin
   DK[0] := FMatrixRank;
   DK := ConcatBytes(NewBytesFromMemory(@D[0], SizeOf(TCnMLKEMBlock)), DK);
 
+  // 生成公共种子
   GFunc(DK, TCnMLKEMBlock(GenerationSeed), TCnMLKEMBlock(O));
   N := 0;
 
-  // 设置矩阵大小
-  SetLength(Matrix, FMatrixRank);
-  for I := 0 to FMatrixRank - 1 do
-    SetLength(Matrix[I], FMatrixRank);
-
-  // 准备好 Sample 随机数据
-  SetLength(PJI, SizeOf(TCnMLKEMSeed) + 2);
-  Move(GenerationSeed[0], PJI[0], SizeOf(TCnMLKEMSeed));
-
   // 生成矩阵
-  for I := 0 to FMatrixRank - 1 do
-  begin
-    for J := 0 to FMatrixRank - 1 do
-    begin
-      PJI[SizeOf(TCnMLKEMSeed)] := J;
-      PJI[SizeOf(TCnMLKEMSeed) + 1] := I;
-      W := SampleNTT(PJI);
-      Move(W[0], Matrix[I][J][0], Length(W) * SizeOf(Word));
-    end;
-  end;
+  GenerateMatrix(GenerationSeed, Matrix);
 
   // 生成 K 个 S
-  SetLength(Secret, FMatrixRank);
-  for I := 0 to FMatrixRank - 1 do
-  begin
-    R := PseudoRandomFunc(FNoise1, O, N);
-    W := SamplePolyCBD(R, FNoise1);
-    W := NTT(W);
-    Move(W[0], Secret[I][0], Length(W) * SizeOf(Word));
-    Inc(N);
-  end;
+  SampleVector(O, FNoise1, N, Secret);
 
   // 生成 K 个 E
-  SetLength(Noise, FMatrixRank);
-  for I := 0 to FMatrixRank - 1 do
-  begin
-    R := PseudoRandomFunc(FNoise1, O, N);
-    W := SamplePolyCBD(R, FNoise1);
-    W := NTT(W);
-    Move(W[0], Noise[I][0], Length(W) * SizeOf(Word));
-    Inc(N);
-  end;
+  SampleVector(O, FNoise1, N, Noise);
 
   // 计算 T = A * S + E
   MatrixMulVectorInNTT(Pub, Matrix, Secret);
-  VectorAddInNTT(Pub, Pub, Noise);
+  VectorAdd(Pub, Pub, Noise);
 end;
 
 procedure TCnMLKEM.LoadKeyFromBytes(Key: TBytes; EncapKey: TCnMLKEMEncapsulationKey);
@@ -1565,12 +1696,8 @@ end;
 procedure TCnMLKEM.LoadKeysFromBytes(Key: TBytes;
   DecapKey: TCnMLKEMDecapsulationKey; EncapKey: TCnMLKEMEncapsulationKey);
 var
-  I: Integer;
-  PolyBytes: TBytes;
-  PolyLength: Integer;
-  EkStart, EkLength: Integer;
-  HStart, ZStart: Integer;
-  EkBytes: TBytes;
+  I, ZStart, PolyLength, EkStart, EkLength: Integer;
+  PolyBytes, EkBytes: TBytes;
 begin
   // 首先检查密钥字节流的合法性
   CheckDecapKey(Key);
@@ -1611,6 +1738,10 @@ procedure TCnMLKEM.MLKEMKeyGen(EncapKey: TCnMLKEMEncapsulationKey;
 var
   D: TCnMLKEMSeed;
 begin
+  if ((Length(RandDHex) > 0) and (Length(RandDHex) <> 64)) or
+    ((Length(RandZHex) > 0) and (Length(RandZHex) <> 64)) then
+    raise ECnLatticeException.Create(SCnErrorLatticeInvalidHexLength);
+
   if Length(RandDHex) = 0 then
     CnRandomFillBytes(@D[0], SizeOf(TCnMLKEMSeed))
   else
@@ -1726,31 +1857,38 @@ begin
   end;
 end;
 
-{ TCnMLKEMPublicKey }
-
-constructor TCnMLKEMEncapsulationKey.Create;
+procedure TCnMLKEM.SamplePolynomial(const Seed: TCnMLKEMSeed;
+  Noise: Integer; var Counter: Integer; out Polynomial: TCnMLKEMPolynomial;
+  UseNTT: Boolean);
+var
+  R: TBytes;
+  W: TWords;
 begin
-  inherited Create;
-
+  R := PseudoRandomFunc(Noise, Seed, Counter);
+  W := SamplePolyCBD(R, Noise);
+  if UseNTT then
+    W := NTT(W);
+  Move(W[0], Polynomial[0], Length(W) * SizeOf(Word));
+  Inc(Counter);
 end;
 
-destructor TCnMLKEMEncapsulationKey.Destroy;
+procedure TCnMLKEM.SampleVector(const Seed: TCnMLKEMSeed; Noise: Integer;
+  var Counter: Integer; out PolyVector: TCnMLKEMPolyVector; UseNTT: Boolean);
+var
+  I: Integer;
+  R: TBytes;
+  W: TWords;
 begin
-
-  inherited;
-end;
-
-{ TCnMLKEMPrivateKey }
-
-constructor TCnMLKEMDecapsulationKey.Create;
-begin
-  inherited Create;
-end;
-
-destructor TCnMLKEMDecapsulationKey.Destroy;
-begin
-
-  inherited;
+  SetLength(PolyVector, FMatrixRank);
+  for I := 0 to FMatrixRank - 1 do
+  begin
+    R := PseudoRandomFunc(Noise, Seed, Counter);
+    W := SamplePolyCBD(R, Noise);
+    if UseNTT then
+      W := NTT(W);
+    Move(W[0], PolyVector[I][0], Length(W) * SizeOf(Word));
+    Inc(Counter);
+  end;
 end;
 
 function TCnMLKEM.SaveKeysToBytes(DecapKey: TCnMLKEMDecapsulationKey;
@@ -1783,6 +1921,136 @@ begin
     Result := ConcatBytes(Result, ByteEncode(EncapKey.PubVector[I], 12));
 
   Result := ConcatBytes(Result, NewBytesFromMemory(@EncapKey.GenerationSeed[0], SizeOf(TCnMLKEMSeed)));
+end;
+
+function TCnMLKEM.KPKEEncrypt(EncapKey: TCnMLKEMEncapsulationKey;
+  const Msg: TCnMLKEMBlock; const Seed: TCnMLKEMSeed; out UVector: TCnMLKEMPolyVector;
+  out VPoly: TCnMLKEMPolynomial): TBytes;
+var
+  N: Integer;
+  A, AT: TCnMLKEMPolyMatrix;
+  Y, E1: TCnMLKEMPolyVector;
+  E2, MP: TCnMLKEMPolynomial;
+  B: TBytes;
+  W: TWords;
+begin
+  // 生成矩阵
+  GenerateMatrix(EncapKey.GenerationSeed, A);
+
+  // 转置矩阵
+  TransposeMatrix(A, AT);
+
+  // 生成随机向量与误差向量，注意前者 NTT 的，后者非 NTT 的，便于运算
+  N := 0;
+  SampleVector(Seed, FNoise2, N, Y);
+  SampleVector(Seed, FNoise2, N, E1, False);
+
+  // 生成误差多项式，注意并非 NTT 模式
+  SamplePolynomial(Seed, FNoise2, N, E2, False);
+
+  // U = AT * Y + E1，先 NTT 矩阵乘
+  MatrixMulVectorInNTT(UVector, AT, Y); // 得到 U 的 NTT 模式
+
+  // U 解回非 NTT 模式，加 E1
+  VectorAdd(UVector, UVector, E1);
+
+  // V = T^ * Y + E2 + miu，注意 T^ 和 Y 都是 NTT 的，计算得到的多项式要做个非 NTT 转换
+  VectorDotProduct(VPoly, EncapKey.PubVector, Y);
+
+  PolyToINTT(VPoly, VPoly);      // 转换成非 NTT
+  PolyAdd(VPoly, VPoly, E2);     // 再加 E2
+
+  // 再加 Message
+  B := NewBytesFromMemory(@Msg[0], SizeOf(TCnMLKEMBlock));
+  W := ByteDecode(B, 1); // 32 字节，每 1 位一个 Word，展开成 256 个 Word
+
+  // 将 256 个 Word 放入多项式
+  Move(W[0], MP[0], SizeOf(TCnMLKEMPolynomial));
+
+  // 再加消息多项式
+  PolyAdd(VPoly, VPoly, MP);
+end;
+
+function TCnMLKEM.MLKEMEncrypt(EnKey, Msg: TBytes; const RandHex: string): TBytes;
+var
+  En: TCnMLKEMEncapsulationKey;
+  M: TCnMLKEMBlock;
+  Seed: TCnMLKEMSeed;
+  B: TBytes;
+  L, I: Integer;
+  U, UC: TCnMLKEMPolyVector;
+  V, VC: TCnMLKEMPolynomial;
+begin
+  if Length(Msg) <> CN_MLKEM_KEY_SIZE then
+    raise ECnLatticeException.Create(SCnErrorLatticeInvalidMsgLength);
+
+  if (Length(RandHex) > 0) and (Length(RandHex) <> 64) then
+    raise ECnLatticeException.Create(SCnErrorLatticeInvalidHexLength);
+
+  En := TCnMLKEMEncapsulationKey.Create;
+  try
+    LoadKeyFromBytes(EnKey, En);               // 准备好 Key
+    Move(M[0], Msg[0], SizeOf(TCnMLKEMBlock)); // 准备好 Msg
+
+    if RandHex = '' then
+      CnRandomFillBytes(@Seed[0], SizeOf(TCnMLKEMSeed))
+    else
+    begin
+      B := HexToBytes(RandHex);
+      if Length(B) > 0 then
+      begin
+        L := Length(B);
+        if L > SizeOf(TCnMLKEMSeed) then
+          L := SizeOf(TCnMLKEMSeed);
+
+        FillChar(Seed[0], SizeOf(TCnMLKEMSeed), 0);
+        Move(B[0], Seed[0], L);
+      end
+      else
+        CnRandomFillBytes(@Seed[0], SizeOf(TCnMLKEMSeed));
+    end;
+
+    // 准备好了随机种子，调用内部加密方法
+    KPKEEncrypt(En, M, Seed, U, V);
+
+    // 压缩编码将 U V 返回作为 Chipher 字节流
+    CompressPolyVector(UC, U, FCompressU);
+    CompressPolynomial(VC, V, FCompressV);
+
+    Result := nil;
+    for I := Low(UC) to High(UC) do
+      Result := ConcatBytes(Result, ByteEncode(UC[I], FCompressU));
+    Result := ConcatBytes(Result, ByteEncode(VC, FCompressV));
+  finally
+    En.Free;
+  end;
+end;
+
+{ TCnMLKEMEncapsulationKey }
+
+constructor TCnMLKEMEncapsulationKey.Create;
+begin
+  inherited Create;
+
+end;
+
+destructor TCnMLKEMEncapsulationKey.Destroy;
+begin
+
+  inherited;
+end;
+
+{ TCnMLKEMDecapsulationKey }
+
+constructor TCnMLKEMDecapsulationKey.Create;
+begin
+  inherited Create;
+end;
+
+destructor TCnMLKEMDecapsulationKey.Destroy;
+begin
+
+  inherited;
 end;
 
 initialization
