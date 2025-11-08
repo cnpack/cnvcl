@@ -251,6 +251,13 @@ object FormLattice: TFormLattice
         Height = 529
         Caption = 'Module-Lattice-based Key Encapsulation Mechanism'
         TabOrder = 0
+        object lblMLKEMMsg: TLabel
+          Left = 240
+          Top = 240
+          Width = 46
+          Height = 13
+          Caption = 'Message:'
+        end
         object btnCompressTest: TButton
           Left = 16
           Top = 32
@@ -324,16 +331,49 @@ object FormLattice: TFormLattice
           Left = 240
           Top = 64
           Width = 529
-          Height = 257
+          Height = 161
           TabOrder = 8
         end
         object chkMLKEMUsePre: TCheckBox
           Left = 408
           Top = 36
-          Width = 97
+          Width = 113
           Height = 17
           Caption = 'Use Pre Hex Seeds'
           TabOrder = 9
+        end
+        object edtMLKEMMsg: TEdit
+          Left = 296
+          Top = 236
+          Width = 473
+          Height = 21
+          TabOrder = 10
+          Text = '0123456789ABCDEFFEDCBA9876543210'
+        end
+        object btnMLKEMEncrypt: TButton
+          Left = 296
+          Top = 264
+          Width = 121
+          Height = 25
+          Caption = 'MLKEM Encrypt'
+          TabOrder = 11
+          OnClick = btnMLKEMEncryptClick
+        end
+        object btnMLKEMDecrypt: TButton
+          Left = 648
+          Top = 264
+          Width = 121
+          Height = 25
+          Caption = 'MLKEM Encrypt'
+          TabOrder = 12
+          OnClick = btnMLKEMDecryptClick
+        end
+        object mmoMLKEMCipher: TMemo
+          Left = 240
+          Top = 296
+          Width = 529
+          Height = 161
+          TabOrder = 13
         end
       end
     end

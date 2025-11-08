@@ -2071,7 +2071,7 @@ uses
   CnFloat;
 
 resourcestring
-  SCnErrorNotAHexPChar = 'Error: NOT a Hex PChar: %c';
+  SCnErrorNotAHexPChar = 'Error: NOT a Hex Char: #%d';
   SCnErrorLengthNotHex = 'Error Length %d: NOT a Hex String';
   SCnErrorLengthNotHexAnsi = 'Error Length %d: NOT a Hex AnsiString';
 
@@ -2991,7 +2991,7 @@ begin
     else if (C >= 'a') and (C <= 'f') then
       Res := Res * 16 + Ord(C) - Ord('a') + 10
     else
-      raise ECnNativeException.CreateFmt(SCnErrorNotAHexPChar, [C]);
+      raise ECnNativeException.CreateFmt(SCnErrorNotAHexPChar, [Ord(C)]);
   end;
   Result := Res;
 end;

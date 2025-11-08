@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, TypInfo, CnLattice, ComCtrls;
+  StdCtrls, TypInfo, CnLattice, ComCtrls, CnNative;
 
 type
   TFormLattice = class(TForm)
@@ -49,6 +49,11 @@ type
     btnMLKEMKeyGen: TButton;
     mmoMLKEMKeys: TMemo;
     chkMLKEMUsePre: TCheckBox;
+    lblMLKEMMsg: TLabel;
+    edtMLKEMMsg: TEdit;
+    btnMLKEMEncrypt: TButton;
+    btnMLKEMDecrypt: TButton;
+    mmoMLKEMCipher: TMemo;
     procedure btnSimpleTestClick(Sender: TObject);
     procedure btnInt64GaussianReduceBasisClick(Sender: TObject);
     procedure btnSimpleTest2Click(Sender: TObject);
@@ -65,9 +70,15 @@ type
     procedure btnMLKEMSamplePolyCBDClick(Sender: TObject);
     procedure btnMLKEMSampleNttClick(Sender: TObject);
     procedure btnMLKEMKeyGenClick(Sender: TObject);
+    procedure btnMLKEMEncryptClick(Sender: TObject);
+    procedure btnMLKEMDecryptClick(Sender: TObject);
   private
     FPriv: TCnNTRUPrivateKey;
     FPub: TCnNTRUPublicKey;
+    FMLKEMEn: TCnMLKEMEncapsulationKey;
+    FMLKEMDe: TCnMLKEMDecapsulationKey;
+    FMLKEM: TCnMLKEM;
+    FEnBytes, FDeBytes: TBytes;
   public
     { Public declarations }
   end;
@@ -80,7 +91,7 @@ implementation
 {$R *.DFM}
 
 uses
-  CnBigNumber, CnVector, CnPolynomial, CnNative, CnRandom;
+  CnBigNumber, CnVector, CnPolynomial, CnRandom;
 
 procedure TFormLattice.btnSimpleTestClick(Sender: TObject);
 var
@@ -334,6 +345,10 @@ end;
 
 procedure TFormLattice.FormDestroy(Sender: TObject);
 begin
+  FMLKEMEn.Free;
+  FMLKEMDe.Free;
+  FMLKEM.Free;
+
   FPub.Free;
   FPriv.Free;
 end;
@@ -424,6 +439,68 @@ begin
   NTRU.Free;
 end;
 
+type
+  // Barrett Reduction 所需的参数结构体
+  TMLKEMBarrettReduce = packed record
+    MU: Cardinal;    // Floror(2^k / q) 的近似值 (通常四舍五入)
+    K: Integer;      // 幂次 k，用于计算 2^k
+    HalfQ: Word;     // q/2 的上取整或下取整，用于中心化约减
+    D: Integer;      // 此表项对应的压缩参数 d (如 du 或 dv)
+  end;
+
+const
+  // ML-KEM Barrett Reduction 查找表，包含不同参数集和操作（压缩、解压）所需的约减参数
+  MLKEM_BARRETT_TABLE: array[0..4] of TMLKEMBarrettReduce = (
+    (MU: 80635;   K: 28; HalfQ: 1665; D: 1),     // round(2^28/MLKEM_Q), ?, Ceil(MLKEM_Q/2),  1 is mlkem512 du
+    (MU: 1290167; K: 32; HalfQ: 1665; D: 10),    // round(2^32/MLKEM_Q), ?, Ceil(MLKEM_Q/2),  10 is mlkem768 du
+    (MU: 80635;   K: 28; HalfQ: 1665; D: 4),     // round(2^28/MLKEM_Q), ?, Ceil(MLKEM_Q/2),  4 is mlkem768 dv
+    (MU: 40318;   K: 27; HalfQ: 1664; D: 5),     // round(2^27/MLKEM_Q), ?, Floor(MLKEM_Q/2), 5 is mlkem1024 dv
+    (MU: 645084;  K: 31; HalfQ: 1664; D: 11)     // round(2^31/MLKEM_Q), ?, Floor(MLKEM_Q/2), 11 is mlkem1024 du
+  );
+
+function DivMlKemQ(X: Word; B, HQ, BS: Integer; BM: TUInt64): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+var
+  R: TUInt64;
+begin
+  R := (TUInt64(X) shl B) + TUInt64(HQ);
+  R := UInt64Mul(R, BM);
+  R := R shr BS;
+  Result := Word(R and ((1 shl B) - 1));
+end;
+
+// 将一个 X 的系数值压缩到 D 位并返回
+function Compress(X, D: Word): Word;
+var
+  V, T: Word;
+  I: Integer;
+begin
+  V := 0;
+  T := (X + CN_MLKEM_PRIME) mod CN_MLKEM_PRIME;
+
+  for I := Low(MLKEM_BARRETT_TABLE) to High(MLKEM_BARRETT_TABLE) do
+  begin
+    if D = MLKEM_BARRETT_TABLE[I].D then
+    begin
+      V := DivMlKemQ(T, MLKEM_BARRETT_TABLE[I].D, MLKEM_BARRETT_TABLE[I].HalfQ,
+        MLKEM_BARRETT_TABLE[I].K, MLKEM_BARRETT_TABLE[I].MU);
+      Break;
+    end;
+  end;
+
+  Result := V;
+end;
+
+// 将一个压缩后的系数值解压并返回
+function Decompress(X: Word; D: Word): Word;
+var
+  P: Cardinal;
+begin
+  P := Cardinal(X) * CN_MLKEM_PRIME;
+
+  Result := Word((P shr D) +                // 商（主干部分）
+    ((P and ((1 shl D) - 1)) shr (D - 1))); // 四舍五入的进位项
+end;
+
 procedure TFormLattice.btnCompressTestClick(Sender: TObject);
 var
   I, D: Integer;
@@ -433,8 +510,8 @@ begin
   mmoMLKEM.Lines.Clear;
   for I := 0 to CN_MLKEM_PRIME - 1 do
   begin
-    V := TCnMLKEM.Compress(Word(I), D);
-    R := TCnMLKEM.Decompress(V, D);
+    V := Compress(Word(I), D);
+    R := Decompress(V, D);
     if I <> R then
     begin
       if Abs(I - R) > 1 then
@@ -457,8 +534,8 @@ begin
   mmoMLKEM.Lines.Clear;
   for I := 0 to CN_MLKEM_PRIME - 1 do
   begin
-    V := TCnMLKEM.Decompress(Word(I), D);
-    R := TCnMLKEM.Compress(V, D);
+    V := Decompress(Word(I), D);
+    R := Compress(V, D);
     if I <> R then
       mmoMLKEM.Lines.Add(Format('*** %d -> %d -> %d', [I, V, R]))
     else
@@ -496,35 +573,72 @@ begin
 end;
 
 procedure TFormLattice.btnMLKEMKeyGenClick(Sender: TObject);
-var
-  En: TCnMLKEMEncapsulationKey;
-  De: TCnMLKEMDecapsulationKey;
-  M: TCnMLKEM;
-  EB, DB: TBytes;
 begin
-  En := TCnMLKEMEncapsulationKey.Create;
-  De := TCnMLKEMDecapsulationKey.Create;
+  FreeAndNil(FMLKEMEn);
+  FreeAndNil(FMLKEMDe);
+  FreeAndNil(FMLKEM);
 
-  M := TCnMLKEM.Create(cmkt512);
+  FMLKEMEn := TCnMLKEMEncapsulationKey.Create;
+  FMLKEMDe := TCnMLKEMDecapsulationKey.Create;
+  FMLKEM := TCnMLKEM.Create(cmkt512);
 
   if chkMLKEMUsePre.Checked then
-    M.MLKEMKeyGen(En, De, 'BBA3C0F5DF044CDF4D9CAA53CA15FDE26F34EB3541555CFC54CA9C31B964D0C8',
+    FMLKEM.MLKEMKeyGen(FMLKEMEn, FMLKEMDe, 'BBA3C0F5DF044CDF4D9CAA53CA15FDE26F34EB3541555CFC54CA9C31B964D0C8',
       '0A64FDD51A8D91B3166C4958A94EFC3166A4F5DF680980B878DB8371B7624C96')
   else
-    M.MLKEMKeyGen(En, De);
+    FMLKEM.MLKEMKeyGen(FMLKEMEn, FMLKEMDe);
 
-  EB := M.SaveKeyToBytes(En);
-  DB := M.SaveKeysToBytes(De, En);
+  FEnBytes := FMLKEM.SaveKeyToBytes(FMLKEMEn);
+  FDeBytes := FMLKEM.SaveKeysToBytes(FMLKEMDe, FMLKEMEn);
+
   mmoMLKEMKeys.Lines.Clear;
-  mmoMLKEMKeys.Lines.Add(BytesToHex(EB));
-  mmoMLKEMKeys.Lines.Add(BytesToHex(DB));
+  mmoMLKEMKeys.Lines.Add(BytesToHex(FEnBytes));
+  mmoMLKEMKeys.Lines.Add(BytesToHex(FDeBytes));
 
-  M.LoadKeyFromBytes(EB, En);
-  M.LoadKeysFromBytes(DB, De, En);
+  FMLKEM.LoadKeyFromBytes(FEnBytes, FMLKEMEn);
+  FMLKEM.LoadKeysFromBytes(FDeBytes, FMLKEMDe, FMLKEMEn);
+end;
 
-  M.Free;
-  De.Free;
-  En.Free;
+procedure TFormLattice.btnMLKEMEncryptClick(Sender: TObject);
+var
+  M, C: TBytes;
+begin
+  if FMLKEM = nil then
+  begin
+    ShowMessage('Please Gen Key First');
+    Exit;
+  end;
+
+  FMLKEM.LoadKeyFromBytes(FEnBytes, FMLKEMEn);
+  FMLKEM.LoadKeysFromBytes(FDeBytes, FMLKEMDe, FMLKEMEn);
+
+  M := AnsiToBytes(edtMLKEMMsg.Text);
+  C := FMLKEM.MLKEMEncrypt(FEnBytes, M);
+  mmoMLKEMCipher.Lines.Clear;
+  mmoMLKEMCipher.Lines.Add(BytesToHex(C));
+end;
+
+procedure TFormLattice.btnMLKEMDecryptClick(Sender: TObject);
+var
+  M, C: TBytes;
+  S: string;
+begin
+  if FMLKEM = nil then
+  begin
+    ShowMessage('Please Gen Key First');
+    Exit;
+  end;
+
+  FMLKEM.LoadKeyFromBytes(FEnBytes, FMLKEMEn);
+  FMLKEM.LoadKeysFromBytes(FDeBytes, FMLKEMDe, FMLKEMEn);
+
+  S := mmoMLKEMCipher.Lines.Text;
+  S := StringReplace(S, #13, '', [rfReplaceAll]);
+  S := StringReplace(S, #10, '', [rfReplaceAll]);
+
+  C := HexToBytes(S);
+  M := FMLKEM.MLKEMDecrypt(FDeBytes, C);
+  ShowMessage(BytesToAnsi(M));
 end;
 
 end.
