@@ -275,7 +275,7 @@ type
     {* 析构函数}
 
     property SecretVector: TCnMLKEMPolyVector read FSecretVector;
-    {* 秘密多项式向量，相当于规范里的 S}
+    {* 秘密多项式向量，相当于规范里的 S，系数已 NTT 化}
     property InjectionSeed: TCnMLKEMSeed read FInjectionSeed;
     {* 用于隐式拒绝的随机种子，不参与密钥生成，相当于规范里的 Z}
   end;
@@ -294,7 +294,7 @@ type
     property GenerationSeed: TCnMLKEMSeed read FGenerationSeed;
     {* 用于生成整套密钥的主随机种子，相当于规范里的 D}
     property PubVector: TCnMLKEMPolyVector read FPubVector;
-    {* 生成的公开多项式向量，相当于规范里的 T}
+    {* 生成的公开多项式向量，相当于规范里的 T，系数已 NTT 化}
   end;
 
   TCnMLKEM = class
@@ -309,6 +309,10 @@ type
     FCompressV: Integer;
     function GetEncapKeyByteLength: Integer;
     function GetDecapKeyByteLength: Integer;
+    function GetCipherUPolyByteLength: Integer;
+    function GetCipherUByteLength: Integer;
+    function GetCipherVByteLength: Integer;
+    function GetCipherByteLength: Integer;
 
     procedure GenerateMatrix(const Seed: TCnMLKEMSeed; out Matrix: TCnMLKEMPolyMatrix);
     {* 根据种子生成矩阵 A}
@@ -329,6 +333,10 @@ type
     function KPKEEncrypt(EncapKey: TCnMLKEMEncapsulationKey; const Msg: TCnMLKEMBlock;
       const Seed: TCnMLKEMSeed; out UVector: TCnMLKEMPolyVector; out VPoly: TCnMLKEMPolynomial): TBytes;
     {* 核心加密方法，使用公开密钥与 32 位真随机种子，加密 32 位消息}
+
+    procedure KPKEDecrypt(DecapKey: TCnMLKEMDecapsulationKey;
+      const CipherText: TBytes; out Msg: TCnMLKEMBlock);
+    {* 核心解密方法，使用非公开密钥与密文字节流，还原 32 位消息}
 
     procedure CheckEncapKey(EnKey: TBytes);
     {* 检查公开密钥字节流是否合法，不合法则抛异常}
@@ -361,6 +369,9 @@ type
     function MLKEMEncrypt(EnKey: TBytes; Msg: TBytes; const RandHex: string = ''): TBytes;
     {* 用非公开密钥流加密消息，返回加密密文。
        要求消息长 32 字节，少补 0 多则截断。随机数允许外部传入 64 字符的十六进制字符串}
+
+    function MLKEMDecrypt(DeKey: TBytes; CipherText: TBytes): TBytes;
+    {* 用公开密钥流解密消息，返回解密后的明文}
 
     class function SamplePolyCBD(const RandBytes: TBytes; Eta: Integer): TWords;
     {* 根据真随机数组生成 256 个采样的多项式系数，RandBytes 的长度至少要 64 * Eta 字节}
@@ -474,6 +485,7 @@ resourcestring
   SCnErrorLatticeDecapKeyHashFailed = 'Decapsulation Key Hash Verification Failed';
   SCnErrorLatticeInvalidMsgLength = 'Invalid Message Length';
   SCnErrorLatticeInvalidHexLength = 'Invalid Random Hex Length';
+  SCnErrorLatticeCipherLengthMismatch = 'Cipher Length Mismatch. Expected %d, Got %d';
 
 type
   TCnNTRUPredefinedParams = packed record
@@ -1089,7 +1101,7 @@ begin
   end;
 end;
 
-function ByteDecode(B: TBytes; D: Integer): TWords;
+function ByteDecode(B: TBytes; D: Integer): TWords; overload;
 var
   I, L: Integer;
   C: TCnBitBuilder;
@@ -1121,6 +1133,15 @@ begin
   finally
     C.Free;
   end;
+end;
+
+// 调用者要确保 B 解开的是 256 个 Word
+procedure ByteDecode(B: TBytes; D: Integer; out P: TCnMLKEMPolynomial); overload;
+var
+  W: TWords;
+begin
+  W := ByteDecode(B, D);
+  Move(W[0], P[0], Length(W) * SizeOf(Word));
 end;
 
 function DivMlKemQ(X: Word; B, HQ, BS: Integer; BM: TUInt64): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
@@ -1192,6 +1213,32 @@ begin
   end;
 end;
 
+// 解压缩一个多项式，Res 和 Poly 可以相同
+procedure DecompressPolynomial(var Res: TCnMLKEMPolynomial; const Poly: TCnMLKEMPolynomial;
+  D: Integer);
+var
+  I: Integer;
+begin
+  for I := 0 to CN_MLKEM_POLY_DEGREE - 1 do
+    Res[I] := Decompress(Poly[I], D);
+end;
+
+// 解压缩一个多项式向量，Res 和 V 可以相同
+procedure DecompressPolyVector(var Res: TCnMLKEMPolyVector; const V: TCnMLKEMPolyVector;
+  D: Integer);
+var
+  I, J: Integer;
+begin
+  if V <> Res then
+    SetLength(Res, Length(V));
+
+  for I := 0 to Length(V) - 1 do
+  begin
+    for J := 0 to CN_MLKEM_POLY_DEGREE - 1 do
+      Res[I][J] := Decompress(V[I][J], D);
+  end;
+end;
+
 // 将一个字节的低七位倒过来
 function BitRev7(X: Byte): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 var
@@ -1217,6 +1264,8 @@ begin
     Result := A - B
   else
     Result := CN_MLKEM_PRIME + A - B;
+
+  Result := Result mod CN_MLKEM_PRIME;
 end;
 
 function ModMul(A, B: Word): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
@@ -1344,6 +1393,15 @@ begin
     Res[I] := ModAdd(V1[I], V2[I]);
 end;
 
+// 俩多项式相减，无论是不是 NTT
+procedure PolySub(var Res: TCnMLKEMPolynomial; const V1, V2: TCnMLKEMPolynomial);
+var
+  I: Integer;
+begin
+  for I := Low(V1) to High(V1) do
+    Res[I] := ModSub(V1[I], V2[I]);
+end;
+
 // 俩排多项式相加，或者说是俩多项式向量相加，无论是不是 NTT
 procedure VectorAdd(var Res: TCnMLKEMPolyVector; const V1, V2: TCnMLKEMPolyVector);
 var
@@ -1419,17 +1477,17 @@ end;
 
 procedure TCnMLKEM.CheckDecapKey(DeKey: TBytes);
 var
-  ExpectedLength: Integer;
+  ExpLen: Integer;
   EkStart, EkLength: Integer;
   EkBytes: TBytes;
   HStart, HLength: Integer;
   HBytes, ComputedHash: TCnMLKEMBlock;
 begin
-  // 步骤2: 类型检查 - 检查长度是否符合预期
-  ExpectedLength := GetDecapKeyByteLength;
-  if Length(DeKey) <> ExpectedLength then
+  // 类型检查 - 检查长度是否符合预期
+  ExpLen := GetDecapKeyByteLength;
+  if Length(DeKey) <> ExpLen then
     raise ECnLatticeException.CreateFmt(SCnErrorLatticeDecapKeyLengthMismatch, 
-      [ExpectedLength, Length(DeKey)]);
+      [ExpLen, Length(DeKey)]);
 
   // 提取 ek 部分: dk[384k : 768k+32]
   EkStart := 384 * FMatrixRank;
@@ -2013,7 +2071,7 @@ begin
     // 准备好了随机种子，调用内部加密方法
     KPKEEncrypt(En, M, Seed, U, V);
 
-    // 压缩编码将 U V 返回作为 Chipher 字节流
+    // 压缩编码，将非 NTT 系数的 U V 返回作为 Chipher 字节流
     CompressPolyVector(UC, U, FCompressU);
     CompressPolynomial(VC, V, FCompressV);
 
@@ -2024,6 +2082,111 @@ begin
   finally
     En.Free;
   end;
+end;
+
+procedure TCnMLKEM.KPKEDecrypt(DecapKey: TCnMLKEMDecapsulationKey;
+  const CipherText: TBytes; out Msg: TCnMLKEMBlock);
+var
+  I, ExpLen: Integer;
+  B: TBytes;
+  UC, U: TCnMLKEMPolyVector;
+  VC, V, T: TCnMLKEMPolynomial;
+begin
+  ExpLen := GetCipherByteLength;
+  if Length(CipherText) <> ExpLen then
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeCipherLengthMismatch,
+      [ExpLen, Length(CipherText)]);
+
+  // 还原回 U
+  SetLength(UC, FMatrixRank);
+  SetLength(U, FMatrixRank);
+
+  // 抽取整个 U 向量的多项式系数
+  SetLength(B, GetCipherUPolyByteLength);
+  for I := 0 to FMatrixRank - 1 do
+  begin
+    // 提取 U 中的一个多项式并解码
+    Move(CipherText[I * Length(B)], B[0], Length(B));
+    ByteDecode(B, FCompressU, UC[I]);
+  end;
+
+  // 解压缩向量 U
+  DecompressPolyVector(U, UC, FCompressU);
+
+  // 还原回多项式 VC
+  SetLength(B, GetCipherVByteLength);
+  Move(CipherText[GetCipherUByteLength], B[0], Length(B));
+  ByteDecode(B, FCompressV, VC);
+
+  // 解压缩多项式 V
+  DecompressPolynomial(V, VC, FCompressV);
+
+  // U 转换为 NTT 方式
+  for I := Low(U) to High(U) do
+    PolyToNTT(U[I], U[I]);
+
+  // 计算 s 点乘 U，得到一个多项式 T
+  VectorDotProduct(T, DecapKey.SecretVector, U);
+
+  // 转换成非 NTT
+  PolyToINTT(T, T);
+
+  // V - s 点乘 U，得到消息多项式
+  PolySub(T, V, T);
+
+  // 压缩该消息多项式
+  CompressPolynomial(T, T, 1);
+
+  // 解码消息多项式
+  B := ByteEncode(T, 1);
+  if Length(B) <> SizeOf(TCnMLKEMBlock) then
+    raise ECnLatticeException.Create(SCnErrorLatticeInvalidMsgLength);
+
+  // 返回明文消息内容
+  Move(B[0], Msg[0], SizeOf(TCnMLKEMBlock));
+end;
+
+function TCnMLKEM.MLKEMDecrypt(DeKey, CipherText: TBytes): TBytes;
+var
+  De: TCnMLKEMDecapsulationKey;
+  En: TCnMLKEMEncapsulationKey;
+  Msg: TCnMLKEMBlock;
+begin
+  Result := nil;
+
+  De := TCnMLKEMDecapsulationKey.Create;
+  En := TCnMLKEMEncapsulationKey.Create;
+  try
+    LoadKeysFromBytes(DeKey, De, En);
+    KPKEDecrypt(De, CipherText, Msg);
+
+    // 解密后返回，注意这里不判断是否成功
+    SetLength(Result, SizeOf(TCnMLKEMBlock));
+    Move(Msg[0], Result[0], SizeOf(TCnMLKEMBlock));
+  finally
+    En.Free;
+    De.Free;
+  end;
+end;
+
+function TCnMLKEM.GetCipherByteLength: Integer;
+begin
+  Result := GetCipherUByteLength + GetCipherVByteLength;
+end;
+
+function TCnMLKEM.GetCipherUByteLength: Integer;
+begin
+  Result := FMatrixRank * GetCipherUPolyByteLength;
+end;
+
+function TCnMLKEM.GetCipherVByteLength: Integer;
+begin
+  Result := CN_MLKEM_POLY_DEGREE * FCompressV div 8;
+end;
+
+function TCnMLKEM.GetCipherUPolyByteLength: Integer;
+begin
+  Result := CN_MLKEM_POLY_DEGREE * FCompressU div 8
 end;
 
 { TCnMLKEMEncapsulationKey }
