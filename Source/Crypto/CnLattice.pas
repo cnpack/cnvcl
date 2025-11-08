@@ -269,11 +269,6 @@ type
     FSecretVector: TCnMLKEMPolyVector;
     FInjectionSeed: TCnMLKEMSeed;
   public
-    constructor Create; virtual;
-    {* 构造函数}
-    destructor Destroy; override;
-    {* 析构函数}
-
     property SecretVector: TCnMLKEMPolyVector read FSecretVector;
     {* 秘密多项式向量，相当于规范里的 S，系数已 NTT 化}
     property InjectionSeed: TCnMLKEMSeed read FInjectionSeed;
@@ -286,11 +281,6 @@ type
     FGenerationSeed: TCnMLKEMSeed;
     FPubVector: TCnMLKEMPolyVector;            // 私钥与矩阵计算出的公钥多项式向量
   public
-    constructor Create; virtual;
-    {* 构造函数}
-    destructor Destroy; override;
-    {* 析构函数}
-
     property GenerationSeed: TCnMLKEMSeed read FGenerationSeed;
     {* 用于生成整套密钥的主随机种子，相当于规范里的 D}
     property PubVector: TCnMLKEMPolyVector read FPubVector;
@@ -303,7 +293,6 @@ type
     FMatrixRank: Integer;
     FNoise1: Integer;
     FNoise2: Integer;
-    FRing: TCnInt64Polynomial;
     FCompressDigits: Integer;
     FCompressU: Integer;
     FCompressV: Integer;
@@ -373,24 +362,9 @@ type
     function MLKEMDecrypt(DeKey: TBytes; CipherText: TBytes): TBytes;
     {* 用公开密钥流解密消息，返回解密后的明文}
 
-    class function SamplePolyCBD(const RandBytes: TBytes; Eta: Integer): TWords;
-    {* 根据真随机数组生成 256 个采样的多项式系数，RandBytes 的长度至少要 64 * Eta 字节}
-    class function SampleNTT(const RandBytes: TBytes): TWords;
-    {* 根据真随机数组生成 256 个采样的多项式系数供 NTT 变换用，RandBytes 的长度至少要 34 字节}
-
-    class function PseudoRandomFunc(Eta: Integer; const Input: TCnMLKEMSeed; B: Byte): TBytes;
-    {* PRF 函数，根据 32 字节输入和一字节附加数据，用 SHAKE256 生成 64 * Eta 长度的字节}
-    class function HFunc(const Data: TBytes): TCnMLKEMBlock;
-    {* H 函数，内部用 SHA3_256 生成 32 位杂凑值}
-    class function JFunc(const Data: TBytes): TCnMLKEMBlock;
-    {* J 函数，内部用 SHAKE256 生成 32 位杂凑值}
-    class procedure GFunc(const Data: TBytes; out Block1, Block2: TCnMLKEMBlock);
-    {* G 函数，内部用 SHA3_512 生成两个 32 位杂凑值}
-
     property MatrixRank: Integer read FMatrixRank write FMatrixRank;
     {* 矩阵的秩，在这里是方阵尺寸，取值 2 或 3 或 4}
-    property Ring: TCnInt64Polynomial read FRing;
-    {* 多项式环的模多项式}
+
     property Noise1: Integer read FNoise1 write FNoise1;
     {* 噪声参数一，控制生成密钥时秘密向量和错误向量的采样范围}
     property Noise2: Integer read FNoise2 write FNoise2;
@@ -1473,6 +1447,138 @@ begin
   end;
 end;
 
+// 根据真随机数组生成 256 个采样的多项式系数供 NTT 变换用，RandBytes 的长度至少要 34 字节
+function SampleNTT(const RandBytes: TBytes): TWords;
+var
+  Ctx: TCnSHA3Context;
+  C: TBytes;
+  D1, D2: Integer;
+  J: Integer;
+begin
+  if Length(RandBytes) < CN_MLKEM_KEY_SIZE + 2 then
+    raise Exception.Create(SCnErrorLatticeInvalidSampleNTT);
+
+  SetLength(Result, CN_MLKEM_POLY_DEGREE);
+
+  SHAKE128Init(Ctx, 0);
+  SHAKE128Absorb(Ctx, PAnsiChar(@RandBytes[0]), Length(RandBytes));
+
+  J := 0;
+  while J < CN_MLKEM_POLY_DEGREE do
+  begin
+    C := SHAKE128Squeeze(Ctx, 3);
+
+    // 从 3 字节中提取两个 12 位数值
+    D1 := C[0] + 256 * (C[1] and $0F);       // 使用 C[1] 的低 4 位
+    D2 := (C[1] shr 4) + 16 * C[2];          // 使用 C[1] 的高 4 位
+
+    // 检查第一个值是否有效
+    if D1 < CN_MLKEM_PRIME then
+    begin
+      Result[J] := D1;
+      Inc(J);
+
+      // 如果已经收集够 256 个值，提前退出
+      if J >= CN_MLKEM_POLY_DEGREE then
+        Break;
+    end;
+
+    // 检查第二个值是否有效
+    if (D2 < CN_MLKEM_PRIME) and (J < CN_MLKEM_POLY_DEGREE) then
+    begin
+      Result[J] := D2;
+      Inc(J);
+    end;
+  end;
+end;
+
+// 根据真随机数组生成 256 个采样的多项式系数，RandBytes 的长度至少要 64 * Eta 字节
+function SamplePolyCBD(const RandBytes: TBytes; Eta: Integer): TWords;
+var
+  I, J, X, Y: Integer;
+  Bits: TCnBitBuilder;
+
+  function BitToInt(Bit: Boolean): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+  begin
+    if Bit then
+      Result := 1
+    else
+      Result := 0;
+  end;
+
+begin
+  CheckEta(Eta);
+  if Length(RandBytes) < 64 * Eta then
+    raise Exception.Create(SCnErrorLatticeInvalidRandomLength);
+
+  SetLength(Result, CN_MLKEM_POLY_DEGREE);
+  Bits := TCnBitBuilder.Create;
+  try
+    Bits.AppendBytes(RandBytes);
+
+    for I := 0 to CN_MLKEM_POLY_DEGREE - 1 do
+    begin
+      X := 0;
+      Y := 0;
+
+      for J := 0 to Eta - 1 do
+        X := X + BitToInt(Bits[2 * I * Eta + J]);
+      for J := 0 to Eta - 1 do
+        Y := Y + BitToInt(Bits[2 * I * Eta + Eta + J]);
+
+      if X >= Y then
+        Result[I] := X - Y
+      else
+        Result[I] := CN_MLKEM_PRIME + X - Y;
+    end;
+  finally
+    Bits.Free;
+  end;
+end;
+
+// PRF 函数，根据 32 字节输入和一字节附加数据，用 SHAKE256 生成 64 * Eta 长度的字节
+function PseudoRandomFunc(Eta: Integer; const Input: TCnMLKEMSeed; B: Byte): TBytes;
+var
+  T: TBytes;
+begin
+  if (Eta <> 2) and (Eta <> 3) then
+    raise ECnLatticeException.Create(SCnErrorLatticeEtaMustBe2Or3);
+
+  SetLength(T, SizeOf(TCnMLKEMSeed) + 1);
+  Move(Input[0], T[0], SizeOf(TCnMLKEMSeed));
+  T[SizeOf(TCnMLKEMSeed)] := B;
+
+  Result := SHAKE256Bytes(T, Eta * 64);
+end;
+
+// G 函数，内部用 SHA3_512 生成两个 32 位杂凑值
+procedure GFunc(const Data: TBytes; out Block1, Block2: TCnMLKEMBlock);
+var
+  Dig: TCnSHA3_512Digest;
+begin
+  Dig := SHA3_512Bytes(Data);
+  Move(Dig[0], Block1[0], SizeOf(TCnMLKEMBlock));
+  Move(Dig[SizeOf(TCnMLKEMBlock)], Block2[0], SizeOf(TCnMLKEMBlock));
+end;
+
+// H 函数，内部用 SHA3_256 生成 32 位杂凑值
+function HFunc(const Data: TBytes): TCnMLKEMBlock;
+var
+  Dig: TCnSHA3_256Digest;
+begin
+  Dig := SHA3_256Bytes(Data);
+  Move(Dig[0], Result[0], SizeOf(TCnMLKEMBlock));
+end;
+
+// J 函数，内部用 SHAKE256 生成 32 位杂凑值
+function JFunc(const Data: TBytes): TCnMLKEMBlock;
+var
+  Dig: TBytes;
+begin
+  Dig := SHAKE256Bytes(Data, SizeOf(TCnMLKEMBlock));
+  Move(Dig[0], Result[0], SizeOf(TCnMLKEMBlock));
+end;
+
 { TCnMLKEM }
 
 procedure TCnMLKEM.CheckDecapKey(DeKey: TBytes);
@@ -1483,7 +1589,7 @@ var
   HStart, HLength: Integer;
   HBytes, ComputedHash: TCnMLKEMBlock;
 begin
-  // 类型检查 - 检查长度是否符合预期
+  // 检查长度是否符合预期
   ExpLen := GetDecapKeyByteLength;
   if Length(DeKey) <> ExpLen then
     raise ECnLatticeException.CreateFmt(SCnErrorLatticeDecapKeyLengthMismatch, 
@@ -1563,10 +1669,6 @@ begin
   inherited Create;
   FNoise2 := 2;
 
-  FRing := TCnInt64Polynomial.Create;
-  FRing.SetCoefficent(CN_MLKEM_POLY_DEGREE, 1);
-  FRing.SetCoefficent(0, 1);
-
   case AType of
     cmkt512:
       begin
@@ -1596,7 +1698,7 @@ end;
 
 destructor TCnMLKEM.Destroy;
 begin
-  FRing.Free;
+
   inherited;
 end;
 
@@ -1652,32 +1754,6 @@ end;
 function TCnMLKEM.GetEncapKeyByteLength: Integer;
 begin
   Result := 384 * FMatrixRank + 32;
-end;
-
-class procedure TCnMLKEM.GFunc(const Data: TBytes; out Block1,
-  Block2: TCnMLKEMBlock);
-var
-  Dig: TCnSHA3_512Digest;
-begin
-  Dig := SHA3_512Bytes(Data);
-  Move(Dig[0], Block1[0], SizeOf(TCnMLKEMBlock));
-  Move(Dig[SizeOf(TCnMLKEMBlock)], Block2[0], SizeOf(TCnMLKEMBlock));
-end;
-
-class function TCnMLKEM.HFunc(const Data: TBytes): TCnMLKEMBlock;
-var
-  Dig: TCnSHA3_256Digest;
-begin
-  Dig := SHA3_256Bytes(Data);
-  Move(Dig[0], Result[0], SizeOf(TCnMLKEMBlock));
-end;
-
-class function TCnMLKEM.JFunc(const Data: TBytes): TCnMLKEMBlock;
-var
-  Dig: TBytes;
-begin
-  Dig := SHAKE256Bytes(Data, SizeOf(TCnMLKEMBlock));
-  Move(Dig[0], Result[0], SizeOf(TCnMLKEMBlock));
 end;
 
 procedure TCnMLKEM.KPKEKeyGen(const D: TCnMLKEMSeed; out GenerationSeed: TCnMLKEMSeed;
@@ -1811,108 +1887,6 @@ begin
     PutBytesToMemory(HexToBytes(RandZHex), @DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
 
   KPKEKeyGen(D, EncapKey.FGenerationSeed, DecapKey.FSecretVector, EncapKey.FPubVector);
-end;
-
-class function TCnMLKEM.PseudoRandomFunc(Eta: Integer;
-  const Input: TCnMLKEMSeed; B: Byte): TBytes;
-var
-  T: TBytes;
-begin
-  if (Eta <> 2) and (Eta <> 3) then
-    raise ECnLatticeException.Create(SCnErrorLatticeEtaMustBe2Or3);
-
-  SetLength(T, SizeOf(TCnMLKEMSeed) + 1);
-  Move(Input[0], T[0], SizeOf(TCnMLKEMSeed));
-  T[SizeOf(TCnMLKEMSeed)] := B;
-
-  Result := SHAKE256Bytes(T, Eta * 64);
-end;
-
-class function TCnMLKEM.SampleNTT(const RandBytes: TBytes): TWords;
-var
-  Ctx: TCnSHA3Context;
-  C: TBytes;
-  D1, D2: Integer;
-  J: Integer;
-begin
-  if Length(RandBytes) < CN_MLKEM_KEY_SIZE + 2 then
-    raise Exception.Create(SCnErrorLatticeInvalidSampleNTT);
-
-  SetLength(Result, CN_MLKEM_POLY_DEGREE);
-
-  SHAKE128Init(Ctx, 0);
-  SHAKE128Absorb(Ctx, PAnsiChar(@RandBytes[0]), Length(RandBytes));
-
-  J := 0;
-  while J < CN_MLKEM_POLY_DEGREE do
-  begin
-    C := SHAKE128Squeeze(Ctx, 3);
-
-    // 从 3 字节中提取两个 12 位数值
-    D1 := C[0] + 256 * (C[1] and $0F);       // 使用 C[1] 的低 4 位
-    D2 := (C[1] shr 4) + 16 * C[2];          // 使用 C[1] 的高 4 位
-
-    // 检查第一个值是否有效
-    if D1 < CN_MLKEM_PRIME then
-    begin
-      Result[J] := D1;
-      Inc(J);
-
-      // 如果已经收集够 256 个值，提前退出
-      if J >= CN_MLKEM_POLY_DEGREE then
-        Break;
-    end;
-
-    // 检查第二个值是否有效
-    if (D2 < CN_MLKEM_PRIME) and (J < CN_MLKEM_POLY_DEGREE) then
-    begin
-      Result[J] := D2;
-      Inc(J);
-    end;
-  end;
-end;
-
-class function TCnMLKEM.SamplePolyCBD(const RandBytes: TBytes; Eta: Integer): TWords;
-var
-  I, J, X, Y: Integer;
-  Bits: TCnBitBuilder;
-
-  function BitToInt(Bit: Boolean): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-  begin
-    if Bit then
-      Result := 1
-    else
-      Result := 0;
-  end;
-
-begin
-  CheckEta(Eta);
-  if Length(RandBytes) < 64 * Eta then
-    raise Exception.Create(SCnErrorLatticeInvalidRandomLength);
-
-  SetLength(Result, CN_MLKEM_POLY_DEGREE);
-  Bits := TCnBitBuilder.Create;
-  try
-    Bits.AppendBytes(RandBytes);
-
-    for I := 0 to CN_MLKEM_POLY_DEGREE - 1 do
-    begin
-      X := 0;
-      Y := 0;
-
-      for J := 0 to Eta - 1 do
-        X := X + BitToInt(Bits[2 * I * Eta + J]);
-      for J := 0 to Eta - 1 do
-        Y := Y + BitToInt(Bits[2 * I * Eta + Eta + J]);
-
-      if X >= Y then
-        Result[I] := X - Y
-      else
-        Result[I] := CN_MLKEM_PRIME + X - Y;
-    end;
-  finally
-    Bits.Free;
-  end;
 end;
 
 procedure TCnMLKEM.SamplePolynomial(const Seed: TCnMLKEMSeed;
@@ -2187,33 +2161,6 @@ end;
 function TCnMLKEM.GetCipherUPolyByteLength: Integer;
 begin
   Result := CN_MLKEM_POLY_DEGREE * FCompressU div 8
-end;
-
-{ TCnMLKEMEncapsulationKey }
-
-constructor TCnMLKEMEncapsulationKey.Create;
-begin
-  inherited Create;
-
-end;
-
-destructor TCnMLKEMEncapsulationKey.Destroy;
-begin
-
-  inherited;
-end;
-
-{ TCnMLKEMDecapsulationKey }
-
-constructor TCnMLKEMDecapsulationKey.Create;
-begin
-  inherited Create;
-end;
-
-destructor TCnMLKEMDecapsulationKey.Destroy;
-begin
-
-  inherited;
 end;
 
 initialization
