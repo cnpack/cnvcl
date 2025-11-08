@@ -91,7 +91,7 @@ implementation
 {$R *.DFM}
 
 uses
-  CnBigNumber, CnVector, CnPolynomial, CnRandom;
+  CnBigNumber, CnVector, CnPolynomial, CnRandom, CnSHA3, CnBits;
 
 procedure TFormLattice.btnSimpleTestClick(Sender: TObject);
 var
@@ -501,6 +501,94 @@ begin
     ((P and ((1 shl D) - 1)) shr (D - 1))); // 四舍五入的进位项
 end;
 
+// 根据真随机数组生成 256 个采样的多项式系数供 NTT 变换用，RandBytes 的长度至少要 34 字节
+function SampleNTT(const RandBytes: TBytes): TWords;
+var
+  Ctx: TCnSHA3Context;
+  C: TBytes;
+  D1, D2: Integer;
+  J: Integer;
+begin
+  if Length(RandBytes) < CN_MLKEM_KEY_SIZE + 2 then
+    raise Exception.Create('Invalid SampleNTT Random Bytes');
+
+  SetLength(Result, CN_MLKEM_POLY_DEGREE);
+
+  SHAKE128Init(Ctx, 0);
+  SHAKE128Absorb(Ctx, PAnsiChar(@RandBytes[0]), Length(RandBytes));
+
+  J := 0;
+  while J < CN_MLKEM_POLY_DEGREE do
+  begin
+    C := SHAKE128Squeeze(Ctx, 3);
+
+    // 从 3 字节中提取两个 12 位数值
+    D1 := C[0] + 256 * (C[1] and $0F);       // 使用 C[1] 的低 4 位
+    D2 := (C[1] shr 4) + 16 * C[2];          // 使用 C[1] 的高 4 位
+
+    // 检查第一个值是否有效
+    if D1 < CN_MLKEM_PRIME then
+    begin
+      Result[J] := D1;
+      Inc(J);
+
+      // 如果已经收集够 256 个值，提前退出
+      if J >= CN_MLKEM_POLY_DEGREE then
+        Break;
+    end;
+
+    // 检查第二个值是否有效
+    if (D2 < CN_MLKEM_PRIME) and (J < CN_MLKEM_POLY_DEGREE) then
+    begin
+      Result[J] := D2;
+      Inc(J);
+    end;
+  end;
+end;
+
+// 根据真随机数组生成 256 个采样的多项式系数，RandBytes 的长度至少要 64 * Eta 字节
+function SamplePolyCBD(const RandBytes: TBytes; Eta: Integer): TWords;
+var
+  I, J, X, Y: Integer;
+  Bits: TCnBitBuilder;
+
+  function BitToInt(Bit: Boolean): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+  begin
+    if Bit then
+      Result := 1
+    else
+      Result := 0;
+  end;
+
+begin
+  if Length(RandBytes) < 64 * Eta then
+    raise Exception.Create('Invalid Random Length');
+
+  SetLength(Result, CN_MLKEM_POLY_DEGREE);
+  Bits := TCnBitBuilder.Create;
+  try
+    Bits.AppendBytes(RandBytes);
+
+    for I := 0 to CN_MLKEM_POLY_DEGREE - 1 do
+    begin
+      X := 0;
+      Y := 0;
+
+      for J := 0 to Eta - 1 do
+        X := X + BitToInt(Bits[2 * I * Eta + J]);
+      for J := 0 to Eta - 1 do
+        Y := Y + BitToInt(Bits[2 * I * Eta + Eta + J]);
+
+      if X >= Y then
+        Result[I] := X - Y
+      else
+        Result[I] := CN_MLKEM_PRIME + X - Y;
+    end;
+  finally
+    Bits.Free;
+  end;
+end;
+
 procedure TFormLattice.btnCompressTestClick(Sender: TObject);
 var
   I, D: Integer;
@@ -552,7 +640,7 @@ begin
   B := CnRandomBytes(256);
   Eta := StrToIntDef(edtSamleEta.Text, 2);
 
-  W := TCnMLKEM.SamplePolyCBD(B, Eta);
+  W := SamplePolyCBD(B, Eta);
   mmoMLKEM.Lines.Clear;
   for I := Low(W) to High(W) do
     mmoMLKEM.Lines.Add(IntToStr(W[I]));
@@ -565,7 +653,7 @@ var
   W: TWords;
 begin
   B := CnRandomBytes(34);
-  W := TCnMLKEM.SampleNTT(B);
+  W := SampleNTT(B);
 
   mmoMLKEM.Lines.Clear;
   for I := Low(W) to High(W) do
@@ -583,10 +671,10 @@ begin
   FMLKEM := TCnMLKEM.Create(cmkt512);
 
   if chkMLKEMUsePre.Checked then
-    FMLKEM.MLKEMKeyGen(FMLKEMEn, FMLKEMDe, 'BBA3C0F5DF044CDF4D9CAA53CA15FDE26F34EB3541555CFC54CA9C31B964D0C8',
+    FMLKEM.GenerateKeys(FMLKEMEn, FMLKEMDe, 'BBA3C0F5DF044CDF4D9CAA53CA15FDE26F34EB3541555CFC54CA9C31B964D0C8',
       '0A64FDD51A8D91B3166C4958A94EFC3166A4F5DF680980B878DB8371B7624C96')
   else
-    FMLKEM.MLKEMKeyGen(FMLKEMEn, FMLKEMDe);
+    FMLKEM.GenerateKeys(FMLKEMEn, FMLKEMDe);
 
   FEnBytes := FMLKEM.SaveKeyToBytes(FMLKEMEn);
   FDeBytes := FMLKEM.SaveKeysToBytes(FMLKEMDe, FMLKEMEn);

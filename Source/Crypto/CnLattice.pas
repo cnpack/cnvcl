@@ -24,11 +24,13 @@ unit CnLattice;
 * 软件名称：开发包基础库
 * 单元名称：格密码计算单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 备    注：本单元简略实现了基于格（Lattice）的 NTRU 加解密算法。
+* 备    注：本单元简略实现了基于格（Lattice）的 NTRU 加解密算法及 MLKEM 算法。
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.09.10 V1.1
+* 修改记录：2025.11.09 V1.2
+*               实现 MLKEM 的加解密与密钥封装解封算法
+*           2023.09.10 V1.1
 *               实现 NTRU 的加解密算法
 *           2023.08.25 V1.0
 *               创建单元，实现功能
@@ -268,11 +270,14 @@ type
   private
     FSecretVector: TCnMLKEMPolyVector;
     FInjectionSeed: TCnMLKEMSeed;
+    FEnKeyHash: TCnMLKEMSeed;
   public
     property SecretVector: TCnMLKEMPolyVector read FSecretVector;
     {* 秘密多项式向量，相当于规范里的 S，系数已 NTT 化}
     property InjectionSeed: TCnMLKEMSeed read FInjectionSeed;
     {* 用于隐式拒绝的随机种子，不参与密钥生成，相当于规范里的 Z}
+    property EnKeyHash: TCnMLKEMSeed read FEnKeyHash;
+    {* 对应公开密钥的杂凑值} 
   end;
 
   TCnMLKEMEncapsulationKey = class
@@ -319,9 +324,9 @@ type
       out Secret, Pub: TCnMLKEMPolyVector);
     {* 核心生成方法，D 是外部传入的真随机数}
 
-    function KPKEEncrypt(EncapKey: TCnMLKEMEncapsulationKey; const Msg: TCnMLKEMBlock;
-      const Seed: TCnMLKEMSeed; out UVector: TCnMLKEMPolyVector; out VPoly: TCnMLKEMPolynomial): TBytes;
-    {* 核心加密方法，使用公开密钥与 32 位真随机种子，加密 32 位消息}
+    procedure KPKEEncrypt(EncapKey: TCnMLKEMEncapsulationKey; const Msg: TCnMLKEMBlock;
+      const Seed: TCnMLKEMSeed; out UVector: TCnMLKEMPolyVector; out VPoly: TCnMLKEMPolynomial);
+    {* 核心加密方法，使用公开密钥与 32 位真随机种子，加密 32 位消息，返回密文对应的多项式向量与多项式}
 
     procedure KPKEDecrypt(DecapKey: TCnMLKEMDecapsulationKey;
       const CipherText: TBytes; out Msg: TCnMLKEMBlock);
@@ -331,7 +336,6 @@ type
     {* 检查公开密钥字节流是否合法，不合法则抛异常}
     procedure CheckDecapKey(DeKey: TBytes);
     {* 检查非公开密钥字节流是否合法，不合法则抛异常}
-
     procedure CheckKeyPair(EncapKey: TCnMLKEMEncapsulationKey; DecapKey: TCnMLKEMDecapsulationKey);
     {* 检查一对 Key 是否匹配}
   public
@@ -340,7 +344,7 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure MLKEMKeyGen(EncapKey: TCnMLKEMEncapsulationKey; DecapKey: TCnMLKEMDecapsulationKey;
+    procedure GenerateKeys(EncapKey: TCnMLKEMEncapsulationKey; DecapKey: TCnMLKEMDecapsulationKey;
        const RandDHex: string = ''; const RandZHex: string = '');
     {* 用两个真随机 32 字节种子，生成一对 Key，随机数允许外部传入 64 字符的十六进制字符串}
 
@@ -356,11 +360,18 @@ type
     {* 将非公开密钥与公开密钥都保存成字节流}
 
     function MLKEMEncrypt(EnKey: TBytes; Msg: TBytes; const RandHex: string = ''): TBytes;
-    {* 用非公开密钥流加密消息，返回加密密文。
+    {* 用公开密钥流加密消息，返回加密密文。
        要求消息长 32 字节，少补 0 多则截断。随机数允许外部传入 64 字符的十六进制字符串}
 
     function MLKEMDecrypt(DeKey: TBytes; CipherText: TBytes): TBytes;
-    {* 用公开密钥流解密消息，返回解密后的明文}
+    {* 用非公开密钥流解密消息，返回解密后的明文}
+
+    procedure MLKEMEncaps(EnKey: TBytes; Msg: TBytes;
+      out ShareKey: TBytes; out CipherText: TBytes);
+    {* 用公开密钥流封装共享密钥，返回共享密钥与密文。随机数允许外部传入 64 字符的十六进制字符串}
+
+    function MLKEMDecaps(DeKey: TBytes; CipherText: TBytes): TBytes;
+    {* 用非公开密钥解封密文，返回共享密钥。如失败，返回随机密钥}
 
     property MatrixRank: Integer read FMatrixRank write FMatrixRank;
     {* 矩阵的秩，在这里是方阵尺寸，取值 2 或 3 或 4}
@@ -460,6 +471,7 @@ resourcestring
   SCnErrorLatticeInvalidMsgLength = 'Invalid Message Length';
   SCnErrorLatticeInvalidHexLength = 'Invalid Random Hex Length';
   SCnErrorLatticeCipherLengthMismatch = 'Cipher Length Mismatch. Expected %d, Got %d';
+  SCnErrorLatticeKeyPairCheckFail = 'Key Pair Check Failed';
 
 type
   TCnNTRUPredefinedParams = packed record
@@ -1608,7 +1620,7 @@ begin
   // 使用已有的封装密钥检查方法
   CheckEncapKey(EkBytes);
 
-  // 步骤4: 杂凑检查 - 验证 H(ek) 是否正确
+  // 杂凑检查，验证 H(ek) 是否正确
   // H(ek) 位于 dk[768k+32 : 768k+64]
   HStart := 768 * FMatrixRank + 32;
   HLength := SizeOf(TCnMLKEMBlock);
@@ -1650,18 +1662,26 @@ end;
 procedure TCnMLKEM.CheckKeyPair(EncapKey: TCnMLKEMEncapsulationKey;
   DecapKey: TCnMLKEMDecapsulationKey);
 var
-  T: TBytes;
+  En, De: TBytes;
   Matrix: TCnMLKEMPolyMatrix;
-  PubVector: TCnMLKEMPolyVector;
+  M, ShareKey, CipherText: TBytes;
 begin
-  T := SaveKeyToBytes(EncapKey);
-  CheckEncapKey(T);
-  T := SaveKeysToBytes(DecapKey, EncapKey);
-  CheckDecapKey(T);
+  // 格式解析检验
+  En := SaveKeyToBytes(EncapKey);
+  CheckEncapKey(En);
+  De := SaveKeysToBytes(DecapKey, EncapKey);
+  CheckDecapKey(De);
 
+  // 矩阵生成检验
   GenerateMatrix(EncapKey.GenerationSeed, Matrix);
 
-  // TODO: ENCAP/DECAP 检验
+  // Encap/Decap 检验
+  M := CnRandomBytes(SizeOf(TCnMLKEMBlock));
+  MLKEMEncaps(En, M, ShareKey, CipherText); // 包装一个共享密钥，并拿到密文
+
+  M := MLKEMDecaps(De, CipherText);         // 解密文，核对是否和共享密钥相等
+  if not CompareBytes(M, ShareKey) then
+    raise ECnLatticeException.Create(SCnErrorLatticeKeyPairCheckFail);
 end;
 
 constructor TCnMLKEM.Create(AType: TCnMLKEMType);
@@ -1852,6 +1872,9 @@ begin
       CN_MLKEM_POLY_DEGREE * SizeOf(Word));
   end;
 
+  // Key 字节流中的杂凑部分加载进非公开密钥的杂凑值中
+  Move(Key[768 * FMatrixRank + 32], DecapKey.FEnKeyHash[0], SizeOf(TCnMLKEMSeed));
+
   // 解析封装密钥部分 (ek)
   EkStart := PolyLength; // 384k
   EkLength := GetEncapKeyByteLength; // ek 部分的长度
@@ -1867,10 +1890,11 @@ begin
   Move(Key[ZStart], DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
 end;
 
-procedure TCnMLKEM.MLKEMKeyGen(EncapKey: TCnMLKEMEncapsulationKey;
+procedure TCnMLKEM.GenerateKeys(EncapKey: TCnMLKEMEncapsulationKey;
   DecapKey: TCnMLKEMDecapsulationKey; const RandDHex: string; const RandZHex: string);
 var
   D: TCnMLKEMSeed;
+  B: TBytes;
 begin
   if ((Length(RandDHex) > 0) and (Length(RandDHex) <> 64)) or
     ((Length(RandZHex) > 0) and (Length(RandZHex) <> 64)) then
@@ -1886,7 +1910,12 @@ begin
   else
     PutBytesToMemory(HexToBytes(RandZHex), @DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
 
+  // 生成密钥
   KPKEKeyGen(D, EncapKey.FGenerationSeed, DecapKey.FSecretVector, EncapKey.FPubVector);
+
+  // 公开密钥的杂凑值，放非公开密钥里备用
+  B := SaveKeyToBytes(EncapKey);
+  DecapKey.FEnKeyHash := TCnMLKEMSeed(HFunc(B));
 end;
 
 procedure TCnMLKEM.SamplePolynomial(const Seed: TCnMLKEMSeed;
@@ -1928,7 +1957,6 @@ function TCnMLKEM.SaveKeysToBytes(DecapKey: TCnMLKEMDecapsulationKey;
 var
   I: Integer;
   EK, DK: TBytes;
-  B: TCnMLKEMBlock;
 begin
   EK := SaveKeyToBytes(EncapKey);
 
@@ -1938,8 +1966,7 @@ begin
 
   // dk || ek || H(ek) || z
   Result := ConcatBytes(DK, EK);
-  B := HFunc(EK);
-  Result := ConcatBytes(Result, NewBytesFromMemory(@B[0], SizeOf(TCnMLKEMBlock)));
+  Result := ConcatBytes(Result, NewBytesFromMemory(@DecapKey.FEnKeyHash[0], SizeOf(TCnMLKEMSeed)));
   Result := ConcatBytes(Result, NewBytesFromMemory(@DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMBlock)));
 end;
 
@@ -1955,9 +1982,9 @@ begin
   Result := ConcatBytes(Result, NewBytesFromMemory(@EncapKey.GenerationSeed[0], SizeOf(TCnMLKEMSeed)));
 end;
 
-function TCnMLKEM.KPKEEncrypt(EncapKey: TCnMLKEMEncapsulationKey;
+procedure TCnMLKEM.KPKEEncrypt(EncapKey: TCnMLKEMEncapsulationKey;
   const Msg: TCnMLKEMBlock; const Seed: TCnMLKEMSeed; out UVector: TCnMLKEMPolyVector;
-  out VPoly: TCnMLKEMPolynomial): TBytes;
+  out VPoly: TCnMLKEMPolynomial);
 var
   N: Integer;
   A, AT: TCnMLKEMPolyMatrix;
@@ -2042,7 +2069,7 @@ begin
         CnRandomFillBytes(@Seed[0], SizeOf(TCnMLKEMSeed));
     end;
 
-    // 准备好了随机种子，调用内部加密方法
+    // 准备好了随机种子，调用内部加密方法，返回 U V
     KPKEEncrypt(En, M, Seed, U, V);
 
     // 压缩编码，将非 NTT 系数的 U V 返回作为 Chipher 字节流
@@ -2141,6 +2168,84 @@ begin
     En.Free;
     De.Free;
   end;
+end;
+
+function TCnMLKEM.MLKEMDecaps(DeKey, CipherText: TBytes): TBytes;
+var
+  I, ExpLen: Integer;
+  En: TCnMLKEMEncapsulationKey;
+  De: TCnMLKEMDecapsulationKey;
+  Msg, S, R: TCnMLKEMBlock;
+  B, C: TBytes;
+  U, UC: TCnMLKEMPolyVector;
+  V, VC: TCnMLKEMPolynomial;
+begin
+  // 先核对 Cipher 长度
+  ExpLen := GetCipherByteLength;
+  if Length(CipherText) <> ExpLen then
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeCipherLengthMismatch,
+      [ExpLen, Length(CipherText)]);
+
+  De := TCnMLKEMDecapsulationKey.Create;
+  En := TCnMLKEMEncapsulationKey.Create;
+  try
+    LoadKeysFromBytes(DeKey, De, En);
+
+    FillChar(Msg[0], SizeOf(TCnMLKEMBlock), 0);
+    KPKEDecrypt(De, CipherText, Msg);
+
+    B := ConcatBytes(NewBytesFromMemory(@Msg[0], SizeOf(TCnMLKEMBlock)),
+      NewBytesFromMemory(@De.EnKeyHash[0], SizeOf(TCnMLKEMSeed)));
+
+    GFunc(B, S, R); // S 是解出来的共享密钥，R 是解出的一个随机数
+
+    // 验证，这里重新加解密一遍
+    KPKEEncrypt(En, Msg, TCnMLKEMSeed(R), U, V);
+
+    // 压缩编码，将非 NTT 系数的 U V 返回作为 Chipher 字节流
+    CompressPolyVector(UC, U, FCompressU);
+    CompressPolynomial(VC, V, FCompressV);
+
+    C := nil;
+    for I := Low(UC) to High(UC) do
+      C := ConcatBytes(C, ByteEncode(UC[I], FCompressU));
+    C := ConcatBytes(C, ByteEncode(VC, FCompressV));
+
+    if not CompareBytes(C, CipherText) then
+    begin
+      // 结果不匹配，说明出错，重新计算失败的胡乱杂凑放 S 里
+      C := NewBytesFromMemory(@De.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
+      C := ConcatBytes(C, CipherText);
+      S := JFunc(C);
+    end;
+
+    // 结果匹配，返回 S
+    Result := NewBytesFromMemory(@S[0], SizeOf(TCnMLKEMBlock));
+  finally
+    En.Free;
+    De.Free;
+  end;
+end;
+
+procedure TCnMLKEM.MLKEMEncaps(EnKey: TBytes; Msg: TBytes;
+  out ShareKey, CipherText: TBytes);
+var
+  D, R: TBytes;
+  B1, B2: TCnMLKEMBlock;
+begin
+  if Length(Msg) <> CN_MLKEM_KEY_SIZE then
+    raise ECnLatticeException.Create(SCnErrorLatticeInvalidMsgLength);
+
+  CheckEncapKey(EnKey);
+
+  B1 := HFunc(EnKey);
+  D := NewBytesFromMemory(@B1[0], Length(B1));
+  GFunc(ConcatBytes(EnKey, D), B1, B2);
+
+  ShareKey := NewBytesFromMemory(@B1[0], Length(B1));
+  R := NewBytesFromMemory(@B2[0], Length(B2));
+
+  CipherText := MLKEMEncrypt(EnKey, Msg, BytesToHex(R));
 end;
 
 function TCnMLKEM.GetCipherByteLength: Integer;
