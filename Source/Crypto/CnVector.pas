@@ -40,7 +40,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNative, CnContainers, CnBigNumber;
+  SysUtils, Classes, CnNative, CnContainers, CnBigNumber, CnPolynomial;
 
 type
   ECnVectorException = class(Exception);
@@ -121,6 +121,59 @@ type
 
        参数：
          Num: TCnBigNumberVector          - 待归还至池中的对象
+
+       返回值：（无）
+    }
+  end;
+
+  TCnInt64PolynomialVector = class(TCnInt64PolynomialList)
+  {* 一元整系数多项式向量，下标值即为对应维度值}
+  private
+    function GetDimension: Integer;
+    procedure SetDimension(const Value: Integer);
+  public
+    constructor Create(ADimension: Integer = 1); virtual;
+    {* 构造函数，参数是向量维度。
+
+       参数：
+         ADimension: Integer              - 向量维度
+
+       返回值：TCnInt64PolynomialVector   - 返回创建的对象
+    }
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将大整数向量转成字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回向量字符串
+    }
+
+    property Dimension: Integer read GetDimension write SetDimension;
+    {* 向量维度，设置后内部能自动创建一元整系数多项式对象}
+
+  end;
+
+  TCnInt64PolynomialVectorPool = class(TCnMathObjectPool)
+  {* 一元整系数多项式向量池实现类，允许使用到一元整系数多项式向量的地方自行创建一元整系数多项式向量池}
+  protected
+    function CreateObject: TObject; override;
+  public
+    function Obtain: TCnInt64PolynomialVector; reintroduce;
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还。
+
+       参数：
+         （无）
+
+       返回值：TCnInt64PolynomialVector   - 返回池中的大整数向量对象
+    }
+
+    procedure Recycle(Num: TCnInt64PolynomialVector); reintroduce;
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Num: TCnInt64PolynomialVector    - 待归还至池中的对象
 
        返回值：（无）
     }
@@ -353,6 +406,115 @@ procedure BigNumberVectorDotProduct(Res: TCnBigNumber; A: TCnBigNumberVector; B:
    返回值：（无）
 }
 
+// ==================== 一元整系数多项式向量计算函数 ===========================
+
+function Int64PolynomialVectorToString(V: TCnInt64PolynomialVector): string;
+{* 将一元整系数多项式向量转换为字符串形式供输出。
+
+   参数：
+     V: TCnInt64PolynomialVector          - 待转换的向量
+
+   返回值：string                         - 返回向量的字符串形式
+}
+
+procedure Int64PolynomialVectorModuleSquare(Res: TCnInt64Polynomial; V: TCnInt64PolynomialVector);
+{* 返回一元整系数多项式向量长度（模长）的平方，也即各项平方的和。
+
+   参数：
+     Res: TCnInt64Polynomial              - 待计算的向量
+     V: TCnInt64PolynomialVector          - 向量的模长的平方，数字取整
+
+   返回值：（无）
+}
+
+procedure Int64PolynomialVectorCopy(Dst: TCnInt64PolynomialVector; Src: TCnInt64PolynomialVector);
+{* 复制一元整系数多项式向量的内容。
+
+   参数：
+     Dst: TCnInt64PolynomialVector        - 目标向量
+     Src: TCnInt64PolynomialVector        - 源向量
+
+   返回值：（无）
+}
+
+procedure Int64PolynomialVectorSwap(A: TCnInt64PolynomialVector; B: TCnInt64PolynomialVector);
+{* 交换俩一元整系数多项式向量的内容。
+
+   参数：
+     A: TCnInt64PolynomialVector          - 待交换的向量一
+     B: TCnInt64PolynomialVector          - 待交换的向量二
+
+   返回值：（无）
+}
+
+function Int64PolynomialVectorEqual(A: TCnInt64PolynomialVector; B: TCnInt64PolynomialVector): Boolean;
+{* 判断俩一元整系数多项式向量是否相等。
+
+   参数：
+     A: TCnInt64PolynomialVector          - 待比较的向量一
+     B: TCnInt64PolynomialVector          - 待比较的向量二
+
+   返回值：Boolean                        - 返回向量内容是否相等
+}
+
+procedure Int64PolynomialVectorNegate(Res: TCnInt64PolynomialVector; A: TCnInt64PolynomialVector);
+{* 求一元整系数多项式向量的反向量，Res 和 A 可以是同一个对象。
+
+   参数：
+     Res: TCnInt64PolynomialVector        - 结果反向量
+     A: TCnInt64PolynomialVector          - 原向量
+
+   返回值：（无）
+}
+
+procedure Int64PolynomialVectorAdd(Res: TCnInt64PolynomialVector;
+  A: TCnInt64PolynomialVector; B: TCnInt64PolynomialVector);
+{* 俩一元整系数多项式向量的加法，和向量返回各维度对应和。Res 和 A、B 可以是同一个对象。
+
+   参数：
+     Res: TCnInt64PolynomialVector        - 向量和
+     A: TCnInt64PolynomialVector          - 向量加数一
+     B: TCnInt64PolynomialVector          - 向量加数二
+
+   返回值：（无）
+}
+
+procedure Int64PolynomialVectorSub(Res: TCnInt64PolynomialVector;
+  A: TCnInt64PolynomialVector; B: TCnInt64PolynomialVector);
+{* 俩一元整系数多项式向量的减法，差向量返回各维度对应差。Res 和 A、B 可以是同一个对象。
+
+   参数：
+     Res: TCnInt64PolynomialVector        - 向量差
+     A: TCnInt64PolynomialVector          - 向量被减数
+     B: TCnInt64PolynomialVector          - 向量减数
+
+   返回值：（无）
+}
+
+procedure Int64PolynomialVectorMul(Res: TCnInt64PolynomialVector;
+  A: TCnInt64PolynomialVector; N: TCnInt64Polynomial);
+{* 一元整系数多项式向量与数的标量乘法，也即每个维度乘以该数。Res 和 A 可以是同一个对象。
+
+   参数：
+     Res: TCnInt64PolynomialVector        - 向量与数的标量乘结果
+     A: TCnInt64PolynomialVector          - 待标量乘的向量
+     N: TCnInt64Polynomial                - 乘数
+
+   返回值：（无）
+}
+
+procedure Int64PolynomialVectorDotProduct(Res: TCnInt64Polynomial;
+  A: TCnInt64PolynomialVector; B: TCnInt64PolynomialVector);
+{* 俩一元整系数多项式向量的标量乘法也就是点乘，返回各维度对应乘积之和。A 和 B 可以是同一个对象。
+
+   参数：
+     Res: TCnInt64Polynomial              - 点乘结果
+     A: TCnInt64PolynomialVector          - 点乘向量一
+     B: TCnInt64PolynomialVector          - 点乘向量二
+
+   返回值：（无）
+}
+
 implementation
 
 resourcestring
@@ -361,6 +523,9 @@ resourcestring
 
 var
   FBigNumberPool: TCnBigNumberPool = nil;
+  FInt64PolynomialPool: TCnInt64PolynomialPool = nil;
+
+// ======================= Int64 整数向量计算函数 ==============================
 
 procedure CheckInt64VectorDimensionEqual(A, B: TCnInt64Vector);
 begin
@@ -525,35 +690,7 @@ begin
   Result := Int64VectorToString(Self);
 end;
 
-{ TCnBigNumberVector }
-
-constructor TCnBigNumberVector.Create(ADimension: Integer);
-begin
-  inherited Create;
-  SetDimension(ADimension);
-end;
-
-function TCnBigNumberVector.GetDimension: Integer;
-begin
-  Result := Count;
-end;
-
-procedure TCnBigNumberVector.SetDimension(const Value: Integer);
-var
-  I, OC: Integer;
-begin
-  if Value <= 0 then
-    raise ECnVectorException.Create(SCnErrorVectorDimensionInvalid);
-
-  OC := Count;
-  Count := Value; // 直接设置 Count，如变小，会自动释放多余的对象
-
-  if Count > OC then  // 增加的部分创建新对象
-  begin
-    for I := OC to Count - 1 do
-      Items[I] := TCnBigNumber.Create;
-  end;
-end;
+// ========================= 大整数向量计算函数 ================================
 
 procedure CheckBigNumberVectorDimensionEqual(A, B: TCnBigNumberVector);
 begin
@@ -703,6 +840,36 @@ begin
   end;
 end;
 
+{ TCnBigNumberVector }
+
+constructor TCnBigNumberVector.Create(ADimension: Integer);
+begin
+  inherited Create;
+  SetDimension(ADimension);
+end;
+
+function TCnBigNumberVector.GetDimension: Integer;
+begin
+  Result := Count;
+end;
+
+procedure TCnBigNumberVector.SetDimension(const Value: Integer);
+var
+  I, OC: Integer;
+begin
+  if Value <= 0 then
+    raise ECnVectorException.Create(SCnErrorVectorDimensionInvalid);
+
+  OC := Count;
+  Count := Value; // 直接设置 Count，如变小，会自动释放多余的对象
+
+  if Count > OC then  // 增加的部分创建新对象
+  begin
+    for I := OC to Count - 1 do
+      Items[I] := TCnBigNumber.Create;
+  end;
+end;
+
 function TCnBigNumberVector.ToString: string;
 begin
   Result := BigNumberVectorToString(Self);
@@ -726,10 +893,214 @@ begin
   inherited Recycle(Num);
 end;
 
+// ======================= 整数多项式向量计算函数 ==============================
+
+procedure CheckInt64PolynomialVectorDimensionEqual(A, B: TCnInt64PolynomialVector);
+begin
+  if A.Dimension <> B.Dimension then
+    raise ECnVectorException.Create(SCnErrorVectorDimensionNotEqual);
+end;
+
+function Int64PolynomialVectorToString(V: TCnInt64PolynomialVector): string;
+var
+  I: Integer;
+begin
+  Result := '(';
+  for I := 0 to V.Dimension - 1 do
+  begin
+    if I = 0 then
+      Result := Result + V[I].ToString
+    else
+      Result := Result + ', ' + V[I].ToString;
+  end;
+  Result := Result + ')';
+end;
+
+procedure Int64PolynomialVectorModuleSquare(Res: TCnInt64Polynomial; V: TCnInt64PolynomialVector);
+var
+  I: Integer;
+  T: TCnInt64Polynomial;
+begin
+  Res.SetZero;
+  T := FInt64PolynomialPool.Obtain;
+  try
+    for I := 0 to V.Dimension - 1 do
+    begin
+      Int64PolynomialMul(T, V[I], V[I]);
+      Int64PolynomialAdd(Res, Res, T);
+    end;
+  finally
+    FInt64PolynomialPool.Recycle(T);
+  end;
+end;
+
+procedure Int64PolynomialVectorCopy(Dst: TCnInt64PolynomialVector; Src: TCnInt64PolynomialVector);
+var
+  I: Integer;
+begin
+  if Src <> Dst then
+  begin
+    Dst.Dimension := Src.Dimension;
+    for I := 0 to Src.Dimension - 1 do
+      Int64PolynomialCopy(Dst[I], Src[I]);
+  end;
+end;
+
+procedure Int64PolynomialVectorSwap(A: TCnInt64PolynomialVector; B: TCnInt64PolynomialVector);
+var
+  I: Integer;
+begin
+  if A <> B then
+  begin
+    CheckInt64PolynomialVectorDimensionEqual(A, B);
+
+    for I := 0 to A.Dimension - 1 do
+      Int64PolynomialSwap(A[I], B[I]);
+  end;
+end;
+
+function Int64PolynomialVectorEqual(A: TCnInt64PolynomialVector; B: TCnInt64PolynomialVector): Boolean;
+var
+  I: Integer;
+begin
+  Result := A.Dimension = B.Dimension;
+  if Result then
+  begin
+    for I := 0 to A.Dimension - 1 do
+    begin
+      if not Int64PolynomialEqual(A[I], B[I]) then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+procedure Int64PolynomialVectorNegate(Res: TCnInt64PolynomialVector; A: TCnInt64PolynomialVector);
+var
+  I: Integer;
+begin
+  Int64PolynomialVectorCopy(Res, A);
+  for I := 0 to A.Dimension - 1 do
+    Res[I].Negate;
+end;
+
+procedure Int64PolynomialVectorAdd(Res: TCnInt64PolynomialVector;
+  A: TCnInt64PolynomialVector; B: TCnInt64PolynomialVector);
+var
+  I: Integer;
+begin
+  CheckInt64PolynomialVectorDimensionEqual(A, B);
+
+  Res.Dimension := A.Dimension;
+  for I := 0 to A.Dimension - 1 do
+    Int64PolynomialAdd(Res[I], A[I], B[I]);
+end;
+
+procedure Int64PolynomialVectorSub(Res: TCnInt64PolynomialVector;
+  A: TCnInt64PolynomialVector; B: TCnInt64PolynomialVector);
+var
+  I: Integer;
+begin
+  CheckInt64PolynomialVectorDimensionEqual(A, B);
+
+  Res.Dimension := A.Dimension;
+  for I := 0 to A.Dimension - 1 do
+    Int64PolynomialSub(Res[I], A[I], B[I]);
+end;
+
+procedure Int64PolynomialVectorMul(Res: TCnInt64PolynomialVector;
+  A: TCnInt64PolynomialVector; N: TCnInt64Polynomial);
+var
+  I: Integer;
+begin
+  Res.Dimension := A.Dimension;
+  for I := 0 to A.Dimension - 1 do
+    Int64PolynomialMul(Res[I], A[I], N);
+end;
+
+procedure Int64PolynomialVectorDotProduct(Res: TCnInt64Polynomial;
+  A: TCnInt64PolynomialVector; B: TCnInt64PolynomialVector);
+var
+  I: Integer;
+  T: TCnInt64Polynomial;
+begin
+  CheckInt64PolynomialVectorDimensionEqual(A, B);
+
+  Res.SetZero;
+  T := FInt64PolynomialPool.Obtain;
+  try
+    for I := 0 to A.Dimension - 1 do
+    begin
+      Int64PolynomialMul(T, A[I], B[I]);
+      Int64PolynomialAdd(Res, Res, T);
+    end;
+  finally
+    FInt64PolynomialPool.Recycle(T);
+  end;
+end;
+
+{ TCnInt64PolynomialVector }
+
+constructor TCnInt64PolynomialVector.Create(ADimension: Integer);
+begin
+  inherited Create;
+  SetDimension(ADimension);
+end;
+
+function TCnInt64PolynomialVector.GetDimension: Integer;
+begin
+  Result := Count;
+end;
+
+procedure TCnInt64PolynomialVector.SetDimension(const Value: Integer);
+var
+  I, OC: Integer;
+begin
+  if Value <= 0 then
+    raise ECnVectorException.Create(SCnErrorVectorDimensionInvalid);
+
+  OC := Count;
+  Count := Value; // 直接设置 Count，如变小，会自动释放多余的对象
+
+  if Count > OC then  // 增加的部分创建新对象
+  begin
+    for I := OC to Count - 1 do
+      Items[I] := TCnInt64Polynomial.Create;
+  end;
+end;
+
+function TCnInt64PolynomialVector.ToString: string;
+begin
+  Int64PolynomialVectorToString(Self);
+end;
+
+{ TCnInt64PolynomialVectorPool }
+
+function TCnInt64PolynomialVectorPool.CreateObject: TObject;
+begin
+  Result := TCnInt64PolynomialVector.Create(1);
+end;
+
+function TCnInt64PolynomialVectorPool.Obtain: TCnInt64PolynomialVector;
+begin
+  Result := TCnInt64PolynomialVector(inherited Obtain);
+  Result.SetDimension(1);
+end;
+
+procedure TCnInt64PolynomialVectorPool.Recycle(
+  Num: TCnInt64PolynomialVector);
+begin
+  inherited Recycle(Num);
+end;
+
 initialization
   FBigNumberPool := TCnBigNumberPool.Create;
+  FInt64PolynomialPool := TCnInt64PolynomialPool.Create;
 
 finalization
+  FInt64PolynomialPool.Free;
   FBigNumberPool.Free;
 
 end.
