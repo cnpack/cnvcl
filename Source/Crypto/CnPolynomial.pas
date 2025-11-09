@@ -640,6 +640,16 @@ function Int64PolynomialCopy(Dst: TCnInt64Polynomial; Src: TCnInt64Polynomial): 
    返回值：TCnInt64Polynomial             - 成功则返回目标对象，失败则返回 nil
 }
 
+procedure Int64PolynomialSwap(A: TCnInt64Polynomial; B: TCnInt64Polynomial);
+{* 交换两个一元整系数多项式对象的系数值。
+
+   参数：
+     A: TCnInt64Polynomial                - 待交换的一元整系数多项式一
+     B: TCnInt64Polynomial                - 待交换的一元整系数多项式二
+
+   返回值：（无）
+}
+
 function Int64PolynomialToString(P: TCnInt64Polynomial; const VarName: string = 'X'): string;
 {* 将一个一元整系数多项式对象转成字符串，未知数默认以 X 表示。
 
@@ -1790,6 +1800,16 @@ function BigNumberPolynomialCopy(Dst: TCnBigNumberPolynomial;
      Src: TCnBigNumberPolynomial          - 源一元大整系数多项式
 
    返回值：TCnBigNumberPolynomial         - 成功则返回目标对象，失败则返回 nil
+}
+
+procedure BigNumberPolynomialSwap(A: TCnBigNumberPolynomial; B: TCnBigNumberPolynomial);
+{* 交换两个一元大整系数多项式对象的系数值。
+
+   参数：
+     A: TCnBigNumberPolynomial            - 待交换的一元整系数多项式一
+     B: TCnBigNumberPolynomial            - 待交换的一元整系数多项式二
+
+   返回值：（无）
 }
 
 function BigNumberPolynomialToString(P: TCnBigNumberPolynomial;
@@ -4954,6 +4974,23 @@ begin
   end;
 end;
 
+procedure Int64PolynomialSwap(A: TCnInt64Polynomial; B: TCnInt64Polynomial);
+var
+  T: TCnInt64Polynomial;
+begin
+  if (A = nil) or (B = nil) then
+    Exit;
+
+  T := FLocalInt64PolynomialPool.Obtain;
+  try
+    Int64PolynomialCopy(T, A);
+    Int64PolynomialCopy(A, B);
+    Int64PolynomialCopy(B, T);
+  finally
+    FLocalInt64PolynomialPool.Recycle(T);
+  end;
+end;
+
 function Int64PolynomialToString(P: TCnInt64Polynomial; const VarName: string): string;
 var
   I: Integer;
@@ -7792,6 +7829,23 @@ begin
     for I := 0 to Src.Count - 1 do
       BigNumberCopy(Dst[I], Src[I]);
     Dst.CorrectTop;
+  end;
+end;
+
+procedure BigNumberPolynomialSwap(A: TCnBigNumberPolynomial; B: TCnBigNumberPolynomial);
+var
+  T: TCnBigNumberPolynomial;
+begin
+  if (A = nil) or (B = nil) then
+    Exit;
+
+  T := FLocalBigNumberPolynomialPool.Obtain;
+  try
+    BigNumberPolynomialCopy(T, A);
+    BigNumberPolynomialCopy(A, B);
+    BigNumberPolynomialCopy(B, T);
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(T);
   end;
 end;
 
