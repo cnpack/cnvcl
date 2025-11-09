@@ -475,6 +475,50 @@ procedure Int64PolynomialToMLKEMPolynomial(const Src: TCnInt64Polynomial; var Ds
    返回值：（无）
 }
 
+procedure MLKEMPolynomialToINTT(var Res: TCnMLKEMPolynomial; const P: TCnMLKEMPolynomial);
+{* 将 NTT 系数的 MKLEM 格式的多项式转换为非 NTT 系数的，俩参数可以相同。
+
+   参数：
+     Res: TCnMLKEMPolynomial              - 非 NTT 系数的 MKLEM 格式的多项式结果
+     P: TCnMLKEMPolynomial                - 待转换的 NTT 系数的 MKLEM 格式的多项式
+
+   返回值：（无）
+}
+
+procedure MLKEMPolynomialToNTT(var Res: TCnMLKEMPolynomial; const P: TCnMLKEMPolynomial);
+{* 将非 NTT 系数的 MKLEM 格式的多项式转换为 NTT 系数的，俩参数可以相同。
+
+   参数：
+     Res: TCnMLKEMPolynomial              - NTT 系数的 MKLEM 格式的多项式结果
+     P: TCnMLKEMPolynomial                - 待转换的非 NTT 系数的 MKLEM 格式的多项式
+
+   返回值：（无）
+}
+
+procedure MLKEMPolynomialAdd(var Res: TCnMLKEMPolynomial;
+  const P1: TCnMLKEMPolynomial; const P2: TCnMLKEMPolynomial);
+{* 两个 MKLEM 格式的多项式在 mod 3329 有限域中相加，NTT 系数或 非 NTT 系数均适用。
+
+   参数：
+     Res: TCnMLKEMPolynomial              - MKLEM 格式的多项式和
+     P1: TCnMLKEMPolynomial               - MKLEM 格式的多项式加数一
+     P2: TCnMLKEMPolynomial               - MKLEM 格式的多项式加数二
+
+   返回值：（无）
+}
+
+procedure MLKEMPolynomialSub(var Res: TCnMLKEMPolynomial;
+  const P1: TCnMLKEMPolynomial; const P2: TCnMLKEMPolynomial);
+{* 两个 MKLEM 格式的多项式在 mod 3329 有限域中相减，NTT 系数或 非 NTT 系数均适用。
+
+   参数：
+     Res: TCnMLKEMPolynomial              - MKLEM 格式的多项式差
+     P1: TCnMLKEMPolynomial               - MKLEM 格式的多项式被减数
+     P2: TCnMLKEMPolynomial               - MKLEM 格式的多项式减数
+
+   返回值：（无）
+}
+
 procedure MLKEMPolynomialMul(var Res: TCnMLKEMPolynomial; const MP1, MP2: TCnMLKEMPolynomial;
   IsNTT: Boolean = True);
 {* 两个 MKLEM 格式的多项式在 mod 3329 及 x^256 + 1 的多项式环上相乘。
@@ -498,6 +542,18 @@ procedure MLKEMMatrixVectorMul(var Res: TCnMLKEMPolyVector;
      A: TCnMLKEMPolyMatrix                - MKLEM 格式的多项式方阵
      S: TCnMLKEMPolyVector                - MKLEM 格式的多项式向量
      IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
+
+   返回值：（无）
+}
+
+procedure MLKEMVectorAdd(var Res: TCnMLKEMPolyVector;
+  const P1: TCnMLKEMPolyVector; const P2: TCnMLKEMPolyVector);
+{* 两个 MKLEM 格式的多项式向量在 mod 3329 有限域中相加，NTT 系数或 非 NTT 系数均适用。
+
+   参数：
+     Res: TCnMLKEMPolynomial              - MKLEM 格式的多项式向量和
+     P1: TCnMLKEMPolynomial               - MKLEM 格式的多项式向量加数一
+     P2: TCnMLKEMPolynomial               - MKLEM 格式的多项式向量加数二
 
    返回值：（无）
 }
@@ -1380,71 +1436,66 @@ begin
     Result[J] := ModMul(Result[J], CN_MLKEM_PRIME_INV);
 end;
 
-// 将 NTT 系数的多项式转换为非 NTT 系数的，俩参数可以相同
-procedure PolyToINTT(const InPoly: TCnMLKEMPolynomial; out Poly: TCnMLKEMPolynomial);
+procedure MLKEMPolynomialToINTT(var Res: TCnMLKEMPolynomial; const P: TCnMLKEMPolynomial);
 var
   W: TWords;
 begin
   SetLength(W, CN_MLKEM_POLY_SIZE);
-  Move(InPoly[0], W[0], Length(W) * SizeOf(Word));
+  Move(P[0], W[0], Length(W) * SizeOf(Word));
   W := INTT(W);
-  Move(W[0], Poly[0], Length(W) * SizeOf(Word));
+  Move(W[0], Res[0], Length(W) * SizeOf(Word));
 end;
 
-// 将非 NTT 系数的多项式转换为 NTT 系数的，俩参数可以相同
-procedure PolyToNTT(const InPoly: TCnMLKEMPolynomial; out Poly: TCnMLKEMPolynomial);
+procedure MLKEMPolynomialToNTT(var Res: TCnMLKEMPolynomial; const P: TCnMLKEMPolynomial);
 var
   W: TWords;
 begin
   SetLength(W, CN_MLKEM_POLY_SIZE);
-  Move(InPoly[0], W[0], Length(W) * SizeOf(Word));
+  Move(P[0], W[0], Length(W) * SizeOf(Word));
   W := NTT(W);
-  Move(W[0], Poly[0], Length(W) * SizeOf(Word));
+  Move(W[0], Res[0], Length(W) * SizeOf(Word));
 end;
 
 // 将 NTT 系数的多项式向量转换为非 NTT 系数的
-procedure VectorToINTT(var Vector: TCnMLKEMPolyVector);
+procedure MLKEMVectorToINTT(var Vector: TCnMLKEMPolyVector);
 var
   I: Integer;
 begin
   for I := Low(Vector) to High(Vector) do
-    PolyToINTT(Vector[I], Vector[I]);
+    MLKEMPolynomialToINTT(Vector[I], Vector[I]);
 end;
 
 // 将非 NTT 系数的多项式向量转换为 NTT 系数的
-procedure VectorToNTT(var Vector: TCnMLKEMPolyVector);
+procedure MLKEMVectorToNTT(var Vector: TCnMLKEMPolyVector);
 var
   I: Integer;
 begin
   for I := Low(Vector) to High(Vector) do
-    PolyToNTT(Vector[I], Vector[I]);
+    MLKEMPolynomialToNTT(Vector[I], Vector[I]);
 end;
 
-// 俩多项式相加，无论是不是 NTT
-procedure PolyAdd(var Res: TCnMLKEMPolynomial; const V1, V2: TCnMLKEMPolynomial);
+procedure MLKEMPolynomialAdd(var Res: TCnMLKEMPolynomial; const P1, P2: TCnMLKEMPolynomial);
 var
   I: Integer;
 begin
-  for I := Low(V1) to High(V1) do
-    Res[I] := ModAdd(V1[I], V2[I]);
+  for I := Low(P1) to High(P1) do
+    Res[I] := ModAdd(P1[I], P2[I]);
 end;
 
-// 俩多项式相减，无论是不是 NTT
-procedure PolySub(var Res: TCnMLKEMPolynomial; const V1, V2: TCnMLKEMPolynomial);
+procedure MLKEMPolynomialSub(var Res: TCnMLKEMPolynomial; const P1, P2: TCnMLKEMPolynomial);
 var
   I: Integer;
 begin
-  for I := Low(V1) to High(V1) do
-    Res[I] := ModSub(V1[I], V2[I]);
+  for I := Low(P1) to High(P1) do
+    Res[I] := ModSub(P1[I], P2[I]);
 end;
 
-// 俩排多项式相加，或者说是俩多项式向量相加，无论是不是 NTT
-procedure VectorAdd(var Res: TCnMLKEMPolyVector; const V1, V2: TCnMLKEMPolyVector);
+procedure MLKEMVectorAdd(var Res: TCnMLKEMPolyVector; const P1, P2: TCnMLKEMPolyVector);
 var
   I: Integer;
 begin
-  for I := Low(V1) to High(V1) do
-    PolyAdd(Res[I], V1[I], V2[I]);
+  for I := Low(P1) to High(P1) do
+    MLKEMPolynomialAdd(Res[I], P1[I], P2[I]);
 end;
 
 procedure BaseCaseMultiply(A0, A1, B0, B1, Gamma: Word; out C0, C1: Word);
@@ -1516,7 +1567,7 @@ begin
       MLKEMPolynomialMul(T, A[I, J], S[J], IsNTT);
 
       // 累加到结果中
-      PolyAdd(Res[I], Res[I], T);
+      MLKEMPolynomialAdd(Res[I], Res[I], T);
     end;
   end;
 end;
@@ -1531,7 +1582,7 @@ begin
   for I := Low(V1) to High(V1) do
   begin
     MLKEMPolynomialMul(T, V1[I], V2[I], IsNTT);
-    PolyAdd(Res, Res, T);
+    MLKEMPolynomialAdd(Res, Res, T);
   end;
 end;
 
@@ -1880,7 +1931,7 @@ begin
 
   // 计算 T = A * S + E
   MLKEMMatrixVectorMul(Pub, Matrix, Secret);
-  VectorAdd(Pub, Pub, Noise);
+  MLKEMVectorAdd(Pub, Pub, Noise);
 end;
 
 procedure TCnMLKEM.LoadKeyFromBytes(Key: TBytes; EncapKey: TCnMLKEMEncapsulationKey);
@@ -2087,14 +2138,14 @@ begin
   MLKEMMatrixVectorMul(UVector, AT, Y); // 得到 U 的 NTT 模式
 
   // U 解回非 NTT 模式，加 E1
-  VectorToINTT(UVector);
-  VectorAdd(UVector, UVector, E1);
+  MLKEMVectorToINTT(UVector);
+  MLKEMVectorAdd(UVector, UVector, E1);
 
   // V = T^ * Y + E2 + miu，注意 T^ 和 Y 都是 NTT 的，计算得到的多项式要做个非 NTT 转换
   MLKEMVectorDotProduct(VPoly, EncapKey.PubVector, Y);
 
-  PolyToINTT(VPoly, VPoly);      // 转换成非 NTT
-  PolyAdd(VPoly, VPoly, E2);     // 再加 E2
+  MLKEMPolynomialToINTT(VPoly, VPoly);      // 转换成非 NTT
+  MLKEMPolynomialAdd(VPoly, VPoly, E2);     // 再加 E2
 
   // 再加 Message
   B := NewBytesFromMemory(@Msg[0], SizeOf(TCnMLKEMBlock));
@@ -2104,7 +2155,7 @@ begin
   Move(W[0], MP[0], SizeOf(TCnMLKEMPolynomial));
 
   // 再加消息多项式
-  PolyAdd(VPoly, VPoly, MP);
+  MLKEMPolynomialAdd(VPoly, VPoly, MP);
 end;
 
 function TCnMLKEM.MLKEMEncrypt(EnKey {$IFDEF MLKEM_DEBUG}, DeKey {$ENDIF}: TBytes;
@@ -2197,16 +2248,16 @@ begin
   // 外部传入的 UVector 是非 NTT 的，转换为 NTT 方式放到 U 中
   SetLength(U, FMatrixRank);
   for I := Low(UVector) to High(UVector) do
-    PolyToNTT(UVector[I], U[I]);
+    MLKEMPolynomialToNTT(U[I], UVector[I]);
 
   // 计算 s 点乘 U，得到一个 NTT 形式的多项式 T
   MLKEMVectorDotProduct(T, DecapKey.SecretVector, U);
 
   // 积转换成非 NTT
-  PolyToINTT(T, T);
+  MLKEMPolynomialToINTT(T, T);
 
   // 以非 NTT 的方式计算 V - 这个积，得到消息多项式 W，解密初步完毕
-  PolySub(W, VPoly, T);
+  MLKEMPolynomialSub(W, VPoly, T);
 
   // 压缩该消息多项式
   CompressPolynomial(T, W, 1);
@@ -2311,7 +2362,7 @@ begin
 
   B1 := HFunc(EnKey);
   D := NewBytesFromMemory(@B1[0], Length(B1));
-  GFunc(ConcatBytes(EnKey, D), B1, B2);
+  GFunc(ConcatBytes(Msg, D), B1, B2);
 
   ShareKey := NewBytesFromMemory(@B1[0], Length(B1));
   R := NewBytesFromMemory(@B2[0], Length(B2));
