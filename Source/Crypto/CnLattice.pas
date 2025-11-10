@@ -301,6 +301,7 @@ type
     FCompressDigits: Integer;
     FCompressU: Integer;
     FCompressV: Integer;
+    FMLKEMType: TCnMLKEMType;
     function GetEncapKeyByteLength: Integer;
     function GetDecapKeyByteLength: Integer;
     function GetCipherUPolyByteLength: Integer;
@@ -380,6 +381,8 @@ type
     property MatrixRank: Integer read FMatrixRank write FMatrixRank;
     {* 矩阵的秩，在这里是方阵尺寸，取值 2 或 3 或 4}
 
+    property MLKEMType: TCnMLKEMType read FMLKEMType;
+    {* MLKEM 的算法类型，512、768、1024 三种}
     property Noise1: Integer read FNoise1 write FNoise1;
     {* 噪声参数一，控制生成密钥时秘密向量和错误向量的采样范围}
     property Noise2: Integer read FNoise2 write FNoise2;
@@ -1686,6 +1689,7 @@ end;
 constructor TCnMLKEM.Create(AType: TCnMLKEMType);
 begin
   inherited Create;
+  FMLKEMType := AType;
   FNoise2 := 2;
 
   case AType of

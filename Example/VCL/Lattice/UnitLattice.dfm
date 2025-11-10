@@ -1,6 +1,6 @@
 object FormLattice: TFormLattice
   Left = 192
-  Top = 111
+  Top = 114
   Width = 834
   Height = 615
   Caption = 'Lattice'
@@ -269,9 +269,9 @@ object FormLattice: TFormLattice
         end
         object mmoMLKEM: TMemo
           Left = 16
-          Top = 136
+          Top = 168
           Width = 201
-          Height = 377
+          Height = 345
           ScrollBars = ssVertical
           TabOrder = 1
         end
@@ -312,7 +312,7 @@ object FormLattice: TFormLattice
         object btnMLKEMSampleNtt: TButton
           Left = 16
           Top = 104
-          Width = 113
+          Width = 89
           Height = 25
           Caption = 'Sample NTT'
           TabOrder = 6
@@ -337,9 +337,9 @@ object FormLattice: TFormLattice
         object chkMLKEMUsePre: TCheckBox
           Left = 408
           Top = 36
-          Width = 113
+          Width = 169
           Height = 17
-          Caption = 'Use Pre Hex Seeds'
+          Caption = 'Use Pre Hex Seeds for 512'
           TabOrder = 9
         end
         object edtMLKEMMsg: TEdit
@@ -374,6 +374,46 @@ object FormLattice: TFormLattice
           Width = 529
           Height = 161
           TabOrder = 13
+        end
+        object btnMLKEM2Ntt: TButton
+          Left = 128
+          Top = 104
+          Width = 89
+          Height = 25
+          Caption = 'NTT && INTT'
+          TabOrder = 14
+          OnClick = btnMLKEM2NttClick
+        end
+        object btnMLKEMDotProduct: TButton
+          Left = 16
+          Top = 136
+          Width = 89
+          Height = 25
+          Caption = 'Dot Product'
+          TabOrder = 15
+          OnClick = btnMLKEMDotProductClick
+        end
+        object btnMLKEMEncap: TButton
+          Left = 480
+          Top = 264
+          Width = 97
+          Height = 25
+          Caption = 'Encap/Decap'
+          TabOrder = 16
+          OnClick = btnMLKEMEncapClick
+        end
+        object cbbMLKEMType: TComboBox
+          Left = 624
+          Top = 32
+          Width = 145
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 17
+          Items.Strings = (
+            'MLKEM 512'
+            'MLKEM 768'
+            'MLKEM 1024')
         end
       end
     end
