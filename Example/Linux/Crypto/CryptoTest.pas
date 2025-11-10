@@ -1887,23 +1887,135 @@ end;
 // ============================== Lattice ======================================
 
 function TestNTRUClassic: Boolean;
+const
+  CNPACK: AnsiString = 'CnPack';
+var
+  NTRU: TCnNTRU;
+  Priv: TCnNTRUPrivateKey;
+  Pub: TCnNTRUPublicKey;
+  Data, En, De: TBytes;
 begin
-  Result := True;
+  NTRU := nil;
+  Priv := nil;
+  Pub := nil;
+
+  try
+    NTRU := TCnNTRU.Create(cnptClassic);
+    Priv := TCnNTRUPrivateKey.Create;
+    Pub := TCnNTRUPublicKey.Create;
+
+    NTRU.GenerateKeys(Priv, Pub);
+
+    Data := AnsiToBytes(CNPACK);
+    En := NTRU.EncryptBytes(Pub, Data);
+    De := NTRU.DecryptBytes(Priv, En);
+
+    // 解出的内容有后续 #0
+    Result := StrComp(PAnsiChar(CNPACK), PAnsiChar(BytesToAnsi(De))) = 0;
+  finally
+    Pub.Free;
+    Priv.Free;
+    NTRU.Free;
+  end;
 end;
 
 function TestNTRUHPS2048509: Boolean;
+const
+  CNPACK: AnsiString = 'CnPack';
+var
+  NTRU: TCnNTRU;
+  Priv: TCnNTRUPrivateKey;
+  Pub: TCnNTRUPublicKey;
+  Data, En, De: TBytes;
 begin
-  Result := True;
+  NTRU := nil;
+  Priv := nil;
+  Pub := nil;
+
+  try
+    NTRU := TCnNTRU.Create(cnptHPS2048509);
+    Priv := TCnNTRUPrivateKey.Create;
+    Pub := TCnNTRUPublicKey.Create;
+
+    NTRU.GenerateKeys(Priv, Pub);
+
+    Data := AnsiToBytes(CNPACK);
+    En := NTRU.EncryptBytes(Pub, Data);
+    De := NTRU.DecryptBytes(Priv, En);
+
+    // 解出的内容有后续 #0
+    Result := StrComp(PAnsiChar(CNPACK), PAnsiChar(BytesToAnsi(De))) = 0;
+  finally
+    Pub.Free;
+    Priv.Free;
+    NTRU.Free;
+  end;
 end;
 
 function TestNTRUHPS2048677: Boolean;
+const
+  CNPACK: AnsiString = 'CnPack';
+var
+  NTRU: TCnNTRU;
+  Priv: TCnNTRUPrivateKey;
+  Pub: TCnNTRUPublicKey;
+  Data, En, De: TBytes;
 begin
-  Result := True;
+  NTRU := nil;
+  Priv := nil;
+  Pub := nil;
+
+  try
+    NTRU := TCnNTRU.Create(cnptHPS2048677);
+    Priv := TCnNTRUPrivateKey.Create;
+    Pub := TCnNTRUPublicKey.Create;
+
+    NTRU.GenerateKeys(Priv, Pub);
+
+    Data := AnsiToBytes(CNPACK);
+    En := NTRU.EncryptBytes(Pub, Data);
+    De := NTRU.DecryptBytes(Priv, En);
+
+    // 解出的内容有后续 #0
+    Result := StrComp(PAnsiChar(CNPACK), PAnsiChar(BytesToAnsi(De))) = 0;
+  finally
+    Pub.Free;
+    Priv.Free;
+    NTRU.Free;
+  end;
 end;
 
 function TestNTRUHPS4096821: Boolean;
+const
+  CNPACK: AnsiString = 'CnPack';
+var
+  NTRU: TCnNTRU;
+  Priv: TCnNTRUPrivateKey;
+  Pub: TCnNTRUPublicKey;
+  Data, En, De: TBytes;
 begin
-  Result := True;
+  NTRU := nil;
+  Priv := nil;
+  Pub := nil;
+
+  try
+    NTRU := TCnNTRU.Create(cnptHPS4096821);
+    Priv := TCnNTRUPrivateKey.Create;
+    Pub := TCnNTRUPublicKey.Create;
+
+    NTRU.GenerateKeys(Priv, Pub);
+
+    Data := AnsiToBytes(CNPACK);
+    En := NTRU.EncryptBytes(Pub, Data);
+    De := NTRU.DecryptBytes(Priv, En);
+
+    // 解出的内容有后续 #0
+    Result := StrComp(PAnsiChar(CNPACK), PAnsiChar(BytesToAnsi(De))) = 0;
+  finally
+    Pub.Free;
+    Priv.Free;
+    NTRU.Free;
+  end;
 end;
 
 function TestMLKEM512KeyGen: Boolean;

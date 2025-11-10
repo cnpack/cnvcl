@@ -24,8 +24,11 @@ unit CnLattice;
 * 软件名称：开发包基础库
 * 单元名称：格密码计算单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 备    注：本单元简略实现了基于格（Lattice）的 NTRU 加解密算法及 MLKEM 算法。
+* 备    注：本单元简略实现了基于格（Lattice）的 NTRU （数论研究单元）公开密钥加解密算法
+*           及 MLKEM （基于模块化格上的学习误差问题的密钥封装）算法。
 *           MLKEM 基于 NIST 的 FIPS 203 规范。
+*
+*           NTRU 只支持较短的明文加解密。
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -134,7 +137,7 @@ type
   TCnNTRU = class
   {* Number Theory Research Unit 实现类}
   private
-    FQ: Int64;
+    FQ: Int64;   // 提前计算出的模数 2^FQExponent
     FQExponent: Integer;
     FD: Integer;
     FN: Integer;
@@ -413,7 +416,7 @@ procedure NTRUDataToInt64Polynomial(Res: TCnInt64Polynomial; Data: Pointer;
      Res: TCnInt64Polynomial              - 输出的结果多项式
      Data: Pointer                        - 待转换的数据块地址
      ByteLength: Integer                  - 待转换的数据块字节长度
-     N: Int64                             - 多项式位数
+     N: Int64                             - 多项式位数，一般取 NTRU 的 N
      Modulus: Int64                       - 模数
      CheckSum: Boolean                    - 取系数校验的方式
 
