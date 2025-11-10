@@ -28,7 +28,7 @@ unit CnLattice;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2025.11.09 V1.2
+* 修改记录：2025.11.10 V1.2
 *               实现 MLKEM 的加解密与密钥封装解封算法
 *           2023.09.10 V1.1
 *               实现 NTRU 的加解密算法
@@ -363,7 +363,7 @@ type
     function SaveKeysToBytes(DecapKey: TCnMLKEMDecapsulationKey; EncapKey: TCnMLKEMEncapsulationKey): TBytes;
     {* 将非公开密钥与公开密钥都保存成字节流}
 
-    function MLKEMEncrypt(EnKey {$IFDEF MLKEM_DEBUG}, DeKey {$ENDIF}: TBytes; Msg: TBytes; const RandHex: string = ''): TBytes;
+    function MLKEMEncrypt(EnKey: TBytes; Msg: TBytes; const RandHex: string = ''): TBytes;
     {* 用公开密钥流加密消息，返回加密密文。
        要求消息长 32 字节，少补 0 多则截断。随机数允许外部传入 64 字符的十六进制字符串}
 
@@ -1795,10 +1795,10 @@ begin
   // 生成矩阵
   GenerateMatrix(GenerationSeed, Matrix);
 
-  // 生成 K 个 S
+  // 生成 K 个 S，是 NTT 形式的
   SampleVector(O, FNoise1, N, Secret);
 
-  // 生成 K 个 E
+  // 生成 K 个 E，也是 NTT 形式的
   SampleVector(O, FNoise1, N, Noise);
 
   // 计算 T = A * S + E
@@ -1998,16 +1998,18 @@ begin
   // 转置矩阵
   TransposeMatrix(A, AT);
 
-  // 生成随机向量与误差向量，注意前者 NTT 的，后者非 NTT 的，便于运算
+  // 生成随机向量 Y 与误差向量 E1，注意前者 Y 是 NTT 的，便于运算
   N := 0;
   SampleVector(Seed, FNoise1, N, Y);
+
+  // 后者 E1 非 NTT 的
   SampleVector(Seed, FNoise2, N, E1, False);
 
-  // 生成误差多项式，注意并非 NTT 模式
+  // 生成误差多项式 E2，注意也非 NTT 模式
   SamplePolynomial(Seed, FNoise2, N, E2, False);
 
-  // U = AT * Y + E1，先 NTT 矩阵乘
-  MLKEMMatrixVectorMul(UVector, AT, Y); // 得到 U 的 NTT 模式
+  // U = AT * Y + E1，先 NTT 矩阵乘，得到 U 中间结果的 NTT 模式
+  MLKEMMatrixVectorMul(UVector, AT, Y);
 
   // U 解回非 NTT 模式，加 E1
   MLKEMVectorToINTT(UVector);
@@ -2025,18 +2027,15 @@ begin
 
   // 将 256 个 Word 放入多项式
   Move(W[0], MP[0], SizeOf(TCnMLKEMPolynomial));
+  DecompressPolynomial(MP, MP, 1);
 
   // V 再加上消息多项式
   MLKEMPolynomialAdd(VPolynomial, VPolynomial, MP);
 end;
 
-function TCnMLKEM.MLKEMEncrypt(EnKey {$IFDEF MLKEM_DEBUG}, DeKey {$ENDIF}: TBytes;
-  Msg: TBytes; const RandHex: string): TBytes;
+function TCnMLKEM.MLKEMEncrypt(EnKey: TBytes; Msg: TBytes; const RandHex: string): TBytes;
 var
   En: TCnMLKEMEncapsulationKey;
-{$IFDEF MLKEM_DEBUG}
-  De: TCnMLKEMDecapsulationKey;
-{$ENDIF}
   M: TCnMLKEMBlock;
   Seed: TCnMLKEMSeed;
   B: TBytes;
@@ -2051,15 +2050,9 @@ begin
     raise ECnLatticeException.Create(SCnErrorLatticeInvalidHexLength);
 
   En := TCnMLKEMEncapsulationKey.Create;
-{$IFDEF MLKEM_DEBUG}
-  De := TCnMLKEMDecapsulationKey.Create;
-{$ENDIF}
+
   try
     LoadKeyFromBytes(EnKey, En);               // 准备好 Key
-{$IFDEF MLKEM_DEBUG}
-    if Length(DeKey) > 0 then
-      LoadKeysFromBytes(DeKey, De, En);
-{$ENDIF}
     Move(Msg[0], M[0], SizeOf(TCnMLKEMBlock)); // 准备好 Msg
 
     if RandHex = '' then
@@ -2080,17 +2073,8 @@ begin
         CnRandomFillBytes(@Seed[0], SizeOf(TCnMLKEMSeed));
     end;
 
-    // 准备好了随机种子，调用内部加密方法，返回 U V
+    // 准备好了消息种子 M 和随机种子 R，调用内部加密方法，返回 U V
     KPKEEncrypt(En, M, Seed, U, V);
-
-    // TEST 拿 U V 解密
-{$IFDEF MLKEM_DEBUG}
-    if Length(DeKey) > 0 then
-    begin
-      KPKEDecrypt(De, U, V, M); // 发现 M 不等于原来的 M
-    end;
-{$ENDIF}
-    // TEST
 
     // 压缩编码，将非 NTT 系数的 U V 返回作为 Chipher 字节流
     CompressPolyVector(UC, U, FCompressU);
@@ -2101,9 +2085,6 @@ begin
       Result := ConcatBytes(Result, ByteEncode(UC[I], FCompressU));
     Result := ConcatBytes(Result, ByteEncode(VC, FCompressV));
   finally
-{$IFDEF MLKEM_DEBUG}
-    De.Free;
-{$ENDIF}
     En.Free;
   end;
 end;
@@ -2213,7 +2194,7 @@ begin
       S := JFunc(C);
     end;
 
-    // 结果匹配，返回 S
+    // 无论结果是否匹配，都返回 S
     Result := NewBytesFromMemory(@S[0], SizeOf(TCnMLKEMBlock));
   finally
     En.Free;
@@ -2239,7 +2220,7 @@ begin
   ShareKey := NewBytesFromMemory(@B1[0], Length(B1));
   R := NewBytesFromMemory(@B2[0], Length(B2));
 
-  CipherText := MLKEMEncrypt(EnKey, nil, Msg, BytesToHex(R));
+  CipherText := MLKEMEncrypt(EnKey, Msg, BytesToHex(R));
 end;
 
 function TCnMLKEM.GetCipherByteLength: Integer;
