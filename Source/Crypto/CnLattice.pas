@@ -25,6 +25,7 @@ unit CnLattice;
 * 单元名称：格密码计算单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：本单元简略实现了基于格（Lattice）的 NTRU 加解密算法及 MLKEM 算法。
+*           MLKEM 基于 NIST 的 FIPS 203 规范。
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -64,7 +65,8 @@ type
 
   TCnNTRUParamType = (cnptCustomized, cnptClassic, cnptHPS2048509, cnptHPS2048677,
     cnptHPS4096821);
-  {* NTRU 几个推荐参数}
+  {* NTRU 几个推荐参数，其中 cnptCustomized 需要自行指定参数，
+     如参数不合适则有安全问题，故不推荐使用。}
 
   TCnMLKEMType = (cmkt512, cmkt768, cmkt1024);
   {* MLKEM 的三种实现规范}
@@ -350,8 +352,12 @@ type
     {* 析构函数}
 
     procedure GenerateKeys(EncapKey: TCnMLKEMEncapsulationKey; DecapKey: TCnMLKEMDecapsulationKey;
-       const RandDHex: string = ''; const RandZHex: string = '');
+      const RandDHex: string = ''; const RandZHex: string = ''); overload;
     {* 用两个真随机 32 字节种子，生成一对 Key，随机数允许外部传入 64 字符的十六进制字符串}
+
+    procedure GenerateKeys(out EnKey: TBytes; out DeKey: TBytes;
+      const RandDHex: string = ''; const RandZHex: string = ''); overload;
+    {* 用两个真随机 32 字节种子，生成一对 Key 的字节流，随机数允许外部传入 64 字符的十六进制字符串}
 
     procedure LoadKeyFromBytes(Key: TBytes; EncapKey: TCnMLKEMEncapsulationKey);
     {* 从字节流中加载公开密钥，失败则抛异常}
@@ -1919,6 +1925,28 @@ begin
   // 公开密钥的杂凑值，放非公开密钥里备用
   B := SaveKeyToBytes(EncapKey);
   DecapKey.FEnKeyHash := TCnMLKEMSeed(HFunc(B));
+end;
+
+procedure TCnMLKEM.GenerateKeys(out EnKey: TBytes; out DeKey: TBytes;
+  const RandDHex: string; const RandZHex: string);
+var
+  EK: TCnMLKEMEncapsulationKey;
+  DK: TCnMLKEMDecapsulationKey;
+begin
+  EK := nil;
+  DK := nil;
+
+  try
+    EK := TCnMLKEMEncapsulationKey.Create;
+    DK := TCnMLKEMDecapsulationKey.Create;
+
+    GenerateKeys(EK, DK, RandDHex, RandZHex);
+    EnKey := SaveKeyToBytes(EK);
+    DeKey := SaveKeysToBytes(DK, EK);
+  finally
+    DK.Free;
+    EK.Free;
+  end;
 end;
 
 procedure TCnMLKEM.SamplePolynomial(const Seed: TCnMLKEMSeed;
