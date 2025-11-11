@@ -339,7 +339,7 @@ object FormLattice: TFormLattice
           Top = 36
           Width = 169
           Height = 17
-          Caption = 'Use Pre Hex Seeds for 512'
+          Caption = 'Use Pre Hex Seeds'
           TabOrder = 9
         end
         object edtMLKEMMsg: TEdit

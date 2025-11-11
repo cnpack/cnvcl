@@ -62,6 +62,15 @@ const
   CN_MLKEM_PRIME_INV   = 3303;
   {* MLKEM  使用的 128 对该素数的模逆元}
 
+  CN_MLDSA_KEY_SIZE    = 32;
+  {* MLDSA  的共享密钥及种子等的长度}
+
+  CN_MLDSA_POLY_SIZE   = 256;
+  {* MLDSA  的多项式尺寸，最高次数是 255 次}
+
+  CN_MLDSA_PRIME       = 8380417;
+  {* MLDSA  使用的素数}
+
 type
   ECnLatticeException = class(Exception);
   {* NTRU/MLKEM相关异常}
@@ -268,10 +277,10 @@ type
   {* MLKEM 多项式系数，256 个双字，用来表达一个多项式}
 
   TCnMLKEMPolyVector = array of TCnMLKEMPolynomial;
-  {* 多项式列表或叫向量，用来表达 S 或 E 等}
+  {* MLKEM 多项式列表或叫向量，用来表达 S 或 E 等}
 
   TCnMLKEMPolyMatrix = array of TCnMLKEMPolyVector;
-  {* 多项式矩阵，用来表达 A}
+  {* MLKEM 多项式矩阵，用来表达 A}
 
   TCnMLKEMDecapsulationKey = class
   {* MLKEM 的非公开解封密钥，包括秘密多项式向量与隐式拒绝的随机种子}
@@ -371,10 +380,10 @@ type
       EncapKey: TCnMLKEMEncapsulationKey);
     {* 从字节流中加载非公开密钥与公开密钥，失败则抛异常}
 
-    function SaveKeyToBytes(EncapKey: TCnMLKEMEncapsulationKey): TBytes;
-    {* 将公开密钥保存成字节流}
-    function SaveKeysToBytes(DecapKey: TCnMLKEMDecapsulationKey; EncapKey: TCnMLKEMEncapsulationKey): TBytes;
-    {* 将非公开密钥与公开密钥都保存成字节流}
+    function SaveEncapKeyToBytes(EncapKey: TCnMLKEMEncapsulationKey): TBytes;
+    {* 将公开密钥保存成字节流 EK}
+    function SaveDecapKeyToBytes(DecapKey: TCnMLKEMDecapsulationKey; EncapKey: TCnMLKEMEncapsulationKey): TBytes;
+    {* 将非公开密钥与公开密钥都保存成字节流 DK}
 
     function MLKEMEncrypt(EnKey: TBytes; Msg: TBytes; const RandHex: string = ''): TBytes;
     {* 用公开密钥流加密消息，返回加密密文。
@@ -405,6 +414,49 @@ type
     {* U 的压缩位数}
     property CompressV: Integer read FCompressV write FCompressV;
     {* V 的压缩位数}
+  end;
+
+  TCnMLDSASeed = array[0..CN_MLDSA_KEY_SIZE - 1] of Byte;
+  {* MLDSA 种子，32 字节}
+
+  TCnMLDSABlock = array[0..CN_MLDSA_KEY_SIZE - 1] of Byte;
+  {* MLDSA 块数据，32 字节}
+
+  TCnMLDSAPolynomial = array[0..CN_MLDSA_POLY_SIZE - 1] of Integer;
+  {* MLDSA 多项式系数，256 个整数，用来表达一个多项式}
+
+  TCnMLDSAPolyVector = array of TCnMLDSAPolynomial;
+  {* MLDSA 多项式列表或叫向量，用来表达 S 或 E 等}
+
+  TCnMLDSAPolyMatrix = array of TCnMLDSAPolyVector;
+  {* MLDSA 多项式矩阵，用来表达 A}
+
+  TCnMLDSAPrivateKey = class
+  private
+    FGenerationSeed: TCnMLDSASeed;
+  public
+    property GenerationSeed: TCnMLDSASeed read FGenerationSeed;
+    {* 用于生成矩阵的随机种子，相当于规范里的 p}
+
+  end;
+
+  TCnMLDSAPublicKey = class
+  private
+    FGenerationSeed: TCnMLDSASeed;
+  public
+    property GenerationSeed: TCnMLDSASeed read FGenerationSeed;
+    {* 用于生成矩阵的随机种子，相当于规范里的 p}
+
+  end;
+
+  TCnMLDSA = class
+  private
+    FMatrixRowCount: Integer;
+    FMatrixColCount: Integer;
+
+  public
+    property MatrixRowCount: Integer read FMatrixRowCount write FMatrixRowCount;
+    property MatrixColCount: Integer read FMatrixColCount write FMatrixColCount;
   end;
 
 procedure NTRUDataToInt64Polynomial(Res: TCnInt64Polynomial; Data: Pointer;
@@ -1668,9 +1720,9 @@ var
   M, ShareKey, CipherText: TBytes;
 begin
   // 格式解析检验
-  En := SaveKeyToBytes(EncapKey);
+  En := SaveEncapKeyToBytes(EncapKey);
   CheckEncapKey(En);
-  De := SaveKeysToBytes(DecapKey, EncapKey);
+  De := SaveDecapKeyToBytes(DecapKey, EncapKey);
   CheckDecapKey(De);
 
   // 矩阵生成检验
@@ -1916,7 +1968,7 @@ begin
   KPKEKeyGen(D, EncapKey.FGenerationSeed, DecapKey.FSecretVector, EncapKey.FPubVector);
 
   // 公开密钥的杂凑值，放非公开密钥里备用
-  B := SaveKeyToBytes(EncapKey);
+  B := SaveEncapKeyToBytes(EncapKey);
   DecapKey.FEnKeyHash := TCnMLKEMSeed(MLKEMHFunc(B));
 end;
 
@@ -1934,8 +1986,8 @@ begin
     DK := TCnMLKEMDecapsulationKey.Create;
 
     GenerateKeys(EK, DK, RandDHex, RandZHex);
-    EnKey := SaveKeyToBytes(EK);
-    DeKey := SaveKeysToBytes(DK, EK);
+    EnKey := SaveEncapKeyToBytes(EK);
+    DeKey := SaveDecapKeyToBytes(DK, EK);
   finally
     DK.Free;
     EK.Free;
@@ -1976,13 +2028,13 @@ begin
   end;
 end;
 
-function TCnMLKEM.SaveKeysToBytes(DecapKey: TCnMLKEMDecapsulationKey;
+function TCnMLKEM.SaveDecapKeyToBytes(DecapKey: TCnMLKEMDecapsulationKey;
   EncapKey: TCnMLKEMEncapsulationKey): TBytes;
 var
   I: Integer;
   EK, DK: TBytes;
 begin
-  EK := SaveKeyToBytes(EncapKey);
+  EK := SaveEncapKeyToBytes(EncapKey);
 
   DK := nil;
   for I := 0 to FMatrixRank - 1 do
@@ -1994,7 +2046,7 @@ begin
   Result := ConcatBytes(Result, NewBytesFromMemory(@DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMBlock)));
 end;
 
-function TCnMLKEM.SaveKeyToBytes(EncapKey: TCnMLKEMEncapsulationKey): TBytes;
+function TCnMLKEM.SaveEncapKeyToBytes(EncapKey: TCnMLKEMEncapsulationKey): TBytes;
 var
   I: Integer;
 begin
@@ -2474,6 +2526,17 @@ begin
     MLKEMPolynomialMul(T, V1[I], V2[I], IsNTT);
     MLKEMPolynomialAdd(Res, Res, T);
   end;
+end;
+
+// 根据仨字节构造整数，返回 -1 表示失败
+function MLDSACoeffFromThreeBytes(B0, B1, B2: Byte): Integer;
+begin
+  if B2 > 127 then
+    B2 := B2 - 127;
+
+  Result := Integer(B2) shl 16 + Integer(B1) shl 8 + B0;
+  if Result > CN_MLDSA_PRIME then
+    Result := -1;
 end;
 
 initialization
