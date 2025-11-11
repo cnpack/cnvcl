@@ -74,6 +74,9 @@ type
   TCnMLKEMType = (cmkt512, cmkt768, cmkt1024);
   {* MLKEM 的三种实现规范}
 
+  TCnMLDSAType = (cmdt44, cmdt65, cmdt87);
+  {* MLDSA 的三种实现规范}
+
   TCnNTRUPrivateKey = class
   {* Number Theory Research Unit 的私钥，F G 两个多项式及其模逆}
   private
@@ -1191,7 +1194,7 @@ begin
 end;
 
 // 把每个数的低 D 位取出来紧拼到一起
-function ByteEncode(W: TWords; D: Integer): TBytes; overload;
+function MLKEMByteEncode(W: TWords; D: Integer): TBytes; overload;
 var
   I: Integer;
   B: TCnBitBuilder;
@@ -1209,7 +1212,7 @@ begin
   end;
 end;
 
-function ByteEncode(P: TCnMLKEMPolynomial; D: Integer): TBytes; overload;
+function MLKEMByteEncode(P: TCnMLKEMPolynomial; D: Integer): TBytes; overload;
 var
   I: Integer;
   B: TCnBitBuilder;
@@ -1227,7 +1230,7 @@ begin
   end;
 end;
 
-function ByteDecode(B: TBytes; D: Integer): TWords; overload;
+function MLKEMByteDecode(B: TBytes; D: Integer): TWords; overload;
 var
   I, L: Integer;
   C: TCnBitBuilder;
@@ -1262,11 +1265,11 @@ begin
 end;
 
 // 调用者要确保 B 解开的是 256 个 Word
-procedure ByteDecode(B: TBytes; D: Integer; out P: TCnMLKEMPolynomial); overload;
+procedure MLKEMByteDecode(B: TBytes; D: Integer; out P: TCnMLKEMPolynomial); overload;
 var
   W: TWords;
 begin
-  W := ByteDecode(B, D);
+  W := MLKEMByteDecode(B, D);
   Move(W[0], P[0], Length(W) * SizeOf(Word));
 end;
 
@@ -1281,7 +1284,7 @@ begin
 end;
 
 // 将一个 X 的系数值压缩到 D 位并返回
-function Compress(X, D: Word): Word;
+function MLKEMCompress(X, D: Word): Word;
 var
   V, T: Word;
   I: Integer;
@@ -1303,7 +1306,7 @@ begin
 end;
 
 // 将一个压缩后的系数值解压并返回
-function Decompress(X: Word; D: Word): Word;
+function MLKEMDecompress(X: Word; D: Word): Word;
 var
   P: Cardinal;
 begin
@@ -1314,17 +1317,17 @@ begin
 end;
 
 // 压缩一个多项式，Res 和 Poly 可以相同
-procedure CompressPolynomial(var Res: TCnMLKEMPolynomial; const Poly: TCnMLKEMPolynomial;
+procedure MLKEMCompressPolynomial(var Res: TCnMLKEMPolynomial; const Poly: TCnMLKEMPolynomial;
   D: Integer);
 var
   I: Integer;
 begin
   for I := 0 to CN_MLKEM_POLY_SIZE - 1 do
-    Res[I] := Compress(Poly[I], D);
+    Res[I] := MLKEMCompress(Poly[I], D);
 end;
 
 // 压缩一个多项式向量，Res 和 V 可以相同
-procedure CompressPolyVector(var Res: TCnMLKEMPolyVector; const V: TCnMLKEMPolyVector;
+procedure MLKEMCompressVector(var Res: TCnMLKEMPolyVector; const V: TCnMLKEMPolyVector;
   D: Integer);
 var
   I, J: Integer;
@@ -1335,22 +1338,22 @@ begin
   for I := 0 to Length(V) - 1 do
   begin
     for J := 0 to CN_MLKEM_POLY_SIZE - 1 do
-      Res[I][J] := Compress(V[I][J], D);
+      Res[I][J] := MLKEMCompress(V[I][J], D);
   end;
 end;
 
 // 解压缩一个多项式，Res 和 Poly 可以相同
-procedure DecompressPolynomial(var Res: TCnMLKEMPolynomial; const Poly: TCnMLKEMPolynomial;
+procedure MLKEMDecompressPolynomial(var Res: TCnMLKEMPolynomial; const Poly: TCnMLKEMPolynomial;
   D: Integer);
 var
   I: Integer;
 begin
   for I := 0 to CN_MLKEM_POLY_SIZE - 1 do
-    Res[I] := Decompress(Poly[I], D);
+    Res[I] := MLKEMDecompress(Poly[I], D);
 end;
 
 // 解压缩一个多项式向量，Res 和 V 可以相同
-procedure DecompressPolyVector(var Res: TCnMLKEMPolyVector; const V: TCnMLKEMPolyVector;
+procedure MLKEMDecompressVector(var Res: TCnMLKEMPolyVector; const V: TCnMLKEMPolyVector;
   D: Integer);
 var
   I, J: Integer;
@@ -1361,20 +1364,7 @@ begin
   for I := 0 to Length(V) - 1 do
   begin
     for J := 0 to CN_MLKEM_POLY_SIZE - 1 do
-      Res[I][J] := Decompress(V[I][J], D);
-  end;
-end;
-
-// 将一个字节的低七位倒过来
-function BitRev7(X: Byte): Byte; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-var
-  I: Integer;
-begin
-  Result := 0;
-  for I := 0 to 6 do
-  begin
-    Result := (Result shl 1) or (X and 1);
-    X := X shr 1;
+      Res[I][J] := MLKEMDecompress(V[I][J], D);
   end;
 end;
 
@@ -1399,14 +1389,14 @@ begin
   Result := Word(Cardinal(A) * Cardinal(B) mod CN_MLKEM_PRIME);
 end;
 
-// 数论变换
-function NTT(const F: TWords): TWords;
+// MLKEM 使用的特定数论变换
+function MLKEMNTT(const F: TWords): TWords;
 var
   Len, Start, J, I: Integer;
   Zeta, T: Word;
 begin
-  SetLength(Result, 256);
-  Move(F[0], Result[0], 256 * SizeOf(Word));
+  SetLength(Result, CN_MLKEM_POLY_SIZE);
+  Move(F[0], Result[0], CN_MLKEM_POLY_SIZE * SizeOf(Word));
 
   I := 1;
   Len := 128;
@@ -1414,9 +1404,9 @@ begin
   while Len >= 2 do
   begin
     Start := 0;
-    while Start < 256 do
+    while Start < CN_MLKEM_POLY_SIZE do
     begin
-      Zeta := ZETA_NTT[I]; // BitRev7(I) mod 128];
+      Zeta := ZETA_NTT[I];
       Inc(I);
 
       for J := Start to Start + Len - 1 do
@@ -1433,13 +1423,13 @@ begin
   end;
 end;
 
-function INTT(const F: TWords): TWords;
+function MLKEMINTT(const F: TWords): TWords;
 var
   Len, Start, J, I: Integer;
   Zeta, T: Word;
 begin
-  SetLength(Result, 256);
-  Move(F[0], Result[0], 256 * SizeOf(Word));
+  SetLength(Result, CN_MLKEM_POLY_SIZE);
+  Move(F[0], Result[0], CN_MLKEM_POLY_SIZE * SizeOf(Word));
 
   I := 127;
   Len := 2;
@@ -1447,9 +1437,9 @@ begin
   while Len <= 128 do
   begin
     Start := 0;
-    while Start < 256 do
+    while Start < CN_MLKEM_POLY_SIZE do
     begin
-      Zeta := ZETA_NTT[I]; // BitRev7(I) mod 128];
+      Zeta := ZETA_NTT[I];
       Dec(I);
 
       for J := Start to Start + Len - 1 do
@@ -1466,12 +1456,12 @@ begin
   end;
 
   // 最终缩放：乘以 3303，是 128 对 3329 的模逆元
-  for J := 0 to 255 do
+  for J := 0 to CN_MLKEM_POLY_SIZE - 1 do
     Result[J] := ModMul(Result[J], CN_MLKEM_PRIME_INV);
 end;
 
 // 根据真随机数组生成 256 个采样的多项式系数供 NTT 变换用，RandBytes 的长度至少要 34 字节
-function SampleNTT(const RandBytes: TBytes): TWords;
+function MLKEMSampleNTT(const RandBytes: TBytes): TWords;
 var
   Ctx: TCnSHA3Context;
   C: TBytes;
@@ -1516,7 +1506,7 @@ begin
 end;
 
 // 根据真随机数组生成 256 个采样的多项式系数，RandBytes 的长度至少要 64 * Eta 字节
-function SamplePolyCBD(const RandBytes: TBytes; Eta: Integer): TWords;
+function MLKEMSamplePolyCBD(const RandBytes: TBytes; Eta: Integer): TWords;
 var
   I, J, X, Y: Integer;
   Bits: TCnBitBuilder;
@@ -1560,7 +1550,7 @@ begin
 end;
 
 // PRF 函数，根据 32 字节输入和一字节附加数据，用 SHAKE256 生成 64 * Eta 长度的字节
-function PseudoRandomFunc(Eta: Integer; const Input: TCnMLKEMSeed; B: Byte): TBytes;
+function MLKEMPseudoRandomFunc(Eta: Integer; const Input: TCnMLKEMSeed; B: Byte): TBytes;
 var
   T: TBytes;
 begin
@@ -1574,8 +1564,8 @@ begin
   Result := SHAKE256Bytes(T, Eta * 64);
 end;
 
-// G 函数，内部用 SHA3_512 生成两个 32 位杂凑值
-procedure GFunc(const Data: TBytes; out Block1, Block2: TCnMLKEMBlock);
+// MLKEM 使用的 G 函数，内部用 SHA3_512 生成两个 32 位杂凑值
+procedure MLKEMGFunc(const Data: TBytes; out Block1, Block2: TCnMLKEMBlock);
 var
   Dig: TCnSHA3_512Digest;
 begin
@@ -1584,8 +1574,8 @@ begin
   Move(Dig[SizeOf(TCnMLKEMBlock)], Block2[0], SizeOf(TCnMLKEMBlock));
 end;
 
-// H 函数，内部用 SHA3_256 生成 32 位杂凑值
-function HFunc(const Data: TBytes): TCnMLKEMBlock;
+// MLKEM 使用的 H 函数，内部用 SHA3_256 生成 32 位杂凑值
+function MLKEMHFunc(const Data: TBytes): TCnMLKEMBlock;
 var
   Dig: TCnSHA3_256Digest;
 begin
@@ -1593,8 +1583,8 @@ begin
   Move(Dig[0], Result[0], SizeOf(TCnMLKEMBlock));
 end;
 
-// J 函数，内部用 SHAKE256 生成 32 位杂凑值
-function JFunc(const Data: TBytes): TCnMLKEMBlock;
+// MLKEM 使用的 J 函数，内部用 SHAKE256 生成 32 位杂凑值
+function MLKEMJFunc(const Data: TBytes): TCnMLKEMBlock;
 var
   Dig: TBytes;
 begin
@@ -1642,7 +1632,7 @@ begin
   Move(DeKey[HStart], HBytes[0], HLength);
 
   // 计算 ek 的杂凑值
-  ComputedHash := HFunc(EkBytes);
+  ComputedHash := MLKEMHFunc(EkBytes);
 
   // 比较计算出的杂凑值与存储的杂凑值
   if not CompareMem(@HBytes[0], @ComputedHash[0], SizeOf(TCnMLKEMBlock)) then
@@ -1665,7 +1655,7 @@ begin
   Move(EnKey[0], PolyBytes[0], PolyBytesLength);
 
   // 进行 ByteDecode12 然后 ByteEncode12 往返
-  TestBytes := ByteEncode(ByteDecode(PolyBytes, 12), 12);
+  TestBytes := MLKEMByteEncode(MLKEMByteDecode(PolyBytes, 12), 12);
   if not CompareBytes(PolyBytes, TestBytes) then
     raise ECnLatticeException.Create(SCnErrorLatticeEncapKeyModulusCheckFailed);
 end;
@@ -1757,7 +1747,7 @@ begin
     begin
       PJI[SizeOf(TCnMLKEMSeed)] := J;
       PJI[SizeOf(TCnMLKEMSeed) + 1] := I;
-      W := SampleNTT(PJI);
+      W := MLKEMSampleNTT(PJI);
       Move(W[0], Matrix[I][J][0], Length(W) * SizeOf(Word));
     end;
   end;
@@ -1802,7 +1792,7 @@ begin
   DK := ConcatBytes(NewBytesFromMemory(@D[0], SizeOf(TCnMLKEMBlock)), DK);
 
   // 生成公共种子
-  GFunc(DK, TCnMLKEMBlock(GenerationSeed), TCnMLKEMBlock(O));
+  MLKEMGFunc(DK, TCnMLKEMBlock(GenerationSeed), TCnMLKEMBlock(O));
   N := 0;
 
   // 生成矩阵
@@ -1850,7 +1840,7 @@ begin
     // 将字节解码为多项式系数
     // 注意这里需要将解码后的 TWords 转换为 TCnMLKEMPolynomial
     // 假设 ByteDecode 返回的 TWords 长度是 256
-    Move(ByteDecode(PolyBytes, 12)[0], EncapKey.FPubVector[I][0],
+    Move(MLKEMByteDecode(PolyBytes, 12)[0], EncapKey.FPubVector[I][0],
       CN_MLKEM_POLY_SIZE * SizeOf(Word));
   end;
 
@@ -1880,7 +1870,7 @@ begin
     Move(Key[I * 384], PolyBytes[0], 384);
 
     // 将字节解码为多项式系数
-    Move(ByteDecode(PolyBytes, 12)[0], DecapKey.FSecretVector[I][0],
+    Move(MLKEMByteDecode(PolyBytes, 12)[0], DecapKey.FSecretVector[I][0],
       CN_MLKEM_POLY_SIZE * SizeOf(Word));
   end;
 
@@ -1927,7 +1917,7 @@ begin
 
   // 公开密钥的杂凑值，放非公开密钥里备用
   B := SaveKeyToBytes(EncapKey);
-  DecapKey.FEnKeyHash := TCnMLKEMSeed(HFunc(B));
+  DecapKey.FEnKeyHash := TCnMLKEMSeed(MLKEMHFunc(B));
 end;
 
 procedure TCnMLKEM.GenerateKeys(out EnKey: TBytes; out DeKey: TBytes;
@@ -1959,10 +1949,10 @@ var
   R: TBytes;
   W: TWords;
 begin
-  R := PseudoRandomFunc(Noise, Seed, Counter);
-  W := SamplePolyCBD(R, Noise);
+  R := MLKEMPseudoRandomFunc(Noise, Seed, Counter);
+  W := MLKEMSamplePolyCBD(R, Noise);
   if UseNTT then
-    W := NTT(W);
+    W := MLKEMNTT(W);
   Move(W[0], Polynomial[0], Length(W) * SizeOf(Word));
   Inc(Counter);
 end;
@@ -1977,10 +1967,10 @@ begin
   SetLength(PolyVector, FMatrixRank);
   for I := 0 to FMatrixRank - 1 do
   begin
-    R := PseudoRandomFunc(Noise, Seed, Counter);
-    W := SamplePolyCBD(R, Noise);
+    R := MLKEMPseudoRandomFunc(Noise, Seed, Counter);
+    W := MLKEMSamplePolyCBD(R, Noise);
     if UseNTT then
-      W := NTT(W);
+      W := MLKEMNTT(W);
     Move(W[0], PolyVector[I][0], Length(W) * SizeOf(Word));
     Inc(Counter);
   end;
@@ -1996,7 +1986,7 @@ begin
 
   DK := nil;
   for I := 0 to FMatrixRank - 1 do
-    DK := ConcatBytes(DK, ByteEncode(DecapKey.SecretVector[I], 12));
+    DK := ConcatBytes(DK, MLKEMByteEncode(DecapKey.SecretVector[I], 12));
 
   // dk || ek || H(ek) || z
   Result := ConcatBytes(DK, EK);
@@ -2011,7 +2001,7 @@ begin
   // T 拼上 PubSeed 输出作为 EK
   Result := nil;
   for I := 0 to FMatrixRank - 1 do
-    Result := ConcatBytes(Result, ByteEncode(EncapKey.PubVector[I], 12));
+    Result := ConcatBytes(Result, MLKEMByteEncode(EncapKey.PubVector[I], 12));
 
   Result := ConcatBytes(Result, NewBytesFromMemory(@EncapKey.GenerationSeed[0], SizeOf(TCnMLKEMSeed)));
 end;
@@ -2058,11 +2048,11 @@ begin
 
   // 将 32 字节消息每一位展开成一个 Word，共展开成 256 个 Word
   B := NewBytesFromMemory(@Msg[0], SizeOf(TCnMLKEMBlock));
-  W := ByteDecode(B, 1);
+  W := MLKEMByteDecode(B, 1);
 
   // 将 256 个 Word 放入多项式
   Move(W[0], MP[0], SizeOf(TCnMLKEMPolynomial));
-  DecompressPolynomial(MP, MP, 1);
+  MLKEMDecompressPolynomial(MP, MP, 1);
 
   // V 再加上消息多项式
   MLKEMPolynomialAdd(VPolynomial, VPolynomial, MP);
@@ -2112,13 +2102,13 @@ begin
     KPKEEncrypt(En, M, Seed, U, V);
 
     // 压缩编码，将非 NTT 系数的 U V 返回作为 Chipher 字节流
-    CompressPolyVector(UC, U, FCompressU);
-    CompressPolynomial(VC, V, FCompressV);
+    MLKEMCompressVector(UC, U, FCompressU);
+    MLKEMCompressPolynomial(VC, V, FCompressV);
 
     Result := nil;
     for I := Low(UC) to High(UC) do
-      Result := ConcatBytes(Result, ByteEncode(UC[I], FCompressU));
-    Result := ConcatBytes(Result, ByteEncode(VC, FCompressV));
+      Result := ConcatBytes(Result, MLKEMByteEncode(UC[I], FCompressU));
+    Result := ConcatBytes(Result, MLKEMByteEncode(VC, FCompressV));
   finally
     En.Free;
   end;
@@ -2148,10 +2138,10 @@ begin
   MLKEMPolynomialSub(W, VPolynomial, T);
 
   // 压缩该消息多项式
-  CompressPolynomial(T, W, 1);
+  MLKEMCompressPolynomial(T, W, 1);
 
   // 解码消息多项式
-  B := ByteEncode(T, 1);
+  B := MLKEMByteEncode(T, 1);
   if Length(B) <> SizeOf(TCnMLKEMBlock) then
     raise ECnLatticeException.Create(SCnErrorLatticeInvalidMsgLength);
 
@@ -2207,26 +2197,26 @@ begin
     B := ConcatBytes(NewBytesFromMemory(@Msg[0], SizeOf(TCnMLKEMBlock)),
       NewBytesFromMemory(@De.EnKeyHash[0], SizeOf(TCnMLKEMSeed)));
 
-    GFunc(B, S, R); // S 是解出来的共享密钥，R 是解出的一个随机数
+    MLKEMGFunc(B, S, R); // S 是解出来的共享密钥，R 是解出的一个随机数
 
     // 验证，这里重新加解密一遍
     KPKEEncrypt(En, Msg, TCnMLKEMSeed(R), U, V);
 
     // 压缩编码，将非 NTT 系数的 U V 返回作为 Chipher 字节流
-    CompressPolyVector(UC, U, FCompressU);
-    CompressPolynomial(VC, V, FCompressV);
+    MLKEMCompressVector(UC, U, FCompressU);
+    MLKEMCompressPolynomial(VC, V, FCompressV);
 
     C := nil;
     for I := Low(UC) to High(UC) do
-      C := ConcatBytes(C, ByteEncode(UC[I], FCompressU));
-    C := ConcatBytes(C, ByteEncode(VC, FCompressV));
+      C := ConcatBytes(C, MLKEMByteEncode(UC[I], FCompressU));
+    C := ConcatBytes(C, MLKEMByteEncode(VC, FCompressV));
 
     if not CompareBytes(C, CipherText) then
     begin
       // 结果不匹配，说明出错，重新计算失败的胡乱杂凑放 S 里
       C := NewBytesFromMemory(@De.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
       C := ConcatBytes(C, CipherText);
-      S := JFunc(C);
+      S := MLKEMJFunc(C);
     end;
 
     // 无论结果是否匹配，都返回 S
@@ -2248,9 +2238,9 @@ begin
 
   CheckEncapKey(EnKey);
 
-  B1 := HFunc(EnKey);
+  B1 := MLKEMHFunc(EnKey);
   D := NewBytesFromMemory(@B1[0], Length(B1));
-  GFunc(ConcatBytes(Msg, D), B1, B2);
+  MLKEMGFunc(ConcatBytes(Msg, D), B1, B2);
 
   ShareKey := NewBytesFromMemory(@B1[0], Length(B1));
   R := NewBytesFromMemory(@B2[0], Length(B2));
@@ -2301,19 +2291,19 @@ begin
   begin
     // 提取 U 中的一个多项式并解码
     Move(CipherText[I * Length(B)], B[0], Length(B));
-    ByteDecode(B, FCompressU, UC[I]);
+    MLKEMByteDecode(B, FCompressU, UC[I]);
   end;
 
   // 解压缩向量 U
-  DecompressPolyVector(UVector, UC, FCompressU);
+  MLKEMDecompressVector(UVector, UC, FCompressU);
 
   // 还原回多项式 VC
   SetLength(B, GetCipherVByteLength);
   Move(CipherText[GetCipherUByteLength], B[0], Length(B));
-  ByteDecode(B, FCompressV, VC);
+  MLKEMByteDecode(B, FCompressV, VC);
 
   // 解压缩多项式 V
-  DecompressPolynomial(VPolynomial, VC, FCompressV);
+  MLKEMDecompressPolynomial(VPolynomial, VC, FCompressV);
 end;
 
 procedure MLKEMPolynomialToInt64Polynomial(const Src: TCnMLKEMPolynomial; Dst: TCnInt64Polynomial);
@@ -2344,7 +2334,7 @@ var
 begin
   SetLength(W, CN_MLKEM_POLY_SIZE);
   Move(P[0], W[0], Length(W) * SizeOf(Word));
-  W := INTT(W);
+  W := MLKEMINTT(W);
   Move(W[0], Res[0], Length(W) * SizeOf(Word));
 end;
 
@@ -2354,7 +2344,7 @@ var
 begin
   SetLength(W, CN_MLKEM_POLY_SIZE);
   Move(P[0], W[0], Length(W) * SizeOf(Word));
-  W := NTT(W);
+  W := MLKEMNTT(W);
   Move(W[0], Res[0], Length(W) * SizeOf(Word));
 end;
 
