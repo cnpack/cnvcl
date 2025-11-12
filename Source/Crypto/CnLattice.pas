@@ -80,6 +80,9 @@ const
   CN_MLDSA_DROPBIT     = 13;
   {* MLDSA 统一分离低 13 位}
 
+  CN_MLDSA_KEY_BIT     = 10;
+  {* CN_MLDSA_PRIME - 1 的位数减 13 = 23- 13 = 10，用于储存密钥}
+
 type
   ECnLatticeException = class(Exception);
   {* NTRU/MLKEM相关异常}
@@ -457,7 +460,7 @@ type
   public
     property GenerationSeed: TCnMLDSASeed read FGenerationSeed;
     {* 用于生成矩阵的随机种子，相当于规范里的 rho 象形 p}
-    property Key:TCnMLDSASeed read FKey write FKey;
+    property Key: TCnMLDSASeed read FKey write FKey;
     {* 规范里的从杂凑结果中抽取的 K}
     property Trace: TCnMLDSAKeyDigest read FTrace write FTrace;
     {* 公钥流的 64 字节 SHAKE256 摘要}
@@ -478,7 +481,7 @@ type
     property GenerationSeed: TCnMLDSASeed read FGenerationSeed;
     {* 用于生成矩阵的随机种子，相当于规范里的 p}
     property T1: TCnMLDSAPolyVector read FT1 write FT1;
-    {* 矩阵运算得到的多项式向量 T 的分离公钥部分 T1}
+    {* 矩阵运算得到的多项式向量 T 的分离公钥部分 T1，维度为矩阵行数}
   end;
 
   TCnMLDSA = class
@@ -490,9 +493,9 @@ type
     FNoise: Integer;
 
     procedure GenerateMatrix(const Seed: TCnMLDSASeed; out Matrix: TCnMLDSAPolyMatrix);
-    {* 根据种子生成矩阵 A}
+    {* 根据种子生成矩阵 A，系数是 NTT 形式}
     procedure GenerateSecret(const Seed: TCnMLDSASeed; out S1, S2: TCnMLDSAPolyVector);
-    {* 根据种子生成两个秘密多项式向量}
+    {* 根据种子生成两个秘密多项式向量，系数是非 NTT 形式}
   protected
 
   public
@@ -507,12 +510,12 @@ type
 
     procedure LoadPrivateKeyFromBytes(PrivateKey: TCnMLDSAPrivateKey; const SK: TBytes);
     {* 从字节数组中加载私钥}
-    procedure LoadPublicKeyFromBytes(PubliKey: TCnMLDSAPublicKey; const PK: TBytes);
+    procedure LoadPublicKeyFromBytes(PublicKey: TCnMLDSAPublicKey; const PK: TBytes);
     {* 从字节数组中加载公钥}
 
     function SavePrivateKeyToBytes(PrivateKey: TCnMLDSAPrivateKey): TBytes;
     {* 将私钥保存成字节数组 SK}
-    function SavePublicKeyToBytes(PubliKey: TCnMLDSAPublicKey): TBytes;
+    function SavePublicKeyToBytes(PublicKey: TCnMLDSAPublicKey): TBytes;
     {* 将公钥保存成字节数组 PK}
 
     property MLDSAType: TCnMLDSAType read FMLDSAType;
@@ -655,34 +658,36 @@ procedure MLKEMPolynomialSub(var Res: TCnMLKEMPolynomial;
    返回值：（无）
 }
 
-procedure MLKEMPolynomialMul(var Res: TCnMLKEMPolynomial; const MP1, MP2: TCnMLKEMPolynomial;
+procedure MLKEMPolynomialMul(var Res: TCnMLKEMPolynomial; const P1, P2: TCnMLKEMPolynomial;
   IsNTT: Boolean = True);
 {* 两个 MKLEM 格式的多项式在 mod 3329 及 x^256 + 1 的多项式环上相乘。
    IsNTT 指示参数是否是 NTT 模式，是则执行 NTT 乘法，不是则执行普通乘法。
 
    参数：
      Res: TCnMLKEMPolynomial              - MKLEM 格式的多项式积
-     MP1: TCnMLKEMPolynomial              - MKLEM 格式的多项式乘数一
-     MP2: TCnMLKEMPolynomial              - MKLEM 格式的多项式乘数二
+     P1: TCnMLKEMPolynomial               - MKLEM 格式的多项式乘数一
+     P2: TCnMLKEMPolynomial               - MKLEM 格式的多项式乘数二
      IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
 
    返回值：（无）
 }
 
-procedure MLKEMVectorToNTT(var Vector: TCnMLKEMPolyVector);
+procedure MLKEMVectorToNTT(var Res: TCnMLKEMPolyVector; const V: TCnMLKEMPolyVector);
 {* 将非 NTT 系数的 MKLEM 格式的多项式向量就地转换为 NTT 系数的。
 
    参数：
-     var Vector: TCnMLKEMPolyVector       - 待转换的 MKLEM 格式的多项式向量
+     var Res: TCnMLKEMPolyVector          - MKLEM 格式的多项式向量结果
+     V: TCnMLKEMPolyVector                - 待转换的 MKLEM 格式的多项式向量
 
    返回值：（无）
 }
 
-procedure MLKEMVectorToINTT(var Vector: TCnMLKEMPolyVector);
+procedure MLKEMVectorToINTT(var Res: TCnMLKEMPolyVector; const V: TCnMLKEMPolyVector);
 {* 将 NTT 系数的 MKLEM 格式的多项式向量就地转换为非 NTT 系数的。
 
    参数：
-     var Vector: TCnMLKEMPolyVector       - 待转换的 MKLEM 格式的多项式向量
+     var Res: TCnMLKEMPolyVector          - MKLEM 格式的多项式向量结果
+     V: TCnMLKEMPolyVector                - 待转换的 MKLEM 格式的多项式向量
 
    返回值：（无）
 }
@@ -722,6 +727,124 @@ procedure MLKEMVectorDotProduct(var Res: TCnMLKEMPolynomial;
      Res: TCnMLKEMPolynomial              - MKLEM 格式的多项式点乘积
      V1: TCnMLKEMPolynomial               - MKLEM 格式的多项式乘数一
      V2: TCnMLKEMPolynomial               - MKLEM 格式的多项式乘数二
+     IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
+
+   返回值：（无）
+}
+
+procedure MLDSAPolynomialToINTT(var Res: TCnMLDSAPolynomial; const P: TCnMLDSAPolynomial);
+{* 将 NTT 系数的 MKDSA 格式的多项式转换为非 NTT 系数的，俩参数可以相同。
+
+   参数：
+     Res: TCnMLDSAPolynomial              - 非 NTT 系数的 MKDSA 格式的多项式结果
+     P: TCnMLDSAPolynomial                - 待转换的 NTT 系数的 MKDSA 格式的多项式
+
+   返回值：（无）
+}
+
+procedure MLDSAPolynomialToNTT(var Res: TCnMLDSAPolynomial; const P: TCnMLDSAPolynomial);
+{* 将非 NTT 系数的 MKDSA 格式的多项式转换为 NTT 系数的，俩参数可以相同。
+
+   参数：
+     Res: TCnMLDSAPolynomial              - NTT 系数的 MKDSA 格式的多项式结果
+     P: TCnMLDSAPolynomial                - 待转换的非 NTT 系数的 MKDSA 格式的多项式
+
+   返回值：（无）
+}
+
+procedure MLDSAPolynomialAdd(var Res: TCnMLDSAPolynomial;
+  const P1: TCnMLDSAPolynomial; const P2: TCnMLDSAPolynomial);
+{* 两个 MKDSA 格式的多项式在 mod 8380417 有限域中相加，NTT 系数或 非 NTT 系数均适用。
+
+   参数：
+     Res: TCnMLDSAPolynomial              - MKDSA 格式的多项式和
+     P1: TCnMLDSAPolynomial               - MKDSA 格式的多项式加数一
+     P2: TCnMLDSAPolynomial               - MKDSA 格式的多项式加数二
+
+   返回值：（无）
+}
+
+procedure MLDSAPolynomialSub(var Res: TCnMLDSAPolynomial;
+  const P1: TCnMLDSAPolynomial; const P2: TCnMLDSAPolynomial);
+{* 两个 MKDSA 格式的多项式在 mod 8380417 有限域中相减，NTT 系数或 非 NTT 系数均适用。
+
+   参数：
+     Res: TCnMLDSAPolynomial              - MKDSA 格式的多项式差
+     P1: TCnMLDSAPolynomial               - MKDSA 格式的多项式被减数
+     P2: TCnMLDSAPolynomial               - MKDSA 格式的多项式减数
+
+   返回值：（无）
+}
+
+procedure MLDSAPolynomialMul(var Res: TCnMLDSAPolynomial; const P1, P2: TCnMLDSAPolynomial;
+  IsNTT: Boolean = True);
+{* 两个 MKDSA 格式的多项式在 mod 8380417 及 x^256 + 1 的多项式环上相乘。
+   IsNTT 指示参数是否是 NTT 模式，是则执行 NTT 乘法，不是则执行普通乘法。
+
+   参数：
+     Res: TCnMLDSAPolynomial              - MKDSA 格式的多项式积
+     P1: TCnMLDSAPolynomial               - MKDSA 格式的多项式乘数一
+     P2: TCnMLDSAPolynomial               - MKDSA 格式的多项式乘数二
+     IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
+
+   返回值：（无）
+}
+
+procedure MLDSAVectorToNTT(var Res: TCnMLDSAPolyVector; const V: TCnMLDSAPolyVector);
+{* 将非 NTT 系数的 MKDSA 格式的多项式向量就地转换为 NTT 系数的。
+
+   参数：
+     var Res: TCnMLDSAPolyVector          - MKDSA 格式的多项式向量结果
+     V: TCnMLDSAPolyVector                - 待转换的 MKDSA 格式的多项式向量
+
+   返回值：（无）
+}
+
+procedure MLDSAVectorToINTT(var Res: TCnMLDSAPolyVector; const V: TCnMLDSAPolyVector);
+{* 将 NTT 系数的 MKDSA 格式的多项式向量就地转换为非 NTT 系数的。
+
+   参数：
+     var Res: TCnMLDSAPolyVector          - MKDSA 格式的多项式向量结果
+     V: TCnMLDSAPolyVector                - 待转换的 MKDSA 格式的多项式向量
+
+   返回值：（无）
+}
+
+procedure MLDSAVectorAdd(var Res: TCnMLDSAPolyVector;
+  const P1: TCnMLDSAPolyVector; const P2: TCnMLDSAPolyVector);
+{* 两个 MKDSA 格式的多项式向量在 mod 8380417 有限域中相加，NTT 系数或 非 NTT 系数均适用。
+
+   参数：
+     Res: TCnMLDSAPolynomial              - MKDSA 格式的多项式向量和
+     P1: TCnMLDSAPolynomial               - MKDSA 格式的多项式向量加数一
+     P2: TCnMLDSAPolynomial               - MKDSA 格式的多项式向量加数二
+
+   返回值：（无）
+}
+
+procedure MLDSAMatrixVectorMul(var Res: TCnMLDSAPolyVector;
+  const A: TCnMLDSAPolyMatrix; const S: TCnMLDSAPolyVector; IsNTT: Boolean = True);
+{* 一个 MKDSA 格式的多项式方阵在 mod 8380417 及 x^256 + 1 的多项式环上乘以一个多项式向量，
+   得到一个多项式向量。
+
+   参数：
+     Res: TCnMLDSAPolyVector              - MKDSA 格式的多项式积
+     A: TCnMLDSAPolyMatrix                - MKDSA 格式的多项式方阵
+     S: TCnMLDSAPolyVector                - MKDSA 格式的多项式向量
+     IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
+
+   返回值：（无）
+}
+
+procedure MLDSAVectorDotProduct(var Res: TCnMLDSAPolynomial;
+  const V1: TCnMLDSAPolyVector; const V2: TCnMLDSAPolyVector; IsNTT: Boolean = True);
+{* 两个 MKDSA 格式的多项式向量在 mod 8380417 及 x^256 + 1 的多项式环上点乘，
+   得到一个多项式向量。
+
+   参数：
+     Res: TCnMLDSAPolynomial              - MKDSA 格式的多项式点乘积
+     V1: TCnMLDSAPolynomial               - MKDSA 格式的多项式乘数一
+     V2: TCnMLDSAPolynomial               - MKDSA 格式的多项式乘数二
      IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
 
    返回值：（无）
@@ -2206,7 +2329,7 @@ begin
   MLKEMMatrixVectorMul(UVector, AT, Y);
 
   // U 解回非 NTT 模式，加 E1
-  MLKEMVectorToINTT(UVector);
+  MLKEMVectorToINTT(UVector, UVector);
   MLKEMVectorAdd(UVector, UVector, E1);
 
   // V = T^ * Y + E2 + 消息多项式，注意 T^ 和 Y 都是 NTT 的，其乘积要做个非 NTT 转换
@@ -2533,12 +2656,12 @@ begin
     Res[I] := MLKEMModSub(P1[I], P2[I]);
 end;
 
-procedure MLKEMPolynomialMul(var Res: TCnMLKEMPolynomial; const MP1, MP2: TCnMLKEMPolynomial;
+procedure MLKEMPolynomialMul(var Res: TCnMLKEMPolynomial; const P1, P2: TCnMLKEMPolynomial;
   IsNTT: Boolean);
 var
   I: Integer;
   C0, C1: Word;
-  P1, P2, P: TCnInt64Polynomial;
+  MP1, MP2, MP: TCnInt64Polynomial;
 
   procedure BaseCaseMultiply(A0, A1, B0, B1, Gamma: Word; out OC0, OC1: Word);
   begin
@@ -2555,7 +2678,7 @@ begin
     for I := 0 to 127 do
     begin
       // 对每个二次分量进行乘法
-      BaseCaseMultiply(MP1[2 * I], MP1[2 * I + 1], MP2[2 * I], MP2[2 * I + 1],
+      BaseCaseMultiply(P1[2 * I], P1[2 * I + 1], P2[2 * I], P2[2 * I + 1],
         ZETA_BASE_CASE[I], C0, C1);
 
       Res[2 * I] := C0;
@@ -2564,41 +2687,41 @@ begin
   end
   else
   begin
-    P1 := FInt64PolynomialPool.Obtain;
-    P2 := FInt64PolynomialPool.Obtain;
-    P := FInt64PolynomialPool.Obtain;
+    MP1 := FInt64PolynomialPool.Obtain;
+    MP2 := FInt64PolynomialPool.Obtain;
+    MP := FInt64PolynomialPool.Obtain;
 
     try
-      MLKEMPolynomialToInt64Polynomial(MP1, P1);
-      MLKEMPolynomialToInt64Polynomial(MP2, P2);
+      MLKEMPolynomialToInt64Polynomial(P1, MP1);
+      MLKEMPolynomialToInt64Polynomial(P2, MP2);
 
-      Int64PolynomialMul(P, P1, P2);
-      Int64PolynomialMod(P, P, FMLKEMRing);
-      Int64PolynomialNonNegativeModWord(P, CN_MLKEM_PRIME);
+      Int64PolynomialMul(MP, MP1, MP2);
+      Int64PolynomialMod(MP, MP, FMLKEMRing);
+      Int64PolynomialNonNegativeModWord(MP, CN_MLKEM_PRIME);
 
-      Int64PolynomialToMLKEMPolynomial(P, Res);
+      Int64PolynomialToMLKEMPolynomial(MP, Res);
     finally
-      FInt64PolynomialPool.Recycle(P);
-      FInt64PolynomialPool.Recycle(P2);
-      FInt64PolynomialPool.Recycle(P1);
+      FInt64PolynomialPool.Recycle(MP);
+      FInt64PolynomialPool.Recycle(MP2);
+      FInt64PolynomialPool.Recycle(MP1);
     end;
   end;
 end;
 
-procedure MLKEMVectorToNTT(var Vector: TCnMLKEMPolyVector);
+procedure MLKEMVectorToNTT(var Res: TCnMLKEMPolyVector; const V: TCnMLKEMPolyVector);
 var
   I: Integer;
 begin
-  for I := Low(Vector) to High(Vector) do
-    MLKEMPolynomialToNTT(Vector[I], Vector[I]);
+  for I := Low(V) to High(V) do
+    MLKEMPolynomialToNTT(Res[I], V[I]);
 end;
 
-procedure MLKEMVectorToINTT(var Vector: TCnMLKEMPolyVector);
+procedure MLKEMVectorToINTT(var Res: TCnMLKEMPolyVector; const V: TCnMLKEMPolyVector);
 var
   I: Integer;
 begin
-  for I := Low(Vector) to High(Vector) do
-    MLKEMPolynomialToINTT(Vector[I], Vector[I]);
+  for I := Low(V) to High(V) do
+    MLKEMPolynomialToINTT(Res[I], V[I]);
 end;
 
 procedure MLKEMVectorAdd(var Res: TCnMLKEMPolyVector; const P1, P2: TCnMLKEMPolyVector);
@@ -2737,6 +2860,111 @@ begin
     Result[J] := MLDSAModMul(Result[J], CN_MLDSA_PRIME_INV);
 end;
 
+procedure MLDSAPolynomialToINTT(var Res: TCnMLDSAPolynomial; const P: TCnMLDSAPolynomial);
+var
+  W: TIntegers;
+begin
+  SetLength(W, CN_MLDSA_POLY_SIZE);
+  Move(P[0], W[0], Length(W) * SizeOf(Integer));
+  W := MLDSAINTT(W);
+  Move(W[0], Res[0], Length(W) * SizeOf(Integer));
+end;
+
+procedure MLDSAPolynomialToNTT(var Res: TCnMLDSAPolynomial; const P: TCnMLDSAPolynomial);
+var
+  W: TIntegers;
+begin
+  SetLength(W, CN_MLDSA_POLY_SIZE);
+  Move(P[0], W[0], Length(W) * SizeOf(Integer));
+  W := MLDSANTT(W);
+  Move(W[0], Res[0], Length(W) * SizeOf(Integer));
+end;
+
+procedure MLDSAPolynomialAdd(var Res: TCnMLDSAPolynomial; const P1, P2: TCnMLDSAPolynomial);
+var
+  I: Integer;
+begin
+  for I := Low(P1) to High(P1) do
+    Res[I] := MLDSAModAdd(P1[I], P2[I]);
+end;
+
+procedure MLDSAPolynomialSub(var Res: TCnMLDSAPolynomial; const P1, P2: TCnMLDSAPolynomial);
+var
+  I: Integer;
+begin
+  for I := Low(P1) to High(P1) do
+    Res[I] := MLDSAModSub(P1[I], P2[I]);
+end;
+
+procedure MLDSAPolynomialMul(var Res: TCnMLDSAPolynomial; const P1, P2: TCnMLDSAPolynomial;
+  IsNTT: Boolean);
+var
+  I: Integer;
+begin
+  for I := Low(P1) to High(P1) do
+    Res[I] := MLDSAModMul(P1[I], P2[I]);
+end;
+
+procedure MLDSAVectorToNTT(var Res: TCnMLDSAPolyVector; const V: TCnMLDSAPolyVector);
+var
+  I: Integer;
+begin
+  for I := Low(V) to High(V) do
+    MLDSAPolynomialToNTT(Res[I], V[I]);
+end;
+
+procedure MLDSAVectorToINTT(var Res: TCnMLDSAPolyVector; const V: TCnMLDSAPolyVector);
+var
+  I: Integer;
+begin
+  for I := Low(V) to High(V) do
+    MLDSAPolynomialToINTT(Res[I], V[I]);
+end;
+
+procedure MLDSAVectorAdd(var Res: TCnMLDSAPolyVector; const P1, P2: TCnMLDSAPolyVector);
+var
+  I: Integer;
+begin
+  for I := Low(P1) to High(P1) do
+    MLDSAPolynomialAdd(Res[I], P1[I], P2[I]);
+end;
+
+procedure MLDSAMatrixVectorMul(var Res: TCnMLDSAPolyVector;
+  const A: TCnMLDSAPolyMatrix; const S: TCnMLDSAPolyVector; IsNTT: Boolean);
+var
+  I, J: Integer;
+  T: TCnMLDSAPolynomial;
+begin
+  SetLength(Res, Length(S));
+
+  for I := Low(Res) to High(Res) do
+  begin
+    FillChar(Res[I][0], SizeOf(TCnMLDSAPolynomial), 0);
+    for J := Low(S) to High(S) do
+    begin
+      // 多项式相乘
+      MLDSAPolynomialMul(T, A[I, J], S[J], IsNTT);
+
+      // 累加到结果中
+      MLDSAPolynomialAdd(Res[I], Res[I], T);
+    end;
+  end;
+end;
+
+procedure MLDSAVectorDotProduct(var Res: TCnMLDSAPolynomial;
+  const V1: TCnMLDSAPolyVector; const V2: TCnMLDSAPolyVector; IsNTT: Boolean);
+var
+  I: Integer;
+  T: TCnMLDSAPolynomial;
+begin
+  FillChar(Res[0], SizeOf(TCnMLDSAPolynomial), 0);
+  for I := Low(V1) to High(V1) do
+  begin
+    MLDSAPolynomialMul(T, V1[I], V2[I], IsNTT);
+    MLDSAPolynomialAdd(Res, Res, T);
+  end;
+end;
+
 // 根据仨字节构造整数，返回 -1 表示失败
 function MLDSACoeffFromThreeBytes(B0, B1, B2: Byte): Integer;
 begin
@@ -2792,7 +3020,7 @@ function MLDSARejBoundedPoly(const RandBytes: TBytes; Eta: Integer): TIntegers;
 var
   Ctx: TCnSHA3Context;
   C: TBytes;
-  D, J: Integer;
+  J: Integer;
   Z: TBytes;
   Z0, Z1: Byte;
 begin
@@ -2837,12 +3065,68 @@ begin
   R1 := (T - R0) shr CN_MLDSA_DROPBIT;
 end;
 
-function MLDSAHFunc(const Data: TBytes; DigestLen: Integer = 64): TBytes;
+procedure Power2RoundPolynomial(const R: TCnMLDSAPolynomial; var R0, R1: TCnMLDSAPolynomial);
+var
+  I: Integer;
+begin
+  for I := Low(R) to High(R) do
+    Power2Round(R[I], R0[I], R1[I]);
+end;
+
+procedure Power2RoundVector(const R: TCnMLDSAPolyVector; var R0, R1: TCnMLDSAPolyVector);
+var
+  I: Integer;
+begin
+  if Length(R) <= 0 then
+    Exit;
+
+  SetLength(R0, Length(R0));
+  SetLength(R1, Length(R1));
+
+  for I := Low(R) to High(R) do
+    Power2RoundPolynomial(R[I], R0[I], R1[I]);
+end;
+
+// 多项式系数低 BitCount 位打包，注意 256 个数字，无论 BitCount 多少，
+// 输出都是 8 的整数因而也就是整数字节
+function SimpleBitPackPolynomial(const P: TCnMLDSAPolynomial; BitCount: Integer): TBytes;
+var
+  I: Integer;
+  B: TCnBitBuilder;
+begin
+  B := TCnBitBuilder.Create;
+  try
+    for I := Low(P) to High(P) do
+      B.AppendDWordRange(P[I], BitCount);
+  finally
+    B.Free;
+  end;
+end;
+
+// 多项式向量系数低 BitCount 位打包
+function SimpleBitPackVector(const P: TCnMLDSAPolyVector; BitCount: Integer): TBytes;
+var
+  I, J: Integer;
+  B: TCnBitBuilder;
+begin
+  B := TCnBitBuilder.Create;
+  try
+    for I := Low(P) to High(P) do
+    begin
+      for J := Low(P[I]) to High(P[I]) do
+        B.AppendDWordRange(P[I][J], BitCount);
+    end;
+  finally
+    B.Free;
+  end;
+end;
+
+function MLDSAHFunc(const Data: TBytes; DigestLen: Integer = CN_MLDSA_DIGEST_SIZE): TBytes;
 begin
   Result := SHAKE256Bytes(Data, DigestLen);
 end;
 
-function MLDSAGFunc(const Data: TBytes; DigestLen: Integer = 64): TBytes;
+function MLDSAGFunc(const Data: TBytes; DigestLen: Integer = CN_MLDSA_DIGEST_SIZE): TBytes;
 begin
   Result := SHAKE128Bytes(Data, DigestLen);
 end;
@@ -2882,8 +3166,51 @@ end;
 
 procedure TCnMLDSA.GenerateKeys(PrivateKey: TCnMLDSAPrivateKey;
   PublicKey: TCnMLDSAPublicKey; const RandHex: string);
+var
+  B, R, DB: TBytes;
+  P1: TCnMLDSASeed;
+  Matrix: TCnMLDSAPolyMatrix;
+  S, T: TCnMLDSAPolyVector;
 begin
+  if (Length(RandHex) > 0) and (Length(RandHex) <> 64) then
+    raise ECnLatticeException.Create(SCnErrorLatticeInvalidHexLength);
 
+  R := HexToBytes(RandHex);
+  SetLength(B, SizeOf(TCnMLDSASeed) + 2);
+  Move(R[0], B[0], SizeOf(TCnMLDSASeed));
+
+  B[SizeOf(TCnMLDSASeed)] := FMatrixRowCount;
+  B[SizeOf(TCnMLDSASeed) + 1] := FMatrixColCount;
+
+  DB := MLDSAHFunc(B, 128);
+
+  // 128 字节摘要拆成 32 字节 p、64 字节 p1、32 字节 K
+  Move(DB[0], PrivateKey.FGenerationSeed[0], SizeOf(TCnMLDSASeed));
+  Move(DB[0], PublicKey.FGenerationSeed[0], SizeOf(TCnMLDSASeed));
+  Move(DB[SizeOf(TCnMLDSASeed)], P1[0], CN_MLDSA_DIGEST_SIZE);
+  Move(DB[SizeOf(TCnMLDSASeed) + CN_MLDSA_DIGEST_SIZE], PrivateKey.FKey[0], CN_MLDSA_DIGEST_SIZE);
+
+  // 用 p 生成矩阵，NTT 形式
+  GenerateMatrix(PrivateKey.GenerationSeed, Matrix);
+
+  // 用 p1 生成两个秘密多项式向量
+  GenerateSecret(P1, PrivateKey.FS1, PrivateKey.FS2);
+
+  // S1 转 NTT 形式
+  MLDSAVectorToNTT(S, PrivateKey.FS1);
+
+  // 计算 T = A * S1 + S2
+  MLDSAMatrixVectorMul(T, Matrix, S);      // 两个 NTT 相乘
+  MLDSAVectorToINTT(T, T);                 // 结果向量转回非 NTT
+  MLDSAVectorAdd(T, T, PrivateKey.FS2);    // 和 S2 相加
+
+  // 结果 T 向量拆分为 T0 和 T1
+  Power2RoundVector(T, PrivateKey.FT0, PublicKey.FT1);
+
+  // 公钥字节数组求杂凑作为私钥 tr
+  B := SavePublicKeyToBytes(PublicKey);
+  B := MLDSAHFunc(B);
+  Move(B[0], PrivateKey.FTrace[0], CN_MLDSA_DIGEST_SIZE);
 end;
 
 procedure TCnMLDSA.GenerateMatrix(const Seed: TCnMLDSASeed;
@@ -2951,7 +3278,7 @@ begin
 
 end;
 
-procedure TCnMLDSA.LoadPublicKeyFromBytes(PubliKey: TCnMLDSAPublicKey;
+procedure TCnMLDSA.LoadPublicKeyFromBytes(PublicKey: TCnMLDSAPublicKey;
   const PK: TBytes);
 begin
 
@@ -2962,9 +3289,12 @@ begin
 
 end;
 
-function TCnMLDSA.SavePublicKeyToBytes(PubliKey: TCnMLDSAPublicKey): TBytes;
+function TCnMLDSA.SavePublicKeyToBytes(PublicKey: TCnMLDSAPublicKey): TBytes;
+var
+  I: Integer;
 begin
-
+  Result := NewBytesFromMemory(@PublicKey.GenerationSeed[0], SizeOf(TCnMLDSASeed));
+  Result := ConcatBytes(Result, SimpleBitPackVector(PublicKey.FT1, CN_MLDSA_KEY_BIT));
 end;
 
 initialization
