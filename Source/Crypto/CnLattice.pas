@@ -51,25 +51,34 @@ uses
 
 const
   CN_MLKEM_KEY_SIZE    = 32;
-  {* MLKEM  的共享密钥及种子等的长度}
+  {* MLKEM 的共享密钥及种子等的长度}
 
   CN_MLKEM_POLY_SIZE   = 256;
-  {* MLKEM  的多项式尺寸，最高次数是 255 次}
+  {* MLKEM 的多项式尺寸，最高次数是 255 次}
 
   CN_MLKEM_PRIME       = 3329;
-  {* MLKEM  使用的素数}
+  {* MLKEM 使用的素数}
 
   CN_MLKEM_PRIME_INV   = 3303;
-  {* MLKEM  使用的 128 对该素数的模逆元}
+  {* MLKEM 使用的 128 对该素数的模逆元}
 
   CN_MLDSA_KEY_SIZE    = 32;
-  {* MLDSA  的共享密钥及种子等的长度}
+  {* MLDSA 的种子等的长度}
+
+  CN_MLDSA_DIGEST_SIZE = 64;
+  {* MLDSA 的部分杂凑的长度}
 
   CN_MLDSA_POLY_SIZE   = 256;
-  {* MLDSA  的多项式尺寸，最高次数是 255 次}
+  {* MLDSA 的多项式尺寸，最高次数是 255 次}
 
   CN_MLDSA_PRIME       = 8380417;
-  {* MLDSA  使用的素数}
+  {* MLDSA 使用的素数}
+
+  CN_MLDSA_PRIME_INV   = 8347681;
+  {* MLDSA 使用的 256 对该素数的模逆元}
+
+  CN_MLDSA_DROPBIT     = 13;
+  {* MLDSA 统一分离低 13 位}
 
 type
   ECnLatticeException = class(Exception);
@@ -85,6 +94,9 @@ type
 
   TCnMLDSAType = (cmdt44, cmdt65, cmdt87);
   {* MLDSA 的三种实现规范}
+
+  TCnMLDSAHashType = (cmhtNone, cmhtSHA256, cmhtSHA512, cmhtSHAKE128);
+  {* MLDSA 支持的杂凑算法}
 
   TCnNTRUPrivateKey = class
   {* Number Theory Research Unit 的私钥，F G 两个多项式及其模逆}
@@ -312,7 +324,7 @@ type
   TCnMLKEM = class
   {* 基于模块化格的密钥封装机制（Module-Lattice-based Key Encapsulation Mechanism）实现类}
   private
-    FMatrixRank: Integer;
+    FMatrixSize: Integer;
     FNoise1: Integer;
     FNoise2: Integer;
     FCompressDigits: Integer;
@@ -355,9 +367,9 @@ type
     {* 从密文 CipherText 中解出密文对应的多项式向量与多项式，均是非 NTT 形式}
 
     procedure CheckEncapKey(EnKey: TBytes);
-    {* 检查公开密钥字节流是否合法，不合法则抛异常}
+    {* 检查公开密钥字节数组是否合法，不合法则抛异常}
     procedure CheckDecapKey(DeKey: TBytes);
-    {* 检查非公开密钥字节流是否合法，不合法则抛异常}
+    {* 检查非公开密钥字节数组是否合法，不合法则抛异常}
     procedure CheckKeyPair(EncapKey: TCnMLKEMEncapsulationKey; DecapKey: TCnMLKEMDecapsulationKey);
     {* 检查一对 Key 是否匹配}
   public
@@ -372,18 +384,18 @@ type
 
     procedure GenerateKeys(out EnKey: TBytes; out DeKey: TBytes;
       const RandDHex: string = ''; const RandZHex: string = ''); overload;
-    {* 用两个真随机 32 字节种子，生成一对 Key 的字节流，随机数允许外部传入 64 字符的十六进制字符串}
+    {* 用两个真随机 32 字节种子，生成一对 Key 的字节数组，随机数允许外部传入 64 字符的十六进制字符串}
 
     procedure LoadKeyFromBytes(Key: TBytes; EncapKey: TCnMLKEMEncapsulationKey);
-    {* 从字节流中加载公开密钥，失败则抛异常}
+    {* 从字节数组中加载公开密钥，失败则抛异常}
     procedure LoadKeysFromBytes(Key: TBytes; DecapKey: TCnMLKEMDecapsulationKey;
       EncapKey: TCnMLKEMEncapsulationKey);
-    {* 从字节流中加载非公开密钥与公开密钥，失败则抛异常}
+    {* 从字节数组中加载非公开密钥与公开密钥，失败则抛异常}
 
     function SaveEncapKeyToBytes(EncapKey: TCnMLKEMEncapsulationKey): TBytes;
-    {* 将公开密钥保存成字节流 EK}
+    {* 将公开密钥保存成字节数组 EK}
     function SaveDecapKeyToBytes(DecapKey: TCnMLKEMDecapsulationKey; EncapKey: TCnMLKEMEncapsulationKey): TBytes;
-    {* 将非公开密钥与公开密钥都保存成字节流 DK}
+    {* 将非公开密钥与公开密钥都保存成字节数组 DK}
 
     function MLKEMEncrypt(EnKey: TBytes; Msg: TBytes; const RandHex: string = ''): TBytes;
     {* 用公开密钥流加密消息，返回加密密文。
@@ -399,15 +411,14 @@ type
     function MLKEMDecaps(DeKey: TBytes; CipherText: TBytes): TBytes;
     {* 用非公开密钥解封密文，返回共享密钥。如失败，返回随机密钥}
 
-    property MatrixRank: Integer read FMatrixRank write FMatrixRank;
-    {* 矩阵的秩，在这里是方阵尺寸，取值 2 或 3 或 4}
-
     property MLKEMType: TCnMLKEMType read FMLKEMType;
     {* MLKEM 的算法类型，512、768、1024 三种}
+    property MatrixSize: Integer read FMatrixSize write FMatrixSize;
+    {* 矩阵的尺寸，在这里是方阵尺寸，取值 2 或 3 或 4，对应规范中的 k}
     property Noise1: Integer read FNoise1 write FNoise1;
-    {* 噪声参数一，控制生成密钥时秘密向量和错误向量的采样范围}
+    {* 噪声参数一，控制生成密钥时秘密向量和错误向量的采样范围，对应规范中的 Eta1}
     property Noise2: Integer read FNoise2 write FNoise2;
-    {* 噪声参数二，控制封装时的随机向量与两个错误向量的采样范围}
+    {* 噪声参数二，控制封装时的随机向量与两个错误向量的采样范围，对应规范中的 Eta2}
     property CompressDigits: Integer read FCompressDigits write FCompressDigits;
     {* D 的压缩位数}
     property CompressU: Integer read FCompressU write FCompressU;
@@ -422,41 +433,96 @@ type
   TCnMLDSABlock = array[0..CN_MLDSA_KEY_SIZE - 1] of Byte;
   {* MLDSA 块数据，32 字节}
 
+  TCnMLDSAKeyDigest = array[0..CN_MLDSA_DIGEST_SIZE - 1] of Byte;
+  {* MLDSA 密钥的摘要字段，64 字节}
+
   TCnMLDSAPolynomial = array[0..CN_MLDSA_POLY_SIZE - 1] of Integer;
   {* MLDSA 多项式系数，256 个整数，用来表达一个多项式}
 
   TCnMLDSAPolyVector = array of TCnMLDSAPolynomial;
-  {* MLDSA 多项式列表或叫向量，用来表达 S 或 E 等}
+  {* MLDSA 多项式列表或叫向量，用来表达 T 或 S 等}
 
   TCnMLDSAPolyMatrix = array of TCnMLDSAPolyVector;
   {* MLDSA 多项式矩阵，用来表达 A}
 
   TCnMLDSAPrivateKey = class
+  {* MLDSA 的私钥}
   private
     FGenerationSeed: TCnMLDSASeed;
+    FKey: TCnMLDSASeed;
+    FTrace: TCnMLDSAKeyDigest;
+    FS1: TCnMLDSAPolyVector;
+    FS2: TCnMLDSAPolyVector;
+    FT0: TCnMLDSAPolyVector;
   public
     property GenerationSeed: TCnMLDSASeed read FGenerationSeed;
-    {* 用于生成矩阵的随机种子，相当于规范里的 p}
-
+    {* 用于生成矩阵的随机种子，相当于规范里的 rho 象形 p}
+    property Key:TCnMLDSASeed read FKey write FKey;
+    {* 规范里的从杂凑结果中抽取的 K}
+    property Trace: TCnMLDSAKeyDigest read FTrace write FTrace;
+    {* 公钥流的 64 字节 SHAKE256 摘要}
+    property S1: TCnMLDSAPolyVector read FS1 write FS1;
+    {* 秘密多项式向量 S1}
+    property S2: TCnMLDSAPolyVector read FS2 write FS2;
+    {* 秘密多项式向量 S2}
+    property T0: TCnMLDSAPolyVector read FT0 write FT0;
+    {* 矩阵运算得到的多项式向量 T 的分离私钥部分 T0}
   end;
 
   TCnMLDSAPublicKey = class
+  {* MLDSA 的公钥}
   private
     FGenerationSeed: TCnMLDSASeed;
+    FT1: TCnMLDSAPolyVector;
   public
     property GenerationSeed: TCnMLDSASeed read FGenerationSeed;
     {* 用于生成矩阵的随机种子，相当于规范里的 p}
-
+    property T1: TCnMLDSAPolyVector read FT1 write FT1;
+    {* 矩阵运算得到的多项式向量 T 的分离公钥部分 T1}
   end;
 
   TCnMLDSA = class
+  {* 基于模块化格的数字签名算法（Module-Lattice-based Digital Signature Algorithm）实现类}
   private
+    FMLDSAType: TCnMLDSAType;
     FMatrixRowCount: Integer;
     FMatrixColCount: Integer;
+    FNoise: Integer;
+
+    procedure GenerateMatrix(const Seed: TCnMLDSASeed; out Matrix: TCnMLDSAPolyMatrix);
+    {* 根据种子生成矩阵 A}
+    procedure GenerateSecret(const Seed: TCnMLDSASeed; out S1, S2: TCnMLDSAPolyVector);
+    {* 根据种子生成两个秘密多项式向量}
+  protected
 
   public
+    constructor Create(AType: TCnMLDSAType); virtual;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    procedure GenerateKeys(PrivateKey: TCnMLDSAPrivateKey; PublicKey: TCnMLDSAPublicKey;
+      const RandHex: string = '');
+    {* 用一个真随机 32 字节种子，生成一对 Key，如果不传则内部产生随机数生成}
+
+    procedure LoadPrivateKeyFromBytes(PrivateKey: TCnMLDSAPrivateKey; const SK: TBytes);
+    {* 从字节数组中加载私钥}
+    procedure LoadPublicKeyFromBytes(PubliKey: TCnMLDSAPublicKey; const PK: TBytes);
+    {* 从字节数组中加载公钥}
+
+    function SavePrivateKeyToBytes(PrivateKey: TCnMLDSAPrivateKey): TBytes;
+    {* 将私钥保存成字节数组 SK}
+    function SavePublicKeyToBytes(PubliKey: TCnMLDSAPublicKey): TBytes;
+    {* 将公钥保存成字节数组 PK}
+
+    property MLDSAType: TCnMLDSAType read FMLDSAType;
+    {* MLDSA 的算法类型，44、65、87 三种}
     property MatrixRowCount: Integer read FMatrixRowCount write FMatrixRowCount;
+    {* 矩阵行数，对应规范中的 k}
     property MatrixColCount: Integer read FMatrixColCount write FMatrixColCount;
+    {* 矩阵列数，对应规范中的 l}
+    property Noise: Integer read FNoise write FNoise;
+    {* 噪声参数，也就是私钥系数正负范围，对应规范中的 Eta}
   end;
 
 procedure NTRUDataToInt64Polynomial(Res: TCnInt64Polynomial; Data: Pointer;
@@ -670,7 +736,7 @@ resourcestring
   SCnErrorLatticeMLKEMInvalidParam = 'Invalid MLKEM Value';
   SCnErrorLatticeEtaMustBe2Or3 = 'Eta Must Be 2 or 3';
   SCnErrorLatticeInvalidRandomLength = 'Invalid Random Length for SamplePolyCBD';
-  SCnErrorLatticeInvalidSampleNTT = 'SampleNTT Input Must Be 34 Bytes';
+  SCnErrorLatticeInvalidSampleNTT = 'Sample NTT Function Input Must Be 34 Bytes';
   SCnErrorLatticeInvalidEncodeDigit = 'Digit Must Be Between 1 and 12';
   SCnErrorLatticeEncapKeyLengthMismatch = 'Encapsulation Key Length Mismatch. Expected %d, Got %d';
   SCnErrorLatticeEncapKeyModulusCheckFailed = 'Encapsulation Key Modulus Check Failed';
@@ -720,7 +786,7 @@ const
   );
 
   // FIPS 203 Appendix A 的 NTT 预计算值
-  ZETA_NTT: array[0..127] of Word = (
+  MLKEM_ZETA_NTT: array[0..127] of Word = (
     1, 1729, 2580, 3289, 2642, 630, 1897, 848,
     1062, 1919, 193, 797, 2786, 3260, 569, 1746,
     296, 2447, 1339, 1476, 3046, 56, 2240, 1333,
@@ -756,6 +822,56 @@ const
     1143, 2186, 2150, 1179, 2775, 554, 886, 2443,
     1722, 1607, 1212, 2117, 1874, 1455, 1029,2300,
     2110, 1219, 2935, 394, 885, 2444, 2154, 1175
+  );
+
+  // FIPS 204 Appendix B 的 NTT 预计算值
+  MLDSA_ZETA_NTT: array[0..255] of Integer = (
+    0, 4808194, 3765607, 3761513, 5178923, 5496691, 5234739, 5178987,
+    7778734, 3542485, 2682288, 2129892, 3764867, 7375178, 557458, 7159240,
+    5010068, 4317364, 2663378, 6705802, 4855975, 7946292, 676590, 7044481,
+    5152541, 1714295, 2453983, 1460718, 7737789, 4795319, 2815639, 2283733,
+    3602218, 3182878, 2740543, 4793971, 5269599, 2101410, 3704823, 1159875,
+    394148, 928749, 1095468, 4874037, 2071829, 4361428, 3241972, 2156050,
+    3415069, 1759347, 7562881, 4805951, 3756790, 6444618, 6663429, 4430364,
+    5483103, 3192354, 556856, 3870317, 2917338, 1853806, 3345963, 1858416,
+    3073009, 1277625, 5744944, 3852015, 4183372, 5157610, 5258977, 8106357,
+    2508980, 2028118, 1937570, 4564692, 2811291, 5396636, 7270901, 4158088,
+    1528066, 482649, 1148858, 5418153, 7814814, 169688, 2462444, 5046034,
+    4213992, 4892034, 1987814, 5183169, 1736313, 235407, 5130263, 3258457,
+    5801164, 1787943, 5989328, 6125690, 3482206, 4197502, 7080401, 6018354,
+    7062739, 2461387, 3035980, 621164, 3901472, 7153756, 2925816, 3374250,
+    1356448, 5604662, 2683270, 5601629, 4912752, 2312838, 7727142, 7921254,
+    348812, 8052569, 1011223, 6026202, 4561790, 6458164, 6143691, 1744507,
+    1753, 6444997, 5720892, 6924527, 2660408, 6600190, 8321269, 2772600,
+    1182243, 87208, 636927, 4415111, 4423672, 6084020, 5095502, 4663471,
+    8352605, 822541, 1009365, 5926272, 6400920, 1596822, 4423473, 4620952,
+    6695264, 4969849, 2678278, 4611469, 4829411, 635956, 8129971, 5925040,
+    4234153, 6607829, 2192938, 6653329, 2387513, 4768667, 8111961, 5199961,
+    3747250, 2296099, 1239911, 4541938, 3195676, 2642980, 1254190, 8368000,
+    2998219, 141835, 8291116, 2513018, 7025525, 613238, 7070156, 6161950,
+    7921677, 6458423, 4040196, 4908348, 2039144, 6500539, 7561656, 6201452,
+    6757063, 2105286, 6006015, 6346610, 586241, 7200804, 527981, 5637006,
+    6903432, 1994046, 2491325, 6987258, 507927, 7192532, 7655613, 6545891,
+    5346675, 8041997, 2647994, 3009748, 5767564, 4148469, 749577, 4357667,
+    3980599, 2569011, 6764887, 1723229, 1665318, 2028038, 1163598, 5011144,
+    3994671, 8368538, 7009900, 3020393, 3363542, 214880, 545376, 7609976,
+    3105558, 7277073, 508145, 7826699, 860144, 3430436, 140244, 6866265,
+    6195333, 3123762, 2358373, 6187330, 5365997, 6663603, 2926054, 7987710,
+    8077412, 3531229, 4405932, 4606686, 1900052, 7598542, 1054478, 7648983
+  );
+
+  MLDSA_INVALID_COEFF_HALFBYTE = $66;
+
+  OID_MLDSA_PREHASH_SHA256: array[0..10] of Byte = ( // 2.16.840.1.101.3.4.2.1
+    $06, $09, $60, $86, $48, $01, $65, $03, $04, $02, $01
+  );
+
+  OID_MLDSA_PREHASH_SHA512: array[0..10] of Byte = ( // 2.16.840.1.101.3.4.2.3
+    $06, $09, $60, $86, $48, $01, $65, $03, $04, $02, $03
+  );
+
+  OID_MLDSA_PREHASH_SHAKE128: array[0..10] of Byte = ( // 2.16.840.1.101.3.4.2.11
+    $06, $09, $60, $86, $48, $01, $65, $03, $04, $02, $0B
   );
 
 var
@@ -1233,13 +1349,13 @@ end;
 
 // ================================ MLKEM ======================================
 
-procedure CheckEta(Eta: Integer);
+procedure MLKEMCheckEta(Eta: Integer);
 begin
   if (Eta <> 2) and (Eta <> 3) then
     raise ECnLatticeException.Create(SCnErrorLatticeEtaMustBe2Or3);
 end;
 
-procedure CheckEncodeDigit(D: Integer);
+procedure MLKEMCheckEncodeDigit(D: Integer);
 begin
   if not D in [1.. 12] then
     raise ECnLatticeException.Create(SCnErrorLatticeInvalidEncodeDigit);
@@ -1251,7 +1367,7 @@ var
   I: Integer;
   B: TCnBitBuilder;
 begin
-  CheckEncodeDigit(D);
+  MLKEMCheckEncodeDigit(D);
 
   B := TCnBitBuilder.Create;
   try
@@ -1269,7 +1385,7 @@ var
   I: Integer;
   B: TCnBitBuilder;
 begin
-  CheckEncodeDigit(D);
+  MLKEMCheckEncodeDigit(D);
 
   B := TCnBitBuilder.Create;
   try
@@ -1294,7 +1410,7 @@ begin
     Exit;
   end;
 
-  CheckEncodeDigit(D);
+  MLKEMCheckEncodeDigit(D);
 
   C := TCnBitBuilder.Create;
   try
@@ -1325,21 +1441,22 @@ begin
   Move(W[0], P[0], Length(W) * SizeOf(Word));
 end;
 
-function DivMlKemQ(X: Word; B, HQ, BS: Integer; BM: TUInt64): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
-var
-  R: TUInt64;
-begin
-  R := (TUInt64(X) shl B) + TUInt64(HQ);
-  R := UInt64Mul(R, BM);
-  R := R shr BS;
-  Result := Word(R and ((1 shl B) - 1));
-end;
-
 // 将一个 X 的系数值压缩到 D 位并返回
 function MLKEMCompress(X, D: Word): Word;
 var
   V, T: Word;
   I: Integer;
+
+  function DivMlKemQ(X: Word; B, HQ, BS: Integer; BM: TUInt64): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+  var
+    R: TUInt64;
+  begin
+    R := (TUInt64(X) shl B) + TUInt64(HQ);
+    R := UInt64Mul(R, BM);
+    R := R shr BS;
+    Result := Word(R and ((1 shl B) - 1));
+  end;
+
 begin
   V := 0;
   T := (X + CN_MLKEM_PRIME) mod CN_MLKEM_PRIME;
@@ -1421,12 +1538,12 @@ begin
 end;
 
 // 模素数加减乘法
-function ModAdd(A, B: Word): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function MLKEMModAdd(A, B: Word): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := (A + B) mod CN_MLKEM_PRIME;
 end;
 
-function ModSub(A, B: Word): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function MLKEMModSub(A, B: Word): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   if A >= B then
     Result := A - B
@@ -1436,7 +1553,7 @@ begin
   Result := Result mod CN_MLKEM_PRIME;
 end;
 
-function ModMul(A, B: Word): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function MLKEMModMul(A, B: Word): Word; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   Result := Word(Cardinal(A) * Cardinal(B) mod CN_MLKEM_PRIME);
 end;
@@ -1458,14 +1575,14 @@ begin
     Start := 0;
     while Start < CN_MLKEM_POLY_SIZE do
     begin
-      Zeta := ZETA_NTT[I];
+      Zeta := MLKEM_ZETA_NTT[I];
       Inc(I);
 
       for J := Start to Start + Len - 1 do
       begin
-        T := ModMul(Zeta, Result[J + Len]);
-        Result[J + Len] := ModSub(Result[J], T);
-        Result[J] := ModAdd(Result[J], T);
+        T := MLKEMModMul(Zeta, Result[J + Len]);
+        Result[J + Len] := MLKEMModSub(Result[J], T);
+        Result[J] := MLKEMModAdd(Result[J], T);
       end;
 
       Inc(Start, 2 * Len);
@@ -1491,14 +1608,14 @@ begin
     Start := 0;
     while Start < CN_MLKEM_POLY_SIZE do
     begin
-      Zeta := ZETA_NTT[I];
+      Zeta := MLKEM_ZETA_NTT[I];
       Dec(I);
 
       for J := Start to Start + Len - 1 do
       begin
         T := Result[J];
-        Result[J] := ModAdd(T, Result[J + Len]);
-        Result[J + Len] := ModMul(Zeta, ModSub(Result[J + Len], T));
+        Result[J] := MLKEMModAdd(T, Result[J + Len]);
+        Result[J + Len] := MLKEMModMul(Zeta, MLKEMModSub(Result[J + Len], T));
       end;
 
       Inc(Start, 2 * Len);
@@ -1509,7 +1626,7 @@ begin
 
   // 最终缩放：乘以 3303，是 128 对 3329 的模逆元
   for J := 0 to CN_MLKEM_POLY_SIZE - 1 do
-    Result[J] := ModMul(Result[J], CN_MLKEM_PRIME_INV);
+    Result[J] := MLKEMModMul(Result[J], CN_MLKEM_PRIME_INV);
 end;
 
 // 根据真随机数组生成 256 个采样的多项式系数供 NTT 变换用，RandBytes 的长度至少要 34 字节
@@ -1572,7 +1689,7 @@ var
   end;
 
 begin
-  CheckEta(Eta);
+  MLKEMCheckEta(Eta);
   if Length(RandBytes) < 64 * Eta then
     raise Exception.Create(SCnErrorLatticeInvalidRandomLength);
 
@@ -1661,7 +1778,7 @@ begin
       [ExpLen, Length(DeKey)]);
 
   // 提取 ek 部分: dk[384k : 768k+32]
-  EkStart := 384 * FMatrixRank;
+  EkStart := 384 * FMatrixSize;
   EkLength := GetEncapKeyByteLength;
 
   if (EkStart + EkLength) > Length(DeKey) then
@@ -1675,7 +1792,7 @@ begin
 
   // 杂凑检查，验证 H(ek) 是否正确
   // H(ek) 位于 dk[768k+32 : 768k+64]
-  HStart := 768 * FMatrixRank + 32;
+  HStart := 768 * FMatrixSize + 32;
   HLength := SizeOf(TCnMLKEMBlock);
 
   if (HStart + HLength) > Length(DeKey) then
@@ -1700,7 +1817,7 @@ begin
     raise ECnLatticeException.CreateFmt(SCnErrorLatticeEncapKeyLengthMismatch,
       [GetEncapKeyByteLength, Length(EnKey)]);
 
-  PolyBytesLength := 384 * FMatrixRank;
+  PolyBytesLength := 384 * FMatrixSize;
 
   // 提取多项式部分字节
   SetLength(PolyBytes, PolyBytesLength);
@@ -1746,21 +1863,21 @@ begin
   case AType of
     cmkt512:
       begin
-        FMatrixRank := 2;
+        FMatrixSize := 2;
         FNoise1 := 3;
         FCompressU := 10;
         FCompressV := 4;
       end;
     cmkt768:
       begin
-        FMatrixRank := 3;
+        FMatrixSize := 3;
         FNoise1 := 2;
         FCompressU := 10;
         FCompressV := 4;
       end;
     cmkt1024:
       begin
-        FMatrixRank := 4;
+        FMatrixSize := 4;
         FNoise1 := 2;
         FCompressU := 11;
         FCompressV := 5;
@@ -1784,18 +1901,18 @@ var
   W: TWords;
 begin
   // 设置矩阵大小
-  SetLength(Matrix, FMatrixRank);
-  for I := 0 to FMatrixRank - 1 do
-    SetLength(Matrix[I], FMatrixRank);
+  SetLength(Matrix, FMatrixSize);
+  for I := 0 to FMatrixSize - 1 do
+    SetLength(Matrix[I], FMatrixSize);
 
   // 准备好 Sample 随机数据
   SetLength(PJI, SizeOf(TCnMLKEMSeed) + 2);
   Move(Seed[0], PJI[0], SizeOf(TCnMLKEMSeed));
 
   // 生成矩阵
-  for I := 0 to FMatrixRank - 1 do
+  for I := 0 to FMatrixSize - 1 do
   begin
-    for J := 0 to FMatrixRank - 1 do
+    for J := 0 to FMatrixSize - 1 do
     begin
       PJI[SizeOf(TCnMLKEMSeed)] := J;
       PJI[SizeOf(TCnMLKEMSeed) + 1] := I;
@@ -1809,25 +1926,25 @@ procedure TCnMLKEM.TransposeMatrix(const InMatrix: TCnMLKEMPolyMatrix; out Matri
 var
   I, J: Integer;
 begin
-  SetLength(Matrix, FMatrixRank);
-  for I := 0 to FMatrixRank - 1 do
-    SetLength(Matrix[I], FMatrixRank);
+  SetLength(Matrix, FMatrixSize);
+  for I := 0 to FMatrixSize - 1 do
+    SetLength(Matrix[I], FMatrixSize);
 
-  for I := 0 to FMatrixRank - 1 do
+  for I := 0 to FMatrixSize - 1 do
   begin
-    for J := 0 to FMatrixRank - 1 do
+    for J := 0 to FMatrixSize - 1 do
       Matrix[J][I] := InMatrix[I][J];
   end;
 end;
 
 function TCnMLKEM.GetDecapKeyByteLength: Integer;
 begin
-  Result := 768 * FMatrixRank + 96;
+  Result := 768 * FMatrixSize + 96;
 end;
 
 function TCnMLKEM.GetEncapKeyByteLength: Integer;
 begin
-  Result := 384 * FMatrixRank + 32;
+  Result := 384 * FMatrixSize + 32;
 end;
 
 procedure TCnMLKEM.KPKEKeyGen(const D: TCnMLKEMSeed; out GenerationSeed: TCnMLKEMSeed;
@@ -1840,7 +1957,7 @@ var
   Noise: TCnMLKEMPolyVector;
 begin
   SetLength(DK, 1);
-  DK[0] := FMatrixRank;
+  DK[0] := FMatrixSize;
   DK := ConcatBytes(NewBytesFromMemory(@D[0], SizeOf(TCnMLKEMBlock)), DK);
 
   // 生成公共种子
@@ -1868,22 +1985,22 @@ var
   PolyLength: Integer;
   SeedStart: Integer;
 begin
-  // 首先检查密钥字节流的合法性
+  // 首先检查密钥字节数组的合法性
   CheckEncapKey(Key);
 
   // 计算多项式部分的长度（每个多项式 384 字节，共 k 个）
-  PolyLength := 384 * FMatrixRank;
+  PolyLength := 384 * FMatrixSize;
 
-  // 确保字节流长度足够
+  // 确保字节数组长度足够
   if Length(Key) < PolyLength + SizeOf(TCnMLKEMSeed) then
     raise ECnLatticeException.CreateFmt(SCnErrorLatticeEncapKeyLengthMismatch, 
       [PolyLength + SizeOf(TCnMLKEMSeed), Length(Key)]);
 
   // 设置公钥多项式向量的大小
-  SetLength(EncapKey.FPubVector, FMatrixRank);
+  SetLength(EncapKey.FPubVector, FMatrixSize);
 
   // 解析多项式部分
-  for I := 0 to FMatrixRank - 1 do
+  for I := 0 to FMatrixSize - 1 do
   begin
     // 提取每个多项式的字节数据（每个384字节）
     SetLength(PolyBytes, 384);
@@ -1907,15 +2024,15 @@ var
   I, ZStart, PolyLength, EkStart, EkLength: Integer;
   PolyBytes, EkBytes: TBytes;
 begin
-  // 首先检查密钥字节流的合法性
+  // 首先检查密钥字节数组的合法性
   CheckDecapKey(Key);
 
   // 计算各部分的位置和长度
-  PolyLength := 384 * FMatrixRank; // 秘密向量部分长度
+  PolyLength := 384 * FMatrixSize; // 秘密向量部分长度
 
   // 解析秘密向量部分 (dk)
-  SetLength(DecapKey.FSecretVector, FMatrixRank);
-  for I := 0 to FMatrixRank - 1 do
+  SetLength(DecapKey.FSecretVector, FMatrixSize);
+  for I := 0 to FMatrixSize - 1 do
   begin
     // 提取每个秘密多项式的字节数据（每个 384 字节）
     SetLength(PolyBytes, 384);
@@ -1926,8 +2043,8 @@ begin
       CN_MLKEM_POLY_SIZE * SizeOf(Word));
   end;
 
-  // Key 字节流中的杂凑部分加载进非公开密钥的杂凑值中
-  Move(Key[768 * FMatrixRank + 32], DecapKey.FEnKeyHash[0], SizeOf(TCnMLKEMSeed));
+  // Key 字节数组中的杂凑部分加载进非公开密钥的杂凑值中
+  Move(Key[768 * FMatrixSize + 32], DecapKey.FEnKeyHash[0], SizeOf(TCnMLKEMSeed));
 
   // 解析封装密钥部分 (ek)
   EkStart := PolyLength; // 384k
@@ -1940,7 +2057,7 @@ begin
   LoadKeyFromBytes(EkBytes, EncapKey);
 
   // 解析注入种子部分 (z)
-  ZStart := 768 * FMatrixRank + 64; // dk(384k) + ek(384k+32) + H(ek)(32) = 768k+64
+  ZStart := 768 * FMatrixSize + 64; // dk(384k) + ek(384k+32) + H(ek)(32) = 768k+64
   Move(Key[ZStart], DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
 end;
 
@@ -2016,8 +2133,8 @@ var
   R: TBytes;
   W: TWords;
 begin
-  SetLength(PolyVector, FMatrixRank);
-  for I := 0 to FMatrixRank - 1 do
+  SetLength(PolyVector, FMatrixSize);
+  for I := 0 to FMatrixSize - 1 do
   begin
     R := MLKEMPseudoRandomFunc(Noise, Seed, Counter);
     W := MLKEMSamplePolyCBD(R, Noise);
@@ -2037,7 +2154,7 @@ begin
   EK := SaveEncapKeyToBytes(EncapKey);
 
   DK := nil;
-  for I := 0 to FMatrixRank - 1 do
+  for I := 0 to FMatrixSize - 1 do
     DK := ConcatBytes(DK, MLKEMByteEncode(DecapKey.SecretVector[I], 12));
 
   // dk || ek || H(ek) || z
@@ -2052,7 +2169,7 @@ var
 begin
   // T 拼上 PubSeed 输出作为 EK
   Result := nil;
-  for I := 0 to FMatrixRank - 1 do
+  for I := 0 to FMatrixSize - 1 do
     Result := ConcatBytes(Result, MLKEMByteEncode(EncapKey.PubVector[I], 12));
 
   Result := ConcatBytes(Result, NewBytesFromMemory(@EncapKey.GenerationSeed[0], SizeOf(TCnMLKEMSeed)));
@@ -2153,7 +2270,7 @@ begin
     // 准备好了消息种子 M 和随机种子 R，调用内部加密方法，返回 U V
     KPKEEncrypt(En, M, Seed, U, V);
 
-    // 压缩编码，将非 NTT 系数的 U V 返回作为 Chipher 字节流
+    // 压缩编码，将非 NTT 系数的 U V 返回作为 Chipher 字节数组
     MLKEMCompressVector(UC, U, FCompressU);
     MLKEMCompressPolynomial(VC, V, FCompressV);
 
@@ -2176,7 +2293,7 @@ var
   W, T: TCnMLKEMPolynomial;
 begin
   // 外部传入的 UVector 是非 NTT 的，转换为 NTT 方式放到 U 中
-  SetLength(U, FMatrixRank);
+  SetLength(U, FMatrixSize);
   for I := Low(UVector) to High(UVector) do
     MLKEMPolynomialToNTT(U[I], UVector[I]);
 
@@ -2254,7 +2371,7 @@ begin
     // 验证，这里重新加解密一遍
     KPKEEncrypt(En, Msg, TCnMLKEMSeed(R), U, V);
 
-    // 压缩编码，将非 NTT 系数的 U V 返回作为 Chipher 字节流
+    // 压缩编码，将非 NTT 系数的 U V 返回作为 Chipher 字节数组
     MLKEMCompressVector(UC, U, FCompressU);
     MLKEMCompressPolynomial(VC, V, FCompressV);
 
@@ -2307,7 +2424,7 @@ end;
 
 function TCnMLKEM.GetCipherUByteLength: Integer;
 begin
-  Result := FMatrixRank * GetCipherUPolyByteLength;
+  Result := FMatrixSize * GetCipherUPolyByteLength;
 end;
 
 function TCnMLKEM.GetCipherVByteLength: Integer;
@@ -2334,12 +2451,12 @@ begin
       [ExpLen, Length(CipherText)]);
 
   // 还原回 U
-  SetLength(UVector, FMatrixRank);
-  SetLength(UC, FMatrixRank);
+  SetLength(UVector, FMatrixSize);
+  SetLength(UC, FMatrixSize);
 
   // 抽取整个 U 向量的多项式系数
   SetLength(B, GetCipherUPolyByteLength);
-  for I := 0 to FMatrixRank - 1 do
+  for I := 0 to FMatrixSize - 1 do
   begin
     // 提取 U 中的一个多项式并解码
     Move(CipherText[I * Length(B)], B[0], Length(B));
@@ -2405,7 +2522,7 @@ var
   I: Integer;
 begin
   for I := Low(P1) to High(P1) do
-    Res[I] := ModAdd(P1[I], P2[I]);
+    Res[I] := MLKEMModAdd(P1[I], P2[I]);
 end;
 
 procedure MLKEMPolynomialSub(var Res: TCnMLKEMPolynomial; const P1, P2: TCnMLKEMPolynomial);
@@ -2413,7 +2530,7 @@ var
   I: Integer;
 begin
   for I := Low(P1) to High(P1) do
-    Res[I] := ModSub(P1[I], P2[I]);
+    Res[I] := MLKEMModSub(P1[I], P2[I]);
 end;
 
 procedure MLKEMPolynomialMul(var Res: TCnMLKEMPolynomial; const MP1, MP2: TCnMLKEMPolynomial;
@@ -2426,10 +2543,10 @@ var
   procedure BaseCaseMultiply(A0, A1, B0, B1, Gamma: Word; out OC0, OC1: Word);
   begin
     // C0 = A0 * B0 + A1 * B1 * Gamma
-    OC0 := ModAdd(ModMul(A0, B0), ModMul(ModMul(A1, B1), Gamma));
+    OC0 := MLKEMModAdd(MLKEMModMul(A0, B0), MLKEMModMul(MLKEMModMul(A1, B1), Gamma));
 
     // C1 = A0 * B1 + A1 * B0
-    OC1 := ModAdd(ModMul(A0, B1), ModMul(A1, B0));
+    OC1 := MLKEMModAdd(MLKEMModMul(A0, B1), MLKEMModMul(A1, B0));
   end;
 
 begin
@@ -2528,6 +2645,98 @@ begin
   end;
 end;
 
+// 模素数加减乘法
+function MLDSAModAdd(A, B: Integer): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  Result := (A + B) mod CN_MLDSA_PRIME;
+end;
+
+function MLDSAModSub(A, B: Integer): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  if A >= B then
+    Result := A - B
+  else
+    Result := CN_MLDSA_PRIME + A - B;
+
+  Result := Result mod CN_MLDSA_PRIME;
+end;
+
+function MLDSAModMul(A, B: Integer): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  Result := A * B mod CN_MLDSA_PRIME;
+end;
+
+// MLDSA 使用的特定数论变换
+function MLDSANTT(const F: TIntegers): TIntegers;
+var
+  Len, Start, J, I: Integer;
+  Zeta, T: Integer;
+begin
+  SetLength(Result, CN_MLDSA_POLY_SIZE);
+  Move(F[0], Result[0], CN_MLDSA_POLY_SIZE * SizeOf(Integer));
+
+  I := 0;
+  Len := 128;
+
+  while Len >= 1 do
+  begin
+    Start := 0;
+    while Start < CN_MLDSA_POLY_SIZE do
+    begin
+      Inc(I);
+      Zeta := MLDSA_ZETA_NTT[I];
+
+      for J := Start to Start + Len - 1 do
+      begin
+        T := MLDSAModMul(Zeta, Result[J + Len]);
+        Result[J + Len] := MLDSAModSub(Result[J], T);
+        Result[J] := MLDSAModAdd(Result[J], T);
+      end;
+
+      Inc(Start, 2 * Len);
+    end;
+
+    Len := Len div 2;
+  end;
+end;
+
+function MLDSAINTT(const F: TIntegers): TIntegers;
+var
+  Len, Start, J, I: Integer;
+  Zeta, T: Integer;
+begin
+  SetLength(Result, CN_MLDSA_POLY_SIZE);
+  Move(F[0], Result[0], CN_MLDSA_POLY_SIZE * SizeOf(Integer));
+
+  I := 256;
+  Len := 1;
+
+  while Len < 256 do
+  begin
+    Start := 0;
+    while Start < CN_MLDSA_POLY_SIZE do
+    begin
+      Dec(I);
+      Zeta := -MLDSA_ZETA_NTT[I];
+
+      for J := Start to Start + Len - 1 do
+      begin
+        T := Result[J];
+        Result[J] := MLDSAModAdd(T, Result[J + Len]);
+        Result[J + Len] := MLDSAModMul(Zeta, MLDSAModSub(T, Result[J + Len]));
+      end;
+
+      Inc(Start, 2 * Len);
+    end;
+
+    Len := Len * 2;
+  end;
+
+  // 最终缩放：乘以 8347681，是 256 对 8380417 的模逆元
+  for J := 0 to CN_MLDSA_POLY_SIZE - 1 do
+    Result[J] := MLDSAModMul(Result[J], CN_MLDSA_PRIME_INV);
+end;
+
 // 根据仨字节构造整数，返回 -1 表示失败
 function MLDSACoeffFromThreeBytes(B0, B1, B2: Byte): Integer;
 begin
@@ -2537,6 +2746,225 @@ begin
   Result := Integer(B2) shl 16 + Integer(B1) shl 8 + B0;
   if Result > CN_MLDSA_PRIME then
     Result := -1;
+end;
+
+function MLDSACoeffFromHalfByte(B: Byte; Eta: Integer): Integer;
+begin
+  if (Eta = 2) and (B < 15) then
+    Result := 2 - (B mod 5)        // -2 ~ 2
+  else
+  begin
+    if (Eta = 4) and (B < 9) then
+      Result := 4 - B              // -4 ~ 4
+    else
+      Result := MLDSA_INVALID_COEFF_HALFBYTE;
+  end;
+end;
+
+function MLDSARejNTTPoly(const RandBytes: TBytes): TIntegers;
+var
+  Ctx: TCnSHA3Context;
+  C: TBytes;
+  D, J: Integer;
+begin
+  if Length(RandBytes) < CN_MLDSA_KEY_SIZE + 2 then
+    raise Exception.Create(SCnErrorLatticeInvalidSampleNTT);
+
+  SetLength(Result, CN_MLDSA_POLY_SIZE);
+
+  SHAKE128Init(Ctx, 0);
+  SHAKE128Absorb(Ctx, PAnsiChar(@RandBytes[0]), Length(RandBytes));
+
+  J := 0;
+  while J < CN_MLDSA_POLY_SIZE do
+  begin
+    C := SHAKE128Squeeze(Ctx, 3);
+    D := MLDSACoeffFromThreeBytes(C[0], C[1], C[2]);
+    if D < 0 then
+      Continue;
+
+    Result[J] := D;
+    Inc(J);
+  end;
+end;
+
+function MLDSARejBoundedPoly(const RandBytes: TBytes; Eta: Integer): TIntegers;
+var
+  Ctx: TCnSHA3Context;
+  C: TBytes;
+  D, J: Integer;
+  Z: TBytes;
+  Z0, Z1: Byte;
+begin
+  if Length(RandBytes) < CN_MLDSA_KEY_SIZE + 2 then
+    raise Exception.Create(SCnErrorLatticeInvalidSampleNTT);
+
+  SetLength(Result, CN_MLDSA_POLY_SIZE);
+
+  SHAKE256Init(Ctx, 0);
+  SHAKE256Absorb(Ctx, PAnsiChar(@RandBytes[0]), Length(RandBytes));
+
+  J := 0;
+  while J < CN_MLDSA_POLY_SIZE do
+  begin
+    Z := SHAKE256Squeeze(Ctx, 1);
+    Z0 := MLDSACoeffFromHalfByte(Z[0] and $0F, Eta);
+    Z1 := MLDSACoeffFromHalfByte(Z[0] shr 4, Eta);
+
+    if Z0 <> MLDSA_INVALID_COEFF_HALFBYTE then
+    begin
+      Result[J] := Z0;
+      Inc(J);
+    end;
+    if (Z1 <> MLDSA_INVALID_COEFF_HALFBYTE) and (J < CN_MLDSA_POLY_SIZE) then
+    begin
+      Result[J] := Z1;
+      Inc(J);
+    end;
+  end;
+end;
+
+// 取 R 的低 D 位放 R0，其余的放 R1
+procedure Power2Round(R: Integer; out R0, R1: Integer);
+var
+  T: Integer;
+begin
+  T := R mod CN_MLDSA_PRIME;
+  if T < 0 then
+    T := T + CN_MLDSA_PRIME;
+
+  R0 := T and ((1 shl CN_MLDSA_DROPBIT) - 1);
+  R1 := (T - R0) shr CN_MLDSA_DROPBIT;
+end;
+
+function MLDSAHFunc(const Data: TBytes; DigestLen: Integer = 64): TBytes;
+begin
+  Result := SHAKE256Bytes(Data, DigestLen);
+end;
+
+function MLDSAGFunc(const Data: TBytes; DigestLen: Integer = 64): TBytes;
+begin
+  Result := SHAKE128Bytes(Data, DigestLen);
+end;
+
+{ TCnMLDSA }
+
+constructor TCnMLDSA.Create(AType: TCnMLDSAType);
+begin
+  inherited Create;
+  case AType of
+    cmdt44:
+      begin
+        FMatrixRowCount := 4;
+        FMatrixColCount := 4;
+
+      end;
+    cmdt65:
+      begin
+        FMatrixRowCount := 6;
+        FMatrixColCount := 5;
+
+      end;
+    cmdt87:
+      begin
+        FMatrixRowCount := 8;
+        FMatrixColCount := 7;
+
+      end;
+  end;
+end;
+
+destructor TCnMLDSA.Destroy;
+begin
+
+  inherited;
+end;
+
+procedure TCnMLDSA.GenerateKeys(PrivateKey: TCnMLDSAPrivateKey;
+  PublicKey: TCnMLDSAPublicKey; const RandHex: string);
+begin
+
+end;
+
+procedure TCnMLDSA.GenerateMatrix(const Seed: TCnMLDSASeed;
+  out Matrix: TCnMLDSAPolyMatrix);
+var
+  I, J: Integer;
+  PJI: TBytes;
+  W: TIntegers;
+begin
+  // 设置矩阵大小
+  SetLength(Matrix, FMatrixRowCount);
+  for I := 0 to FMatrixRowCount - 1 do
+    SetLength(Matrix[I], FMatrixColCount);
+
+  // 准备好 Sample 随机数据
+  SetLength(PJI, SizeOf(TCnMLDSASeed) + 2);
+  Move(Seed[0], PJI[0], SizeOf(TCnMLDSASeed));
+
+  // 生成矩阵，内容是 NTT 形式
+  for I := 0 to FMatrixRowCount - 1 do
+  begin
+    for J := 0 to FMatrixColCount - 1 do
+    begin
+      PJI[SizeOf(TCnMLDSASeed)] := J;
+      PJI[SizeOf(TCnMLDSASeed) + 1] := I;
+      W := MLDSARejNTTPoly(PJI);
+      Move(W[0], Matrix[I][J][0], Length(W) * SizeOf(Integer));
+    end;
+  end;
+end;
+
+procedure TCnMLDSA.GenerateSecret(const Seed: TCnMLDSASeed; out S1,
+  S2: TCnMLDSAPolyVector);
+var
+  I: Integer;
+  PJI: TBytes;
+  W: TIntegers;
+  P: PCnWord;
+begin
+  SetLength(S1, FMatrixColCount);
+  SetLength(S2, FMatrixRowCount);
+
+  SetLength(PJI, SizeOf(TCnMLDSASeed) + 2);
+  Move(Seed[0], PJI[0], SizeOf(TCnMLDSASeed));
+  P := @PJI[SizeOf(TCnMLDSASeed)];
+
+  for I := 0 to FMatrixColCount - 1 do
+  begin
+    P^ := UInt16ToLittleEndian(I);
+    W := MLDSARejBoundedPoly(PJI, FNoise);
+    Move(W[0], S1[I][0], Length(W) * SizeOf(Integer));
+  end;
+
+  for I := 0 to FMatrixRowCount - 1 do
+  begin
+    P^ := UInt16ToLittleEndian(I + FMatrixColCount);
+    W := MLDSARejBoundedPoly(PJI, FNoise);
+    Move(W[0], S2[I][0], Length(W) * SizeOf(Integer));
+  end;
+end;
+
+procedure TCnMLDSA.LoadPrivateKeyFromBytes(PrivateKey: TCnMLDSAPrivateKey;
+  const SK: TBytes);
+begin
+
+end;
+
+procedure TCnMLDSA.LoadPublicKeyFromBytes(PubliKey: TCnMLDSAPublicKey;
+  const PK: TBytes);
+begin
+
+end;
+
+function TCnMLDSA.SavePrivateKeyToBytes(PrivateKey: TCnMLDSAPrivateKey): TBytes;
+begin
+
+end;
+
+function TCnMLDSA.SavePublicKeyToBytes(PubliKey: TCnMLDSAPublicKey): TBytes;
+begin
+
 end;
 
 initialization
