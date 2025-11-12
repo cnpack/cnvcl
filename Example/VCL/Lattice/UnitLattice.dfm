@@ -417,5 +417,54 @@ object FormLattice: TFormLattice
         end
       end
     end
+    object tsMLDSA: TTabSheet
+      Caption = 'MLDSA'
+      ImageIndex = 3
+      object grpMLDSA: TGroupBox
+        Left = 8
+        Top = 4
+        Width = 785
+        Height = 521
+        Caption = 'Module-Lattice-based Digital Signature Algorithm'
+        TabOrder = 0
+        object btnMLDSAKeyGen: TButton
+          Left = 16
+          Top = 32
+          Width = 161
+          Height = 25
+          Caption = 'MLDSA KeyGen'
+          TabOrder = 0
+          OnClick = btnMLDSAKeyGenClick
+        end
+        object chkMLDSAUsePre: TCheckBox
+          Left = 184
+          Top = 36
+          Width = 169
+          Height = 17
+          Caption = 'Use Pre Hex Seeds'
+          TabOrder = 1
+        end
+        object cbbMLDSAType: TComboBox
+          Left = 400
+          Top = 32
+          Width = 145
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 2
+          Items.Strings = (
+            'MLDSA 44'
+            'MLDSA 65'
+            'MLDSA 87')
+        end
+        object mmoMLDSAKeys: TMemo
+          Left = 16
+          Top = 64
+          Width = 761
+          Height = 161
+          TabOrder = 3
+        end
+      end
+    end
   end
 end

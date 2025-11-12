@@ -58,6 +58,12 @@ type
     btnMLKEMDotProduct: TButton;
     btnMLKEMEncap: TButton;
     cbbMLKEMType: TComboBox;
+    tsMLDSA: TTabSheet;
+    grpMLDSA: TGroupBox;
+    btnMLDSAKeyGen: TButton;
+    chkMLDSAUsePre: TCheckBox;
+    cbbMLDSAType: TComboBox;
+    mmoMLDSAKeys: TMemo;
     procedure btnSimpleTestClick(Sender: TObject);
     procedure btnInt64GaussianReduceBasisClick(Sender: TObject);
     procedure btnSimpleTest2Click(Sender: TObject);
@@ -79,13 +85,18 @@ type
     procedure btnMLKEM2NttClick(Sender: TObject);
     procedure btnMLKEMDotProductClick(Sender: TObject);
     procedure btnMLKEMEncapClick(Sender: TObject);
+    procedure btnMLDSAKeyGenClick(Sender: TObject);
   private
     FPriv: TCnNTRUPrivateKey;
     FPub: TCnNTRUPublicKey;
     FMLKEMEn: TCnMLKEMEncapsulationKey;
     FMLKEMDe: TCnMLKEMDecapsulationKey;
     FMLKEM: TCnMLKEM;
-    FEnBytes, FDeBytes: TBytes;
+    FMLKEMEnBytes, FMLKEMDeBytes: TBytes;
+    FMLDSA: TCnMLDSA;
+    FMLDSAPub: TCnMLDSAPublicKey;
+    FMLDSAPriv: TCnMLDSAPrivateKey;
+    FMLDSAPubBytes, FMLDSAPrivBytes: TBytes;
   public
     { Public declarations }
   end;
@@ -411,6 +422,7 @@ var
   Pt: TCnNTRUParamType;
 begin
   cbbMLKEMType.ItemIndex := 0;
+  cbbMLDSAType.ItemIndex := 0;
 
   FPriv := TCnNTRUPrivateKey.Create;
   FPub := TCnNTRUPublicKey.Create;
@@ -823,15 +835,15 @@ begin
   else
     FMLKEM.GenerateKeys(FMLKEMEn, FMLKEMDe);
 
-  FEnBytes := FMLKEM.SaveEncapKeyToBytes(FMLKEMEn);
-  FDeBytes := FMLKEM.SaveDecapKeyToBytes(FMLKEMDe, FMLKEMEn);
+  FMLKEMEnBytes := FMLKEM.SaveEncapKeyToBytes(FMLKEMEn);
+  FMLKEMDeBytes := FMLKEM.SaveDecapKeyToBytes(FMLKEMDe, FMLKEMEn);
 
   mmoMLKEMKeys.Lines.Clear;
-  mmoMLKEMKeys.Lines.Add(BytesToHex(FEnBytes));
-  mmoMLKEMKeys.Lines.Add(BytesToHex(FDeBytes));
+  mmoMLKEMKeys.Lines.Add(BytesToHex(FMLKEMEnBytes));
+  mmoMLKEMKeys.Lines.Add(BytesToHex(FMLKEMDeBytes));
 
-  FMLKEM.LoadKeyFromBytes(FEnBytes, FMLKEMEn);
-  FMLKEM.LoadKeysFromBytes(FDeBytes, FMLKEMDe, FMLKEMEn);
+  FMLKEM.LoadKeyFromBytes(FMLKEMEnBytes, FMLKEMEn);
+  FMLKEM.LoadKeysFromBytes(FMLKEMDeBytes, FMLKEMDe, FMLKEMEn);
 end;
 
 procedure TFormLattice.btnMLKEMEncryptClick(Sender: TObject);
@@ -841,18 +853,18 @@ begin
   if FMLKEM = nil then
   begin
     FMLKEM := TCnMLKEM.Create(cmkt512);
-    FEnBytes := HexToBytes(MLKEM_EK);
-    FDeBytes := HexToBytes(MLKEM_DK);
+    FMLKEMEnBytes := HexToBytes(MLKEM_EK);
+    FMLKEMDeBytes := HexToBytes(MLKEM_DK);
   end;
 
-  FMLKEM.LoadKeyFromBytes(FEnBytes, FMLKEMEn);
-  FMLKEM.LoadKeysFromBytes(FDeBytes, FMLKEMDe, FMLKEMEn);
+  FMLKEM.LoadKeyFromBytes(FMLKEMEnBytes, FMLKEMEn);
+  FMLKEM.LoadKeysFromBytes(FMLKEMDeBytes, FMLKEMDe, FMLKEMEn);
 
   M := AnsiToBytes(edtMLKEMMsg.Text);
   if chkMLKEMUsePre.Checked then
-    C := FMLKEM.MLKEMEncrypt(FEnBytes, M, 'BBA3C0F5DF044CDF4D9CAA53CA15FDE26F34EB3541555CFC54CA9C31B964D0C8')
+    C := FMLKEM.MLKEMEncrypt(FMLKEMEnBytes, M, 'BBA3C0F5DF044CDF4D9CAA53CA15FDE26F34EB3541555CFC54CA9C31B964D0C8')
   else
-    C := FMLKEM.MLKEMEncrypt(FEnBytes, M, '');
+    C := FMLKEM.MLKEMEncrypt(FMLKEMEnBytes, M, '');
   mmoMLKEMCipher.Lines.Clear;
   mmoMLKEMCipher.Lines.Add(BytesToHex(C));
 end;
@@ -868,15 +880,15 @@ begin
     Exit;
   end;
 
-  FMLKEM.LoadKeyFromBytes(FEnBytes, FMLKEMEn);
-  FMLKEM.LoadKeysFromBytes(FDeBytes, FMLKEMDe, FMLKEMEn);
+  FMLKEM.LoadKeyFromBytes(FMLKEMEnBytes, FMLKEMEn);
+  FMLKEM.LoadKeysFromBytes(FMLKEMDeBytes, FMLKEMDe, FMLKEMEn);
 
   S := mmoMLKEMCipher.Lines.Text;
   S := StringReplace(S, #13, '', [rfReplaceAll]);
   S := StringReplace(S, #10, '', [rfReplaceAll]);
 
   C := HexToBytes(S);
-  M := FMLKEM.MLKEMDecrypt(FDeBytes, C);
+  M := FMLKEM.MLKEMDecrypt(FMLKEMDeBytes, C);
   ShowMessage(BytesToAnsi(M));
 end;
 
@@ -976,15 +988,15 @@ begin
     FMLKEMEn := TCnMLKEMEncapsulationKey.Create;
     FMLKEMDe := TCnMLKEMDecapsulationKey.Create;
 
-    FEnBytes := HexToBytes(MLKEM_EK);
-    FDeBytes := HexToBytes(MLKEM_DK);
+    FMLKEMEnBytes := HexToBytes(MLKEM_EK);
+    FMLKEMDeBytes := HexToBytes(MLKEM_DK);
   end;
 
-  FMLKEM.LoadKeyFromBytes(FEnBytes, FMLKEMEn);
-  FMLKEM.LoadKeysFromBytes(FDeBytes, FMLKEMDe, FMLKEMEn);
+  FMLKEM.LoadKeyFromBytes(FMLKEMEnBytes, FMLKEMEn);
+  FMLKEM.LoadKeysFromBytes(FMLKEMDeBytes, FMLKEMDe, FMLKEMEn);
 
   M := HexToBytes('E8D6BAC09B25469BEE582A7DEE9BD21890CD3F0AF4D7E19E30B3E24E657C149C');
-  FMLKEM.MLKEMEncaps(FEnBytes, M, S, C);
+  FMLKEM.MLKEMEncaps(FMLKEMEnBytes, M, S, C);
 
   if FMLKEM.MLKEMType = cmkt512 then
   begin
@@ -994,11 +1006,49 @@ begin
       ShowMessage('Encap Fail');
   end;
 
-  S1 := FMLKEM.MLKEMDecaps(FDeBytes, C);
+  S1 := FMLKEM.MLKEMDecaps(FMLKEMDeBytes, C);
   if CompareBytes(S1, S) then
     ShowMessage('Decap Test OK. Share Key: ' + BytesToHex(S))
   else
     ShowMessage('Decap Test Fail');
+end;
+
+procedure TFormLattice.btnMLDSAKeyGenClick(Sender: TObject);
+begin
+  FreeAndNil(FMLDSAPub);
+  FreeAndNil(FMLDSAPriv);
+  FreeAndNil(FMLDSA);
+
+  FMLDSAPub := TCnMLDSAPublicKey.Create;
+  FMLDSAPriv := TCnMLDSAPrivateKey.Create;
+  FMLDSA := TCnMLDSA.Create(TCnMLDSAType(cbbMLDSAType.ItemIndex));
+
+//  if chkMLDSAUsePre.Checked then
+//  begin
+//    case FMLDSA.MLDSAType of
+//      cmkt512:
+//        FMLDSA.GenerateKeys(FMLDSAPub, FMLDSAPriv, 'BBA3C0F5DF044CDF4D9CAA53CA15FDE26F34EB3541555CFC54CA9C31B964D0C8',
+//          '0A64FDD51A8D91B3166C4958A94EFC3166A4F5DF680980B878DB8371B7624C96');
+//      cmkt768:
+//        FMLDSA.GenerateKeys(FMLDSAPub, FMLDSAPriv, '6DBB99AE6889AF01DA387D7D99BD4E91BACB11A6051B14AECD4C96F30CD9F9D9',
+//          '360557CADDFCF5FEE7C0DE6A363F095757588C35A3FD11C58677AB5E8797C2B8');
+//      cmkt1024:
+//        FMLDSA.GenerateKeys(FMLDSAPub, FMLDSAPriv, '2B5330C4F23BFDFD5C31F050BA3B38235324BF032372FC12D04DD08920F0BD59',
+//          '0A064D6C06CEAB73E59CFCA9FF6402255A326AEF1E9CB678BF36929DAFE29A58');
+//    end;
+//  end
+//  else
+    FMLDSA.GenerateKeys(FMLDSAPriv, FMLDSAPub);
+
+  FMLDSAPubBytes := FMLDSA.SavePublicKeyToBytes(FMLDSAPub);
+  FMLDSAPrivBytes := FMLDSA.SavePrivateKeyToBytes(FMLDSAPriv);
+
+  mmoMLDSAKeys.Lines.Clear;
+  mmoMLDSAKeys.Lines.Add(BytesToHex(FMLDSAPubBytes));
+  mmoMLDSAKeys.Lines.Add(BytesToHex(FMLDSAPrivBytes));
+
+  FMLDSA.LoadPublicKeyFromBytes(FMLDSAPub, FMLDSAPubBytes);
+  FMLDSA.LoadPrivateKeyFromBytes(FMLDSAPriv, FMLDSAPrivBytes);
 end;
 
 end.

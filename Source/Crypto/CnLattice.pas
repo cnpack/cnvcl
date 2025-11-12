@@ -494,7 +494,7 @@ type
 
     procedure GenerateMatrix(const Seed: TCnMLDSASeed; out Matrix: TCnMLDSAPolyMatrix);
     {* 根据种子生成矩阵 A，系数是 NTT 形式}
-    procedure GenerateSecret(const Seed: TCnMLDSASeed; out S1, S2: TCnMLDSAPolyVector);
+    procedure GenerateSecret(const Seed: TCnMLDSAKeyDigest; out S1, S2: TCnMLDSAPolyVector);
     {* 根据种子生成两个秘密多项式向量，系数是非 NTT 形式}
   protected
 
@@ -3073,18 +3073,18 @@ begin
     Power2Round(R[I], R0[I], R1[I]);
 end;
 
-procedure Power2RoundVector(const R: TCnMLDSAPolyVector; var R0, R1: TCnMLDSAPolyVector);
+procedure Power2RoundVector(const V: TCnMLDSAPolyVector; var V0, V1: TCnMLDSAPolyVector);
 var
   I: Integer;
 begin
-  if Length(R) <= 0 then
+  if Length(V) <= 0 then
     Exit;
 
-  SetLength(R0, Length(R0));
-  SetLength(R1, Length(R1));
+  SetLength(V0, Length(V));
+  SetLength(V1, Length(V));
 
-  for I := Low(R) to High(R) do
-    Power2RoundPolynomial(R[I], R0[I], R1[I]);
+  for I := Low(V) to High(V) do
+    Power2RoundPolynomial(V[I], V0[I], V1[I]);
 end;
 
 // 多项式系数低 BitCount 位打包，注意 256 个数字，无论 BitCount 多少，
@@ -3116,6 +3116,7 @@ begin
       for J := Low(P[I]) to High(P[I]) do
         B.AppendDWordRange(P[I][J], BitCount);
     end;
+    Result := B.ToBytes;
   finally
     B.Free;
   end;
@@ -3141,19 +3142,19 @@ begin
       begin
         FMatrixRowCount := 4;
         FMatrixColCount := 4;
-
+        FNoise := 2;
       end;
     cmdt65:
       begin
         FMatrixRowCount := 6;
         FMatrixColCount := 5;
-
+        FNoise := 4;
       end;
     cmdt87:
       begin
         FMatrixRowCount := 8;
         FMatrixColCount := 7;
-
+        FNoise := 2;
       end;
   end;
 end;
@@ -3168,14 +3169,18 @@ procedure TCnMLDSA.GenerateKeys(PrivateKey: TCnMLDSAPrivateKey;
   PublicKey: TCnMLDSAPublicKey; const RandHex: string);
 var
   B, R, DB: TBytes;
-  P1: TCnMLDSASeed;
+  P1: TCnMLDSAKeyDigest;
   Matrix: TCnMLDSAPolyMatrix;
   S, T: TCnMLDSAPolyVector;
 begin
   if (Length(RandHex) > 0) and (Length(RandHex) <> 64) then
     raise ECnLatticeException.Create(SCnErrorLatticeInvalidHexLength);
 
-  R := HexToBytes(RandHex);
+  if Length(RandHex) = 0 then
+    R := CnRandomBytes(CN_MLKEM_KEY_SIZE)
+  else
+    R := HexToBytes(RandHex);
+
   SetLength(B, SizeOf(TCnMLDSASeed) + 2);
   Move(R[0], B[0], SizeOf(TCnMLDSASeed));
 
@@ -3197,6 +3202,7 @@ begin
   GenerateSecret(P1, PrivateKey.FS1, PrivateKey.FS2);
 
   // S1 转 NTT 形式
+  SetLength(S, Length(PrivateKey.FS1));
   MLDSAVectorToNTT(S, PrivateKey.FS1);
 
   // 计算 T = A * S1 + S2
@@ -3242,7 +3248,7 @@ begin
   end;
 end;
 
-procedure TCnMLDSA.GenerateSecret(const Seed: TCnMLDSASeed; out S1,
+procedure TCnMLDSA.GenerateSecret(const Seed: TCnMLDSAKeyDigest; out S1,
   S2: TCnMLDSAPolyVector);
 var
   I: Integer;
@@ -3253,9 +3259,9 @@ begin
   SetLength(S1, FMatrixColCount);
   SetLength(S2, FMatrixRowCount);
 
-  SetLength(PJI, SizeOf(TCnMLDSASeed) + 2);
-  Move(Seed[0], PJI[0], SizeOf(TCnMLDSASeed));
-  P := @PJI[SizeOf(TCnMLDSASeed)];
+  SetLength(PJI, SizeOf(TCnMLDSAKeyDigest) + 2);
+  Move(Seed[0], PJI[0], SizeOf(TCnMLDSAKeyDigest));
+  P := @PJI[SizeOf(TCnMLDSAKeyDigest)];
 
   for I := 0 to FMatrixColCount - 1 do
   begin
