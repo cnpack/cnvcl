@@ -342,7 +342,7 @@ type
     function GetCipherByteLength: Integer;
 
     procedure GenerateMatrix(const Seed: TCnMLKEMSeed; out Matrix: TCnMLKEMPolyMatrix);
-    {* 根据种子生成矩阵 A}
+    {* 根据种子生成矩阵 A，系数是 NTT 形式}
     procedure TransposeMatrix(const InMatrix: TCnMLKEMPolyMatrix; out Matrix: TCnMLKEMPolyMatrix);
     {* 生成矩阵 A 的转置矩阵}
 
@@ -1752,7 +1752,7 @@ begin
     Result[J] := MLKEMModMul(Result[J], CN_MLKEM_PRIME_INV);
 end;
 
-// 根据真随机数组生成 256 个采样的多项式系数供 NTT 变换用，RandBytes 的长度至少要 34 字节
+// 根据真随机数组生成 256 个采样的 NTT 多项式系数，RandBytes 的长度至少要 34 字节
 function MLKEMSampleNTT(const RandBytes: TBytes): TWords;
 var
   Ctx: TCnSHA3Context;
@@ -2771,22 +2771,17 @@ end;
 // 模素数加减乘法
 function MLDSAModAdd(A, B: Integer): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := (A + B) mod CN_MLDSA_PRIME;
+  Result := Int64NonNegativeAddMod(A, B, CN_MLDSA_PRIME);
 end;
 
 function MLDSAModSub(A, B: Integer): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  if A >= B then
-    Result := A - B
-  else
-    Result := CN_MLDSA_PRIME + A - B;
-
-  Result := Result mod CN_MLDSA_PRIME;
+  Result := Int64NonNegativeAddMod(A, -B, CN_MLDSA_PRIME);
 end;
 
 function MLDSAModMul(A, B: Integer): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
-  Result := A * B mod CN_MLDSA_PRIME;
+  Result := Int64NonNegativeMulMod(A, B, CN_MLDSA_PRIME);
 end;
 
 // MLDSA 使用的特定数论变换
@@ -2969,10 +2964,10 @@ end;
 function MLDSACoeffFromThreeBytes(B0, B1, B2: Byte): Integer;
 begin
   if B2 > 127 then
-    B2 := B2 - 127;
+    B2 := B2 - 128;
 
-  Result := Integer(B2) shl 16 + Integer(B1) shl 8 + B0;
-  if Result > CN_MLDSA_PRIME then
+  Result := (Integer(B2) shl 16) or (Integer(B1) shl 8) or B0;
+  if Result >= CN_MLDSA_PRIME then
     Result := -1;
 end;
 
@@ -3022,7 +3017,7 @@ var
   C: TBytes;
   J: Integer;
   Z: TBytes;
-  Z0, Z1: Byte;
+  Z0, Z1: ShortInt;
 begin
   if Length(RandBytes) < CN_MLDSA_KEY_SIZE + 2 then
     raise Exception.Create(SCnErrorLatticeInvalidSampleNTT);
@@ -3087,9 +3082,9 @@ begin
     Power2RoundPolynomial(V[I], V0[I], V1[I]);
 end;
 
-// 多项式系数低 BitCount 位打包，注意 256 个数字，无论 BitCount 多少，
+// 多项式系数低 D 位打包，注意 256 个数字，无论 D 多少，
 // 输出都是 8 的整数因而也就是整数字节
-function SimpleBitPackPolynomial(const P: TCnMLDSAPolynomial; BitCount: Integer): TBytes;
+function SimpleBitPackPolynomial(const P: TCnMLDSAPolynomial; D: Integer): TBytes;
 var
   I: Integer;
   B: TCnBitBuilder;
@@ -3097,14 +3092,14 @@ begin
   B := TCnBitBuilder.Create;
   try
     for I := Low(P) to High(P) do
-      B.AppendDWordRange(P[I], BitCount);
+      B.AppendDWordRange(P[I], D - 1);
   finally
     B.Free;
   end;
 end;
 
-// 多项式向量系数低 BitCount 位打包
-function SimpleBitPackVector(const P: TCnMLDSAPolyVector; BitCount: Integer): TBytes;
+// 多项式向量系数低 D 位打包
+function SimpleBitPackVector(const P: TCnMLDSAPolyVector; D: Integer): TBytes;
 var
   I, J: Integer;
   B: TCnBitBuilder;
@@ -3114,7 +3109,7 @@ begin
     for I := Low(P) to High(P) do
     begin
       for J := Low(P[I]) to High(P[I]) do
-        B.AppendDWordRange(P[I][J], BitCount);
+        B.AppendDWordRange(P[I][J], D - 1);
     end;
     Result := B.ToBytes;
   finally
@@ -3137,6 +3132,8 @@ end;
 constructor TCnMLDSA.Create(AType: TCnMLDSAType);
 begin
   inherited Create;
+  FMLDSAType := AType;
+
   case AType of
     cmdt44:
       begin
@@ -3198,10 +3195,10 @@ begin
   // 用 p 生成矩阵，NTT 形式
   GenerateMatrix(PrivateKey.GenerationSeed, Matrix);
 
-  // 用 p1 生成两个秘密多项式向量
+  // 用 p1 生成两个秘密多项式向量，均非 NTT 形式
   GenerateSecret(P1, PrivateKey.FS1, PrivateKey.FS2);
 
-  // S1 转 NTT 形式
+  // S1 转 NTT 形式到 S
   SetLength(S, Length(PrivateKey.FS1));
   MLDSAVectorToNTT(S, PrivateKey.FS1);
 
