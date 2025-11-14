@@ -871,6 +871,9 @@ resourcestring
   SCnErrorLatticeCipherLengthMismatch = 'Cipher Length Mismatch. Expected %d, Got %d';
   SCnErrorLatticeKeyPairCheckFail = 'Key Pair Check Failed';
   SCnErrorLatticeInvalidPolynomialDegree = 'Invalid Polynomial Degree';
+  SCnErrorLatticeMLDSAInvalidParam = 'Invalid MLDSA Value';
+  SCnErrorLatticeMLDSAKeyLengthMismatch = 'MLDSA Key Length Mismatch. Expected %d, Got %d';
+  SCnErrorLatticeMLDSAPackLengthMismatch = 'MLDSA Pack Length Mismatch. Expected %d, Got %d';
 
 type
   TCnNTRUPredefinedParams = packed record
@@ -1897,7 +1900,7 @@ begin
   // 检查长度是否符合预期
   ExpLen := GetDecapKeyByteLength;
   if Length(DeKey) <> ExpLen then
-    raise ECnLatticeException.CreateFmt(SCnErrorLatticeDecapKeyLengthMismatch, 
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeDecapKeyLengthMismatch,
       [ExpLen, Length(DeKey)]);
 
   // 提取 ek 部分: dk[384k : 768k+32]
@@ -3117,6 +3120,53 @@ begin
   end;
 end;
 
+procedure SimpleBitUnpackPolynomial(const Data: TBytes;
+  P: TCnMLDSAPolynomial; D: Integer);
+var
+  B: TCnBitBuilder;
+  I: Integer;
+begin
+  if Length(Data) <> 32 * D then
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeMLDSAPackLengthMismatch,
+      [32 * D, Length(Data)]);
+
+  B := TCnBitBuilder.Create;
+  try
+    B.SetBytes(Data);
+    for I := Low(P) to High(P) do
+      P[I] := B.Copy(D * I, D);
+  finally
+    B.Free;
+  end;
+end;
+
+procedure SimpleBitUnpackVector(const Data: TBytes;
+  V: TCnMLDSAPolyVector; D: Integer);
+var
+  I, J, T: Integer;
+  B: TCnBitBuilder;
+begin
+  if Length(Data) <> 32 * D * Length(V) then
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeMLDSAPackLengthMismatch,
+      [32 * D * Length(V), Length(Data)]);
+
+  B := TCnBitBuilder.Create;
+  try
+    B.SetBytes(Data);
+    T := 0;
+    for I := Low(V) to High(V) do
+    begin
+      for J := Low(V[I]) to High(V[I]) do
+      begin
+        V[I][J] := B.Copy(T, D);
+        Inc(T, D);
+      end;
+    end;
+  finally
+    B.Free;
+  end;
+end;
+
 function MLDSAHFunc(const Data: TBytes; DigestLen: Integer = CN_MLDSA_DIGEST_SIZE): TBytes;
 begin
   Result := SHAKE256Bytes(Data, DigestLen);
@@ -3153,6 +3203,8 @@ begin
         FMatrixColCount := 7;
         FNoise := 2;
       end;
+  else
+    raise ECnLatticeException.Create(SCnErrorLatticeMLDSAInvalidParam);
   end;
 end;
 
@@ -3283,8 +3335,17 @@ end;
 
 procedure TCnMLDSA.LoadPublicKeyFromBytes(PublicKey: TCnMLDSAPublicKey;
   const PK: TBytes);
+var
+  B: TBytes;
 begin
+  if Length(PK) <> SizeOf(TCnMLDSASeed) + 32 * FMatrixRowCount * CN_MLDSA_KEY_BIT then
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeMLDSAKeyLengthMismatch,
+      [SizeOf(TCnMLDSASeed) + 32 * FMatrixRowCount * CN_MLDSA_KEY_BIT, Length(PK)]);
 
+  Move(PK[0], PublicKey.FGenerationSeed[0], SizeOf(TCnMLDSASeed));
+  B := Copy(PK, SizeOf(TCnMLDSASeed), MaxInt);
+  SetLength(PublicKey.FT1, FMatrixRowCount);
+  SimpleBitUnpackVector(B, PublicKey.FT1, CN_MLDSA_KEY_BIT);
 end;
 
 function TCnMLDSA.SavePrivateKeyToBytes(PrivateKey: TCnMLDSAPrivateKey): TBytes;
