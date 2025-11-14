@@ -397,8 +397,8 @@ type
 
     function SaveEncapKeyToBytes(EncapKey: TCnMLKEMEncapsulationKey): TBytes;
     {* 将公开密钥保存成字节数组 EK}
-    function SaveDecapKeyToBytes(DecapKey: TCnMLKEMDecapsulationKey; EncapKey: TCnMLKEMEncapsulationKey): TBytes;
-    {* 将非公开密钥与公开密钥都保存成字节数组 DK}
+    function SaveKeysToBytes(DecapKey: TCnMLKEMDecapsulationKey; EncapKey: TCnMLKEMEncapsulationKey): TBytes;
+    {* 将非公开密钥与公开密钥都保存成字节数组 DK，注意 DecapKey 无法单独保存}
 
     function MLKEMEncrypt(EnKey: TBytes; Msg: TBytes; const RandHex: string = ''): TBytes;
     {* 用公开密钥流加密消息，返回加密密文。
@@ -493,9 +493,9 @@ type
     FNoise: Integer;
 
     procedure GenerateMatrix(const Seed: TCnMLDSASeed; out Matrix: TCnMLDSAPolyMatrix);
-    {* 根据种子生成矩阵 A，系数是 NTT 形式}
+    {* 根据种子生成矩阵 A，系数是 NTT 形式，FMatrixRowCount 行，FMatrixColCount 列}
     procedure GenerateSecret(const Seed: TCnMLDSAKeyDigest; out S1, S2: TCnMLDSAPolyVector);
-    {* 根据种子生成两个秘密多项式向量，系数是非 NTT 形式}
+    {* 根据种子生成两个秘密多项式向量，系数是非 NTT 形式。S1 维度 FMatrixColCount，S2 维度 FMatrixRowCount}
   protected
 
   public
@@ -707,7 +707,7 @@ procedure MLKEMVectorAdd(var Res: TCnMLKEMPolyVector;
 procedure MLKEMMatrixVectorMul(var Res: TCnMLKEMPolyVector;
   const A: TCnMLKEMPolyMatrix; const S: TCnMLKEMPolyVector; IsNTT: Boolean = True);
 {* 一个 MKLEM 格式的多项式方阵在 mod 3329 及 x^256 + 1 的多项式环上乘以一个多项式向量，
-   得到一个多项式向量。
+   得到一个多项式向量。用户需自行确保 A 是方阵，及其尺寸与 S 维度一致。
 
    参数：
      Res: TCnMLKEMPolyVector              - MKLEM 格式的多项式积
@@ -824,12 +824,12 @@ procedure MLDSAVectorAdd(var Res: TCnMLDSAPolyVector;
 
 procedure MLDSAMatrixVectorMul(var Res: TCnMLDSAPolyVector;
   const A: TCnMLDSAPolyMatrix; const S: TCnMLDSAPolyVector; IsNTT: Boolean = True);
-{* 一个 MKDSA 格式的多项式方阵在 mod 8380417 及 x^256 + 1 的多项式环上乘以一个多项式向量，
-   得到一个多项式向量。
+{* 一个 MKDSA 格式的多项式矩阵在 mod 8380417 及 x^256 + 1 的多项式环上乘以一个多项式向量，
+   得到一个多项式向量。用户需自行确保 A 的列数与 S 的维度一致，结果维度为 A 的行数。
 
    参数：
      Res: TCnMLDSAPolyVector              - MKDSA 格式的多项式积
-     A: TCnMLDSAPolyMatrix                - MKDSA 格式的多项式方阵
+     A: TCnMLDSAPolyMatrix                - MKDSA 格式的多项式矩阵
      S: TCnMLDSAPolyVector                - MKDSA 格式的多项式向量
      IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
 
@@ -1962,7 +1962,7 @@ begin
   // 格式解析检验
   En := SaveEncapKeyToBytes(EncapKey);
   CheckEncapKey(En);
-  De := SaveDecapKeyToBytes(DecapKey, EncapKey);
+  De := SaveKeysToBytes(DecapKey, EncapKey);
   CheckDecapKey(De);
 
   // 矩阵生成检验
@@ -2227,7 +2227,7 @@ begin
 
     GenerateKeys(EK, DK, RandDHex, RandZHex);
     EnKey := SaveEncapKeyToBytes(EK);
-    DeKey := SaveDecapKeyToBytes(DK, EK);
+    DeKey := SaveKeysToBytes(DK, EK);
   finally
     DK.Free;
     EK.Free;
@@ -2268,7 +2268,7 @@ begin
   end;
 end;
 
-function TCnMLKEM.SaveDecapKeyToBytes(DecapKey: TCnMLKEMDecapsulationKey;
+function TCnMLKEM.SaveKeysToBytes(DecapKey: TCnMLKEMDecapsulationKey;
   EncapKey: TCnMLKEMEncapsulationKey): TBytes;
 var
   I: Integer;
@@ -2930,12 +2930,12 @@ var
   I, J: Integer;
   T: TCnMLDSAPolynomial;
 begin
-  SetLength(Res, Length(S));
+  SetLength(Res, Length(A)); // 结果向量维度是矩阵行数
 
-  for I := Low(Res) to High(Res) do
+  for I := Low(Res) to High(Res) do  // 针对矩阵每一行
   begin
     FillChar(Res[I][0], SizeOf(TCnMLDSAPolynomial), 0);
-    for J := Low(S) to High(S) do
+    for J := Low(S) to High(S) do    // 针对矩阵一行中的每个元素及向量中的每个维度
     begin
       // 多项式相乘
       MLDSAPolynomialMul(T, A[I, J], S[J], IsNTT);
@@ -3192,20 +3192,20 @@ begin
   Move(DB[SizeOf(TCnMLDSASeed)], P1[0], CN_MLDSA_DIGEST_SIZE);
   Move(DB[SizeOf(TCnMLDSASeed) + CN_MLDSA_DIGEST_SIZE], PrivateKey.FKey[0], CN_MLDSA_DIGEST_SIZE);
 
-  // 用 p 生成矩阵，NTT 形式
+  // 用 p 生成矩阵，NTT 形式，Row 行 Col 列
   GenerateMatrix(PrivateKey.GenerationSeed, Matrix);
 
-  // 用 p1 生成两个秘密多项式向量，均非 NTT 形式
+  // 用 p1 生成两个秘密多项式向量，均非 NTT 形式，前者维度 Col，后者维度 Row
   GenerateSecret(P1, PrivateKey.FS1, PrivateKey.FS2);
 
-  // S1 转 NTT 形式到 S
+  // S1 转 NTT 形式到 S，维度 Col
   SetLength(S, Length(PrivateKey.FS1));
   MLDSAVectorToNTT(S, PrivateKey.FS1);
 
   // 计算 T = A * S1 + S2
-  MLDSAMatrixVectorMul(T, Matrix, S);      // 两个 NTT 相乘
+  MLDSAMatrixVectorMul(T, Matrix, S);      // 两个 NTT 相乘，得到维度 Row
   MLDSAVectorToINTT(T, T);                 // 结果向量转回非 NTT
-  MLDSAVectorAdd(T, T, PrivateKey.FS2);    // 和 S2 相加
+  MLDSAVectorAdd(T, T, PrivateKey.FS2);    // 和 S2 相加，两个维度都是 Row
 
   // 结果 T 向量拆分为 T0 和 T1
   Power2RoundVector(T, PrivateKey.FT0, PublicKey.FT1);
