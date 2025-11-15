@@ -78,10 +78,13 @@ const
   {* MLDSA 使用的 256 对该素数的模逆元}
 
   CN_MLDSA_DROPBIT     = 13;
-  {* MLDSA 统一分离低 13 位}
+  {* MLDSA 统一分离低 13 位，也就是规范中的 D}
 
-  CN_MLDSA_KEY_BIT     = 10;
-  {* CN_MLDSA_PRIME - 1 的位数减 13 = 23- 13 = 10，用于储存密钥}
+  CN_MLDSA_DROPVALUE   = 1 shl (CN_MLDSA_DROPBIT - 1);
+  {* MLDSA 中使用的 2^(D-1)}
+
+  CN_MLDSA_PUBKEY_BIT  = 10;
+  {* CN_MLDSA_PRIME - 1 的位数减 13 = 23- 13 = 10，也即规范中的 (bitlen (q-1)-d) 用于储存公钥}
 
 type
   ECnLatticeException = class(Exception);
@@ -465,11 +468,11 @@ type
     property Trace: TCnMLDSAKeyDigest read FTrace write FTrace;
     {* 公钥流的 64 字节 SHAKE256 摘要}
     property S1: TCnMLDSAPolyVector read FS1 write FS1;
-    {* 秘密多项式向量 S1}
+    {* 秘密多项式向量 S1，维度为矩阵列数}
     property S2: TCnMLDSAPolyVector read FS2 write FS2;
-    {* 秘密多项式向量 S2}
+    {* 秘密多项式向量 S2，维度为矩阵行数}
     property T0: TCnMLDSAPolyVector read FT0 write FT0;
-    {* 矩阵运算得到的多项式向量 T 的分离私钥部分 T0}
+    {* 矩阵运算得到的多项式向量 T 的分离私钥部分 T0，维度为矩阵行数}
   end;
 
   TCnMLDSAPublicKey = class
@@ -491,6 +494,7 @@ type
     FMatrixRowCount: Integer;
     FMatrixColCount: Integer;
     FNoise: Integer;
+    function GetNoiseBitLength: Integer;
 
     procedure GenerateMatrix(const Seed: TCnMLDSASeed; out Matrix: TCnMLDSAPolyMatrix);
     {* 根据种子生成矩阵 A，系数是 NTT 形式，FMatrixRowCount 行，FMatrixColCount 列}
@@ -3102,17 +3106,17 @@ begin
 end;
 
 // 多项式向量系数低 D 位打包
-function SimpleBitPackVector(const P: TCnMLDSAPolyVector; D: Integer): TBytes;
+function SimpleBitPackVector(const V: TCnMLDSAPolyVector; D: Integer): TBytes;
 var
   I, J: Integer;
   B: TCnBitBuilder;
 begin
   B := TCnBitBuilder.Create;
   try
-    for I := Low(P) to High(P) do
+    for I := Low(V) to High(V) do
     begin
-      for J := Low(P[I]) to High(P[I]) do
-        B.AppendDWordRange(P[I][J], D - 1);
+      for J := Low(V[I]) to High(V[I]) do
+        B.AppendDWordRange(V[I][J], D - 1);
     end;
     Result := B.ToBytes;
   finally
@@ -3164,6 +3168,99 @@ begin
     end;
   finally
     B.Free;
+  end;
+end;
+
+// 多项式系数打包到 [-A, B] 范围内
+function BitPackPolynomial(const P: TCnMLDSAPolynomial; A, B: Integer): TBytes;
+var
+  I, W, L: Integer;
+  T: TCnBitBuilder;
+begin
+  T := TCnBitBuilder.Create;
+  try
+    for I := Low(P) to High(P) do
+    begin
+      W := B - P[I];
+      L := GetUInt32HighBits(A + B);
+      T.AppendDWordRange(W, L);
+    end;
+    Result := T.ToBytes;
+  finally
+    T.Free;
+  end;
+end;
+
+function BitPackVector(const V: TCnMLDSAPolyVector; A, B: Integer): TBytes;
+var
+  I, J, W, L: Integer;
+  T: TCnBitBuilder;
+begin
+  T := TCnBitBuilder.Create;
+  try
+    for I := Low(V) to High(V) do
+    begin
+      for J := Low(V[I]) to High(V[I]) do
+      begin
+        W := B - V[I][J];
+        L := GetUInt32HighBits(A + B);
+        T.AppendDWordRange(W, L);
+      end;
+    end;
+    Result := T.ToBytes;
+  finally
+    T.Free;
+  end;
+end;
+
+procedure BitUnpackPolynomial(const Data: TBytes;
+  P: TCnMLDSAPolynomial; A, B: Integer);
+var
+  T: TCnBitBuilder;
+  I, L: Integer;
+begin
+  I := 32 * (GetUInt32HighBits(A + B) + 1);
+  if Length(Data) <> I then
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeMLDSAPackLengthMismatch,
+      [I, Length(Data)]);
+
+  L := GetUInt32HighBits(A + B) + 1;
+  T := TCnBitBuilder.Create;
+  try
+    T.SetBytes(Data);
+    for I := Low(P) to High(P) do
+      P[I] := T.Copy(L * I, L);
+  finally
+    T.Free;
+  end;
+end;
+
+procedure BitUnpackVector(const Data: TBytes;
+  V: TCnMLDSAPolyVector; A, B: Integer);
+var
+  I, J, T, L: Integer;
+  D: TCnBitBuilder;
+begin
+  I := 32 * (GetUInt32HighBits(A + B) + 1) * Length(V);
+  if Length(Data) <> I then
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeMLDSAPackLengthMismatch,
+      [I, Length(Data)]);
+
+  L := GetUInt32HighBits(A + B) + 1;
+  D := TCnBitBuilder.Create;
+  try
+    D.SetBytes(Data);
+    T := 0;
+    for I := Low(V) to High(V) do
+    begin
+      for J := Low(V[I]) to High(V[I]) do
+      begin
+        V[I][J] := D.Copy(T, L);
+        Inc(T, L);
+      end;
+    end;
+  finally
+    D.Free;
   end;
 end;
 
@@ -3327,10 +3424,48 @@ begin
   end;
 end;
 
+function TCnMLDSA.GetNoiseBitLength: Integer;
+begin
+  case FNoise of
+    2: Result := 2;
+    4: Result := 3;
+  end;
+end;
+
 procedure TCnMLDSA.LoadPrivateKeyFromBytes(PrivateKey: TCnMLDSAPrivateKey;
   const SK: TBytes);
+var
+  L: Integer;
+  B: TBytes;
 begin
+  L := SizeOf(TCnMLDSASeed) * 2 + SizeOf(TCnMLDSAKeyDigest)
+    + 32 * (FMatrixRowCount + FMatrixColCount) * (GetNoiseBitLength + 1)
+    + 32 * FMatrixRowCount * CN_MLDSA_DROPBIT;
+  if Length(SK) <> L then
+    raise ECnLatticeException.CreateFmt(SCnErrorLatticeMLDSAKeyLengthMismatch,
+      [L, Length(SK)]);
 
+  Move(SK[0], PrivateKey.FGenerationSeed[0], SizeOf(TCnMLDSASeed));
+  Move(SK[SizeOf(TCnMLDSASeed)], PrivateKey.FKey[0], SizeOf(TCnMLDSASeed));
+  Move(SK[2 * SizeOf(TCnMLDSASeed)], PrivateKey.FTrace[0], SizeOf(TCnMLDSAKeyDigest));
+
+  // 复制出来给 S1
+  L := 2 * SizeOf(TCnMLDSASeed) + SizeOf(TCnMLDSAKeyDigest);
+  B := Copy(SK, L, 32 * FMatrixColCount * (GetNoiseBitLength + 1));
+  SetLength(PrivateKey.FS1, FMatrixColCount);
+  BitUnpackVector(B, PrivateKey.FS1, FNoise, FNoise);
+
+  // 复制出来给 S2
+  Inc(L, 32 * FMatrixColCount * (GetNoiseBitLength + 1));
+  B := Copy(SK, L, 32 * FMatrixRowCount * (GetNoiseBitLength + 1));
+  SetLength(PrivateKey.FS2, FMatrixRowCount);
+  BitUnpackVector(B, PrivateKey.FS2, FNoise, FNoise);
+
+  // 复制出来给 T0
+  Inc(L, 32 * FMatrixRowCount * (GetNoiseBitLength + 1));
+  B := Copy(SK, L, MaxInt);
+  SetLength(PrivateKey.FT0, FMatrixRowCount);
+  BitUnpackVector(B, PrivateKey.FT0, CN_MLDSA_DROPVALUE - 1, CN_MLDSA_DROPVALUE);
 end;
 
 procedure TCnMLDSA.LoadPublicKeyFromBytes(PublicKey: TCnMLDSAPublicKey;
@@ -3338,27 +3473,34 @@ procedure TCnMLDSA.LoadPublicKeyFromBytes(PublicKey: TCnMLDSAPublicKey;
 var
   B: TBytes;
 begin
-  if Length(PK) <> SizeOf(TCnMLDSASeed) + 32 * FMatrixRowCount * CN_MLDSA_KEY_BIT then
+  if Length(PK) <> SizeOf(TCnMLDSASeed) + 32 * FMatrixRowCount * CN_MLDSA_PUBKEY_BIT then
     raise ECnLatticeException.CreateFmt(SCnErrorLatticeMLDSAKeyLengthMismatch,
-      [SizeOf(TCnMLDSASeed) + 32 * FMatrixRowCount * CN_MLDSA_KEY_BIT, Length(PK)]);
+      [SizeOf(TCnMLDSASeed) + 32 * FMatrixRowCount * CN_MLDSA_PUBKEY_BIT, Length(PK)]);
 
   Move(PK[0], PublicKey.FGenerationSeed[0], SizeOf(TCnMLDSASeed));
   B := Copy(PK, SizeOf(TCnMLDSASeed), MaxInt);
   SetLength(PublicKey.FT1, FMatrixRowCount);
-  SimpleBitUnpackVector(B, PublicKey.FT1, CN_MLDSA_KEY_BIT);
+  SimpleBitUnpackVector(B, PublicKey.FT1, CN_MLDSA_PUBKEY_BIT);
 end;
 
 function TCnMLDSA.SavePrivateKeyToBytes(PrivateKey: TCnMLDSAPrivateKey): TBytes;
+var
+  S1, S2, T0: TBytes;
 begin
+  Result := ConcatBytes(NewBytesFromMemory(@PrivateKey.GenerationSeed[0], SizeOf(TCnMLDSASeed)),
+    NewBytesFromMemory(@PrivateKey.Key[0], SizeOf(TCnMLDSASeed)),
+    NewBytesFromMemory(@PrivateKey.Trace[0], SizeOf(TCnMLDSAKeyDigest)));
 
+  S1 := BitPackVector(PrivateKey.S1, FNoise, FNoise);
+  S2 := BitPackVector(PrivateKey.S2, FNoise, FNoise);
+  T0 := BitPackVector(PrivateKey.T0, CN_MLDSA_DROPVALUE - 1, CN_MLDSA_DROPVALUE);
+  Result := ConcatBytes(Result, S1, S2, T0);
 end;
 
 function TCnMLDSA.SavePublicKeyToBytes(PublicKey: TCnMLDSAPublicKey): TBytes;
-var
-  I: Integer;
 begin
   Result := NewBytesFromMemory(@PublicKey.GenerationSeed[0], SizeOf(TCnMLDSASeed));
-  Result := ConcatBytes(Result, SimpleBitPackVector(PublicKey.FT1, CN_MLDSA_KEY_BIT));
+  Result := ConcatBytes(Result, SimpleBitPackVector(PublicKey.FT1, CN_MLDSA_PUBKEY_BIT));
 end;
 
 initialization
