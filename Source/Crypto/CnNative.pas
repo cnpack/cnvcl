@@ -1587,12 +1587,35 @@ function BitsToString(Bits: TBits): string;
    返回值：string                         - 返回转换的字符串
 }
 
-function ConcatBytes(A: TBytes; B: TBytes): TBytes;
+function ConcatBytes(A: TBytes; B: TBytes): TBytes; overload;
 {* 将 A B 两个字节数组顺序拼好返回一个新字节数组，A B 自身保持不变。
 
    参数：
      A: TBytes                            - 待拼接的字节数组一
      B: TBytes                            - 待拼接的字节数组二
+
+   返回值：TBytes                         - 返回拼接的新字节数组
+}
+
+function ConcatBytes(A: TBytes; B: TBytes; C: TBytes): TBytes; overload;
+{* 将 A B C 三个字节数组顺序拼好返回一个新字节数组，A B C 自身保持不变。
+
+   参数：
+     A: TBytes                            - 待拼接的字节数组一
+     B: TBytes                            - 待拼接的字节数组二
+     C: TBytes                            - 待拼接的字节数组三
+
+   返回值：TBytes                         - 返回拼接的新字节数组
+}
+
+function ConcatBytes(A: TBytes; B: TBytes; C: TBytes; D: TBytes): TBytes; overload;
+{* 将 A B C D 四个字节数组顺序拼好返回一个新字节数组，A B C D 自身保持不变。
+
+   参数：
+     A: TBytes                            - 待拼接的字节数组一
+     B: TBytes                            - 待拼接的字节数组二
+     C: TBytes                            - 待拼接的字节数组三
+     D: TBytes                            - 待拼接的字节数组四
 
    返回值：TBytes                         - 返回拼接的新字节数组
 }
@@ -3420,6 +3443,51 @@ begin
     Move(A[0], Result[0], Length(A));
     Move(B[0], Result[Length(A)], Length(B));
   end;
+end;
+
+function ConcatBytes(A: TBytes; B: TBytes; C: TBytes): TBytes;
+var
+  L1, L2, L3: Integer;
+begin
+  Result := nil;
+  L1 := Length(A);
+  L2 := Length(B);
+  L3 := Length(C);
+
+  if (L1 = 0) and (L2 = 0) and (L3 = 0) then
+    Exit;
+
+  SetLength(Result, L1 + L2 + L3);
+  if L1 > 0 then
+    Move(A[0], Result[0], L1);
+  if L2 > 0 then
+    Move(B[0], Result[L1], L2);
+  if L3 > 0 then
+    Move(C[0], Result[L1 + L2], L3);
+end;
+
+function ConcatBytes(A: TBytes; B: TBytes; C: TBytes; D: TBytes): TBytes;
+var
+  L1, L2, L3, L4: Integer;
+begin
+  Result := nil;
+  L1 := Length(A);
+  L2 := Length(B);
+  L3 := Length(C);
+  L4 := Length(D);
+
+  if (L1 = 0) and (L2 = 0) and (L3 = 0) and (L4 = 0) then
+    Exit;
+
+  SetLength(Result, L1 + L2 + L3 + L4);
+  if L1 > 0 then
+    Move(A[0], Result[0], L1);
+  if L2 > 0 then
+    Move(B[0], Result[L1], L2);
+  if L3 > 0 then
+    Move(C[0], Result[L1 + L2], L3);
+  if L4 > 0 then
+    Move(D[0], Result[L1 + L2 + L3], L4);
 end;
 
 function NewBytesFromMemory(Data: Pointer; DataByteLen: Integer): TBytes;

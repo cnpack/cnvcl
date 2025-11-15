@@ -116,7 +116,7 @@ type
     }
 
     procedure AppendByteRange(Value: Byte; MaxRange: Integer);
-    {* 增加一个字节中的 0 到 MaxRange 位至本对象。
+    {* 增加一个字节中的 0 到 MaxRange 位至本对象，一共会增加 MaxRange + 1 位。
 
        参数：
          Value: Byte                      - 待增加的字节值
@@ -126,7 +126,7 @@ type
     }
 
     procedure AppendWordRange(Value: Word; MaxRange: Integer);
-    {* 增加一个双字节中的 0 到 MaxRange 位至本对象。
+    {* 增加一个双字节中的 0 到 MaxRange 位至本对象，一共会增加 MaxRange + 1 位。
 
        参数：
          Value: Word                      - 待增加的双字节值
@@ -136,7 +136,7 @@ type
     }
 
     procedure AppendDWordRange(Value: Cardinal; MaxRange: Integer);
-    {* 增加一个四字节中的 0 到 MaxRange 位至本对象。
+    {* 增加一个四字节中的 0 到 MaxRange 位至本对象，一共会增加 MaxRange + 1 位。
 
        参数：
          Value: Cardinal                  - 待增加的四字节值
