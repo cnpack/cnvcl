@@ -3055,7 +3055,7 @@ begin
 end;
 
 // 取 R 的低 D 位放 R0，其余的放 R1
-procedure Power2Round(R: Integer; out R0, R1: Integer);
+procedure MLDSAPower2Round(R: Integer; out R0, R1: Integer);
 var
   T: Integer;
 begin
@@ -3067,15 +3067,15 @@ begin
   R1 := (T - R0) shr CN_MLDSA_DROPBIT;
 end;
 
-procedure Power2RoundPolynomial(const R: TCnMLDSAPolynomial; var R0, R1: TCnMLDSAPolynomial);
+procedure MLDSAPower2RoundPolynomial(const R: TCnMLDSAPolynomial; var R0, R1: TCnMLDSAPolynomial);
 var
   I: Integer;
 begin
   for I := Low(R) to High(R) do
-    Power2Round(R[I], R0[I], R1[I]);
+    MLDSAPower2Round(R[I], R0[I], R1[I]);
 end;
 
-procedure Power2RoundVector(const V: TCnMLDSAPolyVector; var V0, V1: TCnMLDSAPolyVector);
+procedure MLDSAPower2RoundVector(const V: TCnMLDSAPolyVector; var V0, V1: TCnMLDSAPolyVector);
 var
   I: Integer;
 begin
@@ -3086,12 +3086,12 @@ begin
   SetLength(V1, Length(V));
 
   for I := Low(V) to High(V) do
-    Power2RoundPolynomial(V[I], V0[I], V1[I]);
+    MLDSAPower2RoundPolynomial(V[I], V0[I], V1[I]);
 end;
 
 // 多项式系数低 D 位打包，注意 256 个数字，无论 D 多少，
 // 输出都是 8 的整数因而也就是整数字节
-function SimpleBitPackPolynomial(const P: TCnMLDSAPolynomial; D: Integer): TBytes;
+function MLDSASimpleBitPackPolynomial(const P: TCnMLDSAPolynomial; D: Integer): TBytes;
 var
   I: Integer;
   B: TCnBitBuilder;
@@ -3106,7 +3106,7 @@ begin
 end;
 
 // 多项式向量系数低 D 位打包
-function SimpleBitPackVector(const V: TCnMLDSAPolyVector; D: Integer): TBytes;
+function MLDSASimpleBitPackVector(const V: TCnMLDSAPolyVector; D: Integer): TBytes;
 var
   I, J: Integer;
   B: TCnBitBuilder;
@@ -3124,7 +3124,7 @@ begin
   end;
 end;
 
-procedure SimpleBitUnpackPolynomial(const Data: TBytes;
+procedure MLDSASimpleBitUnpackPolynomial(const Data: TBytes;
   P: TCnMLDSAPolynomial; D: Integer);
 var
   B: TCnBitBuilder;
@@ -3144,7 +3144,7 @@ begin
   end;
 end;
 
-procedure SimpleBitUnpackVector(const Data: TBytes;
+procedure MLDSASimpleBitUnpackVector(const Data: TBytes;
   V: TCnMLDSAPolyVector; D: Integer);
 var
   I, J, T: Integer;
@@ -3172,7 +3172,7 @@ begin
 end;
 
 // 多项式系数打包到 [-A, B] 范围内
-function BitPackPolynomial(const P: TCnMLDSAPolynomial; A, B: Integer): TBytes;
+function MLDSABitPackPolynomial(const P: TCnMLDSAPolynomial; A, B: Integer): TBytes;
 var
   I, W, L: Integer;
   T: TCnBitBuilder;
@@ -3191,7 +3191,7 @@ begin
   end;
 end;
 
-function BitPackVector(const V: TCnMLDSAPolyVector; A, B: Integer): TBytes;
+function MLDSABitPackVector(const V: TCnMLDSAPolyVector; A, B: Integer): TBytes;
 var
   I, J, W, L: Integer;
   T: TCnBitBuilder;
@@ -3213,7 +3213,7 @@ begin
   end;
 end;
 
-procedure BitUnpackPolynomial(const Data: TBytes;
+procedure MLDSABitUnpackPolynomial(const Data: TBytes;
   P: TCnMLDSAPolynomial; A, B: Integer);
 var
   T: TCnBitBuilder;
@@ -3229,13 +3229,13 @@ begin
   try
     T.SetBytes(Data);
     for I := Low(P) to High(P) do
-      P[I] := T.Copy(L * I, L);
+      P[I] := B - T.Copy(L * I, L);
   finally
     T.Free;
   end;
 end;
 
-procedure BitUnpackVector(const Data: TBytes;
+procedure MLDSABitUnpackVector(const Data: TBytes;
   V: TCnMLDSAPolyVector; A, B: Integer);
 var
   I, J, T, L: Integer;
@@ -3255,7 +3255,7 @@ begin
     begin
       for J := Low(V[I]) to High(V[I]) do
       begin
-        V[I][J] := D.Copy(T, L);
+        V[I][J] := B - D.Copy(T, L);
         Inc(T, L);
       end;
     end;
@@ -3357,7 +3357,7 @@ begin
   MLDSAVectorAdd(T, T, PrivateKey.FS2);    // 和 S2 相加，两个维度都是 Row
 
   // 结果 T 向量拆分为 T0 和 T1
-  Power2RoundVector(T, PrivateKey.FT0, PublicKey.FT1);
+  MLDSAPower2RoundVector(T, PrivateKey.FT0, PublicKey.FT1);
 
   // 公钥字节数组求杂凑作为私钥 tr
   B := SavePublicKeyToBytes(PublicKey);
@@ -3453,19 +3453,19 @@ begin
   L := 2 * SizeOf(TCnMLDSASeed) + SizeOf(TCnMLDSAKeyDigest);
   B := Copy(SK, L, 32 * FMatrixColCount * (GetNoiseBitLength + 1));
   SetLength(PrivateKey.FS1, FMatrixColCount);
-  BitUnpackVector(B, PrivateKey.FS1, FNoise, FNoise);
+  MLDSABitUnpackVector(B, PrivateKey.FS1, FNoise, FNoise);
 
   // 复制出来给 S2
   Inc(L, 32 * FMatrixColCount * (GetNoiseBitLength + 1));
   B := Copy(SK, L, 32 * FMatrixRowCount * (GetNoiseBitLength + 1));
   SetLength(PrivateKey.FS2, FMatrixRowCount);
-  BitUnpackVector(B, PrivateKey.FS2, FNoise, FNoise);
+  MLDSABitUnpackVector(B, PrivateKey.FS2, FNoise, FNoise);
 
   // 复制出来给 T0
   Inc(L, 32 * FMatrixRowCount * (GetNoiseBitLength + 1));
   B := Copy(SK, L, MaxInt);
   SetLength(PrivateKey.FT0, FMatrixRowCount);
-  BitUnpackVector(B, PrivateKey.FT0, CN_MLDSA_DROPVALUE - 1, CN_MLDSA_DROPVALUE);
+  MLDSABitUnpackVector(B, PrivateKey.FT0, CN_MLDSA_DROPVALUE - 1, CN_MLDSA_DROPVALUE);
 end;
 
 procedure TCnMLDSA.LoadPublicKeyFromBytes(PublicKey: TCnMLDSAPublicKey;
@@ -3480,7 +3480,7 @@ begin
   Move(PK[0], PublicKey.FGenerationSeed[0], SizeOf(TCnMLDSASeed));
   B := Copy(PK, SizeOf(TCnMLDSASeed), MaxInt);
   SetLength(PublicKey.FT1, FMatrixRowCount);
-  SimpleBitUnpackVector(B, PublicKey.FT1, CN_MLDSA_PUBKEY_BIT);
+  MLDSASimpleBitUnpackVector(B, PublicKey.FT1, CN_MLDSA_PUBKEY_BIT);
 end;
 
 function TCnMLDSA.SavePrivateKeyToBytes(PrivateKey: TCnMLDSAPrivateKey): TBytes;
@@ -3491,16 +3491,16 @@ begin
     NewBytesFromMemory(@PrivateKey.Key[0], SizeOf(TCnMLDSASeed)),
     NewBytesFromMemory(@PrivateKey.Trace[0], SizeOf(TCnMLDSAKeyDigest)));
 
-  S1 := BitPackVector(PrivateKey.S1, FNoise, FNoise);
-  S2 := BitPackVector(PrivateKey.S2, FNoise, FNoise);
-  T0 := BitPackVector(PrivateKey.T0, CN_MLDSA_DROPVALUE - 1, CN_MLDSA_DROPVALUE);
+  S1 := MLDSABitPackVector(PrivateKey.S1, FNoise, FNoise);
+  S2 := MLDSABitPackVector(PrivateKey.S2, FNoise, FNoise);
+  T0 := MLDSABitPackVector(PrivateKey.T0, CN_MLDSA_DROPVALUE - 1, CN_MLDSA_DROPVALUE);
   Result := ConcatBytes(Result, S1, S2, T0);
 end;
 
 function TCnMLDSA.SavePublicKeyToBytes(PublicKey: TCnMLDSAPublicKey): TBytes;
 begin
   Result := NewBytesFromMemory(@PublicKey.GenerationSeed[0], SizeOf(TCnMLDSASeed));
-  Result := ConcatBytes(Result, SimpleBitPackVector(PublicKey.FT1, CN_MLDSA_PUBKEY_BIT));
+  Result := ConcatBytes(Result, MLDSASimpleBitPackVector(PublicKey.FT1, CN_MLDSA_PUBKEY_BIT));
 end;
 
 initialization
