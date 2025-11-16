@@ -81,6 +81,7 @@
       ..\..\Source\Crypto\CnKDF.obj 
       ..\..\Source\Crypto\CnLattice.obj 
       ..\..\Source\Crypto\CnMD5.obj 
+      ..\..\Source\Crypto\CnMLKEM.obj 
       ..\..\Source\Crypto\CnNative.obj 
       ..\..\Source\Crypto\CnOTP.obj 
       ..\..\Source\Crypto\CnOTS.obj 
