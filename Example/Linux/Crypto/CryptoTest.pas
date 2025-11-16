@@ -50,7 +50,7 @@ uses
   CnSM9, CnFNV, CnKDF, CnBase64, CnCRC32, CnMD5, CnSHA1, CnSHA2, CnSHA3, CnChaCha20,
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
-  CnDSA, CnBLAKE, CnBLAKE2, CnXXH, CnWideStrings, CnContainers;
+  CnDSA, CnBLAKE, CnBLAKE2, CnXXH, CnWideStrings, CnContainers, CnMLKEM;
 
 procedure TestCrypto;
 {* 密码库总测试入口}
@@ -122,7 +122,6 @@ function TestBigNumberPolynomialGaloisPrimePowerModularInverse: Boolean;
 
 // ============================== Lattice ======================================
 
-function TestNTRUClassic: Boolean;
 function TestNTRUHPS2048509: Boolean;
 function TestNTRUHPS2048677: Boolean;
 function TestNTRUHPS4096821: Boolean;
@@ -527,7 +526,6 @@ begin
 
 // ============================== Lattice ======================================
 
-  MyAssert(TestNTRUClassic, 'TestNTRUClassic');
   MyAssert(TestNTRUHPS2048509, 'TestNTRUHPS2048509');
   MyAssert(TestNTRUHPS2048677, 'TestNTRUHPS2048677');
   MyAssert(TestNTRUHPS4096821, 'TestNTRUHPS4096821');
@@ -1886,39 +1884,6 @@ end;
 
 // ============================== Lattice ======================================
 
-function TestNTRUClassic: Boolean;
-const
-  CNPACK: AnsiString = 'CnPack';
-var
-  NTRU: TCnNTRU;
-  Priv: TCnNTRUPrivateKey;
-  Pub: TCnNTRUPublicKey;
-  Data, En, De: TBytes;
-begin
-  NTRU := nil;
-  Priv := nil;
-  Pub := nil;
-
-  try
-    NTRU := TCnNTRU.Create(cnptClassic);
-    Priv := TCnNTRUPrivateKey.Create;
-    Pub := TCnNTRUPublicKey.Create;
-
-    NTRU.GenerateKeys(Priv, Pub);
-
-    Data := AnsiToBytes(CNPACK);
-    En := NTRU.EncryptBytes(Pub, Data);
-    De := NTRU.DecryptBytes(Priv, En);
-
-    // 解出的内容有后续 #0
-    Result := StrComp(PAnsiChar(CNPACK), PAnsiChar(BytesToAnsi(De))) = 0;
-  finally
-    Pub.Free;
-    Priv.Free;
-    NTRU.Free;
-  end;
-end;
-
 function TestNTRUHPS2048509: Boolean;
 const
   CNPACK: AnsiString = 'CnPack';
@@ -2182,8 +2147,6 @@ const
     '35C3559519A7E81C';
 var
   M: TCnMLKEM;
-  EnKey: TCnMLKEMEncapsulationKey;
-  DeKey: TCnMLKEMDecapsulationKey;
   EK, DK, SK, CT: TBytes;
 begin
   M := TCnMLKEM.Create(cmkt512);
@@ -2435,8 +2398,6 @@ const
     'BB3B59C8E38EF4EE';
 var
   M: TCnMLKEM;
-  EnKey: TCnMLKEMEncapsulationKey;
-  DeKey: TCnMLKEMDecapsulationKey;
   EK, DK, SK, CT: TBytes;
 begin
   M := TCnMLKEM.Create(cmkt768);
@@ -2760,8 +2721,6 @@ const
     'EA6C0246CFB46DC5';
 var
   M: TCnMLKEM;
-  EnKey: TCnMLKEMEncapsulationKey;
-  DeKey: TCnMLKEMDecapsulationKey;
   EK, DK, SK, CT: TBytes;
 begin
   M := TCnMLKEM.Create(cmkt1024);

@@ -21,6 +21,7 @@ USEUNIT("..\..\..\Source\Crypto\CnInt128.pas");
 USEUNIT("..\..\..\Source\Crypto\CnKDF.pas");
 USEUNIT("..\..\..\Source\Crypto\CnLattice.pas");
 USEUNIT("..\..\..\Source\Crypto\CnMD5.pas");
+USEUNIT("..\..\..\Source\Crypto\CnMLKEM.pas");
 USEUNIT("..\..\..\Source\Crypto\CnNative.pas");
 USEUNIT("..\..\..\Source\Crypto\CnOTP.pas");
 USEUNIT("..\..\..\Source\Crypto\CnOTS.pas");
