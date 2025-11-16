@@ -58,7 +58,7 @@ const
 
 type
   ECnMLKEMException = class(Exception);
-  {* MLKEM相关异常}
+  {* MLKEM 相关异常}
 
   TCnMLKEMType = (cmkt512, cmkt768, cmkt1024);
   {* MLKEM 的三种实现规范}
