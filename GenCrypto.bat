@@ -211,6 +211,7 @@ ECHO USEUNIT("..\Source\CnInt128.pas");                                         
 ECHO USEUNIT("..\Source\CnKDF.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnLattice.pas");                                               >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnMD5.pas");                                                   >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnMLKEM.pas");                                                 >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnNative.pas");                                                >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnOTP.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnOTS.pas");                                                   >> Crypto.bpf
@@ -271,7 +272,8 @@ ECHO       ..\Source\CnDFT.obj ..\Source\CnDSA.obj                              
 ECHO       ..\Source\CnECC.obj ..\Source\CnFEC.obj                                    >> Crypto.bpr
 ECHO       ..\Source\CnFNV.obj ..\Source\CnInt128.obj                                 >> Crypto.bpr
 ECHO       ..\Source\CnKDF.obj ..\Source\CnLattice.obj                                >> Crypto.bpr
-ECHO       ..\Source\CnMD5.obj ..\Source\CnNative.obj                                 >> Crypto.bpr
+ECHO       ..\Source\CnMD5.obj ..\Source\MLKEM.obj                                    >> Crypto.bpr
+ECHO       ..\Source\CnNative.obj                                                     >> Crypto.bpr
 ECHO       ..\Source\CnOTP.obj ..\Source\CnOTS.obj                                    >> Crypto.bpr
 ECHO       ..\Source\CnPaillier.obj ..\Source\CnPDFCrypt.obj                          >> Crypto.bpr
 ECHO       ..\Source\CnPemUtils.obj ..\Source\CnPoly1305.obj                          >> Crypto.bpr
@@ -503,6 +505,7 @@ ECHO   CnLattice in '..\Source\CnLattice.pas',                                 >
 ECHO   CnMath in '..\Source\CnMath.pas',                                       >> %1
 ECHO   CnMatrix in '..\Source\CnMatrix.pas',                                   >> %1
 ECHO   CnMD5 in '..\Source\CnMD5.pas',                                         >> %1
+ECHO   CnMLKEM in '..\Source\CnMLKEM.pas',                                     >> %1
 ECHO   CnNative in '..\Source\CnNative.pas',                                   >> %1
 ECHO   CnOTP in '..\Source\CnOTP.pas',                                         >> %1
 ECHO   CnOTS in '..\Source\CnOTS.pas',                                         >> %1
