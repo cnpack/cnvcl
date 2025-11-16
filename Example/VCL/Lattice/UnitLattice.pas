@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, TypInfo, CnLattice, ComCtrls, CnNative;
+  StdCtrls, TypInfo, CnLattice, ComCtrls, CnNative, CnMLKEM, CnMLDSA;
 
 type
   TFormLattice = class(TForm)
@@ -836,7 +836,7 @@ begin
     FMLKEM.GenerateKeys(FMLKEMEn, FMLKEMDe);
 
   FMLKEMEnBytes := FMLKEM.SaveEncapKeyToBytes(FMLKEMEn);
-  FMLKEMDeBytes := FMLKEM.SaveDecapKeyToBytes(FMLKEMDe, FMLKEMEn);
+  FMLKEMDeBytes := FMLKEM.SaveKeysToBytes(FMLKEMDe, FMLKEMEn);
 
   mmoMLKEMKeys.Lines.Clear;
   mmoMLKEMKeys.Lines.Add(BytesToHex(FMLKEMEnBytes));
