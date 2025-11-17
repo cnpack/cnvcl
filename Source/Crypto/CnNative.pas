@@ -515,6 +515,42 @@ function GetUInt8HighBits(B: Byte): Integer;
    返回值：Integer                        - 返回 1 的最高位序号
 }
 
+function GetUInt64BitLength(B: TUInt64): Integer;
+{* 返回 64 位整数去掉高位 0 后剩下的位长度，如果没有 1，返回 0。
+
+   参数：
+     B: TUInt64                           - 待判断的值
+
+   返回值：Integer                        - 返回有效位长度
+}
+
+function GetUInt32BitLength(B: Cardinal): Integer;
+{* 返回 32 位整数去掉高位 0 后剩下的位长度，如果没有 1，返回 0。
+
+   参数：
+     B: Cardinal                          - 待判断的值
+
+   返回值：Integer                        - 返回有效位长度
+}
+
+function GetUInt16BitLength(B: Word): Integer;
+{* 返回 16 位整数去掉高位 0 后剩下的位长度，如果没有 1，返回 0。
+
+   参数：
+     B: Word                              - 待判断的值
+
+   返回值：Integer                        - 返回有效位长度
+}
+
+function GetUInt8BitLength(B: Byte): Integer;
+{* 返回 8 位整数去掉高位 0 后剩下的位长度，如果没有 1，返回 0。
+
+   参数：
+     B: Byte                              - 待判断的值
+
+   返回值：Integer                        - 返回有效位长度
+}
+
 function GetUInt64LowBits(B: TUInt64): Integer;
 {* 返回 64 位整数的是 1 的最低二进制位是第几位，最低位是 0，基本等同于末尾几个 0。如果没有 1，返回 -1。
 
@@ -4507,6 +4543,30 @@ begin
       Break;
     end;
   end;
+end;
+
+// 返回 64 位整数去掉高位 0 后剩下的位长度，如果没有 1，返回 0
+function GetUInt64BitLength(B: TUInt64): Integer;
+begin
+  Result := 1 + GetUInt64HighBits(B);
+end;
+
+// 返回 32 位整数去掉高位 0 后剩下的位长度，如果没有 1，返回 0
+function GetUInt32BitLength(B: Cardinal): Integer;
+begin
+  Result := 1 + GetUInt32HighBits(B);
+end;
+
+// 返回 16 位整数去掉高位 0 后剩下的位长度，如果没有 1，返回 0
+function GetUInt16BitLength(B: Word): Integer;
+begin
+  Result := 1 + GetUInt16HighBits(B);
+end;
+
+// 返回 8 位整数去掉高位 0 后剩下的位长度，如果没有 1，返回 0
+function GetUInt8BitLength(B: Byte): Integer;
+begin
+  Result := 1 + GetUInt8HighBits(B);
 end;
 
 // 返回 UInt64 的是 1 的最低二进制位是第几位，最低位是 0，如果没有 1，返回 -1
