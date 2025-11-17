@@ -186,24 +186,26 @@ type
     {* 用一个真随机 32 字节种子，生成一对 Key，如果不传则内部产生随机数生成}
 
     procedure LoadPrivateKeyFromBytes(PrivateKey: TCnMLDSAPrivateKey; const SK: TBytes);
-    {* 从字节数组中加载私钥}
+    {* 从字节数组中加载私钥，要求字节数组长度随三种规范不同分别是 2560、4032、4896}
     procedure LoadPublicKeyFromBytes(PublicKey: TCnMLDSAPublicKey; const PK: TBytes);
-    {* 从字节数组中加载公钥}
+    {* 从字节数组中加载公钥，要求字节数组长度随三种规范不同分别是 1312、1952、2592}
 
     function SavePrivateKeyToBytes(PrivateKey: TCnMLDSAPrivateKey): TBytes;
-    {* 将私钥保存成字节数组 SK}
+    {* 将私钥保存成字节数组 SK，长度随三种规范不同分别是 2560、4032、4896}
     function SavePublicKeyToBytes(PublicKey: TCnMLDSAPublicKey): TBytes;
-    {* 将公钥保存成字节数组 PK}
+    {* 将公钥保存成字节数组 PK，长度随三种规范不同分别是 1312、1952、2592}
 
     function SignBytes(PrivateKey: TCnMLDSAPrivateKey; const Msg: TBytes;
       const Ctx: AnsiString = ''; HashType: TCnMLDSAHashType = cmhtNone;
       const RandHex: string = ''): TBytes;
     {* 使用私钥针对字节数组签名，Ctx 是附加字符串，长度不能大于 255。
-       RandHex 可指定随机数，注意不传时，内部使用 32 个 0}
+       RandHex 可指定随机数，注意不传时，内部使用 32 个 0。
+       签名字节数组长度随三种规范不同分别是 2420、3309、4627}
 
     function VerifyBytes(PublicKey: TCnMLDSAPublicKey; const Signature: TBytes;
       const Msg: TBytes; const Ctx: AnsiString = ''; HashType: TCnMLDSAHashType = cmhtNone): Boolean;
-    {* 使用公钥验证字节数组的签名，Ctx 是附加字符串，长度不能大于 255}
+    {* 使用公钥验证字节数组的签名，Ctx 是附加字符串，长度不能大于 255。
+       签名字节数组长度随三种规范不同分别是 2420、3309、4627}
 
     property MLDSAType: TCnMLDSAType read FMLDSAType;
     {* MLDSA 的算法类型，44、65、87 三种}
@@ -1144,7 +1146,7 @@ begin
       begin
         W := B - V[I][J];
         L := GetUInt32BitLength(A + B);
-        T.AppendDWordRange(W, L);
+        T.AppendDWordRange(W, L - 1);
       end;
     end;
     Result := T.ToBytes;
