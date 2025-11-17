@@ -41,7 +41,7 @@ interface
 
 uses
   SysUtils, Classes, Contnrs,
-  CnNative, CnVector, CnBigNumber, CnPolynomial, CnRandom, CnBits, CnSHA2, CnSHA3;
+  CnNative, CnVector, CnPolynomial, CnRandom, CnBits, CnSHA2, CnSHA3, CnSM3;
 
 const
   CN_MLDSA_KEY_SIZE    = 32;
@@ -75,7 +75,7 @@ type
   TCnMLDSAType = (cmdt44, cmdt65, cmdt87);
   {* MLDSA 的三种实现规范}
 
-  TCnMLDSAHashType = (cmhtNone, cmhtSHA256, cmhtSHA512, cmhtSHAKE128);
+  TCnMLDSAHashType = (cmhtNone, cmhtSHA256, cmhtSHA512, cmhtSHAKE128, cmhtSM3);
   {* MLDSA 支持的杂凑算法}
 
   TCnMLDSASeed = array[0..CN_MLDSA_KEY_SIZE - 1] of Byte;
@@ -365,6 +365,20 @@ procedure MLDSAVectorNeg(var Res: TCnMLDSAPolyVector; const V: TCnMLDSAPolyVecto
    返回值：（无）
 }
 
+procedure MLDSAPolynomialVectorMul(var Res: TCnMLDSAPolyVector;
+  const C: TCnMLDSAPolynomial; const V: TCnMLDSAPolyVector; IsNTT: Boolean = True);
+{* 一个 MKDSA 格式的多项式向量在 mod 8380417 及 x^256 + 1 的多项式环上乘以一个多项式，
+   得到一个多项式向量。结果维度为 V 的维度。
+
+   参数：
+     Res: TCnMLDSAPolyVector              - MKDSA 格式的多项式积
+     C: TCnMLDSAPolynomial                - MKDSA 格式的多项式向
+     V: TCnMLDSAPolyVector                - MKDSA 格式的多项式
+     IsNTT: Boolean                       - 多项式系数是否是 NTT 模式
+
+   返回值：（无）
+}
+
 procedure MLDSAMatrixVectorMul(var Res: TCnMLDSAPolyVector;
   const A: TCnMLDSAPolyMatrix; const S: TCnMLDSAPolyVector; IsNTT: Boolean = True);
 {* 一个 MKDSA 格式的多项式矩阵在 mod 8380417 及 x^256 + 1 的多项式环上乘以一个多项式向量，
@@ -458,6 +472,10 @@ const
 
   OID_MLDSA_PREHASH_SHAKE128: array[0..10] of Byte = ( // 2.16.840.1.101.3.4.2.11
     $06, $09, $60, $86, $48, $01, $65, $03, $04, $02, $0B
+  );
+
+  OID_MLDSA_PREHASH_SM3: array[0..7] of Byte = ( // 1.0.10118.3.0.65
+    $06, $06, $28, $CF, $06, $03, $00, $41
   );
 
 // ================================ MLDSA ======================================
@@ -1435,6 +1453,7 @@ var
   DigShake: TBytes;
   DigSha256: TCnSHA256Digest;
   DigSha512: TCnSHA512Digest;
+  DigSm3: TCnSM3Digest;
 begin
   case HashType of
     cmhtNone:
@@ -1480,6 +1499,18 @@ begin
 
         DigShake := SHAKE128Bytes(Msg, MLDSA_HASH_SHAKE128_SIZE);
         Move(DigShake[0], Result[2 + Length(Ctx) + SizeOf(OID_MLDSA_PREHASH_SHAKE128)], MLDSA_HASH_SHAKE128_SIZE);
+      end;
+    cmhtSM3:
+      begin
+        SetLength(Result, 2 + SizeOf(OID_MLDSA_PREHASH_SM3) + Length(Ctx) + SizeOf(TCnSM3Digest));
+        Result[0] := 1;
+        Result[1] := Length(Ctx);
+        Move(Ctx[1], Result[2], Length(Ctx));
+
+        Move(OID_MLDSA_PREHASH_SM3[0], Result[2 + Length(Ctx)], SizeOf(OID_MLDSA_PREHASH_SM3));
+
+        DigSm3 := SM3Bytes(Msg);
+        Move(DigSm3[0], Result[2 + Length(Ctx) + SizeOf(OID_MLDSA_PREHASH_SM3)], SizeOf(TCnSM3Digest));
       end;
   end;
 end;
