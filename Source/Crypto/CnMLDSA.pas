@@ -880,23 +880,22 @@ var
   Alpha, AlphaHalf: Integer;
 begin
   Alpha := 2 * Gamma;
-  AlphaHalf := Alpha div 2;
 
-  // 步骤1: 标准化
+  // 标准化到 [0, q)
   RP := R mod CN_MLDSA_PRIME;
   if RP < 0 then
     RP := RP + CN_MLDSA_PRIME;
 
-  // 步骤2: 正确的 mod± 实现
+  // 计算 r0，映射到 (-γ, γ]
   R0 := RP mod Alpha;
-  // 映射到 [-α/2, α/2) 范围
-  if R0 >= AlphaHalf then
+
+  // 确保 r0 ∈ (-γ, γ]，当 r0 > γ 时，调整为 r0 - α
+  if R0 > Gamma then
     R0 := R0 - Alpha;
 
-  // 步骤3: 计算高位
   R1 := (RP - R0) div Alpha;
 
-  // 步骤4: 边界情况处理
+  // 边界情况处理，当 r - r0 = q - 1 时，设置 r1 = 0, r0 = r0 - 1
   if (RP - R0) = (CN_MLDSA_PRIME - 1) then
   begin
     R1 := 0;
@@ -981,6 +980,9 @@ begin
   begin
     Result := R1;
   end;
+
+  if Result < 0 then // 不能返回负值
+    Result := Result + M;
 end;
 
 procedure MLDSADecomposePolynomial(const R: TCnMLDSAPolynomial; Gamma: Integer;
@@ -1204,7 +1206,7 @@ begin
   L := 32 * (GetUInt32BitLength(A + B)) * Length(V);
   if Length(Data) <> L then
     raise ECnMLDSAException.CreateFmt(SCnErrorMLDSAPackLengthMismatch,
-      [I, Length(Data)]);
+      [L, Length(Data)]);
 
   L := GetUInt32BitLength(A + B);
   D := TCnBitBuilder.Create;
@@ -1461,7 +1463,8 @@ begin
         SetLength(Result, 2 + Length(Ctx) + Length(Msg));
         Result[0] := 0;
         Result[1] := Length(Ctx);
-        Move(Ctx[1], Result[2], Length(Ctx));
+        if Length(Ctx) > 0 then
+          Move(Ctx[1], Result[2], Length(Ctx));
         Move(Msg[0], Result[2 + Length(Ctx)], Length(Msg));
       end;
     cmhtSHA256:
@@ -1469,7 +1472,8 @@ begin
         SetLength(Result, 2 + SizeOf(OID_MLDSA_PREHASH_SHA256) + Length(Ctx) + SizeOf(TCnSHA256Digest));
         Result[0] := 1;
         Result[1] := Length(Ctx);
-        Move(Ctx[1], Result[2], Length(Ctx));
+        if Length(Ctx) > 0 then
+          Move(Ctx[1], Result[2], Length(Ctx));
 
         Move(OID_MLDSA_PREHASH_SHA256[0], Result[2 + Length(Ctx)], SizeOf(OID_MLDSA_PREHASH_SHA256));
 
@@ -1481,7 +1485,8 @@ begin
         SetLength(Result, 2 + SizeOf(OID_MLDSA_PREHASH_SHA512) + Length(Ctx) + SizeOf(TCnSHA512Digest));
         Result[0] := 1;
         Result[1] := Length(Ctx);
-        Move(Ctx[1], Result[2], Length(Ctx));
+        if Length(Ctx) > 0 then
+          Move(Ctx[1], Result[2], Length(Ctx));
 
         Move(OID_MLDSA_PREHASH_SHA512[0], Result[2 + Length(Ctx)], SizeOf(OID_MLDSA_PREHASH_SHA512));
 
@@ -1493,7 +1498,8 @@ begin
         SetLength(Result, 2 + SizeOf(OID_MLDSA_PREHASH_SHAKE128) + Length(Ctx) + MLDSA_HASH_SHAKE128_SIZE);
         Result[0] := 1;
         Result[1] := Length(Ctx);
-        Move(Ctx[1], Result[2], Length(Ctx));
+        if Length(Ctx) > 0 then
+          Move(Ctx[1], Result[2], Length(Ctx));
 
         Move(OID_MLDSA_PREHASH_SHAKE128[0], Result[2 + Length(Ctx)], SizeOf(OID_MLDSA_PREHASH_SHAKE128));
 
@@ -1505,7 +1511,8 @@ begin
         SetLength(Result, 2 + SizeOf(OID_MLDSA_PREHASH_SM3) + Length(Ctx) + SizeOf(TCnSM3Digest));
         Result[0] := 1;
         Result[1] := Length(Ctx);
-        Move(Ctx[1], Result[2], Length(Ctx));
+        if Length(Ctx) > 0 then
+          Move(Ctx[1], Result[2], Length(Ctx));
 
         Move(OID_MLDSA_PREHASH_SM3[0], Result[2 + Length(Ctx)], SizeOf(OID_MLDSA_PREHASH_SM3));
 
