@@ -1239,7 +1239,7 @@ begin
   Result := nil;
 
   // 计算系数的上限: (q-1)/(2γ2)
-  U := (CN_MLDSA_PRIME - 1) div (2 * Gamma);
+  U := (CN_MLDSA_PRIME - 1) div (2 * Gamma) - 1;
 
   // 对向量中的每个多项式进行编码
   for I := Low(W1) to High(W1) do
