@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes;
+  SysUtils, Classes {$IFDEF COMPILER5}, Windows {$ENDIF};
 
 type
   TCnFindFileCallBack = procedure(const FullFileName: string; const Info: TSearchRec;
@@ -78,11 +78,26 @@ function CnFindFile(const Path: string; const FileNamePattern: string = '*';
    返回值：Boolean                        - 返回是否查找完成、未被中断   
 }
 
+{$IFDEF COMPILER5}
+
+function DirectoryExists(const Directory: string): Boolean;
+{* 弥补 Delphi 5 下没有 DirectoryExists 函数的问题}
+
+function ForceDirectories(Dir: string): Boolean;
+{* 弥补 Delphi 5 下没有 ForceDirectories 函数的问题}
+
+{$ENDIF}
+
 implementation
 
 {$IFDEF COMPILER5}
+
+resourcestring
+  SCnErrorCannotCreateDir = 'Unable to Create Directory';
+
 const
   faSymLink   = $00000040;
+
 {$ENDIF}
 
 function CnFindFile(const Path: string; const FileNamePattern: string;
@@ -183,5 +198,49 @@ begin
   DoFindFile(Path, '', FileNamePattern, FileProc, DirProc, IncludeSubDir, AbortFlag);
   Result := not AbortFlag;
 end;
+
+{$IFDEF COMPILER5}
+
+function DirectoryExists(const Directory: string): Boolean;
+var
+  Code: Integer;
+begin
+  Code := GetFileAttributes(PChar(Directory));
+  Result := (Code <> -1) and (FILE_ATTRIBUTE_DIRECTORY and Code <> 0);
+end;
+
+function IsPathDelimiter(const S: string; Index: Integer): Boolean;
+begin
+  Result := (Index > 0) and (Index <= Length(S)) and (S[Index] = '\')
+    and (ByteType(S, Index) = mbSingleByte);
+end;
+
+function ExcludeTrailingPathDelimiter(const S: string): string;
+begin
+  Result := S;
+  if IsPathDelimiter(Result, Length(Result)) then
+    SetLength(Result, Length(Result)-1);
+end;
+
+function ForceDirectories(Dir: string): Boolean;
+var
+  E: EInOutError;
+begin
+  Result := True;
+  if Dir = '' then
+  begin
+    E := EInOutError.CreateRes(@SCnErrorCannotCreateDir);
+    E.ErrorCode := 3;
+    raise E;
+  end;
+  Dir := ExcludeTrailingPathDelimiter(Dir);
+
+  if (Length(Dir) < 3) or DirectoryExists(Dir)
+    or (ExtractFilePath(Dir) = Dir) then Exit; // avoid 'xyz:\' problem.
+
+  Result := ForceDirectories(ExtractFilePath(Dir)) and CreateDir(Dir);
+end;
+
+{$ENDIF}
 
 end.
