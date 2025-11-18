@@ -482,7 +482,7 @@ begin
 
   P := PByte(Input);
   Len := ByteLength;
-  Context.TotalLen := Context.TotalLen + UInt64(Len);
+  Context.TotalLen := Context.TotalLen + TUInt64(Len);
 
   // 处理缓冲区中已有的数据
   if Context.MemSize > 0 then
@@ -1266,3 +1266,4 @@ begin
 end;
 
 end.
+
