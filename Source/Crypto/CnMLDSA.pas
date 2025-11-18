@@ -202,8 +202,8 @@ type
        RandHex 可指定随机数，注意不传时，内部使用 32 个 0。
        签名字节数组长度随三种规范不同分别是 2420、3309、4627}
 
-    function VerifyBytes(PublicKey: TCnMLDSAPublicKey; const Signature: TBytes;
-      const Msg: TBytes; const Ctx: AnsiString = ''; HashType: TCnMLDSAHashType = cmhtNone): Boolean;
+    function VerifyBytes(PublicKey: TCnMLDSAPublicKey; const Msg: TBytes;
+      const Signature: TBytes; const Ctx: AnsiString = ''; HashType: TCnMLDSAHashType = cmhtNone): Boolean;
     {* 使用公钥验证字节数组的签名，Ctx 是附加字符串，长度不能大于 255。
        签名字节数组长度随三种规范不同分别是 2420、3309、4627}
 
@@ -839,17 +839,23 @@ begin
   end;
 end;
 
-// 取 R 的低 D 位放 R0，其余的放 R1
+// 取 R 的低 D 位（13 位）放 R0，其余的放 R1
 procedure MLDSAPower2Round(R: Integer; out R0, R1: Integer);
 var
   T: Integer;
+  HD: Integer;
 begin
   T := R mod CN_MLDSA_PRIME;
   if T < 0 then
     T := T + CN_MLDSA_PRIME;
 
-  R0 := T and ((1 shl CN_MLDSA_DROPBIT) - 1);
-  R1 := (T - R0) shr CN_MLDSA_DROPBIT;
+  HD := 1 shl (CN_MLDSA_DROPBIT - 1);  // 4096
+  R0 := T and ((1 shl CN_MLDSA_DROPBIT) - 1);  // [0, 8191]
+
+  if R0 >= HD then
+    R0 := R0 - (1 shl CN_MLDSA_DROPBIT);  // [-4096, -1]
+
+  R1 := (T - R0) shr CN_MLDSA_DROPBIT;    // -4096 可能有问题
 end;
 
 procedure MLDSAPower2RoundPolynomial(const R: TCnMLDSAPolynomial; var R0, R1: TCnMLDSAPolynomial);
@@ -877,7 +883,7 @@ end;
 procedure MLDSADecompose(R, Gamma: Integer; out R1, R0: Integer);
 var
   RP: Integer;
-  Alpha, AlphaHalf: Integer;
+  Alpha: Integer;
 begin
   Alpha := 2 * Gamma;
 
@@ -2035,8 +2041,8 @@ begin
   Result := InternalSign(PrivateKey, Data, Seed);
 end;
 
-function TCnMLDSA.VerifyBytes(PublicKey: TCnMLDSAPublicKey; const Signature: TBytes;
-  const Msg: TBytes; const Ctx: AnsiString; HashType: TCnMLDSAHashType): Boolean;
+function TCnMLDSA.VerifyBytes(PublicKey: TCnMLDSAPublicKey; const Msg: TBytes;
+  const Signature: TBytes; const Ctx: AnsiString; HashType: TCnMLDSAHashType): Boolean;
 var
   Data: TBytes;
 begin
