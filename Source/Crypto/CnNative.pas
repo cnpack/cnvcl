@@ -1489,12 +1489,12 @@ function AnsiStrToHex(const Data: AnsiString; UseUpperCase: Boolean = True): Ans
    返回值：AnsiString                     - 返回十六进制字符串
 }
 
-function BytesToHex(Data: TBytes; UseUpperCase: Boolean = True): string;
+function BytesToHex(const Data: TBytes; UseUpperCase: Boolean = True): string;
 {* 字节数组转换为十六进制字符串，下标低位的内容出现在字符串左方，相当于网络字节顺序，
    UseUpperCase 控制输出内容的大小写。
 
    参数：
-     Data: TBytes                         - 待转换的字节数组
+     const Data: TBytes                   - 待转换的字节数组
      UseUpperCase: Boolean                - 十六进制字符串内部是否大写
 
    返回值：string                         - 返回十六进制字符串
@@ -1530,18 +1530,18 @@ function HexToStream(const Hex: string; Stream: TStream): Integer;
    返回值：Integer                        - 返回写入的字节数
 }
 
-function WriteBytesToStream(Data: TBytes; Stream: TStream): Integer;
+function WriteBytesToStream(const Data: TBytes; Stream: TStream): Integer;
 {* 将字节数组写入流中，返回写入的字节数。
 
    参数：
-     Data: TBytes                         - 待写入的字节数组
+     const Data: TBytes                   - 待写入的字节数组
      Stream: TStream                      - 写入的流
 
    返回值：Integer                        - 返回写入的字节数
 }
 
 procedure ReverseBytes(Data: TBytes);
-{* 按字节顺序倒置一字节数组。
+{* 按字节顺序倒置一字节数组的内容。
 
    参数：
      Data: TBytes                         - 待倒置的字节数组
@@ -1549,11 +1549,11 @@ procedure ReverseBytes(Data: TBytes);
    返回值：（无）
 }
 
-function CloneBytes(Data: TBytes): TBytes;
+function CloneBytes(const Data: TBytes): TBytes;
 {* 复制一个新的字节数组
 
    参数：
-     Data: TBytes                         - 待复制的字节数组
+     const Data: TBytes                   - 待复制的字节数组
 
    返回值：TBytes                         - 返回新建的字节数组
 }
@@ -1567,11 +1567,11 @@ function StreamToBytes(Stream: TStream): TBytes;
    返回值：TBytes                         - 返回新建的字节数组
 }
 
-function BytesToStream(Data: TBytes; OutStream: TStream): Integer;
+function BytesToStream(const Data: TBytes; OutStream: TStream): Integer;
 {* 将字节数组整个写入流，原始流内容清除。返回写入字节数。
 
    参数：
-     Data: TBytes                         - 待写入的字节数组
+     const Data: TBytes                   - 待写入的字节数组
      OutStream: TStream                   - 写入的流
 
    返回值：Integer                        - 返回写入字节数
@@ -1586,20 +1586,20 @@ function AnsiToBytes(const Str: AnsiString): TBytes;
    返回值：TBytes                         - 返回转换的字节数组
 }
 
-function BytesToAnsi(Data: TBytes): AnsiString;
+function BytesToAnsi(const Data: TBytes): AnsiString;
 {* 将字节数组的内容直接转换为 AnsiString，不处理编码。
 
    参数：
-     Data: TBytes                         - 待转换的字节数组
+     const Data: TBytes                   - 待转换的字节数组
 
    返回值：AnsiString                     - 返回转换的字符串
 }
 
-function BytesToString(Data: TBytes): string;
+function BytesToString(const Data: TBytes): string;
 {* 将字节数组的内容转换为 string，内部逐个 Byte 赋值为 Char，不处理编码。
 
    参数：
-     Data: TBytes                         - 待转换的字节数组
+     const Data: TBytes                   - 待转换的字节数组
 
    返回值：string                         - 返回转换的字符串
 }
@@ -1623,35 +1623,35 @@ function BitsToString(Bits: TBits): string;
    返回值：string                         - 返回转换的字符串
 }
 
-function ConcatBytes(A: TBytes; B: TBytes): TBytes; overload;
+function ConcatBytes(const A: TBytes; const B: TBytes): TBytes; overload;
 {* 将 A B 两个字节数组顺序拼好返回一个新字节数组，A B 自身保持不变。
 
    参数：
-     A: TBytes                            - 待拼接的字节数组一
-     B: TBytes                            - 待拼接的字节数组二
+     const A: TBytes                      - 待拼接的字节数组一
+     const B: TBytes                      - 待拼接的字节数组二
 
    返回值：TBytes                         - 返回拼接的新字节数组
 }
 
-function ConcatBytes(A: TBytes; B: TBytes; C: TBytes): TBytes; overload;
+function ConcatBytes(const A: TBytes; const B: TBytes; const C: TBytes): TBytes; overload;
 {* 将 A B C 三个字节数组顺序拼好返回一个新字节数组，A B C 自身保持不变。
 
    参数：
-     A: TBytes                            - 待拼接的字节数组一
-     B: TBytes                            - 待拼接的字节数组二
-     C: TBytes                            - 待拼接的字节数组三
+     const A: TBytes                      - 待拼接的字节数组一
+     const B: TBytes                      - 待拼接的字节数组二
+     const C: TBytes                      - 待拼接的字节数组三
 
    返回值：TBytes                         - 返回拼接的新字节数组
 }
 
-function ConcatBytes(A: TBytes; B: TBytes; C: TBytes; D: TBytes): TBytes; overload;
+function ConcatBytes(const A: TBytes; const B: TBytes; const C: TBytes; const D: TBytes): TBytes; overload;
 {* 将 A B C D 四个字节数组顺序拼好返回一个新字节数组，A B C D 自身保持不变。
 
    参数：
-     A: TBytes                            - 待拼接的字节数组一
-     B: TBytes                            - 待拼接的字节数组二
-     C: TBytes                            - 待拼接的字节数组三
-     D: TBytes                            - 待拼接的字节数组四
+     const A: TBytes                      - 待拼接的字节数组一
+     const B: TBytes                      - 待拼接的字节数组二
+     const C: TBytes                      - 待拼接的字节数组三
+     const D: TBytes                      - 待拼接的字节数组四
 
    返回值：TBytes                         - 返回拼接的新字节数组
 }
@@ -1666,34 +1666,46 @@ function NewBytesFromMemory(Data: Pointer; DataByteLen: Integer): TBytes;
    返回值：TBytes                         - 返回新建的字节数组
 }
 
-procedure PutBytesToMemory(Data: TBytes; Mem: Pointer; MaxByteSize: Integer = 0);
+procedure PutBytesToMemory(const Data: TBytes; Mem: Pointer; MaxByteSize: Integer = 0);
 {* 将一字节数组的内容写入指定内存区域，允许设置写入的最大数量。
 
    参数：
-     Data: TBytes                         - 待处理的字节数组
+     const Data: TBytes                   - 待处理的字节数组
      Mem: Pointer                         - 待写入的数据块地址
      MaxByteSize: Integer                 - 控制写入的最大字节数，0 表示不控制
 
    返回值：（无）
 }
 
-function CompareBytes(A: TBytes; B: TBytes): Boolean; overload;
+function CompareBytes(const A: TBytes; const B: TBytes): Boolean; overload;
 {* 比较两个字节数组内容是否相同。
 
    参数：
-     A: TBytes                            - 待比较的字节数组一
-     B: TBytes                            - 待比较的字节数组二
+     const A: TBytes                      - 待比较的字节数组一
+     const B: TBytes                      - 待比较的字节数组二
 
    返回值：Boolean                        - 返回比较结果是否相同
 }
 
-function CompareBytes(A: TBytes; B: TBytes; MaxLength: Integer): Boolean; overload;
+function CompareBytes(const A: TBytes; const B: TBytes; MaxLength: Integer): Boolean; overload;
 {* 比较两个字节数组的最多前 MaxLength 个字节的内容是否相同。
 
    参数：
-     A: TBytes                            - 待比较的字节数组一
-     B: TBytes                            - 待比较的字节数组二
+     const A: TBytes                      - 待比较的字节数组一
+     const B: TBytes                      - 待比较的字节数组二
      MaxLength: Integer                   - 比较的字节数上限
+
+   返回值：Boolean                        - 返回比较结果是否相同
+}
+
+function CompareBytesWithDiffIndex(const A, B: TBytes; out DiffIndex: Integer): Boolean;
+{* 比较两个字节数组的内容是否相同。
+   长度相等且内容不同时，DiffIndex 返回第一个不相等的字节索引，其他情况返回 -1。
+
+   参数：
+     const A: TBytes                      - 待比较的字节数组一
+     const B: TBytes                      - 待比较的字节数组二
+     out DiffIndex: Integer               - 返回第一个不相等的字节索引
 
    返回值：Boolean                        - 返回比较结果是否相同
 }
@@ -1839,12 +1851,12 @@ function ConstTimeEqual64(A: TUInt64; B: TUInt64): Boolean;
    返回值：Boolean                        - 返回是否相等
 }
 
-function ConstTimeBytesEqual(A: TBytes; B: TBytes): Boolean;
+function ConstTimeBytesEqual(const A: TBytes; const B: TBytes): Boolean;
 {* 针对俩相同长度的字节数组的执行时间固定的比较，内容相同时返回 True。
 
    参数：
-     A: TBytes                            - 待比较的字节数组一
-     B: TBytes                            - 待比较的字节数组二
+     const A: TBytes                      - 待比较的字节数组一
+     const B: TBytes                      - 待比较的字节数组二
 
    返回值：Boolean                        - 返回是否相等
 }
@@ -3238,7 +3250,7 @@ begin
   end;
 end;
 
-function BytesToHex(Data: TBytes; UseUpperCase: Boolean): string;
+function BytesToHex(const Data: TBytes; UseUpperCase: Boolean): string;
 var
   I, L: Integer;
   B: Byte;
@@ -3341,7 +3353,7 @@ begin
   end;
 end;
 
-function WriteBytesToStream(Data: TBytes; Stream: TStream): Integer;
+function WriteBytesToStream(const Data: TBytes; Stream: TStream): Integer;
 begin
   if Length(Data) > 0 then
     Result := Stream.Write(Data[0], Length(Data))
@@ -3367,7 +3379,7 @@ begin
   end;
 end;
 
-function CloneBytes(Data: TBytes): TBytes;
+function CloneBytes(const Data: TBytes): TBytes;
 begin
   if Length(Data) = 0 then
     Result := nil
@@ -3389,7 +3401,7 @@ begin
   end;
 end;
 
-function BytesToStream(Data: TBytes; OutStream: TStream): Integer;
+function BytesToStream(const Data: TBytes; OutStream: TStream): Integer;
 begin
   Result := 0;
   if (Data <> nil) and (Length(Data) > 0) and (OutStream <> nil) then
@@ -3406,14 +3418,14 @@ begin
     Move(Str[1], Result[0], Length(Str));
 end;
 
-function BytesToAnsi(Data: TBytes): AnsiString;
+function BytesToAnsi(const Data: TBytes): AnsiString;
 begin
   SetLength(Result, Length(Data));
   if Length(Data) > 0 then
     Move(Data[0], Result[1], Length(Data));
 end;
 
-function BytesToString(Data: TBytes): string;
+function BytesToString(const Data: TBytes): string;
 var
   I: Integer;
 begin
@@ -3458,7 +3470,7 @@ begin
   end;
 end;
 
-function ConcatBytes(A, B: TBytes): TBytes;
+function ConcatBytes(const A, B: TBytes): TBytes;
 begin
   // 哪怕是 XE7 后也不能直接相加，因为 A 或 B 为空时会返回另一字节数组而不是新数组
   if (A = nil) or (Length(A) = 0) then
@@ -3481,7 +3493,7 @@ begin
   end;
 end;
 
-function ConcatBytes(A: TBytes; B: TBytes; C: TBytes): TBytes;
+function ConcatBytes(const A: TBytes; const B: TBytes; const C: TBytes): TBytes;
 var
   L1, L2, L3: Integer;
 begin
@@ -3502,7 +3514,7 @@ begin
     Move(C[0], Result[L1 + L2], L3);
 end;
 
-function ConcatBytes(A: TBytes; B: TBytes; C: TBytes; D: TBytes): TBytes;
+function ConcatBytes(const A: TBytes; const B: TBytes; const C: TBytes; const D: TBytes): TBytes;
 var
   L1, L2, L3, L4: Integer;
 begin
@@ -3537,7 +3549,7 @@ begin
   end;
 end;
 
-procedure PutBytesToMemory(Data: TBytes; Mem: Pointer; MaxByteSize: Integer);
+procedure PutBytesToMemory(const Data: TBytes; Mem: Pointer; MaxByteSize: Integer);
 var
   L: Integer;
 begin
@@ -3551,7 +3563,7 @@ begin
   end;
 end;
 
-function CompareBytes(A, B: TBytes): Boolean;
+function CompareBytes(const A, B: TBytes): Boolean;
 var
   L: Integer;
 begin
@@ -3567,7 +3579,7 @@ begin
     Result := CompareMem(@A[0], @B[0], L);
 end;
 
-function CompareBytes(A, B: TBytes; MaxLength: Integer): Boolean;
+function CompareBytes(const A, B: TBytes; MaxLength: Integer): Boolean;
 var
   LA, LB: Integer;
 begin
@@ -3588,6 +3600,36 @@ begin
     Result := True
   else
     Result := CompareMem(@A[0], @B[0], LA);
+end;
+
+function CompareBytesWithDiffIndex(const A, B: TBytes; out DiffIndex: Integer): Boolean;
+var
+  I: Integer;
+  L1, L2: Integer;
+begin
+  L1 := Length(A);
+  L2 := Length(B);
+  DiffIndex := -1;
+  Result := True;
+
+  if L1 <> L2 then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  if (L1 = 0) and (L2 = 0) then
+    Exit;
+
+  for I := 0 to L1 - 1 do
+  begin
+    if A[I] <> B[I] then
+    begin
+      Result := False;
+      DiffIndex := I;
+      Exit;
+    end;
+  end;
 end;
 
 function MoveMost(const Source; var Dest; ByteLen, MostLen: Integer): Integer;
@@ -3710,7 +3752,7 @@ begin
     and ConstTimeEqual32(Cardinal(A and $FFFFFFFF), Cardinal(B and $FFFFFFFF));
 end;
 
-function ConstTimeBytesEqual(A, B: TBytes): Boolean;
+function ConstTimeBytesEqual(const A, B: TBytes): Boolean;
 var
   I: Integer;
 begin
