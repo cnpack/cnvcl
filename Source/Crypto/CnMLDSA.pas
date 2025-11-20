@@ -76,9 +76,8 @@ type
   {* MLDSA 的三种实现规范}
 
   TCnMLDSAHashType = (cmhtNone, cmhtSHA224, cmhtSHA256, cmhtSHA384, cmhtSHA512,
-    cmhtSHA3_224, cmhtSHA3_256, cmhtSHA3_384, cmhtSHA3_512,
-    cmhtSHAKE128, cmhtSHAKE256, cmhtSM3);
-
+    cmhtSHA512_224, cmhtSHA512_256, cmhtSHA3_224, cmhtSHA3_256, cmhtSHA3_384,
+    cmhtSHA3_512, cmhtSHAKE128, cmhtSHAKE256, cmhtSM3);
   {* MLDSA 支持的杂凑算法}
 
   TCnMLDSASeed = array[0..CN_MLDSA_KEY_SIZE - 1] of Byte;
@@ -481,6 +480,14 @@ const
 
   OID_MLDSA_PREHASH_SHA512: array[0..10] of Byte = ( // 2.16.840.1.101.3.4.2.3
     $06, $09, $60, $86, $48, $01, $65, $03, $04, $02, $03
+  );
+
+  OID_MLDSA_PREHASH_SHA512_224: array[0..10] of Byte = ( // 2.16.840.1.101.3.4.2.5
+    $06, $09, $60, $86, $48, $01, $65, $03, $04, $02, $05
+  );
+
+  OID_MLDSA_PREHASH_SHA512_256: array[0..10] of Byte = ( // 2.16.840.1.101.3.4.2.6
+    $06, $09, $60, $86, $48, $01, $65, $03, $04, $02, $06
   );
 
   OID_MLDSA_PREHASH_SHA3_224: array[0..10] of Byte = ( // 2.16.840.1.101.3.4.2.7
@@ -1496,6 +1503,8 @@ var
   DigSha256: TCnSHA256Digest;
   DigSha384: TCnSHA384Digest;
   DigSha512: TCnSHA512Digest;
+  DigSha512_224: TCnSHA512_224Digest;
+  DigSha512_256: TCnSHA512_256Digest;
   DigSha3_224: TCnSHA3_224Digest;
   DigSha3_256: TCnSHA3_256Digest;
   DigSha3_384: TCnSHA3_384Digest;
@@ -1563,6 +1572,32 @@ begin
 
         DigSha512 := SHA512Bytes(Msg);
         Move(DigSha512[0], Result[2 + Length(Ctx) + SizeOf(OID_MLDSA_PREHASH_SHA512)], SizeOf(TCnSHA512Digest));
+      end;
+    cmhtSHA512_224:
+      begin
+        SetLength(Result, 2 + SizeOf(OID_MLDSA_PREHASH_SHA512_224) + Length(Ctx) + SizeOf(TCnSHA512_224Digest));
+        Result[0] := 1;
+        Result[1] := Length(Ctx);
+        if Length(Ctx) > 0 then
+          Move(Ctx[1], Result[2], Length(Ctx));
+
+        Move(OID_MLDSA_PREHASH_SHA512_224[0], Result[2 + Length(Ctx)], SizeOf(OID_MLDSA_PREHASH_SHA512_224));
+
+        DigSha512_224 := SHA512_224Bytes(Msg);
+        Move(DigSha512_224[0], Result[2 + Length(Ctx) + SizeOf(OID_MLDSA_PREHASH_SHA512_224)], SizeOf(TCnSHA512_224Digest));
+      end;
+    cmhtSHA512_256:
+      begin
+        SetLength(Result, 2 + SizeOf(OID_MLDSA_PREHASH_SHA512_256) + Length(Ctx) + SizeOf(TCnSHA512_256Digest));
+        Result[0] := 1;
+        Result[1] := Length(Ctx);
+        if Length(Ctx) > 0 then
+          Move(Ctx[1], Result[2], Length(Ctx));
+
+        Move(OID_MLDSA_PREHASH_SHA512_256[0], Result[2 + Length(Ctx)], SizeOf(OID_MLDSA_PREHASH_SHA512_256));
+
+        DigSha512_256 := SHA512_256Bytes(Msg);
+        Move(DigSha512_256[0], Result[2 + Length(Ctx) + SizeOf(OID_MLDSA_PREHASH_SHA512_256)], SizeOf(TCnSHA512_256Digest));
       end;
     cmhtSHA3_224:
       begin

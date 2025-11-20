@@ -1149,6 +1149,21 @@ procedure SHA512Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
    返回值：（无）
 }
 
+procedure SHA512_224Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
+  ByteLength: Cardinal; var Output: TCnSHA512_224Digest);
+{* 基于 SHA512_224 的 HMAC（Hash-based Message Authentication Code）计算，
+   在普通数据的计算上加入密钥的概念，也叫加盐。
+
+   参数：
+     Key: PAnsiChar                       - 待参与 SHA512_224 计算的密钥数据块地址
+     KeyByteLength: Integer               - 待参与 SHA512_224 计算的密钥数据块字节长度
+     Input: PAnsiChar                     - 待计算的数据块地址
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
+     var Output: TCnSHA512_224Digest      - 返回的 SHA512_224 杂凑值
+
+   返回值：（无）
+}
+
 procedure SHA512_256Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
   ByteLength: Cardinal; var Output: TCnSHA512_256Digest);
 {* 基于 SHA512_256 的 HMAC（Hash-based Message Authentication Code）计算，
