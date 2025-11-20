@@ -163,7 +163,7 @@ function CnOTSSM3VerifyData(Data: Pointer; DataByteLen: Integer;
    返回值：Boolean                        - 返回验证签名是否成功
 }
 
-procedure CnOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnOTSSM3PrivateKey;
+procedure CnOTSSM3SignBytes(const Data: TBytes; PrivateKey: TCnOTSSM3PrivateKey;
   PublicKey: TCnOTSSM3PublicKey; var OutSignature: TCnOTSSM3Signature;
   var OutVerifyKey: TCnOTSSM3VerificationKey);
 {* 根据公私钥生成字节数组的 OTS 一次性杂凑签名及验证这个签名的密钥。
@@ -172,7 +172,7 @@ procedure CnOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnOTSSM3PrivateKey;
    不能再用这批私钥给别的消息签名了，这正是一次性签名的含义。
 
    参数：
-     Data: TBytes                                         - 待签名的明文字节数组
+     const Data: TBytes                                   - 待签名的明文字节数组
      PrivateKey: TCnOTSSM3PrivateKey                      - 用来签名的基于 SM3 的一次性杂凑签名私钥
      PublicKey: TCnOTSSM3PublicKey                        - 用来签名的基于 SM3 的一次性杂凑签名公钥
      var OutSignature: TCnOTSSM3Signature                 - 输出的签名值
@@ -181,13 +181,13 @@ procedure CnOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnOTSSM3PrivateKey;
    返回值：（无）
 }
 
-function CnOTSSM3VerifyBytes(Data: TBytes; Signature: TCnOTSSM3Signature;
+function CnOTSSM3VerifyBytes(const Data: TBytes; Signature: TCnOTSSM3Signature;
   PublicKey: TCnOTSSM3PublicKey; VerifyKey: TCnOTSSM3VerificationKey): Boolean;
 {* 根据明文、公布的验证密钥与公钥验证字节数组的 OTS 签名是否正确，返回验证是否成功。
    注意规范中 Signature 未参与验证，仅使用 VerifyKey 就行。
 
    参数：
-     Data: TBytes                         - 待验证的明文字节数组
+     const Data: TBytes                   - 待验证的明文字节数组
      Signature: TCnOTSSM3Signature        - 待验证的签名值
      PublicKey: TCnOTSSM3PublicKey        - 用来验证的基于 SM3 的一次性杂凑签名公钥
      VerifyKey: TCnOTSSM3VerificationKey  - 用来验证的验证密钥
@@ -243,7 +243,7 @@ function CnOTSSHA256VerifyData(Data: Pointer; DataByteLen: Integer;
    返回值：Boolean                                        - 返回验证签名是否成功
 }
 
-procedure CnOTSSHA256SignBytes(Data: TBytes; PrivateKey: TCnOTSSHA256PrivateKey;
+procedure CnOTSSHA256SignBytes(const Data: TBytes; PrivateKey: TCnOTSSHA256PrivateKey;
   PublicKey: TCnOTSSHA256PublicKey; var OutSignature: TCnOTSSHA256Signature;
   var OutVerifyKey: TCnOTSSHA256VerificationKey);
 {* 根据公私钥生成字节数组的 OTS 一次性杂凑签名及验证这个签名的密钥。
@@ -252,7 +252,7 @@ procedure CnOTSSHA256SignBytes(Data: TBytes; PrivateKey: TCnOTSSHA256PrivateKey;
    不能再用这批私钥给别的消息签名了，这正是一次性签名的含义。
 
    参数：
-     Data: TBytes                                         - 待签名的明文字节数组
+     const Data: TBytes                                   - 待签名的明文字节数组
      PrivateKey: TCnOTSSHA256PrivateKey                   - 用来签名的基于 SHA256 的一次性杂凑签名私钥
      PublicKey: TCnOTSSHA256PublicKey                     - 用来签名的基于 SHA256 的一次性杂凑签名公钥
      var OutSignature: TCnOTSSHA256Signature              - 输出的签名值
@@ -261,13 +261,13 @@ procedure CnOTSSHA256SignBytes(Data: TBytes; PrivateKey: TCnOTSSHA256PrivateKey;
    返回值：（无）
 }
 
-function CnOTSSHA256VerifyBytes(Data: TBytes; Signature: TCnOTSSHA256Signature;
+function CnOTSSHA256VerifyBytes(const Data: TBytes; Signature: TCnOTSSHA256Signature;
   PublicKey: TCnOTSSHA256PublicKey; VerifyKey: TCnOTSSHA256VerificationKey): Boolean;
 {* 根据明文、公布的验证密钥与公钥验证字节数组的 OTS 签名是否正确，返回验证是否成功
    注意规范中 Signature 未参与验证，仅使用 VerifyKey 就行。
 
    参数：
-     Data: TBytes                                         - 待验证的明文字节数组
+     const Data: TBytes                                   - 待验证的明文字节数组
      Signature: TCnOTSSHA256Signature                     - 待验证的签名值
      PublicKey: TCnOTSSHA256PublicKey                     - 用来验证的基于 SHA256 的一次性杂凑签名公钥
      VerifyKey: TCnOTSSHA256VerificationKey               - 用来验证的验证密钥
@@ -315,25 +315,25 @@ function CnMOTSSM3VerifyData(Data: Pointer; DataByteLen: Integer;
    返回值：Boolean                        - 返回验证签名是否成功
 }
 
-procedure CnMOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnMOTSSM3PrivateKey;
+procedure CnMOTSSM3SignBytes(const Data: TBytes; PrivateKey: TCnMOTSSM3PrivateKey;
   var OutSignature: TCnMOTSSM3Signature);
 {* 根据私钥生成字节数组的 M-OTS 一次性杂凑签名。
    平时公布明文、签名值与公钥，有验证需求时，给验证方公布私钥。
 
    参数：
-     Data: TBytes                                         - 待签名的明文字节数组
+     const Data: TBytes                                   - 待签名的明文字节数组
      PrivateKey: TCnMOTSSM3PrivateKey                     - 用来签名的基于 SM3 的 M-OTS 私钥
      var OutSignature: TCnMOTSSM3Signature                - 输出的签名值
 
    返回值：（无）
 }
 
-function CnMOTSSM3VerifyBytes(Data: TBytes; Signature: TCnMOTSSM3Signature;
+function CnMOTSSM3VerifyBytes(const Data: TBytes; Signature: TCnMOTSSM3Signature;
   PublicKey: TCnMOTSSM3PublicKey): Boolean;
 {* 根据明文与公钥验证字节数组的 M-OTS 签名是否正确，返回验证是否成功。
 
    参数：
-     Data: TBytes                         - 待验证的明文字节数组
+     const Data: TBytes                   - 待验证的明文字节数组
      Signature: TCnMOTSSM3Signature       - 待验证的签名值
      PublicKey: TCnMOTSSM3PublicKey       - 用来验证的基于 SM3 的 M-OTS 公钥
 
@@ -380,25 +380,25 @@ function CnMOTSSHA256VerifyData(Data: Pointer; DataByteLen: Integer;
    返回值：Boolean                        - 返回验证签名是否成功
 }
 
-procedure CnMOTSSHA256SignBytes(Data: TBytes; PrivateKey: TCnMOTSSHA256PrivateKey;
+procedure CnMOTSSHA256SignBytes(const Data: TBytes; PrivateKey: TCnMOTSSHA256PrivateKey;
   var OutSignature: TCnMOTSSHA256Signature);
 {* 根据私钥生成字节数组的 M-OTS 一次性杂凑签名。
    平时公布明文、签名值与公钥，有验证需求时，给验证方公布私钥。
 
    参数：
-     Data: TBytes                                         - 待签名的明文字节数组
+     const Data: TBytes                                   - 待签名的明文字节数组
      PrivateKey: TCnMOTSSHA256PrivateKey                  - 用来签名的基于 SHA256 杂凑算法的 M-OTS 私钥
      var OutSignature: TCnMOTSSHA256Signature             - 输出的签名值
 
    返回值：（无）
 }
 
-function CnMOTSSHA256VerifyBytes(Data: TBytes; Signature: TCnMOTSSHA256Signature;
+function CnMOTSSHA256VerifyBytes(const Data: TBytes; Signature: TCnMOTSSHA256Signature;
   PublicKey: TCnMOTSSHA256PublicKey): Boolean;
 {* 根据明文与公钥验证字节数组的 M-OTS 签名是否正确，返回验证是否成功。
 
    参数：
-     Data: TBytes                         - 待验证的明文字节数组
+     const Data: TBytes                   - 待验证的明文字节数组
      Signature: TCnMOTSSHA256Signature    - 待验证的签名值
      PublicKey: TCnMOTSSHA256PublicKey    - 用来验证的基于 SHA256 杂凑算法的 M-OTS 公钥
 
@@ -445,25 +445,25 @@ function CnWOTSSM3VerifyData(Data: Pointer; DataByteLen: Integer;
    返回值：Boolean                        - 返回验证签名是否成功
 }
 
-procedure CnWOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnWOTSSM3PrivateKey;
+procedure CnWOTSSM3SignBytes(const Data: TBytes; PrivateKey: TCnWOTSSM3PrivateKey;
   var OutSignature: TCnWOTSSM3Signature);
 {* 根据私钥生成字节数组的 W-OTS 一次性杂凑签名及验证这个签名的密钥。
    平时公布明文、签名值，有验证需求时，给验证方公布公钥。
 
    参数：
-     Data: TBytes                                         - 待签名的明文字节数组
+     const Data: TBytes                                   - 待签名的明文字节数组
      PrivateKey: TCnWOTSSM3PrivateKey                     - 用来签名的基于 SM3 杂凑算法的 W-OTS 私钥
      var OutSignature: TCnWOTSSM3Signature                - 输出的签名值
 
    返回值：（无）
 }
 
-function CnWOTSSM3VerifyBytes(Data: TBytes; Signature: TCnWOTSSM3Signature;
+function CnWOTSSM3VerifyBytes(const Data: TBytes; Signature: TCnWOTSSM3Signature;
   PublicKey: TCnWOTSSM3PublicKey): Boolean;
 {* 根据明文、公布的公钥验证指定数据块的 W-OTS 签名是否正确，返回验证是否成功。
 
    参数：
-     Data: TBytes                         - 待验证的明文字节数组
+     const Data: TBytes                   - 待验证的明文字节数组
      Signature: TCnWOTSSM3Signature       - 待验证的签名值
      PublicKey: TCnWOTSSM3PublicKey       - 用来验证的基于 SM3 杂凑算法的 W-OTS 公钥
 
@@ -510,25 +510,25 @@ function CnWOTSSHA256VerifyData(Data: Pointer; DataByteLen: Integer;
    返回值：Boolean                        - 返回验证签名是否成功
 }
 
-procedure CnWOTSSHA256SignBytes(Data: TBytes; PrivateKey: TCnWOTSSHA256PrivateKey;
+procedure CnWOTSSHA256SignBytes(const Data: TBytes; PrivateKey: TCnWOTSSHA256PrivateKey;
   var OutSignature: TCnWOTSSHA256Signature);
 {* 根据私钥生成字节数组的 W-OTS 一次性杂凑签名及验证这个签名的密钥。
    平时公布明文、签名值，有验证需求时，给验证方公布公钥。
 
    参数：
-     Data: TBytes                                         - 待签名的明文字节数组
+     const Data: TBytes                                   - 待签名的明文字节数组
      PrivateKey: TCnWOTSSHA256PrivateKey                  - 用来签名的基于 SHA256 杂凑算法的 W-OTS 私钥
      var OutSignature: TCnWOTSSHA256Signature             - 输出的签名值
 
    返回值：（无）
 }
 
-function CnWOTSSHA256VerifyBytes(Data: TBytes; Signature: TCnWOTSSHA256Signature;
+function CnWOTSSHA256VerifyBytes(const Data: TBytes; Signature: TCnWOTSSHA256Signature;
   PublicKey: TCnWOTSSHA256PublicKey): Boolean;
 {* 根据明文、公布的公钥验证指定数据块的 W-OTS 签名是否正确，返回验证是否成功。
 
    参数：
-     Data: TBytes                         - 待验证的明文字节数组
+     const Data: TBytes                   - 待验证的明文字节数组
      Signature: TCnWOTSSHA256Signature    - 待验证的签名值
      PublicKey: TCnWOTSSHA256PublicKey    - 用来验证的基于 SHA256 杂凑算法的 W-OTS 公钥
 
@@ -612,7 +612,7 @@ begin
   end;
 end;
 
-procedure CnOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnOTSSM3PrivateKey;
+procedure CnOTSSM3SignBytes(const Data: TBytes; PrivateKey: TCnOTSSM3PrivateKey;
   PublicKey: TCnOTSSM3PublicKey; var OutSignature: TCnOTSSM3Signature;
   var OutVerifyKey: TCnOTSSM3VerificationKey);
 begin
@@ -622,7 +622,7 @@ begin
     CnOTSSM3SignData(@Data[0], Length(Data), PrivateKey, PublicKey, OutSignature, OutVerifyKey);
 end;
 
-function CnOTSSM3VerifyBytes(Data: TBytes; Signature: TCnOTSSM3Signature;
+function CnOTSSM3VerifyBytes(const Data: TBytes; Signature: TCnOTSSM3Signature;
   PublicKey: TCnOTSSM3PublicKey; VerifyKey: TCnOTSSM3VerificationKey): Boolean;
 begin
   if Length(Data) = 0 then
@@ -711,7 +711,7 @@ begin
   end;
 end;
 
-procedure CnOTSSHA256SignBytes(Data: TBytes; PrivateKey: TCnOTSSHA256PrivateKey;
+procedure CnOTSSHA256SignBytes(const Data: TBytes; PrivateKey: TCnOTSSHA256PrivateKey;
   PublicKey: TCnOTSSHA256PublicKey; var OutSignature: TCnOTSSHA256Signature;
   var OutVerifyKey: TCnOTSSHA256VerificationKey);
 begin
@@ -721,7 +721,7 @@ begin
     CnOTSSHA256SignData(@Data[0], Length(Data), PrivateKey, PublicKey, OutSignature, OutVerifyKey);
 end;
 
-function CnOTSSHA256VerifyBytes(Data: TBytes; Signature: TCnOTSSHA256Signature;
+function CnOTSSHA256VerifyBytes(const Data: TBytes; Signature: TCnOTSSHA256Signature;
   PublicKey: TCnOTSSHA256PublicKey; VerifyKey: TCnOTSSHA256VerificationKey): Boolean;
 begin
   if Length(Data) = 0 then
@@ -832,7 +832,7 @@ begin
   end;
 end;
 
-procedure CnMOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnMOTSSM3PrivateKey;
+procedure CnMOTSSM3SignBytes(const Data: TBytes; PrivateKey: TCnMOTSSM3PrivateKey;
   var OutSignature: TCnMOTSSM3Signature);
 begin
   if Length(Data) = 0 then
@@ -841,7 +841,7 @@ begin
     CnMOTSSM3SignData(@Data[0], Length(Data), PrivateKey, OutSignature);
 end;
 
-function CnMOTSSM3VerifyBytes(Data: TBytes; Signature: TCnMOTSSM3Signature;
+function CnMOTSSM3VerifyBytes(const Data: TBytes; Signature: TCnMOTSSM3Signature;
   PublicKey: TCnMOTSSM3PublicKey): Boolean;
 begin
   if Length(Data) = 0 then
@@ -961,7 +961,7 @@ begin
   end;
 end;
 
-procedure CnMOTSSHA256SignBytes(Data: TBytes; PrivateKey: TCnMOTSSHA256PrivateKey;
+procedure CnMOTSSHA256SignBytes(const Data: TBytes; PrivateKey: TCnMOTSSHA256PrivateKey;
   var OutSignature: TCnMOTSSHA256Signature);
 begin
   if Length(Data) = 0 then
@@ -970,7 +970,7 @@ begin
     CnMOTSSHA256SignData(@Data[0], Length(Data), PrivateKey, OutSignature);
 end;
 
-function CnMOTSSHA256VerifyBytes(Data: TBytes; Signature: TCnMOTSSHA256Signature;
+function CnMOTSSHA256VerifyBytes(const Data: TBytes; Signature: TCnMOTSSHA256Signature;
   PublicKey: TCnMOTSSHA256PublicKey): Boolean;
 begin
   if Length(Data) = 0 then
@@ -1091,7 +1091,7 @@ begin
   Result := True;
 end;
 
-procedure CnWOTSSM3SignBytes(Data: TBytes; PrivateKey: TCnWOTSSM3PrivateKey;
+procedure CnWOTSSM3SignBytes(const Data: TBytes; PrivateKey: TCnWOTSSM3PrivateKey;
   var OutSignature: TCnWOTSSM3Signature);
 begin
   if Length(Data) = 0 then
@@ -1100,7 +1100,7 @@ begin
     CnWOTSSM3SignData(@Data[0], Length(Data), PrivateKey, OutSignature);
 end;
 
-function CnWOTSSM3VerifyBytes(Data: TBytes; Signature: TCnWOTSSM3Signature;
+function CnWOTSSM3VerifyBytes(const Data: TBytes; Signature: TCnWOTSSM3Signature;
   PublicKey: TCnWOTSSM3PublicKey): Boolean;
 begin
   if Length(Data) = 0 then
@@ -1245,7 +1245,7 @@ begin
   Result := True;
 end;
 
-procedure CnWOTSSHA256SignBytes(Data: TBytes; PrivateKey: TCnWOTSSHA256PrivateKey;
+procedure CnWOTSSHA256SignBytes(const Data: TBytes; PrivateKey: TCnWOTSSHA256PrivateKey;
   var OutSignature: TCnWOTSSHA256Signature);
 begin
   if Length(Data) = 0 then
@@ -1254,7 +1254,7 @@ begin
     CnWOTSSHA256SignData(@Data[0], Length(Data), PrivateKey, OutSignature);
 end;
 
-function CnWOTSSHA256VerifyBytes(Data: TBytes; Signature: TCnWOTSSHA256Signature;
+function CnWOTSSHA256VerifyBytes(const Data: TBytes; Signature: TCnWOTSSHA256Signature;
   PublicKey: TCnWOTSSHA256PublicKey): Boolean;
 begin
   if Length(Data) = 0 then

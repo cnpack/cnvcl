@@ -206,7 +206,7 @@ function CnSM2EncryptData(PlainData: Pointer; DataByteLen: Integer; OutStream:
    返回值：Boolean                                        - 返回加密是否成功
 }
 
-function CnSM2EncryptData(PlainData: TBytes; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil;
+function CnSM2EncryptData(const PlainData: TBytes; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
   IncludePrefixByte: Boolean = True; const RandHex: string = ''): TBytes; overload;
 {* 用公钥对字节数组进行加密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
@@ -216,7 +216,7 @@ function CnSM2EncryptData(PlainData: TBytes; PublicKey: TCnSM2PublicKey; SM2: TC
    返回密文字节数组，如果加密失败则返回空。
 
    参数：
-     PlainData: TBytes                                    - 待加密的明文字节数组
+     const PlainData: TBytes                                    - 待加密的明文字节数组
      PublicKey: TCnSM2PublicKey                           - 加密用的 SM2 公钥
      SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
      SequenceType: TCnSM2CryptSequenceType                - 输出密文的内部拼接顺序，默认国标的 C1C3C2
@@ -246,7 +246,7 @@ function CnSM2DecryptData(EnData: Pointer; DataByteLen: Integer; OutStream: TStr
    返回值：Boolean                                        - 返回解密是否成功
 }
 
-function CnSM2DecryptData(EnData: TBytes; PrivateKey: TCnSM2PrivateKey;
+function CnSM2DecryptData(const EnData: TBytes; PrivateKey: TCnSM2PrivateKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): TBytes; overload;
 {* 用私钥对数据块进行解密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
    第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则。
@@ -255,7 +255,7 @@ function CnSM2DecryptData(EnData: TBytes; PrivateKey: TCnSM2PrivateKey;
    返回解密后的明文字节数组，如果解密失败则返回空。
 
    参数：
-     EnData: TBytes                                       - 待解密的密文字节数组
+     const EnData: TBytes                                 - 待解密的密文字节数组
      PrivateKey: TCnSM2PrivateKey                         - 解密用的 SM2 私钥
      SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
      SequenceType: TCnSM2CryptSequenceType                - 内部拼接顺序，默认国标的 C1C3C2，需和密文的实际情况一致
@@ -298,12 +298,12 @@ function CnSM2DecryptFile(const InFile: string; const OutFile: string; PrivateKe
    返回值：Boolean                                        - 返回解密是否成功
 }
 
-function CnSM2CryptToAsn1(EnData: TBytes; SM2: TCnSM2 = nil;
+function CnSM2CryptToAsn1(const EnData: TBytes; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2; IncludePrefixByte: Boolean = True): TBytes; overload;
 {* 将 EnData 中字节数组形式的原始加密内容转换为 ASN1/BER 格式的字节数组。
 
    参数：
-     EnData: TBytes                                       - 待转换的密文字节数组
+     const EnData: TBytes                                 - 待转换的密文字节数组
      SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
      SequenceType: TCnSM2CryptSequenceType                - 密文的内部拼接顺序，默认国标的 C1C3C2
      IncludePrefixByte: Boolean                           - 密文中是否包括 C1 的前导字节 $04，默认包括
@@ -325,12 +325,12 @@ function CnSM2CryptToAsn1(EnStream: TStream; OutStream: TStream; SM2: TCnSM2 = n
    返回值：Boolean                                        - 返回转换是否成功
 }
 
-function CnSM2CryptFromAsn1(Asn1Data: TBytes; SM2: TCnSM2 = nil;
+function CnSM2CryptFromAsn1(const Asn1Data: TBytes; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2; IncludePrefixByte: Boolean = True): TBytes; overload;
 {* 将 Asn1Data 中 ASN1/BER 格式的字节数组形式的加密内容转换为原始字节数组
 
    参数：
-     Asn1Data: TBytes                                     - 待转换的 ASN1 格式的密文字节数组
+     const Asn1Data: TBytes                               - 待转换的 ASN1 格式的密文字节数组
      SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
      SequenceType: TCnSM2CryptSequenceType                - 内部拼接顺序，默认国标的 C1C3C2，需和 ASN1 格式的密文字节数组的实际情况一致
      IncludePrefixByte: Boolean                           - 输出的字节数组中是否包括 C1 的前导字节 $04，默认包括
@@ -373,7 +373,7 @@ function CnSM2SignData(const UserID: AnsiString; PlainData: Pointer; DataByteLen
    返回值：Boolean                        - 返回签名是否成功
 }
 
-function CnSM2SignData(const UserID: AnsiString; PlainData: TBytes;
+function CnSM2SignData(const UserID: AnsiString; const PlainData: TBytes;
   OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil;
   SM2: TCnSM2 = nil; const RandHex: string = ''): Boolean; overload;
 {* 私钥对字节数组签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法第2部分:数字签名算法》
@@ -381,7 +381,7 @@ function CnSM2SignData(const UserID: AnsiString; PlainData: TBytes;
 
    参数：
      const UserID: AnsiString             - 用来签名的用户标识
-     PlainData: TBytes                    - 待签名的明文字节数组
+     const PlainData: TBytes              - 待签名的明文字节数组
      OutSignature: TCnSM2Signature        - 输出的签名值
      PrivateKey: TCnSM2PrivateKey         - 用来签名的 SM2 私钥
      PublicKey: TCnSM2PublicKey           - 用来签名的 SM2 公钥，可传 nil，内部将使用 PrivateKey 重新计算出 PublickKey 参与签名
@@ -407,14 +407,14 @@ function CnSM2VerifyData(const UserID: AnsiString; PlainData: Pointer; DataByteL
    返回值：Boolean                        - 返回验证签名是否成功
 }
 
-function CnSM2VerifyData(const UserID: AnsiString; PlainData: TBytes;
+function CnSM2VerifyData(const UserID: AnsiString; const PlainData: TBytes;
   InSignature: TCnSM2Signature; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil): Boolean; overload;
 {* 公钥验证字节数组的签名，按 GM/T0003.2-2012《SM2椭圆曲线公钥密码算法
    第2部分:数字签名算法》中的运算规则来
 
    参数：
      const UserID: AnsiString             - 用来验证签名的用户标识，需和签名的用户标识保持一致
-     PlainData: TBytes                    - 待验证的明文字节数组
+     const PlainData: TBytes              - 待验证的明文字节数组
      InSignature: TCnSM2Signature         - 待验证的签名值
      PublicKey: TCnSM2PublicKey           - 用来验证的 SM2 公钥
      SM2: TCnSM2                          - 可以传入 SM2 实例，默认为空
@@ -1290,7 +1290,7 @@ begin
   end;
 end;
 
-function CnSM2EncryptData(PlainData: TBytes; PublicKey: TCnSM2PublicKey; SM2: TCnSM2;
+function CnSM2EncryptData(const PlainData: TBytes; PublicKey: TCnSM2PublicKey; SM2: TCnSM2;
   SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean; const RandHex: string): TBytes;
 var
   Stream: TMemoryStream;
@@ -1444,7 +1444,7 @@ begin
   end;
 end;
 
-function CnSM2DecryptData(EnData: TBytes; PrivateKey: TCnSM2PrivateKey;
+function CnSM2DecryptData(const EnData: TBytes; PrivateKey: TCnSM2PrivateKey;
   SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType): TBytes;
 var
   Stream: TMemoryStream;
@@ -1507,7 +1507,7 @@ begin
   end;
 end;
 
-function CnSM2CryptToAsn1(EnData: TBytes; SM2: TCnSM2;
+function CnSM2CryptToAsn1(const EnData: TBytes; SM2: TCnSM2;
   SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean): TBytes;
 var
   P: Pointer;
@@ -1589,7 +1589,7 @@ begin
     Result := BytesToStream(R, OutStream) > 0;
 end;
 
-function CnSM2CryptFromAsn1(Asn1Data: TBytes; SM2: TCnSM2;
+function CnSM2CryptFromAsn1(const Asn1Data: TBytes; SM2: TCnSM2;
   SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean): TBytes;
 var
   Idx: Integer;
@@ -1890,7 +1890,7 @@ begin
   end;
 end;
 
-function CnSM2SignData(const UserID: AnsiString; PlainData: TBytes;
+function CnSM2SignData(const UserID: AnsiString; const PlainData: TBytes;
   OutSignature: TCnSM2Signature; PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey;
   SM2: TCnSM2; const RandHex: string): Boolean;
 begin
@@ -1992,7 +1992,7 @@ begin
   end;
 end;
 
-function CnSM2VerifyData(const UserID: AnsiString; PlainData: TBytes;
+function CnSM2VerifyData(const UserID: AnsiString; const PlainData: TBytes;
   InSignature: TCnSM2Signature; PublicKey: TCnSM2PublicKey; SM2: TCnSM2): Boolean;
 begin
   Result := CnSM2VerifyData(UserID, @PlainData[0], Length(PlainData), InSignature, PublicKey, SM2);

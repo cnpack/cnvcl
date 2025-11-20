@@ -76,22 +76,22 @@ procedure RC4Decrypt(Key: Pointer; KeyByteLength: Integer; Input: Pointer;
    返回值：（无）
 }
 
-function RC4EncryptBytes(Key: TBytes; Input: TBytes): TBytes;
+function RC4EncryptBytes(const Key: TBytes; const Input: TBytes): TBytes;
 {* RC4 加密字节数组，返回密文字节数组。
 
    参数：
-     Key: TBytes                          - 加密密钥字节数组
-     Input: TBytes                        - 待加密的明文字节数组
+     const Key: TBytes                    - 加密密钥字节数组
+     const Input: TBytes                  - 待加密的明文字节数组
 
    返回值：TBytes                         - 返回密文字节数组
 }
 
-function RC4DecryptBytes(Key: TBytes; Input: TBytes): TBytes;
+function RC4DecryptBytes(const Key: TBytes; const Input: TBytes): TBytes;
 {* RC4 解密字节数组，返回明文字节数组。
 
    参数：
-     Key: TBytes                          - 解密密钥字节数组
-     Input: TBytes                        - 待解密的密文字节数组
+     const Key: TBytes                    - 解密密钥字节数组
+     const Input: TBytes                  - 待解密的密文字节数组
 
    返回值：TBytes                         - 返回明文字节数组
 }
@@ -198,7 +198,7 @@ begin
   RC4(Key, KeyByteLength, Input, Output, ByteLength);
 end;
 
-function RC4EncryptBytes(Key, Input: TBytes): TBytes;
+function RC4EncryptBytes(const Key, Input: TBytes): TBytes;
 begin
   if (Length(Key) = 0) or (Length(Input) = 0) then
   begin
@@ -210,7 +210,7 @@ begin
   RC4(@Key[0], Length(Key), @Input[0], @Result[0], Length(Input));
 end;
 
-function RC4DecryptBytes(Key, Input: TBytes): TBytes;
+function RC4DecryptBytes(const Key, Input: TBytes): TBytes;
 begin
   if (Length(Key) = 0) or (Length(Input) = 0) then
   begin

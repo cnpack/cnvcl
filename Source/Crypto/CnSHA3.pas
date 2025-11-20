@@ -213,57 +213,57 @@ function SHAKE256Buffer(const Buffer; Count: Cardinal;
    返回值：TBytes                         - 返回 SHAKE256 杂凑值
 }
 
-function SHA3_224Bytes(Data: TBytes): TCnSHA3_224Digest;
+function SHA3_224Bytes(const Data: TBytes): TCnSHA3_224Digest;
 {* 对字节数组进行 SHA3_224 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA3_224Digest              - 返回的 SHA3_224 杂凑值
 }
 
-function SHA3_256Bytes(Data: TBytes): TCnSHA3_256Digest;
+function SHA3_256Bytes(const Data: TBytes): TCnSHA3_256Digest;
 {* 对字节数组进行 SHA3_256 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA3_256Digest              - 返回的 SHA3_256 杂凑值
 }
 
-function SHA3_384Bytes(Data: TBytes): TCnSHA3_384Digest;
+function SHA3_384Bytes(const Data: TBytes): TCnSHA3_384Digest;
 {* 对字节数组进行 SHA3_384 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA3_384Digest              - 返回的 SHA3_384 杂凑值
 }
 
-function SHA3_512Bytes(Data: TBytes): TCnSHA3_512Digest;
+function SHA3_512Bytes(const Data: TBytes): TCnSHA3_512Digest;
 {* 对字节数组进行 SHA3_512 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA3_512Digest              - 返回的 SHA3_512 杂凑值
 }
 
-function SHAKE128Bytes(Data: TBytes; DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH): TBytes;
+function SHAKE128Bytes(const Data: TBytes; DigestByteLength: Cardinal = CN_SHAKE128_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对字节数组进行杂凑长度可变的 SHAKE128 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
      DigestByteLength: Cardinal           - 所需的杂凑结果字节长度
 
    返回值：TBytes                         - 返回 SHAKE128 杂凑值
 }
 
-function SHAKE256Bytes(Data: TBytes; DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH): TBytes;
+function SHAKE256Bytes(const Data: TBytes; DigestByteLength: Cardinal = CN_SHAKE256_DEF_DIGEST_BYTE_LENGTH): TBytes;
 {* 对字节数组进行杂凑长度可变的 SHAKE256 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
      DigestByteLength: Cardinal           - 所需的杂凑结果字节长度
 
    返回值：TBytes                         - 返回 SHAKE256 杂凑值
@@ -1209,42 +1209,42 @@ procedure SHA3_512Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
    返回值：（无）
 }
 
-function SHA3_224HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_224Digest;
+function SHA3_224HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA3_224Digest;
 {* 对字节数组进行基于 SHA3_224 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 SHA3_224 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                         - 待参与 SHA3_224 计算的密钥字节数组
+     const Data: TBytes                        - 待计算的字节数组
 
    返回值：TCnSHA3_224Digest                   - 返回的 SHA3_224 杂凑值
 }
 
-function SHA3_256HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_256Digest;
+function SHA3_256HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA3_256Digest;
 {* 对字节数组进行基于 SHA3_256 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 SHA3_256 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 SHA3_256 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA3_256Digest              - 返回的 SHA3_256 杂凑值
 }
 
-function SHA3_384HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_384Digest;
+function SHA3_384HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA3_384Digest;
 {* 对字节数组进行基于 SHA3_384 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 SHA3_384 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 SHA3_384 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA3_384Digest              - 返回的 SHA3_384 杂凑值
 }
 
-function SHA3_512HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_512Digest;
+function SHA3_512HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA3_512Digest;
 {* 对字节数组进行基于 SHA3_512 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 SHA3_512 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 SHA3_512 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA3_512Digest              - 返回的 SHA3_512 杂凑值
 }
@@ -1808,7 +1808,7 @@ begin
 end;
 
 // 对字节数组进行 SHA3_224 计算
-function SHA3_224Bytes(Data: TBytes): TCnSHA3_224Digest;
+function SHA3_224Bytes(const Data: TBytes): TCnSHA3_224Digest;
 var
   Context: TCnSHA3Context;
   Res: TCnSHA3GeneralDigest;
@@ -1820,7 +1820,7 @@ begin
 end;
 
 // 对字节数组进行 SHA3_256 计算
-function SHA3_256Bytes(Data: TBytes): TCnSHA3_256Digest;
+function SHA3_256Bytes(const Data: TBytes): TCnSHA3_256Digest;
 var
   Context: TCnSHA3Context;
   Res: TCnSHA3GeneralDigest;
@@ -1832,7 +1832,7 @@ begin
 end;
 
 // 对字节数组进行 SHA3_384 计算
-function SHA3_384Bytes(Data: TBytes): TCnSHA3_384Digest;
+function SHA3_384Bytes(const Data: TBytes): TCnSHA3_384Digest;
 var
   Context: TCnSHA3Context;
   Res: TCnSHA3GeneralDigest;
@@ -1844,7 +1844,7 @@ begin
 end;
 
 // 对字节数组进行 SHA3_512 计算
-function SHA3_512Bytes(Data: TBytes): TCnSHA3_512Digest;
+function SHA3_512Bytes(const Data: TBytes): TCnSHA3_512Digest;
 var
   Context: TCnSHA3Context;
   Res: TCnSHA3GeneralDigest;
@@ -1856,7 +1856,7 @@ begin
 end;
 
 // 对字节数组进行 SHAKE128 计算
-function SHAKE128Bytes(Data: TBytes; DigestByteLength: Cardinal): TBytes;
+function SHAKE128Bytes(const Data: TBytes; DigestByteLength: Cardinal): TBytes;
 var
   Context: TCnSHA3Context;
 begin
@@ -1866,7 +1866,7 @@ begin
 end;
 
 // 对字节数组进行 SHAKE256 计算
-function SHAKE256Bytes(Data: TBytes; DigestByteLength: Cardinal): TBytes;
+function SHAKE256Bytes(const Data: TBytes; DigestByteLength: Cardinal): TBytes;
 var
   Context: TCnSHA3Context;
 begin
@@ -2870,7 +2870,7 @@ begin
   Move(Dig[0], Output[0], Context.DigestLen);
 end;
 
-function SHA3_224HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_224Digest;
+function SHA3_224HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA3_224Digest;
 var
   Context: TCnSHA3Context;
   Dig: TCnSHA3GeneralDigest;
@@ -2881,7 +2881,7 @@ begin
   Move(Dig[0], Result[0], Context.DigestLen);
 end;
 
-function SHA3_256HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_256Digest;
+function SHA3_256HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA3_256Digest;
 var
   Context: TCnSHA3Context;
   Dig: TCnSHA3GeneralDigest;
@@ -2892,7 +2892,7 @@ begin
   Move(Dig[0], Result[0], Context.DigestLen);
 end;
 
-function SHA3_384HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_384Digest;
+function SHA3_384HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA3_384Digest;
 var
   Context: TCnSHA3Context;
   Dig: TCnSHA3GeneralDigest;
@@ -2903,7 +2903,7 @@ begin
   Move(Dig[0], Result[0], Context.DigestLen);
 end;
 
-function SHA3_512HmacBytes(Key: TBytes; Data: TBytes): TCnSHA3_512Digest;
+function SHA3_512HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA3_512Digest;
 var
   Context: TCnSHA3Context;
   Dig: TCnSHA3GeneralDigest;

@@ -127,11 +127,11 @@ function MD5Buffer(const Buffer; Count: Cardinal): TCnMD5Digest;
    返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
 }
 
-function MD5Bytes(Data: TBytes): TCnMD5Digest;
+function MD5Bytes(const Data: TBytes): TCnMD5Digest;
 {* 对字节数组进行 MD5 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
 }
@@ -290,12 +290,12 @@ procedure MD5Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
    返回值：（无）
 }
 
-function MD5HmacBytes(Key: TBytes; Data: TBytes): TCnMD5Digest;
+function MD5HmacBytes(const Key: TBytes; const Data: TBytes): TCnMD5Digest;
 {* 对字节数组进行基于 MD5 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 MD5 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 MD5 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
 }
@@ -669,7 +669,7 @@ begin
   MD5Final(Context, Result);
 end;
 
-function MD5Bytes(Data: TBytes): TCnMD5Digest;
+function MD5Bytes(const Data: TBytes): TCnMD5Digest;
 var
   Context: TCnMD5Context;
 begin
@@ -896,7 +896,7 @@ begin
   MD5HmacFinal(Context, Output);
 end;
 
-function MD5HmacBytes(Key: TBytes; Data: TBytes): TCnMD5Digest;
+function MD5HmacBytes(const Key: TBytes; const Data: TBytes): TCnMD5Digest;
 var
   Context: TCnMD5Context;
 begin

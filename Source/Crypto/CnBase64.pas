@@ -113,12 +113,12 @@ function Base64Encode(InputData: Pointer; DataByteLen: Integer; var OutputData: 
    返回值：Integer                        - 返回编码是否成功，成功则返回 ECN_BASE64_OK
 }
 
-function Base64Encode(InputData: TBytes; var OutputData: string;
+function Base64Encode(const InputData: TBytes; var OutputData: string;
   URL: Boolean = False): Integer; overload;
 {* 对字节数组进行 Base64 编码或 Base64URL 编码，如编码成功返回 ECN_BASE64_OK。
 
    参数：
-     InputData: TBytes                    - 待编码的字节数组
+     const InputData: TBytes              - 待编码的字节数组
      var OutputData: string               - 编码后的输出字符串
      URL: Boolean                         - URL 标记。True 则使用 Base64URL 编码，False 则使用标准 Base64 编码
 
@@ -365,7 +365,7 @@ begin
     Result := ECN_BASE64_LENGTH;
 end;
 
-function Base64Encode(InputData: TBytes; var OutputData: string; URL: Boolean): Integer;
+function Base64Encode(const InputData: TBytes; var OutputData: string; URL: Boolean): Integer;
 begin
   if Length(InputData) > 0 then
     Result := Base64Encode(@InputData[0], Length(InputData), OutputData, URL)

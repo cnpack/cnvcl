@@ -89,11 +89,11 @@ function SM3Buffer(const Buffer; Count: Cardinal): TCnSM3Digest;
    返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
 }
 
-function SM3Bytes(Data: TBytes): TCnSM3Digest;
+function SM3Bytes(const Data: TBytes): TCnSM3Digest;
 {* 对字节数组进行 SM3 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
 }
@@ -248,12 +248,12 @@ procedure SM3Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
    返回值：（无）
 }
 
-function SM3HmacBytes(Key: TBytes; Data: TBytes): TCnSM3Digest;
+function SM3HmacBytes(const Key: TBytes; const Data: TBytes): TCnSM3Digest;
 {* 对字节数组进行基于 MD5 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 SM3 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 SM3 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnMD5Digest                   - 返回的 SM3 杂凑值
 }
@@ -611,7 +611,7 @@ begin
   SM3HmacFinal(Context, Output);
 end;
 
-function SM3HmacBytes(Key: TBytes; Data: TBytes): TCnSM3Digest;
+function SM3HmacBytes(const Key: TBytes; const Data: TBytes): TCnSM3Digest;
 var
   Context: TCnSM3Context;
 begin
@@ -629,7 +629,7 @@ begin
   SM3Final(Context, Result);
 end;
 
-function SM3Bytes(Data: TBytes): TCnSM3Digest;
+function SM3Bytes(const Data: TBytes): TCnSM3Digest;
 var
   Context: TCnSM3Context;
 begin

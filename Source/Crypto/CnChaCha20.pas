@@ -120,25 +120,25 @@ procedure HChaCha20SubKey(var Key: TCnChaChaKey; var Nonce: TCnHChaChaNonce;
 }
 
 function ChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
-  Data: TBytes): TBytes;
+  const Data: TBytes): TBytes;
 {* 对字节数组进行 ChaCha20 加密，内部使用的计数器初始值默认为 1。
 
    参数：
      var Key: TCnChaChaKey                - ChaCha20 密码
      var Nonce: TCnChaChaNonce            - 一次性随机数据 Nonce
-     Data: TBytes                         - 待加密的明文字节数组
+     const Data: TBytes                   - 待加密的明文字节数组
 
    返回值：TBytes                         - 返回密文字节数组
 }
 
 function ChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
-  EnData: TBytes): TBytes;
+  const EnData: TBytes): TBytes;
 {* 对字节数组进行 ChaCha20 解密，内部使用的计数器初始值默认为 1。
 
    参数：
      var Key: TCnChaChaKey                - ChaCha20 密码
      var Nonce: TCnChaChaNonce            - 一次性随机数据 Nonce
-     EnData: TBytes                       - 待解密的密文字节数组
+     const EnData: TBytes                 - 待解密的密文字节数组
 
    返回值：TBytes                         - 返回明文字节数组
 }
@@ -385,7 +385,7 @@ begin
 end;
 
 function ChaCha20EncryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
-  Data: TBytes): TBytes;
+  const Data: TBytes): TBytes;
 var
   L: Integer;
 begin
@@ -403,7 +403,7 @@ begin
 end;
 
 function ChaCha20DecryptBytes(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce;
-  EnData: TBytes): TBytes;
+  const EnData: TBytes): TBytes;
 var
   L: Integer;
 begin

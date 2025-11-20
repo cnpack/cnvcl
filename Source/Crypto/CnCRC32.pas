@@ -103,12 +103,12 @@ function StrCRC8A(OrgCRC8: Byte; const Text: AnsiString): Byte;
    返回值：Byte                           - 返回 CRC8 计算结果
 }
 
-function BytesCRC8(OrgCRC8: Byte; Data: TBytes): Byte;
+function BytesCRC8(OrgCRC8: Byte; const Data: TBytes): Byte;
 {* 计算字节数组的 CRC8 值。
 
    参数：
      OrgCRC8: Byte                        - 原始的 CRC8 值
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：Byte                           - 返回 CRC8 计算结果
 }
@@ -171,12 +171,12 @@ function StrCRC16A(OrgCRC16: Word; const Text: AnsiString): Word;
    返回值：Word                           - 返回 CRC16 计算结果
 }
 
-function BytesCRC16(OrgCRC16: Word; Data: TBytes): Word;
+function BytesCRC16(OrgCRC16: Word; const Data: TBytes): Word;
 {* 计算字节数组的 CRC16 值。
 
    参数：
      OrgCRC16: Word                       - 原始的 CRC16 值
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：Word                           - 返回 CRC16 计算结果
 }
@@ -240,12 +240,12 @@ function StrCRC32A(OrgCRC32: Cardinal; const Text: AnsiString): Cardinal;
    返回值：Cardinal                       - 返回 CRC32 计算结果
 }
 
-function BytesCRC32(OrgCRC32: Cardinal; Data: TBytes): Cardinal;
+function BytesCRC32(OrgCRC32: Cardinal; const Data: TBytes): Cardinal;
 {* 计算字节数组的 CRC32 值。
 
    参数：
      OrgCRC32: Cardinal                   - 原始的 CRC32 值
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：Cardinal                       - 返回 CRC32 计算结果
 }
@@ -301,12 +301,12 @@ function StrCRC64A(OrgCRC64: Int64; const Text: AnsiString): Int64;
    返回值：Int64                          - 返回 CRC64 计算结果
 }
 
-function BytesCRC64(OrgCRC64: Int64; Data: TBytes): Int64;
+function BytesCRC64(OrgCRC64: Int64; const Data: TBytes): Int64;
 {* 计算字节数组的 CRC64 值。
 
    参数：
      OrgCRC64: Int64                      - 原始的 CRC64 值
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：Int64                          - 返回 CRC64 计算结果
 }
@@ -566,7 +566,7 @@ begin
 end;
 
 // 计算 TBytes 的 CRC8 值
-function BytesCRC8(OrgCRC8: Byte; Data: TBytes): Byte;
+function BytesCRC8(OrgCRC8: Byte; const Data: TBytes): Byte;
 begin
   Result := CRC8Calc(OrgCRC8, PAnsiChar(Data[0])^, Length(Data));
 end;
@@ -725,7 +725,7 @@ begin
 end;
 
 // 计算 TBytes 的 CRC16 值
-function BytesCRC16(OrgCRC16: Word; Data: TBytes): Word;
+function BytesCRC16(OrgCRC16: Word; const Data: TBytes): Word;
 begin
   Result := CRC16Calc(OrgCRC16, PAnsiChar(Data[0])^, Length(Data));
 end;
@@ -883,7 +883,7 @@ begin
 end;
 
 // 计算 TBytes 的 CRC32 值
-function BytesCRC32(OrgCRC32: Cardinal; Data: TBytes): Cardinal;
+function BytesCRC32(OrgCRC32: Cardinal; const Data: TBytes): Cardinal;
 begin
   Result := CRC32Calc(OrgCRC32, PAnsiChar(Data[0])^, Length(Data));
 end;
@@ -1055,7 +1055,7 @@ begin
 end;
 
 // 计算 TBytes 的 CRC64 值
-function BytesCRC64(OrgCRC64: Int64; Data: TBytes): Int64;
+function BytesCRC64(OrgCRC64: Int64; const Data: TBytes): Int64;
 begin
   Result := CRC64Calc(OrgCRC64, PAnsiChar(Data[0])^, Length(Data));
 end;

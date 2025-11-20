@@ -24,7 +24,7 @@ unit CnPoly1305;
 * 软件名称：开发包基础库
 * 单元名称：Poly1305 消息认证算法实现单元
 * 单元作者：CnPack 开发组（master@cnpack.org)
-* 备    注：本单元根据 RFC 7539 规范实现了Poly1305 消息认证算法。
+* 备    注：本单元根据 RFC 7539 规范实现了 Poly1305 消息认证算法。
 *           该算法的输入为任意长度数据与 32 字节密钥，输出 16 字节杂凑值，发散性并不是很好
 *           注意：由于 TCnBigNumber 使用的 Binary 均是网络字节顺序也就是大端，
 *           但 RFC 中又规定这里得小端，因此代码中要手动调用 ReverseMemory，
@@ -84,12 +84,12 @@ function Poly1305Buffer(const Buffer; Count: Cardinal; Key: TCnPoly1305Key): TCn
    返回值：TCnPoly1305Digest              - 返回计算的 Poly 1305 杂凑值
 }
 
-function Poly1305Bytes(Data: TBytes; Key: TBytes): TCnPoly1305Digest;
+function Poly1305Bytes(const Data: TBytes; const Key: TBytes): TCnPoly1305Digest;
 {* 计算字节数组的 Poly1305 杂凑值。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
-     Key: TBytes                          - 密码字节数组
+     const Data: TBytes                   - 待计算的字节数组
+     const Key: TBytes                    - 密码字节数组
 
    返回值：TCnPoly1305Digest              - 返回计算的 Poly 1305 杂凑值
 }
@@ -176,7 +176,7 @@ var
   Prime: TCnBigNumber = nil; // Poly1305 使用的素数
   Clamp: TCnBigNumber = nil; // Poly1305 使用的 Clamp
 
-function Poly1305Bytes(Data: TBytes; Key: TBytes): TCnPoly1305Digest;
+function Poly1305Bytes(const Data: TBytes; const Key: TBytes): TCnPoly1305Digest;
 var
   AKey: TCnPoly1305Key;
   L: Integer;

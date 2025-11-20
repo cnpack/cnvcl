@@ -65,70 +65,70 @@ type
 
 // 以上是 FNV 的结果类型，均以大端表示
 
-function FNV1Hash32(Data: TBytes): TCnFNVHash32; overload;
+function FNV1Hash32(const Data: TBytes): TCnFNVHash32; overload;
 {* 求字节数组的 FNV-1 杂凑结果，结果长度 32 位。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnFNVHash32                   - 返回的 32 位 FNV-1 杂凑值
 }
 
-function FNV1Hash64(Data: TBytes): TCnFNVHash64; overload;
+function FNV1Hash64(const Data: TBytes): TCnFNVHash64; overload;
 {* 求字节数组的 FNV-1 杂凑结果，结果长度 64 位。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnFNVHash64                   - 返回的 64 位 FNV-1 杂凑值
 }
 
-function FNV1Hash128(Data: TBytes): TCnFNVHash128; overload;
+function FNV1Hash128(const Data: TBytes): TCnFNVHash128; overload;
 {* 求字节数组的 FNV-1 杂凑结果，结果长度 128 位。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnFNVHash128                  - 返回的 128 位 FNV-1 杂凑值
 }
 
-function FNV1Hash256(Data: TBytes): TCnFNVHash256; overload;
+function FNV1Hash256(const Data: TBytes): TCnFNVHash256; overload;
 {* 求字节数组的 FNV-1 杂凑结果，结果长度 256 位。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnFNVHash256                  - 返回的 256 位 FNV-1 杂凑值
 }
 
-function FNV1Hash512(Data: TBytes): TCnFNVHash512; overload;
+function FNV1Hash512(const Data: TBytes): TCnFNVHash512; overload;
 {* 求字节数组的 FNV-1 杂凑结果，结果长度 512 位。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnFNVHash512                  - 返回的 512 位 FNV-1 杂凑值
 }
 
-function FNV1Hash1024(Data: TBytes): TCnFNVHash1024; overload;
+function FNV1Hash1024(const Data: TBytes): TCnFNVHash1024; overload;
 {* 求字节数组的 FNV-1 杂凑结果，结果长度 1024 位。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnFNVHash1024                 - 返回的 1024 位 FNV-1 杂凑值
 }
 
-function FNV1aHash32(Data: TBytes): TCnFNVHash32; overload;
+function FNV1aHash32(const Data: TBytes): TCnFNVHash32; overload;
 {* 求字节数组的 FNV-1a 杂凑结果，结果长度 32 位。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnFNVHash32                   - 返回的 32 位 FNV-1a 杂凑值
 }
 
-function FNV1aHash64(Data: TBytes): TCnFNVHash64; overload;
+function FNV1aHash64(const Data: TBytes): TCnFNVHash64; overload;
 {* 求字节数组的 FNV-1a 杂凑结果，结果长度 64 位。
 
    参数：
@@ -137,38 +137,38 @@ function FNV1aHash64(Data: TBytes): TCnFNVHash64; overload;
    返回值：TCnFNVHash64                   - 返回的 64 位 FNV-1a 杂凑值
 }
 
-function FNV1aHash128(Data: TBytes): TCnFNVHash128; overload;
+function FNV1aHash128(const Data: TBytes): TCnFNVHash128; overload;
 {* 求字节数组的 FNV-1a 杂凑结果，结果长度 128 位。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnFNVHash128                  - 返回的 128 位 FNV-1a 杂凑值
 }
 
-function FNV1aHash256(Data: TBytes): TCnFNVHash256; overload;
+function FNV1aHash256(const Data: TBytes): TCnFNVHash256; overload;
 {* 求字节数组的 FNV-1a 杂凑结果，结果长度 256 位。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnFNVHash256                  - 返回的 256 位 FNV-1a 杂凑值
 }
 
-function FNV1aHash512(Data: TBytes): TCnFNVHash512; overload;
+function FNV1aHash512(const Data: TBytes): TCnFNVHash512; overload;
 {* 求字节数组的 FNV-1a 杂凑结果，结果长度 512 位。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnFNVHash512                  - 返回的 512 位 FNV-1a 杂凑值
 }
 
-function FNV1aHash1024(Data: TBytes): TCnFNVHash1024; overload;
+function FNV1aHash1024(const Data: TBytes): TCnFNVHash1024; overload;
 {* 求字节数组的 FNV-1a 杂凑结果，结果长度 1024 位。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnFNVHash1024                 - 返回的 1024 位 FNV-1a 杂凑值
 }
@@ -381,7 +381,7 @@ begin
   end;
 end;
 
-function FNV1Hash32(Data: TBytes): TCnFNVHash32;
+function FNV1Hash32(const Data: TBytes): TCnFNVHash32;
 begin
   if Length(Data) <= 0 then
     Result := FNV1Hash32(nil, 0)
@@ -389,7 +389,7 @@ begin
     Result := FNV1Hash32(@Data[0], Length(Data));
 end;
 
-function FNV1Hash64(Data: TBytes): TCnFNVHash64;
+function FNV1Hash64(const Data: TBytes): TCnFNVHash64;
 begin
   if Length(Data) <= 0 then
     Result := FNV1Hash64(nil, 0)
@@ -397,7 +397,7 @@ begin
     Result := FNV1Hash64(@Data[0], Length(Data));
 end;
 
-function FNV1Hash128(Data: TBytes): TCnFNVHash128;
+function FNV1Hash128(const Data: TBytes): TCnFNVHash128;
 begin
   if Length(Data) <= 0 then
     Result := FNV1Hash128(nil, 0)
@@ -405,7 +405,7 @@ begin
     Result := FNV1Hash128(@Data[0], Length(Data));
 end;
 
-function FNV1Hash256(Data: TBytes): TCnFNVHash256;
+function FNV1Hash256(const Data: TBytes): TCnFNVHash256;
 begin
   if Length(Data) <= 0 then
     Result := FNV1Hash256(nil, 0)
@@ -413,7 +413,7 @@ begin
     Result := FNV1Hash256(@Data[0], Length(Data));
 end;
 
-function FNV1Hash512(Data: TBytes): TCnFNVHash512;
+function FNV1Hash512(const Data: TBytes): TCnFNVHash512;
 begin
   if Length(Data) <= 0 then
     Result := FNV1Hash512(nil, 0)
@@ -421,7 +421,7 @@ begin
     Result := FNV1Hash512(@Data[0], Length(Data));
 end;
 
-function FNV1Hash1024(Data: TBytes): TCnFNVHash1024;
+function FNV1Hash1024(const Data: TBytes): TCnFNVHash1024;
 begin
   if Length(Data) <= 0 then
     Result := FNV1Hash1024(nil, 0)
@@ -429,7 +429,7 @@ begin
     Result := FNV1Hash1024(@Data[0], Length(Data));
 end;
 
-function FNV1aHash32(Data: TBytes): TCnFNVHash32;
+function FNV1aHash32(const Data: TBytes): TCnFNVHash32;
 begin
   if Length(Data) <= 0 then
     Result := FNV1aHash32(nil, 0)
@@ -437,7 +437,7 @@ begin
     Result := FNV1aHash32(@Data[0], Length(Data));
 end;
 
-function FNV1aHash64(Data: TBytes): TCnFNVHash64;
+function FNV1aHash64(const Data: TBytes): TCnFNVHash64;
 begin
   if Length(Data) <= 0 then
     Result := FNV1aHash64(nil, 0)
@@ -445,7 +445,7 @@ begin
     Result := FNV1aHash64(@Data[0], Length(Data));
 end;
 
-function FNV1aHash128(Data: TBytes): TCnFNVHash128;
+function FNV1aHash128(const Data: TBytes): TCnFNVHash128;
 begin
   if Length(Data) <= 0 then
     Result := FNV1aHash128(nil, 0)
@@ -453,7 +453,7 @@ begin
     Result := FNV1aHash128(@Data[0], Length(Data));
 end;
 
-function FNV1aHash256(Data: TBytes): TCnFNVHash256;
+function FNV1aHash256(const Data: TBytes): TCnFNVHash256;
 begin
   if Length(Data) <= 0 then
     Result := FNV1aHash256(nil, 0)
@@ -461,7 +461,7 @@ begin
     Result := FNV1aHash256(@Data[0], Length(Data));
 end;
 
-function FNV1aHash512(Data: TBytes): TCnFNVHash512;
+function FNV1aHash512(const Data: TBytes): TCnFNVHash512;
 begin
   if Length(Data) <= 0 then
     Result := FNV1aHash512(nil, 0)
@@ -469,7 +469,7 @@ begin
     Result := FNV1aHash512(@Data[0], Length(Data));
 end;
 
-function FNV1aHash1024(Data: TBytes): TCnFNVHash1024;
+function FNV1aHash1024(const Data: TBytes): TCnFNVHash1024;
 begin
   if Length(Data) <= 0 then
     Result := FNV1aHash1024(nil, 0)

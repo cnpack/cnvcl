@@ -244,55 +244,56 @@ function SHA512_256Buffer(const Buffer; Count: Cardinal): TCnSHA512_256Digest;
    返回值：TCnSHA512_256Digest            - 返回的 SHA512_256 杂凑值
 }
 
-function SHA224Bytes(Data: TBytes): TCnSHA224Digest;
+function SHA224Bytes(const Data: TBytes): TCnSHA224Digest;
 {* 对字节数组进行 SHA224 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
 }
 
-function SHA256Bytes(Data: TBytes): TCnSHA256Digest;
+function SHA256Bytes(const Data: TBytes): TCnSHA256Digest;
 {* 对字节数组进行 SHA256 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
 }
 
-function SHA384Bytes(Data: TBytes): TCnSHA384Digest;
+function SHA384Bytes(const Data: TBytes): TCnSHA384Digest;
 {* 对字节数组进行 SHA384 计算。
+
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
 }
 
-function SHA512Bytes(Data: TBytes): TCnSHA512Digest;
+function SHA512Bytes(const Data: TBytes): TCnSHA512Digest;
 {* 对字节数组进行 SHA512 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
 }
 
-function SHA512_224Bytes(Data: TBytes): TCnSHA512_224Digest;
+function SHA512_224Bytes(const Data: TBytes): TCnSHA512_224Digest;
 {* 对字节数组进行 SHA512_224 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA512_224Digest            - 返回的 SHA512_224 杂凑值
 }
 
-function SHA512_256Bytes(Data: TBytes): TCnSHA512_256Digest;
+function SHA512_256Bytes(const Data: TBytes): TCnSHA512_256Digest;
 {* 对字节数组进行 SHA512_256 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA512_256Digest            - 返回的 SHA512_256 杂凑值
 }
@@ -1179,62 +1180,62 @@ procedure SHA512_256Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiCha
    返回值：（无）
 }
 
-function SHA224HmacBytes(Key: TBytes; Data: TBytes): TCnSHA224Digest;
+function SHA224HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA224Digest;
 {* 对字节数组进行基于 SHA224 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 SHA224 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 SHA224 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
 }
 
-function SHA256HmacBytes(Key: TBytes; Data: TBytes): TCnSHA256Digest;
+function SHA256HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA256Digest;
 {* 对字节数组进行基于 SHA256 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 SHA256 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 SHA256 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
 }
 
-function SHA384HmacBytes(Key: TBytes; Data: TBytes): TCnSHA384Digest;
+function SHA384HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA384Digest;
 {* 对字节数组进行基于 SHA384 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 SHA384 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 SHA384 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA384Digest                - 返回的 SHA384 杂凑值
 }
 
-function SHA512HmacBytes(Key: TBytes; Data: TBytes): TCnSHA512Digest;
+function SHA512HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA512Digest;
 {* 对字节数组进行基于 SHA512 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 SHA512 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 SHA512 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
 }
 
-function SHA512_224HmacBytes(Key: TBytes; Data: TBytes): TCnSHA512_224Digest;
+function SHA512_224HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA512_224Digest;
 {* 对字节数组进行基于 SHA512_224 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 SHA512_224 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 SHA512_224 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA512_224Digest            - 返回的 SHA512_224 杂凑值
 }
 
-function SHA512_256HmacBytes(Key: TBytes; Data: TBytes): TCnSHA512_256Digest;
+function SHA512_256HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA512_256Digest;
 {* 对字节数组进行基于 SHA512_256 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 SHA512_256 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 SHA512_256 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA512_256Digest            - 返回的 SHA512_256 杂凑值
 }
@@ -1993,7 +1994,7 @@ begin
 end;
 
 // 对字节数组进行 SHA224 计算
-function SHA224Bytes(Data: TBytes): TCnSHA224Digest;
+function SHA224Bytes(const Data: TBytes): TCnSHA224Digest;
 var
   Context: TCnSHA224Context;
 begin
@@ -2003,7 +2004,7 @@ begin
 end;
 
 // 对字节数组进行 SHA256 计算
-function SHA256Bytes(Data: TBytes): TCnSHA256Digest;
+function SHA256Bytes(const Data: TBytes): TCnSHA256Digest;
 var
   Context: TCnSHA256Context;
 begin
@@ -2013,7 +2014,7 @@ begin
 end;
 
 // 对字节数组进行 SHA384 计算
-function SHA384Bytes(Data: TBytes): TCnSHA384Digest;
+function SHA384Bytes(const Data: TBytes): TCnSHA384Digest;
 var
   Context: TCnSHA384Context;
 begin
@@ -2023,7 +2024,7 @@ begin
 end;
 
 // 对字节数组进行 SHA512 计算
-function SHA512Bytes(Data: TBytes): TCnSHA512Digest;
+function SHA512Bytes(const Data: TBytes): TCnSHA512Digest;
 var
   Context: TCnSHA512Context;
 begin
@@ -2033,7 +2034,7 @@ begin
 end;
 
 // 对字节数组进行 SHA512_224 计算
-function SHA512_224Bytes(Data: TBytes): TCnSHA512_224Digest;
+function SHA512_224Bytes(const Data: TBytes): TCnSHA512_224Digest;
 var
   Context: TCnSHA512_224Context;
 begin
@@ -2043,7 +2044,7 @@ begin
 end;
 
 // 对字节数组进行 SHA512_256 计算
-function SHA512_256Bytes(Data: TBytes): TCnSHA512_256Digest;
+function SHA512_256Bytes(const Data: TBytes): TCnSHA512_256Digest;
 var
   Context: TCnSHA512_256Context;
 begin
@@ -3008,7 +3009,7 @@ begin
   SHA224HmacFinal(Context, Output);
 end;
 
-function SHA224HmacBytes(Key: TBytes; Data: TBytes): TCnSHA224Digest;
+function SHA224HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA224Digest;
 var
   Context: TCnSHA224Context;
 begin
@@ -3027,7 +3028,7 @@ begin
   SHA256HmacFinal(Context, Output);
 end;
 
-function SHA256HmacBytes(Key: TBytes; Data: TBytes): TCnSHA256Digest;
+function SHA256HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA256Digest;
 var
   Context: TCnSHA256Context;
 begin
@@ -3090,7 +3091,7 @@ begin
   SHA384HmacFinal(Context, Output);
 end;
 
-function SHA384HmacBytes(Key: TBytes; Data: TBytes): TCnSHA384Digest;
+function SHA384HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA384Digest;
 var
   Context: TCnSHA384Context;
 begin
@@ -3153,7 +3154,7 @@ begin
   SHA512HmacFinal(Context, Output);
 end;
 
-function SHA512HmacBytes(Key: TBytes; Data: TBytes): TCnSHA512Digest;
+function SHA512HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA512Digest;
 var
   Context: TCnSHA512Context;
 begin
@@ -3216,7 +3217,7 @@ begin
   SHA512_224HmacFinal(Context, Output);
 end;
 
-function SHA512_224HmacBytes(Key: TBytes; Data: TBytes): TCnSHA512_224Digest;
+function SHA512_224HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA512_224Digest;
 var
   Context: TCnSHA512_224Context;
 begin
@@ -3279,7 +3280,7 @@ begin
   SHA512_256HmacFinal(Context, Output);
 end;
 
-function SHA512_256HmacBytes(Key: TBytes; Data: TBytes): TCnSHA512_256Digest;
+function SHA512_256HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA512_256Digest;
 var
   Context: TCnSHA512_256Context;
 begin

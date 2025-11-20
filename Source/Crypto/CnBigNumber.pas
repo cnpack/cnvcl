@@ -602,11 +602,11 @@ type
        返回值：TCnBigNumber               - 返回新建的大数对象
     }
 
-    class function FromBytes(Buf: TBytes): TCnBigNumber;
+    class function FromBytes(const Buf: TBytes): TCnBigNumber;
     {* 根据一个字节数组转换并产生一个新的大数对象，使用符合阅读习惯的网络字节顺序，对象内部复制其内容。
 
        参数：
-         Buf: TBytes                      - 待转换的字节数组
+         const Buf: TBytes                - 待转换的字节数组
 
        返回值：TCnBigNumber               - 返回新建的大数对象
     }
@@ -1534,7 +1534,7 @@ function BigNumberWriteBinaryToStream(Num: TCnBigNumber; Stream: TStream;
    返回值：Integer                        - 返回实际写入字节长度
 }
 
-function BigNumberFromBytes(Buf: TBytes): TCnBigNumber;
+function BigNumberFromBytes(const Buf: TBytes): TCnBigNumber;
 {* 将一个字节数组内容转换成大数对象，字节顺序同 Binary，注意不处理正负号。其结果不用时必须用 BigNumberFree 释放。
 
    参数：
@@ -3709,7 +3709,7 @@ begin
   end;
 end;
 
-function BigNumberFromBytes(Buf: TBytes): TCnBigNumber;
+function BigNumberFromBytes(const Buf: TBytes): TCnBigNumber;
 begin
   Result := nil;
   if (Buf <> nil) and (Length(Buf) > 0) then
@@ -10303,7 +10303,7 @@ begin
   Result := BigNumberFromBinary(Buf, ByteLen);
 end;
 
-class function TCnBigNumber.FromBytes(Buf: TBytes): TCnBigNumber;
+class function TCnBigNumber.FromBytes(const Buf: TBytes): TCnBigNumber;
 begin
   Result := BigNumberFromBytes(Buf);
 end;

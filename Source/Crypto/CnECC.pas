@@ -465,13 +465,13 @@ type
        返回值：string                     - 返回 Base64 字符串
     }
 
-    procedure SetBytes(Data: TBytes; Ecc: TCnEcc = nil);
+    procedure SetBytes(const Data: TBytes; Ecc: TCnEcc = nil);
     {* 从字节数组中加载点坐标，内部有 02 03 04 前缀的处理，
        如果无 02 03 04 前缀则对半劈开分别赋值给 X 和 Y，
        如果前缀是 02 或 03，说明内容只有 X 坐标，此时需传入椭圆曲线实例来计算 Y 坐标。
 
        参数：
-         Data: TBytes                     - 待加载的字节数组
+         const Data: TBytes               - 待加载的字节数组
          Ecc: TCnEcc                      - 需计算 Y 坐标时所需的椭圆曲线实例
 
        返回值：（无）
@@ -3767,7 +3767,7 @@ begin
     SetHex(AnsiString(BytesToHex(B)), Ecc);
 end;
 
-procedure TCnEccPoint.SetBytes(Data: TBytes; Ecc: TCnEcc);
+procedure TCnEccPoint.SetBytes(const Data: TBytes; Ecc: TCnEcc);
 var
   H: AnsiString;
 begin

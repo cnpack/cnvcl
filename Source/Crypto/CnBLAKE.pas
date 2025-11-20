@@ -181,37 +181,38 @@ function BLAKE512Buffer(const Buffer; Count: Cardinal): TCnBLAKE512Digest;
    返回值：TCnBLAKE512Digest              - 返回的 BLAKE512 杂凑值
 }
 
-function BLAKE224Bytes(Data: TBytes): TCnBLAKE224Digest;
+function BLAKE224Bytes(const Data: TBytes): TCnBLAKE224Digest;
 {* 对字节数组进行 BLAKE224 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnBLAKE224Digest              - 返回的 BLAKE224 杂凑值
 }
 
-function BLAKE256Bytes(Data: TBytes): TCnBLAKE256Digest;
+function BLAKE256Bytes(const Data: TBytes): TCnBLAKE256Digest;
 {* 对字节数组进行 BLAKE256 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnBLAKE256Digest              - 返回的 BLAKE256 杂凑值
 }
 
-function BLAKE384Bytes(Data: TBytes): TCnBLAKE384Digest;
+function BLAKE384Bytes(const Data: TBytes): TCnBLAKE384Digest;
 {* 对字节数组进行 BLAKE384 计算。
+
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnBLAKE384Digest              - 返回的 BLAKE384杂凑值
 }
 
-function BLAKE512Bytes(Data: TBytes): TCnBLAKE512Digest;
+function BLAKE512Bytes(const Data: TBytes): TCnBLAKE512Digest;
 {* 对字节数组进行 BLAKE512 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnBLAKE512Digest              - 返回的 BLAKE512 杂凑值
 }
@@ -807,42 +808,42 @@ procedure BLAKE512Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
    返回值：（无）
 }
 
-function BLAKE224HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE224Digest;
+function BLAKE224HmacBytes(const Key: TBytes; const Data: TBytes): TCnBLAKE224Digest;
 {* 对字节数组进行基于 BLAKE224 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 BLAKE224 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 BLAKE224 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnBLAKE224Digest              - 返回的 BLAKE224 杂凑值
 }
 
-function BLAKE256HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE256Digest;
+function BLAKE256HmacBytes(const Key: TBytes; const Data: TBytes): TCnBLAKE256Digest;
 {* 对字节数组进行基于 BLAKE256 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 BLAKE256 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 BLAKE256 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnBLAKE256Digest              - 返回的 BLAKE256 杂凑值
 }
 
-function BLAKE384HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE384Digest;
+function BLAKE384HmacBytes(const Key: TBytes; const Data: TBytes): TCnBLAKE384Digest;
 {* 对字节数组进行基于 BLAKE384 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 BLAKE384 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 BLAKE384 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnBLAKE384Digest              - 返回的 BLAKE384 杂凑值
 }
 
-function BLAKE512HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE512Digest;
+function BLAKE512HmacBytes(const Key: TBytes; const Data: TBytes): TCnBLAKE512Digest;
 {* 对字节数组进行基于 BLAKE512 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 BLAKE512 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 BLAKE512 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnBLAKE512Digest              - 返回的 BLAKE512 杂凑值
 }
@@ -1638,7 +1639,7 @@ begin
 end;
 
 // 对字节数组进行 BLAKE224 计算
-function BLAKE224Bytes(Data: TBytes): TCnBLAKE224Digest;
+function BLAKE224Bytes(const Data: TBytes): TCnBLAKE224Digest;
 var
   Context: TCnBLAKE224Context;
 begin
@@ -1648,7 +1649,7 @@ begin
 end;
 
 // 对字节数组进行 BLAKE256 计算
-function BLAKE256Bytes(Data: TBytes): TCnBLAKE256Digest;
+function BLAKE256Bytes(const Data: TBytes): TCnBLAKE256Digest;
 var
   Context: TCnBLAKE256Context;
 begin
@@ -1658,7 +1659,7 @@ begin
 end;
 
 // 对字节数组进行 BLAKE384 计算
-function BLAKE384Bytes(Data: TBytes): TCnBLAKE384Digest;
+function BLAKE384Bytes(const Data: TBytes): TCnBLAKE384Digest;
 var
   Context: TCnBLAKE384Context;
 begin
@@ -1668,7 +1669,7 @@ begin
 end;
 
 // 对字节数组进行 BLAKE512 计算
-function BLAKE512Bytes(Data: TBytes): TCnBLAKE512Digest;
+function BLAKE512Bytes(const Data: TBytes): TCnBLAKE512Digest;
 var
   Context: TCnBLAKE512Context;
 begin
@@ -2415,7 +2416,7 @@ begin
   BLAKE224HmacFinal(Context, Output);
 end;
 
-function BLAKE224HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE224Digest;
+function BLAKE224HmacBytes(const Key: TBytes; const Data: TBytes): TCnBLAKE224Digest;
 var
   Context: TCnBLAKE224Context;
 begin
@@ -2434,7 +2435,7 @@ begin
   BLAKE256HmacFinal(Context, Output);
 end;
 
-function BLAKE256HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE256Digest;
+function BLAKE256HmacBytes(const Key: TBytes; const Data: TBytes): TCnBLAKE256Digest;
 var
   Context: TCnBLAKE256Context;
 begin
@@ -2497,7 +2498,7 @@ begin
   BLAKE384HmacFinal(Context, Output);
 end;
 
-function BLAKE384HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE384Digest;
+function BLAKE384HmacBytes(const Key: TBytes; const Data: TBytes): TCnBLAKE384Digest;
 var
   Context: TCnBLAKE384Context;
 begin
@@ -2560,7 +2561,7 @@ begin
   BLAKE512HmacFinal(Context, Output);
 end;
 
-function BLAKE512HmacBytes(Key: TBytes; Data: TBytes): TCnBLAKE512Digest;
+function BLAKE512HmacBytes(const Key: TBytes; const Data: TBytes): TCnBLAKE512Digest;
 var
   Context: TCnBLAKE512Context;
 begin

@@ -161,23 +161,25 @@ function BLAKE2BBuffer(const Buffer; Count: Cardinal; const Key; KeyCount: Cardi
    返回值：TCnBLAKE2BDigest               - 返回的 BLAKE2B 杂凑值
 }
 
-function BLAKE2SBytes(Data: TBytes; Key: TBytes = nil; DigestLength: Integer = CN_BLAKE2S_OUTBYTES): TCnBLAKE2SDigest;
+function BLAKE2SBytes(const Data: TBytes; const Key: TBytes = nil;
+  DigestLength: Integer = CN_BLAKE2S_OUTBYTES): TCnBLAKE2SDigest;
 {* 对字节数组进行 BLAKE2S 计算。注意当 Key 存在时长度将截断或补 #0 为 32 字节。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
-     Key: TBytes                          - BLAKE2S 密钥字节数组，默认为空
+     const Data: TBytes                   - 待计算的字节数组
+     const Key: TBytes                    - BLAKE2S 密钥字节数组，默认为空
      DigestLength: Integer                - 指定输出的摘要字节长度，默认 32
 
    返回值：TCnBLAKE2SDigest               - 返回的 BLAKE2S 杂凑值
 }
 
-function BLAKE2BBytes(Data: TBytes; Key: TBytes = nil; DigestLength: Integer = CN_BLAKE2B_OUTBYTES): TCnBLAKE2BDigest;
+function BLAKE2BBytes(const Data: TBytes; const Key: TBytes = nil;
+  DigestLength: Integer = CN_BLAKE2B_OUTBYTES): TCnBLAKE2BDigest;
 {* 对字节数组进行 BLAKE2B 计算。注意当 Key 存在时长度将截断或补 #0 为 64 字节。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
-     Key: TBytes                          - BLAKE2B 密钥字节数组，默认为空
+     const Data: TBytes                   - 待计算的字节数组
+     const Key: TBytes                    - BLAKE2B 密钥字节数组，默认为空
      DigestLength: Integer                - 指定输出的摘要字节长度，默认 64
 
    返回值：TCnBLAKE2BDigest               - 返回的 BLAKE2B 杂凑值
@@ -1130,7 +1132,8 @@ begin
   BLAKE2BFinal(Context, Result);
 end;
 
-function BLAKE2SBytes(Data: TBytes; Key: TBytes; DigestLength: Integer): TCnBLAKE2SDigest;
+function BLAKE2SBytes(const Data: TBytes; const Key: TBytes;
+  DigestLength: Integer): TCnBLAKE2SDigest;
 var
   D, K: PAnsiChar;
   DL, KL: Cardinal;
@@ -1160,7 +1163,8 @@ begin
   Result := BLAKE2S(D, DL, K, KL, DigestLength);
 end;
 
-function BLAKE2BBytes(Data: TBytes; Key: TBytes; DigestLength: Integer): TCnBLAKE2BDigest;
+function BLAKE2BBytes(const Data: TBytes; const Key: TBytes;
+  DigestLength: Integer): TCnBLAKE2BDigest;
 var
   D, K: PAnsiChar;
   DL, KL: Cardinal;

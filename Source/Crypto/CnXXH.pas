@@ -120,21 +120,21 @@ function XXH64Buffer(const Buffer; Count: Cardinal; Seed: TUInt64 = 0): TCnXXH64
    返回值：TCnXXH64Digest                 - 返回的 XXH64 杂凑值
 }
 
-function XXH32Bytes(Data: TBytes; Seed: Cardinal = 0): TCnXXH32Digest;
+function XXH32Bytes(const Data: TBytes; Seed: Cardinal = 0): TCnXXH32Digest;
 {* 对字节数组进行 XXH32 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
      Seed: Cardinal                       - 种子值，默认为 0
 
    返回值：TCnXXH32Digest                 - 返回的 XXH32 杂凑值
 }
 
-function XXH64Bytes(Data: TBytes; Seed: TUInt64 = 0): TCnXXH64Digest;
+function XXH64Bytes(const Data: TBytes; Seed: TUInt64 = 0): TCnXXH64Digest;
 {* 对字节数组进行 XXH64 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
      Seed: TUInt64                        - 种子值，默认为 0
 
    返回值：TCnXXH64Digest                 - 返回的 XXH64 杂凑值
@@ -840,7 +840,7 @@ begin
 end;
 
 // 对字节数组进行 XXH32 计算
-function XXH32Bytes(Data: TBytes; Seed: Cardinal): TCnXXH32Digest;
+function XXH32Bytes(const Data: TBytes; Seed: Cardinal): TCnXXH32Digest;
 var
   Context: TCnXXH32Context;
 begin
@@ -850,7 +850,7 @@ begin
 end;
 
 // 对字节数组进行 XXH64 计算
-function XXH64Bytes(Data: TBytes; Seed: TUInt64): TCnXXH64Digest;
+function XXH64Bytes(const Data: TBytes; Seed: TUInt64): TCnXXH64Digest;
 var
   Context: TCnXXH64Context;
 begin

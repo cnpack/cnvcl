@@ -91,11 +91,11 @@ function SHA1Buffer(const Buffer; Count: Cardinal): TCnSHA1Digest;
    返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
 }
 
-function SHA1Bytes(Data: TBytes): TCnSHA1Digest;
+function SHA1Bytes(const Data: TBytes): TCnSHA1Digest;
 {* 对字节数组进行 SHA1 计算。
 
    参数：
-     Data: TBytes                         - 待计算的字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
 }
@@ -252,12 +252,12 @@ procedure SHA1Hmac(Key: PAnsiChar; KeyByteLength: Integer; Input: PAnsiChar;
    返回值：（无）
 }
 
-function SHA1HmacBytes(Key: TBytes; Data: TBytes): TCnSHA1Digest;
+function SHA1HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA1Digest;
 {* 对字节数组进行基于 SHA1 的 HMAC 计算。
 
    参数：
-     Key: TBytes                          - 待参与 SHA1 计算的密钥字节数组
-     Data: TBytes                         - 待计算的字节数组
+     const Key: TBytes                    - 待参与 SHA1 计算的密钥字节数组
+     const Data: TBytes                   - 待计算的字节数组
 
    返回值：TCnSHA1Digest                  - 返回的 SHA1 杂凑值
 }
@@ -473,7 +473,7 @@ begin
   SHA1Final(Context, Result);
 end;
 
-function SHA1Bytes(Data: TBytes): TCnSHA1Digest;
+function SHA1Bytes(const Data: TBytes): TCnSHA1Digest;
 var
   Context: TCnSHA1Context;
 begin
@@ -753,7 +753,7 @@ begin
   SHA1HmacFinal(Context, Output);
 end;
 
-function SHA1HmacBytes(Key: TBytes; Data: TBytes): TCnSHA1Digest;
+function SHA1HmacBytes(const Key: TBytes; const Data: TBytes): TCnSHA1Digest;
 var
   Context: TCnSHA1Context;
 begin
