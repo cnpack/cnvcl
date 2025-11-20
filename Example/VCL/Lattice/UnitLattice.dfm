@@ -509,6 +509,33 @@ object FormLattice: TFormLattice
           TabOrder = 8
           OnClick = btnMLDSATestVerifyClick
         end
+        object btnMLDSATestSignVer: TButton
+          Left = 304
+          Top = 240
+          Width = 75
+          Height = 25
+          Caption = 'Test Batch'
+          TabOrder = 9
+          OnClick = btnMLDSATestSignVerClick
+        end
+        object btnMLDSATestSign65: TButton
+          Left = 400
+          Top = 240
+          Width = 75
+          Height = 25
+          Caption = 'Test Sign 65'
+          TabOrder = 10
+          OnClick = btnMLDSATestSign65Click
+        end
+        object btnMLDSATest65KeyGen: TButton
+          Left = 496
+          Top = 240
+          Width = 89
+          Height = 25
+          Caption = 'Test 65 KeyGen'
+          TabOrder = 11
+          OnClick = btnMLDSATest65KeyGenClick
+        end
       end
     end
   end

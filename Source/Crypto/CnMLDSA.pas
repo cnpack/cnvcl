@@ -536,16 +536,6 @@ begin
   Result := Int64NonNegativeMulMod(A, B, CN_MLDSA_PRIME);
 end;
 
-// 将整数 A 模中心化，也就是映射到 [-(q-1)/2, (Q-1)/2] 范围内
-function MLDSACenterMod(A: Integer): Integer;
-begin
-  Result := A mod CN_MLDSA_PRIME;
-  if Result < 0 then
-    Result := Result + CN_MLDSA_PRIME;
-  if Result > (CN_MLDSA_PRIME - 1) div 2 then
-    Result := Result - CN_MLDSA_PRIME;
-end;
-
 // MLDSA 使用的特定数论变换
 function MLDSANTT(const F: TIntegers): TIntegers;
 var
@@ -882,20 +872,15 @@ end;
 // 取 R 的低 D 位（13 位）放 R0，其余的放 R1
 procedure MLDSAPower2Round(R: Integer; out R0, R1: Integer);
 var
-  T: Integer;
+  RP: Integer;
   HD: Integer;
 begin
-  T := R mod CN_MLDSA_PRIME;
-  if T < 0 then
-    T := T + CN_MLDSA_PRIME;
+  RP := R mod CN_MLDSA_PRIME;
+  if RP < 0 then
+    RP := RP + CN_MLDSA_PRIME;
 
-  HD := 1 shl (CN_MLDSA_DROPBIT - 1);  // 4096
-  R0 := T and ((1 shl CN_MLDSA_DROPBIT) - 1);  // [0, 8191]
-
-  if R0 >= HD then
-    R0 := R0 - (1 shl CN_MLDSA_DROPBIT);  // [-4096, -1]
-
-  R1 := (T - R0) shr CN_MLDSA_DROPBIT;    // -4096 可能有问题
+  R0 := Int64CenterMod(RP, 1 shl CN_MLDSA_DROPBIT);
+  R1 := (RP - R0) shr CN_MLDSA_DROPBIT;
 end;
 
 procedure MLDSAPower2RoundPolynomial(const R: TCnMLDSAPolynomial; var R0, R1: TCnMLDSAPolynomial);
@@ -1378,7 +1363,7 @@ begin
   for I := Low(V) to High(V) do
   begin
     for J := Low(V[I]) to High(V[I]) do
-      Res[I][J] := MLDSACenterMod(V[I][J]);
+      Res[I][J] := Int64CenterMod(V[I][J], CN_MLDSA_PRIME);
   end;
 end;
 
