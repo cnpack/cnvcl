@@ -124,6 +124,14 @@
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
+        <Filename Value="..\..\..\Source\Crypto\CnMLDSA.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Source\Crypto\CnMLKEM.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
         <Filename Value="..\..\..\Source\Crypto\CnNative.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
