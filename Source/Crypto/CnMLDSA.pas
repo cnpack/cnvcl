@@ -873,7 +873,6 @@ end;
 procedure MLDSAPower2Round(R: Integer; out R0, R1: Integer);
 var
   RP: Integer;
-  HD: Integer;
 begin
   RP := R mod CN_MLDSA_PRIME;
   if RP < 0 then

@@ -16,7 +16,7 @@
       ..\..\..\Source\Crypto\CnFEC.obj ..\..\..\Source\Crypto\CnFNV.obj 
       ..\..\..\Source\Crypto\CnInt128.obj ..\..\..\Source\Crypto\CnKDF.obj 
       ..\..\..\Source\Crypto\CnLattice.obj ..\..\..\Source\Crypto\CnMD5.obj 
-      ..\..\..\Source\Crypto\CnMLKEM.obj 
+      ..\..\..\Source\Crypto\CnMLDSA.obj ..\..\..\Source\Crypto\CnMLKEM.obj 
       ..\..\..\Source\Crypto\CnNative.obj ..\..\..\Source\Crypto\CnOTP.obj 
       ..\..\..\Source\Crypto\CnOTS.obj ..\..\..\Source\Crypto\CnPaillier.obj 
       ..\..\..\Source\Crypto\CnPDFCrypt.obj 

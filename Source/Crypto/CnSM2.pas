@@ -216,7 +216,7 @@ function CnSM2EncryptData(const PlainData: TBytes; PublicKey: TCnSM2PublicKey; S
    返回密文字节数组，如果加密失败则返回空。
 
    参数：
-     const PlainData: TBytes                                    - 待加密的明文字节数组
+     const PlainData: TBytes                              - 待加密的明文字节数组
      PublicKey: TCnSM2PublicKey                           - 加密用的 SM2 公钥
      SM2: TCnSM2                                          - 可以传入 SM2 实例，默认为空
      SequenceType: TCnSM2CryptSequenceType                - 输出密文的内部拼接顺序，默认国标的 C1C3C2

@@ -49,6 +49,7 @@ uses
   CnKDF in '..\..\..\Source\Crypto\CnKDF.pas',
   CnLattice in '..\..\..\Source\Crypto\CnLattice.pas',
   CnMD5 in '..\..\..\Source\Crypto\CnMD5.pas',
+  CnMLDSA in '..\..\..\Source\Crypto\CnMLDSA.pas',
   CnMLKEM in '..\..\..\Source\Crypto\CnMLKEM.pas',
   CnNative in '..\..\..\Source\Crypto\CnNative.pas',
   CnOTP in '..\..\..\Source\Crypto\CnOTP.pas',
