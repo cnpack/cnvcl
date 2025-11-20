@@ -461,6 +461,14 @@
         <Filename Value="../../Source/Graphic/CnCheckTreeView.pas"/>
         <UnitName Value="CnCheckTreeView"/>
       </Item110>
+      <Item111>
+        <Filename Value="../../Source/Crypto/CnMLDSA.pas"/>
+        <UnitName Value="CnMLDSA"/>
+      </Item111>
+      <Item112>
+        <Filename Value="../../Source/Crypto/CnMLKEM.pas"/>
+        <UnitName Value="CnMLKEM"/>
+      </Item112>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">
