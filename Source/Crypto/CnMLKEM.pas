@@ -1258,17 +1258,17 @@ procedure TCnMLKEM.KPKEEncrypt(EncapKey: TCnMLKEMEncapsulationKey;
   out VPolynomial: TCnMLKEMPolynomial);
 var
   N: Integer;
-  A, AT: TCnMLKEMPolyMatrix;
+  M, MT: TCnMLKEMPolyMatrix;
   Y, E1: TCnMLKEMPolyVector;
   E2, MP: TCnMLKEMPolynomial;
   B: TBytes;
   W: TWords;
 begin
   // 生成矩阵
-  GenerateMatrix(EncapKey.GenerationSeed, A);
+  GenerateMatrix(EncapKey.GenerationSeed, M);
 
   // 转置矩阵
-  TransposeMatrix(A, AT);
+  TransposeMatrix(M, MT);
 
   // 生成随机向量 Y 与误差向量 E1，注意前者 Y 是 NTT 的，便于运算
   N := 0;
@@ -1281,7 +1281,7 @@ begin
   SamplePolynomial(Seed, FNoise2, N, E2, False);
 
   // U = AT * Y + E1，先 NTT 矩阵乘，得到 U 中间结果的 NTT 模式
-  MLKEMMatrixVectorMul(UVector, AT, Y);
+  MLKEMMatrixVectorMul(UVector, MT, Y);
 
   // U 解回非 NTT 模式，加 E1
   MLKEMVectorToINTT(UVector, UVector);
