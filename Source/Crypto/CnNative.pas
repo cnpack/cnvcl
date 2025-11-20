@@ -597,6 +597,23 @@ function Int64Mod(M: Int64; N: Int64): Int64;
    返回值：Int64                          - 余数
 }
 
+function Int64CenterMod(A: Int64; N: Int64): Int64;
+{* 将 A 先 mod N 后，中心化到开闭区间 (-(N - 1)/2 的下界（更负）, (N - 1)/ 2 的下界（正数更靠近 0）]，
+   要求 N 是正数。注意，中心化并不是将 A mod N 的正值整体左移，而是超出一半的直接减 N。
+   这个一半的精确定义是，比 N/2 的整数部分大的，直接减 N，无论 N 是奇数还是偶数。
+   关于边界：一句话概括是奇数对称偶往上靠。
+   比如 N 是 7 则 [-3, 3]，比 3 大的都减 7，注意 3 不减。
+   N 是 6 则 [-2, 3]，比 3 大的都减 6，注意 3 也不减。
+   N 为奇数时，(N - 1)是偶数，除以二是整数。数量加上 0 一共 N 个，0 到 N - 1，映射到 [-(N - 1)/2, (N - 1)/2]
+   N 为偶数时，N/2 是偶数，左边界 -N/2 + 1，右边界 N/2，0 到 N - 1，映射到 [-N/2 + 1, N/2]
+
+   参数：
+     A: Int64                             - 待中心化的值
+     N: Int64                             - 模数
+
+   返回值：Int64                          - 返回中心化结果
+}
+
 function IsUInt32PowerOf2(N: Cardinal): Boolean;
 {* 判断一 32 位无符号整数是否 2 的整数次幂。
 
@@ -4694,6 +4711,13 @@ begin
     Result := M mod N
   else
     Result := N - ((-M) mod N);
+end;
+
+function Int64CenterMod(A: Int64; N: Int64): Int64;
+begin
+  Result := Int64NonNegativeMod(A, N);
+  if Result > N div 2 then // 高半部分直接减 N
+    Result := Result - N;
 end;
 
 // 判断一 32 位无符号整数是否 2 的整数次幂
