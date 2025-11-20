@@ -100,37 +100,27 @@ type
 
   TCnMLDSAPrivateKey = class
   {* MLDSA 的私钥}
-  private
-    FGenerationSeed: TCnMLDSASeed;
-    FKey: TCnMLDSASeed;
-    FTrace: TCnMLDSAKeyDigest;
-    FS1: TCnMLDSAPolyVector;
-    FS2: TCnMLDSAPolyVector;
-    FT0: TCnMLDSAPolyVector;
   public
-    property GenerationSeed: TCnMLDSASeed read FGenerationSeed;
+    GenerationSeed: TCnMLDSASeed;
     {* 用于生成矩阵的随机种子，相当于规范里的 rho 象形 p}
-    property Key: TCnMLDSASeed read FKey write FKey;
+    Key: TCnMLDSASeed;
     {* 规范里的从杂凑结果中抽取的 K}
-    property Trace: TCnMLDSAKeyDigest read FTrace write FTrace;
+    Trace: TCnMLDSAKeyDigest;
     {* 公钥流的 64 字节 SHAKE256 摘要}
-    property S1: TCnMLDSAPolyVector read FS1 write FS1;
+    S1: TCnMLDSAPolyVector;
     {* 秘密多项式向量 S1，维度为矩阵列数，系数为非 NTT 形式}
-    property S2: TCnMLDSAPolyVector read FS2 write FS2;
+    S2: TCnMLDSAPolyVector;
     {* 秘密多项式向量 S2，维度为矩阵行数，系数为非 NTT 形式}
-    property T0: TCnMLDSAPolyVector read FT0 write FT0;
+    T0: TCnMLDSAPolyVector;
     {* 矩阵运算得到的多项式向量 T 的分离私钥部分 T0，维度为矩阵行数，系数为非 NTT 形式}
   end;
 
   TCnMLDSAPublicKey = class
   {* MLDSA 的公钥}
-  private
-    FGenerationSeed: TCnMLDSASeed;
-    FT1: TCnMLDSAPolyVector;
   public
-    property GenerationSeed: TCnMLDSASeed read FGenerationSeed;
+    GenerationSeed: TCnMLDSASeed;
     {* 用于生成矩阵的随机种子，相当于规范里的 p}
-    property T1: TCnMLDSAPolyVector read FT1 write FT1;
+    T1: TCnMLDSAPolyVector;
     {* 矩阵运算得到的多项式向量 T 的分离公钥部分 T1，维度为矩阵行数}
   end;
 
@@ -1755,32 +1745,32 @@ begin
   DB := MLDSAHFunc(B, 128);
 
   // 128 字节摘要拆成 32 字节 p、64 字节 p1、32 字节 K
-  Move(DB[0], PrivateKey.FGenerationSeed[0], SizeOf(TCnMLDSASeed));
-  Move(DB[0], PublicKey.FGenerationSeed[0], SizeOf(TCnMLDSASeed));
+  Move(DB[0], PrivateKey.GenerationSeed[0], SizeOf(TCnMLDSASeed));
+  Move(DB[0], PublicKey.GenerationSeed[0], SizeOf(TCnMLDSASeed));
   Move(DB[SizeOf(TCnMLDSASeed)], P1[0], CN_MLDSA_DIGEST_SIZE);
-  Move(DB[SizeOf(TCnMLDSASeed) + CN_MLDSA_DIGEST_SIZE], PrivateKey.FKey[0], CN_MLDSA_DIGEST_SIZE);
+  Move(DB[SizeOf(TCnMLDSASeed) + CN_MLDSA_DIGEST_SIZE], PrivateKey.Key[0], CN_MLDSA_DIGEST_SIZE);
 
   // 用 p 生成矩阵，NTT 形式，Row 行 Col 列
   GenerateMatrix(PrivateKey.GenerationSeed, Matrix);
 
   // 用 p1 生成两个秘密多项式向量，均非 NTT 形式，前者维度 Col，后者维度 Row
-  GenerateSecret(P1, PrivateKey.FS1, PrivateKey.FS2);
+  GenerateSecret(P1, PrivateKey.S1, PrivateKey.S2);
 
   // S1 转 NTT 形式到 S，维度 Col
-  MLDSAVectorToNTT(S, PrivateKey.FS1);
+  MLDSAVectorToNTT(S, PrivateKey.S1);
 
   // 计算 T = A * S1 + S2
   MLDSAMatrixVectorMul(T, Matrix, S);      // 两个 NTT 相乘，得到维度 Row
   MLDSAVectorToINTT(T, T);                 // 结果向量转回非 NTT
-  MLDSAVectorAdd(T, T, PrivateKey.FS2);    // 和 S2 相加，两个维度都是 Row
+  MLDSAVectorAdd(T, T, PrivateKey.S2);    // 和 S2 相加，两个维度都是 Row
 
   // 结果 T 向量拆分为 T0 和 T1
-  MLDSAPower2RoundVector(T, PrivateKey.FT0, PublicKey.FT1);
+  MLDSAPower2RoundVector(T, PrivateKey.T0, PublicKey.T1);
 
   // 公钥字节数组求杂凑作为私钥 tr
   B := SavePublicKeyToBytes(PublicKey);
   B := MLDSAHFunc(B);
-  Move(B[0], PrivateKey.FTrace[0], CN_MLDSA_DIGEST_SIZE);
+  Move(B[0], PrivateKey.Trace[0], CN_MLDSA_DIGEST_SIZE);
 end;
 
 procedure TCnMLDSA.GenerateMask(const Dig: TBytes; Mu: Integer;
@@ -2036,27 +2026,27 @@ begin
     raise ECnMLDSAException.CreateFmt(SCnErrorMLDSAKeyLengthMismatch,
       [L, Length(SK)]);
 
-  Move(SK[0], PrivateKey.FGenerationSeed[0], SizeOf(TCnMLDSASeed));
-  Move(SK[SizeOf(TCnMLDSASeed)], PrivateKey.FKey[0], SizeOf(TCnMLDSASeed));
-  Move(SK[2 * SizeOf(TCnMLDSASeed)], PrivateKey.FTrace[0], SizeOf(TCnMLDSAKeyDigest));
+  Move(SK[0], PrivateKey.GenerationSeed[0], SizeOf(TCnMLDSASeed));
+  Move(SK[SizeOf(TCnMLDSASeed)], PrivateKey.Key[0], SizeOf(TCnMLDSASeed));
+  Move(SK[2 * SizeOf(TCnMLDSASeed)], PrivateKey.Trace[0], SizeOf(TCnMLDSAKeyDigest));
 
   // 复制出来给 S1
   L := 2 * SizeOf(TCnMLDSASeed) + SizeOf(TCnMLDSAKeyDigest);
   B := Copy(SK, L, 32 * FMatrixColCount * (GetNoiseBitLength + 1));
-  SetLength(PrivateKey.FS1, FMatrixColCount);
-  MLDSABitUnpackVector(B, PrivateKey.FS1, FNoise, FNoise);
+  SetLength(PrivateKey.S1, FMatrixColCount);
+  MLDSABitUnpackVector(B, PrivateKey.S1, FNoise, FNoise);
 
   // 复制出来给 S2
   Inc(L, 32 * FMatrixColCount * (GetNoiseBitLength + 1));
   B := Copy(SK, L, 32 * FMatrixRowCount * (GetNoiseBitLength + 1));
-  SetLength(PrivateKey.FS2, FMatrixRowCount);
-  MLDSABitUnpackVector(B, PrivateKey.FS2, FNoise, FNoise);
+  SetLength(PrivateKey.S2, FMatrixRowCount);
+  MLDSABitUnpackVector(B, PrivateKey.S2, FNoise, FNoise);
 
   // 复制出来给 T0
   Inc(L, 32 * FMatrixRowCount * (GetNoiseBitLength + 1));
   B := Copy(SK, L, MaxInt);
-  SetLength(PrivateKey.FT0, FMatrixRowCount);
-  MLDSABitUnpackVector(B, PrivateKey.FT0, CN_MLDSA_DROPVALUE - 1, CN_MLDSA_DROPVALUE);
+  SetLength(PrivateKey.T0, FMatrixRowCount);
+  MLDSABitUnpackVector(B, PrivateKey.T0, CN_MLDSA_DROPVALUE - 1, CN_MLDSA_DROPVALUE);
 end;
 
 procedure TCnMLDSA.LoadPublicKeyFromBytes(PublicKey: TCnMLDSAPublicKey;
@@ -2068,10 +2058,10 @@ begin
     raise ECnMLDSAException.CreateFmt(SCnErrorMLDSAKeyLengthMismatch,
       [SizeOf(TCnMLDSASeed) + 32 * FMatrixRowCount * CN_MLDSA_PUBKEY_BIT, Length(PK)]);
 
-  Move(PK[0], PublicKey.FGenerationSeed[0], SizeOf(TCnMLDSASeed));
+  Move(PK[0], PublicKey.GenerationSeed[0], SizeOf(TCnMLDSASeed));
   B := Copy(PK, SizeOf(TCnMLDSASeed), MaxInt);
-  SetLength(PublicKey.FT1, FMatrixRowCount);
-  MLDSASimpleBitUnpackVector(B, PublicKey.FT1, CN_MLDSA_PUBKEY_BIT);
+  SetLength(PublicKey.T1, FMatrixRowCount);
+  MLDSASimpleBitUnpackVector(B, PublicKey.T1, CN_MLDSA_PUBKEY_BIT);
 end;
 
 function TCnMLDSA.SavePrivateKeyToBytes(PrivateKey: TCnMLDSAPrivateKey): TBytes;
@@ -2091,7 +2081,7 @@ end;
 function TCnMLDSA.SavePublicKeyToBytes(PublicKey: TCnMLDSAPublicKey): TBytes;
 begin
   Result := NewBytesFromMemory(@PublicKey.GenerationSeed[0], SizeOf(TCnMLDSASeed));
-  Result := ConcatBytes(Result, MLDSASimpleBitPackVector(PublicKey.FT1, CN_MLDSA_PUBKEY_BIT));
+  Result := ConcatBytes(Result, MLDSASimpleBitPackVector(PublicKey.T1, CN_MLDSA_PUBKEY_BIT));
 end;
 
 procedure TCnMLDSA.SigDecode(const Signature: TBytes; out C: TBytes; out Z,
@@ -2206,3 +2196,4 @@ begin
 end;
 
 end.
+

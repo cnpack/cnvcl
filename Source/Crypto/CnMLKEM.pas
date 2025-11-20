@@ -80,28 +80,21 @@ type
 
   TCnMLKEMDecapsulationKey = class
   {* MLKEM 的非公开解封密钥，包括秘密多项式向量与隐式拒绝的随机种子}
-  private
-    FSecretVector: TCnMLKEMPolyVector;
-    FInjectionSeed: TCnMLKEMSeed;
-    FEnKeyHash: TCnMLKEMSeed;
   public
-    property SecretVector: TCnMLKEMPolyVector read FSecretVector;
+    SecretVector: TCnMLKEMPolyVector;
     {* 秘密多项式向量，相当于规范里的 S，系数已 NTT 化}
-    property InjectionSeed: TCnMLKEMSeed read FInjectionSeed;
+    InjectionSeed: TCnMLKEMSeed;
     {* 用于隐式拒绝的随机种子，不参与密钥生成，相当于规范里的 Z}
-    property EnKeyHash: TCnMLKEMSeed read FEnKeyHash;
+    EnKeyHash: TCnMLKEMSeed;
     {* 对应公开密钥的杂凑值} 
   end;
 
   TCnMLKEMEncapsulationKey = class
   {* MLKEM 的封装密钥，可公开，包括可用来生成矩阵的种子，以及公钥多项式向量}
-  private
-    FGenerationSeed: TCnMLKEMSeed;
-    FPubVector: TCnMLKEMPolyVector;            // 私钥与矩阵计算出的公钥多项式向量
   public
-    property GenerationSeed: TCnMLKEMSeed read FGenerationSeed;
+    GenerationSeed: TCnMLKEMSeed;
     {* 用于生成整套密钥的主随机种子，相当于规范里的 D}
-    property PubVector: TCnMLKEMPolyVector read FPubVector;
+    PubVector: TCnMLKEMPolyVector;
     {* 生成的公开多项式向量，相当于规范里的 T，系数已 NTT 化}
   end;
 
@@ -1082,7 +1075,7 @@ begin
       [PolyLength + SizeOf(TCnMLKEMSeed), Length(Key)]);
 
   // 设置公钥多项式向量的大小
-  SetLength(EncapKey.FPubVector, FMatrixSize);
+  SetLength(EncapKey.PubVector, FMatrixSize);
 
   // 解析多项式部分
   for I := 0 to FMatrixSize - 1 do
@@ -1094,13 +1087,13 @@ begin
     // 将字节解码为多项式系数
     // 注意这里需要将解码后的 TWords 转换为 TCnMLKEMPolynomial
     // 假设 ByteDecode 返回的 TWords 长度是 256
-    Move(MLKEMByteDecode(PolyBytes, 12)[0], EncapKey.FPubVector[I][0],
+    Move(MLKEMByteDecode(PolyBytes, 12)[0], EncapKey.PubVector[I][0],
       CN_MLKEM_POLY_SIZE * SizeOf(Word));
   end;
 
   // 解析生成种子部分（最后 32 字节）
   SeedStart := PolyLength;
-  Move(Key[SeedStart], EncapKey.FGenerationSeed[0], SizeOf(TCnMLKEMSeed));
+  Move(Key[SeedStart], EncapKey.GenerationSeed[0], SizeOf(TCnMLKEMSeed));
 end;
 
 procedure TCnMLKEM.LoadKeysFromBytes(Key: TBytes;
@@ -1116,7 +1109,7 @@ begin
   PolyLength := 384 * FMatrixSize; // 秘密向量部分长度
 
   // 解析秘密向量部分 (dk)
-  SetLength(DecapKey.FSecretVector, FMatrixSize);
+  SetLength(DecapKey.SecretVector, FMatrixSize);
   for I := 0 to FMatrixSize - 1 do
   begin
     // 提取每个秘密多项式的字节数据（每个 384 字节）
@@ -1124,12 +1117,12 @@ begin
     Move(Key[I * 384], PolyBytes[0], 384);
 
     // 将字节解码为多项式系数
-    Move(MLKEMByteDecode(PolyBytes, 12)[0], DecapKey.FSecretVector[I][0],
+    Move(MLKEMByteDecode(PolyBytes, 12)[0], DecapKey.SecretVector[I][0],
       CN_MLKEM_POLY_SIZE * SizeOf(Word));
   end;
 
   // Key 字节数组中的杂凑部分加载进非公开密钥的杂凑值中
-  Move(Key[768 * FMatrixSize + 32], DecapKey.FEnKeyHash[0], SizeOf(TCnMLKEMSeed));
+  Move(Key[768 * FMatrixSize + 32], DecapKey.EnKeyHash[0], SizeOf(TCnMLKEMSeed));
 
   // 解析封装密钥部分 (ek)
   EkStart := PolyLength; // 384k
@@ -1143,7 +1136,7 @@ begin
 
   // 解析注入种子部分 (z)
   ZStart := 768 * FMatrixSize + 64; // dk(384k) + ek(384k+32) + H(ek)(32) = 768k+64
-  Move(Key[ZStart], DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
+  Move(Key[ZStart], DecapKey.InjectionSeed[0], SizeOf(TCnMLKEMSeed));
 end;
 
 procedure TCnMLKEM.GenerateKeys(EncapKey: TCnMLKEMEncapsulationKey;
@@ -1162,16 +1155,16 @@ begin
     PutBytesToMemory(HexToBytes(RandDHex), @D[0], SizeOf(TCnMLKEMSeed));
 
   if Length(RandZHex) = 0 then
-    CnRandomFillBytes(@DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMSeed))
+    CnRandomFillBytes(@DecapKey.InjectionSeed[0], SizeOf(TCnMLKEMSeed))
   else
-    PutBytesToMemory(HexToBytes(RandZHex), @DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
+    PutBytesToMemory(HexToBytes(RandZHex), @DecapKey.InjectionSeed[0], SizeOf(TCnMLKEMSeed));
 
   // 生成密钥
-  KPKEKeyGen(D, EncapKey.FGenerationSeed, DecapKey.FSecretVector, EncapKey.FPubVector);
+  KPKEKeyGen(D, EncapKey.GenerationSeed, DecapKey.SecretVector, EncapKey.PubVector);
 
   // 公开密钥的杂凑值，放非公开密钥里备用
   B := SaveEncapKeyToBytes(EncapKey);
-  DecapKey.FEnKeyHash := TCnMLKEMSeed(MLKEMHFunc(B));
+  DecapKey.EnKeyHash := TCnMLKEMSeed(MLKEMHFunc(B));
 end;
 
 procedure TCnMLKEM.GenerateKeys(out EnKey: TBytes; out DeKey: TBytes;
@@ -1244,8 +1237,8 @@ begin
 
   // dk || ek || H(ek) || z
   Result := ConcatBytes(DK, EK);
-  Result := ConcatBytes(Result, NewBytesFromMemory(@DecapKey.FEnKeyHash[0], SizeOf(TCnMLKEMSeed)));
-  Result := ConcatBytes(Result, NewBytesFromMemory(@DecapKey.FInjectionSeed[0], SizeOf(TCnMLKEMBlock)));
+  Result := ConcatBytes(Result, NewBytesFromMemory(@DecapKey.EnKeyHash[0], SizeOf(TCnMLKEMSeed)));
+  Result := ConcatBytes(Result, NewBytesFromMemory(@DecapKey.InjectionSeed[0], SizeOf(TCnMLKEMBlock)));
 end;
 
 function TCnMLKEM.SaveEncapKeyToBytes(EncapKey: TCnMLKEMEncapsulationKey): TBytes;
@@ -1468,7 +1461,7 @@ begin
     if not CompareBytes(C, CipherText) then
     begin
       // 结果不匹配，说明出错，重新计算失败的胡乱杂凑放 S 里
-      C := NewBytesFromMemory(@De.FInjectionSeed[0], SizeOf(TCnMLKEMSeed));
+      C := NewBytesFromMemory(@De.InjectionSeed[0], SizeOf(TCnMLKEMSeed));
       C := ConcatBytes(C, CipherText);
       S := MLKEMJFunc(C);
     end;
@@ -1744,3 +1737,4 @@ finalization
   FInt64PolynomialPool.Free;
 
 end.
+
