@@ -85,6 +85,34 @@ type
     btnSHA256WOTSVerify: TButton;
     lblSHA256WOTSSignature: TLabel;
     mmoSHA256WOTSSignature: TMemo;
+    tsSM3WOTSPlus: TTabSheet;
+    btnGenSM3WOTSPlusKeys: TButton;
+    mmoSM3WOTSPlusPrivateKey: TMemo;
+    mmoSM3WOTSPlusPublicKey: TMemo;
+    lblSM3WOTSPlusMessage: TLabel;
+    lblSM3WOTSPlusPrivate: TLabel;
+    lblSM3WOTSPlusPublic: TLabel;
+    mmoSM3WOTSPlusMessage: TMemo;
+    btnSM3WOTSPlusSign: TButton;
+    btnSM3WOTSPlusVerify: TButton;
+    lblSM3WOTSPlusSignature: TLabel;
+    mmoSM3WOTSPlusSignature: TMemo;
+    lblSM3WOTSPlusSalt: TLabel;
+    mmoSM3WOTSPlusMask: TMemo;
+    tsSHA256WOTSPlus: TTabSheet;
+    btnGenSHA256WOTSPlusKeys: TButton;
+    mmoSHA256WOTSPlusPrivateKey: TMemo;
+    mmoSHA256WOTSPlusPublicKey: TMemo;
+    lblSHA256WOTSPlusMessage: TLabel;
+    lblSHA256WOTSPlusPrivate: TLabel;
+    lblSHA256WOTSPlusPublic: TLabel;
+    mmoSHA256WOTSPlusMessage: TMemo;
+    btnSHA256WOTSPlusSign: TButton;
+    btnSHA256WOTSPlusVerify: TButton;
+    lblSHA256WOTSPlusSignature: TLabel;
+    mmoSHA256WOTSPlusSignature: TMemo;
+    lblSHA256WOTSPlusMask: TLabel;
+    mmoSHA256WOTSPlusMask: TMemo;
     procedure btnGenSM3OTSKeysClick(Sender: TObject);
     procedure btnSM3OTSSignClick(Sender: TObject);
     procedure btnSM3OTSVerifyClick(Sender: TObject);
@@ -104,6 +132,12 @@ type
     procedure btnGenSHA256MOTSKeysClick(Sender: TObject);
     procedure btnSHA256MOTSSignClick(Sender: TObject);
     procedure btnSHA256MOTSVerifyClick(Sender: TObject);
+    procedure btnGenSM3WOTSPlusKeysClick(Sender: TObject);
+    procedure btnSM3WOTSPlusSignClick(Sender: TObject);
+    procedure btnSM3WOTSPlusVerifyClick(Sender: TObject);
+    procedure btnGenSHA256WOTSPlusKeysClick(Sender: TObject);
+    procedure btnSHA256WOTSPlusSignClick(Sender: TObject);
+    procedure btnSHA256WOTSPlusVerifyClick(Sender: TObject);
   private
     FSM3OTSPrivateKey: TCnOTSSM3PrivateKey;
     FSM3OTSPublicKey: TCnOTSSM3PublicKey;
@@ -125,6 +159,14 @@ type
     FSHA256WOTSPrivateKey: TCnWOTSSHA256PrivateKey;
     FSHA256WOTSPublicKey: TCnWOTSSHA256PublicKey;
     FSHA256WOTSSignature: TCnWOTSSHA256Signature;
+    FSM3WOTSPlusPrivateKey: TCnWOTSPlusSM3PrivateKey;
+    FSM3WOTSPlusPublicKey: TCnWOTSPlusSM3PublicKey;
+    FSM3WOTSPlusSignature: TCnWOTSPlusSM3Signature;
+    FSM3WOTSPlusMask: TCnWOTSPlusSM3Mask;
+    FSHA256WOTSPlusPrivateKey: TCnWOTSPlusSHA256PrivateKey;
+    FSHA256WOTSPlusPublicKey: TCnWOTSPlusSHA256PublicKey;
+    FSHA256WOTSPlusSignature: TCnWOTSPlusSHA256Signature;
+    FSHA256WOTSPlusMask: TCnWOTSPlusSHA256Mask;
   public
     procedure DumpSM3OTSPrivateKey;
     procedure DumpSM3OTSPublicKey;
@@ -146,6 +188,14 @@ type
     procedure DumpSHA256WOTSPrivateKey;
     procedure DumpSHA256WOTSPublicKey;
     procedure DumpSHA256WOTSSignature;
+    procedure DumpSM3WOTSPlusPrivateKey;
+    procedure DumpSM3WOTSPlusPublicKey;
+    procedure DumpSM3WOTSPlusSignature;
+    procedure DumpSM3WOTSPlusMask;
+    procedure DumpSHA256WOTSPlusPrivateKey;
+    procedure DumpSHA256WOTSPlusPublicKey;
+    procedure DumpSHA256WOTSPlusSignature;
+    procedure DumpSHA256WOTSPlusMask;
   end;
 
 var
@@ -181,6 +231,16 @@ begin
   FillChar(FSHA256WOTSPrivateKey[0], SizeOf(TCnWOTSSHA256PrivateKey), 0);
   FillChar(FSHA256WOTSPublicKey[0], SizeOf(TCnWOTSSHA256PublicKey), 0);
   FillChar(FSHA256WOTSSignature[0], SizeOf(TCnWOTSSHA256Signature), 0);
+
+  FillChar(FSM3WOTSPlusPrivateKey[0], SizeOf(TCnWOTSPlusSM3PrivateKey), 0);
+  FillChar(FSM3WOTSPlusPublicKey[0], SizeOf(TCnWOTSPlusSM3PublicKey), 0);
+  FillChar(FSM3WOTSPlusSignature[0], SizeOf(TCnWOTSPlusSM3Signature), 0);
+  FillChar(FSM3WOTSPlusMask[0], SizeOf(TCnWOTSPlusSM3Mask), 0);
+
+  FillChar(FSHA256WOTSPlusPrivateKey[0], SizeOf(TCnWOTSPlusSHA256PrivateKey), 0);
+  FillChar(FSHA256WOTSPlusPublicKey[0], SizeOf(TCnWOTSPlusSHA256PublicKey), 0);
+  FillChar(FSHA256WOTSPlusSignature[0], SizeOf(TCnWOTSPlusSHA256Signature), 0);
+  FillChar(FSHA256WOTSPlusMask[0], SizeOf(TCnWOTSPlusSHA256Mask), 0);
 end;
 
 procedure TFormOTS.btnGenSM3OTSKeysClick(Sender: TObject);
@@ -542,6 +602,140 @@ var
 begin
   S := mmoSHA256WOTSMessage.Lines.Text;
   if CnWOTSSHA256VerifyData(@S[1], Length(S), FSHA256WOTSSignature, FSHA256WOTSPublicKey) then
+    ShowMessage('Verify OK')
+  else
+    ShowMessage('Verify Fail');
+end;
+
+procedure TFormOTS.btnGenSM3WOTSPlusKeysClick(Sender: TObject);
+begin
+  if CnWOTSPlusSM3GenerateKeys(FSM3WOTSPlusPrivateKey, FSM3WOTSPlusPublicKey, FSM3WOTSPlusMask) then
+  begin
+    DumpSM3WOTSPlusPrivateKey;
+    DumpSM3WOTSPlusPublicKey;
+    DumpSM3WOTSPlusMask;
+    ShowMessage('Generate Keys OK');
+  end;
+end;
+
+procedure TFormOTS.DumpSM3WOTSPlusPrivateKey;
+var
+  I: Integer;
+begin
+  mmoSM3WOTSPlusPrivateKey.Clear;
+  for I := Low(TCnWOTSPlusSM3PrivateKey) to High(TCnWOTSPlusSM3PrivateKey) - 1 do
+    mmoSM3WOTSPlusPrivateKey.Lines.Add(SM3Print(FSM3WOTSPlusPrivateKey[I]));
+end;
+
+procedure TFormOTS.DumpSM3WOTSPlusPublicKey;
+var
+  I: Integer;
+begin
+  mmoSM3WOTSPlusPublicKey.Clear;
+  for I := Low(TCnWOTSPlusSM3PublicKey) to High(TCnWOTSPlusSM3PublicKey) - 1 do
+    mmoSM3WOTSPlusPublicKey.Lines.Add(SM3Print(FSM3WOTSPlusPublicKey[I]));
+end;
+
+procedure TFormOTS.DumpSM3WOTSPlusSignature;
+var
+  I: Integer;
+begin
+  mmoSM3WOTSPlusSignature.Clear;
+  for I := Low(TCnWOTSPlusSM3Signature) to High(TCnWOTSPlusSM3Signature) - 1 do
+    mmoSM3WOTSPlusSignature.Lines.Add(SM3Print(FSM3WOTSPlusSignature[I]));
+end;
+
+procedure TFormOTS.DumpSM3WOTSPlusMask;
+var
+  I: Integer;
+begin
+  mmoSM3WOTSPlusMask.Clear;
+  for I := Low(FSM3WOTSPlusMask) to High(FSM3WOTSPlusMask) do
+    mmoSM3WOTSPlusMask.Lines.Add(SM3Print(FSM3WOTSPlusMask[I]));
+end;
+
+procedure TFormOTS.btnSM3WOTSPlusSignClick(Sender: TObject);
+var
+  S: AnsiString;
+begin
+  S := mmoSM3WOTSPlusMessage.Lines.Text;
+  CnWOTSPlusSM3SignData(@S[1], Length(S), FSM3WOTSPlusPrivateKey, FSM3WOTSPlusMask, FSM3WOTSPlusSignature);
+  DumpSM3WOTSPlusSignature;
+end;
+
+procedure TFormOTS.btnSM3WOTSPlusVerifyClick(Sender: TObject);
+var
+  S: AnsiString;
+begin
+  S := mmoSM3WOTSPlusMessage.Lines.Text;
+  if CnWOTSPlusSM3VerifyData(@S[1], Length(S), FSM3WOTSPlusSignature, FSM3WOTSPlusPublicKey, FSM3WOTSPlusMask) then
+    ShowMessage('Verify OK')
+  else
+    ShowMessage('Verify Fail');
+end;
+
+procedure TFormOTS.btnGenSHA256WOTSPlusKeysClick(Sender: TObject);
+begin
+  if CnWOTSPlusSHA256GenerateKeys(FSHA256WOTSPlusPrivateKey, FSHA256WOTSPlusPublicKey, FSHA256WOTSPlusMask) then
+  begin
+    DumpSHA256WOTSPlusPrivateKey;
+    DumpSHA256WOTSPlusPublicKey;
+    DumpSHA256WOTSPlusMask;
+    ShowMessage('Generate Keys OK');
+  end;
+end;
+
+procedure TFormOTS.DumpSHA256WOTSPlusPrivateKey;
+var
+  I: Integer;
+begin
+  mmoSHA256WOTSPlusPrivateKey.Clear;
+  for I := Low(TCnWOTSPlusSHA256PrivateKey) to High(TCnWOTSPlusSHA256PrivateKey) - 1 do
+    mmoSHA256WOTSPlusPrivateKey.Lines.Add(SHA256Print(FSHA256WOTSPlusPrivateKey[I]));
+end;
+
+procedure TFormOTS.DumpSHA256WOTSPlusPublicKey;
+var
+  I: Integer;
+begin
+  mmoSHA256WOTSPlusPublicKey.Clear;
+  for I := Low(TCnWOTSPlusSHA256PublicKey) to High(TCnWOTSPlusSHA256PublicKey) - 1 do
+    mmoSHA256WOTSPlusPublicKey.Lines.Add(SHA256Print(FSHA256WOTSPlusPublicKey[I]));
+end;
+
+procedure TFormOTS.DumpSHA256WOTSPlusSignature;
+var
+  I: Integer;
+begin
+  mmoSHA256WOTSPlusSignature.Clear;
+  for I := Low(TCnWOTSPlusSHA256Signature) to High(TCnWOTSPlusSHA256Signature) - 1 do
+    mmoSHA256WOTSPlusSignature.Lines.Add(SHA256Print(FSHA256WOTSPlusSignature[I]));
+end;
+
+procedure TFormOTS.DumpSHA256WOTSPlusMask;
+var
+  I: Integer;
+begin
+  mmoSHA256WOTSPlusMask.Clear;
+  for I := Low(FSHA256WOTSPlusMask) to High(FSHA256WOTSPlusMask) do
+    mmoSHA256WOTSPlusMask.Lines.Add(SHA256Print(FSHA256WOTSPlusMask[I]));
+end;
+
+procedure TFormOTS.btnSHA256WOTSPlusSignClick(Sender: TObject);
+var
+  S: AnsiString;
+begin
+  S := mmoSHA256WOTSPlusMessage.Lines.Text;
+  CnWOTSPlusSHA256SignData(@S[1], Length(S), FSHA256WOTSPlusPrivateKey, FSHA256WOTSPlusMask, FSHA256WOTSPlusSignature);
+  DumpSHA256WOTSPlusSignature;
+end;
+
+procedure TFormOTS.btnSHA256WOTSPlusVerifyClick(Sender: TObject);
+var
+  S: AnsiString;
+begin
+  S := mmoSHA256WOTSPlusMessage.Lines.Text;
+  if CnWOTSPlusSHA256VerifyData(@S[1], Length(S), FSHA256WOTSPlusSignature, FSHA256WOTSPlusPublicKey, FSHA256WOTSPlusMask) then
     ShowMessage('Verify OK')
   else
     ShowMessage('Verify Fail');
