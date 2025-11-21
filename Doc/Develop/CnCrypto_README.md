@@ -92,6 +92,7 @@ The CnPack Development Package is released as open-source software under the CnP
 - **Big Number Support**: Big Integers, Big Rational Numbers, Big Floating-Point Numbers, Univariate and Bivariate Big Number Polynomials, Univariate Big Rational Functions
 - **Mathematical Operations**: Prime Number Operations and Primality Testing, Complex Floating-Point Arithmetic, Bitwise Operations, Matrix Operations, Discrete Fourier Transform, 128-bit Integer Support
 - **Number Theory Computations**: Chinese Remainder Theorem, Lucas Sequences, Pollard-Rho Factorization, Quadratic Residues Modulo Primes, Legendre and Jacobi Symbols
+- **Post-Quantum Cryptography**: Module-Lattice-Based Key-Encapsulation Mechanism (MLKEM), Module-Lattice-Based Digital Signature Algorithm (MLDSA).
 - **Others**: DSA Signature Verification, Authenticated Encryption with Associated Data (AEAD), One-Time Password (OTP), Key Derivation Functions (KDF), Shamir's Secret Sharing Threshold Scheme, and Feldman Verifiable Secret Sharing (VSS)
 
 ## Support for Chinese National Cryptography Standards
