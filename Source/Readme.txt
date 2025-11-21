@@ -288,6 +288,12 @@ cnpack\Source 目录内容说明：
   CnLattice.pas
     格密码计算单元
 
+  CnMLDSA.pas
+    基于模块化格的数字签名算法实现单元
+
+  CnMLKEM.pas
+    基于模块化格的密钥封装机制实现单元
+
   CnMD5.pas
     MD5 算法单元
 
@@ -363,7 +369,7 @@ cnpack\Source 目录内容说明：
   CnZUC.pas
     祖冲之算法实现单元
 
-                共 47 文件
+                共 49 文件
 
 \DbReport －数据库组件与报表库目录
 

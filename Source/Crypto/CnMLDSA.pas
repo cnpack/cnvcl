@@ -22,7 +22,7 @@ unit CnMLDSA;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：基于模块化格的数字签名算法实现单元
+* 单元名称：基于模块化格的数字签名算法 MLDSA 实现单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：本单元实现了 NIST 的 FIPS 204 规范中的 MLDSA
 *          （Module-Lattice-based Digital Signature Algorithm，基于模块化格的数字签名算法）。
