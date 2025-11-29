@@ -2153,16 +2153,6 @@ function BoolToStr(Value: Boolean; UseBoolStrs: Boolean = False): string;
 
 {$ENDIF}
 
-function ObjectToString(AObject: TObject; UseHex: Boolean = False): string;
-{* 对象地址转换为字符串。
-
-   参数：
-     AObject: TObject                     - 待转换的对象
-     UseHex: Boolean                      - 地址值是否使用十六进制
-
-   返回值：string                         - 返回对象地址的十进制值或十六进制值
-}
-
 implementation
 
 uses
@@ -5306,26 +5296,6 @@ begin
 end;
 
 {$ENDIF}
-
-function ObjectToString(AObject: TObject; UseHex: Boolean): string;
-begin
-  if AObject <> nil then
-  begin
-{$IFDEF CPU64BITS}
-    if UseHex then
-      Result := Format('%16.16x', [NativeUInt(AObject)])
-    else
-      Result := Format('%u', [NativeUInt(AObject)]);
-{$ELSE}
-    if UseHex then
-      Result := Format('%8.8x', [Cardinal(AObject)])
-    else
-      Result := Format('%u', [Cardinal(AObject)]);
-{$ENDIF}
-  end
-  else
-    Result := '<nil>';
-end;
 
 // =========================== 循环移位函数 ====================================
 
