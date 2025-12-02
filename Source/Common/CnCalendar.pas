@@ -3593,11 +3593,14 @@ function GetJieQiInAYear(AYear, N: Integer; out AMonth: Integer;
 var
   Days: Extended;
   I, Day: Integer;
+  Neg: Boolean;
 begin
   Result := N in [0..23];
   if Result then
   begin
     Days := GetJieQiDayTimeFromYear2(AYear, N + 1);
+    Neg := Days < 0; // 小于 0 表示在前一年，可能是小寒
+
     for I := 1 to 12 do
     begin
       Day := GetMonthDays(AYear, I);
@@ -3639,6 +3642,25 @@ begin
 
         // 节气不在月底，因此一般不用考虑天数加一后月份改变的情况
       end;
+    end;
+
+    if ADay = 0 then // 如果日期是 0，表示是上个月
+    begin
+      Dec(AMonth);
+      if AMonth >= 1 then
+        ADay := GetMonthDays(AYear, AMonth)
+      else  // 如果月份是 0，表示是去年
+      begin
+        Dec(AYear);
+        AMonth := 12;
+        ADay := GetMonthDays(AYear, AMonth);
+      end;
+    end
+    else if Neg and (ADay < 0) then
+    begin
+      Dec(AYear);
+      AMonth := 12;
+      ADay := GetMonthDays(AYear, AMonth) + ADay;
     end;
   end
   else
@@ -4089,7 +4111,7 @@ begin
     if Days < JieQi then
       AMonth := 11       // 小寒前算干支年 11 月
     else
-      AMonth := 12;      // 小寒后立春前诉案干支年 12 月
+      AMonth := 12;      // 小寒后立春前算干支年 12 月
   end
   else
   begin
@@ -4097,7 +4119,8 @@ begin
     // 如果本公历月首节气的距年头的日数大于等于此日，则此日属于上上个月，节气本日属于上月
 
     // 公历月 AMonth 的第一个节气的序号是 2 * AMonth - 1，如二月第一个节气立春是 3
-    if Days < Floor(GetJieQiDayTimeFromYear(AYear, 2 * AMonth - 1)) then
+    JieQi := Floor(GetJieQiDayTimeFromYear(AYear, 2 * AMonth - 1));
+    if Days < JieQi then
       Dec(AMonth, 2)
     else
       Dec(AMonth);
