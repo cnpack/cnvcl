@@ -76,7 +76,9 @@ unit CnCalendar;
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.08.14 V2.9
+* 修改记录：2025.12.03 V3.0
+*               涉及节气判断的场合全面改用精确节气算法
+*           2025.08.14 V2.9
 *               增加针对农历月、日的农历二十八宿算法，日不连续且无牛
 *           2025.05.27 V2.8
 *               增加并切换至移植自寿星天文历的精确节气算法，基本测试验证通过
@@ -196,30 +198,30 @@ const
   {* 三伏字符串}
 
   SCnJieQiArray: array[0..23] of string = (
-    '立春', // 节气  Beginning of Spring   3
-    '雨水', // 中气  Rain Water            4
-    '惊蛰', // 节气  Waking of Insects     5
-    '春分', // 中气  March Equinox         6
-    '清明', // 节气  Pure Brightness       7
-    '谷雨', // 中气  Grain Rain            8
-    '立夏', // 节气  Beginning of Summer   9
-    '小满', // 中气  Grain Full            10
-    '芒种', // 节气  Grain in Ear          11
-    '夏至', // 中气  Summer Solstice       12
-    '小暑', // 节气  Slight Heat           13
-    '大暑', // 中气  Great Heat            14
-    '立秋', // 节气  Beginning of Autumn   15
-    '处暑', // 中气  Limit of Heat         16
-    '白露', // 节气  White Dew             17
-    '秋分', // 中气  September Equinox     18
-    '寒露', // 节气  Cold Dew              19
-    '霜降', // 中气  Descent of Frost      20
-    '立冬', // 节气  Beginning of Winter   21
-    '小雪', // 中气  Slight Snow           22
-    '大雪', // 节气  Great Snow            23
-    '冬至', // 中气  Winter Solstice       24
-    '小寒', // 节气  Slight Cold           1，这是一公历年中的第一个节气
-    '大寒'  // 中气  Great Cold            2
+    '立春', // 节气  Beginning of Spring      3
+    '雨水', // 中气  Rain Water               4
+    '惊蛰', // 节气  Waking of Insects        5
+    '春分', // 中气  Spring Equinox           6
+    '清明', // 节气  Pure Brightness          7
+    '谷雨', // 中气  Grain Rain               8
+    '立夏', // 节气  Beginning of Summer      9
+    '小满', // 中气  Lesser Fullness of Grain 10
+    '芒种', // 节气  Grain in Beard           11
+    '夏至', // 中气  Summer Solstice          12
+    '小暑', // 节气  Lesser Heat              13
+    '大暑', // 中气  Greater Heat             14
+    '立秋', // 节气  Beginning of Autumn      15
+    '处暑', // 中气  End of Heat              16
+    '白露', // 节气  White Dew                17
+    '秋分', // 中气  Autumn Equinox           18
+    '寒露', // 节气  Cold Dew                 19
+    '霜降', // 中气  Frost's Descent          20
+    '立冬', // 节气  Beginning of Winter      21
+    '小雪', // 中气  Lesser Snow              22
+    '大雪', // 节气  Greater Snow             23
+    '冬至', // 中气  Winter Solstice          24
+    '小寒', // 节气  Lesser Cold              1，这是一公历年中的第一个节气
+    '大寒'  // 中气  Greater Cold             2
   );
   {* 节气字符串，Solar Terms}
 
@@ -1790,6 +1792,32 @@ const
     共 3650 项，竟然比上面的多一项，原因是为了方便直接按公元年份 +849 做下标访问，
     内部多塞了个公元 0 年的 0 值，费解但目测不影响}
 
+  {* 二十四节气常量值供内部使用（按公历年出现顺序排列，小寒为第 1 个节气）}
+  CN_JIEQI_XIAOHAN     = 1;    // 小寒
+  CN_JIEQI_DAHAN       = 2;    // 大寒
+  CN_JIEQI_LICHUN      = 3;    // 立春
+  CN_JIEQI_YUSHUI      = 4;    // 雨水
+  CN_JIEQI_JINGZHE     = 5;    // 惊蛰
+  CN_JIEQI_CHUNFEN     = 6;    // 春分
+  CN_JIEQI_QINGMING    = 7;    // 清明
+  CN_JIEQI_GUYU        = 8;    // 谷雨
+  CN_JIEQI_LIXIA       = 9;    // 立夏
+  CN_JIEQI_XIAOMAN     = 10;   // 小满
+  CN_JIEQI_MANGZHONG   = 11;   // 芒种
+  CN_JIEQI_XIAZHI      = 12;   // 夏至
+  CN_JIEQI_XIAOSHU     = 13;   // 小暑
+  CN_JIEQI_DASHU       = 14;   // 大暑
+  CN_JIEQI_LIQIU       = 15;   // 立秋
+  CN_JIEQI_CHUSHU      = 16;   // 处暑
+  CN_JIEQI_BAILU       = 17;   // 白露
+  CN_JIEQI_QIUFEN      = 18;   // 秋分
+  CN_JIEQI_HANLU       = 19;   // 寒露
+  CN_JIEQI_SHUANGJIANG = 20;   // 霜降
+  CN_JIEQI_LIDONG      = 21;   // 立冬
+  CN_JIEQI_XIAOXUE     = 22;   // 小雪
+  CN_JIEQI_DAXUE       = 23;   // 大雪
+  CN_JIEQI_DONGZHI     = 24;   // 冬至
+
 type
   TCnLunarDateSingleMonthFix = packed record
   {* 因古代观测精度限制，针对单个农历月的公农历转换修正一天的数据，暂时没处理跨年的情况}
@@ -3109,7 +3137,6 @@ begin
 
   // 计算得到的是连续的年份，负值转换为无公元 0 年的年份
   ZeroYearToNonZeroYear(AYear);
-
   Result := GetDateIsValid(AYear, AMonth, ADay);
 end;
 
@@ -3155,7 +3182,8 @@ end;
 
 // 基本算法之获得某公历年内的第 N 个节气距年初的天数，1-24，对应小寒到冬至。年数不能为 0
 // 考虑了 1582 年之前公历有十天偏差的情况，公历年不能为 0
-function GetJieQiDayTimeFromYear(AYear, N: Integer): Extended;
+// 注；因不够精确已基本弃用
+function _GetJieQiDayTimeFromYear(AYear, N: Integer): Extended; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 var
   JuD, Tht, YrD, ShuoD: Extended;
 begin
@@ -3564,8 +3592,9 @@ begin
   Result := T;
 end;
 
-// 基本算法之获得某公历年内的第 N 个节气距年初的天数，1-24，对应小寒到冬至。年数不能为 0
-function GetJieQiDayTimeFromYear2(AYear, N: Integer): Extended;
+// 基本算法之获得某公历年内的第 N 个节气距年初的天数，1-24，对应小寒到冬至。
+// 注意小寒有可能为负也就是落到了前一公历年。年数不能为 0
+function GetJieQiDayTimeFromYear(AYear, N: Integer): Extended;
 var
   Y: Integer;
   T, JD, JD0: Extended;
@@ -3598,7 +3627,7 @@ begin
   Result := N in [0..23];
   if Result then
   begin
-    Days := GetJieQiDayTimeFromYear2(AYear, N + 1);
+    Days := GetJieQiDayTimeFromYear(AYear, N + 1);
     Neg := Days < 0; // 小于 0 表示在前一年，可能是小寒
 
     for I := 1 to 12 do
@@ -3652,6 +3681,9 @@ begin
       else  // 如果月份是 0，表示是去年
       begin
         Dec(AYear);
+        if AYear = 0 then // 怕万一碰上公元 0 年
+          Dec(AYear);
+
         AMonth := 12;
         ADay := GetMonthDays(AYear, AMonth);
       end;
@@ -3659,6 +3691,9 @@ begin
     else if Neg and (ADay < 0) then
     begin
       Dec(AYear);
+      if AYear = 0 then // 怕万一碰上公元 0 年
+        Dec(AYear);
+
       AMonth := 12;
       ADay := GetMonthDays(AYear, AMonth) + ADay;
     end;
@@ -3844,11 +3879,11 @@ begin
   ValidDate(AYear, AMonth, ADay);
 
   // 如是立春日前，属于前一年。立春当天算这一年
-  if GetDayFromYearBegin(AYear, AMonth, ADay) < Floor(GetJieQiDayTimeFromYear(AYear, 3)) then
+  if GetDayFromYearBegin(AYear, AMonth, ADay) < Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_LICHUN)) then
   begin
     Dec(AYear);
     if AYear = 0 then // 没有公元 0 年
-      AYear := -1;
+      Dec(AYear);
   end;
   Result := GetGanZhiFromYear(AYear);
 end;
@@ -3860,11 +3895,11 @@ begin
   ValidTime(AHour, 0, 0);
 
   // 如是立春日前，属于前一年，精确到小时判断。立春当天算这一年
-  if GetDayFromYearBegin(AYear, AMonth, ADay, AHour) < Floor(GetJieQiDayTimeFromYear(AYear, 3)) then
+  if GetDayFromYearBegin(AYear, AMonth, ADay, AHour) < Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_LICHUN)) then
   begin
     Dec(AYear);
     if AYear = 0 then // 没有公元 0 年
-      AYear := -1;
+      Dec(AYear);
   end;
 
   Result := GetGanZhiFromYear(AYear);
@@ -3945,7 +3980,7 @@ begin
   // 十二建类似于地支日轮转，但在非中气的节气那天会重复前一天的
   // 立春后第一个寅日为建日
   JianStart := -1;
-  LiChun := Floor(GetJieQiDayTimeFromYear(AYear, 3)); // 获得立春日
+  LiChun := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_LICHUN)); // 获得立春日
   AllDays := GetAllDays(AYear, 1, 1) - 1;
 
   for I := LiChun + 1 to LiChun + 13 do
@@ -4081,10 +4116,12 @@ begin
 
   // 调整年的记录。因为年的天干地支计算是以立春为分界的，
   // 如本日是本公历年的立春日前，则属于前一年。立春本身算这一年
-  if Days < Floor(GetJieQiDayTimeFromYear(AYear, 3)) then
+  if Days < Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_LICHUN)) then
   begin
     // 年需要调整为前一年
     Dec(AYear);
+    if AYear = 0 then // 怕万一碰上公元 0 年
+      Dec(AYear);
   end;
 end;
 
@@ -4100,14 +4137,14 @@ begin
 
   Days := GetDayFromYearBegin(AYear, AMonth, ADay, AHour);
 
-  JieQi := Floor(GetJieQiDayTimeFromYear(AYear, 3)); // 2 月的立春
+  JieQi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_LICHUN)); // 2 月的立春
   if Days < JieQi then
   begin
     Dec(AYear);    // 立春之前，是去年，但要注意公历年没有公元 0 年
     if AYear = 0 then
       Dec(AYear);
 
-    JieQi := Floor(GetJieQiDayTimeFromYear(AYear, 1)); // 1 月的小寒
+    JieQi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_XIAOHAN)); // 1 月的小寒
     if Days < JieQi then
       AMonth := 11       // 小寒前算干支年 11 月
     else
@@ -4377,8 +4414,8 @@ begin
   DayGanZhi := GetGanZhiFromDay(AYear, AMonth, ADay, AHour);
   ExtractGanZhi(DayGanZhi, DayGan, DayZhi);
 
-  DongZhi := Floor(GetJieQiDayTimeFromYear(AYear, 24));
-  XiaZhi := Floor(GetJieQiDayTimeFromYear(AYear, 12));
+  DongZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_DONGZHI));
+  XiaZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_XIAZHI));
 
   if (Days >= XiaZhi) and (Days < DongZhi) then
   begin
@@ -4554,7 +4591,7 @@ begin
   JiuSeq := -1;
   JiuDay := -1;
 
-  DongZhi := Floor(GetJieQiDayTimeFromYear(AYear, 24));
+  DongZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_DONGZHI));
   Days := GetDayFromYearBegin(AYear, AMonth, ADay);
 
   if (Days >= DongZhi) and (Days - DongZhi < 81) then // 在今年的九九内
@@ -4570,7 +4607,7 @@ begin
       Dec(AYear);
 
     // 获得上一年的冬至日
-    DongZhi := Floor(GetJieQiDayTimeFromYear(AYear, 24));
+    DongZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_DONGZHI));
 
     // 获得此日离上一年年首的长度
     Days := Days + 365;
@@ -4599,8 +4636,8 @@ begin
   FuDay := -1;
 
   Days := GetDayFromYearBegin(AYear, AMonth, ADay);
-  XiaZhi := Floor(GetJieQiDayTimeFromYear(AYear, 12)); // 获得夏至日
-  LiQiu := Floor(GetJieQiDayTimeFromYear(AYear, 15)); // 获得立秋日
+  XiaZhi := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_XIAZHI)); // 获得夏至日
+  LiQiu := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_LIQIU));   // 获得立秋日
   AllDays := GetAllDays(AYear, 1, 1) - 1;
 
   for I := XiaZhi + 1 to XiaZhi + 21 do // 保证包括夏至后第一个庚日的后 10 天，夏至当日不算
@@ -4670,7 +4707,7 @@ var
   Gan, DummyZhi: Integer;
 begin
   Result := False;
-  MangZhong := Floor(GetJieQiDayTimeFromYear(AYear, 11)); // 获得芒种日
+  MangZhong := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_MANGZHONG)); // 获得芒种日
   AllDays := GetAllDays(AYear, 1, 1) - 1;
 
   for I := MangZhong + 1 to MangZhong + 21 do
@@ -4694,7 +4731,7 @@ var
   DummyGan, Zhi: Integer;
 begin
   Result := False;
-  XiaoShu := Floor(GetJieQiDayTimeFromYear(AYear, 13)); // 获得小暑日
+  XiaoShu := Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_XIAOSHU)); // 获得小暑日
   AllDays := GetAllDays(AYear, 1, 1) - 1;
 
   for I := XiaoShu + 1 to XiaoShu + 21 do
@@ -4720,7 +4757,7 @@ begin
   Days := GetDayFromYearBegin(AYear, AMonth, ADay);
 
   // 如本日是立春日前，则是属于前一年
-  if Days < GetJieQiDayTimeFromYear(AYear, 3) then
+  if Days < GetJieQiDayTimeFromYear(AYear, CN_JIEQI_LICHUN) then
   begin
     // 年调整为前一年
     Dec(Result);
