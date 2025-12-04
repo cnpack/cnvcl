@@ -64,7 +64,7 @@ var
 
 procedure TForm1.btnCalcClick(Sender: TObject);
 var
-  GZYear, GZMonth: Integer;
+  GZYear, GZMonth, ActualYear: Integer;
   I, GanZhi, Gan, Zhi, JiuXing: Integer;
   M1, D1, H1, mi1, s1: Integer;
   M2, D2, H2, mi2, s2: Integer;
@@ -163,8 +163,8 @@ begin
   mmoResult.Lines.Add(Format('公历%d年各节气交接时刻：', [AYear]));
   for I := 0 to 11 do
   begin
-    GetJieQiInAYear(AYear, 2 * I, M1, D1, H1, mi1, s1);
-    GetJieQiInAYear(AYear, 2 * I + 1, M2, D2, H2, mi2, s2);
+    GetJieQiInAYear(AYear, 2 * I, M1, D1, H1, mi1, s1, ActualYear);
+    GetJieQiInAYear(AYear, 2 * I + 1, M2, D2, H2, mi2, s2, ActualYear);
     mmoResult.Lines.Add(Format('%s：%2d月%2d日:%2d时:%2d分:%2d秒    %s：%2d月%2d日:%2d时:%2d分:%2d秒',
       [GetJieQiFromNumber((I * 2 + 22) mod 24), M1, D1, H1, mi1, s1,
        GetJieQiFromNumber((I * 2 + 23) mod 24), M2, D2, H2, mi2, s2]));

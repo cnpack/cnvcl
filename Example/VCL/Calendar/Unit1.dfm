@@ -440,6 +440,15 @@ object FormCalendar: TFormCalendar
         TabOrder = 7
         OnClick = btnCheckAllClick
       end
+      object btnCheckFloatJieQi: TButton
+        Left = 264
+        Top = 56
+        Width = 75
+        Height = 25
+        Caption = '检查多个节气'
+        TabOrder = 8
+        OnClick = btnCheckFloatJieQiClick
+      end
     end
   end
 end

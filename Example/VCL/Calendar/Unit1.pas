@@ -61,6 +61,7 @@ type
     btnCheckLunar: TButton;
     btnVerifyLeapNumber: TButton;
     btnCheckAll: TButton;
+    btnCheckFloatJieQi: TButton;
     procedure btnCalcClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
@@ -79,6 +80,7 @@ type
     procedure btnCheckLunarClick(Sender: TObject);
     procedure btnVerifyLeapNumberClick(Sender: TObject);
     procedure btnCheckAllClick(Sender: TObject);
+    procedure btnCheckFloatJieQiClick(Sender: TObject);
   private
     procedure ConvertEditToDate;
   public
@@ -100,7 +102,7 @@ var
 
 procedure TFormCalendar.btnCalcClick(Sender: TObject);
 var
-  GZYear, GZMonth: Integer;
+  GZYear, GZMonth, ActualYear: Integer;
   I, GanZhi, Gan, Zhi, JiuXing: Integer;
   M1, D1, H1, mi1, s1: Integer;
   M2, D2, H2, mi2, s2: Integer;
@@ -199,8 +201,8 @@ begin
   mmoResult.Lines.Add(Format('公历%d年各节气交接时刻：', [AYear]));
   for I := 0 to 11 do
   begin
-    GetJieQiInAYear(AYear, 2 * I, M1, D1, H1, mi1, s1);
-    GetJieQiInAYear(AYear, 2 * I + 1, M2, D2, H2, mi2, s2);
+    GetJieQiInAYear(AYear, 2 * I, M1, D1, H1, mi1, s1, ActualYear);
+    GetJieQiInAYear(AYear, 2 * I + 1, M2, D2, H2, mi2, s2, ActualYear);
     mmoResult.Lines.Add(Format('%s：%2d月%2d日:%2d时:%2d分:%2d秒    %s：%2d月%2d日:%2d时:%2d分:%2d秒',
       [GetJieQiFromNumber((I * 2 + 22) mod 24), M1, D1, H1, mi1, s1,
        GetJieQiFromNumber((I * 2 + 23) mod 24), M2, D2, H2, mi2, s2]));
@@ -1001,6 +1003,27 @@ begin
 
   if mmoDays.Lines.Count = 0 then
     ShowMessage('OK');
+end;
+
+procedure TFormCalendar.btnCheckFloatJieQiClick(Sender: TObject);
+var
+  I, Y: Integer;
+  F: Extended;
+begin
+  // Y := -4713;
+  Y := -1;
+  repeat
+    for I := 1 to 24 do
+    begin
+      F := GetJieQiDayTimeFromYear(Y, I);
+      if F > 365 then
+        mmoDays.Lines.Add(Format('%d %d >', [Y, I]));
+      if F < 0 then
+        mmoDays.Lines.Add(Format('%d %d <', [Y, I]));
+    end;
+    Inc(Y);
+  until Y > 3;
+
 end;
 
 end.
