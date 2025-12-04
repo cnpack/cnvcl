@@ -55,11 +55,11 @@ unit CnCalendar;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：历法计算函数
+* 单元名称：历法计算函数实现单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 *           zjy (zjy@cnpack.org)
 *           罗建仁
-* 备    注：星期、年月日时干支、年生肖、节气日期、星座、阴阳五行、十二建（神）、
+* 备    注：本单元中，星期、年月日时干支、年生肖、节气日期、星座、阴阳五行、十二建（神）、
 *           三元、九运、九星、二十八宿、六曜、九九、三伏、吉神方位已实现，
 *           公历、农历互相转换也初步实现。
 *
@@ -72,12 +72,16 @@ unit CnCalendar;
 *           公农历转换目前置闰的闰月是预置数据方式，不直接依赖于节气计算，
 *           因而节气算法优化至精确度更高的方式（寿星天文历中的精确到秒的算法）
 *           不影响农历大小月判断与修正，避免了精度优化的过程中需要重新核对历史农历的繁文缛节。
+*           但根据节气分隔年月日的干支计算会受到影响。
+*
+*           另外，目前精确的定气节气算法往前推至历史上，可能和历史上使用的平气节气有日期差异，
+*           导致根据节气分隔年月日的干支计算也会出现偏差，使用时应注意。
 *
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
 * 修改记录：2025.12.03 V3.0
-*               涉及节气判断的场合全面改用精确节气算法
+*               涉及节气判断的场合全面改用精确节气算法，精确节气计算范围扩展至公元前
 *           2025.08.14 V2.9
 *               增加针对农历月、日的农历二十八宿算法，日不连续且无牛
 *           2025.05.27 V2.8
@@ -1201,7 +1205,8 @@ function GetJieQiTimeFromDay(AYear, AMonth, ADay: Integer;
 
 function GetJieQiDayTimeFromYear(AYear, N: Integer): Extended;
 {* 获得某公历年内的第 N 个节气距年初的以天为单位的精确时间，1-24，对应小寒到冬至。
-   注：底层函数，一般不直接调用。1582 年 10 月前有约十天偏差，导致小寒可能返回负值。
+   支持公元前的负公历年，不能为 0。1582 年 10 月前有约十天偏差，导致小寒可能返回负值。
+   注：底层函数，一般不直接调用。
 
    参数：
      AYear: Integer                       - 待计算的公历年
@@ -3610,16 +3615,18 @@ begin
 end;
 
 // 基本精确算法之获得某公历年内的第 N 个节气距年初的天数，1-24，对应小寒到冬至。
-// 注意小寒有可能为负也就是落到了前一公历年。年数不能为 0，是否
+// 注意小寒有可能为负也就是落到了前一公历年。年数不能为 0，
 function GetJieQiDayTimeFromYear(AYear, N: Integer): Extended;
 var
   Y: Integer;
   T, JD, JD0: Extended;
 begin
-  NonZeroYearToZeroYear(AYear);
-  Y := AYear - 2000;
-  if Y = -2000 then
-    Dec(Y);
+  if AYear = 0 then
+    raise ECnDateTimeException.Create(SCnErrorYearIsInvalid);
+
+  Y := AYear - 2000; // 把不连续的无 0 公历年变成连续的并且减去 2000
+  if Y < -2000 then
+    Inc(Y);
 
   T := GetDateTimeFromSolarApparentLongitude((Y + (N - 6) * 15 / 360 + 1) * 2 * CN_PI);
   // 定气角度
@@ -3628,6 +3635,7 @@ begin
   Dec(AYear);
   if AYear = 0 then
     Dec(AYear);
+
   JD0 := GetJulianDate(AYear, 12, 31) - 0.5;
   Result := JD - JD0;
 end;
