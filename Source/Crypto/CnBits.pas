@@ -197,6 +197,15 @@ type
        返回值：（无）
     }
 
+    procedure AppendBitBuilder(Value: TCnBitBuilder);
+    {* 增加一个 TCnBitBuilder 对象的位内容至本对象。
+
+       参数：
+         Value: TCnBitBuilder             - 待增加的 TCnBitBuilder 对象
+
+       返回值：（无）
+    }
+
     procedure DeleteBits(Index: Integer; Count: Integer);
     {* 删除从指定索引开始的指定数量的位，后部内容往前移动。
 
@@ -301,6 +310,18 @@ begin
     FData[GetByteLength - 1] := FData[GetByteLength - 1] or (1 shl ((FBitLength - 1) mod 8))
   else
     FData[GetByteLength - 1] := FData[GetByteLength - 1] and not (1 shl ((FBitLength - 1) mod 8));
+end;
+
+
+procedure TCnBitBuilder.AppendBitBuilder(Value: TCnBitBuilder);
+var
+  B: TBytes;
+begin
+  if Value <> nil then
+  begin
+    B := Value.ToBytes;
+    AppendBytes(B);
+  end;
 end;
 
 procedure TCnBitBuilder.AppendByte(Value: Byte; Full: Boolean);
