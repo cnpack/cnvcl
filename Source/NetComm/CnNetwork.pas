@@ -42,7 +42,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNative {$IFDEF MSWINDOWS}, Windows {$ELSE}, Posix.NetinetIn {$ENDIF};
+  SysUtils, Classes, CnNative {$IFNDEF MSWINDOWS}, Posix.NetinetIn {$ENDIF};
 
 const
   {* IP 包头中的版本字段的定义}

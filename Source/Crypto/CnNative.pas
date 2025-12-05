@@ -94,6 +94,8 @@ type
   {* D5 下 PShortInt 定义在 Windows 中}
   PSmallInt = Windows.PSmallInt;
   {* D5 下 PSmallInt 定义在 Windows 中}
+  PWord     = Windows.PWord;
+  {* D5 下 PWord 定义在 Windows 中}
   PInteger  = Windows.PInteger;
   {* D5 下 PInteger 定义在 Windows 中}
   PSingle   = Windows.PSingle;
@@ -103,6 +105,10 @@ type
 
   PCardinal = ^Cardinal;
   {* D5 下 System 单元中未定义 Cardinal 指针类型，定义上}
+  PBoolean = ^Boolean;
+  {* D5 下 System 单元中未定义 Boolean 指针类型，定义上}
+  PExtended = ^Extended;
+  {* D5 下 System 单元中未定义 Extended 指针类型，定义上}
 {$ENDIF}
 
 {$IFDEF BCB5OR6}
