@@ -39,7 +39,9 @@ unit CnBits;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.09.09 V1.0
+* 修改记录：2025.12.05 V1.1
+*               将部分添加过程改为函数以方便级联调用
+*           2023.09.09 V1.0
 *               创建单元，实现功能
 ================================================================================
 |</PRE>}
@@ -109,101 +111,101 @@ type
        返回值：string                     - 返回按位转换成包含 0 和 1 的字符串
     }
 
-    procedure AppendBit(Value: Boolean);
-    {* 增加一位至本对象。
+    function AppendBit(Value: Boolean): TCnBitBuilder;
+    {* 增加一位至本对象，返回本对象。
 
        参数：
          Value: Boolean                   - 该位是否置 1
 
-       返回值：（无）
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
 
-    procedure AppendByteRange(Value: Byte; MaxRange: Integer);
-    {* 增加一个字节中的 0 到 MaxRange 位至本对象，一共会增加 MaxRange + 1 位。
+    function AppendByteRange(Value: Byte; MaxRange: Integer): TCnBitBuilder;
+    {* 增加一个字节中的 0 到 MaxRange 位至本对象，一共会增加 MaxRange + 1 位，返回本对象。
 
        参数：
          Value: Byte                      - 待增加的字节值
          MaxRange: Integer                - 待增加的位范围，0 到 7
 
-       返回值：（无）
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
 
-    procedure AppendWordRange(Value: Word; MaxRange: Integer);
-    {* 增加一个双字节中的 0 到 MaxRange 位至本对象，一共会增加 MaxRange + 1 位。
+    function AppendWordRange(Value: Word; MaxRange: Integer): TCnBitBuilder;
+    {* 增加一个双字节中的 0 到 MaxRange 位至本对象，一共会增加 MaxRange + 1 位，返回本对象。
 
        参数：
          Value: Word                      - 待增加的双字节值
          MaxRange: Integer                - 待增加的位范围，0 到 15
 
-       返回值：（无）
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
 
-    procedure AppendDWordRange(Value: Cardinal; MaxRange: Integer);
-    {* 增加一个四字节中的 0 到 MaxRange 位至本对象，一共会增加 MaxRange + 1 位。
+    function AppendDWordRange(Value: Cardinal; MaxRange: Integer): TCnBitBuilder;
+    {* 增加一个四字节中的 0 到 MaxRange 位至本对象，一共会增加 MaxRange + 1 位，返回本对象。
 
        参数：
          Value: Cardinal                  - 待增加的四字节值
          MaxRange: Integer                - 待增加的位范围，0 到 31
 
-       返回值：（无）
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
 
-    procedure AppendByte(Value: Byte; Full: Boolean = True);
-    {* 增加一个字节至本对象，Full 表示是 8 位都加上去还是忽略高位的所有 0。
+    function AppendByte(Value: Byte; Full: Boolean = True): TCnBitBuilder;
+    {* 增加一个字节至本对象，Full 表示是 8 位都加上去还是忽略高位的所有 0，返回本对象。
 
        参数：
          Value: Byte                      - 待增加的字节值
          Full: Boolean                    - 完整 8 位还是忽略高位的所有 0
 
-       返回值：（无）
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
 
-    procedure AppendWord(Value: Word; Full: Boolean = True);
-    {* 增加一个双字节至本对象，Full 表示是 16 位都加上去还是忽略高位的所有 0。
+    function AppendWord(Value: Word; Full: Boolean = True): TCnBitBuilder;
+    {* 增加一个双字节至本对象，Full 表示是 16 位都加上去还是忽略高位的所有 0，返回本对象。
 
        参数：
          Value: Word                      - 待增加的双字节值
          Full: Boolean                    - 完整 16 位还是忽略高位的所有 0
 
-       返回值：（无）
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
 
-    procedure AppendDWord(Value: Cardinal; Full: Boolean = True);
-    {* 增加一个四字节至本对象，Full 表示是 32 位都加上去还是忽略高位的所有 0。
+    function AppendDWord(Value: Cardinal; Full: Boolean = True): TCnBitBuilder;
+    {* 增加一个四字节至本对象，Full 表示是 32 位都加上去还是忽略高位的所有 0，返回本对象。
 
        参数：
          Value: Cardinal                  - 待增加的四字节值
          Full: Boolean                    - 完整 32 位还是忽略高位的所有 0
 
-       返回值：（无）
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
 
-    procedure AppendBytes(Value: TBytes);
-    {* 增加一个字节数组至本对象。
+    function AppendBytes(Value: TBytes): TCnBitBuilder;
+    {* 增加一个字节数组至本对象，返回本对象。
 
        参数：
          Value: TBytes                    - 待增加的字节数组
 
-       返回值：（无）
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
 
-    procedure AppendData(Data: Pointer; DataByteLen: Integer);
-    {* 增加一个数据块至本对象。
+    function AppendData(Data: Pointer; DataByteLen: Integer): TCnBitBuilder;
+    {* 增加一个数据块至本对象，返回本对象。
 
        参数：
          Data: Pointer                    - 待增加的数据块地址
          DataByteLen: Integer             - 待增加的数据块的字节长度
 
-       返回值：（无）
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
 
-    procedure AppendBitBuilder(Value: TCnBitBuilder);
-    {* 增加一个 TCnBitBuilder 对象的位内容至本对象。
+    function AppendBitBuilder(Value: TCnBitBuilder): TCnBitBuilder;
+    {* 增加一个 TCnBitBuilder 对象的位内容至本对象，返回本对象。
 
        参数：
          Value: TCnBitBuilder             - 待增加的 TCnBitBuilder 对象
 
-       返回值：（无）
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
 
     procedure DeleteBits(Index: Integer; Count: Integer);
@@ -302,7 +304,7 @@ const
 
 { TCnBitBuilder }
 
-procedure TCnBitBuilder.AppendBit(Value: Boolean);
+function TCnBitBuilder.AppendBit(Value: Boolean): TCnBitBuilder;
 begin
   Inc(FBitLength);
   EnsureCapacity(FBitLength);
@@ -310,10 +312,10 @@ begin
     FData[GetByteLength - 1] := FData[GetByteLength - 1] or (1 shl ((FBitLength - 1) mod 8))
   else
     FData[GetByteLength - 1] := FData[GetByteLength - 1] and not (1 shl ((FBitLength - 1) mod 8));
+  Result := Self;
 end;
 
-
-procedure TCnBitBuilder.AppendBitBuilder(Value: TCnBitBuilder);
+function TCnBitBuilder.AppendBitBuilder(Value: TCnBitBuilder): TCnBitBuilder;
 var
   B: TBytes;
 begin
@@ -322,9 +324,10 @@ begin
     B := Value.ToBytes;
     AppendBytes(B);
   end;
+  Result := Self;
 end;
 
-procedure TCnBitBuilder.AppendByte(Value: Byte; Full: Boolean);
+function TCnBitBuilder.AppendByte(Value: Byte; Full: Boolean): TCnBitBuilder;
 var
   K, I: Integer;
 begin
@@ -332,6 +335,7 @@ begin
   if not Full then
     K := GetUInt8HighBits(Value);
 
+  Result := Self;
   if K < 0 then
     Exit;
 
@@ -339,10 +343,11 @@ begin
     AppendBit((Value and (1 shl I)) <> 0);
 end;
 
-procedure TCnBitBuilder.AppendByteRange(Value: Byte; MaxRange: Integer);
+function TCnBitBuilder.AppendByteRange(Value: Byte; MaxRange: Integer): TCnBitBuilder;
 var
   I: Integer;
 begin
+  Result := Self;
   if MaxRange < 0 then
     Exit;
 
@@ -353,10 +358,11 @@ begin
     AppendBit((Value and (1 shl I)) <> 0);
 end;
 
-procedure TCnBitBuilder.AppendBytes(Value: TBytes);
+function TCnBitBuilder.AppendBytes(Value: TBytes): TCnBitBuilder;
 var
   I: Integer;
 begin
+  Result := Self;
   if Length(Value) <= 0 then
     Exit;
 
@@ -364,7 +370,7 @@ begin
     AppendByte(Value[I]);
 end;
 
-procedure TCnBitBuilder.AppendData(Data: Pointer; DataByteLen: Integer);
+function TCnBitBuilder.AppendData(Data: Pointer; DataByteLen: Integer): TCnBitBuilder;
 var
   I: Integer;
   P: PByte;
@@ -378,9 +384,10 @@ begin
       Inc(P);
     end;
   end;
+  Result := Self;
 end;
 
-procedure TCnBitBuilder.AppendDWord(Value: Cardinal; Full: Boolean);
+function TCnBitBuilder.AppendDWord(Value: Cardinal; Full: Boolean): TCnBitBuilder;
 var
   H3, H2, H1, H0: Byte;
 begin
@@ -393,12 +400,14 @@ begin
   AppendByte(H1, Full or (H3 * H2 <> 0));
   AppendByte(H2, Full or (H3 <> 0));
   AppendByte(H3, Full);
+  Result := Self;
 end;
 
-procedure TCnBitBuilder.AppendDWordRange(Value: Cardinal; MaxRange: Integer);
+function TCnBitBuilder.AppendDWordRange(Value: Cardinal; MaxRange: Integer): TCnBitBuilder;
 var
   I: Integer;
 begin
+  Result := Self;
   if MaxRange < 0 then
     Exit;
 
@@ -409,7 +418,7 @@ begin
     AppendBit((Value and (1 shl I)) <> 0);
 end;
 
-procedure TCnBitBuilder.AppendWord(Value: Word; Full: Boolean);
+function TCnBitBuilder.AppendWord(Value: Word; Full: Boolean): TCnBitBuilder;
 var
   H, L: Byte;
 begin
@@ -418,12 +427,14 @@ begin
 
   AppendByte(L, Full or (H <> 0)); // 有高位存在的话，低 8 位必须 Full
   AppendByte(H, Full);
+  Result := Self;
 end;
 
-procedure TCnBitBuilder.AppendWordRange(Value: Word; MaxRange: Integer);
+function TCnBitBuilder.AppendWordRange(Value: Word; MaxRange: Integer): TCnBitBuilder;
 var
   I: Integer;
 begin
+  Result := Self;
   if MaxRange < 0 then
     Exit;
 
