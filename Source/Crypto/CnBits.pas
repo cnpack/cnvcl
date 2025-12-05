@@ -62,8 +62,8 @@ type
 //
 // =============================================================================
 
-  TCnBitBuilder = class
-  {* 位组装类，只支持增加内容，不支持插入和删除}
+  TCnBitBuilder = class(TPersistent)
+  {* 位组装类，只支持增加和删除内容，不支持插入}
   private
     FData: TBytes;
     FMaxByteCapacity: Integer;
@@ -76,6 +76,9 @@ type
     procedure SetBit(Index: Integer; const Value: Boolean);
     procedure SetBitLength(const Value: Integer);
   protected
+    procedure AssignTo(Dest: TPersistent); override;
+    {* 内部赋值方法}
+
     procedure ExpandCapacity;
     {* 扩展内容区，首先保证大于 ByteLength 否则扩展至两倍，其次容量增长百分之五十}
 
@@ -635,6 +638,19 @@ begin
   Result := GetByteLength;
   if (AMem <> nil) and (Result > 0) then
     Move(FData[0], AMem^, Result);
+end;
+
+procedure TCnBitBuilder.AssignTo(Dest: TPersistent);
+var
+  B: TBytes;
+begin
+  if Dest is TCnBitBuilder then
+  begin
+    B := Self.ToBytes;
+    TCnBitBuilder(Dest).SetBytes(B);
+  end
+  else
+    inherited;
 end;
 
 end.
