@@ -81,17 +81,28 @@ interface
 
 uses
   Classes, SysUtils, SysConst, Math {$IFDEF COMPILER5}, Windows {$ENDIF};
-                                    // D5 下需要引用 Windows 中的 PByte
+                                    // D5 下需要引用 Windows 中的 PByte 等
 type
   ECnNativeException = class(Exception);
   {* Native 相关异常}
 
 {$IFDEF COMPILER5}
-  PCardinal = ^Cardinal;
-  {* D5 下 System 单元中未定义，定义上}
   PByte = Windows.PByte;
   {* D5 下 PByte 定义在 Windows 中，其他版本定义在 System 中，
-    这里统一一下供外界使用 PByte 时无需 uses Windows，以有利于跨平台}
+    这里统一一下供外界使用 PByte 时无需 uses Windows，以有利于跨平台，以下同}
+  PShortInt = Windows.PShortInt;
+  {* D5 下 PShortInt 定义在 Windows 中}
+  PSmallInt = Windows.PSmallInt;
+  {* D5 下 PSmallInt 定义在 Windows 中}
+  PInteger  = Windows.PInteger;
+  {* D5 下 PInteger 定义在 Windows 中}
+  PSingle   = Windows.PSingle;
+  {* D5 下 PSingle 定义在 Windows 中}
+  PDouble   = Windows.PDouble;
+  {* D5 下 PDouble 定义在 Windows 中}
+
+  PCardinal = ^Cardinal;
+  {* D5 下 System 单元中未定义 Cardinal 指针类型，定义上}
 {$ENDIF}
 
 {$IFDEF BCB5OR6}
