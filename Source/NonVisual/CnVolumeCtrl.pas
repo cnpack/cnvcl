@@ -142,8 +142,9 @@ type
   TCnMixOperateType = (motGetVol, motSetVol, motGetMute, motSetMute);
 
   // 事件
-  TCnMixVolumeEvent = procedure(Volume: TCnVolume; Balance: TCnBalance) of object;
-  TCnMixMuteEvent = procedure(bMute: Boolean) of object;
+  TCnMixVolumeEvent = procedure(Sender: TObject; Volume: TCnVolume; Balance: TCnBalance) of object;
+
+  TCnMixMuteEvent = procedure(Sender: TObject; bMute: Boolean) of object;
 
   TCnCustomVolumeCtrl = class(TCnComponent)
   {* 音量控制器组件基类}
@@ -428,11 +429,11 @@ begin
 
   // 触发事件（如果有变化）
   if Assigned(FOnMuteChange) and (OldMute <> NewMute) then
-    FOnMuteChange(NewMute);
+    FOnMuteChange(Self, NewMute);
 
   if Assigned(FOnVolumeChange) and
      ((OldVolume <> NewVolume) or (OldBalance <> NewBalance)) then
-    FOnVolumeChange(NewVolume, NewBalance);
+    FOnVolumeChange(Self, NewVolume, NewBalance);
 end;
 
 function TCnCustomVolumeCtrl.IsWindowsVistaOrGreater: Boolean;
@@ -594,13 +595,13 @@ end;
 procedure TCnCustomVolumeCtrl.DoCoreAudioVolumeChange;
 begin
   if Assigned(FOnVolumeChange) then
-    FOnVolumeChange(GetVolumeViaCoreAudio, GetBalanceViaCoreAudio);
+    FOnVolumeChange(Self, GetVolumeViaCoreAudio, GetBalanceViaCoreAudio);
 end;
 
 procedure TCnCustomVolumeCtrl.DoCoreAudioMuteChange;
 begin
   if Assigned(FOnMuteChange) then
-    FOnMuteChange(GetMuteViaCoreAudio);
+    FOnMuteChange(Self, GetMuteViaCoreAudio);
 end;
 
 function TCnCustomVolumeCtrl.GetVolumeViaCoreAudio: TCnVolume;
@@ -643,8 +644,19 @@ begin
 end;
 
 procedure TCnCustomVolumeCtrl.SetMuteViaCoreAudio(bMute: Boolean);
+var
+  HR: HRESULT;
 begin
+  if FCoreAudioSupported and Assigned(FEndpointVolume) then
+  begin
+    if bMute then
+      HR := FEndpointVolume.SetMute(1, nil)
+    else
+      HR := FEndpointVolume.SetMute(0, nil);
 
+    if HR = S_OK then
+      FCurMute := bMute;
+  end;
 end;
 
 function TCnCustomVolumeCtrl.GetBalanceViaCoreAudio: TCnBalance;
@@ -875,7 +887,7 @@ begin
 
           if (dwVolume[0] <> FCurVolume[0]) or (dwVolume[1] <> FCurVolume[1]) then
             if Assigned(FOnVolumeChange) then
-              FOnVolumeChange(FCurVol div 256, GetLineBalance(FDevice, FLine));
+              FOnVolumeChange(Self, FCurVol div 256, GetLineBalance(FDevice, FLine));
         end;
       end;
     MM_MIXM_LINE_CHANGE:
@@ -892,7 +904,7 @@ begin
 
           if bMute <> FCurMute then
             if Assigned(FOnMuteChange) then
-              FOnMuteChange(FCurMute);
+              FOnMuteChange(Self, FCurMute);
         end;
       end;
   else
@@ -1064,34 +1076,20 @@ begin
 end;
 
 procedure TCnCustomVolumeCtrl.SetIsMute(const Value: Boolean);
-var
-  HR: HRESULT;
 begin
   if csLoading in ComponentState then
     Exit;
 
   if FUseCoreAudio then
   begin
-    if Value = GetMuteViaCoreAudio then
-      Exit;
-
-    if FCoreAudioSupported and Assigned(FEndpointVolume) then
-    begin
-      if Value then
-        HR := FEndpointVolume.SetMute(1, nil)
-      else
-        HR := FEndpointVolume.SetMute(0, nil);
-
-      if HR = S_OK then
-        FCurMute := Value;
-    end;
-    Exit;
+    if Value <> GetMuteViaCoreAudio then
+      SetMuteViaCoreAudio(Value);
+  end
+  else
+  begin
+    if Value <> GetLineMute(FDevice, FLine) then
+      SetLineMute(FDevice, FLine, Value);
   end;
-
-  if Value = GetLineMute(FDevice, FLine) then
-    Exit;
-
-  SetLineMute(FDevice, FLine, Value);
 end;
 
 // 为什么要用Integer，而不使用TCnVolume？
