@@ -159,9 +159,16 @@ end;
 
 procedure TForm1.CnVolumeCtrl1VolumeChange(Volume: TCnVolume;
   Balance: TCnBalance);
+var
+  OldEvent: TNotifyEvent;
 begin
   TrackBar1.Position := Balance;
+
+  OldEvent := TrackBar2.OnChange;
+  TrackBar2.OnChange := nil;
   TrackBar2.Position := 255 - Volume;
+  TrackBar2.OnChange := OldEvent;
+
   mmo1.Lines.Add(Format('Volume: %d Balance: %d', [Volume, Balance]));
 end;
 
