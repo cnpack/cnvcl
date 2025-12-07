@@ -4052,9 +4052,9 @@ end;
 // 获得某公历月日的星座，0-11 对应 白羊到双鱼}
 function GetXingZuoFromMonthDay(AMonth, ADay: Integer): Integer;
 const
-  SCnXingZuoDays: array[0..11] of Integer =
-    (120, 219, 321, 421, 521, 622, 723, 823, 923, 1023, 1123, 1222);
-  // 每个星座的起始日期
+  SCnXingZuoDays: array[0..12] of Integer =
+    (120, 219, 321, 421, 521, 622, 723, 823, 923, 1023, 1123, 1222, 1332);
+  // 每个星座的起始月日，尾部一个防止超界的大结束号
 var
   I, Days: Integer;
 begin
