@@ -156,7 +156,6 @@ type
     FCurVol: DWORD;          // 当前线路最高音量，是系统音量乘了 256
     FCurMute: Boolean;       // 当前线路静音状态
     FCurBalance: TCnBalance; // 当前线路左右平行
-
     FVolume: DVOLUME;
     FVol: DWORD;
     FBalance: TCnBalance;
@@ -186,7 +185,7 @@ type
     function mSetControlDetails(Hmx: HMIXER; var Mxcd: TMixerControlDetails): Boolean;
     function CheckDevice(uDev: UINT): Boolean;
     function CheckLine(uDev, uLine: UINT): Boolean;
-    procedure WinProc(var message: TMessage);
+    procedure WinProc(var message: TMessage); // 传统 Mix 方式的改变消息通知
 
     // Core Audio API 方法
     procedure InitializeCoreAudio;
@@ -223,9 +222,6 @@ type
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
     procedure Loaded; override;
-
-    procedure DoCoreAudioVolumeChange; virtual;
-    procedure DoCoreAudioMuteChange; virtual;
   public
     constructor Create(AOwner: TComponent); override;
     {* 类构造器}
@@ -592,18 +588,6 @@ begin
   end;
 end;
 
-procedure TCnCustomVolumeCtrl.DoCoreAudioVolumeChange;
-begin
-  if Assigned(FOnVolumeChange) then
-    FOnVolumeChange(Self, GetVolumeViaCoreAudio, GetBalanceViaCoreAudio);
-end;
-
-procedure TCnCustomVolumeCtrl.DoCoreAudioMuteChange;
-begin
-  if Assigned(FOnMuteChange) then
-    FOnMuteChange(Self, GetMuteViaCoreAudio);
-end;
-
 function TCnCustomVolumeCtrl.GetVolumeViaCoreAudio: TCnVolume;
 var
   VolumeLevel: Single;
@@ -654,8 +638,9 @@ begin
     else
       HR := FEndpointVolume.SetMute(0, nil);
 
-    if HR = S_OK then
-      FCurMute := bMute;
+    // 这里不给 FCurMute 赋值，待改变回调做
+    // if HR = S_OK then
+    //  FCurMute := bMute;
   end;
 end;
 
@@ -886,8 +871,10 @@ begin
           GetVolume;
 
           if (dwVolume[0] <> FCurVolume[0]) or (dwVolume[1] <> FCurVolume[1]) then
+          begin
             if Assigned(FOnVolumeChange) then
               FOnVolumeChange(Self, FCurVol div 256, GetLineBalance(FDevice, FLine));
+          end;
         end;
       end;
     MM_MIXM_LINE_CHANGE:
@@ -903,8 +890,10 @@ begin
           GetIsMute;
 
           if bMute <> FCurMute then
+          begin
             if Assigned(FOnMuteChange) then
               FOnMuteChange(Self, FCurMute);
+          end;
         end;
       end;
   else
@@ -1044,7 +1033,7 @@ begin
 
     iBalance := Value;
 
-    // 限制数字在 TCnBalance内
+    // 限制数字在 TCnBalance 内
     if iBalance > High(TCnBalance) then
       iBalance := High(TCnBalance)
     else if iBalance < Low(TCnBalance) then
@@ -1092,8 +1081,8 @@ begin
   end;
 end;
 
-// 为什么要用Integer，而不使用TCnVolume？
-// 因为D的强行转换，会把-22转换成234
+// 为什么要用 Integer，而不使用 TCnVolume？
+// 因为D的强行转换，会把 -22 转换成 234
 procedure TCnCustomVolumeCtrl.SetVolume(const Value: Integer);
 var
   iVolume: Integer;

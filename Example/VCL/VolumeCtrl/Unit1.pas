@@ -162,7 +162,10 @@ procedure TForm1.CnVolumeCtrl1VolumeChange(Sender: TObject; Volume: TCnVolume;
 var
   OldEvent: TNotifyEvent;
 begin
+  OldEvent := TrackBar1.OnChange;
+  TrackBar1.OnChange := nil;
   TrackBar1.Position := Balance;
+  TrackBar1.OnChange := OldEvent;
 
   OldEvent := TrackBar2.OnChange;
   TrackBar2.OnChange := nil;
