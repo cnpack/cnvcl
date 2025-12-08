@@ -540,6 +540,8 @@ begin
     end;
     SetDev(0);
   end;
+
+  GetIsMute; // 初始化静音值
 end;
 
 destructor TCnCustomVolumeCtrl.Destroy;
@@ -583,9 +585,7 @@ begin
   inherited;
   // 组件加载完成后，重新初始化 Core Audio（如果需要）
   if not (csDesigning in ComponentState) and IsWindowsVistaOrGreater then
-  begin
     InitializeCoreAudioForWindowsVistaPlus;
-  end;
 end;
 
 function TCnCustomVolumeCtrl.GetVolumeViaCoreAudio: TCnVolume;
