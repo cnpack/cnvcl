@@ -58,10 +58,10 @@ uses
 
 const
   CN_PKCS1_BLOCK_TYPE_PRIVATE_00       = 00;
-  {* PKCS1 对齐时的块类型字段值一，默认应用于 RSA 的私钥加密场合}
+  {* PKCS1 对齐时的块类型字段值一，默认应用于 RSA 的私钥加密或签名场合，但 RFC2313 不推荐使用}
 
   CN_PKCS1_BLOCK_TYPE_PRIVATE_FF       = 01;
-  {* PKCS1 对齐时的块类型字段值二，默认应用于 RSA 的私钥签名场合}
+  {* PKCS1 对齐时的块类型字段值二，默认应用于 RSA 的私钥加密或签名场合，RFC2313 推荐使用}
 
   CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM    = 02;
   {* PKCS1 对齐时的块类型字段值三，默认应用于 RSA 的公钥加密场合}

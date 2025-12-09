@@ -33,7 +33,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2025.08.22 V3.2
+* 修改记录：2025.12.09 V3.3
+*               调整私钥加密时填充类型，统一使用 RFC2313 推荐的 01 也就是 CN_PKCS1_BLOCK_TYPE_PRIVATE_FF。
+*           2025.08.22 V3.2
 *               增加两个公钥加密私钥解密超长流的函数及两个私钥加密公钥解密超长流的函数，
 *               内部使用分块与 PKCS1 对齐，注意私钥运算时性能较慢。
 *           2025.07.31 V3.1
@@ -319,7 +321,7 @@ function CnRSAGenerateKeysByPrimeBits(PrimeBits: Integer; PrivateKey: TCnRSAPriv
   PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean = False): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
 {* 生成 RSA 算法所需的一对公私钥，PrimeBits 是素数的二进制位数，其余参数均为生成。
    PrimeBits 取值为 512/1024/2048等，注意目前不是乘积的范围。内部缺乏安全判断。不推荐使用。
-   PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537
+   PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537。
 
    参数：
      PrimeBits: Integer                   - 需生成的素数的位数
@@ -334,7 +336,7 @@ function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean = False): Boolean;
 {* 生成 RSA 算法所需的一对公私钥，ModulusBits 是素数乘积的二进制位数，其余参数均为生成。
    ModulusBits 取值为 512/1024/2048等。内部有安全判断。
-   PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537
+   PublicKeyUse3 为 True 时公钥指数用 3，否则用 65537。
 
    参数：
      ModulusBits: Integer                 - 需生成的素数乘积位数
@@ -2993,7 +2995,7 @@ begin
     _CnSetLastError(ECN_RSA_INVALID_BITS);
     Exit;
   end;
-  SetLength(InBuf, BlockSize);                  // 分块的内容读入到此
+  SetLength(InBuf, BlockSize);                   // 分块的内容读入到此
   SetLength(OutBuf, PrivateKey.GetBytesCount);   // 加密的内容输出到此
   TotalBytes := 0;
 
@@ -3007,7 +3009,7 @@ begin
         Stream.Size := 0;
 
         // 分块的内容加上 Padding
-        if not AddPKCS1Padding(CN_PKCS1_BLOCK_TYPE_PRIVATE_00, PrivateKey.GetBytesCount,
+        if not AddPKCS1Padding(CN_PKCS1_BLOCK_TYPE_PRIVATE_FF, PrivateKey.GetBytesCount,
           @InBuf[0], BytesRead, Stream) then
         begin
           _CnSetLastError(ECN_RSA_PADDING_ERROR);
