@@ -22,7 +22,7 @@ CnPack 开发包以开放源码（Open Source）的形式发布，遵守 CnPack 的许可协议，受 CnP
 - **运算支持**：素数运算与判定、浮点复数运算、位运算、矩阵运算、离散傅立叶变换、128 位整型支持
 - **数论计算**：中国剩余定理、Lucas 序列、PollardRho 因数分解、模素数二次剩余、勒让德/雅可比符号
 - **抗量子计算**：基于模块化格的密钥封装机制 MLKEM、基于模块化格的数字签名算法 MLDSA
-- **其他**：DSA 签名验证、关联数据认证加密 AEAD、动态口令 OTP、密钥派生 KDF、秘密共享的 Shamir 门限方案及 Feldman VSS 方案
+- **其他**：DSA 签名验证、关联数据认证加密 AEAD、动态口令 OTP、密钥派生 KDF、秘密共享的 Shamir 门限方案及 Feldman VSS 方案、历法计算
 
 ## 国密支持
 
@@ -94,7 +94,7 @@ The CnPack Development Package is released as open-source software under the CnP
 - **Mathematical Operations**: Prime Number Operations and Primality Testing, Complex Floating-Point Arithmetic, Bitwise Operations, Matrix Operations, Discrete Fourier Transform, 128-bit Integer Support
 - **Number Theory Computations**: Chinese Remainder Theorem, Lucas Sequences, Pollard-Rho Factorization, Quadratic Residues Modulo Primes, Legendre and Jacobi Symbols
 - **Post-Quantum Cryptography**: Module-Lattice-Based Key-Encapsulation Mechanism (MLKEM), Module-Lattice-Based Digital Signature Algorithm (MLDSA).
-- **Others**: DSA Signature Verification, Authenticated Encryption with Associated Data (AEAD), One-Time Password (OTP), Key Derivation Functions (KDF), Shamir's Secret Sharing Threshold Scheme, and Feldman Verifiable Secret Sharing (VSS)
+- **Others**: DSA Signature Verification, Authenticated Encryption with Associated Data (AEAD), One-Time Password (OTP), Key Derivation Functions (KDF), Shamir's Secret Sharing Threshold Scheme, and Feldman Verifiable Secret Sharing (VSS), Calendar.
 
 ## Support for Chinese National Cryptography Standards
 

@@ -414,6 +414,7 @@ MKDIR Doc
 CD Doc
 COPY ..\..\cnvcl\Doc\Develop\CnRSA*.txt .
 COPY ..\..\cnvcl\Doc\Develop\如何在Delphi7下手动支持64位无符号整数运算.txt .
+COPY ..\..\cnvcl\Doc\Develop\CnCalendar历法说明.txt .
 CD ..
 SETLOCAL ENABLEDELAYEDEXPANSION
 MKDIR Example
