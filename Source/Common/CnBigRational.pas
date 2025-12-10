@@ -24,7 +24,8 @@ unit CnBigRational;
 * 软件名称：开发包基础库
 * 单元名称：无限精度有理数实现单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 备    注：本单元实现了无限精度的有理数类，内部用大整数的比值表示有理数。
+* 备    注：本单元实现了无限精度的有理数类 TCnBigRational，
+*           内部用大整数 TCnBigNumber 的比值表示有理数。
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理

@@ -22,11 +22,13 @@ unit CnBigDecimal;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：大浮点数算法单元
+* 单元名称：无限精度浮点数实现单元
 * 单元作者：CnPack 开发组
-* 备    注：TCnBigDecimal 与 TCnBigBinary 均用 CnBigNumber 表示有效数字，
-*           用 Integer 表示正负指数，所不同的是底分别为 10 和 2
-*           部分参考 Rudy Velthuis 的 BigDecimal 以及 Java 的 BigDecimal
+* 备    注：本单元实现了基于十进制的无限精度浮点数类 TCnBigDecimal 与基于二进制
+*           的无限精度浮点数类 TCnBigBinary。两者 均用大整数 TCnBigNumber 表示有效数字，
+*           用 Integer 表示正负指数，所不同的是底分别为 10 和 2。
+*
+*           部分实现参考了 Rudy Velthuis 的 BigDecimal 以及 Java 中的 BigDecimal。
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
