@@ -89,28 +89,12 @@ type
 {$IFDEF COMPILER5}
   PByte = Windows.PByte;
   {* D5 下 PByte 定义在 Windows 中，其他版本定义在 System 中，
-    这里统一一下供外界使用 PByte 时无需 uses Windows，以有利于跨平台，以下同}
-
-//  这六个会引起 BCB5 下的命令行编译出错，且编译指令括起来也不行，不得不注释掉
-//  PShortInt = Windows.PShortInt;
-//  {* D5 下 PShortInt 定义在 Windows 中}
-//  PSmallInt = Windows.PSmallInt;
-//  {* D5 下 PSmallInt 定义在 Windows 中}
-//  PWord     = Windows.PWord;
-//  {* D5 下 PWord 定义在 Windows 中}
-//  PInteger  = Windows.PInteger;
-//  {* D5 下 PInteger 定义在 Windows 中}
-//  PSingle   = Windows.PSingle;
-//  {* D5 下 PSingle 定义在 Windows 中}
-//  PDouble   = Windows.PDouble;
-//  {* D5 下 PDouble 定义在 Windows 中}
-
+    这里统一一下供外界使用 PByte 时无需 uses Windows，以有利于跨平台。
+    但不宜加其他类型，易触发 BCB5 的命令行编译 Bug}
   PCardinal = ^Cardinal;
   {* D5 下 System 单元中未定义 Cardinal 指针类型，定义上}
   PBoolean = ^Boolean;
   {* D5 下 System 单元中未定义 Boolean 指针类型，定义上}
-  PExtended = ^Extended;
-  {* D5 下 System 单元中未定义 Extended 指针类型，定义上}
 {$ENDIF}
 
 {$IFDEF BCB5OR6}
