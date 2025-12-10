@@ -15,6 +15,7 @@ CD Source
 COPY ..\..\cnvcl\Source\Common\CnPack.inc .
 COPY ..\..\cnvcl\Source\Common\CnBigDecimal.pas .
 COPY ..\..\cnvcl\Source\Common\CnBigRational.pas .
+COPY ..\..\cnvcl\Source\Common\CnCalendar.pas .
 COPY ..\..\cnvcl\Source\Common\CnConsts.pas .
 COPY ..\..\cnvcl\Source\Common\CnContainers.pas .
 COPY ..\..\cnvcl\Source\Common\CnFileUtils.pas .
@@ -239,6 +240,7 @@ ECHO USEUNIT("..\Source\CnXXH.pas");                                            
 ECHO USEUNIT("..\Source\CnZUC.pas");                                                   >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnBigDecimal.pas");                                            >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnBigRational.pas");                                           >> Crypto.bpf
+ECHO USEUNIT("..\Source\CnCalendar.pas");                                              >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnConsts.pas");                                                >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnContainers.pas");                                            >> Crypto.bpf
 ECHO USEUNIT("..\Source\CnFloat.pas");                                                 >> Crypto.bpf
@@ -288,7 +290,7 @@ ECHO       ..\Source\CnSM4.obj ..\Source\CnSM9.obj                              
 ECHO       ..\Source\CnTEA.obj ..\Source\CnVector.obj                                 >> Crypto.bpr
 ECHO       ..\Source\CnXXH.obj                                                        >> Crypto.bpr
 ECHO       ..\Source\CnZUC.obj ..\Source\CnBigDecimal.obj                             >> Crypto.bpr
-ECHO       ..\Source\CnBigRational.obj                                                >> Crypto.bpr
+ECHO       ..\Source\CnBigRational.obj ..\Source\CnCalendar.obj                       >> Crypto.bpr
 ECHO       ..\Source\CnConsts.obj ..\Source\CnContainers.obj                          >> Crypto.bpr
 ECHO       ..\Source\CnFileUtils.obj ..\Source\CnFloat.obj                            >> Crypto.bpr
 ECHO       ..\Source\CnHashMap.obj ..\Source\CnMath.obj                               >> Crypto.bpr
@@ -487,6 +489,7 @@ ECHO   CnBigRational in '..\Source\CnBigRational.pas',                         >
 ECHO   CnBits in '..\Source\CnBits.pas',                                       >> %1
 ECHO   CnBLAKE in '..\Source\CnBLAKE.pas',                                     >> %1
 ECHO   CnBLAKE2 in '..\Source\CnBLAKE2.pas',                                   >> %1
+ECHO   CnCalendar in '..\Source\CnCalendar.pas',                               >> %1
 ECHO   CnCertificateAuthority in '..\Source\CnCertificateAuthority.pas',       >> %1
 ECHO   CnChaCha20 in '..\Source\CnChaCha20.pas',                               >> %1
 ECHO   CnComplex in '..\Source\CnComplex.pas',                                 >> %1

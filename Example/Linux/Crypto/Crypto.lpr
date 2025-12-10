@@ -79,6 +79,7 @@ uses
   CnZUC in '..\..\..\Source\Crypto\CnZUC.pas',
   CnBigDecimal in '..\..\..\Source\Common\CnBigDecimal.pas',
   CnBigRational in '..\..\..\Source\Common\CnBigRational.pas',
+  CnCalendar in '..\..\..\Source\Common\CnCalendar.pas',
   CnConsts in '..\..\..\Source\Common\CnConsts.pas',
   CnContainers in '..\..\..\Source\Common\CnContainers.pas',
   CnFileUtils in '..\..\..\Source\Common\CnFileUtils.pas',

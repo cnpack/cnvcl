@@ -49,6 +49,7 @@ USEUNIT("..\..\..\Source\Crypto\CnXXH.pas");
 USEUNIT("..\..\..\Source\Crypto\CnZUC.pas");
 USEUNIT("..\..\..\Source\Common\CnBigDecimal.pas");
 USEUNIT("..\..\..\Source\Common\CnBigRational.pas");
+USEUNIT("..\..\..\Source\Common\CnCalendar.pas");
 USEUNIT("..\..\..\Source\Common\CnConsts.pas");
 USEUNIT("..\..\..\Source\Common\CnContainers.pas");
 USEUNIT("..\..\..\Source\Common\CnFloat.pas");
