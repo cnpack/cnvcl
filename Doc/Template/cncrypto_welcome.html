@@ -48,7 +48,7 @@
 
 <h2>概述</h2>
 <p>CnPack 密码算法库（CnPack Crypto Library）源于 CnPack 开发组的开源项目 CnVcl 组件包（CnVcl Component Package），是一套以纯 Object Pascal 语言编写的开源加解密源码库，支持 Delphi 5 至最新版本的 RAD Studio，支持 C++Builder 5/6 及 Lazarus/FPC，并支持 32 位与 64 位的 Windows、MacOS、Linux 等操作系统。</p>
-<p>CnPack 密码算法库致力于提供强大的加解密算法支持与数据安全保障。它覆盖了国内外常见的加解密算法及中国国家商用密码算法，包括对称加密、非对称加密、杂凑（或名散列、摘要、哈希）等大类及众多其他基础与辅助功能。</p>
+<p>CnPack 密码算法库致力于提供强大的加解密算法支持与数据安全保障。它覆盖了国内外常见的加解密算法及中国国家商用密码算法，包括对称加密、非对称加密、杂凑（或名散列、摘要、哈希）等大类算法、部分抗量子算法及众多其他基础与辅助功能。</p>
 <h2>许可协议</h2>
 <p>CnPack 开发包以开放源码（Open Source）的形式发布，遵守 CnPack 的许可协议，受 CnPack 许可协议的保护。License 文件中有该协议的详细描述，具体内容可参考协议文件。</p>
 <h2>主要内容</h2>
@@ -62,7 +62,8 @@
 <li><strong>大数支持</strong>：大整数、大有理数、大浮点数、一元大数多项式、二元大数多项式、一元大有理数分式</li>
 <li><strong>运算支持</strong>：素数运算与判定、浮点复数运算、位运算、矩阵运算、离散傅立叶变换、128 位整型支持</li>
 <li><strong>数论计算</strong>：中国剩余定理、Lucas 序列、PollardRho 因数分解、模素数二次剩余、勒让德/雅可比符号</li>
-<li><strong>其他</strong>：DSA 签名验证、关联数据认证加密、动态口令 OTP、密钥派生 KDF、秘密共享的 Shamir 门限方案及 Feldman VSS 方案</li>
+<li><strong>抗量子计算</strong>：基于模块化格的密钥封装机制 MLKEM、基于模块化格的数字签名算法 MLDSA</li>
+<li><strong>其他</strong>：DSA 签名验证、关联数据认证加密、动态口令 OTP、密钥派生 KDF、秘密共享的 Shamir 门限方案及 Feldman VSS 方案、历法计算</li>
 </ul>
 <h2>国密支持</h2>
 <p>CnPack 密码算法库对中国国家商用密码算法标准有着完整而强大的支持：</p>
@@ -82,8 +83,8 @@
 <p>另外 CnPack 密码算法库也提供了运行期包的形式，在任一版本 Delphi 中打开 cncrypto\Package\CnCrypto.dpk，即可编译成 BPL 使用。注意如果已经编译安装了 CnPack 组件包，则无需也不应编译使用 CnPack 密码算法库的包，会出现单元命名冲突。</p>
 <p>注：如果在 Delphi 5 下编译该 BPL，需手工将 requires 语句中的 vcl 改为 vcl50。</p>
 <h2>测试用例</h2>
-<p>cncrypto\Test 目录下有一完整的命令行测试用例 CryptoTest.dpr，使用任一版本 Delphi 打开运行即可覆盖验证 CnPack 密码算法库的绝大多数功能，或用 C++Builder 5/6 打开 Crypto.bpr、或用 Lazarus 打开 Crypto.lpi，均同样可以运行。在没有 Lazarus 仅有 FPC 时，也可用 fpc 命令行编译 Crypto.lpr 以运行。尾部两个用例耗时较长以小时计，跑时需有耐心。<br>
-另外，本加解密库仅在小端 CPU 上运行测试过，大端 CPU 暂不保证支持。</p>
+<p>cncrypto\Test 目录下有一完整的命令行测试用例 CryptoTest.dpr，使用任一版本 Delphi 打开运行即可覆盖验证 CnPack 密码算法库的绝大多数功能，或用 C++Builder 5/6 打开 Crypto.bpr、或用 Lazarus 打开 Crypto.lpi，均同样可以运行。在没有 Lazarus 仅有 FPC 时，也可用 fpc 命令行编译 Crypto.lpr 以运行。尾部两个用例耗时较长以小时计，跑时需有耐心。</p>
+<p>另外，本加解密库仅在小端 CPU 上运行测试过，大端 CPU 暂不保证支持。</p>
 <h2>演示例子</h2>
 <p>cncrypto\Example 目录下有 Delphi 和 Lazarus 两个目录，其中各个子目录下分别是 Delphi 下以及 Lazarus 下的各类算法的演示示例，可使用对应 IDE 打开以了解各类算法库的调用方式。</p>
 <h2>关于我们</h2>

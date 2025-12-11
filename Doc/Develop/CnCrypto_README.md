@@ -4,7 +4,7 @@
 
 CnPack 密码算法库（CnPack Crypto Library）源于 CnPack 开发组的开源项目 CnVcl 组件包（CnVcl Component Package），是一套以纯 Object Pascal 语言编写的开源加解密源码库，支持 Delphi 5 至最新版本的 RAD Studio，支持 C++Builder 5/6 及 Lazarus/FPC，并支持 32 位与 64 位的 Windows、MacOS、Linux 等操作系统。
 
-CnPack 密码算法库致力于提供强大的加解密算法支持与数据安全保障。它覆盖了国内外常见的加解密算法及中国国家商用密码算法，包括对称加密、非对称加密、杂凑（或名散列、摘要、哈希）等大类及众多其他基础与辅助功能。
+CnPack 密码算法库致力于提供强大的加解密算法支持与数据安全保障。它覆盖了国内外常见的加解密算法及中国国家商用密码算法，包括对称加密、非对称加密、杂凑（或名散列、摘要、哈希）等大类算法、部分抗量子算法及众多其他基础与辅助功能。
 
 ## 许可协议
 
@@ -76,7 +76,7 @@ CnPack 开发组由互联网上热爱 Delphi/C++Builder 程序开发的一群中国程序员自愿者自发
 
 The CnPack Crypto Library originates from the CnVcl Component Package, an open-source project by the CnPack Development Team. It is a pure Object Pascal-based open-source cryptographic library supporting Delphi 5 up to the latest versions of RAD Studio, C++Builder 5/6, and Lazarus/FPC. It supports 32-bit and 64-bit versions of operating systems including Windows, macOS, and Linux.
 
-The CnPack Crypto Library aims to provide robust cryptographic algorithm support and data security. It covers common domestic and international encryption/decryption algorithms, including China's State Cryptography Administration (Commercial Cryptography) standards, such as symmetric encryption, asymmetric encryption, hash (also known as digest or checksum) functions, and numerous other fundamental and auxiliary cryptographic features.
+The CnPack Crypto Library aims to provide robust cryptographic algorithm support and data security. It covers common domestic and international encryption/decryption algorithms, including China's State Cryptography Administration (Commercial Cryptography) standards, such as symmetric encryption, asymmetric encryption, hash (also known as digest or checksum) functions, some Post-Quantum algorithms and numerous other fundamental and auxiliary cryptographic features.
 
 ## License
 
