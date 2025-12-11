@@ -77,26 +77,26 @@ function TestUtf8: Boolean;
 
 // ================================ Calendar ======================================
 
-function TestWeek: Boolean;
-function TestYinYang: Boolean;
-function TestGanZhi: Boolean;
-function TestShengXiao: Boolean;
-function TestXingZuo: Boolean;
-function TestJieQi: Boolean;
-function Test5Xing: Boolean;
-function Test12Jian: Boolean;
-function Test3Yuan9Yun: Boolean;
-function Test9Xing: Boolean;
-function Test28Xiu: Boolean;
-function Test6Yao: Boolean;
-function TestLunar: Boolean;
-function TestShuJiu: Boolean;
-function Test3Fu: Boolean;
-function TestTaiShen: Boolean;
-function TestJiShenFangWei: Boolean;
-function TestTaiSui: Boolean;
-function TestJulianDate: Boolean;
-function TestSolarLunarConvert: Boolean;
+function TestCalendarWeek: Boolean;
+function TestCalendarYinYang: Boolean;
+function TestCalendarGanZhi: Boolean;
+function TestCalendarShengXiao: Boolean;
+function TestCalendarXingZuo: Boolean;
+function TestCalendarJieQi: Boolean;
+function TestCalendar5Xing: Boolean;
+function TestCalendar12Jian: Boolean;
+function TestCalendar3Yuan9Yun: Boolean;
+function TestCalendar9Xing: Boolean;
+function TestCalendar28Xiu: Boolean;
+function TestCalendar6Yao: Boolean;
+function TestCalendarLunar: Boolean;
+function TestCalendarShuJiu: Boolean;
+function TestCalendar3Fu: Boolean;
+function TestCalendarTaiShen: Boolean;
+function TestCalendarJiShenFangWei: Boolean;
+function TestCalendarTaiSui: Boolean;
+function TestCalendarJulianDate: Boolean;
+function TestCalendarSolarLunarConvert: Boolean;
 
 // ============================== BigNumber ====================================
 
@@ -522,26 +522,26 @@ begin
 
 // ================================ Calendar ======================================
 
-  MyAssert(TestWeek, 'TestWeek');
-  MyAssert(TestYinYang, 'TestYinYang');
-  MyAssert(TestGanZhi, 'TestGanZhi');
-  MyAssert(TestShengXiao, 'TestShengXiao');
-  MyAssert(TestXingZuo, 'TestXingZuo');
-  MyAssert(TestJieQi, 'TestJieQi');
-  MyAssert(Test5Xing, 'Test5Xing');
-  MyAssert(Test12Jian, 'Test12Jian');
-  MyAssert(Test3Yuan9Yun, 'Test3Yuan9Yun');
-  MyAssert(Test9Xing, 'Test9Xing');
-  MyAssert(Test28Xiu, 'Test28Xiu');
-  MyAssert(Test6Yao, 'Test6Yao');
-  MyAssert(TestLunar, 'TestLunar');
-  MyAssert(TestShuJiu, 'TestShuJiu');
-  MyAssert(Test3Fu, 'Test3Fu');
-  MyAssert(TestTaiShen, 'TestTaiShen');
-  MyAssert(TestJiShenFangWei, 'TestJiShenFangWei');
-  MyAssert(TestTaiSui, 'TestTaiSui');
-  MyAssert(TestJulianDate, 'TestJulianDate');
-  MyAssert(TestSolarLunarConvert, 'TestSolarLunarConvert');
+  MyAssert(TestCalendarWeek, 'TestCalendarWeek');
+  MyAssert(TestCalendarYinYang, 'TestCalendarYinYang');
+  MyAssert(TestCalendarGanZhi, 'TestCalendarGanZhi');
+  MyAssert(TestCalendarShengXiao, 'TestCalendarShengXiao');
+  MyAssert(TestCalendarXingZuo, 'TestCalendarXingZuo');
+  MyAssert(TestCalendarJieQi, 'TestCalendarJieQi');
+  MyAssert(TestCalendar5Xing, 'TestCalendar5Xing');
+  MyAssert(TestCalendar12Jian, 'TestCalendar12Jian');
+  MyAssert(TestCalendar3Yuan9Yun, 'TestCalendar3Yuan9Yun');
+  MyAssert(TestCalendar9Xing, 'TestCalendar9Xing');
+  MyAssert(TestCalendar28Xiu, 'TestCalendar28Xiu');
+  MyAssert(TestCalendar6Yao, 'TestCalendar6Yao');
+  MyAssert(TestCalendarLunar, 'TestCalendarLunar');
+  MyAssert(TestCalendarShuJiu, 'TestCalendarShuJiu');
+  MyAssert(TestCalendar3Fu, 'TestCalendar3Fu');
+  MyAssert(TestCalendarTaiShen, 'TestCalendarTaiShen');
+  MyAssert(TestCalendarJiShenFangWei, 'TestCalendarJiShenFangWei');
+  MyAssert(TestCalendarTaiSui, 'TestCalendarTaiSui');
+  MyAssert(TestCalendarJulianDate, 'TestCalendarJulianDate');
+  MyAssert(TestCalendarSolarLunarConvert, 'TestCalendarSolarLunarConvert');
 
 // ============================== BigNumber ====================================
 
@@ -1179,7 +1179,7 @@ end;
 
 // ================================ Calendar ======================================
 
-function TestWeek: Boolean;
+function TestCalendarWeek: Boolean;
 begin
   Result := (GetWeek(2025, 1, 1) = 3) and // 2025 年 1 月 1 日星期三
     (GetWeek(2024, 2, 29) = 4) and        // 2024 年 2 月 29 日星期四
@@ -1188,7 +1188,7 @@ begin
     (GetWeekFromNumber(6) = '六');
 end;
 
-function TestYinYang: Boolean;
+function TestCalendarYinYang: Boolean;
 begin
   Result := (GetYinYangFromGan(0) = 1) and // 甲为阳
     (GetYinYangFromGan(1) = 0) and         // 乙为阴
@@ -1198,7 +1198,7 @@ begin
     (GetYinYangFromNumber(1) = '阳');
 end;
 
-function TestGanZhi: Boolean;
+function TestCalendarGanZhi: Boolean;
 var
   Gan, Zhi: Integer;
 begin
@@ -1220,7 +1220,7 @@ begin
     (GetGanZhiFromHour(2025, 1, 1, 0) = 12);   // 2025 年 1 月 1 日 0 时丙子
 end;
 
-function TestShengXiao: Boolean;
+function TestCalendarShengXiao: Boolean;
 begin
   Result := (GetShengXiaoFromYear(2025) = 5) and // 2025 年蛇
     (GetShengXiaoFromYear(2024) = 4) and         // 2024 年龙
@@ -1229,7 +1229,7 @@ begin
     (GetShengXiaoFromNumber(11) = '猪');
 end;
 
-function TestXingZuo: Boolean;
+function TestCalendarXingZuo: Boolean;
 begin
   Result := (GetXingZuoFromMonthDay(3, 21) = 0) and // 3 月 21 日白羊
     (GetXingZuoFromMonthDay(4, 20) = 0) and         // 4 月 20 日白羊
@@ -1239,7 +1239,7 @@ begin
     (GetXingZuoFromNumber(11) = '双鱼');
 end;
 
-function TestJieQi: Boolean;
+function TestCalendarJieQi: Boolean;
 var
   Month, Day, Hour, Minute, Second, ActualYear: Integer;
 begin
@@ -1252,7 +1252,7 @@ begin
     (GetJieQiFromNumber(23) = '大寒');
 end;
 
-function Test5Xing: Boolean;
+function TestCalendar5Xing: Boolean;
 begin
   Result := (Get5XingFromGan(0) = 1) and  // 甲木
     (Get5XingFromGan(1) = 1) and          // 乙木
@@ -1265,14 +1265,14 @@ begin
     (Get5XingFromNumber(4) = '土');
 end;
 
-function Test12Jian: Boolean;
+function TestCalendar12Jian: Boolean;
 begin
   Result := (Get12JianFromDay(2025, 1, 1) >= 0) and (Get12JianFromDay(2025, 1, 1) <= 11) and
     (Get12JianFromNumber(0) = '建') and
     (Get12JianFromNumber(11) = '闭');
 end;
 
-function Test3Yuan9Yun: Boolean;
+function TestCalendar3Yuan9Yun: Boolean;
 begin
   Result := (Get3YuanFromYear(2025, 1, 1) >= 0) and (Get3YuanFromYear(2025, 1, 1) <= 2) and
     (GetYun9XingFromYear(2025, 1, 1) >= 0) and (GetYun9XingFromYear(2025, 1, 1) <= 8) and
@@ -1280,7 +1280,7 @@ begin
     (Get3YuanFromNumber(2) = '下元');
 end;
 
-function Test9Xing: Boolean;
+function TestCalendar9Xing: Boolean;
 begin
   Result := (Get9XingFromYear(2025, 1, 1) >= 0) and (Get9XingFromYear(2025, 1, 1) <= 8) and
     (Get9XingFromMonth(2025, 1, 1) >= 0) and (Get9XingFromMonth(2025, 1, 1) <= 8) and
@@ -1290,7 +1290,7 @@ begin
     (Get9XingFromNumber(8) = '九紫');
 end;
 
-function Test28Xiu: Boolean;
+function TestCalendar28Xiu: Boolean;
 begin
   Result := (Get28XiuFromDay(2025, 1, 1) >= 0) and (Get28XiuFromDay(2025, 1, 1) <= 27) and
     (GetLunar28XiuFromDay(2025, 1, 1) >= -1) and (GetLunar28XiuFromDay(2025, 1, 1) <= 27) and
@@ -1300,14 +1300,14 @@ begin
     (Get28XiuLongFromNumber(27) = '轸水蚓');
 end;
 
-function Test6Yao: Boolean;
+function TestCalendar6Yao: Boolean;
 begin
   Result := (Get6YaoFromDay(2025, 1, 1) >= 0) and (Get6YaoFromDay(2025, 1, 1) <= 5) and
     (Get6YaoFromNumber(0) = '先胜') and
     (Get6YaoFromNumber(5) = '赤口');
 end;
 
-function TestLunar: Boolean;
+function TestCalendarLunar: Boolean;
 var
   LunarYear, LunarMonth, LunarDay: Integer;
   IsLeapMonth: Boolean;
@@ -1327,26 +1327,26 @@ begin
     (GetLunarDayFromNumber(30) = '三十');
 end;
 
-function TestShuJiu: Boolean;
+function TestCalendarShuJiu: Boolean;
 var
   JiuSeq, JiuDay: Integer;
 begin
-  Result := (GetShu9Day(2025, 1, 1, JiuSeq, JiuDay)) and // 2025年1月1日在数九内
+  Result := (GetShu9Day(2025, 1, 1, JiuSeq, JiuDay)) and // 2025 年 1 月 1 日在数九内
     (JiuSeq >= 1) and (JiuSeq <= 9) and
     (JiuDay >= 1) and (JiuDay <= 9);
 end;
 
-function Test3Fu: Boolean;
+function TestCalendar3Fu: Boolean;
 var
   FuSeq, FuDay: Integer;
 begin
-  Result := not Get3FuDay(2025, 1, 1, FuSeq, FuDay) and // 2025年1月1日不在三伏内
+  Result := not Get3FuDay(2025, 1, 1, FuSeq, FuDay) and // 2025年 1 月 1 日不在三伏内
     (Get3FuFromNumber(0) = '初伏') and
     (Get3FuFromNumber(1) = '中伏') and
     (Get3FuFromNumber(2) = '末伏');
 end;
 
-function TestTaiShen: Boolean;
+function TestCalendarTaiShen: Boolean;
 var
   TaiShen1, TaiShen2: string;
 begin
@@ -1355,7 +1355,7 @@ begin
     (GetTaiShenStringFromDay(2025, 1, 1) <> '');
 end;
 
-function TestJiShenFangWei: Boolean;
+function TestCalendarJiShenFangWei: Boolean;
 begin
   Result := (GetCaiShenFangWeiFromDay(2025, 1, 1) >= 0) and (GetCaiShenFangWeiFromDay(2025, 1, 1) <= 7) and
     (GetXiShenFangWeiFromDay(2025, 1, 1) >= 0) and (GetXiShenFangWeiFromDay(2025, 1, 1) <= 7) and
@@ -1365,7 +1365,7 @@ begin
     (GetJiShenFangWeiFromNumber(7) = '西北');
 end;
 
-function TestTaiSui: Boolean;
+function TestCalendarTaiSui: Boolean;
 begin
   Result := (Get12TaiSuiFromNumber(0) = '太岁') and
     (Get12TaiSuiFromNumber(11) = '病符') and
@@ -1373,7 +1373,7 @@ begin
     (Get60TaiSuiFromNumber(59) = '虞程');
 end;
 
-function TestJulianDate: Boolean;
+function TestCalendarJulianDate: Boolean;
 var
   Year, Month, Day: Integer;
   JD, MJD: Extended;
@@ -1387,7 +1387,7 @@ begin
     (Year = 2025) and (Month = 1) and (Day = 1);
 end;
 
-function TestSolarLunarConvert: Boolean;
+function TestCalendarSolarLunarConvert: Boolean;
 var
   LunarYear, LunarMonth, LunarDay: Integer;
   IsLeapMonth: Boolean;
