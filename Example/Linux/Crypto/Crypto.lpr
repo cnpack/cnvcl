@@ -22,8 +22,6 @@ program Crypto;
 
 {$MODE Delphi}
 
-{$APPTYPE CONSOLE}
-
 {$R *.res}
 
 uses

@@ -100,12 +100,10 @@ ECHO program Crypto;                                                           >
 ECHO.                                                                          >> Crypto.lpr
 ECHO.{$MODE Delphi}                                                            >> Crypto.lpr
 ECHO.                                                                          >> Crypto.lpr
-ECHO {$APPTYPE CONSOLE}                                                        >> Crypto.lpr
-ECHO.                                                                          >> Crypto.lpr
 ECHO {$R *.res}                                                                >> Crypto.lpr
 ECHO.                                                                          >> Crypto.lpr
 ECHO uses                                                                      >> Crypto.lpr
-ECHO   SysUtils, Interfaces,                                                   >> Crypto.lpr
+ECHO   SysUtils,                                                               >> Crypto.lpr
 CALL :PRINTFILES Crypto.lpr
 ECHO   CryptoTest in 'CryptoTest.pas';                                         >> Crypto.lpr
 ECHO.                                                                          >> Crypto.lpr
