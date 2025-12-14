@@ -355,6 +355,7 @@ function TestFNV1a: Boolean;
 // ================================ FEC ========================================
 
 function TestHamming: Boolean;
+function TestReedSolomon: Boolean;
 
 // ================================ DSA ========================================
 
@@ -802,6 +803,7 @@ begin
 // ================================ FEC ========================================
 
   MyAssert(TestHamming, 'TestHamming');
+  MyAssert(TestReedSolomon, 'TestReedSolomon');
 
 // ================================ DSA ========================================
 
@@ -7184,6 +7186,41 @@ begin
     OB.Free;
     IB.Free;
   end;
+end;
+
+function TestReedSolomon: Boolean;
+var
+  I: Integer;
+  D, R, B, Idxs: TBytes;
+begin
+  SetLength(D, 8);
+  for I := 0 to Length(D) - 1 do
+    D[I] := 3 * I + 1;
+
+  R := CnCalcReedSolomonCode(D, 12);
+  Result := (Length(R) = 12) and CompareBytes(R, D, 8); // 前 8 个字节必须相同
+
+  if not Result then Exit;
+
+  B := Copy(R, 0, 8);
+  B := CnVerifyReedSolomonCode(B, Length(R));
+
+  Result := CompareBytes(D, B);
+  if not Result then Exit;
+
+  SetLength(Idxs, 8);
+  SetLength(B, 8);
+  B[0] := R[1]; Idxs[0] := 1;
+  B[1] := R[3]; Idxs[1] := 3;
+  B[2] := R[4]; Idxs[2] := 4;
+  B[3] := R[6]; Idxs[3] := 6;
+  B[4] := R[7]; Idxs[4] := 7;
+  B[5] := R[8]; Idxs[5] := 8;
+  B[6] := R[10]; Idxs[6] := 10;
+  B[7] := R[11]; Idxs[7] := 11;
+
+  B := CnVerifyReedSolomonCode(B, Length(R), Idxs);
+  Result := CompareBytes(D, B);
 end;
 
 // ================================ DSA ========================================

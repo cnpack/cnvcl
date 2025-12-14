@@ -1524,8 +1524,10 @@ begin
     Rational.RowCount := Int.RowCount;
 
     for I := 0 to Rational.RowCount - 1 do
+    begin
       for J := 0 to Rational.ColCount - 1 do
         Rational.Value[I, J].SetIntValue(Int.Value[I, J]);
+    end;
   end;
 end;
 
