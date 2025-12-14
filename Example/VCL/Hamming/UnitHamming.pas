@@ -253,46 +253,45 @@ begin
   VandermondeGalois(V, M, N);
   L := TStringList.Create;
   V.DumpToStrings(L);
-  ShowMessage(L.Text);
+  ShowMessage(L.Text);    // 生成的矩阵
 
   D := TCnGalois2Power8Matrix.Create(N, 1);
   R := TCnGalois2Power8Matrix.Create(1, 1);
   for I := 0 to N - 1 do
-    D.Value[I, 0] := (ARR[I]);
+    D.Value[I, 0] := ARR[I];
 
   CnMatrixMul(V, D, R);
   R.DumpToStrings(L);
-  ShowMessage(L.Text);
+  ShowMessage(L.Text);    // 编码完毕的数据
 
   // R 是原始数据加校验数据，删去 3 个
   V.DeleteRow(5);
   V.DeleteRow(3);
   V.DeleteRow(1);
   V.DumpToStrings(L);
-  ShowMessage(L.Text);
+  ShowMessage(L.Text);    // 破坏的矩阵
 
   R.DeleteRow(5);
   R.DeleteRow(3);
   R.DeleteRow(1);
   R.DumpToStrings(L);
-  ShowMessage(L.Text);
+  ShowMessage(L.Text);    // 破坏的编码
 
   // 求逆矩阵并乘以结果
   DI := TCnGalois2Power8Matrix.Create(1, 1);
   CnMatrixInverse(V, DI);
   DI.DumpToStrings(L);
-  ShowMessage(L.Text);
+  ShowMessage(L.Text);    // 逆矩阵的内容
 
   CnMatrixMul(DI, R, V);
   V.DumpToStrings(L);
-  ShowMessage(L.Text);  // 还原回 ARR 中的五个值
+  ShowMessage(L.Text);    // 还原回 ARR 中的五个值
 
   DI.Free;
   D.Free;
   R.Free;
   L.Free;
   V.Free;
-
 end;
 
 procedure TFormHamming.VandermondeGalois(V: TCnGalois2Power8Matrix; M,
@@ -314,11 +313,13 @@ begin
   V.ColCount := N;
 
   for I := 0 to N - 1 do
+  begin
     for J := 0 to N - 1 do
       if I = J then
         V.Value[I, J] := 1
       else
         V.Value[I, J] := 0;
+  end;
 
   for J := 0 to N - 1 do
     V.Value[N, J] := 1;

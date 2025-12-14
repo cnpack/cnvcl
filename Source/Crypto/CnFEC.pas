@@ -24,14 +24,15 @@ unit CnFEC;
 * 软件名称：开发包基础库
 * 单元名称：前向校验与纠错实现单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
-* 备    注：本单元实现了基于汉明码（Hamming）的前向校验纠错，目前只能处理一串二进
-*           制位的汉明码校验，以 CnCalcHammingCode 与 CnVerifyHammingCode 函数为代表。
-*           注意校验码可以比原始码长不少。
+* 备    注：本单元实现了基于汉明码（Hamming）及里德·所罗门码（Reed Solomon）的前向校验纠错，
+*           前者目前只能处理一串二进制位的汉明码校验，注意校验码可以比原始码长不少。
 *
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.11.16 V1.2
+* 修改记录：2025.12.14 V1.3
+*               实现 Reed Solomon 纠错码
+*           2023.11.16 V1.2
 *               调整校验的参数顺序
 *           2019.06.20 V1.1
 *               实现伽罗华 2^8 矩阵的运算
@@ -45,11 +46,14 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnMatrix;
+  SysUtils, Classes, CnNative, CnMatrix;
 
 type
   ECnHammingException = class(Exception);
   {* 汉明码前向校验相关异常}
+
+  ECnReedSolomonException = class(Exception);
+  {* 里德所罗门纠错相关异常}
 
   ECnCalculationRuleException = class(Exception);
   {* 前向纠错相关异常}
@@ -283,6 +287,31 @@ function CnGalois2Power8Rule: TCnCalculationRule;
    返回值：TCnCalculationRule             - 返回的全局 GP(2^8) 的运算规则实例
 }
 
+function CnCalcReedSolomonCode(Data: TBytes; NeedByteLength: Integer): TBytes;
+{* 根据字节数组内容及要求的纠错长度 M，计算其 Reed Solomon 纠错码，内部默认分组 8 Bit 也就是 1 字节。
+
+   参数：
+     Data: TBytes                         - 原始待生成校验码的字节数组，长度即算法中的 N
+     NeedByteLength: Integer              - 生成的带校验码的总数据长度，也即算法中的 M
+
+   返回值：TBytes                         - 返回原始及带校验码的数据
+}
+
+function CnVerifyReedSolomonCode(Code: TBytes; CodeByteLength: Integer; Indexes: TBytes = nil): TBytes;
+{* 根据 Reed Solomon 纠错码还原并校验其内容，内部默认分组 8 Bit 也就是 1 字节。
+   Code 表示挑出的原始数据长度个字节（其他的是错误字节抛弃掉了），
+   Indexes 代表这批字节在纠错码中的序号，下标从 0 开始到原始数据长度 - 1，
+   内容从 0 开始到纠错数据长度也就是 CodeByteLength - 1。
+   如传 nil，表示 Code 是纠错码前 M 位，直接当成原始数据返回。
+
+   参数：
+     Code: TBytes                         - 传输来的字节数组，混合纠错所生成的内容挑出了原始数据长度的字节
+     CodeByteLength: Integer              - 本次纠错码的总字节长度
+     Indexes: TBytes                      - 纠错码各字节的序号，如传 nil，表示序号就是前 N 个
+
+   返回值：TBytes                         - 返回原始数据
+}
+
 implementation
 
 resourcestring
@@ -293,6 +322,8 @@ resourcestring
   SCnErrorPaddingSizeForVerifyBit = 'Error Padding Size %d for Verify Bit Count %d.';
   SCnErrorOutOfRangeForGalois28 = 'Out of Range for Galois 2^8: %d';
   SCnErrorOutOfRangeForGalois281 = 'Out of Range for Galois 2^8: %d, %d';
+  SCnErrorVandermondeMatrixParam = 'Vandermonde Matrix Params Error.';
+  SCnErrorReedSolomonIndexParam = 'Reed Solomon Code Index Error.';
 
 const
   GALOIS2POWER8_LIMIT = 255;
@@ -655,6 +686,162 @@ procedure TCnGalois2Power8Matrix.SetValue(Row, Col: Integer;
 begin
   CheckGalois2Power8Value(AValue);
   inherited;
+end;
+
+// 生成 M 行 N 列的在伽罗华域上的范德蒙矩阵
+procedure VandermondeGalois(V: TCnGalois2Power8Matrix; M, N: Integer);
+var
+  I, J: Integer;
+  Arr: array of Int64;
+begin
+  if (M <= 0) or (N <= 0) or (M <= N) then
+    raise ECnReedSolomonException.Create(SCnErrorVandermondeMatrixParam);
+
+  if V = nil then
+    Exit;
+
+  V.RowCount := M;
+  V.ColCount := N;
+
+  for I := 0 to N - 1 do
+  begin
+    for J := 0 to N - 1 do
+      if I = J then
+        V.Value[I, J] := 1
+      else
+        V.Value[I, J] := 0;
+  end;
+
+  for J := 0 to N - 1 do
+    V.Value[N, J] := 1;
+
+  SetLength(Arr, N);
+  for I := 0 to N - 1 do
+    Arr[I] := I + 1;
+
+  for I := N + 1 to M - 1 do
+  begin
+    for J := 0 to N - 1 do
+    begin
+      V.Value[I, J] := Arr[J];
+      Arr[J] := CnGalois2Power8Rule.Multiply(Arr[J], Arr[J]);
+    end;
+  end;
+end;
+
+function CnCalcReedSolomonCode(Data: TBytes; NeedByteLength: Integer): TBytes;
+var
+  V, D, R: TCnGalois2Power8Matrix;
+  M, N, I: Integer;
+begin
+  V := nil;
+  D := nil;
+  R := nil;
+
+  M := NeedByteLength;
+  N := Length(Data);
+
+  if (M <= 0) or (N <= 0) or (M <= N) then
+    raise ECnReedSolomonException.Create(SCnErrorVandermondeMatrixParam);
+
+  try
+    V := TCnGalois2Power8Matrix.Create(1, 1);
+    VandermondeGalois(V, M, N);
+
+    D := TCnGalois2Power8Matrix.Create(N, 1);
+    R := TCnGalois2Power8Matrix.Create(1, 1);
+
+    for I := 0 to N - 1 do
+      D.Value[I, 0] := Data[I];
+
+    CnMatrixMul(V, D, R); // M 行 N 列 * N 行 1 列 = M 行 1 列
+    SetLength(Result, M);
+    for I := 0 to M - 1 do
+      Result[I] := R[I, 0];
+  finally
+    R.Free;
+    D.Free;
+    V.Free;
+  end;
+end;
+
+function CnVerifyReedSolomonCode(Code: TBytes; CodeByteLength: Integer; Indexes: TBytes): TBytes;
+var
+  V, D, R: TCnGalois2Power8Matrix;
+  M, N, I: Integer;
+  L: TList;
+begin
+  M := CodeByteLength;
+  N := Length(Code);
+
+  if (M <= 0) or (N <= 0) or (M <= N) or ((Length(Indexes) > 0) and (Length(Indexes) <> N)) then
+    raise ECnReedSolomonException.Create(SCnErrorVandermondeMatrixParam);
+
+  if Length(Indexes) = 0 then
+  begin
+    Result := NewBytesFromMemory(@Code[0], N);
+    Exit;
+  end;
+
+  // 检查码块
+  if Length(Indexes) > 1 then
+  begin
+    for I := 0 to Length(Indexes) - 1 do
+    begin
+      // 内容必须递增
+      if I < Length(Indexes) - 1 then
+      begin
+        if Indexes[I + 1] <= Indexes[I] then
+          raise ECnReedSolomonException.Create(SCnErrorReedSolomonIndexParam);
+      end;
+
+      // 最大不能超过整个纠错码长度
+      if Indexes[I] >= M then
+        raise ECnReedSolomonException.Create(SCnErrorReedSolomonIndexParam);
+    end;
+  end;
+
+  // 开始还原
+
+  V := nil;
+  D := nil;
+  R := nil;
+  L := nil;
+
+  try
+    V := TCnGalois2Power8Matrix.Create(1, 1);
+    VandermondeGalois(V, M, N);
+
+    // 根据 Indexes 里缺失的部分，去掉 V 里对应的行
+    L := TList.Create;
+    for I := 0 to M - 1 do            // 准备 0 到 M - 1 的全集
+      L.Add(Pointer(I));
+
+    for I := N - 1 downto 0 do        // 删去已经在 Indexes 中出现的
+      L.Remove(Pointer(Indexes[I]));
+
+    for I := L.Count - 1 downto 0 do  // 剩下的就是该在范德蒙矩阵删去的内容
+      V.DeleteRow(Integer(L[I]));
+
+    // 准备残缺数据的矩阵
+    D := TCnGalois2Power8Matrix.Create(N, 1);
+    for I := 0 to N - 1 do
+      D.Value[I, 0] := Code[I];
+
+    // 求残缺范德蒙矩阵的逆
+    R := TCnGalois2Power8Matrix.Create(1, 1);
+    CnMatrixInverse(V, R);
+
+    CnMatrixMul(R, D, V); // V 没用了，复用之。N 行 N 列 * N 行 1 列 = N 行 1 列
+    SetLength(Result, N);
+    for I := 0 to N - 1 do
+      Result[I] := V[I, 0];
+  finally
+    R.Free;
+    D.Free;
+    L.Free;
+    V.Free;
+  end;
 end;
 
 end.
