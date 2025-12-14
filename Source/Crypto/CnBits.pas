@@ -24,8 +24,9 @@ unit CnBits;
 * 软件名称：开发包基础库
 * 单元名称：位处理单元
 * 单元作者：CnPack 开发组
-* 备    注：本单元实现了针对位（Bit）的组装等操作的实现类 TCnBits，支持基于位的索引，
-*           可增加内容及删除，不支持插入。
+* 备    注：本单元实现了针对位（Bit）的组装等操作的实现类 TCnBitBuilder，支持基于位的索引，
+*           可增加内容及删除，不支持插入。另外也提供与 TBits 对象的交互。
+*
 *           索引的顺序如下：
 *
 *           第 0 字节 第 1 字节
@@ -274,6 +275,24 @@ type
          Count: Integer                   - 待抽取的位数，不能大于 32
 
        返回值：Cardinal                   - 抽取的内容
+    }
+
+    procedure SetBits(ABits: TBits);
+    {* 从一个 Bits 对象中读入全部内容。
+
+       参数：
+         ABits: TBits                     - 待读取的 Bits 对象
+
+       返回值：（无）
+    }
+
+    procedure ToBits(ABits: TBits);
+    {* 将全部内容写入一个 Bits 对象。
+
+       参数：
+         ABits: TBits                     - 待写入的 Bits 对象
+
+       返回值：（无）
     }
 
     property Bit[Index: Integer]: Boolean read GetBit write SetBit; default;
@@ -683,6 +702,24 @@ begin
   end
   else
     inherited;
+end;
+
+procedure TCnBitBuilder.SetBits(ABits: TBits);
+var
+  I: Integer;
+begin
+  BitLength := ABits.Size;
+  for I := 0 to FBitLength - 1 do
+    Bit[I] := ABits[I];
+end;
+
+procedure TCnBitBuilder.ToBits(ABits: TBits);
+var
+  I: Integer;
+begin
+  ABits.Size := FBitLength;
+  for I := 0 to FBitLength - 1 do
+    ABits[I] := Bit[I];
 end;
 
 end.
