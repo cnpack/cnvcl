@@ -104,7 +104,7 @@ type
     {* 清空内容}
 
     function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
-    {* 按位转换成包含 0 和 1 的字符串。
+    {* 按位转换成包含 0 和 1 的字符串，字符串最开始为最低位。
 
        参数：
          （无）
@@ -468,6 +468,7 @@ procedure TCnBitBuilder.Clear;
 begin
   FBitLength := 0;
   ByteCapacity := BIT_BUILDER_DEFAULT_CAPACITY;
+  SetLength(FData, 0);
 end;
 
 function TCnBitBuilder.Copy(Index: Integer; Count: Integer): Cardinal;

@@ -128,6 +128,9 @@ function TestBigNumberBPSWIsPrime: Boolean;
 function TestBitsEmpty: Boolean;
 function TestBitsAppend: Boolean;
 function TestBitsDelete: Boolean;
+function TestBitsCopy: Boolean;
+function TestBitsBytes: Boolean;
+function TestBitsTBits: Boolean;
 
 // =============================== Int128 ======================================
 
@@ -573,6 +576,9 @@ begin
   MyAssert(TestBitsEmpty, 'TestBitsEmpty');
   MyAssert(TestBitsAppend, 'TestBitsAppend');
   MyAssert(TestBitsDelete, 'TestBitsDelete');
+  MyAssert(TestBitsCopy, 'TestBitsCopy');
+  MyAssert(TestBitsBytes, 'TestBitsBytes');
+  MyAssert(TestBitsTBits, 'TestBitsTBits');
 
 // =============================== Int128 ======================================
 
@@ -2046,6 +2052,136 @@ begin
   B.DeleteBits(13, MaxInt);
   Result := B.ToString = '0110101000101';
   B.Free;
+end;
+
+function TestBitsCopy: Boolean;
+var
+  B: TCnBitBuilder;
+  Value: Cardinal;
+begin
+  // 注意这里注释中的二进制位，最右边是最低位以便于阅读，不同于 TCnBitBuilder.ToString
+  B := TCnBitBuilder.Create;
+
+  // 测试复制 8 位
+  B.AppendByte($EA); // 11101010
+  Value := B.Copy(0, 8);
+  Result := Value = $EA;
+  if not Result then Exit;
+
+  B.Clear;
+  B.AppendByte($EA, False);
+  Value := B.Copy(0, 6);
+  Result := Value = $2A; // 11101010 的低 6 位再高位补 0，00101010
+  if not Result then Exit;
+
+  // 测试复制中间的位
+  B.Clear;
+  B.AppendWord($9F3B);   // 1001111100111011
+  Value := B.Copy(4, 8); //     |      |
+  Result := Value = $F3; // 11110011
+  if not Result then Exit;
+
+  // 测试复制跨越字节的位
+  B.Clear;
+  B.AppendDWord($12345678, False); // 00010010001101000101011001111000
+  Value := B.Copy(10, 16);         //       |              |
+  Result := Value = $8D15;         // 1000110100010101
+  if not Result then Exit;
+
+  B.Free;
+end;
+
+function TestBitsBytes: Boolean;
+var
+  B: TCnBitBuilder;
+  Bytes: TBytes;
+  Expected: TBytes;
+begin
+  B := TCnBitBuilder.Create;
+
+  // 测试 ToBytes 和 SetBytes
+  B.AppendByte($EA);
+  B.AppendWord($9F3B);
+  Bytes := B.ToBytes;
+
+  SetLength(Expected, 3);
+  Expected[0] := $EA;
+  Expected[1] := $3B;
+  Expected[2] := $9F;
+
+  Result := CompareBytes(Bytes, Expected);
+  if not Result then Exit;
+
+  // 测试 SetBytes
+  B.Clear;
+  B.SetBytes(Expected);
+  Result := (B.BitLength = 24) and (B.ByteLength = 3);
+  if not Result then Exit;
+
+  Result := (B.Copy(0, 8) = $EA) and (B.Copy(8, 8) = $3B) and (B.Copy(16, 8) = $9F);
+  if not Result then Exit;
+
+  // 测试不完整的字节
+  B.Clear;
+  B.AppendByteRange($EA, 5); // 只添加 6 位 101010
+  Bytes := B.ToBytes;
+  Result := (Length(Bytes) = 1) and (Bytes[0] = $2A);
+  if not Result then Exit;
+
+  B.Free;
+end;
+
+function TestBitsTBits: Boolean;
+var
+  B: TCnBitBuilder;
+  Bits: TBits;
+  I: Integer;
+begin
+  B := TCnBitBuilder.Create;
+  Bits := TBits.Create;
+
+  B.AppendByte($EA);
+  B.AppendWord($9F3B);
+  B.ToBits(Bits);
+
+  Result := (Bits.Size = 24) and
+    (not Bits[0]) and Bits[1] and (not Bits[2]) and Bits[3] and     // A
+    (not Bits[4]) and Bits[5] and Bits[6] and Bits[7] and           // E
+    Bits[8] and Bits[9] and (not Bits[10]) and Bits[11] and         // B
+    Bits[12] and Bits[13] and not (Bits[14]) and (not Bits[15]) and // 3
+    Bits[16] and Bits[17] and Bits[18] and Bits[19] and             // F
+    Bits[20] and (not Bits[21]) and (not Bits[22]) and Bits[23];    // 9
+  if not Result then Exit;
+
+  // 测试 TBits 到 BitBuilder
+  Bits.Size := 12;
+  for I := 0 to 11 do
+    Bits[I] := (I mod 3) = 0; // 每 3 位设为True
+
+  B.Clear;
+  B.SetBits(Bits);
+
+  Result := (B.BitLength = 12) and (B.ByteLength = 2);
+  if not Result then Exit;
+
+  // 验证位模式
+  for I := 0 to 11 do
+  begin
+    if B[I] <> ((I mod 3) = 0) then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+
+  // 测试空 Bits
+  B.Clear;
+  Bits.Size := 0;
+  B.SetBits(Bits);
+  Result := (B.BitLength = 0);
+
+  B.Free;
+  Bits.Free;
 end;
 
 // =============================== Int128 ======================================
