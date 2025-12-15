@@ -1221,6 +1221,9 @@ function IndexInt(ANum: Integer; AValues: array of Integer): Integer;
 procedure TrimStrings(AList: TStrings);
 {* 删除空行和每一行的行首尾空格}
 
+function TrimLineBreak(const S: string): string;
+{* 删除字符串头尾的回车换行，不删空格}
+
 procedure RemoveDuplicatedStrings(AList: TStrings; CaseSensitive: Boolean = True); overload;
 {* 字符串列表去重，CaseSensitive 表示判断重复时是否区分大小写}
 
@@ -7686,6 +7689,26 @@ begin
     AList[I] := Trim(AList[I]);
     if AList[I] = '' then
       AList.Delete(I);
+  end;
+end;
+
+// 删除字符串头尾的回车换行，不删空格
+function TrimLineBreak(const S: string): string;
+var
+  I, L: Integer;
+begin
+  L := Length(S);
+  I := 1;
+  while (I <= L) and ((S[I] = #13) or (S[I] = #10)) do
+    Inc(I);
+
+  if I > L then
+    Result := ''
+  else
+  begin
+    while (S[L] = #13) or (S[L] = #10) do
+      Dec(L);
+    Result := Copy(S, I, L - I + 1);
   end;
 end;
 
