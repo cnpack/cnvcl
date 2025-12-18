@@ -24,7 +24,8 @@ unit CnMath;
 * 软件名称：开发包基础库
 * 单元名称：数学计算的算法单元
 * 单元作者：CnPack 开发组
-* 备    注：本单元实现了一些数学函数，目的在于脱离 Math 库，运行效率较官方实现可能略低。
+* 备    注：本单元实现了一些数学函数，少部分目的在于脱离 Math 库，运行效率较官方实现可能略低。
+*           另一方面补充一些 Math 库中未实现的内容。
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -46,6 +47,13 @@ const
 
   CN_FLOAT_DEFAULT_DIGIT = 10;
   {* 默认的浮点运算位数}
+
+type
+  ECnMathException = class(Exception);
+  {* 数学计算相关异常}
+
+  TInt64s = array of Int64;
+  {* Int64 动态数组}
 
 function CnAbs(F: Extended): Extended; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 计算浮点数的绝对值。
@@ -83,10 +91,31 @@ function CnCeil(F: Extended): Integer; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
                        A3
              B2 + ------------
                             An
-                  B4 + ... ---
+                  B3 + ... ---
                             Bn
 }
-// function Int64ContinuedFraction
+function Int64ContinuedFraction(A, B: TInt64s): Extended;
+{* 计算连分数的值。连分数表示形式如下，注意 A B 要求长度一致，且 A[0] 的值会被忽略。
+   A 和 B 必须是相同大小的数组，实际使用的分子为 A[1] 到尾，分母为 B0 到尾巴。
+   如果数组长度为 0，函数返回 0，如果数组长度为 1，函数返回 B[0]
+   数组长度至少为 2 才会进行连分数计算。
+
+                  A1
+   B0 + ----------------------
+                     A2
+        B1 + -----------------
+                       A3
+             B2 + ------------
+                            An
+                  B3 + ... ---
+                            Bn
+
+   参数：
+     A: TInt64s                           - 分子数组，A[0] 被忽略，A[1] 对应 A1，A[n] 对应 An
+     B: TInt64s                           - 分母数组，B[0] 对应 B0，B[1] 对应 B1，...，B[n] 对应 Bn
+
+   返回值：Extended                       - 返回连分数值
+}
 
 function Int64Sqrt(N: Int64): Extended;
 {* 计算 Int64 的平方根，使用牛顿迭代 Xn+1 = (Xn + N/Xn)/2
@@ -293,6 +322,7 @@ const
 resourcestring
   SCnErrorMathSqrtRange = 'Sqrt Range Error.';
   SCnErrorMathLogRange = 'Log Range Error.';
+  SCnErrorMathFractionError = 'Error Length for Continue Fraction';
 
 function CnAbs(F: Extended): Extended;
 begin
@@ -316,6 +346,40 @@ begin
     Inc(Result);
 end;
 
+function Int64ContinuedFraction(A, B: TInt64s): Extended;
+var
+  I, N: Integer;
+  T: Extended;
+begin
+  if Length(A) = 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
+  if Length(A) <> Length(B) then
+    raise ECnMathException.Create(SCnErrorMathFractionError);
+
+  // 实际下标范围是 0..N
+  N := Length(A) - 1;
+
+  // 如果只有 B0，直接返回
+  if N = 0 then
+  begin
+    Result := B[0];
+    Exit;
+  end;
+
+  // 从最内层开始计算：T = A[N] / B[N]
+  T := A[N] / B[N];
+
+  // 从第 N-1 项向前迭代计算：T = A[I] / (B[I] + T)
+  for I := N - 1 downto 1 do
+    T := A[I] / (B[I] + T);
+
+  Result := B[0] + T;
+end;
+
 {$HINTS OFF}
 
 function Int64Sqrt(N: Int64): Extended;
@@ -323,7 +387,7 @@ var
   X0: Extended;
 begin
   if N < 0 then
-    raise ERangeError.Create(SCnErrorMathSqrtRange);
+    raise ECnMathException.Create(SCnErrorMathSqrtRange);
 
   Result := 0;
   if (N = 0) or (N = 1) then
@@ -348,7 +412,7 @@ var
   X0: Extended;
 begin
   if F < 0 then
-    raise ERangeError.Create(SCnErrorMathSqrtRange);
+    raise ECnMathException.Create(SCnErrorMathSqrtRange);
 
   Result := 0;
   if (F = 0) or (F = 1) then
@@ -812,7 +876,7 @@ var
 begin
   xHalf := 0.5 * X;
   I := (PCnInteger(@X))^;
-  I := $5f375a86 - (I shr 1);
+  I := $5F375A86 - (I shr 1);
   X := (PCnSingle(@I))^;
   X := X *(1.5 - xHalf * X * X);
   X := X *(1.5 - xHalf * X * X);

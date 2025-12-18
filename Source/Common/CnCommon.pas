@@ -2393,7 +2393,7 @@ end;
 // 打开一个链接
 procedure OpenUrl(const Url: string; UseCmd: Boolean);
 begin
-  // Do not check protocal prefix.
+  // Do not check protocol prefix.
   if CheckWindows9598 or not UseCmd then
     RunFile(Url)
   else

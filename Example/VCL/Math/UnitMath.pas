@@ -24,6 +24,7 @@ type
     btnXGEuler: TButton;
     btnFloatToHex: TButton;
     edtFloat: TEdit;
+    btnTestContFrac: TButton;
     procedure btnInt64SqrtClick(Sender: TObject);
     procedure btnSqrtClick(Sender: TObject);
     procedure btnLogNClick(Sender: TObject);
@@ -33,6 +34,7 @@ type
     procedure btnGaussLegendrePiClick(Sender: TObject);
     procedure btnXGEulerClick(Sender: TObject);
     procedure btnFloatToHexClick(Sender: TObject);
+    procedure btnTestContFracClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -83,7 +85,7 @@ end;
 
 procedure TFormMath.btnXGEulerClick(Sender: TObject);
 begin
-  mmoRes.Lines.Text := XavierGourdonEuler(5000);
+  mmoRes.Lines.Text := XavierGourdonEuler(1000);
 end;
 
 procedure TFormMath.btnFloatToHexClick(Sender: TObject);
@@ -97,6 +99,48 @@ begin
 
   X := HexToFloat(S);
   edtFloat.Text := FloatToStr(X);
+end;
+
+procedure TFormMath.btnTestContFracClick(Sender: TObject);
+const
+  TERM = 150;
+var
+  A, B: TInt64s;
+  I: Integer;
+  P: Extended;
+begin
+  // 创建数组，大小为 Terms + 1（加一是因为需要包含 A[0] 和 B[0]，虽然 A[0] 不使用）
+  SetLength(A, TERM + 1);
+  SetLength(B, TERM + 1);
+
+  // 初始化数组
+  // B[0] = 3（连分数的整数部分）
+  B[0] := 3;
+
+  // 填充 A 和 B 数组
+  for I := 0 to TERM do
+  begin
+    if I = 0 then
+    begin
+      // A[0] 不使用，但需要分配空间
+      A[0] := 0;
+    end
+    else
+    begin
+      // 分子：奇数的平方 (12, 32, 52, ...)
+      A[I] := Int64(2*I - 1) * Int64(2*I - 1);
+    end;
+
+    if I = 0 then
+      Continue; // B[0] 已经设置
+
+    // 分母：从 B[1] 开始都是6
+    B[I] := 6;
+  end;
+
+  // 使用连分数计算 π的近似值
+  P := Int64ContinuedFraction(A, B);
+  ShowMessage(FloatToStr(P));
 end;
 
 end.

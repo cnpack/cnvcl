@@ -1,6 +1,6 @@
 object FormMath: TFormMath
   Left = 268
-  Top = 137
+  Top = 138
   Width = 932
   Height = 563
   Caption = 'Math Test'
@@ -152,5 +152,14 @@ object FormMath: TFormMath
     Height = 21
     TabOrder = 14
     Text = '2981627637829.182774'
+  end
+  object btnTestContFrac: TButton
+    Left = 712
+    Top = 344
+    Width = 193
+    Height = 25
+    Caption = 'Test Continued Fraction'
+    TabOrder = 15
+    OnClick = btnTestContFracClick
   end
 end
