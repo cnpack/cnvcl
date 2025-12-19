@@ -276,7 +276,7 @@ begin
   if ByteLen > 0 then
   begin
     SetLength(Result, ByteLen);
-    CnRandomFillBytes2(@Result[0], ByteLen);
+    CnRandomFillBytes2(PAnsiChar(@Result[0]), ByteLen);
   end;
 end;
 
@@ -285,7 +285,7 @@ var
   HL: array[0..1] of Cardinal;
 begin
   // 优先用系统的随机数发生器
-  if not CnRandomFillBytes2(@HL[0], SizeOf(TUInt64)) then
+  if not CnRandomFillBytes2(PAnsiChar(@HL[0]), SizeOf(TUInt64)) then
   begin
     // 直接 Random * High(TUInt64) 可能会精度不够导致 Lo 全 FF，因此分开处理
     Randomize;
@@ -306,7 +306,7 @@ var
   HL: array[0..1] of Cardinal;
 begin
   // 优先用系统的随机数发生器
-  if not CnRandomFillBytes2(@HL[0], SizeOf(Int64)) then
+  if not CnRandomFillBytes2(PAnsiChar(@HL[0]), SizeOf(Int64)) then
   begin
     // 直接 Random * High(Int64) 可能会精度不够导致 Lo 全 FF，因此分开处理
     Randomize;
@@ -329,8 +329,8 @@ function RandomUInt32: Cardinal;
 var
   D: Cardinal;
 begin
-  // 优先用系统的随机数发生器
-  if not CnRandomFillBytes2(@D, SizeOf(Cardinal)) then
+  // 失败就用系统的随机数发生器
+  if not CnRandomFillBytes2(PAnsiChar(@D), SizeOf(Cardinal)) then
   begin
     Randomize;
     D := Trunc(Random * High(Cardinal) - 1) + 1;
@@ -353,8 +353,8 @@ function RandomInt32LessThan(HighValue: Integer): Integer;
 var
   D: Cardinal;
 begin
-  // 优先用系统的随机数发生器
-  if not CnRandomFillBytes2(@D, SizeOf(Cardinal)) then
+  // 失败则用系统的随机数发生器
+  if not CnRandomFillBytes2(PAnsiChar(@D), SizeOf(Cardinal)) then
   begin
     Randomize;
     D := Trunc(Random * High(Integer) - 1) + 1;
