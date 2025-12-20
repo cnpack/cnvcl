@@ -359,7 +359,7 @@ type
     procedure InternalFindComponent(AComponent: TComponent);
     procedure InternalFindControl(AControl: TControl);
 {$IFDEF CAPTURE_STACK}
-     procedure ExceptionRecorder(ExceptObj: Exception; ExceptAddr: Pointer;
+    procedure ExceptionRecorder(ExceptObj: Exception; ExceptAddr: Pointer;
       IsOSException: Boolean; StackList: TCnStackInfoList);
 {$ENDIF}
   protected
@@ -7051,7 +7051,7 @@ end;
 
 initialization
 {$IFNDEF NDEBUG}
-  {$IFDEF MSWINDOWS}
+{$IFDEF MSWINDOWS}
 
   {$IFDEF REDIRECT_OPDS}
   CnDebugChannelClass := nil; // 用 OutputDebugString 不创建 Channel
@@ -7064,13 +7064,13 @@ initialization
   {$IFDEF CAPTURE_STACK}
   InitializeCriticalSection(FInProcessCriticalSection);
   {$ENDIF}
-  {$ELSE}
+{$ELSE}
   FStartCriticalSection := TCnDebugCriticalSection.Create;
   FCnDebuggerCriticalSection := TCnDebugCriticalSection.Create;
   {$IFDEF CAPTURE_STACK}
   FInProcessCriticalSection := TCnDebugCriticalSection.Create;
   {$ENDIF}
-  {$ENDIF}
+{$ENDIF}
   FCnDebugger := TCnDebugger.Create;
 
   {$IFNDEF REDIRECT_OPDS}
@@ -7086,21 +7086,24 @@ initialization
 {$ENDIF}
 
 finalization
-  {$IFDEF MSWINDOWS}
+{$IFNDEF NDEBUG}
+{$IFDEF MSWINDOWS}
   {$IFDEF CAPTURE_STACK}
   DeleteCriticalSection(FInProcessCriticalSection);
   {$ENDIF}
   DeleteCriticalSection(FCnDebuggerCriticalSection);
   DeleteCriticalSection(FStartCriticalSection);
-  {$ELSE}
+{$ELSE}
   {$IFDEF CAPTURE_STACK}
   FInProcessCriticalSection.Free;
   {$ENDIF}
   FCnDebuggerCriticalSection.Free;
   FStartCriticalSection.Free;
-  {$ENDIF}
-{$IFDEF CAPTURE_STACK}
+{$ENDIF}
+  {$IFDEF CAPTURE_STACK}
   CnUnHookException;
+  FreeAndNil(FInProcessModuleList);
+  {$ENDIF}
 {$ENDIF}
   FreeAndNil(FCnDebugger);
 
