@@ -248,7 +248,7 @@ function CnSM2DecryptData(EnData: Pointer; DataByteLen: Integer; OutStream: TStr
 
 function CnSM2DecryptData(const EnData: TBytes; PrivateKey: TCnSM2PrivateKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2): TBytes; overload;
-{* 用私钥对数据块进行解密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
+{* 用私钥对字节数组进行解密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
    第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则。
    SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3。
    无需 IncludePrefixByte 参数，内部自动处理。

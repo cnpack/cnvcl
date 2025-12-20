@@ -1855,20 +1855,22 @@ type
   TCnLunarDateSingleMonthFix = packed record
   {* 因古代观测精度限制，针对单个农历月的公农历转换修正一天的数据，暂时没处理跨年的情况}
     Year: Integer;         // 偏差所在的年份
-    Month: Integer;        // 偏差开始的月份，结束是下一个月
+    Month: Integer;        // 偏差开始的月份，结束一般是下一个月
     StartDay: Integer;     // 偏差开始的日期
-    EndDay: Integer;       // 下个月偏差结束的日期
+    EndDay: Integer;       // 下个月偏差结束的日期，0 表示本月底结束
     IncOne: Boolean;       // True 表示加一天，False 表示减一天
   end;
 
 const
-  CN_LUNAR_SINGLE_MONTH_FIX: array[0..8] of TCnLunarDateSingleMonthFix = (
+  CN_LUNAR_SINGLE_MONTH_FIX: array[0..10] of TCnLunarDateSingleMonthFix = (
   {* 历史上因观测偏差导致的单个农历月首的单日偏差修正}
     (Year:  244; Month:  4; StartDay: 24; EndDay: 23; IncOne: False),
     (Year:  245; Month:  1; StartDay: 15; EndDay: 13; IncOne: True),
     (Year:  245; Month:  5; StartDay: 13; EndDay: 11; IncOne: False),
     (Year:  245; Month:  7; StartDay: 11; EndDay:  9; IncOne: False),
     (Year:  246; Month:  2; StartDay:  3; EndDay:  4; IncOne: True),
+    (Year:  599; Month:  1; StartDay:  2; EndDay:  0; IncOne: True),  // 网友"法自然"补充
+    (Year: 1012; Month: 11; StartDay: 16; EndDay: 15; IncOne: False), // 网友"法自然"补充
     (Year: 1199; Month:  3; StartDay: 28; EndDay: 26; IncOne: False),
     (Year: 1914; Month: 11; StartDay: 17; EndDay: 16; IncOne: True),
     (Year: 1924; Month:  3; StartDay:  5; EndDay:  3; IncOne: True),
