@@ -181,7 +181,7 @@ const
   {* 农历月字符串}
 
   SCnLunarMonthNameArray: array[0..11] of string =
-    ('一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二');
+    ('正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二');
   {* 农历月份字符串}
 
   SCnLunarNumber1Array: array[0..10] of string =
@@ -1862,7 +1862,7 @@ type
   end;
 
 const
-  CN_LUNAR_SINGLE_MONTH_FIX: array[0..12] of TCnLunarDateSingleMonthFix = (
+  CN_LUNAR_SINGLE_MONTH_FIX: array[0..125] of TCnLunarDateSingleMonthFix = (
   {* 历史上因观测偏差导致的单个农历月首的单日偏差修正}
     (Year:  244; Month:  4; StartDay: 24; EndDay: 23; IncOne: False),
     (Year:  245; Month:  1; StartDay: 15; EndDay: 13; IncOne: True),
@@ -1874,8 +1874,131 @@ const
     (Year: 1012; Month: 11; StartDay: 16; EndDay: 15; IncOne: False), // 网友"法自然"补充
     (Year: 1036; Month: 12; StartDay: 20; EndDay: 18; IncOne: False), // 网友"法自然"补充，跨年
     (Year: 1199; Month:  3; StartDay: 28; EndDay: 26; IncOne: False),
+
+    // TODO: MORE
+    (Year: 1280; Month:  6; StartDay: 28; EndDay: 27; IncOne: False),
+    (Year: 1280; Month:  9; StartDay: 25; EndDay: 24; IncOne: False),
+    (Year: 1280; Month: 12; StartDay: 23; EndDay: 21; IncOne: False),
+    (Year: 1281; Month:  3; StartDay: 21; EndDay: 19; IncOne: True),
+    (Year: 1282; Month: 12; StartDay: 31; EndDay: 29; IncOne: False),
+    (Year: 1284; Month: 12; StartDay:  8; EndDay:  6; IncOne: True),
+    (Year: 1287; Month: 12; StartDay:  6; EndDay:  4; IncOne: True),
+    (Year: 1297; Month: 10; StartDay: 17; EndDay: 15; IncOne: True),
+
+    (Year: 1300; Month: 10; StartDay: 13; EndDay: 12; IncOne: False),
+    (Year: 1300; Month: 11; StartDay: 13; EndDay: 11; IncOne: False),
+    (Year: 1307; Month:  6; StartDay: 30; EndDay: 29; IncOne: True),
+    (Year: 1313; Month:  6; StartDay: 24; EndDay: 23; IncOne: True),
+    (Year: 1317; Month:  2; StartDay: 12; EndDay: 13; IncOne: False),
+    (Year: 1318; Month: 11; StartDay: 23; EndDay: 22; IncOne: True),
+    (Year: 1319; Month:  6; StartDay: 18; EndDay: 17; IncOne: True),
+    (Year: 1321; Month:  7; StartDay: 25; EndDay: 23; IncOne: True),
+    (Year: 1324; Month:  5; StartDay: 23; EndDay: 21; IncOne: True),
+    (Year: 1326; Month: 10; StartDay: 26; EndDay: 24; IncOne: True),
+    (Year: 1330; Month: 12; StartDay: 10; EndDay:  8; IncOne: True),
+    (Year: 1333; Month:  7; StartDay: 12; EndDay: 10; IncOne: True),
+    (Year: 1335; Month:  8; StartDay: 19; EndDay: 17; IncOne: False),
+    (Year: 1337; Month:  8; StartDay: 26; EndDay: 24; IncOne: True),
+    (Year: 1339; Month: 10; StartDay:  3; EndDay:  1; IncOne: True),
+    (Year: 1344; Month:  7; StartDay: 10; EndDay:  8; IncOne: True),
+    (Year: 1352; Month:  8; StartDay: 10; EndDay: 08; IncOne: True),
+    (Year: 1353; Month:  7; StartDay:  1; EndDay:  0; IncOne: True),
+    (Year: 1362; Month:  6; StartDay: 22; EndDay: 21; IncOne: True),
+    (Year: 1366; Month:  9; StartDay:  5; EndDay:  4; IncOne: True),
+    (Year: 1371; Month:  6; StartDay: 13; EndDay: 12; IncOne: True),
+    (Year: 1372; Month:  7; StartDay:  1; EndDay:  0; IncOne: True),  // 7 月 31 日不需要调整
+    (Year: 1373; Month:  7; StartDay: 20; EndDay: 18; IncOne: True),
+    (Year: 1380; Month: 11; StartDay: 27; EndDay: 26; IncOne: True),
+    (Year: 1381; Month:  9; StartDay: 18; EndDay: 17; IncOne: True),
+    (Year: 1382; Month:  7; StartDay: 11; EndDay:  9; IncOne: True),
+    (Year: 1388; Month: 10; StartDay: 30; EndDay: 28; IncOne: True),
+    (Year: 1393; Month:  5; StartDay: 11; EndDay:  9; IncOne: True),
+    (Year: 1397; Month:  7; StartDay: 24; EndDay: 22; IncOne: True),
+
+    (Year: 1411; Month:  3; StartDay: 24; EndDay: 22; IncOne: True),
+    (Year: 1414; Month:  6; StartDay: 17; EndDay: 16; IncOne: True),
+    (Year: 1420; Month: 10; StartDay:  7; EndDay:  5; IncOne: True),
+    (Year: 1421; Month:  7; StartDay: 29; EndDay: 27; IncOne: True),
+    (Year: 1432; Month:  1; StartDay:  3; EndDay:  1; IncOne: False),
+    (Year: 1440; Month:  8; StartDay: 27; EndDay: 25; IncOne: True),
+    (Year: 1442; Month:  9; StartDay:  4; EndDay:  3; IncOne: True),
+    (Year: 1449; Month: 11; StartDay: 15; EndDay: 14; IncOne: True),
+    (Year: 1458; Month: 10; StartDay:  7; EndDay:  5; IncOne: True),
+    (Year: 1462; Month: 11; StartDay: 21; EndDay: 20; IncOne: False),
+    (Year: 1464; Month: 12; StartDay: 28; EndDay: 26; IncOne: False),
+    (Year: 1467; Month:  7; StartDay:  1; EndDay:  0; IncOne: True),  // 7 月 31 日不需要调整
+    (Year: 1475; Month: 11; StartDay: 28; EndDay: 27; IncOne: True),
+    (Year: 1480; Month:  3; StartDay: 11; EndDay:  9; IncOne: True),
+    (Year: 1481; Month:  2; StartDay: 28; EndDay: 29; IncOne: True),
+    (Year: 1484; Month:  7; StartDay: 22; EndDay: 20; IncOne: True),
+    (Year: 1490; Month:  7; StartDay: 17; EndDay: 15; IncOne: True),
+    (Year: 1495; Month:  7; StartDay: 21; EndDay: 19; IncOne: True),
+    (Year: 1496; Month: 10; StartDay:  6; EndDay:  4; IncOne: True),
+    (Year: 1497; Month: 10; StartDay: 25; EndDay: 23; IncOne: False),
+
+    (Year: 1501; Month:  4; StartDay: 17; EndDay: 16; IncOne: True),
+    (Year: 1501; Month:  6; StartDay: 15; EndDay: 14; IncOne: True),
+    (Year: 1508; Month:  1; StartDay:  2; EndDay:  0; IncOne: False),
+    (Year: 1513; Month: 10; StartDay: 28; EndDay: 26; IncOne: True),
+    (Year: 1516; Month: 10; StartDay: 25; EndDay: 23; IncOne: False),
+    (Year: 1521; Month:  9; StartDay: 30; EndDay: 29; IncOne: True),
+    (Year: 1526; Month:  7; StartDay:  9; EndDay:  7; IncOne: True),
+    (Year: 1527; Month:  6; StartDay: 28; EndDay: 27; IncOne: True),
+    (Year: 1535; Month:  8; StartDay: 28; EndDay: 26; IncOne: True),
+    (Year: 1535; Month: 10; StartDay: 26; EndDay: 24; IncOne: False),
+    (Year: 1544; Month:  5; StartDay: 21; EndDay: 19; IncOne: True),
+    (Year: 1546; Month:  1; StartDay:  2; EndDay:  0; IncOne: False),
+    (Year: 1546; Month:  7; StartDay: 27; EndDay: 25; IncOne: True),
+    (Year: 1571; Month:  8; StartDay: 20; EndDay: 18; IncOne: True),
+    (Year: 1572; Month:  8; StartDay:  8; EndDay:  6; IncOne: True),
+    (Year: 1581; Month: 10; StartDay: 27; EndDay: 25; IncOne: False),
+    (Year: 1582; Month:  7; StartDay: 19; EndDay: 17; IncOne: True),
+    (Year: 1588; Month:  3; StartDay: 26; EndDay: 25; IncOne: True),
+    (Year: 1588; Month:  4; StartDay: 25; EndDay: 24; IncOne: True),
+    (Year: 1589; Month:  1; StartDay: 16; EndDay: 14; IncOne: False),
+    (Year: 1591; Month:  9; StartDay: 17; EndDay: 16; IncOne: True),
+    (Year: 1599; Month:  1; StartDay: 26; EndDay: 24; IncOne: False),
+
+    (Year: 1600; Month:  2; StartDay: 14; EndDay: 14; IncOne: True),
+    (Year: 1612; Month:  3; StartDay:  2; EndDay:  0; IncOne: False),
+    (Year: 1616; Month:  5; StartDay: 15; EndDay: 13; IncOne: True),
+    (Year: 1622; Month:  7; StartDay:  8; EndDay:  6; IncOne: True),
+    (Year: 1627; Month:  9; StartDay:  9; EndDay:  8; IncOne: True),
+    (Year: 1628; Month:  1; StartDay:  6; EndDay:  4; IncOne: False),
+    (Year: 1630; Month:  4; StartDay: 12; EndDay: 11; IncOne: False),
+    (Year: 1634; Month:  8; StartDay: 23; EndDay: 21; IncOne: True),
+    (Year: 1643; Month:  2; StartDay: 18; EndDay: 19; IncOne: False),
+    (Year: 1649; Month:  5; StartDay: 11; EndDay:  9; IncOne: True),
+    (Year: 1662; Month:  2; StartDay: 18; EndDay: 19; IncOne: True),
+    (Year: 1673; Month: 11; StartDay:  8; EndDay:  7; IncOne: False),
+    (Year: 1685; Month:  2; StartDay:  3; EndDay:  4; IncOne: True),
+    (Year: 1687; Month:  3; StartDay: 13; EndDay: 11; IncOne: True),
+    (Year: 1694; Month:  6; StartDay: 22; EndDay: 21; IncOne: True),
+
+    (Year: 1704; Month: 10; StartDay: 28; EndDay: 26; IncOne: False),
+    (Year: 1708; Month:  2; StartDay: 21; EndDay: 21; IncOne: True),
+    (Year: 1720; Month:  7; StartDay:  5; EndDay:  3; IncOne: True),
+    (Year: 1759; Month:  3; StartDay: 28; EndDay: 26; IncOne: True),
+    (Year: 1763; Month:  9; StartDay:  7; EndDay:  6; IncOne: True),
+    (Year: 1768; Month:  3; StartDay: 18; EndDay: 16; IncOne: True),
+    (Year: 1778; Month:  3; StartDay: 28; EndDay: 26; IncOne: True),
+    (Year: 1779; Month:  7; StartDay: 13; EndDay: 11; IncOne: True),
+    (Year: 1787; Month: 12; StartDay:  9; EndDay:  7; IncOne: True),
+    (Year: 1789; Month:  7; StartDay: 22; EndDay: 20; IncOne: True),
+    (Year: 1796; Month:  6; StartDay:  5; EndDay:  4; IncOne: True),
+
+    (Year: 1804; Month:  8; StartDay:  5; EndDay:  3; IncOne: True),
+    (Year: 1831; Month:  4; StartDay: 12; EndDay: 11; IncOne: True),
+    (Year: 1842; Month:  1; StartDay: 11; EndDay: 09; IncOne: True),
+    (Year: 1863; Month:  1; StartDay: 19; EndDay: 17; IncOne: True),
+    (Year: 1880; Month: 11; StartDay:  2; EndDay:  1; IncOne: False),
+    (Year: 1896; Month:  2; StartDay: 13; EndDay: 13; IncOne: True),
+
     (Year: 1914; Month: 11; StartDay: 17; EndDay: 16; IncOne: True),
+    (Year: 1916; Month:  2; StartDay:  3; EndDay:  3; IncOne: True),
+    (Year: 1920; Month: 11; StartDay: 10; EndDay:  9; IncOne: True),
     (Year: 1924; Month:  3; StartDay:  5; EndDay:  3; IncOne: True),
+
     (Year: 2018; Month: 11; StartDay:  7; EndDay:  6; IncOne: False)
   );
 
@@ -5030,7 +5153,7 @@ begin
     K := K + 0.5;
   end;
 
-  // 历史上的观测偏差导致的单个农历月首的单日偏差修正（不跨年的情况）
+  // 历史上的观测偏差导致的单个农历月首的单日偏差修正，包括跨年的情况
   for I := Low(CN_LUNAR_SINGLE_MONTH_FIX) to High(CN_LUNAR_SINGLE_MONTH_FIX) do
   begin
     if (AYear = CN_LUNAR_SINGLE_MONTH_FIX[I].Year)
@@ -5038,6 +5161,11 @@ begin
       or ((AMonth = CN_LUNAR_SINGLE_MONTH_FIX[I].Month + 1) and (ADay <= CN_LUNAR_SINGLE_MONTH_FIX[I].EndDay))) then
     begin
       // 跨年的情形，Month + 1 可能得到非法的 13 月所以比较不成立，没法处理跨第二年的情况，需要单独处理
+
+      // 某月偏差如果是 1 日开始，则 31 日不用调整，因为农历月不可能大于 30 日
+      if (AMonth = CN_LUNAR_SINGLE_MONTH_FIX[I].Month) and (CN_LUNAR_SINGLE_MONTH_FIX[I].StartDay = 1) and (ADay = 31) then
+        Continue;
+
       if CN_LUNAR_SINGLE_MONTH_FIX[I].IncOne then
       begin
         Inc(LunDay);
@@ -5054,7 +5182,7 @@ begin
     else if (AYear = CN_LUNAR_SINGLE_MONTH_FIX[I].Year + 1) and (AMonth = 1)
       and (CN_LUNAR_SINGLE_MONTH_FIX[I].Month = 12) and (ADay <= CN_LUNAR_SINGLE_MONTH_FIX[I].EndDay) then
     begin
-      // 处理次年一月剩下的部分
+      // 单独处理跨年也就是次年一月剩下的部分
       if CN_LUNAR_SINGLE_MONTH_FIX[I].IncOne then
       begin
         Inc(LunDay);
