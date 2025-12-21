@@ -1853,7 +1853,7 @@ const
 
 type
   TCnLunarDateSingleMonthFix = packed record
-  {* 因古代观测精度限制，针对单个农历月的公农历转换修正一天的数据，暂时没处理跨年的情况}
+  {* 因古代观测精度限制，针对单个农历月的公农历转换修正一天的数据}
     Year: Integer;         // 偏差所在的年份
     Month: Integer;        // 偏差开始的月份，结束一般是下一个月
     StartDay: Integer;     // 偏差开始的日期
@@ -1862,7 +1862,7 @@ type
   end;
 
 const
-  CN_LUNAR_SINGLE_MONTH_FIX: array[0..10] of TCnLunarDateSingleMonthFix = (
+  CN_LUNAR_SINGLE_MONTH_FIX: array[0..12] of TCnLunarDateSingleMonthFix = (
   {* 历史上因观测偏差导致的单个农历月首的单日偏差修正}
     (Year:  244; Month:  4; StartDay: 24; EndDay: 23; IncOne: False),
     (Year:  245; Month:  1; StartDay: 15; EndDay: 13; IncOne: True),
@@ -1870,7 +1870,9 @@ const
     (Year:  245; Month:  7; StartDay: 11; EndDay:  9; IncOne: False),
     (Year:  246; Month:  2; StartDay:  3; EndDay:  4; IncOne: True),
     (Year:  599; Month:  1; StartDay:  2; EndDay:  0; IncOne: True),  // 网友"法自然"补充
+    (Year: 1011; Month: 12; StartDay: 27; EndDay: 25; IncOne: False), // 网友"法自然"补充，跨年
     (Year: 1012; Month: 11; StartDay: 16; EndDay: 15; IncOne: False), // 网友"法自然"补充
+    (Year: 1036; Month: 12; StartDay: 20; EndDay: 18; IncOne: False), // 网友"法自然"补充，跨年
     (Year: 1199; Month:  3; StartDay: 28; EndDay: 26; IncOne: False),
     (Year: 1914; Month: 11; StartDay: 17; EndDay: 16; IncOne: True),
     (Year: 1924; Month:  3; StartDay:  5; EndDay:  3; IncOne: True),
@@ -5035,6 +5037,24 @@ begin
       and (((AMonth = CN_LUNAR_SINGLE_MONTH_FIX[I].Month) and (ADay >= CN_LUNAR_SINGLE_MONTH_FIX[I].StartDay))
       or ((AMonth = CN_LUNAR_SINGLE_MONTH_FIX[I].Month + 1) and (ADay <= CN_LUNAR_SINGLE_MONTH_FIX[I].EndDay))) then
     begin
+      // 跨年的情形，Month + 1 可能得到非法的 13 月所以比较不成立，没法处理跨第二年的情况，需要单独处理
+      if CN_LUNAR_SINGLE_MONTH_FIX[I].IncOne then
+      begin
+        Inc(LunDay);
+        if LunDay > 30 then
+          LunDay := Lunday - 30;
+      end
+      else
+      begin
+        Dec(LunDay);
+        if LunDay < 1 then
+          LunDay := LunDay + 30;
+      end;
+    end
+    else if (AYear = CN_LUNAR_SINGLE_MONTH_FIX[I].Year + 1) and (AMonth = 1)
+      and (CN_LUNAR_SINGLE_MONTH_FIX[I].Month = 12) and (ADay <= CN_LUNAR_SINGLE_MONTH_FIX[I].EndDay) then
+    begin
+      // 处理次年一月剩下的部分
       if CN_LUNAR_SINGLE_MONTH_FIX[I].IncOne then
       begin
         Inc(LunDay);
