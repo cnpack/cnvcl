@@ -446,17 +446,33 @@ procedure StepToPreviousDay(var AYear, AMonth, ADay: Integer;
 
    参数：
      var AYear, AMonth, ADay: Integer     - 待步进的公历年、月、日
-     AlloweroYear: Boolean                - 是否允许出现公元 0 年以便于特殊场合计算
+     AllowZeroYear: Boolean               - 是否允许出现公元 0 年以便于特殊场合计算
+
+   返回值：（无）
 }
 
 procedure StepToNextDay(var AYear, AMonth, ADay: Integer;
-  ZeroYear: Boolean = False);
+  AllowZeroYear: Boolean = False);
 {* 公历年月日往后步进一天，考虑各种闰年、格里高利历删 10 天等因素。支持公历无 0 年
    （-1 是闰年）及公历有 0 年（0 年闰年）两种模式。默认不允许出现公历 0 年。
 
    参数：
      var AYear, AMonth, ADay: Integer     - 待步进的公历年、月、日
-     ZeroYear: Boolean                    - 是否允许出现公元 0 年以便于特殊场合计算
+     AllowZeroYear: Boolean               - 是否允许出现公元 0 年以便于特殊场合计算
+
+   返回值：（无）
+}
+
+function IsDayBetweenEqual(AYear, AMonth, ADay: Integer; StartYear, StartMonth, StartDay: Integer;
+  EndYear, EndMonth, EndDay: Integer): Boolean;
+{* 判断公历年月日是否处于两个公历日期闭区间之间，也就是包含相等的情形。
+
+   参数：
+     AYear, AMonth, ADay: Integer                         - 待判断的公历年、月、日
+     StartYear, StartMonth, StartDay: Integer             - 闭区间起始公历年、月、日
+     EndYear, EndMonth, EndDay: Integer                   - 闭区间结束公历年、月、日
+
+   返回值：Boolean                                        - 返回公历日期是否在区间内
 }
 
 function GetMonthDays(AYear, AMonth: Integer): Integer;
@@ -2929,11 +2945,11 @@ begin
 end;
 
 // 公历年月日往后步进一天，考虑各种闰年、格里高利历删 10 天等因素
-procedure StepToNextDay(var AYear, AMonth, ADay: Integer; ZeroYear: Boolean);
+procedure StepToNextDay(var AYear, AMonth, ADay: Integer; AllowZeroYear: Boolean);
 var
   LY: Integer;
 begin
-  if not ZeroYear then
+  if not AllowZeroYear then
     ValidDate(AYear, AMonth, ADay);
 
   if (AYear = 1582) and (AMonth = 10) and (ADay = 4) then
@@ -2943,7 +2959,7 @@ begin
   end
   else
   begin
-    if ZeroYear and (AYear <= 0) then   // GetIsLeapYear 和 GetMonthDays 只接受非 0 年数
+    if AllowZeroYear and (AYear <= 0) then   // GetIsLeapYear 和 GetMonthDays 只接受非 0 年数
       LY := AYear - 1
     else
       LY := AYear;
@@ -2970,7 +2986,7 @@ begin
         begin
           AMonth := 1;
 
-          if not ZeroYear and (AYear = -1) then // 公元前一年到公元元年
+          if not AllowZeroYear and (AYear = -1) then // 公元前一年到公元元年
             AYear := 1
           else
             Inc(AYear);
@@ -2982,6 +2998,26 @@ begin
       end;
     end;
   end;
+end;
+
+function IsDayBetweenEqual(AYear, AMonth, ADay: Integer; StartYear, StartMonth, StartDay: Integer;
+  EndYear, EndMonth, EndDay: Integer): Boolean;
+begin
+  Result := False;
+  if (AYear < StartYear) or (AYear > EndYear) then
+    Exit;
+
+  if (AYear = StartYear) and (AMonth < StartMonth) then
+    Exit;
+  if (AYear = EndYear) and (AMonth > EndMonth) then
+    Exit;
+
+  if (AYear = StartYear) and (AMonth = StartMonth) and (ADay < StartDay) then
+    Exit;
+  if (AYear = EndYear) and (AMonth = EndMonth) and (ADay > EndDay) then
+    Exit;
+
+  Result := True;
 end;
 
 // 比较两个公历日期，1 >=< 2 分别返回 1、0、-1
@@ -5267,12 +5303,14 @@ begin
         Inc(LunDay);
         if LunDay > 30 then
           LunDay := Lunday - 30;
+        Break;
       end
       else
       begin
         Dec(LunDay);
         if LunDay < 1 then
           LunDay := LunDay + 30;
+        Break;
       end;
     end
     else if (AYear = CN_LUNAR_SINGLE_MONTH_FIX[I].Year + 1) and (AMonth = 1)
@@ -5284,12 +5322,14 @@ begin
         Inc(LunDay);
         if LunDay > 30 then
           LunDay := Lunday - 30;
+        Break;
       end
       else
       begin
         Dec(LunDay);
         if LunDay < 1 then
           LunDay := LunDay + 30;
+        Break;
       end;
     end;
   end;
