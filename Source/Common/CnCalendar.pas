@@ -439,6 +439,16 @@ procedure ValidTime(AHour, AMinitue, ASecond: Integer);
    返回值：（无）
 }
 
+procedure StepToPreviousDay(var AYear, AMonth, ADay: Integer;
+  AllowZeroYear: Boolean = False);
+{* 公历年月日往前步进一天，考虑各种闰年、格里高利历删 10 天等因素。支持公历无 0 年
+   （-1 是闰年）及公历有 0 年（0 年闰年）两种模式。默认不允许出现公历 0 年。
+
+   参数：
+     var AYear, AMonth, ADay: Integer     - 待步进的公历年、月、日
+     AlloweroYear: Boolean                - 是否允许出现公元 0 年以便于特殊场合计算
+}
+
 procedure StepToNextDay(var AYear, AMonth, ADay: Integer;
   ZeroYear: Boolean = False);
 {* 公历年月日往后步进一天，考虑各种闰年、格里高利历删 10 天等因素。支持公历无 0 年
@@ -2861,6 +2871,61 @@ procedure ValidTime(AHour, AMinitue, ASecond: Integer);
 begin
   if not GetTimeIsValid(AHour, AMinitue, ASecond) then
     raise ECnDateTimeException.CreateFmt(SCnErrorTimeIsInvalid, [AHour, AMinitue, ASecond]);
+end;
+
+// 公历年月日往前步进一天，考虑各种闰年、格里高利历删 10 天等因素
+procedure StepToPreviousDay(var AYear, AMonth, ADay: Integer; AllowZeroYear: Boolean);
+var
+  LY: Integer;
+begin
+  if not AllowZeroYear then
+    ValidDate(AYear, AMonth, ADay);
+
+  if (AYear = 1582) and (AMonth = 10) and (ADay = 15) then
+  begin
+    ADay := 4;
+    Exit;
+  end
+  else
+  begin
+    if AllowZeroYear and (AYear <= 0) then   // GetIsLeapYear 和 GetMonthDays 只接受非 0 年数
+      LY := AYear - 1
+    else
+      LY := AYear;
+
+    if (AMonth = 3) and (ADay = 1) then // 处理闰年的 2 月 29 日
+    begin
+      if GetIsLeapYear(LY) then
+        ADay := 29
+      else
+        ADay := 28;
+      Dec(AMonth);
+      Exit;
+    end
+    else
+    begin
+      if ADay = 1 then // 月首，减月
+      begin
+        Dec(AMonth);
+
+        if AMonth = 0 then  // 首月，退年
+        begin
+          AMonth := 12;
+
+          if not AllowZeroYear and (AYear = 1) then // 公元前一年到公元元年
+            AYear := -1
+          else
+            Dec(AYear);
+        end;
+
+        ADay := GetMonthDays(AYear, AMonth);
+      end
+      else
+      begin
+        Dec(ADay); // 非月底，减一天就行
+      end;
+    end;
+  end;
 end;
 
 // 公历年月日往后步进一天，考虑各种闰年、格里高利历删 10 天等因素

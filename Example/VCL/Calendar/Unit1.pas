@@ -62,6 +62,7 @@ type
     btnVerifyLeapNumber: TButton;
     btnCheckAll: TButton;
     btnCheckFloatJieQi: TButton;
+    btnCheckStep: TButton;
     procedure btnCalcClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
@@ -81,6 +82,7 @@ type
     procedure btnVerifyLeapNumberClick(Sender: TObject);
     procedure btnCheckAllClick(Sender: TObject);
     procedure btnCheckFloatJieQiClick(Sender: TObject);
+    procedure btnCheckStepClick(Sender: TObject);
   private
     procedure ConvertEditToDate;
   public
@@ -1024,6 +1026,34 @@ begin
     Inc(Y);
   until Y > 3;
 
+end;
+
+procedure TFormCalendar.btnCheckStepClick(Sender: TObject);
+var
+  Y, M, D: Integer;
+  AY, AM, AD: Integer;
+begin
+  mmoDays.Lines.Clear;
+
+  Y := -4713;
+  M := 1;
+  D := 1;
+
+  repeat
+    AY := Y;
+    AM := M;
+    AD := D;
+    StepToNextDay(Y, M, D);
+    StepToPreviousDay(Y, M, D);
+
+    if (AY <> Y) and (AM <> M) and (AD <> D) then
+      mmoDays.Lines.Add(Format('%4.4d %2.2d %2.2d', [Y, M, D]));
+
+    StepToNextDay(Y, M, D);
+  until Y > 3000;
+
+  if mmoDays.Lines.Count = 0 then
+    ShowMessage('OK');
 end;
 
 end.
