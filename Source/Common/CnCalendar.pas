@@ -1655,7 +1655,7 @@ const
     900, 900, 901, 901, 902, 902, 902, 903, 903, 903, 904, 904, 905, 905,
     905, 906, 906, 906, 907, 907, 907, 908, 908, 909, 909, 909, 910, 910,
     910, 911, 911, 912, 912, 912, 913, 913, 913, 914, 914, 914, 915, 915,
-    916, 916, 916, 917, 917, 917, 918, 918, 919, 919, 919, 920, 920, 920,
+    916, 916, 916, 917, 917, 917, 918, 918, 918, 919, 919, 920, 920, 920,
     921, 921, 921, 922, 922, 923, 923, 923, 924, 924, 924, 925, 925, 925,
     926, 926, 927, 927, 927, 928, 928, 928, 929, 929, 930, 930, 930, 931,
     931, 931, 932, 932, 932, 933, 933, 934, 934, 934, 935, 935, 935, 936,
@@ -2024,13 +2024,13 @@ const
     (Year: 2498; Month:  1; StartDay: 22; EndDay: 20; IncOne: False),
 
     (Year: 2540; Month:  7; StartDay:  5; EndDay:  3; IncOne: False),
-    (Year: 2550; Month:  7; StartDay: 15; EndDay:  3; IncOne: False),
+    (Year: 2550; Month:  7; StartDay: 15; EndDay: 13; IncOne: False),
     (Year: 2583; Month:  2; StartDay: 13; EndDay: 14; IncOne: False),
 
     (Year: 2668; Month:  4; StartDay:  3; EndDay:  2; IncOne: False),
     (Year: 2679; Month: 10; StartDay: 26; EndDay: 24; IncOne: False),
 
-    (Year: 2729; Month: 12; StartDay: 12; EndDay: 10; IncOne: True)
+    (Year: 2729; Month: 12; StartDay: 12; EndDay: 10; IncOne: False)
   );
 
 // 无公元元年的公历年份，转换为内部连续的包含 0 的年份，负值加一
