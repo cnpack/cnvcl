@@ -1878,185 +1878,186 @@ const
   CN_JIEQI_TOTAL_COUNT = 24;   // 一共 24 个节气
 
 type
-  TCnLunarDateSingleMonthFix = packed record
-  {* 因古代观测精度限制，针对单个农历月的公农历转换修正一天的数据}
-    Year: Integer;         // 偏差所在的年份
-    Month: Integer;        // 偏差开始的月份，结束一般是下一个月
-    StartDay: Integer;     // 偏差开始的日期
-    EndDay: Integer;       // 下个月偏差结束的日期，0 表示本月底结束
-    IncOne: Boolean;       // True 表示加一天，False 表示减一天
+  TCnLunarDateFixRange = packed record
+  {* 因古代观测精度限制，针对农历日期（大多是月）的公农历转换修正一天的数据}
+    SY: Integer;        // 偏差开始的公历年份
+    SM: Integer;        // 偏差开始的公历月份，结束一般是下一个月
+    SD: Integer;        // 偏差开始的公历日期
+    EY: Integer;        // 偏差结束的公历年份
+    EM: Integer;        // 偏差结束的公历月份
+    ED: Integer;        // 偏差结束的公历日期
+    IncOne: Boolean;    // True 表示加一天，False 表示减一天
   end;
 
 const
-  CN_LUNAR_SINGLE_MONTH_FIX: array[0..150] of TCnLunarDateSingleMonthFix = (
-  {* 历史上因观测偏差导致的单个农历月首的单日偏差修正}
-    (Year:  244; Month:  4; StartDay: 24; EndDay: 23; IncOne: False),
-    (Year:  245; Month:  1; StartDay: 15; EndDay: 13; IncOne: True),
-    (Year:  245; Month:  5; StartDay: 13; EndDay: 11; IncOne: False),
-    (Year:  245; Month:  7; StartDay: 11; EndDay:  9; IncOne: False),
-    (Year:  245; Month: 12; StartDay:  6; EndDay:  4; IncOne: True),
-    (Year:  246; Month:  2; StartDay:  3; EndDay:  4; IncOne: True),
-    (Year:  599; Month:  1; StartDay:  2; EndDay:  0; IncOne: True),  // 网友"法自然"补充
-    (Year: 1011; Month: 12; StartDay: 27; EndDay: 25; IncOne: False), // 网友"法自然"补充，跨年
-    (Year: 1012; Month: 11; StartDay: 16; EndDay: 15; IncOne: False), // 网友"法自然"补充
-    (Year: 1036; Month: 12; StartDay: 20; EndDay: 18; IncOne: False), // 网友"法自然"补充，跨年
-    (Year: 1199; Month:  3; StartDay: 28; EndDay: 26; IncOne: False),
+  CN_LUNAR_DATE_FIX: array[0..150] of TCnLunarDateFixRange = (
+  {* 历史上因观测偏差导致的农历日期范围的公历单日偏差修正}
+    (SY:  244; SM:  4; SD: 24; EY:  244; EM:  5; ED: 23; IncOne: False),
+    (SY:  245; SM:  1; SD: 15; EY:  245; EM:  2; ED: 13; IncOne: True),
+    (SY:  245; SM:  5; SD: 13; EY:  245; EM:  6; ED: 11; IncOne: False),
+    (SY:  245; SM:  7; SD: 11; EY:  245; EM:  8; ED:  9; IncOne: False),
+    (SY:  245; SM: 12; SD:  6; EY:  246; EM:  1; ED:  4; IncOne: True),
+    (SY:  246; SM:  2; SD:  3; EY:  246; EM:  3; ED:  4; IncOne: True),
+    (SY:  599; SM:  1; SD:  2; EY:  599; EM:  2; ED:  0; IncOne: True),
+    (SY: 1011; SM: 12; SD: 27; EY: 1012; EM:  1; ED: 25; IncOne: False),
+    (SY: 1012; SM: 11; SD: 16; EY: 1012; EM: 12; ED: 15; IncOne: False),
+    (SY: 1036; SM: 12; SD: 20; EY: 1037; EM:  1; ED: 18; IncOne: False),
+    (SY: 1199; SM:  3; SD: 28; EY: 1199; EM:  4; ED: 26; IncOne: False),
 
-    // TODO: MORE
-    (Year: 1276; Month: 11; StartDay:  7; EndDay:  6; IncOne: False),
-    (Year: 1277; Month:  2; StartDay:  4; EndDay:  5; IncOne: False),
-    (Year: 1277; Month:  5; StartDay:  4; EndDay:  2; IncOne: False),
-    (Year: 1277; Month:  7; StartDay:  2; EndDay:  0; IncOne: False),
-    (Year: 1277; Month:  8; StartDay: 30; EndDay: 28; IncOne: False),
-    (Year: 1278; Month:  4; StartDay: 23; EndDay: 22; IncOne: False),
-    (Year: 1278; Month:  9; StartDay: 18; EndDay: 17; IncOne: False),
-    (Year: 1279; Month:  7; StartDay: 10; EndDay:  8; IncOne: False),
-    (Year: 1279; Month: 12; StartDay:  5; EndDay:  3; IncOne: False),
-    (Year: 1280; Month:  4; StartDay: 30; EndDay: 29; IncOne: False),
-    (Year: 1280; Month:  6; StartDay: 28; EndDay: 27; IncOne: False),
-    (Year: 1280; Month:  9; StartDay: 25; EndDay: 24; IncOne: False),
-    (Year: 1280; Month: 12; StartDay: 23; EndDay: 21; IncOne: False),
-    (Year: 1281; Month:  3; StartDay: 21; EndDay: 19; IncOne: True),
-    (Year: 1282; Month: 12; StartDay: 31; EndDay: 29; IncOne: False),
-    (Year: 1284; Month: 12; StartDay:  8; EndDay:  6; IncOne: True),
-    (Year: 1287; Month: 12; StartDay:  6; EndDay:  4; IncOne: True),
-    (Year: 1297; Month: 10; StartDay: 17; EndDay: 15; IncOne: True),
+    (SY: 1276; SM: 11; SD:  7; EY: 1276; EM: 12; ED:  6; IncOne: False),
+    (SY: 1277; SM:  2; SD:  4; EY: 1277; EM:  3; ED:  5; IncOne: False),
+    (SY: 1277; SM:  5; SD:  4; EY: 1277; EM:  6; ED:  2; IncOne: False),
+    (SY: 1277; SM:  7; SD:  2; EY: 1277; EM:  7; ED: 31; IncOne: False),
+    (SY: 1277; SM:  8; SD: 30; EY: 1277; EM:  9; ED: 28; IncOne: False),
+    (SY: 1278; SM:  4; SD: 23; EY: 1278; EM:  5; ED: 22; IncOne: False),
+    (SY: 1278; SM:  9; SD: 18; EY: 1278; EM: 10; ED: 17; IncOne: False),
+    (SY: 1279; SM:  7; SD: 10; EY: 1279; EM:  8; ED:  8; IncOne: False),
+    (SY: 1279; SM: 12; SD:  5; EY: 1280; EM:  1; ED:  3; IncOne: False),
+    (SY: 1280; SM:  4; SD: 30; EY: 1280; EM:  5; ED: 29; IncOne: False),
+    (SY: 1280; SM:  6; SD: 28; EY: 1280; EM:  7; ED: 27; IncOne: False),
+    (SY: 1280; SM:  9; SD: 25; EY: 1280; EM: 10; ED: 24; IncOne: False),
+    (SY: 1280; SM: 12; SD: 23; EY: 1281; EM:  1; ED: 21; IncOne: False),
+    (SY: 1281; SM:  3; SD: 21; EY: 1281; EM:  4; ED: 19; IncOne: True),
+    (SY: 1282; SM: 12; SD: 31; EY: 1283; EM:  1; ED: 29; IncOne: False),
+    (SY: 1284; SM: 12; SD:  8; EY: 1285; EM:  1; ED:  6; IncOne: True),
+    (SY: 1287; SM: 12; SD:  6; EY: 1288; EM:  1; ED:  4; IncOne: True),
+    (SY: 1297; SM: 10; SD: 17; EY: 1297; EM: 11; ED: 15; IncOne: True),
 
-    (Year: 1300; Month: 10; StartDay: 13; EndDay: 12; IncOne: False),
-    (Year: 1300; Month: 11; StartDay: 13; EndDay: 11; IncOne: False),
-    (Year: 1307; Month:  6; StartDay: 30; EndDay: 29; IncOne: True),
-    (Year: 1313; Month:  6; StartDay: 24; EndDay: 23; IncOne: True),
-    (Year: 1317; Month:  2; StartDay: 12; EndDay: 13; IncOne: False),
-    (Year: 1318; Month: 11; StartDay: 23; EndDay: 22; IncOne: True),
-    (Year: 1319; Month:  6; StartDay: 18; EndDay: 17; IncOne: True),
-    (Year: 1321; Month:  7; StartDay: 25; EndDay: 23; IncOne: True),
-    (Year: 1324; Month:  5; StartDay: 23; EndDay: 21; IncOne: True),
-    (Year: 1326; Month: 10; StartDay: 26; EndDay: 24; IncOne: True),
-    (Year: 1330; Month: 12; StartDay: 10; EndDay:  8; IncOne: True),
-    (Year: 1333; Month:  7; StartDay: 12; EndDay: 10; IncOne: True),
-    (Year: 1335; Month:  8; StartDay: 19; EndDay: 17; IncOne: False),
-    (Year: 1337; Month:  8; StartDay: 26; EndDay: 24; IncOne: True),
-    (Year: 1339; Month: 10; StartDay:  3; EndDay:  1; IncOne: True),
-    (Year: 1344; Month:  7; StartDay: 10; EndDay:  8; IncOne: True),
-    (Year: 1352; Month:  8; StartDay: 10; EndDay: 08; IncOne: True),
-    (Year: 1353; Month:  7; StartDay:  1; EndDay:  0; IncOne: True),
-    (Year: 1362; Month:  6; StartDay: 22; EndDay: 21; IncOne: True),
-    (Year: 1366; Month:  9; StartDay:  5; EndDay:  4; IncOne: True),
-    (Year: 1371; Month:  6; StartDay: 13; EndDay: 12; IncOne: True),
-    (Year: 1372; Month:  7; StartDay:  1; EndDay:  0; IncOne: True),  // 7 月 31 日不需要调整
-    (Year: 1373; Month:  7; StartDay: 20; EndDay: 18; IncOne: True),
-    (Year: 1380; Month: 11; StartDay: 27; EndDay: 26; IncOne: True),
-    (Year: 1381; Month:  9; StartDay: 18; EndDay: 17; IncOne: True),
-    (Year: 1382; Month:  7; StartDay: 11; EndDay:  9; IncOne: True),
-    (Year: 1388; Month: 10; StartDay: 30; EndDay: 28; IncOne: True),
-    (Year: 1393; Month:  5; StartDay: 11; EndDay:  9; IncOne: True),
-    (Year: 1397; Month:  7; StartDay: 24; EndDay: 22; IncOne: True),
+    (SY: 1300; SM: 10; SD: 13; EY: 1300; EM: 11; ED: 12; IncOne: False),
+    (SY: 1300; SM: 11; SD: 13; EY: 1300; EM: 12; ED: 11; IncOne: False),
+    (SY: 1307; SM:  6; SD: 30; EY: 1307; EM:  7; ED: 29; IncOne: True),
+    (SY: 1313; SM:  6; SD: 24; EY: 1313; EM:  7; ED: 23; IncOne: True),
+    (SY: 1317; SM:  2; SD: 12; EY: 1317; EM:  3; ED: 13; IncOne: False),
+    (SY: 1318; SM: 11; SD: 23; EY: 1318; EM: 12; ED: 22; IncOne: True),
+    (SY: 1319; SM:  6; SD: 18; EY: 1319; EM:  7; ED: 17; IncOne: True),
+    (SY: 1321; SM:  7; SD: 25; EY: 1321; EM:  8; ED: 23; IncOne: True),
+    (SY: 1324; SM:  5; SD: 23; EY: 1324; EM:  6; ED: 21; IncOne: True),
+    (SY: 1326; SM: 10; SD: 26; EY: 1326; EM: 11; ED: 24; IncOne: True),
+    (SY: 1330; SM: 12; SD: 10; EY: 1331; EM:  1; ED:  8; IncOne: True),
+    (SY: 1333; SM:  7; SD: 12; EY: 1333; EM:  8; ED: 10; IncOne: True),
+    (SY: 1335; SM:  8; SD: 19; EY: 1335; EM:  9; ED: 17; IncOne: False),
+    (SY: 1337; SM:  8; SD: 26; EY: 1337; EM:  9; ED: 24; IncOne: True),
+    (SY: 1339; SM: 10; SD:  3; EY: 1339; EM: 11; ED:  1; IncOne: True),
+    (SY: 1344; SM:  7; SD: 10; EY: 1344; EM:  8; ED:  8; IncOne: True),
+    (SY: 1352; SM:  8; SD: 10; EY: 1352; EM:  9; ED:  8; IncOne: True),
+    (SY: 1353; SM:  7; SD:  1; EY: 1353; EM:  7; ED: 30; IncOne: True),
+    (SY: 1362; SM:  6; SD: 22; EY: 1362; EM:  7; ED: 21; IncOne: True),
+    (SY: 1366; SM:  9; SD:  5; EY: 1366; EM: 10; ED:  4; IncOne: True),
+    (SY: 1371; SM:  6; SD: 13; EY: 1371; EM:  7; ED: 12; IncOne: True),
+    (SY: 1372; SM:  7; SD:  1; EY: 1372; EM:  7; ED: 30; IncOne: True),
+    (SY: 1373; SM:  7; SD: 20; EY: 1373; EM:  8; ED: 18; IncOne: True),
+    (SY: 1380; SM: 11; SD: 27; EY: 1380; EM: 12; ED: 26; IncOne: True),
+    (SY: 1381; SM:  9; SD: 18; EY: 1381; EM: 10; ED: 17; IncOne: True),
+    (SY: 1382; SM:  7; SD: 11; EY: 1382; EM:  8; ED:  9; IncOne: True),
+    (SY: 1388; SM: 10; SD: 30; EY: 1388; EM: 11; ED: 28; IncOne: True),
+    (SY: 1393; SM:  5; SD: 11; EY: 1393; EM:  6; ED:  9; IncOne: True),
+    (SY: 1397; SM:  7; SD: 24; EY: 1397; EM:  8; ED: 22; IncOne: True),
 
-    (Year: 1411; Month:  3; StartDay: 24; EndDay: 22; IncOne: True),
-    (Year: 1414; Month:  6; StartDay: 17; EndDay: 16; IncOne: True),
-    (Year: 1420; Month: 10; StartDay:  7; EndDay:  5; IncOne: True),
-    (Year: 1421; Month:  7; StartDay: 29; EndDay: 27; IncOne: True),
-    (Year: 1432; Month:  1; StartDay:  3; EndDay:  1; IncOne: False),
-    (Year: 1440; Month:  8; StartDay: 27; EndDay: 25; IncOne: True),
-    (Year: 1442; Month:  9; StartDay:  4; EndDay:  3; IncOne: True),
-    (Year: 1449; Month: 11; StartDay: 15; EndDay: 14; IncOne: True),
-    (Year: 1458; Month: 10; StartDay:  7; EndDay:  5; IncOne: True),
-    (Year: 1462; Month: 11; StartDay: 21; EndDay: 20; IncOne: False),
-    (Year: 1464; Month: 12; StartDay: 28; EndDay: 26; IncOne: False),
-    (Year: 1467; Month:  7; StartDay:  1; EndDay:  0; IncOne: True),  // 7 月 31 日不需要调整
-    (Year: 1475; Month: 11; StartDay: 28; EndDay: 27; IncOne: True),
-    (Year: 1480; Month:  3; StartDay: 11; EndDay:  9; IncOne: True),
-    (Year: 1481; Month:  2; StartDay: 28; EndDay: 29; IncOne: True),
-    (Year: 1484; Month:  7; StartDay: 22; EndDay: 20; IncOne: True),
-    (Year: 1490; Month:  7; StartDay: 17; EndDay: 15; IncOne: True),
-    (Year: 1495; Month:  7; StartDay: 21; EndDay: 19; IncOne: True),
-    (Year: 1496; Month: 10; StartDay:  6; EndDay:  4; IncOne: True),
-    (Year: 1497; Month: 10; StartDay: 25; EndDay: 23; IncOne: False),
+    (SY: 1411; SM:  3; SD: 24; EY: 1411; EM:  4; ED: 22; IncOne: True),
+    (SY: 1414; SM:  6; SD: 17; EY: 1414; EM:  7; ED: 16; IncOne: True),
+    (SY: 1420; SM: 10; SD:  7; EY: 1420; EM: 11; ED:  5; IncOne: True),
+    (SY: 1421; SM:  7; SD: 29; EY: 1421; EM:  8; ED: 27; IncOne: True),
+    (SY: 1432; SM:  1; SD:  3; EY: 1432; EM:  2; ED:  1; IncOne: False),
+    (SY: 1440; SM:  8; SD: 27; EY: 1440; EM:  9; ED: 25; IncOne: True),
+    (SY: 1442; SM:  9; SD:  4; EY: 1442; EM: 10; ED:  3; IncOne: True),
+    (SY: 1449; SM: 11; SD: 15; EY: 1449; EM: 12; ED: 14; IncOne: True),
+    (SY: 1458; SM: 10; SD:  7; EY: 1458; EM: 11; ED:  5; IncOne: True),
+    (SY: 1462; SM: 11; SD: 21; EY: 1462; EM: 12; ED: 20; IncOne: False),
+    (SY: 1464; SM: 12; SD: 28; EY: 1465; EM:  1; ED: 26; IncOne: False),
+    (SY: 1467; SM:  7; SD:  1; EY: 1467; EM:  7; ED: 30; IncOne: True),
+    (SY: 1475; SM: 11; SD: 28; EY: 1475; EM: 12; ED: 27; IncOne: True),
+    (SY: 1480; SM:  3; SD: 11; EY: 1480; EM:  4; ED:  9; IncOne: True),
+    (SY: 1481; SM:  2; SD: 28; EY: 1481; EM:  3; ED: 29; IncOne: True),
+    (SY: 1484; SM:  7; SD: 22; EY: 1484; EM:  8; ED: 20; IncOne: True),
+    (SY: 1490; SM:  7; SD: 17; EY: 1490; EM:  8; ED: 15; IncOne: True),
+    (SY: 1495; SM:  7; SD: 21; EY: 1495; EM:  8; ED: 19; IncOne: True),
+    (SY: 1496; SM: 10; SD:  6; EY: 1496; EM: 11; ED:  4; IncOne: True),
+    (SY: 1497; SM: 10; SD: 25; EY: 1497; EM: 11; ED: 23; IncOne: False),
 
-    (Year: 1501; Month:  4; StartDay: 17; EndDay: 16; IncOne: True),
-    (Year: 1501; Month:  6; StartDay: 15; EndDay: 14; IncOne: True),
-    (Year: 1508; Month:  1; StartDay:  2; EndDay:  0; IncOne: False),
-    (Year: 1513; Month: 10; StartDay: 28; EndDay: 26; IncOne: True),
-    (Year: 1516; Month: 10; StartDay: 25; EndDay: 23; IncOne: False),
-    (Year: 1521; Month:  9; StartDay: 30; EndDay: 29; IncOne: True),
-    (Year: 1526; Month:  7; StartDay:  9; EndDay:  7; IncOne: True),
-    (Year: 1527; Month:  6; StartDay: 28; EndDay: 27; IncOne: True),
-    (Year: 1535; Month:  8; StartDay: 28; EndDay: 26; IncOne: True),
-    (Year: 1535; Month: 10; StartDay: 26; EndDay: 24; IncOne: False),
-    (Year: 1544; Month:  5; StartDay: 21; EndDay: 19; IncOne: True),
-    (Year: 1546; Month:  1; StartDay:  2; EndDay:  0; IncOne: False),
-    (Year: 1546; Month:  7; StartDay: 27; EndDay: 25; IncOne: True),
-    (Year: 1571; Month:  8; StartDay: 20; EndDay: 18; IncOne: True),
-    (Year: 1572; Month:  8; StartDay:  8; EndDay:  6; IncOne: True),
-    (Year: 1581; Month: 10; StartDay: 27; EndDay: 25; IncOne: False),
-    (Year: 1582; Month:  7; StartDay: 19; EndDay: 17; IncOne: True),
-    (Year: 1588; Month:  3; StartDay: 26; EndDay: 25; IncOne: True),
-    (Year: 1588; Month:  4; StartDay: 26; EndDay: 24; IncOne: True),
-    (Year: 1589; Month:  1; StartDay: 16; EndDay: 14; IncOne: False),
-    (Year: 1591; Month:  9; StartDay: 17; EndDay: 16; IncOne: True),
-    (Year: 1599; Month:  1; StartDay: 26; EndDay: 24; IncOne: False),
+    (SY: 1501; SM:  4; SD: 17; EY: 1501; EM:  5; ED: 16; IncOne: True),
+    (SY: 1501; SM:  6; SD: 15; EY: 1501; EM:  7; ED: 14; IncOne: True),
+    (SY: 1508; SM:  1; SD:  2; EY: 1508; EM:  1; ED: 31; IncOne: False),
+    (SY: 1513; SM: 10; SD: 28; EY: 1513; EM: 11; ED: 26; IncOne: True),
+    (SY: 1516; SM: 10; SD: 25; EY: 1516; EM: 11; ED: 23; IncOne: False),
+    (SY: 1521; SM:  9; SD: 30; EY: 1521; EM: 10; ED: 29; IncOne: True),
+    (SY: 1526; SM:  7; SD:  9; EY: 1526; EM:  8; ED:  7; IncOne: True),
+    (SY: 1527; SM:  6; SD: 28; EY: 1527; EM:  7; ED: 27; IncOne: True),
+    (SY: 1535; SM:  8; SD: 28; EY: 1535; EM:  9; ED: 26; IncOne: True),
+    (SY: 1535; SM: 10; SD: 26; EY: 1535; EM: 11; ED: 24; IncOne: False),
+    (SY: 1544; SM:  5; SD: 21; EY: 1544; EM:  6; ED: 19; IncOne: True),
+    (SY: 1546; SM:  1; SD:  2; EY: 1546; EM:  1; ED: 31; IncOne: False),
+    (SY: 1546; SM:  7; SD: 27; EY: 1546; EM:  8; ED: 25; IncOne: True),
+    (SY: 1571; SM:  8; SD: 20; EY: 1571; EM:  9; ED: 18; IncOne: True),
+    (SY: 1572; SM:  8; SD:  8; EY: 1572; EM:  9; ED:  6; IncOne: True),
+    (SY: 1581; SM: 10; SD: 27; EY: 1581; EM: 11; ED: 25; IncOne: False),
+    (SY: 1582; SM:  7; SD: 19; EY: 1582; EM:  8; ED: 17; IncOne: True),
+    (SY: 1588; SM:  3; SD: 26; EY: 1588; EM:  4; ED: 25; IncOne: True),
+    (SY: 1588; SM:  4; SD: 26; EY: 1588; EM:  5; ED: 24; IncOne: True),
+    (SY: 1589; SM:  1; SD: 16; EY: 1589; EM:  2; ED: 14; IncOne: False),
+    (SY: 1591; SM:  9; SD: 17; EY: 1591; EM: 10; ED: 16; IncOne: True),
+    (SY: 1599; SM:  1; SD: 26; EY: 1599; EM:  2; ED: 24; IncOne: False),
 
-    (Year: 1600; Month:  2; StartDay: 14; EndDay: 14; IncOne: True),
-    (Year: 1612; Month:  3; StartDay:  2; EndDay:  0; IncOne: False),
-    (Year: 1616; Month:  5; StartDay: 15; EndDay: 13; IncOne: True),
-    (Year: 1622; Month:  7; StartDay:  8; EndDay:  6; IncOne: True),
-    (Year: 1627; Month:  9; StartDay:  9; EndDay:  8; IncOne: True),
-    (Year: 1628; Month:  1; StartDay:  6; EndDay:  4; IncOne: False),
-    (Year: 1630; Month:  4; StartDay: 12; EndDay: 11; IncOne: False),
-    (Year: 1634; Month:  8; StartDay: 23; EndDay: 21; IncOne: True),
-    (Year: 1643; Month:  2; StartDay: 18; EndDay: 19; IncOne: False),
-    (Year: 1649; Month:  5; StartDay: 11; EndDay:  9; IncOne: True),
-    (Year: 1662; Month:  2; StartDay: 18; EndDay: 19; IncOne: True),
-    (Year: 1673; Month: 11; StartDay:  8; EndDay:  7; IncOne: False),
-    (Year: 1685; Month:  2; StartDay:  3; EndDay:  4; IncOne: True),
-    (Year: 1687; Month:  3; StartDay: 13; EndDay: 11; IncOne: True),
-    (Year: 1694; Month:  6; StartDay: 22; EndDay: 21; IncOne: True),
+    (SY: 1600; SM:  2; SD: 14; EY: 1600; EM:  3; ED: 14; IncOne: True),
+    (SY: 1612; SM:  3; SD:  2; EY: 1612; EM:  3; ED: 31; IncOne: False),
+    (SY: 1616; SM:  5; SD: 15; EY: 1616; EM:  6; ED: 13; IncOne: True),
+    (SY: 1622; SM:  7; SD:  8; EY: 1622; EM:  8; ED:  6; IncOne: True),
+    (SY: 1627; SM:  9; SD:  9; EY: 1627; EM: 10; ED:  8; IncOne: True),
+    (SY: 1628; SM:  1; SD:  6; EY: 1628; EM:  2; ED:  4; IncOne: False),
+    (SY: 1630; SM:  4; SD: 12; EY: 1630; EM:  5; ED: 11; IncOne: False),
+    (SY: 1634; SM:  8; SD: 23; EY: 1634; EM:  9; ED: 21; IncOne: True),
+    (SY: 1643; SM:  2; SD: 18; EY: 1643; EM:  3; ED: 19; IncOne: False),
+    (SY: 1649; SM:  5; SD: 11; EY: 1649; EM:  6; ED:  9; IncOne: True),
+    (SY: 1662; SM:  2; SD: 18; EY: 1662; EM:  3; ED: 19; IncOne: True),
+    (SY: 1673; SM: 11; SD:  8; EY: 1673; EM: 12; ED:  7; IncOne: False),
+    (SY: 1685; SM:  2; SD:  3; EY: 1685; EM:  3; ED:  4; IncOne: True),
+    (SY: 1687; SM:  3; SD: 13; EY: 1687; EM:  4; ED: 11; IncOne: True),
+    (SY: 1694; SM:  6; SD: 22; EY: 1694; EM:  7; ED: 21; IncOne: True),
 
-    (Year: 1704; Month: 10; StartDay: 28; EndDay: 26; IncOne: False),
-    (Year: 1708; Month:  2; StartDay: 21; EndDay: 21; IncOne: True),
-    (Year: 1720; Month:  7; StartDay:  5; EndDay:  3; IncOne: True),
-    (Year: 1759; Month:  3; StartDay: 28; EndDay: 26; IncOne: True),
-    (Year: 1763; Month:  9; StartDay:  7; EndDay:  6; IncOne: True),
-    (Year: 1768; Month:  3; StartDay: 18; EndDay: 16; IncOne: True),
-    (Year: 1778; Month:  3; StartDay: 28; EndDay: 26; IncOne: True),
-    (Year: 1779; Month:  7; StartDay: 13; EndDay: 11; IncOne: True),
-    (Year: 1787; Month: 12; StartDay:  9; EndDay:  7; IncOne: True),
-    (Year: 1789; Month:  7; StartDay: 22; EndDay: 20; IncOne: True),
-    (Year: 1796; Month:  6; StartDay:  5; EndDay:  4; IncOne: True),
+    (SY: 1704; SM: 10; SD: 28; EY: 1704; EM: 11; ED: 26; IncOne: False),
+    (SY: 1708; SM:  2; SD: 21; EY: 1708; EM:  3; ED: 21; IncOne: True),
+    (SY: 1720; SM:  7; SD:  5; EY: 1720; EM:  8; ED:  3; IncOne: True),
+    (SY: 1759; SM:  3; SD: 28; EY: 1759; EM:  4; ED: 26; IncOne: True),
+    (SY: 1763; SM:  9; SD:  7; EY: 1763; EM: 10; ED:  6; IncOne: True),
+    (SY: 1768; SM:  3; SD: 18; EY: 1768; EM:  4; ED: 16; IncOne: True),
+    (SY: 1778; SM:  3; SD: 28; EY: 1778; EM:  4; ED: 26; IncOne: True),
+    (SY: 1779; SM:  7; SD: 13; EY: 1779; EM:  8; ED: 11; IncOne: True),
+    (SY: 1787; SM: 12; SD:  9; EY: 1788; EM:  1; ED:  7; IncOne: True),
+    (SY: 1789; SM:  7; SD: 22; EY: 1789; EM:  8; ED: 20; IncOne: True),
+    (SY: 1796; SM:  6; SD:  5; EY: 1796; EM:  7; ED:  4; IncOne: True),
 
-    (Year: 1804; Month:  8; StartDay:  5; EndDay:  3; IncOne: True),
-    (Year: 1831; Month:  4; StartDay: 12; EndDay: 11; IncOne: True),
-    (Year: 1842; Month:  1; StartDay: 11; EndDay: 09; IncOne: True),
-    (Year: 1863; Month:  1; StartDay: 19; EndDay: 17; IncOne: True),
-    (Year: 1880; Month: 11; StartDay:  2; EndDay:  1; IncOne: False),
-    (Year: 1896; Month:  2; StartDay: 13; EndDay: 13; IncOne: True),
+    (SY: 1804; SM:  8; SD:  5; EY: 1804; EM:  9; ED:  3; IncOne: True),
+    (SY: 1831; SM:  4; SD: 12; EY: 1831; EM:  5; ED: 11; IncOne: True),
+    (SY: 1842; SM:  1; SD: 11; EY: 1842; EM:  2; ED:  9; IncOne: True),
+    (SY: 1863; SM:  1; SD: 19; EY: 1863; EM:  2; ED: 17; IncOne: True),
+    (SY: 1880; SM: 11; SD:  2; EY: 1880; EM: 12; ED:  1; IncOne: False),
+    (SY: 1896; SM:  2; SD: 13; EY: 1896; EM:  3; ED: 13; IncOne: True),
 
-    (Year: 1914; Month: 11; StartDay: 17; EndDay: 16; IncOne: True),
-    (Year: 1916; Month:  2; StartDay:  3; EndDay:  3; IncOne: True),
-    (Year: 1920; Month: 11; StartDay: 10; EndDay:  9; IncOne: True),
-    (Year: 1924; Month:  3; StartDay:  5; EndDay:  3; IncOne: True),
+    (SY: 1914; SM: 11; SD: 17; EY: 1914; EM: 12; ED: 16; IncOne: True),
+    (SY: 1916; SM:  2; SD:  3; EY: 1916; EM:  3; ED:  3; IncOne: True),
+    (SY: 1920; SM: 11; SD: 10; EY: 1920; EM: 12; ED:  9; IncOne: True),
+    (SY: 1924; SM:  3; SD:  5; EY: 1924; EM:  4; ED:  3; IncOne: True),
 
-    (Year: 2018; Month: 11; StartDay:  7; EndDay:  6; IncOne: False),
-    (Year: 2057; Month:  9; StartDay: 28; EndDay: 27; IncOne: False),
+    (SY: 2018; SM: 11; SD:  7; EY: 2018; EM: 12; ED:  6; IncOne: False),
+    (SY: 2057; SM:  9; SD: 28; EY: 2057; EM: 10; ED: 27; IncOne: False),
 
-    (Year: 2261; Month:  1; StartDay: 31; EndDay: 28; IncOne: True), // 3 月 1 日也要加一
+    (SY: 2261; SM:  1; SD: 31; EY: 2261; EM:  3; ED:  1; IncOne: True),
 
-    (Year: 2312; Month: 11; StartDay: 29; EndDay: 28; IncOne: False),
-    (Year: 2363; Month: 11; StartDay:  6; EndDay:  5; IncOne: False),
-    (Year: 2372; Month:  2; StartDay:  5; EndDay:  5; IncOne: False),
+    (SY: 2312; SM: 11; SD: 29; EY: 2312; EM: 12; ED: 28; IncOne: False),
+    (SY: 2363; SM: 11; SD:  6; EY: 2363; EM: 12; ED:  5; IncOne: False),
+    (SY: 2372; SM:  2; SD:  5; EY: 2372; EM:  3; ED:  5; IncOne: False),
 
-    (Year: 2403; Month: 12; StartDay: 14; EndDay: 12; IncOne: False),
-    (Year: 2480; Month: 12; StartDay: 31; EndDay: 29; IncOne: False),
-    (Year: 2498; Month:  1; StartDay: 22; EndDay: 20; IncOne: False),
+    (SY: 2403; SM: 12; SD: 14; EY: 2404; EM:  1; ED: 12; IncOne: False),
+    (SY: 2480; SM: 12; SD: 31; EY: 2481; EM:  1; ED: 29; IncOne: False),
+    (SY: 2498; SM:  1; SD: 22; EY: 2498; EM:  2; ED: 20; IncOne: False),
 
-    (Year: 2540; Month:  7; StartDay:  5; EndDay:  3; IncOne: False),
-    (Year: 2550; Month:  7; StartDay: 15; EndDay: 13; IncOne: False),
-    (Year: 2583; Month:  2; StartDay: 13; EndDay: 14; IncOne: False),
+    (SY: 2540; SM:  7; SD:  5; EY: 2540; EM:  8; ED:  3; IncOne: False),
+    (SY: 2550; SM:  7; SD: 15; EY: 2550; EM:  8; ED: 13; IncOne: False),
+    (SY: 2583; SM:  2; SD: 13; EY: 2583; EM:  3; ED: 14; IncOne: False),
 
-    (Year: 2668; Month:  4; StartDay:  3; EndDay:  2; IncOne: False),
-    (Year: 2679; Month: 10; StartDay: 26; EndDay: 24; IncOne: False),
+    (SY: 2668; SM:  4; SD:  3; EY: 2668; EM:  5; ED:  2; IncOne: False),
+    (SY: 2679; SM: 10; SD: 26; EY: 2679; EM: 11; ED: 24; IncOne: False),
 
-    (Year: 2729; Month: 12; StartDay: 12; EndDay: 10; IncOne: False)
+    (SY: 2729; SM: 12; SD: 12; EY: 2730; EM:  1; ED: 10; IncOne: False)
   );
 
 // 无公元元年的公历年份，转换为内部连续的包含 0 的年份，负值加一
@@ -5286,38 +5287,12 @@ begin
   end;
 
   // 历史上的观测偏差导致的单个农历月首的单日偏差修正，包括跨年的情况
-  for I := Low(CN_LUNAR_SINGLE_MONTH_FIX) to High(CN_LUNAR_SINGLE_MONTH_FIX) do
+  for I := Low(CN_LUNAR_DATE_FIX) to High(CN_LUNAR_DATE_FIX) do
   begin
-    if (AYear = CN_LUNAR_SINGLE_MONTH_FIX[I].Year)
-      and (((AMonth = CN_LUNAR_SINGLE_MONTH_FIX[I].Month) and (ADay >= CN_LUNAR_SINGLE_MONTH_FIX[I].StartDay))
-      or ((AMonth = CN_LUNAR_SINGLE_MONTH_FIX[I].Month + 1) and (ADay <= CN_LUNAR_SINGLE_MONTH_FIX[I].EndDay))) then
+    if IsDayBetweenEqual(AYear, AMonth, ADay, CN_LUNAR_DATE_FIX[I].SY, CN_LUNAR_DATE_FIX[I].SM,
+      CN_LUNAR_DATE_FIX[I].SD, CN_LUNAR_DATE_FIX[I].EY, CN_LUNAR_DATE_FIX[I].EM, CN_LUNAR_DATE_FIX[I].ED) then
     begin
-      // 跨年的情形，Month + 1 可能得到非法的 13 月所以比较不成立，没法处理跨第二年的情况，需要单独处理
-
-      // 某月偏差如果是 1 日开始，则 31 日不用调整，因为农历月不可能大于 30 日
-      if (AMonth = CN_LUNAR_SINGLE_MONTH_FIX[I].Month) and (CN_LUNAR_SINGLE_MONTH_FIX[I].StartDay = 1) and (ADay = 31) then
-        Continue;
-
-      if CN_LUNAR_SINGLE_MONTH_FIX[I].IncOne then
-      begin
-        Inc(LunDay);
-        if LunDay > 30 then
-          LunDay := Lunday - 30;
-        Break;
-      end
-      else
-      begin
-        Dec(LunDay);
-        if LunDay < 1 then
-          LunDay := LunDay + 30;
-        Break;
-      end;
-    end
-    else if (AYear = CN_LUNAR_SINGLE_MONTH_FIX[I].Year + 1) and (AMonth = 1)
-      and (CN_LUNAR_SINGLE_MONTH_FIX[I].Month = 12) and (ADay <= CN_LUNAR_SINGLE_MONTH_FIX[I].EndDay) then
-    begin
-      // 单独处理跨年也就是次年一月剩下的部分
-      if CN_LUNAR_SINGLE_MONTH_FIX[I].IncOne then
+      if CN_LUNAR_DATE_FIX[I].IncOne then
       begin
         Inc(LunDay);
         if LunDay > 30 then
@@ -5332,14 +5307,6 @@ begin
         Break;
       end;
     end;
-  end;
-
-  // 单独处理 2261 年 3 月 1 日的农历也要加一天
-  if (AYear = 2261) and (AMonth = 3) and (ADay = 1) then
-  begin
-    Inc(LunDay);
-    if LunDay > 30 then
-      LunDay := Lunday - 30;
   end;
 
   Result := LunDay;
