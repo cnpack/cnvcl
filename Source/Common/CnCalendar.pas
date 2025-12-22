@@ -1862,12 +1862,13 @@ type
   end;
 
 const
-  CN_LUNAR_SINGLE_MONTH_FIX: array[0..125] of TCnLunarDateSingleMonthFix = (
+  CN_LUNAR_SINGLE_MONTH_FIX: array[0..150] of TCnLunarDateSingleMonthFix = (
   {* 历史上因观测偏差导致的单个农历月首的单日偏差修正}
     (Year:  244; Month:  4; StartDay: 24; EndDay: 23; IncOne: False),
     (Year:  245; Month:  1; StartDay: 15; EndDay: 13; IncOne: True),
     (Year:  245; Month:  5; StartDay: 13; EndDay: 11; IncOne: False),
     (Year:  245; Month:  7; StartDay: 11; EndDay:  9; IncOne: False),
+    (Year:  245; Month: 12; StartDay:  6; EndDay:  4; IncOne: True),
     (Year:  246; Month:  2; StartDay:  3; EndDay:  4; IncOne: True),
     (Year:  599; Month:  1; StartDay:  2; EndDay:  0; IncOne: True),  // 网友"法自然"补充
     (Year: 1011; Month: 12; StartDay: 27; EndDay: 25; IncOne: False), // 网友"法自然"补充，跨年
@@ -1876,6 +1877,16 @@ const
     (Year: 1199; Month:  3; StartDay: 28; EndDay: 26; IncOne: False),
 
     // TODO: MORE
+    (Year: 1276; Month: 11; StartDay:  7; EndDay:  6; IncOne: False),
+    (Year: 1277; Month:  2; StartDay:  4; EndDay:  5; IncOne: False),
+    (Year: 1277; Month:  5; StartDay:  4; EndDay:  2; IncOne: False),
+    (Year: 1277; Month:  7; StartDay:  2; EndDay:  0; IncOne: False),
+    (Year: 1277; Month:  8; StartDay: 30; EndDay: 28; IncOne: False),
+    (Year: 1278; Month:  4; StartDay: 23; EndDay: 22; IncOne: False),
+    (Year: 1278; Month:  9; StartDay: 18; EndDay: 17; IncOne: False),
+    (Year: 1279; Month:  7; StartDay: 10; EndDay:  8; IncOne: False),
+    (Year: 1279; Month: 12; StartDay:  5; EndDay:  3; IncOne: False),
+    (Year: 1280; Month:  4; StartDay: 30; EndDay: 29; IncOne: False),
     (Year: 1280; Month:  6; StartDay: 28; EndDay: 27; IncOne: False),
     (Year: 1280; Month:  9; StartDay: 25; EndDay: 24; IncOne: False),
     (Year: 1280; Month: 12; StartDay: 23; EndDay: 21; IncOne: False),
@@ -1954,7 +1965,7 @@ const
     (Year: 1581; Month: 10; StartDay: 27; EndDay: 25; IncOne: False),
     (Year: 1582; Month:  7; StartDay: 19; EndDay: 17; IncOne: True),
     (Year: 1588; Month:  3; StartDay: 26; EndDay: 25; IncOne: True),
-    (Year: 1588; Month:  4; StartDay: 25; EndDay: 24; IncOne: True),
+    (Year: 1588; Month:  4; StartDay: 26; EndDay: 24; IncOne: True),
     (Year: 1589; Month:  1; StartDay: 16; EndDay: 14; IncOne: False),
     (Year: 1591; Month:  9; StartDay: 17; EndDay: 16; IncOne: True),
     (Year: 1599; Month:  1; StartDay: 26; EndDay: 24; IncOne: False),
@@ -1999,7 +2010,27 @@ const
     (Year: 1920; Month: 11; StartDay: 10; EndDay:  9; IncOne: True),
     (Year: 1924; Month:  3; StartDay:  5; EndDay:  3; IncOne: True),
 
-    (Year: 2018; Month: 11; StartDay:  7; EndDay:  6; IncOne: False)
+    (Year: 2018; Month: 11; StartDay:  7; EndDay:  6; IncOne: False),
+    (Year: 2057; Month:  9; StartDay: 28; EndDay: 27; IncOne: False),
+
+    (Year: 2261; Month:  1; StartDay: 31; EndDay: 28; IncOne: True), // 3 月 1 日也要加一
+
+    (Year: 2312; Month: 11; StartDay: 29; EndDay: 28; IncOne: False),
+    (Year: 2363; Month: 11; StartDay:  6; EndDay:  5; IncOne: False),
+    (Year: 2372; Month:  2; StartDay:  5; EndDay:  5; IncOne: False),
+
+    (Year: 2403; Month: 12; StartDay: 14; EndDay: 12; IncOne: False),
+    (Year: 2480; Month: 12; StartDay: 31; EndDay: 29; IncOne: False),
+    (Year: 2498; Month:  1; StartDay: 22; EndDay: 20; IncOne: False),
+
+    (Year: 2540; Month:  7; StartDay:  5; EndDay:  3; IncOne: False),
+    (Year: 2550; Month:  7; StartDay: 15; EndDay:  3; IncOne: False),
+    (Year: 2583; Month:  2; StartDay: 13; EndDay: 14; IncOne: False),
+
+    (Year: 2668; Month:  4; StartDay:  3; EndDay:  2; IncOne: False),
+    (Year: 2679; Month: 10; StartDay: 26; EndDay: 24; IncOne: False),
+
+    (Year: 2729; Month: 12; StartDay: 12; EndDay: 10; IncOne: True)
   );
 
 // 无公元元年的公历年份，转换为内部连续的包含 0 的年份，负值加一
@@ -5198,9 +5229,8 @@ begin
     end;
   end;
 
-  // 245.12.6 到 246.1.4 跨年的有偏差导致该月差一天要加上
-  if ((AYear = 245) and ((AMonth = 12) and (ADay >= 6)))
-    or ((AYear = 246) and ((AMonth = 1) and (ADay <= 4))) then
+  // 单独处理 2261 年 3 月 1 日的农历也要加一天
+  if (AYear = 2261) and (AMonth = 3) and (ADay = 1) then
   begin
     Inc(LunDay);
     if LunDay > 30 then
