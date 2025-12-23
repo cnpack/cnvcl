@@ -1328,8 +1328,8 @@ begin
 
   if not Result then Exit;
 
-  Result := (GetLunarMonthFromNumber(1, False) = '一月') and
-    (GetLunarMonthFromNumber(1, True) = '闰一月') and
+  Result := (GetLunarMonthFromNumber(1, False) = '正月') and
+    (GetLunarMonthFromNumber(1, True) = '闰正月') and
     (GetLunarDayFromNumber(1) = '初一') and
     (GetLunarDayFromNumber(15) = '十五') and
     (GetLunarDayFromNumber(30) = '三十');
