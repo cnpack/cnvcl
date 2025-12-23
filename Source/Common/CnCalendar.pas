@@ -1351,12 +1351,14 @@ function GetDayFromLunar(ALunarYear, ALunarMonth, ALunarDay: Integer; IsLeapMont
    返回值：Boolean                                        - 返回是否计算成功
 }
 
-function Compare2Day(Year1, Month1, Day1, Year2, Month2, Day2: Integer): Integer;
+function Compare2Day(Year1, Month1, Day1, Year2, Month2, Day2: Integer;
+  CheckDay: Boolean = True): Integer;
 {* 比较两个公历日期，前者大于、等于、小于后者时分别返回 1、0、-1，大于指更靠近未来。
 
    参数：
      Year1, Month1, Day1: Integer         - 待判断的第一个公历年、月、日
      Year2, Month2, Day2: Integer         - 待判断的第二个公历年、月、日
+     CheckDay: Boolean                    - 判断前是否检查公历日期合法
 
    返回值：Integer                        - 返回比较结果
 }
@@ -1891,6 +1893,7 @@ type
     ED: Integer;        // 偏差结束的公历日期
     DayOffset: TCnLunarDayOffsetType;    // 加减天数
   end;
+  PCnLunarDateFixRange = ^TCnLunarDateFixRange;
 
   TCnLunarSmallMonthFix = packed record
   {* 大部分公农历转换的误差修正，碰到月首减一天时都是加 30，少部分加 29，记录这些公历年月}
@@ -1898,11 +1901,13 @@ type
     M: Integer;
     D: Integer;
   end;
+  PCnLunarSmallMonthFix = ^TCnLunarSmallMonthFix;
 
 const
-  CN_LUNAR_YEAR_MONTH_SMALL_SUB_FIX: array[0..67] of TCnLunarSmallMonthFix = (
+  CN_LUNAR_YEAR_MONTH_SMALL_SUB_FIX: array[0..435] of TCnLunarSmallMonthFix = (
   {* 大部分公农历转换的误差修正，碰到月首减一天时都是加 30，少部分应加 29。
-     这些公历年月写在此处供纠错，避免本应农历 29 的变成 30}
+     这些公历年月写在此处供纠错，避免本应农历 29 的变成 30，由于数量较多，内部
+     需严格降序以备二分查找}
     (Y: 594; M: 12; D: 17),
     (Y: 593; M: 9; D: 30),
     (Y: 593; M: 8; D: 2),
@@ -1970,7 +1975,375 @@ const
     (Y: 202; M: 8; D: 5),
     (Y: 202; M: 6; D: 7),
     (Y: 200; M: 7; D: 28),
-    (Y: 200; M: 5; D: 30)
+    (Y: 200; M: 5; D: 30),
+    (Y: 199; M:  3; D: 14),
+    (Y: 197; M: 12; D: 26),
+    (Y: 197; M: 10; D: 28),
+    (Y: 196; M: 12; D:  7),
+    (Y: 196; M: 10; D:  9),
+    (Y: 196; M:  8; D: 11),
+    (Y: 195; M: 11; D: 19),
+    (Y: 195; M:  9; D: 21),
+    (Y: 195; M:  7; D: 24),
+    (Y: 194; M:  9; D:  2),
+    (Y: 194; M:  7; D:  5),
+    (Y: 193; M:  8; D: 14),
+    (Y: 193; M:  6; D: 16),
+    (Y: 192; M:  8; D: 25),
+    (Y: 191; M:  6; D:  9),
+    (Y: 191; M:  4; D: 11),
+    (Y: 190; M:  3; D: 23),
+    (Y: 190; M:  1; D: 23),
+    (Y: 189; M:  1; D:  4),
+    (Y: 188; M: 11; D:  6),
+    (Y: 187; M: 10; D: 19),
+    (Y: 187; M:  8; D: 21),
+    (Y: 186; M:  9; D: 30),
+    (Y: 186; M:  8; D:  2),
+    (Y: 185; M:  9; D: 11),
+    (Y: 185; M:  7; D: 14),
+    (Y: 184; M:  9; D: 22),
+    (Y: 183; M:  7; D:  7),
+    (Y: 182; M:  4; D: 20),
+    (Y: 182; M:  2; D: 20),
+    (Y: 181; M:  2; D:  1),
+    (Y: 180; M: 12; D:  4),
+    (Y: 179; M: 11; D: 16),
+    (Y: 178; M: 10; D: 28),
+    (Y: 178; M:  8; D: 30),
+    (Y: 177; M: 10; D:  9),
+    (Y: 177; M:  8; D: 11),
+    (Y: 176; M:  7; D: 23),
+    (Y: 175; M:  8; D:  4),
+    (Y: 174; M:  7; D: 16),
+    (Y: 174; M:  5; D: 18),
+    (Y: 170; M: 11; D: 25),
+    (Y: 169; M: 11; D:  6),
+    (Y: 169; M:  9; D:  8),
+    (Y: 168; M:  8; D: 20),
+    (Y: 167; M: 10; D: 30),
+    (Y: 167; M:  9; D:  1),
+    (Y: 166; M:  8; D: 13),
+    (Y: 166; M:  6; D: 15),
+    (Y: 165; M:  5; D: 27),
+    (Y: 158; M:  9; D: 10),
+    (Y: 158; M:  7; D: 13),
+    (Y: 157; M:  8; D: 22),
+    (Y: 157; M:  6; D: 24),
+    (Y: 150; M: 10; D:  8),
+    (Y: 149; M:  9; D: 19),
+    (Y: 149; M:  7; D: 22),
+    (Y: 148; M:  7; D:  3),
+    (Y: 142; M: 11; D:  5),
+    (Y: 141; M: 10; D: 17),
+    (Y: 141; M:  8; D: 19),
+    (Y: 141; M:  6; D: 21),
+    (Y: 140; M:  7; D: 31),
+    (Y: 134; M: 12; D:  3),
+    (Y: 133; M: 11; D: 14),
+    (Y: 133; M:  9; D: 16),
+    (Y: 132; M:  8; D: 28),
+    (Y: 132; M:  6; D: 30),
+    (Y: 131; M:  8; D: 10),
+    (Y: 125; M: 10; D: 14),
+    (Y: 124; M:  9; D: 25),
+    (Y: 124; M:  7; D: 28),
+    (Y: 123; M:  9; D:  7),
+    (Y: 117; M: 11; D: 11),
+    (Y: 116; M: 10; D: 23),
+    (Y: 115; M: 10; D:  5),
+    (Y: 115; M:  8; D:  7),
+    (Y:  86; M:  6; D: 29),
+    (Y:  85; M:  1; D: 14),
+    (Y:  84; M:  9; D: 18),
+    (Y:  84; M:  7; D: 21),
+    (Y:  84; M:  2; D: 24),
+    (Y:  83; M: 12; D: 27),
+    (Y:  83; M: 10; D: 29),
+    (Y:  83; M:  5; D:  5),
+    (Y:  83; M:  3; D:  7),
+    (Y:  83; M:  2; D:  5),
+    (Y:  82; M: 12; D:  8),
+    (Y:  82; M: 10; D: 10),
+    (Y:  82; M:  2; D: 16),
+    (Y:  81; M: 12; D: 19),
+    (Y:  81; M: 11; D: 19),
+    (Y:  81; M: 10; D: 21),
+    (Y:  81; M:  9; D: 21),
+    (Y:  80; M: 11; D: 30),
+    (Y:  80; M: 10; D: 31),
+    (Y:  80; M: 10; D:  2),
+    (Y:  80; M:  9; D:  2),
+    (Y:  80; M:  8; D:  4),
+    (Y:  80; M:  6; D:  6),
+    (Y:  79; M: 11; D: 12),
+    (Y:  79; M: 10; D: 13),
+    (Y:  79; M:  9; D: 14),
+    (Y:  79; M:  8; D: 15),
+    (Y:  79; M:  7; D: 17),
+    (Y:  79; M:  5; D: 19),
+    (Y:  78; M: 10; D: 24),
+    (Y:  78; M:  8; D: 26),
+    (Y:  78; M:  7; D: 27),
+    (Y:  78; M:  6; D: 28),
+    (Y:  78; M:  4; D: 30),
+    (Y:  77; M: 11; D:  4),
+    (Y:  77; M:  8; D:  7),
+    (Y:  77; M:  6; D:  9),
+    (Y:  77; M:  4; D: 11),
+    (Y:  76; M:  8; D: 18),
+    (Y:  76; M:  5; D: 21),
+    (Y:  76; M:  3; D: 23),
+    (Y:  76; M:  1; D: 24),
+    (Y:  75; M:  7; D: 31),
+    (Y:  75; M:  6; D:  2),
+    (Y:  75; M:  4; D:  4),
+    (Y:  75; M:  3; D:  5),
+    (Y:  75; M:  1; D:  5),
+    (Y:  74; M: 11; D:  7),
+    (Y:  74; M:  3; D: 16),
+    (Y:  74; M:  1; D: 16),
+    (Y:  73; M: 12; D: 17),
+    (Y:  73; M: 11; D: 18),
+    (Y:  73; M: 10; D: 19),
+    (Y:  72; M: 12; D: 28),
+    (Y:  72; M: 11; D: 28),
+    (Y:  72; M: 10; D: 30),
+    (Y:  72; M:  9; D: 30),
+    (Y:  72; M:  9; D:  1),
+    (Y:  71; M: 12; D: 10),
+    (Y:  71; M: 11; D: 10),
+    (Y:  71; M: 10; D: 12),
+    (Y:  71; M:  9; D: 12),
+    (Y:  71; M:  8; D: 14),
+    (Y:  71; M:  6; D: 16),
+    (Y:  70; M: 11; D: 21),
+    (Y:  70; M:  9; D: 23),
+    (Y:  70; M:  8; D: 24),
+    (Y:  70; M:  7; D: 26),
+    (Y:  70; M:  5; D: 28),
+    (Y:  69; M:  9; D:  4),
+    (Y:  69; M:  7; D:  7),
+    (Y:  69; M:  5; D:  9),
+    (Y:  68; M:  9; D: 15),
+    (Y:  68; M:  8; D: 16),
+    (Y:  68; M:  6; D: 18),
+    (Y:  68; M:  4; D: 20),
+    (Y:  67; M:  8; D: 28),
+    (Y:  67; M:  6; D: 30),
+    (Y:  67; M:  5; D: 31),
+    (Y:  67; M:  5; D:  2),
+    (Y:  67; M:  4; D:  2),
+    (Y:  66; M:  6; D: 11),
+    (Y:  66; M:  4; D: 13),
+    (Y:  66; M:  2; D: 13),
+    (Y:  66; M:  1; D: 14),
+    (Y:  65; M: 11; D: 16),
+    (Y:  65; M:  3; D: 25),
+    (Y:  65; M:  1; D: 25),
+    (Y:  64; M: 12; D: 26),
+    (Y:  64; M: 11; D: 27),
+    (Y:  64; M: 10; D: 28),
+    (Y:  64; M:  9; D: 29),
+    (Y:  64; M:  1; D:  7),
+    (Y:  63; M: 11; D:  9),
+    (Y:  63; M: 10; D: 10),
+    (Y:  63; M:  9; D: 11),
+    (Y:  63; M:  7; D: 14),
+    (Y:  62; M: 12; D: 19),
+    (Y:  62; M: 10; D: 21),
+    (Y:  62; M:  9; D: 21),
+    (Y:  62; M:  8; D: 23),
+    (Y:  62; M:  6; D: 25),
+    (Y:  61; M: 10; D:  2),
+    (Y:  61; M:  9; D:  2),
+    (Y:  61; M:  8; D:  4),
+    (Y:  61; M:  6; D:  6),
+    (Y:  60; M: 10; D: 13),
+    (Y:  60; M:  9; D: 13),
+    (Y:  60; M:  7; D: 16),
+    (Y:  60; M:  5; D: 18),
+    (Y:  59; M:  9; D: 25),
+    (Y:  59; M:  7; D: 28),
+    (Y:  59; M:  6; D: 28),
+    (Y:  59; M:  4; D: 30),
+    (Y:  58; M:  7; D:  9),
+    (Y:  58; M:  5; D: 11),
+    (Y:  58; M:  4; D: 11),
+    (Y:  58; M:  3; D: 13),
+    (Y:  57; M:  4; D: 22),
+    (Y:  57; M:  2; D: 22),
+    (Y:  56; M: 12; D: 25),
+    (Y:  56; M:  2; D:  4),
+    (Y:  55; M: 12; D:  7),
+    (Y:  55; M: 11; D:  7),
+    (Y:  55; M: 10; D:  9),
+    (Y:  55; M:  8; D: 11),
+    (Y:  55; M:  1; D: 16),
+    (Y:  54; M: 11; D: 18),
+    (Y:  54; M: 10; D: 19),
+    (Y:  54; M:  9; D: 20),
+    (Y:  54; M:  7; D: 23),
+    (Y:  53; M: 10; D: 30),
+    (Y:  53; M:  9; D: 30),
+    (Y:  53; M:  9; D:  1),
+    (Y:  53; M:  7; D:  4),
+    (Y:  52; M: 10; D: 11),
+    (Y:  52; M:  8; D: 13),
+    (Y:  52; M:  6; D: 15),
+    (Y:  51; M: 10; D: 23),
+    (Y:  51; M:  8; D: 25),
+    (Y:  51; M:  7; D: 26),
+    (Y:  51; M:  5; D: 28),
+    (Y:  50; M:  8; D:  6),
+    (Y:  50; M:  7; D:  7),
+    (Y:  50; M:  6; D:  8),
+    (Y:  50; M:  5; D:  9),
+    (Y:  49; M:  7; D: 18),
+    (Y:  49; M:  5; D: 20),
+    (Y:  49; M:  3; D: 22),
+    (Y:  49; M:  1; D: 22),
+    (Y:  48; M:  3; D:  3),
+    (Y:  48; M:  1; D:  4),
+    (Y:  47; M: 11; D:  6),
+    (Y:  47; M:  9; D:  8),
+    (Y:  47; M:  2; D: 13),
+    (Y:  46; M: 12; D: 16),
+    (Y:  46; M: 10; D: 18),
+    (Y:  46; M:  8; D: 20),
+    (Y:  45; M: 11; D: 27),
+    (Y:  45; M:  9; D: 29),
+    (Y:  45; M:  8; D:  1),
+    (Y:  44; M: 11; D:  8),
+    (Y:  44; M:  9; D: 10),
+    (Y:  44; M:  7; D: 13),
+    (Y:  43; M: 11; D: 20),
+    (Y:  43; M:  8; D: 23),
+    (Y:  43; M:  6; D: 25),
+    (Y:  42; M:  9; D:  3),
+    (Y:  42; M:  8; D:  4),
+    (Y:  42; M:  7; D:  6),
+    (Y:  42; M:  6; D:  6),
+    (Y:  41; M:  8; D: 15),
+    (Y:  41; M:  6; D: 17),
+    (Y:  41; M:  4; D: 19),
+    (Y:  41; M:  2; D: 19),
+    (Y:  40; M:  5; D: 29),
+    (Y:  40; M:  3; D: 31),
+    (Y:  40; M:  2; D:  1),
+    (Y:  39; M: 12; D:  4),
+    (Y:  39; M:  3; D: 13),
+    (Y:  39; M:  1; D: 13),
+    (Y:  38; M: 11; D: 15),
+    (Y:  38; M:  9; D: 17),
+    (Y:  37; M: 12; D: 25),
+    (Y:  37; M: 10; D: 27),
+    (Y:  37; M:  8; D: 29),
+    (Y:  36; M: 12; D:  6),
+    (Y:  36; M: 10; D:  8),
+    (Y:  36; M:  8; D: 10),
+    (Y:  35; M: 12; D: 18),
+    (Y:  35; M:  9; D: 20),
+    (Y:  35; M:  7; D: 23),
+    (Y:  34; M: 10; D:  1),
+    (Y:  34; M:  9; D:  1),
+    (Y:  34; M:  8; D:  3),
+    (Y:  34; M:  7; D:  4),
+    (Y:  33; M:  9; D: 12),
+    (Y:  33; M:  7; D: 15),
+    (Y:  33; M:  6; D: 15),
+    (Y:  33; M:  5; D: 17),
+    (Y:  32; M:  6; D: 26),
+    (Y:  32; M:  4; D: 28),
+    (Y:  32; M:  2; D: 29),
+    (Y:  32; M:  1; D:  1),
+    (Y:  31; M:  4; D: 10),
+    (Y:  31; M:  2; D: 10),
+    (Y:  30; M: 12; D: 13),
+    (Y:  30; M: 10; D: 15),
+    (Y:  30; M:  1; D: 22),
+    (Y:  29; M: 11; D: 24),
+    (Y:  29; M:  9; D: 26),
+    (Y:  29; M:  1; D:  3),
+    (Y:  28; M: 11; D:  5),
+    (Y:  28; M:  9; D:  7),
+    (Y:  28; M:  1; D: 15),
+    (Y:  27; M: 10; D: 18),
+    (Y:  27; M:  8; D: 20),
+    (Y:  26; M: 10; D: 29),
+    (Y:  26; M:  9; D: 29),
+    (Y:  26; M:  8; D:  1),
+    (Y:  25; M: 10; D: 10),
+    (Y:  25; M:  9; D: 10),
+    (Y:  25; M:  8; D: 12),
+    (Y:  25; M:  7; D: 13),
+    (Y:  25; M:  6; D: 14),
+    (Y:  24; M:  9; D: 21),
+    (Y:  24; M:  7; D: 24),
+    (Y:  24; M:  5; D: 26),
+    (Y:  24; M:  3; D: 28),
+    (Y:  24; M:  1; D: 28),
+    (Y:  23; M: 12; D: 30),
+    (Y:  23; M:  7; D:  6),
+    (Y:  23; M:  5; D:  8),
+    (Y:  23; M:  3; D: 10),
+    (Y:  23; M:  1; D: 10),
+    (Y:  22; M:  4; D: 19),
+    (Y:  22; M:  2; D: 19),
+    (Y:  21; M: 12; D: 22),
+    (Y:  21; M: 10; D: 24),
+    (Y:  21; M:  1; D: 31),
+    (Y:  20; M: 12; D:  3),
+    (Y:  20; M: 10; D:  5),
+    (Y:  19; M: 11; D: 15),
+    (Y:  19; M:  9; D: 17),
+    (Y:  18; M: 11; D: 26),
+    (Y:  18; M: 10; D: 27),
+    (Y:  18; M:  8; D: 29),
+    (Y:  17; M: 11; D:  7),
+    (Y:  17; M: 10; D:  8),
+    (Y:  17; M:  9; D:  9),
+    (Y:  17; M:  8; D: 10),
+    (Y:  16; M: 10; D: 19),
+    (Y:  16; M:  8; D: 21),
+    (Y:  16; M:  7; D: 22),
+    (Y:  16; M:  6; D: 23),
+    (Y:  16; M:  4; D: 25),
+    (Y:  15; M:  8; D:  3),
+    (Y:  15; M:  6; D:  5),
+    (Y:  15; M:  4; D:  7),
+    (Y:  14; M:  5; D: 17),
+    (Y:  14; M:  3; D: 19),
+    (Y:  14; M:  1; D: 19),
+    (Y:  13; M:  2; D: 28),
+    (Y:  12; M: 12; D: 31),
+    (Y:  12; M: 11; D:  2),
+    (Y:  11; M: 12; D: 13),
+    (Y:  11; M: 10; D: 15),
+    (Y:  10; M: 11; D: 24),
+    (Y:  10; M:  9; D: 26),
+    (Y:   9; M: 12; D:  5),
+    (Y:   9; M: 11; D:  5),
+    (Y:   9; M: 10; D:  7),
+    (Y:   9; M:  9; D:  7),
+    (Y:   8; M: 11; D: 16),
+    (Y:   8; M:  9; D: 18),
+    (Y:   8; M:  8; D: 19),
+    (Y:   8; M:  7; D: 21),
+    (Y:   8; M:  5; D: 23),
+    (Y:   7; M:  8; D: 31),
+    (Y:   7; M:  7; D:  3),
+    (Y:   7; M:  5; D:  5),
+    (Y:   6; M:  8; D: 12),
+    (Y:   6; M:  6; D: 14),
+    (Y:   6; M:  4; D: 16),
+    (Y:   5; M:  3; D: 28),
+    (Y:   4; M:  1; D: 10),
+    (Y:   3; M:  3; D: 21),
+    (Y:   2; M: 10; D: 24),
+    (Y:   2; M:  1; D:  2),
+    (Y:   1; M: 11; D:  4),
+    (Y:   1; M: 10; D:  5)
   );
 
   CN_LUNAR_YEAR_MONTH_SMALL_ADD_FIX: array[0..4] of TCnLunarSmallMonthFix = (
@@ -1983,11 +2356,13 @@ const
     (Y: 232; M: 11; D: 29)
   );
 
-  CN_LUNAR_DATE_FIX: array[0..3718] of TCnLunarDateFixRange = (
-  {* 历史上因观测偏差导致的农历日期范围的公历单日偏差修正}
+  CN_LUNAR_DATE_FIX: array[0..3817] of TCnLunarDateFixRange = (
+  {* 历史上因观测偏差导致的农历日期范围的公历单日偏差修正，内部需严格升序以备二分查找}
     (SY:    1; SM:  1; SD:  2; EY:    1; EM:  2; ED: 11; DayOffset: lotDecOne),
     (SY:    1; SM:  7; SD:  9; EY:    1; EM:  8; ED:  7; DayOffset: lotDecOne),
-    (SY:    1; SM:  9; SD:  6; EY:    2; EM:  3; ED:  2; DayOffset: lotDecOne),
+    (SY:    1; SM:  9; SD:  6; EY:    1; EM: 10; ED:  5; DayOffset: lotDecOne),
+    (SY:    1; SM: 10; SD:  6; EY:    1; EM: 11; ED:  3; DayOffset: lotDecTwo),
+    (SY:    1; SM: 11; SD:  4; EY:    2; EM:  3; ED:  2; DayOffset: lotDecOne),
     (SY:    2; SM:  4; SD:  1; EY:    2; EM:  4; ED: 30; DayOffset: lotDecOne),
     (SY:    2; SM:  7; SD: 28; EY:    2; EM:  8; ED: 26; DayOffset: lotDecOne),
     (SY:    2; SM:  9; SD: 25; EY:    2; EM: 12; ED: 22; DayOffset: lotDecOne),
@@ -2010,9 +2385,15 @@ const
     (SY:    7; SM:  2; SD:  6; EY:    7; EM:  3; ED:  7; DayOffset: lotDecOne),
     (SY:    7; SM:  4; SD:  6; EY:    7; EM: 10; ED: 29; DayOffset: lotDecOne),
     (SY:    7; SM: 11; SD: 28; EY:    7; EM: 12; ED: 27; DayOffset: lotDecOne),
-    (SY:    8; SM:  4; SD: 24; EY:    9; EM:  1; ED: 14; DayOffset: lotDecOne),
+    (SY:    8; SM:  4; SD: 24; EY:    8; EM:  8; ED: 19; DayOffset: lotDecOne),
+    (SY:    8; SM:  8; SD: 20; EY:    8; EM:  9; ED: 17; DayOffset: lotDecTwo),
+    (SY:    8; SM:  9; SD: 18; EY:    9; EM:  1; ED: 14; DayOffset: lotDecOne),
     (SY:    9; SM:  6; SD: 11; EY:    9; EM:  7; ED: 10; DayOffset: lotDecOne),
-    (SY:    9; SM:  8; SD:  9; EY:   10; EM:  2; ED:  2; DayOffset: lotDecOne),
+    (SY:    9; SM:  8; SD:  9; EY:    9; EM:  9; ED:  7; DayOffset: lotDecOne),
+    (SY:    9; SM:  9; SD:  8; EY:    9; EM: 10; ED:  6; DayOffset: lotDecTwo),
+    (SY:    9; SM: 10; SD:  7; EY:    9; EM: 11; ED:  5; DayOffset: lotDecOne),
+    (SY:    9; SM: 11; SD:  6; EY:    9; EM: 12; ED:  4; DayOffset: lotDecTwo),
+    (SY:    9; SM: 12; SD:  5; EY:   10; EM:  2; ED:  2; DayOffset: lotDecOne),
     (SY:   10; SM:  6; SD: 30; EY:   10; EM:  7; ED: 29; DayOffset: lotDecOne),
     (SY:   10; SM:  8; SD: 28; EY:   11; EM:  2; ED: 21; DayOffset: lotDecOne),
     (SY:   11; SM:  3; SD: 23; EY:   11; EM:  4; ED: 21; DayOffset: lotDecOne),
@@ -2032,11 +2413,19 @@ const
     (SY:   15; SM:  1; SD:  9; EY:   15; EM:  2; ED:  7; DayOffset: lotDecOne),
     (SY:   15; SM:  3; SD:  9; EY:   15; EM: 10; ED:  1; DayOffset: lotDecOne),
     (SY:   15; SM: 10; SD: 31; EY:   15; EM: 11; ED: 29; DayOffset: lotDecOne),
-    (SY:   16; SM:  3; SD: 27; EY:   16; EM: 12; ED: 17; DayOffset: lotDecOne),
+    (SY:   16; SM:  3; SD: 27; EY:   16; EM:  7; ED: 22; DayOffset: lotDecOne),
+    (SY:   16; SM:  7; SD: 23; EY:   16; EM:  8; ED: 20; DayOffset: lotDecTwo),
+    (SY:   16; SM:  8; SD: 21; EY:   16; EM: 12; ED: 17; DayOffset: lotDecOne),
     (SY:   17; SM:  5; SD: 14; EY:   17; EM:  6; ED: 12; DayOffset: lotDecOne),
-    (SY:   17; SM:  7; SD: 12; EY:   18; EM:  1; ED:  5; DayOffset: lotDecOne),
+    (SY:   17; SM:  7; SD: 12; EY:   17; EM:  8; ED: 10; DayOffset: lotDecOne),
+    (SY:   17; SM:  8; SD: 11; EY:   17; EM:  9; ED:  8; DayOffset: lotDecTwo),
+    (SY:   17; SM:  9; SD:  9; EY:   17; EM: 10; ED:  8; DayOffset: lotDecOne),
+    (SY:   17; SM: 10; SD:  9; EY:   17; EM: 11; ED:  6; DayOffset: lotDecTwo),
+    (SY:   17; SM: 11; SD:  7; EY:   18; EM:  1; ED:  5; DayOffset: lotDecOne),
     (SY:   18; SM:  6; SD:  2; EY:   18; EM:  7; ED:  1; DayOffset: lotDecOne),
-    (SY:   18; SM:  7; SD: 31; EY:   19; EM:  1; ED: 24; DayOffset: lotDecOne),
+    (SY:   18; SM:  7; SD: 31; EY:   18; EM: 10; ED: 27; DayOffset: lotDecOne),
+    (SY:   18; SM: 10; SD: 28; EY:   18; EM: 11; ED: 25; DayOffset: lotDecTwo),
+    (SY:   18; SM: 11; SD: 26; EY:   19; EM:  1; ED: 24; DayOffset: lotDecOne),
     (SY:   19; SM:  2; SD: 23; EY:   19; EM:  3; ED: 24; DayOffset: lotDecOne),
     (SY:   19; SM:  6; SD: 21; EY:   19; EM:  7; ED: 20; DayOffset: lotDecOne),
     (SY:   19; SM:  8; SD: 19; EY:   20; EM:  1; ED: 13; DayOffset: lotDecOne),
@@ -2051,11 +2440,16 @@ const
     (SY:   22; SM: 10; SD: 14; EY:   22; EM: 11; ED: 12; DayOffset: lotDecOne),
     (SY:   22; SM: 12; SD: 12; EY:   23; EM:  9; ED:  3; DayOffset: lotDecOne),
     (SY:   23; SM: 10; SD:  3; EY:   23; EM: 11; ED:  1; DayOffset: lotDecOne),
-    (SY:   23; SM: 12; SD:  2; EY:   24; EM:  1; ED: 29; DayOffset: lotIncOne),
     (SY:   24; SM:  2; SD: 28; EY:   24; EM: 11; ED: 19; DayOffset: lotDecOne),
-    (SY:   25; SM:  4; SD: 16; EY:   25; EM: 12; ED:  8; DayOffset: lotDecOne),
+    (SY:   25; SM:  4; SD: 16; EY:   25; EM:  7; ED: 13; DayOffset: lotDecOne),
+    (SY:   25; SM:  7; SD: 14; EY:   25; EM:  8; ED: 11; DayOffset: lotDecTwo),
+    (SY:   25; SM:  8; SD: 12; EY:   25; EM:  9; ED: 10; DayOffset: lotDecOne),
+    (SY:   25; SM:  9; SD: 11; EY:   25; EM: 10; ED:  9; DayOffset: lotDecTwo),
+    (SY:   25; SM: 10; SD: 10; EY:   25; EM: 12; ED:  8; DayOffset: lotDecOne),
     (SY:   26; SM:  5; SD:  5; EY:   26; EM:  6; ED:  3; DayOffset: lotDecOne),
-    (SY:   26; SM:  7; SD:  3; EY:   26; EM: 12; ED: 27; DayOffset: lotDecOne),
+    (SY:   26; SM:  7; SD:  3; EY:   26; EM:  9; ED: 29; DayOffset: lotDecOne),
+    (SY:   26; SM:  9; SD: 30; EY:   26; EM: 10; ED: 28; DayOffset: lotDecTwo),
+    (SY:   26; SM: 10; SD: 29; EY:   26; EM: 12; ED: 27; DayOffset: lotDecOne),
     (SY:   27; SM:  1; SD: 26; EY:   27; EM:  2; ED: 24; DayOffset: lotDecOne),
     (SY:   27; SM:  5; SD: 24; EY:   27; EM:  6; ED: 22; DayOffset: lotDecOne),
     (SY:   27; SM:  7; SD: 22; EY:   28; EM:  3; ED: 14; DayOffset: lotDecOne),
@@ -2072,10 +2466,16 @@ const
     (SY:   31; SM:  9; SD:  5; EY:   31; EM: 10; ED:  4; DayOffset: lotDecOne),
     (SY:   31; SM: 11; SD:  3; EY:   32; EM:  8; ED: 24; DayOffset: lotDecOne),
     (SY:   32; SM:  9; SD: 23; EY:   32; EM: 10; ED: 22; DayOffset: lotDecOne),
-    (SY:   33; SM:  3; SD: 19; EY:   33; EM: 11; ED: 10; DayOffset: lotDecOne),
+    (SY:   33; SM:  3; SD: 19; EY:   33; EM:  6; ED: 15; DayOffset: lotDecOne),
+    (SY:   33; SM:  6; SD: 16; EY:   33; EM:  7; ED: 14; DayOffset: lotDecTwo),
+    (SY:   33; SM:  7; SD: 15; EY:   33; EM: 11; ED: 10; DayOffset: lotDecOne),
     (SY:   33; SM: 12; SD: 10; EY:   34; EM:  1; ED:  8; DayOffset: lotDecOne),
     (SY:   34; SM:  4; SD:  7; EY:   34; EM:  5; ED:  6; DayOffset: lotDecOne),
-    (SY:   34; SM:  6; SD:  5; EY:   34; EM: 11; ED: 29; DayOffset: lotDecOne),
+    (SY:   34; SM:  6; SD:  5; EY:   34; EM:  7; ED:  4; DayOffset: lotDecOne),
+    (SY:   34; SM:  7; SD:  5; EY:   34; EM:  8; ED:  2; DayOffset: lotDecTwo),
+    (SY:   34; SM:  8; SD:  3; EY:   34; EM:  9; ED:  1; DayOffset: lotDecOne),
+    (SY:   34; SM:  9; SD:  2; EY:   34; EM:  9; ED: 30; DayOffset: lotDecTwo),
+    (SY:   34; SM: 10; SD:  1; EY:   34; EM: 11; ED: 29; DayOffset: lotDecOne),
     (SY:   34; SM: 12; SD: 29; EY:   35; EM:  1; ED: 27; DayOffset: lotDecOne),
     (SY:   35; SM:  4; SD: 26; EY:   35; EM:  5; ED: 25; DayOffset: lotDecOne),
     (SY:   35; SM:  6; SD: 24; EY:   36; EM:  2; ED: 15; DayOffset: lotDecOne),
@@ -2097,7 +2497,11 @@ const
     (SY:   41; SM: 11; SD: 12; EY:   41; EM: 12; ED: 11; DayOffset: lotDecOne),
     (SY:   42; SM:  1; SD: 10; EY:   42; EM:  2; ED:  8; DayOffset: lotDecOne),
     (SY:   42; SM:  3; SD: 10; EY:   42; EM:  4; ED:  8; DayOffset: lotDecOne),
-    (SY:   42; SM:  5; SD:  8; EY:   42; EM: 11; ED:  1; DayOffset: lotDecOne),
+    (SY:   42; SM:  5; SD:  8; EY:   42; EM:  6; ED:  6; DayOffset: lotDecOne),
+    (SY:   42; SM:  6; SD:  7; EY:   42; EM:  7; ED:  5; DayOffset: lotDecTwo),
+    (SY:   42; SM:  7; SD:  6; EY:   42; EM:  8; ED:  4; DayOffset: lotDecOne),
+    (SY:   42; SM:  8; SD:  5; EY:   42; EM:  9; ED:  2; DayOffset: lotDecTwo),
+    (SY:   42; SM:  9; SD:  3; EY:   42; EM: 11; ED:  1; DayOffset: lotDecOne),
     (SY:   42; SM: 12; SD:  1; EY:   42; EM: 12; ED: 30; DayOffset: lotDecOne),
     (SY:   43; SM:  3; SD: 29; EY:   43; EM:  4; ED: 27; DayOffset: lotDecOne),
     (SY:   43; SM:  5; SD: 27; EY:   44; EM:  1; ED: 18; DayOffset: lotDecOne),
@@ -2119,21 +2523,33 @@ const
     (SY:   49; SM: 10; SD: 15; EY:   49; EM: 11; ED: 13; DayOffset: lotDecOne),
     (SY:   49; SM: 12; SD: 13; EY:   50; EM:  1; ED: 11; DayOffset: lotDecOne),
     (SY:   50; SM:  2; SD: 10; EY:   50; EM:  3; ED: 11; DayOffset: lotDecOne),
-    (SY:   50; SM:  4; SD: 10; EY:   50; EM: 10; ED:  4; DayOffset: lotDecOne),
+    (SY:   50; SM:  4; SD: 10; EY:   50; EM:  5; ED:  9; DayOffset: lotDecOne),
+    (SY:   50; SM:  5; SD: 10; EY:   50; EM:  6; ED:  7; DayOffset: lotDecTwo),
+    (SY:   50; SM:  6; SD:  8; EY:   50; EM:  7; ED:  7; DayOffset: lotDecOne),
+    (SY:   50; SM:  7; SD:  8; EY:   50; EM:  8; ED:  5; DayOffset: lotDecTwo),
+    (SY:   50; SM:  8; SD:  6; EY:   50; EM: 10; ED:  4; DayOffset: lotDecOne),
     (SY:   50; SM: 11; SD:  3; EY:   50; EM: 12; ED:  2; DayOffset: lotDecOne),
     (SY:   51; SM:  1; SD:  1; EY:   51; EM:  1; ED: 30; DayOffset: lotDecOne),
     (SY:   51; SM:  3; SD:  1; EY:   51; EM:  3; ED: 30; DayOffset: lotDecOne),
-    (SY:   51; SM:  4; SD: 29; EY:   51; EM: 12; ED: 21; DayOffset: lotDecOne),
+    (SY:   51; SM:  4; SD: 29; EY:   51; EM:  7; ED: 26; DayOffset: lotDecOne),
+    (SY:   51; SM:  7; SD: 27; EY:   51; EM:  8; ED: 24; DayOffset: lotDecTwo),
+    (SY:   51; SM:  8; SD: 25; EY:   51; EM: 12; ED: 21; DayOffset: lotDecOne),
     (SY:   52; SM:  1; SD: 20; EY:   52; EM:  2; ED: 18; DayOffset: lotDecOne),
     (SY:   52; SM:  3; SD: 19; EY:   52; EM:  4; ED: 17; DayOffset: lotDecOne),
     (SY:   52; SM:  5; SD: 17; EY:   53; EM:  1; ED:  8; DayOffset: lotDecOne),
     (SY:   53; SM:  2; SD:  7; EY:   53; EM:  3; ED:  8; DayOffset: lotDecOne),
     (SY:   53; SM:  4; SD:  7; EY:   53; EM:  5; ED:  6; DayOffset: lotDecOne),
-    (SY:   53; SM:  6; SD:  5; EY:   53; EM: 12; ED: 28; DayOffset: lotDecOne),
+    (SY:   53; SM:  6; SD:  5; EY:   53; EM:  9; ED: 30; DayOffset: lotDecOne),
+    (SY:   53; SM: 10; SD:  1; EY:   53; EM: 10; ED: 29; DayOffset: lotDecTwo),
+    (SY:   53; SM: 10; SD: 30; EY:   53; EM: 12; ED: 28; DayOffset: lotDecOne),
     (SY:   54; SM:  1; SD: 27; EY:   54; EM:  3; ED: 27; DayOffset: lotDecOne),
     (SY:   54; SM:  4; SD: 26; EY:   54; EM:  5; ED: 25; DayOffset: lotDecOne),
-    (SY:   54; SM:  6; SD: 24; EY:   55; EM:  3; ED: 16; DayOffset: lotDecOne),
-    (SY:   55; SM:  7; SD: 13; EY:   56; EM:  4; ED:  3; DayOffset: lotDecOne),
+    (SY:   54; SM:  6; SD: 24; EY:   54; EM: 10; ED: 19; DayOffset: lotDecOne),
+    (SY:   54; SM: 10; SD: 20; EY:   54; EM: 11; ED: 17; DayOffset: lotDecTwo),
+    (SY:   54; SM: 11; SD: 18; EY:   55; EM:  3; ED: 16; DayOffset: lotDecOne),
+    (SY:   55; SM:  7; SD: 13; EY:   55; EM: 11; ED:  7; DayOffset: lotDecOne),
+    (SY:   55; SM: 11; SD:  8; EY:   55; EM: 12; ED:  6; DayOffset: lotDecTwo),
+    (SY:   55; SM: 12; SD:  7; EY:   56; EM:  4; ED:  3; DayOffset: lotDecOne),
     (SY:   56; SM:  5; SD:  3; EY:   56; EM:  6; ED:  1; DayOffset: lotDecOne),
     (SY:   56; SM:  7; SD:  1; EY:   56; EM:  7; ED: 30; DayOffset: lotDecOne),
     (SY:   56; SM:  8; SD: 29; EY:   56; EM:  9; ED: 27; DayOffset: lotDecOne),
@@ -2141,66 +2557,122 @@ const
     (SY:   57; SM:  7; SD: 20; EY:   57; EM:  8; ED: 18; DayOffset: lotDecOne),
     (SY:   57; SM:  9; SD: 17; EY:   57; EM: 10; ED: 16; DayOffset: lotDecOne),
     (SY:   57; SM: 11; SD: 15; EY:   57; EM: 12; ED: 14; DayOffset: lotDecOne),
-    (SY:   58; SM:  1; SD: 13; EY:   58; EM:  9; ED:  6; DayOffset: lotDecOne),
+    (SY:   58; SM:  1; SD: 13; EY:   58; EM:  4; ED: 11; DayOffset: lotDecOne),
+    (SY:   58; SM:  4; SD: 12; EY:   58; EM:  5; ED: 10; DayOffset: lotDecTwo),
+    (SY:   58; SM:  5; SD: 11; EY:   58; EM:  9; ED:  6; DayOffset: lotDecOne),
     (SY:   58; SM: 10; SD:  6; EY:   58; EM: 11; ED:  4; DayOffset: lotDecOne),
     (SY:   58; SM: 12; SD:  4; EY:   59; EM:  1; ED:  2; DayOffset: lotDecOne),
     (SY:   59; SM:  2; SD:  1; EY:   59; EM:  3; ED:  2; DayOffset: lotDecOne),
-    (SY:   59; SM:  4; SD:  1; EY:   59; EM: 11; ED: 23; DayOffset: lotDecOne),
+    (SY:   59; SM:  4; SD:  1; EY:   59; EM:  6; ED: 28; DayOffset: lotDecOne),
+    (SY:   59; SM:  6; SD: 29; EY:   59; EM:  7; ED: 27; DayOffset: lotDecTwo),
+    (SY:   59; SM:  7; SD: 28; EY:   59; EM: 11; ED: 23; DayOffset: lotDecOne),
     (SY:   59; SM: 12; SD: 23; EY:   60; EM:  1; ED: 21; DayOffset: lotDecOne),
     (SY:   60; SM:  2; SD: 20; EY:   60; EM:  3; ED: 20; DayOffset: lotDecOne),
-    (SY:   60; SM:  4; SD: 19; EY:   60; EM: 12; ED: 11; DayOffset: lotDecOne),
+    (SY:   60; SM:  4; SD: 19; EY:   60; EM:  9; ED: 13; DayOffset: lotDecOne),
+    (SY:   60; SM:  9; SD: 14; EY:   60; EM: 10; ED: 12; DayOffset: lotDecTwo),
+    (SY:   60; SM: 10; SD: 13; EY:   60; EM: 12; ED: 11; DayOffset: lotDecOne),
     (SY:   61; SM:  1; SD: 10; EY:   61; EM:  2; ED:  8; DayOffset: lotDecOne),
     (SY:   61; SM:  3; SD: 10; EY:   61; EM:  4; ED:  8; DayOffset: lotDecOne),
-    (SY:   61; SM:  5; SD:  8; EY:   61; EM: 11; ED: 30; DayOffset: lotDecOne),
+    (SY:   61; SM:  5; SD:  8; EY:   61; EM:  9; ED:  2; DayOffset: lotDecOne),
+    (SY:   61; SM:  9; SD:  3; EY:   61; EM: 10; ED:  1; DayOffset: lotDecTwo),
+    (SY:   61; SM: 10; SD:  2; EY:   61; EM: 11; ED: 30; DayOffset: lotDecOne),
     (SY:   61; SM: 12; SD: 30; EY:   62; EM:  2; ED: 27; DayOffset: lotDecOne),
     (SY:   62; SM:  3; SD: 29; EY:   62; EM:  4; ED: 27; DayOffset: lotDecOne),
-    (SY:   62; SM:  5; SD: 27; EY:   63; EM:  2; ED: 16; DayOffset: lotDecOne),
-    (SY:   63; SM:  6; SD: 15; EY:   64; EM:  3; ED:  6; DayOffset: lotDecOne),
+    (SY:   62; SM:  5; SD: 27; EY:   62; EM:  9; ED: 21; DayOffset: lotDecOne),
+    (SY:   62; SM:  9; SD: 22; EY:   62; EM: 10; ED: 20; DayOffset: lotDecTwo),
+    (SY:   62; SM: 10; SD: 21; EY:   63; EM:  2; ED: 16; DayOffset: lotDecOne),
+    (SY:   63; SM:  6; SD: 15; EY:   63; EM: 10; ED: 10; DayOffset: lotDecOne),
+    (SY:   63; SM: 10; SD: 11; EY:   63; EM: 11; ED:  8; DayOffset: lotDecTwo),
+    (SY:   63; SM: 11; SD:  9; EY:   64; EM:  3; ED:  6; DayOffset: lotDecOne),
     (SY:   64; SM:  4; SD:  5; EY:   64; EM:  5; ED:  4; DayOffset: lotDecOne),
     (SY:   64; SM:  6; SD:  3; EY:   64; EM:  7; ED:  2; DayOffset: lotDecOne),
-    (SY:   64; SM:  8; SD:  1; EY:   65; EM:  5; ED: 23; DayOffset: lotDecOne),
+    (SY:   64; SM:  8; SD:  1; EY:   64; EM: 10; ED: 28; DayOffset: lotDecOne),
+    (SY:   64; SM: 10; SD: 29; EY:   64; EM: 11; ED: 26; DayOffset: lotDecTwo),
+    (SY:   64; SM: 11; SD: 27; EY:   64; EM: 12; ED: 26; DayOffset: lotDecOne),
+    (SY:   64; SM: 12; SD: 27; EY:   65; EM:  1; ED: 24; DayOffset: lotDecTwo),
+    (SY:   65; SM:  1; SD: 25; EY:   65; EM:  5; ED: 23; DayOffset: lotDecOne),
     (SY:   65; SM:  6; SD: 22; EY:   65; EM:  7; ED: 21; DayOffset: lotDecOne),
     (SY:   65; SM:  8; SD: 20; EY:   65; EM:  9; ED: 18; DayOffset: lotDecOne),
-    (SY:   65; SM: 10; SD: 18; EY:   66; EM:  8; ED:  9; DayOffset: lotDecOne),
+    (SY:   65; SM: 10; SD: 18; EY:   66; EM:  1; ED: 14; DayOffset: lotDecOne),
+    (SY:   66; SM:  1; SD: 15; EY:   66; EM:  2; ED: 12; DayOffset: lotDecTwo),
+    (SY:   66; SM:  2; SD: 13; EY:   66; EM:  8; ED:  9; DayOffset: lotDecOne),
     (SY:   66; SM:  9; SD:  8; EY:   66; EM: 10; ED:  7; DayOffset: lotDecOne),
     (SY:   66; SM: 11; SD:  6; EY:   66; EM: 12; ED:  5; DayOffset: lotDecOne),
     (SY:   67; SM:  1; SD:  4; EY:   67; EM:  2; ED:  2; DayOffset: lotDecOne),
-    (SY:   67; SM:  3; SD:  4; EY:   67; EM: 10; ED: 26; DayOffset: lotDecOne),
+    (SY:   67; SM:  3; SD:  4; EY:   67; EM:  4; ED:  2; DayOffset: lotDecOne),
+    (SY:   67; SM:  4; SD:  3; EY:   67; EM:  5; ED:  1; DayOffset: lotDecTwo),
+    (SY:   67; SM:  5; SD:  2; EY:   67; EM:  5; ED: 31; DayOffset: lotDecOne),
+    (SY:   67; SM:  6; SD:  1; EY:   67; EM:  6; ED: 29; DayOffset: lotDecTwo),
+    (SY:   67; SM:  6; SD: 30; EY:   67; EM: 10; ED: 26; DayOffset: lotDecOne),
     (SY:   67; SM: 11; SD: 25; EY:   67; EM: 12; ED: 24; DayOffset: lotDecOne),
     (SY:   68; SM:  1; SD: 23; EY:   68; EM:  2; ED: 21; DayOffset: lotDecOne),
-    (SY:   68; SM:  3; SD: 22; EY:   68; EM: 11; ED: 13; DayOffset: lotDecOne),
+    (SY:   68; SM:  3; SD: 22; EY:   68; EM:  8; ED: 16; DayOffset: lotDecOne),
+    (SY:   68; SM:  8; SD: 17; EY:   68; EM:  9; ED: 14; DayOffset: lotDecTwo),
+    (SY:   68; SM:  9; SD: 15; EY:   68; EM: 11; ED: 13; DayOffset: lotDecOne),
     (SY:   68; SM: 12; SD: 13; EY:   69; EM:  1; ED: 11; DayOffset: lotDecOne),
     (SY:   69; SM:  2; SD: 10; EY:   69; EM:  3; ED: 11; DayOffset: lotDecOne),
     (SY:   69; SM:  4; SD: 10; EY:   69; EM: 11; ED:  2; DayOffset: lotDecOne),
     (SY:   69; SM: 12; SD:  2; EY:   70; EM:  1; ED: 30; DayOffset: lotDecOne),
     (SY:   70; SM:  3; SD:  1; EY:   70; EM:  3; ED: 30; DayOffset: lotDecOne),
-    (SY:   70; SM:  4; SD: 29; EY:   71; EM:  1; ED: 19; DayOffset: lotDecOne),
+    (SY:   70; SM:  4; SD: 29; EY:   70; EM:  8; ED: 24; DayOffset: lotDecOne),
+    (SY:   70; SM:  8; SD: 25; EY:   70; EM:  9; ED: 22; DayOffset: lotDecTwo),
+    (SY:   70; SM:  9; SD: 23; EY:   71; EM:  1; ED: 19; DayOffset: lotDecOne),
     (SY:   71; SM:  3; SD: 20; EY:   71; EM:  4; ED: 18; DayOffset: lotDecOne),
-    (SY:   71; SM:  5; SD: 18; EY:   72; EM:  2; ED:  7; DayOffset: lotDecOne),
-    (SY:   72; SM:  7; SD:  4; EY:   73; EM:  2; ED: 25; DayOffset: lotDecOne),
+    (SY:   71; SM:  5; SD: 18; EY:   71; EM:  9; ED: 12; DayOffset: lotDecOne),
+    (SY:   71; SM:  9; SD: 13; EY:   71; EM: 10; ED: 11; DayOffset: lotDecTwo),
+    (SY:   71; SM: 10; SD: 12; EY:   71; EM: 11; ED: 10; DayOffset: lotDecOne),
+    (SY:   71; SM: 11; SD: 11; EY:   71; EM: 12; ED:  9; DayOffset: lotDecTwo),
+    (SY:   71; SM: 12; SD: 10; EY:   72; EM:  2; ED:  7; DayOffset: lotDecOne),
+    (SY:   72; SM:  7; SD:  4; EY:   72; EM:  9; ED: 30; DayOffset: lotDecOne),
+    (SY:   72; SM: 10; SD:  1; EY:   72; EM: 10; ED: 29; DayOffset: lotDecTwo),
+    (SY:   72; SM: 10; SD: 30; EY:   72; EM: 11; ED: 28; DayOffset: lotDecOne),
+    (SY:   72; SM: 11; SD: 29; EY:   72; EM: 12; ED: 27; DayOffset: lotDecTwo),
+    (SY:   72; SM: 12; SD: 28; EY:   73; EM:  2; ED: 25; DayOffset: lotDecOne),
     (SY:   73; SM:  3; SD: 27; EY:   73; EM:  4; ED: 25; DayOffset: lotDecOne),
     (SY:   73; SM:  5; SD: 25; EY:   73; EM:  6; ED: 23; DayOffset: lotDecOne),
     (SY:   73; SM:  7; SD: 23; EY:   73; EM:  8; ED: 21; DayOffset: lotDecOne),
-    (SY:   73; SM:  9; SD: 20; EY:   74; EM:  5; ED: 14; DayOffset: lotDecOne),
+    (SY:   73; SM:  9; SD: 20; EY:   73; EM: 10; ED: 19; DayOffset: lotDecOne),
+    (SY:   73; SM: 10; SD: 20; EY:   73; EM: 11; ED: 17; DayOffset: lotDecTwo),
+    (SY:   73; SM: 11; SD: 18; EY:   73; EM: 12; ED: 17; DayOffset: lotDecOne),
+    (SY:   73; SM: 12; SD: 18; EY:   74; EM:  1; ED: 15; DayOffset: lotDecTwo),
+    (SY:   74; SM:  1; SD: 16; EY:   74; EM:  5; ED: 14; DayOffset: lotDecOne),
     (SY:   74; SM:  6; SD: 13; EY:   74; EM:  7; ED: 12; DayOffset: lotDecOne),
     (SY:   74; SM:  8; SD: 11; EY:   74; EM:  9; ED:  9; DayOffset: lotDecOne),
-    (SY:   74; SM: 10; SD:  9; EY:   75; EM:  9; ED: 28; DayOffset: lotDecOne),
+    (SY:   74; SM: 10; SD:  9; EY:   75; EM:  3; ED:  5; DayOffset: lotDecOne),
+    (SY:   75; SM:  3; SD:  6; EY:   75; EM:  4; ED:  3; DayOffset: lotDecTwo),
+    (SY:   75; SM:  4; SD:  4; EY:   75; EM:  9; ED: 28; DayOffset: lotDecOne),
     (SY:   75; SM: 10; SD: 28; EY:   75; EM: 11; ED: 26; DayOffset: lotDecOne),
     (SY:   75; SM: 12; SD: 26; EY:   76; EM: 10; ED: 16; DayOffset: lotDecOne),
     (SY:   76; SM: 11; SD: 15; EY:   76; EM: 12; ED: 14; DayOffset: lotDecOne),
     (SY:   77; SM:  1; SD: 13; EY:   77; EM:  2; ED: 11; DayOffset: lotDecOne),
     (SY:   77; SM:  3; SD: 13; EY:   78; EM:  1; ED:  2; DayOffset: lotDecOne),
     (SY:   78; SM:  2; SD:  1; EY:   78; EM:  3; ED:  2; DayOffset: lotDecOne),
-    (SY:   78; SM:  4; SD:  1; EY:   78; EM: 12; ED: 22; DayOffset: lotDecOne),
+    (SY:   78; SM:  4; SD:  1; EY:   78; EM:  7; ED: 27; DayOffset: lotDecOne),
+    (SY:   78; SM:  7; SD: 28; EY:   78; EM:  8; ED: 25; DayOffset: lotDecTwo),
+    (SY:   78; SM:  8; SD: 26; EY:   78; EM: 12; ED: 22; DayOffset: lotDecOne),
     (SY:   79; SM:  2; SD: 20; EY:   79; EM:  3; ED: 21; DayOffset: lotDecOne),
-    (SY:   79; SM:  4; SD: 20; EY:   80; EM:  1; ED: 10; DayOffset: lotDecOne),
-    (SY:   80; SM:  5; SD:  8; EY:   81; EM:  1; ED: 28; DayOffset: lotDecOne),
+    (SY:   79; SM:  4; SD: 20; EY:   79; EM:  8; ED: 15; DayOffset: lotDecOne),
+    (SY:   79; SM:  8; SD: 16; EY:   79; EM:  9; ED: 13; DayOffset: lotDecTwo),
+    (SY:   79; SM:  9; SD: 14; EY:   79; EM: 10; ED: 13; DayOffset: lotDecOne),
+    (SY:   79; SM: 10; SD: 14; EY:   79; EM: 11; ED: 11; DayOffset: lotDecTwo),
+    (SY:   79; SM: 11; SD: 12; EY:   80; EM:  1; ED: 10; DayOffset: lotDecOne),
+    (SY:   80; SM:  5; SD:  8; EY:   80; EM:  9; ED:  2; DayOffset: lotDecOne),
+    (SY:   80; SM:  9; SD:  3; EY:   80; EM: 10; ED:  1; DayOffset: lotDecTwo),
+    (SY:   80; SM: 10; SD:  2; EY:   80; EM: 10; ED: 31; DayOffset: lotDecOne),
+    (SY:   80; SM: 11; SD:  1; EY:   80; EM: 11; ED: 29; DayOffset: lotDecTwo),
+    (SY:   80; SM: 11; SD: 30; EY:   81; EM:  1; ED: 28; DayOffset: lotDecOne),
     (SY:   81; SM:  2; SD: 27; EY:   81; EM:  3; ED: 28; DayOffset: lotDecOne),
     (SY:   81; SM:  6; SD: 25; EY:   81; EM:  7; ED: 24; DayOffset: lotDecOne),
-    (SY:   81; SM:  8; SD: 23; EY:   82; EM:  4; ED: 16; DayOffset: lotDecOne),
+    (SY:   81; SM:  8; SD: 23; EY:   81; EM:  9; ED: 21; DayOffset: lotDecOne),
+    (SY:   81; SM:  9; SD: 22; EY:   81; EM: 10; ED: 20; DayOffset: lotDecTwo),
+    (SY:   81; SM: 10; SD: 21; EY:   81; EM: 11; ED: 19; DayOffset: lotDecOne),
+    (SY:   81; SM: 11; SD: 20; EY:   81; EM: 12; ED: 18; DayOffset: lotDecTwo),
+    (SY:   81; SM: 12; SD: 19; EY:   82; EM:  4; ED: 16; DayOffset: lotDecOne),
     (SY:   82; SM:  5; SD: 16; EY:   82; EM:  6; ED: 14; DayOffset: lotDecOne),
     (SY:   82; SM:  7; SD: 14; EY:   82; EM:  8; ED: 12; DayOffset: lotDecOne),
-    (SY:   82; SM:  9; SD: 11; EY:   83; EM:  7; ED:  3; DayOffset: lotDecOne),
+    (SY:   82; SM:  9; SD: 11; EY:   83; EM:  2; ED:  5; DayOffset: lotDecOne),
+    (SY:   83; SM:  2; SD:  6; EY:   83; EM:  3; ED:  6; DayOffset: lotDecTwo),
+    (SY:   83; SM:  3; SD:  7; EY:   83; EM:  7; ED:  3; DayOffset: lotDecOne),
     (SY:   83; SM:  8; SD:  2; EY:   83; EM:  8; ED: 31; DayOffset: lotDecOne),
     (SY:   83; SM:  9; SD: 30; EY:   84; EM:  4; ED: 22; DayOffset: lotDecOne),
     (SY:   84; SM:  4; SD: 23; EY:   84; EM:  5; ED: 23; DayOffset: lotDecTwo),
@@ -2624,12 +3096,10 @@ const
     (SY:  229; SM:  4; SD: 11; EY:  229; EM: 11; ED:  3; DayOffset: lotDecOne),
     (SY:  229; SM: 12; SD:  3; EY:  230; EM:  1; ED:  1; DayOffset: lotDecOne),
     (SY:  230; SM:  5; SD: 29; EY:  230; EM:  8; ED: 24; DayOffset: lotDecOne),
-    // 230 8 24 ~ 9 24 需要减 2 天！
-    (SY:  230; SM:  8; SD: 24; EY:  230; EM:  9; ED: 24; DayOffset: lotDecTwo),
+    (SY:  230; SM:  8; SD: 25; EY:  230; EM:  9; ED: 24; DayOffset: lotDecTwo),
     (SY:  230; SM:  9; SD: 25; EY:  231; EM:  1; ED: 20; DayOffset: lotDecOne),
     (SY:  231; SM:  6; SD: 17; EY:  231; EM:  7; ED: 16; DayOffset: lotDecOne),
     (SY:  231; SM:  8; SD: 15; EY:  231; EM: 11; ED: 10; DayOffset: lotDecOne),
-    // 231 11 11 ~ 12 11 需要减 2 天！
     (SY:  231; SM: 11; SD: 11; EY:  231; EM: 12; ED: 11; DayOffset: lotDecTwo),
     (SY:  231; SM: 12; SD: 12; EY:  232; EM:  2; ED:  8; DayOffset: lotDecOne),
     (SY:  232; SM:  3; SD:  9; EY:  232; EM:  4; ED:  7; DayOffset: lotDecOne),
@@ -3823,7 +4293,7 @@ const
     (SY:  598; SM:  4; SD: 11; EY:  598; EM:  5; ED: 10; DayOffset: lotDecOne),
     (SY:  598; SM:  6; SD:  9; EY:  598; EM:  7; ED:  8; DayOffset: lotDecOne),
     (SY:  598; SM: 11; SD:  4; EY:  598; EM: 12; ED:  3; DayOffset: lotIncOne),
-    (SY:  599; SM:  1; SD:  2; EY:  599; EM:  2; ED:  0; DayOffset: lotIncOne),
+    (SY:  599; SM:  1; SD:  2; EY:  599; EM:  1; ED: 31; DayOffset: lotIncOne),
     (SY:  599; SM:  4; SD: 30; EY:  599; EM:  5; ED: 29; DayOffset: lotDecOne),
     (SY:  599; SM:  6; SD: 28; EY:  599; EM:  7; ED: 27; DayOffset: lotDecOne),
     (SY:  599; SM:  8; SD: 26; EY:  599; EM:  9; ED: 24; DayOffset: lotDecOne),
@@ -6688,10 +7158,13 @@ begin
 end;
 
 // 比较两个公历日期，1 >=< 2 分别返回 1、0、-1
-function Compare2Day(Year1, Month1, Day1, Year2, Month2, Day2: Integer): Integer;
+function Compare2Day(Year1, Month1, Day1, Year2, Month2, Day2: Integer; CheckDay: Boolean): Integer;
 begin
-  ValidDate(Year1, Month1, Day1);
-  ValidDate(Year2, Month2, Day2);
+  if CheckDay then
+  begin
+    ValidDate(Year1, Month1, Day1);
+    ValidDate(Year2, Month2, Day2);
+  end;
 
   if Year1 > Year2 then // 年大
   begin
@@ -8874,6 +9347,98 @@ var
   I, M, D, Ms, LunDay, LunDay0, WangDay: Integer;
   S, R, P, Q: Real;
   StdDays: Integer;
+  PFR: PCnLunarDateFixRange;
+  PFD: PCnLunarSmallMonthFix;
+
+  function BinSearchDateFixRange(YY, MM, DD: Integer): PCnLunarDateFixRange;
+  var
+    Left, Right, Mid: Integer;
+    CompareStart, CompareEnd: Integer;
+  begin
+    Result := nil;
+    Left := 0;
+    Right := High(CN_LUNAR_DATE_FIX);
+
+    while Left <= Right do
+    begin
+      Mid := (Left + Right) div 2;
+
+      // 检查目标日期是否在当前记录的区间内
+      if IsDayBetweenEqual(YY, MM, DD,
+        CN_LUNAR_DATE_FIX[Mid].SY,
+        CN_LUNAR_DATE_FIX[Mid].SM,
+        CN_LUNAR_DATE_FIX[Mid].SD,
+        CN_LUNAR_DATE_FIX[Mid].EY,
+        CN_LUNAR_DATE_FIX[Mid].EM,
+        CN_LUNAR_DATE_FIX[Mid].ED) then
+      begin
+        Result := @CN_LUNAR_DATE_FIX[Mid];
+        Exit;
+      end;
+
+      // 比较目标日期与起始日期
+      CompareStart := Compare2Day(YY, MM, DD,
+        CN_LUNAR_DATE_FIX[Mid].SY,
+        CN_LUNAR_DATE_FIX[Mid].SM,
+        CN_LUNAR_DATE_FIX[Mid].SD, False);
+
+      // 比较目标日期与结束日期
+      CompareEnd := Compare2Day(YY, MM, DD,
+        CN_LUNAR_DATE_FIX[Mid].EY,
+        CN_LUNAR_DATE_FIX[Mid].EM,
+        CN_LUNAR_DATE_FIX[Mid].ED, False);
+
+      if CompareStart < 0 then
+      begin
+        // 目标日期小于起始日期，向左搜索（因为数组是升序，较小的日期在左侧）
+        Right := Mid - 1;
+      end
+      else if CompareEnd > 0 then
+      begin
+        // 目标日期大于结束日期，向右搜索（因为数组是升序，较大的日期在右侧）
+        Left := Mid + 1;
+      end
+      else
+      begin
+        // 这个分支理论上不应该到达，因为如果目标日期在起始和结束之间（但不等于边界）
+        // 上面的 IsDayBetweenEqual 应该已经返回 True
+        // 但为了安全起见，我们向左搜索（因为起始日期小于目标日期）
+        Right := Mid - 1;
+      end;
+    end;
+  end;
+
+  function BinSearchSmallMonthFix(YY, MM, DD: Integer): PCnLunarSmallMonthFix;
+  var
+    Left, Right, Mid: Integer;
+    CompareResult: Integer;
+  begin
+    Result := nil;
+    Left := Low(CN_LUNAR_YEAR_MONTH_SMALL_SUB_FIX);
+    Right := High(CN_LUNAR_YEAR_MONTH_SMALL_SUB_FIX);
+
+    while Left <= Right do
+    begin
+      Mid := (Left + Right) div 2;
+      CompareResult := Compare2Day(YY, MM, DD,
+        CN_LUNAR_YEAR_MONTH_SMALL_SUB_FIX[Mid].Y,
+        CN_LUNAR_YEAR_MONTH_SMALL_SUB_FIX[Mid].M,
+        CN_LUNAR_YEAR_MONTH_SMALL_SUB_FIX[Mid].D, False);
+
+      case CompareResult of
+        0:  // 找到完全匹配
+          begin
+            Result := @CN_LUNAR_YEAR_MONTH_SMALL_SUB_FIX[Mid];
+            Exit;
+          end;
+        1:  // 目标日期大于中间日期（更靠近未来），由于数组是降序，向左搜索
+          Right := Mid - 1;
+        -1: // 目标日期小于中间日期（更靠近过去），向右搜索
+          Left := Mid + 1;
+      end;
+    end;
+  end;
+
 begin
   T := (AYear - 1899.5) / 100;
   Ms := Floor((AYear - 1900) * 12.3685);
@@ -8953,49 +9518,38 @@ begin
   end;
 
   // 历史上的观测偏差导致的单个农历月首的单日偏差修正，包括跨年的情况
-  for I := Low(CN_LUNAR_DATE_FIX) to High(CN_LUNAR_DATE_FIX) do
+  PFR := BinSearchDateFixRange(AYear, AMonth, ADay);
+  if PFR <> nil then
   begin
-    if IsDayBetweenEqual(AYear, AMonth, ADay, CN_LUNAR_DATE_FIX[I].SY, CN_LUNAR_DATE_FIX[I].SM,
-      CN_LUNAR_DATE_FIX[I].SD, CN_LUNAR_DATE_FIX[I].EY, CN_LUNAR_DATE_FIX[I].EM, CN_LUNAR_DATE_FIX[I].ED) then
+    if PFR^.DayOffset = lotIncOne then
     begin
-      if CN_LUNAR_DATE_FIX[I].DayOffset = lotIncOne then
+      Inc(LunDay);
+      D := 30;
+      for M := Low(CN_LUNAR_YEAR_MONTH_SMALL_ADD_FIX) to High(CN_LUNAR_YEAR_MONTH_SMALL_ADD_FIX) do
       begin
-        Inc(LunDay);
-        D := 30;
-        for M := Low(CN_LUNAR_YEAR_MONTH_SMALL_ADD_FIX) to High(CN_LUNAR_YEAR_MONTH_SMALL_ADD_FIX) do
+        if (CN_LUNAR_YEAR_MONTH_SMALL_ADD_FIX[M].Y = AYear) and (CN_LUNAR_YEAR_MONTH_SMALL_ADD_FIX[M].M = AMonth)
+          and (CN_LUNAR_YEAR_MONTH_SMALL_ADD_FIX[M].D = ADay) then
         begin
-          if (CN_LUNAR_YEAR_MONTH_SMALL_ADD_FIX[M].Y = AYear) and (CN_LUNAR_YEAR_MONTH_SMALL_ADD_FIX[M].M = AMonth)
-            and (CN_LUNAR_YEAR_MONTH_SMALL_ADD_FIX[M].D = ADay) then
-          begin
-            D := 29;
-            Break;
-          end;
+          D := 29;
+          Break;
         end;
-        if LunDay > D then // 少数情况下和 29 比较
-          LunDay := 1;
-        Break;
-      end
-      else if CN_LUNAR_DATE_FIX[I].DayOffset in [lotDecOne, lotDecTwo] then
-      begin
+      end;
+      if LunDay > D then // 少数情况下和 29 比较，因为内容较少，不用二分查找
+        LunDay := 1;
+    end
+    else if PFR^.DayOffset in [lotDecOne, lotDecTwo] then
+    begin
+      Dec(LunDay);
+      if PFR^.DayOffset = lotDecTwo then
         Dec(LunDay);
-        if CN_LUNAR_DATE_FIX[I].DayOffset = lotDecTwo then
-          Dec(LunDay);
 
-        if LunDay < 1 then
-        begin
-          D := 30;
-          for M := Low(CN_LUNAR_YEAR_MONTH_SMALL_SUB_FIX) to High(CN_LUNAR_YEAR_MONTH_SMALL_SUB_FIX) do
-          begin
-            if (CN_LUNAR_YEAR_MONTH_SMALL_SUB_FIX[M].Y = AYear) and (CN_LUNAR_YEAR_MONTH_SMALL_SUB_FIX[M].M = AMonth)
-              and (CN_LUNAR_YEAR_MONTH_SMALL_SUB_FIX[M].D = ADay) then
-            begin
-              D := 29;
-              Break;
-            end;
-          end;
-          LunDay := LunDay + D; // 少数情况下加 29
-        end;
-        Break;
+      if LunDay < 1 then
+      begin
+        D := 30;
+        PFD := BinSearchSmallMonthFix(AYear, AMonth, ADay);
+        if PFD <> nil then
+          D := 29;
+        LunDay := LunDay + D; // 少数情况下加 29
       end;
     end;
   end;
