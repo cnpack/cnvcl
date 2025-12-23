@@ -2356,7 +2356,7 @@ const
     (Y: 232; M: 11; D: 29)
   );
 
-  CN_LUNAR_DATE_FIX: array[0..3817] of TCnLunarDateFixRange = (
+  CN_LUNAR_DATE_FIX: array[0..3819] of TCnLunarDateFixRange = (
   {* 历史上因观测偏差导致的农历日期范围的公历单日偏差修正，内部需严格升序以备二分查找}
     (SY:    1; SM:  1; SD:  2; EY:    1; EM:  2; ED: 11; DayOffset: lotDecOne),
     (SY:    1; SM:  7; SD:  9; EY:    1; EM:  8; ED:  7; DayOffset: lotDecOne),
@@ -3125,6 +3125,8 @@ const
     (SY:  236; SM: 10; SD: 17; EY:  236; EM: 11; ED: 15; DayOffset: lotDecOne),
     (SY:  237; SM:  1; SD: 14; EY:  237; EM:  2; ED: 12; DayOffset: lotDecOne),
     (SY:  237; SM:  3; SD: 14; EY:  237; EM:  4; ED: 11; DayOffset: lotDecOne),
+    (SY:  237; SM:  6; SD: 10; EY:  237; EM:  7; ED:  9; DayOffset: lotDecOne),
+    (SY:  237; SM:  8; SD:  8; EY:  237; EM:  9; ED:  6; DayOffset: lotDecOne),
     (SY:  238; SM:  1; SD:  3; EY:  238; EM:  2; ED:  1; DayOffset: lotIncOne),
     (SY:  238; SM:  3; SD:  3; EY:  238; EM:  4; ED:  1; DayOffset: lotIncOne),
     (SY:  238; SM:  7; SD: 28; EY:  238; EM:  9; ED: 25; DayOffset: lotDecOne),
@@ -9612,13 +9614,19 @@ begin
   if (AYear < 240) or ((AYear = 240) and (AMonth = 1) and (ADay < 12)) then
     Inc(NMonth);  // 公元 239 年 12 月 13 日农历十二月大，240 年 1 月 12 日增加十二月小但又不叫闰月
 
-  if AYear <= 237 then Dec(NMonth);
+  if AYear < 237 then
+    Dec(NMonth)
+  else if (AYear = 237) and ((AMonth < 4) or ((AMonth = 4) and (ADay <= 11))) then
+    Dec(NMonth);  // 公元 237 年农历二月直接跳到四月，早于跳变处要减一个月
 
   if (AYear < 24) and not ((AYear = 23) and (AMonth = 12) and (ADay = 31)) then  // 23 年 12 月 31 日也不能加 1
     Inc(NMonth);  // 公元 23 年 12 月 2 日十二月小，12 月 31 日增加十二月大但也不叫闰月
 
   if AYear < 9 then
+    Dec(NMonth)
+  else if (AYear = 9) and (AMonth = 1) and (ADay < 15) then // 公元 9 年修改月，十一月后是正月，因而正月前的月份要减一
     Dec(NMonth);
+
   if AYear <= -255 then
     Inc(NMonth);
   if AYear <= -256 then
