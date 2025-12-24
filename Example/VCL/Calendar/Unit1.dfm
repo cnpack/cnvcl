@@ -374,7 +374,7 @@ object FormCalendar: TFormCalendar
         Width = 121
         Height = 25
         Caption = '反向检查等效标准日'
-        TabOrder = 0
+        TabOrder = 1
         OnClick = btnEquStandardDaysClick
       end
       object btnJulianDays: TButton
@@ -383,7 +383,7 @@ object FormCalendar: TFormCalendar
         Width = 97
         Height = 25
         Caption = '反向检查儒略日'
-        TabOrder = 1
+        TabOrder = 3
         OnClick = btnJulianDaysClick
       end
       object btnCheckDays: TButton
@@ -401,7 +401,7 @@ object FormCalendar: TFormCalendar
         Width = 105
         Height = 25
         Caption = '检查等效标准日'
-        TabOrder = 3
+        TabOrder = 0
         OnClick = btnEquStandardDays1Click
       end
       object mmoDays: TMemo
@@ -410,8 +410,9 @@ object FormCalendar: TFormCalendar
         Width = 505
         Height = 417
         ReadOnly = True
-        ScrollBars = ssVertical
-        TabOrder = 4
+        ScrollBars = ssBoth
+        TabOrder = 10
+        WordWrap = False
       end
       object btnCheckLunar: TButton
         Left = 456
@@ -419,7 +420,7 @@ object FormCalendar: TFormCalendar
         Width = 75
         Height = 25
         Caption = '检查农历'
-        TabOrder = 5
+        TabOrder = 4
         OnClick = btnCheckLunarClick
       end
       object btnVerifyLeapNumber: TButton
@@ -428,7 +429,7 @@ object FormCalendar: TFormCalendar
         Width = 105
         Height = 25
         Caption = '检查预置闰月数据'
-        TabOrder = 6
+        TabOrder = 5
         OnClick = btnVerifyLeapNumberClick
       end
       object btnCheckAll: TButton
@@ -437,7 +438,7 @@ object FormCalendar: TFormCalendar
         Width = 121
         Height = 25
         Caption = '检查多个日'
-        TabOrder = 7
+        TabOrder = 6
         OnClick = btnCheckAllClick
       end
       object btnCheckFloatJieQi: TButton
@@ -446,7 +447,7 @@ object FormCalendar: TFormCalendar
         Width = 75
         Height = 25
         Caption = '检查多个节气'
-        TabOrder = 8
+        TabOrder = 7
         OnClick = btnCheckFloatJieQiClick
       end
       object btnCheckStep: TButton
@@ -455,8 +456,17 @@ object FormCalendar: TFormCalendar
         Width = 97
         Height = 25
         Caption = '检查日期步进'
-        TabOrder = 9
+        TabOrder = 8
         OnClick = btnCheckStepClick
+      end
+      object btnGenCal: TButton
+        Left = 456
+        Top = 56
+        Width = 75
+        Height = 25
+        Caption = '生成历表'
+        TabOrder = 9
+        OnClick = btnGenCalClick
       end
     end
   end
