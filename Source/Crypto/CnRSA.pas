@@ -156,7 +156,7 @@ const
   {* RSA 错误码之 PEM 加解密错误}
 
 type
-  TCnRSASignDigestType = (rsdtNone, rsdtMD5, rsdtSHA1, rsdtSHA256, rsdtSM3);
+  TCnRSASignDigestType = (rsdtNone, rsdtMD5, rsdtSHA1, rsdtSHA256, rsdtSM3, rsdtSHA512);
   {* RSA 签名所支持的杂凑摘要类型，可无摘要}
 
   TCnRSAKeyType = (cktPKCS1, cktPKCS8);
@@ -3104,6 +3104,7 @@ var
   Sha1: TCnSHA1Digest;
   Sha256: TCnSHA256Digest;
   Sm3Dig: TCnSM3Digest;
+  Sha512: TCnSHA512Digest;
 begin
   Result := False;
   case SignType of
@@ -3130,7 +3131,13 @@ begin
         Sm3Dig := SM3Stream(InStream);
         outStream.Write(Sm3Dig, SizeOf(TCnSM3Digest));
         Result := True;
-      end
+      end;
+    rsdtSHA512:
+      begin
+        Sha512 := SHA512Stream(InStream);
+        outStream.Write(Sha512, SizeOf(TCnSHA512Digest));
+        Result := True;
+      end;
   end;
 
   if Result then
@@ -3147,6 +3154,7 @@ var
   Sha1: TCnSHA1Digest;
   Sha256: TCnSHA256Digest;
   Sm3Dig: TCnSM3Digest;
+  Sha512: TCnSHA512Digest;
 begin
   Result := False;
   case SignType of
@@ -3172,6 +3180,12 @@ begin
       begin
         Sm3Dig := SM3File(FileName);
         outStream.Write(Sm3Dig, SizeOf(TCnSM3Digest));
+        Result := True;
+      end;
+    rsdtSHA512:
+      begin
+        Sha512 := SHA512File(FileName);
+        outStream.Write(Sha512, SizeOf(TCnSHA512Digest));
         Result := True;
       end;
   end;
