@@ -1024,7 +1024,7 @@ begin
   end;
 end;
 
-// 根据指定数字摘要算法计算数据的二进制杂凑值并写入 Stream，Buffer 是指针
+// 根据指定数字摘要算法计算数据的二进制杂凑值并写入 Stream，Buffer 是数据块
 function CalcDigestData(const Buffer; Count: Integer; CASignType: TCnCASignType;
   outStream: TStream): Boolean;
 var
@@ -1181,7 +1181,7 @@ begin
 
     // 计算其杂凑
     DigestStream := TMemoryStream.Create;
-    CalcDigestData(ValueStream.Memory, ValueStream.Size, CASignType, DigestStream);
+    CalcDigestData(ValueStream.Memory^, ValueStream.Size, CASignType, DigestStream);
 
     // 将 Hash 及其签名算法拼成 BER 编码
     HashWriter := TCnBerWriter.Create;
@@ -1902,7 +1902,7 @@ begin
         // ECC 得自行计算其杂凑值
         HashStream := TMemoryStream.Create;
         P := Reader.Items[1].BerAddress;
-        if not CalcDigestData(P, Reader.Items[1].BerLength, CertificateRequest.CASignType, HashStream) then
+        if not CalcDigestData(P^, Reader.Items[1].BerLength, CertificateRequest.CASignType, HashStream) then
           Exit;
 
         FreeMemory(CertificateRequest.DigestValue);
@@ -1971,7 +1971,7 @@ begin
       begin
         // 计算其杂凑值
         P := InfoRoot.BerAddress;
-        CalcDigestData(P, InfoRoot.BerLength, CSR.CASignType, SignStream);
+        CalcDigestData(P^, InfoRoot.BerLength, CSR.CASignType, SignStream);
 
         // 并与 RSA 解密出来的签名值手工对比
         if SignStream.Size = CSR.DigestLength then
@@ -2052,7 +2052,7 @@ begin
       if CRT.IsRSA then // RSA 自签名证书的杂凑值是能从证书里解密出来的，对比计算值即可
       begin
         P := InfoRoot.BerAddress;
-        CalcDigestData(P, InfoRoot.BerLength, CRT.CASignType, SignStream);
+        CalcDigestData(P^, InfoRoot.BerLength, CRT.CASignType, SignStream);
         if SignStream.Size = CRT.DigestLength then
           Result := CompareMem(SignStream.Memory, CRT.DigestValue, SignStream.Size);
       end
@@ -2149,7 +2149,7 @@ begin
       InfoRoot := Reader.Items[1];
       SignStream := TMemoryStream.Create;
       P := InfoRoot.BerAddress;
-      CalcDigestData(P, InfoRoot.BerLength, CRT.CASignType, SignStream);
+      CalcDigestData(P^, InfoRoot.BerLength, CRT.CASignType, SignStream);
 
       // RSA 证书的杂凑值要用父公钥才能从证书里解密出来
       if not ExtractSignaturesByPublicKey(True, ParentPublicKey,
@@ -2601,7 +2601,7 @@ begin
         // ECC 得自行计算其杂凑值
         HashStream := TMemoryStream.Create;
         P := Reader.Items[1].BerAddress;
-        if not CalcDigestData(P, Reader.Items[1].BerLength, Certificate.CASignType, HashStream) then
+        if not CalcDigestData(P^, Reader.Items[1].BerLength, Certificate.CASignType, HashStream) then
           Exit;
 
         FreeMemory(Certificate.DigestValue);

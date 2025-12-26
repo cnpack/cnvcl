@@ -2325,7 +2325,7 @@ var
 begin
   if KeyLength > HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE then
   begin
-    Sum := BLAKE224Buffer(Key, KeyLength);
+    Sum := BLAKE224Buffer(Key^, KeyLength);
     KeyLength := HMAC_BLAKE_224_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
@@ -2369,7 +2369,7 @@ var
 begin
   if KeyLength > HMAC_BLAKE_224_256_BLOCK_SIZE_BYTE then
   begin
-    Sum := BLAKE256Buffer(Key, KeyLength);
+    Sum := BLAKE256Buffer(Key^, KeyLength);
     KeyLength := HMAC_BLAKE_256_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
@@ -2451,7 +2451,7 @@ var
 begin
   if KeyLength > HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE then
   begin
-    Sum := BLAKE384Buffer(Key, KeyLength);
+    Sum := BLAKE384Buffer(Key^, KeyLength);
     KeyLength := HMAC_BLAKE_384_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
@@ -2514,7 +2514,7 @@ var
 begin
   if KeyLength > HMAC_BLAKE_384_512_BLOCK_SIZE_BYTE then
   begin
-    Sum := BLAKE512Buffer(Key, KeyLength);
+    Sum := BLAKE512Buffer(Key^, KeyLength);
     KeyLength := HMAC_BLAKE_512_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;

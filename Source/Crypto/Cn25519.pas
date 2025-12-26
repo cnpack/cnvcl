@@ -2734,7 +2734,7 @@ begin
     Stream.Write(PlainData^, DataByteLen);
 
     // 计算出 114 字节的 SHAKE256 值作为 r 乘数，准备乘以基点作为 R 点
-    D := SHAKE256Buffer(Stream.Memory, Stream.Size, SizeOf(TCnSHAKE256Digest));
+    D := SHAKE256Buffer(Stream.Memory^, Stream.Size, SizeOf(TCnSHAKE256Digest));
     if Length(D) <> SizeOf(TCnSHAKE256Digest) then
       Exit;
 
@@ -2772,7 +2772,7 @@ begin
     Stream.Write(PlainData^, DataByteLen);
 
     // 再次杂凑
-    D := SHAKE256Buffer(Stream.Memory, Stream.Size, SizeOf(TCnSHAKE256Digest));
+    D := SHAKE256Buffer(Stream.Memory^, Stream.Size, SizeOf(TCnSHAKE256Digest));
     if Length(D) <> SizeOf(TCnSHAKE256Digest) then
       Exit;
 
@@ -2854,7 +2854,7 @@ begin
     Stream.Write(Data[0], SizeOf(TCnEd448Data));        // 拼公钥点 A
     Stream.Write(PlainData^, DataByteLen);              // 拼明文
 
-    D := SHAKE256Buffer(Stream.Memory, Stream.Size, SizeOf(TCnSHAKE256Digest));
+    D := SHAKE256Buffer(Stream.Memory^, Stream.Size, SizeOf(TCnSHAKE256Digest));
     if Length(D) <> SizeOf(TCnSHAKE256Digest) then      // 计算 Hash 作为 k '值
       Exit;
 
@@ -4896,7 +4896,7 @@ begin
     Stream.Write(PlainData^, DataByteLen);
 
     // 计算出 64 字节的 SHA512 值作为 r 乘数，准备乘以基点作为 R 点
-    Dig := SHA512Buffer(Stream.Memory, Stream.Size);
+    Dig := SHA512Buffer(Stream.Memory^, Stream.Size);
 
     ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
     // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而需要倒一下
@@ -4922,7 +4922,7 @@ begin
     Stream.Write(PlainData^, DataByteLen);
 
     // 再次杂凑 R||PublicKey||明文
-    Dig := SHA512Buffer(Stream.Memory, Stream.Size);
+    Dig := SHA512Buffer(Stream.Memory^, Stream.Size);
 
     ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
     // RFC 规定用小端序但大数 Binary 是网络字节顺序也就是大端因而又需要倒一下
@@ -4990,7 +4990,7 @@ begin
     Stream.Write(Data[0], SizeOf(TCnEd25519Data));        // 拼公钥点
     Stream.Write(PlainData^, DataByteLen);                // 拼明文
 
-    Dig := SHA512Buffer(Stream.Memory, Stream.Size);      // 计算 Hash 作为值
+    Dig := SHA512Buffer(Stream.Memory^, Stream.Size);      // 计算 Hash 作为值
     ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));      // 需要倒转一次
 
     T := FBigNumberPool.Obtain;

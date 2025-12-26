@@ -707,7 +707,7 @@ var
 begin
   if KeyLength > HMAC_SHA1_BLOCK_SIZE_BYTE then
   begin
-    Sum := SHA1Buffer(Key, KeyLength);
+    Sum := SHA1Buffer(Key^, KeyLength);
     KeyLength := HMAC_SHA1_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;

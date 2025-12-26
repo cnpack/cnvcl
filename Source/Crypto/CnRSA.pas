@@ -3962,7 +3962,7 @@ begin
   // 00 | 20 位 Seed | DB
   // 其中 DB := ParamHash || PS || 0x01 || Data，长度是 EmLen - MdLen
   // 后面要 XOR 一次称为 MaskDB
-  SeedMask := SHA1Buffer(DigestParam, ParamByteLen);
+  SeedMask := SHA1Buffer(DigestParam^, ParamByteLen);
   Move(SeedMask[0], DB^, MdLen);
 
   // To 区 DB 的前 20 字节先留着，后面到尾巴先填满 0
@@ -4039,7 +4039,7 @@ begin
   MaskedSeed := PByteArray(TCnIntAddress(EnData) + 1);
   MaskedDB := PByteArray(TCnIntAddress(EnData) + MdLen + 1);
 
-  ParamHash := SHA1Buffer(DigestParam, ParamByteLen);
+  ParamHash := SHA1Buffer(DigestParam^, ParamByteLen);
 
   // 把 MaskedDB 先算出来
   if not Pkcs1Sha1MGF(@MaskedDB[0], DBLen, @Seed[0], MdLen) then

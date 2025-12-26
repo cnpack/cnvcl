@@ -850,7 +850,7 @@ var
 begin
   if KeyLength > HMAC_MD5_BLOCK_SIZE_BYTE then
   begin
-    Sum := MD5Buffer(Key, KeyLength);
+    Sum := MD5Buffer(Key^, KeyLength);
     KeyLength := HMAC_MD5_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;

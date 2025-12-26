@@ -2918,7 +2918,7 @@ var
 begin
   if KeyLength > HMAC_SHA2_224_256_BLOCK_SIZE_BYTE then
   begin
-    Sum := SHA224Buffer(Key, KeyLength);
+    Sum := SHA224Buffer(Key^, KeyLength);
     KeyLength := HMAC_SHA2_224_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
@@ -2962,7 +2962,7 @@ var
 begin
   if KeyLength > HMAC_SHA2_224_256_BLOCK_SIZE_BYTE then
   begin
-    Sum := SHA256Buffer(Key, KeyLength);
+    Sum := SHA256Buffer(Key^, KeyLength);
     KeyLength := HMAC_SHA2_256_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
@@ -3044,7 +3044,7 @@ var
 begin
   if KeyLength > HMAC_SHA2_384_512_BLOCK_SIZE_BYTE then
   begin
-    Sum := SHA384Buffer(Key, KeyLength);
+    Sum := SHA384Buffer(Key^, KeyLength);
     KeyLength := HMAC_SHA2_384_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
@@ -3107,7 +3107,7 @@ var
 begin
   if KeyLength > HMAC_SHA2_384_512_BLOCK_SIZE_BYTE then
   begin
-    Sum := SHA512Buffer(Key, KeyLength);
+    Sum := SHA512Buffer(Key^, KeyLength);
     KeyLength := HMAC_SHA2_512_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
@@ -3170,7 +3170,7 @@ var
 begin
   if KeyLength > HMAC_SHA2_384_512_BLOCK_SIZE_BYTE then
   begin
-    Sum := SHA512_224Buffer(Key, KeyLength);
+    Sum := SHA512_224Buffer(Key^, KeyLength);
     KeyLength := HMAC_SHA2_512_224_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;
@@ -3233,7 +3233,7 @@ var
 begin
   if KeyLength > HMAC_SHA2_384_512_BLOCK_SIZE_BYTE then
   begin
-    Sum := SHA512_256Buffer(Key, KeyLength);
+    Sum := SHA512_256Buffer(Key^, KeyLength);
     KeyLength := HMAC_SHA2_512_256_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;

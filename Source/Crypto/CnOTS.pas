@@ -844,16 +844,12 @@ function CnOTSSHA256GenerateKeys(var PrivateKey: TCnOTSSHA256PrivateKey;
   var PublicKey: TCnOTSSHA256PublicKey): Boolean;
 var
   I: Integer;
-  P: Pointer;
 begin
   Result := CnRandomFillBytes(@PrivateKey[0], SizeOf(TCnOTSSHA256PrivateKey));
   if Result then
   begin
     for I := Low(TCnOTSSHA256PublicKey) to High(TCnOTSSHA256PublicKey) do
-    begin
-      P := @PrivateKey[I];
-      PublicKey[I] := SHA256Buffer(P, SizeOf(TCnSHA256Digest));
-    end;
+      PublicKey[I] := SHA256Buffer(PrivateKey[I], SizeOf(TCnSHA256Digest));
   end;
 end;
 
@@ -865,7 +861,7 @@ var
   Bits: TCnBitBuilder;
   Dig: TCnSHA256Digest;
 begin
-  Dig := SHA256Buffer(PAnsiChar(Data), DataByteLen);
+  Dig := SHA256Buffer(Data^, DataByteLen);
   Bits := TCnBitBuilder.Create;
   try
     Bits.AppendData(@Dig[0], SizeOf(TCnSHA256Digest));
@@ -898,15 +894,14 @@ var
   P: Pointer;
 begin
   Result := False;
-  Dig := SHA256Buffer(PAnsiChar(Data), DataByteLen);
+  Dig := SHA256Buffer(Data^, DataByteLen);
   Bits := TCnBitBuilder.Create;
   try
     Bits.AppendData(@Dig[0], SizeOf(TCnSHA256Digest));
 
     for I := 0 to Bits.BitLength - 1 do
     begin
-      P := @VerifyKey[I];
-      Cmp := SHA256Buffer(P, SizeOf(TCnSHA256Digest));    // 计算私钥的杂凑值
+      Cmp := SHA256Buffer(VerifyKey[I], SizeOf(TCnSHA256Digest));    // 计算私钥的杂凑值
       if Bits.Bit[I] then
         Result := SHA256Match(Cmp, PublicKey[I * 2 + 1])  // 该位是 1，比较 1 对应的公钥
       else
@@ -1063,16 +1058,12 @@ function CnMOTSSHA256GenerateKeys(var PrivateKey: TCnMOTSSHA256PrivateKey;
   var PublicKey: TCnMOTSSHA256PublicKey): Boolean;
 var
   I: Integer;
-  P: Pointer;
 begin
   Result := CnRandomFillBytes(@PrivateKey[0], SizeOf(TCnMOTSSHA256PrivateKey));
   if Result then
   begin
     for I := Low(TCnMOTSSHA256PublicKey) to High(TCnMOTSSHA256PublicKey) do
-    begin
-      P := @PrivateKey[I];
-      PublicKey[I] := SHA256Buffer(P, SizeOf(TCnSHA256Digest));
-    end;
+      PublicKey[I] := SHA256Buffer(PrivateKey[I], SizeOf(TCnSHA256Digest));
   end;
 end;
 
@@ -1085,7 +1076,7 @@ var
   Cnt: Byte;
 begin
   FillChar(OutSignature[0], SizeOf(TCnMOTSSHA256Signature), 0);
-  Dig := SHA256Buffer(PAnsiChar(Data), DataByteLen);
+  Dig := SHA256Buffer(Data^, DataByteLen);
 
   Bits := TCnBitBuilder.Create;
   try
@@ -1119,11 +1110,10 @@ var
   Bits: TCnBitBuilder;
   Dig, Zero, Cmp: TCnSHA256Digest;
   Cnt: Byte;
-  P: Pointer;
 begin
   Result := False;
   FillChar(Zero[0], SizeOf(TCnSHA256Digest), 0);
-  Dig := SHA256Buffer(PAnsiChar(Data), DataByteLen);
+  Dig := SHA256Buffer(Data^, DataByteLen);
 
   Bits := TCnBitBuilder.Create;
   try
@@ -1134,8 +1124,7 @@ begin
     begin
       if Bits.Bit[I] then // 杂凑值的对应位是 1，签名是私钥，杂凑验证
       begin
-        P := @Signature[I];
-        Cmp := SHA256Buffer(P, SizeOf(TCnSHA256Digest)); // 计算私钥的杂凑值
+        Cmp := SHA256Buffer(Signature[I], SizeOf(TCnSHA256Digest)); // 计算私钥的杂凑值
         if not SHA256Match(Cmp, PublicKey[I]) then
           Exit;
       end
@@ -1153,8 +1142,7 @@ begin
     begin
       if Bits.Bit[I] then // 校验和的对应位是 1，签名继续是私钥，杂凑验证
       begin
-        P := @Signature[(SizeOf(TCnSHA256Digest) * 8) + I];
-        Cmp := SHA256Buffer(P, SizeOf(TCnSHA256Digest));
+        Cmp := SHA256Buffer(Signature[(SizeOf(TCnSHA256Digest) * 8) + I], SizeOf(TCnSHA256Digest));
         if not SHA256Match(Cmp, PublicKey[(SizeOf(TCnSHA256Digest) * 8) + I]) then
           Exit;
       end
@@ -1323,7 +1311,6 @@ function CnWOTSSHA256GenerateKeys(var PrivateKey: TCnWOTSSHA256PrivateKey;
 var
   I, J: Integer;
   Dig: TCnSHA256Digest;
-  P: Pointer;
 begin
   Result := CnRandomFillBytes(@PrivateKey[0], SizeOf(TCnWOTSSHA256PrivateKey));
   if Result then
@@ -1332,10 +1319,7 @@ begin
     begin
       Dig := PrivateKey[I];
       for J := 0 to CN_WOTS_ROUND - 1 do
-      begin
-        P := @Dig[0];
-        Dig := SHA256Buffer(P, SizeOf(TCnSHA256Digest));
-      end;
+        Dig := SHA256Buffer(Dig[0], SizeOf(TCnSHA256Digest));
 
       PublicKey[I] := Dig;
     end;
@@ -1349,9 +1333,8 @@ var
   Dig, D: TCnSHA256Digest;
   P: PByte;
   Sum, B: Word;
-  PB: Pointer;
 begin
-  Dig := SHA256Buffer(PAnsiChar(Data), DataByteLen);
+  Dig := SHA256Buffer(Data^, DataByteLen);
   Sum := 0;
 
   for I := 0 to SizeOf(TCnSHA256Digest) - 1 do
@@ -1360,10 +1343,7 @@ begin
     B := CN_WOTS_ROUND - Dig[I];             // 避免 Byte 溢出，要用 Word
 
     for J := 0 to B - 1 do
-    begin
-      PB := @D[0];
-      D := SHA256Buffer(PB, SizeOf(TCnSHA256Digest)); // 根据字节数，用私钥计算 256 - 每个字节的杂凑次数
-    end;
+      D := SHA256Buffer(D[0], SizeOf(TCnSHA256Digest)); // 根据字节数，用私钥计算 256 - 每个字节的杂凑次数
 
     OutSignature[I] := D;
     Sum := Sum + Dig[I];
@@ -1376,20 +1356,14 @@ begin
   D := PrivateKey[High(TCnSHA256Digest) + 1];
   B := CN_WOTS_ROUND - P^;
   for J := 0 to B - 1 do
-  begin
-    PB := @D[0];
-    D := SHA256Buffer(PB, SizeOf(TCnSHA256Digest));
-  end;
+    D := SHA256Buffer(D[0], SizeOf(TCnSHA256Digest));
   OutSignature[High(TCnSHA256Digest) + 1] := D;
 
   Inc(P);
   D := PrivateKey[High(TCnSHA256Digest) + 2];
   B := CN_WOTS_ROUND - P^;
   for J := 0 to B - 1 do
-  begin
-    PB := @D[0];
-    D := SHA256Buffer(PB, SizeOf(TCnSHA256Digest));
-  end;
+    D := SHA256Buffer(D[0], SizeOf(TCnSHA256Digest));
   OutSignature[High(TCnSHA256Digest) + 2] := D;
 end;
 
@@ -1400,11 +1374,9 @@ var
   Dig, D: TCnSHA256Digest;
   P: PByte;
   Sum, B: Word;
-  PB: Pointer;
 begin
   Result := False;
-
-  Dig := SHA256Buffer(PAnsiChar(Data), DataByteLen);
+  Dig := SHA256Buffer(Data^, DataByteLen);
   Sum := 0;
 
   for I := 0 to SizeOf(TCnSHA256Digest) - 1 do
@@ -1413,10 +1385,7 @@ begin
     B := Dig[I];                             // 避免 Byte 溢出，要用 Word
 
     for J := 0 to B - 1 do
-    begin
-      PB := @D[0];
-      D := SHA256Buffer(PB, SizeOf(TCnSHA256Digest)); // 根据字节数，用私钥计算每个字节的杂凑次数
-    end;
+      D := SHA256Buffer(D[0], SizeOf(TCnSHA256Digest)); // 根据字节数，用私钥计算每个字节的杂凑次数
 
     if not SHA256Match(D, PublicKey[I]) then
       Exit;
@@ -1431,10 +1400,7 @@ begin
   D := Signature[High(TCnSHA256Digest) + 1];
   B := P^;
   for J := 0 to B - 1 do
-  begin
-    PB := @D[0];
-    D := SHA256Buffer(PB, SizeOf(TCnSHA256Digest));
-  end;
+    D := SHA256Buffer(D[0], SizeOf(TCnSHA256Digest));
 
   if not SHA256Match(D, PublicKey[High(TCnSHA256Digest) + 1]) then
     Exit;
@@ -1443,10 +1409,7 @@ begin
   D := Signature[High(TCnSHA256Digest) + 2];
   B := P^;
   for J := 0 to B - 1 do
-  begin
-    PB := @D[0];
-    D := SHA256Buffer(PB, SizeOf(TCnSHA256Digest));
-  end;
+    D := SHA256Buffer(D[0], SizeOf(TCnSHA256Digest));
 
   if not SHA256Match(D, PublicKey[High(TCnSHA256Digest) + 2]) then
     Exit;

@@ -565,7 +565,7 @@ var
 begin
   if KeyLength > HMAC_SM3_BLOCK_SIZE_BYTE then
   begin
-    Sum := SM3(Key, KeyLength);
+    Sum := SM3Buffer(Key^, KeyLength);
     KeyLength := HMAC_SM3_OUTPUT_LENGTH_BYTE;
     Key := @(Sum[0]);
   end;

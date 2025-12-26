@@ -1423,7 +1423,7 @@ begin
     CnCalcKeysFromEd25519PrivateKey(TCnEd25519PrivateKey(priv), S, HP);
     if ph_flag <> 0 then
     begin
-      Dig := SHA512Buffer(data, len);
+      Dig := SHA512Buffer(data^, len);
       MsgPtr := @Dig[0];
       MsgLen := SizeOf(TCnSHA512Digest);
     end
@@ -1438,7 +1438,7 @@ begin
     BigNumberWriteBinaryToStream(HP, Stream, CN_25519_BLOCK_BYTESIZE);
     if MsgLen > 0 then
       Stream.Write(MsgPtr^, MsgLen);
-    Dig := SHA512Buffer(Stream.Memory, Stream.Size);
+    Dig := SHA512Buffer(Stream.Memory^, Stream.Size);
     ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
     R.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
     BigNumberNonNegativeMod(R, R, E.Order);
@@ -1453,7 +1453,7 @@ begin
     Stream.Write(PubData[0], SizeOf(TCnEd25519Data));
     if MsgLen > 0 then
       Stream.Write(MsgPtr^, MsgLen);
-    Dig := SHA512Buffer(Stream.Memory, Stream.Size);
+    Dig := SHA512Buffer(Stream.Memory^, Stream.Size);
     ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
     K.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
     BigNumberNonNegativeMod(K, K, E.Order);
@@ -1550,7 +1550,7 @@ begin
     end;
     if ph_flag <> 0 then
     begin
-      Dig := SHA512Buffer(data, len);
+      Dig := SHA512Buffer(data^, len);
       MsgPtr := @Dig[0];
       MsgLen := SizeOf(TCnSHA512Digest);
     end
@@ -1573,7 +1573,7 @@ begin
     Stream.Write(DataPub[0], SizeOf(TCnEd25519Data));
     if MsgLen > 0 then
       Stream.Write(MsgPtr^, MsgLen);
-    Dig := SHA512Buffer(Stream.Memory, Stream.Size);
+    Dig := SHA512Buffer(Stream.Memory^, Stream.Size);
     ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));
     T.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
     T.MulWord(8);
@@ -2865,8 +2865,8 @@ function cn_base64_decode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap:
   TCnSize; var out_len: TCnSize): TCnResult; cdecl;
 var
   S: string;
-  Needed: TCnSize;
   R: Integer;
+  Data: TBytes;
 begin
   if (in_ptr = nil) or (in_len = 0) then
   begin
@@ -2874,19 +2874,24 @@ begin
     Exit;
   end;
   SetString(S, PAnsiChar(in_ptr), in_len);
-  Needed := 1 + ((in_len * 3) div 4);
-  out_len := Needed;
-  if cap < Needed then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  R := Base64Decode(S, out_ptr, cap, True);
+
+  R := Base64Decode(S, Data, True);
   if R <> 0 then
   begin
     Result := CN_E_INTERNAL;
     Exit;
   end;
+
+  out_len := Length(Data);
+  if cap < out_len then
+  begin
+    Result := CN_E_BUFFER_TOO_SMALL;
+    Exit;
+  end;
+
+  if out_len > 0 then
+    Move(Data[0], out_ptr^, out_len);
+
   Result := CN_OK;
 end;
 
@@ -2922,8 +2927,8 @@ function cn_base64url_decode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap
   TCnSize; var out_len: TCnSize): TCnResult; cdecl;
 var
   S: string;
-  Needed: TCnSize;
   R: Integer;
+  Data: TBytes;
 begin
   if (in_ptr = nil) or (in_len = 0) then
   begin
@@ -2931,19 +2936,24 @@ begin
     Exit;
   end;
   SetString(S, PAnsiChar(in_ptr), in_len);
-  Needed := 1 + ((in_len * 3) div 4);
-  out_len := Needed;
-  if cap < Needed then
-  begin
-    Result := CN_E_BUFFER_TOO_SMALL;
-    Exit;
-  end;
-  R := Base64Decode(S, out_ptr, cap, True);
+
+  R := Base64Decode(S, Data, True);
   if R <> 0 then
   begin
     Result := CN_E_INTERNAL;
     Exit;
   end;
+
+  out_len := Length(Data);
+  if cap < out_len then
+  begin
+    Result := CN_E_BUFFER_TOO_SMALL;
+    Exit;
+  end;
+
+  if out_len > 0 then
+    Move(Data[0], out_ptr^, out_len);
+
   Result := CN_OK;
 end;
 
@@ -4890,3 +4900,4 @@ begin
 end;
 
 end.
+
