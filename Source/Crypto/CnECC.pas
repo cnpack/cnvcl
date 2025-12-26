@@ -2587,15 +2587,39 @@ const
   EC_PUBLICKEY_COMPRESSED_ODD   = 03; // 省略了 Y，其中 Y 是奇数
   EC_PUBLICKEY_UNCOMPRESSED     = 04; // X Y 都有
 
-  // 预定义的椭圆曲线类型的 OID 及其最大长度
-  EC_CURVE_TYPE_OID_MAX_LENGTH = 8;
+  // 预定义的椭圆曲线类型的 OID 及其最大长度，均不包括前面的 06 08 或 06 09
+  EC_CURVE_TYPE_OID_MAX_LENGTH = 9;
+
+  OID_ECPARAM_CURVE_TYPE_SECP224R1: array[0..4] of Byte = ( // 1.3.132.0.33
+    $2B, $81, $04, $00, $21
+  );
+
+  OID_ECPARAM_CURVE_TYPE_SECP224K1: array[0..4] of Byte = ( // 1.3.132.0.32
+    $2B, $81, $04, $00, $20
+  );
 
   OID_ECPARAM_CURVE_TYPE_SECP256K1: array[0..4] of Byte = ( // 1.3.132.0.10
     $2B, $81, $04, $00, $0A
   );
 
+  OID_ECPARAM_CURVE_TYPE_SECP384R1: array[0..4] of Byte = ( // 1.3.132.0.34
+    $2B, $81, $04, $00, $22
+  );
+
+  OID_ECPARAM_CURVE_TYPE_SECP521R1: array[0..4] of Byte = ( // 1.3.132.0.35
+    $2B, $81, $04, $00, $23
+  );
+
   OID_ECPARAM_CURVE_TYPE_SM2: array[0..7] of Byte = (       // 1.2.156.10197.301
     $2A, $81, $1C, $CF, $55, $01, $82, $2D
+  );
+
+  OID_ECPARAM_CURVE_TYPE_WAPI: array[0..8] of Byte = (      // 1.2.156.11235.1.1.2.1
+    $2A, $81, $1C, $D7, $63, $01, $01, $02, $01
+  );
+
+  OID_ECPARAM_CURVE_TYPE_SM9: array[0..7] of Byte = (       // 1.2.156.10197.301
+    $2A, $81, $1C, $CF, $55, $01, $82, $2E
   );
 
   OID_ECPARAM_CURVE_TYPE_PRIME256V1: array[0..7] of Byte = (  // 1.2.840.10045.3.1.7
@@ -5204,12 +5228,30 @@ begin
     Exit;
 
   Inc(P);
-  if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP256K1[0],
+  if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP224R1[0],
+    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SECP224R1))) then
+    Result := ctSecp224r1
+  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP224K1[0],
+    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SECP224K1))) then
+    Result := ctSecp224k1
+  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP256K1[0],
     Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SECP256K1))) then
     Result := ctSecp256k1
+  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP384R1[0],
+    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SECP384R1))) then
+    Result := ctSecp384r1
+  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SECP521R1[0],
+    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SECP521R1))) then
+    Result := ctSecp521r1
   else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SM2[0],
     Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SM2))) then
     Result := ctSM2
+  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_WAPI[0],
+    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_WAPI))) then
+    Result := ctWapiPrime192v1
+  else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_SM9[0],
+    Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_SM9))) then
+    Result := ctSM9Bn256v1
   else if CompareMem(P, @OID_ECPARAM_CURVE_TYPE_PRIME256V1[0],
     Min(L, SizeOf(OID_ECPARAM_CURVE_TYPE_PRIME256V1))) then
     Result := ctPrime256v1
@@ -5232,10 +5274,40 @@ begin
         OIDAddr := @OID_ECPARAM_CURVE_TYPE_SM2[0];
         Result := SizeOf(OID_ECPARAM_CURVE_TYPE_SM2);
       end;
-    ctPrime256v1:
+    ctPrime256v1, ctSecp256r1:
       begin
         OIDAddr := @OID_ECPARAM_CURVE_TYPE_PRIME256V1[0];
         Result := SizeOf(OID_ECPARAM_CURVE_TYPE_PRIME256V1);
+      end;
+    ctSecp224r1:
+      begin
+        OIDAddr := @OID_ECPARAM_CURVE_TYPE_SECP224R1[0];
+        Result := SizeOf(OID_ECPARAM_CURVE_TYPE_SECP224R1);
+      end;
+    ctSecp224k1:
+      begin
+        OIDAddr := @OID_ECPARAM_CURVE_TYPE_SECP224K1[0];
+        Result := SizeOf(OID_ECPARAM_CURVE_TYPE_SECP224K1);
+      end;
+    ctWapiPrime192v1:
+      begin
+        OIDAddr := @OID_ECPARAM_CURVE_TYPE_WAPI[0];
+        Result := SizeOf(OID_ECPARAM_CURVE_TYPE_WAPI);
+      end;
+    ctSM9Bn256v1:
+      begin
+        OIDAddr := @OID_ECPARAM_CURVE_TYPE_SM9[0];
+        Result := SizeOf(OID_ECPARAM_CURVE_TYPE_SM9);
+      end;
+    ctSecp384r1:
+      begin
+        OIDAddr := @OID_ECPARAM_CURVE_TYPE_SECP384R1[0];
+        Result := SizeOf(OID_ECPARAM_CURVE_TYPE_SECP384R1);
+      end;
+    ctSecp521r1:
+      begin
+        OIDAddr := @OID_ECPARAM_CURVE_TYPE_SECP521R1[0];
+        Result := SizeOf(OID_ECPARAM_CURVE_TYPE_SECP521R1);
       end;
   end;
 end;
