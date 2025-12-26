@@ -42,9 +42,7 @@ unit CnCryptoExport;
 
 interface
 
-{$I CnPack.inc}
-
-{$IFDEF COMPILER5}
+{$IFDEF VER130}
 uses
   Windows;
 {$ENDIF}
@@ -54,7 +52,7 @@ type
 
   TUInt32         = Cardinal;
 
-{$IFDEF COMPILER5}
+{$IFDEF VER130}
   TUInt64         = Int64;
 {$ELSE}
   TUInt64         = UInt64;
@@ -76,7 +74,7 @@ type
 
   TCnResult       = TInt32;
 
-{$IFDEF COMPILER5}
+{$IFDEF VER130}
   PByte           = Windows.PByte;
 {$ENDIF}
 
