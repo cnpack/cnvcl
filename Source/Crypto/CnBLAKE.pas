@@ -145,7 +145,7 @@ function BLAKE224Buffer(const Buffer; Count: Cardinal): TCnBLAKE224Digest;
 {* 对数据块进行 BLAKE224 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnBLAKE224Digest              - 返回的 BLAKE224 杂凑值
@@ -155,7 +155,7 @@ function BLAKE256Buffer(const Buffer; Count: Cardinal): TCnBLAKE256Digest;
 {* 对数据块进行 BLAKE256 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnBLAKE256Digest              - 返回的 BLAKE256 杂凑值
@@ -165,7 +165,7 @@ function BLAKE384Buffer(const Buffer; Count: Cardinal): TCnBLAKE384Digest;
 {* 对数据块进行 BLAKE384 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnBLAKE384Digest              - 返回的 BLAKE384杂凑值
@@ -175,7 +175,7 @@ function BLAKE512Buffer(const Buffer; Count: Cardinal): TCnBLAKE512Digest;
 {* 对数据块进行 BLAKE512 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnBLAKE512Digest              - 返回的 BLAKE512 杂凑值
@@ -1604,7 +1604,7 @@ var
   Context: TCnBLAKE224Context;
 begin
   BLAKE224Init(Context);
-  BLAKE224Update(Context, PAnsiChar(Buffer), Count);
+  BLAKE224Update(Context, PAnsiChar(@Buffer), Count);
   BLAKE224Final(Context, Result);
 end;
 
@@ -1614,7 +1614,7 @@ var
   Context: TCnBLAKE256Context;
 begin
   BLAKE256Init(Context);
-  BLAKE256Update(Context, PAnsiChar(Buffer), Count);
+  BLAKE256Update(Context, PAnsiChar(@Buffer), Count);
   BLAKE256Final(Context, Result);
 end;
 
@@ -1624,7 +1624,7 @@ var
   Context: TCnBLAKE384Context;
 begin
   BLAKE384Init(Context);
-  BLAKE384Update(Context, PAnsiChar(Buffer), Count);
+  BLAKE384Update(Context, PAnsiChar(@Buffer), Count);
   BLAKE384Final(Context, Result);
 end;
 
@@ -1634,7 +1634,7 @@ var
   Context: TCnBLAKE512Context;
 begin
   BLAKE512Init(Context);
-  BLAKE512Update(Context, PAnsiChar(Buffer), Count);
+  BLAKE512Update(Context, PAnsiChar(@Buffer), Count);
   BLAKE512Final(Context, Result);
 end;
 

@@ -153,7 +153,7 @@ function SHA3_224Buffer(const Buffer; Count: Cardinal): TCnSHA3_224Digest;
 {* 对数据块进行 SHA3_224 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSHA3_224Digest              - 返回的 SHA3_224 杂凑值
@@ -163,7 +163,7 @@ function SHA3_256Buffer(const Buffer; Count: Cardinal): TCnSHA3_256Digest;
 {* 对数据块进行 SHA3_256 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSHA3_256Digest              - 返回的 SHA3_256 杂凑值
@@ -173,7 +173,7 @@ function SHA3_384Buffer(const Buffer; Count: Cardinal): TCnSHA3_384Digest;
 {* 对数据块进行 SHA3_384 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSHA3_384Digest              - 返回的 SHA3_384 杂凑值
@@ -183,7 +183,7 @@ function SHA3_512Buffer(const Buffer; Count: Cardinal): TCnSHA3_512Digest;
 {* 对数据块进行 SHA3_512 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSHA3_512Digest              - 返回的 SHA3_512 杂凑值
@@ -194,7 +194,7 @@ function SHAKE128Buffer(const Buffer; Count: Cardinal;
 {* 对数据块进行杂凑长度可变的 SHAKE128 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
      DigestByteLength: Cardinal           - 所需的杂凑结果字节长度
 
@@ -206,7 +206,7 @@ function SHAKE256Buffer(const Buffer; Count: Cardinal;
 {* 对数据块进行杂凑长度可变的 SHAKE128 计算，返回长度为 DigestByteLength 的字节数组作为杂凑结果。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
      DigestByteLength: Cardinal           - 所需的杂凑结果字节长度
 
@@ -1746,7 +1746,7 @@ var
   Res: TCnSHA3GeneralDigest;
 begin
   SHA3Init(Context, stSHA3_224);
-  SHA3Update(Context, PAnsiChar(Buffer), Count);
+  SHA3Update(Context, PAnsiChar(@Buffer), Count);
   SHA3Final(Context, Res);
   Move(Res[0], Result[0], SHA3_224_OUTPUT_LENGTH_BYTE);
 end;
@@ -1758,7 +1758,7 @@ var
   Res: TCnSHA3GeneralDigest;
 begin
   SHA3Init(Context, stSHA3_256);
-  SHA3Update(Context, PAnsiChar(Buffer), Count);
+  SHA3Update(Context, PAnsiChar(@Buffer), Count);
   SHA3Final(Context, Res);
   Move(Res[0], Result[0], SHA3_256_OUTPUT_LENGTH_BYTE);
 end;
@@ -1770,7 +1770,7 @@ var
   Res: TCnSHA3GeneralDigest;
 begin
   SHA3Init(Context, stSHA3_384);
-  SHA3Update(Context, PAnsiChar(Buffer), Count);
+  SHA3Update(Context, PAnsiChar(@Buffer), Count);
   SHA3Final(Context, Res);
   Move(Res[0], Result[0], SHA3_384_OUTPUT_LENGTH_BYTE);
 end;
@@ -1782,7 +1782,7 @@ var
   Res: TCnSHA3GeneralDigest;
 begin
   SHA3Init(Context, stSHA3_512);
-  SHA3Update(Context, PAnsiChar(Buffer), Count);
+  SHA3Update(Context, PAnsiChar(@Buffer), Count);
   SHA3Final(Context, Res);
   Move(Res[0], Result[0], SHA3_512_OUTPUT_LENGTH_BYTE);
 end;
@@ -1793,7 +1793,7 @@ var
   Context: TCnSHA3Context;
 begin
   SHAKE128Init(Context, DigestByteLength);
-  SHAKE128Update(Context, PAnsiChar(Buffer), Count);
+  SHAKE128Update(Context, PAnsiChar(@Buffer), Count);
   SHAKE128Final(Context, Result);
 end;
 
@@ -1803,7 +1803,7 @@ var
   Context: TCnSHA3Context;
 begin
   SHAKE256Init(Context, DigestByteLength);
-  SHAKE256Update(Context, PAnsiChar(Buffer), Count);
+  SHAKE256Update(Context, PAnsiChar(@Buffer), Count);
   SHAKE256Final(Context, Result);
 end;
 

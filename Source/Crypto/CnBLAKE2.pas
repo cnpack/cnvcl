@@ -138,9 +138,9 @@ function BLAKE2SBuffer(const Buffer; Count: Cardinal; const Key; KeyCount: Cardi
 {* 对数据块进行 BLAKE2S 计算。注意当 Key 存在时长度将截断或补 #0 为 32 字节。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
-     const Key                            - BLAKE2S 密钥地址
+     const Key                            - BLAKE2S 密钥
      KeyCount: Cardinal                   - BLAKE2S 密钥字节长度
      DigestLength: Integer                - 指定输出的摘要字节长度，默认 32
 
@@ -152,9 +152,9 @@ function BLAKE2BBuffer(const Buffer; Count: Cardinal; const Key; KeyCount: Cardi
 {* 对数据块进行 BLAKE2B 计算。注意当 Key 存在时长度将截断或补 #0 为 64 字节。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
-     const Key                            - BLAKE2B 密钥地址
+     const Key                            - BLAKE2B 密钥
      KeyCount: Cardinal                   - BLAKE2B 密钥字节长度
      DigestLength: Integer                - 指定输出的摘要字节长度，默认 64
 
@@ -948,8 +948,8 @@ function BLAKE2SBuffer(const Buffer; Count: Cardinal; const Key;
 var
   Context: TCnBLAKE2SContext;
 begin
-  BLAKE2SInit(Context, PAnsiChar(Key), KeyCount, DigestLength);
-  BLAKE2SUpdate(Context, PAnsiChar(Buffer), Count);
+  BLAKE2SInit(Context, PAnsiChar(@Key), KeyCount, DigestLength);
+  BLAKE2SUpdate(Context, PAnsiChar(@Buffer), Count);
   BLAKE2SFinal(Context, Result);
 end;
 
@@ -1127,8 +1127,8 @@ function BLAKE2BBuffer(const Buffer; Count: Cardinal; const Key;
 var
   Context: TCnBLAKE2BContext;
 begin
-  BLAKE2BInit(Context, PAnsiChar(Key), KeyCount, DigestLength);
-  BLAKE2BUpdate(Context, PAnsiChar(Buffer), Count);
+  BLAKE2BInit(Context, PAnsiChar(@Key), KeyCount, DigestLength);
+  BLAKE2BUpdate(Context, PAnsiChar(@Buffer), Count);
   BLAKE2BFinal(Context, Result);
 end;
 

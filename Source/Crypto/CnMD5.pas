@@ -121,7 +121,7 @@ function MD5Buffer(const Buffer; Count: Cardinal): TCnMD5Digest;
 {* 对数据块进行 MD5 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnMD5Digest                   - 返回的 MD5 杂凑值
@@ -665,7 +665,7 @@ var
   Context: TCnMD5Context;
 begin
   MD5Init(Context);
-  MD5Update(Context, PAnsiChar(Buffer), Count);
+  MD5Update(Context, PAnsiChar(@Buffer), Count);
   MD5Final(Context, Result);
 end;
 

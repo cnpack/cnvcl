@@ -83,7 +83,7 @@ function SM3Buffer(const Buffer; Count: Cardinal): TCnSM3Digest;
 {* 对数据块进行 SM3 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSM3Digest                   - 返回的 SM3 杂凑值
@@ -625,7 +625,7 @@ var
   Context: TCnSM3Context;
 begin
   SM3Init(Context);
-  SM3Update(Context, PAnsiChar(Buffer), Count);
+  SM3Update(Context, PAnsiChar(@Buffer), Count);
   SM3Final(Context, Result);
 end;
 

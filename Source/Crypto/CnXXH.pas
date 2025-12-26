@@ -102,18 +102,18 @@ function XXH32Buffer(const Buffer; Count: Cardinal; Seed: Cardinal = 0): TCnXXH3
 {* 对数据块进行 XXH32 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
      Seed: Cardinal                       - 种子值，默认为 0
 
-   返回值：TCnXXH32Digest                - 返回的 XXH32 杂凑值
+   返回值：TCnXXH32Digest                 - 返回的 XXH32 杂凑值
 }
 
 function XXH64Buffer(const Buffer; Count: Cardinal; Seed: TUInt64 = 0): TCnXXH64Digest;
 {* 对数据块进行 XXH64 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
      Seed: TUInt64                        - 种子值，默认为 0
 
@@ -825,7 +825,7 @@ var
   Context: TCnXXH32Context;
 begin
   XXH32Init(Context, Seed);
-  XXH32Update(Context, PAnsiChar(Buffer), Count);
+  XXH32Update(Context, PAnsiChar(@Buffer), Count);
   XXH32Final(Context, Result);
 end;
 
@@ -835,7 +835,7 @@ var
   Context: TCnXXH64Context;
 begin
   XXH64Init(Context, Seed);
-  XXH64Update(Context, PAnsiChar(Buffer), Count);
+  XXH64Update(Context, PAnsiChar(@Buffer), Count);
   XXH64Final(Context, Result);
 end;
 

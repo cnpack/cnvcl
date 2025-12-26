@@ -188,7 +188,7 @@ function SHA224Buffer(const Buffer; Count: Cardinal): TCnSHA224Digest;
 {* 对数据块进行 SHA224 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSHA224Digest                - 返回的 SHA224 杂凑值
@@ -198,7 +198,7 @@ function SHA256Buffer(const Buffer; Count: Cardinal): TCnSHA256Digest;
 {* 对数据块进行 SHA256 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSHA256Digest                - 返回的 SHA256 杂凑值
@@ -208,7 +208,7 @@ function SHA384Buffer(const Buffer; Count: Cardinal): TCnSHA384Digest;
 {* 对数据块进行 SHA384 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSHA384Digest                - 返回的 SHA384杂凑值
@@ -218,7 +218,7 @@ function SHA512Buffer(const Buffer; Count: Cardinal): TCnSHA512Digest;
 {* 对数据块进行 SHA512 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSHA512Digest                - 返回的 SHA512 杂凑值
@@ -228,7 +228,7 @@ function SHA512_224Buffer(const Buffer; Count: Cardinal): TCnSHA512_224Digest;
 {* 对数据块进行 SHA512_224 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSHA512_224Digest            - 返回的 SHA512_224 杂凑值
@@ -238,7 +238,7 @@ function SHA512_256Buffer(const Buffer; Count: Cardinal): TCnSHA512_256Digest;
 {* 对数据块进行 SHA512_256 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块字节长度
 
    返回值：TCnSHA512_256Digest            - 返回的 SHA512_256 杂凑值
@@ -1939,7 +1939,7 @@ var
   Context: TCnSHA224Context;
 begin
   SHA224Init(Context);
-  SHA224Update(Context, PAnsiChar(Buffer), Count);
+  SHA224Update(Context, PAnsiChar(@Buffer), Count);
   SHA224Final(Context, Result);
 end;
 
@@ -1949,7 +1949,7 @@ var
   Context: TCnSHA256Context;
 begin
   SHA256Init(Context);
-  SHA256Update(Context, PAnsiChar(Buffer), Count);
+  SHA256Update(Context, PAnsiChar(@Buffer), Count);
   SHA256Final(Context, Result);
 end;
 
@@ -1959,7 +1959,7 @@ var
   Context: TCnSHA384Context;
 begin
   SHA384Init(Context);
-  SHA384Update(Context, PAnsiChar(Buffer), Count);
+  SHA384Update(Context, PAnsiChar(@Buffer), Count);
   SHA384Final(Context, Result);
 end;
 
@@ -1969,7 +1969,7 @@ var
   Context: TCnSHA512Context;
 begin
   SHA512Init(Context);
-  SHA512Update(Context, PAnsiChar(Buffer), Count);
+  SHA512Update(Context, PAnsiChar(@Buffer), Count);
   SHA512Final(Context, Result);
 end;
 
@@ -1979,7 +1979,7 @@ var
   Context: TCnSHA512_224Context;
 begin
   SHA512_224Init(Context);
-  SHA512_224Update(Context, PAnsiChar(Buffer), Count);
+  SHA512_224Update(Context, PAnsiChar(@Buffer), Count);
   SHA512_224Final(Context, Result);
 end;
 
@@ -1989,7 +1989,7 @@ var
   Context: TCnSHA512_256Context;
 begin
   SHA512_256Init(Context);
-  SHA512_256Update(Context, PAnsiChar(Buffer), Count);
+  SHA512_256Update(Context, PAnsiChar(@Buffer), Count);
   SHA512_256Final(Context, Result);
 end;
 

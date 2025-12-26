@@ -74,10 +74,10 @@ type
   end;
 
 function Poly1305Buffer(const Buffer; Count: Cardinal; Key: TCnPoly1305Key): TCnPoly1305Digest;
-{* 对数据块进行 Poly1305 计算，Buffer 一般传个地址。
+{* 对数据块进行 Poly1305 计算。
 
    参数：
-     const Buffer                         - 待计算的数据块地址
+     const Buffer                         - 待计算的数据块
      Count: Cardinal                      - 待计算的数据块的字节长度
      Key: TCnPoly1305Key                  - 密码
 
@@ -195,7 +195,7 @@ var
   C: TCnPoly1305Context;
 begin
   Poly1305Init(C, Key);
-  Poly1305Update(C, PAnsiChar(Buffer), Count);
+  Poly1305Update(C, PAnsiChar(@Buffer), Count);
   Poly1305Final(C, Result);
 end;
 
