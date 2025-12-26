@@ -1816,6 +1816,8 @@ begin
       SignType := rsdtSHA256;
     CN_HASH_SM3:
       SignType := rsdtSM3;
+    CN_HASH_SHA2_512:
+      SignType := rsdtSHA512;
   else
     Result := CN_E_INVALID_ARG;
     Exit;
@@ -1870,6 +1872,8 @@ begin
       SignType := rsdtSHA256;
     CN_HASH_SM3:
       SignType := rsdtSM3;
+    CN_HASH_SHA2_512:
+      SignType := rsdtSHA512;
   else
     Result := 0;
     Exit;

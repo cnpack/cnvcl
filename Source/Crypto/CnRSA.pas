@@ -1222,6 +1222,14 @@ const
     $60, $86, $48, $01, $65, $03, $04, $02, $01
   );
 
+  OID_SIGN_SHA512: array[0..8] of Byte = (         // 2.16.840.1.101.3.4.2.3
+    $60, $86, $48, $01, $65, $03, $04, $02, $03
+  );
+
+  OID_SIGN_SM3: array[0..5] of Byte = (            // 1.0.10118.3.0.65
+    $28, $CF, $06, $03, $00, $41
+  );
+
 // 获取本线程内最近一次 ErrorCode，当以上函数返回 False 时可调用此函数获取错误详情}
 function GetLastCnRSAError: Integer;
 begin
@@ -3210,6 +3218,12 @@ begin
     rsdtSHA256:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA256[0],
         SizeOf(OID_SIGN_SHA256), AParent);
+    rsdtSM3:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SM3[0],
+        SizeOf(OID_SIGN_SM3), AParent);
+    rsdtSHA512:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA512[0],
+        SizeOf(OID_SIGN_SHA512), AParent);
   end;
 end;
 
@@ -3888,7 +3902,11 @@ begin
   else if (OidByteLen = SizeOf(OID_SIGN_SHA1)) and CompareMem(OID, @OID_SIGN_SHA1[0], OidByteLen) then
     Result := rsdtSHA1
   else if (OidByteLen = SizeOf(OID_SIGN_SHA256)) and CompareMem(OID, @OID_SIGN_SHA256[0], OidByteLen) then
-    Result := rsdtSHA256;
+    Result := rsdtSHA256
+  else if (OidByteLen = SizeOf(OID_SIGN_SM3)) and CompareMem(OID, @OID_SIGN_SM3[0], OidByteLen) then
+    Result := rsdtSM3
+  else if (OidByteLen = SizeOf(OID_SIGN_SHA512)) and CompareMem(OID, @OID_SIGN_SHA512[0], OidByteLen) then
+    Result := rsdtSHA512;
 end;
 
 function GetRSADigestNameFromSignDigestType(Digest: TCnRSASignDigestType): string;
@@ -3898,6 +3916,8 @@ begin
     rsdtMD5: Result := 'MD5';
     rsdtSHA1: Result := 'SHA1';
     rsdtSHA256: Result := 'SHA256';
+    rsdtSM3: Result := 'SM3';
+    rsdtSHA512: Result := 'SHA512';
   else
     Result := '<Unknown>';
   end;
