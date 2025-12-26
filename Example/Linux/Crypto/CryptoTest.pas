@@ -6830,7 +6830,7 @@ begin
 
   FillChar(K[0], SizeOf(TCnPoly1305Key), $FF);
 
-  D1 := Poly1305Buffer(S, Length(S), K);
+  D1 := Poly1305Buffer(S[1], Length(S), K);
   Poly1305Init(C, K);
   Poly1305Update(C, PAnsiChar(S1), Length(S1));
   Poly1305Update(C, PAnsiChar(S2), Length(S2));
