@@ -69,6 +69,120 @@ CALL :PRINTFILES CnCrypto.dpk ALLFILES
 ECHO.                                                                          >> CnCrypto.dpk
 ECHO end.                                                                      >> CnCrypto.dpk
 ECHO.                                                                          >> CnCrypto.dpk
+CALL :PRINTHEAD CnCrypto.dpr
+ECHO library CnCrypto;                                                         >> CnCrypto.dpr
+ECHO.                                                                          >> CnCrypto.dpr
+ECHO uses                                                                      >> CnCrypto.dpr
+CALL :PRINTFILES CnCrypto.dpr
+ECHO   CnCryptoExport in '..\Source\CnCryptoExport.pas';                       >> CnCrypto.dpr
+ECHO.                                                                          >> CnCrypto.dpr
+ECHO exports                                                                                  >> CnCrypto.dpr
+ECHO   cn_get_version                         name 'cn_get_version',                          >> CnCrypto.dpr
+ECHO   cn_get_abi_version                     name 'cn_get_abi_version',                      >> CnCrypto.dpr
+ECHO   cn_lib_init                            name 'cn_lib_init',                             >> CnCrypto.dpr
+ECHO   cn_lib_finalize                        name 'cn_lib_finalize',                         >> CnCrypto.dpr
+ECHO   cn_alloc                               name 'cn_alloc',                                >> CnCrypto.dpr
+ECHO   cn_free                                name 'cn_free',                                 >> CnCrypto.dpr
+ECHO   cn_memzero                             name 'cn_memzero',                              >> CnCrypto.dpr
+ECHO   cn_endian_is_le                        name 'cn_endian_is_le',                         >> CnCrypto.dpr
+ECHO   cn_endian_is_be                        name 'cn_endian_is_be',                         >> CnCrypto.dpr
+ECHO   cn_data_to_hex                         name 'cn_data_to_hex',                          >> CnCrypto.dpr
+ECHO   cn_const_time_equal                    name 'cn_const_time_equal',                     >> CnCrypto.dpr
+ECHO   cn_const_time_select                   name 'cn_const_time_select',                    >> CnCrypto.dpr
+ECHO   cn_str_to_uint64                       name 'cn_str_to_uint64',                        >> CnCrypto.dpr
+ECHO   cn_base64_encode                       name 'cn_base64_encode',                        >> CnCrypto.dpr
+ECHO   cn_base64_decode                       name 'cn_base64_decode',                        >> CnCrypto.dpr
+ECHO   cn_base64url_encode                    name 'cn_base64url_encode',                     >> CnCrypto.dpr
+ECHO   cn_base64url_decode                    name 'cn_base64url_decode',                     >> CnCrypto.dpr
+ECHO   cn_hash_digest                         name 'cn_hash_digest',                          >> CnCrypto.dpr
+ECHO   cn_hmac                                name 'cn_hmac',                                 >> CnCrypto.dpr
+ECHO   cn_cipher_encrypt                      name 'cn_cipher_encrypt',                       >> CnCrypto.dpr
+ECHO   cn_cipher_decrypt                      name 'cn_cipher_decrypt',                       >> CnCrypto.dpr
+ECHO   cn_aead_encrypt                        name 'cn_aead_encrypt',                         >> CnCrypto.dpr
+ECHO   cn_aead_decrypt                        name 'cn_aead_decrypt',                         >> CnCrypto.dpr
+ECHO   cn_rsa_privkey_new                     name 'cn_rsa_privkey_new',                      >> CnCrypto.dpr
+ECHO   cn_rsa_pubkey_new                      name 'cn_rsa_pubkey_new',                       >> CnCrypto.dpr
+ECHO   cn_rsa_key_free                        name 'cn_rsa_key_free',                         >> CnCrypto.dpr
+ECHO   cn_rsa_generate_keys                   name 'cn_rsa_generate_keys',                    >> CnCrypto.dpr
+ECHO   cn_rsa_pubkey_get_modulus_bytes        name 'cn_rsa_pubkey_get_modulus_bytes',         >> CnCrypto.dpr
+ECHO   cn_rsa_privkey_get_modulus_bytes       name 'cn_rsa_privkey_get_modulus_bytes',        >> CnCrypto.dpr
+ECHO   cn_rsa_encrypt_with_public             name 'cn_rsa_encrypt_with_public',              >> CnCrypto.dpr
+ECHO   cn_rsa_encrypt_with_private            name 'cn_rsa_encrypt_with_private',             >> CnCrypto.dpr
+ECHO   cn_rsa_decrypt_with_public             name 'cn_rsa_decrypt_with_public',              >> CnCrypto.dpr
+ECHO   cn_rsa_decrypt_with_private            name 'cn_rsa_decrypt_with_private',             >> CnCrypto.dpr
+ECHO   cn_rsa_sign                            name 'cn_rsa_sign',                             >> CnCrypto.dpr
+ECHO   cn_rsa_verify                          name 'cn_rsa_verify',                           >> CnCrypto.dpr
+ECHO   cn_rsa_load_keys_from_pem              name 'cn_rsa_load_keys_from_pem',               >> CnCrypto.dpr
+ECHO   cn_rsa_save_keys_to_pem                name 'cn_rsa_save_keys_to_pem',                 >> CnCrypto.dpr
+ECHO   cn_rsa_save_public_key_to_pem          name 'cn_rsa_save_public_key_to_pem',           >> CnCrypto.dpr
+ECHO   cn_ecc_privkey_new                     name 'cn_ecc_privkey_new',                      >> CnCrypto.dpr
+ECHO   cn_ecc_pubkey_new                      name 'cn_ecc_pubkey_new',                       >> CnCrypto.dpr
+ECHO   cn_ecc_key_free                        name 'cn_ecc_key_free',                         >> CnCrypto.dpr
+ECHO   cn_ecc_curve_bytes                     name 'cn_ecc_curve_bytes',                      >> CnCrypto.dpr
+ECHO   cn_ecc_generate_keys                   name 'cn_ecc_generate_keys',                    >> CnCrypto.dpr
+ECHO   cn_ecc_sign                            name 'cn_ecc_sign',                             >> CnCrypto.dpr
+ECHO   cn_ecc_verify                          name 'cn_ecc_verify',                           >> CnCrypto.dpr
+ECHO   cn_ecc_load_keys_from_pem              name 'cn_ecc_load_keys_from_pem',               >> CnCrypto.dpr
+ECHO   cn_ecc_save_keys_to_pem                name 'cn_ecc_save_keys_to_pem',                 >> CnCrypto.dpr
+ECHO   cn_ecc_save_public_key_to_pem          name 'cn_ecc_save_public_key_to_pem',           >> CnCrypto.dpr
+ECHO   cn_sm2_privkey_new                     name 'cn_sm2_privkey_new',                      >> CnCrypto.dpr
+ECHO   cn_sm2_pubkey_new                      name 'cn_sm2_pubkey_new',                       >> CnCrypto.dpr
+ECHO   cn_sm2_key_free                        name 'cn_sm2_key_free',                         >> CnCrypto.dpr
+ECHO   cn_sm2_generate_keys                   name 'cn_sm2_generate_keys',                    >> CnCrypto.dpr
+ECHO   cn_sm2_encrypt                         name 'cn_sm2_encrypt',                          >> CnCrypto.dpr
+ECHO   cn_sm2_decrypt                         name 'cn_sm2_decrypt',                          >> CnCrypto.dpr
+ECHO   cn_sm2_sign                            name 'cn_sm2_sign',                             >> CnCrypto.dpr
+ECHO   cn_sm2_verify                          name 'cn_sm2_verify',                           >> CnCrypto.dpr
+ECHO   cn_sm2_save_keys_to_pem                name 'cn_sm2_save_keys_to_pem',                 >> CnCrypto.dpr
+ECHO   cn_sm2_save_public_key_to_pem          name 'cn_sm2_save_public_key_to_pem',           >> CnCrypto.dpr
+ECHO   cn_ed25519_privkey_new                 name 'cn_ed25519_privkey_new',                  >> CnCrypto.dpr
+ECHO   cn_ed25519_pubkey_new                  name 'cn_ed25519_pubkey_new',                   >> CnCrypto.dpr
+ECHO   cn_ed25519_key_free                    name 'cn_ed25519_key_free',                     >> CnCrypto.dpr
+ECHO   cn_ed25519_generate_keys               name 'cn_ed25519_generate_keys',                >> CnCrypto.dpr
+ECHO   cn_ed25519_sign                        name 'cn_ed25519_sign',                         >> CnCrypto.dpr
+ECHO   cn_ed25519_verify                      name 'cn_ed25519_verify',                       >> CnCrypto.dpr
+ECHO   cn_ed25519_sign_ex                     name 'cn_ed25519_sign_ex',                      >> CnCrypto.dpr
+ECHO   cn_ed25519_verify_ex                   name 'cn_ed25519_verify_ex',                    >> CnCrypto.dpr
+ECHO   cn_curve25519_privkey_new              name 'cn_curve25519_privkey_new',               >> CnCrypto.dpr
+ECHO   cn_curve25519_pubkey_new               name 'cn_curve25519_pubkey_new',                >> CnCrypto.dpr
+ECHO   cn_curve25519_key_free                 name 'cn_curve25519_key_free',                  >> CnCrypto.dpr
+ECHO   cn_curve25519_generate_keys            name 'cn_curve25519_generate_keys',             >> CnCrypto.dpr
+ECHO   cn_curve25519_dh_step1                 name 'cn_curve25519_dh_step1',                  >> CnCrypto.dpr
+ECHO   cn_curve25519_dh_step2                 name 'cn_curve25519_dh_step2',                  >> CnCrypto.dpr
+ECHO   cn_curve25519_dh                       name 'cn_curve25519_dh',                        >> CnCrypto.dpr
+ECHO   cn_curve25519_dh_bytes                 name 'cn_curve25519_dh_bytes',                  >> CnCrypto.dpr
+ECHO   cn_ed25519_privkey_from_bytes          name 'cn_ed25519_privkey_from_bytes',           >> CnCrypto.dpr
+ECHO   cn_ed25519_privkey_to_bytes            name 'cn_ed25519_privkey_to_bytes',             >> CnCrypto.dpr
+ECHO   cn_ed25519_pubkey_from_bytes           name 'cn_ed25519_pubkey_from_bytes',            >> CnCrypto.dpr
+ECHO   cn_ed25519_pubkey_to_bytes             name 'cn_ed25519_pubkey_to_bytes',              >> CnCrypto.dpr
+ECHO   cn_ed25519_derive_public               name 'cn_ed25519_derive_public',                >> CnCrypto.dpr
+ECHO   cn_ed25519_derive_public_to_bytes      name 'cn_ed25519_derive_public_to_bytes',       >> CnCrypto.dpr
+ECHO   cn_curve25519_privkey_from_bytes       name 'cn_curve25519_privkey_from_bytes',        >> CnCrypto.dpr
+ECHO   cn_curve25519_privkey_to_bytes         name 'cn_curve25519_privkey_to_bytes',          >> CnCrypto.dpr
+ECHO   cn_curve25519_pubkey_from_bytes        name 'cn_curve25519_pubkey_from_bytes',         >> CnCrypto.dpr
+ECHO   cn_curve25519_pubkey_to_bytes          name 'cn_curve25519_pubkey_to_bytes',           >> CnCrypto.dpr
+ECHO   cn_curve25519_derive_public            name 'cn_curve25519_derive_public',             >> CnCrypto.dpr
+ECHO   cn_curve25519_derive_public_to_bytes   name 'cn_curve25519_derive_public_to_bytes',    >> CnCrypto.dpr
+ECHO   cn_mlkem_generate_keys                 name 'cn_mlkem_generate_keys',                  >> CnCrypto.dpr
+ECHO   cn_mlkem_encaps                        name 'cn_mlkem_encaps',                         >> CnCrypto.dpr
+ECHO   cn_mlkem_decaps                        name 'cn_mlkem_decaps',                         >> CnCrypto.dpr
+ECHO   cn_mldsa_generate_keys                 name 'cn_mldsa_generate_keys',                  >> CnCrypto.dpr
+ECHO   cn_mldsa_sign                          name 'cn_mldsa_sign',                           >> CnCrypto.dpr
+ECHO   cn_mldsa_verify                        name 'cn_mldsa_verify',                         >> CnCrypto.dpr
+ECHO   cn_mlkem_check_encap_key               name 'cn_mlkem_check_encap_key',                >> CnCrypto.dpr
+ECHO   cn_mlkem_check_decap_key               name 'cn_mlkem_check_decap_key',                >> CnCrypto.dpr
+ECHO   cn_mlkem_encaps_auto                   name 'cn_mlkem_encaps_auto',                    >> CnCrypto.dpr
+ECHO   cn_mlkem_expected_encap_key_len        name 'cn_mlkem_expected_encap_key_len',         >> CnCrypto.dpr
+ECHO   cn_mlkem_expected_decap_key_len        name 'cn_mlkem_expected_decap_key_len',         >> CnCrypto.dpr
+ECHO   cn_mlkem_expected_cipher_len           name 'cn_mlkem_expected_cipher_len',            >> CnCrypto.dpr
+ECHO   cn_mlkem_share_key_bytes               name 'cn_mlkem_share_key_bytes',                >> CnCrypto.dpr
+ECHO   cn_mldsa_expected_privkey_len          name 'cn_mldsa_expected_privkey_len',           >> CnCrypto.dpr
+ECHO   cn_mldsa_expected_pubkey_len           name 'cn_mldsa_expected_pubkey_len',            >> CnCrypto.dpr
+ECHO   cn_mldsa_expected_sig_len              name 'cn_mldsa_expected_sig_len';               >> CnCrypto.dpr
+ECHO.                                                                          >> CnCrypto.dpr
+ECHO begin                                                                     >> CnCrypto.dpr
+ECHO end.                                                                      >> CnCrypto.dpr
+ECHO.                                                                          >> CnCrypto.dpr
 CD ..
 MKDIR Test
 CD Test
