@@ -1908,7 +1908,6 @@ var
   PemStr, PwdStr: string;
   Priv: TCnRSAPrivateKey;
   Pub: TCnRSAPublicKey;
-  Idx: Integer;
 begin
   if (pem_ptr = nil) or (pem_len = 0) then
   begin
@@ -1920,14 +1919,6 @@ begin
     SetString(PwdStr, PAnsiChar(password_ptr), password_len)
   else
     PwdStr := '';
-
-  // Try to find private key header if it's not at the start
-  Idx := Pos('-----BEGIN RSA PRIVATE KEY-----', PemStr);
-  if Idx <= 0 then
-    Idx := Pos('-----BEGIN PRIVATE KEY-----', PemStr);
-
-  if Idx > 1 then
-    PemStr := Copy(PemStr, Idx, Length(PemStr) - Idx + 1);
 
   Priv := TCnRSAPrivateKey.Create(False);
   Pub := TCnRSAPublicKey.Create;
@@ -2266,7 +2257,6 @@ var
   Pub: TCnEccPublicKey;
   Curve: TCnEccCurveType;
   Pwd, PemStr: string;
-  Idx: Integer;
 begin
   if (pem_ptr = nil) or (pem_len = 0) then
   begin
@@ -2279,22 +2269,6 @@ begin
     Pwd := '';
 
   SetString(PemStr, PAnsiChar(pem_ptr), pem_len);
-  Idx := Pos('-----BEGIN EC PRIVATE KEY-----', PemStr);
-  if Idx <= 0 then
-    Idx := Pos('-----BEGIN PRIVATE KEY-----', PemStr);
-  if Idx > 1 then
-    PemStr := Copy(PemStr, Idx, Length(PemStr) - Idx + 1);
-
-  Idx := Pos('-----END EC PRIVATE KEY-----', PemStr);
-  if Idx > 0 then
-    PemStr := Copy(PemStr, 1, Idx + Length('-----END EC PRIVATE KEY-----') - 1)
-  else
-  begin
-    Idx := Pos('-----END PRIVATE KEY-----', PemStr);
-    if Idx > 0 then
-      PemStr := Copy(PemStr, 1, Idx + Length('-----END PRIVATE KEY-----') - 1);
-  end;
-
   Result := CN_OK;
   Priv := TCnEccPrivateKey.Create;
   Pub := TCnEccPublicKey.Create;
