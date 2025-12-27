@@ -56,6 +56,10 @@ CnPack 密码算法库不涉及 VCL/FMX 界面组件，仅是基础库的形式提供，因而可直接将 `cn
 
 另外，本加解密库仅在小端 CPU 上运行测试过，大端 CPU 暂不保证支持。
 
+## 动态加载
+
+对于非源码集成方式的使用方，我们也提供将 CnPack 密码算法库编译成 DLL/SO/DYLIB 再动态加载使用的方式，以达到跨语言使用的目的。`cncrypto\Package` 目录下有 `CnCrypto.dpr` 和 `CnCrypto.lpr` 两个工程，允许用户用 Delphi 及 FPC 将 CnPack 密码算法库先行按需编译成动态库，如 Windows 的 DLL、Linux 上的 SO、MacOS 上的 DYLIB 等。`cncrypto\Include` 目录下的 `CnCryptoIntf.h` 头文件及 `CnCryptoIntf.pas` 接口文件则提供了对应 DLL/SO/DYLIB 的输出函数说明，供调用者链接、调用参考。
+
 ## 演示例子
 
 `cncrypto\Example` 目录下有 Delphi 和 Lazarus 两个目录，其中各个子目录下分别是 Delphi 下以及 Lazarus 下的各类算法的演示示例，可使用对应 IDE 打开以了解各类算法库的调用方式。注意例子工程本身不保证能够跨平台，一般仅能在 Win32 及 Win64 平台下运行。
@@ -127,6 +131,15 @@ Alternatively, the library also provides a runtime package. Open `cncrypto\Packa
 The `cncrypto\Test` directory contains a complete command-line test suite, `CryptoTest.dpr`. Open and run it in any version of Delphi to verify the majority of the CnPack Crypto Library's functionality. It can also be opened with C++Builder 5/6 (`Crypto.bpr`) or Lazarus (`Crypto.lpi`) to run the tests. If only FPC (Free Pascal Compiler) is available without Lazarus, you may compile and run `Crypto.lpr` using the `fpc` command-line tool. The last two test cases are time-consuming and may take hours to complete. Please be patient during execution.
 
 > **Note**: This cryptographic library has only been tested on little-endian CPUs. Support for big-endian CPUs is not currently guaranteed.
+
+## Dynamic Loading
+
+For users who do not integrate the library via source code, we also provide a way to compile the CnPack Crypto Library into a DLL/SO/DYLIB and then load it dynamically, enabling cross-language usage.
+
+In the `cncrypto\Package directory`, you will find two projects: `CnCrypto.dpr` and `CnCrypto.lpr`, which allow users to pre-compile the CnPack Crypto Library into a dynamic library, such as a DLL on Windows, an SO on Linux, or a DYLIB on macOS, as needed, using either Delphi or Free Pascal Compiler (FPC).
+
+The CnCryptoIntf.h header file and the CnCryptoIntf.pas interface file located in the cncrypto\Include directory document the exported functions of the resulting DLL/SO/DYLIB, serving as reference for callers to link against and invoke the library.
+
 
 ## Example Demos
 
