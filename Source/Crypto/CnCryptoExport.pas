@@ -52,10 +52,19 @@ type
 
   TUInt32         = Cardinal;
 
+  // Delphi 5 6 7 不支持或者说不健康支持 UInt64
 {$IFDEF VER130}
   TUInt64         = Int64;
 {$ELSE}
+  {$IFDEF VER140}
+  TUInt64         = Int64;
+  {$ELSE}
+    {$IFDEF VER150}
+  TUInt64         = Int64;
+    {$ELSE}
   TUInt64         = UInt64;
+    {$ENDIF}
+  {$ENDIF}
 {$ENDIF}
 
   TInt32          = Integer;
@@ -1905,7 +1914,8 @@ function cn_rsa_load_keys_from_pem(pem_ptr: PByte; pem_len: TCnSize;
   password_ptr: PByte; password_len: TCnSize; var out_priv: TCnCryptoHandle; var
   out_pub: TCnCryptoHandle): TCnResult; cdecl;
 var
-  PemStr, PwdStr: string;
+  PemStr: AnsiString;
+  PwdStr: string;
   Priv: TCnRSAPrivateKey;
   Pub: TCnRSAPublicKey;
 begin
@@ -1916,7 +1926,7 @@ begin
   end;
   SetString(PemStr, PAnsiChar(pem_ptr), pem_len);
   if (password_ptr <> nil) and (password_len > 0) then
-    SetString(PwdStr, PAnsiChar(password_ptr), password_len)
+    SetString(PwdStr, PChar(password_ptr), password_len div SizeOf(Char))
   else
     PwdStr := '';
 
@@ -2264,17 +2274,17 @@ begin
     Exit;
   end;
   if (password_ptr <> nil) and (password_len > 0) then
-    SetString(Pwd, PAnsiChar(password_ptr), Integer(password_len))
+    SetString(Pwd, PChar(password_ptr), Integer(password_len) div SizeOf(Char))
   else
     Pwd := '';
 
-  SetString(PemStr, PAnsiChar(pem_ptr), pem_len);
+  SetString(PemStr, PChar(pem_ptr), pem_len div SizeOf(Char));
   Result := CN_OK;
   Priv := TCnEccPrivateKey.Create;
   Pub := TCnEccPublicKey.Create;
   MS := TMemoryStream.Create;
   try
-    MS.Write(PAnsiChar(PemStr)^, Length(PemStr));
+    MS.Write(PAnsiChar(PemStr)^, Length(PemStr) * SizeOf(Char));
     MS.Position := 0;
     if not CnEccLoadKeysFromPem(MS, Priv, Pub, Curve, ckhMd5, Pwd) then
     begin
@@ -2835,7 +2845,7 @@ begin
     Result := CN_E_INVALID_ARG;
     Exit;
   end;
-  SetString(S, PAnsiChar(ascii_ptr), len);
+  SetString(S, PChar(ascii_ptr), len div SizeOf(Char));
   out_value := StrToUInt64(S);
   Result := CN_OK;
 end;
@@ -2857,7 +2867,7 @@ begin
     Result := CN_E_INTERNAL;
     Exit;
   end;
-  out_len := Length(S);
+  out_len := Length(S) * SizeOf(Char);
   if cap < out_len then
   begin
     Result := CN_E_BUFFER_TOO_SMALL;
@@ -2880,9 +2890,9 @@ begin
     Result := CN_E_INVALID_ARG;
     Exit;
   end;
-  SetString(S, PAnsiChar(in_ptr), in_len);
+  SetString(S, PChar(in_ptr), in_len div SizeOf(Char));
 
-  R := Base64Decode(S, Data, True);
+  R := Base64Decode(S, Data, False);
   if R <> 0 then
   begin
     Result := CN_E_INTERNAL;
@@ -2919,7 +2929,7 @@ begin
     Result := CN_E_INTERNAL;
     Exit;
   end;
-  out_len := Length(S);
+  out_len := Length(S) * SizeOf(Char);
   if cap < out_len then
   begin
     Result := CN_E_BUFFER_TOO_SMALL;
@@ -2942,9 +2952,9 @@ begin
     Result := CN_E_INVALID_ARG;
     Exit;
   end;
-  SetString(S, PAnsiChar(in_ptr), in_len);
+  SetString(S, PChar(in_ptr), in_len div SizeOf(Char));
 
-  R := Base64Decode(S, Data, True);
+  R := Base64Decode(S, Data, False);
   if R <> 0 then
   begin
     Result := CN_E_INTERNAL;

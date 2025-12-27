@@ -55,10 +55,19 @@ type
 
   TUInt32         = Cardinal;
 
+  // Delphi 5 6 7 不支持或者说不健康支持 UInt64
 {$IFDEF VER130}
   TUInt64         = Int64;
 {$ELSE}
+  {$IFDEF VER140}
+  TUInt64         = Int64;
+  {$ELSE}
+    {$IFDEF VER150}
+  TUInt64         = Int64;
+    {$ELSE}
   TUInt64         = UInt64;
+    {$ENDIF}
+  {$ENDIF}
 {$ENDIF}
 
   TInt32          = Integer;

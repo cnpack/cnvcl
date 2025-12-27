@@ -1581,7 +1581,7 @@ function GCMDecrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLen
 var
   H: TCnGHash128Key;
   Y, Y0: TCn128BitsBuffer; // Y 拼合了计数器的内容
-  Cnt, M: Cardinal;      // 计数器
+  Cnt, M: Cardinal;        // 计数器
   C: TCn128BitsBuffer;     // 加密中间数据存储地
   AeadCtx: TAEADContext;
   GHashCtx: TCnGHash128Context;

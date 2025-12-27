@@ -101,7 +101,7 @@ function LoadPemFileToMemory(const FileName: string; const ExpectHead: string;
 function LoadPemStreamToMemory(Stream: TStream; const ExpectHead: string;
   const ExpectTail: string; MemoryStream: TMemoryStream; const Password: string = '';
   KeyHashMethod: TCnKeyHashMethod = ckhMd5): Boolean;
-{* 从 PEM 格式编码的文件中验证指定头尾后读入实际内容并解密进行 Base64 解码。
+{* 从 PEM 格式编码的流中验证指定头尾后读入实际内容并解密进行 Base64 解码。
 
    参数：
      Stream: TStream                      - 待读入的流
@@ -117,13 +117,13 @@ function LoadPemStreamToMemory(Stream: TStream; const ExpectHead: string;
 function SaveMemoryToPemFile(const FileName: string; const Head: string; const Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''; Append: Boolean = False): Boolean;
-{* 将 Stream 的内容进行 Base64 编码后加密分行并补上文件头尾再写入文件，Append 为 True 时表示追加。
+{* 将流的内容进行 Base64 编码后加密分行并补上头尾再写入文件，Append 为 True 时表示追加。
 
    参数：
-     const FileName: string                               - 待写入的文件名
+     const FileName: string                               - 待写入的目标文件名
      const Head: string                                   - 写入的头部
      const Tail: string                                   - 写入的尾部
-     MemoryStream: TMemoryStream                          - 待写入的内容
+     MemoryStream: TMemoryStream                          - 待写入的流内容
      KeyEncryptMethod: TCnKeyEncryptMethod                - 设置加密类型，默认不加密
      KeyHashMethod: TCnKeyHashMethod                      - 设置杂凑类型
      const Password: string                               - 设置密码，无需加密则传空
@@ -135,13 +135,13 @@ function SaveMemoryToPemFile(const FileName: string; const Head: string; const T
 function SaveMemoryToPemStream(Stream: TStream; const Head: string; const Tail: string;
   MemoryStream: TMemoryStream; KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
   KeyHashMethod: TCnKeyHashMethod = ckhMd5; const Password: string = ''; Append: Boolean = False): Boolean;
-{* 将 Stream 的内容进行 Base64 编码后加密分行并补上头尾再写入流，Append 为 True 时表示追加。
+{* 将流的内容进行 Base64 编码后加密分行并补上头尾再写入流，Append 为 True 时表示追加。
 
    参数：
-     Stream: TStream                                      - 待写入的流
+     Stream: TStream                                      - 待写入的目标流
      const Head: string                                   - 写入的头部
      const Tail: string                                   - 写入的尾部
-     MemoryStream: TMemoryStream                          - 待写入的内容
+     MemoryStream: TMemoryStream                          - 待写入的流内容
      KeyEncryptMethod: TCnKeyEncryptMethod                - 设置加密类型，默认不加密
      KeyHashMethod: TCnKeyHashMethod                      - 设置杂凑类型，默认不杂凑
      const Password: string                               - 设置密码，无需加密则传空

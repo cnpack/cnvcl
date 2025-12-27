@@ -93,19 +93,19 @@ begin
 
   Check((cn_endian_is_le + cn_endian_is_be) = 1, 'cn_endian', Passed, Failed);
 
-  Move('abc'[1], InBlock[0], 3);
-  R := cn_data_to_hex(@InBlock[0], 3, @Hex[0], SizeOf(Hex), OutLen);
-  Check((R = CN_OK) and (OutLen = 6), 'cn_data_to_hex', Passed, Failed);
+  Move('abc'[1], InBlock[0], 3 * SizeOf(Char));
+  R := cn_data_to_hex(@InBlock[0], 3 * SizeOf(Char), @Hex[0], SizeOf(Hex), OutLen);
+  Check((R = CN_OK) and (OutLen = 6 * SizeOf(Char)), 'cn_data_to_hex', Passed, Failed);
 
-  R := cn_base64_encode(@InBlock[0], 3, @Buf[0], SizeOf(Buf), OutLen);
+  R := cn_base64_encode(@InBlock[0], 3 * SizeOf(Char), @Buf[0], SizeOf(Buf), OutLen);
   Check((R = CN_OK) and (OutLen > 0), 'cn_base64_encode', Passed, Failed);
   R := cn_base64_decode(@Buf[0], OutLen, @Decoded[0], SizeOf(Decoded), OutLen);
-  Check((R = CN_OK) and (OutLen = 3) and BytesEqual(@Decoded[0], @InBlock[0], 3), 'cn_base64_decode', Passed, Failed);
+  Check((R = CN_OK) and (OutLen = 3 * SizeOf(Char)) and BytesEqual(@Decoded[0], @InBlock[0], 3 * SizeOf(Char)), 'cn_base64_decode', Passed, Failed);
 
-  R := cn_base64url_encode(@InBlock[0], 3, @Buf[0], SizeOf(Buf), OutLen);
+  R := cn_base64url_encode(@InBlock[0], 3 * SizeOf(Char), @Buf[0], SizeOf(Buf), OutLen);
   Check((R = CN_OK) and (OutLen > 0), 'cn_base64url_encode', Passed, Failed);
   R := cn_base64url_decode(@Buf[0], OutLen, @Decoded[0], SizeOf(Decoded), OutLen);
-  Check((R = CN_OK) and (OutLen = 3) and BytesEqual(@Decoded[0], @InBlock[0], 3), 'cn_base64url_decode', Passed, Failed);
+  Check((R = CN_OK) and (OutLen = 3 * SizeOf(Char)) and BytesEqual(@Decoded[0], @InBlock[0], 3 * SizeOf(Char)), 'cn_base64url_decode', Passed, Failed);
 
   R := cn_hash_digest(CN_HASH_SHA2_256, @InBlock[0], 3, @Digest[0], SizeOf(Digest), OutLen);
   Check((R = CN_OK) and (OutLen = 32), 'cn_hash_digest_sha256', Passed, Failed);
@@ -291,7 +291,7 @@ begin
   R := cn_const_time_select(1, @InBlock[0], @OutBlock[0], 3, @PlainBack[0]);
   Check(BytesEqual(@PlainBack[0], @InBlock[0], 3), 'cn_const_time_select', Passed, Failed);
 
-  R := cn_str_to_uint64(@Hex[0], 1, Mu);
+  R := cn_str_to_uint64(@Hex[0], 1 * SizeOf(Char), Mu);
   Check((R = CN_OK) and (Mu <> 0), 'cn_str_to_uint64', Passed, Failed);
 
   ShareLen := 32;
