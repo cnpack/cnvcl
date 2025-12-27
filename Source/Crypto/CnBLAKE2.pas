@@ -920,7 +920,8 @@ begin
   IncBLAKE2SCounter(Context, Context.BufLen);
 
   // 最后一块没算完的补 0 算完
-  FillChar(Context.Buf[Context.BufLen], CN_BLAKE2S_BLOCKBYTES - Context.BufLen, 0);
+  if CN_BLAKE2S_BLOCKBYTES > Context.BufLen then
+    FillChar(Context.Buf[Context.BufLen], CN_BLAKE2S_BLOCKBYTES - Context.BufLen, 0);
   Context.F[0] := Cardinal(-1);
   BLAKE2SCompress(Context, @Context.Buf[0]);
 
@@ -1100,7 +1101,8 @@ begin
   IncBLAKE2BCounter(Context, Context.BufLen);
 
   // 最后一块没算完的补 0 算完
-  FillChar(Context.Buf[Context.BufLen], CN_BLAKE2B_BLOCKBYTES - Context.BufLen, 0);
+  if CN_BLAKE2B_BLOCKBYTES > Context.BufLen then
+    FillChar(Context.Buf[Context.BufLen], CN_BLAKE2B_BLOCKBYTES - Context.BufLen, 0);
   Context.F[0] := TUInt64(-1);
   BLAKE2BCompress(Context, @Context.Buf[0]);
 

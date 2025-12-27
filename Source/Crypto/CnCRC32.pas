@@ -696,13 +696,13 @@ begin
   P := PByte(@Data);
   while Len > 0 do
   begin                     // 这里用 or 比较奇怪
-    Result := ((Result shl 8) or P^) xor CRC16Table[Result shr 8];
+    Result := (Word(Result shl 8) or P^) xor CRC16Table[Result shr 8];
     Inc(P);
     Dec(Len);
   end;
 
-  Result := (Result shl 8) xor CRC16Table[Result shr 8];
-  Result := (Result shl 8) xor CRC16Table[Result shr 8];
+  Result := Word(Result shl 8) xor CRC16Table[Result shr 8];
+  Result := Word(Result shl 8) xor CRC16Table[Result shr 8];
 end;
 
 // 计算 CRC16 值

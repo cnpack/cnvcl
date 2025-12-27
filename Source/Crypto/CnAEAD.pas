@@ -1481,7 +1481,7 @@ procedure GCMEncrypt(Key: Pointer; KeyByteLength: Integer; Iv: Pointer; IvByteLe
 var
   H: TCnGHash128Key;
   Y, Y0: TCn128BitsBuffer; // Y 拼合了计数器的内容
-  Cnt, M: Cardinal;      // 计数器
+  Cnt, M: Cardinal;        // 计数器
   C: TCn128BitsBuffer;     // 加密中间数据存储地
   AeadCtx: TAEADContext;
   GHashCtx: TCnGHash128Context;
@@ -1504,7 +1504,7 @@ begin
   begin
     Move(Iv^, Y[0], CN_GCM_NONCE_LENGTH);
     Cnt := 1;
-    M := Int32HostToNetwork(Cnt);
+    M := UInt32HostToNetwork(Cnt);
     Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
   end
   else
@@ -1525,7 +1525,7 @@ begin
   begin
     // 递增计数器并更新 Y
     Inc(Cnt);
-    M := Int32HostToNetwork(Cnt);
+    M := UInt32HostToNetwork(Cnt);
     Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
 
     // 对 Y 加密 C 暂时得到本块的加密结果
@@ -1550,7 +1550,7 @@ begin
   begin
     // 递增计数器并更新 Y
     Inc(Cnt);
-    M := Int32HostToNetwork(Cnt);
+    M := UInt32HostToNetwork(Cnt);
     Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
 
     // 对 Y 加密 C 暂时得到本块的加密结果
@@ -1626,7 +1626,7 @@ begin
   begin
     // 递增计数器并更新 Y
     Inc(Cnt);
-    M := Int32HostToNetwork(Cnt);
+    M := UInt32HostToNetwork(Cnt);
     Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
 
     // 密文先进行 GHash
@@ -1651,7 +1651,7 @@ begin
   begin
     // 递增计数器并更新 Y
     Inc(Cnt);
-    M := Int32HostToNetwork(Cnt);
+    M := UInt32HostToNetwork(Cnt);
     Move(M, Y[CN_GCM_NONCE_LENGTH], SizeOf(M));
 
     // 密文先进行 GHash
