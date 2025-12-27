@@ -28,7 +28,13 @@ COPY ..\..\cnvcl\Source\Common\CnStrings.pas .
 COPY ..\..\cnvcl\Source\Common\CnWideStrings.pas .
 COPY ..\..\cnvcl\Source\Common\CnZip.pas .
 COPY ..\..\cnvcl\Source\Crypto\*.pas .
+DEL CnCryptoIntf.pas
 CD ..
+MKDIR Include
+CD Include
+COPY ..\..\cnvcl\Source\Crypto\CnCryptoIntf.h .
+COPY ..\..\cnvcl\Source\Crypto\CnCryptoIntf.pas .
+CD..
 MKDIR Package
 CD Package
 CALL :PRINTHEAD CnCrypto.dpk
