@@ -1444,6 +1444,8 @@ begin
     J := 0;
     while I < 16 do
     begin
+      // 注意 Delphi 5 6 7 下此处的 Int64 左右移，在 Range Check 开关打开与否时
+      // 的行为竟然不一样。该开关必须关掉，才能得到正确结果。
       M[I] := (TUInt64(Data[J]) shl 56) or (TUInt64(Data[J + 1]) shl 48) or
         (TUInt64(Data[J + 2]) shl 40) or (TUInt64(Data[J + 3]) shl 32) or
         (TUInt64(Data[J + 4]) shl 24) or (TUInt64(Data[J + 5]) shl 16) or
@@ -1627,14 +1629,14 @@ begin
   end;
 
   Context.BitLen := Context.BitLen + Context.DataLen * 8;
-  Context.Data[63] := Context.Bitlen;
-  Context.Data[62] := Context.Bitlen shr 8;
-  Context.Data[61] := Context.Bitlen shr 16;
-  Context.Data[60] := Context.Bitlen shr 24;
-  Context.Data[59] := Context.Bitlen shr 32;
-  Context.Data[58] := Context.Bitlen shr 40;
-  Context.Data[57] := Context.Bitlen shr 48;
-  Context.Data[56] := Context.Bitlen shr 56;
+  Context.Data[63] := Byte(Context.Bitlen);
+  Context.Data[62] := Byte(Context.Bitlen shr 8);
+  Context.Data[61] := Byte(Context.Bitlen shr 16);
+  Context.Data[60] := Byte(Context.Bitlen shr 24);
+  Context.Data[59] := Byte(Context.Bitlen shr 32);
+  Context.Data[58] := Byte(Context.Bitlen shr 40);
+  Context.Data[57] := Byte(Context.Bitlen shr 48);
+  Context.Data[56] := Byte(Context.Bitlen shr 56);
   SHA256Transform(Context, @(Context.Data[0]));
 
   for I := 0 to 3 do

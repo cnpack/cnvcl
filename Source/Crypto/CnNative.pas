@@ -2685,7 +2685,7 @@ begin
       if I > 1 then        // 最低一个字节 PF^[-1] 会超界
       begin
         PF := PByteArray(TCnIntAddress(PF) - 1);
-        PT^[0] := (PF^[0] shl LB) or PT^[0];
+        PT^[0] := Byte((PF^[0] shl LB) or PT^[0]);
       end
       else
         PF := PByteArray(TCnIntAddress(PF) - 1);
@@ -4239,6 +4239,8 @@ begin
     Inc(I);
     while True do
     begin
+      if I > Length(S) then
+        Break;
       case Char(S[I]) of
         Char('0').. Char('9'): Dig := Ord(S[I]) - Ord('0');
         Char('A').. Char('F'): Dig := Ord(S[I]) - (Ord('A') - 10);
@@ -4261,6 +4263,8 @@ begin
   begin
     while True do
     begin
+      if I > Length(S) then
+        Break;
       case Char(S[I]) of
         Char('0').. Char('9'): Dig := Ord(S[I]) - Ord('0');
       else
@@ -4278,7 +4282,7 @@ begin
     end;
   end;
 
-  if (S[I] <> Char(#0)) or Empty then
+  if ((I <= Length(S)) and (S[I] <> Char(#0))) or Empty then
     Code := I + 1 - FirstIndex
   else
     Code := 0;
@@ -4324,6 +4328,8 @@ begin
     Inc(I);
     while True do
     begin
+      if I > Length(S) then
+        Break;
       case Char(S[I]) of
         Char('0').. Char('9'): Dig := Ord(S[I]) - Ord('0');
         Char('A').. Char('F'): Dig := Ord(S[I]) - (Ord('A') - 10);
@@ -4346,6 +4352,8 @@ begin
   begin
     while True do
     begin
+      if I > Length(S) then
+        Break;
       case Char(S[I]) of
         Char('0').. Char('9'): Dig := Ord(S[I]) - Ord('0');
       else
@@ -4363,7 +4371,7 @@ begin
     end;
   end;
 
-  if (S[I] <> Char(#0)) or Empty then
+  if ((I <= Length(S)) and (S[I] <> Char(#0))) or Empty then
     Code := I + 1 - FirstIndex
   else
     Code := 0;

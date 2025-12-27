@@ -149,7 +149,7 @@ begin
   K := PByteArray(Key);
   for I := 0 to CN_RC4_MAX_KEY_BYTE_LENGTH - 1 do
   begin
-    J := J + State.Permutation[I] + K^[I mod KeyByteLength];
+    J := Byte(J + State.Permutation[I] + K^[I mod KeyByteLength]);
     SwapByte(State.Permutation[I], State.Permutation[J]);
   end;
 end;
@@ -171,7 +171,7 @@ begin
 
     SwapByte(State.Permutation[State.Index1], State.Permutation[State.Index2]);
 
-    J := State.Permutation[State.Index1] + State.Permutation[State.Index2];
+    J := Byte(State.Permutation[State.Index1] + State.Permutation[State.Index2]);
     OP^[I] := IP^[I] xor State.Permutation[J];
   end;
 end;

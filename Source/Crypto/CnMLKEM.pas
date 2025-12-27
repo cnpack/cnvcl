@@ -520,6 +520,8 @@ var
   W: TWords;
 begin
   W := MLKEMByteDecode(B, D);
+  if Length(W) > CN_MLKEM_POLY_SIZE then
+    SetLength(W, CN_MLKEM_POLY_SIZE);
   Move(W[0], P[0], Length(W) * SizeOf(Word));
 end;
 

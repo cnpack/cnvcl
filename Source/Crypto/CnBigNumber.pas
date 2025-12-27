@@ -3246,6 +3246,7 @@ var
   A, B, TmpA: PCnBigNumberElement;
   I: Integer;
   A0, A1, A2, A3: TCnBigNumberElement;
+  CopyTop: Integer;
 begin
   Result := nil;
   if (Words <= 0) or (Words > (MaxInt div (4 * BN_BITS2))) then
@@ -3261,8 +3262,13 @@ begin
   B := Num.D;
   if B <> nil then
   begin
+    if Num.Top > Words then
+      CopyTop := Words
+    else
+      CopyTop := Num.Top;
+
     TmpA := A;
-    I :=  Num.Top shr 2;
+    I :=  CopyTop shr 2;
     while I > 0 do
     begin
       A0 := PCnBigNumberElementArray(B)^[0];
@@ -3280,7 +3286,7 @@ begin
       B := PCnBigNumberElement(TCnIntAddress(B) + 4 * SizeOf(TCnBigNumberElement));
     end;
 
-    case Num.Top and 3 of
+    case CopyTop and 3 of
       3:
         begin
           PCnBigNumberElementArray(TmpA)^[2] := PCnBigNumberElementArray(B)^[2];
@@ -3613,7 +3619,21 @@ var
   Ftl: PCnBigNumberElement;
   Top: Integer;
 begin
+ if (Num = nil) then
+    Exit;
+
+  if Num.D = nil then
+  begin
+    Num.Top := 0;
+    Exit;
+  end
+  else if Num.Top = 0 then
+    Exit;
+
   Top := Num.Top;
+  if (Top < 0) or (Top > Num.DMax) then
+    Top := Num.DMax;
+
   Ftl := @(PCnBigNumberElementArray(Num.D)^[Top - 1]);
   while Top > 0 do
   begin
@@ -9865,7 +9885,7 @@ begin
       begin
         R := BigNumberAndWordTo(K, M); // R 是低几位，也是 Mod 2^W 或 4 的值，但大于 0
         if Width = 1 then
-          Result[I] := 2 - R
+          Result[I] := ShortInt(2 - R)
         else
         begin
           if R > B1 then

@@ -858,7 +858,8 @@ begin
     begin
       // 补计算上回的
       Context.BufLen := 0;
-      Move(Input^, Context.Buf[Left], Fill);
+      if Fill > 0 then
+        Move(Input^, Context.Buf[Left], Fill);
 
       IncBLAKE2SCounter(Context, CN_BLAKE2S_BLOCKBYTES);
       BLAKE2SCompress(Context, @Context.Buf[0]);
@@ -1037,7 +1038,8 @@ begin
     begin
       // 补计算上回的
       Context.BufLen := 0;
-      Move(Input^, Context.Buf[Left], Fill);
+      if Fill > 0 then
+        Move(Input^, Context.Buf[Left], Fill);
 
       IncBLAKE2BCounter(Context, CN_BLAKE2B_BLOCKBYTES);
       BLAKE2BCompress(Context, @Context.Buf[0]);

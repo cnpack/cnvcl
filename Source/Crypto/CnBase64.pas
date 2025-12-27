@@ -471,22 +471,22 @@ begin
     X2 := DecodeTable[Data[2 + I shl 2]];
     X3 := DecodeTable[Data[3 + I shl 2]];
     X4 := DecodeTable[Data[4 + I shl 2]];
-    X1 := X1 shl 2;
-    XT := X2 shr 4;
-    X1 := X1 or XT;
-    X2 := X2 shl 4;
+    X1 := Byte(X1 shl 2);
+    XT := Byte(X2 shr 4);
+    X1 := Byte(X1 or XT);
+    X2 := Byte(X2 shl 4);
     OutputData[C] := X1;
     Inc(C);
     if X3 = 64 then
       Break;
-    XT := X3 shr 2;
-    X2 := X2 or XT;
-    X3 := X3 shl 6;
+    XT := Byte(X3 shr 2);
+    X2 := Byte(X2 or XT);
+    X3 := Byte(X3 shl 6);
     OutputData[C] := X2;
     Inc(C);
     if X4 = 64 then
       Break;
-    X3 := X3 or X4;
+    X3 := Byte(X3 or X4);
     OutputData[C] := X3;
     Inc(C);
   end;
