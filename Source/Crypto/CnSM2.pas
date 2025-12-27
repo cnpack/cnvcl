@@ -425,7 +425,7 @@ function CnSM2VerifyData(const UserID: AnsiString; const PlainData: TBytes;
 function CnSM2SignFile(const UserID: AnsiString; const FileName: string;
   PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey = nil; SM2: TCnSM2 = nil): string;
 {* 封装的私钥对文件签名操作，返回签名值的十六进制字符串，注意内部操作是将文件全部加载入内存，
-  如签名出错则返回空字符串。
+   如签名出错则返回空字符串。
 
    参数：
      const UserID: AnsiString             - 用来签名的用户标识
