@@ -380,7 +380,7 @@ function cn_otp_totp(hash_id: TInt32; seed: PByte; seed_len: TCnSize; period_sec
 {* 生成 TOTP 基于时间的一次性密码。
 
    参数：
-     hash_id: TInt32                        - 杂凑算法 ID（如 SHA1/SM3 等）
+     hash_id: TInt32                        - 杂凑算法 ID（CN_HASH_*，如 SHA1/SM3 等）
      seed: PByte                            - 种子密钥
      seed_len: TCnSize                      - 种子密钥字节长度
      period_sec: TInt32                     - 时间步长（秒）
@@ -397,7 +397,7 @@ function cn_hash_digest(alg_id: TInt32; data: PByte; len: TCnSize; out_digest:
 {* 计算指定算法的消息杂凑。
 
    参数：
-     alg_id: TInt32                         - 杂凑算法 ID（如 SHA2、SM3 等）
+     alg_id: TInt32                         - 杂凑算法 ID（CN_HASH_*）
      data: PByte                            - 输入数据指针
      len: TCnSize                           - 输入数据字节长度
      out_digest: PByte                      - 输出内容缓冲区
@@ -412,7 +412,7 @@ function cn_hmac(alg_id: TInt32; key: PByte; key_len: TCnSize; data: PByte; len:
 {* 计算 HMAC（带密钥的消息认证码）。
 
    参数：
-     alg_id: TInt32                         - 杂凑算法 ID
+     alg_id: TInt32                         - 杂凑算法 ID（CN_HASH_*）
      key: PByte                             - 密钥指针
      key_len: TCnSize                       - 密钥字节长度
      data: PByte                            - 输入数据指针
@@ -430,7 +430,7 @@ function cn_kdf_pbkdf2(hash_id: TInt32; password: PByte; pwd_len: TCnSize; salt:
 {* 使用 PBKDF2 从口令派生密钥。
 
    参数：
-     hash_id: TInt32                        - 杂凑算法 ID
+     hash_id: TInt32                        - 杂凑算法 ID（CN_HASH_*）
      password: PByte                        - 口令指针
      pwd_len: TCnSize                       - 口令字节长度
      salt: PByte                            - 盐值指针
@@ -449,7 +449,7 @@ function cn_kdf_hkdf(hash_id: TInt32; ikm: PByte; ikm_len: TCnSize; salt: PByte;
 {* 使用 HKDF 从输入密钥材料 IKM 派生密钥。
 
    参数：
-     hash_id: TInt32                        - 杂凑算法 ID
+     hash_id: TInt32                        - 杂凑算法 ID（CN_HASH_*）
      ikm: PByte                             - 输入密钥材料 IKM
      ikm_len: TCnSize                       - IKM 字节长度
      salt: PByte                            - 可选盐值
@@ -684,7 +684,7 @@ function cn_rsa_sign(digest_alg_id: TInt32; priv: TCnCryptoHandle; data: PByte;
 {* 使用 RSA 私钥生成签名。
 
    参数：
-     digest_alg_id: TInt32                  - 杂凑算法 ID（如 SHA2-256 等）
+     digest_alg_id: TInt32                  - 杂凑算法 ID（CN_HASH_*，如 SHA2-256 等）
      priv: TCnCryptoHandle                  - RSA 私钥对象标识
      data: PByte                            - 原文数据指针
      len: TCnSize                           - 原文字节长度
@@ -700,7 +700,7 @@ function cn_rsa_verify(digest_alg_id: TInt32; pub: TCnCryptoHandle; data: PByte;
 {* 使用 RSA 公钥验证签名。
 
    参数：
-     digest_alg_id: TInt32                  - 杂凑算法 ID（与签名一致）
+     digest_alg_id: TInt32                  - 杂凑算法 ID（CN_HASH_*，需与签名一致）
      pub: TCnCryptoHandle                   - RSA 公钥对象标识
      data: PByte                            - 原文数据指针
      len: TCnSize                           - 原文字节长度
@@ -809,7 +809,7 @@ function cn_ecc_sign(digest_alg_id: TInt32; curve_id: TInt32; priv:
 {* 使用 ECC 私钥生成签名（DER 编码）。
 
    参数：
-     digest_alg_id: TInt32                  - 杂凑算法 ID
+     digest_alg_id: TInt32                  - 杂凑算法 ID（CN_HASH_*）
      curve_id: TInt32                       - 曲线 ID
      priv: TCnCryptoHandle                  - ECC 私钥对象标识
      data: PByte                            - 原文数据指针
@@ -827,7 +827,7 @@ function cn_ecc_verify(digest_alg_id: TInt32; curve_id: TInt32; pub:
 {* 使用 ECC 公钥验证签名（DER 编码）。
 
    参数：
-     digest_alg_id: TInt32                  - 杂凑算法 ID
+     digest_alg_id: TInt32                  - 杂凑算法 ID（CN_HASH_*，需与签名一致）
      curve_id: TInt32                       - 曲线 ID
      pub: TCnCryptoHandle                   - ECC 公钥对象标识
      data: PByte                            - 原文数据指针
@@ -1474,7 +1474,7 @@ function cn_mldsa_sign(type_id: TInt32; sk: PByte; sk_len: TCnSize; msg: PByte;
      msg_len: TCnSize                       - 消息字节长度
      ctx: PByte                             - 可选上下文
      ctx_len: TCnSize                       - 上下文字节长度
-     hash_id: TInt32                        - 杂凑算法 ID（可选）
+     hash_id: TInt32                        - 杂凑算法 ID（CN_HASH_*，可选）
      rand_hex: PByte                        - 随机源（十六进制 ASCII）
      rand_len: TCnSize                      - 随机源字节长度
      out_sig: PByte                         - 输出签名字节
@@ -1499,7 +1499,7 @@ function cn_mldsa_verify(type_id: TInt32; pk: PByte; pk_len: TCnSize; msg: PByte
      sig_len: TCnSize                       - 签名字节长度
      ctx: PByte                             - 可选上下文
      ctx_len: TCnSize                       - 上下文字节长度
-     hash_id: TInt32                        - 杂凑算法 ID（可选）
+     hash_id: TInt32                        - 杂凑算法 ID（CN_HASH_*，可选）
 
    返回值：TBool32                          - 1 表示验证通过，0 表示失败
 }
