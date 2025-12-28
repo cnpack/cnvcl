@@ -60,6 +60,8 @@ CnPack 密码算法库不涉及 VCL/FMX 界面组件，仅是基础库的形式提供，因而可直接将 `cn
 
 对于非源码集成方式的使用方，我们也提供将 CnPack 密码算法库编译成 DLL/SO/DYLIB 再动态加载使用的方式，以达到跨语言使用的目的。`cncrypto\Package` 目录下有 `CnCrypto.dpr` 和 `CnCrypto.lpr` 两个工程，允许用户用 Delphi 及 FPC 将 CnPack 密码算法库先行按需编译成动态库，如 Windows 的 DLL、Linux 上的 SO、MacOS 上的 DYLIB 等。`cncrypto\Include` 目录下的 `CnCryptoIntf.h` 头文件及 `CnCryptoIntf.pas` 接口文件则提供了对应 DLL/SO/DYLIB 的输出函数说明，供调用者链接、调用参考。
 
+注：输出函数中与字符串有关的参数可支持双字节字符串或单字节字符串，取决于编译动态库的编译器是否是 Unicode 版本，调用时需注意其说明。
+
 ## 演示例子
 
 `cncrypto\Example` 目录下有 Delphi 和 Lazarus 两个目录，其中各个子目录下分别是 Delphi 下以及 Lazarus 下的各类算法的演示示例，可使用对应 IDE 打开以了解各类算法库的调用方式。注意例子工程本身不保证能够跨平台，一般仅能在 Win32 及 Win64 平台下运行。
@@ -140,6 +142,7 @@ In the `cncrypto\Package directory`, you will find two projects: `CnCrypto.dpr` 
 
 The CnCryptoIntf.h header file and the CnCryptoIntf.pas interface file located in the cncrypto\Include directory document the exported functions of the resulting DLL/SO/DYLIB, serving as reference for callers to link against and invoke the library.
 
+> **Note**: Among the exported functions, parameters related to strings can support either double-byte (Unicode) or single-byte (ANSI) strings, depending on whether the compiler used to build the dynamic library is a Unicode-enabled version. Callers should pay attention to this detail as specified in the comments.
 
 ## Example Demos
 
