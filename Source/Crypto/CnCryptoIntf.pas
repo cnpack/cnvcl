@@ -22,13 +22,13 @@ unit CnCryptoIntf;
 {* |<PRE>
 ================================================================================
 * 软件名称：开发包基础库
-* 单元名称：密码算法库 DLL/SO 对外输出声明单元
+* 单元名称：密码算法库 DLL/SO/DYLIB 对外输出声明单元
 * 单元作者：CnPack 开发组
 * 备    注：虽然 CnPack 密码算法库可以在 Pascal 编译器中直接编译源码，但对于其他
 *           语言来说使用起来就不方便了。我们将其封装成对外输出的 DLL/SO 函数，
-*           可编译成 DLL/SO 后运行期被其他进程动态加载，供其他语言运行时调用。
+*           可编译成 DLL/SO/DYLIB 后运行期被其他进程动态加载，供其他语言运行时调用。
 *
-*           本单元是生成的 CnCrypto.dll/so/dynlib 的调用声明，外部 Pascal 工程
+*           本单元是生成的 CnCrypto.dll/so/dylib 的调用声明，外部 Pascal 工程
 *           uses 此单元即可。
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：
@@ -267,7 +267,7 @@ function cn_data_to_hex(in_ptr: Pointer; in_len: TCnSize; out_hex: PByte; cap:
    参数：
      in_ptr: Pointer                        - 输入数据指针
      in_len: TCnSize                        - 输入数据字节长度
-     out_hex: PByte                         - 输出缓冲区（ASCII）
+     out_hex: PByte                         - 输出缓冲区。如 DLL 是 Unicode 编译，则此处输出双字节字符串内容，否则为单字节字符串内容
      cap: TCnSize                           - 输出缓冲区容量，单位字节
      out_len: TCnSize                       - 实际输出字节长度
 
@@ -318,7 +318,7 @@ function cn_base64_encode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap:
    参数：
      in_ptr: PByte                          - 输入数据指针
      in_len: TCnSize                        - 输入数据字节长度
-     out_ptr: PByte                         - 输出缓冲区（ASCII）
+     out_ptr: PByte                         - 输出缓冲区。如 DLL 是 Unicode 编译，则此处输出双字节字符串内容，否则为单字节字符串内容
      cap: TCnSize                           - 输出缓冲区容量，单位字节
      out_len: TCnSize                       - 实际输出字节长度
 
@@ -330,7 +330,7 @@ function cn_base64_decode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap:
 {* 解码 Base64 字符串为二进制数据。
 
    参数：
-     in_ptr: PByte                          - 输入 Base64 数据指针（ASCII）
+     in_ptr: PByte                          - 输入 Base64 数据指针。如 DLL 是 Unicode 编译，则此处需要双字节字符串内容，否则为单字节字符串内容
      in_len: TCnSize                        - 输入字节长度
      out_ptr: PByte                         - 输出二进制缓冲区
      cap: TCnSize                           - 输出缓冲区容量，单位字节
@@ -346,7 +346,7 @@ function cn_base64url_encode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap
    参数：
      in_ptr: PByte                          - 输入数据指针
      in_len: TCnSize                        - 输入数据字节长度
-     out_ptr: PByte                         - 输出缓冲区（ASCII）
+     out_ptr: PByte                         - 输出缓冲区。如 DLL 是 Unicode 编译，则此处输出双字节字符串内容，否则为单字节字符串内容
      cap: TCnSize                           - 输出缓冲区容量，单位字节
      out_len: TCnSize                       - 实际输出字节长度
 
@@ -358,7 +358,7 @@ function cn_base64url_decode(in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap
 {* 解码 Base64URL 字符串为二进制数据。
 
    参数：
-     in_ptr: PByte                          - 输入 Base64URL 数据指针（ASCII）
+     in_ptr: PByte                          - 输入 Base64URL 数据指针。如 DLL 是 Unicode 编译，则此处需要双字节字符串内容，否则为单字节字符串内容
      in_len: TCnSize                        - 输入字节长度
      out_ptr: PByte                         - 输出二进制缓冲区
      cap: TCnSize                           - 输出缓冲区容量，单位字节
@@ -479,7 +479,7 @@ function cn_cipher_encrypt(alg_id: TInt32; key: PByte; key_len: TCnSize; iv:
 {* 对称加密：根据算法 ID、密钥与 IV 对数据加密。
 
    参数：
-     alg_id: TInt32                         - 加密算法 ID（AES/SM4/RC4 等）
+     alg_id: TInt32                         - 加密算法 ID（CN_CIPHER_*，如 AES/SM4/RC4 等）
      key: PByte                             - 密钥指针
      key_len: TCnSize                       - 密钥字节长度
      iv: PByte                              - 初始向量 IV（部分模式需要）
@@ -499,7 +499,7 @@ function cn_cipher_decrypt(alg_id: TInt32; key: PByte; key_len: TCnSize; iv:
 {* 对称解密：根据算法 ID、密钥与 IV 对数据解密。
 
    参数：
-     alg_id: TInt32                         - 加密算法 ID（与加密同）
+     alg_id: TInt32                         - 加密算法 ID（CN_CIPHER_*）
      key: PByte                             - 密钥指针
      key_len: TCnSize                       - 密钥字节长度
      iv: PByte                              - 初始向量 IV
@@ -520,7 +520,7 @@ function cn_aead_encrypt(alg_id: TInt32; key: PByte; key_len: TCnSize; nonce:
 {* AEAD 加密（带附加认证数据）。支持 GCM/ChaCha20-Poly1305 等。
 
    参数：
-     alg_id: TInt32                         - AEAD 算法 ID
+     alg_id: TInt32                         - AEAD 算法 ID（CN_AEAD_*）
      key: PByte                             - 密钥指针
      key_len: TCnSize                       - 密钥字节长度
      nonce: PByte                           - 随机数/Nonce
@@ -546,7 +546,7 @@ function cn_aead_decrypt(alg_id: TInt32; key: PByte; key_len: TCnSize; nonce:
 {* AEAD 解密与认证验证。
 
    参数：
-     alg_id: TInt32                         - AEAD 算法 ID
+     alg_id: TInt32                         - AEAD 算法 ID（CN_AEAD_*）
      key: PByte                             - 密钥指针
      key_len: TCnSize                       - 密钥字节长度
      nonce: PByte                           - 随机数/Nonce
@@ -795,7 +795,7 @@ function cn_ecc_curve_bytes(curve_id: TInt32): TCnSize; cdecl;
 {* 获取指定椭圆曲线的字节长度（基点/坐标大小）。
 
    参数：
-     curve_id: TInt32                       - 曲线 ID（如 SM2/SECP256R1 等）
+     curve_id: TInt32                       - 曲线 ID（CN_ECC_CURVE_*）
 
    返回值：TCnSize                          - 字节长度
 }
@@ -805,7 +805,7 @@ function cn_ecc_generate_keys(curve_id: TInt32; var out_priv: TCnCryptoHandle;
 {* 生成一对 ECC 公私钥。
 
    参数：
-     curve_id: TInt32                       - 曲线 ID
+     curve_id: TInt32                       - 曲线 ID（CN_ECC_CURVE_*）
      out_priv: TCnCryptoHandle              - 输出 ECC 私钥对象标识
      out_pub: TCnCryptoHandle               - 输出 ECC 公钥对象标识
 
@@ -819,7 +819,7 @@ function cn_ecc_sign(digest_alg_id: TInt32; curve_id: TInt32; priv:
 
    参数：
      digest_alg_id: TInt32                  - 杂凑算法 ID（CN_HASH_*）
-     curve_id: TInt32                       - 曲线 ID
+     curve_id: TInt32                       - 曲线 ID（CN_ECC_CURVE_*）
      priv: TCnCryptoHandle                  - ECC 私钥对象标识
      data: PByte                            - 原文数据指针
      len: TCnSize                           - 原文字节长度
@@ -837,7 +837,7 @@ function cn_ecc_verify(digest_alg_id: TInt32; curve_id: TInt32; pub:
 
    参数：
      digest_alg_id: TInt32                  - 杂凑算法 ID（CN_HASH_*，需与签名一致）
-     curve_id: TInt32                       - 曲线 ID
+     curve_id: TInt32                       - 曲线 ID（CN_ECC_CURVE_*）
      pub: TCnCryptoHandle                   - ECC 公钥对象标识
      data: PByte                            - 原文数据指针
      len: TCnSize                           - 原文字节长度
@@ -859,7 +859,7 @@ function cn_ecc_load_keys_from_pem(pem_ptr: PByte; pem_len: TCnSize;
      password_len: TCnSize                  - 口令字节长度
      out_priv: TCnCryptoHandle              - 输出 ECC 私钥对象标识
      out_pub: TCnCryptoHandle               - 输出 ECC 公钥对象标识
-     out_curve_id: TInt32                   - 输出曲线 ID
+     out_curve_id: TInt32                   - 输出曲线 ID（CN_ECC_CURVE_*）
 
    返回值：TCnResult                        - 错误码，CN_OK 表示成功
 }
@@ -871,7 +871,7 @@ function cn_ecc_save_keys_to_pem(key_type_id: TInt32; curve_id: TInt32; priv:
 
    参数：
      key_type_id: TInt32                    - 密钥类型（CN_ECC_KEY_PKCS1/PKCS8）
-     curve_id: TInt32                       - 曲线 ID
+     curve_id: TInt32                       - 曲线 ID（CN_ECC_CURVE_*）
      priv: TCnCryptoHandle                  - ECC 私钥对象标识
      pub: TCnCryptoHandle                   - ECC 公钥对象标识
      out_buf: PByte                         - 输出 PEM 缓冲区
@@ -888,7 +888,7 @@ function cn_ecc_save_public_key_to_pem(key_type_id: TInt32; curve_id: TInt32;
 
    参数：
      key_type_id: TInt32                    - 密钥类型（CN_ECC_KEY_PKCS1/PKCS8）
-     curve_id: TInt32                       - 曲线 ID
+     curve_id: TInt32                       - 曲线 ID（CN_ECC_CURVE_*）
      pub: TCnCryptoHandle                   - ECC 公钥对象标识
      out_buf: PByte                         - 输出 PEM 缓冲区
      cap: TCnSize                           - 输出缓冲区容量，单位字节
