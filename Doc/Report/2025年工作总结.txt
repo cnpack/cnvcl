@@ -29,7 +29,7 @@ CnPack 开发组 2025 年工作总结
     投票地址（需注册 Gitee 账户）：
     https://gitee.com/activity/2025opensource?ident=IBZILL
 
-    2025 年 CnPack 开发组的计划如下：
+    2026 年 CnPack 开发组的计划如下：
 
 一、CnWizards 继续增强功能、修复 Bug，增加对未来可能的新版本 RAD Studio 13/14 的补丁包及后续版本的支持，并持续移植至 Windows 版 Lazarus。
 
