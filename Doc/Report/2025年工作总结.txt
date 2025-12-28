@@ -1,0 +1,115 @@
+CnPack 开发组 2025 年工作总结
+
+    CnPack 在 2025 年取得的主要成绩如下：
+
+一、CnPack IDE 专家包连续发布 1.6.0、1.6.1、1.7.0 版本，完成历史性的 64 位移植，支持首个 RAD Studio 64 位 IDE，并支持最新的 RAD Studio 13。
+    RAD Studio 13 中的专家包代码高亮机制已全部完成改造，全面改用 RAD Studio 13 提供的编辑器新绘制接口。
+
+    每日构建版下载地址：
+    https://www.cnpack.org/downbuilds.php
+
+二、CnPack IDE 专家包也跨出了历史性的移植到 Windows 版 Lazarus 的第一步，目前已支持基础框架及少数功能编译集成至 Lazarus 4.0 及以上版本供内部测试体验。
+
+三、CnVcl 中的 CnCalendar 历法库改造使用了更为精确的节气时刻计算，并基于此重新优化了公农历转换，目前公元后至 2800 年的公农历转换完成核对，结果基本正确。
+
+四、CnPack 源码继续于 GitHub 上维护，并定期同步至国内镜像 Gitee。
+
+    地址：
+    https://github.com/cnpack
+    https://gitee.com/cnpack
+
+五、CnVcl 中加解密库增加了抗量子算法 MLKEM 和 MLDSA 的支持，并增加 HTML 帮助。同时持续在 Gitee 上维护独立新库 cncrypto，供只需要加解密功能的用户聚焦使用。加解密库也初步支持编译成独立模块供其他语言动态链接并调用。
+
+    地址：
+    https://gitee.com/cnpack/cncrypto
+
+
+六、CnPack 密码算法库参加了 Gitee 的 2025 年度开源大赛，投票火热进行中，明年 2 月底揭晓结果，敬请大家积极支持。
+
+    投票地址（需注册 Gitee 账户）：
+    https://gitee.com/activity/2025opensource?ident=IBZILL
+
+    2025 年 CnPack 开发组的计划如下：
+
+一、CnWizards 继续增强功能、修复 Bug，增加对未来可能的新版本 RAD Studio 13/14 的补丁包及后续版本的支持，并持续移植至 Windows 版 Lazarus。
+
+二、CnWizards 将进一步加强国内外的宣传工作。希望能继续进一步扩大用户群。
+
+三、继续扩充及移植 CnPack 组件包与 CnPack 密码算法库，补充和完善各类文档。
+
+四、继续进行 CnPack 开发组的团队建设与规模发展。
+
+    CnPack 开发组网站：https://www.cnpack.org
+    CnPack 开发组论坛：https://bbs.cnpack.org
+    CnPack 开发组管理员信箱：master@cnpack.org
+    CnPack 微信公众号：CnPack开发组
+
+    CnPack 开发组内部 QQ 群：CnPack I~VI（满），
+                             CnPack VII 超级群：47744868
+
+    CnPack 开发组内部微信群：有兴趣的朋友请添加管理员 21808552 并联系加入。
+
+    （注：邮件列表与 QQ/微信群原则上只供开发组成员与用户加入；不建议同一用户重复加入多个 QQ 群）
+
+    团结奋斗！！共同进步！！
+
+
+                                              CnPack 开发组 刘啸、周劲羽
+                                                              2026-01-01
+
+
+========================================================================
+
+CnPack Working Report in 2025
+
+  Below are the achievements of CnPack in 2025:
+
+1. CnPack IDE Wizards published versions 1.6.0, 1.6.1, and 1.7.0, completing the historic 64-bit migration. It now supports the first RAD Studio 64-bit IDE and the latest RAD Studio 13. The code highlighting mechanism in CnPack IDE Wizards in RAD Studio 13 has been completely overhauled, now fully utilizing the new editor rendering interfaces provided by RAD Studio 13.
+
+  Our nightly build version:
+  https://www.cnpack.org/downbuilds.php
+
+2. CnPack IDE Wizards took the first historic step towards porting to the Windows version of Lazarus. The basic framework and a few features are now compiled and integrated into Lazarus 4.0 and above for internal testing and experience.
+
+3. The CnCalendar Unit in CnVcl has been refactored to use a more precise calculation of solar term timings, and the Gregorian-Lunar calendar conversion has been re-optimized based on this improvement. The conversion results from 1 AD to the year 2800 have now been verified and are largely accurate.
+
+4. CnPack sources continue to be maintained on GitHub and regularly synchronized to the domestic mirror on Gitee.
+
+  https://github.com/cnpack
+  https://gitee.com/cnpack
+
+5. Added support for the post-quantum algorithms MLKEM and MLDSA to the encryption library in CnVcl. We also continue to maintain the new independent repository CnPack Crypto Library "cncrypto" on Gitee with HTML Help for users who only need encryption/decryption functionality. This Library also preliminarily supports being compiled into an independent module for dynamic linking and invocation by other programming languages.
+
+  https://gitee.com/cnpack/cncrypto
+
+6. The CnPack Crypto Library participated in the Gitee 2025 Open Source Competition. Voting is in progress, and the results will be announced at the end of February next year. Your active support is welcomed.
+
+  Voting page (Gitee account required):
+  https://gitee.com/activity/2025opensource?ident=IBZILL
+
+Below is the plan of CnPack for 2026:
+
+1. Continue to enhance features, fix bugs for CnWizards, and add patch packages for potential new versions of RAD Studio 13/14 and subsequent releases. Ongoing porting to the Windows version of Lazarus will continue.
+
+2. CnWizards will further strengthen its promotion efforts both domestically and internationally, aiming to continue expanding the user base.
+
+3. Continue to expand and port the CnPack component packages and the CnPack Cryptography Algorithm Library, while supplementing and improving various documentation.
+
+4. Continue with the team building and scaling of the CnPack Development Group.
+
+  CnPack Website: https://www.cnpack.org
+  CnPack BBS: https://bbs.cnpack.org
+  CnPack Email: master@cnpack.org
+  CnPack WeChat Official Account: CnPack开发组
+
+  CnPack QQ Groups: CnPack I~VI (Full)
+  CnPack VII Super Group: 47744868
+
+  CnPack WeChat Group: Friends interested in joining are requested to add Administrator (ID: 21808552) for contact and inclusion.
+
+  (Note: The mailing list and QQ/WeChat groups are primarily for CnPack members and users. It is not recommended for the same user to join multiple QQ groups.)
+
+  Let's work together and make solid progress!
+
+                              CnPack Administrators: Liu Xiao, Zhou JingYu
+                                                                2026-01-01
