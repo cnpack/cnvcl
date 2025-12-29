@@ -12,7 +12,7 @@ procedure RunAll;
 implementation
 
 uses
-  SysUtils, Classes, CnCryptoExport;
+  SysUtils, Classes {$IFDEF CRYPTO_DLL}, CnCryptoIntf {$ELSE}, CnCryptoExport {$ENDIF};
 
 procedure Print(const S: string);
 begin
@@ -36,10 +36,10 @@ end;
 function BytesEqual(A, B: Pointer; L: TCnSize): Boolean;
 begin
   if L = 0 then
-    begin
-      Result := True;
-      Exit;
-    end;
+  begin
+    Result := True;
+    Exit;
+  end;
   Result := CompareMem(A, B, L);
 end;
 

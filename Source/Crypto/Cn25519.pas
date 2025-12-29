@@ -133,7 +133,7 @@ type
        返回值：（无）
     }
 
-    function ToString: string; override; // 基类有 ToString
+    function ToString: string; override;      // 基类有 ToString
     {* 转换为字符串。
 
        参数：
@@ -1902,7 +1902,7 @@ procedure Cn25519Field64EccPointCopy(var DestPoint: TCn25519Field64EccPoint;
 }
 
 function Cn25519Field64EccPointToHex(var Point: TCn25519Field64EccPoint): string;
-{* 将一多项式拆项法表示的 25519 椭圆曲线上的点转换为十六进制字符串
+{* 将一多项式拆项法表示的 25519 椭圆曲线上的点转换为十六进制字符串。
 
    参数：
      var Point: TCn25519Field64EccPoint   - 待转换的多项式拆项坐标点
@@ -1911,7 +1911,7 @@ function Cn25519Field64EccPointToHex(var Point: TCn25519Field64EccPoint): string
 }
 
 function Cn25519Field64EccPointEqual(var A: TCn25519Field64EccPoint; var B: TCn25519Field64EccPoint): Boolean;
-{* 判断两个多项式拆项法表示的 25519 椭圆曲线上的点是否相等
+{* 判断两个多项式拆项法表示的 25519 椭圆曲线上的点是否相等。
 
    参数：
      var A: TCn25519Field64EccPoint       - 待比较的多项式拆项坐标点一
@@ -2048,7 +2048,7 @@ procedure CnCurve448DataToPoint(Data: TCnCurve448Data; P: TCnEccPoint);
 }
 
 procedure CnEd448PointToData(P: TCnEccPoint; var Data: TCnEd448Data);
-{* 按扭曲爱德华 448 标准将椭圆曲线点转换为压缩方式的 57 字节数组，存 Y 值与 X 的奇偶性
+{* 按扭曲爱德华 448 标准将椭圆曲线点转换为压缩方式的 57 字节数组，存 Y 值与 X 的奇偶性。
 
    参数：
      P: TCnEccPoint                       - 待转换的坐标点
@@ -2059,7 +2059,7 @@ procedure CnEd448PointToData(P: TCnEccPoint; var Data: TCnEd448Data);
 
 procedure CnEd448DataToPoint(Data: TCnEd448Data; P: TCnEccPoint; out XOdd: Boolean);
 {* 按扭曲爱德华 448 标准将 57 字节数组转换为椭圆曲线点压缩方式。
-   P 中返回对应 Y 值，以及 XOdd 中返回对应的 X 值是否是奇数，需要外界自行解 X
+   P 中返回对应 Y 值，以及 XOdd 中返回对应的 X 值是否是奇数，需要外界自行解 X。
 
    参数：
      Data: TCnEd448Data                   - 待转换的 57 字节数组
@@ -2090,7 +2090,7 @@ procedure CnEd448DataToBigNumber(Data: TCnEd448Data; N: TCnBigNumber);
 }
 
 procedure CnCurve448BigNumberToData(N: TCnBigNumber; var Data: TCnCurve448Data);
-{* 按蒙哥马利 448 标准将乘数转换为 56 字节数组，返回转换是否成功
+{* 按蒙哥马利 448 标准将乘数转换为 56 字节数组，返回转换是否成功。
 
    参数：
      N: TCnBigNumber                      - 待转换的乘数
@@ -2100,7 +2100,7 @@ procedure CnCurve448BigNumberToData(N: TCnBigNumber; var Data: TCnCurve448Data);
 }
 
 procedure CnCurve448DataToBigNumber(Data: TCnCurve448Data; N: TCnBigNumber);
-{* 按蒙哥马利 448 标准将 56 字节数组转换为乘数，返回转换是否成功
+{* 按蒙哥马利 448 标准将 56 字节数组转换为乘数，返回转换是否成功。
 
    参数：
      Data: TCnCurve448Data                - 待转换的 56 字节数组
@@ -2110,7 +2110,7 @@ procedure CnCurve448DataToBigNumber(Data: TCnCurve448Data; N: TCnBigNumber);
 }
 
 procedure CnProcessCurve448ScalarNumber(Num: TCnBigNumber);
-{* 按 RFC 规定处理蒙哥马利 448 的随机数或私钥
+{* 按 RFC 规定处理蒙哥马利 448 的随机数或私钥。
 
    参数：
      Num: TCnBigNumber                    - 待处理的 Curve448 随机数
@@ -2119,7 +2119,7 @@ procedure CnProcessCurve448ScalarNumber(Num: TCnBigNumber);
 }
 
 procedure CnProcessEd448ScalarNumber(Num: TCnBigNumber);
-{* 按 RFC 规定处理扭曲爱德华 448 的随机数或私钥
+{* 按 RFC 规定处理扭曲爱德华 448 的随机数或私钥。
 
    参数：
      Num: TCnBigNumber                    - 待处理的 Ed448 随机数
@@ -4990,13 +4990,13 @@ begin
     Stream.Write(Data[0], SizeOf(TCnEd25519Data));        // 拼公钥点
     Stream.Write(PlainData^, DataByteLen);                // 拼明文
 
-    Dig := SHA512Buffer(Stream.Memory^, Stream.Size);      // 计算 Hash 作为值
+    Dig := SHA512Buffer(Stream.Memory^, Stream.Size);     // 计算 Hash 作为值
     ReverseMemory(@Dig[0], SizeOf(TCnSHA512Digest));      // 需要倒转一次
 
     T := FBigNumberPool.Obtain;
     T.SetBinary(@Dig[0], SizeOf(TCnSHA512Digest));
     T.MulWord(8);
-    BigNumberNonNegativeMod(T, T, Ed25519.Order); // T 乘数太大先 mod 一下阶
+    BigNumberNonNegativeMod(T, T, Ed25519.Order);         // T 乘数太大先 mod 一下阶
 
     M := TCnEccPoint.Create;
     M.Assign(PublicKey);
