@@ -209,6 +209,39 @@ type
        返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
 
+    function AppendByteMSBFirst(Value: Byte; Full: Boolean = True): TCnBitBuilder;
+    {* 增加一个字节至本对象，但位顺序是倒序，也就是先添加高位。
+       Full 表示是 8 位都加上去还是忽略高位的所有 0，返回本对象。
+
+       参数：
+         Value: Byte                      - 待增加的字节值
+         Full: Boolean                    - 完整 8 位还是忽略高位的所有 0
+
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
+    }
+
+    function AppendWordMSBFirst(Value: Word; Full: Boolean = True): TCnBitBuilder;
+    {* 增加一个双字节至本对象，但位顺序是倒序，也就是先添加高位。
+       Full 表示是 16 位都加上去还是忽略高位的所有 0，返回本对象。
+
+       参数：
+         Value: Word                      - 待增加的双字节值
+         Full: Boolean                    - 完整 16 位还是忽略高位的所有 0
+
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
+    }
+
+    function AppendDWordMSBFirst(Value: Cardinal; Full: Boolean = True): TCnBitBuilder;
+    {* 增加一个四字节至本对象，但位顺序是倒序，也就是先添加高位。
+       Full 表示是 32 位都加上去还是忽略高位的所有 0，返回本对象。
+
+       参数：
+         Value: Cardinal                  - 待增加的四字节值
+         Full: Boolean                    - 完整 32 位还是忽略高位的所有 0
+
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
+    }
+
     procedure DeleteBits(Index: Integer; Count: Integer);
     {* 删除从指定索引开始的指定数量的位，后部内容往前移动。
 
@@ -464,6 +497,53 @@ begin
     AppendBit((Value and (1 shl I)) <> 0);
 end;
 
+function TCnBitBuilder.AppendByteMSBFirst(Value: Byte;
+  Full: Boolean): TCnBitBuilder;
+var
+  K, I: Integer;
+begin
+  K := 7;
+  if not Full then
+    K := GetUInt8HighBits(Value);
+
+  Result := Self;
+  if K < 0 then
+    Exit;
+
+  for I := K downto 0 do
+    AppendBit((Value and (1 shl I)) <> 0);
+end;
+
+function TCnBitBuilder.AppendWordMSBFirst(Value: Word;
+  Full: Boolean): TCnBitBuilder;
+var
+  H, L: Byte;
+begin
+  H := (Value and $FF00) shr 8;
+  L := Value and $FF;
+
+  AppendByteMSBFirst(H, Full);
+  AppendByteMSBFirst(L, Full or (H <> 0)); // 有高位存在的话，低 8 位必须 Full
+  Result := Self;
+end;
+
+function TCnBitBuilder.AppendDWordMSBFirst(Value: Cardinal;
+  Full: Boolean): TCnBitBuilder;
+var
+  H3, H2, H1, H0: Byte;
+begin
+  H3 := (Value and $FF000000) shr 24;
+  H2 := (Value and $00FF0000) shr 16;
+  H1 := (Value and $0000FF00) shr 8;
+  H0 := Value and $000000FF;
+
+  AppendByteMSBFirst(H3, Full);
+  AppendByteMSBFirst(H2, Full or (H3 <> 0));
+  AppendByteMSBFirst(H1, Full or (H3 * H2 <> 0));
+  AppendByteMSBFirst(H0, Full or (H3 * H2 * H1 <> 0)); // 有高位存在的话，低位必须 Full
+  Result := Self;
+end;
+
 procedure TCnBitBuilder.Clear;
 begin
   FBitLength := 0;
@@ -700,6 +780,7 @@ begin
   begin
     B := Self.ToBytes;
     TCnBitBuilder(Dest).SetBytes(B);
+    TCnBitBuilder(Dest).BitLength := FBitLength;
   end
   else
     inherited;
