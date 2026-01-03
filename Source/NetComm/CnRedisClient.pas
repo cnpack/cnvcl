@@ -1379,16 +1379,19 @@ end;
 function TCnRedisClient.CLIENTLIST(Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('CLIENT LIST', []), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -1513,6 +1516,7 @@ var
   Reply: TCnRedisMultiBulk;
   _Count: Integer;
   _Tlist: TStrings;
+  I: Integer;
 begin
   Result := 0;
   _Tlist := TStringList.Create;
@@ -1531,11 +1535,13 @@ begin
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('EVAL %s %d %s %s', [Script, _Count, Keys, Arg]), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -1561,16 +1567,19 @@ end;
 function TCnRedisClient.EXEC(Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('EXEC', []), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -1759,6 +1768,7 @@ function TCnRedisClient.HGETALL(const Key: string; var Value:
   TCnRedisKeyValueArray): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   SetLength(Value, 0);
@@ -1767,11 +1777,12 @@ begin
     if SendAndReceive(Format('HGETALL %s', [Key]), Reply) then
     begin
       SetLength(Value, (Reply.MultiBulkRefs.Count) div 2);
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 div 2 do
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 div 2 do
       begin
-        Value[Result].Key := TCnRedisMultiBulk(Reply.MultiBulkRefs[Result * 2]).Value;
-        Value[Result].Value := TCnRedisMultiBulk(Reply.MultiBulkRefs[Result * 2 + 1]).Value;
+        Value[I].Key := TCnRedisMultiBulk(Reply.MultiBulkRefs[I * 2]).Value;
+        Value[I].Value := TCnRedisMultiBulk(Reply.MultiBulkRefs[I * 2 + 1]).Value;
       end;
+      Result := Length(Value);
     end;
   finally
     RecycleRedisMultiBulkNode(Reply);
@@ -1812,16 +1823,19 @@ end;
 function TCnRedisClient.HKEYS(const Key: string; Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('HKEYS %s', [Key]), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -1847,16 +1861,19 @@ end;
 function TCnRedisClient.HMGET(const Key, Fields: string; Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('HMGET %s %s', [Key, Fields]), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -1939,16 +1956,19 @@ end;
 function TCnRedisClient.HVALS(const Key: string; Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('HVALS %s', [Key]), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -2004,17 +2024,20 @@ end;
 function TCnRedisClient.INFO(Section: TCnRedisInfoSection; Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('INFO %s', [SCN_REDIS_INFO_SECTION_NAME[Integer(Section)]]),
       Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -2025,13 +2048,16 @@ end;
 function TCnRedisClient.Keys(const pattern: string; Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('KEYS %s', [pattern]), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -2154,16 +2180,19 @@ function TCnRedisClient.LRANGE(const Key: string; Start, Stop: Integer; Value:
   TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('LRANGE %s %d %d', [Key, Start, Stop]), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -2217,16 +2246,19 @@ end;
 function TCnRedisClient.MGET(const Keys: string; Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('MGET %s', [Keys]), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -2723,16 +2755,19 @@ end;
 function TCnRedisClient.SCRIPTEXISTS(const Scripts: string; Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('SCRIPT EXISTS %s', [Scripts]), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -2785,16 +2820,19 @@ end;
 function TCnRedisClient.SDIFF(const Keys: string; Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('SDIFF %s', [Keys]), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -3019,16 +3057,19 @@ end;
 function TCnRedisClient.SINTER(const Keys: string; Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('SINTER %s', [Keys]), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -3130,16 +3171,19 @@ end;
 function TCnRedisClient.SMEMBERS(const Key: string; Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('SMEMBERS %s', [Key]), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally
@@ -3164,6 +3208,7 @@ end;
 function TCnRedisClient.SORT(const Key, Param: string; Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Value.Clear;
@@ -3175,8 +3220,9 @@ begin
         Result := StrToInt(Reply.Value)
       else
       begin
-        for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+        for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+        Result := Reply.MultiBulkRefs.Count;
       end;
     end;
   finally
@@ -3286,16 +3332,19 @@ end;
 function TCnRedisClient.SUNION(const Keys: string; Value: TStrings): Integer;
 var
   Reply: TCnRedisMultiBulk;
+  I: Integer;
 begin
   Result := 0;
   Reply := ObtainRedisMultiBulkNodeFromPool;
   try
     if SendAndReceive(Format('SUNION %s', [Keys]), Reply) then
-      for Result := 0 to Reply.MultiBulkRefs.Count - 1 do
-        if TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value = '' then
+      for I := 0 to Reply.MultiBulkRefs.Count - 1 do
+        if TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value = '' then
           Value.Add(SCN_REDIS_EMPTY_VALUE)
         else
-          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[Result]).Value);
+          Value.Add(TCnRedisMultiBulk(Reply.MultiBulkRefs[I]).Value);
+    if Reply.MultiBulkRefs.Count > 0 then
+      Result := Reply.MultiBulkRefs.Count;
     if Result = 0 then
       Value.Add(Reply.Value);
   finally

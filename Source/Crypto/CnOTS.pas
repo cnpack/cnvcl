@@ -891,7 +891,6 @@ var
   I: Integer;
   Bits: TCnBitBuilder;
   Dig, Cmp: TCnSHA256Digest;
-  P: Pointer;
 begin
   Result := False;
   Dig := SHA256Buffer(Data^, DataByteLen);
