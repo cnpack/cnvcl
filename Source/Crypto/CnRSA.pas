@@ -875,7 +875,7 @@ function CnRSADecryptLongStream(InStream, OutStream: TStream; PublicKey: TCnRSAP
 
 function CnRSASignFile(const InFileName: string; const OutSignFileName: string;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用 RSA 私钥签名指定文件，签名结果直接存储至 OutSignFileName 文件中，返回签名是否成功。
+{* 用 RSA 私钥以 PKCS1 模式签名指定文件，签名结果直接存储至 OutSignFileName 文件中，返回签名是否成功。
    未指定签名杂凑摘要类型时，等于将源文件用 PKCS1 Private_FF 补齐后加密。
    当指定了签名杂凑摘要类型时，使用指定签名杂凑摘要算法对文件进行计算得到杂凑值，
    再将原始的二进制杂凑值进行 BER 编码，再 PKCS1 补齐再用私钥加密。
@@ -891,7 +891,7 @@ function CnRSASignFile(const InFileName: string; const OutSignFileName: string;
 
 function CnRSAVerifyFile(const InFileName: string; const InSignFileName: string;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用 RSA 公钥与签名值文件验证指定文件，也即用指定签名杂凑摘要算法对文件进行计算得到杂凑值，
+{* 用 RSA 公钥与签名值文件以 PKCS1 模式验证指定文件，也即用指定签名杂凑摘要算法对文件进行计算得到杂凑值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
    并比对两个二进制杂凑值是否相同，返回验证是否通过。
 
@@ -906,7 +906,7 @@ function CnRSAVerifyFile(const InFileName: string; const InSignFileName: string;
 
 function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用 RSA 私钥签名指定内存流，签名值写入 OutSignStream 中，返回签名是否成功
+{* 用 RSA 私钥以 PKCS1 模式签名指定内存流，签名值写入 OutSignStream 中，返回签名是否成功。
 
    参数：
      InStream: TMemoryStream              - 待签名的内存流
@@ -919,7 +919,7 @@ function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
 
 function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用 RSA 公钥与签名值内存流验证指定内存流，返回验证是否通过
+{* 用 RSA 公钥与签名值内存流以 PKCS1 模式验证指定内存流，返回验证是否通过。
 
    参数：
      InStream: TMemoryStream              - 待验证签名的内存流
@@ -932,7 +932,7 @@ function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
 
 function CnRSASignBytes(InData: TBytes; PrivateKey: TCnRSAPrivateKey;
   SignType: TCnRSASignDigestType = rsdtMD5): TBytes;
-{* 用 RSA 私钥签名字节数组，返回签名值的字节数组，如签名失败则返回空。
+{* 用 RSA 私钥以 PKCS1 模式签名字节数组，返回签名值的字节数组，如签名失败则返回空。
 
    参数：
      InData: TBytes                       - 待签名的字节数组
@@ -944,7 +944,7 @@ function CnRSASignBytes(InData: TBytes; PrivateKey: TCnRSAPrivateKey;
 
 function CnRSAVerifyBytes(InData: TBytes; InSignBytes: TBytes;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
-{* 用 RSA 公钥与签名字节数组验证指定字节数组，返回验证是否通过。
+{* 用 RSA 公钥与签名字节数组以 PKCS1 模式验证指定字节数组，返回验证是否通过。
 
    参数：
      InData: TBytes                       - 待验证签名的字节数组
@@ -955,7 +955,7 @@ function CnRSAVerifyBytes(InData: TBytes; InSignBytes: TBytes;
    返回值：Boolean                        - 返回验证签名是否成功
 }
 
-// OAEP Padding 的生成与验证算法
+// ===================== OAEP Padding 的生成与验证算法 =========================
 
 function AddOaepSha1MgfPadding(ToBuf: PByte; ToByteLen: Integer; PlainData: PByte;
   DataByteLen: Integer; DigestParam: PByte = nil; ParamByteLen: Integer = 0): Boolean;
@@ -988,6 +988,87 @@ function RemoveOaepSha1MgfPadding(ToBuf: PByte; out OutByteLen: Integer; EnData:
      ParamByteLen: Integer                - 额外进行杂凑拼接的数据块字节长度
 
    返回值：Boolean                        - 返回去除填充是否成功
+}
+
+// ===================== RSA 的 PSS 模式的签名验证算法 =========================
+
+function CnRSAPSSSignFile(const InFileName: string; const OutSignFileName: string;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
+{* 用 RSA 私钥以 PSS 模式签名指定文件，签名结果直接存储至 OutSignFileName 文件中，返回签名是否成功。
+
+   参数：
+     const InFileName: string             - 待签名的文件名
+     const OutSignFileName: string        - 签名内容的输出文件名
+     PrivateKey: TCnRSAPrivateKey         - 用于签名的 RSA 私钥
+     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
+
+   返回值：Boolean                        - 返回签名是否成功
+}
+
+function CnRSAPSSVerifyFile(const InFileName: string; const InSignFileName: string;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
+{* 用 RSA 公钥与签名值文件以 PSS 模式验证指定文件，也即用指定签名杂凑摘要算法对文件进行计算得到杂凑值，
+   并用公钥解密签名内容并解开 PSS 补齐再解开 BER 编码得到杂凑算法与杂凑值，
+   并比对两个二进制杂凑值是否相同，返回验证是否通过。
+
+   参数：
+     const InFileName: string             - 待验证签名的文件名
+     const InSignFileName: string         - 签名内容的文件名
+     PublicKey: TCnRSAPublicKey           - 用于验证签名的 RSA 公钥
+     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
+
+function CnRSAPSSSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
+{* 用 RSA 私钥以 PSS 模式签名指定内存流，签名值写入 OutSignStream 中，返回签名是否成功。
+
+   参数：
+     InStream: TMemoryStream              - 待签名的内存流
+     OutSignStream: TMemoryStream         - 输出的签名内容内存流
+     PrivateKey: TCnRSAPrivateKey         - 用于签名的 RSA 私钥
+     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
+
+   返回值：Boolean                        - 返回签名是否成功
+}
+
+function CnRSAPSSVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
+{* 用 RSA 公钥与签名值内存流以 PSS 模式验证指定内存流，返回验证是否通过。
+
+   参数：
+     InStream: TMemoryStream              - 待验证签名的内存流
+     InSignStream: TMemoryStream          - 签名内容内存流
+     PublicKey: TCnRSAPublicKey           - 用于验证签名的 RSA 公钥
+     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
+
+   返回值：Boolean                        - 返回验证签名是否成功
+}
+
+function CnRSAPSSSignBytes(InData: TBytes; PrivateKey: TCnRSAPrivateKey;
+  SignType: TCnRSASignDigestType = rsdtSHA256): TBytes;
+{* 用 RSA 私钥以 PSS 模式签名字节数组，返回签名值的字节数组，如签名失败则返回空。
+
+   参数：
+     InData: TBytes                       - 待签名的字节数组
+     PrivateKey: TCnRSAPrivateKey         - 用于签名的 RSA 私钥
+     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
+
+   返回值：TBytes                         - 返回签名内容的字节数组，失败则返回空
+}
+
+function CnRSAPSSVerifyBytes(InData: TBytes; InSignBytes: TBytes;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
+{* 用 RSA 公钥与签名字节数组以 PSS 模式验证指定字节数组，返回验证是否通过。
+
+   参数：
+     InData: TBytes                       - 待验证签名的字节数组
+     InSignBytes: TBytes                  - 签名内容字节数组
+     PublicKey: TCnRSAPublicKey           - 用于验证签名的 RSA 公钥
+     SignType: TCnRSASignDigestType       - 指定签名杂凑摘要类型
+
+   返回值：Boolean                        - 返回验证签名是否成功
 }
 
 // ================ Diffie-Hellman 离散对数密钥交换算法 ========================
@@ -3645,6 +3726,114 @@ begin
     Res.Free;
     SetLength(ResBuf, 0);
     SetLength(BerBuf, 0);
+  end;
+end;
+
+function CnRSAPSSSignFile(const InFileName: string; const OutSignFileName: string;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType): Boolean;
+var
+  Stream, SignStream: TMemoryStream;
+begin
+  Result := False;
+  if (PrivateKey = nil) or not FileExists(InFileName) then
+    Exit;
+
+  Stream := nil;
+  SignStream := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+    Stream.LoadFromFile(InFileName);
+
+    SignStream := TMemoryStream.Create;
+    if CnRSAPSSSignStream(Stream, SignStream, PrivateKey, SignType) then
+    begin
+      SignStream.SaveToFile(OutSignFileName);
+      Result := True;
+    end;
+  finally
+    SignStream.Free;
+    Stream.Free;
+  end;
+end;
+
+function CnRSAPSSVerifyFile(const InFileName: string; const InSignFileName: string;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType): Boolean;
+var
+  Stream, SignStream: TMemoryStream;
+begin
+  Result := False;
+  if (PublicKey = nil) or not FileExists(InFileName) or not FileExists(InSignFileName) then
+    Exit;
+
+  Stream := nil;
+  SignStream := nil;
+
+  try
+    Stream := TMemoryStream.Create;
+    Stream.LoadFromFile(InFileName);
+
+    SignStream := TMemoryStream.Create;
+    SignStream.LoadFromFile(InSignFileName);
+    Result := CnRSAPSSVerifyStream(Stream, SignStream, PublicKey, SignType);
+  finally
+    SignStream.Free;
+    Stream.Free;
+  end;
+end;
+
+function CnRSAPSSSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
+begin
+
+end;
+
+function CnRSAPSSVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
+begin
+
+end;
+
+function CnRSAPSSSignBytes(InData: TBytes; PrivateKey: TCnRSAPrivateKey;
+  SignType: TCnRSASignDigestType): TBytes;
+var
+  InStream, OutStream: TMemoryStream;
+begin
+  Result := nil;
+  InStream := nil;
+  OutStream := nil;
+
+  try
+    InStream := TMemoryStream.Create;
+    BytesToStream(InData, InStream);
+
+    OutStream := TMemoryStream.Create;
+    if CnRSAPSSSignStream(InStream, OutStream, PrivateKey, SignType) then
+      Result := StreamToBytes(OutStream);
+  finally
+    OutStream.Free;
+    InStream.Free;
+  end;
+end;
+
+function CnRSAPSSVerifyBytes(InData: TBytes; InSignBytes: TBytes;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType): Boolean;
+var
+  InStream, SignStream: TMemoryStream;
+begin
+  InStream := nil;
+  SignStream := nil;
+
+  try
+    InStream := TMemoryStream.Create;
+    BytesToStream(InData, InStream);
+
+    SignStream := TMemoryStream.Create;
+    BytesToStream(InSignBytes, SignStream);
+    Result := CnRSAPSSVerifyStream(InStream, SignStream, PublicKey, SignType);
+  finally
+    SignStream.Free;
+    InStream.Free;
   end;
 end;
 
