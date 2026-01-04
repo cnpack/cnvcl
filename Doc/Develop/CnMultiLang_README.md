@@ -2,7 +2,7 @@
 
 ## 概述
 
-CnPack 多语言组件包（CnPack Multi-Language Component Package）源于 CnPack 开发组的开源项目 CnVcl 组件包（CnVcl Component Package），是一套支持 VCL 与 FMX 框架的多语言组件包。
+CnPack 多语言组件包（CnPack Multi-Language Component Package）源于 CnPack 开发组的开源项目 CnVcl 组件包（CnVcl Component Package），是一套支持 Delphi 5 至最新版 RAD Studio 的 VCL 与 FMX 框架的多语言组件包，同时也支持 Lazarus/FPC。
 
 CnPack 多语言组件包并不自行实现支持多语言功能的界面组件，而是提供针对系统界面组件或其他第三方界面组件的通用遍历、翻译能力，因而适用面广，对旧有项目的改造工作量较少。详情可参考文档目录中的《CnPack多语组件包概要设计说明书》及《CnPack多语组件帮助文档》。
 

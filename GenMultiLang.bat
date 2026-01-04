@@ -130,6 +130,10 @@ CD ..\..\
 MKDIR FMX\MultiLang\
 CD FMX\MultiLang\
 COPY ..\..\..\..\cnvcl\Example\FMX\Multilang\ .
+CD ..\..\
+MKDIR FPC\MultiLang\
+CD FPC\MultiLang\
+COPY ..\..\..\..\cnvcl\Example\FPC\Multilang\ .
 CD ..\..\..
 GOTO END
 
