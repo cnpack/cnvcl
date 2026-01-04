@@ -49,7 +49,11 @@ procedure Register;
 implementation
 
 {$IFDEF FPC}
+{$IFDEF CNMULTILANG}
+{$R '..\Source\CnPack.dcr'}
+{$ELSE}
 {$R '..\..\Source\Common\CnPack.dcr'}
+{$ENDIF}
 {$ENDIF}
 
 procedure Register;

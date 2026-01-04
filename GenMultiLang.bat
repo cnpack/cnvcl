@@ -115,6 +115,235 @@ CALL :PRINTDCLFILES dclCnMultiLang.dpk
 ECHO.                                                                          >> dclCnMultiLang.dpk
 ECHO end.                                                                      >> dclCnMultiLang.dpk
 ECHO.                                                                          >> dclCnMultiLang.dpk
+ECHO ^<^?xml version="1.0" encoding="UTF-8"^?^>                                 > CnMultiLang.lpk
+ECHO ^<CONFIG^>                                                                >> CnMultiLang.lpk
+ECHO   ^<Package Version="5"^>                                                 >> CnMultiLang.lpk
+ECHO     ^<PathDelim Value="\"/^>                                              >> CnMultiLang.lpk
+ECHO     ^<Name Value="CnMultiLang"/^>                                         >> CnMultiLang.lpk
+ECHO     ^<CompilerOptions^>                                                   >> CnMultiLang.lpk
+ECHO       ^<Version Value="11"/^>                                             >> CnMultiLang.lpk
+ECHO       ^<PathDelim Value="\"/^>                                            >> CnMultiLang.lpk
+ECHO       ^<SearchPaths^>                                                     >> CnMultiLang.lpk
+ECHO         ^<IncludeFiles Value="..\Source"/^>                               >> CnMultiLang.lpk
+ECHO         ^<OtherUnitFiles Value="..\Source"/^>                             >> CnMultiLang.lpk
+ECHO         ^<UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/^>     >> CnMultiLang.lpk
+ECHO       ^</SearchPaths^>                                                    >> CnMultiLang.lpk
+ECHO     ^</CompilerOptions^>                                                  >> CnMultiLang.lpk
+ECHO     ^<Version Major="1"/^>                                                >> CnMultiLang.lpk
+ECHO     ^<Files^>                                                             >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnClasses.pas"/^>                     >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnClasses"/^>                                   >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnCommon.pas"/^>                      >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnCommon"/^>                                    >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnConsts.pas"/^>                      >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnConsts"/^>                                    >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnFloat.pas"/^>                       >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnFloat"/^>                                     >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnGB18030.pas"/^>                     >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnGB18030"/^>                                   >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnHashIniFile.pas"/^>                 >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnHashIniFile"/^>                               >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnHashLangStorage.pas"/^>             >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnHashLangStorage"/^>                           >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnHashMap.pas"/^>                     >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnHashMap"/^>                                   >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnHexEditor.pas"/^>                   >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnHexEditor"/^>                                 >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnIni.pas"/^>                         >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnIni"/^>                                       >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnIniLangFileStorage.pas"/^>          >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnIniLangFileStorage"/^>                        >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnIniStrUtils.pas"/^>                 >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnIniStrUtils"/^>                               >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnLangCollection.pas"/^>              >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnLangCollection"/^>                            >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnLangConsts.pas"/^>                  >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnLangConsts"/^>                                >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnLangMgr.pas"/^>                     >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnLangMgr"/^>                                   >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnLangStorage.pas"/^>                 >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnLangStorage"/^>                               >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnLangTranslator.pas"/^>              >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnLangTranslator"/^>                            >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnLangUtils.pas"/^>                   >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnLangUtils"/^>                                 >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnNative.pas"/^>                      >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnNative"/^>                                    >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnStream.pas"/^>                      >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnStream"/^>                                    >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnStrings.pas"/^>                     >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnStrings"/^>                                   >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnWideStrings.pas"/^>                 >> CnMultiLang.lpk
+ECHO         ^<UnitName Value="CnWideStrings"/^>                               >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO     ^</Files^>                                                            >> CnMultiLang.lpk
+ECHO     ^<RequiredPkgs^>                                                      >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<PackageName Value="LCLBase"/^>                                  >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO       ^<Item^>                                                            >> CnMultiLang.lpk
+ECHO         ^<PackageName Value="FCL"/^>                                      >> CnMultiLang.lpk
+ECHO       ^</Item^>                                                           >> CnMultiLang.lpk
+ECHO     ^</RequiredPkgs^>                                                     >> CnMultiLang.lpk
+ECHO     ^<UsageOptions^>                                                      >> CnMultiLang.lpk
+ECHO       ^<UnitPath Value="$(PkgOutDir)"/^>                                  >> CnMultiLang.lpk
+ECHO     ^</UsageOptions^>                                                     >> CnMultiLang.lpk
+ECHO     ^<PublishOptions^>                                                    >> CnMultiLang.lpk
+ECHO       ^<Version Value="2"/^>                                              >> CnMultiLang.lpk
+ECHO       ^<UseFileFilters Value="True"/^>                                    >> CnMultiLang.lpk
+ECHO     ^</PublishOptions^>                                                   >> CnMultiLang.lpk
+ECHO   ^</Package^>                                                            >> CnMultiLang.lpk
+ECHO ^</CONFIG^>                                                               >> CnMultiLang.lpk
+CALL :PRINTHEAD CnMultiLang.pas
+ECHO unit CnMultiLang;                                                               >> CnMultiLang.pas
+ECHO .                                                                               >> CnMultiLang.pas
+ECHO {$warn 5023 off : no warning about unused units}                                >> CnMultiLang.pas
+ECHO interface                                                                       >> CnMultiLang.pas
+ECHO .                                                                               >> CnMultiLang.pas
+ECHO uses                                                                            >> CnMultiLang.pas
+ECHO   CnClasses, CnCommon, CnConsts, CnFloat, CnGB18030, CnHashIniFile,             >> CnMultiLang.pas
+ECHO   CnHashLangStorage, CnHashMap, CnHexEditor, CnIni, CnIniLangFileStorage,       >> CnMultiLang.pas
+ECHO   CnIniStrUtils, CnLangCollection, CnLangConsts, CnLangMgr, CnLangStorage,      >> CnMultiLang.pas
+ECHO   CnLangTranslator, CnLangUtils, CnNative, CnStream, CnStrings, CnWideStrings;  >> CnMultiLang.pas
+ECHO .                                                                               >> CnMultiLang.pas
+ECHO implementation                                                                  >> CnMultiLang.pas
+ECHO .                                                                               >> CnMultiLang.pas
+ECHO end.                                                                            >> CnMultiLang.pas
+ECHO .                                                                               >> CnMultiLang.pas
+ECHO ^<^?xml version="1.0" encoding="UTF-8"^?^>                                       > dclCnMultiLang.lpk
+ECHO ^<CONFIG^>                                                                      >> dclCnMultiLang.lpk
+ECHO   ^<Package Version="5"^>                                                       >> dclCnMultiLang.lpk
+ECHO     ^<PathDelim Value="\"/^>                                                    >> dclCnMultiLang.lpk
+ECHO     ^<Name Value="dclCnMultiLang"/^>                                            >> dclCnMultiLang.lpk
+ECHO     ^<Type Value="RunAndDesignTime"/^>                                          >> dclCnMultiLang.lpk
+ECHO     ^<CompilerOptions^>                                                         >> dclCnMultiLang.lpk
+ECHO       ^<Version Value="11"/^>                                                   >> dclCnMultiLang.lpk
+ECHO       ^<PathDelim Value="\"/^>                                                  >> dclCnMultiLang.lpk
+ECHO       ^<SearchPaths^>                                                           >> dclCnMultiLang.lpk
+ECHO         ^<IncludeFiles Value="..\Source"/^>                                     >> dclCnMultiLang.lpk
+ECHO         ^<OtherUnitFiles Value="..\Source"/^>                                   >> dclCnMultiLang.lpk
+ECHO         ^<UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)\"/^>          >> dclCnMultiLang.lpk
+ECHO       ^</SearchPaths^>                                                          >> dclCnMultiLang.lpk
+ECHO       ^<Other^>                                                                 >> dclCnMultiLang.lpk
+ECHO         ^<CustomOptions Value="-dCNMULTILANG"/^>                                >> dclCnMultiLang.lpk
+ECHO         ^<OtherDefines Count="1"^>                                              >> dclCnMultiLang.lpk
+ECHO           ^<Define0 Value="CNMULTILANG"/^>                                      >> dclCnMultiLang.lpk
+ECHO         ^</OtherDefines^>                                                       >> dclCnMultiLang.lpk
+ECHO       ^</Other^>                                                                >> dclCnMultiLang.lpk
+ECHO     ^</CompilerOptions^>                                                        >> dclCnMultiLang.lpk
+ECHO     ^<Version Major="1"/^>                                                      >> dclCnMultiLang.lpk
+ECHO     ^<Files^>                                                                   >> dclCnMultiLang.lpk
+ECHO       ^<Item^>                                                                  >> dclCnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnCompAboutFrm.pas"/^>                      >> dclCnMultiLang.lpk
+ECHO         ^<UnitName Value="CnCompAboutFrm"/^>                                    >> dclCnMultiLang.lpk
+ECHO       ^</Item^>                                                                 >> dclCnMultiLang.lpk
+ECHO       ^<Item^>                                                                  >> dclCnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnLangEditors.pas"/^>                       >> dclCnMultiLang.lpk
+ECHO         ^<UnitName Value="CnLangEditors"/^>                                     >> dclCnMultiLang.lpk
+ECHO       ^</Item^>                                                                 >> dclCnMultiLang.lpk
+ECHO       ^<Item^>                                                                  >> dclCnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnLangReg.pas"/^>                           >> dclCnMultiLang.lpk
+ECHO         ^<HasRegisterProc Value="True"/^>                                       >> dclCnMultiLang.lpk
+ECHO         ^<UnitName Value="CnLangReg"/^>                                         >> dclCnMultiLang.lpk
+ECHO       ^</Item^>                                                                 >> dclCnMultiLang.lpk
+ECHO       ^<Item^>                                                                  >> dclCnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnOTAUtils.pas"/^>                          >> dclCnMultiLang.lpk
+ECHO         ^<UnitName Value="CnOTAUtils"/^>                                        >> dclCnMultiLang.lpk
+ECHO       ^</Item^>                                                                 >> dclCnMultiLang.lpk
+ECHO       ^<Item^>                                                                  >> dclCnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnTransEditor.pas"/^>                       >> dclCnMultiLang.lpk
+ECHO         ^<UnitName Value="CnTransEditor"/^>                                     >> dclCnMultiLang.lpk
+ECHO       ^</Item^>                                                                 >> dclCnMultiLang.lpk
+ECHO       ^<Item^>                                                                  >> dclCnMultiLang.lpk
+ECHO         ^<Filename Value="..\Source\CnTransFilter.pas"/^>                       >> dclCnMultiLang.lpk
+ECHO         ^<UnitName Value="CnTransFilter"/^>                                     >> dclCnMultiLang.lpk
+ECHO       ^</Item^>                                                                 >> dclCnMultiLang.lpk
+ECHO     ^</Files^>                                                                  >> dclCnMultiLang.lpk
+ECHO     ^<RequiredPkgs^>                                                            >> dclCnMultiLang.lpk
+ECHO       ^<Item^>                                                                  >> dclCnMultiLang.lpk
+ECHO         ^<PackageName Value="IDEIntf"/^>                                        >> dclCnMultiLang.lpk
+ECHO       ^</Item^>                                                                 >> dclCnMultiLang.lpk
+ECHO       ^<Item^>                                                                  >> dclCnMultiLang.lpk
+ECHO         ^<PackageName Value="CnMultiLang"/^>                                    >> dclCnMultiLang.lpk
+ECHO       ^</Item^>                                                                 >> dclCnMultiLang.lpk
+ECHO       ^<Item^>                                                                  >> dclCnMultiLang.lpk
+ECHO         ^<PackageName Value="FCL"/^>                                            >> dclCnMultiLang.lpk
+ECHO       ^</Item^>                                                                 >> dclCnMultiLang.lpk
+ECHO     ^</RequiredPkgs^>                                                           >> dclCnMultiLang.lpk
+ECHO     ^<UsageOptions^>                                                            >> dclCnMultiLang.lpk
+ECHO       ^<UnitPath Value="$(PkgOutDir)"/^>                                        >> dclCnMultiLang.lpk
+ECHO     ^</UsageOptions^>                                                           >> dclCnMultiLang.lpk
+ECHO     ^<PublishOptions^>                                                          >> dclCnMultiLang.lpk
+ECHO       ^<Version Value="2"/^>                                                    >> dclCnMultiLang.lpk
+ECHO       ^<UseFileFilters Value="True"/^>                                          >> dclCnMultiLang.lpk
+ECHO     ^</PublishOptions^>                                                         >> dclCnMultiLang.lpk
+ECHO   ^</Package^>                                                                  >> dclCnMultiLang.lpk
+ECHO ^</CONFIG^>                                                                     >> dclCnMultiLang.lpk
+CALL :PRINTHEAD dclCnMultiLang.pas
+ECHO unit dclCnMultiLang;                                                            >> dclCnMultiLang.pas
+ECHO .                                                                               >> dclCnMultiLang.pas
+ECHO {$warn 5023 off : no warning about unused units}                                >> dclCnMultiLang.pas
+ECHO interface                                                                       >> dclCnMultiLang.pas
+ECHO .                                                                               >> dclCnMultiLang.pas
+ECHO uses                                                                            >> dclCnMultiLang.pas
+ECHO   CnCompAboutFrm, CnLangEditors, CnLangReg, CnOTAUtils, CnTransEditor,          >> dclCnMultiLang.pas
+ECHO   CnTransFilter, LazarusPackageIntf;                                            >> dclCnMultiLang.pas
+ECHO .                                                                               >> dclCnMultiLang.pas
+ECHO implementation                                                                  >> dclCnMultiLang.pas
+ECHO .                                                                               >> dclCnMultiLang.pas
+ECHO procedure Register;                                                             >> dclCnMultiLang.pas
+ECHO begin                                                                           >> dclCnMultiLang.pas
+ECHO   RegisterUnit('CnLangReg', @CnLangReg.Register);                               >> dclCnMultiLang.pas
+ECHO end;                                                                            >> dclCnMultiLang.pas
+ECHO .                                                                               >> dclCnMultiLang.pas
+ECHO initialization                                                                  >> dclCnMultiLang.pas
+ECHO   RegisterPackage('dclCnMultiLang', @Register);                                 >> dclCnMultiLang.pas
+ECHO .                                                                               >> dclCnMultiLang.pas
+ECHO end.                                                                            >> dclCnMultiLang.pas
+ECHO .                                                                               >> dclCnMultiLang.pas
 CD ..
 MKDIR Doc
 CD Doc
