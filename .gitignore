@@ -5,6 +5,8 @@ __history
 *.local
 *.old
 *.identcache
+*.lps
+*.rsj
 *.map
 *.dll
 *.exe
