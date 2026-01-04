@@ -37,7 +37,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2025.12.09 V3.3
+* 修改记录：2026.01.04 V3.4
+*               增加 RSA 的 PSS 模式的签名与验证函数。
+*           2025.12.09 V3.3
 *               调整私钥加密时填充类型，统一使用 RFC2313 推荐的 01 也就是 CN_PKCS1_BLOCK_TYPE_PRIVATE_FF。
 *           2025.08.22 V3.2
 *               增加两个公钥加密私钥解密超长流的函数及两个私钥加密公钥解密超长流的函数，
@@ -3729,6 +3731,114 @@ begin
   end;
 end;
 
+function PSSMGF1(Seed: Pointer; SeedLen: Integer; OutMask: Pointer;
+  MaskLen: Integer; SignType: TCnRSASignDigestType): Boolean;
+var
+  I, OutLen, MdLen: Integer;
+  Cnt: array[0..3] of Byte;
+  Buf: TBytes;
+  Md5Dig: TCnMD5Digest;
+  Sha1Dig: TCnSHA1Digest;
+  Sha256Dig: TCnSHA256Digest;
+  Sm3Dig: TCnSM3Digest;
+  Sha512Dig: TCnSHA512Digest;
+begin
+  Result := False;
+  OutLen := 0;
+  if (Seed = nil) or (SeedLen <= 0) then
+    Exit;
+
+  if (OutMask = nil) or (MaskLen <= 0) then
+    Exit;
+
+  case SignType of
+    rsdtMD5: MdLen := SizeOf(TCnMD5Digest);
+    rsdtSHA1: MdLen := SizeOf(TCnSHA1Digest);
+    rsdtSHA256: MdLen := SizeOf(TCnSHA256Digest);
+    rsdtSM3: MdLen := SizeOf(TCnSM3Digest);
+    rsdtSHA512: MdLen := SizeOf(TCnSHA512Digest);
+  else
+    Exit;
+  end;
+
+  I := 0;
+  SetLength(Buf, SeedLen + SizeOf(Cnt));
+  while OutLen < MaskLen do
+  begin
+    Cnt[0] := (I shr 24) and $FF;
+    Cnt[1] := (I shr 16) and $FF;
+    Cnt[2] := (I shr 8) and $FF;
+    Cnt[3] := I and $FF;
+    Move(PAnsiChar(Seed)^, Buf[0], SeedLen);
+    Move(Cnt[0], Buf[SeedLen], SizeOf(Cnt));
+    if OutLen + MdLen <= MaskLen then
+    begin
+      case SignType of
+        rsdtMD5:
+          begin
+            Md5Dig := MD5Buffer(Buf[0], Length(Buf));
+            Move(Md5Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+          end;
+        rsdtSHA1:
+          begin
+            Sha1Dig := SHA1Buffer(Buf[0], Length(Buf));
+            Move(Sha1Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+          end;
+        rsdtSHA256:
+          begin
+            Sha256Dig := SHA256Buffer(Buf[0], Length(Buf));
+            Move(Sha256Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+          end;
+        rsdtSM3:
+          begin
+            Sm3Dig := SM3Buffer(Buf[0], Length(Buf));
+            Move(Sm3Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+          end;
+        rsdtSHA512:
+          begin
+            Sha512Dig := SHA512Buffer(Buf[0], Length(Buf));
+            Move(Sha512Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+          end;
+      end;
+      OutLen := OutLen + MdLen;
+    end
+    else
+    begin
+      case SignType of
+        rsdtMD5:
+          begin
+            Md5Dig := MD5Buffer(Buf[0], Length(Buf));
+            Move(Md5Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+          end;
+        rsdtSHA1:
+          begin
+            Sha1Dig := SHA1Buffer(Buf[0], Length(Buf));
+            Move(Sha1Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+          end;
+        rsdtSHA256:
+          begin
+            Sha256Dig := SHA256Buffer(Buf[0], Length(Buf));
+            Move(Sha256Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+          end;
+        rsdtSM3:
+          begin
+            Sm3Dig := SM3Buffer(Buf[0], Length(Buf));
+            Move(Sm3Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+          end;
+        rsdtSHA512:
+          begin
+            Sha512Dig := SHA512Buffer(Buf[0], Length(Buf));
+            Move(Sha512Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+          end;
+      end;
+      OutLen := MaskLen;
+    end;
+    Inc(I);
+  end;
+  SetLength(Buf, 0);
+  Result := True;
+end;
+
 function CnRSAPSSSignFile(const InFileName: string; const OutSignFileName: string;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType): Boolean;
 var
@@ -3784,14 +3894,312 @@ end;
 
 function CnRSAPSSSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
   PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
+var
+  DigestStream: TMemoryStream;
+  mHash, H, Salt, DB, dbMask, maskedDB, EM, ResBuf: TBytes;
+  hLen, emLen, sLen, psLen, mdBits, lBits, MPrimeLen, I: Integer;
+  MPrime: TBytes;
+  Data, Res: TCnBigNumber;
+  Md5Dig: TCnMD5Digest;
+  Sha1Dig: TCnSHA1Digest;
+  Sha256Dig: TCnSHA256Digest;
+  Sm3Dig: TCnSM3Digest;
+  Sha512Dig: TCnSHA512Digest;
 begin
+  Result := False;
+  if (InStream = nil) or (OutSignStream = nil) or (PrivateKey = nil) then
+    Exit;
 
+  DigestStream := nil;
+  Data := nil;
+  Res := nil;
+
+  try
+    DigestStream := TMemoryStream.Create;
+    if not CalcDigestStream(InStream, SignType, DigestStream) then
+      Exit;
+
+    SetLength(mHash, DigestStream.Size);
+    Move(DigestStream.Memory^, mHash[0], DigestStream.Size);
+    hLen := Length(mHash);
+    sLen := hLen;
+    emLen := PrivateKey.GetBytesCount;
+    if emLen < hLen + sLen + 2 then
+    begin
+      _CnSetLastError(ECN_RSA_PADDING_ERROR);
+      Exit;
+    end;
+
+    SetLength(Salt, sLen);
+    if sLen > 0 then
+      CnRandomFillBytes2(PAnsiChar(@Salt[0]), sLen);
+    SetLength(H, hLen);
+    MPrimeLen := 8 + hLen + sLen;
+    SetLength(MPrime, MPrimeLen);
+    FillChar(MPrime[0], 8, 0);
+    Move(mHash[0], MPrime[8], hLen);
+    if sLen > 0 then
+      Move(Salt[0], MPrime[8 + hLen], sLen);
+
+    case SignType of
+      rsdtMD5:
+        begin
+          Md5Dig := MD5Buffer(MPrime[0], MPrimeLen);
+          Move(Md5Dig[0], H[0], hLen);
+        end;
+      rsdtSHA1:
+        begin
+          Sha1Dig := SHA1Buffer(MPrime[0], MPrimeLen);
+          Move(Sha1Dig[0], H[0], hLen);
+        end;
+      rsdtSHA256:
+        begin
+          Sha256Dig := SHA256Buffer(MPrime[0], MPrimeLen);
+          Move(Sha256Dig[0], H[0], hLen);
+        end;
+      rsdtSM3:
+        begin
+          Sm3Dig := SM3Buffer(MPrime[0], MPrimeLen);
+          Move(Sm3Dig[0], H[0], hLen);
+        end;
+      rsdtSHA512:
+        begin
+          Sha512Dig := SHA512Buffer(MPrime[0], MPrimeLen);
+          Move(Sha512Dig[0], H[0], hLen);
+        end;
+    else
+      Exit;
+    end;
+
+    SetLength(DB, emLen - hLen - 1);
+    psLen := emLen - hLen - sLen - 2;
+    if psLen < 0 then
+    begin
+      _CnSetLastError(ECN_RSA_PADDING_ERROR);
+      Exit;
+    end;
+
+    if psLen > 0 then
+      FillChar(DB[0], psLen, 0);
+    DB[psLen] := 1;
+    if sLen > 0 then
+      Move(Salt[0], DB[psLen + 1], sLen);
+    SetLength(dbMask, emLen - hLen - 1);
+    if not PSSMGF1(@H[0], hLen, @dbMask[0], Length(dbMask), SignType) then
+    begin
+      _CnSetLastError(ECN_RSA_PADDING_ERROR);
+      Exit;
+    end;
+
+    SetLength(maskedDB, Length(DB));
+    for I := 0 to Length(DB) - 1 do
+      maskedDB[I] := DB[I] xor dbMask[I];
+    mdBits := PrivateKey.GetBitsCount;
+    lBits := 8 * emLen - (mdBits - 1);
+    if lBits > 0 then
+      maskedDB[0] := maskedDB[0] and ($FF shr lBits);
+    SetLength(EM, emLen);
+    Move(maskedDB[0], EM[0], Length(maskedDB));
+    Move(H[0], EM[Length(maskedDB)], hLen);
+    EM[emLen - 1] := $BC;
+    Data := TCnBigNumber.FromBinary(PAnsiChar(@EM[0]), emLen);
+    Res := TCnBigNumber.Create;
+
+    if RSACrypt(Data, PrivateKey.PrivKeyProduct, PrivateKey.PrivKeyExponent, Res) then
+    begin
+      SetLength(ResBuf, PrivateKey.GetBytesCount);
+      Res.ToBinary(@ResBuf[0], PrivateKey.GetBytesCount);
+      OutSignStream.Write(ResBuf[0], Length(ResBuf));
+      Result := True;
+      _CnSetLastError(ECN_RSA_OK);
+    end;
+  finally
+    DigestStream.Free;
+    Data.Free;
+    Res.Free;
+    SetLength(mHash, 0);
+    SetLength(H, 0);
+    SetLength(Salt, 0);
+    SetLength(DB, 0);
+    SetLength(dbMask, 0);
+    SetLength(maskedDB, 0);
+    SetLength(EM, 0);
+    SetLength(ResBuf, 0);
+    SetLength(MPrime, 0);
+  end;
 end;
 
 function CnRSAPSSVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
   PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
+var
+  Data, Res: TCnBigNumber;
+  ResBuf: TBytes;
+  EM, maskedDB, H, dbMask, DB, mHashBytes, MPrime: TBytes;
+  emLen, hLen, mdBits, lBits, DBLen, I, OnePos, sLen, MPrimeLen: Integer;
+  DigestStream: TMemoryStream;
+  Md5Dig: TCnMD5Digest;
+  Sha1Dig: TCnSHA1Digest;
+  Sha256Dig: TCnSHA256Digest;
+  Sm3Dig: TCnSM3Digest;
+  Sha512Dig: TCnSHA512Digest;
 begin
+  Result := False;
+  if (InStream = nil) or (InSignStream = nil) or (PublicKey = nil) then
+    Exit;
 
+  Data := nil;
+  Res := nil;
+  DigestStream := nil;
+
+  try
+    Data := TCnBigNumber.FromBinary(PAnsiChar(InSignStream.Memory), InSignStream.Size);
+    Res := TCnBigNumber.Create;
+
+    if RSACrypt(Data, PublicKey.PubKeyProduct, PublicKey.PubKeyExponent, Res) then
+    begin
+      SetLength(ResBuf, PublicKey.GetBytesCount);
+      Res.ToBinary(@ResBuf[0], PublicKey.GetBytesCount);
+      EM := ResBuf;
+      emLen := Length(EM);
+      if emLen <= 0 then
+        Exit;
+      if EM[emLen - 1] <> $BC then
+      begin
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
+        Exit;
+      end;
+
+      case SignType of
+        rsdtMD5: hLen := SizeOf(TCnMD5Digest);
+        rsdtSHA1: hLen := SizeOf(TCnSHA1Digest);
+        rsdtSHA256: hLen := SizeOf(TCnSHA256Digest);
+        rsdtSM3: hLen := SizeOf(TCnSM3Digest);
+        rsdtSHA512: hLen := SizeOf(TCnSHA512Digest);
+      else
+        Exit;
+      end;
+
+      if emLen < hLen + 2 then
+      begin
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
+        Exit;
+      end;
+
+      SetLength(maskedDB, emLen - hLen - 1);
+      Move(EM[0], maskedDB[0], Length(maskedDB));
+      SetLength(H, hLen);
+      Move(EM[Length(maskedDB)], H[0], hLen);
+      SetLength(dbMask, Length(maskedDB));
+      if not PSSMGF1(@H[0], hLen, @dbMask[0], Length(dbMask), SignType) then
+      begin
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
+        Exit;
+      end;
+
+      SetLength(DB, Length(maskedDB));
+      for I := 0 to Length(maskedDB) - 1 do
+        DB[I] := maskedDB[I] xor dbMask[I];
+      mdBits := PublicKey.GetBitsCount;
+      lBits := 8 * emLen - (mdBits - 1);
+      if lBits > 0 then
+      begin
+        if (DB[0] shr (8 - lBits)) <> 0 then
+        begin
+          _CnSetLastError(ECN_RSA_PADDING_ERROR);
+          Exit;
+        end;
+        DB[0] := DB[0] and ($FF shr lBits);
+      end;
+
+      DBLen := Length(DB);
+      OnePos := -1;
+      for I := 0 to DBLen - 1 do
+      begin
+        if DB[I] <> 0 then
+        begin
+          if DB[I] <> 1 then
+          begin
+            _CnSetLastError(ECN_RSA_PADDING_ERROR);
+            Exit;
+          end
+          else
+          begin
+            OnePos := I;
+            Break;
+          end;
+        end;
+      end;
+
+      if (OnePos < 0) or (OnePos + 1 > DBLen) then
+      begin
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
+        Exit;
+      end;
+
+      sLen := DBLen - (OnePos + 1);
+      if sLen < 0 then
+      begin
+        _CnSetLastError(ECN_RSA_PADDING_ERROR);
+        Exit;
+      end;
+
+      DigestStream := TMemoryStream.Create;
+      if not CalcDigestStream(InStream, SignType, DigestStream) then
+        Exit;
+
+      SetLength(mHashBytes, DigestStream.Size);
+      Move(DigestStream.Memory^, mHashBytes[0], DigestStream.Size);
+      MPrimeLen := 8 + Length(mHashBytes) + sLen;
+      SetLength(MPrime, MPrimeLen);
+      FillChar(MPrime[0], 8, 0);
+      Move(mHashBytes[0], MPrime[8], Length(mHashBytes));
+      if sLen > 0 then
+        Move(DB[OnePos + 1], MPrime[8 + Length(mHashBytes)], sLen);
+
+      case SignType of
+        rsdtMD5:
+          begin
+            Md5Dig := MD5Buffer(MPrime[0], MPrimeLen);
+            Result := CompareMem(@Md5Dig[0], @H[0], hLen);
+          end;
+        rsdtSHA1:
+          begin
+            Sha1Dig := SHA1Buffer(MPrime[0], MPrimeLen);
+            Result := CompareMem(@Sha1Dig[0], @H[0], hLen);
+          end;
+        rsdtSHA256:
+          begin
+            Sha256Dig := SHA256Buffer(MPrime[0], MPrimeLen);
+            Result := CompareMem(@Sha256Dig[0], @H[0], hLen);
+          end;
+        rsdtSM3:
+          begin
+            Sm3Dig := SM3Buffer(MPrime[0], MPrimeLen);
+            Result := CompareMem(@Sm3Dig[0], @H[0], hLen);
+          end;
+        rsdtSHA512:
+          begin
+            Sha512Dig := SHA512Buffer(MPrime[0], MPrimeLen);
+            Result := CompareMem(@Sha512Dig[0], @H[0], hLen);
+          end;
+      else
+        Result := False;
+      end;
+      _CnSetLastError(ECN_RSA_OK);
+    end;
+  finally
+    Data.Free;
+    Res.Free;
+    DigestStream.Free;
+    SetLength(ResBuf, 0);
+    SetLength(EM, 0);
+    SetLength(maskedDB, 0);
+    SetLength(H, 0);
+    SetLength(dbMask, 0);
+    SetLength(DB, 0);
+    SetLength(mHashBytes, 0);
+    SetLength(MPrime, 0);
+  end;
 end;
 
 function CnRSAPSSSignBytes(InData: TBytes; PrivateKey: TCnRSAPrivateKey;
