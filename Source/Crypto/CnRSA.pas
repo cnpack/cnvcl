@@ -4077,6 +4077,7 @@ begin
     lBits := 8 * emLen - (mdBits - 1);
     if lBits > 0 then
       maskedDB[0] := maskedDB[0] and ($FF shr lBits);
+
     SetLength(EM, emLen);
     Move(maskedDB[0], EM[0], Length(maskedDB));
     Move(H[0], EM[Length(maskedDB)], hLen);
@@ -4088,6 +4089,8 @@ begin
     begin
       SetLength(ResBuf, PrivateKey.GetBytesCount);
       Res.ToBinary(@ResBuf[0], PrivateKey.GetBytesCount);
+
+      OutSignStream.Size := 0; // 写之前先清空内容
       OutSignStream.Write(ResBuf[0], Length(ResBuf));
       Result := True;
       _CnSetLastError(ECN_RSA_OK);
@@ -4610,8 +4613,8 @@ begin
     rsdtMD5: Result := 'MD5';
     rsdtSHA1: Result := 'SHA1';
     rsdtSHA224: Result := 'SHA224';
-    rsdtSHA384: Result := 'SHA384';
     rsdtSHA256: Result := 'SHA256';
+    rsdtSHA384: Result := 'SHA384';
     rsdtSHA512: Result := 'SHA512';
     rsdtSM3: Result := 'SM3';
   else

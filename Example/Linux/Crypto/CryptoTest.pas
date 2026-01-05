@@ -7973,6 +7973,17 @@ begin
   S := 'Data To Sign.';
   Data.Write(S[1], Length(S));
   Data.Position := 0;
+  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSHA224);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Sign.Position := 0;
+  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSHA224);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
   Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSHA256);
 
   if not Result then Exit;
@@ -7980,6 +7991,41 @@ begin
   Data.Position := 0;
   Sign.Position := 0;
   Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSHA256);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSHA384);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Sign.Position := 0;
+  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSHA384);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSHA512);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Sign.Position := 0;
+  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSHA512);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSM3);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Sign.Position := 0;
+  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSM3);
+
+  if not Result then Exit;
 
   Sign.Free;
   Data.Free;
