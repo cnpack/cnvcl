@@ -37,8 +37,8 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.01.04 V3.4
-*               增加 RSA 的 PSS 模式的签名与验证函数。
+* 修改记录：2026.01.05 V3.4
+*               增加 RSA 的 PSS 模式的签名与验证函数并增加几种杂凑支持。
 *           2025.12.09 V3.3
 *               调整私钥加密时填充类型，统一使用 RFC2313 推荐的 01 也就是 CN_PKCS1_BLOCK_TYPE_PRIVATE_FF。
 *           2025.08.22 V3.2
@@ -158,7 +158,8 @@ const
   {* RSA 错误码之 PEM 加解密错误}
 
 type
-  TCnRSASignDigestType = (rsdtNone, rsdtMD5, rsdtSHA1, rsdtSHA256, rsdtSM3, rsdtSHA512);
+  TCnRSASignDigestType = (rsdtNone, rsdtMD5, rsdtSHA1, rsdtSHA224,
+    rsdtSHA256, rsdtSHA384, rsdtSHA512, rsdtSM3);
   {* RSA 签名所支持的杂凑摘要类型，可无摘要}
 
   TCnRSAKeyType = (cktPKCS1, cktPKCS8);
@@ -1301,8 +1302,16 @@ const
     $2B, $0E, $03, $02, $1A
   );
 
+  OID_SIGN_SHA224: array[0..8] of Byte = (         // 2.16.840.1.101.3.4.2.4
+    $60, $86, $48, $01, $65, $03, $04, $02, $04
+  );
+
   OID_SIGN_SHA256: array[0..8] of Byte = (         // 2.16.840.1.101.3.4.2.1
     $60, $86, $48, $01, $65, $03, $04, $02, $01
+  );
+
+  OID_SIGN_SHA384: array[0..8] of Byte = (         // 2.16.840.1.101.3.4.2.2
+    $60, $86, $48, $01, $65, $03, $04, $02, $02
   );
 
   OID_SIGN_SHA512: array[0..8] of Byte = (         // 2.16.840.1.101.3.4.2.3
@@ -3193,9 +3202,11 @@ function CalcDigestStream(InStream: TStream; SignType: TCnRSASignDigestType;
 var
   Md5: TCnMD5Digest;
   Sha1: TCnSHA1Digest;
+  Sha224: TCnSHA224Digest;
   Sha256: TCnSHA256Digest;
-  Sm3Dig: TCnSM3Digest;
+  Sha384: TCnSHA384Digest;
   Sha512: TCnSHA512Digest;
+  Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
   case SignType of
@@ -3211,22 +3222,34 @@ begin
         outStream.Write(Sha1, SizeOf(TCnSHA1Digest));
         Result := True;
       end;
+    rsdtSHA224:
+      begin
+        Sha224 := SHA224Stream(InStream);
+        outStream.Write(Sha224, SizeOf(TCnSHA224Digest));
+        Result := True;
+      end;
     rsdtSHA256:
       begin
         Sha256 := SHA256Stream(InStream);
         outStream.Write(Sha256, SizeOf(TCnSHA256Digest));
         Result := True;
       end;
-    rsdtSM3:
+    rsdtSHA384:
       begin
-        Sm3Dig := SM3Stream(InStream);
-        outStream.Write(Sm3Dig, SizeOf(TCnSM3Digest));
+        Sha384 := SHA384Stream(InStream);
+        outStream.Write(Sha384, SizeOf(TCnSHA384Digest));
         Result := True;
       end;
     rsdtSHA512:
       begin
         Sha512 := SHA512Stream(InStream);
         outStream.Write(Sha512, SizeOf(TCnSHA512Digest));
+        Result := True;
+      end;
+    rsdtSM3:
+      begin
+        Sm3Dig := SM3Stream(InStream);
+        outStream.Write(Sm3Dig, SizeOf(TCnSM3Digest));
         Result := True;
       end;
   end;
@@ -3243,9 +3266,11 @@ function CalcDigestFile(const FileName: string; SignType: TCnRSASignDigestType;
 var
   Md5: TCnMD5Digest;
   Sha1: TCnSHA1Digest;
+  Sha224: TCnSHA224Digest;
   Sha256: TCnSHA256Digest;
-  Sm3Dig: TCnSM3Digest;
+  Sha384: TCnSHA384Digest;
   Sha512: TCnSHA512Digest;
+  Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
   case SignType of
@@ -3261,22 +3286,34 @@ begin
         outStream.Write(Sha1, SizeOf(TCnSHA1Digest));
         Result := True;
       end;
+    rsdtSHA224:
+      begin
+        Sha224 := SHA224File(FileName);
+        outStream.Write(Sha224, SizeOf(TCnSHA224Digest));
+        Result := True;
+      end;
     rsdtSHA256:
       begin
         Sha256 := SHA256File(FileName);
         outStream.Write(Sha256, SizeOf(TCnSHA256Digest));
         Result := True;
       end;
-    rsdtSM3:
+    rsdtSHA384:
       begin
-        Sm3Dig := SM3File(FileName);
-        outStream.Write(Sm3Dig, SizeOf(TCnSM3Digest));
+        Sha384 := SHA384File(FileName);
+        outStream.Write(Sha384, SizeOf(TCnSHA384Digest));
         Result := True;
       end;
     rsdtSHA512:
       begin
         Sha512 := SHA512File(FileName);
         outStream.Write(Sha512, SizeOf(TCnSHA512Digest));
+        Result := True;
+      end;
+    rsdtSM3:
+      begin
+        Sm3Dig := SM3File(FileName);
+        outStream.Write(Sm3Dig, SizeOf(TCnSM3Digest));
         Result := True;
       end;
   end;
@@ -3298,15 +3335,21 @@ begin
     rsdtSHA1:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA1[0],
         SizeOf(OID_SIGN_SHA1), AParent);
+    rsdtSHA224:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA224[0],
+        SizeOf(OID_SIGN_SHA512), AParent);
     rsdtSHA256:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA256[0],
         SizeOf(OID_SIGN_SHA256), AParent);
-    rsdtSM3:
-      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SM3[0],
-        SizeOf(OID_SIGN_SM3), AParent);
+    rsdtSHA384:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA384[0],
+        SizeOf(OID_SIGN_SHA384), AParent);
     rsdtSHA512:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA512[0],
         SizeOf(OID_SIGN_SHA512), AParent);
+    rsdtSM3:
+      Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SM3[0],
+        SizeOf(OID_SIGN_SM3), AParent);
   end;
 end;
 
@@ -3739,9 +3782,11 @@ var
   Buf: TBytes;
   Md5Dig: TCnMD5Digest;
   Sha1Dig: TCnSHA1Digest;
+  Sha224Dig: TCnSHA224Digest;
   Sha256Dig: TCnSHA256Digest;
-  Sm3Dig: TCnSM3Digest;
+  Sha384Dig: TCnSHA384Digest;
   Sha512Dig: TCnSHA512Digest;
+  Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
   OutLen := 0;
@@ -3754,9 +3799,11 @@ begin
   case SignType of
     rsdtMD5: MdLen := SizeOf(TCnMD5Digest);
     rsdtSHA1: MdLen := SizeOf(TCnSHA1Digest);
+    rsdtSHA224: MdLen := SizeOf(TCnSHA224Digest);
     rsdtSHA256: MdLen := SizeOf(TCnSHA256Digest);
-    rsdtSM3: MdLen := SizeOf(TCnSM3Digest);
+    rsdtSHA384: MdLen := SizeOf(TCnSHA384Digest);
     rsdtSHA512: MdLen := SizeOf(TCnSHA512Digest);
+    rsdtSM3: MdLen := SizeOf(TCnSM3Digest);
   else
     Exit;
   end;
@@ -3784,20 +3831,30 @@ begin
             Sha1Dig := SHA1Buffer(Buf[0], Length(Buf));
             Move(Sha1Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
           end;
+        rsdtSHA224:
+          begin
+            Sha224Dig := SHA224Buffer(Buf[0], Length(Buf));
+            Move(Sha224Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+          end;
         rsdtSHA256:
           begin
             Sha256Dig := SHA256Buffer(Buf[0], Length(Buf));
             Move(Sha256Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
           end;
-        rsdtSM3:
+        rsdtSHA384:
           begin
-            Sm3Dig := SM3Buffer(Buf[0], Length(Buf));
-            Move(Sm3Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+            Sha384Dig := SHA384Buffer(Buf[0], Length(Buf));
+            Move(Sha384Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
           end;
         rsdtSHA512:
           begin
             Sha512Dig := SHA512Buffer(Buf[0], Length(Buf));
             Move(Sha512Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
+          end;
+        rsdtSM3:
+          begin
+            Sm3Dig := SM3Buffer(Buf[0], Length(Buf));
+            Move(Sm3Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MdLen);
           end;
       end;
       OutLen := OutLen + MdLen;
@@ -3815,20 +3872,30 @@ begin
             Sha1Dig := SHA1Buffer(Buf[0], Length(Buf));
             Move(Sha1Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
           end;
+        rsdtSHA224:
+          begin
+            Sha224Dig := SHA224Buffer(Buf[0], Length(Buf));
+            Move(Sha224Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+          end;
         rsdtSHA256:
           begin
             Sha256Dig := SHA256Buffer(Buf[0], Length(Buf));
             Move(Sha256Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
           end;
-        rsdtSM3:
+        rsdtSHA384:
           begin
-            Sm3Dig := SM3Buffer(Buf[0], Length(Buf));
-            Move(Sm3Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+            Sha384Dig := SHA384Buffer(Buf[0], Length(Buf));
+            Move(Sha384Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
           end;
         rsdtSHA512:
           begin
             Sha512Dig := SHA512Buffer(Buf[0], Length(Buf));
             Move(Sha512Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
+          end;
+        rsdtSM3:
+          begin
+            Sm3Dig := SM3Buffer(Buf[0], Length(Buf));
+            Move(Sm3Dig[0], PByte(TCnIntAddress(OutMask) + OutLen)^, MaskLen - OutLen);
           end;
       end;
       OutLen := MaskLen;
@@ -3902,9 +3969,11 @@ var
   Data, Res: TCnBigNumber;
   Md5Dig: TCnMD5Digest;
   Sha1Dig: TCnSHA1Digest;
+  Sha224Dig: TCnSHA224Digest;
   Sha256Dig: TCnSHA256Digest;
-  Sm3Dig: TCnSM3Digest;
+  Sha384Dig: TCnSHA384Digest;
   Sha512Dig: TCnSHA512Digest;
+  Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
   if (InStream = nil) or (OutSignStream = nil) or (PrivateKey = nil) then
@@ -3952,20 +4021,30 @@ begin
           Sha1Dig := SHA1Buffer(MPrime[0], MPrimeLen);
           Move(Sha1Dig[0], H[0], hLen);
         end;
+      rsdtSHA224:
+        begin
+          Sha224Dig := SHA224Buffer(MPrime[0], MPrimeLen);
+          Move(Sha224Dig[0], H[0], hLen);
+        end;
       rsdtSHA256:
         begin
           Sha256Dig := SHA256Buffer(MPrime[0], MPrimeLen);
           Move(Sha256Dig[0], H[0], hLen);
         end;
-      rsdtSM3:
+      rsdtSHA384:
         begin
-          Sm3Dig := SM3Buffer(MPrime[0], MPrimeLen);
-          Move(Sm3Dig[0], H[0], hLen);
+          Sha384Dig := SHA384Buffer(MPrime[0], MPrimeLen);
+          Move(Sha384Dig[0], H[0], hLen);
         end;
       rsdtSHA512:
         begin
           Sha512Dig := SHA512Buffer(MPrime[0], MPrimeLen);
           Move(Sha512Dig[0], H[0], hLen);
+        end;
+      rsdtSM3:
+        begin
+          Sm3Dig := SM3Buffer(MPrime[0], MPrimeLen);
+          Move(Sm3Dig[0], H[0], hLen);
         end;
     else
       Exit;
@@ -4039,9 +4118,11 @@ var
   DigestStream: TMemoryStream;
   Md5Dig: TCnMD5Digest;
   Sha1Dig: TCnSHA1Digest;
+  Sha224Dig: TCnSHA224Digest;
   Sha256Dig: TCnSHA256Digest;
-  Sm3Dig: TCnSM3Digest;
+  Sha384Dig: TCnSHA384Digest;
   Sha512Dig: TCnSHA512Digest;
+  Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
   if (InStream = nil) or (InSignStream = nil) or (PublicKey = nil) then
@@ -4072,9 +4153,11 @@ begin
       case SignType of
         rsdtMD5: hLen := SizeOf(TCnMD5Digest);
         rsdtSHA1: hLen := SizeOf(TCnSHA1Digest);
+        rsdtSHA224: hLen := SizeOf(TCnSHA224Digest);
         rsdtSHA256: hLen := SizeOf(TCnSHA256Digest);
-        rsdtSM3: hLen := SizeOf(TCnSM3Digest);
+        rsdtSHA384: hLen := SizeOf(TCnSHA384Digest);
         rsdtSHA512: hLen := SizeOf(TCnSHA512Digest);
+        rsdtSM3: hLen := SizeOf(TCnSM3Digest);
       else
         Exit;
       end;
@@ -4167,20 +4250,30 @@ begin
             Sha1Dig := SHA1Buffer(MPrime[0], MPrimeLen);
             Result := CompareMem(@Sha1Dig[0], @H[0], hLen);
           end;
+        rsdtSHA224:
+          begin
+            Sha224Dig := SHA224Buffer(MPrime[0], MPrimeLen);
+            Result := CompareMem(@Sha224Dig[0], @H[0], hLen);
+          end;
         rsdtSHA256:
           begin
             Sha256Dig := SHA256Buffer(MPrime[0], MPrimeLen);
             Result := CompareMem(@Sha256Dig[0], @H[0], hLen);
           end;
-        rsdtSM3:
+        rsdtSHA384:
           begin
-            Sm3Dig := SM3Buffer(MPrime[0], MPrimeLen);
-            Result := CompareMem(@Sm3Dig[0], @H[0], hLen);
+            Sha384Dig := SHA384Buffer(MPrime[0], MPrimeLen);
+            Result := CompareMem(@Sha384Dig[0], @H[0], hLen);
           end;
         rsdtSHA512:
           begin
             Sha512Dig := SHA512Buffer(MPrime[0], MPrimeLen);
             Result := CompareMem(@Sha512Dig[0], @H[0], hLen);
+          end;
+        rsdtSM3:
+          begin
+            Sm3Dig := SM3Buffer(MPrime[0], MPrimeLen);
+            Result := CompareMem(@Sm3Dig[0], @H[0], hLen);
           end;
       else
         Result := False;
@@ -4498,12 +4591,16 @@ begin
     Result := rsdtMD5
   else if (OidByteLen = SizeOf(OID_SIGN_SHA1)) and CompareMem(OID, @OID_SIGN_SHA1[0], OidByteLen) then
     Result := rsdtSHA1
+  else if (OidByteLen = SizeOf(OID_SIGN_SHA224)) and CompareMem(OID, @OID_SIGN_SHA224[0], OidByteLen) then
+    Result := rsdtSHA224
   else if (OidByteLen = SizeOf(OID_SIGN_SHA256)) and CompareMem(OID, @OID_SIGN_SHA256[0], OidByteLen) then
     Result := rsdtSHA256
-  else if (OidByteLen = SizeOf(OID_SIGN_SM3)) and CompareMem(OID, @OID_SIGN_SM3[0], OidByteLen) then
-    Result := rsdtSM3
+  else if (OidByteLen = SizeOf(OID_SIGN_SHA384)) and CompareMem(OID, @OID_SIGN_SHA384[0], OidByteLen) then
+    Result := rsdtSHA384
   else if (OidByteLen = SizeOf(OID_SIGN_SHA512)) and CompareMem(OID, @OID_SIGN_SHA512[0], OidByteLen) then
-    Result := rsdtSHA512;
+    Result := rsdtSHA512
+   else if (OidByteLen = SizeOf(OID_SIGN_SM3)) and CompareMem(OID, @OID_SIGN_SM3[0], OidByteLen) then
+    Result := rsdtSM3;
 end;
 
 function GetRSADigestNameFromSignDigestType(Digest: TCnRSASignDigestType): string;
@@ -4512,9 +4609,11 @@ begin
     rsdtNone: Result := '<None>';
     rsdtMD5: Result := 'MD5';
     rsdtSHA1: Result := 'SHA1';
+    rsdtSHA224: Result := 'SHA224';
+    rsdtSHA384: Result := 'SHA384';
     rsdtSHA256: Result := 'SHA256';
-    rsdtSM3: Result := 'SM3';
     rsdtSHA512: Result := 'SHA512';
+    rsdtSM3: Result := 'SM3';
   else
     Result := '<Unknown>';
   end;
