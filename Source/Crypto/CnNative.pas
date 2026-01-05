@@ -86,6 +86,18 @@ type
   ECnNativeException = class(Exception);
   {* Native 相关异常}
 
+{$IFDEF SUPPORT_CROSS_PLATFORM}
+{$IF defined(ANDROID) OR defined(IOS)}
+  // 移动平台 Android 和 iOS 上补上未定义的内容
+  AnsiString = RawByteString;
+  {* 移动平台没有 AnsiString，定义上}
+  WideString = UnicodeString;
+  {* 移动平台没有 WideString，定义上}
+  PAnsiChar  = PByte;
+  {* 移动平台没有 PAnsiChar，定义上}
+{$ENDIF}
+{$ENDIF}
+
 {$IFDEF COMPILER5}
   PByte = Windows.PByte;
   {* D5 下 PByte 定义在 Windows 中，其他版本定义在 System 中，
