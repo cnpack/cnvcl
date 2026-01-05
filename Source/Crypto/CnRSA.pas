@@ -260,7 +260,7 @@ type
     {* 密钥的字节数，等于素数乘积 n 的有效位数除以 8}
   end;
 
-// UInt64 范围内的 RSA 加解密实现
+// ===================== UInt64 范围内的 RSA 加解密实现 ========================
 
 function CnInt64RSAGenerateKeys(out PrimeKey1: Cardinal; out PrimeKey2: Cardinal;
   out PrivKeyProduct: TUInt64; out PrivKeyExponent: TUInt64; out PubKeyProduct: TUInt64;
@@ -322,7 +322,7 @@ function CnInt64RSADecrypt(Res: TUInt64; PubKeyProduct: TUInt64;
    返回值：Boolean                        - 返回解密是否成功
 }
 
-// 大数范围内的 RSA 加解密实现
+// ====================== 大数范围内的 RSA 加解密实现 ==========================
 
 function CnRSAGenerateKeysByPrimeBits(PrimeBits: Integer; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean = False): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
@@ -3991,13 +3991,12 @@ begin
     SetLength(mHash, DigestStream.Size);
     Move(DigestStream.Memory^, mHash[0], DigestStream.Size);
     hLen := Length(mHash);
-    sLen := hLen;
     emLen := PrivateKey.GetBytesCount;
-    if emLen < hLen + sLen + 2 then
-    begin
-      _CnSetLastError(ECN_RSA_PADDING_ERROR);
-      Exit;
-    end;
+    sLen := emLen - hLen - 2;
+    if sLen < 0 then
+      sLen := 0;
+    if sLen > hLen then
+      sLen := hLen;
 
     SetLength(Salt, sLen);
     if sLen > 0 then
@@ -4153,17 +4152,13 @@ begin
         Exit;
       end;
 
-      case SignType of
-        rsdtMD5: hLen := SizeOf(TCnMD5Digest);
-        rsdtSHA1: hLen := SizeOf(TCnSHA1Digest);
-        rsdtSHA224: hLen := SizeOf(TCnSHA224Digest);
-        rsdtSHA256: hLen := SizeOf(TCnSHA256Digest);
-        rsdtSHA384: hLen := SizeOf(TCnSHA384Digest);
-        rsdtSHA512: hLen := SizeOf(TCnSHA512Digest);
-        rsdtSM3: hLen := SizeOf(TCnSM3Digest);
-      else
+      DigestStream := TMemoryStream.Create;
+      if not CalcDigestStream(InStream, SignType, DigestStream) then
         Exit;
-      end;
+
+      SetLength(mHashBytes, DigestStream.Size);
+      Move(DigestStream.Memory^, mHashBytes[0], DigestStream.Size);
+      hLen := Length(mHashBytes);
 
       if emLen < hLen + 2 then
       begin
@@ -4189,11 +4184,6 @@ begin
       lBits := 8 * emLen - (mdBits - 1);
       if lBits > 0 then
       begin
-        if (DB[0] shr (8 - lBits)) <> 0 then
-        begin
-          _CnSetLastError(ECN_RSA_PADDING_ERROR);
-          Exit;
-        end;
         DB[0] := DB[0] and ($FF shr lBits);
       end;
 
@@ -4229,12 +4219,6 @@ begin
         Exit;
       end;
 
-      DigestStream := TMemoryStream.Create;
-      if not CalcDigestStream(InStream, SignType, DigestStream) then
-        Exit;
-
-      SetLength(mHashBytes, DigestStream.Size);
-      Move(DigestStream.Memory^, mHashBytes[0], DigestStream.Size);
       MPrimeLen := 8 + Length(mHashBytes) + sLen;
       SetLength(MPrime, MPrimeLen);
       FillChar(MPrime[0], 8, 0);
