@@ -7949,90 +7949,6 @@ begin
   Priv.Free;
 end;
 
-function TestRSA4: Boolean;
-var
-  Priv: TCnRSAPrivateKey;
-  Pub: TCnRSAPublicKey;
-  Data, Sign: TMemoryStream;
-  S: AnsiString;
-begin
-  Priv := TCnRSAPrivateKey.Create;
-  Pub := TCnRSAPublicKey.Create;
-  Priv.PrimeKey1.SetDec('11926501752010836305573547055010388132818881584424893368438260986340083815661726132764041431839102912426991427194974395769462431410735199955905343985824903');
-  Priv.PrimeKey2.SetDec('8573695372469847739125271816213638824277647604717881633559571969225574325225015620887808957893360658142977333484565099818973457402882454768789495637432799');
-  Priv.PrivKeyProduct.SetDec('102254192880968838810801382868389181256002534349148386664790879432128469476008930592645952145670063316387886310707201792269823813875471904969765005471'
-    + '655784895966560585402535313253239266974336591272564426699631037042766443337890644687331420209218848611174173514131044514861915637897961332996331736169243193497');
-  Priv.PrivKeyExponent.SetDec('39672511136982081334852781820872662950644314523029678314931072391484666575621085465907939411446247157266807837135542059783707067998407374882375067429'
-    + '509912283003943601853564564341100084349650097087748956228566192837448482334604835364484274776995406202376013966890951221884425618589294581045684761888524743389');
-  Pub.PubKeyExponent.SetDec('65537');
-  Pub.PubKeyProduct.SetDec('10225419288096883881080138286838918125600253434914838666479087943212846947600893059264595214567006331638788631070720179226982381387547190496976500547165'
-    + '5784895966560585402535313253239266974336591272564426699631037042766443337890644687331420209218848611174173514131044514861915637897961332996331736169243193497');
-
-  Data := TMemoryStream.Create;
-  Sign := TMemoryStream.Create;
-  S := 'Data To Sign.';
-  Data.Write(S[1], Length(S));
-  Data.Position := 0;
-  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSHA224);
-
-  if not Result then Exit;
-
-  Data.Position := 0;
-  Sign.Position := 0;
-  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSHA224);
-
-  if not Result then Exit;
-
-  Data.Position := 0;
-  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSHA256);
-
-  if not Result then Exit;
-
-  Data.Position := 0;
-  Sign.Position := 0;
-  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSHA256);
-
-  if not Result then Exit;
-
-  Data.Position := 0;
-  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSHA384);
-
-  if not Result then Exit;
-
-  Data.Position := 0;
-  Sign.Position := 0;
-  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSHA384);
-
-  if not Result then Exit;
-
-  Data.Position := 0;
-  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSHA512);
-
-  if not Result then Exit;
-
-  Data.Position := 0;
-  Sign.Position := 0;
-  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSHA512);
-
-  if not Result then Exit;
-
-  Data.Position := 0;
-  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSM3);
-
-  if not Result then Exit;
-
-  Data.Position := 0;
-  Sign.Position := 0;
-  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSM3);
-
-  if not Result then Exit;
-
-  Sign.Free;
-  Data.Free;
-  Pub.Free;
-  Priv.Free;
-end;
-
 function TestRSA2: Boolean;
 var
   Prime, Root, APriv, BPriv, APub, BPub, ASec, BSec: TCnBigNumber;
@@ -8121,6 +8037,90 @@ begin
 
   D.Free;
   E.Free;
+  Data.Free;
+  Pub.Free;
+  Priv.Free;
+end;
+
+function TestRSA4: Boolean;
+var
+  Priv: TCnRSAPrivateKey;
+  Pub: TCnRSAPublicKey;
+  Data, Sign: TMemoryStream;
+  S: AnsiString;
+begin
+  Priv := TCnRSAPrivateKey.Create;
+  Pub := TCnRSAPublicKey.Create;
+  Priv.PrimeKey1.SetDec('11926501752010836305573547055010388132818881584424893368438260986340083815661726132764041431839102912426991427194974395769462431410735199955905343985824903');
+  Priv.PrimeKey2.SetDec('8573695372469847739125271816213638824277647604717881633559571969225574325225015620887808957893360658142977333484565099818973457402882454768789495637432799');
+  Priv.PrivKeyProduct.SetDec('102254192880968838810801382868389181256002534349148386664790879432128469476008930592645952145670063316387886310707201792269823813875471904969765005471'
+    + '655784895966560585402535313253239266974336591272564426699631037042766443337890644687331420209218848611174173514131044514861915637897961332996331736169243193497');
+  Priv.PrivKeyExponent.SetDec('39672511136982081334852781820872662950644314523029678314931072391484666575621085465907939411446247157266807837135542059783707067998407374882375067429'
+    + '509912283003943601853564564341100084349650097087748956228566192837448482334604835364484274776995406202376013966890951221884425618589294581045684761888524743389');
+  Pub.PubKeyExponent.SetDec('65537');
+  Pub.PubKeyProduct.SetDec('10225419288096883881080138286838918125600253434914838666479087943212846947600893059264595214567006331638788631070720179226982381387547190496976500547165'
+    + '5784895966560585402535313253239266974336591272564426699631037042766443337890644687331420209218848611174173514131044514861915637897961332996331736169243193497');
+
+  Data := TMemoryStream.Create;
+  Sign := TMemoryStream.Create;
+  S := 'Data To Sign.';
+  Data.Write(S[1], Length(S));
+  Data.Position := 0;
+  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSHA224);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Sign.Position := 0;
+  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSHA224);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSHA256);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Sign.Position := 0;
+  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSHA256);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSHA384);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Sign.Position := 0;
+  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSHA384);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSHA512);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Sign.Position := 0;
+  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSHA512);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Result := CnRSAPSSSignStream(Data, Sign, Priv, rsdtSM3);
+
+  if not Result then Exit;
+
+  Data.Position := 0;
+  Sign.Position := 0;
+  Result := CnRSAPSSVerifyStream(Data, Sign, Pub, rsdtSM3);
+
+  if not Result then Exit;
+
+  Sign.Free;
   Data.Free;
   Pub.Free;
   Priv.Free;
