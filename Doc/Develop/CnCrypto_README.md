@@ -50,6 +50,8 @@ CnPack 密码算法库不涉及 VCL/FMX 界面组件，仅是基础库的形式提供，因而可直接将 `cn
 
 注：如果在 Delphi 5 下编译该 BPL，需手工将 `requires` 语句中的 `vcl` 改为 `vcl50`，但 Delphi 5 由于其内存管理机制老旧，已不推荐使用。
 
+另外，对于部分版本较低的 Delphi 移动平台，因其机制不完善，缺乏单字节字符串类型，我们也无法支持。
+
 ## 测试用例
 
 `cncrypto\Test` 目录下有一完整的命令行测试用例 `CryptoTest.dpr`，使用任一版本 Delphi 打开运行即可覆盖验证 CnPack 密码算法库的绝大多数功能，或用 C++Builder 5/6 打开 `Crypto.bpr`、或用 Lazarus 打开 `Crypto.lpi`，均同样可以运行。在没有 Lazarus 仅有 FPC 时，也可用 `fpc` 命令行编译 `Crypto.lpr` 以运行。尾部两个用例耗时较长以小时计，跑时需有耐心。
@@ -127,6 +129,8 @@ The CnPack Crypto Library does not involve VCL/FMX UI components and is provided
 Alternatively, the library also provides a runtime package. Open `cncrypto\Package\CnCrypto.dpk` in any version of Delphi to compile it into a BPL file for use. Note: If you have already installed the full CnPack Component Package, you should **not** compile or use the CnPack Crypto Library package, as this will cause unit naming conflicts.
 
 > **Note**: When compiling the BPL in Delphi 5, manually change `vcl` to `vcl50` in the `requires` clause. However, Delphi 5 is no longer recommended due to its dated memory management mechanism.
+
+> Additionally, for some older versions of the Delphi mobile platform, due to their incomplete implementation and lack of single-byte string and char types, we are unable to provide support.
 
 ## Test Cases
 
