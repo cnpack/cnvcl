@@ -9467,6 +9467,14 @@ begin
     René Schoof’s Algorithm
   for Determining the Order of the Group of Points
     on an Elliptic Curve over a Finite Field
+或：
+  Elliptic Curves Over Finite Fields and the Computation of Square Roots mod p
+  Mathematics of Computation, Vol. 44, No. 170 (Apr., 1985), 483-494.
+
+及勘误：
+  书名 : The Arithmetic of Elliptic Curves (椭圆曲线的算术)
+  作者 : Joseph H. Silverman
+  章节 : 第 3 章 "The Geometry of Elliptic Curves" 的 习题 3.7 (Exercise 3.7)
 }
 
   Result := False;
@@ -9558,11 +9566,11 @@ begin
     Y2.SetCoefficents([B, A, 0, 1]);
 
     // Ta 与 Pa 数组已准备好，先处理 t = 2 的情况
-    P1.SetCoefficents([0, 1]); // P1 := X
+    P1.SetCoefficents([0, 1]);                        // P1 := X
     BigNumberPolynomialGaloisPower(P1, P1, Q, Q, Y2); // X^q 先 mod Y^2
 
-    P2.SetCoefficents([0, 1]); // P2 := X
-    BigNumberPolynomialGaloisSub(P1, P1, P2, Q); // P1 := (X^q mod Y^2) - x
+    P2.SetCoefficents([0, 1]);                        // P2 := X
+    BigNumberPolynomialGaloisSub(P1, P1, P2, Q);      // P1 := (X^q mod Y^2) - x
 
     // 求最大公约式
     BigNumberPolynomialGaloisGreatestCommonDivisor(G, P1, Y2, Q);
@@ -9592,10 +9600,10 @@ begin
       BigNumberPolynomialGaloisSub(PXP2X, PXP2X, T1, Q, LDP);  // x^(q^2) - x
 
       // 准备好 PXPX，等于 x^q - x
-      PXPX.SetCoefficents([0, 1]); // PXP2X := X
-      BigNumberPolynomialGaloisPower(PXPX, PXPX, Q, Q, LDP); // X^q
-      T1.SetCoefficents([0, 1]);   // T1 = x
-      BigNumberPolynomialGaloisSub(PXPX, PXPX, T1, Q, LDP);  // X^q - X
+      PXPX.SetCoefficents([0, 1]);                             // PXP2X := X
+      BigNumberPolynomialGaloisPower(PXPX, PXPX, Q, Q, LDP);   // X^q
+      T1.SetCoefficents([0, 1]);                               // T1 = x
+      BigNumberPolynomialGaloisSub(PXPX, PXPX, T1, Q, LDP);    // X^q - X
 
       // 判断是否存在 L 阶扭点 P，使得 π^2(P) = 正负 K * (P)，分 K 是奇偶来分别计算 P16，基本上和论文中的计算例子一致
       if K and 1 <> 0 then
@@ -9672,28 +9680,30 @@ begin
         Q12.ShiftRightOne;   // 得到 (Q - 1) / 2
 
         BigNumberCopy(Q32, Q);
-        Q32.SubWord(3);
-        Q32.ShiftRightOne;   // 得到 (Q - 3) / 2
+        Q32.AddWord(3);
+        Q32.ShiftRightOne;   // 得到 (Q + 3) / 2
 
+        // 注意，这里 Rene 论文里有笔误！下面已改成正确的了
+        // 文中的 F[W+2]^2 * F[W-1] 应该是 F[W+2] * F[W-1]^2，而 F[W-2]^2 * F[W+1] 应该是 F[W-2] * F[W+1]^2
         if W and 1 <> 0 then
         begin
-          // W 是奇数，P18 = 4*(x^3 + Ax + B)^(Q-1)/2) * F[W]^3 - F[W+2]^2 * F[W-1] + F[W-2]^2 * F[W+1]
+          // W 是奇数，P18 = 4*(x^3 + Ax + B)^(Q-1)/2) * F[W]^3 - F[W+2] * F[W-1]^2 + F[W-2] * F[W+1]^2
           BigNumberPolynomialGaloisPower(T1, Y2, Q12, Q, LDP);
         end
         else
         begin
-          // W 是偶数，P18 = 4*(x^3 + Ax + B)^(Q+3)/2) * F[W]^3 - F[W+2]^2 * F[W-1] + F[W-2]^2 * F[W+1]
+          // W 是偶数，P18 = 4*(x^3 + Ax + B)^(Q+3)/2) * F[W]^3 - F[W+2] * F[W-1]^2 + F[W-2] * F[W+1]^2
           BigNumberPolynomialGaloisPower(T1, Y2, Q32, Q, LDP);
         end;
         BigNumberPolynomialGaloisMulWord(T1, 4, Q);
         BigNumberPolynomialGaloisPower(T2, F(W), 3, Q, LDP);
-        BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP); // T1 得到第一项大乘
+        BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP);              // T1 得到第一项大乘
 
-        BigNumberPolynomialGaloisMul(T2, F(W + 2), F(W + 2), Q, LDP);  // T2 得到减项
-        BigNumberPolynomialGaloisMul(T2, T2, F(W - 1), Q, LDP);
+        BigNumberPolynomialGaloisMul(T2, F(W - 1), F(W - 1), Q, LDP);  // T2 得到减项
+        BigNumberPolynomialGaloisMul(T2, T2, F(W + 2), Q, LDP);
 
-        BigNumberPolynomialGaloisMul(T3, F(W - 2), F(W - 2), Q, LDP);  // T3 得到加项
-        BigNumberPolynomialGaloisMul(T3, T3, F(W + 1), Q, LDP);
+        BigNumberPolynomialGaloisMul(T3, F(W + 1), F(W + 1), Q, LDP);  // T3 得到加项
+        BigNumberPolynomialGaloisMul(T3, T3, F(W - 2), Q, LDP);
 
         BigNumberPolynomialGaloisSub(P18, T1, T2, Q, LDP);
         BigNumberPolynomialGaloisAdd(P18, P18, T3, Q, LDP);
@@ -9724,19 +9734,15 @@ begin
         Q23 := FEccBigNumberPool.Obtain;
         BigNumberMul(Q23, Q, Q);
 
-        if K and 1 <> 0 then  // K 偶数时需要 (Q^2 + 3)/2
-          Q23.AddWord(3)
-        else
-          Q23.AddWord(1);     // K 奇数时需要 (Q^2 + 1)/2
-
-        Q23.ShiftRightOne;  // 得到 (Q^2 + 3)/2 或 (Q^2 + 1)/2，用来做 Y^2 的指数
+        Q23.AddWord(3);     // K 无论奇偶都需要 (Q^2 + 3)/2，原论文有误，分成 + 3 和 + 1 了。
+        Q23.ShiftRightOne;  // 得到 (Q^2 + 3)/2，用来做 Y^2 的指数
 
         BigNumberPolynomialGaloisPower(T2, Y2, Q23, Q, LDP);
         BigNumberPolynomialGaloisPower(T3, F(K), 3, Q, LDP);
         BigNumberPolynomialGaloisMul(T2, T2, T3, Q, LDP);
         BigNumberPolynomialGaloisMulWord(T2, 4, Q); // 得到第三个减式
 
-        BigNumberPolynomialSub(PAlpha, T1, T2);     // 计算出 PAlpha，释放 T1 T2
+        BigNumberPolynomialGaloisSub(PAlpha, T1, T2, Q, LDP);     // 计算出 PAlpha，释放 T1 T2
         // 注意此处如果 K 是奇数，得到的 PAlpha 在使用时还要乘以一个 Y2
         // 如果 K 是偶数，得到的 PAlpha 其实是 Alpha / y 的值
 
