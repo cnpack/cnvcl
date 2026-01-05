@@ -3337,7 +3337,7 @@ begin
         SizeOf(OID_SIGN_SHA1), AParent);
     rsdtSHA224:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA224[0],
-        SizeOf(OID_SIGN_SHA512), AParent);
+        SizeOf(OID_SIGN_SHA224), AParent);
     rsdtSHA256:
       Result := AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_SIGN_SHA256[0],
         SizeOf(OID_SIGN_SHA256), AParent);
