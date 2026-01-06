@@ -9459,6 +9459,8 @@ var
 
   function F(DPIdx: Integer): TCnBigNumberPolynomial; // 简化的得到 Division Polynomial 的
   begin
+    if DPIdx < 0 then
+      DPIdx := 0;
     Result := TCnBigNumberPolynomial(DPs[DPIdx]);
   end;
 
@@ -9584,7 +9586,7 @@ begin
     DPs := TObjectList.Create(True);
     CnGenerateGaloisDivisionPolynomials(A, B, Q, Pa[Pa.Count - 1] + 2, DPs);
 
-    for I := 1 to Ta.Count - 1 do  // 针对每一个 L，都满足 π^2(P) + K * (P) = J * π^(P) mod L阶可除多项式
+    for I := 1 to Ta.Count - 1 do  // 针对每一个 L，都满足 π^2(P) + K * (P) = J * π^(P) mod L 阶可除多项式
     begin
       L := Pa[I];
       K := BigNumberModWord(Q, L);
@@ -9749,7 +9751,7 @@ begin
         // 再计算 Beta
         NPXP2X := FEccPolynomialPool.Obtain;
         BigNumberPolynomialCopy(NPXP2X, PXP2X);
-        BigNumberPolynomialGaloisNegate(NPXP2X, Q); // NPXPX 得到 x - x^(q^2)
+        BigNumberPolynomialGaloisNegate(NPXP2X, Q);           // NPXPX 得到 x - x^(q^2)
 
         BigNumberPolynomialGaloisMul(T1, F(K), F(K), Q, LDP); // T1 得到 Fk^2
         BigNumberPolynomialGaloisMul(T1, NPXP2X, T1, Q, LDP); // T1 得到 Fk^2 * (x - x^(q^2))，备下面使用
@@ -9765,11 +9767,11 @@ begin
           // 再分别计算 Beta T2 要乘以 Y2
           BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);
 
-          BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP); // T1 得到减的结果
+          BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP);   // T1 得到减的结果
 
           // 再乘以 4Fk
           BigNumberPolynomialGaloisMul(PBeta, T1, F(K), Q, LDP);
-          BigNumberPolynomialGaloisMulWord(PBeta, 4, Q);          // 得到的 PBeta 在使用时需要额外乘以一个 y
+          BigNumberPolynomialGaloisMulWord(PBeta, 4, Q);            // 得到的 PBeta 在使用时需要额外乘以一个 y
         end
         else // 偶数
         begin
@@ -9778,7 +9780,7 @@ begin
           // 再分别计算 Beta，T1 要乘以 Y2
           BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);
 
-          BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP); // T1 得到减的结果
+          BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP);   // T1 得到减的结果
 
           // 再乘以 4Fk
           BigNumberPolynomialGaloisMul(PBeta, T1, F(K), Q, LDP);
@@ -9950,7 +9952,7 @@ begin
               BigNumberPolynomialGaloisMul(T2, T2, T3, Q, LDP);
             end;
 
-            BigNumberPolynomialGaloisSub(P19Y, T1, T2, Q, LDP);  // 俩公共项减后得到 P19Y
+            BigNumberPolynomialGaloisSub(P19Y, T1, T2, Q, LDP);                 // 俩公共项减后得到 P19Y
 
             BigNumberPolynomialGaloisGreatestCommonDivisor(T1, P19Y, LDP, Q);
 
@@ -9958,6 +9960,7 @@ begin
               Ta[I] := T
             else
               Ta[I] := L - T;
+            Break;
           end;
         end
         else
@@ -9975,12 +9978,12 @@ begin
             BigNumberPolynomialGaloisMul(T1, F(K), F(K), Q, LDP);
             BigNumberPolynomialGaloisMul(T2, PBeta, PBeta, Q, LDP);
             BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP);
-            BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP); // T1 得到 Fk^2 * b^2 * Y^2
+            BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);                   // T1 得到 Fk^2 * b^2 * Y^2
 
             BigNumberPolynomialGaloisMul(T2, F(T - 1), F(T + 1), Q, LDP);
             BigNumberPolynomialGaloisPower(T2, T2, Q, Q, LDP);
 
-            BigNumberPolynomialGaloisMul(T3, T1, T2, Q, LDP); // T3 得到 Fk^2 * b^2 * Y^2 * (Ft-1 * Ft+1)^p，释放 T1 T2
+            BigNumberPolynomialGaloisMul(T3, T1, T2, Q, LDP);                   // T3 得到 Fk^2 * b^2 * Y^2 * (Ft-1 * Ft+1)^p，释放 T1 T2
             if T and 1 <> 0 then // T 为奇数时要多乘一项
             begin
               BigNumberPolynomialGaloisPower(T1, Y2, Q, Q, LDP);
@@ -9992,23 +9995,23 @@ begin
 
             BigNumberPolynomialGaloisMul(T2, F(K), F(K), Q, LDP);
             BigNumberPolynomialGaloisMul(T2, T2, PXP2XPX, Q, LDP);
-            BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);  // T2 得到 y^2 * Fk^2 *(x^(p^2) + x^p + x)
+            BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);                   // T2 得到 y^2 * Fk^2 *(x^(p^2) + x^p + x)
 
-            BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP); // T1 减后释放 T2
+            BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP);                   // T1 减后释放 T2
 
             BigNumberPolynomialGaloisMul(T2, F(K), PAlpha, Q, LDP);
-            BigNumberPolynomialGaloisMul(T2, T2, T2, Q, LDP); // T2 得到 a^2 * Fk^2
+            BigNumberPolynomialGaloisMul(T2, T2, T2, Q, LDP);                   // T2 得到 a^2 * Fk^2
             BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);
-            BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP); // T2 得到 (Y^2)^2 * a^2 * Fk^2
+            BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);                   // T2 得到 (Y^2)^2 * a^2 * Fk^2
 
-            BigNumberPolynomialGaloisAdd(T1, T1, T2, Q, LDP); // T1 得到全减式，释放 T2
+            BigNumberPolynomialGaloisAdd(T1, T1, T2, Q, LDP);                   // T1 得到全减式，释放 T2
 
             BigNumberPolynomialGaloisMul(T2, PBeta, PBeta, Q, LDP);
-            BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP); // 全减式乘 Beta^2 后放入 T1，释放 T2
+            BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP);                   // 全减式乘 Beta^2 后放入 T1，释放 T2
 
-            BigNumberPolynomialGaloisMul(T2, F(T), F(T), Q, LDP);        // T2 得到 Ft^2
+            BigNumberPolynomialGaloisMul(T2, F(T), F(T), Q, LDP);               // T2 得到 Ft^2
 
-            BigNumberPolynomialGaloisPower(T2, T2, Q, Q, LDP);// T2 得到 (Ft^2)^p = Ft^2p
+            BigNumberPolynomialGaloisPower(T2, T2, Q, Q, LDP);                  // T2 得到 (Ft^2)^p = Ft^2p
 
             if T and 1 = 0 then // T 为偶数时 T2 要多乘一项 (Y^2)^p
             begin
@@ -10016,8 +10019,8 @@ begin
               BigNumberPolynomialGaloisMul(T2, T2, T4, Q, LDP);
             end;
 
-            BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP); // T1 得到加号左边的，和右边相加
-            BigNumberPolynomialGaloisAdd(P19X, T1, T3, Q, LDP);  // 加后得到 P19X
+            BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP);                   // T1 得到加号左边的，和右边相加
+            BigNumberPolynomialGaloisAdd(P19X, T1, T3, Q, LDP);                 // 加后得到 P19X
 
             BigNumberPolynomialGaloisGreatestCommonDivisor(T1, P19X, LDP, Q);
 
@@ -10034,7 +10037,7 @@ begin
             BigNumberMul(QT, Q, Q);
             BigNumberSubWord(QT, 1);
             QT.ShiftRightOne;
-            BigNumberPolynomialGaloisPower(T1, Y2, QT, Q, LDP);                // T1 得到 y^(p^2-1)
+            BigNumberPolynomialGaloisPower(T1, Y2, QT, Q, LDP);                 // T1 得到 y^(p^2-1)
             BigNumberPolynomialGaloisMul(T1, PBeta, T1, Q, LDP);
             BigNumberPolynomialGaloisMul(T1, PBeta, T1, Q, LDP);
             BigNumberPolynomialGaloisMul(T1, PBeta, T1, Q, LDP);                // T1 得到 b^3*y^(p^2-1)
@@ -10123,6 +10126,7 @@ begin
               Ta[I] := T
             else
               Ta[I] := L - T;
+            Break;
           end;
         end;
       end;
