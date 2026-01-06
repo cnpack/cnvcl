@@ -42,7 +42,7 @@ interface
 
 uses
   Windows, Classes, StdCtrls, ExtCtrls, Controls, Messages, SysUtils,
-  Forms, Graphics, Menus, Buttons, CnConsts {$IFDEF FPC}, LCLType, Spin {$ENDIF};
+  Forms, Graphics, Menus, Buttons, CnConsts, CnNative {$IFDEF FPC}, LCLType, Spin {$ENDIF};
 
 const
   InitRepeatPause = 400;  { pause before repeat timer (ms) }
@@ -511,13 +511,13 @@ procedure TCnSpinEdit.SetEditRect;
 var
   Loc: TRect;
 begin
-  SendMessage(Handle, EM_GETRECT, 0, LongInt(@Loc));
+  SendMessage(Handle, EM_GETRECT, 0, TCnNativeInt(@Loc));
   Loc.Bottom := ClientHeight + 1;  {+1 is workaround for windows paint bug}
   Loc.Right := ClientWidth - FButton.Width - 2;
   Loc.Top := 0;
   Loc.Left := 0;
-  SendMessage(Handle, EM_SETRECTNP, 0, LongInt(@Loc));
-  SendMessage(Handle, EM_GETRECT, 0, LongInt(@Loc));  {debug}
+  SendMessage(Handle, EM_SETRECTNP, 0, TCnNativeInt(@Loc));
+  SendMessage(Handle, EM_GETRECT, 0, TCnNativeInt(@Loc));  {debug}
 end;
 
 procedure TCnSpinEdit.WMSize(var Message: TWMSize);
