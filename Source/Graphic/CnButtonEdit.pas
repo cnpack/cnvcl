@@ -39,7 +39,7 @@ interface
 
 uses
   SysUtils, WinTypes, WinProcs, Messages, Classes, Graphics, Controls,
-  Forms, Dialogs, StdCtrls, Buttons, Menus;
+  Forms, Dialogs, StdCtrls, Buttons, Menus, CnNative;
 
 type
   TButtonKind = (bkCustom, bkLookup, bkDropDown, bkAccept, bkReject,
@@ -214,7 +214,7 @@ begin
     Dec(Rect.Right, FButton.Height)
   else
     Inc(Rect.Right, FButton.Height);
-  SendMessage(Handle, EM_SETRECTNP, 0, Longint(@Rect));
+  SendMessage(Handle, EM_SETRECTNP, 0, TCnNativeInt(@Rect));
 end;
 
 procedure TCnButtonEdit.WMSize(var Msg: TWMSize);
