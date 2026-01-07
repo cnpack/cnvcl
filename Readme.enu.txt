@@ -52,11 +52,18 @@ FPC 3/Lazarus 4 are also partly supported.
 or "install" buttons to compile and install it. The package files with "dcl"
 prefix are for design time, others for run time.
 
-Note: please compile run-time package first, then install design-time package.
+    Note: please compile run-time package first, then install design-time package.
 
-    Click "Environment Options" in "Tools" menu to open settings dialog.
-Select "Library" tabset. Click the right button of "Library Path", and 
-Add CnPack's source code directories into it.
+    Next, it is necessary to add each directory where the cnvcl source
+code is located to Delphi's search paths. For lower-version Delphi, click
+"Environment Options" under the "Tools" menu to open the settings dialog.
+Then, click the button on the right side of the "Library Path" item on the
+"Library" page, and add each subdirectory under the development package's
+Source directory to both the "Library Path" and the "Browsing Path". For
+higher-version Delphi, click "Options" under the "Tools" menu to open the
+settings dialog. Select "Language", then "Delphi", and finally "Library".
+Add each subdirectory under the development package's Source directory to
+both the "Library Path" and the "Browsing Path".
 
     If you need other languages of CnPack Component Package. You can copy
 the consts files from "Source\Lang\Language id" directory and overwrite 

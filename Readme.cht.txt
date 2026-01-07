@@ -47,14 +47,19 @@
     開發包支持 Delphi 5/6/7/2005/2006/2007/2009/2010/XE/XE2/XE3/XE4/XE5/
 XE6/XE7/XE8/10 Seattle/10.1 Berlin/10.2 Tokyo/10.3 Rio/10.4 Sydney/11
 Alexandria/12 Athens/13 Florence 和 C++Builder 5/6，以及部分支持
-FPC 3/Lazarus 4。。
+FPC 3/Lazarus 4。
+
     用戶需要在 IDE 中打開 Packages目錄下的包文件（注意版本號），再在包
 文件窗口中進行編譯安裝。其中帶 dcl 前綴的為設計期包，無此前綴的為運行期
 包。注意應該先編譯運行期包，再安裝設計期包。
 
-    點擊 Delphi 的 Tools 菜單下的 Environment Options，進入設置對話
+    接下來，需要將 cnvcl 源碼所在的各個目錄加入 Delphi 的搜索路徑。低版本
+Delphi 可點擊其 Tools 菜單下的 Environment Options，進入設置對話
 框，點擊 Library 頁面中的 Library Path 項右邊的按鈕，將開發包 Source
-目錄下各個子目錄分別加入到搜索路徑中。
+目錄下各個子目錄分別加入到 Library Path 和 Browsing Path 中。高版本的
+Delphi 則需要點擊 Tools 菜單下的 Options，進入設置對話框，選擇 Language、
+Delphi、Library，將開發包 Source 目錄下各個子目錄分別加入到 Library Path
+和 Browsing Path 中。
 
     如需要其他語言種類的組件包，可在 Source\Lang 目錄下對應語言 ID 的目
 錄中將此語種的字符串常量定義文件和 dfm 文件覆蓋 Source 各個目錄下的同名

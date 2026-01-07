@@ -48,13 +48,18 @@
 XE6/XE7/XE8/10 Seattle/10.1 Berlin/10.2 Tokyo/10.3 Rio/10.4 Sydney/11
 Alexandria/12 Athens/13 Florence 和 C++Builder 5/6，以及部分支持
 FPC 3/Lazarus 4。
+
     用户需要在 IDE 中打开 Packages 目录下的包文件（注意版本号），再在包
 文件窗口中进行编译安装。其中带 dcl 前缀的为设计期包，无此前缀的为运行期
 包。注意应该先编译运行期包，再安装设计期包。
 
-    点击 Delphi 的 Tools 菜单下的 Environment Options，进入设置对话
+    接下来，需要将 cnvcl 源码所在的各个目录加入 Delphi 的搜索路径。低版本
+Delphi 可点击其 Tools 菜单下的 Environment Options，进入设置对话
 框，点击 Library 页面中的 Library Path 项右边的按钮，将开发包 Source
-目录下各个子目录分别加入到搜索路径中。
+目录下各个子目录分别加入到 Library Path 和 Browsing Path 中。高版本的
+Delphi 则需要点击 Tools 菜单下的 Options，进入设置对话框，选择 Language、
+Delphi、Library，将开发包 Source 目录下各个子目录分别加入到 Library Path
+和 Browsing Path 中。
 
     如需要其他语言种类的组件包，可在 Source\Lang 目录下对应语言 ID 的目
 录中将此语种的字符串常量定义文件和 dfm 文件覆盖 Source 各个目录下的同名
