@@ -127,8 +127,11 @@ type
     property OnUpClick: TNotifyEvent read FOnUpClick write FOnUpClick;
   end;
 
-{ TCnSpinEdit }
-
+{$IFNDEF FPC}
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
+{$ENDIF}
   TCnSpinEdit = class(TCustomEdit)
   private
     FMinValue: LongInt;
