@@ -24,7 +24,7 @@ unit CnTCPClient;
 * 软件名称：网络通讯组件包
 * 单元名称：网络通讯组件包 TCP Client 实现单元
 * 单元作者：CnPack 开发组
-* 备    注：一个简易的 TCP 客户端
+* 备    注：一个简易的阻塞式 TCP 客户端，需要支持 Delphi 及 FPC 编译器以及 Windows、Mac、Linux 平台
 * 开发平台：PWin7 + Delphi 5
 * 兼容测试：PWin7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -40,12 +40,10 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs,
-{$IFDEF MSWINDOWS}
-  Windows,  WinSock,
-{$ELSE}
+  SysUtils, Classes, Contnrs, {$IFDEF MSWINDOWS} Windows,  WinSock, {$ELSE}
+  {$IFDEF FPC} Sockets, {$ELSE}
   System.Net.Socket, Posix.NetinetIn, Posix.SysSocket, Posix.Unistd, Posix.ArpaInet,
-{$ENDIF}
+  {$ENDIF} {$ENDIF}
   CnConsts, CnNetConsts, CnSocket, CnClasses;
 
 type
@@ -53,8 +51,10 @@ type
 
   TCnClientSocketErrorEvent = procedure (Sender: TObject; SocketError: Integer) of object;
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnTCPClient = class(TCnComponent)
   private
@@ -130,13 +130,7 @@ begin
   if ResultCode = SOCKET_ERROR then
   begin
     if Assigned(FOnError) then
-    begin
-{$IFDEF MSWINDOWS}
-      FOnError(Self, WSAGetLastError);
-{$ELSE}
-      FOnError(Self, GetLastError);
-{$ENDIF};
-    end;
+      FOnError(Self, CnGetNetErrorNo);
   end;
 end;
 
