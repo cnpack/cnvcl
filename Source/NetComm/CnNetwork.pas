@@ -24,7 +24,7 @@ unit CnNetwork;
 * 软件名称：网络通讯组件包
 * 单元名称：网络通讯组件包网络结构定义单元
 * 单元作者：CnPack 开发组
-* 备    注：
+* 备    注：需要支持 Delphi 及 FPC 编译器以及 Windows、Mac、Linux 平台
 * 开发平台：PWinXP + Delphi XE
 * 兼容测试：PWinXP/7 + Delphi 2009 ~
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -42,7 +42,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNative {$IFNDEF MSWINDOWS}, Posix.NetinetIn {$ENDIF};
+  SysUtils, Classes, CnNative {$IFNDEF MSWINDOWS}
+  {$IFDEF FPC}, Sockets{$ELSE}, Posix.NetinetIn{$ENDIF} {$ENDIF};
 
 const
   {* IP 包头中的版本字段的定义}
