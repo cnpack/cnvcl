@@ -169,7 +169,7 @@ object FormNetDecl: TFormNetDecl
         Width = 121
         Height = 21
         TabOrder = 4
-        Text = '104.238.140.188'
+        Text = 'www.cnpack.org'
       end
       object edtTLSPort: TEdit
         Left = 752

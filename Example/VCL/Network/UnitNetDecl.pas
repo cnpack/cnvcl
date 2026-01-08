@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, StdCtrls, WinSock, ExtCtrls;
+  ComCtrls, StdCtrls, WinSock, ExtCtrls, CnNative, CnECC, CnAEAD;
 
 type
   TFormNetDecl = class(TForm)
@@ -44,12 +44,25 @@ type
     FRecving: Boolean;
     FRecCount: Integer;
     FSnifSock: TSocket;
+    FClientWriteKey, FServerWriteKey: TBytes;
+    FClientFixedIV, FServerFixedIV: TBytes;
+    FKeyLen, FIVLen: Integer;
+    FDigestType: TCnEccSignDigestType;
+    FCipherIsSM4GCM: Boolean;
+    FCipherIsChaCha20Poly1305: Boolean;
+    FClientSeq, FServerSeq: TUInt64;
     procedure UpdateButtonState;
     procedure StartSniff;
     procedure StopSniff;
     procedure MySSLLog(const Str: string);
     procedure ParsingPacket(Buf: Pointer; DataLen: Integer);
     function SSLHandShake12(const Host: AnsiString; Port: Word): Boolean;
+    function BuildAppDataAAD(Seq: TUInt64; PlainLen: Integer): TBytes;
+    function TLSChaChaNonce(const FixedIV12: TBytes; Seq: TUInt64): TBytes;
+    function EncryptAppDataBody(const Plain, AAD: TBytes; const Nonce: TBytes; out Tag: TCnGCM128Tag): TBytes;
+    function DecryptAppDataBody(const Body, AAD: TBytes; const Nonce: TBytes; var InTag: TCnGCM128Tag): TBytes;
+    function EncryptAndSendAppData(const Sock: TSocket; const Plain: TBytes): Boolean;
+    function ReadAndDecryptAppData(const Sock: TSocket; out Plain: TBytes): Boolean;
   public
     FSocket: TSocket;
     FAddr: TSockAddrIn;
@@ -103,8 +116,8 @@ var
 implementation
 
 uses
-  CnNetwork, CnNative, CnSocket, CnRandom, CnECC, CnSHA2, CnCertificateAuthority,
-  CnMD5, CnSHA1, CnSM3, CnAEAD, CnPoly1305, CnChaCha20, CnBigNumber;
+  CnNetwork, CnSocket, CnRandom, CnSHA2, CnCertificateAuthority,
+  CnMD5, CnSHA1, CnSM3, CnPoly1305, CnChaCha20, CnBigNumber;
 
 {$R *.DFM}
 
@@ -2272,6 +2285,16 @@ begin
       else
         MySSLLog('Client Nonce (full 12B): ' + BytesToHex(ConcatBytes(ClientFixedIV, ExplicitNonce)));
       MySSLLog('Server FixedIV: ' + BytesToHex(ServerFixedIV));
+      // 保存会话状态到成员，便于后续应用数据加解密
+      FClientWriteKey := ClientWriteKey;
+      FServerWriteKey := ServerWriteKey;
+      FClientFixedIV := ClientFixedIV;
+      FServerFixedIV := ServerFixedIV;
+      FKeyLen := KeyLen;
+      FIVLen := IvLen;
+      FDigestType := DigestType;
+      FCipherIsSM4GCM := CipherIsSM4GCM;
+      FCipherIsChaCha20Poly1305 := CipherIsChaCha20Poly1305;
       EnCipher := nil;
       if CipherIsChaCha20Poly1305 then
         EnCipher := ChaCha20Poly1305EncryptTLS(ClientWriteKey, ClientFixedIV, PlainFinished, AAD, ClientSeq, Tag)
@@ -2414,134 +2437,33 @@ begin
           Result := True;
           MySSLLog('Handshake Completed');
           Inc(ServerSeq);
-
-          // 发包⑤：应用数据（ApplicationData），发送 HTTP GET 请求
-          // AES/SM4-GCM：记录体=显式nonce(8)+密文+Tag(16)，nonce=FixedIV(4)+序列(8)
-          // ChaCha20-Poly1305：记录体=密文+Tag(16)，nonce=FixedIV(12) XOR (0..3零||序列8B)
-          H := PCnTLSRecordLayer(@Buffer[0]);
-          H^.ContentType := CN_TLS_CONTENT_TYPE_APPLICATION_DATA;
-          H^.MajorVersion := 3;
-          H^.MinorVersion := 3;
+          // 握手完成后，发送应用数据并接收解密响应
+          FClientSeq := ClientSeq;
+          FServerSeq := ServerSeq;
           SetLength(Req, 0);
           Req := ConcatBytes(AnsiToBytes('GET / HTTP/1.1'#13#10),
                              AnsiToBytes('Host: ' + string(Host) + #13#10),
                              AnsiToBytes('Connection: close'#13#10),
                              AnsiToBytes('Accept: */*'#13#10#13#10));
-          FillChar(AADFix[0], SizeOf(AADFix), 0);
-          for I := 0 to 7 do
-            SeqBytes[7 - I] := Byte((ClientSeq shr (I * 8)) and $FF);
-          Move(SeqBytes[0], AADFix[0], 8);
-          AADFix[8] := CN_TLS_CONTENT_TYPE_APPLICATION_DATA;
-          AADFix[9] := 3;
-          AADFix[10] := 3;
-          AADFix[11] := Byte(Length(Req) shr 8);
-          AADFix[12] := Byte(Length(Req) and $FF);
-          AAD := NewBytesFromMemory(@AADFix[0], SizeOf(AADFix));
-          if CipherIsChaCha20Poly1305 then
-          begin
-            EnCipher := ChaCha20Poly1305EncryptTLS(ClientWriteKey, ClientFixedIV, Req, AAD, ClientSeq, Tag);
-            MySSLLog('Client AppData AAD: ' + BytesToHex(AAD));
-            MySSLLog('Client AppData EnCipher Len: ' + IntToStr(Length(EnCipher)));
-            MySSLLog('Client AppData Tag: ' + BytesToHex(NewBytesFromMemory(@Tag, SizeOf(Tag))));
-            CnSetTLSRecordLayerBodyLength(H, Length(EnCipher) + SizeOf(Tag));
-            Move(EnCipher[0], H^.Body[0], Length(EnCipher));
-            Move(Tag, (PAnsiChar(@H^.Body[0]) + Length(EnCipher))^, SizeOf(Tag));
-          end
-          else
-          begin
-            SetLength(ExplicitNonce, 8);
-            for I := 0 to 7 do
-              ExplicitNonce[7 - I] := Byte((ClientSeq shr (I * 8)) and $FF);
-            IVNonce := ConcatBytes(ClientFixedIV, ExplicitNonce);
-            if CipherIsSM4GCM then
-              EnCipher := SM4GCMEncryptBytes(ClientWriteKey, IVNonce, Req, AAD, Tag)
-            else if KeyLen = 16 then
-              EnCipher := AES128GCMEncryptBytes(ClientWriteKey, IVNonce, Req, AAD, Tag)
-            else
-              EnCipher := AES256GCMEncryptBytes(ClientWriteKey, IVNonce, Req, AAD, Tag);
-            MySSLLog('Client AppData AAD: ' + BytesToHex(AAD));
-            MySSLLog('Client AppData ExplicitNonce: ' + BytesToHex(ExplicitNonce));
-            MySSLLog('Client AppData EnCipher Len: ' + IntToStr(Length(EnCipher)));
-            MySSLLog('Client AppData Tag: ' + BytesToHex(NewBytesFromMemory(@Tag, SizeOf(Tag))));
-            CnSetTLSRecordLayerBodyLength(H, 8 + Length(EnCipher) + SizeOf(Tag));
-            Move(ExplicitNonce[0], H^.Body[0], 8);
-            Move(EnCipher[0], (PAnsiChar(@H^.Body[0]) + 8)^, Length(EnCipher));
-            Move(Tag, (PAnsiChar(@H^.Body[0]) + 8 + Length(EnCipher))^, SizeOf(Tag));
-          end;
-          if CnSend(Sock, H^, 5 + CnGetTLSRecordLayerBodyLength(H), 0) = SOCKET_ERROR then
+          if not EncryptAndSendAppData(Sock, Req) then
           begin
             MySSLLog('Send ApplicationData failed');
             CnCloseSocket(Sock);
             Exit;
           end;
-          MySSLLog('Sent ApplicationData, Size: ' + IntToStr(5 + CnGetTLSRecordLayerBodyLength(H)));
-          Inc(ClientSeq);
-          FillChar(Buffer, SizeOf(Buffer), 0);
-          CnFDZero(Rs);
-          CnFDSet(Sock, Rs);
-
-          // 收包③：接收服务器应用数据（ApplicationData），按协商套件解密，输出HTTP响应
-          if CnSelect(Sock + 1, @Rs, nil, nil, nil) > 0 then
+          MySSLLog('Sent ApplicationData');
+          if ReadAndDecryptAppData(Sock, ServerPlain) then
           begin
-            BytesReceived := CnRecv(Sock, Buffer[0], Length(Buffer), 0);
-            MySSLLog(Format('SSL/TLS Get Response %d', [BytesReceived]));
-            TotalConsumed := 0;
-            while TotalConsumed < BytesReceived do
-            begin
-              H := PCnTLSRecordLayer(@Buffer[TotalConsumed]);
-              RecBodyLen := CnGetTLSRecordLayerBodyLength(H);
-              if H^.ContentType = CN_TLS_CONTENT_TYPE_APPLICATION_DATA then
-              begin
-                // 收包③-1：解密 ApplicationData（按 AES/SM4-GCM 或 ChaCha20-Poly1305 路径）
-                ExplicitNonce := NewBytesFromMemory(@H^.Body[0], 8);
-                SetLength(ServerEn, RecBodyLen - 8 - SizeOf(ServerFinTag));
-                Move((PAnsiChar(@H^.Body[0]) + 8)^, ServerEn[0], Length(ServerEn));
-                Move((PAnsiChar(@H^.Body[0]) + 8 + Length(ServerEn))^, ServerFinTag, SizeOf(ServerFinTag));
-                FillChar(AADFix2[0], SizeOf(AADFix2), 0);
-                for I := 0 to 7 do
-                  SeqBytes[7 - I] := Byte((ServerSeq shr (I * 8)) and $FF);
-                Move(SeqBytes[0], AADFix2[0], 8);
-                AADFix2[8] := CN_TLS_CONTENT_TYPE_APPLICATION_DATA;
-                AADFix2[9] := 3;
-                AADFix2[10] := 3;
-                AADFix2[11] := Byte(((RecBodyLen - 8 - SizeOf(ServerFinTag))) shr 8);
-                AADFix2[12] := Byte(((RecBodyLen - 8 - SizeOf(ServerFinTag))) and $FF);
-                AAD := NewBytesFromMemory(@AADFix2[0], SizeOf(AADFix2));
-                IVNonce := ConcatBytes(ServerFixedIV, ExplicitNonce);
-                if CipherIsSM4GCM then
-                  ServerPlain := SM4GCMDecryptBytes(ServerWriteKey, IVNonce, ServerEn, AAD, ServerFinTag)
-                else if KeyLen = 16 then
-                  ServerPlain := AES128GCMDecryptBytes(ServerWriteKey, IVNonce, ServerEn, AAD, ServerFinTag)
-                else
-                  ServerPlain := AES256GCMDecryptBytes(ServerWriteKey, IVNonce, ServerEn, AAD, ServerFinTag);
-                MySSLLog('ServerSeq used for AAD: ' + IntToStr(ServerSeq));
-                MySSLLog('Server AppData ExplicitNonce: ' + BytesToHex(ExplicitNonce));
-                MySSLLog('Server AppData AAD: ' + BytesToHex(AAD));
-                MySSLLog('Server AppData EnCipher Len: ' + IntToStr(Length(ServerEn)));
-                MySSLLog('Server AppData Tag: ' + BytesToHex(NewBytesFromMemory(@ServerFinTag, SizeOf(ServerFinTag))));
-                if Length(ServerPlain) > 0 then
-                begin
-                  SetLength(TmpStr, Length(ServerPlain));
-                  Move(ServerPlain[0], PAnsiChar(TmpStr)^, Length(ServerPlain));
-                  MySSLLog('HTTP Response Chunk: ' + string(TmpStr));
-                end
-                else
-                begin
-                  MySSLLog('Decrypt Server AppData Failed');
-                  CnCloseSocket(Sock);
-                  Exit;
-                end;
-                Inc(ServerSeq);
-              end
-              else if H^.ContentType = CN_TLS_CONTENT_TYPE_ALERT then
-              begin
-                // 收包④：Alert（通常为 close_notify，表示会话结束）
-                MySSLLog('Recv Alert');
-              end;
-              Inc(TotalConsumed, 5 + RecBodyLen);
-            end;
+            SetLength(TmpStr, Length(ServerPlain));
+            Move(ServerPlain[0], PAnsiChar(TmpStr)^, Length(ServerPlain));
+            MySSLLog('HTTP Response Chunk: ' + string(TmpStr));
+          end
+          else
+          begin
+            MySSLLog('Decrypt Server AppData Failed');
+            CnCloseSocket(Sock);
+            Exit;
           end;
-          Inc(ServerSeq);
           Break;
         end
         else if H^.ContentType = CN_TLS_CONTENT_TYPE_ALERT then
@@ -2584,6 +2506,260 @@ end;
 procedure TFormNetDecl.MySSLLog(const Str: string);
 begin
   mmoSSL.Lines.Add(Str);
+end;
+
+function TFormNetDecl.BuildAppDataAAD(Seq: TUInt64; PlainLen: Integer): TBytes;
+var
+  AADFix: array[0..12] of Byte;
+  SeqBytes: array[0..7] of Byte;
+  I: Integer;
+begin
+  FillChar(AADFix[0], SizeOf(AADFix), 0);
+  for I := 0 to 7 do
+    SeqBytes[7 - I] := Byte((Seq shr (I * 8)) and $FF);
+  Move(SeqBytes[0], AADFix[0], 8);
+  AADFix[8] := CN_TLS_CONTENT_TYPE_APPLICATION_DATA;
+  AADFix[9] := 3;
+  AADFix[10] := 3;
+  AADFix[11] := Byte(PlainLen shr 8);
+  AADFix[12] := Byte(PlainLen and $FF);
+  Result := NewBytesFromMemory(@AADFix[0], SizeOf(AADFix));
+end;
+
+function TFormNetDecl.TLSChaChaNonce(const FixedIV12: TBytes; Seq: TUInt64): TBytes;
+var
+  N: TBytes;
+  S: array[0..7] of Byte;
+  I: Integer;
+begin
+  SetLength(N, 12);
+  for I := 0 to 7 do
+    S[7 - I] := Byte((Seq shr (I * 8)) and $FF);
+  for I := 0 to 3 do
+    N[I] := FixedIV12[I];
+  for I := 0 to 7 do
+    N[4 + I] := FixedIV12[4 + I] xor S[I];
+  Result := N;
+end;
+
+function TFormNetDecl.EncryptAppDataBody(const Plain, AAD: TBytes; const Nonce: TBytes; out Tag: TCnGCM128Tag): TBytes;
+var
+  Stream: TCnChaChaState;
+  KS, OTK: TBytes;
+  I, J: Integer;
+  Body: TBytes;
+  ExplicitNonce: TBytes;
+  PadLen: Integer;
+  M: TBytes;
+  PD: TCnPoly1305Digest;
+  AL, CL: TUInt64;
+  Ls: array[0..15] of Byte;
+begin
+  Result := nil;
+  if FCipherIsChaCha20Poly1305 then
+  begin
+    ChaCha20Block(TCnChaChaKey(Pointer(@FClientWriteKey[0])^), TCnChaChaNonce(Pointer(@Nonce[0])^), 0, Stream);
+    SetLength(KS, 64);
+    for I := 0 to 15 do
+      for J := 0 to 3 do
+        KS[I * 4 + J] := Byte((Stream[I] shr (J * 8)) and $FF);
+    OTK := Copy(KS, 0, 32);
+    Body := ChaCha20EncryptBytes(TCnChaChaKey(Pointer(@FClientWriteKey[0])^), TCnChaChaNonce(Pointer(@Nonce[0])^), Plain);
+    M := nil;
+    if AAD <> nil then
+    begin
+      M := ConcatBytes(M, AAD);
+      PadLen := (16 - (Length(AAD) mod 16)) mod 16;
+      if PadLen > 0 then
+        M := ConcatBytes(M, NewZeroBytes(PadLen));
+    end;
+    if Body <> nil then
+    begin
+      M := ConcatBytes(M, Body);
+      PadLen := (16 - (Length(Body) mod 16)) mod 16;
+      if PadLen > 0 then
+        M := ConcatBytes(M, NewZeroBytes(PadLen));
+    end;
+    FillChar(Ls[0], SizeOf(Ls), 0);
+    AL := Length(AAD);
+    CL := Length(Body);
+    Move(AL, Ls[0], SizeOf(TUInt64));
+    Move(CL, Ls[8], SizeOf(TUInt64));
+    M := ConcatBytes(M, NewBytesFromMemory(@Ls[0], SizeOf(Ls)));
+    PD := Poly1305Bytes(M, OTK);
+    Move(PD[0], Tag[0], SizeOf(Tag));
+    Result := ConcatBytes(Body, NewBytesFromMemory(@Tag, SizeOf(Tag)));
+  end
+  else
+  begin
+    if FCipherIsSM4GCM then
+      Body := SM4GCMEncryptBytes(FClientWriteKey, Nonce, Plain, AAD, Tag)
+    else if FKeyLen = 16 then
+      Body := AES128GCMEncryptBytes(FClientWriteKey, Nonce, Plain, AAD, Tag)
+    else
+      Body := AES256GCMEncryptBytes(FClientWriteKey, Nonce, Plain, AAD, Tag);
+    ExplicitNonce := Copy(Nonce, Length(Nonce) - 8, 8);
+    Result := ConcatBytes(ExplicitNonce, Body, NewBytesFromMemory(@Tag, SizeOf(Tag)));
+  end;
+end;
+
+function TFormNetDecl.DecryptAppDataBody(const Body, AAD: TBytes; const Nonce: TBytes; var InTag: TCnGCM128Tag): TBytes;
+var
+  Stream: TCnChaChaState;
+  KS, OTK: TBytes;
+  I, J: Integer;
+  Cipher: TBytes;
+  CTag: TCnGCM128Tag;
+  M: TBytes;
+  PD: TCnPoly1305Digest;
+  PadLen: Integer;
+  AL, CL: TUInt64;
+  Ls: array[0..15] of Byte;
+begin
+  Result := nil;
+  if FCipherIsChaCha20Poly1305 then
+  begin
+    ChaCha20Block(TCnChaChaKey(Pointer(@FServerWriteKey[0])^), TCnChaChaNonce(Pointer(@Nonce[0])^), 0, Stream);
+    SetLength(KS, 64);
+    for I := 0 to 15 do
+      for J := 0 to 3 do
+        KS[I * 4 + J] := Byte((Stream[I] shr (J * 8)) and $FF);
+    OTK := Copy(KS, 0, 32);
+    if Length(Body) < SizeOf(TCnGCM128Tag) then Exit;
+    Cipher := Copy(Body, 0, Length(Body) - SizeOf(TCnGCM128Tag));
+    Move(Body[Length(Cipher)], CTag[0], SizeOf(CTag));
+    M := nil;
+    if AAD <> nil then
+    begin
+      M := ConcatBytes(M, AAD);
+      PadLen := (16 - (Length(AAD) mod 16)) mod 16;
+      if PadLen > 0 then
+        M := ConcatBytes(M, NewZeroBytes(PadLen));
+    end;
+    if Cipher <> nil then
+    begin
+      M := ConcatBytes(M, Cipher);
+      PadLen := (16 - (Length(Cipher) mod 16)) mod 16;
+      if PadLen > 0 then
+        M := ConcatBytes(M, NewZeroBytes(PadLen));
+    end;
+    FillChar(Ls[0], SizeOf(Ls), 0);
+    AL := Length(AAD);
+    CL := Length(Cipher);
+    Move(AL, Ls[0], SizeOf(TUInt64));
+    Move(CL, Ls[8], SizeOf(TUInt64));
+    M := ConcatBytes(M, NewBytesFromMemory(@Ls[0], SizeOf(Ls)));
+    PD := Poly1305Bytes(M, OTK);
+    if not CompareMem(@PD[0], @CTag[0], SizeOf(CTag)) then
+      Exit;
+    Result := ChaCha20DecryptBytes(TCnChaChaKey(Pointer(@FServerWriteKey[0])^), TCnChaChaNonce(Pointer(@Nonce[0])^), Cipher);
+  end
+  else
+  begin
+    MySSLLog('DecryptAppDataBody FKeyLen: ' + IntToStr(FKeyLen));
+    MySSLLog('DecryptAppDataBody FCipherIsSM4GCM: ' + BoolToStr(FCipherIsSM4GCM, True));
+    MySSLLog('DecryptAppDataBody Nonce Len: ' + IntToStr(Length(Nonce)) + ' Nonce: ' + BytesToHex(Nonce));
+    MySSLLog('DecryptAppDataBody AAD Len: ' + IntToStr(Length(AAD)) + ' AAD: ' + BytesToHex(AAD));
+    MySSLLog('DecryptAppDataBody Body Len: ' + IntToStr(Length(Body)));
+    MySSLLog('DecryptAppDataBody FServerWriteKey Len: ' + IntToStr(Length(FServerWriteKey)));
+    if FCipherIsSM4GCM then
+      Result := SM4GCMDecryptBytes(FServerWriteKey, Nonce, Body, AAD, InTag)
+    else if FKeyLen = 16 then
+      Result := AES128GCMDecryptBytes(FServerWriteKey, Nonce, Body, AAD, InTag)
+    else
+      Result := AES256GCMDecryptBytes(FServerWriteKey, Nonce, Body, AAD, InTag);
+    MySSLLog('DecryptAppDataBody Result Len: ' + IntToStr(Length(Result)));
+  end;
+end;
+
+function TFormNetDecl.EncryptAndSendAppData(const Sock: TSocket; const Plain: TBytes): Boolean;
+var
+  AAD, Nonce, Body: TBytes;
+  Tag: TCnGCM128Tag;
+  H: PCnTLSRecordLayer;
+  SendBuf: array[0..8191] of Byte;
+  SeqBE: array[0..7] of Byte;
+  I: Integer;
+begin
+  Result := False;
+  AAD := BuildAppDataAAD(FClientSeq, Length(Plain));
+  if FCipherIsChaCha20Poly1305 then
+    Nonce := TLSChaChaNonce(FClientFixedIV, FClientSeq)
+  else
+  begin
+    for I := 0 to 7 do
+      SeqBE[7 - I] := Byte((FClientSeq shr (I * 8)) and $FF);
+    Nonce := ConcatBytes(FClientFixedIV, NewBytesFromMemory(@SeqBE[0], 8));
+  end;
+  Body := EncryptAppDataBody(Plain, AAD, Nonce, Tag);
+  FillChar(SendBuf, SizeOf(SendBuf), 0);
+  H := PCnTLSRecordLayer(@SendBuf[0]);
+  H^.ContentType := CN_TLS_CONTENT_TYPE_APPLICATION_DATA;
+  H^.MajorVersion := 3;
+  H^.MinorVersion := 3;
+  CnSetTLSRecordLayerBodyLength(H, Length(Body));
+  Move(Body[0], H^.Body[0], Length(Body));
+  if CnSend(Sock, H^, 5 + CnGetTLSRecordLayerBodyLength(H), 0) = SOCKET_ERROR then
+    Exit;
+  Inc(FClientSeq);
+  Result := True;
+end;
+
+function TFormNetDecl.ReadAndDecryptAppData(const Sock: TSocket; out Plain: TBytes): Boolean;
+var
+  Buffer: array[0..8191] of Byte;
+  BytesReceived, TotalConsumed, RecBodyLen: Integer;
+  H: PCnTLSRecordLayer;
+  AAD, Nonce, Body: TBytes;
+  Tag: TCnGCM128Tag;
+  Explicit: TBytes;
+begin
+  Result := False;
+  Plain := nil;
+  FillChar(Buffer, SizeOf(Buffer), 0);
+  BytesReceived := CnRecv(Sock, Buffer[0], Length(Buffer), 0);
+  MySSLLog('ReadAndDecryptAppData BytesReceived: ' + IntToStr(BytesReceived));
+  if BytesReceived <= SizeOf(TCnTLSRecordLayer) then Exit;
+  TotalConsumed := 0;
+  while TotalConsumed < BytesReceived do
+  begin
+    H := PCnTLSRecordLayer(@Buffer[TotalConsumed]);
+    RecBodyLen := CnGetTLSRecordLayerBodyLength(H);
+    MySSLLog('ReadAndDecryptAppData ContentType: ' + IntToStr(H^.ContentType) + ' RecBodyLen: ' + IntToStr(RecBodyLen));
+    if H^.ContentType = CN_TLS_CONTENT_TYPE_APPLICATION_DATA then
+    begin
+      MySSLLog('ServerSeq used for AAD: ' + IntToStr(FServerSeq));
+      if FCipherIsChaCha20Poly1305 then
+      begin
+        SetLength(Body, RecBodyLen);
+        Move(H^.Body[0], Body[0], RecBodyLen);
+        AAD := BuildAppDataAAD(FServerSeq, RecBodyLen - SizeOf(TCnGCM128Tag));
+        Nonce := TLSChaChaNonce(FServerFixedIV, FServerSeq);
+        Move(Body[RecBodyLen - SizeOf(TCnGCM128Tag)], Tag, SizeOf(Tag));
+        Plain := DecryptAppDataBody(Body, AAD, Nonce, Tag);
+      end
+      else
+      begin
+        Explicit := NewBytesFromMemory(@H^.Body[0], 8);
+        SetLength(Body, RecBodyLen - 8 - SizeOf(TCnGCM128Tag));
+        Move((PAnsiChar(@H^.Body[0]) + 8)^, Body[0], Length(Body));
+        Move((PAnsiChar(@H^.Body[0]) + 8 + Length(Body))^, Tag, SizeOf(Tag));
+        AAD := BuildAppDataAAD(FServerSeq, Length(Body));
+        Nonce := ConcatBytes(FServerFixedIV, Explicit);
+        MySSLLog('Server AppData ExplicitNonce: ' + BytesToHex(Explicit));
+        MySSLLog('Server AppData AAD: ' + BytesToHex(AAD));
+        MySSLLog('Server AppData EnCipher Len: ' + IntToStr(Length(Body)));
+        MySSLLog('Server AppData Tag: ' + BytesToHex(NewBytesFromMemory(@Tag, SizeOf(Tag))));
+        Plain := DecryptAppDataBody(Body, AAD, Nonce, Tag);
+      end;
+      MySSLLog('ReadAndDecryptAppData Plain Len: ' + IntToStr(Length(Plain)));
+      if Length(Plain) = 0 then Exit;
+      Inc(FServerSeq);
+      Result := True;
+      Exit;
+    end;
+    Inc(TotalConsumed, 5 + RecBodyLen);
+  end;
 end;
 
 end.
