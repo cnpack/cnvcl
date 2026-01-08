@@ -1850,7 +1850,7 @@ begin
   SockAddress.sin_port := htons(Port);
 {$IFDEF MSWINDOWS}
   SockAddress.sin_addr.s_addr := WinSock.inet_addr(PAnsiChar(AnsiString(IpStr)));
-    {$ELSE}
+{$ELSE}
   SockAddress.sin_addr := StrToHostAddr(IpStr);
 {$ENDIF}
   if SOCKET_ERROR <> CnConnect(Sock, SockAddress, SizeOf(SockAddress)) then
@@ -1861,6 +1861,8 @@ begin
     ClientRecordCount := 0;
     ServerRecordCount := 0;
     FillChar(Buffer, SizeOf(Buffer), 0);
+
+    // 发包①：ClientHello（握手记录，内容含：版本、Random、Session、CipherSuites、扩展SNI/ALPN/曲线/签名/EMS）
     H := PCnTLSRecordLayer(@Buffer[0]);
     H^.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
     H^.MajorVersion := 3;
@@ -1922,9 +1924,10 @@ begin
     CnSetTLSHandShakeExtensionsExtensionType(EI,
       CN_TLS_EXTENSIONTYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION);
     SetLength(Ciphers, 0);
-    // Build ALPN: ProtocolNameList = 2-byte length + entries
+
+    // 构造 ALPN: ProtocolNameList = 2-byte length + entries
     // entries: 'h2' and 'http/1.1'
-    // total entries length = (1+2) + (1+8) = 12
+    // 总 entries length = (1+2) + (1+8) = 12
     SetLength(CompressionMethod, 2 + (1 + 2) + (1 + 8));
     CompressionMethod[0] := 0;
     CompressionMethod[1] := 12;
@@ -1959,6 +1962,9 @@ begin
     MySSLLog(Format('Transcript add: hs_type=%d len=%d', [B^.HandShakeType,
       CnGetTLSRecordLayerBodyLength(H)]));
     FillChar(Buffer, SizeOf(Buffer), 0);
+
+    // 收包①：读取服务器握手记录（可能分多包）
+    // 期望顺序：ServerHello →Certificate →ServerKeyExchange →ServerHelloDone
     BytesReceived := CnRecv(Sock, Buffer[0], Length(Buffer), 0);
     if BytesReceived <= SizeOf(TCnTLSRecordLayer) then
     begin
@@ -2049,7 +2055,8 @@ begin
         end;
       end
     end;
-    // Keep receiving until we have full SH, Certificate, SKE, SHD
+
+    // 收包①补充：若未收全 SH/Certificate/SKE/SHD，则继续 select/recv，直到四者齐备
     while not (GotSH and GotCert and GotSKE and GotSHD) do
     begin
       CnFDZero(Rs);
@@ -2101,6 +2108,8 @@ begin
     EccPrivKey := nil;
     EccPubKey := nil;
     PreMasterKey := nil;
+
+    // 计算 ECDHE 共享密钥，派生 pre_master，并发包②：ClientKeyExchange（握手记录，ECDHE 点，opaque8 长度前缀）
     try
       Ecc := TCnEcc.Create(CurveType);
       EccPrivKey := TCnEccPrivateKey.Create;
@@ -2193,6 +2202,8 @@ begin
         Exit;
       end;
       MySSLLog('MasterSecret: ' + BytesToHex(MasterKey));
+
+      // 发包③：ChangeCipherSpec（CCS，进入加密态；读/写记录序列在 CCS 后重置为0）
       H := PCnTLSRecordLayer(@Buffer[0]);
       H^.ContentType := CN_TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC;
       H^.MajorVersion := 3;
@@ -2213,6 +2224,8 @@ begin
       VerifyData := PseudoRandomFunc(MasterKey, 'client finished',
         EccDigestBytes(TotalHandShake, DigestType), DigestType, 12);
       MySSLLog('Client VerifyData: ' + BytesToHex(VerifyData));
+
+      // 发包④：Finished（握手记录，加密态；AAD 使用序列 0，长度=明文finished=16）
       H := PCnTLSRecordLayer(@Buffer[0]);
       H^.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
       H^.MajorVersion := 3;
@@ -2297,6 +2310,8 @@ begin
         CnGetTLSRecordLayerBodyLength(H)));
       Inc(ClientSeq);
       FillChar(Buffer, SizeOf(Buffer), 0);
+
+      // 收包②：等待并读取服务器的 CCS 与加密的 Finished（序列0）
       CnFDZero(Rs);
       CnFDSet(Sock, Rs);
       MySSLLog('Waiting server Finished...');
@@ -2331,6 +2346,7 @@ begin
         end
         else if H^.ContentType = CN_TLS_CONTENT_TYPE_HANDSHAKE then
         begin
+          // 收包②-1：服务器加密 Finished（握手记录），校验 verify_data，成功则握手完成
           MySSLLog('Recv Encrypted Handshake');
           MySSLLog('ServerSeq used for AAD: ' + IntToStr(ServerSeq));
           FillChar(AADFix2[0], SizeOf(AADFix2), 0);
@@ -2398,6 +2414,10 @@ begin
           Result := True;
           MySSLLog('Handshake Completed');
           Inc(ServerSeq);
+
+          // 发包⑤：应用数据（ApplicationData），发送 HTTP GET 请求
+          // AES/SM4-GCM：记录体=显式nonce(8)+密文+Tag(16)，nonce=FixedIV(4)+序列(8)
+          // ChaCha20-Poly1305：记录体=密文+Tag(16)，nonce=FixedIV(12) XOR (0..3零||序列8B)
           H := PCnTLSRecordLayer(@Buffer[0]);
           H^.ContentType := CN_TLS_CONTENT_TYPE_APPLICATION_DATA;
           H^.MajorVersion := 3;
@@ -2459,6 +2479,8 @@ begin
           FillChar(Buffer, SizeOf(Buffer), 0);
           CnFDZero(Rs);
           CnFDSet(Sock, Rs);
+
+          // 收包③：接收服务器应用数据（ApplicationData），按协商套件解密，输出HTTP响应
           if CnSelect(Sock + 1, @Rs, nil, nil, nil) > 0 then
           begin
             BytesReceived := CnRecv(Sock, Buffer[0], Length(Buffer), 0);
@@ -2470,6 +2492,7 @@ begin
               RecBodyLen := CnGetTLSRecordLayerBodyLength(H);
               if H^.ContentType = CN_TLS_CONTENT_TYPE_APPLICATION_DATA then
               begin
+                // 收包③-1：解密 ApplicationData（按 AES/SM4-GCM 或 ChaCha20-Poly1305 路径）
                 ExplicitNonce := NewBytesFromMemory(@H^.Body[0], 8);
                 SetLength(ServerEn, RecBodyLen - 8 - SizeOf(ServerFinTag));
                 Move((PAnsiChar(@H^.Body[0]) + 8)^, ServerEn[0], Length(ServerEn));
@@ -2512,6 +2535,7 @@ begin
               end
               else if H^.ContentType = CN_TLS_CONTENT_TYPE_ALERT then
               begin
+                // 收包④：Alert（通常为 close_notify，表示会话结束）
                 MySSLLog('Recv Alert');
               end;
               Inc(TotalConsumed, 5 + RecBodyLen);

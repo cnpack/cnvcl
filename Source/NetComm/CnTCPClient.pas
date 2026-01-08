@@ -78,7 +78,9 @@ type
     procedure DoDisconnect; virtual;
   public
     constructor Create(AOwner: TComponent); override;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     procedure Open;
     {* 开始连接，等同于 Active := True}
@@ -88,8 +90,8 @@ type
     class function LookupHostAddr(const HostName: string): string;
 
     // send/recv 收发数据封装
-    function Send(var Buf; Len: Integer; Flags: Integer = 0): Integer;
-    function Recv(var Buf; Len: Integer; Flags: Integer = 0): Integer;
+    function Send(var Buf; Len: Integer; Flags: Integer = 0): Integer; virtual;
+    function Recv(var Buf; Len: Integer; Flags: Integer = 0): Integer; virtual;
     // 注意 Recv 返回 0 时说明当前网络对方已断开，本 Client 会自动 Close。
     // 调用者也需要根据返回值做断开处理。
 
