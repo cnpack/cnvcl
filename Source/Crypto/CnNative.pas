@@ -90,6 +90,8 @@ type
   PByte = Windows.PByte;
   {* D5 下 PByte 定义在 Windows 中，其他版本定义在 System 中，
     这里统一一下供外界使用 PByte 时无需 uses Windows，以有利于跨平台，以下同}
+  PWord     = Windows.PWord;
+  {* D5 下 PWord 定义在 Windows 中}
   PShortInt = Windows.PShortInt;
   {* D5 下 PShortInt 定义在 Windows 中}
   PSmallInt = Windows.PSmallInt;

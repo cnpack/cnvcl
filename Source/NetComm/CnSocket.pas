@@ -47,6 +47,8 @@ type
 {$IFDEF MSWINDOWS}
   TCnFDSet = TFDSet;
   PCnFDSet = PFDSet;
+  TSocket = WinSock.TSocket;
+  TSockAddr = WinSock.sockaddr_in;
 {$ELSE}
 {$IFDEF FPC}
   TCnFDSet = TFDSet;
@@ -56,7 +58,6 @@ type
 {$ELSE}
   TCnFDSet = fd_set;
   PCNFDSet = Pfd_set;
-
   TSocket = Integer;
   TSockAddr = sockaddr_in;
 {$ENDIF}

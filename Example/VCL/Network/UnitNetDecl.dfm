@@ -153,14 +153,15 @@ object FormNetDecl: TFormNetDecl
         ScrollBars = ssBoth
         TabOrder = 2
       end
-      object btnSSLClient: TButton
-        Left = 536
+      object btnSSLClientBad: TButton
+        Left = 800
         Top = 16
         Width = 75
         Height = 25
-        Caption = 'TLS Client to'
+        Caption = 'TLS Client BAD'
         TabOrder = 3
-        OnClick = btnSSLClientClick
+        Visible = False
+        OnClick = btnSSLClientBadClick
       end
       object edtTLSHost: TEdit
         Left = 624
@@ -177,6 +178,15 @@ object FormNetDecl: TFormNetDecl
         Height = 21
         TabOrder = 5
         Text = '443'
+      end
+      object btnSSLClient: TButton
+        Left = 536
+        Top = 16
+        Width = 75
+        Height = 25
+        Caption = 'TLS Client to'
+        TabOrder = 6
+        OnClick = btnSSLClientClick
       end
     end
   end
