@@ -1688,6 +1688,26 @@ function ConcatBytes(const A: TBytes; const B: TBytes; const C: TBytes; const D:
    返回值：TBytes                         - 返回拼接的新字节数组
 }
 
+function NewZeroBytes(ByteLen: Integer): TBytes;
+{* 返回 ByteLen 字节长度的新字节数组。
+
+   参数：
+     ByteLen: Integer                     - 字节数组所需的字节长度
+
+   返回值：TBytes                         - 返回全零的新字节数组
+}
+
+function ConcatBytesMemory(const A: TBytes; Data: Pointer; DataByteLen: Integer): TBytes;
+{* 将一个字节数组与一片内存区域拼好返回一个新数组，原有字节数组与内存区域均不变。
+
+   参数：
+     const A: TBytes                      - 待拼接的字节数组
+     Data: Pointer                        - 待拼接的数据块地址
+     DataByteLen: Integer                 - 待拼接的数据块字节长度
+
+   返回值：TBytes                         - 返回拼接的新字节数组
+}
+
 function NewBytesFromMemory(Data: Pointer; DataByteLen: Integer): TBytes;
 {* 新建一字节数组，并从一片内存区域复制内容过来。
 
@@ -3568,6 +3588,34 @@ begin
     Move(C[0], Result[L1 + L2], L3);
   if L4 > 0 then
     Move(D[0], Result[L1 + L2 + L3], L4);
+end;
+
+function NewZeroBytes(ByteLen: Integer): TBytes;
+begin
+  if ByteLen > 0 then
+  begin
+    SetLength(Result, ByteLen);
+    FillChar(Result[0], ByteLen, 0);
+  end
+  else
+    Result := nil;
+end;
+
+function ConcatBytesMemory(const A: TBytes; Data: Pointer; DataByteLen: Integer): TBytes;
+var
+  L: Integer;
+begin
+  L := Length(A) + DataByteLen;
+  if L > 0 then
+  begin
+    SetLength(Result, L);
+    if Length(A) > 0 then
+      Move(A[0], Result[0], Length(A));
+    if (Data <> nil) and (DataByteLen > 0) then
+      Move(Data^, Result[Length(A)], DataByteLen);
+  end
+  else
+    Result := nil;
 end;
 
 function NewBytesFromMemory(Data: Pointer; DataByteLen: Integer): TBytes;
