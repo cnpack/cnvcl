@@ -76,6 +76,9 @@ type
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
     procedure DoConnect; virtual;
     procedure DoDisconnect; virtual;
+
+    property Socket: TSocket read FSocket;
+    {* 真正用于通讯的套接字}
   public
     constructor Create(AOwner: TComponent); override;
     {* 构造函数}
