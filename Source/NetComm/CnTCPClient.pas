@@ -71,9 +71,10 @@ type
     procedure SetActive(const Value: Boolean);
     procedure SetRemoteHost(const Value: string);
     procedure SetRemotePort(const Value: Word);
-    function CheckSocketError(ResultCode: Integer): Integer;
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
+    function CheckSocketError(ResultCode: Integer): Integer;
+
     procedure DoConnect; virtual;
     procedure DoDisconnect; virtual;
 
