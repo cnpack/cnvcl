@@ -61,8 +61,8 @@ type
     FSocket: TSocket;
     FActive: Boolean;
     FConnected: Boolean;
-    FBytesReceived: Cardinal;
-    FBytesSent: Cardinal;
+    FBytesReceived: Int64;
+    FBytesSent: Int64;
     FRemoteHost: string;
     FOnError: TCnClientSocketErrorEvent;
     FOnConnect: TNotifyEvent;
@@ -98,9 +98,9 @@ type
     // 注意 Recv 返回 0 时说明当前网络对方已断开，本 Client 会自动 Close。
     // 调用者也需要根据返回值做断开处理。
 
-    property BytesSent: Cardinal read FBytesSent;
+    property BytesSent: Int64 read FBytesSent;
     {* 发送给各客户端的总字节数}
-    property BytesReceived: Cardinal read FBytesReceived;
+    property BytesReceived: Int64 read FBytesReceived;
     {* 从各客户端收取的总字节数}
     property Connected: Boolean read FConnected;
     {* 是否已连接}

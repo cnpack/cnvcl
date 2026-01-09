@@ -60,8 +60,8 @@ type
     FRemoteIP: string;
     FRemotePort: Word;
     FServer: TCnThreadingTCPServer;
-    FBytesReceived: Cardinal;
-    FBytesSent: Cardinal;
+    FBytesReceived: Int64;
+    FBytesSent: Int64;
     FLocalIP: string;
     FLocalPort: Word;
     FTag: TObject;
@@ -94,9 +94,9 @@ type
     property Tag: TObject read FTag write FTag;
     {* Tag 用来存点儿别的东西}
 
-    property BytesSent: Cardinal read FBytesSent;
+    property BytesSent: Int64 read FBytesSent;
     {* 本客户端的发送字节数，用 Send 才会被统计}
-    property BytesReceived: Cardinal read FBytesReceived;
+    property BytesReceived: Int64 read FBytesReceived;
     {* 本客户端的收取字节数，用 Recv 才会被统计}
   end;
 
@@ -158,8 +158,8 @@ type
     FOnError: TCnServerSocketErrorEvent;
     FOnAccept: TCnSocketAcceptEvent;
     FCountLock: TCriticalSection;
-    FBytesReceived: Cardinal;
-    FBytesSent: Cardinal;
+    FBytesReceived: Int64;
+    FBytesSent: Int64;
     FOnShutdownClient: TNotifyEvent;
     FMaxConnections: Integer;
     procedure SetActive(const Value: Boolean);
@@ -199,9 +199,9 @@ type
     property Clients[Index: Integer]: TCnClientSocket read GetClient;
     {* 活动的客户端封装对象}
 
-    property BytesSent: Cardinal read FBytesSent;
+    property BytesSent: Int64 read FBytesSent;
     {* 发送给各客户端的总字节数}
-    property BytesReceived: Cardinal read FBytesReceived;
+    property BytesReceived: Int64 read FBytesReceived;
     {* 从各客户端收取的总字节数}
     property Listening: Boolean read FListening;
     {* 是否正在监听}
