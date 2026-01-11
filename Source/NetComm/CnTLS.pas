@@ -18,7 +18,7 @@
 {                                                                              }
 {******************************************************************************}
 
-unit CnTLSClient;
+unit CnTLS;
 {* |<PRE>
 ================================================================================
 * 软件名称：网络通讯组件包
@@ -47,6 +47,8 @@ uses
 
 type
   ECnTLSException = class(Exception);
+
+  TCnTLSType = (cttTLS1_2); // TLS 1.3 not now
 
   TCnTLSogEvent = procedure (Sender: TObject; const LogMsg: string) of object;
 
@@ -113,11 +115,6 @@ type
 
 implementation
 
-{$IFDEF MSWINDOWS}
-var
-  WSAData: TWSAData;
-{$ENDIF}
-
 resourcestring
   SCnTLSClientName = 'CnTLSClient';
   SCnTLSClientComment = 'TLS 1.2 Client Component';
@@ -127,7 +124,7 @@ resourcestring
   SDecryptionFailed = 'TLS Decryption failed';
   SInvalidCipherSuite = 'Invalid cipher suite: 0x%.4x';
 
-function UInt64ToBE8(Value: TUInt64): TBytes;
+function TLSUInt64ToBE8(Value: TUInt64): TBytes;
 var
   R: TBytes;
   I: Integer;
@@ -163,7 +160,7 @@ begin
   Result := N;
 end;
 
-function Poly1305TagTLS(AAD, C: TBytes; PolyKey: TBytes): TCnGCM128Tag;
+function TLSPoly1305Tag(AAD, C: TBytes; PolyKey: TBytes): TCnGCM128Tag;
 var
   M: TBytes;
   PadLen: Integer;
@@ -196,7 +193,7 @@ begin
   Move(D[0], Result[0], SizeOf(Result));
 end;
 
-function ChaCha20Poly1305EncryptTLS(Key, FixedIV12, Plain, AAD: TBytes; Seq: TUInt64; out Tag: TCnGCM128Tag): TBytes;
+function TLSChaCha20Poly1305Encrypt(Key, FixedIV12, Plain, AAD: TBytes; Seq: TUInt64; out Tag: TCnGCM128Tag): TBytes;
 var
   K: TCnChaChaKey;
   N: TCnChaChaNonce;
@@ -217,10 +214,10 @@ begin
   SetLength(Result, Length(Plain));
   if Length(Plain) > 0 then
     Result := ChaCha20EncryptBytes(K, N, Plain);
-  Tag := Poly1305TagTLS(AAD, Result, OTK);
+  Tag := TLSPoly1305Tag(AAD, Result, OTK);
 end;
 
-function ChaCha20Poly1305DecryptTLS(Key, FixedIV12, En, AAD: TBytes; Seq: TUInt64; InTag: TCnGCM128Tag): TBytes;
+function TLSChaCha20Poly1305Decrypt(Key, FixedIV12, En, AAD: TBytes; Seq: TUInt64; InTag: TCnGCM128Tag): TBytes;
 var
   K: TCnChaChaKey;
   N: TCnChaChaNonce;
@@ -239,7 +236,7 @@ begin
     for J := 0 to 3 do
       KS[I * 4 + J] := Byte((Stream[I] shr (J * 8)) and $FF);
   OTK := Copy(KS, 0, 32);
-  CTag := Poly1305TagTLS(AAD, En, OTK);
+  CTag := TLSPoly1305Tag(AAD, En, OTK);
   if not CompareMem(@CTag[0], @InTag[0], SizeOf(TCnGCM128Tag)) then
     Exit;
   SetLength(Result, Length(En));
@@ -247,7 +244,7 @@ begin
     Result := ChaCha20DecryptBytes(K, N, En);
 end;
 
-function EccDigestBytes(Data: TBytes; DigestType: TCnEccSignDigestType): TBytes;
+function TLSEccDigestBytes(Data: TBytes; DigestType: TCnEccSignDigestType): TBytes;
 var
   MD5Dig: TCnMD5Digest;
   SHA1Dig: TCnSHA1Digest;
@@ -291,7 +288,7 @@ begin
   end;
 end;
 
-function EccHMacBytes(Key: TBytes; Data: TBytes; DigestType:
+function TLSEccHMacBytes(Key: TBytes; Data: TBytes; DigestType:
   TCnEccSignDigestType): TBytes;
 var
   MD5Dig: TCnMD5Digest;
@@ -336,22 +333,22 @@ begin
   end;
 end;
 
-function PseudoRandomFunc(Secret: TBytes; const PLabel: AnsiString; Seed: TBytes;
+function TLSPseudoRandomFunc(Secret: TBytes; const PLabel: AnsiString; Seed: TBytes;
   DigestType: TCnEccSignDigestType; NeedLength: Integer): TBytes;
 var
   Data, Res, A: TBytes;
 begin
   Data := ConcatBytes(AnsiToBytes(PLabel), Seed);
-  A := EccHMacBytes(Secret, Data, DigestType);
+  A := TLSEccHMacBytes(Secret, Data, DigestType);
   Res := nil;
   repeat
-    Res := ConcatBytes(Res, EccHMacBytes(Secret, ConcatBytes(A, Data), DigestType));
-    A := EccHMacBytes(Secret, A, DigestType);
+    Res := ConcatBytes(Res, TLSEccHMacBytes(Secret, ConcatBytes(A, Data), DigestType));
+    A := TLSEccHMacBytes(Secret, A, DigestType);
   until Length(Res) >= NeedLength;
   Result := Copy(Res, 0, NeedLength);
 end;
 
-function ExtractEccCurveDigest(SigAlg: Word; out CurveType: TCnEccCurveType; out
+function TLSExtractEccCurveDigest(SigAlg: Word; out CurveType: TCnEccCurveType; out
   DigestType: TCnEccSignDigestType): Boolean;
 begin
   Result := True;
@@ -1109,10 +1106,10 @@ begin
       PreMasterBytes := BigNumberToBytes(PreMasterX, Ecc.BytesCount);
       DoTLSLog('PreMaster (X coord): ' + BytesToHex(PreMasterBytes));
       if EmsNegotiated then
-        MasterKey := PseudoRandomFunc(PreMasterBytes, 'extended master secret',
-          EccDigestBytes(TotalHandShake, DigestType), DigestType, 48)
+        MasterKey := TLSPseudoRandomFunc(PreMasterBytes, 'extended master secret',
+          TLSEccDigestBytes(TotalHandShake, DigestType), DigestType, 48)
       else
-        MasterKey := PseudoRandomFunc(PreMasterBytes, 'master secret',
+        MasterKey := TLSPseudoRandomFunc(PreMasterBytes, 'master secret',
           ConcatBytes(RandClient, RandServer), DigestType, 48);
     end
     else
@@ -1138,9 +1135,9 @@ begin
     DoTLSLog('Sent ChangeCipherSpec, Size: ' + IntToStr(5 +
       CnGetTLSRecordLayerBodyLength(H)));
     ClientSeq := 0;
-    DoTLSLog('HandshakeHash: ' + BytesToHex(EccDigestBytes(TotalHandShake, DigestType)));
-    VerifyData := PseudoRandomFunc(MasterKey, 'client finished',
-      EccDigestBytes(TotalHandShake, DigestType), DigestType, 12);
+    DoTLSLog('HandshakeHash: ' + BytesToHex(TLSEccDigestBytes(TotalHandShake, DigestType)));
+    VerifyData := TLSPseudoRandomFunc(MasterKey, 'client finished',
+      TLSEccDigestBytes(TotalHandShake, DigestType), DigestType, 12);
     DoTLSLog('Client VerifyData: ' + BytesToHex(VerifyData));
 
     // 发包④：Finished（握手记录，加密态；AAD 使用序列 0，长度=明文finished=16）
@@ -1175,7 +1172,7 @@ begin
     DoTLSLog('ClientSeq used for AAD: ' + IntToStr(ClientSeq));
     DoTLSLog('Client AAD: ' + BytesToHex(AAD));
     // move printing of full nonce after IV derived
-    KeyBlock := PseudoRandomFunc(MasterKey, 'key expansion', ConcatBytes(RandServer,
+    KeyBlock := TLSPseudoRandomFunc(MasterKey, 'key expansion', ConcatBytes(RandServer,
       RandClient), DigestType, 2 * KeyLen + 2 * IvLen);
     ClientWriteKey := Copy(KeyBlock, 0, KeyLen);
     ServerWriteKey := Copy(KeyBlock, KeyLen, KeyLen);
@@ -1202,7 +1199,7 @@ begin
     FCipherIsChaCha20Poly1305 := CipherIsChaCha20Poly1305;
     EnCipher := nil;
     if CipherIsChaCha20Poly1305 then
-      EnCipher := ChaCha20Poly1305EncryptTLS(ClientWriteKey, ClientFixedIV, PlainFinished, AAD, ClientSeq, Tag)
+      EnCipher := TLSChaCha20Poly1305Encrypt(ClientWriteKey, ClientFixedIV, PlainFinished, AAD, ClientSeq, Tag)
     else if CipherIsSM4GCM then
       EnCipher := SM4GCMEncryptBytes(ClientWriteKey, ConcatBytes(ClientFixedIV, ExplicitNonce), PlainFinished, AAD, Tag)
     else if KeyLen = 16 then
@@ -1294,7 +1291,7 @@ begin
           DoTLSLog('Server AAD: ' + BytesToHex(AAD));
           DoTLSLog('Server EnCipher Len: ' + IntToStr(Length(ServerEn)));
           DoTLSLog('Server Tag: ' + BytesToHex(NewBytesFromMemory(@ServerFinTag, SizeOf(ServerFinTag))));
-          ServerPlain := ChaCha20Poly1305DecryptTLS(ServerWriteKey, ServerFixedIV, ServerEn, AAD, ServerSeq, ServerFinTag);
+          ServerPlain := TLSChaCha20Poly1305Decrypt(ServerWriteKey, ServerFixedIV, ServerEn, AAD, ServerSeq, ServerFinTag);
         end
         else
         begin
@@ -1325,8 +1322,8 @@ begin
         DoTLSLog('Server Finished Decrypted Length: ' + IntToStr(Length(ServerPlain)));
         B := PCnTLSHandShakeHeader(@ServerPlain[0]);
         F := PCnTLSHandShakeFinished(@B^.Content[0]);
-        VerifyData := PseudoRandomFunc(MasterKey, 'server finished',
-          EccDigestBytes(TotalHandShake, DigestType), DigestType, 12);
+        VerifyData := TLSPseudoRandomFunc(MasterKey, 'server finished',
+          TLSEccDigestBytes(TotalHandShake, DigestType), DigestType, 12);
         Ok := CompareMem(@VerifyData[0], @F^.VerifyData[0], 12);
         DoTLSLog('Server VerifyData: ' + BytesToHex(VerifyData));
         DoTLSLog('Verify Match: ' + BoolToStr(Ok, True));
