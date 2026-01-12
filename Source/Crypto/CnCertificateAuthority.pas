@@ -54,7 +54,9 @@ unit CnCertificateAuthority;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2025.11.03 V1.7
+* 修改记录：2026.01.12 V1.8
+*               增加签 v2 证书的函数，允许指定标准扩展与私有互联网扩展
+*           2025.11.03 V1.7
 *               增加两个从字节数组中读证书及证书请求的封装函数
 *           2023.11.27 V1.6
 *               读 PEM 格式的 CRT 证书时也支持二进制 ASN.1 格式的 CER 证书
@@ -79,7 +81,7 @@ interface
 
 uses
   SysUtils, Classes, TypInfo, {$IFDEF MSWINDOWS} Windows, {$ENDIF} CnNative,
-  CnBigNumber, CnRSA, CnECC, CnBerUtils, CnPemUtils, CnMD5, CnSHA1, CnSHA2;
+  CnBigNumber, CnRSA, CnECC, CnBerUtils, CnPemUtils, CnMD5, CnSHA1, CnSHA2, CnSM3;
 
 const
   CN_CRT_BASIC_VERSION_1      = 0;
@@ -402,6 +404,16 @@ type
     {* 上级签发机构证书访问 URL}
   end;
 
+  TCnCertificateExtensionCriticals = record
+    KeyUsage: Boolean;
+    BasicConstraints: Boolean;
+    SubjectAltName: Boolean;
+    ExtendedKeyUsage: Boolean;
+    CRLDistributionPoints: Boolean;
+    AuthorityKeyIdentifier: Boolean;
+    AuthorityInformationAccess: Boolean;
+  end;
+
 {
   TBSCertificate  ::=  SEQUENCE
     version         [0]  EXPLICIT Version DEFAULT v1,
@@ -593,7 +605,7 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
   string; const OrganizationalUnitName: string; const CommonName: string; const
   EmailAddress: string; const IntSerialNum: string; NotBefore: TDateTime; NotAfter: TDateTime;
   CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
-{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 RSA CRT 格式的自签名证书，目前只支持 v1 格式。
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 RSA CRT 格式的自签名证书，使用 v1 格式。
 
    参数：
      PrivateKey: TCnRSAPrivateKey         - 用于生成自签名证书的 RSA 私钥
@@ -620,7 +632,7 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
   const OrganizationalUnitName: string; const CommonName: string; const EmailAddress: string;
   const IntSerialNum: string; NotBefore: TDateTime; NotAfter: TDateTime;
   CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
-{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，目前只支持 v1 格式。
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，使用 v1 格式。
 
    参数：
      PrivateKey: TCnEccPrivateKey         - 用于生成自签名证书的 ECC 私钥
@@ -640,6 +652,67 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
      CASignType: TCnCASignType            - 签名杂凑算法类型
 
    返回值：Boolean                        - 返回生成是否成功
+}
+
+function CnCANewSelfSignedCertificate2(PrivateKey: TCnRSAPrivateKey; PublicKey:
+  TCnRSAPublicKey; const OutCRTFile: string; const CountryName: string; const
+  StateOrProvinceName: string; const LocalityName: string; const OrganizationName:
+  string; const OrganizationalUnitName: string; const CommonName: string; const
+  EmailAddress: string; const IntSerialNum: string; NotBefore: TDateTime; NotAfter: TDateTime;
+  StandardExt: TCnCertificateStandardExtensions; PrivateInternetExt:
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType = ctSha256RSA): Boolean; overload;
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 RSA CRT 格式的自签名证书，使用 v2 格式。
+
+   参数：
+     PrivateKey: TCnRSAPrivateKey                                         - 用于生成自签名证书的 RSA 私钥
+     PublicKey: TCnRSAPublicKey                                           - 用于生成自签名证书的 RSA 公钥
+     const OutCRTFile: string                                             - 输出的证书文件名
+     const CountryName: string                                            - 国家名
+     const StateOrProvinceName: string                                    - 州名或省名
+     const LocalityName: string                                           - 地区名或城市名
+     const OrganizationName: string                                       - 组织名
+     const OrganizationalUnitName: string                                 - 组织单位名
+     const CommonName: string                                             - 域名
+     const EmailAddress: string                                           - 电子邮件地址
+     const IntSerialNum: string                                           - 序列号
+     NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
+     StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
+     PrivateInternetExt: TCnCertificatePrivateInternetExtensions          - 待写入证书的私有互联网扩展内容
+     CASignType: TCnCASignType                                            - 签名杂凑算法类型
+
+   返回值：Boolean                                                        - 返回生成是否成功
+}
+
+function CnCANewSelfSignedCertificate2(PrivateKey: TCnEccPrivateKey; PublicKey:
+  TCnEccPublicKey; CurveType: TCnEccCurveType; const OutCRTFile: string; const CountryName: string;
+  const StateOrProvinceName: string; const LocalityName: string; const OrganizationName: string;
+  const OrganizationalUnitName: string; const CommonName: string; const EmailAddress: string;
+  const IntSerialNum: string; NotBefore: TDateTime; NotAfter: TDateTime;
+  StandardExt: TCnCertificateStandardExtensions; PrivateInternetExt:
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType = ctSha256Ecc): Boolean; overload;
+{* 根据公私钥与一些 DN 信息以及指定杂凑算法生成 ECC CRT 格式的自签名证书，使用 v2 格式。
+
+   参数：
+     PrivateKey: TCnEccPrivateKey                                         - 用于生成自签名证书的 ECC 私钥
+     PublicKey: TCnEccPublicKey                                           - 用于生成自签名证书的 ECC 公钥
+     CurveType: TCnEccCurveType                                           - 用于生成自签名证书的椭圆曲线类型
+     const OutCRTFile: string                                             - 输出的证书文件名
+     const CountryName: string                                            - 国家名
+     const StateOrProvinceName: string                                    - 州名或省名
+     const LocalityName: string                                           - 地区名或城市名
+     const OrganizationName: string                                       - 组织名
+     const OrganizationalUnitName: string                                 - 组织单位名
+     const CommonName: string                                             - 域名
+     const EmailAddress: string                                           - 电子邮件地址
+     const IntSerialNum: string                                           - 序列号
+     NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
+     StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
+     PrivateInternetExt: TCnCertificatePrivateInternetExtensions          - 待写入证书的私有互联网扩展内容
+     CASignType: TCnCASignType                                            - 签名杂凑算法类型
+
+   返回值：Boolean                                                        - 返回生成是否成功
 }
 
 function CnCALoadCertificateSignRequestFromFile(const FileName: string;
@@ -796,7 +869,7 @@ function CnCALoadCertificateFromStream(Stream: TStream;
 function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string;
   const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
   NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
-{* 用 RSA CRT 证书内容与对应私钥签署证书请求，生成被签发证书，目前只支持 v1 格式，
+{* 用 RSA CRT 证书内容与对应私钥签署证书请求，生成被签发证书，使用 v1 格式，
    兼容客户端证书请求是 ECC/RSA 的情形。
 
    参数：
@@ -815,7 +888,7 @@ function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string
 function CnCASignCertificate(PrivateKey: TCnEccPrivateKey; CurveType: TCnEccCurveType;
   const CRTFile: string; const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
   NotBefore: TDateTime; NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1Ecc): Boolean; overload;
-{* 用 ECC CRT 证书内容与对应私钥签署证书请求，生成被签发证书，目前只支持 v1 格式，
+{* 用 ECC CRT 证书内容与对应私钥签署证书请求，生成被签发证书，使用 v1 格式，
    兼容客户端证书请求是 ECC/RSA 的情形。
 
    参数：
@@ -832,7 +905,54 @@ function CnCASignCertificate(PrivateKey: TCnEccPrivateKey; CurveType: TCnEccCurv
    返回值：Boolean                        - 返回生成是否成功
 }
 
-// =============================== 其他辅助函数 ================================
+function CnCASignCertificate2(PrivateKey: TCnRSAPrivateKey; const CRTFile: string;
+  const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
+  NotBefore: TDateTime; NotAfter: TDateTime; StandardExt: TCnCertificateStandardExtensions;
+  PrivateInternetExt: TCnCertificatePrivateInternetExtensions;
+  CASignType: TCnCASignType = ctSha256RSA): Boolean; overload;
+{* 用 RSA CRT 证书内容与对应私钥签署证书请求，生成被签发证书，使用 v2 格式，
+   兼容客户端证书请求是 ECC/RSA 的情形。
+
+   参数：
+     PrivateKey: TCnRSAPrivateKey                                         - 用于签发证书的上级 RSA 私钥
+     const CRTFile: string                                                - 用于签发的上级证书
+     const CSRFile: string                                                - 待签发的证书请求文件
+     const OutCRTFile: string                                             - 输出的签发证书
+     const IntSerialNum: string                                           - 序列号
+     NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
+     StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
+     PrivateInternetExt: TCnCertificatePrivateInternetExtensions          - 待写入证书的私有互联网扩展内容
+     CASignType: TCnCASignType                                            - 签名杂凑算法类型
+
+   返回值：Boolean                                                        - 返回生成是否成功
+}
+
+function CnCASignCertificate2(PrivateKey: TCnEccPrivateKey; CurveType: TCnEccCurveType;
+  const CRTFile: string; const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
+  NotBefore: TDateTime; NotAfter: TDateTime; StandardExt: TCnCertificateStandardExtensions;
+  PrivateInternetExt: TCnCertificatePrivateInternetExtensions;
+  CASignType: TCnCASignType = ctSha256Ecc): Boolean; overload;
+{* 用 ECC CRT 证书内容与对应私钥签署证书请求，生成被签发证书，使用 v2 格式，
+   兼容客户端证书请求是 ECC/RSA 的情形。
+
+   参数：
+     PrivateKey: TCnEccPrivateKey                                         - 用于签发证书的上级 ECC 私钥
+     CurveType: TCnEccCurveType                                           - 用于签发证书的上级椭圆曲线类型
+     const CRTFile: string                                                - 用于签发的上级证书
+     const CSRFile: string                                                - 待签发的证书请求文件
+     const OutCRTFile: string                                             - 输出的签发证书
+     const IntSerialNum: string                                           - 序列号
+     NotBefore: TDateTime                                                 - 证书有效期开始的日期时间
+     NotAfter: TDateTime                                                  - 证书有效期结束的日期时间
+     StandardExt: TCnCertificateStandardExtensions                        - 待写入证书的标准扩展内容
+     PrivateInternetExt: TCnCertificatePrivateInternetExtensions          - 待写入证书的私有互联网扩展内容
+     CASignType: TCnCASignType                                            - 签名杂凑算法类型
+
+   返回值：Boolean                                                        - 返回生成是否成功
+}
+
+// ========================== 其他证书相关辅助函数 =============================
 
 function AddCASignTypeOIDNodeToWriter(AWriter: TCnBerWriter; CASignType: TCnCASignType;
   AParent: TCnBerWriteNode): TCnBerWriteNode;
@@ -1033,6 +1153,7 @@ var
   Sha256: TCnSHA256Digest;
   Sha384: TCnSHA384Digest;
   Sha512: TCnSHA512Digest;
+  Sm3: TCnSM3Digest;
 begin
   Result := False;
   case CASignType of
@@ -1066,39 +1187,28 @@ begin
         outStream.Write(Sha512, SizeOf(TCnSHA512Digest));
         Result := True;
       end;
-  end;
-end;
-
-function GetRSASignTypeFromCASignType(CASignType: TCnCASignType): TCnRSASignDigestType;
-begin
-  Result := rsdtSHA1;
-  case CASignType of
-    ctMd5RSA:
-      Result := rsdtMD5;
-    ctSha1RSA:
-      Result := rsdtSHA1;
-    ctSha256RSA:
-      Result := rsdtSHA256;
-  end;
-end;
-
-function GetEccSignTypeFromCASignType(CASignType: TCnCASignType): TCnEccSignDigestType;
-begin
-  Result := esdtSHA1;
-  case CASignType of
-    ctMd5Ecc:
-      Result := esdtMD5;
-    ctSha1Ecc:
-      Result := esdtSHA1;
-    ctSha256Ecc:
-      Result := esdtSHA256;
     ctSM2withSM3:
-      Result := esdtSM3;
-    ctSha384Ecc:
-      Result := esdtSHA384;
-    ctSha512Ecc:
-      Result := esdtSHA512;
+      begin
+        Sm3 := SM3Buffer(Buffer, Count);
+        outStream.Write(Sm3, SizeOf(TCnSM3Digest));
+        Result := True;
+      end;
   end;
+end;
+
+{
+  SET(1 elem)
+    SEQUENCE(2 elem)
+      OBJECT IDENTIFIER (X.520 DN component)
+      PrintableString
+}
+function AddDNOidValueToWriter(AWriter: TCnBerWriter; DNRoot: TCnBerWriteNode;
+  AOID: PByte; AOIDLen: Integer; const DN: string; BerTag: Integer = CN_BER_TAG_PRINTABLESTRING): TCnBerWriteNode;
+begin
+  Result := AWriter.AddContainerNode(CN_BER_TAG_SET, DNRoot);
+  Result := AWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, Result);
+  AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, AOID, AOIDLen, Result);
+  AWriter.AddAnsiStringNode(BerTag, AnsiString(DN), Result);
 end;
 
 { 写如下格式的 RSA 公钥节点
@@ -1278,6 +1388,790 @@ begin
   AWriter.AddBasicNode(ATag, @AnsiDN[1], Length(AnsiDN), ANode);
 end;
 
+function GetRSASignTypeFromCASignType(CASignType: TCnCASignType): TCnRSASignDigestType;
+begin
+  Result := rsdtSHA1;
+  case CASignType of
+    ctMd5RSA:
+      Result := rsdtMD5;
+    ctSha1RSA:
+      Result := rsdtSHA1;
+    ctSha256RSA:
+      Result := rsdtSHA256;
+  end;
+end;
+
+function GetEccSignTypeFromCASignType(CASignType: TCnCASignType): TCnEccSignDigestType;
+begin
+  Result := esdtSHA1;
+  case CASignType of
+    ctMd5Ecc:
+      Result := esdtMD5;
+    ctSha1Ecc:
+      Result := esdtSHA1;
+    ctSha256Ecc:
+      Result := esdtSHA256;
+    ctSM2withSM3:
+      Result := esdtSM3;
+    ctSha384Ecc:
+      Result := esdtSHA384;
+    ctSha512Ecc:
+      Result := esdtSHA512;
+  end;
+end;
+
+function BuildBytesFromWriter(W: TCnBerWriter): TBytes;
+var
+  S: TMemoryStream;
+begin
+  S := TMemoryStream.Create;
+  try
+    W.SaveToStream(S);
+    SetLength(Result, S.Size);
+    if S.Size > 0 then
+    begin
+      S.Position := 0;
+      S.ReadBuffer(Result[0], S.Size);
+    end;
+  finally
+    S.Free;
+  end;
+end;
+
+procedure AddExtensionWithInner(Writer: TCnBerWriter; ParentSeq: TCnBerWriteNode;
+  OIDPtr: PByte; OIDLen: Integer; Critical: Boolean; InnerWriter: TCnBerWriter);
+var
+  ExtItem: TCnBerWriteNode;
+  CriticalByte: Byte;
+  Buf: TBytes;
+begin
+  ExtItem := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, ParentSeq);
+  Writer.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, OIDPtr, OIDLen, ExtItem);
+  if Critical then
+  begin
+    CriticalByte := $FF;
+    Writer.AddBasicNode(CN_BER_TAG_BOOLEAN, @CriticalByte, 1, ExtItem);
+  end;
+  Buf := BuildBytesFromWriter(InnerWriter);
+  if Length(Buf) > 0 then
+    Writer.AddBasicNode(CN_BER_TAG_OCTET_STRING, @Buf[0], Length(Buf), ExtItem);
+end;
+
+procedure AddExtensionsToTBSCertificate(Writer: TCnBerWriter; BasicNode: TCnBerWriteNode;
+  StandardExt: TCnCertificateStandardExtensions;
+  PrivateInternetExt: TCnCertificatePrivateInternetExtensions;
+  const Criticals: TCnCertificateExtensionCriticals);
+var
+  ExtCtx, ExtSeq: TCnBerWriteNode;
+  Inner: TCnBerWriter;
+  I: Integer;
+  S: string;
+  A: AnsiString;
+  B: TBytes;
+  KUByte, UnusedBits: Byte;
+  EKU: TCnExtendedKeyUsage;
+  UriA: AnsiString;
+  OcspA: AnsiString;
+  IpParts: TStringList;
+  N: Integer;
+  SanSeq, BcSeq, EkuSeq, AkiSeq, AiaSeq, DpSeq, Dp, FullNameCtx, GnSeq: TCnBerWriteNode;
+  Ad, Ad2: TCnBerWriteNode;
+begin
+  ExtCtx := Writer.AddContainerNode(3, BasicNode);
+  ExtCtx.BerTypeMask := $80;
+  ExtSeq := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, ExtCtx);
+
+  if Assigned(StandardExt) and (StandardExt.SubjectAltName <> nil) and (StandardExt.SubjectAltName.Count > 0) then
+  begin
+    Inner := TCnBerWriter.Create;
+    try
+      SanSeq := Inner.AddContainerNode(CN_BER_TAG_SEQUENCE, nil);
+      for I := 0 to StandardExt.SubjectAltName.Count - 1 do
+      begin
+        S := StandardExt.SubjectAltName[I];
+        if (Length(S) > 4) and (LowerCase(Copy(S, 1, 4)) = 'dns:') then
+        begin
+          A := AnsiString(Copy(S, 5, MaxInt));
+          Inner.AddRawNode($82, @A[1], Length(A), SanSeq);
+        end
+        else if (Length(S) > 6) and (LowerCase(Copy(S, 1, 6)) = 'email:') then
+        begin
+          A := AnsiString(Copy(S, 7, MaxInt));
+          Inner.AddRawNode($81, @A[1], Length(A), SanSeq);
+        end
+        else if (Length(S) > 4) and (LowerCase(Copy(S, 1, 4)) = 'uri:') then
+        begin
+          A := AnsiString(Copy(S, 5, MaxInt));
+          Inner.AddRawNode($86, @A[1], Length(A), SanSeq);
+        end
+        else if (Length(S) > 3) and (LowerCase(Copy(S, 1, 3)) = 'ip:') then
+        begin
+          S := Copy(S, 4, MaxInt);
+          if Pos('.', S) > 0 then
+          begin
+            IpParts := TStringList.Create;
+            try
+              ExtractStrings(['.'], [' '], PChar(S), IpParts);
+              if IpParts.Count = 4 then
+              begin
+                SetLength(B, 4);
+                for N := 0 to 3 do
+                  B[N] := Byte(StrToIntDef(IpParts[N], 0));
+                Inner.AddRawNode($87, @B[0], Length(B), SanSeq);
+              end;
+            finally
+              IpParts.Free;
+            end;
+          end;
+        end
+        else
+        begin
+          A := AnsiString(S);
+          Inner.AddRawNode($82, @A[1], Length(A), SanSeq);
+        end;
+      end;
+      AddExtensionWithInner(Writer, ExtSeq, @OID_EXT_SUBJECTALTNAME[0], SizeOf(OID_EXT_SUBJECTALTNAME),
+        Criticals.SubjectAltName, Inner);
+    finally
+      Inner.Free;
+    end;
+  end;
+
+  if Assigned(StandardExt) then
+  begin
+    Inner := TCnBerWriter.Create;
+    try
+      KUByte := 0;
+      if kuDigitalSignature in StandardExt.KeyUsage then KUByte := KUByte or (1 shl 0);
+      if kuContentCommitment in StandardExt.KeyUsage then KUByte := KUByte or (1 shl 1);
+      if kuKeyEncipherment in StandardExt.KeyUsage then KUByte := KUByte or (1 shl 2);
+      if kuDataEncipherment in StandardExt.KeyUsage then KUByte := KUByte or (1 shl 3);
+      if kuKeyAgreement in StandardExt.KeyUsage then KUByte := KUByte or (1 shl 4);
+      if kuKeyCertSign in StandardExt.KeyUsage then KUByte := KUByte or (1 shl 5);
+      if kuCRLSign in StandardExt.KeyUsage then KUByte := KUByte or (1 shl 6);
+      if kuEncipherOnly in StandardExt.KeyUsage then KUByte := KUByte or (1 shl 7);
+      SetLength(B, 2);
+      UnusedBits := 0;
+      B[0] := UnusedBits;
+      B[1] := KUByte;
+      Inner.AddBasicNode(CN_BER_TAG_BIT_STRING, @B[0], Length(B), nil);
+      AddExtensionWithInner(Writer, ExtSeq, @OID_EXT_KEYUSAGE[0], SizeOf(OID_EXT_KEYUSAGE),
+        Criticals.KeyUsage, Inner);
+    finally
+      Inner.Free;
+    end;
+  end;
+
+  if Assigned(StandardExt) then
+  begin
+    Inner := TCnBerWriter.Create;
+    try
+      BcSeq := Inner.AddContainerNode(CN_BER_TAG_SEQUENCE, nil);
+      if StandardExt.BasicConstraintsCA then
+      begin
+        SetLength(B, 1);
+        B[0] := $FF;
+        Inner.AddBasicNode(CN_BER_TAG_BOOLEAN, @B[0], 1, BcSeq);
+      end;
+      if StandardExt.BasicConstraintsPathLen > 0 then
+      begin
+        N := StandardExt.BasicConstraintsPathLen;
+        Inner.AddBasicNode(CN_BER_TAG_INTEGER, @N, SizeOf(N), BcSeq);
+      end;
+      AddExtensionWithInner(Writer, ExtSeq, @OID_EXT_BASICCONSTRAINTS[0], SizeOf(OID_EXT_BASICCONSTRAINTS),
+        Criticals.BasicConstraints, Inner);
+    finally
+      Inner.Free;
+    end;
+  end;
+
+  if Assigned(StandardExt) then
+  begin
+    Inner := TCnBerWriter.Create;
+    try
+      EkuSeq := Inner.AddContainerNode(CN_BER_TAG_SEQUENCE, nil);
+      for EKU := Low(TCnExtendedKeyUsage) to High(TCnExtendedKeyUsage) do
+      begin
+        if EKU in StandardExt.ExtendedKeyUsage then
+        begin
+          case EKU of
+            ekuServerAuth:
+              Inner.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EXT_EXT_KEYUSAGE_SERVERAUTH[0],
+                SizeOf(OID_EXT_EXT_KEYUSAGE_SERVERAUTH), EkuSeq);
+            ekuClientAuth:
+              Inner.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EXT_EXT_KEYUSAGE_CLIENTAUTH[0],
+                SizeOf(OID_EXT_EXT_KEYUSAGE_CLIENTAUTH), EkuSeq);
+            ekuCodeSigning:
+              Inner.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EXT_EXT_KEYUSAGE_CODESIGNING[0],
+                SizeOf(OID_EXT_EXT_KEYUSAGE_CODESIGNING), EkuSeq);
+            ekuEmailProtection:
+              Inner.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EXT_EXT_KEYUSAGE_EMAILPROTECTION[0],
+                SizeOf(OID_EXT_EXT_KEYUSAGE_EMAILPROTECTION), EkuSeq);
+            ekuTimeStamping:
+              Inner.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EXT_EXT_KEYUSAGE_TIMESTAMPING[0],
+                SizeOf(OID_EXT_EXT_KEYUSAGE_TIMESTAMPING), EkuSeq);
+            ekuOCSPSigning:
+              Inner.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EXT_EXT_KEYUSAGE_OCSPSIGNING[0],
+                SizeOf(OID_EXT_EXT_KEYUSAGE_OCSPSIGNING), EkuSeq);
+          end;
+        end;
+      end;
+      AddExtensionWithInner(Writer, ExtSeq, @OID_EXT_EXTKEYUSAGE[0], SizeOf(OID_EXT_EXTKEYUSAGE),
+        Criticals.ExtendedKeyUsage, Inner);
+    finally
+      Inner.Free;
+    end;
+  end;
+
+  if Assigned(StandardExt) and (Length(StandardExt.AuthorityKeyIdentifier) > 0) then
+  begin
+    Inner := TCnBerWriter.Create;
+    try
+      AkiSeq := Inner.AddContainerNode(CN_BER_TAG_SEQUENCE, nil);
+      A := StandardExt.AuthorityKeyIdentifier;
+      Inner.AddBasicNode(CN_BER_TAG_OCTET_STRING, @A[1], Length(A), AkiSeq);
+      AddExtensionWithInner(Writer, ExtSeq, @OID_EXT_AUTHORITYKEYIDENTIFIER[0], SizeOf(OID_EXT_AUTHORITYKEYIDENTIFIER),
+        Criticals.AuthorityKeyIdentifier, Inner);
+    finally
+      Inner.Free;
+    end;
+  end;
+
+  if Assigned(PrivateInternetExt) then
+  begin
+    Inner := TCnBerWriter.Create;
+    try
+      AiaSeq := Inner.AddContainerNode(CN_BER_TAG_SEQUENCE, nil);
+      if PrivateInternetExt.AuthorityInformationAccessOcsp <> '' then
+      begin
+        OcspA := AnsiString(PrivateInternetExt.AuthorityInformationAccessOcsp);
+        Ad := Inner.AddContainerNode(CN_BER_TAG_SEQUENCE, AiaSeq);
+        Inner.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EXT_EXT_AUTHORITYINFOACCESS_OCSP[0],
+          SizeOf(OID_EXT_EXT_AUTHORITYINFOACCESS_OCSP), Ad);
+        Inner.AddRawNode($86, @OcspA[1], Length(OcspA), Ad);
+      end;
+      if PrivateInternetExt.AuthorityInformationAccessCaIssuers <> '' then
+      begin
+        UriA := AnsiString(PrivateInternetExt.AuthorityInformationAccessCaIssuers);
+        Ad2 := Inner.AddContainerNode(CN_BER_TAG_SEQUENCE, AiaSeq);
+        Inner.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, @OID_EXT_EXT_AUTHORITYINFOACCESS_CAISSUERS[0],
+          SizeOf(OID_EXT_EXT_AUTHORITYINFOACCESS_CAISSUERS), Ad2);
+        Inner.AddRawNode($86, @UriA[1], Length(UriA), Ad2);
+      end;
+      AddExtensionWithInner(Writer, ExtSeq, @OID_EXT_AUTHORITYINFOACCESS[0], SizeOf(OID_EXT_AUTHORITYINFOACCESS),
+        Criticals.AuthorityInformationAccess, Inner);
+    finally
+      Inner.Free;
+    end;
+  end;
+
+  if Assigned(StandardExt) and (StandardExt.CRLDistributionPoints <> nil) and (StandardExt.CRLDistributionPoints.Count > 0) then
+  begin
+    Inner := TCnBerWriter.Create;
+    try
+      DpSeq := Inner.AddContainerNode(CN_BER_TAG_SEQUENCE, nil);
+      for I := 0 to StandardExt.CRLDistributionPoints.Count - 1 do
+      begin
+        S := StandardExt.CRLDistributionPoints[I];
+        Dp := Inner.AddContainerNode(CN_BER_TAG_SEQUENCE, DpSeq);
+        FullNameCtx := Inner.AddContainerNode(0, Dp);
+        FullNameCtx.BerTypeMask := $80;
+        GnSeq := Inner.AddContainerNode(CN_BER_TAG_SEQUENCE, FullNameCtx);
+        A := AnsiString(S);
+        Inner.AddRawNode($86, @A[1], Length(A), GnSeq);
+      end;
+      AddExtensionWithInner(Writer, ExtSeq, @OID_EXT_CRLDISTRIBUTIONPOINTS[0], SizeOf(OID_EXT_CRLDISTRIBUTIONPOINTS),
+        Criticals.CRLDistributionPoints, Inner);
+    finally
+      Inner.Free;
+    end;
+  end;
+end;
+
+function CnCANewSelfSignedCertificate2(PrivateKey: TCnRSAPrivateKey; PublicKey:
+  TCnRSAPublicKey; const OutCRTFile: string; const CountryName: string; const
+  StateOrProvinceName: string; const LocalityName: string; const OrganizationName:
+  string; const OrganizationalUnitName: string; const CommonName: string; const
+  EmailAddress: string; const IntSerialNum: string; NotBefore, NotAfter: TDateTime;
+  StandardExt: TCnCertificateStandardExtensions; PrivateInternetExt:
+  TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType): Boolean;
+var
+  Writer: TCnBerWriter;
+  Root, BasicNode, SubjectNode: TCnBerWriteNode;
+  ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
+  SerialNum: TCnBigNumber;
+  UTCTime: TCnUTCTime;
+  Stream: TMemoryStream;
+  Buf: TBytes;
+  VerNode: TCnBerWriteNode;
+  B: Byte;
+  Crit: TCnCertificateExtensionCriticals;
+begin
+  Result := False;
+  if NotAfter <= NotBefore then
+    Exit;
+
+  Writer := nil;
+  SerialNum := nil;
+  UTCTime := nil;
+  Stream := nil;
+
+  try
+    Writer := TCnBerWriter.Create;
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+
+    VerNode := Writer.AddContainerNode(0, BasicNode);
+    VerNode.BerTypeMask := $80;
+    B := 2;
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
+    SerialNum := TCnBigNumber.Create;
+    SerialNum.SetDec(AnsiString(IntSerialNum));
+    SetLength(Buf, SerialNum.GetBytesCount);
+    SerialNum.ToBinary(@Buf[0]);
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+
+    Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
+    Writer.AddNullNode(Node);
+
+    IssuerNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    ValidNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    SubjectNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME), CountryName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0], SizeOf(OID_DN_STATEORPROVINCENAME), StateOrProvinceName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0], SizeOf(OID_DN_LOCALITYNAME), LocalityName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0], SizeOf(OID_DN_ORGANIZATIONNAME), OrganizationName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0], SizeOf(OID_DN_ORGANIZATIONALUNITNAME), OrganizationalUnitName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME), CommonName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS), EmailAddress, CN_BER_TAG_IA5STRING);
+
+    UTCTime := TCnUTCTime.Create;
+    UTCTime.SetDateTime(NotBefore);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
+    UTCTime.SetDateTime(NotAfter);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
+
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME), CountryName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_STATEORPROVINCENAME[0], SizeOf(OID_DN_STATEORPROVINCENAME), StateOrProvinceName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_LOCALITYNAME[0], SizeOf(OID_DN_LOCALITYNAME), LocalityName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONNAME[0], SizeOf(OID_DN_ORGANIZATIONNAME), OrganizationName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONALUNITNAME[0], SizeOf(OID_DN_ORGANIZATIONALUNITNAME), OrganizationalUnitName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME), CommonName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS), EmailAddress, CN_BER_TAG_IA5STRING);
+
+    WriteRSAPublicKeyToNode(Writer, PubNode, PublicKey);
+
+    Crit.KeyUsage := True;
+    if (StandardExt <> nil) and StandardExt.BasicConstraintsCA then
+      Crit.BasicConstraints := True
+    else
+      Crit.BasicConstraints := False;
+    Crit.SubjectAltName := False;
+    Crit.ExtendedKeyUsage := False;
+    Crit.CRLDistributionPoints := False;
+    Crit.AuthorityKeyIdentifier := False;
+    Crit.AuthorityInformationAccess := False;
+    AddExtensionsToTBSCertificate(Writer, BasicNode, StandardExt, PrivateInternetExt, Crit);
+
+    if not GenerateRSASignatureNode(Writer, Root, BasicNode, PrivateKey, CASignType) then
+      Exit;
+
+    Stream := TMemoryStream.Create;
+    Writer.SaveToStream(Stream);
+    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+      PEM_CERTIFICATE_TAIL, Stream);
+  finally
+    Writer.Free;
+    Stream.Free;
+    SerialNum.Free;
+    UTCTime.Free;
+  end;
+end;
+
+function CnCANewSelfSignedCertificate2(PrivateKey: TCnEccPrivateKey; PublicKey:
+  TCnEccPublicKey; CurveType: TCnEccCurveType; const OutCRTFile: string; const CountryName: string;
+  const StateOrProvinceName: string; const LocalityName: string; const OrganizationName: string;
+  const OrganizationalUnitName: string; const CommonName: string; const EmailAddress: string;
+  const IntSerialNum: string; NotBefore, NotAfter: TDateTime; StandardExt:
+  TCnCertificateStandardExtensions; PrivateInternetExt: TCnCertificatePrivateInternetExtensions;
+  CASignType: TCnCASignType): Boolean;
+var
+  Writer: TCnBerWriter;
+  Root, BasicNode, SubjectNode: TCnBerWriteNode;
+  ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
+  SerialNum: TCnBigNumber;
+  UTCTime: TCnUTCTime;
+  Stream: TMemoryStream;
+  Buf: TBytes;
+  VerNode: TCnBerWriteNode;
+  B: Byte;
+  Crit: TCnCertificateExtensionCriticals;
+begin
+  Result := False;
+  if NotAfter <= NotBefore then
+    Exit;
+  if CurveType = ctCustomized then
+    Exit;
+
+  Writer := nil;
+  SerialNum := nil;
+  UTCTime := nil;
+  Stream := nil;
+
+  try
+    Writer := TCnBerWriter.Create;
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+
+    VerNode := Writer.AddContainerNode(0, BasicNode);
+    VerNode.BerTypeMask := $80;
+    B := 2;
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
+    SerialNum := TCnBigNumber.Create;
+    SerialNum.SetDec(AnsiString(IntSerialNum));
+    SetLength(Buf, SerialNum.GetBytesCount);
+    SerialNum.ToBinary(@Buf[0]);
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+
+    Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
+    Writer.AddNullNode(Node);
+
+    IssuerNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    ValidNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    SubjectNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME), CountryName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0], SizeOf(OID_DN_STATEORPROVINCENAME), StateOrProvinceName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0], SizeOf(OID_DN_LOCALITYNAME), LocalityName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0], SizeOf(OID_DN_ORGANIZATIONNAME), OrganizationName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0], SizeOf(OID_DN_ORGANIZATIONALUNITNAME), OrganizationalUnitName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME), CommonName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS), EmailAddress, CN_BER_TAG_IA5STRING);
+
+    UTCTime := TCnUTCTime.Create;
+    UTCTime.SetDateTime(NotBefore);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
+    UTCTime.SetDateTime(NotAfter);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
+
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0], SizeOf(OID_DN_COUNTRYNAME), CountryName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_STATEORPROVINCENAME[0], SizeOf(OID_DN_STATEORPROVINCENAME), StateOrProvinceName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_LOCALITYNAME[0], SizeOf(OID_DN_LOCALITYNAME), LocalityName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONNAME[0], SizeOf(OID_DN_ORGANIZATIONNAME), OrganizationName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONALUNITNAME[0], SizeOf(OID_DN_ORGANIZATIONALUNITNAME), OrganizationalUnitName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COMMONNAME[0], SizeOf(OID_DN_COMMONNAME), CommonName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_EMAILADDRESS[0], SizeOf(OID_DN_EMAILADDRESS), EmailAddress, CN_BER_TAG_IA5STRING);
+
+    if not WriteEccPublicKeyToNode(Writer, PubNode, PublicKey, CurveType) then
+      Exit;
+
+    Crit.KeyUsage := True;
+    if (StandardExt <> nil) and StandardExt.BasicConstraintsCA then
+      Crit.BasicConstraints := True
+    else
+      Crit.BasicConstraints := False;
+    Crit.SubjectAltName := False;
+    Crit.ExtendedKeyUsage := False;
+    Crit.CRLDistributionPoints := False;
+    Crit.AuthorityKeyIdentifier := False;
+    Crit.AuthorityInformationAccess := False;
+    AddExtensionsToTBSCertificate(Writer, BasicNode, StandardExt, PrivateInternetExt, Crit);
+
+    if not GenerateEccSignatureNode(Writer, Root, BasicNode, PrivateKey, CurveType, CASignType) then
+      Exit;
+
+    Stream := TMemoryStream.Create;
+    Writer.SaveToStream(Stream);
+    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+      PEM_CERTIFICATE_TAIL, Stream);
+  finally
+    Writer.Free;
+    Stream.Free;
+    SerialNum.Free;
+    UTCTime.Free;
+  end;
+end;
+
+function CnCASignCertificate2(PrivateKey: TCnRSAPrivateKey; const CRTFile: string;
+  const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
+  NotBefore, NotAfter: TDateTime; StandardExt: TCnCertificateStandardExtensions;
+  PrivateInternetExt: TCnCertificatePrivateInternetExtensions; CASignType: TCnCASignType): Boolean;
+var
+  Writer: TCnBerWriter;
+  Root, BasicNode, SubjectNode: TCnBerWriteNode;
+  ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
+  SerialNum: TCnBigNumber;
+  UTCTime: TCnUTCTime;
+  Stream: TMemoryStream;
+  Buf: TBytes;
+  VerNode: TCnBerWriteNode;
+  B: Byte;
+  CSR: TCnCertificateRequest;
+  CRT: TCnCertificate;
+  Crit: TCnCertificateExtensionCriticals;
+begin
+  Result := False;
+  if (PrivateKey = nil) or not FileExists(CRTFile) or not FileExists(CSRFile) then
+    Exit;
+
+  if not (CASignType in RSA_CA_TYPES) then
+    Exit;
+
+  CSR := nil;
+  CRT := nil;
+  Writer := nil;
+  SerialNum := nil;
+  UTCTime := nil;
+  Stream := nil;
+
+  try
+    CSR := TCnCertificateRequest.Create;
+    if not CnCAVerifyCertificateSignRequestFile(CSRFile) or not
+      CnCALoadCertificateSignRequestFromFile(CSRFile, CSR) then
+      Exit;
+
+    CRT := TCnCertificate.Create;
+    if not CnCALoadCertificateFromFile(CRTFile, CRT) then
+      Exit;
+
+    Writer := TCnBerWriter.Create;
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+
+    // 显式写版本号
+    VerNode := Writer.AddContainerNode(0, BasicNode);
+    VerNode.BerTypeMask := $80;
+    B := 2;
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
+
+    SerialNum := TCnBigNumber.Create;
+    SerialNum.SetDec(AnsiString(IntSerialNum));
+    SetLength(Buf, SerialNum.GetBytesCount);
+    SerialNum.ToBinary(@Buf[0]);
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+
+    Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
+    Writer.AddNullNode(Node);
+
+    IssuerNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    ValidNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    SubjectNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
+      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Issuer.CountryName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
+      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Issuer.StateOrProvinceName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
+      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Issuer.LocalityName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Issuer.OrganizationName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Issuer.OrganizationalUnitName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
+      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Issuer.CommonName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
+      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Issuer.EmailAddress, CN_BER_TAG_IA5STRING);
+
+    UTCTime := TCnUTCTime.Create;
+    UTCTime.SetDateTime(NotBefore);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
+    UTCTime.SetDateTime(NotAfter);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
+
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0],
+      SizeOf(OID_DN_COUNTRYNAME), CSR.CertificateRequestInfo.CountryName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_STATEORPROVINCENAME[0],
+      SizeOf(OID_DN_STATEORPROVINCENAME), CSR.CertificateRequestInfo.StateOrProvinceName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_LOCALITYNAME[0],
+      SizeOf(OID_DN_LOCALITYNAME), CSR.CertificateRequestInfo.LocalityName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONNAME), CSR.CertificateRequestInfo.OrganizationName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CSR.CertificateRequestInfo.OrganizationalUnitName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COMMONNAME[0],
+      SizeOf(OID_DN_COMMONNAME), CSR.CertificateRequestInfo.CommonName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_EMAILADDRESS[0],
+      SizeOf(OID_DN_EMAILADDRESS), CSR.CertificateRequestInfo.EmailAddress, CN_BER_TAG_IA5STRING);
+
+    if CSR.IsRSA then
+      WriteRSAPublicKeyToNode(Writer, PubNode, CSR.RSAPublicKey)
+    else
+      WriteEccPublicKeyToNode(Writer, PubNode, CSR.EccPublicKey, CSR.EccCurveType);
+
+    Crit.KeyUsage := True;
+    if (StandardExt <> nil) and StandardExt.BasicConstraintsCA then
+      Crit.BasicConstraints := True
+    else
+      Crit.BasicConstraints := False;
+    Crit.SubjectAltName := False;
+    Crit.ExtendedKeyUsage := False;
+    Crit.CRLDistributionPoints := False;
+    Crit.AuthorityKeyIdentifier := False;
+    Crit.AuthorityInformationAccess := False;
+    AddExtensionsToTBSCertificate(Writer, BasicNode, StandardExt, PrivateInternetExt, Crit);
+
+    if not GenerateRSASignatureNode(Writer, Root, BasicNode, PrivateKey, CASignType) then
+      Exit;
+
+    Stream := TMemoryStream.Create;
+    Writer.SaveToStream(Stream);
+    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+      PEM_CERTIFICATE_TAIL, Stream);
+  finally
+    Writer.Free;
+    Stream.Free;
+    SerialNum.Free;
+    UTCTime.Free;
+    CSR.Free;
+    CRT.Free;
+  end;
+end;
+
+function CnCASignCertificate2(PrivateKey: TCnEccPrivateKey; CurveType: TCnEccCurveType; const CRTFile: string;
+  const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
+  NotBefore, NotAfter: TDateTime; StandardExt: TCnCertificateStandardExtensions;
+  PrivateInternetExt: TCnCertificatePrivateInternetExtensions;
+  CASignType: TCnCASignType): Boolean;
+var
+  Writer: TCnBerWriter;
+  Root, BasicNode, SubjectNode: TCnBerWriteNode;
+  ValidNode, PubNode, IssuerNode, Node: TCnBerWriteNode;
+  SerialNum: TCnBigNumber;
+  UTCTime: TCnUTCTime;
+  Stream: TMemoryStream;
+  Buf: TBytes;
+  CSR: TCnCertificateRequest;
+  CRT: TCnCertificate;
+  VerNode: TCnBerWriteNode;
+  B: Byte;
+  Crit: TCnCertificateExtensionCriticals;
+begin
+  Result := False;
+  if (PrivateKey = nil) or not FileExists(CRTFile) or not FileExists(CSRFile) then
+    Exit;
+
+  if not (CASignType in ECC_CA_TYPES) then
+    Exit;
+
+  CSR := nil;
+  CRT := nil;
+  Writer := nil;
+  SerialNum := nil;
+  UTCTime := nil;
+  Stream := nil;
+
+  try
+    CSR := TCnCertificateRequest.Create;
+    if not CnCAVerifyCertificateSignRequestFile(CSRFile) or not
+      CnCALoadCertificateSignRequestFromFile(CSRFile, CSR) then
+      Exit;
+
+    CRT := TCnCertificate.Create;
+    if not CnCALoadCertificateFromFile(CRTFile, CRT) then
+      Exit;
+
+    Writer := TCnBerWriter.Create;
+    Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
+    BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
+
+    // 显式写版本号
+    VerNode := Writer.AddContainerNode(0, BasicNode);
+    VerNode.BerTypeMask := $80;
+    B := 2;
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
+
+    SerialNum := TCnBigNumber.Create;
+    SerialNum.SetDec(AnsiString(IntSerialNum));
+    SetLength(Buf, SerialNum.GetBytesCount);
+    SerialNum.ToBinary(@Buf[0]);
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @Buf[0], Length(Buf), BasicNode);
+
+    Node := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    AddCASignTypeOIDNodeToWriter(Writer, CASignType, Node);
+    Writer.AddNullNode(Node);
+
+    IssuerNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    ValidNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    SubjectNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+    PubNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, BasicNode);
+
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COUNTRYNAME[0],
+      SizeOf(OID_DN_COUNTRYNAME), CRT.BasicCertificate.Issuer.CountryName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_STATEORPROVINCENAME[0],
+      SizeOf(OID_DN_STATEORPROVINCENAME), CRT.BasicCertificate.Issuer.StateOrProvinceName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_LOCALITYNAME[0],
+      SizeOf(OID_DN_LOCALITYNAME), CRT.BasicCertificate.Issuer.LocalityName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONNAME), CRT.BasicCertificate.Issuer.OrganizationName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CRT.BasicCertificate.Issuer.OrganizationalUnitName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_COMMONNAME[0],
+      SizeOf(OID_DN_COMMONNAME), CRT.BasicCertificate.Issuer.CommonName);
+    AddDNOidValueToWriter(Writer, IssuerNode, @OID_DN_EMAILADDRESS[0],
+      SizeOf(OID_DN_EMAILADDRESS), CRT.BasicCertificate.Issuer.EmailAddress, CN_BER_TAG_IA5STRING);
+
+    UTCTime := TCnUTCTime.Create;
+    UTCTime.SetDateTime(NotBefore);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
+    UTCTime.SetDateTime(NotAfter);
+    Writer.AddAnsiStringNode(CN_BER_TAG_UTCTIME, AnsiString(UTCTime.UTCTimeString), ValidNode);
+
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COUNTRYNAME[0],
+      SizeOf(OID_DN_COUNTRYNAME), CSR.CertificateRequestInfo.CountryName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_STATEORPROVINCENAME[0],
+      SizeOf(OID_DN_STATEORPROVINCENAME), CSR.CertificateRequestInfo.StateOrProvinceName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_LOCALITYNAME[0],
+      SizeOf(OID_DN_LOCALITYNAME), CSR.CertificateRequestInfo.LocalityName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONNAME), CSR.CertificateRequestInfo.OrganizationName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_ORGANIZATIONALUNITNAME[0],
+      SizeOf(OID_DN_ORGANIZATIONALUNITNAME), CSR.CertificateRequestInfo.OrganizationalUnitName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_COMMONNAME[0],
+      SizeOf(OID_DN_COMMONNAME), CSR.CertificateRequestInfo.CommonName);
+    AddDNOidValueToWriter(Writer, SubjectNode, @OID_DN_EMAILADDRESS[0],
+      SizeOf(OID_DN_EMAILADDRESS), CSR.CertificateRequestInfo.EmailAddress, CN_BER_TAG_IA5STRING);
+
+    if CSR.IsRSA then
+      WriteRSAPublicKeyToNode(Writer, PubNode, CSR.RSAPublicKey)
+    else
+      WriteEccPublicKeyToNode(Writer, PubNode, CSR.EccPublicKey, CSR.EccCurveType);
+
+    Crit.KeyUsage := True;
+    if (StandardExt <> nil) and StandardExt.BasicConstraintsCA then
+      Crit.BasicConstraints := True
+    else
+      Crit.BasicConstraints := False;
+    Crit.SubjectAltName := False;
+    Crit.ExtendedKeyUsage := False;
+    Crit.CRLDistributionPoints := False;
+    Crit.AuthorityKeyIdentifier := False;
+    Crit.AuthorityInformationAccess := False;
+    AddExtensionsToTBSCertificate(Writer, BasicNode, StandardExt, PrivateInternetExt, Crit);
+
+    if not GenerateEccSignatureNode(Writer, Root, BasicNode, PrivateKey, CurveType, CASignType) then
+      Exit;
+
+    Stream := TMemoryStream.Create;
+    Writer.SaveToStream(Stream);
+    Result := SaveMemoryToPemFile(OutCRTFile, PEM_CERTIFICATE_HEAD,
+      PEM_CERTIFICATE_TAIL, Stream);
+  finally
+    Writer.Free;
+    Stream.Free;
+    SerialNum.Free;
+    UTCTime.Free;
+    CSR.Free;
+    CRT.Free;
+  end;
+end;
+
 function CnCANewCertificateSignRequest(PrivateKey: TCnRSAPrivateKey; PublicKey:
   TCnRSAPublicKey; const OutCSRFile: string; const CountryName: string;
   const StateOrProvinceName: string; const LocalityName: string; const OrganizationName: string;
@@ -1349,7 +2243,7 @@ function CnCANewCertificateSignRequest(PrivateKey: TCnEccPrivateKey; PublicKey:
   TCnEccPublicKey; CurveType: TCnEccCurveType; const OutCSRFile: string; const CountryName: string;
   const StateOrProvinceName: string; const LocalityName: string; const OrganizationName: string;
   const OrganizationalUnitName: string; const CommonName: string; const EmailAddress: string;
-  CASignType: TCnCASignType = ctSha1Ecc): Boolean;
+  CASignType: TCnCASignType): Boolean;
 var
   B: Byte;
   OutBuf: TBytes;
@@ -2625,7 +3519,7 @@ begin
     if Result then
     begin
       Node := (Node.Parent as TCnBerReadNode).GetNextSibling;
-      if (Node <> nil) then  // BITString 又无需跳过了
+      if Node <> nil then  // BITString 又无需跳过了
       begin
         Reader.ManualParseNodeData(Node);
         if Node.Count = 1 then
@@ -2778,27 +3672,12 @@ begin
   Result := Result + SCRLF + 'CRL Distribution Points: '+ SCRLF + FCRLDistributionPoints.Text;
 end;
 
-{
-  SET(1 elem)
-    SEQUENCE(2 elem)
-      OBJECT IDENTIFIER (X.520 DN component)
-      PrintableString
-}
-function AddDNOidValueToWriter(AWriter: TCnBerWriter; DNRoot: TCnBerWriteNode;
-  AOID: PByte; AOIDLen: Integer; const DN: string; BerTag: Integer = CN_BER_TAG_PRINTABLESTRING): TCnBerWriteNode;
-begin
-  Result := AWriter.AddContainerNode(CN_BER_TAG_SET, DNRoot);
-  Result := AWriter.AddContainerNode(CN_BER_TAG_SEQUENCE, Result);
-  AWriter.AddBasicNode(CN_BER_TAG_OBJECT_IDENTIFIER, AOID, AOIDLen, Result);
-  AWriter.AddAnsiStringNode(BerTag, AnsiString(DN), Result);
-end;
-
 function CnCANewSelfSignedCertificate(PrivateKey: TCnRSAPrivateKey; PublicKey:
   TCnRSAPublicKey; const OutCRTFile: string; const CountryName: string; const
   StateOrProvinceName: string; const LocalityName: string; const OrganizationName:
   string; const OrganizationalUnitName: string; const CommonName: string; const
   EmailAddress: string; const IntSerialNum: string; NotBefore, NotAfter: TDateTime;
-  CASignType: TCnCASignType = ctSha1RSA): Boolean;
+  CASignType: TCnCASignType): Boolean;
 var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
@@ -2807,6 +3686,8 @@ var
   UTCTime: TCnUTCTime;
   Stream: TMemoryStream;
   Buf: TBytes;
+  VerNode: TCnBerWriteNode;
+  B: Byte;
 begin
   Result := False;
   if NotAfter <= NotBefore then
@@ -2822,7 +3703,13 @@ begin
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
     BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
 
-    // 版本忽略，写序列号
+    // 显式写 v1 版本号
+    VerNode := Writer.AddContainerNode(0, BasicNode);
+    VerNode.BerTypeMask := $80;
+    B := 1;
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
+
+    // 写序列号
     SerialNum := TCnBigNumber.Create;
     SerialNum.SetDec(AnsiString(IntSerialNum));
     SetLength(Buf, SerialNum.GetBytesCount);
@@ -2888,7 +3775,7 @@ function CnCANewSelfSignedCertificate(PrivateKey: TCnEccPrivateKey; PublicKey:
   TCnEccPublicKey; CurveType: TCnEccCurveType; const OutCRTFile: string; const CountryName: string;
   const StateOrProvinceName: string; const LocalityName: string; const OrganizationName: string;
   const OrganizationalUnitName: string; const CommonName: string; const EmailAddress: string;
-  const IntSerialNum: string; NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1RSA): Boolean; overload;
+  const IntSerialNum: string; NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType): Boolean;
 var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
@@ -2897,6 +3784,8 @@ var
   UTCTime: TCnUTCTime;
   Stream: TMemoryStream;
   Buf: TBytes;
+  VerNode: TCnBerWriteNode;
+  B: Byte;
 begin
   Result := False;
   if NotAfter <= NotBefore then
@@ -2914,7 +3803,13 @@ begin
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
     BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
 
-    // 版本忽略，写序列号
+    // 显式写 v1 版本号
+    VerNode := Writer.AddContainerNode(0, BasicNode);
+    VerNode.BerTypeMask := $80;
+    B := 1;
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
+
+    // 写序列号
     SerialNum := TCnBigNumber.Create;
     SerialNum.SetDec(AnsiString(IntSerialNum));
     SetLength(Buf, SerialNum.GetBytesCount);
@@ -2982,7 +3877,7 @@ end;
 }
 function CnCASignCertificate(PrivateKey: TCnRSAPrivateKey; const CRTFile: string;
   const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
-  NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1RSA): Boolean;
+  NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType): Boolean;
 var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
@@ -2993,6 +3888,8 @@ var
   Buf: TBytes;
   CSR: TCnCertificateRequest;
   CRT: TCnCertificate;
+  VerNode: TCnBerWriteNode;
+  B: Byte;
 begin
   Result := False;
   if (PrivateKey = nil) or not FileExists(CRTFile) or not FileExists(CSRFile) then
@@ -3022,7 +3919,13 @@ begin
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
     BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
 
-    // 版本忽略，写序列号
+    // 显式写 v1 版本号
+    VerNode := Writer.AddContainerNode(0, BasicNode);
+    VerNode.BerTypeMask := $80;
+    B := 1;
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
+
+    // 写序列号
     SerialNum := TCnBigNumber.Create;
     SerialNum.SetDec(AnsiString(IntSerialNum));
     SetLength(Buf, SerialNum.GetBytesCount);
@@ -3108,7 +4011,7 @@ end;
 }
 function CnCASignCertificate(PrivateKey: TCnEccPrivateKey; CurveType: TCnEccCurveType; const CRTFile: string;
   const CSRFile: string; const OutCRTFile: string; const IntSerialNum: string;
-  NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType = ctSha1Ecc): Boolean;
+  NotBefore, NotAfter: TDateTime; CASignType: TCnCASignType): Boolean;
 var
   Writer: TCnBerWriter;
   Root, BasicNode, SubjectNode: TCnBerWriteNode;
@@ -3119,6 +4022,8 @@ var
   Buf: TBytes;
   CSR: TCnCertificateRequest;
   CRT: TCnCertificate;
+  VerNode: TCnBerWriteNode;
+  B: Byte;
 begin
   Result := False;
   if (PrivateKey = nil) or not FileExists(CRTFile) or not FileExists(CSRFile) then
@@ -3148,7 +4053,13 @@ begin
     Root := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE);
     BasicNode := Writer.AddContainerNode(CN_BER_TAG_SEQUENCE, Root);
 
-    // 版本忽略，写序列号
+    // 显式写 v1 版本号
+    VerNode := Writer.AddContainerNode(0, BasicNode);
+    VerNode.BerTypeMask := $80;
+    B := 1;
+    Writer.AddBasicNode(CN_BER_TAG_INTEGER, @B, 1, VerNode);
+
+    // 写序列号
     SerialNum := TCnBigNumber.Create;
     SerialNum.SetDec(AnsiString(IntSerialNum));
     SetLength(Buf, SerialNum.GetBytesCount);
