@@ -55,6 +55,15 @@ object FormTCPServer: TFormTCPServer
     TabOrder = 2
     OnClick = btnOpenClick
   end
+  object btnOpenTLS: TButton
+    Left = 320
+    Top = 24
+    Width = 97
+    Height = 57
+    Caption = 'Start TLS Server'
+    TabOrder = 4
+    OnClick = btnOpenTLSClick
+  end
   object mmoResult: TMemo
     Left = 24
     Top = 96

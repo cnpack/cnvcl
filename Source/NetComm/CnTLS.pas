@@ -113,6 +113,15 @@ type
     property OnTLSLog: TCnTLSogEvent read FOnTLSLog write FOnTLSLog;
   end;
 
+function TLSUInt64ToBE8(Value: TUInt64): TBytes;
+function TLSChaChaNonce(const FixedIV12: TBytes; Seq: TUInt64): TBytes;
+function TLSPoly1305Tag(AAD, C: TBytes; PolyKey: TBytes): TCnGCM128Tag;
+function TLSChaCha20Poly1305Encrypt(Key, FixedIV12, Plain, AAD: TBytes; Seq: TUInt64; out Tag: TCnGCM128Tag): TBytes;
+function TLSChaCha20Poly1305Decrypt(Key, FixedIV12, En, AAD: TBytes; Seq: TUInt64; InTag: TCnGCM128Tag): TBytes;
+function TLSEccDigestBytes(Data: TBytes; DigestType: TCnEccSignDigestType): TBytes;
+function TLSEccHMacBytes(Key, Data: TBytes; DigestType: TCnEccSignDigestType): TBytes;
+function TLSPseudoRandomFunc(Secret: TBytes; const PLabel: AnsiString; Seed: TBytes; DigestType: TCnEccSignDigestType; NeedLength: Integer): TBytes;
+
 implementation
 
 resourcestring
@@ -759,6 +768,9 @@ var
   RecBodyLen: Integer;
   Ok: Boolean;
   IpStr: string;
+  ExtConsumed: Integer;
+  ExtTotalLen: Integer;
+  PBody: PByte;
 {$IFNDEF MSWINDOWS}
   HE: THostEntry;
 {$ENDIF}
@@ -766,6 +778,8 @@ var
   AADFix2: array[0..12] of Byte;
   SeqBytes: array[0..7] of Byte;
   I: Integer;
+  Off: Integer;
+  L3: Integer;
   EmsNegotiated: Boolean;
   Lvl, Desc: Integer;
   ClientRecordCount, ServerRecordCount: TUInt64;
@@ -773,6 +787,64 @@ var
   IVNonce: TBytes;
   TmpStr: AnsiString;
   GotSH, GotCert, GotSKE, GotSHD: Boolean;
+  function SendAll(const Buf; Len: Integer): Boolean;
+  var Sent, Cnt: Integer; P: PAnsiChar;
+  begin
+    Result := False;
+    P := @Buf;
+    Sent := 0;
+    while Sent < Len do
+    begin
+      Cnt := inherited Send(P[Sent], Len - Sent, 0);
+      if Cnt = SOCKET_ERROR then
+        Exit;
+      if Cnt = 0 then
+        Exit;
+      Inc(Sent, Cnt);
+    end;
+    Result := True;
+  end;
+  function RecvExact(var OutBuf: TBytes; Need: Integer): Boolean;
+  var Got, Cnt: Integer;
+    Tv: record
+      tv_sec: Longint;
+      tv_usec: Longint;
+    end;
+  begin
+    Result := False;
+    SetLength(OutBuf, Need);
+    Got := 0;
+    while Got < Need do
+    begin
+      CnFDZero(Rs);
+      CnFDSet(Socket, Rs);
+      Tv.tv_sec := 10;
+      Tv.tv_usec := 0;
+      if CnSelect(Socket + 1, @Rs, nil, nil, @Tv) <= 0 then
+        Exit;
+      Cnt := inherited Recv(OutBuf[Got], Need - Got, 0);
+      if Cnt = SOCKET_ERROR then
+        Exit;
+      if Cnt = 0 then
+        Exit;
+      Inc(Got, Cnt);
+    end;
+    Result := True;
+  end;
+  function RecvOneRecord: TBytes;
+  var Hdr: TBytes; Body: TBytes; BL: Integer;
+  begin
+    Result := nil;
+    Hdr := nil; Body := nil;
+    if not RecvExact(Hdr, 5) then Exit;
+    BL := (Integer(Hdr[3]) shl 8) or Integer(Hdr[4]);
+    if BL < 0 then Exit;
+    if not RecvExact(Body, BL) then Exit;
+    SetLength(Result, 5 + BL);
+    Move(Hdr[0], Result[0], 5);
+    if BL > 0 then
+      Move(Body[0], Result[5], BL);
+  end;
 begin
   Result := False;
   EmsNegotiated := False;
@@ -869,7 +941,7 @@ begin
   CnSetTLSHandShakeHeaderContentLength(B,
     SizeOf(Word) + 32 + 1 + C^.SessionLength + SizeOf(Word) + CnGetTLSHandShakeClientHelloCipherSuitesLength(C) + 1 + CnGetTLSHandShakeClientHelloCompressionMethodLength(C) + SizeOf(Word) + CnGetTLSHandShakeExtensionsExtensionLength(E));
   CnSetTLSRecordLayerBodyLength(H, 1 + 3 + CnGetTLSHandShakeHeaderContentLength(B));
-  if inherited Send(H^, 5 + CnGetTLSRecordLayerBodyLength(H), 0) = SOCKET_ERROR then
+  if not SendAll(H^, 5 + CnGetTLSRecordLayerBodyLength(H)) then
   begin
     DoTLSLog('Send ClientHello failed');
     Exit;
@@ -881,125 +953,62 @@ begin
   TotalHandShake := NewBytesFromMemory(B, CnGetTLSRecordLayerBodyLength(H));
   DoTLSLog(Format('Transcript add: hs_type=%d len=%d', [B^.HandShakeType,
     CnGetTLSRecordLayerBodyLength(H)]));
-  FillChar(Buffer, SizeOf(Buffer), 0);
-
-  // 收包①：读取服务器握手记录（可能分多包）
-  // 期望顺序：ServerHello →Certificate →ServerKeyExchange →ServerHelloDone
-  BytesReceived := inherited Recv(Buffer[0], Length(Buffer), 0);
-  if BytesReceived <= SizeOf(TCnTLSRecordLayer) then
-  begin
-    DoTLSLog('Receive response failed or no data');
-    Exit;
-  end;
-  DoTLSLog(Format('SSL/TLS Get Response %d', [BytesReceived]));
-  TotalConsumed := 0;
-  SelectedCipher := 0;
+  DoTLSLog('Waiting server initial response...');
   GotSH := False;
   GotCert := False;
   GotSKE := False;
   GotSHD := False;
-  while TotalConsumed < BytesReceived do
+
+  // 按记录边界逐条读取，直到收齐 SH/Certificate/SKE/SHD
+  while not (GotSH and GotCert and GotSKE and GotSHD) do
   begin
-    CurrentPtr := @Buffer[TotalConsumed];
-    H := PCnTLSRecordLayer(CurrentPtr);
+    Req := RecvOneRecord;
+    if (Req = nil) or (Length(Req) < 5) then
+    begin
+      DoTLSLog('RecvOneRecord failed or empty, break');
+      Break;
+    end;
+    H := PCnTLSRecordLayer(@Req[0]);
+    RecBodyLen := CnGetTLSRecordLayerBodyLength(H);
     DoTLSLog(Format('TLSRecordLayer.ContentType %d', [H^.ContentType]));
     DoTLSLog(Format('TLSRecordLayer.MajorVersion %d', [H^.MajorVersion]));
     DoTLSLog(Format('TLSRecordLayer.MinorVersion %d', [H^.MinorVersion]));
-    DoTLSLog(Format('TLSRecordLayer.BodyLength %d', [CnGetTLSRecordLayerBodyLength(H)]));
-    Inc(TotalConsumed, 5 + CnGetTLSRecordLayerBodyLength(H));
-    Inc(ServerSeq);
+    DoTLSLog(Format('TLSRecordLayer.BodyLength %d', [RecBodyLen]));
     if H^.ContentType = CN_TLS_CONTENT_TYPE_HANDSHAKE then
     begin
-      B := PCnTLSHandShakeHeader(@H^.Body[0]);
-      TotalHandShake := ConcatBytes(TotalHandShake, NewBytesFromMemory(B,
-        CnGetTLSRecordLayerBodyLength(H)));
-      DoTLSLog(Format('Transcript add: hs_type=%d len=%d', [B^.HandShakeType,
-        CnGetTLSRecordLayerBodyLength(H)]));
-      if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO then
+      Off := 0;
+      while Off + 4 <= RecBodyLen do
       begin
-        GotSH := True;
-        S := PCnTLSHandShakeServerHello(@B^.Content[0]);
-        RandServer := NewBytesFromMemory(@S^.Random[0], SizeOf(S^.Random));
-        SelectedCipher := CnGetTLSHandShakeServerHelloCipherSuite(S);
-        DoTLSLog(Format('ServerHello CipherSuite 0x%.4x', [SelectedCipher]));
-        ServerHelloExt := CnGetTLSHandShakeServerHelloExtensions(B);
-        if ServerHelloExt <> nil then
+        B := PCnTLSHandShakeHeader(@H^.Body[Off]);
+        L3 := (Integer(B^.LengthHi) shl 16) or UInt16NetworkToHost(B^.LengthLo);
+        if (L3 < 0) or (Off + 4 + L3 > RecBodyLen) then
+          Break;
+        TotalHandShake := ConcatBytes(TotalHandShake, NewBytesFromMemory(B, 4 + L3));
+        DoTLSLog(Format('Transcript add: hs_type=%d len=%d', [B^.HandShakeType, L3]));
+        if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO then
         begin
-          try
+          GotSH := True;
+          S := PCnTLSHandShakeServerHello(@B^.Content[0]);
+          RandServer := NewBytesFromMemory(@S^.Random[0], SizeOf(S^.Random));
+          SelectedCipher := CnGetTLSHandShakeServerHelloCipherSuite(S);
+          ServerHelloExt := CnGetTLSHandShakeServerHelloExtensions(B);
+          DoTLSLog(Format('ServerHello CipherSuite 0x%.4x', [SelectedCipher]));
+          if ServerHelloExt <> nil then
+          begin
             ExtItem2 := CnGetTLSHandShakeExtensionsExtensionItem(ServerHelloExt);
-            while ExtItem2 <> nil do
+            ExtConsumed := 0;
+            ExtTotalLen := CnGetTLSHandShakeExtensionsExtensionLength(ServerHelloExt);
+            while (ExtItem2 <> nil) and (ExtConsumed < ExtTotalLen) do
             begin
               if CnGetTLSHandShakeExtensionsExtensionType(ExtItem2) =
                 CN_TLS_EXTENSIONTYPE_EXTENDED_MASTER_SECRET then
                 EmsNegotiated := True;
-              ExtItem2 := CnGetTLSHandShakeExtensionsExtensionItem(ServerHelloExt,
-                ExtItem2);
+              Inc(ExtConsumed, SizeOf(Word) + SizeOf(Word) +
+                CnGetTLSHandShakeExtensionsExtensionDataLength(ExtItem2));
+              ExtItem2 := CnGetTLSHandShakeExtensionsExtensionItem(ServerHelloExt, ExtItem2);
             end;
-          except
-            EmsNegotiated := False;
           end;
-        end;
-        DoTLSLog('EMS Negotiated: ' + BoolToStr(EmsNegotiated, True));
-      end
-      else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_CERTIFICATE then
-      begin
-        GotCert := True;
-        Cer := PCnTLSHandShakeCertificate(@B^.Content[0]);
-        CI := CnGetTLSHandShakeCertificateItem(Cer);
-        ServerCertBytes := CnGetTLSHandShakeCertificateItemCertificate(CI);
-        DoTLSLog(Format('Certificate Length %d', [Length(ServerCertBytes)]));
-      end
-      else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_KEY_EXCHANGE_RESERVED then
-      begin
-        GotSKE := True;
-        SK := PCnTLSHandShakeServerKeyExchange(@B^.Content[0]);
-        ServerKeyBytes := CnGetTLSHandShakeServerKeyExchangeECPoint(SK);
-      // set curve by named group from ServerKeyExchange
-        case CnGetTLSHandShakeServerKeyExchangeNamedCurve(SK) of
-          CN_TLS_NAMED_GROUP_SECP256R1:
-            CurveType := ctSecp256r1;
-          CN_TLS_NAMED_GROUP_SECP384R1:
-            CurveType := ctSecp384r1;
-          CN_TLS_NAMED_GROUP_SECP521R1:
-            CurveType := ctSecp521r1;
-        else
-          CurveType := ctSecp256r1;
-        end;
-        DoTLSLog(Format('ServerKeyExchange ECPoint Length %d', [Length(ServerKeyBytes)]));
-      end
-      else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE_RESERVED then
-      begin
-        GotSHD := True;
-        DoTLSLog('ServerHelloDone');
-      end;
-    end
-  end;
-
-  // 收包①补充：若未收全 SH/Certificate/SKE/SHD，则继续 select/recv，直到四者齐备
-  while not (GotSH and GotCert and GotSKE and GotSHD) do
-  begin
-    CnFDZero(Rs);
-    CnFDSet(Socket, Rs);
-    if CnSelect(Socket + 1, @Rs, nil, nil, nil) <= 0 then
-      Break;
-    FillChar(Buffer, SizeOf(Buffer), 0);
-    BytesReceived := inherited Recv(Buffer[0], Length(Buffer), 0);
-    if BytesReceived <= SizeOf(TCnTLSRecordLayer) then
-      Break;
-    DoTLSLog(Format('SSL/TLS Get Response %d', [BytesReceived]));
-    TotalConsumed := 0;
-    while TotalConsumed < BytesReceived do
-    begin
-      CurrentPtr := @Buffer[TotalConsumed];
-      H := PCnTLSRecordLayer(CurrentPtr);
-      RecBodyLen := CnGetTLSRecordLayerBodyLength(H);
-      if H^.ContentType = CN_TLS_CONTENT_TYPE_HANDSHAKE then
-      begin
-        B := PCnTLSHandShakeHeader(@H^.Body[0]);
-        TotalHandShake := ConcatBytes(TotalHandShake, NewBytesFromMemory(B, CnGetTLSRecordLayerBodyLength(H)));
-        DoTLSLog(Format('Transcript add: hs_type=%d len=%d', [B^.HandShakeType, CnGetTLSRecordLayerBodyLength(H)]));
-        if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO then
-          GotSH := True
+        end
         else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_KEY_EXCHANGE_RESERVED then
         begin
           GotSKE := True;
@@ -1017,19 +1026,77 @@ begin
         else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE_RESERVED then
           GotSHD := True
         else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_CERTIFICATE then
-          GotCert := True;
+          GotCert := True
+        else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_CERTIFICATE_STATUS_RESERVED then
+          DoTLSLog('CertificateStatus received')
+        else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_CERTIFICATE_REQUEST then
+          DoTLSLog('CertificateRequest received')
+      else
+        DoTLSLog(Format('Unhandled HandshakeType %d', [B^.HandShakeType]));
+      Off := 4 + (Integer(B^.LengthHi) shl 16) or UInt16NetworkToHost(B^.LengthLo);
+      while Off + 4 <= RecBodyLen do
+      begin
+        B := PCnTLSHandShakeHeader(@H^.Body[Off]);
+        L3 := (Integer(B^.LengthHi) shl 16) or UInt16NetworkToHost(B^.LengthLo);
+        if (L3 < 0) or (Off + 4 + L3 > RecBodyLen) then
+          Break;
+        TotalHandShake := ConcatBytes(TotalHandShake, NewBytesFromMemory(B, 4 + L3));
+        DoTLSLog(Format('Transcript add: hs_type=%d len=%d', [B^.HandShakeType, L3]));
+        if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_KEY_EXCHANGE_RESERVED then
+        begin
+          GotSKE := True;
+          SK := PCnTLSHandShakeServerKeyExchange(@B^.Content[0]);
+          ServerKeyBytes := CnGetTLSHandShakeServerKeyExchangeECPoint(SK);
+          case CnGetTLSHandShakeServerKeyExchangeNamedCurve(SK) of
+            CN_TLS_NAMED_GROUP_SECP256R1: CurveType := ctSecp256r1;
+            CN_TLS_NAMED_GROUP_SECP384R1: CurveType := ctSecp384r1;
+            CN_TLS_NAMED_GROUP_SECP521R1: CurveType := ctSecp521r1;
+          else
+            CurveType := ctSecp256r1;
+          end;
+          DoTLSLog(Format('ServerKeyExchange ECPoint Length %d', [Length(ServerKeyBytes)]));
+        end
+        else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE_RESERVED then
+        begin
+          GotSHD := True;
+          DoTLSLog('ServerHelloDone');
+        end
+        else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_CERTIFICATE_STATUS_RESERVED then
+          DoTLSLog('CertificateStatus received')
+        else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_CERTIFICATE_REQUEST then
+          DoTLSLog('CertificateRequest received');
+        Off := Off + 4 + L3;
       end;
-      Inc(TotalConsumed, 5 + RecBodyLen);
-      Inc(ServerSeq);
+        Off := Off + 4 + L3;
+      end;
+    end
+    else if H^.ContentType = CN_TLS_CONTENT_TYPE_ALERT then
+    begin
+      if RecBodyLen >= 2 then
+      begin
+        PBody := @H^.Body[0];
+        Lvl := PBody^;
+        Inc(PBody);
+        Desc := PBody^;
+        DoTLSLog(Format('Alert received: level=%d desc=%d', [Lvl, Desc]));
+      end;
+      Exit;
     end;
+    Inc(ServerSeq);
   end;
   Ecc := nil;
   EccPrivKey := nil;
   EccPubKey := nil;
   PreMasterKey := nil;
+  if not (GotSH and GotCert and GotSKE and GotSHD) then
+  begin
+    DoTLSLog('Incomplete server handshake messages, abort');
+    Exit;
+  end;
 
   // 计算 ECDHE 共享密钥，派生 pre_master，并发包②：ClientKeyExchange（握手记录，ECDHE 点，opaque8 长度前缀）
   try
+    DoTLSLog(Format('SelectedCipher final: 0x%.4x', [SelectedCipher]));
     Ecc := TCnEcc.Create(CurveType);
     EccPrivKey := TCnEccPrivateKey.Create;
     EccPubKey := TCnEccPublicKey.Create;
@@ -1088,7 +1155,7 @@ begin
     CnSetTLSHandShakeClientKeyExchangeECPoint(CK, EccPubKey.ToBytes(Ecc.BytesCount));
     CnSetTLSHandShakeHeaderContentLength(B, 1 + Length(EccPubKey.ToBytes(Ecc.BytesCount)));
     CnSetTLSRecordLayerBodyLength(H, 1 + 3 + CnGetTLSHandShakeHeaderContentLength(B));
-    if inherited Send(H^, 5 + CnGetTLSRecordLayerBodyLength(H), 0) = SOCKET_ERROR then
+    if not SendAll(H^, 5 + CnGetTLSRecordLayerBodyLength(H)) then
     begin
       DoTLSLog('Send ClientKeyExchange failed');
       Exit;
@@ -1127,7 +1194,7 @@ begin
     CC := PCnTLSChangeCipherSpecPacket(@H^.Body[0]);
     CC^.Content := CN_TLS_CHANGE_CIPHER_SPEC;
     CnSetTLSRecordLayerBodyLength(H, 1);
-    if inherited Send(H^, 5 + CnGetTLSRecordLayerBodyLength(H), 0) = SOCKET_ERROR then
+    if not SendAll(H^, 5 + CnGetTLSRecordLayerBodyLength(H)) then
     begin
       DoTLSLog('Send ChangeCipherSpec failed');
       Exit;
@@ -1225,7 +1292,7 @@ begin
       Move(EnCipher[0], (PAnsiChar(@H^.Body[0]) + 8)^, Length(EnCipher));
       Move(Tag, (PAnsiChar(@H^.Body[0]) + 8 + Length(EnCipher))^, SizeOf(Tag));
     end;
-    if inherited Send(H^, 5 + CnGetTLSRecordLayerBodyLength(H), 0) = SOCKET_ERROR then
+    if not SendAll(H^, 5 + CnGetTLSRecordLayerBodyLength(H)) then
     begin
       DoTLSLog('Send Finished failed');
       Exit;
@@ -1394,3 +1461,4 @@ begin
 end;
 
 end.
+
