@@ -1632,7 +1632,7 @@ begin
     FHead[0] := ATag;
 
   Inc(FHeadLen);
-  if FBerTag = CN_BER_TAG_BIT_STRING then // BitString 塞进去要加个头字节
+  if (FBerTag = CN_BER_TAG_BIT_STRING) and ((FBerTypeMask and CN_BER_TAG_TYPE_MASK) = 0) then
     Inc(ADataLen);
 
   if ADataLen <= 127 then // 单字节长度
@@ -1719,7 +1719,7 @@ begin
       // 把 Tag、LeafLen 以及 AMem 的数据组合后写入
 
       Result := Result + Stream.Write(FHead[0], FHeadLen); // 写头与长度
-      if FBerTag = CN_BER_TAG_BIT_STRING then              // BitString 留一个 bit 数，暂时作为全 0 处理
+      if (FBerTag = CN_BER_TAG_BIT_STRING) and ((FBerTypeMask and CN_BER_TAG_TYPE_MASK) = 0) then
       begin
         B := 0;
         Result := Result + Stream.Write(B, 1);
@@ -1762,7 +1762,7 @@ begin
     Result := FHeadLen + LeafLen;
 
     // BitString 需要一个前导字节表示补足的 bit
-    if FBerTag = CN_BER_TAG_BIT_STRING then
+    if (FBerTag = CN_BER_TAG_BIT_STRING) and ((FBerTypeMask and CN_BER_TAG_TYPE_MASK) = 0) then
       Inc(Result);
   end
   else
@@ -1789,7 +1789,7 @@ begin
   if ADataByteLen > 0 then
   begin
     // 纯 BitString 需要补一个前导字节，头长度已经在 FillHeadCalcLen 内补上了
-    if ATag = CN_BER_TAG_BIT_STRING then
+    if (ATag = CN_BER_TAG_BIT_STRING) and ((FBerTypeMask and CN_BER_TAG_TYPE_MASK) = 0) then
     begin
       B := 0;
       FMem.Write(B, 1);
@@ -1812,7 +1812,7 @@ begin
       for I := 0 to Count - 1 do
         Items[I].SaveToStream(AMem);
 
-      if FBerTag = CN_BER_TAG_BIT_STRING then // BitString 留一个 bit 数，暂时作为全 0 处理
+      if (FBerTag = CN_BER_TAG_BIT_STRING) and ((FBerTypeMask and CN_BER_TAG_TYPE_MASK) = 0) then
       begin
         B := 0;
         Result := Result + Stream.Write(B, 1);

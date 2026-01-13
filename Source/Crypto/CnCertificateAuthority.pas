@@ -1533,12 +1533,12 @@ begin
         if (Length(S) > 4) and (LowerCase(Copy(S, 1, 4)) = 'dns:') then
         begin
           A := AnsiString(Copy(S, 5, MaxInt));
-          Inner.AddRawNode($82, @A[1], Length(A), SanSeq);
+          Inner.AddBasicNode($82, @A[1], Length(A), SanSeq);
         end
         else if (Length(S) > 6) and (LowerCase(Copy(S, 1, 6)) = 'email:') then
         begin
           A := AnsiString(Copy(S, 7, MaxInt));
-          Inner.AddRawNode($81, @A[1], Length(A), SanSeq);
+          Inner.AddBasicNode($81, @A[1], Length(A), SanSeq);
         end
         else if (Length(S) > 4) and (LowerCase(Copy(S, 1, 4)) = 'uri:') then
         begin
