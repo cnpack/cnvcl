@@ -24,7 +24,7 @@ unit CnQRImage;
 * 软件名称：开发包基础库
 * 单元名称：二维码显示单元
 * 单元作者：CnPack 开发组
-* 备    注：本单元使用 CnQRCode 实现了二维码图形绘制。
+* 备    注：本单元使用 CnQRCode 单元中的 TCnQREncoder 实现了二维码图形绘制。
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -38,7 +38,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Graphics, Controls, ExtCtrls, CnQRCode;
+  SysUtils, Classes, Windows, Graphics, Controls, ExtCtrls, CnQRCode;
 
 type
   TCnQRCodeImage = class(TGraphicControl)
@@ -48,6 +48,9 @@ type
     FIcon: TIcon;
     FCellSize: Integer;
     FForeColor: TColor;
+    FQRWideCharMode: TCnQRWideCharMode;
+    FIconSize: Integer;
+    FIconMargin: Integer;
     function GetQRErrorRecoveryLevel: TCnErrorRecoveryLevel;
     procedure SetQRErrorRecoveryLevel(const Value: TCnErrorRecoveryLevel);
     procedure SetText(const Value: string);
@@ -55,6 +58,10 @@ type
     procedure SetIcon(const Value: TIcon);
     procedure SetCellSize(const Value: Integer);
     procedure SetForeColor(const Value: TColor);
+    procedure SetQRWideCharMode(const Value: TCnQRWideCharMode);
+    function GetFQRWideCharMode: TCnQRWideCharMode;
+    procedure SetIconMargin(const Value: Integer);
+    procedure SetIconSize(const Value: Integer);
   protected
     procedure Paint; override;
   public
@@ -63,16 +70,25 @@ type
     procedure SaveToFile(const FileName: string; Border: Integer = 4);
 
   published
-    property Icon: TIcon read FIcon write SetIcon;
-    property QRErrorRecoveryLevel: TCnErrorRecoveryLevel read GetQRErrorRecoveryLevel
-      write SetQRErrorRecoveryLevel;
-
     property Text: string read GetText write SetText;
     {* 显示的字符串}
+    property QRWideCharMode: TCnQRWideCharMode read GetFQRWideCharMode write
+      SetQRWideCharMode;
+    {* 宽字符编码模式，默认 Utf8}
+    property QRErrorRecoveryLevel: TCnErrorRecoveryLevel read
+      GetQRErrorRecoveryLevel write SetQRErrorRecoveryLevel;
+    {* 二维码纠错等级}
+    property Icon: TIcon read FIcon write SetIcon;
+    {* 绘制在中间的图标}
+
     property CellSize: Integer read FCellSize write SetCellSize;
     {* 二维码每个模块大小，0 表示自动适应}
     property ForeColor: TColor read FForeColor write SetForeColor default clBlack;
     {* 二维码中的黑色颜色}
+    property IconSize: Integer read FIconSize write SetIconSize;
+    {* 中央的图标尺寸，默认 32 像素}
+    property IconMargin: Integer read FIconMargin write SetIconMargin;
+    {* 中央图标边缘的空隙}
   end;
 
 implementation
@@ -86,6 +102,8 @@ begin
   FIcon := TIcon.Create;
   FForeColor := clBlack;
   Color := clWhite;
+  FIconSize := 32;
+  FIconMargin := 2;
 end;
 
 destructor TCnQRCodeImage.Destroy;
@@ -111,7 +129,8 @@ begin
     if Height < Edge then
       Edge := Height;
     CS := Edge div (FEncoder.QRSize + Border * 2);
-    if CS <= 0 then CS := 1;
+    if CS <= 0 then
+      CS := 1;
   end;
   ImgW := QRWidth * CS;
   ImgH := QRHeight * CS;
@@ -133,11 +152,11 @@ begin
       begin
         if FEncoder.QRData[I, J] = 1 then
           Bmp.Canvas.FillRect(Rect(
-            QRLeft + (I + Border) * CS,
-            QRTop + (J + Border) * CS,
-            QRLeft + (I + Border + 1) * CS,
-            QRTop + (J + Border + 1) * CS
-          ));
+              QRLeft + (I + Border) * CS,
+              QRTop + (J + Border) * CS,
+              QRLeft + (I + Border + 1) * CS,
+              QRTop + (J + Border + 1) * CS
+            ));
       end;
     end;
     Bmp.SaveToFile(FileName);
@@ -156,11 +175,18 @@ begin
   Result := FEncoder.Text;
 end;
 
+function TCnQRCodeImage.GetFQRWideCharMode: TCnQRWideCharMode;
+begin
+  Result := FEncoder.QRWideCharMode;
+end;
+
 procedure TCnQRCodeImage.Paint;
 var
   CS, QL, QT, Edge, I, J: Integer;
   QRWidth, QRHeight: Integer;
   QRLeft, QRTop: Integer;
+  ISZ, WH: Integer;
+  R: TRect;
 begin
   Canvas.Font := Font;
   Canvas.Brush.Color := Color;
@@ -189,7 +215,8 @@ begin
 
     // 静区，按 (QRSize + 8) 计算单元大小
     CS := Edge div (FEncoder.QRSize + 8);
-    if CS <= 0 then CS := 1;
+    if CS <= 0 then
+      CS := 1;
   end;
 
   // 计算绘制位置（居中）
@@ -199,8 +226,8 @@ begin
   // 绘制白色背景（静区）
   Canvas.Brush.Color := Color;
   Canvas.FillRect(Rect(QRLeft, QRTop,
-                       QRLeft + QRWidth * CS,
-                       QRTop + QRHeight * CS));
+      QRLeft + QRWidth * CS,
+      QRTop + QRHeight * CS));
 
   // 绘制二维码模块
   Canvas.Brush.Color := ForeColor;
@@ -213,11 +240,11 @@ begin
       if FEncoder.QRData[I, J] = 1 then
       begin
         Canvas.FillRect(Rect(
-          QRLeft + (I + 4) * CS,      // +4 表示4模块静区
-          QRTop + (J + 4) * CS,
-          QRLeft + (I + 4 + 1) * CS,
-          QRTop + (J + 4 + 1) * CS
-        ));
+            QRLeft + (I + 4) * CS,      // +4 表示4模块静区
+            QRTop + (J + 4) * CS,
+            QRLeft + (I + 4 + 1) * CS,
+            QRTop + (J + 4 + 1) * CS
+          ));
       end;
     end;
   end;
@@ -225,9 +252,22 @@ begin
   // 绘制 Icon
   if not FIcon.Empty then
   begin
-    QL := (Width - FIcon.Width) div 2;
-    QT := (Height - FIcon.Height) div 2;
-    Canvas.Draw(QL, QT, FIcon);
+    if FIconSize = 0 then
+      ISZ := FIcon.Width
+    else
+      ISZ := FIconSize;
+
+    WH := ISZ + 2 * FIconMargin;
+    if FIconMargin > 0 then
+    begin
+      Canvas.Brush.Color := Color;
+      R := Rect((Width - WH) div 2, (Height - WH) div 2, (Width + WH) div 2, (Height + WH) div 2);
+      Canvas.FillRect(R);
+    end;
+
+    QL := (Width - ISZ) div 2;
+    QT := (Height - ISZ) div 2;
+    Canvas.StretchDraw(Rect(QL, QT, QL + ISZ, QT + ISZ), FIcon);
   end;
 end;
 
@@ -258,8 +298,7 @@ begin
   end;
 end;
 
-procedure TCnQRCodeImage.SetQRErrorRecoveryLevel(
-  const Value: TCnErrorRecoveryLevel);
+procedure TCnQRCodeImage.SetQRErrorRecoveryLevel(const Value: TCnErrorRecoveryLevel);
 begin
   if FEncoder.QRErrorRecoveryLevel <> Value then
   begin
@@ -277,4 +316,38 @@ begin
   end;
 end;
 
+procedure TCnQRCodeImage.SetQRWideCharMode(const Value: TCnQRWideCharMode);
+begin
+  if FEncoder.QRWideCharMode <> Value then
+  begin
+    FEncoder.QRWideCharMode := Value;
+    Invalidate;
+  end;
+end;
+
+procedure TCnQRCodeImage.SetIconMargin(const Value: Integer);
+begin
+  if FIconMargin <> Value then
+  begin
+    if FIconMargin < 0 then
+      FIconMargin := 0;
+
+    FIconMargin := Value;
+    Invalidate;
+  end;
+end;
+
+procedure TCnQRCodeImage.SetIconSize(const Value: Integer);
+begin
+  if FIconSize <> Value then
+  begin
+    if (FIconSize < 16) and (FIconSize <> 0) then
+      FIconSize := 16;
+
+    FIconSize := Value;
+    Invalidate;
+  end;
+end;
+
 end.
+

@@ -3,7 +3,8 @@ program GenQRCode;
 uses
   Forms,
   UnitGenQRCode in 'UnitGenQRCode.pas' {FormQRTest},
-  CnQRCode in '..\..\..\Source\Crypto\CnQRCode.pas';
+  CnQRCode in '..\..\..\Source\Crypto\CnQRCode.pas',
+  CnQRImage in '..\..\..\Source\Graphic\CnQRImage.pas';
 
 {$R *.res}
 
