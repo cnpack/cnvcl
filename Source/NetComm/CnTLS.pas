@@ -41,9 +41,9 @@ uses
   SysUtils, Classes, Contnrs, {$IFDEF MSWINDOWS} Windows, WinSock, {$ELSE}
   {$IFDEF FPC} Sockets, {$ELSE}
   System.Net.Socket, Posix.NetinetIn, Posix.SysSocket, Posix.Unistd, Posix.ArpaInet,
-  {$ENDIF} {$ENDIF}
-  CnConsts, CnNetConsts, CnSocket, CnClasses, CnNetwork, CnRandom, CnPoly1305, CnBigNumber,
-  CnNative, CnECC, CnAEAD, CnChaCha20, CnTCPClient, CnSHA2, CnSM3, CnMD5, CnSHA1;
+  {$ENDIF} {$ENDIF}CnConsts, CnNetConsts, CnSocket, CnClasses, CnNetwork,
+  CnRandom, CnPoly1305, CnBigNumber, CnNative, CnECC, CnAEAD, CnChaCha20, CnSHA2,
+  CnSM3, CnMD5, CnSHA1, CnRSA, CnPemUtils, CnTCPClient, CnThreadingTCPServer;
 
 type
   ECnTLSException = class(Exception);
@@ -85,11 +85,16 @@ type
     FVerifyCertificate: Boolean;
     FEnableExtendedMasterSecret: Boolean;
     FOnTLSLog: TCnTLSogEvent;
+    FRecvPlainBuf: TBytes;
+    FRecvPlainPos: Integer;
+    FMaxFragmentLen: Word;
 
     procedure DoTLSLog(const Msg: string);
     function BuildAppDataAAD(Seq: TUInt64; PlainLen: Integer): TBytes;
-    function EncryptAppDataBody(const Plain, AAD, Nonce: TBytes; out Tag: TCnGCM128Tag): TBytes;
-    function DecryptAppDataBody(const Body, AAD: TBytes; const Nonce: TBytes; var InTag: TCnGCM128Tag): TBytes;
+    function EncryptAppDataBody(const Plain, AAD, Nonce: TBytes; out Tag:
+      TCnGCM128Tag): TBytes;
+    function DecryptAppDataBody(const Body, AAD: TBytes; const Nonce: TBytes;
+      var InTag: TCnGCM128Tag): TBytes;
     function EncryptAndSendAppData(const Plain: TBytes; Flags: Integer): Integer;
     function ReadAndDecryptAppData(var Buf; Len: Integer; Flags: Integer): Integer;
   protected
@@ -100,16 +105,94 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    
+
     function Send(var Buf; Len: Integer; Flags: Integer = 0): Integer; override;
     function Recv(var Buf; Len: Integer; Flags: Integer = 0): Integer; override;
-    
+
     property HandshakeState: TCnTLSHandshakeState read FHandshakeState;
   published
     property VerifyCertificate: Boolean read FVerifyCertificate write FVerifyCertificate default True;
     property EnableExtendedMasterSecret: Boolean read FEnableExtendedMasterSecret
       write FEnableExtendedMasterSecret default True;
-      
+    property MaxFragmentLen: Word read FMaxFragmentLen write FMaxFragmentLen default 16384;
+    property OnTLSLog: TCnTLSogEvent read FOnTLSLog write FOnTLSLog;
+  end;
+
+type
+  TCnTLSServer = class;
+
+  TCnTLSServerClientSocket = class(TCnClientSocket)
+  private
+    FVersion: Word;
+    FCipherSuite: Word;
+    FHandshakeDone: Boolean;
+    FServerWriteKey: TBytes;
+    FClientWriteKey: TBytes;
+    FServerFixedIV: TBytes;
+    FClientFixedIV: TBytes;
+    FServerSeq: TUInt64;
+    FClientSeq: TUInt64;
+    FHandshakeLog: TBytes;
+    FRecvPlainBuf: TBytes;
+    FRecvPlainPos: Integer;
+  public
+    constructor Create; override;
+    function Send(var Buf; Len: Integer; Flags: Integer = 0): Integer; override;
+    function Recv(var Buf; Len: Integer; Flags: Integer = 0): Integer; override;
+    property Version: Word read FVersion write FVersion;
+    property CipherSuite: Word read FCipherSuite write FCipherSuite;
+    property HandshakeDone: Boolean read FHandshakeDone write FHandshakeDone;
+    property ServerWriteKey: TBytes read FServerWriteKey write FServerWriteKey;
+    property ClientWriteKey: TBytes read FClientWriteKey write FClientWriteKey;
+    property ServerFixedIV: TBytes read FServerFixedIV write FServerFixedIV;
+    property ClientFixedIV: TBytes read FClientFixedIV write FClientFixedIV;
+    property ServerSeq: TUInt64 read FServerSeq write FServerSeq;
+    property ClientSeq: TUInt64 read FClientSeq write FClientSeq;
+    property HandshakeLog: TBytes read FHandshakeLog write FHandshakeLog;
+  end;
+
+  TCnTLSServerClientThread = class(TCnTCPClientThread)
+  private
+    FOwnerServer: TCnTLSServer;
+  protected
+    procedure Execute; override;
+    function DoGetClientSocket: TCnClientSocket; override;
+  public
+    constructor Create(CreateSuspended: Boolean);
+  end;
+
+  TCnTLSServerErrorEvent = procedure(Sender: TObject; ClientSocket:
+    TCnClientSocket; Code: Integer; const Msg: string) of object;
+
+{$IFNDEF FPC}
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
+{$ENDIF}
+  TCnTLSServer = class(TCnThreadingTCPServer)
+  private
+    FServerCertFile: string;
+    FServerKeyFile: string;
+    FServerKeyPassword: string;
+    FPreferChaCha: Boolean;
+    FMaxFragmentLen: Word;
+    FOnTLSAccept: TCnSocketAcceptEvent;
+    FOnTLSError: TCnTLSServerErrorEvent;
+    FOnTLSLog: TCnTLSogEvent;
+  protected
+    procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
+    function DoGetClientThread: TCnTCPClientThread; override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    function SendPlainData(ClientSocket: TCnClientSocket; const Data: TBytes): Boolean;
+    property ServerCertFile: string read FServerCertFile write FServerCertFile;
+    property ServerKeyFile: string read FServerKeyFile write FServerKeyFile;
+    property ServerKeyPassword: string read FServerKeyPassword write FServerKeyPassword;
+    property PreferChaCha: Boolean read FPreferChaCha write FPreferChaCha;
+  published
+    property MaxFragmentLen: Word read FMaxFragmentLen write FMaxFragmentLen default 16384;
+    property OnTLSAccept: TCnSocketAcceptEvent read FOnTLSAccept write FOnTLSAccept;
+    property OnTLSError: TCnTLSServerErrorEvent read FOnTLSError write FOnTLSError;
     property OnTLSLog: TCnTLSogEvent read FOnTLSLog write FOnTLSLog;
   end;
 
@@ -152,8 +235,1033 @@ begin
   Result := R;
 end;
 
-function TLSChaChaNonce(const FixedIV12: TBytes;
-  Seq: TUInt64): TBytes;
+function TCnTLSServer.DoHandShake(ClientSocket: TCnTLSServerClientSocket): Boolean;
+var
+  R: TBytes;
+  H: TCnTLSRecordLayer;
+  Len, BodyLen, C: Integer;
+  HS: Byte;
+  ClientRandom, ServerRandom: TBytes;
+  Msg: TBytes;
+  HH: TCnTLSHandShakeHeader;
+  Total: TBytes;
+  CertDER: TBytes;
+  CertFile: string;
+  Mem: TMemoryStream;
+  VLen, CLen: Integer;
+  Ecc: TCnEcc;
+  EpPriv: TCnEccPrivateKey;
+  EpPub: TCnEccPublicKey;
+  CurveBytes: array[0..1] of Byte;
+  PtLen: Byte;
+  Pt: TBytes;
+  KeyFile: string;
+  Pri: TCnRSAPrivateKey;
+  Pub: TCnRSAPublicKey;
+  Sig: TBytes;
+  ToSign: TBytes;
+  Alg: array[0..1] of Byte;
+  SL: Word;
+  HandshakeLog: TBytes;
+  PreMaster: TBytes;
+  Master: TBytes;
+  KeyBlock: TBytes;
+  ClientWriteKey, ServerWriteKey: TBytes;
+  ClientFixedIV, ServerFixedIV: TBytes;
+  ClientSeq, ServerSeq: TUInt64;
+  AAD, Plain, En, HSHash, EV, SV, RespB, Tmp, Exts: TBytes;
+  Buf: TBytes;
+  Tag: TCnGCM128Tag;
+  Resp: AnsiString;
+  CliPub: TCnEccPublicKey;
+  P: TCnEccPoint;
+  SelCipherHi, SelCipherLo: Byte;
+  Found: Boolean;
+  HaveC02F: Boolean;
+  Off, SidLen, CSLen, I: Integer;
+  CHi, CLo: Byte;
+  SuiteStr, sHave, sHave2: string;
+  CompLen, ExtsLen, ExtType, ExtLen, PairsLen, J: Integer;
+  KeyLen, IvLen: Integer;
+  UseChaCha: Boolean;
+
+  procedure DoTLSLog(const S: string);
+  begin
+    if Assigned(Self.FOnTLSLog) then
+      Self.FOnTLSLog(Self, S);
+  end;
+
+  function SendExact(const Buf; L: Integer): Boolean;
+  var
+    Sent, Cnt: Integer;
+    P: PAnsiChar;
+  begin
+    Result := False;
+    P := @Buf;
+    Sent := 0;
+    while Sent < L do
+    begin
+      Cnt := ClientSocket.Send(P[Sent], L - Sent);
+      if Cnt = SOCKET_ERROR then
+        Exit;
+      if Cnt = 0 then
+        Exit;
+      Inc(Sent, Cnt);
+    end;
+    Result := True;
+  end;
+
+  function RecvExact(Need: Integer; out OutBuf: TBytes): Boolean;
+  var
+    Got, Cnt: Integer;
+  begin
+    Result := False;
+    SetLength(OutBuf, Need);
+    Got := 0;
+    while Got < Need do
+    begin
+      Cnt := ClientSocket.Recv(OutBuf[Got], Need - Got);
+      if Cnt = SOCKET_ERROR then
+        Exit;
+      if Cnt = 0 then
+        Exit;
+      Inc(Got, Cnt);
+    end;
+    Result := True;
+  end;
+
+  function AlertName(Desc: Byte): string;
+  begin
+    case Desc of
+      0:
+        Result := 'close_notify';
+      10:
+        Result := 'unexpected_message';
+      20:
+        Result := 'bad_record_mac';
+      21:
+        Result := 'decryption_failed';
+      22:
+        Result := 'record_overflow';
+      40:
+        Result := 'handshake_failure';
+      41:
+        Result := 'no_certificate';
+      42:
+        Result := 'bad_certificate';
+      43:
+        Result := 'unsupported_certificate';
+      44:
+        Result := 'certificate_revoked';
+      45:
+        Result := 'certificate_expired';
+      46:
+        Result := 'certificate_unknown';
+      47:
+        Result := 'illegal_parameter';
+      48:
+        Result := 'unknown_ca';
+      49:
+        Result := 'access_denied';
+      50:
+        Result := 'decode_error';
+      51:
+        Result := 'decrypt_error';
+      70:
+        Result := 'protocol_version';
+      71:
+        Result := 'insufficient_security';
+      80:
+        Result := 'internal_error';
+      90:
+        Result := 'user_canceled';
+      100:
+        Result := 'no_renegotiation';
+    else
+      Result := 'unknown';
+    end;
+  end;
+
+  function BuildAAD2(CT: Byte; Seq: TUInt64; PlainLen: Integer): TBytes;
+  var
+    A: TBytes;
+    V: TBytes;
+    L2: Word;
+  begin
+    V := TLSUInt64ToBE8(Seq);
+    SetLength(A, 13);
+    Move(V[0], A[0], 8);
+    A[8] := CT;
+    A[9] := 3;
+    A[10] := 3;
+    L2 := htons(PlainLen);
+    Move(L2, A[11], 2);
+    Result := A;
+  end;
+
+  procedure AppendHS(HSType: Byte; const Body: TBytes);
+  var
+    Hdr: array[0..3] of Byte;
+    L3: Integer;
+  begin
+    Hdr[0] := HSType;
+    L3 := Length(Body);
+    Hdr[1] := (L3 shr 16) and $FF;
+    PWord(@Hdr[2])^ := htons(L3 and $FFFF);
+    HandshakeLog := ConcatBytes(HandshakeLog, NewBytesFromMemory(@Hdr[0], 4));
+    if L3 > 0 then
+      HandshakeLog := ConcatBytes(HandshakeLog, Body);
+  end;
+
+begin
+  Result := False;
+  DoTLSLog('Start TLS Handshake');
+  Len := ClientSocket.Recv(H, 5);
+  if Len <> 5 then
+    Exit;
+  if H.ContentType = CN_TLS_CONTENT_TYPE_ALERT then
+  begin
+    BodyLen := ntohs(H.BodyLength);
+    SetLength(Buf, BodyLen);
+    Len := ClientSocket.Recv(Buf[0], BodyLen);
+    if (Len = SOCKET_ERROR) or (Len <> BodyLen) or (BodyLen < 2) then
+      Exit;
+    Exit;
+  end
+  else if H.ContentType <> CN_TLS_CONTENT_TYPE_HANDSHAKE then
+    Exit;
+
+  BodyLen := ntohs(H.BodyLength);
+  if (BodyLen <= 0) or (BodyLen > 16384) then
+    Exit;
+  SetLength(Buf, BodyLen);
+  Len := ClientSocket.Recv(Buf[0], BodyLen);
+  if Len = SOCKET_ERROR then
+    Exit;
+
+  if Len <> BodyLen then
+  begin
+    while (Len <> SOCKET_ERROR) and (Len < BodyLen) do
+    begin
+      C := ClientSocket.Recv(Buf[Len], BodyLen - Len);
+      if C = SOCKET_ERROR then
+        Break;
+      Inc(Len, C);
+    end;
+    if Len <> BodyLen then
+      Exit;
+  end;
+
+  HS := Buf[0];
+  if HS <> CN_TLS_HANDSHAKE_TYPE_CLIENT_HELLO then
+    Exit;
+
+  SetLength(ClientRandom, 32);
+  Move(Buf[6], ClientRandom[0], 32);
+  SelCipherHi := $CC;
+  SelCipherLo := $A8;
+  Found := False;
+  HaveC02F := False;
+  Off := 6 + 32;
+
+  if BodyLen > Off then
+  begin
+    SidLen := Buf[Off];
+    Inc(Off);
+    Inc(Off, SidLen);
+
+    if BodyLen >= Off + 2 then
+    begin
+      CSLen := (Integer(Buf[Off]) shl 8) or Integer(Buf[Off + 1]);
+      Inc(Off, 2);
+      I := 0;
+
+      while (I + 1 < CSLen) and (Off + I + 1 < BodyLen) do
+      begin
+        CHi := Buf[Off + I];
+        CLo := Buf[Off + I + 1];
+        if (CHi = $CC) and (CLo = $A8) then
+        begin
+          SelCipherHi := CHi;
+          SelCipherLo := CLo;
+          Found := True;
+          Break;
+        end;
+        if (CHi = $C0) and (CLo = $2F) then
+          HaveC02F := True;
+        Inc(I, 2);
+      end;
+
+      if Off + CSLen < BodyLen then
+      begin
+        Inc(Off, CSLen);
+        if Off < BodyLen then
+        begin
+          CompLen := Buf[Off];
+          Inc(Off);
+          Inc(Off, CompLen);
+          if BodyLen >= Off + 2 then
+          begin
+            ExtsLen := (Integer(Buf[Off]) shl 8) or Integer(Buf[Off + 1]);
+            Inc(Off, 2);
+          end;
+        end;
+      end;
+    end;
+  end;
+
+  if not Found then
+  begin
+    if HaveC02F then
+    begin
+      SelCipherHi := $C0;
+      SelCipherLo := $2F;
+    end
+    else
+    begin
+      H.ContentType := CN_TLS_CONTENT_TYPE_ALERT;
+      H.MajorVersion := 3;
+      H.MinorVersion := 3;
+      H.BodyLength := htons(2);
+      if not SendExact(H, 5) then
+        Exit;
+      Msg := nil;
+      SetLength(Msg, 2);
+      Msg[0] := CN_TLS_ALERT_LEVEL_FATAL;
+      Msg[1] := CN_TLS_ALERT_DESC_HANDSHAKE_FAILURE;
+      if not SendExact(Msg[0], 2) then
+        Exit;
+      Exit;
+    end;
+  end;
+
+  UseChaCha := (SelCipherHi = $CC) and (SelCipherLo = $A8);
+  if UseChaCha then
+  begin
+    KeyLen := 32;
+    IvLen := 12;
+  end
+  else
+  begin
+    KeyLen := 16;
+    IvLen := 4;
+  end;
+
+  SetLength(Tmp, BodyLen - 4);
+  if BodyLen > 4 then
+    Move(Buf[4], Tmp[0], BodyLen - 4);
+  AppendHS(HS, Tmp);
+  SetLength(ServerRandom, 32);
+  CnRandomFillBytes(@ServerRandom[0], 32);
+  Exts := nil;
+  SetLength(Tmp, 4);
+  PWord(@Tmp[0])^ := htons($000B);
+  PWord(@Tmp[2])^ := htons(2);
+  Exts := ConcatBytes(Exts, Tmp);
+  SetLength(Tmp, 2);
+  Tmp[0] := 1;
+  Tmp[1] := 0;
+  Exts := ConcatBytes(Exts, Tmp);
+  SetLength(Tmp, 4);
+  PWord(@Tmp[0])^ := htons($FF01);
+  PWord(@Tmp[2])^ := htons(1);
+  Exts := ConcatBytes(Exts, Tmp);
+  SetLength(Tmp, 1);
+  Tmp[0] := 0;
+  Exts := ConcatBytes(Exts, Tmp);
+  SetLength(Msg, 2 + 32 + 1 + 2 + 1 + 2 + Length(Exts));
+  Msg[0] := 3;
+  Msg[1] := 3;
+  Move(ServerRandom[0], Msg[2], 32);
+  Msg[34] := 0;
+  Msg[35] := SelCipherHi;
+  Msg[36] := SelCipherLo;
+  Msg[37] := 0;
+  PWord(@Msg[38])^ := htons(Length(Exts));
+  if Length(Exts) > 0 then
+    Move(Exts[0], Msg[40], Length(Exts));
+  HH.HandShakeType := CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO;
+  HH.LengthHi := (Length(Msg) shr 16) and $FF;
+  HH.LengthLo := htons(Length(Msg) and $FFFF);
+  SetLength(Total, 4 + Length(Msg));
+  Move(HH, Total[0], 4);
+  Move(Msg[0], Total[4], Length(Msg));
+  H.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
+  H.MajorVersion := 3;
+  H.MinorVersion := 3;
+  H.BodyLength := htons(Length(Total));
+
+  if not SendExact(H, 5) then
+    Exit;
+  if (Length(Total) > 0) and (not SendExact(Total[0], Length(Total))) then
+    Exit;
+  AppendHS(CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO, Copy(Msg, 0, Length(Msg)));
+  CertFile := Self.FServerCertFile;
+  if CertFile = '' then
+    CertFile := ExtractFilePath(ParamStr(0)) + 'server_cert.crt';
+
+  Mem := TMemoryStream.Create;
+  try
+    if LoadPemFileToMemory(CertFile, '-----BEGIN CERTIFICATE-----',
+      '-----END CERTIFICATE-----', Mem) then
+    begin
+      SetLength(CertDER, Mem.Size);
+      if Mem.Size > 0 then
+      begin
+        Mem.Position := 0;
+        Mem.Read(CertDER[0], Mem.Size);
+      end;
+      CLen := Length(CertDER);
+      VLen := 3 + CLen;
+      SetLength(Msg, 3 + 3 + CLen);
+      Msg[0] := (VLen shr 16) and $FF;
+      PWord(@Msg[1])^ := htons(VLen and $FFFF);
+      Msg[3] := (CLen shr 16) and $FF;
+      PWord(@Msg[4])^ := htons(CLen and $FFFF);
+      if CLen > 0 then
+        Move(CertDER[0], Msg[6], CLen);
+      HH.HandShakeType := CN_TLS_HANDSHAKE_TYPE_CERTIFICATE;
+      HH.LengthHi := (Length(Msg) shr 16) and $FF;
+      HH.LengthLo := htons(Length(Msg) and $FFFF);
+      SetLength(Total, 4 + Length(Msg));
+      Move(HH, Total[0], 4);
+      Move(Msg[0], Total[4], Length(Msg));
+      H.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
+      H.MajorVersion := 3;
+      H.MinorVersion := 3;
+      H.BodyLength := htons(Length(Total));
+      if not SendExact(H, 5) then
+        Exit;
+      if not SendExact(Total[0], Length(Total)) then
+        Exit;
+      AppendHS(CN_TLS_HANDSHAKE_TYPE_CERTIFICATE, Copy(Msg, 0, Length(Msg)));
+    end
+    else
+      Exit;
+  finally
+    Mem.Free;
+  end;
+
+  Ecc := TCnEcc.Create(ctSecp256r1);
+  EpPriv := TCnEccPrivateKey.Create;
+  EpPub := TCnEccPublicKey.Create;
+
+  try
+    Ecc.GenerateKeys(EpPriv, EpPub);
+    CurveBytes[0] := 0;
+    CurveBytes[1] := $17;
+    PtLen := Byte(1 + 2 * Ecc.BytesCount);
+    SetLength(Pt, PtLen);
+    Pt[0] := $04;
+    EpPub.X.ToBinary(@Pt[1], Ecc.BytesCount);
+    EpPub.Y.ToBinary(@Pt[1 + Ecc.BytesCount], Ecc.BytesCount);
+    SetLength(Msg, 1 + 2 + 1 + PtLen);
+    Msg[0] := 3;
+    Msg[1] := CurveBytes[0];
+    Msg[2] := CurveBytes[1];
+    Msg[3] := PtLen;
+    if PtLen > 0 then
+      Move(Pt[0], Msg[4], PtLen);
+
+    ToSign := nil;
+    ToSign := ConcatBytes(ToSign, ClientRandom);
+    ToSign := ConcatBytes(ToSign, ServerRandom);
+    ToSign := ConcatBytes(ToSign, Msg);
+    KeyFile := Self.FServerKeyFile;
+    if KeyFile = '' then
+      KeyFile := ExtractFilePath(ParamStr(0)) + 'server_key.pem';
+    Pri := TCnRSAPrivateKey.Create(True);
+    Pub := TCnRSAPublicKey.Create;
+    try
+      if CnRSALoadKeysFromPem(KeyFile, Pri, Pub, ckhMd5, AnsiString(Self.FServerKeyPassword)) then
+      begin
+        Sig := CnRSASignBytes(ToSign, Pri, rsdtSHA256);
+        Alg[0] := 4;
+        Alg[1] := 1;
+        SL := Length(Sig);
+        SetLength(Msg, Length(Msg) + 2 + 2 + SL);
+        Msg[4 + PtLen] := Alg[0];
+        Msg[5 + PtLen] := Alg[1];
+        PWord(@Msg[6 + PtLen])^ := htons(SL);
+        if SL > 0 then
+          Move(Sig[0], Msg[8 + PtLen], SL);
+        HH.HandShakeType := CN_TLS_HANDSHAKE_TYPE_SERVER_KEY_EXCHANGE_RESERVED;
+        HH.LengthHi := (Length(Msg) shr 16) and $FF;
+        HH.LengthLo := htons(Length(Msg) and $FFFF);
+        SetLength(Total, 4 + Length(Msg));
+        Move(HH, Total[0], 4);
+        Move(Msg[0], Total[4], Length(Msg));
+        H.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
+        H.MajorVersion := 3;
+        H.MinorVersion := 3;
+        H.BodyLength := htons(Length(Total));
+        if not SendExact(H, 5) then
+          Exit;
+        if not SendExact(Total[0], Length(Total)) then
+          Exit;
+        AppendHS(CN_TLS_HANDSHAKE_TYPE_SERVER_KEY_EXCHANGE_RESERVED, Copy(Msg, 0,
+          Length(Msg)));
+      end
+      else
+        Exit;
+    finally
+      Pri.Free;
+      Pub.Free;
+    end;
+  finally
+
+  end;
+
+  SetLength(Msg, 0);
+  HH.HandShakeType := CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE_RESERVED;
+  HH.LengthHi := 0;
+  HH.LengthLo := 0;
+  SetLength(Total, 4);
+  Move(HH, Total[0], 4);
+  H.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
+  H.MajorVersion := 3;
+  H.MinorVersion := 3;
+  H.BodyLength := htons(Length(Total));
+  if not SendExact(H, 5) then
+    Exit;
+  if not SendExact(Total[0], Length(Total)) then
+    Exit;
+  AppendHS(CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE_RESERVED, nil);
+  if not RecvExact(5, Buf) then
+    Exit;
+  Move(Buf[0], H, 5);
+  if H.ContentType = CN_TLS_CONTENT_TYPE_ALERT then
+  begin
+    BodyLen := ntohs(H.BodyLength);
+    if not RecvExact(BodyLen, Buf) or (BodyLen < 2) then
+      Exit;
+    Exit;
+  end
+  else if H.ContentType <> CN_TLS_CONTENT_TYPE_HANDSHAKE then
+    Exit;
+  BodyLen := ntohs(H.BodyLength);
+  if not RecvExact(BodyLen, Buf) then
+    Exit;
+  HS := Buf[0];
+  if HS <> CN_TLS_HANDSHAKE_TYPE_CLIENT_KEY_EXCHANGE_RESERVED then
+    Exit;
+  SetLength(Tmp, BodyLen - 4);
+  if BodyLen > 4 then
+    Move(Buf[4], Tmp[0], BodyLen - 4);
+  AppendHS(HS, Tmp);
+  PtLen := Buf[4];
+  if PtLen <> Byte(1 + 2 * Ecc.BytesCount) then
+    Exit;
+  if Buf[5] <> $04 then
+    Exit;
+  CliPub := TCnEccPublicKey.Create;
+  try
+    CliPub.X := TCnBigNumber.FromBinary(@Buf[6], Ecc.BytesCount);
+    CliPub.Y := TCnBigNumber.FromBinary(@Buf[6 + Ecc.BytesCount], Ecc.BytesCount);
+    P := TCnEccPoint.Create;
+    try
+      P.Assign(CliPub);
+      Ecc.MultiplePoint(EpPriv, P);
+      SetLength(PreMaster, Ecc.BytesCount);
+      P.X.ToBinary(@PreMaster[0], Ecc.BytesCount);
+    finally
+      P.Free;
+    end;
+  finally
+    CliPub.Free;
+  end;
+  Ecc.Free;
+
+  Master := TLSPseudoRandomFunc(PreMaster, 'master secret',
+    ConcatBytes(ClientRandom, ServerRandom), esdtSHA256, 48);
+  KeyBlock := TLSPseudoRandomFunc(Master, 'key expansion',
+    ConcatBytes(ServerRandom, ClientRandom), esdtSHA256, 2 * KeyLen + 2 * IvLen);
+  ClientWriteKey := Copy(KeyBlock, 0, KeyLen);
+  ServerWriteKey := Copy(KeyBlock, KeyLen, KeyLen);
+  ClientFixedIV := Copy(KeyBlock, 2 * KeyLen, IvLen);
+  ServerFixedIV := Copy(KeyBlock, 2 * KeyLen + IvLen, IvLen);
+  ClientSeq := 0;
+  ServerSeq := 0;
+  if not RecvExact(5, Buf) then
+    Exit;
+
+  Move(Buf[0], H, 5);
+  if H.ContentType = CN_TLS_CONTENT_TYPE_ALERT then
+  begin
+    BodyLen := ntohs(H.BodyLength);
+    if not RecvExact(BodyLen, Buf) or (BodyLen < 2) then
+      Exit;
+    Exit;
+  end
+  else if H.ContentType <> CN_TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC then
+    Exit;
+  BodyLen := ntohs(H.BodyLength);
+  if not RecvExact(BodyLen, Buf) then
+    Exit;
+  if not RecvExact(5, Buf) then
+    Exit;
+  Move(Buf[0], H, 5);
+  if H.ContentType = CN_TLS_CONTENT_TYPE_ALERT then
+  begin
+    BodyLen := ntohs(H.BodyLength);
+    if not RecvExact(BodyLen, Buf) or (BodyLen < 2) then
+      Exit;
+    Exit;
+  end
+  else if H.ContentType <> CN_TLS_CONTENT_TYPE_HANDSHAKE then
+    Exit;
+  BodyLen := ntohs(H.BodyLength);
+  if not RecvExact(BodyLen, Buf) then
+    Exit;
+  if UseChaCha then
+  begin
+    if BodyLen < SizeOf(TCnGCM128Tag) then
+      Exit;
+    SetLength(En, BodyLen - SizeOf(TCnGCM128Tag));
+    if Length(En) > 0 then
+      Move(Buf[0], En[0], Length(En));
+    Move(Buf[BodyLen - SizeOf(TCnGCM128Tag)], Tag[0], SizeOf(TCnGCM128Tag));
+    AAD := BuildAAD2(CN_TLS_CONTENT_TYPE_HANDSHAKE, ClientSeq, 16);
+    Plain := TLSChaCha20Poly1305Decrypt(ClientWriteKey, ClientFixedIV, En, AAD,
+      ClientSeq, Tag);
+  end
+  else
+  begin
+    if BodyLen < 8 + SizeOf(TCnGCM128Tag) then
+      Exit;
+    SetLength(Tmp, 8);
+    Move(Buf[0], Tmp[0], 8);
+    SetLength(En, BodyLen - 8 - SizeOf(TCnGCM128Tag));
+    if Length(En) > 0 then
+      Move(Buf[8], En[0], Length(En));
+    Move(Buf[BodyLen - SizeOf(TCnGCM128Tag)], Tag[0], SizeOf(TCnGCM128Tag));
+    AAD := BuildAAD2(CN_TLS_CONTENT_TYPE_HANDSHAKE, ClientSeq, 16);
+    Plain := AES128GCMDecryptBytes(ClientWriteKey, ConcatBytes(ClientFixedIV,
+      Tmp), En, AAD, Tag);
+  end;
+  if Length(Plain) < 16 then
+    Exit;
+
+  HSHash := TLSEccDigestBytes(HandshakeLog, esdtSHA256);
+  EV := TLSPseudoRandomFunc(Master, 'client finished', HSHash, esdtSHA256, 12);
+  SetLength(Tmp, 12);
+  Move(Plain[4], Tmp[0], 12);
+  if not CompareMem(@Tmp[0], @EV[0], 12) then
+    Exit;
+  AppendHS(CN_TLS_HANDSHAKE_TYPE_FINISHED, Tmp);
+  ClientSeq := ClientSeq + 1;
+  SetLength(Msg, 1);
+  Msg[0] := 1;
+  H.ContentType := CN_TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC;
+  H.MajorVersion := 3;
+  H.MinorVersion := 3;
+  H.BodyLength := htons(1);
+  if not SendExact(H, 5) then
+    Exit;
+  if not SendExact(Msg[0], 1) then
+    Exit;
+
+  HSHash := TLSEccDigestBytes(HandshakeLog, esdtSHA256);
+  SV := TLSPseudoRandomFunc(Master, 'server finished', HSHash, esdtSHA256, 12);
+  SetLength(Tmp, 1 + 3 + 12);
+  Tmp[0] := 20;
+  Tmp[1] := 0;
+  PWord(@Tmp[2])^ := htons(12);
+  Move(SV[0], Tmp[4], 12);
+  AAD := BuildAAD2(CN_TLS_CONTENT_TYPE_HANDSHAKE, ServerSeq, 16);
+
+  if UseChaCha then
+  begin
+    En := TLSChaCha20Poly1305Encrypt(ServerWriteKey, ServerFixedIV, Tmp, AAD,
+      ServerSeq, Tag);
+    H.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
+    H.MajorVersion := 3;
+    H.MinorVersion := 3;
+    H.BodyLength := htons(Length(En) + SizeOf(TCnGCM128Tag));
+    if not SendExact(H, 5) then
+      Exit;
+    if (Length(En) > 0) and (not SendExact(En[0], Length(En))) then
+      Exit;
+    if not SendExact(Tag[0], SizeOf(TCnGCM128Tag)) then
+      Exit;
+  end
+  else
+  begin
+    SetLength(Tmp, 8);
+    Tmp[0] := Byte((ServerSeq shr 56) and $FF);
+    Tmp[1] := Byte((ServerSeq shr 48) and $FF);
+    Tmp[2] := Byte((ServerSeq shr 40) and $FF);
+    Tmp[3] := Byte((ServerSeq shr 32) and $FF);
+    Tmp[4] := Byte((ServerSeq shr 24) and $FF);
+    Tmp[5] := Byte((ServerSeq shr 16) and $FF);
+    Tmp[6] := Byte((ServerSeq shr 8) and $FF);
+    Tmp[7] := Byte(ServerSeq and $FF);
+    SetLength(Plain, 1 + 3 + 12);
+    Plain[0] := 20;
+    Plain[1] := 0;
+    PWord(@Plain[2])^ := htons(12);
+    Move(SV[0], Plain[4], 12);
+    En := AES128GCMEncryptBytes(ServerWriteKey, ConcatBytes(ServerFixedIV, Tmp),
+      Plain, AAD, Tag);
+    H.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
+    H.MajorVersion := 3;
+    H.MinorVersion := 3;
+    H.BodyLength := htons(8 + Length(En) + SizeOf(TCnGCM128Tag));
+    if not SendExact(H, 5) then
+      Exit;
+    if not SendExact(Tmp[0], 8) then
+      Exit;
+    if (Length(En) > 0) and (not SendExact(En[0], Length(En))) then
+      Exit;
+    if not SendExact(Tag[0], SizeOf(TCnGCM128Tag)) then
+      Exit;
+  end;
+  ServerSeq := ServerSeq + 1;
+  Result := True;
+  DoTLSLog('TLS Handshake Success');
+
+  ClientSocket.FHandshakeDone := True;
+  ClientSocket.FServerWriteKey := ServerWriteKey;
+  ClientSocket.FClientWriteKey := ClientWriteKey;
+  ClientSocket.FServerFixedIV := ServerFixedIV;
+  ClientSocket.FClientFixedIV := ClientFixedIV;
+  ClientSocket.FServerSeq := ServerSeq;
+  ClientSocket.FClientSeq := ClientSeq;
+  ClientSocket.FCipherSuite := (Integer(SelCipherHi) shl 8) or Integer(SelCipherLo);
+end;
+
+function BuildAAD(ContentType: Byte; Version: Word; Length: Word; const Seq:
+  TUInt64): TBytes;
+var
+  A, V: TBytes;
+  L: Word;
+begin
+  V := TLSUInt64ToBE8(Seq);
+  SetLength(A, 13);
+  Move(V[0], A[0], 8);
+  A[8] := ContentType;
+  A[9] := Byte(Version shr 8);
+  A[10] := Byte(Version and $FF);
+  L := htons(Length);
+  Move(L, A[11], 2);
+  Result := A;
+end;
+
+function MakeLabel(const S: string): TBytes;
+begin
+  Result := AnsiToBytes(AnsiString(S));
+end;
+
+constructor TCnTLSServerClientSocket.Create;
+begin
+  inherited;
+  FVersion := 0;
+  FCipherSuite := 0;
+  FHandshakeDone := False;
+  FServerSeq := 0;
+  FClientSeq := 0;
+  FRecvPlainBuf := nil;
+  FRecvPlainPos := 0;
+end;
+
+constructor TCnTLSServerClientThread.Create(CreateSuspended: Boolean);
+begin
+  inherited Create(CreateSuspended);
+end;
+
+function TCnTLSServerClientThread.DoGetClientSocket: TCnClientSocket;
+begin
+  Result := TCnTLSServerClientSocket.Create;
+end;
+
+procedure TCnTLSServerClientThread.Execute;
+var
+  Skt: TCnTLSServerClientSocket;
+begin
+  Skt := TCnTLSServerClientSocket(ClientSocket);
+  if Assigned(Skt.Server) then
+    FOwnerServer := TCnTLSServer(Skt.Server);
+  if not FOwnerServer.DoHandShake(Skt) then
+  begin
+    if Assigned(FOwnerServer) and Assigned(FOwnerServer.FOnTLSError) then
+      FOwnerServer.FOnTLSError(FOwnerServer, Skt, -1, 'Handshake failed');
+    Skt.Shutdown;
+    Exit;
+  end;
+  if Assigned(FOwnerServer) and Assigned(FOwnerServer.FOnTLSAccept) then
+    FOwnerServer.FOnTLSAccept(FOwnerServer, Skt);
+  Skt.Shutdown;
+end;
+
+procedure TCnTLSServer.GetComponentInfo(var AName, Author, Email, Comment: string);
+begin
+  AName := 'CnTLSServer';
+  Author := 'CnPack';
+  Email := 'master@cnpack.org';
+  Comment := 'TLS 1.2 Server Component';
+end;
+
+constructor TCnTLSServer.Create(AOwner: TComponent);
+begin
+  inherited;
+  FMaxFragmentLen := 16384;
+  FPreferChaCha := True;
+end;
+
+function TCnTLSServer.DoGetClientThread: TCnTCPClientThread;
+var
+  T: TCnTLSServerClientThread;
+begin
+  T := TCnTLSServerClientThread.Create(True);
+  Result := T;
+end;
+
+function TCnTLSServer.SendPlainData(ClientSocket: TCnClientSocket; const Data: TBytes): Boolean;
+var
+  Skt: TCnTLSServerClientSocket;
+  UseChaCha: Boolean;
+  En, AAD, Tmp: TBytes;
+  H: TCnTLSRecordLayer;
+  Tag: TCnGCM128Tag;
+  BodyLen: Integer;
+  Seq: TUInt64;
+begin
+  Result := False;
+  if not (ClientSocket is TCnTLSServerClientSocket) then
+    Exit;
+  Skt := TCnTLSServerClientSocket(ClientSocket);
+  if not Skt.HandshakeDone then
+    Exit;
+  UseChaCha := (Skt.CipherSuite = CN_CIPHER_ECDHE_RSA_CHACHA20_POLY1305) or
+    (Skt.CipherSuite = CN_CIPHER_ECDHE_ECDSA_CHACHA20_POLY1305);
+  Seq := Skt.ServerSeq;
+  AAD := BuildAAD(CN_TLS_CONTENT_TYPE_APPLICATION_DATA, $0303, Length(Data), Seq);
+  if UseChaCha then
+  begin
+    En := TLSChaCha20Poly1305Encrypt(Skt.ServerWriteKey, Skt.ServerFixedIV, Data, AAD, Seq, Tag);
+    H.ContentType := CN_TLS_CONTENT_TYPE_APPLICATION_DATA;
+    H.MajorVersion := 3;
+    H.MinorVersion := 3;
+    BodyLen := Length(En) + SizeOf(TCnGCM128Tag);
+    H.BodyLength := htons(BodyLen);
+    if Skt.Send(H, 5) = SOCKET_ERROR then Exit;
+    if (Length(En) > 0) and (Skt.Send(En[0], Length(En)) = SOCKET_ERROR) then Exit;
+    if Skt.Send(Tag[0], SizeOf(TCnGCM128Tag)) = SOCKET_ERROR then Exit;
+  end
+  else
+  begin
+    SetLength(Tmp, 8);
+    Tmp[0] := Byte((Seq shr 56) and $FF);
+    Tmp[1] := Byte((Seq shr 48) and $FF);
+    Tmp[2] := Byte((Seq shr 40) and $FF);
+    Tmp[3] := Byte((Seq shr 32) and $FF);
+    Tmp[4] := Byte((Seq shr 24) and $FF);
+    Tmp[5] := Byte((Seq shr 16) and $FF);
+    Tmp[6] := Byte((Seq shr 8) and $FF);
+    Tmp[7] := Byte(Seq and $FF);
+    En := AES128GCMEncryptBytes(Skt.ServerWriteKey, ConcatBytes(Skt.ServerFixedIV, Tmp), Data, AAD, Tag);
+    H.ContentType := CN_TLS_CONTENT_TYPE_APPLICATION_DATA;
+    H.MajorVersion := 3;
+    H.MinorVersion := 3;
+    BodyLen := 8 + Length(En) + SizeOf(TCnGCM128Tag);
+    H.BodyLength := htons(BodyLen);
+    if Skt.Send(H, 5) = SOCKET_ERROR then Exit;
+    if Skt.Send(Tmp[0], 8) = SOCKET_ERROR then Exit;
+    if (Length(En) > 0) and (Skt.Send(En[0], Length(En)) = SOCKET_ERROR) then Exit;
+    if Skt.Send(Tag[0], SizeOf(TCnGCM128Tag)) = SOCKET_ERROR then Exit;
+  end;
+  Skt.ServerSeq := Seq + 1;
+  Result := True;
+end;
+
+function TCnTLSServerClientSocket.Send(var Buf; Len: Integer; Flags: Integer): Integer;
+var
+  UseChaCha: Boolean;
+  H: TCnTLSRecordLayer;
+  En, AAD, Tmp, Data: TBytes;
+  Tag: TCnGCM128Tag;
+  BodyLen, Off, SegLen: Integer;
+  Seq: TUInt64;
+  OwnerSrv: TCnTLSServer;
+begin
+  if not FHandshakeDone then
+  begin
+    Result := inherited Send(Buf, Len, Flags);
+    Exit;
+  end;
+  SetLength(Data, Len);
+  if Len > 0 then
+    Move(Buf, Data[0], Len);
+  UseChaCha := (FCipherSuite = CN_CIPHER_ECDHE_RSA_CHACHA20_POLY1305) or
+    (FCipherSuite = CN_CIPHER_ECDHE_ECDSA_CHACHA20_POLY1305);
+  Off := 0;
+  OwnerSrv := TCnTLSServer(Server);
+  while Off < Len do
+  begin
+    SegLen := Len - Off;
+    if (OwnerSrv <> nil) and (OwnerSrv.MaxFragmentLen > 0) and (SegLen > OwnerSrv.MaxFragmentLen) then
+      SegLen := OwnerSrv.MaxFragmentLen;
+    Seq := FServerSeq;
+    AAD := BuildAAD(CN_TLS_CONTENT_TYPE_APPLICATION_DATA, $0303, SegLen, Seq);
+    if UseChaCha then
+    begin
+      En := TLSChaCha20Poly1305Encrypt(FServerWriteKey, FServerFixedIV, Copy(Data, Off, SegLen), AAD, Seq, Tag);
+      H.ContentType := CN_TLS_CONTENT_TYPE_APPLICATION_DATA;
+      H.MajorVersion := 3;
+      H.MinorVersion := 3;
+      BodyLen := Length(En) + SizeOf(TCnGCM128Tag);
+      H.BodyLength := htons(BodyLen);
+      if inherited Send(H, 5) = SOCKET_ERROR then
+      begin Result := SOCKET_ERROR; Exit; end;
+      if (Length(En) > 0) and (inherited Send(En[0], Length(En)) = SOCKET_ERROR) then
+      begin Result := SOCKET_ERROR; Exit; end;
+      if inherited Send(Tag[0], SizeOf(TCnGCM128Tag)) = SOCKET_ERROR then
+      begin Result := SOCKET_ERROR; Exit; end;
+    end
+    else
+    begin
+      SetLength(Tmp, 8);
+      Tmp[0] := Byte((Seq shr 56) and $FF);
+      Tmp[1] := Byte((Seq shr 48) and $FF);
+      Tmp[2] := Byte((Seq shr 40) and $FF);
+      Tmp[3] := Byte((Seq shr 32) and $FF);
+      Tmp[4] := Byte((Seq shr 24) and $FF);
+      Tmp[5] := Byte((Seq shr 16) and $FF);
+      Tmp[6] := Byte((Seq shr 8) and $FF);
+      Tmp[7] := Byte(Seq and $FF);
+      En := AES128GCMEncryptBytes(FServerWriteKey, ConcatBytes(FServerFixedIV, Tmp), Copy(Data, Off, SegLen), AAD, Tag);
+      H.ContentType := CN_TLS_CONTENT_TYPE_APPLICATION_DATA;
+      H.MajorVersion := 3;
+      H.MinorVersion := 3;
+      BodyLen := 8 + Length(En) + SizeOf(TCnGCM128Tag);
+      H.BodyLength := htons(BodyLen);
+      if inherited Send(H, 5) = SOCKET_ERROR then
+      begin Result := SOCKET_ERROR; Exit; end;
+      if inherited Send(Tmp[0], 8) = SOCKET_ERROR then
+      begin Result := SOCKET_ERROR; Exit; end;
+      if (Length(En) > 0) and (inherited Send(En[0], Length(En)) = SOCKET_ERROR) then
+      begin Result := SOCKET_ERROR; Exit; end;
+      if inherited Send(Tag[0], SizeOf(TCnGCM128Tag)) = SOCKET_ERROR then
+      begin Result := SOCKET_ERROR; Exit; end;
+    end;
+    FServerSeq := Seq + 1;
+    Off := Off + SegLen;
+  end;
+  Result := Len;
+end;
+
+function TCnTLSServerClientSocket.Recv(var Buf; Len: Integer; Flags: Integer): Integer;
+var
+  UseChaCha: Boolean;
+  H: TCnTLSRecordLayer;
+  BodyLen, Cnt: Integer;
+  En, AAD, Tmp, Plain, Raw: TBytes;
+  Tag: TCnGCM128Tag;
+  Seq: TUInt64;
+begin
+  if not FHandshakeDone then
+  begin
+    Result := inherited Recv(Buf, Len, Flags);
+    Exit;
+  end;
+  if (FRecvPlainBuf <> nil) and (FRecvPlainPos < Length(FRecvPlainBuf)) then
+  begin
+    Cnt := Length(FRecvPlainBuf) - FRecvPlainPos;
+    if Cnt > Len then Cnt := Len;
+    Move(FRecvPlainBuf[FRecvPlainPos], Buf, Cnt);
+    Inc(FRecvPlainPos, Cnt);
+    if FRecvPlainPos >= Length(FRecvPlainBuf) then
+    begin
+      FRecvPlainBuf := nil;
+      FRecvPlainPos := 0;
+    end;
+    Result := Cnt;
+    Exit;
+  end;
+  SetLength(Raw, 5);
+  if inherited Recv(Raw[0], 5, Flags) <> 5 then
+  begin
+    Result := SOCKET_ERROR;
+    Exit;
+  end;
+  Move(Raw[0], H, 5);
+  if H.ContentType = CN_TLS_CONTENT_TYPE_ALERT then
+  begin
+    BodyLen := ntohs(H.BodyLength);
+    if BodyLen <= 0 then
+    begin Result := 0; Exit; end;
+    SetLength(Raw, BodyLen);
+    if inherited Recv(Raw[0], BodyLen, Flags) <> BodyLen then
+    begin Result := SOCKET_ERROR; Exit; end;
+    Result := 0;
+    Exit;
+  end
+  else if H.ContentType <> CN_TLS_CONTENT_TYPE_APPLICATION_DATA then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  BodyLen := ntohs(H.BodyLength);
+  if BodyLen <= 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  SetLength(Raw, BodyLen);
+  if inherited Recv(Raw[0], BodyLen, Flags) <> BodyLen then
+  begin
+    Result := SOCKET_ERROR;
+    Exit;
+  end;
+  UseChaCha := (FCipherSuite = CN_CIPHER_ECDHE_RSA_CHACHA20_POLY1305) or
+    (FCipherSuite = CN_CIPHER_ECDHE_ECDSA_CHACHA20_POLY1305);
+  Seq := FClientSeq;
+  if UseChaCha then
+  begin
+    if BodyLen < SizeOf(TCnGCM128Tag) then
+    begin Result := SOCKET_ERROR; Exit; end;
+    SetLength(En, BodyLen - SizeOf(TCnGCM128Tag));
+    if Length(En) > 0 then
+      Move(Raw[0], En[0], Length(En));
+    Move(Raw[BodyLen - SizeOf(TCnGCM128Tag)], Tag[0], SizeOf(TCnGCM128Tag));
+    AAD := BuildAAD(CN_TLS_CONTENT_TYPE_APPLICATION_DATA, $0303, Length(En), Seq);
+    Plain := TLSChaCha20Poly1305Decrypt(FClientWriteKey, FClientFixedIV, En, AAD, Seq, Tag);
+  end
+  else
+  begin
+    if BodyLen < 8 + SizeOf(TCnGCM128Tag) then
+    begin Result := SOCKET_ERROR; Exit; end;
+    SetLength(Tmp, 8);
+    Move(Raw[0], Tmp[0], 8);
+    SetLength(En, BodyLen - 8 - SizeOf(TCnGCM128Tag));
+    if Length(En) > 0 then
+      Move(Raw[8], En[0], Length(En));
+    Move(Raw[BodyLen - SizeOf(TCnGCM128Tag)], Tag[0], SizeOf(TCnGCM128Tag));
+    AAD := BuildAAD(CN_TLS_CONTENT_TYPE_APPLICATION_DATA, $0303, Length(En), Seq);
+    Plain := AES128GCMDecryptBytes(FClientWriteKey, ConcatBytes(FClientFixedIV, Tmp), En, AAD, Tag);
+  end;
+  if Plain = nil then
+  begin
+    Result := SOCKET_ERROR;
+    Exit;
+  end;
+  FClientSeq := Seq + 1;
+  if Length(Plain) <= Len then
+  begin
+    if Length(Plain) > 0 then
+      Move(Plain[0], Buf, Length(Plain));
+    Result := Length(Plain);
+  end
+  else
+  begin
+    Move(Plain[0], Buf, Len);
+    FRecvPlainBuf := Plain;
+    FRecvPlainPos := Len;
+    Result := Len;
+  end;
+end;
+
+function TLSChaChaNonce(const FixedIV12: TBytes; Seq: TUInt64): TBytes;
 var
   N: TBytes;
   S: array[0..7] of Byte;
@@ -392,6 +1500,9 @@ begin
   FHandshakeState := hsInit;
   FClientSeq := 0;
   FServerSeq := 0;
+  FRecvPlainBuf := nil;
+  FRecvPlainPos := 0;
+  FMaxFragmentLen := 16384;
 end;
 
 destructor TCnTLSClient.Destroy;

@@ -75,8 +75,8 @@ type
     {* 封装的关闭 Socket 的操作}
 
     // send/recv 收发数据封装
-    function Send(var Buf; Len: Integer; Flags: Integer = 0): Integer;
-    function Recv(var Buf; Len: Integer; Flags: Integer = 0): Integer;
+    function Send(var Buf; Len: Integer; Flags: Integer = 0): Integer; virtual;
+    function Recv(var Buf; Len: Integer; Flags: Integer = 0): Integer; virtual;
     // 注意 Recv 返回 0 时说明当前网络已断开，调用者需要根据返回值做断开处理
 
     property Server: TCnThreadingTCPServer read FServer write FServer;
