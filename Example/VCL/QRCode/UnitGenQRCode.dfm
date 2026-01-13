@@ -15,31 +15,60 @@ object FormQRTest: TFormQRTest
   PixelsPerInch = 96
   TextHeight = 13
   object lblText: TLabel
-    Left = 456
+    Left = 440
     Top = 20
     Width = 26
     Height = 13
     Caption = 'Text:'
   end
   object lblIconSize: TLabel
-    Left = 456
-    Top = 92
-    Width = 44
+    Left = 440
+    Top = 52
+    Width = 47
     Height = 13
-    Caption = 'IconSize:'
+    Caption = 'Icon Size:'
   end
   object lblIconMargin: TLabel
     Left = 440
-    Top = 124
+    Top = 84
     Width = 60
     Height = 13
     Caption = 'Icon Margin:'
   end
-  object btnShowQRImage: TButton
+  object lblBackColor: TLabel
+    Left = 440
+    Top = 116
+    Width = 60
+    Height = 13
+    Caption = 'Background:'
+  end
+  object shpBackColor: TShape
     Left = 512
-    Top = 48
-    Width = 209
-    Height = 25
+    Top = 112
+    Width = 25
+    Height = 22
+    OnMouseDown = shpBackColorMouseDown
+  end
+  object lblForeColor: TLabel
+    Left = 440
+    Top = 148
+    Width = 47
+    Height = 13
+    Caption = 'QR Color:'
+  end
+  object shpForeColor: TShape
+    Left = 512
+    Top = 144
+    Width = 25
+    Height = 22
+    Brush.Color = clBlack
+    OnMouseDown = shpForeColorMouseDown
+  end
+  object btnShowQRImage: TButton
+    Left = 560
+    Top = 112
+    Width = 161
+    Height = 57
     Caption = 'Show QR Code Image'
     TabOrder = 0
     OnClick = btnShowQRImageClick
@@ -54,18 +83,21 @@ object FormQRTest: TFormQRTest
   end
   object edtIconSize: TEdit
     Left = 512
-    Top = 88
-    Width = 121
+    Top = 48
+    Width = 209
     Height = 21
     TabOrder = 2
     Text = '32'
   end
   object edtIconMargin: TEdit
     Left = 512
-    Top = 120
-    Width = 121
+    Top = 80
+    Width = 209
     Height = 21
     TabOrder = 3
-    Text = '32'
+    Text = '2'
+  end
+  object dlgColor: TColorDialog
+    Ctl3D = True
   end
 end

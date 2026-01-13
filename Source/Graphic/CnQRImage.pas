@@ -48,7 +48,6 @@ type
     FIcon: TIcon;
     FCellSize: Integer;
     FForeColor: TColor;
-    FQRWideCharMode: TCnQRWideCharMode;
     FIconSize: Integer;
     FIconMargin: Integer;
     function GetQRErrorRecoveryLevel: TCnErrorRecoveryLevel;
@@ -70,6 +69,8 @@ type
     procedure SaveToFile(const FileName: string; Border: Integer = 4);
 
   published
+    property Color;
+    {* ¶þÎ¬Âë±³¾°É«}
     property Text: string read GetText write SetText;
     {* ÏÔÊ¾µÄ×Ö·û´®}
     property QRWideCharMode: TCnQRWideCharMode read GetFQRWideCharMode write
@@ -187,6 +188,7 @@ var
   QRLeft, QRTop: Integer;
   ISZ, WH: Integer;
   R: TRect;
+  TmpBmp: TBitmap;
 begin
   Canvas.Font := Font;
   Canvas.Brush.Color := Color;
@@ -261,13 +263,27 @@ begin
     if FIconMargin > 0 then
     begin
       Canvas.Brush.Color := Color;
+      Canvas.Pen.Color := clNone;
       R := Rect((Width - WH) div 2, (Height - WH) div 2, (Width + WH) div 2, (Height + WH) div 2);
       Canvas.FillRect(R);
     end;
 
     QL := (Width - ISZ) div 2;
     QT := (Height - ISZ) div 2;
-    Canvas.StretchDraw(Rect(QL, QT, QL + ISZ, QT + ISZ), FIcon);
+
+    TmpBmp := TBitmap.Create;
+    try
+      TmpBmp.PixelFormat := pf24bit;
+      TmpBmp.Width := FIcon.Width;
+      TmpBmp.Height := FIcon.Height;
+      TmpBmp.Canvas.Brush.Style := bsSolid;
+      TmpBmp.Canvas.Brush.Color := Color;
+      TmpBmp.Canvas.FillRect(Rect(0, 0, TmpBmp.Width, TmpBmp.Height));
+      TmpBmp.Canvas.Draw(0, 0, FIcon);
+      Canvas.StretchDraw(Rect(QL, QT, QL + ISZ, QT + ISZ), TmpBmp);
+    finally
+      TmpBmp.Free;
+    end;
   end;
 end;
 

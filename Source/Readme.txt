@@ -324,6 +324,9 @@ cnpack\Source 目录内容说明：
   CnPrime.pas
     素数运算单元
 
+  CnQRCode.pas
+    二维码编码功能
+
   CnRandom.pas
     随机数生成单元
 
@@ -369,7 +372,7 @@ cnpack\Source 目录内容说明：
   CnZUC.pas
     祖冲之算法实现单元
 
-                共 49 文件
+                共 50 文件
 
 \DbReport －数据库组件与报表库目录
 
@@ -500,6 +503,9 @@ cnpack\Source 目录内容说明：
   CnPanel.pas
     带透明效果的Panel实现单元
 
+  CnQRImage.pas
+    二维码显示单元
+
   CnSearchCombo.pas
     带下拉搜索匹配的 ComboBox 控件单元
 
@@ -533,7 +539,7 @@ cnpack\Source 目录内容说明：
   CnWizardImage.pas
     向导界面图像控件
 
-               39 文件
+               40 文件
 
 \Lang\2052
 \Lang\1028
