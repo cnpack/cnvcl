@@ -198,6 +198,7 @@ type
     FBerLength: Integer;
     FBerOffset: Integer;
     FBerTag: Integer;
+    FBerTagClass: Integer;
     FBerDataLength: Integer;
     FBerDataOffset: Integer;
     function GetItems(AIndex: Integer): TCnBerReadNode;
@@ -1015,6 +1016,10 @@ var
   B: Byte;
   IsStruct, OutLenIsZero, MyEnd, LenSingle: Boolean;
   ALeaf: TCnBerReadNode;
+  TagClass: Integer;
+{$IFDEF DEBUG}
+  TagName: string;
+{$ENDIF}
 begin
   Run := 0;  // Run 是基于 AData 起始处的偏移量
   Result := ADataByteLen;
@@ -1033,6 +1038,7 @@ begin
     // 处理 Tag 类型
     IsStruct := (B and CN_BER_TAG_STRUCT_MASK) <> 0;
     Tag := B and CN_BER_TAG_VALUE_MASK;
+    TagClass := B and CN_BER_TAG_TYPE_MASK;
 
     Inc(Run);
     if (Run >= ADataByteLen) and (ADataByteLen > 0) then
@@ -1100,6 +1106,7 @@ begin
     ALeaf.BerOffset := AStartOffset + Start;
     ALeaf.BerLength := DataLen + Delta;
     ALeaf.BerTag := Tag;
+    ALeaf.FBerTagClass := TagClass;
     ALeaf.BerDataLength := DataLen;  // 注意 DataLen 为 0 时，如 LenSingle 是 True，表示没东西，为 False 才表示未定长度
     ALeaf.BerDataOffset := DataOffset;
 
@@ -1107,22 +1114,27 @@ begin
       Inc(Result, ALeaf.BerLength);
 
 {$IFDEF DEBUG}
+    if TagClass = 0 then
+      TagName := GetTagName(ALeaf.BerTag)
+    else
+      TagName := '[' + IntToStr(ALeaf.BerTag) + ']';
     ALeaf.Text := Format(SCnErrorOffsetLenTag, [ALeaf.BerOffset,
-      ALeaf.BerLength, ALeaf.BerTag, GetTagName(ALeaf.BerTag), ALeaf.BerDataLength]);
+      ALeaf.BerLength, ALeaf.BerTag, TagName, ALeaf.BerDataLength]);
 {$ENDIF}
 
     SubLen := 0;
     // 有子节点时对长度的要求：(DataLen > 0) 或 (DataLen = 0 且 LenSingle 为 False)
     // 也就是说，单纯一个字节表示 DataLen 是 0，确实就表示没数据
     // 组合表示 0，才说明是无固定长度数据，有子节点且最后一个字节点以 00 00 结尾
-    if (IsStruct or (FParseInnerString and (ALeaf.BerTag in [CN_BER_TAG_BIT_STRING,
+    if (IsStruct or (FParseInnerString and (TagClass = 0) and (ALeaf.BerTag in [CN_BER_TAG_BIT_STRING,
       CN_BER_TAG_OCTET_STRING])))
       and ((DataLen > 0) or (DataLen = 0) and not LenSingle) then
     begin
       // 说明 BerDataOffset 到 BerDataLength 内可能有子节点
       try
-        if ALeaf.BerTag = CN_BER_TAG_BIT_STRING then // 凑成 8 的倍数所缺少的 Bit 数照理应小于 8，但不能加这个额外条件 and (AData^[Run + 1] < 8)
+        if (TagClass = 0) and (ALeaf.BerTag = CN_BER_TAG_BIT_STRING) then
         begin
+          // 凑成 8 的倍数所缺少的 Bit 数照理应小于 8，但不能加这个额外条件 and (AData^[Run + 1] < 8)
           FCurrentIsBitString := True;
           try
             try
