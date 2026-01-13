@@ -64,6 +64,9 @@ type
     Coeff: array of Byte;
   end;
 
+  TCnQRWideCharMode = (cqwUtf8, cqwAnsi);
+  {* 宽字符的编码模式，默认 Utf8。后者直接转 Ansi，如是汉字则是 GB18030 编码}
+
   TCnQRCodeInfo = record
   {* 二维码基本信息}
     Mode: TCnEncodeMode;
@@ -78,6 +81,7 @@ type
   {* 二维码编码实现类}
   private
     FText: string;
+    FRawText: AnsiString;
     FQRData: TCnQRData;
     FQRSize: Integer;
 
@@ -90,15 +94,18 @@ type
 
     FDataBits: TCnBitBuilder;
     FFinalBits: TCnBitBuilder;
+    FQRWideCharMode: TCnQRWideCharMode;
 
     procedure SetQRErrorRecoveryLevel(const Value: TCnErrorRecoveryLevel);
     procedure SetQRVersion(const Value: TCnQRCodeVersion);
     procedure SetText(const Value: string);
     function GetQRSize: Integer;
 
+    procedure UpdateRawText;
     procedure UpdateFormatInfoBits;
     procedure UpdateVersionInfoBits;
     procedure PaintRect(Left, Top, Right, Bottom: Integer; Solid: Boolean = False);
+    procedure SetQRWideCharMode(const Value: TCnQRWideCharMode);
   protected
     procedure ClearData;
     procedure PaintPositionDetectionPattern;
@@ -115,10 +122,10 @@ type
     {* 计算并应用最佳 Mask 掩码}
 
     // 数据编码相关方法
-    function AnalyzeText: TCnEncodeMode;
-    function EncodeNumeric(const Text: string): TCnBitBuilder;
-    function EncodeAlphaNumeric(const Text: string): TCnBitBuilder;
-    function EncodeByte(const Text: string): TCnBitBuilder;
+    function AnalyzeRawText: TCnEncodeMode;
+    function EncodeNumeric(const AText: AnsiString): TCnBitBuilder;
+    function EncodeAlphaNumeric(const AText: AnsiString): TCnBitBuilder;
+    function EncodeByte(const AText: AnsiString): TCnBitBuilder;
     function GetCharCountBits(Mode: TCnEncodeMode; Version: TCnQRCodeVersion): Integer;
     procedure EncodeText;
 
@@ -145,7 +152,7 @@ type
     function GetTotalCodewords(Version: TCnQRCodeVersion): Integer;
     function GetECCodewords(Version: TCnQRCodeVersion; ErrorLevel:
       TCnErrorRecoveryLevel): Integer;
-    function GetOptimalVersion(const Text: string; ErrorLevel:
+    function GetOptimalVersion(const AText: AnsiString; ErrorLevel:
       TCnErrorRecoveryLevel): TCnQRCodeVersion;
 
     // 功能区域判断
@@ -154,16 +161,18 @@ type
     function AddEccAndInterleave(Data: TCnBitBuilder): TCnBitBuilder;
     function ComputeBlockECC(const DataBytes: TBytes; ECCodewords: Integer): TBytes;
     function BitBuilderToBytes(B: TCnBitBuilder; ByteCount: Integer): TBytes;
+
+    procedure PaintData;
+    function EvaluateMaskPenalty(MaskType: Integer): Integer;
   public
     constructor Create; virtual;
     destructor Destroy; override;
 
-    procedure PaintData;
+    // 调试相关输出
     function GetDataCodewordsBytes: TBytes;
     function GetAllCodewordsBytes: TBytes;
     function GetFormatBitsValue: Integer;
     function GetVersionBitsValue: Integer;
-    function EvaluateMaskPenalty(MaskType: Integer): Integer;
     function DumpMatrix: string;
     function DumpMatrixUnmasked: string;
     function DumpFunctionArea: string;
@@ -173,18 +182,29 @@ type
     function DumpFormatRowIndices: string;
     function DumpFormatColIndices: string;
 
-    property QRData: TCnQRData read FQRData;
+    // 对外公开的属性
     property QRVersion: TCnQRCodeVersion read FQRVersion write SetQRVersion;
+    {* 二维码尺寸版本}
     property QRErrorRecoveryLevel: TCnErrorRecoveryLevel read
       FQRErrorRecoveryLevel write SetQRErrorRecoveryLevel;
+    {* 二维码纠错等级}
     property Text: string read FText write SetText;
+    {* 指定的文本供生成二维码}
+    property QRWideCharMode: TCnQRWideCharMode read FQRWideCharMode write SetQRWideCharMode;
+    {* 宽字符编码模式}
     property QRSize: Integer read GetQRSize;
-    {* 边长格子数}
+    {* 生成的二维码的边长格子数}
 
+    property QRData: TCnQRData read FQRData;
+    {* 生成的二维码数据}
     property MaskType: Integer read FMaskType;
+    {* 掩码类型}
   end;
 
 implementation
+
+uses
+  CnWideStrings;
 
 type
   TCn2BytesArray = array[0..1] of Byte;
@@ -630,9 +650,11 @@ constructor TCnQREncoder.Create;
 begin
   inherited;
   FText := 'CnPack Sample QR Code.';
+  UpdateRawText;
+
   FQRErrorRecoveryLevel := erlM;
   FMaskType := 0;
-  FQRVersion := GetOptimalVersion(FText, FQRErrorRecoveryLevel);
+  FQRVersion := GetOptimalVersion(FRawText, FQRErrorRecoveryLevel);
   FQRSize := GetQRSizeFromVersion(FQRVersion);
 
   // 确保矩阵在操作前已正确调整大小
@@ -873,7 +895,7 @@ begin
   if FQRErrorRecoveryLevel <> Value then
   begin
     FQRErrorRecoveryLevel := Value;
-    FQRVersion := GetOptimalVersion(FText, FQRErrorRecoveryLevel);
+    FQRVersion := GetOptimalVersion(FRawText, FQRErrorRecoveryLevel);
     FQRSize := GetQRSizeFromVersion(FQRVersion);
     SetLength(FQRData, FQRSize, FQRSize);
     UpdateFormatInfoBits;
@@ -900,7 +922,23 @@ begin
   if FText <> Value then
   begin
     FText := Value;
-    FQRVersion := GetOptimalVersion(FText, FQRErrorRecoveryLevel);
+    UpdateRawText;
+    FQRVersion := GetOptimalVersion(FRawText, FQRErrorRecoveryLevel);
+    FQRSize := GetQRSizeFromVersion(FQRVersion);
+    SetLength(FQRData, FQRSize, FQRSize);
+    UpdateFormatInfoBits;
+    UpdateVersionInfoBits;
+    PaintData;
+  end;
+end;
+
+procedure TCnQREncoder.SetQRWideCharMode(const Value: TCnQRWideCharMode);
+begin
+  if FQRWideCharMode <> Value then
+  begin
+    FQRWideCharMode := Value;
+    UpdateRawText;
+    FQRVersion := GetOptimalVersion(FRawText, FQRErrorRecoveryLevel);
     FQRSize := GetQRSizeFromVersion(FQRVersion);
     SetLength(FQRData, FQRSize, FQRSize);
     UpdateFormatInfoBits;
@@ -910,7 +948,7 @@ begin
 end;
 
 // 数据编码方法
-function TCnQREncoder.AnalyzeText: TCnEncodeMode;
+function TCnQREncoder.AnalyzeRawText: TCnEncodeMode;
 var
   I: Integer;
   HasAlphaNumeric, HasByte: Boolean;
@@ -918,11 +956,11 @@ begin
   HasAlphaNumeric := False;
   HasByte := False;
 
-  for I := 1 to Length(FText) do
+  for I := 1 to Length(FRawText) do
   begin
-    if FText[I] in CN_QRCODE_CHARSET_NUMERIC then
+    if FRawText[I] in CN_QRCODE_CHARSET_NUMERIC then
       Continue
-    else if FText[I] in CN_QRCODE_CHARSET_ALPHANUMERIC then
+    else if FRawText[I] in CN_QRCODE_CHARSET_ALPHANUMERIC then
       HasAlphaNumeric := True
     else
     begin
@@ -954,7 +992,7 @@ begin
   end;
 end;
 
-function TCnQREncoder.EncodeNumeric(const Text: string): TCnBitBuilder;
+function TCnQREncoder.EncodeNumeric(const AText: AnsiString): TCnBitBuilder;
 var
   I, Groups, Remainder, Value, Pos: Integer;
   ModeBits: Integer;
@@ -972,19 +1010,19 @@ begin
   ModeBits := GetCharCountBits(emNumeric, FQRVersion);
   Result.BitLength := Result.BitLength + ModeBits;
   for I := 0 to ModeBits - 1 do
-    Result.Bit[4 + I] := (Length(Text) shr (ModeBits - 1 - I)) and 1 = 1;
+    Result.Bit[4 + I] := (Length(AText) shr (ModeBits - 1 - I)) and 1 = 1;
 
   Pos := 4 + ModeBits;
 
-  // 每3位一组编码为10位
-  Groups := Length(Text) div 3;
-  Remainder := Length(Text) mod 3;
+  // 每 3 位一组编码为 10 位
+  Groups := Length(AText) div 3;
+  Remainder := Length(AText) mod 3;
 
   for I := 1 to Groups do
   begin
-    Value := (Ord(Text[(I - 1) * 3 + 1]) - Ord('0')) * 100 +
-      (Ord(Text[(I - 1) * 3 + 2]) - Ord('0')) * 10 +
-      (Ord(Text[(I - 1) * 3 + 3]) - Ord('0'));
+    Value := (Ord(AText[(I - 1) * 3 + 1]) - Ord('0')) * 100 +
+      (Ord(AText[(I - 1) * 3 + 2]) - Ord('0')) * 10 +
+      (Ord(AText[(I - 1) * 3 + 3]) - Ord('0'));
 
     Result.BitLength := Pos + 10;
     Result.Bit[Pos] := (Value and $200) <> 0;
@@ -1003,7 +1041,7 @@ begin
   // 处理剩余字符
   if Remainder = 1 then
   begin
-    Value := Ord(Text[Length(Text)]) - Ord('0');
+    Value := Ord(AText[Length(AText)]) - Ord('0');
     Result.BitLength := Pos + 4;
     Result.Bit[Pos] := (Value and $8) <> 0;
     Result.Bit[Pos + 1] := (Value and $4) <> 0;
@@ -1012,8 +1050,8 @@ begin
   end
   else if Remainder = 2 then
   begin
-    Value := (Ord(Text[Length(Text) - 1]) - Ord('0')) * 10 +
-      (Ord(Text[Length(Text)]) - Ord('0'));
+    Value := (Ord(AText[Length(AText) - 1]) - Ord('0')) * 10 +
+      (Ord(AText[Length(AText)]) - Ord('0'));
     Result.BitLength := Pos + 7;
     Result.Bit[Pos] := (Value and $40) <> 0;
     Result.Bit[Pos + 1] := (Value and $20) <> 0;
@@ -1025,7 +1063,7 @@ begin
   end;
 end;
 
-function TCnQREncoder.EncodeAlphaNumeric(const Text: string): TCnBitBuilder;
+function TCnQREncoder.EncodeAlphaNumeric(const AText: AnsiString): TCnBitBuilder;
 var
   I, Groups, Remainder, Value, Value1, Value2, Pos: Integer;
   ModeBits: Integer;
@@ -1044,22 +1082,22 @@ begin
   ModeBits := GetCharCountBits(emAlphaNumeric, FQRVersion);
   Result.BitLength := Result.BitLength + ModeBits;
   for I := 0 to ModeBits - 1 do
-    Result.Bit[4 + I] := (Length(Text) shr (ModeBits - 1 - I)) and 1 = 1;
+    Result.Bit[4 + I] := (Length(AText) shr (ModeBits - 1 - I)) and 1 = 1;
 
   Pos := 4 + ModeBits;
 
-  // 每两个字符一组编码为11位
-  Groups := Length(Text) div 2;
-  Remainder := Length(Text) mod 2;
+  // 每两个字符一组编码为 11 位
+  Groups := Length(AText) div 2;
+  Remainder := Length(AText) mod 2;
 
   for I := 1 to Groups do
   begin
     // 获取字符索引值
-    case Text[(I - 1) * 2 + 1] of
+    case AText[(I - 1) * 2 + 1] of
       '0'..'9':
-        CharIndex := Ord(Text[(I - 1) * 2 + 1]) - Ord('0');
+        CharIndex := Ord(AText[(I - 1) * 2 + 1]) - Ord('0');
       'A'..'Z':
-        CharIndex := Ord(Text[(I - 1) * 2 + 1]) - Ord('A') + 10;
+        CharIndex := Ord(AText[(I - 1) * 2 + 1]) - Ord('A') + 10;
       ' ':
         CharIndex := 36;
       '$':
@@ -1083,11 +1121,11 @@ begin
     end;
     Value1 := CharIndex;
 
-    case Text[(I - 1) * 2 + 2] of
+    case AText[(I - 1) * 2 + 2] of
       '0'..'9':
-        CharIndex := Ord(Text[(I - 1) * 2 + 2]) - Ord('0');
+        CharIndex := Ord(AText[(I - 1) * 2 + 2]) - Ord('0');
       'A'..'Z':
-        CharIndex := Ord(Text[(I - 1) * 2 + 2]) - Ord('A') + 10;
+        CharIndex := Ord(AText[(I - 1) * 2 + 2]) - Ord('A') + 10;
       ' ':
         CharIndex := 36;
       '$':
@@ -1131,11 +1169,11 @@ begin
   // 处理剩余字符
   if Remainder = 1 then
   begin
-    case Text[Length(Text)] of
+    case AText[Length(AText)] of
       '0'..'9':
-        CharIndex := Ord(Text[Length(Text)]) - Ord('0');
+        CharIndex := Ord(AText[Length(AText)]) - Ord('0');
       'A'..'Z':
-        CharIndex := Ord(Text[Length(Text)]) - Ord('A') + 10;
+        CharIndex := Ord(AText[Length(AText)]) - Ord('A') + 10;
       ' ':
         CharIndex := 36;
       '$':
@@ -1168,7 +1206,7 @@ begin
   end;
 end;
 
-function TCnQREncoder.EncodeByte(const Text: string): TCnBitBuilder;
+function TCnQREncoder.EncodeByte(const AText: AnsiString): TCnBitBuilder;
 var
   I, Pos, ModeBits: Integer;
 begin
@@ -1185,22 +1223,22 @@ begin
   ModeBits := GetCharCountBits(emByte, FQRVersion);
   Result.BitLength := Result.BitLength + ModeBits;
   for I := 0 to ModeBits - 1 do
-    Result.Bit[4 + I] := (Length(Text) shr (ModeBits - 1 - I)) and 1 = 1;
+    Result.Bit[4 + I] := (Length(AText) shr (ModeBits - 1 - I)) and 1 = 1;
 
   Pos := 4 + ModeBits;
 
   // 每个字节 8 位
-  for I := 1 to Length(Text) do
+  for I := 1 to Length(AText) do
   begin
     Result.BitLength := Pos + 8;
-    Result.Bit[Pos] := (Ord(Text[I]) and $80) <> 0;
-    Result.Bit[Pos + 1] := (Ord(Text[I]) and $40) <> 0;
-    Result.Bit[Pos + 2] := (Ord(Text[I]) and $20) <> 0;
-    Result.Bit[Pos + 3] := (Ord(Text[I]) and $10) <> 0;
-    Result.Bit[Pos + 4] := (Ord(Text[I]) and $08) <> 0;
-    Result.Bit[Pos + 5] := (Ord(Text[I]) and $04) <> 0;
-    Result.Bit[Pos + 6] := (Ord(Text[I]) and $02) <> 0;
-    Result.Bit[Pos + 7] := (Ord(Text[I]) and $01) <> 0;
+    Result.Bit[Pos] := (Ord(AText[I]) and $80) <> 0;
+    Result.Bit[Pos + 1] := (Ord(AText[I]) and $40) <> 0;
+    Result.Bit[Pos + 2] := (Ord(AText[I]) and $20) <> 0;
+    Result.Bit[Pos + 3] := (Ord(AText[I]) and $10) <> 0;
+    Result.Bit[Pos + 4] := (Ord(AText[I]) and $08) <> 0;
+    Result.Bit[Pos + 5] := (Ord(AText[I]) and $04) <> 0;
+    Result.Bit[Pos + 6] := (Ord(AText[I]) and $02) <> 0;
+    Result.Bit[Pos + 7] := (Ord(AText[I]) and $01) <> 0;
     Inc(Pos, 8);
   end;
 end;
@@ -1212,17 +1250,17 @@ var
   TotalBits, RemainderBits, I, DataCount: Integer;
   NewVersion: TCnQRCodeVersion;
 begin
-  Mode := AnalyzeText;
+  Mode := AnalyzeRawText;
 
   case Mode of
     emNumeric:
-      DataBits := EncodeNumeric(FText);
+      DataBits := EncodeNumeric(FRawText);
     emAlphaNumeric:
-      DataBits := EncodeAlphaNumeric(FText);
+      DataBits := EncodeAlphaNumeric(FRawText);
     emByte:
-      DataBits := EncodeByte(FText);
+      DataBits := EncodeByte(FRawText);
   else
-    DataBits := EncodeByte(FText);
+    DataBits := EncodeByte(FRawText);
   end;
 
   FDataBits.Assign(DataBits);
@@ -1236,7 +1274,7 @@ begin
   // 如果数据太长，需要增加版本
   if FDataBits.BitLength > TotalBits then
   begin
-    NewVersion := GetOptimalVersion(FText, FQRErrorRecoveryLevel);
+    NewVersion := GetOptimalVersion(FRawText, FQRErrorRecoveryLevel);
 
     if NewVersion > 40 then
       raise Exception.Create('Data too long for QR Code Version 40');
@@ -1949,14 +1987,14 @@ begin
   Result := CN_EC_CODEWORDS[Version, Ord(ErrorLevel)];
 end;
 
-function TCnQREncoder.GetOptimalVersion(const Text: string; ErrorLevel:
+function TCnQREncoder.GetOptimalVersion(const AText: AnsiString; ErrorLevel:
   TCnErrorRecoveryLevel): TCnQRCodeVersion;
 var
   Version: TCnQRCodeVersion;
   Mode: TCnEncodeMode;
   RequiredBits, AvailableBits, ModeBits, DataBits: Integer;
 begin
-  Mode := AnalyzeText;
+  Mode := AnalyzeRawText;
   Result := 40; // 默认最大版本
 
   for Version := 1 to 40 do
@@ -1967,22 +2005,22 @@ begin
     case Mode of
       emNumeric:
         begin
-          DataBits := (Length(Text) div 3) * 10;
-          if Length(Text) mod 3 = 1 then
+          DataBits := (Length(AText) div 3) * 10;
+          if Length(AText) mod 3 = 1 then
             DataBits := DataBits + 4
-          else if Length(Text) mod 3 = 2 then
+          else if Length(AText) mod 3 = 2 then
             DataBits := DataBits + 7;
         end;
       emAlphaNumeric:
         begin
-          DataBits := (Length(Text) div 2) * 11;
-          if Length(Text) mod 2 = 1 then
+          DataBits := (Length(AText) div 2) * 11;
+          if Length(AText) mod 2 = 1 then
             DataBits := DataBits + 6;
         end;
       emByte:
-        DataBits := Length(Text) * 8;
+        DataBits := Length(AText) * 8;
     else
-      DataBits := Length(Text) * 8;
+      DataBits := Length(AText) * 8;
     end;
 
     RequiredBits := ModeBits + DataBits;
@@ -2350,6 +2388,20 @@ begin
       First := False;
     end;
   end;
+end;
+
+procedure TCnQREncoder.UpdateRawText;
+begin
+  if FQRWideCharMode = cqwUtf8 then
+  begin
+{$IFDEF UNICODE}
+    FRawText := CnUtf8EncodeWideString(CnWideStrings(FText))
+{$ELSE}
+    FRawText := CnAnsiToUtf8(FText);
+{$ENDIF}
+  end
+  else
+    FRawText := AnsiString(FText);
 end;
 
 end.
