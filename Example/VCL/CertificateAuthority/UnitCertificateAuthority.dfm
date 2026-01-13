@@ -1,8 +1,8 @@
 object FormCA: TFormCA
-  Left = 360
-  Top = 146
-  Width = 889
-  Height = 613
+  Left = 145
+  Top = 63
+  Width = 1070
+  Height = 757
   Caption = 'Certificate Authority'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,8 +19,8 @@ object FormCA: TFormCA
   object pgc1: TPageControl
     Left = 8
     Top = 8
-    Width = 865
-    Height = 567
+    Width = 1043
+    Height = 705
     ActivePage = tsRequest
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
@@ -29,7 +29,7 @@ object FormCA: TFormCA
       object grpGenRequest: TGroupBox
         Left = 8
         Top = 8
-        Width = 841
+        Width = 1019
         Height = 185
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Generate Certificate Sign Request'
@@ -100,13 +100,13 @@ object FormCA: TFormCA
         object edtRSAECCKey: TEdit
           Left = 88
           Top = 20
-          Width = 641
+          Width = 636
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
         end
         object btnBrowseKey: TButton
-          Left = 736
+          Left = 731
           Top = 20
           Width = 91
           Height = 21
@@ -185,7 +185,7 @@ object FormCA: TFormCA
             'SHA256')
         end
         object btnGenerateCSR: TButton
-          Left = 488
+          Left = 483
           Top = 144
           Width = 209
           Height = 21
@@ -195,7 +195,7 @@ object FormCA: TFormCA
           OnClick = btnGenerateCSRClick
         end
         object btnSelfSign: TButton
-          Left = 712
+          Left = 707
           Top = 144
           Width = 113
           Height = 21
@@ -205,14 +205,179 @@ object FormCA: TFormCA
           OnClick = btnSelfSignClick
         end
       end
-      object grpParse: TGroupBox
+      object grpExtRequest: TGroupBox
         Left = 8
         Top = 200
-        Width = 841
-        Height = 327
+        Width = 1019
+        Height = 152
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'Extensions (v2) - Standard and Private Internet'
+        TabOrder = 1
+        object lblSAN: TLabel
+          Left = 16
+          Top = 24
+          Width = 119
+          Height = 13
+          Caption = 'SubjectAltName (comma)'
+        end
+        object lblCRLDP: TLabel
+          Left = 16
+          Top = 52
+          Width = 151
+          Height = 13
+          Caption = 'CRL Distribution Points (comma)'
+        end
+        object lblAIAOcsp: TLabel
+          Left = 16
+          Top = 80
+          Width = 77
+          Height = 13
+          Caption = 'AIA OCSP (URI)'
+        end
+        object lblAIACa: TLabel
+          Left = 16
+          Top = 108
+          Width = 95
+          Height = 13
+          Caption = 'AIA CAIssuers (URI)'
+        end
+        object lblPathLen: TLabel
+          Left = 904
+          Top = 46
+          Width = 60
+          Height = 13
+          Anchors = [akTop, akRight]
+          Caption = 'PathLen (int)'
+        end
+        object lblAKI: TLabel
+          Left = 904
+          Top = 92
+          Width = 68
+          Height = 13
+          Anchors = [akTop, akRight]
+          Caption = 'AuthorityKeyId'
+        end
+        object edtSAN: TEdit
+          Left = 168
+          Top = 20
+          Width = 515
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 0
+        end
+        object edtCRLDP: TEdit
+          Left = 168
+          Top = 48
+          Width = 515
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 1
+        end
+        object edtAIAOcsp: TEdit
+          Left = 168
+          Top = 76
+          Width = 515
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 2
+        end
+        object edtAIACaIssuers: TEdit
+          Left = 168
+          Top = 104
+          Width = 515
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 3
+        end
+        object chkKU_DigSig: TCheckBox
+          Left = 720
+          Top = 20
+          Width = 129
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'KeyUsage: DigitalSignature'
+          TabOrder = 4
+        end
+        object chkKU_KeyEnc: TCheckBox
+          Left = 720
+          Top = 40
+          Width = 153
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'KeyUsage: KeyEncipherment'
+          TabOrder = 5
+        end
+        object chkKU_KeyCertSign: TCheckBox
+          Left = 720
+          Top = 60
+          Width = 153
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'KeyUsage: KeyCertSign'
+          TabOrder = 6
+        end
+        object chkKU_CRLSign: TCheckBox
+          Left = 720
+          Top = 80
+          Width = 153
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'KeyUsage: CRLSign'
+          TabOrder = 7
+        end
+        object chkEKU_ServerAuth: TCheckBox
+          Left = 720
+          Top = 100
+          Width = 153
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'EKU: ServerAuth'
+          TabOrder = 8
+        end
+        object chkEKU_ClientAuth: TCheckBox
+          Left = 720
+          Top = 120
+          Width = 153
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'EKU: ClientAuth'
+          TabOrder = 9
+        end
+        object chkBasicConstraintsCA: TCheckBox
+          Left = 904
+          Top = 20
+          Width = 97
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'Is CA'
+          TabOrder = 10
+        end
+        object edtPathLen: TEdit
+          Left = 904
+          Top = 62
+          Width = 80
+          Height = 21
+          Anchors = [akTop, akRight]
+          TabOrder = 11
+          Text = '0'
+        end
+        object edtAKI: TEdit
+          Left = 904
+          Top = 108
+          Width = 100
+          Height = 21
+          Anchors = [akTop, akRight]
+          TabOrder = 12
+        end
+      end
+      object grpParse: TGroupBox
+        Left = 8
+        Top = 360
+        Width = 1019
+        Height = 305
         Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Parse CSR File'
-        TabOrder = 1
+        TabOrder = 2
         object lblCSR: TLabel
           Left = 16
           Top = 24
@@ -223,13 +388,13 @@ object FormCA: TFormCA
         object edtCSR: TEdit
           Left = 88
           Top = 20
-          Width = 497
+          Width = 492
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
         end
         object btnBrowseCSR: TButton
-          Left = 592
+          Left = 587
           Top = 20
           Width = 73
           Height = 21
@@ -240,14 +405,14 @@ object FormCA: TFormCA
         end
         object mmoCSRParse: TMemo
           Left = 16
-          Top = 56
-          Width = 809
-          Height = 255
+          Top = 48
+          Width = 988
+          Height = 241
           Anchors = [akLeft, akTop, akRight, akBottom]
           TabOrder = 4
         end
         object btnParseCSR: TButton
-          Left = 672
+          Left = 667
           Top = 20
           Width = 73
           Height = 21
@@ -257,7 +422,7 @@ object FormCA: TFormCA
           OnClick = btnParseCSRClick
         end
         object btnVerifyCSR: TButton
-          Left = 752
+          Left = 747
           Top = 20
           Width = 73
           Height = 21
@@ -274,7 +439,7 @@ object FormCA: TFormCA
       object grpSign: TGroupBox
         Left = 8
         Top = 8
-        Width = 841
+        Width = 1019
         Height = 153
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Sign CSR File'
@@ -303,13 +468,13 @@ object FormCA: TFormCA
         object edtSignCSR: TEdit
           Left = 88
           Top = 20
-          Width = 641
+          Width = 636
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
         end
         object btnSignCSRBrowse: TButton
-          Left = 736
+          Left = 731
           Top = 20
           Width = 91
           Height = 21
@@ -321,13 +486,13 @@ object FormCA: TFormCA
         object edtSignKey: TEdit
           Left = 88
           Top = 52
-          Width = 641
+          Width = 636
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 2
         end
         object btnSignKeyBrowse: TButton
-          Left = 736
+          Left = 731
           Top = 52
           Width = 91
           Height = 21
@@ -339,7 +504,7 @@ object FormCA: TFormCA
         object btnSign: TButton
           Left = 16
           Top = 118
-          Width = 809
+          Width = 804
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Caption = 'Sign CSR File to CRT File '
@@ -349,13 +514,13 @@ object FormCA: TFormCA
         object edtRootCRT: TEdit
           Left = 88
           Top = 84
-          Width = 641
+          Width = 636
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 5
         end
         object btnRootCRTBrowse: TButton
-          Left = 736
+          Left = 731
           Top = 84
           Width = 91
           Height = 21
@@ -365,14 +530,178 @@ object FormCA: TFormCA
           OnClick = btnRootCRTBrowseClick
         end
       end
-      object grpParseCER: TGroupBox
+      object grpExtSign: TGroupBox
         Left = 8
         Top = 168
-        Width = 841
-        Height = 359
+        Width = 1019
+        Height = 160
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'Extensions (v2) - Standard and Private Internet'
+        TabOrder = 1
+        object lblSAN2: TLabel
+          Left = 16
+          Top = 24
+          Width = 119
+          Height = 13
+          Caption = 'SubjectAltName (comma)'
+        end
+        object lblCRLDP2: TLabel
+          Left = 16
+          Top = 52
+          Width = 151
+          Height = 13
+          Caption = 'CRL Distribution Points (comma)'
+        end
+        object lblAIAOcsp2: TLabel
+          Left = 16
+          Top = 80
+          Width = 77
+          Height = 13
+          Caption = 'AIA OCSP (URI)'
+        end
+        object lblAIACa2: TLabel
+          Left = 16
+          Top = 108
+          Width = 95
+          Height = 13
+          Caption = 'AIA CAIssuers (URI)'
+        end
+        object lblPathLen2: TLabel
+          Left = 904
+          Top = 46
+          Width = 60
+          Height = 13
+          Anchors = [akTop, akRight]
+          Caption = 'PathLen (int)'
+        end
+        object lblAKI2: TLabel
+          Left = 904
+          Top = 92
+          Width = 68
+          Height = 13
+          Caption = 'AuthorityKeyId'
+        end
+        object edtSAN2: TEdit
+          Left = 168
+          Top = 20
+          Width = 515
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 0
+        end
+        object edtCRLDP2: TEdit
+          Left = 168
+          Top = 48
+          Width = 515
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 1
+        end
+        object edtAIAOcsp2: TEdit
+          Left = 168
+          Top = 76
+          Width = 515
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 2
+        end
+        object edtAIACaIssuers2: TEdit
+          Left = 168
+          Top = 104
+          Width = 515
+          Height = 21
+          Anchors = [akLeft, akTop, akRight]
+          TabOrder = 3
+        end
+        object chkKU_DigSig2: TCheckBox
+          Left = 720
+          Top = 20
+          Width = 153
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'KeyUsage: DigitalSignature'
+          TabOrder = 4
+        end
+        object chkKU_KeyEnc2: TCheckBox
+          Left = 720
+          Top = 40
+          Width = 153
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'KeyUsage: KeyEncipherment'
+          TabOrder = 5
+        end
+        object chkKU_KeyCertSign2: TCheckBox
+          Left = 720
+          Top = 60
+          Width = 153
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'KeyUsage: KeyCertSign'
+          TabOrder = 6
+        end
+        object chkKU_CRLSign2: TCheckBox
+          Left = 720
+          Top = 80
+          Width = 153
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'KeyUsage: CRLSign'
+          TabOrder = 7
+        end
+        object chkEKU_ServerAuth2: TCheckBox
+          Left = 720
+          Top = 100
+          Width = 153
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'EKU: ServerAuth'
+          TabOrder = 8
+        end
+        object chkEKU_ClientAuth2: TCheckBox
+          Left = 720
+          Top = 120
+          Width = 153
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'EKU: ClientAuth'
+          TabOrder = 9
+        end
+        object chkBasicConstraintsCA2: TCheckBox
+          Left = 904
+          Top = 20
+          Width = 97
+          Height = 17
+          Anchors = [akTop, akRight]
+          Caption = 'Is CA'
+          TabOrder = 10
+        end
+        object edtPathLen2: TEdit
+          Left = 904
+          Top = 62
+          Width = 80
+          Height = 21
+          Anchors = [akTop, akRight]
+          TabOrder = 11
+          Text = '0'
+        end
+        object edtAKI2: TEdit
+          Left = 904
+          Top = 108
+          Width = 100
+          Height = 21
+          Anchors = [akTop, akRight]
+          TabOrder = 12
+        end
+      end
+      object grpParseCER: TGroupBox
+        Left = 8
+        Top = 336
+        Width = 1019
+        Height = 329
         Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Parse CRT File'
-        TabOrder = 1
+        TabOrder = 2
         object lblCRT: TLabel
           Left = 16
           Top = 24
@@ -383,13 +712,13 @@ object FormCA: TFormCA
         object edtCRT: TEdit
           Left = 88
           Top = 20
-          Width = 377
+          Width = 372
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
         end
         object btnBrowseCRT: TButton
-          Left = 472
+          Left = 467
           Top = 20
           Width = 73
           Height = 21
@@ -400,14 +729,14 @@ object FormCA: TFormCA
         end
         object mmoCRT: TMemo
           Left = 16
-          Top = 56
-          Width = 809
-          Height = 287
+          Top = 48
+          Width = 985
+          Height = 265
           Anchors = [akLeft, akTop, akRight, akBottom]
           TabOrder = 5
         end
         object btnParseCRT: TButton
-          Left = 552
+          Left = 547
           Top = 20
           Width = 73
           Height = 21
@@ -417,7 +746,7 @@ object FormCA: TFormCA
           OnClick = btnParseCRTClick
         end
         object btnVerifySelfSignedCRT: TButton
-          Left = 632
+          Left = 627
           Top = 20
           Width = 113
           Height = 21
@@ -427,7 +756,7 @@ object FormCA: TFormCA
           OnClick = btnVerifySelfSignedCRTClick
         end
         object btnVerifyCRT: TButton
-          Left = 752
+          Left = 747
           Top = 20
           Width = 73
           Height = 21
@@ -444,8 +773,8 @@ object FormCA: TFormCA
       object grpMisc: TGroupBox
         Left = 8
         Top = 8
-        Width = 841
-        Height = 521
+        Width = 836
+        Height = 538
         Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'Misc'
         TabOrder = 0

@@ -66,6 +66,34 @@ type
     btnGetWinRoot: TButton;
     lstCerts: TListBox;
     mmoCertInfo: TMemo;
+    grpExtRequest: TGroupBox;
+    edtSAN: TEdit;
+    edtCRLDP: TEdit;
+    edtAIAOcsp: TEdit;
+    edtAIACaIssuers: TEdit;
+    chkKU_DigSig: TCheckBox;
+    chkKU_KeyEnc: TCheckBox;
+    chkKU_KeyCertSign: TCheckBox;
+    chkKU_CRLSign: TCheckBox;
+    chkEKU_ServerAuth: TCheckBox;
+    chkEKU_ClientAuth: TCheckBox;
+    chkBasicConstraintsCA: TCheckBox;
+    edtPathLen: TEdit;
+    edtAKI: TEdit;
+    grpExtSign: TGroupBox;
+    edtSAN2: TEdit;
+    edtCRLDP2: TEdit;
+    edtAIAOcsp2: TEdit;
+    edtAIACaIssuers2: TEdit;
+    chkKU_DigSig2: TCheckBox;
+    chkKU_KeyEnc2: TCheckBox;
+    chkKU_KeyCertSign2: TCheckBox;
+    chkKU_CRLSign2: TCheckBox;
+    chkEKU_ServerAuth2: TCheckBox;
+    chkEKU_ClientAuth2: TCheckBox;
+    chkBasicConstraintsCA2: TCheckBox;
+    edtPathLen2: TEdit;
+    edtAKI2: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure btnBrowseCSRClick(Sender: TObject);
     procedure btnBrowseKeyClick(Sender: TObject);
@@ -95,6 +123,10 @@ type
     FServerEccPriv: TCnEccPrivateKey;
     FServerEccPub: TCnEccPublicKey;
     FServerCurveType: TCnEccCurveType;
+    function BuildStandardExtFromInputs(SAN, CRLDP, AKI: string; KU_DigSig, KU_KeyEnc, KU_KeyCertSign,
+      KU_CRLSign, EKU_ServerAuth, EKU_ClientAuth, BasicCA: Boolean; PathLenText: string): TCnCertificateStandardExtensions;
+    function BuildPrivateInternetExtFromInputs(AIAOcsp, AIACaIssuers: string): TCnCertificatePrivateInternetExtensions;
+    function HasV2Data(StandardExt: TCnCertificateStandardExtensions; PrivateExt: TCnCertificatePrivateInternetExtensions): Boolean;
   public
     { Public declarations }
   end;
@@ -198,7 +230,6 @@ type
   CRYPT_BIT_BLOB = _CRYPT_BIT_BLOB;
   {$EXTERNALSYM CRYPT_BIT_BLOB}
 
-
   PCRYPT_ALGORITHM_IDENTIFIER = ^CRYPT_ALGORITHM_IDENTIFIER;
   {$EXTERNALSYM PCRYPT_ALGORITHM_IDENTIFIER}
   _CRYPT_ALGORITHM_IDENTIFIER = record
@@ -208,7 +239,6 @@ type
   {$EXTERNALSYM _CRYPT_ALGORITHM_IDENTIFIER}
   CRYPT_ALGORITHM_IDENTIFIER = _CRYPT_ALGORITHM_IDENTIFIER;
   {$EXTERNALSYM CRYPT_ALGORITHM_IDENTIFIER}
-
 
   PCERT_EXTENSION = ^CERT_EXTENSION;
   {$EXTERNALSYM PCERT_EXTENSION}
@@ -221,7 +251,6 @@ type
   CERT_EXTENSION = _CERT_EXTENSION;
   {$EXTERNALSYM CERT_EXTENSION}
 
-
   PCERT_PUBLIC_KEY_INFO = ^CERT_PUBLIC_KEY_INFO;
   {$EXTERNALSYM PCERT_PUBLIC_KEY_INFO}
   _CERT_PUBLIC_KEY_INFO = record
@@ -231,8 +260,6 @@ type
   {$EXTERNALSYM _CERT_PUBLIC_KEY_INFO}
   CERT_PUBLIC_KEY_INFO = _CERT_PUBLIC_KEY_INFO;
   {$EXTERNALSYM CERT_PUBLIC_KEY_INFO}
-
-
 
   PCERT_INFO = ^CERT_INFO;
   {$EXTERNALSYM PCERT_INFO}
@@ -697,6 +724,94 @@ begin
   end;
 end;
 
+function SplitCommaValues(const S: string): TStringList;
+var
+  SL: TStringList;
+begin
+  SL := TStringList.Create;
+  ExtractStrings([','], [' '], PChar(S), SL);
+  Result := SL;
+end;
+
+function TFormCA.BuildStandardExtFromInputs(SAN, CRLDP, AKI: string; KU_DigSig, KU_KeyEnc, KU_KeyCertSign,
+  KU_CRLSign, EKU_ServerAuth, EKU_ClientAuth, BasicCA: Boolean; PathLenText: string): TCnCertificateStandardExtensions;
+var
+  V: TCnCertificateStandardExtensions;
+  SL: TStringList;
+  I, PathLen: Integer;
+  HasData: Boolean;
+begin
+  Result := nil;
+  V := TCnCertificateStandardExtensions.Create;
+  HasData := False;
+
+  if KU_DigSig then begin V.KeyUsage := V.KeyUsage + [kuDigitalSignature]; HasData := True; end;
+  if KU_KeyEnc then begin V.KeyUsage := V.KeyUsage + [kuKeyEncipherment]; HasData := True; end;
+  if KU_KeyCertSign then begin V.KeyUsage := V.KeyUsage + [kuKeyCertSign]; HasData := True; end;
+  if KU_CRLSign then begin V.KeyUsage := V.KeyUsage + [kuCRLSign]; HasData := True; end;
+
+  if EKU_ServerAuth then begin V.ExtendedKeyUsage := V.ExtendedKeyUsage + [ekuServerAuth]; HasData := True; end;
+  if EKU_ClientAuth then begin V.ExtendedKeyUsage := V.ExtendedKeyUsage + [ekuClientAuth]; HasData := True; end;
+
+  V.BasicConstraintsCA := BasicCA;
+  if BasicCA then HasData := True;
+  PathLen := StrToIntDef(Trim(PathLenText), 0);
+  V.BasicConstraintsPathLen := PathLen;
+  if PathLen > 0 then HasData := True;
+
+  SL := SplitCommaValues(SAN);
+  try
+    for I := 0 to SL.Count - 1 do
+      if Trim(SL[I]) <> '' then
+      begin
+        V.SubjectAltName.Add(Trim(SL[I]));
+        HasData := True;
+      end;
+  finally
+    SL.Free;
+  end;
+
+  SL := SplitCommaValues(CRLDP);
+  try
+    for I := 0 to SL.Count - 1 do
+      if Trim(SL[I]) <> '' then
+      begin
+        V.CRLDistributionPoints.Add(Trim(SL[I]));
+        HasData := True;
+      end;
+  finally
+    SL.Free;
+  end;
+
+  V.AuthorityKeyIdentifier := AnsiString(Trim(AKI));
+  if V.AuthorityKeyIdentifier <> '' then
+    HasData := True;
+
+  if HasData then
+    Result := V
+  else
+    V.Free;
+end;
+
+function TFormCA.BuildPrivateInternetExtFromInputs(AIAOcsp, AIACaIssuers: string): TCnCertificatePrivateInternetExtensions;
+var
+  P: TCnCertificatePrivateInternetExtensions;
+begin
+  Result := nil;
+  P := TCnCertificatePrivateInternetExtensions.Create;
+  P.AuthorityInformationAccessOcsp := Trim(AIAOcsp);
+  P.AuthorityInformationAccessCaIssuers := Trim(AIACaIssuers);
+  if (P.AuthorityInformationAccessOcsp <> '') or (P.AuthorityInformationAccessCaIssuers <> '') then
+    Result := P
+  else
+    P.Free;
+end;
+
+function TFormCA.HasV2Data(StandardExt: TCnCertificateStandardExtensions; PrivateExt: TCnCertificatePrivateInternetExtensions): Boolean;
+begin
+  Result := (StandardExt <> nil) or (PrivateExt <> nil);
+end;
+
 procedure TFormCA.FormCreate(Sender: TObject);
 begin
   cbbHash.ItemIndex := 1;
@@ -836,14 +951,33 @@ begin
 end;
 
 procedure TFormCA.btnSelfSignClick(Sender: TObject);
+var
+  Std: TCnCertificateStandardExtensions;
+  Priv: TCnCertificatePrivateInternetExtensions;
 begin
+  Std := nil;
+  Priv := nil;
   if FileExists(edtRSAECCKey.Text) then
   begin
     if CnRSALoadKeysFromPem(edtRSAECCKey.Text, FClientRsaPriv, FClientRsaPub) then
     begin
       if dlgSave.Execute then
       begin
-        if CnCANewSelfSignedCertificate(FClientRsaPriv, FClientRsaPub, dlgSave.FileName, edtContryName.Text,
+        Std := BuildStandardExtFromInputs(edtSAN.Text, edtCRLDP.Text, edtAKI.Text,
+          chkKU_DigSig.Checked, chkKU_KeyEnc.Checked, chkKU_KeyCertSign.Checked, chkKU_CRLSign.Checked,
+          chkEKU_ServerAuth.Checked, chkEKU_ClientAuth.Checked, chkBasicConstraintsCA.Checked, edtPathLen.Text);
+        Priv := BuildPrivateInternetExtFromInputs(edtAIAOcsp.Text, edtAIACaIssuers.Text);
+        if HasV2Data(Std, Priv) then
+        begin
+          if CnCANewSelfSignedCertificate2(FClientRsaPriv, FClientRsaPub, dlgSave.FileName, edtContryName.Text,
+            edtStateOrProvinceName.Text, edtLocalityName.Text, edtOrgName.Text,
+            edtOrgUnitName.Text, edtCommonName.Text, edtEmail.Text, '1234567890987654321',
+            Now - 1, Now + 365, Std, Priv, ConvertItemIndexToCASignType(cbbHash.ItemIndex, True)) then
+            ShowMessage('Self-Signed RSA CRT File OK.')
+          else
+            ShowMessage('Self-Signed RSA CRT File Fail.');
+        end
+        else if CnCANewSelfSignedCertificate(FClientRsaPriv, FClientRsaPub, dlgSave.FileName, edtContryName.Text,
           edtStateOrProvinceName.Text, edtLocalityName.Text, edtOrgName.Text,
           edtOrgUnitName.Text, edtCommonName.Text, edtEmail.Text, '1234567890987654321',
           Now - 1, Now + 365, ConvertItemIndexToCASignType(cbbHash.ItemIndex, True)) then
@@ -858,7 +992,21 @@ begin
       begin
         if dlgSave.Execute then
         begin
-          if CnCANewSelfSignedCertificate(FClientEccPriv, FClientEccPub, FClientCurveType, dlgSave.FileName,
+          Std := BuildStandardExtFromInputs(edtSAN.Text, edtCRLDP.Text, edtAKI.Text,
+            chkKU_DigSig.Checked, chkKU_KeyEnc.Checked, chkKU_KeyCertSign.Checked, chkKU_CRLSign.Checked,
+            chkEKU_ServerAuth.Checked, chkEKU_ClientAuth.Checked, chkBasicConstraintsCA.Checked, edtPathLen.Text);
+          Priv := BuildPrivateInternetExtFromInputs(edtAIAOcsp.Text, edtAIACaIssuers.Text);
+          if HasV2Data(Std, Priv) then
+          begin
+            if CnCANewSelfSignedCertificate2(FClientEccPriv, FClientEccPub, FClientCurveType, dlgSave.FileName,
+              edtContryName.Text, edtStateOrProvinceName.Text, edtLocalityName.Text, edtOrgName.Text,
+              edtOrgUnitName.Text, edtCommonName.Text, edtEmail.Text, '1234567890987654321',
+              Now - 1, Now + 365, Std, Priv, ConvertItemIndexToCASignType(cbbHash.ItemIndex, False)) then
+              ShowMessage('Self-Signed ECC CRT File OK.')
+            else
+              ShowMessage('Self-Signed ECC CRT File Fail.');
+          end
+          else if CnCANewSelfSignedCertificate(FClientEccPriv, FClientEccPub, FClientCurveType, dlgSave.FileName,
             edtContryName.Text, edtStateOrProvinceName.Text, edtLocalityName.Text, edtOrgName.Text,
             edtOrgUnitName.Text, edtCommonName.Text, edtEmail.Text, '1234567890987654321',
             Now - 1, Now + 365, ConvertItemIndexToCASignType(cbbHash.ItemIndex, False)) then
@@ -869,6 +1017,8 @@ begin
       end;
     end;
   end;
+  Std.Free;
+  Priv.Free;
 end;
 
 procedure TFormCA.btnVerifySelfSignedCRTClick(Sender: TObject);
@@ -880,6 +1030,9 @@ begin
 end;
 
 procedure TFormCA.btnSignClick(Sender: TObject);
+var
+  Std: TCnCertificateStandardExtensions;
+  Priv: TCnCertificatePrivateInternetExtensions;
 begin
   if FileExists(edtSignCSR.Text) and FileExists(edtRootCRT.Text) and FileExists(edtSignKey.Text) then
   begin
@@ -887,22 +1040,56 @@ begin
     begin
       if dlgSave.Execute then
       begin
-        if CnCASignCertificate(FServerRsaPriv, edtRootCRT.Text, edtSignCSR.Text, dlgSave.FileName,
-          '1234567890987654321', Now - 1, Now + 365, TCnCASignType(cbbHash.ItemIndex)) then
-          ShowMessage('Sign CRT File OK.')
+        Std := BuildStandardExtFromInputs(edtSAN2.Text, edtCRLDP2.Text, edtAKI2.Text,
+          chkKU_DigSig2.Checked, chkKU_KeyEnc2.Checked, chkKU_KeyCertSign2.Checked, chkKU_CRLSign2.Checked,
+          chkEKU_ServerAuth2.Checked, chkEKU_ClientAuth2.Checked, chkBasicConstraintsCA2.Checked, edtPathLen2.Text);
+        Priv := BuildPrivateInternetExtFromInputs(edtAIAOcsp2.Text, edtAIACaIssuers2.Text);
+        if HasV2Data(Std, Priv) then
+        begin
+          if CnCASignCertificate2(FServerRsaPriv, edtRootCRT.Text, edtSignCSR.Text, dlgSave.FileName,
+            '1234567890987654321', Now - 1, Now + 365, Std, Priv, TCnCASignType(cbbHash.ItemIndex)) then
+            ShowMessage('Sign CRT File OK.')
+          else
+            ShowMessage('Sign CRT File Fail.');
+        end
         else
-          ShowMessage('Sign CRT File Fail.');
+        begin
+          if CnCASignCertificate(FServerRsaPriv, edtRootCRT.Text, edtSignCSR.Text, dlgSave.FileName,
+            '1234567890987654321', Now - 1, Now + 365, TCnCASignType(cbbHash.ItemIndex)) then
+            ShowMessage('Sign CRT File OK.')
+          else
+            ShowMessage('Sign CRT File Fail.');
+        end;
+        Std.Free;
+        Priv.Free;
       end;
     end
     else if CnEccLoadKeysFromPem(edtSignKey.Text, FServerEccPriv, FServerEccPub, FServerCurveType) then
     begin
       if dlgSave.Execute then
       begin
-        if CnCASignCertificate(FServerEccPriv, FServerCurveType, edtRootCRT.Text, edtSignCSR.Text, dlgSave.FileName,
-          '1234567890987654321', Now - 1, Now + 365, TCnCASignType(cbbHash.ItemIndex + 3)) then
-          ShowMessage('Sign CRT File OK.')
+        Std := BuildStandardExtFromInputs(edtSAN2.Text, edtCRLDP2.Text, edtAKI2.Text,
+          chkKU_DigSig2.Checked, chkKU_KeyEnc2.Checked, chkKU_KeyCertSign2.Checked, chkKU_CRLSign2.Checked,
+          chkEKU_ServerAuth2.Checked, chkEKU_ClientAuth2.Checked, chkBasicConstraintsCA2.Checked, edtPathLen2.Text);
+        Priv := BuildPrivateInternetExtFromInputs(edtAIAOcsp2.Text, edtAIACaIssuers2.Text);
+        if HasV2Data(Std, Priv) then
+        begin
+          if CnCASignCertificate2(FServerEccPriv, FServerCurveType, edtRootCRT.Text, edtSignCSR.Text, dlgSave.FileName,
+            '1234567890987654321', Now - 1, Now + 365, Std, Priv, TCnCASignType(cbbHash.ItemIndex + 3)) then
+            ShowMessage('Sign CRT File OK.')
+          else
+            ShowMessage('Sign CRT File Fail.');
+        end
         else
-          ShowMessage('Sign CRT File Fail.');
+        begin
+          if CnCASignCertificate(FServerEccPriv, FServerCurveType, edtRootCRT.Text, edtSignCSR.Text, dlgSave.FileName,
+            '1234567890987654321', Now - 1, Now + 365, TCnCASignType(cbbHash.ItemIndex + 3)) then
+            ShowMessage('Sign CRT File OK.')
+          else
+            ShowMessage('Sign CRT File Fail.');
+        end;
+        Std.Free;
+        Priv.Free;
       end;
     end;
   end;
