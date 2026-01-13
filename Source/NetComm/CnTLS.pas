@@ -67,6 +67,11 @@ type
     hsConnected
   );
 
+{$IFNDEF FPC}
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
+{$ENDIF}
   TCnTLSClient = class(TCnTCPClient)
   private
     FClientWriteKey: TBytes;
@@ -137,8 +142,11 @@ type
     FRecvPlainPos: Integer;
   public
     constructor Create; override;
+    destructor Destroy; override;
+
     function Send(var Buf; Len: Integer; Flags: Integer = 0): Integer; override;
     function Recv(var Buf; Len: Integer; Flags: Integer = 0): Integer; override;
+
     property Version: Word read FVersion write FVersion;
     property CipherSuite: Word read FCipherSuite write FCipherSuite;
     property HandshakeDone: Boolean read FHandshakeDone write FHandshakeDone;
@@ -157,8 +165,6 @@ type
   protected
     procedure Execute; override;
     function DoGetClientSocket: TCnClientSocket; override;
-  public
-    constructor Create(CreateSuspended: Boolean);
   end;
 
   TCnTLSServerErrorEvent = procedure(Sender: TObject; ClientSocket:
@@ -182,8 +188,11 @@ type
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
     function DoGetClientThread: TCnTCPClientThread; override;
+    function DoHandShake(ClientSocket: TCnTLSServerClientSocket): Boolean;
   public
     constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+
     function SendPlainData(ClientSocket: TCnClientSocket; const Data: TBytes): Boolean;
     property ServerCertFile: string read FServerCertFile write FServerCertFile;
     property ServerKeyFile: string read FServerKeyFile write FServerKeyFile;
@@ -210,6 +219,8 @@ implementation
 resourcestring
   SCnTLSClientName = 'CnTLSClient';
   SCnTLSClientComment = 'TLS 1.2 Client Component';
+  SCnTLSServerName = 'CnTLSServer';
+  SCnTLSServerComment = 'TLS 1.2 Server Component';
   SHandshakeFailed = 'TLS Handshake failed: %s';
   SConnectionFailed = 'TLS Connection failed';
   SEncryptionFailed = 'TLS Encryption failed';
@@ -964,9 +975,10 @@ begin
   FRecvPlainPos := 0;
 end;
 
-constructor TCnTLSServerClientThread.Create(CreateSuspended: Boolean);
+destructor TCnTLSServerClientSocket.Destroy;
 begin
-  inherited Create(CreateSuspended);
+
+  inherited;
 end;
 
 function TCnTLSServerClientThread.DoGetClientSocket: TCnClientSocket;
@@ -995,10 +1007,10 @@ end;
 
 procedure TCnTLSServer.GetComponentInfo(var AName, Author, Email, Comment: string);
 begin
-  AName := 'CnTLSServer';
-  Author := 'CnPack';
-  Email := 'master@cnpack.org';
-  Comment := 'TLS 1.2 Server Component';
+  AName := SCnTLSServerName;
+  Author := SCnPack_LiuXiao;
+  Email := SCnPack_LiuXiaoEmail;
+  Comment := SCnTLSServerComment;
 end;
 
 constructor TCnTLSServer.Create(AOwner: TComponent);
@@ -1006,6 +1018,12 @@ begin
   inherited;
   FMaxFragmentLen := 16384;
   FPreferChaCha := True;
+end;
+
+destructor TCnTLSServer.Destroy;
+begin
+
+  inherited;
 end;
 
 function TCnTLSServer.DoGetClientThread: TCnTCPClientThread;
