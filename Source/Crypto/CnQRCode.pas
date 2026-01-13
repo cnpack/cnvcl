@@ -24,7 +24,7 @@ unit CnQRCode;
 * 软件名称：开发包基础库
 * 单元名称：二维码生成单元
 * 单元作者：CnPack 开发组
-* 备    注：本单元实现了二维码编码及图形绘制。
+* 备    注：本单元实现了二维码编码功能，可配合 CnQRImage 实现绘制。
 
 *           二维码编码内部位操作使用 CnBits，但大部分是 MSB First 模式，
 *           也即符合阅读习惯的高位在前，和 CnBits 里大部分底位在前不同。
@@ -123,7 +123,8 @@ type
     procedure EncodeText;
 
     // Reed-Solomon 纠错码生成
-    function GenerateECCodewords(Data: TCnBitBuilder; ECCodewords: Integer): TCnBitBuilder;
+    function GenerateECCodewords(Data: TCnBitBuilder; ECCodewords: Integer):
+      TCnBitBuilder;
     function PolyMult(A, B: TCnQRGFPoly): TCnQRGFPoly;
     function PolyMod(Dividend, Divisor: TCnQRGFPoly): TCnQRGFPoly;
     function GetGeneratorPoly(Num: Integer): TCnQRGFPoly;
@@ -142,8 +143,10 @@ type
 
     // 版本相关参数查询
     function GetTotalCodewords(Version: TCnQRCodeVersion): Integer;
-    function GetECCodewords(Version: TCnQRCodeVersion; ErrorLevel: TCnErrorRecoveryLevel): Integer;
-    function GetOptimalVersion(const Text: string; ErrorLevel: TCnErrorRecoveryLevel): TCnQRCodeVersion;
+    function GetECCodewords(Version: TCnQRCodeVersion; ErrorLevel:
+      TCnErrorRecoveryLevel): Integer;
+    function GetOptimalVersion(const Text: string; ErrorLevel:
+      TCnErrorRecoveryLevel): TCnQRCodeVersion;
 
     // 功能区域判断
     function IsFunctionArea(X, Y: Integer): Boolean;
@@ -172,8 +175,8 @@ type
 
     property QRData: TCnQRData read FQRData;
     property QRVersion: TCnQRCodeVersion read FQRVersion write SetQRVersion;
-    property QRErrorRecoveryLevel: TCnErrorRecoveryLevel read FQRErrorRecoveryLevel
-      write SetQRErrorRecoveryLevel;
+    property QRErrorRecoveryLevel: TCnErrorRecoveryLevel read
+      FQRErrorRecoveryLevel write SetQRErrorRecoveryLevel;
     property Text: string read FText write SetText;
     property QRSize: Integer read GetQRSize;
     {* 边长格子数}
@@ -181,63 +184,36 @@ type
     property MaskType: Integer read FMaskType;
   end;
 
-  TCnQRCodeImage = class(TGraphicControl)
-  {* 二维码绘制类}
-  private
-    FEncoder: TCnQREncoder;
-    FIcon: TIcon;
-    FCellSize: Integer;
-    FForeColor: TColor;
-    function GetQRErrorRecoveryLevel: TCnErrorRecoveryLevel;
-    procedure SetQRErrorRecoveryLevel(const Value: TCnErrorRecoveryLevel);
-    procedure SetText(const Value: string);
-    function GetText: string;
-    procedure SetIcon(const Value: TIcon);
-    procedure SetCellSize(const Value: Integer);
-    procedure SetForeColor(const Value: TColor);
-  protected
-    procedure Paint; override;
-  public
-    constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
-    procedure SaveToFile(const FileName: string; Border: Integer = 4);
-
-  published
-    property Icon: TIcon read FIcon write SetIcon;
-    property QRErrorRecoveryLevel: TCnErrorRecoveryLevel read GetQRErrorRecoveryLevel
-      write SetQRErrorRecoveryLevel;
-
-    property Text: string read GetText write SetText;
-    {* 显示的字符串}
-    property CellSize: Integer read FCellSize write SetCellSize;
-    {* 二维码每个模块大小，0 表示自动适应}
-    property ForeColor: TColor read FForeColor write SetForeColor default clBlack;
-    {* 二维码中的黑色颜色}
-  end;
-
-function GetQRSizeFromVersion(Version: TCnQRCodeVersion): Integer;
-
 implementation
 
 type
   TCn2BytesArray = array[0..1] of Byte;
+
   TCn3BytesArray = array[0..2] of Byte;
+
   TCn4BytesArray = array[0..3] of Byte;
+
   TCn5BytesArray = array[0..4] of Byte;
+
   TCn6BytesArray = array[0..5] of Byte;
+
   TCn7BytesArray = array[0..6] of Byte;
 
   PCn2BytesArray = ^TCn2BytesArray;
+
   PCn3BytesArray = ^TCn3BytesArray;
+
   PCn4BytesArray = ^TCn4BytesArray;
+
   PCn5BytesArray = ^TCn5BytesArray;
+
   PCn6BytesArray = ^TCn6BytesArray;
+
   PCn7BytesArray = ^TCn7BytesArray;
 
 const
   CN_QRCODE_FORMATINFO_LENGTH = 15;
   CN_QRCODE_VERSIONINFO_LENGTH = 18;
-
   CN_MASK_FORMATINFO: array[0..CN_QRCODE_FORMATINFO_LENGTH - 1] of Byte =
     (1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0);
 
@@ -379,9 +355,10 @@ const
   );
 
 const
-  CN_QRCODE_CHARSET_NUMERIC = ['0'..'9'];
-  CN_QRCODE_CHARSET_ALPHANUMERIC = ['0'..'9', 'A'..'Z', ' ', '$', '%', '+', '-', '.', '/', ':'];
-  CN_QRCODE_CHARSET_BYTE = [#0..#255] - CN_QRCODE_CHARSET_ALPHANUMERIC;
+  CN_QRCODE_CHARSET_NUMERIC =['0'..'9'];
+  CN_QRCODE_CHARSET_ALPHANUMERIC =['0'..'9', 'A'.. 'Z', ' ', '$', '%',
+    '+', '-', '.', '/', ':'];
+  CN_QRCODE_CHARSET_BYTE =[ #0.. #255] - CN_QRCODE_CHARSET_ALPHANUMERIC;
 
   // 纠错等级对应值 (L=01, M=00, Q=11, H=10)
   CN_ERROR_LEVEL_BITS: array[TCnErrorRecoveryLevel] of Integer = (1, 0, 3, 2);
@@ -396,7 +373,7 @@ const
   );
 
   // 字符计数指示符的位长
-  CN_CHAR_COUNT_BITS: array[1..40, 0..2] of Integer = (
+  CN_CHAR_COUNT_BITS: array[1..40, 0..2] of Integer =(
     // Version 1-9
     (10, 9, 8), (10, 9, 8), (10, 9, 8), (10, 9, 8), (10, 9, 8),
     (10, 9, 8), (10, 9, 8), (10, 9, 8), (10, 9, 8),
@@ -420,7 +397,7 @@ const
   );
 
   // 纠错码字数量 [版本, 纠错等级]
-  CN_EC_CODEWORDS: array[1..40, 0..3] of Integer = (
+  CN_EC_CODEWORDS: array[1..40, 0..3] of Integer =(
     // Version 1
     (7, 10, 13, 17),
     // Version 2
@@ -770,7 +747,7 @@ begin
               ((I <> High(Arr7Ptr^)) or (J <> Low(Arr7Ptr^))) then
               PaintAlignment(Arr7Ptr^[I] - 2, Arr7Ptr[J] - 2);
       end;
-    end;
+  end;
 end;
 
 procedure TCnQREncoder.PaintData;
@@ -830,14 +807,14 @@ procedure TCnQREncoder.PaintPositionDetectionPattern;
     PaintRect(Left, Top, Left + 6, Top + 6);
     PaintRect(Left + 2, Top + 2, Left + 4, Top + 4, True);
   end;
+
 begin
   PaintPositionDetection(0, 0);
   PaintPositionDetection(0, FQRSize - 7);
   PaintPositionDetection(FQRSize - 7, 0);
 end;
 
-procedure TCnQREncoder.PaintRect(Left, Top, Right, Bottom: Integer;
-  Solid: Boolean);
+procedure TCnQREncoder.PaintRect(Left, Top, Right, Bottom: Integer; Solid: Boolean);
 var
   I, J: Integer;
 begin
@@ -879,7 +856,8 @@ procedure TCnQREncoder.PaintVersionInformation;
 var
   I, A, B: Integer;
 begin
-  if FQRVersion < 7 then Exit;
+  if FQRVersion < 7 then
+    Exit;
 
   for I := 0 to 17 do
   begin
@@ -890,8 +868,7 @@ begin
   end;
 end;
 
-procedure TCnQREncoder.SetQRErrorRecoveryLevel(
-  const Value: TCnErrorRecoveryLevel);
+procedure TCnQREncoder.SetQRErrorRecoveryLevel(const Value: TCnErrorRecoveryLevel);
 begin
   if FQRErrorRecoveryLevel <> Value then
   begin
@@ -932,208 +909,7 @@ begin
   end;
 end;
 
-{ TCnQRCodeImage }
-
-constructor TCnQRCodeImage.Create(AOwner: TComponent);
-begin
-  inherited;
-  FEncoder := TCnQREncoder.Create;
-  FIcon := TIcon.Create;
-  FForeColor := clBlack;
-  Color := clWhite;
-end;
-
-destructor TCnQRCodeImage.Destroy;
-begin
-  FIcon.Free;
-  FEncoder.Free;
-  inherited;
-end;
-
-procedure TCnQRCodeImage.SaveToFile(const FileName: string; Border: Integer = 4);
-var
-  CS, QRWidth, QRHeight, QRLeft, QRTop, I, J: Integer;
-  Edge: Integer;
-  Bmp: TBitmap;
-  ImgW, ImgH: Integer;
-begin
-  QRWidth := FEncoder.QRSize + Border * 2;
-  QRHeight := FEncoder.QRSize + Border * 2;
-  CS := CellSize;
-  if CS <= 0 then
-  begin
-    Edge := Width;
-    if Height < Edge then
-      Edge := Height;
-    CS := Edge div (FEncoder.QRSize + Border * 2);
-    if CS <= 0 then CS := 1;
-  end;
-  ImgW := QRWidth * CS;
-  ImgH := QRHeight * CS;
-  QRLeft := 0;
-  QRTop := 0;
-  Bmp := TBitmap.Create;
-  try
-    Bmp.PixelFormat := pf24bit;
-    Bmp.Width := ImgW;
-    Bmp.Height := ImgH;
-    Bmp.Canvas.Brush.Style := bsSolid;
-    Bmp.Canvas.Brush.Color := Color;
-    Bmp.Canvas.FillRect(Rect(0, 0, ImgW, ImgH));
-    Bmp.Canvas.Brush.Color := ForeColor;
-    Bmp.Canvas.Pen.Style := psClear;
-    for I := 0 to FEncoder.QRSize - 1 do
-    begin
-      for J := 0 to FEncoder.QRSize - 1 do
-      begin
-        if FEncoder.QRData[I, J] = 1 then
-          Bmp.Canvas.FillRect(Rect(
-            QRLeft + (I + Border) * CS,
-            QRTop + (J + Border) * CS,
-            QRLeft + (I + Border + 1) * CS,
-            QRTop + (J + Border + 1) * CS
-          ));
-      end;
-    end;
-    Bmp.SaveToFile(FileName);
-  finally
-    Bmp.Free;
-  end;
-end;
-
-function TCnQRCodeImage.GetQRErrorRecoveryLevel: TCnErrorRecoveryLevel;
-begin
-  Result := FEncoder.QRErrorRecoveryLevel;
-end;
-
-function TCnQRCodeImage.GetText: string;
-begin
-  Result := FEncoder.Text;
-end;
-
-procedure TCnQRCodeImage.Paint;
-var
-  CS, QL, QT, Edge, I, J: Integer;
-  QRWidth, QRHeight: Integer;
-  QRLeft, QRTop: Integer;
-begin
-  Canvas.Font := Font;
-  Canvas.Brush.Color := Color;
-  if csDesigning in ComponentState then
-  begin
-    with Canvas do
-    begin
-      Pen.Style := psSolid;
-      Brush.Style := bsSolid;
-      Rectangle(0, 0, Width, Height);
-    end;
-  end;
-
-  // 计算二维码实际绘制区域（包含静区）
-  QRWidth := FEncoder.QRSize + 8;  // 4 模块静区 * 2 = 8
-  QRHeight := FEncoder.QRSize + 8;
-
-  // 确定绘制位置，画二维码
-  CS := CellSize;
-  if CS <= 0 then
-  begin
-    // 根据内容宽高与尺寸宽高，计算合适的 CellSize 以及正方形位置
-    Edge := Width;
-    if Height < Edge then
-      Edge := Height;
-
-    // 静区，按 (QRSize + 8) 计算单元大小
-    CS := Edge div (FEncoder.QRSize + 8);
-    if CS <= 0 then CS := 1;
-  end;
-
-  // 计算绘制位置（居中）
-  QRLeft := (Width - QRWidth * CS) div 2;
-  QRTop := (Height - QRHeight * CS) div 2;
-
-  // 绘制白色背景（静区）
-  Canvas.Brush.Color := Color;
-  Canvas.FillRect(Rect(QRLeft, QRTop,
-                       QRLeft + QRWidth * CS,
-                       QRTop + QRHeight * CS));
-
-  // 绘制二维码模块
-  Canvas.Brush.Color := ForeColor;
-  Canvas.Pen.Style := psClear;
-
-  for I := 0 to FEncoder.QRSize - 1 do
-  begin
-    for J := 0 to FEncoder.QRSize - 1 do
-    begin
-      if FEncoder.QRData[I, J] = 1 then
-      begin
-        Canvas.FillRect(Rect(
-          QRLeft + (I + 4) * CS,      // +4 表示4模块静区
-          QRTop + (J + 4) * CS,
-          QRLeft + (I + 4 + 1) * CS,
-          QRTop + (J + 4 + 1) * CS
-        ));
-      end;
-    end;
-  end;
-
-  // 绘制 Icon
-  if not FIcon.Empty then
-  begin
-    QL := (Width - FIcon.Width) div 2;
-    QT := (Height - FIcon.Height) div 2;
-    Canvas.Draw(QL, QT, FIcon);
-  end;
-end;
-
-procedure TCnQRCodeImage.SetCellSize(const Value: Integer);
-begin
-  if FCellSize <> Value then
-  begin
-    FCellSize := Value;
-    Invalidate;
-  end;
-end;
-
-procedure TCnQRCodeImage.SetForeColor(const Value: TColor);
-begin
-  if FForeColor <> Value then
-  begin
-    FForeColor := Value;
-    Invalidate;
-  end;
-end;
-
-procedure TCnQRCodeImage.SetIcon(const Value: TIcon);
-begin
-  if Value <> nil then
-  begin
-    FIcon.Assign(Value);
-    Invalidate;
-  end;
-end;
-
-procedure TCnQRCodeImage.SetQRErrorRecoveryLevel(
-  const Value: TCnErrorRecoveryLevel);
-begin
-  if FEncoder.QRErrorRecoveryLevel <> Value then
-  begin
-    FEncoder.QRErrorRecoveryLevel := Value;
-    Invalidate;
-  end;
-end;
-
-procedure TCnQRCodeImage.SetText(const Value: string);
-begin
-  if FEncoder.Text <> Value then
-  begin
-    FEncoder.Text := Value;
-    Invalidate;
-  end;
-end;
-
-{ TCnQREncoder - 数据编码方法 }
-
+// 数据编码方法
 function TCnQREncoder.AnalyzeText: TCnEncodeMode;
 var
   I: Integer;
@@ -1163,13 +939,18 @@ begin
     Result := emNumeric;
 end;
 
-function TCnQREncoder.GetCharCountBits(Mode: TCnEncodeMode; Version: TCnQRCodeVersion): Integer;
+function TCnQREncoder.GetCharCountBits(Mode: TCnEncodeMode; Version:
+  TCnQRCodeVersion): Integer;
 begin
   case Mode of
-    emNumeric: Result := CN_CHAR_COUNT_BITS[Version, 0];
-    emAlphaNumeric: Result := CN_CHAR_COUNT_BITS[Version, 1];
-    emByte: Result := CN_CHAR_COUNT_BITS[Version, 2];
-    else Result := 8;
+    emNumeric:
+      Result := CN_CHAR_COUNT_BITS[Version, 0];
+    emAlphaNumeric:
+      Result := CN_CHAR_COUNT_BITS[Version, 1];
+    emByte:
+      Result := CN_CHAR_COUNT_BITS[Version, 2];
+  else
+    Result := 8;
   end;
 end;
 
@@ -1201,9 +982,9 @@ begin
 
   for I := 1 to Groups do
   begin
-    Value := (Ord(Text[(I-1)*3 + 1]) - Ord('0')) * 100 +
-             (Ord(Text[(I-1)*3 + 2]) - Ord('0')) * 10 +
-             (Ord(Text[(I-1)*3 + 3]) - Ord('0'));
+    Value := (Ord(Text[(I - 1) * 3 + 1]) - Ord('0')) * 100 +
+      (Ord(Text[(I - 1) * 3 + 2]) - Ord('0')) * 10 +
+      (Ord(Text[(I - 1) * 3 + 3]) - Ord('0'));
 
     Result.BitLength := Pos + 10;
     Result.Bit[Pos] := (Value and $200) <> 0;
@@ -1232,7 +1013,7 @@ begin
   else if Remainder = 2 then
   begin
     Value := (Ord(Text[Length(Text) - 1]) - Ord('0')) * 10 +
-             (Ord(Text[Length(Text)]) - Ord('0'));
+      (Ord(Text[Length(Text)]) - Ord('0'));
     Result.BitLength := Pos + 7;
     Result.Bit[Pos] := (Value and $40) <> 0;
     Result.Bit[Pos + 1] := (Value and $20) <> 0;
@@ -1274,35 +1055,59 @@ begin
   for I := 1 to Groups do
   begin
     // 获取字符索引值
-    case Text[(I-1)*2 + 1] of
-      '0'..'9': CharIndex := Ord(Text[(I-1)*2 + 1]) - Ord('0');
-      'A'..'Z': CharIndex := Ord(Text[(I-1)*2 + 1]) - Ord('A') + 10;
-      ' ': CharIndex := 36;
-      '$': CharIndex := 37;
-      '%': CharIndex := 38;
-      '*': CharIndex := 39;
-      '+': CharIndex := 40;
-      '-': CharIndex := 41;
-      '.': CharIndex := 42;
-      '/': CharIndex := 43;
-      ':': CharIndex := 44;
-      else CharIndex := 0;
+    case Text[(I - 1) * 2 + 1] of
+      '0'..'9':
+        CharIndex := Ord(Text[(I - 1) * 2 + 1]) - Ord('0');
+      'A'..'Z':
+        CharIndex := Ord(Text[(I - 1) * 2 + 1]) - Ord('A') + 10;
+      ' ':
+        CharIndex := 36;
+      '$':
+        CharIndex := 37;
+      '%':
+        CharIndex := 38;
+      '*':
+        CharIndex := 39;
+      '+':
+        CharIndex := 40;
+      '-':
+        CharIndex := 41;
+      '.':
+        CharIndex := 42;
+      '/':
+        CharIndex := 43;
+      ':':
+        CharIndex := 44;
+    else
+      CharIndex := 0;
     end;
     Value1 := CharIndex;
 
-    case Text[(I-1)*2 + 2] of
-      '0'..'9': CharIndex := Ord(Text[(I-1)*2 + 2]) - Ord('0');
-      'A'..'Z': CharIndex := Ord(Text[(I-1)*2 + 2]) - Ord('A') + 10;
-      ' ': CharIndex := 36;
-      '$': CharIndex := 37;
-      '%': CharIndex := 38;
-      '*': CharIndex := 39;
-      '+': CharIndex := 40;
-      '-': CharIndex := 41;
-      '.': CharIndex := 42;
-      '/': CharIndex := 43;
-      ':': CharIndex := 44;
-      else CharIndex := 0;
+    case Text[(I - 1) * 2 + 2] of
+      '0'..'9':
+        CharIndex := Ord(Text[(I - 1) * 2 + 2]) - Ord('0');
+      'A'..'Z':
+        CharIndex := Ord(Text[(I - 1) * 2 + 2]) - Ord('A') + 10;
+      ' ':
+        CharIndex := 36;
+      '$':
+        CharIndex := 37;
+      '%':
+        CharIndex := 38;
+      '*':
+        CharIndex := 39;
+      '+':
+        CharIndex := 40;
+      '-':
+        CharIndex := 41;
+      '.':
+        CharIndex := 42;
+      '/':
+        CharIndex := 43;
+      ':':
+        CharIndex := 44;
+    else
+      CharIndex := 0;
     end;
     Value2 := CharIndex;
 
@@ -1327,18 +1132,30 @@ begin
   if Remainder = 1 then
   begin
     case Text[Length(Text)] of
-      '0'..'9': CharIndex := Ord(Text[Length(Text)]) - Ord('0');
-      'A'..'Z': CharIndex := Ord(Text[Length(Text)]) - Ord('A') + 10;
-      ' ': CharIndex := 36;
-      '$': CharIndex := 37;
-      '%': CharIndex := 38;
-      '*': CharIndex := 39;
-      '+': CharIndex := 40;
-      '-': CharIndex := 41;
-      '.': CharIndex := 42;
-      '/': CharIndex := 43;
-      ':': CharIndex := 44;
-      else CharIndex := 0;
+      '0'..'9':
+        CharIndex := Ord(Text[Length(Text)]) - Ord('0');
+      'A'..'Z':
+        CharIndex := Ord(Text[Length(Text)]) - Ord('A') + 10;
+      ' ':
+        CharIndex := 36;
+      '$':
+        CharIndex := 37;
+      '%':
+        CharIndex := 38;
+      '*':
+        CharIndex := 39;
+      '+':
+        CharIndex := 40;
+      '-':
+        CharIndex := 41;
+      '.':
+        CharIndex := 42;
+      '/':
+        CharIndex := 43;
+      ':':
+        CharIndex := 44;
+    else
+      CharIndex := 0;
     end;
 
     Result.BitLength := Pos + 6;
@@ -1398,9 +1215,12 @@ begin
   Mode := AnalyzeText;
 
   case Mode of
-    emNumeric: DataBits := EncodeNumeric(FText);
-    emAlphaNumeric: DataBits := EncodeAlphaNumeric(FText);
-    emByte: DataBits := EncodeByte(FText);
+    emNumeric:
+      DataBits := EncodeNumeric(FText);
+    emAlphaNumeric:
+      DataBits := EncodeAlphaNumeric(FText);
+    emByte:
+      DataBits := EncodeByte(FText);
   else
     DataBits := EncodeByte(FText);
   end;
@@ -1409,7 +1229,8 @@ begin
   DataBits.Free;
 
   // 计算总可用位数（数据码字 * 8）
-  DataCount := GetTotalCodewords(FQRVersion) - GetECCodewords(FQRVersion, FQRErrorRecoveryLevel);
+  DataCount := GetTotalCodewords(FQRVersion) - GetECCodewords(FQRVersion,
+    FQRErrorRecoveryLevel);
   TotalBits := DataCount * 8;
 
   // 如果数据太长，需要增加版本
@@ -1429,7 +1250,8 @@ begin
 
   // 添加终止符（最多 4 个 0）
   RemainderBits := TotalBits - FDataBits.BitLength;
-  if RemainderBits > 4 then RemainderBits := 4;
+  if RemainderBits > 4 then
+    RemainderBits := 4;
   for I := 1 to RemainderBits do
     FDataBits.AppendBit(False);
 
@@ -1458,9 +1280,9 @@ begin
   FFinalBits := AddEccAndInterleave(FDataBits);
 end;
 
-{ TCnQREncoder - Reed-Solomon 纠错码 }
-
-function TCnQREncoder.GenerateECCodewords(Data: TCnBitBuilder; ECCodewords: Integer): TCnBitBuilder;
+// Reed-Solomon 纠错码
+function TCnQREncoder.GenerateECCodewords(Data: TCnBitBuilder; ECCodewords:
+  Integer): TCnBitBuilder;
 var
   I, J: Integer;
   DataPoly, GeneratorPoly, MessagePoly: TCnQRGFPoly;
@@ -1499,8 +1321,10 @@ begin
   for I := 0 to ECCodewords - 1 do
   begin
     for J := 0 to 7 do
+    begin
       Result.Bit[I * 8 + J] :=
         (DataPoly.Coeff[Length(DataPoly.Coeff) - ECCodewords + I] and (1 shl (7 - J))) <> 0;
+    end;
   end;
 end;
 
@@ -1533,16 +1357,19 @@ var
 begin
   Result.Num := A.Num + B.Num;
   SetLength(Result.Coeff, Result.Num + 1);
-  for I := 0 to Result.Num do Result.Coeff[I] := 0;
+  for I := 0 to Result.Num do
+    Result.Coeff[I] := 0;
 
   for I := 0 to A.Num do
   begin
-    if A.Coeff[I] = 0 then Continue;
+    if A.Coeff[I] = 0 then
+      Continue;
     ValA := CN_LOG_TABLE[A.Coeff[I]];
 
     for J := 0 to B.Num do
     begin
-      if B.Coeff[J] = 0 then Continue;
+      if B.Coeff[J] = 0 then
+        Continue;
       ValB := CN_LOG_TABLE[B.Coeff[J]];
 
       Result.Coeff[I + J] := Result.Coeff[I + J] xor
@@ -1567,7 +1394,8 @@ begin
   while (Result.Num >= Divisor.Num) do
   begin
     I := 0;
-    while (I < Length(Result.Coeff)) and (Result.Coeff[I] = 0) do Inc(I);
+    while (I < Length(Result.Coeff)) and (Result.Coeff[I] = 0) do
+      Inc(I);
     if I >= Length(Result.Coeff) then
       Break;
 
@@ -1588,47 +1416,7 @@ begin
   end;
 end;
 
-{ TCnQREncoder - 数据布局 }
-
-//procedure TCnQREncoder.PlaceDataBits;
-//var
-//  Right, Vert, J, X, Y, BitIndex: Integer;
-//  Upward: Boolean;
-//begin
-//  BitIndex := 0;
-//  Right := FQRSize - 1;
-//  while Right >= 1 do
-//  begin
-//    if Right = 6 then
-//    begin
-//      Dec(Right);
-//    end;
-//    Upward := (((Right + 1) and 2) = 0);
-//    for Vert := 0 to FQRSize - 1 do
-//    begin
-//      for J := 0 to 1 do
-//      begin
-//        X := Right - J;
-//        if Upward then
-//          Y := FQRSize - 1 - Vert
-//        else
-//          Y := Vert;
-//        if not IsFunctionArea(X, Y) then
-//        begin
-//          if BitIndex < FFinalBits.BitLength then
-//          begin
-//            FQRData[X, Y] := Byte(Ord(FFinalBits.Bit[BitIndex]));
-//            Inc(BitIndex);
-//          end
-//          else
-//            FQRData[X, Y] := 0;
-//        end;
-//      end;
-//    end;
-//    Dec(Right, 2);
-//  end;
-//end;
-
+// 数据布局
 procedure TCnQREncoder.PlaceDataBits;
 var
   BitIndex, Right, Vert, J, X, Y: Integer;
@@ -1641,6 +1429,7 @@ begin
     if Right = 6 then
       Right := 5;
     Upward := ((Right + 1) and 2) = 0;
+
     for Vert := 0 to FQRSize - 1 do
     begin
       for J := 0 to 1 do
@@ -1650,6 +1439,7 @@ begin
           Y := FQRSize - 1 - Vert
         else
           Y := Vert;
+
         if not IsFunctionArea(X, Y) then
         begin
           if BitIndex < FFinalBits.BitLength then
@@ -1764,63 +1554,69 @@ begin
   // 对齐图案检查
   // 获取对齐图案坐标
   case FQRVersion of
-    2..6: begin
-      Arr2Ptr := CN_ALIGNMENT_PATTERN_2ARRAY[FQRVersion];
-      SetLength(AlignCoords, 2);
-      AlignCoords[0] := Arr2Ptr^[0];
-      AlignCoords[1] := Arr2Ptr^[1];
-      AlignCount := 2;
-    end;
-    7..13: begin
-      Arr3Ptr := CN_ALIGNMENT_PATTERN_3ARRAY[FQRVersion];
-      SetLength(AlignCoords, 3);
-      AlignCoords[0] := Arr3Ptr^[0];
-      AlignCoords[1] := Arr3Ptr^[1];
-      AlignCoords[2] := Arr3Ptr^[2];
-      AlignCount := 3;
-    end;
-    14..20: begin
-      Arr4Ptr := CN_ALIGNMENT_PATTERN_4ARRAY[FQRVersion];
-      SetLength(AlignCoords, 4);
-      AlignCoords[0] := Arr4Ptr^[0];
-      AlignCoords[1] := Arr4Ptr^[1];
-      AlignCoords[2] := Arr4Ptr^[2];
-      AlignCoords[3] := Arr4Ptr^[3];
-      AlignCount := 4;
-    end;
-    21..27: begin
-      Arr5Ptr := CN_ALIGNMENT_PATTERN_5ARRAY[FQRVersion];
-      SetLength(AlignCoords, 5);
-      AlignCoords[0] := Arr5Ptr^[0];
-      AlignCoords[1] := Arr5Ptr^[1];
-      AlignCoords[2] := Arr5Ptr^[2];
-      AlignCoords[3] := Arr5Ptr^[3];
-      AlignCoords[4] := Arr5Ptr^[4];
-      AlignCount := 5;
-    end;
-    28..34: begin
-      Arr6Ptr := CN_ALIGNMENT_PATTERN_6ARRAY[FQRVersion];
-      SetLength(AlignCoords, 6);
-      AlignCoords[0] := Arr6Ptr^[0];
-      AlignCoords[1] := Arr6Ptr^[1];
-      AlignCoords[2] := Arr6Ptr^[2];
-      AlignCoords[3] := Arr6Ptr^[3];
-      AlignCoords[4] := Arr6Ptr^[4];
-      AlignCoords[5] := Arr6Ptr^[5];
-      AlignCount := 6;
-    end;
-    35..40: begin
-      Arr7Ptr := CN_ALIGNMENT_PATTERN_7ARRAY[FQRVersion];
-      SetLength(AlignCoords, 7);
-      AlignCoords[0] := Arr7Ptr^[0];
-      AlignCoords[1] := Arr7Ptr^[1];
-      AlignCoords[2] := Arr7Ptr^[2];
-      AlignCoords[3] := Arr7Ptr^[3];
-      AlignCoords[4] := Arr7Ptr^[4];
-      AlignCoords[5] := Arr7Ptr^[5];
-      AlignCoords[6] := Arr7Ptr^[6];
-      AlignCount := 7;
-    end;
+    2..6:
+      begin
+        Arr2Ptr := CN_ALIGNMENT_PATTERN_2ARRAY[FQRVersion];
+        SetLength(AlignCoords, 2);
+        AlignCoords[0] := Arr2Ptr^[0];
+        AlignCoords[1] := Arr2Ptr^[1];
+        AlignCount := 2;
+      end;
+    7..13:
+      begin
+        Arr3Ptr := CN_ALIGNMENT_PATTERN_3ARRAY[FQRVersion];
+        SetLength(AlignCoords, 3);
+        AlignCoords[0] := Arr3Ptr^[0];
+        AlignCoords[1] := Arr3Ptr^[1];
+        AlignCoords[2] := Arr3Ptr^[2];
+        AlignCount := 3;
+      end;
+    14..20:
+      begin
+        Arr4Ptr := CN_ALIGNMENT_PATTERN_4ARRAY[FQRVersion];
+        SetLength(AlignCoords, 4);
+        AlignCoords[0] := Arr4Ptr^[0];
+        AlignCoords[1] := Arr4Ptr^[1];
+        AlignCoords[2] := Arr4Ptr^[2];
+        AlignCoords[3] := Arr4Ptr^[3];
+        AlignCount := 4;
+      end;
+    21..27:
+      begin
+        Arr5Ptr := CN_ALIGNMENT_PATTERN_5ARRAY[FQRVersion];
+        SetLength(AlignCoords, 5);
+        AlignCoords[0] := Arr5Ptr^[0];
+        AlignCoords[1] := Arr5Ptr^[1];
+        AlignCoords[2] := Arr5Ptr^[2];
+        AlignCoords[3] := Arr5Ptr^[3];
+        AlignCoords[4] := Arr5Ptr^[4];
+        AlignCount := 5;
+      end;
+    28..34:
+      begin
+        Arr6Ptr := CN_ALIGNMENT_PATTERN_6ARRAY[FQRVersion];
+        SetLength(AlignCoords, 6);
+        AlignCoords[0] := Arr6Ptr^[0];
+        AlignCoords[1] := Arr6Ptr^[1];
+        AlignCoords[2] := Arr6Ptr^[2];
+        AlignCoords[3] := Arr6Ptr^[3];
+        AlignCoords[4] := Arr6Ptr^[4];
+        AlignCoords[5] := Arr6Ptr^[5];
+        AlignCount := 6;
+      end;
+    35..40:
+      begin
+        Arr7Ptr := CN_ALIGNMENT_PATTERN_7ARRAY[FQRVersion];
+        SetLength(AlignCoords, 7);
+        AlignCoords[0] := Arr7Ptr^[0];
+        AlignCoords[1] := Arr7Ptr^[1];
+        AlignCoords[2] := Arr7Ptr^[2];
+        AlignCoords[3] := Arr7Ptr^[3];
+        AlignCoords[4] := Arr7Ptr^[4];
+        AlignCoords[5] := Arr7Ptr^[5];
+        AlignCoords[6] := Arr7Ptr^[6];
+        AlignCount := 7;
+      end;
   else
     // 版本1没有对齐图案
     AlignCount := 0;
@@ -1832,13 +1628,13 @@ begin
     for J := 0 to AlignCount - 1 do
     begin
       if ((AlignCoords[I] = 6) and (AlignCoords[J] = 6)) or
-         ((AlignCoords[I] = 6) and (AlignCoords[J] = FQRSize - 7)) or
-         ((AlignCoords[I] = FQRSize - 7) and (AlignCoords[J] = 6)) then
+        ((AlignCoords[I] = 6) and (AlignCoords[J] = FQRSize - 7)) or
+        ((AlignCoords[I] = FQRSize - 7) and (AlignCoords[J] = 6)) then
         Continue;
 
       // 检查是否在对齐图案的5x5区域内
       if (X >= AlignCoords[I] - 2) and (X <= AlignCoords[I] + 2) and
-         (Y >= AlignCoords[J] - 2) and (Y <= AlignCoords[J] + 2) then
+        (Y >= AlignCoords[J] - 2) and (Y <= AlignCoords[J] + 2) then
       begin
         Result := True;
         Exit;
@@ -1847,220 +1643,29 @@ begin
   end;
 end;
 
-//
-//function TCnQREncoder.IsFunctionArea(X, Y: Integer): Boolean;
-//var
-//  I, J: Integer;
-//  ArrPtr: Pointer;
-//begin
-//  Result := True;
-//
-//  // 位置探测图形区域（三个角）
-//  // 左上角
-//  if (X <= 7) and (Y <= 7) then
-//    Exit;
-//
-//  // 右上角
-//  if (X >= FQRSize - 8) and (Y <= 7) then
-//    Exit;
-//
-//  // 左下角
-//  if (X <= 7) and (Y >= FQRSize - 8) then
-//    Exit;
-//
-//  // 时序图案
-//  if (X = 6) or (Y = 6) then
-//    Exit;
-//
-//  // 格式信息区域
-//  // 左上角的格式信息（除时序图案交点外）
-//  if (Y = 8) and (X <= 8) and (X <> 6) then
-//    Exit;
-//  if (X = 8) and (Y <= 8) and (Y <> 6) then
-//    Exit;
-//
-//  // 右上角的格式信息
-//  if (X = FQRSize - 8) and (Y <= 8) then
-//    Exit;
-//
-//  // 左下角的格式信息
-//  if (Y = FQRSize - 8) and (X <= 8) then
-//    Exit;
-//
-//  // 版本信息区域（版本7以上）
-//  if FQRVersion >= 7 then
-//  begin
-//    // 右上角版本信息
-//    if (X >= FQRSize - 11) and (X <= FQRSize - 9) and (Y >= 0) and (Y <= 5) then
-//      Exit;
-//
-//    // 左下角版本信息
-//    if (Y >= FQRSize - 11) and (Y <= FQRSize - 9) and (X >= 0) and (X <= 5) then
-//      Exit;
-//  end;
 
-  // 位置探测图形 (Finder Patterns) 和 分隔符 (Separators)
-  // 左上角 (0..8, 0..8)
-//  if (X < 9) and (Y < 9) then
-//  begin
-//    Result := True;
-//    Exit;
-//  end;
-//
-//  // 左下角 (0..8, Size-8..Size)
-//  if (X < 9) and (Y >= FQRSize - 8) then
-//  begin
-//    Result := True;
-//    Exit;
-//  end;
-//
-//  // 右上角 (Size-8..Size, 0..8)
-//  if (X >= FQRSize - 8) and (Y < 9) then
-//  begin
-//    Result := True;
-//    Exit;
-//  end;
-//
-//  // 时序图形 (Timing Patterns)
-//  if (X = 6) or (Y = 6) then
-//  begin
-//    Result := True;
-//    Exit;
-//  end;
-//
-//  // (Format Information) (Dark Module)
-//  // Top-Left block around row/col 8 (excluding timing intersection at 6)
-//  if ((Y = 8) and ((X <= 8) and (X <> 6))) or
-//     ((X = 8) and ((Y <= 8) and (Y <> 6))) then
-//  begin
-//    Result := True;
-//    Exit;
-//  end;
-//  // Bottom-Left and Top-Right format info areas
-//  if ((X = 8) and (Y >= FQRSize - 8)) or
-//     ((Y = 8) and (X >= FQRSize - 8)) then
-//  begin
-//    Result := True;
-//    Exit;
-//  end;
-//  // Dark module (8, Size-8)
-//  if (X = 8) and (Y = FQRSize - 8) then
-//  begin
-//    Result := True;
-//    Exit;
-//  end;
-
-  // 对齐图形 (Alignment Patterns)
-//  case FQRVersion of
-//    2..6:
-//      begin
-//        ArrPtr := CN_ALIGNMENT_PATTERN_2ARRAY[FQRVersion];
-//        for I := 0 to 1 do
-//        begin
-//          for J := 0 to 1 do
-//          begin
-//            if (Abs(X - (PCn2BytesArray(ArrPtr)^[I] - 2)) <= 2) and
-//              (Abs(Y - (PCn2BytesArray(ArrPtr)^[J] - 2)) <= 2) then
-//              Exit;
-//          end;
-//        end;
-//      end;
-//    7..13:
-//      begin
-//        ArrPtr := CN_ALIGNMENT_PATTERN_3ARRAY[FQRVersion];
-//        for I := 0 to 2 do
-//        begin
-//          for J := 0 to 2 do
-//          begin
-//            if (Abs(X - (PCn3BytesArray(ArrPtr)^[I] - 2)) <= 2) and
-//             (Abs(Y - (PCn3BytesArray(ArrPtr)^[J] - 2)) <= 2) then
-//              Exit;
-//          end;
-//        end;
-//      end;
-//    14..20:
-//      begin
-//        ArrPtr := CN_ALIGNMENT_PATTERN_4ARRAY[FQRVersion];
-//        for I := 0 to 3 do
-//        begin
-//          for J := 0 to 3 do
-//          begin
-//            if (Abs(X - (PCn4BytesArray(ArrPtr)^[I] - 2)) <= 2) and
-//             (Abs(Y - (PCn4BytesArray(ArrPtr)^[J] - 2)) <= 2) then
-//              Exit;
-//          end;
-//        end;
-//      end;
-//    21..27:
-//      begin
-//        ArrPtr := CN_ALIGNMENT_PATTERN_5ARRAY[FQRVersion];
-//        for I := 0 to 4 do
-//        begin
-//          for J := 0 to 4 do
-//          begin
-//            if (Abs(X - (PCn5BytesArray(ArrPtr)^[I] - 2)) <= 2) and
-//             (Abs(Y - (PCn5BytesArray(ArrPtr)^[J] - 2)) <= 2) then
-//              Exit;
-//          end;
-//        end;
-//      end;
-//    28..34:
-//      begin
-//        ArrPtr := CN_ALIGNMENT_PATTERN_6ARRAY[FQRVersion];
-//        for I := 0 to 5 do
-//        begin
-//          for J := 0 to 5 do
-//          begin
-//            if (Abs(X - (PCn6BytesArray(ArrPtr)^[I] - 2)) <= 2) and
-//              (Abs(Y - (PCn6BytesArray(ArrPtr)^[J] - 2)) <= 2) then
-//              Exit;
-//          end;
-//        end;
-//      end;
-//    35..40:
-//      begin
-//        ArrPtr := CN_ALIGNMENT_PATTERN_7ARRAY[FQRVersion];
-//        for I := 0 to 6 do
-//        begin
-//          for J := 0 to 6 do
-//          begin
-//            if (Abs(X - (PCn7BytesArray(ArrPtr)^[I] - 2)) <= 2) and
-//             (Abs(Y - (PCn7BytesArray(ArrPtr)^[J] - 2)) <= 2) then
-//              Exit;
-//          end;
-//        end;
-//      end;
-//  end;
-//
-//  // 版本信息区域 (Version >= 7)
-//  if FQRVersion >= 7 then
-//  begin
-//    // 左下角区域 (0..5, Size-11..Size-9)
-//    if (X < 6) and (Y >= FQRSize - 11) and (Y <= FQRSize - 9) then
-//      Exit;
-//
-//    // 右上角区域 (Size-11..Size-9, 0..5)
-//    if (Y < 6) and (X >= FQRSize - 11) and (X <= FQRSize - 9) then
-//      Exit;
-//  end;
-//
-//  Result := False;
-//end;
-
-{ TCnQREncoder - 掩码处理 }
-
+// 掩码处理
 function TCnQREncoder.GetMaskPattern(X, Y, MaskType: Integer): Boolean;
 begin
   case MaskType of
-    0: Result := (X + Y) mod 2 = 0;
-    1: Result := Y mod 2 = 0;
-    2: Result := X mod 3 = 0;
-    3: Result := (X + Y) mod 3 = 0;
-    4: Result := ((Y div 2) + (X div 3)) mod 2 = 0;
-    5: Result := ((X * Y) mod 2) + ((X * Y) mod 3) = 0;
-    6: Result := (((X * Y) mod 2) + ((X * Y) mod 3)) mod 2 = 0;
-    7: Result := (((X + Y) mod 2) + ((X * Y) mod 3)) mod 2 = 0;
-    else Result := False;
+    0:
+      Result := (X + Y) mod 2 = 0;
+    1:
+      Result := Y mod 2 = 0;
+    2:
+      Result := X mod 3 = 0;
+    3:
+      Result := (X + Y) mod 3 = 0;
+    4:
+      Result := ((Y div 2) + (X div 3)) mod 2 = 0;
+    5:
+      Result := ((X * Y) mod 2) + ((X * Y) mod 3) = 0;
+    6:
+      Result := (((X * Y) mod 2) + ((X * Y) mod 3)) mod 2 = 0;
+    7:
+      Result := (((X + Y) mod 2) + ((X * Y) mod 3)) mod 2 = 0;
+  else
+    Result := False;
   end;
 end;
 
@@ -2095,12 +1700,16 @@ begin
   for X := 0 to FQRSize - 1 do
     for Y := 0 to FQRSize - 1 do
       TempData[X, Y] := FQRData[X, Y];
+
   for X := 0 to FQRSize - 1 do
     for Y := 0 to FQRSize - 1 do
       if not IsFunctionArea(X, Y) and GetMaskPattern(X, Y, MaskType) then
         TempData[X, Y] := 1 - TempData[X, Y];
 
-  Penalty1 := 0; Penalty2 := 0; Penalty3 := 0;
+  Penalty1 := 0;
+  Penalty2 := 0;
+  Penalty3 := 0;
+
   // 行相邻同色
   for Y := 0 to FQRSize - 1 do
   begin
@@ -2108,15 +1717,18 @@ begin
     LastModule := TempData[0, Y];
     for X := 1 to FQRSize - 1 do
     begin
-      if TempData[X, Y] = LastModule then Inc(RunLength)
+      if TempData[X, Y] = LastModule then
+        Inc(RunLength)
       else
       begin
-        if RunLength >= 5 then Inc(Penalty1, RunLength - 2);
+        if RunLength >= 5 then
+          Inc(Penalty1, RunLength - 2);
         RunLength := 1;
         LastModule := TempData[X, Y];
       end;
     end;
-    if RunLength >= 5 then Inc(Penalty1, RunLength - 2);
+    if RunLength >= 5 then
+      Inc(Penalty1, RunLength - 2);
   end;
 
   // 检查列
@@ -2126,58 +1738,85 @@ begin
     LastModule := TempData[X, 0];
     for Y := 1 to FQRSize - 1 do
     begin
-      if TempData[X, Y] = LastModule then Inc(RunLength)
+      if TempData[X, Y] = LastModule then
+        Inc(RunLength)
       else
       begin
-        if RunLength >= 5 then Inc(Penalty1, RunLength - 2);
+        if RunLength >= 5 then
+          Inc(Penalty1, RunLength - 2);
         RunLength := 1;
         LastModule := TempData[X, Y];
       end;
     end;
-    if RunLength >= 5 then Inc(Penalty1, RunLength - 2);
+    if RunLength >= 5 then
+      Inc(Penalty1, RunLength - 2);
   end;
+
   // 2x2 同色块
   for Y := 0 to FQRSize - 2 do
+  begin
     for X := 0 to FQRSize - 2 do
-      if (TempData[X, Y] = TempData[X+1, Y]) and
-         (TempData[X, Y] = TempData[X, Y+1]) and
-         (TempData[X, Y] = TempData[X+1, Y+1]) then
+    begin
+      if (TempData[X, Y] = TempData[X + 1, Y]) and
+        (TempData[X, Y] = TempData[X, Y + 1]) and
+        (TempData[X, Y] = TempData[X + 1, Y + 1]) then
         Inc(Penalty2, 3);
+    end;
+  end;
+
   // 查找类图案（行）
   for Y := 0 to FQRSize - 1 do
   begin
     for X := 0 to FQRSize - 7 do
-      if (TempData[X, Y] = 1) and (TempData[X+1, Y] = 0) and (TempData[X+2, Y] = 1) and
-         (TempData[X+3, Y] = 1) and (TempData[X+4, Y] = 1) and (TempData[X+5, Y] = 0) and
-         (TempData[X+6, Y] = 1) then
+    begin
+      if (TempData[X, Y] = 1) and (TempData[X + 1, Y] = 0) and (TempData[X + 2,
+        Y] = 1) and
+        (TempData[X + 3, Y] = 1) and (TempData[X + 4, Y] = 1) and (TempData[X + 5, Y] = 0) and
+        (TempData[X + 6, Y] = 1) then
       begin
-        LeftSafe := (X < 4) or ((TempData[X-1, Y] = 0) and (TempData[X-2, Y] = 0) and
-                                (TempData[X-3, Y] = 0) and (TempData[X-4, Y] = 0));
-        RightSafe := (X + 10 >= FQRSize) or ((TempData[X+7, Y] = 0) and (TempData[X+8, Y] = 0) and
-                                             (TempData[X+9, Y] = 0) and (TempData[X+10, Y] = 0));
-        if LeftSafe or RightSafe then Inc(Penalty3, 40);
+        LeftSafe := (X < 4) or ((TempData[X - 1, Y] = 0) and (TempData[X - 2, Y] = 0) and
+          (TempData[X - 3, Y] = 0) and (TempData[X - 4, Y] = 0));
+        RightSafe := (X + 10 >= FQRSize) or ((TempData[X + 7, Y] = 0) and (TempData
+          [X + 8, Y] = 0) and
+          (TempData[X + 9, Y] = 0) and (TempData[X + 10, Y] = 0));
+        if LeftSafe or RightSafe then
+          Inc(Penalty3, 40);
       end;
+    end;
   end;
+
   // 查找类图案（列）
   for X := 0 to FQRSize - 1 do
   begin
     for Y := 0 to FQRSize - 7 do
-      if (TempData[X, Y] = 1) and (TempData[X, Y+1] = 0) and (TempData[X, Y+2] = 1) and
-         (TempData[X, Y+3] = 1) and (TempData[X, Y+4] = 1) and (TempData[X, Y+5] = 0) and
-         (TempData[X, Y+6] = 1) then
+    begin
+      if (TempData[X, Y] = 1) and (TempData[X, Y + 1] = 0) and (TempData[X, Y +
+        2] = 1) and
+        (TempData[X, Y + 3] = 1) and (TempData[X, Y + 4] = 1) and (TempData[X, Y + 5] = 0) and
+        (TempData[X, Y + 6] = 1) then
       begin
-        LeftSafe := (Y < 4) or ((TempData[X, Y-1] = 0) and (TempData[X, Y-2] = 0) and
-                                (TempData[X, Y-3] = 0) and (TempData[X, Y-4] = 0));
-        RightSafe := (Y + 10 >= FQRSize) or ((TempData[X, Y+7] = 0) and (TempData[X, Y+8] = 0) and
-                                             (TempData[X, Y+9] = 0) and (TempData[X, Y+10] = 0));
-        if LeftSafe or RightSafe then Inc(Penalty3, 40);
+        LeftSafe := (Y < 4) or ((TempData[X, Y - 1] = 0) and (TempData[X, Y - 2] = 0) and
+          (TempData[X, Y - 3] = 0) and (TempData[X, Y - 4] = 0));
+        RightSafe := (Y + 10 >= FQRSize) or ((TempData[X, Y + 7] = 0) and (TempData
+          [X, Y + 8] = 0) and
+          (TempData[X, Y + 9] = 0) and (TempData[X, Y + 10] = 0));
+        if LeftSafe or RightSafe then
+          Inc(Penalty3, 40);
       end;
+    end;
   end;
+
   // 黑模块比例
   DarkCount := 0;
   for X := 0 to FQRSize - 1 do
+  begin
     for Y := 0 to FQRSize - 1 do
-      if TempData[X, Y] = 1 then Inc(DarkCount);
+    begin
+      if TempData[X, Y] = 1 then
+        Inc(DarkCount);
+    end;
+  end;
+
   Penalty4 := Abs((DarkCount * 100 div (FQRSize * FQRSize)) - 50) div 5 * 10;
   Result := Penalty1 + Penalty2 + Penalty3 + Penalty4;
   SetLength(TempData, 0);
@@ -2194,7 +1833,7 @@ begin
   BestMask := 0;
   BestPenalty := MaxInt;
 
-  // 尝试所有8种掩码
+  // 尝试所有 8 种掩码
   for MaskType := 0 to 7 do
   begin
     // 备份数据
@@ -2234,8 +1873,7 @@ begin
   SetLength(QRDataBackup, 0);
 end;
 
-{ TCnQREncoder - BCH 编码 }
-
+// BCH 编码
 function TCnQREncoder.BCHEncode15(Data: Integer): Integer;
 var
   I: Integer;
@@ -2277,7 +1915,8 @@ begin
   Result := (Data shl 12) or Remainder;
 end;
 
-function TCnQREncoder.GetFormatBits(ErrorLevel: TCnErrorRecoveryLevel; MaskType: Integer): Integer;
+function TCnQREncoder.GetFormatBits(ErrorLevel: TCnErrorRecoveryLevel; MaskType:
+  Integer): Integer;
 var
   FormatData: Integer;
 begin
@@ -2304,12 +1943,14 @@ begin
   Result := CN_TOTAL_CODEWORDS[Version];
 end;
 
-function TCnQREncoder.GetECCodewords(Version: TCnQRCodeVersion; ErrorLevel: TCnErrorRecoveryLevel): Integer;
+function TCnQREncoder.GetECCodewords(Version: TCnQRCodeVersion; ErrorLevel:
+  TCnErrorRecoveryLevel): Integer;
 begin
   Result := CN_EC_CODEWORDS[Version, Ord(ErrorLevel)];
 end;
 
-function TCnQREncoder.GetOptimalVersion(const Text: string; ErrorLevel: TCnErrorRecoveryLevel): TCnQRCodeVersion;
+function TCnQREncoder.GetOptimalVersion(const Text: string; ErrorLevel:
+  TCnErrorRecoveryLevel): TCnQRCodeVersion;
 var
   Version: TCnQRCodeVersion;
   Mode: TCnEncodeMode;
@@ -2345,7 +1986,8 @@ begin
     end;
 
     RequiredBits := ModeBits + DataBits;
-    AvailableBits := (GetTotalCodewords(Version) - GetECCodewords(Version, ErrorLevel)) * 8;
+    AvailableBits := (GetTotalCodewords(Version) - GetECCodewords(Version,
+      ErrorLevel)) * 8;
 
     if RequiredBits <= AvailableBits then
     begin
@@ -2380,7 +2022,8 @@ begin
     FBitsVersionInfo.Bit[I] := (VersionBits shr I) and 1 = 1;
 end;
 
-function TCnQREncoder.ComputeBlockECC(const DataBytes: TBytes; ECCodewords: Integer): TBytes;
+function TCnQREncoder.ComputeBlockECC(const DataBytes: TBytes; ECCodewords:
+  Integer): TBytes;
 var
   I: Integer;
   MessagePoly, GeneratorPoly, DataPoly: TCnQRGFPoly;
@@ -2489,7 +2132,8 @@ function TCnQREncoder.GetDataCodewordsBytes: TBytes;
 var
   DataCount: Integer;
 begin
-  DataCount := GetTotalCodewords(FQRVersion) - GetECCodewords(FQRVersion, FQRErrorRecoveryLevel);
+  DataCount := GetTotalCodewords(FQRVersion) - GetECCodewords(FQRVersion,
+    FQRErrorRecoveryLevel);
   Result := BitBuilderToBytes(FDataBits, DataCount);
 end;
 
@@ -2527,10 +2171,12 @@ begin
     S := '';
     SetLength(S, FQRSize);
     for X := 1 to FQRSize do
+    begin
       if FQRData[X - 1, Y] <> 0 then
         S[X] := '1'
       else
         S[X] := '0';
+    end;
     Result := Result + S + #13#10;
   end;
 end;
@@ -2592,11 +2238,13 @@ begin
   begin
     if IsFunctionArea(X, 8) then
     begin
-      if First < 0 then First := X;
+      if First < 0 then
+        First := X;
       Inc(Count);
     end;
   end;
-  Result := Format('Row y=8: first=%d, count=%d, size=%d, threshold(size-8)=%d', [First, Count, FQRSize, FQRSize - 8]);
+  Result := Format('Row y=8: first=%d, count=%d, size=%d, threshold(size-8)=%d',
+    [First, Count, FQRSize, FQRSize - 8]);
 end;
 
 function TCnQREncoder.DumpFormatColInfo: string;
@@ -2610,11 +2258,13 @@ begin
   begin
     if IsFunctionArea(8, Y) then
     begin
-      if First < 0 then First := Y;
+      if First < 0 then
+        First := Y;
       Inc(Count);
     end;
   end;
-  Result := Format('Col x=8: first=%d, count=%d, size=%d, threshold(size-8)=%d', [First, Count, FQRSize, FQRSize - 8]);
+  Result := Format('Col x=8: first=%d, count=%d, size=%d, threshold(size-8)=%d',
+    [First, Count, FQRSize, FQRSize - 8]);
 end;
 
 function TCnQREncoder.DumpAlignmentCenters: string;

@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, CnCommon,
-  Controls, Forms, Dialogs, StdCtrls, CnNative, CnQRCode;
+  Controls, Forms, Dialogs, StdCtrls, CnNative, CnQRImage, CnQRCode;
 
 type
   TFormQRTest = class(TForm)

@@ -1,6 +1,6 @@
 object FormQRTest: TFormQRTest
   Left = 296
-  Top = 191
+  Top = 224
   Width = 747
   Height = 468
   Caption = 'QR Test'
