@@ -154,6 +154,13 @@ type
     {* 清空数据队列。如果用户来不及处理接收到的数据，组件会把新数据包放到数据
        队列中，调用该方法可清空数据队列}
 
+    function EnableReuseAddr: Boolean;
+    {* 启用地址复用}
+    function JoinMulticastGroup(const Group, IfAddr: string): Boolean;
+    {* 加入广播组}
+    function LeaveMulticastGroup(const Group, IfAddr: string): Boolean;
+    {* 离开广播组}
+
 {$IFDEF MSWINDOWS}
     function ProcessRecv: Boolean;
     {* 处理该 UDP 接口的接收内容。由于 CnUDP 组件的 OnDataReceived 是在主线程
@@ -210,6 +217,19 @@ procedure GetBroadCastAddress(sInt: TStrings);
 procedure GetLocalIPAddress(sInt: TStrings);
 
 implementation
+ 
+type
+{$IFDEF MSWINDOWS}
+  TCnIpMReq = record
+    imr_multiaddr: WinSock.in_addr;
+    imr_interface: WinSock.in_addr;
+  end;
+{$ELSE}
+  TCnIpMReq = record
+    imr_multiaddr: in_addr;
+    imr_interface: in_addr;
+  end;
+{$ENDIF}
 
 {$R-}
 
@@ -331,6 +351,58 @@ begin
   end;
   freeifaddrs(Pif);
 {$ENDIF}
+end;
+
+function TCnUDP.EnableReuseAddr: Boolean;
+var
+  Data: Cardinal;
+begin
+  Data := 1;
+  Result := CnSetSockOpt(FThisSocket, SOL_SOCKET, SO_REUSEADDR, PAnsiChar(@Data), SizeOf(Data)) = 0;
+  if not Result then
+    SetupLastError;
+end;
+
+function TCnUDP.JoinMulticastGroup(const Group, IfAddr: string): Boolean;
+var
+  Mreq: TCnIpMReq;
+begin
+  Result := False;
+  if FThisSocket = 0 then
+    Exit;
+{$IFDEF MSWINDOWS}
+  FillChar(Mreq, SizeOf(Mreq), 0);
+  Mreq.imr_multiaddr.S_addr := inet_addr(PAnsiChar(AnsiString(Group)));
+  Mreq.imr_interface.S_addr := inet_addr(PAnsiChar(AnsiString(IfAddr)));
+{$ELSE}
+  FillChar(Mreq, SizeOf(Mreq), 0);
+  Mreq.imr_multiaddr.s_addr := inet_addr(PAnsiChar(AnsiString(Group)));
+  Mreq.imr_interface.s_addr := inet_addr(PAnsiChar(AnsiString(IfAddr)));
+{$ENDIF}
+  Result := CnSetSockOpt(FThisSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, PAnsiChar(@Mreq), SizeOf(Mreq)) = 0;
+  if not Result then
+    SetupLastError;
+end;
+
+function TCnUDP.LeaveMulticastGroup(const Group, IfAddr: string): Boolean;
+var
+  Mreq: TCnIpMReq;
+begin
+  Result := False;
+  if FThisSocket = 0 then
+    Exit;
+{$IFDEF MSWINDOWS}
+  FillChar(Mreq, SizeOf(Mreq), 0);
+  Mreq.imr_multiaddr.S_addr := inet_addr(PAnsiChar(AnsiString(Group)));
+  Mreq.imr_interface.S_addr := inet_addr(PAnsiChar(AnsiString(IfAddr)));
+{$ELSE}
+  FillChar(Mreq, SizeOf(Mreq), 0);
+  Mreq.imr_multiaddr.s_addr := inet_addr(PAnsiChar(AnsiString(Group)));
+  Mreq.imr_interface.s_addr := inet_addr(PAnsiChar(AnsiString(IfAddr)));
+{$ENDIF}
+  Result := CnSetSockOpt(FThisSocket, IPPROTO_IP, IP_DROP_MEMBERSHIP, PAnsiChar(@Mreq), SizeOf(Mreq)) = 0;
+  if not Result then
+    SetupLastError;
 end;
 
 // 取本机 IP 地址
