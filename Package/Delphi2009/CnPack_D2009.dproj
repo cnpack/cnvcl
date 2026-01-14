@@ -230,6 +230,7 @@
 			<DCCReference Include="..\..\Source\Graphic\CnMonthCalendar.pas"/>
 			<DCCReference Include="..\..\Source\Graphic\CnOpenGLPaintBox.pas"/>
 			<DCCReference Include="..\..\Source\Graphic\CnPanel.pas"/>
+			<DCCReference Include="..\..\Source\Graphic\CnQRImage.pas"/>
 			<DCCReference Include="..\..\Source\Graphic\CnShellCtrls.pas"/>
 			<DCCReference Include="..\..\Source\Graphic\CnSkinMagic.pas"/>
 			<DCCReference Include="..\..\Source\Graphic\CnSpin.pas"/>

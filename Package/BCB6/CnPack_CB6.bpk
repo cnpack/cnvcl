@@ -161,6 +161,7 @@
       ..\..\Source\Graphic\CnMonthCalendar.obj 
       ..\..\Source\Graphic\CnOpenGLPaintBox.obj 
       ..\..\Source\Graphic\CnPanel.obj 
+      ..\..\Source\Graphic\CnQRImage.obj 
       ..\..\Source\Graphic\CnShellCtrls.obj 
       ..\..\Source\Graphic\CnSkinMagic.obj 
       ..\..\Source\Graphic\CnSpin.obj 
@@ -462,6 +463,7 @@
       <FILE FILENAME="..\..\Source\Graphic\CnMonthCalendar.pas" FORMNAME="" UNITNAME="CnMonthCalendar" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphic\CnOpenGLPaintBox.pas" FORMNAME="" UNITNAME="CnOpenGLPaintBox" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphic\CnPanel.pas" FORMNAME="" UNITNAME="CnPanel" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="..\..\Source\Graphic\CnQRImage.pas" FORMNAME="" UNITNAME="CnQRImage" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphic\CnShellCtrls.pas" FORMNAME="" UNITNAME="CnShellCtrls" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphic\CnSkinMagic.pas" FORMNAME="" UNITNAME="CnSkinMagic" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\..\Source\Graphic\CnSpin.pas" FORMNAME="" UNITNAME="CnSpin" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

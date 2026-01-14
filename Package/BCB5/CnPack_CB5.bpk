@@ -135,6 +135,7 @@
       ..\..\Source\Graphic\CnMonthCalendar.obj 
       ..\..\Source\Graphic\CnOpenGLPaintBox.obj 
       ..\..\Source\Graphic\CnPanel.obj 
+      ..\..\Source\Graphic\CnQRImage.obj 
       ..\..\Source\Graphic\CnShellCtrls.obj 
       ..\..\Source\Graphic\CnSkinMagic.obj 
       ..\..\Source\Graphic\CnSpin.obj 

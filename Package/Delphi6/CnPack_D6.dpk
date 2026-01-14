@@ -202,6 +202,7 @@ contains
   CnMonthCalendar in '..\..\Source\Graphic\CnMonthCalendar.pas',
   CnOpenGLPaintBox in '..\..\Source\Graphic\CnOpenGLPaintBox.pas',
   CnPanel in '..\..\Source\Graphic\CnPanel.pas',
+  CnQRImage in '..\..\Source\Graphic\CnQRImage.pas',
   CnShellCtrls in '..\..\Source\Graphic\CnShellCtrls.pas',
   CnSkinMagic in '..\..\Source\Graphic\CnSkinMagic.pas',
   CnSpin in '..\..\Source\Graphic\CnSpin.pas',
