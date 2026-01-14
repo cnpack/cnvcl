@@ -364,6 +364,7 @@ const
   CN_DNS_TYPE_MX                            = 15;  // mail exchange
   CN_DNS_TYPE_TXT                           = 16;  // text strings
   CN_DNS_TYPE_SRV                           = 33;  // Service 类型，RFC 2052 中新增，用于 mDNS 服务发现等场合
+  CN_DNS_TYPE_ANY                           = 255; // 任意类型
 
   CN_DNS_QTYPE_AXFR                         = 252; // A request for a transfer of an entire zone
   CN_DNS_QTYPE_MAILB                        = 253; // A request for mailbox-related records (MB, MG or MR)
