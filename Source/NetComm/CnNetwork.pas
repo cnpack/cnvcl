@@ -260,7 +260,7 @@ const
   {* ICMP 包头中的消息代码定义}
   CN_ICMP_CODE_NO_CODE                      = 0;
 
-  // 目的不可达类型 CN_ICMP_TYPE_DESTINATION_UNREACHABLE
+  {* 目的不可达类型 CN_ICMP_TYPE_DESTINATION_UNREACHABLE}
   CN_ICMP_CODE_NET_UNREACHABLE              = 0;   // Net Unreachable
   CN_ICMP_CODE_HOST_UNREACHABLE             = 1;   // Host Unreachable
   CN_ICMP_CODE_PROTOCOL_UNREACHABLE         = 2;   // Protocol Unreachable
@@ -278,29 +278,29 @@ const
   CN_ICMP_CODE_HOST_PRECEDENCE_VIOLATION    = 14;  // Host Precedence Violation
   CN_ICMP_CODE_PRECEDENCE_CUTOFF_IN_EFFECT  = 15;  // Precedence cutoff in effect
 
-  // 重定向类型 CN_ICMP_TYPE_REDIRECT
+  {* 重定向类型 CN_ICMP_TYPE_REDIRECT}
   CN_ICMP_CODE_REDIRECT_FOR_NETWORK         = 0;
   CN_ICMP_CODE_REDIRECT_FOR_HOST            = 1;
   CN_ICMP_CODE_REDIRECT_FOR_TOS_NETWORK     = 2;
   CN_ICMP_CODE_REDIRECT_FOR_TOS_HOST        = 3;
 
-  // 更改主机地址类型 CN_ICMP_TYPE_ALTERNATE_HOST_ADDRESS
+  {* 更改主机地址类型 CN_ICMP_TYPE_ALTERNATE_HOST_ADDRESS}
   CN_ICMP_CODE_ALTERNATE_ADDRESS_FOR_HOST   = 0;
 
-  // 路由公告类型 CN_ICMP_TYPE_ROUTER_ADVERTISEMENT
+  {* 路由公告类型 CN_ICMP_TYPE_ROUTER_ADVERTISEMENT}
   CN_ICMP_CODE_NORMAL_ROUTER_ADVERTISEMENT  = 0;
   CN_ICMP_CODE_NOT_ROUTE_COMMON_TRAFFIC     = 1;
 
-  // 超时类型 CN_ICMP_TYPE_TIME_EXCEEDED
+  {* 超时类型 CN_ICMP_TYPE_TIME_EXCEEDED}
   CN_ICMP_CODE_TTL_EXCEEDED_IN_TRANSIT      = 0;
   CN_ICMP_CODE_FRAGMENT_REASSEMBLY          = 1;
 
-  // 参数问题类型 CN_ICMP_TYPE_PARAMETER_PROBLEM
+  {* 参数问题类型 CN_ICMP_TYPE_PARAMETER_PROBLEM}
   CN_ICMP_CODE_POINTER_INDICATES_THE_ERROR  = 0;
   CN_ICMP_CODE_MISSING_A_REQUIRED_OPTION    = 1;
   CN_ICMP_CODE_BAD_LENGTH                   = 2;
 
-  // Photuris 类型 CN_ICMP_TYPE_PHOTURIS
+  {* Photuris 类型 CN_ICMP_TYPE_PHOTURIS}
   CN_ICMP_CODE_BAD_SPI                      = 0;
   CN_ICMP_CODE_AUTHENTICATION_FAILED        = 1;
   CN_ICMP_CODE_DECOMPRESSION_FAILED         = 2;
@@ -722,6 +722,61 @@ const
 
   {* TLS/SSL 中的 ChangeCipherSpec 中的 Content 值}
   CN_TLS_CHANGE_CIPHER_SPEC                                      = 1;
+
+  {* 常见服务典型端口}
+  CN_PORT_FTP                                                    = 21;    // FTP
+  CN_PORT_SSH                                                    = 22;    // SSH
+  CN_PORT_TELNET                                                 = 23;    // Telnet
+  CN_PORT_SMTP                                                   = 25;    // SMTP
+  CN_PORT_DNS                                                    = 53;    // DNS
+  CN_PORT_DHCP_SERVER                                            = 67;    // DHCP Server
+  CN_PORT_DHCP_CLIENT                                            = 68;    // DHCP Client
+  CN_PORT_TFTP                                                   = 69;    // TFTP
+  CN_PORT_HTTP                                                   = 80;    // HTTP
+  CN_PORT_KERBEROS                                               = 88;    // Kerberos
+  CN_PORT_POP3                                                   = 110;   // POP3
+  CN_PORT_NTP                                                    = 123;   // NTP
+  CN_PORT_NETBIOS_NS                                             = 137;   // NetBIOS Name Service
+  CN_PORT_NETBIOS_DGM                                            = 138;   // NetBIOS Datagram Service
+  CN_PORT_NETBIOS_SSN                                            = 139;   // NetBIOS Session Service
+  CN_PORT_IMAP                                                   = 143;   // IMAP
+  CN_PORT_SNMP                                                   = 161;   // SNMP
+  CN_PORT_SNMP_TRAP                                              = 162;   // SNMP Trap
+  CN_PORT_LDAP                                                   = 389;   // LDAP
+  CN_PORT_HTTPS                                                  = 443;   // HTTPS
+  CN_PORT_SMB                                                    = 445;   // SMB
+  CN_PORT_SMTPS                                                  = 465;   // SMTPS
+  CN_PORT_SYSLOG                                                 = 514;   // Syslog
+  CN_PORT_RTSP                                                   = 554;   // RTSP
+  CN_PORT_SUBMISSION                                             = 587;   // SMTP Submission
+  CN_PORT_LDAPS                                                  = 636;   // LDAPS
+  CN_PORT_DNS_TLS                                                = 853;   // DNS over TLS
+  CN_PORT_IMAPS                                                  = 993;   // IMAPS
+  CN_PORT_POP3S                                                  = 995;   // POP3S
+  CN_PORT_OPENVPN                                                = 1194;  // OpenVPN
+  CN_PORT_MSSQL                                                  = 1433;  // Microsoft SQL Server
+  CN_PORT_ORACLE                                                 = 1521;  // Oracle
+  CN_PORT_L2TP                                                   = 1701;  // L2TP
+  CN_PORT_PPTP                                                   = 1723;  // PPTP
+  CN_PORT_MQTT                                                   = 1883;  // MQTT
+  CN_PORT_NFS                                                    = 2049;  // NFS
+  CN_PORT_MYSQL                                                  = 3306;  // MySQL
+  CN_PORT_RDP                                                    = 3389;  // RDP
+  CN_PORT_SIP                                                    = 5060;  // SIP
+  CN_PORT_SIPS                                                   = 5061;  // SIP over TLS
+  CN_PORT_XMPP_CLIENT                                            = 5222;  // XMPP Client
+  CN_PORT_XMPP_SERVER                                            = 5269;  // XMPP Server
+  CN_PORT_MDNS                                                   = 5353;  // mDNS
+  CN_PORT_POSTGRESQL                                             = 5432;  // PostgreSQL
+  CN_PORT_COAP                                                   = 5683;  // CoAP
+  CN_PORT_COAPS                                                  = 5684;  // CoAP over DTLS
+  CN_PORT_VNC                                                    = 5900;  // VNC
+  CN_PORT_REDIS                                                  = 6379;  // Redis
+  CN_PORT_DNS_QUIC                                               = 8853;  // DNS over QUIC
+  CN_PORT_MQTTS                                                  = 8883;  // MQTT over TLS
+  CN_PORT_GIT                                                    = 9418;  // Git
+  CN_PORT_MONGODB                                                = 27017; // MongoDB
+  CN_PORT_WIREGUARD                                              = 51820; // WireGuard
 
 type
   TCnIPv6Array = array[0..7] of Word;
