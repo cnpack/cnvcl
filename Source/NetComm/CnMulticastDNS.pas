@@ -44,36 +44,39 @@ uses
 
 type
   TCnMDNSService = record
+  {* 供外部通知及调用使用的服务代表结构}
     Instance: string;
     TypeName: string;
     Domain: string;
     Host: string;
     Port: Word;
     TxtRaw: TBytes;
-    local: Boolean;
+    Local: Boolean;
   end;
 
-  TCnDNSCacheEntry = record
-    Name: string;
-    RType: Word;
-    RClass: Word;
-    TTL: Cardinal;
-    ExpireTick: Cardinal;
-  end;
-
-  TCnMDNSServiceEvent = procedure(Sender: TObject; const Service: TCnMDNSService)
-    of object;
+  TCnMDNSServiceEvent = procedure(Sender: TObject; const Service: TCnMDNSService) of object;
+  {* mDNS 服务变化通知事件}
 
   TCnMDNSServiceItem = class
+  {* 内部服务条目代表类}
+  private
+    FIsLocal: Boolean;
+    FExpireTick: Cardinal;
+    FHost: string;
+    FInstance: string;
+    FDomain: string;
+    FTypeName: string;
+    FPort: Word;
   public
-    Instance: string;
-    TypeName: string;
-    Domain: string;
-    Host: string;
-    Port: Word;
     TxtRaw: TBytes;
-    ExpireTick: Cardinal;
-    IsLocal: Boolean;
+
+    property Instance: string read FInstance write FInstance;
+    property TypeName: string read FTypeName write FTypeName;
+    property Domain: string read FDomain write FDomain;
+    property Host: string read FHost write FHost;
+    property Port: Word read FPort write FPort;
+    property ExpireTick: Cardinal read FExpireTick write FExpireTick;
+    property IsLocal: Boolean read FIsLocal write FIsLocal;
   end;
 
 {$IFNDEF FPC}
@@ -106,13 +109,16 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
     procedure Browse(const TypeName: string);
     procedure Resolve(const Instance: string);
+
     procedure RegisterService(const Service: TCnMDNSService);
     procedure DeregisterService(const Instance: string);
     procedure ClearCache;
-    property Active: Boolean read FActive write SetActive;
   published
+    property Active: Boolean read FActive write SetActive;
+
     property OnServiceAdded: TCnMDNSServiceEvent read FOnServiceAdded write
       FOnServiceAdded;
     property OnServiceRemoved: TCnMDNSServiceEvent read FOnServiceRemoved write
@@ -125,29 +131,9 @@ const
   SCN_MDNS_GROUP_V4 = '224.0.0.251';
   SCN_MDNS_GROUP_V6 = 'FF02::FB';
 
-var
-  GConsoleReady: Boolean = False;
-  GConsoleOut: TextFile;
-
-procedure OpenConsole;
-begin
-{$IFDEF MSWINDOWS}
-  if not GConsoleReady then
-  begin
-    AllocConsole;
-    AssignFile(GConsoleOut, 'CONOUT$');
-    Rewrite(GConsoleOut);
-    GConsoleReady := True;
-  end;
-{$ENDIF}
-end;
-
 procedure LogLine(const S: string);
 begin
-{$IFDEF MSWINDOWS}
-  if GConsoleReady then
-    Writeln(GConsoleOut, S);
-{$ENDIF}
+  // WriteLn(S);
 end;
 
 procedure DumpDNSStream(St: TMemoryStream);
@@ -209,7 +195,6 @@ var
   end;
 
 begin
-  OpenConsole;
   SetLength(B, St.Size);
   if Length(B) > 0 then
   begin
@@ -549,7 +534,7 @@ begin
   Svc.Host := Item.Host;
   Svc.Port := Item.Port;
   Svc.TxtRaw := Item.TxtRaw;
-  Svc.local := Item.IsLocal;
+  Svc.Local := Item.IsLocal;
   if Assigned(FOnServiceAdded) then
     FOnServiceAdded(Self, Svc);
 end;
@@ -571,7 +556,7 @@ begin
       Svc.Host := Item.Host;
       Svc.Port := Item.Port;
       Svc.TxtRaw := Item.TxtRaw;
-      Svc.local := Item.IsLocal;
+      Svc.Local := Item.IsLocal;
       FServices.Delete(I);
       if Assigned(FOnServiceRemoved) then
         FOnServiceRemoved(Self, Svc);
@@ -718,6 +703,7 @@ begin
   HostName := Service.Host;
   if HostName = '' then
     HostName := 'local-host.local';
+
   TTL := 120;
   S := TMemoryStream.Create;
   try
@@ -733,6 +719,7 @@ begin
       TTL, EncodeName(Service.Instance));
     WriteRR(S, Service.Instance, CN_DNS_TYPE_SRV, SetCacheFlush(CN_DNS_CLASS_IN),
       TTL, BuildSrvRData(Service.Port, Service.Host));
+
     if Length(Service.TxtRaw) > 0 then
       WriteRR(S, Service.Instance, CN_DNS_TYPE_TXT, SetCacheFlush(CN_DNS_CLASS_IN),
         TTL, Service.TxtRaw)
@@ -743,10 +730,12 @@ begin
       WriteRR(S, Service.Instance, CN_DNS_TYPE_TXT, SetCacheFlush(CN_DNS_CLASS_IN),
         TTL, Enc);
     end;
+
     WriteRR(S, Service.Host, CN_DNS_TYPE_A, SetCacheFlush(CN_DNS_CLASS_IN), TTL,
       CardinalToBytesBE(CnIPv4StringToCardinal(FUDP.LocalHost)));
     DumpDNSStream(S);
     FUDP.SendStream(S, False);
+
     if FLocalInstances.IndexOf(Service.Instance) < 0 then
       FLocalInstances.Add(Service.Instance);
   finally
