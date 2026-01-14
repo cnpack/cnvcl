@@ -2395,7 +2395,7 @@ begin
   if FQRWideCharMode = cqwUtf8 then
   begin
 {$IFDEF UNICODE}
-    FRawText := CnUtf8EncodeWideString(CnWideStrings(FText))
+    FRawText := CnUtf8EncodeWideString(FText)
 {$ELSE}
     FRawText := CnAnsiToUtf8(FText);
 {$ENDIF}
