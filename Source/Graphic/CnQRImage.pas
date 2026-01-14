@@ -42,6 +42,11 @@ uses
   Graphics, Controls, ExtCtrls, CnQRCode;
 
 type
+{$IFNDEF FPC}
+{$IFDEF SUPPORT_32_AND_64}
+  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
+{$ENDIF}
   TCnQRCodeImage = class(TGraphicControl)
   {* ¶þÎ¬Âë»æÖÆÀà}
   private

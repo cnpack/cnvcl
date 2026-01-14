@@ -48,7 +48,8 @@ uses
   {$IFNDEF FPC} CnAOTreeView, CnAACtrls,
   CnAAFont, CnAAFontEditor, CnAAFontDialog, CnTabSet, CnButtonEdit,
   CnSkinMagic, CnButtons, CnHint, CnGauge, CnListBox, CnColorGrid,
-  CnMonthCalendar, CnValidateImage, CnErrorProvider, CnLED, {$ENDIF} CnHexEditor;
+  CnMonthCalendar, CnValidateImage, CnErrorProvider, CnLED, {$ENDIF}
+  CnHexEditor, CnQRImage;
 
 procedure Register;
 {* ¿Ø¼þ¡¢×é¼þ±à¼­Æ÷¡¢ÊôÐÔ±à¼­Æ÷×¢²á¹ý³Ì}
@@ -76,6 +77,7 @@ begin
 {$ENDIF}
   RegisterComponents(SCnGraphicPalette, [TCnWaterImage]);
   RegisterComponents(SCnGraphicPalette, [TCnHexEditor]);
+  RegisterComponents(SCnGraphicPalette, [TCnQRImage]);
 {$IFNDEF FPC}
   RegisterComponents(SCnGraphicPalette, [TCnMonthCalendar]);
   RegisterComponents(SCnGraphicPalette, [TCnColorGrid]);
