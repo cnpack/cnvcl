@@ -263,12 +263,16 @@ var
   Ecc: TCnEcc;
   EpPriv: TCnEccPrivateKey;
   EpPub: TCnEccPublicKey;
+  EccSign: TCnEcc;
   CurveBytes: array[0..1] of Byte;
   PtLen: Byte;
   Pt: TBytes;
   KeyFile: string;
   Pri: TCnRSAPrivateKey;
   Pub: TCnRSAPublicKey;
+  EccPrivKey: TCnEccPrivateKey;
+  EccPubKey: TCnEccPublicKey;
+  ServerCurve: TCnEccCurveType;
   Sig: TBytes;
   ToSign: TBytes;
   Alg: array[0..1] of Byte;
@@ -289,12 +293,18 @@ var
   SelCipherHi, SelCipherLo: Byte;
   Found: Boolean;
   HaveC02F: Boolean;
+  HaveC02B: Boolean;
+  HaveCCA8: Boolean;
+  HaveCCA9: Boolean;
+  KeyIsRSA: Boolean;
+  KeyIsECC: Boolean;
   Off, SidLen, CSLen, I: Integer;
   CHi, CLo: Byte;
   SuiteStr, sHave, sHave2: string;
   CompLen, ExtsLen, ExtType, ExtLen, PairsLen, J: Integer;
   KeyLen, IvLen: Integer;
   UseChaCha: Boolean;
+  OutS: TMemoryStream;
 
   procedure DoTLSLog(const S: string);
   begin
@@ -429,26 +439,43 @@ begin
   DoTLSLog('Start TLS Handshake');
   Len := ClientSocket.Recv(H, 5);
   if Len <> 5 then
+  begin
+    DoTLSLog('Failed to read record header Len=' + IntToStr(Len));
     Exit;
+  end;
+
   if H.ContentType = CN_TLS_CONTENT_TYPE_ALERT then
   begin
     BodyLen := ntohs(H.BodyLength);
     SetLength(Buf, BodyLen);
     Len := ClientSocket.Recv(Buf[0], BodyLen);
     if (Len = SOCKET_ERROR) or (Len <> BodyLen) or (BodyLen < 2) then
+    begin
+      DoTLSLog('Alert received with invalid length BodyLen=' + IntToStr(BodyLen));
       Exit;
+    end;
     Exit;
   end
   else if H.ContentType <> CN_TLS_CONTENT_TYPE_HANDSHAKE then
+  begin
+    DoTLSLog('Record type is not Handshake Type=' + IntToStr(H.ContentType));
     Exit;
+  end;
 
   BodyLen := ntohs(H.BodyLength);
   if (BodyLen <= 0) or (BodyLen > 16384) then
+  begin
+    DoTLSLog('Invalid handshake body length Len=' + IntToStr(BodyLen));
     Exit;
+  end;
+
   SetLength(Buf, BodyLen);
   Len := ClientSocket.Recv(Buf[0], BodyLen);
   if Len = SOCKET_ERROR then
+  begin
+    DoTLSLog('Failed to receive handshake body');
     Exit;
+  end;
 
   if Len <> BodyLen then
   begin
@@ -460,12 +487,18 @@ begin
       Inc(Len, C);
     end;
     if Len <> BodyLen then
+    begin
+      DoTLSLog('Handshake body incomplete');
       Exit;
+    end;
   end;
 
   HS := Buf[0];
   if HS <> CN_TLS_HANDSHAKE_TYPE_CLIENT_HELLO then
+  begin
+    DoTLSLog('Expected ClientHello, got=' + IntToStr(HS));
     Exit;
+  end;
 
   SetLength(ClientRandom, 32);
   Move(Buf[6], ClientRandom[0], 32);
@@ -473,6 +506,9 @@ begin
   SelCipherLo := $A8;
   Found := False;
   HaveC02F := False;
+  HaveC02B := False;
+  HaveCCA8 := False;
+  HaveCCA9 := False;
   Off := 6 + 32;
 
   if BodyLen > Off then
@@ -492,12 +528,13 @@ begin
         CHi := Buf[Off + I];
         CLo := Buf[Off + I + 1];
         if (CHi = $CC) and (CLo = $A8) then
-        begin
-          SelCipherHi := CHi;
-          SelCipherLo := CLo;
-          Found := True;
-          Break;
-        end;
+          HaveCCA8 := True
+        else if (CHi = $CC) and (CLo = $A9) then
+          HaveCCA9 := True
+        else if (CHi = $C0) and (CLo = $2F) then
+          HaveC02F := True
+        else if (CHi = $C0) and (CLo = $2B) then
+          HaveC02B := True;
         if (CHi = $C0) and (CLo = $2F) then
           HaveC02F := True;
         Inc(I, 2);
@@ -521,32 +558,83 @@ begin
     end;
   end;
 
-  if not Found then
+  KeyFile := FServerKeyFile;
+  if KeyFile = '' then
+    KeyFile := ExtractFilePath(ParamStr(0)) + 'server_key.pem';
+  KeyIsRSA := False;
+  KeyIsECC := False;
+  Pri := TCnRSAPrivateKey.Create(True);
+  Pub := TCnRSAPublicKey.Create;
+  EccPrivKey := TCnEccPrivateKey.Create;
+  EccPubKey := TCnEccPublicKey.Create;
+  ServerCurve := ctSecp256r1;
+
+  try
+    if CnRSALoadKeysFromPem(KeyFile, Pri, Pub, ckhMd5, AnsiString(FServerKeyPassword)) then
+      KeyIsRSA := True
+    else
+    if CnEccLoadKeysFromPem(KeyFile, EccPrivKey, EccPubKey, ServerCurve, ckhMd5,
+      AnsiString(FServerKeyPassword)) then
+      KeyIsECC := True;
+  except
+  end;
+
+  if KeyIsECC then
   begin
-    if HaveC02F then
+    if HaveCCA9 then
+    begin SelCipherHi := $CC; SelCipherLo := $A9; end
+    else if HaveC02B then
+    begin SelCipherHi := $C0; SelCipherLo := $2B; end
+    else
+    begin
+      // 客户端不支持 ECDSA 套件，失败
+      DoTLSLog('Client does not support ECDSA cipher suites');
+      H.ContentType := CN_TLS_CONTENT_TYPE_ALERT;
+      H.MajorVersion := 3;
+      H.MinorVersion := 3;
+      H.BodyLength := htons(2);
+      if not SendExact(H, 5) then Exit;
+      Msg := nil; SetLength(Msg, 2);
+      Msg[0] := CN_TLS_ALERT_LEVEL_FATAL;
+      Msg[1] := CN_TLS_ALERT_DESC_HANDSHAKE_FAILURE;
+      if not SendExact(Msg[0], 2) then Exit;
+      Exit;
+    end;
+  end
+  else
+  begin
+    if HaveCCA8 then
+    begin
+      SelCipherHi := $CC;
+      SelCipherLo := $A8;
+    end
+    else if HaveC02F then
     begin
       SelCipherHi := $C0;
       SelCipherLo := $2F;
     end
     else
     begin
+      DoTLSLog('Client does not support RSA cipher suites');
       H.ContentType := CN_TLS_CONTENT_TYPE_ALERT;
       H.MajorVersion := 3;
       H.MinorVersion := 3;
       H.BodyLength := htons(2);
       if not SendExact(H, 5) then
         Exit;
+
       Msg := nil;
       SetLength(Msg, 2);
       Msg[0] := CN_TLS_ALERT_LEVEL_FATAL;
       Msg[1] := CN_TLS_ALERT_DESC_HANDSHAKE_FAILURE;
       if not SendExact(Msg[0], 2) then
         Exit;
+
       Exit;
     end;
   end;
 
-  UseChaCha := (SelCipherHi = $CC) and (SelCipherLo = $A8);
+  UseChaCha := (SelCipherHi = $CC) and ((SelCipherLo = $A8) or (SelCipherLo = $A9));
   if UseChaCha then
   begin
     KeyLen := 32;
@@ -589,6 +677,7 @@ begin
   Msg[36] := SelCipherLo;
   Msg[37] := 0;
   PWord(@Msg[38])^ := htons(Length(Exts));
+
   if Length(Exts) > 0 then
     Move(Exts[0], Msg[40], Length(Exts));
   HH.HandShakeType := CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO;
@@ -603,9 +692,15 @@ begin
   H.BodyLength := htons(Length(Total));
 
   if not SendExact(H, 5) then
+  begin
+    DoTLSLog('Failed to send ServerHello');
     Exit;
+  end;
   if (Length(Total) > 0) and (not SendExact(Total[0], Length(Total))) then
+  begin
+    DoTLSLog('Failed to send ServerHello payload');
     Exit;
+  end;
   AppendHS(CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO, Copy(Msg, 0, Length(Msg)));
   CertFile := Self.FServerCertFile;
   if CertFile = '' then
@@ -648,7 +743,10 @@ begin
       AppendHS(CN_TLS_HANDSHAKE_TYPE_CERTIFICATE, Copy(Msg, 0, Length(Msg)));
     end
     else
+    begin
+      DoTLSLog('Failed to load server certificate ' + CertFile);
       Exit;
+    end;
   finally
     Mem.Free;
   end;
@@ -657,71 +755,105 @@ begin
   EpPriv := TCnEccPrivateKey.Create;
   EpPub := TCnEccPublicKey.Create;
 
-  try
-    Ecc.GenerateKeys(EpPriv, EpPub);
-    CurveBytes[0] := 0;
-    CurveBytes[1] := $17;
-    PtLen := Byte(1 + 2 * Ecc.BytesCount);
-    SetLength(Pt, PtLen);
-    Pt[0] := $04;
-    EpPub.X.ToBinary(@Pt[1], Ecc.BytesCount);
-    EpPub.Y.ToBinary(@Pt[1 + Ecc.BytesCount], Ecc.BytesCount);
-    SetLength(Msg, 1 + 2 + 1 + PtLen);
-    Msg[0] := 3;
-    Msg[1] := CurveBytes[0];
-    Msg[2] := CurveBytes[1];
-    Msg[3] := PtLen;
-    if PtLen > 0 then
-      Move(Pt[0], Msg[4], PtLen);
+  Ecc.GenerateKeys(EpPriv, EpPub);
+  CurveBytes[0] := 0;
+  CurveBytes[1] := $17;
+  PtLen := Byte(1 + 2 * Ecc.BytesCount);
+  SetLength(Pt, PtLen);
+  Pt[0] := $04;
+  EpPub.X.ToBinary(@Pt[1], Ecc.BytesCount);
+  EpPub.Y.ToBinary(@Pt[1 + Ecc.BytesCount], Ecc.BytesCount);
+  SetLength(Msg, 1 + 2 + 1 + PtLen);
+  Msg[0] := 3;
+  Msg[1] := CurveBytes[0];
+  Msg[2] := CurveBytes[1];
+  Msg[3] := PtLen;
+  if PtLen > 0 then
+    Move(Pt[0], Msg[4], PtLen);
 
-    ToSign := nil;
-    ToSign := ConcatBytes(ToSign, ClientRandom);
-    ToSign := ConcatBytes(ToSign, ServerRandom);
-    ToSign := ConcatBytes(ToSign, Msg);
-    KeyFile := Self.FServerKeyFile;
-    if KeyFile = '' then
-      KeyFile := ExtractFilePath(ParamStr(0)) + 'server_key.pem';
-    Pri := TCnRSAPrivateKey.Create(True);
-    Pub := TCnRSAPublicKey.Create;
+  ToSign := nil;
+  ToSign := ConcatBytes(ToSign, ClientRandom);
+  ToSign := ConcatBytes(ToSign, ServerRandom);
+  ToSign := ConcatBytes(ToSign, Msg);
+
+  // 根据私钥类型进行签名与算法标识
+  if KeyIsRSA then
+  begin
+    Sig := CnRSASignBytes(ToSign, Pri, rsdtSHA256);
+    Alg[0] := 4; // sha256
+    Alg[1] := 1; // rsa
+    SL := Length(Sig);
+    SetLength(Msg, Length(Msg) + 2 + 2 + SL);
+    Msg[4 + PtLen] := Alg[0];
+    Msg[5 + PtLen] := Alg[1];
+    PWord(@Msg[6 + PtLen])^ := htons(SL);
+    if SL > 0 then
+      Move(Sig[0], Msg[8 + PtLen], SL);
+  end
+  else
+  begin
+    // ECDSA 签名（DER 序列 r,s）
+    Mem := TMemoryStream.Create;
     try
-      if CnRSALoadKeysFromPem(KeyFile, Pri, Pub, ckhMd5, AnsiString(Self.FServerKeyPassword)) then
-      begin
-        Sig := CnRSASignBytes(ToSign, Pri, rsdtSHA256);
-        Alg[0] := 4;
-        Alg[1] := 1;
-        SL := Length(Sig);
-        SetLength(Msg, Length(Msg) + 2 + 2 + SL);
-        Msg[4 + PtLen] := Alg[0];
-        Msg[5 + PtLen] := Alg[1];
-        PWord(@Msg[6 + PtLen])^ := htons(SL);
-        if SL > 0 then
-          Move(Sig[0], Msg[8 + PtLen], SL);
-        HH.HandShakeType := CN_TLS_HANDSHAKE_TYPE_SERVER_KEY_EXCHANGE_RESERVED;
-        HH.LengthHi := (Length(Msg) shr 16) and $FF;
-        HH.LengthLo := htons(Length(Msg) and $FFFF);
-        SetLength(Total, 4 + Length(Msg));
-        Move(HH, Total[0], 4);
-        Move(Msg[0], Total[4], Length(Msg));
-        H.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
-        H.MajorVersion := 3;
-        H.MinorVersion := 3;
-        H.BodyLength := htons(Length(Total));
-        if not SendExact(H, 5) then
-          Exit;
-        if not SendExact(Total[0], Length(Total)) then
-          Exit;
-        AppendHS(CN_TLS_HANDSHAKE_TYPE_SERVER_KEY_EXCHANGE_RESERVED, Copy(Msg, 0,
-          Length(Msg)));
-      end
-      else
-        Exit;
+      if Length(ToSign) > 0 then
+        Mem.Write(ToSign[0], Length(ToSign));
+      Mem.Position := 0;
+      // 输出到临时流，获取 DER 编码的 (r,s)
+      OutS := TMemoryStream.Create;
+      try
+        EccSign := TCnEcc.Create(ServerCurve);
+        try
+          if not CnEccSignStream(Mem, OutS, EccSign, EccPrivKey, esdtSHA256) then
+            Exit;
+          SetLength(Sig, OutS.Size);
+          if OutS.Size > 0 then
+          begin
+            OutS.Position := 0;
+            OutS.Read(Sig[0], OutS.Size);
+          end;
+        finally
+          EccSign.Free;
+        end;
+      finally
+        OutS.Free;
+      end;
     finally
-      Pri.Free;
-      Pub.Free;
+      Mem.Free;
     end;
-  finally
-
+    // 写入签名与算法
+    Alg[0] := 4; // sha256
+    Alg[1] := 3; // ecdsa
+    SL := Length(Sig);
+    SetLength(Msg, Length(Msg) + 2 + 2 + SL);
+    Msg[4 + PtLen] := Alg[0];
+    Msg[5 + PtLen] := Alg[1];
+    PWord(@Msg[6 + PtLen])^ := htons(SL);
+    if SL > 0 then
+      Move(Sig[0], Msg[8 + PtLen], SL);
   end;
+
+  HH.HandShakeType := CN_TLS_HANDSHAKE_TYPE_SERVER_KEY_EXCHANGE_RESERVED;
+  HH.LengthHi := (Length(Msg) shr 16) and $FF;
+  HH.LengthLo := htons(Length(Msg) and $FFFF);
+  SetLength(Total, 4 + Length(Msg));
+  Move(HH, Total[0], 4);
+  Move(Msg[0], Total[4], Length(Msg));
+  H.ContentType := CN_TLS_CONTENT_TYPE_HANDSHAKE;
+  H.MajorVersion := 3;
+  H.MinorVersion := 3;
+  H.BodyLength := htons(Length(Total));
+
+  if not SendExact(H, 5) then
+  begin
+    DoTLSLog('Failed to send ServerKeyExchange');
+    Exit;
+  end;
+  if not SendExact(Total[0], Length(Total)) then
+  begin
+    DoTLSLog('Failed to send ServerKeyExchange payload');
+    Exit;
+  end;
+  AppendHS(CN_TLS_HANDSHAKE_TYPE_SERVER_KEY_EXCHANGE_RESERVED, Copy(Msg, 0, Length(Msg)));
 
   SetLength(Msg, 0);
   HH.HandShakeType := CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE_RESERVED;
@@ -733,13 +865,23 @@ begin
   H.MajorVersion := 3;
   H.MinorVersion := 3;
   H.BodyLength := htons(Length(Total));
+
   if not SendExact(H, 5) then
+  begin
+    DoTLSLog('Failed to send ServerHelloDone');
     Exit;
+  end;
   if not SendExact(Total[0], Length(Total)) then
+  begin
+    DoTLSLog('Failed to send ServerHelloDone payload');
     Exit;
+  end;
   AppendHS(CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE_RESERVED, nil);
   if not RecvExact(5, Buf) then
+  begin
+    DoTLSLog('Failed waiting for ChangeCipherSpec');
     Exit;
+  end;
   Move(Buf[0], H, 5);
   if H.ContentType = CN_TLS_CONTENT_TYPE_ALERT then
   begin
@@ -750,6 +892,7 @@ begin
   end
   else if H.ContentType <> CN_TLS_CONTENT_TYPE_HANDSHAKE then
     Exit;
+
   BodyLen := ntohs(H.BodyLength);
   if not RecvExact(BodyLen, Buf) then
     Exit;
@@ -765,6 +908,7 @@ begin
     Exit;
   if Buf[5] <> $04 then
     Exit;
+
   CliPub := TCnEccPublicKey.Create;
   try
     CliPub.X := TCnBigNumber.FromBinary(@Buf[6], Ecc.BytesCount);
@@ -801,16 +945,27 @@ begin
   begin
     BodyLen := ntohs(H.BodyLength);
     if not RecvExact(BodyLen, Buf) or (BodyLen < 2) then
+    begin
+      DoTLSLog('Alert received during CCS stage');
       Exit;
+    end;
     Exit;
   end
   else if H.ContentType <> CN_TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC then
+  begin
+    DoTLSLog('Expected ChangeCipherSpec, got type=' + IntToStr(H.ContentType));
     Exit;
+  end;
+
   BodyLen := ntohs(H.BodyLength);
   if not RecvExact(BodyLen, Buf) then
+  begin
+    DoTLSLog('Failed to receive Finished record');
     Exit;
+  end;
   if not RecvExact(5, Buf) then
     Exit;
+
   Move(Buf[0], H, 5);
   if H.ContentType = CN_TLS_CONTENT_TYPE_ALERT then
   begin
@@ -821,9 +976,11 @@ begin
   end
   else if H.ContentType <> CN_TLS_CONTENT_TYPE_HANDSHAKE then
     Exit;
+
   BodyLen := ntohs(H.BodyLength);
   if not RecvExact(BodyLen, Buf) then
     Exit;
+
   if UseChaCha then
   begin
     if BodyLen < SizeOf(TCnGCM128Tag) then
@@ -851,14 +1008,21 @@ begin
       Tmp), En, AAD, Tag);
   end;
   if Length(Plain) < 16 then
+  begin
+    DoTLSLog('Failed to decrypt client Finished');
     Exit;
+  end;
 
   HSHash := TLSEccDigestBytes(HandshakeLog, esdtSHA256);
   EV := TLSPseudoRandomFunc(Master, 'client finished', HSHash, esdtSHA256, 12);
   SetLength(Tmp, 12);
   Move(Plain[4], Tmp[0], 12);
   if not CompareMem(@Tmp[0], @EV[0], 12) then
+  begin
+    DoTLSLog('Client Finished verify mismatch');
     Exit;
+  end;
+
   AppendHS(CN_TLS_HANDSHAKE_TYPE_FINISHED, Tmp);
   ClientSeq := ClientSeq + 1;
   SetLength(Msg, 1);
@@ -868,9 +1032,15 @@ begin
   H.MinorVersion := 3;
   H.BodyLength := htons(1);
   if not SendExact(H, 5) then
+  begin
+    DoTLSLog('Failed to send ChangeCipherSpec');
     Exit;
+  end;
   if not SendExact(Msg[0], 1) then
+  begin
+    DoTLSLog('Failed to send ChangeCipherSpec payload');
     Exit;
+  end;
 
   HSHash := TLSEccDigestBytes(HandshakeLog, esdtSHA256);
   SV := TLSPseudoRandomFunc(Master, 'server finished', HSHash, esdtSHA256, 12);
@@ -890,11 +1060,20 @@ begin
     H.MinorVersion := 3;
     H.BodyLength := htons(Length(En) + SizeOf(TCnGCM128Tag));
     if not SendExact(H, 5) then
+    begin
+      DoTLSLog('Failed to send ServerFinished');
       Exit;
+    end;
     if (Length(En) > 0) and (not SendExact(En[0], Length(En))) then
+    begin
+      DoTLSLog('Failed to send ServerFinished payload');
       Exit;
+    end;
     if not SendExact(Tag[0], SizeOf(TCnGCM128Tag)) then
+    begin
+      DoTLSLog('Failed to send ServerFinished tag');
       Exit;
+    end;
   end
   else
   begin
@@ -919,13 +1098,25 @@ begin
     H.MinorVersion := 3;
     H.BodyLength := htons(8 + Length(En) + SizeOf(TCnGCM128Tag));
     if not SendExact(H, 5) then
+    begin
+      DoTLSLog('Failed to send ServerFinished');
       Exit;
+    end;
     if not SendExact(Tmp[0], 8) then
+    begin
+      DoTLSLog('Failed to send ServerFinished nonce');
       Exit;
+    end;
     if (Length(En) > 0) and (not SendExact(En[0], Length(En))) then
+    begin
+      DoTLSLog('Failed to send ServerFinished payload');
       Exit;
+    end;
     if not SendExact(Tag[0], SizeOf(TCnGCM128Tag)) then
+    begin
+      DoTLSLog('Failed to send ServerFinished tag');
       Exit;
+    end;
   end;
   ServerSeq := ServerSeq + 1;
   Result := True;
