@@ -1602,16 +1602,11 @@ begin
       if kuEncipherOnly in StandardExt.KeyUsage then
         KUByte := KUByte or $01; // bit7
 
-      // 仅处理前8位；若未来支持 decipherOnly(bit8)，在此扩展第二字节
-      // 计算未使用位数：最后一个字节的低位连续0的数量
+      if KUByte = 0 then
+        Exit;
       UnusedBits := 0;
-      if KUByte <> 0 then
-      begin
-        while ((KUByte and (1 shl UnusedBits)) = 0) and (UnusedBits < 7) do
-          Inc(UnusedBits);
-      end
-      else
-        UnusedBits := 0;
+      while ((KUByte and (1 shl UnusedBits)) = 0) and (UnusedBits < 7) do
+        Inc(UnusedBits);
 
       // 写 BIT STRING TLV: Tag(0x03), Len(2), Content: [UnusedBits][KUByte]
       B := nil;
