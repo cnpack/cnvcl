@@ -607,7 +607,7 @@ var
       Resource.RClass := UInt16NetworkToHost(H^.RClass);
       Resource.TTL := UInt32NetworkToHost(H^.TTL);
       Resource.RDLength := UInt16NetworkToHost(H^.RDLength);
-      if Resource.RDLength = SizeOf(Cardinal) then
+      if (Resource.RType = CN_DNS_TYPE_A) and (Resource.RDLength = SizeOf(Cardinal)) then
       begin
         // 4 字节的应答数据是 IP 地址
 {$IFDEF MSWINDOWS}
@@ -615,6 +615,19 @@ var
 {$ELSE}
         Resource.IP := UInt32NetworkToHost((PCardinal(@H^.RData[0]))^);
 {$ENDIF}
+      end
+      else if Resource.RType = CN_DNS_TYPE_SRV then
+      begin
+        Resource.IP := UInt16NetworkToHost(PWORD(PAnsiChar(@H^.RData[0]) + 4)^);
+        S := '';
+        ParseIndexedString(S, Response, PAnsiChar(@H^.RData[0]) + 6, Resource.RDLength - 6);
+        Resource.RDString := S;
+      end
+      else if Resource.RType = CN_DNS_TYPE_TXT then
+      begin
+        SetLength(S, Resource.RDLength);
+        Move(H^.RData[0], S[1], Resource.RDLength);
+        Resource.RDString := S;
       end
       else
       begin
