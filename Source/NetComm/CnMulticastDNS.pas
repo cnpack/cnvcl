@@ -435,10 +435,10 @@ end;
 
 procedure TCnMulticastDNS.GetComponentInfo(var AName, Author, Email, Comment: string);
 begin
-  AName := 'TCnMulticastDNS';
+  AName := SCnMulticastDNSName;
   Author := SCnPack_LiuXiao;
   Email := SCnPack_LiuXiaoEmail;
-  Comment := 'Multicast DNS';
+  Comment := SCnMulticastDNSComment;
 end;
 
 function IsLocalAddress(List: TStrings; const IP: string): Boolean;

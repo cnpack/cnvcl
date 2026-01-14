@@ -217,15 +217,11 @@ function TLSPseudoRandomFunc(Secret: TBytes; const PLabel: AnsiString; Seed: TBy
 implementation
 
 resourcestring
-  SCnTLSClientName = 'CnTLSClient';
-  SCnTLSClientComment = 'TLS 1.2 Client Component';
-  SCnTLSServerName = 'CnTLSServer';
-  SCnTLSServerComment = 'TLS 1.2 Server Component';
-  SHandshakeFailed = 'TLS Handshake failed: %s';
-  SConnectionFailed = 'TLS Connection failed';
-  SEncryptionFailed = 'TLS Encryption failed';
-  SDecryptionFailed = 'TLS Decryption failed';
-  SInvalidCipherSuite = 'Invalid cipher suite: 0x%.4x';
+  SHandshakeFailed = 'TLS Handshake Failed: %s';
+  SConnectionFailed = 'TLS Connection Failed';
+  SEncryptionFailed = 'TLS Encryption Failed';
+  SDecryptionFailed = 'TLS Decryption Failed';
+  SInvalidCipherSuite = 'Invalid Cipher Suite: 0x%.4x';
 
 function TLSUInt64ToBE8(Value: TUInt64): TBytes;
 var

@@ -23,7 +23,7 @@ unit CnNetConsts;
 ================================================================================
 * 软件名称：网络通讯组件包
 * 单元名称：资源字符串定义单元
-* 单元作者：CnPack开发组
+* 单元作者：CnPack 开发组
 * 备    注：该单元定义了网络通讯类用到的资源字符串
 * 开发平台：PWin98SE + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
@@ -125,6 +125,18 @@ resourcestring
   // CnUDP
   SCnUDPName = 'CnUDP Component';
   SCnUDPComment = 'A Simple UDP Component';
+
+  // CnTLSClient
+  SCnTLSClientName = 'CnTLSClient Component';
+  SCnTLSClientComment = 'A Simple TLSClient Component';
+
+  // CnTLSServer
+  SCnTLSServerName = 'CnTLSServer Component';
+  SCnTLSServerComment = 'A Simple Blocking Multi-Threading TLSServer Component';
+
+  // CnMulticastDNS
+  SCnMulticastDNSName = 'CnMulticastDNS Component';
+  SCnMulticastDNSComment = 'A MulticastDNS Broadcast and Recovery Component';
 
 implementation
 
