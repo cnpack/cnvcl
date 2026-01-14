@@ -1,0 +1,123 @@
+object FormQRTest: TFormQRTest
+  Left = 296
+  Height = 468
+  Top = 225
+  Width = 747
+  Caption = 'QR Test'
+  ClientHeight = 468
+  ClientWidth = 747
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  LCLVersion = '4.0.0.4'
+  OnCreate = FormCreate
+  object lblText: TLabel
+    Left = 440
+    Height = 13
+    Top = 20
+    Width = 26
+    Caption = 'Text:'
+  end
+  object lblIconSize: TLabel
+    Left = 440
+    Height = 13
+    Top = 52
+    Width = 47
+    Caption = 'Icon Size:'
+  end
+  object lblIconMargin: TLabel
+    Left = 440
+    Height = 13
+    Top = 84
+    Width = 60
+    Caption = 'Icon Margin:'
+  end
+  object lblBackColor: TLabel
+    Left = 440
+    Height = 13
+    Top = 116
+    Width = 60
+    Caption = 'Background:'
+  end
+  object shpBackColor: TShape
+    Left = 512
+    Height = 22
+    Top = 112
+    Width = 25
+    OnMouseDown = shpBackColorMouseDown
+  end
+  object lblForeColor: TLabel
+    Left = 440
+    Height = 13
+    Top = 148
+    Width = 47
+    Caption = 'QR Color:'
+  end
+  object shpForeColor: TShape
+    Left = 512
+    Height = 22
+    Top = 144
+    Width = 25
+    Brush.Color = clBlack
+    OnMouseDown = shpForeColorMouseDown
+  end
+  object btnShowQRImage: TButton
+    Left = 560
+    Height = 57
+    Top = 112
+    Width = 161
+    Caption = 'Show QR Code Image'
+    TabOrder = 0
+    OnClick = btnShowQRImageClick
+  end
+  object edtQRText: TEdit
+    Left = 512
+    Height = 21
+    Top = 16
+    Width = 209
+    TabOrder = 1
+    Text = 'CnPack Sample QR Code.'
+  end
+  object edtIconSize: TEdit
+    Left = 512
+    Height = 21
+    Top = 48
+    Width = 209
+    TabOrder = 2
+    Text = '32'
+  end
+  object edtIconMargin: TEdit
+    Left = 512
+    Height = 21
+    Top = 80
+    Width = 209
+    TabOrder = 3
+    Text = '2'
+  end
+  object dlgColor: TColorDialog
+    Color = clBlack
+    CustomColors.Strings = (
+      'ColorA=000000'
+      'ColorB=000080'
+      'ColorC=008000'
+      'ColorD=008080'
+      'ColorE=800000'
+      'ColorF=800080'
+      'ColorG=808000'
+      'ColorH=808080'
+      'ColorI=C0C0C0'
+      'ColorJ=0000FF'
+      'ColorK=00FF00'
+      'ColorL=00FFFF'
+      'ColorM=FF0000'
+      'ColorN=FF00FF'
+      'ColorO=FFFF00'
+      'ColorP=FFFFFF'
+      'ColorQ=C0DCC0'
+      'ColorR=F0CAA6'
+      'ColorS=F0FBFF'
+      'ColorT=A4A0A0'
+    )
+  end
+end

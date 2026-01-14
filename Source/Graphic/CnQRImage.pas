@@ -38,7 +38,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Graphics, Controls, ExtCtrls, CnQRCode;
+  SysUtils, Classes, {$IFDEF FPC} LCLIntf, LCLType, {$ENDIF} Graphics, Controls,
+  ExtCtrls, CnQRCode;
 
 type
   TCnQRCodeImage = class(TGraphicControl)
