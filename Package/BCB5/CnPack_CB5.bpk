@@ -91,6 +91,7 @@
       ..\..\Source\Crypto\CnPemUtils.obj 
       ..\..\Source\Crypto\CnPolynomial.obj 
       ..\..\Source\Crypto\CnPrime.obj 
+      ..\..\Source\Crypto\CnQRCode.obj 
       ..\..\Source\Crypto\CnRandom.obj 
       ..\..\Source\Crypto\CnRC4.obj 
       ..\..\Source\Crypto\CnRSA.obj 

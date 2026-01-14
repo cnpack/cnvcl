@@ -454,9 +454,11 @@ var
 {$IFDEF COMPILER6_UP}
   Vars: TStringList;
   I: Integer;
-{$IFDEF DELPHI2011_UP}
+  {$IFDEF DELPHI2011_UP}
   BC: IOTAProjectOptionsConfigurations;
-{$ENDIF}
+  {$ENDIF}
+{$ELSE}
+  Dummy: Integer;
 {$ENDIF}
 {$ENDIF}
 begin

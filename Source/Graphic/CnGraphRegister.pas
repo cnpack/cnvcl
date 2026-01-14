@@ -77,7 +77,7 @@ begin
 {$ENDIF}
   RegisterComponents(SCnGraphicPalette, [TCnWaterImage]);
   RegisterComponents(SCnGraphicPalette, [TCnHexEditor]);
-  RegisterComponents(SCnGraphicPalette, [TCnQRImage]);
+  RegisterComponents(SCnGraphicPalette, [TCnQRCodeImage]);
 {$IFNDEF FPC}
   RegisterComponents(SCnGraphicPalette, [TCnMonthCalendar]);
   RegisterComponents(SCnGraphicPalette, [TCnColorGrid]);
