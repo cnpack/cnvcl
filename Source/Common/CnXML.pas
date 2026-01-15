@@ -2526,12 +2526,77 @@ begin
   end;
 end;
 
+function Str2Time(S: string): TDateTime;
+const
+  TIME_SEP = ':';
+var
+  H: Word;
+  M: Word;
+  SC: Word;
+  MS: Word;
+  P: Integer;
+begin
+  S := Trim(S);
+  if S = '' then
+    Result := 0
+  else
+  begin
+    P := Pos(TIME_SEP, S);
+    H := StrToInt(Copy(S, 1, P - 1));
+    Delete(S, 1, P);
+    P := Pos(TIME_SEP, S);
+    M := StrToInt(Copy(S, 1, P - 1));
+    Delete(S, 1, P);
+    P := Pos('.', S);
+    if P > 0 then
+    begin
+      MS := StrToInt(Copy(S, P + 1, Length(S) - P));
+      Delete(S, P, Length(S) - P + 1);
+    end
+    else
+      MS := 0;
+
+    SC := StrToInt(S);
+    Result := EncodeTime(H, M, SC, MS);
+  end;
+end;
+
+function ISODateTime2DateTime (const IsoDT: String): TDateTime;
+const
+  DATESEP = '-';
+var
+  Day: Word;
+  Month: Word;
+  Year: Word;
+  P: Integer;
+  sDate: string;
+  sTime: string;
+begin
+  P := Pos('T', IsoDT);
+  if (P = 0) and (Pos('-', IsoDT) > 0) then
+    P := Length(IsoDT) + 1;
+
+  sDate := Trim(Copy(IsoDT, 1, P - 1));
+  sTime := Trim(Copy(IsoDT, P + 1, Length(IsoDT) - P));
+  Result := 0;
+
+  if sDate <> '' then
+  begin
+    P := Pos (DATESEP, sDate);
+    Year :=  StrToInt(Copy(sDate, 1, P - 1));
+    Delete(sDate, 1, P);
+    P := Pos(DATESEP, sDate);
+    Month := StrToInt(Copy(sDate, 1, P - 1));
+    Day := StrToInt(Copy(sDate, P + 1, Length(sDate) - P));
+    Result := EncodeDate(Year, Month, Day);
+  end;
+  Result := Result + Frac(Str2Time(sTime));
+end;
+
 function CnXMLStrToDateTime(const S: string; var Value: TDateTime): Boolean;
 begin
   try
-    // 尝试解析 ISO 格式的日期时间字符串
-    // 格式: yyyy-mm-ddThh:nn:ss 或 yyyy-mm-dd hh:nn:ss
-    Value := StrToDateTime(StringReplace(S, 'T', ' ', []));
+    Value := ISODateTime2DateTime(S);
     Result := True;
   except
     Result := False;
@@ -2539,14 +2604,11 @@ begin
 end;
 
 function CnXMLStrToInt(const S: string; var Value: Integer): Boolean;
+var
+  E: Integer;
 begin
-  try
-    Value := StrToInt(S);
-    Result := True;
-  except
-    on EConvertError do
-      Result := False;
-  end;
+  Val(S, Value, E);
+  Result := E = 0;
 end;
 
 function CnXMLStrToIntDef(const S: string; Default: Integer): Integer;
@@ -2614,7 +2676,7 @@ begin
   else if Frac(Value) = 0 then
     Result := FormatDateTime('yyyy-mm-dd', Value)
   else
-    Result := FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Value);
+    Result := FormatDateTime('yyyy-mm-dd"T"hh:nn:ss.zzz', Value);
 end;
 
 //==============================================================================
