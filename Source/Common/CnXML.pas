@@ -1660,11 +1660,37 @@ function TCnXMLNode.CloneNode(Deep: Boolean): TCnXMLNode;
 var
   I: Integer;
   ChildClone: TCnXMLNode;
+  SrcAttr: TCnXMLAttribute;
 begin
-  // Create new node with same type
-  Result := TCnXMLNode.Create(FOwnerDocument, FNodeType);
-  Result.NodeName := FNodeName;
-  Result.NodeValue := FNodeValue;
+  // Create new node with correct type
+  if Self is TCnXMLDocument then
+  begin
+    // For document nodes, create TCnXMLDocument
+    Result := TCnXMLDocument.Create;
+    TCnXMLDocument(Result).Encoding := TCnXMLDocument(Self).Encoding;
+    TCnXMLDocument(Result).Version := TCnXMLDocument(Self).Version;
+    TCnXMLDocument(Result).Standalone := TCnXMLDocument(Self).Standalone;
+  end
+  else if Self is TCnXMLElement then
+  begin
+    // For element nodes, create TCnXMLElement to ensure FAttributes is initialized
+    Result := TCnXMLElement.Create(FOwnerDocument, FNodeName);
+
+    // Clone attributes
+    for I := 0 to TCnXMLElement(Self).AttributeCount - 1 do
+    begin
+      SrcAttr := TCnXMLElement(Self).GetAttributeNode(TCnXMLElement(Self).AttributeNames[I]);
+      if Assigned(SrcAttr) then
+        TCnXMLElement(Result).SetAttribute(SrcAttr.Name, SrcAttr.Value);
+    end;
+  end
+  else
+  begin
+    // For other node types, create base TCnXMLNode
+    Result := TCnXMLNode.Create(FOwnerDocument, FNodeType);
+    Result.NodeName := FNodeName;
+    Result.NodeValue := FNodeValue;
+  end;
 
   // Clone child nodes if deep copy
   if Deep then
