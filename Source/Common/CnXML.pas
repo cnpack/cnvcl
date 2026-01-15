@@ -1984,14 +1984,17 @@ end;
 
 procedure TCnXMLDocument.LoadFromStream(Stream: TStream);
 var
-  StringStream: TStringStream;
   XMLString: string;
+{$IFDEF UNICODE}
+  StringStream: TStringStream;
+{$ELSE}
+  Bytes: TBytes;
+  UTF8Str: UTF8String;
+  I: Integer;
+{$ENDIF}
 begin
 {$IFDEF UNICODE}
   StringStream := TStringStream.Create('', TEncoding.UTF8);
-{$ELSE}
-  StringStream := TStringStream.Create('');
-{$ENDIF}
   try
     StringStream.CopyFrom(Stream, 0);
     XMLString := StringStream.DataString;
@@ -1999,6 +2002,19 @@ begin
   finally
     StringStream.Free;
   end;
+{$ELSE}
+  // 非 Unicode Delphi：从 UTF-8 转换为 AnsiString
+  SetLength(Bytes, Stream.Size);
+  Stream.Position := 0;
+  Stream.Read(Bytes[0], Stream.Size);
+
+  SetLength(UTF8Str, Length(Bytes));
+  for I := 0 to Length(Bytes) - 1 do
+    UTF8Str[I + 1] := Chr(Bytes[I]);
+
+  XMLString := UTF8Decode(UTF8Str);
+  LoadFromString(XMLString);
+{$ENDIF}
 end;
 
 procedure TCnXMLDocument.LoadFromFile(const FileName: string);
@@ -2171,19 +2187,30 @@ end;
 procedure TCnXMLDocument.SaveToStream(Stream: TStream; Indent: Boolean);
 var
   XMLString: string;
+{$IFDEF UNICODE}
   StringStream: TStringStream;
+{$ELSE}
+  UTF8Str: UTF8String;
+  Bytes: TBytes;
+  I: Integer;
+{$ENDIF}
 begin
   XMLString := SaveToString(Indent);
 {$IFDEF UNICODE}
   StringStream := TStringStream.Create(XMLString, TEncoding.UTF8);
-{$ELSE}
-  StringStream := TStringStream.Create(XMLString);
-{$ENDIF}
   try
     Stream.CopyFrom(StringStream, 0);
   finally
     StringStream.Free;
   end;
+{$ELSE}
+  // 非 Unicode Delphi：将 AnsiString 转换为 UTF-8
+  UTF8Str := UTF8Encode(XMLString);
+  SetLength(Bytes, Length(UTF8Str));
+  for I := 1 to Length(UTF8Str) do
+    Bytes[I - 1] := Byte(UTF8Str[I]);
+  Stream.Write(Bytes[0], Length(Bytes));
+{$ENDIF}
 end;
 
 procedure TCnXMLDocument.SaveToFile(const FileName: string; Indent: Boolean);
