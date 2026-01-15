@@ -3079,22 +3079,37 @@ begin
 
   // For compatibility, find node by class name
   CName := Obj.ClassName;
-  NodeList := FRootNode.GetElementsByTagName(CName);
-  try
-    if NodeList.Count > 0 then
-    begin
-      ObjNode := TCnXMLElement(NodeList[0]);
 
-      // Uses node name as class name, no ClassType attribute
-      if Obj is TCollection then
-        ReadCollection(TCollection(Obj), ObjNode)
-      else
-        ReadProperties(Obj, ObjNode);
+  // First check if FRootNode itself matches the class name
+  if SameText(FRootNode.TagName, CName) then
+  begin
+    // FRootNode is the target node
+    if Obj is TCollection then
+      ReadCollection(TCollection(Obj), FRootNode)
+    else
+      ReadProperties(Obj, FRootNode);
+    Result := True;
+  end
+  else
+  begin
+    // FRootNode is not the target, search in its children
+    NodeList := FRootNode.GetElementsByTagName(CName);
+    try
+      if NodeList.Count > 0 then
+      begin
+        ObjNode := TCnXMLElement(NodeList[0]);
 
-      Result := True;
+        // Uses node name as class name, no ClassType attribute
+        if Obj is TCollection then
+          ReadCollection(TCollection(Obj), ObjNode)
+        else
+          ReadProperties(Obj, ObjNode);
+
+        Result := True;
+      end;
+    finally
+      NodeList.Free;
     end;
-  finally
-    NodeList.Free;
   end;
 end;
 
