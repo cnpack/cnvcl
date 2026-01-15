@@ -159,7 +159,7 @@ resourcestring
   SCN_XML_HIERARCHY = 'XML Parsing Error: hierarchy error';
   SCN_XML_NOT_FOUND = 'XML Parsing Error: node not found';
   SCN_XML_INVALID_OPERATION = 'XML Parsing Error: invalid operation';
-  SCN_XML_ENCODING = 'XML encoding error';
+  SCN_XML_ENCODING = 'XML Encoding Error';
   SCN_XML_INVALID_ENCODING = 'XML Parsing Error: invalid encoding';
 
 type
@@ -536,7 +536,7 @@ type
     
     procedure NextToken;  // Get next token
     procedure Expect(TokenType: TCnXMLTokenType);  // Expect specific token type
-    procedure RaiseError(const Msg: string);  // Raise Parsing Error
+    procedure RaiseError(const Msg: string);  // Raise parsing error
     procedure ParseXMLDecl;  // Parse XML declaration
     procedure ParseElement(ParentNode: TCnXMLNode);  // Parse element
     procedure ParseContent(ParentNode: TCnXMLNode);  // Parse content
@@ -2227,6 +2227,10 @@ begin
     // Parse optional XML declaration
     ParseXMLDecl;
     
+    // Skip comments and other non-element tokens before root element
+    while FCurrentToken.TokenType in [xttComment, xttPI] do
+      NextToken;
+
     // Parse root element
     if FCurrentToken.TokenType in [xttStartTag, xttEmptyTag] then
     begin
