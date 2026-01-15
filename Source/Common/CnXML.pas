@@ -1320,13 +1320,20 @@ begin
     Exit;
   end;
   
-  // For element nodes, concatenate all text child nodes
+  // For CDATA nodes, return node value directly
+  if FNodeType = xntCData then
+  begin
+    Result := FNodeValue;
+    Exit;
+  end;
+
+  // For element nodes, concatenate all text and CDATA child nodes
   if FNodeType = xntElement then
   begin
     for I := 0 to ChildCount - 1 do
     begin
       Child := Children[I];
-      if Child.NodeType = xntText then
+      if (Child.NodeType = xntText) or (Child.NodeType = xntCData) then
         Result := Result + Child.NodeValue;
     end;
   end;
