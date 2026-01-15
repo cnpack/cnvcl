@@ -142,6 +142,9 @@ const
   CN_XML_ENCODING_UTF16LE = 3;
   CN_XML_ENCODING_UTF16BE = 4;
 
+  // Collection serialization constants
+  CN_XML_COLLECTION_ITEM_NODE = 'o';     // Compatible format
+
 //==============================================================================
 // String Constants
 //==============================================================================
@@ -2768,7 +2771,8 @@ begin
   for I := 0 to Collection.Count - 1 do
   begin
     Item := Collection.Items[I];
-    ItemNode := FDocument.CreateElement('Item');
+    // Use 'o' node name for compatibility
+    ItemNode := FDocument.CreateElement(CN_XML_COLLECTION_ITEM_NODE);
     Node.AppendChild(ItemNode);
 
     SetClassType(Item, ItemNode);
@@ -2989,7 +2993,10 @@ begin
   for I := 0 to Node.ChildCount - 1 do
   begin
     ItemNode := Node.Children[I];
-    if (ItemNode.NodeType = xntElement) and (ItemNode.NodeName = 'Item') then
+    // Support both 'o' and 'Item' for backward compatibility
+    if (ItemNode.NodeType = xntElement) and
+       ((ItemNode.NodeName = CN_XML_COLLECTION_ITEM_NODE) or
+        (ItemNode.NodeName = 'Item')) then
     begin
       ClassName := TCnXMLElement(ItemNode).GetAttribute('ClassType');
 
