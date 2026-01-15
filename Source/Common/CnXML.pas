@@ -717,6 +717,27 @@ begin
   FPosition := 0;
   FLine := 1;
   FColumn := 0;
+
+  // Skip BOM if present
+{$IFDEF UNICODE}
+  // In Unicode Delphi, string is UnicodeString (UTF-16)
+  // Check for UTF-16 BOM (FEFF) or UTF-8 BOM that wasn't stripped
+  if (FLength >= 1) and (FSource[1] = #$FEFF) then
+  begin
+    FPosition := 1;  // Skip UTF-16 BOM
+  end;
+{$ELSE}
+  // In non-Unicode Delphi/FPC, string is AnsiString
+  // Check for UTF-8 BOM (EF BB BF)
+  if (FLength >= 3) and
+     (FSource[1] = #$EF) and
+     (FSource[2] = #$BB) and
+     (FSource[3] = #$BF) then
+  begin
+    FPosition := 3;  // Skip UTF-8 BOM
+  end;
+{$ENDIF}
+
   NextChar;  // Initialize current character
 end;
 
@@ -1173,7 +1194,16 @@ begin
       while (FCurrentChar <> #0) and (FCurrentChar <> '>') and (FCurrentChar <> '/') do
       begin
         AttrName := ReadName;
-        if AttrName = '' then Break;
+        if AttrName = '' then
+        begin
+          // If ReadName returns empty, skip whitespace and try again
+          // This handles cases where there are extra whitespace characters
+          SkipWhitespace;
+          if (FCurrentChar = #0) or (FCurrentChar = '>') or (FCurrentChar = '/') then
+            Break;
+          // If still not at end, something is wrong, break anyway
+          Break;
+        end;
         
         SkipWhitespace;
         if FCurrentChar = '=' then
