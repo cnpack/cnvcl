@@ -604,9 +604,11 @@ type
     FRootNode: TCnXMLElement;
     FEncoding: string;
     FOwnsDocument: Boolean;
+    FUseDataNode: Boolean;
     procedure WriteProperties(const Obj: TPersistent; Node: TCnXMLElement);
     procedure WriteCollection(const Collection: TCollection; Node: TCnXMLElement);
     procedure SetClassType(const Obj: TPersistent; Node: TCnXMLElement);
+    procedure SetUseDataNode(const Value: Boolean);
   protected
     function GetXMLString: string;
     procedure SetXMLString(const Value: string);
@@ -639,6 +641,8 @@ type
     {* XML encoding}
     property XMLString: string read GetXMLString write SetXMLString;
     {* XML string}
+    property UseDataNode: Boolean read FUseDataNode write SetUseDataNode default True;
+    {* Whether to use <data> wrapper node (default: True for compatibility)}
   end;
 
   TCnXMLReader = class(TComponent)
@@ -2695,6 +2699,7 @@ begin
   FRootNode := nil;
   FEncoding := 'UTF-8';
   FOwnsDocument := True;
+  FUseDataNode := True;  // 默认使用 <data> 节点以保持兼容性
   InitDocument;
 end;
 
@@ -2703,6 +2708,15 @@ begin
   if FOwnsDocument and (FDocument <> nil) then
     FDocument.Free;
   inherited;
+end;
+
+procedure TCnXMLWriter.SetUseDataNode(const Value: Boolean);
+begin
+  if FUseDataNode <> Value then
+  begin
+    FUseDataNode := Value;
+    InitDocument;  // 重新初始化文档以匹配新的设置
+  end;
 end;
 
 procedure TCnXMLWriter.InitDocument;
@@ -2715,10 +2729,18 @@ begin
   FDocument.Encoding := FEncoding;
   FDocument.Version := '1.0';
 
-  // Create root node - use 'data' for compatibility
-  FRootNode := FDocument.CreateElement('data');
-  FRootNode.SetAttribute('PropFormat', 'node');
-  FDocument.AppendChild(FRootNode);
+  if FUseDataNode then
+  begin
+    // Create root node - use 'data' for compatibility
+    FRootNode := FDocument.CreateElement('data');
+    FRootNode.SetAttribute('PropFormat', 'node');
+    FDocument.AppendChild(FRootNode);
+  end
+  else
+  begin
+    // No wrapper node - object node will be added directly to document
+    FRootNode := nil;
+  end;
 end;
 
 function TCnXMLWriter.GetXMLString: string;
@@ -2873,12 +2895,20 @@ begin
     CName := Obj.ClassName;
 
   // Find or create object node
-  NodeList := FRootNode.GetElementsByTagName(CName);
-  try
-    if NodeList.Count > 0 then
-      ObjNode := TCnXMLElement(NodeList[0])
-    else
-      ObjNode := nil;
+  if FUseDataNode then
+  begin
+    if FRootNode = nil then
+      raise ECnXMLException.Create('Root node not initialized', CN_XML_ERR_INVALID_OPERATION, 0, 0);
+
+    NodeList := FRootNode.GetElementsByTagName(CName);
+    try
+      if NodeList.Count > 0 then
+        ObjNode := TCnXMLElement(NodeList[0])
+      else
+        ObjNode := nil;
+    finally
+      NodeList.Free;
+    end;
 
     if ObjNode = nil then
     begin
@@ -2891,14 +2921,34 @@ begin
       while ObjNode.HasChildNodes do
         ObjNode.RemoveChild(ObjNode.FirstChild);
     end;
-
-    if Obj is TCollection then
-      WriteCollection(TCollection(Obj), ObjNode)
+  end
+  else
+  begin
+    // Without data node, check if document element exists
+    if (FDocument.DocumentElement <> nil) and
+       (FDocument.DocumentElement.TagName = CName) then
+      ObjNode := FDocument.DocumentElement
     else
-      WriteProperties(Obj, ObjNode);
-  finally
-    NodeList.Free;
+      ObjNode := nil;
+
+    if ObjNode = nil then
+    begin
+      ObjNode := FDocument.CreateElement(CName);
+      FDocument.AppendChild(ObjNode);  // 直接调用 FDocument.AppendChild
+      FRootNode := ObjNode;
+    end
+    else
+    begin
+      // Clear existing content
+      while ObjNode.HasChildNodes do
+        ObjNode.RemoveChild(ObjNode.FirstChild);
+    end;
   end;
+
+  if Obj is TCollection then
+    WriteCollection(TCollection(Obj), ObjNode)
+  else
+    WriteProperties(Obj, ObjNode);
 end;
 
 procedure TCnXMLWriter.SaveToFile(const FileName: string; Indent: Boolean);
