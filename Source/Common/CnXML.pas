@@ -1197,6 +1197,12 @@ begin
       begin
         Result.TokenType := xttStartTag;
         NextChar;
+      end
+      else
+      begin
+        // If we don't find '>' or '/', still treat as start tag
+        // This handles malformed XML more gracefully
+        Result.TokenType := xttStartTag;
       end;
       Exit;
     end;
