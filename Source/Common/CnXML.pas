@@ -29,7 +29,7 @@ unit CnXML;
 *
 *           词法分析器内部使用 AnsiString 处理 UTF8 编码的 XML 文本，
 *           外部接口字符串类型根据编译器版本自动适配。
-*           
+*
 * 开发平台：PWin7Pro + Delphi 5.01
 * 兼容测试：PWin7/10+ Delphi 5~最新、FPC
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -69,7 +69,7 @@ type
        ALine: Integer        - Error line number
        AColumn: Integer      - Error column number
      |</PRE>}
-    
+
     property ErrorCode: Integer read FErrorCode;
     {* Error code}
     property Line: Integer read FLine;
@@ -119,18 +119,18 @@ const
   CN_XML_ERR_INVALID_NAME = 3;           // Invalid name
   CN_XML_ERR_MISSING_QUOTE = 4;          // Missing quote
   CN_XML_ERR_INVALID_ENTITY = 5;         // Invalid entity reference
-  
+
   // Syntax analysis errors
   CN_XML_ERR_TAG_MISMATCH = 10;          // Tag mismatch
   CN_XML_ERR_MISSING_ROOT = 11;          // Missing root element
   CN_XML_ERR_MULTIPLE_ROOTS = 12;        // Multiple root elements
   CN_XML_ERR_INVALID_STRUCTURE = 13;     // Invalid structure
-  
+
   // DOM operation errors
   CN_XML_ERR_HIERARCHY = 20;             // Hierarchy error
   CN_XML_ERR_NOT_FOUND = 21;             // Node not found
   CN_XML_ERR_INVALID_OPERATION = 22;     // Invalid operation
-  
+
   // Encoding errors
   CN_XML_ERR_ENCODING = 30;              // Encoding error
   CN_XML_ERR_INVALID_ENCODING = 31;      // Invalid encoding
@@ -199,7 +199,7 @@ type
     FColumn: Integer;         // Current column number
     FCurrentChar: Char;       // Current character
     FLength: Integer;         // Source text length (for optimization)
-    
+
     procedure NextChar;       // Move to next character
     procedure SkipWhitespace; // Skip whitespace characters
     function PeekChar(Offset: Integer): Char;  // Peek character
@@ -217,7 +217,7 @@ type
      |</PRE>}
     destructor Destroy; override;
     {* Destructor}
-    
+
     function NextToken: TCnXMLToken;  // Get next token
     function CurrentPosition: Integer;  // Current position
     function CurrentLine: Integer;  // Current line number
@@ -238,7 +238,7 @@ type
     FParentNode: TCnXMLNode;
     FOwnerDocument: TCnXMLDocument;
     FChildNodes: TList;  // List of child nodes
-    
+
     function GetFirstChild: TCnXMLNode;
     function GetLastChild: TCnXMLNode;
     function GetNextSibling: TCnXMLNode;
@@ -260,7 +260,7 @@ type
      |</PRE>}
     destructor Destroy; override;
     {* Destructor}
-    
+
     // Node operations
     function AppendChild(NewChild: TCnXMLNode): TCnXMLNode;
     {* Append a child node
@@ -299,7 +299,7 @@ type
      |<PRE>
        Return: Boolean - True if has child nodes, False otherwise
      |</PRE>}
-    
+
     // Properties
     property NodeType: TCnXMLNodeType read FNodeType;
     {* Node type}
@@ -341,7 +341,7 @@ type
        AName: string                - Attribute name
        AValue: string               - Attribute value
      |</PRE>}
-    
+
     property Name: string read FName write FName;
     {* Attribute name}
     property Value: string read FValue write FValue;
@@ -354,7 +354,7 @@ type
   {* XML element class}
   private
     FAttributes: TList;  // List of attributes
-    
+
     function GetAttributeCount: Integer;
     function GetAttributeName(Index: Integer): string;
     function GetAttributeValue(Index: Integer): string;
@@ -367,7 +367,7 @@ type
      |</PRE>}
     destructor Destroy; override;
     {* Destructor}
-    
+
     // Attribute operations
     function GetAttribute(const Name: string): string;
     {* Get attribute value by name
@@ -398,7 +398,7 @@ type
        Name: string              - Attribute name
        Return: TCnXMLAttribute   - Attribute node, nil if not found
      |</PRE>}
-    
+
     // Element query
     function GetElementsByTagName(const TagName: string): TList;
     {* Get elements by tag name
@@ -406,7 +406,7 @@ type
        TagName: string - Tag name
        Return: TList   - List of elements (caller must free the list but not the elements)
      |</PRE>}
-    
+
     // Properties
     property TagName: string read FNodeName write FNodeName;
     {* Tag name}
@@ -431,7 +431,7 @@ type
     {* Constructor}
     destructor Destroy; override;
     {* Destructor}
-    
+
     // Node creation
     function CreateElement(const TagName: string): TCnXMLElement;
     {* Create element node
@@ -464,7 +464,7 @@ type
        Data: string       - PI data
        Return: TCnXMLNode - Created PI node
      |</PRE>}
-    
+
     // Override AppendChild to auto-set DocumentElement
     function AppendChild(NewChild: TCnXMLNode): TCnXMLNode;
     {* Append a child node and auto-set DocumentElement if needed
@@ -472,7 +472,7 @@ type
        NewChild: TCnXMLNode - New child node
        Return: TCnXMLNode   - The appended child node
      |</PRE>}
-    
+
     // Document loading
     procedure LoadFromFile(const FileName: string);
     {* Load XML from file
@@ -489,7 +489,7 @@ type
      |<PRE>
        XMLString: string - XML string
      |</PRE>}
-    
+
     // Document saving
     procedure SaveToFile(const FileName: string; Indent: Boolean);
     {* Save XML to file
@@ -509,7 +509,7 @@ type
        Indent: Boolean - Whether to use indentation
        Return: string  - XML string
      |</PRE>}
-    
+
     // Properties
     property DocumentElement: TCnXMLElement read FDocumentElement write FDocumentElement;
     {* Document root element}
@@ -533,7 +533,7 @@ type
     FLexer: TCnXMLLexer;
     FDocument: TCnXMLDocument;
     FCurrentToken: TCnXMLToken;
-    
+
     procedure NextToken;  // Get next token
     procedure Expect(TokenType: TCnXMLTokenType);  // Expect specific token type
     procedure RaiseError(const Msg: string);  // Raise parsing error
@@ -548,7 +548,7 @@ type
      |</PRE>}
     destructor Destroy; override;
     {* Destructor}
-    
+
     function Parse: TCnXMLDocument;  // Execute parsing, return document object
   end;
 
@@ -563,7 +563,7 @@ function CnXMLDetectEncoding(const Buffer: TBytes): Integer;
    Return: Integer - Encoding constant (CN_XML_ENCODING_*)
  |</PRE>}
 
-function CnXMLConvertEncoding(const Source: AnsiString; 
+function CnXMLConvertEncoding(const Source: AnsiString;
   SourceEncoding, TargetEncoding: Integer): AnsiString;
 {* Convert encoding (internal use AnsiString)
  |<PRE>
@@ -613,19 +613,19 @@ type
     {* Constructor}
     destructor Destroy; override;
     {* Destructor}
-    
-    procedure WriteObjectToXML(const ObjectName: string; const Obj: TPersistent);
+
+    procedure WriteObjectToXML(const Obj: TPersistent);
     {* Write object to XML
      |<PRE>
-       ObjectName: string - Object node name
        Obj: TPersistent   - Object to serialize
      |</PRE>}
-    procedure SaveToFile(const FileName: string);
+    procedure SaveToFile(const FileName: string; Indent: Boolean = True);
     {* Save XML to file
      |<PRE>
        FileName: string - File name
+       Indent: Boolean  - Whether to use indentation (default: True)
      |</PRE>}
-    
+
     property Document: TCnXMLDocument read FDocument;
     {* XML document}
     property RootNode: TCnXMLElement read FRootNode;
@@ -656,11 +656,10 @@ type
     {* Constructor}
     destructor Destroy; override;
     {* Destructor}
-    
-    function ReadObjectFromXML(const ObjectName: string; Obj: TPersistent): Boolean;
+
+    function ReadObjectFromXML(Obj: TPersistent): Boolean;
     {* Read object from XML
      |<PRE>
-       ObjectName: string - Object node name
        Obj: TPersistent   - Object to deserialize into
        Return: Boolean    - True if successful
      |</PRE>}
@@ -669,7 +668,7 @@ type
      |<PRE>
        FileName: string - File name
      |</PRE>}
-    
+
     property Document: TCnXMLDocument read FDocument;
     {* XML document}
     property RootNode: TCnXMLElement read FRootNode;
@@ -690,6 +689,97 @@ function CnXMLCreateDocument: TCnXMLDocument;
  |<PRE>
    Return: TCnXMLDocument - New document object
  |</PRE>}
+
+//==============================================================================
+// String Conversion Helper Functions (for compatibility)
+//==============================================================================
+
+function CnXMLStrToRealDef(const S: string; Default: Extended): Extended;
+{* Convert string to real with default value
+ |<PRE>
+   S: string           - String to convert
+   Default: Extended   - Default value if conversion fails
+   Return: Extended    - Converted value or default
+ |</PRE>}
+
+function CnXMLStrToDateTime(const S: string; var Value: TDateTime): Boolean;
+{* Convert string to datetime
+ |<PRE>
+   S: string           - String to convert
+   Value: TDateTime    - Output datetime value
+   Return: Boolean     - True if conversion successful
+ |</PRE>}
+
+function CnXMLStrToInt(const S: string; var Value: Integer): Boolean;
+{* Convert string to integer
+ |<PRE>
+   S: string        - String to convert
+   Value: Integer   - Output integer value
+   Return: Boolean  - True if conversion successful
+ |</PRE>}
+
+function CnXMLStrToIntDef(const S: string; Default: Integer): Integer;
+{* Convert string to integer with default value
+ |<PRE>
+   S: string        - String to convert
+   Default: Integer - Default value if conversion fails
+   Return: Integer  - Converted value or default
+ |</PRE>}
+
+function CnXMLStrToBool(const S: string; var Value: Boolean): Boolean;
+{* Convert string to boolean (supports 0/1 and True/False)
+ |<PRE>
+   S: string        - String to convert
+   Value: Boolean   - Output boolean value
+   Return: Boolean  - True if conversion successful
+ |</PRE>}
+
+function CnXMLStrToInt64(const S: string; var Value: Int64): Boolean;
+{* Convert string to Int64
+ |<PRE>
+   S: string        - String to convert
+   Value: Int64     - Output Int64 value
+   Return: Boolean  - True if conversion successful
+ |</PRE>}
+
+function CnXMLIntToStr(Value: Integer): string;
+{* Convert integer to string
+ |<PRE>
+   Value: Integer  - Integer value
+   Return: string  - String representation
+ |</PRE>}
+
+function CnXMLBoolToStr(Value: Boolean): string;
+{* Convert boolean to string
+ |<PRE>
+   Value: Boolean  - Boolean value
+   Return: string  - String representation ('True' or 'False')
+ |</PRE>}
+
+function CnXMLRealToStr(Value: Extended): string;
+{* Convert real to string
+ |<PRE>
+   Value: Extended - Real value
+   Return: string  - String representation
+ |</PRE>}
+
+function CnXMLInt64ToStr(Value: Int64): string;
+{* Convert Int64 to string
+ |<PRE>
+   Value: Int64    - Int64 value
+   Return: string  - String representation
+ |</PRE>}
+
+function CnXMLDateTimeToStrEx(Value: TDateTime): string;
+{* Convert datetime to string (extended format)
+ |<PRE>
+   Value: TDateTime - DateTime value
+   Return: string   - String representation
+ |</PRE>}
+
+type
+  ECnXMLPersistent = class(ECnXMLException);
+  {* Exception class for XML persistence operations (for OmniXML compatibility)}
 
 implementation
 
@@ -761,7 +851,7 @@ begin
       else if FCurrentChar <> #13 then
         Inc(FColumn);
     end;
-    
+
     Inc(FPosition);
     if FPosition <= FLength then
       FCurrentChar := FSource[FPosition]
@@ -810,9 +900,9 @@ begin
   // XML name can start with letter (including Unicode), underscore, or colon
   // Subsequent characters can be letter, digit, underscore, colon, dot, or hyphen
   Result := '';
-  
+
   Ch := FCurrentChar;
-  
+
   // First character must be letter (ASCII or Unicode), underscore, or colon
   // For Unicode support, accept any character > #127 as potential letter
   if not ((Ch >= 'A') and (Ch <= 'Z')) and
@@ -820,14 +910,14 @@ begin
      (Ch <> '_') and (Ch <> ':') and
      (Ch <= #127) then
     Exit;
-  
+
   StartPos := FPosition;
-  
+
   // Read name: letter (ASCII or Unicode), digit, underscore, colon, dot, or hyphen
   while True do
   begin
     Ch := FCurrentChar;
-    
+
     // Accept ASCII letters, digits, and special XML name characters
     if ((Ch >= 'A') and (Ch <= 'Z')) or
        ((Ch >= 'a') and (Ch <= 'z')) or
@@ -838,7 +928,7 @@ begin
     else
       Break;
   end;
-  
+
   Result := Copy(FSource, StartPos, FPosition - StartPos);
 end;
 
@@ -848,19 +938,19 @@ var
 begin
   // Read text content until '<' character
   Result := '';
-  
+
   if FCurrentChar = '<' then
     Exit;
-  
+
   StartPos := FPosition;
-  
+
   while (FCurrentChar <> #0) and (FCurrentChar <> '<') do
     NextChar;
-  
+
   Result := Copy(FSource, StartPos, FPosition - StartPos);
-  
-  // Trim leading and trailing whitespace
-  Result := Trim(Result);
+
+  // Note: We preserve whitespace to match others behavior
+  // If you want to trim whitespace, use Trim(node.Text) in your code
 end;
 
 function TCnXMLLexer.ReadAttributeValue: string;
@@ -870,24 +960,24 @@ var
 begin
   // Read attribute value enclosed in double or single quotes
   Result := '';
-  
+
   SkipWhitespace;
-  
+
   if not (FCurrentChar in ['"', '''']) then
     Exit;
-  
+
   QuoteChar := FCurrentChar;
   NextChar;  // Skip opening quote
-  
+
   StartPos := FPosition;
-  
+
   // Read until closing quote
   while (FCurrentChar <> #0) and (FCurrentChar <> QuoteChar) do
     NextChar;
-  
+
   if FCurrentChar = #0 then
     Exit;  // Missing closing quote
-  
+
   Result := Copy(FSource, StartPos, FPosition - StartPos);
   NextChar;  // Skip closing quote
 end;
@@ -904,28 +994,28 @@ begin
   Result := '';
   Len := Length(Text);
   I := 1;
-  
+
   while I <= Len do
   begin
     Ch := Text[I];
-    
+
     if Ch = '&' then
     begin
       // Process entity reference
       EntityStr := '';
       Inc(I);
-      
+
       // Read entity name
       while (I <= Len) and (Text[I] <> ';') do
       begin
         EntityStr := EntityStr + Text[I];
         Inc(I);
       end;
-      
+
       if (I <= Len) and (Text[I] = ';') then
       begin
         Inc(I);  // Skip ';'
-        
+
         // Parse entity reference
         if EntityStr = 'lt' then
           EntityValue := '<'
@@ -941,8 +1031,7 @@ begin
         begin
           // Numeric character reference
           IsHex := False;
-          CharCode := 0;
-          
+
           if (Length(EntityStr) > 2) and (EntityStr[2] in ['x', 'X']) then
           begin
             // Hexadecimal character reference
@@ -954,13 +1043,13 @@ begin
             // Decimal character reference
             EntityStr := Copy(EntityStr, 2, Length(EntityStr) - 1);
           end;
-          
+
           try
             if IsHex then
               CharCode := StrToInt('$' + EntityStr)
             else
               CharCode := StrToInt(EntityStr);
-            
+
             if (CharCode >= 0) and (CharCode <= 255) then
               EntityValue := Chr(CharCode)
             else
@@ -971,7 +1060,7 @@ begin
         end
         else
           EntityValue := '&' + EntityStr + ';';  // Unknown entity, keep original
-        
+
         Result := Result + EntityValue;
       end
       else
@@ -995,9 +1084,9 @@ begin
   // Read comment: <!-- ... -->
   // When this method is called, '<!--' has already been consumed
   Result := '';
-  
+
   StartPos := FPosition;
-  
+
   // Find '-->'
   while FCurrentChar <> #0 do
   begin
@@ -1020,9 +1109,9 @@ begin
   // Read CDATA section: <![CDATA[...]]>
   // When this method is called, '<![CDATA[' has already been consumed
   Result := '';
-  
+
   StartPos := FPosition;
-  
+
   // Find ']]>'
   while FCurrentChar <> #0 do
   begin
@@ -1045,9 +1134,9 @@ begin
   // Read processing instruction: <?target data?>
   // When this method is called, '<?' has already been consumed
   Result := '';
-  
+
   StartPos := FPosition;
-  
+
   // Find '?>'
   while FCurrentChar <> #0 do
   begin
@@ -1066,6 +1155,10 @@ function TCnXMLLexer.NextToken: TCnXMLToken;
 var
   TagName: string;
   AttrName, AttrValue: string;
+  SavedPosition: Integer;
+  SavedLine: Integer;
+  SavedColumn: Integer;
+  SavedChar: Char;
 begin
   // Initialize token
   Result.TokenType := xttNone;
@@ -1073,22 +1166,28 @@ begin
   Result.Line := FLine;
   Result.Column := FColumn;
   Result.Attributes := nil;
-  
+
+  // Save current position before skipping whitespace
+  SavedPosition := FPosition;
+  SavedLine := FLine;
+  SavedColumn := FColumn;
+  SavedChar := FCurrentChar;
+
   // Skip whitespace
   SkipWhitespace;
-  
+
   // End of file
   if FCurrentChar = #0 then
   begin
     Result.TokenType := xttEOF;
     Exit;
   end;
-  
+
   // Structures starting with '<'
   if FCurrentChar = '<' then
   begin
     NextChar;
-    
+
     // Comment: <!-- ... -->
     if (FCurrentChar = '!') and (PeekChar(1) = '-') and (PeekChar(2) = '-') then
     begin
@@ -1099,9 +1198,9 @@ begin
       Result.Value := ReadComment;
       Exit;
     end;
-    
+
     // CDATA section: <![CDATA[...]]>
-    if (FCurrentChar = '!') and (PeekChar(1) = '[') and 
+    if (FCurrentChar = '!') and (PeekChar(1) = '[') and
        (PeekChar(2) = 'C') and (PeekChar(3) = 'D') and
        (PeekChar(4) = 'A') and (PeekChar(5) = 'T') and
        (PeekChar(6) = 'A') and (PeekChar(7) = '[') then
@@ -1118,12 +1217,12 @@ begin
       Result.Value := ReadCData;
       Exit;
     end;
-    
+
     // Processing instruction: <?...?>
     if FCurrentChar = '?' then
     begin
       NextChar;  // Skip '?'
-      
+
       // Check and parse XML declaration
       if (FCurrentChar = 'x') and (PeekChar(1) = 'm') and (PeekChar(2) = 'l') and
          (PeekChar(3) <= ' ') then
@@ -1134,14 +1233,14 @@ begin
         Result.TokenType := xttXMLDecl;
         Result.Value := 'xml';
         Result.Attributes := TStringList.Create;
-        
+
         // Parse XML declaration attributes
         SkipWhitespace;
         while (FCurrentChar <> #0) and (FCurrentChar <> '?') do
         begin
           AttrName := ReadName;
           if AttrName = '' then Break;
-          
+
           SkipWhitespace;
           if FCurrentChar = '=' then
           begin
@@ -1151,7 +1250,7 @@ begin
           end;
           SkipWhitespace;
         end;
-        
+
         // Skip '?>'
         if FCurrentChar = '?' then
           NextChar;
@@ -1167,7 +1266,7 @@ begin
         Exit;
       end;
     end;
-    
+
     // End tag: </tag>
     if FCurrentChar = '/' then
     begin
@@ -1175,20 +1274,20 @@ begin
       TagName := ReadName;
       Result.TokenType := xttEndTag;
       Result.Value := TagName;
-      
+
       SkipWhitespace;
       if FCurrentChar = '>' then
         NextChar;
       Exit;
     end;
-    
+
     // Start tag or self-closing tag: <tag> or <tag/>
     TagName := ReadName;
     if TagName <> '' then
     begin
       Result.Value := TagName;
       Result.Attributes := TStringList.Create;
-      
+
       // Parse attributes
       SkipWhitespace;
       while (FCurrentChar <> #0) and (FCurrentChar <> '>') and (FCurrentChar <> '/') do
@@ -1204,7 +1303,7 @@ begin
           // If still not at end, something is wrong, break anyway
           Break;
         end;
-        
+
         SkipWhitespace;
         if FCurrentChar = '=' then
         begin
@@ -1214,7 +1313,7 @@ begin
         end;
         SkipWhitespace;
       end;
-      
+
       // Check if self-closing tag
       if FCurrentChar = '/' then
       begin
@@ -1237,10 +1336,16 @@ begin
       Exit;
     end;
   end;
-  
+
   // Text content
   if FCurrentChar <> '<' then
   begin
+    // Restore position to before SkipWhitespace to preserve leading whitespace
+    FPosition := SavedPosition;
+    FLine := SavedLine;
+    FColumn := SavedColumn;
+    FCurrentChar := SavedChar;
+
     Result.TokenType := xttText;
     Result.Value := ReadText;
     // Decode entity references
@@ -1301,7 +1406,7 @@ begin
   Result := nil;
   if FParentNode = nil then
     Exit;
-  
+
   Index := FParentNode.IndexOfChild(Self);
   if (Index >= 0) and (Index < FParentNode.ChildCount - 1) then
     Result := FParentNode.Children[Index + 1];
@@ -1314,7 +1419,7 @@ begin
   Result := nil;
   if FParentNode = nil then
     Exit;
-  
+
   Index := FParentNode.IndexOfChild(Self);
   if Index > 0 then
     Result := FParentNode.Children[Index - 1];
@@ -1342,14 +1447,14 @@ var
   Child: TCnXMLNode;
 begin
   Result := '';
-  
+
   // For text nodes, return node value directly
   if FNodeType = xntText then
   begin
     Result := FNodeValue;
     Exit;
   end;
-  
+
   // For CDATA nodes, return node value directly
   if FNodeType = xntCData then
   begin
@@ -1382,12 +1487,12 @@ begin
     FNodeValue := Value;
     Exit;
   end;
-  
+
   // For element nodes, find or create text child node
   if FNodeType = xntElement then
   begin
     Found := False;
-    
+
     // Find existing text node
     for I := 0 to ChildCount - 1 do
     begin
@@ -1399,7 +1504,7 @@ begin
         Break;
       end;
     end;
-    
+
     // Create new text node if not found
     if not Found then
     begin
@@ -1414,7 +1519,7 @@ procedure TCnXMLNode.AddChild(Node: TCnXMLNode);
 begin
   if FChildNodes = nil then
     FChildNodes := TList.Create;
-  
+
   FChildNodes.Add(Node);
   Node.FParentNode := Self;
 end;
@@ -1443,11 +1548,11 @@ begin
     Result := nil;
     Exit;
   end;
-  
+
   // Remove from old parent if exists
   if NewChild.ParentNode <> nil then
     NewChild.ParentNode.InternalRemoveChild(NewChild);
-  
+
   // Add to this node
   AddChild(NewChild);
   Result := NewChild;
@@ -1462,14 +1567,14 @@ begin
     Result := nil;
     Exit;
   end;
-  
+
   // If RefChild is nil, append to end
   if RefChild = nil then
   begin
     Result := AppendChild(NewChild);
     Exit;
   end;
-  
+
   // Find reference child index
   Index := IndexOfChild(RefChild);
   if Index < 0 then
@@ -1478,15 +1583,15 @@ begin
     Result := AppendChild(NewChild);
     Exit;
   end;
-  
+
   // Remove from old parent if exists
   if NewChild.ParentNode <> nil then
     NewChild.ParentNode.InternalRemoveChild(NewChild);
-  
+
   // Insert at index
   if FChildNodes = nil then
     FChildNodes := TList.Create;
-  
+
   FChildNodes.Insert(Index, NewChild);
   NewChild.FParentNode := Self;
   Result := NewChild;
@@ -1499,14 +1604,14 @@ begin
     Result := nil;
     Exit;
   end;
-  
+
   // Check if child belongs to this node
   if OldChild.ParentNode <> Self then
   begin
     Result := nil;
     Exit;
   end;
-  
+
   // Remove child
   InternalRemoveChild(OldChild);
   Result := OldChild;
@@ -1521,7 +1626,7 @@ begin
     Result := nil;
     Exit;
   end;
-  
+
   // Find old child index
   Index := IndexOfChild(OldChild);
   if Index < 0 then
@@ -1529,16 +1634,16 @@ begin
     Result := nil;
     Exit;
   end;
-  
+
   // Remove from old parent if exists
   if NewChild.ParentNode <> nil then
     NewChild.ParentNode.InternalRemoveChild(NewChild);
-  
+
   // Replace at index
   FChildNodes[Index] := NewChild;
   NewChild.FParentNode := Self;
   OldChild.FParentNode := nil;
-  
+
   Result := OldChild;
 end;
 
@@ -1551,7 +1656,7 @@ begin
   Result := TCnXMLNode.Create(FOwnerDocument, FNodeType);
   Result.NodeName := FNodeName;
   Result.NodeValue := FNodeValue;
-  
+
   // Clone child nodes if deep copy
   if Deep then
   begin
@@ -1637,7 +1742,7 @@ begin
   Result := '';
   if FAttributes = nil then
     Exit;
-  
+
   for I := 0 to FAttributes.Count - 1 do
   begin
     Attr := TCnXMLAttribute(FAttributes[I]);
@@ -1657,9 +1762,9 @@ var
 begin
   if FAttributes = nil then
     FAttributes := TList.Create;
-  
+
   Found := False;
-  
+
   // Find existing attribute
   for I := 0 to FAttributes.Count - 1 do
   begin
@@ -1671,7 +1776,7 @@ begin
       Break;
     end;
   end;
-  
+
   // Create new attribute if not found
   if not Found then
   begin
@@ -1688,7 +1793,7 @@ begin
   Result := False;
   if FAttributes = nil then
     Exit;
-  
+
   for I := 0 to FAttributes.Count - 1 do
   begin
     Attr := TCnXMLAttribute(FAttributes[I]);
@@ -1707,7 +1812,7 @@ var
 begin
   if FAttributes = nil then
     Exit;
-  
+
   for I := 0 to FAttributes.Count - 1 do
   begin
     Attr := TCnXMLAttribute(FAttributes[I]);
@@ -1728,7 +1833,7 @@ begin
   Result := nil;
   if FAttributes = nil then
     Exit;
-  
+
   for I := 0 to FAttributes.Count - 1 do
   begin
     Attr := TCnXMLAttribute(FAttributes[I]);
@@ -1744,7 +1849,7 @@ function TCnXMLElement.GetElementsByTagName(const TagName: string): TList;
 var
   I: Integer;
   Child: TCnXMLNode;
-  
+
   procedure CollectElements(Node: TCnXMLNode);
   var
     J: Integer;
@@ -1752,11 +1857,11 @@ var
   begin
     if Node = nil then
       Exit;
-    
+
     // Check if this node matches
     if (Node.NodeType = xntElement) and (Node.NodeName = TagName) then
       Result.Add(Node);
-    
+
     // Recursively check child nodes
     for J := 0 to Node.ChildCount - 1 do
     begin
@@ -1764,10 +1869,10 @@ var
       CollectElements(ChildNode);
     end;
   end;
-  
+
 begin
   Result := TList.Create;
-  
+
   // Collect matching elements from child nodes
   for I := 0 to ChildCount - 1 do
   begin
@@ -1831,7 +1936,7 @@ function TCnXMLDocument.AppendChild(NewChild: TCnXMLNode): TCnXMLNode;
 begin
   // Call inherited to add child
   Result := inherited AppendChild(NewChild);
-  
+
   // Auto-set DocumentElement if it's an element node and DocumentElement is not set
   if (FDocumentElement = nil) and (NewChild is TCnXMLElement) then
     FDocumentElement := TCnXMLElement(NewChild);
@@ -1850,7 +1955,7 @@ begin
     FChildNodes.Delete(I);
   end;
   FDocumentElement := nil;
-  
+
   // Parse XML string
   Parser := TCnXMLParser.Create(XMLString);
   try
@@ -1860,7 +1965,7 @@ begin
       FVersion := TempDoc.Version;
       FEncoding := TempDoc.Encoding;
       FStandalone := TempDoc.Standalone;
-      
+
       // Move document element
       if TempDoc.DocumentElement <> nil then
       begin
@@ -1909,9 +2014,7 @@ begin
 end;
 
 function TCnXMLDocument.SaveToString(Indent: Boolean): string;
-var
-  IndentLevel: Integer;
-  
+
   function EscapeText(const Text: string): string;
   var
     I: Integer;
@@ -1936,7 +2039,7 @@ var
         Result := Result + Ch;
     end;
   end;
-  
+
   function GetIndentString(Level: Integer): string;
   var
     I: Integer;
@@ -1946,93 +2049,107 @@ var
       for I := 1 to Level * 2 do
         Result := Result + ' ';
   end;
-  
+
   procedure SerializeNode(Node: TCnXMLNode; Level: Integer; var Output: string);
   var
     I: Integer;
     Element: TCnXMLElement;
     AttrStr: string;
+    HasOnlyText: Boolean;
   begin
     case Node.NodeType of
       xntElement:
         begin
           Element := TCnXMLElement(Node);
-          
+
           // Start tag
           Output := Output + GetIndentString(Level) + '<' + Element.TagName;
-          
+
           // Attributes
           for I := 0 to Element.AttributeCount - 1 do
           begin
             AttrStr := Element.AttributeNames[I];
-            Output := Output + ' ' + AttrStr + '="' + 
+            Output := Output + ' ' + AttrStr + '="' +
                      EscapeText(Element.AttributeValues[I]) + '"';
           end;
-          
+
           // Check if has children
           if Element.HasChildNodes then
           begin
             Output := Output + '>';
-            if Indent then
+
+            // Check if element contains only text content (no child elements)
+            HasOnlyText := True;
+            for I := 0 to Element.ChildCount - 1 do
+            begin
+              if Element.Children[I].NodeType = xntElement then
+              begin
+                HasOnlyText := False;
+                Break;
+              end;
+            end;
+
+            // Add newline after start tag only if element has child elements
+            if Indent and not HasOnlyText then
               Output := Output + #13#10;
-            
+
             // Serialize children
             for I := 0 to Element.ChildCount - 1 do
               SerializeNode(Element.Children[I], Level + 1, Output);
-            
+
             // End tag
-            Output := Output + GetIndentString(Level) + '</' + Element.TagName + '>';
+            if Indent and not HasOnlyText then
+              Output := Output + GetIndentString(Level);
+            Output := Output + '</' + Element.TagName + '>';
           end
           else
           begin
             // Self-closing tag
             Output := Output + '/>';
           end;
-          
+
           if Indent then
             Output := Output + #13#10;
         end;
-      
+
       xntText:
         begin
+          // Only output non-empty text nodes
+          // Don't add indentation or newlines for text content
+          // to preserve the original text formatting
           if Trim(Node.NodeValue) <> '' then
-          begin
-            Output := Output + GetIndentString(Level) + EscapeText(Node.NodeValue);
-            if Indent then
-              Output := Output + #13#10;
-          end;
+            Output := Output + EscapeText(Node.NodeValue);
         end;
-      
+
       xntCData:
         begin
-          Output := Output + GetIndentString(Level) + '<![CDATA[' + 
+          Output := Output + GetIndentString(Level) + '<![CDATA[' +
                    Node.NodeValue + ']]>';
           if Indent then
             Output := Output + #13#10;
         end;
-      
+
       xntComment:
         begin
-          Output := Output + GetIndentString(Level) + '<!--' + 
+          Output := Output + GetIndentString(Level) + '<!--' +
                    Node.NodeValue + '-->';
           if Indent then
             Output := Output + #13#10;
         end;
-      
+
       xntPI:
         begin
-          Output := Output + GetIndentString(Level) + '<?' + 
+          Output := Output + GetIndentString(Level) + '<?' +
                    Node.NodeName + ' ' + Node.NodeValue + '?>';
           if Indent then
             Output := Output + #13#10;
         end;
     end;
   end;
-  
+
 begin
   Result := '';
-  IndentLevel := 0;
-  
+
   // XML declaration
   if FVersion <> '' then
   begin
@@ -2045,7 +2162,7 @@ begin
     if Indent then
       Result := Result + #13#10;
   end;
-  
+
   // Serialize document element
   if FDocumentElement <> nil then
     SerializeNode(FDocumentElement, 0, Result);
@@ -2107,13 +2224,13 @@ end;
 procedure TCnXMLParser.Expect(TokenType: TCnXMLTokenType);
 begin
   if FCurrentToken.TokenType <> TokenType then
-    RaiseError('Expected token type ' + IntToStr(Ord(TokenType)) + 
+    RaiseError('Expected token type ' + IntToStr(Ord(TokenType)) +
                ' but got ' + IntToStr(Ord(FCurrentToken.TokenType)));
 end;
 
 procedure TCnXMLParser.RaiseError(const Msg: string);
 begin
-  raise ECnXMLException.Create(Msg, CN_XML_ERR_INVALID_STRUCTURE, 
+  raise ECnXMLException.Create(Msg, CN_XML_ERR_INVALID_STRUCTURE,
                                FCurrentToken.Line, FCurrentToken.Column);
 end;
 
@@ -2126,7 +2243,7 @@ begin
   // XML declaration is optional
   if FCurrentToken.TokenType <> xttXMLDecl then
     Exit;
-  
+
   // Parse attributes from XML declaration
   if FCurrentToken.Attributes <> nil then
   begin
@@ -2138,7 +2255,7 @@ begin
       begin
         AttrName := Copy(AttrStr, 1, EqualPos - 1);
         AttrValue := Copy(AttrStr, EqualPos + 1, Length(AttrStr) - EqualPos);
-        
+
         if AttrName = 'version' then
           FDocument.Version := AttrValue
         else if AttrName = 'encoding' then
@@ -2148,7 +2265,7 @@ begin
       end;
     end;
   end;
-  
+
   NextToken;  // Move to next token
 end;
 
@@ -2159,18 +2276,17 @@ var
   I: Integer;
   AttrStr, AttrName, AttrValue: string;
   EqualPos: Integer;
-  TextNode: TCnXMLNode;
 begin
   // Expect start tag or empty tag
   if not (FCurrentToken.TokenType in [xttStartTag, xttEmptyTag]) then
     RaiseError('Expected start tag or empty tag');
-  
+
   TagName := FCurrentToken.Value;
-  
+
   // Create element node
   Element := FDocument.CreateElement(TagName);
   ParentNode.AppendChild(Element);
-  
+
   // Parse attributes
   if FCurrentToken.Attributes <> nil then
   begin
@@ -2186,28 +2302,28 @@ begin
       end;
     end;
   end;
-  
+
   // If empty tag, we're done
   if FCurrentToken.TokenType = xttEmptyTag then
   begin
     NextToken;
     Exit;
   end;
-  
+
   // Parse content
   NextToken;
   ParseContent(Element);
-  
+
   // Expect end tag
   if FCurrentToken.TokenType <> xttEndTag then
     RaiseError('Expected end tag');
-  
+
   if FCurrentToken.Value <> TagName then
-    raise ECnXMLException.Create('Tag mismatch: expected </' + TagName + '> but got </' + 
-                                 FCurrentToken.Value + '>', 
+    raise ECnXMLException.Create('Tag mismatch: expected </' + TagName + '> but got </' +
+                                 FCurrentToken.Value + '>',
                                  CN_XML_ERR_TAG_MISMATCH,
                                  FCurrentToken.Line, FCurrentToken.Column);
-  
+
   NextToken;
 end;
 
@@ -2220,7 +2336,7 @@ begin
     case FCurrentToken.TokenType of
       xttStartTag, xttEmptyTag:
         ParseElement(ParentNode);
-      
+
       xttText:
         begin
           if Trim(FCurrentToken.Value) <> '' then
@@ -2230,31 +2346,31 @@ begin
           end;
           NextToken;
         end;
-      
+
       xttCData:
         begin
           Node := FDocument.CreateCDATASection(FCurrentToken.Value);
           ParentNode.AppendChild(Node);
           NextToken;
         end;
-      
+
       xttComment:
         begin
           Node := FDocument.CreateComment(FCurrentToken.Value);
           ParentNode.AppendChild(Node);
           NextToken;
         end;
-      
+
       xttPI:
         begin
           Node := FDocument.CreateProcessingInstruction('', FCurrentToken.Value);
           ParentNode.AppendChild(Node);
           NextToken;
         end;
-      
+
       xttEndTag:
         Break;  // End of content
-      
+
     else
       RaiseError('Unexpected token in content');
     end;
@@ -2266,10 +2382,10 @@ begin
   FDocument := TCnXMLDocument.Create;
   try
     NextToken;  // Get first token
-    
+
     // Parse optional XML declaration
     ParseXMLDecl;
-    
+
     // Skip comments and other non-element tokens before root element
     while FCurrentToken.TokenType in [xttComment, xttPI] do
       NextToken;
@@ -2282,7 +2398,7 @@ begin
     end
     else
       RaiseError('Expected root element');
-    
+
     Result := FDocument;
   except
     FDocument.Free;
@@ -2297,45 +2413,45 @@ end;
 function CnXMLDetectEncoding(const Buffer: TBytes): Integer;
 begin
   Result := CN_XML_ENCODING_UNKNOWN;
-  
+
   if Length(Buffer) < 2 then
     Exit;
-  
+
   // Check BOM (Byte Order Mark)
   // UTF-8 BOM: EF BB BF
-  if (Length(Buffer) >= 3) and 
+  if (Length(Buffer) >= 3) and
      (Buffer[0] = $EF) and (Buffer[1] = $BB) and (Buffer[2] = $BF) then
   begin
     Result := CN_XML_ENCODING_UTF8;
     Exit;
   end;
-  
+
   // UTF-16 LE BOM: FF FE
   if (Buffer[0] = $FF) and (Buffer[1] = $FE) then
   begin
     Result := CN_XML_ENCODING_UTF16LE;
     Exit;
   end;
-  
+
   // UTF-16 BE BOM: FE FF
   if (Buffer[0] = $FE) and (Buffer[1] = $FF) then
   begin
     Result := CN_XML_ENCODING_UTF16BE;
     Exit;
   end;
-  
+
   // Default to GBK (project standard)
   Result := CN_XML_ENCODING_GBK;
 end;
 
-function CnXMLConvertEncoding(const Source: AnsiString; 
+function CnXMLConvertEncoding(const Source: AnsiString;
   SourceEncoding, TargetEncoding: Integer): AnsiString;
 begin
   // For now, simple implementation - just return source
   // Full implementation would use Windows API or iconv
   // This is a placeholder for basic functionality
   Result := Source;
-  
+
   // TODO: Implement proper encoding conversion
   // - Use MultiByteToWideChar and WideCharToMultiByte on Windows
   // - Use iconv or similar on Unix/Linux
@@ -2370,6 +2486,111 @@ begin
 end;
 
 //==============================================================================
+// String Conversion Helper Functions Implementation
+//==============================================================================
+
+function CnXMLStrToRealDef(const S: string; Default: Extended): Extended;
+begin
+  try
+    Result := StrToFloat(StringReplace(S, '.', {$IFDEF DELPHI2009_UP}FormatSettings.{$ENDIF}DecimalSeparator, [rfReplaceAll]));
+  except
+    on EConvertError do
+      Result := Default;
+  end;
+end;
+
+function CnXMLStrToDateTime(const S: string; var Value: TDateTime): Boolean;
+begin
+  try
+    // 尝试解析 ISO 格式的日期时间字符串
+    // 格式: yyyy-mm-ddThh:nn:ss 或 yyyy-mm-dd hh:nn:ss
+    Value := StrToDateTime(StringReplace(S, 'T', ' ', []));
+    Result := True;
+  except
+    Result := False;
+  end;
+end;
+
+function CnXMLStrToInt(const S: string; var Value: Integer): Boolean;
+begin
+  try
+    Value := StrToInt(S);
+    Result := True;
+  except
+    on EConvertError do
+      Result := False;
+  end;
+end;
+
+function CnXMLStrToIntDef(const S: string; Default: Integer): Integer;
+begin
+  if not CnXMLStrToInt(S, Result) then
+    Result := Default;
+end;
+
+function CnXMLStrToBool(const S: string; var Value: Boolean): Boolean;
+begin
+  // 支持 0/1 和 True/False 格式
+  if (S = '1') or (CompareText(S, 'True') = 0) then
+  begin
+    Value := True;
+    Result := True;
+  end
+  else if (S = '0') or (CompareText(S, 'False') = 0) then
+  begin
+    Value := False;
+    Result := True;
+  end
+  else
+    Result := False;
+end;
+
+function CnXMLStrToInt64(const S: string; var Value: Int64): Boolean;
+begin
+  try
+    Value := StrToInt64(S);
+    Result := True;
+  except
+    on EConvertError do
+      Result := False;
+  end;
+end;
+
+function CnXMLIntToStr(Value: Integer): string;
+begin
+  Result := IntToStr(Value);
+end;
+
+function CnXMLBoolToStr(Value: Boolean): string;
+begin
+  if Value then
+    Result := 'True'
+  else
+    Result := 'False';
+end;
+
+function CnXMLRealToStr(Value: Extended): string;
+begin
+  Result := StringReplace(FloatToStr(Value), {$IFDEF DELPHI2009_UP}FormatSettings.{$ENDIF}DecimalSeparator, '.', [rfReplaceAll]);
+end;
+
+function CnXMLInt64ToStr(Value: Int64): string;
+begin
+  Result := IntToStr(Value);
+end;
+
+function CnXMLDateTimeToStrEx(Value: TDateTime): string;
+begin
+  // 返回 ISO 格式的日期时间字符串
+  if Trunc(Value) = 0 then
+    Result := FormatDateTime('hh:nn:ss', Value)
+  else if Frac(Value) = 0 then
+    Result := FormatDateTime('yyyy-mm-dd', Value)
+  else
+    Result := FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Value);
+end;
+
+//==============================================================================
 // TCnXMLWriter Implementation
 //==============================================================================
 
@@ -2394,14 +2615,15 @@ procedure TCnXMLWriter.InitDocument;
 begin
   if FOwnsDocument and (FDocument <> nil) then
     FDocument.Free;
-    
+
   FDocument := TCnXMLDocument.Create;
   FOwnsDocument := True;
   FDocument.Encoding := FEncoding;
   FDocument.Version := '1.0';
-  
-  // Create root node
-  FRootNode := FDocument.CreateElement('XMLPersistent');
+
+  // Create root node - use 'data' for compatibility
+  FRootNode := FDocument.CreateElement('data');
+  FRootNode.SetAttribute('PropFormat', 'node');
   FDocument.AppendChild(FRootNode);
 end;
 
@@ -2417,17 +2639,18 @@ procedure TCnXMLWriter.SetXMLString(const Value: string);
 begin
   if FOwnsDocument and (FDocument <> nil) then
     FDocument.Free;
-    
+
   FDocument := TCnXMLDocument.Create;
   FOwnsDocument := True;
   FDocument.LoadFromString(Value);
-  
-  // Find root node
+
+  // Find root node - use 'data' for compatibility
   if FDocument.DocumentElement <> nil then
     FRootNode := FDocument.DocumentElement
   else
   begin
-    FRootNode := FDocument.CreateElement('XMLPersistent');
+    FRootNode := FDocument.CreateElement('data');
+    FRootNode.SetAttribute('PropFormat', 'node');
     FDocument.AppendChild(FRootNode);
   end;
 end;
@@ -2435,7 +2658,7 @@ end;
 procedure TCnXMLWriter.SetClassType(const Obj: TPersistent; Node: TCnXMLElement);
 begin
   Node.SetAttribute('ClassType', Obj.ClassName);
-  
+
   // Set persistent type
   if Obj is TCollection then
     Node.SetAttribute('PersistentType', 'TCollection')
@@ -2458,7 +2681,7 @@ begin
     Item := Collection.Items[I];
     ItemNode := FDocument.CreateElement('Item');
     Node.AppendChild(ItemNode);
-    
+
     SetClassType(Item, ItemNode);
     WriteProperties(Item, ItemNode);
   end;
@@ -2476,15 +2699,15 @@ begin
   PropCount := GetTypeData(Obj.ClassInfo)^.PropCount;
   if PropCount = 0 then
     Exit;
-    
+
   GetMem(PropList, PropCount * SizeOf(Pointer));
   try
     GetPropList(Obj.ClassInfo, tkAny, PropList);
-    
+
     for I := 0 to PropCount - 1 do
     begin
       PropInfo := PropList^[I];
-      
+
       case PropInfo.PropType^.Kind of
         tkClass:
           begin
@@ -2495,9 +2718,8 @@ begin
               begin
                 ChildNode := FDocument.CreateElement(string(PropInfo.Name));
                 Node.AppendChild(ChildNode);
-                
+
                 SetClassType(TPersistent(PropObj), ChildNode);
-                
                 if PropObj is TCollection then
                   WriteCollection(TCollection(PropObj), ChildNode)
                 else
@@ -2505,24 +2727,33 @@ begin
               end;
             end;
           end;
-          
+
         tkEnumeration:
           begin
             PropValue := GetEnumProp(Obj, string(PropInfo.Name));
-            Node.SetAttribute(string(PropInfo.Name), PropValue);
+            // Store as child element for compatibility
+            ChildNode := FDocument.CreateElement(string(PropInfo.Name));
+            ChildNode.AppendChild(FDocument.CreateTextNode(PropValue));
+            Node.AppendChild(ChildNode);
           end;
-          
+
         tkSet:
           begin
             PropValue := GetSetProp(Obj, string(PropInfo.Name));
-            Node.SetAttribute(string(PropInfo.Name), PropValue);
+            // Store as child element for compatibility
+            ChildNode := FDocument.CreateElement(string(PropInfo.Name));
+            ChildNode.AppendChild(FDocument.CreateTextNode(PropValue));
+            Node.AppendChild(ChildNode);
           end;
-          
-        tkInteger, tkChar, tkWChar, tkFloat, tkString, tkLString, 
+
+        tkInteger, tkChar, tkWChar, tkFloat, tkString, tkLString,
         tkWString{$IFDEF UNICODE}, tkUString{$ENDIF}, tkVariant, tkInt64:
           begin
             PropValue := GetPropValue(Obj, string(PropInfo.Name));
-            Node.SetAttribute(string(PropInfo.Name), PropValue);
+            // Store as child element for compatibility
+            ChildNode := FDocument.CreateElement(string(PropInfo.Name));
+            ChildNode.AppendChild(FDocument.CreateTextNode(PropValue));
+            Node.AppendChild(ChildNode);
           end;
       end;
     end;
@@ -2531,25 +2762,29 @@ begin
   end;
 end;
 
-procedure TCnXMLWriter.WriteObjectToXML(const ObjectName: string; const Obj: TPersistent);
+procedure TCnXMLWriter.WriteObjectToXML(const Obj: TPersistent);
 var
   ObjNode: TCnXMLElement;
   NodeList: TList;
+  CName: string;
 begin
   if Obj = nil then
     Exit;
-    
+
+  // Use class name as node name for compatibility
+  CName := Obj.ClassName;
+
   // Find or create object node
-  NodeList := FRootNode.GetElementsByTagName(ObjectName);
+  NodeList := FRootNode.GetElementsByTagName(CName);
   try
     if NodeList.Count > 0 then
       ObjNode := TCnXMLElement(NodeList[0])
     else
       ObjNode := nil;
-      
+
     if ObjNode = nil then
     begin
-      ObjNode := FDocument.CreateElement(ObjectName);
+      ObjNode := FDocument.CreateElement(CName);
       FRootNode.AppendChild(ObjNode);
     end
     else
@@ -2558,10 +2793,7 @@ begin
       while ObjNode.HasChildNodes do
         ObjNode.RemoveChild(ObjNode.FirstChild);
     end;
-    
-    ObjNode.SetAttribute('NODE_TYPE', 'OBJECT');
-    SetClassType(Obj, ObjNode);
-    
+
     if Obj is TCollection then
       WriteCollection(TCollection(Obj), ObjNode)
     else
@@ -2571,10 +2803,10 @@ begin
   end;
 end;
 
-procedure TCnXMLWriter.SaveToFile(const FileName: string);
+procedure TCnXMLWriter.SaveToFile(const FileName: string; Indent: Boolean);
 begin
   if FDocument <> nil then
-    FDocument.SaveToFile(FileName, False);
+    FDocument.SaveToFile(FileName, Indent);
 end;
 
 //==============================================================================
@@ -2609,11 +2841,11 @@ procedure TCnXMLReader.SetXMLString(const Value: string);
 begin
   if FOwnsDocument and (FDocument <> nil) then
     FDocument.Free;
-    
+
   FDocument := TCnXMLDocument.Create;
   FOwnsDocument := True;
   FDocument.LoadFromString(Value);
-  
+
   FindRootNode;
 end;
 
@@ -2621,7 +2853,7 @@ procedure TCnXMLReader.FindRootNode;
 begin
   if FDocument = nil then
     raise ECnXMLException.Create('Document not loaded', CN_XML_ERR_INVALID_OPERATION, 0, 0);
-    
+
   if FDocument.DocumentElement <> nil then
     FRootNode := FDocument.DocumentElement
   else
@@ -2629,10 +2861,26 @@ begin
 end;
 
 procedure TCnXMLReader.SetPropertyValue(Obj: TPersistent; const PropName, PropValue: string; PProp: PPropInfo);
+var
+  ConvertedValue: string;
 begin
   case PProp.PropType^.Kind of
     tkEnumeration:
-      SetEnumProp(Obj, PropName, PropValue);
+      begin
+        // Special handling for Boolean type or uses 0/1
+        if PProp.PropType^ = TypeInfo(Boolean) then
+        begin
+          if PropValue = '0' then
+            ConvertedValue := 'False'
+          else if PropValue = '1' then
+            ConvertedValue := 'True'
+          else
+            ConvertedValue := PropValue;  // Already 'True' or 'False'
+          SetEnumProp(Obj, PropName, ConvertedValue);
+        end
+        else
+          SetEnumProp(Obj, PropName, PropValue);
+      end;
     tkSet:
       SetSetProp(Obj, PropName, PropValue);
     else
@@ -2648,17 +2896,17 @@ var
   ClassName: string;
 begin
   Collection.Clear;
-  
+
   for I := 0 to Node.ChildCount - 1 do
   begin
     ItemNode := Node.Children[I];
     if (ItemNode.NodeType = xntElement) and (ItemNode.NodeName = 'Item') then
     begin
       ClassName := TCnXMLElement(ItemNode).GetAttribute('ClassType');
-      
+
       // Create item
       Item := Collection.Add;
-      
+
       // Read properties
       ReadProperties(Item, TCnXMLElement(ItemNode));
     end;
@@ -2667,54 +2915,28 @@ end;
 
 procedure TCnXMLReader.ReadProperties(const Obj: TPersistent; Node: TCnXMLElement);
 var
-  I, J, PropCount, AttrCount: Integer;
+  I, J, PropCount: Integer;
   PropList: PPropList;
   PropInfo: PPropInfo;
   PropObj: TObject;
   PropValue: string;
   ChildNode: TCnXMLNode;
-  AttrName: string;
 begin
   PropCount := GetTypeData(Obj.ClassInfo)^.PropCount;
   if PropCount = 0 then
     Exit;
-    
+
   GetMem(PropList, PropCount * SizeOf(Pointer));
   try
     GetPropList(Obj.ClassInfo, tkAny, PropList);
-    
-    // Read attributes (simple properties)
-    AttrCount := Node.AttributeCount;
-    for I := 0 to AttrCount - 1 do
-    begin
-      AttrName := Node.AttributeNames[I];
-      
-      // Skip special attributes
-      if (AttrName = 'ClassType') or (AttrName = 'PersistentType') or 
-         (AttrName = 'NODE_TYPE') then
-        Continue;
-        
-      PropValue := Node.GetAttribute(AttrName);
-      
-      // Find matching property
-      for J := 0 to PropCount - 1 do
-      begin
-        PropInfo := PropList^[J];
-        if string(PropInfo.Name) = AttrName then
-        begin
-          SetPropertyValue(Obj, AttrName, PropValue, PropInfo);
-          Break;
-        end;
-      end;
-    end;
-    
-    // Read child nodes (complex properties)
+
+    // Read child nodes (OmniXML compatibility - properties stored as child elements)
     for I := 0 to Node.ChildCount - 1 do
     begin
       ChildNode := Node.Children[I];
       if ChildNode.NodeType <> xntElement then
         Continue;
-        
+
       // Find matching property
       for J := 0 to PropCount - 1 do
       begin
@@ -2723,6 +2945,7 @@ begin
         begin
           if PropInfo.PropType^.Kind = tkClass then
           begin
+            // Complex property (object)
             PropObj := GetObjectProp(Obj, string(PropInfo.Name));
             if PropObj <> nil then
             begin
@@ -2731,6 +2954,12 @@ begin
               else if PropObj is TPersistent then
                 ReadProperties(TPersistent(PropObj), TCnXMLElement(ChildNode));
             end;
+          end
+          else
+          begin
+            // Simple property - read text content from child element
+            PropValue := ChildNode.Text;
+            SetPropertyValue(Obj, string(PropInfo.Name), PropValue, PropInfo);
           end;
           Break;
         end;
@@ -2741,33 +2970,32 @@ begin
   end;
 end;
 
-function TCnXMLReader.ReadObjectFromXML(const ObjectName: string; Obj: TPersistent): Boolean;
+function TCnXMLReader.ReadObjectFromXML(Obj: TPersistent): Boolean;
 var
   ObjNode: TCnXMLElement;
   NodeList: TList;
+  CName: string;
 begin
   Result := False;
-  
+
   if (Obj = nil) or (FRootNode = nil) then
     Exit;
-    
-  // Find object node
-  NodeList := FRootNode.GetElementsByTagName(ObjectName);
+
+  // For compatibility, find node by class name
+  CName := Obj.ClassName;
+  NodeList := FRootNode.GetElementsByTagName(CName);
   try
     if NodeList.Count > 0 then
     begin
       ObjNode := TCnXMLElement(NodeList[0]);
-      
-      // Verify class type matches
-      if ObjNode.GetAttribute('ClassType') = Obj.ClassName then
-      begin
-        if Obj is TCollection then
-          ReadCollection(TCollection(Obj), ObjNode)
-        else
-          ReadProperties(Obj, ObjNode);
-          
-        Result := True;
-      end;
+
+      // Uses node name as class name, no ClassType attribute
+      if Obj is TCollection then
+        ReadCollection(TCollection(Obj), ObjNode)
+      else
+        ReadProperties(Obj, ObjNode);
+
+      Result := True;
     end;
   finally
     NodeList.Free;
@@ -2778,11 +3006,11 @@ procedure TCnXMLReader.LoadFromFile(const FileName: string);
 begin
   if FOwnsDocument and (FDocument <> nil) then
     FDocument.Free;
-    
+
   FDocument := TCnXMLDocument.Create;
   FOwnsDocument := True;
   FDocument.LoadFromFile(FileName);
-  
+
   FindRootNode;
 end;
 
