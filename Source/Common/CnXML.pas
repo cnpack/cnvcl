@@ -617,10 +617,11 @@ type
     destructor Destroy; override;
     {* Destructor}
 
-    procedure WriteObjectToXML(const Obj: TPersistent);
+    procedure WriteObjectToXML(const Obj: TPersistent; const RootName: string = '');
     {* Write object to XML
      |<PRE>
        Obj: TPersistent   - Object to serialize
+       RootName: string   - Root Node Name, if Empty use Obj.ClassName
      |</PRE>}
     procedure SaveToFile(const FileName: string; Indent: Boolean = True);
     {* Save XML to file
@@ -660,10 +661,11 @@ type
     destructor Destroy; override;
     {* Destructor}
 
-    function ReadObjectFromXML(Obj: TPersistent): Boolean;
+    function ReadObjectFromXML(Obj: TPersistent; const RootName: string = ''): Boolean;
     {* Read object from XML
      |<PRE>
        Obj: TPersistent   - Object to deserialize into
+       RootName: string   - Root Node Name, if Empty use Obj.ClassName
        Return: Boolean    - True if successful
      |</PRE>}
     procedure LoadFromFile(const FileName: string);
@@ -2855,7 +2857,7 @@ begin
   end;
 end;
 
-procedure TCnXMLWriter.WriteObjectToXML(const Obj: TPersistent);
+procedure TCnXMLWriter.WriteObjectToXML(const Obj: TPersistent; const RootName: string);
 var
   ObjNode: TCnXMLElement;
   NodeList: TList;
@@ -2865,7 +2867,10 @@ begin
     Exit;
 
   // Use class name as node name for compatibility
-  CName := Obj.ClassName;
+  if RootName <> '' then
+    CName := RootName
+  else
+    CName := Obj.ClassName;
 
   // Find or create object node
   NodeList := FRootNode.GetElementsByTagName(CName);
@@ -3066,7 +3071,7 @@ begin
   end;
 end;
 
-function TCnXMLReader.ReadObjectFromXML(Obj: TPersistent): Boolean;
+function TCnXMLReader.ReadObjectFromXML(Obj: TPersistent; const RootName: string): Boolean;
 var
   ObjNode: TCnXMLElement;
   NodeList: TList;
@@ -3078,7 +3083,10 @@ begin
     Exit;
 
   // For compatibility, find node by class name
-  CName := Obj.ClassName;
+  if RootName <> '' then
+    CName := RootName
+  else
+    CName := Obj.ClassName;
 
   // First check if FRootNode itself matches the class name
   if SameText(FRootNode.TagName, CName) then
