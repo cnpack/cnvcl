@@ -2545,7 +2545,7 @@ end;
 function CnXMLStrToRealDef(const S: string; Default: Extended): Extended;
 begin
   try
-    Result := StrToFloat(StringReplace(S, '.', {$IFDEF DELPHI2009_UP}FormatSettings.{$ENDIF}DecimalSeparator, [rfReplaceAll]));
+    Result := StrToFloat(StringReplace(S, '.', {$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}DecimalSeparator, [rfReplaceAll]));
   except
     on EConvertError do
       Result := Default;
@@ -2686,7 +2686,7 @@ end;
 
 function CnXMLRealToStr(Value: Extended): string;
 begin
-  Result := StringReplace(FloatToStr(Value), {$IFDEF DELPHI2009_UP}FormatSettings.{$ENDIF}DecimalSeparator, '.', [rfReplaceAll]);
+  Result := StringReplace(FloatToStr(Value), {$IFDEF DELPHIXE3_UP}FormatSettings.{$ENDIF}DecimalSeparator, '.', [rfReplaceAll]);
 end;
 
 function CnXMLInt64ToStr(Value: Int64): string;
