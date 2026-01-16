@@ -2087,9 +2087,6 @@ var
   ExtConsumed: Integer;
   ExtTotalLen: Integer;
   PBody: PByte;
-{$IFNDEF MSWINDOWS}
-  HE: THostEntry;
-{$ENDIF}
   AADFix: array[0..12] of Byte;
   AADFix2: array[0..12] of Byte;
   SeqBytes: array[0..7] of Byte;
