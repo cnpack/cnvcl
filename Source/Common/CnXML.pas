@@ -538,7 +538,6 @@ type
     FCurrentToken: TCnXMLToken;
 
     procedure NextToken;  // Get next token
-    procedure Expect(TokenType: TCnXMLTokenType);  // Expect specific token type
     procedure RaiseError(const Msg: string);  // Raise parsing error
     procedure ParseXMLDecl;  // Parse XML declaration
     procedure ParseElement(ParentNode: TCnXMLNode);  // Parse element
@@ -791,6 +790,11 @@ type
   {* Exception class for XML persistence operations (for OmniXML compatibility)}
 
 implementation
+
+{$IFNDEF UNICODE}
+uses
+  CnWideStrings;
+{$ENDIF}
 
 //==============================================================================
 // ECnXMLException Implementation
@@ -2024,7 +2028,7 @@ var
   StringStream: TStringStream;
 {$ELSE}
   Bytes: TBytes;
-  UTF8Str: UTF8String;
+  UTF8Str: AnsiString;
   I: Integer;
 {$ENDIF}
 begin
@@ -2039,15 +2043,11 @@ begin
   end;
 {$ELSE}
   // 非 Unicode Delphi：从 UTF-8 转换为 AnsiString
-  SetLength(Bytes, Stream.Size);
+  SetLength(UTF8Str, Stream.Size);
   Stream.Position := 0;
-  Stream.Read(Bytes[0], Stream.Size);
+  Stream.Read(UTF8Str[1], Stream.Size);
 
-  SetLength(UTF8Str, Length(Bytes));
-  for I := 0 to Length(Bytes) - 1 do
-    UTF8Str[I + 1] := Chr(Bytes[I]);
-
-  XMLString := UTF8Decode(UTF8Str);
+  XMLString := CnUtf8ToAnsi(UTF8Str);
   LoadFromString(XMLString);
 {$ENDIF}
 end;
@@ -2225,7 +2225,7 @@ var
 {$IFDEF UNICODE}
   StringStream: TStringStream;
 {$ELSE}
-  UTF8Str: UTF8String;
+  UTF8Str: AnsiString;
   Bytes: TBytes;
   I: Integer;
 {$ENDIF}
@@ -2240,11 +2240,9 @@ begin
   end;
 {$ELSE}
   // 非 Unicode Delphi：将 AnsiString 转换为 UTF-8
-  UTF8Str := UTF8Encode(XMLString);
-  SetLength(Bytes, Length(UTF8Str));
-  for I := 1 to Length(UTF8Str) do
-    Bytes[I - 1] := Byte(UTF8Str[I]);
-  Stream.Write(Bytes[0], Length(Bytes));
+  UTF8Str := CnAnsiToUtf8(XMLString);
+  if Length(UTF8Str) > 0 then
+    Stream.Write(UTF8Str[1], Length(UTF8Str));
 {$ENDIF}
 end;
 
@@ -2281,13 +2279,6 @@ end;
 procedure TCnXMLParser.NextToken;
 begin
   FCurrentToken := FLexer.NextToken;
-end;
-
-procedure TCnXMLParser.Expect(TokenType: TCnXMLTokenType);
-begin
-  if FCurrentToken.TokenType <> TokenType then
-    RaiseError('Expected token type ' + IntToStr(Ord(TokenType)) +
-               ' but got ' + IntToStr(Ord(FCurrentToken.TokenType)));
 end;
 
 procedure TCnXMLParser.RaiseError(const Msg: string);
