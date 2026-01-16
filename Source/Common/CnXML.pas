@@ -3028,12 +3028,18 @@ end;
 procedure TCnXMLReader.SetPropertyValue(Obj: TPersistent; const PropName, PropValue: string; PProp: PPropInfo);
 var
   ConvertedValue: string;
+  B: Boolean;
 begin
   case PProp.PropType^.Kind of
     tkEnumeration:
       begin
         // Special handling for Boolean type or uses 0/1
-        if PProp.PropType^ = TypeInfo(Boolean) then
+{$IFDEF FPC}
+        B := PProp.PropType = TypeInfo(Boolean);
+{$ELSE}
+        B := PProp.PropType^ = TypeInfo(Boolean);
+{$ENDIF}
+        if B then
         begin
           if PropValue = '0' then
             ConvertedValue := 'False'
