@@ -54,11 +54,13 @@ uses
   {$IFDEF MSWINDOWS} Windows, Winsock, Nb30, {$ELSE}
   System.Net.Socket, Posix.NetinetIn, Posix.NetDB, Posix.ArpaInet, Posix.SysSocket,
   Posix.NetIf, Posix.StrOpts, Posix.Errno, {$ENDIF}
-  SysUtils, Classes, Controls, StdCtrls, Consts, {$IFNDEF COMPILER5} RTLConsts, {$ENDIF}
+  SysUtils, Classes, Controls, StdCtrls, {$IFNDEF FPC} Consts, {$ENDIF}
+  {$IFNDEF COMPILER5} RTLConsts, {$ENDIF}
   CnInt128, CnClasses, CnConsts, CnNetConsts, CnNative, CnSocket;
 
 type
   ECnIPException = class(Exception);
+  {* IP 相关异常}
 
   TCnIPv4Notes = array[1..4] of Byte;
   {* IP 地址的各子节点，如 192.168.20.102，其中 Note[1]=192 ... Note[4]=102}
@@ -103,8 +105,10 @@ type
 
   { TCnIp }
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnIp = class(TCnComponent)
   private
@@ -898,6 +902,12 @@ begin
 end;
 
 function TCnIp.GetMacAddress: string;
+type
+{$IFDEF FPC}
+  TNetChar = UCHAR;
+{$ELSE}
+  TNetChar = AnsiChar;
+{$ENDIF}
 var
 {$IFDEF MSWINDOWS}
 {$IFDEF WIN32}
@@ -922,20 +932,20 @@ var
   begin
     Result := '';
     FillChar(NCB, SizeOf(NCB), 0);
-    NCB.ncb_command := AnsiChar(NCBRESET);
-    NCB.ncb_lana_num := Lana;
-    if Netbios(@NCB) <> AnsiChar(NRC_GOODRET) then
+    NCB.ncb_command := TNetChar(NCBRESET);
+    NCB.ncb_lana_num := TNetChar(Lana);
+    if Netbios(@NCB) <> TNetChar(NRC_GOODRET) then
       Exit;
 
     FillChar(NCB, SizeOf(NCB), 0);
-    NCB.ncb_command := AnsiChar(NCBASTAT);
-    NCB.ncb_lana_num := Lana;
-    NCB.ncb_callname := '*';
+    NCB.ncb_command := TNetChar(NCBASTAT);
+    NCB.ncb_lana_num := TNetChar(Lana);
+    NCB.ncb_callname[0] := TNetChar('*');
 
     FillChar(Adapter, SizeOf(Adapter), 0);
     NCB.ncb_buffer := @Adapter;
     NCB.ncb_length := SizeOf(Adapter);
-    if Netbios(@NCB) <> AnsiChar(NRC_GOODRET) then
+    if Netbios(@NCB) <> TNetChar(NRC_GOODRET) then
       Exit;
 
     Result :=
@@ -988,12 +998,12 @@ begin
 {$IFDEF MSWINDOWS}
   // Win32 失败后，或 Win64 下，拿 MAC 地址
   FillChar(NCB, SizeOf(NCB), 0);
-  NCB.ncb_command := AnsiChar(NCBENUM);
+  NCB.ncb_command := TNetChar(NCBENUM);
   NCB.ncb_buffer := @AdapterList;
   NCB.ncb_length := SizeOf(AdapterList);
   Netbios(@NCB);
   if Byte(AdapterList.length) > 0 then
-    Result := GetAdapterInfo(AdapterList.lana[0])
+    Result := GetAdapterInfo(AnsiChar(AdapterList.lana[0]))
 {$ELSE}
   // POSIX 下拿 MAC 地址
   getifaddrs(Pif);
