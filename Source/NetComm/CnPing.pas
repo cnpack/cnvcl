@@ -82,11 +82,13 @@ type
 
   { TCnPing }
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
 {$ENDIF}
+{$ENDIF}
   TCnPing = class(TCnComponent)
-  {* 通过调用 ICMP.DLL 库中的函数来实现 Ping 功能。}
+  {* Ping 功能实现类，Windows 下通过调用 ICMP.DLL 库中的函数来实现，其他平台使用 RawSocket。}
   private
     FRemoteHost: string;
     FRemoteIP: string;
