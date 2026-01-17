@@ -45,7 +45,7 @@ interface
 uses
   SysUtils, Classes, Contnrs,
   {$IFDEF MSWINDOWS}
-  Windows, Messages, WinSock, Forms, // 需要设置工程的单元前缀 Vcl 或 FMX
+  Windows, Messages, WinSock, Forms {$IFDEF FPC}, SyncObjs {$ENDIF}, // 需要设置工程的单元前缀 Vcl 或 FMX
   {$ELSE}
   {$IFDEF FPC}
   Sockets, BaseUnix, SyncObjs,
@@ -93,10 +93,15 @@ type
     FLocalPort: Integer;
 {$IFDEF MSWINDOWS}
     FSockCount: Integer;
+  {$IFNDEF FPC}
     FSocketWindow: HWND;
     RemoteHostS: PHostEnt;
     Succeed: Boolean;
     EventHandle: THandle;
+  {$ELSE}
+    FThread: TThread;
+    FLock: TCriticalSection;
+  {$ENDIF}
 {$ELSE}
     FThread: TThread;
   {$IFDEF FPC}
@@ -119,8 +124,10 @@ type
     FUDPSendBufSize: Cardinal;
     FUDPRecvBufSize: Cardinal;
 {$IFDEF MSWINDOWS}
+  {$IFNDEF FPC}
     procedure WndProc(var Message: TMessage);
     procedure ProcessIncomingdata;
+  {$ENDIF}
 {$ENDIF}
     procedure ProcessQueue;
     function ResolveRemoteHost(ARemoteHost: string): Boolean;
@@ -140,7 +147,12 @@ type
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
     procedure DoDataReceived(Buffer: Pointer; Len: Integer; const FromIP: string; Port: Integer);
 {$IFDEF MSWINDOWS}
+  {$IFNDEF FPC}
     procedure Wait;
+  {$ELSE}
+    procedure StartThread;
+    procedure StopThread;
+  {$ENDIF}
 {$ELSE}
     procedure StartThread;
     procedure StopThread;
@@ -218,9 +230,25 @@ type
     property UDP: TCnUDP read FUDP write FUDP;
   end;
 
+{$ELSE}
+
+{$IFDEF FPC}
+
+  TCnUDPReadThread = class(TThread)
+  private
+    FUDP: TCnUDP;
+  protected
+    procedure ProcessData;
+    procedure Execute; override;
+  public
+    property UDP: TCnUDP read FUDP write FUDP;
+  end;
+
 {$ENDIF}
 
-// 取广播地址
+{$ENDIF}
+
+// 取本机广播地址
 procedure GetBroadCastAddress(sInt: TStrings);
 
 // 取本机 IP 地址
@@ -485,9 +513,13 @@ begin
   FUDPRecvBufSize := csDefUDPRecvBuffSize;
 
 {$IFDEF MSWINDOWS}
+  {$IFNDEF FPC}
   GetMem(RemoteHostS, MAXGETHOSTSTRUCT);
   FSocketWindow := AllocateHWND(WndProc);
   EventHandle := CreateEvent(nil, True, False, '');
+  {$ELSE}
+  FLock := TCriticalSection.Create;
+  {$ENDIF}
 {$ELSE}
   {$IFDEF FPC}
   FLock := TCriticalSection.Create;
@@ -517,6 +549,10 @@ destructor TCnUDP.Destroy;
 begin
 {$IFNDEF MSWINDOWS}
   StopThread;
+{$ELSE}
+  {$IFDEF FPC}
+  StopThread;
+  {$ENDIF}
 {$ENDIF}
 
   if FRecvBuf <> nil then
@@ -529,9 +565,13 @@ begin
   FQueue.Free;
 
 {$IFDEF MSWINDOWS}
+  {$IFNDEF FPC}
   FreeMem(RemoteHostS, MAXGETHOSTSTRUCT);
   DeallocateHWND(FSocketWindow);
   CloseHandle(EventHandle);
+  {$ELSE}
+  FLock.Free;
+  {$ENDIF}
 {$ELSE}
   FLock.Free;
 {$ENDIF}
@@ -607,7 +647,12 @@ begin
       PAnsiChar(@Data), SizeOf(Data));
 
 {$IFDEF MSWINDOWS}
+    {$IFNDEF FPC}
     WSAAsyncSelect(FThisSocket, FSocketWindow, WM_ASYNCHRONOUSPROCESS, FD_READ);
+    {$ELSE}
+    StopThread;
+    StartThread;
+    {$ENDIF}
 {$ELSE}
     // 起监听线程
     StopThread;
@@ -644,8 +689,14 @@ end;
 
 function TCnUDP.ResolveRemoteHost(ARemoteHost: string): Boolean;
 {$IFDEF MSWINDOWS}
+  {$IFNDEF FPC}
 var
   Buf: array[0..127] of AnsiChar;
+  {$ELSE}
+var
+  HostEnt: PHostEnt;
+  Addr: PInAddr;
+  {$ENDIF}
 {$ELSE}
   {$IFNDEF FPC}
 var
@@ -658,6 +709,7 @@ begin
     Exit;
 
 {$IFDEF MSWINDOWS}
+  {$IFNDEF FPC}
   try
     FRemoteAddress.sin_addr.S_addr := Inet_Addr(PAnsiChar(StrPCopy(Buf, {$IFDEF UNICODE}AnsiString{$ENDIF}(ARemoteHost))));
     if FRemoteAddress.sin_addr.S_addr = SOCKET_ERROR then
@@ -684,7 +736,22 @@ begin
     ;
   end;
 {$ELSE}
-  // POSIX 下如何异步解析？只能先写同步
+  try
+    FRemoteAddress.sin_addr.S_addr := Inet_Addr(PAnsiChar(AnsiString(ARemoteHost)));
+    if FRemoteAddress.sin_addr.S_addr = INADDR_NONE then
+    begin
+      HostEnt := GetHostByName(PAnsiChar(AnsiString(ARemoteHost)));
+      if (HostEnt <> nil) and (HostEnt^.h_addr_list <> nil) and (HostEnt^.h_addr_list^ <> nil) then
+      begin
+        Addr := PInAddr(HostEnt^.h_addr_list^);
+        FRemoteAddress.sin_addr.S_addr := Addr^.S_addr;
+      end;
+    end;
+  except
+    ;
+  end;
+  {$ENDIF}
+{$ELSE}
   {$IFDEF FPC}
   FRemoteAddress.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(ARemoteHost)));
   {$ELSE}
@@ -792,10 +859,10 @@ begin
   if FProcing then Exit;
   FProcing := True;
   try
-{$IFNDEF MSWINDOWS}
-  {$IFDEF FPC}
+{$IFDEF FPC}
     FLock.Enter;
-  {$ELSE}
+{$ELSE}
+  {$IFNDEF MSWINDOWS}
     TMonitor.Enter(FLock);
   {$ENDIF}
 {$ENDIF}
@@ -806,10 +873,10 @@ begin
       FreeQueueItem(Rec);
     end;
   finally
-{$IFNDEF MSWINDOWS}
-  {$IFDEF FPC}
+{$IFDEF FPC}
     FLock.Leave;
-  {$ELSE}
+{$ELSE}
+  {$IFNDEF MSWINDOWS}
     TMonitor.Exit(FLock);
   {$ENDIF}
 {$ENDIF}
@@ -818,6 +885,8 @@ begin
 end;
 
 {$IFDEF MSWINDOWS}
+
+{$IFNDEF FPC}
 
 function TCnUDP.ProcessRecv: Boolean;
 var
@@ -921,6 +990,45 @@ begin
   WaitforSync(EventHandle);
   ResetEvent(EventHandle);
 end;
+
+{$ELSE}
+
+function TCnUDP.ProcessRecv: Boolean;
+begin
+  ProcessQueue;
+  Result := False;
+end;
+
+procedure TCnUDP.StartThread;
+begin
+  if FThread = nil then
+  begin
+    FThread := TCnUDPReadThread.Create(True);
+    FThread.FreeOnTerminate := True;
+  end;
+
+  if FRecvBuf = nil then
+    GetMem(FRecvBuf, FRecvBufSize);
+
+  TCnUDPReadThread(FThread).UDP := Self;
+  FThread.Resume;
+end;
+
+procedure TCnUDP.StopThread;
+begin
+  if FThread = nil then
+    Exit;
+
+  FThread.Terminate;
+  try
+    FThread.WaitFor;
+  except
+    ;
+  end;
+  FThread := nil;
+end;
+
+{$ENDIF}
 
 {$ELSE}
 
@@ -1075,16 +1183,34 @@ end;
 
 procedure TCnUDPReadThread.Execute;
 var
-  Res, I, FromPort: Integer;
+  Res, I: Integer;
   From: TSockAddr;
   Rec: PRecvDataRec;
+{$IFDEF FPC}
+  Readfds: TCnFDSet;
+  Tv: TTimeVal;
+  Ready: Longint;
+  Nfds: Integer;
+{$ENDIF}
 begin
   if (UDP = nil) or (UDP.FRecvBuf = nil) then
     Exit;
 
-  I := SizeOf(From);
   while not Terminated do
   begin
+{$IFDEF FPC}
+    CnFDZero(Readfds);
+    CnFDSet(UDP.FThisSocket, Readfds);
+    Tv.tv_sec := 0;
+    Tv.tv_usec := 200000;
+    Nfds := UDP.FThisSocket + 1;
+    Ready := CnSelect(Nfds, @Readfds, nil, nil, @Tv);
+    if Terminated then
+      Break;
+    if Ready <= 0 then
+      Continue;
+{$ENDIF}
+    I := SizeOf(From);
     Res := CnRecvFrom(UDP.FThisSocket, UDP.FRecvBuf^, UDP.FRecvBufSize, 0, From, I);
 
     if Res <> SOCKET_ERROR then
@@ -1105,21 +1231,85 @@ begin
       Rec^.BuffSize := Res;
       Move(UDP.FRecvBuf^, Rec^.Buff^, Res);
 
-{$IFNDEF MSWINDOWS}
-  {$IFDEF FPC}
+      {$IFDEF FPC}
       UDP.FLock.Enter;
-  {$ELSE}
+      {$ELSE}
       TMonitor.Enter(UDP.FLock);
-  {$ENDIF}
-{$ENDIF}
+      {$ENDIF}
       UDP.FQueue.Push(Rec);
-{$IFNDEF MSWINDOWS}
-  {$IFDEF FPC}
+      {$IFDEF FPC}
       UDP.FLock.Leave;
-  {$ELSE}
+      {$ELSE}
       TMonitor.Exit(UDP.FLock);
-  {$ENDIF}
+      {$ENDIF}
+
+      Synchronize(ProcessData);
+    end;
+  end;
+end;
+
+procedure TCnUDPReadThread.ProcessData;
+begin
+  if not UDP.FProcing then
+    UDP.ProcessQueue
+  else if UDP.FQueue.Count > 0 then
+  begin
+    Sleep(0);
+    Synchronize(ProcessData);
+  end;
+end;
+
 {$ENDIF}
+
+{$IFDEF FPC_WINDOWS}
+
+{ TCnUDPReadThread }
+
+procedure TCnUDPReadThread.Execute;
+var
+  Res, I: Integer;
+  From: TSockAddr;
+  Rec: PRecvDataRec;
+  Readfds: TCnFDSet;
+  Tv: TTimeVal;
+  Ready: Longint;
+  Nfds: Integer;
+begin
+  if (UDP = nil) or (UDP.FRecvBuf = nil) then
+    Exit;
+
+  while not Terminated do
+  begin
+    CnFDZero(Readfds);
+    CnFDSet(UDP.FThisSocket, Readfds);
+    Tv.tv_sec := 0;
+    Tv.tv_usec := 200000;
+    Nfds := 0;
+    Ready := CnSelect(Nfds, @Readfds, nil, nil, @Tv);
+    if Terminated then
+      Break;
+    if Ready <= 0 then
+      Continue;
+
+    I := SizeOf(From);
+    Res := CnRecvFrom(UDP.FThisSocket, UDP.FRecvBuf^, UDP.FRecvBufSize, 0, From, I);
+    if Res <> SOCKET_ERROR then
+    begin
+      if Res = 0 then
+        Continue;
+
+      GetMem(Rec, SizeOf(TRecvDataRec));
+      FillChar(Rec^, SizeOf(TRecvDataRec), 0);
+
+      GetMem(Rec^.Buff, Res);
+      Rec^.FromIP := string(inet_ntoa(From.sin_addr));
+      Rec^.FromPort := ntohs(From.sin_port);
+      Rec^.BuffSize := Res;
+      Move(UDP.FRecvBuf^, Rec^.Buff^, Res);
+
+      UDP.FLock.Enter;
+      UDP.FQueue.Push(Rec);
+      UDP.FLock.Leave;
 
       Synchronize(ProcessData);
     end;
