@@ -40,7 +40,7 @@ interface
 uses
   SysUtils, Classes, Contnrs,
   {$IFDEF MSWINDOWS} Windows, {$ENDIF}
-  CnClasses, CnConsts, CnNetConsts, CnNative, CnSocket, CnUDP, CnDNS, CnNetwork;
+  CnClasses, CnConsts, CnNetConsts, CnNative, CnSocket, CnUDP, CnDNS, CnNetwork, CnIP;
 
 type
   TCnMDNSService = record
@@ -94,11 +94,13 @@ type
     FLastFromIP: string;
     FOnServiceAdded: TCnMDNSServiceEvent;
     FOnServiceRemoved: TCnMDNSServiceEvent;
+    FOnServiceUpdated: TCnMDNSServiceEvent;
     procedure SetActive(const Value: Boolean);
     procedure UDPDataReceived(Sender: TComponent; Buffer: Pointer; Len: Integer;
       const FromIP: string; Port: Integer);
     function FindServiceItem(const Instance: string): TCnMDNSServiceItem;
     procedure DoServiceAdded(Item: TCnMDNSServiceItem);
+    procedure DoServiceUpdated(Item: TCnMDNSServiceItem);
     procedure SweepExpiredCache;
     procedure DoBrowsePtrAnswer(Packet: TCnDNSPacketObject);
     procedure DoResolveAnswers(Packet: TCnDNSPacketObject);
@@ -123,6 +125,8 @@ type
       FOnServiceAdded;
     property OnServiceRemoved: TCnMDNSServiceEvent read FOnServiceRemoved write
       FOnServiceRemoved;
+    property OnServiceUpdated: TCnMDNSServiceEvent read FOnServiceUpdated write
+      FOnServiceUpdated;
   end;
 
 implementation
@@ -416,6 +420,10 @@ begin
   FLocalIPs := TStringList.Create;
   FLocalInstances := TStringList.Create;
   FUDP := TCnUDP.Create(Self);
+  FUDP.ReuseAddr := True;
+  FUDP.ReusePort := True;
+  FUDP.MulticastTTL := 255;
+  FUDP.MulticastLoop := 1;
   FUDP.RemoteHost := SCN_MDNS_GROUP_V4;
   FUDP.RemotePort := CN_PORT_MDNS;
   FUDP.LocalPort := CN_PORT_MDNS;
@@ -470,7 +478,41 @@ end;
 procedure TCnMulticastDNS.SetActive(const Value: Boolean);
 var
   LocalIP: string;
-  IPs: TStringList;
+  I: Integer;
+  S: string;
+  IpComp: TCnIp;
+
+  function IsIPv4Address(const S: string): Boolean;
+  var
+    Part: string;
+    V: Integer;
+    DotCount: Integer;
+    P: Integer;
+    Q: Integer;
+  begin
+    Result := False;
+    if S = '' then
+      Exit;
+    DotCount := 0;
+    P := 1;
+    for Q := 1 to Length(S) do
+    begin
+      if S[Q] = '.' then
+      begin
+        Part := Copy(S, P, Q - P);
+        if (Part = '') or (not TryStrToInt(Part, V)) or (V < 0) or (V > 255) then
+          Exit;
+        Inc(DotCount);
+        P := Q + 1;
+      end
+      else if (S[Q] < '0') or (S[Q] > '9') then
+        Exit;
+    end;
+    Part := Copy(S, P, Length(S) - P + 1);
+    if (Part = '') or (not TryStrToInt(Part, V)) or (V < 0) or (V > 255) then
+      Exit;
+    Result := DotCount = 3;
+  end;
 begin
   if FActive = Value then
     Exit;
@@ -479,21 +521,34 @@ begin
   if FActive then
   begin
     FUDP.UpdateBinding;
-    IPs := TStringList.Create;
+    FLocalIPs.Clear;
+    IpComp := TCnIp.Create(nil);
     try
-      GetLocalIPAddress(IPs);
-      if IPs.Count > 0 then
-        LocalIP := IPs[0]
+      if IpComp.LocalIPCount > 0 then
+        LocalIP := TCnIp.IntToIP(IpComp.LocalIPs[0].IPAddress)
       else
         LocalIP := '0.0.0.0';
-      FLocalIPs.Assign(IPs);
+      for I := 0 to IpComp.LocalIPCount - 1 do
+      begin
+        S := TCnIp.IntToIP(IpComp.LocalIPs[I].IPAddress);
+        if IsIPv4Address(S) and (FLocalIPs.IndexOf(S) < 0) then
+          FLocalIPs.Add(S);
+      end;
     finally
-      IPs.Free;
+      IpComp.Free;
     end;
-    FUDP.JoinMulticastGroup(SCN_MDNS_GROUP_V4, LocalIP);
+    if not IsIPv4Address(LocalIP) then
+      LocalIP := '0.0.0.0';
+    if FLocalIPs.Count = 0 then
+      FUDP.JoinMulticastGroup(SCN_MDNS_GROUP_V4, LocalIP)
+    else
+      for I := 0 to FLocalIPs.Count - 1 do
+        FUDP.JoinMulticastGroup(SCN_MDNS_GROUP_V4, FLocalIPs[I]);
   end
   else
   begin
+    for I := 0 to FLocalIPs.Count - 1 do
+      FUDP.LeaveMulticastGroup(SCN_MDNS_GROUP_V4, FLocalIPs[I]);
     FUDP.LeaveMulticastGroup(SCN_MDNS_GROUP_V4, '0.0.0.0');
     FLocalIPs.Clear;
   end;
@@ -537,6 +592,21 @@ begin
   Svc.Local := Item.IsLocal;
   if Assigned(FOnServiceAdded) then
     FOnServiceAdded(Self, Svc);
+end;
+
+procedure TCnMulticastDNS.DoServiceUpdated(Item: TCnMDNSServiceItem);
+var
+  Svc: TCnMDNSService;
+begin
+  Svc.Instance := Item.Instance;
+  Svc.TypeName := Item.TypeName;
+  Svc.Domain := Item.Domain;
+  Svc.Host := Item.Host;
+  Svc.Port := Item.Port;
+  Svc.TxtRaw := Item.TxtRaw;
+  Svc.Local := Item.IsLocal;
+  if Assigned(FOnServiceUpdated) then
+    FOnServiceUpdated(Self, Svc);
 end;
 
 procedure TCnMulticastDNS.SweepExpiredCache;
@@ -587,18 +657,25 @@ var
   R: TCnDNSResourceRecord;
   Item: TCnMDNSServiceItem;
   Ttl: Cardinal;
+
+  function Norm(const S: string): string;
+  begin
+    Result := S;
+    while (Result <> '') and (Result[1] = '.') do
+      Delete(Result, 1, 1);
+  end;
 begin
   for I := 0 to Packet.ANCount - 1 do
   begin
     R := Packet.AN[I];
     if R.RType = CN_DNS_TYPE_PTR then
     begin
-      Item := FindServiceItem(R.RDString);
+      Item := FindServiceItem(Norm(R.RDString));
       if Item = nil then
       begin
         Item := TCnMDNSServiceItem.Create;
-        Item.Instance := R.RDString;
-        Item.TypeName := R.RName;
+        Item.Instance := Norm(R.RDString);
+        Item.TypeName := Norm(R.RName);
         Item.Domain := 'local';
         Item.Host := '';
         Item.Port := 0;
@@ -608,6 +685,7 @@ begin
           IsLocalAddress(FLocalIPs, FLastFromIP);
         FServices.Add(Item);
         DoServiceAdded(Item);
+        Resolve(Item.Instance);
       end;
       Ttl := R.TTL;
       if Ttl > 0 then
@@ -619,41 +697,59 @@ end;
 procedure TCnMulticastDNS.DoResolveAnswers(Packet: TCnDNSPacketObject);
 var
   I: Integer;
-  J: Integer;
-  R: TCnDNSResourceRecord;
   Item: TCnMDNSServiceItem;
   Ttl: Cardinal;
-begin
-  for I := 0 to Packet.ANCount - 1 do
+  OldHost: string;
+  OldPort: Word;
+  OldTxtLen: Integer;
+
+  function Norm(const S: string): string;
   begin
-    R := Packet.AN[I];
+    Result := S;
+    while (Result <> '') and (Result[1] = '.') do
+      Delete(Result, 1, 1);
+  end;
+
+  procedure HandleRR(R: TCnDNSResourceRecord);
+  var
+    J: Integer;
+    Name: string;
+  begin
+    Name := Norm(R.RName);
     if R.RType = CN_DNS_TYPE_SRV then
     begin
-      Item := FindServiceItem(R.RName);
+      Item := FindServiceItem(Name);
       if Item = nil then
       begin
         Item := TCnMDNSServiceItem.Create;
-        Item.Instance := R.RName;
+        Item.Instance := Name;
         Item.TypeName := '';
         Item.Domain := 'local';
         FServices.Add(Item);
       end;
+      OldHost := Item.Host;
+      OldPort := Item.Port;
       Item.Port := Word(R.IP);
-      Item.Host := R.RDString;
+      Item.Host := Norm(R.RDString);
       Item.IsLocal := (FLocalInstances.IndexOf(Item.Instance) >= 0) or
         IsLocalAddress(FLocalIPs, FLastFromIP);
       Ttl := R.TTL;
       if Ttl > 0 then
         Item.ExpireTick := GetTick + Ttl * 1000;
+      if (OldHost <> Item.Host) or (OldPort <> Item.Port) then
+        DoServiceUpdated(Item);
     end
     else if R.RType = CN_DNS_TYPE_TXT then
     begin
-      Item := FindServiceItem(R.RName);
+      Item := FindServiceItem(Name);
       if Item <> nil then
       begin
+        OldTxtLen := Length(Item.TxtRaw);
         SetLength(Item.TxtRaw, Length(R.RDString));
         if Length(Item.TxtRaw) > 0 then
           Move(R.RDString[1], Item.TxtRaw[0], Length(R.RDString));
+        if OldTxtLen <> Length(Item.TxtRaw) then
+          DoServiceUpdated(Item);
       end;
     end
     else if R.RType = CN_DNS_TYPE_A then
@@ -670,6 +766,13 @@ begin
       end;
     end;
   end;
+begin
+  for I := 0 to Packet.ANCount - 1 do
+    HandleRR(Packet.AN[I]);
+  for I := 0 to Packet.NSCount - 1 do
+    HandleRR(Packet.NS[I]);
+  for I := 0 to Packet.ARCount - 1 do
+    HandleRR(Packet.AR[I]);
 end;
 
 procedure TCnMulticastDNS.Browse(const TypeName: string);
@@ -685,10 +788,10 @@ procedure TCnMulticastDNS.Resolve(const Instance: string);
 var
   Buf: TBytes;
 begin
-  Buf := BuildQuerySimple(Instance, CN_DNS_TYPE_SRV, CN_DNS_CLASS_IN);
+  Buf := BuildQuerySimple(Instance, CN_DNS_TYPE_SRV, SetCacheFlush(CN_DNS_CLASS_IN));
   FUDP.SendBuffer(@Buf[0], Length(Buf), False);
   SetLength(Buf, 0);
-  Buf := BuildQuerySimple(Instance, CN_DNS_TYPE_TXT, CN_DNS_CLASS_IN);
+  Buf := BuildQuerySimple(Instance, CN_DNS_TYPE_TXT, SetCacheFlush(CN_DNS_CLASS_IN));
   FUDP.SendBuffer(@Buf[0], Length(Buf), False);
   SetLength(Buf, 0);
 end;
