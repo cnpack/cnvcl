@@ -598,9 +598,9 @@ begin
         Result := SCN_ICMP_ERROR_OK;
         FillChar(IcmpReply, SizeOf(IcmpReply), 0);
 {$IFDEF FPC}
-        IcmpReply.RTT := GetTickCount64 - TimeStart;
+        IcmpReply.RTT := Cardinal(GetTickCount64 - TimeStart);
 {$ELSE}
-        IcmpReply.RTT := TThread.GetTickCount64 - TimeStart;
+        IcmpReply.RTT := Cardinal(TThread.GetTickCount64 - TimeStart);
 {$ENDIF}
         if HIp <> nil then
           IcmpReply.Options.TTL := HIp^.TTL
