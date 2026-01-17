@@ -49,7 +49,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Buttons,
-  ImgList, ActnList, CnConsts;
+  ImgList, ActnList, {$IFDEF FPC} LCLType, {$ENDIF} CnConsts;
 
 type
   TBtnColorStyle = (bcsCustom, bcsGold, bcsChrome, bcsBlue, bcsRed,
@@ -177,8 +177,10 @@ type
     property OnMouseLeave: TNotifyEvent read FOnMouseLeave write FOnMouseLeave;
   end;
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnButton = class(TCnCustomButton)
   published
@@ -240,8 +242,10 @@ type
     property OnStartDrag;
   end;
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnBitBtn = class(TCnCustomButton)
   published
@@ -307,8 +311,10 @@ type
     property OnStartDrag;
   end;
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnSpeedButton = class(TGraphicControl)
   private
