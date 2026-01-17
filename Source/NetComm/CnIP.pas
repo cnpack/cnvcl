@@ -51,10 +51,10 @@ interface
 {$I CnPack.inc}
 
 uses
-  {$IFDEF MSWINDOWS} Windows, Winsock, Nb30, {$ELSE}
+  {$IFDEF MSWINDOWS} Windows, Winsock, Nb30, {$ELSE} {$IFDEF FPC} Sockets, BaseUnix, NetDB, {$ELSE}
   System.Net.Socket, Posix.NetinetIn, Posix.NetDB, Posix.ArpaInet, Posix.SysSocket,
-  Posix.NetIf, Posix.StrOpts, Posix.Errno, {$ENDIF}
-  SysUtils, Classes, Controls, StdCtrls, {$IFNDEF FPC} Consts, {$ENDIF}
+  Posix.NetIf, Posix.StrOpts, Posix.Errno, {$ENDIF} {$ENDIF}
+  SysUtils, Classes, Controls, {$IFNDEF FPC} Consts, {$ENDIF}
   {$IFNDEF COMPILER5} RTLConsts, {$ENDIF}
   CnInt128, CnClasses, CnConsts, CnNetConsts, CnNative, CnSocket;
 
@@ -219,6 +219,75 @@ implementation
 
 {$R-}
 
+{$IFDEF FPC_MACOS}
+
+type
+  PSockAddrIn = ^TSockAddrIn;
+  TSockAddrIn = packed record
+    sin_len: Byte;
+    sin_family: Byte;
+    sin_port: Word;
+    sin_addr: LongWord;
+    sin_zero: array[0..7] of Byte;
+  end;
+
+  PSockAddrDl = ^TSockAddrDl;
+  TSockAddrDl = packed record
+    sdl_len: Byte;
+    sdl_family: Byte;
+    sdl_index: Word;
+    sdl_type: Byte;
+    sdl_nlen: Byte;
+    sdl_alen: Byte;
+    sdl_slen: Byte;
+    sdl_data: array[0..11] of AnsiChar;
+  end;
+
+  PIfAddrs = ^TIfAddrs;
+  TIfAddrs = record
+    ifa_next: PIfAddrs;
+    ifa_name: PAnsiChar;
+    ifa_flags: Cardinal;
+    ifa_addr: PSockAddr;
+    ifa_netmask: PSockAddr;
+    ifa_ifu: record
+      case Integer of
+        0: (ifu_broadaddr: PSockAddr);
+        1: (ifu_dstaddr: PSockAddr);
+    end;
+    ifa_data: Pointer;
+  end;
+
+  PAddrInfo = ^TAddrInfo;
+  TAddrInfo = record
+    ai_flags: LongInt;
+    ai_family: LongInt;
+    ai_socktype: LongInt;
+    ai_protocol: LongInt;
+    ai_addrlen: LongInt;
+    ai_canonname: PAnsiChar;
+    ai_addr: PSockAddr;
+    ai_next: PAddrInfo;
+  end;
+
+function getifaddrs(out ifap: PIfAddrs): Integer; cdecl; external 'libc' name 'getifaddrs';
+
+procedure freeifaddrs(ifap: PIfAddrs); cdecl; external 'libc' name 'freeifaddrs';
+
+function getaddrinfo(node, service: PAnsiChar; hints: PAddrInfo; out res: PAddrInfo): LongInt; cdecl; external 'libc' name 'getaddrinfo';
+
+procedure freeaddrinfo(res: PAddrInfo); cdecl; external 'libc' name 'freeaddrinfo';
+
+function gai_strerror(e: LongInt): PAnsiChar; cdecl; external 'libc' name 'gai_strerror';
+
+function inet_ntop(af: LongInt; src: Pointer; dst: PAnsiChar; size: LongInt): PAnsiChar; cdecl; external 'libc' name 'inet_ntop';
+
+function inet_pton(af: LongInt; src: PAnsiChar; dst: Pointer): LongInt; cdecl; external 'libc' name 'inet_pton';
+
+function getnameinfo(sa: PSockAddr; salen: LongInt; host: PAnsiChar; hostlen: LongInt; serv: PAnsiChar; servlen: LongInt; flags: LongInt): LongInt; cdecl; external 'libc' name 'getnameinfo';
+
+{$ENDIF}
+
 const
   MAXIPNOTE = 255;
   MAXIPV6NOTE = 65535;
@@ -248,7 +317,29 @@ const
   MAX_DHCPV6_DUID_LENGTH = 130;
   MAX_DNS_SUFFIX_STRING_LENGTH = 256;
 
+{$ENDIF}
+
+{$IFDEF FPC_MACOS}
+const
+  AF_LINK = 18;
+  IFT_ETHER = 6;
+  IFF_UP = $0001;
+  IFF_BROADCAST = $0002;
+  IFF_LOOPBACK = $0004;
+{$ENDIF}
+
 type
+
+{$IFDEF FPC}
+{$IFDEF MSWINDOWS}
+  TNetChar = UCHAR;
+{$ENDIF}
+{$ELSE}
+  TNetChar = AnsiChar;
+{$ENDIF}
+
+{$IFDEF MSWINDOWS}
+
   { 从 Winsock 2.0 导入函数 WSAIOCtl -- 在 Win98/ME/2K/Xp and 95 OSR2, NT srv pack #3下才有 Winsock 2 }
   TWSAIoctl = function (s: TSocket; cmd: DWORD; lpInBuffer: PByte; dwInBufferLen:
                         DWORD; lpOutBuffer: PByte; dwOutBufferLen: DWORD;
@@ -524,8 +615,6 @@ var
   WS2_32DllHandle: THandle = 0;
   IphlpApiHandle: THandle = 0;
 
-  in6addr_loopback: IN6_ADDR;
-
 procedure InitWSAIoctl;
 begin
   WS2_32DllHandle := LoadLibrary(WS2_32DLL);
@@ -551,7 +640,6 @@ end;
 
 {$ELSE}
 
-type
   sockaddr_dl = record
     sdl_len: Byte;    //* Total length of sockaddr */
     sdl_family: Byte; //* AF_LINK */
@@ -901,13 +989,54 @@ begin
 {$ENDIF}
 end;
 
-function TCnIp.GetMacAddress: string;
-type
-{$IFDEF FPC}
-  TNetChar = UCHAR;
+{$IFDEF FPC_MACOS}
+
+function TCnIP.GetMacAddress: string;
+var
+  ifap, cur: PIfAddrs;
+  sdl: PSockAddrDl;
+  mac: string;
+  i: Integer;
+  base: Integer;
+  octet: Integer;
+begin
+  Result := '';
+  if getifaddrs(ifap) <> 0 then
+    Exit;
+  try
+    cur := ifap;
+    while cur <> nil do
+    begin
+      if (cur^.ifa_addr <> nil) and
+         (cur^.ifa_addr^.sa_family = AF_LINK) and
+         ((cur^.ifa_flags and IFF_LOOPBACK) = 0) then
+      begin
+        sdl := PSockAddrDl(cur^.ifa_addr);
+        if (sdl^.sdl_type = IFT_ETHER) and (sdl^.sdl_alen = 6) then
+        begin
+          mac := '';
+          base := sdl^.sdl_nlen;
+          for i := 0 to sdl^.sdl_alen - 1 do
+          begin
+            if mac <> '' then
+              mac := mac + '-';
+            octet := Ord(sdl^.sdl_data[base + i]) and $FF;
+            mac := mac + IntToHex(octet, 2);
+          end;
+          Result := mac;
+          Break;
+        end;
+      end;
+      cur := cur^.ifa_next;
+    end;
+  finally
+    freeifaddrs(ifap);
+  end;
+end;
+
 {$ELSE}
-  TNetChar = AnsiChar;
-{$ENDIF}
+
+function TCnIp.GetMacAddress: string;
 var
 {$IFDEF MSWINDOWS}
 {$IFDEF WIN32}
@@ -1059,6 +1188,67 @@ begin
 {$ENDIF}
 end;
 
+{$ENDIF}
+
+{$IFDEF FPC_MACOS}
+
+function ResolveByGetAddrInfo(var aIP: string; const aName: string): Boolean;
+var
+  Hints: TAddrInfo;
+  Res, Cur: PAddrInfo;
+  Ret: LongInt;
+  Buf: array[0..255] of AnsiChar;
+begin
+  aIP := '';
+  Result := False;
+  FillChar(Hints, SizeOf(Hints), 0);
+  Hints.ai_family := AF_INET;
+  Hints.ai_socktype := SOCK_STREAM;
+  Hints.ai_protocol := 0;
+
+  Ret := getaddrinfo(PAnsiChar(AnsiString(aName)), nil, @Hints, Res);
+  if Ret <> 0 then
+    Exit;
+
+  try
+    Cur := Res;
+    while Cur <> nil do
+    begin
+      if Cur^.ai_family = AF_INET then
+      begin
+        if (Cur^.ai_addr <> nil) and
+           (inet_ntop(Cur^.ai_family, @PSockAddrIn(Cur^.ai_addr)^.sin_addr, @Buf[0], SizeOf(Buf)) <> nil) then
+        begin
+          aIP := string(Buf);
+          Result := True;
+          Exit;
+        end;
+      end;
+      Cur := Cur^.ai_next;
+    end;
+  finally
+    freeaddrinfo(Res);
+  end;
+end;
+
+class function TCnIp.GetIPByName(var aIP: string; const aName: string): Boolean;
+var
+  Host: THostEntry;
+begin
+  aIP := '';
+  // 优先用 getaddrinfo + inet_ntop，保证字节顺序和字符串格式
+  Result := ResolveByGetAddrInfo(aIP, aName);
+  if Result then
+    Exit;
+
+  // 回退到 NetDB.GetHostByName（兼容性备用路径）
+  Result := GetHostByName(PAnsiChar(AnsiString(aName)), Host);
+  if Result then
+    aIP := NetAddrToStr(Host.Addr);
+end;
+
+{$ELSE}
+
 class function TCnIp.GetIPByName(var aIP: string; const aName: string): Boolean;
 {$IFDEF MSWINDOWS}
 var
@@ -1087,6 +1277,37 @@ begin
   Result := aIP <> '';
 {$ENDIF}
 end;
+
+{$ENDIF}
+
+{$IFDEF FPC_MACOS}
+
+class function TCnIp.GetNameByIP(var aName: string; const aIP: string): Boolean;
+var
+  sa: TSockAddrIn;
+  HostBuf: array[0..255] of AnsiChar;
+  Ret: LongInt;
+begin
+  aName := '';
+  FillChar(sa, SizeOf(sa), 0);
+  sa.sin_len := SizeOf(sa);
+  sa.sin_family := AF_INET;
+  if inet_pton(AF_INET, PAnsiChar(AnsiString(aIP)), @sa.sin_addr) <> 1 then
+  begin
+    Result := False;
+    Exit;
+  end;
+  Ret := getnameinfo(PSockAddr(@sa), SizeOf(sa), @HostBuf[0], SizeOf(HostBuf), nil, 0, 0);
+  if Ret <> 0 then
+    Result := False
+  else
+  begin
+    aName := string(HostBuf);
+    Result := True;
+  end;
+end;
+
+{$ELSE}
 
 class function TCnIp.GetNameByIP(var aName: string; const aIP: string): Boolean;
 var
@@ -1122,13 +1343,86 @@ begin
   end;
 end;
 
-{-------------------------------------------------------------------
-1. 创建一个 Socket
-2. 调用 WSAIOCtl 获取网络连接
-3. 对每个连接，获取它的 IP、掩码、广播地址、状态
-4. 将信息填充到 IP 数组中
-5. 结束关闭 Socket
---------------------------------------------------------------------}
+{$ENDIF}
+
+{$IFDEF FPC_MACOS}
+
+class function TCnIp.EnumLocalIP(var aLocalIP: TCnIPGroup): Integer;
+var
+  ifap, cur: PIfAddrs;
+  Count, Index: Integer;
+  pAddrInet: PSockAddrIn;
+  Buf: array[0..255] of AnsiChar;
+begin
+  Result := 0;
+  SetLength(aLocalIP, 0);
+  if getifaddrs(ifap) <> 0 then
+    Exit;
+  try
+    Count := 0;
+    cur := ifap;
+    while cur <> nil do
+    begin
+      if (cur^.ifa_addr <> nil) and
+         (cur^.ifa_addr^.sa_family = AF_INET) and
+         ((cur^.ifa_flags and IFF_LOOPBACK) = 0) then
+        Inc(Count);
+      cur := cur^.ifa_next;
+    end;
+    if Count = 0 then
+      Exit;
+
+    SetLength(aLocalIP, Count);
+    Index := 0;
+    cur := ifap;
+    while cur <> nil do
+    begin
+      if (cur^.ifa_addr <> nil) and
+         (cur^.ifa_addr^.sa_family = AF_INET) and
+         ((cur^.ifa_flags and IFF_LOOPBACK) = 0) then
+      begin
+        FillChar(aLocalIP[Index], SizeOf(aLocalIP[Index]), 0);
+
+        pAddrInet := PSockAddrIn(cur^.ifa_addr);
+        if inet_ntop(AF_INET, @pAddrInet^.sin_addr,
+                     @Buf[0], SizeOf(Buf)) <> nil then
+          aLocalIP[Index].IPAddress := IPToInt(string(Buf));
+
+        if cur^.ifa_netmask <> nil then
+        begin
+          pAddrInet := PSockAddrIn(cur^.ifa_netmask);
+          if inet_ntop(AF_INET, @pAddrInet^.sin_addr,
+                       @Buf[0], SizeOf(Buf)) <> nil then
+            aLocalIP[Index].SubnetMask := IPToInt(string(Buf));
+        end;
+
+        if cur^.ifa_ifu.ifu_broadaddr <> nil then
+        begin
+          pAddrInet := PSockAddrIn(cur^.ifa_ifu.ifu_broadaddr);
+          if inet_ntop(AF_INET, @pAddrInet^.sin_addr,
+                       @Buf[0], SizeOf(Buf)) <> nil then
+            aLocalIP[Index].BroadCast := IPToInt(string(Buf));
+        end;
+
+        aLocalIP[Index].UpState :=
+          (cur^.ifa_flags and IFF_UP) = IFF_UP;
+        aLocalIP[Index].Loopback :=
+          (cur^.ifa_flags and IFF_LOOPBACK) = IFF_LOOPBACK;
+        aLocalIP[Index].SupportBroadcast :=
+          (cur^.ifa_flags and IFF_BROADCAST) = IFF_BROADCAST;
+
+        Inc(Index);
+      end;
+      cur := cur^.ifa_next;
+    end;
+    Result := Count;
+  finally
+    freeifaddrs(ifap);
+  end;
+end;
+
+{$ELSE}
+
 class function TCnIp.EnumLocalIP(var aLocalIP: TCnIPGroup): Integer;
 var
   iIP: Integer;
@@ -1220,6 +1514,24 @@ begin
 {$ENDIF}
 end;
 
+{$ENDIF}
+
+function IN6_IS_ADDR_LOOPBACK(const A: in6_addr): Boolean;
+type
+  TIp6Bytes = array[0..15] of Byte;
+  PIp6Bytes = ^TIp6Bytes;
+var
+  B: PIp6Bytes;
+  I: Integer;
+begin
+  Result := False;
+  B := @A;
+  for I := 0 to 14 do
+    if B^[I] <> 0 then
+      Exit;
+  Result := B^[15] = 1;
+end;
+
 class function TCnIp.EnumLocalIPv6(var aLocalIPv6: TCnIPv6Group): Integer;
 {$IFDEF MSWINDOWS}
 const
@@ -1231,12 +1543,6 @@ var
   Adapter, AdapterList: PIP_ADAPTER_ADDRESSES;
   UnicastAddr: PIP_ADAPTER_UNICAST_ADDRESS;
   Addr6: Psockaddr_in6;
-
-  function IN6_IS_ADDR_LOOPBACK(const A: in6_addr): Boolean;
-  begin
-    Result := CompareMem(@A, @in6addr_loopback, SizeOf(IN6_ADDR));
-  end;
-
 begin
   Result := 0;
   SetLength(aLocalIPv6, 0);
@@ -1427,9 +1733,6 @@ end;
 {$IFDEF MSWINDOWS}
 
 initialization
-  FillChar(in6addr_loopback.s6_bytes, SizeOf(IN6_ADDR), 0);
-  in6addr_loopback.s6_bytes[15] := 1;
-
   InitWSAIoctl;
 
 finalization
