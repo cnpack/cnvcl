@@ -54,7 +54,7 @@ uses
   {$IFDEF MSWINDOWS} Windows, Winsock, Nb30, {$ELSE} {$IFDEF FPC} Sockets, BaseUnix, NetDB, {$ELSE}
   System.Net.Socket, Posix.NetinetIn, Posix.NetDB, Posix.ArpaInet, Posix.SysSocket,
   Posix.NetIf, Posix.StrOpts, Posix.Errno, {$ENDIF} {$ENDIF}
-  SysUtils, Classes, {$IFNDEF COMPILER5} RTLConsts, {$ENDIF}
+  SysUtils, Classes, {$IFDEF COMPILER5} Consts, {$ELSE} RTLConsts, {$ENDIF}
   CnInt128, CnClasses, CnConsts, CnNetConsts, CnNative, CnSocket;
 
 type
