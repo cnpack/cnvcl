@@ -46,6 +46,7 @@
 
   {$IFDEF DARWIN}
     {$DEFINE FPC_MACOS}                        // FPC 在 MACOS 下的编译条件
+    {$DEFINE MACOS}                            // 补一个 MACOS，和 Delphi 保持一致
   {$ENDIF}
 
   {$IFDEF MSWINDOWS}
