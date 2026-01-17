@@ -174,9 +174,12 @@ type
   end;
 
   TCnDNSResponseEvent = procedure(Sender: TObject; Response: TCnDNSPacketObject) of object;
+  {* DNS 响应事件}
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnDNS = class(TCnComponent)
   {* DNS 收发包组件}
@@ -500,7 +503,7 @@ begin
           Exit;
       end
       else
-        raise ECnDNSException.CreateFmt(SCnDNSInvalidHeadByteFmt, [PB^, PB - Base]);
+        raise ECnDNSException.CreateFmt(SCnDNSInvalidHeadByteFmt, [PB^, PB - PByte(Base)]);
     end;
   end
   else // 无长度限制，可能就一个索引（无结束符），或字符串开头，可能有索引，碰到 #0 结束
@@ -552,7 +555,7 @@ begin
         SetLength(Str, 0);
       end
       else
-        raise ECnDNSException.CreateFmt(SCnDNSInvalidHeadByteFmt, [PB^, PB - Base]);
+        raise ECnDNSException.CreateFmt(SCnDNSInvalidHeadByteFmt, [PB^, PB - PByte(Base)]);
     end;
   end;
 end;
