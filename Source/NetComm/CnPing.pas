@@ -49,6 +49,9 @@ type
     TOS: Byte;              // Type Of Service (usually 0)
     Flags: Byte;            // IP header flags (usually 0)
     OptionsSize: Byte;      // Size of options data (usually 0, max 40)
+{$IFDEF CPU64BITS}
+    Padding: Cardinal;      // 64 位下系统要求对齐 8 字节
+{$ENDIF}
     OptionsData: PAnsiChar; // Options data buffer
   end;
 
@@ -212,8 +215,8 @@ begin
   Parts[3] := StrToIntDef(Buf, -1);
   if (Parts[3] < 0) or (Parts[3] > 255) then
     Exit;
-  Result := (Cardinal(Parts[0]) shl 24) or (Cardinal(Parts[1]) shl 16) or
-            (Cardinal(Parts[2]) shl 8) or Cardinal(Parts[3]);
+  Result := (Cardinal(Parts[3]) shl 24) or (Cardinal(Parts[2]) shl 16) or
+            (Cardinal(Parts[1]) shl 8) or Cardinal(Parts[0]);
 end;
 
 {$ENDIF}
