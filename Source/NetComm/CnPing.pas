@@ -434,7 +434,7 @@ var
   Buf: array[0..1023] of Byte;
   R, FromLen: Integer;
   ID, ReceivedID: Word;
-  TimeStart: Cardinal;
+  TimeStart: UInt64;
   IcmpReply: TCnIcmpEchoReply;
 {$ENDIF}
 begin
@@ -543,10 +543,18 @@ begin
     CnFillICMPHeaderCheckSum(HIcmp, Count);
 
     FillChar(DestAddr, SizeOf(DestAddr), 0);
+{$IFNDEF FPC}
+    DestAddr.sin_len := SizeOf(DestAddr);
+{$ENDIF}
+
     DestAddr.sin_family := AF_INET;
     DestAddr.sin_addr.s_addr := inet_addr(PAnsiChar(aIP.IP));
 
-    TimeStart := GetTickCount;
+{$IFDEF FPC}
+    TimeStart := GetTickCount64;
+{$ELSE}
+    TimeStart := TThread.GetTickCount64;
+{$ENDIF}
     R := CnSendTo(Sock, HIcmp^, SizeOf(TCnICMPHeader) + Count, 0, DestAddr,
       SizeOf(DestAddr));
     if R = SOCKET_ERROR then
@@ -587,7 +595,11 @@ begin
       begin
         Result := SCN_ICMP_ERROR_OK;
         FillChar(IcmpReply, SizeOf(IcmpReply), 0);
-        IcmpReply.RTT := GetTickCount - TimeStart;
+{$IFDEF FPC}
+        IcmpReply.RTT := GetTickCount64 - TimeStart;
+{$ELSE}
+        IcmpReply.RTT := TThread.GetTickCount64 - TimeStart;
+{$ENDIF}
         if HIp <> nil then
           IcmpReply.Options.TTL := HIp^.TTL
         else
