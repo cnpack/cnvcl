@@ -43,12 +43,16 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs, {$IFDEF FPC} LCLIntf, LCLType, LMessages, {$ENDIF}
+  SysUtils, Classes, Contnrs,
   {$IFDEF MSWINDOWS}
   Windows, Messages, WinSock, Forms, // 需要设置工程的单元前缀 Vcl 或 FMX
   {$ELSE}
+  {$IFDEF FPC}
+  Sockets, BaseUnix, SyncObjs,
+  {$ELSE}
   Posix.Base, Posix.NetIf, Posix.SysSocket, Posix.ArpaInet, Posix.NetinetIn,
   Posix.Unistd, System.Net.Socket,
+  {$ENDIF}
   {$ENDIF}
   CnClasses, CnConsts, CnNetConsts, CnSocket;
 
@@ -95,7 +99,11 @@ type
     EventHandle: THandle;
 {$ELSE}
     FThread: TThread;
+  {$IFDEF FPC}
+    FLock: TCriticalSection;
+  {$ELSE}
     FLock: TObject;
+  {$ENDIF}
 {$ENDIF}
     Wait_Flag: Boolean;
     FProcing: Boolean;
@@ -235,6 +243,14 @@ type
 
 {$R-}
 
+{$IFDEF FPC_MACOS}
+function fpgethostname(name: PAnsiChar; len: LongInt): LongInt; cdecl; external 'libc' name 'gethostname';
+
+function inet_addr(cp: PAnsiChar): LongWord; cdecl; external 'libc' name 'inet_addr';
+
+function inet_ntoa(inaddr: in_addr): PAnsiChar; cdecl; external 'libc' name 'inet_ntoa';
+
+{$ENDIF}
 //==============================================================================
 // 辅助过程
 //==============================================================================
@@ -286,8 +302,12 @@ var
   Buffer: array[0..20] of INTERFACE_INFO;
   I: Integer;
 {$ELSE}
+  {$IFDEF FPC}
+  S: array[0..256] of AnsiChar;
+  {$ELSE}
   Pif: Pifaddrs;
   InAddr: in_addr;
+  {$ENDIF}
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
@@ -333,6 +353,19 @@ begin
   CloseSocket(S);
   WSACleanUp;
 {$ELSE}
+  {$IFDEF FPC}
+  sInt.Clear;
+  if IsBroadCast then
+    sInt.Add('255.255.255.255')
+  else
+  begin
+    FillChar(S[0], SizeOf(S), 0);
+    fpgethostname(@S[0], SizeOf(S));
+    pAddrStr := string(S);
+    if pAddrStr <> '' then
+      sInt.Add(pAddrStr);
+  end;
+  {$ELSE}
   getifaddrs(Pif);
   while Pif <> nil do
   begin
@@ -352,6 +385,7 @@ begin
     Pif := Pif^.ifa_next;
   end;
   freeifaddrs(Pif);
+  {$ENDIF}
 {$ENDIF}
 end;
 
@@ -455,7 +489,11 @@ begin
   FSocketWindow := AllocateHWND(WndProc);
   EventHandle := CreateEvent(nil, True, False, '');
 {$ELSE}
+  {$IFDEF FPC}
+  FLock := TCriticalSection.Create;
+  {$ELSE}
   FLock := TObject.Create;
+  {$ENDIF}
 {$ENDIF}
 
   FBindAddr := '0.0.0.0';
@@ -605,11 +643,14 @@ begin
 end;
 
 function TCnUDP.ResolveRemoteHost(ARemoteHost: string): Boolean;
-var
 {$IFDEF MSWINDOWS}
+var
   Buf: array[0..127] of AnsiChar;
 {$ELSE}
+  {$IFNDEF FPC}
+var
   IP: TIPAddress;
+  {$ENDIF}
 {$ENDIF}
 begin
   Result := False;
@@ -644,8 +685,12 @@ begin
   end;
 {$ELSE}
   // POSIX 下如何异步解析？只能先写同步
+  {$IFDEF FPC}
+  FRemoteAddress.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(ARemoteHost)));
+  {$ELSE}
   IP := TIPAddress.LookupName(ARemoteHost);
   FRemoteAddress.sin_addr := IP.Addr;
+  {$ENDIF}
 {$ENDIF}
 
   if FRemoteAddress.sin_addr.S_addr <> 0 then
@@ -748,7 +793,11 @@ begin
   FProcing := True;
   try
 {$IFNDEF MSWINDOWS}
+  {$IFDEF FPC}
+    FLock.Enter;
+  {$ELSE}
     TMonitor.Enter(FLock);
+  {$ENDIF}
 {$ENDIF}
     while FQueue.Count > 0 do
     begin
@@ -758,7 +807,11 @@ begin
     end;
   finally
 {$IFNDEF MSWINDOWS}
+  {$IFDEF FPC}
+    FLock.Leave;
+  {$ELSE}
     TMonitor.Exit(FLock);
+  {$ENDIF}
 {$ENDIF}
     FProcing := False;
   end;
@@ -907,7 +960,7 @@ begin
 {$IFDEF MSWINDOWS}
   FLastError := WSAGetLastError;
 {$ELSE}
-  FLastError := GetLastError;
+  FLastError := CnGetNetErrorNo;
 {$ENDIF}
 end;
 
@@ -967,8 +1020,12 @@ begin
   end;
 {$ELSE}
   // 拿本机名称与 IP
+  {$IFDEF FPC}
+  Result := CnGetHostName;
+  {$ELSE}
   Posix.Unistd.gethostname(@S, 256);
   Result := TIPAddress.LookupName(string(S)).Address;
+  {$ENDIF}
 {$ENDIF}
 end;
 
@@ -1039,17 +1096,29 @@ begin
       FillChar(Rec^, SizeOf(TRecvDataRec), 0);
 
       GetMem(Rec^.Buff, Res);
+      {$IFDEF FPC}
+      Rec^.FromIP := string(inet_ntoa(From.sin_addr));
+      {$ELSE}
       Rec^.FromIP := TIPAddress.Create(From.sin_addr).Address;
+      {$ENDIF}
       Rec^.FromPort := ntohs(From.sin_port);
       Rec^.BuffSize := Res;
       Move(UDP.FRecvBuf^, Rec^.Buff^, Res);
 
 {$IFNDEF MSWINDOWS}
+  {$IFDEF FPC}
+      UDP.FLock.Enter;
+  {$ELSE}
       TMonitor.Enter(UDP.FLock);
+  {$ENDIF}
 {$ENDIF}
       UDP.FQueue.Push(Rec);
 {$IFNDEF MSWINDOWS}
+  {$IFDEF FPC}
+      UDP.FLock.Leave;
+  {$ELSE}
       TMonitor.Exit(UDP.FLock);
+  {$ENDIF}
 {$ENDIF}
 
       Synchronize(ProcessData);
