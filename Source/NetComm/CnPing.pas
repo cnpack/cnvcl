@@ -24,7 +24,9 @@ unit CnPing;
 * 软件名称：网络通讯组件包
 * 单元名称：Ping 通讯单元
 * 单元作者：胡昌洪Sesame (sesamehch@163.com)
-* 备    注：定义了 TCnPing
+* 备    注：实现了 ping 功能的 TCnPing 组件，注意在 Delphi 的 MacOS 平台上，即使
+*           sudo 使用 root 权限跑，仍有可能出 65 错误（EHOSTUNREACH），而 MAC 上
+*           的 FPC 3.2.2 可以 ping，暂时无法修复。AI 建议不走 RAW 而走 DIAGRAM。
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
@@ -40,7 +42,7 @@ interface
 uses
   {$IFDEF MSWINDOWS} Windows, WinSock, {$ELSE} {$IFDEF FPC} Sockets, BaseUnix, NetDB, {$ELSE}
   Posix.ArpaInet, Posix.NetinetIn, Posix.SysSocket, Posix.SysTime, {$ENDIF} {$ENDIF}
-  SysUtils, Classes, Controls, CnClasses, CnConsts, CnNetConsts, CnNetwork, CnSocket;
+  SysUtils, Classes, CnClasses, CnConsts, CnNetConsts, CnNetwork, CnSocket;
 
 type
   PCnIPOptionInformation = ^TCnIPOptionInformation;
