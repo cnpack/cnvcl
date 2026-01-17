@@ -60,6 +60,9 @@ const
   csDefRecvBuffSize = 4096;
   csDefUDPSendBuffSize = 256 * 1024;
   csDefUDPRecvBuffSize = 256 * 1024;
+{$IFDEF MACOS}
+  csCnSoReusePort = 512;
+{$ENDIF}
 
 type
 
@@ -123,6 +126,11 @@ type
     FBindAddr: string;
     FUDPSendBufSize: Cardinal;
     FUDPRecvBufSize: Cardinal;
+    FReuseAddr: Boolean;
+    FReusePort: Boolean;
+    FMulticastTTL: Integer;
+    FMulticastLoop: Integer;
+    FMulticastIfAddr: string;
 {$IFDEF MSWINDOWS}
   {$IFNDEF FPC}
     procedure WndProc(var Message: TMessage);
@@ -213,6 +221,11 @@ type
     {* UDP 发送的数据缓冲区大小}
     property UDPRecvBufSize: Cardinal read FUDPRecvBufSize write SetUDPRecvBufSize default csDefUDPRecvBuffSize;
     {* UDP 接收的数据缓冲区大小}
+    property ReuseAddr: Boolean read FReuseAddr write FReuseAddr default False;
+    property ReusePort: Boolean read FReusePort write FReusePort default False;
+    property MulticastTTL: Integer read FMulticastTTL write FMulticastTTL;
+    property MulticastLoop: Integer read FMulticastLoop write FMulticastLoop;
+    property MulticastIfAddr: string read FMulticastIfAddr write FMulticastIfAddr;
     property OnDataReceived: TCnOnDataReceived read FOnDataReceived write
       FOnDataReceived;
     {* 接收到 UDP 数据包事件。Windows 平台在主线程中执行，其余平台在线程中执行}
@@ -511,6 +524,11 @@ begin
   FRecvBufSize := csDefRecvBuffSize;
   FUDPSendBufSize := csDefUDPSendBuffSize;
   FUDPRecvBufSize := csDefUDPRecvBuffSize;
+  FReuseAddr := False;
+  FReusePort := False;
+  FMulticastTTL := -1;
+  FMulticastLoop := -1;
+  FMulticastIfAddr := '';
 
 {$IFDEF MSWINDOWS}
   {$IFNDEF FPC}
@@ -594,6 +612,9 @@ procedure TCnUDP.UpdateBinding;
 var
   Data: Cardinal;
   Address: TSockAddr;
+  Ttl: Byte;
+  Loop: Byte;
+  MIf: in_addr;
 begin
   if not (csDesigning in ComponentState) then
   begin
@@ -628,6 +649,33 @@ begin
     Address.sin_port := htons(FLocalPort);
 
     Wait_Flag := False;
+    if FReuseAddr then
+    begin
+      Data := 1;
+      CnSetSockOpt(FThisSocket, SOL_SOCKET, SO_REUSEADDR, PAnsiChar(@Data), SizeOf(Data));
+    end;
+    {$IFDEF MACOS}
+    if FReusePort then
+    begin
+      Data := 1;
+      CnSetSockOpt(FThisSocket, SOL_SOCKET, csCnSoReusePort, PAnsiChar(@Data), SizeOf(Data));
+    end;
+    {$ENDIF}
+    if FMulticastTTL >= 0 then
+    begin
+      Ttl := Byte(FMulticastTTL);
+      CnSetSockOpt(FThisSocket, IPPROTO_IP, 10, PAnsiChar(@Ttl), SizeOf(Ttl));
+    end;
+    if FMulticastLoop >= 0 then
+    begin
+      Loop := Byte(FMulticastLoop);
+      CnSetSockOpt(FThisSocket, IPPROTO_IP, 11, PAnsiChar(@Loop), SizeOf(Loop));
+    end;
+    if FMulticastIfAddr <> '' then
+    begin
+      MIf.s_addr := inet_addr(PAnsiChar(AnsiString(FMulticastIfAddr)));
+      CnSetSockOpt(FThisSocket, IPPROTO_IP, 9, PAnsiChar(@MIf), SizeOf(MIf));
+    end;
     if CnBind(FThisSocket, Address, SizeOf(Address)) = SOCKET_ERROR then
     begin
       SetupLastError;
