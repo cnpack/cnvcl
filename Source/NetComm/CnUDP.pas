@@ -43,7 +43,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Contnrs,
+  SysUtils, Classes, Contnrs, {$IFDEF FPC} LCLIntf, LCLType, LMessages, {$ENDIF}
   {$IFDEF MSWINDOWS}
   Windows, Messages, WinSock, Forms, // 需要设置工程的单元前缀 Vcl 或 FMX
   {$ELSE}
