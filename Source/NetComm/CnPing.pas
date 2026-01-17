@@ -38,10 +38,9 @@ interface
 {$I CnPack.inc}
 
 uses
-  {$IFDEF MSWINDOWS} Windows, WinSock, {$ELSE}
-  Posix.ArpaInet, Posix.NetinetIn, Posix.SysSocket, Posix.SysTime, {$ENDIF}
-  SysUtils, Classes, Controls, StdCtrls,
-  CnClasses, CnConsts, CnNetConsts, CnNetwork, CnSocket;
+  {$IFDEF MSWINDOWS} Windows, WinSock, {$ELSE} {$IFDEF FPC} Sockets, BaseUnix, NetDB, {$ELSE}
+  Posix.ArpaInet, Posix.NetinetIn, Posix.SysSocket, Posix.SysTime, {$ENDIF} {$ENDIF}
+  SysUtils, Classes, Controls, CnClasses, CnConsts, CnNetConsts, CnNetwork, CnSocket;
 
 type
   PCnIPOptionInformation = ^TCnIPOptionInformation;
@@ -176,6 +175,48 @@ const
   SCN_ICMP_ERROR_GENERAL    = -3;     // Ò»°ã´íÎó
   SCN_ICMP_ERROR_SOCKET     = -4;     // Socket ´íÎó
   SCN_ICMP_ERROR_UNKNOWN    = -100;
+
+{$IFDEF FPC_MACOS}
+
+function inet_addr(p: PAnsiChar): LongWord;
+var
+  S, Buf: string;
+  Parts: array[0..3] of Integer;
+  PartIndex, I: Integer;
+  Ch: Char;
+begin
+  Result := High(LongWord); // INADDR_NONE by default
+  S := string(p);
+  for I := 0 to 3 do
+    Parts[I] := 0;
+  PartIndex := 0;
+  Buf := '';
+  for I := 1 to Length(S) do
+  begin
+    Ch := S[I];
+    if Ch = '.' then
+    begin
+      if (Buf = '') or (PartIndex > 3) then
+        Exit;
+      Parts[PartIndex] := StrToIntDef(Buf, -1);
+      if (Parts[PartIndex] < 0) or (Parts[PartIndex] > 255) then
+        Exit;
+      Buf := '';
+      Inc(PartIndex);
+    end
+    else
+      Buf := Buf + Ch;
+  end;
+  if (PartIndex <> 3) or (Buf = '') then
+    Exit;
+  Parts[3] := StrToIntDef(Buf, -1);
+  if (Parts[3] < 0) or (Parts[3] > 255) then
+    Exit;
+  Result := (Cardinal(Parts[0]) shl 24) or (Cardinal(Parts[1]) shl 16) or
+            (Cardinal(Parts[2]) shl 8) or Cardinal(Parts[3]);
+end;
+
+{$ENDIF}
 
 {$IFDEF MSWINDOWS}
   ICMPDLL = 'icmp.dll';
