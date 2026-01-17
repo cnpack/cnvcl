@@ -433,7 +433,9 @@ var
   tv: timeval;
   Buf: array[0..1023] of Byte;
   R, FromLen: Integer;
-  ID: Word;
+  ID, ReceivedID: Word;
+  TimeStart: Cardinal;
+  IcmpReply: TCnIcmpEchoReply;
 {$ENDIF}
 begin
   Result := SCN_ICMP_ERROR_UNKNOWN;
@@ -544,6 +546,7 @@ begin
     DestAddr.sin_family := AF_INET;
     DestAddr.sin_addr.s_addr := inet_addr(PAnsiChar(aIP.IP));
 
+    TimeStart := GetTickCount;
     R := CnSendTo(Sock, HIcmp^, SizeOf(TCnICMPHeader) + Count, 0, DestAddr,
       SizeOf(DestAddr));
     if R = SOCKET_ERROR then
@@ -558,15 +561,41 @@ begin
     // recvfrom
     FromLen := SizeOf(DestAddr);
     R := CnRecvFrom(Sock, Buf[0], SizeOf(Buf), 0, DestAddr, FromLen);
-    if R > SizeOf(TCnIPHeader) + SizeOf(TCnICMPHeader) then
+
+    HIcmp := nil;
+    HIp := nil;
+    if R >= SizeOf(TCnIPHeader) + SizeOf(TCnICMPHeader) then
     begin
       HIp := PCnIPHeader(@Buf[0]);
-      P := PAnsiChar(HIp);
-      Inc(P, CnGetIPHeaderLength(HIp) * 4);
-      HIcmp := PCnICMPHeader(P);
+      if (HIp^.VerionHeaderLength shr 4) = 4 then
+      begin
+        if HIp^.Protocol = CN_IP_PROTOCOL_ICMP then
+        begin
+          P := PAnsiChar(HIp);
+          Inc(P, CnGetIPHeaderLength(HIp) * 4);
+          if (NativeUInt(P) - NativeUInt(@Buf[0])) + SizeOf(TCnICMPHeader) <= Cardinal(R) then
+            HIcmp := PCnICMPHeader(P);
+        end;
+      end;
+    end;
 
-      if (HIcmp^.MessageType = CN_ICMP_TYPE_ECHO_REPLY) and (ID = HIcmp^.Identifier) then
-        Result := SCN_ICMP_ERROR_OK
+    if HIcmp <> nil then
+    begin
+      ReceivedID := CnGetICMPIdentifier(HIcmp);
+      // Writeln('DEBUG: R=', R, ' Type=', HIcmp^.MessageType, ' SentID=', ID, ' RecvID=', ReceivedID);
+      if (HIcmp^.MessageType = CN_ICMP_TYPE_ECHO_REPLY) and (ID = ReceivedID) then
+      begin
+        Result := SCN_ICMP_ERROR_OK;
+        FillChar(IcmpReply, SizeOf(IcmpReply), 0);
+        IcmpReply.RTT := GetTickCount - TimeStart;
+        if HIp <> nil then
+          IcmpReply.Options.TTL := HIp^.TTL
+        else
+          IcmpReply.Options.TTL := 0; // Unknown TTL
+        IcmpReply.DataSize := R - (NativeUInt(HIcmp) - NativeUInt(@Buf[0])) - SizeOf(TCnICMPHeader);
+
+        aReply := GetReplyString(Result, aIP, @IcmpReply);
+      end
       else
       begin
         Result := SCN_ICMP_ERROR_GENERAL;
