@@ -1,0 +1,73 @@
+object FormMDNS: TFormMDNS
+  Left = 443
+  Height = 432
+  Top = 302
+  Width = 624
+  Caption = 'mDNS Demo'
+  ClientHeight = 432
+  ClientWidth = 624
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  LCLVersion = '4.0.0.4'
+  OnCreate = FormCreate
+  object BtnStart: TButton
+    Left = 16
+    Height = 25
+    Top = 16
+    Width = 75
+    Caption = 'Start'
+    TabOrder = 0
+    OnClick = BtnStartClick
+  end
+  object BtnBrowse: TButton
+    Left = 104
+    Height = 25
+    Top = 16
+    Width = 75
+    Caption = 'Browse'
+    TabOrder = 1
+    OnClick = BtnBrowseClick
+  end
+  object BtnRegister: TButton
+    Left = 192
+    Height = 25
+    Top = 16
+    Width = 75
+    Caption = 'Register'
+    TabOrder = 2
+    OnClick = BtnRegisterClick
+  end
+  object EditType: TEdit
+    Left = 16
+    Height = 21
+    Top = 56
+    Width = 250
+    TabOrder = 3
+    Text = '_http._tcp.local'
+  end
+  object EditInstance: TEdit
+    Left = 16
+    Height = 21
+    Top = 88
+    Width = 250
+    TabOrder = 4
+    Text = 'Test Service._http._tcp.local'
+  end
+  object EditPort: TEdit
+    Left = 16
+    Height = 21
+    Top = 120
+    Width = 80
+    TabOrder = 5
+    Text = '8080'
+  end
+  object MemoLog: TMemo
+    Left = 16
+    Height = 220
+    Top = 160
+    Width = 560
+    TabOrder = 6
+  end
+end
