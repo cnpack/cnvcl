@@ -1510,7 +1510,6 @@ var
   EKU: TCnExtendedKeyUsage;
   UriA: AnsiString;
   OcspA: AnsiString;
-  IpParts: TStringList;
   N: Integer;
   BN: TCnBigNumber;
   SanSeq, BcSeq, EkuSeq, AkiSeq, AiaSeq, DpSeq, Dp, FullNameCtx, GnSeq: TCnBerWriteNode;

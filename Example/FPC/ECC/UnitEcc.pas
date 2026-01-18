@@ -2883,7 +2883,8 @@ procedure TFormEcc.cbbCurveTypesChange(Sender: TObject);
 begin
   if cbbCurveTypes.ItemIndex > 0 then
   begin
-    FKeyEcc.Load(TCnEccCurveType(cbbCurveTypes.ItemIndex));
+    FCurveType := TCnEccCurveType(cbbCurveTypes.ItemIndex);
+    FKeyEcc.Load(FCurveType);
     lblCurveTypeText.Caption := GetEnumName(TypeInfo(TCnEccCurveType), cbbCurveTypes.ItemIndex);
 
     edtKeyEccA.Text := FKeyEcc.CoefficientA.ToDec;
