@@ -573,6 +573,26 @@ begin
       AnsiString(FServerKeyPassword)) then
       KeyIsECC := True;
   except
+    on E: Exception do
+      DoTLSLog('Failed to load server key ' + KeyFile + ': ' + E.Message);
+  end;
+
+  if not (KeyIsRSA or KeyIsECC) then
+  begin
+    DoTLSLog('Failed to load server key (unknown format or wrong password): ' + KeyFile);
+    H.ContentType := CN_TLS_CONTENT_TYPE_ALERT;
+    H.MajorVersion := 3;
+    H.MinorVersion := 3;
+    H.BodyLength := htons(2);
+    if not SendExact(H, 5) then
+      Exit;
+    Msg := nil;
+    SetLength(Msg, 2);
+    Msg[0] := CN_TLS_ALERT_LEVEL_FATAL;
+    Msg[1] := CN_TLS_ALERT_DESC_HANDSHAKE_FAILURE;
+    if not SendExact(Msg[0], 2) then
+      Exit;
+    Exit;
   end;
 
   if KeyIsECC then
@@ -740,7 +760,10 @@ begin
     end
     else
     begin
-      DoTLSLog('Failed to load server certificate ' + CertFile);
+      if not FileExists(CertFile) then
+        DoTLSLog('Server certificate file not found: ' + CertFile)
+      else
+        DoTLSLog('Failed to load server certificate ' + CertFile);
       Exit;
     end;
   finally
@@ -2692,36 +2715,48 @@ begin
     FillChar(Buffer, SizeOf(Buffer), 0);
 
     // 收包②：等待并读取服务器的 CCS 与加密的 Finished（序列0）
-    CnFDZero(Rs);
-    CnFDSet(Socket, Rs);
     DoTLSLog('Waiting server Finished...');
-    if CnSelect(Socket + 1, @Rs, nil, nil, nil) > 0 then
-    begin
-      DoTLSLog('Readable after Finished');
-      BytesReceived := inherited Recv(Buffer[0], Length(Buffer), 0);
-      DoTLSLog('Recv len after Finished: ' + IntToStr(BytesReceived));
-    end
-    else
-    begin
-      DoTLSLog('Select timeout after Finished');
-      BytesReceived := 0;
-    end;
-    if BytesReceived <= SizeOf(TCnTLSRecordLayer) then
-    begin
-      DoTLSLog('Receive after Finished failed or no data, len=' + IntToStr(BytesReceived)
-        + ', errno=' + IntToStr(CnGetNetErrorNo));
-      Exit;
-    end;
-    DoTLSLog(Format('SSL/TLS Get Response %d', [BytesReceived]));
-    TotalConsumed := 0;
     ServerSeq := 0;
-    while TotalConsumed < BytesReceived do
+    while True do
     begin
-      H := PCnTLSRecordLayer(@Buffer[TotalConsumed]);
+      TotalConsumed := 0;
+      while TotalConsumed < 5 do
+      begin
+        BytesReceived := inherited Recv(Buffer[TotalConsumed], 5 - TotalConsumed, 0);
+        if BytesReceived <= 0 then
+        begin
+          DoTLSLog('Receive after Finished failed, len=' + IntToStr(BytesReceived)
+            + ', errno=' + IntToStr(CnGetNetErrorNo));
+          Exit;
+        end;
+        Inc(TotalConsumed, BytesReceived);
+      end;
+
+      H := PCnTLSRecordLayer(@Buffer[0]);
       RecBodyLen := CnGetTLSRecordLayerBodyLength(H);
+      if (RecBodyLen <= 0) or (RecBodyLen > (SizeOf(Buffer) - 5)) then
+      begin
+        DoTLSLog('Invalid record length after Finished: ' + IntToStr(RecBodyLen));
+        Exit;
+      end;
+
+      TotalConsumed := 0;
+      while TotalConsumed < RecBodyLen do
+      begin
+        BytesReceived := inherited Recv(Buffer[5 + TotalConsumed], RecBodyLen - TotalConsumed, 0);
+        if BytesReceived <= 0 then
+        begin
+          DoTLSLog('Receive record body failed, len=' + IntToStr(BytesReceived)
+            + ', errno=' + IntToStr(CnGetNetErrorNo));
+          Exit;
+        end;
+        Inc(TotalConsumed, BytesReceived);
+      end;
+
       if H^.ContentType = CN_TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC then
       begin
         DoTLSLog('Recv ChangeCipherSpec');
+        Continue;
       end
       else if H^.ContentType = CN_TLS_CONTENT_TYPE_HANDSHAKE then
       begin
@@ -2835,10 +2870,12 @@ begin
           Desc := Ord((PAnsiChar(@H^.Body[0]) + 1)^);
           DoTLSLog(Format('Alert level=%d, desc=%d', [Lvl, Desc]));
         end;
-      end;
-      Inc(TotalConsumed, 5 + RecBodyLen);
-      if H^.ContentType <> CN_TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC then
         Inc(ServerSeq);
+      end
+      else
+      begin
+        Inc(ServerSeq);
+      end;
     end;
   finally
     PreMasterKey.Free;
