@@ -1516,6 +1516,42 @@ var
   SanSeq, BcSeq, EkuSeq, AkiSeq, AiaSeq, DpSeq, Dp, FullNameCtx, GnSeq: TCnBerWriteNode;
   ExtItem: TCnBerWriteNode;
   Ad, Ad2: TCnBerWriteNode;
+
+  function TryParseIPv4(const V: string; out OutBytes: TBytes): Boolean;
+  var
+    Parts: TStringList;
+    J: Integer;
+    P: Integer;
+  begin
+    Result := False;
+    OutBytes := nil;
+    Parts := TStringList.Create;
+    try
+      ExtractStrings(['.'], [' '], PChar(V), Parts);
+      if Parts.Count <> 4 then
+        Exit;
+      SetLength(OutBytes, 4);
+      for J := 0 to 3 do
+      begin
+        if not TryStrToInt(Trim(Parts[J]), P) then
+          Exit;
+        if (P < 0) or (P > 255) then
+          Exit;
+        OutBytes[J] := Byte(P);
+      end;
+      Result := True;
+    finally
+      Parts.Free;
+    end;
+  end;
+
+  function CalcUnusedBitsInLastByte(LastByte: Byte): Byte;
+  begin
+    Result := 0;
+    while ((LastByte and (1 shl Result)) = 0) and (Result < 7) do
+      Inc(Result);
+  end;
+
 begin
   ExtCtx := Writer.AddContainerNode(3, BasicNode);
   ExtCtx.BerTypeMask := $80;
@@ -1548,27 +1584,18 @@ begin
         else if (Length(S) > 3) and (LowerCase(Copy(S, 1, 3)) = 'ip:') then
         begin
           S := Copy(S, 4, MaxInt);
-          if Pos('.', S) > 0 then
-          begin
-            IpParts := TStringList.Create;
-            try
-              ExtractStrings(['.'], [' '], PChar(S), IpParts);
-              if IpParts.Count = 4 then
-              begin
-                SetLength(B, 4);
-                for N := 0 to 3 do
-                  B[N] := Byte(StrToIntDef(IpParts[N], 0));
-                Inner.AddBasicNode($87, @B[0], Length(B), SanSeq);
-              end;
-            finally
-              IpParts.Free;
-            end;
-          end;
+          if TryParseIPv4(S, B) then
+            Inner.AddBasicNode($87, @B[0], Length(B), SanSeq);
         end
         else
         begin
-          A := AnsiString(S);
-          Inner.AddBasicNode($82, @A[1], Length(A), SanSeq);
+          if TryParseIPv4(S, B) then
+            Inner.AddBasicNode($87, @B[0], Length(B), SanSeq)
+          else
+          begin
+            A := AnsiString(S);
+            Inner.AddBasicNode($82, @A[1], Length(A), SanSeq);
+          end;
         end;
       end;
       AddExtensionWithInner(Writer, ExtSeq, @OID_EXT_SUBJECTALTNAME[0], SizeOf(OID_EXT_SUBJECTALTNAME),
@@ -1595,18 +1622,16 @@ begin
         KUByte := KUByte or $10; // bit3
       if kuKeyAgreement in StandardExt.KeyUsage then
         KUByte := KUByte or $08; // bit4
-      if kuKeyCertSign in StandardExt.KeyUsage then
+      if StandardExt.BasicConstraintsCA and (kuKeyCertSign in StandardExt.KeyUsage) then
         KUByte := KUByte or $04; // bit5
-      if kuCRLSign in StandardExt.KeyUsage then
+      if StandardExt.BasicConstraintsCA and (kuCRLSign in StandardExt.KeyUsage) then
         KUByte := KUByte or $02; // bit6
       if kuEncipherOnly in StandardExt.KeyUsage then
         KUByte := KUByte or $01; // bit7
 
       if KUByte = 0 then
         Exit;
-      UnusedBits := 0;
-      while ((KUByte and (1 shl UnusedBits)) = 0) and (UnusedBits < 7) do
-        Inc(UnusedBits);
+      UnusedBits := CalcUnusedBitsInLastByte(KUByte);
 
       // д BIT STRING TLV: Tag(0x03), Len(2), Content: [UnusedBits][KUByte]
       B := nil;
@@ -1662,7 +1687,7 @@ begin
     end;
   end;
 
-  if Assigned(StandardExt) then
+  if Assigned(StandardExt) and (StandardExt.ExtendedKeyUsage <> []) then
   begin
     Inner := TCnBerWriter.Create;
     try
