@@ -3558,6 +3558,9 @@ var
   IsRSA, IsEcc: Boolean;
   P: Pointer;
   CurveType: TCnEccCurveType;
+  OldPos: Int64;
+  IsPem: Boolean;
+  Peek5: array[0..4] of AnsiChar;
 begin
   Result := False;
 
@@ -3567,9 +3570,46 @@ begin
 
   try
     Mem := TMemoryStream.Create;
-    if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD,
-      PEM_CERTIFICATE_TAIL, Mem, Password) then
-      Mem.LoadFromStream(Stream); // 如果以 PEM 方式加载失败，则尝试以原始二进制方式加载
+    OldPos := 0;
+    if Stream <> nil then
+      OldPos := Stream.Position;
+    IsPem := False;
+    if Stream <> nil then
+    begin
+      Stream.Position := OldPos;
+      if (Stream.Size - OldPos >= SizeOf(Peek5)) then
+      begin
+        Stream.ReadBuffer(Peek5[0], SizeOf(Peek5));
+        IsPem :=
+          (Peek5[0] = '-') and (Peek5[1] = '-') and (Peek5[2] = '-') and
+          (Peek5[3] = '-') and (Peek5[4] = '-');
+      end;
+      Stream.Position := OldPos;
+    end;
+
+    if IsPem then
+    begin
+      try
+        if not LoadPemStreamToMemory(Stream, PEM_CERTIFICATE_HEAD,
+          PEM_CERTIFICATE_TAIL, Mem, Password) then
+        begin
+          if Stream <> nil then
+            Stream.Position := OldPos;
+          Mem.LoadFromStream(Stream);
+        end;
+      except
+        if Stream <> nil then
+          Stream.Position := OldPos;
+        Mem.Clear;
+        Mem.LoadFromStream(Stream);
+      end;
+    end
+    else
+    begin
+      if Stream <> nil then
+        Stream.Position := OldPos;
+      Mem.LoadFromStream(Stream);
+    end;
 
     Reader := TCnBerReader.Create(PByte(Mem.Memory), Mem.Size, True);
     Reader.ParseToTree;
@@ -3721,6 +3761,9 @@ begin
     else
     begin
       // 解开签名。注意证书不带签发机构的公钥，因此这儿无法解密拿到真正杂凑值
+      IsRSA := (Certificate.FCASignType = ctMd5RSA) or
+        (Certificate.FCASignType = ctSha1RSA) or
+        (Certificate.FCASignType = ctSha256RSA);
       Result := ExtractSignaturesByPublicKey(IsRSA, nil, nil, SignAlgNode,
         SignValueNode, Certificate.FCASignType,
         DummyDigestType, Certificate.FSignValue, DummyPointer, Certificate.FSignLength,
