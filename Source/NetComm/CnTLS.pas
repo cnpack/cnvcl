@@ -1915,63 +1915,143 @@ end;
 
 function TCnTLSClient.ReadAndDecryptAppData(var Buf; Len: Integer; Flags: Integer): Integer;
 var
-  Buffer: PByteArray;
-  BytesReceived, TotalConsumed, RecBodyLen: Integer;
-  H: PCnTLSRecordLayer;
-  AAD, Nonce, Body: TBytes;
+  UseChaCha: Boolean;
+  H: TCnTLSRecordLayer;
+  BodyLen, Cnt, Rcv: Integer;
+  AAD: TBytes;
+  Nonce: TBytes;
+  Raw: TBytes;
+  En: TBytes;
+  Plain: TBytes;
   Tag: TCnGCM128Tag;
-  Explicit, Plain: TBytes;
-begin
-  Result := SOCKET_ERROR;
-  BytesReceived := inherited Recv(Buf, Len, Flags);
 
-  DoTLSLog('ReadAndDecryptAppData BytesReceived: ' + IntToStr(BytesReceived));
-  if BytesReceived <= SizeOf(TCnTLSRecordLayer) then Exit;
-  TotalConsumed := 0;
-  Buffer := PByteArray(@Buf);
-  while TotalConsumed < BytesReceived do
+  function ReadExact(var OutBuf; Need: Integer): Boolean;
+  var
+    P: PByte;
+    Got, R: Integer;
   begin
-    H := PCnTLSRecordLayer(@(Buffer^[TotalConsumed]));
-    RecBodyLen := CnGetTLSRecordLayerBodyLength(H);
-    DoTLSLog('ReadAndDecryptAppData ContentType: ' + IntToStr(H^.ContentType) + ' RecBodyLen: ' + IntToStr(RecBodyLen));
-    if H^.ContentType = CN_TLS_CONTENT_TYPE_APPLICATION_DATA then
+    Result := False;
+    if Need <= 0 then
     begin
-      DoTLSLog('ServerSeq used for AAD: ' + IntToStr(FServerSeq));
-      if FCipherIsChaCha20Poly1305 then
-      begin
-        SetLength(Body, RecBodyLen);
-        Move(H^.Body[0], Body[0], RecBodyLen);
-        AAD := BuildAppDataAAD(FServerSeq, RecBodyLen - SizeOf(TCnGCM128Tag));
-        Nonce := TLSChaChaNonce(FServerFixedIV, FServerSeq);
-        Move(Body[RecBodyLen - SizeOf(TCnGCM128Tag)], Tag, SizeOf(Tag));
-        Plain := DecryptAppDataBody(Body, AAD, Nonce, Tag);
-      end
-      else
-      begin
-        Explicit := NewBytesFromMemory(@H^.Body[0], 8);
-        SetLength(Body, RecBodyLen - 8 - SizeOf(TCnGCM128Tag));
-        Move((PAnsiChar(@H^.Body[0]) + 8)^, Body[0], Length(Body));
-        Move((PAnsiChar(@H^.Body[0]) + 8 + Length(Body))^, Tag, SizeOf(Tag));
-        AAD := BuildAppDataAAD(FServerSeq, Length(Body));
-        Nonce := ConcatBytes(FServerFixedIV, Explicit);
-        DoTLSLog('Server AppData ExplicitNonce: ' + BytesToHex(Explicit));
-        DoTLSLog('Server AppData AAD: ' + BytesToHex(AAD));
-        DoTLSLog('Server AppData EnCipher Len: ' + IntToStr(Length(Body)));
-        DoTLSLog('Server AppData Tag: ' + BytesToHex(NewBytesFromMemory(@Tag, SizeOf(Tag))));
-        Plain := DecryptAppDataBody(Body, AAD, Nonce, Tag);
-      end;
-
-      DoTLSLog('ReadAndDecryptAppData Plain Len: ' + IntToStr(Length(Plain)));
-      Result := Length(Plain);
-      if Result > 0 then
-      begin
-        Move(Plain[0], Buf, Result);
-        Inc(FServerSeq);
-      end;
-
+      Result := True;
       Exit;
     end;
-    Inc(TotalConsumed, 5 + RecBodyLen);
+
+    P := @OutBuf;
+    Got := 0;
+    while Got < Need do
+    begin
+      R := inherited Recv(PByteArray(P)^[Got], Need - Got, Flags);
+      if R <= 0 then
+      begin
+        Rcv := R;
+        Exit;
+      end;
+      Inc(Got, R);
+    end;
+    Result := True;
+  end;
+
+begin
+  Result := SOCKET_ERROR;
+  if (FRecvPlainBuf <> nil) and (FRecvPlainPos < Length(FRecvPlainBuf)) then
+  begin
+    Cnt := Length(FRecvPlainBuf) - FRecvPlainPos;
+    if Cnt > Len then
+      Cnt := Len;
+    Move(FRecvPlainBuf[FRecvPlainPos], Buf, Cnt);
+    Inc(FRecvPlainPos, Cnt);
+    if FRecvPlainPos >= Length(FRecvPlainBuf) then
+    begin
+      FRecvPlainBuf := nil;
+      FRecvPlainPos := 0;
+    end;
+    Result := Cnt;
+    Exit;
+  end;
+
+  while True do
+  begin
+    FillChar(H, SizeOf(H), 0);
+    Rcv := 0;
+    if not ReadExact(H, 5) then
+    begin
+      Result := Rcv;
+      Exit;
+    end;
+
+    BodyLen := ntohs(H.BodyLength);
+    if BodyLen <= 0 then
+    begin
+      Result := 0;
+      Exit;
+    end;
+
+    SetLength(Raw, BodyLen);
+    Rcv := 0;
+    if not ReadExact(Raw[0], BodyLen) then
+    begin
+      Result := Rcv;
+      Exit;
+    end;
+
+    if H.ContentType = CN_TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC then
+      Continue;
+
+    UseChaCha := FCipherIsChaCha20Poly1305;
+    if UseChaCha then
+    begin
+      if BodyLen < SizeOf(TCnGCM128Tag) then
+      begin Result := SOCKET_ERROR; Exit; end;
+      SetLength(En, BodyLen - SizeOf(TCnGCM128Tag));
+      if Length(En) > 0 then
+        Move(Raw[0], En[0], Length(En));
+      Move(Raw[BodyLen - SizeOf(TCnGCM128Tag)], Tag[0], SizeOf(TCnGCM128Tag));
+      AAD := BuildAAD(H.ContentType, $0303, Length(En), FServerSeq);
+      Plain := TLSChaCha20Poly1305Decrypt(FServerWriteKey, FServerFixedIV, En, AAD, FServerSeq, Tag);
+    end
+    else
+    begin
+      if BodyLen < 8 + SizeOf(TCnGCM128Tag) then
+      begin Result := SOCKET_ERROR; Exit; end;
+      Nonce := ConcatBytes(FServerFixedIV, Copy(Raw, 0, 8));
+      SetLength(En, BodyLen - 8 - SizeOf(TCnGCM128Tag));
+      if Length(En) > 0 then
+        Move(Raw[8], En[0], Length(En));
+      Move(Raw[BodyLen - SizeOf(TCnGCM128Tag)], Tag[0], SizeOf(TCnGCM128Tag));
+      AAD := BuildAAD(H.ContentType, $0303, Length(En), FServerSeq);
+      Plain := AES128GCMDecryptBytes(FServerWriteKey, Nonce, En, AAD, Tag);
+    end;
+
+    if Plain = nil then
+    begin
+      Result := SOCKET_ERROR;
+      Exit;
+    end;
+
+    Inc(FServerSeq);
+
+    if H.ContentType = CN_TLS_CONTENT_TYPE_ALERT then
+    begin
+      Result := 0;
+      Exit;
+    end;
+    if H.ContentType <> CN_TLS_CONTENT_TYPE_APPLICATION_DATA then
+      Continue;
+
+    if Length(Plain) <= Len then
+    begin
+      if Length(Plain) > 0 then
+        Move(Plain[0], Buf, Length(Plain));
+      Result := Length(Plain);
+      Exit;
+    end;
+
+    Move(Plain[0], Buf, Len);
+    FRecvPlainBuf := Plain;
+    FRecvPlainPos := Len;
+    Result := Len;
+    Exit;
   end;
 end;
 
@@ -1992,7 +2072,6 @@ begin
   if Result > 0 then
   begin
     Result := Len;
-    Inc(FClientSeq);
   end;
 end;
 
@@ -2232,23 +2311,20 @@ begin
   SetLength(Ciphers, 0);
 
   // ¹¹Ôì ALPN: ProtocolNameList = 2-byte length + entries
-  // entries: 'h2' and 'http/1.1'
+  // entries: 'http/1.1'
   // ×Ü entries length = (1+2) + (1+8) = 12
-  SetLength(CompressionMethod, 2 + (1 + 2) + (1 + 8));
+  SetLength(CompressionMethod, 2 + (1 + 8));
   CompressionMethod[0] := 0;
-  CompressionMethod[1] := 12;
-  CompressionMethod[2] := 2;
+  CompressionMethod[1] := 9;
+  CompressionMethod[2] := 8;
   CompressionMethod[3] := Ord('h');
-  CompressionMethod[4] := Ord('2');
-  CompressionMethod[5] := 8;
-  CompressionMethod[6] := Ord('h');
-  CompressionMethod[7] := Ord('t');
-  CompressionMethod[8] := Ord('t');
-  CompressionMethod[9] := Ord('p');
-  CompressionMethod[10] := Ord('/');
-  CompressionMethod[11] := Ord('1');
-  CompressionMethod[12] := Ord('.');
-  CompressionMethod[13] := Ord('1');
+  CompressionMethod[4] := Ord('t');
+  CompressionMethod[5] := Ord('t');
+  CompressionMethod[6] := Ord('p');
+  CompressionMethod[7] := Ord('/');
+  CompressionMethod[8] := Ord('1');
+  CompressionMethod[9] := Ord('.');
+  CompressionMethod[10] := Ord('1');
   CnSetTLSHandShakeExtensionsExtensionData(EI, CompressionMethod);
   CnSetTLSHandShakeExtensionsExtensionLengthByItemCount(E, 6);
   CnSetTLSHandShakeHeaderContentLength(B,
