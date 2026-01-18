@@ -799,13 +799,14 @@ end;
 procedure TCnMulticastDNS.RegisterService(const Service: TCnMDNSService);
 var
   HostName: string;
+  LocalIP: string;
   S: TMemoryStream;
   TTL: Cardinal;
   Enc: TBytes;
 begin
   HostName := Service.Host;
   if HostName = '' then
-    HostName := 'local-host.local';
+    HostName := CnGetHostName + '.local';
 
   TTL := 120;
   S := TMemoryStream.Create;
@@ -821,7 +822,7 @@ begin
     WriteRR(S, Service.TypeName, CN_DNS_TYPE_PTR, SetCacheFlush(CN_DNS_CLASS_IN),
       TTL, EncodeName(Service.Instance));
     WriteRR(S, Service.Instance, CN_DNS_TYPE_SRV, SetCacheFlush(CN_DNS_CLASS_IN),
-      TTL, BuildSrvRData(Service.Port, Service.Host));
+      TTL, BuildSrvRData(Service.Port, HostName));
 
     if Length(Service.TxtRaw) > 0 then
       WriteRR(S, Service.Instance, CN_DNS_TYPE_TXT, SetCacheFlush(CN_DNS_CLASS_IN),
@@ -834,8 +835,12 @@ begin
         TTL, Enc);
     end;
 
-    WriteRR(S, Service.Host, CN_DNS_TYPE_A, SetCacheFlush(CN_DNS_CLASS_IN), TTL,
-      CardinalToBytesBE(CnIPv4StringToCardinal(FUDP.LocalHost)));
+    if FLocalIPs.Count > 0 then
+      LocalIP := FLocalIPs[0]
+    else
+      LocalIP := '127.0.0.1';
+    WriteRR(S, HostName, CN_DNS_TYPE_A, SetCacheFlush(CN_DNS_CLASS_IN), TTL,
+      CardinalToBytesBE(CnIPv4StringToCardinal(LocalIP)));
     DumpDNSStream(S);
     FUDP.SendStream(S, False);
 
