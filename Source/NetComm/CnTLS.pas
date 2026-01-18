@@ -52,6 +52,12 @@ type
 
   TCnTLSogEvent = procedure (Sender: TObject; const LogMsg: string) of object;
 
+  TCnTLSCertificateChain = array of TBytes;
+
+  TCnTLSVerifyServerCertificateEvent = procedure(Sender: TObject;
+    const Host: AnsiString; const CertChain: TCnTLSCertificateChain;
+    var Accepted: Boolean; var ErrorMsg: string) of object;
+
   TCnTLSHandshakeState = (
     hsInit,
     hsClientHelloSent,
@@ -90,6 +96,8 @@ type
     FVerifyCertificate: Boolean;
     FEnableExtendedMasterSecret: Boolean;
     FOnTLSLog: TCnTLSogEvent;
+    FOnVerifyServerCertificate: TCnTLSVerifyServerCertificateEvent;
+    FServerCertificateChain: TCnTLSCertificateChain;
     FRecvPlainBuf: TBytes;
     FRecvPlainPos: Integer;
     FMaxFragmentLen: Word;
@@ -115,12 +123,15 @@ type
     function Recv(var Buf; Len: Integer; Flags: Integer = 0): Integer; override;
 
     property HandshakeState: TCnTLSHandshakeState read FHandshakeState;
+    property ServerCertificateChain: TCnTLSCertificateChain read FServerCertificateChain;
   published
     property VerifyCertificate: Boolean read FVerifyCertificate write FVerifyCertificate default True;
     property EnableExtendedMasterSecret: Boolean read FEnableExtendedMasterSecret
       write FEnableExtendedMasterSecret default True;
     property MaxFragmentLen: Word read FMaxFragmentLen write FMaxFragmentLen default 16384;
     property OnTLSLog: TCnTLSogEvent read FOnTLSLog write FOnTLSLog;
+    property OnVerifyServerCertificate: TCnTLSVerifyServerCertificateEvent
+      read FOnVerifyServerCertificate write FOnVerifyServerCertificate;
   end;
 
 type
@@ -1765,6 +1776,7 @@ begin
   FHandshakeState := hsInit;
   FClientSeq := 0;
   FServerSeq := 0;
+  FServerCertificateChain := nil;
   FRecvPlainBuf := nil;
   FRecvPlainPos := 0;
   FMaxFragmentLen := 16384;
@@ -2239,6 +2251,8 @@ var
   IVNonce: TBytes;
   TmpStr: AnsiString;
   GotSH, GotCert, GotSKE, GotSHD: Boolean;
+  CertAccepted: Boolean;
+  CertError: string;
   function SendAll(const Buf; Len: Integer): Boolean;
   var Sent, Cnt: Integer; P: PAnsiChar;
   begin
@@ -2297,9 +2311,56 @@ var
     if BL > 0 then
       Move(Body[0], Result[5], BL);
   end;
+
+  function ExtractServerCertificateChain(const HSHeader: PCnTLSHandShakeHeader; ContentLen: Integer): TCnTLSCertificateChain;
+  var
+    CertMsg: PCnTLSHandShakeCertificate;
+    ListLen, Consumed, ItemLen: Cardinal;
+    Item: PCnTLSHandShakeCertificateItem;
+    CertBytes: TBytes;
+  begin
+    Result := nil;
+    if ContentLen < 3 then
+      Exit;
+    CertMsg := PCnTLSHandShakeCertificate(@HSHeader^.Content[0]);
+    ListLen := CnGetTLSHandShakeCertificateListLength(CertMsg);
+    if ListLen > Cardinal(ContentLen - 3) then
+      Exit;
+    Consumed := 0;
+    Item := nil;
+    while Consumed < ListLen do
+    begin
+      if Consumed + 3 > ListLen then
+        Break;
+      Item := CnGetTLSHandShakeCertificateItem(CertMsg, Item);
+      ItemLen := CnGetTLSHandShakeCertificateItemCertificateLength(Item);
+      if Consumed + 3 + ItemLen > ListLen then
+        Break;
+      CertBytes := CnGetTLSHandShakeCertificateItemCertificate(Item);
+      SetLength(Result, Length(Result) + 1);
+      Result[High(Result)] := CertBytes;
+      Inc(Consumed, 3 + ItemLen);
+    end;
+  end;
+
+  function SendFatalAlert(Desc: Byte): Boolean;
+  var
+    A: array[0..6] of Byte;
+  begin
+    A[0] := CN_TLS_CONTENT_TYPE_ALERT;
+    A[1] := 3;
+    A[2] := 3;
+    A[3] := 0;
+    A[4] := 2;
+    A[5] := CN_TLS_ALERT_LEVEL_FATAL;
+    A[6] := Desc;
+    Result := SendAll(A[0], SizeOf(A));
+  end;
 begin
   Result := False;
   EmsNegotiated := False;
+
+  FServerCertificateChain := nil;
 
   ClientSeq := 0;
   ServerSeq := 0;
@@ -2475,7 +2536,25 @@ begin
         else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE_RESERVED then
           GotSHD := True
         else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_CERTIFICATE then
-          GotCert := True
+        begin
+          GotCert := True;
+          FServerCertificateChain := ExtractServerCertificateChain(B, L3);
+          if FVerifyCertificate and Assigned(FOnVerifyServerCertificate) then
+          begin
+            CertAccepted := True;
+            CertError := '';
+            FOnVerifyServerCertificate(Self, Host, FServerCertificateChain, CertAccepted, CertError);
+            if not CertAccepted then
+            begin
+              if CertError <> '' then
+                DoTLSLog('Server certificate rejected: ' + CertError)
+              else
+                DoTLSLog('Server certificate rejected');
+              SendFatalAlert(CN_TLS_ALERT_DESC_BAD_CERTIFICATE);
+              Exit;
+            end;
+          end;
+        end
         else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_CERTIFICATE_STATUS_RESERVED then
           DoTLSLog('CertificateStatus received')
         else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_CERTIFICATE_REQUEST then
@@ -2509,6 +2588,26 @@ begin
         begin
           GotSHD := True;
           DoTLSLog('ServerHelloDone');
+        end
+        else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_CERTIFICATE then
+        begin
+          GotCert := True;
+          FServerCertificateChain := ExtractServerCertificateChain(B, L3);
+          if FVerifyCertificate and Assigned(FOnVerifyServerCertificate) then
+          begin
+            CertAccepted := True;
+            CertError := '';
+            FOnVerifyServerCertificate(Self, Host, FServerCertificateChain, CertAccepted, CertError);
+            if not CertAccepted then
+            begin
+              if CertError <> '' then
+                DoTLSLog('Server certificate rejected: ' + CertError)
+              else
+                DoTLSLog('Server certificate rejected');
+              SendFatalAlert(CN_TLS_ALERT_DESC_BAD_CERTIFICATE);
+              Exit;
+            end;
+          end;
         end
         else if B^.HandShakeType = CN_TLS_HANDSHAKE_TYPE_CERTIFICATE_STATUS_RESERVED then
           DoTLSLog('CertificateStatus received')
