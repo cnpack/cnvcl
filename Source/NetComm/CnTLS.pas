@@ -131,6 +131,10 @@ type
     FVersion: Word;
     FCipherSuite: Word;
     FHandshakeDone: Boolean;
+    FHandshakeAbortedByClient: Boolean;
+    FHandshakeAbortAlertLevel: Byte;
+    FHandshakeAbortAlertDesc: Byte;
+    FHandshakeAbortStage: string;
     FServerWriteKey: TBytes;
     FClientWriteKey: TBytes;
     FServerFixedIV: TBytes;
@@ -150,6 +154,10 @@ type
     property Version: Word read FVersion write FVersion;
     property CipherSuite: Word read FCipherSuite write FCipherSuite;
     property HandshakeDone: Boolean read FHandshakeDone write FHandshakeDone;
+    property HandshakeAbortedByClient: Boolean read FHandshakeAbortedByClient write FHandshakeAbortedByClient;
+    property HandshakeAbortAlertLevel: Byte read FHandshakeAbortAlertLevel write FHandshakeAbortAlertLevel;
+    property HandshakeAbortAlertDesc: Byte read FHandshakeAbortAlertDesc write FHandshakeAbortAlertDesc;
+    property HandshakeAbortStage: string read FHandshakeAbortStage write FHandshakeAbortStage;
     property ServerWriteKey: TBytes read FServerWriteKey write FServerWriteKey;
     property ClientWriteKey: TBytes read FClientWriteKey write FClientWriteKey;
     property ServerFixedIV: TBytes read FServerFixedIV write FServerFixedIV;
@@ -308,6 +316,18 @@ var
       Self.FOnTLSLog(Self, S);
   end;
 
+  function AlertName(Desc: Byte): string; forward;
+
+  procedure MarkClientAbort(AlertLevel, AlertDesc: Byte; const Stage: string);
+  begin
+    ClientSocket.HandshakeAbortedByClient := True;
+    ClientSocket.HandshakeAbortAlertLevel := AlertLevel;
+    ClientSocket.HandshakeAbortAlertDesc := AlertDesc;
+    ClientSocket.HandshakeAbortStage := Stage;
+    DoTLSLog('Client alert during handshake stage=' + Stage + ' level=' +
+      IntToStr(AlertLevel) + ' desc=' + IntToStr(AlertDesc) + ' (' + AlertName(AlertDesc) + ')');
+  end;
+
   function SendExact(const Buf; L: Integer): Boolean;
   var
     Sent, Cnt: Integer;
@@ -450,6 +470,7 @@ begin
       DoTLSLog('Alert received with invalid length BodyLen=' + IntToStr(BodyLen));
       Exit;
     end;
+    MarkClientAbort(Buf[0], Buf[1], 'initial');
     Exit;
   end
   else if H.ContentType <> CN_TLS_CONTENT_TYPE_HANDSHAKE then
@@ -906,7 +927,11 @@ begin
   begin
     BodyLen := ntohs(H.BodyLength);
     if not RecvExact(BodyLen, Buf) or (BodyLen < 2) then
+    begin
+      DoTLSLog('Alert received with invalid length during CCS wait');
       Exit;
+    end;
+    MarkClientAbort(Buf[0], Buf[1], 'wait_change_cipher_spec');
     Exit;
   end
   else if H.ContentType <> CN_TLS_CONTENT_TYPE_HANDSHAKE then
@@ -968,6 +993,7 @@ begin
       DoTLSLog('Alert received during CCS stage');
       Exit;
     end;
+    MarkClientAbort(Buf[0], Buf[1], 'expect_change_cipher_spec');
     Exit;
   end
   else if H.ContentType <> CN_TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC then
@@ -990,7 +1016,11 @@ begin
   begin
     BodyLen := ntohs(H.BodyLength);
     if not RecvExact(BodyLen, Buf) or (BodyLen < 2) then
+    begin
+      DoTLSLog('Alert received with invalid length before Finished');
       Exit;
+    end;
+    MarkClientAbort(Buf[0], Buf[1], 'before_client_finished');
     Exit;
   end
   else if H.ContentType <> CN_TLS_CONTENT_TYPE_HANDSHAKE then
@@ -1179,6 +1209,10 @@ begin
   FVersion := 0;
   FCipherSuite := 0;
   FHandshakeDone := False;
+  FHandshakeAbortedByClient := False;
+  FHandshakeAbortAlertLevel := 0;
+  FHandshakeAbortAlertDesc := 0;
+  FHandshakeAbortStage := '';
   FServerSeq := 0;
   FClientSeq := 0;
   FRecvPlainBuf := nil;
@@ -1205,8 +1239,11 @@ begin
     FOwnerServer := TCnTLSServer(Skt.Server);
   if not FOwnerServer.DoHandShake(Skt) then
   begin
-    if Assigned(FOwnerServer) and Assigned(FOwnerServer.FOnTLSError) then
-      FOwnerServer.FOnTLSError(FOwnerServer, Skt, -1, 'Handshake failed');
+    if not Skt.HandshakeAbortedByClient then
+    begin
+      if Assigned(FOwnerServer) and Assigned(FOwnerServer.FOnTLSError) then
+        FOwnerServer.FOnTLSError(FOwnerServer, Skt, -1, 'Handshake failed');
+    end;
     Skt.Shutdown;
     Exit;
   end;
