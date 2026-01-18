@@ -42,9 +42,13 @@ interface
 uses
   SysUtils, Classes, Contnrs, SyncObjs,
 {$IFDEF MSWINDOWS}
-  Windows,  WinSock,
+  Windows, WinSock,
 {$ELSE}
+  {$IFDEF FPC}
+  Sockets, BaseUnix,
+  {$ELSE}
   System.Net.Socket, Posix.NetinetIn, Posix.SysSocket, Posix.Unistd, Posix.ArpaInet,
+  {$ENDIF}
 {$ENDIF}
   CnConsts, CnNetConsts, CnClasses, CnSocket;
 
@@ -138,15 +142,17 @@ type
     {* 封装的供处理客户端使用的网络对象}
   end;
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnThreadingTCPServer = class(TCnComponent)
   {* 简单的多线程 TCP Server}
   private
     FSocket: TSocket;            // 监听的 Socket
     FAcceptThread: TCnTCPAcceptThread;
-    FListLock: TCriticalSection;
+    FListLock: SyncObjs.TCriticalSection;
     FClientThreads: TObjectList; // 存储 Accept 出的每个和 Client 通讯的线程
     FActive: Boolean;
     FOpening: Boolean;
@@ -157,7 +163,7 @@ type
     FLocalIP: string;
     FOnError: TCnServerSocketErrorEvent;
     FOnAccept: TCnSocketAcceptEvent;
-    FCountLock: TCriticalSection;
+    FCountLock: SyncObjs.TCriticalSection;
     FBytesReceived: Int64;
     FBytesSent: Int64;
     FOnShutdownClient: TNotifyEvent;
@@ -243,17 +249,29 @@ function TCnThreadingTCPServer.Bind: Boolean;
 var
   SockAddress, ConnAddr: TSockAddr;
   Len, Ret: Integer;
+  Data: Integer;
 begin
   Result := False;
   if FActive then
   begin
+    FillChar(SockAddress, SizeOf(SockAddress), 0);
+    Data := 1;
+    CnSetSockOpt(FSocket, SOL_SOCKET, SO_REUSEADDR, PAnsiChar(@Data), SizeOf(Data));
     SockAddress.sin_family := AF_INET;
     if FLocalIP <> '' then
+      {$IFDEF FPC_MACOS}
+      SockAddress.sin_addr := StrToNetAddr(FLocalIP)
+      {$ELSE}
       SockAddress.sin_addr.S_addr := inet_addr(PAnsiChar(AnsiString(FLocalIP)))
+      {$ENDIF}
     else
-      SockAddress.sin_addr.S_addr := INADDR_ANY;
+      {$IFDEF FPC_MACOS}
+      SockAddress.sin_addr := StrToNetAddr('0.0.0.0')
+      {$ELSE}
+      SockAddress.sin_addr.S_addr := INADDR_ANY
+      {$ENDIF};
 
-    SockAddress.sin_port := ntohs(FLocalPort);
+    SockAddress.sin_port := htons(FLocalPort);
     Result := CheckSocketError(CnBind(FSocket, SockAddress, SizeOf(SockAddress))) = 0;
 
     FActualLocalPort := FLocalPort;
@@ -274,13 +292,7 @@ begin
   if ResultCode = SOCKET_ERROR then
   begin
     if Assigned(FOnError) then
-    begin
-{$IFDEF MSWINDOWS}
-      FOnError(Self, WSAGetLastError);
-{$ELSE}
-      FOnError(Self, GetLastError);
-{$ENDIF};
-    end;
+      FOnError(Self, CnGetNetErrorNo);
   end;
 end;
 
@@ -332,9 +344,10 @@ end;
 constructor TCnThreadingTCPServer.Create(AOwner: TComponent);
 begin
   inherited;
-  FListLock := TCriticalSection.Create;
-  FCountLock := TCriticalSection.Create;
+  FListLock := SyncObjs.TCriticalSection.Create;
+  FCountLock := SyncObjs.TCriticalSection.Create;
   FClientThreads := TObjectList.Create(False);
+  FSocket := INVALID_SOCKET;
 end;
 
 destructor TCnThreadingTCPServer.Destroy;
@@ -545,7 +558,11 @@ begin
       if Ret = 0 then
       begin
         // 拿该 Socket 的本地信息
+        {$IFDEF FPC_MACOS}
+        ClientThread.ClientSocket.LocalIP := NetAddrToStr(ConnAddr.sin_addr);
+        {$ELSE}
         ClientThread.ClientSocket.LocalIP := string(inet_ntoa(ConnAddr.sin_addr));
+        {$ENDIF}
         ClientThread.ClientSocket.LocalPort := ntohs(ConnAddr.sin_port);
       end
       else // 如果没拿到，姑且拿监听的 Socket 的本地信息，注意 IP 可能是空
@@ -555,7 +572,11 @@ begin
       end;
 
       // 拿该 Socket 的对端客户端信息
+      {$IFDEF FPC_MACOS}
+      ClientThread.ClientSocket.RemoteIP := NetAddrToStr(SockAddress.sin_addr);
+      {$ELSE}
       ClientThread.ClientSocket.RemoteIP := string(inet_ntoa(SockAddress.sin_addr));
+      {$ENDIF}
       ClientThread.ClientSocket.RemotePort := ntohs(SockAddress.sin_port);
 
       FServer.FListLock.Enter;
@@ -573,7 +594,7 @@ end;
 
 constructor TCnTCPClientThread.Create(CreateSuspended: Boolean);
 begin
-  inherited;
+  inherited Create(CreateSuspended);
   FClientSocket := DoGetClientSocket;
 end;
 

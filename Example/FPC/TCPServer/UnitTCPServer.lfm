@@ -1,0 +1,73 @@
+object FormTCPServer: TFormTCPServer
+  Left = 192
+  Height = 629
+  Top = 107
+  Width = 727
+  BorderStyle = bsDialog
+  Caption = 'Threading TCP Server'
+  ClientHeight = 629
+  ClientWidth = 727
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Position = poScreenCenter
+  LCLVersion = '4.0.0.4'
+  OnCreate = FormCreate
+  object lblIP: TLabel
+    Left = 24
+    Height = 13
+    Top = 24
+    Width = 13
+    Caption = 'IP:'
+  end
+  object lblPort: TLabel
+    Left = 24
+    Height = 13
+    Top = 56
+    Width = 19
+    Caption = 'Port'
+  end
+  object edtIP: TEdit
+    Left = 56
+    Height = 21
+    Top = 24
+    Width = 121
+    TabOrder = 0
+    Text = '127.0.0.1'
+  end
+  object edtPort: TEdit
+    Left = 56
+    Height = 21
+    Top = 56
+    Width = 121
+    TabOrder = 1
+    Text = '30841'
+  end
+  object btnOpen: TButton
+    Left = 208
+    Height = 57
+    Top = 24
+    Width = 97
+    Caption = 'Open'
+    TabOrder = 2
+    OnClick = btnOpenClick
+  end
+  object btnOpenTLS: TButton
+    Left = 320
+    Height = 57
+    Top = 24
+    Width = 97
+    Caption = 'Start TLS Server'
+    TabOrder = 4
+    OnClick = btnOpenTLSClick
+  end
+  object mmoResult: TMemo
+    Left = 24
+    Height = 505
+    Top = 96
+    Width = 673
+    ReadOnly = True
+    TabOrder = 3
+  end
+end
