@@ -46,8 +46,12 @@ uses
 {$IFDEF MSWINDOWS}
   Windows,  WinSock,
 {$ELSE}
+  {$IFDEF FPC}
+  Sockets,
+  {$ELSE}
   System.Net.Socket, Posix.NetinetIn, Posix.SysSocket, Posix.Unistd,
   Posix.ArpaInet, Posix.SysSelect,
+  {$ENDIF}
 {$ENDIF}
   CnConsts, CnNetConsts, CnClasses, CnSocket,
   CnThreadingTCPServer, CnTCPClient;
@@ -60,8 +64,10 @@ type
     注意不可超过原有的 DataSize。如将 DataSize 置 0，表示抛弃本次数据
     如果事件处理者设置了 NewBuf 和 NewDataSize，表示使用新起的一片数据，原始数据抛弃}
 
+{$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+{$ENDIF}
 {$ENDIF}
   TCnTCPForwarder = class(TCnThreadingTCPServer)
   {* TCP 端口转发组件，对每个客户端连接起两个线程}
@@ -192,24 +198,26 @@ var
   NewBuf: Pointer;
   Ret, NewSize: Integer;
   SockAddress: TSockAddr;
-{$IFDEF MSWINDOWS}
-  ReadFds: TFDSet;
-{$ELSE}
-  ReadFds: fd_set;
-{$ENDIF}
+  ReadFds: TCnFDSet;
+  Nfds: Integer;
 begin
   // 客户端已连接上，事件里有参数可被用
   DoAccept;
   Forwarder := TCnTCPForwarder(ClientSocket.Server);
 
   Client := TCnForwarderClientSocket(ClientSocket);
-  Client.RemoteSocket := Forwarder.CheckSocketError(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
+  Client.RemoteSocket := Forwarder.CheckSocketError(CnNewSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
   if Client.RemoteSocket = INVALID_SOCKET then
     Exit;
 
+  FillChar(SockAddress, SizeOf(SockAddress), 0);
   SockAddress.sin_family := AF_INET;
+{$IFDEF FPC_MACOS}
+  SockAddress.sin_addr := StrToNetAddr(TCnTCPClient.LookupHostAddr(Forwarder.RemoteHost));
+{$ELSE}
   SockAddress.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(TCnTCPClient.LookupHostAddr(Forwarder.RemoteHost))));
-  SockAddress.sin_port := ntohs(Forwarder.RemotePort);
+{$ENDIF}
+  SockAddress.sin_port := htons(Forwarder.RemotePort);
 
   Ret := Forwarder.CheckSocketError(CnConnect(Client.RemoteSocket, SockAddress, SizeOf(SockAddress)));
   if Ret <> 0 then
@@ -231,7 +239,10 @@ begin
     CnFDSet(Client.Socket, ReadFds);
     CnFDSet(Client.RemoteSocket, ReadFds);
 
-    Ret := Forwarder.CheckSocketError(CnSelect(0, @ReadFds, nil, nil, nil));
+    Nfds := Client.Socket;
+    if Client.RemoteSocket > Nfds then
+      Nfds := Client.RemoteSocket;
+    Ret := Forwarder.CheckSocketError(CnSelect(Nfds + 1, @ReadFds, nil, nil, nil));
     if Ret <= 0 then
     begin
       Client.Shutdown;
