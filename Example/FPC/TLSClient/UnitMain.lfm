@@ -1,0 +1,151 @@
+object FormMain: TFormMain
+  Left = 212
+  Height = 632
+  Top = 69
+  Width = 824
+  Caption = 'TLS Client Demo'
+  ClientHeight = 632
+  ClientWidth = 824
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Position = poScreenCenter
+  LCLVersion = '4.0.0.4'
+  OnCreate = FormCreate
+  object lblLog: TLabel
+    Left = 8
+    Height = 13
+    Top = 368
+    Width = 21
+    Caption = 'Log:'
+  end
+  object grpConfig: TGroupBox
+    Left = 8
+    Height = 80
+    Top = 8
+    Width = 400
+    Caption = 'Connection Config'
+    ClientHeight = 62
+    ClientWidth = 396
+    ParentBackground = False
+    TabOrder = 0
+    object lblHost: TLabel
+      Left = 16
+      Height = 13
+      Top = 3
+      Width = 26
+      Caption = 'Host:'
+    end
+    object lblPort: TLabel
+      Left = 216
+      Height = 13
+      Top = 3
+      Width = 24
+      Caption = 'Port:'
+    end
+    object edtHost: TEdit
+      Left = 48
+      Height = 21
+      Top = 0
+      Width = 150
+      TabOrder = 0
+      Text = 'www.cnpack.org'
+    end
+    object edtPort: TEdit
+      Left = 244
+      Height = 21
+      Top = 0
+      Width = 50
+      TabOrder = 1
+      Text = '443'
+    end
+    object btnConnect: TButton
+      Left = 16
+      Height = 25
+      Top = 27
+      Width = 80
+      Caption = 'Connect'
+      TabOrder = 2
+      OnClick = btnConnectClick
+    end
+    object btnDisconnect: TButton
+      Left = 104
+      Height = 25
+      Top = 27
+      Width = 80
+      Caption = 'Disconnect'
+      Enabled = False
+      TabOrder = 3
+      OnClick = btnDisconnectClick
+    end
+    object btnSend: TButton
+      Left = 200
+      Height = 25
+      Top = 27
+      Width = 80
+      Caption = 'Send'
+      Enabled = False
+      TabOrder = 4
+      OnClick = btnSendClick
+    end
+  end
+  object grpData: TGroupBox
+    Left = 8
+    Height = 260
+    Top = 94
+    Width = 784
+    Caption = 'Data'
+    ClientHeight = 242
+    ClientWidth = 780
+    ParentBackground = False
+    TabOrder = 1
+    object lblRequest: TLabel
+      Left = 16
+      Height = 13
+      Top = 24
+      Width = 44
+      Caption = 'Request:'
+    end
+    object lblResponse: TLabel
+      Left = 16
+      Height = 13
+      Top = 139
+      Width = 51
+      Caption = 'Response:'
+    end
+    object memRequest: TMemo
+      Left = 16
+      Height = 80
+      Top = 43
+      Width = 752
+      Lines.Strings = (
+        'GET / HTTP/1.1'
+        'Host: www.cnpack.org'
+        'Connection: close'
+        ''
+        ''
+      )
+      ScrollBars = ssVertical
+      TabOrder = 0
+    end
+    object memResponse: TMemo
+      Left = 16
+      Height = 80
+      Top = 158
+      Width = 752
+      ReadOnly = True
+      ScrollBars = ssVertical
+      TabOrder = 1
+    end
+  end
+  object memLog: TMemo
+    Left = 8
+    Height = 200
+    Top = 387
+    Width = 784
+    ReadOnly = True
+    ScrollBars = ssVertical
+    TabOrder = 2
+  end
+end
