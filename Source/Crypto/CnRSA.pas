@@ -1853,6 +1853,14 @@ begin
       Node := Reader.Items[1]; // 0 是整个 Sequence，1 是 Version
       if Node.AsByte = 0 then // 只支持版本 0
       begin
+	    // AI 说这里要增加 OID 判断必须是 RSA 的才往下走，先加上
+        if (Reader.TotalCount < 4) or (not CompareObjectIdentifier(Reader.Items[3],
+          @CN_OID_RSAENCRYPTION_PKCS1[0], SizeOf(CN_OID_RSAENCRYPTION_PKCS1))) then
+        begin
+          _CnSetLastError(ECN_RSA_PEM_FORMAT_ERROR);
+          Exit;
+        end;
+
         // 8 和 9 整成公钥
         if PublicKey <> nil then
         begin

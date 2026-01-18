@@ -5583,11 +5583,17 @@ begin
 
               if PublicKey <> nil then
               begin
-                Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[10], PublicKey);
-                if not Result then // 兼容处理，可能上面多出一个 OI 分支且多解析出私钥的子节点
-                  Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[12], PublicKey);
-                if not Result then
-                  Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[13], PublicKey);
+                Result := False;
+				// 兼容处理，AI 说私钥的子节点是首个 BitString
+                for I := 0 to Reader.TotalCount - 1 do
+                begin
+                  if Reader.Items[I].BerTag = CN_BER_TAG_BIT_STRING then
+                  begin
+                    Result := ReadEccPublicKeyFromBitStringNode(Reader.Items[I], PublicKey);
+                    if Result then
+                      Break;
+                  end;
+                end;
               end;
             end;
           end;
