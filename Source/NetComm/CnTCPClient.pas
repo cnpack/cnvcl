@@ -44,7 +44,7 @@ uses
   {$IFDEF FPC} Sockets, {$ELSE}
   System.Net.Socket, Posix.NetinetIn, Posix.SysSocket, Posix.Unistd, Posix.ArpaInet,
   {$ENDIF} {$ENDIF}
-  CnConsts, CnNetConsts, CnSocket, CnClasses;
+  CnConsts, CnNetConsts, CnSocket, CnClasses, CnIP;
 
 type
   ECnClientSocketError = class(Exception);
@@ -197,6 +197,10 @@ class function TCnTCPClient.LookupHostAddr(const HostName: string): string;
 var
   H: PHostEnt;
 {$ENDIF}
+{$IFDEF FPC}
+var
+  IP: string;
+{$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
   Result := '';
@@ -219,7 +223,18 @@ begin
   else
     Result := '0.0.0.0';
 {$ELSE}
+  {$IFDEF FPC}
+  if HostName = '' then
+    Exit('0.0.0.0');
+  if HostName[1] in ['0'..'9'] then
+    Exit(HostName);
+  if TCnIp.GetIPByName(IP, HostName) then
+    Result := IP
+  else
+    Result := '0.0.0.0';
+  {$ELSE}
   Result := TIPAddress.LookupName(HostName).Address;
+  {$ENDIF}
 {$ENDIF}
 end;
 
@@ -237,13 +252,18 @@ begin
       FBytesReceived := 0;
       FBytesSent := 0;
 
+      FillChar(SockAddress, SizeOf(SockAddress), 0);
       SockAddress.sin_family := AF_INET;
-      SockAddress.sin_port := ntohs(FRemotePort);
+      SockAddress.sin_port := htons(FRemotePort);
 
 {$IFDEF MSWINDOWS}
       SockAddress.sin_addr.s_addr := inet_addr(PAnsiChar(AnsiString(LookupHostAddr(FRemoteHost))));
 {$ELSE}
+  {$IFDEF FPC}
+      SockAddress.sin_addr := StrToNetAddr(LookupHostAddr(FRemoteHost));
+  {$ELSE}
       SockAddress.sin_addr := TIPAddress.LookupName(FRemoteHost);
+  {$ENDIF}
 {$ENDIF}
 
       FConnected := CheckSocketError(CnConnect(FSocket, SockAddress, SizeOf(SockAddress))) = 0;

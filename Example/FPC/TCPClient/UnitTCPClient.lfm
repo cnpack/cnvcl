@@ -1,0 +1,83 @@
+object FormTCPClient: TFormTCPClient
+  Left = 277
+  Height = 630
+  Top = 183
+  Width = 726
+  BorderStyle = bsDialog
+  Caption = 'TCP Client'
+  ClientHeight = 630
+  ClientWidth = 726
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Position = poScreenCenter
+  LCLVersion = '4.0.0.4'
+  OnCreate = FormCreate
+  object lblIP: TLabel
+    Left = 24
+    Height = 13
+    Top = 24
+    Width = 25
+    Caption = 'Host:'
+  end
+  object lblPort: TLabel
+    Left = 24
+    Height = 13
+    Top = 56
+    Width = 19
+    Caption = 'Port'
+  end
+  object edtHost: TEdit
+    Left = 56
+    Height = 21
+    Top = 24
+    Width = 121
+    TabOrder = 0
+    Text = '127.0.0.1'
+  end
+  object edtPort: TEdit
+    Left = 56
+    Height = 21
+    Top = 56
+    Width = 121
+    TabOrder = 1
+    Text = '30841'
+  end
+  object btnOpen: TButton
+    Left = 208
+    Height = 57
+    Top = 24
+    Width = 97
+    Caption = 'Connect'
+    TabOrder = 2
+    OnClick = btnOpenClick
+  end
+  object mmoResult: TMemo
+    Left = 24
+    Height = 505
+    Top = 96
+    Width = 673
+    ReadOnly = True
+    TabOrder = 3
+  end
+  object mmoContent: TMemo
+    Left = 376
+    Height = 57
+    Top = 24
+    Width = 185
+    Lines.Strings = (
+      'Test!'
+    )
+    TabOrder = 4
+  end
+  object btnSend: TButton
+    Left = 584
+    Height = 57
+    Top = 24
+    Width = 113
+    Caption = 'Send'
+    TabOrder = 5
+    OnClick = btnSendClick
+  end
+end
