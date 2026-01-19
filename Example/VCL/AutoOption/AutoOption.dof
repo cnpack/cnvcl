@@ -83,11 +83,8 @@ Item0=USE_JEDI_JCL
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=4
+Count=1
 Item0=..\..\..\Source\Common;..\..\..\Source\Crypto
-Item1=..\Common;..\Public;..\Components;..\Components\DUnit;..\Components\OmniXML;..\NoteExpress
-Item2=..\Common;..\Public;..\Components;..\Components\DUnit;..\Components\OmniXML
-Item3=..\Common;..\Public;..\Components;..\Components\Raize3\Source;..\Components\OmniXML
 [HistoryLists\hlUnitOutputDirectory]
 Count=1
 Item0=..\..\..\Obj\Delphi

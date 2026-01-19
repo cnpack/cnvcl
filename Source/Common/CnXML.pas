@@ -3292,7 +3292,7 @@ begin
   try
     GetPropList(Obj.ClassInfo, tkAny, PropList);
 
-    // Read child nodes (OmniXML compatibility - properties stored as child elements)
+    // Read child nodes (For compatibility - properties stored as child elements)
     for I := 0 to Node.ChildCount - 1 do
     begin
       ChildNode := Node.Children[I];

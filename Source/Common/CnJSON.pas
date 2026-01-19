@@ -139,9 +139,13 @@ type
     function GetTokenLength: Integer;
   protected
     function TokenEqualStr(Org: PAnsiChar; const Str: AnsiString): Boolean;
+    {* 比较 Token 字符串是否相等}
     procedure MakeMethodTable;
+    {* 创建方法表，初始化字符处理过程}
     procedure StepRun; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+    {* 步进处理位置}
     procedure StepBOM;
+    {* 处理字节顺序标记}
   public
     constructor Create(AllowRawKeyValue: Boolean = False); virtual;
     {* 构造函数，AllowRawKey 指允许 Key 不带引号}
@@ -195,10 +199,14 @@ type
     FUpdated: Boolean;
 
     function GetName(Index: Integer): TCnJSONString; virtual;
+    {* 获取指定索引的名称}
     function GetValueByName(const Name: string): TCnJSONValue; virtual;
+    {* 根据名称获取值}
 
     function GetCount: Integer; virtual;
+    {* 获取元素数量}
     function GetValue(Index: Integer): TCnJSONValue; virtual;
+    {* 获取指定索引的值}
   public
     constructor Create; virtual;
     {* 构造函数}
@@ -220,22 +228,35 @@ type
 
     // 以下方法组装用
     function ToJSON(UseFormat: Boolean = True; Indent: Integer = 0): AnsiString; override;
+    {* 转换为 JSON 字符串}
 
     // 以下方法解析时判断类型用
     function IsObject: Boolean; virtual;
+    {* 判断是否为对象类型}
     function IsArray: Boolean; virtual;
+    {* 判断是否为数组类型}
     function IsString: Boolean; virtual;
+    {* 判断是否为字符串类型}
     function IsNumber: Boolean; virtual;
+    {* 判断是否为数字类型}
     function IsNull: Boolean; virtual;
+    {* 判断是否为 Null 类型}
     function IsTrue: Boolean; virtual;
+    {* 判断是否为 True 布尔值}
     function IsFalse: Boolean; virtual;
+    {* 判断是否为 False 布尔值}
 
     // 以下方法解析时取值用
     function AsString: string; virtual;
+    {* 转换为字符串值}
     function AsInteger: Integer; virtual;
+    {* 转换为整数值}
     function AsInt64: Int64; virtual;
+    {* 转换为 64 位整数值}
     function AsFloat: Extended; virtual;
+    {* 转换为浮点数值}
     function AsBoolean: Boolean; virtual;
+    {* 转换为布尔值}
 
     property Content: AnsiString read FContent write SetContent;
     {* 普通值类型时代表原始 UTF8 格式的字符串内容}
@@ -296,12 +317,19 @@ type
 
     // 以下方法组装用
     function AddPair(const Name: string; Value: TCnJSONValue): TCnJSONPair; overload;
+    {* 添加一个名称值对，值为 TCnJSONValue 对象}
     function AddPair(const Name: string; const Value: string): TCnJSONPair; overload;
+    {* 添加一个名称值对，值为字符串}
     function AddPair(const Name: string; Value: Integer): TCnJSONPair; overload;
+    {* 添加一个名称值对，值为整数}
     function AddPair(const Name: string; Value: Int64): TCnJSONPair; overload;
+    {* 添加一个名称值对，值为 64 位整数}
     function AddPair(const Name: string; Value: Extended): TCnJSONPair; overload;
+    {* 添加一个名称值对，值为浮点数}
     function AddPair(const Name: string; Value: Boolean): TCnJSONPair; overload;
+    {* 添加一个名称值对，值为布尔值}
     function AddPair(const Name: string): TCnJSONPair; overload;
+    {* 添加一个名称值对，值为空值}
 
     function AddArray(const Name: string): TCnJSONArray;
     {* 添加一个命名的空数组并返回该数组对象}
@@ -378,6 +406,7 @@ type
     {* 从浮点数值创建实例}
 
     function IsNumber: Boolean; override;
+    {* 判断是否为数字类型}
 
     function Clone: TCnJSONValue; override;
     {* 复制一份相同的数字对象}
@@ -391,7 +420,9 @@ type
 
   public
     constructor Create; override;
+    {* 构造函数}
     function IsNull: Boolean; override;
+    {* 判断是否为 Null 类型}
 
     function Clone: TCnJSONValue; override;
     {* 复制一份 Null 对象}
@@ -403,7 +434,9 @@ type
 
   public
     constructor Create; override;
+    {* 构造函数}
     function IsTrue: Boolean; override;
+    {* 判断是否为 True 布尔值}
 
     function Clone: TCnJSONValue; override;
     {* 复制一份 True 对象}
@@ -415,7 +448,9 @@ type
 
   public
     constructor Create; override;
+    {* 构造函数}
     function IsFalse: Boolean; override;
+    {* 判断是否为 False 布尔值}
 
     function Clone: TCnJSONValue; override;
     {* 复制一份 False 对象}
@@ -506,12 +541,18 @@ type
   private
     // 以下系列，返回 False 表示 Name 在 JSON 中不存在，True 存在，Value 返回值
     class function ReadStringValue(Obj: TCnJSONObject; const Name: string; out Value: string): Boolean;
+    {* 读取字符串类型的值}
     class function ReadIntegerValue(Obj: TCnJSONObject; const Name: string; out Value: Integer): Boolean;
+    {* 读取整数类型的值}
     class function ReadFloatValue(Obj: TCnJSONObject; const Name: string; out Value: Extended): Boolean;
+    {* 读取浮点数类型的值}
     class function ReadBooleanValue(Obj: TCnJSONObject; const Name: string; out Value: Boolean): Boolean;
+    {* 读取布尔类型的值}
     class function ReadInt64Value(Obj: TCnJSONObject; const Name: string; out Value: Int64): Boolean;
+    {* 读取 64 位整数类型的值}
 
     class procedure ReadProperty(Instance: TPersistent; PropInfo: PPropInfo; Obj: TCnJSONObject);
+    {* 读取属性值}
   public
     class procedure Read(Instance: TPersistent; Obj: TCnJSONObject);
     {* 遍历 Instance 的各属性名并从 JSONObject 中读入对应属性值}
@@ -530,13 +571,20 @@ type
   {* 将对象写入 JSON 的辅助工具类，可不创建实例而直接调用 class 各方法}
   private
     class procedure WriteStringValue(Obj: TCnJSONObject; const Name, Value: string);
+    {* 写入字符串类型的值}
     class procedure WriteIntegerValue(Obj: TCnJSONObject; const Name: string; Value: Integer);
+    {* 写入整数类型的值}
     class procedure WriteFloatValue(Obj: TCnJSONObject; const Name: string; Value: Extended);
+    {* 写入浮点数类型的值}
     class procedure WriteBooleanValue(Obj: TCnJSONObject; const Name: string; Value: Boolean);
+    {* 写入布尔类型的值}
     class procedure WriteInt64Value(Obj: TCnJSONObject; const Name: string; Value: Int64);
+    {* 写入 64 位整数类型的值}
     class procedure WriteNullValue(Obj: TCnJSONObject; const Name: string);
+    {* 写入空值}
 
     class procedure WriteProperty(Instance: TPersistent; PropInfo: PPropInfo; Obj: TCnJSONObject);
+    {* 写入属性值}
   public
     class procedure Write(Instance: TPersistent; Obj: TCnJSONObject);
     {* 将 Instance 的各属性赋值给 JSONObject}
