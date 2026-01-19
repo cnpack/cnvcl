@@ -55,30 +55,34 @@ type
 //==============================================================================
 
   ECnXMLException = class(Exception)
-  {* XML parsing and operation exception class}
+  {* XML 异常类}
   private
     FErrorCode: Integer;
     FLine: Integer;
     FColumn: Integer;
   public
     constructor Create(const Msg: string; AErrorCode, ALine, AColumn: Integer);
-    {* Constructor
-     |<PRE>
-       Msg: string           - Error message
-       AErrorCode: Integer   - Error code
-       ALine: Integer        - Error line number
-       AColumn: Integer      - Error column number
-     |</PRE>}
+    {* 构造函数。
+
+       参数：
+         const Msg: string                    - 错误信息
+         AErrorCode: Integer                  - 错误码
+         ALine: Integer                       - 错误所在行号
+         AColumn: Integer                     - 错误所在列号
+
+       返回值：（无）
+    }
 
     property ErrorCode: Integer read FErrorCode;
-    {* Error code}
+    {* 错误码}
     property Line: Integer read FLine;
-    {* Error line number}
+    {* 异常所在行号}
     property Column: Integer read FColumn;
-    {* Error column number}
+    {* 异常所在列号}
   end;
 
   TCnXMLNodeType = (
+  {* XML 节点类型枚举}
     xntElement,           // Element node
     xntAttribute,         // Attribute node
     xntText,              // Text node
@@ -92,9 +96,9 @@ type
     xntDocumentFragment,  // Document fragment node
     xntNotation           // Notation node
   );
-  {* XML node type enumeration}
 
   TCnXMLTokenType = (
+  {* XML 词法单元类型枚举}
     xttNone,              // Invalid token
     xttXMLDecl,           // XML declaration <?xml ... ?>
     xttStartTag,          // Start tag <tag>
@@ -106,7 +110,6 @@ type
     xttPI,                // Processing instruction <?target data?>
     xttEOF                // End of file
   );
-  {* XML token type enumeration}
 
 //==============================================================================
 // Error Code Constants
@@ -115,55 +118,89 @@ type
 const
   // Lexical analysis errors
   CN_XML_ERR_INVALID_CHAR = 1;           // Invalid character
+  {* 词法分析错误：无效字符}
   CN_XML_ERR_UNEXPECTED_EOF = 2;         // Unexpected end of file
+  {* 词法分析错误：意外的文件结束}
   CN_XML_ERR_INVALID_NAME = 3;           // Invalid name
+  {* 词法分析错误：非法名称}
   CN_XML_ERR_MISSING_QUOTE = 4;          // Missing quote
+  {* 词法分析错误：缺少引号}
   CN_XML_ERR_INVALID_ENTITY = 5;         // Invalid entity reference
+  {* 词法分析错误：非法实体引用}
 
   // Syntax analysis errors
   CN_XML_ERR_TAG_MISMATCH = 10;          // Tag mismatch
+  {* 语法分析错误：标签不匹配}
   CN_XML_ERR_MISSING_ROOT = 11;          // Missing root element
+  {* 语法分析错误：缺少根元素}
   CN_XML_ERR_MULTIPLE_ROOTS = 12;        // Multiple root elements
+  {* 语法分析错误：存在多个根元素}
   CN_XML_ERR_INVALID_STRUCTURE = 13;     // Invalid structure
+  {* 语法分析错误：结构非法}
 
   // DOM operation errors
   CN_XML_ERR_HIERARCHY = 20;             // Hierarchy error
+  {* DOM 操作错误：层级关系非法}
   CN_XML_ERR_NOT_FOUND = 21;             // Node not found
+  {* DOM 操作错误：未找到节点}
   CN_XML_ERR_INVALID_OPERATION = 22;     // Invalid operation
+  {* DOM 操作错误：非法操作}
 
   // Encoding errors
   CN_XML_ERR_ENCODING = 30;              // Encoding error
+  {* 编码错误：编码处理失败}
   CN_XML_ERR_INVALID_ENCODING = 31;      // Invalid encoding
+  {* 编码错误：不支持的编码}
 
   // Encoding constants
   CN_XML_ENCODING_UNKNOWN = 0;
+  {* 编码常量：未知}
   CN_XML_ENCODING_GBK = 1;
+  {* 编码常量：GBK}
   CN_XML_ENCODING_UTF8 = 2;
+  {* 编码常量：UTF-8}
   CN_XML_ENCODING_UTF16LE = 3;
+  {* 编码常量：UTF-16LE}
   CN_XML_ENCODING_UTF16BE = 4;
+  {* 编码常量：UTF-16BE}
 
   // Collection serialization constants
   CN_XML_COLLECTION_ITEM_NODE = 'o';     // Compatible format
+  {* 集合序列化常量：集合项节点名}
 
 //==============================================================================
 // String Constants
 //==============================================================================
 
 resourcestring
-  SCN_XML_INVALID_CHAR = 'XML Parsing Error: invalid character';
-  SCN_XML_UNEXPECTED_EOF = 'XML Parsing Error: unexpected end of file';
-  SCN_XML_INVALID_NAME = 'XML Parsing Error: invalid name';
-  SCN_XML_MISSING_QUOTE = 'XML Parsing Error: missing quote';
-  SCN_XML_INVALID_ENTITY = 'XML Parsing Error: invalid entity reference';
-  SCN_XML_TAG_MISMATCH = 'XML Parsing Error: tag mismatch';
-  SCN_XML_MISSING_ROOT = 'XML Parsing Error: missing root element';
-  SCN_XML_MULTIPLE_ROOTS = 'XML Parsing Error: multiple root elements';
-  SCN_XML_INVALID_STRUCTURE = 'XML Parsing Error: invalid structure';
-  SCN_XML_HIERARCHY = 'XML Parsing Error: hierarchy error';
-  SCN_XML_NOT_FOUND = 'XML Parsing Error: node not found';
-  SCN_XML_INVALID_OPERATION = 'XML Parsing Error: invalid operation';
+  SCN_XML_INVALID_CHAR = 'XML Parsing Error: Invalid Character';
+  {* XML 解析错误：无效字符}
+  SCN_XML_UNEXPECTED_EOF = 'XML Parsing Error: Unexpected End of Cile';
+  {* XML 解析错误：意外的文件结束}
+  SCN_XML_INVALID_NAME = 'XML Parsing Error: Invalid Name';
+  {* XML 解析错误：非法名称}
+  SCN_XML_MISSING_QUOTE = 'XML Parsing Error: Missing Quote';
+  {* XML 解析错误：缺少引号}
+  SCN_XML_INVALID_ENTITY = 'XML Parsing Error: Invalid Entity Reference';
+  {* XML 解析错误：非法实体引用}
+  SCN_XML_TAG_MISMATCH = 'XML Parsing Error: Tag Mismatch';
+  {* XML 解析错误：标签不匹配}
+  SCN_XML_MISSING_ROOT = 'XML Parsing Error: Missing Root Element';
+  {* XML 解析错误：缺少根元素}
+  SCN_XML_MULTIPLE_ROOTS = 'XML Parsing Error: Multiple Root Elements';
+  {* XML 解析错误：存在多个根元素}
+  SCN_XML_INVALID_STRUCTURE = 'XML Parsing Error: Invalid Structure';
+  {* XML 解析错误：结构非法}
+  SCN_XML_HIERARCHY = 'XML Parsing Error: Hierarchy Error';
+  {* XML 解析错误：层级关系非法}
+  SCN_XML_NOT_FOUND = 'XML Parsing Error: Node Not Found';
+  {* XML 解析错误：未找到节点}
+  SCN_XML_INVALID_OPERATION = 'XML Parsing Error: Invalid Operation';
+  {* XML 解析错误：非法操作}
   SCN_XML_ENCODING = 'XML Encoding Error';
-  SCN_XML_INVALID_ENCODING = 'XML Parsing Error: invalid encoding';
+  {* XML 编码错误}
+  SCN_XML_INVALID_ENCODING = 'XML Parsing Error: Invalid Encoding';
+  {* XML 解析错误：不支持的编码}
 
 type
 //==============================================================================
@@ -180,21 +217,21 @@ type
 //==============================================================================
 
   TCnXMLToken = record
-  {* XML token record type}
+  {* XML Token 类型结构}
     TokenType: TCnXMLTokenType;
-    {* Token type}
+    {* Token 类型}
     Value: string;
-    {* Token text value}
+    {* Token 文本}
     Line: Integer;
-    {* Line number}
+    {* 所在行}
     Column: Integer;
-    {* Column number}
+    {* 所在列}
     Attributes: TStringList;
-    {* Attribute list (for tags only)}
+    {* 属性列表}
   end;
 
   TCnXMLLexer = class
-  {* XML lexical analyzer}
+  {* XML 词法分析器}
   private
     FSource: string;          // Source XML text
     FPosition: Integer;       // Current position
@@ -206,26 +243,69 @@ type
     procedure NextChar;       // Move to next character
     procedure SkipWhitespace; // Skip whitespace characters
     function PeekChar(Offset: Integer): Char;  // Peek character
-    function ReadName: string;  // Read XML name
-    function ReadAttributeValue: string;  // Read attribute value
-    function ReadText: string;  // Read text content
-    function ReadComment: string;  // Read comment
-    function ReadCData: string;  // Read CDATA
-    function ReadPI: string;  // Read processing instruction
+    function ReadName: string;                 // Read XML name
+    function ReadAttributeValue: string;       // Read attribute value
+    function ReadText: string;                 // Read text content
+    function ReadComment: string;              // Read comment
+    function ReadCData: string;                // Read CDATA
+    function ReadPI: string;                   // Read processing instruction
   public
     constructor Create(const ASource: string);
-    {* Constructor
-     |<PRE>
-       ASource: string - Source XML text
-     |</PRE>}
-    destructor Destroy; override;
-    {* Destructor}
+    {* 构造函数。
 
-    function NextToken: TCnXMLToken;  // Get next token
-    function CurrentPosition: Integer;  // Current position
-    function CurrentLine: Integer;  // Current line number
-    function CurrentColumn: Integer;  // Current column number
-    function UnescapeText(const Text: string): string;  // Decode entity references (public for testing)
+       参数：
+         const ASource: string            - XML 源文本
+
+       返回值：（无）
+    }
+
+    destructor Destroy; override;
+    {* 析构函数}
+
+    function NextToken: TCnXMLToken;
+    {* 获取下一个词法单元。
+
+       参数：
+         （无）
+
+       返回值：TCnXMLToken                - 返回词法单元记录
+    }
+
+    function CurrentPosition: Integer;
+    {* 获取当前解析位置。
+
+       参数：
+         无
+
+       返回值：Integer                    - 当前字符位置
+    }
+
+    function CurrentLine: Integer;
+    {* 获取当前行号。
+
+       参数：
+         无
+
+       返回值：Integer                    - 当前行号
+    }
+
+    function CurrentColumn: Integer;
+    {* 获取当前列号。
+
+       参数：
+         无
+
+       返回值：Integer                    - 当前列号
+    }
+
+    function UnescapeText(const Text: string): string;
+    {* 反转义实体引用文本。
+
+       参数：
+         const Text: string               - 待反转义文本
+
+       返回值：string                     - 反转义后的文本
+    }
   end;
 
 //==============================================================================
@@ -233,10 +313,9 @@ type
 //==============================================================================
 
   TCnXMLNode = class
-  {* XML node base class}
+  {* XML 节点类}
   private
     FNodeType: TCnXMLNodeType;
-    FNodeName: string;
     FNodeValue: string;
     FParentNode: TCnXMLNode;
     FOwnerDocument: TCnXMLDocument;
@@ -251,110 +330,136 @@ type
     function GetText: string;
     procedure SetText(const Value: string);
   protected
+    FNodeName: string;
     procedure AddChild(Node: TCnXMLNode);
     procedure InternalRemoveChild(Node: TCnXMLNode);
     function IndexOfChild(Node: TCnXMLNode): Integer;
   public
     constructor Create(AOwnerDocument: TCnXMLDocument; ANodeType: TCnXMLNodeType);
-    {* Constructor
-     |<PRE>
-       AOwnerDocument: TCnXMLDocument - Owner document
-       ANodeType: TCnXMLNodeType      - Node type
-     |</PRE>}
+    {* 构造函数。
+
+       参数：
+         AOwnerDocument: TCnXMLDocument   - 所属文档对象
+         ANodeType: TCnXMLNodeType        - 节点类型
+
+       返回值：（无）
+    }
+
     destructor Destroy; override;
-    {* Destructor}
+    {* 析构函数}
 
     // Node operations
     function AppendChild(NewChild: TCnXMLNode): TCnXMLNode;
-    {* Append a child node
-     |<PRE>
-       NewChild: TCnXMLNode - New child node
-       Return: TCnXMLNode   - The appended child node
-     |</PRE>}
+    {* 追加子节点。
+
+       参数：                        
+         NewChild: TCnXMLNode             - 待追加的子节点
+
+       返回值：TCnXMLNode                 - 返回被追加的子节点
+    }
+
     function InsertBefore(NewChild, RefChild: TCnXMLNode): TCnXMLNode;
-    {* Insert a node before a reference node
-     |<PRE>
-       NewChild: TCnXMLNode  - New child node
-       RefChild: TCnXMLNode  - Reference child node
-       Return: TCnXMLNode    - The inserted child node
-     |</PRE>}
+    {* 在参考节点前插入子节点。
+
+       参数：
+         NewChild: TCnXMLNode             - 待插入的子节点
+         RefChild: TCnXMLNode             - 参考子节点
+
+       返回值：TCnXMLNode                 - 返回被插入的子节点
+    }
+
     function RemoveChild(OldChild: TCnXMLNode): TCnXMLNode;
-    {* Remove a child node
-     |<PRE>
-       OldChild: TCnXMLNode - Child node to remove
-       Return: TCnXMLNode   - The removed child node
-     |</PRE>}
+    {* 移除子节点。
+
+       参数：
+         OldChild: TCnXMLNode             - 待移除的子节点
+
+       返回值：TCnXMLNode                 - 返回被移除的子节点
+    }
+
     function ReplaceChild(NewChild, OldChild: TCnXMLNode): TCnXMLNode;
-    {* Replace a child node
-     |<PRE>
-       NewChild: TCnXMLNode - New child node
-       OldChild: TCnXMLNode - Old child node to replace
-       Return: TCnXMLNode   - The replaced child node
-     |</PRE>}
+    {* 替换子节点。
+
+       参数：
+         NewChild: TCnXMLNode             - 新子节点
+         OldChild: TCnXMLNode             - 旧子节点
+
+       返回值：TCnXMLNode                 - 返回被替换的旧子节点
+    }
+
     function CloneNode(Deep: Boolean): TCnXMLNode;
-    {* Clone a node
-     |<PRE>
-       Deep: Boolean      - Whether to clone child nodes recursively
-       Return: TCnXMLNode - The cloned node
-     |</PRE>}
+    {* 克隆节点。
+
+       参数：
+         Deep: Boolean                    - 是否递归克隆子节点
+
+       返回值：TCnXMLNode                 - 返回克隆得到的新节点
+    }
+
     function HasChildNodes: Boolean;
-    {* Check if the node has child nodes
-     |<PRE>
-       Return: Boolean - True if has child nodes, False otherwise
-     |</PRE>}
+    {* 判断是否存在子节点。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 存在子节点返回 True，否则返回 False
+    }
 
     // Properties
     property NodeType: TCnXMLNodeType read FNodeType;
-    {* Node type}
+    {* 节点类型}
     property NodeName: string read FNodeName write FNodeName;
-    {* Node name}
+    {* 节点名称}
     property NodeValue: string read FNodeValue write FNodeValue;
-    {* Node value}
+    {* 节点值}
     property ParentNode: TCnXMLNode read FParentNode;
-    {* Parent node}
+    {* 父节点}
     property OwnerDocument: TCnXMLDocument read FOwnerDocument;
-    {* Owner document}
+    {* 所属文档}
     property FirstChild: TCnXMLNode read GetFirstChild;
-    {* First child node}
+    {* 第一个子节点}
     property LastChild: TCnXMLNode read GetLastChild;
-    {* Last child node}
+    {* 最后一个子节点}
     property NextSibling: TCnXMLNode read GetNextSibling;
-    {* Next sibling node}
+    {* 下一个同级节点}
     property PreviousSibling: TCnXMLNode read GetPreviousSibling;
-    {* Previous sibling node}
+    {* 上一个同级节点}
     property ChildCount: Integer read GetChildCount;
-    {* Child node count}
+    {* 子节点数量}
     property Children[Index: Integer]: TCnXMLNode read GetChild;
-    {* Child node by index}
+    {* 根据索引访问子节点}
     property Text: string read GetText write SetText;
-    {* Node text content}
+    {* 节点文本内容}
   end;
 
   TCnXMLAttribute = class
-  {* XML attribute class}
+  {* XML 属性类}
   private
     FName: string;
     FValue: string;
     FOwnerElement: TCnXMLElement;
   public
     constructor Create(AOwnerElement: TCnXMLElement; const AName, AValue: string);
-    {* Constructor
-     |<PRE>
-       AOwnerElement: TCnXMLElement - Owner element
-       AName: string                - Attribute name
-       AValue: string               - Attribute value
-     |</PRE>}
+    {* 构造函数。
+
+       参数：
+         AOwnerElement: TCnXMLElement     - 所属元素
+         const AName: string              - 属性名
+         const AValue: string             - 属性值
+
+       返回值：（无）
+    }
 
     property Name: string read FName write FName;
-    {* Attribute name}
+    {* 属性名}
     property Value: string read FValue write FValue;
-    {* Attribute value}
+    {* 属性值}
     property OwnerElement: TCnXMLElement read FOwnerElement;
-    {* Owner element}
+    {* 所属元素}
   end;
 
   TCnXMLElement = class(TCnXMLNode)
-  {* XML element class}
+  {* XML 元素类}
   private
     FAttributes: TList;  // List of attributes
 
@@ -363,66 +468,88 @@ type
     function GetAttributeValue(Index: Integer): string;
   public
     constructor Create(AOwnerDocument: TCnXMLDocument; const ATagName: string);
-    {* Constructor
-     |<PRE>
-       AOwnerDocument: TCnXMLDocument - Owner document
-       ATagName: string               - Tag name
-     |</PRE>}
+    {* 构造函数。
+
+       参数：
+         AOwnerDocument: TCnXMLDocument   - 所属文档对象
+         const ATagName: string           - 标签名
+
+       返回值：（无）
+    }
+
     destructor Destroy; override;
-    {* Destructor}
+    {* 析构函数}
 
     // Attribute operations
     function GetAttribute(const Name: string): string;
-    {* Get attribute value by name
-     |<PRE>
-       Name: string   - Attribute name
-       Return: string - Attribute value, empty string if not found
-     |</PRE>}
+    {* 获取指定属性值。
+
+       参数：
+         const Name: string               - 属性名
+
+       返回值：string                     - 属性值，未找到则返回空字符串
+    }
+
     procedure SetAttribute(const Name, Value: string);
-    {* Set attribute value
-     |<PRE>
-       Name: string  - Attribute name
-       Value: string - Attribute value
-     |</PRE>}
+    {* 设置属性值。
+
+       参数：
+         const Name: string               - 属性名
+         const Value: string              - 属性值
+
+       返回值：（无）
+    }
+
     function HasAttribute(const Name: string): Boolean;
-    {* Check if attribute exists
-     |<PRE>
-       Name: string    - Attribute name
-       Return: Boolean - True if exists, False otherwise
-     |</PRE>}
+    {* 判断是否存在指定属性。
+
+       参数：
+         const Name: string               - 属性名
+
+       返回值：Boolean                    - 存在返回 True，否则返回 False
+    }
+
     procedure RemoveAttribute(const Name: string);
-    {* Remove attribute
-     |<PRE>
-       Name: string - Attribute name
-     |</PRE>}
+    {* 删除指定属性。
+
+       参数：
+         const Name: string               - 属性名
+
+       返回值：（无）
+    }
+
     function GetAttributeNode(const Name: string): TCnXMLAttribute;
-    {* Get attribute node by name
-     |<PRE>
-       Name: string              - Attribute name
-       Return: TCnXMLAttribute   - Attribute node, nil if not found
-     |</PRE>}
+    {* 获取指定属性节点。
+
+       参数：
+         const Name: string               - 属性名
+
+       返回值：TCnXMLAttribute            - 属性节点，未找到则返回 nil
+    }
 
     // Element query
     function GetElementsByTagName(const TagName: string): TList;
-    {* Get elements by tag name
-     |<PRE>
-       TagName: string - Tag name
-       Return: TList   - List of elements (caller must free the list but not the elements)
-     |</PRE>}
+    {* 按标签名查询子孙元素。
+
+       参数：
+         const TagName: string            - 标签名
+
+       返回值：TList                      - 元素列表（调用者不用时请释放列表对象，但不要释放元素）
+    }
 
     // Properties
     property TagName: string read FNodeName write FNodeName;
-    {* Tag name}
+    {* 标签名}
     property AttributeCount: Integer read GetAttributeCount;
-    {* Attribute count}
+    {* 属性数量}
     property AttributeNames[Index: Integer]: string read GetAttributeName;
-    {* Attribute name by index}
+    {* 按索引获取属性名}
     property AttributeValues[Index: Integer]: string read GetAttributeValue;
-    {* Attribute value by index}
+    {* 按索引获取属性值}
   end;
 
   TCnXMLDocument = class(TCnXMLNode)
-  {* XML document class}
+  {* XML 文档类}
   private
     FDocumentElement: TCnXMLElement;
     FEncoding: string;
@@ -431,99 +558,136 @@ type
     FPreserveWhitespace: Boolean;
   public
     constructor Create;
-    {* Constructor}
+    {* 构造函数}
     destructor Destroy; override;
-    {* Destructor}
+    {* 析构函数}
 
     // Node creation
     function CreateElement(const TagName: string): TCnXMLElement;
-    {* Create element node
-     |<PRE>
-       TagName: string        - Tag name
-       Return: TCnXMLElement  - Created element node
-     |</PRE>}
+    {* 创建元素节点。
+
+       参数：
+         const TagName: string            - 标签名
+
+       返回值：TCnXMLElement              - 返回新创建的元素节点
+    }
+
     function CreateTextNode(const Data: string): TCnXMLNode;
-    {* Create text node
-     |<PRE>
-       Data: string       - Text data
-       Return: TCnXMLNode - Created text node
-     |</PRE>}
+    {* 创建文本节点。
+
+       参数：
+         const Data: string               - 文本内容
+
+       返回值：TCnXMLNode                 - 返回新创建的文本节点
+    }
+
     function CreateComment(const Data: string): TCnXMLNode;
-    {* Create comment node
-     |<PRE>
-       Data: string       - Comment data
-       Return: TCnXMLNode - Created comment node
-     |</PRE>}
+    {* 创建注释节点。
+
+       参数：
+         const Data: string               - 注释内容
+
+       返回值：TCnXMLNode                 - 返回新创建的注释节点
+    }
+
     function CreateCDATASection(const Data: string): TCnXMLNode;
-    {* Create CDATA section node
-     |<PRE>
-       Data: string       - CDATA data
-       Return: TCnXMLNode - Created CDATA node
-     |</PRE>}
+    {* 创建 CDATA 节点。
+
+       参数：
+         const Data: string               - CDATA 内容
+
+       返回值：TCnXMLNode                 - 返回新创建的 CDATA 节点
+    }
+
     function CreateProcessingInstruction(const Target, Data: string): TCnXMLNode;
-    {* Create processing instruction node
-     |<PRE>
-       Target: string     - PI target
-       Data: string       - PI data
-       Return: TCnXMLNode - Created PI node
-     |</PRE>}
+    {* 创建处理指令节点。
+
+       参数：
+         const Target: string             - 指令目标
+         const Data: string               - 指令数据
+
+       返回值：TCnXMLNode                 - 返回新创建的处理指令节点
+    }
 
     // Override AppendChild to auto-set DocumentElement
     function AppendChild(NewChild: TCnXMLNode): TCnXMLNode;
-    {* Append a child node and auto-set DocumentElement if needed
-     |<PRE>
-       NewChild: TCnXMLNode - New child node
-       Return: TCnXMLNode   - The appended child node
-     |</PRE>}
+    {* 追加子节点并更新根元素。
+
+       参数：
+         NewChild: TCnXMLNode             - 待追加的子节点
+
+       返回值：TCnXMLNode                 - 返回被追加的子节点
+    }
 
     // Document loading
     procedure LoadFromFile(const FileName: string);
-    {* Load XML from file
-     |<PRE>
-       FileName: string - File name
-     |</PRE>}
+    {* 从文件加载 XML。
+
+       参数：
+         const FileName: string           - 文件名
+
+       返回值：（无）
+    }
+
     procedure LoadFromStream(Stream: TStream);
-    {* Load XML from stream
-     |<PRE>
-       Stream: TStream - Stream object
-     |</PRE>}
+    {* 从流加载 XML。
+
+       参数：
+         Stream: TStream                  - 输入流
+
+       返回值：（无）
+    }
+
     procedure LoadFromString(const XMLString: string);
-    {* Load XML from string
-     |<PRE>
-       XMLString: string - XML string
-     |</PRE>}
+    {* 从字符串加载 XML。
+
+       参数：
+         const XMLString: string          - XML 字符串
+
+       返回值：（无）
+    }
 
     // Document saving
     procedure SaveToFile(const FileName: string; Indent: Boolean);
-    {* Save XML to file
-     |<PRE>
-       FileName: string - File name
-       Indent: Boolean  - Whether to use indentation
-     |</PRE>}
+    {* 保存 XML 到文件。
+
+       参数：
+         const FileName: string           - 文件名
+         Indent: Boolean                  - 是否缩进输出
+
+       返回值：（无）
+    }
+
     procedure SaveToStream(Stream: TStream; Indent: Boolean);
-    {* Save XML to stream
-     |<PRE>
-       Stream: TStream - Stream object
-       Indent: Boolean - Whether to use indentation
-     |</PRE>}
+    {* 保存 XML 到流、
+
+       参数：
+         Stream: TStream                  - 输出流
+         Indent: Boolean                  - 是否缩进输出
+
+       返回值：（无）
+    }
+
     function SaveToString(Indent: Boolean): string;
-    {* Save XML to string
-     |<PRE>
-       Indent: Boolean - Whether to use indentation
-       Return: string  - XML string
-     |</PRE>}
+    {* 保存 XML 为字符串。
+
+       参数：
+         Indent: Boolean                  - 是否缩进输出
+
+       返回值：string                     - XML 字符串
+    }
 
     // Properties
     property DocumentElement: TCnXMLElement read FDocumentElement write FDocumentElement;
-    {* Document root element}
+    {* 文档根元素}
     property Encoding: string read FEncoding write FEncoding;
-    {* Document encoding}
+    {* 文档编码}
     property Version: string read FVersion write FVersion;
-    {* XML version}
+    {* XML 版本号}
     property Standalone: string read FStandalone write FStandalone;
-    {* Standalone declaration}
+    {* Standalone 声明值}
     property PreserveWhitespace: Boolean read FPreserveWhitespace write FPreserveWhitespace;
-    {* Whether to preserve whitespace}
+    {* 是否保留空白字符}
   end;
 
 //==============================================================================
@@ -531,27 +695,38 @@ type
 //==============================================================================
 
   TCnXMLParser = class
-  {* XML syntax analyzer}
+  {* XML 语法分析器}
   private
     FLexer: TCnXMLLexer;
     FDocument: TCnXMLDocument;
     FCurrentToken: TCnXMLToken;
 
-    procedure NextToken;  // Get next token
-    procedure RaiseError(const Msg: string);  // Raise parsing error
-    procedure ParseXMLDecl;  // Parse XML declaration
+    procedure NextToken;                             // Get next token
+    procedure RaiseError(const Msg: string);         // Raise parsing error
+    procedure ParseXMLDecl;                          // Parse XML declaration
     procedure ParseElement(ParentNode: TCnXMLNode);  // Parse element
     procedure ParseContent(ParentNode: TCnXMLNode);  // Parse content
   public
     constructor Create(const ASource: string);
-    {* Constructor
-     |<PRE>
-       ASource: string - Source XML text
-     |</PRE>}
-    destructor Destroy; override;
-    {* Destructor}
+    {* 构造函数。
 
-    function Parse: TCnXMLDocument;  // Execute parsing, return document object
+       参数：
+         const ASource: string            - XML 源文本
+
+       返回值：无                         - 构造函数无返回值
+    }
+
+    destructor Destroy; override;
+    {* 析构函数}
+
+    function Parse: TCnXMLDocument;
+    {* 执行语法解析并返回文档对象。
+
+       参数：
+         无
+
+       返回值：TCnXMLDocument             - 解析得到的文档对象
+    }
   end;
 
 //==============================================================================
@@ -559,37 +734,25 @@ type
 //==============================================================================
 
 function CnXMLDetectEncoding(const Buffer: TBytes): Integer;
-{* Detect encoding from byte buffer
- |<PRE>
-   Buffer: TBytes - Byte buffer
-   Return: Integer - Encoding constant (CN_XML_ENCODING_*)
- |</PRE>}
+{* 从字节缓冲区检测编码
+
+   参数：
+     const Buffer: TBytes                 - 字节缓冲区
+
+   返回值：Integer                        - 编码常量（CN_XML_ENCODING_*）
+}
 
 function CnXMLConvertEncoding(const Source: AnsiString;
   SourceEncoding, TargetEncoding: Integer): AnsiString;
-{* Convert encoding (internal use AnsiString)
- |<PRE>
-   Source: AnsiString         - Source string
-   SourceEncoding: Integer    - Source encoding constant
-   TargetEncoding: Integer    - Target encoding constant
-   Return: AnsiString         - Converted string
- |</PRE>}
+{* 转换编码（内部使用 AnsiString）
 
-{$IFDEF UNICODE}
-function CnXMLUtf8ToUnicode(const S: AnsiString): string;
-{* Convert UTF-8 AnsiString to UnicodeString
- |<PRE>
-   S: AnsiString  - UTF-8 encoded AnsiString
-   Return: string - UnicodeString
- |</PRE>}
+   参数：
+     const Source: AnsiString             - 源字符串
+     SourceEncoding: Integer              - 源编码常量
+     TargetEncoding: Integer              - 目标编码常量
 
-function CnXMLUnicodeToUtf8(const S: string): AnsiString;
-{* Convert UnicodeString to UTF-8 AnsiString
- |<PRE>
-   S: string          - UnicodeString
-   Return: AnsiString - UTF-8 encoded AnsiString
- |</PRE>}
-{$ENDIF}
+   返回值：AnsiString                     - 转换后的字符串
+}
 
 //==============================================================================
 // Object Serialization Classes
@@ -597,7 +760,7 @@ function CnXMLUnicodeToUtf8(const S: string): AnsiString;
 
 type
   TCnXMLWriter = class(TComponent)
-  {* XML object writer for serialization}
+  {* 将对象写至 XML 的序列化实现类}
   private
     FDocument: TCnXMLDocument;
     FRootNode: TCnXMLElement;
@@ -614,38 +777,52 @@ type
     procedure InitDocument;
   public
     constructor Create(AOwner: TComponent); override;
-    {* Constructor}
+    {* 构造函数
+
+       参数：
+         AOwner: TComponent                    - 所属组件
+
+       返回值：（无）
+    }
+
     destructor Destroy; override;
-    {* Destructor}
+    {* 析构函数}
 
     procedure WriteObjectToXML(const Obj: TPersistent; const RootName: string = '');
-    {* Write object to XML
-     |<PRE>
-       Obj: TPersistent   - Object to serialize
-       RootName: string   - Root Node Name, if Empty use Obj.ClassName
-     |</PRE>}
+    {* 将对象序列化为 XML
+
+       参数：
+         const Obj: TPersistent                - 待序列化对象
+         const RootName: string                - 根节点名，为空则使用 Obj.ClassName
+
+       返回值：（无）
+    }
+
     procedure SaveToFile(const FileName: string; Indent: Boolean = True);
-    {* Save XML to file
-     |<PRE>
-       FileName: string - File name
-       Indent: Boolean  - Whether to use indentation (default: True)
-     |</PRE>}
+    {* 保存 XML 到文件
+
+       参数：
+         const FileName: string               - 文件名
+         Indent: Boolean                      - 是否缩进输出
+
+       返回值：（无）
+    }
 
     property Document: TCnXMLDocument read FDocument;
-    {* XML document}
+    {* XML 文档对象}
     property RootNode: TCnXMLElement read FRootNode;
-    {* Root node}
+    {* 根节点}
   published
     property Encoding: string read FEncoding write FEncoding;
-    {* XML encoding}
+    {* XML 编码}
     property XMLString: string read GetXMLString write SetXMLString;
-    {* XML string}
+    {* XML 字符串}
     property UseDataNode: Boolean read FUseDataNode write SetUseDataNode default True;
-    {* Whether to use <data> wrapper node (default: True for compatibility)}
+    {* 是否使用 <data> 包装节点（默认 True，兼容旧格式）}
   end;
 
   TCnXMLReader = class(TComponent)
-  {* XML object reader for deserialization}
+  {* 从 XML 加载对象的反序列化实现类}
   private
     FDocument: TCnXMLDocument;
     FRootNode: TCnXMLElement;
@@ -660,32 +837,44 @@ type
     procedure FindRootNode;
   public
     constructor Create(AOwner: TComponent); override;
-    {* Constructor}
+    {* 构造函数。
+
+       参数：
+         AOwner: TComponent               - 所属组件
+
+       返回值：（无）
+    }
+
     destructor Destroy; override;
-    {* Destructor}
+    {* 析构函数}
 
     function ReadObjectFromXML(Obj: TPersistent; const RootName: string = ''): Boolean;
-    {* Read object from XML
-     |<PRE>
-       Obj: TPersistent   - Object to deserialize into
-       RootName: string   - Root Node Name, if Empty use Obj.ClassName
-       Return: Boolean    - True if successful
-     |</PRE>}
+    {* 从 XML 反序列化到对象。
+
+       参数：
+         Obj: TPersistent                 - 目标对象
+         const RootName: string           - 根节点名，为空则使用 Obj.ClassName
+
+       返回值：Boolean                    - 成功返回 True，否则返回 False
+    }
     procedure LoadFromFile(const FileName: string);
-    {* Load XML from file
-     |<PRE>
-       FileName: string - File name
-     |</PRE>}
+    {* 从文件加载 XML
+
+       参数：
+         const FileName: string           - 文件名
+
+       返回值：（无）
+    }
 
     property Document: TCnXMLDocument read FDocument;
-    {* XML document}
+    {* XML 文档对象}
     property RootNode: TCnXMLElement read FRootNode;
-    {* Root node}
+    {* 根节点}
   published
     property Encoding: string read FEncoding write FEncoding;
-    {* XML encoding}
+    {* XML 编码}
     property XMLString: string read GetXMLString write SetXMLString;
-    {* XML string}
+    {* XML 字符串}
   end;
 
 //==============================================================================
@@ -693,101 +882,122 @@ type
 //==============================================================================
 
 function CnXMLCreateDocument: TCnXMLDocument;
-{* Create a new XML document
- |<PRE>
-   Return: TCnXMLDocument - New document object
- |</PRE>}
+{* 创建 XML 文档对象
+
+   参数：
+     （无）
+
+   返回值：TCnXMLDocument                 - 新建的文档对象
+}
 
 //==============================================================================
 // String Conversion Helper Functions (for compatibility)
 //==============================================================================
 
 function CnXMLStrToRealDef(const S: string; Default: Extended): Extended;
-{* Convert string to real with default value
- |<PRE>
-   S: string           - String to convert
-   Default: Extended   - Default value if conversion fails
-   Return: Extended    - Converted value or default
- |</PRE>}
+{* 将字符串转换为实数（带默认值），XML 专用。
+
+   参数：
+     const S: string                      - 待转换字符串
+     Default: Extended                    - 转换失败时的默认值
+
+   返回值：Extended                       - 转换结果或默认值
+}
 
 function CnXMLStrToDateTime(const S: string; var Value: TDateTime): Boolean;
-{* Convert string to datetime
- |<PRE>
-   S: string           - String to convert
-   Value: TDateTime    - Output datetime value
-   Return: Boolean     - True if conversion successful
- |</PRE>}
+{* 将字符串转换为日期时间，XML 专用。
+
+   参数：
+     const S: string                      - 待转换字符串
+     var Value: TDateTime                 - 输出日期时间
+
+   返回值：Boolean                        - 转换成功返回 True，否则返回 False
+}
 
 function CnXMLStrToInt(const S: string; var Value: Integer): Boolean;
-{* Convert string to integer
- |<PRE>
-   S: string        - String to convert
-   Value: Integer   - Output integer value
-   Return: Boolean  - True if conversion successful
- |</PRE>}
+{* 将字符串转换为整数，XML 专用。
+
+   参数：
+     const S: string                      - 待转换字符串
+     var Value: Integer                   - 输出整数值
+
+   返回值：Boolean                        - 转换成功返回 True，否则返回 False
+}
 
 function CnXMLStrToIntDef(const S: string; Default: Integer): Integer;
-{* Convert string to integer with default value
- |<PRE>
-   S: string        - String to convert
-   Default: Integer - Default value if conversion fails
-   Return: Integer  - Converted value or default
- |</PRE>}
+{* 将字符串转换为整数（带默认值），XML 专用。
+
+   参数：
+     const S: string                      - 待转换字符串
+     Default: Integer                     - 转换失败时的默认值
+
+   返回值：Integer                        - 转换结果或默认值
+}
 
 function CnXMLStrToBool(const S: string; var Value: Boolean): Boolean;
-{* Convert string to boolean (supports 0/1 and True/False)
- |<PRE>
-   S: string        - String to convert
-   Value: Boolean   - Output boolean value
-   Return: Boolean  - True if conversion successful
- |</PRE>}
+{* 将字符串转换为布尔值（支持 0/1 与 True/False），XML 专用。
+
+   参数：
+     const S: string                      - 待转换字符串
+     var Value: Boolean                   - 输出布尔值
+
+   返回值：Boolean                        - 转换成功返回 True，否则返回 False
+}
 
 function CnXMLStrToInt64(const S: string; var Value: Int64): Boolean;
-{* Convert string to Int64
- |<PRE>
-   S: string        - String to convert
-   Value: Int64     - Output Int64 value
-   Return: Boolean  - True if conversion successful
- |</PRE>}
+{* 将字符串转换为 Int64，XML 专用。
+
+   参数：
+     const S: string                      - 待转换字符串
+     var Value: Int64                     - 输出 Int64 值
+
+   返回值：Boolean                        - 转换成功返回 True，否则返回 False
+}
 
 function CnXMLIntToStr(Value: Integer): string;
-{* Convert integer to string
- |<PRE>
-   Value: Integer  - Integer value
-   Return: string  - String representation
- |</PRE>}
+{* 将整数转换为字符串，XML 专用。
+
+   参数：
+     Value: Integer                       - 整数值
+
+   返回值：string                         - 字符串表示
+}
 
 function CnXMLBoolToStr(Value: Boolean): string;
-{* Convert boolean to string
- |<PRE>
-   Value: Boolean  - Boolean value
-   Return: string  - String representation ('True' or 'False')
- |</PRE>}
+{* 将布尔值转换为字符串，XML 专用。
+
+   参数：
+     Value: Boolean                       - 布尔值
+
+   返回值：string                         - 字符串表示（True 或 False）
+}
 
 function CnXMLRealToStr(Value: Extended): string;
-{* Convert real to string
- |<PRE>
-   Value: Extended - Real value
-   Return: string  - String representation
- |</PRE>}
+{* 将实数转换为字符串，XML 专用。
+
+   参数：
+     Value: Extended                      - 实数值
+
+   返回值：string                         - 字符串表示
+}
 
 function CnXMLInt64ToStr(Value: Int64): string;
-{* Convert Int64 to string
- |<PRE>
-   Value: Int64    - Int64 value
-   Return: string  - String representation
- |</PRE>}
+{* 将 Int64 转换为字符串，XML 专用。
+
+   参数：
+     Value: Int64                         - Int64 值
+
+   返回值：string                         - 字符串表示
+}
 
 function CnXMLDateTimeToStrEx(Value: TDateTime): string;
-{* Convert datetime to string (extended format)
- |<PRE>
-   Value: TDateTime - DateTime value
-   Return: string   - String representation
- |</PRE>}
+{* 将日期时间转换为字符串（扩展格式），XML 专用。
 
-type
-  ECnXMLPersistent = class(ECnXMLException);
-  {* Exception class for XML persistence operations (for OmniXML compatibility)}
+   参数：
+     Value: TDateTime                     - 日期时间值
+
+   返回值：string                         - 字符串表示
+}
 
 implementation
 
@@ -2027,9 +2237,7 @@ var
 {$IFDEF UNICODE}
   StringStream: TStringStream;
 {$ELSE}
-  Bytes: TBytes;
   UTF8Str: AnsiString;
-  I: Integer;
 {$ENDIF}
 begin
 {$IFDEF UNICODE}
@@ -2226,8 +2434,6 @@ var
   StringStream: TStringStream;
 {$ELSE}
   UTF8Str: AnsiString;
-  Bytes: TBytes;
-  I: Integer;
 {$ENDIF}
 begin
   XMLString := SaveToString(Indent);
@@ -2284,7 +2490,7 @@ end;
 procedure TCnXMLParser.RaiseError(const Msg: string);
 begin
   raise ECnXMLException.Create(Msg, CN_XML_ERR_INVALID_STRUCTURE,
-                               FCurrentToken.Line, FCurrentToken.Column);
+    FCurrentToken.Line, FCurrentToken.Column);
 end;
 
 procedure TCnXMLParser.ParseXMLDecl;
@@ -2510,24 +2716,6 @@ begin
   // - Use iconv or similar on Unix/Linux
   // - Handle GBK, UTF-8, UTF-16 conversions
 end;
-
-{$IFDEF UNICODE}
-function CnXMLUtf8ToUnicode(const S: AnsiString): string;
-begin
-  // Use Delphi's built-in UTF8ToString function
-  // UTF8String is an alias for AnsiString with UTF-8 code page
-  Result := UTF8ToString(UTF8String(S));
-end;
-
-function CnXMLUnicodeToUtf8(const S: string): AnsiString;
-var
-  UTF8Str: UTF8String;
-begin
-  // Use Delphi's built-in UTF8Encode function
-  UTF8Str := UTF8Encode(S);
-  Result := AnsiString(UTF8Str);
-end;
-{$ENDIF}
 
 //==============================================================================
 // Utility Functions Implementation
