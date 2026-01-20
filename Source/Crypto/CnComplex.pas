@@ -76,6 +76,121 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将大整数复数转换成字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回大数字符串
+    }
+
+    procedure SetZero;
+    {* 将大整数复数设置为 0，返回是否设置成功。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否设置成功
+    }
+
+    procedure SetOne;
+    {* 将大整数复数设置为 0，返回是否设置成功。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否设置成功
+    }
+
+    procedure SetI;
+    {* 将大整数复数设置为 i，返回是否设置成功。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否设置成功
+    }
+
+    function IsZero: Boolean;
+    {* 返回大整数复数是否为 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 0
+    }
+
+    function IsPureReal: Boolean;
+    {* 返回大整数复数是否为纯实数。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 0
+    }
+
+    function IsPureImaginary: Boolean;
+    {* 返回大整数复数是否为纯虚数。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 0
+    }
+
+    procedure SetValue(AR: Int64; AI: Int64); overload;
+    {* 大整数复数赋值。
+
+       参数：
+         AR: Int64                            - 大整数复数的实部
+         AI: Int64                            - 大整数复数的虚部
+
+       返回值：（无）
+    }
+
+    procedure SetValue(const AR: string; const AI: string); overload;
+    {* 大整数复数赋值。
+
+       参数：
+         const AR: string                     - 实部的十进制整数字符串形式
+         const AI: string                     - 虚部的十进制整数字符串形式
+
+       返回值：（无）
+    }
+
+    function Absolute(Res: TCnBigNumber): Boolean; overload;
+    {* 返回大整数复数的绝对值，也即距复平面原点的距离，以大整数表示。
+
+       参数：
+         Res: TCnBigComplexNumber             - 用来容纳结果的大整数对象
+
+       返回值：Boolean                        - 返回是否求值成功
+    }
+
+    function Absolute: Extended; overload;
+    {* 返回大整数复数的绝对值，也即距复平面原点的距离，以浮点数表示。
+
+       参数：
+         （无）
+
+       返回值：Boolean                        - 返回是否求值成功
+    }
+
+    function Argument: Extended;
+    {* 返回大整数复数的辐角主值，也即与复平面正 X 轴的夹角，范围在 0 到 2π。
+
+       参数：
+         （无）
+
+       返回值：Extended                       - 返回大整数复数的辐角主值，单位为弧度
+    }
+
+    procedure Negate;
+    {* 大整数复数求相反数，也即实部与虚部正负号均反号}
+    procedure Conjugate;
+    {* 大整数复数求共轭复数，也即虚部正负号反号}
+
     property R: TCnBigNumber read FR;
     {* 实部}
     property I: TCnBigNumber read FI;
@@ -95,6 +210,24 @@ function ComplexNumberIsZero(var Complex: TCnComplexNumber): Boolean;
 
 procedure ComplexNumberSetZero(var Complex: TCnComplexNumber);
 {* 复数置 0。
+
+   参数：
+     var Complex: TCnComplexNumber        - 待设置的复数
+
+   返回值：（无）
+}
+
+procedure ComplexNumberSetOne(var Complex: TCnComplexNumber);
+{* 复数置 1。
+
+   参数：
+     var Complex: TCnComplexNumber        - 待设置的复数
+
+   返回值：（无）
+}
+
+procedure ComplexNumberSetI(var Complex: TCnComplexNumber);
+{* 复数置 i。
 
    参数：
      var Complex: TCnComplexNumber        - 待设置的复数
@@ -271,6 +404,16 @@ procedure ComplexNumberSqrt(var Res: TCnComplexNumber; var Complex: TCnComplexNu
    返回值：（无）
 }
 
+procedure ComplexNegate(var Res: TCnComplexNumber; var Complex: TCnComplexNumber);
+{* 获得负的复数，Res 可以是 Complex。
+
+   参数：
+     var Res: TCnComplexNumber            - 复数的求负结果
+     var Complex: TCnComplexNumber        - 待求负的复数
+
+   返回值：（无）
+}
+
 procedure ComplexConjugate(var Res: TCnComplexNumber; var Complex: TCnComplexNumber);
 {* 获得共轭复数，Res 可以是 Complex。
 
@@ -342,6 +485,24 @@ function BigComplexNumberIsZero(Complex: TCnBigComplexNumber): Boolean;
 
 procedure BigComplexNumberSetZero(Complex: TCnBigComplexNumber);
 {* 大整数复数置 0。
+
+   参数：
+     Complex: TCnBigComplexNumber         - 待设置的大整数复数
+
+   返回值：（无）
+}
+
+procedure BigComplexNumberSetOne(Complex: TCnBigComplexNumber);
+{* 大整数复数置 1。
+
+   参数：
+     Complex: TCnBigComplexNumber         - 待设置的大整数复数
+
+   返回值：（无）
+}
+
+procedure BigComplexNumberSetI(Complex: TCnBigComplexNumber);
+{* 大整数复数置 i。
 
    参数：
      Complex: TCnBigComplexNumber         - 待设置的大整数复数
@@ -484,7 +645,17 @@ procedure BigComplexNumberMul(Res: TCnBigComplexNumber;
    返回值：（无）
 }
 
-procedure BigComplexConjugate(Res: TCnBigComplexNumber; Complex: TCnBigComplexNumber);
+procedure BigComplexNumberNegate(Res: TCnBigComplexNumber; Complex: TCnBigComplexNumber);
+{* 获得大整数复数的负值，Res 可以是 Complex。
+
+   参数：
+     Res: TCnBigComplexNumber            - 大整数复数的求负结果
+     Complex: TCnBigComplexNumber        - 待求负的大整数复数
+
+   返回值：（无）
+}
+
+procedure BigComplexNumberConjugate(Res: TCnBigComplexNumber; Complex: TCnBigComplexNumber);
 {* 获得共轭大整数复数，Res 可以是 Complex。
 
    参数：
@@ -494,7 +665,7 @@ procedure BigComplexConjugate(Res: TCnBigComplexNumber; Complex: TCnBigComplexNu
    返回值：（无）
 }
 
-function BigComplexIsPureReal(Complex: TCnBigComplexNumber): Boolean;
+function BigComplexNumberIsPureReal(Complex: TCnBigComplexNumber): Boolean;
 {* 大整数复数是否纯实数，也就是判断虚部是否为 0。
 
    参数：
@@ -503,7 +674,7 @@ function BigComplexIsPureReal(Complex: TCnBigComplexNumber): Boolean;
    返回值：Boolean                        - 返回是否纯实数
 }
 
-function BigComplexIsPureImaginary(Complex: TCnBigComplexNumber): Boolean;
+function BigComplexNumberIsPureImaginary(Complex: TCnBigComplexNumber): Boolean;
 {* 大整数复数是否纯虚数，也就是判断实部是否为 0 且虚部不为 0。
 
    参数：
@@ -576,6 +747,18 @@ procedure ComplexNumberSetZero(var Complex: TCnComplexNumber);
 begin
   Complex.R := 0.0;
   Complex.I := 0.0;
+end;
+
+procedure ComplexNumberSetOne(var Complex: TCnComplexNumber);
+begin
+  Complex.R := 1.0;
+  Complex.I := 0.0;
+end;
+
+procedure ComplexNumberSetI(var Complex: TCnComplexNumber);
+begin
+  Complex.R := 0.0;
+  Complex.I := 1.0;
 end;
 
 procedure ComplexNumberSetValue(var Complex: TCnComplexNumber; AR, AI: Extended);
@@ -710,6 +893,12 @@ begin
   ComplexNumberSetAbsoluteArgument(Res, R, A);
 end;
 
+procedure ComplexNegate(var Res: TCnComplexNumber; var Complex: TCnComplexNumber);
+begin
+  Res.R := -Complex.R;
+  Res.I := -Complex.I;
+end;
+
 procedure ComplexConjugate(var Res, Complex: TCnComplexNumber);
 begin
   Res.R := Complex.R;
@@ -762,22 +951,6 @@ begin
   Complex.I := AnAbsolute * Sin(AnArgument);
 end;
 
-{ TCnBigComplexNumber }
-
-constructor TCnBigComplexNumber.Create;
-begin
-  inherited;
-  FR := TCnBigNumber.Create;
-  FI := TCnBigNumber.Create;
-end;
-
-destructor TCnBigComplexNumber.Destroy;
-begin
-  FI.Free;
-  FR.Free;
-  inherited;
-end;
-
 function BigComplexNumberIsZero(Complex: TCnBigComplexNumber): Boolean;
 begin
   Result := Complex.FR.IsZero and Complex.FI.IsZero;
@@ -787,6 +960,18 @@ procedure BigComplexNumberSetZero(Complex: TCnBigComplexNumber);
 begin
   Complex.FR.SetZero;
   Complex.FI.SetZero;
+end;
+
+procedure BigComplexNumberSetOne(Complex: TCnBigComplexNumber);
+begin
+  Complex.FR.SetOne;
+  Complex.FI.SetZero;
+end;
+
+procedure BigComplexNumberSetI(Complex: TCnBigComplexNumber);
+begin
+  Complex.FR.SetZero;
+  Complex.FI.SetOne;
 end;
 
 procedure BigComplexNumberSetValue(Complex: TCnBigComplexNumber;
@@ -805,9 +990,9 @@ end;
 
 function BigComplexNumberToString(Complex: TCnBigComplexNumber): string;
 begin
-  if BigComplexIsPureReal(Complex) then
+  if BigComplexNumberIsPureReal(Complex) then
     Result := Complex.FR.ToDec
-  else if BigComplexIsPureImaginary(Complex) then
+  else if BigComplexNumberIsPureImaginary(Complex) then
     Result := Complex.FI.ToDec + 'i'
   else if Complex.FI.IsNegative then
     Result := Complex.FR.ToDec + Complex.FI.ToDec
@@ -899,19 +1084,27 @@ begin
   end;
 end;
 
-procedure BigComplexConjugate(Res: TCnBigComplexNumber; Complex: TCnBigComplexNumber);
+procedure BigComplexNumberNegate(Res: TCnBigComplexNumber; Complex: TCnBigComplexNumber);
+begin
+  BigNumberCopy(Res.FR, Complex.FR);
+  BigNumberCopy(Res.FI, Complex.FI);
+  Res.FR.Negate;
+  Res.FI.Negate;
+end;
+
+procedure BigComplexNumberConjugate(Res: TCnBigComplexNumber; Complex: TCnBigComplexNumber);
 begin
   BigNumberCopy(Res.FR, Complex.FR);
   BigNumberCopy(Res.FI, Complex.FI);
   Res.FI.Negate;
 end;
 
-function BigComplexIsPureReal(Complex: TCnBigComplexNumber): Boolean;
+function BigComplexNumberIsPureReal(Complex: TCnBigComplexNumber): Boolean;
 begin
   Result := Complex.FI.IsZero;
 end;
 
-function BigComplexIsPureImaginary(Complex: TCnBigComplexNumber): Boolean;
+function BigComplexNumberIsPureImaginary(Complex: TCnBigComplexNumber): Boolean;
 begin
   Result := Complex.FR.IsZero and not Complex.FI.IsZero;
 end;
@@ -964,6 +1157,92 @@ begin
     if Result < 0 then
       Result := Result + CN_PI * 2;
   end;
+end;
+
+{ TCnBigComplexNumber }
+
+function TCnBigComplexNumber.Absolute(Res: TCnBigNumber): Boolean;
+begin
+  Result := BigComplexNumberAbsolute(Res, Self);
+end;
+
+function TCnBigComplexNumber.Absolute: Extended;
+begin
+  Result := BigComplexNumberAbsolute(Self);
+end;
+
+function TCnBigComplexNumber.Argument: Extended;
+begin
+  Result := BigComplexNumberArgument(Self);
+end;
+
+procedure TCnBigComplexNumber.Conjugate;
+begin
+  BigComplexNumberConjugate(Self, Self);
+end;
+
+constructor TCnBigComplexNumber.Create;
+begin
+  inherited;
+  FR := TCnBigNumber.Create;
+  FI := TCnBigNumber.Create;
+end;
+
+destructor TCnBigComplexNumber.Destroy;
+begin
+  FI.Free;
+  FR.Free;
+  inherited;
+end;
+
+function TCnBigComplexNumber.IsPureImaginary: Boolean;
+begin
+  Result := BigComplexNumberIsPureImaginary(Self);
+end;
+
+function TCnBigComplexNumber.IsPureReal: Boolean;
+begin
+  Result := BigComplexNumberIsPureReal(Self);
+end;
+
+function TCnBigComplexNumber.IsZero: Boolean;
+begin
+  Result := BigComplexNumberIsZero(Self);
+end;
+
+procedure TCnBigComplexNumber.Negate;
+begin
+  BigComplexNumberNegate(Self, Self);
+end;
+
+procedure TCnBigComplexNumber.SetI;
+begin
+  BigComplexNumberSetI(Self);
+end;
+
+procedure TCnBigComplexNumber.SetOne;
+begin
+  BigComplexNumberSetOne(Self);
+end;
+
+procedure TCnBigComplexNumber.SetValue(const AR, AI: string);
+begin
+  BigComplexNumberSetValue(Self, AR, AI);
+end;
+
+procedure TCnBigComplexNumber.SetValue(AR, AI: Int64);
+begin
+  BigComplexNumberSetValue(Self, AR, AI);
+end;
+
+procedure TCnBigComplexNumber.SetZero;
+begin
+  BigComplexNumberSetZero(Self);
+end;
+
+function TCnBigComplexNumber.ToString: string;
+begin
+  BigComplexNumberToString(Self);
 end;
 
 initialization
