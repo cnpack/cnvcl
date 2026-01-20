@@ -45,7 +45,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, SysConst, Math, CnMath, CnBigNumber, CnBigDecimal;
+  Classes, SysUtils, SysConst, Math, CnMath, CnBigNumber, CnBigDecimal,
+  CnContainers;
 
 type
   ECnComplexNumberException = class(Exception);
@@ -311,6 +312,29 @@ type
     {* 实部}
     property I: TCnBigDecimal read FI;
     {* 虚部}
+  end;
+
+  TCnBigComplexDecimalPool = class(TCnMathObjectPool)
+  {* 大浮点复数池实现类，允许使用到大浮点复数的地方自行创建大浮点复数池}
+  protected
+    function CreateObject: TObject; override;
+  public
+    function Obtain: TCnBigComplexDecimal;
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还。
+
+       参数：
+         Num: TCnBigComplexDecimal        - 待归还至池中的对象
+
+       返回值：（无）
+    }
+    procedure Recycle(Num: TCnBigComplexDecimal);
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Num: TCnBigComplexDecimal        - 待归还至池中的对象
+
+       返回值：（无）
+    }
   end;
 
 // ======================== 浮点精度的复数运算 =================================
@@ -827,7 +851,6 @@ function BigComplexNumberArgument(Complex: TCnBigComplexNumber): Extended;
    返回值：Extended                       - 返回大整数复数的辐角主值，单位为弧度
 }
 
-
 // ============================ 大浮点复数运算 =================================
 
 function BigComplexDecimalIsZero(Complex: TCnBigComplexDecimal): Boolean;
@@ -1118,6 +1141,10 @@ var
   {* 全局复数 -i}
 
 implementation
+
+var
+  FBigComplexDecimalPool: TCnBigComplexDecimalPool = nil;
+  FBigDecimaoPool: TCnBigDecimalPool = nil;
 
 function ComplexNumberIsZero(var Complex: TCnComplexNumber): Boolean;
 begin
@@ -1626,7 +1653,6 @@ begin
   BigComplexNumberToString(Self);
 end;
 
-
 function BigComplexDecimalIsZero(Complex: TCnBigComplexDecimal): Boolean;
 begin
   Result := Complex.FR.IsZero and Complex.FI.IsZero;
@@ -1685,7 +1711,7 @@ procedure BigComplexDecimalSwap(Complex1: TCnBigComplexDecimal; Complex2: TCnBig
 var
   T: TCnBigDecimal;
 begin
-  T := TCnBigDecimal.Create;
+  T := FBigDecimaoPool.Obtain;
   try
     BigDecimalCopy(T, Complex1.FR);
     BigDecimalCopy(Complex1.FR, Complex2.FR);
@@ -1695,7 +1721,7 @@ begin
     BigDecimalCopy(Complex1.FI, Complex2.FI);
     BigDecimalCopy(Complex2.FI, T);
   finally
-    T.Free;
+    FBigDecimaoPool.Recycle(T);
   end;
 end;
 
@@ -1724,8 +1750,8 @@ procedure BigComplexDecimalMul(Res: TCnBigComplexDecimal;
 var
   T1, T2: TCnBigDecimal;
 begin
-  T1 := TCnBigDecimal.Create;
-  T2 := TCnBigDecimal.Create;
+  T1 := FBigDecimaoPool.Obtain;
+  T2 := FBigDecimaoPool.Obtain;
   try
     BigDecimalMul(T1, Complex1.FR, Complex2.FR);
     BigDecimalMul(T2, Complex1.FI, Complex2.FI);
@@ -1735,8 +1761,8 @@ begin
     BigDecimalMul(T2, Complex1.FI, Complex2.FR);
     BigDecimalAdd(Res.FI, T1, T2);
   finally
-    T1.Free;
-    T2.Free;
+    FBigDecimaoPool.Recycle(T2);
+    FBigDecimaoPool.Recycle(T1);
   end;
 end;
 
@@ -1745,9 +1771,9 @@ procedure BigComplexDecimalDiv(Res: TCnBigComplexDecimal;
 var
   T1, T2, D: TCnBigDecimal;
 begin
-  T1 := TCnBigDecimal.Create;
-  T2 := TCnBigDecimal.Create;
-  D := TCnBigDecimal.Create;
+  T1 := FBigDecimaoPool.Obtain;;
+  T2 := FBigDecimaoPool.Obtain;;
+  D := FBigDecimaoPool.Obtain;;
   try
     BigDecimalMul(T1, Complex2.FR, Complex2.FR);
     BigDecimalMul(T2, Complex2.FI, Complex2.FI);
@@ -1766,9 +1792,9 @@ begin
     BigDecimalSub(T1, T1, T2);
     BigDecimalDiv(Res.FI, T1, D);
   finally
-    T1.Free;
-    T2.Free;
-    D.Free;
+    FBigDecimaoPool.Recycle(D);
+    FBigDecimaoPool.Recycle(T2);
+    FBigDecimaoPool.Recycle(T1);
   end;
 end;
 
@@ -1778,12 +1804,13 @@ var
   T: TCnBigDecimal;
 begin
   BigComplexDecimalCopy(Res, Complex);
-  T := TCnBigDecimal.Create;
+
+  T := FBigDecimaoPool.Obtain;
   try
     T.SetInt64(Value);
     BigDecimalAdd(Res.FR, Res.FR, T);
   finally
-    T.Free;
+    FBigDecimaoPool.Recycle(T);
   end;
 end;
 
@@ -1793,12 +1820,13 @@ var
   T: TCnBigDecimal;
 begin
   BigComplexDecimalCopy(Res, Complex);
-  T := TCnBigDecimal.Create;
+
+  T := FBigDecimaoPool.Obtain;
   try
     T.SetInt64(Value);
     BigDecimalSub(Res.FR, Res.FR, T);
   finally
-    T.Free;
+    FBigDecimaoPool.Recycle(T);
   end;
 end;
 
@@ -1808,13 +1836,14 @@ var
   T: TCnBigDecimal;
 begin
   BigComplexDecimalCopy(Res, Complex);
-  T := TCnBigDecimal.Create;
+
+  T := FBigDecimaoPool.Obtain;
   try
     T.SetInt64(Value);
     BigDecimalMul(Res.FR, Res.FR, T);
     BigDecimalMul(Res.FI, Res.FI, T);
   finally
-    T.Free;
+    FBigDecimaoPool.Recycle(T);
   end;
 end;
 
@@ -1845,27 +1874,37 @@ end;
 
 function BigComplexDecimalAbsolute(Complex: TCnBigComplexDecimal): Extended;
 var
-  X, Y: Extended;
+  X, Y: TCnBigDecimal;
 begin
-  X := BigDecimalToExtended(Complex.FR);
-  Y := BigDecimalToExtended(Complex.FI);
-  Result := Sqrt(X * X + Y * Y);
+  X := FBigDecimaoPool.Obtain;
+  Y := FBigDecimaoPool.Obtain;
+  try
+    BigDecimalMul(X, Complex.FR, Complex.FR);
+    BigDecimalMul(Y, Complex.FI, Complex.FI);
+
+    BigDecimalAdd(X, X, Y);
+    BigDecimalSqrt(Y, X);
+    Result := BigDecimalToExtended(Y);
+  finally
+    FBigDecimaoPool.Recycle(Y);
+    FBigDecimaoPool.Recycle(X);
+  end;
 end;
 
 function BigComplexDecimalAbsolute(Res: TCnBigDecimal; Complex: TCnBigComplexDecimal): Boolean;
 var
   X, Y: TCnBigDecimal;
 begin
-  X := TCnBigDecimal.Create;
-  Y := TCnBigDecimal.Create;
+  X := FBigDecimaoPool.Obtain;
+  Y := FBigDecimaoPool.Obtain;
   try
     BigDecimalMul(X, Complex.FR, Complex.FR);
     BigDecimalMul(Y, Complex.FI, Complex.FI);
     BigDecimalAdd(Res, X, Y);
     Result := BigDecimalSqrt(Res, Res);
   finally
-    X.Free;
-    Y.Free;
+    FBigDecimaoPool.Recycle(Y);
+    FBigDecimaoPool.Recycle(X);
   end;
 end;
 
@@ -1984,6 +2023,24 @@ begin
   Result := BigComplexDecimalToString(Self);
 end;
 
+{ TCnBigComplexDecimalPool }
+
+function TCnBigComplexDecimalPool.CreateObject: TObject;
+begin
+  Result := TCnBigComplexDecimal.Create;
+end;
+
+function TCnBigComplexDecimalPool.Obtain: TCnBigComplexDecimal;
+begin
+  Result := TCnBigComplexDecimal(inherited Obtain);
+  Result.SetZero;
+end;
+
+procedure TCnBigComplexDecimalPool.Recycle(Num: TCnBigComplexDecimal);
+begin
+  inherited Recycle(Num);
+end;
+
 initialization
   ComplexNumberSetZero(CnComplexZero);
 
@@ -2028,7 +2085,13 @@ initialization
   CnBigComplexDecimalNegOneI.FR.SetZero;
   CnBigComplexDecimalNegOneI.FI.SetInt64(-1);
 
+  FBigComplexDecimalPool := TCnBigComplexDecimalPool.Create;
+  FBigDecimaoPool := TCnBigDecimalPool.Create;
+
 finalization
+  FBigDecimaoPool.Free;
+  FBigComplexDecimalPool.Free;
+
   CnBigComplexDecimalNegOneI.Free;
   CnBigComplexDecimalOneI.Free;
   CnBigComplexDecimalOne.Free;
