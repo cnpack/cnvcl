@@ -216,7 +216,7 @@ var
 begin
   CheckValid;
 
-  A := ComplexNumberAbsolute(FAlpha);
+  A := ComplexNumberAbsoluteValue(FAlpha);
   // B := ComplexNumberAbsolute(FBeta);
 
   FTheta := ArcCos(A) * 2; // 因为做了 Valid 判断因而等同于 ArcSin(B) * 2
@@ -462,12 +462,12 @@ end;
 
 function TCnQuBit.OneProbability: Extended;
 begin
-  Result := ComplexNumberAbsolute(FBeta);
+  Result := ComplexNumberAbsoluteValue(FBeta);
 end;
 
 function TCnQuBit.ZeroProbability: Extended;
 begin
-  Result := ComplexNumberAbsolute(FAlpha);
+  Result := ComplexNumberAbsoluteValue(FAlpha);
 end;
 
 initialization
