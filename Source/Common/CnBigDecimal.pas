@@ -603,6 +603,16 @@ function BigDecimalToExtended(Num: TCnBigDecimal): Extended;
    返回值：Extended                       - 返回扩展精度浮点值
 }
 
+function BigDecimalEqual(Num1: TCnBigDecimal; Num2: TCnBigDecimal): Boolean;
+{* 比较两个大十进制浮点数对象是否相等。
+
+   参数：
+     Num1: TCnBigDecimal                  - 待比较的大十进制浮点数一
+     Num2: TCnBigDecimal                  - 待比较的大十进制浮点数二
+
+   返回值：Boolean                        - 返回是否相等
+}
+
 function BigDecimalCompare(Num1: TCnBigDecimal; Num2: TCnBigDecimal): Integer; overload;
 {* 比较两个大十进制浮点数对象，分别根据比较的结果是大于、等于还是小于来返回 1、0、-1。
 
@@ -936,6 +946,16 @@ function BigBinaryToExtended(Num: TCnBigBinary): Extended;
      Num: TCnBigBinary                    - 待转换的大二进制浮点数
 
    返回值：Extended                       - 返回扩展精度浮点值
+}
+
+function BigBinaryEqual(Num1: TCnBigBinary; Num2: TCnBigBinary): Boolean;
+{* 比较两个大二进制浮点数对象是否相等。
+
+   参数：
+     Num1: TCnBigBinary                   - 待比较的大二进制浮点数一
+     Num2: TCnBigBinary                   - 待比较的大二进制浮点数二
+
+   返回值：Boolean                        - 返回是否相等
 }
 
 function BigBinaryCompare(Num1: TCnBigBinary; Num2: TCnBigBinary): Integer; overload;
@@ -1688,6 +1708,11 @@ begin
   finally
     FLocalBigDecimalPool.Recycle(T);
   end;
+end;
+
+function BigDecimalEqual(Num1: TCnBigDecimal; Num2: TCnBigDecimal): Boolean;
+begin
+  Result := BigDecimalCompare(Num1, Num2) = 0;
 end;
 
 function BigDecimalCompare(Num1, Num2: TCnBigDecimal): Integer;
@@ -2840,6 +2865,11 @@ begin
       end;
     end;
   end;
+end;
+
+function BigBinaryEqual(Num1: TCnBigBinary; Num2: TCnBigBinary): Boolean;
+begin
+  Result := BigBinaryCompare(Num1, Num2) = 0;
 end;
 
 function BigBinaryCompare(Num1, Num2: TCnBigBinary): Integer; overload;
