@@ -63,7 +63,7 @@ var
   R: Extended;
 begin
   SetComplexValue;
-  R := ComplexNumberAbsolute(FC1);
+  R := ComplexNumberAbsoluteValue(FC1);
   ShowMessage(FloatToStr(R));
 end;
 

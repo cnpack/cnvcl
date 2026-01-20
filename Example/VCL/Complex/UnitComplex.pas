@@ -166,7 +166,7 @@ var
   R: Extended;
 begin
   SetComplexValue;
-  R := ComplexNumberAbsolute(FC1);
+  R := ComplexNumberAbsoluteValue(FC1);
   ShowMessage(FloatToStr(R));
 end;
 
@@ -232,7 +232,7 @@ var
   AbsValue: Extended;
 begin
   SetBigDecValue;
-  AbsValue := FBigDec1.Absolute;
+  AbsValue := FBigDec1.AbsoluteValue;
   edtBigDecResult.Text := 'Absolute: ' + FloatToStr(AbsValue);
   edtBigDecDetail.Text := 'Absolute value calculated';
 end;

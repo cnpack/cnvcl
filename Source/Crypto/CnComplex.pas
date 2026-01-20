@@ -162,7 +162,7 @@ type
        返回值：（无）
     }
 
-    function Absolute(Res: TCnBigNumber): Boolean; overload;
+    function AbsoluteValue(Res: TCnBigNumber): Boolean; overload;
     {* 返回大整数复数的绝对值，也即距复平面原点的距离，以大整数表示。
 
        参数：
@@ -171,7 +171,7 @@ type
        返回值：Boolean                        - 返回是否求值成功
     }
 
-    function Absolute: Extended; overload;
+    function AbsoluteValue: Extended; overload;
     {* 返回大整数复数的绝对值，也即距复平面原点的距离，以浮点数表示。
 
        参数：
@@ -276,7 +276,7 @@ type
        返回值：（无）
     }
 
-    function Absolute(Res: TCnBigDecimal): Boolean; overload;
+    function AbsoluteValue(Res: TCnBigDecimal): Boolean; overload;
     {* 返回大浮点复数的绝对值，也即复平面上原点的距离，以大数表示。
 
        参数：
@@ -285,7 +285,7 @@ type
        返回值：Boolean                    - 运算是否赋值成功
     }
 
-    function Absolute: Extended; overload;
+    function AbsoluteValue: Extended; overload;
     {* 返回大浮点复数的绝对值，也即复平面上原点的距离，以浮点数表示。
 
        参数：
@@ -582,7 +582,7 @@ function ComplexIsPureImaginary(var Complex: TCnComplexNumber): Boolean;
    返回值：Boolean                        - 返回是否纯虚数
 }
 
-function ComplexNumberAbsolute(var Complex: TCnComplexNumber): Extended;
+function ComplexNumberAbsoluteValue(var Complex: TCnComplexNumber): Extended;
 {* 返回复数的绝对值，也即距复平面原点的距离。
 
    参数：
@@ -823,7 +823,7 @@ function BigComplexNumberIsPureImaginary(Complex: TCnBigComplexNumber): Boolean;
    返回值：Boolean                        - 返回是否纯虚数
 }
 
-function BigComplexNumberAbsolute(Complex: TCnBigComplexNumber): Extended; overload;
+function BigComplexNumberAbsoluteValue(Complex: TCnBigComplexNumber): Extended; overload;
 {* 返回大整数复数的绝对值，也即距复平面原点的距离，以浮点数表示。
 
    参数：
@@ -832,7 +832,7 @@ function BigComplexNumberAbsolute(Complex: TCnBigComplexNumber): Extended; overl
    返回值：Extended                       - 返回大整数复数的绝对值
 }
 
-function BigComplexNumberAbsolute(Res: TCnBigNumber; Complex: TCnBigComplexNumber): Boolean; overload;
+function BigComplexNumberAbsoluteValue(Res: TCnBigNumber; Complex: TCnBigComplexNumber): Boolean; overload;
 {* 返回大整数复数的绝对值，也即距复平面原点的距离，以大整数表示。
 
    参数：
@@ -1074,7 +1074,7 @@ function BigComplexDecimalIsPureImaginary(Complex: TCnBigComplexDecimal): Boolea
    返回值：Boolean                        - 复数是否为纯虚数
 }
 
-function BigComplexDecimalAbsolute(Complex: TCnBigComplexDecimal): Extended; overload;
+function BigComplexDecimalAbsoluteValue(Complex: TCnBigComplexDecimal): Extended; overload;
 {* 返回大浮点复数的绝对值，也即复平面上原点的距离，以浮点数表示。
 
    参数：
@@ -1083,7 +1083,7 @@ function BigComplexDecimalAbsolute(Complex: TCnBigComplexDecimal): Extended; ove
    返回值：Extended                       - 返回复大浮点数的绝对值
 }
 
-function BigComplexDecimalAbsolute(Res: TCnBigDecimal; Complex: TCnBigComplexDecimal): Boolean; overload;
+function BigComplexDecimalAbsoluteValue(Res: TCnBigDecimal; Complex: TCnBigComplexDecimal): Boolean; overload;
 {* 返回大浮点复数的绝对值，也即复平面上原点的距离，以大数表示。
 
    参数：
@@ -1295,7 +1295,7 @@ procedure ComplexNumberSqrt(var Res: TCnComplexNumber; var Complex: TCnComplexNu
 var
   R, A: Extended;
 begin
-  R := FloatSqrt(ComplexNumberAbsolute(Complex));
+  R := FloatSqrt(ComplexNumberAbsoluteValue(Complex));
   A := ComplexNumberArgument(Complex) / 2;
 
   ComplexNumberSetAbsoluteArgument(Res, R, A);
@@ -1323,7 +1323,7 @@ begin
   Result := FloatEqual(Complex.R, 0.0) and not FloatEqual(Complex.I, 0.0);
 end;
 
-function ComplexNumberAbsolute(var Complex: TCnComplexNumber): Extended;
+function ComplexNumberAbsoluteValue(var Complex: TCnComplexNumber): Extended;
 begin
   Result := Sqrt(Complex.R * Complex.R + Complex.I * Complex.I);
 end;
@@ -1517,7 +1517,7 @@ begin
   Result := Complex.FR.IsZero and not Complex.FI.IsZero;
 end;
 
-function BigComplexNumberAbsolute(Complex: TCnBigComplexNumber): Extended;
+function BigComplexNumberAbsoluteValue(Complex: TCnBigComplexNumber): Extended;
 var
   X, Y: Extended;
 begin
@@ -1526,7 +1526,7 @@ begin
   Result := Sqrt(X * X + Y * Y);
 end;
 
-function BigComplexNumberAbsolute(Res: TCnBigNumber; Complex: TCnBigComplexNumber): Boolean;
+function BigComplexNumberAbsoluteValue(Res: TCnBigNumber; Complex: TCnBigComplexNumber): Boolean;
 var
   X, Y: TCnBigNumber;
 begin
@@ -1569,14 +1569,14 @@ end;
 
 { TCnBigComplexNumber }
 
-function TCnBigComplexNumber.Absolute(Res: TCnBigNumber): Boolean;
+function TCnBigComplexNumber.AbsoluteValue(Res: TCnBigNumber): Boolean;
 begin
-  Result := BigComplexNumberAbsolute(Res, Self);
+  Result := BigComplexNumberAbsoluteValue(Res, Self);
 end;
 
-function TCnBigComplexNumber.Absolute: Extended;
+function TCnBigComplexNumber.AbsoluteValue: Extended;
 begin
-  Result := BigComplexNumberAbsolute(Self);
+  Result := BigComplexNumberAbsoluteValue(Self);
 end;
 
 function TCnBigComplexNumber.Argument: Extended;
@@ -1872,7 +1872,7 @@ begin
   Result := Complex.FR.IsZero and not Complex.FI.IsZero;
 end;
 
-function BigComplexDecimalAbsolute(Complex: TCnBigComplexDecimal): Extended;
+function BigComplexDecimalAbsoluteValue(Complex: TCnBigComplexDecimal): Extended;
 var
   X, Y: TCnBigDecimal;
 begin
@@ -1891,7 +1891,7 @@ begin
   end;
 end;
 
-function BigComplexDecimalAbsolute(Res: TCnBigDecimal; Complex: TCnBigComplexDecimal): Boolean;
+function BigComplexDecimalAbsoluteValue(Res: TCnBigDecimal; Complex: TCnBigComplexDecimal): Boolean;
 var
   X, Y: TCnBigDecimal;
 begin
@@ -1953,14 +1953,14 @@ begin
   inherited;
 end;
 
-function TCnBigComplexDecimal.Absolute(Res: TCnBigDecimal): Boolean;
+function TCnBigComplexDecimal.AbsoluteValue(Res: TCnBigDecimal): Boolean;
 begin
-  Result := BigComplexDecimalAbsolute(Res, Self);
+  Result := BigComplexDecimalAbsoluteValue(Res, Self);
 end;
 
-function TCnBigComplexDecimal.Absolute: Extended;
+function TCnBigComplexDecimal.AbsoluteValue: Extended;
 begin
-  Result := BigComplexDecimalAbsolute(Self);
+  Result := BigComplexDecimalAbsoluteValue(Self);
 end;
 
 function TCnBigComplexDecimal.Argument: Extended;

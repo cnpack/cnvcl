@@ -9774,7 +9774,7 @@ begin
           // 再分别计算 Beta T2 要乘以 Y2
           BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);
 
-          BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP);   // T1 得到减的结果
+          BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP);         // T1 得到减的结果
 
           // 再乘以 4Fk
           BigNumberPolynomialGaloisMul(PBeta, T1, F(K), Q, LDP);
@@ -9787,7 +9787,7 @@ begin
           // 再分别计算 Beta，T1 要乘以 Y2
           BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);
 
-          BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP);   // T1 得到减的结果
+          BigNumberPolynomialGaloisSub(T1, T1, T2, Q, LDP);         // T1 得到减的结果
 
           // 再乘以 4Fk
           BigNumberPolynomialGaloisMul(PBeta, T1, F(K), Q, LDP);
