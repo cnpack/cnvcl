@@ -1953,14 +1953,14 @@ var
 begin
   if Num1.FValue.IsZero then
   begin
-    BigNumberCopy(Num2.FValue, Res.FValue);
+    BigNumberCopy(Res.FValue, Num2.FValue);
     Res.FValue.Negate;
     Result := True;
     Exit;
   end
   else if Num2.FValue.IsZero then
   begin
-    BigNumberCopy(Num1.FValue, Res.FValue);
+    BigNumberCopy(Res.FValue, Num1.FValue);
     Result := True;
     Exit;
   end

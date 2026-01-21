@@ -1889,7 +1889,8 @@ begin
     BigComplexDecimalSetValue(C1, 2, 0);
     Result := BigComplexDecimalPower(Res, C1, -1);
     if not Result then Exit;
-    Result := (Res.R.ToString = '0.5') and (Res.I.ToString = '0');
+    Result := FloatEqual(BigDecimalToExtended(Res.R), 0.5) and
+      FloatEqual(BigDecimalToExtended(Res.I), 0.0);
   finally
     C1.Free;
     Res.Free;
