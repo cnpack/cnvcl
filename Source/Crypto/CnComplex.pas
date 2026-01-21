@@ -1172,6 +1172,7 @@ uses
 var
   FBigComplexDecimalPool: TCnBigComplexDecimalPool = nil;
   FBigDecimaoPool: TCnBigDecimalPool = nil;
+  FBigNumberPool: TCnBigNumberPool = nil;
 
 function ComplexNumberIsZero(var Complex: TCnComplexNumber): Boolean;
 begin
@@ -1308,14 +1309,14 @@ procedure ComplexNumberMul(var Res: TCnComplexNumber;
   var Complex: TCnComplexNumber; Value: Extended); overload;
 begin
   Res.R := Complex.R * Value;
-  Res.I := Complex.I;
+  Res.I := Complex.I * Value;
 end;
 
 procedure ComplexNumberDiv(var Res: TCnComplexNumber;
   var Complex: TCnComplexNumber; Value: Extended); overload;
 begin
   Res.R := Complex.R / Value;
-  Res.I := Complex.I;
+  Res.I := Complex.I / Value;
 end;
 
 procedure ComplexNumberSqrt(var Res: TCnComplexNumber; var Complex: TCnComplexNumber);
@@ -1468,9 +1469,28 @@ end;
 
 procedure BigComplexNumberMul(Res: TCnBigComplexNumber;
   Complex1: TCnBigComplexNumber; Complex2: TCnBigComplexNumber);
+var
+  T1, T2, T3, T4: TCnBigNumber;
 begin
-  BigNumberMul(Res.FR, Complex1.FR, Complex2.FR);
-  BigNumberMul(Res.FI, Complex1.FI, Complex2.FI);
+  // (a+bi) * (c+di) = (ac-bd) + (ad+bc)i
+  T1 := FBigNumberPool.Obtain;
+  T2 := FBigNumberPool.Obtain;
+  T3 := FBigNumberPool.Obtain;
+  T4 := FBigNumberPool.Obtain;
+  try
+    BigNumberMul(T1, Complex1.FR, Complex2.FR);  // ac
+    BigNumberMul(T2, Complex1.FI, Complex2.FI);  // bd
+    BigNumberMul(T3, Complex1.FR, Complex2.FI);  // ad
+    BigNumberMul(T4, Complex1.FI, Complex2.FR);  // bc
+
+    BigNumberSub(Res.FR, T1, T2);  // ac - bd
+    BigNumberAdd(Res.FI, T3, T4);  // ad + bc
+  finally
+    FBigNumberPool.Recycle(T4);
+    FBigNumberPool.Recycle(T3);
+    FBigNumberPool.Recycle(T2);
+    FBigNumberPool.Recycle(T1);
+  end;
 end;
 
 procedure BigComplexNumberAdd(Res: TCnBigComplexNumber;
@@ -1775,19 +1795,23 @@ end;
 procedure BigComplexDecimalMul(Res: TCnBigComplexDecimal;
   Complex1: TCnBigComplexDecimal; Complex2: TCnBigComplexDecimal);
 var
-  T1, T2: TCnBigDecimal;
+  T1, T2, T3, T4: TCnBigDecimal;
 begin
   T1 := FBigDecimaoPool.Obtain;
   T2 := FBigDecimaoPool.Obtain;
+  T3 := FBigDecimaoPool.Obtain;
+  T4 := FBigDecimaoPool.Obtain;
   try
     BigDecimalMul(T1, Complex1.FR, Complex2.FR);
     BigDecimalMul(T2, Complex1.FI, Complex2.FI);
-    BigDecimalSub(Res.FR, T1, T2);
+    BigDecimalMul(T3, Complex1.FR, Complex2.FI);
+    BigDecimalMul(T4, Complex1.FI, Complex2.FR);
 
-    BigDecimalMul(T1, Complex1.FR, Complex2.FI);
-    BigDecimalMul(T2, Complex1.FI, Complex2.FR);
-    BigDecimalAdd(Res.FI, T1, T2);
+    BigDecimalSub(Res.FR, T1, T2);
+    BigDecimalAdd(Res.FI, T3, T4);
   finally
+    FBigDecimaoPool.Recycle(T4);
+    FBigDecimaoPool.Recycle(T3);
     FBigDecimaoPool.Recycle(T2);
     FBigDecimaoPool.Recycle(T1);
   end;
@@ -2169,8 +2193,10 @@ initialization
 
   FBigComplexDecimalPool := TCnBigComplexDecimalPool.Create;
   FBigDecimaoPool := TCnBigDecimalPool.Create;
+  FBigNumberPool := TCnBigNumberPool.Create;
 
 finalization
+  FBigNumberPool.Free;
   FBigDecimaoPool.Free;
   FBigComplexDecimalPool.Free;
 

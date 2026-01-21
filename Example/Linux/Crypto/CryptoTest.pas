@@ -98,6 +98,19 @@ function TestCalendarTaiSui: Boolean;
 function TestCalendarJulianDate: Boolean;
 function TestCalendarSolarLunarConvert: Boolean;
 
+// ============================== Complex ======================================
+
+function TestComplexNumberBasic: Boolean;
+function TestComplexNumberArithmetic: Boolean;
+function TestComplexNumberProperties: Boolean;
+function TestComplexNumberSqrt: Boolean;
+function TestBigComplexNumberBasic: Boolean;
+function TestBigComplexNumberArithmetic: Boolean;
+function TestBigComplexNumberProperties: Boolean;
+function TestBigComplexDecimalBasic: Boolean;
+function TestBigComplexDecimalArithmetic: Boolean;
+function TestBigComplexDecimalProperties: Boolean;
+
 // ============================== BigNumber ====================================
 
 function TestBigNumberHex: Boolean;
@@ -583,6 +596,19 @@ begin
   MyAssert(TestCalendarTaiSui, 'TestCalendarTaiSui');
   MyAssert(TestCalendarJulianDate, 'TestCalendarJulianDate');
   MyAssert(TestCalendarSolarLunarConvert, 'TestCalendarSolarLunarConvert');
+
+// ================================ Complex ======================================
+
+  MyAssert(TestComplexNumberBasic, 'TestComplexNumberBasic');
+  MyAssert(TestComplexNumberArithmetic, 'TestComplexNumberArithmetic');
+  MyAssert(TestComplexNumberProperties, 'TestComplexNumberProperties');
+  MyAssert(TestComplexNumberSqrt, 'TestComplexNumberSqrt');
+  MyAssert(TestBigComplexNumberBasic, 'TestBigComplexNumberBasic');
+  MyAssert(TestBigComplexNumberArithmetic, 'TestBigComplexNumberArithmetic');
+  MyAssert(TestBigComplexNumberProperties, 'TestBigComplexNumberProperties');
+  MyAssert(TestBigComplexDecimalBasic, 'TestBigComplexDecimalBasic');
+  MyAssert(TestBigComplexDecimalArithmetic, 'TestBigComplexDecimalArithmetic');
+  MyAssert(TestBigComplexDecimalProperties, 'TestBigComplexDecimalProperties');
 
 // ============================== BigNumber ====================================
 
@@ -1485,6 +1511,300 @@ begin
   Result := GetLunarFromDay(2025, 1, 28, LunarYear, LunarMonth, LunarDay, IsLeapMonth) and
     GetDayFromLunar(LunarYear, LunarMonth, LunarDay, IsLeapMonth, Year, Month, Day) and
     (Year = 2025) and (Month = 1) and (Day = 28);
+end;
+
+// ============================== Complex ======================================
+
+function TestComplexNumberBasic: Boolean;
+var
+  C1, C2, C3: TCnComplexNumber;
+begin
+  // 测试零复数初始化
+  ComplexNumberSetZero(C1);
+  Result := ComplexNumberIsZero(C1);
+  if not Result then Exit;
+
+  // 测试单位复数初始化
+  ComplexNumberSetOne(C2);
+  Result := FloatEqual(C2.R, 1) and FloatEqual(C2.I, 0);
+  if not Result then Exit;
+
+  // 测试虚数单位初始化
+  ComplexNumberSetI(C3);
+  Result := FloatEqual(C3.R, 0) and FloatEqual(C3.I, 1);
+  if not Result then Exit;
+
+  // 测试复数相等性判断
+  ComplexNumberSetValue(C1, 3, 4);
+  ComplexNumberSetValue(C2, 3, 4);
+  Result := ComplexNumberEqual(C1, C2);
+  if not Result then Exit;
+
+  // 测试复数字符串转换
+  ComplexNumberSetValue(C1, 5, 0);
+  Result := Pos('5', ComplexNumberToString(C1)) > 0;
+end;
+
+function TestComplexNumberArithmetic: Boolean;
+var
+  C1, C2, Res: TCnComplexNumber;
+begin
+  // 测试复数加法: (3+4i) + (1+2i) = 4+6i
+  ComplexNumberSetValue(C1, 3, 4);
+  ComplexNumberSetValue(C2, 1, 2);
+  ComplexNumberAdd(Res, C1, C2);
+  Result := FloatEqual(Res.R, 4) and FloatEqual(Res.I, 6);
+  if not Result then Exit;
+
+  // 测试复数减法: (3+4i) - (1+2i) = 2+2i
+  ComplexNumberSub(Res, C1, C2);
+  Result := FloatEqual(Res.R, 2) and FloatEqual(Res.I, 2);
+  if not Result then Exit;
+
+  // 测试复数乘法: (3+4i) * (1+2i) = -5+10i
+  ComplexNumberMul(Res, C1, C2);
+  Result := FloatEqual(Res.R, -5) and FloatEqual(Res.I, 10);
+  if not Result then Exit;
+
+  // 测试复数除法: (3+4i) / (1+2i) = 2.2-0.4i
+  ComplexNumberDiv(Res, C1, C2);
+  Result := FloatEqual(Res.R, 2.2) and FloatEqual(Res.I, -0.4);
+  if not Result then Exit;
+
+  // 测试复数与实数相加: (3+4i) + 5 = 8+4i
+  ComplexNumberAdd(Res, C1, 5);
+  Result := FloatEqual(Res.R, 8) and FloatEqual(Res.I, 4);
+  if not Result then Exit;
+
+  // 测试复数与实数相乘: (3+4i) * 2 = 6+8i
+  ComplexNumberMul(Res, C1, 2);
+  Result := FloatEqual(Res.R, 6) and FloatEqual(Res.I, 8);
+end;
+
+function TestComplexNumberProperties: Boolean;
+var
+  C1, Res: TCnComplexNumber;
+  AbsVal, ArgVal: Extended;
+begin
+  // 测试复数的模: |3+4i| = 5
+  ComplexNumberSetValue(C1, 3, 4);
+  AbsVal := ComplexNumberAbsoluteValue(C1);
+  Result := FloatEqual(AbsVal, 5);
+  if not Result then Exit;
+
+  // 测试复数的辐角: arg(1+1i) = π/4
+  ComplexNumberSetValue(C1, 1, 1);
+  ArgVal := ComplexNumberArgument(C1);
+  Result := FloatEqual(ArgVal, Pi / 4);
+  if not Result then Exit;
+
+  // 测试复数的共轭: conj(3+4i) = 3-4i
+  ComplexNumberSetValue(C1, 3, 4);
+  ComplexConjugate(Res, C1);
+  Result := FloatEqual(Res.R, 3) and FloatEqual(Res.I, -4);
+  if not Result then Exit;
+
+  // 测试复数的取反: -(3+4i) = -3-4i
+  ComplexNegate(Res, C1);
+  Result := FloatEqual(Res.R, -3) and FloatEqual(Res.I, -4);
+  if not Result then Exit;
+
+  // 测试纯实数判断
+  ComplexNumberSetValue(C1, 5, 0);
+  Result := ComplexIsPureReal(C1);
+  if not Result then Exit;
+
+  // 测试纯虚数判断
+  ComplexNumberSetValue(C1, 0, 5);
+  Result := ComplexIsPureImaginary(C1);
+end;
+
+function TestComplexNumberSqrt: Boolean;
+var
+  C1, Res, Temp: TCnComplexNumber;
+begin
+  // 测试复数平方根: sqrt(3+4i) 的平方应等于 3+4i
+  ComplexNumberSetValue(C1, 3, 4);
+  ComplexNumberSqrt(Res, C1);
+  ComplexNumberMul(Temp, Res, Res);
+  Result := FloatEqual(Temp.R, C1.R) and FloatEqual(Temp.I, C1.I);
+  if not Result then Exit;
+
+  // 测试单位复数的平方根: sqrt(1+0i) = 1+0i
+  ComplexNumberSetValue(C1, 1, 0);
+  ComplexNumberSqrt(Res, C1);
+  Result := FloatEqual(Res.R, 1) and FloatEqual(Res.I, 0);
+  if not Result then Exit;
+
+  // 测试虚数单位的平方根: sqrt(0+1i) 的平方应等于 0+1i
+  ComplexNumberSetValue(C1, 0, 1);
+  ComplexNumberSqrt(Res, C1);
+  ComplexNumberMul(Temp, Res, Res);
+  Result := FloatEqual(Temp.R, C1.R) and FloatEqual(Temp.I, C1.I);
+end;
+
+function TestBigComplexNumberBasic: Boolean;
+var
+  C1, C2: TCnBigComplexNumber;
+begin
+  C1 := TCnBigComplexNumber.Create;
+  C2 := TCnBigComplexNumber.Create;
+  try
+    // 测试大精度复数初始化
+    BigComplexNumberSetZero(C1);
+    Result := BigComplexNumberIsZero(C1);
+    if not Result then Exit;
+
+    // 测试大精度复数设置值
+    BigComplexNumberSetValue(C1, 3, 4);
+    BigComplexNumberSetValue(C2, 3, 4);
+    Result := BigComplexNumberEqual(C1, C2);
+    if not Result then Exit;
+
+    // 测试大精度复数字符串转换
+    Result := Length(BigComplexNumberToString(C1)) > 0;
+  finally
+    C1.Free;
+    C2.Free;
+  end;
+end;
+
+function TestBigComplexNumberArithmetic: Boolean;
+var
+  C1, C2, Res: TCnBigComplexNumber;
+begin
+  C1 := TCnBigComplexNumber.Create;
+  C2 := TCnBigComplexNumber.Create;
+  Res := TCnBigComplexNumber.Create;
+  try
+    // 测试大精度复数加法
+    BigComplexNumberSetValue(C1, 3, 4);
+    BigComplexNumberSetValue(C2, 1, 2);
+    BigComplexNumberAdd(Res, C1, C2);
+    Result := (Res.R.ToHex = '04') and (Res.I.ToHex = '06');
+    if not Result then Exit;
+
+    // 测试大精度复数减法
+    BigComplexNumberSub(Res, C1, C2);
+    Result := (Res.R.ToHex = '02') and (Res.I.ToHex = '02');
+    if not Result then Exit;
+
+    // 测试大精度复数乘法
+    BigComplexNumberMul(Res, C1, C2);
+    Result := (Res.R.ToHex = '-05') and (Res.I.ToHex = '0A');
+  finally
+    C1.Free;
+    C2.Free;
+    Res.Free;
+  end;
+end;
+
+function TestBigComplexNumberProperties: Boolean;
+var
+  C1, Res: TCnBigComplexNumber;
+begin
+  C1 := TCnBigComplexNumber.Create;
+  Res := TCnBigComplexNumber.Create;
+  try
+    // 测试大精度复数的模
+    BigComplexNumberSetValue(C1, 3, 4);
+    Result := BigComplexNumberAbsoluteValue(C1) > 0;
+    if not Result then Exit;
+
+    // 测试大精度复数的共轭
+    BigComplexNumberConjugate(Res, C1);
+    Result := (Res.R.ToHex = '03') and (Res.I.ToHex = '-04');
+    if not Result then Exit;
+
+    // 测试大精度复数的取反
+    BigComplexNumberNegate(Res, C1);
+    Result := (Res.R.ToHex = '-03') and (Res.I.ToHex = '-04');
+  finally
+    C1.Free;
+    Res.Free;
+  end;
+end;
+
+function TestBigComplexDecimalBasic: Boolean;
+var
+  C1, C2: TCnBigComplexDecimal;
+begin
+  C1 := TCnBigComplexDecimal.Create;
+  C2 := TCnBigComplexDecimal.Create;
+  try
+    // 测试大精度复数十进制初始化
+    BigComplexDecimalSetZero(C1);
+    Result := BigComplexDecimalIsZero(C1);
+    if not Result then Exit;
+
+    // 测试大精度复数十进制设置值
+    BigComplexDecimalSetValue(C1, 3, 4);
+    BigComplexDecimalSetValue(C2, 3, 4);
+    Result := BigComplexDecimalEqual(C1, C2);
+    if not Result then Exit;
+
+    // 测试大精度复数十进制字符串转换
+    Result := Length(BigComplexDecimalToString(C1)) > 0;
+  finally
+    C1.Free;
+    C2.Free;
+  end;
+end;
+
+function TestBigComplexDecimalArithmetic: Boolean;
+var
+  C1, C2, Res: TCnBigComplexDecimal;
+begin
+  C1 := TCnBigComplexDecimal.Create;
+  C2 := TCnBigComplexDecimal.Create;
+  Res := TCnBigComplexDecimal.Create;
+  try
+    // 测试大精度复数十进制加法
+    BigComplexDecimalSetValue(C1, 3, 4);
+    BigComplexDecimalSetValue(C2, 1, 2);
+    BigComplexDecimalAdd(Res, C1, C2);
+    Result := (Res.R.ToString = '4') and (Res.I.ToString = '6');
+    if not Result then Exit;
+
+    // 测试大精度复数十进制减法
+    BigComplexDecimalSub(Res, C1, C2);
+    Result := (Res.R.ToString = '2') and (Res.I.ToString = '2');
+    if not Result then Exit;
+
+    // 测试大精度复数十进制乘法
+    BigComplexDecimalMul(Res, C1, C2);
+    Result := (Res.R.ToString = '-5') and (Res.I.ToString = '10');
+  finally
+    C1.Free;
+    C2.Free;
+    Res.Free;
+  end;
+end;
+
+function TestBigComplexDecimalProperties: Boolean;
+var
+  C1, Res: TCnBigComplexDecimal;
+begin
+  C1 := TCnBigComplexDecimal.Create;
+  Res := TCnBigComplexDecimal.Create;
+  try
+    // 测试大精度复数十进制的模
+    BigComplexDecimalSetValue(C1, 3, 4);
+    Result := BigComplexDecimalAbsoluteValue(C1) > 0;
+    if not Result then Exit;
+
+    // 测试大精度复数十进制的共轭
+    BigComplexDecimalConjugate(Res, C1);
+    Result := (Res.R.ToString = '3') and (Res.I.ToString = '-4');
+    if not Result then Exit;
+
+    // 测试大精度复数十进制的取反
+    BigComplexDecimalNegate(Res, C1);
+    Result := (Res.R.ToString = '-3') and (Res.I.ToString = '-4');
+  finally
+    C1.Free;
+    Res.Free;
+  end;
 end;
 
 // ============================== BigNumber ====================================

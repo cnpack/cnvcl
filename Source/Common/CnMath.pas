@@ -1476,8 +1476,6 @@ var
   ExpA, CosB, SinB: TCnBigDecimal;
   TargetPrecision: Integer;
 begin
-  Result := False;
-
   if Precision <= 0 then
     Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
 
@@ -1537,8 +1535,6 @@ var
   SinA, CosA, SinhB, CoshB: TCnBigDecimal;
   TargetPrecision: Integer;
 begin
-  Result := False;
-
   if Precision <= 0 then
     Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
 
@@ -1603,8 +1599,6 @@ var
   SinA, CosA, SinhB, CoshB: TCnBigDecimal;
   TargetPrecision: Integer;
 begin
-  Result := False;
-
   if Precision <= 0 then
     Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
 
