@@ -51,7 +51,7 @@ uses
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
   CnDSA, CnBLAKE, CnBLAKE2, CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA,
-  CnCalendar, CnBigDecimal, CnMath;
+  CnCalendar, CnBigDecimal, CnComplex, CnMath;
 
 procedure TestCrypto;
 {* √‹¬Îø‚◊‹≤‚ ‘»Îø⁄}
@@ -150,36 +150,31 @@ function TestCnIntAbs: Boolean;
 function TestCnInt64Abs: Boolean;
 function TestCnFloor: Boolean;
 function TestCnCeil: Boolean;
-
 function TestInt64Sqrt: Boolean;
 function TestFloatSqrt: Boolean;
-
 function TestInt64LogN: Boolean;
 function TestFloatLogN: Boolean;
 function TestInt64Log10: Boolean;
 function TestFloatLog10: Boolean;
 function TestInt64Log2: Boolean;
 function TestFloatLog2: Boolean;
-
 function TestFastSqrt: Boolean;
 function TestFastSqrt64: Boolean;
 function TestFastInverseSqrt: Boolean;
-
 function TestFloatAlmostZero: Boolean;
 function TestFloatEqual: Boolean;
 function TestNormalizeAngle: Boolean;
-
 function TestFloatToHex: Boolean;
 function TestHexToFloat: Boolean;
-
 function TestInt64ContinuedFraction: Boolean;
-
 function TestBigDecimalEulerExp: Boolean;
 function TestBigDecimalSin: Boolean;
 function TestBigDecimalCos: Boolean;
 function TestBigDecimalHyperbolicSin: Boolean;
 function TestBigDecimalHyperbolicCos: Boolean;
-
+function TestBigComplexDecimalEulerExp: Boolean;
+function TestBigComplexDecimalSin: Boolean;
+function TestBigComplexDecimalCos: Boolean;
 function TestFloatGaussLegendrePi: Boolean;
 function TestGaussLegendrePi: Boolean;
 function TestXavierGourdonEuler: Boolean;
@@ -641,36 +636,31 @@ begin
   MyAssert(TestCnInt64Abs, 'TestCnInt64Abs');
   MyAssert(TestCnFloor, 'TestCnFloor');
   MyAssert(TestCnCeil, 'TestCnCeil');
-
   MyAssert(TestInt64Sqrt, 'TestInt64Sqrt');
   MyAssert(TestFloatSqrt, 'TestFloatSqrt');
-
   MyAssert(TestInt64LogN, 'TestInt64LogN');
   MyAssert(TestFloatLogN, 'TestFloatLogN');
   MyAssert(TestInt64Log10, 'TestInt64Log10');
   MyAssert(TestFloatLog10, 'TestFloatLog10');
   MyAssert(TestInt64Log2, 'TestInt64Log2');
   MyAssert(TestFloatLog2, 'TestFloatLog2');
-
   MyAssert(TestFastSqrt, 'TestFastSqrt');
   MyAssert(TestFastSqrt64, 'TestFastSqrt64');
   MyAssert(TestFastInverseSqrt, 'TestFastInverseSqrt');
-
   MyAssert(TestFloatAlmostZero, 'TestFloatAlmostZero');
   MyAssert(TestFloatEqual, 'TestFloatEqual');
   MyAssert(TestNormalizeAngle, 'TestNormalizeAngle');
-
   MyAssert(TestFloatToHex, 'TestFloatToHex');
   MyAssert(TestHexToFloat, 'TestHexToFloat');
-
   MyAssert(TestInt64ContinuedFraction, 'TestInt64ContinuedFraction');
-
   MyAssert(TestBigDecimalEulerExp, 'TestBigDecimalEulerExp');
   MyAssert(TestBigDecimalSin, 'TestBigDecimalSin');
   MyAssert(TestBigDecimalCos, 'TestBigDecimalCos');
   MyAssert(TestBigDecimalHyperbolicSin, 'TestBigDecimalHyperbolicSin');
   MyAssert(TestBigDecimalHyperbolicCos, 'TestBigDecimalHyperbolicCos');
-
+  MyAssert(TestBigComplexDecimalEulerExp, 'TestBigComplexDecimalEulerExp');
+  MyAssert(TestBigComplexDecimalSin, 'TestBigComplexDecimalSin');
+  MyAssert(TestBigComplexDecimalCos, 'TestBigComplexDecimalCos');
   MyAssert(TestFloatGaussLegendrePi, 'TestFloatGaussLegendrePi');
   MyAssert(TestGaussLegendrePi, 'TestGaussLegendrePi');
   MyAssert(TestXavierGourdonEuler, 'TestXavierGourdonEuler');
@@ -2984,6 +2974,199 @@ begin
     end;
     R := BigDecimalToExtended(Res);
     Result := FloatAlmostZero(R - 1.5430806348);
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
+function TestBigComplexDecimalEulerExp: Boolean;
+var
+  Res, Num: TCnBigComplexDecimal;
+  RealPart, ImagPart: Extended;
+begin
+  Res := TCnBigComplexDecimal.Create;
+  Num := TCnBigComplexDecimal.Create;
+  try
+    // e^0 = 1
+    Num.SetZero;
+    if not BigComplexDecimalEulerExp(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    Result := FloatEqual(RealPart, 1.0) and FloatAlmostZero(ImagPart);
+    if not Result then Exit;
+
+    // e^(i*¶–) °÷ -1
+    Num.SetZero;
+    Num.I.SetExtended(CN_PI);
+    if not BigComplexDecimalEulerExp(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    Result := FloatAlmostZero(RealPart + 1.0) and FloatAlmostZero(ImagPart);
+    if not Result then Exit;
+
+    // e^(i*¶–/2) °÷ i
+    Num.SetZero;
+    Num.I.SetExtended(CN_PI / 2);
+    if not BigComplexDecimalEulerExp(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    Result := FloatAlmostZero(RealPart) and FloatAlmostZero(ImagPart - 1.0);
+    if not Result then Exit;
+
+    // ≤‚ ‘ e^(1+i) °÷ e*(cos(1)+i*sin(1))
+    Num.SetOne;
+    Num.I.SetOne;
+    if not BigComplexDecimalEulerExp(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    // e °÷ 2.71828, cos(1) °÷ 0.54030, sin(1) °÷ 0.84147
+    // e^(1+i) °÷ 2.71828 * (0.54030 + 0.84147i) °÷ 1.46869 + 2.28735i
+    Result := FloatAlmostZero(RealPart - 1.46869394) and FloatAlmostZero(ImagPart - 2.287355287);
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
+function TestBigComplexDecimalSin: Boolean;
+var
+  Res, Num: TCnBigComplexDecimal;
+  RealPart, ImagPart: Extended;
+begin
+  Res := TCnBigComplexDecimal.Create;
+  Num := TCnBigComplexDecimal.Create;
+  try
+    // sin(0) = 0
+    Num.SetZero;
+    if not BigComplexDecimalSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    Result := FloatAlmostZero(RealPart) and FloatAlmostZero(ImagPart);
+    if not Result then Exit;
+
+    // sin(¶–/2) °÷ 1
+    Num.R.SetExtended(CN_PI / 2);
+    Num.I.SetZero;
+    if not BigComplexDecimalSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    Result := FloatAlmostZero(RealPart - 1.0) and FloatAlmostZero(ImagPart);
+    if not Result then Exit;
+
+    // sin(¶–) °÷ 0
+    Num.R.SetExtended(CN_PI);
+    Num.I.SetZero;
+    if not BigComplexDecimalSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    Result := FloatAlmostZero(RealPart) and FloatAlmostZero(ImagPart);
+    if not Result then Exit;
+
+    // ≤‚ ‘ sin(i) °÷ i*sinh(1)
+    Num.SetZero;
+    Num.I.SetOne;
+    if not BigComplexDecimalSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    // sinh(1) °÷ 1.17520, sin(i) °÷ i*1.17520
+    Result := FloatAlmostZero(RealPart) and FloatAlmostZero(ImagPart - 1.1752011936);
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
+function TestBigComplexDecimalCos: Boolean;
+var
+  Res, Num: TCnBigComplexDecimal;
+  RealPart, ImagPart: Extended;
+begin
+  Res := TCnBigComplexDecimal.Create;
+  Num := TCnBigComplexDecimal.Create;
+  try
+    // cos(0) = 1
+    Num.SetZero;
+    if not BigComplexDecimalCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    Result := FloatEqual(RealPart, 1.0) and FloatAlmostZero(ImagPart);
+    if not Result then Exit;
+
+    // cos(¶–/2) °÷ 0
+    Num.R.SetExtended(CN_PI / 2);
+    Num.I.SetZero;
+    if not BigComplexDecimalCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    Result := FloatAlmostZero(RealPart) and FloatAlmostZero(ImagPart);
+    if not Result then Exit;
+
+    // cos(¶–) °÷ -1
+    Num.R.SetExtended(CN_PI);
+    Num.I.SetZero;
+    if not BigComplexDecimalCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    Result := FloatAlmostZero(RealPart + 1.0) and FloatAlmostZero(ImagPart);
+    if not Result then Exit;
+
+    // ≤‚ ‘ cos(i) °÷ cosh(1)
+    Num.SetZero;
+    Num.I.SetOne;
+    if not BigComplexDecimalCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    // cosh(1) °÷ 1.54308, cos(i) °÷ 1.54308
+    Result := FloatAlmostZero(RealPart - 1.5430806348) and FloatAlmostZero(ImagPart);
   finally
     Res.Free;
     Num.Free;
