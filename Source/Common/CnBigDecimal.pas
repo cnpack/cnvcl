@@ -1665,6 +1665,12 @@ var
   E: Integer;
   M: Cardinal;
 begin
+  if Num.Value.IsZero then
+  begin
+    Result := 0.0;
+    Exit;
+  end;
+
   T := FLocalBigDecimalPool.Obtain;
   try
     BigDecimalCopy(T, Num);
@@ -1686,6 +1692,12 @@ var
   E: Integer;
   M: TUInt64;
 begin
+  if Num.Value.IsZero then
+  begin
+    Result := 0.0;
+    Exit;
+  end;
+
   T := FLocalBigDecimalPool.Obtain;
   try
     BigDecimalCopy(T, Num);
@@ -1707,6 +1719,12 @@ var
   E: Integer;
   M: TUInt64;
 begin
+  if Num.Value.IsZero then
+  begin
+    Result := 0.0;
+    Exit;
+  end;
+
   T := FLocalBigDecimalPool.Obtain;
   try
     BigDecimalCopy(T, Num);

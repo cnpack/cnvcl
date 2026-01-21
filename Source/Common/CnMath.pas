@@ -29,7 +29,9 @@ unit CnMath;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.12.08 V1.0
+* 修改记录：2026.01.21 V1.1
+*               加入高精度正弦余弦等的计算
+*           2021.12.08 V1.0
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -322,15 +324,39 @@ function FastSqrt64(N: Int64): Int64;
 
 function BigDecimalEulerExp(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer = 0): Boolean;
-{* 用大浮点数计算 e 的 Num 次方，精度由 Precision 控制}
+{* 用大浮点数计算 e 的 Num 次方，精度由 Precision 控制。
+
+   参数：
+     Res: TCnBigDecimal                   - 容纳返回的计算结果
+     Num: TCnBigDecimal                   - 指数
+     Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
+
+   返回值：Boolean                        - 返回计算是否成功
+}
 
 function BigDecimalSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer = 0): Boolean;
-{* 用大浮点数计算 Num 弧度的正弦值，精度由 Precision 控制}
+{* 用大浮点数计算 Num 弧度的正弦值，精度由 Precision 控制。
+
+   参数：
+     Res: TCnBigDecimal                   - 容纳返回的计算结果
+     Num: TCnBigDecimal                   - 弧度数
+     Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
+
+   返回值：Boolean                        - 返回计算是否成功
+}
 
 function BigDecimalCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer = 0): Boolean;
-{* 用大浮点数计算 Num 弧度的余弦值，精度由 Precision 控制}
+{* 用大浮点数计算 Num 弧度的余弦值，精度由 Precision 控制。
+
+   参数：
+     Res: TCnBigDecimal                   - 容纳返回的计算结果
+     Num: TCnBigDecimal                   - 弧度数
+     Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
+
+   返回值：Boolean                        - 返回计算是否成功
+}
 
 implementation
 
@@ -1093,9 +1119,9 @@ function BigDecimalSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
    2. 使用恒等式 sin(x) = sin(π-x), sin(x+2π) = sin(x)
 }
 var
-  I, TargetPrecision: Integer;
+  I, TargetPrecision, Sign: Integer;
   X, X2, Term, Sum, Factorial, Gap, Pi, PiOver2, TwoPi: TCnBigDecimal;
-  Sign: Integer;
+  TN: Boolean;
 begin
   Result := False;
 
@@ -1175,9 +1201,15 @@ begin
 
       BigDecimalAdd(Sum, Sum, Term);
 
+      TN := Term.IsNegative;
+      if TN then
+        Term.Negate;
+
       if BigDecimalCompare(Term, Gap) < 0 then
         Break;
 
+      if TN then
+        Term.Negate;
       Inc(I);
     end;
 
@@ -1190,7 +1222,6 @@ begin
 
     Res.RoundTo(Precision);
     Result := True;
-
   finally
     FLocalBigDecimalPool.Recycle(X);
     FLocalBigDecimalPool.Recycle(X2);
@@ -1211,9 +1242,9 @@ function BigDecimalCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
    或者利用：cos(x) = sin(π/2 - x)
 }
 var
-  I, TargetPrecision: Integer;
+  I, TargetPrecision, Sign: Integer;
   X, X2, Term, Sum, Gap, Pi, TwoPi: TCnBigDecimal;
-  Sign: Integer;
+  TN: Boolean;
 begin
   Result := False;
 
@@ -1276,9 +1307,15 @@ begin
 
       BigDecimalAdd(Sum, Sum, Term);
 
+      TN := Term.IsNegative;
+      if TN then
+        Term.Negate;
+
       if BigDecimalCompare(Term, Gap) < 0 then
         Break;
 
+      if TN then
+        Term.Negate;
       Inc(I);
     end;
 
@@ -1291,7 +1328,6 @@ begin
 
     Res.RoundTo(Precision);
     Result := True;
-
   finally
     FLocalBigDecimalPool.Recycle(X);
     FLocalBigDecimalPool.Recycle(X2);

@@ -2709,21 +2709,53 @@ end;
 function TestBigDecimalEulerExp: Boolean;
 var
   Res, Num: TCnBigDecimal;
+  R: Extended;
 begin
   Res := TCnBigDecimal.Create;
   Num := TCnBigDecimal.Create;
   try
+    // ≤‚ ‘ e^0 = 1
     Num.SetZero;
     if not BigDecimalEulerExp(Res, Num) then
     begin
       Result := False;
       Exit;
     end;
-    Result := Res.IsOne;
+    R := BigDecimalToExtended(Res);
+    Result := FloatEqual(R, 1.0);
     if not Result then Exit;
 
+    // ≤‚ ‘ e^1 °÷ 2.71828...
     Num.SetOne;
-    Result := BigDecimalEulerExp(Res, Num);
+    if not BigDecimalEulerExp(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 2.7182818285);
+    if not Result then Exit;
+
+    // ≤‚ ‘ e^2 °÷ 7.38906...
+    Num.SetInt64(2);
+    if not BigDecimalEulerExp(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 7.3890561);
+    if not Result then Exit;
+
+    // ≤‚ ‘ e^(-1) °÷ 0.36788...
+    Num.SetInt64(-1);
+    if not BigDecimalEulerExp(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 0.36787944);
   finally
     Res.Free;
     Num.Free;
@@ -2733,17 +2765,53 @@ end;
 function TestBigDecimalSin: Boolean;
 var
   Res, Num: TCnBigDecimal;
+  R: Extended;
 begin
   Res := TCnBigDecimal.Create;
   Num := TCnBigDecimal.Create;
   try
+    // ≤‚ ‘ sin(0) = 0
     Num.SetZero;
     if not BigDecimalSin(Res, Num) then
     begin
       Result := False;
       Exit;
     end;
-    Result := Res.IsZero;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R);
+    if not Result then Exit;
+
+    // ≤‚ ‘ sin(¶–/6) °÷ 0.5
+    Num.SetExtended(CN_PI / 6);
+    if not BigDecimalSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 0.5);
+    if not Result then Exit;
+
+    // ≤‚ ‘ sin(¶–/2) °÷ 1
+    Num.SetExtended(CN_PI / 2);
+    if not BigDecimalSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 1.0);
+    if not Result then Exit;
+
+    // ≤‚ ‘ sin(¶–) °÷ 0
+    Num.SetExtended(CN_PI);
+    if not BigDecimalSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R);
   finally
     Res.Free;
     Num.Free;
@@ -2753,17 +2821,53 @@ end;
 function TestBigDecimalCos: Boolean;
 var
   Res, Num: TCnBigDecimal;
+  R: Extended;
 begin
   Res := TCnBigDecimal.Create;
   Num := TCnBigDecimal.Create;
   try
+    // ≤‚ ‘ cos(0) = 1
     Num.SetZero;
     if not BigDecimalCos(Res, Num) then
     begin
       Result := False;
       Exit;
     end;
-    Result := Res.IsOne;
+    R := BigDecimalToExtended(Res);
+    Result := FloatEqual(R, 1.0);
+    if not Result then Exit;
+
+    // ≤‚ ‘ cos(¶–/3) °÷ 0.5
+    Num.SetExtended(CN_PI / 3);
+    if not BigDecimalCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 0.5);
+    if not Result then Exit;
+
+    // ≤‚ ‘ cos(¶–/2) °÷ 0
+    Num.SetExtended(CN_PI / 2);
+    if not BigDecimalCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R);
+    if not Result then Exit;
+
+    // ≤‚ ‘ cos(¶–) °÷ -1
+    Num.SetExtended(CN_PI);
+    if not BigDecimalCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R + 1.0);
   finally
     Res.Free;
     Num.Free;
