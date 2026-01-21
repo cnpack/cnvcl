@@ -39,7 +39,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes;
+  SysUtils, Classes, CnNative, CnBigDecimal;
 
 const
   CN_PI = 3.1415926535897932384626;
@@ -198,13 +198,23 @@ function FloatGaussLegendrePi(RoundCount: Integer = 3): string;
    返回值：string                         - 返回的 Pi 值字符串
 }
 
-function GaussLegendrePi(RoundCount: Integer = 8): string;
+function GaussLegendrePi(RoundCount: Integer = 8): string; overload;
 {* 大浮点数用高斯勒让德公式计算 Pi，8 次迭代精度就到了 100 多位，12 轮耗时 5 秒。
 
    参数：
      RoundCount: Integer                  - 计算轮数
 
    返回值：string                         - 返回的 Pi 值字符串
+}
+
+function GaussLegendrePi(Res: TCnBigDecimal; RoundCount: Integer = 8): Boolean; overload;
+{* 大浮点数用高斯勒让德公式计算 Pi，8 次迭代精度就到了 100 多位，12 轮耗时 5 秒。
+
+   参数：
+     Res: TCnBigDecimal                   - 返回的 Pi 值
+     RoundCount: Integer                  - 计算轮数
+
+   返回值：string                         - 返回计算是否成功
 }
 
 function XavierGourdonEuler(BlockSize: Integer = 1000): string;
@@ -308,10 +318,19 @@ function FastSqrt64(N: Int64): Int64;
    返回值：Int64                          - 返回平方根的整数部分
 }
 
-implementation
+function BigDecimalEulerExp(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer = 0): Boolean;
+{* 用大浮点数计算 e 的 Num 次方，精度由 Precision 控制}
 
-uses
-  CnBigDecimal, CnNative;
+function BigDecimalSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer = 0): Boolean;
+{* 用大浮点数计算 Num 弧度的正弦值，精度由 Precision 控制}
+
+function BigDecimalCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer = 0): Boolean;
+{* 用大浮点数计算 Num 弧度的余弦值，精度由 Precision 控制}
+
+implementation
 
 const
   SCN_FLOAT_GAP = 0.000001;         // 普通浮点判断
@@ -319,10 +338,16 @@ const
   SCN_LOGN_TO_LOG2 = 1.4426950408889634073599246810019;
   SCN_LOGN_TO_LOG10 = 0.43429448190325182765112891891661;
 
+  CN_TAYLOR_MAX_ITERATIONS = 10000;
+  {* 泰勒级数最大迭代次数，防止死循环}
+
 resourcestring
   SCnErrorMathSqrtRange = 'Sqrt Range Error.';
   SCnErrorMathLogRange = 'Log Range Error.';
   SCnErrorMathFractionError = 'Error Length for Continue Fraction';
+
+var
+  FLocalBigDecimalPool: TCnBigDecimalPool = nil;
 
 function CnAbs(F: Extended): Extended;
 begin
@@ -553,14 +578,30 @@ begin
   Result := FloatToStr(Res);
 end;
 
-function GaussLegendrePi(RoundCount: Integer): string;
+function GaussLegendrePi(RoundCount: Integer = 8): string;
+var
+  R: TCnBigDecimal;
+begin
+  R := FLocalBigDecimalPool.Obtain;
+  try
+    if GaussLegendrePi(R, RoundCount) then
+      Result := R.ToString;
+  finally
+    FLocalBigDecimalPool.Recycle(R);
+  end;
+end;
+
+function GaussLegendrePi(Res: TCnBigDecimal; RoundCount: Integer): Boolean;
 var
   I, P: Integer;
   A0, B0, T0, P0: TCnBigDecimal;
   A1, B1, T1, P1: TCnBigDecimal;
   X1, X2: TCnBigDecimal;
-  Res: TCnBigDecimal;
 begin
+  Result := False;
+  if (Res = nil) or (RoundCount < 0) then
+    Exit;
+
   A0 := nil;
   B0 := nil;
   T0 := nil;
@@ -576,22 +617,22 @@ begin
   X2 := nil;
 
   try
-    A0 := TCnBigDecimal.Create;
-    B0 := TCnBigDecimal.Create;
-    T0 := TCnBigDecimal.Create;
-    P0 := TCnBigDecimal.Create;
+    A0 := FLocalBigDecimalPool.Obtain;
+    B0 := FLocalBigDecimalPool.Obtain;
+    T0 := FLocalBigDecimalPool.Obtain;
+    P0 := FLocalBigDecimalPool.Obtain;
 
-    A1 := TCnBigDecimal.Create;
-    B1 := TCnBigDecimal.Create;
-    T1 := TCnBigDecimal.Create;
-    P1 := TCnBigDecimal.Create;
+    A1 := FLocalBigDecimalPool.Obtain;
+    B1 := FLocalBigDecimalPool.Obtain;
+    T1 := FLocalBigDecimalPool.Obtain;
+    P1 := FLocalBigDecimalPool.Obtain;
 
-    Res := TCnBigDecimal.Create;
+    Res := FLocalBigDecimalPool.Obtain;
 
     // 临时变量
-    X1 := TCnBigDecimal.Create;
+    X1 := FLocalBigDecimalPool.Obtain;
     X1.SetWord(2);
-    X2 := TCnBigDecimal.Create;
+    X2 := FLocalBigDecimalPool.Obtain;
 
     P := 1 shl RoundCount;  // 根据 Round 数量提前确定精度
     if P < 16 then
@@ -639,22 +680,22 @@ begin
       BigDecimalCopy(P0, P1);
     end;
 
-    Result := Res.ToString;
+    Result := True;
   finally
-    X1.Free;
-    X2.Free;
+    FLocalBigDecimalPool.Recycle(X1);
+    FLocalBigDecimalPool.Recycle(X2);
 
-    Res.Free;
+    FLocalBigDecimalPool.Recycle(Res);
 
-    A1.Free;
-    B1.Free;
-    T1.Free;
-    P1.Free;
+    FLocalBigDecimalPool.Recycle(A1);
+    FLocalBigDecimalPool.Recycle(B1);
+    FLocalBigDecimalPool.Recycle(T1);
+    FLocalBigDecimalPool.Recycle(P1);
 
-    A0.Free;
-    B0.Free;
-    T0.Free;
-    P0.Free;
+    FLocalBigDecimalPool.Recycle(A0);
+    FLocalBigDecimalPool.Recycle(B0);
+    FLocalBigDecimalPool.Recycle(T0);
+    FLocalBigDecimalPool.Recycle(P0);
   end;
 end;
 
@@ -924,5 +965,349 @@ begin
     B := B shr 1;
   until B = 0;
 end;
+
+function BigDecimalEulerExp(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer): Boolean;
+{* 计算 e^x（实数）
+   使用泰勒级数：e^x = 1 + x + x^2/2! + x^3/3! + ...
+
+   算法优化：
+   1. 范围归约：如果 |x| > 1，先计算 e^(x/2^k)，再平方 k 次
+   2. 泰勒级数：对于 |x| < 1，级数收敛快
+
+   参数：
+     Res: 结果
+     Num: 输入（x）
+     Precision: 精度（小数点后位数），0表示默认
+}
+var
+  I, K, TargetPrecision: Integer;
+  X, Term, Sum, Factorial, Gap: TCnBigDecimal;
+  Neg: Boolean;
+begin
+  Result := False;
+
+  if Precision <= 0 then
+    Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  // 特殊情况
+  if Num.IsZero then
+  begin
+    Res.SetOne;
+    Result := True;
+    Exit;
+  end;
+
+  X := FLocalBigDecimalPool.Obtain;
+  Term := FLocalBigDecimalPool.Obtain;
+  Sum := FLocalBigDecimalPool.Obtain;
+  Factorial := FLocalBigDecimalPool.Obtain;
+  Gap := FLocalBigDecimalPool.Obtain;
+
+  try
+    BigDecimalCopy(X, Num);
+    Neg := X.IsNegative;
+    if Neg then
+      X.Negate;
+
+    // 范围归约：如果 x > 1，先除以 2^k 使其 < 1
+    K := 0;
+    while BigDecimalCompare(X, CnBigDecimalOne) > 0 do
+    begin
+      X.DivWord(2, Precision + 10);  // 除以 2，保留额外精度
+      Inc(K);
+    end;
+
+    // 计算收敛阈值
+    Gap.SetOne;
+    Gap.Scale := Precision + 5;  // 10^-(Precision+5)
+
+    // 泰勒级数：e^x = 1 + x + x^2/2! + x^3/3! + ...
+    Sum.SetOne;           // S? = 1
+    Term.SetOne;          // T? = 1
+    Factorial.SetOne;     // 0! = 1
+
+    I := 1;
+    TargetPrecision := Precision + 10;  // 内部计算保留额外精度
+
+    while I <= CN_TAYLOR_MAX_ITERATIONS do
+    begin
+      // Term := Term * X / I
+      BigDecimalMul(Term, Term, X, TargetPrecision);
+      Factorial.SetWord(I);
+      BigDecimalDiv(Term, Term, Factorial, TargetPrecision);
+
+      // Sum := Sum + Term
+      BigDecimalAdd(Sum, Sum, Term);
+
+      // 检查收敛：如果 |Term| < Gap，停止
+      if BigDecimalCompare(Term, Gap) < 0 then
+        Break;
+
+      Inc(I);
+    end;
+
+    if I > CN_TAYLOR_MAX_ITERATIONS then
+      raise ECnBigDecimalException.Create('Exp: Taylor series did not converge');
+
+    // 如果做了范围归约，需要平方 k 次：(e^(x/2^k))^(2^k) = e^x
+    for I := 1 to K do
+      BigDecimalMul(Sum, Sum, Sum, TargetPrecision);
+
+    // 如果原始输入是负数：e^(-x) = 1 / e^x
+    if Neg then
+    begin
+      Res.SetOne;
+      BigDecimalDiv(Res, Res, Sum, Precision);
+    end
+    else
+    begin
+      BigDecimalCopy(Res, Sum);
+      Res.RoundTo(Precision);
+    end;
+
+    Result := True;
+  finally
+    FLocalBigDecimalPool.Recycle(X);
+    FLocalBigDecimalPool.Recycle(Term);
+    FLocalBigDecimalPool.Recycle(Sum);
+    FLocalBigDecimalPool.Recycle(Factorial);
+    FLocalBigDecimalPool.Recycle(Gap);
+  end;
+end;
+
+function GaussLegendrePrecistionToRoundCount(Precision: Integer): Integer;
+begin
+  if Precision <= 0 then
+    Result := 1
+  else
+    Result := GetUInt32HighBits(Precision) + 1;
+end;
+
+function BigDecimalSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer = 0): Boolean;
+{* 计算 sin(x)
+   使用泰勒级数：sin(x) = x - x^3/3! + x^5/5! - x^7/7! + ...
+
+   优化：
+   1. 范围归约到 [0, π/4]
+   2. 使用恒等式 sin(x) = sin(π-x), sin(x+2π) = sin(x)
+}
+var
+  I, TargetPrecision: Integer;
+  X, X2, Term, Sum, Factorial, Gap, Pi, PiOver2, TwoPi: TCnBigDecimal;
+  Sign: Integer;
+begin
+  Result := False;
+
+  if Precision <= 0 then
+    Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  if Num.IsZero then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  X := FLocalBigDecimalPool.Obtain;
+  X2 := FLocalBigDecimalPool.Obtain;
+  Term := FLocalBigDecimalPool.Obtain;
+  Sum := FLocalBigDecimalPool.Obtain;
+  Factorial := FLocalBigDecimalPool.Obtain;
+  Gap := FLocalBigDecimalPool.Obtain;
+  Pi := FLocalBigDecimalPool.Obtain;
+  PiOver2 := FLocalBigDecimalPool.Obtain;
+  TwoPi := FLocalBigDecimalPool.Obtain;
+
+  try
+    TargetPrecision := Precision + 10;
+
+    // 计算 π
+    GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+
+    BigDecimalCopy(TwoPi, Pi);
+    TwoPi.MulWord(2);
+    BigDecimalCopy(PiOver2, Pi);
+    PiOver2.DivWord(2, TargetPrecision);
+
+    // 范围归约到 [0, 2π)
+    BigDecimalCopy(X, Num);
+    Sign := 1;
+
+    if X.IsNegative then
+    begin
+      X.Negate;
+      Sign := -1;
+    end;
+
+    // X := X mod 2π
+    while BigDecimalCompare(X, TwoPi) >= 0 do
+      BigDecimalSub(X, X, TwoPi);
+
+    // 进一步归约到 [0, π/2]，利用对称性
+    if BigDecimalCompare(X, Pi) >= 0 then
+    begin
+      BigDecimalSub(X, X, Pi);
+      Sign := -Sign;
+    end;
+
+    if BigDecimalCompare(X, PiOver2) > 0 then
+    begin
+      BigDecimalSub(X, Pi, X);  // sin(π - x) = sin(x)
+    end;
+
+    // 泰勒级数：sin(x) = x - x^3/3! + x^5/5! - ...
+    BigDecimalMul(X2, X, X, TargetPrecision);  // x^2
+
+    Gap.SetOne;
+    Gap.Scale := Precision + 5;
+
+    BigDecimalCopy(Sum, X);    // S = x
+    BigDecimalCopy(Term, X);   // T? = x
+
+    I := 1;
+    while I <= CN_TAYLOR_MAX_ITERATIONS do
+    begin
+      // Term := -Term * x^2 / ((2i)(2i+1))
+      BigDecimalMul(Term, Term, X2, TargetPrecision);
+      Term.Negate;
+      Term.DivWord(2 * I * (2 * I + 1), TargetPrecision);
+
+      BigDecimalAdd(Sum, Sum, Term);
+
+      if BigDecimalCompare(Term, Gap) < 0 then
+        Break;
+
+      Inc(I);
+    end;
+
+    if I > CN_TAYLOR_MAX_ITERATIONS then
+      raise ECnBigDecimalException.Create('Sin: Taylor series did not converge');
+
+    BigDecimalCopy(Res, Sum);
+    if Sign < 0 then
+      Res.Negate;
+
+    Res.RoundTo(Precision);
+    Result := True;
+
+  finally
+    FLocalBigDecimalPool.Recycle(X);
+    FLocalBigDecimalPool.Recycle(X2);
+    FLocalBigDecimalPool.Recycle(Term);
+    FLocalBigDecimalPool.Recycle(Sum);
+    FLocalBigDecimalPool.Recycle(Factorial);
+    FLocalBigDecimalPool.Recycle(Gap);
+    FLocalBigDecimalPool.Recycle(Pi);
+    FLocalBigDecimalPool.Recycle(PiOver2);
+    FLocalBigDecimalPool.Recycle(TwoPi);
+  end;
+end;
+
+function BigDecimalCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer = 0): Boolean;
+{* 计算 cos(x)
+   使用泰勒级数：cos(x) = 1 - x^2/2! + x^4/4! - x^6/6! + ...
+   或者利用：cos(x) = sin(π/2 - x)
+}
+var
+  I, TargetPrecision: Integer;
+  X, X2, Term, Sum, Gap, Pi, TwoPi: TCnBigDecimal;
+  Sign: Integer;
+begin
+  Result := False;
+
+  if Precision <= 0 then
+    Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  if Num.IsZero then
+  begin
+    Res.SetOne;
+    Result := True;
+    Exit;
+  end;
+
+  X := FLocalBigDecimalPool.Obtain;
+  X2 := FLocalBigDecimalPool.Obtain;
+  Term := FLocalBigDecimalPool.Obtain;
+  Sum := FLocalBigDecimalPool.Obtain;
+  Gap := FLocalBigDecimalPool.Obtain;
+  Pi := FLocalBigDecimalPool.Obtain;
+  TwoPi := FLocalBigDecimalPool.Obtain;
+
+  try
+    TargetPrecision := Precision + 10;
+
+    GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+    BigDecimalCopy(TwoPi, Pi);
+    TwoPi.MulWord(2);
+
+    // 范围归约
+    BigDecimalCopy(X, Num);
+    if X.IsNegative then
+      X.Negate;  // cos(-x) = cos(x)
+
+    while BigDecimalCompare(X, TwoPi) >= 0 do
+      BigDecimalSub(X, X, TwoPi);
+
+    Sign := 1;
+    if BigDecimalCompare(X, Pi) >= 0 then
+    begin
+      BigDecimalSub(X, X, Pi);
+      Sign := -1;  // cos(π + x) = -cos(x)
+    end;
+
+    // 泰勒级数：cos(x) = 1 - x^2/2! + x^4/4! - ...
+    BigDecimalMul(X2, X, X, TargetPrecision);
+
+    Gap.SetOne;
+    Gap.Scale := Precision + 5;
+
+    Sum.SetOne;     // S = 1
+    Term.SetOne;    // T? = 1
+
+    I := 1;
+    while I <= CN_TAYLOR_MAX_ITERATIONS do
+    begin
+      // Term := -Term * x^2 / ((2i-1)(2i))
+      BigDecimalMul(Term, Term, X2, TargetPrecision);
+      Term.Negate;
+      Term.DivWord((2 * I - 1) * (2 * I), TargetPrecision);
+
+      BigDecimalAdd(Sum, Sum, Term);
+
+      if BigDecimalCompare(Term, Gap) < 0 then
+        Break;
+
+      Inc(I);
+    end;
+
+    if I > CN_TAYLOR_MAX_ITERATIONS then
+      raise ECnBigDecimalException.Create('Cos: Taylor series did not converge');
+
+    BigDecimalCopy(Res, Sum);
+    if Sign < 0 then
+      Res.Negate;
+
+    Res.RoundTo(Precision);
+    Result := True;
+
+  finally
+    FLocalBigDecimalPool.Recycle(X);
+    FLocalBigDecimalPool.Recycle(X2);
+    FLocalBigDecimalPool.Recycle(Term);
+    FLocalBigDecimalPool.Recycle(Sum);
+    FLocalBigDecimalPool.Recycle(Gap);
+    FLocalBigDecimalPool.Recycle(Pi);
+    FLocalBigDecimalPool.Recycle(TwoPi);
+  end;
+end;
+
+initialization
+  FLocalBigDecimalPool := TCnBigDecimalPool.Create;
+
+finalization
+  FLocalBigDecimalPool.Free;
 
 end.

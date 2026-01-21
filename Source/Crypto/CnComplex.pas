@@ -227,7 +227,7 @@ type
     {* 将大浮点复数设置为 1}
 
     procedure SetI;
-    {* 将复数设置为i}
+    {* 将大浮点复数设置为 i}
 
     function IsZero: Boolean;
     {* 返回复数是否为0

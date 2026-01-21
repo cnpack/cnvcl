@@ -253,7 +253,13 @@ type
        返回值：string                     - 返回转换的字符串
     }
 
+    property Value: TCnBigNumber read FValue;
+    {* 有效数字，放出来供特殊需要}
+    property Scale: Integer read FScale write FScale;
+    {* 指数，放出来供特殊需要}
     property DecString: string read GetDecString;
+    {* 十进制字符串}
+
     property DebugDump: string read GetDebugDump;
   end;
 
@@ -468,7 +474,13 @@ type
        返回值：string                     - 返回转换的字符串
     }
 
+    property Value: TCnBigNumber read FValue;
+    {* 有效数字，放出来供特殊需要}
+    property Scale: Integer read FScale write FScale;
+    {* 指数，放出来供特殊需要}
     property DecString: string read GetDecString;
+    {* 十进制字符串}
+
     property DebugDump: string read GetDebugDump;
   end;
 
