@@ -358,6 +358,30 @@ function BigDecimalCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
    返回值：Boolean                        - 返回计算是否成功
 }
 
+function BigDecimalHyperbolicSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer = 0): Boolean;
+{* 用大浮点数计算 Num 的双曲正弦值，精度由 Precision 控制。
+
+   参数：
+     Res: TCnBigDecimal                   - 容纳返回的计算结果
+     Num: TCnBigDecimal                   - 弧度数
+     Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
+
+   返回值：Boolean                        - 返回计算是否成功
+}
+
+function BigDecimalHyperbolicCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer = 0): Boolean;
+{* 用大浮点数计算 Num 的双曲余弦值，精度由 Precision 控制。
+
+   参数：
+     Res: TCnBigDecimal                   - 容纳返回的计算结果
+     Num: TCnBigDecimal                   - 弧度数
+     Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
+
+   返回值：Boolean                        - 返回计算是否成功
+}
+
 implementation
 
 const
@@ -993,17 +1017,13 @@ end;
 
 function BigDecimalEulerExp(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer): Boolean;
-{* 计算 e^x（实数）
-   使用泰勒级数：e^x = 1 + x + x^2/2! + x^3/3! + ...
+{
+  计算 e^x（实数）
+  使用泰勒级数：e^x = 1 + x + x^2/2! + x^3/3! + ...
 
-   算法优化：
-   1. 范围归约：如果 |x| > 1，先计算 e^(x/2^k)，再平方 k 次
-   2. 泰勒级数：对于 |x| < 1，级数收敛快
-
-   参数：
-     Res: 结果
-     Num: 输入（x）
-     Precision: 精度（小数点后位数），0表示默认
+  算法优化：
+  1. 范围归约：如果 |x| > 1，先计算 e^(x/2^k)，再平方 k 次
+  2. 泰勒级数：对于 |x| < 1，级数收敛快
 }
 var
   I, K, TargetPrecision: Integer;
@@ -1110,13 +1130,14 @@ begin
 end;
 
 function BigDecimalSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
-  Precision: Integer = 0): Boolean;
-{* 计算 sin(x)
-   使用泰勒级数：sin(x) = x - x^3/3! + x^5/5! - x^7/7! + ...
+  Precision: Integer): Boolean;
+{
+  计算 sin(x)
+  使用泰勒级数：sin(x) = x - x^3/3! + x^5/5! - x^7/7! + ...
 
-   优化：
-   1. 范围归约到 [0, π/4]
-   2. 使用恒等式 sin(x) = sin(π-x), sin(x+2π) = sin(x)
+  优化：
+  1. 范围归约到 [0, π/2]
+  2. 使用恒等式 sin(x) = sin(π-x), sin(x+2π) = sin(x)
 }
 var
   I, TargetPrecision, Sign: Integer;
@@ -1236,10 +1257,11 @@ begin
 end;
 
 function BigDecimalCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
-  Precision: Integer = 0): Boolean;
-{* 计算 cos(x)
-   使用泰勒级数：cos(x) = 1 - x^2/2! + x^4/4! - x^6/6! + ...
-   或者利用：cos(x) = sin(π/2 - x)
+  Precision: Integer): Boolean;
+{
+  计算 cos(x)
+  使用泰勒级数：cos(x) = 1 - x^2/2! + x^4/4! - x^6/6! + ...
+  或者利用：cos(x) = sin(π/2 - x)
 }
 var
   I, TargetPrecision, Sign: Integer;
@@ -1336,6 +1358,70 @@ begin
     FLocalBigDecimalPool.Recycle(Gap);
     FLocalBigDecimalPool.Recycle(Pi);
     FLocalBigDecimalPool.Recycle(TwoPi);
+  end;
+end;
+
+function BigDecimalHyperbolicSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer = 0): Boolean;
+{
+  双曲正弦：sinh(x) = (e^x - e^(-x)) / 2
+}
+var
+  ExpX, ExpNegX: TCnBigDecimal;
+begin
+  if Precision <= 0 then
+    Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  ExpX := FLocalBigDecimalPool.Obtain;
+  ExpNegX := FLocalBigDecimalPool.Obtain;
+
+  try
+    // 计算 e^x
+    BigDecimalEulerExp(ExpX, Num, Precision + 5);
+
+    // 计算 e^(-x) = 1 / e^x
+    ExpNegX.SetOne;
+    BigDecimalDiv(ExpNegX, ExpNegX, ExpX, Precision + 5);
+
+    // sinh(x) = (e^x - e^(-x)) / 2
+    BigDecimalSub(Res, ExpX, ExpNegX);
+    Res.DivWord(2, Precision);
+
+    Result := True;
+  finally
+    FLocalBigDecimalPool.Recycle(ExpX);
+    FLocalBigDecimalPool.Recycle(ExpNegX);
+  end;
+end;
+
+function BigDecimalHyperbolicCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer = 0): Boolean;
+{
+  双曲余弦：cosh(x) = (e^x + e^(-x)) / 2
+}
+var
+  ExpX, ExpNegX: TCnBigDecimal;
+begin
+  if Precision <= 0 then
+    Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  ExpX := FLocalBigDecimalPool.Obtain;
+  ExpNegX := FLocalBigDecimalPool.Obtain;
+
+  try
+    BigDecimalEulerExp(ExpX, Num, Precision + 5);
+
+    ExpNegX.SetOne;
+    BigDecimalDiv(ExpNegX, ExpNegX, ExpX, Precision + 5);
+
+    // cosh(x) = (e^x + e^(-x)) / 2
+    BigDecimalAdd(Res, ExpX, ExpNegX);
+    Res.DivWord(2, Precision);
+
+    Result := True;
+  finally
+    FLocalBigDecimalPool.Recycle(ExpX);
+    FLocalBigDecimalPool.Recycle(ExpNegX);
   end;
 end;
 
