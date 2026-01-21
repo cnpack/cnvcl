@@ -45,7 +45,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, SysConst, Math, CnMath, CnBigNumber, CnBigDecimal,
+  Classes, SysUtils, SysConst, Math, CnBigNumber, CnBigDecimal,
   CnContainers;
 
 type
@@ -1141,6 +1141,9 @@ var
   {* È«¾Ö¸´Êý -i}
 
 implementation
+
+uses
+  CnMath;
 
 var
   FBigComplexDecimalPool: TCnBigComplexDecimalPool = nil;

@@ -41,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, CnNative, CnBigDecimal;
+  SysUtils, Classes, CnNative, CnBigDecimal, CnComplex;
 
 const
   CN_PI = 3.1415926535897932384626;
@@ -377,6 +377,42 @@ function BigDecimalHyperbolicCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
    参数：
      Res: TCnBigDecimal                   - 容纳返回的计算结果
      Num: TCnBigDecimal                   - 弧度数
+     Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
+
+   返回值：Boolean                        - 返回计算是否成功
+}
+
+function BigComplexDecimalEulerExp(Res, Num: TCnBigComplexDecimal;
+  Precision: Integer = 0): Boolean;
+{* 用大浮点复数计算 e 的 Num 复数次方，实部和虚部的精度由 Precision 控制。
+
+   参数：
+     Res: TCnBigComplexDecimal            - 容纳返回的计算结果
+     Num: TCnBigComplexDecimal            - 指数
+     Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
+
+   返回值：Boolean                        - 返回计算是否成功
+}
+
+function BigComplexDecimalSin(Res, Num: TCnBigComplexDecimal;
+  Precision: Integer = 0): Boolean;
+{* 用大浮点复数计算 Num 的复数正弦值，精度由 Precision 控制。
+
+   参数：
+     Res: TCnBigComplexDecimal            - 容纳返回的计算结果
+     Num: TCnBigComplexDecimal            - 弧度数
+     Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
+
+   返回值：Boolean                        - 返回计算是否成功
+}
+
+function BigComplexDecimalCos(Res, Num: TCnBigComplexDecimal;
+  Precision: Integer = 0): Boolean;
+{* 用大浮点复数计算 Num 的复数余弦值，精度由 Precision 控制。
+
+   参数：
+     Res: TCnBigComplexDecimal            - 容纳返回的计算结果
+     Num: TCnBigComplexDecimal            - 弧度数
      Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
 
    返回值：Boolean                        - 返回计算是否成功
@@ -1422,6 +1458,197 @@ begin
   finally
     FLocalBigDecimalPool.Recycle(ExpX);
     FLocalBigDecimalPool.Recycle(ExpNegX);
+  end;
+end;
+
+function BigComplexDecimalEulerExp(Res, Num: TCnBigComplexDecimal;
+  Precision: Integer = 0): Boolean;
+{
+  复数指数函数：e^(a+bi) = e^a * (cos(b) + i*sin(b))
+
+  算法：
+  1. 分离实部和虚部：z = a + bi
+  2. 计算 e^a
+  3. 计算 cos(b) 和 sin(b)
+  4. 结果 = e^a * cos(b) + i * e^a * sin(b)
+}
+var
+  ExpA, CosB, SinB: TCnBigDecimal;
+  TargetPrecision: Integer;
+begin
+  Result := False;
+
+  if Precision <= 0 then
+    Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  TargetPrecision := Precision + 10;  // 内部计算使用更高精度
+
+  // 特殊情况：如果是纯实数
+  if Num.IsPureReal then
+  begin
+    BigDecimalEulerExp(Res.R, Num.R, Precision);
+    Res.I.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  // 特殊情况：如果是纯虚数 e^(bi) = cos(b) + i*sin(b)
+  if Num.IsPureImaginary then
+  begin
+    BigDecimalCos(Res.R, Num.I, Precision);
+    BigDecimalSin(Res.I, Num.I, Precision);
+    Result := True;
+    Exit;
+  end;
+
+  ExpA := FLocalBigDecimalPool.Obtain;
+  CosB := FLocalBigDecimalPool.Obtain;
+  SinB := FLocalBigDecimalPool.Obtain;
+
+  try
+    // 计算 e^a（实部指数）
+    BigDecimalEulerExp(ExpA, Num.R, TargetPrecision);
+
+    // 计算 cos(b) 和 sin(b)（虚部的三角函数）
+    BigDecimalCos(CosB, Num.I, TargetPrecision);
+    BigDecimalSin(SinB, Num.I, TargetPrecision);
+
+    // 结果 = e^a * cos(b) + i * e^a * sin(b)
+    BigDecimalMul(Res.R, ExpA, CosB, Precision);
+    BigDecimalMul(Res.I, ExpA, SinB, Precision);
+
+    Result := True;
+  finally
+    FLocalBigDecimalPool.Recycle(ExpA);
+    FLocalBigDecimalPool.Recycle(CosB);
+    FLocalBigDecimalPool.Recycle(SinB);
+  end;
+end;
+
+function BigComplexDecimalSin(Res, Num: TCnBigComplexDecimal;
+  Precision: Integer): Boolean;
+{
+  复数正弦：sin(z) = (e^(iz) - e^(-iz)) / (2i)
+
+  使用公式：sin(a+bi) = sin(a)cosh(b) + i*cos(a)sinh(b)
+}
+var
+  A, B: TCnBigDecimal;
+  SinA, CosA, SinhB, CoshB: TCnBigDecimal;
+  TargetPrecision: Integer;
+begin
+  Result := False;
+
+  if Precision <= 0 then
+    Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  TargetPrecision := Precision + 10;
+
+  // 特殊情况：纯实数
+  if Num.IsPureReal then
+  begin
+    BigDecimalSin(Res.R, Num.R, Precision);
+    Res.I.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  A := FLocalBigDecimalPool.Obtain;
+  B := FLocalBigDecimalPool.Obtain;
+  SinA := FLocalBigDecimalPool.Obtain;
+  CosA := FLocalBigDecimalPool.Obtain;
+  SinhB := FLocalBigDecimalPool.Obtain;
+  CoshB := FLocalBigDecimalPool.Obtain;
+
+  try
+    BigDecimalCopy(A, Num.R);
+    BigDecimalCopy(B, Num.I);
+
+    // 使用公式：sin(a+bi) = sin(a)cosh(b) + i*cos(a)sinh(b)
+
+    // 计算 sin(a) 和 cos(a)
+    BigDecimalSin(SinA, A, TargetPrecision);
+    BigDecimalCos(CosA, A, TargetPrecision);
+
+    // 计算 sinh(b) 和 cosh(b)
+    BigDecimalHyperbolicSin(SinhB, B, TargetPrecision);
+    BigDecimalHyperbolicCos(CoshB, B, TargetPrecision);
+
+    // 实部 = sin(a) * cosh(b)
+    BigDecimalMul(Res.R, SinA, CoshB, Precision);
+
+    // 虚部 = cos(a) * sinh(b)
+    BigDecimalMul(Res.I, CosA, SinhB, Precision);
+
+    Result := True;
+  finally
+    FLocalBigDecimalPool.Recycle(A);
+    FLocalBigDecimalPool.Recycle(B);
+    FLocalBigDecimalPool.Recycle(SinA);
+    FLocalBigDecimalPool.Recycle(CosA);
+    FLocalBigDecimalPool.Recycle(SinhB);
+    FLocalBigDecimalPool.Recycle(CoshB);
+  end;
+end;
+
+function BigComplexDecimalCos(Res, Num: TCnBigComplexDecimal;
+  Precision: Integer = 0): Boolean;
+{
+  复数余弦：cos(z) = (e^(iz) + e^(-iz)) / 2
+
+  使用公式：cos(a+bi) = cos(a)cosh(b) - i*sin(a)sinh(b)
+}
+var
+  A, B: TCnBigDecimal;
+  SinA, CosA, SinhB, CoshB: TCnBigDecimal;
+  TargetPrecision: Integer;
+begin
+  Result := False;
+
+  if Precision <= 0 then
+    Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  TargetPrecision := Precision + 10;
+
+  if Num.IsPureReal then
+  begin
+    BigDecimalCos(Res.R, Num.R, Precision);
+    Res.I.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  A := FLocalBigDecimalPool.Obtain;
+  B := FLocalBigDecimalPool.Obtain;
+  SinA := FLocalBigDecimalPool.Obtain;
+  CosA := FLocalBigDecimalPool.Obtain;
+  SinhB := FLocalBigDecimalPool.Obtain;
+  CoshB := FLocalBigDecimalPool.Obtain;
+
+  try
+    BigDecimalCopy(A, Num.R);
+    BigDecimalCopy(B, Num.I);
+
+    BigDecimalSin(SinA, A, TargetPrecision);
+    BigDecimalCos(CosA, A, TargetPrecision);
+    BigDecimalHyperbolicSin(SinhB, B, TargetPrecision);
+    BigDecimalHyperbolicCos(CoshB, B, TargetPrecision);
+
+    // 实部 = cos(a) * cosh(b)
+    BigDecimalMul(Res.R, CosA, CoshB, Precision);
+
+    // 虚部 = -sin(a) * sinh(b)
+    BigDecimalMul(Res.I, SinA, SinhB, Precision);
+    Res.I.Negate;
+
+    Result := True;
+  finally
+    FLocalBigDecimalPool.Recycle(A);
+    FLocalBigDecimalPool.Recycle(B);
+    FLocalBigDecimalPool.Recycle(SinA);
+    FLocalBigDecimalPool.Recycle(CosA);
+    FLocalBigDecimalPool.Recycle(SinhB);
+    FLocalBigDecimalPool.Recycle(CoshB);
   end;
 end;
 
