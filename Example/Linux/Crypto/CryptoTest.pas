@@ -51,7 +51,7 @@ uses
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
   CnDSA, CnBLAKE, CnBLAKE2, CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA,
-  CnCalendar;
+  CnCalendar, CnBigDecimal, CnMath;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
@@ -142,6 +142,45 @@ function TestUInt128Add: Boolean;
 function TestUInt128Sub: Boolean;
 function TestUInt128Mul: Boolean;
 function TestUInt128DivMod: Boolean;
+
+// ===============================  Math =======================================
+
+function TestCnAbs: Boolean;
+function TestCnIntAbs: Boolean;
+function TestCnInt64Abs: Boolean;
+function TestCnFloor: Boolean;
+function TestCnCeil: Boolean;
+
+function TestInt64Sqrt: Boolean;
+function TestFloatSqrt: Boolean;
+
+function TestInt64LogN: Boolean;
+function TestFloatLogN: Boolean;
+function TestInt64Log10: Boolean;
+function TestFloatLog10: Boolean;
+function TestInt64Log2: Boolean;
+function TestFloatLog2: Boolean;
+
+function TestFastSqrt: Boolean;
+function TestFastSqrt64: Boolean;
+function TestFastInverseSqrt: Boolean;
+
+function TestFloatAlmostZero: Boolean;
+function TestFloatEqual: Boolean;
+function TestNormalizeAngle: Boolean;
+
+function TestFloatToHex: Boolean;
+function TestHexToFloat: Boolean;
+
+function TestInt64ContinuedFraction: Boolean;
+
+function TestBigDecimalEulerExp: Boolean;
+function TestBigDecimalSin: Boolean;
+function TestBigDecimalCos: Boolean;
+
+function TestFloatGaussLegendrePi: Boolean;
+function TestGaussLegendrePi: Boolean;
+function TestXavierGourdonEuler: Boolean;
 
 // ============================= Polynomial ====================================
 
@@ -592,6 +631,45 @@ begin
   MyAssert(TestUInt128Sub, 'TestUInt128Sub');
   MyAssert(TestUInt128Mul, 'TestUInt128Mul');
   MyAssert(TestUInt128DivMod, 'TestUInt128DivMod');
+
+// ===============================  Math =======================================
+
+  MyAssert(TestCnAbs, 'TestCnAbs');
+  MyAssert(TestCnIntAbs, 'TestCnIntAbs');
+  MyAssert(TestCnInt64Abs, 'TestCnInt64Abs');
+  MyAssert(TestCnFloor, 'TestCnFloor');
+  MyAssert(TestCnCeil, 'TestCnCeil');
+
+  MyAssert(TestInt64Sqrt, 'TestInt64Sqrt');
+  MyAssert(TestFloatSqrt, 'TestFloatSqrt');
+
+  MyAssert(TestInt64LogN, 'TestInt64LogN');
+  MyAssert(TestFloatLogN, 'TestFloatLogN');
+  MyAssert(TestInt64Log10, 'TestInt64Log10');
+  MyAssert(TestFloatLog10, 'TestFloatLog10');
+  MyAssert(TestInt64Log2, 'TestInt64Log2');
+  MyAssert(TestFloatLog2, 'TestFloatLog2');
+
+  MyAssert(TestFastSqrt, 'TestFastSqrt');
+  MyAssert(TestFastSqrt64, 'TestFastSqrt64');
+  MyAssert(TestFastInverseSqrt, 'TestFastInverseSqrt');
+
+  MyAssert(TestFloatAlmostZero, 'TestFloatAlmostZero');
+  MyAssert(TestFloatEqual, 'TestFloatEqual');
+  MyAssert(TestNormalizeAngle, 'TestNormalizeAngle');
+
+  MyAssert(TestFloatToHex, 'TestFloatToHex');
+  MyAssert(TestHexToFloat, 'TestHexToFloat');
+
+  MyAssert(TestInt64ContinuedFraction, 'TestInt64ContinuedFraction');
+
+  MyAssert(TestBigDecimalEulerExp, 'TestBigDecimalEulerExp');
+  MyAssert(TestBigDecimalSin, 'TestBigDecimalSin');
+  MyAssert(TestBigDecimalCos, 'TestBigDecimalCos');
+
+  MyAssert(TestFloatGaussLegendrePi, 'TestFloatGaussLegendrePi');
+  MyAssert(TestGaussLegendrePi, 'TestGaussLegendrePi');
+  MyAssert(TestXavierGourdonEuler, 'TestXavierGourdonEuler');
 
 // ============================= Polynomial ====================================
 
@@ -2284,6 +2362,456 @@ begin
   UInt128DivMod(A, B, R, M);
 
   Result := (UInt128ToStr(R) = '737095443184467440737095516') and (UInt128ToStr(M) = '1500');
+end;
+
+// ===============================  Math =======================================
+
+function TestCnAbs: Boolean;
+var
+  R: Extended;
+begin
+  R := CnAbs(3.14);
+  Result := FloatEqual(R, 3.14);
+  if not Result then Exit;
+
+  R := CnAbs(-3.14);
+  Result := FloatEqual(R, 3.14);
+  if not Result then Exit;
+
+  R := CnAbs(0);
+  Result := FloatEqual(R, 0);
+  if not Result then Exit;
+
+  R := CnAbs(0.0001);
+  Result := FloatEqual(R, 0.0001);
+end;
+
+function TestCnIntAbs: Boolean;
+var
+  R: Integer;
+begin
+  R := CnIntAbs(100);
+  Result := R = 100;
+  if not Result then Exit;
+
+  R := CnIntAbs(-100);
+  Result := R = 100;
+  if not Result then Exit;
+
+  R := CnIntAbs(0);
+  Result := R = 0;
+end;
+
+function TestCnInt64Abs: Boolean;
+var
+  R: Int64;
+begin
+  R := CnInt64Abs(9223372036854775800);
+  Result := R = 9223372036854775800;
+  if not Result then Exit;
+
+  R := CnInt64Abs(-9223372036854775800);
+  Result := R = 9223372036854775800;
+  if not Result then Exit;
+
+  R := CnInt64Abs(0);
+  Result := R = 0;
+end;
+
+function TestCnFloor: Boolean;
+var
+  R: Integer;
+begin
+  R := CnFloor(3.7);
+  Result := R = 3;
+  if not Result then Exit;
+
+  R := CnFloor(-3.7);
+  Result := R = -4;
+  if not Result then Exit;
+
+  R := CnFloor(5.0);
+  Result := R = 5;
+end;
+
+function TestCnCeil: Boolean;
+var
+  R: Integer;
+begin
+  R := CnCeil(3.2);
+  Result := R = 4;
+  if not Result then Exit;
+
+  R := CnCeil(-3.2);
+  Result := R = -3;
+  if not Result then Exit;
+
+  R := CnCeil(5.0);
+  Result := R = 5;
+end;
+
+function TestInt64Sqrt: Boolean;
+var
+  R: Extended;
+begin
+  R := Int64Sqrt(100);
+  Result := FloatEqual(R, 10);
+  if not Result then Exit;
+
+  R := Int64Sqrt(10000);
+  Result := FloatEqual(R, 100);
+  if not Result then Exit;
+
+  R := Int64Sqrt(2);
+  Result := FloatAlmostZero(R - 1.414213562);
+  if not Result then Exit;
+
+  R := Int64Sqrt(1);
+  Result := FloatEqual(R, 1);
+  if not Result then Exit;
+
+  R := Int64Sqrt(0);
+  Result := FloatEqual(R, 0);
+end;
+
+function TestFloatSqrt: Boolean;
+var
+  R: Extended;
+begin
+  R := FloatSqrt(4.0);
+  Result := FloatEqual(R, 2.0);
+  if not Result then Exit;
+
+  R := FloatSqrt(2.0);
+  Result := FloatAlmostZero(R - 1.414213562);
+  if not Result then Exit;
+
+  R := FloatSqrt(0.25);
+  Result := FloatEqual(R, 0.5);
+end;
+
+function TestInt64LogN: Boolean;
+var
+  R: Extended;
+begin
+  R := Int64LogN(1);
+  Result := FloatAlmostZero(R);
+  if not Result then Exit;
+
+  R := Int64LogN(3);
+  Result := FloatAlmostZero(R - 1.0986123);
+  if not Result then Exit;
+
+  R := Int64LogN(10);
+  Result := FloatAlmostZero(R - 2.302585);
+end;
+
+function TestFloatLogN: Boolean;
+var
+  R: Extended;
+begin
+  R := FloatLogN(1.0);
+  Result := FloatAlmostZero(R);
+  if not Result then Exit;
+
+  R := FloatLogN(10.0);
+  Result := FloatAlmostZero(R - 2.302585);
+end;
+
+function TestInt64Log10: Boolean;
+var
+  R: Extended;
+begin
+  R := Int64Log10(1);
+  Result := FloatAlmostZero(R);
+  if not Result then Exit;
+
+  R := Int64Log10(10);
+  Result := FloatAlmostZero(R - 1.0);
+  if not Result then Exit;
+
+  R := Int64Log10(100);
+  Result := FloatAlmostZero(R - 2.0);
+end;
+
+function TestFloatLog10: Boolean;
+var
+  R: Extended;
+begin
+  R := FloatLog10(1.0);
+  Result := FloatAlmostZero(R);
+  if not Result then Exit;
+
+  R := FloatLog10(10.0);
+  Result := FloatAlmostZero(R - 1.0);
+end;
+
+function TestInt64Log2: Boolean;
+var
+  R: Extended;
+begin
+  R := Int64Log2(1);
+  Result := FloatAlmostZero(R);
+  if not Result then Exit;
+
+  R := Int64Log2(2);
+  Result := FloatAlmostZero(R - 1.0);
+  if not Result then Exit;
+
+  R := Int64Log2(4);
+  Result := FloatAlmostZero(R - 2.0);
+  if not Result then Exit;
+
+  R := Int64Log2(8);
+  Result := FloatAlmostZero(R - 3.0);
+end;
+
+function TestFloatLog2: Boolean;
+var
+  R: Extended;
+begin
+  R := FloatLog2(1.0);
+  Result := FloatAlmostZero(R);
+  if not Result then Exit;
+
+  R := FloatLog2(2.0);
+  Result := FloatAlmostZero(R - 1.0);
+end;
+
+function TestFastSqrt: Boolean;
+var
+  R: Cardinal;
+begin
+  R := FastSqrt(100);
+  Result := R = 10;
+  if not Result then Exit;
+
+  R := FastSqrt(10000);
+  Result := R = 100;
+  if not Result then Exit;
+
+  R := FastSqrt(0);
+  Result := R = 0;
+  if not Result then Exit;
+
+  R := FastSqrt(1);
+  Result := R = 1;
+end;
+
+function TestFastSqrt64: Boolean;
+var
+  R: Int64;
+begin
+  R := FastSqrt64(100);
+  Result := R = 10;
+  if not Result then Exit;
+
+  R := FastSqrt64(10000);
+  Result := R = 100;
+  if not Result then Exit;
+
+  R := FastSqrt64(0);
+  Result := R = 0;
+end;
+
+function TestFastInverseSqrt: Boolean;
+var
+  R: Single;
+begin
+  R := FastInverseSqrt(1.0);
+  Result := FloatAlmostZero(R - 1.0, 1e-5);
+  if not Result then Exit;
+
+  R := FastInverseSqrt(4.0);
+  Result := FloatAlmostZero(R - 0.5, 1e-5);
+end;
+
+function TestFloatAlmostZero: Boolean;
+begin
+  Result := FloatAlmostZero(0);
+  if not Result then Exit;
+
+  Result := FloatAlmostZero(0.0000001);
+  if not Result then Exit;
+
+  Result := not FloatAlmostZero(1.0);
+end;
+
+function TestFloatEqual: Boolean;
+begin
+  Result := FloatEqual(3.14, 3.14);
+  if not Result then Exit;
+
+  Result := not FloatEqual(3.14, 3.15);
+  if not Result then Exit;
+
+  Result := FloatEqual(3.14, 3.140001);
+end;
+
+function TestNormalizeAngle: Boolean;
+var
+  R: Extended;
+begin
+  R := NormalizeAngle(0);
+  Result := FloatEqual(R, 0);
+  if not Result then Exit;
+
+  R := NormalizeAngle(2 * CN_PI);
+  Result := FloatAlmostZero(R);
+  if not Result then Exit;
+
+  R := NormalizeAngle(-CN_PI);
+  Result := FloatAlmostZero(R - CN_PI);
+end;
+
+function TestFloatToHex: Boolean;
+var
+  S: string;
+begin
+  S := FloatToHex(255);
+  Result := S = 'FF';
+  if not Result then Exit;
+
+  S := FloatToHex(15.5);
+  Result := Pos('F', S) > 0;
+end;
+
+function TestHexToFloat: Boolean;
+var
+  R: Extended;
+begin
+  R := HexToFloat('FF');
+  Result := FloatEqual(R, 255);
+  if not Result then Exit;
+
+  R := HexToFloat('F');
+  Result := FloatEqual(R, 15);
+end;
+
+function TestInt64ContinuedFraction: Boolean;
+var
+  A, B: TInt64s;
+  R: Extended;
+begin
+  SetLength(A, 3);
+  SetLength(B, 3);
+  A[0] := 0;
+  A[1] := 1;
+  A[2] := 1;
+  B[0] := 3;
+  B[1] := 1;
+  B[2] := 2;
+
+  R := Int64ContinuedFraction(A, B);
+  Result := FloatAlmostZero(R - 3.66666667);
+end;
+
+function TestBigDecimalEulerExp: Boolean;
+var
+  Res, Num: TCnBigDecimal;
+begin
+  Res := TCnBigDecimal.Create;
+  Num := TCnBigDecimal.Create;
+  try
+    Num.SetZero;
+    if not BigDecimalEulerExp(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    Result := Res.IsOne;
+    if not Result then Exit;
+
+    Num.SetOne;
+    Result := BigDecimalEulerExp(Res, Num);
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
+function TestBigDecimalSin: Boolean;
+var
+  Res, Num: TCnBigDecimal;
+begin
+  Res := TCnBigDecimal.Create;
+  Num := TCnBigDecimal.Create;
+  try
+    Num.SetZero;
+    if not BigDecimalSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    Result := Res.IsZero;
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
+function TestBigDecimalCos: Boolean;
+var
+  Res, Num: TCnBigDecimal;
+begin
+  Res := TCnBigDecimal.Create;
+  Num := TCnBigDecimal.Create;
+  try
+    Num.SetZero;
+    if not BigDecimalCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    Result := Res.IsOne;
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
+function TestFloatGaussLegendrePi: Boolean;
+var
+  S: string;
+begin
+  S := FloatGaussLegendrePi(3);
+  Result := Pos('3.14159265358979', S) = 1;
+end;
+
+function TestGaussLegendrePi: Boolean;
+const
+  PI_STR =
+    '3.141592653589793238462643383279502884197169399375105820974944592307816406' +
+    '28620899862803482534211706798214808651328230664709384460955058223172535940' +
+    '81284811174502841027019385211055596446229489549303819644288109756659334461' +
+    '28475648233786783165271201909145647';
+var
+  S: string;
+begin
+  S := GaussLegendrePi(8);
+  Result := Pos(PI_STR, S) = 1;
+end;
+
+function TestXavierGourdonEuler: Boolean;
+const
+  E_STR =
+    '2.7182818284590452353602874713526624977572470936999595749669676277240766303' +
+    '535475945713821785251664274274663919320030599218174135966290435729003342952' +
+    '605956307381323286279434907632338298807531952510190115738341879307021540891' +
+    '499348841675092447614606680822648001684774118537423454424371075390777449920' +
+    '695517027618386062613313845830007520449338265602976067371132007093287091274' +
+    '437470472306969772093101416928368190255151086574637721112523897844250569536' +
+    '967707854499699679468644549059879316368892300987931277361782154249992295763' +
+    '514822082698951936680331825288693984964651058209392398294887933203625094431' +
+    '173012381970684161403970198376793206832823764648042953118023287825098194558' +
+    '153017567173613320698112509961818815930416903515988885193458072738667385894' +
+    '228792284998920868058257492796104841984443634632449684875602336248270419786' +
+    '232090021609902353043699418491463140934317381436405462531520961836908887';
+var
+  S: string;
+begin
+  S := XavierGourdonEuler(1000);
+  Result := Pos(E_STR, S) = 1;
 end;
 
 // ============================= Polynomial ====================================
