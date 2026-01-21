@@ -110,6 +110,8 @@ function TestBigComplexNumberProperties: Boolean;
 function TestBigComplexDecimalBasic: Boolean;
 function TestBigComplexDecimalArithmetic: Boolean;
 function TestBigComplexDecimalProperties: Boolean;
+function TestBigComplexDecimalRealMul: Boolean;
+function TestBigComplexDecimalPower: Boolean;
 
 // ============================== BigNumber ====================================
 
@@ -609,6 +611,8 @@ begin
   MyAssert(TestBigComplexDecimalBasic, 'TestBigComplexDecimalBasic');
   MyAssert(TestBigComplexDecimalArithmetic, 'TestBigComplexDecimalArithmetic');
   MyAssert(TestBigComplexDecimalProperties, 'TestBigComplexDecimalProperties');
+  MyAssert(TestBigComplexDecimalRealMul, 'TestBigComplexDecimalRealMul');
+  MyAssert(TestBigComplexDecimalPower, 'TestBigComplexDecimalPower');
 
 // ============================== BigNumber ====================================
 
@@ -1801,6 +1805,91 @@ begin
     // 测试大精度复数十进制的取反
     BigComplexDecimalNegate(Res, C1);
     Result := (Res.R.ToString = '-3') and (Res.I.ToString = '-4');
+  finally
+    C1.Free;
+    Res.Free;
+  end;
+end;
+
+function TestBigComplexDecimalRealMul: Boolean;
+var
+  C1, Res: TCnBigComplexDecimal;
+  RealValue: TCnBigDecimal;
+begin
+  C1 := TCnBigComplexDecimal.Create;
+  Res := TCnBigComplexDecimal.Create;
+  RealValue := TCnBigDecimal.Create;
+  try
+    // 测试大复数小数乘以实数：(3 + 4i) * 2 = 6 + 8i
+    BigComplexDecimalSetValue(C1, 3, 4);
+    RealValue.SetInt64(2);
+    BigComplexDecimalRealMul(Res, C1, RealValue);
+    Result := (Res.R.ToString = '6') and (Res.I.ToString = '8');
+    if not Result then Exit;
+
+    // 测试乘以负数：(3 + 4i) * (-1) = -3 - 4i
+    RealValue.SetInt64(-1);
+    BigComplexDecimalRealMul(Res, C1, RealValue);
+    Result := (Res.R.ToString = '-3') and (Res.I.ToString = '-4');
+    if not Result then Exit;
+
+    // 测试乘以零：(3 + 4i) * 0 = 0
+    RealValue.SetInt64(0);
+    BigComplexDecimalRealMul(Res, C1, RealValue);
+    Result := Res.IsZero;
+    if not Result then Exit;
+
+    // 测试乘以小数：(2 + 3i) * 0.5 = 1 + 1.5i
+    BigComplexDecimalSetValue(C1, 2, 3);
+    RealValue.SetDec('0.5');
+    BigComplexDecimalRealMul(Res, C1, RealValue);
+    Result := FloatEqual(BigDecimalToExtended(Res.R), 1.0)
+      and FloatEqual(BigDecimalToExtended(Res.I), 1.5);
+  finally
+    C1.Free;
+    Res.Free;
+    RealValue.Free;
+  end;
+end;
+
+function TestBigComplexDecimalPower: Boolean;
+var
+  C1, Res: TCnBigComplexDecimal;
+begin
+  C1 := TCnBigComplexDecimal.Create;
+  Res := TCnBigComplexDecimal.Create;
+  try
+    // 测试零次幂：任何数的 0 次幂 = 1
+    BigComplexDecimalSetValue(C1, 3, 4);
+    Result := BigComplexDecimalPower(Res, C1, 0);
+    if not Result then Exit;
+    Result := (Res.R.ToString = '1') and (Res.I.ToString = '0');
+    if not Result then Exit;
+
+    // 测试一次幂：(3 + 4i)^1 = 3 + 4i
+    Result := BigComplexDecimalPower(Res, C1, 1);
+    if not Result then Exit;
+    Result := (Res.R.ToString = '3') and (Res.I.ToString = '4');
+    if not Result then Exit;
+
+    // 测试二次幂：(1 + i)^2 = 1 + 2i - 1 = 2i
+    BigComplexDecimalSetValue(C1, 1, 1);
+    Result := BigComplexDecimalPower(Res, C1, 2);
+    if not Result then Exit;
+    Result := (Res.R.ToString = '0') and (Res.I.ToString = '2');
+    if not Result then Exit;
+
+    // 测试三次幂：(1 + i)^3 = (1 + i) * (2i) = 2i - 2 = -2 + 2i
+    Result := BigComplexDecimalPower(Res, C1, 3);
+    if not Result then Exit;
+    Result := (Res.R.ToString = '-2') and (Res.I.ToString = '2');
+    if not Result then Exit;
+
+    // 测试负数次幂：(2 + 0i)^(-1) = 0.5 + 0i
+    BigComplexDecimalSetValue(C1, 2, 0);
+    Result := BigComplexDecimalPower(Res, C1, -1);
+    if not Result then Exit;
+    Result := (Res.R.ToString = '0.5') and (Res.I.ToString = '0');
   finally
     C1.Free;
     Res.Free;

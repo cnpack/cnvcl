@@ -1733,8 +1733,8 @@ end;
 procedure BigComplexDecimalSetValue(Complex: TCnBigComplexDecimal;
   const AR: string; const AI: string);
 begin
-  Complex.FR.SetDec(AnsiString(AR));
-  Complex.FI.SetDec(AnsiString(AI));
+  Complex.FR.SetDec(AR);
+  Complex.FI.SetDec(AI);
 end;
 
 function BigComplexDecimalToString(Complex: TCnBigComplexDecimal): string;
@@ -1910,14 +1910,16 @@ function BigComplexDecimalPower(Res, Num: TCnBigComplexDecimal;
 var
   T: TCnBigComplexDecimal;
 begin
-  Result := False;
-  if N < 0 then
-    Exit;
-
+  Result := True;
   if N = 0 then
   begin
     Res.SetOne;
-    Result := True;
+    Exit;
+  end
+  else if N = 1 then
+  begin
+    if Res <> Num then
+      BigComplexDecimalCopy(Res, Num);
     Exit;
   end;
 
@@ -1947,7 +1949,6 @@ begin
       BigComplexDecimalMul(T, T, T);
       N := N shr 1;
     end;
-    Result := True;
   finally
     FBigComplexDecimalPool.Recycle(T);
   end;
