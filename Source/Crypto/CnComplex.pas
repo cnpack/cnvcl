@@ -775,7 +775,7 @@ procedure BigComplexNumberSub(Res: TCnBigComplexNumber;
 
 procedure BigComplexNumberMul(Res: TCnBigComplexNumber;
   Complex: TCnBigComplexNumber; Value: Int64); overload;
-{* 大整数复数与整数数的乘法，Complex 和 Res 可以是同一个对象。
+{* 大整数复数与整数的乘法，Complex 和 Res 可以是同一个对象。
 
    参数：
      Res: TCnBigComplexNumber             - 大整数复数积
@@ -1029,9 +1029,21 @@ procedure BigComplexDecimalMul(Res: TCnBigComplexDecimal;
 {* 大浮点复数与整数乘法。Complex 和 Value 相乘，结果存入 Res 中，Res 可以是 Complex。
 
    参数：
-     Res: TCnBigComplexDecimal            - 结果复数
-     Complex: TCnBigComplexDecimal        - 复数乘数
+     Res: TCnBigComplexDecimal            - 结果大浮点复数
+     Complex: TCnBigComplexDecimal        - 大浮点复数乘数
      Value: Int64                         - 整数乘数
+
+   返回值：（无）
+}
+
+function BigComplexDecimalRealMul(Res, Num: TCnBigComplexDecimal;
+  RealValue: TCnBigDecimal): Boolean;
+{* 大浮点复数与大浮点实数的乘法，Res 和 Res 可以是同一个对象。
+
+   参数：
+     Res: TCnBigComplexDecimal            - 结果大浮点复数
+     Num: TCnBigComplexDecimal            - 大浮点复数乘数
+     RealValue: TCnBigDecimal             - 大浮点数乘数
 
    返回值：（无）
 }
@@ -1848,6 +1860,13 @@ begin
   finally
     FBigDecimaoPool.Recycle(T);
   end;
+end;
+
+function BigComplexDecimalRealMul(Res, Num: TCnBigComplexDecimal;
+  RealValue: TCnBigDecimal): Boolean;
+begin
+  Result := BigDecimalMul(Res.FR, Num.FR, RealValue)
+    and BigDecimalMul(Res.FI, Num.FI, RealValue);
 end;
 
 procedure BigComplexDecimalNegate(Res: TCnBigComplexDecimal; Complex: TCnBigComplexDecimal);
