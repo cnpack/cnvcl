@@ -177,6 +177,8 @@ function TestInt64ContinuedFraction: Boolean;
 function TestBigDecimalEulerExp: Boolean;
 function TestBigDecimalSin: Boolean;
 function TestBigDecimalCos: Boolean;
+function TestBigDecimalHyperbolicSin: Boolean;
+function TestBigDecimalHyperbolicCos: Boolean;
 
 function TestFloatGaussLegendrePi: Boolean;
 function TestGaussLegendrePi: Boolean;
@@ -666,6 +668,8 @@ begin
   MyAssert(TestBigDecimalEulerExp, 'TestBigDecimalEulerExp');
   MyAssert(TestBigDecimalSin, 'TestBigDecimalSin');
   MyAssert(TestBigDecimalCos, 'TestBigDecimalCos');
+  MyAssert(TestBigDecimalHyperbolicSin, 'TestBigDecimalHyperbolicSin');
+  MyAssert(TestBigDecimalHyperbolicCos, 'TestBigDecimalHyperbolicCos');
 
   MyAssert(TestFloatGaussLegendrePi, 'TestFloatGaussLegendrePi');
   MyAssert(TestGaussLegendrePi, 'TestGaussLegendrePi');
@@ -2868,6 +2872,118 @@ begin
     end;
     R := BigDecimalToExtended(Res);
     Result := FloatAlmostZero(R + 1.0);
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
+function TestBigDecimalHyperbolicSin: Boolean;
+var
+  Res, Num: TCnBigDecimal;
+  R: Extended;
+begin
+  Res := TCnBigDecimal.Create;
+  Num := TCnBigDecimal.Create;
+  try
+    // ≤‚ ‘ sinh(0) = 0
+    Num.SetZero;
+    if not BigDecimalHyperbolicSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R);
+    if not Result then Exit;
+
+    // ≤‚ ‘ sinh(1) °÷ 1.17520...
+    Num.SetOne;
+    if not BigDecimalHyperbolicSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 1.1752011936);
+    if not Result then Exit;
+
+    // ≤‚ ‘ sinh(2) °÷ 3.62686...
+    Num.SetInt64(2);
+    if not BigDecimalHyperbolicSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 3.6268604078);
+    if not Result then Exit;
+
+    // ≤‚ ‘ sinh(-1) °÷ -1.17520...£®∆Ê∫Ø ˝–‘÷ £©
+    Num.SetInt64(-1);
+    if not BigDecimalHyperbolicSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R + 1.1752011936);
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
+function TestBigDecimalHyperbolicCos: Boolean;
+var
+  Res, Num: TCnBigDecimal;
+  R: Extended;
+begin
+  Res := TCnBigDecimal.Create;
+  Num := TCnBigDecimal.Create;
+  try
+    // ≤‚ ‘ cosh(0) = 1
+    Num.SetZero;
+    if not BigDecimalHyperbolicCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatEqual(R, 1.0);
+    if not Result then Exit;
+
+    // ≤‚ ‘ cosh(1) °÷ 1.54308...
+    Num.SetOne;
+    if not BigDecimalHyperbolicCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 1.5430806348);
+    if not Result then Exit;
+
+    // ≤‚ ‘ cosh(2) °÷ 3.76219...
+    Num.SetInt64(2);
+    if not BigDecimalHyperbolicCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 3.76219569108);
+    if not Result then Exit;
+
+    // ≤‚ ‘ cosh(-1) °÷ 1.54308...£®≈º∫Ø ˝–‘÷ £©
+    Num.SetInt64(-1);
+    if not BigDecimalHyperbolicCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 1.5430806348);
   finally
     Res.Free;
     Num.Free;
