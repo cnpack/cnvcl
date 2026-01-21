@@ -1516,6 +1516,16 @@ var
   ExtItem: TCnBerWriteNode;
   Ad, Ad2: TCnBerWriteNode;
 
+{$IFDEF COMPILER5}
+  function TryStrToInt(const S: string; out Value: Integer): Boolean;
+  var
+    E: Integer;
+  begin
+    Val(S, Value, E);
+    Result := E = 0;
+  end;
+{$ENDIF}
+
   function TryParseIPv4(const V: string; out OutBytes: TBytes): Boolean;
   var
     Parts: TStringList;
@@ -1534,6 +1544,7 @@ var
       begin
         if not TryStrToInt(Trim(Parts[J]), P) then
           Exit;
+
         if (P < 0) or (P > 255) then
           Exit;
         OutBytes[J] := Byte(P);

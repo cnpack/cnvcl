@@ -226,21 +226,23 @@ function XavierGourdonEuler(BlockSize: Integer = 1000): string;
    返回值：string                         - 返回的 e 值字符串
 }
 
-function FloatAlmostZero(F: Extended): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function FloatAlmostZero(F: Extended; AbsGap: Extended = 0.0): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 判断一浮点数是否离 0 足够近。
 
    参数：
      F: Extended                          - 待判断的浮点数
+     AbsGap: Extended                     - 近的距离，默认传 0.0，内部使用极小常量判断
 
    返回值：Boolean                        - 是否离 0 足够近
 }
 
-function FloatEqual(A: Extended; B: Extended): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+function FloatEqual(A: Extended; B: Extended; AbsGap: Extended = 0.0): Boolean; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 {* 封装的两个浮点数是否相等的判断。
 
    参数：
      A: Extended                          - 待判断的浮点数一
      B: Extended                          - 待判断的浮点数二
+     AbsGap: Extended                     - 相等的距离，默认传 0.0，内部使用极小常量判断
 
    返回值：Boolean                        - 返回是否近似相等
 }
@@ -612,7 +614,6 @@ begin
   T1 := nil;
   P1 := nil;
 
-  Res := nil;
   X1 := nil;
   X2 := nil;
 
@@ -626,8 +627,6 @@ begin
     B1 := FLocalBigDecimalPool.Obtain;
     T1 := FLocalBigDecimalPool.Obtain;
     P1 := FLocalBigDecimalPool.Obtain;
-
-    Res := FLocalBigDecimalPool.Obtain;
 
     // 临时变量
     X1 := FLocalBigDecimalPool.Obtain;
@@ -685,8 +684,6 @@ begin
     FLocalBigDecimalPool.Recycle(X1);
     FLocalBigDecimalPool.Recycle(X2);
 
-    FLocalBigDecimalPool.Recycle(Res);
-
     FLocalBigDecimalPool.Recycle(A1);
     FLocalBigDecimalPool.Recycle(B1);
     FLocalBigDecimalPool.Recycle(T1);
@@ -739,18 +736,20 @@ begin
     Insert('.', Result, 2);
 end;
 
-function FloatAlmostZero(F: Extended): Boolean;
+function FloatAlmostZero(F: Extended; AbsGap: Extended): Boolean;
 {$IFDEF SUPPORT_INLINE}
 const
   SCN_FLOAT_GAP = 0.000001; // inline 不能使用外边的常量
 {$ENDIF}
 begin
-  Result := CnAbs(F) < SCN_FLOAT_GAP;
+  if AbsGap = 0.0 then
+    AbsGap := SCN_FLOAT_GAP;
+  Result := CnAbs(F) < AbsGap;
 end;
 
-function FloatEqual(A: Extended; B: Extended): Boolean;
+function FloatEqual(A: Extended; B: Extended; AbsGap: Extended): Boolean;
 begin
-  Result := FloatAlmostZero(A - B);
+  Result := FloatAlmostZero(A - B, AbsGap);
 end;
 
 function NormalizeAngle(Angle: Extended): Extended;
