@@ -1036,14 +1036,26 @@ procedure BigComplexDecimalMul(Res: TCnBigComplexDecimal;
    返回值：（无）
 }
 
-function BigComplexDecimalRealMul(Res, Num: TCnBigComplexDecimal;
-  RealValue: TCnBigDecimal): Boolean;
-{* 大浮点复数与大浮点实数的乘法，Res 和 Res 可以是同一个对象。
+procedure BigComplexDecimalRealMul(Res, Num: TCnBigComplexDecimal;
+  RealValue: TCnBigDecimal);
+{* 大浮点复数与大浮点实数的乘法，Res 和 Num 可以是同一个对象。
 
    参数：
      Res: TCnBigComplexDecimal            - 结果大浮点复数
      Num: TCnBigComplexDecimal            - 大浮点复数乘数
      RealValue: TCnBigDecimal             - 大浮点数乘数
+
+   返回值：（无）
+}
+
+function BigComplexDecimalPower(Res, Num: TCnBigComplexDecimal;
+  N: Integer): Boolean;
+{* 大浮点复数的整数次幂，Res 和 Num 可以是同一个对象。
+
+   参数：
+     Res: TCnBigComplexDecimal            - 结果大浮点复数
+     Num: TCnBigComplexDecimal            - 大浮点复数底
+     N: Integer                           - 指数
 
    返回值：（无）
 }
@@ -1862,11 +1874,59 @@ begin
   end;
 end;
 
-function BigComplexDecimalRealMul(Res, Num: TCnBigComplexDecimal;
-  RealValue: TCnBigDecimal): Boolean;
+procedure BigComplexDecimalRealMul(Res, Num: TCnBigComplexDecimal;
+  RealValue: TCnBigDecimal);
 begin
-  Result := BigDecimalMul(Res.FR, Num.FR, RealValue)
-    and BigDecimalMul(Res.FI, Num.FI, RealValue);
+  BigDecimalMul(Res.FR, Num.FR, RealValue);
+  BigDecimalMul(Res.FI, Num.FI, RealValue);
+end;
+
+function BigComplexDecimalPower(Res, Num: TCnBigComplexDecimal;
+  N: Integer): Boolean;
+var
+  T: TCnBigComplexDecimal;
+begin
+  Result := False;
+  if N < 0 then
+    Exit;
+
+  if N = 0 then
+  begin
+    Res.SetOne;
+    Result := True;
+    Exit;
+  end;
+
+  if N < 0 then
+  begin
+    T := FBigComplexDecimalPool.Obtain;
+    try
+      T.SetOne;
+      BigComplexDecimalDiv(T, T, Num);
+      Result := BigComplexDecimalPower(Res, T, -N);
+      Exit;
+    finally
+      FBigComplexDecimalPool.Recycle(T);
+    end;
+  end;
+
+  T := FBigComplexDecimalPool.Obtain;
+  try
+    BigComplexDecimalCopy(T, Num);
+    Res.SetOne;
+
+    while N > 0 do
+    begin
+      if (N and 1) = 1 then
+        BigComplexDecimalMul(Res, Res, T);
+
+      BigComplexDecimalMul(T, T, T);
+      N := N shr 1;
+    end;
+    Result := True;
+  finally
+    FBigComplexDecimalPool.Recycle(T);
+  end;
 end;
 
 procedure BigComplexDecimalNegate(Res: TCnBigComplexDecimal; Complex: TCnBigComplexDecimal);
