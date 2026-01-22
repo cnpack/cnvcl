@@ -2959,6 +2959,7 @@ resourcestring
   SCnErrorBigNumberFloatExponentRange = 'Extended Float Exponent Range Error';
   SCnErrorBigNumberParamDupRef = 'Duplicated References for BigNumber Parameters';
   SCnErrorBigNumberFreeFromPool = 'Error. Try to Free a Big Number From Pool';
+  SCnErrorBigNumberZeroZeroExp = '0^0 Not Defined';
 
 const
   Hex: string = '0123456789ABCDEF';
@@ -6755,7 +6756,7 @@ begin
     Exit;
 
   if BigNumberIsZero(Divisor) then
-    Exit;
+    raise EDivByZero.Create(SDivByZero);
 
   if BigNumberUnsignedCompare(Num, Divisor) < 0 then
   begin
@@ -7074,7 +7075,7 @@ begin
   if Exponent = 0 then
   begin
     if Num.IsZero then  // 0 无 0 次方
-      Exit;
+      raise EMathError.Create(SCnErrorBigNumberZeroZeroExp);
 
     Res.SetOne;
     Result := True;
@@ -8361,7 +8362,8 @@ begin
 
     if CheckGcd then
     begin
-      BigNumberGcd(X1, X, Modulus);
+      if not BigNumberGcd(X1, X, Modulus) then
+        Exit;
       if not X1.IsOne then
         Exit;
     end;
@@ -9785,7 +9787,7 @@ begin
         X.AddWord(2);
 
       X.Negate;
-    until BignumberJacobiSymbol(X, N) = -1;
+    until BigNumberJacobiSymbol(X, N) = -1;
 
     // X 中拿到正确的 D 值，计算 Q 值放到 Y 中，P 值 1 也放 X 中
     X.SubWord(1);

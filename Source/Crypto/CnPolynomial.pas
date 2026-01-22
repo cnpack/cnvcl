@@ -5212,11 +5212,13 @@ var
   I: Integer;
 begin
   if N = 0 then
-    raise ECnPolynomialException.Create(SZeroDivide);
+    raise EDivByZero.Create(SDivByZero);;
 
   if N <> 1 then
+  begin
     for I := 0 to P.MaxDegree do
       P[I] := P[I] div N;
+  end;
 end;
 
 procedure Int64PolynomialNonNegativeModWord(P: TCnInt64Polynomial; N: Int64);
@@ -5224,7 +5226,7 @@ var
   I: Integer;
 begin
   if N = 0 then
-    raise ECnPolynomialException.Create(SZeroDivide);
+    raise EDivByZero.Create(SDivByZero);
 
   for I := 0 to P.MaxDegree do
     P[I] := Int64NonNegativeMod(P[I], N);
@@ -6136,7 +6138,7 @@ var
   K: Int64;
   B: Boolean;
 begin
-  if N = 0 then
+  if (N = 0) or (Prime = 0) then
     raise EDivByZero.Create(SDivByZero);
 
   B := N < 0;
@@ -7029,8 +7031,9 @@ procedure Int64RationalPolynomialDiv(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial);
 begin
   if P1.IsZero then
-    raise EDivByZero.Create(SDivByZero)
-  else if P1.IsOne then
+    raise EDivByZero.Create(SDivByZero);
+
+  if P1.IsOne then
     RationalResult.Assign(R1)
   else
   begin
@@ -7374,8 +7377,9 @@ procedure Int64RationalPolynomialGaloisDiv(R1: TCnInt64RationalPolynomial;
   P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
 begin
   if P1.IsZero then
-    raise EDivByZero.Create(SDivByZero)
-  else if P1.IsOne then
+    raise EDivByZero.Create(SDivByZero);
+
+  if P1.IsOne then
     RationalResult.Assign(R1)
   else
   begin
@@ -8079,10 +8083,13 @@ var
   I: Integer;
 begin
   if N = 0 then
-    raise ECnPolynomialException.Create(SZeroDivide)
-  else if N <> 1 then
+    raise EDivByZero.Create(SDivByZero);
+
+  if N <> 1 then
+  begin
     for I := 0 to P.MaxDegree do
       BigNumberDivWord(P[I], N);
+  end;
 end;
 
 procedure BigNumberPolynomialNonNegativeModWord(P: TCnBigNumberPolynomial; N: Cardinal);
@@ -8090,7 +8097,7 @@ var
   I: Integer;
 begin
   if N = 0 then
-    raise ECnPolynomialException.Create(SZeroDivide);
+    raise EDivByZero.Create(SDivByZero);;
 
   for I := 0 to P.MaxDegree do
   begin
@@ -8129,8 +8136,9 @@ var
   T: TCnBigNumber;
 begin
   if N.IsZero then
-    BigNumberPolynomialSetZero(P)
-  else if not N.IsOne then
+    raise EDivByZero.Create(SDivByZero);
+
+  if not N.IsOne then
   begin
     T := FLocalBigNumberPool.Obtain;
     try
@@ -8147,7 +8155,7 @@ var
   I: Integer;
 begin
   if N.IsZero then
-    raise ECnPolynomialException.Create(SZeroDivide);
+    raise EDivByZero.Create(SDivByZero);
 
   for I := 0 to P.MaxDegree do
     BigNumberNonNegativeMod(P[I], P[I], N);
@@ -8990,7 +8998,7 @@ var
   I: Integer;
   K, T: TCnBigNumber;
 begin
-  if N = 0 then
+  if (N = 0) or Prime.IsZero then
     raise EDivByZero.Create(SDivByZero);
 
   K := nil;
@@ -9052,7 +9060,7 @@ var
   K: TCnBigNumber;
   B: Boolean;
 begin
-  if N.IsZero then
+  if N.IsZero or Prime.IsZero then
     raise EDivByZero.Create(SDivByZero);
 
   B := N.IsNegative;
@@ -9875,8 +9883,9 @@ procedure BigNumberRationalPolynomialDiv(R1: TCnBigNumberRationalPolynomial;
   P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
 begin
   if P1.IsZero then
-    raise EDivByZero.Create(SDivByZero)
-  else if P1.IsOne then
+    raise EDivByZero.Create(SDivByZero);
+
+  if P1.IsOne then
     RationalResult.Assign(R1)
   else
   begin
@@ -10217,11 +10226,12 @@ begin
 end;
 
 procedure BigNumberRationalPolynomialGaloisDiv(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
+  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber);
 begin
-  if P1.IsZero then
-    raise EDivByZero.Create(SDivByZero)
-  else if P1.IsOne then
+  if P1.IsZero or Prime.IsZero then
+    raise EDivByZero.Create(SDivByZero);
+
+  if P1.IsOne then
     RationalResult.Assign(R1)
   else
   begin
@@ -10877,11 +10887,16 @@ var
   I, J: Integer;
 begin
   if N = 0 then
-    raise EDivByZero.Create(SDivByZero)
-  else if N <> 1 then
+    raise EDivByZero.Create(SDivByZero);
+
+  if N <> 1 then
+  begin
     for I := P.FXs.Count - 1 downto 0 do
+    begin
       for J := P.YFactorsList[I].Count - 1 downto 0 do
         P.YFactorsList[I][J] := P.YFactorsList[I][J] div N;
+    end;
+  end;
 end;
 
 procedure Int64BiPolynomialNonNegativeModWord(P: TCnInt64BiPolynomial; N: Int64);
@@ -10892,8 +10907,10 @@ begin
     raise EDivByZero.Create(SDivByZero);
 
   for I := P.FXs.Count - 1 downto 0 do
+  begin
     for J := P.YFactorsList[I].Count - 1 downto 0 do
       P.YFactorsList[I][J] := Int64NonNegativeMod(P.YFactorsList[I][J], N);
+  end;
 end;
 
 function Int64BiPolynomialAdd(Res: TCnInt64BiPolynomial; P1: TCnInt64BiPolynomial;
@@ -11592,7 +11609,7 @@ var
   K: Int64;
   B: Boolean;
 begin
-  if N = 0 then
+  if (N = 0) or (Prime = 0) then
     raise EDivByZero.Create(SDivByZero);
 
   B := N < 0;
@@ -12104,12 +12121,19 @@ var
   I, J: Integer;
 begin
   if N = 0 then
-    raise EDivByZero.Create(SDivByZero)
-  else if N <> 1 then
+    raise EDivByZero.Create(SDivByZero);
+
+  if N <> 1 then
+  begin
     for I := P.FXs.Count - 1 downto 0 do
+    begin
       if P.FXs[I] <> nil then
+      begin
         for J := P.YFactorsList[I].Count - 1 downto 0 do
           P.YFactorsList[I][J].Value.DivWord(N);
+      end;
+    end;
+  end;
 end;
 
 procedure BigNumberBiPolynomialNonNegativeModWord(P: TCnBigNumberBiPolynomial; N: Int64);
@@ -12120,9 +12144,13 @@ begin
     raise EDivByZero.Create(SDivByZero);
 
   for I := P.FXs.Count - 1 downto 0 do
+  begin
     if P.FXs[I] <> nil then
+    begin
       for J := P.YFactorsList[I].Count - 1 downto 0 do
         P.YFactorsList[I][J].Value.ModWord(N); // 不是 NonNegativeMod 先这样
+    end;
+  end;
 end;
 
 procedure BigNumberBiPolynomialMulBigNumber(P: TCnBigNumberBiPolynomial; N: TCnBigNumber);
@@ -12132,10 +12160,16 @@ begin
   if N.IsZero then
     P.SetZero
   else if not N.IsOne then
+  begin
     for I := P.FXs.Count - 1 downto 0 do
+    begin
       if P.FXs[I] <> nil then
+      begin
         for J := P.YFactorsList[I].Count - 1 downto 0 do
           BigNumberMul(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, N);
+      end;
+    end;
+  end;
 end;
 
 procedure BigNumberBiPolynomialDivBigNumber(P: TCnBigNumberBiPolynomial; N: TCnBigNumber);
@@ -12143,12 +12177,19 @@ var
   I, J: Integer;
 begin
   if N.IsZero then
-    raise EDivByZero.Create(SDivByZero)
-  else if not N.IsOne then
+    raise EDivByZero.Create(SDivByZero);
+
+  if not N.IsOne then
+  begin
     for I := P.FXs.Count - 1 downto 0 do
+    begin
       if P.FXs[I] <> nil then
+      begin
         for J := P.YFactorsList[I].Count - 1 downto 0 do
           BigNumberDiv(P.YFactorsList[I][J].Value, nil, P.YFactorsList[I][J].Value, N);
+      end;
+    end;
+  end;
 end;
 
 procedure BigNumberBiPolynomialNonNegativeModBigNumber(P: TCnBigNumberBiPolynomial; N: TCnBigNumber);
@@ -12159,9 +12200,13 @@ begin
     raise EDivByZero.Create(SDivByZero);
 
   for I := P.FXs.Count - 1 downto 0 do
+  begin
     if P.FXs[I] <> nil then
+    begin
       for J := P.YFactorsList[I].Count - 1 downto 0 do
         BigNumberNonNegativeMod(P.YFactorsList[I][J].Value, P.YFactorsList[I][J].Value, N);
+    end;
+  end;
 end;
 
 function BigNumberBiPolynomialAdd(Res: TCnBigNumberBiPolynomial; P1: TCnBigNumberBiPolynomial;
@@ -13100,7 +13145,7 @@ var
   B: Boolean;
   K, T: TCnBigNumber;
 begin
-  if N = 0 then
+  if (N = 0) or Prime.IsZero then
     raise EDivByZero.Create(SDivByZero);
 
   B := N < 0;

@@ -2080,7 +2080,7 @@ procedure BigDecimalSqrt2(Res: TCnBigDecimal; Num: TCnBigDecimal;
   RoundCount: Integer);
 var
   I: Integer;
-  X0, R, T, D, G: TCnBigRational;
+  X0, R, D: TCnBigRational;
 begin
   if Num.IsNegative then
     raise ERangeError.Create('');
@@ -2097,9 +2097,7 @@ begin
     RoundCount := CN_SQRT_DEFAULT_ROUND_COUNT;
 
   X0 := nil;
-  T := nil;
   D := nil;
-  G := nil;
 
   try
     X0 := TCnBigRational.Create;
@@ -2124,9 +2122,7 @@ begin
     BigRationalToBigDecimal(Res, R);
   finally
     X0.Free;
-    T.Free;
     D.Free;
-    G.Free;
   end;
 end;
 

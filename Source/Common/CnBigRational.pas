@@ -513,6 +513,12 @@ end;
 procedure BigRationalNumberSub(Res: TCnBigRational;
   Num1, Num2: TCnBigRational);
 begin
+  if Num1 = Num2 then
+  begin
+    Res.SetZero;
+    Exit;
+  end;
+
   Num2.Nominator.SetNegative(not Num2.Nominator.IsNegative);
   BigRationalNumberAdd(Res, Num1, Num2);
   if Res <> Num2 then
