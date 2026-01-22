@@ -1568,7 +1568,7 @@ begin
   MinDB := ModulusBits div 2 - 100;
   if MinDB < ModulusBits div 3 then
     MinDB := ModulusBits div 3;
-  MinW := ModulusBits shr 2;
+  MinW := ModulusBits * 3 div 10;
 
   Rem := nil;
   Y := nil;
@@ -1641,7 +1641,7 @@ begin
       if BigNumberIsNegative(PrivateKey.PrivKeyExponent) then
          BigNumberAdd(PrivateKey.PrivKeyExponent, PrivateKey.PrivKeyExponent, R);
 
-      // d 不能太小，必须大于 2 的 n/2 次方
+      // d 不能太小，使用 n^0.3 作为最小值
       MinD.SetOne;
       MinD.ShiftLeft(MinW);
       if BigNumberCompare(PrivateKey.PrivKeyExponent, MinD) <= 0 then
