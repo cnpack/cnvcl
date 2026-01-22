@@ -16,7 +16,7 @@ CnPack 开发包以开放源码（Open Source）的形式发布，遵守 CnPack 的许可协议，受 CnP
 - **非对称加密**：RSA、ECC 椭圆曲线（魏尔斯特拉斯曲线，包括 SM2）、25519/448 椭圆曲线（蒙哥马利及扭曲爱德华曲线）
 - **杂凑**：SM3、MD5、SHA1、SHA2/SHA3/BLAKE 系列（224、256、384、512）SHAKE、BLAKE2（2S/2B）、XXHash（32/64）、CRC8/16/32/64、Poly1305、FNV、一次性杂凑签名算法 OTS
 - **其他密码学领域**：SM9、同态加密、协同加密、格密码、NTRU
-- **编码解码**：Base64、ASN.1（DER/BER）、Hamming 校验、Reed Solomon 纠错
+- **编码解码**：Base64、ASN.1（DER/BER）、Hamming 校验、Reed Solomon 纠错、二维码编码
 - **CA证书**：RSA/ECC 证书申请、签发与校验
 - **大数支持**：大整数、大有理数、大浮点数、一元大数多项式、二元大数多项式、一元大有理数分式
 - **运算支持**：素数运算与判定、浮点复数运算、位运算、矩阵运算、离散傅立叶变换、128 位整型支持
@@ -96,7 +96,7 @@ The CnPack Development Package is released as open-source software under the CnP
 - **Asymmetric Encryption**: RSA, ECC Elliptic Curves (Weierstrass curves, including SM2), 25519/448 Elliptic Curves (Montgomery and Twisted Edwards curves)
 - **Hash Functions**: SM3, MD5, SHA1, SHA2/SHA3/BLAKE series (224, 256, 384, 512), SHAKE, BLAKE2 (2S/2B), XXHash (32/64), CRC8/16/32/64, Poly1305, FNV, One-Time Signature (OTS) hash schemes
 - **Other Cryptographic Areas**: SM9, Homomorphic Encryption, Collaborative Encryption, Lattice-based Cryptography, NTRU
-- **Encoding/Decoding**: Base64, ASN.1 (DER/BER), Hamming Codes, Reed Solomon Codes
+- **Encoding/Decoding**: Base64, ASN.1 (DER/BER), Hamming Codes, Reed Solomon Codes, QR Code
 - **CA Certificates**: RSA/ECC Certificate Request, Issuance, and Verification
 - **Big Number Support**: Big Integers, Big Rational Numbers, Big Floating-Point Numbers, Univariate and Bivariate Big Number Polynomials, Univariate Big Rational Functions
 - **Mathematical Operations**: Prime Number Operations and Primality Testing, Complex Floating-Point Arithmetic, Bitwise Operations, Matrix Operations, Discrete Fourier Transform, 128-bit Integer Support
