@@ -1739,7 +1739,7 @@ function BigDecimalArcTan(Res: TCnBigDecimal; Num: TCnBigDecimal;
 }
 var
   I, TargetPrecision: Integer;
-  X, X2, Term, Sum, Denominator, Reciprocal, Pi: TCnBigDecimal;
+  X, X2, Term, Sum, Denominator, Reciprocal, Pi, AbsValue: TCnBigDecimal;
   IsGreaterThanOne: Boolean;
 begin
   if Precision <= 0 then
@@ -1798,7 +1798,7 @@ begin
     Denominator.SetOne;
 
     // 泰勒级数求和
-    for I := 1 to TargetPrecision + 20 do
+    for I := 1 to CN_TAYLOR_MAX_ITERATIONS do
     begin
       // term = term * x^2 * (-1)
       BigDecimalMul(Term, Term, X2, TargetPrecision);
@@ -1817,8 +1817,14 @@ begin
       // 累加
       BigDecimalAdd(Sum, Sum, Reciprocal);
 
-      // 检查收敛性
-      if Reciprocal.IsZero or (Reciprocal.Scale < -Precision - 5) then
+      // 检查收敛性 - 当项足够小时停止
+      if Reciprocal.IsZero then
+        Break;
+
+      // 比较 |Reciprocal| 与 10^(-TargetPrecision)
+      // 如果项的绝对值小于所需精度，停止迭代
+      // 如果 Scale < -TargetPrecision，说明数字已经非常小
+      if Reciprocal.Scale < -TargetPrecision then
         Break;
     end;
 
