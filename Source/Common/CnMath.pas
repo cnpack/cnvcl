@@ -1579,7 +1579,7 @@ function BigDecimalArcSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
 }
 var
   TargetPrecision: Integer;
-  X, X2, OneMinusX2, SqrtTerm, Quotient: TCnBigDecimal;
+  X, X2, OneMinusX2, SqrtTerm, Quotient, Pi: TCnBigDecimal;
 begin
   if Precision <= 0 then
     Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
@@ -1604,6 +1604,35 @@ begin
       Result := False;
       Exit;
     end;
+  end;
+
+  // 特殊情况：arcsin(1) = π/2，arcsin(-1) = -π/2
+  if Num.IsOne then
+  begin
+    Pi := FLocalBigDecimalPool.Obtain;
+    try
+      GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(Precision + 10));
+      Pi.DivWord(2, Precision + 10);
+      BigDecimalCopy(Res, Pi);
+      Result := True;
+    finally
+      FLocalBigDecimalPool.Recycle(Pi);
+    end;
+    Exit;
+  end
+  else if Num.IsNegative and (BigDecimalCompare(Num, CnBigDecimalNegOne) = 0) then
+  begin
+    Pi := FLocalBigDecimalPool.Obtain;
+    try
+      GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(Precision + 10));
+      Pi.DivWord(2, Precision + 10);
+      Pi.Negate;
+      BigDecimalCopy(Res, Pi);
+      Result := True;
+    finally
+      FLocalBigDecimalPool.Recycle(Pi);
+    end;
+    Exit;
   end;
 
   X := FLocalBigDecimalPool.Obtain;
@@ -1690,7 +1719,6 @@ begin
 
     // 计算 π/2 - arcsin(x)
     BigDecimalSub(Res, PiOver2, ArcSinRes);
-
     Result := True;
   finally
     FLocalBigDecimalPool.Recycle(ArcSinRes);

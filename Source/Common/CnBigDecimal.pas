@@ -1955,6 +1955,7 @@ begin
   if Num1.FValue.IsZero then
   begin
     BigNumberCopy(Res.FValue, Num2.FValue);
+    Res.FScale := Num2.FScale;
     Res.FValue.Negate;
     Result := True;
     Exit;
@@ -1962,6 +1963,7 @@ begin
   else if Num2.FValue.IsZero then
   begin
     BigNumberCopy(Res.FValue, Num1.FValue);
+    Res.FScale := Num1.FScale;
     Result := True;
     Exit;
   end
