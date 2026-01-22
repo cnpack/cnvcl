@@ -198,6 +198,7 @@ function TestFloatToHex: Boolean;
 function TestHexToFloat: Boolean;
 function TestInt64ContinuedFraction: Boolean;
 function TestBigDecimalEulerExp: Boolean;
+function TestBigDecimalLn: Boolean;
 function TestBigDecimalSin: Boolean;
 function TestBigDecimalCos: Boolean;
 function TestBigDecimalHyperbolicSin: Boolean;
@@ -714,6 +715,7 @@ begin
   MyAssert(TestHexToFloat, 'TestHexToFloat');
   MyAssert(TestInt64ContinuedFraction, 'TestInt64ContinuedFraction');
   MyAssert(TestBigDecimalEulerExp, 'TestBigDecimalEulerExp');
+  MyAssert(TestBigDecimalLn, 'TestBigDecimalLn');
   MyAssert(TestBigDecimalSin, 'TestBigDecimalSin');
   MyAssert(TestBigDecimalCos, 'TestBigDecimalCos');
   MyAssert(TestBigDecimalHyperbolicSin, 'TestBigDecimalHyperbolicSin');
@@ -3664,6 +3666,62 @@ begin
     end;
     R := BigDecimalToExtended(Res);
     Result := FloatAlmostZero(R + 1.0);
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
+function TestBigDecimalLn: Boolean;
+var
+  Res, Num: TCnBigDecimal;
+  R: Extended;
+begin
+  Res := TCnBigDecimal.Create;
+  Num := TCnBigDecimal.Create;
+  try
+    // ≤‚ ‘ ln(1) = 0
+    Num.SetOne;
+    if not BigDecimalLn(Res, Num, 50) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R);
+    if not Result then Exit;
+
+    // ≤‚ ‘ ln(e) °÷ 1
+    Num.SetExtended(2.7182818285);
+    if not BigDecimalLn(Res, Num, 50) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 1.0);
+    if not Result then Exit;
+
+    // ≤‚ ‘ ln(2) °÷ 0.693147...
+    Num.SetInt64(2);
+    if not BigDecimalLn(Res, Num, 50) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 0.693147);
+    if not Result then Exit;
+
+    // ≤‚ ‘ ln(10) °÷ 2.302585...
+    Num.SetInt64(10);
+    if not BigDecimalLn(Res, Num, 50) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 2.302585);
   finally
     Res.Free;
     Num.Free;
