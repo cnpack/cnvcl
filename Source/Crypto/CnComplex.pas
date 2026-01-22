@@ -276,13 +276,24 @@ type
        返回值：（无）
     }
 
-    function AbsoluteValue(Res: TCnBigDecimal): Boolean; overload;
+    procedure RoundTo(Precision: Integer; RoundMode: TCnBigRoundMode = dr465RoundEven);
+    {* 实部与虚部均舍入至指定小数位数，如原来小数位数少于 Precision 则不动。
+
+       参数：
+         Precision: Integer               - 指定小数位数
+         RoundMode: TCnBigRoundMode       - 舍入的规则
+
+       返回值：（无）
+    }
+
+    function AbsoluteValue(Res: TCnBigDecimal; Precision: Integer = 0): Boolean; overload;
     {* 返回大浮点复数的绝对值，也即复平面上原点的距离，以大数表示。
 
        参数：
-         Res: TCnBigDecimal               - 用于存放结果的大数
+         Res: TCnBigDecimal               - 用于存放结果的大浮点数
+         Precision: Integer               - 保留小数点后几位，0 表示按默认设置来
 
-       返回值：Boolean                    - 运算是否赋值成功
+       返回值：Boolean                    - 返回运算是否成功
     }
 
     function AbsoluteValue: Extended; overload;
@@ -291,7 +302,7 @@ type
        参数：
          （无）
 
-       返回值：Extended                   - 运算是否赋值成功
+       返回值：Extended                   - 返回运算是否成功
     }
 
     function Argument: Extended;
@@ -989,13 +1000,14 @@ procedure BigComplexDecimalMul(Res: TCnBigComplexDecimal;
 }
 
 procedure BigComplexDecimalDiv(Res: TCnBigComplexDecimal;
-  Complex1: TCnBigComplexDecimal; Complex2: TCnBigComplexDecimal); overload;
+  Complex1: TCnBigComplexDecimal; Complex2: TCnBigComplexDecimal; DivPrecision: Integer = 0);
 {* 大浮点复数除法。Complex1 和 Complex2 相除，结果存入大浮点复数 Res 中，Res 可以是 Complex1 或 Complex2。
 
    参数：
      Res: TCnBigComplexDecimal            - 结果大浮点复数
      Complex1: TCnBigComplexDecimal       - 大浮点复数被除数
      Complex2: TCnBigComplexDecimal       - 大浮点复数除数
+     DivPrecision: Integer                - 保留小数点后几位，0 表示按默认设置来
 
    返回值：（无）
 }
@@ -1107,12 +1119,14 @@ function BigComplexDecimalAbsoluteValue(Complex: TCnBigComplexDecimal): Extended
    返回值：Extended                       - 返回复大浮点数的绝对值
 }
 
-function BigComplexDecimalAbsoluteValue(Res: TCnBigDecimal; Complex: TCnBigComplexDecimal): Boolean; overload;
+function BigComplexDecimalAbsoluteValue(Res: TCnBigDecimal; Complex: TCnBigComplexDecimal;
+  Precision: Integer = 0): Boolean; overload;
 {* 返回大浮点复数的绝对值，也即复平面上原点的距离，以大数表示。
 
    参数：
      Res: TCnBigComplexDecimal            - 用于存放结果的大浮点复数
      Complex: TCnBigComplexDecimal        - 待求绝对值的大浮点复数
+     Precision: Integer                   - 保留小数点后几位，0 表示按默认设置来
 
    返回值：Boolean                        - 运算是否赋值成功
 }
@@ -1818,7 +1832,7 @@ begin
 end;
 
 procedure BigComplexDecimalDiv(Res: TCnBigComplexDecimal;
-  Complex1: TCnBigComplexDecimal; Complex2: TCnBigComplexDecimal);
+  Complex1: TCnBigComplexDecimal; Complex2: TCnBigComplexDecimal; DivPrecision: Integer);
 var
   T1, T2, D: TCnBigDecimal;
 begin
@@ -1836,12 +1850,12 @@ begin
     BigDecimalMul(T1, Complex1.FR, Complex2.FR);
     BigDecimalMul(T2, Complex1.FI, Complex2.FI);
     BigDecimalAdd(T1, T1, T2);
-    BigDecimalDiv(Res.FR, T1, D);
+    BigDecimalDiv(Res.FR, T1, D, DivPrecision);
 
     BigDecimalMul(T1, Complex1.FI, Complex2.FR);
     BigDecimalMul(T2, Complex1.FR, Complex2.FI);
     BigDecimalSub(T1, T1, T2);
-    BigDecimalDiv(Res.FI, T1, D);
+    BigDecimalDiv(Res.FI, T1, D, DivPrecision);
   finally
     FBigDecimalPool.Recycle(D);
     FBigDecimalPool.Recycle(T2);
@@ -1999,7 +2013,8 @@ begin
   end;
 end;
 
-function BigComplexDecimalAbsoluteValue(Res: TCnBigDecimal; Complex: TCnBigComplexDecimal): Boolean;
+function BigComplexDecimalAbsoluteValue(Res: TCnBigDecimal;
+  Complex: TCnBigComplexDecimal; Precision: Integer): Boolean;
 var
   X, Y: TCnBigDecimal;
 begin
@@ -2009,7 +2024,7 @@ begin
     BigDecimalMul(X, Complex.FR, Complex.FR);
     BigDecimalMul(Y, Complex.FI, Complex.FI);
     BigDecimalAdd(Res, X, Y);
-    Result := BigDecimalSqrt(Res, Res);
+    Result := BigDecimalSqrt(Res, Res, Precision);
   finally
     FBigDecimalPool.Recycle(Y);
     FBigDecimalPool.Recycle(X);
@@ -2061,9 +2076,10 @@ begin
   inherited;
 end;
 
-function TCnBigComplexDecimal.AbsoluteValue(Res: TCnBigDecimal): Boolean;
+function TCnBigComplexDecimal.AbsoluteValue(Res: TCnBigDecimal;
+  Precision: Integer): Boolean;
 begin
-  Result := BigComplexDecimalAbsoluteValue(Res, Self);
+  Result := BigComplexDecimalAbsoluteValue(Res, Self, Precision);
 end;
 
 function TCnBigComplexDecimal.AbsoluteValue: Extended;
@@ -2129,6 +2145,13 @@ end;
 function TCnBigComplexDecimal.ToString: string;
 begin
   Result := BigComplexDecimalToString(Self);
+end;
+
+procedure TCnBigComplexDecimal.RoundTo(Precision: Integer;
+  RoundMode: TCnBigRoundMode);
+begin
+  FR.RoundTo(Precision, RoundMode);
+  FI.RoundTo(Precision, RoundMode);
 end;
 
 { TCnBigComplexDecimalPool }
