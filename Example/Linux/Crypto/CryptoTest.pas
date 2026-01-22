@@ -51,7 +51,7 @@ uses
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
   CnDSA, CnBLAKE, CnBLAKE2, CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA,
-  CnCalendar, CnBigDecimal, CnComplex, CnMath;
+  CnCalendar, CnBigDecimal, CnComplex, CnDFT, CnMath;
 
 procedure TestCrypto;
 {* 密码库总测试入口}
@@ -112,6 +112,21 @@ function TestBigComplexDecimalArithmetic: Boolean;
 function TestBigComplexDecimalProperties: Boolean;
 function TestBigComplexDecimalRealMul: Boolean;
 function TestBigComplexDecimalPower: Boolean;
+
+// ============================== DFT ==========================================
+
+function TestButterflyChangeComplex: Boolean;
+function TestButterflyChangeInt64: Boolean;
+function TestFFTBasic: Boolean;
+function TestIFFTBasic: Boolean;
+function TestFFTIFFTRoundTrip: Boolean;
+function TestFFTParsevalTheorem: Boolean;
+function TestNTTBasic: Boolean;
+function TestINTTBasic: Boolean;
+function TestNTTINTTRoundTrip: Boolean;
+function TestDCTBasic: Boolean;
+function TestIDCTBasic: Boolean;
+function TestDCTIDCTRoundTrip: Boolean;
 
 // ============================== BigNumber ====================================
 
@@ -613,6 +628,21 @@ begin
   MyAssert(TestBigComplexDecimalProperties, 'TestBigComplexDecimalProperties');
   MyAssert(TestBigComplexDecimalRealMul, 'TestBigComplexDecimalRealMul');
   MyAssert(TestBigComplexDecimalPower, 'TestBigComplexDecimalPower');
+
+// ================================ DFT ========================================
+
+  MyAssert(TestButterflyChangeComplex, 'TestButterflyChangeComplex');
+  MyAssert(TestButterflyChangeInt64, 'TestButterflyChangeInt64');
+  MyAssert(TestFFTBasic, 'TestFFTBasic');
+  MyAssert(TestIFFTBasic, 'TestIFFTBasic');
+  MyAssert(TestFFTIFFTRoundTrip, 'TestFFTIFFTRoundTrip');
+  MyAssert(TestFFTParsevalTheorem, 'TestFFTParsevalTheorem');
+  MyAssert(TestNTTBasic, 'TestNTTBasic');
+  MyAssert(TestINTTBasic, 'TestINTTBasic');
+  MyAssert(TestNTTINTTRoundTrip, 'TestNTTINTTRoundTrip');
+  MyAssert(TestDCTBasic, 'TestDCTBasic');
+  MyAssert(TestIDCTBasic, 'TestIDCTBasic');
+  MyAssert(TestDCTIDCTRoundTrip, 'TestDCTIDCTRoundTrip');
 
 // ============================== BigNumber ====================================
 
@@ -1895,6 +1925,368 @@ begin
     C1.Free;
     Res.Free;
   end;
+end;
+
+// ============================== DFT ==========================================
+
+function TestButterflyChangeComplex: Boolean;
+var
+  CA: array of TCnComplexNumber;
+  I: Integer;
+begin
+  // 创建长度为 8 的复数数组：[1+0i, 2+0i, 3+0i, 4+0i, 5+0i, 6+0i, 7+0i, 8+0i]
+  SetLength(CA, 8);
+  for I := 0 to 7 do
+  begin
+    CA[I].R := I + 1;
+    CA[I].I := 0;
+  end;
+
+  // 调用蝶形变换
+  ButterflyChangeComplex(@CA[0], 8);
+
+  // 验证变换后的顺序符合二进制反序规则
+  // 预期结果：[1+0i, 5+0i, 3+0i, 7+0i, 2+0i, 6+0i, 4+0i, 8+0i]
+  Result := (CA[0].R = 1) and (CA[0].I = 0) and
+            (CA[1].R = 5) and (CA[1].I = 0) and
+            (CA[2].R = 3) and (CA[2].I = 0) and
+            (CA[3].R = 7) and (CA[3].I = 0) and
+            (CA[4].R = 2) and (CA[4].I = 0) and
+            (CA[5].R = 6) and (CA[5].I = 0) and
+            (CA[6].R = 4) and (CA[6].I = 0) and
+            (CA[7].R = 8) and (CA[7].I = 0);
+end;
+
+function TestButterflyChangeInt64: Boolean;
+var
+  IA: array of Int64;
+  I: Integer;
+begin
+  // 创建长度为 8 的整数数组：[1, 2, 3, 4, 5, 6, 7, 8]
+  SetLength(IA, 8);
+  for I := 0 to 7 do
+    IA[I] := I + 1;
+
+  // 调用蝶形变换
+  ButterflyChangeInt64(@IA[0], 8);
+
+  // 验证变换后的顺序符合二进制反序规则
+  // 预期结果：[1, 5, 3, 7, 2, 6, 4, 8]
+  Result := (IA[0] = 1) and (IA[1] = 5) and (IA[2] = 3) and (IA[3] = 7) and
+            (IA[4] = 2) and (IA[5] = 6) and (IA[6] = 4) and (IA[7] = 8);
+end;
+
+function TestFFTBasic: Boolean;
+var
+  CA: array of TCnComplexNumber;
+  I: Integer;
+  HasNonZero: Boolean;
+begin
+  // 创建长度为 4 的复数数组：[1+0i, 0+0i, 0+0i, 0+0i]（单频信号）
+  SetLength(CA, 4);
+  CA[0].R := 1;
+  CA[0].I := 0;
+  for I := 1 to 3 do
+  begin
+    CA[I].R := 0;
+    CA[I].I := 0;
+  end;
+
+  // 调用 FFT 进行快速傅里叶变换
+  Result := CnFFT(@CA[0], 4);
+  if not Result then Exit;
+
+  // 验证变换后的数据不全为 0
+  HasNonZero := False;
+  for I := 0 to 3 do
+  begin
+    if (CA[I].R <> 0) or (CA[I].I <> 0) then
+    begin
+      HasNonZero := True;
+      Break;
+    end;
+  end;
+  Result := HasNonZero;
+end;
+
+function TestIFFTBasic: Boolean;
+var
+  CA: array of TCnComplexNumber;
+  I: Integer;
+  HasNonZero: Boolean;
+begin
+  // 创建长度为4的复数数组作为频域数据：[4+0i, 0+0i, 0+0i, 0+0i]
+  SetLength(CA, 4);
+  CA[0].R := 4;
+  CA[0].I := 0;
+  for I := 1 to 3 do
+  begin
+    CA[I].R := 0;
+    CA[I].I := 0;
+  end;
+
+  // 调用 IFFT 进行逆快速傅里叶变换
+  Result := CnIFFT(@CA[0], 4);
+  if not Result then Exit;
+
+  // 验证变换后的数据不全为0（应该得到常数信号）
+  HasNonZero := False;
+  for I := 0 to 3 do
+  begin
+    if (CA[I].R <> 0) or (CA[I].I <> 0) then
+    begin
+      HasNonZero := True;
+      Break;
+    end;
+  end;
+  Result := HasNonZero;
+end;
+
+function TestFFTIFFTRoundTrip: Boolean;
+var
+  Original, CA: array of TCnComplexNumber;
+  I: Integer;
+begin
+  // 创建原始信号：[1+0i, 2+0i, 3+0i, 4+0i]
+  SetLength(Original, 4);
+  SetLength(CA, 4);
+  Original[0].R := 1; Original[0].I := 0;
+  Original[1].R := 2; Original[1].I := 0;
+  Original[2].R := 3; Original[2].I := 0;
+  Original[3].R := 4; Original[3].I := 0;
+
+  // 复制原始信号
+  for I := 0 to 3 do
+    CA[I] := Original[I];
+
+  // 调用 FFT 进行变换
+  Result := CnFFT(@CA[0], 4);
+  if not Result then Exit;
+
+  // 调用 IFFT 进行逆变换
+  Result := CnIFFT(@CA[0], 4);
+  if not Result then Exit;
+
+  // 比较恢复后的信号与原始信号
+  for I := 0 to 3 do
+  begin
+    if not FloatEqual(CA[I].R, Original[I].R, 1e-10) or
+       not FloatEqual(CA[I].I, Original[I].I, 1e-10) then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+  Result := True;
+end;
+
+function TestFFTParsevalTheorem: Boolean;
+var
+  CA: array of TCnComplexNumber;
+  I: Integer;
+  TimeDomainEnergy, FreqDomainEnergy: Extended;
+begin
+  // 创建信号：[1+0i, 1+0i, 1+0i, 1+0i]
+  SetLength(CA, 4);
+  for I := 0 to 3 do
+  begin
+    CA[I].R := 1;
+    CA[I].I := 0;
+  end;
+
+  // 计算时域能量：Σ|x[n]|2
+  TimeDomainEnergy := 0;
+  for I := 0 to 3 do
+    TimeDomainEnergy := TimeDomainEnergy + CA[I].R * CA[I].R + CA[I].I * CA[I].I;
+
+  // 调用 FFT 进行变换
+  Result := CnFFT(@CA[0], 4);
+  if not Result then Exit;
+
+  // 计算频域能量：(1/N) * Σ|X[k]|2
+  FreqDomainEnergy := 0;
+  for I := 0 to 3 do
+    FreqDomainEnergy := FreqDomainEnergy + CA[I].R * CA[I].R + CA[I].I * CA[I].I;
+  FreqDomainEnergy := FreqDomainEnergy / 4;
+
+  // 验证两个能量相等（误差 < 1e-10）
+  Result := FloatEqual(TimeDomainEnergy, FreqDomainEnergy, 1e-10);
+end;
+
+function TestNTTBasic: Boolean;
+var
+  IA: array of Int64;
+  I: Integer;
+begin
+  // 创建长度为 4 的整数数组：[1, 2, 3, 4]
+  SetLength(IA, 4);
+  IA[0] := 1;
+  IA[1] := 2;
+  IA[2] := 3;
+  IA[3] := 4;
+
+  // 调用 NTT 进行数论变换
+  Result := CnNTT(@IA[0], 4);
+  if not Result then Exit;
+
+  // 验证所有结果都在[0, CN_P)范围内
+  for I := 0 to 3 do
+  begin
+    if (IA[I] < 0) or (IA[I] >= 998244353) then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+  Result := True;
+end;
+
+function TestINTTBasic: Boolean;
+var
+  IA: array of Int64;
+  I: Integer;
+  HasNonZero: Boolean;
+begin
+  // 创建长度为4的整数数组作为变换后的数据
+  // 使用一个简单的变换结果（例如 NTT 变换后的数据）
+  SetLength(IA, 4);
+  IA[0] := 100;
+  IA[1] := 200;
+  IA[2] := 300;
+  IA[3] := 400;
+
+  // 调用 INTT 进行逆变换
+  Result := CnINTT(@IA[0], 4);
+  if not Result then Exit;
+
+  // 验证变换后的数据不全为0
+  HasNonZero := False;
+  for I := 0 to 3 do
+  begin
+    if IA[I] <> 0 then
+    begin
+      HasNonZero := True;
+      Break;
+    end;
+  end;
+  Result := HasNonZero;
+end;
+
+function TestNTTINTTRoundTrip: Boolean;
+var
+  Original, IA: array of Int64;
+  I: Integer;
+begin
+  // 创建原始序列：[1, 2, 3, 4]
+  SetLength(Original, 4);
+  SetLength(IA, 4);
+  Original[0] := 1;
+  Original[1] := 2;
+  Original[2] := 3;
+  Original[3] := 4;
+
+  // 复制原始序列
+  for I := 0 to 3 do
+    IA[I] := Original[I];
+
+  // 调用 NTT 进行变换
+  Result := CnNTT(@IA[0], 4);
+  if not Result then Exit;
+
+  // 调用 INTT 进行逆变换
+  Result := CnINTT(@IA[0], 4);
+  if not Result then Exit;
+
+  // 比较恢复后的序列与原始序列
+  for I := 0 to 3 do
+  begin
+    if IA[I] <> Original[I] then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+  Result := True;
+end;
+
+function TestDCTBasic: Boolean;
+var
+  Data, Res: array of Extended;
+  I: Integer;
+  HasNonZero: Boolean;
+begin
+  // 创建长度为 4 的实数数组：[1.0, 2.0, 3.0, 4.0]
+  SetLength(Data, 4);
+  SetLength(Res, 4);
+  Data[0] := 1.0;
+  Data[1] := 2.0;
+  Data[2] := 3.0;
+  Data[3] := 4.0;
+
+  // 调用 DCT 进行离散余弦变换
+  Result := CnDCT(@Data[0], @Res[0], 4);
+  if not Result then Exit;
+
+  // 验证结果数组包含有效数据
+  HasNonZero := False;
+  for I := 0 to 3 do
+  begin
+    if Res[I] <> 0 then
+    begin
+      HasNonZero := True;
+      Break;
+    end;
+  end;
+  Result := HasNonZero;
+end;
+
+function TestIDCTBasic: Boolean;
+var
+  Data, Res: array of Extended;
+  I: Integer;
+begin
+  // 创建长度为 4 的实数数组作为 DCT 系数
+  SetLength(Data, 4);
+  SetLength(Res, 4);
+  for I := 0 to 3 do
+    Data[I] := 1.0;
+
+  // 调用 IDCT 进行逆变换
+  Result := CnIDCT(@Data[0], @Res[0], 4);
+end;
+
+function TestDCTIDCTRoundTrip: Boolean;
+var
+  Original, Intermediate, Final: array of Extended;
+  I: Integer;
+begin
+  // 创建原始数据：[1.0, 2.0, 3.0, 4.0]
+  SetLength(Original, 4);
+  SetLength(Intermediate, 4);
+  SetLength(Final, 4);
+  Original[0] := 1.0;
+  Original[1] := 2.0;
+  Original[2] := 3.0;
+  Original[3] := 4.0;
+
+  // 调用 DCT 进行变换
+  Result := CnDCT(@Original[0], @Intermediate[0], 4);
+  if not Result then Exit;
+
+  // 调用 IDCT 进行逆变换
+  Result := CnIDCT(@Intermediate[0], @Final[0], 4);
+  if not Result then Exit;
+
+  // 比较恢复后的数据与原始数据
+  for I := 0 to 3 do
+  begin
+    if not FloatEqual(Final[I], Original[I], 1e-10) then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+  Result := True;
 end;
 
 // ============================== BigNumber ====================================
