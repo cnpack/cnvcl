@@ -216,7 +216,7 @@ function GaussLegendrePi(Res: TCnBigDecimal; RoundCount: Integer = 8): Boolean; 
      Res: TCnBigDecimal                   - 返回的 Pi 值
      RoundCount: Integer                  - 计算轮数
 
-   返回值：string                         - 返回计算是否成功
+   返回值：Boolean                        - 返回计算是否成功
 }
 
 function XavierGourdonEuler(BlockSize: Integer = 1000): string;

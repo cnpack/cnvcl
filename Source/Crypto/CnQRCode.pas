@@ -24,7 +24,7 @@ unit CnQRCode;
 * 软件名称：开发包基础库
 * 单元名称：二维码生成单元
 * 单元作者：CnPack 开发组
-* 备    注：本单元实现了二维码编码功能，可配合 CnQRImage 实现绘制。
+* 备    注：本单元实现了二维码编码功能，可配合 CnQRCodeImage 控件实现绘制。
 
 *           二维码编码内部位操作使用 CnBits，但大部分是 MSB First 模式，
 *           也即符合阅读习惯的高位在前，和 CnBits 里大部分底位在前不同。
@@ -108,18 +108,24 @@ type
     procedure SetQRWideCharMode(const Value: TCnQRWideCharMode);
   protected
     procedure ClearData;
+
+    // 绘制位置探测图形
     procedure PaintPositionDetectionPattern;
-    {* 绘制位置探测图形}
+
+    // 绘制对齐图形
     procedure PaintAlignmentPattern;
-    {* 绘制对齐图形}
+
+    // 绘制时序图形
     procedure PaintTimingPattern;
-    {* 绘制时序图形}
+
+    // 绘制格式信息
     procedure PaintFormatInformation;
-    {* 绘制格式信息}
+
+    // 绘制版本信息
     procedure PaintVersionInformation;
-    {* 绘制版本信息}
+
+    // 计算并应用最佳 Mask 掩码
     procedure PaintMaskCoding;
-    {* 计算并应用最佳 Mask 掩码}
 
     // 数据编码相关方法
     function AnalyzeRawText: TCnEncodeMode;
@@ -166,13 +172,16 @@ type
     function EvaluateMaskPenalty(MaskType: Integer): Integer;
   public
     constructor Create; virtual;
+    {* 构造函数}
     destructor Destroy; override;
+    {* 析构函数}
 
     // 调试相关输出
     function GetDataCodewordsBytes: TBytes;
     function GetAllCodewordsBytes: TBytes;
     function GetFormatBitsValue: Integer;
     function GetVersionBitsValue: Integer;
+
     function DumpMatrix: string;
     function DumpMatrixUnmasked: string;
     function DumpFunctionArea: string;
@@ -196,9 +205,9 @@ type
     {* 生成的二维码的边长格子数}
 
     property QRData: TCnQRData read FQRData;
-    {* 生成的二维码数据}
+    {* 生成的二维码数据，是一个维度为 QRSize 的二维数组，每个元素 1 字节，为 1 代表黑格，否则白格}
     property MaskType: Integer read FMaskType;
-    {* 掩码类型}
+    {* 掩码类型，有八种}
   end;
 
 implementation
@@ -233,7 +242,9 @@ type
 
 const
   CN_QRCODE_FORMATINFO_LENGTH = 15;
+
   CN_QRCODE_VERSIONINFO_LENGTH = 18;
+
   CN_MASK_FORMATINFO: array[0..CN_QRCODE_FORMATINFO_LENGTH - 1] of Byte =
     (1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0);
 
