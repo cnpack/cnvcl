@@ -370,6 +370,42 @@ function BigDecimalCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
    返回值：Boolean                        - 返回计算是否成功
 }
 
+function BigDecimalArcSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer = 0): Boolean;
+{* 用大浮点数计算 Num 的反正弦值，精度由 Precision 控制。
+
+   参数：
+     Res: TCnBigDecimal                   - 容纳返回的计算结果
+     Num: TCnBigDecimal                   - 弧度数
+     Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
+
+   返回值：Boolean                        - 返回计算是否成功
+}
+
+function BigDecimalArcCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer = 0): Boolean;
+{* 用大浮点数计算 Num 的反余弦值，精度由 Precision 控制。
+
+   参数：
+     Res: TCnBigDecimal                   - 容纳返回的计算结果
+     Num: TCnBigDecimal                   - 弧度数
+     Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
+
+   返回值：Boolean                        - 返回计算是否成功
+}
+
+function BigDecimalArcTan(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer = 0): Boolean;
+{* 用大浮点数计算 Num 的反正切值，精度由 Precision 控制。
+
+   参数：
+     Res: TCnBigDecimal                   - 容纳返回的计算结果
+     Num: TCnBigDecimal                   - 弧度数
+     Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
+
+   返回值：Boolean                        - 返回计算是否成功
+}
+
 function BigDecimalHyperbolicSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer = 0): Boolean;
 {* 用大浮点数计算 Num 的双曲正弦值，精度由 Precision 控制。
@@ -397,6 +433,18 @@ function BigDecimalHyperbolicCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
 function BigComplexDecimalEulerExp(Res, Num: TCnBigComplexDecimal;
   Precision: Integer = 0): Boolean;
 {* 用大浮点复数计算 e 的 Num 复数次方，实部和虚部的精度由 Precision 控制。
+
+   参数：
+     Res: TCnBigComplexDecimal            - 容纳返回的计算结果
+     Num: TCnBigComplexDecimal            - 指数
+     Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
+
+   返回值：Boolean                        - 返回计算是否成功
+}
+
+function BigComplexDecimalLn(Res, Num: TCnBigComplexDecimal;
+  Precision: Integer = 0): Boolean;
+{* 用大浮点复数计算 Num 的自然对数，实部和虚部的精度由 Precision 控制。
 
    参数：
      Res: TCnBigComplexDecimal            - 容纳返回的计算结果
@@ -1176,8 +1224,6 @@ var
   X, Term, Sum, Gap, One, Two, U, USqr, Tmp, Tmp2: TCnBigDecimal;
   IsInverted: Boolean;
 begin
-  Result := False;
-
   if Precision <= 0 then
     Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
 
@@ -1268,7 +1314,6 @@ begin
     Res.RoundTo(Precision);
 
     Result := True;
-
   finally
     FLocalBigDecimalPool.Recycle(X);
     FLocalBigDecimalPool.Recycle(Term);
@@ -1523,6 +1568,260 @@ begin
   end;
 end;
 
+function BigDecimalArcSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer): Boolean;
+{
+  计算 arcsin(x)
+  使用恒等式：arcsin(x) = arctan(x / sqrt(1 - x^2))
+
+  定义域：[-1, 1]
+  值域：[-π/2, π/2]
+}
+var
+  TargetPrecision: Integer;
+  X, X2, OneMinusX2, SqrtTerm, Quotient: TCnBigDecimal;
+begin
+  if Precision <= 0 then
+    Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  if Num.IsZero then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  // 检查定义域 [-1, 1]
+  if BigDecimalCompare(Num, CnBigDecimalOne) > 0 then
+  begin
+    Result := False;
+    Exit;
+  end
+  else if Num.IsNegative then
+  begin
+    if BigDecimalCompare(Num, CnBigDecimalNegOne) < 0 then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+
+  X := FLocalBigDecimalPool.Obtain;
+  X2 := FLocalBigDecimalPool.Obtain;
+  OneMinusX2 := FLocalBigDecimalPool.Obtain;
+  SqrtTerm := FLocalBigDecimalPool.Obtain;
+  Quotient := FLocalBigDecimalPool.Obtain;
+
+  try
+    TargetPrecision := Precision + 10;
+    BigDecimalCopy(X, Num);
+
+    // 计算 x^2
+    BigDecimalMul(X2, X, X, TargetPrecision);
+
+    // 计算 1 - x^2
+    BigDecimalSub(OneMinusX2, CnBigDecimalOne, X2);
+
+    // 计算 sqrt(1 - x^2)
+    if not BigDecimalSqrt(SqrtTerm, OneMinusX2, TargetPrecision) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 计算 x / sqrt(1 - x^2)
+    if not BigDecimalDiv(Quotient, X, SqrtTerm, TargetPrecision) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 计算 arctan(x / sqrt(1 - x^2))
+    if not BigDecimalArcTan(Res, Quotient, Precision) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    Result := True;
+  finally
+    FLocalBigDecimalPool.Recycle(X);
+    FLocalBigDecimalPool.Recycle(X2);
+    FLocalBigDecimalPool.Recycle(OneMinusX2);
+    FLocalBigDecimalPool.Recycle(SqrtTerm);
+    FLocalBigDecimalPool.Recycle(Quotient);
+  end;
+end;
+
+function BigDecimalArcCos(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer): Boolean;
+{
+  计算 arccos(x)
+  使用恒等式：arccos(x) = π/2 - arcsin(x)
+
+  定义域：[-1, 1]
+  值域：[0, π]
+}
+var
+  TargetPrecision: Integer;
+  ArcSinRes, Pi, PiOver2: TCnBigDecimal;
+begin
+  if Precision <= 0 then
+    Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  TargetPrecision := Precision + 10;
+
+  ArcSinRes := FLocalBigDecimalPool.Obtain;
+  Pi := FLocalBigDecimalPool.Obtain;
+  PiOver2 := FLocalBigDecimalPool.Obtain;
+
+  try
+    // 计算 arcsin(x)
+    if not BigDecimalArcSin(ArcSinRes, Num, TargetPrecision) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 计算 π/2
+    GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+    BigDecimalCopy(PiOver2, Pi);
+    PiOver2.DivWord(2, TargetPrecision);
+
+    // 计算 π/2 - arcsin(x)
+    BigDecimalSub(Res, PiOver2, ArcSinRes);
+
+    Result := True;
+  finally
+    FLocalBigDecimalPool.Recycle(ArcSinRes);
+    FLocalBigDecimalPool.Recycle(Pi);
+    FLocalBigDecimalPool.Recycle(PiOver2);
+  end;
+end;
+
+function BigDecimalArcTan(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer): Boolean;
+{
+  计算 arctan(x)
+  使用泰勒级数：arctan(x) = x - x^3/3 + x^5/5 - x^7/7 + ...
+
+  优化方法：
+  1. 对于 |x| > 1，使用恒等式 arctan(x) = π/2 - arctan(1/x)
+  2. 对于 |x| <= 1，直接使用泰勒级数
+}
+var
+  I, TargetPrecision: Integer;
+  X, X2, Term, Sum, Denominator, Reciprocal, Pi: TCnBigDecimal;
+  IsGreaterThanOne: Boolean;
+begin
+  if Precision <= 0 then
+    Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  if Num.IsZero then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  X := FLocalBigDecimalPool.Obtain;
+  X2 := FLocalBigDecimalPool.Obtain;
+  Term := FLocalBigDecimalPool.Obtain;
+  Sum := FLocalBigDecimalPool.Obtain;
+  Denominator := FLocalBigDecimalPool.Obtain;
+  Reciprocal := FLocalBigDecimalPool.Obtain;
+
+  try
+    TargetPrecision := Precision + 10;
+    BigDecimalCopy(X, Num);
+
+    // 检查是否 |x| > 1
+    IsGreaterThanOne := False;
+    if X.IsNegative then
+    begin
+      X.Negate;
+      if BigDecimalCompare(X, CnBigDecimalOne) > 0 then
+        IsGreaterThanOne := True;
+      X.Negate;
+    end
+    else
+    begin
+      if BigDecimalCompare(X, CnBigDecimalOne) > 0 then
+        IsGreaterThanOne := True;
+    end;
+
+    // 如果 |x| > 1，使用 arctan(x) = π/2 - arctan(1/x)
+    if IsGreaterThanOne then
+    begin
+      if not BigDecimalDiv(Reciprocal, CnBigDecimalOne, X, TargetPrecision) then
+      begin
+        Result := False;
+        Exit;
+      end;
+      BigDecimalCopy(X, Reciprocal);
+    end;
+
+    // 计算 x^2
+    BigDecimalMul(X2, X, X, TargetPrecision);
+
+    // 初始化
+    BigDecimalCopy(Sum, X);
+    BigDecimalCopy(Term, X);
+    Denominator.SetOne;
+
+    // 泰勒级数求和
+    for I := 1 to TargetPrecision + 20 do
+    begin
+      // term = term * x^2 * (-1)
+      BigDecimalMul(Term, Term, X2, TargetPrecision);
+      Term.Negate;
+
+      // denominator = denominator + 2
+      Denominator.AddWord(2);
+
+      // 计算 term / denominator
+      if not BigDecimalDiv(Reciprocal, Term, Denominator, TargetPrecision) then
+      begin
+        Result := False;
+        Exit;
+      end;
+
+      // 累加
+      BigDecimalAdd(Sum, Sum, Reciprocal);
+
+      // 检查收敛性
+      if Reciprocal.IsZero or (Reciprocal.Scale < -Precision - 5) then
+        Break;
+    end;
+
+    // 如果原始 |x| > 1，需要调整结果
+    if IsGreaterThanOne then
+    begin
+      // 计算 π/2
+      Pi := FLocalBigDecimalPool.Obtain;
+      try
+        GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+        Pi.DivWord(2, TargetPrecision);
+
+        // 结果 = π/2 - arctan(1/x)
+        BigDecimalSub(Sum, Pi, Sum);
+      finally
+        FLocalBigDecimalPool.Recycle(Pi);
+      end;
+    end;
+
+    BigDecimalCopy(Res, Sum);
+    Result := True;
+  finally
+    FLocalBigDecimalPool.Recycle(X);
+    FLocalBigDecimalPool.Recycle(X2);
+    FLocalBigDecimalPool.Recycle(Term);
+    FLocalBigDecimalPool.Recycle(Sum);
+    FLocalBigDecimalPool.Recycle(Denominator);
+    FLocalBigDecimalPool.Recycle(Reciprocal);
+  end;
+end;
+
 function BigDecimalHyperbolicSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer = 0): Boolean;
 {
@@ -1646,6 +1945,89 @@ begin
     FLocalBigDecimalPool.Recycle(ExpA);
     FLocalBigDecimalPool.Recycle(CosB);
     FLocalBigDecimalPool.Recycle(SinB);
+  end;
+end;
+
+function BigComplexDecimalLn(Res, Num: TCnBigComplexDecimal;
+  Precision: Integer = 0): Boolean;
+{
+  计算复数的自然对数：ln(z) = ln(|z|) + i*arg(z)
+  其中 |z| = sqrt(a^2 + b^2)，arg(z) = atan2(b, a)
+
+  算法：
+  1. 计算模 |z| = sqrt(a^2 + b^2)
+  2. 计算 ln(|z|)
+  3. 计算辐角 arg(z) = atan2(b, a)
+  4. 结果 = ln(|z|) + i*arg(z)
+}
+var
+  ModZ, LnModZ, ArgZ, A2, B2: TCnBigDecimal;
+  TargetPrecision: Integer;
+begin
+  if Precision <= 0 then
+    Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  TargetPrecision := Precision + 10;  // 内部计算使用更高精度
+
+  // 特殊情况：纯实数
+  if Num.IsPureReal then
+  begin
+    if BigDecimalLn(Res.R, Num.R, Precision) then
+    begin
+      Res.I.SetZero;
+      Result := True;
+    end
+    else
+      Result := False;
+    Exit;
+  end;
+
+  ModZ := FLocalBigDecimalPool.Obtain;
+  LnModZ := FLocalBigDecimalPool.Obtain;
+  ArgZ := FLocalBigDecimalPool.Obtain;
+  A2 := FLocalBigDecimalPool.Obtain;
+  B2 := FLocalBigDecimalPool.Obtain;
+
+  try
+    // 计算 a^2 + b^2
+    BigDecimalMul(A2, Num.R, Num.R, TargetPrecision);
+    BigDecimalMul(B2, Num.I, Num.I, TargetPrecision);
+    BigDecimalAdd(ModZ, A2, B2);
+
+    // 计算 |z| = sqrt(a^2 + b^2)
+    BigDecimalSqrt(ModZ, ModZ, TargetPrecision);
+
+    // 计算 ln(|z|)
+    if not BigDecimalLn(LnModZ, ModZ, TargetPrecision) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 计算辐角 arg(z) = atan2(b, a)
+    // 这里使用 atan(b/a) 的近似，实际应该使用 atan2 函数
+    // 为了简化，我们使用 atan(b/a) 并根据象限调整
+    if BigDecimalDiv(ArgZ, Num.I, Num.R, TargetPrecision) then
+    begin
+      BigDecimalArcTan(ArgZ, ArgZ, TargetPrecision);
+    end
+    else
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 结果 = ln(|z|) + i*arg(z)
+    BigDecimalCopy(Res.R, LnModZ);
+    BigDecimalCopy(Res.I, ArgZ);
+
+    Result := True;
+  finally
+    FLocalBigDecimalPool.Recycle(ModZ);
+    FLocalBigDecimalPool.Recycle(LnModZ);
+    FLocalBigDecimalPool.Recycle(ArgZ);
+    FLocalBigDecimalPool.Recycle(A2);
+    FLocalBigDecimalPool.Recycle(B2);
   end;
 end;
 

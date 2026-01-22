@@ -201,9 +201,13 @@ function TestBigDecimalEulerExp: Boolean;
 function TestBigDecimalLn: Boolean;
 function TestBigDecimalSin: Boolean;
 function TestBigDecimalCos: Boolean;
+function TestBigDecimalArcSin: Boolean;
+function TestBigDecimalArcCos: Boolean;
+function TestBigDecimalArcTan: Boolean;
 function TestBigDecimalHyperbolicSin: Boolean;
 function TestBigDecimalHyperbolicCos: Boolean;
 function TestBigComplexDecimalEulerExp: Boolean;
+function TestBigComplexDecimalLn: Boolean;
 function TestBigComplexDecimalSin: Boolean;
 function TestBigComplexDecimalCos: Boolean;
 function TestFloatGaussLegendrePi: Boolean;
@@ -718,9 +722,13 @@ begin
   MyAssert(TestBigDecimalLn, 'TestBigDecimalLn');
   MyAssert(TestBigDecimalSin, 'TestBigDecimalSin');
   MyAssert(TestBigDecimalCos, 'TestBigDecimalCos');
+  MyAssert(TestBigDecimalArcSin, 'TestBigDecimalArcSin');
+  MyAssert(TestBigDecimalArcCos, 'TestBigDecimalArcCos');
+  MyAssert(TestBigDecimalArcTan, 'TestBigDecimalArcTan');
   MyAssert(TestBigDecimalHyperbolicSin, 'TestBigDecimalHyperbolicSin');
   MyAssert(TestBigDecimalHyperbolicCos, 'TestBigDecimalHyperbolicCos');
   MyAssert(TestBigComplexDecimalEulerExp, 'TestBigComplexDecimalEulerExp');
+  MyAssert(TestBigComplexDecimalLn, 'TestBigComplexDecimalLn');
   MyAssert(TestBigComplexDecimalSin, 'TestBigComplexDecimalSin');
   MyAssert(TestBigComplexDecimalCos, 'TestBigComplexDecimalCos');
   MyAssert(TestFloatGaussLegendrePi, 'TestFloatGaussLegendrePi');
@@ -3728,6 +3736,174 @@ begin
   end;
 end;
 
+function TestBigDecimalArcSin: Boolean;
+var
+  Res, Num: TCnBigDecimal;
+  R: Extended;
+begin
+  Res := TCnBigDecimal.Create;
+  Num := TCnBigDecimal.Create;
+  try
+    // ≤‚ ‘ arcsin(0) = 0
+    Num.SetZero;
+    if not BigDecimalArcSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R);
+    if not Result then Exit;
+
+    // ≤‚ ‘ arcsin(1) = ¶–/2 °÷ 1.5708
+    Num.SetOne;
+    if not BigDecimalArcSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 1.5707963268);
+    if not Result then Exit;
+
+    // ≤‚ ‘ arcsin(-1) = -¶–/2 °÷ -1.5708
+    Num.SetInt64(-1);
+    if not BigDecimalArcSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R + 1.5707963268);
+    if not Result then Exit;
+
+    // ≤‚ ‘ arcsin(0.5) = ¶–/6 °÷ 0.523599
+    Num.SetExtended(0.5);
+    if not BigDecimalArcSin(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 0.523598776);
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
+function TestBigDecimalArcCos: Boolean;
+var
+  Res, Num: TCnBigDecimal;
+  R: Extended;
+begin
+  Res := TCnBigDecimal.Create;
+  Num := TCnBigDecimal.Create;
+  try
+    // ≤‚ ‘ arccos(1) = 0
+    Num.SetOne;
+    if not BigDecimalArcCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R);
+    if not Result then Exit;
+
+    // ≤‚ ‘ arccos(0) = ¶–/2 °÷ 1.5708
+    Num.SetZero;
+    if not BigDecimalArcCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 1.5707963268);
+    if not Result then Exit;
+
+    // ≤‚ ‘ arccos(-1) = ¶– °÷ 3.14159
+    Num.SetInt64(-1);
+    if not BigDecimalArcCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 3.1415926536);
+    if not Result then Exit;
+
+    // ≤‚ ‘ arccos(0.5) = ¶–/3 °÷ 1.047197
+    Num.SetExtended(0.5);
+    if not BigDecimalArcCos(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 1.047197551);
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
+function TestBigDecimalArcTan: Boolean;
+var
+  Res, Num: TCnBigDecimal;
+  R: Extended;
+begin
+  Res := TCnBigDecimal.Create;
+  Num := TCnBigDecimal.Create;
+  try
+    // ≤‚ ‘ arctan(0) = 0
+    Num.SetZero;
+    if not BigDecimalArcTan(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R);
+    if not Result then Exit;
+
+    // ≤‚ ‘ arctan(1) = ¶–/4 °÷ 0.785398
+    Num.SetOne;
+    if not BigDecimalArcTan(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 0.785398163);
+    if not Result then Exit;
+
+    // ≤‚ ‘ arctan(-1) = -¶–/4 °÷ -0.785398
+    Num.SetInt64(-1);
+    if not BigDecimalArcTan(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R + 0.785398163);
+    if not Result then Exit;
+
+    // ≤‚ ‘ arctan(°Ã3) = ¶–/3 °÷ 1.047197
+    Num.SetExtended(1.732050808);
+    if not BigDecimalArcTan(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    R := BigDecimalToExtended(Res);
+    Result := FloatAlmostZero(R - 1.047197551);
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
 function TestBigDecimalHyperbolicSin: Boolean;
 var
   Res, Num: TCnBigDecimal;
@@ -3899,6 +4075,70 @@ begin
     // e °÷ 2.71828, cos(1) °÷ 0.54030, sin(1) °÷ 0.84147
     // e^(1+i) °÷ 2.71828 * (0.54030 + 0.84147i) °÷ 1.46869 + 2.28735i
     Result := FloatAlmostZero(RealPart - 1.46869394) and FloatAlmostZero(ImagPart - 2.287355287);
+  finally
+    Res.Free;
+    Num.Free;
+  end;
+end;
+
+function TestBigComplexDecimalLn: Boolean;
+var
+  Res, Num: TCnBigComplexDecimal;
+  RealPart, ImagPart: Extended;
+begin
+  Res := TCnBigComplexDecimal.Create;
+  Num := TCnBigComplexDecimal.Create;
+  try
+    // ln(1) = 0
+    Num.SetOne;
+    if not BigComplexDecimalLn(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    Result := FloatAlmostZero(RealPart) and FloatAlmostZero(ImagPart);
+    if not Result then Exit;
+
+    // ln(e) = 1
+    Num.R.SetExtended(2.7182818285);
+    Num.I.SetZero;
+    if not BigComplexDecimalLn(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    Result := FloatAlmostZero(RealPart - 1.0) and FloatAlmostZero(ImagPart);
+    if not Result then Exit;
+
+    // ln(2) °÷ 0.693147
+    Num.R.SetInt64(2);
+    Num.I.SetZero;
+    if not BigComplexDecimalLn(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    Result := FloatAlmostZero(RealPart - 0.693147) and FloatAlmostZero(ImagPart);
+    if not Result then Exit;
+
+    // ln(i) = i*¶–/2
+    Num.SetZero;
+    Num.I.SetOne;
+    if not BigComplexDecimalLn(Res, Num) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    RealPart := BigDecimalToExtended(Res.R);
+    ImagPart := BigDecimalToExtended(Res.I);
+    // ln(i) µƒ µ≤ø”¶∏√ « 0£¨–È≤ø”¶∏√ « ¶–/2 °÷ 1.5708
+    Result := FloatAlmostZero(RealPart) and FloatAlmostZero(ImagPart - 1.5707963268);
   finally
     Res.Free;
     Num.Free;
