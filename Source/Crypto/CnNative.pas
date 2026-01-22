@@ -4285,6 +4285,7 @@ begin
   if S[I] =  Char('-') then
   begin
     Sign := True;
+    Code := 1; // 不支持负数
     Inc(I);
   end
   else if S[I] =  Char('+') then
@@ -4374,6 +4375,7 @@ begin
   if S[I] =  Char('-') then
   begin
     Sign := True;
+    Code := 1; // 不支持负数
     Inc(I);
   end
   else if S[I] =  Char('+') then
