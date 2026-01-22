@@ -1738,8 +1738,9 @@ function BigDecimalArcTan(Res: TCnBigDecimal; Num: TCnBigDecimal;
   2. 对于 |x| <= 1，直接使用泰勒级数
 }
 var
-  I, TargetPrecision: Integer;
-  X, X2, Term, Sum, Denominator, Reciprocal, Pi, AbsValue: TCnBigDecimal;
+  I, K, TargetPrecision: Integer;
+  X, X2, Term, Sum, Denominator, Reciprocal, Pi: TCnBigDecimal;
+  HalfOne, SqrtTerm, Denominator2, AbsX, Two: TCnBigDecimal;
   IsGreaterThanOne: Boolean;
 begin
   if Precision <= 0 then
@@ -1792,6 +1793,60 @@ begin
     // 计算 x^2
     BigDecimalMul(X2, X, X, TargetPrecision);
 
+    // 加速处理：对于 |x| > 0.5，使用加速公式
+    // arctan(x) = 2*arctan(x/(1+sqrt(1+x^2)))
+    K := 0;
+    HalfOne := FLocalBigDecimalPool.Obtain;
+    SqrtTerm := FLocalBigDecimalPool.Obtain;
+    Denominator2 := FLocalBigDecimalPool.Obtain;
+    AbsX := FLocalBigDecimalPool.Obtain;
+    try
+      HalfOne.SetOne;
+      HalfOne.DivWord(2, TargetPrecision);
+
+      // 当 |x| > 0.5 时，使用加速公式
+      // 注意：需要比较 |x| 与 0.5，而不是 x^2 与 0.5
+      BigDecimalCopy(AbsX, X);
+      if AbsX.IsNegative then
+        AbsX.Negate;
+
+      while BigDecimalCompare(AbsX, HalfOne) > 0 do
+      begin
+        // 计算 sqrt(1 + x^2)
+        BigDecimalAdd(SqrtTerm, CnBigDecimalOne, X2);
+        if not BigDecimalSqrt(SqrtTerm, SqrtTerm, TargetPrecision) then
+        begin
+          Result := False;
+          Exit;
+        end;
+
+        // 计算 1 + sqrt(1 + x^2)
+        BigDecimalAdd(Denominator2, CnBigDecimalOne, SqrtTerm);
+
+        // 计算 x / (1 + sqrt(1 + x^2))
+        if not BigDecimalDiv(X, X, Denominator2, TargetPrecision) then
+        begin
+          Result := False;
+          Exit;
+        end;
+
+        // 重新计算 x^2
+        BigDecimalMul(X2, X, X, TargetPrecision);
+
+        // 更新 |x| 用于下一次比较
+        BigDecimalCopy(AbsX, X);
+        if AbsX.IsNegative then
+          AbsX.Negate;
+
+        Inc(K);
+      end;
+    finally
+      FLocalBigDecimalPool.Recycle(HalfOne);
+      FLocalBigDecimalPool.Recycle(SqrtTerm);
+      FLocalBigDecimalPool.Recycle(Denominator2);
+      FLocalBigDecimalPool.Recycle(AbsX);
+    end;
+
     // 初始化
     BigDecimalCopy(Sum, X);
     BigDecimalCopy(Term, X);
@@ -1828,7 +1883,20 @@ begin
         Break;
     end;
 
-    // 如果原始 |x| > 1，需要调整结果
+    // 恢复加速结果：乘以 2^K
+    if K > 0 then
+    begin
+      Two := FLocalBigDecimalPool.Obtain;
+      try
+        Two.SetWord(2);
+        for I := 1 to K do
+          BigDecimalMul(Sum, Sum, Two, TargetPrecision);
+      finally
+        FLocalBigDecimalPool.Recycle(Two);
+      end;
+    end;
+
+    // 处理原始 |x| > 1 需要的调整
     if IsGreaterThanOne then
     begin
       // 计算 π/2
@@ -1995,7 +2063,7 @@ function BigComplexDecimalLn(Res, Num: TCnBigComplexDecimal;
   4. 结果 = ln(|z|) + i*arg(z)
 }
 var
-  ModZ, LnModZ, ArgZ, A2, B2: TCnBigDecimal;
+  ModZ, LnModZ, ArgZ, A2, B2, Pi: TCnBigDecimal;
   TargetPrecision: Integer;
 begin
   if Precision <= 0 then
@@ -2038,17 +2106,72 @@ begin
       Exit;
     end;
 
-    // 计算辐角 arg(z) = atan2(b, a)
-    // 这里使用 atan(b/a) 的近似，实际应该使用 atan2 函数
-    // 为了简化，我们使用 atan(b/a) 并根据象限调整
-    if BigDecimalDiv(ArgZ, Num.I, Num.R, TargetPrecision) then
+    // 计算幅角 arg(z) = atan2(b, a)
+    // 需要处理特殊情况：
+    // 1. a = 0, b > 0: arg(z) = π/2
+    // 2. a = 0, b < 0: arg(z) = -π/2
+    // 3. a != 0: arg(z) = atan(b/a)，需要根据象限调整
+
+    if Num.R.IsZero then
     begin
-      BigDecimalArcTan(ArgZ, ArgZ, TargetPrecision);
+      // a = 0 的情况
+      if Num.I.IsNegative then
+      begin
+        // b < 0: arg(z) = -π/2
+        Pi := FLocalBigDecimalPool.Obtain;
+        try
+          GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+          Pi.DivWord(2, TargetPrecision);
+          BigDecimalCopy(ArgZ, Pi);
+          ArgZ.Negate;
+        finally
+          FLocalBigDecimalPool.Recycle(Pi);
+        end;
+      end
+      else if Num.I.IsZero then
+      begin
+        // b = 0: 这不应该出现（因为已经检查过 IsPureReal）
+        ArgZ.SetZero;
+      end
+      else
+      begin
+        // b > 0: arg(z) = π/2
+        Pi := FLocalBigDecimalPool.Obtain;
+        try
+          GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+          Pi.DivWord(2, TargetPrecision);
+          BigDecimalCopy(ArgZ, Pi);
+        finally
+          FLocalBigDecimalPool.Recycle(Pi);
+        end;
+      end;
     end
     else
     begin
-      Result := False;
-      Exit;
+      // a != 0 的情况，使用 atan(b/a)
+      if not BigDecimalDiv(ArgZ, Num.I, Num.R, TargetPrecision) then
+      begin
+        Result := False;
+        Exit;
+      end;
+      BigDecimalArcTan(ArgZ, ArgZ, TargetPrecision);
+
+      // 如果 a < 0，需要调整幅角
+      if Num.R.IsNegative then
+      begin
+        Pi := FLocalBigDecimalPool.Obtain;
+        try
+          GaussLegendrePi(Pi, GaussLegendrePrecistionToRoundCount(TargetPrecision));
+          if Num.I.IsNegative then
+            // 第三象限：arg(z) = atan(b/a) - π
+            BigDecimalSub(ArgZ, ArgZ, Pi)
+          else
+            // 第二象限：arg(z) = atan(b/a) + π
+            BigDecimalAdd(ArgZ, ArgZ, Pi);
+        finally
+          FLocalBigDecimalPool.Recycle(Pi);
+        end;
+      end;
     end;
 
     // 结果 = ln(|z|) + i*arg(z)
