@@ -157,12 +157,11 @@ const
     $4D78,  $2F13,  $6BC4,  $1AF1,  $5E26,  $3C4D,  $789A,  $47AC
   );
 
-var
-  LFSR_S: array[0..CN_ZUC_KEYSIZE - 1] of Cardinal = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-  F_R1: Cardinal = 0;
-  F_R2: Cardinal = 0;
-  BRC_X: array[0..3] of Cardinal = (0, 0, 0, 0);
-  // 以上四个变量均在 ZUCInitialization 中被初始化
+threadvar
+  LFSR_S: array[0..CN_ZUC_KEYSIZE - 1] of Cardinal;
+  F_R1, F_R2: Cardinal;
+  BRC_X: array[0..3] of Cardinal;
+  // 以上四个线程变量均在 ZUC 的 ZUCInitialization 中被初始化，起到了 Context 的作用
 
 // 32 位处理平台上，两个 31 比特字 a 和 b 模 2^31-1 加法运算 c =a + b mod(2^31-1)
 // 可以通过下面的两步计算实现：

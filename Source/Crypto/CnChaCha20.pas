@@ -30,7 +30,7 @@ unit CnChaCha20;
 *           ChaCha20 块运算：输入 32 字节 Key、12 字节 Nonce、4 字节 Counter，输出 64 字节内容。
 *
 *           ChaCha20 流运算：输入 32 字节 Key、12 字节 Nonce、4 字节 Counter，任意长度明/密文。
-*                    输出相同长度密/明文，内部 Counter 初始值默认使用 1
+*                    输出相同长度密/明文，内部 Counter 初始值据 RFC 7539 说可 0 可 1，我们默认使用 1
 *
 * 开发平台：Windows 7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP/7 + Delphi 5/6
