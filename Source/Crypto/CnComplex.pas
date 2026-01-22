@@ -1946,8 +1946,9 @@ begin
       if (N and 1) = 1 then
         BigComplexDecimalMul(Res, Res, T);
 
-      BigComplexDecimalMul(T, T, T);
       N := N shr 1;
+      if N > 0 then
+        BigComplexDecimalMul(T, T, T);
     end;
   finally
     FBigComplexDecimalPool.Recycle(T);

@@ -371,8 +371,9 @@ begin
 
   if IsReverse then
   begin
+    R := CnInt64ModularInverse(Len, CN_P); // 除以 Len，等于乘以 Len 的模逆元
     for J := 0 to Len - 1 do
-      Data^[J] := Data^[J] div Len;
+      Data^[J] := Int64MultipleMod(Data^[J], R);
   end;
 
   Result := True;
