@@ -51,7 +51,7 @@ uses
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
   CnDSA, CnBLAKE, CnBLAKE2, CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA,
-  CnCalendar, CnBigDecimal, CnComplex, CnDFT, CnMath;
+  CnCalendar, CnBigDecimal, CnComplex, CnDFT, CnMath, CnQRCode;
 
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}

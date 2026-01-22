@@ -60,6 +60,7 @@ uses
   CnPoly1305 in '..\..\..\Source\Crypto\CnPoly1305.pas',
   CnPolynomial in '..\..\..\Source\Crypto\CnPolynomial.pas',
   CnPrime in '..\..\..\Source\Crypto\CnPrime.pas',
+  CnQRCode in '..\..\..\Source\Crypto\CnQRCode.pas',
   CnRandom in '..\..\..\Source\Crypto\CnRandom.pas',
   CnRC4 in '..\..\..\Source\Crypto\CnRC4.pas',
   CnRSA in '..\..\..\Source\Crypto\CnRSA.pas',

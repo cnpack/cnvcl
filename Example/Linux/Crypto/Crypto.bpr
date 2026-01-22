@@ -22,8 +22,8 @@
       ..\..\..\Source\Crypto\CnPDFCrypt.obj 
       ..\..\..\Source\Crypto\CnPemUtils.obj ..\..\..\Source\Crypto\CnPoly1305.obj 
       ..\..\..\Source\Crypto\CnPolynomial.obj  ..\..\..\Source\Crypto\CnPrime.obj 
-      ..\..\..\Source\Crypto\CnRandom.obj ..\..\..\Source\Crypto\CnRC4.obj 
-      ..\..\..\Source\Crypto\CnRSA.obj 
+      ..\..\..\Source\Crypto\CnQRCode.obj ..\..\..\Source\Crypto\CnRandom.obj 
+      ..\..\..\Source\Crypto\CnRC4.obj ..\..\..\Source\Crypto\CnRSA.obj 
       ..\..\..\Source\Crypto\CnSecretSharing.obj ..\..\..\Source\Crypto\CnSHA1.obj 
       ..\..\..\Source\Crypto\CnSHA2.obj ..\..\..\Source\Crypto\CnSHA3.obj 
       ..\..\..\Source\Crypto\CnSM2.obj ..\..\..\Source\Crypto\CnSM3.obj 

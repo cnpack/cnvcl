@@ -164,6 +164,10 @@
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
+        <Filename Value="..\..\..\Source\Crypto\CnQRCode.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
         <Filename Value="..\..\..\Source\Crypto\CnRandom.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
