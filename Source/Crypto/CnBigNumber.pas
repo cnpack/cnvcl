@@ -7071,7 +7071,6 @@ function BigNumberPower(Res: TCnBigNumber; Num: TCnBigNumber;
 var
   T: TCnBigNumber;
 begin
-  Result := False;
   if Exponent = 0 then
   begin
     if Num.IsZero then  // 0 ÎÞ 0 ´Î·½
