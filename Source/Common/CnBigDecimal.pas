@@ -1161,6 +1161,7 @@ function BigBinaryDebugDump(Num: TCnBigBinary): string;
 var
   CnBigDecimalOne: TCnBigDecimal = nil;     // 表示 1 的常量
   CnBigDecimalZero: TCnBigDecimal = nil;    // 表示 0 的常量
+  CnBigDecimalNegOne: TCnBigDecimal = nil;  // 表示 -1 的常量
 
 implementation
 
@@ -3644,11 +3645,15 @@ initialization
   CnBigDecimalOne.SetOne;
   CnBigDecimalZero := TCnBigDecimal.Create;
   CnBigDecimalZero.SetZero;
+  CnBigDecimalNegOne := TCnBigDecimal.Create;
+  CnBigDecimalNegOne.SetOne;
+  CnBigDecimalNegOne.Negate;
 
 finalization
 //  CnBigDecimalZero.DecString; // 手工调用这两句防止被编译器忽略
 //  CnBigDecimalZero.DebugDump;
 
+  CnBigDecimalNegOne.Free;
   CnBigDecimalZero.Free;
   CnBigDecimalOne.Free;
 
