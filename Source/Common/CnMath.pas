@@ -334,6 +334,18 @@ function BigDecimalEulerExp(Res: TCnBigDecimal; Num: TCnBigDecimal;
    返回值：Boolean                        - 返回计算是否成功
 }
 
+function BigDecimalLn(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer = 0): Boolean;
+{* 用大浮点数计算 Num 的自然对数，精度由 Precision 控制。
+
+   参数：
+     Res: TCnBigDecimal                   - 容纳返回的计算结果
+     Num: TCnBigDecimal                   - 底数
+     Precision: Integer                   - 精度，也即小数点后的位数，如传 0 则使用默认设置
+
+   返回值：Boolean                        - 返回计算是否成功
+}
+
 function BigDecimalSin(Res: TCnBigDecimal; Num: TCnBigDecimal;
   Precision: Integer = 0): Boolean;
 {* 用大浮点数计算 Num 弧度的正弦值，精度由 Precision 控制。
@@ -1157,6 +1169,120 @@ begin
   end;
 end;
 
+function BigDecimalLn(Res: TCnBigDecimal; Num: TCnBigDecimal;
+  Precision: Integer): Boolean;
+var
+  I, K, TargetPrecision, TermNum: Integer;
+  X, Term, Sum, Gap, One, Two, U, USqr, Tmp, Tmp2: TCnBigDecimal;
+  IsInverted: Boolean;
+begin
+  Result := False;
+
+  if Precision <= 0 then
+    Precision := CN_BIG_DECIMAL_DEFAULT_PRECISION;
+
+  if (Num.IsNegative) or (Num.IsZero) then
+    raise ECnBigDecimalException.Create('Ln: Invalid input');
+
+  if Num.IsOne then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  X := FLocalBigDecimalPool.Obtain;
+  Term := FLocalBigDecimalPool.Obtain;
+  Sum := FLocalBigDecimalPool.Obtain;
+  Gap := FLocalBigDecimalPool.Obtain;
+  One := FLocalBigDecimalPool.Obtain;
+  Two := FLocalBigDecimalPool.Obtain;
+  U := FLocalBigDecimalPool.Obtain;
+  USqr := FLocalBigDecimalPool.Obtain;
+  Tmp := FLocalBigDecimalPool.Obtain;
+  Tmp2 := FLocalBigDecimalPool.Obtain;
+
+  try
+    TargetPrecision := Precision + 4;
+    Gap.SetOne;
+    Gap.Scale := TargetPrecision;  // 10^-(Precision+4)
+
+    BigDecimalCopy(X, Num);
+    One.SetOne;
+    Two.SetWord(2);
+
+    IsInverted := False;
+    if BigDecimalCompare(X, One) < 0 then
+    begin
+       BigDecimalDiv(X, One, X, TargetPrecision);
+       IsInverted := True;
+    end;
+
+    K := 0;
+    Tmp.SetDec('1.2');
+
+    while BigDecimalCompare(X, Tmp) > 0 do
+    begin
+      BigDecimalSqrt(X, X, TargetPrecision);
+      Inc(K);
+    end;
+
+    BigDecimalSub(Tmp, X, One);
+    BigDecimalAdd(Tmp2, X, One);
+    BigDecimalDiv(U, Tmp, Tmp2, TargetPrecision);
+
+    BigDecimalCopy(Sum, U);
+    BigDecimalCopy(Term, U);
+
+    BigDecimalMul(USqr, U, U, TargetPrecision);
+
+    TermNum := 1;
+
+    while True do
+    begin
+      Inc(TermNum, 2);
+
+      BigDecimalMul(Term, Term, USqr, TargetPrecision);
+
+      BigDecimalCopy(Tmp2, Term);
+      Tmp2.DivWord(TermNum, TargetPrecision);
+
+      BigDecimalAdd(Sum, Sum, Tmp2);
+
+      if BigDecimalCompare(Tmp2, Gap) <= 0 then
+        Break;
+    end;
+
+    BigDecimalMul(Sum, Sum, Two, TargetPrecision);
+
+    if K > 0 then
+    begin
+       for I := 1 to K do
+         BigDecimalMul(Sum, Sum, Two, TargetPrecision);
+    end;
+
+    if IsInverted then
+      Sum.Negate;
+
+    BigDecimalCopy(Res, Sum);
+    Res.RoundTo(Precision);
+
+    Result := True;
+
+  finally
+    FLocalBigDecimalPool.Recycle(X);
+    FLocalBigDecimalPool.Recycle(Term);
+    FLocalBigDecimalPool.Recycle(Sum);
+    FLocalBigDecimalPool.Recycle(Gap);
+    FLocalBigDecimalPool.Recycle(One);
+    FLocalBigDecimalPool.Recycle(Two);
+    FLocalBigDecimalPool.Recycle(U);
+    FLocalBigDecimalPool.Recycle(USqr);
+    FLocalBigDecimalPool.Recycle(Tmp);
+    FLocalBigDecimalPool.Recycle(Tmp2);
+  end;
+end;
+
 function GaussLegendrePrecistionToRoundCount(Precision: Integer): Integer;
 begin
   if Precision <= 0 then
@@ -1653,3 +1779,4 @@ finalization
   FLocalBigDecimalPool.Free;
 
 end.
+
