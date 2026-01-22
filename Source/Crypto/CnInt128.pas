@@ -1019,7 +1019,7 @@ begin
   if Bit > 63 then
     Result := GetUInt64BitSet(N.Hi64, Bit - 64)
   else
-    Result := GetUInt64BitSet(N.Hi64, Bit);
+    Result := GetUInt64BitSet(N.Lo64, Bit);
 end;
 
 function Int128IsNegative(var N: TCnInt128): Boolean;
@@ -1497,7 +1497,7 @@ begin
   if Bit > 63 then
     Result := GetUInt64BitSet(N.Hi64, Bit - 64)
   else
-    Result := GetUInt64BitSet(N.Hi64, Bit);
+    Result := GetUInt64BitSet(N.Lo64, Bit);
 end;
 
 function UInt128Equal(var A, B: TCnUInt128): Boolean;

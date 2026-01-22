@@ -167,6 +167,9 @@ function CnRandomBytes(ByteLen: Integer): TBytes;
 
 implementation
 
+resourcestring
+  SCnErrorNoSecureRandom = 'NO Secure Random Generator!';
+
 {$IFDEF MSWINDOWS}
 
 const
@@ -284,14 +287,9 @@ function RandomUInt64: TUInt64;
 var
   HL: array[0..1] of Cardinal;
 begin
-  // 优先用系统的随机数发生器
+  // 用系统的随机数发生器，不用不安全的
   if not CnRandomFillBytes2(PAnsiChar(@HL[0]), SizeOf(TUInt64)) then
-  begin
-    // 直接 Random * High(TUInt64) 可能会精度不够导致 Lo 全 FF，因此分开处理
-    Randomize;
-    HL[0] := Trunc(Random * High(Cardinal) - 1) + 1;
-    HL[1] := Trunc(Random * High(Cardinal) - 1) + 1;
-  end;
+    raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
 
   Result := (TUInt64(HL[0]) shl 32) + HL[1];
 end;
@@ -305,16 +303,11 @@ function RandomInt64LessThan(HighValue: Int64): Int64;
 var
   HL: array[0..1] of Cardinal;
 begin
-  // 优先用系统的随机数发生器
+  // 用系统的随机数发生器，不用不安全的
   if not CnRandomFillBytes2(PAnsiChar(@HL[0]), SizeOf(Int64)) then
-  begin
-    // 直接 Random * High(Int64) 可能会精度不够导致 Lo 全 FF，因此分开处理
-    Randomize;
-    HL[0] := Trunc(Random * High(Integer) - 1) + 1;   // Int64 最高位不能是 1，避免负数
-    HL[1] := Trunc(Random * High(Cardinal) - 1) + 1;
-  end
-  else
-    HL[0] := HL[0] mod (Cardinal(High(Integer)) + 1);    // Int64 最高位不能是 1，避免负数
+    raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
+
+  HL[0] := HL[0] mod (Cardinal(High(Integer)) + 1);    // Int64 最高位不能是 1，避免负数
 
   Result := (Int64(HL[0]) shl 32) + HL[1];
   Result := Result mod HighValue; // 未处理 HighValue 小于等于 0 的情形
@@ -329,12 +322,9 @@ function RandomUInt32: Cardinal;
 var
   D: Cardinal;
 begin
-  // 失败就用系统的随机数发生器
+  // 用系统的随机数发生器，不用不安全的
   if not CnRandomFillBytes2(PAnsiChar(@D), SizeOf(Cardinal)) then
-  begin
-    Randomize;
-    D := Trunc(Random * High(Cardinal) - 1) + 1;
-  end;
+    raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
 
   Result := D;
 end;
@@ -353,15 +343,11 @@ function RandomInt32LessThan(HighValue: Integer): Integer;
 var
   D: Cardinal;
 begin
-  // 失败则用系统的随机数发生器
+  // 用系统的随机数发生器，不用不安全的
   if not CnRandomFillBytes2(PAnsiChar(@D), SizeOf(Cardinal)) then
-  begin
-    Randomize;
-    D := Trunc(Random * High(Integer) - 1) + 1;
-  end
-  else
-    D := D mod (Cardinal(High(Integer)) + 1);
+    raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
 
+  D := D mod (Cardinal(High(Integer)) + 1);
   Result := Integer(Int64(D) mod Int64(HighValue)); // 未处理 HighValue 小于等于 0 的情形
 end;
 
