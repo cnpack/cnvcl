@@ -1060,6 +1060,19 @@ procedure BigComplexDecimalRealMul(Res, Num: TCnBigComplexDecimal;
    返回值：（无）
 }
 
+procedure BigComplexDecimalRealDiv(Res, Num: TCnBigComplexDecimal;
+  RealValue: TCnBigDecimal; DivPrecision: Integer = 0);
+{* 大浮点复数与大浮点实数的除法，Res 和 Num 可以是同一个对象。
+
+   参数：
+     Res: TCnBigComplexDecimal            - 结果大浮点复数
+     Num: TCnBigComplexDecimal            - 大浮点复数被除数
+     RealValue: TCnBigDecimal             - 大浮点数除数
+     DivPrecision: Integer                - 保留小数点后几位，0 表示按默认设置来
+
+   返回值：（无）
+}
+
 function BigComplexDecimalPower(Res, Num: TCnBigComplexDecimal;
   N: Integer): Boolean;
 {* 大浮点复数的整数次幂，Res 和 Num 可以是同一个对象。
@@ -1917,6 +1930,13 @@ procedure BigComplexDecimalRealMul(Res, Num: TCnBigComplexDecimal;
 begin
   BigDecimalMul(Res.FR, Num.FR, RealValue);
   BigDecimalMul(Res.FI, Num.FI, RealValue);
+end;
+
+procedure BigComplexDecimalRealDiv(Res, Num: TCnBigComplexDecimal;
+  RealValue: TCnBigDecimal; DivPrecision: Integer);
+begin
+  BigDecimalDiv(Res.FR, Num.FR, RealValue, DivPrecision);
+  BigDecimalDiv(Res.FI, Num.FI, RealValue, DivPrecision);
 end;
 
 function BigComplexDecimalPower(Res, Num: TCnBigComplexDecimal;
