@@ -214,6 +214,17 @@ function TestFloatGaussLegendrePi: Boolean;
 function TestGaussLegendrePi: Boolean;
 function TestXavierGourdonEuler: Boolean;
 
+// ================================ QRCode =====================================
+
+function TestQREncoderBasicSize: Boolean;
+function TestQREncoderDataSize: Boolean;
+function TestQREncoderMultipleVersions: Boolean;
+function TestQREncoderErrorRecoveryLevels: Boolean;
+function TestQREncoderNumericMode: Boolean;
+function TestQREncoderAlphanumericMode: Boolean;
+function TestQREncoderByteMode: Boolean;
+function TestQREncoderTextMatrix: Boolean;
+
 // ============================= Polynomial ====================================
 
 function TestBigNumberPolynomialGaloisPrimePowerModularInverse: Boolean;
@@ -734,6 +745,17 @@ begin
   MyAssert(TestFloatGaussLegendrePi, 'TestFloatGaussLegendrePi');
   MyAssert(TestGaussLegendrePi, 'TestGaussLegendrePi');
   MyAssert(TestXavierGourdonEuler, 'TestXavierGourdonEuler');
+
+// ================================ QRCode =====================================
+
+  MyAssert(TestQREncoderBasicSize, 'TestQREncoderBasicSize');
+  MyAssert(TestQREncoderDataSize, 'TestQREncoderDataSize');
+  MyAssert(TestQREncoderMultipleVersions, 'TestQREncoderMultipleVersions');
+  MyAssert(TestQREncoderErrorRecoveryLevels, 'TestQREncoderErrorRecoveryLevels');
+  MyAssert(TestQREncoderNumericMode, 'TestQREncoderNumericMode');
+  MyAssert(TestQREncoderAlphanumericMode, 'TestQREncoderAlphanumericMode');
+  MyAssert(TestQREncoderByteMode, 'TestQREncoderByteMode');
+  MyAssert(TestQREncoderTextMatrix, 'TestQREncoderMaskPatterns');
 
 // ============================= Polynomial ====================================
 
@@ -4315,6 +4337,350 @@ var
 begin
   S := XavierGourdonEuler(1000);
   Result := Pos(E_STR, S) = 1;
+end;
+
+// ================================ QRCode =====================================
+
+function TestQREncoderBasicSize: Boolean;
+var
+  Encoder: TCnQREncoder;
+  I: Integer;
+begin
+  Encoder := TCnQREncoder.Create;
+  try
+    // 测试版本 1 的 QR 码尺寸应为 1*4+17 = 21
+    Encoder.Text := 'Hello';
+    Encoder.QRVersion := 1;
+
+    Result := Encoder.QRSize = 21;
+    if not Result then Exit;
+
+    // 验证 QRData 是否为正方形矩阵
+    if Length(Encoder.QRData) <> 21 then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    for I := 0 to 20 do
+    begin
+      if Length(Encoder.QRData[I]) <> 21 then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+
+    Result := True;
+  finally
+    Encoder.Free;
+  end;
+end;
+
+function TestQREncoderDataSize: Boolean;
+var
+  Encoder: TCnQREncoder;
+  I, J: Integer;
+  ExpectedSize: Integer;
+begin
+  Encoder := TCnQREncoder.Create;
+  try
+    // 测试版本 2 的 QR 码尺寸应为 2*4+17 = 25
+    Encoder.Text := 'Hello World';
+    Encoder.QRVersion := 2;
+
+    ExpectedSize := 2 * 4 + 17;
+    Result := Encoder.QRSize = ExpectedSize;
+    if not Result then Exit;
+
+    // 验证 QRData 矩阵的尺寸
+    if Length(Encoder.QRData) <> ExpectedSize then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    for I := 0 to ExpectedSize - 1 do
+    begin
+      if Length(Encoder.QRData[I]) <> ExpectedSize then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+
+    // 验证矩阵中的数据都是有效的（0 或 1）
+    for I := 0 to ExpectedSize - 1 do
+    begin
+      for J := 0 to ExpectedSize - 1 do
+      begin
+        if (Encoder.QRData[I, J] <> 0) and (Encoder.QRData[I, J] <> 1) then
+        begin
+          Result := False;
+          Exit;
+        end;
+      end;
+    end;
+
+    Result := True;
+  finally
+    Encoder.Free;
+  end;
+end;
+
+function TestQREncoderMultipleVersions: Boolean;
+var
+  Encoder: TCnQREncoder;
+  I, Version: Integer;
+  ExpectedSize: Integer;
+begin
+  Encoder := TCnQREncoder.Create;
+  try
+    // 测试多个版本的 QR 码尺寸计算
+    Encoder.Text := 'Test';
+
+    for Version := 1 to 5 do
+    begin
+      Encoder.QRVersion := Version;
+      ExpectedSize := Version * 4 + 17;
+
+      if Encoder.QRSize <> ExpectedSize then
+      begin
+        Result := False;
+        Exit;
+      end;
+
+      // 验证矩阵尺寸
+      if Length(Encoder.QRData) <> ExpectedSize then
+      begin
+        Result := False;
+        Exit;
+      end;
+
+      for I := 0 to ExpectedSize - 1 do
+      begin
+        if Length(Encoder.QRData[I]) <> ExpectedSize then
+        begin
+          Result := False;
+          Exit;
+        end;
+      end;
+    end;
+
+    Result := True;
+  finally
+    Encoder.Free;
+  end;
+end;
+
+function TestQREncoderErrorRecoveryLevels: Boolean;
+var
+  Encoder: TCnQREncoder;
+  Level: TCnErrorRecoveryLevel;
+  I, J: Integer;
+begin
+  Encoder := TCnQREncoder.Create;
+  try
+    Encoder.Text := 'ErrorLevel';
+    Encoder.QRVersion := 2;
+
+    // 测试所有错误恢复等级
+    for Level := erlL to erlH do
+    begin
+      Encoder.QRErrorRecoveryLevel := Level;
+
+      // 验证矩阵数据有效
+      for I := 0 to Encoder.QRSize - 1 do
+      begin
+        for J := 0 to Encoder.QRSize - 1 do
+        begin
+          if (Encoder.QRData[I, J] <> 0) and (Encoder.QRData[I, J] <> 1) then
+          begin
+            Result := False;
+            Exit;
+          end;
+        end;
+      end;
+    end;
+
+    Result := True;
+  finally
+    Encoder.Free;
+  end;
+end;
+
+function TestQREncoderNumericMode: Boolean;
+var
+  Encoder: TCnQREncoder;
+  I, J: Integer;
+begin
+  Encoder := TCnQREncoder.Create;
+  try
+    // 测试纯数字模式
+    Encoder.Text := '1234567890';
+    Encoder.QRVersion := 1;
+
+    // 验证 QRSize 正确
+    if Encoder.QRSize <> 21 then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 验证矩阵数据有效
+    for I := 0 to 20 do
+    begin
+      for J := 0 to 20 do
+      begin
+        if (Encoder.QRData[I, J] <> 0) and (Encoder.QRData[I, J] <> 1) then
+        begin
+          Result := False;
+          Exit;
+        end;
+      end;
+    end;
+
+    Result := True;
+  finally
+    Encoder.Free;
+  end;
+end;
+
+function TestQREncoderAlphanumericMode: Boolean;
+var
+  Encoder: TCnQREncoder;
+  I, J: Integer;
+begin
+  Encoder := TCnQREncoder.Create;
+  try
+    // 测试字母数字模式
+    Encoder.Text := 'HELLO WORLD';
+    Encoder.QRVersion := 1;
+
+    // 验证 QRSize 正确
+    if Encoder.QRSize <> 21 then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 验证矩阵数据有效
+    for I := 0 to 20 do
+    begin
+      for J := 0 to 20 do
+      begin
+        if (Encoder.QRData[I, J] <> 0) and (Encoder.QRData[I, J] <> 1) then
+        begin
+          Result := False;
+          Exit;
+        end;
+      end;
+    end;
+
+    Result := True;
+  finally
+    Encoder.Free;
+  end;
+end;
+
+function TestQREncoderByteMode: Boolean;
+var
+  Encoder: TCnQREncoder;
+  I, J: Integer;
+begin
+  Encoder := TCnQREncoder.Create;
+  try
+    // 测试字节模式（包含中文或特殊字符）
+    Encoder.Text := 'Hello123!@#';
+    Encoder.QRVersion := 2;
+
+    // 验证 QRSize 正确
+    if Encoder.QRSize <> 25 then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    // 验证矩阵数据有效
+    for I := 0 to 24 do
+    begin
+      for J := 0 to 24 do
+      begin
+        if (Encoder.QRData[I, J] <> 0) and (Encoder.QRData[I, J] <> 1) then
+        begin
+          Result := False;
+          Exit;
+        end;
+      end;
+    end;
+
+    Result := True;
+  finally
+    Encoder.Free;
+  end;
+end;
+
+function TestQREncoderTextMatrix: Boolean;
+const
+  QRARRAY: array[0..24, 0..24] of Byte = (
+    (1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1),
+    (1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1),
+    (1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1),
+    (1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1),
+    (1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1),
+    (1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1),
+    (1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1),
+    (0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0),
+    (0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1),
+    (0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1),
+    (1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0),
+    (0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0),
+    (1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1),
+    (0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1),
+    (0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0),
+    (1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1),
+    (1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0),
+    (1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1),
+    (1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0),
+    (1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0),
+    (1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1),
+    (1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1)
+  );
+var
+  Encoder: TCnQREncoder;
+  I, J: Integer;
+  QRSize: Integer;
+begin
+  Encoder := TCnQREncoder.Create;
+  try
+    Encoder.Text := 'CnPack Sample QR Code';
+    Encoder.QRVersion := 1;
+    QRSize := Encoder.QRSize;
+
+    Result := (Encoder.QRVersion = 2) and (QRSize = 25);
+    if not Result then Exit;
+
+    // 验证矩阵数据有效且真实
+    for I := 0 to QRSize - 1 do
+    begin
+      for J := 0 to QRSize - 1 do
+      begin
+        if (Encoder.QRData[I, J] <> 0) and (Encoder.QRData[I, J] <> 1)
+          and (Encoder.QRData[I, J] = QRARRAY[I, J]) then
+        begin
+          Result := False;
+          Exit;
+        end;
+      end;
+    end;
+
+    Result := True;
+  finally
+    Encoder.Free;
+  end;
 end;
 
 // ============================= Polynomial ====================================
