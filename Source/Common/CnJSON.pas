@@ -826,48 +826,57 @@ end;
 
 function JSONParseValue(P: TCnJSONParser; Current: TCnJSONBase): TCnJSONValue;
 begin
-  if P.RawKeyValue then
-  begin
-    case P.TokenID of
-      jttObjectBegin:
-        Result := JSONParseObject(P, Current, DummyTermStep);
-      jttString, jttIdent:
-        Result := JSONParseString(P, Current);
-      jttNumber:
-        Result := JSONParseNumber(P, Current);
-      jttArrayBegin:
-        Result := JSONParseArray(P, Current, DummyTermStep);
-      jttNull:
-        Result := JSONParseNull(P, Current);
-      jttTrue:
-        Result := JSONParseTrue(P, Current);
-      jttFalse:
-        Result := JSONParseFalse(P, Current);
+  Result := nil;
+  try
+    if P.RawKeyValue then
+    begin
+      case P.TokenID of
+        jttObjectBegin:
+          Result := JSONParseObject(P, Current, DummyTermStep);
+        jttString, jttIdent:
+          Result := JSONParseString(P, Current);
+        jttNumber:
+          Result := JSONParseNumber(P, Current);
+        jttArrayBegin:
+          Result := JSONParseArray(P, Current, DummyTermStep);
+        jttNull:
+          Result := JSONParseNull(P, Current);
+        jttTrue:
+          Result := JSONParseTrue(P, Current);
+        jttFalse:
+          Result := JSONParseFalse(P, Current);
+      else
+        raise ECnJSONException.CreateFmt(SCnErrorJSONValueFmt,
+          [GetEnumName(TypeInfo(TCnJSONTokenType), Ord(P.TokenID)), P.RunPos]);
+      end;
+    end
     else
-      raise ECnJSONException.CreateFmt(SCnErrorJSONValueFmt,
-        [GetEnumName(TypeInfo(TCnJSONTokenType), Ord(P.TokenID)), P.RunPos]);
+    begin
+      case P.TokenID of
+        jttObjectBegin:
+          Result := JSONParseObject(P, Current, DummyTermStep);
+        jttString:
+          Result := JSONParseString(P, Current);
+        jttNumber:
+          Result := JSONParseNumber(P, Current);
+        jttArrayBegin:
+          Result := JSONParseArray(P, Current, DummyTermStep);
+        jttNull:
+          Result := JSONParseNull(P, Current);
+        jttTrue:
+          Result := JSONParseTrue(P, Current);
+        jttFalse:
+          Result := JSONParseFalse(P, Current);
+      else
+        raise ECnJSONException.CreateFmt(SCnErrorJSONValueFmt,
+          [GetEnumName(TypeInfo(TCnJSONTokenType), Ord(P.TokenID)), P.RunPos]);
+      end;
     end;
-  end
-  else
-  begin
-    case P.TokenID of
-      jttObjectBegin:
-        Result := JSONParseObject(P, Current, DummyTermStep);
-      jttString:
-        Result := JSONParseString(P, Current);
-      jttNumber:
-        Result := JSONParseNumber(P, Current);
-      jttArrayBegin:
-        Result := JSONParseArray(P, Current, DummyTermStep);
-      jttNull:
-        Result := JSONParseNull(P, Current);
-      jttTrue:
-        Result := JSONParseTrue(P, Current);
-      jttFalse:
-        Result := JSONParseFalse(P, Current);
-    else
-      raise ECnJSONException.CreateFmt(SCnErrorJSONValueFmt,
-        [GetEnumName(TypeInfo(TCnJSONTokenType), Ord(P.TokenID)), P.RunPos]);
+  except
+    on E: Exception do
+    begin
+      FreeAndNil(Result);
+      raise;
     end;
   end;
 end;
@@ -1512,7 +1521,9 @@ begin
     if FOrigin[FRun] = '\' then // 有转义号
       StepRun; // 指向转义号后面一个字符，如果该字符是双引号，会被下面越过，不参与循环结束判断
 
-    StepRun; // 越过转义号后一字符指向转义号后第二个字符，可能是引号，可能是 u 后的四个数字字母，其他正常字符
+    if FOrigin[FRun] <> #0 then
+      StepRun; // 越过转义号后一字符指向转义号后第二个字符，可能是引号，可能是 u 后的四个数字字母，其他正常字符
+               // 但要注意 JSON 字符串如被错误的截断此处可能出现 #0
   end;
 
   if FOrigin[FRun] <> #0 then
