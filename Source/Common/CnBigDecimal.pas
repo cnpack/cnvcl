@@ -1564,6 +1564,23 @@ var
   C: Char;
   S: string;
   L: Integer;
+
+  function TrimRightZero(const Str: string): string;
+  var
+    I, Len: Integer;
+  begin
+    Len := Length(Str);
+    for I := Len downto 1 do
+    begin
+      if Str[I] <> '0' then
+      begin
+        Result := Copy(Str, 1, I);
+        Exit;
+      end;
+    end;
+    Result := ''; // 全是'0'时返回空字符串
+  end;
+
 begin
   S := Num.FValue.ToDec;
   L := Length(S);
@@ -1589,11 +1606,17 @@ begin
   else if Num.FScale = 0 then
     Result := S
   else if Num.FScale >= L then
-    Result := '0.' + StringOfChar('0', Num.FScale - L) + S
+  begin
+    Result := '0.' + StringOfChar('0', Num.FScale - L) + S;
+    Result := TrimRightZero(Result);
+  end
   else
+  begin
     Result := Copy(S, 1, L - Num.FScale) + '.' + Copy(S, L - Num.FScale + 1, MaxInt);
+    Result := TrimRightZero(Result);
+  end;
 
-  // 再把正负号加回来
+  // 小数点后去掉 0 之后，再把正负号加回来
   if C <> #0 then
     Result := C + Result;
 end;
@@ -2831,6 +2854,23 @@ var
   T, P10, S: TCnBigNumber;
   I: Integer;
   D: string;
+
+  function TrimRightZero(const Str: string): string;
+  var
+    I, Len: Integer;
+  begin
+    Len := Length(Str);
+    for I := Len downto 1 do
+    begin
+      if Str[I] <> '0' then
+      begin
+        Result := Copy(Str, 1, I);
+        Exit;
+      end;
+    end;
+    Result := ''; // 全是'0'时返回空字符串
+  end;
+
 begin
   Result := '';
   if Num <> nil then
@@ -2887,6 +2927,7 @@ begin
         if Length(D) < Num.FScale then
           D := StringOfChar('0', Num.FScale - Length(D)) + D;
         Result := Result + '.' + D;
+        Result := TrimRightZero(Result);
       finally
         FLocalBigNumberPool.Recycle(T);
         FLocalBigNumberPool.Recycle(S);
