@@ -173,6 +173,7 @@ uses
 
 const
   SCnPingData = 'CnPack Ping.';
+  MAX_PING_DATA_SIZE = 65535;  // 最大 Ping 数据包大小
 
   SCN_ICMP_ERROR_OK         = 0;
   SCN_ICMP_ERROR_BAD_ADDR   = -1;     // 地址错误
@@ -447,6 +448,8 @@ begin
     aReply := GetReplyString(Result, aIP, nil);
     Exit;
   end;
+  if Count > MAX_PING_DATA_SIZE then
+    Count := MAX_PING_DATA_SIZE;
 
   if aIP.Address = INADDR_NONE then
   begin

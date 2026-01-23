@@ -58,6 +58,7 @@ uses
 
 const
   csDefRecvBuffSize = 4096;
+  csMaxRecvBuffSize = 1024 * 1024;
   csDefUDPSendBuffSize = 256 * 1024;
   csDefUDPRecvBuffSize = 256 * 1024;
 {$IFDEF MACOS}
@@ -268,6 +269,9 @@ procedure GetBroadCastAddress(sInt: TStrings);
 procedure GetLocalIPAddress(sInt: TStrings);
 
 implementation
+
+const
+  CN_UDP_MAX_SIZE = 65536;
 
 type
 {$IFDEF MSWINDOWS}
@@ -1001,11 +1005,21 @@ var
 begin
   I := SizeOf(From);
   if FRecvBuf = nil then
+  begin
+     if FRecvBufSize > csMaxRecvBuffSize then // 缓冲区尺寸不能太大
+       FRecvBufSize := csMaxRecvBuffSize;
     GetMem(FRecvBuf, FRecvBufSize);
+  end;
 
   IBuffSize := CnRecvFrom(FThisSocket, FRecvBuf^, FRecvBufSize, 0, From, I);
   if (IBuffSize > 0) and Assigned(FOnDataReceived) then
   begin
+    if IBuffSize > CN_UDP_MAX_SIZE then
+    begin
+      // 收到超大包，丢弃
+      Exit;
+    end;
+
     GetMem(Rec, SizeOf(TRecvDataRec));
     FillChar(Rec^, SizeOf(TRecvDataRec), 0);
 
