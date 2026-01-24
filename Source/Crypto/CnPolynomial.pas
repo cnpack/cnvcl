@@ -925,13 +925,13 @@ function Int64PolynomialPower(Res: TCnInt64Polynomial; P: TCnInt64Polynomial; Ex
    返回值：Boolean                        - 返回是否计算成功
 }
 
-function Int64PolynomialReduce(P: TCnInt64Polynomial): Integer;
+function Int64PolynomialReduce(P: TCnInt64Polynomial): Int64;
 {* 化简一元整系数多项式系数，也就是找多项式系数的最大公约数，各个系数除以它，返回最大公约数。
 
    参数：
      P: TCnInt64Polynomial                - 待化简的一元整系数多项式
 
-   返回值：Integer                        - 返回各系数的最大公约数
+   返回值：Int64                          - 返回各系数的最大公约数
 }
 
 procedure Int64PolynomialCentralize(P: TCnInt64Polynomial; Modulus: Int64);
@@ -5628,7 +5628,7 @@ begin
   end;
 end;
 
-function Int64PolynomialReduce(P: TCnInt64Polynomial): Integer;
+function Int64PolynomialReduce(P: TCnInt64Polynomial): Int64;
 var
   I: Integer;
   D: Int64;
