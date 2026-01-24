@@ -593,7 +593,7 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 0
           OnClick = btnRP2PointClick
         end
-        object edtRationalNominator1: TEdit
+        object edtRationalNumerator1: TEdit
           Left = 16
           Top = 96
           Width = 385
@@ -659,7 +659,7 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 12
           Text = '97'
         end
-        object edtRationalNominator2: TEdit
+        object edtRationalNumerator2: TEdit
           Left = 16
           Top = 176
           Width = 385
@@ -682,7 +682,7 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 6
           OnClick = btnRationalPolynomialGenerateClick
         end
-        object edtRationalResultNominator: TEdit
+        object edtRationalResultNumerator: TEdit
           Left = 20
           Top = 240
           Width = 385
@@ -1336,7 +1336,7 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 1
           OnClick = btnBNTestManualPointClick
         end
-        object edtBNRationalNominator1: TEdit
+        object edtBNRationalNumerator1: TEdit
           Left = 16
           Top = 96
           Width = 385
@@ -1411,7 +1411,7 @@ object FormPolynomial: TFormPolynomial
           TabOrder = 11
           Text = '97'
         end
-        object edtBNRationalNominator2: TEdit
+        object edtBNRationalNumerator2: TEdit
           Left = 448
           Top = 176
           Width = 385
@@ -1425,7 +1425,7 @@ object FormPolynomial: TFormPolynomial
           Height = 21
           TabOrder = 13
         end
-        object edtBNRationalResultNominator: TEdit
+        object edtBNRationalResultNumerator: TEdit
           Left = 20
           Top = 240
           Width = 385

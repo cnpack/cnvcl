@@ -2341,7 +2341,7 @@ var
 begin
   if (Res <> nil) and (Num <> nil) then
   begin
-    BigNumberCopy(Res.Nominator, Num.FValue);
+    BigNumberCopy(Res.Numerator, Num.FValue);
 
     // 精确值为 FValue / (10^FScale)，如果 FScale > 0 则乘方到分母上去，否则相反数乘方到分子上去
     Res.Denominator.SetOne;
@@ -2356,7 +2356,7 @@ begin
       try
         T.SetWord(10);
         T.PowerWord(-Num.FScale);
-        BigNumberMul(Res.Nominator, Res.Nominator, T);
+        BigNumberMul(Res.Numerator, Res.Numerator, T);
       finally
         FLocalBigNumberPool.Recycle(T);
       end;

@@ -6729,9 +6729,9 @@ begin
 
     if APrimitive <> nil then
     begin
-      Int64PolynomialGaloisMod(RL.Nominator, RL.Nominator, APrimitive, APrime);
+      Int64PolynomialGaloisMod(RL.Numerator, RL.Numerator, APrimitive, APrime);
       Int64PolynomialGaloisMod(RL.Denominator, RL.Denominator, APrimitive, APrime);
-      Int64PolynomialGaloisMod(RR.Nominator, RR.Nominator, APrimitive, APrime);
+      Int64PolynomialGaloisMod(RR.Numerator, RR.Numerator, APrimitive, APrime);
       Int64PolynomialGaloisMod(RR.Denominator, RR.Denominator, APrimitive, APrime);
     end;
 
@@ -7000,13 +7000,13 @@ begin
   begin
     if MX <> nil then
     begin
-      MX.Nominator.SetCoefficents([0, 1]);
+      MX.Numerator.SetCoefficents([0, 1]);
       MX.Denominator.SetOne;
     end;
 
     if MY <> nil then
     begin
-      MY.Nominator.SetOne;
+      MY.Numerator.SetOne;
       MY.Denominator.SetOne;
     end;
   end
@@ -7046,7 +7046,7 @@ begin
           Int64PolynomialGaloisMul(P2, P2, X1, APrime);     // P2 得到 x*fn^2
           Int64PolynomialGaloisMul(P2, P2, Y2, APrime);     // P2 得到 x*fn^2 * Y^2
 
-          Int64PolynomialGaloisSub(MX.Nominator, P2, P1, APrime); // MX 计算完毕
+          Int64PolynomialGaloisSub(MX.Numerator, P2, P1, APrime); // MX 计算完毕
         end
         else // K 奇数时
         begin
@@ -7058,7 +7058,7 @@ begin
 
           Int64PolynomialGaloisMul(P2, FN, FN, APrime);
           Int64PolynomialGaloisMul(P2, P2, X1, APrime);     // P2 得到 x*fn^2
-          Int64PolynomialGaloisSub(MX.Nominator, P2, P1, APrime); // MX 计算完毕
+          Int64PolynomialGaloisSub(MX.Numerator, P2, P1, APrime); // MX 计算完毕
         end;
       end;
 
@@ -7067,7 +7067,7 @@ begin
       begin
         if K = 2 then // Y 的分子是 f2n，n 为 2 时不需递归，直接用 f4
         begin
-          Int64PolynomialCopy(MY.Nominator, FNa2);
+          Int64PolynomialCopy(MY.Numerator, FNa2);
         end
         else
         begin
@@ -7077,7 +7077,7 @@ begin
           Int64PolynomialGaloisMul(P2, FNa1, FNa1, APrime);
           Int64PolynomialGaloisMul(P2, P2, FNs2, APrime);
 
-          Int64PolynomialGaloisSub(MY.Nominator, P1, P2, APrime); // MY 分子计算完毕
+          Int64PolynomialGaloisSub(MY.Numerator, P1, P2, APrime); // MY 分子计算完毕
         end;
 
         Int64PolynomialGaloisPower(MY.Denominator, FN, 3, APrime);
@@ -7109,12 +7109,12 @@ begin
   begin
     if MX <> nil then
     begin
-      Int64PolynomialGaloisMod(MX.Nominator, MX.Nominator, APrimitive, APrime);
+      Int64PolynomialGaloisMod(MX.Numerator, MX.Numerator, APrimitive, APrime);
       Int64PolynomialGaloisMod(MX.Denominator, MX.Denominator, APrimitive, APrime);
     end;
     if MY <> nil then
     begin
-      Int64PolynomialGaloisMod(MY.Nominator, MY.Nominator, APrimitive, APrime);
+      Int64PolynomialGaloisMod(MY.Numerator, MY.Numerator, APrimitive, APrime);
       Int64PolynomialGaloisMod(MY.Denominator, MY.Denominator, APrimitive, APrime);
     end;
   end;
@@ -7192,7 +7192,7 @@ begin
 
       if APrimitive <> nil then
       begin
-        Int64PolynomialGaloisMod(SX.Nominator, SX.Nominator, APrimitive, APrime);
+        Int64PolynomialGaloisMod(SX.Numerator, SX.Numerator, APrimitive, APrime);
         Int64PolynomialGaloisMod(SX.Denominator, SX.Denominator, APrimitive, APrime);
       end;
 
@@ -7205,7 +7205,7 @@ begin
 
       if APrimitive <> nil then
       begin
-        Int64PolynomialGaloisMod(SY.Nominator, SY.Nominator, APrimitive, APrime);
+        Int64PolynomialGaloisMod(SY.Numerator, SY.Numerator, APrimitive, APrime);
         Int64PolynomialGaloisMod(SY.Denominator, SY.Denominator, APrimitive, APrime);
       end;
     end
@@ -7224,7 +7224,7 @@ begin
       Int64RationalPolynomialGaloisSub(SX, QX, SX, APrime);
       if APrimitive <> nil then
       begin
-        Int64PolynomialGaloisMod(SX.Nominator, SX.Nominator, APrimitive, APrime);
+        Int64PolynomialGaloisMod(SX.Numerator, SX.Numerator, APrimitive, APrime);
         Int64PolynomialGaloisMod(SX.Denominator, SX.Denominator, APrimitive, APrime);
       end;
 
@@ -7235,7 +7235,7 @@ begin
 
       if APrimitive <> nil then
       begin
-        Int64PolynomialGaloisMod(SY.Nominator, SY.Nominator, APrimitive, APrime);
+        Int64PolynomialGaloisMod(SY.Numerator, SY.Numerator, APrimitive, APrime);
         Int64PolynomialGaloisMod(SY.Denominator, SY.Denominator, APrimitive, APrime);
       end;
     end;
@@ -7648,7 +7648,7 @@ begin
   MX := FEccInt64RationalPolynomialPool.Obtain;
   if K = 1 then
   begin
-    MX.Nominator.SetCoefficents([0, 1]);
+    MX.Numerator.SetCoefficents([0, 1]);
     MX.Denominator.SetOne;
   end
   else
@@ -7678,7 +7678,7 @@ begin
         Int64PolynomialGaloisMul(P2, P2, X1, APrime, APrimitive);     // P2 得到 x*fn^2
         Int64PolynomialGaloisMul(P2, P2, Y2, APrime, APrimitive);     // P2 得到 x*fn^2 * Y^2
 
-        Int64PolynomialGaloisSub(MX.Nominator, P2, P1, APrime, APrimitive); // MX 计算完毕
+        Int64PolynomialGaloisSub(MX.Numerator, P2, P1, APrime, APrimitive); // MX 计算完毕
       end
       else // K 奇数时
       begin
@@ -7690,7 +7690,7 @@ begin
 
         Int64PolynomialGaloisMul(P2, FN, FN, APrime, APrimitive);
         Int64PolynomialGaloisMul(P2, P2, X1, APrime, APrimitive);     // P2 得到 x*fn^2
-        Int64PolynomialGaloisSub(MX.Nominator, P2, P1, APrime, APrimitive); // MX 计算完毕
+        Int64PolynomialGaloisSub(MX.Numerator, P2, P1, APrime, APrimitive); // MX 计算完毕
       end;
     finally
       FEccInt64PolynomialPool.Recycle(X1);
@@ -7701,7 +7701,7 @@ begin
 
     if APrimitive <> nil then
     begin
-      Int64PolynomialGaloisMod(MX.Nominator, MX.Nominator, APrimitive, APrime);
+      Int64PolynomialGaloisMod(MX.Numerator, MX.Numerator, APrimitive, APrime);
       Int64PolynomialGaloisMod(MX.Denominator, MX.Denominator, APrimitive, APrime);
     end;
   end;
@@ -7711,7 +7711,7 @@ begin
 
   if APrimitive <> nil then
   begin
-    Int64PolynomialGaloisMod(Res.Nominator, Res.Nominator, APrimitive, APrime);
+    Int64PolynomialGaloisMod(Res.Numerator, Res.Numerator, APrimitive, APrime);
     Int64PolynomialGaloisMod(Res.Denominator, Res.Denominator, APrimitive, APrime);
   end;
 end;
@@ -7740,7 +7740,7 @@ begin
   MY := FEccInt64RationalPolynomialPool.Obtain;
   if K = 1 then // 没乘，原封不动返回 x 和 1
   begin
-    MY.Nominator.SetOne;
+    MY.Numerator.SetOne;
     MY.Denominator.SetOne;
   end
   else
@@ -7763,7 +7763,7 @@ begin
       if K = 2 then // Y 的分子是 f2n，n 为 2 时不需递归，直接用 f4
       begin
         MY.Denominator.SetOne;
-        Int64PolynomialCopy(MY.Nominator, FNa2);
+        Int64PolynomialCopy(MY.Numerator, FNa2);
       end
       else
       begin
@@ -7773,7 +7773,7 @@ begin
         Int64PolynomialGaloisMul(P2, FNa1, FNa1, APrime, APrimitive);
         Int64PolynomialGaloisMul(P2, P2, FNs2, APrime, APrimitive);
 
-        Int64PolynomialGaloisSub(MY.Nominator, P1, P2, APrime, APrimitive); // MY 分子计算完毕
+        Int64PolynomialGaloisSub(MY.Numerator, P1, P2, APrime, APrimitive); // MY 分子计算完毕
       end;
 
       Int64PolynomialGaloisPower(MY.Denominator, FN, 3, APrime, APrimitive);
@@ -7797,7 +7797,7 @@ begin
 
   if APrimitive <> nil then
   begin
-    Int64PolynomialGaloisMod(MY.Nominator, MY.Nominator, APrimitive, APrime);
+    Int64PolynomialGaloisMod(MY.Numerator, MY.Numerator, APrimitive, APrime);
     Int64PolynomialGaloisMod(MY.Denominator, MY.Denominator, APrimitive, APrime);
   end;
 
@@ -7807,7 +7807,7 @@ begin
 
   if APrimitive <> nil then
   begin
-    Int64PolynomialGaloisMod(Res.Nominator, Res.Nominator, APrimitive, APrime);
+    Int64PolynomialGaloisMod(Res.Numerator, Res.Numerator, APrimitive, APrime);
     Int64PolynomialGaloisMod(Res.Denominator, Res.Denominator, APrimitive, APrime);
   end;
 end;
@@ -7900,17 +7900,17 @@ begin
       LDP := TCnInt64Polynomial(DPs[L]);
 
       Pi2PX.SetOne;                           // 原始点
-      Pi2PX.Nominator.SetCoefficents([0, 1]); // x
+      Pi2PX.Numerator.SetCoefficents([0, 1]); // x
       Pi2PY.Setone;                           // 1 * y
 
       // 算得 π^2 的 X 坐标在 LDP 环内的表达分式，也就是 Q*Q 个 x 相乘再 mod LDP
-      Int64PolynomialGaloisPower(Pi2PX.Nominator, Pi2PX.Nominator, Q, Q, LDP);
-      Int64PolynomialGaloisPower(Pi2PX.Nominator, Pi2PX.Nominator, Q, Q, LDP);  // 直接 Q*Q 容易溢出，分步算
+      Int64PolynomialGaloisPower(Pi2PX.Numerator, Pi2PX.Numerator, Q, Q, LDP);
+      Int64PolynomialGaloisPower(Pi2PX.Numerator, Pi2PX.Numerator, Q, Q, LDP);  // 直接 Q*Q 容易溢出，分步算
 
       // 算得 π^2 的 Y 坐标在 LDP 环内的表达分式，Q*Q 个 y 相乘等于 y * [(Q*Q shr 1) 个 y^2 相乘]，而 y^2 可替换成 x^3+Ax+B
       UInt64MulUInt64(Q, Q, Q2Lo, Q2Hi);
       if Q2Hi = 0 then
-        Int64PolynomialGaloisPower(Pi2PY.Nominator, Y2, (Q * Q) shr 1, Q, LDP)
+        Int64PolynomialGaloisPower(Pi2PY.Numerator, Y2, (Q * Q) shr 1, Q, LDP)
       else
       begin
         // 处理 (Q * Q) > UInt64 的情形，还是有问题
@@ -7919,18 +7919,18 @@ begin
           Q2Lo := Q2Lo or $8000000000000000;
         Q2Hi := Q2Hi shr 1;
 
-        Int64PolynomialGaloisPower(Pi2PY.Nominator, Y2, Q2Lo, Q, LDP, Q2Hi);
+        Int64PolynomialGaloisPower(Pi2PY.Numerator, Y2, Q2Lo, Q, LDP, Q2Hi);
       end;
 
       KPX.SetOne;                             // 原始点
-      KPX.Nominator.SetCoefficents([0, 1]);   // x
+      KPX.Numerator.SetCoefficents([0, 1]);   // x
       KPY.SetOne;                             // 1 * y
 
       // 算得 K * P 的 X Y 坐标
       TCnInt64PolynomialEcc.RationalMultiplePoint(K, KPX, KPY, A, B, Q, LDP);
 
       PiPX.SetOne;                            // 原始点
-      PiPX.Nominator.SetCoefficents([0, 1]);  // x
+      PiPX.Numerator.SetCoefficents([0, 1]);  // x
       PiPY.Setone;                            // 1 * y
 
       // 求 π^2(P) + K * (P) 的和点 SX SY
@@ -7941,10 +7941,10 @@ begin
       else
       begin
         // 算得 π的 X 坐标在 LDP 环内的表达分式，也就是 Q 个 x 相乘再 mod LDP
-        Int64PolynomialGaloisPower(PiPX.Nominator, PiPX.Nominator, Q, Q, LDP);
+        Int64PolynomialGaloisPower(PiPX.Numerator, PiPX.Numerator, Q, Q, LDP);
 
         // 算得 π的 Y 坐标在 LDP 环内的表达分式，Q 个 y 相乘等于 y * [(Q shr 1) 个 y^2 相乘]，而 y^2 可替换成 x^3+Ax+B
-        Int64PolynomialGaloisPower(PiPY.Nominator, Y2, Q shr 1, Q, LDP);
+        Int64PolynomialGaloisPower(PiPY.Numerator, Y2, Q shr 1, Q, LDP);
 
         Int64RationalPolynomialCopy(RSX, PiPX);
         Int64RationalPolynomialCopy(RSY, PiPY);
@@ -8530,7 +8530,7 @@ begin
         BigNumberPolynomialGaloisMul(P2, P2, X1, APrime);     // P2 得到 x*fn^2
         BigNumberPolynomialGaloisMul(P2, P2, Y2, APrime);     // P2 得到 x*fn^2 * Y^2
 
-        BigNumberPolynomialGaloisSub(MX.Nominator, P2, P1, APrime); // MX 计算完毕
+        BigNumberPolynomialGaloisSub(MX.Numerator, P2, P1, APrime); // MX 计算完毕
       end
       else // K 奇数时
       begin
@@ -8542,14 +8542,14 @@ begin
 
         BigNumberPolynomialGaloisMul(P2, FN, FN, APrime);
         BigNumberPolynomialGaloisMul(P2, P2, X1, APrime);     // P2 得到 x*fn^2
-        BigNumberPolynomialGaloisSub(MX.Nominator, P2, P1, APrime); // MX 计算完毕
+        BigNumberPolynomialGaloisSub(MX.Numerator, P2, P1, APrime); // MX 计算完毕
       end;
 
       // 求 Y 表达式
       if K = 2 then // Y 的分子是 f2n，n 为 2 时不需递归，直接用 f4
       begin
         MY.Denominator.SetOne;
-        BigNumberPolynomialCopy(MY.Nominator, FNa2);
+        BigNumberPolynomialCopy(MY.Numerator, FNa2);
       end
       else
       begin
@@ -8559,7 +8559,7 @@ begin
         BigNumberPolynomialGaloisMul(P2, FNa1, FNa1, APrime);
         BigNumberPolynomialGaloisMul(P2, P2, FNs2, APrime);
 
-        BigNumberPolynomialGaloisSub(MY.Nominator, P1, P2, APrime); // MY 分子计算完毕
+        BigNumberPolynomialGaloisSub(MY.Numerator, P1, P2, APrime); // MY 分子计算完毕
       end;
 
       BigNumberPolynomialGaloisPower(MY.Denominator, FN, 3, APrime);
@@ -8588,9 +8588,9 @@ begin
 
   if APrimitive <> nil then
   begin
-    BigNumberPolynomialGaloisMod(MX.Nominator, MX.Nominator, APrimitive, APrime);
+    BigNumberPolynomialGaloisMod(MX.Numerator, MX.Numerator, APrimitive, APrime);
     BigNumberPolynomialGaloisMod(MX.Denominator, MX.Denominator, APrimitive, APrime);
-    BigNumberPolynomialGaloisMod(MY.Nominator, MY.Nominator, APrimitive, APrime);
+    BigNumberPolynomialGaloisMod(MY.Numerator, MY.Numerator, APrimitive, APrime);
     BigNumberPolynomialGaloisMod(MY.Denominator, MY.Denominator, APrimitive, APrime);
   end;
 end;
@@ -8668,7 +8668,7 @@ begin
 
       if APrimitive <> nil then
       begin
-        BigNumberPolynomialGaloisMod(SX.Nominator, SX.Nominator, APrimitive, APrime);
+        BigNumberPolynomialGaloisMod(SX.Numerator, SX.Numerator, APrimitive, APrime);
         BigNumberPolynomialGaloisMod(SX.Denominator, SX.Denominator, APrimitive, APrime);
       end;
 
@@ -8681,7 +8681,7 @@ begin
 
       if APrimitive <> nil then
       begin
-        BigNumberPolynomialGaloisMod(SY.Nominator, SY.Nominator, APrimitive, APrime);
+        BigNumberPolynomialGaloisMod(SY.Numerator, SY.Numerator, APrimitive, APrime);
         BigNumberPolynomialGaloisMod(SY.Denominator, SY.Denominator, APrimitive, APrime);
       end;
     end
@@ -8701,7 +8701,7 @@ begin
 
       if APrimitive <> nil then
       begin
-        BigNumberPolynomialGaloisMod(SX.Nominator, SX.Nominator, APrimitive, APrime);
+        BigNumberPolynomialGaloisMod(SX.Numerator, SX.Numerator, APrimitive, APrime);
         BigNumberPolynomialGaloisMod(SX.Denominator, SX.Denominator, APrimitive, APrime);
       end;
 
@@ -8712,7 +8712,7 @@ begin
 
       if APrimitive <> nil then
       begin
-        BigNumberPolynomialGaloisMod(SY.Nominator, SY.Nominator, APrimitive, APrime);
+        BigNumberPolynomialGaloisMod(SY.Numerator, SY.Numerator, APrimitive, APrime);
         BigNumberPolynomialGaloisMod(SY.Denominator, SY.Denominator, APrimitive, APrime);
       end;
     end;
@@ -8755,7 +8755,7 @@ begin
   MX := FEccRationalPolynomialPool.Obtain;
   if K = 1 then // 没乘，原封不动返回 x 和 1
   begin
-    MX.Nominator.SetCoefficents([0, 1]);
+    MX.Numerator.SetCoefficents([0, 1]);
     MX.Denominator.SetOne;
   end
   else
@@ -8785,7 +8785,7 @@ begin
         BigNumberPolynomialGaloisMul(P2, P2, X1, APrime, APrimitive);     // P2 得到 x*fn^2
         BigNumberPolynomialGaloisMul(P2, P2, Y2, APrime, APrimitive);     // P2 得到 x*fn^2 * Y^2
 
-        BigNumberPolynomialGaloisSub(MX.Nominator, P2, P1, APrime); // MX 计算完毕
+        BigNumberPolynomialGaloisSub(MX.Numerator, P2, P1, APrime); // MX 计算完毕
       end
       else // K 奇数时
       begin
@@ -8797,7 +8797,7 @@ begin
 
         BigNumberPolynomialGaloisMul(P2, FN, FN, APrime, APrimitive);
         BigNumberPolynomialGaloisMul(P2, P2, X1, APrime, APrimitive);     // P2 得到 x*fn^2
-        BigNumberPolynomialGaloisSub(MX.Nominator, P2, P1, APrime, APrimitive); // MX 计算完毕
+        BigNumberPolynomialGaloisSub(MX.Numerator, P2, P1, APrime, APrimitive); // MX 计算完毕
       end;
     finally
       FEccPolynomialPool.Recycle(X1);
@@ -8808,7 +8808,7 @@ begin
 
     if APrimitive <> nil then
     begin
-      BigNumberPolynomialGaloisMod(MX.Nominator, MX.Nominator, APrimitive, APrime);
+      BigNumberPolynomialGaloisMod(MX.Numerator, MX.Numerator, APrimitive, APrime);
       BigNumberPolynomialGaloisMod(MX.Denominator, MX.Denominator, APrimitive, APrime);
     end;
   end;
@@ -8818,7 +8818,7 @@ begin
 
   if APrimitive <> nil then
   begin
-    BigNumberPolynomialGaloisMod(Res.Nominator, Res.Nominator, APrimitive, APrime);
+    BigNumberPolynomialGaloisMod(Res.Numerator, Res.Numerator, APrimitive, APrime);
     BigNumberPolynomialGaloisMod(Res.Denominator, Res.Denominator, APrimitive, APrime);
   end;
 end;
@@ -8843,7 +8843,7 @@ begin
   MY := FEccRationalPolynomialPool.Obtain;
   if K = 1 then // 没乘，原封不动返回 x 和 1
   begin
-    MY.Nominator.SetOne;
+    MY.Numerator.SetOne;
     MY.Denominator.SetOne;
   end
   else
@@ -8866,7 +8866,7 @@ begin
       if K = 2 then // Y 的分子是 f2n，n 为 2 时不需递归，直接用 f4
       begin
         MY.Denominator.SetOne;
-        BigNumberPolynomialCopy(MY.Nominator, FNa2);
+        BigNumberPolynomialCopy(MY.Numerator, FNa2);
       end
       else
       begin
@@ -8876,7 +8876,7 @@ begin
         BigNumberPolynomialGaloisMul(P2, FNa1, FNa1, APrime, APrimitive);
         BigNumberPolynomialGaloisMul(P2, P2, FNs2, APrime, APrimitive);
 
-        BigNumberPolynomialGaloisSub(MY.Nominator, P1, P2, APrime, APrimitive); // MY 分子计算完毕
+        BigNumberPolynomialGaloisSub(MY.Numerator, P1, P2, APrime, APrimitive); // MY 分子计算完毕
       end;
 
       BigNumberPolynomialGaloisPower(MY.Denominator, FN, 3, APrime, APrimitive);
@@ -8900,7 +8900,7 @@ begin
 
   if APrimitive <> nil then
   begin
-    BigNumberPolynomialGaloisMod(MY.Nominator, MY.Nominator, APrimitive, APrime);
+    BigNumberPolynomialGaloisMod(MY.Numerator, MY.Numerator, APrimitive, APrime);
     BigNumberPolynomialGaloisMod(MY.Denominator, MY.Denominator, APrimitive, APrime);
   end;
 
@@ -8910,7 +8910,7 @@ begin
 
   if APrimitive <> nil then
   begin
-    BigNumberPolynomialGaloisMod(Res.Nominator, Res.Nominator, APrimitive, APrime);
+    BigNumberPolynomialGaloisMod(Res.Numerator, Res.Numerator, APrimitive, APrime);
     BigNumberPolynomialGaloisMod(Res.Denominator, Res.Denominator, APrimitive, APrime);
   end;
 end;
@@ -9036,27 +9036,27 @@ begin
       LDP := TCnBigNumberPolynomial(DPs[L]);
 
       Pi2PX.SetOne;                           // 原始点
-      Pi2PX.Nominator.SetCoefficents([0, 1]); // x
+      Pi2PX.Numerator.SetCoefficents([0, 1]); // x
       Pi2PY.Setone;                           // 1 * y
 
       // 算得 π^2 的 X 坐标在 LDP 环内的表达分式，也就是 Q*Q 个 x 相乘再 mod LDP
-      BigNumberPolynomialGaloisPower(Pi2PX.Nominator, Pi2PX.Nominator, Q, Q, LDP);
-      BigNumberPolynomialGaloisPower(Pi2PX.Nominator, Pi2PX.Nominator, Q, Q, LDP);  // 直接 Q*Q 容易溢出，分步算
+      BigNumberPolynomialGaloisPower(Pi2PX.Numerator, Pi2PX.Numerator, Q, Q, LDP);
+      BigNumberPolynomialGaloisPower(Pi2PX.Numerator, Pi2PX.Numerator, Q, Q, LDP);  // 直接 Q*Q 容易溢出，分步算
 
       // 算得 π^2 的 Y 坐标在 LDP 环内的表达分式，Q*Q 个 y 相乘等于 y * [(Q*Q shr 1) 个 y^2 相乘]，而 y^2 可替换成 x^3+Ax+B
       BigNumberMul(BQ, Q, Q);
       BigNumberShiftRightOne(BQ, BQ);
-      BigNumberPolynomialGaloisPower(Pi2PY.Nominator, Y2, BQ, Q, LDP);
+      BigNumberPolynomialGaloisPower(Pi2PY.Numerator, Y2, BQ, Q, LDP);
 
       KPX.SetOne;                             // 原始点
-      KPX.Nominator.SetCoefficents([0, 1]);   // x
+      KPX.Numerator.SetCoefficents([0, 1]);   // x
       KPY.SetOne;                             // 1 * y
 
       // 算得 K * P 的 X Y 坐标
       TCnPolynomialEcc.RationalMultiplePoint(K, KPX, KPY, A, B, Q, LDP);
 
       PiPX.SetOne;                            // 原始点
-      PiPX.Nominator.SetCoefficents([0, 1]);  // x
+      PiPX.Numerator.SetCoefficents([0, 1]);  // x
       PiPY.Setone;                            // 1 * y
 
       // 求 π^2(P) + K * (P) 的和点 SX SY
@@ -9069,11 +9069,11 @@ begin
       else
       begin
         // 算得 π的 X 坐标在 LDP 环内的表达分式，也就是 Q 个 x 相乘再 mod LDP
-        BigNumberPolynomialGaloisPower(PiPX.Nominator, PiPX.Nominator, Q, Q, LDP);
+        BigNumberPolynomialGaloisPower(PiPX.Numerator, PiPX.Numerator, Q, Q, LDP);
 
         // 算得 π的 Y 坐标在 LDP 环内的表达分式，Q 个 y 相乘等于 y * [(Q shr 1) 个 y^2 相乘]，而 y^2 可替换成 x^3+Ax+B
         BigNumberShiftRightOne(BQ, Q);
-        BigNumberPolynomialGaloisPower(PiPY.Nominator, Y2, BQ, Q, LDP);
+        BigNumberPolynomialGaloisPower(PiPY.Numerator, Y2, BQ, Q, LDP);
 
         BigNumberRationalPolynomialCopy(RSX, PiPX);
         BigNumberRationalPolynomialCopy(RSY, PiPY);
@@ -9285,20 +9285,20 @@ begin
       LDP := TCnBigNumberPolynomial(DPs[L]);
 
       Pi2PX.SetOne;                           // 原始点
-      Pi2PX.Nominator.SetCoefficents([0, 1]); // x
+      Pi2PX.Numerator.SetCoefficents([0, 1]); // x
       Pi2PY.Setone;                           // 1 * y
 
       // 算得 π^2 的 X 坐标在 LDP 环内的表达分式，也就是 Q*Q 个 x 相乘再 mod LDP
-      BigNumberPolynomialGaloisPower(Pi2PX.Nominator, Pi2PX.Nominator, Q, Q, LDP);
-      BigNumberPolynomialGaloisPower(Pi2PX.Nominator, Pi2PX.Nominator, Q, Q, LDP);  // 直接 Q*Q 容易溢出，分步算
+      BigNumberPolynomialGaloisPower(Pi2PX.Numerator, Pi2PX.Numerator, Q, Q, LDP);
+      BigNumberPolynomialGaloisPower(Pi2PX.Numerator, Pi2PX.Numerator, Q, Q, LDP);  // 直接 Q*Q 容易溢出，分步算
 
       // 算得 π^2 的 Y 坐标在 LDP 环内的表达分式，Q*Q 个 y 相乘等于 y * [(Q*Q shr 1) 个 y^2 相乘]，而 y^2 可替换成 x^3+Ax+B
       BigNumberMul(BQ, Q, Q);
       BigNumberShiftRightOne(BQ, BQ);
-      BigNumberPolynomialGaloisPower(Pi2PY.Nominator, Y2, BQ, Q, LDP);
+      BigNumberPolynomialGaloisPower(Pi2PY.Numerator, Y2, BQ, Q, LDP);
 
       KPX.SetOne;                             // 原始点
-      KPX.Nominator.SetCoefficents([0, 1]);   // x
+      KPX.Numerator.SetCoefficents([0, 1]);   // x
       KPY.SetOne;                             // 1 * y
 
       // 算得 K * P 的 X Y 坐标，这里 K 相当于 Wikepedia 步骤中的 q 杆
@@ -9318,15 +9318,15 @@ begin
         // 存在二次剩余，t 为正负 2W，判断其符号，要计算 W *  π的 X 和 Y 坐标
 
         PiPX.SetOne;                            // 原始点
-        PiPX.Nominator.SetCoefficents([0, 1]);  // x
+        PiPX.Numerator.SetCoefficents([0, 1]);  // x
         PiPY.Setone;                            // 1 * y
 
         // 算得 π的 X 坐标在 LDP 环内的表达分式，也就是 Q 个 x 相乘再 mod LDP
-        BigNumberPolynomialGaloisPower(PiPX.Nominator, PiPX.Nominator, Q, Q, LDP);
+        BigNumberPolynomialGaloisPower(PiPX.Numerator, PiPX.Numerator, Q, Q, LDP);
 
         // 算得 π的 Y 坐标在 LDP 环内的表达分式，Q 个 y 相乘等于 y * [(Q shr 1) 个 y^2 相乘]，而 y^2 可替换成 x^3+Ax+B
         BigNumberShiftRightOne(BQ, Q);
-        BigNumberPolynomialGaloisPower(PiPY.Nominator, Y2, BQ, Q, LDP);
+        BigNumberPolynomialGaloisPower(PiPY.Numerator, Y2, BQ, Q, LDP);
 
         // 复制过去后乘 W 倍点
         BigNumberRationalPolynomialCopy(WPiPX, PiPX);
@@ -9357,15 +9357,15 @@ begin
         TCnPolynomialEcc.RationalPointAddPoint(Pi2PX, Pi2PY, KPX, KPY, LSX, LSY, A, B, Q, LDP);
 
         PiPX.SetOne;                            // 原始点
-        PiPX.Nominator.SetCoefficents([0, 1]);  // x
+        PiPX.Numerator.SetCoefficents([0, 1]);  // x
         PiPY.Setone;                            // 1 * y
 
         // 算得 π的 X 坐标在 LDP 环内的表达分式，也就是 Q 个 x 相乘再 mod LDP
-        BigNumberPolynomialGaloisPower(PiPX.Nominator, PiPX.Nominator, Q, Q, LDP);
+        BigNumberPolynomialGaloisPower(PiPX.Numerator, PiPX.Numerator, Q, Q, LDP);
 
         // 算得 π的 Y 坐标在 LDP 环内的表达分式，Q 个 y 相乘等于 y * [(Q shr 1) 个 y^2 相乘]，而 y^2 可替换成 x^3+Ax+B
         BigNumberShiftRightOne(BQ, Q);
-        BigNumberPolynomialGaloisPower(PiPY.Nominator, Y2, BQ, Q, LDP);
+        BigNumberPolynomialGaloisPower(PiPY.Numerator, Y2, BQ, Q, LDP);
 
         BigNumberRationalPolynomialCopy(RSX, PiPX);
         BigNumberRationalPolynomialCopy(RSY, PiPY);

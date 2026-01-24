@@ -59,7 +59,7 @@ type
     grpRationalPolynomial: TGroupBox;
     btnRP2Point: TButton;
     bvl3: TBevel;
-    edtRationalNominator1: TEdit;
+    edtRationalNumerator1: TEdit;
     lbl1: TLabel;
     edtRationalDenominator1: TEdit;
     btnRationalPolynomialAdd: TButton;
@@ -68,13 +68,13 @@ type
     btnRationalPolynomialDiv: TButton;
     chkRationalPolynomialGalois: TCheckBox;
     edtRationalPolynomialPrime: TEdit;
-    edtRationalNominator2: TEdit;
+    edtRationalNumerator2: TEdit;
     lbl2: TLabel;
     edtRationalDenominator2: TEdit;
     lbl3: TLabel;
     lbl4: TLabel;
     btnRationalPolynomialGenerate: TButton;
-    edtRationalResultNominator: TEdit;
+    edtRationalResultNumerator: TEdit;
     edtRationalResultDenominator: TEdit;
     btnManualOnCurve: TButton;
     btnCheckDivisionPolynomialZero: TButton;
@@ -148,7 +148,7 @@ type
     btnBNTestPointAdd: TButton;
     btnBNTestManualPoint: TButton;
     lbl5: TLabel;
-    edtBNRationalNominator1: TEdit;
+    edtBNRationalNumerator1: TEdit;
     edtBNRationalDenominator1: TEdit;
     btnBNRationalGenerate: TButton;
     btnBNRationalAdd: TButton;
@@ -157,11 +157,11 @@ type
     btnBNRationalDiv: TButton;
     chkBNRationalGalois: TCheckBox;
     edtBNRationalGalois: TEdit;
-    edtBNRationalNominator2: TEdit;
+    edtBNRationalNumerator2: TEdit;
     edtBNRationalDenominator2: TEdit;
     lbl6: TLabel;
     lbl7: TLabel;
-    edtBNRationalResultNominator: TEdit;
+    edtBNRationalResultNumerator: TEdit;
     edtBNRationalResultDenominator: TEdit;
     bvl7: TBevel;
     btnBNTestRationalPointAdd1: TButton;
@@ -1398,7 +1398,7 @@ begin
   Y := TCnInt64RationalPolynomial.Create;
 
   X.SetOne;
-  X.Nominator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficents([0, 1]);
   Y.SetOne;
 
   TCnInt64PolynomialEcc.RationalMultiplePoint(2, X, Y, 1, 1, 23);
@@ -1415,7 +1415,7 @@ begin
   ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 16 对了
 
   X.SetOne;
-  X.Nominator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficents([0, 1]);
   Y.SetOne;
 
   TCnInt64PolynomialEcc.RationalMultiplePoint(3, X, Y, 1, 1, 23);
@@ -1432,7 +1432,7 @@ begin
   ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 11 对了
 
   X.SetOne;
-  X.Nominator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficents([0, 1]);
   Y.SetOne;
 
   TCnInt64PolynomialEcc.RationalMultiplePoint(4, X, Y, 1, 1, 23);
@@ -1449,7 +1449,7 @@ begin
   ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 19
 
   X.SetOne;
-  X.Nominator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficents([0, 1]);
   Y.SetOne;
 
   TCnInt64PolynomialEcc.RationalMultiplePoint(5, X, Y, 1, 1, 23);
@@ -1483,14 +1483,14 @@ begin
   Randomize;
   for I := 0 to D do
   begin
-    FRP1.Nominator.Add(Random(16) - 1);
-    FRP2.Nominator.Add(Random(16) - 1);
+    FRP1.Numerator.Add(Random(16) - 1);
+    FRP2.Numerator.Add(Random(16) - 1);
     FRP1.Denominator.Add(Random(16) - 1);
     FRP2.Denominator.Add(Random(16) - 1);
   end;
 
-  edtRationalNominator1.Text := FRP1.Nominator.ToString;
-  edtRationalNominator2.Text := FRP2.Nominator.ToString;
+  edtRationalNumerator1.Text := FRP1.Numerator.ToString;
+  edtRationalNumerator2.Text := FRP2.Numerator.ToString;
   edtRationalDenominator1.Text := FRP1.Denominator.ToString;
   edtRationalDenominator2.Text := FRP2.Denominator.ToString;
 end;
@@ -1501,7 +1501,7 @@ begin
     Int64RationalPolynomialGaloisAdd(FRP1, FRP2, FRP3, StrToInt(edtRationalPolynomialPrime.Text))
   else
     Int64RationalPolynomialAdd(FRP1, FRP2, FRP3);
-  edtRationalResultNominator.Text := FRP3.Nominator.ToString;
+  edtRationalResultNumerator.Text := FRP3.Numerator.ToString;
   edtRationalResultDenominator.Text := FRP3.Denominator.ToString;
 end;
 
@@ -1511,7 +1511,7 @@ begin
     Int64RationalPolynomialGaloisSub(FRP1, FRP2, FRP3, StrToInt(edtRationalPolynomialPrime.Text))
   else
     Int64RationalPolynomialSub(FRP1, FRP2, FRP3);
-  edtRationalResultNominator.Text := FRP3.Nominator.ToString;
+  edtRationalResultNumerator.Text := FRP3.Numerator.ToString;
   edtRationalResultDenominator.Text := FRP3.Denominator.ToString;
 end;
 
@@ -1521,7 +1521,7 @@ begin
     Int64RationalPolynomialGaloisMul(FRP1, FRP2, FRP3, StrToInt(edtRationalPolynomialPrime.Text))
   else
     Int64RationalPolynomialMul(FRP1, FRP2, FRP3);
-  edtRationalResultNominator.Text := FRP3.Nominator.ToString;
+  edtRationalResultNumerator.Text := FRP3.Numerator.ToString;
   edtRationalResultDenominator.Text := FRP3.Denominator.ToString;
 end;
 
@@ -1531,7 +1531,7 @@ begin
     Int64RationalPolynomialGaloisDiv(FRP1, FRP2, FRP3, StrToInt(edtRationalPolynomialPrime.Text))
   else
     Int64RationalPolynomialDiv(FRP1, FRP2, FRP3);
-  edtRationalResultNominator.Text := FRP3.Nominator.ToString;
+  edtRationalResultNumerator.Text := FRP3.Numerator.ToString;
   edtRationalResultDenominator.Text := FRP3.Denominator.ToString;
 end;
 
@@ -1557,10 +1557,10 @@ begin
   Q := 23;   // 有限域F23上的 Y^2=X^3+X+1  （6，19）* 2 = （13，16）
 
   // 先求整数域
-  X.Nominator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
+  X.Numerator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
   X.Denominator.SetCoefficents([4*B, 4*A, 0, 4]);         //        4X3 + 4AX + 4B
 
-  Y.Nominator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
+  Y.Numerator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
   Y.Denominator.SetCoefficents([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
 
   Y2.SetCoefficents([B, A, 0, 1]);
@@ -1584,12 +1584,12 @@ begin
   ShowMessage(RR.ToString);
 
   // RL/RR 在整数域内有除式不等，换 Fq 看看，原始点（6，19），二倍点公式套上去得到（13，16）
-  X.Nominator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
+  X.Numerator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
   X.Denominator.SetCoefficents([4*B, 4*A, 0, 4]);          //        4X3 + 4AX + 4B
   ShowMessage('2*X (X=6) using Division Polynomial is '
     + IntToStr(Int64RationalPolynomialGaloisGetValue(X, 6, Q))); // 得到 13 对了
 
-  Y.Nominator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
+  Y.Numerator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
   Y.Denominator.SetCoefficents([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
   ShowMessage('2*Y (X=6) using Division Polynomial is '
     + IntToStr((Int64RationalPolynomialGaloisGetValue(Y, 6, Q) * 19) mod Q)); // 得到 16 对了
@@ -1779,8 +1779,8 @@ begin
   ShowMessage('DP5: ' + DP.ToString);
 
   X.Denominator.SetOne;
-  X.Nominator.SetCoefficents([0, 1]);
-  Y.Nominator.SetOne;
+  X.Numerator.SetCoefficents([0, 1]);
+  Y.Numerator.SetOne;
   Y.Denominator.SetCoefficents([1]);     // ( x/1, 1/1 *y)
 
   ShowMessage('P2:');
@@ -1889,11 +1889,11 @@ begin
   // ShowMessage(RY.ToString);              // 得到 2P 的 X 和 Y 坐标的有理形式
 
   Int64PolynomialGaloisModularInverse(X, RX.Denominator, DP, 97);
-  Int64PolynomialGaloisMul(X, X, RX.Nominator, 97, DP);
+  Int64PolynomialGaloisMul(X, X, RX.Numerator, 97, DP);
   ShowMessage(X.ToString);               // 用模逆多项式将 2P 的 X 坐标转换为多项式，得到正确结果
 
   Int64PolynomialGaloisModularInverse(Y, RY.Denominator, DP, 97);
-  Int64PolynomialGaloisMul(Y, Y, RY.Nominator, 97, DP);
+  Int64PolynomialGaloisMul(Y, Y, RY.Numerator, 97, DP);
   ShowMessage(Y.ToString);               // 用模逆多项式将 2P 的 Y 坐标转换为多项式，得到正确结果
 
   // 不能简单相加，得判断两个 X 是否相等，直接判断模系数等式？
@@ -1976,17 +1976,17 @@ begin
 
   // 比较 '6X^11+20X^10+13X^9+20X^8+15X^7+X^6+25X^5+2X^4+13X^3+7X^2+25X+13 / 21X^11+5X^10+12X^9+4X^8+5X^7+23X^6+17X^5+11X^4+22X^3+23X^2+16X+6'
   // 和 27x^11,23x^10,12x^9,10x^8,14x^7,10x^6,21x^5,0x^4,16x^3,17x^2,28x^1,18x^0 / 1x^11,14x^10,9x^9,6x^8,25x^7,3x^6,9x^5,25x^4,0x^3,25x^2,25x^1,6x^0
-  A.Nominator.SetCoefficents([13,25,7,13,2,25,1,15,20,13,20,6]);
+  A.Numerator.SetCoefficents([13,25,7,13,2,25,1,15,20,13,20,6]);
   A.Denominator.SetCoefficents([6,16,23,22,11,17,23,5,4,12,5,21]);
 
-  B.Nominator.SetCoefficents([18,28,17,16,0,21,10,14,10,12,23,27]);
+  B.Numerator.SetCoefficents([18,28,17,16,0,21,10,14,10,12,23,27]);
   B.Denominator.SetCoefficents([6,25,25,0,25,9,3,25,6,9,14,1]);
 
   TI1 := TCnInt64Polynomial.Create;
   TI2 := TCnInt64Polynomial.Create;
 
-  Int64PolynomialGaloisMul(TI1, A.Nominator, B.Denominator, 29, DP);
-  Int64PolynomialGaloisMul(TI2, A.Denominator, B.Nominator, 29, DP);
+  Int64PolynomialGaloisMul(TI1, A.Numerator, B.Denominator, 29, DP);
+  Int64PolynomialGaloisMul(TI2, A.Denominator, B.Numerator, 29, DP);
 
   if Int64PolynomialGaloisEqual(TI1, TI2, 29) then
     ShowMessage('Equal')  // 应该得到 Equal
@@ -3257,7 +3257,7 @@ begin
   FQ.SetWord(23);
 
   X.SetOne;
-  X.Nominator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficents([0, 1]);
   Y.SetOne;
 
   TCnPolynomialEcc.RationalMultiplePoint(2, X, Y, A, B, FQ);
@@ -3279,7 +3279,7 @@ begin
   ShowMessage(Res.ToDec);  // 得到 16 对了
 
   X.SetOne;
-  X.Nominator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficents([0, 1]);
   Y.SetOne;
 
   TCnPolynomialEcc.RationalMultiplePoint(3, X, Y, A, B, FQ);
@@ -3300,7 +3300,7 @@ begin
   ShowMessage(Res.ToDec);   // 得到 11 对了
 
   X.SetOne;
-  X.Nominator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficents([0, 1]);
   Y.SetOne;
 
   TCnPolynomialEcc.RationalMultiplePoint(4, X, Y, A, B, FQ);
@@ -3321,7 +3321,7 @@ begin
   ShowMessage(Res.ToDec);   // 得到 19
 
   X.SetOne;
-  X.Nominator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficents([0, 1]);
   Y.SetOne;
 
   TCnPolynomialEcc.RationalMultiplePoint(5, X, Y, A, B, FQ);
@@ -3371,10 +3371,10 @@ begin
   V := TCnBigNumber.Create;
 
   // 先求整数域
-  X.Nominator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
+  X.Numerator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
   X.Denominator.SetCoefficents([4*B, 4*A, 0, 4]);         //        4X3 + 4AX + 4B
 
-  Y.Nominator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
+  Y.Numerator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
   Y.Denominator.SetCoefficents([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
 
   Y2.SetCoefficents([B, A, 0, 1]);
@@ -3398,13 +3398,13 @@ begin
   ShowMessage(RR.ToString);
 
   // RL/RR 在整数域内有除式不等，换 Fq 看看，原始点（6，19），二倍点公式套上去得到（13，16）
-  X.Nominator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
+  X.Numerator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
   X.Denominator.SetCoefficents([4*B, 4*A, 0, 4]);          //        4X3 + 4AX + 4B
   V.SetWord(6);
   BigNumberRationalPolynomialGaloisGetValue(Res, X, V, FQ);
   ShowMessage('2*X (X=6) using Division Polynomial is ' + Res.ToDec); // 得到 13 对了
 
-  Y.Nominator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
+  Y.Numerator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
   Y.Denominator.SetCoefficents([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
   BigNumberRationalPolynomialGaloisGetValue(Res, Y, V, FQ);
   BigNumberMulWord(Res, 19);
@@ -3468,14 +3468,14 @@ begin
   Randomize;
   for I := 0 to D do
   begin
-    FBRP1.Nominator.Add.SetInteger(Random(16) - 1);
-    FBRP2.Nominator.Add.SetInteger(Random(16) - 1);
+    FBRP1.Numerator.Add.SetInteger(Random(16) - 1);
+    FBRP2.Numerator.Add.SetInteger(Random(16) - 1);
     FBRP1.Denominator.Add.SetInteger(Random(16) - 1);
     FBRP2.Denominator.Add.SetInteger(Random(16) - 1);
   end;
 
-  edtBNRationalNominator1.Text := FBRP1.Nominator.ToString;
-  edtBNRationalNominator2.Text := FBRP2.Nominator.ToString;
+  edtBNRationalNumerator1.Text := FBRP1.Numerator.ToString;
+  edtBNRationalNumerator2.Text := FBRP2.Numerator.ToString;
   edtBNRationalDenominator1.Text := FBRP1.Denominator.ToString;
   edtBNRationalDenominator2.Text := FBRP2.Denominator.ToString;
 end;
@@ -3487,7 +3487,7 @@ begin
     BigNumberRationalPolynomialGaloisAdd(FBRP1, FBRP2, FBRP3, FQ)
   else
     BigNumberRationalPolynomialAdd(FBRP1, FBRP2, FBRP3);
-  edtBNRationalResultNominator.Text := FBRP3.Nominator.ToString;
+  edtBNRationalResultNumerator.Text := FBRP3.Numerator.ToString;
   edtBNRationalResultDenominator.Text := FBRP3.Denominator.ToString;
 end;
 
@@ -3498,7 +3498,7 @@ begin
     BigNumberRationalPolynomialGaloisSub(FBRP1, FBRP2, FBRP3, FQ)
   else
     BigNumberRationalPolynomialSub(FBRP1, FBRP2, FBRP3);
-  edtBNRationalResultNominator.Text := FBRP3.Nominator.ToString;
+  edtBNRationalResultNumerator.Text := FBRP3.Numerator.ToString;
   edtBNRationalResultDenominator.Text := FBRP3.Denominator.ToString;
 end;
 
@@ -3509,7 +3509,7 @@ begin
     BigNumberRationalPolynomialGaloisMul(FBRP1, FBRP2, FBRP3, FQ)
   else
     BigNumberRationalPolynomialMul(FBRP1, FBRP2, FBRP3);
-  edtBNRationalResultNominator.Text := FBRP3.Nominator.ToString;
+  edtBNRationalResultNumerator.Text := FBRP3.Numerator.ToString;
   edtBNRationalResultDenominator.Text := FBRP3.Denominator.ToString;
 end;
 
@@ -3520,7 +3520,7 @@ begin
     BigNumberRationalPolynomialGaloisDiv(FBRP1, FBRP2, FBRP3, FQ)
   else
     BigNumberRationalPolynomialDiv(FBRP1, FBRP2, FBRP3);
-  edtBNRationalResultNominator.Text := FBRP3.Nominator.ToString;
+  edtBNRationalResultNumerator.Text := FBRP3.Numerator.ToString;
   edtBNRationalResultDenominator.Text := FBRP3.Denominator.ToString;
 end;
 
@@ -3555,8 +3555,8 @@ begin
   ShowMessage('DP5: ' + DP.ToString);
 
   X.Denominator.SetOne;
-  X.Nominator.SetCoefficents([0, 1]);
-  Y.Nominator.SetOne;
+  X.Numerator.SetCoefficents([0, 1]);
+  Y.Numerator.SetOne;
   Y.Denominator.SetCoefficents([1]);     // ( x/1, 1/1 *y)
 
   ShowMessage('P2:');
@@ -3673,11 +3673,11 @@ begin
   // ShowMessage(RY.ToString);              // 得到 2P 的 X 和 Y 坐标的有理形式
 
   BigNumberPolynomialGaloisModularInverse(X, RX.Denominator, DP, FQ);
-  BigNumberPolynomialGaloisMul(X, X, RX.Nominator, FQ, DP);
+  BigNumberPolynomialGaloisMul(X, X, RX.Numerator, FQ, DP);
   ShowMessage(X.ToString);               // 用模逆多项式将 2P 的 X 坐标转换为多项式，得到正确结果
 
   BigNumberPolynomialGaloisModularInverse(Y, RY.Denominator, DP, FQ);
-  BigNumberPolynomialGaloisMul(Y, Y, RY.Nominator, FQ, DP);
+  BigNumberPolynomialGaloisMul(Y, Y, RY.Numerator, FQ, DP);
   ShowMessage(Y.ToString);               // 用模逆多项式将 2P 的 Y 坐标转换为多项式，得到正确结果
 
   // 不能简单相加，得判断两个 X 是否相等，直接判断模系数等式？
@@ -3716,17 +3716,17 @@ begin
 
   // 比较 '6X^11+20X^10+13X^9+20X^8+15X^7+X^6+25X^5+2X^4+13X^3+7X^2+25X+13 / 21X^11+5X^10+12X^9+4X^8+5X^7+23X^6+17X^5+11X^4+22X^3+23X^2+16X+6'
   // 和 27x^11,23x^10,12x^9,10x^8,14x^7,10x^6,21x^5,0x^4,16x^3,17x^2,28x^1,18x^0 / 1x^11,14x^10,9x^9,6x^8,25x^7,3x^6,9x^5,25x^4,0x^3,25x^2,25x^1,6x^0
-  A.Nominator.SetCoefficents([13,25,7,13,2,25,1,15,20,13,20,6]);
+  A.Numerator.SetCoefficents([13,25,7,13,2,25,1,15,20,13,20,6]);
   A.Denominator.SetCoefficents([6,16,23,22,11,17,23,5,4,12,5,21]);
 
-  B.Nominator.SetCoefficents([18,28,17,16,0,21,10,14,10,12,23,27]);
+  B.Numerator.SetCoefficents([18,28,17,16,0,21,10,14,10,12,23,27]);
   B.Denominator.SetCoefficents([6,25,25,0,25,9,3,25,6,9,14,1]);
 
   TI1 := TCnBigNumberPolynomial.Create;
   TI2 := TCnBigNumberPolynomial.Create;
 
-  BignumberPolynomialGaloisMul(TI1, A.Nominator, B.Denominator, FQ, DP);
-  BignumberPolynomialGaloisMul(TI2, A.Denominator, B.Nominator, FQ, DP);
+  BignumberPolynomialGaloisMul(TI1, A.Numerator, B.Denominator, FQ, DP);
+  BignumberPolynomialGaloisMul(TI2, A.Denominator, B.Numerator, FQ, DP);
 
   if BignumberPolynomialGaloisEqual(TI1, TI2, FQ) then
     ShowMessage('Equal')  // 应该得到 Equal
@@ -3754,13 +3754,13 @@ end;
 
 procedure TFormPolynomial.btnRationalSetStringClick(Sender: TObject);
 begin
-  FRP1.SetString(edtRationalNominator1.Text + ' / ' + edtRationalDenominator1.Text);
+  FRP1.SetString(edtRationalNumerator1.Text + ' / ' + edtRationalDenominator1.Text);
   ShowMessage(FRP1.ToString);
 end;
 
 procedure TFormPolynomial.btnBNRationalSetStringClick(Sender: TObject);
 begin
-  FBRP1.SetString(edtBNRationalNominator1.Text + ' / ' + edtBNRationalDenominator1.Text);
+  FBRP1.SetString(edtBNRationalNumerator1.Text + ' / ' + edtBNRationalDenominator1.Text);
   ShowMessage(FBRP1.ToString);
 end;
 
@@ -3968,8 +3968,8 @@ begin
     begin
       mmoEcc.Lines.Add('For Simple Polynomial:');
 
-      X.Nominator.SetCoefficents([0, 1]);
-      Y.Nominator.SetCoefficents([1]);        // (x, 1*y)，在曲线上，下面的多倍点都在曲线上
+      X.Numerator.SetCoefficents([0, 1]);
+      Y.Numerator.SetCoefficents([1]);        // (x, 1*y)，在曲线上，下面的多倍点都在曲线上
       K := 4;
     end
     else
@@ -3977,14 +3977,14 @@ begin
       mmoEcc.Lines.Add('');
       mmoEcc.Lines.Add('For Complex Polynomial:');
 
-      X.Nominator.MaxDegree := Q;             // (x^q, y^q)，是否也在曲线上？
-      Y.Nominator.MaxDegree := Q;             // 其中 y^q = (y^2)^(q-1)/2 * y
-      X.Nominator[Q] := 1;                    // y^2 可以替换成 x^3+Ax+B
+      X.Numerator.MaxDegree := Q;             // (x^q, y^q)，是否也在曲线上？
+      Y.Numerator.MaxDegree := Q;             // 其中 y^q = (y^2)^(q-1)/2 * y
+      X.Numerator[Q] := 1;                    // y^2 可以替换成 x^3+Ax+B
 
       TY2 := TCnInt64Polynomial.Create([B, A, 0, 1]);
       Int64PolynomialGaloisMul(TY2, TY2, TY2, Q); // 得到 y^2
 
-      Int64PolynomialGaloisPower(Y.Nominator, TY2, (Q - 1) shr 1, Q);
+      Int64PolynomialGaloisPower(Y.Numerator, TY2, (Q - 1) shr 1, Q);
       TY2.Free;
 
       // 先判断该点在曲线上

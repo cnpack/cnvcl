@@ -234,7 +234,7 @@ type
   TCnInt64RationalPolynomial = class(TPersistent)
   {* 一元整系数有理分式，分母分子分别为一元整系数多项式}
   private
-    FNominator: TCnInt64Polynomial;
+    FNumerator: TCnInt64Polynomial;
     FDenominator: TCnInt64Polynomial;
   protected
     procedure AssignTo(Dest: TPersistent); override;
@@ -304,7 +304,7 @@ type
        返回值：（无）
     }
 
-    property Nominator: TCnInt64Polynomial read FNominator;
+    property Numerator: TCnInt64Polynomial read FNumerator;
     {* 分子式}
     property Denominator: TCnInt64Polynomial read FDenominator;
     {* 分母式}
@@ -477,7 +477,7 @@ type
   TCnBigNumberRationalPolynomial = class(TPersistent)
   {* 一元大整系数有理分式，分母分子分别为一元大整系数多项式}
   private
-    FNominator: TCnBigNumberPolynomial;
+    FNumerator: TCnBigNumberPolynomial;
     FDenominator: TCnBigNumberPolynomial;
   protected
     procedure AssignTo(Dest: TPersistent); override;
@@ -547,7 +547,7 @@ type
        返回值：（无）
     }
 
-    property Nominator: TCnBigNumberPolynomial read FNominator;
+    property Numerator: TCnBigNumberPolynomial read FNumerator;
     {* 分子多项式}
     property Denominator: TCnBigNumberPolynomial read FDenominator;
     {* 分母多项式}
@@ -3939,13 +3939,24 @@ type
        返回值：（无）
     }
 
-    procedure SetXYCoefficent(XDegree: Integer; YDegree: Integer; ACoefficient: TCnBigNumber);
+    procedure SetXYCoefficent(XDegree: Integer; YDegree: Integer; ACoefficient: Int64); overload;
     {* 针对特定次数的 X 和 Y，设置其系数。
 
        参数：
          XDegree: Integer                 - X 次数
          YDegree: Integer                 - Y 次数
-         ACoefficient: TCnBigNumber       - 系数
+         ACoefficient: Int64              - 整数系数
+
+       返回值：（无）
+    }
+
+    procedure SetXYCoefficent(XDegree: Integer; YDegree: Integer; ACoefficient: TCnBigNumber); overload;
+    {* 针对特定次数的 X 和 Y，设置其系数。
+
+       参数：
+         XDegree: Integer                 - X 次数
+         YDegree: Integer                 - Y 次数
+         ACoefficient: TCnBigNumber       - 大整数系数
 
        返回值：（无）
     }
@@ -6676,7 +6687,7 @@ procedure TCnInt64RationalPolynomial.AssignTo(Dest: TPersistent);
 begin
   if Dest is TCnInt64RationalPolynomial then
   begin
-    Int64PolynomialCopy(TCnInt64RationalPolynomial(Dest).Nominator, FNominator);
+    Int64PolynomialCopy(TCnInt64RationalPolynomial(Dest).Numerator, FNumerator);
     Int64PolynomialCopy(TCnInt64RationalPolynomial(Dest).Denominator, FDenominator);
   end
   else
@@ -6686,14 +6697,14 @@ end;
 constructor TCnInt64RationalPolynomial.Create;
 begin
   inherited;
-  FNominator := TCnInt64Polynomial.Create([0]);
+  FNumerator := TCnInt64Polynomial.Create([0]);
   FDenominator := TCnInt64Polynomial.Create([1]);
 end;
 
 destructor TCnInt64RationalPolynomial.Destroy;
 begin
   FDenominator.Free;
-  FNominator.Free;
+  FNumerator.Free;
   inherited;
 end;
 
@@ -6704,31 +6715,31 @@ end;
 
 function TCnInt64RationalPolynomial.IsOne: Boolean;
 begin
-  Result := not FNominator.IsZero and Int64PolynomialEqual(FNominator, FDenominator);
+  Result := not FNumerator.IsZero and Int64PolynomialEqual(FNumerator, FDenominator);
 end;
 
 function TCnInt64RationalPolynomial.IsZero: Boolean;
 begin
-  Result := not FDenominator.IsZero and FNominator.IsZero;
+  Result := not FDenominator.IsZero and FNumerator.IsZero;
 end;
 
 procedure TCnInt64RationalPolynomial.Neg;
 begin
-  FNominator.Negate;
+  FNumerator.Negate;
 end;
 
 procedure TCnInt64RationalPolynomial.Reciprocal;
 var
   T: TCnInt64Polynomial;
 begin
-  if FNominator.IsZero then
+  if FNumerator.IsZero then
     raise EDivByZero.Create(SDivByZero);
 
   T := FLocalInt64PolynomialPool.Obtain;
   try
     Int64PolynomialCopy(T, FDenominator);
-    Int64PolynomialCopy(FDenominator, FNominator);
-    Int64PolynomialCopy(FNominator, T);
+    Int64PolynomialCopy(FDenominator, FNumerator);
+    Int64PolynomialCopy(FNumerator, T);
   finally
     FLocalInt64PolynomialPool.Recycle(T);
   end;
@@ -6736,13 +6747,13 @@ end;
 
 procedure TCnInt64RationalPolynomial.Reduce;
 begin
-  Int64PolynomialReduce2(FNominator, FDenominator);
+  Int64PolynomialReduce2(FNumerator, FDenominator);
 end;
 
 procedure TCnInt64RationalPolynomial.SetOne;
 begin
   FDenominator.SetOne;
-  FNominator.SetOne;
+  FNumerator.SetOne;
 end;
 
 procedure TCnInt64RationalPolynomial.SetString(const Rational: string);
@@ -6756,12 +6767,12 @@ begin
     N := Copy(Rational, 1, P - 1);
     D := Copy(Rational, P + 1, MaxInt);
 
-    FNominator.SetString(Trim(N));
+    FNumerator.SetString(Trim(N));
     FDenominator.SetString(Trim(D));
   end
   else
   begin
-    FNominator.SetString(Rational);
+    FNumerator.SetString(Rational);
     FDenominator.SetOne;
   end;
 end;
@@ -6769,17 +6780,17 @@ end;
 procedure TCnInt64RationalPolynomial.SetZero;
 begin
   FDenominator.SetOne;
-  FNominator.SetZero;
+  FNumerator.SetZero;
 end;
 
 function TCnInt64RationalPolynomial.ToString: string;
 begin
   if FDenominator.IsOne then
-    Result := FNominator.ToString
-  else if FNominator.IsZero then
+    Result := FNumerator.ToString
+  else if FNumerator.IsZero then
     Result := '0'
   else
-    Result := FNominator.ToString + ' / ' + FDenominator.ToString;
+    Result := FNumerator.ToString + ' / ' + FDenominator.ToString;
 end;
 
 // ============================= 有理分式运算 ==================================
@@ -6796,7 +6807,7 @@ begin
 
   if R1.IsInt and R2.IsInt then
   begin
-    Result := Int64PolynomialEqual(R1.Nominator, R2.Nominator);
+    Result := Int64PolynomialEqual(R1.Numerator, R2.Numerator);
     Exit;
   end;
 
@@ -6805,8 +6816,8 @@ begin
 
   try
     // 判断分子分母互相乘的结果是否相等
-    Int64PolynomialMul(T1, R1.Nominator, R2.Denominator);
-    Int64PolynomialMul(T2, R2.Nominator, R1.Denominator);
+    Int64PolynomialMul(T1, R1.Numerator, R2.Denominator);
+    Int64PolynomialMul(T2, R2.Numerator, R1.Denominator);
     Result := Int64PolynomialEqual(T1, T2);
   finally
     FLocalInt64PolynomialPool.Recycle(T2);
@@ -6820,7 +6831,7 @@ begin
   Result := Dst;
   if Src <> Dst then
   begin
-    Int64PolynomialCopy(Dst.Nominator, Src.Nominator);
+    Int64PolynomialCopy(Dst.Numerator, Src.Numerator);
     Int64PolynomialCopy(Dst.Denominator, Src.Denominator);
   end;
 end;
@@ -6832,7 +6843,7 @@ var
 begin
   if R1.IsInt and R2.IsInt then
   begin
-    Int64PolynomialAdd(RationalResult.Nominator, R1.Nominator, R2.Nominator);
+    Int64PolynomialAdd(RationalResult.Numerator, R1.Numerator, R2.Numerator);
     RationalResult.Denominator.SetOne;
     Exit;
   end
@@ -6874,9 +6885,9 @@ begin
       Int64PolynomialDiv(F2, R, M, D2);
 
       Int64PolynomialCopy(RationalResult.Denominator, M);
-      Int64PolynomialMul(R, R1.Nominator, F1);
-      Int64PolynomialMul(M, R2.Nominator, F2);
-      Int64PolynomialAdd(RationalResult.Nominator, R, M);
+      Int64PolynomialMul(R, R1.Numerator, F1);
+      Int64PolynomialMul(M, R2.Numerator, F2);
+      Int64PolynomialAdd(RationalResult.Numerator, R, M);
     finally
       FLocalInt64PolynomialPool.Recycle(M);
       FLocalInt64PolynomialPool.Recycle(R);
@@ -6891,16 +6902,16 @@ end;
 procedure Int64RationalPolynomialSub(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial);
 begin
-  R2.Nominator.Negate;
+  R2.Numerator.Negate;
   Int64RationalPolynomialAdd(R1, R2, RationalResult);
   if RationalResult <> R2 then
-    R2.Nominator.Negate;
+    R2.Numerator.Negate;
 end;
 
 procedure Int64RationalPolynomialMul(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial);
 begin
-  Int64PolynomialMul(RationalResult.Nominator, R1.Nominator, R2.Nominator);
+  Int64PolynomialMul(RationalResult.Numerator, R1.Numerator, R2.Numerator);
   Int64PolynomialMul(RationalResult.Denominator, R1.Denominator, R2.Denominator);
 end;
 
@@ -6914,9 +6925,9 @@ begin
 
   N := FLocalInt64PolynomialPool.Obtain; // 交叉相乘，必须用中间变量，防止 RationalResult 是 Number1 或 Number 2
   try
-    Int64PolynomialMul(N, R1.Nominator, R2.Denominator);
-    Int64PolynomialMul(RationalResult.Denominator, R1.Denominator, R2.Nominator);
-    Int64PolynomialCopy(RationalResult.Nominator, N);
+    Int64PolynomialMul(N, R1.Numerator, R2.Denominator);
+    Int64PolynomialMul(RationalResult.Denominator, R1.Denominator, R2.Numerator);
+    Int64PolynomialCopy(RationalResult.Numerator, N);
   finally
     FLocalInt64PolynomialPool.Recycle(N);
   end;
@@ -6995,7 +7006,7 @@ begin
   T := FLocalInt64RationalPolynomialPool.Obtain;
   try
     T.Denominator.SetOne;
-    Int64PolynomialCopy(T.Nominator, P1);
+    Int64PolynomialCopy(T.Numerator, P1);
     Int64RationalPolynomialAdd(R1, T, RationalResult);
   finally
     FLocalInt64RationalPolynomialPool.Recycle(T);
@@ -7022,7 +7033,7 @@ begin
     RationalResult.Assign(R1)
   else
   begin
-    Int64PolynomialMul(RationalResult.Nominator, R1.Nominator, P1);
+    Int64PolynomialMul(RationalResult.Numerator, R1.Numerator, P1);
     Int64PolynomialCopy(RationalResult.Denominator, R1.Denominator);
   end;
 end;
@@ -7038,7 +7049,7 @@ begin
   else
   begin
     Int64PolynomialMul(RationalResult.Denominator, R1.Denominator, P1);
-    Int64PolynomialCopy(RationalResult.Nominator, R1.Nominator);
+    Int64PolynomialCopy(RationalResult.Numerator, R1.Numerator);
   end;
 end;
 
@@ -7048,18 +7059,18 @@ var
   RN, RD: TCnInt64RationalPolynomial;
 begin
   if P.IsInt then
-    Result := Int64RationalPolynomialCompose(Res, F, P.Nominator)
+    Result := Int64RationalPolynomialCompose(Res, F, P.Numerator)
   else
   begin
     RD := FLocalInt64RationalPolynomialPool.Obtain;
     RN := FLocalInt64RationalPolynomialPool.Obtain;
 
     try
-      Int64RationalPolynomialCompose(RN, F.Nominator, P);
+      Int64RationalPolynomialCompose(RN, F.Numerator, P);
       Int64RationalPolynomialCompose(RD, F.Denominator, P);
 
-      Int64PolynomialMul(Res.Nominator, RN.Nominator, RD.Denominator);
-      Int64PolynomialMul(Res.Denominator, RN.Denominator, RD.Nominator);
+      Int64PolynomialMul(Res.Numerator, RN.Numerator, RD.Denominator);
+      Int64PolynomialMul(Res.Denominator, RN.Denominator, RD.Numerator);
       Result := True;
     finally
       FLocalInt64RationalPolynomialPool.Recycle(RN);
@@ -7071,7 +7082,7 @@ end;
 function Int64RationalPolynomialCompose(Res: TCnInt64RationalPolynomial;
   F: TCnInt64RationalPolynomial; P: TCnInt64Polynomial): Boolean;
 begin
-  Int64PolynomialCompose(Res.Nominator, F.Nominator, P);
+  Int64PolynomialCompose(Res.Numerator, F.Numerator, P);
   Int64PolynomialCompose(Res.Denominator, F.Denominator, P);
   Result := True;
 end;
@@ -7085,7 +7096,7 @@ begin
   if P.IsZero or (F.MaxDegree = 0) then    // 0 代入，或只有常数项的情况下，得常数项
   begin
     Res.SetOne;
-    Res.Nominator[0] := F[0];
+    Res.Numerator[0] := F[0];
     Result := True;
     Exit;
   end;
@@ -7128,7 +7139,7 @@ end;
 procedure Int64RationalPolynomialGetValue(Res: TCnRationalNumber;
   F: TCnInt64RationalPolynomial; X: Int64);
 begin
-  Res.Nominator := Int64PolynomialGetValue(F.Nominator, X);
+  Res.Numerator := Int64PolynomialGetValue(F.Numerator, X);
   Res.Denominator := Int64PolynomialGetValue(F.Denominator, X);
   Res.Reduce;
 end;
@@ -7151,8 +7162,8 @@ begin
 
   try
     // 判断分子分母互相乘的结果是否相等
-    Int64PolynomialGaloisMul(T1, R1.Nominator, R2.Denominator, Prime, Primitive);
-    Int64PolynomialGaloisMul(T2, R2.Nominator, R1.Denominator, Prime, Primitive);
+    Int64PolynomialGaloisMul(T1, R1.Numerator, R2.Denominator, Prime, Primitive);
+    Int64PolynomialGaloisMul(T2, R2.Numerator, R1.Denominator, Prime, Primitive);
     Result := Int64PolynomialGaloisEqual(T1, T2, Prime);
   finally
     FLocalInt64PolynomialPool.Recycle(T2);
@@ -7163,7 +7174,7 @@ end;
 procedure Int64RationalPolynomialGaloisNegate(P: TCnInt64RationalPolynomial;
   Prime: Int64);
 begin
-  Int64PolynomialGaloisNegate(P.Nominator, Prime);
+  Int64PolynomialGaloisNegate(P.Numerator, Prime);
 end;
 
 procedure Int64RationalPolynomialGaloisAdd(R1, R2: TCnInt64RationalPolynomial;
@@ -7173,8 +7184,8 @@ var
 begin
   if R1.IsInt and R2.IsInt then
   begin
-    Int64PolynomialGaloisAdd(RationalResult.Nominator, R1.Nominator,
-      R2.Nominator, Prime);
+    Int64PolynomialGaloisAdd(RationalResult.Numerator, R1.Numerator,
+      R2.Numerator, Prime);
     RationalResult.Denominator.SetOne;
     Exit;
   end
@@ -7216,9 +7227,9 @@ begin
       Int64PolynomialGaloisDiv(F2, R, M, D2, Prime);  // 最小公倍数 M div D2 结果放 F2
 
       Int64PolynomialCopy(RationalResult.Denominator, M);  // 结果的分母是最小公倍数
-      Int64PolynomialGaloisMul(R, R1.Nominator, F1, Prime);
-      Int64PolynomialGaloisMul(M, R2.Nominator, F2, Prime);
-      Int64PolynomialGaloisAdd(RationalResult.Nominator, R, M, Prime);
+      Int64PolynomialGaloisMul(R, R1.Numerator, F1, Prime);
+      Int64PolynomialGaloisMul(M, R2.Numerator, F2, Prime);
+      Int64PolynomialGaloisAdd(RationalResult.Numerator, R, M, Prime);
     finally
       FLocalInt64PolynomialPool.Recycle(M);
       FLocalInt64PolynomialPool.Recycle(R);
@@ -7233,16 +7244,16 @@ end;
 procedure Int64RationalPolynomialGaloisSub(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
 begin
-  R2.Nominator.Negate;
+  R2.Numerator.Negate;
   Int64RationalPolynomialGaloisAdd(R1, R2, RationalResult, Prime);
   if RationalResult <> R2 then
-    R2.Nominator.Negate;
+    R2.Numerator.Negate;
 end;
 
 procedure Int64RationalPolynomialGaloisMul(R1, R2: TCnInt64RationalPolynomial;
   RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
 begin
-  Int64PolynomialGaloisMul(RationalResult.Nominator, R1.Nominator, R2.Nominator, Prime);
+  Int64PolynomialGaloisMul(RationalResult.Numerator, R1.Numerator, R2.Numerator, Prime);
   Int64PolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, R2.Denominator, Prime);
 end;
 
@@ -7256,9 +7267,9 @@ begin
 
   N := FLocalInt64PolynomialPool.Obtain; // 交叉相乘，必须用中间变量，防止 RationalResult 是 Number1 或 Number 2
   try
-    Int64PolynomialGaloisMul(N, R1.Nominator, R2.Denominator, Prime);
-    Int64PolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, R2.Nominator, Prime);
-    Int64PolynomialCopy(RationalResult.Nominator, N);
+    Int64PolynomialGaloisMul(N, R1.Numerator, R2.Denominator, Prime);
+    Int64PolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, R2.Numerator, Prime);
+    Int64PolynomialCopy(RationalResult.Numerator, N);
   finally
     FLocalInt64PolynomialPool.Recycle(N);
   end;
@@ -7341,7 +7352,7 @@ begin
   T := FLocalInt64RationalPolynomialPool.Obtain;
   try
     T.Denominator.SetOne;
-    Int64PolynomialCopy(T.Nominator, P1);
+    Int64PolynomialCopy(T.Numerator, P1);
     Int64RationalPolynomialGaloisAdd(R1, T, RationalResult, Prime);
   finally
     FLocalInt64RationalPolynomialPool.Recycle(T);
@@ -7368,7 +7379,7 @@ begin
     RationalResult.Assign(R1)
   else
   begin
-    Int64PolynomialGaloisMul(RationalResult.Nominator, R1.Nominator, P1, Prime);
+    Int64PolynomialGaloisMul(RationalResult.Numerator, R1.Numerator, P1, Prime);
     Int64PolynomialCopy(RationalResult.Denominator, R1.Denominator);
   end;
 end;
@@ -7384,7 +7395,7 @@ begin
   else
   begin
     Int64PolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, P1, Prime);
-    Int64PolynomialCopy(RationalResult.Nominator, R1.Nominator);
+    Int64PolynomialCopy(RationalResult.Numerator, R1.Numerator);
   end;
 end;
 
@@ -7394,22 +7405,22 @@ var
   RN, RD: TCnInt64RationalPolynomial;
 begin
   if P.IsInt then
-    Result := Int64RationalPolynomialGaloisCompose(Res, F, P.Nominator, Prime, Primitive)
+    Result := Int64RationalPolynomialGaloisCompose(Res, F, P.Numerator, Prime, Primitive)
   else
   begin
     RD := FLocalInt64RationalPolynomialPool.Obtain;
     RN := FLocalInt64RationalPolynomialPool.Obtain;
 
     try
-      Int64RationalPolynomialGaloisCompose(RN, F.Nominator, P, Prime, Primitive);
+      Int64RationalPolynomialGaloisCompose(RN, F.Numerator, P, Prime, Primitive);
       Int64RationalPolynomialGaloisCompose(RD, F.Denominator, P, Prime, Primitive);
 
-      Int64PolynomialGaloisMul(Res.Nominator, RN.Nominator, RD.Denominator, Prime);
-      Int64PolynomialGaloisMul(Res.Denominator, RN.Denominator, RD.Nominator, Prime);
+      Int64PolynomialGaloisMul(Res.Numerator, RN.Numerator, RD.Denominator, Prime);
+      Int64PolynomialGaloisMul(Res.Denominator, RN.Denominator, RD.Numerator, Prime);
 
       if Primitive <> nil then
       begin
-        Int64PolynomialGaloisMod(Res.Nominator, Res.Nominator, Primitive, Prime);
+        Int64PolynomialGaloisMod(Res.Numerator, Res.Numerator, Primitive, Prime);
         Int64PolynomialGaloisMod(Res.Denominator, Res.Denominator, Primitive, Prime);
       end;
       Result := True;
@@ -7424,7 +7435,7 @@ function Int64RationalPolynomialGaloisCompose(Res: TCnInt64RationalPolynomial;
   F: TCnInt64RationalPolynomial; P: TCnInt64Polynomial; Prime: Int64;
   Primitive: TCnInt64Polynomial): Boolean;
 begin
-  Int64PolynomialGaloisCompose(Res.Nominator, F.Nominator, P, Prime, Primitive);
+  Int64PolynomialGaloisCompose(Res.Numerator, F.Numerator, P, Prime, Primitive);
   Int64PolynomialGaloisCompose(Res.Denominator, F.Denominator, P, Prime, Primitive);
   Result := True;
 end;
@@ -7439,7 +7450,7 @@ begin
   if P.IsZero or (F.MaxDegree = 0) then    // 0 代入，或只有常数项的情况下，得常数项
   begin
     Res.SetOne;
-    Res.Nominator[0] := Int64NonNegativeMod(F[0], Prime);
+    Res.Numerator[0] := Int64NonNegativeMod(F[0], Prime);
     Result := True;
     Exit;
   end;
@@ -7469,7 +7480,7 @@ begin
 
     if Primitive <> nil then
     begin
-      Int64PolynomialGaloisMod(R.Nominator, R.Nominator, Primitive, Prime);
+      Int64PolynomialGaloisMod(R.Numerator, R.Numerator, Primitive, Prime);
       Int64PolynomialGaloisMod(R.Denominator, R.Denominator, Primitive, Prime);
     end;
 
@@ -7494,7 +7505,7 @@ begin
   if D = 0 then
     raise EDivByZero.Create(SDivByZero);
 
-  N := Int64PolynomialGaloisGetValue(F.Nominator, X, Prime);
+  N := Int64PolynomialGaloisGetValue(F.Numerator, X, Prime);
   Result := Int64NonNegativeMulMod(N, CnInt64ModularInverse2(D, Prime), Prime);
 end;
 
@@ -7656,7 +7667,7 @@ procedure TCnBigNumberRationalPolynomial.AssignTo(Dest: TPersistent);
 begin
   if Dest is TCnBigNumberRationalPolynomial then
   begin
-    BigNumberPolynomialCopy(TCnBigNumberRationalPolynomial(Dest).Nominator, FNominator);
+    BigNumberPolynomialCopy(TCnBigNumberRationalPolynomial(Dest).Numerator, FNumerator);
     BigNumberPolynomialCopy(TCnBigNumberRationalPolynomial(Dest).Denominator, FDenominator);
   end
   else
@@ -7666,14 +7677,14 @@ end;
 constructor TCnBigNumberRationalPolynomial.Create;
 begin
   inherited;
-  FNominator := TCnBigNumberPolynomial.Create([0]);
+  FNumerator := TCnBigNumberPolynomial.Create([0]);
   FDenominator := TCnBigNumberPolynomial.Create([1]);
 end;
 
 destructor TCnBigNumberRationalPolynomial.Destroy;
 begin
   FDenominator.Free;
-  FNominator.Free;
+  FNumerator.Free;
   inherited;
 end;
 
@@ -7684,31 +7695,31 @@ end;
 
 function TCnBigNumberRationalPolynomial.IsOne: Boolean;
 begin
-  Result := not FNominator.IsZero and BigNumberPolynomialEqual(FNominator, FDenominator);
+  Result := not FNumerator.IsZero and BigNumberPolynomialEqual(FNumerator, FDenominator);
 end;
 
 function TCnBigNumberRationalPolynomial.IsZero: Boolean;
 begin
-  Result := not FDenominator.IsZero and FNominator.IsZero;
+  Result := not FDenominator.IsZero and FNumerator.IsZero;
 end;
 
 procedure TCnBigNumberRationalPolynomial.Neg;
 begin
-  FNominator.Negate;
+  FNumerator.Negate;
 end;
 
 procedure TCnBigNumberRationalPolynomial.Reciprocal;
 var
   T: TCnBigNumberPolynomial;
 begin
-  if FNominator.IsZero then
+  if FNumerator.IsZero then
     raise EDivByZero.Create(SDivByZero);
 
   T := FLocalBigNumberPolynomialPool.Obtain;
   try
     BigNumberPolynomialCopy(T, FDenominator);
-    BigNumberPolynomialCopy(FDenominator, FNominator);
-    BigNumberPolynomialCopy(FNominator, T);
+    BigNumberPolynomialCopy(FDenominator, FNumerator);
+    BigNumberPolynomialCopy(FNumerator, T);
   finally
     FLocalBigNumberPolynomialPool.Recycle(T);
   end;
@@ -7716,13 +7727,13 @@ end;
 
 procedure TCnBigNumberRationalPolynomial.Reduce;
 begin
-  BigNumberPolynomialReduce2(FNominator, FDenominator);
+  BigNumberPolynomialReduce2(FNumerator, FDenominator);
 end;
 
 procedure TCnBigNumberRationalPolynomial.SetOne;
 begin
   FDenominator.SetOne;
-  FNominator.SetOne;
+  FNumerator.SetOne;
 end;
 
 procedure TCnBigNumberRationalPolynomial.SetString(const Rational: string);
@@ -7736,12 +7747,12 @@ begin
     N := Copy(Rational, 1, P - 1);
     D := Copy(Rational, P + 1, MaxInt);
 
-    FNominator.SetString(Trim(N));
+    FNumerator.SetString(Trim(N));
     FDenominator.SetString(Trim(D));
   end
   else
   begin
-    FNominator.SetString(Rational);
+    FNumerator.SetString(Rational);
     FDenominator.SetOne;
   end;
 end;
@@ -7749,17 +7760,17 @@ end;
 procedure TCnBigNumberRationalPolynomial.SetZero;
 begin
   FDenominator.SetOne;
-  FNominator.SetZero;
+  FNumerator.SetZero;
 end;
 
 function TCnBigNumberRationalPolynomial.ToString: string;
 begin
   if FDenominator.IsOne then
-    Result := FNominator.ToString
-  else if FNominator.IsZero then
+    Result := FNumerator.ToString
+  else if FNumerator.IsZero then
     Result := '0'
   else
-    Result := FNominator.ToString + ' / ' + FDenominator.ToString;
+    Result := FNumerator.ToString + ' / ' + FDenominator.ToString;
 end;
 
 { TCnBigNumberPolynomialPool }
@@ -9644,7 +9655,7 @@ begin
 
   if R1.IsInt and R2.IsInt then
   begin
-    Result := BigNumberPolynomialEqual(R1.Nominator, R2.Nominator);
+    Result := BigNumberPolynomialEqual(R1.Numerator, R2.Numerator);
     Exit;
   end;
 
@@ -9653,8 +9664,8 @@ begin
 
   try
     // 判断分子分母互相乘的结果是否相等
-    BigNumberPolynomialMul(T1, R1.Nominator, R2.Denominator);
-    BigNumberPolynomialMul(T2, R2.Nominator, R1.Denominator);
+    BigNumberPolynomialMul(T1, R1.Numerator, R2.Denominator);
+    BigNumberPolynomialMul(T2, R2.Numerator, R1.Denominator);
     Result := BigNumberPolynomialEqual(T1, T2);
   finally
     FLocalBigNumberPolynomialPool.Recycle(T2);
@@ -9668,7 +9679,7 @@ begin
   Result := Dst;
   if Src <> Dst then
   begin
-    BigNumberPolynomialCopy(Dst.Nominator, Src.Nominator);
+    BigNumberPolynomialCopy(Dst.Numerator, Src.Numerator);
     BigNumberPolynomialCopy(Dst.Denominator, Src.Denominator);
   end;
 end;
@@ -9680,7 +9691,7 @@ var
 begin
   if R1.IsInt and R2.IsInt then
   begin
-    BigNumberPolynomialAdd(RationalResult.Nominator, R1.Nominator, R2.Nominator);
+    BigNumberPolynomialAdd(RationalResult.Numerator, R1.Numerator, R2.Numerator);
     RationalResult.Denominator.SetOne;
     Exit;
   end
@@ -9722,9 +9733,9 @@ begin
       BigNumberPolynomialDiv(F2, R, M, D2);
 
       BigNumberPolynomialCopy(RationalResult.Denominator, M);
-      BigNumberPolynomialMul(R, R1.Nominator, F1);
-      BigNumberPolynomialMul(M, R2.Nominator, F2);
-      BigNumberPolynomialAdd(RationalResult.Nominator, R, M);
+      BigNumberPolynomialMul(R, R1.Numerator, F1);
+      BigNumberPolynomialMul(M, R2.Numerator, F2);
+      BigNumberPolynomialAdd(RationalResult.Numerator, R, M);
     finally
       FLocalBigNumberPolynomialPool.Recycle(M);
       FLocalBigNumberPolynomialPool.Recycle(R);
@@ -9739,16 +9750,16 @@ end;
 procedure BigNumberRationalPolynomialSub(R1, R2: TCnBigNumberRationalPolynomial;
   RationalResult: TCnBigNumberRationalPolynomial); overload;
 begin
-  R2.Nominator.Negate;
+  R2.Numerator.Negate;
   BigNumberRationalPolynomialAdd(R1, R2, RationalResult);
   if RationalResult <> R2 then
-    R2.Nominator.Negate;
+    R2.Numerator.Negate;
 end;
 
 procedure BigNumberRationalPolynomialMul(R1, R2: TCnBigNumberRationalPolynomial;
   RationalResult: TCnBigNumberRationalPolynomial); overload;
 begin
-  BigNumberPolynomialMul(RationalResult.Nominator, R1.Nominator, R2.Nominator);
+  BigNumberPolynomialMul(RationalResult.Numerator, R1.Numerator, R2.Numerator);
   BigNumberPolynomialMul(RationalResult.Denominator, R1.Denominator, R2.Denominator);
 end;
 
@@ -9762,9 +9773,9 @@ begin
 
   N := FLocalBigNumberPolynomialPool.Obtain; // 交叉相乘，必须用中间变量，防止 RationalResult 是 Number1 或 Number 2
   try
-    BigNumberPolynomialMul(N, R1.Nominator, R2.Denominator);
-    BigNumberPolynomialMul(RationalResult.Denominator, R1.Denominator, R2.Nominator);
-    BigNumberPolynomialCopy(RationalResult.Nominator, N);
+    BigNumberPolynomialMul(N, R1.Numerator, R2.Denominator);
+    BigNumberPolynomialMul(RationalResult.Denominator, R1.Denominator, R2.Numerator);
+    BigNumberPolynomialCopy(RationalResult.Numerator, N);
   finally
     FLocalBigNumberPolynomialPool.Recycle(N);
   end;
@@ -9847,7 +9858,7 @@ begin
   T := FLocalBigNumberRationalPolynomialPool.Obtain;
   try
     T.Denominator.SetOne;
-    BigNumberPolynomialCopy(T.Nominator, P1);
+    BigNumberPolynomialCopy(T.Numerator, P1);
     BigNumberRationalPolynomialAdd(R1, T, RationalResult);
   finally
     FLocalBigNumberRationalPolynomialPool.Recycle(T);
@@ -9874,7 +9885,7 @@ begin
     RationalResult.Assign(R1)
   else
   begin
-    BigNumberPolynomialMul(RationalResult.Nominator, R1.Nominator, P1);
+    BigNumberPolynomialMul(RationalResult.Numerator, R1.Numerator, P1);
     BigNumberPolynomialCopy(RationalResult.Denominator, R1.Denominator);
   end;
 end;
@@ -9890,7 +9901,7 @@ begin
   else
   begin
     BigNumberPolynomialMul(RationalResult.Denominator, R1.Denominator, P1);
-    BigNumberPolynomialCopy(RationalResult.Nominator, R1.Nominator);
+    BigNumberPolynomialCopy(RationalResult.Numerator, R1.Numerator);
   end;
 end;
 
@@ -9900,18 +9911,18 @@ var
   RN, RD: TCnBigNumberRationalPolynomial;
 begin
   if P.IsInt then
-    Result := BigNumberRationalPolynomialCompose(Res, F, P.Nominator)
+    Result := BigNumberRationalPolynomialCompose(Res, F, P.Numerator)
   else
   begin
     RD := FLocalBigNumberRationalPolynomialPool.Obtain;
     RN := FLocalBigNumberRationalPolynomialPool.Obtain;
 
     try
-      BigNumberRationalPolynomialCompose(RN, F.Nominator, P);
+      BigNumberRationalPolynomialCompose(RN, F.Numerator, P);
       BigNumberRationalPolynomialCompose(RD, F.Denominator, P);
 
-      BigNumberPolynomialMul(Res.Nominator, RN.Nominator, RD.Denominator);
-      BigNumberPolynomialMul(Res.Denominator, RN.Denominator, RD.Nominator);
+      BigNumberPolynomialMul(Res.Numerator, RN.Numerator, RD.Denominator);
+      BigNumberPolynomialMul(Res.Denominator, RN.Denominator, RD.Numerator);
       Result := True;
     finally
       FLocalBigNumberRationalPolynomialPool.Recycle(RN);
@@ -9923,7 +9934,7 @@ end;
 function BigNumberRationalPolynomialCompose(Res: TCnBigNumberRationalPolynomial;
   F: TCnBigNumberRationalPolynomial; P: TCnBigNumberPolynomial): Boolean;
 begin
-  BigNumberPolynomialCompose(Res.Nominator, F.Nominator, P);
+  BigNumberPolynomialCompose(Res.Numerator, F.Numerator, P);
   BigNumberPolynomialCompose(Res.Denominator, F.Denominator, P);
   Result := True;
 end;
@@ -9937,7 +9948,7 @@ begin
   if P.IsZero or (F.MaxDegree = 0) then    // 0 代入，或只有常数项的情况下，得常数项
   begin
     Res.SetOne;
-    Res.Nominator[0] := F[0];
+    Res.Numerator[0] := F[0];
     Result := True;
     Exit;
   end;
@@ -9980,7 +9991,7 @@ end;
 procedure BigNumberRationalPolynomialGetValue(Res: TCnBigRational;
   F: TCnBigNumberRationalPolynomial; X: TCnBigNumber);
 begin
-  BigNumberPolynomialGetValue(Res.Nominator, F.Nominator, X);
+  BigNumberPolynomialGetValue(Res.Numerator, F.Numerator, X);
   BigNumberPolynomialGetValue(Res.Denominator, F.Denominator, X);
   Res.Reduce;
 end;
@@ -10003,8 +10014,8 @@ begin
 
   try
     // 判断分子分母互相乘的结果是否相等
-    BigNumberPolynomialGaloisMul(T1, R1.Nominator, R2.Denominator, Prime, Primitive);
-    BigNumberPolynomialGaloisMul(T2, R2.Nominator, R1.Denominator, Prime, Primitive);
+    BigNumberPolynomialGaloisMul(T1, R1.Numerator, R2.Denominator, Prime, Primitive);
+    BigNumberPolynomialGaloisMul(T2, R2.Numerator, R1.Denominator, Prime, Primitive);
     Result := BigNumberPolynomialGaloisEqual(T1, T2, Prime);
   finally
     FLocalBigNumberPolynomialPool.Recycle(T2);
@@ -10015,7 +10026,7 @@ end;
 procedure BigNumberRationalPolynomialGaloisNegate(P: TCnBigNumberRationalPolynomial;
   Prime: TCnBigNumber);
 begin
-  BigNumberPolynomialGaloisNegate(P.Nominator, Prime);
+  BigNumberPolynomialGaloisNegate(P.Numerator, Prime);
 end;
 
 procedure BigNumberRationalPolynomialGaloisAdd(R1, R2: TCnBigNumberRationalPolynomial;
@@ -10025,8 +10036,8 @@ var
 begin
   if R1.IsInt and R2.IsInt then
   begin
-    BigNumberPolynomialGaloisAdd(RationalResult.Nominator, R1.Nominator,
-      R2.Nominator, Prime);
+    BigNumberPolynomialGaloisAdd(RationalResult.Numerator, R1.Numerator,
+      R2.Numerator, Prime);
     RationalResult.Denominator.SetOne;
     Exit;
   end
@@ -10068,9 +10079,9 @@ begin
       BigNumberPolynomialGaloisDiv(F2, R, M, D2, Prime);  // 最小公倍数 M div D2 结果放 F2
 
       BigNumberPolynomialCopy(RationalResult.Denominator, M);  // 结果的分母是最小公倍数
-      BigNumberPolynomialGaloisMul(R, R1.Nominator, F1, Prime);
-      BigNumberPolynomialGaloisMul(M, R2.Nominator, F2, Prime);
-      BigNumberPolynomialGaloisAdd(RationalResult.Nominator, R, M, Prime);
+      BigNumberPolynomialGaloisMul(R, R1.Numerator, F1, Prime);
+      BigNumberPolynomialGaloisMul(M, R2.Numerator, F2, Prime);
+      BigNumberPolynomialGaloisAdd(RationalResult.Numerator, R, M, Prime);
     finally
       FLocalBigNumberPolynomialPool.Recycle(M);
       FLocalBigNumberPolynomialPool.Recycle(R);
@@ -10085,16 +10096,16 @@ end;
 procedure BigNumberRationalPolynomialGaloisSub(R1, R2: TCnBigNumberRationalPolynomial;
   RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
 begin
-  R2.Nominator.Negate;
+  R2.Numerator.Negate;
   BignumberRationalPolynomialGaloisAdd(R1, R2, RationalResult, Prime);
   if RationalResult <> R2 then
-    R2.Nominator.Negate;
+    R2.Numerator.Negate;
 end;
 
 procedure BigNumberRationalPolynomialGaloisMul(R1, R2: TCnBigNumberRationalPolynomial;
   RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
 begin
-  BigNumberPolynomialGaloisMul(RationalResult.Nominator, R1.Nominator, R2.Nominator, Prime);
+  BigNumberPolynomialGaloisMul(RationalResult.Numerator, R1.Numerator, R2.Numerator, Prime);
   BigNumberPolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, R2.Denominator, Prime);
 end;
 
@@ -10108,9 +10119,9 @@ begin
 
   N := FLocalBigNumberPolynomialPool.Obtain; // 交叉相乘，必须用中间变量，防止 RationalResult 是 Number1 或 Number 2
   try
-    BigNumberPolynomialGaloisMul(N, R1.Nominator, R2.Denominator, Prime);
-    BigNumberPolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, R2.Nominator, Prime);
-    BigNumberPolynomialCopy(RationalResult.Nominator, N);
+    BigNumberPolynomialGaloisMul(N, R1.Numerator, R2.Denominator, Prime);
+    BigNumberPolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, R2.Numerator, Prime);
+    BigNumberPolynomialCopy(RationalResult.Numerator, N);
   finally
     FLocalBigNumberPolynomialPool.Recycle(N);
   end;
@@ -10193,7 +10204,7 @@ begin
   T := FLocalBigNumberRationalPolynomialPool.Obtain;
   try
     T.Denominator.SetOne;
-    BigNumberPolynomialCopy(T.Nominator, P1);
+    BigNumberPolynomialCopy(T.Numerator, P1);
     BigNumberRationalPolynomialGaloisAdd(R1, T, RationalResult, Prime);
   finally
     FLocalBigNumberRationalPolynomialPool.Recycle(T);
@@ -10220,7 +10231,7 @@ begin
     RationalResult.Assign(R1)
   else
   begin
-    BigNumberPolynomialGaloisMul(RationalResult.Nominator, R1.Nominator, P1, Prime);
+    BigNumberPolynomialGaloisMul(RationalResult.Numerator, R1.Numerator, P1, Prime);
     BigNumberPolynomialCopy(RationalResult.Denominator, R1.Denominator);
   end;
 end;
@@ -10236,7 +10247,7 @@ begin
   else
   begin
     BigNumberPolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, P1, Prime);
-    BigNumberPolynomialCopy(RationalResult.Nominator, R1.Nominator);
+    BigNumberPolynomialCopy(RationalResult.Numerator, R1.Numerator);
   end;
 end;
 
@@ -10246,22 +10257,22 @@ var
   RN, RD: TCnBigNumberRationalPolynomial;
 begin
   if P.IsInt then
-    Result := BigNumberRationalPolynomialGaloisCompose(Res, F, P.Nominator, Prime, Primitive)
+    Result := BigNumberRationalPolynomialGaloisCompose(Res, F, P.Numerator, Prime, Primitive)
   else
   begin
     RD := FLocalBigNumberRationalPolynomialPool.Obtain;
     RN := FLocalBigNumberRationalPolynomialPool.Obtain;
 
     try
-      BigNumberRationalPolynomialGaloisCompose(RN, F.Nominator, P, Prime, Primitive);
+      BigNumberRationalPolynomialGaloisCompose(RN, F.Numerator, P, Prime, Primitive);
       BigNumberRationalPolynomialGaloisCompose(RD, F.Denominator, P, Prime, Primitive);
 
-      BigNumberPolynomialGaloisMul(Res.Nominator, RN.Nominator, RD.Denominator, Prime);
-      BigNumberPolynomialGaloisMul(Res.Denominator, RN.Denominator, RD.Nominator, Prime);
+      BigNumberPolynomialGaloisMul(Res.Numerator, RN.Numerator, RD.Denominator, Prime);
+      BigNumberPolynomialGaloisMul(Res.Denominator, RN.Denominator, RD.Numerator, Prime);
 
       if Primitive <> nil then
       begin
-        BigNumberPolynomialGaloisMod(Res.Nominator, Res.Nominator, Primitive, Prime);
+        BigNumberPolynomialGaloisMod(Res.Numerator, Res.Numerator, Primitive, Prime);
         BigNumberPolynomialGaloisMod(Res.Denominator, Res.Denominator, Primitive, Prime);
       end;
       Result := True;
@@ -10276,7 +10287,7 @@ function BigNumberRationalPolynomialGaloisCompose(Res: TCnBigNumberRationalPolyn
   F: TCnBigNumberRationalPolynomial; P: TCnBigNumberPolynomial; Prime: TCnBigNumber;
   Primitive: TCnBigNumberPolynomial): Boolean;
 begin
-  BigNumberPolynomialGaloisCompose(Res.Nominator, F.Nominator, P, Prime, Primitive);
+  BigNumberPolynomialGaloisCompose(Res.Numerator, F.Numerator, P, Prime, Primitive);
   BigNumberPolynomialGaloisCompose(Res.Denominator, F.Denominator, P, Prime, Primitive);
   Result := True;
 end;
@@ -10291,7 +10302,7 @@ begin
   if P.IsZero or (F.MaxDegree = 0) then    // 0 代入，或只有常数项的情况下，得常数项
   begin
     Res.SetOne;
-    BigNumberNonNegativeMod(Res.Nominator[0], F[0], Prime);
+    BigNumberNonNegativeMod(Res.Numerator[0], F[0], Prime);
     Result := True;
     Exit;
   end;
@@ -10321,7 +10332,7 @@ begin
 
     if Primitive <> nil then
     begin
-      BigNumberPolynomialGaloisMod(R.Nominator, R.Nominator, Primitive, Prime);
+      BigNumberPolynomialGaloisMod(R.Numerator, R.Numerator, Primitive, Prime);
       BigNumberPolynomialGaloisMod(R.Denominator, R.Denominator, Primitive, Prime);
     end;
 
@@ -10353,7 +10364,7 @@ begin
       raise EDivByZero.Create(SDivByZero);
 
     N := FLocalBigNumberPool.Obtain;
-    BigNumberPolynomialGaloisGetValue(N, F.Nominator, X, Prime);
+    BigNumberPolynomialGaloisGetValue(N, F.Numerator, X, Prime);
 
     T := FLocalBigNumberPool.Obtain;
     BigNumberModularInverse(T, D, Prime);
@@ -13440,6 +13451,18 @@ begin
     if S <> '' then
       SafeValue[I, YDegree].SetDec(AnsiString(ExtractBigNumberFromArrayConstElement(LowToHighXCoefficients[I])));
   end;
+end;
+
+procedure TCnBigNumberBiPolynomial.SetXYCoefficent(XDegree,
+  YDegree: Integer; ACoefficient: Int64);
+begin
+  CheckDegree(XDegree);
+  CheckDegree(YDegree);
+
+  if MaxXDegree < XDegree then
+    MaxXDegree := XDegree;
+
+  YFactorsList[XDegree].SafeValue[YDegree].SetInt64(ACoefficient); // 内部是 BigNumberCopy 值
 end;
 
 procedure TCnBigNumberBiPolynomial.SetXYCoefficent(XDegree,

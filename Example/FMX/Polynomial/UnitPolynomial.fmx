@@ -686,7 +686,7 @@ object FormPolynomial: TFormPolynomial
           Text = 'Calc 2 * Point (x, 1*y) on Ecc'
           OnClick = btnRP2PointClick
         end
-        object edtRationalNominator1: TEdit
+        object edtRationalNumerator1: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
           TabOrder = 4
           Position.X = 16.000000000000000000
@@ -763,7 +763,7 @@ object FormPolynomial: TFormPolynomial
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
         end
-        object edtRationalNominator2: TEdit
+        object edtRationalNumerator2: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
           TabOrder = 14
           Position.X = 16.000000000000000000
@@ -791,7 +791,7 @@ object FormPolynomial: TFormPolynomial
           Text = 'Generate'
           OnClick = btnRationalPolynomialGenerateClick
         end
-        object edtRationalResultNominator: TEdit
+        object edtRationalResultNumerator: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
           TabOrder = 16
           Position.X = 20.000000000000000000
@@ -1537,7 +1537,7 @@ object FormPolynomial: TFormPolynomial
           Text = 'Manual Test OnCurve'
           OnClick = btnBNTestManualPointClick
         end
-        object edtBNRationalNominator1: TEdit
+        object edtBNRationalNumerator1: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
           TabOrder = 3
           Position.X = 16.000000000000000000
@@ -1624,7 +1624,7 @@ object FormPolynomial: TFormPolynomial
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
         end
-        object edtBNRationalNominator2: TEdit
+        object edtBNRationalNumerator2: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
           TabOrder = 14
           Position.X = 448.000000000000000000
@@ -1642,7 +1642,7 @@ object FormPolynomial: TFormPolynomial
           Size.Height = 21.000000000000000000
           Size.PlatformDefault = False
         end
-        object edtBNRationalResultNominator: TEdit
+        object edtBNRationalResultNumerator: TEdit
           Touch.InteractiveGestures = [LongTap, DoubleTap]
           TabOrder = 15
           Position.X = 20.000000000000000000
