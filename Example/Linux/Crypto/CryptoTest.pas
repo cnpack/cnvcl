@@ -228,6 +228,12 @@ function TestQREncoderTextMatrix: Boolean;
 // ============================= Polynomial ====================================
 
 function TestBigNumberPolynomialGaloisPrimePowerModularInverse: Boolean;
+function TestInt64Polynomial: Boolean;
+function TestBigNumberPolynomial: Boolean;
+function TestInt64RationalPolynomial: Boolean;
+function TestBigNumberRationalPolynomial: Boolean;
+function TestInt64BiPolynomial: Boolean;
+function TestBigNumberBiPolynomial: Boolean;
 
 // ================================ NTRU =======================================
 
@@ -760,6 +766,12 @@ begin
 // ============================= Polynomial ====================================
 
   MyAssert(TestBigNumberPolynomialGaloisPrimePowerModularInverse, 'TestBigNumberPolynomialGaloisPrimePowerModularInverse');
+  MyAssert(TestInt64Polynomial, 'TestInt64Polynomial');
+  MyAssert(TestBigNumberPolynomial, 'TestBigNumberPolynomial');
+  MyAssert(TestInt64RationalPolynomial, 'TestInt64RationalPolynomial');
+  MyAssert(TestBigNumberRationalPolynomial, 'TestBigNumberRationalPolynomial');
+  MyAssert(TestInt64BiPolynomial, 'TestInt64BiPolynomial');
+  MyAssert(TestBigNumberBiPolynomial, 'TestBigNumberBiPolynomial');
 
 // ================================ NTRU =======================================
 
@@ -4728,6 +4740,169 @@ begin
   Fp.Free;
   G.Free;
   F.Free;
+end;
+
+function TestInt64Polynomial: Boolean;
+var
+  P1, P2, Res: TCnInt64Polynomial;
+begin
+  Result := False;
+  P1 := TCnInt64Polynomial.Create([1, 2, 3]);
+  P2 := TCnInt64Polynomial.Create([3, 2, 1]);
+  Res := TCnInt64Polynomial.Create;
+  try
+    if P1.ToString <> '3X^2+2X+1' then Exit;
+    if P2.ToString <> 'X^2+2X+3' then Exit;
+
+    Int64PolynomialAdd(Res, P1, P2);
+    if Res.ToString <> '4X^2+4X+4' then Exit;
+
+    Int64PolynomialSub(Res, P1, P2);
+    if Res.ToString <> '2X^2-2' then Exit;
+
+    Int64PolynomialMul(Res, P1, P2);
+    if Res.ToString <> '3X^4+8X^3+14X^2+8X+3' then Exit;
+
+    Result := True;
+  finally
+    Res.Free;
+    P2.Free;
+    P1.Free;
+  end;
+end;
+
+function TestBigNumberPolynomial: Boolean;
+var
+  P1, P2, Res: TCnBigNumberPolynomial;
+begin
+  Result := False;
+  P1 := TCnBigNumberPolynomial.Create([1, 2, 3]);
+  P2 := TCnBigNumberPolynomial.Create([3, 2, 1]);
+  Res := TCnBigNumberPolynomial.Create;
+  try
+    if P1.ToString <> '3X^2+2X+1' then Exit;
+
+    BigNumberPolynomialAdd(Res, P1, P2);
+    if Res.ToString <> '4X^2+4X+4' then Exit;
+
+    BigNumberPolynomialSub(Res, P1, P2);
+    if Res.ToString <> '2X^2-2' then Exit;
+
+    BigNumberPolynomialMul(Res, P1, P2);
+    if Res.ToString <> '3X^4+8X^3+14X^2+8X+3' then Exit;
+
+    Result := True;
+  finally
+    Res.Free;
+    P2.Free;
+    P1.Free;
+  end;
+end;
+
+function TestInt64RationalPolynomial: Boolean;
+var
+  R1, R2, Res: TCnInt64RationalPolynomial;
+  Pool: TCnInt64RationalPolynomialPool;
+begin
+  Result := False;
+  Pool := TCnInt64RationalPolynomialPool.Create;
+  R1 := Pool.Obtain;
+  R2 := Pool.Obtain;
+  Res := Pool.Obtain;
+  try
+    R1.Numerator.SetCoefficents([2, 1]);
+    R1.Denominator.SetCoefficents([2]);
+
+    R2.Numerator.SetCoefficents([0, 1]);
+    R2.Denominator.SetCoefficents([3]);
+
+    Int64RationalPolynomialAdd(R1, R2, Res);
+    if Res.ToString <> '5X+6 / 6' then Exit;
+
+    Result := True;
+  finally
+    Pool.Free;
+  end;
+end;
+
+function TestBigNumberRationalPolynomial: Boolean;
+var
+  R1, R2, Res: TCnBigNumberRationalPolynomial;
+  Pool: TCnBigNumberRationalPolynomialPool;
+begin
+  Result := False;
+  Pool := TCnBigNumberRationalPolynomialPool.Create;
+  R1 := Pool.Obtain;
+  R2 := Pool.Obtain;
+  Res := Pool.Obtain;
+  try
+    R1.Numerator.SetCoefficents([2, 1]);
+    R1.Denominator.SetCoefficents([2]);
+
+    R2.Numerator.SetCoefficents([0, 1]);
+    R2.Denominator.SetCoefficents([3]);
+
+    BigNumberRationalPolynomialAdd(R1, R2, Res);
+    if Res.ToString <> '5X+6 / 6' then Exit;
+
+    Result := True;
+  finally
+    Pool.Free;
+  end;
+end;
+
+function TestInt64BiPolynomial: Boolean;
+var
+  P1, P2, Res: TCnInt64BiPolynomial;
+begin
+  Result := False;
+  P1 := TCnInt64BiPolynomial.Create;
+  P2 := TCnInt64BiPolynomial.Create;
+  Res := TCnInt64BiPolynomial.Create;
+  try
+    P1.SetXYCoefficent(1, 1, 1); // XY
+    P2.SetXYCoefficent(1, 1, 1); // XY
+
+    Int64BiPolynomialAdd(Res, P1, P2);
+    if Res.ToString <> '2XY' then Exit;
+
+    P1.SetXYCoefficent(0, 0, 1); // XY + 1
+    Int64BiPolynomialSub(Res, P1, P2);
+    if Res.ToString <> '1' then Exit;
+
+    Result := True;
+  finally
+    Res.Free;
+    P2.Free;
+    P1.Free;
+  end;
+end;
+
+function TestBigNumberBiPolynomial: Boolean;
+var
+  P1, P2, Res: TCnBigNumberBiPolynomial;
+begin
+  Result := False;
+  P1 := TCnBigNumberBiPolynomial.Create;
+  P2 := TCnBigNumberBiPolynomial.Create;
+  Res := TCnBigNumberBiPolynomial.Create;
+  try
+    P1.SetXYCoefficent(1, 1, 1); // XY
+    P2.SetXYCoefficent(1, 1, 1); // XY
+
+    BigNumberBiPolynomialAdd(Res, P1, P2);
+    if Res.ToString <> '2XY' then Exit;
+
+    P1.SetXYCoefficent(0, 0, 1); // XY + 1
+    BigNumberBiPolynomialSub(Res, P1, P2);
+    if Res.ToString <> '1' then Exit;
+
+    Result := True;
+  finally
+    Res.Free;
+    P2.Free;
+    P1.Free;
+  end;
 end;
 
 // ================================ NTRU =======================================

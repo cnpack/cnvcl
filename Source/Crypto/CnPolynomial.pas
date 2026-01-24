@@ -5685,6 +5685,7 @@ function Int64PolynomialGreatestCommonDivisor(Res: TCnInt64Polynomial;
 var
   A, B, C: TCnInt64Polynomial;
   MF: Int64;
+  GcdValue: Int64;
 begin
   A := nil;
   B := nil;
@@ -5703,6 +5704,15 @@ begin
     begin
       Int64PolynomialCopy(A, P2);
       Int64PolynomialCopy(B, P1);
+    end;
+
+    // 特殊处理：如果两个多项式都是常数项，直接计算整数 GCD
+    if (A.MaxDegree = 0) and (B.MaxDegree = 0) then
+    begin
+      GcdValue := CnInt64GreatestCommonDivisor(A[0], B[0]);
+      Res.SetCoefficents([GcdValue]);
+      Result := True;
+      Exit;
     end;
 
     C := FLocalInt64PolynomialPool.Obtain;
@@ -8464,11 +8474,13 @@ function BigNumberPolynomialGreatestCommonDivisor(Res: TCnBigNumberPolynomial;
 var
   A, B, C: TCnBigNumberPolynomial;
   MF: TCnBigNumber;
+  GcdValue: TCnBigNumber;
 begin
   A := nil;
   B := nil;
   C := nil;
   MF := nil;
+  GcdValue := nil;
 
   try
     A := FLocalBigNumberPolynomialPool.Obtain;
@@ -8486,6 +8498,20 @@ begin
       BigNumberPolynomialCopy(B, P1);
     end;
 
+    // 特殊处理：如果两个多项式都是常数项，直接计算 BigNumber GCD
+    if (A.MaxDegree = 0) and (B.MaxDegree = 0) then
+    begin
+      GcdValue := FLocalBigNumberPool.Obtain;
+      if BigNumberGcd(GcdValue, A[0], B[0]) then
+      begin
+        Res.SetCoefficent(0, GcdValue);
+        Result := True;
+      end
+      else
+        Result := False;
+      Exit;
+    end;
+
     C := FLocalBigNumberPolynomialPool.Obtain;
     while not B.IsZero do
     begin
@@ -8501,6 +8527,7 @@ begin
     BigNumberPolynomialCopy(Res, A);
     Result := True;
   finally
+    FLocalBigNumberPool.Recycle(GcdValue);
     FLocalBigNumberPool.Recycle(MF);
     FLocalBigNumberPolynomialPool.Recycle(C);
     FLocalBigNumberPolynomialPool.Recycle(B);
