@@ -230,12 +230,21 @@ type
     {* 将大浮点复数设置为 i}
 
     function IsZero: Boolean;
-    {* 返回复数是否为0
+    {* 返回复数是否为 0
 
        参数：
          （无）
 
        返回值：Boolean                    - 大浮点复数是否为 0
+    }
+
+    function IsOne: Boolean;
+    {* 返回复数是否为 1。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 大浮点复数是否为 1
     }
 
     function IsPureReal: Boolean;
@@ -1732,6 +1741,11 @@ begin
   Result := Complex.FR.IsZero and Complex.FI.IsZero;
 end;
 
+function BigComplexDecimalIsOne(Complex: TCnBigComplexDecimal): Boolean;
+begin
+  Result := Complex.FR.IsOne and Complex.FI.IsZero;
+end;
+
 procedure BigComplexDecimalSetZero(Complex: TCnBigComplexDecimal);
 begin
   Complex.FR.SetZero;
@@ -2130,6 +2144,11 @@ end;
 function TCnBigComplexDecimal.IsZero: Boolean;
 begin
   Result := BigComplexDecimalIsZero(Self);
+end;
+
+function TCnBigComplexDecimal.IsOne: Boolean;
+begin
+  Result := BigComplexDecimalIsOne(Self);
 end;
 
 procedure TCnBigComplexDecimal.Negate;
