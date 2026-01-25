@@ -987,12 +987,12 @@ function BigComplexDecimalPolynomialDiv(Res: TCnBigComplexDecimalPolynomial;
    Res 或 Remain 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
 
    参数：
-     Res: TCnBigComplexDecimalPolynomial  - 用来容纳结果的一元无限精度复数多项式
-     Remain: TCnBigComplexDecimalPolynomial - 用来容纳余式的一元无限精度复数多项式
-     P: TCnBigComplexDecimalPolynomial    - 被除数
-     Divisor: TCnBigComplexDecimalPolynomial - 除数
+     Res: TCnBigComplexDecimalPolynomial                  - 用来容纳结果的一元无限精度复数多项式
+     Remain: TCnBigComplexDecimalPolynomial               - 用来容纳余式的一元无限精度复数多项式
+     P: TCnBigComplexDecimalPolynomial                    - 被除数
+     Divisor: TCnBigComplexDecimalPolynomial              - 除数
 
-   返回值：Boolean                        - 返回是否相除成功
+   返回值：Boolean                                        - 返回是否相除成功
 }
 
 function BigComplexDecimalPolynomialPower(Res: TCnBigComplexDecimalPolynomial;
@@ -10169,46 +10169,75 @@ end;
 
 procedure TCnBigComplexDecimalPolynomial.EnsureDegree(Degree: Integer);
 begin
-  while Count <= Degree do
-  begin
-    Add;
-    Items[Count - 1].SetZero;
-  end;
+  if Degree > MaxDegree then
+    SetMaxDegree(Degree);
 end;
 
 function TCnBigComplexDecimalPolynomial.GetMaxDegree: Integer;
 begin
   if Count = 0 then
-    Result := -1
-  else
-    Result := Count - 1;
+    Add.SetZero;
+  Result := Count - 1;
 end;
 
 procedure TCnBigComplexDecimalPolynomial.SetMaxDegree(const Value: Integer);
+var
+  I, OC: Integer;
 begin
-  if Value < 0 then
-    Clear
-  else
-    EnsureDegree(Value);
+  CheckDegree(Value);
+
+  OC := Count;
+  Count := Value + 1; // 直接设置 Count，如变小，会自动释放多余的对象
+
+  if Count > OC then  // 增加的部分创建新对象
+  begin
+    for I := OC to Count - 1 do
+      Items[I] := TCnBigComplexDecimal.Create;
+  end;
 end;
 
 procedure TCnBigComplexDecimalPolynomial.SetCoefficents(LowToHighCoefficients: array of const);
 var
   I: Integer;
-  V: TVarRec;
 begin
   Clear;
   for I := Low(LowToHighCoefficients) to High(LowToHighCoefficients) do
   begin
-    V := LowToHighCoefficients[I];
-    EnsureDegree(I);
-    case V.VType of
-      vtInteger:
-        Items[I].SetValue(V.VInteger, 0);
-      vtInt64:
-        Items[I].SetValue(V.VInt64^, 0);
+    case LowToHighCoefficients[I].VType of
+    vtInteger:
+      begin
+        Add.SetValue(LowToHighCoefficients[I].VInteger, 0);
+      end;
+    vtInt64:
+      begin
+        Add.SetValue(LowToHighCoefficients[I].VInt64^, 0);
+      end;
+    vtBoolean:
+      begin
+        if LowToHighCoefficients[I].VBoolean then
+          Add.SetOne
+        else
+          Add.SetZero;
+      end;
+    vtString:
+      begin
+        Add.SetString(LowToHighCoefficients[I].VString^);
+      end;
+    vtObject:
+      begin
+        // 接受 TCnBigComplexDecimal 并从中复制值
+        if LowToHighCoefficients[I].VObject is TCnBigComplexDecimal then
+          BigComplexDecimalCopy(Add, LowToHighCoefficients[I].VObject as TCnBigComplexDecimal);
+      end;
+    else
+      raise ECnPolynomialException.CreateFmt(SInvalidInteger, ['Coefficients ' + IntToStr(I)]);
     end;
   end;
+
+  if Count = 0 then
+    Add.SetZero
+  else
+    CorrectTop;
 end;
 
 procedure TCnBigComplexDecimalPolynomial.SetCoefficent(Degree: Integer; Coefficient: TCnBigComplexDecimal);
