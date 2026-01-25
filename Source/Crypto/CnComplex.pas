@@ -247,6 +247,15 @@ type
        返回值：Boolean                    - 大浮点复数是否为 1
     }
 
+    function IsNegOne: Boolean;
+    {* 返回复数是否为 -1。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 大浮点复数是否为 -1
+    }
+
     function IsPureReal: Boolean;
     {* 返回大浮点复数是否为纯实数。
 
@@ -1746,6 +1755,11 @@ begin
   Result := Complex.FR.IsOne and Complex.FI.IsZero;
 end;
 
+function BigComplexDecimalIsNegOne(Complex: TCnBigComplexDecimal): Boolean;
+begin
+  Result := Complex.FR.IsNegOne and Complex.FI.IsZero;
+end;
+
 procedure BigComplexDecimalSetZero(Complex: TCnBigComplexDecimal);
 begin
   Complex.FR.SetZero;
@@ -1783,11 +1797,21 @@ begin
   if BigComplexDecimalIsPureReal(Complex) then
     Result := Complex.FR.ToString
   else if BigComplexDecimalIsPureImaginary(Complex) then
-    Result := Complex.FI.ToString + 'i'
+  begin
+    if Complex.FI.IsOne then
+      Result := 'i'
+    else
+      Result := Complex.FI.ToString + 'i';
+  end
   else if Complex.FI.IsNegative then
     Result := Complex.FR.ToString + Complex.FI.ToString + 'i'
   else
-    Result := Complex.FR.ToString + '+' + Complex.FI.ToString + 'i';
+  begin
+    if Complex.FI.IsOne then
+      Result := Complex.FR.ToString + '+i'
+    else
+      Result := Complex.FR.ToString + '+' + Complex.FI.ToString + 'i';
+  end;
 end;
 
 function BigComplexDecimalEqual(Complex1: TCnBigComplexDecimal; Complex2: TCnBigComplexDecimal): Boolean;
@@ -2144,6 +2168,11 @@ end;
 function TCnBigComplexDecimal.IsZero: Boolean;
 begin
   Result := BigComplexDecimalIsZero(Self);
+end;
+
+function TCnBigComplexDecimal.IsNegOne: Boolean;
+begin
+  Result := BigComplexDecimalIsNegOne(Self)
 end;
 
 function TCnBigComplexDecimal.IsOne: Boolean;

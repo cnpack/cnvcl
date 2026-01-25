@@ -603,6 +603,434 @@ type
     }
   end;
 
+// =============================================================================
+//
+//                 一元无限精度复数多项式实现
+//
+// =============================================================================
+
+  TCnBigComplexDecimalList = class(TObjectList)
+  {* 一元无限精度复数多项式的系数列表，同时包含一元无限精度复数多项式的基础操作}
+  private
+
+  protected
+    function GetItem(Index: Integer): TCnBigComplexDecimal;
+    procedure SetItem(Index: Integer; AComplexDecimal: TCnBigComplexDecimal);
+  public
+    constructor Create; reintroduce;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    function Add: TCnBigComplexDecimal; overload;
+    {* 创建一个一元无限精度复数多项式系数，返回该对象
+       注意：添加后返回的对象在列表中，删除列表时也会删除该对象，也应该自己释放。
+
+       参数：
+         （无）
+
+       返回值：TCnBigComplexDecimal       - 内部创建的复数对象
+    }
+
+    function Add(AComplexDecimal: TCnBigComplexDecimal): Integer; overload;
+    {* 添加外部的一元无限精度复数多项式系数。注意添加后该对象在列表中，删除列表时也会删除该对象，也应该自己释放。
+
+       参数：
+         AComplexDecimal: TCnBigComplexDecimal - 待添加的一元无限精度复数多项式系数
+
+       返回值：Integer                    - 返回该复数对象在一元无限精度复数多项式中的索引值
+    }
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将一元无限精度复数多项式列表转换为字符串表示
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
+
+    property Items[Index: Integer]: TCnBigComplexDecimal read GetItem write SetItem; default;
+    {* 一元无限精度复数多项式列表}
+  end;
+
+  TCnBigComplexDecimalPolynomial = class(TCnBigComplexDecimalList)
+  {* 一元无限精度复数多项式，Items[n] 表示 n 次项系数}
+  private
+    procedure EnsureDegree(Degree: Integer);
+    function GetMaxDegree: Integer;
+    procedure SetMaxDegree(const Value: Integer);
+  public
+    constructor Create(LowToHighCoefficients: array of const); overload;
+    {* 构造函数，参数为从低到高的系数。注意系数初始化时若 MaxInt32/MaxInt64 的值被当作 Integer/Int64 类型处理
+
+       参数：
+         LowToHighCoefficients: array of const            - 从 0 开始的从低到高的多项式系数
+
+       返回值：                                           - 返回创建的多项式对象
+    }
+
+    constructor Create; overload;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    procedure SetCoefficents(LowToHighCoefficients: array of const);
+    {* 一次性设置所有从低到高的系数
+
+       参数：
+         LowToHighCoefficients: array of const            - 从 0 开始的从低到高的多项式系数
+
+       返回值：（无）
+    }
+
+    procedure SetCoefficent(Degree: Integer; Coefficient: TCnBigComplexDecimal);
+    {* 设置某一次项的系数，内部会复制 Coefficient 的值过去
+
+       参数：
+         Degree: Integer                                  - 设置的多项式的次数
+         Coefficient: TCnBigComplexDecimal                - 设置的多项式系数
+
+       返回值：（无）
+    }
+
+    procedure CorrectTop;
+    {* 删除最高次项的 0 系数}
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 多项式转换为字符串表示
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
+
+    procedure SetString(const Poly: string);
+    {* 多项式从字符串转换为内部数据结构。
+
+       参数：
+         const Poly: string               - 待转换的字符串
+
+       返回值：（无）
+    }
+
+    function IsZero: Boolean;
+    {* 判断多项式是否为 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 多项式是否为 0
+    }
+
+    procedure SetZero;
+    {* 设为 0}
+
+    function IsOne: Boolean;
+    {* 判断多项式是否为 1。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 多项式是否为 1
+    }
+
+    procedure SetOne;
+    {* 设为 1}
+
+    function IsNegOne: Boolean;
+    {* 判断多项式是否为 -1。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 多项式是否为 -1
+    }
+
+    procedure Negate;
+    {* 取反系数}
+
+    function IsMonic: Boolean;
+    {* 是否为首一多项式。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 多项式是否为首一多项式
+    }
+
+    property MaxDegree: Integer read GetMaxDegree write SetMaxDegree;
+    {* 最高次数，从0 开始}
+  end;
+
+  TCnBigComplexDecimalPolynomialPool = class(TCnMathObjectPool)
+  {* 一元无限精度复数多项式池实现类，允许使用到一元无限精度复数多项式的地方自行创建一元无限精度复数多项式池}
+  protected
+    function CreateObject: TObject; override;
+  public
+    function Obtain: TCnBigComplexDecimalPolynomial; reintroduce;
+    {* 从对象池获取一个对象，不用时需调用 Recycle 归还
+
+       参数：
+         （无）
+
+       返回值：TCnBigComplexDecimalPolynomial - 返回的多项式对象
+    }
+
+    procedure Recycle(Poly: TCnBigComplexDecimalPolynomial); reintroduce;
+    {* 将一个对象归还至对象池。
+
+       参数：
+         Poly: TCnBigComplexDecimalPolynomial - 待归还的多项式对象
+
+       返回值：（无）
+    }
+  end;
+
+// ====================== 一元无限精度复数多项式基础运算 =============================
+
+function BigComplexDecimalPolynomialNew: TCnBigComplexDecimalPolynomial;
+{* 创建一个动态分配的一元无限精度复数多项式对象，等同于 TCnBigComplexDecimalPolynomial.Create。
+
+   参数：
+     （无）
+
+   返回值：TCnBigComplexDecimalPolynomial - 返回创建的一元无限精度复数多项式对象
+}
+
+procedure BigComplexDecimalPolynomialFree(P: TCnBigComplexDecimalPolynomial);
+{* 释放一个一元无限精度复数多项式对象，等同于 TCnBigComplexDecimalPolynomial.Free
+
+   参数：
+     P: TCnBigComplexDecimalPolynomial    - 待释放的一元无限精度复数多项式
+
+   返回值：（无）
+}
+
+function BigComplexDecimalPolynomialDuplicate(P: TCnBigComplexDecimalPolynomial): TCnBigComplexDecimalPolynomial;
+{* 从一个一元无限精度复数多项式对象克隆一个新对象。
+
+   参数：
+     P: TCnBigComplexDecimalPolynomial    - 待复制的一元无限精度复数多项式
+
+   返回值：TCnBigComplexDecimalPolynomial - 返回新建的一元无限精度复数多项式
+}
+
+function BigComplexDecimalPolynomialCopy(Dst: TCnBigComplexDecimalPolynomial;
+  Src: TCnBigComplexDecimalPolynomial): TCnBigComplexDecimalPolynomial;
+{* 复制一个一元无限精度复数多项式对象，成功返回 Dst。
+
+   参数：
+     Dst: TCnBigComplexDecimalPolynomial  - 目标一元无限精度复数多项式
+     Src: TCnBigComplexDecimalPolynomial  - 源一元无限精度复数多项式
+
+   返回值：TCnBigComplexDecimalPolynomial - 成功则返回目标对象，失败则返回 nil
+}
+
+procedure BigComplexDecimalPolynomialSwap(A: TCnBigComplexDecimalPolynomial;
+  B: TCnBigComplexDecimalPolynomial);
+{* 交换两个一元无限精度复数多项式对象的系数值。
+
+   参数：
+     A: TCnBigComplexDecimalPolynomial    - 待交换的一元无限精度复数多项式一
+     B: TCnBigComplexDecimalPolynomial    - 待交换的一元无限精度复数多项式二
+
+   返回值：（无）
+}
+
+function BigComplexDecimalPolynomialToString(P: TCnBigComplexDecimalPolynomial;
+  const VarName: string = 'X'): string;
+{* 将一个一元无限精度复数多项式对象转成字符串，未知数默认以 X 表示。
+
+   参数：
+     P: TCnBigComplexDecimalPolynomial    - 待转换的一元无限精度复数多项式
+     const VarName: string                - 代表未知数的字符串
+
+   返回值：string                         - 返回字符串
+}
+
+function BigComplexDecimalPolynomialIsZero(P: TCnBigComplexDecimalPolynomial): Boolean;
+{* 判断一个一元无限精度复数多项式对象是否为 0。
+
+   参数：
+     P: TCnBigComplexDecimalPolynomial    - 待判断的一元无限精度复数多项式
+
+   返回值：Boolean                        - 返回是否为 0
+}
+
+procedure BigComplexDecimalPolynomialSetZero(P: TCnBigComplexDecimalPolynomial);
+{* 将一个一元无限精度复数多项式对象设为 0。
+
+   参数：
+     P: TCnBigComplexDecimalPolynomial    - 待设置的一元无限精度复数多项式
+
+   返回值：（无）
+}
+
+function BigComplexDecimalPolynomialIsOne(P: TCnBigComplexDecimalPolynomial): Boolean;
+{* 判断一个一元无限精度复数多项式对象是否为 1。
+
+   参数：
+     P: TCnBigComplexDecimalPolynomial    - 待判断的一元无限精度复数多项式
+
+   返回值：Boolean                        - 返回是否为 1
+}
+
+procedure BigComplexDecimalPolynomialSetOne(P: TCnBigComplexDecimalPolynomial);
+{* 将一个一元无限精度复数多项式对象设为 1。
+
+   参数：
+     P: TCnBigComplexDecimalPolynomial    - 待设置的一元无限精度复数多项式
+
+   返回值：（无）
+}
+
+function BigComplexDecimalPolynomialIsNegOne(P: TCnBigComplexDecimalPolynomial): Boolean;
+{* 判断一个一元无限精度复数多项式对象是否为 -1。
+
+   参数：
+     P: TCnBigComplexDecimalPolynomial    - 待判断的一元无限精度复数多项式
+
+   返回值：Boolean                        - 返回是否为 -1。
+}
+
+procedure BigComplexDecimalPolynomialNegate(P: TCnBigComplexDecimalPolynomial);
+{* 将一个一元无限精度复数多项式对象所有系数求反。
+
+   参数：
+     P: TCnBigComplexDecimalPolynomial    - 待计算的一元无限精度复数多项式
+
+   返回值：（无）
+}
+
+function BigComplexDecimalPolynomialIsMonic(P: TCnBigComplexDecimalPolynomial): Boolean;
+{* 判断一个一元无限精度复数多项式是否是首一多项式，也就是判断最高次系数是否为 1。
+
+   参数：
+     P: TCnBigComplexDecimalPolynomial    - 待判断的一元无限精度复数多项式
+
+   返回值：Boolean                        - 返回是否首一多项式
+}
+
+procedure BigComplexDecimalPolynomialShiftLeft(P: TCnBigComplexDecimalPolynomial; N: Integer);
+{* 将一个一元无限精度复数多项式对象左移 N 次，也就是各项指数都加 N。
+
+   参数：
+     P: TCnBigComplexDecimalPolynomial    - 待左移的一元无限精度复数多项式
+     N: Integer                           - 左移次数
+
+   返回值：（无）
+}
+
+procedure BigComplexDecimalPolynomialShiftRight(P: TCnBigComplexDecimalPolynomial; N: Integer);
+{* 将一个一元无限精度复数多项式对象右移 N 次，也就是各项指数都减 N，小于 0 的忽略了。
+
+   参数：
+     P: TCnBigComplexDecimalPolynomial    - 待右移的一元无限精度复数多项式
+     N: Integer                           - 右移次数
+
+   返回值：（无）
+}
+
+function BigComplexDecimalPolynomialEqual(A: TCnBigComplexDecimalPolynomial;
+  B: TCnBigComplexDecimalPolynomial): Boolean;
+{* 判断两个一元无限精度复数多项式每项系数是否对应相等，是则返回 True。
+
+   参数：
+     A: TCnBigComplexDecimalPolynomial    - 待判断的一元无限精度复数多项式一
+     B: TCnBigComplexDecimalPolynomial    - 待判断的一元无限精度复数多项式二
+
+   返回值：Boolean                        - 返回是否相等
+}
+
+function BigComplexDecimalPolynomialAdd(Res: TCnBigComplexDecimalPolynomial;
+  P1: TCnBigComplexDecimalPolynomial; P2: TCnBigComplexDecimalPolynomial): Boolean;
+{* 两个一元无限精度复数多项式对象相加，结果放至 Res 中，返回相加是否成功，P1 可以是 P2，Res 可以是 P1 或 P2。
+
+   参数：
+     Res: TCnBigComplexDecimalPolynomial  - 用来容纳结果的一元无限精度复数多项式
+     P1: TCnBigComplexDecimalPolynomial   - 加数一
+     P2: TCnBigComplexDecimalPolynomial   - 加数二
+
+   返回值：Boolean                        - 返回是否相加成功
+}
+
+function BigComplexDecimalPolynomialSub(Res: TCnBigComplexDecimalPolynomial;
+  P1: TCnBigComplexDecimalPolynomial; P2: TCnBigComplexDecimalPolynomial): Boolean;
+{* 两个一元无限精度复数多项式对象相减，结果放至 Res 中，返回相减是否成功，P1 可以是 P2，Res 可以是 P1 或 P2。
+
+   参数：
+     Res: TCnBigComplexDecimalPolynomial  - 用来容纳结果的一元无限精度复数多项式
+     P1: TCnBigComplexDecimalPolynomial   - 被减数
+     P2: TCnBigComplexDecimalPolynomial   - 减数
+
+   返回值：Boolean                        - 返回是否相减成功
+}
+
+function BigComplexDecimalPolynomialMul(Res: TCnBigComplexDecimalPolynomial;
+  P1: TCnBigComplexDecimalPolynomial; P2: TCnBigComplexDecimalPolynomial): Boolean;
+{* 两个一元无限精度复数多项式对象相乘，结果放至 Res 中，返回相乘是否成功，P1 可以是 P2，Res 可以是 P1 或 P2。
+
+   参数：
+     Res: TCnBigComplexDecimalPolynomial  - 用来容纳结果的一元无限精度复数多项式
+     P1: TCnBigComplexDecimalPolynomial   - 乘数一
+     P2: TCnBigComplexDecimalPolynomial   - 乘数二
+
+   返回值：Boolean                        - 返回是否相乘成功
+}
+
+function BigComplexDecimalPolynomialDiv(Res: TCnBigComplexDecimalPolynomial;
+  Remain: TCnBigComplexDecimalPolynomial; P: TCnBigComplexDecimalPolynomial;
+  Divisor: TCnBigComplexDecimalPolynomial): Boolean;
+{* 两个一元无限精度复数多项式对象相除，商放至 Res 中，余式放在 Remain 中，返回相除是否成功。
+   Res 或 Remain 可以是 nil，不给出对应结果。P 可以是 Divisor，Res 可以是 P 或 Divisor。
+
+   参数：
+     Res: TCnBigComplexDecimalPolynomial  - 用来容纳结果的一元无限精度复数多项式
+     Remain: TCnBigComplexDecimalPolynomial - 用来容纳余式的一元无限精度复数多项式
+     P: TCnBigComplexDecimalPolynomial    - 被除数
+     Divisor: TCnBigComplexDecimalPolynomial - 除数
+
+   返回值：Boolean                        - 返回是否相除成功
+}
+
+function BigComplexDecimalPolynomialPower(Res: TCnBigComplexDecimalPolynomial;
+  P: TCnBigComplexDecimalPolynomial; Exponent: Int64): Boolean;
+{* 计算一元无限精度复数多项式的 Exponent 次幂，返回是否计算成功，Res 可以是 P。
+
+   参数：
+     Res: TCnBigComplexDecimalPolynomial  - 用来容纳结果的一元无限精度复数多项式
+     P: TCnBigComplexDecimalPolynomial    - 底数
+     Exponent: Int64                      - 指数
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
+function BigComplexDecimalPolynomialCompose(Res: TCnBigComplexDecimalPolynomial;
+  F: TCnBigComplexDecimalPolynomial; P: TCnBigComplexDecimalPolynomial): Boolean;
+{* 一元无限精度复数多项式代换，也就是计算 F(P(x))，返回是否计算成功，Res 可以是 F 或 P。
+
+   参数：
+     Res: TCnBigComplexDecimalPolynomial  - 用来容纳结果的一元无限精度复数多项式
+     F: TCnBigComplexDecimalPolynomial    - 代换原式
+     P: TCnBigComplexDecimalPolynomial    - 待代换式
+
+   返回值：Boolean                        - 返回是否计算成功
+}
+
+procedure BigComplexDecimalPolynomialGetValue(Res: TCnBigComplexDecimal; F: TCnBigComplexDecimalPolynomial;
+  X: TCnBigComplexDecimal);
+{* 一元无限精度复数多项式求值，也就是计算 F(x)。Res 不能是 X。
+
+   参数：
+     Res: TCnBigComplexDecimal            - 用来容纳结果的无限精度复数
+     F: TCnBigComplexDecimalPolynomial    - 待求值的一元无限精度复数多项式
+     X: TCnBigComplexDecimal              - 未知数的值
+
+   返回值：（无）
+}
+
 // ====================== 一元整系数多项式基础运算 =============================
 
 function Int64PolynomialNew: TCnInt64Polynomial;
@@ -2175,7 +2603,7 @@ function BigNumberPolynomialCompose(Res: TCnBigNumberPolynomial;
 
 procedure BigNumberPolynomialGetValue(Res: TCnBigNumber; F: TCnBigNumberPolynomial;
   X: TCnBigNumber);
-{* 一元大整系数多项式求值，也就是计算 F(x)，返回是否计算成功，Res 不能是 X。
+{* 一元大整系数多项式求值，也就是计算 F(x)。Res 不能是 X。
 
    参数：
      Res: TCnBigNumber                    - 用来容纳结果的大数对象
@@ -4685,6 +5113,8 @@ var
   FLocalBigNumberPool: TCnBigNumberPool = nil;
   FLocalInt64BiPolynomialPool: TCnInt64BiPolynomialPool = nil;
   FLocalBigNumberBiPolynomialPool: TCnBigNumberBiPolynomialPool = nil;
+  FLocalBigComplexDecimalPool: TCnBigComplexDecimalPool = nil;
+  FLocalBigComplexDecimalPolynomialPool: TCnBigComplexDecimalPolynomialPool = nil;
 
 procedure CheckDegree(Degree: Integer);
 begin
@@ -9670,6 +10100,224 @@ begin
   inherited Recycle(Poly);
 end;
 
+// ======================= 一元无限精度复数多项式实现 ============================
+
+{ TCnBigComplexDecimalList }
+
+constructor TCnBigComplexDecimalList.Create;
+begin
+  inherited Create;
+end;
+
+destructor TCnBigComplexDecimalList.Destroy;
+begin
+  inherited;
+end;
+
+function TCnBigComplexDecimalList.GetItem(Index: Integer): TCnBigComplexDecimal;
+begin
+  Result := TCnBigComplexDecimal(inherited Items[Index]);
+end;
+
+procedure TCnBigComplexDecimalList.SetItem(Index: Integer; AComplexDecimal: TCnBigComplexDecimal);
+begin
+  inherited Items[Index] := AComplexDecimal;
+end;
+
+function TCnBigComplexDecimalList.Add: TCnBigComplexDecimal;
+begin
+  Result := TCnBigComplexDecimal.Create;
+  inherited Add(Result);
+end;
+
+function TCnBigComplexDecimalList.Add(AComplexDecimal: TCnBigComplexDecimal): Integer;
+begin
+  Result := inherited Add(AComplexDecimal);
+end;
+
+function TCnBigComplexDecimalList.ToString: string;
+var
+  I: Integer;
+begin
+  Result := '[';
+  for I := 0 to Count - 1 do
+  begin
+    if I > 0 then
+      Result := Result + ', ';
+    Result := Result + Items[I].ToString;
+  end;
+  Result := Result + ']';
+end;
+
+{ TCnBigComplexDecimalPolynomial }
+
+constructor TCnBigComplexDecimalPolynomial.Create;
+begin
+  inherited Create;
+end;
+
+constructor TCnBigComplexDecimalPolynomial.Create(LowToHighCoefficients: array of const);
+begin
+  inherited Create;
+  SetCoefficents(LowToHighCoefficients);
+end;
+
+destructor TCnBigComplexDecimalPolynomial.Destroy;
+begin
+  inherited;
+end;
+
+procedure TCnBigComplexDecimalPolynomial.EnsureDegree(Degree: Integer);
+begin
+  while Count <= Degree do
+  begin
+    Add;
+    Items[Count - 1].SetZero;
+  end;
+end;
+
+function TCnBigComplexDecimalPolynomial.GetMaxDegree: Integer;
+begin
+  if Count = 0 then
+    Result := -1
+  else
+    Result := Count - 1;
+end;
+
+procedure TCnBigComplexDecimalPolynomial.SetMaxDegree(const Value: Integer);
+begin
+  if Value < 0 then
+    Clear
+  else
+    EnsureDegree(Value);
+end;
+
+procedure TCnBigComplexDecimalPolynomial.SetCoefficents(LowToHighCoefficients: array of const);
+var
+  I: Integer;
+  V: TVarRec;
+begin
+  Clear;
+  for I := Low(LowToHighCoefficients) to High(LowToHighCoefficients) do
+  begin
+    V := LowToHighCoefficients[I];
+    EnsureDegree(I);
+    case V.VType of
+      vtInteger:
+        Items[I].SetValue(V.VInteger, 0);
+      vtInt64:
+        Items[I].SetValue(V.VInt64^, 0);
+    end;
+  end;
+end;
+
+procedure TCnBigComplexDecimalPolynomial.SetCoefficent(Degree: Integer; Coefficient: TCnBigComplexDecimal);
+begin
+  EnsureDegree(Degree);
+  BigComplexDecimalCopy(Items[Degree], Coefficient);
+end;
+
+procedure TCnBigComplexDecimalPolynomial.CorrectTop;
+begin
+  while (Count > 0) and Items[Count - 1].IsZero do
+    Delete(Count - 1);
+end;
+
+function TCnBigComplexDecimalPolynomial.ToString: string;
+begin
+  Result := BigComplexDecimalPolynomialToString(Self);
+end;
+
+procedure TCnBigComplexDecimalPolynomial.SetString(const Poly: string);
+begin
+  // TODO: 实现字符串解析
+  Clear;
+end;
+
+function TCnBigComplexDecimalPolynomial.IsZero: Boolean;
+var
+  I: Integer;
+begin
+  for I := 0 to Count - 1 do
+    if not Items[I].IsZero then
+    begin
+      Result := False;
+      Exit;
+    end;
+  Result := True;
+end;
+
+procedure TCnBigComplexDecimalPolynomial.SetZero;
+begin
+  Clear;
+end;
+
+function TCnBigComplexDecimalPolynomial.IsOne: Boolean;
+begin
+  Result := (Count = 1) and Items[0].IsOne;
+end;
+
+procedure TCnBigComplexDecimalPolynomial.SetOne;
+begin
+  Clear;
+  EnsureDegree(0);
+  Items[0].SetOne;
+end;
+
+function TCnBigComplexDecimalPolynomial.IsNegOne: Boolean;
+var
+  Temp: TCnBigComplexDecimal;
+begin
+  if Count <> 1 then
+  begin
+    Result := False;
+    Exit;
+  end;
+  Temp := TCnBigComplexDecimal.Create;
+  try
+    BigComplexDecimalCopy(Temp, Items[0]);
+    Temp.Negate;
+    Result := Temp.IsOne;
+  finally
+    Temp.Free;
+  end;
+end;
+
+procedure TCnBigComplexDecimalPolynomial.Negate;
+var
+  I: Integer;
+begin
+  for I := 0 to Count - 1 do
+    Items[I].Negate;
+end;
+
+function TCnBigComplexDecimalPolynomial.IsMonic: Boolean;
+begin
+  CorrectTop;
+  if Count = 0 then
+    Result := False
+  else
+    Result := Items[Count - 1].IsOne;
+end;
+
+{ TCnBigComplexDecimalPolynomialPool }
+
+function TCnBigComplexDecimalPolynomialPool.CreateObject: TObject;
+begin
+  Result := TCnBigComplexDecimalPolynomial.Create;
+end;
+
+function TCnBigComplexDecimalPolynomialPool.Obtain: TCnBigComplexDecimalPolynomial;
+begin
+  Result := TCnBigComplexDecimalPolynomial(inherited Obtain);
+  Result.SetZero;
+end;
+
+procedure TCnBigComplexDecimalPolynomialPool.Recycle(Poly: TCnBigComplexDecimalPolynomial);
+begin
+  inherited Recycle(Poly);
+end;
+
 // ======================= 一元大整系数有理分式常规运算 ============================
 
 function BigNumberRationalPolynomialEqual(R1, R2: TCnBigNumberRationalPolynomial): Boolean;
@@ -13373,7 +14021,7 @@ function TCnBigNumberBiPolynomial.GetSafeValue(XDegree,
 var
   YL: TCnSparseBigNumberList;
 begin
-  if XDegree > MaxXDegree then  
+  if XDegree > MaxXDegree then
     MaxXDegree := XDegree;
 
   YL := YFactorsList[XDegree];  // 确保 XDegree 存在
@@ -13449,7 +14097,7 @@ procedure TCnBigNumberBiPolynomial.SetSafeValue(XDegree, YDegree: Integer;
 var
   YL: TCnSparseBigNumberList;
 begin
-  if XDegree > MaxXDegree then  
+  if XDegree > MaxXDegree then
     MaxXDegree := XDegree;
 
   YL := YFactorsList[XDegree];    // 确保 XDegree 存在
@@ -13528,7 +14176,7 @@ var
 begin
   CheckDegree(XDegree);
 
-  if XDegree > MaxXDegree then   
+  if XDegree > MaxXDegree then
     MaxXDegree := XDegree;
 
   if PY.IsZero then
@@ -13551,7 +14199,7 @@ var
 begin
   CheckDegree(XDegree);
 
-  if XDegree > MaxXDegree then   
+  if XDegree > MaxXDegree then
     MaxXDegree := XDegree;
 
   if PY.IsZero then
@@ -13650,6 +14298,439 @@ begin
   end;
 end;
 
+// ================= 一元无限精度复数多项式独立函数实现 ========================
+
+function BigComplexDecimalPolynomialNew: TCnBigComplexDecimalPolynomial;
+begin
+  Result := TCnBigComplexDecimalPolynomial.Create;
+end;
+
+procedure BigComplexDecimalPolynomialFree(P: TCnBigComplexDecimalPolynomial);
+begin
+  P.Free;
+end;
+
+function BigComplexDecimalPolynomialDuplicate(P: TCnBigComplexDecimalPolynomial): TCnBigComplexDecimalPolynomial;
+var
+  I: Integer;
+begin
+  Result := TCnBigComplexDecimalPolynomial.Create;
+  for I := 0 to P.Count - 1 do
+  begin
+    Result.EnsureDegree(I);
+    BigComplexDecimalCopy(Result.Items[I], P.Items[I]);
+  end;
+end;
+
+function BigComplexDecimalPolynomialCopy(Dst: TCnBigComplexDecimalPolynomial;
+  Src: TCnBigComplexDecimalPolynomial): TCnBigComplexDecimalPolynomial;
+var
+  I: Integer;
+begin
+  Result := Dst;
+  if Src <> Dst then
+  begin
+    Dst.Clear;
+    for I := 0 to Src.Count - 1 do
+    begin
+      Dst.EnsureDegree(I);
+      BigComplexDecimalCopy(Dst.Items[I], Src.Items[I]);
+    end;
+  end;
+end;
+
+procedure BigComplexDecimalPolynomialSwap(A: TCnBigComplexDecimalPolynomial;
+  B: TCnBigComplexDecimalPolynomial);
+var
+  I, MaxCount: Integer;
+  Temp: TCnBigComplexDecimal;
+begin
+  MaxCount := Max(A.Count, B.Count);
+
+  // 确保两个多项式都有足够的项
+  while A.Count < MaxCount do
+  begin
+    A.Add;
+    A.Items[A.Count - 1].SetZero;
+  end;
+
+  while B.Count < MaxCount do
+  begin
+    B.Add;
+    B.Items[B.Count - 1].SetZero;
+  end;
+
+  // 交换所有项
+  for I := 0 to MaxCount - 1 do
+  begin
+    Temp := TCnBigComplexDecimal.Create;
+    try
+      BigComplexDecimalCopy(Temp, A.Items[I]);
+      BigComplexDecimalCopy(A.Items[I], B.Items[I]);
+      BigComplexDecimalCopy(B.Items[I], Temp);
+    finally
+      Temp.Free;
+    end;
+  end;
+end;
+
+function BigComplexDecimalPolynomialToString(P: TCnBigComplexDecimalPolynomial;
+  const VarName: string): string;
+var
+  I: Integer;
+begin
+  P.CorrectTop;
+  if P.Count = 0 then
+  begin
+    Result := '0';
+    Exit;
+  end;
+
+  for I := P.Count - 1 downto 0 do
+  begin
+    if not P[I].IsZero then
+    begin
+      if Result <> '' then
+        Result := Result + '+';
+      if I = 0 then
+        Result := Result + P[I].ToString
+      else if I = 1 then
+        Result := Result + '(' + P[I].ToString + ')X'
+      else
+        Result := Result + '(' + P[I].ToString + ')X^' + IntToStr(I);
+    end;
+  end;
+end;
+
+function BigComplexDecimalPolynomialIsZero(P: TCnBigComplexDecimalPolynomial): Boolean;
+begin
+  Result := (P.MaxDegree = 0) and P[0].IsZero;
+end;
+
+procedure BigComplexDecimalPolynomialSetZero(P: TCnBigComplexDecimalPolynomial);
+begin
+  P.Clear;
+  P.Add.SetZero;
+end;
+
+function BigComplexDecimalPolynomialIsOne(P: TCnBigComplexDecimalPolynomial): Boolean;
+begin
+  Result := (P.MaxDegree = 0) and P[0].IsOne;
+end;
+
+procedure BigComplexDecimalPolynomialSetOne(P: TCnBigComplexDecimalPolynomial);
+begin
+  P.Clear;
+  P.Add.SetOne;
+end;
+
+function BigComplexDecimalPolynomialIsNegOne(P: TCnBigComplexDecimalPolynomial): Boolean;
+begin
+  Result := (P.MaxDegree = 0) and P[0].IsNegOne;
+end;
+
+procedure BigComplexDecimalPolynomialNegate(P: TCnBigComplexDecimalPolynomial);
+var
+  I: Integer;
+begin
+  for I := 0 to P.MaxDegree do
+    P[I].Negate;
+end;
+
+function BigComplexDecimalPolynomialIsMonic(P: TCnBigComplexDecimalPolynomial): Boolean;
+begin
+  Result := P[P.MaxDegree].IsOne;
+end;
+
+procedure BigComplexDecimalPolynomialShiftLeft(P: TCnBigComplexDecimalPolynomial; N: Integer);
+var
+  I: Integer;
+begin
+  if N = 0 then
+    Exit
+  else if N < 0 then
+    BigComplexDecimalPolynomialShiftRight(P, -N)
+  else
+    for I := 1 to N do
+      P.Insert(0, TCnBigNumber.Create);
+end;
+
+procedure BigComplexDecimalPolynomialShiftRight(P: TCnBigComplexDecimalPolynomial; N: Integer);
+var
+  I: Integer;
+begin
+  if N = 0 then
+    Exit
+  else if N < 0 then
+    BigComplexDecimalPolynomialShiftLeft(P, -N)
+  else
+  begin
+    for I := 1 to N do
+      P.Delete(0);
+
+    if P.Count = 0 then
+      P.Add.SetZero;
+  end;
+end;
+
+function BigComplexDecimalPolynomialEqual(A: TCnBigComplexDecimalPolynomial;
+  B: TCnBigComplexDecimalPolynomial): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if A.Count <> B.Count then
+    Exit;
+
+  for I := 0 to A.Count - 1 do
+  begin
+    if not BigComplexDecimalEqual(A.Items[I], B.Items[I]) then
+      Exit;
+  end;
+
+  Result := True;
+end;
+
+function BigComplexDecimalPolynomialAdd(Res: TCnBigComplexDecimalPolynomial;
+  P1: TCnBigComplexDecimalPolynomial; P2: TCnBigComplexDecimalPolynomial): Boolean;
+var
+  I, D1, D2: Integer;
+  PBig: TCnBigComplexDecimalPolynomial;
+begin
+  D1 := Max(P1.MaxDegree, P2.MaxDegree);
+  D2 := Min(P1.MaxDegree, P2.MaxDegree);
+
+  if D1 > D2 then
+  begin
+    if P1.MaxDegree > P2.MaxDegree then
+      PBig := P1
+    else
+      PBig := P2;
+
+    Res.MaxDegree := D1; // 考虑到 Res 可能是 P1 或 P2，所以给 Res 的 MaxDegree 赋值得放上面的比较之后
+    for I := D1 downto D2 + 1 do
+      BigComplexDecimalCopy(Res[I], PBig[I]);
+  end
+  else // D1 = D2 说明俩加式同次
+    Res.MaxDegree := D1;
+
+  for I := D2 downto 0 do
+    BigComplexDecimalAdd(Res[I], P1[I], P2[I]);
+
+  Res.CorrectTop;
+  Result := True;
+end;
+
+function BigComplexDecimalPolynomialSub(Res: TCnBigComplexDecimalPolynomial;
+  P1: TCnBigComplexDecimalPolynomial; P2: TCnBigComplexDecimalPolynomial): Boolean;
+var
+  I, D1, D2: Integer;
+begin
+  D1 := Max(P1.MaxDegree, P2.MaxDegree);
+  D2 := Min(P1.MaxDegree, P2.MaxDegree);
+
+  Res.MaxDegree := D1;
+  if D1 > D2 then
+  begin
+    if P1.MaxDegree > P2.MaxDegree then // 被减式大
+    begin
+      for I := D1 downto D2 + 1 do
+        BigComplexDecimalCopy(Res[I], P1[I]);
+    end
+    else  // 减式大
+    begin
+      for I := D1 downto D2 + 1 do
+      begin
+        BigComplexDecimalCopy(Res[I], P2[I]);
+        Res[I].Negate;
+      end;
+    end;
+  end;
+
+  for I := D2 downto 0 do
+    BigComplexDecimalSub(Res[I], P1[I], P2[I]);
+
+  Res.CorrectTop;
+  Result := True;
+end;
+
+function BigComplexDecimalPolynomialMul(Res: TCnBigComplexDecimalPolynomial;
+  P1: TCnBigComplexDecimalPolynomial; P2: TCnBigComplexDecimalPolynomial): Boolean;
+var
+  R: TCnBigComplexDecimalPolynomial;
+  T: TCnBigComplexDecimal;
+  I, J: Integer;
+begin
+  if BigComplexDecimalPolynomialIsZero(P1) or BigComplexDecimalPolynomialIsZero(P2) then
+  begin
+    BigComplexDecimalPolynomialSetZero(Res);
+    Result := True;
+    Exit;
+  end;
+
+  T := FLocalBigComplexDecimalPool.Obtain;
+  if (Res = P1) or (Res = P2) then
+    R := FLocalBigComplexDecimalPolynomialPool.Obtain
+  else
+    R := Res;
+
+  R.Clear;
+  R.MaxDegree := P1.MaxDegree + P2.MaxDegree;
+
+  for I := 0 to P1.MaxDegree do
+  begin
+    // 把第 I 次方的数字乘以 P2 的每一个数字，加到结果的 I 开头的部分
+    for J := 0 to P2.MaxDegree do
+    begin
+      BigComplexDecimalMul(T, P1[I], P2[J]);
+      BigComplexDecimalAdd(R[I + J], R[I + J], T);
+    end;
+  end;
+
+  R.CorrectTop;
+  if (Res = P1) or (Res = P2) then
+  begin
+    BigComplexDecimalPolynomialCopy(Res, R);
+    FLocalBigComplexDecimalPolynomialPool.Recycle(R);
+  end;
+
+  FLocalBigComplexDecimalPool.Recycle(T);
+  Result := True;
+end;
+
+function BigComplexDecimalPolynomialDiv(Res: TCnBigComplexDecimalPolynomial;
+  Remain: TCnBigComplexDecimalPolynomial; P: TCnBigComplexDecimalPolynomial;
+  Divisor: TCnBigComplexDecimalPolynomial): Boolean;
+begin
+  Result := False;
+  // 复数多项式除法较为复杂，暂不实现
+end;
+
+function BigComplexDecimalPolynomialPower(Res: TCnBigComplexDecimalPolynomial;
+  P: TCnBigComplexDecimalPolynomial; Exponent: Int64): Boolean;
+var
+  Temp, Temp2: TCnBigComplexDecimalPolynomial;
+  I: Int64;
+begin
+  Result := True;
+
+  if Exponent < 0 then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  if Exponent = 0 then
+  begin
+    Res.SetOne;
+    Exit;
+  end;
+
+  if Exponent = 1 then
+  begin
+    BigComplexDecimalPolynomialCopy(Res, P);
+    Exit;
+  end;
+
+  Temp := TCnBigComplexDecimalPolynomial.Create;
+  Temp2 := TCnBigComplexDecimalPolynomial.Create;
+  try
+    BigComplexDecimalPolynomialCopy(Temp, P);
+    Res.SetOne;
+
+    I := Exponent;
+    while I > 0 do
+    begin
+      if I and 1 = 1 then
+      begin
+        BigComplexDecimalPolynomialMul(Temp2, Res, Temp);
+        BigComplexDecimalPolynomialCopy(Res, Temp2);
+      end;
+
+      BigComplexDecimalPolynomialMul(Temp2, Temp, Temp);
+      BigComplexDecimalPolynomialCopy(Temp, Temp2);
+      I := I shr 1;
+    end;
+  finally
+    Temp.Free;
+    Temp2.Free;
+  end;
+end;
+
+function BigComplexDecimalPolynomialCompose(Res: TCnBigComplexDecimalPolynomial;
+  F: TCnBigComplexDecimalPolynomial; P: TCnBigComplexDecimalPolynomial): Boolean;
+var
+  I: Integer;
+  Temp, Temp2, PowerP: TCnBigComplexDecimalPolynomial;
+begin
+  Result := True;
+
+  if F.IsZero then
+  begin
+    Res.SetZero;
+    Exit;
+  end;
+
+  Temp := TCnBigComplexDecimalPolynomial.Create;
+  Temp2 := TCnBigComplexDecimalPolynomial.Create;
+  PowerP := TCnBigComplexDecimalPolynomial.Create;
+  try
+    Res.SetZero;
+    PowerP.SetOne;
+
+    for I := 0 to F.MaxDegree do
+    begin
+      if I > 0 then
+      begin
+        BigComplexDecimalPolynomialMul(Temp2, PowerP, P);
+        BigComplexDecimalPolynomialCopy(PowerP, Temp2);
+      end;
+
+      Temp.Clear;
+      Temp.EnsureDegree(0);
+      BigComplexDecimalCopy(Temp.Items[0], F.Items[I]);
+
+      BigComplexDecimalPolynomialMul(Temp2, Temp, PowerP);
+      BigComplexDecimalPolynomialAdd(Res, Res, Temp2);
+    end;
+  finally
+    Temp.Free;
+    Temp2.Free;
+    PowerP.Free;
+  end;
+end;
+
+procedure BigComplexDecimalPolynomialGetValue(Res: TCnBigComplexDecimal; F: TCnBigComplexDecimalPolynomial;
+  X: TCnBigComplexDecimal);
+var
+  I: Integer;
+  T, M: TCnBigComplexDecimal;
+begin
+  BigComplexDecimalCopy(Res, F[0]);
+  if X.IsZero or (F.MaxDegree = 0) then    // 只有常数项的情况下，得常数项
+    Exit;
+
+  T := FLocalBigComplexDecimalPool.Obtain;
+  M := FLocalBigComplexDecimalPool.Obtain;
+
+  try
+    BigComplexDecimalCopy(T, X);
+
+    // 把 F 中的每个系数都和 X 的对应次幂相乘，最后相加
+    for I := 1 to F.MaxDegree do
+    begin
+      BigComplexDecimalMul(M, F[I], T);
+      BigComplexDecimalAdd(Res, Res, M);
+
+      if I <> F.MaxDegree then
+        BigComplexDecimalMul(T, T, X);
+    end;
+  finally
+    FLocalBigComplexDecimalPool.Recycle(T);
+    FLocalBigComplexDecimalPool.Recycle(M);
+  end;
+end;
+
 initialization
   FLocalInt64PolynomialPool := TCnInt64PolynomialPool.Create;
   FLocalInt64RationalPolynomialPool := TCnInt64RationalPolynomialPool.Create;
@@ -13658,6 +14739,8 @@ initialization
   FLocalBigNumberPool := TCnBigNumberPool.Create;
   FLocalInt64BiPolynomialPool := TCnInt64BiPolynomialPool.Create;
   FLocalBigNumberBiPolynomialPool := TCnBigNumberBiPolynomialPool.Create;
+  FLocalBigComplexDecimalPool := TCnBigComplexDecimalPool.Create;
+  FLocalBigComplexDecimalPolynomialPool := TCnBigComplexDecimalPolynomialPool.Create;
 
   CnInt64PolynomialOne := TCnInt64Polynomial.Create([1]);
   CnInt64PolynomialZero := TCnInt64Polynomial.Create([0]);
@@ -13674,6 +14757,8 @@ finalization
   CnInt64PolynomialOne.Free;
   CnInt64PolynomialZero.Free;
 
+  FLocalBigComplexDecimalPolynomialPool.Free;
+  FLocalBigComplexDecimalPool.Free;
   FLocalBigNumberBiPolynomialPool.Free;
   FLocalInt64BiPolynomialPool.Free;
   FLocalInt64PolynomialPool.Free;

@@ -230,6 +230,7 @@ function TestQREncoderTextMatrix: Boolean;
 function TestBigNumberPolynomialGaloisPrimePowerModularInverse: Boolean;
 function TestInt64Polynomial: Boolean;
 function TestBigNumberPolynomial: Boolean;
+function TestBigComplexDecimalPolynomial: Boolean;
 function TestInt64RationalPolynomial: Boolean;
 function TestBigNumberRationalPolynomial: Boolean;
 function TestInt64BiPolynomial: Boolean;
@@ -768,6 +769,7 @@ begin
   MyAssert(TestBigNumberPolynomialGaloisPrimePowerModularInverse, 'TestBigNumberPolynomialGaloisPrimePowerModularInverse');
   MyAssert(TestInt64Polynomial, 'TestInt64Polynomial');
   MyAssert(TestBigNumberPolynomial, 'TestBigNumberPolynomial');
+  MyAssert(TestBigComplexDecimalPolynomial, 'TestBigComplexDecimalPolynomial');
   MyAssert(TestInt64RationalPolynomial, 'TestInt64RationalPolynomial');
   MyAssert(TestBigNumberRationalPolynomial, 'TestBigNumberRationalPolynomial');
   MyAssert(TestInt64BiPolynomial, 'TestInt64BiPolynomial');
@@ -4751,19 +4753,22 @@ begin
   P2 := TCnInt64Polynomial.Create([3, 2, 1]);
   Res := TCnInt64Polynomial.Create;
   try
-    if P1.ToString <> '3X^2+2X+1' then Exit;
-    if P2.ToString <> 'X^2+2X+3' then Exit;
+    Result := P1.ToString = '3X^2+2X+1';
+    if not Result then Exit;
+
+    Result := P2.ToString = 'X^2+2X+3';
+    if not Result then Exit;
 
     Int64PolynomialAdd(Res, P1, P2);
-    if Res.ToString <> '4X^2+4X+4' then Exit;
+    Result := Res.ToString = '4X^2+4X+4';
+    if not Result then Exit;
 
     Int64PolynomialSub(Res, P1, P2);
-    if Res.ToString <> '2X^2-2' then Exit;
+    Result := Res.ToString = '2X^2-2';
+    if not Result then Exit;
 
     Int64PolynomialMul(Res, P1, P2);
-    if Res.ToString <> '3X^4+8X^3+14X^2+8X+3' then Exit;
-
-    Result := True;
+    Result := Res.ToString = '3X^4+8X^3+14X^2+8X+3';
   finally
     Res.Free;
     P2.Free;
@@ -4780,19 +4785,103 @@ begin
   P2 := TCnBigNumberPolynomial.Create([3, 2, 1]);
   Res := TCnBigNumberPolynomial.Create;
   try
-    if P1.ToString <> '3X^2+2X+1' then Exit;
+    Result := P1.ToString = '3X^2+2X+1';
+    if not Result then Exit;
 
     BigNumberPolynomialAdd(Res, P1, P2);
-    if Res.ToString <> '4X^2+4X+4' then Exit;
+    Result := Res.ToString = '4X^2+4X+4';
+    if not Result then Exit;
 
     BigNumberPolynomialSub(Res, P1, P2);
-    if Res.ToString <> '2X^2-2' then Exit;
+    Result := Res.ToString = '2X^2-2';
+    if not Result then Exit;
 
     BigNumberPolynomialMul(Res, P1, P2);
-    if Res.ToString <> '3X^4+8X^3+14X^2+8X+3' then Exit;
+    Result := Res.ToString = '3X^4+8X^3+14X^2+8X+3';
 
     Result := True;
   finally
+    Res.Free;
+    P2.Free;
+    P1.Free;
+  end;
+end;
+
+function TestBigComplexDecimalPolynomial: Boolean;
+var
+  P1, P2, Res: TCnBigComplexDecimalPolynomial;
+  C1, C2, C3, C4: TCnBigComplexDecimal;
+begin
+  Result := False;
+  P1 := TCnBigComplexDecimalPolynomial.Create;
+  P2 := TCnBigComplexDecimalPolynomial.Create;
+  Res := TCnBigComplexDecimalPolynomial.Create;
+  C3 := TCnBigComplexDecimal.Create;
+  C4 := TCnBigComplexDecimal.Create;
+  try
+    // 创建第一个多项式 P1 = 1 + 2i + (2 + 3i)X + (3 + 4i)X^2
+    C1 := TCnBigComplexDecimal.Create;
+    C1.SetValue(1, 2);
+    P1.Add(C1);
+
+    C1 := TCnBigComplexDecimal.Create;
+    C1.SetValue(2, 3);
+    P1.Add(C1);
+
+    C1 := TCnBigComplexDecimal.Create;
+    C1.SetValue(3, 4);
+    P1.Add(C1);
+
+    // 创建第二个多项式 P2 = 1 + (1 + i)X
+    C2 := TCnBigComplexDecimal.Create;
+    C2.SetValue(1, 0);
+    P2.Add(C2);
+
+    C2 := TCnBigComplexDecimal.Create;
+    C2.SetValue(1, 1);
+    P2.Add(C2);
+
+    // 测试加法
+    BigComplexDecimalPolynomialAdd(Res, P1, P2);
+    Result := Res.ToString = '(3+4i)X^2+(3+4i)X+2+2i';
+    if not Result then Exit;
+
+    // 测试减法
+    BigComplexDecimalPolynomialSub(Res, P1, P2);
+    Result := Res.ToString = '(3+4i)X^2+(1+2i)X+2i';
+    if not Result then Exit;
+
+    // 测试乘法
+    BigComplexDecimalPolynomialMul(Res, P1, P2);
+    Result := Res.ToString = '(-1+7i)X^3+(2+9i)X^2+(1+6i)X+1+2i';
+    if not Result then Exit;
+
+    // 测试复制
+    BigComplexDecimalPolynomialCopy(Res, P1);
+    Result := Res.ToString = P1.ToString;
+    if not Result then Exit;
+
+    // 测试相等性
+    Result := BigComplexDecimalPolynomialEqual(Res, P1);
+    if not Result then Exit;
+
+    // 测试交换
+    BigComplexDecimalPolynomialSwap(Res, P2);
+    Result:= (Res.ToString = '(1+i)X+1') and (P2.ToString = '(3+4i)X^2+(2+3i)X+1+2i');
+    if not Result then Exit;
+
+    // 测试求值 P1(1+i)
+    C3.SetValue(1, 1);
+    BigComplexDecimalPolynomialGetValue(C4, P1, C3);
+    // 结果应该是 (1+2i) + (2+3i)(1+i) + (3+4i)(1+i)^2
+    // = (1+2i) + (2+3i+2i+3i^2) + (3+4i)*2i)
+    // = (1+2i) + (2+3i+2i-3) + (-8+6i)
+    // = (1+2i) + (-1+5i) + (-8+6i)
+    // = -8+13i
+    Result := C4.ToString = '-8+13i';
+  finally
+    C4.Free;
+    C3.Free;
     Res.Free;
     P2.Free;
     P1.Free;
