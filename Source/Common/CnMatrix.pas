@@ -30,7 +30,9 @@ unit CnMatrix;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行。另外 Hadamard 相关乘法，积矩阵可否是原矩阵待考察
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.07.01 V1.3
+* 修改记录：2026.01.25 V1.4
+*               调整有理数相关函数的参数顺序，注意和旧版不兼容
+*           2022.07.01 V1.3
 *               加入矩阵斜角索引的计算
 *           2022.06.29 V1.2
 *               加入浮点矩阵计算
@@ -1237,76 +1239,78 @@ procedure CnMatrixInverse(Matrix1: TCnRationalMatrix; Matrix2: TCnRationalMatrix
 
 // ============================== 有理数运算方法 ===============================
 
-procedure CnRationalNumberAdd(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
-  RationalResult: TCnRationalNumber);
+procedure CnRationalNumberAdd(Res: TCnRationalNumber;
+  Number1: TCnRationalNumber; Number2: TCnRationalNumber);
 {* 有理数加法，三个参数可以是同一对象。
 
    参数：
+     Res: TCnRationalNumber               - 用来容纳结果的有理数
      Number1: TCnRationalNumber           - 加数一
      Number2: TCnRationalNumber           - 加数二
-     RationalResult: TCnRationalNumber    - 用来容纳结果的有理数
 
    返回值：（无）
 }
 
-procedure CnRationalNumberAdd3(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
-  Number3: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberAdd3(Res: TCnRationalNumber;
+  Number1: TCnRationalNumber; Number2: TCnRationalNumber;
+  Number3: TCnRationalNumber);
 {* 有理数三个数加法，RationalResult 不能是 Number1 或 Number2 或 Number3。
 
    参数：
+     Res: TCnRationalNumber               - 用来容纳结果的有理数
      Number1: TCnRationalNumber           - 加数一
      Number2: TCnRationalNumber           - 加数二
      Number3: TCnRationalNumber           - 加数三
-     RationalResult: TCnRationalNumber    - 用来容纳结果的有理数
 
    返回值：（无）
 }
 
-procedure CnRationalNumberSub(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
-  RationalResult: TCnRationalNumber);
+procedure CnRationalNumberSub(Res: TCnRationalNumber;
+  Number1: TCnRationalNumber; Number2: TCnRationalNumber);
 {* 有理数减法，三个参数可以是同一对象。
 
    参数：
+     Res: TCnRationalNumber               - 用来容纳结果的有理数
      Number1: TCnRationalNumber           - 被减数
      Number2: TCnRationalNumber           - 减数
-     RationalResult: TCnRationalNumber    - 用来容纳结果的有理数
 
    返回值：（无）
 }
 
-procedure CnRationalNumberMul(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
-  RationalResult: TCnRationalNumber);
+procedure CnRationalNumberMul(Res: TCnRationalNumber;
+  Number1: TCnRationalNumber; Number2: TCnRationalNumber);
 {* 有理数乘法，三个参数可以是同一对象。
 
    参数：
+     Res: TCnRationalNumber               - 用来容纳结果的有理数
      Number1: TCnRationalNumber           - 乘数一
      Number2: TCnRationalNumber           - 乘数二
-     RationalResult: TCnRationalNumber    - 用来容纳结果的有理数
 
    返回值：（无）
 }
 
-procedure CnRationalNumberMul3(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
-  Number3: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberMul3(Res: TCnRationalNumber;
+  Number1: TCnRationalNumber; Number2: TCnRationalNumber;
+  Number3: TCnRationalNumber);
 {* 有理数三个数乘法，RationalResult 不能是 Number1 或 Number2。
 
    参数：
+     Res: TCnRationalNumber               - 用来容纳结果的有理数
      Number1: TCnRationalNumber           - 乘数一
      Number2: TCnRationalNumber           - 乘数二
      Number3: TCnRationalNumber           - 乘数三
-     RationalResult: TCnRationalNumber    - 用来容纳结果的有理数
 
    返回值：（无）
 }
 
-procedure CnRationalNumberDiv(Number1: TCnRationalNumber; Number2: TCnRationalNumber;
-  RationalResult: TCnRationalNumber);
+procedure CnRationalNumberDiv(Res: TCnRationalNumber;
+  Number1: TCnRationalNumber; Number2: TCnRationalNumber);
 {* 有理数除法，三个参数可以是同一对象。
 
    参数：
+     Res: TCnRationalNumber               - 用来容纳结果的有理数
      Number1: TCnRationalNumber           - 被除数
      Number2: TCnRationalNumber           - 除数
-     RationalResult: TCnRationalNumber    - 用来容纳结果的有理数
 
    返回值：（无）
 }
@@ -1617,8 +1621,8 @@ begin
         Sum.SetIntValue(0);
         for K := 0 to Matrix1.ColCount - 1 do
         begin
-          CnRationalNumberMul(Matrix1.Value[I, K], Matrix2.Value[K, J], T);
-          CnRationalNumberAdd(Sum, T, Sum);
+          CnRationalNumberMul(T, Matrix1.Value[I, K], Matrix2.Value[K, J]);
+          CnRationalNumberAdd(Sum, Sum, T);
         end;
         MulResult.Value[I, J] := Sum;
       end;
@@ -1772,7 +1776,7 @@ begin
   AddResult.ColCount := Matrix1.ColCount;
   for I := 0 to Matrix1.RowCount - 1 do
     for J := 0 to Matrix1.ColCount - 1 do
-      CnRationalNumberAdd(Matrix1.Value[I, J], Matrix2.Value[I, J], AddResult.Value[I, J]);
+      CnRationalNumberAdd(AddResult.Value[I, J], Matrix1.Value[I, J], Matrix2.Value[I, J]);
 end;
 
 procedure CnMatrixHadamardProduct(Matrix1, Matrix2: TCnIntMatrix; ProductResult: TCnIntMatrix);
@@ -1814,7 +1818,7 @@ begin
   ProductResult.ColCount := Matrix1.ColCount;
   for I := 0 to Matrix1.RowCount - 1 do
     for J := 0 to Matrix1.ColCount - 1 do
-      CnRationalNumberMul(Matrix1.Value[I, J], Matrix2.Value[I, J], ProductResult.Value[I, J]);
+      CnRationalNumberMul(ProductResult.Value[I, J], Matrix1.Value[I, J], Matrix2.Value[I, J]);
 end;
 
 procedure CnMatrixTranspose(Matrix1, Matrix2: TCnIntMatrix);
@@ -2970,7 +2974,7 @@ end;
 
 procedure TCnRationalNumber.Add(Value: TCnRationalNumber);
 begin
-  CnRationalNumberAdd(Self, Value, Self);
+  CnRationalNumberAdd(Self, Self, Value);
 end;
 
 procedure TCnRationalNumber.Add(Value: Int64);
@@ -3002,7 +3006,7 @@ end;
 
 procedure TCnRationalNumber.Divide(Value: TCnRationalNumber);
 begin
-  CnRationalNumberDiv(Self, Value, Self);
+  CnRationalNumberDiv(Self, Self, Value);
 end;
 
 procedure TCnRationalNumber.Divide(Value: Int64);
@@ -3044,7 +3048,7 @@ end;
 
 procedure TCnRationalNumber.Mul(Value: TCnRationalNumber);
 begin
-  CnRationalNumberMul(Self, Value, Self);
+  CnRationalNumberMul(Self, Self, Value);
 end;
 
 procedure TCnRationalNumber.Mul(Value: Int64);
@@ -3139,7 +3143,7 @@ end;
 
 procedure TCnRationalNumber.Sub(Value: TCnRationalNumber);
 begin
-  CnRationalNumberSub(Self, Value, Self);
+  CnRationalNumberSub(Self, Self, Value);
 end;
 
 procedure TCnRationalNumber.Sub(Value: Int64);
@@ -3188,7 +3192,7 @@ begin
   end;
 end;
 
-procedure CnRationalNumberAdd(Number1, Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberAdd(Res: TCnRationalNumber; Number1, Number2: TCnRationalNumber);
 const
   SIGN_ARRAY: array[False..True] of Integer = (1, -1);
 var
@@ -3197,7 +3201,7 @@ var
 begin
   if Number1.IsInt and Number2.IsInt then
   begin
-    RationalResult.Numerator := Number1.Numerator + Number2.Numerator;
+    Res.Numerator := Number1.Numerator + Number2.Numerator;
   end
   else
   begin
@@ -3217,20 +3221,20 @@ begin
     F1 := M div D1;
     F2 := M div D2;
 
-    RationalResult.Denominator := M;
-    RationalResult.Numerator := Number1.Numerator * F1 * SIGN_ARRAY[B1]
+    Res.Denominator := M;
+    Res.Numerator := Number1.Numerator * F1 * SIGN_ARRAY[B1]
       + Number2.Numerator * F2 * SIGN_ARRAY[B2]; // 可能溢出，暂无办法
-    RationalResult.Reduce;
+    Res.Reduce;
   end;
 end;
 
-procedure CnRationalNumberAdd3(Number1, Number2, Number3: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberAdd3(Res: TCnRationalNumber; Number1, Number2, Number3: TCnRationalNumber);
 begin
-  CnRationalNumberAdd(Number1, Number2, RationalResult);
-  CnRationalNumberAdd(RationalResult, Number3, RationalResult);
+  CnRationalNumberAdd(Res, Number1, Number2);
+  CnRationalNumberAdd(Res, Res, Number3);
 end;
 
-procedure CnRationalNumberSub(Number1, Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberSub(Res: TCnRationalNumber; Number1, Number2: TCnRationalNumber);
 const
   SIGN_ARRAY: array[False..True] of Integer = (1, -1);
 var
@@ -3239,7 +3243,7 @@ var
 begin
   if Number1.IsInt and Number2.IsInt then
   begin
-    RationalResult.Numerator := Number1.Numerator - Number2.Numerator;
+    Res.Numerator := Number1.Numerator - Number2.Numerator;
   end
   else
   begin
@@ -3259,14 +3263,14 @@ begin
     F1 := M div D1;
     F2 := M div D2;
 
-    RationalResult.Denominator := M;
-    RationalResult.Numerator := Number1.Numerator * F1 * SIGN_ARRAY[B1]
+    Res.Denominator := M;
+    Res.Numerator := Number1.Numerator * F1 * SIGN_ARRAY[B1]
       - Number2.Numerator * F2 * SIGN_ARRAY[B2]; // 可能溢出，暂无办法
-    RationalResult.Reduce;
+    Res.Reduce;
   end;
 end;
 
-procedure CnRationalNumberMul(Number1, Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberMul(Res: TCnRationalNumber; Number1, Number2: TCnRationalNumber);
 var
   X, Y: Int64;
 begin
@@ -3277,8 +3281,8 @@ begin
   if X < Number1.Numerator then
   begin
     // 有约的了
-    RationalResult.Numerator := X * Number2.Numerator;
-    RationalResult.Denominator := Number1.Denominator * Y;
+    Res.Numerator := X * Number2.Numerator;
+    Res.Denominator := Number1.Denominator * Y;
   end
   else
   begin
@@ -3288,25 +3292,25 @@ begin
     if X < Number1.Denominator then
     begin
       // 有的约了
-      RationalResult.Numerator := Number1.Numerator * Y;
-      RationalResult.Denominator := X * Number2.Denominator;
+      Res.Numerator := Number1.Numerator * Y;
+      Res.Denominator := X * Number2.Denominator;
     end
     else
     begin
-      RationalResult.Numerator := Number1.Numerator * Number2.Numerator;
-      RationalResult.Denominator := Number1.Denominator * Number2.Denominator;
+      Res.Numerator := Number1.Numerator * Number2.Numerator;
+      Res.Denominator := Number1.Denominator * Number2.Denominator;
     end;
   end;
-  RationalResult.Reduce;
+  Res.Reduce;
 end;
 
-procedure CnRationalNumberMul3(Number1, Number2, Number3: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberMul3(Res: TCnRationalNumber; Number1, Number2, Number3: TCnRationalNumber);
 begin
-  CnRationalNumberMul(Number1, Number2, RationalResult);
-  CnRationalNumberMul(RationalResult, Number3, RationalResult);
+  CnRationalNumberMul(Res, Number1, Number2);
+  CnRationalNumberMul(Res, Res, Number3);
 end;
 
-procedure CnRationalNumberDiv(Number1, Number2: TCnRationalNumber; RationalResult: TCnRationalNumber);
+procedure CnRationalNumberDiv(Res: TCnRationalNumber; Number1, Number2: TCnRationalNumber);
 var
   X, Y: Int64;
 begin
@@ -3316,8 +3320,8 @@ begin
   CnReduceInt64(X, Y);
   if X < Number1.Numerator then
   begin
-    RationalResult.Numerator := X * Number2.Denominator;
-    RationalResult.Denominator := Number1.Denominator * Y;
+    Res.Numerator := X * Number2.Denominator;
+    Res.Denominator := Number1.Denominator * Y;
   end
   else
   begin
@@ -3326,16 +3330,16 @@ begin
     CnReduceInt64(X, Y);
     if X < Number1.Denominator then
     begin
-      RationalResult.Numerator := Number1.Numerator * Y;
-      RationalResult.Denominator := X * Number2.Numerator;
+      Res.Numerator := Number1.Numerator * Y;
+      Res.Denominator := X * Number2.Numerator;
     end
     else
     begin
-      RationalResult.Numerator := Number1.Numerator * Number2.Denominator;
-      RationalResult.Denominator := Number1.Denominator * Number2.Numerator;
+      Res.Numerator := Number1.Numerator * Number2.Denominator;
+      Res.Denominator := Number1.Denominator * Number2.Numerator;
     end;
   end;
-  RationalResult.Reduce;
+  Res.Reduce;
 end;
 
 procedure CnReduceInt64(var X, Y: Int64);
@@ -3541,9 +3545,9 @@ begin
   begin
     T := TCnRationalNumber.Create;
     try
-      CnRationalNumberMul(Value[0, 0], Value[1, 1], D);
-      CnRationalNumberMul(Value[0, 1], Value[1, 0], T);
-      CnRationalNumberSub(D, T, D);
+      CnRationalNumberMul(D, Value[0, 0], Value[1, 1]);
+      CnRationalNumberMul(T, Value[0, 1], Value[1, 0]);
+      CnRationalNumberSub(D, D, T);
     finally
       T.Free;
     end;
@@ -3554,18 +3558,18 @@ begin
     T := TCnRationalNumber.Create;
     D.SetZero;
     try
-      CnRationalNumberMul3(Value[0, 0], Value[1, 1], Value[2, 2], T);
-      CnRationalNumberAdd(D, T, D);
-      CnRationalNumberMul3(Value[0, 1], Value[1, 2], Value[2, 0], T);
-      CnRationalNumberAdd(D, T, D);
-      CnRationalNumberMul3(Value[0, 2], Value[1, 0], Value[2, 1], T);
-      CnRationalNumberAdd(D, T, D);
-      CnRationalNumberMul3(Value[0, 0], Value[1, 2], Value[2, 1], T);
-      CnRationalNumberSub(D, T, D);
-      CnRationalNumberMul3(Value[0, 1], Value[1, 0], Value[2, 2], T);
-      CnRationalNumberSub(D, T, D);
-      CnRationalNumberMul3(Value[0, 2], Value[1, 1], Value[2, 0], T);
-      CnRationalNumberSub(D, T, D);
+      CnRationalNumberMul3(T, Value[0, 0], Value[1, 1], Value[2, 2]);
+      CnRationalNumberAdd(D, D, T);
+      CnRationalNumberMul3(T, Value[0, 1], Value[1, 2], Value[2, 0]);
+      CnRationalNumberAdd(D, D, T);
+      CnRationalNumberMul3(T, Value[0, 2], Value[1, 0], Value[2, 1]);
+      CnRationalNumberAdd(D, D, T);
+      CnRationalNumberMul3(T, Value[0, 0], Value[1, 2], Value[2, 1]);
+      CnRationalNumberSub(D, D, T);
+      CnRationalNumberMul3(T, Value[0, 1], Value[1, 0], Value[2, 2]);
+      CnRationalNumberSub(D, D, T);
+      CnRationalNumberMul3(T, Value[0, 2], Value[1, 1], Value[2, 0]);
+      CnRationalNumberSub(D, D, T);
     finally
       T.Free;
     end
