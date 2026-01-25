@@ -104,14 +104,17 @@ function TestComplexNumberBasic: Boolean;
 function TestComplexNumberArithmetic: Boolean;
 function TestComplexNumberProperties: Boolean;
 function TestComplexNumberSqrt: Boolean;
+function TestComplexNumberString: Boolean;
 function TestBigComplexNumberBasic: Boolean;
 function TestBigComplexNumberArithmetic: Boolean;
 function TestBigComplexNumberProperties: Boolean;
+function TestBigComplexNumberString: Boolean;
 function TestBigComplexDecimalBasic: Boolean;
 function TestBigComplexDecimalArithmetic: Boolean;
 function TestBigComplexDecimalProperties: Boolean;
 function TestBigComplexDecimalRealMul: Boolean;
 function TestBigComplexDecimalPower: Boolean;
+function TestBigComplexDecimalString: Boolean;
 
 // ============================== DFT ==========================================
 
@@ -643,14 +646,17 @@ begin
   MyAssert(TestComplexNumberArithmetic, 'TestComplexNumberArithmetic');
   MyAssert(TestComplexNumberProperties, 'TestComplexNumberProperties');
   MyAssert(TestComplexNumberSqrt, 'TestComplexNumberSqrt');
+  MyAssert(TestComplexNumberString, 'TestComplexNumberString');
   MyAssert(TestBigComplexNumberBasic, 'TestBigComplexNumberBasic');
   MyAssert(TestBigComplexNumberArithmetic, 'TestBigComplexNumberArithmetic');
   MyAssert(TestBigComplexNumberProperties, 'TestBigComplexNumberProperties');
+  MyAssert(TestBigComplexNumberString, 'TestBigComplexNumberString');
   MyAssert(TestBigComplexDecimalBasic, 'TestBigComplexDecimalBasic');
   MyAssert(TestBigComplexDecimalArithmetic, 'TestBigComplexDecimalArithmetic');
   MyAssert(TestBigComplexDecimalProperties, 'TestBigComplexDecimalProperties');
   MyAssert(TestBigComplexDecimalRealMul, 'TestBigComplexDecimalRealMul');
   MyAssert(TestBigComplexDecimalPower, 'TestBigComplexDecimalPower');
+  MyAssert(TestBigComplexDecimalString, 'TestBigComplexDecimalString');
 
 // ================================ DFT ========================================
 
@@ -1723,6 +1729,57 @@ begin
   Result := FloatEqual(Temp.R, C1.R) and FloatEqual(Temp.I, C1.I);
 end;
 
+function TestComplexNumberString: Boolean;
+var
+  C1: TCnComplexNumber;
+begin
+  Result := False;
+
+  // ≤‚ ‘¥ø µ ˝£∫0
+  ComplexNumberSetString(C1, '0');
+  Result := ComplexNumberIsZero(C1);
+  if not Result then Exit;
+
+  // ≤‚ ‘¥ø µ ˝£∫3.5
+  ComplexNumberSetString(C1, '3.5');
+  Result := FloatEqual(C1.R, 3.5) and FloatEqual(C1.I, 0);
+  if not Result then Exit;
+
+  // ≤‚ ‘¥ø–È ˝£∫3i
+  ComplexNumberSetString(C1, '3i');
+  Result := FloatEqual(C1.R, 0) and FloatEqual(C1.I, 3);
+  if not Result then Exit;
+
+  // ≤‚ ‘¥ø–È ˝£∫i
+  ComplexNumberSetString(C1, 'i');
+  Result := FloatEqual(C1.R, 0) and FloatEqual(C1.I, 1);
+  if not Result then Exit;
+
+  // ≤‚ ‘¥ø–È ˝£∫-i
+  ComplexNumberSetString(C1, '-i');
+  Result := FloatEqual(C1.R, 0) and FloatEqual(C1.I, -1);
+  if not Result then Exit;
+
+  // ≤‚ ‘∏¥ ˝£∫1.4+2i
+  ComplexNumberSetString(C1, '1.4+2i');
+  Result := FloatEqual(C1.R, 1.4) and FloatEqual(C1.I, 2);
+  if not Result then Exit;
+
+  // ≤‚ ‘∏¥ ˝£∫2-i
+  ComplexNumberSetString(C1, '2-i');
+  Result := FloatEqual(C1.R, 2) and FloatEqual(C1.I, -1);
+  if not Result then Exit;
+
+  // ≤‚ ‘∏¥ ˝£∫-3.5+4.2i
+  ComplexNumberSetString(C1, '-3.5+4.2i');
+  Result := FloatEqual(C1.R, -3.5) and FloatEqual(C1.I, 4.2);
+  if not Result then Exit;
+
+  // ≤‚ ‘∏¥ ˝£∫5-2.8i
+  ComplexNumberSetString(C1, '5-2.8i');
+  Result := FloatEqual(C1.R, 5) and FloatEqual(C1.I, -2.8);
+end;
+
 function TestBigComplexNumberBasic: Boolean;
 var
   C1, C2: TCnBigComplexNumber;
@@ -1802,6 +1859,61 @@ begin
   finally
     C1.Free;
     Res.Free;
+  end;
+end;
+
+function TestBigComplexNumberString: Boolean;
+var
+  C1: TCnBigComplexNumber;
+begin
+  Result := False;
+  C1 := TCnBigComplexNumber.Create;
+  try
+    // ≤‚ ‘¥ø µ ˝£∫0
+    BigComplexNumberSetString(C1, '0');
+    Result := BigComplexNumberToString(C1) = '0';
+    if not Result then Exit;
+
+    // ≤‚ ‘¥ø µ ˝£∫123
+    BigComplexNumberSetString(C1, '123');
+    Result := (C1.R.ToDec = '123') and C1.I.IsZero;
+    if not Result then Exit;
+
+    // ≤‚ ‘¥ø–È ˝£∫456i
+    BigComplexNumberSetString(C1, '456i');
+    Result := C1.R.IsZero and (C1.I.ToDec = '456');
+    if not Result then Exit;
+
+    // ≤‚ ‘¥ø–È ˝£∫i
+    BigComplexNumberSetString(C1, 'i');
+    Result := C1.R.IsZero and C1.I.IsOne;
+    if not Result then Exit;
+
+    // ≤‚ ‘¥ø–È ˝£∫-i
+    BigComplexNumberSetString(C1, '-i');
+    Result := C1.R.IsZero and (C1.I.ToDec = '-1');
+    if not Result then Exit;
+
+    // ≤‚ ‘∏¥ ˝£∫12+34i
+    BigComplexNumberSetString(C1, '12+34i');
+    Result := (C1.R.ToDec = '12') and (C1.I.ToDec = '34');
+    if not Result then Exit;
+
+    // ≤‚ ‘∏¥ ˝£∫56-78i
+    BigComplexNumberSetString(C1, '56-78i');
+    Result := (C1.R.ToDec = '56') and (C1.I.ToDec = '-78');
+    if not Result then Exit;
+
+    // ≤‚ ‘∏¥ ˝£∫-99+100i
+    BigComplexNumberSetString(C1, '-99+100i');
+    Result := (C1.R.ToDec = '-99') and (C1.I.ToDec = '100');
+    if not Result then Exit;
+
+    // ≤‚ ‘∏¥ ˝£∫-200-300i
+    BigComplexNumberSetString(C1, '-200-300i');
+    Result := (C1.R.ToDec = '-200') and (C1.I.ToDec = '-300');
+  finally
+    C1.Free;
   end;
 end;
 
@@ -1970,6 +2082,61 @@ begin
   finally
     C1.Free;
     Res.Free;
+  end;
+end;
+
+function TestBigComplexDecimalString: Boolean;
+var
+  C1: TCnBigComplexDecimal;
+begin
+  Result := False;
+  C1 := TCnBigComplexDecimal.Create;
+  try
+    // ≤‚ ‘¥ø µ ˝£∫0
+    BigComplexDecimalSetString(C1, '0');
+    Result := BigComplexDecimalToString(C1) = '0';
+    if not Result then Exit;
+
+    // ≤‚ ‘¥ø µ ˝£∫3.14159
+    BigComplexDecimalSetString(C1, '3.14159');
+    Result := (C1.R.ToString = '3.14159') and C1.I.IsZero;
+    if not Result then Exit;
+
+    // ≤‚ ‘¥ø–È ˝£∫2.5i
+    BigComplexDecimalSetString(C1, '2.5i');
+    Result := C1.R.IsZero and (C1.I.ToString = '2.5');
+    if not Result then Exit;
+
+    // ≤‚ ‘¥ø–È ˝£∫i
+    BigComplexDecimalSetString(C1, 'i');
+    Result := C1.R.IsZero and C1.I.IsOne;
+    if not Result then Exit;
+
+    // ≤‚ ‘¥ø–È ˝£∫-i
+    BigComplexDecimalSetString(C1, '-i');
+    Result := C1.R.IsZero and (C1.I.ToString = '-1');
+    if not Result then Exit;
+
+    // ≤‚ ‘∏¥ ˝£∫1.4+2i
+    BigComplexDecimalSetString(C1, '1.4+2i');
+    Result := (C1.R.ToString = '1.4') and (C1.I.ToString = '2');
+    if not Result then Exit;
+
+    // ≤‚ ‘∏¥ ˝£∫2-i
+    BigComplexDecimalSetString(C1, '2-i');
+    Result := (C1.R.ToString = '2') and (C1.I.ToString = '-1');
+    if not Result then Exit;
+
+    // ≤‚ ‘∏¥ ˝£∫-3.5+4.2i
+    BigComplexDecimalSetString(C1, '-3.5+4.2i');
+    Result := (C1.R.ToString = '-3.5') and (C1.I.ToString = '4.2');
+    if not Result then Exit;
+
+    // ≤‚ ‘∏¥ ˝£∫5.8-2.3i
+    BigComplexDecimalSetString(C1, '5.8-2.3i');
+    Result := (C1.R.ToString = '5.8') and (C1.I.ToString = '-2.3');
+  finally
+    C1.Free;
   end;
 end;
 
@@ -4779,11 +4946,14 @@ end;
 function TestBigNumberPolynomial: Boolean;
 var
   P1, P2, Res: TCnBigNumberPolynomial;
+  X, V: TCnBigNumber;
 begin
   Result := False;
   P1 := TCnBigNumberPolynomial.Create([1, 2, 3]);
   P2 := TCnBigNumberPolynomial.Create([3, 2, 1]);
   Res := TCnBigNumberPolynomial.Create;
+  X := TCnBigNumber.Create;
+  V := TCnBigNumber.Create;
   try
     Result := P1.ToString = '3X^2+2X+1';
     if not Result then Exit;
@@ -4798,9 +4968,30 @@ begin
 
     BigNumberPolynomialMul(Res, P1, P2);
     Result := Res.ToString = '3X^4+8X^3+14X^2+8X+3';
+    if not Result then Exit;
+
+    // ≤‚ ‘«Û÷µ P1(2)
+    // P1 = 3X^2 + 2X + 1, P1(2) = 3*4 + 2*2 + 1 = 12 + 4 + 1 = 17
+    X.SetWord(2);
+    BigNumberPolynomialGetValue(V, P1, X);
+    Result := V.IsWord(17);
+    if not Result then Exit;
+
+    // ≤‚ ‘◊È∫œ F(P(x))
+    // F = P1 = 3X^2 + 2X + 1
+    // P = P2 = X^2 + 2X + 3
+    // F(P(x)) = 3(X^2+2X+3)^2 + 2(X^2+2X+3) + 1
+    BigNumberPolynomialCompose(Res, P1, P2);
+    // (X^2+2X+3)^2 = X^4 + 4X^3 + 10X^2 + 12X + 9
+    // 3(X^4+4X^3+10X^2+12X+9) = 3X^4 + 12X^3 + 30X^2 + 36X + 27
+    // 2(X^2+2X+3) = 2X^2 + 4X + 6
+    // Ω·π˚£∫3X^4 + 12X^3 + 32X^2 + 40X + 34
+    Result := Res.ToString = '3X^4+12X^3+32X^2+40X+34';
 
     Result := True;
   finally
+    V.Free;
+    X.Free;
     Res.Free;
     P2.Free;
     P1.Free;
@@ -4879,6 +5070,23 @@ begin
     // = (1+2i) + (-1+5i) + (-8+6i)
     // = -8+13i
     Result := C4.ToString = '-8+13i';
+    if not Result then Exit;
+
+    // ≤‚ ‘◊È∫œ F(P(x))
+    // F = P1 = (3+4i)X^2 + (2+3i)X + (1+2i)
+    // P = P2 = (1+i)X + 1
+    // F(P(x)) = (3+4i)[(1+i)X+1]^2 + (2+3i)[(1+i)X+1] + (1+2i)
+    P2.MaxDegree := 1;
+    P2[0].SetValue(1, 0);
+    P2[1].SetValue(1, 1);
+    BigComplexDecimalPolynomialCompose(Res, P1, P2);
+    // π˝≥Ã£∫ [(1+i)X+1]^2 = (1+i)^2*X^2 + 2(1+i)X + 1 = 2i*X^2 + (2+2i)X + 1
+    // (3+4i)*[2i*X^2 + (2+2i)X + 1] = (-8+6i)X^2 + (3+4i)*(2+2i)X + (3+4i)
+    //                                = (-8+6i)X^2 + (-2+14i)X + (3+4i)
+    // (2+3i)*[(1+i)X+1] = (2+3i)*(1+i)X + (2+3i) = (-1+5i)X + (2+3i)
+    // “Ú¥À£∫(-8+6i)X^2 + (-2+14i)X + (3+4i) + (-1+5i)X + (2+3i) + (1+2i)
+    //     = (-8+6i)X^2 + (-3+19i)X + (6+9i)
+    Result := Res.ToString = '(-8+6i)X^2+(-3+19i)X+6+9i';
   finally
     C4.Free;
     C3.Free;

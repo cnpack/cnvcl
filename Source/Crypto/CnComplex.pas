@@ -88,6 +88,15 @@ type
        返回值：string                     - 返回大数字符串
     }
 
+    procedure SetString(const Str: string);
+    {* 将复数字符串转换为本对象的内容。
+
+       参数：
+         const Str: string                - 待转换的复数字符串
+
+       返回值：（无）
+    }
+
     procedure SetZero;
     {* 将大整数复数设置为 0，返回是否设置成功。
 
@@ -218,6 +227,15 @@ type
          无
 
        返回值：string                     - 返回复数字符串
+    }
+
+    procedure SetString(const Str: string);
+    {* 将复数字符串转换为本对象的内容。
+
+       参数：
+         const Str: string                - 待转换的复数字符串
+
+       返回值：（无）
     }
 
     procedure SetZero;
@@ -424,6 +442,16 @@ procedure ComplexNumberSetValue(var Complex: TCnComplexNumber;
      var Complex: TCnComplexNumber        - 待赋值的复数
      const AR: string                     - 实部的浮点字符串形式
      const AI: string                     - 虚部的浮点字符串形式
+
+   返回值：（无）
+}
+
+procedure ComplexNumberSetString(var Complex: TCnComplexNumber; const Str: string);
+{* 用形如 1.4+2i、3i、0、2-i 这种字符串给复数赋值。
+
+   参数：
+     var Complex: TCnComplexNumber        - 待赋值的复数
+     const Str: string                    - 复数值字符串
 
    返回值：（无）
 }
@@ -703,6 +731,16 @@ procedure BigComplexNumberSetValue(Complex: TCnBigComplexNumber;
    返回值：（无）
 }
 
+procedure BigComplexNumberSetString(Complex: TCnBigComplexNumber; const Str: string);
+{* 用形如 1.4+2i、3i、0、2-i 这种字符串给大整数复数赋值。
+
+   参数：
+     Complex: TCnBigComplexNumber         - 待赋值的大整数复数
+     const Str: string                    - 复数值字符串
+
+   返回值：（无）
+}
+
 function BigComplexNumberToString(Complex: TCnBigComplexNumber): string;
 {* 大整数复数转换为形如 a + bi 的字符串，实部虚部若有 0 则对应省略。
 
@@ -938,6 +976,16 @@ procedure BigComplexDecimalSetValue(Complex: TCnBigComplexDecimal;
      Complex: TCnBigComplexDecimal        - 待赋值的大浮点复数
      const AR: string                     - 实部的十进制数字符串形式
      const AI: string                     - 虚部的十进制数字符串形式
+
+   返回值：（无）
+}
+
+procedure BigComplexDecimalSetString(Complex: TCnBigComplexDecimal; const Str: string);
+{* 用形如 1.4+2i、3i、0、2-i 这种字符串给大浮点复数赋值。
+
+   参数：
+     Complex: TCnBigComplexDecimal        - 待赋值的大浮点复数复数
+     const Str: string                    - 复数值字符串
 
    返回值：（无）
 }
@@ -1262,6 +1310,79 @@ begin
     ComplexNumberSetValue(Complex, StrToFloat(AR), StrToFloat(AI));
 end;
 
+procedure ComplexNumberSetString(var Complex: TCnComplexNumber; const Str: string);
+var
+  S: string;
+  PlusPos, MinusPos, IPos: Integer;
+  RealPart, ImagPart: string;
+  HasI: Boolean;
+begin
+  ComplexNumberSetZero(Complex);
+  S := Trim(Str);
+  if S = '' then
+    Exit;
+
+  IPos := Pos('i', LowerCase(S));
+  HasI := IPos > 0;
+
+  if not HasI then
+  begin
+    Complex.R := StrToFloat(S);
+    Exit;
+  end;
+
+  if IPos > 0 then
+    Delete(S, IPos, 1);
+  S := Trim(S);
+
+  PlusPos := 0;
+  MinusPos := 0;
+  if Length(S) > 1 then
+  begin
+    PlusPos := Pos('+', Copy(S, 2, Length(S)));
+    if PlusPos > 0 then
+      Inc(PlusPos);
+
+    MinusPos := Pos('-', Copy(S, 2, Length(S)));
+    if MinusPos > 0 then
+      Inc(MinusPos);
+  end;
+
+  if (PlusPos > 0) or (MinusPos > 0) then
+  begin
+    if PlusPos > 0 then
+    begin
+      RealPart := Trim(Copy(S, 1, PlusPos - 1));
+      ImagPart := Trim(Copy(S, PlusPos + 1, Length(S)));
+    end
+    else
+    begin
+      RealPart := Trim(Copy(S, 1, MinusPos - 1));
+      ImagPart := Trim(Copy(S, MinusPos, Length(S)));
+    end;
+
+    if RealPart <> '' then
+      Complex.R := StrToFloat(RealPart);
+    if ImagPart = '-' then
+      Complex.I := -1
+    else if ImagPart <> '' then
+      Complex.I := StrToFloat(ImagPart)
+    else
+      Complex.I := 1.0;
+  end
+  else
+  begin
+    if S = '' then
+      Complex.I := 1.0
+    else if S = '-' then
+      Complex.I := -1.0
+    else if S = '+' then
+      Complex.I := 1.0
+    else
+      Complex.I := StrToFloat(S);
+  end;
+end;
+
 function ComplexNumberToString(var Complex: TCnComplexNumber): string;
 begin
   if ComplexIsPureReal(Complex) then
@@ -1467,6 +1588,80 @@ procedure BigComplexNumberSetValue(Complex: TCnBigComplexNumber;
 begin
   Complex.FR.SetDec(AnsiString(AR));
   Complex.FI.SetDec(AnsiString(AI));
+end;
+
+procedure BigComplexNumberSetString(Complex: TCnBigComplexNumber; const Str: string);
+var
+  S: string;
+  PlusPos, MinusPos, IPos: Integer;
+  RealPart, ImagPart: string;
+  HasI: Boolean;
+begin
+  BigComplexNumberSetZero(Complex);
+  S := Trim(Str);
+  if S = '' then
+    Exit;
+
+  IPos := Pos('i', LowerCase(S));
+  HasI := IPos > 0;
+
+  if not HasI then
+  begin
+    Complex.FR.SetDec(AnsiString(S));
+    Exit;
+  end;
+
+  if IPos > 0 then
+    Delete(S, IPos, 1);
+  S := Trim(S);
+
+  PlusPos := 0;
+  MinusPos := 0;
+  if Length(S) > 1 then
+  begin
+    PlusPos := Pos('+', Copy(S, 2, Length(S)));
+    if PlusPos > 0 then
+      Inc(PlusPos);
+
+    MinusPos := Pos('-', Copy(S, 2, Length(S)));
+    if MinusPos > 0 then
+      Inc(MinusPos);
+  end;
+
+  if (PlusPos > 0) or (MinusPos > 0) then
+  begin
+    if PlusPos > 0 then
+    begin
+      RealPart := Trim(Copy(S, 1, PlusPos - 1));
+      ImagPart := Trim(Copy(S, PlusPos + 1, Length(S)));
+    end
+    else
+    begin
+      RealPart := Trim(Copy(S, 1, MinusPos - 1));
+      ImagPart := Trim(Copy(S, MinusPos, Length(S)));
+    end;
+
+    if RealPart <> '' then
+      Complex.FR.SetDec(AnsiString(RealPart));
+    if ImagPart <> '' then
+      Complex.FI.SetDec(AnsiString(ImagPart))
+    else
+      Complex.FI.SetOne;
+  end
+  else
+  begin
+    if S = '' then
+      Complex.FI.SetOne
+    else if S = '-' then
+    begin
+      Complex.FI.SetOne;
+      Complex.FI.SetNegative(True);
+    end
+    else if S = '+' then
+      Complex.FI.SetOne
+    else
+      Complex.FI.SetDec(AnsiString(S));
+  end;
 end;
 
 function BigComplexNumberToString(Complex: TCnBigComplexNumber): string;
@@ -1725,6 +1920,11 @@ begin
   BigComplexNumberSetOne(Self);
 end;
 
+procedure TCnBigComplexNumber.SetString(const Str: string);
+begin
+  BigComplexNumberSetString(Self, Str);
+end;
+
 procedure TCnBigComplexNumber.SetValue(const AR, AI: string);
 begin
   BigComplexNumberSetValue(Self, AR, AI);
@@ -1790,6 +1990,85 @@ procedure BigComplexDecimalSetValue(Complex: TCnBigComplexDecimal;
 begin
   Complex.FR.SetDec(AR);
   Complex.FI.SetDec(AI);
+end;
+
+procedure BigComplexDecimalSetString(Complex: TCnBigComplexDecimal; const Str: string);
+var
+  S: string;
+  PlusPos, MinusPos, IPos: Integer;
+  RealPart, ImagPart: string;
+  HasI: Boolean;
+begin
+  BigComplexDecimalSetZero(Complex);
+  S := Trim(Str);
+  if S = '' then
+    Exit;
+
+  IPos := Pos('i', LowerCase(S));
+  HasI := IPos > 0;
+
+  if not HasI then
+  begin
+    Complex.FR.SetDec(S);
+    Exit;
+  end;
+
+  if IPos > 0 then
+    Delete(S, IPos, 1);
+  S := Trim(S);
+
+  PlusPos := 0;
+  MinusPos := 0;
+  if Length(S) > 1 then
+  begin
+    PlusPos := Pos('+', Copy(S, 2, Length(S)));
+    if PlusPos > 0 then
+      Inc(PlusPos);
+
+    MinusPos := Pos('-', Copy(S, 2, Length(S)));
+    if MinusPos > 0 then
+      Inc(MinusPos);
+  end;
+
+  if (PlusPos > 0) or (MinusPos > 0) then
+  begin
+    if PlusPos > 0 then
+    begin
+      RealPart := Trim(Copy(S, 1, PlusPos - 1));
+      ImagPart := Trim(Copy(S, PlusPos + 1, Length(S)));
+    end
+    else
+    begin
+      RealPart := Trim(Copy(S, 1, MinusPos - 1));
+      ImagPart := Trim(Copy(S, MinusPos, Length(S)));
+    end;
+
+    if RealPart <> '' then
+      Complex.FR.SetDec(RealPart);
+    if ImagPart = '-' then
+    begin
+      Complex.FI.SetOne;
+      Complex.FI.Negate;
+    end
+    else if ImagPart <> '' then
+      Complex.FI.SetDec(ImagPart)
+    else
+      Complex.FI.SetOne;
+  end
+  else
+  begin
+    if S = '' then
+      Complex.FI.SetOne
+    else if S = '-' then
+    begin
+      Complex.FI.SetOne;
+      Complex.FI.Negate;
+    end
+    else if S = '+' then
+      Complex.FI.SetOne
+    else
+      Complex.FI.SetDec(S);
+  end;
 end;
 
 function BigComplexDecimalToString(Complex: TCnBigComplexDecimal): string;
@@ -2220,6 +2499,11 @@ procedure TCnBigComplexDecimal.RoundTo(Precision: Integer;
 begin
   FR.RoundTo(Precision, RoundMode);
   FI.RoundTo(Precision, RoundMode);
+end;
+
+procedure TCnBigComplexDecimal.SetString(const Str: string);
+begin
+  BigComplexDecimalSetString(Self, Str);
 end;
 
 { TCnBigComplexDecimalPool }

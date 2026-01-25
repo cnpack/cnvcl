@@ -234,6 +234,15 @@ type
        返回值：Boolean                    - 返回是否为 1
     }
 
+    function IsNegOne: Boolean;
+    {* 是否为 -1，只判断值是 -1 且指数是 0。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 -1
+    }
+
     procedure RoundTo(Precision: Integer; RoundMode: TCnBigRoundMode = dr465RoundEven);
     {* 舍入至指定小数位数，如原来小数位数少于 Precision 则不动。
 
@@ -2436,6 +2445,11 @@ end;
 function TCnBigDecimal.IsNegative: Boolean;
 begin
   Result := FValue.IsNegative;
+end;
+
+function TCnBigDecimal.IsNegOne: Boolean;
+begin
+  Result := FValue.IsNegOne and (FScale = 0);
 end;
 
 function TCnBigDecimal.IsOne: Boolean;
