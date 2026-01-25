@@ -2083,7 +2083,12 @@ begin
       Result := Complex.FI.ToString + 'i';
   end
   else if Complex.FI.IsNegative then
-    Result := Complex.FR.ToString + Complex.FI.ToString + 'i'
+  begin
+    if Complex.FI.IsNegOne then
+      Result := Complex.FR.ToString + '-i'
+    else
+      Result := Complex.FR.ToString + Complex.FI.ToString + 'i';
+  end
   else
   begin
     if Complex.FI.IsOne then
