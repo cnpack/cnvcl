@@ -1489,9 +1489,9 @@ end;
 procedure TFormPolynomial.btnRationalPolynomialAddClick(Sender: TObject);
 begin
   if chkRationalPolynomialGalois.IsChecked then
-    Int64RationalPolynomialGaloisAdd(FRP1, FRP2, FRP3, StrToInt(edtRationalPolynomialPrime.Text))
+    Int64RationalPolynomialGaloisAdd(FRP3, FRP1, FRP2, StrToInt(edtRationalPolynomialPrime.Text))
   else
-    Int64RationalPolynomialAdd(FRP1, FRP2, FRP3);
+    Int64RationalPolynomialAdd(FRP3, FRP1, FRP2);
   edtRationalResultNumerator.Text := FRP3.Numerator.ToString;
   edtRationalResultDenominator.Text := FRP3.Denominator.ToString;
 end;
@@ -1499,9 +1499,9 @@ end;
 procedure TFormPolynomial.btnRationalPolynomialSubClick(Sender: TObject);
 begin
   if chkRationalPolynomialGalois.IsChecked then
-    Int64RationalPolynomialGaloisSub(FRP1, FRP2, FRP3, StrToInt(edtRationalPolynomialPrime.Text))
+    Int64RationalPolynomialGaloisSub(FRP3, FRP1, FRP2, StrToInt(edtRationalPolynomialPrime.Text))
   else
-    Int64RationalPolynomialSub(FRP1, FRP2, FRP3);
+    Int64RationalPolynomialSub(FRP3, FRP1, FRP2);
   edtRationalResultNumerator.Text := FRP3.Numerator.ToString;
   edtRationalResultDenominator.Text := FRP3.Denominator.ToString;
 end;
@@ -1509,9 +1509,9 @@ end;
 procedure TFormPolynomial.btnRationalPolynomialMulClick(Sender: TObject);
 begin
   if chkRationalPolynomialGalois.IsChecked then
-    Int64RationalPolynomialGaloisMul(FRP1, FRP2, FRP3, StrToInt(edtRationalPolynomialPrime.Text))
+    Int64RationalPolynomialGaloisMul(FRP3, FRP1, FRP2, StrToInt(edtRationalPolynomialPrime.Text))
   else
-    Int64RationalPolynomialMul(FRP1, FRP2, FRP3);
+    Int64RationalPolynomialMul(FRP3, FRP1, FRP2);
   edtRationalResultNumerator.Text := FRP3.Numerator.ToString;
   edtRationalResultDenominator.Text := FRP3.Denominator.ToString;
 end;
@@ -1519,9 +1519,9 @@ end;
 procedure TFormPolynomial.btnRationalPolynomialDivClick(Sender: TObject);
 begin
   if chkRationalPolynomialGalois.IsChecked then
-    Int64RationalPolynomialGaloisDiv(FRP1, FRP2, FRP3, StrToInt(edtRationalPolynomialPrime.Text))
+    Int64RationalPolynomialGaloisDiv(FRP3, FRP1, FRP2, StrToInt(edtRationalPolynomialPrime.Text))
   else
-    Int64RationalPolynomialDiv(FRP1, FRP2, FRP3);
+    Int64RationalPolynomialDiv(FRP3, FRP1, FRP2);
   edtRationalResultNumerator.Text := FRP3.Numerator.ToString;
   edtRationalResultDenominator.Text := FRP3.Denominator.ToString;
 end;
@@ -1558,19 +1558,19 @@ begin
   // 验证 Y^2 * (x^3+Ax+B) 是否等于 X3 + AX + B
 
   Int64RationalPolynomialMul(Y, Y, Y);
-  Int64RationalPolynomialMul(Y, Y2, RL); // 得到 Y^2 (x^3+Ax+B)
+  Int64RationalPolynomialMul(RL, Y, Y2); // 得到 Y^2 (x^3+Ax+B)
   RL.Reduce;
   ShowMessage(RL.ToString);
 
-  Int64RationalPolynomialMul(X, X, RR);
-  Int64RationalPolynomialMul(RR, X, RR); // 得到 X^3
+  Int64RationalPolynomialMul(RR, X, X);
+  Int64RationalPolynomialMul(RR, RR, X); // 得到 X^3
 
   P.SetCoefficents([A]);
-  Int64RationalPolynomialMul(X, P, T);   // T 得到 A * X
-  Int64RationalPolynomialAdd(RR, T, RR); // RR 得到 X^3 + AX
+  Int64RationalPolynomialMul(T, X, P);   // T 得到 A * X
+  Int64RationalPolynomialAdd(RR, RR, T); // RR 得到 X^3 + AX
 
   P.SetCoefficents([B]);
-  Int64RationalPolynomialAdd(RR, P, RR); // RR 得到 X^3 + AX + B
+  Int64RationalPolynomialAdd(RR, RR, P); // RR 得到 X^3 + AX + B
   RR.Reduce;
   ShowMessage(RR.ToString);
 
@@ -1589,18 +1589,18 @@ begin
   // 验证二倍点公式用一倍点坐标算出来的值 Y^2 * (x^3+Ax+B) 是否等于 X3 + AX + B
 
   Int64RationalPolynomialGaloisMul(Y, Y, Y, Q);
-  Int64RationalPolynomialGaloisMul(Y, Y2, RL, Q); // 得到 Y^2 (x^3+Ax+B)
+  Int64RationalPolynomialGaloisMul(RL, Y, Y2, Q); // 得到 Y^2 (x^3+Ax+B)
   ShowMessage(RL.ToString);
 
-  Int64RationalPolynomialGaloisMul(X, X, RR, Q);
-  Int64RationalPolynomialGaloisMul(RR, X, RR, Q); // 得到 X^3
+  Int64RationalPolynomialGaloisMul(RR, X, X, Q);
+  Int64RationalPolynomialGaloisMul(RR, RR, X, Q); // 得到 X^3
 
   P.SetCoefficents([A]);
-  Int64RationalPolynomialGaloisMul(X, P, T, Q);   // T 得到 A * X
-  Int64RationalPolynomialGaloisAdd(RR, T, RR, Q); // RR 得到 X^3 + AX
+  Int64RationalPolynomialGaloisMul(T, X, P, Q);   // T 得到 A * X
+  Int64RationalPolynomialGaloisAdd(RR, RR, T, Q); // RR 得到 X^3 + AX
 
   P.SetCoefficents([B]);
-  Int64RationalPolynomialGaloisAdd(RR, P, RR, Q); // RR 得到 X^3 + AX + B
+  Int64RationalPolynomialGaloisAdd(RR, RR, P, Q); // RR 得到 X^3 + AX + B
   ShowMessage(RR.ToString);
 
   // RL/RR 在 F23 内表达式还是不等，但各自求值看看，居然相等！
@@ -3372,19 +3372,19 @@ begin
   // 验证 Y^2 * (x^3+Ax+B) 是否等于 X3 + AX + B
 
   BigNumberRationalPolynomialMul(Y, Y, Y);
-  BigNumberRationalPolynomialMul(Y, Y2, RL); // 得到 Y^2 (x^3+Ax+B)
+  BigNumberRationalPolynomialMul(RL, Y, Y2); // 得到 Y^2 (x^3+Ax+B)
   RL.Reduce;
   ShowMessage(RL.ToString);
 
-  BigNumberRationalPolynomialMul(X, X, RR);
-  BigNumberRationalPolynomialMul(RR, X, RR); // 得到 X^3
+  BigNumberRationalPolynomialMul(RR, X, X);
+  BigNumberRationalPolynomialMul(RR, RR, X); // 得到 X^3
 
   P.SetCoefficents([A]);
-  BigNumberRationalPolynomialMul(X, P, T);   // T 得到 A * X
-  BigNumberRationalPolynomialAdd(RR, T, RR); // RR 得到 X^3 + AX
+  BigNumberRationalPolynomialMul(T, X, P);   // T 得到 A * X
+  BigNumberRationalPolynomialAdd(RR, RR, T); // RR 得到 X^3 + AX
 
   P.SetCoefficents([B]);
-  BigNumberRationalPolynomialAdd(RR, P, RR); // RR 得到 X^3 + AX + B
+  BigNumberRationalPolynomialAdd(RR, RR, P); // RR 得到 X^3 + AX + B
   RR.Reduce;
   ShowMessage(RR.ToString);
 
@@ -3407,18 +3407,18 @@ begin
   // 验证二倍点公式用一倍点坐标算出来的值 Y^2 * (x^3+Ax+B) 是否等于 X3 + AX + B
 
   BigNumberRationalPolynomialGaloisMul(Y, Y, Y, FQ);
-  BigNumberRationalPolynomialGaloisMul(Y, Y2, RL, FQ); // 得到 Y^2 (x^3+Ax+B)
+  BigNumberRationalPolynomialGaloisMul(RL, Y, Y2, FQ); // 得到 Y^2 (x^3+Ax+B)
   ShowMessage(RL.ToString);
 
-  BigNumberRationalPolynomialGaloisMul(X, X, RR, FQ);
-  BigNumberRationalPolynomialGaloisMul(RR, X, RR, FQ); // 得到 X^3
+  BigNumberRationalPolynomialGaloisMul(RR, X, X, FQ);
+  BigNumberRationalPolynomialGaloisMul(RR, RR, X, FQ); // 得到 X^3
 
   P.SetCoefficents([A]);
-  BigNumberRationalPolynomialGaloisMul(X, P, T, FQ);   // T 得到 A * X
-  BigNumberRationalPolynomialGaloisAdd(RR, T, RR, FQ); // RR 得到 X^3 + AX
+  BigNumberRationalPolynomialGaloisMul(T, X, P, FQ);   // T 得到 A * X
+  BigNumberRationalPolynomialGaloisAdd(RR, RR, T, FQ); // RR 得到 X^3 + AX
 
   P.SetCoefficents([B]);
-  BigNumberRationalPolynomialGaloisAdd(RR, P, RR, FQ); // RR 得到 X^3 + AX + B
+  BigNumberRationalPolynomialGaloisAdd(RR, RR, P, FQ); // RR 得到 X^3 + AX + B
   ShowMessage(RR.ToString);
 
   // RL/RR 在 F23 内表达式还是不等，但各自求值看看，居然相等！
@@ -3475,9 +3475,9 @@ procedure TFormPolynomial.btnBNRationalAddClick(Sender: TObject);
 begin
   FQ.SetDec(edtBNRationalGalois.Text);
   if chkBNRationalGalois.IsChecked then
-    BigNumberRationalPolynomialGaloisAdd(FBRP1, FBRP2, FBRP3, FQ)
+    BigNumberRationalPolynomialGaloisAdd(FBRP3, FBRP1, FBRP2, FQ)
   else
-    BigNumberRationalPolynomialAdd(FBRP1, FBRP2, FBRP3);
+    BigNumberRationalPolynomialAdd(FBRP3, FBRP1, FBRP2);
   edtBNRationalResultNumerator.Text := FBRP3.Numerator.ToString;
   edtBNRationalResultDenominator.Text := FBRP3.Denominator.ToString;
 end;
@@ -3486,9 +3486,9 @@ procedure TFormPolynomial.btnBNRationalSubClick(Sender: TObject);
 begin
   FQ.SetDec(edtBNRationalGalois.Text);
   if chkBNRationalGalois.IsChecked then
-    BigNumberRationalPolynomialGaloisSub(FBRP1, FBRP2, FBRP3, FQ)
+    BigNumberRationalPolynomialGaloisSub(FBRP3, FBRP1, FBRP2, FQ)
   else
-    BigNumberRationalPolynomialSub(FBRP1, FBRP2, FBRP3);
+    BigNumberRationalPolynomialSub(FBRP3, FBRP1, FBRP2);
   edtBNRationalResultNumerator.Text := FBRP3.Numerator.ToString;
   edtBNRationalResultDenominator.Text := FBRP3.Denominator.ToString;
 end;
@@ -3497,9 +3497,9 @@ procedure TFormPolynomial.btnBNRationalMulClick(Sender: TObject);
 begin
   FQ.SetDec(edtBNRationalGalois.Text);
   if chkBNRationalGalois.IsChecked then
-    BigNumberRationalPolynomialGaloisMul(FBRP1, FBRP2, FBRP3, FQ)
+    BigNumberRationalPolynomialGaloisMul(FBRP3, FBRP1, FBRP2, FQ)
   else
-    BigNumberRationalPolynomialMul(FBRP1, FBRP2, FBRP3);
+    BigNumberRationalPolynomialMul(FBRP3, FBRP1, FBRP2);
   edtBNRationalResultNumerator.Text := FBRP3.Numerator.ToString;
   edtBNRationalResultDenominator.Text := FBRP3.Denominator.ToString;
 end;
@@ -3508,9 +3508,9 @@ procedure TFormPolynomial.btnBNRationalDivClick(Sender: TObject);
 begin
   FQ.SetDec(edtBNRationalGalois.Text);
   if chkBNRationalGalois.IsChecked then
-    BigNumberRationalPolynomialGaloisDiv(FBRP1, FBRP2, FBRP3, FQ)
+    BigNumberRationalPolynomialGaloisDiv(FBRP3, FBRP1, FBRP2, FQ)
   else
-    BigNumberRationalPolynomialDiv(FBRP1, FBRP2, FBRP3);
+    BigNumberRationalPolynomialDiv(FBRP3, FBRP1, FBRP2);
   edtBNRationalResultNumerator.Text := FBRP3.Numerator.ToString;
   edtBNRationalResultDenominator.Text := FBRP3.Denominator.ToString;
 end;

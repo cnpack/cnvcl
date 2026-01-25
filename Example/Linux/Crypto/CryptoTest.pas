@@ -4816,7 +4816,7 @@ begin
     R2.Numerator.SetCoefficents([0, 1]);
     R2.Denominator.SetCoefficents([3]);
 
-    Int64RationalPolynomialAdd(R1, R2, Res);
+    Int64RationalPolynomialAdd(Res, R1, R2);
     if Res.ToString <> '5X+6 / 6' then Exit;
 
     Result := True;
@@ -4842,7 +4842,7 @@ begin
     R2.Numerator.SetCoefficents([0, 1]);
     R2.Denominator.SetCoefficents([3]);
 
-    BigNumberRationalPolynomialAdd(R1, R2, Res);
+    BigNumberRationalPolynomialAdd(Res, R1, R2);
     if Res.ToString <> '5X+6 / 6' then Exit;
 
     Result := True;

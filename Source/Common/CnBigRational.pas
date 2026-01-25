@@ -541,7 +541,7 @@ begin
   if Num2.IsZero then
     raise EDivByZero.Create('Divide by Zero.');
 
-  N := FLocalBigNumberPool.Obtain;  // 交叉相乘，必须用中间变量，防止 RationalResult 是 Number1 或 Number 2
+  N := FLocalBigNumberPool.Obtain;  // 交叉相乘，必须用中间变量，防止 Res 是 Number1 或 Number 2
   try
     BigNumberMul(N, Num1.Numerator, Num2.Denominator);
     BigNumberMul(Res.Denominator, Num1.Denominator, Num2.Numerator);

@@ -1339,50 +1339,50 @@ function Int64RationalPolynomialCopy(Dst: TCnInt64RationalPolynomial;
    返回值：TCnInt64RationalPolynomial     - 成功则返回目标对象，失败则返回 nil
 }
 
-procedure Int64RationalPolynomialAdd(R1: TCnInt64RationalPolynomial; R2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial); overload;
+procedure Int64RationalPolynomialAdd(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; R2: TCnInt64RationalPolynomial); overload;
 {* 一元整系数有理分式普通加法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 加数一
      R2: TCnInt64RationalPolynomial                       - 加数二
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
 
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialSub(R1: TCnInt64RationalPolynomial; R2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial); overload;
+procedure Int64RationalPolynomialSub(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; R2: TCnInt64RationalPolynomial); overload;
 {* 一元整系数有理分式普通减法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 被减数
      R2: TCnInt64RationalPolynomial                       - 减数
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
 
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialMul(R1: TCnInt64RationalPolynomial; R2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial); overload;
+procedure Int64RationalPolynomialMul(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; R2: TCnInt64RationalPolynomial); overload;
 {* 一元整系数有理分式普通乘法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 乘数一
      R2: TCnInt64RationalPolynomial                       - 乘数二
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
 
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialDiv(R1: TCnInt64RationalPolynomial; R2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial); overload;
+procedure Int64RationalPolynomialDiv(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; R2: TCnInt64RationalPolynomial); overload;
 {* 一元整系数有理分式普通除法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 被除数
      R2: TCnInt64RationalPolynomial                       - 除数
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
 
    返回值：（无）
 }
@@ -1427,50 +1427,50 @@ procedure Int64RationalPolynomialDivWord(R: TCnInt64RationalPolynomial; N: Int64
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialAdd(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
+procedure Int64RationalPolynomialAdd(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial); overload;
 {* 一元整系数有理分式与整系数多项式的普通加法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 加数一
      P1: TCnInt64Polynomial                               - 加数二
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
 
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialSub(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
+procedure Int64RationalPolynomialSub(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial); overload;
 {* 一元整系数有理分式与整系数多项式的普通减法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 被减数
      P1: TCnInt64Polynomial                               - 减数
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
 
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialMul(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
+procedure Int64RationalPolynomialMul(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial); overload;
 {* 一元整系数有理分式与整系数多项式的普通乘法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 乘数一
      P1: TCnInt64Polynomial                               - 乘数二
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
 
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialDiv(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial); overload;
+procedure Int64RationalPolynomialDiv(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial); overload;
 {* 一元整系数有理分式与整系数多项式的普通除法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 被除数
      P1: TCnInt64Polynomial                               - 除数
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
 
    返回值：（无）
 }
@@ -1549,57 +1549,57 @@ procedure Int64RationalPolynomialGaloisNegate(P: TCnInt64RationalPolynomial;
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialGaloisAdd(R1: TCnInt64RationalPolynomial;
-  R2: TCnInt64RationalPolynomial; RationalResult: TCnInt64RationalPolynomial;
+procedure Int64RationalPolynomialGaloisAdd(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; R2: TCnInt64RationalPolynomial;
   Prime: Int64); overload;
 {* 一元整系数有理分式模系数加法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 加数一
      R2: TCnInt64RationalPolynomial                       - 加数二
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      Prime: Int64                                         - 模数
 
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialGaloisSub(R1: TCnInt64RationalPolynomial;
-  R2: TCnInt64RationalPolynomial; RationalResult: TCnInt64RationalPolynomial;
+procedure Int64RationalPolynomialGaloisSub(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; R2: TCnInt64RationalPolynomial;
   Prime: Int64); overload;
 {* 一元整系数有理分式模系数减法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 被减数
      R2: TCnInt64RationalPolynomial                       - 减数
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      Prime: Int64                                         - 模数
 
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialGaloisMul(R1: TCnInt64RationalPolynomial;
-  R2: TCnInt64RationalPolynomial; RationalResult: TCnInt64RationalPolynomial;
+procedure Int64RationalPolynomialGaloisMul(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; R2: TCnInt64RationalPolynomial;
   Prime: Int64); overload;
 {* 一元整系数有理分式模系数乘法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 乘数一
      R2: TCnInt64RationalPolynomial                       - 乘数二
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      Prime: Int64                                         - 模数
 
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialGaloisDiv(R1: TCnInt64RationalPolynomial;
-  R2: TCnInt64RationalPolynomial; RationalResult: TCnInt64RationalPolynomial;
+procedure Int64RationalPolynomialGaloisDiv(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; R2: TCnInt64RationalPolynomial;
   Prime: Int64); overload;
 {* 一元整系数有理分式模系数除法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 被除数
      R2: TCnInt64RationalPolynomial                       - 除数
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      Prime: Int64                                         - 模数
 
    返回值：（无）
@@ -1653,53 +1653,53 @@ procedure Int64RationalPolynomialGaloisDivWord(R: TCnInt64RationalPolynomial;
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialGaloisAdd(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+procedure Int64RationalPolynomialGaloisAdd(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial; Prime: Int64); overload;
 {* 一元整系数有理分式与整系数多项式的模系数加法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 加数一
      P1: TCnInt64Polynomial                               - 加数二
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      Prime: Int64                                         - 有限域上界
 
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialGaloisSub(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+procedure Int64RationalPolynomialGaloisSub(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial; Prime: Int64); overload;
 {* 一元整系数有理分式与整系数多项式的模系数减法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 被减数
      P1: TCnInt64Polynomial                               - 减数
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      Prime: Int64                                         - 有限域上界
 
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialGaloisMul(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+procedure Int64RationalPolynomialGaloisMul(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial; Prime: Int64); overload;
 {* 一元整系数有理分式与整系数多项式的模系数乘法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 乘数一
      P1: TCnInt64Polynomial                               - 乘数二
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      Prime: Int64                                         - 有限域上界
 
    返回值：（无）
 }
 
-procedure Int64RationalPolynomialGaloisDiv(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+procedure Int64RationalPolynomialGaloisDiv(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial; Prime: Int64); overload;
 {* 一元整系数有理分式与整系数多项式的模系数除法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      R1: TCnInt64RationalPolynomial                       - 被除数
      P1: TCnInt64Polynomial                               - 除数
-     RationalResult: TCnInt64RationalPolynomial           - 用来容纳结果的一元整系数有理分式
      Prime: Int64                                         - 模数
 
    返回值：（无）
@@ -2621,50 +2621,50 @@ function BigNumberRationalPolynomialCopy(Dst: TCnBigNumberRationalPolynomial;
    返回值：TCnBigNumberRationalPolynomial - 成功则返回目标对象，失败则返回 nil
 }
 
-procedure BigNumberRationalPolynomialAdd(R1: TCnBigNumberRationalPolynomial;
-  R2: TCnBigNumberRationalPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialAdd(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; R2: TCnBigNumberRationalPolynomial); overload;
 {* 一元大整系数有理分式普通加法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 加数一
      R2: TCnBigNumberRationalPolynomial                   - 加数二
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
 
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialSub(R1: TCnBigNumberRationalPolynomial;
-  R2: TCnBigNumberRationalPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialSub(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; R2: TCnBigNumberRationalPolynomial); overload;
 {* 一元大整系数有理分式普通减法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 被减数
      R2: TCnBigNumberRationalPolynomial                   - 减数
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
 
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialMul(R1: TCnBigNumberRationalPolynomial;
-  R2: TCnBigNumberRationalPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialMul(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; R2: TCnBigNumberRationalPolynomial); overload;
 {* 一元大整系数有理分式普通乘法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 乘数一
      R2: TCnBigNumberRationalPolynomial                   - 乘数二
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
 
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialDiv(R1: TCnBigNumberRationalPolynomial;
-  R2: TCnBigNumberRationalPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialDiv(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; R2: TCnBigNumberRationalPolynomial); overload;
 {* 一元大整系数有理分式普通除法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 被除数
      R2: TCnBigNumberRationalPolynomial                   - 除数
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
 
    返回值：（无）
 }
@@ -2713,50 +2713,50 @@ procedure BigNumberRationalPolynomialDivBigNumber(R: TCnBigNumberRationalPolynom
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialAdd(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialAdd(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial); overload;
 {* 一元大整系数有理分式与一元大整系数多项式的普通加法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 加数一
      P1: TCnBigNumberPolynomial                           - 加数二
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
 
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialSub(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialSub(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial); overload;
 {* 一元大整系数有理分式与一元大整系数多项式的普通减法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 被减数
      P1: TCnBigNumberPolynomial                           - 减数
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
 
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialMul(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialMul(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial); overload;
 {* 一元大整系数有理分式与一元大整系数多项式的普通乘法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 乘数一
      P1: TCnBigNumberPolynomial                           - 乘数二
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
 
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialDiv(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialDiv(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial); overload;
 {* 一元大整系数有理分式与整系数多项式的普通除法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 被除数
      P1: TCnBigNumberPolynomial                           - 除数
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
 
    返回值：（无）
 }
@@ -2835,57 +2835,57 @@ procedure BigNumberRationalPolynomialGaloisNegate(P: TCnBigNumberRationalPolynom
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialGaloisAdd(R1: TCnBigNumberRationalPolynomial;
-  R2: TCnBigNumberRationalPolynomial; RationalResult: TCnBigNumberRationalPolynomial;
+procedure BigNumberRationalPolynomialGaloisAdd(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; R2: TCnBigNumberRationalPolynomial;
   Prime: TCnBigNumber); overload;
 {* 一元大整系数有理分式模系数加法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 加数一
      R2: TCnBigNumberRationalPolynomial                   - 加数二
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      Prime: TCnBigNumber                                  - 模数
 
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialGaloisSub(R1: TCnBigNumberRationalPolynomial;
-  R2: TCnBigNumberRationalPolynomial; RationalResult: TCnBigNumberRationalPolynomial;
+procedure BigNumberRationalPolynomialGaloisSub(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; R2: TCnBigNumberRationalPolynomial;
   Prime: TCnBigNumber); overload;
 {* 一元大整系数有理分式模系数减法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 被减数
      R2: TCnBigNumberRationalPolynomial                   - 减数
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      Prime: TCnBigNumber                                  - 模数
 
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialGaloisMul(R1: TCnBigNumberRationalPolynomial;
-  R2: TCnBigNumberRationalPolynomial; RationalResult: TCnBigNumberRationalPolynomial;
+procedure BigNumberRationalPolynomialGaloisMul(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; R2: TCnBigNumberRationalPolynomial;
   Prime: TCnBigNumber); overload;
 {* 一元大整系数有理分式模系数乘法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 乘数一
      R2: TCnBigNumberRationalPolynomial                   - 乘数二
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      Prime: TCnBigNumber                                  - 模数
 
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialGaloisDiv(R1: TCnBigNumberRationalPolynomial;
-  R2: TCnBigNumberRationalPolynomial; RationalResult: TCnBigNumberRationalPolynomial;
+procedure BigNumberRationalPolynomialGaloisDiv(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; R2: TCnBigNumberRationalPolynomial;
   Prime: TCnBigNumber); overload;
 {* 一元大整系数有理分式模系数除法，三个参数可以是同一对象。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 被除数
      R2: TCnBigNumberRationalPolynomial                   - 除数
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      Prime: TCnBigNumber                                  - 模数
 
    返回值：（无）
@@ -2939,57 +2939,57 @@ procedure BigNumberRationalPolynomialGaloisDivBigNumber(R: TCnBigNumberRationalP
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialGaloisAdd(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial;
+procedure BigNumberRationalPolynomialGaloisAdd(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial;
   Prime: TCnBigNumber); overload;
 {* 一元大整系数有理分式与一元大整系数多项式的模系数加法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 加数一
      P1: TCnBigNumberPolynomial                           - 加数二
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      Prime: TCnBigNumber                                  - 模数
 
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialGaloisSub(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial;
+procedure BigNumberRationalPolynomialGaloisSub(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial;
   Prime: TCnBigNumber); overload;
 {* 一元大整系数有理分式与一元大整系数多项式的模系数减法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 被减数
      P1: TCnBigNumberPolynomial                           - 减数
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      Prime: TCnBigNumber                                  - 模数
 
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialGaloisMul(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial;
+procedure BigNumberRationalPolynomialGaloisMul(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial;
   Prime: TCnBigNumber); overload;
 {* 一元大整系数有理分式与一元大整系数多项式的模系数乘法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 乘数一
      P1: TCnBigNumberPolynomial                           - 乘数二
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      Prime: TCnBigNumber                                  - 模数
 
    返回值：（无）
 }
 
-procedure BigNumberRationalPolynomialGaloisDiv(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial;
+procedure BigNumberRationalPolynomialGaloisDiv(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial;
   Prime: TCnBigNumber); overload;
 {* 一元大整系数有理分式与一元大整系数多项式的模系数除法，RationalResult 可以是 R1。
 
    参数：
+     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      R1: TCnBigNumberRationalPolynomial                   - 被除数
      P1: TCnBigNumberPolynomial                           - 除数
-     RationalResult: TCnBigNumberRationalPolynomial       - 用来容纳结果的一元大整系数有理分式
      Prime: TCnBigNumber                                  - 模数
 
    返回值：（无）
@@ -6846,8 +6846,8 @@ begin
   end;
 end;
 
-procedure Int64RationalPolynomialAdd(R1, R2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial);
+procedure Int64RationalPolynomialAdd(RationalResult: TCnInt64RationalPolynomial;
+  R1, R2: TCnInt64RationalPolynomial);
 var
   M, R, F1, F2, D1, D2: TCnInt64Polynomial;
 begin
@@ -6909,24 +6909,24 @@ begin
   end;
 end;
 
-procedure Int64RationalPolynomialSub(R1, R2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial);
+procedure Int64RationalPolynomialSub(RationalResult: TCnInt64RationalPolynomial;
+  R1, R2: TCnInt64RationalPolynomial);
 begin
   R2.Numerator.Negate;
-  Int64RationalPolynomialAdd(R1, R2, RationalResult);
+  Int64RationalPolynomialAdd(RationalResult, R1, R2);
   if RationalResult <> R2 then
     R2.Numerator.Negate;
 end;
 
-procedure Int64RationalPolynomialMul(R1, R2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial);
+procedure Int64RationalPolynomialMul(RationalResult: TCnInt64RationalPolynomial;
+  R1, R2: TCnInt64RationalPolynomial);
 begin
   Int64PolynomialMul(RationalResult.Numerator, R1.Numerator, R2.Numerator);
   Int64PolynomialMul(RationalResult.Denominator, R1.Denominator, R2.Denominator);
 end;
 
-procedure Int64RationalPolynomialDiv(R1, R2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial);
+procedure Int64RationalPolynomialDiv(RationalResult: TCnInt64RationalPolynomial;
+  R1, R2: TCnInt64RationalPolynomial);
 var
   N: TCnInt64Polynomial;
 begin
@@ -6951,7 +6951,7 @@ begin
   try
     P.MaxDegree := 0;
     P[0] := N;
-    Int64RationalPolynomialAdd(R, P, R);
+    Int64RationalPolynomialAdd(R, R, P);
   finally
     FLocalInt64PolynomialPool.Recycle(P);
   end;
@@ -6965,7 +6965,7 @@ begin
   try
     P.MaxDegree := 0;
     P[0] := N;
-    Int64RationalPolynomialSub(R, P, R);
+    Int64RationalPolynomialSub(R, R, P);
   finally
     FLocalInt64PolynomialPool.Recycle(P);
   end;
@@ -6979,7 +6979,7 @@ begin
   try
     P.MaxDegree := 0;
     P[0] := N;
-    Int64RationalPolynomialMul(R, P, R);
+    Int64RationalPolynomialMul(R, R, P);
   finally
     FLocalInt64PolynomialPool.Recycle(P);
   end;
@@ -6993,14 +6993,14 @@ begin
   try
     P.MaxDegree := 0;
     P[0] := N;
-    Int64RationalPolynomialDiv(R, P, R);
+    Int64RationalPolynomialDiv(R, R, P);
   finally
     FLocalInt64PolynomialPool.Recycle(P);
   end;
 end;
 
-procedure Int64RationalPolynomialAdd(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial);
+procedure Int64RationalPolynomialAdd(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial);
 var
   T: TCnInt64RationalPolynomial;
 begin
@@ -7017,25 +7017,25 @@ begin
   try
     T.Denominator.SetOne;
     Int64PolynomialCopy(T.Numerator, P1);
-    Int64RationalPolynomialAdd(R1, T, RationalResult);
+    Int64RationalPolynomialAdd(RationalResult, R1, T);
   finally
     FLocalInt64RationalPolynomialPool.Recycle(T);
   end;
 end;
 
-procedure Int64RationalPolynomialSub(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial);
+procedure Int64RationalPolynomialSub(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial);
 begin
   P1.Negate;
   try
-    Int64RationalPolynomialAdd(R1, P1, RationalResult);
+    Int64RationalPolynomialAdd(RationalResult, R1, P1);
   finally
     P1.Negate;
   end;
 end;
 
-procedure Int64RationalPolynomialMul(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial);
+procedure Int64RationalPolynomialMul(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial);
 begin
   if P1.IsZero then
     RationalResult.SetZero
@@ -7048,8 +7048,8 @@ begin
   end;
 end;
 
-procedure Int64RationalPolynomialDiv(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial);
+procedure Int64RationalPolynomialDiv(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial);
 begin
   if P1.IsZero then
     raise EDivByZero.Create(SDivByZero);
@@ -7187,8 +7187,8 @@ begin
   Int64PolynomialGaloisNegate(P.Numerator, Prime);
 end;
 
-procedure Int64RationalPolynomialGaloisAdd(R1, R2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
+procedure Int64RationalPolynomialGaloisAdd(RationalResult: TCnInt64RationalPolynomial;
+  R1, R2: TCnInt64RationalPolynomial; Prime: Int64);
 var
   M, R, F1, F2, D1, D2: TCnInt64Polynomial;
 begin
@@ -7251,24 +7251,24 @@ begin
   end;
 end;
 
-procedure Int64RationalPolynomialGaloisSub(R1, R2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
+procedure Int64RationalPolynomialGaloisSub(RationalResult: TCnInt64RationalPolynomial;
+  R1, R2: TCnInt64RationalPolynomial; Prime: Int64);
 begin
   R2.Numerator.Negate;
-  Int64RationalPolynomialGaloisAdd(R1, R2, RationalResult, Prime);
+  Int64RationalPolynomialGaloisAdd(RationalResult, R1, R2, Prime);
   if RationalResult <> R2 then
     R2.Numerator.Negate;
 end;
 
-procedure Int64RationalPolynomialGaloisMul(R1, R2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
+procedure Int64RationalPolynomialGaloisMul(RationalResult: TCnInt64RationalPolynomial;
+  R1, R2: TCnInt64RationalPolynomial; Prime: Int64);
 begin
   Int64PolynomialGaloisMul(RationalResult.Numerator, R1.Numerator, R2.Numerator, Prime);
   Int64PolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, R2.Denominator, Prime);
 end;
 
-procedure Int64RationalPolynomialGaloisDiv(R1, R2: TCnInt64RationalPolynomial;
-  RationalResult: TCnInt64RationalPolynomial; Prime: Int64);
+procedure Int64RationalPolynomialGaloisDiv(RationalResult: TCnInt64RationalPolynomial;
+  R1, R2: TCnInt64RationalPolynomial; Prime: Int64);
 var
   N: TCnInt64Polynomial;
 begin
@@ -7294,7 +7294,7 @@ begin
   try
     P.MaxDegree := 0;
     P[0] := N;
-    Int64RationalPolynomialGaloisAdd(R, P, R, Prime);
+    Int64RationalPolynomialGaloisAdd(R, R, P, Prime);
   finally
     FLocalInt64PolynomialPool.Recycle(P);
   end;
@@ -7309,7 +7309,7 @@ begin
   try
     P.MaxDegree := 0;
     P[0] := N;
-    Int64RationalPolynomialGaloisSub(R, P, R, Prime);
+    Int64RationalPolynomialGaloisSub(R, R, P, Prime);
   finally
     FLocalInt64PolynomialPool.Recycle(P);
   end;
@@ -7324,7 +7324,7 @@ begin
   try
     P.MaxDegree := 0;
     P[0] := N;
-    Int64RationalPolynomialGaloisMul(R, P, R, Prime);
+    Int64RationalPolynomialGaloisMul(R, R, P, Prime);
   finally
     FLocalInt64PolynomialPool.Recycle(P);
   end;
@@ -7339,14 +7339,14 @@ begin
   try
     P.MaxDegree := 0;
     P[0] := N;
-    Int64RationalPolynomialGaloisDiv(R, P, R, Prime);
+    Int64RationalPolynomialGaloisDiv(R, R, P, Prime);
   finally
     FLocalInt64PolynomialPool.Recycle(P);
   end;
 end;
 
-procedure Int64RationalPolynomialGaloisAdd(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+procedure Int64RationalPolynomialGaloisAdd(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial; Prime: Int64);
 var
   T: TCnInt64RationalPolynomial;
 begin
@@ -7363,25 +7363,25 @@ begin
   try
     T.Denominator.SetOne;
     Int64PolynomialCopy(T.Numerator, P1);
-    Int64RationalPolynomialGaloisAdd(R1, T, RationalResult, Prime);
+    Int64RationalPolynomialGaloisAdd(RationalResult, R1, T, Prime);
   finally
     FLocalInt64RationalPolynomialPool.Recycle(T);
   end;
 end;
 
-procedure Int64RationalPolynomialGaloisSub(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+procedure Int64RationalPolynomialGaloisSub(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial; Prime: Int64);
 begin
   P1.Negate;
   try
-    Int64RationalPolynomialGaloisAdd(R1, P1, RationalResult, Prime);
+    Int64RationalPolynomialGaloisAdd(RationalResult, R1, P1, Prime);
   finally
     P1.Negate;
   end;
 end;
 
-procedure Int64RationalPolynomialGaloisMul(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+procedure Int64RationalPolynomialGaloisMul(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial; Prime: Int64);
 begin
   if P1.IsZero then
     RationalResult.SetZero
@@ -7394,8 +7394,8 @@ begin
   end;
 end;
 
-procedure Int64RationalPolynomialGaloisDiv(R1: TCnInt64RationalPolynomial;
-  P1: TCnInt64Polynomial; RationalResult: TCnInt64RationalPolynomial; Prime: Int64); overload;
+procedure Int64RationalPolynomialGaloisDiv(RationalResult: TCnInt64RationalPolynomial;
+  R1: TCnInt64RationalPolynomial; P1: TCnInt64Polynomial; Prime: Int64);
 begin
   if P1.IsZero then
     raise EDivByZero.Create(SDivByZero);
@@ -9711,8 +9711,8 @@ begin
   end;
 end;
 
-procedure BigNumberRationalPolynomialAdd(R1, R2: TCnBigNumberRationalPolynomial;
-  RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialAdd(RationalResult: TCnBigNumberRationalPolynomial;
+  R1, R2: TCnBigNumberRationalPolynomial); overload;
 var
   M, R, F1, F2, D1, D2: TCnBigNumberPolynomial;
 begin
@@ -9774,24 +9774,24 @@ begin
   end;
 end;
 
-procedure BigNumberRationalPolynomialSub(R1, R2: TCnBigNumberRationalPolynomial;
-  RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialSub(RationalResult: TCnBigNumberRationalPolynomial;
+  R1, R2: TCnBigNumberRationalPolynomial); overload;
 begin
   R2.Numerator.Negate;
-  BigNumberRationalPolynomialAdd(R1, R2, RationalResult);
+  BigNumberRationalPolynomialAdd(RationalResult, R1, R2);
   if RationalResult <> R2 then
     R2.Numerator.Negate;
 end;
 
-procedure BigNumberRationalPolynomialMul(R1, R2: TCnBigNumberRationalPolynomial;
-  RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialMul(RationalResult: TCnBigNumberRationalPolynomial;
+  R1, R2: TCnBigNumberRationalPolynomial); overload;
 begin
   BigNumberPolynomialMul(RationalResult.Numerator, R1.Numerator, R2.Numerator);
   BigNumberPolynomialMul(RationalResult.Denominator, R1.Denominator, R2.Denominator);
 end;
 
-procedure BigNumberRationalPolynomialDiv(R1, R2: TCnBigNumberRationalPolynomial;
-  RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialDiv(RationalResult: TCnBigNumberRationalPolynomial;
+  R1, R2: TCnBigNumberRationalPolynomial); overload;
 var
   N: TCnBigNumberPolynomial;
 begin
@@ -9817,7 +9817,7 @@ begin
   try
     P.MaxDegree := 0;
     BigNumberCopy(P[0], Num);
-    BigNumberRationalPolynomialAdd(R, P, R);
+    BigNumberRationalPolynomialAdd(R, R, P);
   finally
     FLocalBigNumberPolynomialPool.Recycle(P);
   end;
@@ -9832,7 +9832,7 @@ begin
   try
     P.MaxDegree := 0;
     BigNumberCopy(P[0], Num);
-    BigNumberRationalPolynomialSub(R, P, R);
+    BigNumberRationalPolynomialSub(R, R, P);
   finally
     FLocalBigNumberPolynomialPool.Recycle(P);
   end;
@@ -9847,7 +9847,7 @@ begin
   try
     P.MaxDegree := 0;
     BigNumberCopy(P[0], Num);
-    BigNumberRationalPolynomialMul(R, P, R);
+    BigNumberRationalPolynomialMul(R, R, P);
   finally
     FLocalBigNumberPolynomialPool.Recycle(P);
   end;
@@ -9862,14 +9862,14 @@ begin
   try
     P.MaxDegree := 0;
     BigNumberCopy(P[0], Num);
-    BigNumberRationalPolynomialDiv(R, P, R);
+    BigNumberRationalPolynomialDiv(R, R, P);
   finally
     FLocalBigNumberPolynomialPool.Recycle(P);
   end;
 end;
 
-procedure BigNumberRationalPolynomialAdd(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialAdd(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial); overload;
 var
   T: TCnBigNumberRationalPolynomial;
 begin
@@ -9886,25 +9886,25 @@ begin
   try
     T.Denominator.SetOne;
     BigNumberPolynomialCopy(T.Numerator, P1);
-    BigNumberRationalPolynomialAdd(R1, T, RationalResult);
+    BigNumberRationalPolynomialAdd(RationalResult, R1, T);
   finally
     FLocalBigNumberRationalPolynomialPool.Recycle(T);
   end;
 end;
 
-procedure BigNumberRationalPolynomialSub(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialSub(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial); overload;
 begin
   P1.Negate;
   try
-    BigNumberRationalPolynomialAdd(R1, P1, RationalResult);
+    BigNumberRationalPolynomialAdd(RationalResult, R1, P1);
   finally
     P1.Negate;
   end;
 end;
 
-procedure BigNumberRationalPolynomialMul(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialMul(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial); overload;
 begin
   if P1.IsZero then
     RationalResult.SetZero
@@ -9917,8 +9917,8 @@ begin
   end;
 end;
 
-procedure BigNumberRationalPolynomialDiv(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial); overload;
+procedure BigNumberRationalPolynomialDiv(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial); overload;
 begin
   if P1.IsZero then
     raise EDivByZero.Create(SDivByZero);
@@ -10056,8 +10056,8 @@ begin
   BigNumberPolynomialGaloisNegate(P.Numerator, Prime);
 end;
 
-procedure BigNumberRationalPolynomialGaloisAdd(R1, R2: TCnBigNumberRationalPolynomial;
-  RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
+procedure BigNumberRationalPolynomialGaloisAdd(RationalResult: TCnBigNumberRationalPolynomial;
+  R1, R2: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
 var
   M, R, F1, F2, D1, D2: TCnBigNumberPolynomial;
 begin
@@ -10120,24 +10120,24 @@ begin
   end;
 end;
 
-procedure BigNumberRationalPolynomialGaloisSub(R1, R2: TCnBigNumberRationalPolynomial;
-  RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
+procedure BigNumberRationalPolynomialGaloisSub(RationalResult: TCnBigNumberRationalPolynomial;
+  R1, R2: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
 begin
   R2.Numerator.Negate;
-  BignumberRationalPolynomialGaloisAdd(R1, R2, RationalResult, Prime);
+  BigNumberRationalPolynomialGaloisAdd(RationalResult, R1, R2, Prime);
   if RationalResult <> R2 then
     R2.Numerator.Negate;
 end;
 
-procedure BigNumberRationalPolynomialGaloisMul(R1, R2: TCnBigNumberRationalPolynomial;
-  RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
+procedure BigNumberRationalPolynomialGaloisMul(RationalResult: TCnBigNumberRationalPolynomial;
+  R1, R2: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
 begin
   BigNumberPolynomialGaloisMul(RationalResult.Numerator, R1.Numerator, R2.Numerator, Prime);
   BigNumberPolynomialGaloisMul(RationalResult.Denominator, R1.Denominator, R2.Denominator, Prime);
 end;
 
-procedure BigNumberRationalPolynomialGaloisDiv(R1, R2: TCnBigNumberRationalPolynomial;
-  RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
+procedure BigNumberRationalPolynomialGaloisDiv(RationalResult: TCnBigNumberRationalPolynomial;
+  R1, R2: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
 var
   N: TCnBigNumberPolynomial;
 begin
@@ -10163,7 +10163,7 @@ begin
   try
     P.MaxDegree := 0;
     BigNumberCopy(P[0], Num);
-    BigNumberRationalPolynomialGaloisAdd(R, P, R, Prime);
+    BigNumberRationalPolynomialGaloisAdd(R, R, P, Prime);
   finally
     FLocalBigNumberPolynomialPool.Recycle(P);
   end;
@@ -10178,7 +10178,7 @@ begin
   try
     P.MaxDegree := 0;
     BigNumberCopy(P[0], Num);
-    BigNumberRationalPolynomialGaloisSub(R, P, R, Prime);
+    BigNumberRationalPolynomialGaloisSub(R, R, P, Prime);
   finally
     FLocalBigNumberPolynomialPool.Recycle(P);
   end;
@@ -10193,7 +10193,7 @@ begin
   try
     P.MaxDegree := 0;
     BigNumberCopy(P[0], Num);
-    BigNumberRationalPolynomialGaloisMul(R, P, R, Prime);
+    BigNumberRationalPolynomialGaloisMul(R, R, P, Prime);
   finally
     FLocalBigNumberPolynomialPool.Recycle(P);
   end;
@@ -10208,14 +10208,14 @@ begin
   try
     P.MaxDegree := 0;
     BigNumberCopy(P[0], Num);
-    BigNumberRationalPolynomialGaloisDiv(R, P, R, Prime);
+    BigNumberRationalPolynomialGaloisDiv(R, R, P, Prime);
   finally
     FLocalBigNumberPolynomialPool.Recycle(P);
   end;
 end;
 
-procedure BigNumberRationalPolynomialGaloisAdd(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
+procedure BigNumberRationalPolynomialGaloisAdd(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial; Prime: TCnBigNumber); overload;
 var
   T: TCnBigNumberRationalPolynomial;
 begin
@@ -10232,25 +10232,25 @@ begin
   try
     T.Denominator.SetOne;
     BigNumberPolynomialCopy(T.Numerator, P1);
-    BigNumberRationalPolynomialGaloisAdd(R1, T, RationalResult, Prime);
+    BigNumberRationalPolynomialGaloisAdd(RationalResult, R1, T, Prime);
   finally
     FLocalBigNumberRationalPolynomialPool.Recycle(T);
   end;
 end;
 
-procedure BigNumberRationalPolynomialGaloisSub(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
+procedure BigNumberRationalPolynomialGaloisSub(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial; Prime: TCnBigNumber); overload;
 begin
   P1.Negate;
   try
-    BigNumberRationalPolynomialGaloisAdd(R1, P1, RationalResult, Prime);
+    BigNumberRationalPolynomialGaloisAdd(RationalResult, R1, P1, Prime);
   finally
     P1.Negate;
   end;
 end;
 
-procedure BigNumberRationalPolynomialGaloisMul(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber); overload;
+procedure BigNumberRationalPolynomialGaloisMul(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial; Prime: TCnBigNumber); overload;
 begin
   if P1.IsZero then
     RationalResult.SetZero
@@ -10263,8 +10263,8 @@ begin
   end;
 end;
 
-procedure BigNumberRationalPolynomialGaloisDiv(R1: TCnBigNumberRationalPolynomial;
-  P1: TCnBigNumberPolynomial; RationalResult: TCnBigNumberRationalPolynomial; Prime: TCnBigNumber);
+procedure BigNumberRationalPolynomialGaloisDiv(RationalResult: TCnBigNumberRationalPolynomial;
+  R1: TCnBigNumberRationalPolynomial; P1: TCnBigNumberPolynomial; Prime: TCnBigNumber);
 begin
   if P1.IsZero or Prime.IsZero then
     raise EDivByZero.Create(SDivByZero);

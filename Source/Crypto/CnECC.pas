@@ -6709,23 +6709,23 @@ begin
     Y2.SetCoefficents([B, A, 0, 1]);
 
     RL := FEccInt64RationalPolynomialPool.Obtain;
-    Int64RationalPolynomialGaloisMul(PY, PY, RL, APrime);
-    Int64RationalPolynomialGaloisMul(RL, Y2, RL, APrime);  // 得到等号左边的值
+    Int64RationalPolynomialGaloisMul(RL, PY, PY, APrime);
+    Int64RationalPolynomialGaloisMul(RL, RL, Y2, APrime);  // 得到等号左边的值
 
     RR := FEccInt64RationalPolynomialPool.Obtain;
-    Int64RationalPolynomialGaloisMul(PX, PX, RR, APrime);
-    Int64RationalPolynomialGaloisMul(RR, PX, RR, APrime);  // 得到 PX^3
+    Int64RationalPolynomialGaloisMul(RR, PX, PX, APrime);
+    Int64RationalPolynomialGaloisMul(RR, RR, PX, APrime);  // 得到 PX^3
 
     T1 := FEccInt64PolynomialPool.Obtain;
     T1.SetCoefficents([A]);
 
     T2 := FEccInt64RationalPolynomialPool.Obtain;
-    Int64RationalPolynomialGaloisMul(PX, T1, T2, APrime);  // T2 得到 A * PX
+    Int64RationalPolynomialGaloisMul(T2, PX, T1, APrime);  // T2 得到 A * PX
 
     T1.SetCoefficents([B]);
-    Int64RationalPolynomialGaloisAdd(T2, T1, T2, APrime);  // T2 得到 A * PX + B
+    Int64RationalPolynomialGaloisAdd(T2, T2, T1, APrime);  // T2 得到 A * PX + B
 
-    Int64RationalPolynomialGaloisAdd(T2, RR, RR, APrime);  // RR 得到 PX^3 + A * PX + B
+    Int64RationalPolynomialGaloisAdd(RR, T2, RR, APrime);  // RR 得到 PX^3 + A * PX + B
 
     if APrimitive <> nil then
     begin
@@ -7172,23 +7172,23 @@ begin
       // X Y 都相等，求导
       C.SetCoefficents([3]);
 
-      Int64RationalPolynomialGaloisMul(PX, PX, T1, APrime);
-      Int64RationalPolynomialGaloisMul(T1, C, T1, APrime);  // T1 得到 3PX^2
+      Int64RationalPolynomialGaloisMul(T1, PX, PX, APrime);
+      Int64RationalPolynomialGaloisMul(T1, T1, C, APrime);  // T1 得到 3PX^2
 
       C.SetCoefficents([A]);
-      Int64RationalPolynomialGaloisAdd(T1, C, T1, APrime);  // T1 得到 3PX^2 + A
+      Int64RationalPolynomialGaloisAdd(T1, T1, C, APrime);  // T1 得到 3PX^2 + A
 
       C.SetCoefficents([2]);
-      Int64RationalPolynomialGaloisMul(PY, C, T2, APrime);  // T2 得到 2PY，实际上还要乘以一个 y
+      Int64RationalPolynomialGaloisMul(T2, PY, C, APrime);  // T2 得到 2PY，实际上还要乘以一个 y
 
-      Int64RationalPolynomialGaloisDiv(T1, T2, R, APrime);  // 得到斜率 R，但真实的斜率分母实际上还要乘以一个 y，后面补上
+      Int64RationalPolynomialGaloisDiv(R, T1, T2, APrime);  // 得到斜率 R，但真实的斜率分母实际上还要乘以一个 y，后面补上
 
       // SX = 真实斜率^2 - PX - QX = R^2 / (x^3+Ax+B) - PX - QX
       // 真实斜率的平方 = R^2 / y^2，分母可替换成 x^3+Ax+B
-      Int64RationalPolynomialGaloisMul(R, R, SX, APrime);
-      Int64RationalPolynomialGaloisDiv(SX, Y2, SX, APrime);
-      Int64RationalPolynomialGaloisSub(SX, PX, SX, APrime);
-      Int64RationalPolynomialGaloisSub(SX, QX, SX, APrime);
+      Int64RationalPolynomialGaloisMul(SX, R, R, APrime);
+      Int64RationalPolynomialGaloisDiv(SX, SX, Y2, APrime);
+      Int64RationalPolynomialGaloisSub(SX, SX, PX, APrime);
+      Int64RationalPolynomialGaloisSub(SX, SX, QX, APrime);
 
       if APrimitive <> nil then
       begin
@@ -7198,10 +7198,10 @@ begin
 
       // SY * y = 真实斜率 * (PX - SX) - PY * y
       // SY = (R/y * (PX - SX) - PY * y) / y = R * (PX - SX)/ y^2 - PY
-      Int64RationalPolynomialGaloisSub(PX, SX, SY, APrime);
-      Int64RationalPolynomialGaloisMul(SY, R, SY, APrime);
-      Int64RationalPolynomialGaloisDiv(SY, Y2, SY, APrime);
-      Int64RationalPolynomialGaloisSub(SY, PY, SY, APrime);
+      Int64RationalPolynomialGaloisSub(SY, PX, SX, APrime);
+      Int64RationalPolynomialGaloisMul(SY, SY, R, APrime);
+      Int64RationalPolynomialGaloisDiv(SY, SY, Y2, APrime);
+      Int64RationalPolynomialGaloisSub(SY, SY, PY, APrime);
 
       if APrimitive <> nil then
       begin
@@ -7212,16 +7212,16 @@ begin
     else
     begin
       // 不相等，减，真实斜率等于 y * (QY - PY) / (QX - PX)
-      Int64RationalPolynomialGaloisSub(QY, PY, T1, APrime);
-      Int64RationalPolynomialGaloisSub(QX, PX, T2, APrime);
-      Int64RationalPolynomialGaloisDiv(T1, T2, R, APrime);
+      Int64RationalPolynomialGaloisSub(T1, QY, PY, APrime);
+      Int64RationalPolynomialGaloisSub(T2, QX, PX, APrime);
+      Int64RationalPolynomialGaloisDiv(R, T1, T2, APrime);
 
       // R 得到斜率了，但真实的斜率分子实际上还要乘以一个 y，后面补上
       // SX = R^2 * (x^3+Ax+B) - PX - QX
-      Int64RationalPolynomialGaloisMul(R, R, SX, APrime);
-      Int64RationalPolynomialGaloisMul(SX, Y2, SX, APrime);
-      Int64RationalPolynomialGaloisSub(SX, PX, SX, APrime);
-      Int64RationalPolynomialGaloisSub(SX, QX, SX, APrime);
+      Int64RationalPolynomialGaloisMul(SX, R, R, APrime);
+      Int64RationalPolynomialGaloisMul(SX, SX, Y2, APrime);
+      Int64RationalPolynomialGaloisSub(SX, SX, PX, APrime);
+      Int64RationalPolynomialGaloisSub(SX, SX, QX, APrime);
       if APrimitive <> nil then
       begin
         Int64PolynomialGaloisMod(SX.Numerator, SX.Numerator, APrimitive, APrime);
@@ -7229,9 +7229,9 @@ begin
       end;
 
       // SY * y = R * y * (PX - SX) - PY * y 都除以 y 得 SY = R * (PX - SX) - PY
-      Int64RationalPolynomialGaloisSub(PX, SX, SY, APrime);
-      Int64RationalPolynomialGaloisMul(SY, R, SY, APrime);
-      Int64RationalPolynomialGaloisSub(SY, PY, SY, APrime);
+      Int64RationalPolynomialGaloisSub(SY, PX, SX, APrime);
+      Int64RationalPolynomialGaloisMul(SY, SY, R, APrime);
+      Int64RationalPolynomialGaloisSub(SY, SY, PY, APrime);
 
       if APrimitive <> nil then
       begin
@@ -7802,7 +7802,7 @@ begin
   end;
 
   Int64RationalPolynomialGaloisCompose(Res, MY, PX, APrime, APrimitive);
-  Int64RationalPolynomialGaloisMul(Res, PY, Res, APrime);
+  Int64RationalPolynomialGaloisMul(Res, Res, PY, APrime);
   FEccInt64RationalPolynomialPool.Recycle(MY);
 
   if APrimitive <> nil then
@@ -8260,23 +8260,23 @@ begin
     Y2.SetCoefficents([B, A, 0, 1]);
 
     RL := FEccRationalPolynomialPool.Obtain;
-    BigNumberRationalPolynomialGaloisMul(PY, PY, RL, APrime);
-    BigNumberRationalPolynomialGaloisMul(RL, Y2, RL, APrime);  // 得到等号左边的值
+    BigNumberRationalPolynomialGaloisMul(RL, PY, PY, APrime);
+    BigNumberRationalPolynomialGaloisMul(RL, RL, Y2, APrime);  // 得到等号左边的值
 
     RR := FEccRationalPolynomialPool.Obtain;
-    BigNumberRationalPolynomialGaloisMul(PX, PX, RR, APrime);
-    BigNumberRationalPolynomialGaloisMul(RR, PX, RR, APrime);  // 得到 PX^3
+    BigNumberRationalPolynomialGaloisMul(RR, PX, PX, APrime);
+    BigNumberRationalPolynomialGaloisMul(RR, RR, PX, APrime);  // 得到 PX^3
 
     T1 := FEccPolynomialPool.Obtain;
     T1.SetCoefficents([A]);
 
     T2 := FEccRationalPolynomialPool.Obtain;
-    BigNumberRationalPolynomialGaloisMul(PX, T1, T2, APrime);  // T2 得到 A * PX
+    BigNumberRationalPolynomialGaloisMul(T2, PX, T1, APrime);  // T2 得到 A * PX
 
     T1.SetCoefficents([B]);
-    BigNumberRationalPolynomialGaloisAdd(T2, T1, T2, APrime);  // T2 得到 A * PX + B
+    BigNumberRationalPolynomialGaloisAdd(T2, T2, T1, APrime);  // T2 得到 A * PX + B
 
-    BigNumberRationalPolynomialGaloisAdd(T2, RR, RR, APrime);  // RR 得到 PX^3 + A * PX + B
+    BigNumberRationalPolynomialGaloisAdd(RR, T2, RR, APrime);  // RR 得到 PX^3 + A * PX + B
 
     Result := BigNumberRationalPolynomialGaloisEqual(RL, RR, APrime);       // 比较是否相等
   finally
@@ -8648,23 +8648,23 @@ begin
       // X Y 都相等，求导
       C.SetCoefficents([3]);
 
-      BigNumberRationalPolynomialGaloisMul(PX, PX, T1, APrime);
-      BigNumberRationalPolynomialGaloisMul(T1, C, T1, APrime);  // T1 得到 3PX^2
+      BigNumberRationalPolynomialGaloisMul(T1, PX, PX, APrime);
+      BigNumberRationalPolynomialGaloisMul(T1, T1, C, APrime);  // T1 得到 3PX^2
 
       C.SetCoefficents([A]);
-      BigNumberRationalPolynomialGaloisAdd(T1, C, T1, APrime);  // T1 得到 3PX^2 + A
+      BigNumberRationalPolynomialGaloisAdd(T1, T1, C, APrime);  // T1 得到 3PX^2 + A
 
       C.SetCoefficents([2]);
-      BigNumberRationalPolynomialGaloisMul(PY, C, T2, APrime);  // T2 得到 2PY，实际上还要乘以一个 y
+      BigNumberRationalPolynomialGaloisMul(T2, PY, C, APrime);  // T2 得到 2PY，实际上还要乘以一个 y
 
-      BigNumberRationalPolynomialGaloisDiv(T1, T2, R, APrime);  // 得到斜率 R，但真实的斜率分母实际上还要乘以一个 y，后面补上
+      BigNumberRationalPolynomialGaloisDiv(R, T1, T2, APrime);  // 得到斜率 R，但真实的斜率分母实际上还要乘以一个 y，后面补上
 
       // SX = 真实斜率^2 - PX - QX = R^2 / (x^3+Ax+B) - PX - QX
       // 真实斜率的平方 = R^2 / y^2，分母可替换成 x^3+Ax+B
-      BigNumberRationalPolynomialGaloisMul(R, R, SX, APrime);
-      BigNumberRationalPolynomialGaloisDiv(SX, Y2, SX, APrime);
-      BigNumberRationalPolynomialGaloisSub(SX, PX, SX, APrime);
-      BigNumberRationalPolynomialGaloisSub(SX, QX, SX, APrime);
+      BigNumberRationalPolynomialGaloisMul(SX, R, R, APrime);
+      BigNumberRationalPolynomialGaloisDiv(SX, SX, Y2, APrime);
+      BigNumberRationalPolynomialGaloisSub(SX, SX, PX, APrime);
+      BigNumberRationalPolynomialGaloisSub(SX, SX, QX, APrime);
 
       if APrimitive <> nil then
       begin
@@ -8674,10 +8674,10 @@ begin
 
       // SY * y = 真实斜率 * (PX - SX) - PY * y
       // SY = (R/y * (PX - SX) - PY * y) / y = R * (PX - SX)/ y^2 - PY
-      BigNumberRationalPolynomialGaloisSub(PX, SX, SY, APrime);
-      BigNumberRationalPolynomialGaloisMul(SY, R, SY, APrime);
-      BigNumberRationalPolynomialGaloisDiv(SY, Y2, SY, APrime);
-      BigNumberRationalPolynomialGaloisSub(SY, PY, SY, APrime);
+      BigNumberRationalPolynomialGaloisSub(SY, PX, SX, APrime);
+      BigNumberRationalPolynomialGaloisMul(SY, SY, R, APrime);
+      BigNumberRationalPolynomialGaloisDiv(SY, SY, Y2, APrime);
+      BigNumberRationalPolynomialGaloisSub(SY, SY, PY, APrime);
 
       if APrimitive <> nil then
       begin
@@ -8688,16 +8688,16 @@ begin
     else
     begin
       // 不相等，减，真实斜率等于 y * (QY - PY) / (QX - PX)
-      BigNumberRationalPolynomialGaloisSub(QY, PY, T1, APrime);
-      BigNumberRationalPolynomialGaloisSub(QX, PX, T2, APrime);
-      BigNumberRationalPolynomialGaloisDiv(T1, T2, R, APrime);
+      BigNumberRationalPolynomialGaloisSub(T1, QY, PY, APrime);
+      BigNumberRationalPolynomialGaloisSub(T2, QX, PX, APrime);
+      BigNumberRationalPolynomialGaloisDiv(R, T1, T2, APrime);
 
       // R 得到斜率了，但真实的斜率分子实际上还要乘以一个 y，后面补上
       // SX = R^2 * (x^3+Ax+B) - PX - QX
-      BigNumberRationalPolynomialGaloisMul(R, R, SX, APrime);
-      BigNumberRationalPolynomialGaloisMul(SX, Y2, SX, APrime);
-      BigNumberRationalPolynomialGaloisSub(SX, PX, SX, APrime);
-      BigNumberRationalPolynomialGaloisSub(SX, QX, SX, APrime); // 这步溢出了？
+      BigNumberRationalPolynomialGaloisMul(SX, R, R, APrime);
+      BigNumberRationalPolynomialGaloisMul(SX, SX, Y2, APrime);
+      BigNumberRationalPolynomialGaloisSub(SX, SX, PX, APrime);
+      BigNumberRationalPolynomialGaloisSub(SX, SX, QX, APrime); // 这步溢出了？
 
       if APrimitive <> nil then
       begin
@@ -8706,9 +8706,9 @@ begin
       end;
 
       // SY * y = R * y * (PX - SX) - PY * y 都除以 y 得 SY = R * (PX - SX) - PY
-      BigNumberRationalPolynomialGaloisSub(PX, SX, SY, APrime);
-      BigNumberRationalPolynomialGaloisMul(SY, R, SY, APrime);
-      BigNumberRationalPolynomialGaloisSub(SY, PY, SY, APrime);
+      BigNumberRationalPolynomialGaloisSub(SY, PX, SX, APrime);
+      BigNumberRationalPolynomialGaloisMul(SY, SY, R, APrime);
+      BigNumberRationalPolynomialGaloisSub(SY, SY, PY, APrime);
 
       if APrimitive <> nil then
       begin
@@ -8905,7 +8905,7 @@ begin
   end;
 
   BigNumberRationalPolynomialGaloisCompose(Res, MY, PX, APrime, APrimitive);
-  BigNumberRationalPolynomialGaloisMul(Res, PY, Res, APrime);
+  BigNumberRationalPolynomialGaloisMul(Res, Res, PY, APrime);
   FEccRationalPolynomialPool.Recycle(MY);
 
   if APrimitive <> nil then
