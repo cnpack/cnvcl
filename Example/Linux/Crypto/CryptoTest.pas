@@ -1782,24 +1782,24 @@ end;
 
 function TestBigComplexNumberBasic: Boolean;
 var
-  C1, C2: TCnBigComplexNumber;
+  C1, C2: TCnBigComplex;
 begin
-  C1 := TCnBigComplexNumber.Create;
-  C2 := TCnBigComplexNumber.Create;
+  C1 := TCnBigComplex.Create;
+  C2 := TCnBigComplex.Create;
   try
     // 测试大精度复数初始化
-    BigComplexNumberSetZero(C1);
-    Result := BigComplexNumberIsZero(C1);
+    BigComplexSetZero(C1);
+    Result := BigComplexIsZero(C1);
     if not Result then Exit;
 
     // 测试大精度复数设置值
-    BigComplexNumberSetValue(C1, 3, 4);
-    BigComplexNumberSetValue(C2, 3, 4);
-    Result := BigComplexNumberEqual(C1, C2);
+    BigComplexSetValue(C1, 3, 4);
+    BigComplexSetValue(C2, 3, 4);
+    Result := BigComplexEqual(C1, C2);
     if not Result then Exit;
 
     // 测试大精度复数字符串转换
-    Result := Length(BigComplexNumberToString(C1)) > 0;
+    Result := Length(BigComplexToString(C1)) > 0;
   finally
     C1.Free;
     C2.Free;
@@ -1808,26 +1808,26 @@ end;
 
 function TestBigComplexNumberArithmetic: Boolean;
 var
-  C1, C2, Res: TCnBigComplexNumber;
+  C1, C2, Res: TCnBigComplex;
 begin
-  C1 := TCnBigComplexNumber.Create;
-  C2 := TCnBigComplexNumber.Create;
-  Res := TCnBigComplexNumber.Create;
+  C1 := TCnBigComplex.Create;
+  C2 := TCnBigComplex.Create;
+  Res := TCnBigComplex.Create;
   try
     // 测试大精度复数加法
-    BigComplexNumberSetValue(C1, 3, 4);
-    BigComplexNumberSetValue(C2, 1, 2);
-    BigComplexNumberAdd(Res, C1, C2);
+    BigComplexSetValue(C1, 3, 4);
+    BigComplexSetValue(C2, 1, 2);
+    BigComplexAdd(Res, C1, C2);
     Result := (Res.R.ToHex = '04') and (Res.I.ToHex = '06');
     if not Result then Exit;
 
     // 测试大精度复数减法
-    BigComplexNumberSub(Res, C1, C2);
+    BigComplexSub(Res, C1, C2);
     Result := (Res.R.ToHex = '02') and (Res.I.ToHex = '02');
     if not Result then Exit;
 
     // 测试大精度复数乘法
-    BigComplexNumberMul(Res, C1, C2);
+    BigComplexMul(Res, C1, C2);
     Result := (Res.R.ToHex = '-05') and (Res.I.ToHex = '0A');
   finally
     C1.Free;
@@ -1838,23 +1838,23 @@ end;
 
 function TestBigComplexNumberProperties: Boolean;
 var
-  C1, Res: TCnBigComplexNumber;
+  C1, Res: TCnBigComplex;
 begin
-  C1 := TCnBigComplexNumber.Create;
-  Res := TCnBigComplexNumber.Create;
+  C1 := TCnBigComplex.Create;
+  Res := TCnBigComplex.Create;
   try
     // 测试大精度复数的模
-    BigComplexNumberSetValue(C1, 3, 4);
-    Result := BigComplexNumberAbsoluteValue(C1) > 0;
+    BigComplexSetValue(C1, 3, 4);
+    Result := BigComplexAbsoluteValue(C1) > 0;
     if not Result then Exit;
 
     // 测试大精度复数的共轭
-    BigComplexNumberConjugate(Res, C1);
+    BigComplexConjugate(Res, C1);
     Result := (Res.R.ToHex = '03') and (Res.I.ToHex = '-04');
     if not Result then Exit;
 
     // 测试大精度复数的取反
-    BigComplexNumberNegate(Res, C1);
+    BigComplexNegate(Res, C1);
     Result := (Res.R.ToHex = '-03') and (Res.I.ToHex = '-04');
   finally
     C1.Free;
@@ -1864,53 +1864,53 @@ end;
 
 function TestBigComplexNumberString: Boolean;
 var
-  C1: TCnBigComplexNumber;
+  C1: TCnBigComplex;
 begin
   Result := False;
-  C1 := TCnBigComplexNumber.Create;
+  C1 := TCnBigComplex.Create;
   try
     // 测试纯实数：0
-    BigComplexNumberSetString(C1, '0');
-    Result := BigComplexNumberToString(C1) = '0';
+    BigComplexSetString(C1, '0');
+    Result := BigComplexToString(C1) = '0';
     if not Result then Exit;
 
     // 测试纯实数：123
-    BigComplexNumberSetString(C1, '123');
+    BigComplexSetString(C1, '123');
     Result := (C1.R.ToDec = '123') and C1.I.IsZero;
     if not Result then Exit;
 
     // 测试纯虚数：456i
-    BigComplexNumberSetString(C1, '456i');
+    BigComplexSetString(C1, '456i');
     Result := C1.R.IsZero and (C1.I.ToDec = '456');
     if not Result then Exit;
 
     // 测试纯虚数：i
-    BigComplexNumberSetString(C1, 'i');
+    BigComplexSetString(C1, 'i');
     Result := C1.R.IsZero and C1.I.IsOne;
     if not Result then Exit;
 
     // 测试纯虚数：-i
-    BigComplexNumberSetString(C1, '-i');
+    BigComplexSetString(C1, '-i');
     Result := C1.R.IsZero and (C1.I.ToDec = '-1');
     if not Result then Exit;
 
     // 测试复数：12+34i
-    BigComplexNumberSetString(C1, '12+34i');
+    BigComplexSetString(C1, '12+34i');
     Result := (C1.R.ToDec = '12') and (C1.I.ToDec = '34');
     if not Result then Exit;
 
     // 测试复数：56-78i
-    BigComplexNumberSetString(C1, '56-78i');
+    BigComplexSetString(C1, '56-78i');
     Result := (C1.R.ToDec = '56') and (C1.I.ToDec = '-78');
     if not Result then Exit;
 
     // 测试复数：-99+100i
-    BigComplexNumberSetString(C1, '-99+100i');
+    BigComplexSetString(C1, '-99+100i');
     Result := (C1.R.ToDec = '-99') and (C1.I.ToDec = '100');
     if not Result then Exit;
 
     // 测试复数：-200-300i
-    BigComplexNumberSetString(C1, '-200-300i');
+    BigComplexSetString(C1, '-200-300i');
     Result := (C1.R.ToDec = '-200') and (C1.I.ToDec = '-300');
   finally
     C1.Free;
@@ -5000,13 +5000,14 @@ end;
 
 function TestBigComplexDecimalPolynomial: Boolean;
 var
-  P1, P2, Res: TCnBigComplexDecimalPolynomial;
+  P1, P2, Res, Rem: TCnBigComplexDecimalPolynomial;
   C1, C2, C3, C4: TCnBigComplexDecimal;
 begin
   Result := False;
   P1 := TCnBigComplexDecimalPolynomial.Create;
   P2 := TCnBigComplexDecimalPolynomial.Create;
   Res := TCnBigComplexDecimalPolynomial.Create;
+  Rem := TCnBigComplexDecimalPolynomial.Create;
   C3 := TCnBigComplexDecimal.Create;
   C4 := TCnBigComplexDecimal.Create;
   try
@@ -5046,6 +5047,49 @@ begin
     BigComplexDecimalPolynomialMul(Res, P1, P2);
     Result := Res.ToString = '(-1+7i)X^3+(2+9i)X^2+(1+6i)X+1+2i';
     if not Result then Exit;
+
+    // 测试除法
+    // P1 = (2+i)X^2 + (1+i)X + 1
+    // Divisor = (1+i)X + 1
+    P1.Clear;
+    P1.MaxDegree := 2;
+    P1[0].SetValue(1, 0);      // 1
+    P1[1].SetValue(1, 1);      // (1+i)
+    P1[2].SetValue(2, 1);      // (2+i)
+
+    P2.Clear;
+    P2.MaxDegree := 1;
+    P2[0].SetValue(1, 0);      // 1
+    P2[1].SetValue(1, 1);      // (1+i)
+
+    // P1 / P2
+    Result := BigComplexDecimalPolynomialDiv(Res, Rem, P1, P2);
+    if not Result then Exit;
+
+    Result := (Res.ToString = '(1.5-0.5i)X+0.5+i') and (Rem.ToString = '0.5-i');
+    if not Result then Exit;
+
+    // 恢复 P1 P2
+    P1.Clear;
+    P1.MaxDegree := 2;
+    C1 := TCnBigComplexDecimal.Create;
+    C1.SetValue(1, 2);
+    P1[0] := C1;
+    C1 := TCnBigComplexDecimal.Create;
+    C1.SetValue(2, 3);
+    P1[1] := C1;
+    C1 := TCnBigComplexDecimal.Create;
+    C1.SetValue(3, 4);
+    P1[2] := C1;
+
+    P2.Clear;
+    P2.MaxDegree := 1;
+    C2 := TCnBigComplexDecimal.Create;
+    C2.SetValue(1, 0);
+    P2[0] := C2;
+    C2 := TCnBigComplexDecimal.Create;
+    C2.SetValue(1, 1);
+    P2[1] := C2;
 
     // 测试复制
     BigComplexDecimalPolynomialCopy(Res, P1);
@@ -5087,9 +5131,30 @@ begin
     // 因此：(-8+6i)X^2 + (-2+14i)X + (3+4i) + (-1+5i)X + (2+3i) + (1+2i)
     //     = (-8+6i)X^2 + (-3+19i)X + (6+9i)
     Result := Res.ToString = '(-8+6i)X^2+(-3+19i)X+6+9i';
+    if not Result then Exit;
+
+    // 再测除法
+    // P1 = (3+4i)X^2 + (2+3i)X + (1+2i)
+    // Divisor = (1+i)X + 1
+    // 计算 P1 / Divisor
+    P2.MaxDegree := 1;
+    P2[0].SetValue(1, 0);
+    P2[1].SetValue(1, 1);
+    Result := BigComplexDecimalPolynomialDiv(Res, nil, P1, P2);
+    if not Result then Exit;
+    // (3+4i)X^2 + (2+3i)X + (1+2i)  (1+i)X + 1
+    // (3+4i)X^2 / (1+i)X = (3+4i)/(1+i) * X = (3.5+0.5i)X
+    // (3.5+0.5i)X * [(1+i)X + 1] = (3+4i)X^2 + (3.5+0.5i)X
+    // (2+3i)X + (1+2i) - (3.5+0.5i)X = (-1.5+2.5i)X + (1+2i)
+    // (-1.5+2.5i)X / (1+i)X = (-1.5+2.5i)/(1+i) = (0.5+2i)
+    // (0.5+2i) * [(1+i)X + 1] = (-1.5+2.5i)X + (0.5+2i)
+    // (1+2i) - (0.5+2i) = (0.5+0i)
+    // Res = (3.5+0.5i)X + (0.5+2i)
+    Result := (Res.MaxDegree = 1);
   finally
     C4.Free;
     C3.Free;
+    Rem.Free;
     Res.Free;
     P2.Free;
     P1.Free;
