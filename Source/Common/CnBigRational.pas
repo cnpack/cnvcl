@@ -29,7 +29,9 @@ unit CnBigRational;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2021.12.06 V1.1
+* 修改记录：2026.01.26 V1.2
+*               增加大有理数列表类的实现，更改部分函数名以与其他类一致
+*           2021.12.06 V1.1
 *               加入池机制，调整函数名与参数顺序以与其他类一致
 *           2019.12.19 V1.0
 *               创建单元，实现功能
@@ -41,7 +43,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, SysConst, CnContainers, CnBigNumber;
+  SysUtils, Classes, SysConst, Contnrs, CnContainers, CnBigNumber;
 
 type
   TCnBigRational = class(TPersistent)
@@ -348,9 +350,124 @@ type
     }
   end;
 
+  TCnBigRationalList = class(TObjectList)
+  {* 容纳大有理数的对象列表，同时拥有大有理数对象们}
+  private
+
+  protected
+    function GetItem(Index: Integer): TCnBigRational;
+    procedure SetItem(Index: Integer; ABigRational: TCnBigRational);
+  public
+    constructor Create; reintroduce;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    function Add: TCnBigRational; overload;
+    {* 新增一个大有理数对象，返回该对象。注意添加后返回的对象已由列表纳入管理，无需也不应手动释放。
+
+       参数：
+         （无）
+
+       返回值：TCnBigRational             - 内部新增的大有理数对象
+    }
+
+    function Add(ABigRational: TCnBigRational): Integer; overload;
+    {* 添加外部的大有理数对象，注意添加后该对象由列表纳入管理，无需也不应手动释放。
+
+       参数：
+         ABigRational: TCnBigRational     - 待添加的大有理数对象
+
+       返回值：Integer                    - 新增的该大有理数对象的索引值
+    }
+
+    function Add(Num: Integer): TCnBigRational; overload;
+    {* 添加一整数，内部生成大有理数对象，注意返回的结果已由列表纳入管理，无需也不应手动释放。
+
+       参数：
+         Num: Integer                     - 待添加的整数
+
+       返回值：TCnBigRational             - 新增的该大有理数对象
+    }
+
+    procedure AddList(List: TCnBigRationalList);
+    {* 添加一大有理数列表，也即复制列表内的所有大有理数对象并添加。
+
+       参数：
+         List: TCnBigRationalList         - 待添加的大有理数列表
+
+       返回值：（无）
+    }
+
+    function Remove(ABigRational: TCnBigRational): Integer;
+    {* 从列表中删除指定引用的大有理数对象并释放。
+
+       参数：
+         ABigRational: TCnBigRational     - 待删除的大有理数对象
+
+       返回值：Integer                    - 删除的位置索引，无则返回 -1
+    }
+
+    function IndexOfValue(ABigRational: TCnBigRational): Integer;
+    {* 根据大有理数的值在列表中查找该值对应的位置索引。
+
+       参数：
+         ABigRational: TCnBigRational     - 待查找的大有理数值
+
+       返回值：Integer                    - 返回位置索引，无则返回 -1
+    }
+
+    procedure Insert(Index: Integer; ABigRational: TCnBigRational);
+    {* 在第 Index 个位置前插入大有理数对象，注意插入后无需也不应手动释放。
+
+       参数：
+         Index: Integer                   - 待插入的位置索引
+         ABigRational: TCnBigRational     - 待插入的大有理数对象
+
+       返回值：（无）
+    }
+
+    procedure RemoveDuplicated;
+    {* 去重，也就是删除并释放值重复的大有理数对象，只留一个}
+
+    procedure SumTo(Sum: TCnBigRational);
+    {* 列表内所有数求和。
+
+       参数：
+         Sum: TCnBigRational              - 输出的和
+
+       返回值：（无）
+    }
+
+    procedure BigRationalSort;
+    {* 列表内大有理数从小到大排序}
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将大有理数列表转成字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
+
+    property Items[Index: Integer]: TCnBigRational read GetItem write SetItem; default;
+    {* 大有理数列表项}
+  end;
+
 // ============================= 大有理数运算方法 ==============================
 
-procedure BigRationalNumberAdd(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
+procedure BigRationalCopy(Dest: TCnBigRational; Source: TCnBigRational);
+{* 大有理数赋值。
+
+   参数：
+     Dest: TCnBigRational                 - 目标大有理数数
+     Source: TCnBigRational               - 源大有理数数
+
+   返回值：（无）
+}
+
+procedure BigRationalAdd(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
 {* 大有理数加法，三数可以相等。
 
    参数：
@@ -361,7 +478,7 @@ procedure BigRationalNumberAdd(Res: TCnBigRational; Num1: TCnBigRational; Num2: 
    返回值：（无）
 }
 
-procedure BigRationalNumberSub(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
+procedure BigRationalSub(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
 {* 大有理数减法，三数可以相等。
 
    参数：
@@ -372,7 +489,7 @@ procedure BigRationalNumberSub(Res: TCnBigRational; Num1: TCnBigRational; Num2: 
    返回值：（无）
 }
 
-procedure BigRationalNumberMul(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
+procedure BigRationalMul(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
 {* 大有理数乘法，三数可以相等。
 
    参数：
@@ -383,8 +500,8 @@ procedure BigRationalNumberMul(Res: TCnBigRational; Num1: TCnBigRational; Num2: 
    返回值：（无）
 }
 
-procedure BigRationalNumberDiv(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
-{* 大有理数除法，三数可以相等。
+procedure BigRationalDiv(Res: TCnBigRational; Num1: TCnBigRational; Num2: TCnBigRational);
+{* 大有理数除法，三数可以相等。由于是有理数，因而没有余数概念。
 
    参数：
      Res: TCnBigRational                  - 大有理数商
@@ -394,7 +511,7 @@ procedure BigRationalNumberDiv(Res: TCnBigRational; Num1: TCnBigRational; Num2: 
    返回值：（无）
 }
 
-function BigRationalNumberCompare(Num1: TCnBigRational; Num2: TCnBigRational): Integer; overload;
+function BigRationalCompare(Num1: TCnBigRational; Num2: TCnBigRational): Integer; overload;
 {* 大有理数比较，前者大于、等于、小于后者时分别返回 1、0、-1。
 
    参数：
@@ -404,7 +521,7 @@ function BigRationalNumberCompare(Num1: TCnBigRational; Num2: TCnBigRational): I
    返回值：Integer                        - 返回比较结果
 }
 
-function BigRationalNumberCompare(Num1: TCnBigRational; Num2: Int64): Integer; overload;
+function BigRationalCompare(Num1: TCnBigRational; Num2: Int64): Integer; overload;
 {^ 大有理数与整数比较，前者大于、等于、小于后者时分别返回 1、0、-1。
 
    参数：
@@ -425,8 +542,8 @@ procedure ReduceBigNumber(X: TCnBigNumber; Y: TCnBigNumber);
 }
 
 var
-  CnBigRationalNumberOne: TCnBigRational = nil;
-  CnBigRationalNumberZero: TCnBigRational = nil;
+  CnBigRationalOne: TCnBigRational = nil;
+  CnBigRationalZero: TCnBigRational = nil;
 
 implementation
 
@@ -434,7 +551,33 @@ var
   FLocalBigRationalPool: TCnBigRationalPool = nil;
   FLocalBigNumberPool: TCnBigNumberPool = nil;
 
-procedure BigRationalNumberAdd(Res: TCnBigRational;
+function DefBigRationalCompare(Item1, Item2: Pointer): Integer;
+var
+  A, B: TCnBigRational;
+begin
+  A := TCnBigRational(Item1);
+  B := TCnBigRational(Item2);
+
+  if (A = nil) and (B = nil) then
+    Result := 0
+  else if A = nil then
+    Result := -1
+  else if B = nil then
+    Result := 1
+  else
+    Result := BigRationalCompare(A, B);
+end;
+
+procedure BigRationalCopy(Dest: TCnBigRational; Source: TCnBigRational);
+begin
+  if (Source <> nil) and (Dest <> nil) and (Source <> Dest) then
+  begin
+    BigNumberCopy(Dest.FNumerator, Source.FNumerator);
+    BigNumberCopy(Dest.FDenominator, Source.FDenominator);
+  end;
+end;
+
+procedure BigRationalAdd(Res: TCnBigRational;
   Num1, Num2: TCnBigRational);
 const
   SIGN_ARRAY: array[False..True] of Integer = (1, -1);
@@ -510,7 +653,7 @@ begin
   Res.Reduce;
 end;
 
-procedure BigRationalNumberSub(Res: TCnBigRational;
+procedure BigRationalSub(Res: TCnBigRational;
   Num1, Num2: TCnBigRational);
 begin
   if Num1 = Num2 then
@@ -520,12 +663,12 @@ begin
   end;
 
   Num2.Numerator.SetNegative(not Num2.Numerator.IsNegative);
-  BigRationalNumberAdd(Res, Num1, Num2);
+  BigRationalAdd(Res, Num1, Num2);
   if Res <> Num2 then
     Num2.Numerator.SetNegative(not Num2.Numerator.IsNegative);
 end;
 
-procedure BigRationalNumberMul(Res: TCnBigRational;
+procedure BigRationalMul(Res: TCnBigRational;
   Num1, Num2: TCnBigRational);
 begin
   BigNumberMul(Res.Numerator, Num1.Numerator, Num2.Numerator);
@@ -533,7 +676,7 @@ begin
   Res.Reduce;
 end;
 
-procedure BigRationalNumberDiv(Res: TCnBigRational;
+procedure BigRationalDiv(Res: TCnBigRational;
   Num1, Num2: TCnBigRational);
 var
   N: TCnBigNumber;
@@ -552,7 +695,7 @@ begin
   Res.Reduce;
 end;
 
-function BigRationalNumberCompare(Num1, Num2: TCnBigRational): Integer;
+function BigRationalCompare(Num1, Num2: TCnBigRational): Integer;
 var
   Res: TCnBigRational;
 begin
@@ -569,7 +712,7 @@ begin
     //  同号，非整，比较
     Res := FLocalBigRationalPool.Obtain;
     try
-      BigRationalNumberSub(Res, Num1, Num2);
+      BigRationalSub(Res, Num1, Num2);
       if Res.IsZero then
         Result := 0
       else if Res.IsNegative then
@@ -582,7 +725,7 @@ begin
   end;
 end;
 
-function BigRationalNumberCompare(Num1: TCnBigRational; Num2: Int64): Integer;
+function BigRationalCompare(Num1: TCnBigRational; Num2: Int64): Integer;
 var
   Res: TCnBigNumber;
 begin
@@ -640,7 +783,7 @@ begin
   try
     N.Denominator.SetOne;
     BigNumberCopy(N.Numerator, Value);
-    BigRationalNumberAdd(Self, Self, N);
+    BigRationalAdd(Self, Self, N);
   finally
     FLocalBigRationalPool.Recycle(N);
   end;
@@ -654,7 +797,7 @@ begin
   try
     N.Denominator.SetOne;
     N.Numerator.SetInt64(Value);
-    BigRationalNumberAdd(Self, Self, N);
+    BigRationalAdd(Self, Self, N);
   finally
     FLocalBigRationalPool.Recycle(N);
   end;
@@ -662,7 +805,7 @@ end;
 
 procedure TCnBigRational.Add(Value: TCnBigRational);
 begin
-  BigRationalNumberAdd(Self, Self, Value);
+  BigRationalAdd(Self, Self, Value);
 end;
 
 procedure TCnBigRational.AssignTo(Dest: TPersistent);
@@ -699,7 +842,7 @@ begin
   try
     N.Denominator.SetOne;
     N.Numerator.SetInt64(Value);
-    BigRationalNumberDiv(Self, Self, N);
+    BigRationalDiv(Self, Self, N);
   finally
     FLocalBigRationalPool.Recycle(N);
   end;
@@ -713,7 +856,7 @@ begin
   try
     N.Denominator.SetOne;
     BigNumberCopy(N.Numerator, Value);
-    BigRationalNumberDiv(Self, Self, N);
+    BigRationalDiv(Self, Self, N);
   finally
     FLocalBigRationalPool.Recycle(N);
   end;
@@ -721,12 +864,12 @@ end;
 
 procedure TCnBigRational.Divide(Value: TCnBigRational);
 begin
-  BigRationalNumberDiv(Self, Self, Value);
+  BigRationalDiv(Self, Self, Value);
 end;
 
 function TCnBigRational.Equal(Value: TCnBigRational): Boolean;
 begin
-  Result := BigRationalNumberCompare(Self, Value) = 0;
+  Result := BigRationalCompare(Self, Value) = 0;
 end;
 
 function TCnBigRational.EqualInt(Value: TCnBigNumber): Boolean;
@@ -772,7 +915,7 @@ end;
 
 procedure TCnBigRational.Mul(Value: TCnBigRational);
 begin
-  BigRationalNumberMul(Self, Self, Value);
+  BigRationalMul(Self, Self, Value);
 end;
 
 procedure TCnBigRational.Mul(Value: TCnBigNumber);
@@ -783,7 +926,7 @@ begin
   try
     N.Denominator.SetOne;
     BigNumberCopy(N.Numerator, Value);
-    BigRationalNumberMul(Self, Self, N);
+    BigRationalMul(Self, Self, N);
   finally
     FLocalBigRationalPool.Recycle(N);
   end;
@@ -797,7 +940,7 @@ begin
   try
     N.Denominator.SetOne;
     N.Numerator.SetInt64(Value);
-    BigRationalNumberMul(Self, Self, N);
+    BigRationalMul(Self, Self, N);
   finally
     FLocalBigRationalPool.Recycle(N);
   end;
@@ -952,7 +1095,7 @@ begin
   try
     N.Denominator.SetOne;
     N.Numerator.SetInt64(Value);
-    BigRationalNumberSub(Self, Self, N);
+    BigRationalSub(Self, Self, N);
   finally
     FLocalBigRationalPool.Recycle(N);
   end;
@@ -960,7 +1103,7 @@ end;
 
 procedure TCnBigRational.Sub(Value: TCnBigRational);
 begin
-  BigRationalNumberSub(Self, Self, Value);
+  BigRationalSub(Self, Self, Value);
 end;
 
 procedure TCnBigRational.Sub(Value: TCnBigNumber);
@@ -971,7 +1114,7 @@ begin
   try
     N.Denominator.SetOne;
     BigNumberCopy(N.Numerator, Value);
-    BigRationalNumberSub(Self, Self, N);
+    BigRationalSub(Self, Self, N);
   finally
     FLocalBigRationalPool.Recycle(N);
   end;
@@ -1064,11 +1207,130 @@ begin
   inherited Recycle(Num);
 end;
 
+{ TCnBigRationalList }
+
+function TCnBigRationalList.Add(ABigRational: TCnBigRational): Integer;
+begin
+  Result := inherited Add(ABigRational);
+end;
+
+function TCnBigRationalList.Add: TCnBigRational;
+begin
+  Result := TCnBigRational.Create;
+  Add(Result);
+end;
+
+function TCnBigRationalList.Add(Num: Integer): TCnBigRational;
+begin
+  Result := TCnBigRational.Create;
+  Result.SetIntValue(Num);
+  Add(Result);
+end;
+
+procedure TCnBigRationalList.AddList(List: TCnBigRationalList);
+var
+  I: Integer;
+  T: TCnBigRational;
+begin
+  if (List <> nil) and (List.Count > 0) then
+  begin
+    for I := 0 to List.Count - 1 do
+    begin
+      T := TCnBigRational.Create;
+      BigRationalCopy(T, List[I]);
+      Add(T);
+    end;
+  end;
+end;
+
+procedure TCnBigRationalList.BigRationalSort;
+begin
+  inherited Sort(DefBigRationalCompare);
+end;
+
+constructor TCnBigRationalList.Create;
+begin
+  inherited Create(True);
+end;
+
+destructor TCnBigRationalList.Destroy;
+begin
+
+  inherited;
+end;
+
+function TCnBigRationalList.GetItem(Index: Integer): TCnBigRational;
+begin
+  Result := TCnBigRational(inherited GetItem(Index));
+end;
+
+function TCnBigRationalList.IndexOfValue(ABigRational: TCnBigRational): Integer;
+begin
+  Result := 0;
+  while (Result < Count) and (BigRationalCompare(Items[Result], ABigRational) <> 0) do
+    Inc(Result);
+  if Result = Count then
+    Result := -1;
+end;
+
+procedure TCnBigRationalList.Insert(Index: Integer;
+  ABigRational: TCnBigRational);
+begin
+  inherited Insert(Index, ABigRational);
+end;
+
+function TCnBigRationalList.Remove(ABigRational: TCnBigRational): Integer;
+begin
+  Result := inherited Remove(ABigRational);
+end;
+
+procedure TCnBigRationalList.RemoveDuplicated;
+var
+  I, Idx: Integer;
+begin
+  for I := Count - 1 downto 0 do
+  begin
+    // 去除重复的项
+    Idx := IndexOfValue(Items[I]);
+    if (Idx >= 0) and (Idx <> I) then
+      Delete(I);
+  end;
+end;
+
+procedure TCnBigRationalList.SetItem(Index: Integer;
+  ABigRational: TCnBigRational);
+begin
+  inherited SetItem(Index, ABigRational);
+end;
+
+procedure TCnBigRationalList.SumTo(Sum: TCnBigRational);
+var
+  I: Integer;
+begin
+  Sum.SetZero;
+  for I := 0 to Count - 1 do
+    BigRationalAdd(Sum, Sum, Items[I]);
+end;
+
+function TCnBigRationalList.ToString: string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Count - 1 do
+  begin
+    if I = 0 then
+      Result := Items[I].ToString
+    else
+      Result := Result + ',' + Items[I].ToString;
+  end;
+end;
+
 initialization
-  CnBigRationalNumberOne := TCnBigRational.Create;
-  CnBigRationalNumberZero := TCnBigRational.Create;
-  CnBigRationalNumberOne.SetOne;
-  CnBigRationalNumberZero.SetZero;
+  CnBigRationalOne := TCnBigRational.Create;
+  CnBigRationalZero := TCnBigRational.Create;
+  CnBigRationalOne.SetOne;
+  CnBigRationalZero.SetZero;
 
   FLocalBigRationalPool := TCnBigRationalPool.Create;
   FLocalBigNumberPool := TCnBigNumberPool.Create;
@@ -1077,7 +1339,7 @@ finalization
   FLocalBigNumberPool.Free;
   FLocalBigRationalPool.Free;
 
-  CnBigRationalNumberOne.Free;
-  CnBigRationalNumberZero.Free;
+  CnBigRationalOne.Free;
+  CnBigRationalZero.Free;
 
 end.

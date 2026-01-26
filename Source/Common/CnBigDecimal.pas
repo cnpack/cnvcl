@@ -314,14 +314,14 @@ type
        参数：
          （无）
 
-       返回值：TCnBigDecimal               - 内部新增的大十进制浮点数对象
+       返回值：TCnBigDecimal              - 内部新增的大十进制浮点数对象
     }
 
     function Add(ABigDecimal: TCnBigDecimal): Integer; overload;
     {* 添加外部的大十进制浮点数对象，注意添加后该对象由列表纳入管理，无需也不应手动释放。
 
        参数：
-         ABigDecimal: TCnBigDecimal         - 待添加的大十进制浮点数对象
+         ABigDecimal: TCnBigDecimal       - 待添加的大十进制浮点数对象
 
        返回值：Integer                    - 新增的该大十进制浮点数对象的索引值
     }
@@ -332,14 +332,14 @@ type
        参数：
          Num: Integer                     - 待添加的整数
 
-       返回值：TCnBigDecimal               - 新增的该大十进制浮点数对象
+       返回值：TCnBigDecimal              - 新增的该大十进制浮点数对象
     }
 
     procedure AddList(List: TCnBigDecimalList);
     {* 添加一大十进制浮点数列表，也即复制列表内的所有大十进制浮点数对象并添加。
 
        参数：
-         List: TCnBigDecimalList           - 待添加的整数
+         List: TCnBigDecimalList          - 待添加的大十进制浮点数列表
 
        返回值：（无）
     }
@@ -348,7 +348,7 @@ type
     {* 从列表中删除指定引用的大十进制浮点数对象并释放。
 
        参数：
-         ABigDecimal: TCnBigDecimal         - 待删除的大十进制浮点数对象
+         ABigDecimal: TCnBigDecimal       - 待删除的大十进制浮点数对象
 
        返回值：Integer                    - 删除的位置索引，无则返回 -1
     }
@@ -357,7 +357,7 @@ type
     {* 根据大十进制浮点数的值在列表中查找该值对应的位置索引。
 
        参数：
-         ABigDecimal: TCnBigDecimal         - 待查找的大十进制浮点数值
+         ABigDecimal: TCnBigDecimal       - 待查找的大十进制浮点数值
 
        返回值：Integer                    - 返回位置索引，无则返回 -1
     }
@@ -367,7 +367,7 @@ type
 
        参数：
          Index: Integer                   - 待插入的位置索引
-         ABigDecimal: TCnBigDecimal         - 待插入的大十进制浮点数对象
+         ABigDecimal: TCnBigDecimal       - 待插入的大十进制浮点数对象
 
        返回值：（无）
     }
@@ -379,7 +379,7 @@ type
     {* 列表内所有数求和。
 
        参数：
-         Sum: TCnBigDecimal                - 输出的和
+         Sum: TCnBigDecimal               - 输出的和
 
        返回值：（无）
     }
@@ -409,7 +409,7 @@ type
      正时简而言之就是二进制模式下小数点后有 FScale 位，负时简而言之还要加 -FScale 个 0}
   private
     FValue: TCnBigNumber;
-    FScale: Integer;                 // 精确值为 FValue / (2^FScale)，默认 FScale 为 0，也就是除以 1，等于不除
+    FScale: Integer;                      // 精确值为 FValue / (2^FScale)，默认 FScale 为 0，也就是除以 1，等于不除
     function GetDebugDump: string;
     function GetDecString: string;
   public
@@ -666,7 +666,7 @@ type
     {* 添加一大二进制浮点数列表，也即复制列表内的所有大二进制浮点数对象并添加。
 
        参数：
-         List: TCnBigBinaryList           - 待添加的整数
+         List: TCnBigBinaryList           - 待添加的大二进制浮点数列表
 
        返回值：（无）
     }
@@ -2394,9 +2394,9 @@ begin
 
       // R := (X0 + Num/X0) / 2;
       BigDecimalToBigRational(R, Num);
-      BigRationalNumberDiv(R, R, X0);
-      BigRationalNumberAdd(R, R, X0);
-      BigRationalNumberDiv(R, R, D);
+      BigRationalDiv(R, R, X0);
+      BigRationalAdd(R, R, X0);
+      BigRationalDiv(R, R, D);
 
       X0.Assign(R);
     end;
