@@ -485,12 +485,12 @@ procedure ComplexNumberSwap(var Complex1: TCnComplexNumber; var Complex2: TCnCom
    返回值：（无）
 }
 
-procedure ComplexNumberCopy(var Dst: TCnComplexNumber; var Src: TCnComplexNumber);
+procedure ComplexNumberCopy(var Dest: TCnComplexNumber; var Source: TCnComplexNumber);
 {* 复制复数的值。
 
    参数：
-     var Dst: TCnComplexNumber            - 目标复数
-     var Src: TCnComplexNumber            - 源复数
+     var Dest: TCnComplexNumber           - 目标复数
+     var Source: TCnComplexNumber         - 源复数
 
    返回值：（无）
 }
@@ -770,12 +770,12 @@ procedure BigComplexNumberSwap(Complex1: TCnBigComplexNumber; Complex2: TCnBigCo
    返回值：（无）
 }
 
-procedure BigComplexNumberCopy(Dst: TCnBigComplexNumber; Src: TCnBigComplexNumber);
+procedure BigComplexNumberCopy(Dest: TCnBigComplexNumber; Source: TCnBigComplexNumber);
 {* 复制大整数复数的值。
 
    参数：
-     Dst: TCnBigComplexNumber             - 目标大整数复数
-     Src: TCnBigComplexNumber             - 源大整数复数
+     Dest: TCnBigComplexNumber            - 目标大整数复数
+     Source: TCnBigComplexNumber          - 源大整数复数
 
    返回值：（无）
 }
@@ -1019,12 +1019,12 @@ procedure BigComplexDecimalSwap(Complex1: TCnBigComplexDecimal; Complex2: TCnBig
    返回值：（无）
 }
 
-procedure BigComplexDecimalCopy(Dst: TCnBigComplexDecimal; Src: TCnBigComplexDecimal);
+procedure BigComplexDecimalCopy(Dest: TCnBigComplexDecimal; Source: TCnBigComplexDecimal);
 {* 复制大浮点复数的值。
 
    参数：
-     Dst: TCnBigComplexDecimal            - 目标大浮点复数
-     Src: TCnBigComplexDecimal            - 源大浮点复数
+     Dest: TCnBigComplexDecimal           - 目标大浮点复数
+     Source: TCnBigComplexDecimal         - 源大浮点复数
 
    返回值：（无）
 }
@@ -1413,10 +1413,10 @@ begin
   Complex2.I := T;
 end;
 
-procedure ComplexNumberCopy(var Dst, Src: TCnComplexNumber);
+procedure ComplexNumberCopy(var Dest, Source: TCnComplexNumber);
 begin
-  Dst.R := Src.R;
-  Dst.I := Src.I;
+  Dest.R := Source.R;
+  Dest.I := Source.I;
 end;
 
 procedure ComplexNumberAdd(var Res: TCnComplexNumber;
@@ -1687,10 +1687,10 @@ begin
   BigNumberSwap(Complex1.FI, Complex2.FI);
 end;
 
-procedure BigComplexNumberCopy(Dst: TCnBigComplexNumber; Src: TCnBigComplexNumber);
+procedure BigComplexNumberCopy(Dest: TCnBigComplexNumber; Source: TCnBigComplexNumber);
 begin
-  BigNumberCopy(Dst.FR, Src.FR);
-  BigNumberCopy(Dst.FI, Src.FI);
+  BigNumberCopy(Dest.FR, Source.FR);
+  BigNumberCopy(Dest.FI, Source.FI);
 end;
 
 procedure BigComplexNumberAdd(Res: TCnBigComplexNumber;
@@ -2072,29 +2072,32 @@ begin
 end;
 
 function BigComplexDecimalToString(Complex: TCnBigComplexDecimal): string;
+var
+  SI: string;
 begin
+  SI := Complex.FI.ToString;
   if BigComplexDecimalIsPureReal(Complex) then
     Result := Complex.FR.ToString
   else if BigComplexDecimalIsPureImaginary(Complex) then
   begin
-    if Complex.FI.IsOne then
+    if SI = '1' then
       Result := 'i'
     else
-      Result := Complex.FI.ToString + 'i';
+      Result := SI + 'i';
   end
   else if Complex.FI.IsNegative then
   begin
-    if Complex.FI.IsNegOne then
+    if SI = '-1' then
       Result := Complex.FR.ToString + '-i'
     else
-      Result := Complex.FR.ToString + Complex.FI.ToString + 'i';
+      Result := Complex.FR.ToString + SI + 'i';
   end
   else
   begin
-    if Complex.FI.IsOne then
+    if SI = '1' then
       Result := Complex.FR.ToString + '+i'
     else
-      Result := Complex.FR.ToString + '+' + Complex.FI.ToString + 'i';
+      Result := Complex.FR.ToString + '+' + SI + 'i';
   end;
 end;
 
@@ -2121,10 +2124,10 @@ begin
   end;
 end;
 
-procedure BigComplexDecimalCopy(Dst: TCnBigComplexDecimal; Src: TCnBigComplexDecimal);
+procedure BigComplexDecimalCopy(Dest: TCnBigComplexDecimal; Source: TCnBigComplexDecimal);
 begin
-  BigDecimalCopy(Dst.FR, Src.FR);
-  BigDecimalCopy(Dst.FI, Src.FI);
+  BigDecimalCopy(Dest.FR, Source.FR);
+  BigDecimalCopy(Dest.FI, Source.FI);
 end;
 
 procedure BigComplexDecimalAdd(Res: TCnBigComplexDecimal;
