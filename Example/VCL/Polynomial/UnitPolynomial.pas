@@ -3393,7 +3393,7 @@ begin
   BigNumberRationalPolynomialAdd(RR, T, RR); // RR 得到 X^3 + AX
 
   P.SetCoefficents([B]);
-  BigNumberRationalPolynomialAdd(RR, P, RR); // RR 得到 X^3 + AX + B
+  BigNumberRationalPolynomialAdd(RR, RR, P); // RR 得到 X^3 + AX + B
   RR.Reduce;
   ShowMessage(RR.ToString);
 
