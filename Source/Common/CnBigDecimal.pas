@@ -1812,7 +1812,7 @@ end;
 function BigDecimalSetExtended(Value: Extended; Res: TCnBigDecimal): Boolean;
 var
   N: Boolean;
-  E: Integer;
+  E, L: Integer;
   S: TUInt64;
 begin
   if ExtendedIsInfinite(Value) or ExtendedIsNan(Value) then
@@ -1826,9 +1826,14 @@ begin
     Exit;
   end;
 
+  if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+    L := CN_DOUBLE_SIGNIFICAND_BITLENGTH
+  else
+    L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;
+
   ExtractFloatExtended(Value, N, E, S);
-  // 把 1. 开头的有效数字当成整数，E 需要减 63
-  Result := InternalBigDecimalSetFloat(N, E - CN_EXTENDED_SIGNIFICAND_BITLENGTH, S, Res);
+  // 把 1. 开头的有效数字当成整数，E 需要减去 Extendded 类型的有效数字长度
+  Result := InternalBigDecimalSetFloat(N, E - L, S, Res);
 end;
 
 function BigDecimalToString(Num: TCnBigDecimal): string;
@@ -1995,7 +2000,7 @@ end;
 function BigDecimalToExtended(Num: TCnBigDecimal): Extended;
 var
   T: TCnBigDecimal;
-  E: Integer;
+  E, L: Integer;
   M: TUInt64;
 begin
   if Num.Value.IsZero then
@@ -2004,16 +2009,21 @@ begin
     Exit;
   end;
 
+  if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
+    L := CN_DOUBLE_SIGNIFICAND_BITLENGTH
+  else
+    L := CN_EXTENDED_SIGNIFICAND_BITLENGTH;
+
   T := FLocalBigDecimalPool.Obtain;
   try
     BigDecimalCopy(T, Num);
-    InternalBigDecimalConvertToBitsCount(T, CN_EXTENDED_SIGNIFICAND_BITLENGTH + 1);
+    InternalBigDecimalConvertToBitsCount(T, L + 1);
     // 无需清除最高位的 1
 
     M := BigNumberGetUInt64UsingInt64(T.FValue);
     E := -T.FScale;
 
-    CombineFloatExtended(Num.IsNegative, E + CN_EXTENDED_SIGNIFICAND_BITLENGTH, M, Result);
+    CombineFloatExtended(Num.IsNegative, E + L, M, Result);
   finally
     FLocalBigDecimalPool.Recycle(T);
   end;
