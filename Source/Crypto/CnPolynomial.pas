@@ -766,15 +766,15 @@ function BigComplexDecimalPolynomialDuplicate(P: TCnBigComplexDecimalPolynomial)
    返回值：TCnBigComplexDecimalPolynomial - 返回新建的一元无限精度复数多项式
 }
 
-function BigComplexDecimalPolynomialCopy(Dst: TCnBigComplexDecimalPolynomial;
-  Src: TCnBigComplexDecimalPolynomial): TCnBigComplexDecimalPolynomial;
-{* 复制一个一元无限精度复数多项式对象，成功返回 Dst。
+function BigComplexDecimalPolynomialCopy(Dest: TCnBigComplexDecimalPolynomial;
+  Source: TCnBigComplexDecimalPolynomial): TCnBigComplexDecimalPolynomial;
+{* 复制一个一元无限精度复数多项式对象，成功返回 Dest。
 
    参数：
-     Dst: TCnBigComplexDecimalPolynomial  - 目标一元无限精度复数多项式
-     Src: TCnBigComplexDecimalPolynomial  - 源一元无限精度复数多项式
+     Dest: TCnBigComplexDecimalPolynomial                 - 目标一元无限精度复数多项式
+     Source: TCnBigComplexDecimalPolynomial               - 源一元无限精度复数多项式
 
-   返回值：TCnBigComplexDecimalPolynomial - 成功则返回目标对象，失败则返回 nil
+   返回值：TCnBigComplexDecimalPolynomial                 - 成功则返回目标对象，失败则返回 nil
 }
 
 procedure BigComplexDecimalPolynomialSwap(A: TCnBigComplexDecimalPolynomial;
@@ -1020,12 +1020,12 @@ function Int64PolynomialDuplicate(P: TCnInt64Polynomial): TCnInt64Polynomial;
    返回值：TCnInt64Polynomial             - 返回新建的一元整系数多项式
 }
 
-function Int64PolynomialCopy(Dst: TCnInt64Polynomial; Src: TCnInt64Polynomial): TCnInt64Polynomial;
-{* 复制一个一元整系数多项式对象，成功返回 Dst。
+function Int64PolynomialCopy(Dest: TCnInt64Polynomial; Source: TCnInt64Polynomial): TCnInt64Polynomial;
+{* 复制一个一元整系数多项式对象，成功返回 Dest。
 
    参数：
-     Dst: TCnInt64Polynomial              - 目标一元整系数多项式
-     Src: TCnInt64Polynomial              - 源一元整系数多项式
+     Dest: TCnInt64Polynomial             - 目标一元整系数多项式
+     Source: TCnInt64Polynomial           - 源一元整系数多项式
 
    返回值：TCnInt64Polynomial             - 成功则返回目标对象，失败则返回 nil
 }
@@ -1718,13 +1718,13 @@ function Int64RationalPolynomialEqual(R1: TCnInt64RationalPolynomial;
    返回值：Boolean                        - 返回是否相等
 }
 
-function Int64RationalPolynomialCopy(Dst: TCnInt64RationalPolynomial;
-  Src: TCnInt64RationalPolynomial): TCnInt64RationalPolynomial;
+function Int64RationalPolynomialCopy(Dest: TCnInt64RationalPolynomial;
+  Source: TCnInt64RationalPolynomial): TCnInt64RationalPolynomial;
 {* 一元整系数有理分式复制。
 
    参数：
-     Dst: TCnInt64RationalPolynomial      - 目标一元整系数有理分式
-     Src: TCnInt64RationalPolynomial      - 源一元整系数有理分式
+     Dest: TCnInt64RationalPolynomial     - 目标一元整系数有理分式
+     Source: TCnInt64RationalPolynomial   - 源一元整系数有理分式
 
    返回值：TCnInt64RationalPolynomial     - 成功则返回目标对象，失败则返回 nil
 }
@@ -2181,13 +2181,13 @@ function BigNumberPolynomialDuplicate(P: TCnBigNumberPolynomial): TCnBigNumberPo
    返回值：TCnBigNumberPolynomial         - 返回新建的一元大整系数多项式
 }
 
-function BigNumberPolynomialCopy(Dst: TCnBigNumberPolynomial;
-  Src: TCnBigNumberPolynomial): TCnBigNumberPolynomial;
-{* 复制一个一元大整系数多项式对象，成功返回 Dst。
+function BigNumberPolynomialCopy(Dest: TCnBigNumberPolynomial;
+  Source: TCnBigNumberPolynomial): TCnBigNumberPolynomial;
+{* 复制一个一元大整系数多项式对象，成功返回 Dest。
 
    参数：
-     Dst: TCnBigNumberPolynomial          - 目标一元大整系数多项式
-     Src: TCnBigNumberPolynomial          - 源一元大整系数多项式
+     Dest: TCnBigNumberPolynomial         - 目标一元大整系数多项式
+     Source: TCnBigNumberPolynomial       - 源一元大整系数多项式
 
    返回值：TCnBigNumberPolynomial         - 成功则返回目标对象，失败则返回 nil
 }
@@ -3000,15 +3000,15 @@ function BigNumberRationalPolynomialEqual(R1: TCnBigNumberRationalPolynomial;
    返回值：Boolean                        - 返回是否相等
 }
 
-function BigNumberRationalPolynomialCopy(Dst: TCnBigNumberRationalPolynomial;
-  Src: TCnBigNumberRationalPolynomial): TCnBigNumberRationalPolynomial;
+function BigNumberRationalPolynomialCopy(Dest: TCnBigNumberRationalPolynomial;
+  Source: TCnBigNumberRationalPolynomial): TCnBigNumberRationalPolynomial;
 {* 一元大整系数有理分式复制。
 
    参数：
-     Dst: TCnBigNumberRationalPolynomial  - 目标一元大整系数有理分式
-     Src: TCnBigNumberRationalPolynomial  - 源一元大整系数有理分式
+     Dest: TCnBigNumberRationalPolynomial                 - 目标一元大整系数有理分式
+     Source: TCnBigNumberRationalPolynomial               - 源一元大整系数有理分式
 
-   返回值：TCnBigNumberRationalPolynomial - 成功则返回目标对象，失败则返回 nil
+   返回值：TCnBigNumberRationalPolynomial                 - 成功则返回目标对象，失败则返回 nil
 }
 
 procedure BigNumberRationalPolynomialAdd(Res: TCnBigNumberRationalPolynomial;
@@ -3656,34 +3656,34 @@ function Int64BiPolynomialDuplicate(P: TCnInt64BiPolynomial): TCnInt64BiPolynomi
    返回值：TCnInt64BiPolynomial           - 返回新建的二元整系数多项式
 }
 
-function Int64BiPolynomialCopy(Dst: TCnInt64BiPolynomial;
-  Src: TCnInt64BiPolynomial): TCnInt64BiPolynomial;
-{* 复制一个二元整系数多项式对象，成功返回 Dst。
+function Int64BiPolynomialCopy(Dest: TCnInt64BiPolynomial;
+  Source: TCnInt64BiPolynomial): TCnInt64BiPolynomial;
+{* 复制一个二元整系数多项式对象，成功返回 Dest。
 
    参数：
-     Dst: TCnInt64BiPolynomial            - 目标二元整系数多项式
-     Src: TCnInt64BiPolynomial            - 源二元整系数多项式
+     Dest: TCnInt64BiPolynomial           - 目标二元整系数多项式
+     Source: TCnInt64BiPolynomial         - 源二元整系数多项式
 
    返回值：TCnInt64BiPolynomial           - 成功则返回目标对象，失败则返回 nil
 }
 
-function Int64BiPolynomialCopyFromX(Dst: TCnInt64BiPolynomial;
+function Int64BiPolynomialCopyFromX(Dest: TCnInt64BiPolynomial;
   SrcX: TCnInt64Polynomial): TCnInt64BiPolynomial;
-{* 从一元 X 整系数多项式中复制一个二元整系数多项式对象，成功返回 Dst。
+{* 从一元 X 整系数多项式中复制一个二元整系数多项式对象，成功返回 Dest。
 
    参数：
-     Dst: TCnInt64BiPolynomial            - 目标二元整系数多项式
+     Dest: TCnInt64BiPolynomial           - 目标二元整系数多项式
      SrcX: TCnInt64Polynomial             - 源一元 X 整系数多项式
 
    返回值：TCnInt64BiPolynomial           - 成功则返回目标对象，失败则返回 nil
 }
 
-function Int64BiPolynomialCopyFromY(Dst: TCnInt64BiPolynomial;
+function Int64BiPolynomialCopyFromY(Dest: TCnInt64BiPolynomial;
   SrcY: TCnInt64Polynomial): TCnInt64BiPolynomial;
-{* 从一元 Y 整系数多项式中复制一个二元整系数多项式对象，成功返回 Dst
+{* 从一元 Y 整系数多项式中复制一个二元整系数多项式对象，成功返回 Dest
 
    参数：
-     Dst: TCnInt64BiPolynomial            - 目标二元整系数多项式
+     Dest: TCnInt64BiPolynomial           - 目标二元整系数多项式
      SrcY: TCnInt64Polynomial             - 源一元 Y 整系数多项式
 
    返回值：TCnInt64BiPolynomial           - 成功则返回目标对象，失败则返回 nil
@@ -3966,12 +3966,12 @@ function Int64BiPolynomialEvaluateByX(Res: TCnInt64Polynomial;
    返回值：Boolean                        - 返回是否计算成功
 }
 
-procedure Int64BiPolynomialTranspose(Dst: TCnInt64BiPolynomial; Src: TCnInt64BiPolynomial);
-{* 将二元整系数多项式的 X Y 元互换至另一个二元整系数多项式对象中，Src 和 Dst 可以相同。
+procedure Int64BiPolynomialTranspose(Dest: TCnInt64BiPolynomial; Source: TCnInt64BiPolynomial);
+{* 将二元整系数多项式的 X Y 元互换至另一个二元整系数多项式对象中，Src 和 Dest 可以相同。
 
    参数：
-     Dst: TCnInt64BiPolynomial            - 目标二元整系数多项式
-     Src: TCnInt64BiPolynomial            - 源二元整系数多项式
+     Dest: TCnInt64BiPolynomial           - 目标二元整系数多项式
+     Source: TCnInt64BiPolynomial         - 源二元整系数多项式
 
    返回值：（无）
 }
@@ -4465,34 +4465,34 @@ function BigNumberBiPolynomialDuplicate(P: TCnBigNumberBiPolynomial): TCnBigNumb
    返回值：TCnBigNumberBiPolynomial       - 返回新建的二元大整系数多项式
 }
 
-function BigNumberBiPolynomialCopy(Dst: TCnBigNumberBiPolynomial;
-  Src: TCnBigNumberBiPolynomial): TCnBigNumberBiPolynomial;
-{* 复制一个二元大整系数多项式对象，成功返回 Dst。
+function BigNumberBiPolynomialCopy(Dest: TCnBigNumberBiPolynomial;
+  Source: TCnBigNumberBiPolynomial): TCnBigNumberBiPolynomial;
+{* 复制一个二元大整系数多项式对象，成功返回 Dest。
 
    参数：
-     Dst: TCnBigNumberBiPolynomial        - 目标二元大整系数多项式
-     Src: TCnBigNumberBiPolynomial        - 源二元大整系数多项式
+     Dest: TCnBigNumberBiPolynomial       - 目标二元大整系数多项式
+     Source: TCnBigNumberBiPolynomial     - 源二元大整系数多项式
 
    返回值：TCnBigNumberBiPolynomial       - 成功则返回目标对象，失败则返回 nil
 }
 
-function BigNumberBiPolynomialCopyFromX(Dst: TCnBigNumberBiPolynomial;
+function BigNumberBiPolynomialCopyFromX(Dest: TCnBigNumberBiPolynomial;
   SrcX: TCnBigNumberPolynomial): TCnBigNumberBiPolynomial;
-{* 从一元 X 大整系数多项式中复制一个二元大整系数多项式对象，成功返回 Dst。
+{* 从一元 X 大整系数多项式中复制一个二元大整系数多项式对象，成功返回 Dest。
 
    参数：
-     Dst: TCnBigNumberBiPolynomial        - 目标二元大整系数多项式
+     Dest: TCnBigNumberBiPolynomial       - 目标二元大整系数多项式
      SrcX: TCnBigNumberPolynomial         - 源一元 X 大整系数多项式
 
    返回值：TCnBigNumberBiPolynomial       - 成功则返回目标对象，失败则返回 nil
 }
 
-function BigNumberBiPolynomialCopyFromY(Dst: TCnBigNumberBiPolynomial;
+function BigNumberBiPolynomialCopyFromY(Dest: TCnBigNumberBiPolynomial;
   SrcY: TCnBigNumberPolynomial): TCnBigNumberBiPolynomial;
-{* 从一元 Y 大整系数多项式中复制一个二元大整系数多项式对象，成功返回 Dst
+{* 从一元 Y 大整系数多项式中复制一个二元大整系数多项式对象，成功返回 Dest
 
    参数：
-     Dst: TCnBigNumberBiPolynomial        - 目标二元大整系数多项式
+     Dest: TCnBigNumberBiPolynomial       - 目标二元大整系数多项式
      SrcY: TCnBigNumberPolynomial         - 源一元 Y 大整系数多项式
 
    返回值：TCnBigNumberBiPolynomial       - 成功则返回目标对象，失败则返回 nil
@@ -4791,13 +4791,13 @@ function BigNumberBiPolynomialEvaluateByX(Res: TCnBigNumberPolynomial;
    返回值：Boolean                        - 返回是否计算成功
 }
 
-procedure BigNumberBiPolynomialTranspose(Dst: TCnBigNumberBiPolynomial;
-  Src: TCnBigNumberBiPolynomial);
-{* 将二元大整系数多项式的 X Y 元互换至另一个二元大整系数多项式对象中，Src 和 Dst 可以相同。
+procedure BigNumberBiPolynomialTranspose(Dest: TCnBigNumberBiPolynomial;
+  Source: TCnBigNumberBiPolynomial);
+{* 将二元大整系数多项式的 X Y 元互换至另一个二元大整系数多项式对象中，Src 和 Dest 可以相同。
 
    参数：
-     Dst: TCnBigNumberBiPolynomial        - 目标二元大整系数多项式
-     Src: TCnBigNumberBiPolynomial        - 源二元大整系数多项式
+     Dest: TCnBigNumberBiPolynomial       - 目标二元大整系数多项式
+     Source: TCnBigNumberBiPolynomial     - 源二元大整系数多项式
 
    返回值：（无）
 }
@@ -5035,12 +5035,12 @@ procedure BigNumberBiPolynomialGaloisDivWord(P: TCnBigNumberBiPolynomial; N: Int
    返回值：（无）
 }
 
-procedure Int64PolynomialToBigNumberPolynomial(Dst: TCnBigNumberPolynomial; Src: TCnInt64Polynomial);
+procedure Int64PolynomialToBigNumberPolynomial(Dest: TCnBigNumberPolynomial; Source: TCnInt64Polynomial);
 {* 将一元整系数多项式赋值给一大整系数多项式。
 
    参数：
-     Dst: TCnBigNumberPolynomial          - 目标一元大整系数多项式
-     Src: TCnInt64Polynomial              - 源一元整系数多项式
+     Dest: TCnBigNumberPolynomial         - 目标一元大整系数多项式
+     Source: TCnInt64Polynomial           - 源一元整系数多项式
 
    返回值：（无）
 }
@@ -5362,18 +5362,18 @@ begin
     Int64PolynomialCopy(Result, P);
 end;
 
-function Int64PolynomialCopy(Dst: TCnInt64Polynomial;
-  Src: TCnInt64Polynomial): TCnInt64Polynomial;
+function Int64PolynomialCopy(Dest: TCnInt64Polynomial;
+  Source: TCnInt64Polynomial): TCnInt64Polynomial;
 var
   I: Integer;
 begin
-  Result := Dst;
-  if Src <> Dst then
+  Result := Dest;
+  if Source <> Dest then
   begin
-    Dst.Clear;
-    for I := 0 to Src.Count - 1 do
-      Dst.Add(Src[I]);
-    Dst.CorrectTop;
+    Dest.Clear;
+    for I := 0 to Source.Count - 1 do
+      Dest.Add(Source[I]);
+    Dest.CorrectTop;
   end;
 end;
 
@@ -7227,14 +7227,14 @@ begin
   end;
 end;
 
-function Int64RationalPolynomialCopy(Dst: TCnInt64RationalPolynomial;
-  Src: TCnInt64RationalPolynomial): TCnInt64RationalPolynomial;
+function Int64RationalPolynomialCopy(Dest: TCnInt64RationalPolynomial;
+  Source: TCnInt64RationalPolynomial): TCnInt64RationalPolynomial;
 begin
-  Result := Dst;
-  if Src <> Dst then
+  Result := Dest;
+  if Source <> Dest then
   begin
-    Int64PolynomialCopy(Dst.Numerator, Src.Numerator);
-    Int64PolynomialCopy(Dst.Denominator, Src.Denominator);
+    Int64PolynomialCopy(Dest.Numerator, Source.Numerator);
+    Int64PolynomialCopy(Dest.Denominator, Source.Denominator);
   end;
 end;
 
@@ -8234,18 +8234,18 @@ begin
     BigNumberPolynomialCopy(Result, P);
 end;
 
-function BigNumberPolynomialCopy(Dst: TCnBigNumberPolynomial;
-  Src: TCnBigNumberPolynomial): TCnBigNumberPolynomial;
+function BigNumberPolynomialCopy(Dest: TCnBigNumberPolynomial;
+  Source: TCnBigNumberPolynomial): TCnBigNumberPolynomial;
 var
   I: Integer;
 begin
-  Result := Dst;
-  if Src <> Dst then
+  Result := Dest;
+  if Source <> Dest then
   begin
-    Dst.MaxDegree := Src.MaxDegree;
-    for I := 0 to Src.Count - 1 do
-      BigNumberCopy(Dst[I], Src[I]);
-    Dst.CorrectTop;
+    Dest.MaxDegree := Source.MaxDegree;
+    for I := 0 to Source.Count - 1 do
+      BigNumberCopy(Dest[I], Source[I]);
+    Dest.CorrectTop;
   end;
 end;
 
@@ -10290,14 +10290,14 @@ begin
   end;
 end;
 
-function BigNumberRationalPolynomialCopy(Dst: TCnBigNumberRationalPolynomial;
-  Src: TCnBigNumberRationalPolynomial): TCnBigNumberRationalPolynomial;
+function BigNumberRationalPolynomialCopy(Dest: TCnBigNumberRationalPolynomial;
+  Source: TCnBigNumberRationalPolynomial): TCnBigNumberRationalPolynomial;
 begin
-  Result := Dst;
-  if Src <> Dst then
+  Result := Dest;
+  if Source <> Dest then
   begin
-    BigNumberPolynomialCopy(Dst.Numerator, Src.Numerator);
-    BigNumberPolynomialCopy(Dst.Denominator, Src.Denominator);
+    BigNumberPolynomialCopy(Dest.Numerator, Source.Numerator);
+    BigNumberPolynomialCopy(Dest.Denominator, Source.Denominator);
   end;
 end;
 
@@ -11175,48 +11175,48 @@ begin
     Int64BiPolynomialCopy(Result, P);
 end;
 
-function Int64BiPolynomialCopy(Dst: TCnInt64BiPolynomial;
-  Src: TCnInt64BiPolynomial): TCnInt64BiPolynomial;
+function Int64BiPolynomialCopy(Dest: TCnInt64BiPolynomial;
+  Source: TCnInt64BiPolynomial): TCnInt64BiPolynomial;
 var
   I: Integer;
 begin
-  Result := Dst;
-  if Src <> Dst then
+  Result := Dest;
+  if Source <> Dest then
   begin
-    if Src.MaxXDegree >= 0 then
+    if Source.MaxXDegree >= 0 then
     begin
-      Dst.MaxXDegree := Src.MaxXDegree;
-      for I := 0 to Src.MaxXDegree do
-        CnInt64ListCopy(Dst.YFactorsList[I], Src.YFactorsList[I]);
+      Dest.MaxXDegree := Source.MaxXDegree;
+      for I := 0 to Source.MaxXDegree do
+        CnInt64ListCopy(Dest.YFactorsList[I], Source.YFactorsList[I]);
     end
     else
-      Dst.SetZero; // 如果 Src 未初始化，则 Dst 也清零
+      Dest.SetZero; // 如果 Source 未初始化，则 Dest 也清零
   end;
 end;
 
-function Int64BiPolynomialCopyFromX(Dst: TCnInt64BiPolynomial;
+function Int64BiPolynomialCopyFromX(Dest: TCnInt64BiPolynomial;
   SrcX: TCnInt64Polynomial): TCnInt64BiPolynomial;
 var
   I: Integer;
 begin
-  Result := Dst;
-  Dst.Clear;
+  Result := Dest;
+  Dest.Clear;
 
-  Dst.MaxXDegree := SrcX.MaxDegree;
+  Dest.MaxXDegree := SrcX.MaxDegree;
   for I := 0 to SrcX.MaxDegree do
-    Dst.SafeValue[I, 0] := SrcX[I]; // 给每一个 YList 的首元素设值
+    Dest.SafeValue[I, 0] := SrcX[I]; // 给每一个 YList 的首元素设值
 end;
 
-function Int64BiPolynomialCopyFromY(Dst: TCnInt64BiPolynomial;
+function Int64BiPolynomialCopyFromY(Dest: TCnInt64BiPolynomial;
   SrcY: TCnInt64Polynomial): TCnInt64BiPolynomial;
 var
   I: Integer;
 begin
-  Result := Dst;
-  Dst.Clear;
+  Result := Dest;
+  Dest.Clear;
 
   for I := 0 to SrcY.MaxDegree do
-    Dst.YFactorsList[0].Add(SrcY[I]); // 给最低一个 YList 的所有元素设值
+    Dest.YFactorsList[0].Add(SrcY[I]); // 给最低一个 YList 的所有元素设值
 end;
 
 function Int64BiPolynomialToString(P: TCnInt64BiPolynomial;
@@ -11826,28 +11826,28 @@ begin
   Result := True;
 end;
 
-procedure Int64BiPolynomialTranspose(Dst, Src: TCnInt64BiPolynomial);
+procedure Int64BiPolynomialTranspose(Dest, Source: TCnInt64BiPolynomial);
 var
   I, J: Integer;
   T: TCnInt64BiPolynomial;
 begin
-  if Src = Dst then
+  if Source = Dest then
     T := FLocalInt64BiPolynomialPool.Obtain
   else
-    T := Dst;
+    T := Dest;
 
-  // 将 Src 转置塞入 T 中
+  // 将 Source 转置塞入 T 中
   T.SetZero;
-  T.MaxXDegree := Src.MaxYDegree;
-  T.MaxYDegree := Src.MaxXDegree;
+  T.MaxXDegree := Source.MaxYDegree;
+  T.MaxYDegree := Source.MaxXDegree;
 
-  for I := Src.FXs.Count - 1 downto 0 do
-    for J := Src.YFactorsList[I].Count - 1 downto 0 do
-      T.SafeValue[J, I] := Src.SafeValue[I, J];
+  for I := Source.FXs.Count - 1 downto 0 do
+    for J := Source.YFactorsList[I].Count - 1 downto 0 do
+      T.SafeValue[J, I] := Source.SafeValue[I, J];
 
-  if Src = Dst then
+  if Source = Dest then
   begin
-    Int64BiPolynomialCopy(Dst, T);
+    Int64BiPolynomialCopy(Dest, T);
     FLocalInt64BiPolynomialPool.Recycle(T);
   end;
 end;
@@ -12410,63 +12410,63 @@ begin
     BigNumberBiPolynomialCopy(Result, P);
 end;
 
-function BigNumberBiPolynomialCopy(Dst: TCnBigNumberBiPolynomial;
-  Src: TCnBigNumberBiPolynomial): TCnBigNumberBiPolynomial;
+function BigNumberBiPolynomialCopy(Dest: TCnBigNumberBiPolynomial;
+  Source: TCnBigNumberBiPolynomial): TCnBigNumberBiPolynomial;
 var
   I: Integer;
 begin
-  Result := Dst;
-  if Src <> Dst then
+  Result := Dest;
+  if Source <> Dest then
   begin
-    if Src.MaxXDegree >= 0 then
+    if Source.MaxXDegree >= 0 then
     begin
-      Dst.MaxXDegree := Src.MaxXDegree;
-      for I := 0 to Src.MaxXDegree do
+      Dest.MaxXDegree := Source.MaxXDegree;
+      for I := 0 to Source.MaxXDegree do
       begin
-        if Src.FXs[I] = nil then
+        if Source.FXs[I] = nil then
         begin
-          Dst.FXs[I].Free;
-          Dst.FXs[I] := nil;
+          Dest.FXs[I].Free;
+          Dest.FXs[I] := nil;
         end
         else
-          Src.YFactorsList[I].AssignTo(Dst.YFactorsList[I]);
+          Source.YFactorsList[I].AssignTo(Dest.YFactorsList[I]);
       end;
     end
     else
-      Dst.SetZero; // 如果 Src 未初始化，则 Dst 也清零
+      Dest.SetZero; // 如果 Source 未初始化，则 Dest 也清零
   end;
 end;
 
-function BigNumberBiPolynomialCopyFromX(Dst: TCnBigNumberBiPolynomial;
+function BigNumberBiPolynomialCopyFromX(Dest: TCnBigNumberBiPolynomial;
   SrcX: TCnBigNumberPolynomial): TCnBigNumberBiPolynomial;
 var
   I: Integer;
 begin
-  Result := Dst;
-  Dst.Clear;
+  Result := Dest;
+  Dest.Clear;
 
-  Dst.MaxXDegree := SrcX.MaxDegree;
+  Dest.MaxXDegree := SrcX.MaxDegree;
   for I := 0 to SrcX.MaxDegree do
     if SrcX[I].IsZero then
     begin
-      Dst.FXs[I].Free;
-      Dst.FXs[I] := nil;
+      Dest.FXs[I].Free;
+      Dest.FXs[I] := nil;
     end
     else
-      Dst.SafeValue[I, 0] := SrcX[I]; // 给每一个 YList 的首元素设值，0 则清空 FXs 对应项
+      Dest.SafeValue[I, 0] := SrcX[I]; // 给每一个 YList 的首元素设值，0 则清空 FXs 对应项
 end;
 
-function BigNumberBiPolynomialCopyFromY(Dst: TCnBigNumberBiPolynomial;
+function BigNumberBiPolynomialCopyFromY(Dest: TCnBigNumberBiPolynomial;
   SrcY: TCnBigNumberPolynomial): TCnBigNumberBiPolynomial;
 var
   I: Integer;
 begin
-  Result := Dst;
-  Dst.Clear;
+  Result := Dest;
+  Dest.Clear;
 
   if not SrcY.IsZero then
     for I := 0 to SrcY.MaxDegree do
-      Dst.YFactorsList[0].AddPair(I, SrcY[I]); // 给最低一个 YList 的所有元素设值
+      Dest.YFactorsList[0].AddPair(I, SrcY[I]); // 给最低一个 YList 的所有元素设值
 end;
 
 function BigNumberBiPolynomialToString(P: TCnBigNumberBiPolynomial;
@@ -13219,35 +13219,35 @@ begin
   Result := True;
 end;
 
-procedure BigNumberBiPolynomialTranspose(Dst, Src: TCnBigNumberBiPolynomial);
+procedure BigNumberBiPolynomialTranspose(Dest, Source: TCnBigNumberBiPolynomial);
 var
   I, J: Integer;
   T: TCnBigNumberBiPolynomial;
   Pair: TCnExponentBigNumberPair;
 begin
-  if Src = Dst then
+  if Source = Dest then
     T := FLocalBigNumberBiPolynomialPool.Obtain
   else
-    T := Dst;
+    T := Dest;
 
-  // 将 Src 转置塞入 T 中
+  // 将 Source 转置塞入 T 中
   T.SetZero;
-  T.MaxXDegree := Src.MaxYDegree;
-  T.MaxYDegree := Src.MaxXDegree;
+  T.MaxXDegree := Source.MaxYDegree;
+  T.MaxYDegree := Source.MaxXDegree;
 
-  for I := Src.FXs.Count - 1 downto 0 do
+  for I := Source.FXs.Count - 1 downto 0 do
   begin
-    if Src.FXs[I] <> nil then
-      for J := Src.YFactorsList[I].Count - 1 downto 0 do
+    if Source.FXs[I] <> nil then
+      for J := Source.YFactorsList[I].Count - 1 downto 0 do
       begin
-        Pair := Src.YFactorsList[I][J];
+        Pair := Source.YFactorsList[I][J];
         T.SafeValue[Pair.Exponent, I] := Pair.Value; // 内部复制
       end;
   end;
 
-  if Src = Dst then
+  if Source = Dest then
   begin
-    BigNumberBiPolynomialCopy(Dst, T);
+    BigNumberBiPolynomialCopy(Dest, T);
     FLocalBigNumberBiPolynomialPool.Recycle(T);
   end;
 end;
@@ -13806,14 +13806,14 @@ begin
   end;
 end;
 
-procedure Int64PolynomialToBigNumberPolynomial(Dst: TCnBigNumberPolynomial;
-  Src: TCnInt64Polynomial);
+procedure Int64PolynomialToBigNumberPolynomial(Dest: TCnBigNumberPolynomial;
+  Source: TCnInt64Polynomial);
 var
   I: Integer;
 begin
-  Dst.MaxDegree := Src.MaxDegree;
-  for I := 0 to Src.MaxDegree do
-    Dst[I].SetInt64(Src[I]);
+  Dest.MaxDegree := Source.MaxDegree;
+  for I := 0 to Source.MaxDegree do
+    Dest[I].SetInt64(Source[I]);
 end;
 { TCnBigNumberBiPolynomial }
 
@@ -14262,19 +14262,19 @@ begin
   end;
 end;
 
-function BigComplexDecimalPolynomialCopy(Dst: TCnBigComplexDecimalPolynomial;
-  Src: TCnBigComplexDecimalPolynomial): TCnBigComplexDecimalPolynomial;
+function BigComplexDecimalPolynomialCopy(Dest: TCnBigComplexDecimalPolynomial;
+  Source: TCnBigComplexDecimalPolynomial): TCnBigComplexDecimalPolynomial;
 var
   I: Integer;
 begin
-  Result := Dst;
-  if Src <> Dst then
+  Result := Dest;
+  if Source <> Dest then
   begin
-    Dst.Clear;
-    for I := 0 to Src.Count - 1 do
+    Dest.Clear;
+    for I := 0 to Source.Count - 1 do
     begin
-      Dst.EnsureDegree(I);
-      BigComplexDecimalCopy(Dst.Items[I], Src.Items[I]);
+      Dest.EnsureDegree(I);
+      BigComplexDecimalCopy(Dest.Items[I], Source.Items[I]);
     end;
   end;
 end;
