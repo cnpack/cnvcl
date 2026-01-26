@@ -5140,9 +5140,9 @@ begin
     P2.MaxDegree := 1;
     P2[0].SetValue(1, 0);
     P2[1].SetValue(1, 1);
-    Result := BigComplexDecimalPolynomialDiv(Res, nil, P1, P2);
+    Result := BigComplexDecimalPolynomialDiv(Res, Rem, P1, P2);
     if not Result then Exit;
-    // (3+4i)X^2 + (2+3i)X + (1+2i)  (1+i)X + 1
+    // º∆À„£∫(3+4i)X^2 + (2+3i)X + (1+2i) / (1+i)X + 1
     // (3+4i)X^2 / (1+i)X = (3+4i)/(1+i) * X = (3.5+0.5i)X
     // (3.5+0.5i)X * [(1+i)X + 1] = (3+4i)X^2 + (3.5+0.5i)X
     // (2+3i)X + (1+2i) - (3.5+0.5i)X = (-1.5+2.5i)X + (1+2i)
@@ -5150,7 +5150,7 @@ begin
     // (0.5+2i) * [(1+i)X + 1] = (-1.5+2.5i)X + (0.5+2i)
     // (1+2i) - (0.5+2i) = (0.5+0i)
     // Res = (3.5+0.5i)X + (0.5+2i)
-    Result := (Res.MaxDegree = 1);
+    Result := (Res.ToString = '(3.5+0.5i)X+0.5+2i') and (Rem.ToString = '0.5');
   finally
     C4.Free;
     C3.Free;
