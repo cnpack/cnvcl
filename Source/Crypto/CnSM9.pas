@@ -1040,12 +1040,12 @@ function FP2Equal(F1: TCnFP2; F2: TCnFP2): Boolean;
    返回值：Boolean                        - 返回是否相等
 }
 
-function FP2Copy(Dst: TCnFP2; Src: TCnFP2): TCnFP2;
+function FP2Copy(Dest: TCnFP2; Source: TCnFP2): TCnFP2;
 {* 将一二次扩域大整系数元素对象值复制到另一个二次扩域大整系数元素对象中。
 
    参数：
-     Dst: TCnFP2                          - 目标二次扩域大整系数元素对象
-     Src: TCnFP2                          - 源二次扩域大整系数元素对象
+     Dest: TCnFP2                         - 目标二次扩域大整系数元素对象
+     Source: TCnFP2                       - 源二次扩域大整系数元素对象
 
    返回值：TCnFP2                         - 返回目标二次扩域大整系数元素对象
 }
@@ -1339,12 +1339,12 @@ function FP4Equal(F1: TCnFP4; F2: TCnFP4): Boolean;
    返回值：Boolean                        - 返回是否相等
 }
 
-function FP4Copy(Dst: TCnFP4; Src: TCnFP4): TCnFP4;
+function FP4Copy(Dest: TCnFP4; Source: TCnFP4): TCnFP4;
 {* 将一四次扩域大整系数元素对象值复制到另一个四次扩域大整系数元素对象中。
 
    参数：
-     Dst: TCnFP4                          - 目标四次扩域大整系数元素对象
-     Src: TCnFP4                          - 源四次扩域大整系数元素对象
+     Dest: TCnFP4                         - 目标四次扩域大整系数元素对象
+     Source: TCnFP4                       - 源四次扩域大整系数元素对象
 
    返回值：TCnFP4                         - 返回目标四次扩域大整系数元素对象
 }
@@ -1677,12 +1677,12 @@ function FP12Equal(F1: TCnFP12; F2: TCnFP12): Boolean;
    返回值：Boolean                        - 返回是否相等
 }
 
-function FP12Copy(Dst: TCnFP12; Src: TCnFP12): TCnFP12;
+function FP12Copy(Dest: TCnFP12; Source: TCnFP12): TCnFP12;
 {* 将一十二次扩域大整系数元素对象值复制到另一个十二次扩域大整系数元素对象中。
 
    参数：
-     Dst: TCnFP12                         - 目标十二次扩域大整系数元素对象
-     Src: TCnFP12                         - 源十二次扩域大整系数元素对象
+     Dest: TCnFP12                        - 目标十二次扩域大整系数元素对象
+     Source: TCnFP12                      - 源十二次扩域大整系数元素对象
 
    返回值：TCnFP12                        - 返回目标十二次扩域大整系数元素对象
 }
@@ -1839,12 +1839,12 @@ function FP2AffinePointEqual(P1: TCnFP2AffinePoint; P2: TCnFP2AffinePoint): Bool
    返回值：Boolean                        - 返回是否相等
 }
 
-function FP2AffinePointCopy(Dst: TCnFP2AffinePoint; Src: TCnFP2AffinePoint): TCnFP2AffinePoint;
+function FP2AffinePointCopy(Dest: TCnFP2AffinePoint; Source: TCnFP2AffinePoint): TCnFP2AffinePoint;
 {* 将一仿射坐标系里的三元点对象值复制到另一个仿射坐标系里的三元点对象中。
 
    参数：
-     Dst: TCnFP2AffinePoint               - 目标仿射坐标系里的三元点对象
-     Src: TCnFP2AffinePoint               - 源目标仿射坐标系里的三元点对象
+     Dest: TCnFP2AffinePoint              - 目标仿射坐标系里的三元点对象
+     Source: TCnFP2AffinePoint            - 源目标仿射坐标系里的三元点对象
 
    返回值：TCnFP2AffinePoint              - 返回目标仿射坐标系里的三元点对象
 }
@@ -2551,12 +2551,12 @@ begin
   Result := BigNumberEqual(F1[0], F2[0]) and BigNumberEqual(F1[1], F2[1]);
 end;
 
-function FP2Copy(Dst, Src: TCnFP2): TCnFP2;
+function FP2Copy(Dest, Source: TCnFP2): TCnFP2;
 begin
   Result := nil;
-  if BigNumberCopy(Dst[0], Src[0]) = nil then Exit;
-  if BigNumberCopy(Dst[1], Src[1]) = nil then Exit;
-  Result := Dst;
+  if BigNumberCopy(Dest[0], Source[0]) = nil then Exit;
+  if BigNumberCopy(Dest[1], Source[1]) = nil then Exit;
+  Result := Dest;
 end;
 
 procedure FP2Negate(Res: TCnFP2; F: TCnFP2; Prime: TCnBigNumber);
@@ -2854,12 +2854,12 @@ begin
   Result := FP2Equal(F1[0], F2[0]) and FP2Equal(F1[1], F2[1]);
 end;
 
-function FP4Copy(Dst, Src: TCnFP4): TCnFP4;
+function FP4Copy(Dest, Source: TCnFP4): TCnFP4;
 begin
   Result := nil;
-  if FP2Copy(Dst[0], Src[0]) = nil then Exit;
-  if FP2Copy(Dst[1], Src[1]) = nil then Exit;
-  Result := Dst;
+  if FP2Copy(Dest[0], Source[0]) = nil then Exit;
+  if FP2Copy(Dest[1], Source[1]) = nil then Exit;
+  Result := Dest;
 end;
 
 procedure FP4Negate(Res: TCnFP4; F: TCnFP4; Prime: TCnBigNumber);
@@ -3149,13 +3149,13 @@ begin
   Result := FP4Equal(F1[0], F2[0]) and FP4Equal(F1[1], F2[1]) and FP4Equal(F1[2], F2[2]);
 end;
 
-function FP12Copy(Dst, Src: TCnFP12): TCnFP12;
+function FP12Copy(Dest, Source: TCnFP12): TCnFP12;
 begin
   Result := nil;
-  if FP4Copy(Dst[0], Src[0]) = nil then Exit;
-  if FP4Copy(Dst[1], Src[1]) = nil then Exit;
-  if FP4Copy(Dst[2], Src[2]) = nil then Exit;
-  Result := Dst;
+  if FP4Copy(Dest[0], Source[0]) = nil then Exit;
+  if FP4Copy(Dest[1], Source[1]) = nil then Exit;
+  if FP4Copy(Dest[2], Source[2]) = nil then Exit;
+  Result := Dest;
 end;
 
 procedure FP12Negate(Res: TCnFP12; F: TCnFP12; Prime: TCnBigNumber);
@@ -3430,13 +3430,13 @@ begin
   Result := FP2Equal(P1.X, P2.X) and FP2Equal(P1.Y, P2.Y) and FP2Equal(P1.Z, P2.Z);
 end;
 
-function FP2AffinePointCopy(Dst, Src: TCnFP2AffinePoint): TCnFP2AffinePoint;
+function FP2AffinePointCopy(Dest, Source: TCnFP2AffinePoint): TCnFP2AffinePoint;
 begin
   Result := nil;
-  if FP2Copy(Dst.X, Src.X) = nil then Exit;
-  if FP2Copy(Dst.Y, Src.Y) = nil then Exit;
-  if FP2Copy(Dst.Z, Src.Z) = nil then Exit;
-  Result := Dst;
+  if FP2Copy(Dest.X, Source.X) = nil then Exit;
+  if FP2Copy(Dest.Y, Source.Y) = nil then Exit;
+  if FP2Copy(Dest.Z, Source.Z) = nil then Exit;
+  Result := Dest;
 end;
 
 function FP2AffinePointIsAtInfinity(P: TCnFP2AffinePoint): Boolean;
