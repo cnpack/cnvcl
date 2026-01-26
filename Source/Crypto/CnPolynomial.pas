@@ -10875,14 +10875,24 @@ begin
         if P[I].IsOne then
           Result := Result + 'X'
         else
-          Result := Result + '(' + P[I].ToString + ')X'
+        begin
+          if P[I].IsPureReal then
+            Result := Result + P[I].ToString + 'X'
+          else
+            Result := Result + '(' + P[I].ToString + ')X';
+        end;
       end
       else
       begin
         if P[I].IsOne then
           Result := Result + 'X^' + IntToStr(I)
         else
-          Result := Result + '(' + P[I].ToString + ')X^' + IntToStr(I);
+        begin
+          if P[I].IsPureReal then
+            Result := Result + P[I].ToString + 'X^' + IntToStr(I)
+          else
+            Result := Result + '(' + P[I].ToString + ')X^' + IntToStr(I);
+        end;
       end;
     end;
   end;
