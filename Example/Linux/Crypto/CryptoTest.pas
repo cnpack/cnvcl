@@ -105,10 +105,10 @@ function TestComplexNumberArithmetic: Boolean;
 function TestComplexNumberProperties: Boolean;
 function TestComplexNumberSqrt: Boolean;
 function TestComplexNumberString: Boolean;
-function TestBigComplexNumberBasic: Boolean;
-function TestBigComplexNumberArithmetic: Boolean;
-function TestBigComplexNumberProperties: Boolean;
-function TestBigComplexNumberString: Boolean;
+function TestBigComplexBasic: Boolean;
+function TestBigComplexArithmetic: Boolean;
+function TestBigComplexProperties: Boolean;
+function TestBigComplexString: Boolean;
 function TestBigComplexDecimalBasic: Boolean;
 function TestBigComplexDecimalArithmetic: Boolean;
 function TestBigComplexDecimalProperties: Boolean;
@@ -233,6 +233,7 @@ function TestQREncoderTextMatrix: Boolean;
 function TestBigNumberPolynomialGaloisPrimePowerModularInverse: Boolean;
 function TestInt64Polynomial: Boolean;
 function TestBigNumberPolynomial: Boolean;
+function TestBigComplexPolynomial: Boolean;
 function TestBigComplexDecimalPolynomial: Boolean;
 function TestInt64RationalPolynomial: Boolean;
 function TestBigNumberRationalPolynomial: Boolean;
@@ -647,10 +648,10 @@ begin
   MyAssert(TestComplexNumberProperties, 'TestComplexNumberProperties');
   MyAssert(TestComplexNumberSqrt, 'TestComplexNumberSqrt');
   MyAssert(TestComplexNumberString, 'TestComplexNumberString');
-  MyAssert(TestBigComplexNumberBasic, 'TestBigComplexNumberBasic');
-  MyAssert(TestBigComplexNumberArithmetic, 'TestBigComplexNumberArithmetic');
-  MyAssert(TestBigComplexNumberProperties, 'TestBigComplexNumberProperties');
-  MyAssert(TestBigComplexNumberString, 'TestBigComplexNumberString');
+  MyAssert(TestBigComplexBasic, 'TestBigComplexBasic');
+  MyAssert(TestBigComplexArithmetic, 'TestBigComplexArithmetic');
+  MyAssert(TestBigComplexProperties, 'TestBigComplexProperties');
+  MyAssert(TestBigComplexString, 'TestBigComplexString');
   MyAssert(TestBigComplexDecimalBasic, 'TestBigComplexDecimalBasic');
   MyAssert(TestBigComplexDecimalArithmetic, 'TestBigComplexDecimalArithmetic');
   MyAssert(TestBigComplexDecimalProperties, 'TestBigComplexDecimalProperties');
@@ -775,6 +776,7 @@ begin
   MyAssert(TestBigNumberPolynomialGaloisPrimePowerModularInverse, 'TestBigNumberPolynomialGaloisPrimePowerModularInverse');
   MyAssert(TestInt64Polynomial, 'TestInt64Polynomial');
   MyAssert(TestBigNumberPolynomial, 'TestBigNumberPolynomial');
+  MyAssert(TestBigComplexPolynomial, 'TestBigComplexPolynomial');
   MyAssert(TestBigComplexDecimalPolynomial, 'TestBigComplexDecimalPolynomial');
   MyAssert(TestInt64RationalPolynomial, 'TestInt64RationalPolynomial');
   MyAssert(TestBigNumberRationalPolynomial, 'TestBigNumberRationalPolynomial');
@@ -1780,7 +1782,7 @@ begin
   Result := FloatEqual(C1.R, 5) and FloatEqual(C1.I, -2.8);
 end;
 
-function TestBigComplexNumberBasic: Boolean;
+function TestBigComplexBasic: Boolean;
 var
   C1, C2: TCnBigComplex;
 begin
@@ -1806,7 +1808,7 @@ begin
   end;
 end;
 
-function TestBigComplexNumberArithmetic: Boolean;
+function TestBigComplexArithmetic: Boolean;
 var
   C1, C2, Res: TCnBigComplex;
 begin
@@ -1836,7 +1838,7 @@ begin
   end;
 end;
 
-function TestBigComplexNumberProperties: Boolean;
+function TestBigComplexProperties: Boolean;
 var
   C1, Res: TCnBigComplex;
 begin
@@ -1862,7 +1864,7 @@ begin
   end;
 end;
 
-function TestBigComplexNumberString: Boolean;
+function TestBigComplexString: Boolean;
 var
   C1: TCnBigComplex;
 begin
@@ -4992,6 +4994,80 @@ begin
   finally
     V.Free;
     X.Free;
+    Res.Free;
+    P2.Free;
+    P1.Free;
+  end;
+end;
+
+function TestBigComplexPolynomial: Boolean;
+var
+  P1, P2, Res: TCnBigComplexPolynomial;
+  C1, C2: TCnBigComplex;
+begin
+  Result := False;
+  P1 := TCnBigComplexPolynomial.Create;
+  P2 := TCnBigComplexPolynomial.Create;
+  Res := TCnBigComplexPolynomial.Create;
+  C1 := TCnBigComplex.Create;
+  C2 := TCnBigComplex.Create;
+  try
+    // 创建 P1 = 5 + (4i)X + 3X^2
+    P1.MaxDegree := 2;
+    P1[0].SetValue(5, 0);
+    P1[1].SetValue(0, 4);
+    P1[2].SetValue(3, 0);
+
+    // 创建 P2 = 4 + (2i)X + 2X^2
+    P2.MaxDegree := 2;
+    P2[0].SetValue(4, 0);
+    P2[1].SetValue(0, 2);
+    P2[2].SetValue(2, 0);
+
+    // 测试加法
+    BigComplexPolynomialAdd(Res, P1, P2);
+    Result := Res.ToString = '5X^2+(6i)X+9';
+    if not Result then Exit;
+
+    // 测试减法
+    BigComplexPolynomialSub(Res, P1, P2);
+    Result := Res.ToString = 'X^2+(2i)X+1';
+    if not Result then Exit;
+
+    // 测试乘法
+    BigComplexPolynomialMul(Res, P1, P2);
+    Result := Res.ToString = '6X^4+(14i)X^3+14X^2+26iX+20';
+    if not Result then Exit;
+
+    // 测试求值 P1(i)
+    C1.SetValue(0, 1);
+    BigComplexPolynomialGetValue(C2, P1, C1);
+    Result := C2.ToString = '-2';
+    if not Result then Exit;
+
+    // 测试组合 F(P(x))
+    // F = X^2 + 1
+    P1.Clear;
+    P1.MaxDegree := 2;
+    P1[0].SetValue(1, 0);
+    P1[1].SetZero;
+    P1[2].SetValue(1, 0);
+
+    // P = (2i)X + 3
+    P2.Clear;
+    P2.MaxDegree := 1;
+    P2[0].SetValue(3, 0);
+    P2[1].SetValue(0, 2);
+
+    BigComplexPolynomialCompose(Res, P1, P2);
+    // (3+2iX)^2 + 1 = -4X^2 + 12iX + 10
+    Result := Res.ToString = '(-4)X^2+(12i)X+10';
+    if not Result then Exit;
+
+    Result := True;
+  finally
+    C2.Free;
+    C1.Free;
     Res.Free;
     P2.Free;
     P1.Free;
