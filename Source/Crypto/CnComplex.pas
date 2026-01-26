@@ -27,7 +27,8 @@ unit CnComplex;
 * 备    注：本单元实现了扩展精度浮点数的复数结构 TCnComplexNumber 及其各类运算。
 *           为提高效率，使用 record 而不用 TObject。
 *
-*           也实现了基于大整数的复数类，注意不支持除、绝对值等需要浮点运算的场合。
+*           也实现了基于大整数的复数类，注意不支持除、绝对值等需要浮点运算的场合，
+*           因为没有大小，因而也没有整除、求余的计算。
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
@@ -2009,8 +2010,7 @@ begin
   end;
 end;
 
-procedure BigComplexAdd(Res: TCnBigComplex;
-  Complex: TCnBigComplex; Value: Int64);
+procedure BigComplexAdd(Res: TCnBigComplex; Complex: TCnBigComplex; Value: Int64);
 var
   T: TCnBigNumber;
 begin
@@ -2024,8 +2024,7 @@ begin
   end;
 end;
 
-procedure BigComplexSub(Res: TCnBigComplex;
-  Complex: TCnBigComplex; Value: Int64);
+procedure BigComplexSub(Res: TCnBigComplex; Complex: TCnBigComplex; Value: Int64);
 var
   T: TCnBigNumber;
 begin
@@ -2039,8 +2038,7 @@ begin
   end;
 end;
 
-procedure BigComplexMul(Res: TCnBigComplex;
-  Complex: TCnBigComplex; Value: Int64);
+procedure BigComplexMul(Res: TCnBigComplex; Complex: TCnBigComplex; Value: Int64);
 var
   T: TCnBigNumber;
 begin
