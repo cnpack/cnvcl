@@ -124,6 +124,24 @@ type
        返回值：Boolean                    - 返回是否设置成功
     }
 
+    function IsOne: Boolean;
+    {* 返回大整数复数是否为 1。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 1
+    }
+
+    function IsNegOne: Boolean;
+    {* 返回大整数复数是否为 -1。
+
+       参数：
+         （无）
+
+       返回值：Boolean                    - 返回是否为 -1
+    }
+
     function IsZero: Boolean;
     {* 返回大整数复数是否为 0。
 
@@ -905,7 +923,7 @@ function BigComplexIsZero(Complex: TCnBigComplex): Boolean;
 {* 返回大整数复数是否为 0。
 
    参数：
-     Complex: TCnBigComplex         - 待判断的大整数复数
+     Complex: TCnBigComplex               - 待判断的大整数复数
 
    返回值：Boolean                        - 返回是否等于 0
 }
@@ -914,25 +932,43 @@ procedure BigComplexSetZero(Complex: TCnBigComplex);
 {* 大整数复数置 0。
 
    参数：
-     Complex: TCnBigComplex         - 待设置的大整数复数
+     Complex: TCnBigComplex               - 待设置的大整数复数
 
    返回值：（无）
+}
+
+function BigComplexIsOne(Complex: TCnBigComplex): Boolean;
+{* 返回大整数复数是否为 1。
+
+   参数：
+     Complex: TCnBigComplex               - 待判断的大整数复数
+
+   返回值：Boolean                        - 返回是否等于 1
 }
 
 procedure BigComplexSetOne(Complex: TCnBigComplex);
 {* 大整数复数置 1。
 
    参数：
-     Complex: TCnBigComplex         - 待设置的大整数复数
+     Complex: TCnBigComplex               - 待设置的大整数复数
 
    返回值：（无）
+}
+
+function BigComplexIsNegOne(Complex: TCnBigComplex): Boolean;
+{* 返回大整数复数是否为 -1。
+
+   参数：
+     Complex: TCnBigComplex               - 待判断的大整数复数
+
+   返回值：Boolean                        - 返回是否等于 -1
 }
 
 procedure BigComplexSetI(Complex: TCnBigComplex);
 {* 大整数复数置 i。
 
    参数：
-     Complex: TCnBigComplex         - 待设置的大整数复数
+     Complex: TCnBigComplex               - 待设置的大整数复数
 
    返回值：（无）
 }
@@ -942,7 +978,7 @@ procedure BigComplexSetValue(Complex: TCnBigComplex;
 {* 大整数复数赋值。
 
    参数：
-     Complex: TCnBigComplex         - 待赋值的大整数复数
+     Complex: TCnBigComplex               - 待赋值的大整数复数
      AR: Int64                            - 大整数复数的实部
      AI: Int64                            - 大整数复数的虚部
 
@@ -954,7 +990,7 @@ procedure BigComplexSetValue(Complex: TCnBigComplex;
 {* 大整数复数赋值。
 
    参数：
-     Complex: TCnBigComplex         - 待赋值的大整数复数
+     Complex: TCnBigComplex               - 待赋值的大整数复数
      const AR: string                     - 实部的十进制整数字符串形式
      const AI: string                     - 虚部的十进制整数字符串形式
 
@@ -965,7 +1001,7 @@ procedure BigComplexSetString(Complex: TCnBigComplex; const Str: string);
 {* 用形如 1.4+2i、3i、0、2-i 这种字符串给大整数复数赋值。
 
    参数：
-     Complex: TCnBigComplex         - 待赋值的大整数复数
+     Complex: TCnBigComplex               - 待赋值的大整数复数
      const Str: string                    - 复数值字符串
 
    返回值：（无）
@@ -975,7 +1011,7 @@ function BigComplexToString(Complex: TCnBigComplex): string;
 {* 大整数复数转换为形如 a + bi 的字符串，实部虚部若有 0 则对应省略。
 
    参数：
-     Complex: TCnBigComplex         - 待转换的大整数复数
+     Complex: TCnBigComplex               - 待转换的大整数复数
 
    返回值：string                         - 返回大整数复数的字符串形式
 }
@@ -984,8 +1020,8 @@ function BigComplexEqual(Complex1: TCnBigComplex; Complex2: TCnBigComplex): Bool
 {* 判断两个大整数复数值是否相等。
 
    参数：
-     Complex1: TCnBigComplex        - 待比较的大整数复数一
-     Complex2: TCnBigComplex        - 待比较的大整数复数二
+     Complex1: TCnBigComplex              - 待比较的大整数复数一
+     Complex2: TCnBigComplex              - 待比较的大整数复数二
 
    返回值：Boolean                        - 返回两个大整数复数值是否相等
 }
@@ -994,8 +1030,8 @@ procedure BigComplexSwap(Complex1: TCnBigComplex; Complex2: TCnBigComplex);
 {* 交换两个大整数复数的值。
 
    参数：
-     Complex1: TCnBigComplex        - 待交换的大整数复数一
-     Complex2: TCnBigComplex        - 待交换的大整数复数二
+     Complex1: TCnBigComplex              - 待交换的大整数复数一
+     Complex2: TCnBigComplex              - 待交换的大整数复数二
 
    返回值：（无）
 }
@@ -1004,8 +1040,8 @@ procedure BigComplexCopy(Dest: TCnBigComplex; Source: TCnBigComplex);
 {* 复制大整数复数的值。
 
    参数：
-     Dest: TCnBigComplex            - 目标大整数复数
-     Source: TCnBigComplex          - 源大整数复数
+     Dest: TCnBigComplex                  - 目标大整数复数
+     Source: TCnBigComplex                - 源大整数复数
 
    返回值：（无）
 }
@@ -1015,9 +1051,9 @@ procedure BigComplexAdd(Res: TCnBigComplex;
 {* 大整数复数加法，Complex1 和 Complex2 可以是同一个对象，Res 可以是 Complex1 或 Complex2。
 
    参数：
-     Res: TCnBigComplex             - 大整数复数和
-     Complex1: TCnBigComplex        - 大整数复数加数一
-     Complex2: TCnBigComplex        - 大整数复数加数二
+     Res: TCnBigComplex                   - 大整数复数和
+     Complex1: TCnBigComplex              - 大整数复数加数一
+     Complex2: TCnBigComplex              - 大整数复数加数二
 
    返回值：（无）
 }
@@ -1027,9 +1063,9 @@ procedure BigComplexSub(Res: TCnBigComplex;
 {* 大整数复数减法，Complex1 和 Complex2 可以是同一个对象，Res 可以是 Complex1 或 Complex2。
 
    参数：
-     Res: TCnBigComplex             - 大整数复数差
-     Complex1: TCnBigComplex        - 大整数复数被减数
-     Complex2: TCnBigComplex        - 大整数复数减数
+     Res: TCnBigComplex                   - 大整数复数差
+     Complex1: TCnBigComplex              - 大整数复数被减数
+     Complex2: TCnBigComplex              - 大整数复数减数
 
    返回值：（无）
 }
@@ -1039,9 +1075,9 @@ procedure BigComplexMul(Res: TCnBigComplex;
 {* 大整数复数乘法，Complex1 和 Complex2 可以是同一个对象，Res 可以是 Complex1 或 Complex2。
 
    参数：
-     Res: TCnBigComplex             - 大整数复数积
-     Complex1: TCnBigComplex        - 大整数复数乘数一
-     Complex2: TCnBigComplex        - 大整数复数乘数二
+     Res: TCnBigComplex                   - 大整数复数积
+     Complex1: TCnBigComplex              - 大整数复数乘数一
+     Complex2: TCnBigComplex              - 大整数复数乘数二
 
    返回值：（无）
 }
@@ -1051,8 +1087,8 @@ procedure BigComplexAdd(Res: TCnBigComplex;
 {* 大整数复数与整数的加法，Complex 和 Res 可以是同一个对象。
 
    参数：
-     Res: TCnBigComplex             - 大整数复数和
-     Complex: TCnBigComplex         - 大整数复数加数
+     Res: TCnBigComplex                   - 大整数复数和
+     Complex: TCnBigComplex               - 大整数复数加数
      Value: Int64                         - 整数加数
 
    返回值：（无）
@@ -1063,8 +1099,8 @@ procedure BigComplexSub(Res: TCnBigComplex;
 {* 大整数复数与整数的减法，Complex 和 Res 可以是同一个对象。
 
    参数：
-     Res: TCnBigComplex             - 大整数复数差
-     Complex: TCnBigComplex         - 大整数复数被减数
+     Res: TCnBigComplex                   - 大整数复数差
+     Complex: TCnBigComplex               - 大整数复数被减数
      Value: Int64                         - 整数减数
 
    返回值：（无）
@@ -1075,8 +1111,8 @@ procedure BigComplexMul(Res: TCnBigComplex;
 {* 大整数复数与整数的乘法，Complex 和 Res 可以是同一个对象。
 
    参数：
-     Res: TCnBigComplex             - 大整数复数积
-     Complex: TCnBigComplex         - 大整数复数乘数
+     Res: TCnBigComplex                   - 大整数复数积
+     Complex: TCnBigComplex               - 大整数复数乘数
      Value: Int64                         - 整数乘数
 
    返回值：（无）
@@ -1086,8 +1122,8 @@ procedure BigComplexNegate(Res: TCnBigComplex; Complex: TCnBigComplex);
 {* 获得大整数复数的负值，Res 可以是 Complex。
 
    参数：
-     Res: TCnBigComplex            - 大整数复数的求负结果
-     Complex: TCnBigComplex        - 待求负的大整数复数
+     Res: TCnBigComplex                  - 大整数复数的求负结果
+     Complex: TCnBigComplex              - 待求负的大整数复数
 
    返回值：（无）
 }
@@ -1096,8 +1132,8 @@ procedure BigComplexConjugate(Res: TCnBigComplex; Complex: TCnBigComplex);
 {* 获得共轭大整数复数，Res 可以是 Complex。
 
    参数：
-     Res: TCnBigComplex            - 大整数复数的共轭结果
-     Complex: TCnBigComplex        - 待求共轭的大整数复数
+     Res: TCnBigComplex                  - 大整数复数的共轭结果
+     Complex: TCnBigComplex              - 待求共轭的大整数复数
 
    返回值：（无）
 }
@@ -1106,7 +1142,7 @@ function BigComplexIsPureReal(Complex: TCnBigComplex): Boolean;
 {* 大整数复数是否纯实数，也就是判断虚部是否为 0。
 
    参数：
-     Complex: TCnBigComplex         - 待判断的大整数复数
+     Complex: TCnBigComplex               - 待判断的大整数复数
 
    返回值：Boolean                        - 返回是否纯实数
 }
@@ -1115,7 +1151,7 @@ function BigComplexIsPureImaginary(Complex: TCnBigComplex): Boolean;
 {* 大整数复数是否纯虚数，也就是判断实部是否为 0 且虚部不为 0。
 
    参数：
-     Complex: TCnBigComplex         - 待判断的大整数复数
+     Complex: TCnBigComplex               - 待判断的大整数复数
 
    返回值：Boolean                        - 返回是否纯虚数
 }
@@ -1124,7 +1160,7 @@ function BigComplexAbsoluteValue(Complex: TCnBigComplex): Extended; overload;
 {* 返回大整数复数的绝对值，也即距复平面原点的距离，以浮点数表示。
 
    参数：
-     Complex: TCnBigComplex         - 待计算的大整数复数
+     Complex: TCnBigComplex               - 待计算的大整数复数
 
    返回值：Extended                       - 返回大整数复数的绝对值
 }
@@ -1133,8 +1169,8 @@ function BigComplexAbsoluteValue(Res: TCnBigNumber; Complex: TCnBigComplex): Boo
 {* 返回大整数复数的绝对值，也即距复平面原点的距离，以大整数表示。
 
    参数：
-     Res: TCnBigComplex             - 用来容纳结果的大整数对象
-     Complex: TCnBigComplex         - 待计算的大整数复数
+     Res: TCnBigComplex                   - 用来容纳结果的大整数对象
+     Complex: TCnBigComplex               - 待计算的大整数复数
 
    返回值：Boolean                        - 返回是否求值成功
 }
@@ -1143,7 +1179,7 @@ function BigComplexArgument(Complex: TCnBigComplex): Extended;
 {* 返回大整数复数的辐角主值，也即与复平面正 X 轴的夹角，范围在 0 到 2π。
 
    参数：
-     Complex: TCnBigComplex         - 待计算的大整数复数
+     Complex: TCnBigComplex               - 待计算的大整数复数
 
    返回值：Extended                       - 返回大整数复数的辐角主值，单位为弧度
 }
@@ -1794,10 +1830,20 @@ begin
   Complex.FI.SetZero;
 end;
 
+function BigComplexIsOne(Complex: TCnBigComplex): Boolean;
+begin
+  Result := Complex.FR.IsOne and Complex.FI.IsZero;
+end;
+
 procedure BigComplexSetOne(Complex: TCnBigComplex);
 begin
   Complex.FR.SetOne;
   Complex.FI.SetZero;
+end;
+
+function BigComplexIsNegOne(Complex: TCnBigComplex): Boolean;
+begin
+  Result := Complex.FR.IsNegOne and Complex.FI.IsZero;
 end;
 
 procedure BigComplexSetI(Complex: TCnBigComplex);
@@ -2118,6 +2164,16 @@ begin
   FI.Free;
   FR.Free;
   inherited;
+end;
+
+function TCnBigComplex.IsNegOne: Boolean;
+begin
+  Result := BigComplexIsNegOne(Self);
+end;
+
+function TCnBigComplex.IsOne: Boolean;
+begin
+  Result := BigComplexIsOne(Self);
 end;
 
 function TCnBigComplex.IsPureImaginary: Boolean;
