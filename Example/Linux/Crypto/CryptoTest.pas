@@ -5036,7 +5036,7 @@ begin
 
     // ≤‚ ‘≥À∑®
     BigComplexPolynomialMul(Res, P1, P2);
-    Result := Res.ToString = '6X^4+(14i)X^3+14X^2+26iX+20';
+    Result := Res.ToString = '6X^4+(14i)X^3+14X^2+(26i)X+20';
     if not Result then Exit;
 
     // ≤‚ ‘«Û÷µ P1(i)
@@ -5061,10 +5061,7 @@ begin
 
     BigComplexPolynomialCompose(Res, P1, P2);
     // (3+2iX)^2 + 1 = -4X^2 + 12iX + 10
-    Result := Res.ToString = '(-4)X^2+(12i)X+10';
-    if not Result then Exit;
-
-    Result := True;
+    Result := Res.ToString = '-4X^2+(12i)X+10';
   finally
     C2.Free;
     C1.Free;
