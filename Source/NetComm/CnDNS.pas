@@ -476,7 +476,7 @@ begin
 
         ParseIndexedString(StrResult, Base, Base + Idx);
         Inc(PB);
-        Inc(Result);         // 指向下一个 2 字节
+        Inc(Result);             // 指向下一个 2 字节
         if Result >= MaxLen then
           Exit;
       end
@@ -491,7 +491,7 @@ begin
         if Result >= MaxLen then
           raise ECnDNSException.Create(SCnDNSTooLong);
 
-        Move(PB^, Str[2], Len);       // Str 内容塞为 .xxxxx 这种
+        Move(PB^, Str[2], Len);  // Str 内容塞为 .xxxxx 这种
 
         Inc(PB, Len);            // PB 指向下一个长度或索引位置
         Inc(Result, Len);
@@ -503,7 +503,7 @@ begin
           Exit;
       end
       else
-        raise ECnDNSException.CreateFmt(SCnDNSInvalidHeadByteFmt, [PB^, PB - PByte(Base)]);
+        raise ECnDNSException.CreateFmt(SCnDNSInvalidHeadByteFmt, [PB^, TCnNativeInt(PB) - TCnNativeInt(Base)]);
     end;
   end
   else // 无长度限制，可能就一个索引（无结束符），或字符串开头，可能有索引，碰到 #0 结束
@@ -555,7 +555,7 @@ begin
         SetLength(Str, 0);
       end
       else
-        raise ECnDNSException.CreateFmt(SCnDNSInvalidHeadByteFmt, [PB^, PB - PByte(Base)]);
+        raise ECnDNSException.CreateFmt(SCnDNSInvalidHeadByteFmt, [PB^, TCnNativeInt(PB) - TCnNativeInt(Base)]);
     end;
   end;
 end;
