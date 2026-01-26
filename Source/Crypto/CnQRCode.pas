@@ -43,7 +43,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Graphics, Controls, ExtCtrls, CnBits, CnNative;
+  SysUtils, Classes, CnBits, CnNative;
 
 type
   TCnErrorRecoveryLevel = (erlL, erlM, erlQ, erlH);
