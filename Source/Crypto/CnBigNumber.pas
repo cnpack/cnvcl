@@ -1759,35 +1759,35 @@ function BigNumberDuplicate(Num: TCnBigNumber): TCnBigNumber;
    返回值：TCnBigNumber                   - 返回新建的大数对象
 }
 
-function BigNumberCopy(Dst: TCnBigNumber; Src: TCnBigNumber): TCnBigNumber;
+function BigNumberCopy(Dest: TCnBigNumber; Source: TCnBigNumber): TCnBigNumber;
 {* 复制一个大数对象，成功返回 Dst 对象。
 
    参数：
-     Dst: TCnBigNumber                    - 目标大数对象
-     Src: TCnBigNumber                    - 源大数对象
+     Dest: TCnBigNumber                   - 目标大数对象
+     Source: TCnBigNumber                 - 源大数对象
 
    返回值：TCnBigNumber                   - 复制成功则返回目标大数对象，失败返回 nil
 }
 
-function BigNumberCopyLow(Dst: TCnBigNumber; Src: TCnBigNumber;
+function BigNumberCopyLow(Dest: TCnBigNumber; Source: TCnBigNumber;
   WordCount: Integer): TCnBigNumber;
 {* 复制一个大数对象的低 WordCount 个 UInt32/UInt64 元素，成功返回 Dst。
 
    参数：
-     Dst: TCnBigNumber                    - 目标大数对象
-     Src: TCnBigNumber                    - 源大数对象
+     Dest: TCnBigNumber                   - 目标大数对象
+     Source: TCnBigNumber                 - 源大数对象
      WordCount: Integer                   - 待复制的低位元素数
 
    返回值：TCnBigNumber                   - 复制成功则返回目标大数对象，失败返回 nil
 }
 
-function BigNumberCopyHigh(Dst: TCnBigNumber; Src: TCnBigNumber;
+function BigNumberCopyHigh(Dest: TCnBigNumber; Source: TCnBigNumber;
   WordCount: Integer): TCnBigNumber;
 {* 复制一个大数对象的高 WordCount 个 UInt32/UInt64 元素，成功返回 Dst。
 
    参数：
-     Dst: TCnBigNumber                    - 目标大数对象
-     Src: TCnBigNumber                    - 源大数对象
+     Dest: TCnBigNumber                   - 目标大数对象
+     Source: TCnBigNumber                 - 源大数对象
      WordCount: Integer                   - 待复制的高位元素数
 
    返回值：TCnBigNumber                   - 复制成功则返回目标大数对象，失败返回 nil
@@ -2904,25 +2904,25 @@ function SparseBigNumberListEqual(A: TCnSparseBigNumberList; B: TCnSparseBigNumb
    返回值：Boolean                        - 返回是否相等
 }
 
-procedure SparseBigNumberListCopy(Dst: TCnSparseBigNumberList; Src: TCnSparseBigNumberList);
+procedure SparseBigNumberListCopy(Dest: TCnSparseBigNumberList; Source: TCnSparseBigNumberList);
 {* 将 Src 复制至 Dst。
 
    参数：
-     Dst: TCnSparseBigNumberList          - 目标大数列表
-     Src: TCnSparseBigNumberList          - 源大数列表
+     Dest: TCnSparseBigNumberList         - 目标大数列表
+     Source: TCnSparseBigNumberList       - 源大数列表
 
    返回值：（无）
 }
 
-procedure SparseBigNumberListMerge(Dst: TCnSparseBigNumberList; Src1: TCnSparseBigNumberList;
-  Src2: TCnSparseBigNumberList; Add: Boolean = True);
+procedure SparseBigNumberListMerge(Dest: TCnSparseBigNumberList; Source1: TCnSparseBigNumberList;
+  Source2: TCnSparseBigNumberList; Add: Boolean = True);
 {* 合并两个 SparseBigNumberList 至目标 List 中，指数相同的系数 Add 为 True 时相加，否则相减。
-   Dst 可以是 Src1 或 Src2，Src1 和 Src2 可以相等。
+   Dest 可以是 Source1 或 Source2，Source1 和 Source2 可以相等。
 
    参数：
-     Dst: TCnSparseBigNumberList          - 目标大数列表
-     Src1: TCnSparseBigNumberList         - 待合并的大数列表一
-     Src2: TCnSparseBigNumberList         - 待合并的大数列表二
+     Dest: TCnSparseBigNumberList         - 目标大数列表
+     Source1: TCnSparseBigNumberList      - 待合并的大数列表一
+     Source2: TCnSparseBigNumberList      - 待合并的大数列表二
      Add: Boolean                         - True 表示相加，False 表示相减
 
    返回值：（无）
@@ -4212,28 +4212,28 @@ begin
   end;
 end;
 
-function BigNumberCopy(Dst: TCnBigNumber; Src: TCnBigNumber): TCnBigNumber;
+function BigNumberCopy(Dest: TCnBigNumber; Source: TCnBigNumber): TCnBigNumber;
 var
   I: Integer;
   A, B: PCnBigNumberElementArray;
   A0, A1, A2, A3: TCnBigNumberElement;
 begin
-  if Dst = Src then
+  if Dest = Source then
   begin
-    Result := Dst;
+    Result := Dest;
     Exit;
   end;
 
-  if BigNumberWordExpand(Dst, Src.Top) = nil then
+  if BigNumberWordExpand(Dest, Source.Top) = nil then
   begin
     Result := nil;
     Exit;
   end;
 
-  A := PCnBigNumberElementArray(Dst.D);
-  B := PCnBigNumberElementArray(Src.D);
+  A := PCnBigNumberElementArray(Dest.D);
+  B := PCnBigNumberElementArray(Source.D);
 
-  for I := (Src.Top shr 2) downto 1 do
+  for I := (Source.Top shr 2) downto 1 do
   begin
     A0 := B^[0];
     A1 := B^[1];
@@ -4248,7 +4248,7 @@ begin
     B := PCnBigNumberElementArray(TCnIntAddress(B) + 4 * SizeOf(TCnBigNumberElement));
   end;
 
-  case Src.Top and 3 of
+  case Source.Top and 3 of
   3:
     begin
       A[2] := B[2];
@@ -4270,12 +4270,12 @@ begin
     end;
   end;
 
-  Dst.Top := Src.Top;
-  Dst.Neg := Src.Neg;
-  Result := Dst;
+  Dest.Top := Source.Top;
+  Dest.Neg := Source.Neg;
+  Result := Dest;
 end;
 
-function BigNumberCopyLow(Dst: TCnBigNumber; Src: TCnBigNumber;
+function BigNumberCopyLow(Dest: TCnBigNumber; Source: TCnBigNumber;
   WordCount: Integer): TCnBigNumber;
 var
   I: Integer;
@@ -4283,36 +4283,36 @@ var
 begin
   if WordCount <= 0 then
   begin
-    Result := Dst;
-    Dst.SetZero;
+    Result := Dest;
+    Dest.SetZero;
     Exit;
   end
-  else if Src = Dst then // 不支持 Src 和 Dst 相同的情况
+  else if Source = Dest then // 不支持 Source 和 Dest 相同的情况
     Result := nil
   else
   begin
-    if WordCount > Src.GetWordCount then
-      WordCount := Src.GetWordCount;
+    if WordCount > Source.GetWordCount then
+      WordCount := Source.GetWordCount;
 
-    if BigNumberWordExpand(Dst, WordCount) = nil then
+    if BigNumberWordExpand(Dest, WordCount) = nil then
     begin
       Result := nil;
       Exit;
     end;
 
-    A := PCnBigNumberElementArray(Dst.D);
-    B := PCnBigNumberElementArray(Src.D);
+    A := PCnBigNumberElementArray(Dest.D);
+    B := PCnBigNumberElementArray(Source.D);
 
-    Result := Dst;
-    for I := 0 to WordCount - 1 do // 从 Src 的 0 到 WordCount - 1 赋值给 Dst 的 0 到 WordCount - 1
+    Result := Dest;
+    for I := 0 to WordCount - 1 do // 从 Source 的 0 到 WordCount - 1 赋值给 Dst 的 0 到 WordCount - 1
       A^[I] := B^[I];
 
-    Dst.Top := WordCount;
-    Dst.Neg := Src.Neg;
+    Dest.Top := WordCount;
+    Dest.Neg := Source.Neg;
   end;
 end;
 
-function BigNumberCopyHigh(Dst: TCnBigNumber; Src: TCnBigNumber;
+function BigNumberCopyHigh(Dest: TCnBigNumber; Source: TCnBigNumber;
   WordCount: Integer): TCnBigNumber;
 var
   I: Integer;
@@ -4320,32 +4320,32 @@ var
 begin
   if WordCount <= 0 then
   begin
-    Result := Dst;
-    Dst.SetZero;
+    Result := Dest;
+    Dest.SetZero;
     Exit;
   end
-  else if Src = Dst then // 不支持 Src 和 Dst 相同的情况
+  else if Source = Dest then // 不支持 Source 和 Dest 相同的情况
     Result := nil
   else
   begin
-    if WordCount > Src.GetWordCount then
-      WordCount := Src.GetWordCount;
+    if WordCount > Source.GetWordCount then
+      WordCount := Source.GetWordCount;
 
-    if BigNumberWordExpand(Dst, WordCount) = nil then
+    if BigNumberWordExpand(Dest, WordCount) = nil then
     begin
       Result := nil;
       Exit;
     end;
 
-    A := PCnBigNumberElementArray(Dst.D);
-    B := PCnBigNumberElementArray(Src.D);
+    A := PCnBigNumberElementArray(Dest.D);
+    B := PCnBigNumberElementArray(Source.D);
 
-    Result := Dst;
+    Result := Dest;
     for I := 0 to WordCount - 1 do // 从 Src 的 Top - WordCount 到 Top - 1 赋值给 Dst 的 0 到 WordCount - 1
-      A^[I] := B^[Src.Top - WordCount + I];
+      A^[I] := B^[Source.Top - WordCount + I];
 
-    Dst.Top := WordCount;
-    Dst.Neg := Src.Neg;
+    Dest.Top := WordCount;
+    Dest.Neg := Source.Neg;
   end;
 end;
 
@@ -10108,77 +10108,77 @@ begin
   Result := True;
 end;
 
-procedure SparseBigNumberListCopy(Dst, Src: TCnSparseBigNumberList);
+procedure SparseBigNumberListCopy(Dest, Source: TCnSparseBigNumberList);
 var
   I: Integer;
   Pair: TCnExponentBigNumberPair;
 begin
-  if (Dst <> Src) and (Dst <> nil) then
+  if (Dest <> Source) and (Dest <> nil) then
   begin
-    Dst.Clear;
-    for I := 0 to Src.Count - 1 do
+    Dest.Clear;
+    for I := 0 to Source.Count - 1 do
     begin
       Pair := TCnExponentBigNumberPair.Create;
-      Pair.Exponent := Src[I].Exponent;
-      BigNumberCopy(Pair.Value, Src[I].Value);
-      Dst.Add(Pair);
+      Pair.Exponent := Source[I].Exponent;
+      BigNumberCopy(Pair.Value, Source[I].Value);
+      Dest.Add(Pair);
     end;
   end;
 end;
 
-procedure SparseBigNumberListMerge(Dst, Src1, Src2: TCnSparseBigNumberList; Add: Boolean);
+procedure SparseBigNumberListMerge(Dest, Source1, Source2: TCnSparseBigNumberList; Add: Boolean);
 var
   I, J, K: Integer;
   P1, P2: TCnExponentBigNumberPair;
 begin
-  if Src1 = nil then                   // 只要有一个是 nil，Dst 就被塞为另一个
+  if Source1 = nil then                   // 只要有一个是 nil，Dst 就被塞为另一个
   begin
-    SparseBigNumberListCopy(Dst, Src2);
-    if not Add then  // Src2 是被减数
-      Dst.Negate;
+    SparseBigNumberListCopy(Dest, Source2);
+    if not Add then  // Source2 是被减数
+      Dest.Negate;
   end
-  else if Src2 = nil then
-    SparseBigNumberListCopy(Dst, Src1)
-  else if Src1 = Src2 then // 如果 Src1 和 Src2 是同一个，合并，支持 Dst 也是同一个的情形
+  else if Source2 = nil then
+    SparseBigNumberListCopy(Dest, Source1)
+  else if Source1 = Source2 then // 如果 Source1 和 Source2 是同一个，合并，支持 Dest 也是同一个的情形
   begin
-    Dst.Count := Src1.Count;
-    for I := 0 to Src1.Count - 1 do
+    Dest.Count := Source1.Count;
+    for I := 0 to Source1.Count - 1 do
     begin
-      if Dst[I] = nil then
-        Dst[I] := TCnExponentBigNumberPair.Create;
-      Dst[I].Exponent := Src1[I].Exponent;
+      if Dest[I] = nil then
+        Dest[I] := TCnExponentBigNumberPair.Create;
+      Dest[I].Exponent := Source1[I].Exponent;
       if Add then
-        BigNumberAdd(Dst[I].Value, Src1[I].Value, Src2[I].Value)
+        BigNumberAdd(Dest[I].Value, Source1[I].Value, Source2[I].Value)
       else
-        BigNumberSub(Dst[I].Value, Src1[I].Value, Src2[I].Value);
+        BigNumberSub(Dest[I].Value, Source1[I].Value, Source2[I].Value);
     end;
   end
-  else // Src1 和 Src2 不是同一个，要归并
+  else // Source1 和 Source2 不是同一个，要归并
   begin
-    if (Dst <> Src1) and (Dst <> Src2) then // 但 Dst 不是 Src1 或 Src2，也就是仨各异
+    if (Dest <> Source1) and (Dest <> Source2) then // 但 Dest 不是 Source1 或 Source2，也就是仨各异
     begin
       I := 0;
       J := 0;
       K := 0;
 
-      Dst.Count := Src1.Count + Src2.Count;
+      Dest.Count := Source1.Count + Source2.Count;
 
-      while (I < Src1.Count) and (J < Src2.Count) do
+      while (I < Source1.Count) and (J < Source2.Count) do
       begin
-        P1 := Src1[I];
-        P2 := Src2[J];
+        P1 := Source1[I];
+        P2 := Source2[J];
 
         if P1.Exponent = P2.Exponent then
         begin
-          // 相等，并起来塞到 Dst 里
-          if Dst[K] = nil then
-            Dst[K] := TCnExponentBigNumberPair.Create;
-          Dst[K].Exponent := P1.Exponent;
+          // 相等，并起来塞到 Dest 里
+          if Dest[K] = nil then
+            Dest[K] := TCnExponentBigNumberPair.Create;
+          Dest[K].Exponent := P1.Exponent;
 
           if Add then
-            BigNumberAdd(Dst[K].Value, P1.Value, P2.Value)
+            BigNumberAdd(Dest[K].Value, P1.Value, P2.Value)
           else
-            BigNumberSub(Dst[K].Value, P1.Value, P2.Value);
+            BigNumberSub(Dest[K].Value, P1.Value, P2.Value);
 
           Inc(I);
           Inc(J);
@@ -10186,88 +10186,88 @@ begin
         end
         else if P1.Exponent < P2.Exponent then
         begin
-          // P1 小，把 P1 搁 Dst[K] 里
-          if Dst[K] = nil then
-            Dst[K] := TCnExponentBigNumberPair.Create;
-          Dst[K].Exponent := P1.Exponent;
+          // P1 小，把 P1 搁 Dest[K] 里
+          if Dest[K] = nil then
+            Dest[K] := TCnExponentBigNumberPair.Create;
+          Dest[K].Exponent := P1.Exponent;
 
-          BigNumberCopy(Dst[K].Value, P1.Value);
+          BigNumberCopy(Dest[K].Value, P1.Value);
           Inc(I);
           Inc(K);
         end
-        else // P2 小，把 P2 搁 Dst[K] 里
+        else // P2 小，把 P2 搁 Dest[K] 里
         begin
-          if Dst[K] = nil then
-            Dst[K] := TCnExponentBigNumberPair.Create;
-          Dst[K].Exponent := P2.Exponent;
+          if Dest[K] = nil then
+            Dest[K] := TCnExponentBigNumberPair.Create;
+          Dest[K].Exponent := P2.Exponent;
 
-          BigNumberCopy(Dst[K].Value, P2.Value);
+          BigNumberCopy(Dest[K].Value, P2.Value);
           if not Add then
-            Dst[K].Value.Negate;
+            Dest[K].Value.Negate;
           Inc(J);
           Inc(K);
         end;
       end;
 
-      if (I = Src1.Count) and (J = Src2.Count) then
+      if (I = Source1.Count) and (J = Source2.Count) then
       begin
-        Dst.Compact;
+        Dest.Compact;
         Exit;
       end;
 
-      // 剩下哪个有，就全加到 Dst 里 K 开始的位置去
-      if I = Src1.Count then
+      // 剩下哪个有，就全加到 Dest 里 K 开始的位置去
+      if I = Source1.Count then
       begin
-        for I := J to Src2.Count - 1 do
+        for I := J to Source2.Count - 1 do
         begin
-          if K >= Dst.Count then
-            Dst.Add(TCnExponentBigNumberPair.Create)
-          else if Dst[K] = nil then
-            Dst[K] := TCnExponentBigNumberPair.Create;
+          if K >= Dest.Count then
+            Dest.Add(TCnExponentBigNumberPair.Create)
+          else if Dest[K] = nil then
+            Dest[K] := TCnExponentBigNumberPair.Create;
 
-          Dst[K].Exponent := Src2[I].Exponent;
-          BigNumberCopy(Dst[K].Value, Src2[I].Value);
+          Dest[K].Exponent := Source2[I].Exponent;
+          BigNumberCopy(Dest[K].Value, Source2[I].Value);
           Inc(K);
         end;
       end
-      else if J = Src2.Count then
+      else if J = Source2.Count then
       begin
-        for J := I to Src1.Count - 1 do
+        for J := I to Source1.Count - 1 do
         begin
-          if K >= Dst.Count then
-            Dst.Add(TCnExponentBigNumberPair.Create)
-          else if Dst[K] = nil then
-            Dst[K] := TCnExponentBigNumberPair.Create;
+          if K >= Dest.Count then
+            Dest.Add(TCnExponentBigNumberPair.Create)
+          else if Dest[K] = nil then
+            Dest[K] := TCnExponentBigNumberPair.Create;
 
-          Dst[K].Exponent := Src1[J].Exponent;
-          BigNumberCopy(Dst[K].Value, Src1[J].Value);
+          Dest[K].Exponent := Source1[J].Exponent;
+          BigNumberCopy(Dest[K].Value, Source1[J].Value);
           Inc(K);
         end;
       end;
-      Dst.Compact;
+      Dest.Compact;
     end
-    else if Dst = Src1 then // Dst 是 Src1，且 Src1 和 Src2 不同
+    else if Dest = Source1 then // Dest 是 Source1，且 Source1 和 Source2 不同
     begin
-      // 遍历 Src2，加塞到 Src1 中
-      for I := 0 to Src2.Count - 1 do
+      // 遍历 Source2，加塞到 Source1 中
+      for I := 0 to Source2.Count - 1 do
       begin
-        P2 := Src2[I];
+        P2 := Source2[I];
         if Add then
-          BigNumberAdd(Dst.SafeValue[P2.Exponent], Dst.SafeValue[P2.Exponent], P2.Value)
+          BigNumberAdd(Dest.SafeValue[P2.Exponent], Dest.SafeValue[P2.Exponent], P2.Value)
         else
-          BigNumberSub(Dst.SafeValue[P2.Exponent], Dst.SafeValue[P2.Exponent], P2.Value);
+          BigNumberSub(Dest.SafeValue[P2.Exponent], Dest.SafeValue[P2.Exponent], P2.Value);
       end;
     end
-    else if Dst = Src2 then // Dst 是 Src2，且 Src1 和 Src2 不同
+    else if Dest = Source2 then // Dest 是 Source2，且 Source1 和 Source2 不同
     begin
-      // 遍历 Src1，加塞到 Src2 中
-      for I := 0 to Src1.Count - 1 do
+      // 遍历 Source1，加塞到 Source2 中
+      for I := 0 to Source1.Count - 1 do
       begin
-        P1 := Src1[I];
+        P1 := Source1[I];
         if Add then
-          BigNumberAdd(Dst.SafeValue[P1.Exponent], Dst.SafeValue[P1.Exponent], P1.Value)
+          BigNumberAdd(Dest.SafeValue[P1.Exponent], Dest.SafeValue[P1.Exponent], P1.Value)
         else
-          BigNumberSub(Dst.SafeValue[P1.Exponent], Dst.SafeValue[P1.Exponent], P1.Value);
+          BigNumberSub(Dest.SafeValue[P1.Exponent], Dest.SafeValue[P1.Exponent], P1.Value);
       end;
     end;
   end;

@@ -209,12 +209,12 @@ function Int64VectorModuleSquare(V: TCnInt64Vector): Int64;
    返回值：Int64                          - 返回向量的模长的平方
 }
 
-procedure Int64VectorCopy(Dst: TCnInt64Vector; Src: TCnInt64Vector);
+procedure Int64VectorCopy(Dest: TCnInt64Vector; Source: TCnInt64Vector);
 {* 复制 Int64 向量的内容。
 
    参数：
-     Dst: TCnInt64Vector                  - 目标向量
-     Src: TCnInt64Vector                  - 源向量
+     Dest: TCnInt64Vector                 - 目标向量
+     Source: TCnInt64Vector               - 源向量
 
    返回值：（无）
 }
@@ -323,7 +323,7 @@ procedure BigNumberVectorModuleSquare(Res: TCnBigNumber; V: TCnBigNumberVector);
    返回值：（无）
 }
 
-procedure BigNumberVectorCopy(Dst: TCnBigNumberVector; Src: TCnBigNumberVector);
+procedure BigNumberVectorCopy(Dest: TCnBigNumberVector; Source: TCnBigNumberVector);
 {* 复制大整数向量的内容。
 
    参数：
@@ -428,7 +428,7 @@ procedure Int64PolynomialVectorModuleSquare(Res: TCnInt64Polynomial; V: TCnInt64
    返回值：（无）
 }
 
-procedure Int64PolynomialVectorCopy(Dst: TCnInt64PolynomialVector; Src: TCnInt64PolynomialVector);
+procedure Int64PolynomialVectorCopy(Dest: TCnInt64PolynomialVector; Source: TCnInt64PolynomialVector);
 {* 复制一元整系数多项式向量的内容。
 
    参数：
@@ -566,15 +566,15 @@ begin
     Result := Result + V[I] * V[I];
 end;
 
-procedure Int64VectorCopy(Dst: TCnInt64Vector; Src: TCnInt64Vector);
+procedure Int64VectorCopy(Dest: TCnInt64Vector; Source: TCnInt64Vector);
 var
   I: Integer;
 begin
-  if Src <> Dst then
+  if Source <> Dest then
   begin
-    Dst.Dimension := Src.Dimension;
-    for I := 0 to Src.Dimension - 1 do
-      Dst[I] := Src[I];
+    Dest.Dimension := Source.Dimension;
+    for I := 0 to Source.Dimension - 1 do
+      Dest[I] := Source[I];
   end;
 end;
 
@@ -738,15 +738,15 @@ begin
   end;
 end;
 
-procedure BigNumberVectorCopy(Dst: TCnBigNumberVector; Src: TCnBigNumberVector);
+procedure BigNumberVectorCopy(Dest: TCnBigNumberVector; Source: TCnBigNumberVector);
 var
   I: Integer;
 begin
-  if Src <> Dst then
+  if Source <> Dest then
   begin
-    Dst.Dimension := Src.Dimension;
-    for I := 0 to Src.Dimension - 1 do
-      BigNumberCopy(Dst[I], Src[I]);
+    Dest.Dimension := Source.Dimension;
+    for I := 0 to Source.Dimension - 1 do
+      BigNumberCopy(Dest[I], Source[I]);
   end;
 end;
 
@@ -935,15 +935,15 @@ begin
   end;
 end;
 
-procedure Int64PolynomialVectorCopy(Dst: TCnInt64PolynomialVector; Src: TCnInt64PolynomialVector);
+procedure Int64PolynomialVectorCopy(Dest: TCnInt64PolynomialVector; Source: TCnInt64PolynomialVector);
 var
   I: Integer;
 begin
-  if Src <> Dst then
+  if Source <> Dest then
   begin
-    Dst.Dimension := Src.Dimension;
-    for I := 0 to Src.Dimension - 1 do
-      Int64PolynomialCopy(Dst[I], Src[I]);
+    Dest.Dimension := Source.Dimension;
+    for I := 0 to Source.Dimension - 1 do
+      Int64PolynomialCopy(Dest[I], Source[I]);
   end;
 end;
 
