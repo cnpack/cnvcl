@@ -1034,8 +1034,8 @@ begin
   // Skip BOM if present
 {$IFDEF UNICODE}
   // In Unicode Delphi, string is UnicodeString (UTF-16)
-  // Check for UTF-16 BOM (FEFF) or UTF-8 BOM that wasn't stripped
-  if (FLength >= 1) and (FSource[1] = #$FEFF) then
+  // Check for UTF-16 BOM (FEFF/FFFE for LE/BE) or UTF-8 BOM that wasn't stripped
+  if (FLength >= 1) and ((FSource[1] = #$FEFF) or (FSource[1] = #$FFFE)) then
   begin
     FPosition := 1;  // Skip UTF-16 BOM
   end;
