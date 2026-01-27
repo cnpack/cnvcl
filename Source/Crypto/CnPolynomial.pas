@@ -10681,7 +10681,7 @@ end;
 
 procedure TCnBigComplexDecimalPolynomial.CorrectTop;
 begin
-  while (Count > 0) and Items[Count - 1].IsZero do
+  while (Count > 0) and TCnBigComplexDecimal(Items[Count - 1]).IsZero do
     Delete(Count - 1);
 end;
 
@@ -10741,7 +10741,7 @@ begin
   if Count = 0 then
     Result := False
   else
-    Result := Items[Count - 1].IsOne;
+    Result := TCnBigComplexDecimal(Items[Count - 1]).IsOne;
 end;
 
 { TCnBigComplexDecimalPolynomialPool }
@@ -10815,13 +10815,13 @@ begin
   while A.Count < MaxCount do
   begin
     A.Add;
-    A.Items[A.Count - 1].SetZero;
+    TCnBigComplex(A.Items[A.Count - 1]).SetZero;
   end;
 
   while B.Count < MaxCount do
   begin
     B.Add;
-    B.Items[B.Count - 1].SetZero;
+    TCnBigComplex(B.Items[B.Count - 1]).SetZero;
   end;
 
   // 交换所有项
@@ -15263,13 +15263,13 @@ begin
   while A.Count < MaxCount do
   begin
     A.Add;
-    A.Items[A.Count - 1].SetZero;
+    TCnBigComplexDecimal(A.Items[A.Count - 1]).SetZero;
   end;
 
   while B.Count < MaxCount do
   begin
     B.Add;
-    B.Items[B.Count - 1].SetZero;
+    TCnBigComplexDecimal(B.Items[B.Count - 1]).SetZero;
   end;
 
   // 交换所有项
