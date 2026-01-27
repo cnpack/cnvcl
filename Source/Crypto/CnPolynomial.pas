@@ -10695,11 +10695,13 @@ var
   I: Integer;
 begin
   for I := 0 to Count - 1 do
+  begin
     if not Items[I].IsZero then
     begin
       Result := False;
       Exit;
     end;
+  end;
   Result := True;
 end;
 
@@ -10710,7 +10712,7 @@ end;
 
 function TCnBigComplexDecimalPolynomial.IsOne: Boolean;
 begin
-  Result := (Count = 1) and Items[0].IsOne;
+  Result := (MaxDegree = 0) and Items[0].IsOne;
 end;
 
 procedure TCnBigComplexDecimalPolynomial.SetOne;
@@ -10721,22 +10723,8 @@ begin
 end;
 
 function TCnBigComplexDecimalPolynomial.IsNegOne: Boolean;
-var
-  Temp: TCnBigComplexDecimal;
 begin
-  if Count <> 1 then
-  begin
-    Result := False;
-    Exit;
-  end;
-  Temp := TCnBigComplexDecimal.Create;
-  try
-    BigComplexDecimalCopy(Temp, Items[0]);
-    Temp.Negate;
-    Result := Temp.IsOne;
-  finally
-    Temp.Free;
-  end;
+  Result := (MaxDegree = 0) and Items[0].IsNegOne;
 end;
 
 procedure TCnBigComplexDecimalPolynomial.Negate;
