@@ -1378,7 +1378,7 @@ function StrToBytes(const S: AnsiString): TBytes;
 function BytesToStr(Data: TBytes): AnsiString;
 {* 将字节数组的内容转为一新的 AnsiString}
 
-function MakeFormFullyVisible(AForm: TCustomForm): Boolean;
+function MakeFormFullyDesktopVisible(AForm: TCustomForm): Boolean;
 {* 将一个窗体的位置限定在当前主桌面显示区内，返回是否成功}
 
 function ConvertStringToIdent(const Str: string; const Prefix: string = 'S';
@@ -8731,7 +8731,7 @@ begin
 end;
 
 // 将一个窗体的位置限定在当前主桌面显示区内，返回是否成功
-function MakeFormFullyVisible(AForm: TCustomForm): Boolean;
+function MakeFormFullyDesktopVisible(AForm: TCustomForm): Boolean;
 var
   Pr: TControl;
   Pf: TCustomForm;
