@@ -1036,9 +1036,10 @@ begin
   // In Unicode Delphi, string is UnicodeString (UTF-16)
   // Check for UTF-16 BOM (FEFF/FFFE for LE/BE) or UTF-8 BOM that wasn't stripped
   if (FLength >= 1) and ((FSource[1] = #$FEFF) or (FSource[1] = #$FFFE)) then
-  begin
-    FPosition := 1;  // Skip UTF-16 BOM
-  end;
+    FPosition := 1
+  else if (FLength >= 3) and
+          (FSource[1] = #$EF) and (FSource[2] = #$BB) and (FSource[3] = #$BF) then
+    FPosition := 3;
 {$ELSE}
   // In non-Unicode Delphi/FPC, string is AnsiString
   // Check for UTF-8 BOM (EF BB BF)
@@ -2234,29 +2235,125 @@ end;
 procedure TCnXMLDocument.LoadFromStream(Stream: TStream);
 var
   XMLString: string;
+  Buffer: TBytes;
+  StartPos: Integer;
+  DataSize: Integer;
+  IsUtf16LE: Boolean;
+  IsUtf16BE: Boolean;
+  I: Integer;
+  Temp: Byte;
 {$IFDEF UNICODE}
   StringStream: TStringStream;
 {$ELSE}
   UTF8Str: AnsiString;
+  WideText: WideString;
 {$ENDIF}
 begin
+  DataSize := Stream.Size;
+  if DataSize > 0 then
+  begin
+    SetLength(Buffer, DataSize);
+    Stream.Position := 0;
+    Stream.ReadBuffer(Buffer[0], DataSize);
+  end
+  else
+    SetLength(Buffer, 0);
+
+  StartPos := 0;
+  IsUtf16LE := False;
+  IsUtf16BE := False;
+  // Detect and skip BOM based on data content
+  if (Length(Buffer) >= 3) and
+     (Buffer[0] = $EF) and (Buffer[1] = $BB) and (Buffer[2] = $BF) then
+    StartPos := 3
+  else if (Length(Buffer) >= 2) and
+    (Buffer[0] = $FF) and (Buffer[1] = $FE) then
+  begin
+    StartPos := 2;
+    IsUtf16LE := True;
+  end
+  else if (Length(Buffer) >= 2) and
+    (Buffer[0] = $FE) and (Buffer[1] = $FF) then
+  begin
+    StartPos := 2;
+    IsUtf16BE := True;
+  end;
+
 {$IFDEF UNICODE}
-  StringStream := TStringStream.Create('', TEncoding.UTF8);
-  try
-    StringStream.CopyFrom(Stream, 0);
-    XMLString := StringStream.DataString;
+  if IsUtf16LE or IsUtf16BE then
+  begin
+    DataSize := Length(Buffer) - StartPos;
+    if (DataSize and 1) <> 0 then
+      Dec(DataSize);
+    if DataSize > 0 then
+    begin
+      if IsUtf16BE then
+      begin
+        for I := 0 to (DataSize div 2) - 1 do
+        begin
+          Temp := Buffer[StartPos + I * 2];
+          Buffer[StartPos + I * 2] := Buffer[StartPos + I * 2 + 1];
+          Buffer[StartPos + I * 2 + 1] := Temp;
+        end;
+      end;
+      SetLength(XMLString, DataSize div 2);
+      Move(Buffer[StartPos], XMLString[1], DataSize);
+    end
+    else
+      XMLString := '';
     LoadFromString(XMLString);
-  finally
-    StringStream.Free;
+  end
+  else
+  begin
+    StringStream := TStringStream.Create('', TEncoding.UTF8);
+    try
+      if Length(Buffer) > StartPos then
+        StringStream.WriteBuffer(Buffer[StartPos], Length(Buffer) - StartPos);
+      XMLString := StringStream.DataString;
+      LoadFromString(XMLString);
+    finally
+      StringStream.Free;
+    end;
   end;
 {$ELSE}
-  // 非 Unicode Delphi：从 UTF-8 转换为 AnsiString
-  SetLength(UTF8Str, Stream.Size);
-  Stream.Position := 0;
-  Stream.Read(UTF8Str[1], Stream.Size);
+  if IsUtf16LE or IsUtf16BE then
+  begin
+    DataSize := Length(Buffer) - StartPos;
+    if (DataSize and 1) <> 0 then
+      Dec(DataSize);
+    if DataSize > 0 then
+    begin
+      if IsUtf16BE then
+      begin
+        for I := 0 to (DataSize div 2) - 1 do
+        begin
+          Temp := Buffer[StartPos + I * 2];
+          Buffer[StartPos + I * 2] := Buffer[StartPos + I * 2 + 1];
+          Buffer[StartPos + I * 2 + 1] := Temp;
+        end;
+      end;
+      SetLength(WideText, DataSize div 2);
+      Move(Buffer[StartPos], WideText[1], DataSize);
+    end
+    else
+      WideText := '';
+    XMLString := AnsiString(WideText);
+    LoadFromString(XMLString);
+  end
+  else
+  begin
+    // 非 Unicode Delphi：从 UTF-8 转换为 AnsiString
+    if Length(Buffer) > StartPos then
+    begin
+      SetLength(UTF8Str, Length(Buffer) - StartPos);
+      Move(Buffer[StartPos], UTF8Str[1], Length(UTF8Str));
+    end
+    else
+      UTF8Str := '';
 
-  XMLString := CnUtf8ToAnsi(UTF8Str);
-  LoadFromString(XMLString);
+    XMLString := CnUtf8ToAnsi(UTF8Str);
+    LoadFromString(XMLString);
+  end;
 {$ENDIF}
 end;
 
