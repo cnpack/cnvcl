@@ -37,7 +37,9 @@ unit CnRSA;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.01.05 V3.4
+* 修改记录：2026.01.29 V3.5
+*               隐藏 PKCS1 的 Padding 错误以防范 Bleichenbacher 攻击。
+*           2026.01.05 V3.4
 *               增加 RSA 的 PSS 模式的签名与验证函数并增加几种杂凑支持。
 *           2025.12.09 V3.3
 *               调整私钥加密时填充类型，统一使用 RFC2313 推荐的 01 也就是 CN_PKCS1_BLOCK_TYPE_PRIVATE_FF。
@@ -2778,6 +2780,8 @@ var
   Stream: TMemoryStream;
   Res, Data: TCnBigNumber;
   ResBuf: TBytes;
+  FakeBuf: TBytes;
+  I: Integer;
 begin
   Result := False;
   Res := nil;
@@ -2796,9 +2800,30 @@ begin
 
     if PaddingMode = cpmPKCS1 then
     begin
-      Result := RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), OutBuf, OutLen);
-      if not Result then
-        _CnSetLastError(ECN_RSA_PADDING_ERROR);
+      // 为了防范 Bleichenbacher 攻击，要在 Padding 失败时返回伪数据冒充成功，这里准备好假数据
+      SetLength(FakeBuf, BlockSize);
+      if not CnRandomFillBytes2(PAnsiChar(@FakeBuf[0]), BlockSize) then
+      begin
+        // Fallback if RNG fails
+        for I := 0 to BlockSize - 1 do
+          FakeBuf[I] := Byte(I);
+      end;
+
+      if RemovePKCS1Padding(@ResBuf[0], Length(ResBuf), OutBuf, OutLen) then
+      begin
+        Result := True;
+        _CnSetLastError(ECN_RSA_OK);
+      end
+      else
+      begin
+        // 为了防范 Bleichenbacher 攻击，要在 Padding 失败时返回伪数据冒充成功
+        Move(FakeBuf[0], OutBuf^, BlockSize);
+        OutLen := BlockSize;
+
+        // 冒充成功，不告诉外界 Padding 失败
+        Result := True;
+        _CnSetLastError(ECN_RSA_OK);
+      end;
     end
     else if PaddingMode = cpmOAEP then
     begin
