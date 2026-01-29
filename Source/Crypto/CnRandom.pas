@@ -29,7 +29,9 @@ unit CnRandom;
 * 开发平台：Win7 + Delphi 5.0
 * 兼容测试：Win32/Win64/MacOS/Linux + Unicode/NonUnicode
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2023.01.15 V1.3
+* 修改记录：2026.01.29 V1.4
+*               修正可能的模偏差导致部分函数不够随机的问题
+*           2023.01.15 V1.3
 *               非 Windows 下全改用 urandom 以支持 Linux
 *           2023.01.08 V1.2
 *               修正 Win64 下 API 声明参数有误的问题
@@ -295,22 +297,33 @@ begin
 end;
 
 function RandomUInt64LessThan(HighValue: TUInt64): TUInt64;
+var
+  Threshold, R: TUInt64;
 begin
-  Result := UInt64Mod(RandomUInt64, HighValue);
+  if HighValue = 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
+  // Discard numbers less than remainder of 2^64 / HighValue to avoid modulo bias
+  Threshold := (UInt64Mod(High(TUInt64), HighValue) + 1);
+  if Threshold = HighValue then
+    Threshold := 0;
+
+  repeat
+    R := RandomUInt64;
+  until R >= Threshold;
+
+  Result := UInt64Mod(R, HighValue);
 end;
 
 function RandomInt64LessThan(HighValue: Int64): Int64;
-var
-  HL: array[0..1] of Cardinal;
 begin
-  // 用系统的随机数发生器，不用不安全的
-  if not CnRandomFillBytes2(PAnsiChar(@HL[0]), SizeOf(Int64)) then
-    raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
-
-  HL[0] := HL[0] mod (Cardinal(High(Integer)) + 1);    // Int64 最高位不能是 1，避免负数
-
-  Result := (Int64(HL[0]) shl 32) + HL[1];
-  Result := Result mod HighValue; // 未处理 HighValue 小于等于 0 的情形
+  if HighValue <= 0 then
+    Result := 0
+  else
+    Result := Int64(RandomUInt64LessThan(TUInt64(HighValue)));
 end;
 
 function RandomInt64: Int64;
@@ -330,8 +343,25 @@ begin
 end;
 
 function RandomUInt32LessThan(HighValue: Cardinal): Cardinal;
+var
+  Threshold, R: Cardinal;
 begin
-  Result := RandomUInt32 mod HighValue;
+  if HighValue = 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
+  // Discard numbers less than remainder of 2^32 / HighValue to avoid modulo bias
+  Threshold := (High(Cardinal) mod HighValue + 1);
+  if Threshold = HighValue then
+    Threshold := 0;
+
+  repeat
+    R := RandomUInt32;
+  until R >= Threshold;
+
+  Result := R mod HighValue;
 end;
 
 function RandomInt32: Integer;
@@ -340,15 +370,11 @@ begin
 end;
 
 function RandomInt32LessThan(HighValue: Integer): Integer;
-var
-  D: Cardinal;
 begin
-  // 用系统的随机数发生器，不用不安全的
-  if not CnRandomFillBytes2(PAnsiChar(@D), SizeOf(Cardinal)) then
-    raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
-
-  D := D mod (Cardinal(High(Integer)) + 1);
-  Result := Integer(Int64(D) mod Int64(HighValue)); // 未处理 HighValue 小于等于 0 的情形
+  if HighValue <= 0 then
+    Result := 0
+  else
+    Result := Integer(RandomUInt32LessThan(Cardinal(HighValue)));
 end;
 
 function CnKnuthShuffle(ArrayBase: Pointer; ElementByteSize: Integer;
