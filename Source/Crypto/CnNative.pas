@@ -1913,6 +1913,17 @@ function ConstTimeBytesEqual(const A: TBytes; const B: TBytes): Boolean;
    返回值：Boolean                        - 返回是否相等
 }
 
+function ConstTimeCompareMem(P1, P2: Pointer; ByteLength: Integer): Boolean;
+{* 针对俩相同长度的内存块的执行时间固定的比较，内容相同时返回 True。
+
+   参数：
+     P1: Pointer                          - 待比较的第一个内存块地址
+     P2: Pointer                          - 待比较的第二个内存块地址
+     ByteLength: Integer                  - 待比较的字节长度
+
+   返回值：Boolean                        - 返回是否相等
+}
+
 function ConstTimeExpandBoolean8(V: Boolean): Byte;
 {* 根据 V 的值返回 8 位整数全 1 或全 0。
 
@@ -3843,6 +3854,24 @@ begin
   Result := True;
   for I := 0 to Length(A) - 1 do // 每个字节都比较，而不是碰到不同就退出
     Result := Result and (ConstTimeEqual8(A[I], B[I]));
+end;
+
+function ConstTimeCompareMem(P1, P2: Pointer; ByteLength: Integer): Boolean;
+var
+  B1, B2: PByte;
+  Res: Byte;
+  I: Integer;
+begin
+  Res := 0;
+  B1 := PByte(P1);
+  B2 := PByte(P2);
+  for I := 0 to ByteLength - 1 do
+  begin
+    Res := Res or (B1^ xor B2^);
+    Inc(B1);
+    Inc(B2);
+  end;
+  Result := Res = 0;
 end;
 
 function ConstTimeExpandBoolean8(V: Boolean): Byte;

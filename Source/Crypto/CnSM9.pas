@@ -5263,7 +5263,7 @@ begin
         C2[I] := Byte(KDFKey[I + 1]) xor P^[I];
     end;
 
-    if CompareMem(@C3[0], @Mac[0], SizeOf(TCnSM3Digest)) then
+    if ConstTimeCompareMem(@C3[0], @Mac[0], SizeOf(TCnSM3Digest)) then
     begin
       OutStream.Write(C2[0], Length(C2));
 
@@ -5706,7 +5706,7 @@ begin
 
     // µÚ¶þ´ÎÔÓ´Õ
     D := SM3(Stream.Memory, Stream.Size);
-    Result := CompareMem(@D[0], @InOptionalSA[0], SizeOf(TCnSM3Digest));
+    Result := ConstTimeCompareMem(@D[0], @InOptionalSA[0], SizeOf(TCnSM3Digest));
 
     if Result then
       _CnSetLastError(ECN_SM9_OK)

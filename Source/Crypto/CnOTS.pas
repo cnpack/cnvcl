@@ -1601,7 +1601,7 @@ begin
         C[I], Mask, CN_WOTS_PLUS_W - 1 - C[I]);
 
     // 比较计算出的公钥和提供的公钥
-    Result := CompareMem(@ComputedPublicKey[0], @PublicKey[0],
+    Result := ConstTimeCompareMem(@ComputedPublicKey[0], @PublicKey[0],
       SizeOf(TCnWOTSPlusSM3PublicKey));
   except
     Result := False;
@@ -1793,7 +1793,7 @@ begin
         C[I], Mask, CN_WOTS_PLUS_W - 1 - C[I]);
 
     // 比较计算出的公钥和提供的公钥
-    Result := CompareMem(@ComputedPublicKey[0], @PublicKey[0],
+    Result := ConstTimeCompareMem(@ComputedPublicKey[0], @PublicKey[0],
       SizeOf(TCnWOTSPlusSHA256PublicKey));
   except
     Result := False;

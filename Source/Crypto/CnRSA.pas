@@ -3531,7 +3531,7 @@ begin
         // 无摘要时，从解密内容里去除了 PKCS1 的 Padding 的剩下内容直接与原始 InStream 内容比对
         Result := InStream.Size = BerLen;
         if Result then
-          Result := CompareMem(InStream.Memory, @BerBuf[0], InStream.Size);
+          Result := ConstTimeCompareMem(InStream.Memory, @BerBuf[0], InStream.Size);
 
         _CnSetLastError(ECN_RSA_OK); // 正常进行校验，即使校验不通过也清空错误码
       end
@@ -3567,7 +3567,7 @@ begin
         Node := Reader.Items[4];
         Result := Stream.Size = Node.BerDataLength;
         if Result then
-          Result := CompareMem(Stream.Memory, Node.BerDataAddress, Stream.Size);
+          Result := ConstTimeCompareMem(Stream.Memory, Node.BerDataAddress, Stream.Size);
 
         _CnSetLastError(ECN_RSA_OK); // 正常进行校验，即使校验不通过也清空错误码
       end;
@@ -3755,7 +3755,7 @@ begin
         Stream.LoadFromFile(InFileName); // 无摘要时，直接比对解密内容与原始文件
         Result := Stream.Size = BerLen;
         if Result then
-          Result := CompareMem(Stream.Memory, @BerBuf[0], Stream.Size);
+          Result := ConstTimeCompareMem(Stream.Memory, @BerBuf[0], Stream.Size);
 
         _CnSetLastError(ECN_RSA_OK); // 正常进行校验，即使校验不通过也清空错误码
       end
@@ -3791,7 +3791,7 @@ begin
         Node := Reader.Items[4];
         Result := Stream.Size = Node.BerDataLength;
         if Result then
-          Result := CompareMem(Stream.Memory, Node.BerDataAddress, Stream.Size);
+          Result := ConstTimeCompareMem(Stream.Memory, Node.BerDataAddress, Stream.Size);
 
         _CnSetLastError(ECN_RSA_OK); // 正常进行校验，即使校验不通过也清空错误码
       end;
@@ -4263,37 +4263,37 @@ begin
         rsdtMD5:
           begin
             Md5Dig := MD5Buffer(MPrime[0], MPrimeLen);
-            Result := CompareMem(@Md5Dig[0], @H[0], hLen);
+            Result := ConstTimeCompareMem(@Md5Dig[0], @H[0], hLen);
           end;
         rsdtSHA1:
           begin
             Sha1Dig := SHA1Buffer(MPrime[0], MPrimeLen);
-            Result := CompareMem(@Sha1Dig[0], @H[0], hLen);
+            Result := ConstTimeCompareMem(@Sha1Dig[0], @H[0], hLen);
           end;
         rsdtSHA224:
           begin
             Sha224Dig := SHA224Buffer(MPrime[0], MPrimeLen);
-            Result := CompareMem(@Sha224Dig[0], @H[0], hLen);
+            Result := ConstTimeCompareMem(@Sha224Dig[0], @H[0], hLen);
           end;
         rsdtSHA256:
           begin
             Sha256Dig := SHA256Buffer(MPrime[0], MPrimeLen);
-            Result := CompareMem(@Sha256Dig[0], @H[0], hLen);
+            Result := ConstTimeCompareMem(@Sha256Dig[0], @H[0], hLen);
           end;
         rsdtSHA384:
           begin
             Sha384Dig := SHA384Buffer(MPrime[0], MPrimeLen);
-            Result := CompareMem(@Sha384Dig[0], @H[0], hLen);
+            Result := ConstTimeCompareMem(@Sha384Dig[0], @H[0], hLen);
           end;
         rsdtSHA512:
           begin
             Sha512Dig := SHA512Buffer(MPrime[0], MPrimeLen);
-            Result := CompareMem(@Sha512Dig[0], @H[0], hLen);
+            Result := ConstTimeCompareMem(@Sha512Dig[0], @H[0], hLen);
           end;
         rsdtSM3:
           begin
             Sm3Dig := SM3Buffer(MPrime[0], MPrimeLen);
-            Result := CompareMem(@Sm3Dig[0], @H[0], hLen);
+            Result := ConstTimeCompareMem(@Sm3Dig[0], @H[0], hLen);
           end;
       else
         Result := False;
@@ -4813,7 +4813,7 @@ begin
       DB[I] := DB[I] xor MaskedDB^[I];  // 得到 DB
 
     // 这里 DB 的前 MdLen 字节应该等于 ParamHash，比较判断之
-    if not CompareMem(@DB[0], @ParamHash[0], MdLen) then
+    if not ConstTimeCompareMem(@DB[0], @ParamHash[0], MdLen) then
     begin
       _CnSetLastError(ECN_RSA_PADDING_ERROR);
       Exit;

@@ -1400,11 +1400,11 @@ begin
       P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
       Move(MP[1], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], MLen);
       P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + MLen + 1], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成算 C3 的
-      Sm3Dig := SM3(@C3H[1], Length(C3H));                     // 算出 C3
+      Sm3Dig := SM3(@C3H[1], Length(C3H));                             // 算出 C3
 
       M := PAnsiChar(EnData);
-      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);     // M 指向 C3
-      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对杂凑值是否相等
+      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);             // M 指向 C3
+      if ConstTimeCompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then // 比对杂凑值是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
 
@@ -1425,11 +1425,11 @@ begin
       P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
       Move(MP[1], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], MLen);
       P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + MLen + 1], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成算 C3 的
-      Sm3Dig := SM3(@C3H[1], Length(C3H));                     // 算出 C3
+      Sm3Dig := SM3(@C3H[1], Length(C3H));                             // 算出 C3
 
       M := PAnsiChar(EnData);
       Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen + MLen);      // 指向 C3
-      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对杂凑值是否相等
+      if ConstTimeCompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then // 比对杂凑值是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
 
@@ -2329,7 +2329,7 @@ begin
 
     // 然后计算 SB 核对
     OutOptionalSA := CalcSM2OptionalSig(U, MyRA, InRB, Za, Zb, True);
-    if not CompareMem(@OutOptionalSA[0], @InOptionalSB[0], SizeOf(TCnSM3Digest)) then
+    if not ConstTimeCompareMem(@OutOptionalSA[0], @InOptionalSB[0], SizeOf(TCnSM3Digest)) then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
@@ -2351,7 +2351,7 @@ function CnSM2KeyExchangeBStep2(const AUserID, BUserID: AnsiString; KeyByteLengt
   BPrivateKey: TCnSM2PrivateKey; APublicKey, BPublicKey: TCnSM2PublicKey;
   InOptionalSA: TCnSM3Digest; MyOptionalS2: TCnSM3Digest; SM2: TCnSM2): Boolean;
 begin
-  Result := CompareMem(@InOptionalSA[0], @MyOptionalS2[0], SizeOf(TCnSM3Digest));
+  Result := ConstTimeCompareMem(@InOptionalSA[0], @MyOptionalS2[0], SizeOf(TCnSM3Digest));
 end;
 
 {
@@ -2959,11 +2959,11 @@ begin
       P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
       Move(MP[1], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], MLen);
       P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + MLen + 1], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成算 C3 的
-      Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
+      Sm3Dig := SM3(@C3H[1], Length(C3H));                             // 算出 C3
 
       M := PAnsiChar(EnData);
       Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);             // M 指向 C3
-      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对杂凑值是否相等
+      if ConstTimeCompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then // 比对杂凑值是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
 
@@ -2984,11 +2984,11 @@ begin
       P2.X.ToBinary(@C3H[1], CN_SM2_FINITEFIELD_BYTESIZE);
       Move(MP[1], C3H[CN_SM2_FINITEFIELD_BYTESIZE + 1], MLen);
       P2.Y.ToBinary(@C3H[CN_SM2_FINITEFIELD_BYTESIZE + MLen + 1], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成算 C3 的
-      Sm3Dig := SM3(@C3H[1], Length(C3H));                   // 算出 C3
+      Sm3Dig := SM3(@C3H[1], Length(C3H));                             // 算出 C3
 
       M := PAnsiChar(EnData);
       Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen + MLen);      // 指向 C3
-      if CompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then  // 比对杂凑值是否相等
+      if ConstTimeCompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then // 比对杂凑值是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
 
