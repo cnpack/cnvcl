@@ -327,8 +327,8 @@ procedure BigNumberVectorCopy(Dest: TCnBigNumberVector; Source: TCnBigNumberVect
 {* 复制大整数向量的内容。
 
    参数：
-     Dst: TCnBigNumberVector              - 目标向量
-     Src: TCnBigNumberVector              - 源向量
+     Dest: TCnBigNumberVector             - 目标向量
+     Source: TCnBigNumberVector           - 源向量
 
    返回值：（无）
 }
@@ -432,8 +432,8 @@ procedure Int64PolynomialVectorCopy(Dest: TCnInt64PolynomialVector; Source: TCnI
 {* 复制一元整系数多项式向量的内容。
 
    参数：
-     Dst: TCnInt64PolynomialVector        - 目标向量
-     Src: TCnInt64PolynomialVector        - 源向量
+     Dest: TCnInt64PolynomialVector       - 目标向量
+     Source: TCnInt64PolynomialVector     - 源向量
 
    返回值：（无）
 }

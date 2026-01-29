@@ -393,7 +393,7 @@ type
     {* 将大浮点复数设置为 i}
 
     function IsZero: Boolean;
-    {* 返回复数是否为 0
+    {* 返回复数是否为 0。
 
        参数：
          （无）
