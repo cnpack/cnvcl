@@ -5145,24 +5145,14 @@ begin
     // ª÷∏¥ P1 P2
     P1.Clear;
     P1.MaxDegree := 2;
-    C1 := TCnBigComplexDecimal.Create;
-    C1.SetValue(1, 2);
-    P1[0] := C1;
-    C1 := TCnBigComplexDecimal.Create;
-    C1.SetValue(2, 3);
-    P1[1] := C1;
-    C1 := TCnBigComplexDecimal.Create;
-    C1.SetValue(3, 4);
-    P1[2] := C1;
+    P1[0].SetValue(1, 2);
+    P1[1].SetValue(2, 3);
+    P1[2].SetValue(3, 4);
 
     P2.Clear;
     P2.MaxDegree := 1;
-    C2 := TCnBigComplexDecimal.Create;
-    C2.SetValue(1, 0);
-    P2[0] := C2;
-    C2 := TCnBigComplexDecimal.Create;
-    C2.SetValue(1, 1);
-    P2[1] := C2;
+    P2[0].SetValue(1, 0);
+    P2[1].SetValue(1, 1);
 
     // ≤‚ ‘∏¥÷∆
     BigComplexDecimalPolynomialCopy(Res, P1);
