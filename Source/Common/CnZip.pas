@@ -447,6 +447,7 @@ resourcestring
   SCnZipInvalidPassword = 'Invalid Password';
   SCnZipNotImplemented = 'Feature NOT Implemented';
   SCnZipUtf8NotSupport = 'UTF8 NOT Support';
+  SCnZipInvalidFileName = 'Invalid File Name in Zip Archive';
 
 var
   FZipCompressionHandlers: TClassList = nil;
@@ -1024,6 +1025,9 @@ begin
 {$IFDEF MSWINDOWS}
     AFileName := StringReplace(AFileName, '/', '\', [rfReplaceAll]);
 {$ENDIF}
+
+    if (Pos('..', AFileName) > 0) or (Pos(':', AFileName) > 0) then
+      raise ECnZipException.Create(SCnZipInvalidFileName);
 
     if CreateSubdirs then
       AFileName := IncludeTrailingBackslash(Path) + AFileName

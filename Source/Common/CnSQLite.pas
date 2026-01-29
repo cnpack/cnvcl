@@ -898,13 +898,13 @@ begin
           begin
             if c <> 'S' then
               exit; //illegal format
-            sql := sql + '''' + string(VString^) + '''';
+            sql := sql + '''' + StringReplace(string(VString^), '''', '''''', [rfReplaceAll]) + '''';
           end;
         vtChar:
           begin
             if c <> 'S' then
               exit; //illegal format
-            sql := sql + '''' + {$IFDEF UNICODE}String{$ENDIF}(VChar) + '''';
+            sql := sql + '''' + StringReplace({$IFDEF UNICODE}String{$ENDIF}(VChar), '''', '''''', [rfReplaceAll]) + '''';
           end;
         vtExtended:
           begin
@@ -922,13 +922,13 @@ begin
           begin
             if c <> 'S' then
               exit; //illegal format
-            sql := sql + '''' + string(VAnsiString) + '''';
+            sql := sql + '''' + StringReplace(string(VAnsiString), '''', '''''', [rfReplaceAll]) + '''';
           end;
         vtVariant:
           begin
             if c <> 'V' then
               exit; //illegal format
-            sql := sql + '''' + string(VVariant^) + '''';
+            sql := sql + '''' + StringReplace(string(VVariant^), '''', '''''', [rfReplaceAll]) + '''';
           end;
         vtCurrency:
           begin
