@@ -2143,8 +2143,8 @@ type
   {* Implementation of Channel using memory mapped file for POSIX *}
   private
     FMap: Integer;               // File Descriptor for Shared Memory
-    FQueueEvent: sem_t;          // Pointer to Event Semaphore
-    FQueueFlush: sem_t;          // Pointer to Flush Semaphore
+    FQueueEvent: Psem_t;         // Pointer to Event Semaphore
+    FQueueFlush: Psem_t;         // Pointer to Flush Semaphore
     FMapSize:   Integer;
     FQueueSize: Integer;
     FMapHeader: Pointer;
@@ -2160,8 +2160,8 @@ type
     procedure DestroyHandles;
     procedure LoadQueuePtr;
     procedure SaveQueuePtr(SaveFront: Boolean = False);
-    function OpenSemaphore(const Name: string): sem_t;
-    procedure CloseSemaphore(var Sem: sem_t);
+    function OpenSemaphore(const Name: string): Psem_t;
+    procedure CloseSemaphore(var Sem: Psem_t);
   protected
     function CheckReady: Boolean; override;
     procedure UpdateFlush; override;
@@ -2194,6 +2194,18 @@ implementation
 {$IFDEF SUPPORT_EVALUATE}
 uses
   CnPropSheetFrm;
+{$ENDIF}
+
+{$IFDEF POSIX}
+
+const
+  libc = '/usr/lib/libc.dylib';
+
+// 补上共享内存操作缺失的声明
+function shm_open(name: PAnsiChar; oflag: Integer; mode: Integer): Integer; cdecl; external libc name 'shm_open';
+
+function shm_unlink(name: PAnsiChar): Integer; cdecl; external libc name 'shm_unlink';
+
 {$ENDIF}
 
 const
@@ -7120,19 +7132,19 @@ begin
   inherited;
 end;
 
-function TCnPosixMapFileChannel.OpenSemaphore(const Name: string): sem_t;
+function TCnPosixMapFileChannel.OpenSemaphore(const Name: string): Psem_t;
 begin
   // Open existing semaphore
   Result := sem_open(PAnsiChar(AnsiString(Name)), 0);
-  if Result = sem_t(SEM_FAILED) then
+  if Result = SEM_FAILED then
     Result := nil;
 end;
 
-procedure TCnPosixMapFileChannel.CloseSemaphore(var Sem: sem_t);
+procedure TCnPosixMapFileChannel.CloseSemaphore(var Sem: Psem_t);
 begin
   if Sem <> nil then
   begin
-    sem_close(Sem);
+    sem_close(Sem^);
     Sem := nil;
   end;
 end;
@@ -7308,7 +7320,7 @@ end;
 
 procedure TCnPosixMapFileChannel.SendContent(var MsgDesc; Size: Integer);
 var
-  Mutex: sem_t;
+  Mutex: Psem_t;
   MsgLen, RestLen: Integer;
   IsFull: Boolean;
   I: Integer;
@@ -7337,7 +7349,7 @@ begin
     // Wait for mutex with timeout (simulated loop)
     // CnDebugWaitingMutexTime = 1000ms
     I := 0;
-    while sem_trywait(Mutex) <> 0 do
+    while sem_trywait(Mutex^) <> 0 do
     begin
        if errno = EAGAIN then
        begin
@@ -7396,17 +7408,17 @@ begin
 
     SaveQueuePtr(IsFull);
 
-    sem_post(Mutex);
+    sem_post(Mutex^);
     CloseSemaphore(Mutex);
 
     if FQueueEvent <> nil then
-      sem_post(FQueueEvent);
+      sem_post(FQueueEvent^);
 
     if FAutoFlush and (FQueueFlush <> nil) then
     begin
       // Wait for flush event
       I := 0;
-      while sem_trywait(FQueueFlush) <> 0 do
+      while sem_trywait(FQueueFlush^) <> 0 do
       begin
         if errno = EAGAIN then
         begin
