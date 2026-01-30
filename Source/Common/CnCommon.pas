@@ -8736,8 +8736,9 @@ var
   Pr: TControl;
   Pf: TCustomForm;
   M: TMonitor;
-  R: TRect;
+  R, D: TRect;
   W, H: Integer;
+  Chgd: Boolean;
 {$IFNDEF TMONITOR_HAS_WORKAREA}
   MonInfo: TMonitorInfo;
 {$ENDIF}
@@ -8764,20 +8765,36 @@ begin
   GetMonitorInfo(M.Handle, @MonInfo);
   R := MonInfo.rcWork;
 {$ENDIF}
+  D := AForm.BoundsRect;
+  Chgd := False;
 
   W := R.Right - R.Left;
   H := R.Bottom - R.Top;
 
   if (AForm.Left < R.Left) or (AForm.Width > W) then
-    AForm.Left := R.Left;
-
+  begin
+    D.Left := R.Left;
+    Chgd := True;
+  end;
   if (AForm.Top < R.Top) or (AForm.Height > H) then
-    AForm.Top := R.Top;
+  begin
+    D.Top := R.Top;
+    Chgd := True;
+  end;
 
   if (AForm.Left + AForm.Width > W) and (AForm.Width < W) then
-    AForm.Left := W - AForm.Width;
+  begin
+    D.Left := W - AForm.Width;
+    Chgd := True;
+  end;
   if (AForm.Top + AForm.Height > H) and (AForm.Height < H) then
-    AForm.Top := H - AForm.Height;
+  begin
+    D.Top := H - AForm.Height;
+    Chgd := True;
+  end;
+
+  if Chgd then
+    AForm.BoundsRect := D;
 end;
 
 type
