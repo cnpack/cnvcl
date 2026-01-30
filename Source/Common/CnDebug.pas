@@ -31,7 +31,9 @@ unit CnDebug;
 * 开发平台：PWin2000Pro + Delphi 7
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.02.11
+* 修改记录：2026.01.30
+*               增加 POSIX 的内存输出支持，待测试
+*           2025.02.11
 *               增加对 FMX 的 Evaluate 支持，需要定义 ENABLE_FMX，待测试
 *           2025.02.05
 *               增加 REDIRECT_OPDS 编译条件，以控制直接使用 OutputDebugStringA
@@ -153,7 +155,8 @@ uses
   SysUtils, Classes, TypInfo {$IFDEF FPC} {$IFDEF CAPTURE_STACK}, LineInfo {$ENDIF} {$ENDIF}
   {$IFDEF ENABLE_FMX}, System.Types, System.UITypes, System.SyncObjs, System.UIConsts
   {$IFDEF MSWINDOWS}, Winapi.Windows, Winapi.Messages, Vcl.Controls, System.Win.Registry
-  {$ELSE}, Posix.Unistd, Posix.Pthread {$ENDIF},
+  {$ELSE}, Posix.Unistd, Posix.Pthread, Posix.SysMman, Posix.Fcntl, Posix.SysStat,
+    Posix.Semaphore, Posix.Errno, Posix.Base {$ENDIF},
   FMX.Controls, FMX.Forms, {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics, {$ENDIF} FMX.Types
   {$IFDEF FMX_PIXELFORMATS}, FMX.PixelFormats {$ENDIF}
   {$ELSE}, Windows, Registry, Messages, Controls, Graphics, Forms {$ENDIF}
@@ -2103,7 +2106,7 @@ type
 
 {$IFDEF MSWINDOWS}
 
-  TCnMapFileChannel = class(TCnDebugChannel)
+  TCnWinMapFileChannel = class(TCnDebugChannel)
   {* 使用内存映射文件来传输数据的 Channel 实现类}
   private
     FMap: THandle;               // 内存映射文件 Handle
@@ -2120,6 +2123,45 @@ type
     procedure DestroyHandles;
     procedure LoadQueuePtr;
     procedure SaveQueuePtr(SaveFront: Boolean = False);
+  protected
+    function CheckReady: Boolean; override;
+    procedure UpdateFlush; override;
+  public
+    constructor Create(IsAutoFlush: Boolean = True); override;
+    destructor Destroy; override;
+    procedure StartDebugViewer; override;
+    function CheckFilterChanged: Boolean; override;
+    procedure RefreshFilter(Filter: TCnDebugFilter); override;
+    procedure SendContent(var MsgDesc; Size: Integer); override;
+  end;
+
+{$ENDIF}
+
+{$IFDEF POSIX}
+
+  TCnPosixMapFileChannel = class(TCnDebugChannel)
+  {* Implementation of Channel using memory mapped file for POSIX *}
+  private
+    FMap: Integer;               // File Descriptor for Shared Memory
+    FQueueEvent: sem_t;          // Pointer to Event Semaphore
+    FQueueFlush: sem_t;          // Pointer to Flush Semaphore
+    FMapSize:   Integer;
+    FQueueSize: Integer;
+    FMapHeader: Pointer;
+    FMsgBase:   Pointer;
+    FFront:     Integer;
+    FTail:      Integer;
+    FQueueEventName: string;
+    FQueueFlushName: string;
+    FQueueStartName: string;
+    FQueueMutexName: string;
+
+    function IsInitedFromHeader: Boolean;
+    procedure DestroyHandles;
+    procedure LoadQueuePtr;
+    procedure SaveQueuePtr(SaveFront: Boolean = False);
+    function OpenSemaphore(const Name: string): sem_t;
+    procedure CloseSemaphore(var Sem: sem_t);
   protected
     function CheckReady: Boolean; override;
     procedure UpdateFlush; override;
@@ -6701,9 +6743,9 @@ end;
 
 {$IFDEF MSWINDOWS}
 
-{ TCnMapFileChannel }
+{ TCnWinMapFileChannel }
 
-function TCnMapFileChannel.CheckFilterChanged: Boolean;
+function TCnWinMapFileChannel.CheckFilterChanged: Boolean;
 var
   Header: PCnMapHeader;
 begin
@@ -6715,7 +6757,7 @@ begin
   end;
 end;
 
-function TCnMapFileChannel.CheckReady: Boolean;
+function TCnWinMapFileChannel.CheckReady: Boolean;
 begin
   Result := (FMap <> 0) and (FMapHeader <> nil) and (FQueueEvent <> 0);
   if not Result then
@@ -6748,19 +6790,19 @@ begin
     DestroyHandles;
 end;
 
-constructor TCnMapFileChannel.Create(IsAutoFlush: Boolean = True);
+constructor TCnWinMapFileChannel.Create(IsAutoFlush: Boolean = True);
 begin
   inherited;
   UpdateFlush;
 end;
 
-destructor TCnMapFileChannel.Destroy;
+destructor TCnWinMapFileChannel.Destroy;
 begin
   DestroyHandles;
   inherited;
 end;
 
-procedure TCnMapFileChannel.DestroyHandles;
+procedure TCnWinMapFileChannel.DestroyHandles;
 begin
   if FQueueFlush <> 0 then
   begin
@@ -6784,7 +6826,7 @@ begin
   end;
 end;
 
-function TCnMapFileChannel.IsInitedFromHeader: Boolean;
+function TCnWinMapFileChannel.IsInitedFromHeader: Boolean;
 var
   Header: PCnMapHeader;
 begin
@@ -6800,7 +6842,7 @@ begin
   end;
 end;
 
-procedure TCnMapFileChannel.LoadQueuePtr;
+procedure TCnWinMapFileChannel.LoadQueuePtr;
 var
   Header: PCnMapHeader;
 begin
@@ -6812,7 +6854,7 @@ begin
   end;
 end;
 
-procedure TCnMapFileChannel.RefreshFilter(Filter: TCnDebugFilter);
+procedure TCnWinMapFileChannel.RefreshFilter(Filter: TCnDebugFilter);
 var
   Header: PCnMapHeader;
   TagArray: array[0..CnMaxTagLength] of AnsiChar;
@@ -6831,7 +6873,7 @@ begin
   end;
 end;
 
-procedure TCnMapFileChannel.SaveQueuePtr(SaveFront: Boolean = False);
+procedure TCnWinMapFileChannel.SaveQueuePtr(SaveFront: Boolean = False);
 var
   Header: PCnMapHeader;
 begin
@@ -6844,7 +6886,7 @@ begin
   end;
 end;
 
-procedure TCnMapFileChannel.SendContent(var MsgDesc; Size: Integer);
+procedure TCnWinMapFileChannel.SendContent(var MsgDesc; Size: Integer);
 var
   Mutex: THandle;
   Res: Cardinal;
@@ -6955,7 +6997,7 @@ begin
   end;
 end;
 
-procedure TCnMapFileChannel.StartDebugViewer;
+procedure TCnWinMapFileChannel.StartDebugViewer;
 const
   SCnDebugViewerExeName = 'CnDebugViewer.exe';
   SCnDotExe = '.exe';
@@ -7033,7 +7075,7 @@ begin
   end;
 end;
 
-procedure TCnMapFileChannel.UpdateFlush;
+procedure TCnWinMapFileChannel.UpdateFlush;
 begin
   if FAutoFlush then
   begin
@@ -7049,6 +7091,341 @@ end;
 
 {$ENDIF}
 
+{$IFDEF POSIX}
+
+{ TCnPosixMapFileChannel }
+
+constructor TCnPosixMapFileChannel.Create(IsAutoFlush: Boolean);
+var
+  S: string;
+begin
+  inherited;
+  FQueueEventName := '/' + SCnDebugQueueEventName;
+  FQueueFlushName := '/' + SCnDebugFlushEventName;
+  FQueueStartName := '/' + SCnDebugStartEventName;
+  FQueueMutexName := '/' + SCnDebugQueueMutexName;
+
+  // Remove backslash from names as POSIX names should not have it except at start
+  FQueueEventName := StringReplace(FQueueEventName, '\', '_', [rfReplaceAll]);
+  FQueueFlushName := StringReplace(FQueueFlushName, '\', '_', [rfReplaceAll]);
+  FQueueStartName := StringReplace(FQueueStartName, '\', '_', [rfReplaceAll]);
+  FQueueMutexName := StringReplace(FQueueMutexName, '\', '_', [rfReplaceAll]);
+
+  UpdateFlush;
+end;
+
+destructor TCnPosixMapFileChannel.Destroy;
+begin
+  DestroyHandles;
+  inherited;
+end;
+
+function TCnPosixMapFileChannel.OpenSemaphore(const Name: string): sem_t;
+begin
+  // Open existing semaphore
+  Result := sem_open(PAnsiChar(AnsiString(Name)), 0);
+  if Result = sem_t(SEM_FAILED) then
+    Result := nil;
+end;
+
+procedure TCnPosixMapFileChannel.CloseSemaphore(var Sem: sem_t);
+begin
+  if Sem <> nil then
+  begin
+    sem_close(Sem);
+    Sem := nil;
+  end;
+end;
+
+procedure TCnPosixMapFileChannel.DestroyHandles;
+begin
+  CloseSemaphore(FQueueFlush);
+  CloseSemaphore(FQueueEvent);
+
+  if FMapHeader <> nil then
+  begin
+    munmap(FMapHeader, FMapSize);
+    FMapHeader := nil;
+  end;
+
+  if FMap > 0 then
+  begin
+    __close(FMap);
+    FMap := 0;
+  end;
+end;
+
+function TCnPosixMapFileChannel.IsInitedFromHeader: Boolean;
+var
+  Header: PCnMapHeader;
+begin
+  Result := False;
+  if (FMap > 0) and (FMapHeader <> nil) then
+  begin
+    Header := FMapHeader;
+    FMsgBase := Pointer(TCnNativeInt(FMapHeader) + Header^.DataOffset);
+    FMapSize := Header^.MapSize;
+    FQueueSize := FMapSize - Header^.DataOffset;
+    Result := (Header^.MapEnabled = CnDebugMapEnabled) and
+      CompareMem(@(Header^.MagicName), PAnsiChar(AnsiString(CnDebugMagicName)), CnDebugMagicLength);
+  end;
+end;
+
+procedure TCnPosixMapFileChannel.LoadQueuePtr;
+var
+  Header: PCnMapHeader;
+begin
+  if (FMap > 0) and (FMapHeader <> nil) then
+  begin
+    Header := FMapHeader;
+    FFront := Header^.QueueFront;
+    FTail := Header^.QueueTail;
+  end;
+end;
+
+procedure TCnPosixMapFileChannel.SaveQueuePtr(SaveFront: Boolean);
+var
+  Header: PCnMapHeader;
+begin
+  if (FMap > 0) and (FMapHeader <> nil) then
+  begin
+    Header := FMapHeader;
+    Header^.QueueTail := FTail;
+    if SaveFront then
+      Header^.QueueFront := FFront;
+  end;
+end;
+
+function TCnPosixMapFileChannel.CheckReady: Boolean;
+var
+  MapName: string;
+begin
+  Result := (FMap > 0) and (FMapHeader <> nil) and (FQueueEvent <> nil);
+  if not Result then
+  begin
+    MapName := '/' + SCnDebugMapName;
+    MapName := StringReplace(MapName, '\', '_', [rfReplaceAll]);
+
+    // Open Shared Memory
+    FMap := shm_open(PAnsiChar(AnsiString(MapName)), O_RDWR, $1FF {0777});
+    if FMap > 0 then
+    begin
+      // Map view of file
+      // Use a temporary map to get size first? Or assume a default size or read header?
+      // Since we are not creating it, we assume it's created by Viewer.
+      // We map a small portion first to read size? No, Viewer creates it with fixed size.
+      // But we don't know the size yet.
+      // Let's assume standard size or read from header.
+      // Actually we need to map at least sizeof(TCnMapHeader).
+
+      FMapHeader := mmap(nil, SizeOf(TCnMapHeader), PROT_READ or PROT_WRITE, MAP_SHARED, FMap, 0);
+
+      if FMapHeader <> MAP_FAILED then
+      begin
+        // Read size from header
+        FMapSize := PCnMapHeader(FMapHeader)^.MapSize;
+
+        // Remap full size if needed
+        munmap(FMapHeader, SizeOf(TCnMapHeader));
+        FMapHeader := mmap(nil, FMapSize, PROT_READ or PROT_WRITE, MAP_SHARED, FMap, 0);
+
+        if FMapHeader <> MAP_FAILED then
+        begin
+           FQueueEvent := OpenSemaphore(FQueueEventName);
+           if FQueueEvent <> nil then
+           begin
+             UpdateFlush;
+             Result := IsInitedFromHeader;
+           end;
+        end
+        else
+          FMapHeader := nil;
+      end
+      else
+        FMapHeader := nil;
+    end;
+  end
+  else
+    Result := PCnMapHeader(FMapHeader)^.MapEnabled = CnDebugMapEnabled;
+
+  if not Result then
+    DestroyHandles;
+end;
+
+procedure TCnPosixMapFileChannel.UpdateFlush;
+begin
+  if FAutoFlush then
+  begin
+    if FQueueFlush = nil then
+      FQueueFlush := OpenSemaphore(FQueueFlushName);
+  end
+  else
+    CloseSemaphore(FQueueFlush);
+end;
+
+procedure TCnPosixMapFileChannel.StartDebugViewer;
+var
+  ViewerExe: string;
+begin
+  // On macOS, we can use 'open' command to launch the app
+  // Assume CnDebugViewer is in the PATH or in the same bundle
+  // For now, let's try to run 'open -a CnDebugViewer'
+
+  // Implementation of launching external process on POSIX is complex.
+  // We can use fpSystem or similar if available, or libc system()
+
+  // For simplicity in this step, we skip auto-launching on POSIX for now
+  // or implement a simple system call.
+  // Viewer should create the shared memory and semaphores.
+end;
+
+function TCnPosixMapFileChannel.CheckFilterChanged: Boolean;
+begin
+  Result := False;
+  // Logic similar to Windows if needed
+  if (FMap > 0) and (FMapHeader <> nil) then
+    Result := PCnMapHeader(FMapHeader)^.Filter.NeedRefresh <> 0;
+end;
+
+procedure TCnPosixMapFileChannel.RefreshFilter(Filter: TCnDebugFilter);
+var
+  Header: PCnMapHeader;
+  TagArray: array[0..CnMaxTagLength] of AnsiChar;
+begin
+  if (Filter <> nil) and (FMap > 0) and (FMapHeader <> nil) then
+  begin
+    Header := FMapHeader;
+    FillChar(TagArray, CnMaxTagLength + 1, 0);
+    Move(Header^.Filter.Tag, TagArray, CnMaxTagLength);
+
+    Filter.Enabled := Header^.Filter.Enabled <> 0;
+    Filter.Level := Header^.Filter.Level;
+    Filter.Tag := string(TagArray);
+    Filter.MsgTypes := Header^.Filter.MsgTypes;
+    Header^.Filter.NeedRefresh := 0;
+  end;
+end;
+
+procedure TCnPosixMapFileChannel.SendContent(var MsgDesc; Size: Integer);
+var
+  Mutex: sem_t;
+  MsgLen, RestLen: Integer;
+  IsFull: Boolean;
+  I: Integer;
+
+  function BufferFull: Boolean;
+  begin
+    if FTail = FFront then
+      Result := False
+    else if FTail < FFront then
+      Result := FTail + Size < FFront
+    else if FTail + Size < FQueueSize then
+      Result := False
+    else if (FTail + Size) mod FQueueSize < FFront then
+      Result := False
+    else
+      Result := True;
+  end;
+
+begin
+  if Size > FQueueSize then Exit;
+
+  IsFull := False;
+  Mutex := OpenSemaphore(FQueueMutexName);
+  if Mutex <> nil then
+  begin
+    // Wait for mutex with timeout (simulated loop)
+    // CnDebugWaitingMutexTime = 1000ms
+    I := 0;
+    while sem_trywait(Mutex) <> 0 do
+    begin
+       if errno = EAGAIN then
+       begin
+         usleep(1000); // 1ms
+         Inc(I);
+         if I >= CnDebugWaitingMutexTime then
+         begin
+           CloseSemaphore(Mutex);
+           Exit; // Timeout
+         end;
+       end
+       else
+       begin
+         CloseSemaphore(Mutex);
+         Exit; // Error
+       end;
+    end;
+  end
+  else
+  begin
+    DestroyHandles;
+    Exit;
+  end;
+
+  try
+    LoadQueuePtr;
+    if BufferFull then
+    begin
+      IsFull := True;
+      repeat
+        MsgLen := PInteger(TCnNativeInt(FMsgBase) + FFront)^;
+        FFront := (FFront + MsgLen) mod FQueueSize;
+      until not BufferFull;
+    end;
+
+    if FTail + Size < FQueueSize then
+    begin
+      Move(MsgDesc, Pointer(TCnNativeInt(FMsgBase) + FTail)^, Size);
+    end
+    else
+    begin
+      RestLen := FQueueSize - FTail;
+      if RestLen < SizeOf(Integer) then
+      begin
+        Move(MsgDesc, Pointer(TCnNativeInt(FMsgBase) + FTail)^, SizeOf(Integer));
+      end
+      else
+        Move(MsgDesc, Pointer(TCnNativeInt(FMsgBase) + FTail)^, RestLen);
+
+      Move(Pointer(TCnNativeInt(@MsgDesc) + RestLen)^, FMsgBase^, Size - RestLen);
+    end;
+
+    Inc(FTail, Size);
+    if FTail >= FQueueSize then
+      FTail := FTail mod FQueueSize;
+
+    SaveQueuePtr(IsFull);
+
+    sem_post(Mutex);
+    CloseSemaphore(Mutex);
+
+    if FQueueEvent <> nil then
+      sem_post(FQueueEvent);
+
+    if FAutoFlush and (FQueueFlush <> nil) then
+    begin
+      // Wait for flush event
+      I := 0;
+      while sem_trywait(FQueueFlush) <> 0 do
+      begin
+        if errno = EAGAIN then
+        begin
+          usleep(1000);
+          Inc(I);
+          if I >= CnDebugFlushEventTime then Break;
+        end
+        else
+          Break;
+      end;
+    end;
+
+  except
+    CloseSemaphore(Mutex);
+    DestroyHandles;
+  end;
+end;
+
+{$ENDIF}
 initialization
 {$IFNDEF NDEBUG}
 {$IFDEF MSWINDOWS}
@@ -7056,7 +7433,7 @@ initialization
   {$IFDEF REDIRECT_OPDS}
   CnDebugChannelClass := nil; // 用 OutputDebugString 不创建 Channel
   {$ELSE}
-  CnDebugChannelClass := TCnMapFileChannel;
+  CnDebugChannelClass := TCnWinMapFileChannel;
   {$ENDIF}
 
   InitializeCriticalSection(FStartCriticalSection);
@@ -7065,6 +7442,9 @@ initialization
   InitializeCriticalSection(FInProcessCriticalSection);
   {$ENDIF}
 {$ELSE}
+  {$IFDEF POSIX}
+  CnDebugChannelClass := TCnPosixMapFileChannel;
+  {$ENDIF}
   FStartCriticalSection := TCnDebugCriticalSection.Create;
   FCnDebuggerCriticalSection := TCnDebugCriticalSection.Create;
   {$IFDEF CAPTURE_STACK}
