@@ -204,7 +204,7 @@ type
     {* 构造一简单的单一域名查询报文}
 
     class function ParseIndexedString(var StrResult: string; Base, StrData: PAnsiChar;
-      MaxLen: Integer = 0): Integer;
+      PacketSize: Integer; MaxLen: Integer = 0; Depth: Integer = 0): Integer;
     {* 解析通过索引或字符串长度串联起来的数据，表示从 StrData 开始扫描，最大不超过 StrData + MaxLen
       Base 为本 DNS 数据包起始地址。如果 MaxLen 为 0，则表示以 #0 结尾。
       返回值为本次前进的长度；本次解析结果拼在 StrResult 后面}
@@ -231,6 +231,17 @@ type
   end;
 
 implementation
+
+resourcestring
+  SCnDNSParseTooManyRecur = 'DNS Parsing: Too Many Recursions';
+  SCnDNSParseOffsetOutOfBounds = 'DNS Parsing: Offset out of Bounds';
+  SCnDNSParsePacketEndReachedPrem = 'DNS Parsing: Packet End Reached Prematurely';
+  SCnDNSParsePointerOutOfBounds = 'DNS Parsing: Pointer out of Bounds';
+  SCnDNSParseStringLengthOutOfBounds = 'DNS Parsing: String Length out of Bounds';
+  SCnDNSParsePacketTooShortQuestion = 'DNS Parsing: Packet Too Short for Question';
+  SCnDNSParsePacketTooShortResource = 'DNS Parsing: Packet Too Short for Resource Record Header';
+  SCnDNSParseResourceDataLength = 'DNS Parsing: Resource Data length out of Bounds';
+  SCnDNSParseSrvRecordTooShort = 'DNS Parsing: SRV Record Too Short';
 
 { TCnDNSPacketObject }
 
@@ -443,20 +454,32 @@ begin
   PW^ := UInt16HostToNetwork(QueryClass);
 end;
 
-class function TCnDNS.ParseIndexedString(var StrResult: string; Base, StrData: PAnsiChar; MaxLen: Integer): Integer;
+class function TCnDNS.ParseIndexedString(var StrResult: string; Base, StrData: PAnsiChar;
+  PacketSize: Integer; MaxLen: Integer; Depth: Integer): Integer;
 var
   PB: PByte;
   B: Byte;
   Idx, Len: Integer;
   Str: AnsiString;
   First: Boolean;
+  PacketEnd: PAnsiChar;
 begin
+  if Depth > 20 then // Max recursion depth
+    raise ECnDNSException.Create(SCnDNSParseTooManyRecur);
+
+  PacketEnd := Base + PacketSize;
+  if (StrData >= PacketEnd) or (StrData < Base) then
+     raise ECnDNSException.Create(SCnDNSParseOffsetOutOfBounds);
+
   if MaxLen > 0 then // 有长度限制，一般用于 RDLength/RData 场合
   begin
     PB := PByte(StrData);
     Result := 0;
     while True do
     begin
+      if PAnsiChar(PB) >= PacketEnd then
+        raise ECnDNSException.Create(SCnDNSParsePacketEndReachedPrem);
+
       if PB^ = 0 then // 到尾巴了，退出
       begin
         Inc(Result);  // #0 是属于字符串里面的，所以要跳出去
@@ -470,11 +493,17 @@ begin
         if Result >= MaxLen then
           Exit;
 
+        if PAnsiChar(PB) >= PacketEnd then
+          raise ECnDNSException.Create(SCnDNSParsePacketEndReachedPrem);
+
         Idx := (Word(B and $3F) shl 8) or Word(PB^);
+        if Base + Idx >= PacketEnd then
+          raise ECnDNSException.Create(SCnDNSParsePointerOutOfBounds);
+
         if Base + Idx = StrData then  // 避免下一个指向本块，导致无限递归
           Exit;
 
-        ParseIndexedString(StrResult, Base, Base + Idx);
+        ParseIndexedString(StrResult, Base, Base + Idx, PacketSize, 0, Depth + 1);
         Inc(PB);
         Inc(Result);             // 指向下一个 2 字节
         if Result >= MaxLen then
@@ -490,6 +519,9 @@ begin
         Inc(Result);
         if Result >= MaxLen then
           raise ECnDNSException.Create(SCnDNSTooLong);
+
+        if PAnsiChar(PB) + Len > PacketEnd then
+          raise ECnDNSException.Create(SCnDNSParseStringLengthOutOfBounds);
 
         Move(PB^, Str[2], Len);  // Str 内容塞为 .xxxxx 这种
 
@@ -514,6 +546,9 @@ begin
 
     while True do
     begin
+      if PAnsiChar(PB) >= PacketEnd then
+        raise ECnDNSException.Create(SCnDNSParsePacketEndReachedPrem);
+
       if PB^ = 0 then // 到尾巴了，退出
       begin
         Inc(Result);  // #0 是属于字符串里面的，所以要跳出去
@@ -525,11 +560,17 @@ begin
         Inc(PB);
         Inc(Result);
 
+        if PAnsiChar(PB) >= PacketEnd then
+          raise ECnDNSException.Create(SCnDNSParsePacketEndReachedPrem);
+
         Idx := (Word(B and $3F) shl 8) or Word(PB^);
+        if Base + Idx >= PacketEnd then
+          raise ECnDNSException.Create(SCnDNSParsePointerOutOfBounds);
+
         if Base + Idx = StrData then  // 避免下一个指向本块，导致无限递归
           Exit;
 
-        ParseIndexedString(StrResult, Base, Base + Idx);
+        ParseIndexedString(StrResult, Base, Base + Idx, PacketSize, 0, Depth + 1);
         Inc(PB);
         Inc(Result);         // 指向下一个 2 字节
 
@@ -546,6 +587,10 @@ begin
 
         Inc(PB);                 // PB 指向本轮字符串，Len 为长度
         Inc(Result);
+
+        if PAnsiChar(PB) + Len > PacketEnd then
+          raise ECnDNSException.Create(SCnDNSParseStringLengthOutOfBounds);
+
         Move(PB^, Str[2], Len);  // Str 内容塞为 .xxxxx 这种
 
         Inc(PB, Len);            // PB 指向下一个长度或索引位置
@@ -568,6 +613,7 @@ var
   Data: PAnsiChar;
   Q: TCnDNSQuestion;
   R: TCnDNSResourceRecord;
+  PacketEnd: PAnsiChar;
 
   // 解析一个 Question
   function ParseQuestion(QuestionData: PAnsiChar; Question: TCnDNSQuestion): PAnsiChar;
@@ -577,11 +623,16 @@ var
     Len: Integer;
   begin
     Result := QuestionData;
+    if QuestionData >= PacketEnd then Exit;
+
     if (QuestionData <> nil) and (Question <> nil) then
     begin
-      Len := ParseIndexedString(S, Response, QuestionData);
+      Len := ParseIndexedString(S, Response, QuestionData, ResponseByteLen);
       Question.QName := S;
       Inc(QuestionData, Len);
+
+      if QuestionData + SizeOf(TCnDNSQuestionSectionAfterName) > PacketEnd then
+        raise ECnDNSException.Create(SCnDNSParsePacketTooShortQuestion);
 
       H := PCnDNSQuestionSectionAfterName(QuestionData);
       Question.QType := UInt16NetworkToHost(H^.QType);
@@ -598,18 +649,27 @@ var
     Len: Integer;
   begin
     Result := ResourceRecordData;
+    if ResourceRecordData >= PacketEnd then Exit;
+
     if (ResourceRecordData <> nil) and (Resource <> nil) then
     begin
       S := '';
-      Len := ParseIndexedString(S, Response, ResourceRecordData);
+      Len := ParseIndexedString(S, Response, ResourceRecordData, ResponseByteLen);
       Resource.RName := S;
       Inc(ResourceRecordData, Len);
+
+      if ResourceRecordData + SizeOf(TCnDNSResourceRecordAfterName) > PacketEnd then
+        raise ECnDNSException.Create(SCnDNSParsePacketTooShortResource);
 
       H := PCnDNSResourceRecordAfterName(ResourceRecordData);
       Resource.RType := UInt16NetworkToHost(H^.RType);
       Resource.RClass := UInt16NetworkToHost(H^.RClass);
       Resource.TTL := UInt32NetworkToHost(H^.TTL);
       Resource.RDLength := UInt16NetworkToHost(H^.RDLength);
+
+      if (PAnsiChar(@H^.RData[0]) + Resource.RDLength) > PacketEnd then
+        raise ECnDNSException.Create(SCnDNSParseResourceDataLength);
+
       if (Resource.RType = CN_DNS_TYPE_A) and (Resource.RDLength = SizeOf(Cardinal)) then
       begin
         // 4 字节的应答数据是 IP 地址
@@ -621,9 +681,12 @@ var
       end
       else if Resource.RType = CN_DNS_TYPE_SRV then
       begin
+        if Resource.RDLength < 6 then
+          raise ECnDNSException.Create(SCnDNSParseSrvRecordTooShort);
+
         Resource.IP := UInt16NetworkToHost(PWORD(PAnsiChar(@H^.RData[0]) + 4)^);
         S := '';
-        ParseIndexedString(S, Response, PAnsiChar(@H^.RData[0]) + 6, Resource.RDLength - 6);
+        ParseIndexedString(S, Response, PAnsiChar(@H^.RData[0]) + 6, ResponseByteLen, Resource.RDLength - 6);
         Resource.RDString := S;
       end
       else if Resource.RType = CN_DNS_TYPE_TXT then
@@ -636,7 +699,7 @@ var
       begin
         // 其他长度当作字符串解析
         S := '';
-        ParseIndexedString(S, Response, @H^.RData[0], Resource.RDLength);
+        ParseIndexedString(S, Response, @H^.RData[0], ResponseByteLen, Resource.RDLength);
         Resource.RDString := S;
       end;
 
@@ -650,6 +713,7 @@ begin
   if (Response = nil) or (ResponseByteLen < SizeOf(TCnDNSHeader)) or (Packet = nil) then
     Exit;
 
+  PacketEnd := Response + ResponseByteLen;
   Head := PCnDNSHeader(Response);
   Packet.Id := CnGetDNSHeaderId(Head);
   Packet.IsQuery := CnGetDNSHeaderQR(Head) = CN_DNS_HEADER_TYPE_QUERY;

@@ -102,10 +102,10 @@ var
   R: Integer;
 begin
   S := '';
-  R := TCnDNS.ParseIndexedString(S, @SAMPLE_RESPONSE[0], @SAMPLE_RESPONSE[$4A]); // , SizeOf(SAMPLE_RESPONSE));
+  R := TCnDNS.ParseIndexedString(S, @SAMPLE_RESPONSE[0], @SAMPLE_RESPONSE[$4A], SizeOf(SAMPLE_RESPONSE)); // , SizeOf(SAMPLE_RESPONSE));
   ShowMessage(S + '    Step: ' + IntToStr(R));
   S := '';
-  R := TCnDNS.ParseIndexedString(S, @SAMPLE_RESPONSE[0], @SAMPLE_RESPONSE[$6A], 10); // , SizeOf(SAMPLE_RESPONSE));
+  R := TCnDNS.ParseIndexedString(S, @SAMPLE_RESPONSE[0], @SAMPLE_RESPONSE[$6A], SizeOf(SAMPLE_RESPONSE), 10); // , SizeOf(SAMPLE_RESPONSE));
   ShowMessage(S + '    Step: ' + IntToStr(R));
 end;
 
