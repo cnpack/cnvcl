@@ -42,7 +42,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Forms, FileCtrl, CnCommon,
+  {$IFDEF MSWINDOWS} Windows, Messages, FileCtrl, {$ENDIF}
+  SysUtils, Classes, Graphics, Forms, CnCommon,
   CnConsts, CnClasses, CnLangCollection, CnLangConsts, CnIniStrUtils;
 
 {$IFDEF Linux}

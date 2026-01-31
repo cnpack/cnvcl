@@ -41,7 +41,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, Graphics, CnIniStrUtils;
+  SysUtils, Classes, Graphics, CnIniStrUtils;
 
 type
 {$IFDEF UNICODE}

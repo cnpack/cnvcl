@@ -42,8 +42,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, SysConst, Classes, {$IFDEF FPC} Variants, {$ELSE}
-  {$IFDEF COMPILER6_UP} Variants, {$ENDIF} {$ENDIF} Windows;
+  SysUtils, {$IFDEF MSWINDOWS} Windows, {$ENDIF} Classes, {$IFDEF FPC} Variants, {$ELSE}
+  {$IFDEF COMPILER6_UP} Variants, {$ENDIF} {$ENDIF} SysConst;
 
 type
   TLangTransFilter = (tfFont, tfCaption, tfCategory, tfHelpKeyword, tfHint,
@@ -77,18 +77,24 @@ type
     {* 设置过滤 *}
   end;
 
+{$IFDEF SUPPORT_CROSS_PLATFORM}
+  LCID = TLocaleID;
+{$ELSE}
   TCnLangRec = packed record
     FName: string;
     FLCID: LCID;
     FExt: string;
     FCodePage: Cardinal; // 增加语言对应的代码页
   end;
+{$ENDIF}
 
   {* 从 SysUtils 的 TLanguages 移植而来但修正了 DEP 错误的语言列表类}
   TCnLanguages = class(TObject)
   private
+{$IFNDEF SUPPORT_CROSS_PLATFORM}
     FSysLangs: array of TCnLangRec;
     function LocalesCallback(LocaleID: PChar): Integer; stdcall;
+{$ENDIF}
     function GetExt(Index: Integer): string;
     function GetID(Index: Integer): string;
     function GetLCID(Index: Integer): LCID;
@@ -119,9 +125,10 @@ implementation
 uses
   {$IFDEF DEBUG_MULTILANG} CnDebug, {$ENDIF}
   {$IFDEF SUPPORT_FMX} CnFmxUtils, {$ENDIF}
-  Forms, Dialogs, Graphics, Menus, Grids, ComCtrls, Controls, ExtCtrls,
-  ToolWin, ActnList, ImgList, TypInfo, StdCtrls, CnCommon, CnIniStrUtils,
-  Clipbrd, CnLangMgr, CnClasses, CnLangConsts, CnLangStorage;
+  {$IFDEF MSWINDOWS} ComCtrls, {$ENDIF}
+  Forms, Dialogs, Graphics, Menus, Controls, ExtCtrls,
+  ActnList, ImgList, TypInfo, StdCtrls, CnCommon, CnIniStrUtils,
+  CnLangMgr, CnClasses, CnLangConsts, CnLangStorage;
 
 const
   THUNK_SIZE = 4096; // x86 页大小
@@ -130,18 +137,28 @@ var
   FLanguages: TCnLanguages;
   FTempLanguagesRef: TCnLanguages = nil;
 
+{$IFDEF MSWINDOWS}
+
 function IsTopDesignFrame(AFrame: TCustomFrame): Boolean;
 begin
   Result := (AFrame.Parent = nil) or (AFrame.Parent.ClassNameIs('TWinControlForm'));
   // 高低版本应都适用，TWinControlForm 是 Frame 的设计期容器
 end;
 
+{$ENDIF}
+
+{$IFNDEF SUPPORT_CROSS_PLATFORM}
+
 function EnumLocalesCallback(LocaleID: PChar): Integer; stdcall;
 begin
   Result := FTempLanguagesRef.LocalesCallback(LocaleID);
 end;
 
+{$ENDIF}
+
 { TCnLanguages }
+
+{$IFNDEF SUPPORT_CROSS_PLATFORM}
 
 function GetLocaleDataW(ID: LCID; Flag: DWORD): string;
 var
@@ -193,11 +210,15 @@ begin
   Result := 1;
 end;
 
+{$ENDIF}
+
 constructor TCnLanguages.Create;
 begin
   inherited Create;
+{$IFNDEF SUPPORT_CROSS_PLATFORM}
   FTempLanguagesRef := Self;
   EnumSystemLocales(@EnumLocalesCallback, LCID_SUPPORTED);
+{$ENDIF}
 end;
 
 destructor TCnLanguages.Destroy;
@@ -208,48 +229,85 @@ end;
 
 function TCnLanguages.GetCount: Integer;
 begin
+{$IFDEF SUPPORT_CROSS_PLATFORM}
+  Result := Languages.Count;
+{$ELSE}
   Result := High(FSysLangs) + 1;
+{$ENDIF}
 end;
 
 function TCnLanguages.GetExt(Index: Integer): string;
 begin
+{$IFDEF SUPPORT_CROSS_PLATFORM}
+  Result := Languages.Ext[Index];
+{$ELSE}
   Result := FSysLangs[Index].FExt;
+{$ENDIF}
 end;
 
 function TCnLanguages.GetID(Index: Integer): string;
 begin
+{$IFDEF SUPPORT_CROSS_PLATFORM}
+  Result := Languages.ID[Index];
+{$ELSE}
   Result := HexDisplayPrefix + IntToHex(FSysLangs[Index].FLCID, 8);
+{$ENDIF}
 end;
 
 function TCnLanguages.GetLCID(Index: Integer): LCID;
 begin
+{$IFDEF SUPPORT_CROSS_PLATFORM}
+  Result := Languages.LocaleID[Index];
+{$ELSE}
   Result := FSysLangs[Index].FLCID;
+{$ENDIF}
 end;
 
 function TCnLanguages.GetName(Index: Integer): string;
 begin
+{$IFDEF SUPPORT_CROSS_PLATFORM}
+  Result := Languages.Name[Index];
+{$ELSE}
   Result := FSysLangs[Index].FName;
+{$ENDIF}
 end;
 
 function TCnLanguages.GetNameFromLocaleID(ID: LCID): string;
+{$IFNDEF SUPPORT_CROSS_PLATFORM}
 var
   Index: Integer;
+{$ENDIF}
 begin
+{$IFDEF SUPPORT_CROSS_PLATFORM}
+  Result := Languages.NameFromLocaleID[ID];
+{$ELSE}
   Index := IndexOf(ID);
   if Index <> - 1 then Result := Name[Index];
   if Result = '' then Result := SUnknown;
+{$ENDIF}
 end;
 
 function TCnLanguages.GetNameFromLCID(const ID: string): string;
 begin
+{$IFDEF SUPPORT_CROSS_PLATFORM}
+  Result := Languages.NameFromLCID[ID];
+{$ELSE}
   Result := NameFromLocaleID[StrToIntDef(ID, 0)];
+{$ENDIF}
 end;
 
 function TCnLanguages.IndexOf(ID: LCID): Integer;
 begin
+{$IFDEF SUPPORT_CROSS_PLATFORM}
+  Result := Languages.IndexOf(ID);
+{$ELSE}
   for Result := Low(FSysLangs) to High(FSysLangs) do
-    if FSysLangs[Result].FLCID = ID then Exit;
+  begin
+    if FSysLangs[Result].FLCID = ID then
+      Exit;
+  end;
   Result := -1;
+{$ENDIF}
 end;
 
 function CnLanguages: TCnLanguages;
@@ -261,7 +319,11 @@ end;
 
 function TCnLanguages.GetCodePage(Index: Integer): Cardinal;
 begin
+{$IFDEF SUPPORT_CROSS_PLATFORM}
+  raise Exception.Create('Not Implemented');
+{$ELSE}
   Result := FSysLangs[Index].FCodePage;
+{$ENDIF}
 end;
 
 { TCnLangStringExtractor }

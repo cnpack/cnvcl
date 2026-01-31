@@ -43,7 +43,8 @@ interface
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics, {$ENDIF} FMX.Controls, FMX.Forms,
-  FMX.Dialogs, FMX.Grid, FMX.Platform.Win;
+  FMX.Dialogs, FMX.Grid {$IFDEF MSWINDOWS}, FMX.Platform.Win {$ENDIF}
+  {$IFDEF MACOS}, FMX.Platform.Mac {$ENDIF};
 
 type
   TCnFmxPosType = (fptLeft, fptTop, fptRight, fptBottom, fptWidth, fptHeight);
@@ -682,7 +683,11 @@ begin
   if AComp is TCommonCustomForm then
   begin
 {$IFDEF DELPHIXE4_UP}
+  {$IFDEF MACOS}
+    Result := THandle(WindowHandleToPlatform(TCommonCustomForm(AComp).Handle).Wnd);
+  {$ELSE}
     Result := WindowHandleToPlatform(TCommonCustomForm(AComp).Handle).Wnd;
+  {$ENDIF}
 {$ELSE}
     Result := FmxHandleToHWND(TCommonCustomForm(AComp).Handle);
 {$ENDIF}

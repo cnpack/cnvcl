@@ -78,7 +78,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Graphics, TypInfo, Windows, Forms, ComCtrls, ActnList,
+  SysUtils, Classes, Graphics, TypInfo, Forms, ActnList,
+  {$IFDEF MSWINDOWS} Windows, ComCtrls, {$ENDIF}
   Dialogs, ExtCtrls, Controls, Contnrs, {$IFDEF FPC} Variants, {$ENDIF}
   {$IFDEF COMPILER6_UP} Variants, {$ENDIF}
   CnConsts, CnClasses, CnCommon, CnLangStorage, CnLangCollection, CnIniStrUtils;
@@ -89,6 +90,11 @@ const
 
 type
   ECnLanguageManagerError = class(Exception);
+
+{$IFNDEF MSWINDOWS}
+  TCustomFrame = TFrame;
+  // FMX 下没有 TCustomFrame
+{$ENDIF}
 
   PCnLangChangedNotifierRecord = ^TCnLangChangedNotifierRecord;
   TCnLangChangedNotifierRecord = record
@@ -374,6 +380,7 @@ implementation
 uses
   {$IFDEF DEBUG_MULTILANG} CnDebug, {$ENDIF}
   {$IFDEF SUPPORT_FMX} CnFmxUtils, {$ENDIF}
+  {$IFNDEF MSWINDOWS} FMX.ListView, FMX.ListView.Appearances, FMX.TreeView, {$ENDIF}
   CnLangConsts;
 
 type
@@ -475,7 +482,13 @@ var
   I: Integer;
 begin
   if AID = 0 then
+  begin
+{$IFDEF MSWINDOWS}
     AID := GetSystemDefaultLangID;
+{$ELSE}
+    raise ECnLanguageManagerError.Create('Invalid Langauge ID');
+{$ENDIF}
+  end;
 
   if Assigned(FLanguageStorage) then
   begin
@@ -732,6 +745,7 @@ begin
             begin
               if OutN < (AObject as TListView).Items.Count then
               begin
+{$IFDEF MSWINDOWS}
                 if Subfix = 'Caption' then // ListItem 的 Caption 属性并非 published
                 begin
                   if Mode = itGet then
@@ -739,6 +753,15 @@ begin
                   if Mode = itSet then
                     (AObject as TListView).Items[OutN].Caption := Value;
                 end
+{$ELSE}
+                if Subfix = 'Text' then // ListItem 的 Text 属性并非 published
+                begin
+                  if Mode = itGet then
+                    Result := (AObject as TListView).Items[OutN].Text;
+                  if Mode = itSet then
+                    (AObject as TListView).Items[OutN].Text := Value;
+                end
+{$ENDIF}
                 else // 可无必要，因为 TListItem 无 published 属性
                 begin
                   if Mode = itGet then
@@ -750,6 +773,7 @@ begin
                 end;
               end;
             end
+{$IFDEF MSWINDOWS}
             else if (AObject is TTreeView) and (OutS = 'TreeNode') then
             begin
               if OutN < (AObject as TTreeView).Items.Count then
@@ -772,6 +796,30 @@ begin
                 end;
               end;
             end;
+{$ELSE}
+            else if (AObject is TTreeView) and (OutS = 'TreeViewItem') then
+            begin
+              if OutN < (AObject as TTreeView).Count then
+              begin
+                if (Subfix = 'Text') then // TreeViewItem 的 Text 属性并非 published
+                begin
+                  if Mode = itGet then
+                    Result := (AObject as TTreeView).Items[OutN].Text;
+                  if Mode = itSet then
+                    (AObject as TTreeView).Items[OutN].Text := Value;
+                end
+                else // 可无必要，因为 TreeViewItem 无 published 属性
+                begin
+                  if Mode = itGet then
+                    Result := VartoStr(GetPropValueIncludeSub((AObject as TTreeView).
+                      Items[OutN], Subfix));
+                  if Mode = itSet then
+                    SetPropValueIncludeSub((AObject as TTreeView).Items[OutN],
+                      Subfix, Value);
+                end;
+              end;
+            end;
+{$ENDIF}
             Inc(K);
           end;
         end;
@@ -965,7 +1013,9 @@ end;
 
 procedure TCnCustomLangManager.TranslateForm(AForm: TCustomForm);
 begin
+{$IFDEF MSWINDOWS}
   LockWindowUpdate(AForm.Handle);
+{$ENDIF}
   try
     if FUseDefaultFont and Assigned(FLanguageStorage) then
     begin
@@ -978,16 +1028,20 @@ begin
         {$ENDIF}
           if CurrentLanguageIndex <> -1 then
           begin
+{$IFDEF MSWINDOWS}
             AForm.Font.Name := DefaultFont.Name;
             AForm.Font.Size := DefaultFont.Size;
             AForm.Font.Charset := DefaultFont.Charset;
+{$ENDIF}
           end;
         end;
       end;
     end;
     TranslateComponent(AForm, AForm.ClassName);
   finally
+{$IFDEF MSWINDOWS}
     LockWindowUpdate(0);
+{$ENDIF}
   end;
 end;
 
@@ -1050,8 +1104,13 @@ var
   Data: PTypeData;
   ActionObj, SubObj: TObject;
   AItem: TCollectionItem;
+{$IFDEF MSWINDOWS}
   AListItem: TListItem;
   ATreeNode: TTreeNode;
+{$ELSE}
+  AListItem: TListViewItem;
+  ATreeNode: TTreeViewItem;
+{$ENDIF}
   IsForm, IsInList: Boolean;
   NeedCheckIgnoreAction: Boolean;
   ActionCaption, ActionHint: TCnLangString;
@@ -1145,10 +1204,12 @@ begin
         end;
       end;
     end
+{$IFDEF MSWINDOWS}
     // ListItem 翻译其 Caption 属性和 SubItems 属性
     else if FTranslateListItem and (AObject is TListItem) then
     begin
       AStr := 'Caption';
+
       // 调用翻译某属性前的事件
       if DoTranslateObjectProperty(AObject, AStr) then
       begin
@@ -1169,6 +1230,26 @@ begin
         (AObject as TListItem).SubItems.Text := TransStr;
       Exit;
     end
+{$ELSE}
+    // ListItem 翻译其 Caption 属性和 SubItems 属性
+    else if FTranslateListItem and (AObject is TListViewItem) then
+    begin
+      AStr := 'Text';
+
+      // 调用翻译某属性前的事件
+      if DoTranslateObjectProperty(AObject, AStr) then
+      begin
+        if BaseName <> '' then
+          AStr := BaseName + DefDelimeter + AStr;
+
+        TransStr := TranslateString(AStr);
+        if TransStr <> '' then
+          (AObject as TListViewItem).Text := TransStr;
+      end;
+      Exit;
+    end
+{$ENDIF}
+{$IFDEF MSWINDOWS}
     // TreeView 在需要时遍历其 Item
     else if FTranslateTreeNode and (AObject is TTreeView) then
     begin
@@ -1210,6 +1291,48 @@ begin
         (AObject as TTreeNode).Text := TransStr;
       Exit;
     end;
+{$ELSE}
+    else if FTranslateTreeNode and (AObject is TTreeView) then
+    begin
+      for I := 0 to (AObject as TTreeView).Count - 1 do
+      begin
+        ATreeNode := (AObject as TTreeView).Items[I];
+
+        IsInList := AList <> nil;
+        if IsInList and (AList.IndexOf(ATreeNode) = -1) then
+        begin
+          IsInList := False;
+          AList.Add(ATreeNode);
+        end;
+
+        if not IsInList then
+        begin
+          if BaseName <> '' then
+            TranslateRecurObject(ATreeNode, AList, BaseName + DefDelimeter +
+              TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(I))
+          else
+            TranslateRecurObject(ATreeNode, AList, TComponent(AObject).Name +
+              DefDelimeter + 'TreeNode' + InttoStr(I));
+        end;
+      end;
+    end
+    // TreeNode 翻译其 Text 属性。
+    else if FTranslateTreeNode and (AObject is TTreeViewItem) then
+    begin
+      AStr := 'Text';
+      // 调用翻译某属性前的事件
+      if not DoTranslateObjectProperty(AObject, AStr) then
+        Exit;
+
+      if BaseName <> '' then
+        AStr := BaseName + DefDelimeter + AStr;
+
+      TransStr := TranslateString(AStr);
+      if TransStr <> '' then
+        (AObject as TTreeViewItem).Text := TransStr;
+      Exit;
+    end;
+{$ENDIF}
 
     IsForm := (AObject is TCustomForm)
       {$IFDEF SUPPORT_FMX} or CnFmxIsInheritedFromCommonCustomForm(AObject) {$ENDIF}; // or (AObject is TCustomFrame); 不能把 Frame 算进去。Frame 按实例化组件处理
@@ -1420,8 +1543,14 @@ begin
     begin
       if atForms in FAutoTransOptions then
       begin
+{$IFDEF MSWINDOWS}
         for I := 0 to Screen.CustomFormCount - 1 do
           TranslateForm(Screen.CustomForms[I]);
+{$ELSE}
+        for I := 0 to Screen.FormCount - 1 do
+          TranslateFmxForm(Screen.Forms[I]);
+{$ENDIF}
+
 {$IFDEF SUPPORT_FMX}
         FmxForms := TList.Create;
         try
@@ -1586,11 +1715,19 @@ begin
       else
         FOldTransForms.Clear;
 
+{$IFDEF MSWINDOWS}
       for I := 0 to Screen.CustomFormCount - 1 do
       begin
         if Screen.CustomForms[I].ClassNameIs(Prefix) then
           FOldTransForms.Add(Screen.CustomForms[I]);
       end;
+{$ELSE}
+      for I := 0 to Screen.FormCount - 1 do
+      begin
+        if Screen.Forms[I].ClassNameIs(Prefix) then
+          FOldTransForms.Add(Screen.Forms[I]);
+      end;
+{$ENDIF}
 
 {$IFDEF SUPPORT_FMX}
       // 也遍历 FMX 窗体中符合条件的窗体

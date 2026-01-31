@@ -216,7 +216,7 @@ begin
   for I := 1 to 4 do
   begin
     S := ReadName;
-    L := ReadWordBE;
+    ReadWordBE;
     ReadWordBE;
     ReadCardinalBE;
     L := ReadWordBE;
