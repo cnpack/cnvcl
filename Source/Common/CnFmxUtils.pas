@@ -43,7 +43,7 @@ interface
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, {$IFDEF FMX_HAS_GRAPHICS} FMX.Graphics, {$ENDIF} FMX.Controls, FMX.Forms,
-  FMX.Dialogs, FMX.Grid {$IFDEF MSWINDOWS}, FMX.Platform.Win {$ENDIF}
+  FMX.Dialogs, FMX.Grid, FMX.StdCtrls {$IFDEF MSWINDOWS}, FMX.Platform.Win {$ENDIF}
   {$IFDEF MACOS}, FMX.Platform.Mac {$ENDIF};
 
 type
@@ -167,6 +167,22 @@ function CnFmxGetScreenFormCount: Integer;
 
 function CnFmxGetScreenForms(Index: Integer): TCommonCustomForm;
 {* 获取 Screen 的第 Index 个 Form}
+
+function CnFmxGetIsParentFont(AControl: TComponent): Boolean;
+{* 获取 FMX Control 是否 ParentFont，封装 StyledSettings 的处理，
+  注意不支持文字会返回 True，表示自身不处理}
+
+procedure CnFmxSetIsParentFont(AControl: TComponent; AParentFont: Boolean);
+{* 设置 FMX Control 是否 ParentFont，封装 StyledSettings 的处理}
+
+function CnFmxGetControlFont(AControl: TComponent): TFont;
+{* 获取 FMX Control 的 Font}
+
+procedure CnFmxSetControlFont(AControl: TComponent; AFont: TFont);
+{* 设置 FMX Control 的 Font}
+
+function CnFmxGetControlParentFont(AControl: TComponent): TFont;
+{* 获取 FMX Control 的 Parent 的 Font}
 
 implementation
 
@@ -756,6 +772,51 @@ end;
 function CnFmxGetScreenForms(Index: Integer): TCommonCustomForm;
 begin
   Result := Screen.Forms[Index];
+end;
+
+function CnFmxGetIsParentFont(AControl: TComponent): Boolean;
+begin
+  if AControl.InheritsFrom(TPresentedTextControl) then
+  begin
+    Result := [TStyledSetting.Family, TStyledSetting.Size, TStyledSetting.Style,
+      TStyledSetting.FontColor] >= TPresentedTextControl(AControl).StyledSettings;
+  end
+  else
+    Result := True;
+end;
+
+procedure CnFmxSetIsParentFont(AControl: TComponent; AParentFont: Boolean);
+begin
+  if AControl.InheritsFrom(TPresentedTextControl) then
+    TPresentedTextControl(AControl).StyledSettings := TPresentedTextControl(AControl).StyledSettings +
+     [TStyledSetting.Family, TStyledSetting.Size, TStyledSetting.Style, TStyledSetting.FontColor];
+end;
+
+function CnFmxGetControlFont(AControl: TComponent): TFont;
+begin
+  if AControl.InheritsFrom(TPresentedTextControl) then
+    Result := TPresentedTextControl(AControl).TextSettings.Font
+  else
+    Result := nil;
+end;
+
+procedure CnFmxSetControlFont(AControl: TComponent; AFont: TFont);
+begin
+  if AControl.InheritsFrom(TPresentedTextControl) then
+    TPresentedTextControl(AControl).TextSettings.Font := AFont;
+end;
+
+function CnFmxGetControlParentFont(AControl: TComponent): TFont;
+var
+  P: TFmxObject;
+begin
+  Result := nil;
+  if AControl.InheritsFrom(TControl) then
+  begin
+    P := TControl(AControl).Parent;
+    if (P <> nil) and P.InheritsFrom(TPresentedTextControl) then
+      Result := TPresentedTextControl(P).TextSettings.Font;
+  end;
 end;
 
 procedure CreateFmxSetFixArray;

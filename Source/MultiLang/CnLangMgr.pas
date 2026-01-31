@@ -1111,7 +1111,7 @@ var
   AListItem: TListViewItem;
   ATreeNode: TTreeViewItem;
 {$ENDIF}
-  IsForm, IsInList: Boolean;
+  IsForm, IsInList, B: Boolean;
   NeedCheckIgnoreAction: Boolean;
   ActionCaption, ActionHint: TCnLangString;
   Info: PPropInfo;
@@ -1450,7 +1450,12 @@ begin
          还是得通过 List 方式来避免死循环。  }
             if (AObject is TControl) and (SubObj is TFont) and (APropName = 'Font') then
             begin
-              if not IsParentFont(AObject as TControl) then // 不使用 ParentFont 时存字体
+{$IFDEF MSWINDOWS}
+              B := IsParentFont(AObject as TControl);
+{$ELSE}
+              B := CnFmxGetIsParentFont(TComponent(AObject));
+{$ENDIF}
+              if not B then // 不使用 ParentFont 时存字体
               begin
                 if not IsForm then
                   AStr := TComponent(AObject).Name + DefDelimeter + SCnControlFont
@@ -1462,8 +1467,15 @@ begin
 
                 TransStr := TranslateString(AStr);
                 if TransStr <> '' then
+                begin
+{$IFDEF MSWINDOWS}
                   StringToFontEx(TransStr, TCnFontControl(AObject).Font,
                     GetParentFont(AObject as TComponent));
+{$ELSE}
+                  StringToFontEx(TransStr, CnFmxGetControlFont(TComponent(AObject)),
+                    CnFmxGetControlParentFont(AObject as TComponent));
+{$ENDIF}
+                end;
               end;
             end // 不按常规处理 TControl 的字体
             else if FTranslateOtherFont and (SubObj is TFont) then
@@ -1481,8 +1493,15 @@ begin
 
               try
                 if TransStr <> '' then
+                begin
+{$IFDEF MSWINDOWS}
                   StringToFontEx(TransStr, SubObj as TFont,
                     GetParentFont(AObject as TComponent));
+{$ELSE}
+                  StringToFontEx(TransStr, SubObj as TFont,
+                    CnFmxGetControlParentFont(AObject as TComponent));
+{$ENDIF}
+                end;
               except
                 ; // 屏蔽万一碰上的异常
               end;
@@ -1869,6 +1888,8 @@ begin
     end;
   end;
 
+{$IFDEF MSWINDOWS}
+
   for I := 0 to FRegResStrings.Count - 1 do
   begin
     BObj := TCnResourceStringObj(FRegResStrings[I]);
@@ -1889,6 +1910,8 @@ begin
       VirtualProtect(BObj.StringRecAddr, SizeOf(TResStringRec), OldProtect, nil);
     end;
   end;
+
+{$ENDIF}
 end;
 
 initialization

@@ -1378,8 +1378,12 @@ function StrToBytes(const S: AnsiString): TBytes;
 function BytesToStr(Data: TBytes): AnsiString;
 {* 将字节数组的内容转为一新的 AnsiString}
 
+{$IFDEF MSWINDOWS}
+
 function MakeFormFullyDesktopVisible(AForm: TCustomForm): Boolean;
 {* 将一个窗体的位置限定在当前主桌面显示区内，返回是否成功}
+
+{$ENDIF}
 
 function ConvertStringToIdent(const Str: string; const Prefix: string = 'S';
   UseUnderLine: Boolean = False; IdentWordStyle: TCnIdentWordStyle = iwsUpperFirstChar;
@@ -8730,6 +8734,8 @@ begin
     Result := '';
 end;
 
+{$IFDEF MSWINDOWS}
+
 // 将一个窗体的位置限定在当前主桌面显示区内，返回是否成功
 function MakeFormFullyDesktopVisible(AForm: TCustomForm): Boolean;
 var
@@ -8796,6 +8802,8 @@ begin
   if Chgd then
     AForm.BoundsRect := D;
 end;
+
+{$ENDIF}
 
 type
 {$IFDEF UNICODE}
