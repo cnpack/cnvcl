@@ -1453,7 +1453,7 @@ begin
 {$IFDEF MSWINDOWS}
               B := IsParentFont(AObject as TControl);
 {$ELSE}
-              B := CnFmxGetIsParentFont(TComponent(AObject));
+              B := CnFmxGetControlIsParentFont(TComponent(AObject));
 {$ENDIF}
               if not B then // 不使用 ParentFont 时存字体
               begin

@@ -42,7 +42,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, Windows, IniFiles, Dialogs, FileCtrl, CnCommon,
+  SysUtils, Classes, {$IFDEF MSWINDOWS} Windows, FileCtrl, {$ENDIF}
+  IniFiles, Dialogs, CnCommon,
   CnConsts, CnLangConsts, CnHashMap, CnWideStrings, CnLangStorage,
   CnLangCollection, CnIniStrUtils;
 

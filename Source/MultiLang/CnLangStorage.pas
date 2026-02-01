@@ -226,6 +226,15 @@ implementation
 uses
   CnLangMgr;
 
+function GetProgramFullName: string;
+begin
+{$IFDEF MSWINDOWS}
+  Result := Application.ExeName;
+{$ELSE}
+  Result := ParamStr(0);
+{$ENDIF}
+end;
+
 //==============================================================================
 // TCustomLanguageStorage
 //==============================================================================
@@ -233,9 +242,11 @@ uses
 constructor TCnCustomLangStorage.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FDefaultLanguageID := GetSystemDefaultLCID;
   FDefaultFont := TFont.Create;
+{$IFDEF MSWINDOWS}
   FDefaultFont.Handle := GetStockObject(DEFAULT_GUI_FONT);
+  FDefaultLanguageID := GetSystemDefaultLCID;
+{$ENDIF}
   FCurrentLanguageIndex := -1;
   FLanguages := TCnLanguageCollection.Create(Self);
 
@@ -332,7 +343,9 @@ begin
       FCurrentLanguageIndex := Value;
       if LoadCurrentLanguage then
       begin
+{$IFDEF MSWINDOWS}
         FDefaultFont.Handle := GetStockObject(DEFAULT_GUI_FONT);
+{$ENDIF}
         GetDefaultFont(FDefaultFont);
         FontInited := True;
         DoLanguageChanged(Value);
@@ -358,7 +371,7 @@ begin
     if not (csDesigning in ComponentState) then
     begin
       // 运行期，只有采用可执行文件的所在目录
-      FDesignLangPath := IncludeTrailingBackslash(_CnExtractFilePath(Application.ExeName));
+      FDesignLangPath := IncludeTrailingBackslash(_CnExtractFilePath(GetProgramFullName));
     end;
   end;
 end;
@@ -371,7 +384,7 @@ begin
     if not (csDesigning in ComponentState) then
     begin
       // 运行期，只有采用可执行文件的文件名加自己的扩展名
-      FFileName := _CnChangeFileExt(_CnExtractFileName(Application.ExeName), GetLanguageFileExt);
+      FFileName := _CnChangeFileExt(_CnExtractFileName(GetProgramFullName), GetLanguageFileExt);
     end;
   end;
 end;
@@ -459,7 +472,7 @@ begin
       end;
     end
     else if ActualPath = '' then
-      ActualPath := _CnExtractFileDir(Application.ExeName);
+      ActualPath := _CnExtractFileDir(GetProgramFullName);
 
     if ActualPath = '' then
       Exit;
@@ -513,10 +526,10 @@ begin
   if csDesigning in ComponentState then Exit;
 
   if Self.FLanguagePath = '' then
-    Self.FLanguagePath := _CnExtractFilePath(Application.ExeName);
+    Self.FLanguagePath := _CnExtractFilePath(GetProgramFullName);
   AdjustLangPath;
   if Self.FFileName = '' then
-    Self.FFileName := _CnChangeFileExt(_CnExtractFileName(Application.ExeName), '');
+    Self.FFileName := _CnChangeFileExt(_CnExtractFileName(GetProgramFullName), '');
   AdjustLangFile;
 end;
 

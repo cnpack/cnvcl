@@ -112,6 +112,7 @@ type
     property NameFromLocaleID[ID: LCID]: string read GetNameFromLocaleID;
     property NameFromLCID[const ID: string]: string read GetNameFromLCID;
     property ID[Index: Integer]: string read GetID;
+    {* Windows 上返回 $00000436 这种字符串，MacOS 上返回 zh_Hans_CN 这种字符串}
     property LocaleID[Index: Integer]: LCID read GetLCID;
     property Ext[Index: Integer]: string read GetExt;
     property CodePage[Index: Integer]: Cardinal read GetCodePage;
@@ -125,7 +126,8 @@ implementation
 uses
   {$IFDEF DEBUG_MULTILANG} CnDebug, {$ENDIF}
   {$IFDEF SUPPORT_FMX} CnFmxUtils, {$ENDIF}
-  {$IFDEF MSWINDOWS} ComCtrls, {$ENDIF}
+  {$IFDEF MSWINDOWS} ComCtrls, {$ELSE}
+  FMX.ListView, FMX.ListView.Appearances, FMX.TreeView, {$ENDIF}
   Forms, Dialogs, Graphics, Menus, Controls, ExtCtrls,
   ActnList, ImgList, TypInfo, StdCtrls, CnCommon, CnIniStrUtils,
   CnLangMgr, CnClasses, CnLangConsts, CnLangStorage;
@@ -392,11 +394,12 @@ begin
     for I := 0 to AComponent.ComponentCount - 1 do
     begin
       T := AComponent.Components[I];
-      if (AComponent is TCustomForm) or // 是顶层 VCL Form 或 顶层 Frame
+      if (AComponent is TCustomForm) // 是顶层 VCL Form 或 顶层 Frame
 {$IFDEF SUPPORT_FMX}
-        CnFmxIsInheritedFromCommonCustomForm(AComponent) or // 还要加上 FMX 的顶层 FORM 判断
+        or CnFmxIsInheritedFromCommonCustomForm(AComponent) // 还要加上 FMX 的顶层 FORM 判断
 {$ENDIF}
-       ((AComponent is TCustomFrame) and IsTopDesignFrame(AComponent as TCustomFrame))  then
+{$IFDEF MSWINDOWS}
+        or ((AComponent is TCustomFrame) and IsTopDesignFrame(AComponent as TCustomFrame)) {$ENDIF} then
         GetRecurComponentStrings(AOwner, T, AList, Strings, BaseName, SkipEmptyStr)
       else
         GetRecurComponentStrings(AOwner, T, AList, Strings, BaseName + DefDelimeter + AComponent.Name, SkipEmptyStr);
@@ -414,9 +417,14 @@ var
   Data: PTypeData;
   ActionObj, SubObj: TObject;
   AItem: TCollectionItem;
+{$IFDEF MSWINDOWS}
   AListItem: TListItem;
   ATreeNode: TTreeNode;
-  IsForm: Boolean; // 代表 IsTop
+{$ELSE}
+  AListItem: TListViewItem;
+  ATreeNode: TTreeViewItem;
+{$ENDIF}
+  IsForm, B: Boolean; // 代表 IsTop
   NeedIgnoreAction: Boolean;
   ActionCaption, ActionHint: string;
   Info: PPropInfo;
@@ -487,28 +495,29 @@ begin
             TComponent(AObject).Name + DefDelimeter + 'ListItem' + InttoStr(I), SkipEmptyStr);
       end;
     end
+{$IFDEF MSWINDOWS}
     // 是 ListItem 时处理其 Caption 属性和 SubItems 属性
     else if CnLanguageManager.TranslateListItem and (AObject is TListItem) then
     begin
       if (tfCaption in FFilterOptions) then
-        begin
-          AStr := 'Caption';
-          if BaseName <> '' then
-            AStr := BaseName + DefDelimeter + AStr;
+      begin
+        AStr := 'Caption';
+        if BaseName <> '' then
+          AStr := BaseName + DefDelimeter + AStr;
 
-          if not SkipEmptyStr or ((AObject as TListItem).Caption <> '') then
-            Strings.Add(AStr + DefEqual + (AObject as TListItem).Caption);
-        end;
+        if not SkipEmptyStr or ((AObject as TListItem).Caption <> '') then
+          Strings.Add(AStr + DefEqual + (AObject as TListItem).Caption);
+      end;
 
       if (tfSubItemsText in FFilterOptions) then
-        begin
-          AStr := 'SubItems.Text';
-          if BaseName <> '' then
-            AStr := BaseName + DefDelimeter + AStr;
+      begin
+        AStr := 'SubItems.Text';
+        if BaseName <> '' then
+          AStr := BaseName + DefDelimeter + AStr;
 
-          if not SkipEmptyStr or ((AObject as TListItem).SubItems.Text <> '') then
-            Strings.Add(AStr + DefEqual + (AObject as TListItem).SubItems.Text);
-        end;
+        if not SkipEmptyStr or ((AObject as TListItem).SubItems.Text <> '') then
+          Strings.Add(AStr + DefEqual + (AObject as TListItem).SubItems.Text);
+      end;
       Exit;
     end
     // TreeView 在需要时遍历其 Item
@@ -539,12 +548,57 @@ begin
         Strings.Add(AStr + DefEqual + (AObject as TTreeNode).Text);
       Exit;
     end;
+{$ELSE}
+    // 是 ListItem 时处理其 Caption 属性和 SubItems 属性
+    else if CnLanguageManager.TranslateListItem and (AObject is TListViewItem) then
+    begin
+      if (tfCaption in FFilterOptions) then
+      begin
+        AStr := 'Caption';
+        if BaseName <> '' then
+          AStr := BaseName + DefDelimeter + AStr;
 
-    IsForm := (AObject is TCustomForm) or // 需要额外判断是否设计期顶层 Frame 的情形，以生成 TFrame1.Hint 的结果
-{$IFDEF SUPPORT_FMX}
-      CnFmxIsInheritedFromCommonCustomForm(AObject) or // 还要加上 FMX 的顶层 FORM 判断
+        if not SkipEmptyStr or ((AObject as TListViewItem).Text <> '') then
+          Strings.Add(AStr + DefEqual + (AObject as TListViewItem).Text);
+      end;
+      Exit;
+    end
+    // TreeView 在需要时遍历其 Item
+    else if CnLanguageManager.TranslateTreeNode and (AObject is TTreeView) then
+    begin
+      for I := 0 to (AObject as TTreeView).Count - 1 do
+      begin
+        ATreeNode := (AObject as TTreeView).Items[I];
+        if BaseName <> '' then
+          GetRecurObjectStrings(AOwner, ATreeNode, AList, Strings, BaseName + DefDelimeter
+            + TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(I), SkipEmptyStr)
+        else
+          GetRecurObjectStrings(AOwner, ATreeNode, AList, Strings,
+            TComponent(AObject).Name + DefDelimeter + 'TreeNode' + InttoStr(I), SkipEmptyStr);
+      end;
+    end
+    // 是 TreeNode 时处理其 Text 属性
+    else if CnLanguageManager.TranslateTreeNode and (AObject is TTreeViewItem) then
+    begin
+      if not (tfText in FFilterOptions) then
+        Exit;
+
+      AStr := 'Text';
+      if BaseName <> '' then
+        AStr := BaseName + DefDelimeter + AStr;
+
+      if not SkipEmptyStr or ((AObject as TTreeViewItem).Text <> '') then
+        Strings.Add(AStr + DefEqual + (AObject as TTreeViewItem).Text);
+      Exit;
+    end;
 {$ENDIF}
-      ((AObject is TCustomFrame) and IsTopDesignFrame(AObject as TCustomFrame));
+
+    IsForm := (AObject is TCustomForm)  // 需要额外判断是否设计期顶层 Frame 的情形，以生成 TFrame1.Hint 的结果
+{$IFDEF SUPPORT_FMX}
+      or CnFmxIsInheritedFromCommonCustomForm(AObject)// 还要加上 FMX 的顶层 FORM 判断
+{$ENDIF}
+{$IFDEF MSWINDOWS}
+      or ((AObject is TCustomFrame) and IsTopDesignFrame(AObject as TCustomFrame)) {$ENDIF} ;
 
     try
       Data := GetTypeData(AObject.Classinfo);
@@ -706,7 +760,13 @@ begin
             if (AObject is TControl) and (SubObj is TFont) and (APropName = 'Font') then
             begin
               if (tfFont in FFilterOptions) then
-                if not IsParentFont(AObject as TControl) then // 不使用 ParentFont 时存字体
+              begin
+{$IFDEF MSWINDOWS}
+                B := IsParentFont(AObject as TControl);
+{$ELSE}
+                B := CnFmxGetControlIsParentFont(AObject as TControl);
+{$ENDIF}
+                if not B then // 不使用 ParentFont 时存字体
                 begin
                   if not IsForm then
                     AStr := TComponent(AObject).Name + DefDelimeter + SCnControlFont
@@ -717,9 +777,15 @@ begin
                     AStr := BaseName + DefDelimeter + AStr;
 
                   AList.Add(SubObj);
+{$IFDEF MSWINDOWS}
                   Strings.Add(AStr + DefEqual + FontToStringEx(SubObj as TFont,
                     GetParentFont(AObject as TComponent)));
+{$ELSE}
+                  Strings.Add(AStr + DefEqual + FontToStringEx(SubObj as TFont,
+                    CnFmxGetControlParentFont(AObject as TComponent)));
+{$ENDIF}
                 end;
+              end;
             end // 不按常规处理 TControl的字体
             else if CnLanguageManager.TranslateOtherFont and (SubObj is TFont) then
             begin
@@ -735,8 +801,13 @@ begin
                     AStr := BaseName + DefDelimeter + AStr;
 
                   AList.Add(SubObj);
+{$IFDEF MSWINDOWS}
                   Strings.Add(AStr + DefEqual + FontToStringEx(SubObj as TFont,
                     GetParentFont(AObject as TComponent)));
+{$ELSE}
+                  Strings.Add(AStr + DefEqual + FontToStringEx(SubObj as TFont,
+                    CnFmxGetControlParentFont(AObject as TComponent)));
+{$ENDIF}
                 end;                    
             end
             else if not (SubObj is TComponent) or ((SubObj as TComponent).Owner = nil) then

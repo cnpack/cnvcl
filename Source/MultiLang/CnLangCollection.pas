@@ -83,8 +83,12 @@ type
 
     procedure Assign(Source: TPersistent); override;
     {* 赋值过程}
+
+{$IFDEF MSWINDOWS}
     function IsValidLanguageID(ALanguageID: LongWord): Boolean;
     {* 判断一 ID 是否是合法的语言 ID }
+{$ENDIF}
+
     property OnLanguageIDChanged: TNotifyEvent read FOnLanguageIDChanged
       write FOnLanguageIDChanged;
     {* 当语言 ID 发生改变时触发 }
@@ -157,6 +161,8 @@ begin
   Result := FLanguageName;
 end;
 
+{$IFDEF MSWINDOWS}
+
 function TCnLanguageItem.IsValidLanguageID(ALanguageID: LongWord): Boolean;
 begin
   try
@@ -165,6 +171,8 @@ begin
     raise ELanguageStorageError.Create(SCnErrorInCheckingLanguage);
   end;
 end;
+
+{$ENDIF}
 
 procedure TCnLanguageItem.SetAbbreviation(Value: TCnLangString);
 begin
@@ -209,11 +217,16 @@ begin
       LanguageDirName := '';
       DoLanguageIDChanged;
     end
-    else if IsValidLanguageID(Value) then
+    else if {$IFDEF MSWINDOWS}IsValidLanguageID(Value) {$ELSE} True {$ENDIF} then
     begin
       FLanguageID := Value;
+{$IFDEF MSWINDOWS}
       LanguageName := CnLanguages.NameFromLocaleID[Value];
       Abbreviation := CnLanguages.Ext[CnLanguages.IndexOf(Value)];
+{$ELSE}
+      LanguageName := CnLanguages.NameFromLocaleID[TLocaleID(Value)];
+      Abbreviation := CnLanguages.Ext[CnLanguages.IndexOf(TLocaleID(Value))];
+{$ENDIF}
       if LanguageFileName = '' then
         LanguageFileName := Abbreviation;
 

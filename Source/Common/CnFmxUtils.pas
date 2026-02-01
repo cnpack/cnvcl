@@ -176,11 +176,11 @@ function CnFmxGetScreenFormCount: Integer;
 function CnFmxGetScreenForms(Index: Integer): TCommonCustomForm;
 {* 获取 Screen 的第 Index 个 Form}
 
-function CnFmxGetIsParentFont(AControl: TComponent): Boolean;
+function CnFmxGetControlIsParentFont(AControl: TComponent): Boolean;
 {* 获取 FMX Control 是否 ParentFont，封装 StyledSettings 的处理，
   注意不支持文字会返回 True，表示自身不处理}
 
-procedure CnFmxSetIsParentFont(AControl: TComponent; AParentFont: Boolean);
+procedure CnFmxSetControlIsParentFont(AControl: TComponent; AParentFont: Boolean);
 {* 设置 FMX Control 是否 ParentFont，封装 StyledSettings 的处理}
 
 function CnFmxGetControlFont(AControl: TComponent): TFont;
@@ -789,7 +789,7 @@ type
   TCnFmxControlHasFont = TTextControl;
 {$ENDIF}
 
-function CnFmxGetIsParentFont(AControl: TComponent): Boolean;
+function CnFmxGetControlIsParentFont(AControl: TComponent): Boolean;
 begin
   if AControl.InheritsFrom(TCnFmxControlHasFont) then
   begin
@@ -809,7 +809,7 @@ begin
     Result := True;
 end;
 
-procedure CnFmxSetIsParentFont(AControl: TComponent; AParentFont: Boolean);
+procedure CnFmxSetControlIsParentFont(AControl: TComponent; AParentFont: Boolean);
 begin
   if AControl.InheritsFrom(TCnFmxControlHasFont) then
   begin
