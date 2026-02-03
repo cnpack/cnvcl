@@ -130,6 +130,8 @@ function TestNTTINTTRoundTrip: Boolean;
 function TestDCTBasic: Boolean;
 function TestIDCTBasic: Boolean;
 function TestDCTIDCTRoundTrip: Boolean;
+function TestFFT2Basic: Boolean;
+function TestFFT2IFFT2RoundTrip: Boolean;
 
 // ============================== BigNumber ====================================
 
@@ -673,6 +675,8 @@ begin
   MyAssert(TestDCTBasic, 'TestDCTBasic');
   MyAssert(TestIDCTBasic, 'TestIDCTBasic');
   MyAssert(TestDCTIDCTRoundTrip, 'TestDCTIDCTRoundTrip');
+  MyAssert(TestFFT2Basic, 'TestFFT2Basic');
+  MyAssert(TestFFT2IFFT2RoundTrip, 'TestFFT2IFFT2RoundTrip');
 
 // ============================== BigNumber ====================================
 
@@ -2502,6 +2506,67 @@ begin
     end;
   end;
   Result := True;
+end;
+
+function TestFFT2Basic: Boolean;
+var
+  Data: TCnComplexArray;
+  I: Integer;
+begin
+  // 测试 4x4 矩阵
+  // 初始化为 1
+  for I := 0 to 15 do
+  begin
+    Data[I].R := 1.0;
+    Data[I].I := 0.0;
+  end;
+
+  Result := CnFFT2(@Data, 4, 4);
+  // 4x4 的全1矩阵，其FFT结果应该是 [0,0] = 16 (W*H)，其余为0
+  if Result then
+  begin
+    if not FloatEqual(Data[0].R, 16.0, 1e-5) then
+      Result := False;
+  end;
+end;
+
+function TestFFT2IFFT2RoundTrip: Boolean;
+var
+  Data, CopyData: TCnComplexArray;
+  I: Integer;
+begin
+  // 测试 4x4 矩阵
+  for I := 0 to 15 do
+  begin
+    Data[I].R := I + 1.0;
+    Data[I].I := 0.0;
+    CopyData[I] := Data[I];
+  end;
+
+  // 正变换
+  if not CnFFT2(@Data, 4, 4) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  // 逆变换
+  if not CnIFFT2(@Data, 4, 4) then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  // 验证
+  Result := True;
+  for I := 0 to 15 do
+  begin
+    if not FloatEqual(Data[I].R, CopyData[I].R, 1e-5) then
+    begin
+      Result := False;
+      Break;
+    end;
+  end;
 end;
 
 // ============================== BigNumber ====================================

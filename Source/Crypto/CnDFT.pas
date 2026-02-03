@@ -34,7 +34,9 @@ unit CnDFT;
 * 开发平台：Win 7 + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2022.06.29 V1.2
+* 修改记录：2026.02.03 V1.3
+*               增加二维傅立叶变换及其逆变换
+*           2022.06.29 V1.2
 *               增加一二维离散余弦变换及其逆变换
 *           2021.08.29 V1.1
 *               增加快速数论变换，使用特定素数
@@ -88,6 +90,28 @@ function CnIFFT(Data: PCnComplexArray; Len: Integer): Boolean;
      Len: Integer                         - 数组里的复数个数，必须是 2 的整数次幂
 
    返回值：Boolean                        - 返回逆变换是否成功
+}
+
+function CnFFT2(Data: PCnComplexArray; W, H: Integer): Boolean;
+{* 二维快速傅立叶变换。
+
+   参数：
+     Data: PCnComplexArray                - 内存中的复数数组，长度至少为 W*H
+     W: Integer                           - 宽度，必须为 2 的幂
+     H: Integer                           - 高度，必须为 2 的幂
+
+   返回值：Boolean                        - 返回变换是否成功
+}
+
+function CnIFFT2(Data: PCnComplexArray; W, H: Integer): Boolean;
+{* 二维快速傅立叶逆变换。
+
+   参数：
+     Data: PCnComplexArray                - 内存中的复数数组，长度至少为 W*H
+     W: Integer                           - 宽度，必须为 2 的幂
+     H: Integer                           - 高度，必须为 2 的幂
+
+   返回值：Boolean                        - 返回变换是否成功
 }
 
 function CnNTT(Data: PInt64Array; Len: Integer): Boolean;
@@ -316,7 +340,68 @@ begin
   Result := FFT(Data, Len, True);
 end;
 
-// 迭代非递归方式实现的快速数论变换及其逆变换
+// 二维 FFT 实现：先对行做 FFT，再对列做 FFT
+function FFT2D(Data: PCnComplexArray; W, H: Integer; IsReverse: Boolean): Boolean;
+var
+  X, Y: Integer;
+  RowData: PCnComplexArray;
+  ColData: PCnComplexArray;
+begin
+  Result := False;
+  if (Data = nil) or (W <= 0) or (H <= 0) then
+    Exit;
+
+  if not IsUInt32PowerOf2(Cardinal(W)) or not IsUInt32PowerOf2(Cardinal(H)) then
+    Exit;
+
+  // 1. 对每一行做 FFT
+  GetMem(RowData, W * SizeOf(TCnComplexNumber));
+  try
+    for Y := 0 to H - 1 do
+    begin
+      // 提取一行
+      Move(Data^[Y * W], RowData^[0], W * SizeOf(TCnComplexNumber));
+      // FFT
+      FFT(RowData, W, IsReverse);
+      // 写回
+      Move(RowData^[0], Data^[Y * W], W * SizeOf(TCnComplexNumber));
+    end;
+  finally
+    FreeMem(RowData);
+  end;
+
+  // 2. 对每一列做 FFT
+  GetMem(ColData, H * SizeOf(TCnComplexNumber));
+  try
+    for X := 0 to W - 1 do
+    begin
+      // 提取一列
+      for Y := 0 to H - 1 do
+        ColData^[Y] := Data^[Y * W + X];
+      // FFT
+      FFT(ColData, H, IsReverse);
+      // 写回
+      for Y := 0 to H - 1 do
+        Data^[Y * W + X] := ColData^[Y];
+    end;
+  finally
+    FreeMem(ColData);
+  end;
+
+  Result := True;
+end;
+
+function CnFFT2(Data: PCnComplexArray; W, H: Integer): Boolean;
+begin
+  Result := FFT2D(Data, W, H, False);
+end;
+
+function CnIFFT2(Data: PCnComplexArray; W, H: Integer): Boolean;
+begin
+  Result := FFT2D(Data, W, H, True);
+end;
+
+// 采用非递归方式实现的快速数论变换/逆变换
 function NTT(Data: PInt64Array; Len: Integer; IsReverse: Boolean): Boolean;
 var
   M, K, J, R: Integer;
