@@ -395,11 +395,15 @@ begin
   if rbImageMode.Checked then
   begin
     FCnWatermark.Mode := wmImage;
-    if FWatermarkImg.Empty then
+    if FWatermarkImg.Empty and (edtCompText.Text = '') then
     begin
-      CompLog('Error: Watermark image not loaded for Image Mode.');
+      CompLog('Error: Watermark image not loaded and no text provided for Image Mode.');
       Exit;
     end;
+
+    if FWatermarkImg.Empty then
+      CompLog('Using Text to generate Watermark Image...');
+
     FCnWatermark.WatermarkImage := FWatermarkImg;
   end
   else

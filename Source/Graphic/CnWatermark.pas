@@ -322,8 +322,31 @@ var
   U, V: Integer;
   Mag: Double;
   TotalBlocks, ProcessedBlocks: Integer;
+  TempBmp: TBitmap;
+  UseBmp: TBitmap;
 begin
-  if FWatermarkImage.Empty then Exit;
+  TempBmp := nil;
+  if FWatermarkImage.Empty then
+  begin
+    if FText = '' then Exit;
+    TempBmp := TBitmap.Create;
+    TempBmp.Width := 128;
+    TempBmp.Height := 128;
+    TempBmp.Canvas.Brush.Color := clWhite;
+    TempBmp.Canvas.FillRect(Rect(0, 0, TempBmp.Width, TempBmp.Height));
+    TempBmp.Canvas.Font.Name := 'Arial';
+    TempBmp.Canvas.Font.Size := 20;
+    TempBmp.Canvas.Font.Color := clBlack;
+    TempBmp.Canvas.Font.Style := [fsBold];
+    // Center Text
+    TempBmp.Canvas.TextOut((TempBmp.Width - TempBmp.Canvas.TextWidth(FText)) div 2,
+      (TempBmp.Height - TempBmp.Canvas.TextHeight(FText)) div 2, FText);
+    UseBmp := TempBmp;
+  end
+  else
+  begin
+    UseBmp := FWatermarkImage;
+  end;
 
   BlockSize := DFT_BLOCK_SIZE;
   HalfSize := BlockSize div 2;
@@ -345,7 +368,7 @@ begin
     WmBmp.Width := HalfSize;
     WmBmp.Height := HalfSize;
     // 简单的缩放绘制
-    WmBmp.Canvas.StretchDraw(Rect(0, 0, HalfSize, HalfSize), FWatermarkImage);
+    WmBmp.Canvas.StretchDraw(Rect(0, 0, HalfSize, HalfSize), UseBmp);
 
     W := TargetBmp.Width;
     H := TargetBmp.Height;
@@ -454,6 +477,7 @@ begin
     end;
   finally
     WmBmp.Free;
+    if TempBmp <> nil then TempBmp.Free;
   end;
 end;
 
@@ -553,7 +577,7 @@ var
   P: PByte;
   X, Y: Integer;
   Mag: Double;
-  MaxMag: Double;
+  MaxMag, MinMag: Double;
   Val: Byte;
   Spectrum: TBitmap;
   CenterX, CenterY: Integer;
@@ -624,11 +648,23 @@ begin
         Mag := Sqrt(Sqr(Data^[Y * BlockSize + X].R) + Sqr(Data^[Y * BlockSize + X].I));
         Mag := Log10(1 + Mag);
         Data^[Y * BlockSize + X].R := Mag; // Store magnitude in R
-        if Mag > MaxMag then MaxMag := Mag;
       end;
     end;
 
-    if MaxMag < 1e-6 then MaxMag := 1;
+    // Recalculate Min/Max ignoring DC (0,0)
+    MaxMag := -1.0;
+    MinMag := 1.0e20;
+    for Y := 0 to BlockSize - 1 do
+    begin
+      for X := 0 to BlockSize - 1 do
+      begin
+        if (X = 0) and (Y = 0) then Continue; // Skip DC
+        Mag := Data^[Y * BlockSize + X].R;
+        if Mag > MaxMag then MaxMag := Mag;
+        if Mag < MinMag then MinMag := Mag;
+      end;
+    end;
+    if MaxMag <= MinMag then MaxMag := MinMag + 1.0;
 
     // 4. 绘制频谱图 (带 FFTShift)
     for Y := 0 to BlockSize - 1 do
@@ -643,7 +679,9 @@ begin
 
         Mag := Data^[((Y + BlockSize div 2) mod BlockSize) * BlockSize + ((X + BlockSize div 2) mod BlockSize)].R;
 
-        Val := Round((Mag / MaxMag) * 255);
+        Val := Round(((Mag - MinMag) / (MaxMag - MinMag)) * 255);
+        if Val > 255 then Val := 255;
+        if Val < 0 then Val := 0;
 
         P^ := Val;
         Inc(P);
