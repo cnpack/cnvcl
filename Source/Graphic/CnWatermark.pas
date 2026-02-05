@@ -41,7 +41,6 @@ uses
   CnClasses, CnComplex;
 
 type
-  // 
   TCnWatermarkStrength = (wsLow, wsMedium, wsHigh, wsCustom);
   {* 水印强度预设}
 
@@ -51,6 +50,9 @@ type
   TCnWatermarkProgressEvent = procedure(Sender: TObject; Percent: Integer) of object;
   {* 进度事件}
 
+  TCnWatermarkImageEvent = procedure(Sender: TObject; Image: TBitmap) of object;
+  {* 图像相关事件}
+
   TCnWatermark = class(TCnComponent)
   private
     FText: string;
@@ -59,6 +61,7 @@ type
     FStrength: Double;
     FStrengthLevel: TCnWatermarkStrength;
     FOnProgress: TCnWatermarkProgressEvent;
+    FOnWatermarkImageReady: TCnWatermarkImageEvent;
     procedure SetStrengthLevel(const Value: TCnWatermarkStrength);
     procedure SetStrength(const Value: Double);
     procedure SetWatermarkImage(const Value: TBitmap);
@@ -67,6 +70,8 @@ type
     procedure DoProgress(Percent: Integer); dynamic;
     procedure EmbedText(Source, Dest: TBitmap);
     procedure EmbedImage(Source, Dest: TBitmap);
+
+    procedure DoWatermarkImageReady(Image: TBitmap); virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -101,7 +106,9 @@ type
     property WatermarkImage: TBitmap read FWatermarkImage write SetWatermarkImage;
     property StrengthLevel: TCnWatermarkStrength read FStrengthLevel write SetStrengthLevel default wsMedium;
     property Strength: Double read FStrength write SetStrength;
+
     property OnProgress: TCnWatermarkProgressEvent read FOnProgress write FOnProgress;
+    property OnWatermarkImageReady: TCnWatermarkImageEvent read FOnWatermarkImageReady write FOnWatermarkImageReady;
   end;
 
 implementation
@@ -347,6 +354,8 @@ begin
   begin
     UseBmp := FWatermarkImage;
   end;
+
+  DoWatermarkImageReady(UseBmp);
 
   BlockSize := DFT_BLOCK_SIZE;
   HalfSize := BlockSize div 2;
@@ -639,7 +648,7 @@ begin
     // Q2 <-> Q4
 
     // 我们先找出最大幅值用于归一化
-    MaxMag := 0;
+
     // Log scale
     for Y := 0 to BlockSize - 1 do
     begin
@@ -677,7 +686,8 @@ begin
         // 实际上：
         // Dest[y][x] = Src[(y + h/2) % h][(x + w/2) % w]
 
-        Mag := Data^[((Y + BlockSize div 2) mod BlockSize) * BlockSize + ((X + BlockSize div 2) mod BlockSize)].R;
+        // Direct coordinates (No FFTShift)
+        Mag := Data^[Y * BlockSize + X].R;
 
         Val := Round(((Mag - MinMag) / (MaxMag - MinMag)) * 255);
         if Val > 255 then Val := 255;
@@ -735,6 +745,12 @@ begin
     Result := MatchCount * LenPattern / LenExt;
 
   if Result > 1.0 then Result := 1.0;
+end;
+
+procedure TCnWatermark.DoWatermarkImageReady(Image: TBitmap);
+begin
+  if Assigned(FOnWatermarkImageReady) then
+    FOnWatermarkImageReady(Self, Image);
 end;
 
 end.
