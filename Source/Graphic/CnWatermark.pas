@@ -37,8 +37,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, Graphics, Controls, CnMatrix, CnDFT, CnNative, Math,
-  CnClasses, CnComplex;
+  Classes, {$IFDEF MSWINDOWS} Windows, {$ENDIF} SysUtils, Graphics, Controls,
+  CnMatrix, CnDFT, CnNative, Math, CnClasses, CnComplex;
 
 type
   TCnWatermarkStrength = (wsLow, wsMedium, wsHigh, wsCustom);
@@ -62,9 +62,13 @@ type
     FStrengthLevel: TCnWatermarkStrength;
     FOnProgress: TCnWatermarkProgressEvent;
     FOnWatermarkImageReady: TCnWatermarkImageEvent;
+    FFont: TFont;
+    FMargin: Integer;
     procedure SetStrengthLevel(const Value: TCnWatermarkStrength);
     procedure SetStrength(const Value: Double);
     procedure SetWatermarkImage(const Value: TBitmap);
+    procedure SetFont(const Value: TFont);
+    procedure SetMargin(const Value: Integer);
   protected
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
     procedure DoProgress(Percent: Integer); dynamic;
@@ -106,6 +110,8 @@ type
     property WatermarkImage: TBitmap read FWatermarkImage write SetWatermarkImage;
     property StrengthLevel: TCnWatermarkStrength read FStrengthLevel write SetStrengthLevel default wsMedium;
     property Strength: Double read FStrength write SetStrength;
+    property Font: TFont read FFont write SetFont;
+    property Margin: Integer read FMargin write SetMargin default 2;
 
     property OnProgress: TCnWatermarkProgressEvent read FOnProgress write FOnProgress;
     property OnWatermarkImageReady: TCnWatermarkImageEvent read FOnWatermarkImageReady write FOnWatermarkImageReady;
@@ -130,10 +136,17 @@ begin
   FStrength := STRENGTH_MEDIUM;
   FMode := wmText;
   FWatermarkImage := TBitmap.Create;
+  FFont := TFont.Create;
+  FFont.Name := 'Arial';
+  FFont.Size := 20;
+  FFont.Color := clBlack;
+  FFont.Style := [fsBold];
+  FMargin := 2;
 end;
 
 destructor TCnWatermark.Destroy;
 begin
+  FFont.Free;
   FWatermarkImage.Free;
   inherited Destroy;
 end;
@@ -180,6 +193,15 @@ begin
   FWatermarkImage.Assign(Value);
 end;
 
+procedure TCnWatermark.SetFont(const Value: TFont);
+begin
+  FFont.Assign(Value);
+end;
+procedure TCnWatermark.SetMargin(const Value: Integer);
+begin
+  if FMargin <> Value then
+    FMargin := Value;
+end;
 procedure TCnWatermark.Embed(Source: TBitmap; Dest: TBitmap);
 begin
   if (Source = nil) or (Source.Empty) then Exit;
@@ -322,32 +344,41 @@ var
   WmBmp: TBitmap;
   Data: PCnComplexArray;
   P: PByte;
-  X, Y, BX, BY, W, H: Integer;
+  X, Y, BX, BY, W, H, NewW, NewH: Integer;
   BlockSize: Integer;
   Val: Double;
   HalfSize: Integer;
   U, V: Integer;
-  Mag: Double;
+  Mag, Scale: Double;
   TotalBlocks, ProcessedBlocks: Integer;
   TempBmp: TBitmap;
   UseBmp: TBitmap;
+  TextW, TextH: Integer;
+  DestRect: TRect;
 begin
   TempBmp := nil;
   if FWatermarkImage.Empty then
   begin
     if FText = '' then Exit;
     TempBmp := TBitmap.Create;
-    TempBmp.Width := 128;
-    TempBmp.Height := 128;
+    TempBmp.Canvas.Font.Assign(FFont);
+    TextW := TempBmp.Canvas.TextWidth(FText);
+    TextH := TempBmp.Canvas.TextHeight(FText);
+
+    // Ensure minimum size
+    if TextW < 8 then TextW := 8;
+    if TextH < 8 then TextH := 8;
+
+    TempBmp.Width := TextW + FMargin * 2;
+    TempBmp.Height := TextH + FMargin * 2;
+
     TempBmp.Canvas.Brush.Color := clWhite;
     TempBmp.Canvas.FillRect(Rect(0, 0, TempBmp.Width, TempBmp.Height));
-    TempBmp.Canvas.Font.Name := 'Arial';
-    TempBmp.Canvas.Font.Size := 20;
-    TempBmp.Canvas.Font.Color := clBlack;
-    TempBmp.Canvas.Font.Style := [fsBold];
-    // Center Text
-    TempBmp.Canvas.TextOut((TempBmp.Width - TempBmp.Canvas.TextWidth(FText)) div 2,
-      (TempBmp.Height - TempBmp.Canvas.TextHeight(FText)) div 2, FText);
+
+    TempBmp.Canvas.Font.Assign(FFont); // Re-assign in case resize affected it
+    // Draw text at (Margin, Margin)
+    TempBmp.Canvas.TextOut(FMargin, FMargin, FText);
+
     UseBmp := TempBmp;
   end
   else
@@ -377,7 +408,29 @@ begin
     WmBmp.Width := HalfSize;
     WmBmp.Height := HalfSize;
     // 简单的缩放绘制
-    WmBmp.Canvas.StretchDraw(Rect(0, 0, HalfSize, HalfSize), UseBmp);
+    WmBmp.Canvas.Brush.Color := clWhite;
+    WmBmp.Canvas.FillRect(Rect(0, 0, HalfSize, HalfSize));
+
+    // Calculate proportional rect
+    Scale := 1.0;
+    if (UseBmp.Width > 0) and (UseBmp.Height > 0) then
+    begin
+       if (UseBmp.Width / UseBmp.Height) > (HalfSize / HalfSize) then
+         Scale := HalfSize / UseBmp.Width
+       else
+         Scale := HalfSize / UseBmp.Height;
+    end;
+
+    NewW := Round(UseBmp.Width * Scale);
+    NewH := Round(UseBmp.Height * Scale);
+    DestRect := Rect(
+      (HalfSize - NewW) div 2,
+      (HalfSize - NewH) div 2,
+      (HalfSize - NewW) div 2 + NewW,
+      (HalfSize - NewH) div 2 + NewH
+    );
+
+    WmBmp.Canvas.StretchDraw(DestRect, UseBmp);
 
     W := TargetBmp.Width;
     H := TargetBmp.Height;
