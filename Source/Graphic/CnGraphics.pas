@@ -42,7 +42,7 @@ interface
 
 uses
   Windows, SysUtils, Classes, Graphics, ExtCtrls, Math, Controls, Messages,
-  CnNative, CnClasses, CnCommon, CnGraphConsts;
+  CnNative, CnClasses, CnCommon, CnGraphConsts, CnMatrix;
 
 type
 
@@ -51,7 +51,7 @@ type
 //--------------------------------------------------------//
 
   PCnColor = ^TCnColor;
-  {* 指向TCnColor的指针类型}
+  {* 指向 TCnColor 的指针类型}
   TCnColor = packed record
   {* 24位颜色值记录}
     b, g, r: Byte;
@@ -73,6 +73,7 @@ type
   {* 浮点数坐标记录类型}
     x, y: Single;
   end;
+
   TPointFArray = array of TPointF;
   {* TPointF 浮点数坐标动态数组，一般用于图形绘制参数传递}
 
@@ -1199,6 +1200,67 @@ type
       FTransparentColor default clDefault;
     {* 图像的透明色属性，位图中与该颜色相同的像素点按透明处理。
      |<BR> 当值为 clDefault 时，使用图像左下角像素颜色值来代替。}
+  end;
+
+  {* 颜色空间转换器类，负责 RGB 与 YCbCr 颜色空间的相互转换 }
+  TCnColorSpaceConverter = class
+  private
+    // 内部辅助方法
+    function ClipByte(Value: Double): Byte;
+  public
+    constructor Create;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    procedure RGBToYCbCr(const R, G, B: Byte; out Y, Cb, Cr: Byte);
+    {* RGB 转 YCbCr（ITU-R BT.601 标准）。
+
+       R 红色分量（0-255）
+       G 绿色分量（0-255）
+       B 蓝色分量（0-255）
+       Y 输出亮度分量（0-255）
+       Cb 输出蓝色色度分量（0-255）
+       Cr 输出红色色度分量（0-255）
+    }
+
+    procedure YCbCrToRGB(const Y, Cb, Cr: Byte; out R, G, B: Byte);
+    {* YCbCr 转 RGB。
+
+       Y 亮度分量（0-255）
+       Cb 蓝色色度分量（0-255）
+       Cr 红色色度分量（0-255）
+       R 输出红色分量（0-255）
+       G 输出绿色分量（0-255）
+       B 输出蓝色分量（0-255）
+    }
+
+    procedure ConvertBitmapToYCbCr(Source: TBitmap;
+      YPlane, CbPlane, CrPlane: TCnFloatMatrix);
+    {* 批量转换整个位图到 YCbCr 颜色空间。
+
+       Source 源位图（24 位 RGB）
+       YPlane 输出 Y 通道矩阵
+       CbPlane 输出 Cb 通道矩阵
+       CrPlane 输出 Cr 通道矩阵
+    }
+
+    procedure ConvertYCbCrToBitmap(YPlane, CbPlane, CrPlane: TCnFloatMatrix;
+      Dest: TBitmap);
+    {* 批量转换 YCbCr 数据到位图。
+
+       YPlane Y 通道矩阵
+       CbPlane Cb 通道矩阵
+       CrPlane Cr 通道矩阵
+       Dest 输出位图（24 位 RGB）
+    }
+
+    procedure ExtractYChannel(Source: TBitmap; YPlane: TCnFloatMatrix);
+    {* 提取位图的 Y 通道（亮度通道）。
+
+       Source 源位图（24 位 RGB）
+       YPlane 输出 Y 通道矩阵
+    }
   end;
 
 procedure FreeBmpDC;
@@ -7424,6 +7486,220 @@ begin
   finally
     with AControl.Parent do
       ControlState := ControlState - [csPaintCopy];
+  end;
+end;
+
+{ TCnColorSpaceConverter }
+
+constructor TCnColorSpaceConverter.Create;
+begin
+  inherited Create;
+end;
+
+destructor TCnColorSpaceConverter.Destroy;
+begin
+  inherited Destroy;
+end;
+
+function TCnColorSpaceConverter.ClipByte(Value: Double): Byte;
+begin
+  if Value < 0 then
+    Result := 0
+  else if Value > 255 then
+    Result := 255
+  else
+    Result := Round(Value);
+end;
+
+procedure TCnColorSpaceConverter.RGBToYCbCr(const R, G, B: Byte;
+  out Y, Cb, Cr: Byte);
+var
+  YVal, CbVal, CrVal: Double;
+begin
+  // ITU-R BT.601 标准转换公式
+  // Y  =  0.299*R + 0.587*G + 0.114*B
+  // Cb = -0.169*R - 0.331*G + 0.500*B + 128
+  // Cr =  0.500*R - 0.419*G - 0.081*B + 128
+
+  YVal := 0.299 * R + 0.587 * G + 0.114 * B;
+  CbVal := -0.169 * R - 0.331 * G + 0.500 * B + 128;
+  CrVal := 0.500 * R - 0.419 * G - 0.081 * B + 128;
+
+  Y := ClipByte(YVal);
+  Cb := ClipByte(CbVal);
+  Cr := ClipByte(CrVal);
+end;
+
+procedure TCnColorSpaceConverter.YCbCrToRGB(const Y, Cb, Cr: Byte;
+  out R, G, B: Byte);
+var
+  RVal, GVal, BVal: Double;
+  CbAdj, CrAdj: Double;
+begin
+  // ITU-R BT.601 逆转换公式
+  // R = Y + 1.402 * (Cr - 128)
+  // G = Y - 0.344 * (Cb - 128) - 0.714 * (Cr - 128)
+  // B = Y + 1.772 * (Cb - 128)
+
+  CbAdj := Cb - 128;
+  CrAdj := Cr - 128;
+
+  RVal := Y + 1.402 * CrAdj;
+  GVal := Y - 0.344 * CbAdj - 0.714 * CrAdj;
+  BVal := Y + 1.772 * CbAdj;
+
+  R := ClipByte(RVal);
+  G := ClipByte(GVal);
+  B := ClipByte(BVal);
+end;
+
+procedure TCnColorSpaceConverter.ConvertBitmapToYCbCr(Source: TBitmap;
+  YPlane, CbPlane, CrPlane: TCnFloatMatrix);
+var
+  X, Y: Integer;
+  P: PByte;
+  R, G, B: Byte;
+  YVal, CbVal, CrVal: Byte;
+  W, H: Integer;
+begin
+  if (Source = nil) or Source.Empty then
+    Exit;
+
+  // 确保位图格式为 24 位
+  if Source.PixelFormat <> pf24bit then
+    Source.PixelFormat := pf24bit;
+
+  W := Source.Width;
+  H := Source.Height;
+
+  // 调整矩阵大小
+  YPlane.RowCount := H;
+  YPlane.ColCount := W;
+  CbPlane.RowCount := H;
+  CbPlane.ColCount := W;
+  CrPlane.RowCount := H;
+  CrPlane.ColCount := W;
+
+  // 逐像素转换
+  for Y := 0 to H - 1 do
+  begin
+    P := Source.ScanLine[Y];
+    for X := 0 to W - 1 do
+    begin
+      // 读取 BGR 顺序（Windows 位图格式）
+      B := P^;
+      Inc(P);
+      G := P^;
+      Inc(P);
+      R := P^;
+      Inc(P);
+
+      // 转换到 YCbCr
+      RGBToYCbCr(R, G, B, YVal, CbVal, CrVal);
+
+      // 存储到矩阵（注意：矩阵索引是 [Col, Row]）
+      YPlane[X, Y] := YVal;
+      CbPlane[X, Y] := CbVal;
+      CrPlane[X, Y] := CrVal;
+    end;
+  end;
+end;
+
+procedure TCnColorSpaceConverter.ConvertYCbCrToBitmap(YPlane, CbPlane,
+  CrPlane: TCnFloatMatrix; Dest: TBitmap);
+var
+  X, Y: Integer;
+  P: PByte;
+  R, G, B: Byte;
+  YVal, CbVal, CrVal: Byte;
+  W, H: Integer;
+begin
+  if (YPlane = nil) or (CbPlane = nil) or (CrPlane = nil) or (Dest = nil) then
+    Exit;
+
+  // 检查矩阵尺寸一致性
+  if (YPlane.RowCount <> CbPlane.RowCount) or
+     (YPlane.RowCount <> CrPlane.RowCount) or
+     (YPlane.ColCount <> CbPlane.ColCount) or
+     (YPlane.ColCount <> CrPlane.ColCount) then
+    raise Exception.Create('YCbCr planes must have the same dimensions');
+
+  W := YPlane.ColCount;
+  H := YPlane.RowCount;
+
+  // 设置位图大小和格式
+  Dest.PixelFormat := pf24bit;
+  Dest.Width := W;
+  Dest.Height := H;
+
+  // 逐像素转换
+  for Y := 0 to H - 1 do
+  begin
+    P := Dest.ScanLine[Y];
+    for X := 0 to W - 1 do
+    begin
+      // 从矩阵读取 YCbCr 值
+      YVal := ClipByte(YPlane[X, Y]);
+      CbVal := ClipByte(CbPlane[X, Y]);
+      CrVal := ClipByte(CrPlane[X, Y]);
+
+      // 转换到 RGB
+      YCbCrToRGB(YVal, CbVal, CrVal, R, G, B);
+
+      // 写入 BGR 顺序（Windows 位图格式）
+      P^ := B;
+      Inc(P);
+      P^ := G;
+      Inc(P);
+      P^ := R;
+      Inc(P);
+    end;
+  end;
+end;
+
+procedure TCnColorSpaceConverter.ExtractYChannel(Source: TBitmap;
+  YPlane: TCnFloatMatrix);
+var
+  X, Y: Integer;
+  P: PByte;
+  R, G, B: Byte;
+  YVal, CbVal, CrVal: Byte;
+  W, H: Integer;
+begin
+  if (Source = nil) or Source.Empty then
+    Exit;
+
+  // 确保位图格式为 24 位
+  if Source.PixelFormat <> pf24bit then
+    Source.PixelFormat := pf24bit;
+
+  W := Source.Width;
+  H := Source.Height;
+
+  // 调整矩阵大小
+  YPlane.RowCount := H;
+  YPlane.ColCount := W;
+
+  // 逐像素提取 Y 通道
+  for Y := 0 to H - 1 do
+  begin
+    P := Source.ScanLine[Y];
+    for X := 0 to W - 1 do
+    begin
+      // 读取 BGR 顺序
+      B := P^;
+      Inc(P);
+      G := P^;
+      Inc(P);
+      R := P^;
+      Inc(P);
+
+      // 只计算 Y 分量（不需要 Cb 和 Cr）
+      RGBToYCbCr(R, G, B, YVal, CbVal, CrVal);
+
+      // 存储 Y 值到矩阵
+      YPlane[X, Y] := YVal;
+    end;
   end;
 end;
 
