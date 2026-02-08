@@ -251,6 +251,9 @@ type
   TCardinals = array of Cardinal;
   {* 无符号四字节动态数组}
 
+  TBooleans = array of Boolean;
+  {* 布尔动态数组}
+
   PCnByte = ^Byte;
   {* 指向 8 位无符号数的指针类型}
   PCnWord = ^Word;
