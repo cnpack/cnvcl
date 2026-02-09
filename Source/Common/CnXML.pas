@@ -1023,6 +1023,10 @@ end;
 //==============================================================================
 
 constructor TCnXMLLexer.Create(const ASource: string);
+{$IFDEF UNICODE}
+var
+  I: Integer;
+{$ENDIF}
 begin
   inherited Create;
   FSource := ASource;
@@ -1035,10 +1039,16 @@ begin
 {$IFDEF UNICODE}
   // In Unicode Delphi, string is UnicodeString (UTF-16)
   // Check for UTF-16 BOM (FEFF/FFFE for LE/BE) or UTF-8 BOM that wasn't stripped
-  if (FLength >= 1) and ((FSource[1] = #$FEFF) or (FSource[1] = #$FFFE)) then
+  if (FLength >= 1) and (FSource[1] = #$FEFF) then
     FPosition := 1
+  else if (FLength >= 1) and (FSource[1] = #$FFFE) then
+  begin
+    // UTF-16 BE, Exchange each WideChar
+    for I := 2 to FLength do
+      FSource[I] := Char(Swap(Ord(FSource[I])));
+  end
   else if (FLength >= 3) and
-          (FSource[1] = #$EF) and (FSource[2] = #$BB) and (FSource[3] = #$BF) then
+    (FSource[1] = #$EF) and (FSource[2] = #$BB) and (FSource[3] = #$BF) then
     FPosition := 3;
 {$ELSE}
   // In non-Unicode Delphi/FPC, string is AnsiString
