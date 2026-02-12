@@ -636,6 +636,9 @@ function IsValidIdentW(const Ident: string): Boolean;
 function IsValidIdentWide(const Ident: WideString): Boolean;
 {* 判断宽字符串是否是有效的 Unicode 标识符，只在 BDS 以上调用}
 
+function IsValidNumberChar(C: Char; First: Boolean = False): Boolean;
+{* 判断字符是否有效数字字符，First 表示是否为首字符}
+
 function StrContainsRegExpr(const Str: string): Boolean;
 {* 判断字符串内是否包含正则表达式专用字符}
 
@@ -4851,6 +4854,17 @@ begin
   end;
   Result := True;
 {$ENDIF}
+end;
+
+function IsValidNumberChar(C: Char; First: Boolean = False): Boolean;
+const
+  CN_NUMBERFIRST = ['+', '-', '0'..'9', ];
+  CN_NUMBER = CN_NUMBERFIRST + ['.', 'e', 'E'];
+begin
+  if First then
+    Result := CharInSet(C, CN_NUMBERFIRST)
+  else
+    Result := CharInSet(C, CN_NUMBER);
 end;
 
 // 判断字符串内是否包含正则表达式专用字符
