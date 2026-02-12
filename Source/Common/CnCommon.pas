@@ -639,6 +639,15 @@ function IsValidIdentWide(const Ident: WideString): Boolean;
 function IsValidNumberChar(C: Char; First: Boolean = False): Boolean;
 {* 判断字符是否有效数字字符，First 表示是否为首字符}
 
+function IsValidHexNumber(const Hex: string): Boolean;
+{* 判断一字符串是否合法的十六进制整数}
+
+function IsValidDecimal(const S: string): Boolean;
+{* 判断一字符串是否合法的十进制浮点数或整数}
+
+function IsValidNumber(const Number: string): Boolean;
+{* 判断一字符串是否合法的整数或浮点数字}
+
 function StrContainsRegExpr(const Str: string): Boolean;
 {* 判断字符串内是否包含正则表达式专用字符}
 
@@ -4858,13 +4867,204 @@ end;
 
 function IsValidNumberChar(C: Char; First: Boolean = False): Boolean;
 const
-  CN_NUMBERFIRST = ['+', '-', '0'..'9', ];
-  CN_NUMBER = CN_NUMBERFIRST + ['.', 'e', 'E'];
+  CN_NUMBERFIRST = ['+', '-', '0'..'9'];             // 数字只能符号和数字字符开头
+  CN_NUMBER = CN_NUMBERFIRST + ['.', 'e', 'E', '_']; // D11 下划线可以代替分节号
 begin
   if First then
     Result := CharInSet(C, CN_NUMBERFIRST)
   else
     Result := CharInSet(C, CN_NUMBER);
+end;
+
+function IsValidHexNumber(const Hex: string): Boolean;
+var
+  I: Integer;
+  HasDigit: Boolean;
+begin
+  Result := False;
+  if (Length(Hex) < 2) or (Hex[1] <> '$') then
+    Exit;
+
+  HasDigit := False;
+  for I := 2 to Length(Hex) do
+  begin
+    if (Hex[I] in ['0'..'9', 'A'..'F', 'a'..'f']) then
+      HasDigit := True
+    else
+      Exit;  // 非法字符
+  end;
+
+  // 必须有数字
+  Result := HasDigit;
+end;
+
+// 判断一字符串是否合法的十进制浮点数或整数
+function IsValidDecimal(const S: string): Boolean;
+type
+  TDecState = (
+    dsStart,          // 起始，尚未读入任何数字
+    dsIntDigit,       // 整数部分数字
+    dsIntUnderscore,  // 整数部分下划线（等待后续数字）
+    dsPoint,          // 小数点
+    dsFracDigit,      // 小数部分数字
+    dsFracUnderscore, // 小数部分下划线
+    dsExp,            // 指数符号 E/e
+    dsExpSign,        // 指数后的正负号
+    dsExpDigit,       // 指数部分数字
+    dsExpUnderscore   // 指数部分下划线
+  );
+var
+  I: Integer;
+  Ch: Char;
+  State: TDecState;
+  HasIntDigit, HasFracDigit, HasExpDigit: Boolean;
+begin
+  Result := False;
+  if S = '' then Exit;
+
+  State := dsStart;
+  HasIntDigit := False;
+  HasFracDigit := False;
+  HasExpDigit := False;
+
+  for I := 1 to Length(S) do
+  begin
+    Ch := S[I];
+    case State of
+      dsStart:
+        if Ch in ['0'..'9'] then  // 必须以数字开头，不允许 '.' 开头
+        begin
+          HasIntDigit := True;
+          State := dsIntDigit;
+        end
+        else
+          Exit;   // 非法起始字符
+
+      dsIntDigit:
+        if Ch in ['0'..'9'] then
+          State := dsIntDigit
+        else if Ch = '_' then
+          State := dsIntUnderscore
+        else if Ch = '.' then
+          State := dsPoint
+        else if (Ch = 'e') or (Ch = 'E') then
+          State := dsExp
+        else
+          Exit;
+
+      dsIntUnderscore:
+        if Ch in ['0'..'9'] then
+        begin
+          HasIntDigit := True;   // 下划线后必须跟数字
+          State := dsIntDigit;
+        end
+        else
+          Exit;   // 下划线后不允许非数字
+
+      dsPoint:
+        if Ch in ['0'..'9'] then
+        begin
+          HasFracDigit := True;
+          State := dsFracDigit;
+        end
+        else if (Ch = 'e') or (Ch = 'E') then
+          State := dsExp
+        else
+          Exit;
+
+      dsFracDigit:
+        if Ch in ['0'..'9'] then
+          State := dsFracDigit
+        else if Ch = '_' then
+          State := dsFracUnderscore
+        else if (Ch = 'e') or (Ch = 'E') then
+          State := dsExp
+        else
+          Exit;
+
+      dsFracUnderscore:
+        if Ch in ['0'..'9'] then
+        begin
+          HasFracDigit := True;
+          State := dsFracDigit;
+        end
+        else
+          Exit;
+
+      dsExp:
+        if Ch in ['+', '-'] then
+          State := dsExpSign
+        else if Ch in ['0'..'9'] then
+        begin
+          HasExpDigit := True;
+          State := dsExpDigit;
+        end
+        else
+          Exit;
+
+      dsExpSign:
+        if Ch in ['0'..'9'] then
+        begin
+          HasExpDigit := True;
+          State := dsExpDigit;
+        end
+        else
+          Exit;
+
+      dsExpDigit:
+        if Ch in ['0'..'9'] then
+          State := dsExpDigit
+        else if Ch = '_' then
+          State := dsExpUnderscore
+        else
+          Exit;
+
+      dsExpUnderscore:
+        if Ch in ['0'..'9'] then
+        begin
+          HasExpDigit := True;
+          State := dsExpDigit;
+        end
+        else
+          Exit;
+    end;
+  end;
+
+  // 检查结束状态是否合法
+  // 允许：整数部分结束、小数部分结束、指数部分结束
+  // 也允许小数点结尾但必须已有整数部分（如 "5."）
+  Result := ((State in [dsIntDigit, dsFracDigit, dsExpDigit]) or
+    ((State = dsPoint) and HasIntDigit)) and
+    HasIntDigit;  // 必须至少有一位整数部分（Delphi 语法要求）
+end;
+
+// 判断一字符串是否合法的整数或浮点数字
+function IsValidNumber(const Number: string): Boolean;
+var
+  P: Integer;
+  S: string;
+begin
+  Result := False;
+  if Number = '' then Exit;
+
+  P := 1;
+  // 可选的正负号
+  if (Number[P] = '+') or (Number[P] = '-') then
+  begin
+    Inc(P);
+    if P > Length(Number) then Exit;   // 只有符号
+  end;
+
+  S := Copy(Number, P, MaxInt);        // 去掉符号后的剩余部分
+  if S = '' then Exit;
+
+  // 根据首字符判断数字类型
+  case S[1] of
+    '$'     : Result := IsValidHexNumber(S);
+    '0'..'9': Result := IsValidDecimal(S);  // 十进制必须以数字开头，不允许 '.' 开头
+  else
+    Result := False;
+  end;
 end;
 
 // 判断字符串内是否包含正则表达式专用字符
