@@ -28,7 +28,9 @@ unit CnGraphics;
 * ¿ª·¢Æ½Ì¨£ºPWin98SE + Delphi 5.0
 * ¼æÈİ²âÊÔ£ºPWin9X/2000/XP + Delphi 5/6
 * ±¾ µØ »¯£º¸Ãµ¥ÔªÖĞµÄ×Ö·û´®¾ù·ûºÏ±¾µØ»¯´¦Àí·½Ê½
-* ĞŞ¸Ä¼ÇÂ¼£º2022.09.25 V0.12
+* ĞŞ¸Ä¼ÇÂ¼£º2026.02.13 V0.13
+*               Ôö¼Ó TCnCOlorSpaceConverter£¬ÔİÎ´ÍêÕû²âÊÔ
+*           2022.09.25 V0.12
 *               Ôö¼Ó Win64 Î»µÄÖ§³Ö
 *           2002.03.14 V0.11Alpha
 *               Ô­Í¼Ïñ´¦Àí¿â×îºó°æ±¾
@@ -821,7 +823,7 @@ type
 
     // ½¥±äÉ«»æÖÆ
     procedure DrawGradient(GradColor: TCnGradientColor);
-    {* ÔÚµ±Ç°Í¼ÏñÖĞ²úÉú½¥±äÑÕÉ«Ğ§¹û
+    {* ÔÚµ±Ç°Í¼ÏñÖĞ²úú½¥±äÑÕÉ«Ğ§¹û
      |<BR>
      |<BR> GradColor: TCnGradientColor    ½¥±äĞ§¹û²ÎÊı}
     procedure DrawGradientEx(GradColor: TCnGradientColor; Rect: TRect; Alpha:
@@ -1202,10 +1204,9 @@ type
      |<BR> µ±ÖµÎª clDefault Ê±£¬Ê¹ÓÃÍ¼Ïñ×óÏÂ½ÇÏñËØÑÕÉ«ÖµÀ´´úÌæ¡£}
   end;
 
-  {* ÑÕÉ«¿Õ¼ä×ª»»Æ÷Àà£¬¸ºÔğ RGB Óë YCbCr ÑÕÉ«¿Õ¼äµÄÏà»¥×ª»» }
   TCnColorSpaceConverter = class
+  {* ÑÕÉ«¿Õ¼ä×ª»»Æ÷Àà£¬¸ºÔğ RGB Óë YCbCr ÑÕÉ«¿Õ¼äµÄÏà»¥×ª»»}
   private
-    // ÄÚ²¿¸¨Öú·½·¨
     function ClipByte(Value: Double): Byte;
   public
     constructor Create;
@@ -1383,9 +1384,9 @@ type
 var
   BitmapList: TThreadList;    // TCnBitmap Î»Í¼ÁĞ±í
   CnCanvasList: TThreadList;  // TCnCanvas ÁĞ±í
-  GdiActTimer: TTimer;        // GDI×ÊÔ´ÊÍ·Å¶¨Ê±Æ÷
-  DefGdiAllocStyle: TGdiAllocStyle = gsNormal; // Ä¬ÈÏGDIÊÍ·Å·½Ê½
-  FreeGdiWaitTime: Cardinal = 3000; // ×Ô¶¯ÊÍ·ÅGDI×ÊÔ´µÈ´ıÊ±¼ä
+  GdiActTimer: TTimer;        // GDI ×ÊÔ´ÊÍ·Å¶¨Ê±Æ÷
+  DefGdiAllocStyle: TGdiAllocStyle = gsNormal; // Ä¬ÈÏ GDI ÊÍ·Å·½Ê½
+  FreeGdiWaitTime: Cardinal = 3000; // ×Ô¶¯ÊÍ·Å GDI ×ÊÔ´µÈ´ıÊ±¼ä
 
 const
   FreeGdiInterval: Cardinal = 1000; // ×Ô¶¯ÊÍ·ÅGDI×ÊÔ´¶¨Ê±¼ä¸ô
@@ -1833,7 +1834,8 @@ begin
   case Index of
     0: Result := 'Color';
     1: Result := 'Position';
-  else Result := inherited GetAttr(Index);
+  else
+    Result := inherited GetAttr(Index);
   end;
 end;
 
@@ -3237,7 +3239,7 @@ end;
 
 {$WARNINGS ON}
 
-//--------------------------------------------------------//
+//-------------------------------------------------------//
 // ÏñËØ·ÃÎÊÓÃ´úÂë                                         //
 // Ëã·¨Éè¼Æ£ºÖÜ¾¢Óğ                                       //
 //--------------------------------------------------------//
