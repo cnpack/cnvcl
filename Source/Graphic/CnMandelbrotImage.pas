@@ -239,8 +239,15 @@ type
 var
   TmpDXZ: TCnBigDecimal = nil;
   TmpDYZ: TCnBigDecimal = nil;
+  TmpDXY: TCnBigDecimal = nil;
+  TmpDSqX: TCnBigDecimal = nil;
+  TmpDSqY: TCnBigDecimal = nil;
+
   TmpBXZ: TCnBigBinary = nil;
   TmpBYZ: TCnBigBinary = nil;
+  TmpBXY: TCnBigBinary = nil;
+  TmpBSqX: TCnBigBinary = nil;
+  TmpBSqY: TCnBigBinary = nil;
 
   Decimal4: TCnBigDecimal = nil;
   Binary4: TCnBigBinary = nil;
@@ -270,92 +277,118 @@ end;
 
 procedure CalcMandelbortSetDecimalPoint(X, Y: TCnBigDecimal; XZ, YZ: TCnBigDecimal;
   const Digits: Integer; out Count: Integer);
-
-  function D2SqrSumGT4(A, B: TCnBigDecimal): Boolean;
-  begin
-    Result := False;
-    BigDecimalCopy(TmpDXZ, A);
-    BigDecimalCopy(TmpDYZ, B);
-    BigDecimalMul(TmpDXZ, TmpDXZ, TmpDXZ, Digits);
-    BigDecimalMul(TmpDYZ, TmpDYZ, TmpDYZ, Digits);
-    BigDecimalAdd(TmpDXZ, TmpDXZ, TmpDYZ);
-
-    if BigDecimalCompare(TmpDXZ, Decimal4) > 0 then
-      Result := True;
-  end;
-
 begin
-  // 以大浮点数的方式迭代计算
+  // 以大十进制浮点数的方式迭代计算
   if TmpDXZ = nil then
     TmpDXZ := TCnBigDecimal.Create;
   if TmpDYZ = nil then
     TmpDYZ := TCnBigDecimal.Create;
+  if TmpDXY = nil then
+    TmpDXY := TCnBigDecimal.Create;
+  if TmpDSqX = nil then
+    TmpDSqX := TCnBigDecimal.Create;
+  if TmpDSqY = nil then
+    TmpDSqY := TCnBigDecimal.Create;
 
   Count := 0;
-  if D2SqrSumGT4(X, Y) then
+
+  BigDecimalCopy(TmpDSqX, X);
+  BigDecimalMul(TmpDSqX, TmpDSqX, TmpDSqX, Digits);
+  BigDecimalCopy(TmpDSqY, Y);
+  BigDecimalMul(TmpDSqY, TmpDSqY, TmpDSqY, Digits);
+  BigDecimalAdd(TmpDSqX, TmpDSqX, TmpDSqY);
+  if BigDecimalCompare(TmpDSqX, Decimal4) > 0 then
     Exit;
 
-  repeat
-    BigDecimalCopy(TmpDXZ, XZ);
-    BigDecimalCopy(TmpDYZ, YZ);
-    BigDecimalMul(TmpDXZ, TmpDXZ, XZ, Digits);
-    BigDecimalMul(TmpDYZ, TmpDYZ, YZ, Digits);
+  XZ.SetZero;
+  YZ.SetZero;
+  TmpDSqX.SetZero;
+  TmpDSqY.SetZero;
 
-    BigDecimalMul(YZ, YZ, XZ, Digits);
+  repeat
+    // 1. XY = XZ * YZ
+    BigDecimalMul(TmpDXY, XZ, YZ, Digits);
+
+    // 2. XZ = XZ^2 - YZ^2 + X = SqX - SqY + X
+    BigDecimalCopy(XZ, TmpDSqX);
+    BigDecimalSub(XZ, XZ, TmpDSqY);
+    BigDecimalAdd(XZ, XZ, X);
+
+    // 3. YZ = 2 * XY + Y
+    BigDecimalCopy(YZ, TmpDXY);
     YZ.MulWord(2);
     BigDecimalAdd(YZ, YZ, Y);
 
-    BigDecimalCopy(XZ, TmpDXZ);
-    BigDecimalSub(XZ, XZ, TmpDYZ);
-    BigDecimalAdd(XZ, XZ, X);
+    // 4. SqX = XZ^2, SqY = YZ^2
+    BigDecimalMul(TmpDSqX, XZ, XZ, Digits);
+    BigDecimalMul(TmpDSqY, YZ, YZ, Digits);
+
+    // 5. Check Convergence: SqX + SqY > 4
+    BigDecimalCopy(TmpDXY, TmpDSqX);
+    BigDecimalAdd(TmpDXY, TmpDXY, TmpDSqY);
+    if BigDecimalCompare(TmpDXY, Decimal4) > 0 then
+      Break;
 
     Inc(Count);
-  until D2SqrSumGT4(XZ, YZ) or (Count > CN_MANDELBROT_MAX_COUNT);
+  until Count > CN_MANDELBROT_MAX_COUNT;
 end;
 
 procedure CalcMandelbortSetBinaryPoint(X, Y: TCnBigBinary; XZ, YZ: TCnBigBinary;
   const Digits: Integer; out Count: Integer);
-
-  function D2SqrSumGT4(A, B: TCnBigBinary): Boolean;
-  begin
-    Result := False;
-    BigBinaryCopy(TmpBXZ, A);
-    BigBinaryCopy(TmpBYZ, B);
-    BigBinaryMul(TmpBXZ, TmpBXZ, TmpBXZ, Digits);
-    BigBinaryMul(TmpBYZ, TmpBYZ, TmpBYZ, Digits);
-    BigBinaryAdd(TmpBXZ, TmpBXZ, TmpBYZ);
-
-    if BigBinaryCompare(TmpBXZ, Binary4) > 0 then
-      Result := True;
-  end;
-
 begin
   // 以大二进制浮点数的方式迭代计算
   if TmpBXZ = nil then
     TmpBXZ := TCnBigBinary.Create;
   if TmpBYZ = nil then
     TmpBYZ := TCnBigBinary.Create;
+  if TmpBXY = nil then
+    TmpBXY := TCnBigBinary.Create;
+  if TmpBSqX = nil then
+    TmpBSqX := TCnBigBinary.Create;
+  if TmpBSqY = nil then
+    TmpBSqY := TCnBigBinary.Create;
 
   Count := 0;
-  if D2SqrSumGT4(X, Y) then
+  // Check |C|^2 > 4
+  BigBinaryCopy(TmpBSqX, X);
+  BigBinaryMul(TmpBSqX, TmpBSqX, TmpBSqX, Digits);
+  BigBinaryCopy(TmpBSqY, Y);
+  BigBinaryMul(TmpBSqY, TmpBSqY, TmpBSqY, Digits);
+  BigBinaryAdd(TmpBSqX, TmpBSqX, TmpBSqY);
+  if BigBinaryCompare(TmpBSqX, Binary4) > 0 then
     Exit;
 
-  repeat
-    BigBinaryCopy(TmpBXZ, XZ);
-    BigBinaryCopy(TmpBYZ, YZ);
-    BigBinaryMul(TmpBXZ, TmpBXZ, XZ, Digits);
-    BigBinaryMul(TmpBYZ, TmpBYZ, YZ, Digits);
+  XZ.SetZero;
+  YZ.SetZero;
+  TmpBSqX.SetZero;
+  TmpBSqY.SetZero;
 
-    BigBinaryMul(YZ, YZ, XZ, Digits);
+  repeat
+    // 1. XY = XZ * YZ
+    BigBinaryMul(TmpBXY, XZ, YZ, Digits);
+
+    // 2. XZ = SqX - SqY + X
+    BigBinaryCopy(XZ, TmpBSqX);
+    BigBinarySub(XZ, XZ, TmpBSqY);
+    BigBinaryAdd(XZ, XZ, X);
+
+    // 3. YZ = 2 * XY + Y
+    BigBinaryCopy(YZ, TmpBXY);
     YZ.MulWord(2);
     BigBinaryAdd(YZ, YZ, Y);
 
-    BigBinaryCopy(XZ, TmpBXZ);
-    BigBinarySub(XZ, XZ, TmpBYZ);
-    BigBinaryAdd(XZ, XZ, X);
+    // 4. SqX = XZ^2, SqY = YZ^2
+    BigBinaryMul(TmpBSqX, XZ, XZ, Digits);
+    BigBinaryMul(TmpBSqY, YZ, YZ, Digits);
+
+    // 5. Check Convergence: SqX + SqY > 4
+    BigBinaryCopy(TmpBXY, TmpBSqX);
+    BigBinaryAdd(TmpBXY, TmpBXY, TmpBSqY);
+    if BigBinaryCompare(TmpBXY, Binary4) > 0 then
+      Break;
 
     Inc(Count);
-  until D2SqrSumGT4(XZ, YZ) or (Count > CN_MANDELBROT_MAX_COUNT);
+  until Count > CN_MANDELBROT_MAX_COUNT;
 end;
 
 { TCnMandelbrotImage }
@@ -557,6 +590,8 @@ var
   BD, BT: TCnBigBinary;
 begin
   Canvas.Draw(0, 0, FBitmap);
+  X := 0;
+  Y := 0;
 
   if ShowAxis then
   begin
@@ -1219,8 +1254,16 @@ initialization
 finalization
   TmpDXZ.Free;
   TmpDYZ.Free;
+  TmpDXY.Free;
+  TmpDSqX.Free;
+  TmpDSqY.Free;
+
   TmpBXZ.Free;
   TmpBYZ.Free;
+  TmpBXY.Free;
+  TmpBSqX.Free;
+  TmpBSqY.Free;
+
   Decimal4.Free;
   Binary4.Free;
 
