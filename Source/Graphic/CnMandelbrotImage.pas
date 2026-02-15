@@ -30,7 +30,9 @@ unit CnMandelbrotImage;
 * 开发平台：PWin7 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2020.07.03 V1.3
+* 修改记录：2026.02.15 V1.4
+*               优化计算速度
+*           2020.07.03 V1.3
 *               改用线程，至少界面没问题了。删掉跑不完的大有理数模式
 *           2020.06.27 V1.2
 *               用大浮点数同样实现无限放大，但运算速度也慢
@@ -141,7 +143,7 @@ type
     destructor Destroy; override;
 
     procedure Loaded; override;
-    
+
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
 
     // 以下仨函数在仨模式下改变控件上下左右四边缘代表的最大值，控件尺寸不变
@@ -242,12 +244,16 @@ var
   TmpDXY: TCnBigDecimal = nil;
   TmpDSqX: TCnBigDecimal = nil;
   TmpDSqY: TCnBigDecimal = nil;
+  TmpOldDXZ: TCnBigDecimal = nil;
+  TmpOldDYZ: TCnBigDecimal = nil;
 
   TmpBXZ: TCnBigBinary = nil;
   TmpBYZ: TCnBigBinary = nil;
   TmpBXY: TCnBigBinary = nil;
   TmpBSqX: TCnBigBinary = nil;
   TmpBSqY: TCnBigBinary = nil;
+  TmpOldBXZ: TCnBigBinary = nil;
+  TmpOldBYZ: TCnBigBinary = nil;
 
   Decimal4: TCnBigDecimal = nil;
   Binary4: TCnBigBinary = nil;
@@ -255,13 +261,35 @@ var
 procedure CalcMandelbortSetFloatPoint(X, Y: Extended; out XZ, YZ: Extended; out Count: Integer);
 var
   XZ2, YZ2: Extended;
+  CheckCounter, CheckPeriod: Integer;
+  OldXZ, OldYZ: Extended;
 begin
+  // 1. Period-2 Bulb Check
+  if Sqr(X + 1.0) + Sqr(Y) < 0.0625 then
+  begin
+    Count := CN_MANDELBROT_MAX_COUNT + 1;
+    Exit;
+  end;
+
+  // 2. Cardioid Check
+  XZ2 := Sqr(X - 0.25) + Sqr(Y); // Reuse variable for Q
+  if XZ2 * (XZ2 + (X - 0.25)) < 0.25 * Sqr(Y) then
+  begin
+    Count := CN_MANDELBROT_MAX_COUNT + 1;
+    Exit;
+  end;
+
   XZ := 0.0;
   YZ := 0.0;
   Count := 0;
 
   if X * X + Y * Y > 4.0 then
     Exit;
+
+  CheckCounter := 0;
+  CheckPeriod := 8;
+  OldXZ := 0;
+  OldYZ := 0;
 
   repeat
     // XZ + YZi := (XZ + YZi)^2 + (X + Yi);
@@ -271,12 +299,31 @@ begin
     // 单次迭代过程中需要保留 XZ^2 与 YZ^2 的值，避免中途发生改变
     YZ := 2.0 * XZ * YZ + Y;
     XZ := XZ2 - YZ2 + X;
+
+    // Periodicity Check
+    if (Abs(XZ - OldXZ) < 1e-15) and (Abs(YZ - OldYZ) < 1e-15) then
+    begin
+      Count := CN_MANDELBROT_MAX_COUNT + 1;
+      Exit;
+    end;
+
+    Inc(CheckCounter);
+    if CheckCounter >= CheckPeriod then
+    begin
+      CheckCounter := 0;
+      CheckPeriod := CheckPeriod * 2;
+      OldXZ := XZ;
+      OldYZ := YZ;
+    end;
+
     Inc(Count);
   until (XZ * XZ + YZ * YZ > 4.0) or (Count > CN_MANDELBROT_MAX_COUNT);
 end;
 
 procedure CalcMandelbortSetDecimalPoint(X, Y: TCnBigDecimal; XZ, YZ: TCnBigDecimal;
   const Digits: Integer; out Count: Integer);
+var
+  CheckCounter, CheckPeriod: Integer;
 begin
   // 以大十进制浮点数的方式迭代计算
   if TmpDXZ = nil then
@@ -289,6 +336,10 @@ begin
     TmpDSqX := TCnBigDecimal.Create;
   if TmpDSqY = nil then
     TmpDSqY := TCnBigDecimal.Create;
+  if TmpOldDXZ = nil then
+    TmpOldDXZ := TCnBigDecimal.Create;
+  if TmpOldDYZ = nil then
+    TmpOldDYZ := TCnBigDecimal.Create;
 
   Count := 0;
 
@@ -305,6 +356,11 @@ begin
   TmpDSqX.SetZero;
   TmpDSqY.SetZero;
 
+  CheckCounter := 0;
+  CheckPeriod := 8;
+  TmpOldDXZ.SetZero;
+  TmpOldDYZ.SetZero;
+
   repeat
     // 1. XY = XZ * YZ
     BigDecimalMul(TmpDXY, XZ, YZ, Digits);
@@ -319,6 +375,13 @@ begin
     YZ.MulWord(2);
     BigDecimalAdd(YZ, YZ, Y);
 
+    // Periodicity Check
+    if (BigDecimalCompare(XZ, TmpOldDXZ) = 0) and (BigDecimalCompare(YZ, TmpOldDYZ) = 0) then
+    begin
+      Count := CN_MANDELBROT_MAX_COUNT + 1;
+      Exit;
+    end;
+
     // 4. SqX = XZ^2, SqY = YZ^2
     BigDecimalMul(TmpDSqX, XZ, XZ, Digits);
     BigDecimalMul(TmpDSqY, YZ, YZ, Digits);
@@ -329,12 +392,23 @@ begin
     if BigDecimalCompare(TmpDXY, Decimal4) > 0 then
       Break;
 
+    Inc(CheckCounter);
+    if CheckCounter >= CheckPeriod then
+    begin
+      CheckCounter := 0;
+      CheckPeriod := CheckPeriod * 2;
+      BigDecimalCopy(TmpOldDXZ, XZ);
+      BigDecimalCopy(TmpOldDYZ, YZ);
+    end;
+
     Inc(Count);
   until Count > CN_MANDELBROT_MAX_COUNT;
 end;
 
 procedure CalcMandelbortSetBinaryPoint(X, Y: TCnBigBinary; XZ, YZ: TCnBigBinary;
   const Digits: Integer; out Count: Integer);
+var
+  CheckCounter, CheckPeriod: Integer;
 begin
   // 以大二进制浮点数的方式迭代计算
   if TmpBXZ = nil then
@@ -347,6 +421,10 @@ begin
     TmpBSqX := TCnBigBinary.Create;
   if TmpBSqY = nil then
     TmpBSqY := TCnBigBinary.Create;
+  if TmpOldBXZ = nil then
+    TmpOldBXZ := TCnBigBinary.Create;
+  if TmpOldBYZ = nil then
+    TmpOldBYZ := TCnBigBinary.Create;
 
   Count := 0;
   // Check |C|^2 > 4
@@ -363,6 +441,11 @@ begin
   TmpBSqX.SetZero;
   TmpBSqY.SetZero;
 
+  CheckCounter := 0;
+  CheckPeriod := 8;
+  TmpOldBXZ.SetZero;
+  TmpOldBYZ.SetZero;
+
   repeat
     // 1. XY = XZ * YZ
     BigBinaryMul(TmpBXY, XZ, YZ, Digits);
@@ -377,6 +460,13 @@ begin
     YZ.MulWord(2);
     BigBinaryAdd(YZ, YZ, Y);
 
+    // Periodicity Check
+    if (BigBinaryCompare(XZ, TmpOldBXZ) = 0) and (BigBinaryCompare(YZ, TmpOldBYZ) = 0) then
+    begin
+      Count := CN_MANDELBROT_MAX_COUNT + 1;
+      Exit;
+    end;
+
     // 4. SqX = XZ^2, SqY = YZ^2
     BigBinaryMul(TmpBSqX, XZ, XZ, Digits);
     BigBinaryMul(TmpBSqY, YZ, YZ, Digits);
@@ -386,6 +476,15 @@ begin
     BigBinaryAdd(TmpBXY, TmpBXY, TmpBSqY);
     if BigBinaryCompare(TmpBXY, Binary4) > 0 then
       Break;
+
+    Inc(CheckCounter);
+    if CheckCounter >= CheckPeriod then
+    begin
+      CheckCounter := 0;
+      CheckPeriod := CheckPeriod * 2;
+      BigBinaryCopy(TmpOldBXZ, XZ);
+      BigBinaryCopy(TmpOldBYZ, YZ);
+    end;
 
     Inc(Count);
   until Count > CN_MANDELBROT_MAX_COUNT;
@@ -743,7 +842,6 @@ begin
     XZ.Free;
     YZ.Free;
   end;
-  // Invalidate;
 end;
 
 procedure TCnMandelbrotImage.ReCalcBigBinaryColors;
@@ -799,7 +897,6 @@ begin
     XZ.Free;
     YZ.Free;
   end;
-  // Invalidate;
 end;
 
 procedure TCnMandelbrotImage.SetAxisColor(const Value: TColor);
@@ -1257,12 +1354,16 @@ finalization
   TmpDXY.Free;
   TmpDSqX.Free;
   TmpDSqY.Free;
+  TmpOldDXZ.Free;
+  TmpOldDYZ.Free;
 
   TmpBXZ.Free;
   TmpBYZ.Free;
   TmpBXY.Free;
   TmpBSqX.Free;
   TmpBSqY.Free;
+  TmpOldBXZ.Free;
+  TmpOldBYZ.Free;
 
   Decimal4.Free;
   Binary4.Free;
