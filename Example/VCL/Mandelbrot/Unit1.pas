@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, CnGraphics, CnMandelbrotImage, CnBigDecimal;
+  StdCtrls, ExtCtrls, Math, CnGraphics, CnMandelbrotImage, CnBigDecimal;
 
 type
   TFormMandelbrot = class(TForm)
@@ -237,13 +237,44 @@ end;
 
 function TFormMandelbrot.OnFloatColor2(Sender: TObject; X, Y, XZ,
   YZ: Extended; Count: Integer): TColor;
+var
+  R2, Mu, T, HueF, SatF, LightF, A, Stripe: Extended;
+  H, S, L: Integer;
+const
+  Ln2: Extended = 0.6931471805599453094172321214581766;
 begin
   if Count > CN_MANDELBROT_MAX_COUNT then
     Result := clNavy  // 收敛，用深蓝色
   else
   begin
-    // 用 Count 做色相
-    Result := HSLRangeToRGB(Count, 240, 120);
+    R2 := XZ * XZ + YZ * YZ;
+    if R2 <= 4.0 then
+      R2 := X * X + Y * Y;
+    if R2 <= 4.0 then
+      R2 := 4.0000000001;
+    A := ArcTan2(YZ, XZ);
+    Mu := Count + 1 - Ln(Ln(Sqrt(R2))) / Ln2;
+    T := Mu / (CN_MANDELBROT_MAX_COUNT + 1);
+    Stripe := 0.5 + 0.5 * Sin(6 * A + 20 * T);
+
+    HueF := Frac(0.15 * Mu + 0.03 * Sin(3 * X) + 0.03 * Sin(3 * Y) + 0.12 * Stripe);
+    SatF := 0.65 + 0.35 * (0.5 + 0.5 * Sin(0.70 * Mu + 2 * A));
+    LightF := 0.25 + 0.65 * (0.5 + 0.5 * Cos(0.40 * Mu - 4 * T));
+
+    H := Trunc(HueF * 239);
+    S := Trunc(SatF * 240);
+    L := Trunc(LightF * 240);
+
+    if S < 0 then
+      S := 0
+    else if S > 240 then
+      S := 240;
+    if L < 0 then
+      L := 0
+    else if L > 240 then
+      L := 240;
+
+    Result := HSLRangeToRGB(H, S, L);
   end;
 end;
 
