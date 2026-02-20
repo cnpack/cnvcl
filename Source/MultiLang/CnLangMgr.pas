@@ -1866,9 +1866,11 @@ procedure TranslateReggedStrings;
 var
   I: Integer;
   AObj: TCnStringObj;
+{$IFDEF MSWINDOWS}
   BObj: TCnResourceStringObj;
-  DstStr: TCnLangString;
   OldProtect: Cardinal;
+{$ENDIF}
+  DstStr: TCnLangString;
 begin
   if CnLanguageManager = nil then
     raise Exception.Create('Language Manager NOT initialized.');
