@@ -211,6 +211,7 @@ type
 {$ENDIF}
   TCnMenuHook = class(TCnComponent)
   private
+    FText: string;
     FMenuList: TObjectList;
     FMenuItemDefList: TObjectList;
     FActive: Boolean;
@@ -247,12 +248,17 @@ type
     function IndexOfMenuItemDef(const AName: string): Integer;
     {* 查找指定菜单在列表中的索引号}
 
-    property Active: Boolean read FActive write SetActive;
-    {* 菜单挂接活跃属性}
     property MenuItemDefCount: Integer read GetMenuItemDefCount;
     {* 用户菜单项定义计数}
     property MenuItemDefs[Index: Integer]: TCnAbstractMenuItemDef read GetMenuItemDef;
     {* 用户菜单项定义数组}
+
+  published
+    property Active: Boolean read FActive write SetActive;
+    {* 菜单挂接活跃属性}
+    property Text: string read FText write FText;
+    {* 额外字符串数据}
+
     property OnBeforePopup: TCnMenuPopupEvent read FOnBeforePopup write FOnBeforePopup;
     {* 被挂接的菜单弹出前事件，此时用户菜单项已经释放，用户可在此进行特别的处理}
     property OnAfterPopup: TCnMenuPopupEvent read FOnAfterPopup write FOnAfterPopup;
