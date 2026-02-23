@@ -711,6 +711,9 @@ function CnPosEx(const SubStr, S: string; CaseSensitive: Boolean; WholeWords:
   Boolean; StartCount: Integer = 1): Integer;
 {* 增强的字符串查找函数，支持查找第几个，首个的 StartCount 为 1}
 
+procedure CnSplitString(const Sub: string; const Str: string; Strings: TStrings);
+{* 字符串劈分函数，不限于字符劈分}
+
 function NativeStringToUIString(const Str: string): string;
 {* Lazarus/FPC 的 Ansi 模式专用，因为 Lazarus/FPC 的 Ansi 模式下和界面有关的字符串是 Utf8 格式，
    而我们内部的普通字符串大多是 Ansi 或 Utf16，这里做一次封装转换。}
@@ -2487,6 +2490,56 @@ begin
       end;
     end;
     Inc(P);
+  end;
+end;
+
+procedure CnSplitString(const Sub: string; const Str: string; Strings: TStrings);
+var
+  S: string;
+  P, SubLen: Integer;
+begin
+  if Strings = nil then
+    Exit;                     // 忽略空指针
+
+  Strings.Clear;              // 清空原有内容
+
+  // 处理分隔符为空的情况：将整个字符串作为一个条目
+  if Sub = '' then
+  begin
+    Strings.Add(Str);
+    Exit;
+  end;
+
+  // 处理源字符串为空的情况：添加一个空条目
+  if Str = '' then
+  begin
+    Strings.Add('');
+    Exit;
+  end;
+
+  SubLen := Length(Sub);
+  S := Str;  // 创建源字符串的副本，后续操作会修改此副本
+
+  while S <> '' do
+  begin
+    P := Pos(Sub, S);         // 在剩余字符串中查找分隔符
+
+    if P = 0 then
+    begin
+      // 没有更多分隔符，将剩余部分作为最后一个条目
+      Strings.Add(S);
+      Break;
+    end;
+
+    // 取出从开头到分隔符前的内容（可能为空）
+    Strings.Add(Copy(S, 1, P - 1));
+
+    // 删除已处理的部分（包括刚找到的分隔符）
+    Delete(S, 1, P + SubLen - 1);
+
+    // 如果删除后字符串为空，且原字符串以分隔符结尾，则需要添加一个空条目
+    if S = '' then
+      Strings.Add('');
   end;
 end;
 

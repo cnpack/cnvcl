@@ -292,10 +292,19 @@ begin
 {$ENDIF}
 end;
 
+{$IFDEF COMPILER5}
+type
+  TReaderAccess = class(TReader);
+{$ENDIF}
+
 // 读取并跳过 Style 属性
 procedure TCnLanguageItem.ReadDefaultFontStyle(Reader: TReader);
 begin
+{$IFDEF COMPILER5}
+  TReaderAccess(Reader).SkipValue;
+{$ELSE}
   Reader.SkipValue;
+{$ENDIF}
 end;
 
 procedure TCnLanguageItem.DefineProperties(Filer: TFiler);
