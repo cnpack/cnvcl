@@ -4426,13 +4426,17 @@ begin
   begin
     FScreenTree := TCnTree.Create;
     FScreenTree.OnSaveANode := SaveATreeNode;
-  end;
+  end
+  else
+    FScreenTree.Clear;
 
   if FGlobalTree = nil then
   begin
     FGlobalTree := TCnTree.Create;
     FGlobalTree.OnSaveANode := SaveATreeNode;
-  end;
+  end
+  else
+    FGlobalTree.Clear;
 
   try
     if TObject(FObjectPointer) is TComponent then
