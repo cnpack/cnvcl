@@ -504,6 +504,7 @@ type
     FComponentTree: TCnTree;
     FControlTree: TCnTree;
     FScreenTree: TCnTree;
+    FGlobalTree: TCnTree;
 
     FOnEvaluateBegin: TNotifyEvent;
     FOnEvaluateEnd: TNotifyEvent;
@@ -607,6 +608,7 @@ const
   CN_TREE_TYPE_COMPONENT  = 0;
   CN_TREE_TYPE_CONTROL    = 1;
   CN_TREE_TYPE_SCREENFORM = 2;
+  CN_TREE_TYPE_GLOBAL     = 3;
 
 type
   PParamData = ^TParamData;
@@ -2014,7 +2016,11 @@ begin
     end;
 
     // 以旧方式拿属性
-    APropCount := GetTypeData(PTypeInfo(FObjectInstance.ClassInfo))^.PropCount;
+    APropCount := 0;
+    if FObjectInstance.ClassInfo <> nil then
+      if GetTypeData(PTypeInfo(FObjectInstance.ClassInfo)) <> nil then
+        APropCount := GetTypeData(PTypeInfo(FObjectInstance.ClassInfo))^.PropCount;
+
     if APropCount > 0 then
     begin
       GetMem(PropListPtr, APropCount * SizeOf(Pointer));
@@ -3183,6 +3189,7 @@ begin
   tsTree.Tabs.Add('Components');
   tsTree.Tabs.Add('Controls');
   tsTree.Tabs.Add('Screen Forms');
+  tsTree.Tabs.Add('Global');
 
   tsTree.TabIndex := 0;
   tsTree.OnChange := tsTreeChange;
@@ -3564,6 +3571,7 @@ begin
   FComponentTree.Free;
   FControlTree.Free;
   FScreenTree.Free;
+  FGlobalTree.Free;
 
   if FInspector <> nil then
     FreeAndNil(FInspector);
@@ -4350,6 +4358,50 @@ var
   end;
 {$ENDIF}
 
+  procedure AddGlobalsToTree;
+  var
+    I: Integer;
+    Leaf, AppLeaf: TCnLeaf;
+    F: TComponent;
+  begin
+    Leaf := FGlobalTree.AddChild(FGlobalTree.Root);
+    Leaf.Obj := Screen;
+{$IFDEF WIN64}
+    Leaf.Text := Format('%s: %s: $%16.16x', [Screen.Name, Screen.ClassName, NativeInt(Screen)]);
+{$ELSE}
+    Leaf.Text := Format('%s: %s: $%8.8x', [Screen.Name, Screen.ClassName, Integer(Screen)]);
+{$ENDIF}
+
+    Leaf := FGlobalTree.AddChild(FGlobalTree.Root);
+    Leaf.Obj := Mouse;
+{$IFDEF WIN64}
+    Leaf.Text := Format('%s: %s: $%16.16x', ['', Mouse.ClassName, NativeInt(Mouse)]);
+{$ELSE}
+    Leaf.Text := Format('%s: %s: $%8.8x', ['', Mouse.ClassName, Integer(Mouse)]);
+{$ENDIF}
+
+    Leaf := FGlobalTree.AddChild(FGlobalTree.Root);
+    Leaf.Obj := Application;
+{$IFDEF WIN64}
+    Leaf.Text := Format('%s: %s: $%16.16x', [Application.Name, Application.ClassName, NativeInt(Application)]);
+{$ELSE}
+    Leaf.Text := Format('%s: %s: $%8.8x', [Application.Name, Application.ClassName, Integer(Application)]);
+{$ENDIF}
+
+    AppLeaf := Leaf;
+    for I := 0 to Application.ComponentCount - 1 do
+    begin
+      Leaf := FGlobalTree.AddChild(AppLeaf);
+      F := Application.Components[I];
+      Leaf.Obj := F;
+{$IFDEF WIN64}
+      Leaf.Text := Format('%s: %s: $%16.16x', [F.Name, F.ClassName, NativeInt(F)]);
+{$ELSE}
+      Leaf.Text := Format('%s: %s: $%8.8x', [F.Name, F.ClassName, Integer(F)]);
+{$ENDIF}
+    end;
+  end;
+
 begin
   if FObjectPointer = nil then
     Exit;
@@ -4374,6 +4426,12 @@ begin
   begin
     FScreenTree := TCnTree.Create;
     FScreenTree.OnSaveANode := SaveATreeNode;
+  end;
+
+  if FGlobalTree = nil then
+  begin
+    FGlobalTree := TCnTree.Create;
+    FGlobalTree.OnSaveANode := SaveATreeNode;
   end;
 
   try
@@ -4408,6 +4466,8 @@ begin
       AddFmxControlToTree(RootFmxControl);
     end;
 {$ENDIF}
+
+    AddGlobalsToTree;
   except
     ; // 如果不是 TObject，屏蔽异常
   end;
@@ -4424,6 +4484,8 @@ begin
     FControlTree.SaveToTreeView(TreeView)
   else if TreeType = CN_TREE_TYPE_SCREENFORM then
     FScreenTree.SaveToTreeView(TreeView)
+  else if TreeType = CN_TREE_TYPE_GLOBAL then
+    FGlobalTree.SaveToTreeView(TreeView)
   else
     Exit;
 
