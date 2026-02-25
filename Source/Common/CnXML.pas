@@ -3168,7 +3168,7 @@ begin
 
         tkSet:
           begin
-            PropValue := GetSetProp(Obj, string(PropInfo.Name));
+            PropValue := GetSetProp(Obj, string(PropInfo.Name), True); // with []
             // Store as child element for compatibility
             ChildNode := FDocument.CreateElement(string(PropInfo.Name));
             ChildNode.AppendChild(FDocument.CreateTextNode(PropValue));
@@ -3348,8 +3348,15 @@ begin
           SetEnumProp(Obj, PropName, PropValue);
       end;
     tkSet:
-      SetSetProp(Obj, PropName, PropValue);
-    else
+      begin
+{$IFDEF COMPILER5}
+        if PropValue = '' then // Empty will cause AV under D5, using []
+          SetSetProp(Obj, PropName, '[]')
+        else
+{$ENDIF}
+          SetSetProp(Obj, PropName, PropValue);
+      end;
+  else
       SetPropValue(Obj, PropName, PropValue);
   end;
 end;
