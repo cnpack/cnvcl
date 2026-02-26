@@ -1361,8 +1361,17 @@ function CnInt64BigStepGiantStep(A: Int64; B: Int64; M: Int64): Int64;
    返回值：Int64                          - 返回结果指数
 }
 
+function CnInt64IsPerfectSquare(N: Int64): Boolean;
+{* 判断整数 N 是否是完全平方数，也就是是否是某整数的平方。
+
+   参数：
+     N: Int64                             - 待判断的 64 位有符号整数
+
+   返回值：Boolean                        - 返回是否完全平方数
+}
+
 function CnInt64IsPerfectPower(N: Int64): Boolean;
-{* 判断整数 N 是否是完全幂，也就是是否是某整数的整数次幂，要求 N > 0。
+{* 判断整数 N 是否是完全幂，也就是是否是某整数的整数次幂，要求 N >= 0。
 
    参数：
      N: Int64                             - 待判断的 64 位有符号整数
@@ -3294,6 +3303,29 @@ begin
   finally
     Map.Free;
   end;
+end;
+
+function CnInt64IsPerfectSquare(N: Int64): Boolean;
+var
+  X, Y: Int64;
+begin
+  Result := False;
+  if N < 0 then Exit;
+  if N <= 1 then
+  begin
+    Result := True;
+    Exit; // 0 和 1 特殊处理
+  end;
+
+  X := N;
+  repeat
+    Y := (X + N div X) shr 1;
+    if Y >= X then
+      Break;
+    X := Y;
+  until False;
+
+  Result := (X * X = N);
 end;
 
 function CnInt64IsPerfectPower(N: Int64): Boolean;

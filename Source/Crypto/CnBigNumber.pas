@@ -2748,6 +2748,15 @@ function BigNumberChineseRemainderTheorem(Res: TCnBigNumber;
    返回值：Boolean                        - 返回是否求解成功
 }
 
+function BigNumberIsPerfectSquare(Num: TCnBigNumber): Boolean;
+{* 判断大数是否是完全平方数。
+
+   参数：
+     Num: TCnBigNumber                    - 待判断大数对象
+
+   返回值：Boolean                        - 返回是否完全平方数
+}
+
 function BigNumberIsPerfectPower(Num: TCnBigNumber): Boolean;
 {* 判断大数是否是完全幂，大数较大时有一定耗时。
 
@@ -9516,6 +9525,47 @@ begin
   finally
     BF.Free;
     BR.Free;
+  end;
+end;
+
+function BigNumberIsPerfectSquare(Num: TCnBigNumber): Boolean;
+var
+  X, Y: TCnBigNumber;
+begin
+  Result := False;
+  if Num.IsNegative then
+    Exit;
+  if Num.IsZero or Num.IsOne then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  X := nil;
+  Y := nil;
+
+  try
+    X := FLocalBigNumberPool.Obtain;
+    BigNumberCopy(X, Num);
+
+    Y := FLocalBigNumberPool.Obtain;
+
+    repeat
+      BigNumberDiv(Y, nil, Num, X);
+      BigNumberAdd(Y, X, Y);
+      BigNumberShiftRight(Y, Y, 1);
+
+      if BigNumberCompare(Y, X) >= 0 then
+        Break;
+
+      BigNumberCopy(X, Y);
+    until False;
+
+    BigNumberMul(X, X, X);
+    Result := BigNumberEqual(X, Num);
+  finally
+    FLocalBigNumberPool.Recycle(Y);
+    FLocalBigNumberPool.Recycle(X);
   end;
 end;
 
