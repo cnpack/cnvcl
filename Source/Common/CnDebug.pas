@@ -1983,6 +1983,15 @@ type
        返回值：TObject                    - 返回查找到的对象实例
     }
 
+    function ObjectAddressToString(const AObj: TObject): string;
+    {* 将对象的地址转换为十六进制字符串。
+
+       参数：
+         const AObj: TObject              - 待转换的对象实例
+
+       返回值：string                     - 返回对象地址的十六进制字符串
+    }
+
     procedure FindComponent;
     {* 全局范围内发起 Component 遍历，每个组件触发 OnFindComponent 事件，用于查找}
 
@@ -5260,6 +5269,15 @@ begin
     $04244481: Result := Pointer(Integer(AIntf) + LongJmp);
     else       Result := nil;
   end;
+{$ENDIF}
+end;
+
+function TCnDebugger.ObjectAddressToString(const AObj: TObject): string;
+begin
+{$IFDEF CPUX64}
+  Result := Format('%16.16x', [TCnNativeInt(AObj)]);
+{$ELSE}
+  Result := Format('%8.8x', [TCnNativeInt(AObj)]);
 {$ENDIF}
 end;
 
