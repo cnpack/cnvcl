@@ -1361,24 +1361,6 @@ function CnInt64BigStepGiantStep(A: Int64; B: Int64; M: Int64): Int64;
    返回值：Int64                          - 返回结果指数
 }
 
-function CnInt64IsPerfectSquare(N: Int64): Boolean;
-{* 判断整数 N 是否是完全平方数，也就是是否是某整数的平方。
-
-   参数：
-     N: Int64                             - 待判断的 64 位有符号整数
-
-   返回值：Boolean                        - 返回是否完全平方数
-}
-
-function CnInt64IsPerfectPower(N: Int64): Boolean;
-{* 判断整数 N 是否是完全幂，也就是是否是某整数的整数次幂，要求 N >= 0。
-
-   参数：
-     N: Int64                             - 待判断的 64 位有符号整数
-
-   返回值：Boolean                        - 返回是否完全幂
-}
-
 procedure CnInt64FillCombinatorialNumbers(List: TCnInt64List; N: Integer);
 {* 计算组合数 C(m, N) 放至 Int64 数组中，其中 m 从 0 到 N，
    N 为 61 时逼近 Int64 上限，62 溢出。
@@ -1468,7 +1450,7 @@ function CnInt64MultiplicativeOrder(N, R: TUInt64): TUInt64;
 implementation
 
 uses
-  CnHashMap, CnPolynomial, CnRandom;
+  CnHashMap, CnPolynomial, CnRandom, CnMath;
 
 resourcestring
   SCnErrorInvalidKForLucasSequence = 'Invalid K for Lucas Sequence';
@@ -3302,71 +3284,6 @@ begin
     end;
   finally
     Map.Free;
-  end;
-end;
-
-function CnInt64IsPerfectSquare(N: Int64): Boolean;
-var
-  X, Y: Int64;
-begin
-  Result := False;
-  if N < 0 then Exit;
-  if N <= 1 then
-  begin
-    Result := True;
-    Exit; // 0 和 1 特殊处理
-  end;
-
-  X := N;
-  repeat
-    Y := (X + N div X) shr 1;
-    if Y >= X then
-      Break;
-    X := Y;
-  until False;
-
-  Result := (X * X = N);
-end;
-
-function CnInt64IsPerfectPower(N: Int64): Boolean;
-var
-  LG2, I: Integer;
-  A, M: Int64;
-begin
-  Result := False;
-  if (N < 0) or (N = 2) or (N = 3) then
-    Exit;
-
-  if (N = 0) or (N = 1) then
-  begin
-    Result := True;
-    Exit;
-  end;
-
-  LG2 := GetUInt64HighBits(N); // 比 LOG2(N) 略大
-  for I := 2 to LG2 do
-  begin
-    // 求 N 的 I 次方根的整数部分
-    A := Trunc(Power(N, 1.0 / I));
-    // 整数部分再求幂
-    M := Int64NonNegativPower(A, I);
-
-    // 判断是否相等
-    if M = N then
-    begin
-      Result := True;
-      Exit;
-    end
-    else // 如果整数部分偏小，譬如 9682651996416 的 1/8 次方，Power 函数可能返回 41.999 这种，Trunc 会判断错误，再加一再幂一下
-    begin
-      Inc(A);
-      M := Int64NonNegativPower(A, I);
-      if M = N then
-      begin
-        Result := True;
-        Exit;
-      end;
-    end;
   end;
 end;
 

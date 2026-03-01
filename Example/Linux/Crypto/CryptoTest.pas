@@ -203,6 +203,7 @@ function TestNormalizeAngle: Boolean;
 function TestFloatToHex: Boolean;
 function TestHexToFloat: Boolean;
 function TestInt64ContinuedFraction: Boolean;
+function TestInt64IsPerfectSquare: Boolean;
 function TestBigDecimalEulerExp: Boolean;
 function TestBigDecimalLn: Boolean;
 function TestBigDecimalSin: Boolean;
@@ -518,7 +519,6 @@ function TestPrimeNumber4: Boolean;
 function TestPrimeNumber5: Boolean;
 function TestSquareRoot: Boolean;
 function TestBPSWIsPrime: Boolean;
-function TestInt64IsPerfectSquare: Boolean;
 
 // ================================ 25519 ======================================
 
@@ -750,6 +750,7 @@ begin
   MyAssert(TestFloatToHex, 'TestFloatToHex');
   MyAssert(TestHexToFloat, 'TestHexToFloat');
   MyAssert(TestInt64ContinuedFraction, 'TestInt64ContinuedFraction');
+  MyAssert(TestInt64IsPerfectSquare, 'TestInt64IsPerfectSquare');
   MyAssert(TestBigDecimalEulerExp, 'TestBigDecimalEulerExp');
   MyAssert(TestBigDecimalLn, 'TestBigDecimalLn');
   MyAssert(TestBigDecimalSin, 'TestBigDecimalSin');
@@ -1065,7 +1066,6 @@ begin
   MyAssert(TestPrimeNumber5, 'TestPrimeNumber5');
   MyAssert(TestSquareRoot, 'TestSquareRoot');
   MyAssert(TestBPSWIsPrime, 'TestBPSWIsPrime');
-  MyAssert(TestInt64IsPerfectSquare, 'TestInt64IsPerfectSquare');
 
 // ================================ 25519 ======================================
 
@@ -3851,6 +3851,58 @@ begin
 
   R := Int64ContinuedFraction(A, B);
   Result := FloatAlmostZero(R - 3.66666667);
+end;
+
+function TestInt64IsPerfectSquare: Boolean;
+begin
+  // 负数返回 False
+  Result := not CnInt64IsPerfectSquare(-4);
+  if not Result then Exit;
+
+  // 边界值 0 和 1 返回 True
+  Result := CnInt64IsPerfectSquare(0);
+  if not Result then Exit;
+
+  Result := CnInt64IsPerfectSquare(1);
+  if not Result then Exit;
+
+  // 小的完全平方数
+  Result := CnInt64IsPerfectSquare(4);
+  if not Result then Exit;
+
+  Result := CnInt64IsPerfectSquare(9);
+  if not Result then Exit;
+
+  Result := CnInt64IsPerfectSquare(16);
+  if not Result then Exit;
+
+  Result := CnInt64IsPerfectSquare(100);
+  if not Result then Exit;
+
+  // 小的非完全平方数
+  Result := not CnInt64IsPerfectSquare(2);
+  if not Result then Exit;
+
+  Result := not CnInt64IsPerfectSquare(3);
+  if not Result then Exit;
+
+  Result := not CnInt64IsPerfectSquare(5);
+  if not Result then Exit;
+
+  Result := not CnInt64IsPerfectSquare(10);
+  if not Result then Exit;
+
+  // 大的完全平方数 (123456^2 = 15241383936)
+  Result := CnInt64IsPerfectSquare(15241383936);
+  if not Result then Exit;
+
+  // 大的非完全平方数
+  Result := not CnInt64IsPerfectSquare(15241383937);
+  if not Result then Exit;
+
+  // 更大的完全平方数 (MaxInt64 的平方根约为 3037000499，平方为 9223372030926249001)
+  Result := CnInt64IsPerfectSquare(9223372030926249001);
+  if not Result then Exit;
 end;
 
 function TestBigDecimalEulerExp: Boolean;
@@ -12141,58 +12193,6 @@ begin
   Result := not CnInt64BPSWIsPrime(6) and not CnInt64BPSWIsPrime(125)
     and not CnInt64BPSWIsPrime(9999999999) and not CnInt64BPSWIsPrime(87178291200)
     and not CnInt64BPSWIsPrime(24036584) and not CnInt64BPSWIsPrime(9223372036854775784);
-end;
-
-function TestInt64IsPerfectSquare: Boolean;
-begin
-  // 负数返回 False
-  Result := not CnInt64IsPerfectSquare(-4);
-  if not Result then Exit;
-
-  // 边界值 0 和 1 返回 True
-  Result := CnInt64IsPerfectSquare(0);
-  if not Result then Exit;
-
-  Result := CnInt64IsPerfectSquare(1);
-  if not Result then Exit;
-
-  // 小的完全平方数
-  Result := CnInt64IsPerfectSquare(4);
-  if not Result then Exit;
-
-  Result := CnInt64IsPerfectSquare(9);
-  if not Result then Exit;
-
-  Result := CnInt64IsPerfectSquare(16);
-  if not Result then Exit;
-
-  Result := CnInt64IsPerfectSquare(100);
-  if not Result then Exit;
-
-  // 小的非完全平方数
-  Result := not CnInt64IsPerfectSquare(2);
-  if not Result then Exit;
-
-  Result := not CnInt64IsPerfectSquare(3);
-  if not Result then Exit;
-
-  Result := not CnInt64IsPerfectSquare(5);
-  if not Result then Exit;
-
-  Result := not CnInt64IsPerfectSquare(10);
-  if not Result then Exit;
-
-  // 大的完全平方数 (123456^2 = 15241383936)
-  Result := CnInt64IsPerfectSquare(15241383936);
-  if not Result then Exit;
-
-  // 大的非完全平方数
-  Result := not CnInt64IsPerfectSquare(15241383937);
-  if not Result then Exit;
-
-  // 更大的完全平方数 (MaxInt64 的平方根约为 3037000499，平方为 9223372030926249001)
-  Result := CnInt64IsPerfectSquare(9223372030926249001);
-  if not Result then Exit;
 end;
 
 // ================================ 25519 ========================================
