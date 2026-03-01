@@ -3017,8 +3017,172 @@ var
   A: TCnBigNumber;
 begin
   A := BigNumberNew;
-  A.SetDec('9682651996416');
+
+  // Negative number should return False
+  A.SetDec('-8');
+  Result := not BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  // Boundary values: 0 and 1 should return True
+  A.SetDec('0');
   Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('1');
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  // Small perfect powers
+  A.SetDec('4');   // 2^2
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('8');   // 2^3
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('27');  // 3^3
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('64');  // 2^6 or 4^3 or 8^2
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('256'); // 2^8 or 4^4 or 16^2
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('1024'); // 2^10 or 4^5 or 32^2
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  // Small non-perfect powers
+  A.SetDec('2');
+  Result := not BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('3');
+  Result := not BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('5');
+  Result := not BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('10');
+  Result := not BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('101');
+  Result := not BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  // Medium perfect powers
+  A.SetDec('32768'); // 2^15 or 128^3
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('531441'); // 3^12 or 9^6 or 27^4 or 81^3 or 729^2
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('1000000'); // 10^6 or 100^3 or 1000^2
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  // Large perfect powers
+  A.SetDec('9682651996416'); // 42^8 or 1764^4 or 3111696^2
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('1350851717672992089'); // 11^18
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('1152921504606846976'); // 2^60 or 4^30 or 8^20 or 16^15 or 32^12 or 64^10
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  // Large non-perfect powers
+  A.SetDec('9682651996417');
+  Result := not BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('1350851717672992090');
+  Result := not BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  // Very large perfect powers
+  A.SetDec('10000000000000000000000000000000'); // 10^31
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('340282366920938463463374607431768211456'); // 2^128
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  // Perfect cubes
+  A.SetDec('125'); // 5^3
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('216'); // 6^3
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('343'); // 7^3
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('1331'); // 11^3
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  // Perfect 4th powers
+  A.SetDec('81'); // 3^4
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('625'); // 5^4
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('2401'); // 7^4
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  // Perfect 5th powers
+  A.SetDec('32'); // 2^5
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('243'); // 3^5
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('3125'); // 5^5
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  // Perfect 7th powers
+  A.SetDec('128'); // 2^7
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('2187'); // 3^7
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  // Perfect 10th powers
+  A.SetDec('59049'); // 3^10
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
+  A.SetDec('9765625'); // 5^10
+  Result := BigNumberIsPerfectPower(A);
+  if not Result then Exit;
+
   BigNumberFree(A);
 end;
 

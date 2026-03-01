@@ -2005,10 +2005,9 @@ function BigNumberSqrt(Res: TCnBigNumber; Num: TCnBigNumber): Boolean;
 }
 
 function BigNumberRoot(Res: TCnBigNumber; Num: TCnBigNumber;
-  Exponent: Integer): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+  Exponent: Integer): Boolean;
 {* 计算一大数对象的 Exp 次方根的整数部分，结果放 Res 中，返回根计算是否成功。
    要求 Num 不能为负，Exponent 不能为 0 或负。
-   注：FIXME: 因为大数无法进行浮点计算，目前整数运算有偏差，结果偏大，不推荐使用！
 
    参数：
      Res: TCnBigNumber                    - 用来容纳结果的大数对象
@@ -6359,7 +6358,7 @@ begin
   end
   else if Num.IsNegative then
     Exit
-  else if Num.Top <= 2 then
+  else if Num.GetBitsCount <= 64 then
   begin
     U := BigNumberGetUInt64UsingInt64(Num);
     U := UInt64Sqrt(U);
@@ -6418,7 +6417,7 @@ end;
 function BigNumberRoot(Res: TCnBigNumber; Num: TCnBigNumber;
   Exponent: Integer): Boolean;
 var
-  I: Integer;
+  I, Precision: Integer;
   X0, X1, T1, T2, T3: TCnBigBinary;
   C0, C1: TCnBigNumber;
   U: TUInt64;
@@ -6435,7 +6434,7 @@ begin
   end
   else if Exponent = 2 then
     Result := BigNumberSqrt(Res, Num)
-  else if Num.Top <= 2 then
+  else if Num.GetBitsCount <= 64 then
   begin
     U := BigNumberGetUInt64UsingInt64(Num);
     U := UInt64NonNegativeRoot(U, Exponent);
@@ -6474,7 +6473,16 @@ begin
       X0.SetOne;
       X0.ShiftLeft(I);                  // 得到一个较大的 X0 值作为起始值
 
+      Precision := 10 + (Exponent div 2);
+      if Precision > 60 then  // 方根越多，对精度要求越高
+        Precision := 60;
+
+      I := 0;
       repeat
+        Inc(I);
+        if I > 200 then  // 防止死循环
+          Break;
+
         // X1 := X0 - (Power(X0, Exponent) - N) / (Exponent * Power(X0, Exponent - 1));
         BigBinaryCopy(T1, X0);
         T1.Power(Exponent);
@@ -6485,7 +6493,7 @@ begin
         T2.Power(Exponent - 1);
         T2.MulWord(Exponent);                // 得到 Exponent * Power(X0, Exponent - 1)
 
-        BigBinaryDiv(T1, T1, T2, 10);        // 得到商，保留一定精度
+        BigBinaryDiv(T1, T1, T2, Precision); // 得到商，保留一定精度
         BigBinarySub(X1, X0, T1);            // 算出 X1
 
         // 得到 X0 和 X1 的整数部分并比较
@@ -6493,14 +6501,74 @@ begin
         BigBinaryTruncTo(C1, X1);
         if BigNumberCompare(C0, C1) = 0 then
         begin
-          // 暂且认为 X0 X1 整数部分不发生变化即认为达到精度了
-          BigNumberCopy(Res, C0);
-          Result := True;
-          Exit;
+          // 整数部分相等了，还要比较小数部分差额比如 0.01
+          BigBinaryCopy(T3, X1);
+          BigBinaryTruncTo(C0, T3);  // C0 = Floor(X1)
+          T3.SetBigNumber(C0);       // T3 = Floor(X1)
+          BigBinaryCopy(T2, X1);
+          BigBinarySub(T2, T2, T3);  // T2 = X1 - Floor(X1) = 小数部分
+
+          // 检查 T2 * 100 是不是小于 1
+          T2.MulWord(100);
+          BigBinaryTruncTo(C0, T2);
+
+          if C0.IsZero then
+          begin
+            // 小数部分 < 0.01
+            // 检查 Floor(X1), Floor(X1)-1, Floor(X1)+1
+            BigBinaryTruncTo(C1, X1);
+
+            // 检查 C1-1
+            if not C1.IsZero then
+            begin
+              BigNumberCopy(C0, C1);
+              BigNumberSubWord(C0, 1);
+              BigNumberPower(C0, C0, Exponent);
+              if BigNumberCompare(C0, Num) = 0 then
+              begin
+                BigNumberSubWord(C1, 1);
+                BigNumberCopy(Res, C1);
+                Result := True;
+                Exit;
+              end;
+            end;
+
+            // 检查 C1
+            BigNumberCopy(C0, C1);
+            BigNumberPower(C0, C0, Exponent);
+            if BigNumberCompare(C0, Num) = 0 then
+            begin
+              BigNumberCopy(Res, C1);
+              Result := True;
+              Exit;
+            end;
+
+            // 检查 C1+1
+            BigNumberCopy(C0, C1);
+            BigNumberAddWord(C0, 1);
+            BigNumberPower(C0, C0, Exponent);
+            if BigNumberCompare(C0, Num) = 0 then
+            begin
+              BigNumberAddWord(C1, 1);
+              BigNumberCopy(Res, C1);
+              Result := True;
+              Exit;
+            end;
+
+            // 都不匹配就近似返回 Floor(X1)
+            BigNumberCopy(Res, C1);
+            Result := True;
+            Exit;
+          end;
         end;
 
         BigBinaryCopy(X0, X1);
       until False;
+
+      // 从 Break 出来，只能返回近似值
+      BigBinaryTruncTo(C1, X1);
+      BigNumberCopy(Res, C1);
+      Result := True;
     finally
       FLocalBigBinaryPool.Recycle(X1);
       FLocalBigBinaryPool.Recycle(X0);
