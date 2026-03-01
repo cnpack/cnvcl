@@ -204,6 +204,7 @@ function TestFloatToHex: Boolean;
 function TestHexToFloat: Boolean;
 function TestInt64ContinuedFraction: Boolean;
 function TestInt64IsPerfectSquare: Boolean;
+function TestInt64IsPerfectPower: Boolean;
 function TestBigDecimalEulerExp: Boolean;
 function TestBigDecimalLn: Boolean;
 function TestBigDecimalSin: Boolean;
@@ -751,6 +752,7 @@ begin
   MyAssert(TestHexToFloat, 'TestHexToFloat');
   MyAssert(TestInt64ContinuedFraction, 'TestInt64ContinuedFraction');
   MyAssert(TestInt64IsPerfectSquare, 'TestInt64IsPerfectSquare');
+  MyAssert(TestInt64IsPerfectPower, 'TestInt64IsPerfectPower');
   MyAssert(TestBigDecimalEulerExp, 'TestBigDecimalEulerExp');
   MyAssert(TestBigDecimalLn, 'TestBigDecimalLn');
   MyAssert(TestBigDecimalSin, 'TestBigDecimalSin');
@@ -3902,6 +3904,56 @@ begin
 
   // 更大的完全平方数 (MaxInt64 的平方根约为 3037000499，平方为 9223372030926249001)
   Result := CnInt64IsPerfectSquare(9223372030926249001);
+  if not Result then Exit;
+end;
+
+function TestInt64IsPerfectPower: Boolean;
+begin
+  Result := not CnInt64IsPerfectPower(-8);
+  if not Result then Exit;
+
+  Result := CnInt64IsPerfectPower(0);
+  if not Result then Exit;
+
+  Result := CnInt64IsPerfectPower(1);
+  if not Result then Exit;
+
+  Result := CnInt64IsPerfectPower(4);   // 2^2
+  if not Result then Exit;
+
+  Result := CnInt64IsPerfectPower(8);   // 2^3
+  if not Result then Exit;
+
+  Result := CnInt64IsPerfectPower(27);  // 3^3
+  if not Result then Exit;
+
+  Result := CnInt64IsPerfectPower(64);  // 2^6 * 4^3 * 8^2
+  if not Result then Exit;
+
+  Result := CnInt64IsPerfectPower(256); // 2^8 * 4^4 * 16^2
+  if not Result then Exit;
+
+  Result := not CnInt64IsPerfectPower(2);
+  if not Result then Exit;
+
+  Result := not CnInt64IsPerfectPower(3);
+  if not Result then Exit;
+
+  Result := not CnInt64IsPerfectPower(5);
+  if not Result then Exit;
+
+  Result := not CnInt64IsPerfectPower(10);
+  if not Result then Exit;
+
+  // (42^8 = 9682651996416)
+  Result := CnInt64IsPerfectPower(9682651996416);
+  if not Result then Exit;
+
+  Result := not CnInt64IsPerfectPower(9682651996417);
+  if not Result then Exit;
+
+  // (1350851717672992089 = 11^18)
+  Result := CnInt64IsPerfectPower(1350851717672992089);
   if not Result then Exit;
 end;
 
