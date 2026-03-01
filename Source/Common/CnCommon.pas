@@ -1201,6 +1201,12 @@ function InheritsFromClassName(ASrc: TClass; const AClass: string): Boolean; ove
 function InheritsFromClassName(AObject: TObject; const AClass: string): Boolean; overload;
 {* 判断 AObject 是否派生自类名为 AClass 的类 }
 
+function InheritsFromClassNamePattern(ASrc: TClass; const AClassPattern: string): Boolean; overload;
+{* 判断 ASrc 是否派生自类名内包含 AClass 的类 }
+
+function InheritsFromClassNamePattern(AObject: TObject; const AClassPattern: string): Boolean; overload;
+{* 判断 AObject 是否派生自类名内包含 AClass 的类 }
+
 {$IFDEF MSWINDOWS}
 
 function AdjustDebugPrivilege(Enable: Boolean): Boolean;
@@ -8065,6 +8071,27 @@ end;
 function InheritsFromClassName(AObject: TObject; const AClass: string): Boolean;
 begin
   Result := InheritsFromClassName(AObject.ClassType, AClass);
+end;
+
+// 判断 ASrc 是否派生自类名内包含 AClass 的类
+function InheritsFromClassNamePattern(ASrc: TClass; const AClassPattern: string): Boolean;
+begin
+  Result := False;
+  while ASrc <> nil do
+  begin
+    if Pos(AClassPattern, ASrc.ClassName) > 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+    ASrc := ASrc.ClassParent;
+  end;
+end;
+
+// 判断 AObject 是否派生自类名内包含 AClass 的类
+function InheritsFromClassNamePattern(AObject: TObject; const AClassPattern: string): Boolean;
+begin
+  Result := InheritsFromClassNamePattern(AObject.ClassType, AClassPattern);
 end;
 
 {$IFDEF MSWINDOWS}
