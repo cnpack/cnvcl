@@ -610,6 +610,8 @@ const
   CN_TREE_TYPE_SCREENFORM = 2;
   CN_TREE_TYPE_GLOBAL     = 3;
 
+  CN_FMX_PREFIX           = '<FMX>';
+
 type
   PParamData = ^TParamData;
   TParamData = record
@@ -2729,7 +2731,7 @@ begin
           else
             AControlObj := TCnControlObject.Create;
 
-          AControlObj.ObjClassName := CnFmxGetControlByIndex(AFmxControl, I).ClassName;
+          AControlObj.ObjClassName := CN_FMX_PREFIX + CnFmxGetControlByIndex(AFmxControl, I).ClassName;
           AControlObj.CtrlName := CnFmxGetControlByIndex(AFmxControl, I).Name;
           AControlObj.Index := I;
           if AControlObj.ObjValue <> CnFmxGetControlByIndex(AFmxControl, I) then
@@ -4314,15 +4316,16 @@ var
       F := CnFmxGetScreenForms(I);
       Leaf.Obj := F;
 {$IFDEF WIN64}
-      Leaf.Text := Format('%s: %s: $%16.16x', [F.Name, F.ClassName, NativeInt(F)]);
+      Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%16.16x', [F.Name, F.ClassName, NativeInt(F)]);
 {$ELSE}
-      Leaf.Text := Format('%s: %s: $%8.8x', [F.Name, F.ClassName, Integer(F)]);
+      Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%8.8x', [F.Name, F.ClassName, Integer(F)]);
 {$ENDIF}
     end;
 {$ENDIF}
   end;
 
 {$IFDEF ENABLE_FMX}
+
   procedure AddFmxControltoTree(ACtrl: TComponent; ParentLeaf: TCnLeaf = nil);
   var
     I: Integer;
@@ -4336,9 +4339,9 @@ var
     Leaf.Obj := ACtrl;
 
 {$IFDEF WIN64}
-    Leaf.Text := Format('%s: %s: $%16.16x', [ACtrl.Name, ACtrl.ClassName, NativeInt(ACtrl)]);
+    Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%16.16x', [ACtrl.Name, ACtrl.ClassName, NativeInt(ACtrl)]);
 {$ELSE}
-    Leaf.Text := Format('%s: %s: $%8.8x', [ACtrl.Name, ACtrl.ClassName, Integer(ACtrl)]);
+    Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%8.8x', [ACtrl.Name, ACtrl.ClassName, Integer(ACtrl)]);
 {$ENDIF}
 
     if CnFmxGetControlsCount(ACtrl) > 0 then
@@ -4356,13 +4359,18 @@ var
       end;
     end;
   end;
+
 {$ENDIF}
 
   procedure AddGlobalsToTree;
   var
     I: Integer;
-    Leaf, AppLeaf: TCnLeaf;
     F: TComponent;
+{$IFDEF ENABLE_FMX}
+    C: Integer;
+    FC: TComponent;
+{$ENDIF}
+    Leaf, AppLeaf: TCnLeaf;
   begin
     Leaf := FGlobalTree.AddChild(FGlobalTree.Root);
     Leaf.Obj := Screen;
@@ -4400,6 +4408,40 @@ var
       Leaf.Text := Format('%s: %s: $%8.8x', [F.Name, F.ClassName, Integer(F)]);
 {$ENDIF}
     end;
+
+{$IFDEF ENABLE_FMX}
+    Leaf := FGlobalTree.AddChild(FGlobalTree.Root);
+    F := CnFmxGetFmxScreen;
+    Leaf.Obj := F;
+{$IFDEF WIN64}
+    Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%16.16x', [F.Name, F.ClassName, NativeInt(F)]);
+{$ELSE}
+    Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%8.8x', [F.Name, F.ClassName, Integer(F)]);
+{$ENDIF}
+
+    Leaf := FGlobalTree.AddChild(FGlobalTree.Root);
+    F := CnFmxGetFmxApplication;
+    Leaf.Obj := F;
+{$IFDEF WIN64}
+    Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%16.16x', [F.Name, F.ClassName, NativeInt(F)]);
+{$ELSE}
+    Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%8.8x', [F.Name, F.ClassName, Integer(F)]);
+{$ENDIF}
+
+    AppLeaf := Leaf;
+    C := F.ComponentCount;
+    for I := 0 to C - 1 do
+    begin
+      Leaf := FGlobalTree.AddChild(AppLeaf);
+      FC := F.Components[I];
+      Leaf.Obj := FC;
+{$IFDEF WIN64}
+      Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%16.16x', [FC.Name, FC.ClassName, NativeInt(FC)]);
+{$ELSE}
+      Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%8.8x', [FC.Name, FC.ClassName, Integer(FC)]);
+{$ENDIF}
+    end;
+{$ENDIF}
   end;
 
 begin

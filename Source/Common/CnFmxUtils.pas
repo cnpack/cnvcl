@@ -155,6 +155,9 @@ procedure CnFmxGetScreenFormsWithClassName(const ClsName: string; OutForms: TLis
 function CnFmxGetFmxApplication: TComponent;
 {* 返回 FMX 框架里的 Application 实例}
 
+function CnFmxGetFmxScreen: TComponent;
+{* 返回 FMX 框架里的 Screen 实例}
+
 function CnFmxGetWindowPlatformHandle(AComp: TComponent): THandle;
 {* 返回 FMX 框架里的封装的 Window Handle，如 AComp 不是相关类则返回 0}
 
@@ -700,6 +703,11 @@ end;
 function CnFmxGetFmxApplication: TComponent;
 begin
   Result := Application;
+end;
+
+function CnFmxGetFmxScreen: TComponent;
+begin
+  Result := Screen;
 end;
 
 function CnFmxGetWindowPlatformHandle(AComp: TComponent): THandle;
