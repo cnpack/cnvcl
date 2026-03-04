@@ -134,7 +134,7 @@ begin
 
   mmoResult.Lines.Add('年三元：' + Get3YuanFromNumber(Get3YuanFromYear(AYear, AMonth, ADay)));
   mmoResult.Lines.Add('运九星：' + Get9XingFromNumber(GetYun9XingFromYear(AYear, AMonth, ADay)));
-  GanZhi := GetGanZhiFromYear(AYear, AMonth, ADay, AHour);
+  GanZhi := GetGanZhiFromYear(AYear, AMonth, ADay, AHour, ystByLunarOne);
   ExtractGanZhi(GanZhi, Gan, Zhi);
   JiuXing := Get9XingFromYear(AYear, AMonth, ADay);
 

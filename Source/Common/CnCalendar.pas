@@ -77,10 +77,15 @@ unit CnCalendar;
 *           另外，目前精确的定气节气算法往前推至历史上，可能和历史上使用的平气节气有日期差异，
 *           导致根据节气分隔年月日的干支计算也会出现偏差，使用时应注意。
 *
+*           再者，干支计算目前有传统命理的以立春为年分界、及现代农历国标 GB/T 33661-2017 中
+*           以大年初一为界两种模式，目前本单元都支持，调用时注意指定分界方式即可。
+*
 * 开发平台：PWinXP SP2 + Delphi 2006
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.12.03 V3.0
+* 修改记录：2026.03.04 V3.1
+*               干支与生肖计算之前默认以立春为分界线，现在加入以大年初一为分界线的选项
+*           2025.12.03 V3.0
 *               涉及节气判断的场合全面改用精确节气算法，精确节气计算范围扩展至公元前
 *           2025.08.14 V2.9
 *               增加针对农历月、日的农历二十八宿算法，日不连续且无牛
@@ -363,6 +368,9 @@ type
 
   TCnSunRiseSetType = (stNormal, stAllwaysUp, stAllwaysDown, stError);
   {* 日出日落类型：    普通，    极昼，       极夜，        数据错误 }
+
+  TCnGanZhiYearStartType = (ystByLiChun, ystByLunarOne);
+  {* 干支的年衔接类型，按传统命理八字中的立春、还是按 GB/T 33661-2017 中的农历大年初一}
 
 function GetSunRiseSetTime(ADate: TDateTime; Longitude, Latitude: Extended;
   ZoneTime: Integer; out RiseTime, TransitTime, SetTime: TDateTime):
@@ -895,20 +903,24 @@ function GetGanZhiFromYear(AYear: Integer): Integer; overload;
    返回值：Integer                        - 返回年干支
 }
 
-function GetGanZhiFromYear(AYear, AMonth, ADay: Integer): Integer; overload;
-{* 根据公历年月日获得某公历年的天干地支，以立春为年分界，0-59 对应甲子到癸亥。
+function GetGanZhiFromYear(AYear, AMonth, ADay: Integer;
+  StartType: TCnGanZhiYearStartType = ystByLiChun): Integer; overload;
+{* 根据公历年月日获得某公历年的天干地支，默认以立春为年分界，0-59 对应甲子到癸亥。
 
    参数：
      AYear, AMonth, ADay: Integer         - 待计算的公历年、月、日
+     StartType: TCnGanZhiYearStartType    - 以立春为年分界还是以大年初一为分界
 
    返回值：Integer                        - 返回年干支
 }
 
-function GetGanZhiFromYear(AYear, AMonth, ADay, AHour: Integer): Integer; overload;
-{* 根据公历年月日时获得某公历年的天干地支，以立春为年分界，精确到小时，0-59 对应甲子到癸亥。
+function GetGanZhiFromYear(AYear, AMonth, ADay, AHour: Integer;
+  StartType: TCnGanZhiYearStartType = ystByLiChun): Integer; overload;
+{* 根据公历年月日时获得某公历年的天干地支，默认以立春为年分界，精确到小时，0-59 对应甲子到癸亥。
 
    参数：
      AYear, AMonth, ADay, AHour: Integer  - 待计算的公历年、月、日、时
+     StartType: TCnGanZhiYearStartType    - 以立春为年分界还是以大年初一为分界
 
    返回值：Integer                        - 返回年干支
 }
@@ -931,11 +943,22 @@ function GetZhiFromYear(AYear: Integer): Integer;
    返回值：Integer                        - 返回地支
 }
 
-function GetShengXiaoFromYear(AYear: Integer): Integer;
+function GetShengXiaoFromYear(AYear: Integer): Integer; overload;
 {* 获得某公/农历年的生肖也就是地支，0-11 对应鼠到猪。
 
    参数：
      AYear: Integer                       - 待计算的公历年
+
+   返回值：Integer                        - 返回生肖
+}
+
+function GetShengXiaoFromYear(AYear, AMonth, ADay: Integer;
+  StartType: TCnGanZhiYearStartType = ystByLiChun): Integer; overload;
+{* 获得某公历年月日的生肖也就是地支，默认以立春为年分界，0-11 对应鼠到猪。
+
+   参数：
+     AYear, AMonth, ADay: Integer         - 待计算的公历年月日
+     StartType: TCnGanZhiYearStartType    - 以立春为年分界还是以大年初一为分界
 
    返回值：Integer                        - 返回生肖
 }
@@ -1007,10 +1030,22 @@ function GetShiChenFromHour(AHour: Integer): Integer;
    返回值：Integer                        - 返回时辰
 }
 
+function AdjustYearToLunar(var AYear: Integer; AMonth: Integer;
+  ADay: Integer): Boolean;
+{* 根据大年初一为界，调整公历年的年月日的年份数到农历年，供现代农历计算生肖用。
+
+   参数：
+     var AYear: Integer                   - 供调整的公历年，调整后的结果也放其中
+     AMonth: Integer                      - 该公历日期的月份数
+     ADay: Integer                        - 该公历日期的日数
+
+   返回值：Boolean                        - 返回日期是否合法，注意与是否调整无关
+}
+
 function AdjustYearToGanZhi(var AYear: Integer; AMonth: Integer;
   ADay: Integer; AHour: Integer): Boolean;
-{* 根据立春为界，调整公历年的年月日的年份数到标准干支纪年，供黄历中针对年的干支
-   等概念的计算。注意按约定的规则，立春当天 0 时起就属于新年，哪怕立春交接时刻
+{* 根据立春为界，调整公历年的年月日的年份数到标准干支纪年，供黄历命理八字中针对年的干支
+   等概念的计算。注意按黄历命理八字中约定的规则，立春当天 0 时起就属于新年，哪怕立春交接时刻
    在 0 时后的某一时刻，月份分界的节气也类似。
 
    参数：
@@ -1025,7 +1060,7 @@ function AdjustYearToGanZhi(var AYear: Integer; AMonth: Integer;
 function AdjustYearMonthToGanZhi(var AYear: Integer; var AMonth: Integer;
   ADay: Integer; AHour: Integer): Boolean;
 {* 根据立春与节气为界，调整公历年的年月日的年份数与月份数到标准干支纪年，
-   供黄历中针对月的干支等概念的计算。注意按约定的规则，立春当天 0 时起就属于新年，
+   供黄历命理八字中中针对月的干支等概念的计算。注意按约定的规则，立春当天 0 时起就属于新年，
    哪怕立春交接时刻在 0 时后的某一时刻，月份分界的节气也类似。
 
    参数：
@@ -8398,33 +8433,42 @@ begin
     Inc(Result, 60);
 end;
 
-// 根据公历年月日获得某公历年的天干地支，以立春为年分界，0-59 对应 甲子到癸亥
-function GetGanZhiFromYear(AYear, AMonth, ADay: Integer): Integer; overload;
+// 根据公历年月日获得某公历年的天干地支，默认以立春为年分界，0-59 对应 甲子到癸亥
+function GetGanZhiFromYear(AYear, AMonth, ADay: Integer;
+  StartType: TCnGanZhiYearStartType): Integer;
 begin
   ValidDate(AYear, AMonth, ADay);
 
-  // 如是立春日前，属于前一年。立春当天算这一年
-  if GetDayFromYearBegin(AYear, AMonth, ADay) < Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_LICHUN)) then
+  if StartType = ystByLiChun then
   begin
-    Dec(AYear);
-    if AYear = 0 then // 没有公元 0 年
-      Dec(AYear);
+    // 如是立春日前，属于前一年。立春当天算这一年
+    AdjustYearToGanZhi(AYear, AMonth, ADay, 0);
+  end
+  else
+  begin
+    // 如是大年初一前，属于前一年。大年初一当天算这一年
+    AdjustYearToLunar(AYear, AMonth, ADay);
   end;
+
   Result := GetGanZhiFromYear(AYear);
 end;
 
-// 根据公历年月日获得某公历年的天干地支，以立春为年分界，精确到小时，0-59 对应 甲子到癸亥
-function GetGanZhiFromYear(AYear, AMonth, ADay, AHour: Integer): Integer; overload;
+// 根据公历年月日获得某公历年的天干地支，默认以立春为年分界，精确到小时，0-59 对应 甲子到癸亥
+function GetGanZhiFromYear(AYear, AMonth, ADay, AHour: Integer;
+  StartType: TCnGanZhiYearStartType): Integer;
 begin
   ValidDate(AYear, AMonth, ADay);
   ValidTime(AHour, 0, 0);
 
-  // 如是立春日前，属于前一年，精确到小时判断。立春当天算这一年
-  if GetDayFromYearBegin(AYear, AMonth, ADay, AHour) < Floor(GetJieQiDayTimeFromYear(AYear, CN_JIEQI_LICHUN)) then
+  if StartType = ystByLiChun then
   begin
-    Dec(AYear);
-    if AYear = 0 then // 没有公元 0 年
-      Dec(AYear);
+    // 如是立春日前，属于前一年，精确到小时判断。立春当天算这一年
+    AdjustYearToGanZhi(AYear, AMonth, ADay, AHour);
+  end
+  else
+  begin
+    // 如是大年初一前，属于前一年。大年初一当天算这一年
+    AdjustYearToLunar(AYear, AMonth, ADay);
   end;
 
   Result := GetGanZhiFromYear(AYear);
@@ -8464,6 +8508,24 @@ end;
 function GetShengXiaoFromYear(AYear: Integer): Integer;
 begin
   Result := GetZhiFromYear(AYear);
+end;
+
+// 获得某公历年月日的生肖也就是地支，默认以立春为年分界，0-11 对应 鼠到猪
+function GetShengXiaoFromYear(AYear, AMonth, ADay: Integer;
+  StartType: TCnGanZhiYearStartType): Integer;
+begin
+  if StartType = ystByLiChun then
+  begin
+    // 如是立春日前，属于前一年，精确到小时判断。立春当天算这一年
+    AdjustYearToGanZhi(AYear, AMonth, ADay, 0);
+  end
+  else
+  begin
+    // 如是大年初一前，属于前一年。大年初一当天算这一年
+    AdjustYearToLunar(AYear, AMonth, ADay);
+  end;
+
+  Result := GetShengXiaoFromYear(AYear);
 end;
 
 // 获得某公历月日的星座，0-11 对应 白羊到双鱼}
@@ -8624,6 +8686,30 @@ begin
   begin
     Inc(AHour);
     Result := AHour div 2;
+  end;
+end;
+
+// 根据大年初一为界，调整公历年的年月日的年份数到农历年，供现代农历计算生肖用。
+function AdjustYearToLunar(var AYear: Integer; AMonth: Integer;
+  ADay: Integer): Boolean;
+var
+  LYear, LMonth, LDay: Integer;
+  IsLeap: Boolean;
+begin
+  Result := GetDateIsValid(AYear, AMonth, ADay);
+  if not Result then
+    Exit;
+
+  if GetLunarFromDay(AYear, AMonth, ADay, LYear, LMonth, LDay, IsLeap) then
+  begin
+    if LYear = AYear - 1 then
+    begin
+      Dec(AYear);
+      if AYear = 0 then // 没有公元 0 年
+        Dec(AYear);
+    end
+    else if (AYear = 1) and (LYear = -1) then
+      AYear := -1;
   end;
 end;
 
