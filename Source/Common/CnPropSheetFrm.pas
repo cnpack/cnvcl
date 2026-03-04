@@ -785,7 +785,7 @@ begin
        S := 'Unknown Class';
      end;
 
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
      Result := Format('(%s.$%16.16x)', [S, NativeInt(AClass)]);
 {$ELSE}
      Result := Format('(%s.$%8.8x)', [S, Integer(AClass)]);
@@ -793,7 +793,7 @@ begin
    end
    else
    begin
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
      Result := Format('($%16.16x)', [NativeInt(AClass)]);
 {$ELSE}
      Result := Format('($%8.8x)', [Integer(AClass)]);
@@ -818,7 +818,7 @@ begin
         S := 'Unknown Object';
       end;
 
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
       Result := Format('(%s.$%16.16x)', [S, NativeInt(AObj)]);
 {$ELSE}
       Result := Format('(%s.$%8.8x)', [S, Integer(AObj)]);
@@ -826,7 +826,7 @@ begin
     end
     else
     begin
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
       Result := Format('($%16.16x)', [NativeInt(AObj)]);
 {$ELSE}
       Result := Format('($%8.8x)', [Integer(AObj)]);
@@ -1149,7 +1149,7 @@ begin
         if (AMethod.Code <> nil) and (AMethod.Data <> nil) then
         begin
 {$IFDEF FPC}
-  {$IFDEF WIN64}
+  {$IFDEF CPUX64}
           S := Format('%s: ($%16.16x, $%16.16x): %s', [PropInfo^.PropType^.Name,
             NativeInt(AMethod.Code), NativeInt(AMethod.Data),
             GetMethodDeclare(Instance, PropInfo)]);
@@ -1159,7 +1159,7 @@ begin
             GetMethodDeclare(Instance, PropInfo)]);
   {$ENDIF}
 {$ELSE}
-  {$IFDEF WIN64}
+  {$IFDEF CPUX64}
           S := Format('%s: ($%16.16x, $%16.16x): %s', [PropInfo^.PropType^^.Name,
             NativeInt(AMethod.Code), NativeInt(AMethod.Data),
             GetMethodDeclare(Instance, PropInfo)]);
@@ -1183,7 +1183,7 @@ begin
       begin
 {$IFDEF COMPILER6_UP}
         Intf := GetInterfaceProp(Instance, PropInfo);
-        {$IFDEF WIN64}
+        {$IFDEF CPUX64}
         S := Format('(Interface:$%16.16x)', [NativeInt(Intf)]);
         {$ELSE}
         S := Format('(Interface:$%8.8x)', [Integer(Intf)]);
@@ -1279,7 +1279,7 @@ begin
             S := 'nil'
           else
           begin
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
             S := Format('%s: ($%16.16x, $%16.16x): %s', [RttiProperty.PropertyType.Name,
               NativeInt(AMethod.Code), NativeInt(AMethod.Data),
               GetRttiMethodDeclare(Instance, RttiProperty)]);
@@ -1301,7 +1301,7 @@ begin
       begin
         try
           Intf := RttiProperty.GetValue(Instance).AsInterface;
-          {$IFDEF WIN64}
+          {$IFDEF CPUX64}
           S := Format('(Interface:$%16.16x)', [NativeInt(Intf)]);
           {$ELSE}
           S := Format('(Interface:$%8.8x)', [Integer(Intf)]);
@@ -1317,7 +1317,7 @@ begin
         if DataSize = SizeOf(Pointer) then
         begin
           RttiProperty.GetValue(Instance).ExtractRawData(@APtr);
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
           S := Format('(Pointer:$%16.16x)', [NativeInt(APtr)]);
 {$ELSE}
           S := Format('(Pointer:$%8.8x)', [Integer(APtr)]);
@@ -1409,7 +1409,7 @@ begin
             S := 'nil'
           else
           begin
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
             S := Format('%s: ($%16.16x, $%16.16x: %s)', [RttiField.FieldType.Name,
               NativeInt(AMethod.Code), NativeInt(AMethod.Data),
               GetRttiFieldMethodDeclare(Instance, RttiField)]);
@@ -1431,7 +1431,7 @@ begin
       begin
         try
           Intf := RttiField.GetValue(Instance).AsInterface;
-          {$IFDEF WIN64}
+          {$IFDEF CPUX64}
           S := Format('(Interface:$%16.16x)', [NativeInt(Intf)]);
           {$ELSE}
           S := Format('(Interface:$%8.8x)', [Integer(Intf)]);
@@ -1447,7 +1447,7 @@ begin
         if DataSize = SizeOf(Pointer) then
         begin
           RttiField.GetValue(Instance).ExtractRawData(@APtr);
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
           S := Format('(Pointer:$%16.16x)', [NativeInt(APtr)]);
 {$ELSE}
           S := Format('(Pointer:$%8.8x)', [Integer(APtr)]);
@@ -1792,7 +1792,7 @@ var
   begin
     if WithAddress then
     begin
-  {$IFDEF WIN64}
+  {$IFDEF CPUX64}
     Result := Format('$%16.16x: %s;', [NativeInt(ARttiMethod.CodeAddress),
       ARttiMethod.ToString]);
   {$ELSE}
@@ -2583,7 +2583,7 @@ begin
         S := ACollection.GetNamePath;
         if S = '' then S := '*';
         AItemObj.ItemName := Format('%s.Item[%d]', [S, I]);
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
         AItemObj.DisplayValue := Format('%s: $%16.16x', [AItemObj.ObjClassName, NativeInt(AItemObj.ObjValue)]);
 {$ELSE}
         AItemObj.DisplayValue := Format('%s: $%8.8x', [AItemObj.ObjClassName, Integer(AItemObj.ObjValue)]);
@@ -2623,7 +2623,7 @@ begin
         if S = '' then S := '(noname)';
         AMenuObj.ItemName := Format('%s.Item[%d]', [S, I]);
 
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
         AMenuObj.DisplayValue := Format('%s: $%16.16x', [AMenuObj.ObjClassName, NativeInt(AMenuObj.ObjValue)]);
 {$ELSE}
         AMenuObj.DisplayValue := Format('%s: $%8.8x', [AMenuObj.ObjClassName, Integer(AMenuObj.ObjValue)]);
@@ -2661,7 +2661,7 @@ begin
           ACompObj.Changed := False;
 
         ACompObj.DisplayName := Format('%s.Components[%d]', [AComp.Name, I]);
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
         ACompObj.DisplayValue := Format('%s: %s: $%16.16x', [ACompObj.CompName,
           ACompObj.ObjClassName, NativeInt(ACompObj.ObjValue)]);
 {$ELSE}
@@ -2701,7 +2701,7 @@ begin
             AControlObj.Changed := False;
 
           AControlObj.DisplayName := Format('%s.Controls[%d]', [AControl.Name, I]);
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
           AControlObj.DisplayValue := Format('%s: %s: $%16.16x', [AControlObj.CtrlName,
             AControlObj.ObjClassName, NativeInt(AControlObj.ObjValue)]);
 {$ELSE}
@@ -2743,7 +2743,7 @@ begin
             AControlObj.Changed := False;
 
           AControlObj.DisplayName := Format('%s.Controls[%d]', [AFmxControl.Name, I]);
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
           AControlObj.DisplayValue := Format('%s: %s: $%16.16x', [AControlObj.CtrlName,
             AControlObj.ObjClassName, NativeInt(AControlObj.ObjValue)]);
 {$ELSE}
@@ -3329,7 +3329,7 @@ begin
 
   if FObjectExpr = '' then
   begin
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
     edtObj.Text := Format('%16.16x', [NativeInt(FInspector.ObjectAddr)]);
     edtClassName.Text := Format('%s: $%16.16x', [edtClassName.Text, NativeInt(FInspector.ObjectAddr)]);
 {$ELSE}
@@ -4257,7 +4257,7 @@ var
     Leaf := FComponentTree.AddChild(ParentLeaf);
     Leaf.Obj := AComp;
 
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
     Leaf.Text := Format('%s: %s: $%16.16x', [AComp.Name, AComp.ClassName, NativeInt(AComp)]);
 {$ELSE}
     Leaf.Text := Format('%s: %s: $%8.8x', [AComp.Name, AComp.ClassName, Integer(AComp)]);
@@ -4278,7 +4278,7 @@ var
     Leaf := FControlTree.AddChild(ParentLeaf);
     Leaf.Obj := ACtrl;
 
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
     Leaf.Text := Format('%s: %s: $%16.16x', [ACtrl.Name, ACtrl.ClassName, NativeInt(ACtrl)]);
 {$ELSE}
     Leaf.Text := Format('%s: %s: $%8.8x', [ACtrl.Name, ACtrl.ClassName, Integer(ACtrl)]);
@@ -4302,7 +4302,7 @@ var
       Leaf := FScreenTree.AddChild(FScreenTree.Root);
       F := Screen.CustomForms[I];
       Leaf.Obj := F;
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
       Leaf.Text := Format('%s: %s: $%16.16x', [F.Name, F.ClassName, NativeInt(F)]);
 {$ELSE}
       Leaf.Text := Format('%s: %s: $%8.8x', [F.Name, F.ClassName, Integer(F)]);
@@ -4315,7 +4315,7 @@ var
       Leaf := FScreenTree.AddChild(FScreenTree.Root);
       F := CnFmxGetScreenForms(I);
       Leaf.Obj := F;
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
       Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%16.16x', [F.Name, F.ClassName, NativeInt(F)]);
 {$ELSE}
       Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%8.8x', [F.Name, F.ClassName, Integer(F)]);
@@ -4338,7 +4338,7 @@ var
     Leaf := FControlTree.AddChild(ParentLeaf);
     Leaf.Obj := ACtrl;
 
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
     Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%16.16x', [ACtrl.Name, ACtrl.ClassName, NativeInt(ACtrl)]);
 {$ELSE}
     Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%8.8x', [ACtrl.Name, ACtrl.ClassName, Integer(ACtrl)]);
@@ -4374,7 +4374,7 @@ var
   begin
     Leaf := FGlobalTree.AddChild(FGlobalTree.Root);
     Leaf.Obj := Screen;
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
     Leaf.Text := Format('%s: %s: $%16.16x', [Screen.Name, Screen.ClassName, NativeInt(Screen)]);
 {$ELSE}
     Leaf.Text := Format('%s: %s: $%8.8x', [Screen.Name, Screen.ClassName, Integer(Screen)]);
@@ -4382,7 +4382,7 @@ var
 
     Leaf := FGlobalTree.AddChild(FGlobalTree.Root);
     Leaf.Obj := Mouse;
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
     Leaf.Text := Format('%s: %s: $%16.16x', ['', Mouse.ClassName, NativeInt(Mouse)]);
 {$ELSE}
     Leaf.Text := Format('%s: %s: $%8.8x', ['', Mouse.ClassName, Integer(Mouse)]);
@@ -4390,7 +4390,7 @@ var
 
     Leaf := FGlobalTree.AddChild(FGlobalTree.Root);
     Leaf.Obj := Application;
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
     Leaf.Text := Format('%s: %s: $%16.16x', [Application.Name, Application.ClassName, NativeInt(Application)]);
 {$ELSE}
     Leaf.Text := Format('%s: %s: $%8.8x', [Application.Name, Application.ClassName, Integer(Application)]);
@@ -4402,7 +4402,7 @@ var
       Leaf := FGlobalTree.AddChild(AppLeaf);
       F := Application.Components[I];
       Leaf.Obj := F;
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
       Leaf.Text := Format('%s: %s: $%16.16x', [F.Name, F.ClassName, NativeInt(F)]);
 {$ELSE}
       Leaf.Text := Format('%s: %s: $%8.8x', [F.Name, F.ClassName, Integer(F)]);
@@ -4413,7 +4413,7 @@ var
     Leaf := FGlobalTree.AddChild(FGlobalTree.Root);
     F := CnFmxGetFmxScreen;
     Leaf.Obj := F;
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
     Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%16.16x', [F.Name, F.ClassName, NativeInt(F)]);
 {$ELSE}
     Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%8.8x', [F.Name, F.ClassName, Integer(F)]);
@@ -4422,7 +4422,7 @@ var
     Leaf := FGlobalTree.AddChild(FGlobalTree.Root);
     F := CnFmxGetFmxApplication;
     Leaf.Obj := F;
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
     Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%16.16x', [F.Name, F.ClassName, NativeInt(F)]);
 {$ELSE}
     Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%8.8x', [F.Name, F.ClassName, Integer(F)]);
@@ -4435,7 +4435,7 @@ var
       Leaf := FGlobalTree.AddChild(AppLeaf);
       FC := F.Components[I];
       Leaf.Obj := FC;
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
       Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%16.16x', [FC.Name, FC.ClassName, NativeInt(FC)]);
 {$ELSE}
       Leaf.Text := Format(CN_FMX_PREFIX + '%s: %s: $%8.8x', [FC.Name, FC.ClassName, Integer(FC)]);
@@ -4676,10 +4676,12 @@ begin
     LV := pmSheet.PopupComponent as TListView;
     if LV.Selected <> nil then
     begin
-      if LV.Columns.Count = 2 then
+      if LV.Columns.Count = 3 then
+        Clipboard.AsText := LV.Selected.Caption + ' ' + LV.Selected.SubItems[0] + ' ' + LV.Selected.SubItems[1]
+      else if LV.Columns.Count = 2 then
         Clipboard.AsText := LV.Selected.Caption + ' ' + LV.Selected.SubItems[0]
       else if LV.Columns.Count = 1 then
-        Clipboard.AsText := LV.Selected.Caption
+        Clipboard.AsText := LV.Selected.Caption;
     end;
   end;
 end;
@@ -4698,7 +4700,12 @@ begin
 
     SL := TStringList.Create;
     try
-      if LV.Columns.Count = 2 then
+      if LV.Columns.Count = 3 then
+      begin
+        for I := 0 to LV.Items.Count - 1 do
+          SL.Add(LV.Items[I].Caption + ' ' + LV.Items[I].SubItems[0] + ' ' + LV.Items[I].SubItems[1]);
+      end
+      else if LV.Columns.Count = 2 then
       begin
         for I := 0 to LV.Items.Count - 1 do
           SL.Add(LV.Items[I].Caption + ' ' + LV.Items[I].SubItems[0]);

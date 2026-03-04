@@ -6360,7 +6360,7 @@ begin
       List := TCnManualStackInfoList.Create(nil, RunAddr)
     else
     begin
-{$IFDEF WIN64}
+{$IFDEF CPUX64}
       Context.Rsp := DWORD64(StackAddr);
       Context.Rbp := DWORD64(FrameAddr);
 {$ELSE}
