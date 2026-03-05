@@ -1974,7 +1974,7 @@ type
     }
 
     // 辅助过程
-    function ObjectFromInterface(const AIntf: IUnknown): TObject;
+    class function ObjectFromInterface(const AIntf: IUnknown): TObject;
     {* 从接口实例查找对应实现它的具体对象实例。
 
        参数：
@@ -1983,7 +1983,7 @@ type
        返回值：TObject                    - 返回查找到的对象实例
     }
 
-    function ObjectAddressToString(const AObj: TObject): string;
+    class function ObjectAddressToString(const AObj: TObject): string;
     {* 将对象的地址转换为十六进制字符串。
 
        参数：
@@ -5253,7 +5253,7 @@ begin
 end;
 
 // 移植自 A.Bouchez 的实现
-function TCnDebugger.ObjectFromInterface(const AIntf: IUnknown): TObject;
+class function TCnDebugger.ObjectFromInterface(const AIntf: IUnknown): TObject;
 begin
   Result := nil;
   if AIntf = nil then
@@ -5272,7 +5272,7 @@ begin
 {$ENDIF}
 end;
 
-function TCnDebugger.ObjectAddressToString(const AObj: TObject): string;
+class function TCnDebugger.ObjectAddressToString(const AObj: TObject): string;
 begin
 {$IFDEF CPUX64}
   Result := Format('%16.16x', [TCnNativeInt(AObj)]);
