@@ -28,7 +28,9 @@ unit CnLangUtils;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.04.11 V1.2
+* 修改记录：2026.03.06 V1.3
+*               TCnLangStringExtractor 加入取值的事件允许外界忽略条目
+*           2025.04.11 V1.2
 *               屏蔽可能的 TStrings 的 Text 获取异常的问题
 *           2021.02.20 V1.1
 *               增加代码页的获取
@@ -52,10 +54,15 @@ type
 
   TLangTransFilterSet = set of TLangTransFilter;
 
+  TCnLangAllowItemEvent = procedure (AObject: TObject; const PropName: string; var Allow: Boolean) of object;
+
   TCnLangStringExtractor = class
   private
     FFilterOptions: TLangTransFilterSet;
+    FOnAllowItem: TCnLangAllowItemEvent;
   protected
+    function DoAllowItem(AObject: TObject; const PropName: string): Boolean; virtual;
+
     procedure GetObjectStrings(AOwner: TComponent; AObject: TObject; Strings: TStrings;
       const BaseName: string; SkipEmptyStr: Boolean);
     procedure GetRecurComponentStrings(AOwner: TComponent; AComponent: TComponent;
@@ -75,6 +82,9 @@ type
     {* 获得一 Component 的所有字串 }
     procedure SetFilterOptions(const AFilterOptions: TLangTransFilterSet);
     {* 设置过滤 *}
+
+    property OnAllowItem: TCnLangAllowItemEvent read FOnAllowItem write FOnAllowItem;
+    {* 遍历某条目时触发的事件，事件处理程序中给 Allow 赋值 False 代表忽略该条目}
   end;
 
 {$IFDEF SUPPORT_CROSS_PLATFORM}
@@ -335,6 +345,14 @@ begin
   SetFilterOptions([]);
 end;
 
+function TCnLangStringExtractor.DoAllowItem(AObject: TObject;
+  const PropName: string): Boolean;
+begin
+  Result := True;
+  if Assigned(FOnAllowItem) then
+    FOnAllowItem(AObject, PropName, Result);
+end;
+
 procedure TCnLangStringExtractor.GetComponentStrings(AComponent: TComponent;
   Strings: TStrings; const BaseName: string; SkipEmptyStr: Boolean);
 var
@@ -448,7 +466,7 @@ begin
       or ((AObject is TComponent) and ((AObject as TComponent).Name = '')) then
         Exit;
 
-    if (AObject is TStrings) then  // Strings 的对象直接加入其 Text 属性。
+    if AObject is TStrings then  // Strings 的对象直接加入其 Text 属性。
     begin
       if not (tfText in FFilterOptions) then
         Exit;
@@ -469,7 +487,7 @@ begin
       end;
       Exit;
     end
-    else if (AObject is TCollection) then // TCollection 对象遍历其 Item
+    else if AObject is TCollection then // TCollection 对象遍历其 Item
     begin
       for I := 0 to (AObject as TCollection).Count - 1 do
       begin
@@ -664,73 +682,59 @@ begin
           Continue;
 
         // 处理过滤条件
-        if (APropName = 'Caption') then
+        if APropName = 'Caption' then
         begin
           if not (tfCaption in FFilterOptions) then
-          begin
             Continue;
-          end;
         end
-        else if (APropName = 'Category') then
+        else if APropName = 'Category' then
         begin
           if not (tfCategory in FFilterOptions) then
-          begin
             Continue;
-          end;
         end
-        else if (APropName = 'HelpKeyword') then
+        else if APropName = 'HelpKeyword' then
         begin
           if not (tfHelpKeyword in FFilterOptions) then
-          begin
             Continue;
-          end;
         end
-        else if (APropName = 'Hint') then
+        else if APropName = 'Hint' then
         begin
           if not (tfHint in FFilterOptions) then
-          begin
             Continue;
-          end;
         end
-        else if (APropName = 'ImeName') then
+        else if APropName = 'ImeName' then
         begin
           if not (tfImeName in FFilterOptions) then
-          begin
             Continue;
-          end;
         end
-        else if (APropName = 'Title') then
+        else if APropName = 'Title' then
         begin
           if not (tfTitle in FFilterOptions) then
-          begin
             Continue;
-          end;
         end
-        else if (APropName = 'DefaultExt') then
+        else if APropName = 'DefaultExt' then
         begin
           if not (tfDefaultExt in FFilterOptions) then
-          begin
             Continue;
-          end;
         end
-        else if (APropName = 'Filter') then
+        else if APropName = 'Filter' then
         begin
           if not (tfFilter in FFilterOptions) then
-          begin
             Continue;
-          end;
         end
-        else if (APropName = 'InitialDir') then
+        else if APropName = 'InitialDir' then
         begin
           if not (tfInitialDir in FFilterOptions) then
-          begin
             Continue;
-          end;
         end
         else if not (tfOthers in FFilterOptions) then
         begin
           Continue;
         end;
+
+        // 调用事件允许外部再次过滤
+        if not DoAllowItem(AObject, APropName) then
+          Continue;
 
         if IsForm then
           AStr := AObject.ClassName + DefDelimeter + APropName
