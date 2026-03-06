@@ -60,8 +60,9 @@ type
   private
     FFilterOptions: TLangTransFilterSet;
     FOnAllowItem: TCnLangAllowItemEvent;
+    function CRLFStringToBRString(const CRLFStr: string): string;
   protected
-    function DoAllowItem(AObject: TObject; const PropName: string): Boolean; virtual;
+    function DoAllowItem(AObject: TObject; const PropName: string = ''): Boolean; virtual;
 
     procedure GetObjectStrings(AOwner: TComponent; AObject: TObject; Strings: TStrings;
       const BaseName: string; SkipEmptyStr: Boolean);
@@ -345,6 +346,15 @@ begin
   SetFilterOptions([]);
 end;
 
+function TCnLangStringExtractor.CRLFStringToBRString(
+  const CRLFStr: string): string;
+begin
+  if Pos(SCnCRLF, CRLFStr) > 0 then
+    Result := StringReplace(Trim(CRLFStr), SCnCRLF, SCnBR, [rfReplaceAll, rfIgnoreCase])
+  else
+    Result := CRLFStr;
+end;
+
 function TCnLangStringExtractor.DoAllowItem(AObject: TObject;
   const PropName: string): Boolean;
 begin
@@ -466,6 +476,10 @@ begin
       or ((AObject is TComponent) and ((AObject as TComponent).Name = '')) then
         Exit;
 
+    // 调用事件允许外部针对对象过滤
+    if not DoAllowItem(AObject) then
+      Exit;
+
     if AObject is TStrings then  // Strings 的对象直接加入其 Text 属性。
     begin
       if not (tfText in FFilterOptions) then
@@ -479,8 +493,7 @@ begin
         // 可能获取异常，原因在于某些组件需要创建并 Set 好 Parent 后才能获取到
         // 如设计期取 TOpenTextFileDialog 里头的 ComboBox 的 Items 的值时
         if not SkipEmptyStr or ((AObject as TStrings).Text <> '') then
-          Strings.Add(AStr + DefEqual + StringReplace((AObject as TStrings).Text,
-            SCnCRLF, SCnBR, [rfReplaceAll, rfIgnoreCase]));
+          Strings.Add(AStr + DefEqual + CRLFStringToBRString((AObject as TStrings).Text));
       except
         if not SkipEmptyStr then // 获取异常就塞空串
           Strings.Add(AStr + DefEqual);
@@ -524,7 +537,7 @@ begin
           AStr := BaseName + DefDelimeter + AStr;
 
         if not SkipEmptyStr or ((AObject as TListItem).Caption <> '') then
-          Strings.Add(AStr + DefEqual + (AObject as TListItem).Caption);
+          Strings.Add(AStr + DefEqual + CRLFStringToBRString((AObject as TListItem).Caption));
       end;
 
       if (tfSubItemsText in FFilterOptions) then
@@ -534,7 +547,7 @@ begin
           AStr := BaseName + DefDelimeter + AStr;
 
         if not SkipEmptyStr or ((AObject as TListItem).SubItems.Text <> '') then
-          Strings.Add(AStr + DefEqual + (AObject as TListItem).SubItems.Text);
+          Strings.Add(AStr + DefEqual + CRLFStringToBRString((AObject as TListItem).SubItems.Text));
       end;
       Exit;
     end
@@ -563,7 +576,7 @@ begin
         AStr := BaseName + DefDelimeter + AStr;
 
       if not SkipEmptyStr or ((AObject as TTreeNode).Text <> '') then
-        Strings.Add(AStr + DefEqual + (AObject as TTreeNode).Text);
+        Strings.Add(AStr + DefEqual + CRLFStringToBRString((AObject as TTreeNode).Text));
       Exit;
     end;
 {$ELSE}
@@ -577,7 +590,7 @@ begin
           AStr := BaseName + DefDelimeter + AStr;
 
         if not SkipEmptyStr or ((AObject as TListViewItem).Text <> '') then
-          Strings.Add(AStr + DefEqual + (AObject as TListViewItem).Text);
+          Strings.Add(AStr + DefEqual + CRLFStringToBRString(AObject as TListViewItem).Text));
       end;
       Exit;
     end
@@ -606,7 +619,7 @@ begin
         AStr := BaseName + DefDelimeter + AStr;
 
       if not SkipEmptyStr or ((AObject as TTreeViewItem).Text <> '') then
-        Strings.Add(AStr + DefEqual + (AObject as TTreeViewItem).Text);
+        Strings.Add(AStr + DefEqual + CRLFStringToBRString(AObject as TTreeViewItem).Text));
       Exit;
     end;
 {$ENDIF}
@@ -747,7 +760,7 @@ begin
           AStr := BaseName + DefDelimeter + AStr;
 
         if not SkipEmptyStr or (APropValue <> '') then
-          Strings.Add(AStr + DefEqual + APropValue);
+          Strings.Add(AStr + DefEqual + CRLFStringToBRString(APropValue));
       end
       else if APropType = tkClass then
       begin
