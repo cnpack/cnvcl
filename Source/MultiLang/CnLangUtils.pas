@@ -359,7 +359,7 @@ function TCnLangStringExtractor.DoAllowItem(AObject: TObject;
   const PropName: string): Boolean;
 begin
   Result := True;
-  if Assigned(FOnAllowItem) then
+  if Assigned(FOnAllowItem) and (AObject <> nil) then
     FOnAllowItem(AObject, PropName, Result);
 end;
 
@@ -418,10 +418,19 @@ var
 begin
   if (AComponent <> nil) and (AList <> nil) and (AList.IndexOf(AComponent) = -1) then
   begin
+    // 组件也增加过滤，虽然可能和 GetRecurObjectStrings 内的重复但不要紧
+    if not DoAllowItem(AComponent) then
+      Exit;
+
     GetRecurObjectStrings(AOwner, AComponent, AList, Strings, BaseName, SkipEmptyStr);
     for I := 0 to AComponent.ComponentCount - 1 do
     begin
       T := AComponent.Components[I];
+
+      // 子组件也增加过滤，虽然可能和 GetRecurObjectStrings 内的重复但不要紧
+      if not DoAllowItem(T) then
+        Continue;
+
       if (AComponent is TCustomForm) // 是顶层 VCL Form 或 顶层 Frame
 {$IFDEF SUPPORT_FMX}
         or CnFmxIsInheritedFromCommonCustomForm(AComponent) // 还要加上 FMX 的顶层 FORM 判断
@@ -765,6 +774,9 @@ begin
       else if APropType = tkClass then
       begin
         SubObj := GetObjectProp(AObject, APropName);
+        if SubObj = nil then
+          Continue;
+
         if (SubObj is TComponent) and (AOwner <> nil) and
           ((SubObj as TComponent).Owner = AOwner) then
         begin
@@ -774,6 +786,10 @@ begin
         begin
           if AList.IndexOf(SubObj) = -1 then
           begin
+            // 调用事件允许外部针对子对象过滤
+            if not DoAllowItem(SubObj) then
+              Continue;
+
             if (AObject is TControl) and (SubObj is TFont) and (APropName = 'Font') then
             begin
               if (tfFont in FFilterOptions) then
@@ -843,6 +859,10 @@ begin
         end
         else
         begin
+          // 调用事件允许外部针对子对象过滤
+          if not DoAllowItem(SubObj) then
+            Continue;
+
           GetRecurObjectStrings(AOwner, SubObj, AList, Strings,
             BaseName + DefDelimeter + APropName, SkipEmptyStr);
         end;
