@@ -956,9 +956,18 @@ var
   I: Integer;
   T: TComponent;
   IsInList, IsApplication: Boolean;
+
+  function GetComponentNameForLang(Comp: TComponent): string;
+  begin
+    if Comp.Name = '' then
+      Result := '[' + IntToStr(Comp.ComponentIndex) + ']'
+    else
+      Result := Comp.Name;
+  end;
+
 begin
 {$IFDEF DEBUG_MULTILANG}
-  CnDebugger.LogEnter('TranslateRecurComponent: ' + BaseName + ' ' + AComponent.Name);
+  CnDebugger.LogEnter('TranslateRecurComponent: ' + BaseName + ' ' + GetComponentNameForLang(AComponent));
 {$ENDIF}
 
   IsApplication := (AComponent is TApplication)
@@ -969,7 +978,7 @@ begin
     if AComponent.Tag = CN_MULTI_LANG_TAG_NOT_TRANSLATE then
     begin
 {$IFDEF DEBUG_MULTILANG}
-      CnDebugger.LogLeave('TranslateRecurComponent: ' + BaseName + ' ' + AComponent.Name);
+      CnDebugger.LogLeave('TranslateRecurComponent: ' + BaseName + ' ' + GetComponentNameForLang(AComponent));
 {$ENDIF}
       Exit;
     end;
@@ -1000,14 +1009,14 @@ begin
           ManuallyTop then // 手动翻译顶层 Frame 时需要走 TFrame 名，但不要再把 ManuallyTop 传入了
           TranslateRecurComponent(T, AList, BaseName)
         else
-          TranslateRecurComponent(T, AList, BaseName + DefDelimeter + AComponent.Name);
+          TranslateRecurComponent(T, AList, BaseName + DefDelimeter + GetComponentNameForLang(AComponent));
         // 注意：如果全局翻译（非手动翻译 Frame）时 AComponent 是 Frame 实例，T 是 Frame 上的组件实例
         // 则翻译规则是 Frame 所在的 Parent 的类名加 Frame 名字加 T 的名字，不会出现 Frame 的类名
       end;
     end;
   end;
 {$IFDEF DEBUG_MULTILANG}
-  CnDebugger.LogLeave('TranslateRecurComponent: ' + BaseName + ' ' + AComponent.Name);
+  CnDebugger.LogLeave('TranslateRecurComponent: ' + BaseName + ' ' + GetComponentNameForLang(AComponent));
 {$ENDIF}
 end;
 
@@ -1128,10 +1137,11 @@ begin
     except
       Exit;
     end;
-    
-    if (AObject is TCnCustomLangStorage) or (AObject is TCnCustomLangStorage)
-      or ((AObject is TComponent) and ((AObject as TComponent).Name = '')) then
-        Exit;
+
+    if (AObject is TCnCustomLangStorage) or (AObject is TCnCustomLangStorage) then
+      Exit;
+
+    // 原先无 Name 的 Component 跳过，现优化为也处理，只要 Base 里有带索引，且相应语言条目存在
 
     if (AObject is TStrings) then  // Strings的对象直接翻译 Text 属性。
     begin
