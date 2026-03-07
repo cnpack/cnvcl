@@ -126,7 +126,10 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    
+
+    procedure AddString(const Key: TCnLangString; const Value: TCnLangString); virtual; abstract;
+    {* 手动添加一个语言条目}
+
     procedure AddLanguage(ALanguageID: LongWord);
     {* 增加一种语言 }
     function GetString(Name: TCnLangString; var Value: TCnLangString): Boolean; virtual;

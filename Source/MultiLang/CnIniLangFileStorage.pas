@@ -99,6 +99,7 @@ uses
 constructor TCnCustomIniLangFileStorage.Create(AOwner: TComponent);
 begin
   inherited;
+
 end;
 
 destructor TCnCustomIniLangFileStorage.Destroy;
@@ -151,7 +152,7 @@ begin
   if Assigned(FIniFile) then
     FreeAndNil(FIniFile);
 
-  //Added by Efeis on 2008-11-18 没有这行会出错，在父类中的过程有这行，应该需要初始化一下的
+  // Added by Efeis on 2008-11-18 没有这行会出错，在父类中的过程有这行，应该需要初始化一下的
   InitHashMap;
 
   try
@@ -178,8 +179,8 @@ begin
           FIniFile.ReadSection(Sections[I], Lines);
           for J := 0 to Lines.Count - 1 do
           begin
-            //Modified by Efeis on 2008-11-18 原作者将ReadSection理解错了吧，且程序也受父类写法的影响
-            AddStringToHashMap(Lines[J], FIniFile.ReadString(Sections[I], Lines[J], ''));
+            // Modified by Efeis on 2008-11-18 原作者将 ReadSection 理解错了吧，且程序也受父类写法的影响
+            AddString(Lines[J], FIniFile.ReadString(Sections[I], Lines[J], ''));
           end;
         end
         else // 是普通窗体的
@@ -187,8 +188,8 @@ begin
           FIniFile.ReadSection(Sections[I], Lines);
           for J := 0 to Lines.Count - 1 do
           begin
-            //Modified by Efeis on 2008-11-18 同上，对ReadSection的错误理解及IniFile的使用问题
-            AddStringToHashMap(Sections[I] + DefDelimeter + Lines[J], FIniFile.ReadString(Sections[I], Lines[J], ''));
+            // Modified by Efeis on 2008-11-18 同上，对 ReadSection 的错误理解及 IniFile 的使用问题
+            AddString(Sections[I] + DefDelimeter + Lines[J], FIniFile.ReadString(Sections[I], Lines[J], ''));
           end;
         end;
       end;

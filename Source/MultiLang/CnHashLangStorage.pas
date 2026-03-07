@@ -94,7 +94,6 @@ type
     procedure SetListLength(const Value: Integer);
   protected
     procedure InitHashMap;
-    procedure AddStringToHashMap(const Key: TCnLangString; const Value: TCnLangString);
     procedure InitFromAFile(const AFileName: TCnLangString); override;
     procedure CreateCurrentLanguage; override;
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
@@ -103,6 +102,9 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
+    procedure AddString(const Key: TCnLangString; const Value: TCnLangString); override;
+
     class function GetLanguageFileExt: TCnLangString; override;
     {* 返回多语言文件的扩展名.TXT }
     function GetString(Name: TCnLangString; var Value: TCnLangString): Boolean; override;
@@ -212,7 +214,7 @@ end;
 function TCnCustomHashLangStorage.LoadCurrentLanguage: Boolean;
 var
   List: TCnWideStringList;
-  i, EPos: Integer;
+  I, EPos: Integer;
   S: TCnLangString;
 begin
   Result := True;
@@ -233,15 +235,15 @@ begin
     Exit;
   end;
 
-  for i := 0 to List.Count - 1 do
+  for I := 0 to List.Count - 1 do
   begin
-    S := List[i];
+    S := List[I];
     EPos := Pos(DefEqual, S);
     if EPos > 0 then
-      AddStringToHashMap(Copy(S, 1, EPos - 1), Copy(S, EPos + 1,
+      AddString(Copy(S, 1, EPos - 1), Copy(S, EPos + 1,
         Length(S) - EPos))
     else
-      AddStringToHashMap(Copy(S, 1, EPos - 1), '');
+      AddString(S, '');
   end;
   List.Free;
 end;
@@ -284,7 +286,7 @@ begin
   begin
     if FHashMap.Find(Name, myValue) then
       FHashMap.Delete(Name);
-    AddStringToHashMap(Name, StringReplace(Value, SCnCRLF, SCnBR, [rfReplaceAll, rfIgnoreCase]));
+    AddString(Name, StringReplace(Value, SCnCRLF, SCnBR, [rfReplaceAll, rfIgnoreCase]));
   end;
 end;
 
@@ -408,7 +410,7 @@ begin
   Comment := SCnHashLangStorageComment;
 end;
 
-procedure TCnCustomHashLangStorage.AddStringToHashMap(const Key,
+procedure TCnCustomHashLangStorage.AddString(const Key,
   Value: TCnLangString);
 begin
   FHashMap.Add(Key, Value);
