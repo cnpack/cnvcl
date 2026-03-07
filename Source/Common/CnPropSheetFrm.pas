@@ -526,6 +526,7 @@ type
     procedure UpdateUIStrings;
     procedure UpdateHierarchys;
     procedure UpdatePanelPositions;
+    procedure HierPanelDblClick(Sender: TObject);
 
     // 根据 FObjectPointer 查其组件树与控件树及其他
     procedure SearchTrees;
@@ -3585,6 +3586,12 @@ begin
   UpdateUIStrings;
 end;
 
+procedure TCnPropSheetForm.HierPanelDblClick(Sender: TObject);
+begin
+  if (Sender is TPanel) and (TPanel(Sender).Caption <> '') then
+    Clipboard.AsText := TPanel(Sender).Caption;
+end;
+
 procedure TCnPropSheetForm.UpdateHierarchys;
 var
   I: Integer;
@@ -3602,6 +3609,7 @@ begin
     APanel.BevelInner := bvRaised;
     APanel.Parent := pnlHierarchy;
     APanel.Color := clBtnFace;
+    APanel.OnDblClick := HierPanelDblClick;
 {$IFDEF COMPILER7_UP}
     APanel.ParentBackground := False;
 {$ENDIF}
