@@ -392,6 +392,14 @@ var
   FRegStrings: TObjectList;
   FRegResStrings: TObjectList;
 
+function GetComponentNameForLang(Comp: TComponent): string;
+begin
+  if Comp.Name = '' then
+    Result := '[' + IntToStr(Comp.ComponentIndex) + ']'
+  else
+    Result := Comp.Name;
+end;
+
 // 使用所有多语管理器实例中的第一个作为全局返回的实例
 function CnLanguageManager: TCnCustomLangManager;
 var
@@ -950,21 +958,13 @@ begin
   end;
 end;
 
+
 procedure TCnCustomLangManager.TranslateRecurComponent(AComponent: TComponent;
   AList: TList; const BaseName: TCnLangString; ManuallyTop: Boolean);
 var
   I: Integer;
   T: TComponent;
   IsInList, IsApplication: Boolean;
-
-  function GetComponentNameForLang(Comp: TComponent): string;
-  begin
-    if Comp.Name = '' then
-      Result := '[' + IntToStr(Comp.ComponentIndex) + ']'
-    else
-      Result := Comp.Name;
-  end;
-
 begin
 {$IFDEF DEBUG_MULTILANG}
   CnDebugger.LogEnter('TranslateRecurComponent: ' + BaseName + ' ' + GetComponentNameForLang(AComponent));
@@ -1416,7 +1416,7 @@ begin
         if IsForm or ManuallyTop then // 手动翻译 Frame 时要当顶层容器处理
           AStr := AObject.ClassName + DefDelimeter + APropName
         else if AObject is TComponent then
-          AStr := TComponent(AObject).Name + DefDelimeter + APropName
+          AStr := GetComponentNameForLang(TComponent(AObject)) + DefDelimeter + APropName
         else
           AStr := APropName;
 
