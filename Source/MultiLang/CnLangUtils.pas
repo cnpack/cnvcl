@@ -61,6 +61,7 @@ type
     FFilterOptions: TLangTransFilterSet;
     FOnAllowItem: TCnLangAllowItemEvent;
     FSkipEmptyComponentName: Boolean;
+    FIgnoreRootFont: Boolean;
     function CRLFStringToBRString(const CRLFStr: string): string;
   protected
     function DoAllowItem(AObject: TObject; const PropName: string = ''): Boolean; virtual;
@@ -87,6 +88,8 @@ type
 
     property SkipEmptyComponentName: Boolean read FSkipEmptyComponentName write FSkipEmptyComponentName;
     {* 是否跳过名称为空的组件，默认跳过}
+    property IgnoreRootFont: Boolean read FIgnoreRootFont write FIgnoreRootFont;
+    {* 是否不生成窗体字体}
     property OnAllowItem: TCnLangAllowItemEvent read FOnAllowItem write FOnAllowItem;
     {* 遍历某条目时触发的事件，事件处理程序中给 Allow 赋值 False 代表忽略该条目}
   end;
@@ -844,16 +847,19 @@ begin
                     AStr := BaseName + DefDelimeter + AStr;
 
                   AList.Add(SubObj);
+                  if not IsForm or not FIgnoreRootFont then
+                  begin
 {$IFDEF MSWINDOWS}
-                  AddToStrings(AStr + DefEqual + FontToStringEx(SubObj as TFont,
-                    GetParentFont(AObject as TComponent)));
+                    AddToStrings(AStr + DefEqual + FontToStringEx(SubObj as TFont,
+                      GetParentFont(AObject as TComponent)));
 {$ELSE}
-                  AddToStrings(AStr + DefEqual + FontToStringEx(SubObj as TFont,
-                    CnFmxGetControlParentFont(AObject as TComponent)));
+                    AddToStrings(AStr + DefEqual + FontToStringEx(SubObj as TFont,
+                      CnFmxGetControlParentFont(AObject as TComponent)));
 {$ENDIF}
+                  end;
                 end;
               end;
-            end // 不按常规处理 TControl的字体
+            end // 不按常规处理 TControl 的字体
             else if CnLanguageManager.TranslateOtherFont and (SubObj is TFont) then
             begin
               if (tfFont in FFilterOptions) then
