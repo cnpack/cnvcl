@@ -245,8 +245,10 @@ type
     procedure RemoveChangeNotifier(Notify: TNotifyEvent);
     {* 删除语言改变时的事件通知 }
 
-    procedure TranslateForm(AForm: TCustomForm; PreStore: TStrings = nil);
-    {* 翻译一个 Form 及其子对象和子属性。如 PreStore 非 nil，表示从 PreStore 中获取翻译字符串}
+    procedure TranslateForm(AForm: TCustomForm; IgnoreRootFont: Boolean = False;
+      PreStore: TStrings = nil);
+    {* 翻译一个 Form 及其子对象和子属性，IgnoreRootFont 表示是否忽略窗体的基本字体翻译。
+      如 PreStore 非 nil，表示从 PreStore 中获取翻译字符串}
 
 {$IFDEF SUPPORT_FMX}
     procedure TranslateFmxForm(AForm: TComponent; PreStore: TStrings = nil);
@@ -1044,7 +1046,8 @@ begin
 {$ENDIF}
 end;
 
-procedure TCnCustomLangManager.TranslateForm(AForm: TCustomForm; PreStore: TStrings);
+procedure TCnCustomLangManager.TranslateForm(AForm: TCustomForm;
+  IgnoreRootFont: Boolean; PreStore: TStrings);
 begin
 {$IFDEF MSWINDOWS}
   LockWindowUpdate(AForm.Handle);
@@ -1054,7 +1057,7 @@ begin
     begin
       with FLanguageStorage do
       begin
-        if FontInited then
+        if FontInited and not IgnoreRootFont then
         begin
         {$IFDEF DEBUG_MULTILANG}
           CnDebugger.LogMsg('LangManager: FontInited. ');
