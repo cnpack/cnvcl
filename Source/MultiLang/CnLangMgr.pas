@@ -32,7 +32,9 @@ unit CnLangMgr;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.06.24 V2.6
+* 修改记录：2026.03.08 V2.7
+*               加入 PreStore 机制，允许临时从 PreStore 中取翻译字符串，不走多语存储
+*           2025.06.24 V2.6
 *               移植到 Lazarus
 *           2025.04.11 V2.5
 *               屏蔽可能的 TStrings 的 Text 设置异常的问题
@@ -162,12 +164,12 @@ type
     {* 构造方法 }
     destructor Destroy; override;
     {* 销毁方法 }
-    function Translate(Src: TCnLangString): TCnLangString;
-    {* 根据当前语言获得翻译的字符串 }
-    function TranslateString(Src: TCnLangString): TCnLangString;
-    {* 根据当前语言获得翻译的字符串，无则返回空 }
-    function TranslateStrFmt(Src: TCnLangString; Args: array of const): TCnLangString;
-    {* 根据当前语言获得格式化的翻译字符串 }
+    function Translate(Src: TCnLangString; PreStore: TStrings = nil): TCnLangString;
+    {* 根据当前语言获得翻译的字符串。如 PreStore 非 nil，表示从 PreStore 中获取}
+    function TranslateString(Src: TCnLangString; PreStore: TStrings = nil): TCnLangString;
+    {* 根据当前语言获得翻译的字符串，无则返回空。如 PreStore 非 nil，表示从 PreStore 中获取}
+    function TranslateStrFmt(Src: TCnLangString; Args: array of const; PreStore: TStrings = nil): TCnLangString;
+    {* 根据当前语言获得格式化的翻译字符串。如 PreStore 非 nil，表示从 PreStore 中获取}
 
     property AutoTranslateStrings: Boolean read FAutoTranslateStrings
       write FAutoTranslateStrings default True;
@@ -175,13 +177,13 @@ type
 
     property LanguageStorage: TCnCustomLangStorage read FLanguageStorage
       write SetLanguageStorage;
-    {* 多语言存储元件引用 }
+    {* 多语言存储组件引用 }
     property CurrentLanguageIndex: Integer read GetCurrentLanguageIndex
       write SetCurrentLanguageIndex default -1;
-    {* 当前语言号，影响到整个程序的语言设置。语言号含义由存储元件条目内容决定 }
+    {* 当前语言号，影响到整个程序的语言设置。语言号含义由存储组件条目内容决定 }
     property OnStorageChanged: TNotifyEvent read FOnStorageChanged
       write FOnStorageChanged;
-    {* 存储元件引用改变时触发 }
+    {* 存储组件引用改变时触发 }
     property OnLanguageChanged: TNotifyEvent read FOnLanguageChanged
       write FOnLanguageChanged;
     {* 当前语言发生改变时触发 }
@@ -217,12 +219,14 @@ type
     FOnTranslateObject: TCnTranslateObjectEvent;
     procedure SetTranslationMode(const Value: TCnTranslationMode);
   protected
-    procedure TranslateRecurComponent(AComponent: TComponent;
-      AList: TList; const BaseName: TCnLangString; ManuallyTop: Boolean = False); virtual;
-    {* 递归翻译一 Component 和其 Children }
+    procedure TranslateRecurComponent(AComponent: TComponent; AList: TList;
+      const BaseName: TCnLangString; PreStore: TStrings = nil;
+      ManuallyTop: Boolean = False); virtual;
+    {* 递归翻译一 Component 和其 Children。如 PreStore 非 nil，表示从 PreStore 中获取翻译字符串}
     procedure TranslateRecurObject(AObject: TObject; AList: TList;
-      const BaseName: TCnLangString = ''; ManuallyTop: Boolean = False); virtual;
-    {* 递归翻译一 Object 和其属性中的 Object }
+      const BaseName: TCnLangString = ''; PreStore: TStrings = nil;
+      ManuallyTop: Boolean = False); virtual;
+    {* 递归翻译一 Object 和其属性中的 Object。如 PreStore 非 nil，表示从 PreStore 中获取翻译字符串}
     function GetRecurOwner(AComponent: TComponent): TCnLangString;
     {* 回溯获得一 Component 的祖先标识字符串 }
     procedure TranslateKeyToValue(const Key, Value: TCnLangString);
@@ -241,24 +245,25 @@ type
     procedure RemoveChangeNotifier(Notify: TNotifyEvent);
     {* 删除语言改变时的事件通知 }
 
-    procedure TranslateForm(AForm: TCustomForm);
-    {* 翻译一个 Form 及其子对象和子属性}
+    procedure TranslateForm(AForm: TCustomForm; PreStore: TStrings = nil);
+    {* 翻译一个 Form 及其子对象和子属性。如 PreStore 非 nil，表示从 PreStore 中获取翻译字符串}
 
 {$IFDEF SUPPORT_FMX}
-    procedure TranslateFmxForm(AForm: TComponent);
-    {* 翻译一个 FMX 框架下的 Form 及其子对象和子属性}
+    procedure TranslateFmxForm(AForm: TComponent; PreStore: TStrings = nil);
+    {* 翻译一个 FMX 框架下的 Form 及其子对象和子属性。如 PreStore 非 nil，表示从 PreStore 中获取翻译字符串}
 {$ENDIF}
 
     procedure TranslateComponent(AComponent: TComponent; const BaseName: TCnLangString = '';
-      ManuallyTop: Boolean = False);
-    {* 翻译一个元件及其子对象和子属性。
+      PreStore: TStrings = nil; ManuallyTop: Boolean = False);
+    {* 翻译一个组件及其子对象和子属性。如 PreStore 非 nil，表示从 PreStore 中获取翻译字符串。
       ManuallyTop 指手工翻译 Frame 时作为顶层处理，日常无需设置}
     procedure TranslateObject(AObject: TObject; const BaseName: TCnLangString = '';
-      ManuallyTop: Boolean = False);
-    {* 翻译一个对象及其子对象和子属性 }
+      PreStore: TStrings = nil; ManuallyTop: Boolean = False);
+    {* 翻译一个对象及其子对象和子属性。如 PreStore 非 nil，表示从 PreStore 中获取翻译字符串}
 
-    procedure TranslateFrame(AFrame: TCustomFrame);
+    procedure TranslateFrame(AFrame: TCustomFrame; PreStore: TStrings = nil);
     {* 手动翻译一个通用型 TFrame 对象。在 TranslateForm 涵盖不到 Frame 实例时执行
+      如 PreStore 非 nil，表示从 PreStore 中获取翻译字符串。
       说明：TranslateForm 会遍历窗体上所有包括 Frame 实例在内的组件进行翻译，
       使用“窗体容器类名.Frame名.Frame内组件名.组件属性名”的字符串，且设计期在窗体上也可生成符合该格式的字符串
       但在某些场合，Frame 实例化后父容器不可控，无法调用 TranslateForm 翻译父容器，
@@ -306,9 +311,9 @@ type
   {* 具有窗体翻译能力的多语言管理器 }
   published
     property LanguageStorage;
-    {* 多语言存储元件引用 }
+    {* 多语言存储组件引用 }
     property CurrentLanguageIndex;
-    {* 当前语言号，影响到整个程序的语言设置。语言号含义由存储元件条目内容决定 }
+    {* 当前语言号，影响到整个程序的语言设置。语言号含义由存储组件条目内容决定 }
     property AutoTranslate;
     {* 是否在当前语言号改变后自动翻译已经存在的窗体和其他内容 }
     property AutoTranslateStrings;
@@ -328,7 +333,7 @@ type
     property IgnoreAction;
     {* 是否翻译 Action 属性不为空的控件的 Caption 和 Hint 属性}
     property OnStorageChanged;
-    {* 存储元件引用改变时触发 }
+    {* 存储组件引用改变时触发 }
     property OnLanguageChanged;
     {* 当前语言发生改变时触发 }
     property OnTranslateObject;
@@ -615,14 +620,33 @@ begin
   end;
 end;
 
-function TCnBaseLangManager.Translate(Src: TCnLangString): TCnLangString;
+function TCnBaseLangManager.Translate(Src: TCnLangString; PreStore: TStrings): TCnLangString;
 begin
-  Result := TranslateString(Src);
+  Result := TranslateString(Src, PreStore);
 end;
 
-function TCnBaseLangManager.TranslateString(Src: TCnLangString): TCnLangString;
+function TCnBaseLangManager.TranslateString(Src: TCnLangString; PreStore: TStrings): TCnLangString;
+var
+  I: Integer;
+  N: string;
 begin
-  if FLanguageStorage <> nil then
+  if PreStore <> nil then
+  begin
+    N := string(Src + DefEqual);
+    Result := '';
+    for I := 0 to PreStore.Count - 1 do
+    begin
+      if Pos(N, PreStore[I]) = 1 then
+      begin
+        Result := Copy(PreStore[I], Length(N) + 1, MaxInt);
+        Break;
+      end;
+    end;
+
+    if Assigned(FOnTranslateString) then
+      FOnTranslateString(Self, Src, Result);
+  end
+  else if FLanguageStorage <> nil then
   begin
     if CurrentLanguageIndex <> FLanguageStorage.CurrentLanguageIndex then
       FLanguageStorage.CurrentLanguageIndex := CurrentLanguageIndex;
@@ -635,13 +659,13 @@ begin
 end;
 
 function TCnBaseLangManager.TranslateStrFmt(Src: TCnLangString; Args:
-  array of const): TCnLangString;
+  array of const; PreStore: TStrings): TCnLangString;
 begin
 {$IFDEF COMPILER6_UP}
-  Result := WideFormat(Translate(Src), Args);
+  Result := WideFormat(Translate(Src, PreStore), Args);
 {$ELSE}
   // D5 不支持 WideFormat
-  Result := TCnLangString(Format(Translate(Src), Args));
+  Result := TCnLangString(Format(Translate(Src, PreStore), Args));
 {$ENDIF}
 end;
 
@@ -904,7 +928,7 @@ begin
 end;
 
 procedure TCnCustomLangManager.TranslateComponent(AComponent: TComponent;
-  const BaseName: TCnLangString; ManuallyTop: Boolean);
+  const BaseName: TCnLangString; PreStore: TStrings; ManuallyTop: Boolean);
 var
   List: TList;
   ABaseName, Prefix: TCnLangString;
@@ -925,9 +949,9 @@ begin
     List.Add(AComponent); // 必须加入自身，防止被子控件引用而重复翻译
     try
       if AComponent.ComponentCount > 0 then
-        TranslateRecurComponent(AComponent, List, ABaseName, ManuallyTop)
+        TranslateRecurComponent(AComponent, List, ABaseName, PreStore, ManuallyTop)
       else
-        TranslateRecurObject(AComponent, List, ABaseName, ManuallyTop);
+        TranslateRecurObject(AComponent, List, ABaseName, PreStore, ManuallyTop);
     finally
       List.Free;
     end;
@@ -960,7 +984,7 @@ end;
 
 
 procedure TCnCustomLangManager.TranslateRecurComponent(AComponent: TComponent;
-  AList: TList; const BaseName: TCnLangString; ManuallyTop: Boolean);
+  AList: TList; const BaseName: TCnLangString; PreStore: TStrings; ManuallyTop: Boolean);
 var
   I: Integer;
   T: TComponent;
@@ -983,7 +1007,7 @@ begin
       Exit;
     end;
 
-    TranslateObject(AComponent, BaseName, ManuallyTop);
+    TranslateObject(AComponent, BaseName, PreStore, ManuallyTop);
     // 使用 AList 避免子属性和父 Component 重复
     for I := 0 to AComponent.ComponentCount - 1 do
     begin
@@ -1007,9 +1031,9 @@ begin
         if (AComponent is TCustomForm) or
           {$IFDEF SUPPORT_FMX} CnFmxIsInheritedFromCommonCustomForm(AComponent) or {$ENDIF}
           ManuallyTop then // 手动翻译顶层 Frame 时需要走 TFrame 名，但不要再把 ManuallyTop 传入了
-          TranslateRecurComponent(T, AList, BaseName)
+          TranslateRecurComponent(T, AList, BaseName, PreStore)
         else
-          TranslateRecurComponent(T, AList, BaseName + DefDelimeter + GetComponentNameForLang(AComponent));
+          TranslateRecurComponent(T, AList, BaseName + DefDelimeter + GetComponentNameForLang(AComponent), PreStore);
         // 注意：如果全局翻译（非手动翻译 Frame）时 AComponent 是 Frame 实例，T 是 Frame 上的组件实例
         // 则翻译规则是 Frame 所在的 Parent 的类名加 Frame 名字加 T 的名字，不会出现 Frame 的类名
       end;
@@ -1020,7 +1044,7 @@ begin
 {$ENDIF}
 end;
 
-procedure TCnCustomLangManager.TranslateForm(AForm: TCustomForm);
+procedure TCnCustomLangManager.TranslateForm(AForm: TCustomForm; PreStore: TStrings);
 begin
 {$IFDEF MSWINDOWS}
   LockWindowUpdate(AForm.Handle);
@@ -1046,7 +1070,7 @@ begin
         end;
       end;
     end;
-    TranslateComponent(AForm, AForm.ClassName);
+    TranslateComponent(AForm, AForm.ClassName, PreStore);
   finally
 {$IFDEF MSWINDOWS}
     LockWindowUpdate(0);
@@ -1056,7 +1080,7 @@ end;
 
 {$IFDEF SUPPORT_FMX}
 
-procedure TCnCustomLangManager.TranslateFmxForm(AForm: TComponent);
+procedure TCnCustomLangManager.TranslateFmxForm(AForm: TComponent; PreStore: TStrings);
 begin
   if FUseDefaultFont and Assigned(FLanguageStorage) then
   begin
@@ -1078,13 +1102,13 @@ begin
       end;
     end;
   end;
-  TranslateComponent(AForm, AForm.ClassName);
+  TranslateComponent(AForm, AForm.ClassName, PreStore);
 end;
 
 {$ENDIF}
 
 procedure TCnCustomLangManager.TranslateObject(AObject: TObject;
-  const BaseName: TCnLangString; ManuallyTop: Boolean);
+  const BaseName: TCnLangString; PreStore: TStrings; ManuallyTop: Boolean);
 var
   AList: TList;
 begin
@@ -1095,7 +1119,7 @@ begin
   AList.Add(AObject); // 必须加入自身来防止被子属性引用而重复翻译
   try
     if DoTranslateObject(AObject) then
-      TranslateRecurObject(AObject, AList, BaseName, ManuallyTop);
+      TranslateRecurObject(AObject, AList, BaseName, PreStore, ManuallyTop);
   finally
     AList.Free;
   end;
@@ -1105,7 +1129,7 @@ begin
 end;
 
 procedure TCnCustomLangManager.TranslateRecurObject(AObject: TObject;
-  AList: TList; const BaseName: TCnLangString; ManuallyTop: Boolean);
+  AList: TList; const BaseName: TCnLangString; PreStore: TStrings; ManuallyTop: Boolean);
 var
   I: Integer;
   APropName, APropValue, TransStr, AStr: TCnLangString;
@@ -1153,7 +1177,7 @@ begin
       if BaseName <> '' then
         AStr := BaseName + DefDelimeter + AStr;
 
-      TransStr := TranslateString(AStr);
+      TransStr := TranslateString(AStr, PreStore);
       if TransStr <> '' then
       begin
         try
@@ -1183,9 +1207,9 @@ begin
         begin
           if BaseName <> '' then
             TranslateRecurObject(AItem, AList, BaseName + DefDelimeter +
-              'Item' + InttoStr(I))
+              'Item' + InttoStr(I), PreStore)
           else
-            TranslateRecurObject(AItem, AList, 'Item' + InttoStr(I));
+            TranslateRecurObject(AItem, AList, 'Item' + InttoStr(I), PreStore);
         end;
       end;
     end
@@ -1226,7 +1250,7 @@ begin
         if BaseName <> '' then
           AStr := BaseName + DefDelimeter + AStr;
 
-        TransStr := TranslateString(AStr);
+        TransStr := TranslateString(AStr, PreStore);
         if TransStr <> '' then
           (AObject as TListItem).Caption := TransStr;
       end;
@@ -1235,7 +1259,7 @@ begin
       if BaseName <> '' then
         AStr := BaseName + DefDelimeter + AStr;
 
-      TransStr := TranslateString(AStr);
+      TransStr := TranslateString(AStr, PreStore);
       if TransStr <> '' then
         (AObject as TListItem).SubItems.Text := TransStr;
       Exit;
@@ -1252,7 +1276,7 @@ begin
         if BaseName <> '' then
           AStr := BaseName + DefDelimeter + AStr;
 
-        TransStr := TranslateString(AStr);
+        TransStr := TranslateString(AStr, PreStore);
         if TransStr <> '' then
           (AObject as TListViewItem).Text := TransStr;
       end;
@@ -1296,7 +1320,7 @@ begin
       if BaseName <> '' then
         AStr := BaseName + DefDelimeter + AStr;
 
-      TransStr := TranslateString(AStr);
+      TransStr := TranslateString(AStr, PreStore);
       if TransStr <> '' then
         (AObject as TTreeNode).Text := TransStr;
       Exit;
@@ -1337,7 +1361,7 @@ begin
       if BaseName <> '' then
         AStr := BaseName + DefDelimeter + AStr;
 
-      TransStr := TranslateString(AStr);
+      TransStr := TranslateString(AStr, PreStore);
       if TransStr <> '' then
         (AObject as TTreeViewItem).Text := TransStr;
       Exit;
@@ -1423,7 +1447,7 @@ begin
         if (BaseName <> '') and not IsForm and not ManuallyTop then
           AStr := BaseName + DefDelimeter + AStr;
 
-        TransStr := TranslateString(AStr);
+        TransStr := TranslateString(AStr, PreStore);
 
 {$IFDEF DEBUG_MULTILANG}
         CnDebugger.LogFmt('Get Translation Value: %s=%s', [AStr, TransStr]);
@@ -1475,7 +1499,7 @@ begin
                 if BaseName <> ''  then
                   AStr := BaseName + DefDelimeter + AStr;
 
-                TransStr := TranslateString(AStr);
+                TransStr := TranslateString(AStr, PreStore);
                 if TransStr <> '' then
                 begin
 {$IFDEF MSWINDOWS}
@@ -1499,7 +1523,7 @@ begin
               if BaseName <> ''  then
                 AStr := BaseName + DefDelimeter + AStr;
 
-              TransStr := TranslateString(AStr);
+              TransStr := TranslateString(AStr, PreStore);
 
               try
                 if TransStr <> '' then
@@ -1521,7 +1545,7 @@ begin
             begin
               if IsForm then
                 TranslateRecurObject(SubObj, AList, TComponent(AObject).ClassName
-                  + DefDelimeter + APropName)
+                  + DefDelimeter + APropName, PreStore)
               else if (InheritsFromClassName(AObject, 'TNotebook') or InheritsFromClassName(AObject, 'TTabbedNotebook'))
                 and (APropName = 'Pages') then
               // 不翻译 TNotebook/TTabbedNotebook 的 Pages 属性以免出现页面内容丢失。
@@ -1530,30 +1554,29 @@ begin
               else if not (SubObj is TComponent) then
               // 此处应该判断 SubObj 是否是 TComponet 然后决定是否调用 TranslateRecurComponent
                 TranslateRecurObject(SubObj, AList, BaseName + DefDelimeter +
-                  TComponent(AObject).Name + DefDelimeter + APropName)
+                  TComponent(AObject).Name + DefDelimeter + APropName, PreStore)
               else
                 TranslateRecurComponent((SubObj as TComponent), AList, BaseName + DefDelimeter +
-                  TComponent(AObject).Name + DefDelimeter + APropName)
+                  TComponent(AObject).Name + DefDelimeter + APropName, PreStore)
             end;
           end;
         end
         else // AObject 不是 Component 则直接翻译它和它的属性
         begin
           if not IsInList then
-            TranslateRecurObject(SubObj, AList, BaseName + DefDelimeter + APropName);
+            TranslateRecurObject(SubObj, AList, BaseName + DefDelimeter + APropName, PreStore);
         end;
       end;
     end;
   end;
 end;
 
-procedure TCnCustomLangManager.TranslateFrame(AFrame: TCustomFrame);
+procedure TCnCustomLangManager.TranslateFrame(AFrame: TCustomFrame; PreStore: TStrings);
 begin
-  TranslateComponent(AFrame, AFrame.ClassName, True);
+  TranslateComponent(AFrame, AFrame.ClassName, PreStore, True);
 end;
 
-procedure TCnCustomLangManager.SetCurrentLanguageIndex(
-  const Value: Integer);
+procedure TCnCustomLangManager.SetCurrentLanguageIndex(const Value: Integer);
 var
   I: Integer;
   Iterator: ICnLangStringIterator;
