@@ -141,6 +141,7 @@ type
     {* 抽象方法，删除当前语言的所有翻译条目列表 }
     function LoadCurrentLanguage: Boolean; virtual; abstract;
     {* 抽象方法，可以是从存储介质中载入当前语言条目，为翻译字串做准备 }
+
     procedure SaveCurrentLanguage; virtual; abstract;
     {* 抽象方法，可以是保存当前语言条目到存储介质中 }
     procedure SetString(Name, Value: TCnLangString); virtual; abstract;
@@ -194,12 +195,14 @@ type
     procedure InternalInit; override;
     procedure Loaded; override;
     procedure InitFromAFile(const AFileName: TCnLangString); virtual;
-
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    procedure SetDesignLangPath(const aPath: TCnLangString);
-    procedure SetDesignLangFile(const aFile: TCnLangString);
+    procedure SetDesignLangPath(const APath: TCnLangString);
+    procedure SetDesignLangFile(const AFile: TCnLangString);
+
+    procedure AddExtraItemsFromFile(const AFileName: TCnLangString); virtual;
+    {* 额外的方法，允许手工从外部文件中添加语言条目，基类为空实现}
 
     function GetCurrentLanguageFileName: TCnLangString; virtual;
    {* 获得当前语言的语言文件名，包括扩展名 }
@@ -360,6 +363,17 @@ end;
 procedure TCnCustomLangStorage.SetLanguages(Value: TCnLanguageCollection);
 begin
   FLanguages.Assign(Value);
+end;
+
+function TCnCustomLangStorage.CreateIterator: ICnLangStringIterator;
+begin
+  Result := nil;
+end;
+
+procedure TCnCustomLangStorage.GetComponentInfo(var AName, Author, Email,
+  Comment: string);
+begin
+  // 基类无信息
 end;
 
 //==============================================================================
@@ -576,20 +590,19 @@ begin
   end;
 end;
 
-procedure TCnCustomLangFileStorage.SetDesignLangPath(const aPath: TCnLangString);
+procedure TCnCustomLangFileStorage.SetDesignLangPath(const APath: TCnLangString);
 begin
   if csDesigning in ComponentState then
-    FDesignLangPath := aPath;
+    FDesignLangPath := APath;
 end;
 
-procedure TCnCustomLangFileStorage.SetDesignLangFile(const aFile: TCnLangString);
+procedure TCnCustomLangFileStorage.SetDesignLangFile(const AFile: TCnLangString);
 begin
   if csDesigning in ComponentState then
-    FDesignLangFile := aFile;
+    FDesignLangFile := AFile;
 end;
 
-procedure TCnCustomLangFileStorage.SetStorageMode(
-  const Value: TCnStorageMode);
+procedure TCnCustomLangFileStorage.SetStorageMode(const Value: TCnStorageMode);
 begin
   if (FStorageMode <> Value) or (csLoading in ComponentState) then
   begin
@@ -600,15 +613,10 @@ begin
   end;
 end;
 
-function TCnCustomLangStorage.CreateIterator: ICnLangStringIterator;
+procedure TCnCustomLangFileStorage.AddExtraItemsFromFile(
+  const AFileName: TCnLangString);
 begin
-  Result := nil;
-end;
 
-procedure TCnCustomLangStorage.GetComponentInfo(var AName, Author, Email,
-  Comment: string);
-begin
-// 基类无信息
 end;
 
 end.

@@ -97,13 +97,16 @@ type
     procedure InitFromAFile(const AFileName: TCnLangString); override;
     procedure CreateCurrentLanguage; override;
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
-    procedure DoLoadFile(AFileName: TCnLangString; AList: TCnWideStringList);
+    procedure DoLoadFile(const AFileName: TCnLangString; AList: TCnWideStringList);
     property HashMap: TCnLangHashMap read FHashMap;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
     procedure AddString(const Key: TCnLangString; const Value: TCnLangString); override;
+    {* 单独添加一语言条目}
+    procedure AddExtraItemsFromFile(const AFileName: TCnLangString); override;
+    {* 额外的方法，手工从外部文件中添加语言条目到当前文件中}
 
     class function GetLanguageFileExt: TCnLangString; override;
     {* 返回多语言文件的扩展名.TXT }
@@ -183,7 +186,7 @@ begin
   inherited;
 end;
 
-procedure TCnCustomHashLangStorage.DoLoadFile(AFileName: TCnLangString;
+procedure TCnCustomHashLangStorage.DoLoadFile(const AFileName: TCnLangString;
   AList: TCnWideStringList);
 begin
   if Assigned(FOnLoadFile) then
@@ -414,6 +417,33 @@ procedure TCnCustomHashLangStorage.AddString(const Key,
   Value: TCnLangString);
 begin
   FHashMap.Add(Key, Value);
+end;
+
+procedure TCnCustomHashLangStorage.AddExtraItemsFromFile(const AFileName: TCnLangString);
+var
+  List: TCnWideStringList;
+  I, EPos: Integer;
+  S: TCnLangString;
+begin
+  List := TCnWideStringList.Create;
+  try
+    DoLoadFile(AFileName, List);
+  except
+    List.Free;
+    Exit;
+  end;
+
+  for I := 0 to List.Count - 1 do
+  begin
+    S := List[I];
+    EPos := Pos(DefEqual, S);
+    if EPos > 0 then
+      AddString(Copy(S, 1, EPos - 1), Copy(S, EPos + 1,
+        Length(S) - EPos))
+    else
+      AddString(S, '');
+  end;
+  List.Free;
 end;
 
 { TCnHashStringIterator }
