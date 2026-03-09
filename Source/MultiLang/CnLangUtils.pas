@@ -55,6 +55,9 @@ type
   TLangTransFilterSet = set of TLangTransFilter;
 
   TCnLangAllowItemEvent = procedure (AObject: TObject; const PropName: string; var Allow: Boolean) of object;
+  {* 遍历某条目时触发的事件，事件处理程序中给 Allow 赋值 False 代表忽略该条目。
+    注意 PropName 可能为空，代表此轮仅检查该 Object，后续可能有多轮重复调用。
+    PropName 不为空时，对应的属性类型不一定是 String，可能是 Items 以及其他 Object}
 
   TCnLangStringExtractor = class
   private
@@ -814,6 +817,9 @@ begin
         if SubObj = nil then
           Continue;
 
+        if not DoAllowItem(AObject, APropName) then // 类似于 ComboBox1.Items 属性，先行判断
+          Continue;
+
         if (SubObj is TComponent) and (AOwner <> nil) and
           ((SubObj as TComponent).Owner = AOwner) then
         begin
@@ -823,7 +829,7 @@ begin
         begin
           if AList.IndexOf(SubObj) = -1 then
           begin
-            // 调用事件允许外部针对子对象过滤
+            // 调用事件允许外部针对子对象本身过滤
             if not DoAllowItem(SubObj) then
               Continue;
 
