@@ -87,8 +87,10 @@ type
       const BaseName: string = ''; SkipEmptyStr: Boolean = False);
     {* 获得一 Component 的所有字串 }
     procedure SetFilterOptions(const AFilterOptions: TLangTransFilterSet);
-    {* 设置过滤 *}
+    {* 设置过滤}
 
+    property FilterOptions: TLangTransFilterSet read FFilterOptions write SetFilterOptions;
+    {* 过滤选项}
     property SkipEmptyComponentName: Boolean read FSkipEmptyComponentName write FSkipEmptyComponentName;
     {* 是否跳过名称为空的组件，默认跳过}
     property IgnoreRootFont: Boolean read FIgnoreRootFont write FIgnoreRootFont;
