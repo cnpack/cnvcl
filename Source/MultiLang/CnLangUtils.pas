@@ -72,6 +72,7 @@ type
     FIgnoreRootFont: Boolean;
     FNoNameProcessType: TCnNoNameProcessType;
     function CRLFStringToBRString(const CRLFStr: string): string;
+    function GetComponentNameForLang(Comp: TComponent): string;
   protected
     function DoAllowItem(AObject: TObject; const PropName: string = ''): Boolean; virtual;
 
@@ -366,6 +367,19 @@ begin
   SetFilterOptions([]);
 end;
 
+function TCnLangStringExtractor.GetComponentNameForLang(Comp: TComponent): string;
+begin
+  if Comp.Name = '' then
+  begin
+    if FNoNameProcessType = cnptIndex then
+      Result := '[' + IntToStr(Comp.ComponentIndex) + ']'
+    else
+      Result := DefClassPrefix + Comp.ClassName;
+  end
+  else
+    Result := Comp.Name;
+end;
+
 function TCnLangStringExtractor.CRLFStringToBRString(
   const CRLFStr: string): string;
 begin
@@ -466,12 +480,7 @@ begin
         or ((AComponent is TCustomFrame) and IsTopDesignFrame(AComponent as TCustomFrame)) {$ENDIF} then
         GetRecurComponentStrings(AOwner, T, AList, Strings, BaseName, SkipEmptyStr)
       else
-      begin
-        if AComponent.Name <> '' then
-          GetRecurComponentStrings(AOwner, T, AList, Strings, BaseName + DefDelimeter + AComponent.Name, SkipEmptyStr)
-        else
-          GetRecurComponentStrings(AOwner, T, AList, Strings, BaseName + DefDelimeter + '[' + IntToStr(AComponent.ComponentIndex) + ']', SkipEmptyStr)
-      end;
+        GetRecurComponentStrings(AOwner, T, AList, Strings, BaseName + DefDelimeter + GetComponentNameForLang(AComponent), SkipEmptyStr);
     end;
   end;
 end;
@@ -501,19 +510,6 @@ var
   procedure AddToStrings(const Str: string);
   begin
     Strings.Add(Str);
-  end;
-
-  function GetComponentNameForLang(Comp: TComponent): string;
-  begin
-    if Comp.Name = '' then
-    begin
-      if FNoNameProcessType = cnptIndex then
-        Result := '[' + IntToStr(Comp.ComponentIndex) + ']'
-      else
-        Result := DefClassPrefix + Comp.ClassName;
-    end
-    else
-      Result := Comp.Name;
   end;
 
 begin

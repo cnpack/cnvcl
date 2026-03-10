@@ -1035,7 +1035,12 @@ begin
           ManuallyTop then // 手动翻译顶层 Frame 时需要走 TFrame 名，但不要再把 ManuallyTop 传入了
           TranslateRecurComponent(T, AList, BaseName, PreStore)
         else
+        begin
           TranslateRecurComponent(T, AList, BaseName + DefDelimeter + GetComponentNameForLang(AComponent), PreStore);
+          // 如果该组件没名字，那么上一行以 [] 的方式翻了一次，还要以 @ClassName 的方式再翻一次
+          if AComponent.Name = '' then
+            TranslateRecurComponent(T, AList, BaseName + DefDelimeter + DefClassPrefix + AComponent.ClassName, PreStore);
+        end;
         // 注意：如果全局翻译（非手动翻译 Frame）时 AComponent 是 Frame 实例，T 是 Frame 上的组件实例
         // 则翻译规则是 Frame 所在的 Parent 的类名加 Frame 名字加 T 的名字，不会出现 Frame 的类名
       end;
