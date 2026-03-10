@@ -51,8 +51,13 @@ type
   TLangTransFilter = (tfFont, tfCaption, tfCategory, tfHelpKeyword, tfHint,
     tfText, tfImeName, tfTitle, tfDefaultExt, tfFilter, tfInitialDir,
     tfSubItemsText, tfOthers);
+  {* 过滤器集合}
 
   TLangTransFilterSet = set of TLangTransFilter;
+  {* 过滤器集合}
+
+  TCnNoNameProcessType = (cnptIndex, cnptAtClassName);
+  {* 无组件名时，使用组件索引还是 @组件类名作为引用}
 
   TCnLangAllowItemEvent = procedure (AObject: TObject; const PropName: string; var Allow: Boolean) of object;
   {* 遍历某条目时触发的事件，事件处理程序中给 Allow 赋值 False 代表忽略该条目。
@@ -65,6 +70,7 @@ type
     FOnAllowItem: TCnLangAllowItemEvent;
     FSkipEmptyComponentName: Boolean;
     FIgnoreRootFont: Boolean;
+    FNoNameProcessType: TCnNoNameProcessType;
     function CRLFStringToBRString(const CRLFStr: string): string;
   protected
     function DoAllowItem(AObject: TObject; const PropName: string = ''): Boolean; virtual;
@@ -95,6 +101,8 @@ type
     {* 是否跳过名称为空的组件，默认跳过}
     property IgnoreRootFont: Boolean read FIgnoreRootFont write FIgnoreRootFont;
     {* 是否不生成窗体字体}
+    property NoNameProcessType: TCnNoNameProcessType read FNoNameProcessType write FNoNameProcessType;
+    {* 无组件名时的引用方法，默认使用组件索引值}
     property OnAllowItem: TCnLangAllowItemEvent read FOnAllowItem write FOnAllowItem;
     {* 遍历某条目时触发的事件，事件处理程序中给 Allow 赋值 False 代表忽略该条目}
   end;
@@ -498,7 +506,12 @@ var
   function GetComponentNameForLang(Comp: TComponent): string;
   begin
     if Comp.Name = '' then
-      Result := '[' + IntToStr(Comp.ComponentIndex) + ']'
+    begin
+      if FNoNameProcessType = cnptIndex then
+        Result := '[' + IntToStr(Comp.ComponentIndex) + ']'
+      else
+        Result := DefClassPrefix + Comp.ClassName;
+    end
     else
       Result := Comp.Name;
   end;

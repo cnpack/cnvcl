@@ -53,6 +53,7 @@ uses
 const
   DefDelimeter        = '.';
   DefEqual            = '=';
+  DefClassPrefix      = '@';
   
   SystemNamePrefix    = '!';
   SCnLanguageID       = 'LanguageID';

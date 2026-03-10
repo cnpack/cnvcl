@@ -1135,7 +1135,7 @@ procedure TCnCustomLangManager.TranslateRecurObject(AObject: TObject;
   AList: TList; const BaseName: TCnLangString; PreStore: TStrings; ManuallyTop: Boolean);
 var
   I: Integer;
-  APropName, APropValue, TransStr, AStr: TCnLangString;
+  APropName, APropValue, TransStr, AStr, BStr: TCnLangString;
   APropType: TTypeKind;
   Data: PTypeData;
   ActionObj, SubObj: TObject;
@@ -1448,9 +1448,25 @@ begin
           AStr := APropName;
 
         if (BaseName <> '') and not IsForm and not ManuallyTop then
-          AStr := BaseName + DefDelimeter + AStr;
+          BStr := BaseName + DefDelimeter + AStr
+        else
+          BStr := AStr;
 
-        TransStr := TranslateString(AStr, PreStore);
+        TransStr := TranslateString(BStr, PreStore);
+
+        // 正常拿如果没拿到，说明条目里名字或索引都尝试了，
+        // 再判断 AObject 这个 TComponent 是否真没名字，真没名字的情况下再尝试一回 @类名
+        if (TransStr = '') and (AObject is TComponent) and (TComponent(AObject).Name = '') then
+        begin
+          // 没名字则尝试索引和类名两种方式
+          AStr := DefClassPrefix + AObject.ClassName + DefDelimeter + APropName;
+          if (BaseName <> '') and not IsForm and not ManuallyTop then
+            BStr := BaseName + DefDelimeter + AStr
+          else
+            BStr := AStr;
+
+          TransStr := TranslateString(BStr, PreStore);
+        end;
 
 {$IFDEF DEBUG_MULTILANG}
         CnDebugger.LogFmt('Get Translation Value: %s=%s', [AStr, TransStr]);
