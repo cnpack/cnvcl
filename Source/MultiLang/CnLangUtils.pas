@@ -472,6 +472,11 @@ begin
           Exit;
       end;
 
+{$IFDEF DEBUG_MULTILANG}
+      CnDebugger.LogFmt('GetRecurComponentStrings for %s #%d Sub Components %s %s.',
+        [BaseName, I, GetComponentNameForLang(T), CnDebugger.ObjectAddressToString(T)]);
+{$ENDIF}
+
       if (AComponent is TCustomForm) // 是顶层 VCL Form 或 顶层 Frame
 {$IFDEF SUPPORT_FMX}
         or CnFmxIsInheritedFromCommonCustomForm(AComponent) // 还要加上 FMX 的顶层 FORM 判断
