@@ -98,6 +98,7 @@ type
     procedure CreateCurrentLanguage; override;
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
     procedure DoLoadFile(const AFileName: TCnLangString; AList: TCnWideStringList);
+
     property HashMap: TCnLangHashMap read FHashMap;
   public
     constructor Create(AOwner: TComponent); override;

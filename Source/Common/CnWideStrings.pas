@@ -120,6 +120,7 @@ type
     FList: TList;
     FUseSingleLF: Boolean;
     FLoadFormat: TCnWideListFormat;
+    FWriteBOM: Boolean;
     function GetName(Index: Integer): WideString;
     function GetValue(const Name: WideString): WideString;
     procedure SetValue(const Name, Value: WideString);
@@ -162,6 +163,8 @@ type
     {* 控制 GetTextStr 时使用的换行是否是单个 #10 而不是常规的 #13#10}
     property LoadFormat: TCnWideListFormat read FLoadFormat;
     {* LoadFromStream 时识别出的格式}
+    property WriteBOM: Boolean read FWriteBOM write FWriteBOM;
+    {* 是否写 BOM 头}
   end;
 
   TCnWideCharDisplayWideLengthCalculator = function(AWChar: WideChar): Boolean;
@@ -588,6 +591,9 @@ begin
   begin
     Clear;
     AddStrings(TCnWideStringList(Source));
+    FLoadFormat := TCnWideStringList(Source).LoadFormat;
+    FUseSingleLF := TCnWideStringList(Source).UseSingleLF;
+    FWriteBOM := TCnWideStringList(Source).WriteBOM;
     Exit;
   end;
   inherited Assign(Source);
@@ -611,6 +617,7 @@ begin
   inherited;
   FList := TList.Create;
   FLoadFormat := wlfUnicode;
+  FWriteBOM := True;
 end;
 
 procedure TCnWideStringList.CustomSort(Compare: TCnWideStringListSortCompare);
@@ -880,8 +887,11 @@ begin
   end
   else if AFormat = wlfUtf8 then
   begin
-    HeaderStr := #$EF#$BB#$BF;
-    Stream.WriteBuffer(Pointer(HeaderStr)^, Length(HeaderStr) * SizeOf(AnsiChar));
+    if FWriteBOM then
+    begin
+      HeaderStr := #$EF#$BB#$BF;
+      Stream.WriteBuffer(Pointer(HeaderStr)^, Length(HeaderStr) * SizeOf(AnsiChar));
+    end;
 {$IFDEF MSWINDOWS}
     Len := WideCharToMultiByte(CP_UTF8, 0, PWideChar(S), -1, nil, 0, nil, nil);
     SetLength(SA, Len);
@@ -893,8 +903,11 @@ begin
   end
   else if AFormat = wlfUnicode then
   begin
-    HeaderStr := #$FF#$FE;
-    Stream.WriteBuffer(Pointer(HeaderStr)^, Length(HeaderStr) * SizeOf(AnsiChar));
+    if FWriteBOM then
+    begin
+      HeaderStr := #$FF#$FE;
+      Stream.WriteBuffer(Pointer(HeaderStr)^, Length(HeaderStr) * SizeOf(AnsiChar));
+    end;
     Stream.WriteBuffer(Pointer(S)^, Length(S) * SizeOf(WideChar));
   end;
 end;
@@ -907,6 +920,7 @@ begin
   Clear;
   P := Pointer(Value);
   if P <> nil then
+  begin
     while P^ <> #0 do
     begin
       Start := P;
@@ -916,6 +930,7 @@ begin
       if P^ = #13 then Inc(P);
       if P^ = #10 then Inc(P);
     end;
+  end;
 end;
 
 procedure TCnWideStringList.SetValue(const Name, Value: WideString);
@@ -927,7 +942,8 @@ begin
   begin
     if I < 0 then I := Add('');
     Put(I, Name + '=' + Value);
-  end else
+  end
+  else
   begin
     if I >= 0 then Delete(I);
   end;
