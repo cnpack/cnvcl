@@ -130,6 +130,8 @@ type
 
     procedure AddString(const Key: TCnLangString; const Value: TCnLangString); virtual; abstract;
     {* 手动添加一个语言条目}
+    procedure DeleteString(const Key: TCnLangString); virtual; abstract;
+    {* 手动删除一个语言条目}
 
     procedure AddLanguage(ALanguageID: LongWord);
     {* 增加一种语言 }

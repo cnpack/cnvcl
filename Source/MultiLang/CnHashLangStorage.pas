@@ -105,6 +105,9 @@ type
 
     procedure AddString(const Key: TCnLangString; const Value: TCnLangString); override;
     {* 单独添加一语言条目}
+    procedure DeleteString(const Key: TCnLangString); override;
+    {* 删除一语言条目，注意无需 Value 便可删除}
+
     procedure AddExtraItemsFromFile(const AFileName: TCnLangString); override;
     {* 额外的方法，手工从外部文件中添加语言条目到当前文件中}
 
@@ -413,10 +416,14 @@ begin
   Comment := SCnHashLangStorageComment;
 end;
 
-procedure TCnCustomHashLangStorage.AddString(const Key,
-  Value: TCnLangString);
+procedure TCnCustomHashLangStorage.AddString(const Key, Value: TCnLangString);
 begin
   FHashMap.Add(Key, Value);
+end;
+
+procedure TCnCustomHashLangStorage.DeleteString(const Key: TCnLangString);
+begin
+  FHashMap.Delete(Key);
 end;
 
 procedure TCnCustomHashLangStorage.AddExtraItemsFromFile(const AFileName: TCnLangString);

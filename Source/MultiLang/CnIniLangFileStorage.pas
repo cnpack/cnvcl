@@ -178,19 +178,13 @@ begin
         begin
           FIniFile.ReadSection(Sections[I], Lines);
           for J := 0 to Lines.Count - 1 do
-          begin
-            // Modified by Efeis on 2008-11-18 原作者将 ReadSection 理解错了吧，且程序也受父类写法的影响
             AddString(Lines[J], FIniFile.ReadString(Sections[I], Lines[J], ''));
-          end;
         end
         else // 是普通窗体的
         begin
           FIniFile.ReadSection(Sections[I], Lines);
           for J := 0 to Lines.Count - 1 do
-          begin
-            // Modified by Efeis on 2008-11-18 同上，对 ReadSection 的错误理解及 IniFile 的使用问题
             AddString(Sections[I] + DefDelimeter + Lines[J], FIniFile.ReadString(Sections[I], Lines[J], ''));
-          end;
         end;
       end;
     finally
