@@ -2531,16 +2531,24 @@ begin
   Result := False;
   if (Data <> nil) and (DataByteLen > 0) then
   begin
-    R := TCnBigNumber.Create;
-    D := TCnBigNumber.FromBinary(PAnsiChar(Data), DataByteLen);
+    R := nil;
+    D := nil;
 
-    if RSACrypt(D, Product, Exponent, R) then
-    begin
-      R.ToBinary(OutBuf, Product.GetBytesCount); // Must Fixed Len
-      OutByteLen := Product.GetBytesCount; // R.GetBytesCount;
+    try
+      R := TCnBigNumber.Create;
+      D := TCnBigNumber.FromBinary(PAnsiChar(Data), DataByteLen);
 
-      Result := True;
-      _CnSetLastError(ECN_RSA_OK);
+      if RSACrypt(D, Product, Exponent, R) then
+      begin
+        R.ToBinary(OutBuf, Product.GetBytesCount); // Must Fixed Len
+        OutByteLen := Product.GetBytesCount; // R.GetBytesCount;
+
+        Result := True;
+        _CnSetLastError(ECN_RSA_OK);
+      end;
+    finally
+      D.Free;
+      R.Free;
     end;
   end
   else
