@@ -242,7 +242,7 @@ end;
 
 function ROT(A: Cardinal; K: Cardinal): Cardinal;
 begin
-  Result := (A shl K) or (A shr (32 - k));
+  Result := (A shl K) or (A shr (32 - K));
 end;
 
 function L1(X: Cardinal): Cardinal;

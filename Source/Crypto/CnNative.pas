@@ -1927,6 +1927,16 @@ function ConstTimeCompareMem(P1, P2: Pointer; ByteLength: Integer): Boolean;
    返回值：Boolean                        - 返回是否相等
 }
 
+function ConstTimeCompareBytes(const A, B: TBytes): Boolean;
+{* 执行恒定时间的字节数组比较，相同时返回 True。
+
+   参数：
+     const A: TBytes                      - 待比较的字节数组一
+     const B: TBytes                      - 待比较的字节数组二
+
+   返回值：Boolean                        - 是否相同
+}
+
 function ConstTimeExpandBoolean8(V: Boolean): Byte;
 {* 根据 V 的值返回 8 位整数全 1 或全 0。
 
@@ -3875,6 +3885,14 @@ begin
     Inc(B2);
   end;
   Result := Res = 0;
+end;
+
+function ConstTimeCompareBytes(const A, B: TBytes): Boolean;
+begin
+  if Length(A) <> Length(B) then
+    Result := False
+  else
+    Result := ConstTimeCompareMem(@A[0], @B[0], Length(A));
 end;
 
 function ConstTimeExpandBoolean8(V: Boolean): Byte;

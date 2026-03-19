@@ -722,7 +722,7 @@ var
   J: Integer;
 begin
   if Length(RandBytes) < CN_MLKEM_KEY_SIZE + 2 then
-    raise Exception.Create(SCnErrorMLKEMInvalidSampleNTT);
+    raise ECnMLKEMException.Create(SCnErrorMLKEMInvalidSampleNTT);
 
   SetLength(Result, CN_MLKEM_POLY_SIZE);
 
@@ -775,7 +775,7 @@ var
 begin
   MLKEMCheckEta(Eta);
   if Length(RandBytes) < 64 * Eta then
-    raise Exception.Create(SCnErrorMLKEMInvalidRandomLength);
+    raise ECnMLKEMException.Create(SCnErrorMLKEMInvalidRandomLength);
 
   SetLength(Result, CN_MLKEM_POLY_SIZE);
   Bits := TCnBitBuilder.Create;

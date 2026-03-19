@@ -187,14 +187,14 @@ procedure SHA1Init(var Context: TCnSHA1Context);
    返回值：（无）
 }
 
-procedure SHA1Update(var Context: TCnSHA1Context; Input: PAnsiChar; ByteLength: Integer);
+procedure SHA1Update(var Context: TCnSHA1Context; Input: PAnsiChar; ByteLength: Cardinal);
 {* 以初始化后的上下文对一块数据进行 SHA1 计算。
    可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
 
    参数：
      var Context: TCnSHA1Context          - SHA1 上下文
      Input: PAnsiChar                     - 待计算的数据块地址
-     ByteLength: Integer                  - 待计算的数据块的字节长度
+     ByteLength: Cardinal                 - 待计算的数据块的字节长度
 
    返回值：（无）
 }
@@ -384,7 +384,7 @@ begin
   end;
 end;
 
-procedure SHA1Update(var Context: TCnSHA1Context; Input: PAnsiChar; ByteLength: Integer);
+procedure SHA1Update(var Context: TCnSHA1Context; Input: PAnsiChar; ByteLength: Cardinal);
 var
   B: Integer;
 begin

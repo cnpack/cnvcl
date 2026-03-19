@@ -1458,7 +1458,7 @@ begin
   begin
     // 检查掩码索引是否有效
     if I > High(Masks) then
-      raise Exception.Create(SCnErrorOTSInvalidParam);
+      raise ECnOTSException.Create(SCnErrorOTSInvalidParam);
 
     // WOTS+ 核心：KeyHash(k, x) = Hash(k ⊕ x)
     // 注意：这里使用掩码作为密钥，与当前值异或
@@ -1650,7 +1650,7 @@ begin
   begin
     // 检查掩码索引是否有效
     if I > High(Masks) then
-      raise Exception.Create(SCnErrorOTSInvalidParam);
+      raise ECnOTSException.Create(SCnErrorOTSInvalidParam);
 
     // WOTS+ 核心：KeyHash(k, x) = Hash(k ⊕ x)
     // 注意：这里使用掩码作为密钥，与当前值异或
