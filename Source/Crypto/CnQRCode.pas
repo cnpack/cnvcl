@@ -46,6 +46,9 @@ uses
   SysUtils, Classes, CnBits, CnNative;
 
 type
+  ECnQRCodeException = class(Exception);
+  {* 二维码相关异常}
+
   TCnErrorRecoveryLevel = (erlL, erlM, erlQ, erlH);
   {* 二维码纠错等级，分别代表 7%、15%、25%、30%}
 
@@ -251,6 +254,9 @@ type
   PCn6BytesArray = ^TCn6BytesArray;
 
   PCn7BytesArray = ^TCn7BytesArray;
+
+resourcestring
+  SCnErrorQRCodeDataTooLong = 'Data too long for QR Code Version 40';
 
 const
   CN_QRCODE_FORMATINFO_LENGTH = 15;
@@ -1300,7 +1306,7 @@ begin
     NewVersion := GetOptimalVersion(FRawText, FQRErrorRecoveryLevel);
 
     if NewVersion > 40 then
-      raise Exception.Create('Data too long for QR Code Version 40');
+      raise ECnQRCodeException.Create(SCnErrorQRCodeDataTooLong);
 
     FQRVersion := NewVersion;
     FQRSize := GetQRSizeFromVersion(FQRVersion);

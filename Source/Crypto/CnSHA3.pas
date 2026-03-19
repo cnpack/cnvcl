@@ -2396,7 +2396,7 @@ begin
             end
             else
             begin
-              raise Exception.Create(SCnErrorMapViewOfFile + IntToStr(GetLastError));
+              raise ECnNativeException.Create(SCnErrorMapViewOfFile + IntToStr(GetLastError));
             end;
           finally
             CloseHandle(MapHandle);
@@ -2405,7 +2405,7 @@ begin
         else
         begin
           if not FileIsZeroSize then
-            raise Exception.Create(SCnErrorCreateFileMapping + IntToStr(GetLastError));
+            raise ECnNativeException.Create(SCnErrorCreateFileMapping + IntToStr(GetLastError));
         end;
       finally
         CloseHandle(FileHandle);
