@@ -275,7 +275,7 @@ end;
 
 function Poly1305Match(const D1, D2: TCnPoly1305Digest): Boolean;
 begin
-  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnPoly1305Digest));
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnPoly1305Digest));
 end;
 
 function Poly1305DigestToStr(const Digest: TCnPoly1305Digest): string;

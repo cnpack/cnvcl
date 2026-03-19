@@ -498,7 +498,7 @@ begin
     raise ECnPDFCryptException.Create(SCnErrorPDFEncryptParams);
 
   N := CnPDFCalcUserCipher(UserPass, Version, Revision, OwnerCipher, Permission, ID, KeyBitLength);
-  if CompareBytes(N, UserCipher, 16) then
+  if ConstTimeCompareBytes(N, UserCipher) then
     Result := CnPDFCalcEncryptKey(UserPass, Version, Revision, OwnerCipher, Permission, ID, KeyBitLength)
   else
     Result := nil;

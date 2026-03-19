@@ -3075,7 +3075,7 @@ begin
 
         // 并与 RSA 解密出来的签名值手工对比
         if SignStream.Size = CSR.DigestLength then
-          Result := CompareMem(SignStream.Memory, CSR.DigestValue, SignStream.Size);
+          Result := ConstTimeCompareMem(SignStream.Memory, CSR.DigestValue, SignStream.Size);
       end
       else // ECC 直接验证数据块的签名与杂凑值
       begin
@@ -3155,7 +3155,7 @@ begin
         P := InfoRoot.BerAddress;
         CalcDigestData(P^, InfoRoot.BerLength, CRT.CASignType, SignStream);
         if SignStream.Size = CRT.DigestLength then
-          Result := CompareMem(SignStream.Memory, CRT.DigestValue, SignStream.Size);
+          Result := ConstTimeCompareMem(SignStream.Memory, CRT.DigestValue, SignStream.Size);
       end
       else // ECC 自签名证书里没有杂凑值，字段里的杂凑值是我们计算出来的没有对比意义，需要按 ECC 的方式验证签名值
       begin
@@ -3261,7 +3261,7 @@ begin
 
       // 对比计算值
       if SignStream.Size = CRT.DigestLength then
-        Result := CompareMem(SignStream.Memory, CRT.DigestValue, SignStream.Size);
+        Result := ConstTimeCompareMem(SignStream.Memory, CRT.DigestValue, SignStream.Size);
     end;
   finally
     CRT.Free;

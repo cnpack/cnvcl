@@ -5614,7 +5614,7 @@ begin
     Stream.Write(D[0], SizeOf(TCnSM3Digest));
     D := SM3(Stream.Memory, Stream.Size); // µÚ¶þ´ÎÔÓ´Õ
 
-    if not CompareMem(@D[0], @InOptionalSB[0], SizeOf(TCnSM3Digest)) then
+    if not ConstTimeCompareMem(@D[0], @InOptionalSB[0], SizeOf(TCnSM3Digest)) then
     begin
       _CnSetLastError(ECN_SM9_INVALID_INPUT);
       Exit;

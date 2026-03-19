@@ -682,17 +682,10 @@ end;
 
 // 比较两个 SHA1 杂凑值是否相等
 function SHA1Match(const D1, D2: TCnSHA1Digest): Boolean;
-var
-  I: Integer;
 begin
-  I := 0;
-  Result := True;
-  while Result and (I < 20) do
-  begin
-    Result := D1[I] = D2[I];
-    Inc(I);
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnSHA1Digest));
   end;
-end;
+
 
 // SHA1 杂凑值转 string
 function SHA1DigestToStr(const Digest: TCnSHA1Digest): string;

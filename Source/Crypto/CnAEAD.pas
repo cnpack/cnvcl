@@ -1673,7 +1673,7 @@ begin
   // 再和开始的内容异或得到最终 Tag
   MemoryXor(@Tag[0], @Y0[0], SizeOf(TCnGHash128Tag), @Tag[0]);
 
-  Result := CompareMem(@Tag[0], @InTag[0], SizeOf(TCnGHash128Tag));
+  Result := ConstTimeCompareMem(@Tag[0], @InTag[0], SizeOf(TCnGHash128Tag));
 end;
 
 function GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnGCM128Tag;
@@ -2467,7 +2467,7 @@ begin
   Move(CX[0], Tag[0], CN_CCM_M_LEN);
 
   // 比对 Tag 是否相同
-  Result := CompareMem(@Tag[0], @InTag[0], CN_CCM_M_LEN);
+  Result := ConstTimeCompareMem(@Tag[0], @InTag[0], CN_CCM_M_LEN);
 end;
 
 function CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag;
@@ -2720,7 +2720,7 @@ begin
   Poly1305Final(Poly1305Context, Tag);
 
   // 当且仅当计算出的 Tag 和传入 Tag 相同才通过
-  Result := CompareMem(@Tag[0], @InTag[0], SizeOf(TCnPoly1305Digest));
+  Result := ConstTimeCompareMem(@Tag[0], @InTag[0], SizeOf(TCnPoly1305Digest));
 end;
 
 // ================== ChaCha20_Poly1305 字节数组加解密函数 =====================

@@ -2577,37 +2577,37 @@ end;
 // 比较两个 SHA3_224 杂凑值是否相等
 function SHA3_224Match(const D1, D2: TCnSHA3_224Digest): Boolean;
 begin
-  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnSHA3_224Digest));
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnSHA3_224Digest));
 end;
 
 // 比较两个 SHA3_256 杂凑值是否相等
 function SHA3_256Match(const D1, D2: TCnSHA3_256Digest): Boolean;
 begin
-  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnSHA3_256Digest));
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnSHA3_256Digest));
 end;
 
 // 比较两个 SHA3_384 杂凑值是否相等
 function SHA3_384Match(const D1, D2: TCnSHA3_384Digest): Boolean;
 begin
-  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnSHA3_384Digest));
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnSHA3_384Digest));
 end;
 
 // 比较两个 SHA3_512 杂凑值是否相等
 function SHA3_512Match(const D1, D2: TCnSHA3_512Digest): Boolean;
 begin
-  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnSHA3_512Digest));;
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnSHA3_512Digest));
 end;
 
 // 比较两个 SHAKE128 杂凑值是否相等
 function SHAKE128Match(const D1, D2: TBytes): Boolean;
 begin
-  Result := CompareBytes(D1, D2);
+  Result := ConstTimeCompareBytes(D1, D2);
 end;
 
 // 比较两个 SHAKE256 杂凑值是否相等
 function SHAKE256Match(const D1, D2: TBytes): Boolean;
 begin
-  Result := CompareBytes(D1, D2);
+  Result := ConstTimeCompareBytes(D1, D2);
 end;
 
 // SHA3_224 杂凑值转 string

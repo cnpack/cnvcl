@@ -2009,7 +2009,7 @@ begin
   if Result then
   begin
     CM := MLDSAHFunc(ConcatBytes(Miu, MLDSAW1Encode(W1, FGamma2)), FLambda shr 2);
-    Result := CompareBytes(C, CM);
+    Result := ConstTimeCompareBytes(C, CM);
   end;
 end;
 

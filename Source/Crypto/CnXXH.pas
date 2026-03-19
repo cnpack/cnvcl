@@ -1244,13 +1244,13 @@ end;
 // 比较两个 XXH32 杂凑值是否相等
 function XXH32Match(const D1, D2: TCnXXH32Digest): Boolean;
 begin
-  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnXXH32Digest));
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnXXH32Digest));
 end;
 
 // 比较两个 XXH64 杂凑值是否相等
 function XXH64Match(const D1, D2: TCnXXH64Digest): Boolean;
 begin
-  Result := CompareMem(@D1[0], @D2[0], SizeOf(TCnXXH64Digest));
+  Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnXXH64Digest));
 end;
 
 // XXH32 杂凑值转 string
