@@ -62,6 +62,7 @@ const
 
 type
   ECnPatchFormatError = class(Exception);
+  {* 二进制差分相关异常}
 
 function BinaryDiffStream(OldStream, NewStream, PatchStream: TMemoryStream): Boolean;
 {* 二进制差分比较新旧内存块（流），差分结果放入 PatchStream 中，Patch 可输出二进制与文本等格式}
@@ -483,34 +484,37 @@ begin
   if (Sort = nil) and (OldStream.Size > 0) then
     Exit;
 
-  WriteHeader(PatchStream, OldStream.Size, NewStream.Size);
+  try
+    WriteHeader(PatchStream, OldStream.Size, NewStream.Size);
 
-  Todo := NewStream.Size;
-  Nofs := 0;
-  while Todo > 0 do
-  begin
-    BsFindMaxMatch(@Match, OldStream.Memory, Sort, OldStream.Size,
-      PByte(TCnNativeUInt(NewStream.Memory) + Nofs), Todo);
-
-    if Match.Len <> 0 then
+    Todo := NewStream.Size;
+    Nofs := 0;
+    while Todo > 0 do
     begin
-      WriteAddContent(PatchStream, PByte(TCnNativeUInt(NewStream.Memory) + Nofs), Match.NewPos);
+      BsFindMaxMatch(@Match, OldStream.Memory, Sort, OldStream.Size,
+        PByte(TCnNativeUInt(NewStream.Memory) + Nofs), Todo);
 
-      Inc(Nofs, Match.NewPos);
-      Dec(Todo, Match.NewPos);
+      if Match.Len <> 0 then
+      begin
+        WriteAddContent(PatchStream, PByte(TCnNativeUInt(NewStream.Memory) + Nofs), Match.NewPos);
 
-      WriteCopyContent(PatchStream, NewStream.Memory, Nofs, OldStream.Memory, Match.OldPos, Match.Len);
+        Inc(Nofs, Match.NewPos);
+        Dec(Todo, Match.NewPos);
 
-      Inc(Nofs, Match.Len);
-      Dec(Todo, Match.Len);
-    end
-    else
-    begin
-      WriteAddContent(PatchStream, PByte(TCnNativeUInt(NewStream.Memory) + Nofs), Todo);
-      Break;
+        WriteCopyContent(PatchStream, NewStream.Memory, Nofs, OldStream.Memory, Match.OldPos, Match.Len);
+
+        Inc(Nofs, Match.Len);
+        Dec(Todo, Match.Len);
+      end
+      else
+      begin
+        WriteAddContent(PatchStream, PByte(TCnNativeUInt(NewStream.Memory) + Nofs), Todo);
+        Break;
+      end;
     end;
+  finally
+    FreeMemory(Sort);
   end;
-  FreeMemory(Sort);
   Result := True;
 end;
 

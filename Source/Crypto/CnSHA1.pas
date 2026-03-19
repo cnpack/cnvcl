@@ -684,8 +684,7 @@ end;
 function SHA1Match(const D1, D2: TCnSHA1Digest): Boolean;
 begin
   Result := ConstTimeCompareMem(@D1[0], @D2[0], SizeOf(TCnSHA1Digest));
-  end;
-
+end;
 
 // SHA1 тс╢уж╣в╙ string
 function SHA1DigestToStr(const Digest: TCnSHA1Digest): string;

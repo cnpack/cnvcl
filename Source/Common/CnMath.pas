@@ -531,6 +531,7 @@ resourcestring
   SCnErrorMathSqrtRange = 'Sqrt Range Error.';
   SCnErrorMathLogRange = 'Log Range Error.';
   SCnErrorMathFractionError = 'Error Length for Continue Fraction';
+  SCnErrorMathHexCharFmt = 'Error: not a Hex PChar: %c';
 
 var
   FLocalBigDecimalPool: TCnBigDecimalPool = nil;
@@ -1050,7 +1051,7 @@ var
       else if (C >= 'a') and (C <= 'f') then
         Result := Result * 16 + Ord(C) - Ord('a') + 10
       else
-        raise Exception.CreateFmt('Error: not a Hex PChar: %c', [C]);
+        raise ECnMathException.CreateFmt(SCnErrorMathHexCharFmt, [C]);
     end;
   end;
 
@@ -1073,7 +1074,7 @@ var
       else if (C >= 'a') and (C <= 'f') then
         Result := Result + (Ord(C) - Ord('a') + 10) * R
       else
-        raise Exception.CreateFmt('Error: not a Hex PChar: %c', [C]);
+        raise ECnMathException.CreateFmt(SCnErrorMathHexCharFmt, [C]);
     end;
   end;
 

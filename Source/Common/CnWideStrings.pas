@@ -75,6 +75,9 @@ const
   {* 编码转换遇到错误时的默认替换字符}
 
 type
+  ECnWideStringException = class(Exception);
+  {* 宽字符串相关异常}
+
 {$IFDEF UNICODE}
   TCnWideString = string;
 {$ELSE}
@@ -551,6 +554,7 @@ const
 
 resourcestring
   SCnErrorInvalidUtf8CharLength = 'More than UTF8-MB4 NOT Support.';
+  SCnErrorInvalidModeLength = 'More than UTF32 NOT Support.';
 
 { TCnWideStringList }
 
@@ -1504,7 +1508,7 @@ begin
   else if B and $F8 = $F0 then // 1111 0xxx 10xxxxxx 10xxxxxx 10xxxxxx
     Result := 4
   else
-    raise Exception.Create(SCnErrorInvalidUtf8CharLength);
+    raise ECnWideStringException.Create(SCnErrorInvalidUtf8CharLength);
 end;
 
 // 计算 UTF-8 字符串转换成 WideSting 后指定 Wide 子串长度对应的 UTF-8 字符串长度，WideOffset 从 1 开始。
@@ -1830,7 +1834,7 @@ begin
     else if B and $F8 = $F0 then // 1111 0xxx 10xxxxxx 10xxxxxx 10xxxxxx
       ByteCount := 4
     else
-      raise Exception.Create('More than UTF32 NOT Support.');
+      raise ECnWideStringException.Create(SCnErrorInvalidModeLength);
 
     // 再计算出相应的宽字节字符
     case ByteCount of
