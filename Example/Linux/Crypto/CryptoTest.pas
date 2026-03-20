@@ -51,7 +51,7 @@ uses
   CnPoly1305, CnTEA, CnZUC, CnFEC, CnPrime, Cn25519, CnPaillier, CnSecretSharing,
   CnPolynomial, CnBits, CnLattice, CnOTS, CnPemUtils, CnInt128, CnRC4, CnPDFCrypt,
   CnDSA, CnBLAKE, CnBLAKE2, CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA,
-  CnCalendar, CnBigDecimal, CnComplex, CnDFT, CnMath, CnQRCode;
+  CnCalendar, CnBigDecimal, CnComplex, CnDFT, CnMath, CnQRCode, CnRandom, CnOTP;
 
 procedure TestCrypto;
 {* 密码库总测试入口}
@@ -71,11 +71,17 @@ function TestConstTimeEqual: Boolean;
 function TestConstTimeExpandBool: Boolean;
 function TestConstTimeBytes: Boolean;
 
+// =============================== Random ======================================
+
+function TestRandomFillBytes: Boolean;
+function TestRandomNumbersRange: Boolean;
+function TestRandomShuffle: Boolean;
+
 // ============================== Strings ======================================
 
 function TestUtf8: Boolean;
 
-// ================================ Calendar ======================================
+// ============================== Calendar =====================================
 
 function TestCalendarWeek: Boolean;
 function TestCalendarYinYang: Boolean;
@@ -400,6 +406,12 @@ function TestBLAKE2BUpdate: Boolean;
 function TestBase64: Boolean;
 function TestBase64URL: Boolean;
 
+// ================================ OTP ========================================
+
+function TestHOTP: Boolean;
+function TestTOTP: Boolean;
+function TestDynamicToken: Boolean;
+
 // ================================ AEAD =======================================
 
 function TestAEADAESCCM: Boolean;
@@ -472,6 +484,9 @@ function TestPDFCheckOwnerPassword: Boolean;
 function TestSM21: Boolean;
 function TestSM22: Boolean;
 function TestSM23: Boolean;
+function TestSM2KeyExchangeExample256: Boolean;
+function TestSM2Collaborative3KeyGen: Boolean;
+function TestSM2Collaborative3Sign: Boolean;
 
 // ================================ SM3 ========================================
 
@@ -557,6 +572,8 @@ function TestWOTSSHA256: Boolean;
 // ================================ ECC ========================================
 
 function TestECCMul: Boolean;
+function TestECCECDH: Boolean;
+function TestECCECDSA: Boolean;
 function TestECCPrivPubPkcs1: Boolean;
 function TestECCPrivPubPkcs8: Boolean;
 function TestECCPub: Boolean;
@@ -619,11 +636,17 @@ begin
   MyAssert(TestConstTimeExpandBool, 'TestConstTimeExpandBool');
   MyAssert(TestConstTimeBytes, 'TestConstTimeBytes');
 
+// ============================== Random =======================================
+
+  MyAssert(TestRandomFillBytes, 'TestRandomFillBytes');
+  MyAssert(TestRandomNumbersRange, 'TestRandomNumbersRange');
+  MyAssert(TestRandomShuffle, 'TestRandomShuffle');
+
 // ============================== Strings ======================================
 
   MyAssert(TestUtf8, 'TestUtf8');
 
-// ================================ Calendar ======================================
+// ============================== Calendar =====================================
 
   MyAssert(TestCalendarWeek, 'TestCalendarWeek');
   MyAssert(TestCalendarYinYang, 'TestCalendarYinYang');
@@ -646,7 +669,7 @@ begin
   MyAssert(TestCalendarJulianDate, 'TestCalendarJulianDate');
   MyAssert(TestCalendarSolarLunarConvert, 'TestCalendarSolarLunarConvert');
 
-// ================================ Complex ======================================
+// =============================== Complex =====================================
 
   MyAssert(TestComplexNumberBasic, 'TestComplexNumberBasic');
   MyAssert(TestComplexNumberArithmetic, 'TestComplexNumberArithmetic');
@@ -948,6 +971,12 @@ begin
   MyAssert(TestBase64, 'TestBase64');
   MyAssert(TestBase64URL, 'TestBase64URL');
 
+// ================================ OTP ========================================
+
+  MyAssert(TestHOTP, 'TestHOTP');
+  MyAssert(TestTOTP, 'TestTOTP');
+  MyAssert(TestDynamicToken, 'TestDynamicToken');
+
 // ================================ AEAD =======================================
 
   MyAssert(TestAEADAESCCM, 'TestAEADAESCCM');
@@ -1019,6 +1048,9 @@ begin
   MyAssert(TestSM21, 'TestSM21');
   MyAssert(TestSM22, 'TestSM22');
   MyAssert(TestSM23, 'TestSM23');
+  MyAssert(TestSM2KeyExchangeExample256, 'TestSM2KeyExchangeExample256');
+  MyAssert(TestSM2Collaborative3KeyGen, 'TestSM2Collaborative3KeyGen');
+  MyAssert(TestSM2Collaborative3Sign, 'TestSM2Collaborative3Sign');
 
 // ================================ SM3 ========================================
 
@@ -1105,6 +1137,8 @@ begin
 // ================================ ECC ========================================
 
   MyAssert(TestECCMul, 'TestECCMul');
+  MyAssert(TestECCECDH, 'TestECCECDH');
+  MyAssert(TestECCECDSA, 'TestECCECDSA');
   MyAssert(TestECCPrivPubPkcs1, 'TestECCPrivPubPkcs1');
   MyAssert(TestECCPrivPubPkcs8, 'TestECCPrivPubPkcs8');
   MyAssert(TestECCPub, 'TestECCPub');
@@ -1362,6 +1396,114 @@ begin
 
   B := HexToBytes('0987054320FBACFE');       // 长度相等内容不等
   Result := not ConstTimeCompareBytes(A, B);
+end;
+
+function TestRandomFillBytes: Boolean;
+var
+  B1, B2, B3: TBytes;
+begin
+  SetLength(B1, 32);
+  SetLength(B2, 32);
+
+  Result := CnRandomFillBytes(PAnsiChar(@B1[0]), Length(B1));
+  if not Result then Exit;
+
+  Result := CnRandomFillBytes2(PAnsiChar(@B2[0]), Length(B2));
+  if not Result then Exit;
+
+  B3 := CnRandomBytes(48);
+  Result := Length(B3) = 48;
+end;
+
+function TestRandomNumbersRange: Boolean;
+var
+  I: Integer;
+  R32: Cardinal;
+  R64: TUInt64;
+  I32: Integer;
+  I64: Int64;
+begin
+  Result := (RandomUInt32LessThan(0) = 0) and (RandomUInt64LessThan(0) = 0)
+    and (RandomInt32LessThan(0) = 0) and (RandomInt64LessThan(0) = 0);
+  if not Result then Exit;
+
+  for I := 0 to 200 do
+  begin
+    R32 := RandomUInt32LessThan(1000);
+    if R32 >= 1000 then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    R64 := RandomUInt64LessThan(100000);
+    if R64 >= 100000 then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    I32 := RandomInt32LessThan(1000);
+    if (I32 < 0) or (I32 >= 1000) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    I64 := RandomInt64LessThan(100000);
+    if (I64 < 0) or (I64 >= 100000) then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+
+  R32 := RandomUInt32;
+  R64 := RandomUInt64;
+  I32 := RandomInt32;
+  I64 := RandomInt64;
+  Result := True;
+end;
+
+function TestRandomShuffle: Boolean;
+var
+  A: array[0..9] of Integer;
+  C: array[0..9] of Integer;
+  I, V: Integer;
+begin
+  Result := CnKnuthShuffle(nil, SizeOf(Integer), 10) = False;
+  if not Result then Exit;
+
+  for I := 0 to 9 do
+  begin
+    A[I] := I;
+    C[I] := 0;
+  end;
+
+  Result := CnKnuthShuffle(@A[0], SizeOf(Integer), 10);
+  if not Result then Exit;
+
+  for I := 0 to 9 do
+  begin
+    V := A[I];
+    if (V < 0) or (V > 9) then
+    begin
+      Result := False;
+      Exit;
+    end;
+    Inc(C[V]);
+  end;
+
+  for I := 0 to 9 do
+  begin
+    if C[I] <> 1 then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+
+  Result := True;
 end;
 
 // ============================== Strings ======================================
@@ -9872,6 +10014,145 @@ begin
     Result := False;
 end;
 
+// ================================ OTP ========================================
+
+function TestHOTP: Boolean;
+const
+  HOTP_VEC: array[0..9] of string = (
+    '755224', '287082', '359152', '969429', '338314',
+    '254676', '287922', '162583', '399871', '520489'
+  );
+var
+  G: TCnHOTPGenerator;
+  Seed: AnsiString;
+  I: Integer;
+begin
+  G := TCnHOTPGenerator.Create;
+  try
+    Seed := '12345678901234567890';
+    G.SetSeedKey(@Seed[1], Length(Seed));
+    G.SetCounter(0);
+    G.Digits := 6;
+
+    Result := True;
+    for I := 0 to 9 do
+    begin
+      if G.OneTimePassword <> HOTP_VEC[I] then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+  finally
+    G.Free;
+  end;
+end;
+
+function TestTOTP: Boolean;
+var
+  G: TCnTOTPGenerator;
+  Seed: AnsiString;
+  S: string;
+  I: Integer;
+begin
+  G := TCnTOTPGenerator.Create;
+  try
+    Seed := '12345678901234567890';
+    G.SetSeedKey(@Seed[1], Length(Seed));
+    G.Period := 30;
+    G.Digits := 8;
+
+    G.PasswordType := tptSHA1;
+    S := G.OneTimePassword;
+    Result := Length(S) = 8;
+    if not Result then Exit;
+    for I := 1 to Length(S) do
+    begin
+      if (S[I] < '0') or (S[I] > '9') then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+
+    G.PasswordType := tptSHA256;
+    S := G.OneTimePassword;
+    Result := Length(S) = 8;
+    if not Result then Exit;
+    for I := 1 to Length(S) do
+    begin
+      if (S[I] < '0') or (S[I] > '9') then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+
+    G.PasswordType := tptSHA512;
+    S := G.OneTimePassword;
+    Result := Length(S) = 8;
+    if not Result then Exit;
+    for I := 1 to Length(S) do
+    begin
+      if (S[I] < '0') or (S[I] > '9') then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+  finally
+    G.Free;
+  end;
+end;
+
+function TestDynamicToken: Boolean;
+var
+  T: TCnDynamicToken;
+  Seed, Challenge: AnsiString;
+  S: string;
+  I: Integer;
+begin
+  T := TCnDynamicToken.Create;
+  try
+    Seed := '0011223344556677';
+    Challenge := 'ABCD';
+
+    T.SetSeedKey(@Seed[1], Length(Seed));
+    T.SetChallengeCode(@Challenge[1], Length(Challenge));
+    T.SetCounter(1024);
+    T.Period := 60;
+    T.Digits := 8;
+    T.PasswordType := copSM3;
+
+    S := T.OneTimePassword;
+    Result := Length(S) = 8;
+    if not Result then Exit;
+    for I := 1 to Length(S) do
+    begin
+      if (S[I] < '0') or (S[I] > '9') then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+
+    T.PasswordType := copSM4;
+    S := T.OneTimePassword;
+    Result := Length(S) = 8;
+    if not Result then Exit;
+    for I := 1 to Length(S) do
+    begin
+      if (S[I] < '0') or (S[I] > '9') then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+  finally
+    T.Free;
+  end;
+end;
+
 // ================================ AEAD =======================================
 
 function TestAEADAESCCM: Boolean;
@@ -10925,6 +11206,185 @@ begin
     APrivateKey.Free;
     BPublicKey.Free;
     BPrivateKey.Free;
+  end;
+end;
+
+function TestSM2KeyExchangeExample256: Boolean;
+const
+  KEY_LENGTH = 16;
+  AID = 'ALICE123@YAHOO.COM';
+  BID = 'BILL456@YAHOO.COM';
+var
+  SM2: TCnSM2;
+  APrivateKey, BPrivateKey: TCnSM2PrivateKey;
+  APublicKey, BPublicKey: TCnSM2PublicKey;
+  RandA, RandB: TCnBigNumber;
+  OutRA, OutRB: TCnEccPoint;
+  KA, KB: TBytes;
+  OpSA, OpSB, OpS2: TCnSM3Digest;
+begin
+  SM2 := TCnSM2.Create(ctSM2Example256);
+  APrivateKey := TCnSM2PrivateKey.Create;
+  APublicKey := TCnSM2PublicKey.Create;
+  BPrivateKey := TCnSM2PrivateKey.Create;
+  BPublicKey := TCnSM2PublicKey.Create;
+  RandA := TCnBigNumber.Create;
+  RandB := TCnBigNumber.Create;
+  OutRA := TCnEccPoint.Create;
+  OutRB := TCnEccPoint.Create;
+
+  try
+    APrivateKey.SetHex('6FCBA2EF9AE0AB902BC3BDE3FF915D44BA4CC78F88E2F8E7F8996D3B8CCEEDEE');
+    APublicKey.X.SetHex('3099093BF3C137D8FCBBCDF4A2AE50F3B0F216C3122D79425FE03A45DBFE1655');
+    APublicKey.Y.SetHex('3DF79E8DAC1CF0ECBAA2F2B49D51A4B387F2EFAF482339086A27A8E05BAED98B');
+    BPrivateKey.SetHex('5E35D7D3F3C54DBAC72E61819E730B019A84208CA3A35E4C2E353DFCCB2A3B53');
+    BPublicKey.X.SetHex('245493D446C38D8CC0F118374690E7DF633A8A4BFB3329B5ECE604B2B4F37F43');
+    BPublicKey.Y.SetHex('53C0869F4B9E17773DE68FEC45E14904E0DEA45BF6CECF9918C85EA047C60A4C');
+
+    Result := CnSM2KeyExchangeAStep1(AID, BID, KEY_LENGTH, APrivateKey, APublicKey, BPublicKey, RandA, OutRA, SM2);
+    if not Result then Exit;
+
+    Result := CnSM2KeyExchangeBStep1(AID, BID, KEY_LENGTH, BPrivateKey, APublicKey, BPublicKey, OutRA, KB, OutRB, OpSB, OpS2, SM2);
+    if not Result then Exit;
+
+    Result := CnSM2KeyExchangeAStep2(AID, BID, KEY_LENGTH, APrivateKey, APublicKey, BPublicKey, OutRA, OutRB, RandA, KA, OpSB, OpSA, SM2);
+    if not Result then Exit;
+
+    Result := CnSM2KeyExchangeBStep2(AID, BID, KEY_LENGTH, BPrivateKey, APublicKey, BPublicKey, OpSA, OpS2, SM2);
+    if not Result then Exit;
+
+    Result := CompareBytes(KA, KB);
+  finally
+    OutRB.Free;
+    OutRA.Free;
+    RandB.Free;
+    RandA.Free;
+    BPublicKey.Free;
+    BPrivateKey.Free;
+    APublicKey.Free;
+    APrivateKey.Free;
+    SM2.Free;
+  end;
+end;
+
+function TestSM2Collaborative3KeyGen: Boolean;
+var
+  PrivA, PrivB, PrivC: TCnSM2CollaborativePrivateKey;
+  Pub: TCnSM2CollaborativePublicKey;
+  PToB, PToC: TCnEccPoint;
+  SM2: TCnSM2;
+begin
+  PrivA := TCnSM2CollaborativePrivateKey.Create;
+  PrivB := TCnSM2CollaborativePrivateKey.Create;
+  PrivC := TCnSM2CollaborativePrivateKey.Create;
+  Pub := TCnSM2CollaborativePublicKey.Create;
+  PToB := TCnEccPoint.Create;
+  PToC := TCnEccPoint.Create;
+  SM2 := TCnSM2.Create;
+
+  try
+    PrivA.SetHex('3945208F7B2144B13F36E38AC6D39F95889393692860B51A42FB81EF4DF7C5B8');
+    PrivB.SetHex('81EB26E941BB5AF16DF116495F90695272AE2CD63D6C4AE1678418BE48230029');
+    PrivC.SetHex('785129917D45A9EA5437A59356B82338EAADDA6CEB199088F14AE10DEFA229B5');
+
+    Result := CnSM2Collaborative3GenerateKeyAStep1(PrivA, PToB, SM2);
+    if not Result then Exit;
+
+    Result := CnSM2Collaborative3GenerateKeyBStep1(PrivB, PToB, PToC, SM2);
+    if not Result then Exit;
+
+    Result := CnSM2Collaborative3GenerateKeyCStep1(PrivC, PToC, Pub, SM2);
+    if not Result then Exit;
+
+    Result := (not Pub.IsZero) and SM2.IsPointOnCurve(Pub);
+  finally
+    SM2.Free;
+    PToC.Free;
+    PToB.Free;
+    Pub.Free;
+    PrivC.Free;
+    PrivB.Free;
+    PrivA.Free;
+  end;
+end;
+
+function TestSM2Collaborative3Sign: Boolean;
+var
+  PrivA, PrivB, PrivC: TCnSM2CollaborativePrivateKey;
+  Pub: TCnSM2CollaborativePublicKey;
+  PToB, PToC: TCnEccPoint;
+  Msg: AnsiString;
+  HashE: TCnBigNumber;
+  QA, QB: TCnEccPoint;
+  RandKA, RandKB: TCnBigNumber;
+  R, S1C, S2C, S1B, S2B: TCnBigNumber;
+  Sig: TCnSM2Signature;
+begin
+  PrivA := TCnSM2CollaborativePrivateKey.Create;
+  PrivB := TCnSM2CollaborativePrivateKey.Create;
+  PrivC := TCnSM2CollaborativePrivateKey.Create;
+  Pub := TCnSM2CollaborativePublicKey.Create;
+  PToB := TCnEccPoint.Create;
+  PToC := TCnEccPoint.Create;
+  HashE := TCnBigNumber.Create;
+  QA := TCnEccPoint.Create;
+  QB := TCnEccPoint.Create;
+  RandKA := TCnBigNumber.Create;
+  RandKB := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+  S1C := TCnBigNumber.Create;
+  S2C := TCnBigNumber.Create;
+  S1B := TCnBigNumber.Create;
+  S2B := TCnBigNumber.Create;
+  Sig := TCnSM2Signature.Create;
+
+  try
+    PrivA.SetHex('3945208F7B2144B13F36E38AC6D39F95889393692860B51A42FB81EF4DF7C5B8');
+    PrivB.SetHex('81EB26E941BB5AF16DF116495F90695272AE2CD63D6C4AE1678418BE48230029');
+    PrivC.SetHex('785129917D45A9EA5437A59356B82338EAADDA6CEB199088F14AE10DEFA229B5');
+
+    Result := CnSM2Collaborative3GenerateKeyAStep1(PrivA, PToB);
+    if not Result then Exit;
+    Result := CnSM2Collaborative3GenerateKeyBStep1(PrivB, PToB, PToC);
+    if not Result then Exit;
+    Result := CnSM2Collaborative3GenerateKeyCStep1(PrivC, PToC, Pub);
+    if not Result then Exit;
+
+    Msg := 'CnPack SM2 Collaborative Sign';
+    Result := CnSM2Collaborative3SignAStep1('1234567812345678', @Msg[1], Length(Msg), HashE, QA, RandKA, PrivA, Pub);
+    if not Result then Exit;
+
+    Result := CnSM2Collaborative3SignBStep1(HashE, QA, QB, RandKB, PrivB);
+    if not Result then Exit;
+
+    Result := CnSM2Collaborative3SignCStep1(HashE, QB, R, S1C, S2C, PrivC);
+    if not Result then Exit;
+
+    Result := CnSM2Collaborative3SignBStep2(RandKB, R, S1C, S2C, S1B, S2B, PrivB);
+    if not Result then Exit;
+
+    Result := CnSM2Collaborative3SignAStep2(RandKA, R, S1B, S2B, Sig, PrivA);
+    if not Result then Exit;
+
+    Result := CnSM2VerifyData('1234567812345678', @Msg[1], Length(Msg), Sig, Pub);
+  finally
+    Sig.Free;
+    S2B.Free;
+    S1B.Free;
+    S2C.Free;
+    S1C.Free;
+    R.Free;
+    RandKB.Free;
+    RandKA.Free;
+    QB.Free;
+    QA.Free;
+    HashE.Free;
+    PToC.Free;
+    PToB.Free;
+    Pub.Free;
+    PrivC.Free;
+    PrivB.Free;
+    PrivA.Free;
   end;
 end;
 
@@ -13352,6 +13812,96 @@ begin
     K.Free;
     P3.Free;
     P.Free;
+    Ecc.Free;
+  end;
+end;
+
+function TestECCECDH: Boolean;
+var
+  Ecc: TCnEcc;
+  Priv1, Priv2: TCnEccPrivateKey;
+  Pub1, Pub2: TCnEccPublicKey;
+  Sec1, Sec2: TCnEccPublicKey;
+begin
+  Ecc := TCnEcc.Create(ctRfc4754ECDSAExample256);
+  Priv1 := TCnEccPrivateKey.Create;
+  Priv2 := TCnEccPrivateKey.Create;
+  Pub1 := TCnEccPublicKey.Create;
+  Pub2 := TCnEccPublicKey.Create;
+  Sec1 := TCnEccPublicKey.Create;
+  Sec2 := TCnEccPublicKey.Create;
+  try
+    Priv1.SetHex('E32868331FA8EF0138DE0DE85478346AEC5E3912B6029AE71691C384237A3EEB');
+    Priv2.SetHex('CEF147652AA90162E1FFF9CF07F2605EA05529CA215A04350A98ECC24AA34342');
+
+    CnEccDiffieHellmanGenerateOutKey(Ecc, Priv1, Pub1);
+    CnEccDiffieHellmanGenerateOutKey(Ecc, Priv2, Pub2);
+
+    Result := (Pub1.X.ToHex = '96AA4956CF6689BD57CED42E0C5645499C5993A77AFAF15860B12CA0B38FFC4E')
+      and (Pub1.Y.ToHex = '9C1689B9B524534C37DBFF7628A1CB85F39F146B813F8C89825CC82BCA2E9B75')
+      and (Pub2.X.ToHex = 'F8D428541147F96367663812B6D3E4B04FAB9D89C6C7C07B2F707963C9688360')
+      and (Pub2.Y.ToHex = 'EC0178A2D1912D4A0062457B6A46169E5BB32F8C03342F2D0DE52F706FA9D027');
+    if not Result then Exit;
+
+    CnEccDiffieHellmanComputeKey(Ecc, Priv1, Pub2, Sec1);
+    CnEccDiffieHellmanComputeKey(Ecc, Priv2, Pub1, Sec2);
+
+    Result := CnEccPointsEqual(Sec1, Sec2)
+      and (Sec1.X.ToHex = '5F26FA1F28D7611DE2704A8BAFCC4D80037C0C02678C15ED791427CE53ED3E1E')
+      and (Sec1.Y.ToHex = '7F6A86A7ED30594D539F2BD84C25AF2F57AA8C6F27BA06714B96EDEA396A961A');
+  finally
+    Sec2.Free;
+    Sec1.Free;
+    Pub2.Free;
+    Pub1.Free;
+    Priv2.Free;
+    Priv1.Free;
+    Ecc.Free;
+  end;
+end;
+
+function TestECCECDSA: Boolean;
+var
+  Ecc: TCnEcc;
+  Priv: TCnEccPrivateKey;
+  Pub: TCnEccPublicKey;
+  InStream, SigStream: TMemoryStream;
+  S: AnsiString;
+begin
+  Ecc := TCnEcc.Create(ctRfc4754ECDSAExample256);
+  Priv := TCnEccPrivateKey.Create;
+  Pub := TCnEccPublicKey.Create;
+  InStream := TMemoryStream.Create;
+  SigStream := TMemoryStream.Create;
+
+  try
+    Priv.SetHex('DC51D3866A15BACDE33D96F992FCA99DA7E6EF0934E7097559C27F1614C88A7F');
+    Pub.X.SetHex('2442A5CC0ECD015FA3CA31DC8E2BBC70BF42D60CBCA20085E0822CB04235E970');
+    Pub.Y.SetHex('6FC98BD7E50211A4A27102FA3549DF79EBCB4BF246B80945CDDFE7D509BBFD7D');
+
+    S := 'abc';
+    InStream.Write(S[1], Length(S));
+    InStream.Position := 0;
+
+    Result := CnEccSignStream(InStream, SigStream, Ecc, Priv, esdtSHA256);
+    if not Result then Exit;
+
+    InStream.Position := 0;
+    SigStream.Position := 0;
+    Result := CnEccVerifyStream(InStream, SigStream, Ecc, Pub, esdtSHA256);
+    if not Result then Exit;
+
+    InStream.Size := 0;
+    S := 'abd';
+    InStream.Write(S[1], Length(S));
+    InStream.Position := 0;
+    SigStream.Position := 0;
+    Result := not CnEccVerifyStream(InStream, SigStream, Ecc, Pub, esdtSHA256);
+  finally
+    SigStream.Free;
+    InStream.Free;
+    Pub.Free;
+    Priv.Free;
     Ecc.Free;
   end;
 end;
