@@ -1349,14 +1349,19 @@ function TestConstTimeBytes: Boolean;
 var
   A, B: TBytes;
 begin
-  A := HexToBytes('0987654321FBACDE');
+  A := HexToBytes('0987654321FBACDE');       // 内容长度都相等
   B := HexToBytes('0987654321FBACDE');
-  Result := ConstTimeBytesEqual(A, B);
+  Result := ConstTimeCompareBytes(A, B);
+
+  if not Result then Exit;
+                                             // 长度不等
+  B[4] := $FF;
+  Result := not ConstTimeCompareBytes(A, B);
 
   if not Result then Exit;
 
-  B[4] := $FF;
-  Result := not ConstTimeBytesEqual(A, B);
+  B := HexToBytes('0987054320FBACFE');       // 长度相等内容不等
+  Result := not ConstTimeCompareBytes(A, B);
 end;
 
 // ============================== Strings ======================================
