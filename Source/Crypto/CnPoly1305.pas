@@ -68,6 +68,8 @@ type
     S: TCnBigNumber;
     A: TCnBigNumber;
     N: TCnBigNumber;
+    Buf: array[0..CN_POLY1305_BLOCKSIZE - 1] of Byte;
+    BufLen: Integer;
   public
     constructor Create;
     destructor Destroy; override;
@@ -145,17 +147,14 @@ procedure Poly1305Init(out Context: TCnPoly1305Context; Key: TCnPoly1305Key);
 }
 
 procedure Poly1305Update(Context: TCnPoly1305Context; Input: PAnsiChar;
-  ByteLength: Cardinal; ZeroPadding: Boolean = False);
+  ByteLength: Cardinal);
 {* 以初始化后的上下文对一块数据进行 Poly1305 计算。
    可多次调用以连续计算不同的数据块，无需将不同的数据块拼凑在连续的内存中。
-   但该 Update 的行为在碰见末尾非整块时会强行计算，不会像其他杂凑一样暂存等下一轮或 Final。
-   ZeroPadding 控制末尾块非 16 整时是否补 0。
 
    参数：
      Context: TCnPoly1305Context          - Poly1305 上下文结构
      Input: PAnsiChar                     - 待计算的数据块地址
-     ByteLength: Cardinal                 - 待计算的数据块字节长度，非 16 字节整块时会强行计算
-     ZeroPadding: Boolean                 - 末尾块非 16 字节整时是否末尾补 0
+     ByteLength: Cardinal                 - 待计算的数据块字节长度
 
    返回值：（无）
 }
@@ -292,6 +291,8 @@ begin
   S := TCnBigNumber.Create;
   A := TCnBigNumber.Create;
   N := TCnBigNumber.Create;
+  FillChar(Buf[0], SizeOf(Buf), 0);
+  BufLen := 0;
 end;
 
 destructor TCnPoly1305Context.Destroy;
@@ -319,35 +320,87 @@ begin
   Context.S.SetBinary(@RKey[CN_POLY1305_BLOCKSIZE], CN_POLY1305_BLOCKSIZE);
   Context.A.SetZero;
   Context.N.SetZero;
+  FillChar(Context.Buf[0], SizeOf(Context.Buf), 0);
+  Context.BufLen := 0;
 end;
 
 procedure Poly1305Update(Context: TCnPoly1305Context; Input: PAnsiChar;
-  ByteLength: Cardinal; ZeroPadding: Boolean);
+  ByteLength: Cardinal);
 var
-  I, B, L: Integer;
+  L, Remaining, Offset, Need: Integer;
   Buf: array[0..CN_POLY1305_BLOCKSIZE] of Byte;
   P: PByteArray;
 begin
-  B := (ByteLength + CN_POLY1305_BLOCKSIZE - 1) div CN_POLY1305_BLOCKSIZE;
+  if (Context = nil) or (ByteLength = 0) then
+    Exit;
+
+  if Input = nil then
+    Exit;
   P := PByteArray(Input);
+  Remaining := ByteLength;
+  Offset := 0;
 
-  for I := 1 to B do
+  if Context.BufLen > 0 then
   begin
-    if I <> B then // 普通块，16 字节满的
-      L := CN_POLY1305_BLOCKSIZE
-    else           // 尾块，可能不够 16 字节
-    begin
-      L := ByteLength mod CN_POLY1305_BLOCKSIZE;
-      if L = 0 then
-        L := CN_POLY1305_BLOCKSIZE
-      else if ZeroPadding then
-        FillChar(Buf[0], SizeOf(Buf), 0); // 末尾块不足 16 又要补 0 所以先要填充全 0
-    end;
+    Need := CN_POLY1305_BLOCKSIZE - Context.BufLen;
+    if Need > Remaining then
+      Need := Remaining;
+    Move(P^[0], Context.Buf[Context.BufLen], Need);
+    Inc(Context.BufLen, Need);
+    Dec(Remaining, Need);
+    Inc(Offset, Need);
 
-    Move(P^[(I - 1) * CN_POLY1305_BLOCKSIZE], Buf[0], L);  // 内容塞上
-    if ZeroPadding then                                    // 末尾块如果要补 0 则上面补了，下面要补个 1
+    if Context.BufLen = CN_POLY1305_BLOCKSIZE then
+    begin
+      Move(Context.Buf[0], Buf[0], CN_POLY1305_BLOCKSIZE);
       L := CN_POLY1305_BLOCKSIZE;
-    Buf[L] := 1;                                           // 紧邻的高字节（或补 0 时最高字节）再置个 1
+      Buf[L] := 1;
+
+      ReverseMemory(@Buf[0], L + 1);
+      Context.N.SetBinary(@Buf[0], L + 1);
+
+      BigNumberAdd(Context.A, Context.A, Context.N);
+      BigNumberDirectMulMod(Context.A, Context.R, Context.A, Prime);
+
+      Context.BufLen := 0;
+    end
+    else
+      Exit;
+  end;
+
+  while Remaining >= CN_POLY1305_BLOCKSIZE do
+  begin
+    Move(P^[Offset], Buf[0], CN_POLY1305_BLOCKSIZE);
+    L := CN_POLY1305_BLOCKSIZE;
+    Buf[L] := 1;
+
+    ReverseMemory(@Buf[0], L + 1);
+    Context.N.SetBinary(@Buf[0], L + 1);
+
+    BigNumberAdd(Context.A, Context.A, Context.N);
+    BigNumberDirectMulMod(Context.A, Context.R, Context.A, Prime);
+
+    Inc(Offset, CN_POLY1305_BLOCKSIZE);
+    Dec(Remaining, CN_POLY1305_BLOCKSIZE);
+  end;
+
+  if Remaining > 0 then
+  begin
+    Move(P^[Offset], Context.Buf[0], Remaining);
+    Context.BufLen := Remaining;
+  end;
+end;
+
+procedure Poly1305Final(var Context: TCnPoly1305Context; var Digest: TCnPoly1305Digest);
+var
+  L: Integer;
+  Buf: array[0..CN_POLY1305_BLOCKSIZE] of Byte;
+begin
+  if (Context <> nil) and (Context.BufLen > 0) then
+  begin
+    Move(Context.Buf[0], Buf[0], Context.BufLen);
+    L := Context.BufLen;
+    Buf[L] := 1;
 
     ReverseMemory(@Buf[0], L + 1);
     Context.N.SetBinary(@Buf[0], L + 1);
@@ -355,10 +408,7 @@ begin
     BigNumberAdd(Context.A, Context.A, Context.N);
     BigNumberDirectMulMod(Context.A, Context.R, Context.A, Prime);
   end;
-end;
 
-procedure Poly1305Final(var Context: TCnPoly1305Context; var Digest: TCnPoly1305Digest);
-begin
   BigNumberAdd(Context.A, Context.A, Context.S);
   BigNumberKeepLowBits(Context.A, 8 * CN_POLY1305_DIGSIZE);
 

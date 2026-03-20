@@ -2645,6 +2645,8 @@ var
   Poly1305Key: TCnPoly1305Key;
   Poly1305Context: TCnPoly1305Context;
   Lens: array[0..1] of Int64;
+  PadLen: Integer;
+  Zeros: array[0..15] of Byte;
 begin
   MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
   MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
@@ -2658,12 +2660,26 @@ begin
 
   // 开始分块计算 Poly1305
   Poly1305Init(Poly1305Context, Poly1305Key);
-
+  FillChar(Zeros[0], SizeOf(Zeros), 0);
   // 先算 AAD 及其 Padding
-  Poly1305Update(Poly1305Context, AAD, AADByteLength, True);
+  if AADByteLength > 0 then
+    Poly1305Update(Poly1305Context, AAD, AADByteLength);
+  PadLen := AADByteLength mod 16;
+  if PadLen <> 0 then
+  begin
+    PadLen := 16 - PadLen;
+    Poly1305Update(Poly1305Context, PAnsiChar(@Zeros[0]), PadLen);
+  end;
 
   // 再算密文及其 Padding
-  Poly1305Update(Poly1305Context, OutEnData, PlainByteLength, True);
+  if PlainByteLength > 0 then
+    Poly1305Update(Poly1305Context, OutEnData, PlainByteLength);
+  PadLen := PlainByteLength mod 16;
+  if PadLen <> 0 then
+  begin
+    PadLen := 16 - PadLen;
+    Poly1305Update(Poly1305Context, PAnsiChar(@Zeros[0]), PadLen);
+  end;
 
   Lens[0] := AADByteLength;
   Lens[1] := PlainByteLength;
@@ -2688,6 +2704,8 @@ var
   Poly1305Context: TCnPoly1305Context;
   Tag: TCnPoly1305Digest;
   Lens: array[0..1] of Int64;
+  PadLen: Integer;
+  Zeros: array[0..15] of Byte;
 begin
   MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
   MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
@@ -2701,12 +2719,27 @@ begin
 
   // 开始分块计算 Poly1305
   Poly1305Init(Poly1305Context, Poly1305Key);
+  FillChar(Zeros[0], SizeOf(Zeros), 0);
 
   // 先算 AAD 及其 Padding
-  Poly1305Update(Poly1305Context, AAD, AADByteLength, True);
+  if AADByteLength > 0 then
+    Poly1305Update(Poly1305Context, AAD, AADByteLength);
+  PadLen := AADByteLength mod 16;
+  if PadLen <> 0 then
+  begin
+    PadLen := 16 - PadLen;
+    Poly1305Update(Poly1305Context, PAnsiChar(@Zeros[0]), PadLen);
+  end;
 
   // 再算密文及其 Padding
-  Poly1305Update(Poly1305Context, EnData, EnByteLength, True);
+  if EnByteLength > 0 then
+    Poly1305Update(Poly1305Context, EnData, EnByteLength);
+  PadLen := EnByteLength mod 16;
+  if PadLen <> 0 then
+  begin
+    PadLen := 16 - PadLen;
+    Poly1305Update(Poly1305Context, PAnsiChar(@Zeros[0]), PadLen);
+  end;
 
   Lens[0] := AADByteLength;
   Lens[1] := EnByteLength;

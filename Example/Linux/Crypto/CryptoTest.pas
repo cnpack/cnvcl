@@ -433,6 +433,7 @@ function TestXChaCha20: Boolean;
 
 function TestPoly1305: Boolean;
 function TestPoly1305Update: Boolean;
+function TestPoly1305Boundary: Boolean;
 
 // ================================ ZUC ========================================
 
@@ -997,6 +998,8 @@ begin
 // ================================ Poly1305 ===================================
 
   MyAssert(TestPoly1305, 'TestPoly1305');
+  MyAssert(TestPoly1305Update, 'TestPoly1305Update');
+  MyAssert(TestPoly1305Boundary, 'TestPoly1305Boundary');
 
 // ================================ ZUC ========================================
 
@@ -10526,6 +10529,81 @@ begin
   Poly1305Final(C, D2);
 
   Result := Poly1305Match(D1, D2);
+end;
+
+function TestPoly1305Boundary: Boolean;
+const
+  LENS: array[0..5] of Integer = (15, 16, 17, 31, 32, 33);
+  PAD_LENS: array[0..3] of Integer = (15, 17, 31, 33);
+var
+  I, J, L, PaddedLen: Integer;
+  Key: TCnPoly1305Key;
+  Data: array[0..63] of Byte;
+  DRef, D1, D2: TCnPoly1305Digest;
+  C: TCnPoly1305Context;
+  B, KBytes: TBytes;
+begin
+  for I := 0 to SizeOf(Key) - 1 do
+    Key[I] := Byte((I * 17 + 3) and $FF);
+  for I := 0 to SizeOf(Data) - 1 do
+    Data[I] := Byte((I * 13 + 11) and $FF);
+
+  DRef := Poly1305Data(nil, 0, Key);
+  Poly1305Init(C, Key);
+  Poly1305Final(C, D1);
+  Result := Poly1305Match(DRef, D1);
+  if not Result then Exit;
+
+  for I := 0 to High(LENS) do
+  begin
+    L := LENS[I];
+    DRef := Poly1305Buffer(Data[0], L, Key);
+
+    Poly1305Init(C, Key);
+    Poly1305Update(C, PAnsiChar(@Data[0]), L);
+    Poly1305Final(C, D1);
+    Result := Poly1305Match(DRef, D1);
+    if not Result then Exit;
+
+    Poly1305Init(C, Key);
+    if L <= 7 then
+      Poly1305Update(C, PAnsiChar(@Data[0]), L)
+    else
+    begin
+      Poly1305Update(C, PAnsiChar(@Data[0]), 7);
+      Poly1305Update(C, PAnsiChar(@Data[7]), L - 7);
+    end;
+    Poly1305Final(C, D2);
+    Result := Poly1305Match(DRef, D2);
+    if not Result then Exit;
+  end;
+
+  for I := 0 to High(PAD_LENS) do
+  begin
+    L := PAD_LENS[I];
+    PaddedLen := ((L + 15) div 16) * 16;
+    SetLength(B, PaddedLen);
+    for J := 0 to PaddedLen - 1 do
+      B[J] := 0;
+    Move(Data[0], B[0], L);
+
+    DRef := Poly1305Data(@B[0], Length(B), Key);
+    Poly1305Init(C, Key);
+    Poly1305Update(C, PAnsiChar(@Data[0]), L);
+    if PaddedLen > L then
+      Poly1305Update(C, PAnsiChar(@B[L]), PaddedLen - L);
+    Poly1305Final(C, D1);
+    Result := Poly1305Match(DRef, D1);
+    if not Result then Exit;
+  end;
+
+  SetLength(B, 33);
+  Move(Data[0], B[0], Length(B));
+  SetLength(KBytes, SizeOf(TCnPoly1305Key));
+  Move(Key[0], KBytes[0], SizeOf(TCnPoly1305Key));
+  DRef := Poly1305Data(@B[0], Length(B), Key);
+  D1 := Poly1305Bytes(B, KBytes);
+  Result := Poly1305Match(DRef, D1);
 end;
 
 // ================================ ZUC ========================================
