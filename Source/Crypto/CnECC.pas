@@ -9684,7 +9684,7 @@ begin
         TCnPolynomialEcc.RationalPointAddPoint(Pi2PX, Pi2PY, KPX, KPY, LSX, LSY, A, B, Q, LDP);
 
         W := CnInt64SquareRoot(K, L);
-        if W = 0 then
+        if W = 0 then // 不存在二次剩余，t 为 0
         begin
           Ta[I] := 0;
           Continue;
@@ -9693,7 +9693,7 @@ begin
         // P17/P18 仍用于筛选候选符号，最终用主方程点等式确认
         if W and 1 <> 0 then
         begin
-          // W P17 = (X^q - X) * F[W]^2 + F[W-1] * F[W+1] * (x^3 + Ax + B)
+          // W 是奇数，P17 = (X^q - X) * F[W]^2 + F[W-1] * F[W+1] * (x^3 + Ax + B)
           BigNumberPolynomialGaloisMul(T1, F(W), F(W), Q, LDP);
           BigNumberPolynomialGaloisMul(T1, T1, PXPX, Q, LDP);
 
@@ -9704,7 +9704,7 @@ begin
         end
         else
         begin
-          // W P17 = (X^q - X) * F[W]^2 * (x^3 + Ax + B) + F[W-1] * F[W+1]
+          // W 是偶数，P17 = (X^q - X) * F[W]^2 * (x^3 + Ax + B) + F[W-1] * F[W+1]
           BigNumberPolynomialGaloisMul(T1, F(W), F(W), Q, LDP);
           BigNumberPolynomialGaloisMul(T1, T1, PXPX, Q, LDP);
           BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);
@@ -9714,33 +9714,42 @@ begin
           BigNumberPolynomialGaloisAdd(P17, T1, T2, Q, LDP);
         end;
 
-        // P17
+        // 得到 P17 后计算公因式
         BigNumberPolynomialGaloisGreatestCommonDivisor(T1, P17, LDP, Q);
         BigNumberCopy(Q12, Q);
         Q12.SubWord(1);
-        Q12.ShiftRightOne;
+        Q12.ShiftRightOne;   // 得到 (Q - 1) / 2
 
         BigNumberCopy(Q32, Q);
         Q32.AddWord(3);
-        Q32.ShiftRightOne;
+        Q32.ShiftRightOne;   // 得到 (Q + 3) / 2
 
+        // 注意，这里 Rene 论文里有笔误！下面已改成正确的了
+        // 文中的 F[W+2]^2 * F[W-1] 应该是 F[W+2] * F[W-1]^2，而 F[W-2]^2 * F[W+1] 应该是 F[W-2] * F[W+1]^2
         if W and 1 <> 0 then
-          BigNumberPolynomialGaloisPower(T1, Y2, Q12, Q, LDP)
+        begin
+          // W 是奇数，P18 = 4*(x^3 + Ax + B)^(Q-1)/2) * F[W]^3 - F[W+2] * F[W-1]^2 + F[W-2] * F[W+1]^2
+          BigNumberPolynomialGaloisPower(T1, Y2, Q12, Q, LDP);
+        end
         else
+        begin
+          // W 是偶数，P18 = 4*(x^3 + Ax + B)^(Q+3)/2) * F[W]^3 - F[W+2] * F[W-1]^2 + F[W-2] * F[W+1]^2
           BigNumberPolynomialGaloisPower(T1, Y2, Q32, Q, LDP);
-
+        end;
         BigNumberPolynomialGaloisMulWord(T1, 4, Q);
         BigNumberPolynomialGaloisPower(T2, F(W), 3, Q, LDP);
-        BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP);
+        BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP);              // T1 得到第一项大乘
 
-        BigNumberPolynomialGaloisMul(T2, F(W - 1), F(W - 1), Q, LDP);
+        BigNumberPolynomialGaloisMul(T2, F(W - 1), F(W - 1), Q, LDP);  // T2 得到减项
         BigNumberPolynomialGaloisMul(T2, T2, F(W + 2), Q, LDP);
 
-        BigNumberPolynomialGaloisMul(T3, F(W + 1), F(W + 1), Q, LDP);
+        BigNumberPolynomialGaloisMul(T3, F(W + 1), F(W + 1), Q, LDP);  // T3 得到加项
         BigNumberPolynomialGaloisMul(T3, T3, F(W - 2), Q, LDP);
 
         BigNumberPolynomialGaloisSub(P18, T1, T2, Q, LDP);
         BigNumberPolynomialGaloisAdd(P18, P18, T3, Q, LDP);
+
+        // 得到 P18 后计算公因式
         BigNumberPolynomialGaloisGreatestCommonDivisor(T1, P18, LDP, Q);
 
         if T1.IsOne then
