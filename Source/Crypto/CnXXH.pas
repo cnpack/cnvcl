@@ -460,6 +460,18 @@ begin
   Result := (Value shl Shift) or (Value shr (64 - Shift));
 end;
 
+function ReadUInt32LE(P: PByte): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  Move(P^, Result, SizeOf(Result));
+  Result := UInt32ToLittleEndian(Result);
+end;
+
+function ReadUInt64LE(P: PByte): TUInt64; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  Move(P^, Result, SizeOf(Result));
+  Result := UInt64ToLittleEndian(Result);
+end;
+
 procedure XXH32Init(var Context: TCnXXH32Context; Seed: Cardinal);
 begin
   FillChar(Context, SizeOf(Context), 0);
@@ -475,7 +487,6 @@ var
   P: PByte;
   Len: Cardinal;
   V1, V2, V3, V4: Cardinal;
-  P32: PCardinal;
 begin
   if (Input = nil) or (ByteLength = 0) then
     Exit;
@@ -496,16 +507,12 @@ begin
 
     // 填充缓冲区到 16 字节
     Move(P^, Context.Mem[Context.MemSize], CN_XXH32_BLOCK_SIZE - Context.MemSize);
-    P32 := @Context.Mem[0];
 
     // 处理 16 字节块
-    Context.V1 := RolDWord(Context.V1 + P32^ * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
-    Inc(P32);
-    Context.V2 := RolDWord(Context.V2 + P32^ * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
-    Inc(P32);
-    Context.V3 := RolDWord(Context.V3 + P32^ * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
-    Inc(P32);
-    Context.V4 := RolDWord(Context.V4 + P32^ * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
+    Context.V1 := RolDWord(Context.V1 + ReadUInt32LE(@Context.Mem[0]) * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
+    Context.V2 := RolDWord(Context.V2 + ReadUInt32LE(@Context.Mem[4]) * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
+    Context.V3 := RolDWord(Context.V3 + ReadUInt32LE(@Context.Mem[8]) * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
+    Context.V4 := RolDWord(Context.V4 + ReadUInt32LE(@Context.Mem[12]) * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
 
     Inc(P, CN_XXH32_BLOCK_SIZE - Context.MemSize);
     Dec(Len, CN_XXH32_BLOCK_SIZE - Context.MemSize);
@@ -520,14 +527,10 @@ begin
 
   while Len >= CN_XXH32_BLOCK_SIZE do
   begin
-    P32 := PCardinal(P);
-    V1 := RolDWord(V1 + P32^ * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
-    Inc(P32);
-    V2 := RolDWord(V2 + P32^ * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
-    Inc(P32);
-    V3 := RolDWord(V3 + P32^ * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
-    Inc(P32);
-    V4 := RolDWord(V4 + P32^ * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
+    V1 := RolDWord(V1 + ReadUInt32LE(P) * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
+    V2 := RolDWord(V2 + ReadUInt32LE(PByte(TCnNativeUInt(P) + 4)) * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
+    V3 := RolDWord(V3 + ReadUInt32LE(PByte(TCnNativeUInt(P) + 8)) * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
+    V4 := RolDWord(V4 + ReadUInt32LE(PByte(TCnNativeUInt(P) + 12)) * CN_XXH32_PRIME32_2, 13) * CN_XXH32_PRIME32_1;
 
     Inc(P, CN_XXH32_BLOCK_SIZE);
     Dec(Len, CN_XXH32_BLOCK_SIZE);
@@ -576,7 +579,6 @@ procedure XXH32Final(var Context: TCnXXH32Context; var Digest: TCnXXH32Digest);
 var
   Hash: Cardinal;
   P: PByte;
-  P32: PCardinal;
 begin
   if Context.TotalLen >= CN_XXH32_BLOCK_SIZE then
   begin
@@ -592,7 +594,7 @@ begin
   P := @Context.Mem[0];
   while Context.MemSize >= 4 do
   begin
-    Hash := Hash + PCardinal(P)^ * CN_XXH32_PRIME32_3;
+    Hash := Hash + ReadUInt32LE(P) * CN_XXH32_PRIME32_3;
     Hash := RolDWord(Hash, 17) * CN_XXH32_PRIME32_4;
     Inc(P, 4);
     Dec(Context.MemSize, 4);
@@ -614,8 +616,7 @@ begin
   Hash := Hash xor (Hash shr 16);
 
   // 将结果存入Digest
-  P32 := @Digest[0];
-  P32^ := UInt32HostToNetwork(Hash);
+  PCardinal(@Digest[0])^ := UInt32HostToNetwork(Hash);
 end;
 
 procedure XXH64Init(var Context: TCnXXH64Context; Seed: TUInt64);
@@ -633,7 +634,6 @@ var
   P: PByte;
   Len: Cardinal;
   V1, V2, V3, V4: TUInt64;
-  P64: PUInt64;
 begin
   if (Input = nil) or (ByteLength = 0) then
     Exit;
@@ -652,25 +652,21 @@ begin
       Exit;
     end;
 
-    // 填充缓冲区到 32 字节
+    // 填充缓冲区到 64 字节
     Move(P^, Context.Mem[Context.MemSize], CN_XXH64_BLOCK_SIZE - Context.MemSize);
-    P64 := @Context.Mem[0];
 
-    // 处理 32 字节块
-    Context.V1 := RolQWord(Context.V1 + P64^ * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
-    Inc(P64);
-    Context.V2 := RolQWord(Context.V2 + P64^ * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
-    Inc(P64);
-    Context.V3 := RolQWord(Context.V3 + P64^ * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
-    Inc(P64);
-    Context.V4 := RolQWord(Context.V4 + P64^ * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
+    // 处理 64 字节块
+    Context.V1 := RolQWord(Context.V1 + ReadUInt64LE(@Context.Mem[0]) * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
+    Context.V2 := RolQWord(Context.V2 + ReadUInt64LE(@Context.Mem[8]) * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
+    Context.V3 := RolQWord(Context.V3 + ReadUInt64LE(@Context.Mem[16]) * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
+    Context.V4 := RolQWord(Context.V4 + ReadUInt64LE(@Context.Mem[24]) * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
 
     Inc(P, CN_XXH64_BLOCK_SIZE - Context.MemSize);
     Dec(Len, CN_XXH64_BLOCK_SIZE - Context.MemSize);
     Context.MemSize := 0;
   end;
 
-  // 处理完整的 32 字节块
+  // 处理完整的 64 字节块
   V1 := Context.V1;
   V2 := Context.V2;
   V3 := Context.V3;
@@ -678,14 +674,10 @@ begin
 
   while Len >= CN_XXH64_BLOCK_SIZE do
   begin
-    P64 := PUInt64(P);
-    V1 := RolQWord(V1 + P64^ * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
-    Inc(P64);
-    V2 := RolQWord(V2 + P64^ * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
-    Inc(P64);
-    V3 := RolQWord(V3 + P64^ * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
-    Inc(P64);
-    V4 := RolQWord(V4 + P64^ * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
+    V1 := RolQWord(V1 + ReadUInt64LE(P) * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
+    V2 := RolQWord(V2 + ReadUInt64LE(PByte(TCnNativeUInt(P) + 8)) * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
+    V3 := RolQWord(V3 + ReadUInt64LE(PByte(TCnNativeUInt(P) + 16)) * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
+    V4 := RolQWord(V4 + ReadUInt64LE(PByte(TCnNativeUInt(P) + 24)) * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1;
 
     Inc(P, CN_XXH64_BLOCK_SIZE);
     Dec(Len, CN_XXH64_BLOCK_SIZE);
@@ -734,7 +726,6 @@ procedure XXH64Final(var Context: TCnXXH64Context; var Digest: TCnXXH64Digest);
 var
   Hash, V1, V2, V3, V4: TUInt64;
   P: PByte;
-  P64: PUInt64;
 begin
   if Context.TotalLen >= CN_XXH64_BLOCK_SIZE then
   begin
@@ -765,7 +756,7 @@ begin
   P := @Context.Mem[0];
   while Context.MemSize >= 8 do
   begin
-    Hash := Hash xor (RolQWord(PUInt64(P)^ * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1);
+    Hash := Hash xor (RolQWord(ReadUInt64LE(P) * CN_XXH64_PRIME64_2, 31) * CN_XXH64_PRIME64_1);
     Hash := RolQWord(Hash, 27) * CN_XXH64_PRIME64_1 + CN_XXH64_PRIME64_4;
     Inc(P, 8);
     Dec(Context.MemSize, 8);
@@ -773,7 +764,7 @@ begin
 
   while Context.MemSize >= 4 do
   begin
-    Hash := Hash xor (PCardinal(P)^ * CN_XXH64_PRIME64_1);
+    Hash := Hash xor (ReadUInt32LE(P) * CN_XXH64_PRIME64_1);
     Hash := RolQWord(Hash, 23) * CN_XXH64_PRIME64_2 + CN_XXH64_PRIME64_3;
     Inc(P, 4);
     Dec(Context.MemSize, 4);
@@ -795,8 +786,7 @@ begin
   Hash := Hash xor (Hash shr 32);
 
   // 将结果存入 Digest
-  P64 := @Digest[0];
-  P64^ := UInt64HostToNetwork(Hash);
+  PUInt64(@Digest[0])^ := UInt64HostToNetwork(Hash);
 end;
 
 // 对数据块进行 XXH32 计算

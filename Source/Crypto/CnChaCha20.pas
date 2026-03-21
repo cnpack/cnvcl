@@ -235,6 +235,20 @@ const
   CHACHA20_CONST2 = $79622D32;
   CHACHA20_CONST3 = $6B206574;
 
+function ReadUInt32LE(P: PByte): Cardinal; {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+begin
+  Move(P^, Result, SizeOf(Result));
+  Result := UInt32ToLittleEndian(Result);
+end;
+
+procedure WriteUInt32LE(Value: Cardinal; P: PByte); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
+var
+  T: Cardinal;
+begin
+  T := UInt32ToLittleEndian(Value);
+  Move(T, P^, SizeOf(T));
+end;
+
 procedure ROT(var X: Cardinal; N: BYTE); {$IFDEF SUPPORT_INLINE} inline; {$ENDIF}
 begin
   X := (X shl N) or (X shr (32 - N));
@@ -272,20 +286,20 @@ begin
   State[2] := CHACHA20_CONST2;
   State[3] := CHACHA20_CONST3;
 
-  State[4] := PCardinal(@Key[0])^;
-  State[5] := PCardinal(@Key[4])^;
-  State[6] := PCardinal(@Key[8])^;
-  State[7] := PCardinal(@Key[12])^;
-  State[8] := PCardinal(@Key[16])^;
-  State[9] := PCardinal(@Key[20])^;
-  State[10] := PCardinal(@Key[24])^;
-  State[11] := PCardinal(@Key[28])^;
+  State[4] := ReadUInt32LE(@Key[0]);
+  State[5] := ReadUInt32LE(@Key[4]);
+  State[6] := ReadUInt32LE(@Key[8]);
+  State[7] := ReadUInt32LE(@Key[12]);
+  State[8] := ReadUInt32LE(@Key[16]);
+  State[9] := ReadUInt32LE(@Key[20]);
+  State[10] := ReadUInt32LE(@Key[24]);
+  State[11] := ReadUInt32LE(@Key[28]);
 
   State[12] := Counter;
 
-  State[13] := PCardinal(@Nonce[0])^;
-  State[14] := PCardinal(@Nonce[4])^;
-  State[15] := PCardinal(@Nonce[8])^;
+  State[13] := ReadUInt32LE(@Nonce[0]);
+  State[14] := ReadUInt32LE(@Nonce[4]);
+  State[15] := ReadUInt32LE(@Nonce[8]);
 end;
 
 procedure ChaCha20InnerBlock(var State: TCnChaChaState);
@@ -325,15 +339,17 @@ var
   N: TCnChaChaNonce;
   State: TCnChaChaState;
 begin
-  Move(Nonce[0], Counter, SizeOf(Cardinal));
+  Counter := ReadUInt32LE(@Nonce[0]);
   Move(Nonce[4], N[0], SizeOf(TCnChaChaNonce));
 
   BuildState(State, Key, N, Counter);
   for I := 1 to 10 do
     ChaCha20InnerBlock(State);
 
-  Move(State[0], OutSubKey[0], 16);
-  Move(State[12], OutSubKey[16], 16);
+  for I := 0 to 3 do
+    WriteUInt32LE(State[I], @OutSubKey[I * 4]);
+  for I := 0 to 3 do
+    WriteUInt32LE(State[12 + I], @OutSubKey[(4 + I) * 4]);
 end;
 
 function ChaCha20Data(var Key: TCnChaChaKey; var Nonce: TCnChaChaNonce; Data: Pointer;
@@ -342,6 +358,7 @@ var
   I, J, L, B: Integer;
   Cnt: TCnChaChaCounter;
   Stream: TCnChaChaState;
+  StreamBytes: array[0..SizeOf(TCnChaChaState) - 1] of Byte;
   P, Q, M: PByteArray;
 begin
   Result := False;
@@ -352,13 +369,15 @@ begin
   B := DataByteLength div (SizeOf(Cardinal) * CN_CHACHA_STATE_SIZE); // 有 B 个完整块
   P := PByteArray(Data);
   Q := PByteArray(Output);
-  M := PByteArray(@Stream[0]);
+  M := PByteArray(@StreamBytes[0]);
 
   if B > 0 then
   begin
     for I := 1 to B do
     begin
       ChaCha20Block(Key, Nonce, Cnt, Stream);
+      for J := 0 to CN_CHACHA_STATE_SIZE - 1 do
+        WriteUInt32LE(Stream[J], @StreamBytes[J * SizeOf(Cardinal)]);
 
       // P、Q 已各指向要处理的原始块与密文块
       for J := 0 to SizeOf(Cardinal) * CN_CHACHA_STATE_SIZE - 1 do
@@ -376,6 +395,8 @@ begin
   if L > 0 then // 还有剩余块，长度为 L
   begin
     ChaCha20Block(Key, Nonce, Cnt, Stream);
+    for J := 0 to CN_CHACHA_STATE_SIZE - 1 do
+      WriteUInt32LE(Stream[J], @StreamBytes[J * SizeOf(Cardinal)]);
 
     // P、Q 已各指向要处理的原始块与密文块
     for J := 0 to L - 1 do

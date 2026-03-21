@@ -157,7 +157,7 @@ procedure GHash128(var HashKey: TCnGHash128Key; Data: Pointer; DataByteLength: I
 }
 
 function GHash128Bytes(var HashKey: TCnGHash128Key; Data: TBytes; AAD: TBytes): TCnGHash128Tag;
-{* 字节数组方式进行 GHash 计算，内部调用 GHash128。
+{* 以字节数组方式进行 GHash 计算，内部调用 GHash128。
 
    参数：
      var HashKey: TCnGHash128Key          - 用于计算的密钥
@@ -186,7 +186,6 @@ procedure GHash128Start(var Ctx: TCnGHash128Context; var HashKey: TCnGHash128Key
 
 procedure GHash128Update(var Ctx: TCnGHash128Context; Data: Pointer; DataByteLength: Integer);
 {* 对一块数据进行 GHash128，结果与计算长度均记录在 Ctx 中，可以多次调用。
-   注意需要尽量传整块，如不整块，末尾会补 0 完成本次计算，而不是类似于其他杂凑函数那样留存着等下一轮凑足后再计算。
 
    参数：
      var Ctx: TCnGHash128Context          - 上下文结构
@@ -1423,7 +1422,7 @@ begin
     Dec(DataByteLength, CN_AEAD_BLOCK);
   end;
 
-  // 算余块 C，如果有的话
+  // 保留余块 C，如果有的话
   if DataByteLength > 0 then
     Move(Data^, Ctx.Buf[0], DataByteLength);
   Ctx.BufLen := DataByteLength;
@@ -1616,7 +1615,9 @@ var
   AeadCtx: TAEADContext;
   GHashCtx: TCnGHash128Context;
   Tag: TCnGCM128Tag;
+  OrigEnByteLength: Integer;
 begin
+  OrigEnByteLength := EnByteLength;
   if Key = nil then
     KeyByteLength := 0;
   if Iv = nil then
@@ -1704,6 +1705,8 @@ begin
   MemoryXor(@Tag[0], @Y0[0], SizeOf(TCnGHash128Tag), @Tag[0]);
 
   Result := ConstTimeCompareMem(@Tag[0], @InTag[0], SizeOf(TCnGHash128Tag));
+  if (not Result) and (PlainData <> nil) and (OrigEnByteLength > 0) then
+    FillChar(PlainData^, OrigEnByteLength, 0);
 end;
 
 function GCMEncryptBytes(Key, Iv, PlainData, AAD: TBytes; var OutTag: TCnGCM128Tag;
@@ -1778,8 +1781,9 @@ begin
   end
   else
   begin
-    GCMDecrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
-      Length(AAD), nil, InTag, EncryptType); // 没密文，其实 Tag 比对成功与否都没用
+    if not GCMDecrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+      Length(AAD), nil, InTag, EncryptType) then
+      SetLength(Result, 0);
   end;
 end;
 
@@ -2329,7 +2333,9 @@ var
   Cnt, T: Int64;
   P: PByte;
   Tag: TCnCCM128Tag;
+  OrigEnByteLength: Integer;
 begin
+  OrigEnByteLength := EnByteLength;
   if Key = nil then
     KeyByteLength := 0;
   if Nonce = nil then
@@ -2498,6 +2504,8 @@ begin
 
   // 比对 Tag 是否相同
   Result := ConstTimeCompareMem(@Tag[0], @InTag[0], CN_CCM_M_LEN);
+  if (not Result) and (PlainData <> nil) and (OrigEnByteLength > 0) then
+    FillChar(PlainData^, OrigEnByteLength, 0);
 end;
 
 function CCMDecryptBytes(Key, Nonce, EnData, AAD: TBytes; var InTag: TCnCCM128Tag;
@@ -2534,8 +2542,9 @@ begin
   end
   else
   begin
-    CCMDecrypt(K, Length(Key), N, Length(Nonce), P, Length(EnData), A,
-      Length(AAD), nil, InTag, EncryptType); // 没密文，其实 Tag 比对成功与否都没用
+    if not CCMDecrypt(K, Length(Key), N, Length(Nonce), P, Length(EnData), A,
+      Length(AAD), nil, InTag, EncryptType) then
+      SetLength(Result, 0);
   end;
 end;
 
@@ -2736,7 +2745,9 @@ var
   Lens: array[0..1] of Int64;
   PadLen: Integer;
   Zeros: array[0..15] of Byte;
+  OrigEnByteLength: Integer;
 begin
+  OrigEnByteLength := EnByteLength;
   MoveMost(Key^, ChaChaKey[0], KeyByteLength, SizeOf(TCnChaChaKey));
   MoveMost(Iv^, Nonce[0], IvByteLength, SizeOf(TCnChaChaNonce));
 
@@ -2784,6 +2795,8 @@ begin
 
   // 当且仅当计算出的 Tag 和传入 Tag 相同才通过
   Result := ConstTimeCompareMem(@Tag[0], @InTag[0], SizeOf(TCnPoly1305Digest));
+  if (not Result) and (OutPlainData <> nil) and (OrigEnByteLength > 0) then
+    FillChar(OutPlainData^, OrigEnByteLength, 0);
 end;
 
 // ================== ChaCha20_Poly1305 字节数组加解密函数 =====================
@@ -2859,8 +2872,9 @@ begin
   end
   else
   begin
-    ChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
-      Length(AAD), nil, InTag); // 没密文，其实 Tag 比对成功与否都没用
+    if not ChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+      Length(AAD), nil, InTag) then
+      SetLength(Result, 0);
   end;
 end;
 
@@ -2993,8 +3007,9 @@ begin
   end
   else
   begin
-    XChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
-      Length(AAD), nil, InTag); // 没密文，其实 Tag 比对成功与否都没用
+    if not XChaCha20Poly1305Decrypt(K, Length(Key), I, Length(Iv), P, Length(EnData), A,
+      Length(AAD), nil, InTag) then
+      SetLength(Result, 0);
   end;
 end;
 
