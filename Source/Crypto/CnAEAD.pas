@@ -108,6 +108,8 @@ type
     State:       TCn128BitsBuffer;
     AADByteLen:  Integer;
     DataByteLen: Integer;
+    Buf:         TCn128BitsBuffer;
+    BufLen:      Integer;
   end;
 
   TCnGCM128Key = array[0..CN_AEAD_BLOCK - 1] of Byte;
@@ -1346,6 +1348,8 @@ var
 begin
   FillChar(Ctx.State[0], SizeOf(TCn128BitsBuffer), 0);  // 初始全 0
   Move(HashKey[0], Ctx.HashKey[0], SizeOf(TCn128BitsBuffer));
+  FillChar(Ctx.Buf[0], SizeOf(TCn128BitsBuffer), 0);
+  Ctx.BufLen := 0;
 
   Ctx.DataByteLen := 0;
   Ctx.AADByteLen := AADByteLength;
@@ -1378,13 +1382,36 @@ end;
 procedure GHash128Update(var Ctx: TCnGHash128Context; Data: Pointer; DataByteLength: Integer);
 var
   Y: TCn128BitsBuffer;
+  Need: Integer;
 begin
   if (Data = nil) or (DataByteLength <= 0) then
     Exit;
 
   Ctx.DataByteLen := Ctx.DataByteLen + DataByteLength;
 
-  // 算整块 C
+  if Ctx.BufLen > 0 then
+  begin
+    Need := CN_AEAD_BLOCK - Ctx.BufLen;
+    if Need > DataByteLength then
+      Need := DataByteLength;
+
+    Move(Data^, Ctx.Buf[Ctx.BufLen], Need);
+    Inc(Ctx.BufLen, Need);
+
+    Data := Pointer(TCnNativeUInt(Data) + Need);
+    Dec(DataByteLength, Need);
+
+    if Ctx.BufLen = CN_AEAD_BLOCK then
+    begin
+      Move(Ctx.Buf[0], Y[0], CN_AEAD_BLOCK);
+      MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
+      GMulBlock128(Y, Ctx.HashKey, Ctx.State);
+      Ctx.BufLen := 0;
+    end
+    else
+      Exit;
+  end;
+
   while DataByteLength >= CN_AEAD_BLOCK do
   begin
     Move(Data^, Y[0], CN_AEAD_BLOCK);
@@ -1398,13 +1425,8 @@ begin
 
   // 算余块 C，如果有的话
   if DataByteLength > 0 then
-  begin
-    FillChar(Y[0], SizeOf(TCn128BitsBuffer), 0);
-    Move(Data^, Y[0], DataByteLength);
-
-    MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
-    GMulBlock128(Y, Ctx.HashKey, Ctx.State);
-  end;
+    Move(Data^, Ctx.Buf[0], DataByteLength);
+  Ctx.BufLen := DataByteLength;
 end;
 
 procedure GHash128Finish(var Ctx: TCnGHash128Context; var Output: TCnGHash128Tag);
@@ -1412,6 +1434,14 @@ var
   Y: TCn128BitsBuffer;
   AL64, DL64: Int64;
 begin
+  if Ctx.BufLen > 0 then
+  begin
+    FillChar(Y[0], SizeOf(TCn128BitsBuffer), 0);
+    Move(Ctx.Buf[0], Y[0], Ctx.BufLen);
+    MemoryXor(@Y[0], @Ctx.State[0], SizeOf(TCn128BitsBuffer), @Y[0]);
+    GMulBlock128(Y, Ctx.HashKey, Ctx.State);
+  end;
+
   // 最后再算一轮长度，A 和 C 各四字节拼起来
   FillChar(Y[0], SizeOf(TCn128BitsBuffer), 0);
   AL64 := Int64HostToNetwork(Ctx.AADByteLen * 8);

@@ -5234,9 +5234,11 @@ end;
 
 function UInt64NonNegativeRoot(N: TUInt64; Exp: Integer): TUInt64;
 var
-  I: Integer;
-  X: TUInt64;
-  XN, X0, X1: Extended;
+  Bits: Integer;
+  L, H, M, B, P: TUInt64;
+  Cmp: Integer;
+  Overflow: Boolean;
+  E: Integer;
 begin
   if Exp < 0 then
     raise ERangeError.Create(SRangeError)
@@ -5244,30 +5246,83 @@ begin
     raise EDivByZero.Create(SDivByZero)
   else if (N = 0) or (N = 1) then
     Result := N
+  else if Exp = 1 then
+    Result := N
   else if Exp = 2 then
     Result := UInt64Sqrt(N)
   else
   begin
-    // 牛顿迭代法求根
-    I := GetUInt64HighBits(N) + 1; // 得到大约 Log2 N 的值
-    I := (I div Exp) + 1;
-    X := 1 shl I;                  // 得到一个较大的 X0 值作为起始值
+    // 整数二分查找 根值区间；
+    // 用 整数快速幂 + 溢出前判断 比较 M^Exp 与 N ；
+    // 最终返回 floor(N^(1/Exp))
 
-    X0 := UInt64ToExtended(X);
-    XN := UInt64ToExtended(N);
-    X1 := X0 - (Power(X0, Exp) - XN) / (Exp * Power(X0, Exp - 1));
+    Bits := GetUInt64HighBits(N) + 1; // 得到大约 Log2 N 的值
+    H := TUInt64(1) shl ((Bits + Exp - 1) div Exp);
+    if H = 0 then
+      H := N
+    else if H > N then
+      H := N;
+    L := 1;
+    Cmp := -1;
 
-    while True do
+    while L <= H do
     begin
-      if (ExtendedToUInt64(X0) = ExtendedToUInt64(X1)) and (Abs(X0 - X1) < 0.001) then
+      M := L + ((H - L) shr 1);
+      B := M;
+      P := 1;
+      E := Exp;
+      Overflow := False;
+      while E > 0 do
       begin
-        Result := ExtendedToUInt64(X1);
-        Exit;
+        if (E and 1) <> 0 then
+        begin
+          if (B <> 0) and (P > N div B) then
+          begin
+            Overflow := True;
+            Break;
+          end;
+          P := P * B;
+        end;
+        E := E shr 1;
+        if E > 0 then
+        begin
+          if (B <> 0) and (B > N div B) then
+          begin
+            Overflow := True;
+            Break;
+          end;
+          B := B * B;
+        end;
       end;
 
-      X0 := X1;
-      X1 := X0 - (Power(X0, Exp) - XN) / (Exp * Power(X0, Exp - 1));
+      if Overflow then
+        Cmp := 1
+      else if P > N then
+        Cmp := 1
+      else if P < N then
+        Cmp := -1
+      else
+        Cmp := 0;
+
+      if Cmp = 0 then
+      begin
+        Result := M;
+        Exit;
+      end
+      else if Cmp < 0 then
+        L := M + 1
+      else
+      begin
+        if M = 0 then
+          Break;
+        H := M - 1;
+      end;
     end;
+
+    if Cmp > 0 then
+      Result := H
+    else
+      Result := L - 1;
   end;
 end;
 

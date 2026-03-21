@@ -6487,7 +6487,7 @@ begin
         BigBinaryCopy(T1, X0);
         T1.Power(Exponent);
         T2.SetBigNumber(Num);
-        BigBinarySub(T1, T1, T2);             // 得到 Power(X0, Exponent) - N
+        BigBinarySub(T1, T1, T2);            // 得到 Power(X0, Exponent) - N
 
         BigBinaryCopy(T2, X0);
         T2.Power(Exponent - 1);

@@ -194,6 +194,7 @@ function TestCnFloor: Boolean;
 function TestCnCeil: Boolean;
 function TestInt64Sqrt: Boolean;
 function TestFloatSqrt: Boolean;
+function TestUInt64NonNegativeRoot: Boolean;
 function TestInt64LogN: Boolean;
 function TestFloatLogN: Boolean;
 function TestInt64Log10: Boolean;
@@ -420,6 +421,7 @@ function TestAEADAES128GCM: Boolean;
 function TestAEADAES192GCM: Boolean;
 function TestAEADAES256GCM: Boolean;
 function TestAEADSM4GCM: Boolean;
+function TestAEADGHashUpdate: Boolean;
 function TestAEADChaCha20Poly1305: Boolean;
 function TestAEADXChaCha20Poly1305: Boolean;
 
@@ -760,6 +762,7 @@ begin
   MyAssert(TestCnCeil, 'TestCnCeil');
   MyAssert(TestInt64Sqrt, 'TestInt64Sqrt');
   MyAssert(TestFloatSqrt, 'TestFloatSqrt');
+  MyAssert(TestUInt64NonNegativeRoot, 'TestUInt64NonNegativeRoot');
   MyAssert(TestInt64LogN, 'TestInt64LogN');
   MyAssert(TestFloatLogN, 'TestFloatLogN');
   MyAssert(TestInt64Log10, 'TestInt64Log10');
@@ -986,6 +989,7 @@ begin
   MyAssert(TestAEADAES192GCM, 'TestAEADAES192GCM');
   MyAssert(TestAEADAES256GCM, 'TestAEADAES256GCM');
   MyAssert(TestAEADSM4GCM, 'TestAEADSM4GCM');
+  MyAssert(TestAEADGHashUpdate, 'TestAEADGHashUpdate');
   MyAssert(TestAEADChaCha20Poly1305, 'TestAEADChaCha20Poly1305');
   MyAssert(TestAEADXChaCha20Poly1305, 'TestAEADXChaCha20Poly1305');
 
@@ -3951,6 +3955,33 @@ begin
 
   R := FloatSqrt(0.25);
   Result := FloatEqual(R, 0.5);
+end;
+
+function TestUInt64NonNegativeRoot: Boolean;
+begin
+  Result := UInt64NonNegativeRoot(8, 3) = 2;
+  if not Result then Exit;
+  Result := UInt64NonNegativeRoot(9, 3) = 2;
+  if not Result then Exit;
+  Result := UInt64NonNegativeRoot(27, 3) = 3;
+  if not Result then Exit;
+  Result := UInt64NonNegativeRoot(63, 3) = 3;
+  if not Result then Exit;
+  Result := UInt64NonNegativeRoot(64, 3) = 4;
+  if not Result then Exit;
+  Result := UInt64NonNegativeRoot(65, 3) = 4;
+  if not Result then Exit;
+  Result := UInt64NonNegativeRoot(81, 4) = 3;
+  if not Result then Exit;
+  Result := UInt64NonNegativeRoot(82, 4) = 3;
+  if not Result then Exit;
+  Result := UInt64NonNegativeRoot(255, 8) = 1;
+  if not Result then Exit;
+  Result := UInt64NonNegativeRoot(256, 8) = 2;
+  if not Result then Exit;
+  Result := UInt64NonNegativeRoot(257, 8) = 2;
+  if not Result then Exit;
+  Result := UInt64NonNegativeRoot(18446744073709551615, 3) = 2642245;
 end;
 
 function TestInt64LogN: Boolean;
@@ -10349,6 +10380,27 @@ begin
 
   P := SM4GCMDecryptBytes(Key, Iv, C, AD, T);
   Result := DataToHex(@P[0], Length(P)) = 'AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDEEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA';
+end;
+
+function TestAEADGHashUpdate: Boolean;
+var
+  Key: TCnGHash128Key;
+  Data: TBytes;
+  TagRef, TagSplit: TCnGHash128Tag;
+  Ctx: TCnGHash128Context;
+begin
+  HexToData('66E94BD4EF8A2C3B884CFA59CA342B2E', @Key[0]);
+  Data := HexToBytes('00112233445566778899AABBCCDDEEFF102030405060708090A0B0C0D0E0F0112233445566');
+
+  GHash128(Key, @Data[0], Length(Data), nil, 0, TagRef);
+
+  GHash128Start(Ctx, Key, nil, 0);
+  GHash128Update(Ctx, @Data[0], 7);
+  GHash128Update(Ctx, @Data[7], 11);
+  GHash128Update(Ctx, @Data[18], Length(Data) - 18);
+  GHash128Finish(Ctx, TagSplit);
+
+  Result := CompareMem(@TagRef[0], @TagSplit[0], SizeOf(TCnGHash128Tag));
 end;
 
 function TestAEADChaCha20Poly1305: Boolean;
