@@ -53,6 +53,9 @@ uses
   CnDSA, CnBLAKE, CnBLAKE2, CnXXH, CnWideStrings, CnContainers, CnMLKEM, CnMLDSA,
   CnCalendar, CnBigDecimal, CnComplex, CnDFT, CnMath, CnQRCode, CnRandom, CnOTP;
 
+type
+  TCnCryptoTestProc = function: Boolean;
+
 procedure TestCrypto;
 {* ÃÜÂë¿â×Ü²âÊÔÈë¿Ú}
 
@@ -582,6 +585,7 @@ function TestECCPrivPubPkcs8: Boolean;
 function TestECCPub: Boolean;
 function TestECCSchoof: Boolean;
 function TestECCSchoof2: Boolean;
+function TestECCFastSchoof: Boolean;
 
 // ================================= END =======================================
 
@@ -599,9 +603,31 @@ begin
 {$ENDIF}
 end;
 
-procedure MyAssert(V: Boolean; const Msg: string);
+procedure MyWrite(const Text: string);
 begin
-  MyWriteln(FormatDateTime('yyyy-MM-dd:hh:nn:ss.zzz | ', Now) +  Msg + '...');
+{$IFDEF ANDROID}
+  Log.D(Text);
+{$ELSE}
+  Write(Text);
+{$ENDIF}
+end;
+
+procedure MyAssert(AProc: TCnCryptoTestProc; const Msg: string);
+var
+  V: Boolean;
+  S: string;
+begin
+  S := FormatDateTime('yyyy-MM-dd:hh:nn:ss.zzz | ', Now) +  Msg + '...';
+  if Length(S) < 70 then
+    S := S + StringOfChar(' ', 70 - Length(S));
+  MyWrite(S);
+
+  V := AProc;
+  if V then
+    MyWriteln('OK')
+  else
+    MyWriteln('Fail');
+
   Assert(V);
 end;
 
@@ -1151,6 +1177,7 @@ begin
   MyAssert(TestECCPub, 'TestECCPub');
   MyAssert(TestECCSchoof, 'TestECCSchoof');
   MyAssert(TestECCSchoof2, 'TestECCSchoof2');
+  MyAssert(TestECCFastSchoof, 'TestECCFastSchoof');
 
 // ================================= END =======================================
 
@@ -3981,7 +4008,7 @@ begin
   if not Result then Exit;
   Result := UInt64NonNegativeRoot(257, 8) = 2;
   if not Result then Exit;
-  Result := UInt64NonNegativeRoot(18446744073709551615, 3) = 2642245;
+  Result := UInt64NonNegativeRoot(18446619462631425, 3) = 264224;
 end;
 
 function TestInt64LogN: Boolean;
@@ -14318,6 +14345,96 @@ begin
 
     if CnEccSchoof2(R, A, B, Q) then
       Result := R.ToDec = '6074123004';
+  finally
+    R.Free;
+    Q.Free;
+    B.Free;
+    A.Free;
+  end;
+end;
+
+function TestECCFastSchoof: Boolean;
+var
+  A, B, Q, R: TCnBigNumber;
+begin
+  Result := False;
+
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  Q := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+
+  try
+    A.SetWord(2);
+    B.SetWord(1);
+    Q.SetWord(13);
+
+    if CnEccFastSchoof(R, A, B, Q) then
+      Result := R.ToDec = '8';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetWord(65537);
+
+    if CnEccFastSchoof(R, A, B, Q) then
+      Result := R.ToDec = '65751';
+    if not Result then Exit;
+
+    A.SetWord(2);
+    B.SetWord(3);
+    Q.SetWord(29);
+
+    if CnEccFastSchoof(R, A, B, Q) then
+      Result := R.ToDec = '36';
+    if not Result then Exit;
+
+    A.SetWord(1);
+    B.SetWord(6);
+    Q.SetWord(31);
+
+    if CnEccFastSchoof(R, A, B, Q) then
+      Result := R.ToDec = '32';
+    if not Result then Exit;
+
+    A.SetWord(2);
+    B.SetWord(2);
+    Q.SetWord(37);
+
+    if CnEccFastSchoof(R, A, B, Q) then
+      Result := R.ToDec = '30';
+    if not Result then Exit;
+
+    A.SetWord(1);
+    B.SetWord(1);
+    Q.SetWord(41);
+
+    if CnEccFastSchoof(R, A, B, Q) then
+      Result := R.ToDec = '35';
+    if not Result then Exit;
+
+    A.SetWord(3);
+    B.SetWord(8);
+    Q.SetWord(43);
+
+    if CnEccFastSchoof(R, A, B, Q) then
+      Result := R.ToDec = '39';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetDec('2147483629');
+
+    if CnEccFastSchoof(R, A, B, Q) then
+      Result := R.ToDec = '2147464597';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetWord(3037000493);
+
+    if CnEccFastSchoof(R, A, B, Q) then
+      Result := R.ToDec = '3036927405';
   finally
     R.Free;
     Q.Free;
