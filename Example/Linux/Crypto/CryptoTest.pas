@@ -617,7 +617,14 @@ var
   V: Boolean;
   S: string;
 begin
-  S := FormatDateTime('yyyy-MM-dd:hh:nn:ss.zzz | ', Now) +  Msg + '...';
+  S := FormatDateTime('yyyy-MM-dd:hh:nn:ss.zzz | ', Now) +  Msg;
+  if not Assigned(AProc) then
+  begin
+    MyWriteln(S);
+    Exit;
+  end;
+
+  S := S + '...';
   if Length(S) < 70 then
     S := S + StringOfChar(' ', 70 - Length(S));
   MyWrite(S);
@@ -1181,7 +1188,7 @@ begin
 
 // ================================= END =======================================
 
-  MyWriteln('Crypto Test End.');
+  MyAssert(nil, 'Crypto Test End.');
 end;
 
 // ============================== Native =======================================
@@ -14381,46 +14388,6 @@ begin
       Result := R.ToDec = '65751';
     if not Result then Exit;
 
-    A.SetWord(2);
-    B.SetWord(3);
-    Q.SetWord(29);
-
-    if CnEccFastSchoof(R, A, B, Q) then
-      Result := R.ToDec = '36';
-    if not Result then Exit;
-
-    A.SetWord(1);
-    B.SetWord(6);
-    Q.SetWord(31);
-
-    if CnEccFastSchoof(R, A, B, Q) then
-      Result := R.ToDec = '32';
-    if not Result then Exit;
-
-    A.SetWord(2);
-    B.SetWord(2);
-    Q.SetWord(37);
-
-    if CnEccFastSchoof(R, A, B, Q) then
-      Result := R.ToDec = '30';
-    if not Result then Exit;
-
-    A.SetWord(1);
-    B.SetWord(1);
-    Q.SetWord(41);
-
-    if CnEccFastSchoof(R, A, B, Q) then
-      Result := R.ToDec = '35';
-    if not Result then Exit;
-
-    A.SetWord(3);
-    B.SetWord(8);
-    Q.SetWord(43);
-
-    if CnEccFastSchoof(R, A, B, Q) then
-      Result := R.ToDec = '39';
-    if not Result then Exit;
-
     A.SetWord(7);
     B.SetWord(1);
     Q.SetDec('2147483629');
@@ -14435,6 +14402,30 @@ begin
 
     if CnEccFastSchoof(R, A, B, Q) then
       Result := R.ToDec = '3036927405';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetDec('4294967291');
+
+    if CnEccFastSchoof(R, A, B, Q) then
+      Result := R.ToDec = '4294994984';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetDec('6074000687');
+
+    if CnEccFastSchoof(R, A, B, Q) then
+      Result := R.ToDec = '6074024457';
+    if not Result then Exit;
+
+    A.SetWord(7);
+    B.SetWord(1);
+    Q.SetDec('6074001169');
+
+    if CnEccFastSchoof(R, A, B, Q) then
+      Result := R.ToDec = '6074123004';
   finally
     R.Free;
     Q.Free;

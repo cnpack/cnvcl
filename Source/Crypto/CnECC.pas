@@ -1650,10 +1650,10 @@ function CnEccSchoof2(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber; Q: TC
 }
 
 function CnEccFastSchoof(Res: TCnBigNumber; A: TCnBigNumber; B: TCnBigNumber;
-  Q: TCnBigNumber): Boolean; {$IFDEF SUPPORT_DEPRECATED} deprecated; {$ENDIF}
+  Q: TCnBigNumber): Boolean;
 {* 用增强型 GCD 的 Schoof 算法求椭圆曲线 y^2 = x^3 + Ax + B 在素域 Fq 上的点总数，参数支持大数。
-   目前问题: P16 计算基本通过。P19X, P19Y 计算验证未通过，暂改用有理点对付过去，
-   没有实质的更多的意义，不建议投入实际使用。
+   目前问题: P16 计算基本通过。P19X, P19Y 计算验证未通过，暂通过 AI 对付过去，
+   没有明显的性能优化，不过功能目前看上去还算正确。
 
    参数：
      Res: TCnBigNumber                    - 返回点总数
@@ -9655,48 +9655,9 @@ begin
       // 得到 P16 后计算公因式
       BigNumberPolynomialGaloisGreatestCommonDivisor(T1, P16, LDP, Q);
 
-      if not T1.IsOne and False then // 有公因式，所以 π^2(P) = 正负 K * (P)
+      if not T1.IsOne then // 有公因式，所以 π^2(P) = 正负 K * (P)
       begin
-        // 分正负两种情况处理。如果正，则求 W^2 = K mod L，W 存在则说明 K 是 L 的二次剩余
-        W := CnInt64SquareRoot(K, L);
-        if W = 0 then // 不存在二次剩余，t 为 0
-        begin
-          Ta[I] := 0;
-          Continue;
-        end;
-
-        // 存在二次剩余，t 为正负 2W，判断其符号，要计算 P17，基本上和论文中的计算代码阅读对比后认为一致
-        if W and 1 <> 0 then
-        begin
-          // W 是奇数，P17 = (X^q - X) * F[W]^2 + F[W-1] * F[W+1] * (x^3 + Ax + B)
-          BigNumberPolynomialGaloisMul(T1, F(W), F(W), Q, LDP);
-          BigNumberPolynomialGaloisMul(T1, T1, PXPX, Q, LDP);
-
-          BigNumberPolynomialGaloisMul(T2, F(W - 1), F(W + 1), Q, LDP);
-          BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);
-
-          BigNumberPolynomialGaloisAdd(P17, T1, T2, Q, LDP);
-        end
-        else
-        begin
-          // W 是偶数，P17 = (X^q - X) * F[W]^2 * (x^3 + Ax + B) + F[W-1] * F[W+1]
-          BigNumberPolynomialGaloisMul(T1, F(W), F(W), Q, LDP);
-          BigNumberPolynomialGaloisMul(T1, T1, PXPX, Q, LDP);
-          BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);
-
-          BigNumberPolynomialGaloisMul(T2, F(W - 1), F(W + 1), Q, LDP);
-
-          BigNumberPolynomialGaloisAdd(P17, T1, T2, Q, LDP);
-        end;
-
-        // 得到 P17 后计算公因式
-        BigNumberPolynomialGaloisGreatestCommonDivisor(T1, P17, LDP, Q);
-        if T1.IsOne then // 互素，t 为 0
-        begin
-          Ta[I] := 0;
-          Continue;
-        end;
-
+        // 先计算 φ(P), φ^2(P), K*P 以及方程左边 LS = φ^2(P) + K*P
         Pi2PX.SetOne;
         Pi2PX.Numerator.SetCoefficents([0, 1]);
         Pi2PY.SetOne;
@@ -9715,25 +9676,115 @@ begin
         BigNumberShiftRightOne(BQ, Q);
         BigNumberPolynomialGaloisPower(PiPY.Numerator, Y2, BQ, Q, LDP);
 
-        BigNumberRationalPolynomialCopy(RSX, PiPX);
-        BigNumberRationalPolynomialCopy(RSY, PiPY);
-        TCnPolynomialEcc.RationalMultiplePoint(W, RSX, RSY, A, B, Q, LDP);
+        KPX.SetOne;
+        KPX.Numerator.SetCoefficents([0, 1]);
+        KPY.SetOne;
+        TCnPolynomialEcc.RationalMultiplePoint(K, KPX, KPY, A, B, Q, LDP);
 
-        if BigNumberRationalPolynomialGaloisEqual(Pi2PX, RSX, Q, LDP) then
+        TCnPolynomialEcc.RationalPointAddPoint(Pi2PX, Pi2PY, KPX, KPY, LSX, LSY, A, B, Q, LDP);
+
+        W := CnInt64SquareRoot(K, L);
+        if W = 0 then
         begin
-          if BigNumberRationalPolynomialGaloisEqual(Pi2PY, RSY, Q, LDP) then
-            Ta[I] := 2 * W
-          else
-          begin
-            BigNumberRationalPolynomialGaloisNegate(RSY, Q);
-            if BigNumberRationalPolynomialGaloisEqual(Pi2PY, RSY, Q, LDP) then
-              Ta[I] := L - 2 * W
-            else
-              Ta[I] := 0;
-          end;
+          Ta[I] := 0;
+          Continue;
+        end;
+
+        // P17/P18 仍用于筛选候选符号，最终用主方程点等式确认
+        if W and 1 <> 0 then
+        begin
+          // W P17 = (X^q - X) * F[W]^2 + F[W-1] * F[W+1] * (x^3 + Ax + B)
+          BigNumberPolynomialGaloisMul(T1, F(W), F(W), Q, LDP);
+          BigNumberPolynomialGaloisMul(T1, T1, PXPX, Q, LDP);
+
+          BigNumberPolynomialGaloisMul(T2, F(W - 1), F(W + 1), Q, LDP);
+          BigNumberPolynomialGaloisMul(T2, T2, Y2, Q, LDP);
+
+          BigNumberPolynomialGaloisAdd(P17, T1, T2, Q, LDP);
         end
         else
+        begin
+          // W P17 = (X^q - X) * F[W]^2 * (x^3 + Ax + B) + F[W-1] * F[W+1]
+          BigNumberPolynomialGaloisMul(T1, F(W), F(W), Q, LDP);
+          BigNumberPolynomialGaloisMul(T1, T1, PXPX, Q, LDP);
+          BigNumberPolynomialGaloisMul(T1, T1, Y2, Q, LDP);
+
+          BigNumberPolynomialGaloisMul(T2, F(W - 1), F(W + 1), Q, LDP);
+
+          BigNumberPolynomialGaloisAdd(P17, T1, T2, Q, LDP);
+        end;
+
+        // P17
+        BigNumberPolynomialGaloisGreatestCommonDivisor(T1, P17, LDP, Q);
+        BigNumberCopy(Q12, Q);
+        Q12.SubWord(1);
+        Q12.ShiftRightOne;
+
+        BigNumberCopy(Q32, Q);
+        Q32.AddWord(3);
+        Q32.ShiftRightOne;
+
+        if W and 1 <> 0 then
+          BigNumberPolynomialGaloisPower(T1, Y2, Q12, Q, LDP)
+        else
+          BigNumberPolynomialGaloisPower(T1, Y2, Q32, Q, LDP);
+
+        BigNumberPolynomialGaloisMulWord(T1, 4, Q);
+        BigNumberPolynomialGaloisPower(T2, F(W), 3, Q, LDP);
+        BigNumberPolynomialGaloisMul(T1, T1, T2, Q, LDP);
+
+        BigNumberPolynomialGaloisMul(T2, F(W - 1), F(W - 1), Q, LDP);
+        BigNumberPolynomialGaloisMul(T2, T2, F(W + 2), Q, LDP);
+
+        BigNumberPolynomialGaloisMul(T3, F(W + 1), F(W + 1), Q, LDP);
+        BigNumberPolynomialGaloisMul(T3, T3, F(W - 2), Q, LDP);
+
+        BigNumberPolynomialGaloisSub(P18, T1, T2, Q, LDP);
+        BigNumberPolynomialGaloisAdd(P18, P18, T3, Q, LDP);
+        BigNumberPolynomialGaloisGreatestCommonDivisor(T1, P18, LDP, Q);
+
+        if T1.IsOne then
+          Ta[I] := L - 2 * W
+        else
+          Ta[I] := 2 * W;
+
+        // 先验证 P18 选出的候选，再验证另一候选；都失败时回退到完整遍历
+        BigNumberRationalPolynomialCopy(RSX, PiPX);
+        BigNumberRationalPolynomialCopy(RSY, PiPY);
+        TCnPolynomialEcc.RationalMultiplePoint(Ta[I], RSX, RSY, A, B, Q, LDP);
+        if not (BigNumberRationalPolynomialGaloisEqual(LSX, RSX, Q, LDP) and
+          BigNumberRationalPolynomialGaloisEqual(LSY, RSY, Q, LDP)) then
+        begin
+          Ta[I] := L - Ta[I];
+
+          BigNumberRationalPolynomialCopy(RSX, PiPX);
+          BigNumberRationalPolynomialCopy(RSY, PiPY);
+          TCnPolynomialEcc.RationalMultiplePoint(Ta[I], RSX, RSY, A, B, Q, LDP);
+        end;
+
+        if not (BigNumberRationalPolynomialGaloisEqual(LSX, RSX, Q, LDP) and
+          BigNumberRationalPolynomialGaloisEqual(LSY, RSY, Q, LDP)) then
+        begin
+          BigNumberRationalPolynomialCopy(RSX, PiPX);
+          BigNumberRationalPolynomialCopy(RSY, PiPY);
+
           Ta[I] := 0;
+          for J := 1 to (L + 1) shr 1 do
+          begin
+            if BigNumberRationalPolynomialGaloisEqual(LSX, RSX, Q, LDP) then
+            begin
+              if BigNumberRationalPolynomialGaloisEqual(LSY, RSY, Q, LDP) then
+                Ta[I] := J
+              else
+                Ta[I] := L - J;
+              Break;
+            end;
+
+            TCnPolynomialEcc.RationalPointAddPoint(RSX, RSY, PiPX, PiPY, TSX, TSY, A, B, Q, LDP);
+            BigNumberRationalPolynomialCopy(RSX, TSX);
+            BigNumberRationalPolynomialCopy(RSY, TSY);
+          end;
+        end;
       end
       else // 不等于正负，开始整 P19X 和 P19Y
       begin
