@@ -186,11 +186,14 @@ function CnSM2CheckKeys(PrivateKey: TCnSM2PrivateKey; PublicKey: TCnSM2PublicKey
 function CnSM2EncryptData(PlainData: Pointer; DataByteLen: Integer; OutStream:
   TStream; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
-  IncludePrefixByte: Boolean = True; const RandHex: string = ''): Boolean; overload;
+  IncludePrefixByte: Boolean = True; const RandHex: string = '';
+  C1UseCompress: Boolean = False): Boolean; overload;
 {* 用公钥对数据块进行加密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
    第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则。
    SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3，
-   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括。
+   IncludePrefixByte 用来声明是否包括 C1 前导的 $02/$03/$04 一字节，默认包括。
+   如 IncludePrefixByte 为 True，则 C1UseCompress 控制 C1 是否使用压缩模式，默认不压缩。
+   返回密文字节数组，如果加密失败则返回空。
    返回加密是否成功，加密结果写入 OutStream 中。
 
    参数：
@@ -202,17 +205,20 @@ function CnSM2EncryptData(PlainData: Pointer; DataByteLen: Integer; OutStream:
      SequenceType: TCnSM2CryptSequenceType                - 输出密文的内部拼接顺序，默认国标的 C1C3C2
      IncludePrefixByte: Boolean                           - 是否包括 C1 的前导字节 $04，默认包括
      const RandHex: string                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
+     C1UseCompress: Boolean                               - IncludePrefixByte 为 True 时 C1 是否使用压缩模式，此时前缀会变成 02 或 03
 
    返回值：Boolean                                        - 返回加密是否成功
 }
 
 function CnSM2EncryptData(const PlainData: TBytes; PublicKey: TCnSM2PublicKey; SM2: TCnSM2 = nil;
   SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
-  IncludePrefixByte: Boolean = True; const RandHex: string = ''): TBytes; overload;
+  IncludePrefixByte: Boolean = True; const RandHex: string = '';
+  C1UseCompress: Boolean = False): TBytes; overload;
 {* 用公钥对字节数组进行加密，参考 GM/T0003.4-2012《SM2椭圆曲线公钥密码算法
    第4部分:公钥加密算法》中的运算规则，不同于普通 ECC 与 RSA 的对齐规则。
    SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3，
-   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括。
+   IncludePrefixByte 用来声明是否包括 C1 前导的 $02/$03/$04 一字节，默认包括。
+   如 IncludePrefixByte 为 True，则 C1UseCompress 控制 C1 是否使用压缩模式，默认不压缩。
    返回密文字节数组，如果加密失败则返回空。
 
    参数：
@@ -222,6 +228,7 @@ function CnSM2EncryptData(const PlainData: TBytes; PublicKey: TCnSM2PublicKey; S
      SequenceType: TCnSM2CryptSequenceType                - 输出密文的内部拼接顺序，默认国标的 C1C3C2
      IncludePrefixByte: Boolean                           - 输出密文中是否要包括 C1 的前导字节 $04，默认包括
      const RandHex: string                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
+     C1UseCompress: Boolean                               - IncludePrefixByte 为 True 时 C1 是否使用压缩模式，此时前缀会变成 02 或 03
 
    返回值：TBytes                                         - 如果成功则返回密文字节数组，失败则返回空
 }
@@ -265,10 +272,11 @@ function CnSM2DecryptData(const EnData: TBytes; PrivateKey: TCnSM2PrivateKey;
 
 function CnSM2EncryptFile(const InFile: string; const OutFile: string; PublicKey: TCnSM2PublicKey;
   SM2: TCnSM2 = nil; SequenceType: TCnSM2CryptSequenceType = cstC1C3C2;
-  IncludePrefixByte: Boolean = True; const RandHex: string = ''): Boolean;
+  IncludePrefixByte: Boolean = True; const RandHex: string = ''; C1UseCompress: Boolean = False): Boolean;
 {* 用公钥加密 InFile 文件内容，加密结果存 OutFile 里，返回是否加密成功。
    SequenceType 用来指明内部拼接采用默认国标的 C1C3C2 还是想当然的 C1C2C3。
-   IncludePrefixByte 用来声明是否包括 C1 前导的 $04 一字节，默认包括。
+   IncludePrefixByte 用来声明是否包括 C1 前导的 $02/$03/$04 一字节，默认包括。
+   如 IncludePrefixByte 为 True，则 C1UseCompress 控制 C1 是否使用压缩模式，默认不压缩。
 
    参数：
      const InFile: string                                 - 待加密的明文原始文件名
@@ -278,6 +286,7 @@ function CnSM2EncryptFile(const InFile: string; const OutFile: string; PublicKey
      SequenceType: TCnSM2CryptSequenceType                - 输出密文的内部拼接顺序，默认国标的 C1C3C2
      IncludePrefixByte: Boolean                           - 输出密文中是否要包括 C1 的前导字节 $04，默认包括
      const RandHex: string                                - 可外部指定随机数的十六进制字符串，默认为空，空则内部生成
+     C1UseCompress: Boolean                               - IncludePrefixByte 为 True 时 C1 是否使用压缩模式，此时前缀会变成 02 或 03
 
    返回值：Boolean                                        - 返回加密是否成功
 }
@@ -1178,7 +1187,7 @@ end;
 }
 function CnSM2EncryptData(PlainData: Pointer; DataByteLen: Integer; OutStream:
   TStream; PublicKey: TCnSM2PublicKey; SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType;
-  IncludePrefixByte: Boolean; const RandHex: string): Boolean;
+  IncludePrefixByte: Boolean; const RandHex: string; C1UseCompress: Boolean): Boolean;
 var
   Py, P1, P2: TCnEccPoint;
   K: TCnBigNumber;
@@ -1237,16 +1246,28 @@ begin
     OutStream.Position := 0;
     if IncludePrefixByte then
     begin
-      B := 4;
+      if C1UseCompress then
+      begin
+        if P1.Y.IsOdd then
+          B := 03
+        else
+          B := 02
+      end
+      else
+        B := 04;
       OutStream.Write(B, 1);
     end;
 
     SetLength(Buf, CN_SM2_FINITEFIELD_BYTESIZE);
     P1.X.ToBinary(@Buf[0], CN_SM2_FINITEFIELD_BYTESIZE);
-    OutStream.Write(Buf[0], CN_SM2_FINITEFIELD_BYTESIZE);
-    SetLength(Buf, CN_SM2_FINITEFIELD_BYTESIZE);
-    P1.Y.ToBinary(@Buf[0], CN_SM2_FINITEFIELD_BYTESIZE);
-    OutStream.Write(Buf[0], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成 C1
+    OutStream.Write(Buf[0], CN_SM2_FINITEFIELD_BYTESIZE);      // 写 X
+
+    if not C1UseCompress then                                  // 不压缩则写 Y
+    begin
+      SetLength(Buf, CN_SM2_FINITEFIELD_BYTESIZE);
+      P1.Y.ToBinary(@Buf[0], CN_SM2_FINITEFIELD_BYTESIZE);
+      OutStream.Write(Buf[0], CN_SM2_FINITEFIELD_BYTESIZE);    // 拼成 C1
+    end;
 
     P2 := TCnEccPoint.Create;
     P2.Assign(PublicKey);
@@ -1290,8 +1311,9 @@ begin
   end;
 end;
 
-function CnSM2EncryptData(const PlainData: TBytes; PublicKey: TCnSM2PublicKey; SM2: TCnSM2;
-  SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean; const RandHex: string): TBytes;
+function CnSM2EncryptData(const PlainData: TBytes; PublicKey: TCnSM2PublicKey;
+  SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean;
+  const RandHex: string; C1UseCompress: Boolean): TBytes;
 var
   Stream: TMemoryStream;
 begin
@@ -1299,7 +1321,7 @@ begin
   Stream := TMemoryStream.Create;
   try
     if CnSM2EncryptData(@PlainData[0], Length(PlainData), Stream, PublicKey, SM2,
-      SequenceType, IncludePrefixByte, RandHex) then
+      SequenceType, IncludePrefixByte, RandHex, C1UseCompress) then
     begin
       SetLength(Result, Stream.Size);
       Move(Stream.Memory^, Result[0], Stream.Size);
@@ -1465,7 +1487,7 @@ end;
 
 function CnSM2EncryptFile(const InFile, OutFile: string; PublicKey: TCnSM2PublicKey;
   SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType; IncludePrefixByte: Boolean;
-  const RandHex: string): Boolean;
+  const RandHex: string; C1UseCompress: Boolean): Boolean;
 var
   Stream: TMemoryStream;
   F: TFileStream;
@@ -1479,7 +1501,7 @@ begin
 
     F := TFileStream.Create(OutFile, fmCreate);
     Result := CnSM2EncryptData(Stream.Memory, Stream.Size, F, PublicKey, SM2,
-      SequenceType, IncludePrefixByte, RandHex);
+      SequenceType, IncludePrefixByte, RandHex, C1UseCompress);
   finally
     F.Free;
     Stream.Free;
