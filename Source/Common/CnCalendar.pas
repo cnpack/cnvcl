@@ -8214,6 +8214,8 @@ begin
   begin
     Dec(Idx, CN_JIEQI_TOTAL_COUNT);
     Inc(AYear);
+    if AYear = 0 then // 没有公元 0 年
+      Inc(AYear);
   end;
 
   GetJieQiInAYear(AYear, Idx, Month, Day, DummyHour, DummyMinute, DummySec, DummyActualYear);
