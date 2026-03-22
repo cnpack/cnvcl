@@ -11286,7 +11286,8 @@ begin
     Pub.Y.SetHex('CCEA490CE26775A52DC6EA718CC1AA600AED05FBF35E084A6632F6072DA9AD13');
 
     Result := False;
-    if CnSM2EncryptData(@M[1], Length(M), EnStream, Pub, nil, cstC1C3C2, True, '59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21') then
+    if CnSM2EncryptData(@M[1], Length(M), EnStream, Pub, nil, cstC1C3C2, True,
+	  '59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21') then
     begin
       Result := DataToHex(EnStream.Memory, EnStream.Size) = '04' +
         '04EBFC718E8D1798620432268E77FEB6415E2EDE0E073C0F4F640ECD2E149A73' +
@@ -11299,6 +11300,29 @@ begin
       DeStream := TMemoryStream.Create;
       if CnSM2DecryptData(EnStream.Memory, EnStream.Size, DeStream, Priv) then
         Result := CompareMem(DeStream.Memory, @M[1], DeStream.Size);
+
+      if not Result then Exit;
+
+      EnStream.Clear;
+      if CnSM2EncryptData(@M[1], Length(M), EnStream, Pub, nil, cstC1C3C2, True,
+        '59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21', True) then
+      begin
+        Result := DataToHex(EnStream.Memory, EnStream.Size) = '02' +
+          '04EBFC718E8D1798620432268E77FEB6415E2EDE0E073C0F4F640ECD2E149A73' +
+          '59983C18F809E262923C53AEC295D30383B54E39D609D160AFCB1908D0BD8766' +
+          '21886CA989CA9C7D58087307CA93092D651EFA';
+
+        if not Result then Exit;
+
+        FreeAndNil(DeStream);
+        DeStream := TMemoryStream.Create;
+        if CnSM2DecryptData(EnStream.Memory, EnStream.Size, DeStream, Priv) then
+          Result := CompareMem(DeStream.Memory, @M[1], DeStream.Size)
+        else
+          Result := False;
+      end
+      else
+        Result := False;
     end;
   finally
     DeStream.Free;

@@ -1175,15 +1175,15 @@ end;
 {
   传入明文 M，长 MLen 字节，随机生成 k，计算
 
-  C1 = k * G => (x1, y1)         // 非压缩存储，长度为两个数字位长加 1，在 SM2 中也就是 32 * 2 + 1 = 65 字节
-
+  C1 = k * G => (x1, y1)         // 如果是非压缩存储，长度为两个数字位长加 1，在 SM2 中也就是 32 * 2 + 1 = 65 字节
+                                 // 如果是压缩存储，长度为一个数字位长加 1，在 SM2 中也就是 32 + 1 = 33 字节
   k * PublicKey => (x2, y2)
   t <= KDF(x2‖y2, MLen)
   C2 <= M xor t                  // 长度 MLen
 
   C3 <= SM3(x2‖M‖y2)           // 长度 32 字节
 
-  密文为：C1‖C3‖C2             // 总长 MLen + 97 字节
+  密文为：C1‖C3‖C2             // 总长 MLen + 97 字节（非压缩）或 + 65 字节（压缩）
 }
 function CnSM2EncryptData(PlainData: Pointer; DataByteLen: Integer; OutStream:
   TStream; PublicKey: TCnSM2PublicKey; SM2: TCnSM2; SequenceType: TCnSM2CryptSequenceType;
@@ -1332,7 +1332,7 @@ begin
 end;
 
 {
-  MLen <= DataLen - SM3DigLength - 2 * Sm2ByteLength - 1，劈开拿到 C1 C2 C3
+  MLen <= DataLen - SM3DigLength - 2 * Sm2ByteLength - 1，劈开拿到 C1 C2 C3，注意 C1 长度有压缩或非压缩两种
 
   PrivateKey * C1 => (x2, y2)
 
@@ -1351,8 +1351,10 @@ var
   KDFB, T: TBytes;
   C3H: AnsiString;
   SM2IsNil: Boolean;
-  P2: TCnEccPoint;
-  I, PrefixLen: Integer;
+  P, P2: TCnEccPoint;
+  I, PrefixLen, C1Len: Integer;
+  PrefixByte: Byte;
+  IsCompressed: Boolean;
   Sm3Dig: TCnSM3Digest;
 begin
   Result := False;
@@ -1362,6 +1364,7 @@ begin
     Exit;
   end;
 
+  P := nil;
   P2 := nil;
   SM2IsNil := SM2 = nil;
 
@@ -1369,34 +1372,53 @@ begin
     if SM2IsNil then
       SM2 := TCnSM2.Create;
 
-    MLen := DataByteLen - CN_SM2_MIN_ENCRYPT_BYTESIZE;
+    P2 := TCnEccPoint.Create;
+    M := PAnsiChar(EnData);
+    PrefixLen := 0;
+    PrefixByte := 0;
+    C1Len := CN_SM2_FINITEFIELD_BYTESIZE * 2;
+    IsCompressed := False;
+    if (M^ = #$02) or (M^ = #$03) or (M^ = #$04) then
+    begin
+      PrefixLen := 1;
+      PrefixByte := Byte(M^);
+      if (PrefixByte = $02) or (PrefixByte = $03) then
+      begin
+        IsCompressed := True;
+        C1Len := CN_SM2_FINITEFIELD_BYTESIZE;
+      end;
+      Inc(M);
+    end;
+
+    MLen := DataByteLen - SizeOf(TCnSM3Digest) - PrefixLen - C1Len;
     if MLen <= 0 then
     begin
       _CnSetLastError(ECN_SM2_INVALID_INPUT);
       Exit;
     end;
 
-    P2 := TCnEccPoint.Create;
-    M := PAnsiChar(EnData);
-    if M^ = #$04 then  // 跳过可能的前导字节 $04
+    P2.X.SetBinary(M, CN_SM2_FINITEFIELD_BYTESIZE);
+    Inc(M, CN_SM2_FINITEFIELD_BYTESIZE);
+    if IsCompressed then
     begin
-      Dec(MLen);
-      if MLen <= 0 then
+      P := TCnEccPoint.Create;
+      if not SM2.PlainToPoint(P2.X, P) then
       begin
         _CnSetLastError(ECN_SM2_INVALID_INPUT);
         Exit;
       end;
 
-      PrefixLen := 1;
-      Inc(M);
+      if (P.Y.IsOdd and (PrefixByte = $03)) or ((not P.Y.IsOdd) and (PrefixByte = $02)) then
+        BigNumberCopy(P2.Y, P.Y)
+      else
+      begin
+        SM2.PointInverse(P);
+        BigNumberCopy(P2.Y, P.Y);
+      end;
     end
     else
-      PrefixLen := 0;
+      P2.Y.SetBinary(M, CN_SM2_FINITEFIELD_BYTESIZE);
 
-    // 读出 C1
-    P2.X.SetBinary(M, CN_SM2_FINITEFIELD_BYTESIZE);
-    Inc(M, CN_SM2_FINITEFIELD_BYTESIZE);
-    P2.Y.SetBinary(M, CN_SM2_FINITEFIELD_BYTESIZE);
     if P2.IsZero then
     begin
       _CnSetLastError(ECN_SM2_DECRYPT_INFINITE_ERROR);
@@ -1414,7 +1436,7 @@ begin
     begin
       SetLength(MP, MLen);
       M := PAnsiChar(EnData);
-      Inc(M, SizeOf(TCnSM3Digest) + CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen); // 跳过 C3 指向 C2
+      Inc(M, SizeOf(TCnSM3Digest) + C1Len + PrefixLen);        // 跳过 C3 指向 C2
       for I := 1 to MLen do
         MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1]));  // 和 KDF 做异或，在 MP 里得到明文
 
@@ -1425,8 +1447,8 @@ begin
       Sm3Dig := SM3(@C3H[1], Length(C3H));                             // 算出 C3
 
       M := PAnsiChar(EnData);
-      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);             // M 指向 C3
-      if ConstTimeCompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then // 比对杂凑值是否相等
+      Inc(M, C1Len + PrefixLen);                                       // M 指向 C3
+      if ConstTimeCompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then
       begin
         OutStream.Write(MP[1], Length(MP));
 
@@ -1438,7 +1460,7 @@ begin
     begin
       SetLength(MP, MLen);
       M := PAnsiChar(EnData);
-      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen);     // 指向 C2
+      Inc(M, C1Len + PrefixLen);                               // 指向 C2
 
       for I := 1 to MLen do
         MP[I] := AnsiChar(Byte(M[I - 1]) xor Byte(T[I - 1]));  // 和 KDF 做异或，在 MP 里得到明文
@@ -1450,7 +1472,7 @@ begin
       Sm3Dig := SM3(@C3H[1], Length(C3H));                             // 算出 C3
 
       M := PAnsiChar(EnData);
-      Inc(M, CN_SM2_FINITEFIELD_BYTESIZE * 2 + PrefixLen + MLen);      // 指向 C3
+      Inc(M, C1Len + PrefixLen + MLen);                                // 指向 C3
       if ConstTimeCompareMem(@Sm3Dig[0], M, SizeOf(TCnSM3Digest)) then // 比对杂凑值是否相等
       begin
         OutStream.Write(MP[1], Length(MP));
@@ -1460,6 +1482,7 @@ begin
       end;
     end;
   finally
+    P.Free;
     P2.Free;
     if SM2IsNil then
       SM2.Free;
