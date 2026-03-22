@@ -1429,8 +1429,8 @@ begin
   Result := ConstTimeCompareBytes(A, B);
 
   if not Result then Exit;
-                                             // 长度不等
-  B[4] := $FF;
+
+  B[4] := $FF;                               // 长度不等
   Result := not ConstTimeCompareBytes(A, B);
 
   if not Result then Exit;
@@ -11287,7 +11287,7 @@ begin
 
     Result := False;
     if CnSM2EncryptData(@M[1], Length(M), EnStream, Pub, nil, cstC1C3C2, True,
-	  '59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21') then
+      '59276E27D506861A16680F3AD9C02DCCEF3CC1FA3CDBE4CE6D54B80DEAC1BC21') then
     begin
       Result := DataToHex(EnStream.Memory, EnStream.Size) = '04' +
         '04EBFC718E8D1798620432268E77FEB6415E2EDE0E073C0F4F640ECD2E149A73' +
@@ -11318,6 +11318,25 @@ begin
         DeStream := TMemoryStream.Create;
         if CnSM2DecryptData(EnStream.Memory, EnStream.Size, DeStream, Priv) then
           Result := CompareMem(DeStream.Memory, @M[1], DeStream.Size)
+        else
+          Result := False;
+
+        if not Result then Exit;
+
+        EnStream.Clear;
+        if CnSM2EncryptData(@M[1], Length(M), EnStream, Pub, nil, cstC1C3C2, True,
+          '2', True) then
+        begin
+          Result := (EnStream.Size > 0) and (PByte(EnStream.Memory)^ = $03);
+          if not Result then Exit;
+
+          FreeAndNil(DeStream);
+          DeStream := TMemoryStream.Create;
+          if CnSM2DecryptData(EnStream.Memory, EnStream.Size, DeStream, Priv) then
+            Result := CompareMem(DeStream.Memory, @M[1], DeStream.Size)
+          else
+            Result := False;
+        end
         else
           Result := False;
       end
