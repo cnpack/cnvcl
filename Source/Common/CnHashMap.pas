@@ -139,6 +139,8 @@ type
 
     procedure Refresh;
     {* 压缩碎片，用于删除内容较多时的压缩，较为耗时}
+    procedure Clear; virtual;
+    {* 清空所有内容?}
 
     procedure StartEnum;
     {* 开始遍历，内部重置遍历计数，注意不支持多线程交叉遍历}
@@ -609,6 +611,23 @@ begin
     NL := NL * Incr;
 
   ReSizeList(NL);
+end;
+
+procedure TCnBaseHashMap.Clear;
+var
+  I: Integer;
+begin
+  for I := Low(FList) to High(FList) do
+  begin
+    if FList[I].HashCode >= 0 then
+      DeleteValue(FList[I].Value);
+
+    FList[I].HashCode := CN_HASH_MAP_REC_EMPTY;
+    VarClear(FList[I].Key);
+    VarClear(FList[I].Value);
+  end;
+  FSize := 0;
+  FCurPos := -1;
 end;
 
 procedure TCnBaseHashMap.ReSizeList(NewLength: Integer);
