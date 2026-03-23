@@ -99,7 +99,7 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure SetCoefficents(LowToHighCoefficients: array of const);
+    procedure SetCoefficients(LowToHighCoefficients: array of const);
     {* 一次批量设置从低到高的系数。
 
        参数：
@@ -387,7 +387,7 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure SetCoefficents(LowToHighCoefficients: array of const);
+    procedure SetCoefficients(LowToHighCoefficients: array of const);
     {* 一次批量设置从低到高的系数。
 
        参数：
@@ -624,7 +624,7 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure SetCoefficents(LowToHighCoefficients: array of const);
+    procedure SetCoefficients(LowToHighCoefficients: array of const);
     {* 一次批量设置从低到高的系数。
 
        参数：
@@ -749,7 +749,7 @@ type
     destructor Destroy; override;
     {* 析构函数}
 
-    procedure SetCoefficents(LowToHighCoefficients: array of const);
+    procedure SetCoefficients(LowToHighCoefficients: array of const);
     {* 一次性设置所有从低到高的系数
 
        参数：
@@ -5600,7 +5600,7 @@ end;
 constructor TCnInt64Polynomial.Create(LowToHighCoefficients: array of const);
 begin
   inherited Create;
-  SetCoefficents(LowToHighCoefficients);
+  SetCoefficients(LowToHighCoefficients);
 end;
 
 destructor TCnInt64Polynomial.Destroy;
@@ -5654,7 +5654,7 @@ begin
   Items[Degree] := Coefficient;
 end;
 
-procedure TCnInt64Polynomial.SetCoefficents(LowToHighCoefficients: array of const);
+procedure TCnInt64Polynomial.SetCoefficients(LowToHighCoefficients: array of const);
 var
   I: Integer;
 begin
@@ -6130,13 +6130,15 @@ begin
     M := 1 shl M; // 得到比 M 大的最小的 2 的整数次幂
   end;
 
-  M1 := GetMemory(M * SizeOf(TCnComplexNumber));
-  M2 := GetMemory(M * SizeOf(TCnComplexNumber));
-
-  C1 := PCnComplexArray(M1);
-  C2 := PCnComplexArray(M2);
-
+  M1 := nil;
+  M2 := nil;
   try
+    GetMem(M1, M * SizeOf(TCnComplexNumber));
+    GetMem(M2, M * SizeOf(TCnComplexNumber));
+
+    C1 := PCnComplexArray(M1);
+    C2 := PCnComplexArray(M2);
+
     for I := 0 to M - 1 do
     begin
       ComplexNumberSetZero(C1^[I]);
@@ -6169,8 +6171,8 @@ begin
 
     Res.CorrectTop;
   finally
-    FreeMemory(M1);
-    FreeMemory(M2);
+    if M1 <> nil then FreeMem(M1);
+    if M2 <> nil then FreeMem(M2);
   end;
 end;
 
@@ -6215,13 +6217,15 @@ begin
     M := 1 shl M; // 得到比 M 大的最小的 2 的整数次幂
   end;
 
-  M1 := GetMemory(M * SizeOf(Int64));
-  M2 := GetMemory(M * SizeOf(Int64));
-
-  C1 := PInt64Array(M1);
-  C2 := PInt64Array(M2);
-
+  M1 := nil;
+  M2 := nil;
   try
+    GetMem(M1, M * SizeOf(Int64));
+    GetMem(M2, M * SizeOf(Int64));
+
+    C1 := PInt64Array(M1);
+    C2 := PInt64Array(M2);
+
     for I := 0 to M - 1 do
     begin
       C1^[I] := 0;
@@ -6249,8 +6253,8 @@ begin
 
     Res.CorrectTop;
   finally
-    FreeMemory(M1);
-    FreeMemory(M2);
+    if M1 <> nil then FreeMem(M1);
+    if M2 <> nil then FreeMem(M2);
   end;
 end;
 
@@ -6342,7 +6346,7 @@ var
 begin
   if Exponent = 0 then
   begin
-    Res.SetCoefficents([1]);
+    Res.SetCoefficients([1]);
     Result := True;
     Exit;
   end
@@ -6361,7 +6365,7 @@ begin
 
   try
     // 二进制形式快速计算 T 的次方，值给 Res
-    Res.SetCoefficents([1]);
+    Res.SetCoefficients([1]);
     while Exponent > 0 do
     begin
       if (Exponent and 1) <> 0 then
@@ -6459,7 +6463,7 @@ begin
     if (A.MaxDegree = 0) and (B.MaxDegree = 0) then
     begin
       GcdValue := CnInt64GreatestCommonDivisor(A[0], B[0]);
-      Res.SetCoefficents([GcdValue]);
+      Res.SetCoefficients([GcdValue]);
       Result := True;
       Exit;
     end;
@@ -6838,7 +6842,7 @@ var
 begin
   if Exponent128IsZero(Exponent, ExponentHi) then
   begin
-    Res.SetCoefficents([1]);
+    Res.SetCoefficients([1]);
     Result := True;
     Exit;
   end
@@ -6855,7 +6859,7 @@ begin
 
   try
     // 二进制形式快速计算 T 的次方，值给 Res
-    Res.SetCoefficents([1]);
+    Res.SetCoefficients([1]);
     while not Exponent128IsZero(Exponent, ExponentHi) do
     begin
       if (Exponent and 1) <> 0 then
@@ -7274,17 +7278,17 @@ begin
     raise ECnPolynomialException.Create(SCnErrorPolynomialGaloisInvalidDegree)
   else if Degree = 0 then
   begin
-    OutDivisionPolynomial.SetCoefficents([0]);  // f0(X) = 0
+    OutDivisionPolynomial.SetCoefficients([0]);  // f0(X) = 0
     Result := True;
   end
   else if Degree = 1 then
   begin
-    OutDivisionPolynomial.SetCoefficents([1]);  // f1(X) = 1
+    OutDivisionPolynomial.SetCoefficients([1]);  // f1(X) = 1
     Result := True;
   end
   else if Degree = 2 then
   begin
-    OutDivisionPolynomial.SetCoefficents([2]);  // f2(X) = 2
+    OutDivisionPolynomial.SetCoefficients([2]);  // f2(X) = 2
     Result := True;
   end
   else if Degree = 3 then   // f3(X) = 3 X4 + 6 a X2 + 12 b X - a^2
@@ -7351,7 +7355,7 @@ begin
       else // Degree 是奇数
       begin
         Y4 := FLocalInt64PolynomialPool.Obtain;
-        Y4.SetCoefficents([B, A, 0, 1]);
+        Y4.SetCoefficients([B, A, 0, 1]);
         Int64PolynomialGaloisMul(Y4, Y4, Y4, Prime);
 
         D1 := FLocalInt64PolynomialPool.Obtain;
@@ -8285,7 +8289,7 @@ end;
 constructor TCnBigNumberPolynomial.Create(LowToHighCoefficients: array of const);
 begin
   inherited Create;
-  SetCoefficents(LowToHighCoefficients);
+  SetCoefficients(LowToHighCoefficients);
 end;
 
 destructor TCnBigNumberPolynomial.Destroy;
@@ -8340,7 +8344,7 @@ begin
   BigNumberCopy(Items[Degree], Coefficient);
 end;
 
-procedure TCnBigNumberPolynomial.SetCoefficents(LowToHighCoefficients: array of const);
+procedure TCnBigNumberPolynomial.SetCoefficients(LowToHighCoefficients: array of const);
 var
   I: Integer;
 begin
@@ -10221,17 +10225,17 @@ begin
     raise ECnPolynomialException.Create('Galois Division Polynomial Invalid Degree')
   else if Degree = 0 then
   begin
-    OutDivisionPolynomial.SetCoefficents([0]);  // f0(X) = 0
+    OutDivisionPolynomial.SetCoefficients([0]);  // f0(X) = 0
     Result := True;
   end
   else if Degree = 1 then
   begin
-    OutDivisionPolynomial.SetCoefficents([1]);  // f1(X) = 1
+    OutDivisionPolynomial.SetCoefficients([1]);  // f1(X) = 1
     Result := True;
   end
   else if Degree = 2 then
   begin
-    OutDivisionPolynomial.SetCoefficents([2]);  // f2(X) = 2
+    OutDivisionPolynomial.SetCoefficients([2]);  // f2(X) = 2
     Result := True;
   end
   else if Degree = 3 then   // f3(X) = 3 X4 + 6 a X2 + 12 b X - a^2
@@ -10434,7 +10438,7 @@ end;
 constructor TCnBigComplexPolynomial.Create(LowToHighCoefficients: array of const);
 begin
   inherited Create;
-  SetCoefficents(LowToHighCoefficients);
+  SetCoefficients(LowToHighCoefficients);
 end;
 
 destructor TCnBigComplexPolynomial.Destroy;
@@ -10489,7 +10493,7 @@ begin
   BigComplexCopy(Items[Degree], Coefficient);
 end;
 
-procedure TCnBigComplexPolynomial.SetCoefficents(LowToHighCoefficients: array of const);
+procedure TCnBigComplexPolynomial.SetCoefficients(LowToHighCoefficients: array of const);
 var
   I: Integer;
 begin
@@ -10592,7 +10596,7 @@ end;
 constructor TCnBigComplexDecimalPolynomial.Create(LowToHighCoefficients: array of const);
 begin
   inherited Create;
-  SetCoefficents(LowToHighCoefficients);
+  SetCoefficients(LowToHighCoefficients);
 end;
 
 destructor TCnBigComplexDecimalPolynomial.Destroy;
@@ -10629,7 +10633,7 @@ begin
   end;
 end;
 
-procedure TCnBigComplexDecimalPolynomial.SetCoefficents(LowToHighCoefficients: array of const);
+procedure TCnBigComplexDecimalPolynomial.SetCoefficients(LowToHighCoefficients: array of const);
 var
   I: Integer;
 begin
