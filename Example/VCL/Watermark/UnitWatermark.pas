@@ -61,6 +61,7 @@ type
     procedure CompLog(const Msg: string);
     function ProcessWatermark(Embed: Boolean): Boolean;
     procedure OnWatermarkProgress(Sender: TObject; Percent: Integer);
+    procedure OnWatermarkImageReady(Sender: TObject; Image: TBitmap);
   public
 
   end;
@@ -94,6 +95,7 @@ begin
 
   FCnWatermark := TCnWatermark.Create(Self);
   FCnWatermark.OnProgress := OnWatermarkProgress;
+  FCnWatermark.OnWatermarkImageReady := OnWatermarkImageReady;
 
   cbbStrength.ItemIndex := 1; // Medium
 end;
@@ -379,6 +381,29 @@ begin
   Application.ProcessMessages;
 end;
 
+procedure TFormWatermark.OnWatermarkImageReady(Sender: TObject; Image: TBitmap);
+var
+  SubForm: TForm;
+  SubImg: TImage;
+begin
+  if (Image = nil) or (Image.Empty) then Exit;
+
+  SubForm := TForm.Create(Self);
+  SubForm.Caption := 'Watermark Source Image';
+  SubForm.Width := Image.Width + 40;
+  SubForm.Height := Image.Height + 60;
+  SubForm.Position := poScreenCenter;
+
+  SubImg := TImage.Create(SubForm);
+  SubImg.Parent := SubForm;
+  SubImg.Left := 10;
+  SubImg.Top := 10;
+  SubImg.AutoSize := True;
+  SubImg.Picture.Assign(Image);
+
+  SubForm.Show;
+end;
+
 procedure TFormWatermark.btnCompEmbedClick(Sender: TObject);
 var
   SaveDlg: TSaveDialog;
@@ -409,11 +434,11 @@ begin
   else
     FCnWatermark.Mode := wmText;
 
-  case cbbStrength.ItemIndex of
-    0: FCnWatermark.StrengthLevel := wsLow;
-    1: FCnWatermark.StrengthLevel := wsMedium;
-    2: FCnWatermark.StrengthLevel := wsHigh;
-  end;
+//  case cbbStrength.ItemIndex of
+//    0: FCnWatermark.StrengthLevel := wsLow;
+//    1: FCnWatermark.StrengthLevel := wsMedium;
+//    2: FCnWatermark.StrengthLevel := wsHigh;
+//  end;
 
   CompLog('Embedding watermark...');
   pbProgress.Position := 0;

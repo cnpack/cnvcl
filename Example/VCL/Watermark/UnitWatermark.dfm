@@ -1,6 +1,6 @@
 object FormWatermark: TFormWatermark
   Left = 192
-  Top = 107
+  Top = 108
   Width = 979
   Height = 563
   Caption = 'Watermark Test - NOT Ready'
