@@ -535,7 +535,7 @@ const
   UINT64_EXTENDED_EXP_MAX = $4040; // UINT64 最大整数对应 Extended 浮点的最大指数
 
 resourcestring
-  SCN_ERROR_EXTENDED_SIZE = 'Extended Size Error';
+  SCnErrorExtendedSizeFmt = 'Extended Size Error %d';
 
 type
   TExtendedRec10 = packed record
@@ -1253,7 +1253,7 @@ begin
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
     ExtractFloatDouble(Value, SignNegative, Exponent, Mantissa)
   else
-    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+    raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [SizeOf(Extended)]);
 end;
 
 procedure ExtractFloatExtended(ValueAddr: Pointer; ExtendedSize: Integer;
@@ -1273,14 +1273,14 @@ begin
     ExtractFloatDouble(D, SignNegative, Exponent, Mantissa);
   end
   else
-    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+    raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [SizeOf(Extended)]);
 end;
 
 procedure ExtractFloatQuadruple(Value: Extended; out SignNegative: Boolean;
   out Exponent: Integer; out MantissaLo, MantissaHi: TUInt64);
 begin
   if SizeOf(Extended) <> CN_EXTENDED_SIZE_16 then
-    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+    raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [SizeOf(Extended)]);
 
   SignNegative := (PCnQuadruple(@Value)^.W1 and CN_SIGN_QUADRUPLE_MASK) <> 0;
   Exponent := (PCnQuadruple(@Value)^.W1 and CN_EXPONENT_QUADRUPLE_MASK) - CN_EXPONENT_OFFSET_EXTENDED;
@@ -1342,7 +1342,7 @@ begin
     Value := D;
   end
   else
-    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+    raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [SizeOf(Extended)]);
 end;
 
 procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
@@ -1367,7 +1367,7 @@ begin
     Move(D, ValueAddr^, SizeOf(Double));
   end
   else
-    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+    raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [SizeOf(Extended)]);
 end;
 
 {$HINTS ON}
@@ -1376,7 +1376,7 @@ procedure CombineFloatQuadruple(SignNegative: Boolean; Exponent: Integer;
   MantissaLo, MantissaHi: TUInt64; var Value: Extended);
 begin
   if SizeOf(Extended) <> CN_EXTENDED_SIZE_16 then
-    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+    raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [SizeOf(Extended)]);
 
   MantissaHi := MantissaHi and not (TUInt64(1) shl 48); // 去掉 112 位上的 1，如果有的话
   PCnQuadruple(@Value)^.Lo := MantissaLo;
@@ -1485,13 +1485,13 @@ end;
 
 function ExtendedIsInfinite(AValue: Extended): Boolean;
 begin
-  if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
+  if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
     Result := ((PExtendedRec10(@AValue)^.ExpSign and $7FFF) = $7FFF) and
               ((PExtendedRec10(@AValue)^.Mantissa) = 0)
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
     Result := DoubleIsInfinite(AValue)
   else
-    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+    raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [SizeOf(Extended)]);
 end;
 
 function SingleIsNan(AValue: Single): Boolean;
@@ -1508,13 +1508,13 @@ end;
 
 function ExtendedIsNan(AValue: Extended): Boolean;
 begin
-  if SizeOf(Extended) = CN_EXTENDED_SIZE_10 then
+  if (SizeOf(Extended) = CN_EXTENDED_SIZE_10) or (SizeOf(Extended) = CN_EXTENDED_SIZE_16) then
     Result := ((PExtendedRec10(@AValue)^.ExpSign and $7FFF)  = $7FFF) and
               ((PExtendedRec10(@AValue)^.Mantissa and $7FFFFFFFFFFFFFFF) <> 0)
   else if SizeOf(Extended) = CN_EXTENDED_SIZE_8 then
     Result := DoubleIsNan(AValue)
   else
-    raise ECnFloatSizeError.Create(SCN_ERROR_EXTENDED_SIZE);
+    raise ECnFloatSizeError.CreateFmt(SCnErrorExtendedSizeFmt, [SizeOf(Extended)]);
 end;
 
 function ExtendedToStr(AValue: Extended): string;
