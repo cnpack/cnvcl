@@ -5854,11 +5854,11 @@ begin
   R2 := Pool.Obtain;
   Res := Pool.Obtain;
   try
-    R1.Numerator.SetCoefficents([2, 1]);
-    R1.Denominator.SetCoefficents([2]);
+    R1.Numerator.SetCoefficients([2, 1]);
+    R1.Denominator.SetCoefficients([2]);
 
-    R2.Numerator.SetCoefficents([0, 1]);
-    R2.Denominator.SetCoefficents([3]);
+    R2.Numerator.SetCoefficients([0, 1]);
+    R2.Denominator.SetCoefficients([3]);
 
     Int64RationalPolynomialAdd(Res, R1, R2);
     if Res.ToString <> '5X+6 / 6' then Exit;
@@ -5880,11 +5880,11 @@ begin
   R2 := Pool.Obtain;
   Res := Pool.Obtain;
   try
-    R1.Numerator.SetCoefficents([2, 1]);
-    R1.Denominator.SetCoefficents([2]);
+    R1.Numerator.SetCoefficients([2, 1]);
+    R1.Denominator.SetCoefficients([2]);
 
-    R2.Numerator.SetCoefficents([0, 1]);
-    R2.Denominator.SetCoefficents([3]);
+    R2.Numerator.SetCoefficients([0, 1]);
+    R2.Denominator.SetCoefficients([3]);
 
     BigNumberRationalPolynomialAdd(Res, R1, R2);
     if Res.ToString <> '5X+6 / 6' then Exit;

@@ -670,8 +670,8 @@ begin
   R := TCnInt64Polynomial.Create;
 
   // 测试代码
-//  FIP1.SetCoefficents([1, 2, 3]);
-//  FIP2.SetCoefficents([2, 1]);
+//  FIP1.SetCoefficients([1, 2, 3]);
+//  FIP2.SetCoefficients([2, 1]);
 //  if Int64PolynomialDiv(FIP3, R, FIP1, FIP2) then
 //  begin
 //    edtIP3.Text := FIP3.ToString;          // 3X - 4
@@ -729,7 +729,7 @@ begin
     Int64PolynomialSubWord(Y, 3);             // Y 减去了 A*X - B，得到 54X + 18
     Int64PolynomialNonNegativeModWord(Y, 67);
 
-    X.SetCoefficents([16, 2]);
+    X.SetCoefficients([16, 2]);
     Int64PolynomialGaloisPower(X, X, 3, 67, P);  // 得到 54X + 18
 
     Int64PolynomialGaloisSub(Y, Y, X, 67);
@@ -768,7 +768,7 @@ begin
     Int64PolynomialSubWord(Y, 1);
     Int64PolynomialNonNegativeModWord(Y, 7691);
 
-    X.SetCoefficents([6145, 633]);
+    X.SetCoefficients([6145, 633]);
     Int64PolynomialGaloisPower(X, X, 3, 7691, P);
 
     Int64PolynomialGaloisSub(Y, Y, X, 7691);
@@ -799,7 +799,7 @@ begin
     Int64PolynomialGaloisPower(X, X, 67, 67, P);
     ShowMessage(X.ToString);   // 得到 65x + 16
 
-    X.SetCoefficents([39, 30]);
+    X.SetCoefficients([39, 30]);
     Int64PolynomialGaloisPower(X, X, 67, 67, P);
     ShowMessage(X.ToString);   // 得到 37x + 39
   finally
@@ -826,27 +826,27 @@ begin
   X := TCnInt64Polynomial.Create;
   P := TCnInt64Polynomial.Create([2, 0, 0, 1]);
   try
-    X.SetCoefficents([8, 4, 15]);
+    X.SetCoefficients([8, 4, 15]);
     Int64PolynomialGaloisPower(X, X, 67, 67, P);
     ShowMessage(X.ToString);  // 33x^2 + 14x + 8
 
-    X.SetCoefficents([21, 30, 44]);
+    X.SetCoefficients([21, 30, 44]);
     Int64PolynomialGaloisPower(X, X, 67, 67, P);
     ShowMessage(X.ToString);  // 3x^2 + 38x + 21
 
-    X.SetCoefficents([8, 4, 15]);
+    X.SetCoefficients([8, 4, 15]);
     Int64PolynomialGaloisPower(X, X, 67 * 67, 67, P);
     ShowMessage(X.ToString);  // 19x^2 + 49x + 8
 
-    X.SetCoefficents([21, 30, 44]);
+    X.SetCoefficients([21, 30, 44]);
     Int64PolynomialGaloisPower(X, X, 67 * 67, 67, P);
     ShowMessage(X.ToString);  // 20x^2 + 66x + 21
 
-    X.SetCoefficents([8, 4, 15]);
+    X.SetCoefficients([8, 4, 15]);
     Int64PolynomialGaloisPower(X, X, 67 * 67 * 67, 67, P);
     ShowMessage(X.ToString);  // 15x^2 + 4x + 8
 
-    X.SetCoefficents([21, 30, 44]);
+    X.SetCoefficients([21, 30, 44]);
     Int64PolynomialGaloisPower(X, X, 67 * 67 * 67, 67, P);
     ShowMessage(X.ToString);  // 44x^2 + 30x + 21
   finally
@@ -901,8 +901,8 @@ begin
     mmoIP2.Lines.Text := FIP2.ToString;
   end;
 
-//  FIP1.SetCoefficents([-5, 2, 0, 3]);
-//  FIP2.SetCoefficents([-1, -2, 0, 3]);
+//  FIP1.SetCoefficients([-5, 2, 0, 3]);
+//  FIP2.SetCoefficients([-1, -2, 0, 3]);
   if Int64PolynomialGreatestCommonDivisor(FIP3, FIP1, FIP2) then
     edtIP3.Text := FIP3.ToString;
 end;
@@ -911,15 +911,15 @@ procedure TFormPolynomial.btnGaloisTestGcdClick(Sender: TObject);
 begin
 // GCD 例子一：
 // F11 扩域上的 x^2 + 8x + 7 和 x^3 + 7x^2 + x + 7 的最大公因式是 x + 7
-  FIP1.SetCoefficents([7, 8, 1]);
-  FIP2.SetCoefficents([7, 1, 7, 1]);  // 而和 [7, 1, 2, 1] 则互素
+  FIP1.SetCoefficients([7, 8, 1]);
+  FIP2.SetCoefficients([7, 1, 7, 1]);  // 而和 [7, 1, 2, 1] 则互素
   if Int64PolynomialGaloisGreatestCommonDivisor(FIP3, FIP1, FIP2, 11) then
     ShowMessage(FIP3.ToString);
 
 // GCD 例子二：
 // F2 扩域上的 x^6 + x^5 + x^4 + x^3 + x^2 + x + 1 和 x^4 + x^2 + x + 1 的最大公因式是 x^3 + x^2 + 1
-  FIP1.SetCoefficents([1,1,1,1,1,1,1]);
-  FIP2.SetCoefficents([1,1,1,0,1]);
+  FIP1.SetCoefficients([1,1,1,1,1,1,1]);
+  FIP2.SetCoefficients([1,1,1,0,1]);
   if Int64PolynomialGaloisGreatestCommonDivisor(FIP3, FIP1, FIP2, 2) then
     ShowMessage(FIP3.ToString);
 end;
@@ -928,8 +928,8 @@ procedure TFormPolynomial.btnTestGaloisMIClick(Sender: TObject);
 begin
 // Modulus Inverse 例子：
 // F3 的扩域上的本原多项式 x^3 + 2x + 1 有 x^2 + 1 的模逆多项式为 2x^2 + x + 2
-  FIP1.SetCoefficents([1, 0, 1]);
-  FIP2.SetCoefficents([1, 2, 0, 1]);
+  FIP1.SetCoefficients([1, 0, 1]);
+  FIP2.SetCoefficients([1, 2, 0, 1]);
   Int64PolynomialGaloisModularInverse(FIP3, FIP1, FIP2, 3);
     edtIP3.Text := FIP3.ToString;
 end;
@@ -938,9 +938,9 @@ procedure TFormPolynomial.btnGF28Test1Click(Sender: TObject);
 var
   IP: TCnInt64Polynomial;
 begin
-  FIP1.SetCoefficents([1,1,1,0,1,0,1]); // 57
-  FIP2.SetCoefficents([1,1,0,0,0,0,0,1]); // 83
-  FIP3.SetCoefficents([1,1,0,1,1,0,0,0,1]); // 本原多项式
+  FIP1.SetCoefficients([1,1,1,0,1,0,1]); // 57
+  FIP2.SetCoefficients([1,1,0,0,0,0,0,1]); // 83
+  FIP3.SetCoefficients([1,1,0,1,1,0,0,0,1]); // 本原多项式
 
   IP := TCnInt64Polynomial.Create;
   Int64PolynomialGaloisMul(IP, FIP1, FIP2, 2, FIP3);
@@ -1158,8 +1158,8 @@ begin
     ShowMessage('Pi NOT');
 
   // 某 Pi^2
-  X.SetCoefficents([5,11,3,2,2,7,5,2,11,6,12,5]);
-  Y.SetCoefficents([9,3,9,9,2,10,5,3,5,6,2,6]);
+  X.SetCoefficients([5,11,3,2,2,7,5,2,11,6,12,5]);
+  Y.SetCoefficients([9,3,9,9,2,10,5,3,5,6,2,6]);
 
   Int64PolynomialGaloisMul(Y, Y, Y, 13, P); // 计算 PiY 系数的平方
   Int64PolynomialGaloisMul(Y, Y, E, 13, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
@@ -1173,8 +1173,8 @@ begin
     ShowMessage('Pi^2 NOT');
 
   // 某 3 * P
-  X.SetCoefficents([10,8,7,9,5,12,4,12,3,4,1,6]);
-  Y.SetCoefficents([7,2,10,0,3,7,4,6,3,0,11,12]);
+  X.SetCoefficients([10,8,7,9,5,12,4,12,3,4,1,6]);
+  Y.SetCoefficients([7,2,10,0,3,7,4,6,3,0,11,12]);
 
   Int64PolynomialGaloisMul(Y, Y, Y, 13, P); // 计算 PiY 系数的平方
   Int64PolynomialGaloisMul(Y, Y, E, 13, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
@@ -1188,8 +1188,8 @@ begin
     ShowMessage('3 * P NOT');
 
   // 某点加 π^2 + 3 * P
-  X.SetCoefficents([4,5,1,11,4,4,9,6,12,2,6,3]);
-  Y.SetCoefficents([2,7,9,11,7,2,9,5,5,6,12,3]);
+  X.SetCoefficients([4,5,1,11,4,4,9,6,12,2,6,3]);
+  Y.SetCoefficients([2,7,9,11,7,2,9,5,5,6,12,3]);
 
   Int64PolynomialGaloisMul(Y, Y, Y, 13, P); // 计算 PiY 系数的平方
   Int64PolynomialGaloisMul(Y, Y, E, 13, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
@@ -1226,21 +1226,21 @@ end;
 procedure TFormPolynomial.btnTestGaloisModularInverse1Click(
   Sender: TObject);
 begin
-  FIP1.SetCoefficents([1,2,0,1]);
-  FIP2.SetCoefficents([3,4,4,0,1]);  // 本原多项式
+  FIP1.SetCoefficients([1,2,0,1]);
+  FIP2.SetCoefficients([3,4,4,0,1]);  // 本原多项式
   Int64PolynomialGaloisModularInverse(FIP3, FIP1, FIP2, 13);
   ShowMessage(FIP3.ToString);  // 得到 5x^3+6x+2
 
   Int64PolynomialGaloisMul(FIP3, FIP3, FIP1, 13, FIP2); // 乘一下验算看是不是得到 1
   ShowMessage(FIP3.ToString);
 
-  FIP1.SetCoefficents([4,8,0,4]);
-  FIP2.SetCoefficents([9,12,12,0,3]);
+  FIP1.SetCoefficients([4,8,0,4]);
+  FIP2.SetCoefficients([9,12,12,0,3]);
   Int64PolynomialGaloisModularInverse(FIP3, FIP1, FIP2, 13);
   ShowMessage(FIP3.ToString);  // 得到 11x^3+8x+7
 
   // 以下不用，
-//  FIP1.SetCoefficents([4,-8,-4,0,1]);
+//  FIP1.SetCoefficients([4,-8,-4,0,1]);
 //  Int64PolynomialGaloisMul(FIP1, FIP1, FIP3, 13, FIP2);
 //  // Int64PolynomialGaloisMul(FIP3, FIP3, FIP1, 13, FIP2); // 乘一下验算看是不是得到 1
 //  ShowMessage(FIP1.ToString); // 居然得到 x
@@ -1398,7 +1398,7 @@ begin
   Y := TCnInt64RationalPolynomial.Create;
 
   X.SetOne;
-  X.Numerator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficients([0, 1]);
   Y.SetOne;
 
   TCnInt64PolynomialEcc.RationalMultiplePoint(2, X, Y, 1, 1, 23);
@@ -1415,7 +1415,7 @@ begin
   ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 16 对了
 
   X.SetOne;
-  X.Numerator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficients([0, 1]);
   Y.SetOne;
 
   TCnInt64PolynomialEcc.RationalMultiplePoint(3, X, Y, 1, 1, 23);
@@ -1432,7 +1432,7 @@ begin
   ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 11 对了
 
   X.SetOne;
-  X.Numerator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficients([0, 1]);
   Y.SetOne;
 
   TCnInt64PolynomialEcc.RationalMultiplePoint(4, X, Y, 1, 1, 23);
@@ -1449,7 +1449,7 @@ begin
   ShowMessage(IntToStr(Int64RationalPolynomialGaloisGetValue(Y, 6, 23) * 19 mod 23)); // 得到 19
 
   X.SetOne;
-  X.Numerator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficients([0, 1]);
   Y.SetOne;
 
   TCnInt64PolynomialEcc.RationalMultiplePoint(5, X, Y, 1, 1, 23);
@@ -1557,13 +1557,13 @@ begin
   Q := 23;   // 有限域F23上的 Y^2=X^3+X+1  （6，19）* 2 = （13，16）
 
   // 先求整数域
-  X.Numerator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
-  X.Denominator.SetCoefficents([4*B, 4*A, 0, 4]);         //        4X3 + 4AX + 4B
+  X.Numerator.SetCoefficients([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
+  X.Denominator.SetCoefficients([4*B, 4*A, 0, 4]);         //        4X3 + 4AX + 4B
 
-  Y.Numerator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
-  Y.Denominator.SetCoefficents([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
+  Y.Numerator.SetCoefficients([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
+  Y.Denominator.SetCoefficients([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
 
-  Y2.SetCoefficents([B, A, 0, 1]);
+  Y2.SetCoefficients([B, A, 0, 1]);
   // 验证 Y^2 * (x^3+Ax+B) 是否等于 X3 + AX + B
 
   Int64RationalPolynomialMul(Y, Y, Y);
@@ -1574,27 +1574,27 @@ begin
   Int64RationalPolynomialMul(RR, X, X);
   Int64RationalPolynomialMul(RR, RR, X); // 得到 X^3
 
-  P.SetCoefficents([A]);
+  P.SetCoefficients([A]);
   Int64RationalPolynomialMul(T, X, P);   // T 得到 A * X
   Int64RationalPolynomialAdd(RR, RR, T); // RR 得到 X^3 + AX
 
-  P.SetCoefficents([B]);
+  P.SetCoefficients([B]);
   Int64RationalPolynomialAdd(RR, RR, P); // RR 得到 X^3 + AX + B
   RR.Reduce;
   ShowMessage(RR.ToString);
 
   // RL/RR 在整数域内有除式不等，换 Fq 看看，原始点（6，19），二倍点公式套上去得到（13，16）
-  X.Numerator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
-  X.Denominator.SetCoefficents([4*B, 4*A, 0, 4]);          //        4X3 + 4AX + 4B
+  X.Numerator.SetCoefficients([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
+  X.Denominator.SetCoefficients([4*B, 4*A, 0, 4]);          //        4X3 + 4AX + 4B
   ShowMessage('2*X (X=6) using Division Polynomial is '
     + IntToStr(Int64RationalPolynomialGaloisGetValue(X, 6, Q))); // 得到 13 对了
 
-  Y.Numerator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
-  Y.Denominator.SetCoefficents([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
+  Y.Numerator.SetCoefficients([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
+  Y.Denominator.SetCoefficients([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
   ShowMessage('2*Y (X=6) using Division Polynomial is '
     + IntToStr((Int64RationalPolynomialGaloisGetValue(Y, 6, Q) * 19) mod Q)); // 得到 16 对了
 
-  Y2.SetCoefficents([B, A, 0, 1]);
+  Y2.SetCoefficients([B, A, 0, 1]);
   // 验证二倍点公式用一倍点坐标算出来的值 Y^2 * (x^3+Ax+B) 是否等于 X3 + AX + B
 
   Int64RationalPolynomialGaloisMul(Y, Y, Y, Q);
@@ -1604,11 +1604,11 @@ begin
   Int64RationalPolynomialGaloisMul(RR, X, X, Q);
   Int64RationalPolynomialGaloisMul(RR, RR, X, Q); // 得到 X^3
 
-  P.SetCoefficents([A]);
+  P.SetCoefficients([A]);
   Int64RationalPolynomialGaloisMul(T, X, P, Q);   // T 得到 A * X
   Int64RationalPolynomialGaloisAdd(RR, RR, T, Q); // RR 得到 X^3 + AX
 
-  P.SetCoefficents([B]);
+  P.SetCoefficients([B]);
   Int64RationalPolynomialGaloisAdd(RR, RR, P, Q); // RR 得到 X^3 + AX + B
   ShowMessage(RR.ToString);
 
@@ -1779,9 +1779,9 @@ begin
   ShowMessage('DP5: ' + DP.ToString);
 
   X.Denominator.SetOne;
-  X.Numerator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficients([0, 1]);
   Y.Numerator.SetOne;
-  Y.Denominator.SetCoefficents([1]);     // ( x/1, 1/1 *y)
+  Y.Denominator.SetCoefficients([1]);     // ( x/1, 1/1 *y)
 
   ShowMessage('P2:');
   TCnInt64PolynomialEcc.RationalPointAddPoint(X, Y, X, Y, M2X, M2Y, 6, 1, 29, DP);
@@ -1878,7 +1878,7 @@ begin
   Int64PolynomialGaloisPower(Pi2X, X, 97 * 97, 97, DP);
   ShowMessage(Pi2X.ToString);         // 得到基本正确的结果，Ring 几内计算就是 mod f几，原用例最后一项常数项可能有错
 
-  Y.SetCoefficents([-12, 31, 0, 1]);
+  Y.SetCoefficients([-12, 31, 0, 1]);
   Int64PolynomialGaloisPower(Pi2Y, Y, (97 * 97 - 1) div 2, 97, DP);
   ShowMessage(Pi2Y.ToString);               // 得到正确结果，y^q^2 = y^q^2-1 * y = (x3+Ax+B)^((q^2-1)/2) * y
 
@@ -1976,11 +1976,11 @@ begin
 
   // 比较 '6X^11+20X^10+13X^9+20X^8+15X^7+X^6+25X^5+2X^4+13X^3+7X^2+25X+13 / 21X^11+5X^10+12X^9+4X^8+5X^7+23X^6+17X^5+11X^4+22X^3+23X^2+16X+6'
   // 和 27x^11,23x^10,12x^9,10x^8,14x^7,10x^6,21x^5,0x^4,16x^3,17x^2,28x^1,18x^0 / 1x^11,14x^10,9x^9,6x^8,25x^7,3x^6,9x^5,25x^4,0x^3,25x^2,25x^1,6x^0
-  A.Numerator.SetCoefficents([13,25,7,13,2,25,1,15,20,13,20,6]);
-  A.Denominator.SetCoefficents([6,16,23,22,11,17,23,5,4,12,5,21]);
+  A.Numerator.SetCoefficients([13,25,7,13,2,25,1,15,20,13,20,6]);
+  A.Denominator.SetCoefficients([6,16,23,22,11,17,23,5,4,12,5,21]);
 
-  B.Numerator.SetCoefficents([18,28,17,16,0,21,10,14,10,12,23,27]);
-  B.Denominator.SetCoefficents([6,25,25,0,25,9,3,25,6,9,14,1]);
+  B.Numerator.SetCoefficients([18,28,17,16,0,21,10,14,10,12,23,27]);
+  B.Denominator.SetCoefficients([6,25,25,0,25,9,3,25,6,9,14,1]);
 
   TI1 := TCnInt64Polynomial.Create;
   TI2 := TCnInt64Polynomial.Create;
@@ -2072,8 +2072,8 @@ begin
   P1 := TCnInt64Polynomial.Create;
   P2 := TCnInt64Polynomial.Create;
 
-  P1.SetCoefficents([0, 1]); // x
-  P2.SetCoefficents([0, 1]); // x
+  P1.SetCoefficients([0, 1]); // x
+  P2.SetCoefficients([0, 1]); // x
 
   Int64PolynomialGaloisCalcDivisionPolynomial(2, 1, 3, LDP, Q);
   ShowMessage(LDP.ToString);  // 3x^4 + 12x^2 + 12x + 9
@@ -2211,7 +2211,7 @@ begin
     BigNumberPolynomialSubWord(Y, 3);             // Y 减去了 A*X - B，得到 54X + 18
     BigNumberPolynomialNonNegativeModWord(Y, 67);
 
-    X.SetCoefficents([16, 2]);
+    X.SetCoefficients([16, 2]);
     BigNumberPolynomialGaloisPower(X, X, 3, Q, P);  // 得到 54X + 18
 
     BigNumberPolynomialGaloisSub(Y, Y, X, Q);
@@ -2255,7 +2255,7 @@ begin
     BigNumberPolynomialSubWord(Y, 1);
     BigNumberPolynomialNonNegativeModWord(Y, 7691);
 
-    X.SetCoefficents([6145, 633]);
+    X.SetCoefficients([6145, 633]);
     BigNumberPolynomialGaloisPower(X, X, 3, Q, P);
 
     BigNumberPolynomialGaloisSub(Y, Y, X, Q);
@@ -2291,7 +2291,7 @@ begin
     BigNumberPolynomialGaloisPower(X, X, Q, Q, P);
     ShowMessage(X.ToString);  // 得到 65x + 16
 
-    X.SetCoefficents([39, 30]);
+    X.SetCoefficients([39, 30]);
     BigNumberPolynomialGaloisPower(X, X, Q, Q, P);
     ShowMessage(X.ToString);  // 得到 37x + 39
   finally
@@ -2323,27 +2323,27 @@ begin
   Q.SetWord(67);
 
   try
-    X.SetCoefficents([8, 4, 15]);
+    X.SetCoefficients([8, 4, 15]);
     BigNumberPolynomialGaloisPower(X, X, 67, Q, P);
     ShowMessage(X.ToString);  // 33x^2 + 14x + 8
 
-    X.SetCoefficents([21, 30, 44]);
+    X.SetCoefficients([21, 30, 44]);
     BigNumberPolynomialGaloisPower(X, X, 67, Q, P);
     ShowMessage(X.ToString);  // 3x^2 + 38x + 21
 
-    X.SetCoefficents([8, 4, 15]);
+    X.SetCoefficients([8, 4, 15]);
     BigNumberPolynomialGaloisPower(X, X, 67 * 67, Q, P);
     ShowMessage(X.ToString);  // 19x^2 + 49x + 8
 
-    X.SetCoefficents([21, 30, 44]);
+    X.SetCoefficients([21, 30, 44]);
     BigNumberPolynomialGaloisPower(X, X, 67 * 67, Q, P);
     ShowMessage(X.ToString);  // 20x^2 + 66x + 21
 
-    X.SetCoefficents([8, 4, 15]);
+    X.SetCoefficients([8, 4, 15]);
     BigNumberPolynomialGaloisPower(X, X, 67 * 67 * 67, Q, P);
     ShowMessage(X.ToString);  // 15x^2 + 4x + 8
 
-    X.SetCoefficents([21, 30, 44]);
+    X.SetCoefficients([21, 30, 44]);
     BigNumberPolynomialGaloisPower(X, X, 67 * 67 * 67, Q, P);
     ShowMessage(X.ToString);  // 44x^2 + 30x + 21
   finally
@@ -2362,15 +2362,15 @@ begin
   Q := TCnBigNumber.Create;
   Q.SetWord(11);
 
-  FBP1.SetCoefficents([7, 8, 1]);
-  FBP2.SetCoefficents([7, 1, 7, 1]);  // 而和 [7, 1, 2, 1] 则互素
+  FBP1.SetCoefficients([7, 8, 1]);
+  FBP2.SetCoefficients([7, 1, 7, 1]);  // 而和 [7, 1, 2, 1] 则互素
   if BigNumberPolynomialGaloisGreatestCommonDivisor(FBP3, FBP1, FBP2, Q) then
     ShowMessage(FBP3.ToString);
 
 // GCD 例子二：
 // F2 扩域上的 x^6 + x^5 + x^4 + x^3 + x^2 + x + 1 和 x^4 + x^2 + x + 1 的最大公因式是 x^3 + x^2 + 1
-  FBP1.SetCoefficents([1,1,1,1,1,1,1]);
-  FBP2.SetCoefficents([1,1,1,0,1]);
+  FBP1.SetCoefficients([1,1,1,1,1,1,1]);
+  FBP2.SetCoefficients([1,1,1,0,1]);
   Q.SetWord(2);
   if BigNumberPolynomialGaloisGreatestCommonDivisor(FBP3, FBP1, FBP2, Q) then
     ShowMessage(FBP3.ToString);
@@ -2384,8 +2384,8 @@ var
 begin
 // Modulus Inverse 例子：
 // F3 的扩域上的本原多项式 x^3 + 2x + 1 有 x^2 + 1 的模逆多项式为 2x^2 + x + 2
-  FBP1.SetCoefficents([1, 0, 1]);
-  FBP2.SetCoefficents([1, 2, 0, 1]);
+  FBP1.SetCoefficients([1, 0, 1]);
+  FBP2.SetCoefficients([1, 2, 0, 1]);
   Q := TCnBigNumber.Create;
   Q.SetWord(3);
 
@@ -2400,9 +2400,9 @@ var
   BP: TCnBigNumberPolynomial;
   Q: TCnBigNumber;
 begin
-  FBP1.SetCoefficents([1,1,1,0,1,0,1]); // 57
-  FBP2.SetCoefficents([1,1,0,0,0,0,0,1]); // 83
-  FBP3.SetCoefficents([1,1,0,1,1,0,0,0,1]); // 本原多项式
+  FBP1.SetCoefficients([1,1,1,0,1,0,1]); // 57
+  FBP2.SetCoefficients([1,1,0,0,0,0,0,1]); // 83
+  FBP3.SetCoefficients([1,1,0,1,1,0,0,0,1]); // 本原多项式
 
   BP := TCnBigNumberPolynomial.Create;
   Q := TCnBigNumber.Create;
@@ -2423,8 +2423,8 @@ begin
     mmoBP2.Lines.Text := FBP2.ToString;
   end;
 
-//  FIP1.SetCoefficents([-5, 2, 0, 3]);
-//  FIP2.SetCoefficents([-1, -2, 0, 3]);
+//  FIP1.SetCoefficients([-5, 2, 0, 3]);
+//  FIP2.SetCoefficients([-1, -2, 0, 3]);
   if BigNumberPolynomialGreatestCommonDivisor(FBP3, FBP1, FBP2) then
     edtBP3.Text := FIP3.ToString;
 end;
@@ -2562,8 +2562,8 @@ begin
   P1 := TCnBigNumberPolynomial.Create;
   P2 := TCnBigNumberPolynomial.Create;
 
-  P1.SetCoefficents([0, 1]); // x
-  P2.SetCoefficents([0, 1]); // x
+  P1.SetCoefficients([0, 1]); // x
+  P2.SetCoefficients([0, 1]); // x
 
   BigNumberPolynomialGaloisCalcDivisionPolynomial(2, 1, 3, LDP, Q);
   ShowMessage(LDP.ToString);
@@ -2621,16 +2621,16 @@ begin
   Q := TCnBigNumber.Create;
   Q.SetInteger(13);
 
-  FBP1.SetCoefficents([1,2,0,1]);
-  FBP2.SetCoefficents([3,4,4,0,1]);  // 本原多项式
+  FBP1.SetCoefficients([1,2,0,1]);
+  FBP2.SetCoefficients([3,4,4,0,1]);  // 本原多项式
   BigNumberPolynomialGaloisModularInverse(FBP3, FBP1, FBP2, Q);
   ShowMessage(FBP3.ToString);  // 得到 5x^3+6x+2
 
   BigNumberPolynomialGaloisMul(FBP3, FBP3, FBP1, Q, FBP2); // 乘一下验算看是不是得到 1
   ShowMessage(FBP3.ToString);
 
-  FBP1.SetCoefficents([4,8,0,4]);
-  FBP2.SetCoefficents([9,12,12,0,3]);
+  FBP1.SetCoefficients([4,8,0,4]);
+  FBP2.SetCoefficients([9,12,12,0,3]);
   BigNumberPolynomialGaloisModularInverse(FBP3, FBP1, FBP2, Q);
   ShowMessage(FBP3.ToString);  // 得到 11x^3+8x+7
 
@@ -2972,10 +2972,10 @@ begin
 }
 
   G := TCnPolynomialEccPoint.Create;
-  G.X.SetCoefficents([16, 2]);
-  G.Y.SetCoefficents([39, 30]);
+  G.X.SetCoefficients([16, 2]);
+  G.Y.SetCoefficients([39, 30]);
   PM := TCnBigNumberPolynomial.Create;
-  PM.SetCoefficents([1, 0, 1]);
+  PM.SetCoefficients([1, 0, 1]);
 
   // $43 = 67
   Ecc := TCnPolynomialEcc.Create('4', '3', '43', 2, G.X, G.Y, '0', PM); // Order 未指定，先不传
@@ -2986,9 +2986,9 @@ begin
 
   Ecc.Free;
 
-  G.X.SetCoefficents([8, 4, 15]);
-  G.Y.SetCoefficents([21, 30, 44]);
-  PM.SetCoefficents([2, 0, 0, 1]);
+  G.X.SetCoefficients([8, 4, 15]);
+  G.Y.SetCoefficients([21, 30, 44]);
+  PM.SetCoefficients([2, 0, 0, 1]);
   Ecc := TCnPolynomialEcc.Create('4', '3', '43', 3, G.X, G.Y, '0', PM); // Order 未指定，先不传
   if Ecc.IsPointOnCurve(Ecc.Generator) then
     ShowMessage('Ecc 2 Generator is on Curve')
@@ -3014,10 +3014,10 @@ begin
 
 // 该用例来源于 Craig Costello 的《Pairings for beginners》中的 Example 2.2.8
   G := TCnPolynomialEccPoint.Create;
-  G.X.SetCoefficents([16, 2]);
-  G.Y.SetCoefficents([39, 30]);
+  G.X.SetCoefficients([16, 2]);
+  G.Y.SetCoefficients([39, 30]);
   PM := TCnBigNumberPolynomial.Create;
-  PM.SetCoefficents([1,0,1]);
+  PM.SetCoefficients([1,0,1]);
   K := TCnBigNumber.Create;
   Prime := TCnBigNumber.Create;
 
@@ -3074,8 +3074,8 @@ begin
   Prime2.SetWord(67*67);
 
   G := TCnPolynomialEccPoint.Create;
-  G.X.SetCoefficents([8, 4, 15]);
-  G.Y.SetCoefficents([21, 30, 44]);
+  G.X.SetCoefficients([8, 4, 15]);
+  G.Y.SetCoefficients([21, 30, 44]);
 
   PM := TCnBigNumberPolynomial.Create([2, 0, 0, 1]);
 
@@ -3190,8 +3190,8 @@ begin
     ShowMessage('Pi NOT');
 
   // 某 Pi^2
-  X.SetCoefficents([5,11,3,2,2,7,5,2,11,6,12,5]);
-  Y.SetCoefficents([9,3,9,9,2,10,5,3,5,6,2,6]);
+  X.SetCoefficients([5,11,3,2,2,7,5,2,11,6,12,5]);
+  Y.SetCoefficients([9,3,9,9,2,10,5,3,5,6,2,6]);
 
   BigNumberPolynomialGaloisMul(Y, Y, Y, FQ, P); // 计算 PiY 系数的平方
   BigNumberPolynomialGaloisMul(Y, Y, E, FQ, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
@@ -3205,8 +3205,8 @@ begin
     ShowMessage('Pi^2 NOT');
 
   // 某 3 * P
-  X.SetCoefficents([10,8,7,9,5,12,4,12,3,4,1,6]);
-  Y.SetCoefficents([7,2,10,0,3,7,4,6,3,0,11,12]);
+  X.SetCoefficients([10,8,7,9,5,12,4,12,3,4,1,6]);
+  Y.SetCoefficients([7,2,10,0,3,7,4,6,3,0,11,12]);
 
   BigNumberPolynomialGaloisMul(Y, Y, Y, FQ, P); // 计算 PiY 系数的平方
   BigNumberPolynomialGaloisMul(Y, Y, E, FQ, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
@@ -3220,8 +3220,8 @@ begin
     ShowMessage('3 * P NOT');
 
   // 某点加 π^2 + 3 * P
-  X.SetCoefficents([4,5,1,11,4,4,9,6,12,2,6,3]);
-  Y.SetCoefficents([2,7,9,11,7,2,9,5,5,6,12,3]);
+  X.SetCoefficients([4,5,1,11,4,4,9,6,12,2,6,3]);
+  Y.SetCoefficients([2,7,9,11,7,2,9,5,5,6,12,3]);
 
   BigNumberPolynomialGaloisMul(Y, Y, Y, FQ, P); // 计算 PiY 系数的平方
   BigNumberPolynomialGaloisMul(Y, Y, E, FQ, P); // 再乘以 Y 的平方也就是 X3+AX+B，此时 Y 是椭圆曲线右边的点
@@ -3257,7 +3257,7 @@ begin
   FQ.SetWord(23);
 
   X.SetOne;
-  X.Numerator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficients([0, 1]);
   Y.SetOne;
 
   TCnPolynomialEcc.RationalMultiplePoint(2, X, Y, A, B, FQ);
@@ -3279,7 +3279,7 @@ begin
   ShowMessage(Res.ToDec);  // 得到 16 对了
 
   X.SetOne;
-  X.Numerator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficients([0, 1]);
   Y.SetOne;
 
   TCnPolynomialEcc.RationalMultiplePoint(3, X, Y, A, B, FQ);
@@ -3300,7 +3300,7 @@ begin
   ShowMessage(Res.ToDec);   // 得到 11 对了
 
   X.SetOne;
-  X.Numerator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficients([0, 1]);
   Y.SetOne;
 
   TCnPolynomialEcc.RationalMultiplePoint(4, X, Y, A, B, FQ);
@@ -3321,7 +3321,7 @@ begin
   ShowMessage(Res.ToDec);   // 得到 19
 
   X.SetOne;
-  X.Numerator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficients([0, 1]);
   Y.SetOne;
 
   TCnPolynomialEcc.RationalMultiplePoint(5, X, Y, A, B, FQ);
@@ -3371,13 +3371,13 @@ begin
   V := TCnBigNumber.Create;
 
   // 先求整数域
-  X.Numerator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
-  X.Denominator.SetCoefficents([4*B, 4*A, 0, 4]);         //        4X3 + 4AX + 4B
+  X.Numerator.SetCoefficients([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
+  X.Denominator.SetCoefficients([4*B, 4*A, 0, 4]);         //        4X3 + 4AX + 4B
 
-  Y.Numerator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
-  Y.Denominator.SetCoefficents([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
+  Y.Numerator.SetCoefficients([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
+  Y.Denominator.SetCoefficients([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
 
-  Y2.SetCoefficents([B, A, 0, 1]);
+  Y2.SetCoefficients([B, A, 0, 1]);
   // 验证 Y^2 * (x^3+Ax+B) 是否等于 X3 + AX + B
 
   BigNumberRationalPolynomialMul(Y, Y, Y);
@@ -3388,31 +3388,31 @@ begin
   BigNumberRationalPolynomialMul(RR, X, X);
   BigNumberRationalPolynomialMul(RR, X, RR); // 得到 X^3
 
-  P.SetCoefficents([A]);
+  P.SetCoefficients([A]);
   BigNumberRationalPolynomialMul(T, X, P);   // T 得到 A * X
   BigNumberRationalPolynomialAdd(RR, T, RR); // RR 得到 X^3 + AX
 
-  P.SetCoefficents([B]);
+  P.SetCoefficients([B]);
   BigNumberRationalPolynomialAdd(RR, RR, P); // RR 得到 X^3 + AX + B
   RR.Reduce;
   ShowMessage(RR.ToString);
 
   // RL/RR 在整数域内有除式不等，换 Fq 看看，原始点（6，19），二倍点公式套上去得到（13，16）
-  X.Numerator.SetCoefficents([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
-  X.Denominator.SetCoefficents([4*B, 4*A, 0, 4]);          //        4X3 + 4AX + 4B
+  X.Numerator.SetCoefficients([A*A, 4-12*B, 4-6*A, 0, 1]);  //  X4 + (4-6A)X2 + (4- 12B)x + A2
+  X.Denominator.SetCoefficients([4*B, 4*A, 0, 4]);          //        4X3 + 4AX + 4B
   V.SetWord(6);
   BigNumberRationalPolynomialGaloisGetValue(Res, X, V, FQ);
   ShowMessage('2*X (X=6) using Division Polynomial is ' + Res.ToDec); // 得到 13 对了
 
-  Y.Numerator.SetCoefficents([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
-  Y.Denominator.SetCoefficents([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
+  Y.Numerator.SetCoefficients([-A*A*A-8*B*B, -4*A*B, -5*A*A, 20*B, 5*A, 0, 1]); // X6 + 5AX4 + 20BX3 - 5A2X2 - 4ABX - 8B2 - A3
+  Y.Denominator.SetCoefficients([8*B*B, 16*A*B, 8*A*A, 16*B, 16*A, 0, 8]);      //          8(X3+AX+B)(X3+AX+B)
   BigNumberRationalPolynomialGaloisGetValue(Res, Y, V, FQ);
   BigNumberMulWord(Res, 19);
   BigNumberMod(Res, Res, FQ);
 
   ShowMessage('2*Y (X=6) using Division Polynomial is ' + Res.ToDec); // 得到 16 对了
 
-  Y2.SetCoefficents([B, A, 0, 1]);
+  Y2.SetCoefficients([B, A, 0, 1]);
   // 验证二倍点公式用一倍点坐标算出来的值 Y^2 * (x^3+Ax+B) 是否等于 X3 + AX + B
 
   BigNumberRationalPolynomialGaloisMul(Y, Y, Y, FQ);
@@ -3422,11 +3422,11 @@ begin
   BigNumberRationalPolynomialGaloisMul(RR, X, X, FQ);
   BigNumberRationalPolynomialGaloisMul(RR, RR, X, FQ); // 得到 X^3
 
-  P.SetCoefficents([A]);
+  P.SetCoefficients([A]);
   BigNumberRationalPolynomialGaloisMul(T, X, P, FQ);   // T 得到 A * X
   BigNumberRationalPolynomialGaloisAdd(RR, RR, T, FQ); // RR 得到 X^3 + AX
 
-  P.SetCoefficents([B]);
+  P.SetCoefficients([B]);
   BigNumberRationalPolynomialGaloisAdd(RR, RR, P, FQ); // RR 得到 X^3 + AX + B
   ShowMessage(RR.ToString);
 
@@ -3555,9 +3555,9 @@ begin
   ShowMessage('DP5: ' + DP.ToString);
 
   X.Denominator.SetOne;
-  X.Numerator.SetCoefficents([0, 1]);
+  X.Numerator.SetCoefficients([0, 1]);
   Y.Numerator.SetOne;
-  Y.Denominator.SetCoefficents([1]);     // ( x/1, 1/1 *y)
+  Y.Denominator.SetCoefficients([1]);     // ( x/1, 1/1 *y)
 
   ShowMessage('P2:');
   TCnPolynomialEcc.RationalPointAddPoint(X, Y, X, Y, M2X, M2Y, A, B, FQ, DP);
@@ -3662,7 +3662,7 @@ begin
   BigNumberPolynomialGaloisPower(Pi2X, X, 97 * 97, FQ, DP);
   ShowMessage(Pi2X.ToString);         // 得到基本正确的结果，Ring 几内计算就是 mod f几，原用例最后一项常数项可能有错
 
-  Y.SetCoefficents([-12, 31, 0, 1]);
+  Y.SetCoefficients([-12, 31, 0, 1]);
   BigNumberPolynomialGaloisPower(Pi2Y, Y, (97 * 97 - 1) div 2, FQ, DP);
   ShowMessage(Pi2Y.ToString);               // 得到正确结果，y^q^2 = y^q^2-1 * y = (x3+Ax+B)^((q^2-1)/2) * y
 
@@ -3716,11 +3716,11 @@ begin
 
   // 比较 '6X^11+20X^10+13X^9+20X^8+15X^7+X^6+25X^5+2X^4+13X^3+7X^2+25X+13 / 21X^11+5X^10+12X^9+4X^8+5X^7+23X^6+17X^5+11X^4+22X^3+23X^2+16X+6'
   // 和 27x^11,23x^10,12x^9,10x^8,14x^7,10x^6,21x^5,0x^4,16x^3,17x^2,28x^1,18x^0 / 1x^11,14x^10,9x^9,6x^8,25x^7,3x^6,9x^5,25x^4,0x^3,25x^2,25x^1,6x^0
-  A.Numerator.SetCoefficents([13,25,7,13,2,25,1,15,20,13,20,6]);
-  A.Denominator.SetCoefficents([6,16,23,22,11,17,23,5,4,12,5,21]);
+  A.Numerator.SetCoefficients([13,25,7,13,2,25,1,15,20,13,20,6]);
+  A.Denominator.SetCoefficients([6,16,23,22,11,17,23,5,4,12,5,21]);
 
-  B.Numerator.SetCoefficents([18,28,17,16,0,21,10,14,10,12,23,27]);
-  B.Denominator.SetCoefficents([6,25,25,0,25,9,3,25,6,9,14,1]);
+  B.Numerator.SetCoefficients([18,28,17,16,0,21,10,14,10,12,23,27]);
+  B.Denominator.SetCoefficients([6,25,25,0,25,9,3,25,6,9,14,1]);
 
   TI1 := TCnBigNumberPolynomial.Create;
   TI2 := TCnBigNumberPolynomial.Create;
@@ -3968,8 +3968,8 @@ begin
     begin
       mmoEcc.Lines.Add('For Simple Polynomial:');
 
-      X.Numerator.SetCoefficents([0, 1]);
-      Y.Numerator.SetCoefficents([1]);        // (x, 1*y)，在曲线上，下面的多倍点都在曲线上
+      X.Numerator.SetCoefficients([0, 1]);
+      Y.Numerator.SetCoefficients([1]);        // (x, 1*y)，在曲线上，下面的多倍点都在曲线上
       K := 4;
     end
     else
@@ -4047,16 +4047,16 @@ end;
 
 procedure TFormPolynomial.btnTestInt64SimpleDFTClick(Sender: TObject);
 begin
-  FIP1.SetCoefficents([1, 1, 1]);
-  FIP2.SetCoefficents([1, 1, 1]);
+  FIP1.SetCoefficients([1, 1, 1]);
+  FIP2.SetCoefficients([1, 1, 1]);
   if Int64PolynomialDftMul(FIP3, FIP1, FIP2) then
     ShowMessage(FIP3.ToString);
 end;
 
 procedure TFormPolynomial.btnTestInt64SimpleNTTClick(Sender: TObject);
 begin
-  FIP1.SetCoefficents([1, 1, 1]);
-  FIP2.SetCoefficents([1, 1, 1]);
+  FIP1.SetCoefficients([1, 1, 1]);
+  FIP2.SetCoefficients([1, 1, 1]);
   if Int64PolynomialNttMul(FIP3, FIP1, FIP2) then
     ShowMessage(FIP3.ToString);
 end;
