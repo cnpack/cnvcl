@@ -299,6 +299,7 @@ end;
 function RandomUInt64LessThan(HighValue: TUInt64): TUInt64;
 var
   Threshold, R: TUInt64;
+  RetryCount: Integer;
 begin
   if HighValue = 0 then
   begin
@@ -311,8 +312,12 @@ begin
   if Threshold = HighValue then
     Threshold := 0;
 
+  RetryCount := 0;
   repeat
     R := RandomUInt64;
+    Inc(RetryCount);
+    if RetryCount > 100 then
+      raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom); // 'RNG stuck in rejection loop. Hardware/OS RNG failure.'
   until R >= Threshold;
 
   Result := UInt64Mod(R, HighValue);
@@ -345,6 +350,7 @@ end;
 function RandomUInt32LessThan(HighValue: Cardinal): Cardinal;
 var
   Threshold, R: Cardinal;
+  RetryCount: Integer;
 begin
   if HighValue = 0 then
   begin
@@ -357,8 +363,12 @@ begin
   if Threshold = HighValue then
     Threshold := 0;
 
+  RetryCount := 0;
   repeat
     R := RandomUInt32;
+    Inc(RetryCount);
+    if RetryCount > 100 then
+      raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
   until R >= Threshold;
 
   Result := R mod HighValue;
