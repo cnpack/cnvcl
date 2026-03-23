@@ -53,7 +53,7 @@ interface
 {$I CnPack.inc}
 
 uses
-  Classes, SysUtils, CnNative;
+  Classes, SysUtils, CnNative {$IFDEF FPC}, Variants{$ENDIF};
 
 const
   CN_HASH_MAP_DEFAULT_CAPACITY = 16;

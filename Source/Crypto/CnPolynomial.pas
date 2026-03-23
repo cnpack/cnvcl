@@ -10854,6 +10854,7 @@ begin
     Exit;
   end;
 
+  Result := '';
   for I := P.Count - 1 downto 0 do
   begin
     if not P[I].IsZero then
@@ -15302,6 +15303,7 @@ begin
     Exit;
   end;
 
+  Result := '';
   for I := P.Count - 1 downto 0 do
   begin
     if not P[I].IsZero then
