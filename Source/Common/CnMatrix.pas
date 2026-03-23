@@ -1366,6 +1366,7 @@ resourcestring
   SCnErrorRowColIndex2Fmt = 'Error Row or Col: %d, %d';
   SCnErrorZigZagIndexFmt = 'Error ZigZag Index: %d';
   SCnErrorZigZagRowColCount = 'ZigZag Row Col Count must Equal';
+  SCnErrorMatrixDenominatorZero = 'Denominator can NOT be Zero.';
   SCnErrorResultFactors = 'Matrix Result can not Be Factors';
   SCnErrorMulRowCount = 'Matrix 1 Col Count must Equal to Matrix 2 Row Count';
   SCnErrorPowerSquare = 'Matrix Power Must Be Square';
@@ -3092,7 +3093,7 @@ end;
 procedure TCnRationalNumber.SetDenominator(const Value: Int64);
 begin
   if Value = 0 then
-    raise EDivByZero.Create('Denominator can NOT be Zero.');
+    raise ECnMatrixException.Create(SCnErrorMatrixDenominatorZero);
 
   FDenominator := Value;
 end;

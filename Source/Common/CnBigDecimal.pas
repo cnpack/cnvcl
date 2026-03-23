@@ -1842,14 +1842,12 @@ var
   S: string;
   L: Integer;
 begin
+  Result := '';
   S := Num.FValue.ToDec;
   L := Length(S);
 
   if L = 0 then
-  begin
-    Result := '';
     Exit;
-  end;
 
   // Å×ÆúÕý¸ººÅÏÈ
   C := #0;
@@ -2318,7 +2316,7 @@ var
   T, R: TCnBigNumber;
 begin
   if Num2.FValue.IsZero then
-    raise EDivByZero.Create(SDivByZero);
+    raise ECnBigDecimalException.Create(SDivByZero);
 
   if Num1.FValue.IsZero then
   begin
@@ -3650,7 +3648,7 @@ var
   T, R: TCnBigNumber;
 begin
   if Num2.FValue.IsZero then
-    raise EDivByZero.Create(SDivByZero);
+    raise ECnBigBinaryException.Create(SDivByZero);
 
   if Num1.FValue.IsZero then
   begin
@@ -3898,7 +3896,7 @@ var
   T: TCnBigBinary;
 begin
   if W = 0 then
-    raise EDivByZero.Create(SDivByZero);
+    raise ECnBigBinaryException.Create(SDivByZero);
 
   while (W and 1) = 0 do
   begin

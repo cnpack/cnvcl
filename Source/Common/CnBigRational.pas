@@ -46,6 +46,9 @@ uses
   SysUtils, Classes, SysConst, Contnrs, CnContainers, CnBigNumber;
 
 type
+  ECnBigRationalException = class(Exception);
+  {* 大有理数相关异常}
+
   TCnBigRational = class(TPersistent)
   {* 表示一个无限精度的大有理数}
   private
@@ -547,6 +550,10 @@ var
 
 implementation
 
+resourcestring
+  SCnErrorBigRationalDenominatorZero = 'Denominator Cannot be Zero.';
+  SCnErrorBigRationalDivideByZero = 'Divide by Zero.';
+
 var
   FLocalBigRationalPool: TCnBigRationalPool = nil;
   FLocalBigNumberPool: TCnBigNumberPool = nil;
@@ -682,7 +689,7 @@ var
   N: TCnBigNumber;
 begin
   if Num2.IsZero then
-    raise EDivByZero.Create('Divide by Zero.');
+    raise ECnBigRationalException.Create(SCnErrorBigRationalDivideByZero);
 
   N := FLocalBigNumberPool.Obtain;  // 交叉相乘，必须用中间变量，防止 Res 是 Number1 或 Number 2
   try
@@ -961,7 +968,7 @@ var
   T: TCnBigNumber;
 begin
   if FNumerator.IsZero then
-    raise EDivByZero.Create(SDivByZero);
+    raise ECnBigRationalException.Create(SDivByZero);
 
   T := FLocalBigNumberPool.Obtain;
   try
@@ -1071,6 +1078,8 @@ end;
 
 procedure TCnBigRational.SetValue(ANumerator, ADenominator: TCnBigNumber);
 begin
+  if ADenominator.IsZero then
+    raise ECnBigRationalException.Create(SCnErrorBigRationalDenominatorZero);
   BigNumberCopy(FNumerator, ANumerator);
   BigNumberCopy(FDenominator, ADenominator);
 end;
@@ -1079,6 +1088,8 @@ procedure TCnBigRational.SetValue(const ANumerator, ADenominator: string);
 begin
   FNumerator.SetDec(AnsiString(ANumerator));
   FDenominator.SetDec(AnsiString(ADenominator));
+  if FDenominator.IsZero then
+    raise ECnBigRationalException.Create(SCnErrorBigRationalDenominatorZero);
 end;
 
 procedure TCnBigRational.SetZero;
