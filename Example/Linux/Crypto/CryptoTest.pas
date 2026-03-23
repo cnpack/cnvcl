@@ -79,6 +79,7 @@ function TestConstTimeBytes: Boolean;
 function TestRandomFillBytes: Boolean;
 function TestRandomNumbersRange: Boolean;
 function TestRandomShuffle: Boolean;
+function TestRandomDistribution: Boolean;
 
 // ============================== Strings ======================================
 
@@ -677,6 +678,7 @@ begin
   MyAssert(TestRandomFillBytes, 'TestRandomFillBytes');
   MyAssert(TestRandomNumbersRange, 'TestRandomNumbersRange');
   MyAssert(TestRandomShuffle, 'TestRandomShuffle');
+  MyAssert(TestRandomDistribution, 'TestRandomDistribution');
 
 // ============================== Strings ======================================
 
@@ -1545,6 +1547,45 @@ begin
   end;
 
   Result := True;
+end;
+
+function TestRandomDistribution: Boolean;
+const
+  TEST_ROUNDS = 100000;
+  BINS = 10;
+var
+  Counts: array[0..BINS-1] of Integer;
+  I, BinIdx: Integer;
+  Expected: Double;
+  ChiSquare: Double;
+  Diff: Double;
+begin
+  Result := False;
+  FillChar(Counts, SizeOf(Counts), 0);
+
+  for I := 1 to TEST_ROUNDS do
+  begin
+    BinIdx := RandomUInt32LessThan(BINS);
+    if (BinIdx < 0) or (BinIdx >= BINS) then
+      Exit;
+    Inc(Counts[BinIdx]);
+  end;
+
+  // 皮尔逊卡方检验，用于判断随机数据分布是否均匀
+  Expected := TEST_ROUNDS / BINS;
+  ChiSquare := 0.0;
+
+  for I := 0 to BINS - 1 do
+  begin
+    Diff := Counts[I] - Expected;
+    ChiSquare := ChiSquare + (Diff * Diff) / Expected;
+  end;
+
+  // 对于 9 个自由度（10 个分组减去 1），
+  // 在 0.001 的显著性水平下，临界值约为 27.877。
+  // 如果算出的卡方值小于这个临界值左右（这里干脆直接用 30），
+  // 就说明随机分布基本均匀（无法拒绝该分布均匀的假设）。
+  Result := (ChiSquare < 30.0);
 end;
 
 // ============================== Strings ======================================
