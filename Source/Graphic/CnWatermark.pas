@@ -23,11 +23,14 @@ unit CnWatermark;
 ================================================================================
 * 软件名称：开发包基础库
 * 单元作者：CnPack 开发组
-* 备    注：提供不可见的数字水印嵌入与提取功能
+* 备    注：提供不可见的频域数字水印嵌入与提取功能，基本上能一定程度对抗
+*           JPG压缩、剪切、旋转、横竖缩放、色彩变换等。
 * 开发平台：PWinXP + Delphi 7.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2026.02.03 V1.0
+* 修改记录：2026.03.23 V1.0
+*               完善功能
+*           2026.02.03 V1.0
 *               增加 DFT 图片水印模式，抗旋转/缩放/裁剪。
 ================================================================================
 |</PRE>}
@@ -41,6 +44,9 @@ uses
   CnMatrix, CnDFT, CnNative, Math, CnClasses, CnComplex;
 
 type
+  ECnWatermarkException = class(Exception);
+  {* 水印相关异常}
+
   TCnWatermarkStrength = (wsLow, wsMedium, wsHigh, wsCustom);
   {* 水印强度预设}
 
@@ -54,6 +60,7 @@ type
   {* 图像相关事件}
 
   TCnWatermark = class(TCnComponent)
+  {* 数字水印嵌入与提取控件}
   private
     FText: string;
     FWatermarkImage: TBitmap;
@@ -104,6 +111,7 @@ type
        @return 返回置信度 (0.0 - 1.0)
     *}
     function Verify(Source: TBitmap; const TextToVerify: string): Double;
+
   published
     property Mode: TCnWatermarkMode read FMode write FMode default wmText;
     property Text: string read FText write FText;
@@ -118,6 +126,9 @@ type
   end;
 
 implementation
+
+resourcestring
+  SCnErrorWatermarkNot24Bit = 'Image Pixel Format Must Be 24-Bit.';
 
 const
   WATERMARK_CELL_SIZE = 8;
@@ -138,7 +149,7 @@ begin
   FWatermarkImage := TBitmap.Create;
   FFont := TFont.Create;
   FFont.Name := 'Arial';
-  FFont.Size := 20;
+  FFont.Size := 28;
   FFont.Color := clBlack;
   FFont.Style := [fsBold];
   FMargin := 2;
@@ -202,6 +213,7 @@ begin
   if FMargin <> Value then
     FMargin := Value;
 end;
+
 procedure TCnWatermark.Embed(Source: TBitmap; Dest: TBitmap);
 begin
   if (Source = nil) or (Source.Empty) then Exit;
@@ -347,14 +359,17 @@ var
   X, Y, BX, BY, W, H, NewW, NewH: Integer;
   BlockSize: Integer;
   Val: Double;
-  HalfSize: Integer;
-  U, V: Integer;
-  Mag, Scale: Double;
   TotalBlocks, ProcessedBlocks: Integer;
   TempBmp: TBitmap;
   UseBmp: TBitmap;
   TextW, TextH: Integer;
   DestRect: TRect;
+  W_mag: array of array of Double;
+  su1, sv1, su2, sv2: Integer;
+  dx, dy: Integer;
+  Intensity: Byte;
+  Mag, R_val, I_val: Double;
+  Scale: Double;
 begin
   TempBmp := nil;
   if FWatermarkImage.Empty then
@@ -389,7 +404,11 @@ begin
   DoWatermarkImageReady(UseBmp);
 
   BlockSize := DFT_BLOCK_SIZE;
-  HalfSize := BlockSize div 2;
+
+  SetLength(W_mag, BlockSize, BlockSize);
+  for Y := 0 to BlockSize - 1 do
+    for X := 0 to BlockSize - 1 do
+      W_mag[Y, X] := 0;
 
   if Dest = nil then
     TargetBmp := Source
@@ -405,65 +424,87 @@ begin
   WmBmp := TBitmap.Create;
   try
     WmBmp.PixelFormat := pf24bit;
-    WmBmp.Width := HalfSize;
-    WmBmp.Height := HalfSize;
-    // 简单的缩放绘制
+    WmBmp.Width := BlockSize div 4; // 64 for BlockSize=256
+    WmBmp.Height := BlockSize div 4;
+    // 使用最近邻插值保持黑白图锐利
     WmBmp.Canvas.Brush.Color := clWhite;
-    WmBmp.Canvas.FillRect(Rect(0, 0, HalfSize, HalfSize));
+    WmBmp.Canvas.FillRect(Rect(0, 0, WmBmp.Width, WmBmp.Height));
 
     // Calculate proportional rect
     Scale := 1.0;
     if (UseBmp.Width > 0) and (UseBmp.Height > 0) then
     begin
-       if (UseBmp.Width / UseBmp.Height) > (HalfSize / HalfSize) then
-         Scale := HalfSize / UseBmp.Width
+       if (UseBmp.Width / UseBmp.Height) > 1.0 then
+         Scale := WmBmp.Width / UseBmp.Width
        else
-         Scale := HalfSize / UseBmp.Height;
+         Scale := WmBmp.Height / UseBmp.Height;
     end;
 
     NewW := Round(UseBmp.Width * Scale);
     NewH := Round(UseBmp.Height * Scale);
     DestRect := Rect(
-      (HalfSize - NewW) div 2,
-      (HalfSize - NewH) div 2,
-      (HalfSize - NewW) div 2 + NewW,
-      (HalfSize - NewH) div 2 + NewH
+      (WmBmp.Width - NewW) div 2,
+      (WmBmp.Height - NewH) div 2,
+      (WmBmp.Width - NewW) div 2 + NewW,
+      (WmBmp.Height - NewH) div 2 + NewH
     );
 
     WmBmp.Canvas.StretchDraw(DestRect, UseBmp);
+
+    // W_mag
+    for Y := 0 to WmBmp.Height - 1 do
+    begin
+      P := WmBmp.ScanLine[Y];
+      for X := 0 to WmBmp.Width - 1 do
+      begin
+        // Convert to grayscale
+        Intensity := Round(0.114 * P^ + 0.587 * PByteArray(P)^[1] + 0.299 * PByteArray(P)^[2]);
+        Inc(P, 3);
+
+        if Intensity < 128 then // Black/dark pixels form the watermark
+        begin
+          // To achieve spatial amplitude of A pixels, we need Mag = A * N^2 / 2
+          // FStrength is 15-50. Let's map 30 to amplitude ~3.0
+          // Val = 3.0 * 65536 / 2 = 98304
+          // 30 * X = 98304 => X = 3276
+          Val := (255 - Intensity) / 255.0 * FStrength * (BlockSize * BlockSize / 20.0);
+          dy := Y - (WmBmp.Height div 2);
+          dx := X - (WmBmp.Width div 2);
+
+          // First copy (Bottom-Right in shifted coords)
+          su1 := (BlockSize * 3) div 4 + dx;
+          sv1 := (BlockSize * 3) div 4 + dy;
+          if (su1 >= 0) and (su1 < BlockSize) and (sv1 >= 0) and (sv1 < BlockSize) then
+            W_mag[sv1, su1] := W_mag[sv1, su1] + Val;
+
+          // Second copy (Top-Left in shifted coords) to maintain conjugate symmetry
+          su2 := BlockSize div 4 - dx;
+          sv2 := BlockSize div 4 - dy;
+          if (su2 >= 0) and (su2 < BlockSize) and (sv2 >= 0) and (sv2 < BlockSize) then
+            W_mag[sv2, su2] := W_mag[sv2, su2] + Val;
+        end;
+      end;
+    end;
 
     W := TargetBmp.Width;
     H := TargetBmp.Height;
     TotalBlocks := (W div BlockSize) * (H div BlockSize);
     ProcessedBlocks := 0;
 
-    // 分块 FFT 处理
-    // 暂时只处理完整块，边缘忽略
-    for BY := 0 to (H div BlockSize) - 1 do
-    begin
-      for BX := 0 to (W div BlockSize) - 1 do
+    GetMem(Data, BlockSize * BlockSize * SizeOf(TCnComplexNumber));
+    try
+      for BY := 0 to (H div BlockSize) - 1 do
       begin
-        // 1. 读取块数据 (只取 Blue 通道，或可改为 Y 通道)
-        // 此处 Data 大小必须足够 BlockSize * BlockSize
-        // CnComplexArray 定义为 8192，可能不够。
-        // 我们需要动态分配
-        // 但 CnFFT2 接口参数是 TCnComplexArray 指针，如果是静态数组可能会溢出。
-        // 检查 CnComplex.pas，TCnComplexArray = array[0..8191] of TCnComplexNumber;
-        // 8192 个点不够 256*256 (65536)。
-        // 必须使用动态分配的内存块，并强制转换为 PCnComplexArray。
-        // CnFFT2 内部只使用指针算术，应该没问题。
-
-        GetMem(Data, BlockSize * BlockSize * SizeOf(TCnComplexNumber));
-        try
-          FillChar(Data^, BlockSize * BlockSize * SizeOf(TCnComplexNumber), 0);
-
+        for BX := 0 to (W div BlockSize) - 1 do
+        begin
+          // 1. Read block (Green channel)
           for Y := 0 to BlockSize - 1 do
           begin
             P := TargetBmp.ScanLine[BY * BlockSize + Y];
             Inc(P, (BX * BlockSize) * 3);
             for X := 0 to BlockSize - 1 do
             begin
-              Data^[Y * BlockSize + X].R := P^; // Blue
+              Data^[Y * BlockSize + X].R := PByteArray(P)^[1]; // Green channel
               Data^[Y * BlockSize + X].I := 0;
               Inc(P, 3);
             end;
@@ -472,40 +513,31 @@ begin
           // 2. FFT
           CnFFT2(Data, BlockSize, BlockSize);
 
-          // 3. 嵌入水印 (在中频区添加能量)
-          // 对应频域中心 (HalfSize, HalfSize) 周围
-          // 将水印图叠加到 (HalfSize - WmW/2, HalfSize - WmH/2) 区域
-          // 必须保持共轭对称： F(u,v) = F*(-u,-v)
-          // 为简化，我们在四个象限对称位置都加
-
-          for Y := 0 to WmBmp.Height - 1 do
+          // 3. Modify Magnitude
+          for Y := 0 to BlockSize - 1 do
           begin
-            P := WmBmp.ScanLine[Y];
-            for X := 0 to WmBmp.Width - 1 do
+            for X := 0 to BlockSize - 1 do
             begin
-              // 如果水印像素是黑色/深色，则增加能量
-              if (P^ < 128) then // Blue channel of watermark
+              // su, sv are shifted coordinates
+              su1 := (X + BlockSize div 2) mod BlockSize;
+              sv1 := (Y + BlockSize div 2) mod BlockSize;
+
+              if W_mag[sv1, su1] > 0 then
               begin
-                // 映射到频域坐标
-                // 我们在第一象限 (低频区外围) 嵌入
-                // 坐标 U, V
-                U := HalfSize div 2 + X;
-                V := HalfSize div 2 + Y;
-
-                // 限制范围
-                if (U < BlockSize) and (V < BlockSize) then
+                R_val := Data^[Y * BlockSize + X].R;
+                I_val := Data^[Y * BlockSize + X].I;
+                Mag := Sqrt(Sqr(R_val) + Sqr(I_val));
+                if Mag > 0 then
                 begin
-                   // 增加幅值
-                   Mag := FStrength * 1000.0; // 缩放系数
-                   Data^[V * BlockSize + U].R := Data^[V * BlockSize + U].R + Mag;
-
-                   // 对称点 (共轭对称)
-                   // (N-U, N-V)
-                   Data^[(BlockSize - V) * BlockSize + (BlockSize - U)].R :=
-                     Data^[(BlockSize - V) * BlockSize + (BlockSize - U)].R + Mag;
+                  Data^[Y * BlockSize + X].R := R_val * (Mag + W_mag[sv1, su1]) / Mag;
+                  Data^[Y * BlockSize + X].I := I_val * (Mag + W_mag[sv1, su1]) / Mag;
+                end
+                else
+                begin
+                  Data^[Y * BlockSize + X].R := W_mag[sv1, su1];
+                  Data^[Y * BlockSize + X].I := 0;
                 end;
               end;
-              Inc(P, 3);
             end;
           end;
 
@@ -523,23 +555,23 @@ begin
               // Clip
               if Val < 0 then Val := 0;
               if Val > 255 then Val := 255;
-              P^ := Round(Val);
+              PByteArray(P)^[1] := Round(Val);
               Inc(P, 3);
             end;
           end;
 
-        finally
-          FreeMem(Data);
+          Inc(ProcessedBlocks);
+          if TotalBlocks > 0 then
+            DoProgress(ProcessedBlocks * 100 div TotalBlocks);
         end;
-
-        Inc(ProcessedBlocks);
-        if TotalBlocks > 0 then
-          DoProgress(ProcessedBlocks * 100 div TotalBlocks);
       end;
+    finally
+      FreeMem(Data);
     end;
   finally
     WmBmp.Free;
     if TempBmp <> nil then TempBmp.Free;
+    SetLength(W_mag, 0, 0);
   end;
 end;
 
@@ -557,13 +589,12 @@ begin
 
   // Ensure pf24bit
   if Source.PixelFormat <> pf24bit then
-  begin
-    // Warning or conversion needed
-  end;
+    raise ECnWatermarkException.Create(SCnErrorWatermarkNot24Bit);
 
   W := Source.Width div WATERMARK_CELL_SIZE;
   H := Source.Height div WATERMARK_CELL_SIZE;
-  if (W = 0) or (H = 0) then Exit;
+  if (W = 0) or (H = 0) then
+    Exit;
 
   M := TCnFloatMatrix.Create(WATERMARK_CELL_SIZE, WATERMARK_CELL_SIZE);
   T := TCnFloatMatrix.Create(WATERMARK_CELL_SIZE, WATERMARK_CELL_SIZE);
@@ -637,110 +668,133 @@ var
   BlockSize: Integer;
   Data: PCnComplexArray;
   P: PByte;
-  X, Y: Integer;
+  X, Y, BX, BY, W, H: Integer;
   Mag: Double;
   MaxMag, MinMag: Double;
   Val: Byte;
   Spectrum: TBitmap;
-  CenterX, CenterY: Integer;
+  SumMag: array of array of Double;
+  BlocksCount: Integer;
+  Dist: Double;
 begin
   Result := nil;
-  if (Source = nil) or (Source.Empty) then Exit;
-
-  // 为了展示全息效果，我们只提取中心的一个块
-  // 或者对整个图像缩放后做 FFT?
-  // 按照嵌入逻辑，是分块嵌入的。我们提取中心的一块 BlockSize x BlockSize 即可看到水印。
+  if (Source = nil) or (Source.Empty) then
+    Exit;
 
   BlockSize := DFT_BLOCK_SIZE;
-
-  // 确保源图足够大
-  if (Source.Width < BlockSize) or (Source.Height < BlockSize) then Exit;
+  if (Source.Width < BlockSize) or (Source.Height < BlockSize) then
+    Exit;
 
   Spectrum := TBitmap.Create;
   Spectrum.PixelFormat := pf24bit;
   Spectrum.Width := BlockSize;
   Spectrum.Height := BlockSize;
 
+  SetLength(SumMag, BlockSize, BlockSize);
+  for Y := 0 to BlockSize - 1 do
+  begin
+    for X := 0 to BlockSize - 1 do
+      SumMag[Y, X] := 0;
+  end;
+
   GetMem(Data, BlockSize * BlockSize * SizeOf(TCnComplexNumber));
   try
-    CenterX := (Source.Width - BlockSize) div 2;
-    CenterY := (Source.Height - BlockSize) div 2;
+    W := Source.Width;
+    H := Source.Height;
+    BlocksCount := 0;
 
-    // 1. 读取中心块
-    for Y := 0 to BlockSize - 1 do
+    // Grid over the image, taking overlapping blocks for better averaging
+    for BY := 0 to (H - BlockSize) div (BlockSize div 2) do
     begin
-      // ScanLine 有效性检查
-      if Source.PixelFormat = pf24bit then
+      for BX := 0 to (W - BlockSize) div (BlockSize div 2) do
       begin
-        P := Source.ScanLine[CenterY + Y];
-        Inc(P, CenterX * 3);
-        for X := 0 to BlockSize - 1 do
+        // 1. Read Green channel
+        for Y := 0 to BlockSize - 1 do
         begin
-          Data^[Y * BlockSize + X].R := P^;
-          Data^[Y * BlockSize + X].I := 0;
-          Inc(P, 3);
+          if Source.PixelFormat = pf24bit then
+          begin
+            P := Source.ScanLine[BY * (BlockSize div 2) + Y];
+            Inc(P, (BX * (BlockSize div 2)) * 3);
+            for X := 0 to BlockSize - 1 do
+            begin
+              Data^[Y * BlockSize + X].R := PByteArray(P)^[1];
+              Data^[Y * BlockSize + X].I := 0;
+              Inc(P, 3);
+            end;
+          end
+          else
+          begin
+            // Fallback
+            for X := 0 to BlockSize - 1 do
+            begin
+              Data^[Y * BlockSize + X].R := Source.Canvas.Pixels[BX * (BlockSize div 2) + X, BY * (BlockSize div 2) + Y] and $FF;
+              Data^[Y * BlockSize + X].I := 0;
+            end;
+          end;
         end;
-      end
-      else
-      begin
-        // Fallback
-        for X := 0 to BlockSize - 1 do
+
+        // 2. FFT
+        CnFFT2(Data, BlockSize, BlockSize);
+
+        // 3. Accumulate magnitude
+        for Y := 0 to BlockSize - 1 do
         begin
-          Data^[Y * BlockSize + X].R := Source.Canvas.Pixels[CenterX + X, CenterY + Y] and $FF;
-          Data^[Y * BlockSize + X].I := 0;
+          for X := 0 to BlockSize - 1 do
+          begin
+            Mag := Sqrt(Sqr(Data^[Y * BlockSize + X].R) + Sqr(Data^[Y * BlockSize + X].I));
+            SumMag[Y, X] := SumMag[Y, X] + Mag;
+          end;
         end;
+        Inc(BlocksCount);
       end;
     end;
 
-    // 2. FFT
-    CnFFT2(Data, BlockSize, BlockSize);
+    if BlocksCount = 0 then
+      Exit;
 
-    // 3. 计算幅值谱并进行 FFTShift (将低频移到中心)
-    // FFTShift:
-    // Q1 <-> Q3
-    // Q2 <-> Q4
-
-    // 我们先找出最大幅值用于归一化
-
-    // Log scale
-    for Y := 0 to BlockSize - 1 do
-    begin
-      for X := 0 to BlockSize - 1 do
-      begin
-        Mag := Sqrt(Sqr(Data^[Y * BlockSize + X].R) + Sqr(Data^[Y * BlockSize + X].I));
-        Mag := Log10(1 + Mag);
-        Data^[Y * BlockSize + X].R := Mag; // Store magnitude in R
-      end;
-    end;
-
-    // Recalculate Min/Max ignoring DC (0,0)
     MaxMag := -1.0;
     MinMag := 1.0e20;
+
+    // Average and Log scale
     for Y := 0 to BlockSize - 1 do
     begin
       for X := 0 to BlockSize - 1 do
       begin
-        if (X = 0) and (Y = 0) then Continue; // Skip DC
-        Mag := Data^[Y * BlockSize + X].R;
-        if Mag > MaxMag then MaxMag := Mag;
-        if Mag < MinMag then MinMag := Mag;
+        Mag := SumMag[Y, X] / BlocksCount;
+        Mag := Log10(1 + Mag);
+        SumMag[Y, X] := Mag;
+
+        // Calculate Min/Max for visualization
+        // Ignore low frequencies (radius < 30 in unshifted coords) to avoid DC domination
+        if X > BlockSize div 2 then
+          BX := BlockSize - X
+        else
+          BX := X;
+        if Y > BlockSize div 2 then
+          BY := BlockSize - Y
+        else
+          BY := Y;
+
+        Dist := Sqrt(Sqr(BX) + Sqr(BY));
+        if Dist > 30 then
+        begin
+          if Mag > MaxMag then MaxMag := Mag;
+          if Mag < MinMag then MinMag := Mag;
+        end;
       end;
     end;
-    if MaxMag <= MinMag then MaxMag := MinMag + 1.0;
 
-    // 4. 绘制频谱图 (带 FFTShift)
+    if MaxMag <= MinMag then
+      MaxMag := MinMag + 1.0;
+
+    // Render Spectrum with FFTShift
     for Y := 0 to BlockSize - 1 do
     begin
       P := Spectrum.ScanLine[Y];
       for X := 0 to BlockSize - 1 do
       begin
         // Shifted coordinates
-        // Target (X, Y) comes from Source ((X + N/2) mod N, (Y + N/2) mod N)
-        // 实际上：
-        // Dest[y][x] = Src[(y + h/2) % h][(x + w/2) % w]
-
-        // Direct coordinates (No FFTShift)
-        Mag := Data^[Y * BlockSize + X].R;
+        Mag := SumMag[(Y + BlockSize div 2) mod BlockSize, (X + BlockSize div 2) mod BlockSize];
 
         Val := Round(((Mag - MinMag) / (MaxMag - MinMag)) * 255);
         if Val > 255 then Val := 255;
@@ -758,13 +812,14 @@ begin
     Result := Spectrum;
   finally
     FreeMem(Data);
+    SetLength(SumMag, 0, 0);
   end;
 end;
 
 function TCnWatermark.Verify(Source: TBitmap; const TextToVerify: string): Double;
 var
   Extracted: string;
-  LenPattern, LenExt, MatchCount, i, j: Integer;
+  LenPattern, LenExt, MatchCount, I, j: Integer;
   Found: Boolean;
 begin
   Result := 0.0;
@@ -780,12 +835,12 @@ begin
   if LenExt < LenPattern then Exit;
 
   MatchCount := 0;
-  for i := 1 to LenExt - LenPattern + 1 do
+  for I := 1 to LenExt - LenPattern + 1 do
   begin
     Found := True;
     for j := 0 to LenPattern - 1 do
     begin
-      if Extracted[i + j] <> TextToVerify[j + 1] then
+      if Extracted[I + j] <> TextToVerify[j + 1] then
       begin
         Found := False;
         Break;
@@ -797,7 +852,8 @@ begin
   if LenPattern > 0 then
     Result := MatchCount * LenPattern / LenExt;
 
-  if Result > 1.0 then Result := 1.0;
+  if Result > 1.0 then
+    Result := 1.0;
 end;
 
 procedure TCnWatermark.DoWatermarkImageReady(Image: TBitmap);
@@ -807,5 +863,3 @@ begin
 end;
 
 end.
-
-
