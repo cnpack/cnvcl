@@ -258,6 +258,8 @@ function TestBigNumberBiPolynomial: Boolean;
 function TestPolynomialInverseTrunc: Boolean;
 function TestPolynomialMulTrunc: Boolean;
 function TestPolynomialPowerTrunc: Boolean;
+function TestBigNumberPolynomialDerivative: Boolean;
+
 // ================================ NTRU =======================================
 
 function TestNTRUHPS2048509: Boolean;
@@ -632,7 +634,7 @@ begin
     S := S + StringOfChar(' ', 70 - Length(S));
   MyWrite(S);
 
-  V := AProc;
+  V := AProc();
   if V then
     MyWriteln('OK')
   else
@@ -859,6 +861,7 @@ begin
   MyAssert(TestPolynomialInverseTrunc, 'TestPolynomialInverseTrunc');
   MyAssert(TestPolynomialMulTrunc, 'TestPolynomialMulTrunc');
   MyAssert(TestPolynomialPowerTrunc, 'TestPolynomialPowerTrunc');
+  MyAssert(TestBigNumberPolynomialDerivative, 'TestBigNumberPolynomialDerivative');
 
 // ================================ NTRU =======================================
 
@@ -6068,6 +6071,102 @@ begin
     Result := Res.ToString = '3X^2+3X+1';
   finally
     E.Free;
+    Res.Free;
+    P.Free;
+  end;
+end;
+
+function TestBigNumberPolynomialDerivative: Boolean;
+var
+  P, Res: TCnBigNumberPolynomial;
+  Prime: TCnBigNumber;
+begin
+  Result := False;
+  P := TCnBigNumberPolynomial.Create;
+  Res := TCnBigNumberPolynomial.Create;
+  Prime := TCnBigNumber.Create;
+  try
+    // ===== BigNumberPolynomialDerivative ????????? =====
+
+    // P = 3X^3 + 2X^2 + X + 5
+    // P' = 9X^2 + 4X + 1
+    P.SetCoefficients([5, 1, 2, 3]);
+    BigNumberPolynomialDerivative(Res, P);
+    Result := Res.ToString = '9X^2+4X+1';
+    if not Result then Exit;
+
+    // P = X^4 - 3X^2 + 2
+    // P' = 4X^3 - 6X
+    P.SetCoefficients([2, 0, -3, 0, 1]);
+    BigNumberPolynomialDerivative(Res, P);
+    Result := Res.ToString = '4X^3-6X';
+    if not Result then Exit;
+
+    // P = 7
+    // P' = 0
+    P.SetCoefficients([7]);
+    BigNumberPolynomialDerivative(Res, P);
+    Result := Res.IsZero;
+    if not Result then Exit;
+
+    // P = 0
+    // P' = 0
+    P.SetZero;
+    BigNumberPolynomialDerivative(Res, P);
+    Result := Res.IsZero;
+    if not Result then Exit;
+
+    // P = X
+    // P' = 1
+    P.SetCoefficients([0, 1]);
+    BigNumberPolynomialDerivative(Res, P);
+    Result := Res.ToString = '1';
+    if not Result then Exit;
+
+    // ===== BigNumberPolynomialGaloisDerivative Galois =====
+
+    // P = 3X^3 + 2X^2 + X + 5, Prime = 7
+    // P' = 9X^2 + 4X + 1, mod 7 => 2X^2 + 4X + 1
+    P.SetCoefficients([5, 1, 2, 3]);
+    Prime.SetWord(7);
+    BigNumberPolynomialGaloisDerivative(Res, P, Prime);
+    Result := Res.ToString = '2X^2+4X+1';
+    if not Result then Exit;
+
+    // P = X^5 + X^4 + X^3 + X^2 + X + 1, Prime = 5
+    // P' = 5X^4 + 4X^3 + 3X^2 + 2X + 1, mod 5 => 4X^3 + 3X^2 + 2X + 1
+    P.SetCoefficients([1, 1, 1, 1, 1, 1]);
+    Prime.SetWord(5);
+    BigNumberPolynomialGaloisDerivative(Res, P, Prime);
+    Result := Res.ToString = '4X^3+3X^2+2X+1';
+    if not Result then Exit;
+
+    // P = 3, Prime = 7
+    // P' = 0
+    P.SetCoefficients([3]);
+    Prime.SetWord(7);
+    BigNumberPolynomialGaloisDerivative(Res, P, Prime);
+    Result := Res.IsZero;
+    if not Result then Exit;
+
+    // P = X^p, Prime = p
+    // P' = p * X^(p-1), mod p => 0
+    // ? p = 5, P = X^5
+    P.SetZero;
+    P.MaxDegree := 5;
+    P[5].SetWord(1);
+    Prime.SetWord(5);
+    BigNumberPolynomialGaloisDerivative(Res, P, Prime);
+    Result := Res.IsZero;
+    if not Result then Exit;
+
+    // Res= P (in-place)
+    // P = 3X^3 + 2X^2 + X + 5, P' = 9X^2 + 4X + 1
+    P.SetCoefficients([5, 1, 2, 3]);
+    BigNumberPolynomialDerivative(P, P);
+    Result := P.ToString = '9X^2+4X+1';
+  finally
+    Prime.Free;
     Res.Free;
     P.Free;
   end;

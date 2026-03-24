@@ -476,6 +476,51 @@ type
     {* 最高次数，0 开始}
   end;
 
+  TCnBigNumberPolynomialList = class(TObjectList)
+  {* 容纳一元大整系数多项式的对象列表，同时拥有一元大整系数多项式对象们}
+  private
+
+  protected
+    function GetItem(Index: Integer): TCnBigNumberPolynomial;
+    procedure SetItem(Index: Integer; APoly: TCnBigNumberPolynomial);
+  public
+    constructor Create; reintroduce;
+    {* 构造函数}
+    destructor Destroy; override;
+    {* 析构函数}
+
+    function Add: TCnBigNumberPolynomial; overload;
+    {* 新增一个一元大整系数多项式对象，返回该对象。
+       注意添加后返回的对象已由列表纳入管理，无需也不应手动释放。
+
+       参数：
+         （无）
+
+       返回值：TCnBigNumberPolynomial  - 内部新增的多项式对象
+    }
+
+    function Add(APoly: TCnBigNumberPolynomial): Integer; overload;
+    {* 添加外部的一元大整系数多项式对象。注意添加后该对象由列表纳入管理，无需也不应手动释放。
+
+       参数：
+         APoly: TCnBigNumberPolynomial   - 待添加的一元大整系数多项式对象
+
+       返回值：Integer                   - 新增的该一元大整系数多项式对象的索引值
+    }
+
+    function ToString: string; {$IFDEF OBJECT_HAS_TOSTRING} override; {$ENDIF}
+    {* 将一元大整系数多项式列表转成字符串。
+
+       参数：
+         （无）
+
+       返回值：string                     - 返回字符串
+    }
+
+    property Items[Index: Integer]: TCnBigNumberPolynomial read GetItem write SetItem; default;
+    {* 一元大整系数多项式列表项}
+  end;
+
   TCnBigNumberPolynomialPool = class(TCnMathObjectPool)
   {* 一元大整系数多项式池实现类，允许使用到一元大整数系数多项式的地方自行创建一元大整数系数多项式池}
   protected
@@ -3376,6 +3421,35 @@ procedure BigNumberPolynomialGaloisReduce2(P1: TCnBigNumberPolynomial;
    参数：
      P1: TCnBigNumberPolynomial           - 待约分的一元大整系数多项式一
      P2: TCnBigNumberPolynomial           - 待约分的一元大整系数多项式二
+     Prime: TCnBigNumber                  - 有限域上界
+
+   返回值：（无）
+}
+
+procedure BigNumberPolynomialDerivative(Res: TCnBigNumberPolynomial;
+  P: TCnBigNumberPolynomial);
+{* 计算一元大整系数多项式的形式导数 dP/dX。
+   若 P(x) = a_n*x^n + ... + a_1*x + a_0，则 P'(x) = n*a_n*x^(n-1) + ... + a_1。
+   零多项式和常数多项式的导数为零多项式。
+   Res 可以是 P（原地计算）。
+
+   参数：
+     Res: TCnBigNumberPolynomial          - 用来容纳结果的一元大整系数多项式
+     P: TCnBigNumberPolynomial            - 待求导的一元大整系数多项式
+
+   返回值：（无）
+}
+
+procedure BigNumberPolynomialGaloisDerivative(Res: TCnBigNumberPolynomial;
+  P: TCnBigNumberPolynomial; Prime: TCnBigNumber);
+{* 计算一元大整系数多项式在 Prime 次方阶有限域上的形式导数 dP/dX。
+   若 P(x) = a_n*x^n + ... + a_1*x + a_0，则 P'(x) = n*a_n*x^(n-1) + ... + a_1。
+   各系数结果自动取 mod Prime。零多项式和常数多项式的导数为零多项式。
+   Res 可以是 P（原地计算）。
+
+   参数：
+     Res: TCnBigNumberPolynomial          - 用来容纳结果的一元大整系数多项式
+     P: TCnBigNumberPolynomial            - 待求导的一元大整系数多项式
      Prime: TCnBigNumber                  - 有限域上界
 
    返回值：（无）
@@ -10592,6 +10666,89 @@ begin
   end;
 end;
 
+procedure BigNumberPolynomialDerivative(Res: TCnBigNumberPolynomial;
+  P: TCnBigNumberPolynomial);
+var
+  I: Integer;
+  T: TCnBigNumber;
+  Tmp: TCnBigNumberPolynomial;
+begin
+  // 常数多项式时导数为 0
+  if P.MaxDegree = 0 then
+  begin
+    Res.SetZero;
+    Exit;
+  end;
+
+  // Res 与 P 相同时，先用临时多项式计算，再复制回来
+  if Res = P then
+  begin
+    Tmp := FLocalBigNumberPolynomialPool.Obtain;
+    try
+      BigNumberPolynomialDerivative(Tmp, P);
+      BigNumberPolynomialCopy(Res, Tmp);
+    finally
+      FLocalBigNumberPolynomialPool.Recycle(Tmp);
+    end;
+    Exit;
+  end;
+
+  T := FLocalBigNumberPool.Obtain;
+  try
+    Res.MaxDegree := P.MaxDegree - 1;
+    for I := 1 to P.MaxDegree do
+    begin
+      BigNumberSetWord(T, I);
+      BigNumberMul(Res[I - 1], P[I], T);
+    end;
+    Res.CorrectTop;
+  finally
+    FLocalBigNumberPool.Recycle(T);
+  end;
+end;
+
+procedure BigNumberPolynomialGaloisDerivative(Res: TCnBigNumberPolynomial;
+  P: TCnBigNumberPolynomial; Prime: TCnBigNumber);
+var
+  I: Integer;
+  T: TCnBigNumber;
+  Tmp: TCnBigNumberPolynomial;
+begin
+  // 常数多项式时导数为 0
+  if P.MaxDegree = 0 then
+  begin
+    Res.SetZero;
+    Exit;
+  end;
+
+  // Res 与 P 相同时，先用临时多项式计算，再复制回来
+  if Res = P then
+  begin
+    Tmp := FLocalBigNumberPolynomialPool.Obtain;
+    try
+      BigNumberPolynomialGaloisDerivative(Tmp, P, Prime);
+      BigNumberPolynomialCopy(Res, Tmp);
+    finally
+      FLocalBigNumberPolynomialPool.Recycle(Tmp);
+    end;
+    Exit;
+  end;
+
+  T := FLocalBigNumberPool.Obtain;
+  try
+    Res.MaxDegree := P.MaxDegree - 1;
+    for I := 1 to P.MaxDegree do
+    begin
+      BigNumberSetWord(T, I);
+      BigNumberMul(Res[I - 1], P[I], T);
+      BigNumberNonNegativeMod(Res[I - 1], Res[I - 1], Prime);
+    end;
+    Res.CorrectTop;
+  finally
+    FLocalBigNumberPool.Recycle(T);
+  end;
+end;
+
 { TCnBigNumberRationalPolynomialPool }
 
 function TCnBigNumberRationalPolynomialPool.CreateObject: TObject;
@@ -15392,6 +15549,55 @@ begin
 end;
 
 function TCnInt64PolynomialList.ToString: string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Count - 1 do
+  begin
+    if I = 0 then
+      Result := Items[I].ToString
+    else
+      Result := Result + ',' + Items[I].ToString;
+  end;
+end;
+
+{ TCnBigNumberPolynomialList }
+
+function TCnBigNumberPolynomialList.Add: TCnBigNumberPolynomial;
+begin
+  Result := TCnBigNumberPolynomial.Create;
+  Add(Result);
+end;
+
+function TCnBigNumberPolynomialList.Add(APoly: TCnBigNumberPolynomial): Integer;
+begin
+  Result := inherited Add(APoly);
+end;
+
+constructor TCnBigNumberPolynomialList.Create;
+begin
+  inherited Create(True);
+end;
+
+destructor TCnBigNumberPolynomialList.Destroy;
+begin
+
+  inherited;
+end;
+
+function TCnBigNumberPolynomialList.GetItem(Index: Integer): TCnBigNumberPolynomial;
+begin
+  Result := TCnBigNumberPolynomial(inherited GetItem(Index));
+end;
+
+procedure TCnBigNumberPolynomialList.SetItem(Index: Integer;
+  APoly: TCnBigNumberPolynomial);
+begin
+  inherited SetItem(Index, APoly);
+end;
+
+function TCnBigNumberPolynomialList.ToString: string;
 var
   I: Integer;
 begin
