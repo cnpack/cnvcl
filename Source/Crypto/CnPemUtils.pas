@@ -30,7 +30,9 @@ unit CnPemUtils;
 * 开发平台：WinXP + Delphi 5.0
 * 兼容测试：暂未进行
 * 本 地 化：该单元无需本地化处理
-* 修改记录：2024.05.27 V1.6
+* 修改记录：2026.03.24 V1.7
+*               特定版本的编译器 TStringList 写 Stream 会带 BOM 且无法控制，换实现
+*           2024.05.27 V1.6
 *               增加六个 ISO10126 对齐的处理函数
 *           2023.12.14 V1.5
 *               增加 SaveMemoryToPemStream 函数但未完整测试
@@ -372,6 +374,9 @@ procedure BytesRemoveISO10126Padding(var Data: TBytes);
 }
 
 implementation
+
+uses
+  CnStrings;
 
 const
   ENC_HEAD_PROCTYPE = 'Proc-Type:';
@@ -1119,11 +1124,11 @@ begin
   end;
 end;
 
-procedure SplitStringToList(const S: string; List: TStrings);
+procedure SplitStringToList(const S: string; List: TCnAnsiStrings);
 const
   LINE_WIDTH = 64;
 var
-  C, R: string;
+  C, R: AnsiString;
 begin
   if List = nil then
     Exit;
@@ -1131,7 +1136,7 @@ begin
   List.Clear;
   if S <> '' then
   begin
-    R := S;
+    R := AnsiString(S);
     while R <> '' do
     begin
       C := Copy(R, 1, LINE_WIDTH);
@@ -1146,7 +1151,7 @@ function SaveMemoryToPemFile(const FileName, Head, Tail: string;
   KeyHashMethod: TCnKeyHashMethod; const Password: string; Append: Boolean): Boolean;
 var
   S, EH: string;
-  List, Sl: TStringList;
+  List, Sl: TCnAnsiStringList;
 begin
   Result := False;
   if (MemoryStream <> nil) and (MemoryStream.Size <> 0) then
@@ -1165,7 +1170,7 @@ begin
 
     if ECN_BASE64_OK = Base64Encode(MemoryStream, S) then
     begin
-      List := TStringList.Create;
+      List := TCnAnsiStringList.Create;
       try
         SplitStringToList(S, List);
 
@@ -1176,7 +1181,7 @@ begin
 
         if Append and FileExists(FileName) then
         begin
-          Sl := TStringList.Create;
+          Sl := TCnAnsiStringList.Create;
           try
             Sl.LoadFromFile(FileName);
             Sl.AddStrings(List);
@@ -1201,7 +1206,7 @@ function SaveMemoryToPemStream(Stream: TStream; const Head, Tail: string;
   KeyHashMethod: TCnKeyHashMethod; const Password: string; Append: Boolean): Boolean;
 var
   S, EH: string;
-  List: TStringList;
+  List: TCnAnsiStringList;
 begin
   Result := False;
   if (MemoryStream <> nil) and (MemoryStream.Size <> 0) then
@@ -1220,7 +1225,7 @@ begin
 
     if ECN_BASE64_OK = Base64Encode(MemoryStream, S) then
     begin
-      List := TStringList.Create;
+      List := TCnAnsiStringList.Create;
       try
         SplitStringToList(S, List);
 
