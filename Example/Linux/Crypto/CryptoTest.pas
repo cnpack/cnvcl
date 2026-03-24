@@ -255,7 +255,9 @@ function TestInt64RationalPolynomial: Boolean;
 function TestBigNumberRationalPolynomial: Boolean;
 function TestInt64BiPolynomial: Boolean;
 function TestBigNumberBiPolynomial: Boolean;
-
+function TestPolynomialInverseTrunc: Boolean;
+function TestPolynomialMulTrunc: Boolean;
+function TestPolynomialPowerTrunc: Boolean;
 // ================================ NTRU =======================================
 
 function TestNTRUHPS2048509: Boolean;
@@ -854,6 +856,9 @@ begin
   MyAssert(TestBigNumberRationalPolynomial, 'TestBigNumberRationalPolynomial');
   MyAssert(TestInt64BiPolynomial, 'TestInt64BiPolynomial');
   MyAssert(TestBigNumberBiPolynomial, 'TestBigNumberBiPolynomial');
+  MyAssert(TestPolynomialInverseTrunc, 'TestPolynomialInverseTrunc');
+  MyAssert(TestPolynomialMulTrunc, 'TestPolynomialMulTrunc');
+  MyAssert(TestPolynomialPowerTrunc, 'TestPolynomialPowerTrunc');
 
 // ================================ NTRU =======================================
 
@@ -5625,8 +5630,17 @@ begin
     // 2(X^2+2X+3) = 2X^2 + 4X + 6
     // ½á¹û£º3X^4 + 12X^3 + 32X^2 + 40X + 34
     Result := Res.ToString = '3X^4+12X^3+32X^2+40X+34';
+    if not Result then Exit;
 
-    Result := True;
+    // Test InverseTrunc
+    P1.Clear;
+    P1.MaxDegree := 1;
+    P1[0].SetWord(1);
+    P1[1].SetWord(24);
+    P1[1].Negate;
+
+    BigNumberPolynomialInverseTrunc(Res, P1, 2);
+    Result := Res.ToString = '576X^2+24X+1';
   finally
     V.Free;
     X.Free;
@@ -5878,9 +5892,7 @@ begin
     R2.Denominator.SetCoefficients([3]);
 
     Int64RationalPolynomialAdd(Res, R1, R2);
-    if Res.ToString <> '5X+6 / 6' then Exit;
-
-    Result := True;
+    Result := Res.ToString = '5X+6 / 6';
   finally
     Pool.Free;
   end;
@@ -5891,7 +5903,6 @@ var
   R1, R2, Res: TCnBigNumberRationalPolynomial;
   Pool: TCnBigNumberRationalPolynomialPool;
 begin
-  Result := False;
   Pool := TCnBigNumberRationalPolynomialPool.Create;
   R1 := Pool.Obtain;
   R2 := Pool.Obtain;
@@ -5904,9 +5915,7 @@ begin
     R2.Denominator.SetCoefficients([3]);
 
     BigNumberRationalPolynomialAdd(Res, R1, R2);
-    if Res.ToString <> '5X+6 / 6' then Exit;
-
-    Result := True;
+    Result := Res.ToString = '5X+6 / 6';
   finally
     Pool.Free;
   end;
@@ -5916,7 +5925,6 @@ function TestInt64BiPolynomial: Boolean;
 var
   P1, P2, Res: TCnInt64BiPolynomial;
 begin
-  Result := False;
   P1 := TCnInt64BiPolynomial.Create;
   P2 := TCnInt64BiPolynomial.Create;
   Res := TCnInt64BiPolynomial.Create;
@@ -5925,13 +5933,12 @@ begin
     P2.SetXYCoefficent(1, 1, 1); // XY
 
     Int64BiPolynomialAdd(Res, P1, P2);
-    if Res.ToString <> '2XY' then Exit;
+    Result := Res.ToString = '2XY';
+    if not Result then Exit;
 
     P1.SetXYCoefficent(0, 0, 1); // XY + 1
     Int64BiPolynomialSub(Res, P1, P2);
-    if Res.ToString <> '1' then Exit;
-
-    Result := True;
+    Result := Res.ToString = '1';
   finally
     Res.Free;
     P2.Free;
@@ -5943,7 +5950,6 @@ function TestBigNumberBiPolynomial: Boolean;
 var
   P1, P2, Res: TCnBigNumberBiPolynomial;
 begin
-  Result := False;
   P1 := TCnBigNumberBiPolynomial.Create;
   P2 := TCnBigNumberBiPolynomial.Create;
   Res := TCnBigNumberBiPolynomial.Create;
@@ -5952,17 +5958,118 @@ begin
     P2.SetXYCoefficent(1, 1, 1); // XY
 
     BigNumberBiPolynomialAdd(Res, P1, P2);
-    if Res.ToString <> '2XY' then Exit;
+    Result := Res.ToString = '2XY';
+    if not Result then Exit;
 
     P1.SetXYCoefficent(0, 0, 1); // XY + 1
     BigNumberBiPolynomialSub(Res, P1, P2);
-    if Res.ToString <> '1' then Exit;
-
-    Result := True;
+    Result := Res.ToString = '1';
   finally
     Res.Free;
     P2.Free;
     P1.Free;
+  end;
+end;
+
+function TestPolynomialInverseTrunc: Boolean;
+var
+  P, Res: TCnBigNumberPolynomial;
+begin
+  P := TCnBigNumberPolynomial.Create;
+  Res := TCnBigNumberPolynomial.Create;
+  try
+    // Test 1: P = 1 - 24X
+    P.MaxDegree := 1;
+    P[0].SetWord(1);
+    P[1].SetWord(24);
+    P[1].Negate;
+
+    // P^-1 mod X^3
+    // 1 / (1 - 24X) = 1 + 24X + 576X^2 + 13824X^3 + ...
+    BigNumberPolynomialInverseTrunc(Res, P, 2);
+    Result := Res.ToString = '576X^2+24X+1';
+    if not Result then Exit;
+
+    // Test 2: P = -1 + X^2
+    P.Clear;
+    P.MaxDegree := 2;
+    P[0].SetWord(1);
+    P[0].Negate;
+    P[2].SetWord(1);
+
+    // P^-1 mod X^5
+    // 1 / (-1 + X^2) = -(1 / (1 - X^2)) = -1 - X^2 - X^4 - X^6...
+    BigNumberPolynomialInverseTrunc(Res, P, 4);
+    Result := Res.ToString = '-X^4-X^2-1';
+  finally
+    Res.Free;
+    P.Free;
+  end;
+end;
+
+function TestPolynomialMulTrunc: Boolean;
+var
+  P1, P2, Res: TCnBigNumberPolynomial;
+begin
+  P1 := TCnBigNumberPolynomial.Create;
+  P2 := TCnBigNumberPolynomial.Create;
+  Res := TCnBigNumberPolynomial.Create;
+  try
+    // P1 = 1 + 2X + 3X^2
+    P1.MaxDegree := 2;
+    P1[0].SetWord(1);
+    P1[1].SetWord(2);
+    P1[2].SetWord(3);
+
+    // P2 = 4 + 5X + 6X^2
+    P2.MaxDegree := 2;
+    P2[0].SetWord(4);
+    P2[1].SetWord(5);
+    P2[2].SetWord(6);
+
+    // P1 * P2 = 4 + 13X + 28X^2 + 27X^3 + 18X^4
+    // Trunc to MaxDegree = 2
+    BigNumberPolynomialMulTrunc(Res, P1, P2, 2);
+    Result := Res.ToString = '28X^2+13X+4';
+    if not Result then Exit;
+
+    // Trunc to MaxDegree = 3
+    BigNumberPolynomialMulTrunc(Res, P1, P2, 3);
+    REsult := Res.ToString = '27X^3+28X^2+13X+4';
+  finally
+    Res.Free;
+    P2.Free;
+    P1.Free;
+  end;
+end;
+
+function TestPolynomialPowerTrunc: Boolean;
+var
+  P, Res: TCnBigNumberPolynomial;
+  E: TCnBigNumber;
+begin
+  P := TCnBigNumberPolynomial.Create;
+  Res := TCnBigNumberPolynomial.Create;
+  E := TCnBigNumber.Create;
+  try
+    // P = 1 + X
+    P.MaxDegree := 1;
+    P[0].SetWord(1);
+    P[1].SetWord(1);
+
+    // P^3 = 1 + 3X + 3X^2 + X^3
+    E.SetWord(3);
+    BigNumberPolynomialPowerTrunc(Res, P, E, 3);
+    Result := Res.ToString = 'X^3+3X^2+3X+1';
+    if not Result then Exit;
+
+    // P^3 trunc to MaxDegree = 2
+    BigNumberPolynomialPowerTrunc(Res, P, E, 2);
+    Result := Res.ToString = '3X^2+3X+1';
+  finally
+    E.Free;
+    Res.Free;
+    P.Free;
   end;
 end;
 

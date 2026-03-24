@@ -2844,6 +2844,45 @@ function BigNumberPolynomialMod(Res: TCnBigNumberPolynomial; P: TCnBigNumberPoly
    返回值：Boolean                        - 返回是否计算成功
 }
 
+function BigNumberPolynomialMulTrunc(Res: TCnBigNumberPolynomial;
+  P1, P2: TCnBigNumberPolynomial; MaxDegree: Integer): Boolean;
+{* 计算大整数系数多项式的截断乘法，也即结果保留最高到 MaxDegree 次幂。
+
+   参数：
+     Res: TCnBigNumberPolynomial          - 返回计算出的大整数系数多项式
+     P1, P2: TCnBigNumberPolynomial       - 乘数多项式
+     MaxDegree: Integer                   - 截断最大次数
+
+   返回值：Boolean                        - 计算是否成功
+}
+
+function BigNumberPolynomialPowerTrunc(Res: TCnBigNumberPolynomial; P: TCnBigNumberPolynomial;
+  Exponent: TCnBigNumber; MaxDegree: Integer): Boolean;
+{* 计算大整数系数多项式的截断幂运算，也即结果保留最高到 MaxDegree 次幂。
+
+   参数：
+     Res: TCnBigNumberPolynomial          - 返回计算出的大整数系数多项式
+     P: TCnBigNumberPolynomial            - 底数多项式
+     Exponent: TCnBigNumber               - 指数
+     MaxDegree: Integer                   - 截断最大次数
+
+   返回值：Boolean                        - 计算是否成功
+}
+
+function BigNumberPolynomialInverseTrunc(Res: TCnBigNumberPolynomial;
+  P: TCnBigNumberPolynomial; MaxDegree: Integer): Boolean;
+{* 计算一元大数系数多项式对于多项式 x^(MaxDegree+1) 的模逆多项式的截断。
+   也即结果保留最高到 MaxDegree 次幂，内部使用前向代入递推法。
+   注意：目前只支持常数项 P[0] 为 1 或 -1 的情况
+
+   参数：
+     Res: TCnBigNumberPolynomial          - 返回计算出的一元大数系数多项式
+     P: TCnBigNumberPolynomial            - 原多项式
+     MaxDegree: Integer                   - 截断次数
+
+   返回值：Boolean                        - 计算是否成功
+}
+
 function BigNumberPolynomialPower(Res: TCnBigNumberPolynomial;
   P: TCnBigNumberPolynomial; Exponent: TCnBigNumber): Boolean;
 {* 计算一元大整系数多项式的 Exponent 次幂，返回是否计算成功，Res 可以是 P。
@@ -9131,6 +9170,156 @@ function BigNumberPolynomialMod(Res: TCnBigNumberPolynomial; P: TCnBigNumberPoly
   Divisor: TCnBigNumberPolynomial; ErrMulFactor: TCnBigNumber): Boolean;
 begin
   Result := BigNumberPolynomialDiv(nil, Res, P, Divisor, ErrMulFactor);
+end;
+
+function BigNumberPolynomialMulTrunc(Res: TCnBigNumberPolynomial;
+  P1, P2: TCnBigNumberPolynomial; MaxDegree: Integer): Boolean;
+var
+  I, J: Integer;
+  P2Max, Limit: Integer;
+  R: TCnBigNumberPolynomial;
+  T: TCnBigNumber;
+begin
+  Result := False;
+  if (Res = nil) or (P1 = nil) or (P2 = nil) then Exit;
+  if P1.IsZero or P2.IsZero then
+  begin
+    Res.SetZero;
+    Result := True;
+    Exit;
+  end;
+
+  R := FLocalBigNumberPolynomialPool.Obtain;
+  T := FLocalBigNumberPool.Obtain;
+  try
+    R.Clear;
+
+    P2Max := P2.MaxDegree;
+    if P2Max > MaxDegree then P2Max := MaxDegree;
+
+    // The max possible degree in the result is Min(P1.MaxDegree + P2Max, MaxDegree)
+    Limit := P1.MaxDegree + P2Max;
+    if Limit > MaxDegree then Limit := MaxDegree;
+    R.MaxDegree := Limit;
+
+    for I := 0 to P1.MaxDegree do
+    begin
+      if I > MaxDegree then Break;
+      if P1[I].IsZero then Continue;
+
+      Limit := MaxDegree - I;
+      if Limit > P2Max then Limit := P2Max;
+
+      for J := 0 to Limit do
+      begin
+        if P2[J].IsZero then Continue;
+        BigNumberMul(T, P1[I], P2[J]);
+        BigNumberAdd(R[I + J], R[I + J], T);
+      end;
+    end;
+
+    R.CorrectTop;
+    BigNumberPolynomialCopy(Res, R);
+    Result := True;
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(R);
+    FLocalBigNumberPool.Recycle(T);
+  end;
+end;
+
+function BigNumberPolynomialPowerTrunc(Res: TCnBigNumberPolynomial;
+  P: TCnBigNumberPolynomial; Exponent: TCnBigNumber; MaxDegree: Integer): Boolean;
+var
+  T, Base: TCnBigNumberPolynomial;
+  E: TCnBigNumber;
+begin
+  Result := False;
+  if (Res = nil) or (P = nil) or (Exponent = nil) then Exit;
+
+  if Exponent.IsZero then
+  begin
+    Res.SetOne;
+    Result := True;
+    Exit;
+  end;
+
+  T := FLocalBigNumberPolynomialPool.Obtain;
+  Base := FLocalBigNumberPolynomialPool.Obtain;
+  E := FLocalBigNumberPool.Obtain;
+  try
+    BigNumberPolynomialCopy(Base, P);
+    BigNumberCopy(E, Exponent);
+    T.SetOne;
+
+    while not E.IsZero do
+    begin
+      if E.IsOdd then
+      begin
+        if not BigNumberPolynomialMulTrunc(T, T, Base, MaxDegree) then
+		  Exit;
+      end;
+      E.ShiftRight(1);
+      if not E.IsZero then
+      begin
+        if not BigNumberPolynomialMulTrunc(Base, Base, Base, MaxDegree) then
+		  Exit;
+      end;
+    end;
+
+    BigNumberPolynomialCopy(Res, T);
+    Result := True;
+  finally
+    FLocalBigNumberPolynomialPool.Recycle(T);
+    FLocalBigNumberPolynomialPool.Recycle(Base);
+    FLocalBigNumberPool.Recycle(E);
+  end;
+end;
+
+function BigNumberPolynomialInverseTrunc(Res: TCnBigNumberPolynomial;
+  P: TCnBigNumberPolynomial; MaxDegree: Integer): Boolean;
+var
+  I, J: Integer;
+  T, Sum: TCnBigNumber;
+  B: TCnBigNumberPolynomial;
+begin
+  Result := False;
+  if (Res = nil) or (P = nil) or P.IsZero then Exit;
+  if not (P[0].IsOne or P[0].IsNegOne) then Exit; // 目前只支持常数项为 1 或 -1
+
+  B := FLocalBigNumberPolynomialPool.Obtain;
+  T := FLocalBigNumberPool.Obtain;
+  Sum := FLocalBigNumberPool.Obtain;
+
+  try
+    B.Clear;
+    B.MaxDegree := MaxDegree;
+    BigNumberCopy(B[0], P[0]); // B[0] = P[0]
+
+    for I := 1 to MaxDegree do
+    begin
+      Sum.SetZero;
+      for J := 1 to I do
+      begin
+        if J > P.MaxDegree then Continue;
+        if P[J].IsZero or B[I - J].IsZero then Continue;
+        BigNumberMul(T, P[J], B[I - J]);
+        BigNumberAdd(Sum, Sum, T);
+      end;
+
+      // B[I] = -Sum * P[0]
+      BigNumberCopy(B[I], Sum);
+      if P[0].IsOne then
+        B[I].Negate;
+    end;
+
+    B.CorrectTop;
+    BigNumberPolynomialCopy(Res, B);
+    Result := True;
+  finally
+    FLocalBigNumberPool.Recycle(Sum);
+    FLocalBigNumberPool.Recycle(T);
+    FLocalBigNumberPolynomialPool.Recycle(B);
+  end;
 end;
 
 function BigNumberPolynomialPower(Res: TCnBigNumberPolynomial;
