@@ -1403,7 +1403,7 @@ object FormEcc: TFormEcc
       end
     end
     object tsLucas: TTabSheet
-      Caption = 'Lucas Sequence && Legendre'
+      Caption = 'Lucas Seq && Legendre'
       ImageIndex = 4
       object grpLucas: TGroupBox
         Left = 16
@@ -1724,7 +1724,7 @@ object FormEcc: TFormEcc
       end
     end
     object tsPem: TTabSheet
-      Caption = 'Keys Load/Save and Sig / Verify'
+      Caption = 'Keys Load/Save and Sig/Verify'
       ImageIndex = 7
       object grpEccKeys: TGroupBox
         Left = 16
@@ -2021,13 +2021,58 @@ object FormEcc: TFormEcc
         end
       end
     end
+    object tsSEA: TTabSheet
+      Caption = 'SEA'
+      ImageIndex = 8
+      object grpSEA: TGroupBox
+        Left = 8
+        Top = 16
+        Width = 788
+        Height = 479
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Caption = 'Square Root'
+        TabOrder = 0
+        object lblSeaL: TLabel
+          Left = 16
+          Top = 28
+          Width = 19
+          Height = 13
+          Caption = 'Y^2'
+        end
+        object edtSeaL: TEdit
+          Left = 48
+          Top = 24
+          Width = 121
+          Height = 21
+          TabOrder = 0
+          Text = '4'
+        end
+        object btnSeaModularPoly: TButton
+          Left = 184
+          Top = 24
+          Width = 161
+          Height = 25
+          Caption = 'Calc Modular Polynomial'
+          TabOrder = 1
+          OnClick = btnSeaModularPolyClick
+        end
+        object mmoSeaMP: TMemo
+          Left = 16
+          Top = 56
+          Width = 753
+          Height = 401
+          ReadOnly = True
+          TabOrder = 2
+        end
+      end
+    end
   end
   object dlgOpen1: TOpenDialog
-    Left = 364
-    Top = 248
+    Left = 396
+    Top = 80
   end
   object dlgSave1: TSaveDialog
-    Left = 468
-    Top = 152
+    Left = 436
+    Top = 80
   end
 end

@@ -4665,8 +4665,6 @@ type
        返回值：Boolean                    - 返回是否全 0
     }
 
-    property YFactorsList[Index: Integer]: TCnSparseBigNumberList read GetYFactorsList;
-    {* 封装的对 X 的 Index 次项的 Y 系数列表，FXs[Index] 为 nil 时会自动创建出来，FXs.Count 不够时会自动扩容}
     procedure Clear;
     {* 内部清空所有数据，只给 FXs[0] 留一个 List，一般不对外使用}
   public
@@ -4801,6 +4799,9 @@ type
       设置后能保证新增的每个 XDegree，其对应的 SparseBigNumberList 都存在}
     property MaxYDegree: Integer read GetMaxYDegree write SetMaxYDegree;
     {* X 元的最高次数，0 开始，基于 Count 所以只能是 Integer}
+
+    property YFactorsList[Index: Integer]: TCnSparseBigNumberList read GetYFactorsList;
+    {* 封装的对 X 的 Index 次项的 Y 系数列表，FXs[Index] 为 nil 时会自动创建出来，FXs.Count 不够时会自动扩容}
 
     property SafeValue[XDegree, YDegree: Integer]: TCnBigNumber read GetSafeValue write SetSafeValue;
     {* 安全的读写系数方法，读不存在时返回 0。写不存在时自动扩展并内部复制大数值}

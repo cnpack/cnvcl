@@ -5,7 +5,8 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, TeEngine, Series, TeeProcs,
-  Chart, TypInfo, CnPrime, CnBigNumber, CnNative, CnPemUtils, CnPolynomial;
+  Chart, TypInfo, CnPrime, CnBigNumber, CnNative, CnPemUtils, CnPolynomial,
+  CnSEA;
 
 type
   TFormEcc = class(TForm)
@@ -249,6 +250,12 @@ type
     btnRecoverPubKey: TButton;
     btnEccFastSchoof: TButton;
     btnEccSchoof2: TButton;
+    tsSEA: TTabSheet;
+    grpSEA: TGroupBox;
+    lblSeaL: TLabel;
+    edtSeaL: TEdit;
+    btnSeaModularPoly: TButton;
+    mmoSeaMP: TMemo;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -330,6 +337,7 @@ type
     procedure btnRecoverPubKeyClick(Sender: TObject);
     procedure btnEccFastSchoofClick(Sender: TObject);
     procedure btnEccSchoof2Click(Sender: TObject);
+    procedure btnSeaModularPolyClick(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -3172,6 +3180,23 @@ begin
   Q.Free;
   B.Free;
   A.Free;
+end;
+
+procedure TFormEcc.btnSeaModularPolyClick(Sender: TObject);
+var
+  L: Integer;
+  P: TCnBigNumberBiPolynomial;
+begin
+  mmoSeaMP.Lines.Clear;
+  L := StrToInt(edtSeaL.Text);
+  P := TCnBigNumberBiPolynomial.Create;
+  if CnGenerateClassicalModularPolynomial(P, L) then
+  begin
+    mmoSeaMP.Lines.Add(P.ToString);
+    PrintModularPolynomialCoefficients(P, mmoSeaMP.Lines);
+  end
+  else
+    mmoSeaMP.Lines.Add('Failed to Generate ModularPolynomial for Degree: ' + IntToStr(L));
 end;
 
 end.
