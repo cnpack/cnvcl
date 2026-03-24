@@ -189,6 +189,7 @@ const
 
   BCRYPT_USE_SYSTEM_PREFERRED_RNG = $00000002;
   bcryptdll = 'bcrypt.dll';
+
 function CryptAcquireContext(phProv: PHandle; pszContainer: PAnsiChar;
   pszProvider: PAnsiChar; dwProvType: LongWord; dwFlags: LongWord): BOOL;
   stdcall; external ADVAPI32 name 'CryptAcquireContextA';

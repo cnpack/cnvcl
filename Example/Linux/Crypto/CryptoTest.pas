@@ -12604,6 +12604,7 @@ begin
   D := Trim(D);
   Result := S = D;
 
+  Sl.Free;
   Pub.Free;
   Priv.Free;
   Stream.Free;
@@ -14398,6 +14399,7 @@ begin
   D := Trim(D);
   Result := S = D;
 
+  Sl.Free;
   Pub.Free;
   Priv.Free;
   Stream.Free;
@@ -14450,6 +14452,7 @@ begin
   D := Trim(D);
   Result := S = D;
 
+  Sl.Free;
   Pub.Free;
   Priv.Free;
   Stream.Free;
@@ -14495,6 +14498,7 @@ begin
   D := Trim(D);
   Result := S = D;
 
+  Sl.Free;
   Pub.Free;
   Stream.Free;
 end;
