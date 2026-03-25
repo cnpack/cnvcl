@@ -133,6 +133,7 @@ typedef TInt32   TCnResult;
 #define CN_ECC_KEY_PKCS8          2
 #define CN_SM2_SEQ_C1C3C2         1
 #define CN_SM2_SEQ_C1C2C3         2
+#define CN_SM2_C1_COMPRESS        4
 
 #define CN_HASH_SHAKE128          40
 #define CN_HASH_SHAKE256          41
@@ -853,11 +854,11 @@ CNCRYPTO_API TCnResult CNCRYPTO_CALL cn_sm2_generate_keys(TCnCryptoHandle* out_p
    返回值：TCnResult                        - 错误码，CN_OK 表示成功
 */
 
-CNCRYPTO_API TCnResult CNCRYPTO_CALL cn_sm2_encrypt(TInt32 seq_type_id, TBool32 include_prefix, TCnCryptoHandle pub, uint8_t* in_ptr, TCnSize in_len, uint8_t* out_ptr, TCnSize cap, TCnSize* out_len);
+CNCRYPTO_API TCnResult CNCRYPTO_CALL cn_sm2_encrypt(TInt32 seq_type_flag, TBool32 include_prefix, TCnCryptoHandle pub, uint8_t* in_ptr, TCnSize in_len, uint8_t* out_ptr, TCnSize cap, TCnSize* out_len);
 /* 使用 SM2 公钥加密（支持 C1C3C2/C1C2C3 序列）。
 
    参数：
-     seq_type_id: TInt32                    - 输出序列类型（CN_SM2_SEQ_*）
+     seq_type_flag: TInt32                  - 输出序列类型（CN_SM2_SEQ_*）及允许 or 上 C1 压缩标识 CN_SM2_C1_COMPRESS
      include_prefix: TBool32                - 是否包含未压缩前缀
      pub: TCnCryptoHandle                   - SM2 公钥对象标识
      in_ptr: uint8_t*                       - 明文输入指针
