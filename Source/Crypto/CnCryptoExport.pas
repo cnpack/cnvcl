@@ -163,6 +163,7 @@ const
   CN_ECC_KEY_PKCS8           = 2;
   CN_SM2_SEQ_C1C3C2          = 1;
   CN_SM2_SEQ_C1C2C3          = 2;
+  CN_SM2_C1_COMPRESS         = 4;
   CN_HASH_SHAKE128           = 40;
   CN_HASH_SHAKE256           = 41;
   CN_MLKEM_TYPE_512          = 5101;
@@ -336,7 +337,7 @@ function cn_sm2_key_free(key: TCnCryptoHandle): TCnResult; cdecl;
 function cn_sm2_generate_keys(var out_priv: TCnCryptoHandle; var out_pub:
   TCnCryptoHandle): TCnResult; cdecl;
 
-function cn_sm2_encrypt(seq_type_id: TInt32; include_prefix: TBool32; pub:
+function cn_sm2_encrypt(seq_type_flag: TInt32; include_prefix: TBool32; pub:
   TCnCryptoHandle; in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap: TCnSize;
   var out_len: TCnSize): TCnResult; cdecl;
 
@@ -2481,12 +2482,12 @@ begin
   Result := CN_OK;
 end;
 
-function cn_sm2_encrypt(seq_type_id: TInt32; include_prefix: TBool32; pub:
+function cn_sm2_encrypt(seq_type_flag: TInt32; include_prefix: TBool32; pub:
   TCnCryptoHandle; in_ptr: PByte; in_len: TCnSize; out_ptr: PByte; cap: TCnSize;
   var out_len: TCnSize): TCnResult; cdecl;
 var
   ST: TCnSM2CryptSequenceType;
-  IncludePrefix: Boolean;
+  IncludePrefix, C1Compress: Boolean;
   Plain: TBytes;
   En: TBytes;
 begin
@@ -2495,7 +2496,9 @@ begin
     Result := CN_E_INVALID_ARG;
     Exit;
   end;
-  case seq_type_id of
+  C1Compress := (seq_type_flag and CN_SM2_C1_COMPRESS) <> 0;
+
+  case seq_type_flag and 3 of
     CN_SM2_SEQ_C1C3C2:
       ST := cstC1C3C2;
     CN_SM2_SEQ_C1C2C3:
@@ -2508,7 +2511,7 @@ begin
   SetLength(Plain, in_len);
   if in_len > 0 then
     Move(in_ptr^, Plain[0], in_len);
-  En := CnSM2EncryptData(Plain, TCnSM2PublicKey(pub), nil, ST, IncludePrefix, '');
+  En := CnSM2EncryptData(Plain, TCnSM2PublicKey(pub), nil, ST, IncludePrefix, '', C1Compress);
   out_len := Length(En);
   if cap < out_len then
   begin
@@ -2809,7 +2812,7 @@ begin
   SetLength(BB, len);
   Move(a^, BA[0], len);
   Move(b^, BB[0], len);
-  if ConstTimeBytesEqual(BA, BB) then
+  if ConstTimeCompareBytes(BA, BB) then
     Result := 1
   else
     Result := 0;
