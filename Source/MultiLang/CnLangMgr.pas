@@ -215,6 +215,7 @@ type
     FOldFormPrefix: TCnLangString;
     FOldDMPrefix: TCnLangString;
     FIgnoreAction: Boolean;
+    FUseClassWhenNoCompName: Boolean;
     FOnTranslateObjectProperty: TCnTranslateObjectPropertyEvent;
     FOnTranslateObject: TCnTranslateObjectEvent;
     procedure SetTranslationMode(const Value: TCnTranslationMode);
@@ -296,6 +297,9 @@ type
     property IgnoreAction: Boolean read FIgnoreAction
       write FIgnoreAction default True;
     {* 是否翻译 Action 属性不为空的控件的 Caption 和 Hint 属性}
+    property UseClassWhenNoCompName: Boolean read FUseClassWhenNoCompName write FUseClassWhenNoCompName;
+    {* 当遇到组件的名称为空时，是否使用其类名进行进一步翻译，默认为 False}
+
     property OnTranslateObject: TCnTranslateObjectEvent read FOnTranslateObject
       write FOnTranslateObject;
     {* 翻译一对象时的事件 }
@@ -991,6 +995,16 @@ var
   I: Integer;
   T: TComponent;
   IsInList, IsApplication: Boolean;
+
+  procedure RemoveCompAndSubFromList(L: TList; C: TComponent);
+  var
+    J: Integer;
+  begin
+    L.Remove(C);
+    for J := 0 to C.ComponentCount - 1 do
+      RemoveCompAndSubFromList(L, C.Components[J]);
+  end;
+
 begin
 {$IFDEF DEBUG_MULTILANG}
   CnDebugger.LogEnter('TranslateRecurComponent: ' + BaseName + ' ' + GetComponentNameForLang(AComponent));
@@ -1038,8 +1052,12 @@ begin
         begin
           TranslateRecurComponent(T, AList, BaseName + DefDelimeter + GetComponentNameForLang(AComponent), PreStore);
           // 如果该组件没名字，那么上一行以 [] 的方式翻了一次，还要以 @ClassName 的方式再翻一次
-          if AComponent.Name = '' then
+
+          if (AComponent.Name = '') and FUseClassWhenNoCompName then
+          begin
+            RemoveCompAndSubFromList(AList, T); // 再翻一次之前，要将 T 及 T 的所有子组件从列表里去除，免得碰到重复而不翻了
             TranslateRecurComponent(T, AList, BaseName + DefDelimeter + DefClassPrefix + AComponent.ClassName, PreStore);
+          end;
         end;
         // 注意：如果全局翻译（非手动翻译 Frame）时 AComponent 是 Frame 实例，T 是 Frame 上的组件实例
         // 则翻译规则是 Frame 所在的 Parent 的类名加 Frame 名字加 T 的名字，不会出现 Frame 的类名
@@ -1175,7 +1193,7 @@ begin
 
     // 原先无 Name 的 Component 跳过，现优化为也处理，只要 Base 里有带索引，且相应语言条目存在
 
-    if (AObject is TStrings) then  // Strings的对象直接翻译 Text 属性。
+    if AObject is TStrings then  // Strings的对象直接翻译 Text 属性。
     begin
       AStr := 'Text';
       // 调用翻译某属性前的事件
@@ -1198,7 +1216,7 @@ begin
 
       Exit;
     end
-    else if (AObject is TCollection) then // TCollection 对象遍历其 Item
+    else if AObject is TCollection then // TCollection 对象遍历其 Item
     begin
       for I := 0 to (AObject as TCollection).Count - 1 do
       begin
@@ -1474,7 +1492,7 @@ begin
         end;
 
 {$IFDEF DEBUG_MULTILANG}
-        CnDebugger.LogFmt('Get Translation Value: %s=%s', [AStr, TransStr]);
+        CnDebugger.LogFmt('Get Translation Value: %s=%s', [BStr, TransStr]);
 {$ENDIF}
 
         if TransStr <> '' then
