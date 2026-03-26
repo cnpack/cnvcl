@@ -668,7 +668,7 @@ type
 const
   SCnPropContentType: array[TCnPropContentType] of string =
     ('Properties', 'Fields', 'Events', 'Methods', 'CollectionItems', 'MenuItems',
-     'Strings', 'Graphics', 'Components', 'Controls', 'Hierarchy');
+     'Strings/Tree', 'Graphics', 'Components', 'Controls', 'Hierarchy');
 
   SCnInputGetIndexedPropertyCaption = 'Get Indexed Property Value';
   SCnInputGetIndexedPropertyPrompt = 'Enter a Value for %s:';
@@ -1949,6 +1949,38 @@ var
       GUID.D4[4], GUID.D4[5], GUID.D4[6], GUID.D4[7]]);
   end;
 
+  procedure SaveTreeNodeTexts(ANode: TTreeNode; ADepth: Integer; ALines: TStrings);
+  var
+    ACurrNode: TTreeNode;
+  begin
+    ACurrNode := ANode;
+    while ACurrNode <> nil do
+    begin
+      ALines.Add(StringOfChar(' ', ADepth * 2) + ACurrNode.Text);
+      if ACurrNode.HasChildren then
+        SaveTreeNodeTexts(ACurrNode.GetFirstChild, ADepth + 1, ALines);
+      ACurrNode := ACurrNode.GetNextSibling;
+    end;
+  end;
+
+  function GetTreeViewText(ATreeView: TTreeView): string;
+  var
+    AStrings: TStringList;
+    ARootNode: TTreeNode;
+  begin
+    Result := '';
+    if ATreeView = nil then
+      Exit;
+    AStrings := TStringList.Create;
+    try
+      ARootNode := ATreeView.Items.GetFirstNode;
+      if ARootNode <> nil then
+        SaveTreeNodeTexts(ARootNode, 0, AStrings);
+      Result := AStrings.Text;
+    finally
+      AStrings.Free;
+    end;
+  end;
 begin
   if ObjectInstance <> nil then
   begin
@@ -2015,6 +2047,17 @@ begin
       begin
         Strings.Changed := True;
         Strings.DisplayValue := (FObjectInstance as TStrings).Text;
+      end;
+    end;
+
+    if ObjectInstance is TTreeView then
+    begin
+      Include(FContentTypes, pctStrings);
+      S := GetTreeViewText(FObjectInstance as TTreeView);
+      if Strings.DisplayValue <> S then
+      begin
+        Strings.Changed := True;
+        Strings.DisplayValue := S;
       end;
     end;
 
