@@ -243,6 +243,28 @@ type
     {* 属性已变更事件}
   end;
 
+  TCnComponentFreeNotificationEvent = procedure (Sender: TObject;
+    ACompToFree: TComponent) of object;
+  {* 封装的组件释放通知事件}
+
+  TCnFreeNotificationWrapper = class(TComponent)
+  {* 将 Component 的 FreeNotification 封装成事件，
+     避免需要得知其他组件的释放通知时还得从 TComponent 继承且 override 方法}
+  private
+    FOnFreeNotification: TCnComponentFreeNotificationEvent;
+  protected
+    procedure DoFreeNotification(AComponent: TComponent);
+
+    procedure Notification(AComponent: TComponent;
+      Operation: TOperation); override;
+  public
+    // 可随时调用 FreeNotification 去获取其他组件的释放通知
+
+    property OnFreeNotification: TCnComponentFreeNotificationEvent
+      read FOnFreeNotification write FOnFreeNotification;
+    {* 组件的释放事件}
+  end;
+
 //==============================================================================
 // 不可视组件基础类
 //==============================================================================
@@ -735,6 +757,22 @@ end;
 function TCnSingletonInterfacedObject._Release: Integer; stdcall;
 begin
   Result := 1;
+end;
+
+{ TCnFreeNotificationWrapper }
+
+procedure TCnFreeNotificationWrapper.DoFreeNotification(AComponent: TComponent);
+begin
+  if Assigned(FOnFreeNotification) then
+    FOnFreeNotification(Self, AComponent);
+end;
+
+procedure TCnFreeNotificationWrapper.Notification(AComponent: TComponent;
+  Operation: TOperation);
+begin
+  inherited;
+  if (Operation = opRemove) and (AComponent <> nil) then
+    DoFreeNotification(AComponent);
 end;
 
 initialization
