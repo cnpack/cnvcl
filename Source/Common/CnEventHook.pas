@@ -25,11 +25,13 @@ unit CnEventHook;
 * 单元名称：对象事件挂接单元
 * 单元作者：CnPack 开发组 (master@cnpack.org)
 * 备    注：该单元用来挂接对象的事件，目前只支持 published 区域的事件以及一些
-*               特定事件
+*           特定事件，且一个类实例只能挂接一个对象的一个事件
 * 开发平台：PWin7 + Delphi 7
 * 兼容测试：
 * 本 地 化：该单元中的字符串支持本地化处理方式
-* 修改记录：2015.07.10
+* 修改记录：2026.03.28
+*               暴露被挂接的对象，供外部尤其是对象释放时，对应查找释放用
+*           2015.07.10
 *               实现功能
 ================================================================================
 |</PRE>}
@@ -43,7 +45,7 @@ uses
 
 type
   TCnEventHook = class
-  {* 挂接对象事件处理的实现类}
+  {* 挂接对象事件处理的实现类，一个类只能挂接一个对象的一个事件}
   private
     FObject: TObject;
     FEventName: string;
@@ -59,8 +61,8 @@ type
     constructor Create(AObject: TObject; const AEventName: string;
       NewData: Pointer; NewCode: Pointer);
     {* 构造函数，传入待挂接的对象、待挂接的事件名、新事件处理程序的函数地址。
-      新事件处理程序的对象。构造后自动挂接。如 NewData 为 nil，则使用旧 Data
-      新事件函数地址类似于 @TMyForm.MyButton1Click 这种}
+       新事件处理程序的对象。构造后自动挂接。如 NewData 为 nil，则使用旧 Data
+       新事件函数地址类似于 @TMyForm.MyButton1Click 这种}
     destructor Destroy; override;
     {* 析构函数，自动取消挂接}
 
@@ -74,6 +76,8 @@ type
     property EventName: string read FEventName;
     {* 待挂接的事件名}
 
+    property HookObject: TObject read FObject;
+    {* 被挂接的对象}
     property TrampolineData: TObject read FTrampolineData;
     {* 旧有事件处理程序的对象}
     property Trampoline: Pointer read FTrampoline;
