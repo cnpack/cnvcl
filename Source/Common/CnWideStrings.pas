@@ -536,6 +536,21 @@ function CnAnsiToUtf82(const Text: string): string;
    返回值：string                         - 返回转换后的 UTF-8 字符串
 }
 
+{$IFDEF COMPILER5}
+
+function WideCompareText(const S1, S2: WideString): Integer;
+{* Delphi 5 中没有宽字符串比较函数，此处补充实现一个。
+
+   参数：
+     const S1: WideString                 - 待比较的宽字符串一
+     const S2: WideString                 - 待比较的宽字符串二
+
+   返回值：Integer                        - 返回比较结果
+
+}
+
+{$ENDIF}
+
 implementation
 
 const
