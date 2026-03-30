@@ -30,7 +30,9 @@ unit CnIni;
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6 + Lazarus 4.0
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2025.06.23 V1.2
+* 修改记录：2026.03.30 V1.3
+*               增加 WideString 版本的 IniFile 实现
+*           2025.06.23 V1.2
 *               在 FPC3 下编译通过
 *           2024.02.23 V1.1
 *               加入 ReadStringsBoolean 和 WriteStringsBoolean 的功能
@@ -50,7 +52,7 @@ interface
 uses
   {$IFDEF MSWINDOWS} Windows, {$ELSE} System.Types, System.UITypes, System.UIConsts, {$ENDIF}
   Classes, SysUtils, TypInfo, IniFiles, Graphics, // FMX 下如果 Graphics 找不到，需要工程选项里加 FMX 前缀
-  CnIniStrUtils, CnStream {$IFDEF SUPPORT_ZLIB}, ZLib{$ENDIF};
+  CnIniStrUtils, CnStream, CnWideStrings {$IFDEF SUPPORT_ZLIB}, ZLib{$ENDIF};
 
 type
 
@@ -187,6 +189,44 @@ type
 
     property FileName: string read FFileName;
     {* 创建对象时传递的文件名，只读属性 }
+  end;
+
+  TCnWideIniSection = class
+  public
+    Name: TCnWideString;
+    Lines: TCnWideStringList;
+    constructor Create(const AName: TCnWideString);
+    destructor Destroy; override;
+  end;
+
+  TCnWideIniFile = class(TCustomIniFile)
+  private
+    FFileName: string;
+    FSections: TList;
+    FWriteBOM: Boolean;
+    function GetSectionIndex(const Section: TCnWideString): Integer;
+    function GetSection(const Section: TCnWideString; CreateIfMissing: Boolean): TCnWideIniSection;
+    function FindKeyIndex(Lines: TCnWideStringList; const Ident: TCnWideString): Integer;
+    procedure ClearSections;
+    procedure ParseLines(Lines: TCnWideStringList);
+  protected
+  public
+    constructor Create(const AFileName: string);
+    destructor Destroy; override;
+    function ReadString(const Section, Ident, Default: string): string; override;
+    procedure WriteString(const Section, Ident, Value: String); override;
+    procedure ReadSection(const Section: string; Strings: TStrings); override;
+    procedure ReadSections(Strings: TStrings); override;
+    procedure ReadSectionValues(const Section: string; Strings: TStrings); override;
+    procedure EraseSection(const Section: string); override;
+    procedure DeleteKey(const Section, Ident: String); override;
+    procedure UpdateFile; override;
+    function LoadFromFile(const AFileName: string): Boolean;
+    function LoadFromStream(AStream: TStream): Boolean;
+    function SaveToFile(const AFileName: string): Boolean;
+    function SaveToStream(AStream: TStream): Boolean;
+    property FileName: string read FFileName;
+    property WriteBOM: Boolean read FWriteBOM write FWriteBOM;
   end;
 
 //==============================================================================
@@ -963,6 +1003,471 @@ procedure TCnStreamIniFile.UpdateFile;
 begin
   if FFileName <> '' then
     SaveToFile(FFileName);
+end;
+
+constructor TCnWideIniSection.Create(const AName: TCnWideString);
+begin
+  inherited Create;
+  Name := AName;
+  Lines := TCnWideStringList.Create;
+end;
+
+function CnWideIsSpace(C: WideChar): Boolean;
+begin
+  Result := Ord(C) <= Ord(' ');
+end;
+
+function CnWideTrimLeft(const S: TCnWideString): TCnWideString;
+var
+  I, L: Integer;
+begin
+  L := Length(S);
+  I := 1;
+  while (I <= L) and CnWideIsSpace(S[I]) do
+    Inc(I);
+  Result := Copy(S, I, L - I + 1);
+end;
+
+function CnWideTrimRight(const S: TCnWideString): TCnWideString;
+var
+  I: Integer;
+begin
+  I := Length(S);
+  while (I > 0) and CnWideIsSpace(S[I]) do
+    Dec(I);
+  Result := Copy(S, 1, I);
+end;
+
+function CnWideTrim(const S: TCnWideString): TCnWideString;
+begin
+  Result := CnWideTrimRight(CnWideTrimLeft(S));
+end;
+
+function CnWidePosChar(C: WideChar; const S: TCnWideString): Integer;
+var
+  I, L: Integer;
+begin
+  Result := 0;
+  L := Length(S);
+  for I := 1 to L do
+  begin
+    if S[I] = C then
+    begin
+      Result := I;
+      Exit;
+    end;
+  end;
+end;
+
+destructor TCnWideIniSection.Destroy;
+begin
+  Lines.Free;
+  inherited Destroy;
+end;
+
+constructor TCnWideIniFile.Create(const AFileName: string);
+begin
+  inherited Create(AFileName);
+  FFileName := AFileName;
+  FSections := TList.Create;
+  FWriteBOM := True;
+  if (FFileName <> '') and FileExists(FFileName) then
+    LoadFromFile(FFileName);
+end;
+
+destructor TCnWideIniFile.Destroy;
+begin
+  ClearSections;
+  FSections.Free;
+  inherited Destroy;
+end;
+
+procedure TCnWideIniFile.ClearSections;
+var
+  I: Integer;
+begin
+  for I := FSections.Count - 1 downto 0 do
+    TObject(FSections[I]).Free;
+  FSections.Clear;
+end;
+
+function TCnWideIniFile.GetSectionIndex(const Section: TCnWideString): Integer;
+var
+  I: Integer;
+  S: TCnWideIniSection;
+begin
+  Result := -1;
+  for I := 0 to FSections.Count - 1 do
+  begin
+    S := TCnWideIniSection(FSections[I]);
+    if WideCompareText(S.Name, Section) = 0 then
+    begin
+      Result := I;
+      Exit;
+    end;
+  end;
+end;
+
+function TCnWideIniFile.GetSection(const Section: TCnWideString;
+  CreateIfMissing: Boolean): TCnWideIniSection;
+var
+  Index: Integer;
+begin
+  Index := GetSectionIndex(Section);
+  if Index >= 0 then
+    Result := TCnWideIniSection(FSections[Index])
+  else if CreateIfMissing then
+  begin
+    Result := TCnWideIniSection.Create(Section);
+    FSections.Add(Result);
+  end
+  else
+    Result := nil;
+end;
+
+function TCnWideIniFile.FindKeyIndex(Lines: TCnWideStringList;
+  const Ident: TCnWideString): Integer;
+var
+  I, P: Integer;
+  Key: TCnWideString;
+begin
+  Result := -1;
+  for I := 0 to Lines.Count - 1 do
+  begin
+    P := CnWidePosChar('=', Lines[I]);
+    if P > 0 then
+      Key := Copy(Lines[I], 1, P - 1)
+    else
+      Key := Lines[I];
+    Key := CnWideTrim(Key);
+    if WideCompareText(Key, Ident) = 0 then
+    begin
+      Result := I;
+      Exit;
+    end;
+  end;
+end;
+
+procedure TCnWideIniFile.ParseLines(Lines: TCnWideStringList);
+var
+  I, P: Integer;
+  Line, Trimmed, SecName, Key, Value: TCnWideString;
+  Sec: TCnWideIniSection;
+begin
+  ClearSections;
+  Sec := GetSection('', True);
+  for I := 0 to Lines.Count - 1 do
+  begin
+    Line := Lines[I];
+    Trimmed := CnWideTrim(Line);
+    if Trimmed = '' then
+      Continue;
+    if (Trimmed[1] = ';') or (Trimmed[1] = '#') then
+      Continue;
+    if (Trimmed[1] = '[') and (Trimmed[Length(Trimmed)] = ']') then
+    begin
+      SecName := Copy(Trimmed, 2, Length(Trimmed) - 2);
+      Sec := GetSection(SecName, True);
+      Continue;
+    end;
+    P := CnWidePosChar('=', Line);
+    if P > 0 then
+    begin
+      Key := CnWideTrim(Copy(Line, 1, P - 1));
+      Value := CnWideTrim(Copy(Line, P + 1, MaxInt));
+      Sec.Lines.Add(Key + '=' + Value);
+    end
+    else
+    begin
+      Key := CnWideTrim(Line);
+      Sec.Lines.Add(Key);
+    end;
+  end;
+end;
+
+function TCnWideIniFile.LoadFromFile(const AFileName: string): Boolean;
+var
+  Stream: TFileStream;
+begin
+  try
+    Stream := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyWrite);
+    try
+      Result := LoadFromStream(Stream);
+    finally
+      Stream.Free;
+    end;
+  except
+    Result := False;
+  end;
+end;
+
+function TCnWideIniFile.LoadFromStream(AStream: TStream): Boolean;
+var
+  Lines: TCnWideStringList;
+  Data: AnsiString;
+  Size, Len: Integer;
+  WideText: TCnWideString;
+  P: PAnsiChar;
+begin
+  Lines := TCnWideStringList.Create;
+  try
+    try
+      Size := AStream.Size - AStream.Position;
+      SetLength(Data, Size);
+      if Size > 0 then
+        AStream.ReadBuffer(Pointer(Data)^, Size);
+      if (Size >= 3) and (Data[1] = #$EF) and (Data[2] = #$BB) and (Data[3] = #$BF) then
+      begin
+        WideText := CnUtf8DecodeToWideString(Copy(Data, 4, MaxInt));
+      end
+      else if (Size >= 2) and (Data[1] = #$FF) and (Data[2] = #$FE) then
+      begin
+        Len := (Size - 2) div SizeOf(WideChar);
+        SetLength(WideText, Len);
+        if Len > 0 then
+        begin
+          P := PAnsiChar(Data);
+          Move(P[2], PWideChar(WideText)^, Len * SizeOf(WideChar));
+        end;
+      end
+      else
+        WideText := WideString(Data);
+      Lines.Text := WideText;
+      ParseLines(Lines);
+      Result := True;
+    except
+      Result := False;
+    end;
+  finally
+    Lines.Free;
+  end;
+end;
+
+function TCnWideIniFile.SaveToFile(const AFileName: string): Boolean;
+var
+  Stream: TFileStream;
+begin
+  try
+    Stream := TFileStream.Create(AFileName, fmCreate);
+    try
+      Stream.Size := 0;
+      Result := SaveToStream(Stream);
+    finally
+      Stream.Free;
+    end;
+  except
+    Result := False;
+  end;
+end;
+
+function TCnWideIniFile.SaveToStream(AStream: TStream): Boolean;
+var
+  Lines: TCnWideStringList;
+  I, J: Integer;
+  Sec: TCnWideIniSection;
+  WideText: TCnWideString;
+  Data: AnsiString;
+  Bom: AnsiString;
+begin
+  Lines := TCnWideStringList.Create;
+  try
+    try
+      for I := 0 to FSections.Count - 1 do
+      begin
+        Sec := TCnWideIniSection(FSections[I]);
+        if Sec.Name <> '' then
+          Lines.Add('[' + Sec.Name + ']');
+        for J := 0 to Sec.Lines.Count - 1 do
+          Lines.Add(Sec.Lines[J]);
+        if (I < FSections.Count - 1) and (Sec.Lines.Count > 0) then
+          Lines.Add('');
+      end;
+      WideText := Lines.Text;
+      Data := CnUtf8EncodeWideString(WideText);
+      if FWriteBOM then
+      begin
+        Bom := #$EF#$BB#$BF;
+        if Length(Bom) > 0 then
+          AStream.WriteBuffer(Pointer(Bom)^, Length(Bom));
+      end;
+      if Length(Data) > 0 then
+        AStream.WriteBuffer(Pointer(Data)^, Length(Data));
+      Result := True;
+    except
+      Result := False;
+    end;
+  finally
+    Lines.Free;
+  end;
+end;
+
+procedure TCnWideIniFile.UpdateFile;
+begin
+  if FFileName <> '' then
+    SaveToFile(FFileName);
+end;
+
+function TCnWideIniFile.ReadString(const Section, Ident, Default: string): string;
+var
+  Sec: TCnWideIniSection;
+  Idx, P: Integer;
+  Line: TCnWideString;
+  Value: TCnWideString;
+  SecName: TCnWideString;
+  KeyName: TCnWideString;
+begin
+  SecName := {$IFDEF UNICODE}Section{$ELSE}CnUtf8DecodeToWideString(AnsiString(Section)){$ENDIF};
+  KeyName := {$IFDEF UNICODE}Ident{$ELSE}CnUtf8DecodeToWideString(AnsiString(Ident)){$ENDIF};
+  Sec := GetSection(SecName, False);
+  if Sec = nil then
+  begin
+    Result := Default;
+    Exit;
+  end;
+  Idx := FindKeyIndex(Sec.Lines, KeyName);
+  if Idx < 0 then
+  begin
+    Result := Default;
+    Exit;
+  end;
+  Line := Sec.Lines[Idx];
+  P := CnWidePosChar('=', Line);
+  if P > 0 then
+    Value := Copy(Line, P + 1, MaxInt)
+  else
+    Value := '';
+{$IFDEF UNICODE}
+  Result := Value;
+{$ELSE}
+  Result := string(CnUtf8EncodeWideString(Value));
+{$ENDIF}
+end;
+
+procedure TCnWideIniFile.WriteString(const Section, Ident, Value: String);
+var
+  Sec: TCnWideIniSection;
+  Idx: Integer;
+  SecName: TCnWideString;
+  KeyName: TCnWideString;
+  Val: TCnWideString;
+begin
+  SecName := {$IFDEF UNICODE}Section{$ELSE}CnUtf8DecodeToWideString(AnsiString(Section)){$ENDIF};
+  KeyName := {$IFDEF UNICODE}Ident{$ELSE}CnUtf8DecodeToWideString(AnsiString(Ident)){$ENDIF};
+  Val := {$IFDEF UNICODE}Value{$ELSE}CnUtf8DecodeToWideString(AnsiString(Value)){$ENDIF};
+  Sec := GetSection(SecName, True);
+  Idx := FindKeyIndex(Sec.Lines, KeyName);
+  if Idx >= 0 then
+    Sec.Lines[Idx] := KeyName + '=' + Val
+  else
+    Sec.Lines.Add(KeyName + '=' + Val);
+end;
+
+procedure TCnWideIniFile.ReadSection(const Section: string; Strings: TStrings);
+var
+  Sec: TCnWideIniSection;
+  I, P: Integer;
+  Line, Key: TCnWideString;
+  SecName: TCnWideString;
+begin
+  if Strings = nil then
+    Exit;
+  Strings.Clear;
+  SecName := {$IFDEF UNICODE}Section{$ELSE}CnUtf8DecodeToWideString(AnsiString(Section)){$ENDIF};
+  Sec := GetSection(SecName, False);
+  if Sec = nil then
+    Exit;
+  for I := 0 to Sec.Lines.Count - 1 do
+  begin
+    Line := Sec.Lines[I];
+    P := CnWidePosChar('=', Line);
+    if P > 0 then
+      Key := Copy(Line, 1, P - 1)
+    else
+      Key := Line;
+{$IFDEF UNICODE}
+    Strings.Add(Key);
+{$ELSE}
+    Strings.Add(string(CnUtf8EncodeWideString(Key)));
+{$ENDIF}
+  end;
+end;
+
+procedure TCnWideIniFile.ReadSections(Strings: TStrings);
+var
+  I: Integer;
+  Sec: TCnWideIniSection;
+begin
+  if Strings = nil then
+    Exit;
+  Strings.Clear;
+  for I := 0 to FSections.Count - 1 do
+  begin
+    Sec := TCnWideIniSection(FSections[I]);
+    if Sec.Name <> '' then
+    begin
+{$IFDEF UNICODE}
+      Strings.Add(Sec.Name);
+{$ELSE}
+      Strings.Add(string(CnUtf8EncodeWideString(Sec.Name)));
+{$ENDIF}
+    end;
+  end;
+end;
+
+procedure TCnWideIniFile.ReadSectionValues(const Section: string; Strings: TStrings);
+var
+  Sec: TCnWideIniSection;
+  I: Integer;
+  Line: TCnWideString;
+  SecName: TCnWideString;
+begin
+  if Strings = nil then
+    Exit;
+  Strings.Clear;
+  SecName := {$IFDEF UNICODE}Section{$ELSE}CnUtf8DecodeToWideString(AnsiString(Section)){$ENDIF};
+  Sec := GetSection(SecName, False);
+  if Sec = nil then
+    Exit;
+  for I := 0 to Sec.Lines.Count - 1 do
+  begin
+    Line := Sec.Lines[I];
+{$IFDEF UNICODE}
+    Strings.Add(Line);
+{$ELSE}
+    Strings.Add(string(CnUtf8EncodeWideString(Line)));
+{$ENDIF}
+  end;
+end;
+
+procedure TCnWideIniFile.EraseSection(const Section: string);
+var
+  Index: Integer;
+  SecName: TCnWideString;
+begin
+  SecName := {$IFDEF UNICODE}Section{$ELSE}CnUtf8DecodeToWideString(AnsiString(Section)){$ENDIF};
+  Index := GetSectionIndex(SecName);
+  if Index >= 0 then
+  begin
+    TObject(FSections[Index]).Free;
+    FSections.Delete(Index);
+  end;
+end;
+
+procedure TCnWideIniFile.DeleteKey(const Section, Ident: String);
+var
+  Sec: TCnWideIniSection;
+  Idx: Integer;
+  SecName: TCnWideString;
+  KeyName: TCnWideString;
+begin
+  SecName := {$IFDEF UNICODE}Section{$ELSE}CnUtf8DecodeToWideString(AnsiString(Section)){$ENDIF};
+  KeyName := {$IFDEF UNICODE}Ident{$ELSE}CnUtf8DecodeToWideString(AnsiString(Ident)){$ENDIF};
+  Sec := GetSection(SecName, False);
+  if Sec = nil then
+    Exit;
+  Idx := FindKeyIndex(Sec.Lines, KeyName);
+  if Idx >= 0 then
+    Sec.Lines.Delete(Idx);
 end;
 
 //==============================================================================

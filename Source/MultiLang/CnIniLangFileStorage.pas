@@ -28,7 +28,9 @@ unit CnIniLangFileStorage;
 * 开发平台：PWin2000 + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2008.11.19 V1.1
+* 修改记录：2026.03.30 V1.2
+*               内部改用宽字符串版 IniFile 类以实现 Utf8 存储加载支持
+*           2008.11.19 V1.1
 *               Efeis 修正 Ini 载入出错的问题
 *           2003.08.20 V1.0
 *               创建单元，实现功能
@@ -40,8 +42,8 @@ interface
 {$I CnPack.inc}
 
 uses
-  SysUtils, Classes, IniFiles, Dialogs, FileCtrl, CnCommon, CnLangCollection,
-  CnConsts, CnIniStrUtils, CnWideStrings, CnLangStorage, CnHashLangStorage;
+  SysUtils, Classes, Dialogs, FileCtrl, CnCommon, CnLangCollection,
+  CnConsts, CnIni, CnIniStrUtils, CnWideStrings, CnLangStorage, CnHashLangStorage;
 
 const
   SCnGlobalSectionName = SystemNamePrefix + 'Global';
@@ -50,8 +52,11 @@ const
 type
   TCnCustomIniLangFileStorage = class(TCnCustomHashLangStorage)
   private
-    FIniFile: TIniFile;
+    FIniFile: TCnWideIniFile;
+    FCompatAnsiBoundary: Boolean;
   protected
+    function IniUtf8ToCompat(const S: string): string;
+    function CompatToIniUtf8(const S: string): string;
     procedure InternalInit; override;
     procedure CreateCurrentLanguage; override;
     procedure InitFromAFile(const AFileName: TCnLangString); override;
@@ -80,7 +85,13 @@ type
     {* 语言对象列表 }
     property AutoDetect;
     {* LanguagePath 改变时是否自动检测语言 }    
+    property CompatAnsiBoundary: Boolean read FCompatAnsiBoundary write FCompatAnsiBoundary default True;
+    {* 仅在非 Unicode 编译器下生效，控制与外部/界面的字符串边界兼容行为。
+       True：按旧版兼容方式处理，读取时将 UTF-8 转为本地 Ansi，保存时将本地 Ansi 转回 UTF-8。
+       False：不做兼容转换，边界字符串按 UTF-8 字节串直接传递，FPC 下有用。
+       在 Unicode 编译器下该属性无效，始终按 UnicodeString 处理。}
   end;
+
 {$IFNDEF FPC}
 {$IFDEF SUPPORT_32_AND_64}
   [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
@@ -99,7 +110,31 @@ uses
 constructor TCnCustomIniLangFileStorage.Create(AOwner: TComponent);
 begin
   inherited;
+  FCompatAnsiBoundary := True;
+end;
 
+function TCnCustomIniLangFileStorage.IniUtf8ToCompat(const S: string): string;
+begin
+{$IFDEF UNICODE}
+  Result := S;
+{$ELSE}
+  if FCompatAnsiBoundary then
+    Result := string(CnUtf8DecodeToWideString(AnsiString(S)))
+  else
+    Result := S;
+{$ENDIF}
+end;
+
+function TCnCustomIniLangFileStorage.CompatToIniUtf8(const S: string): string;
+begin
+{$IFDEF UNICODE}
+  Result := S;
+{$ELSE}
+  if FCompatAnsiBoundary then
+    Result := string(CnUtf8EncodeWideString(WideString(S)))
+  else
+    Result := S;
+{$ENDIF}
 end;
 
 destructor TCnCustomIniLangFileStorage.Destroy;
@@ -127,10 +162,10 @@ end;
 
 function TCnCustomIniLangFileStorage.IsLanguageFile(const FileName: TCnLangString): Boolean;
 var
-  IniFile: TIniFile;
+  IniFile: TCnWideIniFile;
 begin
   Result := True;
-  IniFile := TIniFile.Create(FileName);
+  IniFile := TCnWideIniFile.Create(FileName);
   try
     if not IniFile.SectionExists(SCnGlobalSectionName) then
       Result := False
@@ -144,7 +179,7 @@ end;
 
 function TCnCustomIniLangFileStorage.LoadCurrentLanguage: Boolean;
 var
-  S: string;
+  S, OrigSection, SectionName, OrigKey, KeyName: string;
   Sections, Lines: TStrings;
   I, J: Integer;
 begin
@@ -165,7 +200,7 @@ begin
     if not ForceDirectories(_CnExtractFilePath(S)) then
       raise ELanguageStorageError.Create(SCnCanNotCreateDir + _CnExtractFilePath(S));
 
-    FIniFile := TIniFile.Create(S);
+    FIniFile := TCnWideIniFile.Create(S);
     Sections := TStringList.Create;
     Lines := TStringList.Create;
     FIniFile.ReadSections(Sections);
@@ -173,18 +208,29 @@ begin
     try
       for I := 0 to Sections.Count - 1 do
       begin
-        if (Sections[I] = SCnGlobalSectionName) or
-          (Sections[I] = SCnStringsSectionName) then // 是内部保留区或常量区
+        OrigSection := Sections[I];
+        SectionName := IniUtf8ToCompat(OrigSection);
+        if (SectionName = SCnGlobalSectionName) or
+          (SectionName = SCnStringsSectionName) then // 是内部保留区或常量区
         begin
-          FIniFile.ReadSection(Sections[I], Lines);
+          FIniFile.ReadSection(OrigSection, Lines);
           for J := 0 to Lines.Count - 1 do
-            AddString(Lines[J], FIniFile.ReadString(Sections[I], Lines[J], ''));
+          begin
+            OrigKey := Lines[J];
+            KeyName := IniUtf8ToCompat(OrigKey);
+            AddString(KeyName, IniUtf8ToCompat(FIniFile.ReadString(OrigSection, OrigKey, '')));
+          end;
         end
         else // 是普通窗体的
         begin
-          FIniFile.ReadSection(Sections[I], Lines);
+          FIniFile.ReadSection(OrigSection, Lines);
           for J := 0 to Lines.Count - 1 do
-            AddString(Sections[I] + DefDelimeter + Lines[J], FIniFile.ReadString(Sections[I], Lines[J], ''));
+          begin
+            OrigKey := Lines[J];
+            KeyName := IniUtf8ToCompat(OrigKey);
+            AddString(SectionName + DefDelimeter + KeyName,
+              IniUtf8ToCompat(FIniFile.ReadString(OrigSection, OrigKey, '')));
+          end;
         end;
       end;
     finally
@@ -200,6 +246,7 @@ procedure TCnCustomIniLangFileStorage.SaveCurrentLanguage;
 var
   Sections, List: TStringList;
   Key, Value, Sec: TCnLangString;
+  IniSec, IniKey, IniValue: string;
   I, EPos: Integer;
 begin
   if Assigned(FIniFile) then
@@ -249,7 +296,10 @@ begin
         Key := List[I];
         Value := '';
       end;
-      FIniFile.WriteString(Sec, Key, Value);
+      IniSec := CompatToIniUtf8(Sec);
+      IniKey := CompatToIniUtf8(Key);
+      IniValue := CompatToIniUtf8(Value);
+      FIniFile.WriteString(IniSec, IniKey, IniValue);
     end;
     FIniFile.UpdateFile;
   end;
@@ -265,7 +315,7 @@ begin
   begin
     LanguageFileName := _CnExtractFileName(_CnChangeFileExt(AFileName, ''));
 
-    FIniFile := TIniFile.Create(AFileName);
+    FIniFile := TCnWideIniFile.Create(AFileName);
     try
       LanguageID := StrToIntDef(FIniFile.ReadString(SCnGlobalSectionName, SystemNamePrefix + SCnLanguageID, ''), 0);
     except
@@ -274,11 +324,12 @@ begin
 
     if LanguageID <> 0 then
     begin
-      LanguageName := FIniFile.ReadString(SCnGlobalSectionName, SystemNamePrefix + SCnLanguageName, '');
-      Author := FIniFile.ReadString(SCnGlobalSectionName, SystemNamePrefix + SCnAuthor, '');
-      AuthorEmail := FIniFile.ReadString(SCnGlobalSectionName, SystemNamePrefix + SCnAuthorEmail, '');
-      if FIniFile.ReadString(SCnGlobalSectionName, SystemNamePrefix + SCnDefaultFont, '') <> '' then
-        StringToFont(FIniFile.ReadString(SCnGlobalSectionName, SystemNamePrefix + SCnDefaultFont, ''), DefaultFont);
+      LanguageName := IniUtf8ToCompat(FIniFile.ReadString(SCnGlobalSectionName, SystemNamePrefix + SCnLanguageName, ''));
+      Author := IniUtf8ToCompat(FIniFile.ReadString(SCnGlobalSectionName, SystemNamePrefix + SCnAuthor, ''));
+      AuthorEmail := IniUtf8ToCompat(FIniFile.ReadString(SCnGlobalSectionName, SystemNamePrefix + SCnAuthorEmail, ''));
+      if IniUtf8ToCompat(FIniFile.ReadString(SCnGlobalSectionName, SystemNamePrefix + SCnDefaultFont, '')) <> '' then
+        StringToFont(IniUtf8ToCompat(FIniFile.ReadString(SCnGlobalSectionName,
+          SystemNamePrefix + SCnDefaultFont, '')), DefaultFont);
     end
     else
     begin
