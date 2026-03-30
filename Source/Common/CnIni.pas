@@ -1204,40 +1204,16 @@ end;
 function TCnWideIniFile.LoadFromStream(AStream: TStream): Boolean;
 var
   Lines: TCnWideStringList;
-  Data: AnsiString;
-  Size, Len: Integer;
-  WideText: TCnWideString;
-  P: PAnsiChar;
 begin
   Lines := TCnWideStringList.Create;
   try
     try
-      Size := AStream.Size - AStream.Position;
-      SetLength(Data, Size);
-      if Size > 0 then
-        AStream.ReadBuffer(Pointer(Data)^, Size);
-      if (Size >= 3) and (Data[1] = #$EF) and (Data[2] = #$BB) and (Data[3] = #$BF) then
-      begin
-        WideText := CnUtf8DecodeToWideString(Copy(Data, 4, MaxInt));
-      end
-      else if (Size >= 2) and (Data[1] = #$FF) and (Data[2] = #$FE) then
-      begin
-        Len := (Size - 2) div SizeOf(WideChar);
-        SetLength(WideText, Len);
-        if Len > 0 then
-        begin
-          P := PAnsiChar(Data);
-          Move(P[2], PWideChar(WideText)^, Len * SizeOf(WideChar));
-        end;
-      end
-      else
-        WideText := WideString(Data);
-      Lines.Text := WideText;
+      Lines.LoadFromStream(AStream);
       ParseLines(Lines);
       Result := True;
     except
       Result := False;
-    end;
+	end;
   finally
     Lines.Free;
   end;
@@ -1265,9 +1241,6 @@ var
   Lines: TCnWideStringList;
   I, J: Integer;
   Sec: TCnWideIniSection;
-  WideText: TCnWideString;
-  Data: AnsiString;
-  Bom: AnsiString;
 begin
   Lines := TCnWideStringList.Create;
   try
@@ -1282,16 +1255,8 @@ begin
         if (I < FSections.Count - 1) and (Sec.Lines.Count > 0) then
           Lines.Add('');
       end;
-      WideText := Lines.Text;
-      Data := CnUtf8EncodeWideString(WideText);
-      if FWriteBOM then
-      begin
-        Bom := #$EF#$BB#$BF;
-        if Length(Bom) > 0 then
-          AStream.WriteBuffer(Pointer(Bom)^, Length(Bom));
-      end;
-      if Length(Data) > 0 then
-        AStream.WriteBuffer(Pointer(Data)^, Length(Data));
+      Lines.WriteBOM := FWriteBOM;
+      Lines.SaveToStream(AStream, wlfUtf8);
       Result := True;
     except
       Result := False;
