@@ -216,6 +216,7 @@ type
     FOldDMPrefix: TCnLangString;
     FIgnoreAction: Boolean;
     FUseClassWhenNoCompName: Boolean;
+    FUseClassExtra: Boolean;
     FOnTranslateObjectProperty: TCnTranslateObjectPropertyEvent;
     FOnTranslateObject: TCnTranslateObjectEvent;
     procedure SetTranslationMode(const Value: TCnTranslationMode);
@@ -299,6 +300,8 @@ type
     {* 是否翻译 Action 属性不为空的控件的 Caption 和 Hint 属性}
     property UseClassWhenNoCompName: Boolean read FUseClassWhenNoCompName write FUseClassWhenNoCompName;
     {* 当遇到组件的名称为空时，是否使用其类名进行进一步翻译，默认为 False}
+    property UseClassExtra: Boolean read FUseClassExtra write FUseClassExtra;
+    {* 当翻译条目未找到时，无论是否组件或是否名称我i空，是否使用其类名进行进一步翻译，默认为 False}
 
     property OnTranslateObject: TCnTranslateObjectEvent read FOnTranslateObject
       write FOnTranslateObject;
@@ -1477,11 +1480,12 @@ begin
 
         TransStr := TranslateString(BStr, PreStore);
 
-        // 正常拿如果没拿到，说明条目里名字或索引都尝试了，
-        // 再判断 AObject 这个 TComponent 是否真没名字，真没名字的情况下再尝试一回 @类名
-        if (TransStr = '') and (AObject is TComponent) and (TComponent(AObject).Name = '') then
+        // 正常拿如果没拿到，说明条目里名字或索引都尝试了，再按设置尝试一回 @类名
+        if (TransStr = '') and
+          (FUseClassExtra or
+          (FUseClassWhenNoCompName and (AObject is TComponent) and (TComponent(AObject).Name = ''))) then
         begin
-          // 没名字则尝试索引和类名两种方式
+          // 再次尝试类名的方式
           AStr := DefClassPrefix + AObject.ClassName + DefDelimeter + APropName;
           if (BaseName <> '') and not IsForm and not ManuallyTop then
             BStr := BaseName + DefDelimeter + AStr
