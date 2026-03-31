@@ -1,8 +1,8 @@
-program IntfMethodHook;
+program IntfHook;
 
 uses
   Forms,
-  UnitIntfHook in 'UnitIntfHook.pas' {IntfHookForm};
+  UnitIntfHookMain in 'UnitIntfHookMain.pas' {IntfHookForm};
 
 {$R *.RES}
 
