@@ -368,7 +368,23 @@ begin
   else if IntfPtr^.WordOpCode = $C083 then
     JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 2 + 1)
   else if IntfPtr^.DWordOpCode = $04244483 then
-    JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 4 + 1);
+    JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 4 + 1)
+{$IFDEF FPC}
+  // FPC Win32: sub dword ptr [esp+4], imm8  =>  83 6C 24 04 xx，共 5 字节
+  // FPC 用 sub 而非 Delphi 的 add，偏移方向相反，但跳过字节数相同
+  else if IntfPtr^.DWordOpCode = $04246C83 then
+    JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 4 + 1)
+  // FPC Win32: sub dword ptr [esp+4], imm32  =>  81 6C 24 04 xx xx xx xx，共 8 字节
+  else if IntfPtr^.DWordOpCode = $04246C81 then
+    JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 4 + 4)
+  // FPC Win32 register 调用约定: sub eax, imm8  =>  83 E8 xx，共 3 字节
+  else if IntfPtr^.WordOpCode = $E883 then
+    JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 2 + 1)
+  // FPC Win32 register 调用约定: sub eax, imm32  =>  2D xx xx xx xx，共 5 字节
+  else if IntfPtr^.ByteOpCode = $2D then
+    JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 1 + 4)
+{$ENDIF}
+  ;
 {$ENDIF}
 
   if JmpPtr <> nil then

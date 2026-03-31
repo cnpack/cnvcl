@@ -62,7 +62,7 @@ uses
   CnMethodHook;
 
 type
-  ECnIntfHookError = class(Exception);
+  ECnIntfHookException = class(Exception);
   {* 接口挂钩相关异常类 }
 
   TCnIntfHook = class(TObject)
@@ -203,13 +203,13 @@ begin
   FNewMethod := ANewMethod;
 
   if AIntf = nil then
-    raise ECnIntfHookError.Create(SCnIntfHookNilIntf);
+    raise ECnIntfHookException.Create(SCnIntfHookNilIntf);
   if AMethodIndex < 0 then
-    raise ECnIntfHookError.CreateFmt(SCnIntfHookInvalidIndex, [AMethodIndex]);
+    raise ECnIntfHookException.CreateFmt(SCnIntfHookInvalidIndex, [AMethodIndex]);
 
   FRealMethodAddr := InternalGetRealAddr(AIntf, AMethodIndex);
   if FRealMethodAddr = nil then
-    raise ECnIntfHookError.CreateFmt(SCnIntfHookNoRealAddr, [AMethodIndex]);
+    raise ECnIntfHookException.CreateFmt(SCnIntfHookNoRealAddr, [AMethodIndex]);
 
   FMethodHook := TCnMethodHook.Create(FRealMethodAddr, FNewMethod, False);
 
