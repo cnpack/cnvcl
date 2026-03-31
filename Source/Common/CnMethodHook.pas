@@ -146,7 +146,9 @@ unit CnMethodHook;
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：
 * 本 地 化：该单元中的字符串支持本地化处理方式
-* 修改记录：2025.02.09
+* 修改记录：2026.03.31
+*               GetInterfaceMethodAddress 增加 FPC 32/64 的支持
+*           2025.02.09
 *               修正 GetBplMethodAddress 在 64 位下的错误并完善 64 位长短跳转的 Hook
 *           2023.05.27
 *               加入 Win64 下的支持，但不确定是否覆盖了所有长跳转的情况
@@ -359,7 +361,14 @@ begin
 {$IFDEF CPU64BITS}
   // 64 位跳转似乎就这一种
   if IntfPtr^.DWordOpCode = $E0C18348 then
-    JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 4);
+    JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 4)
+  {$IFDEF FPC}
+  // FPC Win64/Linux64: sub rcx, imm8  =>  48 83 E9 xx，DWord = $xx E9 83 48
+  // 偏移量不同但结构相同，同样跳过 4 字节
+  else if (IntfPtr^.DWordOpCode and $FFFFFF) = $E98348 then
+    JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 4)
+  {$ENDIF}
+  ;
 {$ELSE}
   if IntfPtr^.ByteOpCode = $05 then
     JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 1 + 4)
@@ -369,7 +378,7 @@ begin
     JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 2 + 1)
   else if IntfPtr^.DWordOpCode = $04244483 then
     JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 4 + 1)
-{$IFDEF FPC}
+  {$IFDEF FPC}
   // FPC Win32: sub dword ptr [esp+4], imm8  =>  83 6C 24 04 xx，共 5 字节
   // FPC 用 sub 而非 Delphi 的 add，偏移方向相反，但跳过字节数相同
   else if IntfPtr^.DWordOpCode = $04246C83 then
@@ -383,7 +392,7 @@ begin
   // FPC Win32 register 调用约定: sub eax, imm32  =>  2D xx xx xx xx，共 5 字节
   else if IntfPtr^.ByteOpCode = $2D then
     JmpPtr := PIntfJumpEntry(TCnAddressInt(IntfPtr) + 1 + 4)
-{$ENDIF}
+  {$ENDIF}
   ;
 {$ENDIF}
 

@@ -1,0 +1,160 @@
+object IntfHookForm: TIntfHookForm
+  Left = 200
+  Height = 522
+  Top = 120
+  Width = 724
+  BorderStyle = bsDialog
+  Caption = 'CnIntfHook Example - Interface Method Hook Demo'
+  ClientHeight = 522
+  ClientWidth = 724
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  LCLVersion = '4.0.0.4'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  object PageControl1: TPageControl
+    Left = 8
+    Height = 497
+    Top = 8
+    Width = 705
+    ActivePage = ts1
+    TabIndex = 0
+    TabOrder = 0
+    object ts1: TTabSheet
+      Caption = 'IntfHook Class'
+      ClientHeight = 471
+      ClientWidth = 697
+      OnContextPopup = ts1ContextPopup
+      object mmoLog: TMemo
+        Left = 8
+        Height = 380
+        Top = 8
+        Width = 676
+        Font.CharSet = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -12
+        Font.Name = 'Courier New'
+        ParentFont = False
+        ReadOnly = True
+        ScrollBars = ssVertical
+        TabOrder = 0
+      end
+      object btnHookByIndex: TButton
+        Left = 8
+        Height = 25
+        Top = 400
+        Width = 130
+        Caption = 'Hook by Index'
+        TabOrder = 1
+        OnClick = btnHookByIndexClick
+      end
+      object btnUnhookByIndex: TButton
+        Left = 148
+        Height = 25
+        Top = 400
+        Width = 130
+        Caption = 'Unhook by Index'
+        TabOrder = 2
+        OnClick = btnUnhookByIndexClick
+      end
+      object btnHookUnhookToggle: TButton
+        Left = 288
+        Height = 25
+        Top = 400
+        Width = 130
+        Caption = 'Toggle HookAdd'
+        TabOrder = 3
+        OnClick = btnHookUnhookToggleClick
+      end
+      object btnHookByName: TButton
+        Left = 428
+        Height = 25
+        Top = 400
+        Width = 120
+        Caption = 'Hook by Name (RTTI)'
+        TabOrder = 4
+        OnClick = btnHookByNameClick
+      end
+      object btnUnhookByName: TButton
+        Left = 556
+        Height = 25
+        Top = 400
+        Width = 128
+        Caption = 'Unhook by Name'
+        TabOrder = 5
+        OnClick = btnUnhookByNameClick
+      end
+      object btnClearLog: TButton
+        Left = 288
+        Height = 25
+        Top = 436
+        Width = 130
+        Caption = 'Clear Log'
+        TabOrder = 6
+        OnClick = btnClearLogClick
+      end
+      object btnCallGetName: TButton
+        Left = 148
+        Height = 25
+        Top = 436
+        Width = 130
+        Caption = 'Call GetName/SetValue'
+        TabOrder = 7
+        OnClick = btnCallGetNameClick
+      end
+      object btnCallAdd: TButton
+        Left = 8
+        Height = 25
+        Top = 436
+        Width = 130
+        Caption = 'Call Add(10, 20)'
+        TabOrder = 8
+        OnClick = btnCallAddClick
+      end
+    end
+    object ts2: TTabSheet
+      Caption = 'Manually Test'
+      ClientHeight = 471
+      ClientWidth = 697
+      ImageIndex = 1
+      object btnHook: TButton
+        Left = 40
+        Height = 25
+        Top = 40
+        Width = 75
+        Caption = 'Hook'
+        TabOrder = 0
+        OnClick = btnHookClick
+      end
+      object btnUnhook: TButton
+        Left = 176
+        Height = 25
+        Top = 40
+        Width = 75
+        Caption = 'Unhook'
+        TabOrder = 1
+        OnClick = btnUnhookClick
+      end
+      object btnCall1: TButton
+        Left = 312
+        Height = 25
+        Top = 40
+        Width = 97
+        Caption = 'Call Intf Method 1'
+        TabOrder = 2
+        OnClick = btnCall1Click
+      end
+      object btnCall2: TButton
+        Left = 448
+        Height = 25
+        Top = 40
+        Width = 97
+        Caption = 'Call Intf Method 2'
+        TabOrder = 3
+        OnClick = btnCall2Click
+      end
+    end
+  end
+end
