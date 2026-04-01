@@ -614,6 +614,12 @@ const
   CN_FMX_PREFIX           = '<FMX>';
 
 type
+{$IFDEF CPUX64}
+  TCnNativeInt = NativeInt;
+{$ELSE}
+  TCnNativeInt = Integer;
+{$ENDIF}
+
   PParamData = ^TParamData;
   TParamData = record
   // Copy from TypInfo
@@ -899,14 +905,14 @@ begin
   P := PParamData(@T^.ParamList);
   for I := 1 to T^.ParamCount do
   begin
-    TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
+    TypeStr := Pointer(TCnNativeInt(@P^.ParamName) + Length(P^.ParamName) + 1);
     if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
       Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
         (GetParamFlagsName(P^.Flags)), TypeStr^])) + ' '
     else
       Result := Result + Trim(Format('%s %s: %s; ', [(GetParamFlagsName(P^.Flags)),
         (P^.ParamName), TypeStr^])) + ' ';
-    P := PParamData(Integer(P) + SizeOf(TParamFlags) +
+    P := PParamData(TCnNativeInt(P) + SizeOf(TParamFlags) +
       Length(P^.ParamName) + Length(TypeStr^) + 2);
   end;
 
@@ -965,14 +971,14 @@ begin
   P := PParamData(@T^.ParamList);
   for I := 1 to T^.ParamCount do
   begin
-    TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
+    TypeStr := Pointer(TCnNativeInt(@P^.ParamName) + Length(P^.ParamName) + 1);
     if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
       Result := Result + Trim(Format('%s: %s %s; ', [(P^.ParamName),
         (GetParamFlagsName(P^.Flags)), TypeStr^])) + ' '
     else
       Result := Result + Trim(Format('%s %s: %s; ', [(GetParamFlagsName(P^.Flags)),
         (P^.ParamName), TypeStr^])) + ' ';
-    P := PParamData(Integer(P) + SizeOf(TParamFlags) +
+    P := PParamData(TCnNativeInt(P) + SizeOf(TParamFlags) +
       Length(P^.ParamName) + Length(TypeStr^) + 2);
   end;
 
@@ -1029,14 +1035,14 @@ begin
   P := PParamData(@T^.ParamList);
   for I := 1 to T^.ParamCount do
   begin
-    TypeStr := Pointer(Integer(@P^.ParamName) + Length(P^.ParamName) + 1);
+    TypeStr := Pointer(TCnNativeInt(@P^.ParamName) + Length(P^.ParamName) + 1);
     if Pos('array of', GetParamFlagsName(P^.Flags)) > 0 then
       Result := Result + Trim(Format('%s: %s %s;', [(P^.ParamName),
         (GetParamFlagsName(P^.Flags)), TypeStr^])) + ' '
     else
       Result := Result + Trim(Format('%s %s: %s;', [(GetParamFlagsName(P^.Flags)),
         (P^.ParamName), TypeStr^])) + ' ';
-    P := PParamData(Integer(P) + SizeOf(TParamFlags) +
+    P := PParamData(TCnNativeInt(P) + SizeOf(TParamFlags) +
       Length(P^.ParamName) + Length(TypeStr^) + 2);
   end;
 
@@ -2430,7 +2436,7 @@ begin
         AProp.PropType := tkClass;
         AProp.PropTypeName := 'TComponent';
         AProp.IsObjOrIntf := True;
-        AProp.PropValue := Integer((FObjectInstance as TComponent).Owner);
+        AProp.PropValue := TCnNativeInt((FObjectInstance as TComponent).Owner);
         AProp.ObjValue := (FObjectInstance as TComponent).Owner;
 
         S := GetObjValueStr(AProp.ObjValue);
@@ -2526,7 +2532,7 @@ begin
         AProp.PropType := tkClass;
         AProp.PropTypeName := 'TControl';
         AProp.IsObjOrIntf := True;
-        AProp.PropValue := Integer((FObjectInstance as TControl).Parent);
+        AProp.PropValue := TCnNativeInt((FObjectInstance as TControl).Parent);
         AProp.ObjValue := (FObjectInstance as TControl).Parent;
 
         S := GetObjValueStr(AProp.ObjValue);
