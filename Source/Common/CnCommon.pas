@@ -392,7 +392,17 @@ procedure PinAppToWin7Taskbar(const Path, App: string);
 
 {$ENDIF}
 
+{$IFDEF SUPPORT_UINT64}
+{$IFNDEF DELPHIXE6_UP}
+
+function TryStrToUInt64(const S: string; out Value: UInt64): Boolean;
+{* XE6 下才有尝试将字符串转为 UInt64 的函数，低版本下补一个}
+
+{$ENDIF}
+{$ENDIF}
+
 {$IFDEF COMPILER5}
+
 type
   TValueRelationship = -1..1;
 
@@ -402,14 +412,17 @@ function AnsiStartsText(const ASubText, AText: string): Boolean;
 {* AText 是否以 ASubText 开头 }
 
 function AnsiReplaceText(const AText, AFromText, AToText: string): string;
+
 {$ENDIF}
 
 function ReplaceAllInString(const S: string; OldPattern, NewPattern: string): string;
 {* StringReplace 无法处理字符串中的 #0，新写一个全替换的版本，不处理大小写}
 
 {$IFNDEF COMPILER7_UP}
+
 function AnsiContainsText(const AText, ASubText: string): Boolean;
 {* AText 是否包含 ASubText }
+
 {$ENDIF}
 
 function AnsiCompareTextPos(const ASubText, AText1, AText2: string): TValueRelationship;
@@ -656,7 +669,7 @@ function StrContainsRegExpr(const Str: string): Boolean;
 function BoolToStr(B: Boolean; UseBoolStrs: Boolean = False): string;
 {* Delphi 5 没有实现布尔型转换为字符串，类似于Delphi 6/7 的实现}
 
-{$ENDIF COMPILER5}
+{$ENDIF}
 
 function LinesToStr(const Lines: string): string;
 {* 多行文本转单行（换行符转'\n'）}
@@ -3676,7 +3689,22 @@ end;
 
 {$ENDIF}
 
+{$IFDEF SUPPORT_UINT64}
+{$IFNDEF DELPHIXE6_UP}
+
+function TryStrToUInt64(const S: string; out Value: UInt64): Boolean;
+var
+  E: Integer;
+begin
+  Val(S, Value, E);
+  Result := E = 0;
+end;
+
+{$ENDIF}
+{$ENDIF}
+
 {$IFDEF COMPILER5}
+
 const
   LessThanValue = Low(TValueRelationship);
   EqualsValue = 0;
@@ -3702,6 +3730,7 @@ function AnsiReplaceText(const AText, AFromText, AToText: string): string;
 begin
   Result := StringReplace(AText, AFromText, AToText, [rfReplaceAll, rfIgnoreCase]);
 end;
+
 {$ENDIF}
 
 // StringReplace 无法处理字符串中的 #0，新写一个全替换的版本，不处理大小写}
@@ -5112,7 +5141,7 @@ begin
     Result := cSimpleBoolStrs[B];
 end;
 
-{$ENDIF COMPILER5}
+{$ENDIF}
 
 // 多行文本转单行（换行符转'\n'）
 function LinesToStr(const Lines: string): string;
