@@ -26,10 +26,39 @@ unit CnControlHook;
 * 单元作者：周劲羽 (zjy@cnpack.org)
 * 备    注：该单元定义了 TCnControlHook 组件，允许通过替换 TControl 子类的
 *           WindowProc 属性来获得控件的消息通知。
+*
+*           内部一个 TCnControlHook 组件持有一个 Owner 为自身的 TCnControlHookCollection
+*           后者又持有一个或多个 Owner 为该 Collection 的 TCnControlHookItem，
+*           后者又调用 ControlHookMgr 来做实际的 Hook 和 UnHook 工作，替每个要 Hook 的
+*           Control 创建一个 TCnControlHookObject，它内部有新的 WndProc 供分发消息触发事件。
+*           也就是说，TCnControlHookObject 和 Control 严格一一对应。
+*
+*           一个 TCnControlHook 组件可 Hook 多个 Control，而所有的 TCnControlHook
+*           组件所 Hook 的 Control 都在 ControlHookMgr 的以 TCnControlHookObject 为元素的列表中处理。
+*           由于不同的组件可能 Hook 同一个 Control 来处理其不同的消息，这种通过 Item 保持的订阅关系
+*           就会集中在 TCnControlHookObject 中处理，后者保留着订阅它的 Item 供随时回调通知。
+*
+*           层次关系：
+*           TCnControlHookMgr（全局单例）
+*             └── FList: TList of TCnControlHookObject   ← 以 Control 为键，每个 Control 一个
+*                   └── TCnControlHookObject（对应一个 Control）
+*                         ├── FControl: TControl          ← 被 Hook 的控件
+*                         ├── FOldWndProc                 ← 保存原始 WindowProc
+*                         ├── WndProc                     ← 替换后的新 WindowProc
+*                         └── FList: TList of TCnControlHookItem  ← 所有关心这个 Control 的订阅者
+*                               ├── TCnControlHookItem（属于 TCnControlHook_A）
+*                               └── TCnControlHookItem（属于 TCnControlHook_B）
+*
+*           TCnControlHook（用户使用的组件，可以有多个实例）
+*             └── FItems: TCnControlHookCollection
+*                   └── TCnControlHookItem → 指向上面的 Item
+*
 * 开发平台：PWin2000Pro + Delphi 5.0
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2003.04.30 V1.2
+* 修改记录：2026.04.02 V1.3
+*               加入 Hooked 和 UnHooked 事件
+*           2003.04.30 V1.2
 *               修正控件在消息处理过程中释放导致挂接对象出错的问题
 *           2002.10.19 V1.1
 *               重新编写比较完善的组件
@@ -68,6 +97,9 @@ type
      var Handled: Boolean - 事件处理过程是否捕获该消息，如果为真将不调用原控件消息过程
    |</PRE>}
 
+  TCnHookControlEvent = procedure (Sender: TObject; Control: TControl) of object;
+  {* Hook 或 UnHook Control 时触发的事件}
+
   TCnControlHookItem = class(TCollectionItem)
   {* 控件挂接子项类，用于 TCnControlHook 组件中。
      当被挂接的控件释放时，相关联的 Item 对象也会被自动释放，
@@ -86,11 +118,13 @@ type
     property Owner: TCnControlHookCollection read FOwner;
   public
     procedure Assign(Source: TPersistent); override;
+
     constructor Create(Collection: TCollection); override;
     destructor Destroy; override;
   published
     property Control: TControl read FControl write SetControl;
     {* 要 Hook 的控件}
+
     property BeforeMessage: THookMessageEvent read FBeforeMessage write FBeforeMessage;
     {* 控件消息事件，在默认消息处理过程之前调用}
     property AfterMessage: THookMessageEvent read FAfterMessage write FAfterMessage;
@@ -114,6 +148,7 @@ type
   public
     constructor Create(AOwner: TCnControlHook);
     destructor Destroy; override;
+
     function Add(Control: TControl): TCnControlHookItem;
     {* 增加一个控件挂接项}
     procedure Remove(Control: TControl);
@@ -142,12 +177,18 @@ type
     FItems: TCnControlHookCollection;
     FBeforeMessage: THookMessageEvent;
     FAfterMessage: THookMessageEvent;
+    FOnHooked: TCnHookControlEvent;
+    FOnUnHooked: TCnHookControlEvent;
     procedure SetActive(const Value: Boolean);
     procedure SetItems(const Value: TCnControlHookCollection);
   protected
     function DoAfterMessage(Control: TControl; var Msg: TMessage): Boolean; dynamic;
     function DoBeforeMessage(Control: TControl; var Msg: TMessage): Boolean; dynamic;
     procedure Loaded; override;
+
+    procedure DoHooked(Control: TControl); virtual;
+    procedure DoUnHooked(Control: TControl); virtual;
+
     procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
   public
     constructor Create(AOwner: TComponent); override;
@@ -166,10 +207,16 @@ type
     {* 是否允许使用}
     property Items: TCnControlHookCollection read FItems write SetItems;
     {* 挂接控件列表}
+
     property BeforeMessage: THookMessageEvent read FBeforeMessage write FBeforeMessage;
     {* 控件消息事件，在默认消息处理过程之前调用}
     property AfterMessage: THookMessageEvent read FAfterMessage write FAfterMessage;
     {* 控件消息事件，在默认消息处理过程之后调用}
+
+    property OnHooked: TCnHookControlEvent read FOnHooked write FOnHooked;
+    {* 挂接一控件后触发的事件}
+    property OnUnhooked: TCnHookControlEvent read FOnUnhooked write FOnUnhooked;
+    {* 解除挂接一控件后触发的事件}
   end;
 
 implementation
@@ -232,10 +279,12 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
     procedure HookControl(Item: TCnControlHookItem);
-    procedure UnhookControl(Item: TCnControlHookItem); overload;
-    procedure UnhookControl(Control: TControl); overload;
+    procedure UnHookControl(Item: TCnControlHookItem); overload;
+    procedure UnHookControl(Control: TControl); overload;
     function IndexOf(Control: TControl): Integer;
+
     property Count: Integer read GetCount;
     property HookedControls[Index: Integer]: TControl read GetHookedControls;
     property Items[Index: Integer]: TCnControlHookObject read GetItem;
@@ -455,7 +504,7 @@ procedure TCnControlHookMgr.Notification(AComponent: TComponent;
 begin
   inherited;
   if (Operation = opRemove) and (AComponent is TControl) then
-    UnhookControl(TControl(AComponent)); // 控件释放时反挂接
+    UnHookControl(TControl(AComponent)); // 控件释放时反挂接
 end;
 
 // 返回控件索引号
@@ -487,30 +536,46 @@ begin
     Obj := TCnControlHookObject.Create(Self, Item.FControl);
     Obj.Add(Item);
     FList.Add(Obj);
+
+    Item.FOwner.FOwner.DoHooked(Item.FControl);
   end
   else
     Items[Idx].Add(Item);
 end;
 
 // 反挂接控件
-procedure TCnControlHookMgr.UnhookControl(Item: TCnControlHookItem);
+procedure TCnControlHookMgr.UnHookControl(Item: TCnControlHookItem);
 var
   Idx: Integer;
 begin
   Assert(Assigned(Item) and Assigned(Item.FControl));
   Idx := IndexOf(Item.FControl);
   if Idx >= 0 then
+  begin
     Items[Idx].Delete(Item);
+    Item.FOwner.FOwner.DoUnHooked(Item.FControl);
+  end;
 end;
 
 // 反挂接控件
-procedure TCnControlHookMgr.UnhookControl(Control: TControl);
+procedure TCnControlHookMgr.UnHookControl(Control: TControl);
 var
-  Idx: Integer;
+  I, Idx: Integer;
+  Obj: TCnControlHookObject;
+  Item: TCnControlHookItem;
 begin
   Idx := IndexOf(Control);
   if Idx >= 0 then
-    Items[Idx].DoFree;
+  begin
+    Obj := Items[Idx];
+    for I := Obj.Count - 1 downto 0 do
+    begin
+      Item := Obj.Items[I];
+      if Assigned(Item) and Assigned(Item.FOwner) and Assigned(Item.FOwner.FOwner) then
+        Item.FOwner.FOwner.DoUnHooked(Control);
+    end;
+    Obj.DoFree;
+  end;
 end;
 
 //------------------------------------------------------------------------------
@@ -553,7 +618,7 @@ end;
 destructor TCnControlHookItem.Destroy;
 begin
   if Assigned(FControl) then
-    GetControlHookMgr.UnhookControl(Self);
+    GetControlHookMgr.UnHookControl(Self);
   inherited;
 end;
 
@@ -599,7 +664,7 @@ procedure TCnControlHookItem.UnHook;
 begin
   if ([csLoading, csDesigning] * FOwner.FOwner.ComponentState = []) and
     Assigned(FControl) then
-    GetControlHookMgr.UnhookControl(Self);
+    GetControlHookMgr.UnHookControl(Self);
 end;
 
 // Control 属性写方法
@@ -762,6 +827,18 @@ begin
   Result := False;
   if Active and Assigned(FBeforeMessage) then
     FBeforeMessage(Self, Control, Msg, Result);
+end;
+
+procedure TCnControlHook.DoHooked(Control: TControl);
+begin
+  if Assigned(FOnHooked) then
+    FOnHooked(Self, Control);
+end;
+
+procedure TCnControlHook.DoUnHooked(Control: TControl);
+begin
+  if Assigned(FOnUnHooked) then
+    FOnUnHooked(Self, Control);
 end;
 
 // Active 属性写方法
