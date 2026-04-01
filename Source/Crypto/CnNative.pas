@@ -403,11 +403,12 @@ procedure UInt64MulUInt64(A: TUInt64; B: TUInt64; var ResLo: TUInt64; var ResHi:
    返回值：（无）
 }
 
-function UInt64ToHex(N: TUInt64): string;
+function UInt64ToHex(N: TUInt64; RemoveZeroPrefix: Boolean = False): string;
 {* 将 64 位无符号整数转换为十六进制字符串。
 
    参数：
      N: TUInt64                           - 待转换的值
+     RemoveZeroPrefix: Boolean            - 是否去除转换结果高位的 0，默认不去除
 
    返回值：string                         - 返回十六进制字符串
 }
@@ -4467,7 +4468,7 @@ end;
 
 {$HINTS ON}
 
-function UInt64ToHex(N: TUInt64): string;
+function UInt64ToHex(N: TUInt64; RemoveZeroPrefix: Boolean): string;
 const
   Digits: array[0..15] of Char = ('0', '1', '2', '3', '4', '5', '6', '7',
                                   '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
@@ -4487,6 +4488,12 @@ begin
     + HC(Byte((N and $0000000000FF0000) shr 16))
     + HC(Byte((N and $000000000000FF00) shr 8))
     + HC(Byte((N and $00000000000000FF)));
+
+  if RemoveZeroPrefix then
+  begin
+    while (Length(Result) > 1) and (Result[1] = '0') do
+      Delete(Result, 1, 1);
+  end;
 end;
 
 function UInt64ToStr(N: TUInt64): string;
