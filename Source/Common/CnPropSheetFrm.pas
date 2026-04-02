@@ -435,6 +435,9 @@ type
     pmSheet: TPopupMenu;
     Copy1: TMenuItem;
     CopyAll1: TMenuItem;
+    pmTree: TPopupMenu;
+    miSelectForCompare: TMenuItem;
+    miCompareWith: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -471,6 +474,9 @@ type
     procedure CopyAll1Click(Sender: TObject);
     procedure pbGraphicPaint(Sender: TObject);
     procedure lvFieldDblClick(Sender: TObject);
+    procedure pmTreePopup(Sender: TObject);
+    procedure miSelectForCompareClick(Sender: TObject);
+    procedure miCompareWithClick(Sender: TObject);
   private
 {$IFDEF FPC}
     tsSwitch: TTabControl;
@@ -528,7 +534,12 @@ type
     procedure UpdatePanelPositions;
     procedure HierPanelDblClick(Sender: TObject);
 
+    // 树节点右键菜单处理
+    procedure TreeViewMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+
     // 根据 FObjectPointer 查其组件树与控件树及其他
+
     procedure SearchTrees;
     procedure UpdateToTree(TreeType: Integer);
     procedure SaveATreeNode(ALeaf: TCnLeaf; ATreeNode: TTreeNode; var Valid: Boolean);
@@ -693,6 +704,9 @@ var
   CnFormTop: Integer = 50;
   Closing: Boolean = False;
   CnPnlTreeWidth: Integer = 400;
+
+  // 用于跨窗体比较的待比较对象引用，放在 unit var 区以便所有 PropSheet 窗体共享
+  CnCompareLeftObject: TObject = nil;   // 已选择"准备比较"的左侧对象
 
 // 根据 set 值与 set 的类型获得 set 的字符串，TypInfo 参数必须是枚举的类型，
 // 而不能是 set of 后的类型，如无 TypInfo，则返回数值
@@ -3249,6 +3263,12 @@ begin
 {$IFDEF COMPILER7_UP}
   pnlHierarchy.ParentBackground := False;
 {$ENDIF}
+
+  // 初始化 TreeView 右键菜单
+
+  pmTree.OnPopup := pmTreePopup;
+  TreeView.PopupMenu := pmTree;
+  TreeView.OnMouseDown := TreeViewMouseDown;
 end;
 
 procedure TCnPropSheetForm.InspectObject(Data: Pointer);
@@ -4857,6 +4877,106 @@ end;
 
 {$ENDIF}
 {$ENDIF}
+
+{ TCnPropSheetForm - TreeView 右键菜单比较功能 }
+
+procedure TCnPropSheetForm.TreeViewMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  Node: TTreeNode;
+begin
+  if Button = mbRight then
+  begin
+    Node := TreeView.GetNodeAt(X, Y);
+    if Node <> nil then
+      TreeView.Selected := Node;
+  end;
+end;
+
+// Returns "Name: ClassName" for TComponent descendants, "ClassName" otherwise
+function GetObjDisplayName(Obj: TObject): string;
+begin
+  try
+    if Obj is TComponent then
+    begin
+      if (Obj as TComponent).Name <> '' then
+        Result := (Obj as TComponent).Name + ': ' + Obj.ClassName
+      else
+        Result := Obj.ClassName;
+    end
+    else
+      Result := Obj.ClassName;
+  except
+    Result := 'Object';
+  end;
+end;
+
+procedure TCnPropSheetForm.pmTreePopup(Sender: TObject);
+var
+  Node: TTreeNode;
+  Obj: TObject;
+  ObjName: string;
+begin
+  Node := TreeView.Selected;
+  if (Node <> nil) and (Node.Data <> nil) then
+  begin
+    Obj := TObject(Node.Data);
+    // 取对象类名作为显示名称
+    ObjName := GetObjDisplayName(Obj);
+
+    miSelectForCompare.Caption := 'Select ' + ObjName + ' to Compare';
+    miSelectForCompare.Enabled := True;
+
+    // Show "Compare with..." only when a left object is selected and OnCompareObjects is assigned
+    if (CnCompareLeftObject <> nil) and Assigned(CnDebugger.OnCompareObjects) then
+    begin
+      miCompareWith.Caption := 'Compare with ' + GetObjDisplayName(CnCompareLeftObject);
+      miCompareWith.Enabled := True;
+    end
+    else
+    begin
+      if CnCompareLeftObject <> nil then
+        miCompareWith.Caption := 'Compare with ' + GetObjDisplayName(CnCompareLeftObject)
+      else
+        miCompareWith.Caption := 'Compare with <none>';
+      miCompareWith.Enabled := False;
+    end;
+  end
+  else
+  begin
+    miSelectForCompare.Caption := 'Select this Object to Compare';
+    miSelectForCompare.Enabled := False;
+    miCompareWith.Caption := 'Compare with <none>';
+    miCompareWith.Enabled := False;
+  end;
+end;
+
+procedure TCnPropSheetForm.miSelectForCompareClick(Sender: TObject);
+var
+  Node: TTreeNode;
+begin
+  Node := TreeView.Selected;
+  if (Node <> nil) and (Node.Data <> nil) then
+    CnCompareLeftObject := TObject(Node.Data);
+end;
+
+procedure TCnPropSheetForm.miCompareWithClick(Sender: TObject);
+var
+  Node: TTreeNode;
+  RightObj: TObject;
+begin
+  if CnCompareLeftObject = nil then
+    Exit;
+  if not Assigned(CnDebugger.OnCompareObjects) then
+    Exit;
+
+  Node := TreeView.Selected;
+  if (Node <> nil) and (Node.Data <> nil) then
+  begin
+    RightObj := TObject(Node.Data);
+    CnDebugger.OnCompareObjects(CnCompareLeftObject, RightObj);
+  end;
+end;
 
 initialization
   FSheetList := TComponentList.Create(True);

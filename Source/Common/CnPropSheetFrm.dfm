@@ -665,4 +665,18 @@ object CnPropSheetForm: TCnPropSheetForm
       OnClick = CopyAll1Click
     end
   end
+  object pmTree: TPopupMenu
+    Left = 197
+    Top = 383
+    OnPopup = pmTreePopup
+    object miSelectForCompare: TMenuItem
+      Caption = 'Select this Object to Compare'
+      OnClick = miSelectForCompareClick
+    end
+    object miCompareWith: TMenuItem
+      Caption = 'Compare with <none>'
+      Enabled = False
+      OnClick = miCompareWithClick
+    end
+  end
 end

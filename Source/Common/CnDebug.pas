@@ -266,6 +266,9 @@ type
     var Cancel: Boolean) of object;
   {* 寻找 Control 时的回调}
 
+  TCnObjectsCompareEvent = procedure(ALeft: TObject; ARight: TObject) of object;
+  {* 比较属性时的回调}
+
   TCnAnsiCharSet = set of AnsiChar; // 32 字节大小
 {$IFDEF UNICODE}
   {$WARNINGS OFF}
@@ -328,6 +331,7 @@ type
     FOnFindComponent: TCnFindComponentEvent;
     FControlFindList: TList;
     FOnFindControl: TCnFindControlEvent;
+    FOnCompareObjects: TCnObjectsCompareEvent;
     procedure CreateChannel;
     function GetActive: Boolean;
     procedure SetActive(const Value: Boolean);
@@ -2035,6 +2039,8 @@ type
     {* 全局遍历 Component 时的回调}
     property OnFindControl: TCnFindControlEvent read FOnFindControl write FOnFindControl;
     {* 全局遍历 Control 时的回调}
+    property OnCompareObjects: TCnObjectsCompareEvent read FOnCompareObjects write FOnCompareObjects;
+    {* 比较属性时的回调}
   end;
 
   TCnDebugChannel = class(TObject)
