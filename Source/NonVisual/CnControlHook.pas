@@ -134,7 +134,7 @@ type
 //==============================================================================
 // 控件挂接列表类
 //==============================================================================
-   
+
 { TCnControlHookCollection }
 
   TCnControlHookCollection = class(TOwnedCollection)
@@ -162,7 +162,7 @@ type
 //==============================================================================
 // 控件消息过程挂接组件
 //==============================================================================
-   
+
 { TCnControlHook }
 
 {$IFNDEF FPC}
@@ -193,7 +193,7 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    
+
     function IndexOf(Control: TControl): Integer;
     {* 返回指定被挂接控件的索引号，如果不存在，返回 -1}
     function Hook(Control: TControl): TCnControlHookItem;
@@ -215,7 +215,7 @@ type
 
     property OnHooked: TCnHookControlEvent read FOnHooked write FOnHooked;
     {* 挂接一控件后触发的事件}
-    property OnUnhooked: TCnHookControlEvent read FOnUnhooked write FOnUnhooked;
+    property OnUnhooked: TCnHookControlEvent read FOnUnHooked write FOnUnHooked;
     {* 解除挂接一控件后触发的事件}
   end;
 
@@ -229,7 +229,7 @@ type
 //==============================================================================
 // 控件消息处理过程挂接对象（私有类）
 //==============================================================================
-   
+
 { TCnControlHookObject }
 
   TCnControlHookMgr = class;
@@ -254,7 +254,7 @@ type
     function Add(Item: TCnControlHookItem): Integer;
     procedure DoFree;
     function Updating: Boolean;
-    
+
     procedure Delete(Item: TCnControlHookItem); overload;
     procedure Delete(Index: Integer); overload;
     property Count: Integer read GetCount;
@@ -300,11 +300,11 @@ begin
     ControlHookMgr := TCnControlHookMgr.Create(nil);
   Result := ControlHookMgr;
 end;
-  
+
 //==============================================================================
 // 控件消息处理过程挂接对象（私有类）
 //==============================================================================
-   
+
 { TCnControlHookObject }
 
 // 构造器
@@ -603,7 +603,7 @@ end;
 //==============================================================================
 // 控件挂接子项
 //==============================================================================
-   
+
 { TCnControlHookItem }
 
 // 类构造器
@@ -681,7 +681,7 @@ end;
 //==============================================================================
 // 控件挂接列表类
 //==============================================================================
-   
+
 { TCnControlHookCollection }
 
 // 构造器
@@ -755,7 +755,7 @@ end;
 //==============================================================================
 // 控件消息过程挂接组件
 //==============================================================================
-   
+
 { TCnControlHook }
 
 // 构造器

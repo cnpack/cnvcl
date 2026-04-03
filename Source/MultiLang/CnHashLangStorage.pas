@@ -92,6 +92,8 @@ type
     FOnLoadFile: TCnHashLangLoadFile;
     procedure SetIncSize(const Value: Integer);
     procedure SetListLength(const Value: Integer);
+    procedure AddStringsFromList(AList: TCnWideStringList);
+    {* 从字符串列表中解析并批量加入 HashMap，支持 Key 中含一个等号的情况 }
   protected
     procedure InitHashMap;
     procedure InitFromAFile(const AFileName: TCnLangString); override;
@@ -221,7 +223,6 @@ end;
 function TCnCustomHashLangStorage.LoadCurrentLanguage: Boolean;
 var
   List: TCnWideStringList;
-  I, EPos: Integer;
   S: TCnLangString;
 begin
   Result := True;
@@ -242,16 +243,7 @@ begin
     Exit;
   end;
 
-  for I := 0 to List.Count - 1 do
-  begin
-    S := List[I];
-    EPos := Pos(DefEqual, S);
-    if EPos > 0 then
-      AddString(Copy(S, 1, EPos - 1), Copy(S, EPos + 1,
-        Length(S) - EPos))
-    else
-      AddString(S, '');
-  end;
+  AddStringsFromList(List);
   List.Free;
 end;
 
@@ -427,11 +419,40 @@ begin
   FHashMap.Delete(Key);
 end;
 
+procedure TCnCustomHashLangStorage.AddStringsFromList(AList: TCnWideStringList);
+var
+  I, EPos, EPos2: Integer;
+  S, TmpKey, TmpValue: TCnLangString;
+begin
+  for I := 0 to AList.Count - 1 do
+  begin
+    S := AList[I];
+    EPos := Pos(DefEqual, S);
+    if EPos > 0 then
+    begin
+      // 先按第一个等号劈分，得到初步的 Key 和 Value
+      // 若 Value 中还含等号，说明原始 Key 本身含一个等号，
+      // 则以 Value 中的第一个等号为准重新劈分：
+      //   新 Key   = 原 Key + DefEqual + Value 中等号前的部分
+      //   新 Value = Value 中等号后的部分
+      TmpKey   := Copy(S, 1, EPos - 1);
+      TmpValue := Copy(S, EPos + 1, Length(S) - EPos);
+      EPos2 := Pos(DefEqual, TmpValue);
+      if EPos2 > 0 then
+      begin
+        TmpKey   := TmpKey + DefEqual + Copy(TmpValue, 1, EPos2 - 1);
+        TmpValue := Copy(TmpValue, EPos2 + 1, Length(TmpValue) - EPos2);
+      end;
+      AddString(TmpKey, TmpValue);
+    end
+    else
+      AddString(S, '');
+  end;
+end;
+
 procedure TCnCustomHashLangStorage.AddExtraItemsFromFile(const AFileName: TCnLangString);
 var
   List: TCnWideStringList;
-  I, EPos: Integer;
-  S: TCnLangString;
 begin
   List := TCnWideStringList.Create;
   try
@@ -441,16 +462,7 @@ begin
     Exit;
   end;
 
-  for I := 0 to List.Count - 1 do
-  begin
-    S := List[I];
-    EPos := Pos(DefEqual, S);
-    if EPos > 0 then
-      AddString(Copy(S, 1, EPos - 1), Copy(S, EPos + 1,
-        Length(S) - EPos))
-    else
-      AddString(S, '');
-  end;
+  AddStringsFromList(List);
   List.Free;
 end;
 
