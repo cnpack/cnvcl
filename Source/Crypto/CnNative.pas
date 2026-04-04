@@ -2205,9 +2205,6 @@ function BoolToStr(Value: Boolean; UseBoolStrs: Boolean = False): string;
 
 implementation
 
-uses
-  CnFloat;
-
 resourcestring
   SCnErrorNotAHexPChar = 'Error: NOT a Hex Char: #%d';
   SCnErrorLengthNotHex = 'Error Length %d: NOT a Hex String';
