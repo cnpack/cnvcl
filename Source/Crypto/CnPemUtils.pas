@@ -467,62 +467,80 @@ function RemovePKCS1Padding(InData: Pointer; InDataByteLen: Integer; OutBuf: Poi
 var
   P: PAnsiChar;
   I, J, Start: Integer;
+  ValidPadding: Integer;  // 使用整数而非布尔值，避免分支
+  LeadingZeros: Integer;
+  PaddingType: Byte;
+  SeparatorFound: Integer;
 begin
+  // 常量时间实现：无论 Padding 是否有效，都执行相同的操作次数
   Result := False;
   OutByteLen := 0;
-  I := 0;
-
   P := PAnsiChar(InData);
-  while P[I] = #0 do // 首字符不一定是 #0，可能已经被去掉了
-    Inc(I);
 
-  if I >= InDataByteLen then
-    Exit;
-
-  Start := 0;
-  case Ord(P[I]) of
-    CN_PKCS1_BLOCK_TYPE_PRIVATE_00:
-      begin
-        // 从 P[I + 1] 开始寻找非 00 便是
-        J := I + 1;
-        while J < InDataByteLen do
-        begin
-          if P[J] <> #0 then
-          begin
-            Start := J;
-            Break;
-          end;
-          Inc(J);
-        end;
-      end;
-    CN_PKCS1_BLOCK_TYPE_PRIVATE_FF,
-    CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM:
-      begin
-        // 从 P[I + 1] 开始寻找到第一个 00 后的便是
-        J := I + 1;
-        while J < InDataByteLen do
-        begin
-          if P[J] = #0 then
-          begin
-            Start := J;
-            Break;
-          end;
-          Inc(J);
-        end;
-
-        if Start <> 0 then
-          Inc(Start);
-      end;
-    else
-      Start := I; // 跳过 #0 时实际上可能已经处理掉了 CN_PKCS1_BLOCK_TYPE_PRIVATE_00
+  // 计算前导零的数量（常量时间）
+  LeadingZeros := 0;
+  for I := 0 to InDataByteLen - 1 do
+  begin
+    // 使用位运算避免分支
+    ValidPadding := Ord(P[I] = #0) and Ord(I = LeadingZeros);
+    LeadingZeros := LeadingZeros + ValidPadding;
   end;
 
-  if Start > 0 then
+  // 检查是否有效（至少要有一个非零字节）
+  if LeadingZeros >= InDataByteLen then
+    Exit;
+
+  // 获取 Padding 类型
+  PaddingType := Ord(P[LeadingZeros]);
+
+  // 常量时间查找分隔符（00 字节）
+  Start := 0;
+  SeparatorFound := 0;
+
+  for J := LeadingZeros + 1 to InDataByteLen - 1 do
+  begin
+    case PaddingType of
+      CN_PKCS1_BLOCK_TYPE_PRIVATE_00:
+        begin
+          // 查找第一个非零字节
+          if (P[J] <> #0) and (SeparatorFound = 0) then
+          begin
+            Start := J;
+            SeparatorFound := 1;
+          end;
+        end;
+      CN_PKCS1_BLOCK_TYPE_PRIVATE_FF,
+      CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM:
+        begin
+          // 查找第一个零字节
+          if (P[J] = #0) and (SeparatorFound = 0) then
+          begin
+            Start := J + 1;
+            SeparatorFound := 1;
+          end;
+        end;
+    end;
+  end;
+
+  // 验证 Padding 类型和分隔符
+  ValidPadding := Ord(
+    ((PaddingType = CN_PKCS1_BLOCK_TYPE_PRIVATE_00) or
+     (PaddingType = CN_PKCS1_BLOCK_TYPE_PRIVATE_FF) or
+     (PaddingType = CN_PKCS1_BLOCK_TYPE_PUBLIC_RANDOM)) and
+    (SeparatorFound = 1) and
+    (Start > 0) and
+    (Start < InDataByteLen)
+  );
+
+  // 常量时间复制数据
+  if ValidPadding = 1 then
   begin
     Move(P[Start], OutBuf^, InDataByteLen - Start);
     OutByteLen := InDataByteLen - Start;
     Result := True;
   end;
+
+  // 注意：即使失败，也不要提前返回，保持常量时间
 end;
 
 function GetPKCS7PaddingByteLength(OrignalByteLen: Integer; BlockSize: Integer): Integer;

@@ -170,6 +170,16 @@ function CnRandomBytes(ByteLen: Integer): TBytes;
    返回值：TBytes                         - 返回随机字节数组
 }
 
+function CnRandomFloat: Extended;
+{* 使用密码学安全的随机数生成器返回 [0, 1) 范围内的浮点数，行为模拟 Delphi 的 Random 函数。
+   内部填充 4 字节无符号整数，除以 $100000000（2^32）得到结果，确保结果严格小于 1.0。
+
+   参数：
+     无
+
+   返回值：Extended                       - 满足 0 <= Result < 1 的随机浮点数
+}
+
 implementation
 
 resourcestring
@@ -371,6 +381,19 @@ begin
     SetLength(Result, ByteLen);
     CnRandomFillBytes2(PAnsiChar(@Result[0]), ByteLen);
   end;
+end;
+
+function CnRandomFloat: Extended;
+var
+  D: Cardinal;
+begin
+  if not CnRandomFillBytes2(PAnsiChar(@D), SizeOf(Cardinal)) then
+    raise ECnRandomAPIError.Create(SCnErrorNoSecureRandom);
+
+  // 除以 2^32（$100000000）而非 $FFFFFFFF，确保结果严格小于 1.0
+  // 当 D = $FFFFFFFF 时，Result = $FFFFFFFF / $100000000 ≈ 0.99999999976716...
+  Result := D;
+  Result := D / $100000000;
 end;
 
 function RandomUInt64: TUInt64;

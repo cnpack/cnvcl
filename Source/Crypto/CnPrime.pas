@@ -1456,14 +1456,20 @@ resourcestring
   SCnErrorInvalidKForLucasSequence = 'Invalid K for Lucas Sequence';
   SCnErrorInvalidPrime = 'Invalid Prime';
   SCnErrorInvalidParam = 'Invalid Parameter';
+  SCnErrorCryptoRandomFailed = 'Cryptographically Secure Random Number Generation Failed';
 
 // 从 CN_PRIME_NUMBERS_SQRT_UINT32 数组中随机挑选一个素数
 function CnPickRandomSmallPrime: Integer;
 var
-  D: Integer;
+  Buf: array[0..3] of Byte;
+  D: Cardinal;
 begin
-  Randomize;
-  D := Random(High(CN_PRIME_NUMBERS_SQRT_UINT32)) + 1;
+  // 使用密码学安全的随机数生成器替代 Randomize/Random
+  if not CnRandomFillBytes(@Buf[0], SizeOf(Buf)) then
+    raise Exception.Create(SCnErrorCryptoRandomFailed);
+
+  D := PCardinal(@Buf[0])^;
+  D := (D mod High(CN_PRIME_NUMBERS_SQRT_UINT32)) + 1;
   Result := CN_PRIME_NUMBERS_SQRT_UINT32[D];
 end;
 
@@ -1720,8 +1726,7 @@ begin
 
   for I := 1 to CN_MILLER_RABIN_DEF_COUNT do
   begin
-    Randomize;
-    R := Random;
+    R := CnRandomFloat;
 
     // A := Trunc(Random * (N - 1)) + 1; 但 N - 1作为 Int64 可能小于 0，要拆分
     if UInt64Compare(N - 1, CN_MAX_SIGNED_INT64_IN_TUINT64) <= 0 then // if N - 1 > 0 ?
@@ -1743,10 +1748,15 @@ end;
 
 // 生成一个随机的 32 位无符号素数
 function CnGenerateUInt32Prime(HighBitSet: Boolean): Cardinal;
+var
+  Buf: array[0..3] of Byte;
 begin
-  Randomize;
+  // 使用密码学安全的随机数生成器
   repeat
-    Result := Trunc(Random * High(Cardinal) - 1) + 1;
+    if not CnRandomFillBytes(@Buf[0], SizeOf(Buf)) then
+      raise Exception.Create(SCnErrorCryptoRandomFailed);
+
+    Result := PCardinal(@Buf[0])^;
     if HighBitSet then
       Result := Result or $80000000;
   until CnUInt32IsPrime(Result);
@@ -1754,10 +1764,15 @@ end;
 
 // 生成一个随机的 32 位有符号素数
 function CnGenerateInt32Prime: Integer;
+var
+  Buf: array[0..3] of Byte;
 begin
-  Randomize;
+  // 使用密码学安全的随机数生成器
   repeat
-    Result := Trunc(Random * High(Cardinal) - 1) + 1;
+    if not CnRandomFillBytes(@Buf[0], SizeOf(Buf)) then
+      raise Exception.Create(SCnErrorCryptoRandomFailed);
+
+    Result := Integer(PCardinal(@Buf[0])^);
     Result := Result and $7FFFFFFF;
   until CnUInt32IsPrime(Result);
 end;

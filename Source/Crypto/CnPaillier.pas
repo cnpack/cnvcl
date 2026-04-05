@@ -281,12 +281,10 @@ var
   AN, Lam: Int64;
   AP, AQ: Integer;
 begin
-  // 先随机生成两个 Integer 范围内的素数
+  // 先安全随机生成两个 Integer 范围内的素数
   repeat
     repeat
       AP := CnPickRandomSmallPrime;
-      AN := Trunc(Random * 100); // 复用 AN，以调整 CnPickRandomSmallPrime 内部的随机数发生器
-      Sleep(AN);
       AQ := CnPickRandomSmallPrime;
     until (AP > 0) and (AQ > 0) and (AP <> AQ);
 
