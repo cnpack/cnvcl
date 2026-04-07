@@ -186,12 +186,13 @@ var
   FontChange: TNotifyEvent;
   Charset: Longint;
 {$ENDIF}
-  Pos: Integer;
+  Ps: Integer;
   I: Byte;
   S: string;
 begin
   if Font = nil then
     Exit;
+
   try
 {$IFDEF MSWINDOWS}
     FontChange := Font.OnChange;
@@ -201,33 +202,45 @@ begin
     try
       if BaseFont <> nil then
         Font.Assign(BaseFont);
-      Pos := 1;
+      Ps := 1;
       I := 0;
-      while Pos <= Length(Str) do begin
+      while Ps <= Length(Str) do
+      begin
         Inc(I);
-        S := Trim(ExtractSubstr(Str, Pos, Delims));
+        S := Trim(ExtractSubstr(Str, Ps, Delims));
         case I of
-          1: if S <> '' then
-             begin
+          1:
+            if S <> '' then
+            begin
 {$IFDEF MSWINDOWS}
-               Font.Name := S;
+              Font.Name := S;
 {$ELSE}
-               Font.Family := S;
+              Font.Family := S;
 {$ENDIF}
-             end;
-          2: if S <> '' then
-             begin
+            end;
+          2:
+            if S <> '' then
+            begin
 {$IFDEF MSWINDOWS}
-               Font.Size := StrToIntDef(S, Font.Size);
+              Font.Size := StrToIntDef(S, Font.Size);
 {$ELSE}
-               Font.Size := StrToFloatDef(S, Font.Size);
+              Font.Size := StrToFloatDef(S, Font.Size);
 {$ENDIF}
-             end;
-          3: if S <> '' then Font.Style := StringToFontStyles(S) else Font.Style := [];
+            end;
+          3:
+            if S <> '' then
+              Font.Style := StringToFontStyles(S)
+            else
+              Font.Style := [];
 {$IFDEF MSWINDOWS}
-          4: if S <> '' then Font.Pitch := TFontPitch(StrToIntDef(S, Ord(Font.Pitch)));
-          5: if S <> '' then Font.Color := StringToColor(S);
-          6: if S <> '' then
+          4:
+            if S <> '' then
+              Font.Pitch := TFontPitch(StrToIntDef(S, Ord(Font.Pitch)));
+          5:
+            if S <> '' then
+              Font.Color := StringToColor(S);
+          6:
+            if S <> '' then
             begin
               if IdentToCharset(S, Charset) then
                 Font.Charset := Charset
@@ -262,21 +275,28 @@ var
 begin
   Result := Def;
   S := Str;
-  if CharInSet(S[1], csLefts) and CharInSet(S[Length(S)], csRights) then begin
+  if CharInSet(S[1], csLefts) and CharInSet(S[Length(S)], csRights) then
+  begin
     Delete(S, 1, 1); SetLength(S, Length(S) - 1);
   end;
+
   I := Pos(',', S);
-  if I > 0 then begin
+  if I > 0 then
+  begin
     Temp := Trim(Copy(S, 1, I - 1));
     Result.Left := StrToIntDef(Temp, Def.Left);
     Delete(S, 1, I);
     I := Pos(',', S);
-    if I > 0 then begin
+
+    if I > 0 then
+    begin
       Temp := Trim(Copy(S, 1, I - 1));
       Result.Top := StrToIntDef(Temp, Def.Top);
       Delete(S, 1, I);
       I := Pos(',', S);
-      if I > 0 then begin
+
+      if I > 0 then
+      begin
         Temp := Trim(Copy(S, 1, I - 1));
         Result.Right := StrToIntDef(Temp, Def.Right);
         Delete(S, 1, I);
@@ -289,7 +309,8 @@ end;
 
 function PointToStr(P: TPoint): string;
 begin
-  with P do Result := Format('[%d,%d]', [X, Y]);
+  with P do
+    Result := Format('[%d,%d]', [X, Y]);
 end;
 
 function StrToPoint(const Str: string; const Def: TPoint): TPoint;
@@ -300,11 +321,12 @@ var
 begin
   Result := Def;
   S := Str;
-  if CharInSet(S[1], csLefts) and CharInSet(S[Length(Str)], csRights) then begin
+  if CharInSet(S[1], csLefts) and CharInSet(S[Length(Str)], csRights) then
     Delete(S, 1, 1); SetLength(S, Length(S) - 1);
-  end;
+
   I := Pos(',', S);
-  if I > 0 then begin
+  if I > 0 then
+  begin
     Temp := Trim(Copy(S, 1, I - 1));
     Result.X := StrToIntDef(Temp, Def.X);
     Delete(S, 1, I);

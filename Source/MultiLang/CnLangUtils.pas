@@ -71,6 +71,7 @@ type
     FSkipEmptyComponentName: Boolean;
     FIgnoreRootFont: Boolean;
     FNoNameProcessType: TCnNoNameProcessType;
+    FForceFrameToForm: Boolean;
     function CRLFStringToBRString(const CRLFStr: string): string;
     function GetComponentNameForLang(Comp: TComponent): string;
   protected
@@ -89,7 +90,7 @@ type
     {* 构造方法}
     procedure GetFormStrings(AForm: TComponent; Strings: TStrings; SkipEmptyStr: Boolean = False);
     {* 获得一 Form 上的所有字串，支持 VCL 和 FMX 的 Form
-      如 AForm 是设计期的独立 TFrame，行为如何？}
+      如 AForm 是设计期的独立 TFrame，则也能获取到类似于 TFrame1.Button1.Caption 这种字符串}
     procedure GetComponentStrings(AComponent: TComponent; Strings: TStrings;
       const BaseName: string = ''; SkipEmptyStr: Boolean = False);
     {* 获得一 Component 的所有字串 }
@@ -104,6 +105,8 @@ type
     {* 是否不生成窗体字体}
     property NoNameProcessType: TCnNoNameProcessType read FNoNameProcessType write FNoNameProcessType;
     {* 无组件名时的引用方法，默认使用组件索引值}
+    property ForceFrameToForm: Boolean read FForceFrameToForm write FForceFrameToForm;
+    {* 是否强制将 GetFormStrings 的 AForm 参数当是 Frame 时当顶层 Form 处理，一般无需设置，内部自动判断}
     property OnAllowItem: TCnLangAllowItemEvent read FOnAllowItem write FOnAllowItem;
     {* 遍历某条目时触发的事件，事件处理程序中给 Allow 赋值 False 代表忽略该条目}
   end;
@@ -482,7 +485,7 @@ begin
         or CnFmxIsInheritedFromCommonCustomForm(AComponent) // 还要加上 FMX 的顶层 FORM 判断
 {$ENDIF}
 {$IFDEF MSWINDOWS}
-        or ((AComponent is TCustomFrame) and IsTopDesignFrame(AComponent as TCustomFrame)) {$ENDIF} then
+        or ((AComponent is TCustomFrame) and (FForceFrameToForm or IsTopDesignFrame(AComponent as TCustomFrame))) {$ENDIF} then
         GetRecurComponentStrings(AOwner, T, AList, Strings, BaseName, SkipEmptyStr)
       else
         GetRecurComponentStrings(AOwner, T, AList, Strings, BaseName + DefDelimeter + GetComponentNameForLang(AComponent), SkipEmptyStr);
@@ -693,8 +696,8 @@ begin
 {$IFDEF SUPPORT_FMX}
       or CnFmxIsInheritedFromCommonCustomForm(AObject)// 还要加上 FMX 的顶层 FORM 判断
 {$ENDIF}
-{$IFDEF MSWINDOWS}
-      or ((AObject is TCustomFrame) and IsTopDesignFrame(AObject as TCustomFrame)) {$ENDIF} ;
+{$IFDEF MSWINDOWS}                      // 外界有强制将 Frame 当成 Form 进行顶层抽取的机会
+      or ((AObject is TCustomFrame) and (FForceFrameToForm or IsTopDesignFrame(AObject as TCustomFrame))) {$ENDIF} ;
 
     try
       Data := GetTypeData(AObject.Classinfo);
