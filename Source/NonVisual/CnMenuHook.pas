@@ -27,21 +27,27 @@ unit CnMenuHook;
 * 备    注：该单元用来实现对 IDE 内部 PopupMenu 的挂接操作，通过修改菜单的
 *           OnPopup 事件，在弹出前先删除自定义的菜单，执行原来的 OnPopup 后再重
 *           新增加定义的菜单，以实现自定义菜单的功能。
+*
 *           之所以采用该方法，是因为直接修改 PopupMenu 在 IDE 中可能会导致出错。
+*
 *           单元提供了以下类：
 *             - TCnAbstractMenuItemDef
 *               抽象的用户菜单项基类，如果需要特别定制的菜单处理服务，可以自己
 *               从该类中派生。
+*
 *             - TCnMenuItemDef
 *               普通的用户菜单项类，可以满足绝大部分需要，使用时直接创建该类实
 *               例并注册到管理器中即可。
+*
 *             - TCnSepMenuItemDef
 *               用来生成一个分隔菜单项。
+*
 *             - TCnMenuHook
 *               菜单管理器，用于管理一组相同功能的菜单，如代码编辑器可能会有多
 *               个实例，每个实例都有一个 PopupMenu，这样就可以用一个管理器来管
 *               理。管理器提供了挂接 PopupMenu 方法、注册自定义菜单项以及其它
 *               服务。
+*
 * 开发平台：PWin2000Pro + Delphi 5.01
 * 兼容测试：PWin9X/2000/XP + Delphi 5/6/7 + C++Builder 5/6
 * 本 地 化：该单元中的字符串支持本地化处理方式
@@ -220,7 +226,6 @@ type
 {$ENDIF}
   TCnMenuHook = class(TCnComponent)
   private
-    FText: string;
     FMenuList: TObjectList;
     FMenuItemDefList: TObjectList;
     FActive: Boolean;
@@ -271,8 +276,6 @@ type
   published
     property Active: Boolean read FActive write SetActive;
     {* 菜单挂接活跃属性}
-    property Text: string read FText write FText;
-    {* 额外字符串数据}
 
     property OnBeforePopup: TCnMenuPopupEvent read FOnBeforePopup write FOnBeforePopup;
     {* 被挂接的菜单弹出前事件，此时用户菜单项已经释放，用户可在此进行特别的处理}
