@@ -3765,7 +3765,7 @@ function SarInt32(V: Integer; ShiftCount: Integer): Integer;
 begin
   Result := V shr ShiftCount;
   if (V and $80000000) <> 0 then
-    Result := Result or ($FFFFFFFF shl (32 - ShiftCount));
+    Result := Result or Integer($FFFFFFFF shl (32 - ShiftCount));
 end;
 
 function SarInt64(V: Int64; ShiftCount: Integer): Int64;

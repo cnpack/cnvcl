@@ -582,7 +582,7 @@ end;
 
 procedure RemovePKCS7Padding(Stream: TMemoryStream);
 var
-  L, V, I: Byte;
+  L, I: Byte;
   Len: Cardinal;
   Mem, PBuf: Pointer;
   Valid: Boolean;
@@ -1248,24 +1248,24 @@ begin
       try
         SplitStringToList(S, List);
 
-        List.Insert(0, Head);  // 普通头
-        if EH <> '' then       // 加密头
-          List.Insert(1, EH);
-        List.Add(Tail);        // 普通尾
+        List.Insert(0, AnsiString(Head));  // 普通头
+        if EH <> '' then                   // 加密头
+          List.Insert(1, AnsiString(EH));
+        List.Add(AnsiString(Tail));        // 普通尾
 
         if Append and FileExists(FileName) then
         begin
           Sl := TCnAnsiStringList.Create;
           try
-            Sl.LoadFromFile(FileName);
+            Sl.LoadFromFile(AnsiString(FileName));
             Sl.AddStrings(List);
-            Sl.SaveToFile(FileName);
+            Sl.SaveToFile(AnsiString(FileName));
           finally
             Sl.Free;
           end;
         end
         else
-          List.SaveToFile(FileName);
+          List.SaveToFile(AnsiString(FileName));
 
         Result := True;
       finally
@@ -1303,10 +1303,10 @@ begin
       try
         SplitStringToList(S, List);
 
-        List.Insert(0, Head);  // 普通头
-        if EH <> '' then       // 加密头
-          List.Insert(1, EH);
-        List.Add(Tail);        // 普通尾
+        List.Insert(0, AnsiString(Head));  // 普通头
+        if EH <> '' then                   // 加密头
+          List.Insert(1, AnsiString(EH));
+        List.Add(AnsiString(Tail));        // 普通尾
 
         if not Append then
           Stream.Size := 0;

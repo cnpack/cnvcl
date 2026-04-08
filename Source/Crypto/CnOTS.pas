@@ -1564,7 +1564,6 @@ var
   C: array[0..2] of Byte; // 3 个 4-bit 校验和块
   ComputedPublicKey: TCnWOTSPlusSM3PublicKey;
 begin
-  Result := False;
   try
     if (Data = nil) or (DataByteLen = 0) then
       Dig := SM3(nil, 0)
@@ -1756,7 +1755,6 @@ var
   C: array[0..2] of Byte; // 3 个 4-bit 校验和块
   ComputedPublicKey: TCnWOTSPlusSHA256PublicKey;
 begin
-  Result := False;
   try
     if (Data = nil) or (DataByteLen = 0) then
       Dig := SHA256(nil, 0)

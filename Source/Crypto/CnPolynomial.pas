@@ -10865,7 +10865,7 @@ begin
       end;
     vtString:
       begin
-        Add.SetString(LowToHighCoefficients[I].VString^);
+        Add.SetString(string(LowToHighCoefficients[I].VString^));
       end;
     vtObject:
       begin
@@ -11005,7 +11005,7 @@ begin
       end;
     vtString:
       begin
-        Add.SetString(LowToHighCoefficients[I].VString^);
+        Add.SetString(string(LowToHighCoefficients[I].VString^));
       end;
     vtObject:
       begin

@@ -1397,7 +1397,7 @@ begin
     Move(Data^, Ctx.Buf[Ctx.BufLen], Need);
     Inc(Ctx.BufLen, Need);
 
-    Data := Pointer(TCnNativeUInt(Data) + Need);
+    Data := Pointer(TCnNativeUInt(Data) + TCnNativeUInt(Need));
     Dec(DataByteLength, Need);
 
     if Ctx.BufLen = CN_AEAD_BLOCK then

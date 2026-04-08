@@ -1211,7 +1211,7 @@ begin
   try
     T.SetBytes(Data);
     for I := Low(P) to High(P) do
-      P[I] := B - T.Copy(L * I, L);
+      P[I] := B - Integer(T.Copy(L * I, L));
   finally
     T.Free;
   end;
@@ -1237,7 +1237,7 @@ begin
     begin
       for J := Low(V[I]) to High(V[I]) do
       begin
-        V[I][J] := B - D.Copy(T, L);
+        V[I][J] := B - Integer(D.Copy(T, L));
         Inc(T, L);
       end;
     end;

@@ -1813,14 +1813,14 @@ procedure SHA512_224Init(var Context: TCnSHA512_224Context);
 begin
   Context.DataLen := 0;
   Context.TotalLen := 0;
-  Context.State[0] := $8C3D37C819544DA2;
-  Context.State[1] := $73E1996689DCD4D6;
-  Context.State[2] := $1DFAB7AE32FF9C82;
-  Context.State[3] := $679DD514582F9FCF;
-  Context.State[4] := $0F6D2B697BD44DA8;
-  Context.State[5] := $77E36F7304C48942;
-  Context.State[6] := $3F9D85A86A1D36C8;
-  Context.State[7] := $1112E6AD91D692A1;
+  Context.State[0] := Int64($8C3D37C819544DA2);
+  Context.State[1] := Int64($73E1996689DCD4D6);
+  Context.State[2] := Int64($1DFAB7AE32FF9C82);
+  Context.State[3] := Int64($679DD514582F9FCF);
+  Context.State[4] := Int64($0F6D2B697BD44DA8);
+  Context.State[5] := Int64($77E36F7304C48942);
+  Context.State[6] := Int64($3F9D85A86A1D36C8);
+  Context.State[7] := Int64($1112E6AD91D692A1);
   FillChar(Context.Data, SizeOf(Context.Data), 0);
 end;
 
@@ -1846,14 +1846,14 @@ procedure SHA512_256Init(var Context: TCnSHA512_256Context);
 begin
   Context.DataLen := 0;
   Context.TotalLen := 0;
-  Context.State[0] := $22312194FC2BF72C;
-  Context.State[1] := $9F555FA3C84C64C2;
-  Context.State[2] := $2393B86B6F53B151;
-  Context.State[3] := $963877195940EABD;
-  Context.State[4] := $96283EE2A88EFFE3;
-  Context.State[5] := $BE5E1E2553863992;
-  Context.State[6] := $2B0199FC2C85B8AA;
-  Context.State[7] := $0EB72DDC81C52CA2;
+  Context.State[0] := Int64($22312194FC2BF72C);
+  Context.State[1] := Int64($9F555FA3C84C64C2);
+  Context.State[2] := Int64($2393B86B6F53B151);
+  Context.State[3] := Int64($963877195940EABD);
+  Context.State[4] := Int64($96283EE2A88EFFE3);
+  Context.State[5] := Int64($BE5E1E2553863992);
+  Context.State[6] := Int64($2B0199FC2C85B8AA);
+  Context.State[7] := Int64($0EB72DDC81C52CA2);
   FillChar(Context.Data, SizeOf(Context.Data), 0);
 end;
 

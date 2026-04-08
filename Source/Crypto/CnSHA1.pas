@@ -391,7 +391,7 @@ begin
   SHA1UpdateLen(Context, ByteLength);
   while ByteLength > 0 do
   begin
-    if 64 - Context.Index > ByteLength then
+    if Cardinal(64 - Context.Index) > ByteLength then
       B := ByteLength
     else
       B := 64 - Context.Index;

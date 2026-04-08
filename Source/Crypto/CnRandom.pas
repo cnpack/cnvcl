@@ -393,7 +393,7 @@ begin
   // 除以 2^32（$100000000）而非 $FFFFFFFF，确保结果严格小于 1.0
   // 当 D = $FFFFFFFF 时，Result = $FFFFFFFF / $100000000 ≈ 0.99999999976716...
   Result := D;
-  Result := D / $100000000;
+  Result := Result / $100000000;
 end;
 
 function RandomUInt64: TUInt64;

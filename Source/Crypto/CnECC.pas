@@ -3796,7 +3796,7 @@ procedure TCnEccPoint.SetBytes(const Data: TBytes; Ecc: TCnEcc);
 var
   H: AnsiString;
 begin
-  H := BytesToHex(Data);
+  H := AnsiString(BytesToHex(Data));
   SetHex(H, Ecc);
 end;
 
