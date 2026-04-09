@@ -64,7 +64,14 @@ type
 {$ENDIF}
 
 const
+  SD_RECEIVE = 0;
+  SD_SEND = 1;
   SD_BOTH = 2;
+
+  SHUT_RD = 0;
+  SHUT_WR = 1;
+  SHUT_RDWR = 2;
+
 {$IFDEF FPC}
 {$IFDEF MSWINDOWS}
   SO_DONTLINGER  = $FF7F;
