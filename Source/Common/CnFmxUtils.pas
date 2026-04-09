@@ -336,14 +336,14 @@ begin
       P.X := TControl(AControl).Position.X;
       P.Y := TControl(AControl).Position.Y;
       // P := TControl(AParent).LocalToAbsolute(P);
-      Result.Left := Trunc(P.X);
-      Result.Top := Trunc(P.Y);
+      Result.Left := Round(P.X);
+      Result.Top := Round(P.Y);
 
       P.X := TControl(AControl).Position.X + TControl(AControl).Width;
       P.Y := TControl(AControl).Position.Y + TControl(AControl).Height;
       // P := TControl(AParent).LocalToAbsolute(P);
-      Result.Right := Trunc(P.X);
-      Result.Bottom := Trunc(P.Y);
+      Result.Right := Round(P.X);
+      Result.Bottom := Round(P.Y);
     end;
   end;
 end;
@@ -400,14 +400,14 @@ begin
       R.Y := R.Y + PF.Y;
     end;
 
-    Result.Left := Trunc(R.X);
-    Result.Top := Trunc(R.Y);
+    Result.Left := Round(R.X);
+    Result.Top := Round(R.Y);
 {$IFDEF FMX_CONTROL_HAS_SIZE}
-    Result.Right := Result.Left + Trunc(TControl(AControl).Size.Width);
-    Result.Bottom := Result.Top + Trunc(TControl(AControl).Size.Height);
+    Result.Right := Result.Left + Round(TControl(AControl).Size.Width);
+    Result.Bottom := Result.Top + Round(TControl(AControl).Size.Height);
 {$ELSE}
-    Result.Right := Result.Left + Trunc(TControl(AControl).Width);
-    Result.Bottom := Result.Top + Trunc(TControl(AControl).Height);
+    Result.Right := Result.Left + Round(TControl(AControl).Width);
+    Result.Bottom := Result.Top + Round(TControl(AControl).Height);
 {$ENDIF}
   end;
 end;
@@ -446,17 +446,10 @@ begin
     // 基于屏幕的 Rect，都减去 Control 的 Parent 的左上角在屏幕上的坐标，
     // 就变成了基于 Control 的 Parent 的坐标
 
-{$IFDEF IDE_SUPPORT_HDPI}
     BRect.Left := Round(ARect.Left - R.X);    // 不知道咋的要这么写
     BRect.Top := Round(ARect.Top - R.Y);
     BRect.Right := Round(ARect.Right - R.X);
     BRect.Bottom := Round(ARect.Bottom - R.Y);
-{$ELSE}
-    BRect.Left := Trunc(ARect.Left - R.X);
-    BRect.Top := Trunc(ARect.Top - R.Y);
-    BRect.Right := Trunc(ARect.Right - R.X);
-    BRect.Bottom := Trunc(ARect.Bottom - R.Y);
-{$ENDIF}
 
     TControl(AControl).SetBounds(BRect.Left, BRect.Top, BRect.Width, BRect.Height);
   end;
@@ -472,34 +465,34 @@ begin
     begin
       case PosType of
         fptLeft:
-          Result := Trunc(TControl(AControl).Position.X);
+          Result := Round(TControl(AControl).Position.X);
         fptTop:
-          Result := Trunc(TControl(AControl).Position.Y);
+          Result := Round(TControl(AControl).Position.Y);
         fptRight:
-          Result := Trunc(TControl(AControl).Position.X + TControl(AControl).Width);
+          Result := Round(TControl(AControl).Position.X + TControl(AControl).Width);
         fptBottom:
-          Result := Trunc(TControl(AControl).Position.Y + TControl(AControl).Height);
+          Result := Round(TControl(AControl).Position.Y + TControl(AControl).Height);
         fptWidth:
-          Result := Trunc(TControl(AControl).Width);
+          Result := Round(TControl(AControl).Width);
         fptHeight:
-          Result := Trunc(TControl(AControl).Height);
+          Result := Round(TControl(AControl).Height);
       end;
     end
     else if AControl.InheritsFrom(TCustomForm) then
     begin
       case PosType of
         fptLeft:
-          Result := Trunc(TCustomForm(AControl).Left);
+          Result := Round(TCustomForm(AControl).Left);
         fptTop:
-          Result := Trunc(TCustomForm(AControl).Top);
+          Result := Round(TCustomForm(AControl).Top);
         fptRight:
-          Result := Trunc(TCustomForm(AControl).Left + TControl(AControl).Width);
+          Result := Round(TCustomForm(AControl).Left + TControl(AControl).Width);
         fptBottom:
-          Result := Trunc(TCustomForm(AControl).Top + TControl(AControl).Height);
+          Result := Round(TCustomForm(AControl).Top + TControl(AControl).Height);
         fptWidth:
-          Result := Trunc(TCustomForm(AControl).Width);
+          Result := Round(TCustomForm(AControl).Width);
         fptHeight:
-          Result := Trunc(TCustomForm(AControl).Height);
+          Result := Round(TCustomForm(AControl).Height);
       end;
     end;
   end;
@@ -514,34 +507,34 @@ begin
     begin
       case PosType of
         fptLeft:
-          TControl(AControl).Position.X := Trunc(AValue);
+          TControl(AControl).Position.X := Round(AValue);
         fptTop:
-          TControl(AControl).Position.Y := Trunc(AValue);
+          TControl(AControl).Position.Y := Round(AValue);
         fptRight:
-          TControl(AControl).Width := Trunc(AValue - TControl(AControl).Position.X);
+          TControl(AControl).Width := Round(AValue - TControl(AControl).Position.X);
         fptBottom:
-          TControl(AControl).Height := Trunc(AValue - TControl(AControl).Position.Y);
+          TControl(AControl).Height := Round(AValue - TControl(AControl).Position.Y);
         fptWidth:
-          TControl(AControl).Width := Trunc(AValue);
+          TControl(AControl).Width := Round(AValue);
         fptHeight:
-          TControl(AControl).Height := Trunc(AValue);
+          TControl(AControl).Height := Round(AValue);
       end;
     end
     else if AControl.InheritsFrom(TCustomForm) then
     begin
       case PosType of
         fptLeft:
-          TCustomForm(AControl).Left := Trunc(AValue);
+          TCustomForm(AControl).Left := Round(AValue);
         fptTop:
-          TCustomForm(AControl).Top := Trunc(AValue);
+          TCustomForm(AControl).Top := Round(AValue);
         fptRight:
-          TCustomForm(AControl).Width := Trunc(AValue - TCustomForm(AControl).Left);
+          TCustomForm(AControl).Width := Round(AValue - TCustomForm(AControl).Left);
         fptBottom:
-          TCustomForm(AControl).Height := Trunc(AValue - TCustomForm(AControl).Top);
+          TCustomForm(AControl).Height := Round(AValue - TCustomForm(AControl).Top);
         fptWidth:
-          TCustomForm(AControl).Width := Trunc(AValue);
+          TCustomForm(AControl).Width := Round(AValue);
         fptHeight:
-          TCustomForm(AControl).Height := Trunc(AValue);
+          TCustomForm(AControl).Height := Round(AValue);
       end;
     end;
   end;
@@ -673,8 +666,8 @@ begin
 
   if AControl.InheritsFrom(TControl) then
   begin
-    Result.x := Trunc(TControl(AControl).Position.X);
-    Result.y := Trunc(TControl(AControl).Position.Y);
+    Result.x := Round(TControl(AControl).Position.X);
+    Result.y := Round(TControl(AControl).Position.Y);
   end;
 end;
 
