@@ -41,6 +41,9 @@ uses
 {$IFDEF FPC}
   Sockets, {$IFNDEF MSWINDOWS} BaseUnix, {$ENDIF}
 {$ENDIF}
+{$IFDEF POSIX}
+  Posix.SysSocket, Posix.ArpaInet, Posix.NetinetIn,
+{$ENDIF}
   CntCmdLine, CntUtils, CntConsts, CntDualComm,
   CnSocket, CntTunnel;
 
