@@ -42,6 +42,9 @@ uses
 {$IFDEF FPC}
   Sockets, {$IFNDEF MSWINDOWS} BaseUnix, {$ENDIF}
 {$ENDIF}
+{$IFDEF POSIX}
+  Posix.SysTime,
+{$ENDIF}
   CnSocket,
   CntCmdLine, CntUtils, CntConsts;
 
@@ -312,7 +315,11 @@ end;
 function WaitForSocketReady(Sock: TSocket; TimeOutMs: Integer): Boolean;
 var
   Readfds: TCnFDSet;
+{$IFDEF POSIX}
+  Tv: timeval;
+{$ELSE}
   Tv: TTimeVal;
+{$ENDIF}
 begin
   if Sock = INVALID_SOCKET then
   begin

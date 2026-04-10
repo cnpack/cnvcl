@@ -121,8 +121,10 @@ begin
   end;
 end;
 
+{$IFDEF MSWINDOWS}
 var
   WSA: TWSAData;
+{$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
   if WSAStartup($101, WSA) <> 0 then

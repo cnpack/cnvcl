@@ -41,6 +41,9 @@ uses
 {$IFDEF FPC}
   Sockets, {$IFNDEF MSWINDOWS} BaseUnix, {$ENDIF}
 {$ENDIF}
+{$IFDEF POSIX}
+  Posix.SysTime, Posix.SysSocket, Posix.ArpaInet, Posix.NetinetIn,
+{$ENDIF}
   CntCmdLine, CntUtils, CntConsts,
   CnSocket;
 
@@ -243,7 +246,11 @@ var
   Ret: Integer;
   Readfds: TCnFDSet;
   Writefds: TCnFDSet;
+{$IFDEF POSIX}
+  Tv: timeval;
+{$ELSE}
   Tv: TTimeVal;
+{$ENDIF}
 {$IFDEF FPC}
   Flags: LongInt;
 {$ENDIF}
@@ -336,7 +343,11 @@ var
   SockAddr: TSockAddr;
   Data: Byte;
   Readfds: TCnFDSet;
+{$IFDEF POSIX}
+  Tv: timeval;
+{$ELSE}
   Tv: TTimeVal;
+{$ENDIF}
   Ret: Integer;
 begin
   Result := 3;  // filtered/unknown
