@@ -276,6 +276,7 @@ type
     FCollectionItems: TObjectList;
     FMenuItems: TObjectList;
     FHierarchy: string;
+    FErrorMessage: string;
     FOnAfterEvaluateHierarchy: TNotifyEvent;
     FOnAfterEvaluateCollections: TNotifyEvent;
     FOnAfterEvaluateMenuItems: TNotifyEvent;
@@ -358,6 +359,9 @@ type
       write FContentTypes;
     property ObjClassName: string read FObjClassName write FObjClassName;
     property Hierarchy: string read FHierarchy write FHierarchy;
+
+    property ErrorMessage: string read FErrorMessage write FErrorMessage;
+    {* 有错误发生时的出错异常字符串}
 
     property OnAfterEvaluateProperties: TNotifyEvent
       read FOnAfterEvaluateProperties write FOnAfterEvaluateProperties;
@@ -2858,6 +2862,8 @@ var
 {$ENDIF}
 begin
   Result := False;
+  ErrorMessage := '';
+
   if ObjectInstance = nil then
     Exit;
 
@@ -2885,7 +2891,11 @@ begin
                 ValueRec := StringToColor(Value);
                 RttiField.SetValue(ObjectInstance, ValueRec);
               except
-                Exit;
+                on E: Exception do
+                begin
+                  ErrorMessage := E.ClassName + ' ' + E.Message;
+                  Exit;
+                end;
               end;
             end
             else
@@ -2898,7 +2908,11 @@ begin
             ValueRec := StrToInt64(Value);
             RttiField.SetValue(ObjectInstance, ValueRec);
           except
-            Exit;
+            on E: Exception do
+            begin
+              ErrorMessage := E.ClassName + ' ' + E.Message;
+              Exit;
+            end;
           end;
         end;
       tkFloat:
@@ -2907,7 +2921,11 @@ begin
             ValueRec := StrToFloat(Value);
             RttiField.SetValue(ObjectInstance, ValueRec);
           except
-            Exit;
+            on E: Exception do
+            begin
+              ErrorMessage := E.ClassName + ' ' + E.Message;
+              Exit;
+            end;
           end;
         end;
       tkChar,
@@ -2972,6 +2990,7 @@ var
 {$ENDIF}
 begin
   Result := False;
+  ErrorMessage := '';
   if ObjectInstance = nil then
     Exit;
 
@@ -3002,7 +3021,11 @@ begin
                   ValueRec := StringToColor(Value);
                   RttiProperty.SetValue(ObjectInstance, ValueRec);
                 except
-                  Exit;
+                  on E: Exception do
+                  begin
+                    ErrorMessage := E.ClassName + ' ' + E.Message;
+                    Exit;
+                  end;
                 end;
               end
               else
@@ -3015,7 +3038,11 @@ begin
               ValueRec := StrToInt64(Value);
               RttiProperty.SetValue(ObjectInstance, ValueRec);
             except
-              Exit;
+              on E: Exception do
+              begin
+                ErrorMessage := E.ClassName + ' ' + E.Message;
+                Exit;
+              end;
             end;
           end;
         tkFloat:
@@ -3024,7 +3051,11 @@ begin
               ValueRec := StrToFloat(Value);
               RttiProperty.SetValue(ObjectInstance, ValueRec);
             except
-              Exit;
+              on E: Exception do
+              begin
+                ErrorMessage := E.ClassName + ' ' + E.Message;
+                Exit;
+              end;
             end;
           end;
         tkChar,
@@ -3034,7 +3065,11 @@ begin
               ValueRec := TValue.FromOrdinal(RttiProperty.PropertyType.Handle, StrToInt64(Value));
               RttiProperty.SetValue(ObjectInstance, ValueRec);
             except
-              Exit;
+              on E: Exception do
+              begin
+                ErrorMessage := E.ClassName + ' ' + E.Message;
+                Exit;
+              end;
             end;
           end;
         tkLString,
@@ -3095,7 +3130,11 @@ begin
               C := StringToColor(Value);
               SetOrdProp(ObjectInstance, PropName, C);
             except
-              Exit;
+              on E: Exception do
+              begin
+                ErrorMessage := E.ClassName + ' ' + E.Message;
+                Exit;
+              end;
             end;
           end
           else
@@ -3107,7 +3146,11 @@ begin
               C := StringToColor(Value);
               SetOrdProp(ObjectInstance, PropName, C);
             except
-              Exit;
+              on E: Exception do
+              begin
+                ErrorMessage := E.ClassName + ' ' + E.Message;
+                Exit;
+              end;
             end;
           end
           else
@@ -3121,7 +3164,11 @@ begin
           VInt64 := StrToInt(Value);
           SetOrdProp(ObjectInstance, PropName, VInt64);
         except
-          Exit;
+          on E: Exception do
+          begin
+            ErrorMessage := E.ClassName + ' ' + E.Message;
+            Exit;
+          end;
         end;
       end;
     tkFloat:
@@ -3130,13 +3177,20 @@ begin
           VFloat := StrToFloat(Value);
           SetFloatProp(ObjectInstance, PropName, VFloat);
         except
-          Exit;
+          on E: Exception do
+          begin
+            ErrorMessage := E.ClassName + ' ' + E.Message;
+            Exit;
+          end;
         end;
       end;
     tkChar,
     tkWChar,
     tkLString,
     tkWString,
+{$IFDEF UNICODE}
+    tkUString,
+{$ENDIF}
     tkString:
       begin
         SetStrProp(ObjectInstance, PropName, Value);
@@ -4835,7 +4889,7 @@ begin
     if FInspector.ChangeFieldValue(Field.FieldName, S, Field) then
       btnRefresh.Click
     else
-      ShowMessage(SCnErrorChangeValue);
+      ShowMessage(SCnErrorChangeValue + ' ' + FInspector.ErrorMessage);
   end;
 {$ENDIF}
 end;
