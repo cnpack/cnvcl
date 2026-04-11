@@ -402,6 +402,7 @@ type
 
   TCnPropSheetForm = class(TForm)
     pnlTop: TPanel;
+    pnlRight: TPanel;
     pnlTree: TPanel;
     pnlTreeTab: TPanel;
     TreeView: TTreeView;
@@ -3668,22 +3669,47 @@ begin
 end;
 
 procedure TCnPropSheetForm.FormResize(Sender: TObject);
-var
-  FixWidth: Integer;
-begin
-  if Parent <> nil then
-    FixWidth := 16
-  else
-    FixWidth := 24;
 
-  lvProp.Columns[2].Width := Self.ClientWidth - lvProp.Columns[0].Width - lvProp.Columns[1].Width - FixWidth;
-  lvEvent.Columns[2].Width := Self.ClientWidth - lvEvent.Columns[0].Width - lvEvent.Columns[1].Width - FixWidth;
-  lvField.Columns[2].Width := Self.ClientWidth - lvField.Columns[0].Width - lvField.Columns[1].Width - FixWidth;
-  lvMethod.Columns[2].Width := Self.ClientWidth - lvMethod.Columns[0].Width - lvMethod.Columns[1].Width - FixWidth;
-  lvCollectionItem.Columns[1].Width := Self.ClientWidth - lvCollectionItem.Columns[0].Width - FixWidth;
-  lvMenuItem.Columns[1].Width := Self.ClientWidth - lvMenuItem.Columns[0].Width - FixWidth;
-  lvComp.Columns[1].Width := Self.ClientWidth - lvComp.Columns[0].Width - FixWidth;
-  lvControl.Columns[1].Width := Self.ClientWidth - lvControl.Columns[0].Width - FixWidth;
+  function GetListClientWidth(ALV: TListView): Integer;
+  begin
+    Result := ALV.ClientWidth;
+    if Result <= 0 then
+      Result := pnlRight.ClientWidth;
+  end;
+
+  procedure UpdateThreeColumns(ALV: TListView);
+  var
+    W: Integer;
+  begin
+    if ALV.Columns.Count < 3 then
+      Exit;
+    W := GetListClientWidth(ALV) - ALV.Columns[0].Width - ALV.Columns[1].Width;
+    if W < 40 then
+      W := 40;
+    ALV.Columns[2].Width := W;
+  end;
+
+  procedure UpdateTwoColumns(ALV: TListView);
+  var
+    W: Integer;
+  begin
+    if ALV.Columns.Count < 2 then
+      Exit;
+    W := GetListClientWidth(ALV) - ALV.Columns[0].Width;
+    if W < 40 then
+      W := 40;
+    ALV.Columns[1].Width := W;
+  end;
+
+begin
+  UpdateThreeColumns(lvProp);
+  UpdateThreeColumns(lvEvent);
+  UpdateThreeColumns(lvField);
+  UpdateThreeColumns(lvMethod);
+  UpdateTwoColumns(lvCollectionItem);
+  UpdateTwoColumns(lvMenuItem);
+  UpdateTwoColumns(lvComp);
+  UpdateTwoColumns(lvControl);
   UpdatePanelPositions;
 end;
 
@@ -4354,6 +4380,8 @@ begin
       Left := Left + CnPnlTreeWidth;
       btnTree.Caption := '<';
     end;
+
+    FormResize(nil);
   end;
 end;
 
