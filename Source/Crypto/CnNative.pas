@@ -3848,17 +3848,20 @@ function ConstTimeCompareMem(P1, P2: Pointer; ByteLength: Integer): Boolean;
 var
   B1, B2: PByte;
   I: Integer;
+  Diff: Byte;
 begin
-  Result := True;
+  Diff := 0;
   B1 := PByte(P1);
   B2 := PByte(P2);
 
   for I := 0 to ByteLength - 1 do
   begin
-    Result := Result and ConstTimeEqual8(B1^, B2^);
+    Diff := Diff or (B1^ xor B2^);
     Inc(B1);
     Inc(B2);
   end;
+
+  Result := Diff = 0;
 end;
 
 function ConstTimeCompareBytes(const A, B: TBytes): Boolean;
