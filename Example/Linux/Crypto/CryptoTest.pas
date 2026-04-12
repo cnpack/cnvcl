@@ -168,6 +168,7 @@ function TestBigNumberJacobiSymbol: Boolean;
 function TestBigNumberMersennePrime: Boolean;
 function TestBigNumberAKSIsPrime: Boolean;
 function TestBigNumberBPSWIsPrime: Boolean;
+function TestBigNumberRandRangeDistribution: Boolean;
 
 // ================================ Bits =======================================
 
@@ -771,6 +772,7 @@ begin
   MyAssert(TestBigNumberMersennePrime, 'TestBigNumberMersennePrime');
   MyAssert(TestBigNumberAKSIsPrime, 'TestBigNumberAKSIsPrime');
   MyAssert(TestBigNumberBPSWIsPrime, 'TestBigNumberBPSWIsPrime');
+  MyAssert(TestBigNumberRandRangeDistribution, 'TestBigNumberRandRangeDistribution');
 
 // ================================ Bits =======================================
 
@@ -3596,6 +3598,48 @@ begin
   if not Result then Exit;
 
   N.Free;
+end;
+
+function TestBigNumberRandRangeDistribution: Boolean;
+const
+  TEST_ROUNDS = 100000;
+  BINS = 10;
+var
+  Num, Range: TCnBigNumber;
+  Counts: array[0..BINS - 1] of Integer;
+  I, BinIdx: Integer;
+  Expected, ChiSquare, Diff: Double;
+begin
+  Result := False;
+  FillChar(Counts, SizeOf(Counts), 0);
+  Num := BigNumberNew;
+  Range := BigNumberNew;
+  try
+    Range.SetWord(BINS);
+    for I := 1 to TEST_ROUNDS do
+    begin
+      if not BigNumberRandRange(Num, Range) then
+        Exit;
+      if BigNumberCompare(Num, Range) >= 0 then
+        Exit;
+      BinIdx := Integer(BigNumberModWord(Num, BINS));
+      if (BinIdx < 0) or (BinIdx >= BINS) then
+        Exit;
+      Inc(Counts[BinIdx]);
+    end;
+
+    Expected := TEST_ROUNDS / BINS;
+    ChiSquare := 0.0;
+    for I := 0 to BINS - 1 do
+    begin
+      Diff := Counts[I] - Expected;
+      ChiSquare := ChiSquare + (Diff * Diff) / Expected;
+    end;
+    Result := ChiSquare < 30.0;
+  finally
+    BigNumberFree(Range);
+    BigNumberFree(Num);
+  end;
 end;
 
 // ================================ Bits =======================================

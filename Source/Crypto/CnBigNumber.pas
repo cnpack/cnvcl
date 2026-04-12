@@ -4173,7 +4173,7 @@ end;
 
 function BigNumberRandRange(Num: TCnBigNumber; Range: TCnBigNumber): Boolean;
 var
-  N, C, I: Integer;
+  N, C, I, TryCount: Integer;
 begin
   Result := False;
   if (Range = nil) or (Num = nil) or (Range.Neg <> 0) or BigNumberIsZero(Range) then
@@ -4181,30 +4181,32 @@ begin
 
   N := BigNumberGetBitsCount(Range);
   if N = 1 then
-    BigNumberSetZero(Num)
+  begin
+    Result := BigNumberSetZero(Num);
+    Exit;
+  end
   else
   begin
     // 要产生 N bits 的随机大数，字节计算也就是 (N + 7) div 8 bytes
     C := (N + 7) div 8;
-    if not BigNumberRandBytes(Num, C) then
-      Exit;
-
-    // 但头上可能有多余的，再把 C * 8 - 1 到 N + 1 之间的位清零
-    if N + 1 <= C * 8 - 1 then
-      for I := C * 8 - 1 downto N + 1 do
-        if BigNumberIsBitSet(Num, I) then
-          if not BigNumberClearBit(Num, I) then
-            Exit;
-    // 加个 IsBitSet 的判断，因为 ClearBit 会判断待 Clear 的位是否超出 Top，
-    // 如果生成的位本来就是 0并且已经被 CorrectTop了，那么 ClearBit 会出错。
-
-    while BigNumberCompare(Num, Range) >= 0 do
+    for TryCount := 1 to 128 do // 拒绝采样最多重试次数
     begin
-      if not BigNumberSub(Num, Num, Range) then
+      if not BigNumberRandBytes(Num, C) then
         Exit;
+
+      if N <= C * 8 - 1 then
+        for I := C * 8 - 1 downto N do
+          if BigNumberIsBitSet(Num, I) then
+            if not BigNumberClearBit(Num, I) then
+              Exit;
+
+      if BigNumberCompare(Num, Range) < 0 then
+      begin
+        Result := True;
+        Exit;
+      end;
     end;
   end;
-  Result := True;
 end;
 
 function BigNumberDuplicate(Num: TCnBigNumber): TCnBigNumber;
