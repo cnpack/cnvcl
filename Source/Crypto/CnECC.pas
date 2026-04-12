@@ -4169,7 +4169,7 @@ end;
 
 procedure TCnEcc.NormalMultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
 var
-  I, C: Integer;
+  I, C, OrderBits: Integer;
   E, R: TCnEccPoint;
 begin
   if BigNumberIsNegative(K) then
@@ -4198,6 +4198,9 @@ begin
     E.Y := Point.Y;
 
     C := BigNumberGetBitsCount(K);
+    OrderBits := BigNumberGetBitsCount(FOrder);
+    if (OrderBits > 0) and (not BigNumberIsNegative(K)) and (C <= OrderBits + 2) then
+      C := OrderBits + 2;
     for I := 0 to C - 1 do
     begin
       if BigNumberIsBitSet(K, I) then
@@ -4217,7 +4220,7 @@ end;
 
 procedure TCnEcc.AffineMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
 var
-  I, C: Integer;
+  I, C, OrderBits: Integer;
   E, R: TCnEcc3Point;
 begin
   if BigNumberIsNegative(K) then
@@ -4248,6 +4251,9 @@ begin
     E.Z := Point.Z;
 
     C := BigNumberGetBitsCount(K);
+    OrderBits := BigNumberGetBitsCount(FOrder);
+    if (OrderBits > 0) and (not BigNumberIsNegative(K)) and (C <= OrderBits + 2) then
+      C := OrderBits + 2;
     for I := 0 to C - 1 do
     begin
       if BigNumberIsBitSet(K, I) then
@@ -4268,7 +4274,7 @@ end;
 
 procedure TCnEcc.JacobianMultiplePoint(K: TCnBigNumber; Point: TCnEcc3Point);
 var
-  I, C: Integer;
+  I, C, OrderBits: Integer;
   E, R: TCnEcc3Point;
 begin
   if BigNumberIsNegative(K) then
@@ -4299,6 +4305,9 @@ begin
     E.Z := Point.Z;
 
     C := BigNumberGetBitsCount(K);
+    OrderBits := BigNumberGetBitsCount(FOrder);
+    if (OrderBits > 0) and (not BigNumberIsNegative(K)) and (C <= OrderBits + 2) then
+      C := OrderBits + 2;
     for I := 0 to C - 1 do
     begin
       if BigNumberIsBitSet(K, I) then
@@ -4332,14 +4341,35 @@ end;
 
 procedure TCnEcc.MultiplePoint(K: TCnBigNumber; Point: TCnEccPoint);
 var
+  BK, Rnd, Tmp: TCnBigNumber;
   P3: TCnEcc3Point;
 begin
+  BK := nil;
+  Rnd := nil;
+  Tmp := nil;
   P3 := TCnEcc3Point.Create;
   try
+    BK := FEccBigNumberPool.Obtain;
+    BigNumberCopy(BK, K);
+    if (BigNumberCompare(FOrder, CnBigNumberZero) > 0) and (not BigNumberIsNegative(BK)) then
+    begin
+      BigNumberMod(BK, BK, FOrder);
+      Rnd := FEccBigNumberPool.Obtain;
+      Tmp := FEccBigNumberPool.Obtain;
+      if BigNumberRandBits(Rnd, 1) then
+      begin
+        BigNumberAdd(Rnd, Rnd, CnBigNumberOne);
+        BigNumberMul(Tmp, Rnd, FOrder);
+        BigNumberAdd(BK, BK, Tmp);
+      end;
+    end;
     CnEccPointToEcc3Point(Point, P3);
-    AffineMultiplePoint(K, P3);
+    AffineMultiplePoint(BK, P3);
     CnAffinePointToEccPoint(P3, Point, FFiniteFieldSize);
   finally
+    FEccBigNumberPool.Recycle(Tmp);
+    FEccBigNumberPool.Recycle(Rnd);
+    FEccBigNumberPool.Recycle(BK);
     P3.Free;
   end;
 end;
