@@ -367,7 +367,7 @@ function CnRSAVerifyKeys(PrivateKey: TCnRSAPrivateKey; PublicKey: TCnRSAPublicKe
 }
 
 function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
-  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhSha256;
   const Password: string = ''): Boolean; overload;
 {* 从 PEM 格式的文件中加载一对 RSA 公私钥数据，如某钥参数为空则不载入。
    自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释。
@@ -376,14 +376,14 @@ function CnRSALoadKeysFromPem(const PemFileName: string; PrivateKey: TCnRSAPriva
      const PemFileName: string            - 待加载的 PEM 文件名
      PrivateKey: TCnRSAPrivateKey         - 加载后的内容存入该 RSA 私钥
      PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
-     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 自动判断
+     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 SHA256。无法根据 PEM 自动判断
      const Password: string               - PEM 文件如加密，此处应传对应的密码
 
    返回值：Boolean                        - 返回加载是否成功
 }
 
 function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
-  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhSha256;
   const Password: string = ''): Boolean; overload;
 {* 从 PEM 格式的流中加载一对 RSA 公私钥数据，如某钥参数为空则不载入。
    自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释。
@@ -392,14 +392,14 @@ function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
      PemStream: TStream                   - 待加载的 PEM 格式的流
      PrivateKey: TCnRSAPrivateKey         - 加载后的内容存入该 RSA 私钥
      PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
-     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
+     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 SHA256。无法根据 PEM 内容自动判断
      const Password: string               - PEM 流如加密，此处应传对应的密码
 
    返回值：Boolean                        - 返回加载是否成功
 }
 
 function CnRSALoadKeysFromPemStr(const PemStr: string; PrivateKey: TCnRSAPrivateKey;
-  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhSha256;
   const Password: string = ''): Boolean;
 {* 从 PEM 格式的字符串中加载一对 RSA 公私钥数据，如某钥参数为空则不载入。
    自动判断 PKCS1 还是 PKCS8，不依赖于头尾行的 ----- 注释。
@@ -408,7 +408,7 @@ function CnRSALoadKeysFromPemStr(const PemStr: string; PrivateKey: TCnRSAPrivate
      const PemStr: string                 - 待加载的 PEM 格式的字符串
      PrivateKey: TCnRSAPrivateKey         - 加载后的内容存入该 RSA 私钥
      PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
-     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
+     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 SHA256。无法根据 PEM 内容自动判断
      const Password: string               - PEM 流如加密，此处应传对应的密码
 
    返回值：Boolean                        - 返回加载是否成功
@@ -417,7 +417,7 @@ function CnRSALoadKeysFromPemStr(const PemStr: string; PrivateKey: TCnRSAPrivate
 function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS1;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
-  KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  KeyHashMethod: TCnKeyHashMethod = ckhSha256;
   const Password: string = ''): Boolean; overload;
 {* 将一对 RSA 公私钥写入 PEM 格式的文件中，返回是否成功。
 
@@ -427,7 +427,7 @@ function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivate
      PublicKey: TCnRSAPublicKey                           - 待保存的 RSA 公钥
      KeyType: TCnRSAKeyType                               - 待保存的 RSA 公私钥的 PEM 格式，默认 PKCS1
      KeyEncryptMethod: TCnKeyEncryptMethod                - 保存的 PEM 文件的加密模式，默认不加密，并忽略后面两个参数
-     KeyHashMethod: TCnKeyHashMethod                      - 保存的 PEM 文件如需加密，此处设置其加密杂凑算法，默认 MD5
+     KeyHashMethod: TCnKeyHashMethod                      - 保存的 PEM 文件如需加密，此处设置其加密杂凑算法，默认 SHA256
      const Password: string                               - 保存的 PEM 文件如需加密，此处应传加密密码，如不加密则无需传
 
    返回值：Boolean                                        - 返回保存是否成功
@@ -436,7 +436,7 @@ function CnRSASaveKeysToPem(const PemFileName: string; PrivateKey: TCnRSAPrivate
 function CnRSASaveKeysToPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; KeyType: TCnRSAKeyType = cktPKCS1;
   KeyEncryptMethod: TCnKeyEncryptMethod = ckeNone;
-  KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  KeyHashMethod: TCnKeyHashMethod = ckhSha256;
   const Password: string = ''): Boolean; overload;
 {* 将一对 RSA 公私钥写入 PEM 格式的流中，返回是否成功。
 
@@ -446,49 +446,49 @@ function CnRSASaveKeysToPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
      PublicKey: TCnRSAPublicKey                           - 待保存的 RSA 公钥
      KeyType: TCnRSAKeyType                               - 待保存的 RSA 公私钥的 PEM 格式，默认 PKCS1
      KeyEncryptMethod: TCnKeyEncryptMethod                - 保存的 PEM 流的加密模式，默认不加密，并忽略后面两个参数
-     KeyHashMethod: TCnKeyHashMethod                      - 保存的 PEM 流如加密，此处设置其加密杂凑算法，默认 MD5
+     KeyHashMethod: TCnKeyHashMethod                      - 保存的 PEM 流如加密，此处设置其加密杂凑算法，默认 SHA256
      const Password: string                               - 保存的 PEM 流如需加密，此处应传加密密码，如不加密则无需传
 
    返回值：Boolean                                        - 返回保存是否成功
 }
 
 function CnRSALoadPublicKeyFromPem(const PemFileName: string;
-  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhSha256;
   const Password: string = ''): Boolean; overload;
 {* 从 PEM 格式的文件中加载 RSA 公钥数据，返回是否成功。
 
    参数：
      const PemFileName: string            - 待加载的 PEM 文件名
      PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
-     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
+     KeyHashMethod: TCnKeyHashMethod      - PEM 文件如加密，此处应传对应的加密杂凑算法，默认 SHA256。无法根据 PEM 内容自动判断
      const Password: string               - PEM 文件如加密，此处应传对应密码
 
    返回值：Boolean                        - 返回加载是否成功
 }
 
 function CnRSALoadPublicKeyFromPem(PemStream: TStream;
-  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhSha256;
   const Password: string = ''): Boolean; overload;
 {* 从 PEM 格式的流中加载 RSA 公钥数据，返回是否成功。
 
    参数：
      const PemStream: TStream             - 待加载的 PEM 格式的流
      PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
-     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
+     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 SHA256。无法根据 PEM 内容自动判断
      const Password: string               - PEM 流如加密，此处应传对应密码
 
    返回值：Boolean                        - 返回加载是否成功
 }
 
 function CnRSALoadPublicKeyFromPemStr(const PemStr: string;
-  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhSha256;
   const Password: string = ''): Boolean;
 {* 从 PEM 格式的流中加载 RSA 公钥数据，返回是否成功。
 
    参数：
      const PemStr: string                 - 待加载的 PEM 格式的字符串
      PublicKey: TCnRSAPublicKey           - 加载后的内容存入该 RSA 公钥
-     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 MD5。无法根据 PEM 内容自动判断
+     KeyHashMethod: TCnKeyHashMethod      - PEM 流如加密，此处应传对应的加密杂凑算法，默认 SHA256。无法根据 PEM 内容自动判断
      const Password: string               - PEM 流如加密，此处应传对应密码
 
    返回值：Boolean                        - 返回加载是否成功
@@ -879,7 +879,7 @@ function CnRSADecryptLongStream(InStream, OutStream: TStream; PublicKey: TCnRSAP
 // 这点和 ECC 签名不同：ECC 签名并不解出 Hash 值，而是通过中间运算比对大数。
 
 function CnRSASignFile(const InFileName: string; const OutSignFileName: string;
-  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
 {* 用 RSA 私钥以 PKCS1 模式签名指定文件，签名结果直接存储至 OutSignFileName 文件中，返回签名是否成功。
    未指定签名杂凑摘要类型时，等于将源文件用 PKCS1 Private_FF 补齐后加密。
    当指定了签名杂凑摘要类型时，使用指定签名杂凑摘要算法对文件进行计算得到杂凑值，
@@ -895,7 +895,7 @@ function CnRSASignFile(const InFileName: string; const OutSignFileName: string;
 }
 
 function CnRSAVerifyFile(const InFileName: string; const InSignFileName: string;
-  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
 {* 用 RSA 公钥与签名值文件以 PKCS1 模式验证指定文件，也即用指定签名杂凑摘要算法对文件进行计算得到杂凑值，
    并用公钥解密签名内容并解开 PKCS1 补齐再解开 BER 编码得到杂凑算法与杂凑值，
    并比对两个二进制杂凑值是否相同，返回验证是否通过。
@@ -910,7 +910,7 @@ function CnRSAVerifyFile(const InFileName: string; const InSignFileName: string;
 }
 
 function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
-  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
 {* 用 RSA 私钥以 PKCS1 模式签名指定内存流，签名值写入 OutSignStream 中，返回签名是否成功。
 
    参数：
@@ -923,7 +923,7 @@ function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
 }
 
 function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
-  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
 {* 用 RSA 公钥与签名值内存流以 PKCS1 模式验证指定内存流，返回验证是否通过。
 
    参数：
@@ -936,7 +936,7 @@ function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
 }
 
 function CnRSASignBytes(InData: TBytes; PrivateKey: TCnRSAPrivateKey;
-  SignType: TCnRSASignDigestType = rsdtMD5): TBytes;
+  SignType: TCnRSASignDigestType = rsdtSHA256): TBytes;
 {* 用 RSA 私钥以 PKCS1 模式签名字节数组，返回签名值的字节数组，如签名失败则返回空。
 
    参数：
@@ -948,7 +948,7 @@ function CnRSASignBytes(InData: TBytes; PrivateKey: TCnRSAPrivateKey;
 }
 
 function CnRSAVerifyBytes(InData: TBytes; InSignBytes: TBytes;
-  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
 {* 用 RSA 公钥与签名字节数组以 PKCS1 模式验证指定字节数组，返回验证是否通过。
 
    参数：
@@ -1282,6 +1282,8 @@ uses
   CnRandom;
 
 const
+  MAX_ITERATIONS = 100;  // 防止无限循环
+
   // PKCS#1
   PEM_RSA_PRIVATE_HEAD = '-----BEGIN RSA PRIVATE KEY-----';
   PEM_RSA_PRIVATE_TAIL = '-----END RSA PRIVATE KEY-----';
@@ -1451,6 +1453,7 @@ function CnRSAGenerateKeysByPrimeBits(PrimeBits: Integer; PrivateKey: TCnRSAPriv
 var
   N: Integer;
   Suc: Boolean;
+  IterationCount: Integer;
   R, Y, Rem, S1, S2, One: TCnBigNumber;
 begin
   Result := False;
@@ -1464,13 +1467,18 @@ begin
   PublicKey.Clear;
 
   Suc := False;
+  IterationCount := 0;
   while not Suc do
   begin
+    Inc(IterationCount);
+    if IterationCount > MAX_ITERATIONS then
+    begin
+      _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+      Exit;
+    end;
+
     if not BigNumberGeneratePrime(PrivateKey.PrimeKey1, PrimeBits div 8) then
       Exit;
-
-    N := Trunc(Random * 1000);
-    Sleep(N);
 
     if not BigNumberGeneratePrime(PrivateKey.PrimeKey2, PrimeBits div 8) then
       Exit;
@@ -1550,6 +1558,7 @@ function CnRSAGenerateKeys(ModulusBits: Integer; PrivateKey: TCnRSAPrivateKey;
 var
   PB1, PB2, MinDB, MinW: Integer;
   Suc: Boolean;
+  IterationCount: Integer;
   Dif, MinD: TCnBigNumber;
   R, Y, Rem, S1, S2, One: TCnBigNumber;
 begin
@@ -1564,6 +1573,7 @@ begin
   PrivateKey.Clear;
   PublicKey.Clear;
   Suc := False;
+  IterationCount := 0;
 
   PB1 := (ModulusBits + 1) div 2;
   PB2 := ModulusBits - PB1;
@@ -1593,6 +1603,13 @@ begin
 
     while not Suc do
     begin
+      Inc(IterationCount);
+      if IterationCount > MAX_ITERATIONS then
+      begin
+        _CnSetLastError(ECN_RSA_BIGNUMBER_ERROR);
+        Exit;
+      end;
+
       if not BigNumberGeneratePrimeByBitsCount(PrivateKey.PrimeKey1, PB1) then
         Exit;
 
@@ -1811,8 +1828,7 @@ begin
 end;
 
 function CnRSALoadKeysFromPem(PemStream: TStream; PrivateKey: TCnRSAPrivateKey;
-  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod = ckhMd5;
-  const Password: string = ''): Boolean;
+  PublicKey: TCnRSAPublicKey; KeyHashMethod: TCnKeyHashMethod; const Password: string): Boolean;
 var
   LoadOK: Boolean;
   MemStream: TMemoryStream;
@@ -2281,10 +2297,10 @@ begin
 
     if KeyType = cktPKCS1 then
       Result := SaveMemoryToPemStream(PemStream, PEM_RSA_PUBLIC_HEAD,
-        PEM_RSA_PUBLIC_TAIL, Mem, KeyEncryptMethod, ckhMd5, Password)
+        PEM_RSA_PUBLIC_TAIL, Mem, KeyEncryptMethod, ckhSha256, Password)
     else if KeyType = cktPKCS8 then
       Result := SaveMemoryToPemStream(PemStream, PEM_PUBLIC_HEAD,
-        PEM_PUBLIC_TAIL, Mem, KeyEncryptMethod, ckhMd5, Password);
+        PEM_PUBLIC_TAIL, Mem, KeyEncryptMethod, ckhSha256, Password);
 
     if Result then
       _CnSetLastError(ECN_RSA_OK)
@@ -3421,7 +3437,7 @@ end;
 }
 
 function CnRSASignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
-  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType): Boolean;
 var
   Stream, BerStream, EnStream: TMemoryStream;
   Data, Res: TCnBigNumber;
@@ -3506,7 +3522,7 @@ begin
 end;
 
 function CnRSAVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
-  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtMD5): Boolean;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType): Boolean;
 var
   Stream: TMemoryStream;
   Data, Res: TCnBigNumber;
@@ -4009,7 +4025,7 @@ begin
 end;
 
 function CnRSAPSSSignStream(InStream: TMemoryStream; OutSignStream: TMemoryStream;
-  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
+  PrivateKey: TCnRSAPrivateKey; SignType: TCnRSASignDigestType): Boolean;
 var
   DigestStream: TMemoryStream;
   mHash, H, Salt, DB, dbMask, maskedDB, EM, ResBuf: TBytes;
@@ -4160,7 +4176,7 @@ begin
 end;
 
 function CnRSAPSSVerifyStream(InStream: TMemoryStream; InSignStream: TMemoryStream;
-  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType = rsdtSHA256): Boolean;
+  PublicKey: TCnRSAPublicKey; SignType: TCnRSASignDigestType): Boolean;
 var
   Data, Res: TCnBigNumber;
   ResBuf: TBytes;
