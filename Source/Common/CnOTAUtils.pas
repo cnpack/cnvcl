@@ -458,7 +458,7 @@ var
   BC: IOTAProjectOptionsConfigurations;
   {$ENDIF}
 {$ELSE}
-  Dummy: Integer;
+  Dummy: Integer; // 空声明避免其他平台处理不好而编译出错
 {$ENDIF}
 {$ENDIF}
 begin

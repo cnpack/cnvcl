@@ -90,7 +90,7 @@ function ForceDirectories(Dir: string): Boolean;
 
 implementation
 
-{$IFDEF COMPILER5}
+{$IFNDEF COMPILER7_UP}
 
 resourcestring
   SCnErrorCannotCreateDir = 'Unable to Create Directory';

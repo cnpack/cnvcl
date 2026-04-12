@@ -601,7 +601,7 @@ begin
     PBuf := Stream.Memory;
     Valid := True;
     for I := 1 to L do
-      if PByte(NativeUInt(PBuf) + Stream.Size - I)^ <> L then
+      if PByte(TCnNativeUInt(PBuf) + Stream.Size - I)^ <> L then
       begin
         Valid := False;
         Break;

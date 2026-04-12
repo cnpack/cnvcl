@@ -1451,7 +1451,6 @@ end;
 function CnRSAGenerateKeysByPrimeBits(PrimeBits: Integer; PrivateKey: TCnRSAPrivateKey;
   PublicKey: TCnRSAPublicKey; PublicKeyUse3: Boolean): Boolean;
 var
-  N: Integer;
   Suc: Boolean;
   IterationCount: Integer;
   R, Y, Rem, S1, S2, One: TCnBigNumber;
