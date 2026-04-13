@@ -19,6 +19,7 @@ COPY ..\..\cnvcl\Source\Common\CnCompAboutFrm.pas .
 COPY ..\..\cnvcl\Source\Common\CnCompAboutFrm.dfm .
 COPY ..\..\cnvcl\Source\Common\CnConsts.pas .
 COPY ..\..\cnvcl\Source\Common\CnFloat.pas .
+COPY ..\..\cnvcl\Source\Common\CnFmxUtils.pas .
 COPY ..\..\cnvcl\Source\Common\CnGB18030.pas .
 COPY ..\..\cnvcl\Source\Common\CnHashMap.pas .
 COPY ..\..\cnvcl\Source\Common\CnIni.pas .
