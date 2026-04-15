@@ -24,7 +24,7 @@ object CnPropSheetForm: TCnPropSheetForm
     Left = 0
     Top = 0
     Width = 100
-    Height = 653
+    Height = 658
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 1
@@ -91,7 +91,7 @@ object CnPropSheetForm: TCnPropSheetForm
       Left = 0
       Top = 30
       Width = 100
-      Height = 602
+      Height = 607
       Align = alClient
       HideSelection = False
       Indent = 19
@@ -101,7 +101,7 @@ object CnPropSheetForm: TCnPropSheetForm
     end
     object pnlTreeTab: TPanel
       Left = 0
-      Top = 632
+      Top = 637
       Width = 100
       Height = 21
       Align = alBottom
@@ -113,7 +113,7 @@ object CnPropSheetForm: TCnPropSheetForm
     Left = 100
     Top = 0
     Width = 468
-    Height = 653
+    Height = 658
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -283,7 +283,7 @@ object CnPropSheetForm: TCnPropSheetForm
     end
     object pnlSwitchTab: TPanel
       Left = 0
-      Top = 632
+      Top = 637
       Width = 468
       Height = 21
       Align = alBottom
@@ -294,7 +294,7 @@ object CnPropSheetForm: TCnPropSheetForm
       Left = 0
       Top = 30
       Width = 468
-      Height = 602
+      Height = 607
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 2
@@ -593,7 +593,7 @@ object CnPropSheetForm: TCnPropSheetForm
         Left = 0
         Top = 0
         Width = 468
-        Height = 602
+        Height = 607
         Align = alClient
         BevelInner = bvLowered
         BevelOuter = bvNone
@@ -604,7 +604,7 @@ object CnPropSheetForm: TCnPropSheetForm
         Left = 0
         Top = 0
         Width = 468
-        Height = 602
+        Height = 607
         Align = alClient
         BevelInner = bvLowered
         BevelOuter = bvNone
@@ -613,7 +613,7 @@ object CnPropSheetForm: TCnPropSheetForm
         Visible = False
         object pnlGraphicInfo: TPanel
           Left = 1
-          Top = 560
+          Top = 565
           Width = 466
           Height = 41
           Align = alBottom
@@ -636,7 +636,7 @@ object CnPropSheetForm: TCnPropSheetForm
           Left = 1
           Top = 1
           Width = 466
-          Height = 559
+          Height = 564
           Align = alClient
           BorderStyle = bsNone
           TabOrder = 1
@@ -666,9 +666,20 @@ object CnPropSheetForm: TCnPropSheetForm
     end
   end
   object pmTree: TPopupMenu
+    OnPopup = pmTreePopup
     Left = 197
     Top = 383
-    OnPopup = pmTreePopup
+    object miCopyItem: TMenuItem
+      Caption = 'Copy Item'
+      OnClick = miCopyItemClick
+    end
+    object miCopySubTree: TMenuItem
+      Caption = 'Copy Sub Tree'
+      OnClick = miCopySubTreeClick
+    end
+    object miTreeSep1: TMenuItem
+      Caption = '-'
+    end
     object miSelectForCompare: TMenuItem
       Caption = 'Select this Object to Compare'
       OnClick = miSelectForCompareClick

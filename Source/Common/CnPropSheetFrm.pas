@@ -441,6 +441,8 @@ type
     Copy1: TMenuItem;
     CopyAll1: TMenuItem;
     pmTree: TPopupMenu;
+    miCopyItem: TMenuItem;
+    miCopySubTree: TMenuItem;
     miSelectForCompare: TMenuItem;
     miCompareWith: TMenuItem;
     procedure FormCreate(Sender: TObject);
@@ -482,6 +484,8 @@ type
     procedure pmTreePopup(Sender: TObject);
     procedure miSelectForCompareClick(Sender: TObject);
     procedure miCompareWithClick(Sender: TObject);
+    procedure miCopyItemClick(Sender: TObject);
+    procedure miCopySubTreeClick(Sender: TObject);
   private
 {$IFDEF FPC}
     tsSwitch: TTabControl;
@@ -5000,6 +5004,8 @@ var
   ObjName: string;
 begin
   Node := TreeView.Selected;
+  miCopyItem.Enabled := Node <> nil;
+  miCopySubTree.Enabled := Node <> nil;
   if (Node <> nil) and (Node.Data <> nil) then
   begin
     Obj := TObject(Node.Data);
@@ -5057,6 +5063,49 @@ begin
   begin
     RightObj := TObject(Node.Data);
     CnDebugger.OnCompareObjects(CnCompareLeftObject, RightObj);
+  end;
+end;
+
+procedure TCnPropSheetForm.miCopyItemClick(Sender: TObject);
+var
+  Node: TTreeNode;
+begin
+  Node := TreeView.Selected;
+  if Node <> nil then
+    Clipboard.AsText := Node.Text;
+end;
+
+procedure CollectSubTreeText(Node: TTreeNode; Indent: Integer;
+  Lines: TStrings);
+var
+  Prefix: string;
+  Child: TTreeNode;
+begin
+  Prefix := StringOfChar(' ', Indent * 2);
+  Lines.Add(Prefix + Node.Text);
+  Child := Node.getFirstChild;
+  while Child <> nil do
+  begin
+    CollectSubTreeText(Child, Indent + 1, Lines);
+    Child := Child.getNextSibling;
+  end;
+end;
+
+procedure TCnPropSheetForm.miCopySubTreeClick(Sender: TObject);
+var
+  Node: TTreeNode;
+  Lines: TStringList;
+begin
+  Node := TreeView.Selected;
+  if Node = nil then
+    Exit;
+
+  Lines := TStringList.Create;
+  try
+    CollectSubTreeText(Node, 0, Lines);
+    Clipboard.AsText := Lines.Text;
+  finally
+    Lines.Free;
   end;
 end;
 
