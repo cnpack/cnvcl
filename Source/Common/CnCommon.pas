@@ -6199,6 +6199,7 @@ begin
 
   Form := TForm.Create(Application);
   with Form do
+  begin
     try
       Scaled := False;
       Font.Handle := GetStockObject(DEFAULT_GUI_FONT);
@@ -6206,7 +6207,7 @@ begin
       DialogUnits := GetAveCharSize(Canvas);
       BorderStyle := bsDialog;
       Caption := ACaption;
-      ClientWidth := MulDiv(180, DialogUnits.X, 4);
+      ClientWidth := MulDiv(200, DialogUnits.X, 4);
       ClientHeight := MulDiv(63, DialogUnits.Y, 8);
       Position := poScreenCenter;
 
@@ -6228,7 +6229,7 @@ begin
           Parent := Form;
           Left := Prompt.Left;
           Top := MulDiv(19, DialogUnits.Y, 8);
-          Width := MulDiv(164, DialogUnits.X, 4);
+          Width := MulDiv(184, DialogUnits.X, 4);
           // MaxLength := 1024;
           ReadStringsFromIni(Ini, Section, ComboBox.Items);
           if (Value = '') and (ComboBox.Items.Count > 0) then
@@ -6246,7 +6247,7 @@ begin
           Parent := Form;
           Left := Prompt.Left;
           Top := MulDiv(19, DialogUnits.Y, 8);
-          Width := MulDiv(164, DialogUnits.X, 4);
+          Width := MulDiv(184, DialogUnits.X, 4);
           // MaxLength := 1024;
           if APassword then
             PasswordChar := '*';
@@ -6265,7 +6266,7 @@ begin
         Caption := SCnMsgDlgOK;
         ModalResult := mrOk;
         Default := True;
-        SetBounds(MulDiv(38, DialogUnits.X, 4), ButtonTop, ButtonWidth,
+        SetBounds(MulDiv(48, DialogUnits.X, 4), ButtonTop, ButtonWidth,
           ButtonHeight);
       end;
 
@@ -6275,7 +6276,7 @@ begin
         Caption := SCnMsgDlgCancel;
         ModalResult := mrCancel;
         Cancel := True;
-        SetBounds(MulDiv(92, DialogUnits.X, 4), ButtonTop, ButtonWidth,
+        SetBounds(MulDiv(102, DialogUnits.X, 4), ButtonTop, ButtonWidth,
           ButtonHeight);
       end;
 
@@ -6311,6 +6312,7 @@ begin
 {$ENDIF}
       Form.Free;
     end;
+  end;
 end;
 
 {$ENDIF}
