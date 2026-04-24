@@ -151,6 +151,16 @@ type
        返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
 
+    function AppendUInt64Range(Value: TUInt64; MaxRange: Integer): TCnBitBuilder;
+    {* 增加一个八字节中的 0 到 MaxRange 位至本对象，一共会增加 MaxRange + 1 位，返回本对象。
+
+       参数：
+         Value: TUInt64                   - 待增加的八字节值
+         MaxRange: Integer                - 待增加的位范围，0 到 63
+
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
+    }
+
     function AppendByte(Value: Byte; Full: Boolean = True): TCnBitBuilder;
     {* 增加一个字节至本对象，Full 表示是 8 位都加上去还是忽略高位的所有 0，返回本对象。
 
@@ -177,6 +187,16 @@ type
        参数：
          Value: Cardinal                  - 待增加的四字节值
          Full: Boolean                    - 完整 32 位还是忽略高位的所有 0
+
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
+    }
+
+    function AppendUInt64(Value: TUInt64; Full: Boolean = True): TCnBitBuilder;
+    {* 增加一个八字节至本对象，Full 表示是 64 位都加上去还是忽略高位的所有 0，返回本对象。
+
+       参数：
+         Value: TUInt64                   - 待增加的四字节值
+         Full: Boolean                    - 完整 64 位还是忽略高位的所有 0
 
        返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
@@ -242,6 +262,61 @@ type
        返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
     }
 
+    function AppendUInt64MSBFirst(Value: TUInt64; Full: Boolean = True): TCnBitBuilder;
+    {* 增加一个八字节至本对象，但位顺序是倒序，也就是先添加高位。
+       Full 表示是 64 位都加上去还是忽略高位的所有 0，返回本对象。
+
+       参数：
+         Value: TUInt64                   - 待增加的四字节值
+         Full: Boolean                    - 完整 64 位还是忽略高位的所有 0
+
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
+    }
+
+    function AppendByteRangeMSBFirst(Value: Byte; MaxRange: Integer): TCnBitBuilder;
+    {* 增加一个字节中的 0 到 MaxRange 位至本对象，但位顺序是倒序，也就是先添加高位。
+       一共会增加 MaxRange + 1 位，返回本对象。
+
+       参数：
+         Value: Byte                      - 待增加的字节值
+         MaxRange: Integer                - 待增加的位范围，0 到 7
+
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
+    }
+
+    function AppendWordRangeMSBFirst(Value: Word; MaxRange: Integer): TCnBitBuilder;
+    {* 增加一个双字节中的 0 到 MaxRange 位至本对象，但位顺序是倒序，也就是先添加高位。
+       一共会增加 MaxRange + 1 位，返回本对象。
+
+       参数：
+         Value: Word                      - 待增加的双字节值
+         MaxRange: Integer                - 待增加的位范围，0 到 15
+
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
+    }
+
+    function AppendDWordRangeMSBFirst(Value: Cardinal; MaxRange: Integer): TCnBitBuilder;
+    {* 增加一个四字节中的 0 到 MaxRange 位至本对象，但位顺序是倒序，也就是先添加高位。
+       一共会增加 MaxRange + 1 位，返回本对象。
+
+       参数：
+         Value: Cardinal                  - 待增加的四字节值
+         MaxRange: Integer                - 待增加的位范围，0 到 31
+
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
+    }
+
+    function AppendUInt64RangeMSBFirst(Value: TUInt64; MaxRange: Integer): TCnBitBuilder;
+    {* 增加一个八字节中的 0 到 MaxRange 位至本对象，但位顺序是倒序，也就是先添加高位。
+       一共会增加 MaxRange + 1 位，返回本对象。
+
+       参数：
+         Value: TUInt64                   - 待增加的八字节值
+         MaxRange: Integer                - 待增加的位范围，0 到 63
+
+       返回值：TCnBitBuilder              - 返回本对象，供继续添加内容
+    }
+
     procedure DeleteBits(Index: Integer; Count: Integer);
     {* 删除从指定索引开始的指定数量的位，后部内容往前移动。
 
@@ -291,6 +366,17 @@ type
 
     function Copy(Index: Integer; Count: Integer): Cardinal;
     {* 从指定 Index 处复制 Count 个位放入结果中，如 Count 超长无法容纳则抛异常。
+
+       参数：
+         Index: Integer                   - 待复制的起始位偏移量
+         Count: Integer                   - 待复制的位数，不能大于 32
+
+       返回值：Cardinal                   - 复制的内容
+    }
+
+    function CopyMSBFirst(Index: Integer; Count: Integer): Cardinal;
+    {* 从指定 Index 处复制 Count 个位放入结果中，但位顺序是倒序，也就是先复制高位到结果的低位。
+       如 Count 超长无法容纳则抛异常。
 
        参数：
          Index: Integer                   - 待复制的起始位偏移量
@@ -470,6 +556,45 @@ begin
     AppendBit((Value and (1 shl I)) <> 0);
 end;
 
+function TCnBitBuilder.AppendUInt64(Value: TUInt64; Full: Boolean): TCnBitBuilder;
+var
+  H7, H6, H5, H4, H3, H2, H1, H0: Byte;
+begin
+  H7 := (Value and $FF00000000000000) shr 56;
+  H6 := (Value and $00FF000000000000) shr 48;
+  H5 := (Value and $0000FF0000000000) shr 40;
+  H4 := (Value and $000000FF00000000) shr 32;
+  H3 := (Value and $00000000FF000000) shr 24;
+  H2 := (Value and $0000000000FF0000) shr 16;
+  H1 := (Value and $000000000000FF00) shr 8;
+  H0 := Value and $00000000000000FF;
+
+  AppendByte(H0, Full or (H7 * H6 * H5 * H4 * H3 * H2 * H1 <> 0)); // 有高位存在的话，低位必须 Full
+  AppendByte(H1, Full or (H7 * H6 * H5 * H4 * H3 * H2 <> 0));
+  AppendByte(H2, Full or (H7 * H6 * H5 * H4 * H3 <> 0));
+  AppendByte(H3, Full or (H7 * H6 * H5 * H4 <> 0));
+  AppendByte(H4, Full or (H7 * H6 * H5 <> 0));
+  AppendByte(H5, Full or (H7 * H6 <> 0));
+  AppendByte(H6, Full or (H7 <> 0));
+  AppendByte(H7, Full);
+  Result := Self;
+end;
+
+function TCnBitBuilder.AppendUInt64Range(Value: TUInt64; MaxRange: Integer): TCnBitBuilder;
+var
+  I: Integer;
+begin
+  Result := Self;
+  if MaxRange < 0 then
+    Exit;
+
+  if MaxRange > 63 then
+    MaxRange := 63;
+
+  for I := 0 to MaxRange do
+    AppendBit((Value and (TUInt64(1) shl I)) <> 0);
+end;
+
 function TCnBitBuilder.AppendWord(Value: Word; Full: Boolean): TCnBitBuilder;
 var
   H, L: Byte;
@@ -514,6 +639,22 @@ begin
     AppendBit((Value and (1 shl I)) <> 0);
 end;
 
+function TCnBitBuilder.AppendByteRangeMSBFirst(Value: Byte;
+  MaxRange: Integer): TCnBitBuilder;
+var
+  I: Integer;
+begin
+  Result := Self;
+  if MaxRange < 0 then
+    Exit;
+
+  if MaxRange > 7 then
+    MaxRange := 7;
+
+  for I := MaxRange downto 0 do
+    AppendBit((Value and (1 shl I)) <> 0);
+end;
+
 function TCnBitBuilder.AppendWordMSBFirst(Value: Word;
   Full: Boolean): TCnBitBuilder;
 var
@@ -525,6 +666,22 @@ begin
   AppendByteMSBFirst(H, Full);
   AppendByteMSBFirst(L, Full or (H <> 0)); // 有高位存在的话，低 8 位必须 Full
   Result := Self;
+end;
+
+function TCnBitBuilder.AppendWordRangeMSBFirst(Value: Word;
+  MaxRange: Integer): TCnBitBuilder;
+var
+  I: Integer;
+begin
+  Result := Self;
+  if MaxRange < 0 then
+    Exit;
+
+  if MaxRange > 15 then
+    MaxRange := 15;
+
+  for I := MaxRange downto 0 do
+    AppendBit((Value and (1 shl I)) <> 0);
 end;
 
 function TCnBitBuilder.AppendDWordMSBFirst(Value: Cardinal;
@@ -542,6 +699,62 @@ begin
   AppendByteMSBFirst(H1, Full or (H3 * H2 <> 0));
   AppendByteMSBFirst(H0, Full or (H3 * H2 * H1 <> 0)); // 有高位存在的话，低位必须 Full
   Result := Self;
+end;
+
+function TCnBitBuilder.AppendDWordRangeMSBFirst(Value: Cardinal;
+  MaxRange: Integer): TCnBitBuilder;
+var
+  I: Integer;
+begin
+  Result := Self;
+  if MaxRange < 0 then
+    Exit;
+
+  if MaxRange > 31 then
+    MaxRange := 31;
+
+  for I := MaxRange downto 0 do
+    AppendBit((Value and (1 shl I)) <> 0);
+end;
+
+function TCnBitBuilder.AppendUInt64MSBFirst(Value: TUInt64; Full: Boolean): TCnBitBuilder;
+var
+  H7, H6, H5, H4, H3, H2, H1, H0: Byte;
+begin
+  H7 := (Value and $FF00000000000000) shr 56;
+  H6 := (Value and $00FF000000000000) shr 48;
+  H5 := (Value and $0000FF0000000000) shr 40;
+  H4 := (Value and $000000FF00000000) shr 32;
+  H3 := (Value and $00000000FF000000) shr 24;
+  H2 := (Value and $0000000000FF0000) shr 16;
+  H1 := (Value and $000000000000FF00) shr 8;
+  H0 := Value and $00000000000000FF;
+
+  AppendByteMSBFirst(H7, Full);
+  AppendByteMSBFirst(H6, Full or (H7 <> 0));
+  AppendByteMSBFirst(H5, Full or (H7 * H6 <> 0));
+  AppendByteMSBFirst(H4, Full or (H7 * H6 * H5 <> 0));
+  AppendByteMSBFirst(H3, Full or (H7 * H6 * H5 * H4 <> 0));
+  AppendByteMSBFirst(H2, Full or (H7 * H6 * H5 * H4 * H3 <> 0));
+  AppendByteMSBFirst(H1, Full or (H7 * H6 * H5 * H4 * H3 * H2 <> 0));
+  AppendByteMSBFirst(H0, Full or (H7 * H6 * H5 * H4 * H3 * H2 * H1 <> 0)); // 有高位存在的话，低位必须 Full
+  Result := Self;
+end;
+
+function TCnBitBuilder.AppendUInt64RangeMSBFirst(Value: TUInt64;
+  MaxRange: Integer): TCnBitBuilder;
+var
+  I: Integer;
+begin
+  Result := Self;
+  if MaxRange < 0 then
+    Exit;
+
+  if MaxRange > 63 then
+    MaxRange := 63;
+
+  for I := MaxRange downto 0 do
+    AppendBit((Value and (TUInt64(1) shl I)) <> 0);
 end;
 
 procedure TCnBitBuilder.Clear;
@@ -565,6 +778,23 @@ begin
       Result := Result or (1 shl (I - Index))
     else
       Result := Result and not (1 shl (I - Index));
+  end;
+end;
+
+function TCnBitBuilder.CopyMSBFirst(Index: Integer; Count: Integer): Cardinal;
+var
+  I: Integer;
+begin
+  if Count > SizeOf(Cardinal) * 8 then
+    raise ERangeError.CreateFmt(SCnErrorBitTooLargeFmt, [Count]);
+
+  Result := 0;
+  for I := Index + Count - 1 downto Index do
+  begin
+    if Bit[I] then
+      Result := Result or (1 shl (Index + Count - 1 - I))
+    else
+      Result := Result and not (1 shl (Index + Count - 1 - I));
   end;
 end;
 
