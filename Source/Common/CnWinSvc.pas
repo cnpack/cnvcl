@@ -48,8 +48,8 @@ type
     FLastErrorCode: DWORD;
     FLastErrorMsg: string;
     FServiceName: string;
-    FSCHandle: Integer;
-    FServiceHandle: Integer;
+    FSCHandle: SC_HANDLE;
+    FServiceHandle: SC_HANDLE;
     function OpenSCHandle: Boolean;
     procedure CloseSCHandle;
     function OpenSvcHandle: Boolean;
@@ -60,8 +60,8 @@ type
     function GetCurrentState: TServiceCurrentState;
   protected
     procedure LogError(const ErrorMsg: string);
-    property SCHandle: Integer read FSCHandle;
-    property ServiceHandle: Integer read FServiceHandle;
+    property SCHandle: SC_HANDLE read FSCHandle;
+    property ServiceHandle: SC_HANDLE read FServiceHandle;
   public
     constructor Create(const AServiceName: string; const AComputerName:
       string = '');
@@ -191,7 +191,7 @@ end;
 function TCnNTService.Install(const ServiceFileName,
   DisplayName: string): Boolean;
 var
-  SvcHandle: Integer;
+  SvcHandle: SC_HANDLE;
 begin
   Result := False;
   if not OpenSCHandle then Exit;
